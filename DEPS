@@ -4,7 +4,8 @@ vars = {
 
 deps = {
 	"vendor/luajit": Var("citidev_root") + "/luajit.git",
-	"build/premake": "http://github.com/annulen/premake.git"
+	"build/premake": "http://github.com/annulen/premake.git",
+	"vendor/jitasm": "http://jitasm.googlecode.com/svn/trunk/"
 }
 
 hooks = [
