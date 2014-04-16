@@ -77,13 +77,20 @@ public:
 template<typename ValueType>
 inline void put(uintptr_t address, ValueType value)
 {
+	adjust_base(address);
+
 	memcpy((void*)address, &value, sizeof(value));
 }
 
-void return_function(uintptr_t address, uint16_t stackSize = 0)
+inline void nop(uintptr_t address, size_t length)
 {
 	adjust_base(address);
 
+	memset((void*)address, 0x90, length);
+}
+
+inline void return_function(uintptr_t address, uint16_t stackSize = 0)
+{
 	if (stackSize == 0)
 	{
 		put<uint8_t>(address, 0xC3);
@@ -92,6 +99,54 @@ void return_function(uintptr_t address, uint16_t stackSize = 0)
 	{
 		put<uint8_t>(address, 0xC2);
 		put<uint16_t>(address + 1, stackSize);
+	}
+}
+
+template<typename T>
+inline T* getRVA(uintptr_t rva)
+{
+	return (T*)(baseAddressDifference + 0x400000 + rva);
+}
+
+template<typename T>
+void iat(const char* moduleName, T function, int ordinal)
+{
+	IMAGE_DOS_HEADER* imageHeader = (IMAGE_DOS_HEADER*)(baseAddressDifference + 0x400000);
+	IMAGE_NT_HEADERS* ntHeader = getRVA<IMAGE_NT_HEADERS>(imageHeader->e_lfanew);
+
+	IMAGE_IMPORT_DESCRIPTOR* descriptor = getRVA<IMAGE_IMPORT_DESCRIPTOR>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+
+	while (descriptor->Name)
+	{
+		const char* name = getRVA<char>(descriptor->Name);
+
+		if (_stricmp(name, moduleName))
+		{
+			descriptor++;
+
+			continue;
+		}
+
+		auto nameTableEntry = getRVA<uint32_t>(descriptor->OriginalFirstThunk);
+		auto addressTableEntry = getRVA<uint32_t>(descriptor->FirstThunk);
+
+		while (*nameTableEntry)
+		{
+			// is this an ordinal-only import?
+			if (IMAGE_SNAP_BY_ORDINAL(*nameTableEntry))
+			{
+				if (IMAGE_ORDINAL(*nameTableEntry) == ordinal)
+				{
+					*addressTableEntry = (uint32_t)function;
+					return;
+				}
+			}
+
+			nameTableEntry++;
+			addressTableEntry++;
+		}
+
+		return;
 	}
 }
 
@@ -113,19 +168,7 @@ private:
 
 public:
 	// return value type container
-	class ReturnType
-	{
-	private:
-		friend class inject_hook;
-
-		int jumpToEax;
-
-	private:
-		inline ReturnType(int doStuff)
-		{
-			jumpToEax = doStuff;
-		}
-	};
+	typedef int ReturnType;
 
 private:
 	// set context and run
@@ -235,25 +278,22 @@ public:
 		// guess not, remove jump target area and popad
 		add(esp, 4);
 		popad();
+
+		// get esp back from the context bit
+		mov(esp, dword_ptr[esp - 20]);
+
 		ret();
 
 		L("actuallyJump");
 
 		add(esp, 4);
 		popad();
+
+		mov(esp, dword_ptr[esp - 20]);
 		
 		AppendInstr(jitasm::I_CALL, 0xFF, 0, jitasm::Imm8(4), R(eax));
 	}
 };
-
-void inject_hook::inject()
-{
-	inject_hook_frontend fe(this);
-	m_assembly = std::make_shared<FunctionAssembly>(fe);
-
-	put<uint8_t>(m_address, 0xE9);
-	put<int>(m_address + 1, (uintptr_t)m_assembly->GetCode() - (uintptr_t)get_adjusted(m_address) - 5);
-}
 
 #define DEFINE_INJECT_HOOK(hookName, hookAddress) class _zz_inject_hook_##hookName : public hook::inject_hook { public: _zz_inject_hook_##hookName(uint32_t address) : hook::inject_hook(address) {}; ReturnType run(); }; \
 	static _zz_inject_hook_##hookName hookName(hookAddress); \
@@ -391,7 +431,6 @@ public:
 		}
 
 		m_address = address;
-		m_code = nullptr;
 	}	
 
 	void inject(R (*target)(Args...))

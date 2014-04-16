@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include <map>
 #include <unordered_map>
@@ -21,3 +22,11 @@
 #include <string>
 
 // our common includes
+#include <Utils.h>
+#include <sigslot.h>
+
+// module-specific includes
+#ifdef COMPILING_HOOKS
+#include "Hooking.h"
+#include "HookFunction.h"
+#endif
