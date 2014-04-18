@@ -69,4 +69,24 @@ void scrEngine::CreateThread(GtaThread* thread)
 		collection->set(slot, thread);
 	}
 }
+
+scrEngine::NativeHandler scrEngine::GetNativeHandler(uint32_t hash)
+{
+	scrEngine::NativeHandler returnValue = nullptr;
+
+	__asm
+	{
+		push esi
+		mov esi, hash
+		mov eax, 5A76D0h
+
+		call eax
+
+		pop esi
+
+		mov returnValue, eax
+	}
+
+	return returnValue;
+}
 }

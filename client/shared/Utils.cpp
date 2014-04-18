@@ -42,3 +42,70 @@ void InitFunctionBase::RunAll()
 		func->Run();
 	}
 }
+
+#define BUFFER_COUNT 8
+#define BUFFER_LENGTH 32768
+
+const char* va(const char* string, ...)
+{
+	static char buffer[BUFFER_COUNT][BUFFER_LENGTH];
+	static int currentBuffer;
+
+	va_list ap;
+	va_start(ap, string);
+	int length = _vsnprintf_s(buffer[currentBuffer], BUFFER_LENGTH, string, ap);
+	va_end(ap);
+
+	if (length >= BUFFER_LENGTH)
+	{
+		GlobalError("Attempted to overrun string in call to va()!");
+	}
+
+	buffer[currentBuffer][BUFFER_LENGTH - 1] = '\0';
+
+	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
+
+	return buffer[currentBuffer];
+}
+
+void trace(const char* string, ...)
+{
+	static char buffer[BUFFER_LENGTH];
+
+	va_list ap;
+	va_start(ap, string);
+	int length = _vsnprintf_s(buffer, BUFFER_LENGTH, string, ap);
+	va_end(ap);
+
+	if (length >= BUFFER_LENGTH)
+	{
+		GlobalError("Attempted to overrun string in call to trace()!");
+	}
+
+	OutputDebugStringA(buffer);
+	printf(buffer);
+
+	// TODO: write to a log file too, if enabled?
+}
+
+void GlobalError(const char* string, ...)
+{
+	static char buffer[BUFFER_LENGTH];
+
+	va_list ap;
+	va_start(ap, string);
+	int length = _vsnprintf_s(buffer, BUFFER_LENGTH, string, ap);
+	va_end(ap);
+
+	if (length >= BUFFER_LENGTH)
+	{
+		GlobalError("Attempted to overrun string in call to GlobalError()!");
+	}
+
+	HWND wnd = NULL;
+
+	// TODO: get the game window
+
+	MessageBoxA(wnd, buffer, "CitizenFX Fatal Error", MB_OK | MB_ICONSTOP);
+	ExitProcess(1);
+}

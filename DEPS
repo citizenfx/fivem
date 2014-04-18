@@ -5,7 +5,8 @@ vars = {
 deps = {
 	"vendor/luajit": Var("citidev_root") + "/luajit.git",
 	"build/premake": "http://github.com/annulen/premake.git",
-	"vendor/jitasm": "http://jitasm.googlecode.com/svn/trunk/"
+	"vendor/jitasm": "http://jitasm.googlecode.com/svn/trunk/",
+	"vendor/yaml-cpp": "https://github.com/bminor/yaml-cpp.git"
 }
 
 hooks = [
@@ -23,5 +24,10 @@ hooks = [
 		"name": "build_premake_win",
 		"pattern": "build/premake/",
 		"action": [ "msbuild", "build/premake/project/Premake5.sln", "/p:configuration=release" ]
+	},
+	{
+		"name": "build_luajit_win",
+		"pattern": "vendor/luajit/src/",
+		"action": ["cd", "vendor/luajit/src", "&&", "msvcbuild", "static" ]
 	}
 ]

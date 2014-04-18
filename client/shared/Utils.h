@@ -132,6 +132,16 @@ public:
 
 #ifdef COMPILING_GAMESPEC
 #define GAMESPEC_EXPORT __declspec(dllexport)
+#define GAMESPEC_EXPORT_VMT __declspec(dllexport)
 #else
 #define GAMESPEC_EXPORT __declspec(dllimport)
+#define GAMESPEC_EXPORT_VMT
 #endif
+
+//
+// formatting/logging functions
+//
+
+const char* va(const char* string, ...);
+void trace(const char* string, ...);
+void GlobalError(const char* string, ...);

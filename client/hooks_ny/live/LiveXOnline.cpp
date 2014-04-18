@@ -62,7 +62,7 @@ DWORD __stdcall XSessionSearchEx(DWORD dwProcedureIndex,
 	{
 		*pcbResultsBuffer = sizeof(XSESSION_SEARCHRESULT_HEADER)+(((sizeof(XSESSION_SEARCHRESULT)+(sizeof(XUSER_PROPERTY)* 4) + (sizeof(XUSER_CONTEXT)* 4)) * dwNumResults));
 
-		return ERROR_INSUFFICIENT_BUFFER;
+		return ERROR_IO_PENDING; // actually ERROR_INSUFFICIENT_BUFFER
 	}
 
 	pXOverlapped->InternalLow = ERROR_IO_PENDING;

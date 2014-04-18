@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "ResourceManager.h"
 #include "scrEngine.h"
 
 class ScriptManager : public GtaThread
@@ -13,17 +14,25 @@ public:
 
 void ScriptManager::DoRun()
 {
-
+	TheResources.Tick();
 }
 
 rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
+	std::string resourcePath = "citizen:/resources/";
+	TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
+
+	std::string lovely = "lovely";
+	TheResources.GetResource(lovely)->Start();
+
+	ScriptEnvironment::SignalScriptReset.emit();
+
 	return GtaThread::Reset(scriptHash, pArgs, argCount);
 }
 
 void ScriptManager::Kill()
 {
-	GtaThread::Kill();
+	return GtaThread::Kill();
 }
 
 static InitFunction initFunction([] ()

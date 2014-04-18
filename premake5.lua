@@ -5,8 +5,8 @@
 		
 		flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 		
-		includedirs { "shared/", "client/shared/", "../vendor/jitasm/" }
-		
+		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", os.getenv("BOOST_ROOT") }
+	
 		configuration "Debug*"
 			targetdir "bin/debug"
 			defines "NDEBUG"
@@ -29,7 +29,7 @@
 		files
 		{
 			"client/launcher/**.cpp", "client/launcher/**.h", 
-			"client/launcher/launcher.rc"
+			"client/launcher/launcher.rc", "client/launcher/launcher.def"
 		}
 		
 		configuration "windows"
@@ -45,9 +45,12 @@
 			"client/citigame/**.cpp", "client/citigame/**.h"
 		}
 		
-		links { "Shared" }
+		links { "Shared", "yaml-cpp", "lua51", "winmm" }
 		
 		defines "COMPILING_GAME"
+		
+		libdirs { "../vendor/luajit/src/" }
+		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/" }
 		
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/rage/" }
@@ -94,4 +97,16 @@
 		files
 		{
 			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
+		}
+		
+	project "yaml-cpp"
+		targetname "yaml-cpp"
+		language "C++"
+		kind "StaticLib"
+		
+		includedirs { "../vendor/yaml-cpp/include" }
+		
+		files
+		{
+			"../vendor/yaml-cpp/src/*.cpp"
 		}
