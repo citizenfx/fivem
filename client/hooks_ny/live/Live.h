@@ -1,15 +1,7 @@
 #pragma once
 
 #include <WS2tcpip.h>
-
-typedef struct
-{
-	IN_ADDR ina;
-	IN_ADDR inaOnline;
-	WORD wPortOnline;
-	BYTE abEnet[6];
-	BYTE abOnline[20];
-} XNADDR;
+#include "CPlayerInfo.h"
 
 typedef struct
 {

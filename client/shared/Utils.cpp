@@ -24,7 +24,29 @@ std::wstring GetAbsoluteCitPath()
 std::wstring GetAbsoluteGamePath()
 {
 	// hacky for now :)
-	return L"S:\\games\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
+	if (!_stricmp(getenv("COMPUTERNAME"), "fallarbor"))
+	{
+		return L"S:\\games\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
+	}
+	else if (!_stricmp(getenv("COMPUTERNAME"), "avail"))
+	{
+		return L"D:\\program files\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
+	}
+	else if (!_stricmp(getenv("COMPUTERNAME"), "snowpoint"))
+	{
+		return L"E:\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
+	}
+	else
+	{
+		static wchar_t buffer[512];
+
+		if (!buffer[0])
+		{
+			GetFullPathName(L"..\\gtaiv\\", _countof(buffer), buffer, nullptr);
+		}
+
+		return buffer;
+	}
 }
 
 static InitFunctionBase* g_initFunctions;
@@ -50,10 +72,11 @@ const char* va(const char* string, ...)
 {
 	static char buffer[BUFFER_COUNT][BUFFER_LENGTH];
 	static int currentBuffer;
+	int thisBuffer = currentBuffer;
 
 	va_list ap;
 	va_start(ap, string);
-	int length = _vsnprintf_s(buffer[currentBuffer], BUFFER_LENGTH, string, ap);
+	int length = _vsnprintf_s(buffer[thisBuffer], BUFFER_LENGTH, string, ap);
 	va_end(ap);
 
 	if (length >= BUFFER_LENGTH)
@@ -61,11 +84,11 @@ const char* va(const char* string, ...)
 		GlobalError("Attempted to overrun string in call to va()!");
 	}
 
-	buffer[currentBuffer][BUFFER_LENGTH - 1] = '\0';
+	buffer[thisBuffer][BUFFER_LENGTH - 1] = '\0';
 
 	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
 
-	return buffer[currentBuffer];
+	return buffer[thisBuffer];
 }
 
 void trace(const char* string, ...)

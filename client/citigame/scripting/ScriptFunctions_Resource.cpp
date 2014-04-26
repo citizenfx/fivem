@@ -116,7 +116,8 @@ static int resourceExportCall(lua_State* L)
 	luaS_serializeArgs(L, 2, nargs - 1);
 	int argTable = lua_gettop(L);
 
-	const char* jsonString = lua_tostring(L, -1);
+	size_t len;
+	const char* jsonString = lua_tolstring(L, -1, &len);
 
 	// get the resource pointer from the table
 	lua_pushstring(L, "resource");
@@ -130,7 +131,7 @@ static int resourceExportCall(lua_State* L)
 	const char* exportName = lua_tostring(L, lua_upvalueindex(1));
 
 	// call the function in the resource
-	std::string retVal = resource->CallExport(std::string(exportName), std::string(jsonString));
+	std::string retVal = resource->CallExport(std::string(exportName), std::string(jsonString, len));
 
 	lua_remove(L, argTable);
 

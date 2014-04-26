@@ -2,6 +2,7 @@
 #include "LauncherInterface.h"
 #include "Launcher.h"
 #include "CrossLibraryInterfaces.h"
+#include "net/HttpClient.h"
 
 bool LauncherInterface::PreLoadGame()
 {

@@ -2,9 +2,8 @@
 #include "ResourceScripting.h"
 #include "ResourceManager.h"
 
-#if 0
-#include "NativeInvoke.h"
-#include "ScriptManager.h"
+//#include "NativeInvoke.h"
+//#include "ScriptManager.h"
 #include <queue>
 #include <map>
 
@@ -19,10 +18,11 @@ LUA_FUNCTION(TriggerEvent)
 	int nargs = lua_gettop(L);
 	luaS_serializeArgs(L, 2, nargs - 1);
 
-	const char* jsonString = lua_tostring(L, -1);
+	size_t len;
+	const char* jsonString = lua_tolstring(L, -1, &len);
 
 	// call into resources
-	TheResources.TriggerEvent(std::string(eventName), std::string(jsonString));
+	TheResources.TriggerEvent(std::string(eventName), std::string(jsonString, len));
 
 	// remove serialized string
 	lua_pop(L, 1);
@@ -32,6 +32,7 @@ LUA_FUNCTION(TriggerEvent)
 	return 0;
 }
 
+#if 0
 struct QueuedEvent
 {
 	std::string eventName;

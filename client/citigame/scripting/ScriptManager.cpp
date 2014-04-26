@@ -15,12 +15,29 @@ public:
 void ScriptManager::DoRun()
 {
 	TheResources.Tick();
+
+	static bool testState;
+
+	if (GetAsyncKeyState(VK_F11))
+	{
+		if (!testState)
+		{
+			((void(*)(int, int, int))0x423CE0)(1, 0, 0);
+
+			*(BYTE*)0x7BD9F0 = 0xC3;
+			*(BYTE*)0x18A823A = 1;
+			testState = true;
+		}
+	}
 }
 
 rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
 	std::string resourcePath = "citizen:/resources/";
 	TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
+
+	std::string gameInit = "gameInit";
+	TheResources.GetResource(gameInit)->Start();
 
 	std::string lovely = "lovely";
 	TheResources.GetResource(lovely)->Start();
@@ -41,11 +58,6 @@ static InitFunction initFunction([] ()
 	{
 		// create the script manager
 		static ScriptManager* scriptManager = new ScriptManager();
-
-		atexit([] ()
-		{
-			delete scriptManager;
-		});
 
 		rage::scrEngine::CreateThread(scriptManager);
 	});

@@ -230,6 +230,7 @@ public:
 	}
 
 	void inject();
+	void injectCall();
 };
 
 struct inject_hook_frontend : jitasm::Frontend

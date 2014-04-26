@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "CrossLibraryInterfaces.h"
 
 IGameSpecToHooks* g_hooksDLL;
 

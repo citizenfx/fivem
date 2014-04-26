@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "fiDevice.h"
+#include "CrossLibraryInterfaces.h"
 
 namespace rage
 {

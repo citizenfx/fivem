@@ -45,7 +45,7 @@
 			"client/citigame/**.cpp", "client/citigame/**.h"
 		}
 		
-		links { "Shared", "yaml-cpp", "lua51", "winmm" }
+		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32" }
 		
 		defines "COMPILING_GAME"
 		
@@ -53,7 +53,7 @@
 		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/" }
 		
 		configuration "* NY"
-			includedirs { "client/game_ny/base/", "client/game_ny/rage/" }
+			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
 			links { "HooksNY", "GameNY" }
 			
 	project "GameNY"
@@ -83,7 +83,7 @@
 		defines "COMPILING_HOOKS"		
 		
 		configuration "* NY"
-			includedirs { "client/game_ny/base/", "client/game_ny/rage/", "client/hooks_ny/base/" }
+			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
 			files
 			{
 				"client/hooks_ny/**.cpp", "client/hooks_ny/**.h"

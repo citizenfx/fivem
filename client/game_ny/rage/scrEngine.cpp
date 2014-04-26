@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "scrEngine.h"
+#include "CrossLibraryInterfaces.h"
 
 namespace rage
 {

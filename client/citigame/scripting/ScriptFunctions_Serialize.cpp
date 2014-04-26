@@ -52,6 +52,8 @@ int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized
 {
 	STACK_BASE;
 
+	_controlfp(_PC_53, _MCW_PC);
+
 	lua_pushcfunction(L, lua_error_handler);
 	int eh = lua_gettop(L);
 
@@ -67,7 +69,7 @@ int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized
 
 	lua_remove(L, jsonTable);
 
-	lua_pushstring(L, argsSerialized.c_str());
+	lua_pushlstring(L, argsSerialized.c_str(), argsSerialized.size());
 
 	// stack: 3
 
@@ -79,6 +81,7 @@ int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized
 
 	// stack: 3 (table on top)
 	int type = lua_type(L, -1);
+	//assert(!"NOTE: MSGPACK LIBRARY RETURNS OFFSET FIRST");
 	assert(type == LUA_TTABLE);
 
 	// store a ref to the table

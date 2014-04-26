@@ -1,7 +1,47 @@
 #include "StdInc.h"
 #include "Live.h"
+#include "CrossLibraryInterfaces.h"
 
 static SOCKET g_gameSocket;
+extern DWORD xuidBase;
+
+DWORD __stdcall XNetGetTitleXnAddr(XNADDR * pAddr)
+{
+	memset(pAddr, 0, sizeof(XNADDR));
+
+	pAddr->wPortOnline = xuidBase & 0xFFFF;
+	pAddr->ina.s_addr = g_netLibrary->GetServerNetID();
+	pAddr->inaOnline.s_addr = g_netLibrary->GetServerNetID();
+	*(uint64_t*)(pAddr->abOnline) = xuidBase | (xuidBase << 32);
+
+	/*if (!_stricmp(getenv("computername"), "fallarbor"))
+	{
+		if (!wcsstr(GetCommandLine(), L"cl2"))
+		{
+			pAddr->inaOnline.s_addr = 1;
+		}
+		else
+		{
+			pAddr->inaOnline.s_addr = 2;
+		}
+	}
+	else if (!_stricmp(getenv("computername"), "snowpoint"))
+	{
+		pAddr->inaOnline.s_addr = 3;
+	}*/
+
+	return 0xE4;
+}
+
+// #57: XNetXnAddrToInAddr
+int __stdcall XNetXnAddrToInAddr(const XNADDR* addr, const XNKID* pxnkid, IN_ADDR* add)
+{
+	// XNADDR structures for CitizenMP:IV are directly mapped to server NetIDs.
+	trace("XNetXnAddrToInAddr %08x, %04x, %016llx\n", addr->inaOnline.s_addr, addr->wPortOnline, *(uint64_t*)addr->abOnline);
+	*add = addr->inaOnline;
+
+	return 0;
+}
 
 SOCKET __stdcall XCreateSocket(int af, int type, int protocol)
 {
@@ -56,11 +96,25 @@ int __stdcall XSocketSetSockOpt(SOCKET s, int level, int optname, const char* op
 
 int __stdcall XSocketGetSockName(SOCKET s, sockaddr_in * name, int * namelen)
 {
-	return getsockname(s, (sockaddr*)name, namelen);
+	int n = getsockname(s, (sockaddr*)name, namelen);
+
+	if (wcsstr(GetCommandLine(), L"cl2"))
+	{
+		sockaddr_in* addrIn = (sockaddr_in*)name;
+		addrIn->sin_port = htons(ntohs(addrIn->sin_port) - 1);
+	}
+
+	return n;
 }
 
 int __stdcall XSocketBind(SOCKET s, sockaddr * addr, int addrlen)
 {
+	if (wcsstr(GetCommandLine(), L"cl2"))
+	{
+		sockaddr_in* addrIn = (sockaddr_in*)addr;
+		addrIn->sin_port = htons(ntohs(addrIn->sin_port) + 1);
+	}
+
 	return bind(s, addr, addrlen);
 }
 
@@ -92,7 +146,35 @@ int __stdcall XSocketRecv(SOCKET s, char * buf, int len, int flags)
 
 int __stdcall XSocketRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * from, int * fromlen)
 {
-	
+	if (s == g_gameSocket)
+	{
+		static char buffer[65536];
+		size_t length;
+		uint16_t netID;
+
+		if (g_netLibrary->DequeueRoutedPacket(buffer, &length, &netID))
+		{
+			memcpy(buf, buffer, min(len, length));
+
+			sockaddr_in* outFrom = (sockaddr_in*)from;
+			memset(outFrom, 0, sizeof(sockaddr_in));
+
+			outFrom->sin_family = AF_INET;
+			outFrom->sin_addr.s_addr = netID;
+			outFrom->sin_port = htons(1000);
+
+			*fromlen = sizeof(sockaddr_in);
+
+			trace("XSocketRecvFrom (from %i) %i bytes\n", netID, length);
+
+			return min(len, length);
+		}
+		else
+		{
+			WSASetLastError(WSAEWOULDBLOCK);
+			return SOCKET_ERROR;
+		}
+	}
 
 	int lens = recvfrom(s, buf, len, flags, from, fromlen);
 
@@ -107,6 +189,17 @@ int __stdcall XSocketSend(SOCKET s, char * buf, int len, int flags)
 
 int __stdcall XSocketSendTo(SOCKET s, char * buf, int len, int flags, sockaddr * to, int tolen)
 {
+	if (s == g_gameSocket)
+	{
+		sockaddr_in* toIn = (sockaddr_in*)to;
+
+		trace("XSocketSendTo (to %i) %i b\n", toIn->sin_addr.s_addr, len);
+
+		g_netLibrary->RoutePacket(buf, len, (uint16_t)toIn->sin_addr.s_addr);
+
+		return len;
+	}
+
 	return sendto(s, buf, len, flags, to, tolen);
 }
 
@@ -154,12 +247,6 @@ int __stdcall XNetRegisterKey(DWORD, DWORD)
 
 // #56: XNetUnregisterKey
 int __stdcall XNetUnregisterKey(DWORD)
-{
-	return 0;
-}
-
-// #57: XNetXnAddrToInAddr
-int __stdcall XNetXnAddrToInAddr(const XNADDR* addr, const XNKID* pxnkid, IN_ADDR* add)
 {
 	return 0;
 }
@@ -240,17 +327,6 @@ DWORD __stdcall XNetQosRelease(XNQOS* q)
 }
 
 // #73: XNetGetTitleXnAddr
-static bool setTitle = false;
-
-bool SteamProxy_Init();
-
-DWORD __stdcall XNetGetTitleXnAddr(XNADDR * pAddr)
-{
-	memset(pAddr, 0, sizeof(*pAddr));
-
-	return 0xE4;
-}
-
 DWORD __stdcall XNetGetEthernetLinkStatus()
 {
 	return 1;
@@ -261,8 +337,25 @@ DWORD __stdcall XNetSetSystemLinkPort(DWORD)
 	return 0;
 }
 
+int getSecKey(unsigned __int64* secKey)
+{
+	//trace("getSecKey()\n");
+
+	*secKey = xuidBase | 0xFF12FF1200000000;
+	return 1;
+}
+
+void injectFunction(DWORD dwAddress, DWORD pfnReplacement)
+{
+	BYTE * patch = (BYTE *)dwAddress;
+	*patch = 0xE9;	// JMP
+	*(DWORD *)(patch + 1) = (pfnReplacement - (dwAddress + 5));
+}
+
 static HookFunction hookFunction([] ()
 {
+	injectFunction(0x76A470, (DWORD)getSecKey);
+
 	hook::iat("xlive.dll", XCreateSocket, 3);
 	hook::iat("xlive.dll", XSocketSend, 22);
 	hook::iat("xlive.dll", XSocketSendTo, 24);

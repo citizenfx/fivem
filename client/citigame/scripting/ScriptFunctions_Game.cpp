@@ -3,6 +3,8 @@
 
 LUA_FUNCTION(SetLoadingText)
 {
+	mbstowcs((wchar_t*)(0x11D6550), luaL_checkstring(L, 1), 64);
+
 	return 0;
 }
 

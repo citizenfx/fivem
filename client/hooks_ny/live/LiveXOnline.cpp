@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "Live.h"
+#include "CrossLibraryInterfaces.h"
 
 // #5312: XFriendsCreateEnumerator
 DWORD __stdcall XFriendsCreateEnumerator(DWORD, DWORD, DWORD, DWORD, HANDLE * phEnum)
@@ -248,6 +249,19 @@ DWORD __stdcall XStringVerify(DWORD, DWORD, DWORD numStrings, DWORD, DWORD, STRI
 	return 0;
 }
 
+DWORD __stdcall XNetGetTitleXnAddr(XNADDR * pAddr);
+
+void HandleSessionInfo(PXSESSION_INFO pSessionInfo)
+{
+	memset(pSessionInfo, 0, sizeof(XSESSION_INFO));
+	pSessionInfo->sessionID.ab[0] = 1;
+	pSessionInfo->keyExchangeKey.ab[0] = 1;
+	pSessionInfo->hostAddress.inaOnline.s_addr = g_netLibrary->GetServerNetID();
+	pSessionInfo->hostAddress.ina.s_addr = g_netLibrary->GetServerNetID();
+
+	XNetGetTitleXnAddr(&pSessionInfo->hostAddress);
+}
+
 DWORD __stdcall XSessionCreate(DWORD dwFlags,
 										   DWORD dwUserIndex,
 										   DWORD dwMaxPublicSlots,
@@ -258,6 +272,11 @@ DWORD __stdcall XSessionCreate(DWORD dwFlags,
 										   HANDLE *ph)
 {
 	*ph = (HANDLE)1;
+
+	if (dwFlags & 1)
+	{
+		HandleSessionInfo(pSessionInfo);
+	}
 
 	return ERROR_SUCCESS;
 }

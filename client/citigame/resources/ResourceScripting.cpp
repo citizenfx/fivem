@@ -245,7 +245,10 @@ std::string ScriptEnvironment::CallExport(ScriptFunctionRef ref, std::string& ar
 	// serialize return value
 	luaS_serializeArgs(m_luaState, lua_gettop(m_luaState), 1);
 
-	std::string retValue = std::string(lua_tostring(m_luaState, -1));
+	size_t len;
+	const char* string = lua_tolstring(m_luaState, -1, &len);
+
+	std::string retValue = std::string(string, len);
 
 	lua_pop(m_luaState, 3);
 
@@ -272,13 +275,18 @@ static const luaL_Reg lualibs[] =
 
 LUALIB_API void safe_openlibs (lua_State *L)
 {
-	const luaL_Reg *lib = lualibs;
+	/*const luaL_Reg *lib = lualibs;
 	for (; lib->func; lib++)
 	{
 		lua_pushcfunction(L, lib->func);
 		lua_pushstring(L, lib->name);
 		lua_call(L, 1, 0);
-	}
+	}*/
+
+	// FIX FLOATING-POINT SETTING FROM D3D
+	_controlfp(_PC_53, _MCW_PC);
+
+	luaL_openlibs(L);
 }
 
 ScriptEnvironment::ScriptEnvironment(Resource* resource)

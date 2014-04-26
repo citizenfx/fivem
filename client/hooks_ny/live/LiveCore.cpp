@@ -1,5 +1,8 @@
 #include "StdInc.h"
 #include "Live.h"
+#include "CrossLibraryInterfaces.h"
+
+DWORD xuidBase;
 
 // #5214: XShowPlayerReviewUI
 int __stdcall XShowPlayerReviewUI(DWORD, DWORD, DWORD)
@@ -54,7 +57,7 @@ int __stdcall XShowSigninUI(DWORD, DWORD)
 // #5261: XUserGetXUID
 int __stdcall XUserGetXUID(DWORD, __int64 * pXuid)
 {
-	*pXuid = 0x1234;
+	*pXuid = xuidBase;
 	return 0; // ???
 }
 
@@ -70,8 +73,8 @@ int __stdcall XUserGetName(DWORD dwUserId, char * pBuffer, DWORD dwBufLen)
 {
 	if (dwBufLen < 8)
 		return 1;
-	memcpy (pBuffer, "Player1", 8);
-	//_snprintf(pBuffer, 8, "P%d", nameBase);
+	//memcpy (pBuffer, "Player1", 8);
+	_snprintf(pBuffer, 8, "P%d", xuidBase);
 
 	return 0;
 }
@@ -103,7 +106,7 @@ struct XUSER_SIGNIN_INFO
 // #5267: XUserGetSigninInfo
 int __stdcall XUserGetSigninInfo(DWORD dwUser, DWORD dwFlags, XUSER_SIGNIN_INFO * pInfo)
 {
-	pInfo->xuidL = dwFlags != 1 ? 1337 : 0x1234;
+	pInfo->xuidL = dwFlags != 1 ? 1337 : xuidBase;
 	pInfo->xuidH = 0;
 	if (dwFlags == 2)
 	{
@@ -115,8 +118,8 @@ int __stdcall XUserGetSigninInfo(DWORD dwUser, DWORD dwFlags, XUSER_SIGNIN_INFO 
 		pInfo->dwInfoFlags = 1;
 		pInfo->UserSigninState = 2;
 	}
-	strcpy (pInfo->szUserName, "Player");
-	//_snprintf(pInfo->szUserName, 8, "P%d", nameBase);
+	//strcpy (pInfo->szUserName, "Player");
+	_snprintf(pInfo->szUserName, 8, "P%d", xuidBase);
 	pInfo->dwSponsorUserIndex = 0;
 	pInfo->dwGuestNumber = 0;
 
@@ -126,6 +129,8 @@ int __stdcall XUserGetSigninInfo(DWORD dwUser, DWORD dwFlags, XUSER_SIGNIN_INFO 
 // #5270: XNotifyCreateListener
 HANDLE __stdcall XNotifyCreateListener(DWORD l, DWORD h)
 {
+	g_netLibrary->SetBase(xuidBase);
+
 	// 'has' to be a valid handle as GTA will call CloseHandle on it
 	return CreateEvent(NULL, FALSE, FALSE, NULL);
 }
@@ -222,9 +227,40 @@ extern "C" int __stdcall XUserSetPropertyEx(DWORD dwUserIndex, DWORD dwPropertyI
 	return 0;
 }
 
+static uint16_t g_lastServerNetID;
+
 // #651: XNotifyGetNext
 int __stdcall XNotifyGetNext(HANDLE hNotification, DWORD dwMsgFilter, DWORD * pdwId, void * pParam)
 {
+	if (g_netLibrary->GetServerNetID() != g_lastServerNetID)
+	{
+		*pdwId = 0xA; // 'signin changed'
+		*(DWORD*)pParam = 1; // user 1 is valid
+
+		g_lastServerNetID = g_netLibrary->GetServerNetID();
+
+		SetWindowTextA(*(HWND*)0x1849DDC, va("GTAIV (NetID: %d)", g_lastServerNetID));
+
+		XNADDR* g_titleAddrCached = (XNADDR*)0x197CF18;
+		g_titleAddrCached->ina.s_addr = g_lastServerNetID;
+		g_titleAddrCached->inaOnline.s_addr = g_lastServerNetID;
+
+		CPlayerInfo* playerInfo = CPlayerInfo::GetLocalPlayer();
+
+		if (playerInfo)
+		{
+			playerInfo->address.ina.s_addr = g_lastServerNetID;
+			playerInfo->address.inaOnline.s_addr = g_lastServerNetID;
+		}
+
+		trace("set xnaddr, %08x, %04x, %016llx\n", g_titleAddrCached->inaOnline.s_addr, g_titleAddrCached->wPortOnline, *(uint64_t*)g_titleAddrCached->abOnline);
+
+		// notify signin status change
+		((void(__stdcall *)(int))0x75DE80)(0);
+
+		return 1;
+	}
+
 	return 0;   // no notifications
 }
 
@@ -251,6 +287,9 @@ DWORD __stdcall XGetOverlappedResult(PXOVERLAPPED overlapped, DWORD * pResult, D
 
 static HookFunction hookFunction([] ()
 {
+	srand(GetTickCount());
+	xuidBase = rand();
+
 	hook::iat("xlive.dll", XNotifyGetNext, 651);
 	hook::iat("xlive.dll", XNotifyPositionUI, 652);
 	hook::iat("xlive.dll", XGetOverlappedExtendedError, 1082);
