@@ -57,6 +57,12 @@ LUA_FUNCTION(TriggerRemoteEvent)
 		if (i != -1)
 		{
 			auto info = CPlayerInfo::GetPlayer(i);
+
+			if (!info)
+			{
+				return;
+			}
+
 			auto netID = info->address.inaOnline.s_addr;
 
 			if (netID == g_netLibrary->GetServerNetID())
