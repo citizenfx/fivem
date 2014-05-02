@@ -18,4 +18,8 @@ static HookFunction hookFunction([] ()
 
 	// try not to do dxdiag api stuff, it sucks and is slow
 	hook::put<uint32_t>(0x10C4368, 0);
+
+	// single-use/instance mutex
+	hook::nop(0x5AACB5, 2);
+	hook::put<uint8_t>(0x5AACBC, 0xEB);
 });

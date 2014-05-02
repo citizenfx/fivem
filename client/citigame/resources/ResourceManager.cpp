@@ -21,7 +21,7 @@ void ResourceManager::Tick()
 	}
 
 	//for (auto& qEvent : m_eventQueue)
-	for (auto it = m_eventQueue.begin(); it < m_eventQueue.end(); it++)
+	for (auto it = m_eventQueue.begin(); it < m_eventQueue.end(); it++) // as the queue's end may change during this iteration
 	{
 		auto& qEvent = *it;
 
@@ -39,29 +39,15 @@ void ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSeri
 	}
 }
 
-#if 0
-void ResourceManager::QueueEvent(std::string& eventName, std::string& argsSerialized, NPID source)
+void ResourceManager::QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source)
 {
 	QueuedScriptEvent ev;
 	ev.eventName = eventName;
 	ev.argsSerialized = argsSerialized;
-	ev.source = -1;
-	
-	// get player the npid belongs to
-	for (int i = 0; i < 32; i++)
-	{
-		auto info = GetPlayerInfo(i);
-
-		if (info && *(NPID*)(info->address.abOnline) == source)
-		{
-			ev.source = i;
-			break;
-		}
-	}
+	ev.source = (int)source;
 
 	m_eventQueue.push_back(ev);
 }
-#endif
 
 void ResourceManager::ScanResources(fiDevice* device, std::string& path)
 {

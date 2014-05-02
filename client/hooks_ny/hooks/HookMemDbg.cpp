@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#if 0
 static HANDLE hHeap;
 
 static void* __stdcall allocHook(size_t size, size_t align, int multiAllocator)
@@ -117,3 +118,4 @@ void _call(void* pAddress, DWORD data, eCallPatcher bPatchType)
 
 	VirtualProtect(pAddress, 5, dwOldProtect, &dwOldProtect);
 }
+#endif

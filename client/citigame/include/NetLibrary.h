@@ -31,45 +31,39 @@ public:
 	void GetSockAddr(sockaddr_storage* addr, int* addrLen);
 };
 
-class NetBuffer
+#include "NetBuffer.h"
+
+class NetLibrary;
+
+#define FRAGMENT_SIZE 1300
+
+class NetChannel
 {
 private:
-	char* m_bytes;
-	size_t m_curOff;
-	size_t m_length;
+	int m_fragmentSequence;
+	int m_fragmentLength;
+	std::string m_fragmentBuffer;
 
-	bool m_end;
-	bool m_bytesManaged;
+	int m_inSequence;
+	int m_outSequence;
+
+	NetAddress m_targetAddress;
+	NetLibrary* m_netLibrary;
+
+private:
+	void SendFragmented(NetBuffer& buffer);
 
 public:
-	NetBuffer(const char* bytes, size_t length);
-	NetBuffer(size_t length);
+	NetChannel();
 
-	virtual ~NetBuffer();
+	void Reset(NetAddress& target, NetLibrary* netLibrary);
 
-	bool End();
+	void Send(NetBuffer& buffer);
 
-	void Read(void* buffer, size_t length);
-	void Write(const void* buffer, size_t length);
-
-	template<typename T>
-	T Read()
-	{
-		T tempValue;
-		Read(&tempValue, sizeof(T));
-		
-		return tempValue;
-	}
-
-	template<typename T>
-	void Write(T value)
-	{
-		Write(&value, sizeof(T));
-	}
-
-	inline const char* GetBuffer() { return m_bytes; }
-	inline size_t GetLength() { return m_length; }
+	bool Process(const char* message, size_t size, NetBuffer** buffer);
 };
+
+#define MAX_RELIABLE_COMMANDS 64
 
 class NetLibrary : public INetLibrary
 {
@@ -84,6 +78,13 @@ public:
 		CS_CONNECTING,
 		CS_CONNECTED,
 		CS_ACTIVE
+	};
+
+	struct OutReliableCommand
+	{
+		uint32_t id;
+		uint32_t type;
+		std::string command;
 	};
 
 private:
@@ -113,6 +114,21 @@ private:
 
 	uint32_t m_outSequence;
 
+	NetChannel m_netChannel;
+
+	uint32_t m_lastReceivedReliableCommand;
+
+	uint32_t m_outReliableAcknowledged;
+
+	uint32_t m_outReliableSequence;
+
+	std::list<OutReliableCommand> m_outReliableCommands;
+
+private:
+	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
+
+	std::unordered_multimap<uint32_t, ReliableHandlerType> m_reliableHandlers;
+
 private:
 	struct RoutingPacket
 	{
@@ -127,9 +143,13 @@ private:
 private:
 	void ProcessOOB(NetAddress& from, char* oob, size_t length);
 
-	void ProcessServerMessage(char* buffer, size_t length);
+	void ProcessServerMessage(NetBuffer& msg);
 
 	void ProcessSend();
+
+	void HandleReliableCommand(uint32_t msgType, const char* buf, size_t length);
+
+	void AddReliableHandlerImpl(const char* type, ReliableHandlerType function);
 
 public:
 	virtual uint16_t GetServerNetID();
@@ -148,6 +168,8 @@ public:
 
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID);
 
+	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length);
+
 	void EnqueueRoutedPacket(uint16_t netID, std::string packet);
 
 	void SendOutOfBand(NetAddress& address, const char* format, ...);
@@ -157,4 +179,8 @@ public:
 	void CreateResources();
 
 	void ProcessPackets();
+
+	static void AddReliableHandler(const char* type, ReliableHandlerType function);
 };
+
+extern NetLibrary* g_netLibrary;

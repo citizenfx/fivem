@@ -145,7 +145,7 @@ DWORD __stdcall XUserReadProfileSettings(DWORD dwTitleId, DWORD dwUserIndex, DWO
 {
 	if (*pcbResults < 1036)
 	{
-		*pcbResults = 1036;	// TODO: make correct calculation by IDs.
+		*pcbResults = 1036;
 		return ERROR_INSUFFICIENT_BUFFER;
 	}
 	memset(pResults, 0, *pcbResults);

@@ -37,11 +37,6 @@ void FindGameStuff(int, int, int, int)
 
 		sessionData.data = 1;
 
-		/*for (int i = 0; i < sizeof(sessionData); i++)
-		{
-			*((char*)(&sessionData) + i) = (i % 256);
-		}*/
-
 		*(DWORD*)0x18C7D4C = (DWORD)&sessionData;
 		*(DWORD*)0x18C7D54 = 1;
 

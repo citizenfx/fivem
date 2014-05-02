@@ -1,11 +1,10 @@
 #include "StdInc.h"
 #include "ResourceScripting.h"
 #include "ResourceManager.h"
+#include "NetLibrary.h"
 
-//#include "NativeInvoke.h"
-//#include "ScriptManager.h"
-#include <queue>
-#include <map>
+#include <CPlayerInfo.h>
+#include <scrEngine.h>
 
 LUA_FUNCTION(TriggerEvent)
 {
@@ -31,6 +30,120 @@ LUA_FUNCTION(TriggerEvent)
 
 	return 0;
 }
+
+LUA_FUNCTION(TriggerRemoteEvent)
+{
+	STACK_BASE;
+
+	// get event name
+	const char* eventName = luaL_checkstring(L, 1);
+
+	// get target client ids
+	bool targetClients[32] = { 0 };
+
+	int targetClient = luaL_checkinteger(L, 2);
+
+	// serialize arguments
+	int nargs = lua_gettop(L);
+	luaS_serializeArgs(L, 3, nargs - 2);
+
+	size_t len;
+	const char* jsonString = lua_tolstring(L, -1, &len);
+
+	lua_pop(L, 1);
+
+	auto sendNetEvent = [&] (int i)
+	{
+		if (i != -1)
+		{
+			auto info = CPlayerInfo::GetPlayer(i);
+			auto netID = info->address.inaOnline.s_addr;
+
+			if (netID == g_netLibrary->GetServerNetID())
+			{
+				TheResources.QueueEvent(std::string(eventName), std::string(jsonString, len), netID);
+
+				return;
+			}
+
+			i = netID;
+		}
+		else
+		{
+			i = UINT16_MAX;
+		}
+
+		size_t eventNameLength = strlen(eventName);
+
+		NetBuffer buffer(100000);
+
+		buffer.Write<uint16_t>(i);
+
+		buffer.Write<uint16_t>(eventNameLength + 1);
+		buffer.Write(eventName, eventNameLength + 1);
+
+		buffer.Write(jsonString, len);
+		g_netLibrary->SendReliableCommand("msgNetEvent", buffer.GetBuffer(), buffer.GetCurLength());
+	};
+
+	// make event object
+	sendNetEvent(targetClient);
+
+	STACK_CHECK;
+
+	// done
+	return 0;
+}
+
+static InitFunction initFunction([]()
+{
+	g_netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
+	{
+		NetBuffer buffer(buf, len);
+
+		// get the source net ID
+		uint16_t sourceNetID = buffer.Read<uint16_t>();
+
+		// get length of event name and read the event name
+		static char eventName[65536];
+
+		uint16_t nameLength = buffer.Read<uint16_t>();
+		buffer.Read(eventName, nameLength);
+
+		// read the data
+		size_t dataLen = len - nameLength - (sizeof(uint16_t) * 2);
+		char* eventData = new char[dataLen];
+
+		buffer.Read(eventData, dataLen);
+
+		// get the source player ID from the net ID
+		uint16_t playerID = -1;
+
+		for (int i = 0; i < 32; i++)
+		{
+			if (NativeInvoke::Invoke<0x4E237943, int>(i))
+			{
+				auto info = CPlayerInfo::GetPlayer(i);
+
+				auto netID = info->address.inaOnline.s_addr;
+
+				if (netID == sourceNetID)
+				{
+					playerID = i;
+					break;
+				}
+			}
+		}
+
+		// probably a message from a since-disconnected-from-game's-vision player
+		if (playerID == -1)
+		{
+			return;
+		}
+
+		TheResources.QueueEvent(std::string(eventName), std::string(eventData, dataLen), playerID);
+	});
+});
 
 #if 0
 struct QueuedEvent

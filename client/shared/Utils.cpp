@@ -132,3 +132,22 @@ void GlobalError(const char* string, ...)
 	MessageBoxA(wnd, buffer, "CitizenFX Fatal Error", MB_OK | MB_ICONSTOP);
 	ExitProcess(1);
 }
+
+uint32_t HashRageString(const char* string)
+{
+	uint32_t hash = 0;
+	size_t len = strlen(string);
+
+	for (size_t i = 0; i < len; i++)
+	{
+		hash += string[i];
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash;
+}

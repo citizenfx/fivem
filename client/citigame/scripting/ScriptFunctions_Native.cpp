@@ -72,6 +72,14 @@ LUA_FUNCTION(CallNative)
 
 			if (userData == &magicReturnValueInt || userData == &magicReturnValueFloat)
 			{
+				if (numReturnValues >= _countof(retvals))
+				{
+					lua_pushstring(L, "too many arguments");
+					lua_error(L);
+
+					return 0;
+				}
+
 				if (userData == &magicReturnValueFloat)
 				{
 					rettypes[numReturnValues] = 0; // magic

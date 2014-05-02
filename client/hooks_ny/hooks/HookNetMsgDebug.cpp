@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#if 0
 void injectFunction(DWORD dwAddress, DWORD pfnReplacement);
 
 static DWORD netMsgTypeHookCont = 0x4406F7;
@@ -70,3 +71,4 @@ static HookFunction hookFunction([] ()
 {
 	injectFunction(0x4406F0, (DWORD)netMsgTypeHook);
 });
+#endif

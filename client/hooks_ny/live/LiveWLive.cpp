@@ -13,7 +13,7 @@ extern "C" DWORD __stdcall XLiveContentCreateAccessHandle(DWORD dwTitleId, void 
 {
 	if (phAccess)
 		*phAccess = INVALID_HANDLE_VALUE;
-	return E_OUTOFMEMORY;	// TODO: fix it
+	return E_OUTOFMEMORY;
 }
 
 // #5352: XLiveContentUninstall

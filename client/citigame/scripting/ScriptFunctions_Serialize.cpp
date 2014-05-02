@@ -52,8 +52,6 @@ int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized
 {
 	STACK_BASE;
 
-	_controlfp(_PC_53, _MCW_PC);
-
 	lua_pushcfunction(L, lua_error_handler);
 	int eh = lua_gettop(L);
 

@@ -19,6 +19,8 @@ public:
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID) = 0;
 
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID) = 0;
+
+	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) = 0;
 };
 
 class HOOKS_EXPORT HooksDLLInterface

@@ -145,3 +145,5 @@ public:
 const char* va(const char* string, ...);
 void trace(const char* string, ...);
 void GlobalError(const char* string, ...);
+
+uint32_t HashRageString(const char* string);

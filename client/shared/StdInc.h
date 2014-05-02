@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <map>
 #include <unordered_map>

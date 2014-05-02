@@ -53,16 +53,45 @@ void NetLibrary::ProcessPackets()
 				return;
 			}
 
-			// TODO: netchannel stuff
-			ProcessServerMessage(buf, len);
+			NetBuffer* msg;
+
+			if (m_netChannel.Process(buf, len, &msg))
+			{
+				ProcessServerMessage(*msg);
+
+				delete msg;
+			}
 		}
 	}
 }
 
-void NetLibrary::ProcessServerMessage(char* buffer, size_t length)
+void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 {
-	NetBuffer msg(buffer, length);
 	uint32_t msgType;
+	
+	uint32_t curReliableAck = msg.Read<uint32_t>();
+
+	if (curReliableAck != m_outReliableAcknowledged)
+	{
+		for (auto it = m_outReliableCommands.begin(); it != m_outReliableCommands.end();)
+		{
+			if (it->id <= curReliableAck)
+			{
+				it = m_outReliableCommands.erase(it);
+			}
+			else
+			{
+				it++;
+			}
+		}
+
+		m_outReliableAcknowledged = curReliableAck;
+	}
+
+	if (m_connectionState == CS_CONNECTED)
+	{
+		m_connectionState = CS_ACTIVE;
+	}
 
 	do 
 	{
@@ -77,7 +106,7 @@ void NetLibrary::ProcessServerMessage(char* buffer, size_t length)
 		{
 			uint16_t netID = msg.Read<uint16_t>();
 
-			if (m_hostNetID == -1)
+			if (m_hostNetID == 65535)
 			{
 				trace("msgIHost, old id %d, new id %d\n", m_hostNetID, netID);
 
@@ -96,7 +125,41 @@ void NetLibrary::ProcessServerMessage(char* buffer, size_t length)
 
 			EnqueueRoutedPacket(netID, std::string(routeBuffer, rlength));
 		}
-	} while (msgType != 0xCA568E63); // 'msgEnd'
+		else if (msgType != 0xCA569E63) // reliable command
+		{
+			uint32_t id = msg.Read<uint32_t>();
+			uint32_t size;
+
+			if (id & 0x80000000)
+			{
+				size = msg.Read<uint32_t>();
+				id &= ~0x80000000;
+			}
+			else
+			{
+				size = msg.Read<uint16_t>();
+			}
+
+			char* reliableBuf = new(std::nothrow) char[size];
+
+			if (!reliableBuf)
+			{
+				return;
+			}
+
+			msg.Read(reliableBuf, size);
+
+			// check to prevent double execution
+			if (id > m_lastReceivedReliableCommand)
+			{
+				HandleReliableCommand(msgType, reliableBuf, size);
+
+				m_lastReceivedReliableCommand = id;
+			}
+
+			delete[] reliableBuf;
+		}
+	} while (msgType != 0xCA569E63); // 'msgEnd'
 }
 
 void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
@@ -155,8 +218,11 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 			m_hostNetID = atoi(hostIDStr);
 			m_hostBase = atoi(hostBaseStr);
 
+			m_lastReceivedReliableCommand = 0;
+
 			trace("connectOK, our id %d, host id %d\n", m_serverNetID, m_hostNetID);
 
+			m_netChannel.Reset(m_currentServer, this);
 			m_connectionState = CS_CONNECTED;
 		}
 	}
@@ -172,6 +238,16 @@ uint32_t NetLibrary::GetHostBase()
 	return m_hostBase;
 }
 
+void NetLibrary::HandleReliableCommand(uint32_t msgType, const char* buf, size_t length)
+{
+	auto range = m_reliableHandlers.equal_range(msgType);
+
+	std::for_each(range.first, range.second, [&] (std::pair<uint32_t, ReliableHandlerType> handler)
+	{
+		handler.second(buf, length);
+	});
+}
+
 void NetLibrary::ProcessSend()
 {
 	// is it time to send a packet yet?
@@ -183,15 +259,15 @@ void NetLibrary::ProcessSend()
 	}
 
 	// do we have data to send?
-	if (m_outgoingPackets.empty() && !(*(BYTE*)(0x18A82FD))) // TEMPTEMPTEMP
+	if (m_connectionState != CS_ACTIVE)
 	{
 		return;
 	}
 
 	// build a nice packet
 	NetBuffer msg(12000);
-	msg.Write(m_outSequence);
-	m_outSequence++;
+
+	msg.Write(m_lastReceivedReliableCommand);
 
 	while (!m_outgoingPackets.empty())
 	{
@@ -207,6 +283,27 @@ void NetLibrary::ProcessSend()
 		msg.Write(packet.payload.c_str(), packet.payload.size());
 	}
 
+	// send pending reliable commands
+	for (auto& command : m_outReliableCommands)
+	{
+		msg.Write(command.type);
+
+		if (command.command.size() > UINT16_MAX)
+		{
+			msg.Write(command.id | 0x80000000);
+
+			msg.Write<uint32_t>(command.command.size());
+		}
+		else
+		{
+			msg.Write(command.id);
+
+			msg.Write<uint16_t>(command.command.size());
+		}
+		
+		msg.Write(command.command.c_str(), command.command.size());
+	}
+
 	// FIXME: REPLACE HARDCODED STUFF
 	if (*(BYTE*)0x18A82FD)
 	{
@@ -216,9 +313,28 @@ void NetLibrary::ProcessSend()
 
 	msg.Write(0xCA569E63); // msgEnd
 
-	SendData(m_currentServer, msg.GetBuffer(), msg.GetLength());
+	m_netChannel.Send(msg);
 
 	m_lastSend = GetTickCount();
+}
+
+void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
+{
+	uint32_t unacknowledged = m_outReliableSequence - m_outReliableAcknowledged;
+
+	if (unacknowledged > MAX_RELIABLE_COMMANDS)
+	{
+		GlobalError("Reliable client command overflow.");
+	}
+
+	m_outReliableSequence++;
+
+	OutReliableCommand cmd;
+	cmd.type = HashRageString(type);
+	cmd.id = m_outReliableSequence;
+	cmd.command = std::string(buffer, length);
+
+	m_outReliableCommands.push_front(cmd);
 }
 
 void NetLibrary::RunFrame()
@@ -316,7 +432,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 			m_connectionState = CS_INITRECEIVED;
 		}
-		catch (YAML::Exception& e)
+		catch (YAML::Exception&)
 		{
 			m_connectionState = CS_IDLE;
 		}
@@ -383,7 +499,20 @@ void NetLibrary::SendData(NetAddress& address, const char* data, size_t length)
 	sendto(m_socket, data, length, 0, (sockaddr*)&addr, addrLen);
 }
 
+void NetLibrary::AddReliableHandlerImpl(const char* type, ReliableHandlerType function)
+{
+	uint32_t hash = HashRageString(type);
+
+	m_reliableHandlers.insert(std::make_pair(hash, function));
+}
+
 static NetLibrary netLibrary;
+NetLibrary* g_netLibrary = &netLibrary;
+
+void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
+{
+	netLibrary.AddReliableHandlerImpl(type, function);
+}
 
 static InitFunction initFunction([] ()
 {
