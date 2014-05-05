@@ -36,3 +36,25 @@ bool NetAddress::operator!=(const NetAddress& right) const
 {
 	return !(*this == right);
 }
+
+int NetAddress::GetPort()
+{
+	if (m_type == NA_INET4)
+	{
+		return ntohs(m_in4.sin_port);
+	}
+
+	return -1;
+}
+
+std::wstring NetAddress::GetWAddress()
+{
+	if (m_type == NA_INET4)
+	{
+		static wchar_t buffer[16];
+
+		InetNtop(m_in4.sin_family, &m_in4.sin_addr, buffer, _countof(buffer));
+
+		return buffer;
+	}
+}

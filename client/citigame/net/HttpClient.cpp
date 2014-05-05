@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "HttpClient.h"
+#include "fiDevice.h"
 #include <sstream>
 
 HttpClient::HttpClient()
@@ -31,9 +32,23 @@ struct HttpClientRequestContext
 	std::string resultData;
 	char buffer[32768];
 
+	rage::fiDevice* outDevice;
+	int outHandle;
+
+	HttpClientRequestContext()
+		: outDevice(nullptr)
+	{
+
+	}
+
 	void DoCallback(bool success, std::string& resData)
 	{
 		callback(success, resData);
+
+		if (outDevice)
+		{
+			outDevice->close(outHandle);
+		}
 
 		WinHttpCloseHandle(hConnection);
 		WinHttpCloseHandle(hRequest);
@@ -57,6 +72,24 @@ void HttpClient::DoPostRequest(std::wstring host, uint16_t port, std::wstring ur
 	context->callback = callback;
 
 	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
+}
+
+void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, std::string outFilename, std::function<void(bool, std::string)> callback)
+{
+	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
+	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
+
+	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
+
+	HttpClientRequestContext* context = new HttpClientRequestContext;
+	context->client = this;
+	context->hConnection = hConnection;
+	context->hRequest = hRequest;
+	context->callback = callback;
+	context->outDevice = rage::fiDevice::GetDevice(outFilename.c_str(), true);
+	context->outHandle = context->outDevice->create(outFilename.c_str());
+
+	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);
 }
 
 void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code, void* info, DWORD length)
@@ -102,9 +135,16 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 			break;
 		}
 		case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
-			ctx->buffer[length] = '\0';
+			if (ctx->outDevice)
+			{
+				ctx->outDevice->write(ctx->outHandle, ctx->buffer, length);
+			}
+			else
+			{
+				ctx->buffer[length] = '\0';
 
-			ctx->resultData += ctx->buffer;
+				ctx->resultData += ctx->buffer;
+			}
 
 			if (length > 0)
 			{
@@ -120,6 +160,32 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 			
 			break;
 	}
+}
+
+bool HttpClient::CrackUrl(std::string url, std::wstring& hostname, std::wstring& path, uint16_t& port)
+{
+	wchar_t wideUrl[1024];
+	mbstowcs(wideUrl, url.c_str(), _countof(wideUrl));
+	wideUrl[1023] = L'\0';
+
+	URL_COMPONENTS components = { 0 };
+	components.dwStructSize = sizeof(components);
+
+	components.dwHostNameLength = -1;
+	components.dwUrlPathLength = -1;
+	components.dwExtraInfoLength = -1;
+
+	if (!WinHttpCrackUrl(wideUrl, wcslen(wideUrl), 0, &components))
+	{
+		return false;
+	}
+
+	hostname = std::wstring(components.lpszHostName, components.dwHostNameLength);
+	path = std::wstring(components.lpszUrlPath, components.dwUrlPathLength);
+	path += std::wstring(components.lpszExtraInfo, components.dwExtraInfoLength);
+	port = components.nPort;
+
+	return true;
 }
 
 // TODO: urlencode?

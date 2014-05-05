@@ -49,6 +49,20 @@ void ResourceManager::QueueEvent(std::string& eventName, std::string& argsSerial
 	m_eventQueue.push_back(ev);
 }
 
+std::shared_ptr<Resource> ResourceManager::AddResource(std::string name, std::string path)
+{
+	auto resource = std::make_shared<Resource>(name, path);
+
+	if (resource->Parse())
+	{
+		m_resources[resource->GetName()] = resource;
+
+		return resource;
+	}
+
+	return nullptr;
+}
+
 void ResourceManager::ScanResources(fiDevice* device, std::string& path)
 {
 	rage::fiFindData findData;
@@ -100,12 +114,7 @@ void ResourceManager::ScanResources(fiDevice* device, std::string& path)
 		else
 		{
 			// probably a resource directory...
-			auto resource = std::make_shared<Resource>(std::string(findData.fileName), fullPath);
-
-			if (resource->Parse())
-			{
-				m_resources[resource->GetName()] = resource;
-			}
+			AddResource(std::string(findData.fileName), fullPath);
 		}
 	} while (device->findNext(handle, &findData));
 
@@ -125,6 +134,17 @@ void ResourceManager::Reset()
 	m_stateNumber++;
 
 	m_resources.clear();
+}
+
+ResourceCache* ResourceManager::GetCache()
+{
+	if (!m_resourceCache)
+	{
+		m_resourceCache = new ResourceCache();
+		m_resourceCache->Initialize();
+	}
+
+	return m_resourceCache;
 }
 
 ResourceManager TheResources;

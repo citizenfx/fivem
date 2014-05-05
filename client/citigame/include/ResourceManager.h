@@ -4,6 +4,7 @@
 
 using rage::fiDevice;
 
+#include "ResourceCache.h"
 #include "ResourceScripting.h"
 
 #include <memory>
@@ -112,10 +113,14 @@ private:
 
 	int m_stateNumber;
 
+	ResourceCache* m_resourceCache;
+
 public:
 	void ScanResources(std::vector<std::pair<fiDevice*, std::string>>& paths);
 
 	void ScanResources(fiDevice* device, std::string& path);
+
+	std::shared_ptr<Resource> AddResource(std::string name, std::string path);
 
 	void Tick();
 
@@ -124,6 +129,8 @@ public:
 	void TriggerEvent(std::string& eventName, std::string& argsSerialized, int source = -1);
 
 	void QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source);
+
+	ResourceCache* GetCache();
 
 	std::shared_ptr<Resource> GetResource(std::string& name);
 

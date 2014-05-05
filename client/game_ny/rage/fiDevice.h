@@ -17,18 +17,20 @@ class GAMESPEC_EXPORT_VMT __declspec(novtable) fiDevice : public sysUseAllocator
 public:
 	static fiDevice* GetDevice(const char* path, bool allowRoot);
 
+	static void Unmount(const char* rootPath);
+
 	static void SetInitialMountHook(void(*callback)(void*));
 
 public:
 	virtual ~fiDevice() = 0;
 
-	virtual uint32_t open(const char* fileName, bool) = 0;
+	virtual uint32_t open(const char* fileName, bool readOnly) = 0;
 
 	virtual uint32_t openBulk(const char* fileName, uint64_t* ptr) = 0;
 
-	virtual uint32_t create(const char* fileName) = 0;
+	virtual uint32_t createLocal(const char* fileName) = 0;
 
-	virtual uint32_t m_10(const char*);
+	virtual uint32_t create(const char* fileName);
 
 	virtual uint32_t read(uint32_t handle, void* buffer, uint32_t toRead) = 0;
 
@@ -36,7 +38,7 @@ public:
 
 	virtual uint32_t writeBulk(int, int, int, int, int) = 0;
 
-	virtual uint32_t write(int, int, int) = 0;
+	virtual uint32_t write(int, void*, int) = 0;
 
 	virtual uint32_t seek(uint32_t handle, int32_t distance, uint32_t method) = 0;
 
@@ -48,8 +50,8 @@ public:
 
 	virtual int m_34() = 0;
 	virtual int m_38() = 0;
-	virtual int m_3C() = 0;
-	virtual int m_40() = 0;
+	virtual int rename(const char* from, const char* to) = 0;
+	virtual int mkdir(const char* dir) = 0;
 
 	virtual int m_44() = 0;
 	virtual int m_48() = 0;
@@ -79,9 +81,9 @@ public:
 
 	virtual uint32_t openBulk(const char* fileName, uint64_t* ptr);
 
-	virtual uint32_t create(const char* fileName);
+	virtual uint32_t createLocal(const char* fileName);
 
-	virtual uint32_t m_10(const char*);
+	virtual uint32_t create(const char*);
 
 	virtual uint32_t read(uint32_t handle, void* buffer, uint32_t toRead);
 
@@ -89,7 +91,7 @@ public:
 
 	virtual uint32_t writeBulk(int, int, int, int, int);
 
-	virtual uint32_t write(int, int, int);
+	virtual uint32_t write(int, void*, int);
 
 	virtual uint32_t seek(uint32_t handle, int32_t distance, uint32_t method);
 
@@ -101,8 +103,8 @@ public:
 
 	virtual int m_34();
 	virtual int m_38();
-	virtual int m_3C();
-	virtual int m_40();
+	virtual int rename(const char* from, const char* to);
+	virtual int mkdir(const char* dir);
 
 	virtual int m_44();
 	virtual int m_48();
@@ -129,6 +131,20 @@ public:
 
 	// any RAGE path can be used; including root-relative paths
 	void setPath(const char* relativeTo, bool allowRoot);
+
+	// mounts the device in the device stack
+	void mount(const char* mountPoint);
+};
+
+class GAMESPEC_EXPORT_VMT fiPackfile : public fiDeviceImplemented
+{
+private:
+	char m_pad[1144];
+public:
+	fiPackfile();
+
+	// any RAGE path can be used; including root-relative paths
+	void openArchive(const char* archive, bool bTrue, bool bFalse, int type);
 
 	// mounts the device in the device stack
 	void mount(const char* mountPoint);

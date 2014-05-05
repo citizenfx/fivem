@@ -3,11 +3,11 @@
 
 static HookFunction hookFunction([] ()
 {
-	static hook::inject_call<void, int> scriptInit(0x809E92);
+	static hook::inject_call<void, bool> scriptInit(0x4201B0);
 
-	scriptInit.inject([] (int numScripts)
+	scriptInit.inject([] (bool dontStartScripts)
 	{
-		scriptInit.call(numScripts);
+		scriptInit.call(dontStartScripts);
 
 		HookCallbacks::RunCallback(StringHash("scrInit"), nullptr);
 	});

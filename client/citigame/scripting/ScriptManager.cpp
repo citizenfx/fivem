@@ -26,6 +26,7 @@ void ScriptManager::DoRun()
 
 			*(BYTE*)0x7BD9F0 = 0xC3;
 			*(BYTE*)0x18A823A = 1;
+			*(BYTE*)0x18A825C = 1;
 			testState = true;
 		}
 	}
@@ -33,14 +34,17 @@ void ScriptManager::DoRun()
 
 rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
-	std::string resourcePath = "citizen:/resources/";
+	std::string gameInit = "gameInit";
+	TheResources.GetResource(gameInit)->Start();
+
+	/*std::string resourcePath = "citizen:/resources/";
 	TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
 
 	std::string gameInit = "gameInit";
 	TheResources.GetResource(gameInit)->Start();
 
 	std::string lovely = "lovely";
-	TheResources.GetResource(lovely)->Start();
+	TheResources.GetResource(lovely)->Start();*/
 
 	ScriptEnvironment::SignalScriptReset.emit();
 

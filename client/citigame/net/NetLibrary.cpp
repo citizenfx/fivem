@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "NetLibrary.h"
 #include "GameInit.h"
+#include "DownloadMgr.h"
 #include <yaml-cpp/yaml.h>
 
 uint16_t NetLibrary::GetServerNetID()
@@ -365,15 +366,31 @@ void NetLibrary::RunFrame()
 	switch (m_connectionState)
 	{
 		case CS_INITRECEIVED:
-			// todo: downloading?
-			m_connectionState = CS_DOWNLOADCOMPLETE;
+			//m_connectionState = CS_DOWNLOADCOMPLETE;
+
+			m_connectionState = CS_DOWNLOADING;
+
+			if (!GameInit::GetGameLoaded())
+			{
+				GameInit::SetLoadScreens();
+
+				TheDownloads.SetServer(m_currentServer);
+
+				GameInit::LoadGameFirstLaunch([] ()
+				{
+					// download frame code
+					Sleep(1);
+
+					return TheDownloads.Process();
+				});
+			}
 
 			break;
 
 		case CS_DOWNLOADCOMPLETE:
 			if (!GameInit::GetGameLoaded())
 			{
-				GameInit::LoadGameFirstLaunch();
+				GameInit::LoadGameFirstLaunch(nullptr);
 			}
 			else
 			{

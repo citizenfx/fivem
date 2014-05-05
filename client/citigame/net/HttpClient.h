@@ -16,6 +16,10 @@ public:
 
 	std::string BuildPostString(std::map<std::string, std::string>& fields);
 
+	bool CrackUrl(std::string url, std::wstring& hostname, std::wstring& path, uint16_t& port);
+
 	void DoPostRequest(std::wstring host, uint16_t port, std::wstring url, std::map<std::string, std::string>& fields, std::function<void(bool, std::string)> callback);
 	void DoPostRequest(std::wstring host, uint16_t port, std::wstring url, std::string postData, std::function<void(bool, std::string)> callback);
+
+	void DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, std::string outFilename, std::function<void(bool, std::string)> callback);
 };

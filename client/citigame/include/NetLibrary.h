@@ -28,6 +28,9 @@ public:
 	bool operator==(const NetAddress& right) const;
 	bool operator!=(const NetAddress& right) const;
 
+	std::wstring GetWAddress();
+	int GetPort();
+
 	void GetSockAddr(sockaddr_storage* addr, int* addrLen);
 };
 

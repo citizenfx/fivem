@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "GameInit.h"
 #include "Hooking.h"
+#include "CrossLibraryInterfaces.h"
 
 int hook::baseAddressDifference;
 
@@ -9,11 +10,55 @@ bool GameInit::GetGameLoaded()
 	return *(uint8_t*)0xF22B3C;
 }
 
-void GameInit::LoadGameFirstLaunch()
+void GameInit::LoadGameFirstLaunch(bool (*callBeforeLoad)())
 {
 	assert(!GameInit::GetGameLoaded());
 
-	//*(DWORD*)0x10C7F80 = 6;
+	*(DWORD*)0x10C7F80 = 6;
+
+	if (callBeforeLoad)
+	{
+		static bool(*preLoadCB)();
+
+		preLoadCB = callBeforeLoad;
+
+		g_hooksDLL->SetHookCallback(StringHash("preGmLoad"), [] (void*)
+		{
+			while (!preLoadCB())
+			{
+				*(BYTE*)0x18A825C = 0;
+
+				MSG msg;
+
+				while (PeekMessage(&msg, 0, 0, 0, TRUE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
+			}
+		});
+	}
+}
+
+struct LoadingTune
+{
+	void StartLoadingTune();
+};
+
+void WRAPPER LoadingTune::StartLoadingTune() { EAXJMP(0x7B9980); }
+
+static LoadingTune& loadingTune = *(LoadingTune*)0x10F85B0;
+
+void GameInit::SetLoadScreens()
+{
+	((void(*)(int, int, int))0x423CE0)(1, 0, 0);
+
+	*(BYTE*)0x7BD9F0 = 0xC3;
+	*(BYTE*)0x18A823A = 1;
+
+	loadingTune.StartLoadingTune();
+
+	SetEvent(*(HANDLE*)0x10F9AAC);
 }
 
 void GameInit::ReloadGame()

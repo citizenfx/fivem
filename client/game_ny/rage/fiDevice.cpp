@@ -11,5 +11,7 @@ void fiDevice::SetInitialMountHook(void(*callback)(void*))
 
 WRAPPER fiDevice* fiDevice::GetDevice(const char* path, bool allowRoot) { EAXJMP(0x5ABC80); }
 
+WRAPPER void fiDevice::Unmount(const char* rootPath) { EAXJMP(0x5AC080); }
+
 rage::fiDevice::~fiDevice() {}
 }

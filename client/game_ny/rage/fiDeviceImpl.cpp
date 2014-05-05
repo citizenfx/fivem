@@ -21,12 +21,12 @@ uint32_t WRAPPER fiDeviceImplemented::openBulk(const char* fileName, uint64_t* p
 	PURECALL();
 }
 
-uint32_t WRAPPER fiDeviceImplemented::create(const char* fileName)
+uint32_t WRAPPER fiDeviceImplemented::createLocal(const char* fileName)
 {
 	PURECALL();
 }
 
-uint32_t WRAPPER fiDeviceImplemented::m_10(const char*)
+uint32_t WRAPPER fiDeviceImplemented::create(const char*)
 {
 	PURECALL();
 }
@@ -46,7 +46,7 @@ uint32_t WRAPPER fiDeviceImplemented::writeBulk(int, int, int, int, int)
 	PURECALL();
 }
 
-uint32_t WRAPPER fiDeviceImplemented::write(int, int, int)
+uint32_t WRAPPER fiDeviceImplemented::write(int, void*, int)
 {
 	PURECALL();
 }
@@ -81,12 +81,12 @@ int WRAPPER fiDeviceImplemented::m_38()
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_3C()
+int WRAPPER fiDeviceImplemented::rename(const char* from, const char* to)
 {
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_40()
+int WRAPPER fiDeviceImplemented::mkdir(const char* dir)
 {
 	PURECALL();
 }

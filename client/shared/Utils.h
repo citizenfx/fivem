@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 //
 // Returns the Citizen root directory.
 //
@@ -147,3 +149,8 @@ void trace(const char* string, ...);
 void GlobalError(const char* string, ...);
 
 uint32_t HashRageString(const char* string);
+
+inline void LowerString(std::string& string)
+{
+	std::transform(string.begin(), string.end(), string.begin(), ::tolower);
+}
