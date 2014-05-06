@@ -103,7 +103,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 
 		msgType = msg.Read<uint32_t>();
 
-		if (msgType == 0xB3EA30DE) // 'msgIHost'
+		/*if (msgType == 0xB3EA30DE) // 'msgIHost'
 		{
 			uint16_t netID = msg.Read<uint16_t>();
 
@@ -114,7 +114,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 				m_hostNetID = netID;
 			}
 		}
-		else if (msgType == 0xE938445B) // 'msgRoute'
+		else */if (msgType == 0xE938445B) // 'msgRoute'
 		{
 			uint16_t netID = msg.Read<uint16_t>();
 			uint16_t rlength = msg.Read<uint16_t>();
@@ -139,6 +139,12 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			else
 			{
 				size = msg.Read<uint16_t>();
+			}
+
+			// test for bad scenarios
+			if (id > (m_lastReceivedReliableCommand + 64))
+			{
+				__asm int 3
 			}
 
 			char* reliableBuf = new(std::nothrow) char[size];
@@ -388,14 +394,14 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_DOWNLOADCOMPLETE:
-			if (!GameInit::GetGameLoaded())
+			/*if (!GameInit::GetGameLoaded())
 			{
 				GameInit::LoadGameFirstLaunch(nullptr);
 			}
 			else
 			{
 				GameInit::ReloadGame();
-			}
+			}*/
 
 			m_connectionState = CS_CONNECTING;
 			m_lastConnect = 0;
@@ -521,6 +527,26 @@ void NetLibrary::AddReliableHandlerImpl(const char* type, ReliableHandlerType fu
 	uint32_t hash = HashRageString(type);
 
 	m_reliableHandlers.insert(std::make_pair(hash, function));
+}
+
+void NetLibrary::DownloadsComplete()
+{
+	if (m_connectionState == CS_DOWNLOADING)
+	{
+		m_connectionState = CS_DOWNLOADCOMPLETE;
+	}
+}
+
+bool NetLibrary::ProcessPreGameTick()
+{
+	if (m_connectionState != CS_ACTIVE && m_connectionState != CS_CONNECTED && m_connectionState != CS_IDLE)
+	{
+		RunFrame();
+
+		return false;
+	}
+
+	return true;
 }
 
 static NetLibrary netLibrary;

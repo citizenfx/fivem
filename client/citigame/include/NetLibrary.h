@@ -183,6 +183,11 @@ public:
 
 	void ProcessPackets();
 
+	void DownloadsComplete();
+
+	// waits for connection during the pre-game loading sequence
+	bool ProcessPreGameTick();
+	
 	static void AddReliableHandler(const char* type, ReliableHandlerType function);
 };
 

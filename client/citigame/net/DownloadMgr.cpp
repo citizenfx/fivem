@@ -184,6 +184,13 @@ bool DownloadManager::Process()
 		case DS_DONE:
 			m_downloadState = DS_IDLE;
 
+			g_netLibrary->DownloadsComplete();
+
+			while (!g_netLibrary->ProcessPreGameTick())
+			{
+				Sleep(1);
+			}
+			
 			return true;
 	}
 
