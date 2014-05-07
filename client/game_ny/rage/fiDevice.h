@@ -49,22 +49,22 @@ public:
 	virtual int fileLength(uint32_t handle) = 0;
 
 	virtual int m_34() = 0;
-	virtual int m_38() = 0;
+	virtual bool rm(const char* file) = 0;
 	virtual int rename(const char* from, const char* to) = 0;
 	virtual int mkdir(const char* dir) = 0;
 
-	virtual int m_44() = 0;
-	virtual int m_48() = 0;
-	virtual int m_4C() = 0;
-	virtual int m_50() = 0;
+	virtual int rmdir(const char * dir) = 0;
+	virtual LARGE_INTEGER fileLengthLong(const char* file) = 0;
+	virtual uint32_t fileTime(const char* file) = 0;
+	virtual bool setFileTime(const char* file, FILETIME fileTime) = 0;
 
 	virtual int findFirst(const char* path, fiFindData* findData) = 0;
 	virtual bool findNext(int handle, fiFindData* findData) = 0;
 	virtual int findClose(int handle) = 0;
-	virtual int m_60() = 0;
+	virtual bool truncate(uint32_t handle) = 0;
 
 	virtual uint32_t getFileAttributes(const char* path) = 0;
-	virtual int m_68() = 0;
+	virtual bool setFileAttributes(const char* file, uint32_t FileAttributes) = 0;
 	virtual int m_6C() = 0;
 	virtual uint32_t getParentHandle() = 0;
 };
@@ -102,22 +102,22 @@ public:
 	virtual int fileLength(uint32_t handle);
 
 	virtual int m_34();
-	virtual int m_38();
+	virtual bool rm(const char* file);
 	virtual int rename(const char* from, const char* to);
 	virtual int mkdir(const char* dir);
 
-	virtual int m_44();
-	virtual int m_48();
-	virtual int m_4C();
-	virtual int m_50();
+	virtual int rmdir(const char * dir);
+	virtual LARGE_INTEGER fileLengthLong(const char* file);
+	virtual uint32_t fileTime(const char* file);
+	virtual bool setFileTime(const char* file, FILETIME fileTime);
 
 	virtual int findFirst(const char* path, fiFindData* findData);
 	virtual bool findNext(int handle, fiFindData* findData);
 	virtual int findClose(int handle);
-	virtual int m_60();
+	virtual bool truncate(uint32_t handle);
 
 	virtual uint32_t getFileAttributes(const char* path);
-	virtual int m_68();
+	virtual bool setFileAttributes(const char* file, uint32_t FileAttributes);
 	virtual int m_6C();
 	virtual uint32_t getParentHandle();
 };

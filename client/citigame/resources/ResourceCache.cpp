@@ -21,13 +21,14 @@ void ResourceCache::LoadCache(rage::fiDevice* device)
 		return;
 	}
 
+	std::regex regex("(.+)\\.([^\\._]{3,5})_(.+)_([a-fA-F0-9]{40})");
+
 	do 
 	{
 		char resourceName[128];
 		char fileName[128];
 		char hash[48];
-
-		std::regex regex("(.+)\\.([^\\._]{3,5})_(.+)_([a-fA-F0-9]{40})");
+	
 		std::cmatch results;
 
 		if (!std::regex_match(findData.fileName, results, regex))

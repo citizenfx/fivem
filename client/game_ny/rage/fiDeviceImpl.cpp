@@ -76,7 +76,7 @@ int WRAPPER fiDeviceImplemented::m_34()
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_38()
+bool WRAPPER fiDeviceImplemented::rm(const char* file)
 {
 	PURECALL();
 }
@@ -91,22 +91,22 @@ int WRAPPER fiDeviceImplemented::mkdir(const char* dir)
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_44()
+int WRAPPER fiDeviceImplemented::rmdir(const char * dir)
 {
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_48()
+LARGE_INTEGER WRAPPER fiDeviceImplemented::fileLengthLong(const char* file)
 {
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_4C()
+uint32_t WRAPPER fiDeviceImplemented::fileTime(const char* file)
 {
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_50()
+bool WRAPPER fiDeviceImplemented::setFileTime(const char* file, FILETIME fileTime)
 {
 	PURECALL();
 }
@@ -126,7 +126,7 @@ int WRAPPER fiDeviceImplemented::findClose(int handle)
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_60()
+bool WRAPPER fiDeviceImplemented::truncate(uint32_t handle)
 {
 	PURECALL();
 }
@@ -136,7 +136,7 @@ uint32_t WRAPPER fiDeviceImplemented::getFileAttributes(const char* path)
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_68()
+bool WRAPPER fiDeviceImplemented::setFileAttributes(const char* file, uint32_t FileAttributes)
 {
 	PURECALL();
 }
