@@ -31,6 +31,9 @@ bool DownloadManager::Process()
 
 				m_requiredResources.clear();
 
+				std::string serverHost = m_gameServer.GetAddress();
+				serverHost += va(":%d", m_gameServer.GetPort());
+
 				// parse the received YAML file
 				try
 				{
@@ -45,7 +48,7 @@ bool DownloadManager::Process()
 							baseUrl = resource["fileServer"].as<std::string>();
 						}
 
-						ResourceData resData(resource["name"].as<std::string>(), baseUrl);
+						ResourceData resData(resource["name"].as<std::string>(), va(baseUrl.c_str(), serverHost.c_str()));
 						
 						for (auto& file : resource["files"])
 						{
@@ -138,8 +141,8 @@ bool DownloadManager::Process()
 			{
 				TheResources.Reset();
 
-				std::string resourcePath = "citizen:/resources/";
-				TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
+				//std::string resourcePath = "citizen:/resources/";
+				//TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
 
 				std::list<std::shared_ptr<Resource>> loadedResources;
 
@@ -179,6 +182,8 @@ bool DownloadManager::Process()
 
 				m_downloadState = DS_DONE;
 			}
+
+			break;
 		}
 
 		case DS_DONE:

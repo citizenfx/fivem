@@ -28,6 +28,7 @@ public:
 	bool operator==(const NetAddress& right) const;
 	bool operator!=(const NetAddress& right) const;
 
+	std::string GetAddress();
 	std::wstring GetWAddress();
 	int GetPort();
 

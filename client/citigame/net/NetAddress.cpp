@@ -47,6 +47,18 @@ int NetAddress::GetPort()
 	return -1;
 }
 
+std::string NetAddress::GetAddress()
+{
+	if (m_type == NA_INET4)
+	{
+		static char buffer[16];
+
+		InetNtopA(m_in4.sin_family, &m_in4.sin_addr, buffer, _countof(buffer));
+
+		return buffer;
+	}
+}
+
 std::wstring NetAddress::GetWAddress()
 {
 	if (m_type == NA_INET4)

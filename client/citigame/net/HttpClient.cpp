@@ -43,12 +43,12 @@ struct HttpClientRequestContext
 
 	void DoCallback(bool success, std::string& resData)
 	{
-		callback(success, resData);
-
 		if (outDevice)
 		{
 			outDevice->close(outHandle);
 		}
+
+		callback(success, resData);
 
 		WinHttpCloseHandle(hConnection);
 		WinHttpCloseHandle(hRequest);
