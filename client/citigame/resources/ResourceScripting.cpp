@@ -410,6 +410,15 @@ bool ScriptEnvironment::Create()
 		return result;
 	}
 
+	// disable unsafe functions to new callers
+	const char* unsafeGlobals[] = { "ffi", "require", "dofile", "load", "loadfile", "package" };
+
+	for (auto removeThat : unsafeGlobals)
+	{
+		lua_pushnil(m_luaState);
+		lua_setglobal(m_luaState, removeThat);
+	}
+
 	// load scripts from the resource
 	for (auto& scriptName : m_resource->GetScripts())
 	{
