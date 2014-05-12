@@ -352,7 +352,7 @@ bool ScriptEnvironment::Create()
 		lua_pushcfunction(m_luaState, lua_error_handler);
 		int eh = lua_gettop(m_luaState);
 
-		// create a chunk name prefixed with @ (suppresses '[string "..."]' formatting
+		// create a chunk name prefixed with @ (suppresses '[string "..."]' formatting)
 		std::string chunkName("@");
 		chunkName.append(path);
 
