@@ -31,6 +31,55 @@ LUA_FUNCTION(TriggerEvent)
 	return 0;
 }
 
+static void SendNetEvent(std::string eventName, std::string jsonString, int i)
+{
+	const char* cmdType = "msgNetEvent";
+
+	if (i >= 0)
+	{
+		auto info = CPlayerInfo::GetPlayer(i);
+
+		if (!info)
+		{
+			return;
+		}
+
+		auto netID = info->address.inaOnline.s_addr;
+
+		if (netID == g_netLibrary->GetServerNetID())
+		{
+			TheResources.QueueEvent(eventName, jsonString, i);
+
+			return;
+		}
+
+		i = netID;
+	}
+	else if (i == -1)
+	{
+		i = UINT16_MAX;
+	}
+	else if (i == -2)
+	{
+		cmdType = "msgServerEvent";
+	}
+
+	size_t eventNameLength = eventName.length();
+
+	NetBuffer buffer(100000);
+
+	if (i >= 0)
+	{
+		buffer.Write<uint16_t>(i);
+	}
+
+	buffer.Write<uint16_t>(eventNameLength + 1);
+	buffer.Write(eventName.c_str(), eventNameLength + 1);
+
+	buffer.Write(jsonString.c_str(), jsonString.size());
+	g_netLibrary->SendReliableCommand(cmdType, buffer.GetBuffer(), buffer.GetCurLength());
+}
+
 LUA_FUNCTION(TriggerRemoteEvent)
 {
 	STACK_BASE;
@@ -39,8 +88,6 @@ LUA_FUNCTION(TriggerRemoteEvent)
 	const char* eventName = luaL_checkstring(L, 1);
 
 	// get target client ids
-	bool targetClients[32] = { 0 };
-
 	int targetClient = luaL_checkinteger(L, 2);
 
 	// serialize arguments
@@ -52,48 +99,33 @@ LUA_FUNCTION(TriggerRemoteEvent)
 
 	lua_pop(L, 1);
 
-	auto sendNetEvent = [&] (int i)
-	{
-		if (i != -1)
-		{
-			auto info = CPlayerInfo::GetPlayer(i);
+	// make event object
+	SendNetEvent(eventName, std::string(jsonString, len), targetClient);
 
-			if (!info)
-			{
-				return;
-			}
+	STACK_CHECK;
 
-			auto netID = info->address.inaOnline.s_addr;
+	// done
+	return 0;
+}
 
-			if (netID == g_netLibrary->GetServerNetID())
-			{
-				TheResources.QueueEvent(std::string(eventName), std::string(jsonString, len), i);
+LUA_FUNCTION(TriggerServerEvent)
+{
+	STACK_BASE;
 
-				return;
-			}
+	// get event name
+	const char* eventName = luaL_checkstring(L, 1);
 
-			i = netID;
-		}
-		else
-		{
-			i = UINT16_MAX;
-		}
+	// serialize arguments
+	int nargs = lua_gettop(L);
+	luaS_serializeArgs(L, 2, nargs - 1);
 
-		size_t eventNameLength = strlen(eventName);
+	size_t len;
+	const char* jsonString = lua_tolstring(L, -1, &len);
 
-		NetBuffer buffer(100000);
-
-		buffer.Write<uint16_t>(i);
-
-		buffer.Write<uint16_t>(eventNameLength + 1);
-		buffer.Write(eventName, eventNameLength + 1);
-
-		buffer.Write(jsonString, len);
-		g_netLibrary->SendReliableCommand("msgNetEvent", buffer.GetBuffer(), buffer.GetCurLength());
-	};
+	lua_pop(L, 1);
 
 	// make event object
-	sendNetEvent(targetClient);
+	SendNetEvent(eventName, std::string(jsonString, len), -2);
 
 	STACK_CHECK;
 
