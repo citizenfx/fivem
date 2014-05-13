@@ -67,7 +67,7 @@ LUA_FUNCTION(TriggerRemoteEvent)
 
 			if (netID == g_netLibrary->GetServerNetID())
 			{
-				TheResources.QueueEvent(std::string(eventName), std::string(jsonString, len), netID);
+				TheResources.QueueEvent(std::string(eventName), std::string(jsonString, len), i);
 
 				return;
 			}
