@@ -354,14 +354,19 @@ public:
 };
 #endif
 
-/*inline void inject_hook(uintptr_t address, hook_function func)
+template<typename T>
+inline void jump(uintptr_t address, T func)
 {
-	// allocate memory for the safe pointer (as the function is probably someplace on the stack)
-	// TODO: find a way to register this memory for freeing on late shutdown
-	hook_function* safe_ptr = new hook_function(func);
+	put<uint8_t>(address, 0xE9);
+	put<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+}
 
-
-}*/
+template<typename T>
+inline void call(uintptr_t address, T func)
+{
+	put<uint8_t>(address, 0xE8);
+	put<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+}
 
 #pragma region inject call: call stub
 template<typename R, typename... Args>
