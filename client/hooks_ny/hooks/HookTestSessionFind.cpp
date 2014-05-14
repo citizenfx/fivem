@@ -24,7 +24,7 @@ void FindGameStuff(int, int, int, int)
 
 	uint16_t hostID = g_netLibrary->GetHostNetID();
 
-	if (hostID != 65536)
+	if (hostID != 65535)
 	{
 		pSessionInfo->sessionID.ab[0] = 1;
 		pSessionInfo->keyExchangeKey.ab[0] = 1;
@@ -39,6 +39,13 @@ void FindGameStuff(int, int, int, int)
 
 		*(DWORD*)0x18C7D4C = (DWORD)&sessionData;
 		*(DWORD*)0x18C7D54 = 1;
+
+		*(DWORD*)0x18C7D58 = 0; // pending 1
+		*(DWORD*)0x18EDAB0 = 0; // pending 1
+	}
+	else
+	{
+		*(DWORD*)0x18C7D54 = 0;
 
 		*(DWORD*)0x18C7D58 = 0; // pending 1
 		*(DWORD*)0x18EDAB0 = 0; // pending 1

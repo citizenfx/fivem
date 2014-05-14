@@ -176,7 +176,7 @@ static InitFunction initFunction([]()
 		// probably a message from a since-disconnected-from-game's-vision player
 		if (playerID == -1)
 		{
-			return;
+			//return;
 		}
 
 		TheResources.QueueEvent(std::string(eventName), std::string(eventData, dataLen), playerID);
