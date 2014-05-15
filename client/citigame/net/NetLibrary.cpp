@@ -68,6 +68,10 @@ void NetLibrary::ProcessPackets()
 
 void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 {
+	// update received-at time
+	m_lastReceivedAt = GetTickCount();
+
+	// receive the message
 	uint32_t msgType;
 	
 	uint32_t curReliableAck = msg.Read<uint32_t>();
@@ -94,6 +98,11 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 		m_connectionState = CS_ACTIVE;
 	}
 
+	if (m_connectionState != CS_ACTIVE)
+	{
+		return;
+	}
+
 	do 
 	{
 		if (msg.End())
@@ -103,18 +112,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 
 		msgType = msg.Read<uint32_t>();
 
-		/*if (msgType == 0xB3EA30DE) // 'msgIHost'
-		{
-			uint16_t netID = msg.Read<uint16_t>();
-
-			if (m_hostNetID == 65535)
-			{
-				trace("msgIHost, old id %d, new id %d\n", m_hostNetID, netID);
-
-				m_hostNetID = netID;
-			}
-		}
-		else */if (msgType == 0xE938445B) // 'msgRoute'
+		if (msgType == 0xE938445B) // 'msgRoute'
 		{
 			uint16_t netID = msg.Read<uint16_t>();
 			uint16_t rlength = msg.Read<uint16_t>();
@@ -231,6 +229,18 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 
 			m_netChannel.Reset(m_currentServer, this);
 			m_connectionState = CS_CONNECTED;
+		}
+		else if (!_strnicmp(oob, "error", 5))
+		{
+			if (from != m_currentServer)
+			{
+				trace("Received 'error' request was not from the host\n");
+				return;
+			}
+
+			char* errorStr = &oob[6];
+
+			GlobalError("%s", errorStr);
 		}
 	}
 }
@@ -368,6 +378,10 @@ void NetLibrary::RunFrame()
 			testState = true;
 		}
 	}
+	else
+	{
+		testState = false;
+	}
 
 	switch (m_connectionState)
 	{
@@ -417,11 +431,25 @@ void NetLibrary::RunFrame()
 			}
 
 			break;
+
+		case CS_ACTIVE:
+			if ((GetTickCount() - m_lastReceivedAt) > 15000)
+			{
+				Disconnect("Connection timed out.");
+				GlobalError("Server connection timed out after 15 seconds.");
+			}
+
+			break;
 	}
 }
 
 void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 {
+	if (m_connectionState != CS_IDLE)
+	{
+		Disconnect("Bye!");
+	}
+
 	m_connectionState = CS_INITING;
 	m_currentServer = NetAddress(hostname, port);
 
@@ -460,6 +488,23 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			m_connectionState = CS_IDLE;
 		}
 	});
+}
+
+void NetLibrary::Disconnect(const char* reason)
+{
+	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE)
+	{
+		SendReliableCommand("msgIQuit", reason, strlen(reason) + 1);
+
+		m_lastSend = 0;
+		ProcessSend();
+
+		m_lastSend = 0;
+		ProcessSend();
+	}
+
+	m_connectionState = CS_IDLE;
+	m_currentServer = NetAddress();
 }
 
 void NetLibrary::CreateResources()
@@ -562,4 +607,5 @@ static InitFunction initFunction([] ()
 	netLibrary.CreateResources();
 
 	HooksDLLInterface::SetNetLibrary(&netLibrary);
+	GameSpecDLLInterface::SetNetLibrary(&netLibrary);
 });

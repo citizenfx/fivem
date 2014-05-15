@@ -128,6 +128,8 @@ private:
 
 	std::list<OutReliableCommand> m_outReliableCommands;
 
+	uint32_t m_lastReceivedAt;
+
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
 
@@ -167,6 +169,8 @@ public:
 	virtual void RunFrame();
 
 	virtual void ConnectToServer(const char* hostname, uint16_t port);
+
+	virtual void Disconnect(const char* reason);
 
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID);
 

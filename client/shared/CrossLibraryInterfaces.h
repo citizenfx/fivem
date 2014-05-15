@@ -16,6 +16,8 @@ public:
 
 	virtual void ConnectToServer(const char* hostname, uint16_t port) = 0;
 
+	virtual void Disconnect(const char* reason) = 0;
+
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID) = 0;
 
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID) = 0;
@@ -43,9 +45,11 @@ class GAMESPEC_EXPORT GameSpecDLLInterface
 {
 public:
 	static void SetHooksDLLCallback(IGameSpecToHooks* callback);
+
+	static void SetNetLibrary(INetLibrary* netLibrary);
 };
 
-#ifdef COMPILING_HOOKS
+#if defined(COMPILING_HOOKS) || defined(COMPILING_GAMESPEC)
 extern INetLibrary* g_netLibrary;
 #endif
 

@@ -70,6 +70,11 @@ void GameInit::KillNetwork(const wchar_t* reason)
 	TheText.SetCustom("CIT_NET_KILL_REASON", reason);
 	SetTextForLoadscreen("CIT_NET_KILL_REASON", true, false, -1);
 
+	static char smallReason[8192];
+	wcstombs(smallReason, reason, _countof(smallReason));
+
+	g_netLibrary->Disconnect(smallReason);
+
 	stopNetwork = true;
 }
 
