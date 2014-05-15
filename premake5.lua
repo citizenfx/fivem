@@ -24,12 +24,15 @@
 		language "C++"
 		kind "WindowedApp"
 		
+		defines "COMPILING_LAUNCH"
+		
 		links { "Shared" }
 		
 		files
 		{
 			"client/launcher/**.cpp", "client/launcher/**.h", 
-			"client/launcher/launcher.rc", "client/launcher/launcher.def"
+			"client/launcher/launcher.rc", "client/launcher/launcher.def",
+			"client/common/Error.cpp"
 		}
 		
 		configuration "windows"
@@ -42,7 +45,7 @@
 		
 		files
 		{
-			"client/citigame/**.cpp", "client/citigame/**.h"
+			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp"
 		}
 		
 		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32" }
@@ -66,11 +69,11 @@
 		defines "COMPILING_GAMESPEC"
 		
 		configuration "* NY"
-			includedirs { "client/game_ny/base/" }
+			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
 			files
 			{
-				"client/game_ny/**.cpp", "client/game_ny/**.h"
+				"client/game_ny/**.cpp", "client/game_ny/**.h", "client/common/Error.cpp"
 			}
 			
 	project "HooksNY"
@@ -86,13 +89,15 @@
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
 			files
 			{
-				"client/hooks_ny/**.cpp", "client/hooks_ny/**.h"
+				"client/hooks_ny/**.cpp", "client/hooks_ny/**.h", "client/common/Error.cpp"
 			}
 		
 	project "Shared"
 		targetname "shared"
 		language "C++"
 		kind "StaticLib"
+		
+		includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
 		files
 		{

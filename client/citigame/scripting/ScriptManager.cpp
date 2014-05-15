@@ -34,8 +34,10 @@ void ScriptManager::DoRun()
 
 rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
-	std::string gameInit = "gameInit";
-	TheResources.GetResource(gameInit)->Start();
+	trace("script reset\n");
+
+	//std::string gameInit = "gameInit";
+	//TheResources.GetResource(gameInit)->Start();
 
 	/*std::string resourcePath = "citizen:/resources/";
 	TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
@@ -53,6 +55,8 @@ rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32
 
 void ScriptManager::Kill()
 {
+	trace("script kill\n");
+
 	return GtaThread::Kill();
 }
 

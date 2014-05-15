@@ -6,8 +6,15 @@ static InitFunction initFunction([] ()
 {
 	rage::fiDevice::SetInitialMountHook([] (void*)
 	{
+		static char citRoot[512];
+		std::wstring citPath = MakeRelativeCitPath(L"citizen");
+
+		size_t offset = wcstombs(citRoot, citPath.c_str(), sizeof(citRoot));
+		citRoot[offset] = '\\';
+		citRoot[offset + 1] = '\0';
+
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
-		device->setPath("citizen/", true);
+		device->setPath(citRoot, true);
 		device->mount("citizen:/");
 
 		static char cacheRoot[512];
@@ -25,7 +32,7 @@ static InitFunction initFunction([] ()
 			CreateDirectory(unconfPath.c_str(), nullptr);
 		}
 
-		size_t offset = wcstombs(cacheRoot, cachePath.c_str(), sizeof(cacheRoot));
+		offset = wcstombs(cacheRoot, cachePath.c_str(), sizeof(cacheRoot));
 		cacheRoot[offset] = '\\';
 		cacheRoot[offset + 1] = '\0';
 

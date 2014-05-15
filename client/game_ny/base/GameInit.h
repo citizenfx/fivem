@@ -10,4 +10,6 @@ public:
 	static void SetLoadScreens();
 
 	static void ReloadGame();
+
+	static void KillNetwork(const wchar_t* reason);
 };

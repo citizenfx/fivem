@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "GameInit.h"
+#include "Text.h"
 #include "Hooking.h"
 #include "CrossLibraryInterfaces.h"
 
@@ -7,7 +8,7 @@ int hook::baseAddressDifference;
 
 bool GameInit::GetGameLoaded()
 {
-	return *(uint8_t*)0xF22B3C;
+	return !(*(uint8_t*)0xF22B3C);
 }
 
 void GameInit::LoadGameFirstLaunch(bool (*callBeforeLoad)())
@@ -53,12 +54,23 @@ void GameInit::SetLoadScreens()
 {
 	((void(*)(int, int, int))0x423CE0)(1, 0, 0);
 
-	*(BYTE*)0x7BD9F0 = 0xC3;
+	//*(BYTE*)0x7BD9F0 = 0xC3;
 	*(BYTE*)0x18A823A = 1;
 
 	loadingTune.StartLoadingTune();
 
 	SetEvent(*(HANDLE*)0x10F9AAC);
+}
+
+void WRAPPER SetTextForLoadscreen(const char* text, bool a2, bool a3, int neg1) { EAXJMP(0x84F580); }
+bool& stopNetwork = *(bool*)0x18A82FE;
+
+void GameInit::KillNetwork(const wchar_t* reason)
+{
+	TheText.SetCustom("CIT_NET_KILL_REASON", reason);
+	SetTextForLoadscreen("CIT_NET_KILL_REASON", true, false, -1);
+
+	stopNetwork = true;
 }
 
 void GameInit::ReloadGame()

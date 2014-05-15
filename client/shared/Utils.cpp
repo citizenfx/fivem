@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "Utils.h"
+#include "GameInit.h"
 
 std::wstring GetAbsoluteCitPath()
 {
@@ -109,28 +110,6 @@ void trace(const char* string, ...)
 	printf(buffer);
 
 	// TODO: write to a log file too, if enabled?
-}
-
-void GlobalError(const char* string, ...)
-{
-	static char buffer[BUFFER_LENGTH];
-
-	va_list ap;
-	va_start(ap, string);
-	int length = _vsnprintf_s(buffer, BUFFER_LENGTH, string, ap);
-	va_end(ap);
-
-	if (length >= BUFFER_LENGTH)
-	{
-		GlobalError("Attempted to overrun string in call to GlobalError()!");
-	}
-
-	HWND wnd = NULL;
-
-	// TODO: get the game window
-
-	MessageBoxA(wnd, buffer, "CitizenFX Fatal Error", MB_OK | MB_ICONSTOP);
-	ExitProcess(1);
 }
 
 uint32_t HashRageString(const char* string)
