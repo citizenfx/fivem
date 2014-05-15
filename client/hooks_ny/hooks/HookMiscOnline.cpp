@@ -12,6 +12,9 @@ static HookFunction hookFunction([] ()
 	// lie about being connected online to prevent slowness
 	hook::nop(0x7AF1B7, 2);
 
+	// don't do some random 'TV health check' over HTTP
+	hook::return_function(0x87FC60);
+
 	// ignore checking for XNADDR/related data during the connection request
 	hook::put<uint8_t>(0x541221, 0xB8);
 	hook::put<uint32_t>(0x541222, 1);

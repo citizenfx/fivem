@@ -322,9 +322,9 @@ void NetLibrary::ProcessSend()
 	}
 
 	// FIXME: REPLACE HARDCODED STUFF
-	if (*(BYTE*)0x18A82FD)
+	if (*(BYTE*)0x18A82FD) // is server running
 	{
-		msg.Write(0xB3EA30DE);
+		msg.Write(0xB3EA30DE); // msgIHost
 		msg.Write(m_serverBase);
 	}
 
@@ -362,7 +362,7 @@ void NetLibrary::RunFrame()
 
 	static bool testState;
 
-	if (GetAsyncKeyState(VK_F5))
+	if (GetAsyncKeyState(VK_F5) && m_connectionState == CS_IDLE)
 	{
 		if (!testState)
 		{

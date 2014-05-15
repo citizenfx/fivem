@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "Live.h"
 #include "CrossLibraryInterfaces.h"
+#include "NetBuffer.h"
 
 // #5312: XFriendsCreateEnumerator
 DWORD __stdcall XFriendsCreateEnumerator(DWORD, DWORD, DWORD, DWORD, HANDLE * phEnum)
@@ -77,9 +78,34 @@ DWORD __stdcall XSessionModify(DWORD, DWORD, DWORD, DWORD, DWORD)
 	return 0;
 }
 
+DWORD __stdcall XNetGetTitleXnAddr(XNADDR * pAddr);
+
+void HandleSessionInfo(PXSESSION_INFO pSessionInfo)
+{
+	memset(pSessionInfo, 0, sizeof(XSESSION_INFO));
+	pSessionInfo->sessionID.ab[0] = 1;
+	pSessionInfo->keyExchangeKey.ab[0] = 1;
+	pSessionInfo->hostAddress.inaOnline.s_addr = g_netLibrary->GetServerNetID();
+	pSessionInfo->hostAddress.ina.s_addr = g_netLibrary->GetServerNetID();
+
+	XNetGetTitleXnAddr(&pSessionInfo->hostAddress);
+}
+
 // #5323: XSessionMigrateHost
 DWORD __stdcall XSessionMigrateHost(HANDLE hSession, DWORD dwUserIndex, XSESSION_INFO* pSessionInfo, PXOVERLAPPED* xOverlapped)
 {
+	auto msgBuffer = new NetBuffer(64);
+
+	if (dwUserIndex != 0xFE) // the new host is us
+	{
+		HandleSessionInfo(pSessionInfo);
+	}
+
+	msgBuffer->Write<uint32_t>(pSessionInfo->hostAddress.ina.s_addr);
+	msgBuffer->Write<uint16_t>(pSessionInfo->hostAddress.wPortOnline);
+
+	g_netLibrary->SendReliableCommand("msgHeHost", msgBuffer->GetBuffer(), msgBuffer->GetCurLength());
+
 	return ERROR_SUCCESS;
 }
 
@@ -247,19 +273,6 @@ DWORD __stdcall XStringVerify(DWORD, DWORD, DWORD numStrings, DWORD, DWORD, STRI
 	}
 
 	return 0;
-}
-
-DWORD __stdcall XNetGetTitleXnAddr(XNADDR * pAddr);
-
-void HandleSessionInfo(PXSESSION_INFO pSessionInfo)
-{
-	memset(pSessionInfo, 0, sizeof(XSESSION_INFO));
-	pSessionInfo->sessionID.ab[0] = 1;
-	pSessionInfo->keyExchangeKey.ab[0] = 1;
-	pSessionInfo->hostAddress.inaOnline.s_addr = g_netLibrary->GetServerNetID();
-	pSessionInfo->hostAddress.ina.s_addr = g_netLibrary->GetServerNetID();
-
-	XNetGetTitleXnAddr(&pSessionInfo->hostAddress);
 }
 
 DWORD __stdcall XSessionCreate(DWORD dwFlags,

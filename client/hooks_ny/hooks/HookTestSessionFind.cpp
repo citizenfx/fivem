@@ -66,6 +66,9 @@ static HookFunction hookFunction([] ()
 	// force lan session:
 	hook::put<uint8_t>(0x1724426, 1); // lan session flag
 
+	// LAN session check for host migration (force online behavior)
+	hook::nop(0x772CD0, 6);
+
 	// setters:
 	hook::nop(0x460179, 6);
 	hook::nop(0x463ABB, 6);
