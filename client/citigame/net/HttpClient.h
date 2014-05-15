@@ -21,5 +21,5 @@ public:
 	void DoPostRequest(std::wstring host, uint16_t port, std::wstring url, std::map<std::string, std::string>& fields, std::function<void(bool, std::string)> callback);
 	void DoPostRequest(std::wstring host, uint16_t port, std::wstring url, std::string postData, std::function<void(bool, std::string)> callback);
 
-	void DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, std::string outFilename, std::function<void(bool, std::string)> callback);
+	void DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, const char* outDeviceBase, std::string outFilename, std::function<void(bool, std::string)> callback);
 };

@@ -74,7 +74,7 @@ void HttpClient::DoPostRequest(std::wstring host, uint16_t port, std::wstring ur
 	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
 }
 
-void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, std::string outFilename, std::function<void(bool, std::string)> callback)
+void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, const char* outDeviceBase, std::string outFilename, std::function<void(bool, std::string)> callback)
 {
 	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
 	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
@@ -86,7 +86,14 @@ void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring
 	context->hConnection = hConnection;
 	context->hRequest = hRequest;
 	context->callback = callback;
-	context->outDevice = rage::fiDevice::GetDevice(outFilename.c_str(), true);
+	context->outDevice = rage::fiDevice::GetDevice(outDeviceBase, true);
+
+	if (context->outDevice == nullptr)
+	{
+		GlobalError("context->outDevice was null in " __FUNCTION__);
+		return;
+	}
+
 	context->outHandle = context->outDevice->create(outFilename.c_str());
 
 	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);

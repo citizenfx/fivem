@@ -383,6 +383,23 @@ void NetLibrary::RunFrame()
 		testState = false;
 	}
 
+	static bool testState2;
+
+	if (GetAsyncKeyState(VK_F6))
+	{
+		if (!testState2)
+		{
+			Disconnect("hey");
+			GameInit::KillNetwork(nullptr);
+
+			testState2 = true;
+		}
+	}
+	else
+	{
+		testState2 = false;
+	}
+
 	switch (m_connectionState)
 	{
 		case CS_INITRECEIVED:
@@ -403,6 +420,21 @@ void NetLibrary::RunFrame()
 
 					return TheDownloads.Process();
 				});
+			}
+			else
+			{
+				GameInit::SetLoadScreens();
+
+				TheDownloads.SetServer(m_currentServer);
+
+				while (!TheDownloads.Process())
+				{
+					HANDLE hThread = GetCurrentThread();
+
+					MsgWaitForMultipleObjects(1, &hThread, TRUE, 15, 0);
+				}
+
+				GameInit::ReloadGame();
 			}
 
 			break;
@@ -452,6 +484,11 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	m_connectionState = CS_INITING;
 	m_currentServer = NetAddress(hostname, port);
+
+	m_outReliableAcknowledged = 0;
+	m_outSequence = 0;
+	m_lastReceivedReliableCommand = 0;
+	m_outReliableCommands.clear();
 
 	wchar_t wideHostname[256];
 	mbstowcs(wideHostname, hostname, _countof(wideHostname) - 1);

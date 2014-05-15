@@ -52,14 +52,15 @@ static LoadingTune& loadingTune = *(LoadingTune*)0x10F85B0;
 
 void GameInit::SetLoadScreens()
 {
-	((void(*)(int, int, int))0x423CE0)(1, 0, 0);
+	((void(*)(int, int, int))0x423CE0)(0, 0, 0);
+	//((void(*)())0x423E60)();
 
 	//*(BYTE*)0x7BD9F0 = 0xC3;
 	*(BYTE*)0x18A823A = 1;
 
 	loadingTune.StartLoadingTune();
 
-	SetEvent(*(HANDLE*)0x10F9AAC);
+	//SetEvent(*(HANDLE*)0x10F9AAC);
 }
 
 void WRAPPER SetTextForLoadscreen(const char* text, bool a2, bool a3, int neg1) { EAXJMP(0x84F580); }
@@ -67,22 +68,32 @@ bool& stopNetwork = *(bool*)0x18A82FE;
 
 void GameInit::KillNetwork(const wchar_t* reason)
 {
-	TheText.SetCustom("CIT_NET_KILL_REASON", reason);
-	SetTextForLoadscreen("CIT_NET_KILL_REASON", true, false, -1);
+	if (reason != nullptr)
+	{
+		TheText.SetCustom("CIT_NET_KILL_REASON", reason);
+		SetTextForLoadscreen("CIT_NET_KILL_REASON", true, false, -1);
 
-	static char smallReason[8192];
-	wcstombs(smallReason, reason, _countof(smallReason));
+		static char smallReason[8192];
+		wcstombs(smallReason, reason, _countof(smallReason));
 
-	g_netLibrary->Disconnect(smallReason);
+		g_netLibrary->Disconnect(smallReason);
+	}
 
 	stopNetwork = true;
 }
 
+bool& reloadGameNextFrame = *(bool*)0x10F8074;
+
 void GameInit::ReloadGame()
-{ }
+{
+	reloadGameNextFrame = true;
+}
 
 static InitFunction initFunction([] ()
 {
 	// unused byte which is set to 0 during loading
 	hook::put<uint8_t>(0xF22B3C, 1);
+
+	// LoadGameNow argument 'reload game fully, even if episodes didn't change' in one caller, to be specific the one we actually use indirectly above as the script flag uses it
+	hook::put<uint8_t>(0x420F91, true);
 });
