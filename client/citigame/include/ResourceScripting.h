@@ -71,6 +71,8 @@ public:
 public:
 	inline lua_State* GetLua() { return m_luaState; }
 
+	inline Resource* GetResource() { return m_resource; }
+
 	std::string GetName();
 };
 

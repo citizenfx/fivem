@@ -284,12 +284,15 @@ LUALIB_API void safe_openlibs (lua_State *L)
 	}
 }
 
+extern "C" int luaopen_cjson(lua_State *l);
+
 ScriptEnvironment::ScriptEnvironment(Resource* resource)
 	: m_resource(resource)
 {
 	// create a lua state; don't do anything with it yet
 	m_luaState = luaL_newstate();
 	safe_openlibs(m_luaState);
+	luaopen_cjson(m_luaState);
 
 	// init critsec if needed
 	if (!g_scriptCritSec.DebugInfo)

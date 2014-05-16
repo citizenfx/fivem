@@ -56,6 +56,43 @@ LUA_FUNCTION(IsResourceRunning)
 	return 1;
 }
 
+LUA_FUNCTION(ReadResourceFile)
+{
+	std::string path = g_currentEnvironment->GetResource()->GetPath();
+
+	path += "/";
+	path += luaL_checkstring(L, 1);
+
+	fiDevice* device = fiDevice::GetDevice(path.c_str(), true);
+	
+	if (!device)
+	{
+		lua_pushstring(L, "no device for path");
+		lua_error(L);
+	}
+
+	uint32_t handle = device->open(path.c_str(), true);
+
+	if (handle == -1)
+	{
+		lua_pushstring(L, "could not open file");
+		lua_error(L);
+	}
+
+	int length = device->fileLength(handle);
+
+	char* buffer = new char[length];
+	device->read(handle, buffer, length);
+
+	device->close(handle);
+
+	lua_pushlstring(L, buffer, length);
+
+	delete[] buffer;
+
+	return 1;
+}
+
 static int exports_index(lua_State* L)
 {
 	const char* index = luaL_checkstring(L, 2);
