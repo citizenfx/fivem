@@ -457,7 +457,7 @@ void NetLibrary::RunFrame()
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000)
 			{
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%u", m_token.c_str(), m_tempGuid);
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%u", m_token.c_str(), (wcsstr(GetCommandLine(), L"cl2")) ? 2 : 1); // m_tempGuid
 
 				m_lastConnect = GetTickCount();
 			}
@@ -497,10 +497,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	std::map<std::string, std::string> postMap;
 	postMap["method"] = "initConnect";
-	postMap["name"] = "dotty";
+	postMap["name"] = GetPlayerName();
 
 	m_tempGuid = GetTickCount();
-	postMap["guid"] = va("%u", m_tempGuid);
+	postMap["guid"] = (wcsstr(GetCommandLine(), L"cl2")) ? "2" : "1";//va("%u", m_tempGuid);
 
 	m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, [&] (bool result, std::string connData)
 	{
@@ -539,6 +539,8 @@ void NetLibrary::Disconnect(const char* reason)
 		m_lastSend = 0;
 		ProcessSend();
 	}
+
+	TheDownloads.ReleaseLastServer();
 
 	m_connectionState = CS_IDLE;
 	m_currentServer = NetAddress();
@@ -595,6 +597,16 @@ void NetLibrary::SendOutOfBand(NetAddress& address, const char* format, ...)
 	SendData(address, buffer, strlen(buffer));
 }
 
+const char* NetLibrary::GetPlayerName()
+{
+	return m_playerName.c_str();
+}
+
+void NetLibrary::SetPlayerName(const char* name)
+{
+	m_playerName = name;
+}
+	
 void NetLibrary::SendData(NetAddress& address, const char* data, size_t length)
 {
 	sockaddr_storage addr;

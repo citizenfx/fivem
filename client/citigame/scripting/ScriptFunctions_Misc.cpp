@@ -2,6 +2,20 @@
 #include "ResourceScripting.h"
 #include "scrEngine.h"
 
+LUA_FUNCTION(GetKeyboardDelays)
+{
+	int param;
+	SystemParametersInfo(SPI_GETKEYBOARDDELAY, 0, &param, 0);
+
+	lua_pushnumber(L, (param * 250) + 250);
+
+	SystemParametersInfo(SPI_GETKEYBOARDSPEED, 0, &param, 0);
+
+	lua_pushnumber(L, 1000.0 / (((param / 31.0) * 27.5) + 2.5));
+
+	return 2;
+}
+
 LUA_FUNCTION(GetNetworkGameConfigPtr)
 {
 	static int networkGameConfig[30];

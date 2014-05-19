@@ -148,5 +148,8 @@ public:
 
 	// mounts the device in the device stack
 	void mount(const char* mountPoint);
+
+	// closes the package file
+	void closeArchive();
 };
 }

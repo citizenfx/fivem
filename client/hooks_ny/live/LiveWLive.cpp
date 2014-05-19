@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "Live.h"
+#include "CrossLibraryInterfaces.h"
 
 // #5349: XLiveProtectedVerifyFile
 extern "C" DWORD __stdcall XLiveProtectedVerifyFile(HANDLE hContentAccess, VOID * pvReserved, PCWSTR pszFilePath)
@@ -285,8 +286,11 @@ int __stdcall XLiveSetDebugLevel(DWORD xdlLevel, DWORD * pxdlOldLevel)
 	return 0;
 }
 
+extern DWORD xuidBase;
+
 int __stdcall XLiveInitializeEx(void * pXii, DWORD dwVersion)
 {
+	g_netLibrary->SetPlayerName(va("P%d", xuidBase));
 	return S_OK;
 }
 

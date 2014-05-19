@@ -1,11 +1,28 @@
 #include "StdInc.h"
 #include "ResourceScripting.h"
+#include "CPlayerInfo.h"
 
 LUA_FUNCTION(SetLoadingText)
 {
 	mbstowcs((wchar_t*)(0x11D6550), luaL_checkstring(L, 1), 64);
 
 	return 0;
+}
+
+LUA_FUNCTION(GetPlayerNetID)
+{
+	CPlayerInfo* info = CPlayerInfo::GetPlayer(luaL_checkinteger(L, 1));
+
+	if (info)
+	{
+		lua_pushinteger(L, info->address.inaOnline.s_addr);
+	}
+	else
+	{
+		lua_pushnil(L);
+	}
+
+	return 1;
 }
 
 #if 0

@@ -159,6 +159,8 @@ bool DownloadManager::Process()
 							rage::fiPackfile* packFile = new rage::fiPackfile();
 							packFile->openArchive(markedFile.c_str(), true, false, 0);
 							packFile->mount(va("resources:/%s/", resource.GetName().c_str()));
+
+							m_packFiles.push_back(std::make_pair(va("resources:/%s/", resource.GetName().c_str()), packFile));
 						}
 					}
 
@@ -200,6 +202,16 @@ bool DownloadManager::Process()
 	}
 
 	return false;
+}
+
+void DownloadManager::ReleaseLastServer()
+{
+	for (auto& packfile : m_packFiles)
+	{
+		fiDevice::Unmount(packfile.first.c_str());
+
+		packfile.second->closeArchive();
+	}
 }
 
 void DownloadManager::SetServer(NetAddress& address)

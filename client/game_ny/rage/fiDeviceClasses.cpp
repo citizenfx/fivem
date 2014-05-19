@@ -25,4 +25,5 @@ fiPackfile::fiPackfile()
 
 void WRAPPER fiPackfile::openArchive(const char* archive, bool bTrue, bool bFalse, int type) { EAXJMP(0x5BCE10); }
 void WRAPPER fiPackfile::mount(const char* mountPoint) { EAXJMP(0x5BD3A0); }
+void WRAPPER fiPackfile::closeArchive() { EAXJMP(0x5BCD80); }
 }

@@ -130,6 +130,8 @@ private:
 
 	uint32_t m_lastReceivedAt;
 
+	std::string m_playerName;
+
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
 
@@ -163,6 +165,10 @@ public:
 	virtual uint16_t GetHostNetID();
 
 	virtual uint32_t GetHostBase();
+
+	virtual const char* GetPlayerName();
+	
+	virtual void SetPlayerName(const char* name);
 
 	virtual void SetBase(uint32_t base);
 

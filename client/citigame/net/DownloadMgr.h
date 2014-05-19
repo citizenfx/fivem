@@ -2,6 +2,7 @@
 
 #include "NetLibrary.h"
 #include "ResourceCache.h"
+#include "fiDevice.h"
 #include <memory>
 
 class ResourceData;
@@ -17,6 +18,8 @@ private:
 
 	std::queue<ResourceDownload> m_downloadList;
 
+	std::vector<std::pair<std::string, rage::fiPackfile*>> m_packFiles;
+
 	std::shared_ptr<ResourceDownload> m_currentDownload;
 
 	enum DownloadState
@@ -31,6 +34,8 @@ private:
 
 public:
 	bool Process();
+
+	void ReleaseLastServer();
 
 	void SetServer(NetAddress& address);
 };
