@@ -35,6 +35,18 @@
 			"client/common/Error.cpp"
 		}
 		
+		libdirs { "client/libcef/lib/" }
+		
+		linkoptions "/DELAYLOAD:libcef.dll"
+		
+		includedirs { "client/libcef/" }
+		
+		configuration "Debug*"
+			links { "cef_sandboxd", "libcefd" }
+			
+		configuration "Release*"
+			links { "cef_sandbox", "libcef" }
+		
 		configuration "windows"
 			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO" -- 4254 is the section type warning we tend to get
 		
@@ -60,6 +72,12 @@
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
 			links { "HooksNY", "GameNY" }
+			
+		configuration "Debug*"
+			links { "libcefd" }
+			
+		configuration "Release*"
+			links { "libcef" }
 			
 	project "GameNY"
 		targetname "game_ny"
