@@ -5,7 +5,7 @@
 class LauncherInterface : public ILauncherInterface
 {
 public:
-	bool PreLoadGame();
+	bool PreLoadGame(void* cefSandbox);
 
 	bool PostLoadGame(HMODULE hModule, void(**entryPoint)());
 };

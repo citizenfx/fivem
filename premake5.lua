@@ -26,7 +26,7 @@
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "Shared" }
+		links { "Shared", "dbghelp", "psapi" }
 		
 		files
 		{
@@ -60,7 +60,7 @@
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c"
 		}
 		
-		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef" }
+		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp" }
 		
 		defines "COMPILING_GAME"
 		

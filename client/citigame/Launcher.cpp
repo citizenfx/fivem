@@ -3,10 +3,16 @@
 #include "Launcher.h"
 #include "CrossLibraryInterfaces.h"
 #include "net/HttpClient.h"
+#include "ui/CefOverlay.h"
 
-bool LauncherInterface::PreLoadGame()
+bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
 	bool continueRunning = true;
+
+	if (nui::OnPreLoadGame(cefSandbox))
+	{
+		return false;
+	}
 
 	HooksDLLInterface::PreGameLoad(&continueRunning);
 

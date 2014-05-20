@@ -6,6 +6,10 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#ifdef GTA_NY
+#include <d3d9.h>
+#endif
+
 // MSVC odd defines
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_DEPRECATE

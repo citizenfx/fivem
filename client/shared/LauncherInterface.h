@@ -3,7 +3,7 @@
 class ILauncherInterface
 {
 public:
-	virtual bool PreLoadGame() = 0;
+	virtual bool PreLoadGame(void* cefSandbox) = 0;
 
 	virtual bool PostLoadGame(HMODULE hModule, void(**entryPoint)()) = 0;
 };

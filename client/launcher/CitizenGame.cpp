@@ -3,8 +3,14 @@
 #include "ExecutableLoader.h"
 #include "LauncherInterface.h"
 
+#include "include/cef_sandbox_win.h"
+
 void CitizenGame::Launch(std::wstring& gamePath)
 {
+	// initialize the CEF sandbox
+	CefScopedSandboxInfo sandbox;
+	void* sandboxInfo = sandbox.sandbox_info();
+
 	// load the game library
 	HMODULE gameLibrary = LoadLibrary(MakeRelativeCitPath(L"CitizenGame.dll").c_str());
 
@@ -25,7 +31,7 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	ILauncherInterface* launcher = getLauncherInterface();
 	
 	// call into the launcher code
-	if (!launcher->PreLoadGame())
+	if (!launcher->PreLoadGame(sandboxInfo))
 	{
 		ExitProcess(0);
 	}
