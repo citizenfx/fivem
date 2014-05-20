@@ -48,12 +48,12 @@
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp"
 		}
 		
-		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32" }
+		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef" }
 		
 		defines "COMPILING_GAME"
 		
-		libdirs { "../vendor/luajit/src/" }
-		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/" }
+		libdirs { "../vendor/luajit/src/", "client/libcef/lib/" }
+		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "client/libcef/" }
 		
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
@@ -102,6 +102,20 @@
 		files
 		{
 			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
+		}
+		
+	project "libcef_dll"
+		targetname "libcef_dll_wrapper"
+		language "C++"
+		kind "StaticLib"
+		
+		defines { "USING_CEF_SHARED", "NOMINMAX" }
+		
+		includedirs { ".", "client/libcef" }
+		
+		files
+		{
+			"client/libcef/libcef_dll/**.cc", "client/libcef/libcef_dll/**.cpp", "client/libcef/libcef_dll/**.h"
 		}
 		
 	project "yaml-cpp"
