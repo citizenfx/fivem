@@ -55,6 +55,8 @@
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/" }
 		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "client/libcef/" }
 		
+		linkoptions "/DELAYLOAD:libcef.dll"
+		
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
 			links { "HooksNY", "GameNY" }
