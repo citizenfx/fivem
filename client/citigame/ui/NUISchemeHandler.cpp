@@ -2,6 +2,7 @@
 #include "CefOverlay.h"
 #include "fiDevice.h"
 #include "HttpClient.h"
+#include <include/cef_url.h>
 
 static HttpClient* g_httpClient;
 
@@ -25,7 +26,7 @@ public:
 	NUIResourceHandler()
 	{
 		closed_ = false;
-		file_ = -1;
+		file_ = 0;
 
 		if (!g_httpClient)
 		{
@@ -43,19 +44,16 @@ public:
 
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
 	{
-		wchar_t exeName[512];
-		GetModuleFileNameW(GetModuleHandle(NULL), exeName, sizeof(exeName) / 2);
-
-		wchar_t* exeBaseName = wcsrchr(exeName, L'\\');
-		exeBaseName[0] = L'\0';
-		exeBaseName++;
-
 		std::string url = request->GetURL();
 		std::wstring hostname;
 		std::wstring path;
 		uint16_t port;
 
-		g_httpClient->CrackUrl(url, hostname, path, port);
+		CefURLParts parts;
+		CefParseURL(url, parts);
+
+		hostname = CefString(&parts.host);
+		path = CefString(&parts.path);
 
 		if (hostname == L"game")
 		{
@@ -90,7 +88,7 @@ public:
 		}
 
 		//file_ = _wfopen(filename_.c_str(), "rb");
-		device_ = rage::fiDevice::GetDevice(filename_.c_str(), false);
+		device_ = rage::fiDevice::GetDevice(filename_.c_str(), true);
 		
 		if (device_)
 		{
@@ -179,7 +177,18 @@ public:
 	IMPLEMENT_REFCOUNTING(NUIResourceHandler);
 };
 
+CefRefPtr<CefResourceHandler> CreateRPCResourceHandler();
+
 CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request)
 {
-	return new NUIResourceHandler();
+	if (scheme_name == "nui")
+	{
+		return new NUIResourceHandler();
+	}
+	else if (scheme_name == "http")
+	{
+		return CreateRPCResourceHandler();
+	}
+
+	return nullptr;
 }

@@ -129,6 +129,18 @@ void ScriptEnvironment::Tick()
 	// store the environment someplace
 	g_currentEnvironment = this;
 
+	EnterCriticalSection(&m_taskCritSec);
+
+	// invoke any tasks that are waiting
+	for (auto& task : m_taskQueue)
+	{
+		task();
+	}
+
+	m_taskQueue.clear();
+
+	LeaveCriticalSection(&m_taskCritSec);
+
 	// loop through all threads and see which we can remove
 	for (int i = m_threads.size(); i > 0; i--)
 	{
@@ -214,7 +226,7 @@ void ScriptEnvironment::TriggerEvent(std::string& eventName, std::string& argsSe
 	g_currentEnvironment = oldEnvironment;
 }
 
-std::string ScriptEnvironment::CallExport(ScriptFunctionRef ref, std::string& argsSerialized)
+std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::string& argsSerialized, int(*deserializeCB)(lua_State*, int*, std::string&))
 {
 	ScriptEnvironment* oldEnvironment = g_currentEnvironment;
 	g_currentEnvironment = this;
@@ -227,7 +239,7 @@ std::string ScriptEnvironment::CallExport(ScriptFunctionRef ref, std::string& ar
 	int eh = lua_gettop(m_luaState);
 
 	int length;
-	int table = luaS_deserializeArgs(m_luaState, &length, argsSerialized);
+	int table = deserializeCB(m_luaState, &length, argsSerialized);
 
 	// now replace the original table with the callback
 	lua_rawgeti(m_luaState, LUA_REGISTRYINDEX, ref);
@@ -257,6 +269,11 @@ std::string ScriptEnvironment::CallExport(ScriptFunctionRef ref, std::string& ar
 	STACK_CHECK;
 
 	return retValue;
+}
+
+std::string ScriptEnvironment::CallExport(ScriptFunctionRef ref, std::string& argsSerialized)
+{
+	return CallExportInternal(ref, argsSerialized, luaS_deserializeArgs);
 }
 
 // luaL_openlibs version without io/os libs
@@ -299,6 +316,8 @@ ScriptEnvironment::ScriptEnvironment(Resource* resource)
 	{
 		InitializeCriticalSection(&g_scriptCritSec);
 	}
+
+	InitializeCriticalSection(&m_taskCritSec);
 }
 
 ScriptEnvironment::~ScriptEnvironment()
@@ -309,6 +328,15 @@ ScriptEnvironment::~ScriptEnvironment()
 std::string ScriptEnvironment::GetName()
 {
 	return m_resource->GetName();
+}
+
+void ScriptEnvironment::EnqueueTask(std::function<void()> task)
+{
+	EnterCriticalSection(&m_taskCritSec);
+
+	m_taskQueue.push_back(task);
+
+	LeaveCriticalSection(&m_taskCritSec);
 }
 
 void ScriptEnvironment::Destroy()

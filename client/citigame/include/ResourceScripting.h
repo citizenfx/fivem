@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <map>
 #include <lua.hpp>
@@ -44,6 +45,13 @@ private:
 
 	std::map<std::string, std::vector<ScriptFunctionRef>> m_eventHandlers;
 
+	std::vector<std::function<void()>> m_taskQueue;
+
+	CRITICAL_SECTION m_taskCritSec;
+
+private:
+	std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::string& argsSerialized, int(*deserializeCB)(lua_State*, int*, std::string&));
+
 public:
 	ScriptEnvironment(Resource* resource);
 
@@ -64,6 +72,8 @@ public:
 	void AddThread(std::shared_ptr<ScriptThread> thread);
 
 	void AddEventHandler(std::string& eventName, ScriptFunctionRef ref);
+	
+	void EnqueueTask(std::function<void()> task);
 
 	static sigslot::signal1<lua_State*> SignalResourceScriptInit;
 	static sigslot::signal0<> SignalScriptReset;
@@ -106,6 +116,8 @@ public:
 	static void RegisterAll(lua_State* L);
 };
 
+int lua_error_handler(lua_State *l);
+
 #undef NDEBUG
 #include <assert.h>
 #define NDEBUG
@@ -126,7 +138,9 @@ public:
 #define STACK_CHECK STACK_CHECK_N(0)
 
 void luaS_serializeArgs(lua_State* L, int firstArg, int numArgs);
+void luaS_serializeArgsJSON(lua_State* L, int firstArg, int numArgs);
 int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized);
+int luaS_deserializeArgsJSON(lua_State* L, int* numArgs, std::string& argsSerialized);
 
 extern ScriptEnvironment* g_currentEnvironment;
 extern CRITICAL_SECTION g_scriptCritSec;

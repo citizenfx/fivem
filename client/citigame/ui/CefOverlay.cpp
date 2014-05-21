@@ -614,6 +614,8 @@ NUIWindow::NUIWindow(bool primary, int width, int height)
 
 NUIWindow::~NUIWindow()
 {
+	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->CloseBrowser(true);
+
 	for (auto it = g_nuiWindows.begin(); it != g_nuiWindows.end(); )
 	{
 		if (*it == this)
@@ -625,6 +627,11 @@ NUIWindow::~NUIWindow()
 			it++;
 		}
 	}
+}
+
+void NUIWindow::SetPaintType(NUIPaintType type)
+{
+	paintType = type;
 }
 
 void NUIWindow::Invalidate()
@@ -659,7 +666,7 @@ static InitFunction initFunction([] ()
 		{
 			window->UpdateFrame();
 
-			SetTextureGtaIm(window->nuiTexture);
+			SetTextureGtaIm(window->GetTexture());
 
 			// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
 			DrawImSprite(-0.5f, -0.5f, 2559.5f, 1439.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
@@ -741,8 +748,15 @@ void NUI_Init()
 	JobNUIInit();*/
 }
 
+static NUISchemeHandlerFactory* g_shFactory;
+
 namespace nui
 {
+	NUISchemeHandlerFactory* GetSchemeHandlerFactory()
+	{
+		return g_shFactory;
+	}
+
 	bool OnPreLoadGame(void* cefSandbox)
 	{
 		// load the CEF library
@@ -787,9 +801,13 @@ namespace nui
 		cef_string_utf16_set(resPath.c_str(), resPath.length(), &cSettings.resources_dir_path, true);
 		cef_string_utf16_set(resPath.c_str(), resPath.length(), &cSettings.locales_dir_path, true);
 
+		g_shFactory = new NUISchemeHandlerFactory();
+
 		CefInitialize(args, cSettings, app.get(), nullptr);
-		CefRegisterSchemeHandlerFactory("nui", "", new NUISchemeHandlerFactory());
+		CefRegisterSchemeHandlerFactory("nui", "", g_shFactory);
+		//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
+		CefAddCrossOriginWhitelistEntry("nui://chat", "http", "chat", true);
 
 		return false;
 	}

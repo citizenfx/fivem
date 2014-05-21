@@ -7,6 +7,8 @@ using rage::fiDevice;
 #include "ResourceCache.h"
 #include "ResourceScripting.h"
 
+class ResourceUI;
+
 #include <memory>
 #include <set>
 
@@ -58,6 +60,8 @@ private:
 
 	std::shared_ptr<ScriptEnvironment> m_scriptEnvironment;
 
+	std::shared_ptr<ResourceUI> m_ui;
+
 	std::vector<std::string> m_dependencies;
 
 	std::set<std::string> m_dependants;
@@ -89,6 +93,8 @@ public:
 	inline std::string GetPath() { return m_path; }
 
 	inline ResourceState GetState() { return m_state; }
+
+	inline std::shared_ptr<ResourceUI> GetUI() { return m_ui; }
 
 	inline ResourceMetaData& GetMetaData() { return m_metaData; }
 

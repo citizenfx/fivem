@@ -40,6 +40,11 @@ private:
 
 #include <functional>
 
+enum NUIPaintType
+{
+	NUIPaintTypePostRender
+};
+
 class NUIWindow
 {
 private:
@@ -49,9 +54,12 @@ private:
 
 	void Initialize(CefString url);
 
+	friend class NUIClient;
+
 public:
 	NUIWindow(bool primary, int width, int height);
 
+private:
 	bool primary;
 	int width;
 	int height;
@@ -67,6 +75,8 @@ public:
 
 	rage::grcTexture* nuiTexture;
 
+	NUIPaintType paintType;
+
 public:
 	static std::shared_ptr<NUIWindow> Create(bool primary, int width, int height, CefString url);
 
@@ -76,6 +86,8 @@ public:
 	void UpdateFrame();
 
 	void Invalidate();
+
+	void SetPaintType(NUIPaintType type);
 
 	CefBrowser* GetBrowser();
 
@@ -92,6 +104,10 @@ public:
 		}
 	}
 
+	inline rage::grcTexture* GetTexture() { return nuiTexture; }
+
+	inline NUIPaintType GetPaintType() { return paintType; }
+
 	IMPLEMENT_REFCOUNTING(NUIWindow);
 };
 
@@ -103,6 +119,8 @@ namespace nui
 	void ReloadNUI();
 
 	bool OnPreLoadGame(void* cefSandbox);
+
+	NUISchemeHandlerFactory* GetSchemeHandlerFactory();
 }
 
 #define REQUIRE_IO_THREAD()   assert(CefCurrentlyOn(TID_IO));

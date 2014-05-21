@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "ResourceManager.h"
+#include "ResourceUI.h"
 #include <yaml-cpp/yaml.h>
 
 ResourceExport::ResourceExport(Resource* resource, std::string& functionName)
@@ -63,6 +64,9 @@ void Resource::Start()
 		resource->AddDependant(m_name);
 	}
 
+	m_ui = std::make_shared<ResourceUI>(this);
+	m_ui->Create();
+
 	// go
 	// TODO: fix starting events
 	//std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
@@ -110,6 +114,8 @@ void Resource::Stop()
 
 		resource->RemoveDependant(m_name);
 	}
+
+	m_ui->Destroy();
 
 	std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
 	TheResources.TriggerEvent(std::string("resourceStopping"), nameArgs);
