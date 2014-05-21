@@ -354,6 +354,9 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 	m_outReliableCommands.push_front(cmd);
 }
 
+#include "../ui/CefOverlay.h"
+static std::shared_ptr<NUIWindow> nuiWindow;
+
 void NetLibrary::RunFrame()
 {
 	ProcessPackets();
@@ -361,6 +364,18 @@ void NetLibrary::RunFrame()
 	ProcessSend();
 
 	static bool testState;
+
+	if (GetAsyncKeyState(VK_F4))
+	{
+		static bool nuiw = false;
+
+		if (!nuiw)
+		{
+			nuiWindow = NUIWindow::Create(false, 2560, 1440, "http://www.google.com/");
+
+			nuiw = true;
+		}
+	}
 
 	if (GetAsyncKeyState(VK_F5) && m_connectionState == CS_IDLE)
 	{

@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+#include <memory>
+
 #include "CefOverlay.h"
 
 #include <delayimp.h>
@@ -362,7 +364,7 @@ void NUIWindow::UpdateFrame()
 		//int timeBegin = timeGetTime();
 
 		D3DLOCKED_RECT lockedRect;
-		//nuiTexture->m_pITexture->LockRect(0, &lockedRect, NULL, 0);
+		nuiTexture->m_pITexture->LockRect(0, &lockedRect, NULL, 0);
 
 		while (!dirtyRects.empty())
 		{
@@ -380,7 +382,7 @@ void NUIWindow::UpdateFrame()
 			}
 		}
 
-		//nuiTexture->m_pITexture->UnlockRect(0);
+		nuiTexture->m_pITexture->UnlockRect(0);
 
 		//int duration = timeGetTime() - timeBegin;
 
@@ -602,10 +604,75 @@ static int roundUp(int number, int multiple)
 	return (added)-(added % multiple);
 }
 
+static std::vector<NUIWindow*> g_nuiWindows;
+
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: primary(primary), width(width), height(height), renderBuffer(nullptr), renderBufferDirty(false), m_onClientCreated(nullptr)
 {
+	g_nuiWindows.push_back(this);
+}
 
+NUIWindow::~NUIWindow()
+{
+	for (auto it = g_nuiWindows.begin(); it != g_nuiWindows.end(); )
+	{
+		if (*it == this)
+		{
+			it = g_nuiWindows.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+}
+
+void NUIWindow::Invalidate()
+{
+	CefRect fullRect(0, 0, width, height);
+	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(fullRect, PET_VIEW);
+}
+
+#include "RenderCallbacks.h"
+#include "DrawCommands.h"
+
+static InitFunction initFunction([] ()
+{
+	RegisterD3DPostResetCallback([] ()
+	{
+		for (auto& window : g_nuiWindows)
+		{
+			window->Invalidate();
+		}
+	});
+
+	RenderCallbacks::AddRenderCallback("endScene", [] ()
+	{
+		float bottomLeft[2] = { 0.f, 1.f };
+		float bottomRight[2] = { 1.f, 1.f };
+		float topLeft[2] = { 0.f, 0.f };
+		float topRight[2] = { 1.f, 0.f };
+
+		uint32_t color = 0xFFFFFFFF;
+
+		for (auto& window : g_nuiWindows)
+		{
+			window->UpdateFrame();
+
+			SetTextureGtaIm(window->nuiTexture);
+
+			// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
+			DrawImSprite(-0.5f, -0.5f, 2559.5f, 1439.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+		}
+	});
+});
+
+std::shared_ptr<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url)
+{
+	auto window = std::make_shared<NUIWindow>(primary, width, height);
+	window->Initialize(url);
+
+	return window;
 }
 
 void NUIWindow::Initialize(CefString url)
@@ -622,16 +689,7 @@ void NUIWindow::Initialize(CefString url)
 
 	renderBuffer = new char[4 * roundedWidth * roundedHeight];
 
-	/*grcTextureFactory* textureFactory = *(grcTextureFactory**)0x18A8630;
-	nuiTexture = textureFactory->createManualTexture(width, height, FORMAT_A8R8G8B8, 0, nullptr);
-
-	RegisterD3DResetCB(false, [&] ()
-	{
-		grcTextureFactory* textureFactory = *(grcTextureFactory**)0x18A8630;
-
-		CefRect fullRect(0, 0, width, height);
-		((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(fullRect, PET_VIEW);
-	});*/
+	nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, 0, nullptr);
 
 	m_client = new NUIClient(this);
 
@@ -722,6 +780,7 @@ namespace nui
 		cSettings.multi_threaded_message_loop = true;
 		cSettings.remote_debugging_port = 13172;
 		cSettings.pack_loading_disabled = false; // true;
+		cSettings.windowless_rendering_enabled = true;
 		cef_string_utf16_set(L"en-US", 5, &cSettings.locale, true);
 
 		std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");

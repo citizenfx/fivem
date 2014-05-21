@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "Live.h"
 #include "CrossLibraryInterfaces.h"
+#include "HookCallbacks.h"
 
 // #5349: XLiveProtectedVerifyFile
 extern "C" DWORD __stdcall XLiveProtectedVerifyFile(HANDLE hContentAccess, VOID * pvReserved, PCWSTR pszFilePath)
@@ -233,6 +234,7 @@ int __stdcall XLiveInput(DWORD * p)
 // #5002: XLiveRender
 int __stdcall XLiveRender()
 {
+	HookCallbacks::RunCallback(StringHash("renderCB"), "live");
 	return 0;
 }
 

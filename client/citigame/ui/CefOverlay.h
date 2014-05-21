@@ -1,6 +1,8 @@
 #pragma once
 
-//#include "grcTexture.h"
+#include <memory>
+
+#include "grcTexture.h"
 
 #include <include/cef_app.h>
 #include <include/cef_browser.h>
@@ -45,7 +47,11 @@ private:
 
 	void(__cdecl* m_onClientCreated)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context);
 
+	void Initialize(CefString url);
+
 public:
+	NUIWindow(bool primary, int width, int height);
+
 	bool primary;
 	int width;
 	int height;
@@ -59,13 +65,17 @@ public:
 
 	std::queue<CefRect> dirtyRects;
 
-	//rage::grcTexture* nuiTexture;
-	void* nuiTexture;
+	rage::grcTexture* nuiTexture;
 
-	NUIWindow(bool primary, int width, int height);
+public:
+	static std::shared_ptr<NUIWindow> Create(bool primary, int width, int height, CefString url);
 
-	void Initialize(CefString url);
+public:
+	~NUIWindow();
+
 	void UpdateFrame();
+
+	void Invalidate();
 
 	CefBrowser* GetBrowser();
 
