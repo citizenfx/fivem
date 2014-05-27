@@ -3,6 +3,8 @@
 #include <functional>
 #include <winhttp.h>
 
+#include "fiDevice.h"
+
 class HttpClient
 {
 private:
@@ -22,4 +24,5 @@ public:
 	void DoPostRequest(std::wstring host, uint16_t port, std::wstring url, std::string postData, std::function<void(bool, std::string)> callback);
 
 	void DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, const char* outDeviceBase, std::string outFilename, std::function<void(bool, std::string)> callback);
+	void DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, rage::fiDevice* outDevice, std::string outFilename, std::function<void(bool, std::string)> callback);
 };

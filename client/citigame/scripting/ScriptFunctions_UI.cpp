@@ -91,3 +91,15 @@ LUA_FUNCTION(AddUIHandler)
 
 	return 0;
 }
+
+LUA_FUNCTION(PollUI)
+{
+	auto ui = g_currentEnvironment->GetResource()->GetUI();
+
+	if (ui)
+	{
+		ui->SignalPoll();
+	}
+
+	return 0;
+}

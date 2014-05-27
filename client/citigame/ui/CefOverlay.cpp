@@ -88,7 +88,7 @@ public:
 			{
 				auto context = CefV8Context::GetCurrentContext();
 
-				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[1]);
+				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
 			}
 
 			retval = CefV8Value::CreateNull();
@@ -627,6 +627,15 @@ NUIWindow::~NUIWindow()
 			it++;
 		}
 	}
+}
+
+void NUIWindow::SignalPoll()
+{
+	NUIClient* client = static_cast<NUIClient*>(m_client.get());
+	auto browser = client->GetBrowser();
+
+	auto message = CefProcessMessage::Create("doPoll");
+	browser->SendProcessMessage(PID_RENDERER, message);
 }
 
 void NUIWindow::SetPaintType(NUIPaintType type)

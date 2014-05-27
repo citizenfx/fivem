@@ -58,3 +58,8 @@ bool ResourceUI::InvokeCallback(std::string type, std::string data, ResUIResultC
 
 	return true;
 }
+
+void ResourceUI::SignalPoll()
+{
+	m_window->SignalPoll();
+}

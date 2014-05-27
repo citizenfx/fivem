@@ -44,6 +44,9 @@ void ResourceCache::LoadCache(rage::fiDevice* device)
 	} while (device->findNext(handle, &findData));
 
 	device->findClose(handle);
+
+	// store the cache device
+	m_cacheDevice = device;
 }
 
 std::vector<ResourceDownload> ResourceCache::GetDownloadsFromList(std::vector<ResourceData>& resourceList)

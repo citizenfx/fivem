@@ -76,6 +76,11 @@ void HttpClient::DoPostRequest(std::wstring host, uint16_t port, std::wstring ur
 
 void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, const char* outDeviceBase, std::string outFilename, std::function<void(bool, std::string)> callback)
 {
+	DoFileGetRequest(host, port, url, rage::fiDevice::GetDevice(outDeviceBase, true), outFilename, callback);
+}
+
+void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, rage::fiDevice* outDevice, std::string outFilename, std::function<void(bool, std::string)> callback)
+{
 	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
 	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
 
@@ -86,7 +91,7 @@ void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring
 	context->hConnection = hConnection;
 	context->hRequest = hRequest;
 	context->callback = callback;
-	context->outDevice = rage::fiDevice::GetDevice(outDeviceBase, true);
+	context->outDevice = outDevice;
 
 	if (context->outDevice == nullptr)
 	{

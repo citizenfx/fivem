@@ -91,6 +91,8 @@ public:
 
 	CefBrowser* GetBrowser();
 
+	void SignalPoll();
+
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{
 		m_onClientCreated = cb;

@@ -27,4 +27,6 @@ public:
 	void AddCallback(std::string type, ResUICallback callback);
 
 	bool InvokeCallback(std::string type, std::string data, ResUIResultCallback resultCB);
+
+	void SignalPoll();
 };

@@ -72,6 +72,8 @@ private:
 
 	std::unordered_map<std::string, CacheEntry> m_markList;
 
+	rage::fiDevice* m_cacheDevice;
+
 private:
 	ResourceDownload GetResourceDownload(const ResourceData& resource, const ResourceFile& file);
 
@@ -87,6 +89,8 @@ public:
 	void ClearMark();
 
 	void MarkList(std::vector<ResourceData>& resourceList);
+
+	inline rage::fiDevice* GetCacheDevice() { return m_cacheDevice; }
 
 	std::string GetMarkedFilenameFor(std::string resource, std::string filename);
 
