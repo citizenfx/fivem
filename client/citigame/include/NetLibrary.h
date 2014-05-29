@@ -178,6 +178,8 @@ public:
 
 	virtual void Disconnect(const char* reason);
 
+	virtual void FinalizeDisconnect();
+
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID);
 
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID);

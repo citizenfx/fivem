@@ -542,23 +542,32 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	});
 }
 
+static std::string g_disconnectReason;
+
 void NetLibrary::Disconnect(const char* reason)
+{
+	g_disconnectReason = reason;
+
+	GameInit::KillNetwork((const wchar_t*)1);
+}
+
+void NetLibrary::FinalizeDisconnect()
 {
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE)
 	{
-		SendReliableCommand("msgIQuit", reason, strlen(reason) + 1);
+		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
 
 		m_lastSend = 0;
 		ProcessSend();
 
 		m_lastSend = 0;
 		ProcessSend();
+
+		TheDownloads.ReleaseLastServer();
+
+		m_connectionState = CS_IDLE;
+		m_currentServer = NetAddress();
 	}
-
-	TheDownloads.ReleaseLastServer();
-
-	m_connectionState = CS_IDLE;
-	m_currentServer = NetAddress();
 }
 
 void NetLibrary::CreateResources()

@@ -22,6 +22,9 @@ public:
 
 	virtual void Disconnect(const char* reason) = 0;
 
+	// called from hooks for the actual disconnect event
+	virtual void FinalizeDisconnect() = 0;
+
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID) = 0;
 
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID) = 0;
