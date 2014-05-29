@@ -526,8 +526,11 @@ static InitFunction initFunction([] ()
 
 			SetTextureGtaIm(window->GetTexture());
 
+			int resX = *(int*)0xFDCEAC;
+			int resY = *(int*)0xFDCEB0;
+
 			// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
-			DrawImSprite(-0.5f, -0.5f, 2559.5f, 1439.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+			DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 		}
 	});
 });
@@ -673,7 +676,10 @@ namespace nui
 
 		g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
 		{
-			g_nuiResourceRootWindow = NUIWindow::Create(true, 2560, 1440, "nui://game/ui/root.html");
+			int resX = *(int*)0xFDCEAC;
+			int resY = *(int*)0xFDCEB0;
+
+			g_nuiResourceRootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
 			g_nuiResourceRootWindow->SetPaintType(NUIPaintTypePostRender);
 		});
 
