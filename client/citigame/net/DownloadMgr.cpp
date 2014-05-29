@@ -196,7 +196,9 @@ bool DownloadManager::Process()
 
 			while (!g_netLibrary->ProcessPreGameTick())
 			{
-				Sleep(1);
+				HANDLE hThread = GetCurrentThread();
+
+				MsgWaitForMultipleObjects(1, &hThread, TRUE, 15, 0);
 			}
 			
 			return true;
