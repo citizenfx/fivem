@@ -1,4 +1,6 @@
 #include "StdInc.h"
+#include "CrossLibraryInterfaces.h"
+#include "HookCallbacks.h"
 
 WNDPROC origWndProc;
 
@@ -28,6 +30,20 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		}
 	}
 
+	WNDPROCARGS procArgs;
+	procArgs.hwnd = hwnd;
+	procArgs.uMsg = uMsg;
+	procArgs.wParam = wParam;
+	procArgs.lParam = lParam;
+	procArgs.pass = true;
+
+	HookCallbacks::RunCallback(StringHash("wndProc"), &procArgs);
+
+	if (!procArgs.pass)
+	{
+		return procArgs.lresult;
+	}
+
 	return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
 }
 
@@ -46,4 +62,7 @@ static HookFunction hookFunction([] ()
 
 	// ignore WM_ACTIVATEAPP deactivates (to fix the weird crashes)
 	*(WORD*)(0x61CCF1) = 0x9090;
+
+	// experimental: disable dinput
+	*(BYTE*)0x636490 = 0xC3; // keyboard
 });

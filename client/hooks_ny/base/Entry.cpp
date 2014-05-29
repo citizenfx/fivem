@@ -11,9 +11,9 @@ public:
 static GameSpecToHooks gameSpecEntry;
 INetLibrary* g_netLibrary;
 
-void HooksDLLInterface::PreGameLoad(bool* continueLoad)
+void HooksDLLInterface::PreGameLoad(bool* continueLoad, IGameSpecToHooks** hooksPtr)
 {
-	
+	*hooksPtr = &gameSpecEntry;
 }
 
 sigslot::signal2<HMODULE, bool*> g_signalPostLoad;

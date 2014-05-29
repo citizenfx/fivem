@@ -26,7 +26,7 @@ public:
 	NUIResourceHandler()
 	{
 		closed_ = false;
-		file_ = 0;
+		file_ = -1;
 
 		if (!g_httpClient)
 		{
@@ -93,11 +93,6 @@ public:
 		if (device_)
 		{
 			file_ = device_->open(filename_.c_str(), true);
-
-			if (file_ == -1)
-			{
-				file_ = 0;
-			}
 		}
 
 		// set mime type
@@ -127,7 +122,7 @@ public:
 	{
 		response->SetMimeType(mimeType_);
 
-		if (!file_)
+		if (file_ == -1)
 		{
 			response->SetStatus(404);
 		}
@@ -142,7 +137,7 @@ public:
 		map.insert(std::make_pair("cache-control", "no-cache, must-revalidate"));
 		response->SetHeaderMap(map);
 
-		if (file_)
+		if (file_ != -1)
 		{
 			response_length = device_->fileLength(file_);
 		}
@@ -156,7 +151,7 @@ public:
 	{
 		closed_ = true;
 
-		if (file_)
+		if (file_ != -1)
 		{
 			device_->close(file_);
 		}
@@ -164,7 +159,7 @@ public:
 
 	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback)
 	{
-		if (file_)
+		if (file_ != -1)
 		{
 			bytes_read = device_->read(file_, data_out, bytes_to_read);
 

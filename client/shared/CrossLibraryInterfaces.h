@@ -29,20 +29,30 @@ public:
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) = 0;
 };
 
-class HOOKS_EXPORT HooksDLLInterface
+struct WNDPROCARGS
 {
-public:
-	static void PreGameLoad(bool* continueLoad);
-
-	static void PostGameLoad(HMODULE module, bool* continueLoad);
-
-	static void SetNetLibrary(INetLibrary* netLibrary);
+	HWND hwnd;
+	UINT uMsg;
+	LPARAM lParam;
+	WPARAM wParam;
+	BOOL pass;
+	LRESULT lresult;
 };
 
 class IGameSpecToHooks
 {
 public:
 	virtual void SetHookCallback(uint32_t hookCallbackId, void(*callback)(void*)) = 0;
+};
+
+class HOOKS_EXPORT HooksDLLInterface
+{
+public:
+	static void PreGameLoad(bool* continueLoad, IGameSpecToHooks** hooksPtr);
+
+	static void PostGameLoad(HMODULE module, bool* continueLoad);
+
+	static void SetNetLibrary(INetLibrary* netLibrary);
 };
 
 class GAMESPEC_EXPORT GameSpecDLLInterface
@@ -57,7 +67,7 @@ public:
 extern INetLibrary* g_netLibrary;
 #endif
 
-#ifdef COMPILING_GAMESPEC
+#if defined(COMPILING_GAMESPEC) || defined(COMPILING_GAME)
 // hooks dll reverse callbacks
 extern IGameSpecToHooks* g_hooksDLL;
 #endif

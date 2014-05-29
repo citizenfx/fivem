@@ -9,15 +9,17 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
 	bool continueRunning = true;
 
+	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
+
 	if (nui::OnPreLoadGame(cefSandbox))
 	{
 		return false;
 	}
 
-	HooksDLLInterface::PreGameLoad(&continueRunning);
-
 	return continueRunning;
 }
+
+IGameSpecToHooks* g_hooksDLL;
 
 bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 {

@@ -3,6 +3,7 @@
 #include "DownloadMgr.h"
 #include <SHA1.h>
 #include <yaml-cpp/yaml.h>
+#include "../ui/CefOverlay.h"
 
 bool DownloadManager::Process()
 {
@@ -212,6 +213,8 @@ void DownloadManager::ReleaseLastServer()
 
 		packfile.second->closeArchive();
 	}
+
+	nui::ReloadNUI();
 }
 
 void DownloadManager::SetServer(NetAddress& address)

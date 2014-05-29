@@ -24,8 +24,7 @@ bool ResourceUI::Create()
 
 	std::string path = "nui://" + m_resource->GetName() + "/" + it->second;
 
-	m_window = NUIWindow::Create(true, 2560, 1440, path);
-	m_window->SetPaintType(NUIPaintTypePostRender);
+	nui::CreateFrame(m_resource->GetName(), path);
 
 	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), nui::GetSchemeHandlerFactory());
 
@@ -34,7 +33,7 @@ bool ResourceUI::Create()
 
 void ResourceUI::Destroy()
 {
-	m_window = nullptr;
+	nui::DestroyFrame(m_resource->GetName());
 }
 
 void ResourceUI::AddCallback(std::string type, ResUICallback callback)
@@ -61,5 +60,5 @@ bool ResourceUI::InvokeCallback(std::string type, std::string data, ResUIResultC
 
 void ResourceUI::SignalPoll()
 {
-	m_window->SignalPoll();
+	nui::SignalPoll(m_resource->GetName());
 }

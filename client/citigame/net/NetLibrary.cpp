@@ -371,7 +371,7 @@ void NetLibrary::RunFrame()
 
 		if (!nuiw)
 		{
-			nuiWindow = NUIWindow::Create(false, 2560, 1440, "nui://chat/test.html");
+			nuiWindow = NUIWindow::Create(false, 2560, 1440, "nui://game/test.html");
 
 			nuiw = true;
 		}

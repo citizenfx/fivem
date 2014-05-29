@@ -91,7 +91,7 @@ public:
 
 	CefBrowser* GetBrowser();
 
-	void SignalPoll();
+	void SignalPoll(std::string& argument);
 
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{
@@ -119,6 +119,14 @@ namespace nui
 	void LeaveV8Context(const char* type);
 	void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
 	void ReloadNUI();
+
+	void CreateFrame(std::string frameName, std::string frameURL);
+	void DestroyFrame(std::string frameName);
+	void SignalPoll(std::string frameName);
+
+	void GiveFocus(bool hasFocus);
+
+	CefBrowser* GetBrowser();
 
 	bool OnPreLoadGame(void* cefSandbox);
 

@@ -103,3 +103,10 @@ LUA_FUNCTION(PollUI)
 
 	return 0;
 }
+
+LUA_FUNCTION(SetUIFocus)
+{
+	nui::GiveFocus(lua_toboolean(L, 1));
+
+	return 0;
+}

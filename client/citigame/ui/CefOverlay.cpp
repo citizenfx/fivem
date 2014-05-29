@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "CrossLibraryInterfaces.h"
 
 #include <memory>
 
@@ -42,6 +43,7 @@ public:
 		CefRefPtr<CefV8Value> window = context->GetGlobal();
 
 		window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+		window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	}
 
 	virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler()
@@ -50,7 +52,10 @@ public:
 	}
 
 private:
-	std::map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>> m_callbacks;
+	typedef std::map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>> TCallbackList;
+
+	TCallbackList m_callbacks;
+	TCallbackList m_frameCallbacks;
 
 public:
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
@@ -67,6 +72,34 @@ public:
 				context->Enter();
 
 				CefV8ValueList arguments;
+				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
+
+				callback->ExecuteFunction(nullptr, arguments);
+
+				context->Exit();
+
+				return true;
+			}
+		}
+		else if (message->GetName() == "createFrame" || message->GetName() == "destroyFrame")
+		{
+			auto it = m_frameCallbacks.find(browser->GetIdentifier());
+
+			if (it != m_frameCallbacks.end())
+			{
+				auto context = it->second.first;
+				auto callback = it->second.second;
+
+				context->Enter();
+
+				CefV8ValueList arguments;
+				arguments.push_back(CefV8Value::CreateString(message->GetName()));
+				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
+
+				if (message->GetName() == "createFrame")
+				{
+					arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(1)));
+				}
 
 				callback->ExecuteFunction(nullptr, arguments);
 
@@ -89,6 +122,19 @@ public:
 				auto context = CefV8Context::GetCurrentContext();
 
 				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
+			}
+
+			retval = CefV8Value::CreateNull();
+
+			return true;
+		}
+		else if (name == "registerFrameFunction")
+		{
+			if (arguments.size() == 1 && arguments[0]->IsFunction())
+			{
+				auto context = CefV8Context::GetCurrentContext();
+
+				m_frameCallbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
 			}
 
 			retval = CefV8Value::CreateNull();
@@ -390,208 +436,6 @@ void NUIWindow::UpdateFrame()
 	}
 }
 
-/*static DWORD origRenderFrontEnd;
-
-class CDrawSpriteDC
-{
-private:
-	char blah[48];
-
-public:
-	void ctor(float* v1, float* v2, float* v3, float* v4, DWORD color, grcTexture* texture);
-};
-
-void __declspec(naked) CDrawSpriteDC::ctor(float* v1, float* v2, float* v3, float* v4, DWORD color, grcTexture* texture)
-{
-	__asm
-	{
-		mov eax, 7C0F00h
-			jmp eax
-	}
-}
-
-class CGenericDCNoArgs
-{
-private:
-	char blah[12];
-
-public:
-	void ctor(void(*func)());
-};
-
-void WRAPPER CGenericDCNoArgs::ctor(void(*)()) { EAXJMP(0x44CE70); }
-
-// NOTE: NOT THE REAL CONSTRUCTOR
-void WRAPPER CGenericDCMatrixArg::ctor(void(*)(float*)) { EAXJMP(0x44CE70); }
-
-static NUIWindow* mainWindow;
-
-grcTexture* GetMainNUITexture()
-{
-	return mainWindow->nuiTexture;
-}
-
-void DrawJobs(float*);
-
-extern NUIWindow* g_jobWindow;
-extern NUIWindow* rosWindow;
-
-static Viewport*& vp = *(Viewport**)0x10F47F0;
-
-void AddJobDC()
-{
-	CGenericDCMatrixArg* jobsDC = (CGenericDCMatrixArg*)gta_alloc(sizeof(CGenericDCMatrixArg), 0);
-	jobsDC->ctor(DrawJobs);
-	jobsDC->vtable = 0xDB9254; // T_CB_Generic_1Arg<void (__cdecl *)(class rage::Matrix44 &), class rage::Matrix44>
-	memcpy(jobsDC->matrix, vp->matrix4, sizeof(vp->matrix4));
-
-	PlaceDCInQueue(jobsDC);
-}
-
-void BlurBackBuffer();
-
-extern bool g_isFocused;
-
-void RenderPhaseFrontEndWrap()
-{
-	if (*(BYTE*)0x10C7F6F)
-	{
-		((void(*)())origRenderFrontEnd)();
-	}
-
-	CGenericDCNoArgs* jobsDC = (CGenericDCNoArgs*)gta_alloc(sizeof(CGenericDCNoArgs), 0);
-	jobsDC->ctor(BlurBackBuffer);
-	PlaceDCInQueue(jobsDC);
-
-	mainWindow->UpdateFrame();
-	g_jobWindow->UpdateFrame();
-
-	if (rosWindow)
-	{
-		rosWindow->UpdateFrame();
-	}
-
-	int resY = *(int*)0xFDCEB0;
-
-	float bottomLeft[2] = { 0.f, 1.f };
-	float bottomRight[2] = { 1.f, 1.f };
-	float topLeft[2] = { 0.f, 0.f };
-	float topRight[2] = { 1.f, 0.f };
-
-	CDrawSpriteDC* drawSpriteDC = (CDrawSpriteDC*)gta_alloc(sizeof(CDrawSpriteDC), 0);
-	drawSpriteDC->ctor(bottomLeft, topLeft, bottomRight, topRight, 0xFFFFFFFF, mainWindow->nuiTexture);
-
-	PlaceDCInQueue(drawSpriteDC);
-
-	if (rosWindow)
-	{
-		bottomLeft[1] -= (1.0f / resY);
-		bottomRight[1] -= (1.0f / resY);
-
-		topLeft[1] -= (1.0f / resY);
-		topRight[1] -= (1.0f / resY);
-
-		drawSpriteDC = (CDrawSpriteDC*)gta_alloc(sizeof(CDrawSpriteDC), 0);
-		drawSpriteDC->ctor(bottomLeft, topLeft, bottomRight, topRight, 0xFFFFFFFF, rosWindow->nuiTexture);
-
-		PlaceDCInQueue(drawSpriteDC);
-	}
-
-	// stuff :(
-	if (rosWindow && g_isFocused)
-	{
-		static int lastX, lastY;
-		POINT point;
-
-		GetCursorPos(&point);
-
-		RECT rect;
-		GetWindowRect(*(HWND*)0x1849DDC, &rect);
-
-		int x = point.x - rect.left;
-		int y = point.y - rect.top;
-
-		if (x != lastX || y != lastY)
-		{
-			CefMouseEvent mouseEvent;
-			mouseEvent.x = x;
-			mouseEvent.y = y;
-
-			rosWindow->GetBrowser()->GetHost()->SendMouseMoveEvent(mouseEvent, false);
-
-			lastX = x;
-			lastY = y;
-		}
-
-		static bool lastLeft, lastRight;
-
-		bool left = GetAsyncKeyState(VK_LBUTTON);
-		bool right = GetAsyncKeyState(VK_RBUTTON);
-
-		if (left != lastLeft)
-		{
-			CefMouseEvent mouseEvent;
-			mouseEvent.x = x;
-			mouseEvent.y = y;
-
-			rosWindow->GetBrowser()->GetHost()->SendFocusEvent(true);
-			rosWindow->GetBrowser()->GetHost()->SendMouseClickEvent(mouseEvent, MBT_LEFT, !left, 1);
-
-			lastLeft = left;
-		}
-
-		if (right != lastRight)
-		{
-			CefMouseEvent mouseEvent;
-			mouseEvent.x = x;
-			mouseEvent.y = y;
-
-			rosWindow->GetBrowser()->GetHost()->SendMouseClickEvent(mouseEvent, MBT_RIGHT, !right, 1);
-
-			lastRight = right;
-		}
-	}
-}
-*/
-
-/*InitFunction nuiInit([] ()
-{
-	origRenderFrontEnd = *(DWORD*)0xE9F1AC;
-	*(DWORD*)0xE9F1AC = (DWORD)RenderPhaseFrontEndWrap;
-
-	// in-menu check for renderphasefrontend
-	*(BYTE*)0x43AF21 = 0xEB;
-
-	// load actual CEF module in our own base
-	wchar_t exeName[512];
-	GetModuleFileNameW(GetModuleHandle(NULL), exeName, sizeof(exeName) / 2);
-
-	wchar_t* exeBaseName = wcsrchr(exeName, L'\\');
-	exeBaseName[0] = L'\0';
-	exeBaseName++;
-
-	static wchar_t path[32768];
-	static wchar_t newPath[32768];
-	GetEnvironmentVariableW(L"PATH", path, sizeof(path));
-
-	// step 1: stuff
-	LoadLibraryW(L"gdipp_client_32.dll");
-
-	// step 2: loadlibrary
-	_snwprintf(newPath, sizeof(newPath), L"%s\\plaza\\libcef.dll", exeName);
-
-	HMODULE libcef = LoadLibraryW(newPath);
-
-	if (!libcef)
-	{
-		MessageBoxW(NULL, L"Could not load libcef.dll from LibNP.", L"Terminal/NPx", MB_ICONSTOP | MB_OK);
-
-		return;
-	}
-
-	__HrLoadAllImportsForDll("libcef.dll");
-});*/
-
 static int roundUp(int number, int multiple)
 {
 	if ((number % multiple) == 0)
@@ -629,12 +473,17 @@ NUIWindow::~NUIWindow()
 	}
 }
 
-void NUIWindow::SignalPoll()
+void NUIWindow::SignalPoll(std::string& argument)
 {
 	NUIClient* client = static_cast<NUIClient*>(m_client.get());
 	auto browser = client->GetBrowser();
 
 	auto message = CefProcessMessage::Create("doPoll");
+	auto argList = message->GetArgumentList();
+
+	argList->SetSize(1);
+	argList->SetString(0, argument);
+
 	browser->SendProcessMessage(PID_RENDERER, message);
 }
 
@@ -719,48 +568,52 @@ void NUIWindow::Initialize(CefString url)
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
 }
 
-void JobNUIInit();
-
-void NUI_Init()
-{
-	/*int resX = *(int*)0xFDCEAC;
-	int resY = *(int*)0xFDCEB0;
-
-	g_nui.nuiWidth = resX;
-	g_nui.nuiHeight = resY;
-
-	paintDoneEvent = CreateEvent(0, FALSE, TRUE, NULL);
-
-	g_app = new NUIApp();
-
-	CefMainArgs args(GetModuleHandle(NULL));
-	CefRefPtr<CefApp> app(g_app);
-
-	CefSettings cSettings;
-	cef_string_utf16_set(L"ros zc3Nzajw/OG58KC9/uG98L2uv6K+4bvw/Pw=", 40, &cSettings.user_agent, true);
-	cSettings.multi_threaded_message_loop = true;
-	cSettings.single_process = true;
-	cSettings.remote_debugging_port = 13172;
-	cSettings.pack_loading_disabled = false; // true;
-	cef_string_utf16_set(L"en-US", 5, &cSettings.locale, true);
-
-	CefInitialize(args, cSettings, app.get(), nullptr);
-	CefRegisterSchemeHandlerFactory("nui", "game", new NUISchemeHandlerFactory());
-	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
-
-	NUIWindow* window = new NUIWindow(true, resX, resY);
-	window->Initialize("nui://game/index.html");
-	//window->Initialize("nui://game/dot.html");
-
-	mainWindow = window;
-
-	JobNUIInit();*/
-}
-
 static NUISchemeHandlerFactory* g_shFactory;
+
+static std::shared_ptr<NUIWindow> g_nuiResourceRootWindow;
 
 namespace nui
 {
+	CefBrowser* GetBrowser()
+	{
+		return g_nuiResourceRootWindow->GetBrowser();
+	}
+
+	void ReloadNUI()
+	{
+		g_nuiResourceRootWindow->GetBrowser()->ReloadIgnoreCache();
+	}
+
+	void CreateFrame(std::string frameName, std::string frameURL)
+	{
+		auto procMessage = CefProcessMessage::Create("createFrame");
+		auto argumentList = procMessage->GetArgumentList();
+
+		argumentList->SetSize(2);
+		argumentList->SetString(0, frameName);
+		argumentList->SetString(1, frameURL);
+
+		auto browser = g_nuiResourceRootWindow->GetBrowser();
+		browser->SendProcessMessage(PID_RENDERER, procMessage);
+	}
+
+	void DestroyFrame(std::string frameName)
+	{
+		auto procMessage = CefProcessMessage::Create("destroyFrame");
+		auto argumentList = procMessage->GetArgumentList();
+
+		argumentList->SetSize(1);
+		argumentList->SetString(0, frameName);
+
+		auto browser = g_nuiResourceRootWindow->GetBrowser();
+		browser->SendProcessMessage(PID_RENDERER, procMessage);
+	}
+
+	void SignalPoll(std::string frameName)
+	{
+		g_nuiResourceRootWindow->SignalPoll(frameName);
+	}
+
 	NUISchemeHandlerFactory* GetSchemeHandlerFactory()
 	{
 		return g_shFactory;
@@ -818,15 +671,12 @@ namespace nui
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 		CefAddCrossOriginWhitelistEntry("nui://chat", "http", "chat", true);
 
+		g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
+		{
+			g_nuiResourceRootWindow = NUIWindow::Create(true, 2560, 1440, "nui://game/ui/root.html");
+			g_nuiResourceRootWindow->SetPaintType(NUIPaintTypePostRender);
+		});
+
 		return false;
 	}
-}
-
-extern NUIWindow* g_jobWindow;
-
-void ReloadNUI()
-{
-	//authUIBrowser->ReloadIgnoreCache();
-
-	//g_jobWindow->GetBrowser()->ReloadIgnoreCache();
 }

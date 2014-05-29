@@ -11,8 +11,6 @@ class ResourceUI
 private:
 	Resource* m_resource;
 
-	std::shared_ptr<NUIWindow> m_window;
-
 	std::map<std::string, ResUICallback> m_callbacks;
 
 public:
