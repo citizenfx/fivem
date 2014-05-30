@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "Live.h"
 #include "CrossLibraryInterfaces.h"
+#include <strsafe.h>
 
 DWORD xuidBase;
 
@@ -73,8 +74,7 @@ int __stdcall XUserGetName(DWORD dwUserId, char * pBuffer, DWORD dwBufLen)
 {
 	if (dwBufLen < 8)
 		return 1;
-	//memcpy (pBuffer, "Player1", 8);
-	_snprintf(pBuffer, 8, "P%d", xuidBase);
+	StringCbCopyA(pBuffer, dwBufLen, g_netLibrary->GetPlayerName());
 
 	return 0;
 }
@@ -119,7 +119,7 @@ int __stdcall XUserGetSigninInfo(DWORD dwUser, DWORD dwFlags, XUSER_SIGNIN_INFO 
 		pInfo->UserSigninState = 2;
 	}
 	//strcpy (pInfo->szUserName, "Player");
-	_snprintf(pInfo->szUserName, 8, "P%d", xuidBase);
+	StringCbCopyA(pInfo->szUserName, sizeof(pInfo->szUserName), g_netLibrary->GetPlayerName());
 	pInfo->dwSponsorUserIndex = 0;
 	pInfo->dwGuestNumber = 0;
 

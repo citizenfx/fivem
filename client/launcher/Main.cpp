@@ -16,11 +16,11 @@ void main()
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
 
-	std::wstring newPath = MakeRelativeCitPath(L"citmp\\bin") + L";" + MakeRelativeCitPath(L"plaza") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
+	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"plaza") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
-	SetDllDirectory(MakeRelativeGamePath(L"").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
+	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
 	SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 
 	// initialize TLS variable so we get a TLS directory
