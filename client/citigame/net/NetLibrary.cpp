@@ -4,6 +4,7 @@
 #include "DownloadMgr.h"
 #include <yaml-cpp/yaml.h>
 #include <libnp.h>
+#include <base64.h>
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -384,7 +385,8 @@ void NetLibrary::RunFrame()
 		{
 			if (!_stricmp(getenv("computername"), "fallarbor") || !_stricmp(getenv("computername"), "snowpoint"))
 			{
-				ConnectToServer("192.168.178.83", 30120);
+				ConnectToServer("77.22.64.7", 30120);
+				//ConnectToServer("192.168.178.83", 30120);
 			}
 			else
 			{
@@ -514,7 +516,9 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	wideHostname[255] = L'\0';
 
-	std::map<std::string, std::string> postMap;
+	static std::wstring wideHostnameStr = wideHostname;
+
+	static std::map<std::string, std::string> postMap;
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 
@@ -523,7 +527,9 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	postMap["guid"] = va("%lld", npID);
 
-	m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, [&] (bool result, std::string connData)
+	static uint16_t capturePort = port;
+
+	static std::function<void(bool, std::string)> handleAuthResult = [&] (bool result, std::string connData) mutable
 	{
 		if (!result)
 		{
@@ -537,6 +543,38 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		{
 			auto node = YAML::Load(connData);
 
+			// ha-ha, you need to authenticate first!
+			if (node["authID"].IsDefined())
+			{
+				if (postMap.find("authTicket") == postMap.end())
+				{
+					unsigned char authTicket[2048] = { 0 }; // zero out to prevent stack leakage to server
+					NP_GetUserTicket(authTicket, sizeof(authTicket), node["authID"].as<uint64_t>());
+
+					size_t ticketLen;
+					char* ticketEncoded = base64_encode(authTicket, sizeof(authTicket), &ticketLen);
+
+					postMap["authTicket"] = std::string(ticketEncoded, ticketLen);
+
+					free(ticketEncoded);
+
+					m_httpClient->DoPostRequest(wideHostnameStr, capturePort, L"/client", postMap, handleAuthResult);
+				}
+				else
+				{
+					GlobalError("you're so screwed, the server still asked for an auth ticket even though we gave them one");
+				}
+
+				return;
+			}
+
+			if (node["error"].IsDefined())
+			{
+				GlobalError(node["error"].as<std::string>().c_str());
+
+				return;
+			}
+
 			m_token = node["token"].as<std::string>();
 
 			m_connectionState = CS_INITRECEIVED;
@@ -545,7 +583,9 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		{
 			m_connectionState = CS_IDLE;
 		}
-	});
+	};
+
+	m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, handleAuthResult);
 }
 
 static std::string g_disconnectReason;

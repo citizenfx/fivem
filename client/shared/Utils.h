@@ -155,3 +155,5 @@ inline void LowerString(std::string& string)
 {
 	std::transform(string.begin(), string.end(), string.begin(), ::tolower);
 }
+
+std::string url_encode(const std::string &value);
