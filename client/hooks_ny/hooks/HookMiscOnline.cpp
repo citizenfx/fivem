@@ -25,4 +25,10 @@ static HookFunction hookFunction([] ()
 	// single-use/instance mutex
 	hook::nop(0x5AACB5, 2);
 	hook::put<uint8_t>(0x5AACBC, 0xEB);
+
+	// don't unload streamed fonts
+	hook::return_function(0x7F9260);
+
+	// ignore initial loading screens
+	hook::put<uint8_t>(0x402B49, 0xEB);
 });
