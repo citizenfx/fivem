@@ -2,10 +2,14 @@
 #include "CrossLibraryInterfaces.h"
 #include "HookCallbacks.h"
 
+void SetDisconnectSafeguard(bool enable);
+
 class GameSpecToHooks : public IGameSpecToHooks
 {
 public:
 	virtual void SetHookCallback(uint32_t hookCallbackId, void(*callback)(void*));
+
+	virtual void SetDisconnectSafeguard(bool enable);
 };
 
 static GameSpecToHooks gameSpecEntry;
@@ -38,4 +42,9 @@ void HooksDLLInterface::SetNetLibrary(INetLibrary* netLibrary)
 void GameSpecToHooks::SetHookCallback(uint32_t hookCallbackId, void(*callback)(void*))
 {
 	HookCallbacks::AddCallback(hookCallbackId, callback);
+}
+
+void GameSpecToHooks::SetDisconnectSafeguard(bool enable)
+{
+	::SetDisconnectSafeguard(enable);
 }

@@ -1,6 +1,10 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 
+#include <strsafe.h>
+
+#include "NetLibrary.h"
+
 #include <memory>
 
 #include "CefOverlay.h"
@@ -9,6 +13,8 @@
 #include <include/cef_origin_whitelist.h>
 
 #include <include/cef_sandbox_win.h>
+
+bool g_mainUIFlag = true;
 
 static int g_roundedWidth;
 static int g_roundedHeight;
@@ -44,6 +50,7 @@ public:
 
 		window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 		window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+		window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	}
 
 	virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler()
@@ -141,6 +148,24 @@ public:
 
 			return true;
 		}
+		else if (name == "invokeNative")
+		{
+			if (arguments.size() == 2)
+			{
+				auto msg = CefProcessMessage::Create("invokeNative");
+				auto argList = msg->GetArgumentList();
+
+				argList->SetSize(2);
+				argList->SetString(0, arguments[0]->GetStringValue());
+				argList->SetString(1, arguments[1]->GetStringValue());
+
+				CefV8Context::GetCurrentContext()->GetBrowser()->SendProcessMessage(PID_BROWSER, msg);
+			}
+
+			retval = CefV8Value::CreateUndefined();
+
+			return true;
+		}
 
 		return false;
 	}
@@ -152,6 +177,8 @@ static NUIApp* g_app;
 
 static CefBrowser* authUIBrowser;
 HWND g_mainWindow;
+
+void GSClient_Refresh();
 
 #include <sstream>
 
@@ -184,6 +211,16 @@ public:
 		GetWindow()->OnClientContextCreated(browser, frame, nullptr);
 	}
 
+	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
+	{
+		auto url = frame->GetURL();
+
+		if (url == "nui://game/ui/root.html" && g_mainUIFlag)
+		{
+			nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
+		}
+	}
+
 	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser)
 	{
 		m_browser = browser;
@@ -198,6 +235,53 @@ public:
 			authUIBrowser = browser.get();
 			browser->AddRef();
 		}
+	}
+
+	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
+	{
+		if (message->GetName() == "invokeNative")
+		{
+			auto args = message->GetArgumentList();
+			auto nativeType = args->GetString(0);
+
+			if (nativeType == "refreshServers")
+			{
+				GSClient_Refresh();
+			}
+			else if (nativeType == "connectTo")
+			{
+				std::string hostnameStr = args->GetString(1);
+				static char hostname[256];
+				
+				StringCbCopyA(hostname, sizeof(hostname), hostnameStr.c_str());
+
+				char* port = strrchr(hostname, ':');
+
+				if (!port)
+				{
+					port = "30120";
+				}
+				else
+				{
+					*port = '\0';
+					port++;
+				}
+
+				g_netLibrary->ConnectToServer(hostname, atoi(port));
+				g_mainUIFlag = false;
+
+				nui::DestroyFrame("mpMenu");
+			}
+			else if (nativeType == "quit")
+			{
+				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
+				ExitProcess(0);
+			}
+			
+			return true;
+		}
+
+		return false;
 	}
 
 	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler()
@@ -404,6 +488,10 @@ LRESULT CALLBACK CefWndProc(HWND, UINT, WPARAM, LPARAM);
 void NUIWindow::UpdateFrame()
 {
 	//WaitForSingleObject(paintDoneEvent, INFINITE);
+	if (!nuiTexture)
+	{
+		return;
+	}
 
 	if (renderBufferDirty)
 	{
@@ -451,7 +539,7 @@ static int roundUp(int number, int multiple)
 static std::vector<NUIWindow*> g_nuiWindows;
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
-	: primary(primary), width(width), height(height), renderBuffer(nullptr), renderBufferDirty(false), m_onClientCreated(nullptr)
+	: primary(primary), width(width), height(height), renderBuffer(nullptr), renderBufferDirty(false), m_onClientCreated(nullptr), nuiTexture(nullptr)
 {
 	g_nuiWindows.push_back(this);
 }
@@ -518,19 +606,44 @@ static InitFunction initFunction([] ()
 		float topLeft[2] = { 0.f, 0.f };
 		float topRight[2] = { 1.f, 0.f };
 
+		if (g_mainUIFlag)
+		{
+			nui::ProcessInput();
+		}
+
 		uint32_t color = 0xFFFFFFFF;
+
+		if (g_mainUIFlag)
+		{
+			ClearRenderTarget(true, -1, true, 1.0f, true, -1);
+		}
 
 		for (auto& window : g_nuiWindows)
 		{
 			window->UpdateFrame();
 
-			SetTextureGtaIm(window->GetTexture());
+			if (window->GetTexture())
+			{
+				SetTextureGtaIm(window->GetTexture());
 
-			int resX = *(int*)0xFDCEAC;
-			int resY = *(int*)0xFDCEB0;
+				int resX = *(int*)0xFDCEAC;
+				int resY = *(int*)0xFDCEB0;
 
-			// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
-			DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+				// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
+				DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+			}
+		}
+
+		if (g_mainUIFlag)
+		{
+			POINT cursorPos;
+			GetCursorPos(&cursorPos);
+
+			//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
+
+			SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
+
+			DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 		}
 	});
 });
@@ -582,9 +695,19 @@ namespace nui
 		return g_nuiResourceRootWindow->GetBrowser();
 	}
 
+	void ExecuteRootScript(const char* scriptBit)
+	{
+		g_nuiResourceRootWindow->GetBrowser()->GetMainFrame()->ExecuteJavaScript(scriptBit, "internal", 1);
+	}
+
 	void ReloadNUI()
 	{
 		g_nuiResourceRootWindow->GetBrowser()->ReloadIgnoreCache();
+	}
+
+	void SetMainUI(bool enable)
+	{
+		g_mainUIFlag = enable;
 	}
 
 	void CreateFrame(std::string frameName, std::string frameURL)

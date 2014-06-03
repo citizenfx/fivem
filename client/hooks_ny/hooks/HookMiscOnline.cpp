@@ -31,4 +31,12 @@ static HookFunction hookFunction([] ()
 
 	// ignore initial loading screens
 	hook::put<uint8_t>(0x402B49, 0xEB);
+
+	// emergency streaming safeguard related to process address space or something; this is
+	// typically a sign of something else being wrong but I can't be bothered to fix it
+	//hook::put<uint8_t>(0xAC1F93, 0xEB);
+
+	// try getting rid of CStreaming::IsEnoughMemoryFor recalibrating VRAM specification in streaming subsystem
+	//hook::nop(0xAC1F5C, 5); // call with 'retn 4' in it
+	//hook::nop(0xAC1F57, 1); // push
 });

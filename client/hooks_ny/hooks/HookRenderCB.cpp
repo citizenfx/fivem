@@ -43,8 +43,8 @@ static HookFunction hookFunction([] ()
 	hook::put(0x796B9E, InvokeEndSceneCBStub);
 
 	// frontend render phase
-	hook::put(0xE9F1AC, InvokeFrontendCBStub);
+	//hook::put(0xE9F1AC, InvokeFrontendCBStub);
 
 	// in-menu check for renderphasefrontend
-	*(BYTE*)0x43AF21 = 0xEB;
+	//*(BYTE*)0x43AF21 = 0xEB;
 });

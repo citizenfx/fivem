@@ -30,3 +30,5 @@ void RegisterD3DPostResetCallback(void(*function)())
 
 	callbacks.push_back(function);
 }
+
+void WRAPPER ClearRenderTarget(bool a1, int value1, bool a2, float value2, bool a3, int value3) { EAXJMP(0x620470); }

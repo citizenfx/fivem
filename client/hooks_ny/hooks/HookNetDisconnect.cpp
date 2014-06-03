@@ -2,9 +2,19 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 
+static bool g_disconnectSafeguard;
+
+void SetDisconnectSafeguard(bool enable)
+{
+	g_disconnectSafeguard = enable;
+}
+
 static void FinalizeDisconnect()
 {
-	g_netLibrary->FinalizeDisconnect();
+	if (!g_disconnectSafeguard)
+	{
+		g_netLibrary->FinalizeDisconnect();
+	}
 }
 
 static HookFunction hookFunction([] ()

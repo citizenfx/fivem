@@ -1,7 +1,16 @@
 #include "StdInc.h"
 #include "ResourceScripting.h"
 #include "ResourceManager.h"
+
+#include "CrossLibraryInterfaces.h"
 //#include "CefWindow.h"
+
+LUA_FUNCTION(SafeguardDisconnect)
+{
+	g_hooksDLL->SetDisconnectSafeguard(lua_toboolean(L, 1));
+
+	return 0;
+}
 
 LUA_FUNCTION(echo)
 {

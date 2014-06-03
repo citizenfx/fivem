@@ -76,6 +76,8 @@ void WRAPPER __fastcall LeaveGame(void* net) { EAXJMP(0x462370); }
 
 void GameInit::KillNetwork(const wchar_t* reason)
 {
+	g_hooksDLL->SetDisconnectSafeguard(false);
+
 	// special case for graceful kill
 	if (reason == (wchar_t*)1)
 	{

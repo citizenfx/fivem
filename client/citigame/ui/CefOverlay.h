@@ -125,6 +125,11 @@ namespace nui
 	void SignalPoll(std::string frameName);
 
 	void GiveFocus(bool hasFocus);
+	void SetMainUI(bool enable);
+
+	void ProcessInput();
+
+	void ExecuteRootScript(const char* scriptBit);
 
 	CefBrowser* GetBrowser();
 

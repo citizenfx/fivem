@@ -48,7 +48,7 @@
 			links { "cef_sandbox", "libcef" }
 		
 		configuration "windows"
-			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO" -- 4254 is the section type warning we tend to get
+			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 		
 	project "CitiGame"
 		targetname "CitizenGame"

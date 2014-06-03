@@ -46,6 +46,8 @@ class IGameSpecToHooks
 {
 public:
 	virtual void SetHookCallback(uint32_t hookCallbackId, void(*callback)(void*)) = 0;
+
+	virtual void SetDisconnectSafeguard(bool enable) = 0;
 };
 
 class HOOKS_EXPORT HooksDLLInterface
