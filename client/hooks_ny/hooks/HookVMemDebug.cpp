@@ -11,5 +11,5 @@ char __fastcall DoWantHudZone(char* stuff)
 
 static HookFunction hookFunction([] ()
 {
-	hook::call(0x427FBF, DoWantHudZone);
+	//hook::call(0x427FBF, DoWantHudZone);
 });

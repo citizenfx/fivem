@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 
+#include "GameInit.h"
+
 #include <strsafe.h>
 
 #include "NetLibrary.h"
@@ -641,10 +643,24 @@ static InitFunction initFunction([] ()
 
 			//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
 
-			SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
+			if (!GameInit::GetGameLoaded())
+			{
+				SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
+			}
+			else
+			{
+				SetTextureGtaIm(*(rage::grcTexture**)(0x18AAC20));
+			}
 
 			DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 		}
+	});
+
+	g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
+	{
+		g_mainUIFlag = true;
+
+		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 	});
 });
 

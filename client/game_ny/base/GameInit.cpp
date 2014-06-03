@@ -74,6 +74,8 @@ bool& stopNetwork = *(bool*)0x18A82FE;
 
 void WRAPPER __fastcall LeaveGame(void* net) { EAXJMP(0x462370); }
 
+static bool g_ignoreNextGracefulDeath;
+
 void GameInit::KillNetwork(const wchar_t* reason)
 {
 	g_hooksDLL->SetDisconnectSafeguard(false);
@@ -81,6 +83,12 @@ void GameInit::KillNetwork(const wchar_t* reason)
 	// special case for graceful kill
 	if (reason == (wchar_t*)1)
 	{
+		if (g_ignoreNextGracefulDeath)
+		{
+			g_ignoreNextGracefulDeath = false;
+			return;
+		}
+
 		LeaveGame((void*)0x11D6718);
 		return;
 	}
@@ -92,6 +100,8 @@ void GameInit::KillNetwork(const wchar_t* reason)
 
 		static char smallReason[8192];
 		wcstombs(smallReason, reason, _countof(smallReason));
+
+		g_ignoreNextGracefulDeath = true;
 
 		g_netLibrary->Disconnect(smallReason);
 	}

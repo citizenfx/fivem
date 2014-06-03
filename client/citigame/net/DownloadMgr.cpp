@@ -216,7 +216,11 @@ void DownloadManager::ReleaseLastServer()
 		packfile.second->closeArchive();
 	}
 
-	nui::ReloadNUI();
+	//nui::ReloadNUI();
+	for (auto& resource : m_requiredResources)
+	{
+		nui::DestroyFrame(resource.GetName());
+	}
 }
 
 void DownloadManager::SetServer(NetAddress& address)

@@ -361,6 +361,8 @@ static std::shared_ptr<NUIWindow> nuiWindow;
 
 void GSClient_RunFrame();
 
+static std::string g_disconnectReason;
+
 void NetLibrary::RunFrame()
 {
 	ProcessPackets();
@@ -492,7 +494,9 @@ void NetLibrary::RunFrame()
 		case CS_ACTIVE:
 			if ((GetTickCount() - m_lastReceivedAt) > 15000)
 			{
-				Disconnect("Connection timed out.");
+				g_disconnectReason = "Connection timed out.";
+				FinalizeDisconnect();
+
 				GlobalError("Server connection timed out after 15 seconds.");
 			}
 
@@ -591,8 +595,6 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, handleAuthResult);
 }
-
-static std::string g_disconnectReason;
 
 void NetLibrary::Disconnect(const char* reason)
 {

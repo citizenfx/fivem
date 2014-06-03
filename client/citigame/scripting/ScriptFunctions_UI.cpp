@@ -1,6 +1,9 @@
 #include "StdInc.h"
 #include "ResourceScripting.h"
 #include "ResourceUI.h"
+#include "NetLibrary.h"
+
+extern bool g_mainUIFlag;
 
 struct ResUIResultHolder
 {
@@ -107,6 +110,17 @@ LUA_FUNCTION(PollUI)
 LUA_FUNCTION(SetUIFocus)
 {
 	nui::GiveFocus(lua_toboolean(L, 1));
+
+	return 0;
+}
+
+LUA_FUNCTION(ShutdownNetworkCit)
+{
+	g_netLibrary->Disconnect(luaL_checkstring(L, 1));
+
+	g_mainUIFlag = true;
+
+	nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 
 	return 0;
 }
