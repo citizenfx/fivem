@@ -11,7 +11,7 @@
 bool Bootstrap_UpdateEXE(int exeSize)
 {
 	const char* fn = _tempnam(NULL, "cup");
-	CL_QueueDownload(va(CONTENT_URL "/%s/bootstrap/CitizenMP.exe.xz", GetUpdateChannel()), fn, exeSize, true);
+	CL_QueueDownload(va(CONTENT_URL "/%s/bootstrap/CitizenFX.exe.xz", GetUpdateChannel()), fn, exeSize, true);
 
 	UI_DoCreation();
 
