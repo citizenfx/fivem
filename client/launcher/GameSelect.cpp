@@ -7,7 +7,14 @@ void EnsureGamePath()
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		return;
+		wchar_t path[256];
+
+		GetPrivateProfileString(L"Game", L"IVPath", L"", path, _countof(path), fpath.c_str());
+
+		if (path[0] != L'\0')
+		{
+			return;
+		}
 	}
 
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
