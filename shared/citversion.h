@@ -1,0 +1,1 @@
+#define BASE_EXE_VERSION 999999

@@ -5,7 +5,9 @@
 		
 		flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 		
-		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", os.getenv("BOOST_ROOT") }
+		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", os.getenv("BOOST_ROOT") }
+		
+		libdirs { "deplibs/lib/" }
 	
 		configuration "Debug*"
 			targetdir "bin/debug"
@@ -26,7 +28,7 @@
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "Shared", "dbghelp", "psapi" }
+		links { "Shared", "dbghelp", "psapi", "libcurl", "tinyxml", "liblzma", "comctl32" }
 		
 		files
 		{

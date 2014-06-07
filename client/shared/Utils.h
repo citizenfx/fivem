@@ -145,6 +145,7 @@ public:
 //
 
 const char* va(const char* string, ...);
+const wchar_t* va(const wchar_t* string, ...);
 void trace(const char* string, ...);
 void GlobalError(const char* string, ...);
 void FatalError(const char* string, ...);
@@ -157,3 +158,4 @@ inline void LowerString(std::string& string)
 }
 
 std::string url_encode(const std::string &value);
+void CreateDirectoryAnyDepth(const char *path);

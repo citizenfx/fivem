@@ -90,6 +90,29 @@ const char* va(const char* string, ...)
 	return buffer[thisBuffer];
 }
 
+const wchar_t* va(const wchar_t* string, ...)
+{
+	static wchar_t buffer[BUFFER_COUNT][BUFFER_LENGTH];
+	static int currentBuffer;
+	int thisBuffer = currentBuffer;
+
+	va_list ap;
+	va_start(ap, string);
+	int length = _vsnwprintf_s(buffer[thisBuffer], BUFFER_LENGTH, string, ap);
+	va_end(ap);
+
+	if (length >= BUFFER_LENGTH)
+	{
+		GlobalError("Attempted to overrun string in call to va()!");
+	}
+
+	buffer[thisBuffer][BUFFER_LENGTH - 1] = '\0';
+
+	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
+
+	return buffer[thisBuffer];
+}
+
 void trace(const char* string, ...)
 {
 	static char buffer[BUFFER_LENGTH];
@@ -153,4 +176,31 @@ std::string url_encode(const std::string &value)
 	}
 
 	return escaped.str();
+}
+
+#include <direct.h>
+#include <io.h>
+
+void CreateDirectoryAnyDepth(const char *path)
+{
+	char opath[MAX_PATH];
+	char *p;
+	size_t len;
+	strncpy_s(opath, path, sizeof(opath));
+	len = strlen(opath);
+	if (opath[len - 1] == L'/')
+		opath[len - 1] = L'\0';
+
+	for (p = opath; *p; p++)
+	{
+		if (*p == L'/' || *p == L'\\')
+		{
+			*p = L'\0';
+			if (_access(opath, 0))
+				_mkdir(opath);
+			*p = L'\\';
+		}
+	}
+	if (_access(opath, 0))
+		_mkdir(opath);
 }
