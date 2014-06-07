@@ -26,30 +26,26 @@ std::wstring GetAbsoluteCitPath()
 
 std::wstring GetAbsoluteGamePath()
 {
-	// hacky for now :)
-	if (!_stricmp(getenv("COMPUTERNAME"), "fallarbor"))
-	{
-		return L"S:\\games\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
-	}
-	else if (!_stricmp(getenv("COMPUTERNAME"), "avail"))
-	{
-		return L"D:\\program files\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
-	}
-	else if (!_stricmp(getenv("COMPUTERNAME"), "snowpoint"))
-	{
-		return L"E:\\steam\\steamapps\\common\\grand theft auto iv\\gtaiv\\";
-	}
-	else
-	{
-		static wchar_t buffer[512];
+	static std::wstring gamePath;
 
-		if (!buffer[0])
+	if (!gamePath.size())
+	{
+		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+		if (GetFileAttributes(fpath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
-			GetFullPathName(L"..\\gtaiv\\", _countof(buffer), buffer, nullptr);
+			return L"null";
 		}
 
-		return buffer;
+		wchar_t path[512];
+
+		GetPrivateProfileString(L"Game", L"IVPath", L"", path, _countof(path), fpath.c_str());
+
+		gamePath = path;
+		gamePath += L"\\";
 	}
+
+	return gamePath;
 }
 
 static InitFunctionBase* g_initFunctions;

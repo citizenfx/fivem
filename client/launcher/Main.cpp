@@ -4,11 +4,14 @@
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
+void EnsureGamePath();
 
 void main()
 {
 	// initialize the CRT
 	_CRT_INIT(GetModuleHandle(NULL), DLL_PROCESS_ATTACH, NULL);
+
+	EnsureGamePath();
 
 	// TODO: bootstrap updater; downloading new executable (if old deployment plan is actually in-use)
 	
