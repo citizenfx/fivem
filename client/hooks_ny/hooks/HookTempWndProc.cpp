@@ -47,6 +47,13 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
 }
 
+static void RepairInput()
+{
+	char spillBuffer[256];
+
+	((void(*)(char*, int))0x6366D0)(spillBuffer, 0);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// d3d fpu preserve, FIXME move it elsewhere
@@ -65,4 +72,7 @@ static HookFunction hookFunction([] ()
 
 	// experimental: disable dinput
 	*(BYTE*)0x636490 = 0xC3; // keyboard
+
+	// some mouse stealer -- removes dinput and doesn't get toggled back (RepairInput instead fixes the mouse)
+	hook::jump(0x623C30, RepairInput);
 });
