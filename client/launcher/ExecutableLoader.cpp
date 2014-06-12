@@ -26,7 +26,7 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 
 		if (!module)
 		{
-			// TODO: report loading error
+			FatalError("Could not load dependent module %s. Error code was %i.\n", name, GetLastError());
 		}
 
 		// "don't load"
@@ -42,22 +42,25 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 		while (*nameTableEntry)
 		{
 			FARPROC function;
+			const char* functionName;
 
 			// is this an ordinal-only import?
 			if (IMAGE_SNAP_BY_ORDINAL(*nameTableEntry))
 			{
 				function = GetProcAddress(module, MAKEINTRESOURCEA(IMAGE_ORDINAL(*nameTableEntry)));
+				functionName = va("#%d", IMAGE_ORDINAL(*nameTableEntry));
 			}
 			else
 			{
 				auto import = GetRVA<IMAGE_IMPORT_BY_NAME>(*nameTableEntry);
 
 				function = GetProcAddress(module, import->Name);
+				functionName = import->Name;
 			}			
 
 			if (!function)
 			{
-				// TODO: really report loading error
+				FatalError("Could not load function %s in dependent module %s.\n", functionName, name);
 			}
 
 			*addressTableEntry = (uint32_t)function;

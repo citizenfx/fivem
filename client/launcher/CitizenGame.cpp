@@ -16,7 +16,7 @@ void CitizenGame::Launch(std::wstring& gamePath)
 
 	if (!gameLibrary)
 	{
-		// TODO: report error
+		FatalError("Could not load CitizenGame.dll.");
 		return;
 	}
 
@@ -68,6 +68,12 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	exeLoader.SetLibraryLoader([] (const char* libName)
 	{
 		if (!_stricmp(libName, "xlive.dll"))
+		{
+			return (HMODULE)INVALID_HANDLE_VALUE;
+		}
+
+		// ATL80.dll is SxS, but it's unused by the game
+		if (!_stricmp(libName, "atl80.dll"))
 		{
 			return (HMODULE)INVALID_HANDLE_VALUE;
 		}
