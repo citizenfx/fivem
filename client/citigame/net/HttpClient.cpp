@@ -200,7 +200,6 @@ bool HttpClient::CrackUrl(std::string url, std::wstring& hostname, std::wstring&
 	return true;
 }
 
-// TODO: urlencode?
 std::string HttpClient::BuildPostString(std::map<std::string, std::string>& fields)
 {
 	std::stringstream retval;
