@@ -97,7 +97,6 @@ bool NetChannel::Process(const char* message, size_t size, NetBuffer** buffer)
 	if (sequence <= m_inSequence && m_inSequence != 0)
 	{
 		trace("out of order packet (%d, %d)\n", sequence, m_inSequence);
-		MessageBox(NULL, L"fokin ell", L"'ell", MB_ABORTRETRYIGNORE | MB_ICONASTERISK);
 
 		return false;
 	}
