@@ -51,7 +51,14 @@ static void RepairInput()
 {
 	char spillBuffer[256];
 
+	// function 1 regarding input
 	((void(*)(char*, int))0x6366D0)(spillBuffer, 0);
+
+	// unset XLive overlay showing flag - unblocks input
+	if (*(uint8_t*)0x1970A21 & 1)
+	{
+		*(uint8_t*)0x1970A21 &= ~1;
+	}
 }
 
 static HookFunction hookFunction([] ()
