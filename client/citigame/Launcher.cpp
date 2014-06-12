@@ -29,8 +29,7 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 	NP_Init();
 
-	//NP_Connect("iv-platform.prod.citizen.re", 3036);
-	if (!NP_Connect("77.22.64.7", 3036))
+	if (!NP_Connect("iv-platform.prod.citizen.re", 3036))
 	{
 		FatalError("Could not connect to the platform server at iv-platform.prod.citizen.re.");
 	}
