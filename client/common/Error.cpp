@@ -18,7 +18,12 @@ static void SysError(const char* buffer)
 
 #ifdef WIN32
 #ifdef _M_IX86
-	__asm int 3
+#ifdef _DEBUG
+	if (IsDebuggerPresent())
+	{
+		__asm int 3
+	}
+#endif
 #endif
 #endif
 
