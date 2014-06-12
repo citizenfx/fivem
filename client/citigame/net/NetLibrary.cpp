@@ -371,59 +371,6 @@ void NetLibrary::RunFrame()
 
 	GSClient_RunFrame();
 
-	static bool testState;
-
-	if (GetAsyncKeyState(VK_F4))
-	{
-		static bool nuiw = false;
-
-		if (!nuiw)
-		{
-			nuiWindow = NUIWindow::Create(false, 2560, 1440, "nui://game/test.html");
-
-			nuiw = true;
-		}
-	}
-
-	if (GetAsyncKeyState(VK_F5) && m_connectionState == CS_IDLE)
-	{
-		if (!testState)
-		{
-			if (!_stricmp(getenv("computername"), "fallarbor") || !_stricmp(getenv("computername"), "snowpoint"))
-			{
-				ConnectToServer("77.22.64.7", 30120);
-				//ConnectToServer("192.168.178.83", 30120);
-			}
-			else
-			{
-				ConnectToServer("77.22.64.7", 30120);
-			}
-
-			testState = true;
-		}
-	}
-	else
-	{
-		testState = false;
-	}
-
-	static bool testState2;
-
-	if (GetAsyncKeyState(VK_F6))
-	{
-		if (!testState2)
-		{
-			Disconnect("hey");
-			GameInit::KillNetwork(nullptr);
-
-			testState2 = true;
-		}
-	}
-	else
-	{
-		testState2 = false;
-	}
-
 	switch (m_connectionState)
 	{
 		case CS_INITRECEIVED:
