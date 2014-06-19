@@ -161,7 +161,7 @@ std::string url_encode(const std::string &value)
 	for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i)
 	{
 		std::string::value_type c = (*i);
-		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+		if ((isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') && c != '+')
 		{
 			escaped << c;
 		}
