@@ -807,7 +807,7 @@ namespace nui
 
 		g_shFactory = new NUISchemeHandlerFactory();
 
-		CefInitialize(args, cSettings, app.get(), nullptr);
+		CefInitialize(args, cSettings, app.get(), cefSandbox);
 		CefRegisterSchemeHandlerFactory("nui", "", g_shFactory);
 		//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
