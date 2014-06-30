@@ -416,7 +416,7 @@ void GSClient_QueryMaster()
 	}
 
 	char message[128];
-	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers GTA4 1 full empty");
+	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers GTA4 2 full empty");
 
 	sendto(g_cls.socket, message, strlen(message), 0, (sockaddr*)&masterIP, sizeof(masterIP));
 }
