@@ -3,7 +3,14 @@
 #include "ResourceManager.h"
 
 #include "CrossLibraryInterfaces.h"
-//#include "CefWindow.h"
+#include "GameFlags.h"
+
+LUA_FUNCTION(SetNetworkWalkModeEnabled)
+{
+	GameFlags::SetFlag(GameFlag::NetworkWalkMode, lua_toboolean(L, 1));
+
+	return 0;
+}
 
 LUA_FUNCTION(SafeguardDisconnect)
 {

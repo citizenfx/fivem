@@ -2,6 +2,7 @@
 #include "NetLibrary.h"
 #include "GameInit.h"
 #include "DownloadMgr.h"
+#include "GameFlags.h"
 #include <yaml-cpp/yaml.h>
 #include <libnp.h>
 #include <base64.h>
@@ -376,6 +377,8 @@ void NetLibrary::RunFrame()
 		case CS_INITRECEIVED:
 			//m_connectionState = CS_DOWNLOADCOMPLETE;
 
+			GameFlags::ResetFlags();
+
 			m_connectionState = CS_DOWNLOADING;
 
 			if (!GameInit::GetGameLoaded())
@@ -561,6 +564,8 @@ void NetLibrary::FinalizeDisconnect()
 
 		m_lastSend = 0;
 		ProcessSend();
+
+		GameFlags::ResetFlags();
 
 		TheDownloads.ReleaseLastServer();
 
