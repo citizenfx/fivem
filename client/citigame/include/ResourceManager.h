@@ -83,6 +83,14 @@ public:
 
 	bool HasExport(std::string& exportName);
 
+	bool HasRef(int luaRef);
+
+	std::string CallRef(int luaRef, std::string& argsSerialized);
+
+	void RemoveRef(int luaRef);
+
+	int DuplicateRef(int luaRef);
+
 	void TriggerEvent(std::string& eventName, std::string& argsSerialized, int source);
 
 	void Tick();
@@ -133,7 +141,7 @@ public:
 	void Reset();
 
 	void TriggerEvent(std::string& eventName, std::string& argsSerialized, int source = -1);
-
+	
 	void QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source);
 
 	ResourceCache* GetCache();

@@ -10,6 +10,12 @@ class ScriptEnvironment;
 
 typedef int ScriptFunctionRef;
 
+struct ResourceRef
+{
+	int reference;
+	Resource* resource;
+};
+
 class ScriptThread
 {
 private:
@@ -74,6 +80,12 @@ public:
 	void AddEventHandler(std::string& eventName, ScriptFunctionRef ref);
 	
 	void EnqueueTask(std::function<void()> task);
+
+	ResourceRef GetRef(int luaRef);
+
+	void RemoveRef(int luaRef);
+
+	int DuplicateRef(int luaRef);
 
 	static sigslot::signal1<lua_State*> SignalResourceScriptInit;
 	static sigslot::signal0<> SignalScriptReset;

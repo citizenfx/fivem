@@ -155,6 +155,26 @@ std::string Resource::CallExport(std::string& exportName, std::string& argsSeria
 	return std::string("[null]");
 }
 
+int Resource::DuplicateRef(int luaRef)
+{
+	return m_scriptEnvironment->DuplicateRef(luaRef);
+}
+
+bool Resource::HasRef(int luaRef)
+{
+	return true; // FIXME: actually check
+}
+
+std::string Resource::CallRef(int luaRef, std::string& argsSerialized)
+{
+	return m_scriptEnvironment->CallExport(luaRef, argsSerialized);
+}
+
+void Resource::RemoveRef(int luaRef)
+{
+	m_scriptEnvironment->RemoveRef(luaRef);
+}
+
 bool Resource::HasExport(std::string& exportName)
 {
 	// find the export

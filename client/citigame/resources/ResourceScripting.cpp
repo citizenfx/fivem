@@ -276,6 +276,26 @@ std::string ScriptEnvironment::CallExport(ScriptFunctionRef ref, std::string& ar
 	return CallExportInternal(ref, argsSerialized, luaS_deserializeArgs);
 }
 
+ResourceRef ScriptEnvironment::GetRef(int luaRef)
+{
+	ResourceRef retval;
+	retval.reference = luaRef;
+	retval.resource = m_resource;
+
+	return retval;
+}
+
+int ScriptEnvironment::DuplicateRef(int luaRef)
+{
+	lua_rawgeti(m_luaState, LUA_REGISTRYINDEX, luaRef);
+	return luaL_ref(m_luaState, LUA_REGISTRYINDEX);
+}
+
+void ScriptEnvironment::RemoveRef(int luaRef)
+{
+	luaL_unref(m_luaState, LUA_REGISTRYINDEX, luaRef);
+}
+
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] =
 {
