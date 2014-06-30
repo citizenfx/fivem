@@ -75,6 +75,8 @@ public:
 
 	void Stop();
 
+	bool EnsureScriptEnvironment();
+
 	void AddDependant(std::string& dependant);
 
 	void RemoveDependant(std::string& dependant);
@@ -94,6 +96,15 @@ public:
 	void TriggerEvent(std::string& eventName, std::string& argsSerialized, int source);
 
 	void Tick();
+
+	void AddDependency(std::string dependency);
+
+	void AddExport(std::string exportName);
+
+	void SetMetaData(std::string key, std::string value);
+
+private:
+	bool ParseInfoFile();
 
 public:
 	inline std::string GetName() { return m_name; }

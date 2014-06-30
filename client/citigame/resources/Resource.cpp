@@ -72,18 +72,38 @@ void Resource::Start()
 	//std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
 	//TheResources.TriggerEvent(std::string("resourceStarting"), nameArgs);
 
-	m_scriptEnvironment = std::make_shared<ScriptEnvironment>(this);
-	if (!m_scriptEnvironment->Create())
+	if (!EnsureScriptEnvironment())
 	{
-		trace("Resource %s caused an error during loading. Please see the above lines for details.\n", m_name.c_str());
-
-		m_state = ResourceStateError;
 		return;
 	}
+
+	// initialize any 'later' parts of the initialization file
+	m_scriptEnvironment->DoInitFile(false);
+
+	m_scriptEnvironment->LoadScripts();
 
 	m_state = ResourceStateRunning;
 
 	//TheResources.TriggerEvent(std::string("resourceStarted"), nameArgs);
+}
+
+bool Resource::EnsureScriptEnvironment()
+{
+	if (!m_scriptEnvironment.get())
+	{
+		m_scriptEnvironment = std::make_shared<ScriptEnvironment>(this);
+		if (!m_scriptEnvironment->Create())
+		{
+			trace("Resource %s caused an error during loading. Please see the above lines for details.\n", m_name.c_str());
+
+			m_state = ResourceStateError;
+			return false;
+		}
+
+		ParseInfoFile();
+	}
+
+	return true;
 }
 
 void Resource::Stop()
@@ -121,6 +141,7 @@ void Resource::Stop()
 	TheResources.TriggerEvent(std::string("resourceStopping"), nameArgs);
 
 	m_scriptEnvironment->Destroy();
+	m_scriptEnvironment = nullptr;
 
 	m_state = ResourceStateStopping;
 }
@@ -189,93 +210,32 @@ bool Resource::HasExport(std::string& exportName)
 	return false;
 }
 
+void Resource::AddExport(std::string exportName)
+{
+	m_exports.push_back(ResourceExport(this, exportName));
+}
+
+void Resource::AddDependency(std::string dependency)
+{
+	m_dependencies.push_back(dependency);
+}
+
+void Resource::SetMetaData(std::string key, std::string value)
+{
+	m_metaData.insert(std::make_pair(key, value));
+}
+
 bool Resource::Parse()
 {
-	std::string infoPath(m_path);
-	infoPath.append("/info.yml");
-
-	// read the file
-	fiDevice* device = fiDevice::GetDevice(infoPath.c_str(), true);
-
-	if (!device)
+	if (!EnsureScriptEnvironment())
 	{
 		return false;
 	}
 
-	uint32_t handle = device->open(infoPath.c_str(), true);
+	return ParseInfoFile();
+}
 
-	// doesn't exist/can't open?
-	if (handle == -1)
-	{
-		trace("couldn't open %s\n", m_path.c_str());
-		return false;
-	}
-
-	// allocate buffer and read
-	int length = device->fileLength(handle);
-
-	char* buffer = new char[length + 1];
-	device->read(handle, buffer, length);
-	buffer[length] = '\0';
-
-	device->close(handle);
-
-	// parse
-	try
-	{
-		auto node = YAML::Load(buffer);
-
-		delete[] buffer;
-
-		// parse metadata
-		auto info = node["info"];
-
-		if (info.IsMap())
-		{
-			for (auto& infoEntry : info)
-			{
-				m_metaData[infoEntry.first.as<std::string>()] = infoEntry.second.as<std::string>();
-			}
-		}
-
-		// parse exports
-		auto exports = node["exports"];
-
-		if (exports.IsSequence())
-		{
-			for (auto& exp : exports)
-			{
-				ResourceExport re(this, std::string(exp.as<std::string>()));
-				m_exports.push_back(re);
-			}
-		}
-
-		// parse deps
-		auto dependencies = node["dependencies"];
-
-		if (dependencies.IsSequence())
-		{
-			for (auto& dep : dependencies)
-			{
-				m_dependencies.push_back(dep.as<std::string>());
-			}
-		}
-
-		// parse scripts
-		auto scripts = node["scripts"];
-
-		for (auto& script : scripts)
-		{
-			m_scripts.push_back(script.as<std::string>());
-		}
-
-		return true;
-	}
-	catch (YAML::Exception& e)
-	{
-		delete[] buffer;
-
-		trace("error parsing %s: %s\n", m_path.c_str(), e.what());
-		return false;
-	}
+bool Resource::ParseInfoFile()
+{
+	return m_scriptEnvironment->DoInitFile(true);
 }

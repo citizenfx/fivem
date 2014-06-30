@@ -364,6 +364,119 @@ void ScriptEnvironment::Destroy()
 	// don't do anything yet
 }
 
+bool ScriptEnvironment::LoadFile(std::string& scriptName, std::string& path)
+{
+	// open the file
+	fiDevice* device = fiDevice::GetDevice(path.c_str(), true);
+
+	int handle = device->open(path.c_str(), true);
+
+	if (handle == -1)
+	{
+		trace("Could not find script %s in resource %s.\n", scriptName.c_str(), m_resource->GetName().c_str());
+
+		return false;
+	}
+
+	// read file data
+	int length = device->fileLength(handle);
+	char* fileData = new char[length + 1];
+
+	device->read(handle, fileData, length);
+	device->close(handle);
+
+	fileData[length] = '\0';
+
+	// create a chunk name prefixed with @ (suppresses '[string "..."]' formatting)
+	std::string chunkName("@");
+	chunkName.append(path);
+
+	if (luaL_loadbuffer(m_luaState, fileData, length, chunkName.c_str()) != 0)
+	{
+		std::string err = luaL_checkstring(m_luaState, -1);
+		lua_pop(m_luaState, 1);
+
+		trace("Error parsing script %s in resource %s: %s\n", scriptName.c_str(), m_resource->GetName().c_str(), err.c_str());
+
+		delete[] fileData;
+
+		return false;
+	}
+
+	// delete the buffer and run the script's global scope
+	delete[] fileData;
+
+	return true;
+
+}
+
+bool ScriptEnvironment::DoFile(std::string& scriptName, std::string& path)
+{
+	lua_pushcfunction(m_luaState, lua_error_handler);
+	int eh = lua_gettop(m_luaState);
+
+	if (!LoadFile(scriptName, path))
+	{
+		return false;
+	}
+
+	if (lua_pcall(m_luaState, 0, 0, eh) != 0)
+	{
+		std::string err = luaL_checkstring(m_luaState, -1);
+		lua_pop(m_luaState, 1);
+
+		trace("Error loading script %s in resource %s: %s\n", scriptName.c_str(), m_resource->GetName().c_str(), err.c_str());
+
+		return false;
+	}
+
+	lua_pop(m_luaState, 1);
+
+	return true;
+}
+
+bool ScriptEnvironment::DoInitFile(bool preParse)
+{
+	g_currentEnvironment = this;
+
+	lua_pushcfunction(m_luaState, lua_error_handler);
+	int eh = lua_gettop(m_luaState);
+
+	// function to call
+	lua_rawgeti(m_luaState, LUA_REGISTRYINDEX, m_initHandler);
+
+	// actual script
+	std::string scriptName = "__resource.lua";
+	std::string scriptPath = m_resource->GetPath() + "/__resource.lua";
+
+	if (!LoadFile(scriptName, scriptPath))
+	{
+		g_currentEnvironment = nullptr;
+
+		return false;
+	}
+
+	// boolean argument
+	lua_pushboolean(m_luaState, preParse);
+
+	// call the init handler
+	if (lua_pcall(m_luaState, 2, 0, eh) != 0)
+	{
+		std::string err = luaL_checkstring(m_luaState, -1);
+		lua_pop(m_luaState, 1);
+
+		trace("Error loading init script in resource %s: %s\n", m_resource->GetName().c_str(), err.c_str());
+
+		return false;
+	}
+
+	lua_pop(m_luaState, 1);
+
+	g_currentEnvironment = nullptr;
+
+	return true;
+}
+
 bool ScriptEnvironment::Create()
 {
 	// register game-specific Lua functions
@@ -376,68 +489,7 @@ bool ScriptEnvironment::Create()
 
 	bool result;
 
-	auto doFile = [&] (std::string& scriptName, std::string& path)
-	{
-		// open the file
-		fiDevice* device = fiDevice::GetDevice(path.c_str(), true);
-
-		int handle = device->open(path.c_str(), true);
-
-		if (handle == -1)
-		{
-			trace("Could not find script %s in resource %s.\n", scriptName.c_str(), m_resource->GetName().c_str());
-
-			return false;
-		}
-
-		// read file data
-		int length = device->fileLength(handle);
-		char* fileData = new char[length + 1];
-
-		device->read(handle, fileData, length);
-		device->close(handle);
-
-		fileData[length] = '\0';
-
-		// load it in lua
-		lua_pushcfunction(m_luaState, lua_error_handler);
-		int eh = lua_gettop(m_luaState);
-
-		// create a chunk name prefixed with @ (suppresses '[string "..."]' formatting)
-		std::string chunkName("@");
-		chunkName.append(path);
-
-		if (luaL_loadbuffer(m_luaState, fileData, length, chunkName.c_str()) != 0)
-		{
-			std::string err = luaL_checkstring(m_luaState, -1);
-			lua_pop(m_luaState, 1);
-
-			trace("Error parsing script %s in resource %s: %s\n", scriptName.c_str(), m_resource->GetName().c_str(), err.c_str());
-
-			delete[] fileData;
-
-			return false;
-		}
-
-		// delete the buffer and run the script's global scope
-		delete[] fileData;
-
-		if (lua_pcall(m_luaState, 0, 0, eh) != 0)
-		{
-			std::string err = luaL_checkstring(m_luaState, -1);
-			lua_pop(m_luaState, 1);
-
-			trace("Error loading script %s in resource %s: %s\n", scriptName.c_str(), m_resource->GetName().c_str(), err.c_str());
-
-			return false;
-		}
-
-		lua_pop(m_luaState, 1);
-
-		return true;
-	};
-
-	result = doFile(std::string("natives.lua"), std::string("citizen:/natives.lua"));
+	result = DoFile(std::string("natives.lua"), std::string("citizen:/natives.lua"));
 
 	if (!result)
 	{
@@ -445,7 +497,7 @@ bool ScriptEnvironment::Create()
 		return result;
 	}
 
-	result = doFile(std::string("resource_init.lua"), std::string("citizen:/resource_init.lua"));
+	result = DoFile(std::string("resource_init.lua"), std::string("citizen:/resource_init.lua"));
 
 	if (!result)
 	{
@@ -453,7 +505,7 @@ bool ScriptEnvironment::Create()
 		return result;
 	}
 
-	result = doFile(std::string("luajit-msgpack-pure.lua"), std::string("citizen:/luajit-msgpack-pure.lua"));
+	result = DoFile(std::string("luajit-msgpack-pure.lua"), std::string("citizen:/luajit-msgpack-pure.lua"));
 
 	if (!result)
 	{
@@ -462,13 +514,24 @@ bool ScriptEnvironment::Create()
 	}
 
 	// disable unsafe functions to new callers
-	const char* unsafeGlobals[] = { "ffi", "require", "dofile", "load", "loadfile", "package" };
+	const char* unsafeGlobals[] = { "ffi", "require", "dofile", "load", "loadfile", "package", "RegisterInitHandler" };
 
 	for (auto removeThat : unsafeGlobals)
 	{
 		lua_pushnil(m_luaState);
 		lua_setglobal(m_luaState, removeThat);
 	}
+
+	g_currentEnvironment = nullptr;
+
+	return true;
+}
+
+bool ScriptEnvironment::LoadScripts()
+{
+	bool result;
+
+	g_currentEnvironment = this;
 
 	// load scripts from the resource
 	for (auto& scriptName : m_resource->GetScripts())
@@ -477,7 +540,7 @@ bool ScriptEnvironment::Create()
 		path.append("/");
 		path.append(scriptName);
 
-		result = doFile(scriptName, path);
+		result = DoFile(scriptName, path);
 
 		if (!result)
 		{

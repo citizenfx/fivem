@@ -55,6 +55,8 @@ private:
 
 	CRITICAL_SECTION m_taskCritSec;
 
+	int m_initHandler;
+
 private:
 	std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::string& argsSerialized, int(*deserializeCB)(lua_State*, int*, std::string&));
 
@@ -64,6 +66,14 @@ public:
 	~ScriptEnvironment();
 
 	bool Create();
+
+	bool DoInitFile(bool preParse);
+
+	bool DoFile(std::string& scriptName, std::string& path);
+
+	bool LoadFile(std::string& scriptName, std::string& path);
+
+	bool LoadScripts();
 
 	void Destroy();
 
@@ -91,6 +101,8 @@ public:
 	static sigslot::signal0<> SignalScriptReset;
 
 public:
+	inline 	void SetInitHandler(int luaRef) { m_initHandler = luaRef; }
+
 	inline lua_State* GetLua() { return m_luaState; }
 
 	inline Resource* GetResource() { return m_resource; }
