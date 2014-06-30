@@ -94,6 +94,11 @@ void CitizenGame::Launch(std::wstring& gamePath)
 		ExitProcess(0);
 	}
 
+	// apply memory protection
+	DWORD oldProtect;
+	VirtualProtect((void*)0x401000, 0x94C000, PAGE_EXECUTE_READ, &oldProtect); // .text
+	VirtualProtect((void*)0xD4D000, 0x1BF000, PAGE_READONLY, &oldProtect); // .idata/.rdata
+
 	// and call the entry point
 	entryPoint();
 }
