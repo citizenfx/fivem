@@ -807,7 +807,8 @@ namespace nui
 
 		g_shFactory = new NUISchemeHandlerFactory();
 
-		CefInitialize(args, cSettings, app.get(), cefSandbox);
+		// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
+		CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
 		CefRegisterSchemeHandlerFactory("nui", "", g_shFactory);
 		//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
