@@ -137,13 +137,21 @@ void Resource::Stop()
 
 	m_ui->Destroy();
 
-	std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
-	TheResources.TriggerEvent(std::string("resourceStopping"), nameArgs);
+	//std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
+	//TheResources.TriggerEvent(std::string("resourceStopping"), nameArgs);
 
 	m_scriptEnvironment->Destroy();
 	m_scriptEnvironment = nullptr;
 
 	m_state = ResourceStateStopping;
+}
+
+void Resource::AddPackFiles(std::vector<rage::fiPackfile*>& packFiles)
+{
+	for (auto& packFile : packFiles)
+	{
+		m_packFiles.push_back(packFile);
+	}
 }
 
 void Resource::AddDependant(std::string& dependant)

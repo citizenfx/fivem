@@ -20,6 +20,29 @@ bool DownloadManager::Process()
 			std::map<std::string, std::string> postMap;
 			postMap["method"] = "getConfiguration";
 
+			bool isUpdate = false;
+
+			if (!m_updateQueue.empty())
+			{
+				std::string resourceString;
+
+				while (!m_updateQueue.empty())
+				{
+					resourceString += m_updateQueue.front();
+
+					m_updateQueue.pop();
+
+					if (!m_updateQueue.empty())
+					{
+						resourceString += ";";
+					}
+				}
+
+				postMap["resources"] = resourceString;
+
+				isUpdate = true;
+			}
+
 			m_httpClient->DoPostRequest(hostname, m_gameServer.GetPort(), L"/client", postMap, [&] (bool result, std::string connData)
 			{
 				if (!result)
@@ -30,7 +53,10 @@ bool DownloadManager::Process()
 					return;
 				}
 
-				m_requiredResources.clear();
+				if (!isUpdate)
+				{
+					m_requiredResources.clear();
+				}
 
 				std::string serverHost = m_gameServer.GetAddress();
 				serverHost += va(":%d", m_gameServer.GetPort());
@@ -58,6 +84,20 @@ bool DownloadManager::Process()
 
 							resData.AddFile(filename, hash);
 						}
+
+						if (isUpdate)
+						{
+							for (auto it = m_requiredResources.begin(); it != m_requiredResources.end(); it++)
+							{
+								if (it->GetName() == resData.GetName())
+								{
+									m_requiredResources.erase(it);
+									break;
+								}
+							}
+						}
+
+						m_isUpdate = isUpdate;
 
 						m_requiredResources.push_back(resData);
 					}
@@ -140,7 +180,57 @@ bool DownloadManager::Process()
 			}
 			else
 			{
-				TheResources.Reset();
+				if (!m_isUpdate)
+				{
+					TheResources.Reset();
+				}
+				else
+				{
+					// unload any resources we already know that are currently unprocessed
+					for (auto& resource : m_requiredResources)
+					{
+						// this is one we just got from the configuration redownload
+						if (!resource.IsProcessed())
+						{
+							auto resourceData = TheResources.GetResource(resource.GetName());
+
+							if (!resourceData.get())
+							{
+								continue;
+							}
+
+							// sanity check: is the resource not running?
+							if (resourceData->GetState() == ResourceStateRunning)
+							{
+								FatalError("Tried to unload a running resource in DownloadMgr. (%s)", resource.GetName().c_str());
+							}
+
+							// remove all packfiles related to this old resource
+							auto packfiles = resourceData->GetPackFiles();
+
+							for (auto& packfile : packfiles)
+							{
+								// FIXME: implementation detail from same class
+								fiDevice::Unmount(va("resources:/%s/", resourceData->GetName().c_str()));
+
+								packfile->closeArchive();
+
+								// remove from the to-close list (!)
+								for (auto it = m_packFiles.begin(); it != m_packFiles.end(); it++)
+								{
+									if (it->second == packfile)
+									{
+										m_packFiles.erase(it);
+										break;
+									}
+								}
+							}
+
+							// and delete the resource (hope nobody kept a reference to that sucker, ha!)
+							TheResources.DeleteResource(resourceData);
+						}
+					}
+				}
 
 				//std::string resourcePath = "citizen:/resources/";
 				//TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
@@ -150,6 +240,13 @@ bool DownloadManager::Process()
 				// mount any RPF files that we include
 				for (auto& resource : m_requiredResources)
 				{
+					if (m_isUpdate && resource.IsProcessed())
+					{
+						continue;
+					}
+
+					std::vector<rage::fiPackfile*> packFiles;
+
 					for (auto& file : resource.GetFiles())
 					{
 						if (file.filename.find(".rpf") != std::string::npos)
@@ -161,6 +258,7 @@ bool DownloadManager::Process()
 							packFile->openArchive(markedFile.c_str(), true, false, 0);
 							packFile->mount(va("resources:/%s/", resource.GetName().c_str()));
 
+							packFiles.push_back(packFile);
 							m_packFiles.push_back(std::make_pair(va("resources:/%s/", resource.GetName().c_str()), packFile));
 						}
 					}
@@ -170,8 +268,12 @@ bool DownloadManager::Process()
 
 					if (resourceLoad.get())
 					{
+						resourceLoad->AddPackFiles(packFiles);
+
 						loadedResources.push_back(resourceLoad);
 					}
+
+					resource.SetProcessed();
 				}
 
 				// and start all of them!
@@ -192,6 +294,13 @@ bool DownloadManager::Process()
 		case DS_DONE:
 			m_downloadState = DS_IDLE;
 
+			if (m_isUpdate && !m_updateQueue.empty())
+			{
+				ProcessQueuedUpdates();
+			}
+
+			m_isUpdate = false;
+
 			g_netLibrary->DownloadsComplete();
 
 			while (!g_netLibrary->ProcessPreGameTick())
@@ -205,6 +314,28 @@ bool DownloadManager::Process()
 	}
 
 	return false;
+}
+
+bool DownloadManager::DoingQueuedUpdate()
+{
+	return m_isUpdate && m_downloadState != DS_IDLE;
+}
+
+void DownloadManager::QueueResourceUpdate(std::string resourceName)
+{
+	m_updateQueue.push(resourceName);
+
+	if (m_downloadState == DS_IDLE)
+	{
+		ProcessQueuedUpdates();
+	}
+}
+
+void DownloadManager::ProcessQueuedUpdates()
+{
+	m_downloadState = DS_IDLE;
+
+	Process();
 }
 
 void DownloadManager::ReleaseLastServer()

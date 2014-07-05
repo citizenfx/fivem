@@ -14,11 +14,16 @@ private:
 
 	HttpClient* m_httpClient;
 
+	// queue for runtime-updated resources
+	std::queue<std::string> m_updateQueue;
+
 	std::vector<ResourceData> m_requiredResources;
 
 	std::queue<ResourceDownload> m_downloadList;
 
 	std::vector<std::pair<std::string, rage::fiPackfile*>> m_packFiles;
+
+	std::unordered_set<std::string> m_removedPackFiles;
 
 	std::shared_ptr<ResourceDownload> m_currentDownload;
 
@@ -32,8 +37,17 @@ private:
 		DS_DONE
 	} m_downloadState;
 
+	bool m_isUpdate;
+
+private:
+	void ProcessQueuedUpdates();
+
 public:
 	bool Process();
+
+	bool DoingQueuedUpdate();
+
+	void QueueResourceUpdate(std::string resourceName);
 
 	void ReleaseLastServer();
 

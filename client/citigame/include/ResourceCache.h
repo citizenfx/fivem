@@ -29,6 +29,8 @@ private:
 
 	std::string m_baseUrl;
 
+	bool m_processed;
+
 public:
 	ResourceData(std::string name, std::string baseUrl);
 
@@ -39,6 +41,10 @@ public:
 	inline const std::vector<ResourceFile>& GetFiles() const { return m_files; }
 
 	inline std::string GetName() const { return m_name; }
+
+	inline bool IsProcessed() const { return m_processed;  }
+
+	inline void SetProcessed() { m_processed = true; }
 };
 
 struct CacheEntry

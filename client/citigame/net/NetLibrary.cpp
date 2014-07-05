@@ -372,6 +372,11 @@ void NetLibrary::RunFrame()
 
 	GSClient_RunFrame();
 
+	if (TheDownloads.DoingQueuedUpdate())
+	{
+		TheDownloads.Process();
+	}
+
 	switch (m_connectionState)
 	{
 		case CS_INITRECEIVED:

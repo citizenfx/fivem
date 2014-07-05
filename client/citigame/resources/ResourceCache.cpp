@@ -175,7 +175,7 @@ void ResourceCache::MarkList(std::vector<ResourceData>& resourceList)
 // ----------------------------------------------------------------------------
 
 ResourceData::ResourceData(std::string name, std::string baseUrl)
-	: m_name(name), m_baseUrl(baseUrl)
+	: m_name(name), m_baseUrl(baseUrl), m_processed(false)
 {
 
 }

@@ -56,6 +56,8 @@ private:
 
 	std::vector<std::string> m_scripts;
 
+	std::vector<rage::fiPackfile*> m_packFiles;
+
 	std::vector<ResourceExport> m_exports;
 
 	std::shared_ptr<ScriptEnvironment> m_scriptEnvironment;
@@ -101,6 +103,8 @@ public:
 
 	void AddExport(std::string exportName);
 
+	void AddPackFiles(std::vector<rage::fiPackfile*>& packFiles);
+
 	void SetMetaData(std::string key, std::string value);
 
 private:
@@ -120,6 +124,8 @@ public:
 	inline std::vector<ResourceExport>& GetExports() { return m_exports; }
 
 	inline std::vector<std::string>& GetScripts() { return m_scripts; }
+
+	inline std::vector<rage::fiPackfile*>& GetPackFiles() { return m_packFiles; }
 };
 
 struct QueuedScriptEvent
@@ -146,6 +152,8 @@ public:
 	void ScanResources(fiDevice* device, std::string& path);
 
 	std::shared_ptr<Resource> AddResource(std::string name, std::string path);
+
+	void DeleteResource(std::shared_ptr<Resource> resource);
 
 	void Tick();
 

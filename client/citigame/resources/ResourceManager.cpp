@@ -63,6 +63,11 @@ std::shared_ptr<Resource> ResourceManager::AddResource(std::string name, std::st
 	return nullptr;
 }
 
+void ResourceManager::DeleteResource(std::shared_ptr<Resource> resource)
+{
+	m_resources.erase(resource->GetName());
+}
+
 void ResourceManager::ScanResources(fiDevice* device, std::string& path)
 {
 	rage::fiFindData findData;
