@@ -2,6 +2,7 @@
 #include <mmsystem.h>
 #include "ResourceManager.h"
 #include "ResourceScripting.h"
+#include "CrossLibraryInterfaces.h"
 
 CRITICAL_SECTION g_scriptCritSec;
 ScriptEnvironment* g_currentEnvironment;
@@ -338,6 +339,8 @@ ScriptEnvironment::ScriptEnvironment(Resource* resource)
 	}
 
 	InitializeCriticalSection(&m_taskCritSec);
+
+	m_missionCleanup = std::make_shared<CMissionCleanup>();
 }
 
 ScriptEnvironment::~ScriptEnvironment()
@@ -359,9 +362,14 @@ void ScriptEnvironment::EnqueueTask(std::function<void()> task)
 	LeaveCriticalSection(&m_taskCritSec);
 }
 
+extern GtaThread* TheScriptManager;
+
 void ScriptEnvironment::Destroy()
 {
 	// don't do anything yet
+	TheScriptManager->RemoveCleanupFlag();
+
+	m_missionCleanup->CleanUp(TheScriptManager);
 }
 
 bool ScriptEnvironment::LoadFile(std::string& scriptName, std::string& path)
@@ -590,3 +598,16 @@ int lua_error_handler(lua_State* L)
 
 	return 1;
 }
+
+static InitFunction initFunction([] ()
+{
+	g_hooksDLL->SetHookCallback(StringHash("mCleanup"), [] (void* missionCleanupInstance)
+	{
+		CMissionCleanup** instance = (CMissionCleanup**)missionCleanupInstance;
+
+		if (g_currentEnvironment != nullptr)
+		{
+			*instance = g_currentEnvironment->GetMissionCleanup();
+		}
+	});
+});

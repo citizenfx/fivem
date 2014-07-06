@@ -103,4 +103,6 @@ public:
 	virtual rage::eThreadState		Run(uint32_t opsToExecute);
 	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
 	virtual void					Kill();
+
+	inline void RemoveCleanupFlag() { _f94 = 0; }
 };

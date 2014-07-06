@@ -2,6 +2,8 @@
 #include "ResourceManager.h"
 #include "scrEngine.h"
 
+GtaThread* TheScriptManager;
+
 class ScriptManager : public GtaThread
 {
 public:
@@ -66,6 +68,8 @@ static InitFunction initFunction([] ()
 	{
 		// create the script manager
 		static ScriptManager* scriptManager = new ScriptManager();
+
+		TheScriptManager = scriptManager;
 
 		rage::scrEngine::CreateThread(scriptManager);
 	});

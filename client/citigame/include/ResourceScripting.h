@@ -4,6 +4,7 @@
 #include <memory>
 #include <map>
 #include <lua.hpp>
+#include <MissionCleanup.h>
 
 class Resource;
 class ScriptEnvironment;
@@ -54,6 +55,8 @@ private:
 	std::vector<std::function<void()>> m_taskQueue;
 
 	CRITICAL_SECTION m_taskCritSec;
+
+	std::shared_ptr<CMissionCleanup> m_missionCleanup;
 
 	int m_initHandler;
 
@@ -106,6 +109,8 @@ public:
 	inline lua_State* GetLua() { return m_luaState; }
 
 	inline Resource* GetResource() { return m_resource; }
+
+	inline CMissionCleanup* GetMissionCleanup() { return m_missionCleanup.get(); }
 
 	std::string GetName();
 };
