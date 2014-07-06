@@ -538,17 +538,24 @@ static int roundUp(int number, int multiple)
 	return (added)-(added % multiple);
 }
 
+#include <mutex>
+
 static std::vector<NUIWindow*> g_nuiWindows;
+static std::mutex g_nuiWindowsMutex;
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: primary(primary), width(width), height(height), renderBuffer(nullptr), renderBufferDirty(false), m_onClientCreated(nullptr), nuiTexture(nullptr)
 {
+	g_nuiWindowsMutex.lock();
 	g_nuiWindows.push_back(this);
+	g_nuiWindowsMutex.unlock();
 }
 
 NUIWindow::~NUIWindow()
 {
 	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->CloseBrowser(true);
+
+	g_nuiWindowsMutex.lock();
 
 	for (auto it = g_nuiWindows.begin(); it != g_nuiWindows.end(); )
 	{
@@ -561,6 +568,8 @@ NUIWindow::~NUIWindow()
 			it++;
 		}
 	}
+
+	g_nuiWindowsMutex.unlock();
 }
 
 void NUIWindow::SignalPoll(std::string& argument)
@@ -595,10 +604,14 @@ static InitFunction initFunction([] ()
 {
 	RegisterD3DPostResetCallback([] ()
 	{
+		g_nuiWindowsMutex.lock();
+
 		for (auto& window : g_nuiWindows)
 		{
 			window->Invalidate();
 		}
+
+		g_nuiWindowsMutex.unlock();
 	});
 
 	RenderCallbacks::AddRenderCallback("endScene", [] ()
@@ -620,6 +633,8 @@ static InitFunction initFunction([] ()
 			ClearRenderTarget(true, -1, true, 1.0f, true, -1);
 		}
 
+		g_nuiWindowsMutex.lock();
+
 		for (auto& window : g_nuiWindows)
 		{
 			if (window->GetPaintType() != NUIPaintTypePostRender)
@@ -640,6 +655,8 @@ static InitFunction initFunction([] ()
 				DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 			}
 		}
+
+		g_nuiWindowsMutex.unlock();
 
 		if (g_mainUIFlag)
 		{
