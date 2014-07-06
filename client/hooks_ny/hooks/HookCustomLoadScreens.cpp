@@ -21,27 +21,25 @@ static void AfterFrameChangeHook()
 	}
 }
 
+static void TailUnloadLoadScreens()
+{
+	HookCallbacks::RunCallback(StringHash("loadsClean"), nullptr);
+
+	*(BYTE*)0x18A823A = 0;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// wrapper for frame event
 	hook::jump(0x422360, LoadingScreenFrameWrapper);
 
-	// 'next frame' jump
-	/*static hook::inject_call<void, uint8_t, uint8_t> nextLoadFrame(0x4229F4);
-
-	nextLoadFrame.inject([] (uint8_t a, uint8_t b)
-	{
-		if (GameInit::ShouldSwitchToCustomLoad())
-		{
-			*(DWORD*)0x18A8254 = 1; // switch to load screen '1'
-			return;
-		}
-
-		nextLoadFrame.call(a, b);
-	});*/
-
+	// next frame stuff
 	hook::nop(0x422B5F, 8);
 	hook::call(0x422B5F, AfterFrameChangeHook);
+
+	// unloading stuff, tail
+	hook::nop(0x42401E, 7);
+	hook::call(0x42401E, TailUnloadLoadScreens);
 
 	// 'before' draw
 	static hook::inject_call<void, int> drawBefore(0x422C76);
