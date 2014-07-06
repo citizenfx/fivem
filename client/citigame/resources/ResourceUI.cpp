@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "ResourceUI.h"
+#include <include/cef_origin_whitelist.h>
 
 ResourceUI::ResourceUI(Resource* resource)
 	: m_resource(resource)
@@ -27,6 +28,7 @@ bool ResourceUI::Create()
 	nui::CreateFrame(m_resource->GetName(), path);
 
 	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), nui::GetSchemeHandlerFactory());
+	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
 
 	return true;
 }
