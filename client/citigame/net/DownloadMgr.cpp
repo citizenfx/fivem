@@ -115,6 +115,11 @@ bool DownloadManager::Process()
 					return;
 				}
 
+				if (isUpdate)
+				{
+					assert(m_isUpdate);
+				}
+
 				m_downloadState = DS_CONFIG_FETCHED;
 			});
 
