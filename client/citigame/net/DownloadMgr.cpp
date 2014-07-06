@@ -44,7 +44,7 @@ bool DownloadManager::Process()
 				isUpdate = true;
 			}
 
-			m_httpClient->DoPostRequest(hostname, m_gameServer.GetPort(), L"/client", postMap, [&] (bool result, std::string connData)
+			m_httpClient->DoPostRequest(hostname, m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, std::string connData)
 			{
 				if (!result)
 				{
