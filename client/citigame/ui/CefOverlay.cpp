@@ -419,8 +419,6 @@ public:
 			}
 
 			m_window->dirtyRects.push(_popupRect);
-
-			m_windowLock.unlock();
 		}
 
 		if (!_paintingPopup)
@@ -439,6 +437,8 @@ public:
 			m_window->renderBufferDirty = true;
 			SetEvent(paintDoneEvent);
 		}
+
+		m_windowLock.unlock();
 	}
 
 	virtual void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show)
