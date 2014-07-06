@@ -19,7 +19,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#ifdef NDEBUG
+#undef NDEBUG
 #include <assert.h>
+#define NDEBUG
+#else
+#include <assert.h>
+#endif
 
 #include <map>
 #include <unordered_map>
