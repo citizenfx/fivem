@@ -4,6 +4,7 @@
 #include <SHA1.h>
 #include <yaml-cpp/yaml.h>
 #include "../ui/CefOverlay.h"
+#include "../ui/CustomLoadScreens.h"
 
 bool DownloadManager::Process()
 {
@@ -65,6 +66,11 @@ bool DownloadManager::Process()
 				try
 				{
 					auto node = YAML::Load(connData);
+
+					if (node["loadScreen"].IsDefined())
+					{
+						m_serverLoadScreen = node["loadScreen"].as<std::string>();
+					}
 
 					for (auto& resource : node["resources"])
 					{
@@ -299,6 +305,11 @@ bool DownloadManager::Process()
 				ProcessQueuedUpdates();
 			}
 
+			if (!m_serverLoadScreen.empty() && !m_isUpdate)
+			{
+				CustomLoadScreens::PrepareSwitchTo(m_serverLoadScreen);
+			}
+
 			m_isUpdate = false;
 
 			g_netLibrary->DownloadsComplete();
@@ -340,6 +351,8 @@ void DownloadManager::ProcessQueuedUpdates()
 
 void DownloadManager::ReleaseLastServer()
 {
+	m_serverLoadScreen = "";
+
 	for (auto& packfile : m_packFiles)
 	{
 		fiDevice::Unmount(packfile.first.c_str());

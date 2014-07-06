@@ -72,6 +72,39 @@ void GameInit::SetLoadScreens()
 	//SetEvent(*(HANDLE*)0x10F9AAC);
 }
 
+static bool g_shouldSwitchToCustomLoad;
+static rage::grcTexture* g_customLoad;
+
+rage::grcTexture* GameInit::GetLastCustomLoadTexture()
+{
+	return g_customLoad;
+}
+
+void GameInit::PrepareSwitchToCustomLoad(rage::grcTexture* texture)
+{
+	// set up loading screen '1'
+	*(DWORD*)(0x18A8F40 + 400) = INT32_MAX; // duration
+	*(DWORD*)(0x18A8F48 + 400) = 0; // flag (was probably LEGAL or so)
+	*(DWORD*)(0x18A8F4C + 400) = 1; // Fade : IN_OUT
+
+	// set our local flag too
+	g_shouldSwitchToCustomLoad = true;
+
+	g_customLoad = texture;
+}
+
+bool GameInit::ShouldSwitchToCustomLoad()
+{
+	if (g_shouldSwitchToCustomLoad)
+	{
+		g_shouldSwitchToCustomLoad = false;
+
+		return true;
+	}
+
+	return false;
+}
+
 void WRAPPER SetTextForLoadscreen(const char* text, bool a2, bool a3, int neg1) { EAXJMP(0x84F580); }
 bool& stopNetwork = *(bool*)0x18A82FE;
 

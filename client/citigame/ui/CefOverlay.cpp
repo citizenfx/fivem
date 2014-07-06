@@ -622,6 +622,11 @@ static InitFunction initFunction([] ()
 
 		for (auto& window : g_nuiWindows)
 		{
+			if (window->GetPaintType() != NUIPaintTypePostRender)
+			{
+				continue;
+			}
+
 			window->UpdateFrame();
 
 			if (window->GetTexture())
@@ -812,7 +817,6 @@ namespace nui
 		CefRegisterSchemeHandlerFactory("nui", "", g_shFactory);
 		//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
-		CefAddCrossOriginWhitelistEntry("nui://chat", "http", "chat", true);
 
 		g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
 		{

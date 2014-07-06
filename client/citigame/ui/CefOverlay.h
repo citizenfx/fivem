@@ -42,6 +42,7 @@ private:
 
 enum NUIPaintType
 {
+	NUIPaintTypeDummy,
 	NUIPaintTypePostRender
 };
 

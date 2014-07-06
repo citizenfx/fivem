@@ -1,5 +1,7 @@
 #pragma once
 
+#include "grcTexture.h"
+
 class GAMESPEC_EXPORT GameInit
 {
 public:
@@ -12,4 +14,10 @@ public:
 	static void ReloadGame();
 
 	static void KillNetwork(const wchar_t* reason);
+
+	static void PrepareSwitchToCustomLoad(rage::grcTexture* texture);
+
+	static rage::grcTexture* GetLastCustomLoadTexture();
+
+	static bool ShouldSwitchToCustomLoad();
 };

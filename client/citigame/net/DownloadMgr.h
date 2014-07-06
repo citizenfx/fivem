@@ -14,6 +14,8 @@ private:
 
 	HttpClient* m_httpClient;
 
+	std::string m_serverLoadScreen;
+
 	// queue for runtime-updated resources
 	std::queue<std::string> m_updateQueue;
 
