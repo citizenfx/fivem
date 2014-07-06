@@ -64,6 +64,9 @@ void GameInit::SetLoadScreens()
 	//*(BYTE*)0x7BD9F0 = 0xC3;
 	*(BYTE*)0x18A823A = 1;
 
+	// start at loading screen 7 (main screen 1)
+	hook::put<uint32_t>(0x18A8254, 7);
+
 	loadingTune.StartLoadingTune();
 
 	//SetEvent(*(HANDLE*)0x10F9AAC);
