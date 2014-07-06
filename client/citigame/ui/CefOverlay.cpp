@@ -16,6 +16,8 @@
 
 #include <include/cef_sandbox_win.h>
 
+#include <mutex>
+
 bool g_mainUIFlag = true;
 
 static int g_roundedWidth;
@@ -188,6 +190,9 @@ class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplay
 {
 private:
 	NUIWindow* m_window;
+	bool m_windowValid;
+
+	std::mutex m_windowLock;
 
 	CefRefPtr<CefBrowser> m_browser;
 
@@ -195,6 +200,7 @@ public:
 	NUIClient(NUIWindow* window)
 		: m_window(window)
 	{
+		m_windowValid = true;
 		_paintingPopup = false;
 	}
 
@@ -341,6 +347,14 @@ public:
 
 	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 	{
+		m_windowLock.lock();
+
+		if (!m_windowValid)
+		{
+			m_windowLock.unlock();
+			return;
+		}
+
 		if (type == PET_VIEW)
 		{
 			//EnterCriticalSection(&m_window->renderBufferLock);
@@ -405,6 +419,8 @@ public:
 			}
 
 			m_window->dirtyRects.push(_popupRect);
+
+			m_windowLock.unlock();
 		}
 
 		if (!_paintingPopup)
@@ -427,6 +443,11 @@ public:
 
 	virtual void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show)
 	{
+		if (!m_windowValid)
+		{
+			return;
+		}
+
 		if (!show)
 		{
 			CefRect rect = _popupRect;
@@ -473,6 +494,16 @@ public:
 		{
 			_popupRect.y = 0;
 		}
+	}
+
+	void SetWindowValid(bool valid)
+	{
+		m_windowValid = valid;
+	}
+
+	std::mutex& GetWindowLock()
+	{
+		return m_windowLock;
 	}
 
 	IMPLEMENT_REFCOUNTING(NUIClient);
@@ -538,8 +569,6 @@ static int roundUp(int number, int multiple)
 	return (added)-(added % multiple);
 }
 
-#include <mutex>
-
 static std::vector<NUIWindow*> g_nuiWindows;
 static std::mutex g_nuiWindowsMutex;
 
@@ -553,7 +582,13 @@ NUIWindow::NUIWindow(bool primary, int width, int height)
 
 NUIWindow::~NUIWindow()
 {
-	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->CloseBrowser(true);
+	auto nuiClient = ((NUIClient*)m_client.get());
+	auto& mutex = nuiClient->GetWindowLock();
+
+	mutex.lock();
+	nuiClient->SetWindowValid(false);
+	nuiClient->GetBrowser()->GetHost()->CloseBrowser(true);
+	mutex.unlock();
 
 	g_nuiWindowsMutex.lock();
 
