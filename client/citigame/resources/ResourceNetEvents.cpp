@@ -24,6 +24,7 @@ static InitFunction initFunction([] ()
 		}
 
 		resource->Stop();
+		resource->Tick(); // to clean up immediately and change to 'stopped'
 	});
 
 	g_netLibrary->AddReliableHandler("msgResStart", [] (const char* buf, size_t len)
@@ -40,7 +41,7 @@ static InitFunction initFunction([] ()
 
 		if (resource->GetState() != ResourceStateStopped)
 		{
-			trace("Server requested resource %s to be started, but it's not running\n", resourceName.c_str());
+			trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
 			return;
 		}
 
