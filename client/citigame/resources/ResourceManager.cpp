@@ -31,12 +31,29 @@ void ResourceManager::Tick()
 	m_eventQueue.clear();
 }
 
-void ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSerialized, int source)
+bool ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSerialized, int source)
 {
+	m_eventCancelationState.push(false);
+
 	for (auto& resource : m_resources)
 	{
 		resource.second->TriggerEvent(eventName, argsSerialized, source);
 	}
+
+	m_eventCanceled = m_eventCancelationState.top();
+	m_eventCancelationState.pop();
+
+	return WasEventCanceled();
+}
+
+bool ResourceManager::WasEventCanceled()
+{
+	return m_eventCanceled;
+}
+
+void ResourceManager::CancelEvent()
+{
+	m_eventCancelationState.top() = true;
 }
 
 void ResourceManager::QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source)

@@ -6,6 +6,20 @@
 #include <CPlayerInfo.h>
 #include <scrEngine.h>
 
+LUA_FUNCTION(CancelEvent)
+{
+	TheResources.CancelEvent();
+
+	return 0;
+}
+
+LUA_FUNCTION(WasEventCanceled)
+{
+	lua_pushboolean(L, TheResources.WasEventCanceled());
+
+	return 1;
+}
+
 LUA_FUNCTION(TriggerEvent)
 {
 	STACK_BASE;

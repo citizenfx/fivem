@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stack>
+
 #include "fiDevice.h"
 
 using rage::fiDevice;
@@ -146,6 +148,10 @@ private:
 
 	ResourceCache* m_resourceCache;
 
+	std::stack<bool> m_eventCancelationState;
+
+	bool m_eventCanceled;
+
 public:
 	void ScanResources(std::vector<std::pair<fiDevice*, std::string>>& paths);
 
@@ -159,7 +165,11 @@ public:
 
 	void Reset();
 
-	void TriggerEvent(std::string& eventName, std::string& argsSerialized, int source = -1);
+	bool TriggerEvent(std::string& eventName, std::string& argsSerialized, int source = -1);
+
+	void CancelEvent();
+
+	bool WasEventCanceled();
 	
 	void QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source);
 
