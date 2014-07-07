@@ -43,7 +43,7 @@ bool ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSeri
 	m_eventCanceled = m_eventCancelationState.top();
 	m_eventCancelationState.pop();
 
-	return WasEventCanceled();
+	return !WasEventCanceled();
 }
 
 bool ResourceManager::WasEventCanceled()
