@@ -6,6 +6,7 @@
 
 using rage::fiDevice;
 
+#include <msgpack.hpp>
 #include "ResourceCache.h"
 #include "ResourceScripting.h"
 
@@ -166,6 +167,8 @@ public:
 	void Reset();
 
 	bool TriggerEvent(std::string& eventName, std::string& argsSerialized, int source = -1);
+
+	bool TriggerEvent(std::string& eventName, msgpack::sbuffer& argsSerialized, int source = -1);
 
 	void CancelEvent();
 

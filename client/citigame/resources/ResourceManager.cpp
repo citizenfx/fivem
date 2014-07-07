@@ -46,6 +46,11 @@ bool ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSeri
 	return !WasEventCanceled();
 }
 
+bool ResourceManager::TriggerEvent(std::string& eventName, msgpack::sbuffer& argsSerialized, int source)
+{
+	return TriggerEvent(eventName, std::string(argsSerialized.data(), argsSerialized.size()), source);
+}
+
 bool ResourceManager::WasEventCanceled()
 {
 	return m_eventCanceled;

@@ -68,10 +68,6 @@ void Resource::Start()
 	m_ui->Create();
 
 	// go
-	// TODO: fix starting events
-	//std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
-	//TheResources.TriggerEvent(std::string("resourceStarting"), nameArgs);
-
 	if (!EnsureScriptEnvironment())
 	{
 		return;
@@ -84,7 +80,13 @@ void Resource::Start()
 
 	m_state = ResourceStateRunning;
 
-	//TheResources.TriggerEvent(std::string("resourceStarted"), nameArgs);
+	msgpack::sbuffer nameArgs;
+	msgpack::packer<msgpack::sbuffer> packer(nameArgs);
+
+	packer.pack_array(1);
+	packer.pack(m_name);
+
+	TheResources.TriggerEvent(std::string("onClientResourceStart"), nameArgs);
 }
 
 bool Resource::EnsureScriptEnvironment()

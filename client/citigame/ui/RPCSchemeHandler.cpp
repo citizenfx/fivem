@@ -157,7 +157,7 @@ public:
 	{
 		if (m_found)
 		{
-			int toRead = min(m_result.size() - m_cursor, bytes_to_read);
+			int toRead = std::min(m_result.size() - m_cursor, (unsigned int)bytes_to_read);
 
 			memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
 
