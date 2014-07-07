@@ -62,12 +62,12 @@
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c"
 		}
 		
-		links { "Shared", "yaml-cpp", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp" }
+		links { "Shared", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp" }
 		
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
@@ -150,4 +150,16 @@
 		files
 		{
 			"../vendor/yaml-cpp/src/*.cpp"
+		}
+
+	project "msgpack-c"
+		targetname "msgpack-c"
+		language "C++"
+		kind "StaticLib"
+
+		includedirs { "../vendor/msgpack-c/src", "../vendor/msgpack-c/src/msgpack", "deplibs/include/msgpack-c/" }
+
+		files
+		{
+			"../vendor/msgpack-c/src/object.cpp", "../vendor/msgpack-c/src/*.c" 
 		}
