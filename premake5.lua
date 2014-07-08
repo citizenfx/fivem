@@ -86,12 +86,12 @@
 		language "C++"
 		kind "SharedLib"
 		
-		links { "Shared" }
+		links { "Shared", "zlib" }
 		
 		defines "COMPILING_GAMESPEC"
 		
 		configuration "* NY"
-			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
+			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "../vendor/zlib/" }
 		
 			files
 			{
@@ -163,3 +163,13 @@
 		{
 			"../vendor/msgpack-c/src/object.cpp", "../vendor/msgpack-c/src/*.c" 
 		}
+
+	project "zlib"
+		targetname "zlib"
+		language "C"
+		kind "StaticLib"
+
+		files { "../vendor/zlib/*.c", "../vendor/zlib/*.h" }
+		excludes { "../vendor/zlib/example.c", "../vendor/zlib/minigzip.c" }
+
+		defines { "WIN32" }

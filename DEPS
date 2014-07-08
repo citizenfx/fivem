@@ -7,7 +7,8 @@ deps = {
 	"build/premake": "http://github.com/annulen/premake.git",
 	"vendor/jitasm": "http://jitasm.googlecode.com/svn/trunk/",
 	"vendor/yaml-cpp": "https://github.com/bminor/yaml-cpp.git",
-	"vendor/msgpack-c": "https://github.com/msgpack/msgpack-c.git"
+	"vendor/msgpack-c": "https://github.com/msgpack/msgpack-c.git",
+	"vendor/zlib": "https://github.com/madler/zlib.git"
 }
 
 hooks = [
