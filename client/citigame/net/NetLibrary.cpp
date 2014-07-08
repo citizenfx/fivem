@@ -123,7 +123,10 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			trace("msgRoute from %d len %d\n", netID, rlength);
 
 			char routeBuffer[65536];
-			msg.Read(routeBuffer, rlength);
+			if (!msg.Read(routeBuffer, rlength))
+			{
+				break;
+			}
 
 			EnqueueRoutedPacket(netID, std::string(routeBuffer, rlength));
 		}
@@ -155,7 +158,10 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 				return;
 			}
 
-			msg.Read(reliableBuf, size);
+			if (!msg.Read(reliableBuf, size))
+			{
+				break;
+			}
 
 			// check to prevent double execution
 			if (id > m_lastReceivedReliableCommand)

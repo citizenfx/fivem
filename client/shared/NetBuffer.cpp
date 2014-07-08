@@ -21,7 +21,7 @@ NetBuffer::~NetBuffer()
 	}
 }
 
-void NetBuffer::Read(void* buffer, size_t length)
+bool NetBuffer::Read(void* buffer, size_t length)
 {
 	if ((m_curOff + length) >= m_length)
 	{
@@ -30,15 +30,15 @@ void NetBuffer::Read(void* buffer, size_t length)
 		// and if it really doesn't fit out of our buffer
 		if ((m_curOff + length) > m_length)
 		{
-			__asm int 3
-
 			memset(buffer, 0xCE, sizeof(length));
-			return;
+			return false;
 		}
 	}
 
 	memcpy(buffer, &m_bytes[m_curOff], length);
 	m_curOff += length;
+
+	return true;
 }
 
 void NetBuffer::Write(const void* buffer, size_t length)

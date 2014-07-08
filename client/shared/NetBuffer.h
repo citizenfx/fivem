@@ -18,7 +18,7 @@ public:
 
 	bool End();
 
-	void Read(void* buffer, size_t length);
+	bool Read(void* buffer, size_t length);
 	void Write(const void* buffer, size_t length);
 
 	template<typename T>
