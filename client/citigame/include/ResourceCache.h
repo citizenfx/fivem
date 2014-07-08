@@ -32,6 +32,8 @@ private:
 	bool m_processed;
 
 public:
+	inline ResourceData() {}
+
 	ResourceData(std::string name, std::string baseUrl);
 
 	void AddFile(std::string filename, std::string hash);
@@ -45,6 +47,14 @@ public:
 	inline bool IsProcessed() const { return m_processed;  }
 
 	inline void SetProcessed() { m_processed = true; }
+};
+
+struct StreamingResource : ResourceFile
+{
+	ResourceData resData;
+	uint32_t rscFlags;
+	uint32_t rscVersion;
+	uint32_t size;
 };
 
 struct CacheEntry
@@ -81,11 +91,11 @@ private:
 	rage::fiDevice* m_cacheDevice;
 
 private:
-	ResourceDownload GetResourceDownload(const ResourceData& resource, const ResourceFile& file);
-
 	void AddEntry(std::string fileName, std::string resourceName, std::string hash);
 
 public:
+	ResourceDownload GetResourceDownload(const ResourceData& resource, const ResourceFile& file);
+
 	void Initialize();
 
 	void LoadCache(rage::fiDevice* device);
@@ -95,6 +105,8 @@ public:
 	void ClearMark();
 
 	void MarkList(std::vector<ResourceData>& resourceList);
+
+	void MarkStreamingList(std::vector<StreamingResource>& streamList);
 
 	inline rage::fiDevice* GetCacheDevice() { return m_cacheDevice; }
 

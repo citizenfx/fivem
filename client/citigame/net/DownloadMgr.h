@@ -29,6 +29,8 @@ private:
 
 	std::shared_ptr<ResourceDownload> m_currentDownload;
 
+	std::vector<StreamingResource> m_streamingFiles;
+
 	enum DownloadState
 	{
 		DS_IDLE,
@@ -53,7 +55,12 @@ public:
 
 	void ReleaseLastServer();
 
+	void AddStreamingFile(ResourceData data, std::string& filename, std::string& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size);
+
 	void SetServer(NetAddress& address);
+
+public:
+	inline std::vector<StreamingResource>& GetStreamingFiles() { return m_streamingFiles; }
 };
 
 extern DownloadManager TheDownloads;

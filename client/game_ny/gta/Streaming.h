@@ -7,6 +7,29 @@
 #include <zlib.h>
 #endif
 
+class GAMESPEC_EXPORT CImgManager
+{
+public:
+	struct MgdFileData
+	{
+		uint32_t realSize;
+		uint8_t imgIndex;
+		char pad[9];
+		uint16_t flags;
+		char pad2[8];
+	};
+
+public:
+	MgdFileData* fileDatas;
+
+	// +36: used streaming memory, header blocks
+	// +48: used streaming memory, virtual blocks
+
+	uint32_t registerIMGFile(const char* name, uint32_t offset, uint32_t size, uint8_t imgNum, uint32_t index, uint32_t resourceType);
+
+	static CImgManager* GetInstance();
+};
+
 struct StreamingItem
 {
 	int pad;
@@ -159,3 +182,37 @@ public:
 
 void GAMESPEC_EXPORT StreamWorker_Thread(int threadNum);
 LPOVERLAPPED GAMESPEC_EXPORT StreamWorker_GetOverlapped(int streamThreadNum);
+
+class GAMESPEC_EXPORT_VMT StreamingFile
+{
+public:
+	virtual ~StreamingFile();
+
+	virtual void Open() = 0;
+
+	virtual uint32_t Read(uint64_t ptr, void* buffer, uint32_t toRead) = 0;
+
+	virtual void Close() = 0;
+};
+
+class StreamingModule
+{
+public:
+	virtual void ScanEntries() = 0;
+
+	virtual StreamingFile* GetEntryFromIndex(uint32_t handle) = 0;
+};
+
+class GAMESPEC_EXPORT CStreaming
+{
+public:
+	static void ScanImgEntries();
+
+	static uint32_t OpenImgEntry(uint32_t handle);
+
+	static StreamingFile* GetImgEntry(uint32_t handle);
+
+	static uint32_t CloseImgEntry(uint32_t handle);
+
+	static void SetStreamingModule(StreamingModule* module);
+};

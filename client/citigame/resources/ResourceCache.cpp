@@ -172,6 +172,19 @@ void ResourceCache::MarkList(std::vector<ResourceData>& resourceList)
 	}
 }
 
+void ResourceCache::MarkStreamingList(std::vector<StreamingResource>& streamList)
+{
+	for (auto& stream : streamList)
+	{
+		CacheEntry entry;
+		entry.resource = stream.resData.GetName();
+		entry.filename = stream.filename;
+		entry.hash = stream.hash;
+
+		m_markList[entry.resource + "__" + entry.filename] = entry;
+	}
+}
+
 // ----------------------------------------------------------------------------
 
 ResourceData::ResourceData(std::string name, std::string baseUrl)

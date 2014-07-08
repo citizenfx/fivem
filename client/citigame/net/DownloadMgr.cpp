@@ -91,6 +91,17 @@ bool DownloadManager::Process()
 							resData.AddFile(filename, hash);
 						}
 
+						for (auto& file : resource["streamFiles"])
+						{
+							std::string filename = file.first.as<std::string>();
+							std::string hash = file.second["hash"].as<std::string>();
+							uint32_t rscFlags = file.second["rscFlags"].as<uint32_t>();
+							uint32_t rscVersion = file.second["rscVersion"].as<uint32_t>();
+							uint32_t size = file.second["size"].as<uint32_t>();
+							
+							AddStreamingFile(resData, filename, hash, rscFlags, rscVersion, size);
+						}
+
 						if (isUpdate)
 						{
 							for (auto it = m_requiredResources.begin(); it != m_requiredResources.end(); it++)
@@ -110,7 +121,7 @@ bool DownloadManager::Process()
 				}
 				catch (YAML::Exception& e)
 				{
-					GlobalError("YAML parsing error in server configuration (%s)", e.msg);
+					GlobalError("YAML parsing error in server configuration (%s)", e.msg.c_str());
 
 					return;
 				}
@@ -135,6 +146,7 @@ bool DownloadManager::Process()
 
 			resourceCache->ClearMark();
 			resourceCache->MarkList(m_requiredResources);
+			resourceCache->MarkStreamingList(m_streamingFiles);
 
 			m_downloadList = std::queue<ResourceDownload>();
 
@@ -330,6 +342,19 @@ bool DownloadManager::Process()
 	}
 
 	return false;
+}
+
+void DownloadManager::AddStreamingFile(ResourceData data, std::string& filename, std::string& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size)
+{
+	StreamingResource file;
+	file.resData = data;
+	file.filename = filename;
+	file.hash = hash;
+	file.rscFlags = rscFlags;
+	file.rscVersion = rscVersion;
+	file.size = size;
+
+	m_streamingFiles.push_back(file);
 }
 
 bool DownloadManager::DoingQueuedUpdate()

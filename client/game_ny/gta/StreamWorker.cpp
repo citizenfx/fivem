@@ -101,7 +101,7 @@ void IOCompletedEvent::RunEvent(StreamThread* thread)
 
 		int res = Z_OK;
 
-		while (strm->avail_in && res == Z_OK)
+		while (strm->avail_in && res == Z_OK && m_request->pageNum < m_request->reqLength)
 		{
 			res = inflate(strm, 0);
 
