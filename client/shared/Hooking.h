@@ -82,6 +82,19 @@ inline void put(uintptr_t address, ValueType value)
 	memcpy((void*)address, &value, sizeof(value));
 }
 
+template<typename ValueType>
+inline void putVP(uintptr_t address, ValueType value)
+{
+	adjust_base(address);
+
+	DWORD oldProtect;
+	VirtualProtect((void*)address, sizeof(value), PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	memcpy((void*)address, &value, sizeof(value));
+
+	VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
+}
+
 inline void nop(uintptr_t address, size_t length)
 {
 	adjust_base(address);
