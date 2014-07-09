@@ -17,21 +17,6 @@ public:
 void ScriptManager::DoRun()
 {
 	TheResources.Tick();
-
-	static bool testState;
-
-	if (GetAsyncKeyState(VK_F11))
-	{
-		if (!testState)
-		{
-			((void(*)(int, int, int))0x423CE0)(1, 0, 0);
-
-			*(BYTE*)0x7BD9F0 = 0xC3;
-			*(BYTE*)0x18A823A = 1;
-			*(BYTE*)0x18A825C = 1;
-			testState = true;
-		}
-	}
 }
 
 rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
