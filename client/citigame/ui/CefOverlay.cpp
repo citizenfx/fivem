@@ -375,7 +375,9 @@ public:
 					memcpy(dest, src, (rect.width * 4));
 				}
 
+				EnterCriticalSection(&m_window->renderBufferLock);
 				m_window->dirtyRects.push(rect);
+				LeaveCriticalSection(&m_window->renderBufferLock);
 			}
 
 			//int duration = timeGetTime() - timeBegin;
@@ -418,7 +420,9 @@ public:
 				memcpy(dest, src, (w * 4));
 			}
 
+			EnterCriticalSection(&m_window->renderBufferLock);
 			m_window->dirtyRects.push(_popupRect);
+			LeaveCriticalSection(&m_window->renderBufferLock);
 		}
 
 		if (!_paintingPopup)
