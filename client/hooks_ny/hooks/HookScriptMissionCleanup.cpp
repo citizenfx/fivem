@@ -12,7 +12,7 @@ CMissionCleanup* GetMissionCleanupInstance(CMissionCleanup* instance)
 	return instancePtr;
 }
 
-static void __declspec(naked) CMissionCleanup__Add_pre()
+static void __declspec(naked) CMissionCleanup__AddEntityToList_pre()
 {
 	__asm
 	{
@@ -32,7 +32,7 @@ static void __declspec(naked) CMissionCleanup__Add_pre()
 	}
 }
 
-static void __declspec(naked) CMissionCleanup__Remove_pre()
+static void __declspec(naked) CMissionCleanup__RemoveEntityFromList_pre()
 {
 	__asm
 	{
@@ -52,13 +52,33 @@ static void __declspec(naked) CMissionCleanup__Remove_pre()
 	}
 }
 
+static void __declspec(naked) CMissionCleanup__CheckIfCollisionHasLoadedForMissionObjects_pre()
+{
+	__asm
+	{
+		push ecx
+		call GetMissionCleanupInstance
+		add esp, 4h
+
+		mov ecx, eax
+
+		sub esp, 8
+		push ebx
+		push ebp
+
+		push 9282D5h
+		retn
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	// mission cleanup 'add script entry'
-	hook::jump(0x926C60, CMissionCleanup__Add_pre);
+	hook::jump(0x926C60, CMissionCleanup__AddEntityToList_pre);
 
 	// mission cleanup 'remove script entry'
-	hook::jump(0x926CE0, CMissionCleanup__Remove_pre);
+	hook::jump(0x926CE0, CMissionCleanup__RemoveEntityFromList_pre);
 
-
+	// mission cleanup 'check collision'
+	hook::jump(0x9282D0, CMissionCleanup__CheckIfCollisionHasLoadedForMissionObjects_pre);
 });
