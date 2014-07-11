@@ -53,7 +53,7 @@ std::string NetAddress::GetAddress()
 	{
 		static char buffer[16];
 
-		InetNtopA(m_in4.sin_family, &m_in4.sin_addr, buffer, _countof(buffer));
+		inet_ntop(m_in4.sin_family, &m_in4.sin_addr, buffer, _countof(buffer));
 
 		return buffer;
 	}
@@ -63,10 +63,12 @@ std::wstring NetAddress::GetWAddress()
 {
 	if (m_type == NA_INET4)
 	{
-		static wchar_t buffer[16];
+		static char buffer[16];
+		static wchar_t bufferW[16];
 
-		InetNtop(m_in4.sin_family, &m_in4.sin_addr, buffer, _countof(buffer));
+		inet_ntop(m_in4.sin_family, &m_in4.sin_addr, buffer, _countof(buffer));
+		mbstowcs(bufferW, buffer, _countof(bufferW));
 
-		return buffer;
+		return bufferW;
 	}
 }
