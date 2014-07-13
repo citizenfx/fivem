@@ -21,7 +21,7 @@ private:
 
 	void* m_queuedReadBuffer;
 
-	LPOVERLAPPED m_queuedOverlapped;
+	OVERLAPPED m_queuedOverlapped;
 
 	uint32_t m_queuedReadLen;
 
@@ -135,7 +135,7 @@ void CitizenStreamingFile::QueueDownload()
 
 			if ((len = InternalReadBulk(m_handle, m_queuedReadPtr, m_queuedReadBuffer, m_queuedReadLen)) != -1)
 			{
-				SetEvent(m_queuedOverlapped->hEvent);
+				SetEvent(m_queuedOverlapped.hEvent);
 
 				trace("[Streaming] Read completed immediately.\n");
 			}
@@ -151,7 +151,7 @@ uint32_t CitizenStreamingFile::InternalReadBulk(uint32_t handle, uint64_t ptr, v
 {
 	ptr &= ~(0xC000000000000000);
 
-	LPOVERLAPPED overlapped = m_queuedOverlapped;
+	LPOVERLAPPED overlapped = &m_queuedOverlapped;
 
 	overlapped->Offset = (ptr & 0xFFFFFFFF);
 	overlapped->OffsetHigh = ptr >> 32;
@@ -178,7 +178,7 @@ void CitizenStreamingFile::QueueRead(uint64_t ptr, void* buffer, uint32_t toRead
 	m_queuedReadPtr = ptr;
 	m_queuedReadLen = toRead;
 	m_queuedReadBuffer = buffer;
-	m_queuedOverlapped = overlapped;
+	m_queuedOverlapped = *overlapped;
 }
 
 void CitizenStreamingFile::Close()
