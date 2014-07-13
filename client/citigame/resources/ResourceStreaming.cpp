@@ -72,6 +72,12 @@ void CitizenStreamingFile::Open()
 		m_currentDownload = resCache->GetResourceDownload(m_entry.resData, m_entry);
 
 		QueueDownload();
+
+		trace("[Streaming] Queued download for file %s from resource %s.\n", m_entry.filename.c_str(), m_entry.resData.GetName().c_str());
+	}
+	else
+	{
+		trace("[Streaming] Locally opened file %s from resource %s, got handle %d.\n", m_entry.filename.c_str(), m_entry.resData.GetName().c_str(), m_handle);
 	}
 }
 
@@ -82,6 +88,8 @@ uint32_t CitizenStreamingFile::Read(uint64_t ptr, void* buffer, uint32_t toRead)
 
 	if (m_handle == -1)
 	{
+		trace("[Streaming] Queueing read for file %s (we haven't downloaded the file yet).\n", m_entry.filename.c_str());
+
 		QueueRead(ptr, buffer, toRead, overlapped);
 
 		return -1;
@@ -101,6 +109,8 @@ void CitizenStreamingFile::QueueDownload()
 
 	httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload.targetFilename, [=] (bool result, std::string connData)
 	{
+		trace("[Streaming] Downloaded file %s.\n", m_entry.filename.c_str());
+
 		TheResources.GetCache()->AddFile(m_currentDownload.targetFilename, m_currentDownload.filename, m_currentDownload.resname);
 
 		auto resCache = TheResources.GetCache();
@@ -119,11 +129,19 @@ void CitizenStreamingFile::QueueDownload()
 
 		if (m_queuedReadBuffer)
 		{
+			trace("[Streaming] Completing queued read for file %s.\n", m_entry.filename.c_str());
+
 			uint32_t len;
 
 			if ((len = InternalReadBulk(m_handle, m_queuedReadPtr, m_queuedReadBuffer, m_queuedReadLen)) != -1)
 			{
 				SetEvent(m_queuedOverlapped->hEvent);
+
+				trace("[Streaming] Read completed immediately.\n");
+			}
+			else
+			{
+				trace("[Streaming] Read pending.\n");
 			}
 		}
 	});
@@ -155,6 +173,8 @@ uint32_t CitizenStreamingFile::InternalReadBulk(uint32_t handle, uint64_t ptr, v
 
 void CitizenStreamingFile::QueueRead(uint64_t ptr, void* buffer, uint32_t toRead, LPOVERLAPPED overlapped)
 {
+	assert(!m_queuedReadBuffer);
+
 	m_queuedReadPtr = ptr;
 	m_queuedReadLen = toRead;
 	m_queuedReadBuffer = buffer;
