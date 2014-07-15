@@ -225,7 +225,7 @@ std::shared_ptr<Resource> ValidateResourceAndRef(lua_State* L, int reference, st
 		lua_error(L);
 	}
 
-	if (resource->GetState() != ResourceStateRunning)
+	if (resource->GetState() != ResourceStateRunning && resource->GetState() != ResourceStateStarting)
 	{
 		lua_pushstring(L, "resource isn't running");
 		lua_error(L);
@@ -334,9 +334,6 @@ LUA_FUNCTION(GetFuncFromRef)
 
 		size_t len;
 		const char* jsonString = lua_tolstring(L, -1, &len);
-
-		// get the upvalue with the export name
-		const char* exportName = lua_tostring(L, lua_upvalueindex(1));
 
 		// call the function in the resource
 		std::string retVal = resource->CallRef(reference, std::string(jsonString, len));

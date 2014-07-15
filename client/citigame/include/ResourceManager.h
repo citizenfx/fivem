@@ -43,6 +43,7 @@ enum ResourceState
 {
 	ResourceStateStopped,
 	ResourceStateStopping,
+	ResourceStateStarting,
 	ResourceStateRunning,
 	ResourceStateError
 };

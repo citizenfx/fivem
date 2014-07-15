@@ -68,8 +68,12 @@ void Resource::Start()
 	m_ui->Create();
 
 	// go
+	m_state = ResourceStateStarting;
+
 	if (!EnsureScriptEnvironment())
 	{
+		m_state = ResourceStateError;
+
 		return;
 	}
 
