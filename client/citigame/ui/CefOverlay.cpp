@@ -724,8 +724,7 @@ static InitFunction initFunction([] ()
 
 	g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
 	{
-		//g_mainUIFlag = true;
-		nui::GiveFocus(true);
+		nui::SetMainUI(true);
 
 		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 	});
