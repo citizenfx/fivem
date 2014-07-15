@@ -238,9 +238,13 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 			server->m_clients = atoi(Info_ValueForKey(buffer, "clients"));
 			server->m_hostName = Info_ValueForKey(buffer, "hostname");
 
+			trace("buffer %s\nhostname %s\n", buffer, server->m_hostName.c_str());
+
 			server->m_IP = htonl(server->m_IP);
 
 			replaceAll(server->m_hostName, "'", "\\'");
+
+			trace("hostname2 %s\n", server->m_hostName.c_str());
 
 			char address[32];
 			inet_ntop(AF_INET, &server->m_IP, address, sizeof(address));
@@ -375,6 +379,11 @@ void GSClient_PollSocket()
 
 		if (*(int*)buf == -1)
 		{
+			if (len < sizeof(buf))
+			{
+				buf[len] = '\0';
+			}
+
 			GSClient_HandleOOB(&buf[4], len - 4);
 		}
 	}
