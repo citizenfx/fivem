@@ -3,6 +3,7 @@
 #include "GameInit.h"
 #include "DownloadMgr.h"
 #include "GameFlags.h"
+#include "../ui/CefOverlay.h"
 #include <yaml-cpp/yaml.h>
 #include <libnp.h>
 #include <base64.h>
@@ -390,6 +391,10 @@ void NetLibrary::RunFrame()
 
 			GameFlags::ResetFlags();
 
+			nui::SetMainUI(false);
+
+			nui::DestroyFrame("mpMenu");
+
 			m_connectionState = CS_DOWNLOADING;
 
 			if (!GameInit::GetGameLoaded())
@@ -436,6 +441,7 @@ void NetLibrary::RunFrame()
 
 			m_connectionState = CS_CONNECTING;
 			m_lastConnect = 0;
+			m_connectAttempts = 0;
 
 			break;
 
@@ -448,6 +454,16 @@ void NetLibrary::RunFrame()
 				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID); // m_tempGuid
 
 				m_lastConnect = GetTickCount();
+
+				m_connectAttempts++;
+			}
+
+			if (m_connectAttempts > 3)
+			{
+				g_disconnectReason = "Connection timed out.";
+				FinalizeDisconnect();
+
+				GlobalError("Failed to connect to server after 3 attempts.");
 			}
 
 			break;
@@ -505,6 +521,8 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			// TODO: add UI output
 			m_connectionState = CS_IDLE;
 
+			nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: 'General handshake failure.' }, '*');");
+
 			return;
 		}
 
@@ -539,7 +557,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 			if (node["error"].IsDefined())
 			{
-				GlobalError(node["error"].as<std::string>().c_str());
+				// FIXME: single quotes
+				nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: '%s' }, '*');", node["error"].as<std::string>().c_str()));
+
+				m_connectionState = CS_IDLE;
 
 				return;
 			}

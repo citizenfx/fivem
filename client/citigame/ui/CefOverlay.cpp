@@ -278,10 +278,8 @@ public:
 				}
 
 				g_netLibrary->ConnectToServer(hostname, atoi(port));
-				g_mainUIFlag = false;
-				nui::GiveFocus(false);
 
-				nui::DestroyFrame("mpMenu");
+				nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
 			}
 			else if (nativeType == "quit")
 			{
