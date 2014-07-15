@@ -112,4 +112,6 @@ static HookFunction hookFunction([] ()
 	hook::jump(0x623C30, LockMouseDeviceHook);
 
 	hook::jump(0x623CC0, RepairInput); // tail of above function
+
+	hook::nop(0x623CB6, 7); // ignore ShowCursor calls
 });

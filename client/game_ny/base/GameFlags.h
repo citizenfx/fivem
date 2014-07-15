@@ -2,7 +2,8 @@
 
 enum class GameFlag
 {
-	NetworkWalkMode
+	NetworkWalkMode,
+	PlayerActivated
 };
 
 class GAMESPEC_EXPORT GameFlags

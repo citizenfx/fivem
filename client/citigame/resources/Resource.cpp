@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "GameFlags.h"
 #include "ResourceManager.h"
 #include "ResourceUI.h"
 #include <yaml-cpp/yaml.h>
@@ -84,13 +85,16 @@ void Resource::Start()
 
 	m_state = ResourceStateRunning;
 
-	msgpack::sbuffer nameArgs;
-	msgpack::packer<msgpack::sbuffer> packer(nameArgs);
+	if (GameFlags::GetFlag(GameFlag::PlayerActivated))
+	{
+		msgpack::sbuffer nameArgs;
+		msgpack::packer<msgpack::sbuffer> packer(nameArgs);
 
-	packer.pack_array(1);
-	packer.pack(m_name);
+		packer.pack_array(1);
+		packer.pack(m_name);
 
-	TheResources.TriggerEvent(std::string("onClientResourceStart"), nameArgs);
+		TheResources.TriggerEvent(std::string("onClientResourceStart"), nameArgs);
+	}
 }
 
 bool Resource::EnsureScriptEnvironment()
@@ -143,8 +147,13 @@ void Resource::Stop()
 
 	m_ui->Destroy();
 
-	//std::string nameArgs = std::string(va("[\"%s\"]", m_name.c_str()));
-	//TheResources.TriggerEvent(std::string("resourceStopping"), nameArgs);
+	msgpack::sbuffer nameArgs;
+	msgpack::packer<msgpack::sbuffer> packer(nameArgs);
+
+	packer.pack_array(1);
+	packer.pack(m_name);
+
+	TheResources.TriggerEvent(std::string("onClientResourceStop"), nameArgs);
 
 	m_scriptEnvironment->Destroy();
 	m_scriptEnvironment = nullptr;
@@ -246,7 +255,13 @@ bool Resource::Parse()
 		return false;
 	}
 
-	return ParseInfoFile();
+	m_state = ResourceStateParsing;
+
+	bool result = ParseInfoFile();
+
+	m_state = ResourceStateStopped;
+
+	return result;
 }
 
 bool Resource::ParseInfoFile()

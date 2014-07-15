@@ -33,16 +33,13 @@ static InitFunction initFunction([] ()
 
 		auto resource = TheResources.GetResource(resourceName);
 
-		if (resource == nullptr)
+		if (resource != nullptr)
 		{
-			trace("Server requested resource %s to be started, but we don't know that resource\n", resourceName.c_str());
-			return;
-		}
-
-		if (resource->GetState() != ResourceStateStopped)
-		{
-			trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
-			return;
+			if (resource->GetState() != ResourceStateStopped)
+			{
+				trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
+				return;
+			}
 		}
 
 		TheDownloads.QueueResourceUpdate(resourceName);

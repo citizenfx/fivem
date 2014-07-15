@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "GameFlags.h"
 #include "ResourceManager.h"
 
 std::shared_ptr<Resource> ResourceManager::GetResource(std::string& name)
@@ -33,6 +34,22 @@ void ResourceManager::Tick()
 
 bool ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSerialized, int source)
 {
+	if (eventName == "playerActivated")
+	{
+		GameFlags::SetFlag(GameFlag::PlayerActivated, true);
+		
+		for (auto& resource : m_resources)
+		{
+			msgpack::sbuffer nameArgs;
+			msgpack::packer<msgpack::sbuffer> packer(nameArgs);
+
+			packer.pack_array(1);
+			packer.pack(resource.first);
+
+			TriggerEvent(std::string("onClientResourceStart"), nameArgs);
+		}
+	}
+
 	m_eventCancelationState.push(false);
 
 	for (auto& resource : m_resources)
@@ -75,12 +92,14 @@ std::shared_ptr<Resource> ResourceManager::AddResource(std::string name, std::st
 {
 	auto resource = std::make_shared<Resource>(name, path);
 
+	m_resources[resource->GetName()] = resource;
+
 	if (resource->Parse())
 	{
-		m_resources[resource->GetName()] = resource;
-
 		return resource;
 	}
+
+	m_resources.erase(resource->GetName());
 
 	return nullptr;
 }

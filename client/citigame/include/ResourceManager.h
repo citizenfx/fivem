@@ -45,6 +45,7 @@ enum ResourceState
 	ResourceStateStopping,
 	ResourceStateStarting,
 	ResourceStateRunning,
+	ResourceStateParsing,
 	ResourceStateError
 };
 

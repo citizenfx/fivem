@@ -5,6 +5,7 @@ static std::unordered_map<GameFlag, bool> g_gameFlags;
 
 void GameFlags::ResetFlags()
 {
+	SetFlag(GameFlag::PlayerActivated, false);
 	SetFlag(GameFlag::NetworkWalkMode, true);
 }
 

@@ -225,12 +225,6 @@ std::shared_ptr<Resource> ValidateResourceAndRef(lua_State* L, int reference, st
 		lua_error(L);
 	}
 
-	if (resource->GetState() != ResourceStateRunning && resource->GetState() != ResourceStateStarting)
-	{
-		lua_pushstring(L, "resource isn't running");
-		lua_error(L);
-	}
-
 	if (!resource->HasRef(reference))
 	{
 		lua_pushstring(L, "invalid reference");

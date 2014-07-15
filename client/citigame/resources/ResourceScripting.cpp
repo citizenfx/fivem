@@ -6,7 +6,34 @@
 
 CRITICAL_SECTION g_scriptCritSec;
 ScriptEnvironment* g_currentEnvironment;
+std::stack<ScriptEnvironment*> g_environmentStack;
 static ScriptThread* g_currentThread;
+
+class PushEnvironment
+{
+private:
+	ScriptEnvironment* m_oldEnvironment;
+
+public:
+	PushEnvironment(ScriptEnvironment* environment)
+	{
+		EnterCriticalSection(&g_scriptCritSec);
+
+		m_oldEnvironment = g_currentEnvironment;
+		g_currentEnvironment = environment;
+
+		g_environmentStack.push(m_oldEnvironment);
+	}
+
+	~PushEnvironment()
+	{
+		g_currentEnvironment = m_oldEnvironment;
+
+		g_environmentStack.pop();
+
+		LeaveCriticalSection(&g_scriptCritSec);
+	}
+};
 
 int lua_error_handler (lua_State *l);
 
@@ -125,10 +152,9 @@ void ScriptEnvironment::AddEventHandler(std::string& eventName, ScriptFunctionRe
 
 void ScriptEnvironment::Tick()
 {
-	EnterCriticalSection(&g_scriptCritSec);
-
 	// store the environment someplace
-	g_currentEnvironment = this;
+	//g_currentEnvironment = this;
+	PushEnvironment env(this);
 
 	EnterCriticalSection(&m_taskCritSec);
 
@@ -152,10 +178,6 @@ void ScriptEnvironment::Tick()
 			m_threads.erase(m_threads.begin() + (i - 1));
 		}
 	}
-
-	g_currentEnvironment = nullptr;
-
-	LeaveCriticalSection(&g_scriptCritSec);
 }
 
 void ScriptEnvironment::AddThread(std::shared_ptr<ScriptThread> thread)
@@ -175,8 +197,7 @@ void ScriptEnvironment::TriggerEvent(std::string& eventName, std::string& argsSe
 	lua_State* L = m_luaState;
 	STACK_BASE;
 
-	ScriptEnvironment* oldEnvironment = g_currentEnvironment;
-	g_currentEnvironment = this;
+	PushEnvironment env(this);
 
 	lua_pushnumber(m_luaState, source);
 	lua_setglobal(m_luaState, "source");
@@ -223,14 +244,11 @@ void ScriptEnvironment::TriggerEvent(std::string& eventName, std::string& argsSe
 	lua_pop(m_luaState, 1);
 
 	STACK_CHECK;
-
-	g_currentEnvironment = oldEnvironment;
 }
 
 std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::string& argsSerialized, int(*deserializeCB)(lua_State*, int*, std::string&))
 {
-	ScriptEnvironment* oldEnvironment = g_currentEnvironment;
-	g_currentEnvironment = this;
+	PushEnvironment env(this);
 
 	lua_State* L = m_luaState;
 	STACK_BASE;
@@ -264,8 +282,6 @@ std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::st
 	std::string retValue = std::string(string, len);
 
 	lua_pop(m_luaState, 3);
-
-	g_currentEnvironment = oldEnvironment;
 
 	STACK_CHECK;
 
@@ -445,7 +461,7 @@ bool ScriptEnvironment::DoFile(std::string& scriptName, std::string& path)
 
 bool ScriptEnvironment::DoInitFile(bool preParse)
 {
-	g_currentEnvironment = this;
+	PushEnvironment env(this);
 
 	lua_pushcfunction(m_luaState, lua_error_handler);
 	int eh = lua_gettop(m_luaState);
@@ -459,8 +475,6 @@ bool ScriptEnvironment::DoInitFile(bool preParse)
 
 	if (!LoadFile(scriptName, scriptPath))
 	{
-		g_currentEnvironment = nullptr;
-
 		return false;
 	}
 
@@ -480,8 +494,6 @@ bool ScriptEnvironment::DoInitFile(bool preParse)
 
 	lua_pop(m_luaState, 1);
 
-	g_currentEnvironment = nullptr;
-
 	return true;
 }
 
@@ -493,7 +505,7 @@ bool ScriptEnvironment::Create()
 	SignalResourceScriptInit.emit(m_luaState);
 
 	// set environment
-	g_currentEnvironment = this;
+	PushEnvironment env(this);
 
 	bool result;
 
@@ -501,7 +513,6 @@ bool ScriptEnvironment::Create()
 
 	if (!result)
 	{
-		g_currentEnvironment = nullptr;
 		return result;
 	}
 
@@ -509,7 +520,6 @@ bool ScriptEnvironment::Create()
 
 	if (!result)
 	{
-		g_currentEnvironment = nullptr;
 		return result;
 	}
 
@@ -517,7 +527,6 @@ bool ScriptEnvironment::Create()
 
 	if (!result)
 	{
-		g_currentEnvironment = nullptr;
 		return result;
 	}
 
@@ -530,8 +539,6 @@ bool ScriptEnvironment::Create()
 		lua_setglobal(m_luaState, removeThat);
 	}
 
-	g_currentEnvironment = nullptr;
-
 	return true;
 }
 
@@ -539,7 +546,7 @@ bool ScriptEnvironment::LoadScripts()
 {
 	bool result;
 
-	g_currentEnvironment = this;
+	PushEnvironment env(this);
 
 	// load scripts from the resource
 	for (auto& scriptName : m_resource->GetScripts())
@@ -552,12 +559,9 @@ bool ScriptEnvironment::LoadScripts()
 
 		if (!result)
 		{
-			g_currentEnvironment = nullptr;
 			return result;
 		}
 	}
-
-	g_currentEnvironment = nullptr;
 
 	// define exported functions
 	for (auto& exportDef : m_resource->GetExports())

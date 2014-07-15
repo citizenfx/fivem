@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stack>
 #include <functional>
 #include <memory>
 #include <map>
@@ -172,4 +173,10 @@ int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized
 int luaS_deserializeArgsJSON(lua_State* L, int* numArgs, std::string& argsSerialized);
 
 extern ScriptEnvironment* g_currentEnvironment;
+extern std::stack<ScriptEnvironment*> g_environmentStack;
 extern CRITICAL_SECTION g_scriptCritSec;
+
+inline ScriptEnvironment* GetInvokingEnvironment()
+{
+	return (g_environmentStack.top() == nullptr) ? g_currentEnvironment : g_environmentStack.top();
+}
