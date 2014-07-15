@@ -20,6 +20,8 @@
 
 bool g_mainUIFlag = true;
 
+extern POINT g_cursorPos;
+
 static int g_roundedWidth;
 static int g_roundedHeight;
 
@@ -700,8 +702,10 @@ static InitFunction initFunction([] ()
 
 		if (g_mainUIFlag)
 		{
-			POINT cursorPos;
-			GetCursorPos(&cursorPos);
+			//POINT cursorPos;
+			//GetCursorPos(&cursorPos);
+
+			POINT cursorPos = g_cursorPos;
 
 			//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
 

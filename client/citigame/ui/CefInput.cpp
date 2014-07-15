@@ -4,6 +4,7 @@
 
 static bool g_hasFocus = true;
 extern bool g_mainUIFlag;
+POINT g_cursorPos;
 
 bool isKeyDown(WPARAM wparam)
 {
@@ -125,6 +126,14 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 
 static InitFunction initFunction([] ()
 {
+	g_hooksDLL->SetHookCallback(StringHash("mouseLock"), [] (void* argPtr)
+	{
+		if (g_hasFocus)
+		{
+			*(int*)argPtr = 0;
+		}
+	});
+
 	g_hooksDLL->SetHookCallback(StringHash("wndProc"), [] (void* argsPtr)
 	{
 		WNDPROCARGS* args = (WNDPROCARGS*)argsPtr;
@@ -177,6 +186,9 @@ static InitFunction initFunction([] ()
 
 				mouseEvent.x = LOWORD(lParam);
 				mouseEvent.y = HIWORD(lParam);
+
+				g_cursorPos.x = mouseEvent.x;
+				g_cursorPos.y = mouseEvent.y;
 
 				nui::GetBrowser()->GetHost()->SendMouseMoveEvent(mouseEvent, false);
 

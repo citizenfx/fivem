@@ -61,6 +61,33 @@ static void RepairInput()
 	}
 }
 
+int LockEnabled()
+{
+	int retval = 1;
+
+	HookCallbacks::RunCallback(StringHash("mouseLock"), &retval);
+
+	return retval;
+}
+
+static void __declspec(naked) LockMouseDeviceHook()
+{
+	__asm
+	{
+		call LockEnabled
+
+		test eax, eax
+		jnz returnStuff
+
+		mov dword ptr [esp + 4], 0
+
+	returnStuff:
+		cmp dword ptr ds:[188AB8Ch], 0
+		push 623C37h
+		retn
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	// d3d fpu preserve, FIXME move it elsewhere
@@ -82,5 +109,7 @@ static HookFunction hookFunction([] ()
 
 	// some mouse stealer -- removes dinput and doesn't get toggled back (RepairInput instead fixes the mouse)
 	//hook::jump(0x623C30, RepairInput);
+	hook::jump(0x623C30, LockMouseDeviceHook);
+
 	hook::jump(0x623CC0, RepairInput); // tail of above function
 });
