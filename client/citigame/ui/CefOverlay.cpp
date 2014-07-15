@@ -277,6 +277,7 @@ public:
 
 				g_netLibrary->ConnectToServer(hostname, atoi(port));
 				g_mainUIFlag = false;
+				nui::GiveFocus(false);
 
 				nui::DestroyFrame("mpMenu");
 			}
@@ -662,7 +663,7 @@ static InitFunction initFunction([] ()
 
 		if (g_mainUIFlag)
 		{
-			nui::ProcessInput();
+			//nui::ProcessInput();
 		}
 
 		uint32_t color = 0xFFFFFFFF;
@@ -719,7 +720,8 @@ static InitFunction initFunction([] ()
 
 	g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
 	{
-		g_mainUIFlag = true;
+		//g_mainUIFlag = true;
+		nui::GiveFocus(true);
 
 		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 	});
@@ -785,6 +787,7 @@ namespace nui
 	void SetMainUI(bool enable)
 	{
 		g_mainUIFlag = enable;
+		nui::GiveFocus(enable);
 	}
 
 	void CreateFrame(std::string frameName, std::string frameURL)

@@ -52,7 +52,7 @@ static void RepairInput()
 	char spillBuffer[256];
 
 	// function 1 regarding input
-	((void(*)(char*, int))0x6366D0)(spillBuffer, 0);
+	//((void(*)(char*, int))0x6366D0)(spillBuffer, 0);
 
 	// unset XLive overlay showing flag - unblocks input
 	if (*(uint8_t*)0x1970A21 & 1)
@@ -81,5 +81,6 @@ static HookFunction hookFunction([] ()
 	*(BYTE*)0x636490 = 0xC3; // keyboard
 
 	// some mouse stealer -- removes dinput and doesn't get toggled back (RepairInput instead fixes the mouse)
-	hook::jump(0x623C30, RepairInput);
+	//hook::jump(0x623C30, RepairInput);
+	hook::jump(0x623CC0, RepairInput); // tail of above function
 });

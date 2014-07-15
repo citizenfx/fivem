@@ -2,7 +2,7 @@
 #include "CefOverlay.h"
 #include "CrossLibraryInterfaces.h"
 
-static bool g_hasFocus = false;
+static bool g_hasFocus = true;
 extern bool g_mainUIFlag;
 
 bool isKeyDown(WPARAM wparam)
@@ -25,6 +25,12 @@ namespace nui
 
 			// disable processing mouse input
 			//*(WORD*)0x6239F7 = 0x9090;
+
+			((void(*)(bool))0x623C30)(false);
+		}
+		else if (!hasFocus && g_hasFocus)
+		{
+			((void(*)(bool))0x623C30)(true);
 		}
 
 		g_hasFocus = hasFocus;
@@ -32,56 +38,6 @@ namespace nui
 
 	void ProcessInput()
 	{
-		static int lastX, lastY;
-		POINT point;
-
-		GetCursorPos(&point);
-
-		RECT rect;
-		GetWindowRect(*(HWND*)0x1849DDC, &rect);
-
-		int x = point.x - rect.left;
-		int y = point.y - rect.top;
-
-		if (x != lastX || y != lastY)
-		{
-			CefMouseEvent mouseEvent;
-			mouseEvent.x = x;
-			mouseEvent.y = y;
-
-			nui::GetBrowser()->GetHost()->SendMouseMoveEvent(mouseEvent, false);
-
-			lastX = x;
-			lastY = y;
-		}
-
-		static bool lastLeft, lastRight;
-
-		bool left = GetAsyncKeyState(VK_LBUTTON);
-		bool right = GetAsyncKeyState(VK_RBUTTON);
-
-		if (left != lastLeft)
-		{
-			CefMouseEvent mouseEvent;
-			mouseEvent.x = x;
-			mouseEvent.y = y;
-
-			nui::GetBrowser()->GetHost()->SendFocusEvent(true);
-			nui::GetBrowser()->GetHost()->SendMouseClickEvent(mouseEvent, MBT_LEFT, !left, 1);
-
-			lastLeft = left;
-		}
-
-		if (right != lastRight)
-		{
-			CefMouseEvent mouseEvent;
-			mouseEvent.x = x;
-			mouseEvent.y = y;
-
-			nui::GetBrowser()->GetHost()->SendMouseClickEvent(mouseEvent, MBT_RIGHT, !right, 1);
-
-			lastRight = right;
-		}
 	}
 }
 
