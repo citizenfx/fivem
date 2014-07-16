@@ -196,6 +196,8 @@ public:
 
 	void CreateResources();
 
+	void SetHost(uint16_t netID, uint32_t base);
+
 	void ProcessPackets();
 
 	void DownloadsComplete();

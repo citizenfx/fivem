@@ -2,6 +2,7 @@
 #include "CefOverlay.h"
 #include "CustomLoadScreens.h"
 #include "CrossLibraryInterfaces.h"
+#include "NetLibrary.h"
 #include <GameInit.h>
 #include <mutex>
 
@@ -24,6 +25,8 @@ static InitFunction initFunction([] ()
 {
 	g_hooksDLL->SetHookCallback(StringHash("loadsFrame"), [] (void*)
 	{
+		g_netLibrary->RunFrame();
+
 		g_loadScreenMutex.lock();
 
 		if (g_loadScreen.get())

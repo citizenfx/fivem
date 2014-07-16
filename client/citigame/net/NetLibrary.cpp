@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 #include <libnp.h>
 #include <base64.h>
+#include <mutex>
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -255,6 +256,12 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 	}
 }
 
+void NetLibrary::SetHost(uint16_t netID, uint32_t base)
+{
+	m_hostNetID = netID;
+	m_hostBase = base;
+}
+
 void NetLibrary::SetBase(uint32_t base)
 {
 	m_serverBase = base;
@@ -371,8 +378,15 @@ void GSClient_RunFrame();
 
 static std::string g_disconnectReason;
 
+static std::mutex g_netFrameMutex;
+
 void NetLibrary::RunFrame()
 {
+	if (!g_netFrameMutex.try_lock())
+	{
+		return;
+	}
+
 	ProcessPackets();
 
 	ProcessSend();
@@ -479,6 +493,8 @@ void NetLibrary::RunFrame()
 
 			break;
 	}
+
+	g_netFrameMutex.unlock();
 }
 
 void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
@@ -717,4 +733,14 @@ static InitFunction initFunction([] ()
 
 	HooksDLLInterface::SetNetLibrary(&netLibrary);
 	GameSpecDLLInterface::SetNetLibrary(&netLibrary);
+
+	netLibrary.AddReliableHandler("msgIHost", [] (const char* buf, size_t len)
+	{
+		NetBuffer buffer(buf, len);
+		
+		uint16_t hostNetID = buffer.Read<uint16_t>();
+		uint32_t hostBase = buffer.Read<uint32_t>();
+
+		netLibrary.SetHost(hostNetID, hostBase);
+	});
 });
