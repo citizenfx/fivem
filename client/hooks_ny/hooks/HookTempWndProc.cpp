@@ -88,6 +88,20 @@ static void __declspec(naked) LockMouseDeviceHook()
 	}
 }
 
+static double FumbleMouseStuff(void* a2, int axis)
+{
+	if (axis == 0)
+	{
+		return *(int32_t*)(0x188ABA8) * 0.0078125;
+	}
+	else if (axis == 1)
+	{
+		return *(int32_t*)(0x188AB94) * 0.0078125;
+	}
+
+	return 0.0;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// d3d fpu preserve, FIXME move it elsewhere
@@ -114,4 +128,7 @@ static HookFunction hookFunction([] ()
 	hook::jump(0x623CC0, RepairInput); // tail of above function
 
 	hook::nop(0x623CB6, 7); // ignore ShowCursor calls
+
+	// testing stuff (simplify function that returns mouse values sometimes and garbage other times)
+	hook::jump(0x839480, FumbleMouseStuff);
 });
