@@ -237,19 +237,33 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 			server->m_maxClients = atoi(Info_ValueForKey(buffer, "sv_maxclients"));
 			server->m_clients = atoi(Info_ValueForKey(buffer, "clients"));
 			server->m_hostName = Info_ValueForKey(buffer, "hostname");
-
-			trace("buffer %s\nhostname %s\n", buffer, server->m_hostName.c_str());
-
 			server->m_IP = htonl(server->m_IP);
 
 			replaceAll(server->m_hostName, "'", "\\'");
 
-			trace("hostname2 %s\n", server->m_hostName.c_str());
+			const char* mapnameStr = Info_ValueForKey(buffer, "mapname");
+			const char* gametypeStr = Info_ValueForKey(buffer, "gametype");
+
+			std::string mapname;
+			std::string gametype;
+
+			if (mapnameStr)
+			{
+				mapname = mapnameStr;
+			}
+
+			if (gametypeStr)
+			{
+				gametype = gametypeStr;
+			}
+
+			replaceAll(mapname, "'", "\\'");
+			replaceAll(gametype, "'", "\\'");
 
 			char address[32];
 			inet_ntop(AF_INET, &server->m_IP, address, sizeof(address));
 			
-			nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'serverAdd', name: '%s', clients: %d, maxclients: %d, ping: %d, addr: '%s:%d' }, '*');", server->m_hostName.c_str(), server->m_clients, server->m_maxClients, server->m_ping, address, server->m_Port));
+			nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'serverAdd', name: '%s', mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d, addr: '%s:%d' }, '*');", server->m_hostName.c_str(), mapname.c_str(), gametype.c_str(), server->m_clients, server->m_maxClients, server->m_ping, address, server->m_Port));
 
 			break;
 		}
