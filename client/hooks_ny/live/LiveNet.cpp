@@ -98,20 +98,21 @@ int __stdcall XSocketGetSockName(SOCKET s, sockaddr_in * name, int * namelen)
 {
 	int n = getsockname(s, (sockaddr*)name, namelen);
 
-	if (wcsstr(GetCommandLine(), L"cl2"))
-	{
-		sockaddr_in* addrIn = (sockaddr_in*)name;
-		addrIn->sin_port = htons(ntohs(addrIn->sin_port) - 1);
-	}
+	sockaddr_in* addrIn = (sockaddr_in*)name;
+	addrIn->sin_port = htons(1000);
 
 	return n;
 }
 
 int __stdcall XSocketBind(SOCKET s, sockaddr * addr, int addrlen)
 {
+	sockaddr_in* addrIn = (sockaddr_in*)addr;
+
+	// IV tries to bind port 1000 (X360 'optimized' default port), but that port is privileged on *nix
+	addrIn->sin_port = htons(10512);
+
 	if (wcsstr(GetCommandLine(), L"cl2"))
 	{
-		sockaddr_in* addrIn = (sockaddr_in*)addr;
 		addrIn->sin_port = htons(ntohs(addrIn->sin_port) + 1);
 	}
 
