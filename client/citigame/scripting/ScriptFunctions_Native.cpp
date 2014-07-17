@@ -108,6 +108,26 @@ LUA_FUNCTION(CallNative)
 			{
 				returnFloatResult = true;
 			}
+			else
+			{
+				ctx.Push(userData);
+			}
+		}
+		else if (type == LUA_TTABLE)
+		{
+			lua_pushstring(L, "__data");
+			lua_rawget(L, i);
+
+			if (lua_type(L, -1) == LUA_TNUMBER)
+			{
+				ctx.Push(lua_tointeger(L, -1));
+				lua_pop(L, 1);
+			}
+			else
+			{
+				lua_pushstring(L, "Invalid Lua type in __data");
+				lua_error(L);
+			}
 		}
 		else if (type == LUA_TSTRING)
 		{
@@ -201,6 +221,20 @@ LUA_FUNCTION(CallNative)
 	}
 
 	return numReturnValues;
+}
+
+LUA_FUNCTION(ptr)
+{
+	static int ptrs[32];
+	static int ptrI;
+
+	ptrI = (ptrI++) % 32;
+
+	ptrs[ptrI] = lua_tointeger(L, 1);
+
+	lua_pushlightuserdata(L, &ptrs[ptrI]);
+
+	return 1;
 }
 
 LUA_FUNCTION(rf)

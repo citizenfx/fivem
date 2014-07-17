@@ -523,6 +523,20 @@ bool ScriptEnvironment::Create()
 		return result;
 	}
 
+	result = DoFile(std::string("natives_hl.lua"), std::string("citizen:/natives_hl.lua"));
+
+	if (!result)
+	{
+		return result;
+	}
+
+	result = DoFile(std::string("natives_classes.lua"), std::string("citizen:/natives_classes.lua"));
+
+	if (!result)
+	{
+		return result;
+	}
+
 	result = DoFile(std::string("luajit-msgpack-pure.lua"), std::string("citizen:/luajit-msgpack-pure.lua"));
 
 	if (!result)
