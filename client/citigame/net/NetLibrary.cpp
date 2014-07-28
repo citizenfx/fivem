@@ -372,8 +372,6 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 }
 
 #include "../ui/CefOverlay.h"
-static std::shared_ptr<NUIWindow> nuiWindow;
-
 void GSClient_RunFrame();
 
 static std::string g_disconnectReason;
