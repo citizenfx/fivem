@@ -72,6 +72,16 @@ void CitizenGame::Launch(std::wstring& gamePath)
 			return (HMODULE)INVALID_HANDLE_VALUE;
 		}
 
+		if (!_stricmp(libName, "d3d9.dll"))
+		{
+			std::wstring gameDll = MakeRelativeGamePath(L"d3d9.dll");
+
+			if (GetFileAttributes(gameDll.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				return LoadLibrary(gameDll.c_str());
+			}
+		}
+
 		// ATL80.dll is SxS, but it's unused by the game
 		if (!_stricmp(libName, "atl80.dll"))
 		{
