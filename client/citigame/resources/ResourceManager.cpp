@@ -55,6 +55,11 @@ bool ResourceManager::TriggerEvent(std::string& eventName, std::string& argsSeri
 	for (auto& resource : m_resources)
 	{
 		resource.second->TriggerEvent(eventName, argsSerialized, source);
+
+		if (g_errorOccurredThisFrame)
+		{
+			return false;
+		}
 	}
 
 	m_eventCanceled = m_eventCancelationState.top();

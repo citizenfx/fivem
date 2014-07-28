@@ -37,6 +37,12 @@ LUA_FUNCTION(TriggerEvent)
 	// call into resources
 	TheResources.TriggerEvent(std::string(eventName), std::string(jsonString, len));
 
+	if (g_errorOccurredThisFrame)
+	{
+		lua_pushstring(L, "event call error");
+		lua_error(L);
+	}
+
 	// remove serialized string
 	lua_pop(L, 1);
 

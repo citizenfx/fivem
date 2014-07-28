@@ -7,6 +7,7 @@
 CRITICAL_SECTION g_scriptCritSec;
 ScriptEnvironment* g_currentEnvironment;
 std::stack<ScriptEnvironment*> g_environmentStack;
+bool g_errorOccurredThisFrame;
 static ScriptThread* g_currentThread;
 
 class PushEnvironment
@@ -70,6 +71,8 @@ bool ScriptThread::Tick()
 			lua_pop(m_luaThread, 1);
 
 			GlobalError("Error running of script in resource %s: %s\nsee console for details", m_environment->GetName().c_str(), err.c_str());
+
+			g_errorOccurredThisFrame = true;
 		}
 
 		// free the lua state
@@ -231,9 +234,12 @@ void ScriptEnvironment::TriggerEvent(std::string& eventName, std::string& argsSe
 			std::string err = luaL_checkstring(m_luaState, -1);
 			lua_pop(m_luaState, 1);
 
+			g_errorOccurredThisFrame = true;
+
 			GlobalError("Error during event handler for %s: %s\nsee console for details", eventName.c_str(), err.c_str());
 
-			eventHandlers->second.clear();
+			m_eventHandlers.clear();
+
 			break;
 		}
 
@@ -271,6 +277,8 @@ std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::st
 		lua_pop(m_luaState, 1);
 
 		GlobalError("Error during export call handler: %s\nsee console for details", err.c_str());
+
+		g_errorOccurredThisFrame = true;
 	}
 
 	// serialize return value

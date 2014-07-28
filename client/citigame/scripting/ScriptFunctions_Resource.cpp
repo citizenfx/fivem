@@ -170,6 +170,16 @@ static int resourceExportCall(lua_State* L)
 	// call the function in the resource
 	std::string retVal = resource->CallExport(std::string(exportName), std::string(jsonString, len));
 
+	if (g_errorOccurredThisFrame)
+	{
+		lua_remove(L, argTable);
+
+		lua_pushstring(L, "export call error");
+		lua_error(L);
+		
+		return 0;
+	}
+
 	lua_remove(L, argTable);
 
 	// deserialize the return value

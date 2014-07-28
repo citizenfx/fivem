@@ -39,8 +39,9 @@ void luaS_serializeArgs(lua_State* L, int firstArg, int numArgs)
 
 	if (lua_pcall(L, 1, 1, eh) != 0)
 	{
-		// error parsing json? what? we'll just push nil
-		lua_pushstring(L, "[]");
+		g_errorOccurredThisFrame = true;
+
+		GlobalError("Packing of Lua data failed. This is probably bad. Check your log data for more info.");
 	}
 
 	lua_remove(L, table);
@@ -173,8 +174,9 @@ int luaS_deserializeArgsJSON(lua_State* L, int* numArgs, std::string& argsSerial
 	// stack: 3
 	if (lua_pcall(L, 1, 1, eh) != 0)
 	{
-		// error parsing json? what? we'll just push nil
-		lua_pushnil(L);
+		g_errorOccurredThisFrame = true;
+
+		GlobalError("Unpacking of Lua data failed. This is probably bad. Check your log data for more info.");
 	}
 
 	// stack: 3 (table on top)

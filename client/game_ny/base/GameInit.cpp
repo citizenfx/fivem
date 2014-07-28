@@ -114,6 +114,12 @@ static bool g_ignoreNextGracefulDeath;
 
 void GameInit::KillNetwork(const wchar_t* reason)
 {
+	// no overkill please
+	if (stopNetwork)
+	{
+		return;
+	}
+
 	g_hooksDLL->SetDisconnectSafeguard(false);
 
 	// special case for graceful kill

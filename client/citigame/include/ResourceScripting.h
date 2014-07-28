@@ -172,6 +172,7 @@ void luaS_serializeArgsJSON(lua_State* L, int firstArg, int numArgs);
 int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized);
 int luaS_deserializeArgsJSON(lua_State* L, int* numArgs, std::string& argsSerialized);
 
+extern bool g_errorOccurredThisFrame;
 extern ScriptEnvironment* g_currentEnvironment;
 extern std::stack<ScriptEnvironment*> g_environmentStack;
 extern CRITICAL_SECTION g_scriptCritSec;
