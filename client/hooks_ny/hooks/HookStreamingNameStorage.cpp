@@ -30,6 +30,21 @@ struct CStreamingTypeManager
 CStreamingTypeManager& streamingTypes = *(CStreamingTypeManager*)0x1227F40;
 
 static std::unordered_map<int, std::string> g_indexToName;
+
+std::string GetStreamName(int idx, int typeIdx)
+{
+	return g_indexToName[(typeIdx << 24) | idx];
+}
+
+int GetTypeStart(int type)
+{
+	return streamingTypes.types[type].startIndex;
+}
+
+int GetTypeEnd(int type)
+{
+	return streamingTypes.types[type + 1].startIndex - 1;
+}
  
 static int RegisterFileName(const char* name, int type)
 {
