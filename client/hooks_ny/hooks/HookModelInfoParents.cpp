@@ -10,7 +10,7 @@ uint32_t WRAPPER NatHash(const char* str) { EAXJMP(0x7BDBF0); }
 
 class CBaseModelInfo : public rage::sysUseAllocator
 {
-private:
+protected:
 	int _f4;
 	int _f8;
 	char pad[48];
@@ -73,7 +73,9 @@ public:
 class CTimeModelInfo : public CBaseModelInfo
 {
 private:
-	char m_padTime[16];
+	void* m_timeDayModel;
+	void* m_timeNightModel;
+	char m_padTime[8];
 
 public:
 	CTimeModelInfo();
@@ -98,6 +100,10 @@ CBaseModelInfo::CBaseModelInfo()
 CTimeModelInfo::CTimeModelInfo()
 {
 	*(uint32_t*)this = 0xD7D444;
+	_f8 = 0;
+
+	m_timeDayModel = this;
+	m_timeNightModel = (void*)-1;
 }
 
 void WRAPPER CBaseModelInfo::DoLodStuff(const char*) { EAXJMP(0x98EE80); }
@@ -105,13 +111,15 @@ void WRAPPER CBaseModelInfo::DoLodStuff(const char*) { EAXJMP(0x98EE80); }
 static std::unordered_map<uint32_t, std::shared_ptr<CBaseModelInfo>> g_modelInfos;
 static std::unordered_map<uint32_t, std::shared_ptr<CBaseModelInfo>> g_modelInfoIdxTable;
 
+static int miInt = 0;
+
 void PostProcessCustomMIs()
 {
 	for (auto& pair : g_modelInfos)
 	{
 		auto& mi = pair.second;
 		auto miIdx = (char*)mi.get();
-		
+
 		if (*(uint16_t*)(miIdx + 84) != 0xFFFF)
 		{
 			// not noted: finding a .lod file; these aren't used in retail IV I'd assume
@@ -121,12 +129,13 @@ void PostProcessCustomMIs()
 		}
 
 		// not shown: type == 4 check (weapon)
+		//}
 	}
 
-	if (((int(*)(const char*, int, int))0x832EA0)("unknown", 30999, *(int*)0x15F73AC) == 65535)
+	/*if (((int(*)(const char*, int, int))0x832EA0)("unknown", 30999, *(int*)0x15F73AC) == 65535)
 	{
 		//__asm int 3
-	}
+	}*/
 }
 
 static int g_modelInfosSaved;
@@ -213,8 +222,10 @@ class CEntity
 private:
 public:
 	char pad[40];
-	uint16_t RandomSeed; // ?
-	uint16_t m_nModelIndex;
+	uint16_t RandomSeed; // ? // +40
+	uint16_t m_nModelIndex; // +42
+	char pad2[8]; // +44
+	void* m_pInstance; // +52
 
 	virtual ~CEntity() = 0;
 
@@ -296,7 +307,7 @@ static void DeferToNextFrame(std::function<void()> func)
 	g_deferFuncs.push_back(func);
 }
 
-void RequestEntityModel(CEntity* entity)
+int RequestEntityModel(CEntity* entity)
 {
 	auto entityExt = g_entityExtensions[entity];
 
@@ -328,6 +339,8 @@ void RequestEntityModel(CEntity* entity)
 
 		m_dependencyDictEnts.insert(std::make_pair(drawblDict, entity));
 	}
+
+	return 1;
 }
 
 void ProcessEntityRequests()
@@ -556,7 +569,7 @@ void __declspec(naked) SetModelIndexStub()
 
 CBaseModelInfo* GetModelInfoForEntity(CEntity* entity)
 {
-	if (entity->m_nModelIndex == 30999)
+	if (entity->m_nModelIndex >= 30999)
 	{
 		return g_entityExtensions[entity].modelInfo;
 	}
@@ -739,6 +752,28 @@ void __declspec(naked) RetModelInfoEsiEbp()
 		pop ecx
 		pop eax
 		pop edx
+
+		retn
+	}
+}
+
+void __declspec(naked) RetModelInfoEsiEbpCmpEbx()
+{
+	__asm
+	{
+		push edx
+		push eax
+		push ecx
+		push esi
+		call GetModelInfoForEntity
+		add esp, 4h
+
+		mov ebp, eax
+		pop ecx
+		pop eax
+		pop edx
+
+		cmp ebx, 0EFh
 
 		retn
 	}
@@ -939,7 +974,7 @@ void __declspec(naked) DrawEntityDC_dontCallIfInstance()
 	__asm
 	{
 		cmp word ptr [esp + 4h], 07917h
-		jne justGoAlong
+		jl justGoAlong
 
 		push ecx
 		push esi
@@ -972,7 +1007,7 @@ static bool inEvent;
 
 CBaseModelInfo* GetModelInfoForDraw(CDrawEntityDC* dc)
 {
-	if (dc->modelIdx == 0x7917)
+	if (dc->modelIdx >= 0x7917)
 	{
 		inEvent = true;
 		D3DPERF_BeginEvent(D3DCOLOR_ARGB(0, 0, 0, 0), va(L"draw mi %x", dc->modelInfo->GetModelHash()));
@@ -1026,9 +1061,9 @@ void DebugRequest2(int mi, int type)
 	{
 		auto minf = ((CBaseModelInfo**)0x15F73B0)[mi];
 
-		if (minf->GetModelHash() == 0x1b179f94)
+		if (minf->GetDrawblDict() != 0xFFFF)
 		{
-			//__asm int 3
+			trace("requesting model instance for drawbldict %s (mi %p - 0x%08x)\n", GetStreamName(minf->GetDrawblDict(), *(int*)0xF272E4).c_str(), minf, minf->GetModelHash());
 		}
 	}
 }
@@ -1096,7 +1131,7 @@ void __declspec(naked) RequestEntityModelEsi()
 	__asm
 	{
 		cmp word ptr [esi + 2Eh], 7917h
-		jne justDo
+		jl justDo
 
 		push esi
 		call RequestEntityModel
@@ -1153,7 +1188,7 @@ void __declspec(naked) AddModelRefEsi()
 	__asm
 	{
 		cmp word ptr [esi + 2Eh], 7917h
-		jne justDo
+		jl justDo
 
 		push ecx
 		push esi
@@ -1222,8 +1257,54 @@ void __declspec(naked) PreFullReleaseModelStub()
 	}
 }
 
+int __fastcall CreateBuildingInstance(CEntity* entity)
+{
+	auto info = ((CBaseModelInfo**)0x15F73B0)[entity->m_nModelIndex];
+
+	if (info->GetDrawblDict() != 0xFFFF && !entity->m_pInstance)
+	{
+		trace("creating entity instance for drawbldict %s (%p - 0x%08x)\n", GetStreamName(info->GetDrawblDict(), *(int*)0xF272E4).c_str(), info, info->GetModelHash());
+	}
+
+	return ((int(__thiscall*)(CEntity*))0x9E7CF0)(entity);
+}
+
+int __fastcall DeleteBuildingInstance(CEntity* entity)
+{
+	auto info = ((CBaseModelInfo**)0x15F73B0)[entity->m_nModelIndex];
+
+	if (info->GetDrawblDict() != 0xFFFF && entity->m_pInstance)
+	{
+		trace("removing entity instance for drawbldict %s (%p - 0x%08x)\n", GetStreamName(info->GetDrawblDict(), *(int*)0xF272E4).c_str(), info, info->GetModelHash());
+	}
+
+	return ((int(__thiscall*)(CEntity*))0x9E6A80)(entity);
+}
+
+void __fastcall RemoveModelInstanceLog(CBaseModelInfo* info)
+{
+	if (info->GetDrawblDict() != 0xFFFF)
+	{
+		trace("removing model instance for drawbldict %s (%p - 0x%08x)\n", GetStreamName(info->GetDrawblDict(), *(int*)0xF272E4).c_str(), info, info->GetModelHash());
+	}
+
+	return ((void(__thiscall*)(CBaseModelInfo*))0x98E6B0)(info);
+}
+
+
+
 static HookFunction hookModelInfoParents([] ()
 {
+	/*hook::put(0xD7CD24, RemoveModelInstanceLog);
+	hook::jump(0x832C40, RequestModelStub);
+
+	// temp dbg: find out where entity instance creation is called from
+	hook::put(0xDA3A7C, CreateBuildingInstance);
+
+	// and deletion
+	hook::put(0xDA3A80, DeleteBuildingInstance);
+	return;*/
+
 	/*hook::jump(0x98A919, NativeDrawblDictLog);
 
 	hook::jump(0x832C40, RequestModelStub);
@@ -1237,7 +1318,7 @@ static HookFunction hookModelInfoParents([] ()
 	hook::put(0x90800F, DrawableDictStoreGetUsageWrap);
 
 	// temp dbg: annoying read of some memory that is annoying the hell out of me but i should fix
-	hook::put<uint8_t>(0x7D7F8A, 0xEB);
+	//hook::put<uint8_t>(0x7D7F8A, 0xEB);
 
 	// temp dbg: fuck over this fatal error function as it's an annoying fuck
 	hook::put<uint8_t>(0x5A8CB0, 0xCC);
@@ -1370,7 +1451,7 @@ static HookFunction hookModelInfoParents([] ()
 
 	// even more...
 	hook::nop(0x7DF7B4, 7);
-	hook::call(0x7DF7B4, RetModelInfoEsiEbp);
+	hook::call(0x7DF7B4, RetModelInfoEsiEbpCmpEbx);
 
 	// and it goes on
 	hook::nop(0x7D99C2, 7);
@@ -1434,8 +1515,8 @@ static HookFunction hookModelInfoParents([] ()
 	hook::call(0x7BFB51, RetModelInfoDraw);
 
 	// temp dbg: make gtaDefSched single-threaded
-	hook::put<uint8_t>(0x79706F, 0);
-	hook::put<uint8_t>(0x797072, 1);
+	//hook::put<uint8_t>(0x79706F, 0);
+	//hook::put<uint8_t>(0x797072, 1);
 
 	// temp dbg: ignore 30999
 	hook::put(0x98E5B4, 0x7917);
@@ -1463,7 +1544,7 @@ static HookFunction hookModelInfoParents([] ()
 	hook::jump(0x7BFCF7, DrawEntityDCTail);
 
 	// temp dbg: relocate datBase vtable
-	char* newDatBase = new char[1024];
+	/*char* newDatBase = new char[1024];
 	memset(newDatBase, 0, 1024);
 
 	for (char* ptrr = (char*)0x400100; ptrr < (char*)0xD40000; ptrr++)
@@ -1472,5 +1553,5 @@ static HookFunction hookModelInfoParents([] ()
 		{
 			*(char**)ptrr = newDatBase;
 		}
-	}
+	}*/
 });
