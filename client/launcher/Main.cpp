@@ -19,7 +19,7 @@ void main()
 		ExitProcess(0);
 	}
 
-	SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
+	//SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
 
 	EnsureGamePath();
 	

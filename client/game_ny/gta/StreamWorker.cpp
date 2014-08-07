@@ -28,6 +28,8 @@ void NewRequestEvent::RunEvent(StreamThread* thread)
 
 		if (handle == -1)
 		{
+			trace("handle is -1, completed request instantly?\n");
+
 			item->completeRequest();
 			return;
 		}
@@ -40,6 +42,7 @@ void NewRequestEvent::RunEvent(StreamThread* thread)
 		nreq.handle = handle;
 		nreq.reqRead = (uint32_t)fileStart;
 		nreq.readBuffer = nullptr;
+		nreq.device = item->device;
 
 		memset(&nreq.overlapped, 0, sizeof(OVERLAPPED));
 		nreq.overlapped.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -154,7 +157,7 @@ void IOCompletedEvent::RunEvent(StreamThread* thread)
 
 void StreamThread::TriggerNextIO(StreamRequestExt* request)
 {
-	rage::fiDevice* device = request->item->device;
+	rage::fiDevice* device = request->device;
 	uint32_t handle = request->handle;
 
 	m_curOverlapped = &request->overlapped;

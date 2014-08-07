@@ -2,7 +2,7 @@
 #include "ResourceManager.h"
 #include "DownloadMgr.h"
 #include <SHA1.h>
-#include <yaml-cpp/yaml.h>
+#include <rapidjson/document.h>
 #include "../ui/CefOverlay.h"
 #include "../ui/CustomLoadScreens.h"
 
@@ -63,68 +63,97 @@ bool DownloadManager::Process()
 				serverHost += va(":%d", m_gameServer.GetPort());
 
 				// parse the received YAML file
-				try
-				{
-					auto node = YAML::Load(connData);
+				//try
+				//{
+					//auto node = YAML::Load(connData);
+				FILE* f = fopen("blah.json", "w");
+				fwrite(connData.c_str(), 1, connData.size(), f);
+				fclose(f);
 
-					if (node["loadScreen"].IsDefined())
+					rapidjson::Document node;
+					node.Parse(connData.c_str());
+
+					if (node.HasParseError())
 					{
-						m_serverLoadScreen = node["loadScreen"].as<std::string>();
+						auto err = node.GetParseError();
+
+						GlobalError("parse error %d", err);
 					}
 
-					for (auto& resource : node["resources"])
+					if (node.HasMember("loadScreen"))
 					{
-						std::string baseUrl = node["fileServer"].as<std::string>();
+						m_serverLoadScreen = node["loadScreen"].GetString();
+					}
 
-						if (resource["fileServer"].IsDefined())
+					auto& resources = node["resources"];
+
+					std::string origBaseUrl = node["fileServer"].GetString();
+
+					for (auto it = resources.Begin(); it != resources.End(); it++)
+					{
+						auto& resource = *it;
+
+						std::string baseUrl = origBaseUrl;
+
+						if (it->HasMember("fileServer"))
 						{
-							baseUrl = resource["fileServer"].as<std::string>();
+							baseUrl = (*it)["fileServer"].GetString();
 						}
 
-						ResourceData resData(resource["name"].as<std::string>(), va(baseUrl.c_str(), serverHost.c_str()));
+						ResourceData resData(resource["name"].GetString(), va(baseUrl.c_str(), serverHost.c_str()));
 						
-						for (auto& file : resource["files"])
+						//for (auto& file : resource["files"])
+						auto& files = resource["files"];
+						for (auto i = files.MemberBegin(); i != files.MemberEnd(); i++)
 						{
-							std::string filename = file.first.as<std::string>();
-							std::string hash = file.second.as<std::string>();
+							std::string filename = i->name.GetString();
+							std::string hash = i->value.GetString();
 
 							resData.AddFile(filename, hash);
 						}
 
-						for (auto& file : resource["streamFiles"])
+						if (resource.HasMember("streamFiles"))
 						{
-							std::string filename = file.first.as<std::string>();
-							std::string hash = file.second["hash"].as<std::string>();
-							uint32_t rscFlags = file.second["rscFlags"].as<uint32_t>();
-							uint32_t rscVersion = file.second["rscVersion"].as<uint32_t>();
-							uint32_t size = file.second["size"].as<uint32_t>();
-							
-							AddStreamingFile(resData, filename, hash, rscFlags, rscVersion, size);
+							auto& streamFiles = resource["streamFiles"];
+
+							//for (auto& file : resource["streamFiles"])
+							for (auto i = streamFiles.MemberBegin(); i != streamFiles.MemberEnd(); i++)
+							{
+								std::string filename = i->name.GetString();
+								std::string hash = i->value["hash"].GetString();
+								uint32_t rscFlags = i->value["rscFlags"].GetUint();
+								uint32_t rscVersion = i->value["rscVersion"].GetUint();
+								uint32_t size = i->value["size"].GetUint();
+
+								AddStreamingFile(resData, filename, hash, rscFlags, rscVersion, size);
+							}
 						}
 
 						if (isUpdate)
 						{
-							for (auto it = m_requiredResources.begin(); it != m_requiredResources.end(); it++)
+							for (auto ite = m_requiredResources.begin(); ite != m_requiredResources.end(); ite++)
 							{
-								if (it->GetName() == resData.GetName())
+								if (ite->GetName() == resData.GetName())
 								{
-									m_requiredResources.erase(it);
+									m_requiredResources.erase(ite);
 									break;
 								}
 							}
 						}
 
+						trace("%s\n", resData.GetName().c_str());
+
 						m_isUpdate = isUpdate;
 
 						m_requiredResources.push_back(resData);
 					}
-				}
-				catch (YAML::Exception& e)
+				/*}
+				catch (std::exception& e)
 				{
-					GlobalError("YAML parsing error in server configuration (%s)", e.msg.c_str());
+					GlobalError("YAML parsing error in server configuration (%s)", e.msg);
 
 					return;
-				}
+				}*/
 
 				if (isUpdate)
 				{

@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 #include "HookCallbacks.h"
+#include "RuntimeHooks.h"
 
 void SetDisconnectSafeguard(bool enable);
 
@@ -10,6 +11,12 @@ public:
 	virtual void SetHookCallback(uint32_t hookCallbackId, void(*callback)(void*));
 
 	virtual void SetDisconnectSafeguard(bool enable);
+
+	virtual bool InstallRuntimeHook(const char* key);
+
+	virtual bool SetLimit(const char* limit, int value);
+
+	virtual bool SetWorldDefinition(const char* worldDefinition);
 };
 
 static GameSpecToHooks gameSpecEntry;
@@ -47,4 +54,28 @@ void GameSpecToHooks::SetHookCallback(uint32_t hookCallbackId, void(*callback)(v
 void GameSpecToHooks::SetDisconnectSafeguard(bool enable)
 {
 	::SetDisconnectSafeguard(enable);
+}
+
+bool GameSpecToHooks::InstallRuntimeHook(const char* key)
+{
+	RuntimeHookFunction::Run(key);
+
+	return true;
+}
+
+void AdjustLimit(std::string limit, int value);
+void SetWorldDefinition(std::string worldDefinition);
+
+bool GameSpecToHooks::SetLimit(const char* limit, int value)
+{
+	::AdjustLimit(limit, value);
+
+	return true;
+}
+
+bool GameSpecToHooks::SetWorldDefinition(const char* worldDefinition)
+{
+	::SetWorldDefinition(worldDefinition);
+
+	return true;
 }

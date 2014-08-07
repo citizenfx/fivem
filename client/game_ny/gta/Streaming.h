@@ -32,7 +32,7 @@ public:
 
 struct StreamingItem
 {
-	int pad;
+	int handle;
 	int blockSize;
 	rage::fiDevice* device;
 	uint32_t streamCounter;
@@ -41,13 +41,14 @@ struct StreamingItem
 	union
 	{
 		int fileStart;
-		const char* fileName;
+		char* fileName;
 	};
 
 	void completeRequest();
 };
 
 static StreamingItem*& g_streamingItems = *(StreamingItem**)0x184A2EC;
+static int& g_nextStreamingItem = *(int*)0x184A26C;
 static uint32_t& g_streamMask = *(uint32_t*)0x184A268;
 
 struct StreamRequestPage
@@ -81,6 +82,7 @@ struct StreamRequestExt : public StreamRequest
 	char* readBuffer;
 	uint32_t handle;
 	uint32_t lastAvailOut;
+	rage::fiDevice* device;
 
 	z_stream* strm;
 

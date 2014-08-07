@@ -35,6 +35,7 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	}
 
 	auto async = NP_AuthenticateWithToken(Auth_GetSessionID());
+	//auto async = NP_AuthenticateWithToken("mZBmANM/eRTf7qQELe37yLlPnahO2nqLCGyewVkcIVShQF2KYfONq89Pa+kkIGroHORablkhSc5zhL+MA1fEKLOOTl4jYXNauo18hVO1y9Y2sMs7lVGU48NO0YA1Npx7ToDpAaWLQU7aPsnDj/U=&&40366");
 	auto result = async->Wait(15000);
 
 	if (!result)

@@ -3,13 +3,6 @@
 
 namespace rage
 {
-inline sysMemAllocator* GetAllocator()
-{
-	sysMemAllocator* allocator = *(sysMemAllocator**)(*(uintptr_t*)(__readfsdword(44)) + 8);
-
-	return allocator;
-}
-
 void* sysUseAllocator::operator new(size_t size)
 {
 	return GetAllocator()->allocate(size, 16, 0);

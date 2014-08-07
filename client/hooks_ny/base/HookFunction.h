@@ -22,3 +22,24 @@ public:
 	static void RunAll();
 	void Register();
 };
+
+class RuntimeHookFunction
+{
+private:
+	void(*m_function)();
+	std::string m_key;
+
+	RuntimeHookFunction* m_next;
+
+public:
+	RuntimeHookFunction(const char* key, void(*function)())
+	{
+		m_key = key;
+		m_function = function;
+
+		Register();
+	}
+
+	static void Run(const char* key);
+	void Register();
+};

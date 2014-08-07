@@ -14,6 +14,13 @@ public:
 	// and a lot of other functions below that aren't needed right now
 };
 
+inline sysMemAllocator* GetAllocator()
+{
+	sysMemAllocator* allocator = *(sysMemAllocator**)(*(uintptr_t*)(__readfsdword(44)) + 8);
+
+	return allocator;
+}
+
 class GAMESPEC_EXPORT sysUseAllocator
 {
 public:

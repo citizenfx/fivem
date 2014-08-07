@@ -64,11 +64,14 @@ class fiStreamingDevice : public rage::fiDevice
 public:
 	uint32_t openBulkImpl(const char* fileName, uint64_t* ptr)
 	{
-		uint32_t handle = atoi(&fileName[8]);
+		uint32_t handle = _atoi64(&fileName[8]);
 
-		if (CImgManager::GetInstance()->fileDatas[handle].imgIndex != 0xFE)
+		if (handle < INT32_MAX)
 		{
-			return origOpenBulk(this, fileName, ptr);
+			if (CImgManager::GetInstance()->fileDatas[handle].imgIndex != 0xFE)
+			{
+				return origOpenBulk(this, fileName, ptr);
+			}
 		}
 
 		*ptr = 0;

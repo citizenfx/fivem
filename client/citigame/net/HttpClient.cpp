@@ -29,7 +29,7 @@ struct HttpClientRequestContext
 	std::string postData;
 	std::function<void(bool, std::string)> callback;
 
-	std::string resultData;
+	std::stringstream resultData;
 	char buffer[32768];
 
 	rage::fiDevice* outDevice;
@@ -155,7 +155,7 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 			{
 				ctx->buffer[length] = '\0';
 
-				ctx->resultData += ctx->buffer;
+				ctx->resultData << std::string(ctx->buffer, length);
 			}
 
 			if (length > 0)
@@ -167,7 +167,7 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 			}
 			else
 			{
-				ctx->DoCallback(true, ctx->resultData);
+				ctx->DoCallback(true, ctx->resultData.str());
 			}
 			
 			break;

@@ -2,7 +2,10 @@
 #include "ResourceManager.h"
 #include "DownloadMgr.h"
 #include "ResourceCache.h"
+#include "BoundStreaming.h"
 #include <Streaming.h>
+
+static bool _wbnMode;
 
 static HttpClient* httpClient;
 
@@ -156,7 +159,7 @@ uint32_t CitizenStreamingFile::InternalReadBulk(uint32_t handle, uint64_t ptr, v
 	overlapped->Offset = (ptr & 0xFFFFFFFF);
 	overlapped->OffsetHigh = ptr >> 32;
 
-	if (!ReadFile((HANDLE)handle, buffer, toRead, nullptr, overlapped))
+	if (!ReadFile((HANDLE)(handle & ~0x80000000), buffer, toRead, nullptr, overlapped))
 	{
 		int err = GetLastError();
 
@@ -197,6 +200,17 @@ void CitizenStreamingModule::ScanEntries()
 
 	for (auto& entry : entries)
 	{
+		if (_wbnMode)
+		{
+			if (entry.filename.substr(entry.filename.length() - 3) == "wbn")
+			{
+				int boundIndex = BoundStreaming::RegisterBound(entry.filename.c_str(), entry.size, entry.rscFlags, entry.rscVersion);
+
+				m_streamingFiles[0x80000000 | boundIndex] = std::make_shared<CitizenStreamingFile>(entry);
+				continue;
+			}
+		}
+
 		startIndex = imgManager->registerIMGFile(entry.filename.c_str(), 0, entry.size, 0xFE, startIndex, entry.rscVersion);
 
 		imgManager->fileDatas[startIndex].realSize = entry.rscFlags;
@@ -223,3 +237,10 @@ static InitFunction initFunction([] ()
 
 	CStreaming::SetStreamingModule(&streamingModule);
 });
+
+bool SetStreamingWbnMode(bool fs)
+{
+	_wbnMode = fs;
+
+	return fs;
+}

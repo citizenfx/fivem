@@ -673,6 +673,7 @@ void NetLibrary::SendOutOfBand(NetAddress& address, const char* format, ...)
 
 const char* NetLibrary::GetPlayerName()
 {
+	//return "hi";
 	return Auth_GetUsername();
 }
 

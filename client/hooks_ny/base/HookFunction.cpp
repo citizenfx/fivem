@@ -16,3 +16,22 @@ void HookFunction::RunAll()
 		func->m_function();
 	}
 }
+
+static RuntimeHookFunction* g_runtimeHookFunctions;
+
+void RuntimeHookFunction::Register()
+{
+	m_next = g_runtimeHookFunctions;
+	g_runtimeHookFunctions = this;
+}
+
+void RuntimeHookFunction::Run(const char* key)
+{
+	for (auto func = g_runtimeHookFunctions; func; func = func->m_next)
+	{
+		if (func->m_key == key)
+		{
+			func->m_function();
+		}
+	}
+}

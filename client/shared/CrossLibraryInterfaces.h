@@ -48,6 +48,12 @@ public:
 	virtual void SetHookCallback(uint32_t hookCallbackId, void(*callback)(void*)) = 0;
 
 	virtual void SetDisconnectSafeguard(bool enable) = 0;
+
+	virtual bool InstallRuntimeHook(const char* key) = 0;
+
+	virtual bool SetLimit(const char* limit, int value) = 0;
+
+	virtual bool SetWorldDefinition(const char* worldDefinition) = 0;
 };
 
 class HOOKS_EXPORT HooksDLLInterface

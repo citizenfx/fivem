@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_set>
+#include <mutex>
 #include "fiDevice.h"
 
 struct ResourceDownload
@@ -89,6 +90,8 @@ private:
 	std::unordered_map<std::string, CacheEntry> m_markList;
 
 	rage::fiDevice* m_cacheDevice;
+
+	std::mutex m_dataLock;
 
 private:
 	void AddEntry(std::string fileName, std::string resourceName, std::string hash);

@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "BoundStreaming.h"
 #include "sysAllocator.h"
 #include "DrawCommands.h"
 #include <unordered_set>
@@ -387,7 +388,7 @@ void ProcessEntityRequests()
 
 		if (done)
 		{
-			void* drawblDict = ((void*(*)(uint16_t))0x422070)(req.drawblDict);
+			void* drawblDict = ((void*(*)(uint32_t))0x422070)(req.drawblDict);
 			int inst = ((int(__thiscall*)(void*, uint32_t))0x908F80)(drawblDict, req.modelInfo->GetModelHash());
 
 			// add reference to drawable dict
@@ -426,6 +427,8 @@ void ProcessEntityRequests()
 			it++;
 		}
 	}
+
+	BoundStreaming::Process();
 }
 
 int WRAPPER DrawblDictGetUsage(int dict) { EAXJMP(0x4220A0); }
@@ -569,6 +572,13 @@ void __declspec(naked) SetModelIndexStub()
 
 CBaseModelInfo* GetModelInfoForEntity(CEntity* entity)
 {
+	if (entity->m_nModelIndex == 0xFFFF)
+	{
+		trace("RETURNED FAKE MODELINFO\n");
+
+		return ((CBaseModelInfo**)0x15F73B0)[1];
+	}
+
 	if (entity->m_nModelIndex >= 30999)
 	{
 		return g_entityExtensions[entity].modelInfo;
@@ -639,6 +649,22 @@ void __declspec(naked) RetModelInfoEsiEdi()
 		add esp, 4h
 
 		mov edi, eax
+		pop eax
+
+		retn
+	}
+}
+
+void __declspec(naked) RetModelInfoEbxEsi()
+{
+	__asm
+	{
+		push eax
+		push ebx
+		call GetModelInfoForEntity
+		add esp, 4h
+
+		mov esi, eax
 		pop eax
 
 		retn
@@ -919,6 +945,22 @@ void __declspec(naked) RetModelInfoEdiEcx()
 		pop ecx
 
 		mov edi, eax
+
+		retn
+	}
+}
+
+void __declspec(naked) RetModelInfoEcxEdi()
+{
+	__asm
+	{
+		push eax
+		push edi
+		call GetModelInfoForEntity
+		add esp, 4h
+
+		mov ecx, eax
+		pop eax
 
 		retn
 	}
@@ -1292,8 +1334,8 @@ void __fastcall RemoveModelInstanceLog(CBaseModelInfo* info)
 }
 
 
-
 static HookFunction hookModelInfoParents([] ()
+//static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
 {
 	/*hook::put(0xD7CD24, RemoveModelInstanceLog);
 	hook::jump(0x832C40, RequestModelStub);
@@ -1496,6 +1538,14 @@ static HookFunction hookModelInfoParents([] ()
 	// and even when the rest works, there's more
 	hook::nop(0x7D9BC6, 7);
 	hook::call(0x7D9BC6, RetModelInfoEsiEcx);
+
+	// this is new
+	hook::nop(0xCAEB92, 7);
+	hook::call(0xCAEB92, RetModelInfoEbxEsi);
+
+	// load scene?
+	hook::nop(0xB2B436, 7);
+	hook::call(0xB2B436, RetModelInfoEcxEdi);
 
 	// add reference to model index
 	//hook::nop(0x8C8F46, 7);

@@ -132,13 +132,17 @@ void ResourceCache::AddEntry(std::string fileName, std::string resourceName, std
 	LowerString(entry.filename);
 	LowerString(entry.hash);
 
+	m_dataLock.lock();
 	m_cache.push_back(entry);
 	m_cacheSet.insert(entry);
+	m_dataLock.unlock();
 }
 
 void ResourceCache::ClearMark()
 {
+	m_dataLock.lock();
 	m_markList.clear();
+	m_dataLock.unlock();
 }
 
 std::string ResourceCache::GetMarkedFilenameFor(std::string resource, std::string filename)
@@ -146,9 +150,15 @@ std::string ResourceCache::GetMarkedFilenameFor(std::string resource, std::strin
 	LowerString(resource);
 	LowerString(filename);
 
+	m_dataLock.lock();
+
 	auto& entry = m_markList[resource + "__" + filename];
 
-	return va("rescache:/%s_%s_%s", entry.filename.c_str(), entry.resource.c_str(), entry.hash.c_str());
+	const char* str = va("rescache:/%s_%s_%s", entry.filename.c_str(), entry.resource.c_str(), entry.hash.c_str());
+
+	m_dataLock.unlock();
+
+	return str;
 }
 
 void ResourceCache::MarkList(std::vector<ResourceData>& resourceList)

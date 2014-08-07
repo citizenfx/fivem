@@ -45,9 +45,13 @@ int GetTypeEnd(int type)
 {
 	return streamingTypes.types[type + 1].startIndex - 1;
 }
+
+extern char curImgLabel[256];
  
 static int RegisterFileName(const char* name, int type)
 {
+	name = curImgLabel;
+
 	int typeIdx = type / 100;
 	int modelIdx = streamingTypes.types[typeIdx].getIndexByName(name);
 
