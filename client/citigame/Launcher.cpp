@@ -12,17 +12,38 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
 
-	// first give the auth process a chance to run (CEF won't initialize if this has already happened)
-	Auth_RunProcess();
+	HANDLE authDialog = OpenMutex(SYNCHRONIZE, FALSE, L"CitizenAuthDialog");
+
+	if (authDialog)
+	{
+		// first give the auth process a chance to run (CEF won't initialize if this has already happened)
+		Auth_RunProcess();
+
+		CloseHandle(authDialog);
+	}
+
+	HANDLE gameMutex = OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX");
+	authDialog = CreateMutex(nullptr, TRUE, L"CitizenAuthDialog");
+
+	if (!gameMutex)
+	{
+		// do NP initialization
+		if (!Auth_VerifyIdentityEx("CitizenMP", true))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		CloseHandle(gameMutex);
+	}
+
+	CloseHandle(authDialog);
+
+	gameMutex = CreateMutex(nullptr, true, L"CitizenFX");
 
 	// now let NUI initialize (also do its process stuff if it is invoked, this should be done as early on as possible)
 	if (nui::OnPreLoadGame(cefSandbox))
-	{
-		return false;
-	}
-
-	// do NP initialization
-	if (!Auth_VerifyIdentityEx("CitizenMP", true))
 	{
 		return false;
 	}
