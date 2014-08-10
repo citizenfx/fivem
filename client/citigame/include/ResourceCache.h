@@ -96,6 +96,8 @@ private:
 private:
 	void AddEntry(std::string fileName, std::string resourceName, std::string hash);
 
+	bool ParseFileName(const char* inString, std::string& fileNameOut, std::string& resourceNameOut, std::string& hashOut);
+
 public:
 	ResourceDownload GetResourceDownload(const ResourceData& resource, const ResourceFile& file);
 

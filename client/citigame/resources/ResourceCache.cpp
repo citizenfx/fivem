@@ -6,7 +6,52 @@
 
 void ResourceCache::Initialize()
 {
-	
+	m_cache.reserve(15000);
+}
+
+bool ResourceCache::ParseFileName(const char* inString, std::string& fileNameOut, std::string& resourceNameOut, std::string& hashOut)
+{
+	// check if the file name meets the minimum length for there to be a hash
+	int length = strlen(inString);
+
+	if (length < 44)
+	{
+		return false;
+	}
+
+	// find the file extension
+	const char* dotPos = strchr(inString, '.');
+
+	if (!dotPos)
+	{
+		return false;
+	}
+
+	// find the first underscore following the file extension
+	const char* underscorePos = strchr(inString, '_');
+
+	if (!underscorePos)
+	{
+		return false;
+	}
+
+	// store the file name
+	fileNameOut = std::string(inString, underscorePos - inString);
+
+	// check if we have a hash
+	const char* hashStart = &inString[length - 41];
+
+	if (*hashStart != '_')
+	{
+		return false;
+	}
+
+	hashOut = hashStart + 1;
+
+	// then, make a string between the underscore and the hash
+	resourceNameOut = std::string(underscorePos + 1, hashStart - (underscorePos + 1));
+
+	return true;
 }
 
 void ResourceCache::LoadCache(rage::fiDevice* device)
@@ -21,24 +66,16 @@ void ResourceCache::LoadCache(rage::fiDevice* device)
 		return;
 	}
 
-	std::regex regex("(.+)\\.([^\\._]{3,5})_(.+)_([a-fA-F0-9]{40})");
-
 	do 
 	{
-		char resourceName[128];
-		char fileName[128];
-		char hash[48];
-	
-		std::cmatch results;
+		std::string resourceName;
+		std::string fileName;
+		std::string hash;
 
-		if (!std::regex_match(findData.fileName, results, regex))
+		if (!ParseFileName(findData.fileName, fileName, resourceName, hash))
 		{
 			continue;
 		}
-
-		StringCbPrintfA(fileName, sizeof(fileName), "%s.%s", results[1].str().c_str(), results[2].str().c_str());
-		StringCbCopyA(resourceName, sizeof(resourceName), results[3].str().c_str());
-		StringCbCopyA(hash, sizeof(hash), results[4].str().c_str());
 
 		AddEntry(fileName, resourceName, hash);
 	} while (device->findNext(handle, &findData));
