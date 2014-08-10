@@ -60,4 +60,7 @@ static HWND WINAPI CreateWindowExWCustom(DWORD dwExStyle, LPCWSTR lpClassName, L
 static HookFunction windowInit([] ()
 {
 	*(DWORD*)0xD4D3CC = (DWORD)CreateWindowExWCustom;
+
+	// default to non-fullscreen mode
+	hook::put<uint8_t>(0x796BEB, 1);
 });
