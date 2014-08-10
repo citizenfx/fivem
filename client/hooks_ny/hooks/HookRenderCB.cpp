@@ -35,10 +35,17 @@ static void __declspec(naked) InvokeEndSceneCBStub()
 	}
 }
 
-
-
 static HookFunction hookFunction([] ()
 {
+	static hook::inject_call<void, int> beginSceneCB(0x633403);
+	beginSceneCB.inject([] (int)
+	{
+		beginSceneCB.call();
+
+		HookCallbacks::RunCallback(StringHash("beginScene"), nullptr);
+	});
+
+
 	// end scene callback dc
 	hook::put(0x796B9E, InvokeEndSceneCBStub);
 
