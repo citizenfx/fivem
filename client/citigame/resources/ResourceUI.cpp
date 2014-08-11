@@ -18,6 +18,8 @@ bool ResourceUI::Create()
 	auto& metaData = m_resource->GetMetaData();
 	auto it = metaData.find("uiPage");
 
+	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), nui::GetSchemeHandlerFactory());
+
 	if (it == metaData.end())
 	{
 		return false;
@@ -27,7 +29,6 @@ bool ResourceUI::Create()
 
 	nui::CreateFrame(m_resource->GetName(), path);
 
-	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), nui::GetSchemeHandlerFactory());
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
 
 	return true;
