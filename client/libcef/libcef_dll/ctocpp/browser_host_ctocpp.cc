@@ -14,6 +14,7 @@
 #include "libcef_dll/cpptoc/run_file_dialog_callback_cpptoc.h"
 #include "libcef_dll/ctocpp/browser_ctocpp.h"
 #include "libcef_dll/ctocpp/browser_host_ctocpp.h"
+#include "libcef_dll/ctocpp/drag_data_ctocpp.h"
 #include "libcef_dll/ctocpp/request_context_ctocpp.h"
 #include "libcef_dll/transfer_util.h"
 
@@ -87,7 +88,7 @@ void CefBrowserHostCToCpp::CloseBrowser(bool force_close) {
       force_close);
 }
 
-void CefBrowserHostCToCpp::SetFocus(bool enable) {
+void CefBrowserHostCToCpp::SetFocus(bool focus) {
   if (CEF_MEMBER_MISSING(struct_, set_focus))
     return;
 
@@ -95,7 +96,18 @@ void CefBrowserHostCToCpp::SetFocus(bool enable) {
 
   // Execute
   struct_->set_focus(struct_,
-      enable);
+      focus);
+}
+
+void CefBrowserHostCToCpp::SetWindowVisibility(bool visible) {
+  if (CEF_MEMBER_MISSING(struct_, set_window_visibility))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->set_window_visibility(struct_,
+      visible);
 }
 
 CefWindowHandle CefBrowserHostCToCpp::GetWindowHandle() {
@@ -485,6 +497,83 @@ void CefBrowserHostCToCpp::HandleKeyEventAfterTextInputClient(
   // Execute
   struct_->handle_key_event_after_text_input_client(struct_,
       keyEvent);
+}
+
+void CefBrowserHostCToCpp::DragTargetDragEnter(CefRefPtr<CefDragData> drag_data,
+    const CefMouseEvent& event, DragOperationsMask allowed_ops) {
+  if (CEF_MEMBER_MISSING(struct_, drag_target_drag_enter))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: drag_data; type: refptr_same
+  DCHECK(drag_data.get());
+  if (!drag_data.get())
+    return;
+
+  // Execute
+  struct_->drag_target_drag_enter(struct_,
+      CefDragDataCToCpp::Unwrap(drag_data),
+      &event,
+      allowed_ops);
+}
+
+void CefBrowserHostCToCpp::DragTargetDragOver(const CefMouseEvent& event,
+    DragOperationsMask allowed_ops) {
+  if (CEF_MEMBER_MISSING(struct_, drag_target_drag_over))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->drag_target_drag_over(struct_,
+      &event,
+      allowed_ops);
+}
+
+void CefBrowserHostCToCpp::DragTargetDragLeave() {
+  if (CEF_MEMBER_MISSING(struct_, drag_target_drag_leave))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->drag_target_drag_leave(struct_);
+}
+
+void CefBrowserHostCToCpp::DragTargetDrop(const CefMouseEvent& event) {
+  if (CEF_MEMBER_MISSING(struct_, drag_target_drop))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->drag_target_drop(struct_,
+      &event);
+}
+
+void CefBrowserHostCToCpp::DragSourceEndedAt(int x, int y,
+    DragOperationsMask op) {
+  if (CEF_MEMBER_MISSING(struct_, drag_source_ended_at))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->drag_source_ended_at(struct_,
+      x,
+      y,
+      op);
+}
+
+void CefBrowserHostCToCpp::DragSourceSystemDragEnded() {
+  if (CEF_MEMBER_MISSING(struct_, drag_source_system_drag_ended))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->drag_source_system_drag_ended(struct_);
 }
 
 

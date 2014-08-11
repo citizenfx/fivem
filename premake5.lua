@@ -131,7 +131,7 @@
 		language "C++"
 		kind "StaticLib"
 		
-		defines { "USING_CEF_SHARED", "NOMINMAX" }
+		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32" }
 		
 		includedirs { ".", "client/libcef" }
 		

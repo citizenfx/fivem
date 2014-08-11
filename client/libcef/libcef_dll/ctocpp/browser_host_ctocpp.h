@@ -39,7 +39,8 @@ class CefBrowserHostCToCpp
   // CefBrowserHost methods
   virtual CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
   virtual void CloseBrowser(bool force_close) OVERRIDE;
-  virtual void SetFocus(bool enable) OVERRIDE;
+  virtual void SetFocus(bool focus) OVERRIDE;
+  virtual void SetWindowVisibility(bool visible) OVERRIDE;
   virtual CefWindowHandle GetWindowHandle() OVERRIDE;
   virtual CefWindowHandle GetOpenerWindowHandle() OVERRIDE;
   virtual CefRefPtr<CefClient> GetClient() OVERRIDE;
@@ -81,6 +82,14 @@ class CefBrowserHostCToCpp
       CefEventHandle keyEvent) OVERRIDE;
   virtual void HandleKeyEventAfterTextInputClient(
       CefEventHandle keyEvent) OVERRIDE;
+  virtual void DragTargetDragEnter(CefRefPtr<CefDragData> drag_data,
+      const CefMouseEvent& event, DragOperationsMask allowed_ops) OVERRIDE;
+  virtual void DragTargetDragOver(const CefMouseEvent& event,
+      DragOperationsMask allowed_ops) OVERRIDE;
+  virtual void DragTargetDragLeave() OVERRIDE;
+  virtual void DragTargetDrop(const CefMouseEvent& event) OVERRIDE;
+  virtual void DragSourceEndedAt(int x, int y, DragOperationsMask op) OVERRIDE;
+  virtual void DragSourceSystemDragEnded() OVERRIDE;
 };
 
 #endif  // USING_CEF_SHARED
