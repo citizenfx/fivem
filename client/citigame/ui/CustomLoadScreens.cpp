@@ -27,14 +27,14 @@ static InitFunction initFunction([] ()
 	{
 		g_netLibrary->RunFrame();
 
-		g_loadScreenMutex.lock();
+		/*g_loadScreenMutex.lock();
 
 		if (g_loadScreen.get())
 		{
 			g_loadScreen->UpdateFrame();
 		}
 
-		g_loadScreenMutex.unlock();
+		g_loadScreenMutex.unlock();*/
 	});
 
 	g_hooksDLL->SetHookCallback(StringHash("loadsClean"), [] (void*)

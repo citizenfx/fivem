@@ -682,8 +682,6 @@ static InitFunction initFunction([] ()
 				continue;
 			}
 
-			window->UpdateFrame();
-
 			if (window->GetTexture())
 			{
 				SetTextureGtaIm(window->GetTexture());
@@ -877,6 +875,19 @@ namespace nui
 		CefRegisterSchemeHandlerFactory("nui", "", g_shFactory);
 		//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
+
+		g_hooksDLL->SetHookCallback(StringHash("beginScene"), [] (void*)
+		{
+			if (g_nuiWindowsMutex.try_lock())
+			{
+				for (auto& window : g_nuiWindows)
+				{
+					window->UpdateFrame();
+				}
+
+				g_nuiWindowsMutex.unlock();
+			}
+		});
 
 		g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
 		{
