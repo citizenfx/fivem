@@ -86,8 +86,6 @@ LUA_FUNCTION(AddUIHandler)
 
 			lua_pop(m_luaState, 1);
 
-			trace("top: %d\n", lua_gettop(m_luaState));
-
 			STACK_CHECK;
 		});
 	});
