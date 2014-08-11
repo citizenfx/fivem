@@ -93,6 +93,13 @@ LUA_FUNCTION(ReadResourceFile)
 	return 1;
 }
 
+LUA_FUNCTION(GetCurrentResource)
+{
+	lua_pushstring(L, g_currentEnvironment->GetResource()->GetName().c_str());
+
+	return 1;
+}
+
 static int exports_index(lua_State* L)
 {
 	const char* index = luaL_checkstring(L, 2);
