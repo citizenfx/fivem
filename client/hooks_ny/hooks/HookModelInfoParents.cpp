@@ -1564,6 +1564,8 @@ static HookFunction hookModelInfoParents([] ()
 	hook::nop(0xB2B436, 7);
 	hook::call(0xB2B436, RetModelInfoEcxEdi);
 
+	// TODO: maybe 0x8DACCA callers too?
+
 	// add reference to model index
 	//hook::nop(0x8C8F46, 7);
 	hook::call(0x8C8F46, AddModelRefEsi);

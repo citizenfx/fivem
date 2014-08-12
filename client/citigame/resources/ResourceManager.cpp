@@ -180,6 +180,16 @@ void ResourceManager::ScanResources(std::vector<std::pair<fiDevice*, std::string
 	}
 }
 
+void ResourceManager::CleanUp()
+{
+	for (auto& resource : m_resources)
+	{
+		resource.second->Stop();
+	}
+
+	Reset();
+}
+
 void ResourceManager::Reset()
 {
 	m_stateNumber++;

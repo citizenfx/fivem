@@ -7,6 +7,7 @@ void GameFlags::ResetFlags()
 {
 	SetFlag(GameFlag::PlayerActivated, false);
 	SetFlag(GameFlag::NetworkWalkMode, true);
+	SetFlag(GameFlag::InstantSendPackets, true);
 }
 
 bool GameFlags::GetFlag(GameFlag flag)

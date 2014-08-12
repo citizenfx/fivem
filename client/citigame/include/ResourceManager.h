@@ -175,6 +175,8 @@ public:
 	void CancelEvent();
 
 	bool WasEventCanceled();
+
+	void CleanUp();
 	
 	void QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source);
 

@@ -177,7 +177,7 @@ int __stdcall XSocketRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr
 
 			*fromlen = sizeof(sockaddr_in);
 
-			trace("XSocketRecvFrom (from %i) %i bytes\n", netID, length);
+			//trace("XSocketRecvFrom (from %i) %i bytes\n", netID, length);
 
 			return min(len, length);
 		}
@@ -205,7 +205,7 @@ int __stdcall XSocketSendTo(SOCKET s, char * buf, int len, int flags, sockaddr *
 	{
 		sockaddr_in* toIn = (sockaddr_in*)to;
 
-		trace("XSocketSendTo (to %i) %i b\n", toIn->sin_addr.s_addr, len);
+		//trace("XSocketSendTo (to %i) %i b\n", toIn->sin_addr.s_addr, len);
 
 		g_netLibrary->RoutePacket(buf, len, (uint16_t)toIn->sin_addr.s_addr);
 

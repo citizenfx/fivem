@@ -3,11 +3,13 @@
 #include "GameInit.h"
 #include "DownloadMgr.h"
 #include "GameFlags.h"
+#include "ResourceManager.h"
 #include "../ui/CefOverlay.h"
 #include <yaml-cpp/yaml.h>
 #include <libnp.h>
 #include <base64.h>
 #include <mutex>
+#include <mmsystem.h>
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -122,7 +124,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			uint16_t netID = msg.Read<uint16_t>();
 			uint16_t rlength = msg.Read<uint16_t>();
 
-			trace("msgRoute from %d len %d\n", netID, rlength);
+			//trace("msgRoute from %d len %d\n", netID, rlength);
 
 			char routeBuffer[65536];
 			if (!msg.Read(routeBuffer, rlength))
@@ -185,6 +187,8 @@ void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 	routePacket.payload = packet;
 
 	m_incomingPackets.push(routePacket);
+
+	trace("incoming packet\n");
 }
 
 bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID)
@@ -282,12 +286,36 @@ void NetLibrary::HandleReliableCommand(uint32_t msgType, const char* buf, size_t
 	});
 }
 
+NetLibrary::RoutingPacket::RoutingPacket()
+{
+	//genTime = timeGetTime();
+	genTime = 0;
+}
+
 void NetLibrary::ProcessSend()
 {
 	// is it time to send a packet yet?
-	uint32_t diff = GetTickCount() - m_lastSend;
+	bool continueSend = false;
 
-	if (diff < (1000 / 40))
+	if (GameFlags::GetFlag(GameFlag::InstantSendPackets))
+	{
+		if (!m_outgoingPackets.empty())
+		{
+			continueSend = true;
+		}
+	}
+
+	if (!continueSend)
+	{
+		uint32_t diff = timeGetTime() - m_lastSend;
+
+		if (diff >= (1000 / 60))
+		{
+			continueSend = true;
+		}
+	}
+
+	if (!continueSend)
 	{
 		return;
 	}
@@ -312,7 +340,7 @@ void NetLibrary::ProcessSend()
 		msg.Write(packet.netID);
 		msg.Write<uint16_t>(packet.payload.size());
 
-		trace("sending msgRoute to %d len %d\n", packet.netID, packet.payload.size());
+		//trace("sending msgRoute to %d len %d\n", packet.netID, packet.payload.size());
 
 		msg.Write(packet.payload.c_str(), packet.payload.size());
 	}
@@ -349,7 +377,7 @@ void NetLibrary::ProcessSend()
 
 	m_netChannel.Send(msg);
 
-	m_lastSend = GetTickCount();
+	m_lastSend = timeGetTime();
 }
 
 void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
@@ -377,6 +405,32 @@ void GSClient_RunFrame();
 static std::string g_disconnectReason;
 
 static std::mutex g_netFrameMutex;
+
+void NetLibrary::PreProcessNativeNet()
+{
+	if (!g_netFrameMutex.try_lock())
+	{
+		return;
+	}
+
+	ProcessPackets();
+
+	g_netFrameMutex.unlock();
+}
+
+void NetLibrary::PostProcessNativeNet()
+{
+	if (!g_netFrameMutex.try_lock())
+	{
+		return;
+	}
+
+	ProcessSend();
+
+	g_netFrameMutex.unlock();
+
+	trace("net frame end\n");
+}
 
 void NetLibrary::RunFrame()
 {
@@ -613,6 +667,7 @@ void NetLibrary::FinalizeDisconnect()
 
 		GameFlags::ResetFlags();
 
+		TheResources.CleanUp();
 		TheDownloads.ReleaseLastServer();
 
 		m_connectionState = CS_IDLE;

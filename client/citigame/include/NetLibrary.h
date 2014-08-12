@@ -144,6 +144,9 @@ private:
 	{
 		uint16_t netID;
 		std::string payload;
+		uint32_t genTime;
+
+		RoutingPacket();
 	};
 
 private:
@@ -187,6 +190,10 @@ public:
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID);
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length);
+
+	virtual void PreProcessNativeNet();
+
+	virtual void PostProcessNativeNet();
 
 	void EnqueueRoutedPacket(uint16_t netID, std::string packet);
 

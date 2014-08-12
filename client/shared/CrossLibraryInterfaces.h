@@ -30,6 +30,11 @@ public:
 	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID) = 0;
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) = 0;
+
+	// to optimize sending/receiving location
+	virtual void PreProcessNativeNet() = 0;
+
+	virtual void PostProcessNativeNet() = 0;
 };
 
 struct WNDPROCARGS

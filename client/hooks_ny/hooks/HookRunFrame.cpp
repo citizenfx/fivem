@@ -19,4 +19,25 @@ static HookFunction hookFunction([] ()
 	{
 		runFrame();
 	});
+
+	static hook::inject_call<void, bool> processNetRegular(0x42131A);
+	processNetRegular.inject([] (bool a1)
+	{
+		g_netLibrary->PreProcessNativeNet();
+
+		processNetRegular.call(a1);
+
+		g_netLibrary->PostProcessNativeNet();
+	});
+
+	// for long-lasting loads
+	static hook::inject_call<void, bool> processNetLoader(0x41F652);
+	processNetLoader.inject([] (bool a1)
+	{
+		g_netLibrary->PreProcessNativeNet();
+
+		processNetLoader.call(a1);
+
+		g_netLibrary->PostProcessNativeNet();
+	});
 });
