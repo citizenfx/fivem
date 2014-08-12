@@ -22,7 +22,9 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 		CloseHandle(authDialog);
 	}
 
-	HANDLE gameMutex = OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX");
+	const wchar_t* mutexName = (wcsstr(GetCommandLine(), L"cl2")) ? L"CitizenFX2" : L"CitizenFX";
+
+	HANDLE gameMutex = OpenMutex(SYNCHRONIZE, FALSE, mutexName);
 	authDialog = CreateMutex(nullptr, TRUE, L"CitizenAuthDialog");
 
 	if (!gameMutex)
@@ -40,7 +42,7 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 	CloseHandle(authDialog);
 
-	gameMutex = CreateMutex(nullptr, true, L"CitizenFX");
+	gameMutex = CreateMutex(nullptr, true, mutexName);
 
 	// now let NUI initialize (also do its process stuff if it is invoked, this should be done as early on as possible)
 	if (nui::OnPreLoadGame(cefSandbox))
