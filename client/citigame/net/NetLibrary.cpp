@@ -428,8 +428,6 @@ void NetLibrary::PostProcessNativeNet()
 	ProcessSend();
 
 	g_netFrameMutex.unlock();
-
-	trace("net frame end\n");
 }
 
 void NetLibrary::RunFrame()

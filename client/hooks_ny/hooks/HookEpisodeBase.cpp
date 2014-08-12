@@ -23,4 +23,8 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(0x7BD423, 0xEB);
 	hook::nop(0x7BD466, 2);
 	hook::put<uint16_t>(0x7BD46E, 0xE990);
+
+	// DO YOU WANT TO PLAY THE NEWLY DOWNLOADED EPISODE????
+	// ^ patch that out
+	hook::jump(0x420986, 0x420A48);
 });

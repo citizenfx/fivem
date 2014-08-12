@@ -53,6 +53,9 @@ bool& dontProcessTheGame = *(bool*)0x18A8238;
 
 void GameInit::SetLoadScreens()
 {
+	// disable load screens if they're already ongoing
+	hook::put<uint8_t>(0x18A823A, 0);
+
 	((void(*)(int, int, int))0x423CE0)(0, 0, 0);
 	//((void(*)())0x423E60)();
 
@@ -182,4 +185,10 @@ static InitFunction initFunction([] ()
 
 	// LoadGameNow argument 'reload game fully, even if episodes didn't change' in one caller, to be specific the one we actually use indirectly above as the script flag uses it
 	hook::put<uint8_t>(0x420F91, true);
+
+	// don't load loadscreens at the start
+	hook::nop(0x4028CA, 5);
+
+	// don't wait for loadscreens at the start
+	hook::put<uint8_t>(0x402B49, 0xEB);
 });
