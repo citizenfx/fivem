@@ -187,8 +187,6 @@ void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 	routePacket.payload = packet;
 
 	m_incomingPackets.push(routePacket);
-
-	trace("incoming packet\n");
 }
 
 bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID)
