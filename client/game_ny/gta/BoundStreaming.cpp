@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "BoundStreaming.h"
 #include "Streaming.h"
+#include "Pool.h"
 
 struct BlockMap
 {
@@ -260,40 +261,6 @@ void __stdcall BoundStreaming::LoadAllObjectsTail(int)
 		Process();
 	}
 }
-
-class CPool
-{
-public:
-	void* m_pObjects;
-	char* m_pFlags;
-	int m_nCount;
-	int m_nEntrySize;
-	int m_nTop;
-	int m_nUsed;
-	bool m_bAllocated;
-
-public:
-	template <typename T>
-	T* GetAt(int index)
-	{
-		if (index >= m_nCount)
-		{
-			return nullptr;
-		}
-
-		if (m_pFlags[index] < 0)
-		{
-			return nullptr;
-		}
-
-		return (T*)(((char*)m_pObjects) + (index * m_nEntrySize));
-	}
-
-	int GetCount()
-	{
-		return m_nCount;
-	}
-};
 
 void BoundStreaming::ReleaseCollision(int id)
 {

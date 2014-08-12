@@ -4,6 +4,7 @@
 #include "DrawCommands.h"
 #include <unordered_set>
 #include <mutex>
+#include "Pool.h"
 
 #pragma comment(lib, "d3d9.lib")
 
@@ -254,8 +255,20 @@ struct CEntityExt
 	CBaseModelInfo* modelInfo;
 };
 
+static CPoolExtensions<CEntityExt, CEntity>* g_entityExtensions;
+
+static inline CPoolExtensions<CEntityExt, CEntity>* GetEntityExtensions()
+{
+	if (!g_entityExtensions)
+	{
+		g_entityExtensions = new CPoolExtensions<CEntityExt, CEntity>(CPools::GetBuildingPool());
+	}
+
+	return g_entityExtensions;
+}
+
 // TODO: allow attaching arbitrary components to entities
-static std::unordered_map<CEntity*, CEntityExt> g_entityExtensions;
+//static std::unordered_map<CEntity*, CEntityExt> g_entityExtensions;
 
 CBaseModelInfo* SetModelIndexHook(CEntity* entity, int modelIdx)
 {
@@ -270,7 +283,9 @@ CBaseModelInfo* SetModelIndexHook(CEntity* entity, int modelIdx)
 
 		entity->m_nModelIndex = 30999;
 
-		g_entityExtensions[entity].modelInfo = modelInfo.get();
+		auto entityExt = GetEntityExtensions()->GetAtPointer(entity);
+		entityExt->modelInfo = modelInfo.get();
+		//g_entityExtensions[entity].modelInfo = modelInfo.get();
 
 		return modelInfo.get();
 	}
@@ -310,10 +325,10 @@ static void DeferToNextFrame(std::function<void()> func)
 
 int RequestEntityModel(CEntity* entity)
 {
-	auto entityExt = g_entityExtensions[entity];
+	auto entityExt = GetEntityExtensions()->GetAtPointer(entity);
 
-	uint16_t txd = entityExt.modelInfo->GetTxd();
-	uint16_t drawblDict = entityExt.modelInfo->GetDrawblDict();
+	uint16_t txd = entityExt->modelInfo->GetTxd();
+	uint16_t drawblDict = entityExt->modelInfo->GetDrawblDict();
 
 	assert(drawblDict != 0xFFFF);
 
@@ -327,16 +342,16 @@ int RequestEntityModel(CEntity* entity)
 		RequestModel(drawblDict, *(int*)0xF272E4, 0);
 	}
 
-	if (m_requestExistenceSet.find(entityExt.modelInfo) == m_requestExistenceSet.end())
+	if (m_requestExistenceSet.find(entityExt->modelInfo) == m_requestExistenceSet.end())
 	{
 		//trace("request 0x%08x (drawable dict %s)\n", entityExt.modelInfo->GetModelHash(), GetStreamName(drawblDict, *(int*)0xF272E4).c_str());
 
 		EntityRequest req;
 		req.txd = txd;
 		req.drawblDict = drawblDict;
-		req.modelInfo = entityExt.modelInfo;
+		req.modelInfo = entityExt->modelInfo;
 		m_requestList.push_back(req);
-		m_requestExistenceSet.insert(entityExt.modelInfo);
+		m_requestExistenceSet.insert(entityExt->modelInfo);
 
 		m_dependencyDictEnts.insert(std::make_pair(drawblDict, entity));
 	}
@@ -581,7 +596,8 @@ CBaseModelInfo* GetModelInfoForEntity(CEntity* entity)
 
 	if (entity->m_nModelIndex >= 30999)
 	{
-		return g_entityExtensions[entity].modelInfo;
+		//return g_entityExtensions[entity].modelInfo;
+		return GetEntityExtensions()->GetAtPointer(entity)->modelInfo;
 	}
 
 	return ((CBaseModelInfo**)0x15F73B0)[entity->m_nModelIndex];
@@ -1006,7 +1022,8 @@ void AddEntityRef(CEntity* entity);
 
 void SetModelInfoAndSuch(CDrawEntityDC* dc)
 {
-	dc->modelInfo = g_entityExtensions[curEnt].modelInfo;
+	//dc->modelInfo = g_entityExtensions[curEnt].modelInfo;
+	dc->modelInfo = GetEntityExtensions()->GetAtPointer(curEnt)->modelInfo;
 
 	AddEntityRef(curEnt);
 }
@@ -1194,7 +1211,7 @@ static std::mutex g_removeRefMutex;
 void AddEntityRef(CEntity* entity)
 {
 	// TODO: cleanup (0x7B7240)
-	auto modelInfo = g_entityExtensions[entity].modelInfo;
+	auto modelInfo = GetEntityExtensions()->GetAtPointer(entity)->modelInfo;
 
 	if (modelInfo)
 	{
