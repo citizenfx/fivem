@@ -28,6 +28,7 @@
  * fpconv_* will around these issues with a translation buffer if required.
  */
 
+#include "StdInc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -126,7 +127,7 @@ double fpconv_strtod(const char *nptr, char **endptr)
     /* Duplicate number into buffer */
     if (buflen >= FPCONV_G_FMT_BUFSIZE) {
         /* Handle unusually large numbers */
-        buf = malloc(buflen + 1);
+        buf = (char*)malloc(buflen + 1);
         if (!buf) {
             fprintf(stderr, "Out of memory");
             abort();

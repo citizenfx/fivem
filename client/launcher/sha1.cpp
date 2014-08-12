@@ -29,6 +29,7 @@
  *
  */
 
+#include "StdInc.h"
 #include "sha1.h"
 
 /*

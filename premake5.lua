@@ -8,7 +8,7 @@
 		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", os.getenv("BOOST_ROOT") }
 		
 		libdirs { "deplibs/lib/" }
-	
+		
 		configuration "Debug*"
 			targetdir "bin/debug"
 			defines "NDEBUG"
@@ -37,6 +37,9 @@
 			"client/common/Error.cpp"
 		}
 		
+		pchsource "client/launcher/StdInc.cpp"
+		pchheader "StdInc.h"
+		
 		libdirs { "client/libcef/lib/" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
@@ -59,7 +62,7 @@
 		
 		files
 		{
-			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c"
+			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
 		links { "Shared", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp" }
@@ -70,6 +73,9 @@
 		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
+		
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
 		
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
@@ -90,12 +96,15 @@
 		
 		defines "COMPILING_GAMESPEC"
 		
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+		
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "../vendor/zlib/" }
 		
 			files
 			{
-				"client/game_ny/**.cpp", "client/game_ny/**.h", "client/common/Error.cpp"
+				"client/game_ny/**.cpp", "client/game_ny/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
 			}
 			
 	project "HooksNY"
@@ -105,10 +114,14 @@
 		
 		links { "Shared", "GameNY", "ws2_32" }
 		
-		defines "COMPILING_HOOKS"		
+		defines "COMPILING_HOOKS"	
+
+		pchsource "client/hooks_ny/base/StdInc.cpp"
+		pchheader "StdInc.h"		
 		
 		configuration "* NY"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
+			
 			files
 			{
 				"client/hooks_ny/**.cpp", "client/hooks_ny/**.h", "client/common/Error.cpp"

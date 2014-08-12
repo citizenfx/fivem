@@ -36,13 +36,18 @@
  *       difficult to know object/array sizes ahead of time.
  */
 
+#include "StdInc.h"
 #include <assert.h>
 #include <string.h>
 #include <math.h>
 #include <float.h>
 #include <limits.h>
+
+extern "C"
+{
 #include <lua.h>
 #include <lauxlib.h>
+};
 
 #include "strbuf.h"
 #include "fpconv.h"
@@ -201,7 +206,7 @@ static json_config_t *json_fetch_config(lua_State *l)
 {
     json_config_t *cfg;
 
-    cfg = lua_touserdata(l, lua_upvalueindex(1));
+    cfg = (json_config_t*)lua_touserdata(l, lua_upvalueindex(1));
     if (!cfg)
         luaL_error(l, "BUG: Unable to fetch CJSON configuration");
 
@@ -368,7 +373,7 @@ static int json_destroy_config(lua_State *l)
 {
     json_config_t *cfg;
 
-    cfg = lua_touserdata(l, 1);
+	cfg = (json_config_t*)lua_touserdata(l, 1);
     if (cfg)
         strbuf_free(&cfg->encode_buf);
     cfg = NULL;
@@ -381,7 +386,7 @@ static void json_create_config(lua_State *l)
     json_config_t *cfg;
     int i;
 
-    cfg = lua_newuserdata(l, sizeof(*cfg));
+	cfg = (json_config_t*)lua_newuserdata(l, sizeof(*cfg));
 
     /* Create GC method to clean up strbuf */
     lua_newtable(l);
@@ -1407,7 +1412,7 @@ static int lua_cjson_safe_new(lua_State *l)
     return 1;
 }
 
-int luaopen_cjson(lua_State *l)
+extern "C" int luaopen_cjson(lua_State *l)
 {
     lua_cjson_new(l);
 

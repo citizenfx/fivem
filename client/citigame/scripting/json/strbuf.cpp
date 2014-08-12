@@ -22,6 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "StdInc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -58,7 +59,7 @@ void strbuf_init(strbuf_t *s, int len)
     s->reallocs = 0;
     s->debug = 0;
 
-    s->buf = malloc(size);
+    s->buf = (char*)malloc(size);
     if (!s->buf)
         die("Out of memory");
 
@@ -69,7 +70,7 @@ strbuf_t *strbuf_new(int len)
 {
     strbuf_t *s;
 
-    s = malloc(sizeof(strbuf_t));
+    s = (strbuf_t*)malloc(sizeof(strbuf_t));
     if (!s)
         die("Out of memory");
 
@@ -173,7 +174,7 @@ void strbuf_resize(strbuf_t *s, int len)
     }
 
     s->size = newsize;
-    s->buf = realloc(s->buf, s->size);
+    s->buf = (char*)realloc(s->buf, s->size);
     if (!s->buf)
         die("Out of memory");
     s->reallocs++;
@@ -221,12 +222,12 @@ void strbuf_append_fmt(strbuf_t *s, int len, const char *fmt, ...)
 void strbuf_append_fmt_retry(strbuf_t *s, const char *fmt, ...)
 {
     va_list arg;
-    int fmt_len, try;
+    int fmt_len, try_;
     int empty_len;
 
     /* If the first attempt to append fails, resize the buffer appropriately
      * and try again */
-    for (try = 0; ; try++) {
+    for (try_ = 0; ; try_++) {
         va_start(arg, fmt);
         /* Append the new formatted string */
         /* fmt_len is the length of the string required, excluding the
@@ -238,7 +239,7 @@ void strbuf_append_fmt_retry(strbuf_t *s, const char *fmt, ...)
 
         if (fmt_len <= empty_len)
             break;  /* SUCCESS */
-        if (try > 0)
+        if (try_ > 0)
             die("BUG: length of formatted string changed");
 
         strbuf_resize(s, s->length + fmt_len);
