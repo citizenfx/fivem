@@ -146,7 +146,11 @@
 		
 		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32" }
 		
+		flags { "NoIncrementalLink", "NoMinimalRebuild" }
+		
 		includedirs { ".", "client/libcef" }
+		
+		buildoptions "/MP"
 		
 		files
 		{
