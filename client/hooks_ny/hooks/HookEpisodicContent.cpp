@@ -150,7 +150,8 @@ static HookFunction hookFunction([] ()
 	hook::nop(0x4207CB, 5); // reload
 
 	// ignore unknown check regarding loading type causing scripts to not process
-	hook::nop(0x42024F, 2);
+	// don't mind that, that was just hookin' stupidity
+	//hook::nop(0x42024F, 2);
 
 	// ignore weird episode shit
 	hook::put<uint8_t>(0x42072C, 0xEB);

@@ -26,5 +26,8 @@ static HookFunction hookFunction([] ()
 
 	// DO YOU WANT TO PLAY THE NEWLY DOWNLOADED EPISODE????
 	// ^ patch that out
-	hook::jump(0x420986, 0x420A48);
+	hook::jump(0x42098B, 0x420A48);
+
+	// we however need to follow the esi == 7 path anyway, or the game will break badly
+	hook::nop(0x420ADC, 2);
 });
