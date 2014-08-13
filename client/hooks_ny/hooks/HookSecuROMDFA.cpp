@@ -42,41 +42,6 @@ DWORD SetFilePointerHook(HANDLE hFile, LONG dtm, PLONG dtmHigh, DWORD mm)
 	return SetFilePointer(hFile, dtm, dtmHigh, mm);
 }
 
-DEFINE_INJECT_HOOK(createFileHook, 0xD2F994)
-{
-	return JumpTo((DWORD)CreateFileHook);
-}
-
-DEFINE_INJECT_HOOK(closeHandleHook, 0xD2FB2C)
-{
-	return JumpTo((DWORD)CloseHandleHook);
-}
-
-DEFINE_INJECT_HOOK(setFilePointerHook, 0xD2FB53)
-{
-	return JumpTo((DWORD)SetFilePointerHook);
-}
-
-DEFINE_INJECT_HOOK(getFileSizeExHook, 0xD2FBA2)
-{
-	return JumpTo((DWORD)GetFileSizeExHook);
-}
-
-DEFINE_INJECT_HOOK(readFileHook, 0xD2F9F9)
-{
-	return JumpTo((DWORD)ReadFileHook);
-}
-
-DEFINE_INJECT_HOOK(dfaJumpHook1, 0x5AAF57)
-{
-	return JumpTo(0x5AB077);
-}
-
-DEFINE_INJECT_HOOK(dfaJumpHook2, 0x5AB11B)
-{
-	return JumpTo(0x5AB23B);
-}
-
 static HookFunction hookFunction([] ()
 {
 	// DFA init call (needs to return 1 as int or a RMN60 error will be shown)
@@ -87,11 +52,12 @@ static HookFunction hookFunction([] ()
 	});
 
 	// DFA call hooks
-	createFileHook.inject();
-	closeHandleHook.inject();
-	setFilePointerHook.inject();
-	getFileSizeExHook.inject();
-	readFileHook.inject();
-	dfaJumpHook1.inject();
-	dfaJumpHook2.inject();
+	hook::jump(0xD2F994, CreateFileHook);
+	hook::jump(0xD2FB2C, CloseHandleHook);
+	hook::jump(0xD2FB53, SetFilePointerHook);
+	hook::jump(0xD2FBA2, GetFileSizeExHook);
+	hook::jump(0xD2F9F9, ReadFileHook);
+
+	hook::jump(0x5AAF57, 0x5AB077);
+	hook::jump(0x5AB11B, 0x5AB23B);
 });
