@@ -570,7 +570,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	wideHostname[255] = L'\0';
 
-	static std::wstring wideHostnameStr = wideHostname;
+	std::wstring wideHostnameStr = wideHostname;
 
 	static std::map<std::string, std::string> postMap;
 	postMap["method"] = "initConnect";
@@ -581,9 +581,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	postMap["guid"] = va("%lld", npID);
 
-	static uint16_t capturePort = port;
+	uint16_t capturePort = port;
 
-	static std::function<void(bool, std::string)> handleAuthResult = [&] (bool result, std::string connData) mutable
+	static std::function<void(bool, std::string)> handleAuthResult;
+	handleAuthResult = [=] (bool result, std::string connData) mutable
 	{
 		if (!result)
 		{
@@ -618,11 +619,15 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				}
 				else
 				{
+					postMap.erase("authTicket");
+
 					GlobalError("you're so screwed, the server still asked for an auth ticket even though we gave them one");
 				}
 
 				return;
 			}
+
+			postMap.erase("authTicket");
 
 			if (node["error"].IsDefined())
 			{
