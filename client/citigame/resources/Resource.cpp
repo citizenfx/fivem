@@ -126,17 +126,18 @@ void Resource::Stop()
 
 	if (m_dependants.size())
 	{
-		trace("Could not stop resource %s because the following resources depend on it: ", m_name.c_str());
+		// copy the list so we won't break iterators by doing RemoveDependant
+		auto dependants = m_dependants;
 
-		for (auto& dep : m_dependants)
+		for (auto& dep : dependants)
 		{
-			trace("%s ", dep.c_str());
+			auto resource = TheResources.GetResource(std::string(dep));
+
+			resource->Stop();
 		}
-
-		trace("\n");
-
-		return;
 	}
+
+	m_dependants.clear();
 
 	for (auto& dep : m_dependencies)
 	{
@@ -216,7 +217,10 @@ std::string Resource::CallRef(int luaRef, std::string& argsSerialized)
 
 void Resource::RemoveRef(int luaRef)
 {
-	m_scriptEnvironment->RemoveRef(luaRef);
+	if (m_scriptEnvironment.get())
+	{
+		m_scriptEnvironment->RemoveRef(luaRef);
+	}
 }
 
 bool Resource::HasExport(std::string& exportName)
