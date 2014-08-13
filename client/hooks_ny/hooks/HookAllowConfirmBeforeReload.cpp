@@ -27,7 +27,7 @@ static HookFunction hookFunction([] ()
 		}
 	});
 
-	static hook::inject_call<void, int> leaveGameCall(0xB56F00);
+	static hook::inject_call<void, int> leaveGameCall(0xB5F600);
 
 	leaveGameCall.inject([] (int)
 	{
