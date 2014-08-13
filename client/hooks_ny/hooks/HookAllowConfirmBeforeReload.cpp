@@ -26,4 +26,13 @@ static HookFunction hookFunction([] ()
 			injectCall.call();
 		}
 	});
+
+	static hook::inject_call<void, int> leaveGameCall(0xB56F00);
+
+	leaveGameCall.inject([] (int)
+	{
+		HookCallbacks::RunCallback(StringHash("msgConfirm"), nullptr);
+
+		leaveGameCall.call();
+	});
 });
