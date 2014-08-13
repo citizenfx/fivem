@@ -328,14 +328,7 @@ bool DownloadManager::Process()
 					resource.SetProcessed();
 				}
 
-				// and start all of them!
-				for (auto& resource : loadedResources)
-				{
-					if (resource->GetState() == ResourceStateStopped)
-					{
-						resource->Start();
-					}
-				}
+				m_loadedResources = loadedResources;
 
 				m_downloadState = DS_DONE;
 			}

@@ -479,12 +479,17 @@ void NetLibrary::RunFrame()
 
 				TheDownloads.SetServer(m_currentServer);
 
+				// unlock the mutex as we'll reenter here
+				g_netFrameMutex.unlock();
+
 				while (!TheDownloads.Process())
 				{
 					HANDLE hThread = GetCurrentThread();
 
 					MsgWaitForMultipleObjects(1, &hThread, TRUE, 15, 0);
 				}
+
+				g_netFrameMutex.lock();
 
 				GameInit::ReloadGame();
 			}
@@ -668,6 +673,8 @@ void NetLibrary::FinalizeDisconnect()
 
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
+
+		GameInit::MurderGame();
 	}
 }
 

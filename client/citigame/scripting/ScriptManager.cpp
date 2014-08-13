@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include "ResourceManager.h"
 #include "scrEngine.h"
+#include "NetLibrary.h"
+#include "../net/DownloadMgr.h"
 
 GtaThread* TheScriptManager;
 
@@ -27,6 +29,18 @@ ScriptManager::ScriptManager()
 
 void ScriptManager::DoRun()
 {
+	/*if (g_netLibrary->IsDisconnected())
+	{
+		int ped;
+		int player;
+
+		player = NativeInvoke::Invoke<0x62E319C6, int>(); // GET_PLAYER_ID
+
+		NativeInvoke::Invoke<0x511454A9, int>(player, &ped); // GET_PLAYER_CHAR
+
+		NativeInvoke::Invoke<0x689D0F5F, int>(ped, 9000.f, 9000.f, 200.f); // SET_CHAR_COORDINATES
+	}*/
+
 	if (m_errorState)
 	{
 		return;
@@ -55,6 +69,19 @@ rage::eThreadState ScriptManager::Reset(uint32_t scriptHash, void* pArgs, uint32
 
 	std::string lovely = "lovely";
 	TheResources.GetResource(lovely)->Start();*/
+
+	auto& loadedResources = TheDownloads.GetLoadedResources();
+
+	// and start all of them!
+	for (auto& resource : loadedResources)
+	{
+		if (resource->GetState() == ResourceStateStopped)
+		{
+			resource->Start();
+		}
+	}
+
+	TheDownloads.ClearLoadedResources();
 
 	ScriptEnvironment::SignalScriptReset.emit();
 	m_errorState = false;

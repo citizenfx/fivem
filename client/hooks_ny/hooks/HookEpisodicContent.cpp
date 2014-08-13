@@ -158,6 +158,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(0x420780, 0xEB);
 
 	// or these for the above
-	hook::nop(0x420652, 6);
-	hook::nop(0x42065C, 6);
+	// actually not, this is important
+	//hook::nop(0x420652, 6);
+	//hook::nop(0x42065C, 6);
 });

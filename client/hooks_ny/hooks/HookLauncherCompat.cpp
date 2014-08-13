@@ -13,9 +13,6 @@ static HookFunction hookFunction([] ()
 	// /GS check
 	//hook::return_function(0xD0CDB8);
 
-	// TEMPTEMPTEMP: stuff for debugging a crash I was having (this byte ended up being interpreted as 'pop esp', which broke analysis)
-	hook::put<uint8_t>(0xEBF024, 0xCC);
-
 	// is non-writable check
 	isNonWritableHook.inject();
 

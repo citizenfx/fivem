@@ -51,14 +51,9 @@ static DWORD WINAPI NewThreadStart(LPVOID arg)
 	return origStart(arg);
 }
 
-DEFINE_INJECT_HOOK(passArgumentHook, 0x5A8814)
-{
-	return JumpTo((uintptr_t)PassNewArgument);
-}
-
 static HookFunction hookFunction([] ()
 {
-	passArgumentHook.injectCall();
+	hook::call(0x5A8814, PassNewArgument);
 
 	origStart = *(LPTHREAD_START_ROUTINE*)(0x5A882D);
 	hook::put(0x5A882D, NewThreadStart);

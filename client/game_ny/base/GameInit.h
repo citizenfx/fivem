@@ -13,6 +13,8 @@ public:
 
 	static void ReloadGame();
 
+	static void MurderGame();
+
 	static void KillNetwork(const wchar_t* reason);
 
 	static void PrepareSwitchToCustomLoad(rage::grcTexture* texture);

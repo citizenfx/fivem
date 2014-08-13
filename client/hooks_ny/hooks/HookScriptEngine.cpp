@@ -11,4 +11,7 @@ static HookFunction hookFunction([] ()
 
 		HookCallbacks::RunCallback(StringHash("scrInit"), nullptr);
 	});
+
+	// ignore startup/network_startup
+	hook::put<uint8_t>(0x809A81, 0xEB);
 });

@@ -52,16 +52,11 @@ void FindGameStuff(int, int, int, int)
 	}
 }
 
-DEFINE_INJECT_HOOK(networkFindGamesHook, 0x461850)
-{
-	return JumpTo((DWORD)FindGameStuff);
-}
-
 static HookFunction hookFunction([] ()
 {
 	hook::nop(0x462981, 10); // set_server_id overwrite stuff
 
-	networkFindGamesHook.inject();
+	hook::jump(0x461850, FindGameStuff);
 
 	// force lan session:
 	hook::put<uint8_t>(0x1724426, 1); // lan session flag

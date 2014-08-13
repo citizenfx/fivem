@@ -1,10 +1,8 @@
 #include "StdInc.h"
 
-DEFINE_INJECT_HOOK(status2AlHook, 0x75DEDE)
+static int return1()
 {
-	Eax(1);
-
-	return DoNowt();
+	return 1;
 }
 
 static HookFunction hookFunction([] ()
@@ -16,5 +14,5 @@ static HookFunction hookFunction([] ()
 		return 1;
 	});
 
-	status2AlHook.injectCall();
+	hook::call(0x75DEDE, return1);
 });

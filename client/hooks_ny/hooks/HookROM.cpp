@@ -58,13 +58,9 @@ static HWND CreateROMWindow()
 	return hWnd;
 }
 
-DEFINE_INJECT_HOOK(sendMessageBit, 0x79EF7D)
+void __stdcall SendMessageFakie(int, int, int, int)
 {
-	// 'pop' the stack parameters
-	Esp(Esp() + 16);
 
-	// and return to the base pointer + 6
-	return JumpTo(0x79EF7D + 6);
 }
 
 static HookFunction hookFunction([] ()
@@ -76,7 +72,8 @@ static HookFunction hookFunction([] ()
 	hook::put<HWND>(0x1724234, CreateROMWindow());
 
 	// SendMessage call to this window that ends up freezing the audio update thread and resulting in a deadlock
-	sendMessageBit.inject();
+	hook::nop(0x79EF7D, 6);
+	hook::call(0x79EF7D, SendMessageFakie);
 
 	// no idea how related this is to this file, but still putting it here: some entity-related function which sometimes ends up looping infinitely
 	// this patch has no apparent side effects; forces only one iteration to run

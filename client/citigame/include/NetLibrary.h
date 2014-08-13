@@ -213,6 +213,8 @@ public:
 	bool ProcessPreGameTick();
 	
 	static void AddReliableHandler(const char* type, ReliableHandlerType function);
+
+	inline bool IsDisconnected() { return m_connectionState == CS_IDLE; }
 };
 
 extern NetLibrary* g_netLibrary;

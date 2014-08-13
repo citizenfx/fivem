@@ -3,6 +3,7 @@
 #include "NetLibrary.h"
 #include "ResourceCache.h"
 #include "fiDevice.h"
+#include "ResourceManager.h"
 #include <memory>
 
 class ResourceData;
@@ -30,6 +31,8 @@ private:
 	std::shared_ptr<ResourceDownload> m_currentDownload;
 
 	std::vector<StreamingResource> m_streamingFiles;
+
+	std::list<std::shared_ptr<Resource>> m_loadedResources;
 
 	enum DownloadState
 	{
@@ -61,6 +64,10 @@ public:
 
 public:
 	inline std::vector<StreamingResource>& GetStreamingFiles() { return m_streamingFiles; }
+
+	inline std::list<std::shared_ptr<Resource>>& GetLoadedResources() { return m_loadedResources; }
+
+	inline void ClearLoadedResources() { m_loadedResources.clear(); }
 };
 
 extern DownloadManager TheDownloads;

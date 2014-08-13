@@ -158,12 +158,21 @@ bool& reloadGameNextFrame = *(bool*)0x10F8074;
 
 void GameInit::ReloadGame()
 {
+	//((void(*)())0x40ACE0)();
+	//((void(*)())0x40B180)();
+
 	reloadGameNextFrame = true;
 }
 
 static void ToggleBackGameProcess()
 {
 	dontProcessTheGame = false;
+}
+
+void GameInit::MurderGame()
+{
+	// unload streamed fonts
+	((void(*)())0x7F9260)();
 }
 
 static InitFunction initFunction([] ()
@@ -191,4 +200,7 @@ static InitFunction initFunction([] ()
 
 	// don't wait for loadscreens at the start
 	hook::put<uint8_t>(0x402B49, 0xEB);
+
+	// always redo game object variables
+	hook::nop(0x4205C5, 2);
 });

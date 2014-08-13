@@ -1350,6 +1350,14 @@ void __fastcall RemoveModelInstanceLog(CBaseModelInfo* info)
 	return ((void(__thiscall*)(CBaseModelInfo*))0x98E6B0)(info);
 }
 
+void CleanModelIndices()
+{
+	g_modelInfos.clear();
+	g_modelInfoIdxTable.clear();
+	m_dependencyDrawableDicts.clear();
+
+	m_requestList.clear();
+}
 
 static HookFunction hookModelInfoParents([] ()
 //static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
@@ -1611,6 +1619,9 @@ static HookFunction hookModelInfoParents([] ()
 
 	// draw entity dc tail
 	hook::jump(0x7BFCF7, DrawEntityDCTail);
+
+	// clean model indices
+	hook::jump(0xB597B1, CleanModelIndices);
 
 	// temp dbg: relocate datBase vtable
 	/*char* newDatBase = new char[1024];

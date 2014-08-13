@@ -8,23 +8,32 @@ bool IsSafeScriptVTable(uint32_t vTable)
 	return (vTable != gtaThreadVTable);
 }
 
-DEFINE_INJECT_HOOK(preTickCheck, 0x5A6040)
+static rage::eThreadState ScriptTickDo(rage::scrThread* thread, int time)
 {
-	rage::scrThread* thread = reinterpret_cast<rage::scrThread*>(Ecx());
-
-	if (IsSafeScriptVTable(Edx()))
+	if (IsSafeScriptVTable(*(uint32_t*)thread))
 	{
-		thread->Tick(Edi());
+		thread->Tick(time);
 	}
 
-	Eax(thread->GetContext()->State);
+	return thread->GetContext()->State;
+}
 
-	return DoNowt();
+static void __declspec(naked) ScriptTick()
+{
+	__asm
+	{
+		push edi
+		push ecx
+		call ScriptTickDo
+		add esp, 8h
+
+		retn
+	}
 }
 
 static HookFunction hookFunction([] ()
 {
-	preTickCheck.injectCall();
+	hook::call(0x5A6040, ScriptTick);
 	hook::nop(0x5A6045, 1);
 
 	gtaThreadVTable = 0xDAE9C4;
