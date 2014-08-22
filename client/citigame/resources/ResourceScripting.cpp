@@ -636,4 +636,17 @@ static InitFunction initFunction([] ()
 			*instance = g_currentEnvironment->GetMissionCleanup();
 		}
 	});
+
+	g_hooksDLL->SetHookCallback(StringHash("mCleanupT"), [] (void*)
+	{
+		TheResources.ForAllResources([] (std::shared_ptr<Resource> resource)
+		{
+			if (resource->GetState() != ResourceStateRunning)
+			{
+				return;
+			}
+
+			resource->GetScriptEnvironment()->GetMissionCleanup()->CheckIfCollisionHasLoadedForMissionObjects();
+		});
+	});
 });

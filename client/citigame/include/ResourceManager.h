@@ -131,6 +131,8 @@ public:
 	inline std::vector<std::string>& GetScripts() { return m_scripts; }
 
 	inline std::vector<rage::fiPackfile*>& GetPackFiles() { return m_packFiles; }
+
+	inline std::shared_ptr<ScriptEnvironment> GetScriptEnvironment() { return m_scriptEnvironment; }
 };
 
 struct QueuedScriptEvent
@@ -179,6 +181,8 @@ public:
 	void CleanUp();
 	
 	void QueueEvent(std::string& eventName, std::string& argsSerialized, uint64_t source);
+
+	void ForAllResources(std::function<void(std::shared_ptr<Resource>)> cb);
 
 	ResourceCache* GetCache();
 

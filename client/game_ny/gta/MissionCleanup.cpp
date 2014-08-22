@@ -19,6 +19,19 @@ WRAPPER CMissionCleanup::~CMissionCleanup()
 
 void WRAPPER CMissionCleanup::CleanUp(GtaThread* scriptThread) { PURECALL(); }
 
+// skip any early jump placed on here
+void WRAPPER CMissionCleanup::CheckIfCollisionHasLoadedForMissionObjects()
+{
+	__asm
+	{
+		sub esp, 8
+		push ebx
+		push ebp
+	}
+
+	EAXJMP(0x9282D5);
+}
+
 void CMissionCleanup::Initialize()
 {
 	

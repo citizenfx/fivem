@@ -190,6 +190,14 @@ void ResourceManager::CleanUp()
 	Reset();
 }
 
+void ResourceManager::ForAllResources(std::function<void(std::shared_ptr<Resource>)> cb)
+{
+	for (auto& resource : m_resources)
+	{
+		cb(resource.second);
+	}
+}
+
 void ResourceManager::Reset()
 {
 	m_stateNumber++;

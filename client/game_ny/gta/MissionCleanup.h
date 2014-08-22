@@ -34,4 +34,6 @@ public:
 	virtual void CleanUp(GtaThread* scriptThread);
 
 	void Initialize();
+
+	void CheckIfCollisionHasLoadedForMissionObjects();
 };

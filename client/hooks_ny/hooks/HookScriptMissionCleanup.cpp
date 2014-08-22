@@ -71,6 +71,11 @@ static void __declspec(naked) CMissionCleanup__CheckIfCollisionHasLoadedForMissi
 	}
 }
 
+static void RunMissionCleanupCollisionChecks()
+{
+	HookCallbacks::RunCallback(StringHash("mCleanupT"), nullptr);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// mission cleanup 'add script entry'
@@ -81,4 +86,14 @@ static HookFunction hookFunction([] ()
 
 	// mission cleanup 'check collision'
 	hook::jump(0x9282D0, CMissionCleanup__CheckIfCollisionHasLoadedForMissionObjects_pre);
+
+	// per-tick mission cleanup collision check
+	static hook::inject_call<void, int> scriptTickCollision(0x80A04C);
+
+	scriptTickCollision.inject([] (int)
+	{
+		RunMissionCleanupCollisionChecks();
+
+		scriptTickCollision.call();
+	});
 });
