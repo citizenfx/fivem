@@ -36,4 +36,7 @@ static HookFunction hookFunction([] ()
 	*(DWORD*)(0x5A9509) += 90 * 1024 * 1024;
 	*(DWORD*)(0x5A951B) += 90 * 1024 * 1024;
 	*(DWORD*)(0x5A9554) += 90 * 1024 * 1024;
+
+	// increase allowed amount of filesystem mounts (fixes CreatePlayer exception @ 0x69ECB2 due to player:/ not being mounted)
+	hook::put(0x4022E6, 256); // was 64
 });
