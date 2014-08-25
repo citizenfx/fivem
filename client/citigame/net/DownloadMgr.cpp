@@ -330,7 +330,7 @@ bool DownloadManager::Process()
 
 				if (m_isUpdate)
 				{
-					for (auto& resource : m_loadedResources)
+					for (auto& resource : loadedResources)
 					{
 						resource->Start();
 					}
