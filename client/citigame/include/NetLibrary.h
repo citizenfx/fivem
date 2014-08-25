@@ -1,5 +1,6 @@
 #pragma once
 #include <queue>
+#include <bitset>
 #include <WS2tcpip.h>
 #include "CrossLibraryInterfaces.h"
 #include "HttpClient.h"
@@ -46,7 +47,9 @@ class NetChannel
 private:
 	int m_fragmentSequence;
 	int m_fragmentLength;
-	std::string m_fragmentBuffer;
+	char* m_fragmentBuffer;
+	std::bitset<65536 / FRAGMENT_SIZE> m_fragmentValidSet;
+	int m_fragmentLastBit;
 
 	int m_inSequence;
 	int m_outSequence;

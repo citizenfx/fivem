@@ -83,7 +83,7 @@ bool NetChannel::Process(const char* message, size_t size, NetBuffer** buffer)
 	if (fragmented)
 	{
 		fragmentStart = *(uint16_t*)(message + 4);
-		fragmentStart = *(uint16_t*)(message + 6);
+		fragmentLength = *(uint16_t*)(message + 6);
 
 		sequence &= ~0x80000000;
 
@@ -114,27 +114,50 @@ bool NetChannel::Process(const char* message, size_t size, NetBuffer** buffer)
 		{
 			m_fragmentLength = 0;
 			m_fragmentSequence = sequence;
-			m_fragmentBuffer = "";
+			m_fragmentBuffer = new char[65536];
+			m_fragmentValidSet.reset();
+			m_fragmentLastBit = -1;
 		}
 
-		if (fragmentStart != m_fragmentLength)
+		int fragmentBit = fragmentStart / FRAGMENT_SIZE;
+
+		if (fragmentBit > ((65536 / FRAGMENT_SIZE) - 1))
 		{
 			return false;
 		}
 
+		if (m_fragmentValidSet.test(fragmentBit))
+		{
+			return false;
+		}
+
+		m_fragmentValidSet.set(fragmentBit, true);
+
 		// append the buffer
-		m_fragmentBuffer += std::string(message, size - 8);
+		memcpy(&m_fragmentBuffer[fragmentBit * FRAGMENT_SIZE], message, size - 8);
 		m_fragmentLength += (size - 8);
 
 		if (fragmentLength != FRAGMENT_SIZE)
+		{
+			m_fragmentLastBit = fragmentBit;
+		}
+
+		// check all bits up to fragmentLastBit for validity
+		if (m_fragmentLastBit == -1)
+		{
+			return false;
+		}
+
+		if (m_fragmentValidSet.count() <= m_fragmentLastBit)
 		{
 			return false;
 		}
 
 		m_inSequence = sequence;
-		m_fragmentLength = 0;
 
-		*buffer = new NetBuffer(m_fragmentBuffer.c_str(), m_fragmentBuffer.size());
+		*buffer = new NetBuffer(m_fragmentBuffer, m_fragmentLength);
+
+		m_fragmentLength = 0;
 
 		return true;
 	}
