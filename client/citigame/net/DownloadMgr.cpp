@@ -66,10 +66,6 @@ bool DownloadManager::Process()
 				//try
 				//{
 					//auto node = YAML::Load(connData);
-				FILE* f = fopen("blah.json", "w");
-				fwrite(connData.c_str(), 1, connData.size(), f);
-				fclose(f);
-
 					rapidjson::Document node;
 					node.Parse(connData.c_str());
 
