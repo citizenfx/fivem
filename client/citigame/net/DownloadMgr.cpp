@@ -328,6 +328,14 @@ bool DownloadManager::Process()
 					resource.SetProcessed();
 				}
 
+				if (m_isUpdate)
+				{
+					for (auto& resource : m_loadedResources)
+					{
+						resource->Start();
+					}
+				}
+
 				m_loadedResources = loadedResources;
 
 				m_downloadState = DS_DONE;
