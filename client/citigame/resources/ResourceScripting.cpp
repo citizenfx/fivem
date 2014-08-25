@@ -142,6 +142,13 @@ LUA_FUNCTION(Wait)
 	// set wake timer
 	int msec = luaL_checkinteger(L, 1);
 
+	// if not on a thread
+	if (!g_currentThread)
+	{
+		lua_pushstring(L, "attempted to Wait outside of a thread context");
+		lua_error(L);
+	}
+
 	g_currentThread->SetWait(msec);
 
 	// yield the lua state
