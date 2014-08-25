@@ -293,6 +293,12 @@ LUA_FUNCTION(GetFuncFromRef)
 
 		auto resource = ValidateResourceAndRef(L, reference, resourceName);
 
+		// don't do anything if we're stopped
+		if (resource->GetState() == ResourceStateStopped)
+		{
+			return 0;
+		}
+
 		// and dereference the reference
 		resource->RemoveRef(reference);
 
@@ -318,6 +324,11 @@ LUA_FUNCTION(GetFuncFromRef)
 		std::string resourceName = lua_tostring(L, lua_upvalueindex(2));
 
 		auto resource = ValidateResourceAndRef(L, reference, resourceName);
+
+		if (resource->GetState() == ResourceStateStopped)
+		{
+			return 0;
+		}
 
 		STACK_BASE;
 
