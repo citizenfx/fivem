@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
 #include "CrossLibraryInterfaces.h"
+#include <windowsx.h>
 
 static bool g_hasFocus = true;
 extern bool g_mainUIFlag;
@@ -194,6 +195,25 @@ static InitFunction initFunction([] ()
 
 				args->pass = false;
 				args->lresult = FALSE;
+				return;
+			}
+			else if (msg == WM_MOUSEWHEEL)
+			{
+				int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+				CefMouseEvent mouseEvent;
+
+				mouseEvent.x = GET_X_LPARAM(lParam);
+				mouseEvent.y = GET_Y_LPARAM(lParam);
+
+				g_cursorPos.x = mouseEvent.x;
+				g_cursorPos.y = mouseEvent.y;
+
+				nui::GetBrowser()->GetHost()->SendMouseWheelEvent(mouseEvent, 0, delta);
+
+				args->pass = false;
+				args->lresult = TRUE;
+
 				return;
 			}
 		}
