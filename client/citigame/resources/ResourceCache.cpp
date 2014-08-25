@@ -131,6 +131,12 @@ void ResourceCache::AddFile(std::string& sourcePath, std::string& filename, std:
 {
 	// hash the file
 	rage::fiDevice* device = rage::fiDevice::GetDevice(sourcePath.c_str(), true);
+
+	if (!device)
+	{
+		FatalError("Tried to add non-existent file %s to cache.", sourcePath.c_str());
+	}
+
 	int handle = device->open(sourcePath.c_str(), true);
 
 	int read;

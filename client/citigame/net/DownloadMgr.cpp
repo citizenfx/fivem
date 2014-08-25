@@ -208,7 +208,7 @@ bool DownloadManager::Process()
 
 				m_httpClient->CrackUrl(m_currentDownload->sourceUrl, hostname, path, port);
 
-				m_httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload->targetFilename, [&] (bool result, std::string connData)
+				m_httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload->targetFilename, [=] (bool result, std::string connData)
 				{
 					m_downloadState = DS_DOWNLOADED_SINGLE;
 				});
