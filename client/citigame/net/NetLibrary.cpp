@@ -394,7 +394,7 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 	cmd.id = m_outReliableSequence;
 	cmd.command = std::string(buffer, length);
 
-	m_outReliableCommands.push_front(cmd);
+	m_outReliableCommands.push_back(cmd);
 }
 
 #include "../ui/CefOverlay.h"
