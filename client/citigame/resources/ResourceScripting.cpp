@@ -286,6 +286,8 @@ std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::st
 		GlobalError("Error during export call handler: %s\nsee console for details", err.c_str());
 
 		g_errorOccurredThisFrame = true;
+
+		return "";
 	}
 
 	// serialize return value

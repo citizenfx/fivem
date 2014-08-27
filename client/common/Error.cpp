@@ -35,6 +35,8 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 {
 	static bool inError = false;
 
+	trace("GlobalError: %s\n", buffer);
+
 	if (inError)
 	{
 		static bool inRecursiveError = false;

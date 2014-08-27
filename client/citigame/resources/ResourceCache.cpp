@@ -234,6 +234,10 @@ void ResourceCache::MarkStreamingList(std::vector<StreamingResource>& streamList
 		entry.filename = stream.filename;
 		entry.hash = stream.hash;
 
+		LowerString(entry.resource);
+		LowerString(entry.filename);
+		LowerString(entry.hash);
+
 		m_markList[entry.resource + "__" + entry.filename] = entry;
 	}
 }

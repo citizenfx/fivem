@@ -127,7 +127,7 @@ int luaS_deserializeArgs(lua_State* L, int* numArgs, std::string& argsSerialized
 	// stack: 3 (table on top)
 	int type = lua_type(L, -1);
 	//assert(!"NOTE: MSGPACK LIBRARY RETURNS OFFSET FIRST");
-	assert(type == LUA_TTABLE);
+	assert(type == LUA_TTABLE || type == LUA_TNIL);
 
 	// store a ref to the table
 	int table = lua_gettop(L);
