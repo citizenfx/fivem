@@ -129,6 +129,8 @@ ResourceDownload ResourceCache::GetResourceDownload(const ResourceData& resource
 
 void ResourceCache::AddFile(std::string& sourcePath, std::string& filename, std::string& resource)
 {
+	m_dataLock.lock();
+
 	// hash the file
 	rage::fiDevice* device = rage::fiDevice::GetDevice(sourcePath.c_str(), true);
 
@@ -160,6 +162,8 @@ void ResourceCache::AddFile(std::string& sourcePath, std::string& filename, std:
 								hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
 
 	device->rename(sourcePath.c_str(), va("rescache:/%s_%s_%s", filename.c_str(), resource.c_str(), hashString.c_str()));
+
+	m_dataLock.unlock();
 
 	AddEntry(filename, resource, hashString);
 }

@@ -41,6 +41,8 @@ public:
 	{
 	}
 
+	std::string GetFileName();
+
 	virtual void Open();
 
 	virtual uint32_t Read(uint64_t ptr, void* buffer, uint32_t toRead);
@@ -74,8 +76,6 @@ void CitizenStreamingFile::Open()
 	{
 		m_currentDownload = resCache->GetResourceDownload(m_entry.resData, m_entry);
 
-		QueueDownload();
-
 		trace("[Streaming] Queued download for file %s from resource %s.\n", m_entry.filename.c_str(), m_entry.resData.GetName().c_str());
 	}
 	else
@@ -94,6 +94,8 @@ uint32_t CitizenStreamingFile::Read(uint64_t ptr, void* buffer, uint32_t toRead)
 		trace("[Streaming] Queueing read for file %s (we haven't downloaded the file yet).\n", m_entry.filename.c_str());
 
 		QueueRead(ptr, buffer, toRead, overlapped);
+
+		QueueDownload();
 
 		return -1;
 	}
@@ -150,6 +152,11 @@ void CitizenStreamingFile::QueueDownload()
 	});
 }
 
+std::string CitizenStreamingFile::GetFileName()
+{
+	return m_entry.filename;
+}
+
 uint32_t CitizenStreamingFile::InternalReadBulk(uint32_t handle, uint64_t ptr, void* buffer, uint32_t toRead)
 {
 	ptr &= ~(0xC000000000000000);
@@ -177,6 +184,7 @@ uint32_t CitizenStreamingFile::InternalReadBulk(uint32_t handle, uint64_t ptr, v
 void CitizenStreamingFile::QueueRead(uint64_t ptr, void* buffer, uint32_t toRead, LPOVERLAPPED overlapped)
 {
 	assert(!m_queuedReadBuffer);
+	assert(buffer);
 
 	m_queuedReadPtr = ptr;
 	m_queuedReadLen = toRead;
@@ -226,7 +234,11 @@ void CitizenStreamingModule::ScanEntries()
 
 StreamingFile* CitizenStreamingModule::GetEntryFromIndex(uint32_t handle)
 {
-	return m_streamingFiles[handle].get();
+	auto file = m_streamingFiles[handle].get();
+
+	trace("[Streaming] Obtaining file %s from handle 0x%08x\n", file->GetFileName().c_str(), handle);
+
+	return file;
 }
 
 static CitizenStreamingModule streamingModule;

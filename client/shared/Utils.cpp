@@ -69,8 +69,8 @@ void InitFunctionBase::RunAll()
 
 const char* va(const char* string, ...)
 {
-	static char buffer[BUFFER_COUNT][BUFFER_LENGTH];
-	static int currentBuffer;
+	static __declspec(thread) char buffer[BUFFER_COUNT][BUFFER_LENGTH];
+	static __declspec(thread) int currentBuffer;
 	int thisBuffer = currentBuffer;
 
 	va_list ap;
@@ -92,8 +92,8 @@ const char* va(const char* string, ...)
 
 const wchar_t* va(const wchar_t* string, ...)
 {
-	static wchar_t buffer[BUFFER_COUNT][BUFFER_LENGTH];
-	static int currentBuffer;
+	static __declspec(thread) wchar_t buffer[BUFFER_COUNT][BUFFER_LENGTH];
+	static __declspec(thread) int currentBuffer;
 	int thisBuffer = currentBuffer;
 
 	va_list ap;
