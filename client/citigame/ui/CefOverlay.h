@@ -74,6 +74,8 @@ private:
 
 	std::queue<CefRect> dirtyRects;
 
+	std::set<std::string> pollQueue;
+
 	rage::grcTexture* nuiTexture;
 
 	NUIPaintType paintType;

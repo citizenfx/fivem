@@ -531,6 +531,22 @@ void NUIWindow::UpdateFrame()
 		return;
 	}
 
+	for (auto& item : pollQueue)
+	{
+		NUIClient* client = static_cast<NUIClient*>(m_client.get());
+		auto browser = client->GetBrowser();
+
+		auto message = CefProcessMessage::Create("doPoll");
+		auto argList = message->GetArgumentList();
+
+		argList->SetSize(1);
+		argList->SetString(0, item);
+
+		browser->SendProcessMessage(PID_RENDERER, message);
+	}
+
+	pollQueue.clear();
+
 	if (renderBufferDirty)
 	{
 		//int timeBegin = timeGetTime();
@@ -614,16 +630,10 @@ NUIWindow::~NUIWindow()
 
 void NUIWindow::SignalPoll(std::string& argument)
 {
-	NUIClient* client = static_cast<NUIClient*>(m_client.get());
-	auto browser = client->GetBrowser();
-
-	auto message = CefProcessMessage::Create("doPoll");
-	auto argList = message->GetArgumentList();
-
-	argList->SetSize(1);
-	argList->SetString(0, argument);
-
-	browser->SendProcessMessage(PID_RENDERER, message);
+	if (pollQueue.find(argument) == pollQueue.end())
+	{
+		pollQueue.insert(argument);
+	}
 }
 
 void NUIWindow::SetPaintType(NUIPaintType type)
