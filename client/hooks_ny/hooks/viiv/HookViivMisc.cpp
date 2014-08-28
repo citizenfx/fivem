@@ -22,6 +22,11 @@ static RuntimeHookFunction boundSanity("static_bound_sanity", [] ()
 	hook::call(0xC09852, BuildingConstructHook);
 });
 
+static RuntimeHookFunction noDistantlights("no_distantlights", [] ()
+{
+	hook::return_function(0x902430);
+});
+
 static RuntimeHookFunction oddWaitDeadlock("odd_wait_deadlock", [] ()
 {
 	// some weird internal wait loop

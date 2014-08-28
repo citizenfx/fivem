@@ -27,7 +27,7 @@ LUA_FUNCTION(SetWorldAssetConfig)
 
 	std::string key = luaL_checkstring(L, 1);
 
-	if (key == "ignore_lod_modelinfos" || key == "modelinfo_deadlock_hack" || key == "bounds_arent_cdimage" || key == "entity_sanity" || key == "static_bound_sanity" || key == "odd_wait_deadlock")
+	if (key == "ignore_lod_modelinfos" || key == "modelinfo_deadlock_hack" || key == "bounds_arent_cdimage" || key == "entity_sanity" || key == "static_bound_sanity" || key == "odd_wait_deadlock" || key == "no_distantlights")
 	{
 		lua_toboolean(L, 2) && RuntimeHooks::InstallRuntimeHook(key.c_str());
 	}
@@ -39,7 +39,8 @@ LUA_FUNCTION(SetWorldAssetConfig)
 	{
 		RuntimeHooks::SetLimit(key.substr(6).c_str(), luaL_checkinteger(L, 2));
 	}
-
+	
+	// no else
 	if (key == "bounds_arent_cdimage")
 	{
 		lua_toboolean(L, 2) && SetStreamingWbnMode(true);
