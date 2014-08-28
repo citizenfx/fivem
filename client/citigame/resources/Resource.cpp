@@ -205,9 +205,9 @@ int Resource::DuplicateRef(int luaRef)
 	return m_scriptEnvironment->DuplicateRef(luaRef);
 }
 
-bool Resource::HasRef(int luaRef)
+bool Resource::HasRef(int luaRef, uint32_t instance)
 {
-	return true; // FIXME: actually check
+	return m_scriptEnvironment->GetInstanceId() == instance;
 }
 
 std::string Resource::CallRef(int luaRef, std::string& argsSerialized)

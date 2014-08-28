@@ -16,6 +16,7 @@ struct ResourceRef
 {
 	int reference;
 	Resource* resource;
+	uint32_t instance;
 };
 
 class ScriptThread
@@ -60,6 +61,8 @@ private:
 	std::shared_ptr<CMissionCleanup> m_missionCleanup;
 
 	int m_initHandler;
+
+	uint32_t m_instanceId;
 
 private:
 	std::string ScriptEnvironment::CallExportInternal(ScriptFunctionRef ref, std::string& argsSerialized, int(*deserializeCB)(lua_State*, int*, std::string&));
@@ -112,6 +115,8 @@ public:
 	inline Resource* GetResource() { return m_resource; }
 
 	inline CMissionCleanup* GetMissionCleanup() { return m_missionCleanup.get(); }
+
+	inline uint32_t GetInstanceId() { return m_instanceId; }
 
 	std::string GetName();
 };

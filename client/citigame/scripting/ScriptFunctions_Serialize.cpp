@@ -211,26 +211,25 @@ LUA_FUNCTION(GetFuncRef)
 
 	ResourceRef ref = g_currentEnvironment->GetRef(luaRef);
 
+	lua_pushinteger(L, ref.instance);
 	lua_pushinteger(L, ref.reference);
 	lua_pushstring(L, ref.resource->GetName().c_str());
 
-	return 2;
+	return 3;
 }
 
-std::shared_ptr<Resource> ValidateResourceAndRef(lua_State* L, int reference, std::string resourceName)
+std::shared_ptr<Resource> ValidateResourceAndRef(lua_State* L, int reference, int instance, std::string resourceName)
 {
 	auto resource = TheResources.GetResource(resourceName);
 
 	if (!resource.get())
 	{
-		lua_pushstring(L, "no such resource");
-		lua_error(L);
+		return nullptr;
 	}
 
-	if (!resource->HasRef(reference))
+	if (!resource->HasRef(reference, instance))
 	{
-		lua_pushstring(L, "invalid reference");
-		lua_error(L);
+		return nullptr;
 	}
 
 	return resource;
@@ -243,9 +242,10 @@ LUA_FUNCTION(GetFuncRefByData)
 	if (data[0] == 1)
 	{
 		int reference = *(uint32_t*)(data + 1);
-		std::string resourceName = &data[5];
+		uint32_t instance = *(uint32_t*)(data + 5);
+		std::string resourceName = &data[9];
 
-		auto resource = ValidateResourceAndRef(L, reference, resourceName);
+		auto resource = ValidateResourceAndRef(L, reference, instance, resourceName);
 
 		lua_pushinteger(L, resource->DuplicateRef(reference));
 		lua_pushstring(L, resource->GetName().c_str());
@@ -265,10 +265,11 @@ LUA_FUNCTION(GetFuncFromRef)
 
 	// get arguments
 	int reference = luaL_checkinteger(L, 1);
-	std::string resourceName = luaL_checkstring(L, 2);
+	uint32_t instance = luaL_checkinteger(L, 2);
+	std::string resourceName = luaL_checkstring(L, 3);
 
 	// get resource and validate it
-	auto resource = ValidateResourceAndRef(L, reference, resourceName);
+	auto resource = ValidateResourceAndRef(L, reference, instance, resourceName);
 
 	// create the base metatable
 	lua_createtable(L, 0, 2);
@@ -281,17 +282,24 @@ LUA_FUNCTION(GetFuncFromRef)
 	lua_pushstring(L, "__gc");
 
 	lua_pushinteger(L, reference);
+	lua_pushinteger(L, instance);
 	lua_pushstring(L, resourceName.c_str());
 
-	STACK_CHECK_N(4);
+	STACK_CHECK_N(5);
 
 	lua_pushcclosure(L, [] (lua_State* L)
 	{
 		// get and validate
 		int reference = lua_tointeger(L, lua_upvalueindex(1));
-		std::string resourceName = lua_tostring(L, lua_upvalueindex(2));
+		int instance = lua_tointeger(L, lua_upvalueindex(2));
+		std::string resourceName = lua_tostring(L, lua_upvalueindex(3));
 
-		auto resource = ValidateResourceAndRef(L, reference, resourceName);
+		auto resource = ValidateResourceAndRef(L, reference, instance, resourceName);
+
+		if (!resource.get())
+		{
+			return 0;
+		}
 
 		// don't do anything if we're stopped
 		if (resource->GetState() == ResourceStateStopped)
@@ -303,7 +311,7 @@ LUA_FUNCTION(GetFuncFromRef)
 		resource->RemoveRef(reference);
 
 		return 0;
-	}, 2);
+	}, 3);
 
 	STACK_CHECK_N(3);
 
@@ -315,15 +323,19 @@ LUA_FUNCTION(GetFuncFromRef)
 	lua_pushstring(L, "__call");
 
 	lua_pushinteger(L, reference);
+	lua_pushinteger(L, instance);
 	lua_pushstring(L, resourceName.c_str());
 
 	lua_pushcclosure(L, [] (lua_State* L)
 	{
 		// get and validate
 		int reference = lua_tointeger(L, lua_upvalueindex(1));
-		std::string resourceName = lua_tostring(L, lua_upvalueindex(2));
+		int instance = lua_tointeger(L, lua_upvalueindex(2));
+		std::string resourceName = lua_tostring(L, lua_upvalueindex(3));
 
-		auto resource = ValidateResourceAndRef(L, reference, resourceName);
+		auto resource = ValidateResourceAndRef(L, reference, instance, resourceName);
+
+		assert(resource.get());
 
 		if (resource->GetState() == ResourceStateStopped)
 		{
@@ -356,19 +368,20 @@ LUA_FUNCTION(GetFuncFromRef)
 		STACK_CHECK_N(nArgs);
 
 		return nArgs;
-	}, 2);
+	}, 3);
 
 	lua_settable(L, metatable);
 
 	// now create a dummy userdata
 	STACK_CHECK_N(1);
 
-	char* udata = (char*)lua_newuserdata(L, sizeof(uint32_t) + resourceName.length() + 2);
+	char* udata = (char*)lua_newuserdata(L, (sizeof(uint32_t) * 2) + resourceName.length() + 2);
 
 	// fill the udata with food
 	*(uint8_t*)udata = 1;
 	*(uint32_t*)(udata + 1) = reference;
-	strcpy(udata + 2, resourceName.c_str());
+	*(uint32_t*)(udata + 5) = instance;
+	strcpy(udata + 2 + 4, resourceName.c_str());
 
 	// and set the metatable
 	lua_pushvalue(L, metatable);

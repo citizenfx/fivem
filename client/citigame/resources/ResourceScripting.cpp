@@ -41,7 +41,7 @@ int lua_error_handler (lua_State *l);
 ScriptThread::ScriptThread(ScriptEnvironment* environment, lua_State* luaThread, int luaRef, int numInitialArguments)
 	: m_environment(environment), m_luaThread(luaThread), m_lastWake(0), m_sleepTime(0), m_luaRef(luaRef), m_nInitialArguments(numInitialArguments)
 {
-
+	
 }
 
 bool ScriptThread::Tick()
@@ -315,6 +315,7 @@ ResourceRef ScriptEnvironment::GetRef(int luaRef)
 	ResourceRef retval;
 	retval.reference = luaRef;
 	retval.resource = m_resource;
+	retval.instance = m_instanceId;
 
 	return retval;
 }
@@ -364,6 +365,9 @@ ScriptEnvironment::ScriptEnvironment(Resource* resource)
 	m_luaState = luaL_newstate();
 	safe_openlibs(m_luaState);
 	luaopen_cjson(m_luaState);
+
+	// get an instance ID
+	m_instanceId = rand();
 
 	// init critsec if needed
 	if (!g_scriptCritSec.DebugInfo)

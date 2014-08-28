@@ -92,7 +92,7 @@ public:
 
 	bool HasExport(std::string& exportName);
 
-	bool HasRef(int luaRef);
+	bool HasRef(int luaRef, uint32_t instance);
 
 	std::string CallRef(int luaRef, std::string& argsSerialized);
 
