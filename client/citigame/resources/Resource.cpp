@@ -4,6 +4,9 @@
 #include "ResourceUI.h"
 #include <yaml-cpp/yaml.h>
 
+#undef NDEBUG
+#include <assert.h>
+
 ResourceExport::ResourceExport(Resource* resource, std::string& functionName)
 	: m_resource(resource), m_function(functionName)
 {
@@ -159,6 +162,8 @@ void Resource::Stop()
 	m_scriptEnvironment->Destroy();
 	m_scriptEnvironment = nullptr;
 
+	assert(m_name != "mapmanager");
+
 	m_state = ResourceStateStopping;
 }
 
@@ -207,7 +212,7 @@ int Resource::DuplicateRef(int luaRef)
 
 bool Resource::HasRef(int luaRef, uint32_t instance)
 {
-	return m_scriptEnvironment->GetInstanceId() == instance;
+	return m_scriptEnvironment.get() && m_scriptEnvironment->GetInstanceId() == instance;
 }
 
 std::string Resource::CallRef(int luaRef, std::string& argsSerialized)
