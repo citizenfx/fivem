@@ -114,6 +114,16 @@ void CitizenStreamingFile::QueueDownload()
 
 	httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload.targetFilename, [=] (bool result, std::string connData)
 	{
+		if (!result)
+		{
+			// retry downloading the file
+			trace("[Streaming] Failed downloading file %s.\n", m_entry.filename.c_str());
+
+			QueueDownload();
+
+			return;
+		}
+
 		trace("[Streaming] Downloaded file %s.\n", m_entry.filename.c_str());
 
 		TheResources.GetCache()->AddFile(m_currentDownload.targetFilename, m_currentDownload.filename, m_currentDownload.resname);
