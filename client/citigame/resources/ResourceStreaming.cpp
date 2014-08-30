@@ -5,6 +5,8 @@
 #include "BoundStreaming.h"
 #include <Streaming.h>
 #include <mmsystem.h>
+#include "CrossLibraryInterfaces.h"
+#include "StreamingTypes.h"
 
 static bool _wbnMode;
 
@@ -29,6 +31,8 @@ private:
 
 	uint32_t m_queuedReadLen;
 
+	bool m_downloading;
+
 private:
 	void QueueDownload();
 
@@ -38,11 +42,15 @@ private:
 
 public:
 	CitizenStreamingFile(StreamingResource& entry)
-		: m_entry(entry), m_queuedReadBuffer(nullptr)
+		: m_entry(entry), m_queuedReadBuffer(nullptr), m_downloading(false)
 	{
 	}
 
 	std::string GetFileName();
+
+	bool Exists();
+	
+	void PreCache();
 
 	virtual void Open();
 
@@ -54,7 +62,9 @@ public:
 class CitizenStreamingModule : public StreamingModule
 {
 private:
-	std::unordered_map<uint32_t, std::shared_ptr<CitizenStreamingFile>> m_streamingFiles;
+	//std::unordered_map<uint32_t, std::shared_ptr<CitizenStreamingFile>> m_streamingFiles;
+	std::shared_ptr<CitizenStreamingFile> m_streamingFiles[65536];
+	std::shared_ptr<CitizenStreamingFile> m_streamingBounds[65536];
 
 public:
 	virtual void ScanEntries();
@@ -85,6 +95,41 @@ void CitizenStreamingFile::Open()
 	}
 }
 
+bool CitizenStreamingFile::Exists()
+{
+	auto resCache = TheResources.GetCache();
+
+	auto device = resCache->GetCacheDevice();
+	auto filename = resCache->GetMarkedFilenameFor(m_entry.resData.GetName(), m_entry.filename);
+
+	auto handle = device->open(filename.c_str(), true);
+
+	if (handle == -1)
+	{
+		return false;
+	}
+
+	device->close(handle);
+
+	return true;
+}
+
+void CitizenStreamingFile::PreCache()
+{
+	if (m_downloading)
+	{
+		return;
+	}
+
+	auto resCache = TheResources.GetCache();
+
+	m_currentDownload = resCache->GetResourceDownload(m_entry.resData, m_entry);
+
+	QueueDownload();
+
+	trace("[Streaming] Queued precache for file %s from resource %s.\n", m_entry.filename.c_str(), m_entry.resData.GetName().c_str());
+}
+
 uint32_t CitizenStreamingFile::Read(uint64_t ptr, void* buffer, uint32_t toRead)
 {
 	int streamThreadNum = ((ptr & (0x4000000000000000))) ? 1 : 0;
@@ -108,6 +153,13 @@ uint32_t CitizenStreamingFile::Read(uint64_t ptr, void* buffer, uint32_t toRead)
 
 void CitizenStreamingFile::QueueDownload()
 {
+	if (m_downloading)
+	{
+		return;
+	}
+
+	m_downloading = true;
+
 	std::wstring hostname, path;
 	uint16_t port;
 
@@ -121,6 +173,8 @@ void CitizenStreamingFile::QueueDownload()
 		{
 			// retry downloading the file
 			trace("[Streaming] Failed downloading file %s.\n", m_entry.filename.c_str());
+
+			m_downloading = false;
 
 			QueueDownload();
 
@@ -214,7 +268,11 @@ void CitizenStreamingFile::Close()
 
 void CitizenStreamingModule::ScanEntries()
 {
-	m_streamingFiles.clear();
+	for (int i = 0; i < _countof(m_streamingFiles); i++)
+	{
+		m_streamingFiles[i] = std::shared_ptr<CitizenStreamingFile>();
+		m_streamingBounds[i] = std::shared_ptr<CitizenStreamingFile>();
+	}
 
 	auto& entries = TheDownloads.GetStreamingFiles();
 	auto imgManager = CImgManager::GetInstance();
@@ -229,7 +287,7 @@ void CitizenStreamingModule::ScanEntries()
 			{
 				int boundIndex = BoundStreaming::RegisterBound(entry.filename.c_str(), entry.size, entry.rscFlags, entry.rscVersion);
 
-				m_streamingFiles[0x80000000 | boundIndex] = std::make_shared<CitizenStreamingFile>(entry);
+				m_streamingBounds[boundIndex] = std::make_shared<CitizenStreamingFile>(entry);
 				continue;
 			}
 		}
@@ -249,9 +307,17 @@ void CitizenStreamingModule::ScanEntries()
 
 StreamingFile* CitizenStreamingModule::GetEntryFromIndex(uint32_t handle)
 {
-	auto file = m_streamingFiles[handle].get();
+	// is this a bound?
+	CitizenStreamingFile* file;
 
-	trace("[Streaming] Obtaining file %s from handle 0x%08x\n", file->GetFileName().c_str(), handle);
+	if (handle & 0x80000000)
+	{
+		file = m_streamingBounds[handle & ~0x80000000].get();
+	}
+	else
+	{
+		file = m_streamingFiles[handle].get();
+	}
 
 	return file;
 }
@@ -261,6 +327,40 @@ static CitizenStreamingModule streamingModule;
 static InitFunction initFunction([] ()
 {
 	httpClient = new HttpClient();
+
+	g_hooksDLL->SetHookCallback(StringHash("reqEnt"), [] (void* entityPtr)
+	{
+		auto modelIndex = *(uint16_t*)((char*)entityPtr + 46);
+
+		static int modelInfoBase;
+
+		if (modelInfoBase == 0)
+		{
+			for (int i = 0; i < _countof(streamingTypes.types); i++)
+			{
+				//if (streamingTypes.types[i].fileVersion == 110)
+				if (streamingTypes.types[i].ext[0] == 'w' && streamingTypes.types[i].ext[1] == 'd' && streamingTypes.types[i].ext[2] == 'r')
+				{
+					modelInfoBase = streamingTypes.types[i].startIndex;
+					break;
+				}
+			}
+		}
+
+		auto file = static_cast<CitizenStreamingFile*>(streamingModule.GetEntryFromIndex(modelInfoBase + modelIndex));
+
+		if (!file)
+		{
+			return;
+		}
+
+		if (file->Exists())
+		{
+			return;
+		}
+
+		file->PreCache();
+	});
 
 	CStreaming::SetStreamingModule(&streamingModule);
 });

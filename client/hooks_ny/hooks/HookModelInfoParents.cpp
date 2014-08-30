@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <mutex>
 #include "Pool.h"
+#include "HookCallbacks.h"
 
 #pragma comment(lib, "d3d9.lib")
 
@@ -1185,10 +1186,19 @@ void __declspec(naked) IsModelLoadedStub()
 	}
 }
 
+void OnRequestEntity(CEntity* entity)
+{
+	HookCallbacks::RunCallback(StringHash("reqEnt"), entity);
+}
+
 void __declspec(naked) RequestEntityModelEsi()
 {
 	__asm
 	{
+		push esi
+		call OnRequestEntity
+		pop esi
+
 		cmp word ptr [esi + 2Eh], 7917h
 		jl justDo
 
