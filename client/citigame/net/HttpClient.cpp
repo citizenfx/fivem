@@ -24,6 +24,7 @@ void HttpClient::DoPostRequest(std::wstring host, uint16_t port, std::wstring ur
 struct HttpClientRequestContext
 {
 	HttpClient* client;
+	HttpClient::ServerPair server;
 	HINTERNET hConnection;
 	HINTERNET hRequest;
 	std::string postData;
@@ -50,7 +51,15 @@ struct HttpClientRequestContext
 
 		callback(success, resData);
 
-		WinHttpCloseHandle(hConnection);
+		if (server.second)
+		{
+			client->ReaddConnection(server, hConnection);
+		}
+		else
+		{
+			WinHttpCloseHandle(hConnection);
+		}
+
 		WinHttpCloseHandle(hRequest);
 
 		delete this;
@@ -79,9 +88,117 @@ void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring
 	DoFileGetRequest(host, port, url, rage::fiDevice::GetDevice(outDeviceBase, true), outFilename, callback);
 }
 
-void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, rage::fiDevice* outDevice, std::string outFilename, std::function<void(bool, std::string)> callback)
+void HttpClient::ReaddConnection(ServerPair server, HINTERNET connection)
 {
-	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
+	m_connectionMutex.lock();
+
+	auto range = m_connections.equal_range(server);
+
+	for (auto& it = range.first; it != range.second; it++)
+	{
+		if (!it->second)
+		{
+			it->second = connection;
+
+			if (!m_connectionFreeCBs.empty())
+			{
+				auto cb = m_connectionFreeCBs.front();
+				m_connectionFreeCBs.pop();
+
+				cb(connection);
+			}
+
+			m_connectionMutex.unlock();
+
+			return;
+		}
+	}
+}
+
+HINTERNET HttpClient::GetConnection(ServerPair server)
+{
+	m_connectionMutex.lock();
+
+	auto range = m_connections.equal_range(server);
+
+	int numConnections = 0;
+
+	for (auto& it = range.first; it != range.second; it++)
+	{
+		numConnections++;
+
+		if (it->second)
+		{
+			auto conn = it->second;
+			it->second = nullptr;
+
+			m_connectionMutex.unlock();
+
+			return conn;
+		}
+	}
+
+	m_connectionMutex.unlock();
+
+	if (numConnections >= 8)
+	{
+		return nullptr;
+	}
+
+	HINTERNET hConnection = WinHttpConnect(hWinHttp, server.first.c_str(), server.second, 0);
+
+	if (!hConnection)
+	{
+		return INVALID_HANDLE_VALUE;
+	}
+
+	m_connectionMutex.lock();
+
+	m_connections.insert(std::make_pair(server, nullptr));
+
+	m_connectionMutex.unlock();
+
+	return hConnection;
+}
+
+void HttpClient::QueueOnConnectionFree(std::function<void(HINTERNET)> cb)
+{
+	m_connectionMutex.lock();
+
+	m_connectionFreeCBs.push(cb);
+
+	m_connectionMutex.unlock();
+
+	// FIXME: possible race condition if a request just completed?
+}
+
+void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring url, rage::fiDevice* outDevice, std::string outFilename, std::function<void(bool, std::string)> callback, HANDLE hConnection)
+{
+	ServerPair pair = std::make_pair(host, port);
+
+	if (!hConnection)
+	{
+		hConnection = GetConnection(pair);
+
+		if (hConnection == INVALID_HANDLE_VALUE)
+		{
+			callback(false, "");
+
+			return;
+		}
+
+		if (!hConnection)
+		{
+			QueueOnConnectionFree([=] (HINTERNET connection)
+			{
+				DoFileGetRequest(host, port, url, outDevice, outFilename, callback, connection);
+			});
+
+			return;
+		}
+	}
+
+	//HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
 	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
 
 	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
@@ -92,6 +209,7 @@ void HttpClient::DoFileGetRequest(std::wstring host, uint16_t port, std::wstring
 	context->hRequest = hRequest;
 	context->callback = callback;
 	context->outDevice = outDevice;
+	context->server = pair;
 
 	if (context->outDevice == nullptr)
 	{

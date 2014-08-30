@@ -4,6 +4,7 @@
 #include "ResourceCache.h"
 #include "BoundStreaming.h"
 #include <Streaming.h>
+#include <mmsystem.h>
 
 static bool _wbnMode;
 
@@ -112,6 +113,8 @@ void CitizenStreamingFile::QueueDownload()
 
 	httpClient->CrackUrl(m_currentDownload.sourceUrl, hostname, path, port);
 
+	uint32_t startTime = timeGetTime();
+
 	httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload.targetFilename, [=] (bool result, std::string connData)
 	{
 		if (!result)
@@ -133,6 +136,8 @@ void CitizenStreamingFile::QueueDownload()
 		auto device = resCache->GetCacheDevice();
 		auto filename = resCache->GetMarkedFilenameFor(m_entry.resData.GetName(), m_entry.filename);
 
+		uint32_t endTime = timeGetTime();
+
 		uint64_t ptr;
 		m_device = device;
 		m_handle = device->openBulk(filename.c_str(), &ptr);
@@ -144,7 +149,7 @@ void CitizenStreamingFile::QueueDownload()
 
 		if (m_queuedReadBuffer)
 		{
-			trace("[Streaming] Completing queued read for file %s.\n", m_entry.filename.c_str());
+			trace("[Streaming] Completing queued read for file %s - took %imsec.\n", m_entry.filename.c_str(), endTime - startTime);
 
 			uint32_t len;
 
