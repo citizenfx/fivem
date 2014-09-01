@@ -17,9 +17,16 @@ char* __fastcall BuildingConstructHook(char* building)
 	return building;
 }
 
+#include "Hooking.FuncCalls.h"
+
 static RuntimeHookFunction boundSanity("static_bound_sanity", [] ()
 {
 	hook::call(0xC09852, BuildingConstructHook);
+
+	/*hook::thiscall<char*, char>::inject(0xC09852, [] (char* self)
+	{
+		return self;
+	});*/
 });
 
 static RuntimeHookFunction noDistantlights("no_distantlights", [] ()
@@ -53,3 +60,20 @@ static RuntimeHookFunction oddWaitDeadlock("odd_wait_deadlock", [] ()
 
 	hook::return_function(0x621D10);
 });
+
+#include "EventCore.h"
+
+static HookFunction hookFunction([] ()
+{
+	TestEvent(2, 3);
+});
+
+/*
+static HookFunction hookFunction([] ()
+{
+	hook::thiscall<void, float, float*>::inject(0x8D6736, [] (float* a1, float* a2)
+	{
+		__asm int 3
+	});
+});
+*/

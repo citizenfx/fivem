@@ -33,6 +33,12 @@ inline std::wstring MakeRelativeGamePath(std::wstring targetPath)
 }
 
 //
+// Returns whether or not we are in a test executable.
+//
+
+bool IsRunningTests();
+
+//
 // Base initialization function (for running on library init and so on)
 //
 

@@ -19,6 +19,11 @@ public:
 	CommandLineOption(const char* name, const char* description)
 		: name(name), description(description)
 	{
+		if (IsRunningTests())
+		{
+			return;
+		}
+
 		next = g_curOption;
 		g_curOption = this;
 	}

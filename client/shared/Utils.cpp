@@ -48,6 +48,18 @@ std::wstring GetAbsoluteGamePath()
 	return gamePath;
 }
 
+bool IsRunningTests()
+{
+	wchar_t path[512];
+	GetModuleFileName(GetModuleHandle(NULL), path, sizeof(path));
+
+	wchar_t* filenamePart = wcsrchr(path, L'\\');
+
+	filenamePart++;
+
+	return !_wcsnicmp(filenamePart, L"tests_", 6);
+}
+
 static InitFunctionBase* g_initFunctions;
 
 void InitFunctionBase::Register()

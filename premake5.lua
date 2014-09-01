@@ -5,7 +5,9 @@
 		
 		flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 		
-		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", os.getenv("BOOST_ROOT") }
+		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gtest/include/", os.getenv("BOOST_ROOT") }
+		
+		defines { "GTEST_HAS_PTHREAD=0" }
 		
 		libdirs { "deplibs/lib/" }
 		
@@ -190,3 +192,20 @@
 		excludes { "../vendor/zlib/example.c", "../vendor/zlib/minigzip.c" }
 
 		defines { "WIN32" }
+		
+	project "gtest_main"
+		language "C++"
+		kind "StaticLib"
+		
+		includedirs { "../vendor/gtest/" }
+		files { "../vendor/gtest/src/gtest-all.cc", "../vendor/gtest/src/gtest_main.cc" }
+		
+	project "tests_citigame"
+		language "C++"
+		kind "ConsoleApp"
+		
+		links { "gtest_main", "CitiGame", "Shared" }
+		
+		includedirs { "client/citigame/include/" }
+		
+		files { "tests/citigame/*.cpp" }

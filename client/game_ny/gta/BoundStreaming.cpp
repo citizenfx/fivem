@@ -299,3 +299,18 @@ void BoundStreaming::ReleaseCollision(int id)
 		//*(uint32_t*)(gameMod`ule + 0xF21C8C) -= ((flags >> 15) & 0x7FF) << (int)(((flags >> 26) & 0xF) + 8);
 	}
 }
+
+#include "EventCore.h"
+
+InitFunction initFunc([] ()
+{
+	TestEvent.Connect([] (int a, int b)
+	{
+		__asm int 3
+	});
+
+	TestEvent.Connect([] (int a, int b)
+	{
+		__asm int 3
+	});
+});

@@ -6,9 +6,13 @@
 #include "ui/CefOverlay.h"
 #include <libnp.h>
 
+#include "core/ComponentLoader.h"
+
 bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
 	bool continueRunning = true;
+
+	ComponentLoader::GetInstance()->Initialize();
 
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
 
