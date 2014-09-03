@@ -1,0 +1,9 @@
+{
+	"name": "net",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"http-client"
+	],
+	"provides": []
+}

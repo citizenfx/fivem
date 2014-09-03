@@ -26,8 +26,6 @@ TEST(ComponentIdTest, ParsingVersions)
 	EXPECT_EQ(2, versions[1]);
 	EXPECT_EQ(3, versions[2]);
 	EXPECT_EQ(46, versions[3]);
-	EXPECT_EQ(0, versions[4]);
-	EXPECT_EQ(0, versions[5]);
 }
 
 TEST(ComponentIdTest, ParsingCombined)
@@ -49,8 +47,6 @@ TEST(ComponentIdTest, ParsingCombined)
 	EXPECT_EQ(2, versions[1]);
 	EXPECT_EQ(3, versions[2]);
 	EXPECT_EQ(46, versions[3]);
-	EXPECT_EQ(0, versions[4]);
-	EXPECT_EQ(0, versions[5]);
 }
 
 TEST(ComponentIdTest, VersionsEqual)

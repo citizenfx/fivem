@@ -34,6 +34,10 @@
 #include <string>
 
 // our common includes
+#define COMPONENT_EXPORT
+
+#include "EventCore.h"
+
 #include <Utils.h>
 #include <sigslot.h>
 
@@ -41,4 +45,8 @@
 #ifdef COMPILING_HOOKS
 #include "Hooking.h"
 #include "HookFunction.h"
+#endif
+
+#ifdef HAS_LOCAL_H
+#include "Local.h"
 #endif

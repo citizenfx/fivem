@@ -326,7 +326,7 @@ std::string HttpClient::BuildPostString(std::map<std::string, std::string>& fiel
 	
 	for (auto& field : fields)
 	{
-		retval << field.first << "=" << url_encode(field.second) << "&";
+		retval << field.first << "=" << std::string(url_encode(field.second.c_str()).c_str()) << "&";
 	}
 
 	std::string str = retval.str();

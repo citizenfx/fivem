@@ -1,0 +1,1 @@
+{"name":"comptest","version":"0.1.0","dependencies":["fx[2]","game[1.0.5]"],"provides":["test:lovely[2.0.5]"]}

@@ -3,6 +3,13 @@
 #include "GameInit.h"
 #include "DownloadMgr.h"
 #include "GameFlags.h"
+#include "../ui/CefOverlay.h"
+
+#if 0
+#include "NetLibrary.h"
+#include "GameInit.h"
+#include "DownloadMgr.h"
+#include "GameFlags.h"
 #include "ResourceManager.h"
 #include "../ui/CefOverlay.h"
 #include <yaml-cpp/yaml.h>
@@ -806,3 +813,96 @@ static InitFunction initFunction([] ()
 		netLibrary.SetHost(hostNetID, hostBase);
 	});
 });
+#else
+NetLibrary* g_netLibrary;
+
+static InitFunction initFunction([] ()
+{
+	g_netLibrary = NetLibrary::Create();
+
+	g_netLibrary->OnBuildMessage.Connect([] (NetBuffer& msg)
+	{
+		if (*(BYTE*)0x18A82FD) // is server running
+		{
+			msg.Write(0xB3EA30DE); // msgIHost
+			msg.Write(g_netLibrary->GetServerBase());
+		}
+	});
+
+	g_netLibrary->AddReliableHandler("msgIHost", [] (const char* buf, size_t len)
+	{
+		NetBuffer buffer(buf, len);
+
+		uint16_t hostNetID = buffer.Read<uint16_t>();
+		uint32_t hostBase = buffer.Read<uint32_t>();
+
+		g_netLibrary->SetHost(hostNetID, hostBase);
+	});
+
+	g_netLibrary->OnInitReceived.Connect([] (NetAddress server)
+	{
+		GameFlags::ResetFlags();
+
+		nui::SetMainUI(false);
+
+		nui::DestroyFrame("mpMenu");
+
+		//m_connectionState = CS_DOWNLOADING;
+
+		if (!GameInit::GetGameLoaded())
+		{
+			GameInit::SetLoadScreens();
+
+			TheDownloads.SetServer(server);
+
+			GameInit::LoadGameFirstLaunch([] ()
+			{
+				// download frame code
+				Sleep(1);
+
+				return TheDownloads.Process();
+			});
+		}
+		else
+		{
+			GameInit::SetLoadScreens();
+
+			TheDownloads.SetServer(server);
+
+			// unlock the mutex as we'll reenter here
+			//g_netFrameMutex.unlock();
+			g_netLibrary->Death();
+
+			while (!TheDownloads.Process())
+			{
+				HANDLE hThread = GetCurrentThread();
+
+				MsgWaitForMultipleObjects(1, &hThread, TRUE, 15, 0);
+			}
+
+			//g_netFrameMutex.lock();
+			g_netLibrary->Resurrection();
+
+			GameInit::ReloadGame();
+		}
+	});
+
+	g_netLibrary->OnAttemptDisconnect.Connect([] (const char*)
+	{
+		GameInit::KillNetwork((const wchar_t*)1);
+	});
+
+	g_netLibrary->OnFinalizeDisconnect.Connect([] (NetAddress address)
+	{
+		GameFlags::ResetFlags();
+
+		TheResources.CleanUp();
+		TheDownloads.ReleaseLastServer();
+
+		GameInit::MurderGame();
+	});
+
+	HooksDLLInterface::SetNetLibrary(g_netLibrary);
+	GameSpecDLLInterface::SetNetLibrary(g_netLibrary);
+});
+#endif

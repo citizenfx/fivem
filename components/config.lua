@@ -1,0 +1,5 @@
+component 'comptest'
+component 'net'
+component 'http-client'
+component 'rage-device-ny'
+component 'rage-allocator-ny'

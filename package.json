@@ -1,0 +1,22 @@
+{
+  "name": "citizenmp",
+  "version": "0.0.0",
+  "description": "CitizenMP dependency file for development tools",
+  "main": "Gruntfile.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@tohjo.ez.lv/citidev/citizenmp.git"
+  },
+  "author": "",
+  "license": "none",
+  "dependencies": {
+    "grunt": "^0.4.5",
+    "grunt-prompt": "^1.1.0"
+  }
+}

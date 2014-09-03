@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
+#include <sstream>
 
 ComponentId::ComponentId()
 {
@@ -33,6 +34,44 @@ int ComponentId::CompareVersion(const ComponentId& secondId) const
 	}
 
 	return 0;
+}
+
+bool ComponentId::IsMatchedBy(const ComponentId& provider) const
+{
+	// check categories
+	for (int i = 0; i < m_categories.size(); i++)
+	{
+		if (provider.GetCategory(i) != GetCategory(i))
+		{
+			return false;
+		}
+	}
+
+	// check version equal/higher
+	return CompareVersion(provider) <= 0;
+}
+
+std::string ComponentId::GetString() const
+{
+	std::stringstream ss;
+
+	ss << GetCategory(0);
+
+	for (int i = 1; i < m_categories.size(); i++)
+	{
+		ss << ":" << m_categories[i];
+	}
+
+	ss << "[" << m_versions[0];
+
+	for (int i = 1; i < _countof(m_versions); i++)
+	{
+		ss << "." << m_versions[i];
+	}
+
+	ss << "]";
+
+	return ss.str();
 }
 
 ComponentId ComponentId::Parse(const char* str)

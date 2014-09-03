@@ -164,7 +164,7 @@ uint32_t HashRageString(const char* string)
 	return hash;
 }
 
-std::string url_encode(const std::string &value)
+fwString url_encode(const fwString &value)
 {
 	std::ostringstream escaped;
 	escaped.fill('0');
@@ -187,7 +187,7 @@ std::string url_encode(const std::string &value)
 		}
 	}
 
-	return escaped.str();
+	return fwString(escaped.str().c_str());
 }
 
 #include <direct.h>

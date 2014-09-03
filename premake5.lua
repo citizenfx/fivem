@@ -1,27 +1,29 @@
-	solution "CitizenMP"
-		configurations { "Debug NY", "Release NY" }
+solution "CitizenMP"
+	configurations { "Debug NY", "Release NY" }
+	
+	flags { "StaticRuntime", "No64BitChecks", "Symbols", "Unicode" }
+	
+	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
+	
+	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gtest/include/", os.getenv("BOOST_ROOT") }
+	
+	defines { "GTEST_HAS_PTHREAD=0" }
+	
+	libdirs { "deplibs/lib/" }
+
+	links { "winmm" }
+	
+	configuration "Debug*"
+		targetdir "bin/debug"
+		defines "NDEBUG"
 		
-		flags { "StaticRuntime", "No64BitChecks", "Symbols", "Unicode" }
+	configuration "Release*"
+		targetdir "bin/release"
+		defines "NDEBUG"
+		optimize "Speed"
 		
-		flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
-		
-		includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gtest/include/", os.getenv("BOOST_ROOT") }
-		
-		defines { "GTEST_HAS_PTHREAD=0" }
-		
-		libdirs { "deplibs/lib/" }
-		
-		configuration "Debug*"
-			targetdir "bin/debug"
-			defines "NDEBUG"
-			
-		configuration "Release*"
-			targetdir "bin/release"
-			defines "NDEBUG"
-			optimize "Speed"
-			
-		configuration "* NY"
-			defines "GTA_NY"
+	configuration "* NY"
+		defines "GTA_NY"
 			
 	project "CitiLaunch"
 		targetname "CitizenFX"
@@ -67,12 +69,12 @@
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
-		links { "Shared", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp" }
+		links { "Shared", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net" }
 		
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "components/net/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
@@ -133,6 +135,8 @@
 		targetname "shared"
 		language "C++"
 		kind "StaticLib"
+
+		defines "COMPILING_SHARED"
 		
 		includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
@@ -208,4 +212,153 @@
 		
 		includedirs { "client/citigame/include/" }
 		
-		files { "tests/citigame/*.cpp" }
+		files { "tests/citigame/*.cpp", "tests/test.cpp" }
+
+	-- code for component development
+	local components = { }
+
+	dependency = function(name)
+		-- find a matching component
+		--[[local cname
+
+		for _, c in ipairs(components) do
+			if c == name then
+				cname = c
+				break
+			else
+				local basename = c:gsub('(.+)-ny', '%1')
+
+				if basename == name then
+					cname = c
+					break
+				end
+			end
+		end
+
+		if not cname then
+			error("Component " .. name .. " seems unknown.")
+		end
+
+		includedirs { '../' .. name .. '/include/' }
+
+		links { name }]]
+
+		return
+	end
+
+	package.path = '?.lua'
+
+	local json = require('json')
+
+	component = function(name)
+		local filename = name .. '/component.json'
+
+		io.input(filename)
+		local jsonStr = io.read('*all')
+		io.close()
+
+		local decoded = json.decode(jsonStr)
+
+		decoded.rawName = name
+
+		table.insert(components, decoded)
+	end
+
+	local do_component = function(name, comp)
+		project(name)
+
+		language "C++"
+		kind "SharedLib"
+
+		includedirs { "client/citigame/core/", 'components/' .. name .. "/include/" }
+		files {
+			'components/' .. name .. "/src/**.cpp",
+			'components/' .. name .. "/src/**.h",
+			'components/' .. name .. "/include/**.h",
+			'components/' .. name .. "/component.rc",
+			"client/common/StdInc.cpp",
+			"client/common/Error.cpp"
+		}
+
+		defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
+
+		links { "Shared", "CitiGame" }
+
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+
+		dofile('components/' .. name .. '/component.lua')
+
+		-- do automatic dependencies
+		if not comp.dependencies then
+			comp.dependencies = {}
+		end
+
+		local function id_matches(full, partial)
+			local tokenString = ''
+			local partialTemp = partial .. ':'
+
+			for token in string.gmatch(full:gsub('\\[.+\\]', ''), '[^:]+') do
+				tokenString = tokenString .. token .. ':'
+
+				if partialTemp == tokenString then
+					return true
+				end
+			end
+
+			return false
+		end
+
+		local function find_match(id)
+			for _, mcomp in ipairs(components) do
+				if mcomp.name == id then
+					return mcomp
+				end
+
+				if id_matches(mcomp.name, id) then
+					return mcomp
+				end
+			end
+
+			return nil
+		end
+
+		local function process_dependencies(comp)
+			for _, dep in ipairs(comp.dependencies) do
+				-- find a match for the dependency
+				local match = find_match(dep)
+
+				if match then
+					print(match.name, 'matches', dep)
+
+					includedirs { 'components/' .. match.rawName .. '/include/' }
+
+					links { match.rawName }
+
+					process_dependencies(match)
+				end
+			end
+		end
+
+		process_dependencies(comp)
+
+		-- test project
+		project('tests_' .. name)
+
+		language "C++"
+		kind "ConsoleApp"
+
+		includedirs { 'components/' .. name .. "/include/" }
+		files { 'components/' .. name .. "/tests/**.cpp", 'components/' .. name .. "/tests/**.h", "tests/test.cpp", "client/common/StdInc.cpp" }
+
+		links { "Shared", "CitiGame", "gtest_main", name }
+
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+	end
+
+	dofile('components/config.lua')
+
+	for _, comp in ipairs(components) do
+		do_component(comp.rawName, comp)
+	end

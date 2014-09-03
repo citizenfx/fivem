@@ -16,7 +16,7 @@ bool DownloadManager::Process()
 
 			m_httpClient = new HttpClient();
 
-			std::wstring hostname = m_gameServer.GetWAddress();
+			auto hostname = m_gameServer.GetWAddress();
 
 			std::map<std::string, std::string> postMap;
 			postMap["method"] = "getConfiguration";
@@ -44,7 +44,7 @@ bool DownloadManager::Process()
 				isUpdate = true;
 			}
 
-			m_httpClient->DoPostRequest(hostname, m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, std::string connData)
+			m_httpClient->DoPostRequest(hostname.c_str(), m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, std::string connData)
 			{
 				if (!result)
 				{
@@ -59,7 +59,7 @@ bool DownloadManager::Process()
 					m_requiredResources.clear();
 				}
 
-				std::string serverHost = m_gameServer.GetAddress();
+				fwString serverHost = m_gameServer.GetAddress();
 				serverHost += va(":%d", m_gameServer.GetPort());
 
 				// parse the received YAML file

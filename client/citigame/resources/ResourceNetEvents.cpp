@@ -5,43 +5,46 @@
 
 static InitFunction initFunction([] ()
 {
-	g_netLibrary->AddReliableHandler("msgResStop", [] (const char* buf, size_t len)
+	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
 	{
-		std::string resourceName(buf, len);
-
-		auto resource = TheResources.GetResource(resourceName);
-
-		if (resource == nullptr)
+		netLibrary->AddReliableHandler("msgResStop", [] (const char* buf, size_t len)
 		{
-			trace("Server requested resource %s to be stopped, but we don't know that resource\n", resourceName.c_str());
-			return;
-		}
+			std::string resourceName(buf, len);
 
-		if (resource->GetState() != ResourceStateRunning)
-		{
-			trace("Server requested resource %s to be stopped, but it's not running\n", resourceName.c_str());
-			return;
-		}
+			auto resource = TheResources.GetResource(resourceName);
 
-		resource->Stop();
-		resource->Tick(); // to clean up immediately and change to 'stopped'
-	});
-
-	g_netLibrary->AddReliableHandler("msgResStart", [] (const char* buf, size_t len)
-	{
-		std::string resourceName(buf, len);
-
-		auto resource = TheResources.GetResource(resourceName);
-
-		if (resource != nullptr)
-		{
-			if (resource->GetState() != ResourceStateStopped)
+			if (resource == nullptr)
 			{
-				trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
+				trace("Server requested resource %s to be stopped, but we don't know that resource\n", resourceName.c_str());
 				return;
 			}
-		}
 
-		TheDownloads.QueueResourceUpdate(resourceName);
+			if (resource->GetState() != ResourceStateRunning)
+			{
+				trace("Server requested resource %s to be stopped, but it's not running\n", resourceName.c_str());
+				return;
+			}
+
+			resource->Stop();
+			resource->Tick(); // to clean up immediately and change to 'stopped'
+		});
+
+		netLibrary->AddReliableHandler("msgResStart", [] (const char* buf, size_t len)
+		{
+			std::string resourceName(buf, len);
+
+			auto resource = TheResources.GetResource(resourceName);
+
+			if (resource != nullptr)
+			{
+				if (resource->GetState() != ResourceStateStopped)
+				{
+					trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
+					return;
+				}
+			}
+
+			TheDownloads.QueueResourceUpdate(resourceName);
+		});
 	});
 });

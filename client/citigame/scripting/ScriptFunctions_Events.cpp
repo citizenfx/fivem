@@ -155,50 +155,53 @@ LUA_FUNCTION(TriggerServerEvent)
 
 static InitFunction initFunction([]()
 {
-	g_netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
+	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
 	{
-		NetBuffer buffer(buf, len);
-
-		// get the source net ID
-		uint16_t sourceNetID = buffer.Read<uint16_t>();
-
-		// get length of event name and read the event name
-		static char eventName[65536];
-
-		uint16_t nameLength = buffer.Read<uint16_t>();
-		buffer.Read(eventName, nameLength);
-
-		// read the data
-		size_t dataLen = len - nameLength - (sizeof(uint16_t) * 2);
-		char* eventData = new char[dataLen];
-
-		buffer.Read(eventData, dataLen);
-
-		// get the source player ID from the net ID
-		uint16_t playerID = -1;
-
-		for (int i = 0; i < 32; i++)
+		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
 		{
-			if (NativeInvoke::Invoke<0x4E237943, int>(i))
+			NetBuffer buffer(buf, len);
+
+			// get the source net ID
+			uint16_t sourceNetID = buffer.Read<uint16_t>();
+
+			// get length of event name and read the event name
+			static char eventName[65536];
+
+			uint16_t nameLength = buffer.Read<uint16_t>();
+			buffer.Read(eventName, nameLength);
+
+			// read the data
+			size_t dataLen = len - nameLength - (sizeof(uint16_t) * 2);
+			char* eventData = new char[dataLen];
+
+			buffer.Read(eventData, dataLen);
+
+			// get the source player ID from the net ID
+			uint16_t playerID = -1;
+
+			for (int i = 0; i < 32; i++)
 			{
-				auto info = CPlayerInfo::GetPlayer(i);
-
-				auto netID = info->address.inaOnline.s_addr;
-
-				if (netID == sourceNetID)
+				if (NativeInvoke::Invoke<0x4E237943, int>(i))
 				{
-					playerID = i;
-					break;
+					auto info = CPlayerInfo::GetPlayer(i);
+
+					auto netID = info->address.inaOnline.s_addr;
+
+					if (netID == sourceNetID)
+					{
+						playerID = i;
+						break;
+					}
 				}
 			}
-		}
 
-		// probably a message from a since-disconnected-from-game's-vision player
-		if (playerID == -1)
-		{
-			//return;
-		}
+			// probably a message from a since-disconnected-from-game's-vision player
+			if (playerID == -1)
+			{
+				//return;
+			}
 
-		TheResources.QueueEvent(std::string(eventName), std::string(eventData, dataLen), playerID);
+			TheResources.QueueEvent(std::string(eventName), std::string(eventData, dataLen), playerID);
+		});
 	});
 });

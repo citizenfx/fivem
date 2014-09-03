@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#if 0
 #include "NetLibrary.h"
 
 NetAddress::NetAddress(const char* address, uint16_t port)
@@ -72,3 +74,4 @@ std::wstring NetAddress::GetWAddress()
 		return bufferW;
 	}
 }
+#endif

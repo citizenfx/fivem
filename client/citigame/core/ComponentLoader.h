@@ -13,7 +13,7 @@ class GAME_EXPORT ComponentId
 {
 private:
 	std::vector<std::string> m_categories;
-	int m_versions[6];
+	int m_versions[4];
 
 public:
 	ComponentId();
@@ -37,15 +37,40 @@ public:
 		return m_versions;
 	}
 
+	std::string GetString() const;
+
+	bool IsMatchedBy(const ComponentId& provider) const;
+
 	int CompareVersion(const ComponentId& secondId) const;
+};
+
+class Component : public fwRefCountable
+{
+public:
+	virtual bool Initialize() = 0;
+
+	virtual bool Shutdown() = 0;
 };
 
 class ComponentData : public fwRefCountable
 {
+protected:
+	virtual Component* CreateComponent() = 0;
+
 public:
 	virtual std::string GetName() = 0;
 
 	virtual std::vector<ComponentId> GetProvides() = 0;
+
+	virtual std::vector<ComponentId> GetDepends() = 0;
+
+private:
+	fwRefContainer<Component> m_component;
+
+public:
+	void Load();
+
+	inline fwRefContainer<Component> GetComponent() { return m_component; }
 };
 
 class GAME_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
@@ -53,7 +78,7 @@ class GAME_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
 private:
 	typedef std::unordered_map<std::string, fwRefContainer<ComponentData>> TComponentList;
 
-	typedef std::vector<std::string> TLoadedList;
+	typedef std::set<std::string> TLoadedList;
 
 	fwRefContainer<ComponentData> m_rootComponent;
 

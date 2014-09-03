@@ -61,13 +61,6 @@ static RuntimeHookFunction oddWaitDeadlock("odd_wait_deadlock", [] ()
 	hook::return_function(0x621D10);
 });
 
-#include "EventCore.h"
-
-static HookFunction hookFunction([] ()
-{
-	TestEvent(2, 3);
-});
-
 /*
 static HookFunction hookFunction([] ()
 {

@@ -178,3 +178,6 @@ FakesAssemblies/
 *.vcxproj
 *.sln
 *.filters
+
+# node modules
+node_modules/

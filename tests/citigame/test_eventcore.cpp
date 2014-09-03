@@ -3,6 +3,23 @@
 
 #include "EventCore.h"
 
+TEST(EventCoreTest, StaticFwAction)
+{
+	static fwAction<bool> action;
+	static bool calledFlag;
+
+	calledFlag = false;
+
+	action = [] (bool)
+	{
+		calledFlag = true;
+	};
+
+	action(true);
+
+	EXPECT_TRUE(calledFlag);
+}
+
 TEST(EventCoreTest, RunAndConnectEvent)
 {
 	static fwEvent<int, int> event;

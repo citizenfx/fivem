@@ -1,4 +1,8 @@
 #pragma once
+#include "CrossLibraryInterfaces.h"
+#include "../components/net/include/NetLibrary.h"
+
+#if 0
 #include <queue>
 #include <bitset>
 #include <WS2tcpip.h>
@@ -221,3 +225,6 @@ public:
 };
 
 extern NetLibrary* g_netLibrary;
+#else
+extern NetLibrary* g_netLibrary;
+#endif

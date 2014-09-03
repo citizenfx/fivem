@@ -6,6 +6,26 @@ std::string FxGameComponent::GetName()
 	return "fx";
 }
 
+bool FxGameComponent::ComponentInstance::Initialize()
+{
+	return true;
+}
+
+bool FxGameComponent::ComponentInstance::Shutdown()
+{
+	return true;
+}
+
+Component* FxGameComponent::CreateComponent()
+{
+	return new ComponentInstance();
+}
+
+std::vector<ComponentId> FxGameComponent::GetDepends()
+{
+	return std::vector<ComponentId>();
+}
+
 std::vector<ComponentId> FxGameComponent::GetProvides()
 {
 	std::vector<ComponentId> componentIds;
