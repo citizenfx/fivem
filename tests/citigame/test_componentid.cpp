@@ -1,7 +1,7 @@
 #include "StdInc.h"
 #include <gtest/gtest.h>
 
-#include "../core/ComponentLoader.h"
+#include <ComponentLoader.h>
 
 TEST(ComponentIdTest, ParsingCategories)
 {

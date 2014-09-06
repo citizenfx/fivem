@@ -138,6 +138,12 @@ public:
 #define HOOKS_EXPORT __declspec(dllimport)
 #endif
 
+#ifdef COMPILING_CORE
+#define CORE_EXPORT __declspec(dllexport)
+#else
+#define CORE_EXPORT __declspec(dllimport)
+#endif
+
 #ifdef COMPILING_GAMESPEC
 #define GAMESPEC_EXPORT __declspec(dllexport)
 #define GAMESPEC_EXPORT_VMT __declspec(dllexport)

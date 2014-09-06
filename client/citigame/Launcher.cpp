@@ -6,7 +6,7 @@
 #include "ui/CefOverlay.h"
 #include <libnp.h>
 
-#include "core/ComponentLoader.h"
+#include <ComponentLoader.h>
 
 bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {

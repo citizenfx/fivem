@@ -9,7 +9,7 @@
 // 
 // Cross-DLL: no (passing is only by strings)
 //
-class GAME_EXPORT ComponentId
+class CORE_EXPORT ComponentId
 {
 private:
 	std::vector<std::string> m_categories;
@@ -52,7 +52,7 @@ public:
 	virtual bool Shutdown() = 0;
 };
 
-class ComponentData : public fwRefCountable
+class CORE_EXPORT ComponentData : public fwRefCountable
 {
 protected:
 	virtual Component* CreateComponent() = 0;
@@ -73,7 +73,7 @@ public:
 	inline fwRefContainer<Component> GetComponent() { return m_component; }
 };
 
-class GAME_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
+class CORE_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
 {
 private:
 	typedef std::unordered_map<std::string, fwRefContainer<ComponentData>> TComponentList;

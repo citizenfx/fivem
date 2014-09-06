@@ -59,6 +59,23 @@ solution "CitizenMP"
 		configuration "windows"
 			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 		
+	project "CitiCore"
+		targetname "CoreRT"
+		language "C++"
+		kind "SharedLib"
+
+		files
+		{
+			"client/citicore/**.cpp", "client/citicore/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
+		}
+
+		links { "Shared" }
+
+		defines "COMPILING_CORE"
+
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+
 	project "CitiGame"
 		targetname "CitizenGame"
 		language "C++"
@@ -69,12 +86,12 @@ solution "CitizenMP"
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
-		links { "Shared", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net" }
+		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net" }
 		
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "components/net/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "components/net/include/", "client/citicore/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
@@ -208,9 +225,9 @@ solution "CitizenMP"
 		language "C++"
 		kind "ConsoleApp"
 		
-		links { "gtest_main", "CitiGame", "Shared" }
+		links { "gtest_main", "CitiGame", "CitiCore", "Shared" }
 		
-		includedirs { "client/citigame/include/" }
+		includedirs { "client/citigame/include/", "client/citicore/" }
 		
 		files { "tests/citigame/*.cpp", "tests/test.cpp" }
 
@@ -270,7 +287,7 @@ solution "CitizenMP"
 		language "C++"
 		kind "SharedLib"
 
-		includedirs { "client/citigame/core/", 'components/' .. name .. "/include/" }
+		includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
 		files {
 			'components/' .. name .. "/src/**.cpp",
 			'components/' .. name .. "/src/**.h",
@@ -282,7 +299,7 @@ solution "CitizenMP"
 
 		defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
 
-		links { "Shared", "CitiGame" }
+		links { "Shared", "CitiCore" }
 
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
@@ -351,7 +368,7 @@ solution "CitizenMP"
 		includedirs { 'components/' .. name .. "/include/" }
 		files { 'components/' .. name .. "/tests/**.cpp", 'components/' .. name .. "/tests/**.h", "tests/test.cpp", "client/common/StdInc.cpp" }
 
-		links { "Shared", "CitiGame", "gtest_main", name }
+		links { "Shared", "CitiCore", "gtest_main", name }
 
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
