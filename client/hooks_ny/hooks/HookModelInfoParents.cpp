@@ -1214,8 +1214,8 @@ void __declspec(naked) RequestEntityModelEsi()
 	}
 }
 
-static CBaseModelInfo* g_removeTheseRefs[4096];
-static int g_removeRefIdx;
+static CBaseModelInfo* g_removeTheseRefs[131072];
+static uint32_t g_removeRefIdx;
 static std::mutex g_removeRefMutex;
 
 void AddEntityRef(CEntity* entity)
@@ -1227,9 +1227,9 @@ void AddEntityRef(CEntity* entity)
 	{
 		modelInfo->AddRef();
 
-		g_removeRefMutex.lock();
-		g_removeTheseRefs[g_removeRefIdx++] = modelInfo;
-		g_removeRefMutex.unlock();
+		g_removeTheseRefs[g_removeRefIdx] = modelInfo;
+
+		InterlockedIncrement(&g_removeRefIdx);
 	}
 	else
 	{
@@ -1240,16 +1240,12 @@ void AddEntityRef(CEntity* entity)
 
 void ReleaseRenderModels()
 {
-	g_removeRefMutex.lock();
-
 	for (int i = 0; i < g_removeRefIdx; i++)
 	{
 		g_removeTheseRefs[i]->ReleaseRef();
 	}
 	
 	g_removeRefIdx = 0;
-
-	g_removeRefMutex.unlock();
 }
 
 void __declspec(naked) AddModelRefEsi()
