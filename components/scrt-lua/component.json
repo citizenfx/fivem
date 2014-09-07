@@ -1,0 +1,10 @@
+{
+	"name": "scrt:lua",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"resources",
+		"net"
+	],
+	"provides": []
+}

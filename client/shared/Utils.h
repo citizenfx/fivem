@@ -169,5 +169,10 @@ inline void LowerString(std::string& string)
 	std::transform(string.begin(), string.end(), string.begin(), ::tolower);
 }
 
+inline void LowerString(fwString& string)
+{
+	std::transform(string.begin(), string.end(), string.begin(), ::tolower);
+}
+
 fwString url_encode(const fwString &value);
 void CreateDirectoryAnyDepth(const char *path);

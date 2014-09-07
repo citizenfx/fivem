@@ -46,7 +46,7 @@ public:
 	{
 	}
 
-	std::string GetFileName();
+	fwString GetFileName();
 
 	bool Exists();
 	
@@ -160,14 +160,14 @@ void CitizenStreamingFile::QueueDownload()
 
 	m_downloading = true;
 
-	std::wstring hostname, path;
+	fwWString hostname, path;
 	uint16_t port;
 
 	httpClient->CrackUrl(m_currentDownload.sourceUrl, hostname, path, port);
 
 	uint32_t startTime = timeGetTime();
 
-	httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload.targetFilename, [=] (bool result, std::string connData)
+	httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload.targetFilename, [=] (bool result, const char* connData, size_t connDataLength)
 	{
 		if (!result)
 		{
@@ -221,7 +221,7 @@ void CitizenStreamingFile::QueueDownload()
 	});
 }
 
-std::string CitizenStreamingFile::GetFileName()
+fwString CitizenStreamingFile::GetFileName()
 {
 	return m_entry.filename;
 }

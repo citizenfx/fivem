@@ -86,12 +86,12 @@ solution "CitizenMP"
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
-		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net" }
+		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net", "resources" }
 		
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "components/net/include/", "client/citicore/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
@@ -347,6 +347,8 @@ solution "CitizenMP"
 
 				if match then
 					print(match.name, 'matches', dep)
+
+					dofile('components/' .. match.rawName .. '/component.lua')
 
 					includedirs { 'components/' .. match.rawName .. '/include/' }
 

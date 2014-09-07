@@ -77,6 +77,16 @@ void ComponentLoader::Initialize()
 	}
 }
 
+void ComponentLoader::DoGameLoad(HANDLE hModule)
+{
+	for (auto& componentName : m_loadedComponents)
+	{
+		auto component = m_knownComponents[componentName];
+
+		component->GetComponent()->DoGameLoad(hModule);
+	}
+}
+
 void ComponentLoader::AddComponent(fwRefContainer<ComponentData> component)
 {
 	std::string name = component->GetName();
@@ -147,6 +157,8 @@ void ComponentData::Load()
 
 	assert(m_component.GetRef());
 }
+
+bool Component::DoGameLoad(HANDLE hModule) { return true; }
 
 static HANDLE hHeap;
 

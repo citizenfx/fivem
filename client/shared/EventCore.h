@@ -70,7 +70,7 @@ class fwMap : public std::map<TKey, TValue, std::less<TKey>, fwAllocator<std::pa
 };
 
 template<class TKey, class TValue>
-class fwHashMap : public std::unordered_map<TKey, TValue, std::hash<TKey>, std::less<TKey>, fwAllocator<std::pair<const TKey, TValue>>>
+class fwHashMap : public std::unordered_map<TKey, TValue, std::hash<TKey>, std::equal_to<TKey>, fwAllocator<std::pair<const TKey, TValue>>>
 {
 
 };

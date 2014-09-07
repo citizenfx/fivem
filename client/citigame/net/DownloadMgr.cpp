@@ -18,14 +18,14 @@ bool DownloadManager::Process()
 
 			auto hostname = m_gameServer.GetWAddress();
 
-			std::map<std::string, std::string> postMap;
+			fwMap<fwString, fwString> postMap;
 			postMap["method"] = "getConfiguration";
 
 			bool isUpdate = false;
 
 			if (!m_updateQueue.empty())
 			{
-				std::string resourceString;
+				fwString resourceString;
 
 				while (!m_updateQueue.empty())
 				{
@@ -44,7 +44,7 @@ bool DownloadManager::Process()
 				isUpdate = true;
 			}
 
-			m_httpClient->DoPostRequest(hostname.c_str(), m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, std::string connData)
+			m_httpClient->DoPostRequest(hostname.c_str(), m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, const char* connDataStr, size_t connDataLength)
 			{
 				if (!result)
 				{
@@ -67,7 +67,7 @@ bool DownloadManager::Process()
 				//{
 					//auto node = YAML::Load(connData);
 					rapidjson::Document node;
-					node.Parse(connData.c_str());
+					node.Parse(connDataStr);
 
 					if (node.HasParseError())
 					{
@@ -102,8 +102,8 @@ bool DownloadManager::Process()
 						auto& files = resource["files"];
 						for (auto i = files.MemberBegin(); i != files.MemberEnd(); i++)
 						{
-							std::string filename = i->name.GetString();
-							std::string hash = i->value.GetString();
+							fwString filename = i->name.GetString();
+							fwString hash = i->value.GetString();
 
 							resData.AddFile(filename, hash);
 						}
@@ -115,8 +115,8 @@ bool DownloadManager::Process()
 							//for (auto& file : resource["streamFiles"])
 							for (auto i = streamFiles.MemberBegin(); i != streamFiles.MemberEnd(); i++)
 							{
-								std::string filename = i->name.GetString();
-								std::string hash = i->value["hash"].GetString();
+								fwString filename = i->name.GetString();
+								fwString hash = i->value["hash"].GetString();
 								uint32_t rscFlags = i->value["rscFlags"].GetUint();
 								uint32_t rscVersion = i->value["rscVersion"].GetUint();
 								uint32_t size = i->value["size"].GetUint();
@@ -199,12 +199,12 @@ bool DownloadManager::Process()
 				m_currentDownload = std::make_shared<ResourceDownload>(m_downloadList.front());
 				m_downloadList.pop();
 
-				std::wstring hostname, path;
+				fwWString hostname, path;
 				uint16_t port;
 
 				m_httpClient->CrackUrl(m_currentDownload->sourceUrl, hostname, path, port);
 
-				m_httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload->targetFilename, [=] (bool result, std::string connData)
+				m_httpClient->DoFileGetRequest(hostname, port, path, TheResources.GetCache()->GetCacheDevice(), m_currentDownload->targetFilename, [=] (bool result, const char* connData, size_t)
 				{
 					m_downloadState = DS_DOWNLOADED_SINGLE;
 				});
@@ -242,7 +242,7 @@ bool DownloadManager::Process()
 						{
 							auto resourceData = TheResources.GetResource(resource.GetName());
 
-							if (!resourceData.get())
+							if (!resourceData.GetRef())
 							{
 								continue;
 							}
@@ -283,7 +283,7 @@ bool DownloadManager::Process()
 				//std::string resourcePath = "citizen:/resources/";
 				//TheResources.ScanResources(fiDevice::GetDevice("citizen:/setup2.xml", true), resourcePath);
 
-				std::list<std::shared_ptr<Resource>> loadedResources;
+				std::list<fwRefContainer<Resource>> loadedResources;
 
 				// mount any RPF files that we include
 				for (auto& resource : m_requiredResources)
@@ -293,14 +293,14 @@ bool DownloadManager::Process()
 						continue;
 					}
 
-					std::vector<rage::fiPackfile*> packFiles;
+					fwVector<rage::fiPackfile*> packFiles;
 
 					for (auto& file : resource.GetFiles())
 					{
 						if (file.filename.find(".rpf") != std::string::npos)
 						{
 							// get the path of the RPF
-							std::string markedFile = TheResources.GetCache()->GetMarkedFilenameFor(resource.GetName(), file.filename);
+							fwString markedFile = TheResources.GetCache()->GetMarkedFilenameFor(resource.GetName(), file.filename);
 
 							rage::fiPackfile* packFile = new rage::fiPackfile();
 							packFile->openArchive(markedFile.c_str(), true, false, 0);
@@ -314,7 +314,7 @@ bool DownloadManager::Process()
 					// load the resource
 					auto resourceLoad = TheResources.AddResource(resource.GetName(), va("resources:/%s/", resource.GetName().c_str()));
 
-					if (resourceLoad.get())
+					if (resourceLoad.GetRef())
 					{
 						resourceLoad->AddPackFiles(packFiles);
 
@@ -370,7 +370,7 @@ bool DownloadManager::Process()
 	return false;
 }
 
-void DownloadManager::AddStreamingFile(ResourceData data, std::string& filename, std::string& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size)
+void DownloadManager::AddStreamingFile(ResourceData data, fwString& filename, fwString& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size)
 {
 	StreamingResource file;
 	file.resData = data;
@@ -388,7 +388,7 @@ bool DownloadManager::DoingQueuedUpdate()
 	return m_isUpdate && m_downloadState != DS_IDLE;
 }
 
-void DownloadManager::QueueResourceUpdate(std::string resourceName)
+void DownloadManager::QueueResourceUpdate(fwString resourceName)
 {
 	m_updateQueue.push(resourceName);
 
@@ -419,7 +419,7 @@ void DownloadManager::ReleaseLastServer()
 	//nui::ReloadNUI();
 	for (auto& resource : m_requiredResources)
 	{
-		nui::DestroyFrame(resource.GetName());
+		//nui::DestroyFrame(resource.GetName());
 	}
 }
 
@@ -429,3 +429,22 @@ void DownloadManager::SetServer(NetAddress& address)
 }
 
 DownloadManager TheDownloads;
+
+static InitFunction initFunction([] ()
+{
+	ResourceManager::OnScriptReset.Connect([] ()
+	{
+		auto& loadedResources = TheDownloads.GetLoadedResources();
+
+		// and start all of them!
+		for (auto& resource : loadedResources)
+		{
+			if (resource->GetState() == ResourceStateStopped)
+			{
+				resource->Start();
+			}
+		}
+
+		TheDownloads.ClearLoadedResources();
+	});
+});

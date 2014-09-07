@@ -44,11 +44,11 @@ public:
 		hostname = CefString(&parts.host);
 		path = CefString(&parts.path);
 
-		std::string host(hostname.begin(), hostname.end());
+		fwString host(hostname.begin(), hostname.end());
 
 		auto resource = TheResources.GetResource(host);
 
-		if (!resource.get())
+		if (!resource.GetRef() || true)
 		{
 			m_found = false;
 
@@ -57,6 +57,7 @@ public:
 			return true;
 		}
 
+		/*
 		auto ui = resource->GetUI();
 
 		// remove # parts
@@ -109,6 +110,8 @@ public:
 		}
 
 		m_found = true;
+
+		*/
 
 		return true;
 	}

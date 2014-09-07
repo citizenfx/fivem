@@ -18,21 +18,21 @@ private:
 	std::string m_serverLoadScreen;
 
 	// queue for runtime-updated resources
-	std::queue<std::string> m_updateQueue;
+	std::queue<fwString> m_updateQueue;
 
-	std::vector<ResourceData> m_requiredResources;
+	fwVector<ResourceData> m_requiredResources;
 
 	std::queue<ResourceDownload> m_downloadList;
 
-	std::vector<std::pair<std::string, rage::fiPackfile*>> m_packFiles;
+	std::vector<std::pair<fwString, rage::fiPackfile*>> m_packFiles;
 
 	std::unordered_set<std::string> m_removedPackFiles;
 
 	std::shared_ptr<ResourceDownload> m_currentDownload;
 
-	std::vector<StreamingResource> m_streamingFiles;
+	fwVector<StreamingResource> m_streamingFiles;
 
-	std::list<std::shared_ptr<Resource>> m_loadedResources;
+	std::list<fwRefContainer<Resource>> m_loadedResources;
 
 	enum DownloadState
 	{
@@ -54,18 +54,18 @@ public:
 
 	bool DoingQueuedUpdate();
 
-	void QueueResourceUpdate(std::string resourceName);
+	void QueueResourceUpdate(fwString resourceName);
 
 	void ReleaseLastServer();
 
-	void AddStreamingFile(ResourceData data, std::string& filename, std::string& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size);
+	void AddStreamingFile(ResourceData data, fwString& filename, fwString& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size);
 
 	void SetServer(NetAddress& address);
 
 public:
-	inline std::vector<StreamingResource>& GetStreamingFiles() { return m_streamingFiles; }
+	inline fwVector<StreamingResource>& GetStreamingFiles() { return m_streamingFiles; }
 
-	inline std::list<std::shared_ptr<Resource>>& GetLoadedResources() { return m_loadedResources; }
+	inline std::list<fwRefContainer<Resource>>& GetLoadedResources() { return m_loadedResources; }
 
 	inline void ClearLoadedResources() { m_loadedResources.clear(); }
 };

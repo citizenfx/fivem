@@ -44,12 +44,14 @@ public:
 	int CompareVersion(const ComponentId& secondId) const;
 };
 
-class Component : public fwRefCountable
+class CORE_EXPORT Component : public fwRefCountable
 {
 public:
 	virtual bool Initialize() = 0;
 
 	virtual bool Shutdown() = 0;
+
+	virtual bool DoGameLoad(HANDLE hModule);
 };
 
 class CORE_EXPORT ComponentData : public fwRefCountable
@@ -91,6 +93,8 @@ private:
 
 public:
 	void Initialize();
+
+	void DoGameLoad(HANDLE hModule);
 
 	fwRefContainer<ComponentData> LoadComponent(const char* component);
 };

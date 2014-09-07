@@ -15,7 +15,7 @@ ResourceUI::~ResourceUI()
 
 bool ResourceUI::Create()
 {
-	auto& metaData = m_resource->GetMetaData();
+	/*auto& metaData = m_resource->GetMetaData();
 	auto it = metaData.find("uiPage");
 
 	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), nui::GetSchemeHandlerFactory());
@@ -29,14 +29,14 @@ bool ResourceUI::Create()
 
 	nui::CreateFrame(m_resource->GetName(), path);
 
-	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
+	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);*/
 
 	return true;
 }
 
 void ResourceUI::Destroy()
 {
-	nui::DestroyFrame(m_resource->GetName());
+	//nui::DestroyFrame(m_resource->GetName());
 }
 
 void ResourceUI::AddCallback(std::string type, ResUICallback callback)
@@ -63,5 +63,5 @@ bool ResourceUI::InvokeCallback(std::string type, std::string data, ResUIResultC
 
 void ResourceUI::SignalPoll()
 {
-	nui::SignalPoll(m_resource->GetName());
+	//nui::SignalPoll(m_resource->GetName());
 }

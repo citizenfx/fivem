@@ -2,7 +2,6 @@
 #include "LauncherInterface.h"
 #include "Launcher.h"
 #include "CrossLibraryInterfaces.h"
-#include "net/HttpClient.h"
 #include "ui/CefOverlay.h"
 #include <libnp.h>
 
@@ -84,6 +83,8 @@ IGameSpecToHooks* g_hooksDLL;
 bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 {
 	bool continueRunning = true;
+
+	ComponentLoader::GetInstance()->DoGameLoad(hModule);
 
 	HooksDLLInterface::PostGameLoad(hModule, &continueRunning);
 	InitFunctionBase::RunAll();
