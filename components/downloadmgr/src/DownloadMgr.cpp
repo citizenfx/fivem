@@ -3,8 +3,10 @@
 #include "DownloadMgr.h"
 #include <SHA1.h>
 #include <rapidjson/document.h>
-#include "../ui/CefOverlay.h"
-#include "../ui/CustomLoadScreens.h"
+//#include "../ui/CefOverlay.h"
+//#include "../ui/CustomLoadScreens.h"
+
+static NetLibrary* g_netLibrary;
 
 bool DownloadManager::Process()
 {
@@ -348,10 +350,10 @@ bool DownloadManager::Process()
 				ProcessQueuedUpdates();
 			}
 
-			if (!m_serverLoadScreen.empty() && !m_isUpdate)
+			/*if (!m_serverLoadScreen.empty() && !m_isUpdate)
 			{
 				CustomLoadScreens::PrepareSwitchTo(m_serverLoadScreen);
-			}
+			}*/
 
 			m_isUpdate = false;
 
@@ -432,6 +434,11 @@ DownloadManager TheDownloads;
 
 static InitFunction initFunction([] ()
 {
+	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* library)
+	{
+		g_netLibrary = library;
+	});
+
 	ResourceManager::OnScriptReset.Connect([] ()
 	{
 		auto& loadedResources = TheDownloads.GetLoadedResources();

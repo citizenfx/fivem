@@ -8,7 +8,13 @@
 
 class ResourceData;
 
-class DownloadManager
+class 
+#ifdef COMPILING_DOWNLOADMGR
+	__declspec(dllexport)
+#else
+	__declspec(dllimport)
+#endif
+	DownloadManager
 {
 private:
 	NetAddress m_gameServer;
@@ -70,4 +76,10 @@ public:
 	inline void ClearLoadedResources() { m_loadedResources.clear(); }
 };
 
-extern DownloadManager TheDownloads;
+extern
+#ifdef COMPILING_DOWNLOADMGR
+	__declspec(dllexport)
+#else
+	__declspec(dllimport)
+#endif
+	DownloadManager TheDownloads;
