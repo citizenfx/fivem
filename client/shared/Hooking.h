@@ -9,7 +9,7 @@
 namespace hook
 {
 // for link /DYNAMICBASE executables
-extern ptrdiff_t baseAddressDifference;
+static ptrdiff_t baseAddressDifference;
 
 // sets the base address difference based on an obtained pointer
 inline void set_base(uintptr_t address)

@@ -44,8 +44,9 @@
 // module-specific includes
 #ifdef COMPILING_HOOKS
 #include "Hooking.h"
-#include "HookFunction.h"
 #endif
+
+#include "HookFunction.h"
 
 #ifdef HAS_LOCAL_H
 #include "Local.h"

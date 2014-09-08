@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
 #include "CrossLibraryInterfaces.h"
+#include "InputHook.h"
 #include <windowsx.h>
 
 static bool g_hasFocus = true;
@@ -127,24 +128,19 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 
 static InitFunction initFunction([] ()
 {
-	g_hooksDLL->SetHookCallback(StringHash("mouseLock"), [] (void* argPtr)
+	InputHook::QueryMayLockCursor.Connect([](int& argPtr)
 	{
 		if (g_hasFocus)
 		{
-			*(int*)argPtr = 0;
+			argPtr = 0;
 		}
 	});
 
-	g_hooksDLL->SetHookCallback(StringHash("wndProc"), [] (void* argsPtr)
+	//g_hooksDLL->SetHookCallback(StringHash("wndProc"), [] (void* argsPtr)
+	InputHook::OnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
-		WNDPROCARGS* args = (WNDPROCARGS*)argsPtr;
-
 		if (g_hasFocus)
 		{
-			UINT msg = args->uMsg;
-			WPARAM wParam = args->wParam;
-			LPARAM lParam = args->lParam;
-
 			if (msg == WM_KEYUP || msg == WM_KEYDOWN || msg == WM_CHAR)
 			{
 				CefKeyEvent keyEvent;
@@ -164,8 +160,8 @@ static InitFunction initFunction([] ()
 
 				nui::GetBrowser()->GetHost()->SendKeyEvent(keyEvent);
 
-				args->pass = false;
-				args->lresult = FALSE;
+				pass = false;
+				lresult = FALSE;
 				return;
 			}
 			else if (msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP || msg == WM_RBUTTONDOWN || msg == WM_RBUTTONUP)
@@ -177,8 +173,8 @@ static InitFunction initFunction([] ()
 
 				nui::GetBrowser()->GetHost()->SendMouseClickEvent(mouseEvent, (msg == WM_LBUTTONUP || msg == WM_LBUTTONDOWN) ? MBT_LEFT : MBT_RIGHT, (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP), 1);
 
-				args->pass = false;
-				args->lresult = FALSE;
+				pass = false;
+				lresult = FALSE;
 				return;
 			}
 			else if (msg == WM_MOUSEMOVE)
@@ -193,8 +189,8 @@ static InitFunction initFunction([] ()
 
 				nui::GetBrowser()->GetHost()->SendMouseMoveEvent(mouseEvent, false);
 
-				args->pass = false;
-				args->lresult = FALSE;
+				pass = false;
+				lresult = FALSE;
 				return;
 			}
 			else if (msg == WM_MOUSEWHEEL)
@@ -211,8 +207,8 @@ static InitFunction initFunction([] ()
 
 				nui::GetBrowser()->GetHost()->SendMouseWheelEvent(mouseEvent, 0, delta);
 
-				args->pass = false;
-				args->lresult = TRUE;
+				pass = false;
+				lresult = TRUE;
 
 				return;
 			}

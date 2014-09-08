@@ -6,21 +6,12 @@ class ComponentInstance : public Component
 public:
 	virtual bool Initialize();
 
-	virtual bool DoGameLoad(HANDLE module);
-
 	virtual bool Shutdown();
 };
 
 bool ComponentInstance::Initialize()
 {
 	InitFunctionBase::RunAll();
-
-	return true;
-}
-
-bool ComponentInstance::DoGameLoad(HANDLE module)
-{
-	HookFunction::RunAll();
 
 	return true;
 }

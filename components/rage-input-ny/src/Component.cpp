@@ -1,16 +1,14 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
-#include "Hooking.h"
-#include "scrEngine.h"
 
 class ComponentInstance : public Component
 {
 public:
 	virtual bool Initialize();
 
-	virtual bool Shutdown();
-
 	virtual bool DoGameLoad(HANDLE module);
+
+	virtual bool Shutdown();
 };
 
 bool ComponentInstance::Initialize()
@@ -20,19 +18,11 @@ bool ComponentInstance::Initialize()
 	return true;
 }
 
+void InitInputHook();
+
 bool ComponentInstance::DoGameLoad(HANDLE module)
 {
-	static hook::inject_call<void, bool> scriptInit(0x4201B0);
-
-	scriptInit.inject([] (bool dontStartScripts)
-	{
-		scriptInit.call(dontStartScripts);
-
-		rage::scrEngine::OnScriptInit();
-	});
-
-	// ignore startup/network_startup
-	hook::put<uint8_t>(0x809A81, 0xEB);
+	InitInputHook();
 
 	return true;
 }

@@ -1,28 +1,15 @@
 #include "StdInc.h"
-#if 0
-#include "HookCallbacks.h"
+#include "DrawCommands.h"
+#include "Hooking.h"
 
-static void InvokeFrontendCB()
-{
-	HookCallbacks::RunCallback(StringHash("renderCB"), "frontend");
-}
-
-static void WRAPPER AllocDCStub() { EAXJMP(0x7BDD80); }
-
-static void __declspec(naked) InvokeFrontendCBStub()
-{
-	__asm
-	{
-		mov eax, 44CCD0h
-		call eax
-
-		jmp InvokeFrontendCB
-	}
-}
+fwEvent<> OnGrcCreateDevice;
+fwEvent<> OnGrcBeginScene;
+fwEvent<> OnGrcEndScene;
 
 static void InvokeEndSceneCB()
 {
-	HookCallbacks::RunCallback(StringHash("renderCB"), "endScene");
+	//HookCallbacks::RunCallback(StringHash("renderCB"), "endScene");
+	OnGrcEndScene();
 }
 
 static void __declspec(naked) InvokeEndSceneCBStub()
@@ -36,6 +23,11 @@ static void __declspec(naked) InvokeEndSceneCBStub()
 	}
 }
 
+static void __stdcall InvokeCreateCB(void*, void*)
+{
+	OnGrcCreateDevice();
+}
+
 static HookFunction hookFunction([] ()
 {
 	static hook::inject_call<void, int> beginSceneCB(0x633403);
@@ -43,7 +35,7 @@ static HookFunction hookFunction([] ()
 	{
 		beginSceneCB.call();
 
-		HookCallbacks::RunCallback(StringHash("beginScene"), nullptr);
+		OnGrcBeginScene();
 	});
 
 
@@ -53,10 +45,12 @@ static HookFunction hookFunction([] ()
 	// same, for during loading text
 	hook::call(0x7BD74D, InvokeEndSceneCBStub);
 
+	// device creation
+	hook::jump(0xD3033C, InvokeCreateCB);
+
 	// frontend render phase
 	//hook::put(0xE9F1AC, InvokeFrontendCBStub);
 
 	// in-menu check for renderphasefrontend
 	//*(BYTE*)0x43AF21 = 0xEB;
 });
-#endif

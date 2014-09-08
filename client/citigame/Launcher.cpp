@@ -2,7 +2,6 @@
 #include "LauncherInterface.h"
 #include "Launcher.h"
 #include "CrossLibraryInterfaces.h"
-#include "ui/CefOverlay.h"
 #include <libnp.h>
 
 #include <ComponentLoader.h>
@@ -10,8 +9,6 @@
 bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
 	bool continueRunning = true;
-
-	ComponentLoader::GetInstance()->Initialize();
 
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
 
@@ -48,10 +45,12 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	gameMutex = CreateMutex(nullptr, true, mutexName);
 
 	// now let NUI initialize (also do its process stuff if it is invoked, this should be done as early on as possible)
-	if (nui::OnPreLoadGame(cefSandbox))
+	/*if (nui::OnPreLoadGame(cefSandbox))
 	{
 		return false;
-	}
+	}*/
+
+	ComponentLoader::GetInstance()->Initialize();
 
 	NP_Init();
 

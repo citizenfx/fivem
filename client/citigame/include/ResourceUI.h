@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ui/CefOverlay.h"
+#include "CefOverlay.h"
 #include "ResourceManager.h"
 
 typedef std::function<void(std::string)> ResUIResultCallback;

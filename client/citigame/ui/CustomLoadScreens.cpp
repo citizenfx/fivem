@@ -6,7 +6,7 @@
 #include <GameInit.h>
 #include <mutex>
 
-static std::shared_ptr<NUIWindow> g_loadScreen;
+static fwRefContainer<NUIWindow> g_loadScreen;
 static std::mutex g_loadScreenMutex;
 
 void CustomLoadScreens::PrepareSwitchTo(std::string url)
@@ -41,7 +41,7 @@ static InitFunction initFunction([] ()
 	{
 		g_loadScreenMutex.lock();
 
-		if (g_loadScreen.get())
+		if (g_loadScreen.GetRef())
 		{
 			g_loadScreen = nullptr;
 		}

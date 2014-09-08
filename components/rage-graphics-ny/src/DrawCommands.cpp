@@ -70,3 +70,9 @@ void SetTextureGtaIm(rage::grcTexture* texture)
 }
 
 void WRAPPER DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* color, int subShader) { EAXJMP(0x852CE0); }
+
+void GetGameResolution(int& resX, int& resY)
+{
+	resX = *(int*)0xFDCEAC;
+	resY = *(int*)0xFDCEB0;
+}

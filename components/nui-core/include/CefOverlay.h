@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef COMPILING_NUI_CORE
+#define OVERLAY_DECL __declspec(dllexport)
+#else
+#define OVERLAY_DECL __declspec(dllimport)
+#endif
+
 #include <memory>
 
 #include "grcTexture.h"
@@ -46,7 +52,11 @@ enum NUIPaintType
 	NUIPaintTypePostRender
 };
 
-class NUIWindow
+class 
+#ifdef COMPILING_NUI_CORE
+	__declspec(dllexport)
+#endif
+	NUIWindow : public fwRefCountable
 {
 private:
 	CefRefPtr<CefClient> m_client;
@@ -57,7 +67,7 @@ private:
 
 	friend class NUIClient;
 
-public:
+protected:
 	NUIWindow(bool primary, int width, int height);
 
 private:
@@ -81,7 +91,7 @@ private:
 	NUIPaintType paintType;
 
 public:
-	static std::shared_ptr<NUIWindow> Create(bool primary, int width, int height, CefString url);
+	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url);
 
 public:
 	~NUIWindow();
@@ -112,29 +122,27 @@ public:
 	inline rage::grcTexture* GetTexture() { return nuiTexture; }
 
 	inline NUIPaintType GetPaintType() { return paintType; }
-
-	IMPLEMENT_REFCOUNTING(NUIWindow);
 };
 
 namespace nui
 {
-	void EnterV8Context(const char* type);
-	void LeaveV8Context(const char* type);
-	void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
-	void ReloadNUI();
+	//void EnterV8Context(const char* type);
+	//void LeaveV8Context(const char* type);
+	//void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
+	void OVERLAY_DECL ReloadNUI();
 
-	void CreateFrame(std::string frameName, std::string frameURL);
-	void DestroyFrame(std::string frameName);
-	void SignalPoll(std::string frameName);
+	void OVERLAY_DECL CreateFrame(fwString frameName, fwString frameURL);
+	void OVERLAY_DECL DestroyFrame(fwString frameName);
+	void OVERLAY_DECL SignalPoll(fwString frameName);
 
-	void GiveFocus(bool hasFocus);
-	void SetMainUI(bool enable);
+	void OVERLAY_DECL GiveFocus(bool hasFocus);
+	void OVERLAY_DECL SetMainUI(bool enable);
 
 	void ProcessInput();
 
-	void ExecuteRootScript(const char* scriptBit);
+	void OVERLAY_DECL ExecuteRootScript(const char* scriptBit);
 
-	CefBrowser* GetBrowser();
+	OVERLAY_DECL CefBrowser* GetBrowser();
 
 	bool OnPreLoadGame(void* cefSandbox);
 
@@ -150,5 +158,11 @@ struct nui_s
 	DWORD nuiWidth;
 	DWORD nuiHeight;
 };
+
+extern
+	#ifndef COMPILING_NUI_CORE
+	__declspec(dllimport)
+	#endif
+	fwEvent<const char*, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
 
 extern nui_s g_nui;

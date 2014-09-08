@@ -3,7 +3,7 @@
 #include "GameInit.h"
 #include "DownloadMgr.h"
 #include "GameFlags.h"
-#include "../ui/CefOverlay.h"
+#include <CefOverlay.h>
 
 #if 0
 #include "NetLibrary.h"

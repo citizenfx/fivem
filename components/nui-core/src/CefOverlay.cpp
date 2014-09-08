@@ -1,11 +1,11 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 
-#include "GameInit.h"
+//#include "GameInit.h"
 
 #include <strsafe.h>
 
-#include "NetLibrary.h"
+//#include "NetLibrary.h"
 
 #include <memory>
 
@@ -254,7 +254,7 @@ public:
 			auto args = message->GetArgumentList();
 			auto nativeType = args->GetString(0);
 
-			if (nativeType == "refreshServers")
+			/*if (nativeType == "refreshServers")
 			{
 				GSClient_Refresh();
 			}
@@ -281,10 +281,15 @@ public:
 
 				nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
 			}
-			else if (nativeType == "quit")
+			else */
+			if (nativeType == "quit")
 			{
 				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
 				ExitProcess(0);
+			}
+			else
+			{
+
 			}
 			
 			return true;
@@ -647,12 +652,12 @@ void NUIWindow::Invalidate()
 	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(fullRect, PET_VIEW);
 }
 
-#include "RenderCallbacks.h"
+//#include "RenderCallbacks.h"
 #include "DrawCommands.h"
 
 static InitFunction initFunction([] ()
 {
-	RegisterD3DPostResetCallback([] ()
+	OnD3DPostReset.Connect([] ()
 	{
 		g_nuiWindowsMutex.lock();
 
@@ -664,7 +669,7 @@ static InitFunction initFunction([] ()
 		g_nuiWindowsMutex.unlock();
 	});
 
-	RenderCallbacks::AddRenderCallback("endScene", [] ()
+	OnGrcEndScene.Connect([]()
 	{
 		float bottomLeft[2] = { 0.f, 1.f };
 		float bottomRight[2] = { 1.f, 1.f };
@@ -696,8 +701,8 @@ static InitFunction initFunction([] ()
 			{
 				SetTextureGtaIm(window->GetTexture());
 
-				int resX = *(int*)0xFDCEAC;
-				int resY = *(int*)0xFDCEB0;
+				int resX, resY;
+				GetGameResolution(resX, resY);
 
 				// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
 				DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
@@ -715,7 +720,11 @@ static InitFunction initFunction([] ()
 
 			//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
 
-			if (!GameInit::GetGameLoaded())
+#ifndef GTA_NY
+#error "GTA_NY dependency!"
+#endif
+
+			if (true)//!GameInit::GetGameLoaded())
 			{
 				SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
 			}
@@ -728,17 +737,17 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
+	/*g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
 	{
 		nui::SetMainUI(true);
 
 		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
-	});
+	});*/
 });
 
-std::shared_ptr<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url)
+fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url)
 {
-	auto window = std::make_shared<NUIWindow>(primary, width, height);
+	auto window = new NUIWindow(primary, width, height);
 	window->Initialize(url);
 
 	return window;
@@ -774,59 +783,59 @@ void NUIWindow::Initialize(CefString url)
 
 static NUISchemeHandlerFactory* g_shFactory;
 
-static std::shared_ptr<NUIWindow> g_nuiResourceRootWindow;
+static fwRefContainer<NUIWindow> g_nuiResourceRootWindow;
 
 namespace nui
 {
-	CefBrowser* GetBrowser()
+	__declspec(dllexport) CefBrowser* GetBrowser()
 	{
 		return g_nuiResourceRootWindow->GetBrowser();
 	}
 
-	void ExecuteRootScript(const char* scriptBit)
+	__declspec(dllexport) void ExecuteRootScript(const char* scriptBit)
 	{
 		g_nuiResourceRootWindow->GetBrowser()->GetMainFrame()->ExecuteJavaScript(scriptBit, "internal", 1);
 	}
 
-	void ReloadNUI()
+	__declspec(dllexport) void ReloadNUI()
 	{
 		g_nuiResourceRootWindow->GetBrowser()->ReloadIgnoreCache();
 	}
 
-	void SetMainUI(bool enable)
+	__declspec(dllexport) void SetMainUI(bool enable)
 	{
 		g_mainUIFlag = enable;
 		nui::GiveFocus(enable);
 	}
 
-	void CreateFrame(std::string frameName, std::string frameURL)
+	__declspec(dllexport) void CreateFrame(fwString frameName, fwString frameURL)
 	{
 		auto procMessage = CefProcessMessage::Create("createFrame");
 		auto argumentList = procMessage->GetArgumentList();
 
 		argumentList->SetSize(2);
-		argumentList->SetString(0, frameName);
-		argumentList->SetString(1, frameURL);
+		argumentList->SetString(0, frameName.c_str());
+		argumentList->SetString(1, frameURL.c_str());
 
 		auto browser = g_nuiResourceRootWindow->GetBrowser();
 		browser->SendProcessMessage(PID_RENDERER, procMessage);
 	}
 
-	void DestroyFrame(std::string frameName)
+	__declspec(dllexport) void DestroyFrame(fwString frameName)
 	{
 		auto procMessage = CefProcessMessage::Create("destroyFrame");
 		auto argumentList = procMessage->GetArgumentList();
 
 		argumentList->SetSize(1);
-		argumentList->SetString(0, frameName);
+		argumentList->SetString(0, frameName.c_str());
 
 		auto browser = g_nuiResourceRootWindow->GetBrowser();
 		browser->SendProcessMessage(PID_RENDERER, procMessage);
 	}
 
-	void SignalPoll(std::string frameName)
+	__declspec(dllexport) void SignalPoll(fwString frameName)
 	{
-		g_nuiResourceRootWindow->SignalPoll(frameName);
+		g_nuiResourceRootWindow->SignalPoll(std::string(frameName.c_str()));
 	}
 
 	NUISchemeHandlerFactory* GetSchemeHandlerFactory()
@@ -834,7 +843,9 @@ namespace nui
 		return g_shFactory;
 	}
 
-	bool OnPreLoadGame(void* cefSandbox)
+	//bool OnPreLoadGame(void* cefSandbox)
+	//{
+	static InitFunction initFunction([] ()
 	{
 		// load the CEF library
 		HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
@@ -843,7 +854,7 @@ namespace nui
 		{
 			MessageBoxW(NULL, L"Could not load bin/libcef.dll.", L"CitizenFX", MB_ICONSTOP | MB_OK);
 
-			return true;
+			ExitProcess(0);
 		}
 
 		__HrLoadAllImportsForDll("libcef.dll");
@@ -855,12 +866,12 @@ namespace nui
 		CefRefPtr<CefApp> app(g_app);
 
 		// try to execute as a CEF process
-		int exitCode = CefExecuteProcess(args, app, cefSandbox);
+		int exitCode = CefExecuteProcess(args, app, nullptr);
 
 		// and exit if we did
 		if (exitCode >= 0)
 		{
-			return true;
+			ExitProcess(0);
 		}
 
 		// set up CEF as well here as we can do so anyway
@@ -886,7 +897,20 @@ namespace nui
 		//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 
-		g_hooksDLL->SetHookCallback(StringHash("beginScene"), [] (void*)
+		/*g_hooksDLL->SetHookCallback(StringHash("beginScene"), [] (void*)
+		{
+			if (g_nuiWindowsMutex.try_lock())
+			{
+				for (auto& window : g_nuiWindows)
+				{
+					window->UpdateFrame();
+				}
+
+				g_nuiWindowsMutex.unlock();
+			}
+		});*/
+
+		OnGrcBeginScene.Connect([] ()
 		{
 			if (g_nuiWindowsMutex.try_lock())
 			{
@@ -899,15 +923,18 @@ namespace nui
 			}
 		});
 
-		g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
+		//g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
+		OnGrcCreateDevice.Connect([]()
 		{
-			int resX = *(int*)0xFDCEAC;
-			int resY = *(int*)0xFDCEB0;
+			//int resX = *(int*)0xFDCEAC;
+			//int resY = *(int*)0xFDCEB0;
+			int resX, resY;
+			GetGameResolution(resX, resY);
 
 			g_nuiResourceRootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
 			g_nuiResourceRootWindow->SetPaintType(NUIPaintTypePostRender);
 		});
 
-		return false;
-	}
+		return;
+	});
 }

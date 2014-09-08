@@ -1,10 +1,7 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
 #include "fiDevice.h"
-#include "HttpClient.h"
 #include <include/cef_url.h>
-
-static HttpClient* g_httpClient;
 
 class NUIResourceHandler : public CefResourceHandler
 {
@@ -27,11 +24,6 @@ public:
 	{
 		closed_ = false;
 		file_ = -1;
-
-		if (!g_httpClient)
-		{
-			g_httpClient = new HttpClient();
-		}
 	}
 
 	virtual ~NUIResourceHandler()
@@ -180,10 +172,16 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 	{
 		return new NUIResourceHandler();
 	}
-	else if (scheme_name == "http")
+	/*else if (scheme_name == "http")
 	{
 		return CreateRPCResourceHandler();
-	}
+	}*/
 
-	return nullptr;
+	CefRefPtr<CefResourceHandler> outHandler;
+
+	OnSchemeCreateRequest(scheme_name.ToString().c_str(), outHandler);
+
+	return outHandler;
 }
+
+fwEvent<const char*, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;

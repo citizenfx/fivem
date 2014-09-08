@@ -2,8 +2,6 @@
 #include "Launcher.h"
 #include "Hooking.h"
 
-int hook::baseAddressDifference;
-
 static class HookLauncher : public sigslot::has_slots<>
 {
 public:

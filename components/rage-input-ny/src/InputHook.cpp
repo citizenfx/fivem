@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
-#include "HookCallbacks.h"
+#include "InputHook.h"
+#include "Hooking.h"
 
 WNDPROC origWndProc;
 
@@ -30,18 +31,23 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		}
 	}
 
-	WNDPROCARGS procArgs;
+	/*WNDPROCARGS procArgs;
 	procArgs.hwnd = hwnd;
 	procArgs.uMsg = uMsg;
 	procArgs.wParam = wParam;
 	procArgs.lParam = lParam;
 	procArgs.pass = true;
 
-	HookCallbacks::RunCallback(StringHash("wndProc"), &procArgs);
+	HookCallbacks::RunCallback(StringHash("wndProc"), &procArgs);*/
 
-	if (!procArgs.pass)
+	bool pass = true;
+	LRESULT lresult;
+
+	InputHook::OnWndProc(hwnd, uMsg, wParam, lParam, pass, lresult);
+
+	if (!pass)
 	{
-		return procArgs.lresult;
+		return lresult;
 	}
 
 	return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
@@ -65,7 +71,8 @@ int LockEnabled()
 {
 	int retval = 1;
 
-	HookCallbacks::RunCallback(StringHash("mouseLock"), &retval);
+	//HookCallbacks::RunCallback(StringHash("mouseLock"), &retval);
+	InputHook::QueryMayLockCursor(retval);
 
 	return retval;
 }
@@ -102,9 +109,9 @@ static double FumbleMouseStuff(void* a2, int axis)
 	return 0.0;
 }
 
-static HookFunction hookFunction([] ()
+void InitInputHook()
 {
-	// d3d fpu preserve, FIXME move it elsewhere
+	// d3d fpu preserve, STILL FIXME move it elsewhere
 	hook::put<uint8_t>(0x6213C7, 0x46);
 	hook::put<uint8_t>(0x62140F, 0x16);
 	hook::put<uint8_t>(0x621441, 0x46);
@@ -118,7 +125,7 @@ static HookFunction hookFunction([] ()
 	// ignore WM_ACTIVATEAPP deactivates (to fix the weird crashes)
 	*(WORD*)(0x61CCF1) = 0x9090;
 
-	// experimental: disable dinput
+	// disable dinput
 	*(BYTE*)0x636490 = 0xC3; // keyboard
 
 	// some mouse stealer -- removes dinput and doesn't get toggled back (RepairInput instead fixes the mouse)
@@ -131,4 +138,8 @@ static HookFunction hookFunction([] ()
 
 	// testing stuff (simplify function that returns mouse values sometimes and garbage other times)
 	hook::jump(0x839480, FumbleMouseStuff);
-});
+}
+
+fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::OnWndProc;
+
+fwEvent<int&> InputHook::QueryMayLockCursor;

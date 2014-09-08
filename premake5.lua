@@ -86,12 +86,12 @@ solution "CitizenMP"
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
-		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net", "resources", "downloadmgr" }
+		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "nui-core", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net", "resources", "downloadmgr" }
 		
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
@@ -133,7 +133,7 @@ solution "CitizenMP"
 		language "C++"
 		kind "SharedLib"
 		
-		links { "Shared", "GameNY", "ws2_32" }
+		links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny" }
 		
 		defines "COMPILING_HOOKS"	
 
@@ -141,7 +141,7 @@ solution "CitizenMP"
 		pchheader "StdInc.h"		
 		
 		configuration "* NY"
-			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
+			includedirs { "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
 			
 			files
 			{
@@ -340,19 +340,23 @@ solution "CitizenMP"
 			return nil
 		end
 
+		local hasDeps = {}
+
 		local function process_dependencies(comp)
 			for _, dep in ipairs(comp.dependencies) do
 				-- find a match for the dependency
 				local match = find_match(dep)
 
-				if match then
-					print(match.name, 'matches', dep)
-
-					dofile('components/' .. match.rawName .. '/component.lua')
+				if match and not hasDeps[match.rawName] then
+					print(project().name .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
 
 					includedirs { 'components/' .. match.rawName .. '/include/' }
 
 					links { match.rawName }
+
+					dofile('components/' .. match.rawName .. '/component.lua')
+
+					hasDeps[match.rawName] = true
 
 					process_dependencies(match)
 				end

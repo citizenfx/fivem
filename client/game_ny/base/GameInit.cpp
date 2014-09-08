@@ -4,8 +4,6 @@
 #include "Hooking.h"
 #include "CrossLibraryInterfaces.h"
 
-int hook::baseAddressDifference;
-
 bool GameInit::GetGameLoaded()
 {
 	return !(*(uint8_t*)0xF22B3C);

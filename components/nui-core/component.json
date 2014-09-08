@@ -1,0 +1,11 @@
+{
+	"name": "nui:core",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:device",
+		"rage:graphics",
+		"rage:input"
+	],
+	"provides": []
+}
