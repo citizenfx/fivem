@@ -335,7 +335,7 @@ LuaScriptEnvironment::LuaScriptEnvironment(Resource* resource)
 	// create a lua state; don't do anything with it yet
 	m_luaState = luaL_newstate();
 	safe_openlibs(m_luaState);
-	//luaopen_cjson(m_luaState);
+	luaopen_cjson(m_luaState);
 
 	// get an instance ID
 	m_instanceId = rand();
@@ -369,11 +369,9 @@ void LuaScriptEnvironment::EnqueueTask(std::function<void()> task)
 
 void LuaScriptEnvironment::Destroy()
 {
-	// don't do anything yet
-	assert(!"fix this");
-	//TheScriptManager->RemoveCleanupFlag();
+	TheScriptManager->RemoveCleanupFlag();
 
-	//m_missionCleanup->CleanUp(TheScriptManager);
+	m_missionCleanup->CleanUp(TheScriptManager);
 }
 
 bool LuaScriptEnvironment::LoadFile(fwString& scriptName, fwString& path)
@@ -613,11 +611,26 @@ const char* LuaScriptEnvironment::GetEnvironmentName()
 	return "Lua";
 }
 
+CMissionCleanup* LuaScriptEnvironment::GetMissionCleanup()
+{
+	return m_missionCleanup.get();
+}
+
 static InitFunction initFunction([] ()
 {
 	Resource::OnCreateScriptEnvironments.Connect([] (fwRefContainer<Resource> resource)
 	{
 		resource->AddScriptEnvironment(new LuaScriptEnvironment(resource.GetRef()));
+	});
+
+	CMissionCleanup::OnQueryMissionCleanup.Connect([] (CMissionCleanup*& handler)
+	{
+		auto environment = GetCurrentLuaEnvironment();
+
+		if (environment)
+		{
+			handler = environment->GetMissionCleanup();
+		}
 	});
 	/*g_hooksDLL->SetHookCallback(StringHash("mCleanup"), [] (void* missionCleanupInstance)
 	{

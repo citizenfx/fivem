@@ -1,19 +1,7 @@
 #include "StdInc.h"
 #include "ResourceScripting.h"
-
-LUA_FUNCTION(AddUIHandler)
-{
-	return 0;
-}
-
-LUA_FUNCTION(PollUI)
-{
-	return 0;
-}
-
-#if 0
 #include "ResourceUI.h"
-#include "NetLibrary.h"
+//#include "NetLibrary.h"
 
 extern bool g_mainUIFlag;
 
@@ -39,7 +27,7 @@ static int CompleteCallback(lua_State* L)
 	size_t len;
 	const char* string = lua_tolstring(L, -1, &len);
 
-	std::string retValue = std::string(&string[1], len - 2);
+	fwString retValue = fwString(&string[1], len - 2);
 
 	lua_pop(L, 1);
 
@@ -53,14 +41,14 @@ static int CompleteCallback(lua_State* L)
 
 LUA_FUNCTION(AddUIHandler)
 {
-	std::string messageType = luaL_checkstring(L, 1);
+	fwString messageType = luaL_checkstring(L, 1);
 
 	lua_pushvalue(L, 2);
 	int luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
-	ScriptEnvironment* environment = g_currentEnvironment;
+	LuaScriptEnvironment* environment = GetCurrentLuaEnvironment();
 
-	g_currentEnvironment->GetResource()->GetUI()->AddCallback(messageType, [=] (std::string inData, ResUIResultCallback resultCB)
+	ResourceUI::GetForResource(GetCurrentLuaEnvironment()->GetResource())->AddCallback(messageType, [=] (fwString inData, ResUIResultCallback resultCB)
 	{
 		environment->EnqueueTask([=] ()
 		{
@@ -107,9 +95,9 @@ LUA_FUNCTION(AddUIHandler)
 
 LUA_FUNCTION(PollUI)
 {
-	auto ui = g_currentEnvironment->GetResource()->GetUI();
+	auto ui = ResourceUI::GetForResource(GetCurrentLuaEnvironment()->GetResource());
 
-	if (ui)
+	if (ui.GetRef())
 	{
 		ui->SignalPoll();
 	}
@@ -126,12 +114,12 @@ LUA_FUNCTION(SetUIFocus)
 
 LUA_FUNCTION(ShutdownNetworkCit)
 {
-	g_netLibrary->Disconnect(luaL_checkstring(L, 1));
+	//g_netLibrary->Disconnect(luaL_checkstring(L, 1));
 
-	g_mainUIFlag = true;
+	//g_mainUIFlag = true;
+	nui::SetMainUI(true);
 
 	nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 
 	return 0;
 }
-#endif

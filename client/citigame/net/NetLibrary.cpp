@@ -4,6 +4,7 @@
 #include "DownloadMgr.h"
 #include "GameFlags.h"
 #include <CefOverlay.h>
+#include <nutsnbolts.h>
 
 #if 0
 #include "NetLibrary.h"
@@ -900,6 +901,21 @@ static InitFunction initFunction([] ()
 		TheDownloads.ReleaseLastServer();
 
 		GameInit::MurderGame();
+	});
+
+	OnGameFrame.Connect([] ()
+	{
+		g_netLibrary->RunFrame();
+	});
+
+	OnPreProcessNet.Connect([] ()
+	{
+		g_netLibrary->PreProcessNativeNet();
+	});
+
+	OnPostProcessNet.Connect([] ()
+	{
+		g_netLibrary->PostProcessNativeNet();
 	});
 
 	HooksDLLInterface::SetNetLibrary(g_netLibrary);

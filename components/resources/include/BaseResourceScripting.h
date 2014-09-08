@@ -1,5 +1,8 @@
 #pragma once
 
+class CMissionCleanup;
+class GtaThread;
+
 // temp
 typedef int ScriptFunctionRef;
 
@@ -34,6 +37,8 @@ public:
 
 	virtual void RemoveRef(ScriptFunctionRef ref) = 0;
 
+	virtual CMissionCleanup* GetMissionCleanup();
+
 public:
 	static BaseScriptEnvironment* GetCurrentEnvironment();
 
@@ -54,3 +59,11 @@ public:
 
 	~PushEnvironment();
 };
+
+extern
+#ifdef COMPILING_RESOURCES
+	__declspec(dllexport)
+#else
+	__declspec(dllimport)
+#endif
+	GtaThread* TheScriptManager;

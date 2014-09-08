@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"resources",
-		"net"
+		"net",
+		"rage:nutsnbolts"
 	],
 	"provides": []
 }

@@ -115,7 +115,7 @@ public:
 
 	inline Resource* GetResource() { return m_resource; }
 
-	inline CMissionCleanup* GetMissionCleanup() { return m_missionCleanup.get(); }
+	CMissionCleanup* GetMissionCleanup();
 
 	virtual uint32_t GetInstanceId();
 

@@ -136,6 +136,12 @@ private:
 public:
 	static fwEvent<fwRefContainer<Resource>> OnCreateScriptEnvironments;
 
+	static fwEvent<fwRefContainer<Resource>> OnStartingResource;
+
+	static fwEvent<fwRefContainer<Resource>> OnStartedResource;
+
+	static fwEvent<fwRefContainer<Resource>> OnStoppingResource;
+
 public:
 	inline fwString GetName() { return m_name; }
 
@@ -216,6 +222,8 @@ public:
 	fwRefContainer<Resource> GetResource(fwString& name);
 
 	inline int GetStateNumber() { return m_stateNumber; }
+
+	static fwEvent<fwString> OnTriggerEvent;
 
 public:
 	static fwEvent<> OnScriptReset;

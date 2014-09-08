@@ -3,6 +3,7 @@
 #include "DownloadMgr.h"
 #include <SHA1.h>
 #include <rapidjson/document.h>
+#include <nutsnbolts.h>
 //#include "../ui/CefOverlay.h"
 //#include "../ui/CustomLoadScreens.h"
 
@@ -453,5 +454,13 @@ static InitFunction initFunction([] ()
 		}
 
 		TheDownloads.ClearLoadedResources();
+	});
+
+	OnGameFrame.Connect([] ()
+	{
+		if (TheDownloads.DoingQueuedUpdate())
+		{
+			TheDownloads.Process();
+		}
 	});
 });

@@ -146,7 +146,11 @@ namespace nui
 
 	bool OnPreLoadGame(void* cefSandbox);
 
-	NUISchemeHandlerFactory* GetSchemeHandlerFactory();
+	OVERLAY_DECL NUISchemeHandlerFactory* GetSchemeHandlerFactory();
+
+	extern
+		OVERLAY_DECL
+		fwEvent<const wchar_t*, const wchar_t*> OnInvokeNative;
 }
 
 #define REQUIRE_IO_THREAD()   assert(CefCurrentlyOn(TID_IO));
@@ -160,9 +164,7 @@ struct nui_s
 };
 
 extern
-	#ifndef COMPILING_NUI_CORE
-	__declspec(dllimport)
-	#endif
+	OVERLAY_DECL
 	fwEvent<const char*, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
 
 extern nui_s g_nui;

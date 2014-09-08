@@ -4,7 +4,9 @@
 	"dependencies": [
 		"fx[2]",
 		"resources",
-		"net"
+		"net",
+		"nui:resources",
+		"gta:mission-cleanup"
 	],
 	"provides": []
 }

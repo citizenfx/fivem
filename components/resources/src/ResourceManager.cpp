@@ -1,6 +1,7 @@
 #include "StdInc.h"
 //#include "GameFlags.h"
 #include "ResourceManager.h"
+#include <MissionCleanup.h>
 
 fwRefContainer<Resource> ResourceManager::GetResource(fwString& name)
 {
@@ -49,6 +50,8 @@ bool ResourceManager::TriggerEvent(fwString& eventName, fwString& argsSerialized
 			TriggerEvent(std::string("onClientResourceStart"), nameArgs);
 		}
 	}*/
+
+	OnTriggerEvent(eventName);
 
 	m_eventCancelationState.push(false);
 
@@ -215,6 +218,30 @@ ResourceCache* ResourceManager::GetCache()
 
 	return m_resourceCache;
 }
+
+static InitFunction initFunction([] ()
+{
+	CMissionCleanup::OnCheckCollision.Connect([] ()
+	{
+		TheResources.ForAllResources([] (fwRefContainer<Resource> resource)
+		{
+			if (resource->GetState() != ResourceStateRunning)
+			{
+				return;
+			}
+
+			for (auto& environment : resource->GetScriptEnvironments())
+			{
+				auto cleanup = environment->GetMissionCleanup();
+
+				if (cleanup)
+				{
+					cleanup->CheckIfCollisionHasLoadedForMissionObjects();
+				}
+			}
+		});
+	});
+});
 
 fwEvent<> ResourceManager::OnScriptReset;
 

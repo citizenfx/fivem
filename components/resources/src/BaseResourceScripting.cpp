@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "BaseResourceScripting.h"
+#include <MissionCleanup.h>
 #include <stack>
 
 CRITICAL_SECTION g_scriptCritSec;
@@ -33,6 +34,11 @@ BaseScriptEnvironment* BaseScriptEnvironment::GetCurrentEnvironment()
 BaseScriptEnvironment* BaseScriptEnvironment::GetInvokingEnvironment()
 {
 	return (g_environmentStack.empty()) ? nullptr : g_environmentStack.top();
+}
+
+CMissionCleanup* BaseScriptEnvironment::GetMissionCleanup()
+{
+	return nullptr;
 }
 
 static InitFunction initFunction([] ()

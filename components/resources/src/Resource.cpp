@@ -77,6 +77,7 @@ void Resource::Start()
 
 	//m_ui = std::make_shared<ResourceUI>(this);
 	//m_ui->Create();
+	OnStartingResource(this);
 
 	// go
 	m_state = ResourceStateStarting;
@@ -100,6 +101,8 @@ void Resource::Start()
 	}
 
 	m_state = ResourceStateRunning;
+
+	OnStartedResource(this);
 
 	/*if (GameFlags::GetFlag(GameFlag::PlayerActivated))
 	{
@@ -181,6 +184,7 @@ void Resource::Stop()
 	}
 
 	//m_ui->Destroy();
+	OnStoppingResource(this);
 
 	msgpack::sbuffer nameArgs;
 	msgpack::packer<msgpack::sbuffer> packer(nameArgs);
@@ -358,3 +362,7 @@ void Resource::AddScriptEnvironment(fwRefContainer<BaseScriptEnvironment> script
 }
 
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnCreateScriptEnvironments;
+__declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStartingResource;
+__declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStartedResource;
+__declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStoppingResource;
+__declspec(dllexport) fwEvent<fwString> ResourceManager::OnTriggerEvent;

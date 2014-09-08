@@ -254,42 +254,12 @@ public:
 			auto args = message->GetArgumentList();
 			auto nativeType = args->GetString(0);
 
-			/*if (nativeType == "refreshServers")
-			{
-				GSClient_Refresh();
-			}
-			else if (nativeType == "connectTo")
-			{
-				std::string hostnameStr = args->GetString(1);
-				static char hostname[256];
-				
-				StringCbCopyA(hostname, sizeof(hostname), hostnameStr.c_str());
+			nui::OnInvokeNative(nativeType.c_str(), args->GetString(1).c_str());
 
-				char* port = strrchr(hostname, ':');
-
-				if (!port)
-				{
-					port = "30120";
-				}
-				else
-				{
-					*port = '\0';
-					port++;
-				}
-
-				g_netLibrary->ConnectToServer(hostname, atoi(port));
-
-				nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
-			}
-			else */
 			if (nativeType == "quit")
 			{
 				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
 				ExitProcess(0);
-			}
-			else
-			{
-
 			}
 			
 			return true;
@@ -518,6 +488,8 @@ public:
 
 	IMPLEMENT_REFCOUNTING(NUIClient);
 };
+
+fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 
 CefBrowser* NUIWindow::GetBrowser()
 {

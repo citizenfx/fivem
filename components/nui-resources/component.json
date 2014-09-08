@@ -1,0 +1,10 @@
+{
+	"name": "nui:resources",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"resources",
+		"nui:core"
+	],
+	"provides": []
+}

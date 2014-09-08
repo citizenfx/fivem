@@ -1,11 +1,17 @@
 #include "StdInc.h"
-#include "CrossLibraryInterfaces.h"
+#include "Hooking.h"
+#include "nutsnbolts.h"
+
+__declspec(dllexport) fwEvent<> OnPreProcessNet;
+__declspec(dllexport) fwEvent<> OnPostProcessNet;
+__declspec(dllexport) fwEvent<> OnGameFrame;
 
 static HookFunction hookFunction([] ()
 {
 	static auto runFrame = [] ()
 	{
-		g_netLibrary->RunFrame();
+		//g_netLibrary->RunFrame();
+		OnGameFrame();
 	};
 
 	static hook::inject_call<void, int> call1(0x420DBC);
@@ -23,21 +29,21 @@ static HookFunction hookFunction([] ()
 	static hook::inject_call<void, int> processNetRegular(0x42131A);
 	processNetRegular.inject([] (int a1)
 	{
-		g_netLibrary->PreProcessNativeNet();
+		OnPreProcessNet();
 
 		processNetRegular.call(a1);
 
-		g_netLibrary->PostProcessNativeNet();
+		OnPostProcessNet();
 	});
 
 	// for long-lasting loads
 	static hook::inject_call<void, int> processNetLoader(0x41F652);
 	processNetLoader.inject([] (int a1)
 	{
-		g_netLibrary->PreProcessNativeNet();
+		OnPreProcessNet();
 
 		processNetLoader.call(a1);
 
-		g_netLibrary->PostProcessNativeNet();
+		OnPostProcessNet();
 	});
 });

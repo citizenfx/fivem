@@ -1,0 +1,12 @@
+{
+	"name": "glue",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net",
+		"resources",
+		"nui:core",
+		"downloadmgr"
+	],
+	"provides": []
+}

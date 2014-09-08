@@ -2,7 +2,7 @@
 #include "ResourceManager.h"
 #include "scrEngine.h"
 
-GtaThread* TheScriptManager;
+__declspec(dllexport) GtaThread* TheScriptManager;
 
 class ScriptManager : public GtaThread
 {

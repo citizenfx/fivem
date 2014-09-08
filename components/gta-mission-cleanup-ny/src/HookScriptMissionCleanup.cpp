@@ -1,13 +1,14 @@
 #include "StdInc.h"
+#include <Hooking.h>
 #include <MissionCleanup.h>
-#include "HookCallbacks.h"
 
 CMissionCleanup* GetMissionCleanupInstance(CMissionCleanup* instance)
 {
 	// make it a stack argument in case it'd be undefined behavior otherwise
 	CMissionCleanup* instancePtr = instance;
 
-	HookCallbacks::RunCallback(StringHash("mCleanup"), &instancePtr);
+	//HookCallbacks::RunCallback(StringHash("mCleanup"), &instancePtr);
+	CMissionCleanup::OnQueryMissionCleanup(instancePtr);
 
 	return instancePtr;
 }
@@ -73,8 +74,11 @@ static void __declspec(naked) CMissionCleanup__CheckIfCollisionHasLoadedForMissi
 
 static void RunMissionCleanupCollisionChecks()
 {
-	HookCallbacks::RunCallback(StringHash("mCleanupT"), nullptr);
+	CMissionCleanup::OnCheckCollision();
 }
+
+fwEvent<CMissionCleanup*&> CMissionCleanup::OnQueryMissionCleanup;
+fwEvent<> CMissionCleanup::OnCheckCollision;
 
 static HookFunction hookFunction([] ()
 {
