@@ -1,6 +1,7 @@
 // allows confirming a 'SET_MSG_FOR_LOADING_SCREEN' even if the game isn't set to reload
 #include "StdInc.h"
 #include "HookCallbacks.h"
+#include <GlobalEvents.h>
 
 static bool& drawingLoadMsg = *(bool*)0x11DE801;
 
@@ -16,7 +17,8 @@ static HookFunction hookFunction([] ()
 		{
 			if (ConfirmMenuResult(8, 1, 2, 1, 0, 0, 0))
 			{
-				HookCallbacks::RunCallback(StringHash("msgConfirm"), nullptr);
+				//HookCallbacks::RunCallback(StringHash("msgConfirm"), nullptr);
+				OnMsgConfirm();
 
 				drawingLoadMsg = false;
 			}
@@ -31,7 +33,7 @@ static HookFunction hookFunction([] ()
 
 	leaveGameCall.inject([] (int)
 	{
-		HookCallbacks::RunCallback(StringHash("msgConfirm"), nullptr);
+		OnMsgConfirm();
 
 		leaveGameCall.call();
 	});

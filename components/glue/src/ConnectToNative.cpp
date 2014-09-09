@@ -2,6 +2,7 @@
 #include <CefOverlay.h>
 #include <NetLibrary.h>
 #include <strsafe.h>
+#include <GlobalEvents.h>
 
 static InitFunction initFunction([] ()
 {
@@ -10,6 +11,11 @@ static InitFunction initFunction([] ()
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* lib)
 	{
 		netLibrary = lib;
+
+		netLibrary->OnConnectionError.Connect([] (const char* error)
+		{
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: '%s' }, '*');", error));
+		});
 	});
 
 	nui::OnInvokeNative.Connect([] (const wchar_t* type, const wchar_t* arg)
@@ -39,5 +45,12 @@ static InitFunction initFunction([] ()
 
 			nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
 		}
+	});
+
+	OnMsgConfirm.Connect([] ()
+	{
+		nui::SetMainUI(true);
+
+		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 	});
 });

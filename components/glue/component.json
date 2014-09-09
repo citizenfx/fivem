@@ -6,7 +6,8 @@
 		"net",
 		"resources",
 		"nui:core",
-		"downloadmgr"
+		"downloadmgr",
+		"gta:core"
 	],
 	"provides": []
 }

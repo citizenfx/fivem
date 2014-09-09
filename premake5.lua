@@ -133,7 +133,7 @@ solution "CitizenMP"
 		language "C++"
 		kind "SharedLib"
 		
-		links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny" }
+		links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny", "gta-core-ny" }
 		
 		defines "COMPILING_HOOKS"	
 
@@ -141,7 +141,7 @@ solution "CitizenMP"
 		pchheader "StdInc.h"		
 		
 		configuration "* NY"
-			includedirs { "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
+			includedirs { "components/gta-core-ny/include", "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
 			
 			files
 			{
