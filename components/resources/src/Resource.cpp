@@ -19,6 +19,11 @@ Resource::Resource(fwString& name, fwString& path)
 	
 }
 
+Resource::~Resource()
+{
+	trace("Destroying resource %s\n", m_name.c_str());
+}
+
 void Resource::Tick()
 {
 	if (m_state == ResourceStateRunning)

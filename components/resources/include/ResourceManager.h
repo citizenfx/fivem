@@ -92,6 +92,8 @@ private:
 public:
 	Resource(fwString& name, fwString& path);
 
+	~Resource();
+
 	bool Parse();
 
 	void Start();
@@ -189,6 +191,8 @@ private:
 	std::stack<bool> m_eventCancelationState;
 
 	bool m_eventCanceled;
+
+	bool m_isResetting;
 
 public:
 	void ScanResources(fwVector<std::pair<fiDevice*, fwString>>& paths);

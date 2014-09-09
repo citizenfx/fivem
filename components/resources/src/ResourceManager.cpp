@@ -5,6 +5,11 @@
 
 fwRefContainer<Resource> ResourceManager::GetResource(fwString& name)
 {
+	if (m_isResetting)
+	{
+		return nullptr;
+	}
+
 	auto it = m_resources.find(name);
 
 	if (it == m_resources.end())
@@ -213,7 +218,12 @@ void ResourceManager::Reset()
 {
 	m_stateNumber++;
 
+	// lock state so __gc callbacks won't mess up trying to reference us
+	m_isResetting = true;
+
 	m_resources.clear();
+
+	m_isResetting = false;
 }
 
 ResourceCache* ResourceManager::GetCache()

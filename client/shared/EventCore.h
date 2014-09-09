@@ -144,6 +144,11 @@ public:
 
 	fwRefContainer& operator=(const fwRefContainer& other)
 	{
+		if (m_ref)
+		{
+			m_ref->Release();
+		}
+
 		m_ref = other.GetRef();
 		m_ref->AddRef();
 
@@ -153,6 +158,11 @@ public:
 	template<class TOther>
 	fwRefContainer& operator=(const fwRefContainer<TOther>& other)
 	{
+		if (m_ref)
+		{
+			m_ref->Release();
+		}
+
 		m_ref = other.GetRef();
 		m_ref->AddRef();
 
