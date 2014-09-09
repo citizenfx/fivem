@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "NetLibrary.h"
+#include <libnp.h>
 #include <base64.h>
 #include <mutex>
 #include <mmsystem.h>
@@ -512,11 +513,11 @@ void NetLibrary::RunFrame()
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000)
 			{
-				//NPID npID;
-				//NP_GetNPID(&npID);
+				NPID npID;
+				NP_GetNPID(&npID);
 
-				//SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID); // m_tempGuid
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), 0LL);
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID); // m_tempGuid
+				//SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), 0LL);
 
 				m_lastConnect = GetTickCount();
 
@@ -582,17 +583,17 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	wideHostname[255] = L'\0';
 
-	std::wstring wideHostnameStr = wideHostname;
+	fwWString wideHostnameStr = wideHostname;
 
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 
-	//NPID npID;
-	//NP_GetNPID(&npID);
+	NPID npID;
+	NP_GetNPID(&npID);
 
-	//postMap["guid"] = va("%lld", npID);
-	postMap["guid"] = va("%lld", 0LL);
+	postMap["guid"] = va("%lld", npID);
+	//postMap["guid"] = va("%lld", 0LL);
 
 	uint16_t capturePort = port;
 
@@ -617,7 +618,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			auto node = YAML::Load(connData);
 
 			// ha-ha, you need to authenticate first!
-			/*if (node["authID"].IsDefined())
+			if (node["authID"].IsDefined())
 			{
 				if (postMap.find("authTicket") == postMap.end())
 				{
@@ -627,7 +628,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 					size_t ticketLen;
 					char* ticketEncoded = base64_encode(authTicket, sizeof(authTicket), &ticketLen);
 
-					postMap["authTicket"] = std::string(ticketEncoded, ticketLen);
+					postMap["authTicket"] = fwString(ticketEncoded, ticketLen);
 
 					free(ticketEncoded);
 
@@ -641,7 +642,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				}
 
 				return;
-			}*/
+			}
 
 			postMap.erase("authTicket");
 
