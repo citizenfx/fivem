@@ -225,6 +225,8 @@ public:
 
 	static fwEvent<fwString> OnTriggerEvent;
 
+	static fwEvent<fwString> OnQueueResourceStart;
+
 public:
 	static fwEvent<> OnScriptReset;
 };

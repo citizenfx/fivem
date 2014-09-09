@@ -44,7 +44,10 @@ static InitFunction initFunction([] ()
 				}
 			}
 
+			ResourceManager::OnQueueResourceStart(resourceName);
 			//TheDownloads.QueueResourceUpdate(resourceName);
 		});
 	});
 });
+
+fwEvent<fwString> ResourceManager::OnQueueResourceStart;

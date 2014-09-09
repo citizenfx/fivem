@@ -440,6 +440,11 @@ static InitFunction initFunction([] ()
 		g_netLibrary = library;
 	});
 
+	ResourceManager::OnQueueResourceStart.Connect([] (fwString resourceName)
+	{
+		TheDownloads.QueueResourceUpdate(resourceName);
+	});
+
 	ResourceManager::OnScriptReset.Connect([] ()
 	{
 		auto& loadedResources = TheDownloads.GetLoadedResources();

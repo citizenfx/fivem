@@ -10,7 +10,7 @@ void ComponentLoader::Initialize()
 	AddComponent(m_rootComponent);
 
 	// parse and load additional components
-	FILE* componentCache = _wfopen(MakeRelativeCitPath(L"components.json").c_str(), L"r");
+	FILE* componentCache = _wfopen(MakeRelativeCitPath(L"components.json").c_str(), L"rb");
 
 	if (!componentCache)
 	{
@@ -34,6 +34,11 @@ void ComponentLoader::Initialize()
 	doc.Parse(cacheBuf);
 
 	delete[] cacheBuf;
+
+	if (doc.HasParseError())
+	{
+		FatalError("Error parsing components.json: %d", doc.GetParseError());
+	}
 
 	// look through the list for components to load
 	std::vector<std::string> components;

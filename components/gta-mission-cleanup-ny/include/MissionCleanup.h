@@ -5,8 +5,10 @@
 
 #ifdef COMPILING_GTA_MISSION_CLEANUP_NY
 #define CLEANUP_EXPORT __declspec(dllexport)
+#define CLEANUP_IMPORT
 #else
-#define CLEANUP_EXPORT __declspec(dllimport)
+#define CLEANUP_EXPORT
+#define CLEANUP_IMPORT __declspec(dllimport)
 #endif
 
 class CLEANUP_EXPORT CMissionCleanupEntry
@@ -25,7 +27,7 @@ public:
 	void Reset();
 };
 
-class CLEANUP_EXPORT CMissionCleanup : public rage::sysUseAllocator
+class CLEANUP_EXPORT __declspec(novtable) CMissionCleanup : public rage::sysUseAllocator
 {
 private:
 	CMissionCleanupEntry m_scriptEntries[256];
@@ -49,12 +51,12 @@ public:
 	// Callbacks should ensure to only return one if they actually intend to use
 	// it, as there's no checking for multiple triggers.
 	//
-	static fwEvent<CMissionCleanup*&> OnQueryMissionCleanup;
+	static CLEANUP_IMPORT fwEvent<CMissionCleanup*&> OnQueryMissionCleanup;
 
 	//
 	// An event, upon receipt of which the handlers should call 
 	// CheckIfCollisionHasLoadedForMissionObjects on all CMissionCleanup instances
 	// they own.
 	//
-	static fwEvent<> OnCheckCollision;
+	static CLEANUP_IMPORT fwEvent<> OnCheckCollision;
 };
