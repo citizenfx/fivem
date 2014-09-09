@@ -44,12 +44,7 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 	gameMutex = CreateMutex(nullptr, true, mutexName);
 
-	// now let NUI initialize (also do its process stuff if it is invoked, this should be done as early on as possible)
-	/*if (nui::OnPreLoadGame(cefSandbox))
-	{
-		return false;
-	}*/
-
+	// make the component loader initialize
 	ComponentLoader::GetInstance()->Initialize();
 
 	NP_Init();
@@ -88,7 +83,11 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 	HooksDLLInterface::PostGameLoad(hModule, &continueRunning);
 	InitFunctionBase::RunAll();
 
+#ifdef GTA_NY
 	*entryPoint = (void(*)())0xD0D011;
+#else
+#error "TOOD: define entry point for this title"
+#endif
 
 	return continueRunning;
 }

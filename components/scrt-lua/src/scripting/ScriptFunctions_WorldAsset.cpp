@@ -25,7 +25,7 @@ LUA_FUNCTION(SetWorldAssetConfig)
 	VirtualProtect((void*)0x401000, 0x94C000, PAGE_EXECUTE_READWRITE, &oldProtect); // .text
 	VirtualProtect((void*)0xD4D000, 0x1BF000, PAGE_READWRITE, &oldProtect); // .idata/.rdata
 
-	std::string key = luaL_checkstring(L, 1);
+	fwString key = luaL_checkstring(L, 1);
 
 	if (key == "ignore_lod_modelinfos" || key == "modelinfo_deadlock_hack" || key == "bounds_arent_cdimage" || key == "entity_sanity" || key == "static_bound_sanity" || key == "odd_wait_deadlock" || key == "no_distantlights")
 	{
@@ -45,6 +45,8 @@ LUA_FUNCTION(SetWorldAssetConfig)
 	{
 		//lua_toboolean(L, 2) && SetStreamingWbnMode(true);
 	}
+
+	OnSetWorldAssetConfig(key, lua_toboolean(L, 2));
 
 	VirtualProtect((void*)0x401000, 0x94C000, PAGE_EXECUTE_READ, &oldProtect); // .text
 	VirtualProtect((void*)0xD4D000, 0x1BF000, PAGE_READONLY, &oldProtect); // .idata/.rdata

@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "Hooking.h"
 
 char curImgLabel[256];
 
@@ -29,17 +30,17 @@ void __declspec(naked) pushThing()
 	__asm
 	{
 		mov eax, offset curImgLabel
-		push eax
-		//jmp pushThingRet
-		call ecx
+			push eax
+			//jmp pushThingRet
+			call ecx
 
-		push esi
-		push eax
-		call SetRecordedImgName
-		pop eax
-		add esp, 4h
+			push esi
+			push eax
+			call SetRecordedImgName
+			pop eax
+			add esp, 4h
 
-		jmp pushThingRet
+			jmp pushThingRet
 	}
 }
 

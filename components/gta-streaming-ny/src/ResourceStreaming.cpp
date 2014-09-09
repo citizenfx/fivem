@@ -49,7 +49,7 @@ public:
 	fwString GetFileName();
 
 	bool Exists();
-	
+
 	void PreCache();
 
 	virtual void Open();
@@ -82,7 +82,7 @@ void CitizenStreamingFile::Open()
 	uint64_t ptr;
 	m_device = device;
 	m_handle = device->openBulk(filename.c_str(), &ptr);
-	
+
 	if (m_handle == -1)
 	{
 		m_currentDownload = resCache->GetResourceDownload(m_entry.resData, m_entry);
@@ -324,11 +324,13 @@ StreamingFile* CitizenStreamingModule::GetEntryFromIndex(uint32_t handle)
 
 static CitizenStreamingModule streamingModule;
 
+extern fwEvent<void*> OnRequestEntityDo;
+
 static InitFunction initFunction([] ()
 {
 	httpClient = new HttpClient();
 
-	g_hooksDLL->SetHookCallback(StringHash("reqEnt"), [] (void* entityPtr)
+	OnRequestEntityDo.Connect([] (void* entityPtr)
 	{
 		auto modelIndex = *(uint16_t*)((char*)entityPtr + 46);
 

@@ -3,7 +3,7 @@
 #include "fiDevice.h"
 #include <vector>
 
-#ifdef COMPILING_GAMESPEC
+#ifdef COMPILING_GTA_STREAMING_NY
 #include <zlib.h>
 #endif
 
@@ -71,7 +71,7 @@ struct StreamRequest
 	int completionCBData; // 1552
 };
 
-#ifdef COMPILING_GAMESPEC
+#ifdef COMPILING_GTA_STREAMING_NY
 struct StreamRequestExt : public StreamRequest
 {
 	StreamingItem* item;
@@ -182,10 +182,10 @@ public:
 };
 #endif
 
-void GAMESPEC_EXPORT StreamWorker_Thread(int threadNum);
-LPOVERLAPPED GAMESPEC_EXPORT StreamWorker_GetOverlapped(int streamThreadNum);
+void StreamWorker_Thread(int threadNum);
+LPOVERLAPPED StreamWorker_GetOverlapped(int streamThreadNum);
 
-class GAMESPEC_EXPORT_VMT StreamingFile
+class StreamingFile
 {
 public:
 	virtual ~StreamingFile();
@@ -205,7 +205,7 @@ public:
 	virtual StreamingFile* GetEntryFromIndex(uint32_t handle) = 0;
 };
 
-class GAMESPEC_EXPORT CStreaming
+class CStreaming
 {
 public:
 	static void ScanImgEntries();

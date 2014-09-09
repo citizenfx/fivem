@@ -1,0 +1,8 @@
+{
+	"name": "gta:core:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]"
+	],
+	"provides": []
+}

@@ -9,4 +9,6 @@ WRAPPER fiDevice* fiDevice::GetDevice(const char* path, bool allowRoot) { EAXJMP
 WRAPPER void fiDevice::Unmount(const char* rootPath) { EAXJMP(0x5AC080); }
 
 rage::fiDevice::~fiDevice() {}
+
+__declspec(dllexport) fwEvent<> fiDevice::OnInitialMount;
 }

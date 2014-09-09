@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "Streaming.h"
+#include "Hooking.h"
 
 typedef uint32_t(__thiscall* readBulk_t)(void* this_, uint32_t handle, uint64_t ptr, void* buffer, uint32_t toRead);
 static readBulk_t origReadBulk;

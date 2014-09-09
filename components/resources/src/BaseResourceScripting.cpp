@@ -47,3 +47,5 @@ static InitFunction initFunction([] ()
 });
 
 BaseScriptEnvironment::~BaseScriptEnvironment() {}
+
+__declspec(dllexport) fwEvent<fwString, bool> OnSetWorldAssetConfig;

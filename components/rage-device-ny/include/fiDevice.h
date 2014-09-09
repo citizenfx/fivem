@@ -4,7 +4,9 @@
 
 #ifdef COMPILING_RAGE_DEVICE_NY
 #define DEVICE_EXPORT COMPONENT_EXPORT
+#define DEVICE_IMPORT
 #else
+#define DEVICE_IMPORT __declspec(dllimport)
 #define DEVICE_EXPORT
 #endif
 
@@ -24,6 +26,8 @@ public:
 	static fiDevice* GetDevice(const char* path, bool allowRoot);
 
 	static void Unmount(const char* rootPath);
+
+	static DEVICE_IMPORT fwEvent<> OnInitialMount;
 
 public:
 	virtual ~fiDevice() = 0;

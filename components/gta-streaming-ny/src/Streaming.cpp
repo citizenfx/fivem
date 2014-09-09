@@ -1,7 +1,7 @@
 #include "StdInc.h"
 #include "Streaming.h"
 
-uint32_t WRAPPER CImgManager::registerIMGFile(const char* name, uint32_t offset, uint32_t size, uint8_t imgNum, uint32_t index, uint32_t resourceType) { EAXJMP(0xBCC2E0); }
+//uint32_t WRAPPER CImgManager::registerIMGFile(const char* name, uint32_t offset, uint32_t size, uint8_t imgNum, uint32_t index, uint32_t resourceType) { EAXJMP(0xBCC2E0); }
 
 StreamingFile::~StreamingFile()
 {

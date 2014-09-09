@@ -1,6 +1,7 @@
 // hook for the initial mountpoint of filesystem stuff
 #include "StdInc.h"
-#include "HookCallbacks.h"
+#include <fiDevice.h>
+#include <Hooking.h>
 
 static HookFunction hookFunction([] ()
 {
@@ -10,6 +11,6 @@ static HookFunction hookFunction([] ()
 	{
 		injectCall.call();
 
-		HookCallbacks::RunCallback(StringHash("initMount"), nullptr);
+		rage::fiDevice::OnInitialMount();
 	});
 });

@@ -185,12 +185,20 @@ void ResourceManager::ScanResources(fwVector<std::pair<fiDevice*, fwString>>& pa
 
 void ResourceManager::CleanUp()
 {
+	trace("CLEANUP - STOPPING ALL RESOURCES\n");
+
 	for (auto& resource : m_resources)
 	{
 		resource.second->Stop();
+
+		trace("stopped %s\n", resource.first.c_str());
 	}
 
+	trace("Resetting state...\n");
+
 	Reset();
+
+	trace("Cleanup complete.\n");
 }
 
 void ResourceManager::ForAllResources(fwAction<fwRefContainer<Resource>> cb)

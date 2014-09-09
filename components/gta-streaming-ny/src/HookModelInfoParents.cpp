@@ -1,11 +1,12 @@
 #include "StdInc.h"
 #include "BoundStreaming.h"
 #include "sysAllocator.h"
-#include "DrawCommands.h"
+#include "Hooking.h"
+//#include "DrawCommands.h"
 #include <unordered_set>
 #include <mutex>
 #include "Pool.h"
-#include "HookCallbacks.h"
+//#include "HookCallbacks.h"
 
 #pragma comment(lib, "d3d9.lib")
 
@@ -1186,9 +1187,12 @@ void __declspec(naked) IsModelLoadedStub()
 	}
 }
 
+fwEvent<void*> OnRequestEntityDo;
+
 void OnRequestEntity(CEntity* entity)
 {
-	HookCallbacks::RunCallback(StringHash("reqEnt"), entity);
+	//HookCallbacks::RunCallback(StringHash("reqEnt"), entity);
+	OnRequestEntityDo(entity);
 }
 
 void __declspec(naked) RequestEntityModelEsi()

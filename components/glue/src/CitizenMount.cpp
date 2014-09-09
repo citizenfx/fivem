@@ -4,7 +4,7 @@
 
 static InitFunction initFunction([] ()
 {
-	rage::fiDevice::SetInitialMountHook([] (void*)
+	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
 		static char citRoot[512];
 		std::wstring citPath = MakeRelativeCitPath(L"citizen");
@@ -16,17 +16,6 @@ static InitFunction initFunction([] ()
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
 		device->setPath(citRoot, true);
 		device->mount("citizen:/");
-
-		/*static char viivRoot[512];
-		std::wstring viivPath = MakeRelativeCitPath(L"viiv");
-
-		offset = wcstombs(viivRoot, viivPath.c_str(), sizeof(citRoot));
-		viivRoot[offset] = '\\';
-		viivRoot[offset + 1] = '\0';
-
-		rage::fiDeviceRelative* device2 = new rage::fiDeviceRelative();
-		device2->setPath(viivRoot, true);
-		device2->mount("gta5:/");*/
 
 		static char cacheRoot[512];
 		std::wstring cachePath = MakeRelativeCitPath(L"cache");

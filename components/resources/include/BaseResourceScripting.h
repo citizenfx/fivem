@@ -67,3 +67,11 @@ extern
 	__declspec(dllimport)
 #endif
 	GtaThread* TheScriptManager;
+
+extern
+#ifdef COMPILING_RESOURCES
+__declspec(dllexport)
+#else
+__declspec(dllimport)
+#endif
+	fwEvent<fwString, bool> OnSetWorldAssetConfig;

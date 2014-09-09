@@ -316,12 +316,12 @@ z_stream* StreamThread::GetStream()
 static StreamThread_GtaLocal* streamLocal = (StreamThread_GtaLocal*)0x198F6C8;
 static StreamThread modLocal[2];
 
-LPOVERLAPPED GAMESPEC_EXPORT StreamWorker_GetOverlapped(int streamThreadNum)
+LPOVERLAPPED StreamWorker_GetOverlapped(int streamThreadNum)
 {
 	return modLocal[streamThreadNum].GetCurrentOverlapped();
 }
 
-void GAMESPEC_EXPORT StreamWorker_Thread(int threadNum)
+void StreamWorker_Thread(int threadNum)
 {
 	StreamThread_GtaLocal* local = &streamLocal[threadNum];
 

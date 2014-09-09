@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "Hooking.h"
 #include "StreamingTypes.h"
 
 static std::unordered_map<int, std::string> g_indexToName;
