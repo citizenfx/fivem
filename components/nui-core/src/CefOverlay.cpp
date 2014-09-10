@@ -199,7 +199,7 @@ private:
 	NUIWindow* m_window;
 	bool m_windowValid;
 
-	std::mutex m_windowLock;
+	std::recursive_mutex m_windowLock;
 
 	CefRefPtr<CefBrowser> m_browser;
 
@@ -486,7 +486,7 @@ public:
 		m_windowValid = valid;
 	}
 
-	std::mutex& GetWindowLock()
+	std::recursive_mutex& GetWindowLock()
 	{
 		return m_windowLock;
 	}
