@@ -71,6 +71,11 @@ private:
 	TCallbackList m_frameCallbacks;
 
 public:
+	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
+	{
+		command_line->AppendSwitch("enable-experimental-web-platform-features");
+	}
+
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 	{
 		if (message->GetName() == "doPoll")
