@@ -6,11 +6,17 @@
 
 #include <ComponentLoader.h>
 
+IGameSpecToHooks* g_hooksDLL;
+
+__declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll);
+
 bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
 	bool continueRunning = true;
 
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
+
+	SetHooksDll(g_hooksDLL);
 
 	HANDLE authDialog = OpenMutex(SYNCHRONIZE, FALSE, L"CitizenAuthDialog");
 
@@ -72,15 +78,13 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	return continueRunning;
 }
 
-IGameSpecToHooks* g_hooksDLL;
-
 bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 {
 	bool continueRunning = true;
 
 	ComponentLoader::GetInstance()->DoGameLoad(hModule);
-
 	HooksDLLInterface::PostGameLoad(hModule, &continueRunning);
+
 	InitFunctionBase::RunAll();
 
 #ifdef GTA_NY

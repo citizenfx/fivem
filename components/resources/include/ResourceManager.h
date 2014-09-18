@@ -144,6 +144,8 @@ public:
 
 	static fwEvent<fwRefContainer<Resource>> OnStoppingResource;
 
+	static fwEvent<fwRefContainer<Resource>, fwString, fwString> OnSetMetaData;
+
 public:
 	inline fwString GetName() { return m_name; }
 

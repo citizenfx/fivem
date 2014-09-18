@@ -12,12 +12,21 @@ LUA_FUNCTION(SetNetworkWalkModeEnabled)
 	return 0;
 }
 
+IGameSpecToHooks* g_hooksDLL;
+
 LUA_FUNCTION(SafeguardDisconnect)
 {
-	//g_hooksDLL->SetDisconnectSafeguard(lua_toboolean(L, 1));
+	g_hooksDLL->SetDisconnectSafeguard(lua_toboolean(L, 1));
 
 	return 0;
 }
+
+__declspec(dllimport) IGameSpecToHooks* GetHooksDll();
+
+static InitFunction initFunc([] ()
+{
+	g_hooksDLL = GetHooksDll();
+});
 
 LUA_FUNCTION(echo)
 {

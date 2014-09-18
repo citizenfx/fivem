@@ -39,6 +39,8 @@ public:
 
 	virtual CMissionCleanup* GetMissionCleanup();
 
+	virtual void Activate();
+
 public:
 	static BaseScriptEnvironment* GetCurrentEnvironment();
 
@@ -48,16 +50,20 @@ public:
 class
 #ifdef COMPILING_RESOURCES
 	__declspec(dllexport)
+#else
+	__declspec(dllimport)
 #endif
 	PushEnvironment
 {
-private:
+protected:
 	BaseScriptEnvironment* m_oldEnvironment;
 
 public:
 	PushEnvironment(BaseScriptEnvironment* environment);
 
-	~PushEnvironment();
+	virtual ~PushEnvironment();
+
+	static fwEvent<> OnDeactivateLastEnvironment;
 };
 
 extern

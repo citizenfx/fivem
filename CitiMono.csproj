@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug NY</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E781BFF9-D34E-1A05-FC67-08ADE8934F93}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CitizenFX.Core</RootNamespace>
+    <AssemblyName>CitizenFX.Core</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>Citizen</TargetFrameworkProfile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug NY|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\debug\citizen\clr\lib\mono\4.5\</OutputPath>
+    <BaseIntermediateOutputPath>obj\Debug NY\CitiMono\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
+    <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release NY|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\release\citizen\clr\lib\</OutputPath>
+    <BaseIntermediateOutputPath>obj\Release NY\CitiMono\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
+    <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>client\clrcore\EcmaPublicKey.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="MsgPack" />
+    <Reference Include="winmm" />
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="client\clrcore\BaseScript.cs" />
+    <Compile Include="client\clrcore\CitizenTaskScheduler.cs" />
+    <Compile Include="client\clrcore\Debug.cs" />
+    <Compile Include="client\clrcore\EventHandlerDictionary.cs" />
+    <Compile Include="client\clrcore\FunctionReference.cs" />
+    <Compile Include="client\clrcore\GameInterface.cs" />
+    <Compile Include="client\clrcore\MsgPackDeserializer.cs" />
+    <Compile Include="client\clrcore\MsgPackSerializer.cs" />
+    <Compile Include="client\clrcore\RageFileStream.cs" />
+    <Compile Include="client\clrcore\RemoteFunctionReference.cs" />
+    <Compile Include="client\clrcore\RuntimeManager.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="client\clrcore\EcmaPublicKey.snk" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

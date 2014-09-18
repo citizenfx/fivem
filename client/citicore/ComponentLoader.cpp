@@ -190,3 +190,17 @@ __declspec(dllexport) void fwFree(void* ptr)
 
 	HeapFree(hHeap, 0, ptr);
 }
+
+#include "CrossLibraryInterfaces.h"
+
+static IGameSpecToHooks* g_hooksDLL;
+
+__declspec(dllexport) IGameSpecToHooks* GetHooksDll()
+{
+	return g_hooksDLL;
+}
+
+__declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll)
+{
+	g_hooksDLL = dll;
+}

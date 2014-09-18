@@ -1,0 +1,11 @@
+{
+	"name": "scrt:mono",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"resources",
+		"net",
+		"gta:mission-cleanup"
+	],
+	"provides": []
+}

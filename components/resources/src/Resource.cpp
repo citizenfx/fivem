@@ -328,7 +328,12 @@ void Resource::AddDependency(fwString dependency)
 
 void Resource::SetMetaData(fwString key, fwString value)
 {
-	m_metaData.insert(std::make_pair(key, value));
+	if (m_metaData[key] != value)
+	{
+		OnSetMetaData(this, key, value);
+	}
+
+	m_metaData[key] = value;
 }
 
 bool Resource::Parse()
@@ -366,8 +371,9 @@ void Resource::AddScriptEnvironment(fwRefContainer<BaseScriptEnvironment> script
 	m_scriptEnvironments.push_back(scriptEnvironment);
 }
 
-__declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnCreateScriptEnvironments;
+__declspec(dllexport) fwEvent<fwRefContainer<Resource>>	Resource::OnCreateScriptEnvironments;
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStartingResource;
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStartedResource;
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStoppingResource;
+__declspec(dllexport) fwEvent<fwRefContainer<Resource>, fwString, fwString> Resource::OnSetMetaData;
 __declspec(dllexport) fwEvent<fwString> ResourceManager::OnTriggerEvent;

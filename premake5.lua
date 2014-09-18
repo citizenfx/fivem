@@ -107,6 +107,21 @@ solution "CitizenMP"
 			
 		configuration "Release*"
 			links { "libcef" }
+
+	project "CitiMono"
+		targetname "CitizenFX.Core"
+		language "C#"
+		kind "SharedLib"
+
+		files { "client/clrcore/**.cs" }
+
+		links { "System" }
+
+		configuration "Debug*"
+			targetdir "bin/debug/citizen/clr/lib/mono/4.5"
+
+		configuration "Release*"
+			targetdir "bin/release/citizen/clr/lib/mono/4.5"
 			
 	project "GameNY"
 		targetname "game_ny"

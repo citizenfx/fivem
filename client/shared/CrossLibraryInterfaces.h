@@ -83,7 +83,8 @@ public:
 extern INetLibrary* g_netLibrary;
 #endif
 
-#if defined(COMPILING_GAMESPEC) || defined(COMPILING_GAME)
+// the latter is just a temporary hack
+#if defined(COMPILING_GAMESPEC) || defined(COMPILING_GAME) || defined(COMPILING_SCRT_LUA)
 // hooks dll reverse callbacks
 extern IGameSpecToHooks* g_hooksDLL;
 #endif

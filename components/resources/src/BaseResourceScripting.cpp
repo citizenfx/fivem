@@ -14,12 +14,23 @@ PushEnvironment::PushEnvironment(BaseScriptEnvironment* environment)
 	m_oldEnvironment = g_currentEnvironment;
 	g_currentEnvironment = environment;
 
+	environment->Activate();
+
 	g_environmentStack.push(m_oldEnvironment);
 }
 
 PushEnvironment::~PushEnvironment()
 {
 	g_currentEnvironment = m_oldEnvironment;
+
+	if (m_oldEnvironment)
+	{
+		m_oldEnvironment->Activate();
+	}
+	else
+	{
+		OnDeactivateLastEnvironment();
+	}
 
 	g_environmentStack.pop();
 
@@ -41,6 +52,8 @@ CMissionCleanup* BaseScriptEnvironment::GetMissionCleanup()
 	return nullptr;
 }
 
+void BaseScriptEnvironment::Activate() {}
+
 static InitFunction initFunction([] ()
 {
 	InitializeCriticalSection(&g_scriptCritSec);
@@ -48,4 +61,5 @@ static InitFunction initFunction([] ()
 
 BaseScriptEnvironment::~BaseScriptEnvironment() {}
 
+__declspec(dllexport) fwEvent<> PushEnvironment::OnDeactivateLastEnvironment;
 __declspec(dllexport) fwEvent<fwString, bool> OnSetWorldAssetConfig;
