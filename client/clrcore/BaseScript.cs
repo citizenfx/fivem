@@ -16,7 +16,7 @@ namespace CitizenFX.Core
         /// </summary>
         protected event Func<Task> Tick;
 
-        protected EventHandlerDictionary EventHandlers { get; private set; }
+        protected internal EventHandlerDictionary EventHandlers { get; private set; }
 
         public BaseScript()
         {
@@ -25,11 +25,14 @@ namespace CitizenFX.Core
         
         internal void ScheduleRun()
         {
-            var calls = Tick.GetInvocationList();
-
-            foreach (var call in calls)
+            if (Tick != null)
             {
-                ScheduleTick(call);
+                var calls = Tick.GetInvocationList();
+
+                foreach (var call in calls)
+                {
+                    ScheduleTick(call);
+                }
             }
         }
 
@@ -76,5 +79,33 @@ namespace CitizenFX.Core
         public bool CompletedSynchronously { get { return false; } }
 
         public bool IsCompleted { get { return false; } }
+    }
+
+    class TestScript : BaseScript
+    {
+        public TestScript()
+        {
+            EventHandlers["getMapDirectives"] += new Action<dynamic>(add => 
+            {
+                Func<dynamic, string, Action<string>> addCB = (state, key) =>
+                {
+                    Debug.WriteLine("adding key {0}", key);
+
+                    return new Action<string>(value =>
+                    {
+                        Debug.WriteLine("and key + value = {0} {1}", key, value);
+
+                        state.add("key", key);
+                    });
+                };
+
+                Action<dynamic> removeCB = (state) =>
+                {
+                    Debug.WriteLine("removing key {0}", state.key);
+                };
+
+                add("banana", addCB, removeCB);
+            });
+        }
     }
 }

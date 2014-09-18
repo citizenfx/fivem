@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security;
 
 using System.Reflection;
@@ -30,7 +31,7 @@ namespace CitizenFX.Core
                 // configure the task scheduler
                 CitizenTaskScheduler.Create();
 
-                //ms_definedScripts.Add(new TestScript());
+                ms_definedScripts.Add(new TestScript());
 
                 // load the main assembly
                 var mainAssembly = LoadAssembly(ms_resourceAssembly);
@@ -156,25 +157,34 @@ namespace CitizenFX.Core
 
         public static void Tick()
         {
-            var delays = ms_delays.ToArray();
-            var now = DateTime.Now;
-
-            foreach (var delay in delays)
+            try
             {
-                if (now >= delay.Item1)
+                var delays = ms_delays.ToArray();
+                var now = DateTime.Now;
+
+                foreach (var delay in delays)
                 {
-                    delay.Item2(new DummyAsyncResult());
+                    if (now >= delay.Item1)
+                    {
+                        delay.Item2(new DummyAsyncResult());
 
-                    ms_delays.Remove(delay);
+                        ms_delays.Remove(delay);
+                    }
                 }
-            }
 
-            foreach (var script in ms_definedScripts)
+                foreach (var script in ms_definedScripts)
+                {
+                    script.ScheduleRun();
+                }
+
+                CitizenTaskScheduler.Instance.Tick();
+            }
+            catch (Exception e)
             {
-                script.ScheduleRun();
-            }
+                Debug.WriteLine("Error during Tick: {0}", e.ToString());
 
-            CitizenTaskScheduler.Instance.Tick();
+                throw e;
+            }
         }
 
         public static void AddDelay(int delay, AsyncCallback callback)
@@ -184,28 +194,20 @@ namespace CitizenFX.Core
 
         public static void TriggerEvent(string eventName, byte[] eventArgs, int eventSource)
         {
-            Debug.WriteLine("Triggering event {0}.", eventName);
-
             try
             {
-                dynamic obj = MsgPackDeserializer.Deserialize(eventArgs);
+                IEnumerable<object> obj = MsgPackDeserializer.Deserialize(eventArgs) as List<object>;
 
                 if (obj == null)
                 {
-                    return;
+                    obj = new object[0];
                 }
 
-                if (eventName == "testingCli")
-                {
-                    obj[0]((Action<string>)(apex =>
-                    {
-                        Debug.WriteLine("Hello from CLR: {0}", apex);
-                    }));
-                }
+                var scripts = ms_definedScripts.ToArray();
 
-                foreach (object entry in obj)
+                foreach (var script in scripts)
                 {
-                    Debug.WriteLine("{0} {1}", entry.GetType().Name, entry.ToString());
+                    script.EventHandlers.Invoke(eventName, obj.ToArray());
                 }
             }
             catch (Exception e)

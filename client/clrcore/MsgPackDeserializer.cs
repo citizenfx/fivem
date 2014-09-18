@@ -283,7 +283,14 @@ namespace CitizenFX.Core
 
                 var returnByteData = remoteFunctionReference.InvokeNative(byteData);
 
-                return Deserialize(returnByteData);
+                var returnData = Deserialize(returnByteData) as List<object>;
+
+                if (returnData == null || returnData.Count == 0)
+                {
+                    return null;
+                }
+
+                return (returnData)[0];
             });
         }
 

@@ -83,7 +83,8 @@ namespace CitizenFX.Core
             var argList = (List<object>)MsgPackDeserializer.Deserialize(arguments);
             var argArray = argList.ToArray();
 
-            return MsgPackSerializer.Serialize(method.DynamicInvoke(argArray));
+            // the Lua runtime expects this to be an array, so it be an array.
+            return MsgPackSerializer.Serialize(new object[] { method.DynamicInvoke(argArray) });
         }
 
         public static void Remove(uint reference)
