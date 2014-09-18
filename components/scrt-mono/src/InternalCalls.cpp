@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include "MonoScriptEnvironment.h"
 #include "fiDevice.h"
+#include "NetLibrary.h"
 
 struct FileIOReference
 {
@@ -156,6 +157,63 @@ void GI_DeleteNativeReferenceCall(MonoString* resourceStr, uint32_t instance, ui
 	resource->RemoveRef(reference, instance);
 }
 
+static NetLibrary* g_netLibrary;
+
+void GI_TriggerEventCall(MonoString* eventNameStr, MonoArray* inArgs, int isRemote)
+{
+	fwString eventName = mono_string_to_utf8(eventNameStr);
+
+	char* inArgsStart = mono_array_addr(inArgs, char, 0);
+	uintptr_t inArgsLength = mono_array_length(inArgs);
+
+	// prepare args
+	fwString argsSerialized(inArgsStart, inArgsLength);
+
+	if (isRemote)
+	{
+		g_netLibrary->SendNetEvent(eventName, argsSerialized, -2);
+	}
+	else
+	{
+		TheResources.TriggerEvent(eventName, argsSerialized);
+	}
+}
+
+MonoArray* GI_InvokeResourceExportCall(MonoString* resourceStr, MonoString* exportStr, MonoArray* inArgs)
+{
+	fwString resourceName = mono_string_to_utf8(resourceStr);
+	fwString exportName = mono_string_to_utf8(exportStr);
+
+	auto resource = TheResources.GetResource(resourceName);
+
+	if (!resource.GetRef())
+	{
+		return nullptr;
+	}
+
+	if (!resource->HasExport(exportName))
+	{
+		return nullptr;
+	}
+
+	char* inArgsStart = mono_array_addr(inArgs, char, 0);
+	uintptr_t inArgsLength = mono_array_length(inArgs);
+
+	// prepare input args
+	fwString argsSerialized(inArgsStart, inArgsLength);
+
+	fwString returnArgs = resource->CallExport(exportName, argsSerialized);
+
+	// prepare return array
+	MonoArray* argsArray = mono_array_new(mono_domain_get(), mono_get_byte_class(), returnArgs.size());
+
+	char* argsAddr = mono_array_addr(argsArray, char, 0);
+	memcpy(argsAddr, returnArgs.c_str(), returnArgs.size());
+
+	// and return said array
+	return argsArray;
+}
+
 void MonoAddInternalCalls()
 {
 	mono_add_internal_call("CitizenFX.Core.GameInterface::OpenFile", GI_OpenFileCall);
@@ -166,4 +224,14 @@ void MonoAddInternalCalls()
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", GI_PrintLogCall);
 	mono_add_internal_call("CitizenFX.Core.GameInterface::InvokeNativeReference", GI_InvokeNativeReferenceCall);
 	mono_add_internal_call("CitizenFX.Core.GameInterface::DeleteNativeReference", GI_DeleteNativeReferenceCall);
+	mono_add_internal_call("CitizenFX.Core.GameInterface::TriggerEvent", GI_TriggerEventCall);
+	mono_add_internal_call("CitizenFX.Core.GameInterface::InvokeResourceExport", GI_InvokeResourceExportCall);
 }
+
+static InitFunction initFunction([] ()
+{
+	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* library)
+	{
+		g_netLibrary = library;
+	});
+});

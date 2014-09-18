@@ -827,6 +827,36 @@ bool NetLibrary::ProcessPreGameTick()
 	return true;
 }
 
+void NetLibrary::SendNetEvent(fwString eventName, fwString jsonString, int i)
+{
+	const char* cmdType = "msgNetEvent";
+
+	if (i == -1)
+	{
+		i = UINT16_MAX;
+	}
+	else if (i == -2)
+	{
+		cmdType = "msgServerEvent";
+	}
+
+	size_t eventNameLength = eventName.length();
+
+	NetBuffer buffer(100000);
+
+	if (i >= 0)
+	{
+		buffer.Write<uint16_t>(i);
+	}
+
+	buffer.Write<uint16_t>(eventNameLength + 1);
+	buffer.Write(eventName.c_str(), eventNameLength + 1);
+
+	buffer.Write(jsonString.c_str(), jsonString.size());
+	
+	SendReliableCommand(cmdType, buffer.GetBuffer(), buffer.GetCurLength());
+}
+
 /*void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
 {
 	netLibrary.AddReliableHandlerImpl(type, function);

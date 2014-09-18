@@ -37,5 +37,13 @@ namespace CitizenFX.Core
         [SecurityCritical]
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void DeleteNativeReference(string resource, uint instance, uint reference);
+
+        [SecurityCritical]
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern void TriggerEvent(string eventName, byte[] argsSerialized, bool isRemote);
+
+        [SecurityCritical]
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern byte[] InvokeResourceExport(string resource, string exportName, byte[] argsSerialized);
     }
 }

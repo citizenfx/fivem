@@ -238,6 +238,8 @@ public:
 
 	void Resurrection();
 
+	void SendNetEvent(fwString eventName, fwString argsSerialized, int target);
+
 	inline uint32_t GetServerBase() { return m_serverBase; }
 
 	inline bool IsDisconnected() { return m_connectionState == CS_IDLE; }

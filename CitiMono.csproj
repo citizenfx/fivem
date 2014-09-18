@@ -54,6 +54,7 @@
     <Compile Include="client\clrcore\CitizenTaskScheduler.cs" />
     <Compile Include="client\clrcore\Debug.cs" />
     <Compile Include="client\clrcore\EventHandlerDictionary.cs" />
+    <Compile Include="client\clrcore\ExportDictionary.cs" />
     <Compile Include="client\clrcore\FunctionReference.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
     <Compile Include="client\clrcore\MsgPackDeserializer.cs" />

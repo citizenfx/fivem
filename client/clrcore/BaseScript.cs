@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,9 +19,12 @@ namespace CitizenFX.Core
 
         protected internal EventHandlerDictionary EventHandlers { get; private set; }
 
+        protected ExportDictionary Exports { get; private set; }
+
         public BaseScript()
         {
             EventHandlers = new EventHandlerDictionary();
+            Exports = new ExportDictionary();
         }
         
         internal void ScheduleRun()
@@ -55,6 +59,26 @@ namespace CitizenFX.Core
         protected Task Delay(int msecs)
         {
             return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
+        }
+
+        protected void TriggerEvent(string eventName, params object[] args)
+        {
+            var argsSerialized = MsgPackSerializer.Serialize(args);
+
+            TriggerEventInternal(eventName, argsSerialized, false);
+        }
+
+        protected void TriggerServerEvent(string eventName, params object[] args)
+        {
+            var argsSerialized = MsgPackSerializer.Serialize(args);
+
+            TriggerEventInternal(eventName, argsSerialized, true);
+        }
+
+        [SecuritySafeCritical]
+        private void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
+        {
+            GameInterface.TriggerEvent(eventName, argsSerialized, isRemote);
         }
 
         private IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
