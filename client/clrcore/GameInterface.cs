@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security;
 
 namespace CitizenFX.Core
@@ -45,5 +46,27 @@ namespace CitizenFX.Core
         [SecurityCritical]
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern byte[] InvokeResourceExport(string resource, string exportName, byte[] argsSerialized);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NativeCallArguments
+        {
+	        uint nativeHash;
+	        int numArguments;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+	        uint[] intArguments;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+	        float[] floatArguments;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+	        byte[] argumentFlags;
+	        
+            uint resultValue;
+        }
+
+        [SecurityCritical]
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern bool InvokeGameNative(ref NativeCallArguments arguments);
     }
 }

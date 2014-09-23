@@ -59,6 +59,7 @@
     <Compile Include="client\clrcore\GameInterface.cs" />
     <Compile Include="client\clrcore\MsgPackDeserializer.cs" />
     <Compile Include="client\clrcore\MsgPackSerializer.cs" />
+    <Compile Include="client\clrcore\Parameter.cs" />
     <Compile Include="client\clrcore\RageFileStream.cs" />
     <Compile Include="client\clrcore\RemoteFunctionReference.cs" />
     <Compile Include="client\clrcore\RuntimeManager.cs" />

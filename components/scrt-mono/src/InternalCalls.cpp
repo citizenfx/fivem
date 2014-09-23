@@ -2,6 +2,7 @@
 #include "MonoScriptEnvironment.h"
 #include "fiDevice.h"
 #include "NetLibrary.h"
+#include "scrEngine.h"
 
 struct FileIOReference
 {
@@ -214,6 +215,120 @@ MonoArray* GI_InvokeResourceExportCall(MonoString* resourceStr, MonoString* expo
 	return argsArray;
 }
 
+struct NativeCallArguments
+{
+	uint32_t nativeHash;
+	int numArguments;
+	uintptr_t intArguments[16];
+	float floatArguments[16];
+	uint8_t argumentFlags[16];
+	uintptr_t resultValue;
+};
+
+static DWORD exceptionAddress;
+
+static int ExceptionStuff(LPEXCEPTION_POINTERS info)
+{
+	exceptionAddress = (DWORD)info->ExceptionRecord->ExceptionAddress;
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+MonoBoolean GI_InvokeGameNativeCall(NativeCallArguments* arguments)
+{
+	MonoBoolean success = 0;
+	NativeContext ctx;
+	union NativeResult
+	{
+		float number;
+		uintptr_t integer;
+	} results[18]; // to allow spill of 3 floats
+	
+	arguments->numArguments = std::min(arguments->numArguments, 16);
+
+	for (int i = 0; i < arguments->numArguments; i++)
+	{
+		bool isFloat = arguments->argumentFlags[i] & 0x80;
+		bool isPointer = arguments->argumentFlags[i] & 0x40;
+
+		if (isPointer)
+		{
+			if (isFloat)
+			{
+				results[i].number = arguments->floatArguments[i];
+			}
+			else
+			{
+				results[i].integer = arguments->intArguments[i];
+			}
+
+			ctx.Push(&results[i]);
+		}
+		else if (isFloat)
+		{
+			ctx.Push(arguments->floatArguments[i]);
+		}
+		else
+		{
+			ctx.Push(arguments->intArguments[i]);
+		}
+	}
+
+	// invoke the function
+	auto hash = arguments->nativeHash;
+	auto fn = rage::scrEngine::GetNativeHandler(hash);
+
+	if (fn != 0)
+	{
+		success = true;
+		exceptionAddress = 0;
+
+		__try
+		{
+			fn(&ctx);
+		}
+		__except (ExceptionStuff(GetExceptionInformation()))
+		{
+
+		}
+
+		if (exceptionAddress)
+		{
+			trace("Execution of hash 0x%08x failed at %p.\n", hash, exceptionAddress);
+
+			success = false;
+		}
+	}
+	else
+	{
+		trace("Attempted to call unknown hash 0x%08x.\n", hash);
+
+		success = false;
+	}
+
+	// put back pointer arguments
+	for (int i = 0; i < arguments->numArguments; i++)
+	{
+		bool isFloat = arguments->argumentFlags[i] & 0x80;
+		bool isPointer = arguments->argumentFlags[i] & 0x40;
+
+		if (isPointer)
+		{
+			if (isFloat)
+			{
+				arguments->floatArguments[i] = results[i].number;
+			}
+			else
+			{
+				arguments->intArguments[i] = results[i].integer;
+			}
+		}
+	}
+
+	arguments->resultValue = ctx.GetResult<uint32_t>();
+
+	return success;
+}
+
 void MonoAddInternalCalls()
 {
 	mono_add_internal_call("CitizenFX.Core.GameInterface::OpenFile", GI_OpenFileCall);
@@ -226,6 +341,7 @@ void MonoAddInternalCalls()
 	mono_add_internal_call("CitizenFX.Core.GameInterface::DeleteNativeReference", GI_DeleteNativeReferenceCall);
 	mono_add_internal_call("CitizenFX.Core.GameInterface::TriggerEvent", GI_TriggerEventCall);
 	mono_add_internal_call("CitizenFX.Core.GameInterface::InvokeResourceExport", GI_InvokeResourceExportCall);
+	mono_add_internal_call("CitizenFX.Core.GameInterface::InvokeGameNative", GI_InvokeGameNativeCall);
 }
 
 static InitFunction initFunction([] ()
