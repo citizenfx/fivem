@@ -1115,16 +1115,41 @@ void DebugRequest(int mi)
 	}
 }
 
-void DebugRequest2(int mi, int type)
+static bool g_requested[512] = { 0 };
+
+void DebugRequest2(int mi, int type, uintptr_t retAddr)
 {
 	//if (mi == 30999)
 	if (type == *(int*)0x15F73A0)
 	{
-		auto minf = ((CBaseModelInfo**)0x15F73B0)[mi];
+		/*auto minf = ((CBaseModelInfo**)0x15F73B0)[mi];
 
 		if (minf->GetDrawblDict() != 0xFFFF)
 		{
 			trace("requesting model instance for drawbldict %s (mi %p - 0x%08x)\n", GetStreamName(minf->GetDrawblDict(), *(int*)0xF272E4).c_str(), minf, minf->GetModelHash());
+		}*/
+
+		//if (mi == 124)
+		if (mi >= 81 && mi <= 192)
+		{
+			g_requested[mi] = true;
+
+			trace("requesting model %i %s from %p\n", mi, GetStreamName(mi, type).c_str(), retAddr);
+		}
+	}
+}
+
+void DebugDelete2(int mi, int type, uintptr_t retAddr)
+{
+	//if (mi == 30999)
+	if (type == *(int*)0x15F73A0)
+	{
+		if (mi >= 81 && mi <= 192 && g_requested[mi])
+		//if (mi == 124)
+		{
+			g_requested[mi] = false;
+
+			trace("deleting model %i %s from %p\n", mi, GetStreamName(mi, type).c_str(), retAddr);
 		}
 	}
 }
@@ -1142,10 +1167,11 @@ void __declspec(naked) RequestModelStub()
 {
 	__asm
 	{
-		push dword ptr [esp + 8]
-		push dword ptr [esp + 4 + 4]
+		push dword ptr [esp]
+		push dword ptr [esp + 4 + 8]
+		push dword ptr [esp + 8 + 4]
 		call DebugRequest2
-		add esp, 8h
+		add esp, 0Ch
 
 		mov eax, [esp + 8]
 		mov ecx, [esp + 0Ch]
@@ -1153,6 +1179,76 @@ void __declspec(naked) RequestModelStub()
 		push 832C48h
 		retn
 	}
+}
+
+void __declspec(naked) MakeDeletableStub()
+{
+	__asm
+	{
+		push dword ptr [esp]
+		push dword ptr [esp + 4 + 8]
+		push dword ptr [esp + 8 + 4]
+
+		call DebugDelete2
+
+		add esp, 0Ch
+
+		mov eax, [esp + 8]
+		imul eax, 64h
+
+		push 832AF7h
+		retn
+	}
+}
+
+
+void DebugLoadDone(int mi, bool success)
+{
+	if (mi >= 81 && mi <= 192)
+	{
+		if (success)
+		{
+			trace("reloc completed successfully for mi %i %s\n", mi, GetStreamName(mi, *(int*)0x15F73A0).c_str());
+		}
+		else
+		{
+			trace("reloc failed for mi %i %s\n", mi, GetStreamName(mi, *(int*)0x15F73A0).c_str());
+		}
+	}
+}
+
+void __declspec(naked) LogRelocDoneStub()
+{
+	__asm
+	{
+		push eax
+		push dword ptr [esp + 4 + 4]
+		call DebugLoadDone
+		add esp, 4h
+
+		pop eax
+
+		retn
+	}
+}
+
+int LogLoadDoneStub(int mi, void* data)
+{
+	int retval = ((int(*)(int, void*))0x9885C0)(mi, data);
+
+	if (mi >= 81 && mi <= 192)
+	{
+		if (retval)
+		{
+			trace("load completed successfully for mi %i %s\n", mi, GetStreamName(mi, *(int*)0x15F73A0).c_str());
+		}
+		else
+		{
+			trace("load failed for mi %i %s\n", mi, GetStreamName(mi, *(int*)0x15F73A0).c_str());
+		}
+	}
+
+	return retval;
 }
 
 void __declspec(naked) ReleaseModelStub()
@@ -1389,6 +1485,16 @@ static HookFunction hookModelInfoParents([] ()
 	hook::jump(0x907786, ReleaseDrawblDictTailDbg);
 	hook::put(0x98B0B9, ReleaseModelWrapDbg);
 	return;*/
+
+	// BEGIN VEHICLE TESTS
+	/*hook::jump(0x832C40, RequestModelStub);
+
+	hook::jump(0x832AF0, MakeDeletableStub);
+
+	hook::jump(0x9899A9, LogRelocDoneStub);
+
+	hook::put(0x98B076, LogLoadDoneStub);*/
+	// END VEHICLE TESTS
 
 	hook::jump(0xBCCB20, PreFullReleaseModelStub);
 
