@@ -10,6 +10,16 @@ namespace CitizenFX.Core
 {
     public static class Function
     {
+        public static void Call(uint nativeHash, params Parameter[] args)
+        {
+            Invoke(nativeHash, args);
+        }
+
+        public static T Call<T>(uint nativeHash, params Parameter[] args)
+        {
+            return Invoke<T>(nativeHash, args);
+        }
+
         public static void Invoke(uint nativeHash, params Parameter[] args)
         {
             InvokeInternal(nativeHash, typeof(void), args);

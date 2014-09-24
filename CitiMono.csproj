@@ -24,6 +24,7 @@
     <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release NY|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -57,7 +58,17 @@
     <Compile Include="client\clrcore\ExportDictionary.cs" />
     <Compile Include="client\clrcore\Function.cs" />
     <Compile Include="client\clrcore\FunctionReference.cs" />
+    <Compile Include="client\clrcore\GameClasses\Entity.cs" />
+    <Compile Include="client\clrcore\GameClasses\HandleObject.cs" />
+    <Compile Include="client\clrcore\GameClasses\ObjectCache.cs" />
+    <Compile Include="client\clrcore\GameClasses\Ped.cs" />
+    <Compile Include="client\clrcore\GameClasses\Player.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
+    <Compile Include="client\clrcore\Math\MathUtil.cs" />
+    <Compile Include="client\clrcore\Math\Matrix.cs" />
+    <Compile Include="client\clrcore\Math\Matrix3x3.cs" />
+    <Compile Include="client\clrcore\Math\Quaternion.cs" />
+    <Compile Include="client\clrcore\Math\Vector4.cs" />
     <Compile Include="client\clrcore\MsgPackDeserializer.cs" />
     <Compile Include="client\clrcore\MsgPackSerializer.cs" />
     <Compile Include="client\clrcore\NativesNY.cs" />
@@ -65,6 +76,8 @@
     <Compile Include="client\clrcore\RageFileStream.cs" />
     <Compile Include="client\clrcore\RemoteFunctionReference.cs" />
     <Compile Include="client\clrcore\RuntimeManager.cs" />
+    <Compile Include="client\clrcore\Math\Vector2.cs" />
+    <Compile Include="client\clrcore\Math\Vector3.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="client\clrcore\EcmaPublicKey.snk" />
