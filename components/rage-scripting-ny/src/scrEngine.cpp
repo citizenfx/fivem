@@ -73,6 +73,26 @@ void scrEngine::CreateThread(GtaThread* thread)
 	}
 }
 
+void WRAPPER RegisterNative(uint32_t hash, scrEngine::NativeHandler handler) { EAXJMP(0x5A6200); }
+
+static std::vector<std::pair<uint32_t, scrEngine::NativeHandler>> g_nativeHandlers;
+
+void scrEngine::RegisterNativeHandler(const char* nativeName, NativeHandler handler)
+{
+	g_nativeHandlers.push_back(std::make_pair(HashString(nativeName), handler));
+}
+
+static InitFunction initFunction([] ()
+{
+	scrEngine::OnScriptInit.Connect([] ()
+	{
+		for (auto& handler : g_nativeHandlers)
+		{
+			RegisterNative(handler.first, handler.second);
+		}
+	});
+});
+
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint32_t hash)
 {
 	scrEngine::NativeHandler returnValue = nullptr;

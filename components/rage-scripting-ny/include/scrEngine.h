@@ -31,6 +31,9 @@ public:
 
 	// gets a native function handler
 	static NativeHandler GetNativeHandler(uint32_t hash);
+
+	// queues the registration of a custom native function handler
+	static void RegisterNativeHandler(const char* nativeName, NativeHandler handler);
 	
 public:
 	static fwEvent<> OnScriptInit;
@@ -84,6 +87,11 @@ public:
 	{
 		return *reinterpret_cast<T*>(m_TempStack);
 	}
+};
+
+struct pass
+{
+	template<typename ...T> pass(T...) {}
 };
 
 class NativeInvoke

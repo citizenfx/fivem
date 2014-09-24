@@ -164,6 +164,25 @@ uint32_t HashRageString(const char* string)
 	return hash;
 }
 
+uint32_t HashString(const char* string)
+{
+	uint32_t hash = 0;
+	size_t len = strlen(string);
+
+	for (size_t i = 0; i < len; i++)
+	{
+		hash += tolower(string[i]);
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash;
+}
+
 fwString url_encode(const fwString &value)
 {
 	std::ostringstream escaped;

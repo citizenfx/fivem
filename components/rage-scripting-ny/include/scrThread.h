@@ -19,6 +19,28 @@ protected:
 	void* m_pArgs;
 
 	uint32_t m_nDataCount;
+
+public:
+	template<typename T>
+	inline T GetArgument(int idx)
+	{
+		int* arguments = (int*)m_pArgs;
+
+		return *(T*)&arguments[idx];
+	}
+
+	template<typename T>
+	inline void SetResult(int idx, T value)
+	{
+		int* returnValues = (int*)m_pReturn;
+
+		*(T*)&returnValues[idx] = value;
+	}
+
+	inline int GetArgumentCount()
+	{
+		return m_nArgCount;
+	}
 };
 
 struct scrThreadContext

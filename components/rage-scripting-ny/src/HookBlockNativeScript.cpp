@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "Hooking.h"
 #include "scrThread.h"
 
 static uint32_t gtaThreadVTable;

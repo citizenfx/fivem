@@ -163,6 +163,7 @@ void GlobalError(const char* string, ...);
 void FatalError(const char* string, ...);
 
 uint32_t HashRageString(const char* string);
+uint32_t HashString(const char* string);
 
 inline void LowerString(std::string& string)
 {

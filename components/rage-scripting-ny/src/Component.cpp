@@ -31,6 +31,8 @@ bool ComponentInstance::DoGameLoad(HANDLE module)
 		rage::scrEngine::OnScriptInit();
 	});
 
+	HookFunction::RunAll();
+
 	// ignore startup/network_startup
 	hook::put<uint8_t>(0x809A81, 0xEB);
 
