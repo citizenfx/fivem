@@ -69,6 +69,17 @@ namespace CitizenFX.Core
         }
 
         /// <summary>
+        /// Gets the identifier the player has to the server-side script.
+        /// </summary>
+        public int ServerId
+        {
+            get
+            {
+                return Function.Call<int>(Natives.GET_PLAYER_SERVER_ID, m_playerId);
+            }
+        }
+
+        /// <summary>
         /// Returns the player's name.
         /// </summary>
         public string Name

@@ -58,11 +58,14 @@
     <Compile Include="client\clrcore\ExportDictionary.cs" />
     <Compile Include="client\clrcore\Function.cs" />
     <Compile Include="client\clrcore\FunctionReference.cs" />
+    <Compile Include="client\clrcore\GameClasses\Blip.cs" />
     <Compile Include="client\clrcore\GameClasses\Entity.cs" />
     <Compile Include="client\clrcore\GameClasses\HandleObject.cs" />
     <Compile Include="client\clrcore\GameClasses\ObjectCache.cs" />
     <Compile Include="client\clrcore\GameClasses\Ped.cs" />
     <Compile Include="client\clrcore\GameClasses\Player.cs" />
+    <Compile Include="client\clrcore\GameClasses\PlayerList.cs" />
+    <Compile Include="client\clrcore\GameClasses\Vehicle.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
     <Compile Include="client\clrcore\Math\MathUtil.cs" />
     <Compile Include="client\clrcore\Math\Matrix.cs" />

@@ -8,6 +8,10 @@ namespace CitizenFX.Core
 {
     public static class Natives
     {
+        // Citizen-specific natives
+        public const uint GET_PLAYER_SERVER_ID = 0x4D97BCC7;
+        
+        // NY
         public const uint GET_ASPECT_RATIO = 0x36600272;
         public const uint LINE = 0x6C6F6052;
         public const uint DRAW_CORONA = 0x39ED0C43;

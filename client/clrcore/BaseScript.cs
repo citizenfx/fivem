@@ -21,11 +21,31 @@ namespace CitizenFX.Core
 
         protected ExportDictionary Exports { get; private set; }
 
+        private Player m_player;
+
+        protected Player LocalPlayer
+        {
+            get
+            {
+                var id = Function.Call<int>(Natives.GET_PLAYER_ID);
+
+                if (m_player == null || id != m_player.ID)
+                {
+                    m_player = new Player(id);
+                }
+
+                return m_player;
+            }
+        }
+
+        protected PlayerList Players { get; private set; }
+
         public BaseScript()
         {
             EventHandlers = new EventHandlerDictionary();
             Exports = new ExportDictionary();
             CurrentTaskList = new Dictionary<Delegate, Task>();
+            Players = new PlayerList();
         }
         
         internal void ScheduleRun()

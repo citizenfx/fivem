@@ -121,6 +121,16 @@ namespace CitizenFX.Core
             return new Pointer(type);
         }
 
+        public static implicit operator Pointer(int value)
+        {
+            return new Pointer(value);
+        }
+
+        public static implicit operator Pointer(float value)
+        {
+            return new Pointer(value);
+        }
+
         internal object Value
         {
             get
