@@ -67,6 +67,7 @@ namespace CitizenFX.Core
             }
         }
 
+        [SecuritySafeCritical]
         private bool InvokeTryExecuteTask(Task task)
         {
             return TryExecuteTask(task);
