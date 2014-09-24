@@ -82,8 +82,6 @@ namespace CitizenFX.Core
                 }
             }
 
-            Debug.WriteLine();
-
             // invoke the native
             if (!InvokeContext(ref context))
             {
