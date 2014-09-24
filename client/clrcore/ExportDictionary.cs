@@ -10,7 +10,7 @@ namespace CitizenFX.Core
 {
     public class ExportDictionary
     {
-        public new dynamic this[string resourceName]
+        public dynamic this[string resourceName]
         {
             get
             {

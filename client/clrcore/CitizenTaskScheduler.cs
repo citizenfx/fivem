@@ -47,20 +47,29 @@ namespace CitizenFX.Core
             }
         }
 
-        [SecuritySafeCritical]
         public void Tick()
         {
             var tasks = m_runningTasks.ToArray();
 
             foreach (var task in tasks)
             {
-                TryExecuteTask(task);
+                InvokeTryExecuteTask(task);
+
+                if (task.Exception != null)
+                {
+                    Debug.WriteLine("Exception thrown by a task: {0}", task.Exception.ToString());
+                }
 
                 if (task.IsCompleted || task.IsFaulted || task.IsCanceled)
                 {
                     m_runningTasks.Remove(task);
                 }
             }
+        }
+
+        private bool InvokeTryExecuteTask(Task task)
+        {
+            return TryExecuteTask(task);
         }
 
         public static void Create()

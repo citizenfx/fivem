@@ -219,9 +219,9 @@ struct NativeCallArguments
 {
 	uint32_t nativeHash;
 	int numArguments;
-	uintptr_t intArguments[16];
-	float floatArguments[16];
-	uint8_t argumentFlags[16];
+	MonoArray* intArguments;
+	MonoArray* floatArguments;
+	MonoArray* argumentFlags;
 	uintptr_t resultValue;
 };
 
@@ -245,31 +245,35 @@ MonoBoolean GI_InvokeGameNativeCall(NativeCallArguments* arguments)
 	
 	arguments->numArguments = std::min(arguments->numArguments, 16);
 
+	uint8_t* argumentFlags = mono_array_addr(arguments->argumentFlags, uint8_t, 0);
+	uint32_t* intArguments = mono_array_addr(arguments->intArguments, uint32_t, 0);
+	float* floatArguments = mono_array_addr(arguments->floatArguments, float, 0);
+
 	for (int i = 0; i < arguments->numArguments; i++)
 	{
-		bool isFloat = arguments->argumentFlags[i] & 0x80;
-		bool isPointer = arguments->argumentFlags[i] & 0x40;
+		bool isFloat = argumentFlags[i] & 0x80;
+		bool isPointer = argumentFlags[i] & 0x40;
 
 		if (isPointer)
 		{
 			if (isFloat)
 			{
-				results[i].number = arguments->floatArguments[i];
+				results[i].number = floatArguments[i];
 			}
 			else
 			{
-				results[i].integer = arguments->intArguments[i];
+				results[i].integer = intArguments[i];
 			}
 
 			ctx.Push(&results[i]);
 		}
 		else if (isFloat)
 		{
-			ctx.Push(arguments->floatArguments[i]);
+			ctx.Push(floatArguments[i]);
 		}
 		else
 		{
-			ctx.Push(arguments->intArguments[i]);
+			ctx.Push(intArguments[i]);
 		}
 	}
 
@@ -308,18 +312,18 @@ MonoBoolean GI_InvokeGameNativeCall(NativeCallArguments* arguments)
 	// put back pointer arguments
 	for (int i = 0; i < arguments->numArguments; i++)
 	{
-		bool isFloat = arguments->argumentFlags[i] & 0x80;
-		bool isPointer = arguments->argumentFlags[i] & 0x40;
+		bool isFloat = argumentFlags[i] & 0x80;
+		bool isPointer = argumentFlags[i] & 0x40;
 
 		if (isPointer)
 		{
 			if (isFloat)
 			{
-				arguments->floatArguments[i] = results[i].number;
+				floatArguments[i] = results[i].number;
 			}
 			else
 			{
-				arguments->intArguments[i] = results[i].integer;
+				intArguments[i] = results[i].integer;
 			}
 		}
 	}

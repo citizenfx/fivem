@@ -25,6 +25,7 @@ namespace CitizenFX.Core
         {
             EventHandlers = new EventHandlerDictionary();
             Exports = new ExportDictionary();
+            CurrentTaskList = new Dictionary<Delegate, Task>();
         }
         
         internal void ScheduleRun()
@@ -130,6 +131,33 @@ namespace CitizenFX.Core
 
                 add("banana", addCB, removeCB);
             });
+
+            Tick += TestScript_Tick;
+        }
+
+        async Task TestScript_Tick()
+        {
+            await Delay(1500);
+
+            try
+            {
+                var playerId = Function.Invoke<int>(Natives.GET_PLAYER_ID);
+
+                Pointer playerPed = typeof(int);
+                Function.Invoke(Natives.GET_PLAYER_CHAR, playerId, playerPed);
+
+                Pointer pX = typeof(float);
+                Pointer pY = typeof(float);
+                Pointer pZ = typeof(float);
+
+                Function.Invoke(Natives.GET_CHAR_COORDINATES, (int)playerPed, pX, pY, pZ);
+
+                Debug.WriteLine("coords: {0} {1} {2}", pX.Value, pY.Value, pZ.Value);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("{0}", ex.ToString());
+            }
         }
     }
 }

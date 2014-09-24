@@ -30,6 +30,7 @@ static void TailUnloadLoadScreens()
 
 static HookFunction hookFunction([] ()
 {
+	/*
 	// wrapper for frame event
 	hook::jump(0x422360, LoadingScreenFrameWrapper);
 
@@ -61,4 +62,5 @@ static HookFunction hookFunction([] ()
 
 		drawBefore.call(before);
 	});
+	*/
 });

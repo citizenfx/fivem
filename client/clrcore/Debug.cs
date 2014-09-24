@@ -21,6 +21,11 @@ namespace CitizenFX.Core
             Write(string.Format(format, args));
         }
 
+        public static void WriteLine()
+        {
+            Write("\n");
+        }
+
         public static void WriteLine(string format, params object[] args)
         {
             Write(string.Format(format, args) + "\n");

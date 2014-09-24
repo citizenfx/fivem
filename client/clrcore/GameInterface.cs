@@ -50,19 +50,20 @@ namespace CitizenFX.Core
         [StructLayout(LayoutKind.Sequential)]
         public struct NativeCallArguments
         {
-	        uint nativeHash;
-	        int numArguments;
+	        public uint nativeHash;
+            public int numArguments;
+            public int[] intArguments;
+            public float[] floatArguments;
+            public byte[] argumentFlags;
 
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
-	        uint[] intArguments;
+            public uint resultValue;
 
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
-	        float[] floatArguments;
-
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
-	        byte[] argumentFlags;
-	        
-            uint resultValue;
+            public void Initialize()
+            {
+                intArguments = new int[16];
+                floatArguments = new float[16];
+                argumentFlags = new byte[16];
+            }
         }
 
         [SecurityCritical]
