@@ -55,11 +55,6 @@ namespace CitizenFX.Core
     public struct Vector4 : IEquatable<Vector4>, IFormattable
     {
         /// <summary>
-        /// The size of the <see cref="CitizenFX.Core.Vector4"/> type, in bytes.
-        /// </summary>
-        public static readonly int SizeInBytes = Marshal.SizeOf(typeof(Vector4));
-
-        /// <summary>
         /// A <see cref="CitizenFX.Core.Vector4"/> with all of its components set to zero.
         /// </summary>
         public static readonly Vector4 Zero = new Vector4();

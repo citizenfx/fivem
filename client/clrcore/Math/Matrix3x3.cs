@@ -56,11 +56,6 @@ namespace CitizenFX.Core
     public struct Matrix3x3 : IEquatable<Matrix3x3>, IFormattable
     {
         /// <summary>
-        /// The size of the <see cref="CitizenFX.Core.Matrix3x3"/> type, in bytes.
-        /// </summary>
-        public static readonly int SizeInBytes = Marshal.SizeOf(typeof(Matrix3x3));
-
-        /// <summary>
         /// A <see cref="CitizenFX.Core.Matrix3x3"/> with all of its components set to zero.
         /// </summary>
         public static readonly Matrix3x3 Zero = new Matrix3x3();

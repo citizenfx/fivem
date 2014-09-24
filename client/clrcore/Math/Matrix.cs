@@ -56,11 +56,6 @@ namespace CitizenFX.Core
     public struct Matrix : IEquatable<Matrix>, IFormattable
     {
         /// <summary>
-        /// The size of the <see cref="CitizenFX.Core.Matrix"/> type, in bytes.
-        /// </summary>
-        public static readonly int SizeInBytes = Marshal.SizeOf(typeof(Matrix));
-
-        /// <summary>
         /// A <see cref="CitizenFX.Core.Matrix"/> with all of its components set to zero.
         /// </summary>
         public static readonly Matrix Zero = new Matrix();
