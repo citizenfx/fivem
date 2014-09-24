@@ -11,6 +11,13 @@ static InitFunction initFunction([] ()
 		int playerIdx = context->GetArgument<int>(0);
 		CPlayerInfo* info = CPlayerInfo::GetPlayer(playerIdx);
 
-		context->SetResult(0, info->address.inaOnline.s_addr);
+		if (!info)
+		{
+			context->SetResult(0, -1);
+		}
+		else
+		{
+			context->SetResult(0, info->address.inaOnline.s_addr);
+		}
 	});
 });
