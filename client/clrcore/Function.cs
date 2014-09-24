@@ -130,7 +130,7 @@ namespace CitizenFX.Core
             }
             else if (returnType == typeof(bool))
             {
-                return (context.resultValue != 1);
+                return (context.resultValue != 0);
             }
             else if (returnType == typeof(float))
             {
