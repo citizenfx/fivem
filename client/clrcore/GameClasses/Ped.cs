@@ -449,6 +449,14 @@ namespace CitizenFX.Core
             }
         }
 
+        public bool IsEnemy
+        {
+            set
+            {
+                Function.Call(Natives.SET_CHAR_AS_ENEMY, m_handle, value);
+            }
+        }
+
         public void NoLongerNeeded()
         {
             Pointer pedPtr = m_handle;
