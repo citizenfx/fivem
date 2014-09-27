@@ -49,6 +49,14 @@ namespace CitizenFX.Core
             }
         }
 
+        public RelationshipGroup RelationshipGroup
+        {
+            set
+            {
+                Function.Call(Natives.SET_CHAR_RELATIONSHIP_GROUP, m_handle, (int)value);
+            }
+        }
+
         public string Voice
         {
             set
@@ -515,11 +523,5 @@ namespace CitizenFX.Core
         {
             get { return Natives.SET_CHAR_HEADING; }
         }
-    }
-
-    public enum Gender
-    {
-        Male,
-        Female
     }
 }
