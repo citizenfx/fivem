@@ -167,7 +167,7 @@ namespace CitizenFX.Core
             }
         }
 
-        public bool isCar
+        public bool IsCar
         {
             get
             {

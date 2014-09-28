@@ -8,6 +8,16 @@ namespace CitizenFX.Core
 {
     public static class World
     {
+        public static class WorldVectors
+        {
+            public static Vector3 WorldUp { get { return new Vector3(0.0f, 0.0f, 1.0f); } }
+            public static Vector3 WorldDown { get { return new Vector3(0.0f, 0.0f, -1.0f); } }
+            public static Vector3 WorldNorth { get { return new Vector3(0.0f, 1.0f, 0.0f); } }
+            public static Vector3 WorldSouth { get { return new Vector3(0.0f, -1.0f, 0.0f); } }
+            public static Vector3 WorldEast { get { return new Vector3(1.0f, 0.0f, 0.0f); } }
+            public static Vector3 WorldWest { get { return new Vector3(-1.0f, 0.0f, 0.0f); } }
+        }
+
         private static int m_baseYear = 2003;
 
         public static Weather Weather

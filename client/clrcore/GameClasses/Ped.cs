@@ -23,7 +23,15 @@ namespace CitizenFX.Core
             ObjectCache<Ped>.Add(this);
         }
 
-        // get_Model
+        public Model Model
+        {
+            get
+            {
+                Pointer modelPtr = typeof(int);
+                Function.Call(Natives.GET_CHAR_MODEL, modelPtr);
+                return new Model((int)modelPtr);
+            }
+        }
 
         public Vector3 Velocity
         {
@@ -196,7 +204,7 @@ namespace CitizenFX.Core
                 return Function.Call<bool>(Natives.IS_CHAR_GETTING_UP, m_handle);
             }
         }
-
+        
         public bool IsInAir
         {
             get

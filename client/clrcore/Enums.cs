@@ -324,6 +324,73 @@
     }
     #endregion
 
+    #region Vehicle
+    public enum VehicleDoors
+    {
+		LeftFront,
+		RightFront,
+		LeftRear,
+		RightRear,
+		Hood,
+		Trunk,
+	}
+
+    public enum DoorLock
+    {
+        None = 0,
+        CanOpenFromInside = 3,
+        ImpossibleToOpen = 4,
+    }
+
+    public enum VehicleSeat
+    {
+        None = -3,
+        AnyPassengerSeat = -2,
+        Driver = -1,
+        RightFront = 0,
+        LeftRear = 1,
+        RightRear = 2,
+    }
+
+    public enum VehicleWindow
+    {
+        LeftFront,
+        RightFront,
+        LeftRear,
+        RightRear,
+        Front,
+        Rear
+    }
+
+    public enum VehicleWheel
+    {
+        /// <summary>
+        /// Left Front Wheel. Front Wheel for bikes.
+        /// </summary>
+        FrontLeft = 0,
+        /// <summary>
+        /// Right Front Wheel. Unused for bikes.
+        /// </summary>
+        FrontRight = 1,
+        /// <summary>
+        /// Left Central Wheel. Unused for bikes and 4-wheeled vehicles.
+        /// </summary>
+        CenterLeft = 2,
+        /// <summary>
+        /// Right Central Wheel. Unused for bikes and 4-wheeled vehicles.
+        /// </summary>
+        CenterRight = 3,
+        /// <summary>
+        /// Left Rear Wheel. Rear Wheel for bikes.
+        /// </summary>
+        RearLeft = 4,
+        /// <summary>
+        /// Right Rear Wheel. Unused for bikes.
+        /// </summary>
+        RearRight = 5,
+    }
+    #endregion
+
     public enum Relationship
     {
         Hate = 5,

@@ -60,6 +60,7 @@
     <Compile Include="client\clrcore\Function.cs" />
     <Compile Include="client\clrcore\FunctionReference.cs" />
     <Compile Include="client\clrcore\GameClasses\Blip.cs" />
+    <Compile Include="client\clrcore\GameClasses\ColorIndex.cs" />
     <Compile Include="client\clrcore\GameClasses\Entity.cs" />
     <Compile Include="client\clrcore\GameClasses\General\World.cs" />
     <Compile Include="client\clrcore\GameClasses\HandleObject.cs" />
@@ -71,11 +72,14 @@
     <Compile Include="client\clrcore\GameClasses\PlayerList.cs" />
     <Compile Include="client\clrcore\GameClasses\ScriptedFire.cs" />
     <Compile Include="client\clrcore\GameClasses\Vehicle.cs" />
+    <Compile Include="client\clrcore\GameClasses\VehicleDoor.cs" />
+    <Compile Include="client\clrcore\GameClasses\VehicleExtra.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
     <Compile Include="client\clrcore\Math\MathUtil.cs" />
     <Compile Include="client\clrcore\Math\Matrix.cs" />
     <Compile Include="client\clrcore\Math\Matrix3x3.cs" />
     <Compile Include="client\clrcore\Math\Quaternion.cs" />
+    <Compile Include="client\clrcore\Math\QuaternionExtensions.cs" />
     <Compile Include="client\clrcore\Math\Vector4.cs" />
     <Compile Include="client\clrcore\MsgPackDeserializer.cs" />
     <Compile Include="client\clrcore\MsgPackSerializer.cs" />
