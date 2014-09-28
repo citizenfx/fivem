@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CitizenFX.Core
 {
-    public class Model
+    public sealed class Model
     {
         private int m_hash;
         private string m_name;
@@ -276,6 +276,60 @@ namespace CitizenFX.Core
             Pointer model = typeof(int);
             Function.Call(Natives.GET_WEAPONTYPE_MODEL, (int)wep, model);
             return new Model((int)model);
+        }
+
+        public static bool operator ==(Model left, Model right)
+        {
+            return left.Hash == right.Hash;
+        }
+
+        public static bool operator !=(Model left, Model right)
+        {
+            return !(left == right);
+        }
+
+        public static implicit operator Model(string source)
+        {
+            return new Model(source);
+        }
+
+        public static implicit operator Model(int source)
+        {
+            return new Model(source);
+        }
+
+        public static implicit operator Model(uint source)
+        {
+            return new Model(source);
+        }
+
+        public static Model FromString(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return new Model(0);
+
+            if (input.StartsWith("&H", StringComparison.InvariantCultureIgnoreCase) || input.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (input.Length < 3)
+                    return new Model(0);
+
+                try { return new Model(Convert.ToInt32(input.Substring(2), 16)); }
+                catch { return new Model(0); }
+            }
+
+            int num = 0;
+            if (int.TryParse(input, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out num))
+                return new Model(num);
+
+            return new Model(input);
+        }
+
+        public override string ToString()
+        {
+            if (string.IsNullOrEmpty(m_name))
+                return "0x" + m_hash.ToString("X8");
+            else
+                return m_name;
         }
     }
 }

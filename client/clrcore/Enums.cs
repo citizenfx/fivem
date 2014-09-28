@@ -323,4 +323,44 @@
         Female
     }
     #endregion
+
+    public enum Relationship
+    {
+        Hate = 5,
+        Dislike = 4,
+        Neutral = 3,
+        Like = 2,
+        Respect = 1,
+        Companion = 0,
+    }
+
+    public enum Weather
+    {
+        ExtraSunny,
+        Sunny,
+        SunnyAndWindy,
+        Cloudy,
+        Raining,
+        Drizzle,
+        Foggy,
+        ThunderStorm,
+        ExtraSunny2,
+        SunnyAndWindy2,
+    }
+
+    public enum ExplosionType
+    {
+        Default,
+        Molotov,
+        Rocket,
+    }
+
+    public enum GroundType
+    {
+        NextBelowCurrent,
+        NextAboveCurrent,
+        Closest,
+        Lowest,
+        Highest,
+    }
 }
