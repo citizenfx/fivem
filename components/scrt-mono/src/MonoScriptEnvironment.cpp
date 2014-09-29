@@ -47,6 +47,7 @@ bool MonoScriptEnvironment::Create()
 
 	MonoMethod* scriptInitMethod;
 	method_search("CitizenFX.Core.RuntimeManager:Initialize", scriptInitMethod);
+	method_search("CitizenFX.Core.RuntimeManager:LoadScripts", m_scriptLoadMethod);
 	method_search("CitizenFX.Core.RuntimeManager:Tick", m_scriptTickMethod);
 	method_search("CitizenFX.Core.RuntimeManager:TriggerEvent", m_scriptEventMethod);
 	method_search("CitizenFX.Core.RuntimeManager:CallRef", m_scriptCallRefMethod);
@@ -98,6 +99,16 @@ bool MonoScriptEnvironment::DoInitFile(bool isPreParse)
 
 bool MonoScriptEnvironment::LoadScripts()
 {
+	PushEnvironment pushEnvironment(this);
+
+	MonoObject* exc = nullptr;
+	mono_runtime_invoke(m_scriptLoadMethod, nullptr, nullptr, &exc);
+
+	if (exc)
+	{
+		OutputExceptionDetails(exc);
+	}
+
 	return true;
 }
 

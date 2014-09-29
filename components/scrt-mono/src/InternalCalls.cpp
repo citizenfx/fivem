@@ -105,7 +105,9 @@ int GI_GetEnvironmentInfoCall(MonoString** resourceName, MonoString** resourcePa
 		}
 	}
 
-	*resourceAssembly = mono_string_new(mono_domain_get(), ss.str().c_str());
+	std::string assembliesString = ss.str();
+
+	*resourceAssembly = mono_string_new(mono_domain_get(), assembliesString.c_str());
 
 	*instanceId = env->GetInstanceId();
 

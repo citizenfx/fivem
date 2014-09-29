@@ -32,8 +32,29 @@ namespace CitizenFX.Core
                 CitizenTaskScheduler.Create();
 
                 ms_definedScripts.Add(new TestScript());
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("Fatal error during loading: {0}", e.ToString());
+
+                if (e.InnerException != null)
+                {
+                    Debug.WriteLine("{0}", e.InnerException.ToString());
+                }
+
+                throw e;
+            }
+        }
+
+        public static void LoadScripts()
+        {
+            try
+            {
+                InitializeResourceInfo(); // to get the assembly list
 
                 // load the main assemblies
+                Debug.WriteLine("Assembly names: {0}", ms_resourceAssembly);
+
                 var assemblyNames = ms_resourceAssembly.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
                 foreach (var assemblyName in assemblyNames)
@@ -44,6 +65,8 @@ namespace CitizenFX.Core
                     {
                         return;
                     }
+
+                    Debug.WriteLine("Got assembly {0}", assembly.FullName);
 
                     var definedTypes = assembly.GetTypes();
 

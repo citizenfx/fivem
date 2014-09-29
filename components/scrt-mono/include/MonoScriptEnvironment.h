@@ -19,6 +19,8 @@ private:
 
 	MonoImage* m_scriptManagerImage;
 
+	MonoMethod* m_scriptLoadMethod;
+
 	MonoMethod* m_scriptTickMethod;
 
 	MonoMethod* m_scriptEventMethod;
