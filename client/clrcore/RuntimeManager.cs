@@ -121,7 +121,7 @@ namespace CitizenFX.Core
 
             try
             {
-                var assemblyFile = new RageFileStream(ms_resourcePath + name);
+                var assemblyFile = new RageFileStream(ms_resourcePath + "/bin/" +  name);
 
                 assemblyData = new byte[assemblyFile.Length];
                 assemblyFile.Read(assemblyData, 0, assemblyData.Length);
@@ -140,7 +140,7 @@ namespace CitizenFX.Core
 
             try
             {
-                var symbolFile = new RageFileStream(ms_resourcePath + name + ".mdb");
+                var symbolFile = new RageFileStream(ms_resourcePath + "/bin/" + name + ".mdb");
 
                 symbolData = new byte[symbolFile.Length];
                 symbolFile.Read(symbolData, 0, symbolData.Length);
