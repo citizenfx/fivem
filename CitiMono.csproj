@@ -37,6 +37,7 @@
     <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
