@@ -1,4 +1,5 @@
 #include <StdInc.h>
+#include <sstream>
 #include "MonoScriptEnvironment.h"
 #include "fiDevice.h"
 #include "NetLibrary.h"
@@ -78,17 +79,33 @@ int GI_GetEnvironmentInfoCall(MonoString** resourceName, MonoString** resourcePa
 	*resourceName = mono_string_new(mono_domain_get(), env->GetResource()->GetName().c_str());
 	*resourcePath = mono_string_new(mono_domain_get(), env->GetResource()->GetPath().c_str());
 
-	auto& metaData = env->GetResource()->GetMetaData();
-	auto it = metaData.find("assembly");
+	std::stringstream ss;
+	auto packFiles = env->GetResource()->GetPackFiles();
+	auto path = env->GetResource()->GetPath();
 
-	if (it == metaData.end())
+	for (auto& packFile : packFiles)
 	{
-		*resourceAssembly = mono_string_new(mono_domain_get(), "Assembly.dll");
+		rage::fiFindData findData;
+
+		int handle = packFile->findFirst(va("%s/bin", path.c_str()), &findData);
+
+		if (handle > 0)
+		{
+			do 
+			{
+				const char* ext = strrchr(findData.fileName, '.');
+
+				if (ext && !_stricmp(ext, ".dll"))
+				{
+					ss << std::string(findData.fileName) << ";";
+				}
+			} while (packFile->findNext(handle, &findData));
+
+			packFile->findClose(handle);
+		}
 	}
-	else
-	{
-		*resourceAssembly = mono_string_new(mono_domain_get(), it->second.c_str());
-	}
+
+	*resourceAssembly = mono_string_new(mono_domain_get(), ss.str().c_str());
 
 	*instanceId = env->GetInstanceId();
 

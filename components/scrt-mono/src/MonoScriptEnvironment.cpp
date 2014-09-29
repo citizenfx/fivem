@@ -289,7 +289,7 @@ static InitFunction initFunction([] ()
 
 	Resource::OnSetMetaData.Connect([] (fwRefContainer<Resource> resource, fwString key, fwString value)
 	{
-		if (key == "monkey")
+		if (key == "clr_solution")
 		{
 			fwRefContainer<BaseScriptEnvironment> monoSE = new MonoScriptEnvironment(resource.GetRef());
 

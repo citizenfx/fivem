@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CitizenFX.Core
 {
-    public sealed class Model
+    public struct Model
     {
         private int m_hash;
         private string m_name;

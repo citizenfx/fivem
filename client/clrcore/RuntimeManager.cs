@@ -33,31 +33,36 @@ namespace CitizenFX.Core
 
                 ms_definedScripts.Add(new TestScript());
 
-                // load the main assembly
-                var mainAssembly = LoadAssembly(ms_resourceAssembly);
+                // load the main assemblies
+                var assemblyNames = ms_resourceAssembly.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
-                if (mainAssembly == null)
+                foreach (var assemblyName in assemblyNames)
                 {
-                    return;
-                }
+                    var assembly = LoadAssembly(assemblyName);
 
-                var definedTypes = mainAssembly.GetTypes();
-
-                foreach (var type in definedTypes)
-                {
-                    if (type.IsSubclassOf(typeof(BaseScript)))
+                    if (assembly == null)
                     {
-                        try
-                        {
-                            var derivedScript = Activator.CreateInstance(type) as BaseScript;
+                        return;
+                    }
 
-                            Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
+                    var definedTypes = assembly.GetTypes();
 
-                            ms_definedScripts.Add(derivedScript);
-                        }
-                        catch (Exception e)
+                    foreach (var type in definedTypes)
+                    {
+                        if (type.IsSubclassOf(typeof(BaseScript)))
                         {
-                            Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
+                            try
+                            {
+                                var derivedScript = Activator.CreateInstance(type) as BaseScript;
+
+                                Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
+
+                                ms_definedScripts.Add(derivedScript);
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
+                            }
                         }
                     }
                 }
