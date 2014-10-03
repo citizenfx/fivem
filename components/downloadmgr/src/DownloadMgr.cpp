@@ -237,6 +237,8 @@ bool DownloadManager::Process()
 				}
 				else
 				{
+					m_loadedResources.clear(); // to clear the references that will otherwise be left over after DeleteResource
+
 					// unload any resources we already know that are currently unprocessed
 					for (auto& resource : m_requiredResources)
 					{

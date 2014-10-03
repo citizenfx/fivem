@@ -132,6 +132,11 @@ public:
 		}
 	}
 
+	uint32_t GetRefCount() const
+	{
+		return m_ref->GetRefCount();
+	}
+
 	T* GetRef() const
 	{
 		return m_ref;
@@ -206,6 +211,11 @@ private:
 	RefCount m_refCount;
 
 public:
+	inline uint32_t GetRefCount()
+	{
+		return m_refCount.GetCount();
+	}
+
 	virtual ~fwRefCountable();
 
 	virtual void AddRef();
