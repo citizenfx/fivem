@@ -1,6 +1,11 @@
 #include <StdInc.h>
 #include "MonoScriptEnvironment.h"
 
+extern "C"
+{
+	#include <mono/metadata/security-core-clr.h>
+}
+
 static MonoDomain* g_rootDomain;
 
 MonoScriptEnvironment::MonoScriptEnvironment(Resource* resource)
@@ -257,6 +262,7 @@ static int CoreClrCallback(const char* imageName)
 
 		if (_stricmp(clrPath, fullPath) != 0)
 		{
+			trace("%s %s is not a platform image.\n", fullPath, filePart);
 			return FALSE;
 		}
 	}
@@ -265,9 +271,12 @@ static int CoreClrCallback(const char* imageName)
 	{
 		if (!_stricmp(filePart, g_platformAssemblies[i]))
 		{
+			trace("%s %s is a platform image.\n", fullPath, filePart);
 			return TRUE;
 		}
 	}
+
+	trace("%s %s is not a platform image (even though the dir matches).\n", fullPath, filePart);
 
 	return FALSE;
 }
@@ -281,9 +290,14 @@ static InitFunction initFunction([] ()
 	char clrPath[256];
 	wcstombs(clrPath, citizenClrPath.c_str(), sizeof(clrPath));
 
+	std::wstring citizenClrLibPath = MakeRelativeCitPath(L"citizen/clr/lib/mono/4.5/");
+
+	SetEnvironmentVariable(L"MONO_PATH", citizenClrLibPath.c_str());
+
 	mono_assembly_setrootdir(clrPath);
 
 	mono_security_enable_core_clr();
+	mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 	mono_security_set_core_clr_platform_callback(CoreClrCallback);
 
 	g_rootDomain = mono_jit_init_version("Citizen", "v4.0.30319");

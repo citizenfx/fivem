@@ -77,19 +77,19 @@ namespace CitizenFX.Core
         /// </example>
         /// <param name="msecs">The amount of time by which to delay scheduling this interval function.</param>
         /// <returns>An awaitable task.</returns>
-        protected Task Delay(int msecs)
+        public static Task Delay(int msecs)
         {
             return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
         }
 
-        protected void TriggerEvent(string eventName, params object[] args)
+        public static void TriggerEvent(string eventName, params object[] args)
         {
             var argsSerialized = MsgPackSerializer.Serialize(args);
 
             TriggerEventInternal(eventName, argsSerialized, false);
         }
 
-        protected void TriggerServerEvent(string eventName, params object[] args)
+        public static void TriggerServerEvent(string eventName, params object[] args)
         {
             var argsSerialized = MsgPackSerializer.Serialize(args);
 
@@ -97,21 +97,26 @@ namespace CitizenFX.Core
         }
 
         [SecuritySafeCritical]
-        private void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
+        private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
         {
             GameInterface.TriggerEvent(eventName, argsSerialized, isRemote);
         }
 
-        private IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
+        private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
         {
             RuntimeManager.AddDelay(delay, callback);
 
             return new DummyAsyncResult();
         }
 
-        private void EndDelay(IAsyncResult result)
+        private static void EndDelay(IAsyncResult result)
         {
             
+        }
+
+        public static void RegisterScript(BaseScript script)
+        {
+            RuntimeManager.AddScript(script);
         }
     }
 
@@ -161,7 +166,7 @@ namespace CitizenFX.Core
 
             try
             {
-                var playerId = Function.Invoke<int>(Natives.GET_PLAYER_ID);
+                /*var playerId = Function.Invoke<int>(Natives.GET_PLAYER_ID);
 
                 Pointer playerPed = typeof(int);
                 Function.Invoke(Natives.GET_PLAYER_CHAR, playerId, playerPed);
@@ -172,7 +177,15 @@ namespace CitizenFX.Core
 
                 Function.Invoke(Natives.GET_CHAR_COORDINATES, (int)playerPed, pX, pY, pZ);
 
-                Debug.WriteLine("coords: {0} {1} {2}", pX.Value, pY.Value, pZ.Value);
+                Debug.WriteLine("coords: {0} {1} {2}", pX.Value, pY.Value, pZ.Value);*/
+
+                Debug.WriteLine("coords: {0}", LocalPlayer.Ped.Position);
+
+                // loop through players
+                foreach (var player in Players)
+                {
+                    Debug.WriteLine("{0} {1} netid {2}", player.ID, player.Name, player.ServerId);
+                }
             }
             catch (Exception ex)
             {

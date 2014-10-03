@@ -17,6 +17,14 @@ namespace CitizenFX.Core
 
         private static List<BaseScript> ms_definedScripts = new List<BaseScript>();
 
+        public static string ResourceName
+        {
+            get
+            {
+                return ms_resourceName;
+            }
+        }
+
         public static void Initialize()
         {
             InitializeResourceInfo();
@@ -94,6 +102,21 @@ namespace CitizenFX.Core
             {
                 Debug.WriteLine("Fatal error during loading: {0}", e.ToString());
 
+                if (e is ReflectionTypeLoadException)
+                {
+                    var tle = (ReflectionTypeLoadException)e;
+
+                    foreach (var ex in tle.LoaderExceptions)
+                    {
+                        Debug.WriteLine("{0}", ex.ToString());
+
+                        if (ex.InnerException != null)
+                        {
+                            Debug.WriteLine("{0}", ex.InnerException.ToString());
+                        }
+                    }
+                }
+
                 if (e.InnerException != null)
                 {
                     Debug.WriteLine("{0}", e.InnerException.ToString());
@@ -101,6 +124,16 @@ namespace CitizenFX.Core
 
                 throw e;
             }
+        }
+
+        public static void AddScript(BaseScript script)
+        {
+            if (ms_definedScripts.Contains(script))
+            {
+                throw new InvalidOperationException("Script of type " + script.GetType().Name + " is already registered.");
+            }
+
+            ms_definedScripts.Add(script);
         }
 
         [SecuritySafeCritical]
@@ -207,7 +240,7 @@ namespace CitizenFX.Core
                     }
                 }
 
-                foreach (var script in ms_definedScripts)
+                foreach (var script in ms_definedScripts.ToArray())
                 {
                     script.ScheduleRun();
                 }

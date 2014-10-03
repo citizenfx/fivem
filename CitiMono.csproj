@@ -91,6 +91,7 @@
     <Compile Include="client\clrcore\RuntimeManager.cs" />
     <Compile Include="client\clrcore\Math\Vector2.cs" />
     <Compile Include="client\clrcore\Math\Vector3.cs" />
+    <Compile Include="client\clrcore\ScriptEnvironment.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="client\clrcore\EcmaPublicKey.snk" />
