@@ -25,7 +25,7 @@ namespace CitizenFX.Core
 
         public static void Add(T item)
         {
-            m_dictionary.Add(item.Handle, item);
+            m_dictionary[item.Handle] = item;
         }
 
         public static void Remove(T item)
