@@ -68,7 +68,7 @@ namespace CitizenFX.Core
 
         public Parameter(bool boolean)
         {
-            m_value = boolean ? true : false;
+            m_value = boolean ? 1 : 0;
             m_type = ParameterType.Integer;
         }
 
