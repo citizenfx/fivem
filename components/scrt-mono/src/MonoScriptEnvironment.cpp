@@ -1,4 +1,5 @@
 #include <StdInc.h>
+#include "MissionCleanup.h"
 #include "MonoScriptEnvironment.h"
 
 extern "C"
@@ -16,6 +17,8 @@ MonoScriptEnvironment::MonoScriptEnvironment(Resource* resource)
 	srand(GetTickCount());
 
 	m_instanceId = rand() | 0x80000;
+
+	m_missionCleanup = std::make_shared<CMissionCleanup>();
 }
 
 MonoScriptEnvironment::~MonoScriptEnvironment()
@@ -201,6 +204,11 @@ const char* MonoScriptEnvironment::GetEnvironmentName()
 	return "Mono";
 }
 
+CMissionCleanup* MonoScriptEnvironment::GetMissionCleanup()
+{
+	return m_missionCleanup.get();
+}
+
 void MonoScriptEnvironment::OutputExceptionDetails(MonoObject* exc)
 {
 	MonoClass* eclass = mono_object_get_class(exc);
@@ -306,6 +314,16 @@ static InitFunction initFunction([] ()
 	args[0] = "--soft-breakpoints";
 
 	mono_jit_parse_options(1, args);
+
+	CMissionCleanup::OnQueryMissionCleanup.Connect([] (CMissionCleanup*& handler)
+	{
+		auto environment = dynamic_cast<MonoScriptEnvironment*>(BaseScriptEnvironment::GetCurrentEnvironment());
+
+		if (environment)
+		{
+			handler = environment->GetMissionCleanup();
+		}
+	});
 
 	PushEnvironment::OnDeactivateLastEnvironment.Connect([] ()
 	{

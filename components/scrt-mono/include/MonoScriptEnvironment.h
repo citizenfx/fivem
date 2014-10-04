@@ -31,6 +31,8 @@ private:
 
 	Resource* m_resource;
 
+	std::shared_ptr<CMissionCleanup> m_missionCleanup;
+
 private:
 	void OutputExceptionDetails(MonoObject* exc);
 
@@ -62,6 +64,8 @@ public:
 	virtual void RemoveRef(ScriptFunctionRef ref);
 
 	virtual void Activate();
+
+	virtual CMissionCleanup* GetMissionCleanup();
 
 	inline MonoDomain* GetScriptDomain() { return m_scriptDomain; }
 
