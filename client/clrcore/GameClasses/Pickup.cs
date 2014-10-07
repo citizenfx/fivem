@@ -49,17 +49,22 @@ namespace CitizenFX.Core
             }
         }
 
-        /*public Room CurrentRoom
+        public Room CurrentRoom
         {
             get
             {
-                return null
+                if (!Exists) return null;
+                Pointer ii = typeof(int);
+                Pointer rk = typeof(uint);
+                Function.Call(Natives.GET_INTERIOR_FROM_CAR, m_handle, ii);
+                Function.Call(Natives.GET_KEY_FOR_CAR_IN_ROOM, m_handle, rk);
+                return new Room((int)rk, (int)ii);
             }
             set
             {
-
+                Function.Call(Natives.SET_ROOM_FOR_CAR_BY_KEY, m_handle, (int)value.InteriorID);
             }
-        }*/
+        }
 
         public bool Exists
         {
@@ -111,9 +116,9 @@ namespace CitizenFX.Core
             return true;
         }
 
-        public static Pickup CreatePickup(Vector3 position, Model model, PickupType type, Vector3 rotation)
+        public static async Task<Pickup> CreatePickup(Vector3 position, Model model, PickupType type, Vector3 rotation)
         {
-            if (!model.LoadToMemoryNow())
+            if (!await model.LoadToMemoryNow())
                 return null;
 
             Pointer res = typeof(int);
@@ -127,9 +132,9 @@ namespace CitizenFX.Core
             return ObjectCache<Pickup>.Get((int)res);
         }
 
-        public static Pickup CreatePickup(Vector3 position, Model model, PickupType type)
+        public static async Task<Pickup> CreatePickup(Vector3 position, Model model, PickupType type)
         {
-            if (!model.LoadToMemoryNow())
+            if (!await model.LoadToMemoryNow())
                 return null;
 
             Pointer res = typeof(int);
@@ -143,11 +148,11 @@ namespace CitizenFX.Core
             return ObjectCache<Pickup>.Get((int)res);
         }
 
-        public static Pickup CreateWeaponPickup(Vector3 position, Weapon weapon, int ammo, Vector3 rotation)
+        public static async Task<Pickup> CreateWeaponPickup(Vector3 position, Weapon weapon, int ammo, Vector3 rotation)
         {
             Model model = Model.GetWeaponModel(weapon);
 
-            if (!model.LoadToMemoryNow())
+            if (!await model.LoadToMemoryNow())
                 return null;
 
             Pointer res = typeof(int);
@@ -160,11 +165,11 @@ namespace CitizenFX.Core
             return ObjectCache<Pickup>.Get((int)res);
         }
 
-        public static Pickup CreateWeaponPickup(Vector3 position, Weapon weapon, int ammo)
+        public static async Task<Pickup> CreateWeaponPickup(Vector3 position, Weapon weapon, int ammo)
         {
             Model model = Model.GetWeaponModel(weapon);
 
-            if (!model.LoadToMemoryNow())
+            if (!await model.LoadToMemoryNow())
                 return null;
 
             Pointer res = typeof(int);

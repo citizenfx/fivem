@@ -421,12 +421,12 @@ namespace CitizenFX.Core
             return ObjectCache<Ped>.Get((int)pedPtr);
         }
 
-        public static Ped CreatePed(Model model, Vector3 position, RelationshipGroup type)
+        public static async Task<Ped> CreatePed(Model model, Vector3 position, RelationshipGroup type)
         {
             if (!model.IsPed)
                 return null;
 
-            if (!model.LoadToMemoryNow())
+            if (!await model.LoadToMemoryNow())
                 return null;
 
             Pointer pedPtr = typeof(int);
@@ -439,9 +439,9 @@ namespace CitizenFX.Core
             return ObjectCache<Ped>.Get((int)pedPtr);
         }
 
-        public static Ped CreatePed(Model model, Vector3 position)
+        public static async Task<Ped> CreatePed(Model model, Vector3 position)
         {
-            Ped ped = CreatePed(model, position, RelationshipGroup.Civillian_Male);
+            Ped ped = await CreatePed(model, position, RelationshipGroup.Civillian_Male);
 
             if (ped == null)
                 return null;
@@ -465,22 +465,31 @@ namespace CitizenFX.Core
             return ObjectCache<Vehicle>.Get((int)carPtr);
         }
 
-        public static Vehicle CreateVehicle(Model model, Vector3 position)
+        public static async Task<Vehicle> CreateVehicle(Model model, Vector3 position)
         {
             if (!model.IsVehicle)
                 return null;
 
-            if (!model.LoadToMemoryNow())
-                return null;
+            if (!await model.LoadToMemoryNow()) return null;
 
             Pointer carPtr = typeof(int);
-            Function.Call(Natives.CREATE_CAR, model.Handle, position.X, position.Y, position.Z, carPtr, true);
+            Function.Call(Natives.CREATE_CAR, model.Hash, position.X, position.Y, position.Z, carPtr, true);
             model.AllowDisposeFromMemory();
 
             if ((int)carPtr == 0)
                 return null;
 
             return ObjectCache<Vehicle>.Get((int)carPtr);
+        }
+
+        public static async Task<GameObject> CreateObject(Model Model, Vector3 Position)
+        {
+            if (!await Model.LoadToMemoryNow()) return null;
+            Pointer obj = typeof(int);
+            Function.Call(Natives.CREATE_OBJECT, Model.Hash, Position.X, Position.Y, Position.Z, obj, true);
+            Model.AllowDisposeFromMemory();
+            if ((int)obj == 0) return null;
+            return ObjectCache<GameObject>.Get((int)obj);
         }
     }
 }

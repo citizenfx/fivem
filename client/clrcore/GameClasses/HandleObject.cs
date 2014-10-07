@@ -15,7 +15,7 @@ namespace CitizenFX.Core
             m_handle = -1;
         }
 
-        internal int Handle
+        public int Handle
         {
             get
             {

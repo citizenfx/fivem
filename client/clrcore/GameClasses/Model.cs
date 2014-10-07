@@ -94,15 +94,25 @@ namespace CitizenFX.Core
             catch { }
         }
 
-        public bool LoadToMemoryNow(int timeout)
+        public async Task<bool> LoadToMemoryNow(int timeout)
         {
-            // Dummy, don't think this'll work with Citizen straightaway
+            if (m_hash == 0) return false;
+            try
+            {
+                Function.Call(Natives.REQUEST_MODEL, m_hash);
+                while (!Function.Call<bool>(Natives.HAS_MODEL_LOADED, m_hash))
+                {
+                    await BaseScript.Delay(0);
+                }
+                return true;
+            }
+            catch (Exception) { }
             return false;
         }
 
-        public bool LoadToMemoryNow()
+        public async Task<bool> LoadToMemoryNow()
         {
-            return LoadToMemoryNow(1000);
+            return await LoadToMemoryNow(1000);
         }
 
         public void LoadCollisionDataToMemory()
@@ -111,9 +121,19 @@ namespace CitizenFX.Core
             Function.Call(Natives.REQUEST_COLLISION_FOR_MODEL, m_hash);
         }
 
-        public bool LoadCollisionDataToMemoryNow(int timeout)
+        public async Task<bool> LoadCollisionDataToMemoryNow(int timeout)
         {
-            // Dummy, don't think this'll work with Citizen straightaway
+            if (m_hash == 0) return false;
+            try
+            {
+                Function.Call(Natives.REQUEST_COLLISION_FOR_MODEL, m_hash);
+                while (!Function.Call<bool>(Natives.HAS_COLLISION_FOR_MODEL_LOADED, m_hash))
+                {
+                    await BaseScript.Delay(0);
+                }
+                return true;
+            }
+            catch (Exception) { }
             return false;
         }
 

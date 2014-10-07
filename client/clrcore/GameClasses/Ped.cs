@@ -321,7 +321,20 @@ namespace CitizenFX.Core
             }
         }
 
-        // CurrentRoom
+        public Room CurrentRoom
+        {
+            get
+            {
+                Pointer ii = typeof(int), rk = typeof(uint);
+                Function.Call(Natives.GET_INTERIOR_FROM_CHAR, m_handle, ii);
+                Function.Call(Natives.GET_KEY_FOR_CHAR_IN_ROOM, m_handle, rk);
+                return new Room((int)rk, (int)ii);
+            }
+            set
+            {
+                Function.Call(Natives.SET_ROOM_FOR_CHAR_BY_KEY, m_handle, (int)value.RoomKey);
+            }
+        }
 
         public bool FreezePosition
         {
@@ -398,6 +411,11 @@ namespace CitizenFX.Core
             {
                 Function.Call(Natives.SET_CHAR_ACCURACY, m_handle, value);
             }
+        }
+
+        public void Die()
+        {
+            this.Health = -100;
         }
 
         public bool DiesWhenInjured
@@ -477,6 +495,13 @@ namespace CitizenFX.Core
         {
             Pointer pedPtr = m_handle;
             Function.Call(Natives.MARK_CHAR_AS_NO_LONGER_NEEDED, pedPtr);
+        }
+
+        public void WarpIntoCar(Vehicle v, VehicleSeat seat)
+        {
+            if (v.Exists == false || seat == VehicleSeat.None) return;
+            if (seat == VehicleSeat.Driver) Function.Call(Natives.WARP_CHAR_INTO_CAR, m_handle, v.Handle);
+            else Function.Call(Natives.WARP_CHAR_INTO_CAR_AS_PASSENGER, m_handle, v.Handle);
         }
 
         public bool Exists

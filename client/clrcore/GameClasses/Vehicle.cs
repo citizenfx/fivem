@@ -113,17 +113,20 @@ namespace CitizenFX.Core
             }
         }
 
-        /*public Room CurrentRoom
+        public Room CurrentRoom
         {
             get
             {
-
+                Pointer ii = typeof(int), rk = typeof(uint);
+                Function.Call(Natives.GET_INTERIOR_FROM_CAR, m_handle, ii);
+                Function.Call(Natives.GET_KEY_FOR_CAR_IN_ROOM, m_handle, rk);
+                return new Room((int)rk, (int)ii);
             }
             set
             {
-
+                Function.Call(Natives.SET_ROOM_FOR_CAR_BY_KEY, m_handle, (int)value.InteriorID);
             }
-        }*/
+        }
 
         //needs some unsafe code apparently
         /*public float CurrentRPM
@@ -620,7 +623,7 @@ namespace CitizenFX.Core
             return ObjectCache<Ped>.Get((int)pedPtr);
         }
 
-        public Ped CreatePedOnSeat(VehicleSeat seat, Model model, RelationshipGroup type)
+        public async Task<Ped> CreatePedOnSeat(VehicleSeat seat, Model model, RelationshipGroup type)
         {
             if (seat <= VehicleSeat.None)
                 return null;
@@ -628,7 +631,7 @@ namespace CitizenFX.Core
             if (!IsSeatFree(seat))
                 return null;
 
-            model.LoadToMemoryNow();
+            await model.LoadToMemoryNow();
             Pointer pedPtr = typeof(int);
 
             if (seat == VehicleSeat.Driver)
@@ -644,9 +647,9 @@ namespace CitizenFX.Core
             return ObjectCache<Ped>.Get((int)pedPtr);
         }
 
-        public Ped CreatePedOnSeat(VehicleSeat seat, Model model)
+        public async Task<Ped> CreatePedOnSeat(VehicleSeat seat, Model model)
         {
-            Ped ped = CreatePedOnSeat(seat, model, RelationshipGroup.Civillian_Male);
+            Ped ped = await CreatePedOnSeat(seat, model, RelationshipGroup.Civillian_Male);
 
             if (ped == null)
                 return null;
@@ -813,7 +816,8 @@ namespace CitizenFX.Core
 
         public void NoLongerNeeded() //shouldn't this be in the Entity class as well?
         {
-            Function.Call(Natives.MARK_CAR_AS_NO_LONGER_NEEDED, m_handle);
+            Pointer p = m_handle;
+            Function.Call(Natives.MARK_CAR_AS_NO_LONGER_NEEDED, p, m_handle);
         }
 
         public void PlaceOnGroundProperly()
