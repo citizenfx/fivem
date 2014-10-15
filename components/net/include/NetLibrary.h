@@ -6,6 +6,8 @@
 #include "HttpClient.h"
 #include "CrossLibraryInterfaces.h"
 
+#define NETWORK_PROTOCOL 2
+
 enum NetAddressType
 {
 	NA_NONE,
@@ -140,6 +142,8 @@ private:
 
 	NetChannel m_netChannel;
 
+	uint32_t m_serverProtocol;
+
 	uint32_t m_lastReceivedReliableCommand;
 
 	uint32_t m_outReliableAcknowledged;
@@ -149,6 +153,8 @@ private:
 	std::list<OutReliableCommand> m_outReliableCommands;
 
 	uint32_t m_lastReceivedAt;
+
+	uint32_t m_lastFrameNumber;
 
 	std::string m_playerName;
 

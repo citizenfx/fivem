@@ -137,6 +137,15 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 
 			EnqueueRoutedPacket(netID, std::string(routeBuffer, rlength));
 		}
+		else if (msgType == 0x53FFFA3F) // msgFrame
+		{
+			// for now, frames are only an identifier - this will change once game features get moved to our code
+			// (2014-10-15)
+
+			uint32_t frameNum = msg.Read<uint32_t>();
+
+			m_lastFrameNumber = frameNum;
+		}
 		else if (msgType != 0xCA569E63) // reliable command
 		{
 			uint32_t id = msg.Read<uint32_t>();
@@ -332,6 +341,11 @@ void NetLibrary::ProcessSend()
 
 	msg.Write(m_lastReceivedReliableCommand);
 
+	if (m_serverProtocol >= 2)
+	{
+		msg.Write(m_lastFrameNumber);
+	}
+
 	while (!m_outgoingPackets.empty())
 	{
 		auto packet = m_outgoingPackets.front();
@@ -441,13 +455,6 @@ void NetLibrary::RunFrame()
 
 	ProcessSend();
 
-	//GSClient_RunFrame();
-
-	/*if (TheDownloads.DoingQueuedUpdate())
-	{
-		TheDownloads.Process();
-	}*/
-
 	switch (m_connectionState)
 	{
 		case CS_INITRECEIVED:
@@ -456,50 +463,6 @@ void NetLibrary::RunFrame()
 
 			// trigger task event
 			OnInitReceived(m_currentServer);
-			//m_connectionState = CS_DOWNLOADCOMPLETE;
-
-			/*GameFlags::ResetFlags();
-
-			nui::SetMainUI(false);
-
-			nui::DestroyFrame("mpMenu");
-
-			m_connectionState = CS_DOWNLOADING;
-
-			if (!GameInit::GetGameLoaded())
-			{
-				GameInit::SetLoadScreens();
-
-				TheDownloads.SetServer(m_currentServer);
-
-				GameInit::LoadGameFirstLaunch([] ()
-				{
-					// download frame code
-					Sleep(1);
-
-					return TheDownloads.Process();
-				});
-			}
-			else
-			{
-				GameInit::SetLoadScreens();
-
-				TheDownloads.SetServer(m_currentServer);
-
-				// unlock the mutex as we'll reenter here
-				g_netFrameMutex.unlock();
-
-				while (!TheDownloads.Process())
-				{
-					HANDLE hThread = GetCurrentThread();
-
-					MsgWaitForMultipleObjects(1, &hThread, TRUE, 15, 0);
-				}
-
-				g_netFrameMutex.lock();
-
-				GameInit::ReloadGame();
-			}*/
 
 			break;
 
@@ -516,8 +479,7 @@ void NetLibrary::RunFrame()
 				NPID npID;
 				NP_GetNPID(&npID);
 
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID); // m_tempGuid
-				//SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), 0LL);
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID);
 
 				m_lastConnect = GetTickCount();
 
@@ -578,6 +540,8 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	m_lastReceivedReliableCommand = 0;
 	m_outReliableCommands.clear();
 
+	m_lastFrameNumber = 0;
+
 	wchar_t wideHostname[256];
 	mbstowcs(wideHostname, hostname, _countof(wideHostname) - 1);
 
@@ -588,6 +552,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
+	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
 	NPID npID;
 	NP_GetNPID(&npID);
@@ -658,6 +623,8 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			}
 
 			m_token = node["token"].as<std::string>();
+
+			m_serverProtocol = node["protocol"].as<uint32_t>();
 
 			m_connectionState = CS_INITRECEIVED;
 		}
