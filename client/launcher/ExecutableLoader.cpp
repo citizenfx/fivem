@@ -56,11 +56,14 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 
 				function = GetProcAddress(module, import->Name);
 				functionName = import->Name;
-			}			
+			}
 
 			if (!function)
 			{
-				FatalError("Could not load function %s in dependent module %s.\n", functionName, name);
+				char pathName[MAX_PATH];
+				GetModuleFileNameA(module, pathName, sizeof(pathName));
+
+				FatalError("Could not load function %s in dependent module %s (%s).\n", functionName, name, pathName);
 			}
 
 			*addressTableEntry = (uint32_t)function;
