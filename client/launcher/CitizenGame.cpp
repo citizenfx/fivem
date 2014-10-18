@@ -8,8 +8,7 @@
 void CitizenGame::Launch(std::wstring& gamePath)
 {
 	// initialize the CEF sandbox
-	CefScopedSandboxInfo sandbox;
-	void* sandboxInfo = sandbox.sandbox_info();
+	void* sandboxInfo = nullptr;
 
 	// load the game library
 	HMODULE gameLibrary = LoadLibrary(MakeRelativeCitPath(L"CitizenGame.dll").c_str());

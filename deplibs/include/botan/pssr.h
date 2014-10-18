@@ -1,0 +1,52 @@
+/*
+* PSSR
+* (C) 1999-2007 Jack Lloyd
+*
+* Distributed under the terms of the Botan license
+*/
+
+#ifndef BOTAN_PSSR_H__
+#define BOTAN_PSSR_H__
+
+#include <botan/emsa.h>
+#include <botan/hash.h>
+
+namespace Botan {
+
+/**
+* PSSR (called EMSA4 in IEEE 1363 and in old versions of the library)
+*/
+class BOTAN_DLL PSSR : public EMSA
+   {
+   public:
+
+      /**
+      * @param hash the hash object to use
+      */
+      PSSR(HashFunction* hash);
+
+      /**
+      * @param hash the hash object to use
+      * @param salt_size the size of the salt to use in bytes
+      */
+      PSSR(HashFunction* hash, size_t salt_size);
+   private:
+      void update(const byte input[], size_t length);
+
+      secure_vector<byte> raw_data();
+
+      secure_vector<byte> encoding_of(const secure_vector<byte>& msg,
+                                      size_t output_bits,
+                                      RandomNumberGenerator& rng);
+
+      bool verify(const secure_vector<byte>& coded,
+                  const secure_vector<byte>& raw,
+                  size_t key_bits);
+
+      size_t SALT_SIZE;
+      std::unique_ptr<HashFunction> hash;
+   };
+
+}
+
+#endif

@@ -1,14 +1,14 @@
 solution "CitizenMP"
 	configurations { "Debug NY", "Release NY" }
 	
-	flags { "StaticRuntime", "No64BitChecks", "Symbols", "Unicode" }
+	flags { "No64BitChecks", "Symbols", "Unicode" }
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
 	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gtest/include/", os.getenv("BOOST_ROOT") }
 	
 	defines { "GTEST_HAS_PTHREAD=0" }
-	
+
 	libdirs { "deplibs/lib/" }
 
 	links { "winmm" }
@@ -16,6 +16,8 @@ solution "CitizenMP"
 	configuration "Debug*"
 		targetdir "bin/debug"
 		defines "NDEBUG"
+
+		defines { '_ITERATOR_DEBUG_LEVEL=0' }
 		
 	configuration "Release*"
 		targetdir "bin/release"
@@ -32,7 +34,7 @@ solution "CitizenMP"
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "Shared", "dbghelp", "psapi", "libcurl", "tinyxml", "liblzma", "comctl32" }
+		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "tinyxml", "liblzma", "comctl32" }
 		
 		files
 		{
@@ -49,12 +51,14 @@ solution "CitizenMP"
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
 		includedirs { "client/libcef/" }
+
+		flags { "StaticRuntime" }
 		
 		configuration "Debug*"
-			links { "cef_sandboxd", "libcefd" }
+			links { "libcefd" }
 			
 		configuration "Release*"
-			links { "cef_sandbox", "libcef" }
+			links { "libcef" }
 		
 		configuration "windows"
 			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
@@ -176,6 +180,22 @@ solution "CitizenMP"
 		{
 			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
 		}
+
+	project "SharedLibc"
+		targetname "shared_libc"
+		language "C++"
+		kind "StaticLib"
+
+		flags { "StaticRuntime" }
+
+		defines "COMPILING_SHARED"
+		
+		includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
+		
+		files
+		{
+			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
+		}
 		
 	project "libcef_dll"
 		targetname "libcef_dll_wrapper"
@@ -217,6 +237,31 @@ solution "CitizenMP"
 		files
 		{
 			"../vendor/msgpack-c/src/object.cpp", "../vendor/msgpack-c/src/*.c" 
+		}
+
+	project "protobuf_lite"
+		targetname "protobuf_lite"
+		language "C++"
+		kind "StaticLib"
+
+		includedirs { "../vendor/protobuf/src/", "../vendor/protobuf/vsprojects/" }
+
+		buildoptions "/MP /wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305"
+
+		files
+		{
+			"../vendor/protobuf/src/google/protobuf/io/coded_stream.cc",
+			"../vendor/protobuf/src/google/protobuf/stubs/common.cc",
+			"../vendor/protobuf/src/google/protobuf/extension_set.cc",
+			"../vendor/protobuf/src/google/protobuf/generated_message_util.cc",
+			"../vendor/protobuf/src/google/protobuf/message_lite.cc",
+			"../vendor/protobuf/src/google/protobuf/stubs/once.cc",
+			"../vendor/protobuf/src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc",
+			"../vendor/protobuf/src/google/protobuf/repeated_field.cc",
+			"../vendor/protobuf/src/google/protobuf/wire_format_lite.cc",
+			"../vendor/protobuf/src/google/protobuf/io/zero_copy_stream.cc",
+			"../vendor/protobuf/src/google/protobuf/io/zero_copy_stream_impl_lite.cc",
+			"../vendor/protobuf/src/google/protobuf/stubs/stringprintf.cc"
 		}
 
 	project "zlib"
@@ -302,9 +347,12 @@ solution "CitizenMP"
 		language "C++"
 		kind "SharedLib"
 
+		buildoptions "/MP"
+
 		includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
 		files {
 			'components/' .. name .. "/src/**.cpp",
+			'components/' .. name .. "/src/**.cc",
 			'components/' .. name .. "/src/**.h",
 			'components/' .. name .. "/include/**.h",
 			'components/' .. name .. "/component.rc",
@@ -387,7 +435,17 @@ solution "CitizenMP"
 		kind "ConsoleApp"
 
 		includedirs { 'components/' .. name .. "/include/" }
-		files { 'components/' .. name .. "/tests/**.cpp", 'components/' .. name .. "/tests/**.h", "tests/test.cpp", "client/common/StdInc.cpp" }
+		files { 'components/' .. name .. "/tests/**.cpp", 'components/' .. name .. "/tests/**.h", "client/common/StdInc.cpp" }
+
+		local f = io.open('components/' .. name .. '/tests/main.cpp')
+
+		if f then
+			io.close(f)
+		end
+
+		if not f then
+			files { "tests/test.cpp" }
+		end
 
 		links { "Shared", "CitiCore", "gtest_main", name }
 
