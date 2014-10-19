@@ -10,7 +10,8 @@ deps = {
 	"vendor/msgpack-c": "https://github.com/msgpack/msgpack-c.git",
 	"vendor/zlib": "https://github.com/madler/zlib.git",
 	"vendor/gtest": "http://googletest.googlecode.com/svn/trunk/",
-	"vendor/protobuf": "http://protobuf.googlecode.com/svn/trunk/"
+	"vendor/protobuf": "http://protobuf.googlecode.com/svn/trunk/",
+	"vendor/libopus": "git://git.opus-codec.org/opus.git"
 }
 
 hooks = [

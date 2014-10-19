@@ -14,11 +14,11 @@ MumbleMessageHandlerBase* MumbleMessageHandlerBase::GetHandlerFor(MumbleMessageT
 	return ms_messageHandlerRegistry[(int)type];
 }
 
-MumbleMessageHandler::MumbleMessageHandler(MumbleMessageType messageType, HandlerType handler)
+/*MumbleMessageHandler::MumbleMessageHandler(MumbleMessageType messageType, HandlerType handler)
 	: MumbleMessageHandlerBase(messageType), m_handler(handler)
 {
 
-}
+}*/
 
 void MumbleMessageHandler::HandleMessage(const uint8_t* message, size_t length)
 {

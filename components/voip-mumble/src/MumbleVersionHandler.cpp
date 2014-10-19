@@ -23,4 +23,6 @@ DEFINE_HANDLER(Version)
 	authenticate.set_username(usernameUtf8);
 
 	client->Send(MumbleMessageType::Authenticate, authenticate);
+
+	client->EnableAudioInput();
 });

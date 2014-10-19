@@ -30,7 +30,11 @@ private:
 	HandlerType m_handler;
 
 public:
-	MumbleMessageHandler(MumbleMessageType messageType, HandlerType handler);
+	MumbleMessageHandler(MumbleMessageType messageType, HandlerType handler)
+		: MumbleMessageHandlerBase(messageType), m_handler(handler)
+	{
+
+	}
 
 	virtual void HandleMessage(const uint8_t* message, size_t length);
 };

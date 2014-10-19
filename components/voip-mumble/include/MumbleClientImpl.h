@@ -11,6 +11,7 @@
 #include <WS2tcpip.h>
 
 #include <MumbleClientState.h>
+#include <MumbleAudioInput.h>
 
 #include <thread>
 
@@ -71,6 +72,8 @@ private:
 
 	MumbleDataHandler m_handler;
 
+	MumbleAudioInput m_audioInput;
+
 	concurrency::task_completion_event<MumbleConnectionInfo*> m_completionEvent;
 
 	Botan::AutoSeeded_RNG m_rng;
@@ -85,10 +88,14 @@ private:
 
 	MumbleClientState m_state;
 
+	std::recursive_mutex m_clientMutex;
+
 public:
 	static fwRefContainer<MumbleClient> GetCurrent();
 
 	inline MumbleClientState& GetState() { return m_state; }
+
+	inline void EnableAudioInput() { m_audioInput.Enable(); }
 
 	template<typename TPacket>
 	void Send(MumbleMessageType type, TPacket& packet)

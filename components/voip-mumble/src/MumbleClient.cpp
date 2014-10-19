@@ -6,12 +6,20 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 void MumbleClient::Initialize()
 {
+	if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)))
+	{
+		return;
+	}
+
 	m_beginConnectEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	m_socketConnectEvent = nullptr;
 	m_socketReadEvent = nullptr;
 	m_idleEvent = CreateWaitableTimer(nullptr, FALSE, nullptr);
 
 	m_mumbleThread = std::thread(ThreadFunc, this);
+
+	m_audioInput.Initialize();
+	m_audioInput.SetClient(this);
 
 	WSADATA wsaData;
 
@@ -41,6 +49,8 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 
 void MumbleClient::ThreadFuncImpl()
 {
+	SetThreadName(-1, "[Mumble] Network Thread");
+
 	while (true)
 	{
 		ClientTask task = WaitForTask();
@@ -159,7 +169,9 @@ void MumbleClient::ThreadFuncImpl()
 
 					if (len > 0)
 					{
+						m_clientMutex.lock();
 						m_tlsClient->received_data(buffer, len);
+						m_clientMutex.unlock();
 					}
 					else if (len == 0)
 					{
@@ -199,7 +211,9 @@ void MumbleClient::Send(MumbleMessageType type, const char* buf, size_t size)
 
 void MumbleClient::Send(const char* buf, size_t size)
 {
+	m_clientMutex.lock();
 	m_tlsClient->send((const uint8_t*)buf, size);
+	m_clientMutex.unlock();
 }
 
 void MumbleClient::WriteToSocket(const uint8_t buf[], size_t length)
