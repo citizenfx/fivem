@@ -177,3 +177,5 @@ inline void LowerString(fwString& string)
 
 fwString url_encode(const fwString &value);
 void CreateDirectoryAnyDepth(const char *path);
+
+void SetThreadName(int threadId, char* threadName);
