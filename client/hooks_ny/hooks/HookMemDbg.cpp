@@ -5,7 +5,7 @@ static HANDLE hHeap;
 
 static void* __stdcall allocHook(size_t size, size_t align, int multiAllocator)
 {
-	DWORD ptr = (DWORD)HeapAlloc(hHeap, 0, size + 32);
+	DWORD ptr = (DWORD)malloc(size + 32);//HeapAlloc(hHeap, 0, size + 32);
 
 	//return (void*)(ptr + 8);
 
@@ -27,7 +27,8 @@ static void __stdcall freeHook(void* mem)
 {
 	void* memReal = ((char*)mem - (16 - (*(uint32_t*)((uint32_t)mem - 4) & 0xF)) - 3);
 
-	HeapFree(hHeap, 0, memReal);
+	//HeapFree(hHeap, 0, memReal);
+	free(memReal);
 }
 
 DEFINE_INJECT_HOOK(heapFreeHook, 0x5A99C0)

@@ -8,7 +8,7 @@
 #endif
 #endif
 
-class CPool
+class GTACORE_EXPORT CPool
 {
 public:
 	void* m_pObjects;
@@ -20,6 +20,14 @@ public:
 	bool m_bAllocated;
 
 public:
+	void* Allocate();
+
+	template<typename T>
+	T* Allocate()
+	{
+		return (T*)Allocate();
+	}
+
 	template <typename T>
 	T* GetAt(int index)
 	{
@@ -99,6 +107,10 @@ class GTACORE_EXPORT CPools
 private:
 	static CPool*& ms_pBuildingPool;
 
+	static CPool*& ms_pQuadTreePool;
+
 public:
 	static inline CPool* GetBuildingPool() { return ms_pBuildingPool; }
+
+	static inline CPool* GetQuadTreePool() { return ms_pQuadTreePool; }
 };

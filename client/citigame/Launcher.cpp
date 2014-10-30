@@ -18,7 +18,7 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 	SetHooksDll(g_hooksDLL);
 
-	HANDLE authDialog = OpenMutex(SYNCHRONIZE, FALSE, L"CitizenAuthDialog");
+	/*HANDLE authDialog = OpenMutex(SYNCHRONIZE, FALSE, L"CitizenAuthDialog");
 
 	if (authDialog)
 	{
@@ -48,12 +48,12 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 	CloseHandle(authDialog);
 
-	gameMutex = CreateMutex(nullptr, true, mutexName);
+	gameMutex = CreateMutex(nullptr, true, mutexName);*/
 
 	// make the component loader initialize
 	ComponentLoader::GetInstance()->Initialize();
 
-	NP_Init();
+	/*NP_Init();
 
 	if (!NP_Connect("iv-platform.prod.citizen.re", 3036))
 	{
@@ -72,7 +72,7 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	if (result->result != AuthenticateResultOK)
 	{
 		FatalError("Could not authenticate to the platform server at iv-platform.prod.citizen.re - error %d.", result->result);
-	}
+	}*/
 
 	// and start running the game
 	return continueRunning;

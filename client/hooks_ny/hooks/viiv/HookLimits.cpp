@@ -27,11 +27,21 @@ void AdjustLimit(std::string limit, int value)
 
 static HookFunction hookFunction([] ()
 {
-	AdjustLimit("static_bounds", 3500);
+	AdjustLimit("static_bounds", 5800);
 	AdjustLimit("transform_matrix", 13000 * 6);
 	AdjustLimit("building", 32000 * 8);
-	AdjustLimit("drawbldict", 3500);
-	AdjustLimit("ptrnode_single", 110000);
+	AdjustLimit("drawbldict", 7500);
+	AdjustLimit("ptrnode_single", 230000);
+
+	// txdstore count
+	hook::put(0x820DB7, 6500);
+	hook::put(0x820E2F, 6500);
+
+	// placeable matrix?
+	hook::put(0x9E79FC, 52000);
+
+	// global ipl pointer count used during loading
+	hook::put(0x8D7153, 296608); // was 32768
 
 	*(DWORD*)(0x5A9509) += 90 * 1024 * 1024;
 	*(DWORD*)(0x5A951B) += 90 * 1024 * 1024;
@@ -39,4 +49,7 @@ static HookFunction hookFunction([] ()
 
 	// increase allowed amount of filesystem mounts (fixes CreatePlayer exception @ 0x69ECB2 due to player:/ not being mounted)
 	hook::put(0x4022E6, 256); // was 64
+
+	// don't kill the networked player when out of range
+	hook::return_function(0x878F70);
 });

@@ -1,6 +1,6 @@
 #pragma once
 
-class CPool
+class GAMESPEC_EXPORT CPool
 {
 public:
 	void* m_pObjects;

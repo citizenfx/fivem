@@ -20,10 +20,21 @@ int GetTypeEnd(int type)
 }
 
 extern char curImgLabel[256];
- 
+
+extern bool g_naviDestiny;
+
 static int RegisterFileName(const char* name, int type)
 {
 	name = curImgLabel;
+
+	// ignore default meshes if we're on viiv
+	if (g_naviDestiny || true)
+	{
+		if (!_strnicmp(name, "sectors2x2", 10))
+		{
+			return -1;
+		}
+	}
 
 	int typeIdx = type / 100;
 	int modelIdx = streamingTypes.types[typeIdx].getIndexByName(name);

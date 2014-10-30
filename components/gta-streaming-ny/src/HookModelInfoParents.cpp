@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <mutex>
 #include "Pool.h"
+#include "Entity.h"
 //#include "HookCallbacks.h"
 
 #pragma comment(lib, "d3d9.lib")
@@ -221,43 +222,18 @@ CBaseModelInfo* GetModelInfo(uint32_t nameHash, int* mIdx)
 	return it->second.get();
 }
 
-class CEntity
-{
-private:
-public:
-	char pad[40];
-	uint16_t RandomSeed; // ? // +40
-	uint16_t m_nModelIndex; // +42
-	char pad2[8]; // +44
-	void* m_pInstance; // +52
-
-	virtual ~CEntity() = 0;
-
-	virtual void m4() = 0;
-	virtual void m8() = 0;
-	virtual void mC() = 0;
-	virtual void m10() = 0;
-	virtual void m14() = 0;
-	virtual void m18() = 0;
-	virtual void m1C() = 0;
-	virtual void m20() = 0;
-	virtual void m24() = 0;
-	virtual void m28() = 0;
-	virtual void m2C() = 0;
-	virtual void m30() = 0;
-	virtual void m34() = 0;
-	virtual void m38() = 0;
-	virtual void m3C() = 0;
-	virtual void m40() = 0;
-	virtual void DestroyModel() = 0;
-};
-
 struct CEntityExt
 {
 	CBaseModelInfo* modelInfo;
+
+	float bounds[4];
+
+	float unk[7];
 };
 
 static CPoolExtensions<CEntityExt, CEntity>* g_entityExtensions;
+
+static CBaseModelInfo** g_modelInfoPtrs = (CBaseModelInfo**)0x15F73B0;
 
 static inline CPoolExtensions<CEntityExt, CEntity>* GetEntityExtensions()
 {
@@ -267,6 +243,42 @@ static inline CPoolExtensions<CEntityExt, CEntity>* GetEntityExtensions()
 	}
 
 	return g_entityExtensions;
+}
+
+float* CEntity::GetBoundsHooked(float* out)
+{
+	auto entityExt = g_entityExtensions->GetAtPointer(this);
+
+	if (g_modelInfoPtrs[m_nModelIndex])
+	{
+		((void(__thiscall*)(CEntity*, float*))0x9E7EC0)(this, out);
+
+		memcpy(entityExt->bounds, out, sizeof(float) * 4);
+
+		return out;
+	}
+
+	memcpy(out, entityExt->bounds, sizeof(float) * 4);
+
+	return out;
+}
+
+float* CEntity::GetUnkModelHooked(float* out)
+{
+	auto entityExt = g_entityExtensions->GetAtPointer(this);
+
+	if (g_modelInfoPtrs[m_nModelIndex])
+	{
+		((void(__thiscall*)(CEntity*, float*))0x9E9590)(this, out);
+
+		memcpy(entityExt->unk, out, sizeof(float) * 7);
+
+		return out;
+	}
+
+	memcpy(out, entityExt->unk, sizeof(float) * 7);
+
+	return out;
 }
 
 // TODO: allow attaching arbitrary components to entities
@@ -1285,10 +1297,17 @@ void __declspec(naked) IsModelLoadedStub()
 
 fwEvent<void*> OnRequestEntityDo;
 
-void OnRequestEntity(CEntity* entity)
+int OnRequestEntity(CEntity* entity)
 {
+	if (g_modelInfoPtrs[entity->m_nModelIndex] == nullptr)
+	{
+		return 0;
+	}
+
 	//HookCallbacks::RunCallback(StringHash("reqEnt"), entity);
 	OnRequestEntityDo(entity);
+
+	return 1;
 }
 
 void __declspec(naked) RequestEntityModelEsi()
@@ -1299,6 +1318,12 @@ void __declspec(naked) RequestEntityModelEsi()
 		call OnRequestEntity
 		pop esi
 
+		test eax, eax
+		jnz dontReturn
+
+		retn
+
+	dontReturn:
 		cmp word ptr [esi + 2Eh], 7917h
 		jl justDo
 
@@ -1495,6 +1520,16 @@ static HookFunction hookModelInfoParents([] ()
 
 	hook::put(0x98B076, LogLoadDoneStub);*/
 	// END VEHICLE TESTS
+
+	DWORD dwFunc;
+
+	__asm mov dwFunc, offset CEntity::GetBoundsHooked
+
+	hook::put(0xDA3AA4, dwFunc);
+
+	__asm mov dwFunc, offset CEntity::GetUnkModelHooked
+
+	hook::put(0xDA3AA8, dwFunc);
 
 	hook::jump(0xBCCB20, PreFullReleaseModelStub);
 

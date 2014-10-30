@@ -136,9 +136,27 @@ public:
 	}
 };
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+class grmShaderParameter
+{
+private:
+	uint8_t m_pad;
+	uint8_t m_type;
+	uint16_t m_pad2;
+	pgPtr<void> m_value;
+
+public:
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+		m_value.Resolve(blockMap);
+	}
+};
+#endif
+
 class grmShader : public pgBase
 {
 private:
+#ifdef RAGE_FORMATS_GAME_NY
 	uint8_t m_version;
 	uint8_t m_drawBucket;
 	uint8_t m_usageCount;
@@ -147,8 +165,22 @@ private:
 	uint16_t m_shaderIndex;
 	uint32_t _f10;
 	grmShaderEffect m_effect;
+#endif
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	pgPtr<grmShaderParameter> m_parameters;
+	uint32_t m_shaderHash;
+	uint8_t m_parameterCount;
+	uint8_t m_drawBucket;
+	uint16_t m_pad;
+	uint16_t m_parameterSize;
+	uint16_t m_parameterDataSize;
+	uint32_t m_spsHash;
+	uint32_t m_pad2[3];
+#endif
 
 public:
+#ifdef RAGE_FORMATS_GAME_NY
 	inline grmShader()
 	{
 		m_version = 0;
@@ -160,12 +192,10 @@ public:
 	}
 
 	inline uint8_t GetVersion() { return m_version; }
-	inline uint8_t GetDrawBucket() { return m_drawBucket; }
-	inline uint8_t GetUsageCount() { return m_usageCount; }
 	inline uint16_t GetShaderIndex() { return SwapShortRead(m_shaderIndex); }
+	inline uint8_t GetUsageCount() { return m_usageCount; }
 
 	inline void SetVersion(uint8_t version) { m_version = version; }
-	inline void SetDrawBucket(uint8_t drawBucket) { m_drawBucket = drawBucket; }
 	inline void SetUsageCount(uint8_t usageCount) { m_usageCount = SwapShortWrite(usageCount); }
 
 	inline grmShaderEffect& GetEffect() { return m_effect; }
@@ -174,6 +204,23 @@ public:
 	{
 		m_effect.Resolve(blockMap);
 	}
+#endif
+
+	inline uint8_t GetDrawBucket() { return m_drawBucket; }
+
+	inline void SetDrawBucket(uint8_t drawBucket) { m_drawBucket = drawBucket; }
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+		m_parameters.Resolve(blockMap);
+
+		for (int i = 0; i < m_parameterCount; i++)
+		{
+			(*m_parameters)[i].Resolve(blockMap);
+		}
+	}
+#endif
 };
 
 class grmShaderFx : public grmShader
@@ -274,8 +321,11 @@ public:
 		m_textures->Resolve(blockMap);
 
 		m_shaders.Resolve(blockMap);
+
+#ifdef RAGE_FORMATS_GAME_NY
 		m_vertexFormats.Resolve(blockMap);
 		m_shaderIndices.Resolve(blockMap);
+#endif
 	}
 };
 
@@ -296,19 +346,109 @@ public:
 	}
 };
 
-class grcIndexBufferD3D : public datBase
+class grcIndexBuffer : public datBase
 {
+private:
+	uint32_t m_indexCount;
+	pgPtr<uint16_t> m_indexData;
+
 public:
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
+		m_indexData.Resolve(blockMap);
 	}
 };
 
-class grcVertexBufferD3D : public datBase
+class grcIndexBufferD3D : public grcIndexBuffer
 {
+private:
+	void* m_pIIndexBuffer;
+	uint32_t m_unk[8];
+
 public:
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
+		grcIndexBuffer::Resolve(blockMap);
+	}
+};
+
+class grcVertexFormat
+{
+private:
+#ifdef RAGE_FORMATS_GAME_NY
+	uint16_t m_mask;
+	uint16_t _pad;
+	uint16_t m_vertexSize;
+	uint8_t _f6;
+	uint8_t m_vertexFieldCount;
+	uint64_t m_vertexFields;
+#endif
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	uint32_t m_mask;
+	uint16_t m_vertexSize;
+	uint16_t m_vertexFieldCount; // maybe still 2 uint8s?
+	uint64_t m_vertexFields;
+#endif
+
+public:
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+
+	}
+};
+
+class grcVertexBuffer : public datBase
+{
+private:
+#ifdef RAGE_FORMATS_GAME_NY
+	uint16_t m_vertexCount;
+	uint8_t m_locked;
+	uint8_t m_pad;
+	pgPtr<void> m_lockedData;
+	uint32_t m_vertexSize;
+	pgPtr<grcVertexFormat> m_vertexFormat;
+	uint32_t m_lockThreadId;
+	pgPtr<void> m_vertexData;
+#endif
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	uint16_t m_vertexSize;
+	uint8_t m_locked;
+	pgPtr<void> m_vertexData;
+	uint32_t m_vertexCount;
+	uint32_t m_pad[2];
+	pgPtr<grcVertexFormat> m_vertexFormat;
+	pgPtr<void> m_unkData;
+#endif
+
+public:
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+#ifdef RAGE_FORMATS_GAME_NY
+		m_lockedData.Resolve(blockMap);
+#endif
+		m_vertexData.Resolve(blockMap);
+
+		m_vertexFormat.Resolve(blockMap);
+
+		if (!m_vertexFormat.IsNull())
+		{
+			m_vertexFormat->Resolve(blockMap);
+		}
+	}
+};
+
+class grcVertexBufferD3D : public grcVertexBuffer
+{
+private:
+	void* m_pIVertexBuffer;
+	uint32_t m_unk[8];
+
+public:
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+		grcVertexBuffer::Resolve(blockMap);
 	}
 };
 
@@ -320,7 +460,18 @@ private:
 	pgPtr<grcVertexBufferD3D> m_vertexBuffers[4];
 	pgPtr<grcIndexBufferD3D> m_indexBuffers[4];
 	uint32_t m_dwIndexCount;
-	
+	uint32_t m_dwFaceCount;
+	uint16_t m_wVertexCount;
+	uint16_t m_wIndicesPerFace;
+
+	// undefined for non-NY
+	pgPtr<uint16_t> m_boneMapping;
+	uint32_t m_vertexStride;
+	uint16_t m_boneCount;
+	pgPtr<void> m_vertexDeclarationInstance;
+	pgPtr<void> m_vertexBufferInstance;
+	uint32_t m_useGlobalStreamIndex;
+
 public:
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
@@ -340,15 +491,34 @@ public:
 				m_indexBuffers[i]->Resolve(blockMap);
 			}
 		}
+
+#ifdef RAGE_FORMATS_GAME_NY
+		m_boneMapping.Resolve(blockMap);
+#endif
 	}
 };
+
+#if defined(RAGE_FORMATS_GAME_FIVE)
+struct GeometryBound
+{
+	Vector4 aabbMin;
+	Vector4 aabbMax;
+};
+#endif
 
 class grmModel : public datBase
 {
 private:
 	pgObjectArray<grmGeometryQB> m_geometries;
+
+#if defined(RAGE_FORMATS_GAME_NY)
 	pgPtr<Vector4> m_geometryBounds;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+	pgPtr<GeometryBound> m_geometryBounds;
+#endif
 	pgPtr<uint16_t> m_shaderMappings;
+
+	// undefined for non-NY so far
 	uint8_t m_boneCount;
 	uint8_t m_skinned;
 	uint8_t m_pad;
@@ -380,21 +550,30 @@ class grmLodGroup
 {
 private:
 	Vector3 m_center;
-	Vector3 m_boundsMax;
 	Vector3 m_boundsMin;
+	Vector3 m_boundsMax;
 	pgPtr<pgObjectArray<grmModel>> m_models[4];
+
+#ifdef RAGE_FORMATS_GAME_NY
 	float m_9999[4];
-	int m_drawBucketMask[4];
+#endif
+#ifdef RAGE_FORMATS_GAME_FIVE
+	Vector4 m_maxPoint;
+#endif
+
+	int m_drawBucketMask[4]; // does this apply to five?
 	float m_radius;
 	float m_zeroes[3];
 
 public:
 	inline grmLodGroup()
 	{
+#ifdef RAGE_FORMATS_GAME_NY
 		m_9999[0] = 9999.f;
 		m_9999[1] = 9999.f;
 		m_9999[2] = 9999.f;
 		m_9999[3] = 9999.f;
+#endif
 
 		m_drawBucketMask[0] = -1;
 		m_drawBucketMask[1] = -1;

@@ -7,6 +7,7 @@
 #include <mmsystem.h>
 #include "CrossLibraryInterfaces.h"
 #include "StreamingTypes.h"
+#include "IdeStore.h"
 
 static bool _wbnMode;
 
@@ -65,11 +66,14 @@ private:
 	//std::unordered_map<uint32_t, std::shared_ptr<CitizenStreamingFile>> m_streamingFiles;
 	std::shared_ptr<CitizenStreamingFile> m_streamingFiles[65536];
 	std::shared_ptr<CitizenStreamingFile> m_streamingBounds[65536];
+	std::shared_ptr<CitizenStreamingFile> m_streamingIdes[2048];
 
 public:
 	virtual void ScanEntries();
 
 	virtual StreamingFile* GetEntryFromIndex(uint32_t handle);
+
+	void CreateStreamingFile(int index, const StreamingResource& entry);
 };
 
 void CitizenStreamingFile::Open()
@@ -266,6 +270,11 @@ void CitizenStreamingFile::Close()
 	m_device->closeBulk(m_handle);
 }
 
+void CitizenStreamingModule::CreateStreamingFile(int index, const StreamingResource& entry)
+{
+	m_streamingFiles[index] = std::make_shared<CitizenStreamingFile>(const_cast<StreamingResource&>(entry));
+}
+
 void CitizenStreamingModule::ScanEntries()
 {
 	for (int i = 0; i < _countof(m_streamingFiles); i++)
@@ -276,6 +285,8 @@ void CitizenStreamingModule::ScanEntries()
 
 	auto& entries = TheDownloads.GetStreamingFiles();
 	auto imgManager = CImgManager::GetInstance();
+
+	CIdeStore::ResetStreamList();
 
 	uint32_t startIndex = 0;
 
@@ -290,6 +301,25 @@ void CitizenStreamingModule::ScanEntries()
 				m_streamingBounds[boundIndex] = std::make_shared<CitizenStreamingFile>(entry);
 				continue;
 			}
+		}
+
+		if (entry.filename.substr(entry.filename.length() - 3) == "zdr") // streaming drawable
+		{
+			CIdeStore::RegisterDrawable(entry);
+
+			continue;
+		}
+
+		if (entry.filename.substr(entry.filename.length() - 3) == "ide")
+		{
+			int boundIndex = CIdeStore::RegisterIde(entry.filename.c_str(), entry.size);
+
+			if (boundIndex >= 0)
+			{
+				m_streamingIdes[boundIndex] = std::make_shared<CitizenStreamingFile>(entry);
+			}
+
+			continue;
 		}
 
 		startIndex = imgManager->registerIMGFile(entry.filename.c_str(), 0, entry.size, 0xFE, startIndex, entry.rscVersion);
@@ -314,6 +344,10 @@ StreamingFile* CitizenStreamingModule::GetEntryFromIndex(uint32_t handle)
 	{
 		file = m_streamingBounds[handle & ~0x80000000].get();
 	}
+	else if (handle & 0x40000000)
+	{
+		file = m_streamingIdes[handle & ~0x40000000].get();
+	}
 	else
 	{
 		file = m_streamingFiles[handle].get();
@@ -324,13 +358,18 @@ StreamingFile* CitizenStreamingModule::GetEntryFromIndex(uint32_t handle)
 
 static CitizenStreamingModule streamingModule;
 
+void CSM_CreateStreamingFile(int index, const StreamingResource& entry)
+{
+	streamingModule.CreateStreamingFile(index, entry);
+}
+
 extern fwEvent<void*> OnRequestEntityDo;
 
 static InitFunction initFunction([] ()
 {
 	httpClient = new HttpClient();
 
-	OnRequestEntityDo.Connect([] (void* entityPtr)
+	/*OnRequestEntityDo.Connect([] (void* entityPtr)
 	{
 		auto modelIndex = *(uint16_t*)((char*)entityPtr + 46);
 
@@ -362,7 +401,7 @@ static InitFunction initFunction([] ()
 		}
 
 		file->PreCache();
-	});
+	});*/
 
 	CStreaming::SetStreamingModule(&streamingModule);
 });

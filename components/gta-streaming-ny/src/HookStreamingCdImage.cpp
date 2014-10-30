@@ -36,8 +36,12 @@ void __declspec(naked) PreLoadImgArchives1Stub()
 {
 	__asm
 	{
+		cmp dword ptr ds:[0121E070h], 0FFFFFFFFh
+		jne justGoOn
+
 		call PreLoadImgArchives
-		
+
+	justGoOn:
 		push 897BD0h
 		retn
 	}
@@ -60,6 +64,8 @@ static openBulk_t origOpenBulk;
 typedef uint32_t(__thiscall* readBulk_t)(void* this_, uint32_t handle, uint64_t ptr, void* buffer, uint32_t toRead);
 static readBulk_t origReadBulk;
 
+#include "StreamingTypes.h"
+
 class fiStreamingDevice : public rage::fiDevice
 {
 public:
@@ -67,8 +73,13 @@ public:
 	{
 		uint32_t handle = _atoi64(&fileName[8]);
 
-		if (handle < INT32_MAX)
+		if (handle < (INT32_MAX / 2))
 		{
+			/*if (handle == (1056 + streamingTypes.types[*(int*)0x15F73A0].startIndex))
+			{
+				__asm int 3
+			}*/
+
 			if (CImgManager::GetInstance()->fileDatas[handle].imgIndex != 0xFE)
 			{
 				return origOpenBulk(this, fileName, ptr);

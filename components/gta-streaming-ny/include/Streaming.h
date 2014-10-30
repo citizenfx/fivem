@@ -58,6 +58,13 @@ struct StreamRequestPage
 	int pad;
 };
 
+struct StreamRequestPage2
+{
+	int pad;
+	void* buffer;
+	uint32_t length;
+};
+
 struct StreamRequest
 {
 	int itemIdx;
@@ -93,7 +100,8 @@ struct StreamThread_GtaLocal
 {
 	StreamRequest requests[16];
 	CRITICAL_SECTION counterLock; // 24896
-	char pad[12]; // 24920
+	char pad[8]; // 24920
+	uint32_t inRequestNum;
 	int requestNum; // 24932
 	int pendingRequests; // 24936
 	HANDLE hSemaphore;
@@ -179,8 +187,12 @@ public:
 	void RemoveRequest(StreamRequestExt* request);
 
 	void TriggerNextIO(StreamRequestExt* request);
+
+	void QueueNativeRequest(StreamRequest& request);
 };
 #endif
+
+StreamThread* GetStreamThread(int id);
 
 void StreamWorker_Thread(int threadNum);
 LPOVERLAPPED StreamWorker_GetOverlapped(int streamThreadNum);
@@ -218,3 +230,7 @@ public:
 
 	static void SetStreamingModule(StreamingModule* module);
 };
+
+#include "ResourceCache.h"
+
+void CSM_CreateStreamingFile(int index, const StreamingResource& entry);

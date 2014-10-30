@@ -6,6 +6,7 @@ static HookFunction hookFunction([] ()
 {
 	// don't load P_e2_landing_marker in case of EP2 (as we are EP2 but don't have EP2 files)
 	hook::put<uint8_t>(0x854C9B, 0xEB);
+	hook::put<uint8_t>(0x854CD8, 0xEB);
 	hook::put<uint8_t>(0x854D3D, 0xEB);
 
 	// don't do the stars and sparkles on loading text

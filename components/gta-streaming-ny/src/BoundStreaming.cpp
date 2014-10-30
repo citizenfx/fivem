@@ -2,6 +2,7 @@
 #include "BoundStreaming.h"
 #include "Streaming.h"
 #include "Pool.h"
+#include "IdeStore.h"
 
 struct BlockMap
 {
@@ -90,7 +91,7 @@ struct ColRequest
 };
 
 static unsigned int g_ongoingRequests;
-static ColRequest g_requests[10];
+static ColRequest g_requests[6];
 
 ColRequest* AllocateColRequest()
 {
@@ -107,6 +108,8 @@ ColRequest* AllocateColRequest()
 
 void BoundStreaming::Process()
 {
+	CIdeStore::Process();
+
 	for (int i = 0; i < _countof(g_requests); i++)
 	{
 		if (g_requests[i].id)
@@ -260,6 +263,8 @@ void __stdcall BoundStreaming::LoadAllObjectsTail(int)
 
 		Process();
 	}
+
+	CIdeStore::LoadAllRequestedArchetypes();
 }
 
 void BoundStreaming::ReleaseCollision(int id)

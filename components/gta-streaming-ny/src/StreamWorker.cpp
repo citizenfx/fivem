@@ -208,6 +208,32 @@ void StreamingItem::completeRequest()
 	InterlockedDecrement((LONG*)0x184A25C); // stream wait counter
 }
 
+void StreamThread::QueueNativeRequest(StreamRequest& request)
+{
+	if (m_local->counterLock.DebugInfo)
+	{
+		EnterCriticalSection(&m_local->counterLock);
+	}
+
+	m_local->pendingRequests++;
+
+	InterlockedIncrement(&m_local->inRequestNum);
+
+	if (m_local->inRequestNum == 16)
+	{
+		m_local->inRequestNum = 0;
+	}
+
+	m_local->requests[m_local->inRequestNum] = request;
+
+	ReleaseSemaphore(m_local->hSemaphore, 1, nullptr);
+
+	if (m_local->counterLock.DebugInfo)
+	{
+		LeaveCriticalSection(&m_local->counterLock);
+	}
+}
+
 StreamEvent* StreamThread::WaitIdly()
 {
 	// global sema
@@ -315,6 +341,11 @@ z_stream* StreamThread::GetStream()
 
 static StreamThread_GtaLocal* streamLocal = (StreamThread_GtaLocal*)0x198F6C8;
 static StreamThread modLocal[2];
+
+StreamThread* GetStreamThread(int id)
+{
+	return &modLocal[id];
+}
 
 LPOVERLAPPED StreamWorker_GetOverlapped(int streamThreadNum)
 {
