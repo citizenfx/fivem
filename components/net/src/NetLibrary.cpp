@@ -479,8 +479,6 @@ void NetLibrary::RunFrame()
 				NPID npID;
 				NP_GetNPID(&npID);
 
-				npID = 0x110000100000002;
-
 				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID);
 
 				m_lastConnect = GetTickCount();
@@ -558,8 +556,6 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	NPID npID;
 	NP_GetNPID(&npID);
-
-	npID = 0x110000100000002;
 
 	postMap["guid"] = va("%lld", npID);
 	//postMap["guid"] = va("%lld", 0LL);
@@ -746,7 +742,6 @@ void NetLibrary::SendOutOfBand(NetAddress& address, const char* format, ...)
 
 const char* NetLibrary::GetPlayerName()
 {
-	return "hi";
 	return Auth_GetUsername();
 }
 
