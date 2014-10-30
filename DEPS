@@ -18,12 +18,7 @@ hooks = [
 	{
 		"name": "premake_premake_win",
 		"pattern": "build/premake/",
-		"action": [ "build\premake5.exe", "--file=build/premake/premake5.lua", "--to=project", "vs2013" ]
-	},
-	{
-		"name": "premake_premake_win",
-		"pattern": "build/premake/",
-		"action": [ "build\premake5.exe", "--file=build/premake/premake5.lua", "embed" ]
+		"action": [ "citizenmp\prebuild_premake.cmd" ]
 	},
 	{
 		"name": "build_premake_win",
