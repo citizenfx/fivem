@@ -49,6 +49,11 @@ namespace CitizenFX.Core
             }
         }
 
+        public bool HasBeenCollectedByPlayer(Player p)
+        {
+            return Function.Call<bool>(Natives.HAS_PLAYER_COLLECTED_PICKUP, p.ID, m_handle);
+        }
+
         public Room CurrentRoom
         {
             get
@@ -148,7 +153,7 @@ namespace CitizenFX.Core
             return ObjectCache<Pickup>.Get((int)res);
         }
 
-        public static async Task<Pickup> CreateWeaponPickup(Vector3 position, Weapon weapon, int ammo, Vector3 rotation)
+        public static async Task<Pickup> CreateWeaponPickup(Vector3 position, Weapons weapon, int ammo, Vector3 rotation)
         {
             Model model = Model.GetWeaponModel(weapon);
 
@@ -165,7 +170,7 @@ namespace CitizenFX.Core
             return ObjectCache<Pickup>.Get((int)res);
         }
 
-        public static async Task<Pickup> CreateWeaponPickup(Vector3 position, Weapon weapon, int ammo)
+        public static async Task<Pickup> CreateWeaponPickup(Vector3 position, Weapons weapon, int ammo)
         {
             Model model = Model.GetWeaponModel(weapon);
 

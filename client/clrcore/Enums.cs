@@ -141,7 +141,7 @@
     #endregion
 
     #region Weapon
-    public enum Weapon
+    public enum Weapons
     {
         None = -1,
         Unarmed = 0,
@@ -335,7 +335,7 @@
 		Trunk,
 	}
 
-    public enum DoorLock
+    public enum VehicleDoorLock
     {
         None = 0,
         CanOpenFromInside = 3,

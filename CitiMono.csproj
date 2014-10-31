@@ -77,6 +77,7 @@
     <Compile Include="client\clrcore\GameClasses\Vehicle.cs" />
     <Compile Include="client\clrcore\GameClasses\VehicleDoor.cs" />
     <Compile Include="client\clrcore\GameClasses\VehicleExtra.cs" />
+    <Compile Include="client\clrcore\GameClasses\Weapon.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
     <Compile Include="client\clrcore\Math\MathUtil.cs" />
     <Compile Include="client\clrcore\Math\Matrix.cs" />

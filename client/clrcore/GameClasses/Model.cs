@@ -75,7 +75,7 @@ namespace CitizenFX.Core
                 if (m_hash == 0) return false;
                 try
                 {
-                    return Function.Call<bool>(Natives.HAS_MODEL_LOADED, m_hash);
+                    return Function.Call<bool>(Natives.IS_MODEL_IN_CDIMAGE, m_hash);
                 }
                 catch (Exception)
                 {
@@ -291,7 +291,7 @@ namespace CitizenFX.Core
             }
         }
 
-        public static Model GetWeaponModel(Weapon wep)
+        public static Model GetWeaponModel(Weapons wep)
         {
             Pointer model = typeof(int);
             Function.Call(Natives.GET_WEAPONTYPE_MODEL, (int)wep, model);

@@ -270,14 +270,14 @@ namespace CitizenFX.Core
             }
         }
 
-        public DoorLock DoorLock
+        public VehicleDoorLock DoorLock
         {
             get
             {
                 Pointer statusPtr = typeof(int);
                 Function.Call(Natives.GET_CAR_DOOR_LOCK_STATUS, m_handle, statusPtr);
 
-                return (DoorLock)(int)statusPtr;
+                return (VehicleDoorLock)(int)statusPtr;
             }
             set
             {
