@@ -78,6 +78,8 @@ public:
 
 	inline bool IsRequired() { return m_required; }
 
+	inline bool IsLoaded() { return m_loaded; }
+
 	inline void SetRequired(bool value) { m_required = value; }
 
 	inline int GetStreamItemIdx() { return m_streamItemIdx; }
@@ -217,5 +219,15 @@ public:
 		}
 
 		m_offset[offset] = value;
+	}
+
+	void Remove(int index)
+	{
+		for (int i = index; i < (m_count - 1); i++)
+		{
+			m_offset[i] = m_offset[i + 1];
+		}
+
+		m_count--;
 	}
 };

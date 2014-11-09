@@ -198,6 +198,42 @@ static void __declspec(naked) SectorCBCheckEntity()
 	}
 }
 
+/*static void EntityAddToSimulationTest(char* entity)
+{
+	auto mi = g_modelInfoPtrs[*(uint16_t*)(entity + 46)];
+
+	if (*(uint32_t*)((char*)mi + 60) != 913119442)
+	{
+		//__asm int 3
+	}
+}
+
+static void __declspec(naked) EntityAddToSimulationProxy()
+{
+	__asm
+	{
+		push ecx
+		push ecx
+		call EntityAddToSimulationTest
+		add esp, 4h
+		pop ecx
+
+//		push 9E8710h
+		retn
+	}
+}*/
+
+static void __declspec(naked) CreatePhysicsInstanceForMloInst()
+{
+	__asm
+	{
+//		int 3
+
+		push 9EAB70h
+		retn
+	}
+}
+
 static RuntimeHookFunction esrhf("entity_sanity", [] ()
 {
 	//hook::jump(0x9E9E10, EntityAddStub);
@@ -220,4 +256,22 @@ static RuntimeHookFunction esrhf("entity_sanity", [] ()
 
 	// mhm
 	hook::return_function(0x818110);
+
+	//hook::put(0xD88E5C, CreatePhysicsInstanceForMloInst);
+
+	// physics changes to try to get #bd instances to accept phBoundComposite like #bn do
+	/*hook::put(0x98F0BF, 2); // phArchetype type?
+	hook::put<uint8_t>(0x9EAC19, 5); // phInstGta type
+
+	// jump over some centity::something-update-physics-matrix func that gets invoked on phLevel
+	hook::put<uint8_t>(0x9EACDD, 0xEB);
+
+	// nop out some function that gets called on the physics archetype
+	hook::nop(0x98F0DA, 5);
+	hook::put(0x98F0DA, 0x9004C483);
+
+	// and another one nearby
+	hook::put<uint8_t>(0x98EEF9, 0xEB);*/
+
+	//hook::put(0xD88E60, EntityAddToSimulationProxy);
 });

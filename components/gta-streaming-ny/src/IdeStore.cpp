@@ -220,7 +220,22 @@ void CIdeStore::LoadAllRequestedArchetypes()
 
 bool CIdeStore::CanWeEvenLoadAnyIpls()
 {
-	return (g_openRequests.size() == 0);
+	if (g_openRequests.size() == 0)
+	{
+		for (auto item : ms_registeredIdes)
+		{
+			if (!item) continue;
+
+			if (item->IsRequired() && !item->IsLoaded())
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 static void DoIplStoreAndIdeStoreInitHook()
@@ -320,6 +335,8 @@ static HookFunction hookFunction([] ()
 	hook::jump(0xB26FA0, LoadSceneBitsHook);
 
 	hook::call(0xB27207, LoadIplIfWeCan);
+	hook::call(0xB25BE5, LoadIplIfWeCan);
+	hook::call(0xB26388, LoadIplIfWeCan);
 });
 
 CQuadTreeNode* CIdeStore::ms_pQuadTree;

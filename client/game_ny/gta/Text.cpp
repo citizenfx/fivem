@@ -7,7 +7,7 @@ static std::unordered_map<std::string, wchar_t*> g_customTexts;
 
 const wchar_t* CText::GetCustom(const char* key)
 {
-	if (!_stricmp(key, "string") || !_stricmp(key, "string_pc"))
+	if (!_stricmp(key, "string") || !_stricmp(key, "string_pc") || !_stricmp(key, "number"))
 	{
 		return nullptr;
 	}

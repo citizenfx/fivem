@@ -27,11 +27,11 @@ public:
 class gtaDrawable : public rmcDrawable
 {
 private:
-	pgArray<CLightAttr> m_lightAttrs;
-
 #ifdef RAGE_FORMATS_GAME_FIVE
 	pgPtr<const char> m_name;
 #endif
+
+	pgArray<CLightAttr> m_lightAttrs;
 
 public:
 	inline void Resolve(BlockMap* blockMap = nullptr)

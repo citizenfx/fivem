@@ -30,10 +30,10 @@ static void TailUnloadLoadScreens()
 
 static HookFunction hookFunction([] ()
 {
-	/*
 	// wrapper for frame event
 	hook::jump(0x422360, LoadingScreenFrameWrapper);
 
+/*
 	// next frame stuff
 	hook::nop(0x422B5F, 8);
 	hook::call(0x422B5F, AfterFrameChangeHook);

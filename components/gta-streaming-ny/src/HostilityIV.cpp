@@ -1,5 +1,28 @@
 #include "StdInc.h"
 #include "Hooking.h"
+#include <BaseResourceScripting.h>
+
+static int __stdcall ConvertPathAxis(float x)
+{
+	int v = ((x + 8192.0f) / 2048);
+
+	if (v < 0)
+	{
+		return 0;
+	}
+
+	if (v > 7)
+	{
+		v = 7;
+	}
+
+	return v;
+}
+
+static float __stdcall ConvertBackPathAxis(int x)
+{
+	return (x * 2048.0) - 8192.0;
+}
 
 static HookFunction hookFunction([] ()
 {
@@ -176,4 +199,73 @@ static HookFunction hookFunction([] ()
 
 	// boundsstore subnodes
 	//hook::put<uint8_t>(0xC0A6AB, 4);
+
+	// physicsstore
+	hook::put(0x9704EB, &minCoord);
+	hook::put(0x970505, &maxCoord);
+
+	// paths
+	OnSetWorldAssetConfig.Connect([] (fwString name, bool value)
+	{
+		if (name == "bigger_paths")
+		{
+			static float floatStart = 1.0 / 4.0; // 0.25
+			static float floatZ = 1.0 / 32.0;
+
+			auto quickPatch = [=] (uintptr_t funcStart, uintptr_t funcEnd)
+			{
+				for (char* ptr = (char*)funcStart; ptr <= (char*)funcEnd; ptr++)
+				{
+					if (!memcmp(ptr, "\xD8\xFD\xDA\x00", 4) && (*(uint8_t*)(ptr - 1) != 0xE8) && (*(uint8_t*)(ptr - 1) != 0xE9))
+					{
+						hook::put((uintptr_t)ptr, &floatStart);
+					}
+					else if (!memcmp(ptr, "\x38\xE0\xEB\x00", 4) && (*(uint8_t*)(ptr - 1) != 0xE8) && (*(uint8_t*)(ptr - 1) != 0xE9))
+					{
+						hook::put((uintptr_t)ptr, &floatZ);
+					}
+				}
+			};
+
+			// start off with most of CPathFind
+			quickPatch(0xA01021, 0xA27EA2);
+
+			quickPatch(0x438820, 0x438860);
+			quickPatch(0x43969B, 0x4396AB);
+			quickPatch(0x445057, 0x445067);
+			quickPatch(0x44A113, 0x456DBF);
+
+			quickPatch(0x8193D9, 0x84E686);
+			quickPatch(0x88CA63, 0x8A46A2);
+
+			quickPatch(0x909E17, 0x90A5CF);
+
+			quickPatch(0x9BA6AC, 0x9BA6BC);
+
+			quickPatch(0xA8712E, 0xA87E78);
+
+			quickPatch(0xAA4FE3, 0xAA4FF3);
+
+			quickPatch(0xB6903B, 0xB6A004);
+
+			quickPatch(0xBEB953, 0xBF0D90);
+
+			quickPatch(0xBF354C, 0xBF38F3);
+
+			quickPatch(0xBF9A4D, 0xC406FC);
+
+			// more patching
+			static float pathSectorSize = 2048.0f;
+
+			hook::put(0x83CB8E, &pathSectorSize);
+			hook::put(0x83CBBC, &pathSectorSize);
+			hook::put(0xA03A33, &pathSectorSize);
+			hook::put(0xA06F07, &pathSectorSize);
+
+			// mmm
+			hook::jump(0xA019C0, ConvertPathAxis);
+
+			hook::jump(0xA01A00, ConvertBackPathAxis);
+		}
+	});
 });

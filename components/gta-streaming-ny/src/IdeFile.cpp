@@ -166,11 +166,18 @@ void* AllocateModelInfo(const char* name)
 	bool found = false;
 	int i;
 
+	uint32_t nameHash = NatHash(name);
+
+	if (nameHash == 0x338F6062)
+	{
+		printf("");
+	}
+
 	for (i = 0; i < dataStore.size; i++)
 	{
 		CBaseModelInfo* modelInfo = (CBaseModelInfo*)((char*)dataStore.data + (elemSize * i));
 
-		if (modelInfo->m_modelHash == -2)
+		if (modelInfo->m_modelHash == nameHash || modelInfo->m_modelHash == -2)
 		{
 			found = true;
 			break;
@@ -186,14 +193,28 @@ void* AllocateModelInfo(const char* name)
 	CBaseModelInfo* thisInfo = (CBaseModelInfo*)((char*)dataStore.data + (elemSize * i));
 
 	thisInfo->Initialize();
-	thisInfo->m_modelHash = NatHash(name);
+	thisInfo->m_modelHash = nameHash;
 
 	// find a free idx
+	found = false;
+
 	for (i = 0; i < 31000; i++)
 	{
-		if (g_modelInfoPtrs[i] == nullptr)
+		if (g_modelInfoPtrs[i] == thisInfo)
 		{
+			found = true;
 			break;
+		}
+	}
+
+	if (!found)
+	{
+		for (i = 0; i < 31000; i++)
+		{
+			if (g_modelInfoPtrs[i] == nullptr)
+			{
+				break;
+			}
 		}
 	}
 
@@ -212,9 +233,12 @@ void* AllocateModelInfo(const char* name)
 	g_modelInfoPtrs[i] = thisInfo;
 
 	// officially, model idx count; however for us 'fun'
-	*(uint32_t*)0x15F73A4 = i + 1;
+	if (*(uint32_t*)0x15F73A4 <= i)
+	{
+		*(uint32_t*)0x15F73A4 = i + 1;
+	}
 
-	// set some bool
+	// set some bool ('is model-to-hash array sorted')
 	hook::put<uint8_t>(0xF2C23C, 0);
 
 	// model hash to info mapping
@@ -262,6 +286,9 @@ void IdeFile::DoLoad()
 
 	// load the scene?
 	LoadObjects(va("memory:$%p,%d,%d:%s", m_textBuffer, m_size, 0, 0));
+
+	// sort the model-to-hash array
+	((void(*)())0x98AB90)();
 
 	auto imgManager = CImgManager::GetInstance();
 
@@ -326,6 +353,8 @@ static CStreamingStuff& stuff = *(CStreamingStuff*)0xF21C60;
 
 static void ReleaseModelInfo(int modelIdx)
 {
+	uint32_t modelHash = g_modelInfoPtrs[modelIdx]->m_modelHash;
+
 	g_modelInfoPtrs[modelIdx]->Release();
 	g_modelInfoPtrs[modelIdx]->m_modelHash = -2;
 
@@ -337,6 +366,19 @@ static void ReleaseModelInfo(int modelIdx)
 	stuff.items[streamIdx].flags &= ~3;
 
 	stuff.items[streamIdx].RemoveFromList();
+
+	for (int i = 0; i < g_modelInfosToHash.GetCount(); i++)
+	{
+		auto& entry = g_modelInfosToHash.Get(i);
+
+		if (entry.hash == modelHash)
+		{
+			//entry.hash = 0;
+			//break;
+			g_modelInfosToHash.Remove(i);
+			break;
+		}
+	}
 
 	// remove any buildings
 	/*auto pool = CPools::GetBuildingPool();
