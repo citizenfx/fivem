@@ -95,7 +95,7 @@ solution "CitizenMP"
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/rage-nutsnbolts-ny/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/src/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/rage-nutsnbolts-ny/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/include/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
@@ -232,7 +232,7 @@ solution "CitizenMP"
 		language "C++"
 		kind "StaticLib"
 
-		includedirs { "../vendor/msgpack-c/src", "../vendor/msgpack-c/src/msgpack", "deplibs/include/msgpack-c/" }
+		includedirs { "../vendor/msgpack-c/src", "../vendor/msgpack-c/include/", "deplibs/include/msgpack-c/" }
 
 		files
 		{
