@@ -9,6 +9,8 @@ public:
 	uint16_t m_nModelIndex; // +42
 	char pad2[8]; // +44
 	void* m_pInstance; // +52
+	char pad3[16]; // +56
+	CEntity* m_pLod; // +76
 
 	virtual ~CEntity() = 0;
 

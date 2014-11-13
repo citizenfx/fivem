@@ -32,6 +32,18 @@ void PreLoadImgArchives()
 	CStreaming::ScanImgEntries();
 }
 
+static void __stdcall CreateFakeEntriesOnLoad(int, int)
+{
+	int numModelIndices = *(int*)0x15F73A4;
+
+	for (int i = numModelIndices; i < 27500; i++)
+	{
+		int dummyIndex = CImgManager::GetInstance()->registerIMGFile("hash:4294967294.wdr", 1, 0, 0xFE, 65535, 110);
+
+		trace("registered fake dummy at %d\n", dummyIndex);
+	}
+}
+
 void __declspec(naked) PreLoadImgArchives1Stub()
 {
 	__asm
@@ -132,4 +144,6 @@ static HookFunction hookFunction([] ()
 
 	__asm mov funcPtr, offset fiStreamingDevice::closeBulkImpl
 	hook::put(0xD689B8, funcPtr);
+
+	hook::put(0xD68A20, CreateFakeEntriesOnLoad);
 });

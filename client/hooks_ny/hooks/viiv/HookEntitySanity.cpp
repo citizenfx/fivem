@@ -4,6 +4,8 @@ static void** g_modelInfoPtrs = (void**)0x15F73B0;
 
 int IsEntityNotNull(char* entity)
 {
+	auto mip = g_modelInfoPtrs[*(uint16_t*)(entity + 46)];
+
 	if (*(uint16_t*)(entity + 46) != 0xFFFF)
 	{
 		if (g_modelInfoPtrs[*(uint16_t*)(entity + 46)] == nullptr)
@@ -25,15 +27,15 @@ void __declspec(naked) EntityCheck2Hook()
 		cmp [esi + 3Ch], eax
 		jz dont
 
-		cmp dword ptr [esi], 0D83BACh
-		je dont
-
 		push esi
 		call IsEntityNotNull
 		add esp, 4h
 
 		test eax, eax
 		jz dont
+
+		cmp dword ptr[esi], 0D83BACh
+		je dont
 
 		cmp word ptr [esi + 2Eh], 0FFFFh
 		je dont
@@ -54,15 +56,15 @@ void __declspec(naked) EntityCheck3Hook()
 		cmp ax, 0FFFFh
 		je dont
 
-		cmp dword ptr [edi], 0D83BACh
-		je dont
-
 		push edi
 		call IsEntityNotNull
 		add esp, 4h
 
 		test eax, eax
 		jz dont
+
+		cmp dword ptr [edi], 0D83BACh
+		je dont
 
 		cmp word ptr [edi + 52h], 0FFFFh
 		retn
@@ -234,6 +236,32 @@ static void __declspec(naked) CreatePhysicsInstanceForMloInst()
 	}
 }
 
+static void* CheckAndRetnModelInfoForCleanup(int mi)
+{
+	if (g_modelInfoPtrs[mi])
+	{
+		return g_modelInfoPtrs[mi];
+	}
+
+	static int fake[72 / 4] = { 0 };
+	fake[68 / 4] = 1;
+
+	return fake;
+}
+
+static void __declspec(naked) CheckEntityStreamCleanup()
+{
+	__asm
+	{
+		push eax
+		call CheckAndRetnModelInfoForCleanup
+		add esp, 4
+
+		cmp dword ptr [eax + 44h], 0
+		retn
+	}
+}
+
 static RuntimeHookFunction esrhf("entity_sanity", [] ()
 {
 	//hook::jump(0x9E9E10, EntityAddStub);
@@ -253,6 +281,11 @@ static RuntimeHookFunction esrhf("entity_sanity", [] ()
 	// skip bad entities in sector scans
 	hook::nop(0x81825D, 8);
 	hook::call(0x81825D, SectorCBCheckEntity);
+
+	// meh
+	// overwrites another hook, so bad idea
+	//hook::nop(0xAC1CFE, 11);
+	//hook::call(0xAC1CFE, CheckEntityStreamCleanup);
 
 	// mhm
 	hook::return_function(0x818110);

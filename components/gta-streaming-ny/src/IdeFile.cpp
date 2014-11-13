@@ -157,7 +157,7 @@ static uint32_t WRAPPER NatHash(const char* str) { EAXJMP(0x7BDBF0); }
 
 static IdeFile* g_curIdeFile;
 
-template<CDataStore* dataStorePtr, int elemSize>
+template<CDataStore* dataStorePtr, int elemSize, bool registerHash>
 void* AllocateModelInfo(const char* name)
 {
 	CDataStore& dataStore = *dataStorePtr;
@@ -168,19 +168,34 @@ void* AllocateModelInfo(const char* name)
 
 	uint32_t nameHash = NatHash(name);
 
-	if (nameHash == 0x338F6062)
+	// -2 is intended for 'fake entries'
+	if (nameHash != -2)
 	{
-		printf("");
-	}
-
-	for (i = 0; i < dataStore.size; i++)
-	{
-		CBaseModelInfo* modelInfo = (CBaseModelInfo*)((char*)dataStore.data + (elemSize * i));
-
-		if (modelInfo->m_modelHash == nameHash || modelInfo->m_modelHash == -2)
+		for (int j = 0; j < 30999; j++)
 		{
-			found = true;
-			break;
+			auto mi = g_modelInfoPtrs[j];
+
+			if (mi && mi->m_modelHash == -2 && elemSize == 96)
+			{
+				i = ((char*)mi - (char*)dataStore.data) / elemSize;
+
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			for (i = 0; i < dataStore.size; i++)
+			{
+				CBaseModelInfo* modelInfo = (CBaseModelInfo*)((char*)dataStore.data + (elemSize * i));
+
+				if (modelInfo->m_modelHash == nameHash || modelInfo->m_modelHash == -2)
+				{
+					found = true;
+					break;
+				}
+			}
 		}
 	}
 
@@ -189,10 +204,15 @@ void* AllocateModelInfo(const char* name)
 		i = dataStore.allocated++;
 	}
 
+	int origFound = found;
+
 	// get the ptr to this modelinfo
 	CBaseModelInfo* thisInfo = (CBaseModelInfo*)((char*)dataStore.data + (elemSize * i));
 
 	thisInfo->Initialize();
+
+	uint32_t origHash = thisInfo->m_modelHash;
+
 	thisInfo->m_modelHash = nameHash;
 
 	// find a free idx
@@ -228,6 +248,11 @@ void* AllocateModelInfo(const char* name)
 		g_curIdeFile->AddModelIndex(i);
 	}
 
+	if (i == 27500 && elemSize != 112)
+	{
+		__asm int 3
+	}
+
 	// set the idx
 	int idx = i;
 	g_modelInfoPtrs[i] = thisInfo;
@@ -236,6 +261,11 @@ void* AllocateModelInfo(const char* name)
 	if (*(uint32_t*)0x15F73A4 <= i)
 	{
 		*(uint32_t*)0x15F73A4 = i + 1;
+	}
+
+	if (!registerHash || nameHash == -2)
+	{
+		return thisInfo;
 	}
 
 	// set some bool ('is model-to-hash array sorted')
@@ -266,6 +296,33 @@ void* AllocateModelInfo(const char* name)
 }
 
 void WRAPPER LoadObjects(const char* fileName) { EAXJMP(0x8D67E0); }
+
+struct CStreamingInfo
+{
+	char pad[8];
+	uint8_t flags;
+	char pad2[3];
+	uint16_t owners;
+	uint16_t pad3;
+	char pad4[8];
+
+	void RemoveFromList();
+
+	void Initialize();
+};
+
+void WRAPPER CStreamingInfo::RemoveFromList() { EAXJMP(0xBCBB70); }
+
+void WRAPPER CStreamingInfo::Initialize() { EAXJMP(0xBCB9C0); }
+
+struct CStreamingStuff
+{
+	CStreamingInfo* items;
+};
+
+#include "StreamingTypes.h"
+
+static CStreamingStuff& stuff = *(CStreamingStuff*)0xF21C60;
 
 void IdeFile::DoLoad()
 {
@@ -311,6 +368,7 @@ void IdeFile::DoLoad()
 		StringCbCopyA(fileName, sizeof(fileName), ideEntry.filename.c_str());
 		fileName[strlen(fileName) - 3] = 'w'; // wdr instead of zdr
 
+		// register the streaming info
 		startIndex = imgManager->registerIMGFile(fileName, 0, ideEntry.size, 0xFE, 65535, ideEntry.rscVersion);
 
 		imgManager->fileDatas[startIndex].realSize = ideEntry.rscFlags;
@@ -323,37 +381,31 @@ void IdeFile::DoLoad()
 		CSM_CreateStreamingFile(startIndex, ideEntry);
 	}
 
+	// sort the model-to-hash array, again
+	((void(*)())0x98AB90)();
+
+	// temp dbg: find fwy_01_split_014
+	for (int i = 0; i < g_modelInfosToHash.GetCount(); i++)
+	{
+		auto& entry = g_modelInfosToHash.Get(i);
+
+		if (entry.hash == 0x007EB3E9)
+		{
+			trace("our dummy (0x%08x) is at %i\n", entry.hash, entry.modelIndex);
+		}
+	}
+
 	g_curIdeFile = nullptr;
 
 	delete[] m_textBuffer;
 }
 
-struct CStreamingInfo
-{
-	char pad[8];
-	uint8_t flags;
-	char pad2[3];
-	uint16_t owners;
-	uint16_t pad3;
-	char pad4[8];
-
-	void RemoveFromList();
-};
-
-void WRAPPER CStreamingInfo::RemoveFromList() { EAXJMP(0xBCBB70); }
-
-struct CStreamingStuff
-{
-	CStreamingInfo* items;
-};
-
-#include "StreamingTypes.h"
-
-static CStreamingStuff& stuff = *(CStreamingStuff*)0xF21C60;
-
 static void ReleaseModelInfo(int modelIdx)
 {
 	uint32_t modelHash = g_modelInfoPtrs[modelIdx]->m_modelHash;
+
+	// delete the streaming model
+	((void(*)(int, int))0x832C70)(modelIdx, *(int*)0x15F73A0);
 
 	g_modelInfoPtrs[modelIdx]->Release();
 	g_modelInfoPtrs[modelIdx]->m_modelHash = -2;
@@ -366,6 +418,7 @@ static void ReleaseModelInfo(int modelIdx)
 	stuff.items[streamIdx].flags &= ~3;
 
 	stuff.items[streamIdx].RemoveFromList();
+	stuff.items[streamIdx].Initialize();
 
 	for (int i = 0; i < g_modelInfosToHash.GetCount(); i++)
 	{
@@ -421,7 +474,7 @@ void IdeFile::Delete()
 
 		if (mi->m_refCount > 0)
 		{
-			g_modelInfosToRelease.insert(idx);
+			g_modelInfosToRelease.insert(mi->m_modelHash);
 		}
 		else
 		{
@@ -438,7 +491,7 @@ static int FindModelInfoIdxWithHash(uint32_t modelHash)
 	{
 		CBaseModelInfo* modelInfo = g_modelInfoPtrs[i];
 
-		if (modelInfo->m_modelHash == modelHash)
+		if (modelInfo && modelInfo->m_modelHash == modelHash)
 		{
 			return i;
 		}
@@ -459,7 +512,7 @@ static void __fastcall ModelInfoReleaseTail(char* modelInfo)
 
 		if (g_modelInfosToRelease.find(modelHash) != g_modelInfosToRelease.end())
 		{
-			//trace("Destructing model info 0x%08x w/ delay\n", modelHash);
+			trace("Destructing model info 0x%08x w/ delay\n", modelHash);
 
 			ReleaseModelInfo(FindModelInfoIdxWithHash(modelHash));
 		}
@@ -499,7 +552,50 @@ static bool MIOnLoad(int mIdx, intptr_t a2, intptr_t a3)
 		return false;
 	}
 
+	if (mi->m_modelHash == 0x007eb3e9)
+	{
+		printf("");
+	}
+
 	return ((bool(*)(int, intptr_t, intptr_t))0x989760)(mIdx, a2, a3);
+}
+
+static bool MIOnLoadFail(int mIdx, int a2)
+{
+	trace("Load failed for MI %d due to the MI not existing.\n", mIdx);
+
+	return false;
+}
+
+// temp dbg: allow breakpointing our broken model's rendering
+static void BuildingEntityRenderHookCheck(CEntity* entity)
+{
+	auto mi = g_modelInfoPtrs[entity->m_nModelIndex];
+
+	if (mi != (void*)0xCA3EBA3E && mi)
+	{
+		if (mi->m_modelHash == 8303593)
+		{
+			printf("");
+		}
+	}
+}
+
+static void __declspec(naked) BuildingEntityRenderHook()
+{
+	__asm
+	{
+		push ecx
+		push ecx
+
+		call BuildingEntityRenderHookCheck
+
+		add esp, 4h
+		pop ecx
+
+		push 9EA540h
+		retn
+	}
 }
 
 CDataStore& g_baseModelStore = *(CDataStore*)0xF2C11C;
@@ -507,12 +603,15 @@ CDataStore& g_timeModelStore = *(CDataStore*)0xF2C134;
 
 static HookFunction hookFunction([] ()
 {
+	// temp dbg
+	hook::put(0xDA3AC8, BuildingEntityRenderHook);
+
 	// CBaseModelInfo release
 	hook::jump(0x98E474, ModelInfoReleaseTail);
 
 	// modelinfo allocators
-	hook::jump(0x98AC60, AllocateModelInfo<&g_baseModelStore, 96>);
-	hook::jump(0x98AD40, AllocateModelInfo<&g_timeModelStore, 112>);
+	hook::jump(0x98AC60, AllocateModelInfo<&g_baseModelStore, 96, true>);
+	hook::jump(0x98AD40, AllocateModelInfo<&g_timeModelStore, 112, true>);
 
 	// modelinfo 'get refcount'
 	hook::put(0x98B00F, GetMIRefCount);
@@ -522,4 +621,7 @@ static HookFunction hookFunction([] ()
 
 	// modelinfo 'on load'
 	hook::put(0x98B032, MIOnLoad);
+
+	// debug intel: log model infos that were loaded while nulled
+	hook::put(0x98981B, MIOnLoadFail);
 });

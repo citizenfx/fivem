@@ -201,11 +201,6 @@ CBaseModelInfo* GetModelInfo(uint32_t nameHash, int* mIdx)
 	{
 		CBaseModelInfo* info = ((CBaseModelInfo*(*)(uint32_t, int*))0x98AAE0)(nameHash, mIdx);
 
-		if (nameHash == HashRageString("parkgates_mh06"))
-		{
-//			__asm int 3
-		}
-
 		return info;
 	}
 
@@ -614,6 +609,11 @@ CBaseModelInfo* GetModelInfoForEntity(CEntity* entity)
 		return GetEntityExtensions()->GetAtPointer(entity)->modelInfo;
 	}
 
+	if (g_modelInfoPtrs[entity->m_nModelIndex] == nullptr)
+	{
+		return ((CBaseModelInfo**)0x15F73B0)[1];
+	}
+
 	return ((CBaseModelInfo**)0x15F73B0)[entity->m_nModelIndex];
 }
 
@@ -703,10 +703,12 @@ void __declspec(naked) RetModelInfoEbxEsi()
 
 void IsThisMyEnemiend(CBaseModelInfo* enemy)
 {
-	if (enemy->GetModelHash() == 0x1b179f94)
+	/*
+	if (enemy->GetModelHash() == 8303593)
 	{
-		//__asm int 3
+		__asm int 3
 	}
+	*/
 }
 
 void __declspec(naked) RetModelInfoEsiEdiAddCmp()
@@ -717,9 +719,9 @@ void __declspec(naked) RetModelInfoEsiEdiAddCmp()
 		call GetModelInfoForEntity
 		add esp, 4h
 
-		push eax
-		call IsThisMyEnemiend
-		pop eax
+		//push eax
+		//call IsThisMyEnemiend
+		//pop eax
 
 		mov edi, eax
 
@@ -947,6 +949,15 @@ void __declspec(naked) RetModelInfoEaxEdi()
 		push edi
 		call GetModelInfoForEntity
 		add esp, 4h
+
+		// temp dbg for viiv v3
+		push eax
+		push eax
+
+		call IsThisMyEnemiend
+
+		add esp, 4h
+		pop eax
 
 		retn
 	}
@@ -1490,9 +1501,78 @@ void CleanModelIndices()
 	m_requestList.clear();
 }
 
+static void ModelPreRenderPassBPAllow(CEntity* entity)
+{
+	auto mi = entity->m_nModelIndex;
+
+	if (mi != 30999)
+	{
+		auto m = g_modelInfoPtrs[mi];
+
+		if (m)
+		{
+			if (m->GetModelHash() == 8303593)
+			{
+				printf("");
+			}
+		}
+	}
+}
+
+/*static void __declspec(naked) ModelPreRenderPassBP()
+{
+	__asm
+	{
+		push esi
+		call ModelPreRenderPassBPAllow
+		add esp, 4h
+
+		push 7D77F0h
+		retn
+	}
+}*/
+
+struct CEntityDraw
+{
+	CEntity* entity;
+	float dist;
+};
+
+static void ModelPreRenderPassBP(CEntityDraw* start, CEntityDraw* end, void* renderPhase)
+{
+	CEntity* entity = start->entity;
+	((void(*)(CEntityDraw*, CEntityDraw*, void*))0x7D77F0)(start, end, renderPhase);
+
+	auto mi = entity->m_nModelIndex;
+
+	if (mi != 30999)
+	{
+		auto m = g_modelInfoPtrs[mi];
+
+		if (m)
+		{
+			if (m->GetModelHash() == 8303593 && GetAsyncKeyState(VK_F6))
+			{
+				if (entity->m_pLod)
+				{
+					auto mi2 = GetModelInfoForEntity(entity->m_pLod);
+
+					trace("lod mi: 0x%08x\n", mi2->GetModelHash());
+				}
+
+				trace("dist %p = %f\n", *(uint32_t*)renderPhase, start->dist);
+			}
+		}
+	}
+}
+
 static HookFunction hookModelInfoParents([] ()
 //static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
 {
+	// temp dbg: see if some model gets render-passed (manual breakpoint)
+	hook::call(0x7DA22F, ModelPreRenderPassBP);
+
+
 	/*hook::put(0xD7CD24, RemoveModelInstanceLog);
 	hook::jump(0x832C40, RequestModelStub);
 
@@ -1743,8 +1823,8 @@ static HookFunction hookModelInfoParents([] ()
 	hook::call(0x7BFB51, RetModelInfoDraw);
 
 	// temp dbg: make gtaDefSched single-threaded
-	//hook::put<uint8_t>(0x79706F, 0);
-	//hook::put<uint8_t>(0x797072, 1);
+	hook::put<uint8_t>(0x79706F, 0);
+	hook::put<uint8_t>(0x797072, 1);
 
 	// temp dbg: ignore 30999
 	hook::put(0x98E5B4, 0x7917);
