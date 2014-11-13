@@ -2,9 +2,6 @@
 #include <BaseResourceScripting.h>
 #include "Hooking.h"
 
-bool g_naviDestiny = false;
-
-#if 0
 static void PutSectorCounts()
 {
 	hook::put(0xF2A10C, 3);
@@ -13,6 +10,21 @@ static void PutSectorCounts()
 	hook::put(0x1568B78, (300 / 3) * (300 / 3));
 }
 
+static InitFunction initFunction([] ()
+{
+	OnSetWorldAssetConfig.Connect([] (fwString type, bool value)
+	{
+		if (value && type == "definitely_more_navigable")
+		{
+			hook::nop(0x93AD20, 35);
+			hook::call(0x93AD20, PutSectorCounts);
+		}
+	});
+});
+
+bool g_naviDestiny = false;
+
+#if 0
 static int ParseNavFileName(const char* filename)
 {
 	if (_strnicmp(filename, "navmesh", 7))
