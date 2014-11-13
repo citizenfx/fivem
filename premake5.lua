@@ -236,7 +236,7 @@ solution "CitizenMP"
 
 		files
 		{
-			"../vendor/msgpack-c/src/object.cpp", "../vendor/msgpack-c/src/*.c" 
+			"../vendor/msgpack-c/src/*.c" 
 		}
 
 	project "protobuf_lite"
