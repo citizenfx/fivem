@@ -23,7 +23,7 @@ hooks = [
 	{
 		"name": "build_premake_win",
 		"pattern": "build/premake/",
-		"action": [ "msbuild", "build/premake/project/Premake5.sln", "/p:configuration=release" ]
+		"action": [ "msbuild", "build/premake/Premake5.sln", "/p:configuration=release" ]
 	},
 	{
 		"name": "build_luajit_win",
