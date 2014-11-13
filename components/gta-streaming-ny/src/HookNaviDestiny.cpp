@@ -5,9 +5,9 @@
 static void PutSectorCounts()
 {
 	hook::put(0xF2A10C, 3);
-	hook::put(0xF2A110, 300 / 3);
-	hook::put(0xF2A114, 300 / 3);
-	hook::put(0x1568B78, (300 / 3) * (300 / 3));
+	hook::put(0xF2A110, 120 / 3);
+	hook::put(0xF2A114, 120 / 3);
+	hook::put(0x1568B78, (120 / 3) * (120 / 3));
 }
 
 static InitFunction initFunction([] ()
