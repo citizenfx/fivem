@@ -368,6 +368,17 @@ int RequestEntityModel(CEntity* entity)
 	return 1;
 }
 
+void MIParents_Release(CBaseModelInfo* modelInfo)
+{
+	if (g_primedMIs.find(modelInfo) != g_primedMIs.end())
+	{
+		//trace("removing reference to drawable dict %s as model info 0x%08x is unused\n", GetStreamName(mi->GetDrawblDict(), *(int*)0xF272E4).c_str(), mi->GetModelHash());
+		((void(*)(int))0x907940)(modelInfo->GetDrawblDict());
+
+		g_primedMIs.erase(modelInfo);
+	}
+}
+
 void ProcessEntityRequests()
 {
 	// deferred stuff
@@ -377,23 +388,6 @@ void ProcessEntityRequests()
 	}
 
 	g_deferFuncs.clear();
-
-	// process deletion (this is before the other list as MIs may not have been AddRef'd)
-	for (auto& pair : g_modelInfos)
-	{
-		auto mi = pair.second;
-
-		if (mi->ShouldRelease())
-		{
-			if (g_primedMIs.find(mi.get()) != g_primedMIs.end())
-			{
-				//trace("removing reference to drawable dict %s as model info 0x%08x is unused\n", GetStreamName(mi->GetDrawblDict(), *(int*)0xF272E4).c_str(), mi->GetModelHash());
-				((void(*)(int))0x907940)(mi->GetDrawblDict());
-
-				g_primedMIs.erase(mi.get());
-			}
-		}
-	}
 
 	// and so on
 	for (auto it = m_requestList.begin(); it != m_requestList.end(); )

@@ -500,6 +500,8 @@ static int FindModelInfoIdxWithHash(uint32_t modelHash)
 	return -1;
 }
 
+void MIParents_Release(CBaseModelInfo* modelInfo);
+
 static void __fastcall ModelInfoReleaseTail(char* modelInfo)
 {
 	// ref count
@@ -510,6 +512,10 @@ static void __fastcall ModelInfoReleaseTail(char* modelInfo)
 	{
 		//trace("Released last ref on model info 0x%08x from %p.\n", modelHash, _ReturnAddress());
 
+		// process modelinfoparents results
+		MIParents_Release((CBaseModelInfo*)modelInfo);
+
+		// process our results
 		if (g_modelInfosToRelease.find(modelHash) != g_modelInfosToRelease.end())
 		{
 			trace("Destructing model info 0x%08x w/ delay\n", modelHash);
