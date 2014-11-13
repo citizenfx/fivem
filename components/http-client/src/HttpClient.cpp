@@ -83,6 +83,22 @@ void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwS
 	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
 }
 
+void HttpClient::DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAction<bool, const char*, size_t> callback)
+{
+	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
+	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
+
+	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
+
+	HttpClientRequestContext* context = new HttpClientRequestContext;
+	context->client = this;
+	context->hConnection = hConnection;
+	context->hRequest = hRequest;
+	context->callback = callback;
+
+	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);
+}
+
 void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, const char* outDeviceBase, fwString outFilename, fwAction<bool, const char*, size_t> callback)
 {
 	DoFileGetRequest(host, port, url, rage::fiDevice::GetDevice(outDeviceBase, true), outFilename, callback);

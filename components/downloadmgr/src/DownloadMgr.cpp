@@ -15,15 +15,25 @@ bool DownloadManager::Process()
 	{
 		case DS_IDLE:
 		{
+			// initialize the download manager
 			m_downloadState = DS_FETCHING_CONFIG;
 
+			// create a new HTTP client
 			m_httpClient = new HttpClient();
 
+			// clear the resource list
+			if (!m_isUpdate)
+			{
+				m_requiredResources.clear();
+			}
+
+			// set up the target request
 			auto hostname = m_gameServer.GetWAddress();
 
 			fwMap<fwString, fwString> postMap;
 			postMap["method"] = "getConfiguration";
 
+			// list the resources that we'd want to update
 			bool isUpdate = false;
 
 			if (!m_updateQueue.empty())
@@ -47,119 +57,15 @@ bool DownloadManager::Process()
 				isUpdate = true;
 			}
 
-			m_httpClient->DoPostRequest(hostname.c_str(), m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, const char* connDataStr, size_t connDataLength)
+			// perform the request
+			InterlockedIncrement(&m_numPendingConfigRequests); // increment the request count
+
+			m_httpClient->DoPostRequest(hostname.c_str(), m_gameServer.GetPort(), L"/client", postMap, [=] (bool result, const char* data, size_t size)
 			{
-				if (!result)
-				{
-					// TODO: make this a non-fatal error leading back to UI
-					GlobalError("Obtaining configuration from server failed.");
+				ConfigurationRequestData request;
+				request.serverName = m_gameServer.GetAddress();
 
-					return;
-				}
-
-				if (!isUpdate)
-				{
-					m_requiredResources.clear();
-				}
-
-				fwString serverHost = m_gameServer.GetAddress();
-				serverHost += va(":%d", m_gameServer.GetPort());
-
-				// parse the received YAML file
-				//try
-				//{
-					//auto node = YAML::Load(connData);
-					rapidjson::Document node;
-					node.Parse(connDataStr);
-
-					if (node.HasParseError())
-					{
-						auto err = node.GetParseError();
-
-						GlobalError("parse error %d", err);
-					}
-
-					if (node.HasMember("loadScreen"))
-					{
-						m_serverLoadScreen = node["loadScreen"].GetString();
-					}
-
-					auto& resources = node["resources"];
-
-					std::string origBaseUrl = node["fileServer"].GetString();
-
-					for (auto it = resources.Begin(); it != resources.End(); it++)
-					{
-						auto& resource = *it;
-
-						std::string baseUrl = origBaseUrl;
-
-						if (it->HasMember("fileServer"))
-						{
-							baseUrl = (*it)["fileServer"].GetString();
-						}
-
-						ResourceData resData(resource["name"].GetString(), va(baseUrl.c_str(), serverHost.c_str()));
-						
-						//for (auto& file : resource["files"])
-						auto& files = resource["files"];
-						for (auto i = files.MemberBegin(); i != files.MemberEnd(); i++)
-						{
-							fwString filename = i->name.GetString();
-							fwString hash = i->value.GetString();
-
-							resData.AddFile(filename, hash);
-						}
-
-						if (resource.HasMember("streamFiles"))
-						{
-							auto& streamFiles = resource["streamFiles"];
-
-							//for (auto& file : resource["streamFiles"])
-							for (auto i = streamFiles.MemberBegin(); i != streamFiles.MemberEnd(); i++)
-							{
-								fwString filename = i->name.GetString();
-								fwString hash = i->value["hash"].GetString();
-								uint32_t rscFlags = i->value["rscFlags"].GetUint();
-								uint32_t rscVersion = i->value["rscVersion"].GetUint();
-								uint32_t size = i->value["size"].GetUint();
-
-								AddStreamingFile(resData, filename, hash, rscFlags, rscVersion, size);
-							}
-						}
-
-						if (isUpdate)
-						{
-							for (auto ite = m_requiredResources.begin(); ite != m_requiredResources.end(); ite++)
-							{
-								if (ite->GetName() == resData.GetName())
-								{
-									m_requiredResources.erase(ite);
-									break;
-								}
-							}
-						}
-
-						trace("%s\n", resData.GetName().c_str());
-
-						m_isUpdate = isUpdate;
-
-						m_requiredResources.push_back(resData);
-					}
-				/*}
-				catch (std::exception& e)
-				{
-					GlobalError("YAML parsing error in server configuration (%s)", e.msg);
-
-					return;
-				}*/
-
-				if (isUpdate)
-				{
-					assert(m_isUpdate);
-				}
-
-				m_downloadState = DS_CONFIG_FETCHED;
+				ParseConfiguration(request, result, data, size);
 			});
 
 			break;
@@ -346,8 +252,10 @@ bool DownloadManager::Process()
 		}
 
 		case DS_DONE:
+			// we're done, go back to idle mode next frame
 			m_downloadState = DS_IDLE;
 
+			// reset resources if need be
 			if (m_isUpdate && !m_updateQueue.empty())
 			{
 				ProcessQueuedUpdates();
@@ -360,6 +268,10 @@ bool DownloadManager::Process()
 
 			m_isUpdate = false;
 
+			// destroy the HTTP client
+			delete m_httpClient;
+
+			// signal the network library, and allow it to process further tasks
 			g_netLibrary->DownloadsComplete();
 
 			while (!g_netLibrary->ProcessPreGameTick())
@@ -373,6 +285,167 @@ bool DownloadManager::Process()
 	}
 
 	return false;
+}
+
+void DownloadManager::ParseConfiguration(const ConfigurationRequestData& request, bool result, const char* connDataStr, size_t connDataLength)
+{
+	if (!result)
+	{
+		// TODO: make this a non-fatal error leading back to UI
+		GlobalError("Obtaining configuration from server (%s) failed.", request.serverName.c_str());
+
+		return;
+	}
+
+	fwString serverHost = m_gameServer.GetAddress();
+	serverHost += va(":%d", m_gameServer.GetPort());
+
+	// parse the received data file
+	rapidjson::Document node;
+	node.Parse(connDataStr);
+
+	if (node.HasParseError())
+	{
+		auto err = node.GetParseError();
+
+		GlobalError("parse error %d", err);
+	}
+
+	if (node.HasMember("loadScreen"))
+	{
+		m_serverLoadScreen = node["loadScreen"].GetString();
+	}
+
+	if (node.HasMember("imports") && node["imports"].IsArray())
+	{
+		auto& importList = node["imports"];
+
+		for (auto it = importList.Begin(); it != importList.End(); it++)
+		{
+			auto& import = *it;
+
+			if (import.IsString())
+			{
+				InitiateChildRequest(import.GetString());
+			}
+		}
+	}
+
+	bool hasValidResources = true;
+
+	if (!node.HasMember("resources") || !node["resources"].IsArray())
+	{
+		hasValidResources = false;
+	}
+
+	if (hasValidResources)
+	{
+		if (!node.HasMember("fileServer") || !node["fileServer"].IsString())
+		{
+			hasValidResources = false;
+		}
+	}
+
+	if (hasValidResources)
+	{
+		auto& resources = node["resources"];
+
+		std::string origBaseUrl = node["fileServer"].GetString();
+
+		m_parseMutex.lock();
+
+		for (auto it = resources.Begin(); it != resources.End(); it++)
+		{
+			auto& resource = *it;
+
+			std::string baseUrl = origBaseUrl;
+
+			if (it->HasMember("fileServer") && (*it)["fileServer"].IsString())
+			{
+				baseUrl = (*it)["fileServer"].GetString();
+			}
+
+			ResourceData resData(resource["name"].GetString(), va(baseUrl.c_str(), serverHost.c_str()));
+
+			//for (auto& file : resource["files"])
+			auto& files = resource["files"];
+			for (auto i = files.MemberBegin(); i != files.MemberEnd(); i++)
+			{
+				fwString filename = i->name.GetString();
+				fwString hash = i->value.GetString();
+
+				resData.AddFile(filename, hash);
+			}
+
+			if (resource.HasMember("streamFiles"))
+			{
+				auto& streamFiles = resource["streamFiles"];
+
+				//for (auto& file : resource["streamFiles"])
+				for (auto i = streamFiles.MemberBegin(); i != streamFiles.MemberEnd(); i++)
+				{
+					fwString filename = i->name.GetString();
+					fwString hash = i->value["hash"].GetString();
+					uint32_t rscFlags = i->value["rscFlags"].GetUint();
+					uint32_t rscVersion = i->value["rscVersion"].GetUint();
+					uint32_t size = i->value["size"].GetUint();
+
+					AddStreamingFile(resData, filename, hash, rscFlags, rscVersion, size);
+				}
+			}
+
+			if (m_isUpdate)
+			{
+				for (auto ite = m_requiredResources.begin(); ite != m_requiredResources.end(); ite++)
+				{
+					if (ite->GetName() == resData.GetName())
+					{
+						m_requiredResources.erase(ite);
+						break;
+					}
+				}
+			}
+
+			trace("%s\n", resData.GetName().c_str());
+
+			m_requiredResources.push_back(resData);
+		}
+
+		m_parseMutex.unlock();
+	}
+
+	// decrement the pending count
+	uint32_t pending = InterlockedDecrement(&m_numPendingConfigRequests);
+
+	// if this was the last request, signal the idle loop that we are done fetching the config
+	if (pending == 0)
+	{
+		m_downloadState = DS_CONFIG_FETCHED;
+	}
+}
+
+void DownloadManager::InitiateChildRequest(fwString url)
+{
+	// parse the URL
+	fwWString hostname;
+	fwWString path;
+	uint16_t port;
+
+	if (!m_httpClient->CrackUrl(url, hostname, path, port))
+	{
+		return;
+	}
+
+	// perform the request
+	InterlockedIncrement(&m_numPendingConfigRequests); // increment the request count
+
+	m_httpClient->DoGetRequest(hostname, port, path, [=] (bool result, const char* data, size_t size)
+	{
+		ConfigurationRequestData request;
+		request.serverName = url;
+
+		ParseConfiguration(request, result, data, size);
+	});
 }
 
 void DownloadManager::AddStreamingFile(ResourceData data, fwString& filename, fwString& hash, uint32_t rscFlags, uint32_t rscVersion, uint32_t size)

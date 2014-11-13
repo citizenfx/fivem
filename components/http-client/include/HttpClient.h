@@ -45,6 +45,8 @@ public:
 
 	bool CrackUrl(fwString url, fwWString& hostname, fwWString& path, uint16_t& port);
 
+	void DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAction<bool, const char*, size_t> callback);
+
 	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwMap<fwString, fwString>& fields, fwAction<bool, const char*, size_t> callback);
 	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, fwAction<bool, const char*, size_t> callback);
 

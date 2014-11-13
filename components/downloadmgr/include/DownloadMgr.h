@@ -8,6 +8,15 @@
 
 class ResourceData;
 
+///
+/// Metadata for a configuration request.
+///
+struct ConfigurationRequestData
+{
+	// The name of the server the file originates from.
+	fwString serverName;
+};
+
 class 
 #ifdef COMPILING_DOWNLOADMGR
 	__declspec(dllexport)
@@ -40,6 +49,12 @@ private:
 
 	std::list<fwRefContainer<Resource>> m_loadedResources;
 
+	// Mutex for parsing/adding download data.
+	std::mutex m_parseMutex;
+
+	// The amount of pending configuration requests.
+	uint32_t m_numPendingConfigRequests;
+
 	enum DownloadState
 	{
 		DS_IDLE,
@@ -54,6 +69,10 @@ private:
 
 private:
 	void ProcessQueuedUpdates();
+
+	void ParseConfiguration(const ConfigurationRequestData& request, bool result, const char* connDataStr, size_t connDataLength);
+
+	void InitiateChildRequest(fwString url);
 
 public:
 	bool Process();
