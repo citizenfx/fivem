@@ -2,34 +2,47 @@
 
 namespace msgpack
 {
-	inline fwString& operator>> (object o, fwString& v)
+	MSGPACK_API_VERSION_NAMESPACE(v1)
 	{
-		if (o.type != type::RAW) { throw type_error(); }
-		v.assign(o.via.raw.ptr, o.via.raw.size);
-		return v;
-	}
+		inline object const& operator>> (object const& o, fwString& v)
+		{
+			switch (o.type)
+			{
+				case type::BIN:
+					v.assign(o.via.bin.ptr, o.via.bin.size);
+					break;
+				case type::STR:
+					v.assign(o.via.str.ptr, o.via.str.size);
+					break;
+				default:
+					throw type_error();
+					break;
+			}
+			return o;
+		}
 
-	template <typename Stream>
-	inline packer<Stream>& operator<< (packer<Stream>& o, const fwString& v)
-	{
-		o.pack_raw(v.size());
-		o.pack_raw_body(v.data(), v.size());
-		return o;
-	}
+		template <typename Stream>
+		inline packer<Stream>& operator<< (packer<Stream>& o, const fwString& v)
+		{
+			o.pack_str(v.size());
+			o.pack_str_body(v.data(), v.size());
+			return o;
+		}
 
-	inline void operator<< (object::with_zone& o, const fwString& v)
-	{
-		o.type = type::RAW;
-		char* ptr = (char*)o.zone->malloc(v.size());
-		o.via.raw.ptr = ptr;
-		o.via.raw.size = (uint32_t)v.size();
-		memcpy(ptr, v.data(), v.size());
-	}
+		inline void operator<< (object::with_zone& o, const fwString& v)
+		{
+			o.type = type::STR;
+			char* ptr = static_cast<char*>(o.zone.allocate_align(v.size()));
+			o.via.str.ptr = ptr;
+			o.via.str.size = static_cast<uint32_t>(v.size());
+			memcpy(ptr, v.data(), v.size());
+		}
 
-	inline void operator<< (object& o, const fwString& v)
-	{
-		o.type = type::RAW;
-		o.via.raw.ptr = v.data();
-		o.via.raw.size = (uint32_t)v.size();
+		inline void operator<< (object& o, const fwString& v)
+		{
+			o.type = type::STR;
+			o.via.str.ptr = v.data();
+			o.via.str.size = static_cast<uint32_t>(v.size());
+		}
 	}
 }
