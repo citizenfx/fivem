@@ -140,11 +140,9 @@ void IOCompletedEvent::RunEvent(StreamThread* thread)
 
 			m_request->item->completeRequest();
 
-			m_request->strm->avail_out = -1;
-
 			if (m_request->isResource)
 			{
-				m_request->readBuffer = nullptr;
+				m_request->strm->avail_out = -1;
 			}
 
 			if (m_request->completionCB)
