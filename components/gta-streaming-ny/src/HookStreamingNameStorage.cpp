@@ -28,7 +28,7 @@ static int RegisterFileName(const char* name, int type)
 	name = curImgLabel;
 
 	// ignore default meshes if we're on viiv
-	if (g_naviDestiny || true)
+	if (g_naviDestiny)
 	{
 		if (!_strnicmp(name, "sectors2x2", 10))
 		{

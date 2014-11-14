@@ -2,13 +2,7 @@
 #include <BaseResourceScripting.h>
 #include "Hooking.h"
 
-static void PutSectorCounts()
-{
-	hook::put(0xF2A10C, 3);
-	hook::put(0xF2A110, 120 / 3);
-	hook::put(0xF2A114, 120 / 3);
-	hook::put(0x1568B78, (120 / 3) * (120 / 3));
-}
+bool g_naviDestiny = false;
 
 static InitFunction initFunction([] ()
 {
@@ -16,15 +10,25 @@ static InitFunction initFunction([] ()
 	{
 		if (value && type == "definitely_more_navigable")
 		{
-			hook::nop(0x93AD20, 35);
-			hook::call(0x93AD20, PutSectorCounts);
+			g_naviDestiny = true;
+
+			hook::put(0xF2A10C, 3);
+			hook::put(0xF2A110, 120 / 3);
+			hook::put(0xF2A114, 120 / 3);
+			hook::put(0x1568B78, (120 / 3) * (120 / 3));
 		}
 	});
 });
 
-bool g_naviDestiny = false;
-
 #if 0
+static void PutSectorCounts()
+{
+	hook::put(0xF2A10C, 3);
+	hook::put(0xF2A110, 300 / 3);
+	hook::put(0xF2A114, 300 / 3);
+	hook::put(0x1568B78, (300 / 3) * (300 / 3));
+}
+
 static int ParseNavFileName(const char* filename)
 {
 	if (_strnicmp(filename, "navmesh", 7))
