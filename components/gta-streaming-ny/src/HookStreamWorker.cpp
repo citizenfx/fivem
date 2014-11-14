@@ -24,6 +24,11 @@ uint32_t StreamWorker_Read(uint32_t handle, uint64_t ptr, void* buffer, uint32_t
 			trace("Stream I/O failed: %i\n", err);
 		}
 
+		if (err == ERROR_HANDLE_EOF)
+		{
+			return -2;
+		}
+
 		return -1;
 	}
 

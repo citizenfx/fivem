@@ -13,6 +13,7 @@ CImgManager* CImgManager::GetInstance()
 	return (CImgManager*)0xF21C60;
 }
 
+static int g_curHandle = 0;
 static StreamingFile* g_files[65535];
 static StreamingModule* g_streamingModule;
 
@@ -37,13 +38,38 @@ uint32_t CStreaming::OpenImgEntry(uint32_t handle)
 
 	file->Open();
 
-	g_files[handle] = file;
+	auto increment = [&] ()
+	{
+		g_curHandle++;
 
-	return handle;
+		if (g_curHandle >= _countof(g_files))
+		{
+			g_curHandle = 0;
+		}
+	};
+
+	increment();
+
+	// find if it's free
+	while (g_files[g_curHandle])
+	{
+		increment();
+	}
+
+	int outHandle = g_curHandle;
+
+	g_files[outHandle] = file;
+
+	return outHandle;
 }
 
 StreamingFile* CStreaming::GetImgEntry(uint32_t handle)
 {
+	if (!g_files[handle])
+	{
+		FatalError("Undefined streaming file for handle 0x%08x.", handle);
+	}
+
 	return g_files[handle];
 }
 

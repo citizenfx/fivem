@@ -248,6 +248,11 @@ uint32_t CitizenStreamingFile::InternalReadBulk(uint32_t handle, uint64_t ptr, v
 			trace("Stream I/O failed: %i\n", err);
 		}
 
+		if (err == ERROR_HANDLE_EOF)
+		{
+			return -2;
+		}
+
 		return -1;
 	}
 
