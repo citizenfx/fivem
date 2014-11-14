@@ -140,6 +140,8 @@ void IOCompletedEvent::RunEvent(StreamThread* thread)
 
 			m_request->item->completeRequest();
 
+			m_request->strm->avail_out = -1;
+
 			if (m_request->isResource)
 			{
 				m_request->readBuffer = nullptr;
@@ -197,6 +199,15 @@ void StreamThread::QueueRequest(StreamRequestExt& request)
 
 void StreamThread::RemoveRequest(StreamRequestExt* request)
 {
+	for (int i = 0; i < _countof(m_readBuffers); i++)
+	{
+		if (request->readBuffer == m_readBuffers[i])
+		{
+			m_readBuffersUsed[i] = false;
+			break;
+		}
+	}
+
 	uint32_t idx = ((request - &m_requests[0]));
 
 	m_requests.erase(m_requests.begin() + idx);
@@ -302,6 +313,7 @@ void StreamThread::RunThread(StreamThread_GtaLocal* local)
 	for (int i = 0; i < 16; i++)
 	{
 		inflateInit(&m_streams[i]);
+		m_streams[i].avail_out = -1;
 	}
 
 	StreamEvent* ev = WaitIdly();
@@ -317,24 +329,48 @@ void StreamThread::RunThread(StreamThread_GtaLocal* local)
 
 char* StreamThread::GetReadBuffer()
 {
-	m_curReadBuffer++;
-
-	if (m_curReadBuffer >= 16)
+	auto increment = [&] ()
 	{
-		m_curReadBuffer = 0;
+		m_curReadBuffer++;
+
+		if (m_curReadBuffer >= 16)
+		{
+			m_curReadBuffer = 0;
+		}
+	};
+
+	increment();
+
+	while (m_readBuffersUsed[m_curReadBuffer])
+	{
+		increment();
 	}
+
+	m_readBuffersUsed[m_curReadBuffer] = true;
 
 	return m_readBuffers[m_curReadBuffer];
 }
 
 z_stream* StreamThread::GetStream()
 {
-	m_curStream++;
-
-	if (m_curStream >= 16)
+	auto increment = [&] ()
 	{
-		m_curStream = 0;
+		m_curStream++;
+
+		if (m_curStream >= 16)
+		{
+			m_curStream = 0;
+		}
+	};
+
+	increment();
+
+	while (m_streams[m_curStream].avail_out != -1)
+	{
+		increment();
 	}
+
+	m_streams[m_curStream].avail_out = 0;
 
 	return &m_streams[m_curStream];
 }

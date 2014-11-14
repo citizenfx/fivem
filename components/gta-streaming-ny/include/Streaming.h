@@ -162,6 +162,8 @@ private:
 
 	char m_readBuffers[16][131072];
 
+	char m_readBuffersUsed[16];
+
 	int m_curStream;
 
 	int m_curReadBuffer;
