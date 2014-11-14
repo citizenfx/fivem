@@ -292,8 +292,15 @@ void BoundStreaming::ReleaseCollision(int id)
 		//OutputDebugString(debugMsg);
 		trace("unloading %s...\n", g_boundsMap[id].filename.c_str());
 
-		// release data
-		((void(*)(int))(0xC096A0))(id);
+		__try
+		{
+			// release data
+			((void(*)(int))(0xC096A0))(id);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			trace("Exception releasing collision.\n");
+		}
 
 		BlockMap* blockMap = &g_blockMaps[id];
 
