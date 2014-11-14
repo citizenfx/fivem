@@ -1539,7 +1539,7 @@ static void ModelPreRenderPassBP(CEntityDraw* start, CEntityDraw* end, void* ren
 
 	auto mi = entity->m_nModelIndex;
 
-	if (mi != 30999)
+	if (mi != 30999 && mi != 0xFFFF)
 	{
 		auto m = g_modelInfoPtrs[mi];
 
@@ -1564,7 +1564,7 @@ static HookFunction hookModelInfoParents([] ()
 //static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
 {
 	// temp dbg: see if some model gets render-passed (manual breakpoint)
-	hook::call(0x7DA22F, ModelPreRenderPassBP);
+	//hook::call(0x7DA22F, ModelPreRenderPassBP);
 
 
 	/*hook::put(0xD7CD24, RemoveModelInstanceLog);
