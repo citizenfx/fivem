@@ -204,6 +204,14 @@ static HookFunction hookFunction([] ()
 	hook::put(0x9704EB, &minCoord);
 	hook::put(0x970505, &maxCoord);
 
+	// entity sync coordinate divisor?
+	static float reverseDivisor = 1.0f / 125.0f;
+
+	hook::put<float>(0xEBE15C, 125.0f);
+
+	hook::put<float*>(0x49600D, &reverseDivisor);
+	hook::put<float*>(0x495FD4, &reverseDivisor);
+
 	// paths
 	OnSetWorldAssetConfig.Connect([] (fwString name, bool value)
 	{
