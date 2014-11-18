@@ -44,11 +44,24 @@ CGenericDC::CGenericDC(void(*cb)())
 	CGenericDC__ctor(this, cb);
 }
 
+auto CGenericDC1Arg__ctor = (void(__thiscall*)(CGenericDC1Arg*, void(*)(int), int))0x7BF9B0;
+
+CGenericDC1Arg::CGenericDC1Arg(void(*cb)(int arg), int arg)
+{
+	CGenericDC1Arg__ctor(this, cb, arg);
+}
+
 WRAPPER void* CBaseDC::operator new(size_t size, int a2) { EAXJMP(0x7BDD80); }
 
 void CBaseDC::operator delete(void* ptr)
 {
 	assert(!"HEY");
+}
+
+bool IsOnRenderThread()
+{
+	DWORD* gtaTLS = *(DWORD**)(__readfsdword(44) + (4 * *(uint32_t*)0x17237B0));
+	return !gtaTLS[306];
 }
 
 void WRAPPER CBaseDC::Enqueue() { EAXJMP(0x404E90); }
@@ -61,6 +74,24 @@ void WRAPPER DrawImVertices() { EAXJMP(0x63A4A0); }
 
 void WRAPPER PushUnlitImShader() { EAXJMP(0x852540); }
 void WRAPPER PopUnlitImShader() { EAXJMP(0x852570); }
+
+void PushDrawBlitImShader()
+{
+	// set screen space stuff
+	((void(*)(int))0x8528F0)(0);
+
+	// shader methods: set subshader?
+	((void(__thiscall*)(intptr_t, int, int, intptr_t))0x633D50)(*(intptr_t*)0x11DE810, 2, 0, *(intptr_t*)0x11DE814);
+
+	((void(__thiscall*)(intptr_t, int))0x633CE0)(*(intptr_t*)0x11DE810, 0);
+}
+
+void PopDrawBlitImShader()
+{
+	((void(*)())0x633D20)();
+
+	((void(__thiscall*)(intptr_t))0x633DC0)(*(intptr_t*)0x11DE810);
+}
 
 static void WRAPPER __fastcall SetTextureGtaIm_impl(rage::grcTexture** texture) { EAXJMP(0x852480); }
 
@@ -76,3 +107,5 @@ void GetGameResolution(int& resX, int& resY)
 	resX = *(int*)0xFDCEAC;
 	resY = *(int*)0xFDCEB0;
 }
+
+void WRAPPER SetRenderState(int rs, int val) { EAXJMP(0x62D2D0); }

@@ -2,6 +2,14 @@
 
 #include "grcTexture.h"
 
+#ifdef COMPILING_RAGE_GRAPHICS_NY
+#define GAMESPEC_EXPORT_VMT __declspec(dllexport)
+#define GAMESPEC_EXPORT __declspec(dllexport)
+#else
+#define GAMESPEC_EXPORT_VMT __declspec(dllimport)
+#define GAMESPEC_EXPORT __declspec(dllimport)
+#endif
+
 class GAMESPEC_EXPORT_VMT __declspec(novtable) CBaseDC
 {
 public:
@@ -45,13 +53,30 @@ public:
 	CGenericDC(void(*cb)());
 };
 
+class GAMESPEC_EXPORT_VMT CGenericDC1Arg : public CImplementedDC
+{
+private:
+	char pad[12];
+
+public:
+	CGenericDC1Arg(void(*cb)(int arg), int arg);
+};
+
+bool GAMESPEC_EXPORT IsOnRenderThread();
+
 void GAMESPEC_EXPORT SetTexture(rage::grcTexture* texture);
 
 void GAMESPEC_EXPORT PushUnlitImShader();
-void GAMESPEC_EXPORT BeginImVertices(int count, int count2);
+void GAMESPEC_EXPORT BeginImVertices(int type, int count);
 void GAMESPEC_EXPORT AddImVertex(float x, float y, float z, float nX, float nY, float nZ, uint32_t color, float u, float v);
 void GAMESPEC_EXPORT DrawImVertices();
 void GAMESPEC_EXPORT PopUnlitImShader();
+
+void GAMESPEC_EXPORT PushDrawBlitImShader();
+
+void GAMESPEC_EXPORT PopDrawBlitImShader();
+
+void GAMESPEC_EXPORT SetRenderState(int, int);
 
 void GAMESPEC_EXPORT SetTextureGtaIm(rage::grcTexture* texture);
 void GAMESPEC_EXPORT DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* color, int subShader);

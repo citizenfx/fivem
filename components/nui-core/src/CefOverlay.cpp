@@ -648,6 +648,8 @@ static InitFunction initFunction([] ()
 
 	OnGrcEndScene.Connect([]()
 	{
+		return;
+
 		float bottomLeft[2] = { 0.f, 1.f };
 		float bottomRight[2] = { 1.f, 1.f };
 		float topLeft[2] = { 0.f, 0.f };

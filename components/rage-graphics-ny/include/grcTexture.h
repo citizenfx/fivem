@@ -12,6 +12,8 @@ public:
 	char pad[16];
 	const char* m_pszTextureName;
 	IDirect3DTexture9* m_pITexture;
+	char pad2[44];
+	void* m_pixelData;
 };
 
 #define FORMAT_A8R8G8B8 2
