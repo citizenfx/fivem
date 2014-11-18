@@ -3,10 +3,11 @@
 #include "grcTexture.h"
 
 #ifdef COMPILING_RAGE_GRAPHICS_NY
-#define GAMESPEC_EXPORT_VMT __declspec(dllexport)
+#define GAMESPEC_EXPORT_VMT __declspec(dllexport) __declspec(novtable)
 #define GAMESPEC_EXPORT __declspec(dllexport)
 #else
-#define GAMESPEC_EXPORT_VMT __declspec(dllimport)
+// no dllimport for importing a vtable as it will be translated to a local vtable
+#define GAMESPEC_EXPORT_VMT __declspec(novtable)
 #define GAMESPEC_EXPORT __declspec(dllimport)
 #endif
 
@@ -59,7 +60,7 @@ private:
 	char pad[12];
 
 public:
-	CGenericDC1Arg(void(*cb)(int arg), int arg);
+	CGenericDC1Arg(void(*cb)(int arg), int* arg);
 };
 
 bool GAMESPEC_EXPORT IsOnRenderThread();

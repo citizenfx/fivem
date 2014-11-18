@@ -41,16 +41,18 @@ std::string FontRendererImpl::GetFontKey(ComPtr<IDWriteFontFace> fontFace, float
 
 	file->GetReferenceKey(&referenceKey, &referenceKeySize);
 
-	// store in a std::string
-	std::string referenceKeyStr((const char*)referenceKey, referenceKeySize);
+	// store in a buffer and append the size
+	uint32_t referenceKeySizeTarget = min(referenceKeySize, 128);
+
+	char refKeyBuffer[256];
+	memcpy(refKeyBuffer, referenceKey, referenceKeySizeTarget);
+
+	*(uint32_t*)&refKeyBuffer[referenceKeySizeTarget] = emSize;
 
 	// release the file
 	file->Release();
 
-	// get metrics
-	referenceKeyStr += va("_%f", emSize);
-
-	return referenceKeyStr;
+	return std::string(refKeyBuffer, referenceKeySizeTarget + 4);
 }
 
 fwRefContainer<CachedFont> FontRendererImpl::GetFontInstance(ComPtr<IDWriteFontFace> fontFace, float emSize)
@@ -72,12 +74,13 @@ fwRefContainer<CachedFont> FontRendererImpl::GetFontInstance(ComPtr<IDWriteFontF
 
 void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef)
 {
-	ComPtr<IDWriteTextFormat> textFormat;
+	wchar_t fontRefWide[128];
+	mbstowcs(fontRefWide, fontRef.c_str(), _countof(fontRefWide));
 
-	m_dwFactory->CreateTextFormat(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize, L"en-us", textFormat.GetAddressOf());
+	ComPtr<IDWriteTextFormat> textFormat;
+	m_dwFactory->CreateTextFormat(fontRefWide, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize, L"en-us", textFormat.GetAddressOf());
 
 	ComPtr<IDWriteTextLayout> textLayout;
-
 	m_dwFactory->CreateTextLayout(text.c_str(), text.length(), textFormat.Get(), rect.Width(), rect.Height(), textLayout.GetAddressOf());
 
 	auto drawingContext = new CitizenDrawingContext();
@@ -87,35 +90,52 @@ void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& 
 
 	if (numRuns)
 	{
-		auto glyphRuns = new ResultingGlyphRun*[numRuns + 1];
-		memcpy(glyphRuns, &drawingContext->glyphRuns[0], sizeof(ResultingGlyphRun*) * numRuns);
-		glyphRuns[numRuns] = nullptr;
-
-		m_gameInterface->InvokeOnRender([] (void* arg)
+		for (auto& run : drawingContext->glyphRuns)
 		{
-			auto glyphRuns = (ResultingGlyphRun**)arg;
-
-			for (ResultingGlyphRun** p = glyphRuns; *p; p++)
-			{
-				auto glyphRun = *p;
-
-				for (int i = 0; i < glyphRun->numSubRuns; i++)
-				{
-					auto subRun = &glyphRun->subRuns[i];
-
-					g_fontRenderer.GetGameInterface()->SetTexture(subRun->texture);
-					g_fontRenderer.GetGameInterface()->DrawIndexedVertices(subRun->numVertices, subRun->numIndices, subRun->vertices, subRun->indices);
-					g_fontRenderer.GetGameInterface()->UnsetTexture();
-				}
-
-				delete glyphRun;
-			}
-
-			delete glyphRuns;
-		}, glyphRuns);
+			m_queuedGlyphRuns.push_back(run);
+		}
 	}
 
 	delete drawingContext;
+}
+
+void FontRendererImpl::DrawPerFrame()
+{
+	auto numRuns = m_queuedGlyphRuns.size();
+
+	if (!numRuns)
+	{
+		return;
+	}
+
+	ResultingGlyphRun** glyphRuns = new ResultingGlyphRun*[numRuns + 1];
+	memcpy(glyphRuns, &m_queuedGlyphRuns[0], sizeof(ResultingGlyphRun*) * numRuns);
+	glyphRuns[numRuns] = nullptr;
+
+	m_gameInterface->InvokeOnRender([] (void* arg)
+	{
+		auto glyphRuns = (ResultingGlyphRun**)arg;
+
+		for (ResultingGlyphRun** p = glyphRuns; *p; p++)
+		{
+			auto glyphRun = *p;
+
+			for (int i = 0; i < glyphRun->numSubRuns; i++)
+			{
+				auto subRun = &glyphRun->subRuns[i];
+
+				g_fontRenderer.GetGameInterface()->SetTexture(subRun->texture);
+				g_fontRenderer.GetGameInterface()->DrawIndexedVertices(subRun->numVertices, subRun->numIndices, subRun->vertices, subRun->indices);
+				g_fontRenderer.GetGameInterface()->UnsetTexture();
+			}
+
+			delete glyphRun;
+		}
+
+		delete glyphRuns;
+	}, glyphRuns);
+
+	m_queuedGlyphRuns.clear();
 }
 
 FontRendererImpl g_fontRenderer;

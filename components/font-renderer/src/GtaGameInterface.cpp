@@ -2,6 +2,7 @@
 #include "FontRendererImpl.h"
 #include <DrawCommands.h>
 #include <grcTexture.h>
+#include <GlobalEvents.h>
 
 class GtaGameInterface : public FontRendererGameInterface
 {
@@ -111,7 +112,9 @@ void GtaGameInterface::InvokeOnRender(void(*cb)(void*), void* arg)
 	}
 	else
 	{
-		auto dc = new(0) CGenericDC1Arg((void(*)(int))cb, (int)arg);
+		int argRef = (int)arg;
+
+		auto dc = new(0) CGenericDC1Arg((void(*)(int))cb, &argRef);
 		dc->Enqueue();
 	}
 }
@@ -123,3 +126,10 @@ FontRendererGameInterface* CreateGameInterface()
 	return &g_gtaGameInterface;
 }
 
+static InitFunction initFunction([] ()
+{
+	OnPostFrontendRender.Connect([] ()
+	{
+		g_fontRenderer.DrawPerFrame();
+	}, 1000);
+});

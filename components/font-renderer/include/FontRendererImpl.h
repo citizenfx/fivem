@@ -131,6 +131,8 @@ private:
 
 	FontRendererGameInterface* m_gameInterface;
 
+	std::vector<ResultingGlyphRun*> m_queuedGlyphRuns;
+
 	std::unordered_map<std::string, fwRefContainer<CachedFont>> m_fontCache;
 
 private:
@@ -142,6 +144,8 @@ public:
 	virtual void Initialize();
 
 	void PerFrameInit();
+
+	virtual void DrawPerFrame();
 
 	fwRefContainer<CachedFont> GetFontInstance(ComPtr<IDWriteFontFace> fontFace, float emSize);
 

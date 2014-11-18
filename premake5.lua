@@ -5,7 +5,7 @@ solution "CitizenMP"
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
-	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gtest/include/", os.getenv("BOOST_ROOT") }
+	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gmock/include/", "../vendor/gtest/include", os.getenv("BOOST_ROOT") }
 	
 	defines { "GTEST_HAS_PTHREAD=0" }
 
@@ -433,15 +433,23 @@ solution "CitizenMP"
 	project "gtest_main"
 		language "C++"
 		kind "StaticLib"
-		
+
 		includedirs { "../vendor/gtest/" }
+
 		files { "../vendor/gtest/src/gtest-all.cc", "../vendor/gtest/src/gtest_main.cc" }
+
+	project "gmock_main"
+		language "C++"
+		kind "StaticLib"
+		
+		includedirs { "../vendor/gmock/", "../vendor/gtest/" }
+		files { "../vendor/gmock/src/gmock-all.cc", "../vendor/gmock/src/gmock_main.cc" }
 		
 	project "tests_citigame"
 		language "C++"
 		kind "ConsoleApp"
 		
-		links { "gtest_main", "CitiGame", "CitiCore", "Shared" }
+		links { "gmock_main", "gtest_main", "CitiGame", "CitiCore", "Shared" }
 		
 		includedirs { "client/citigame/include/", "client/citicore/" }
 		
@@ -603,7 +611,7 @@ solution "CitizenMP"
 			files { "tests/test.cpp" }
 		end
 
-		links { "Shared", "CitiCore", "gtest_main", name }
+		links { "Shared", "CitiCore", "gmock_main", "gtest_main", name }
 
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"

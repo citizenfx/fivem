@@ -11,6 +11,8 @@ public:
 	virtual void Initialize() = 0;
 
 	virtual void DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef) = 0;
+
+	virtual void DrawPerFrame() = 0;
 };
 
 extern

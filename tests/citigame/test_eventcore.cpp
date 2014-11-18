@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "EventCore.h"
 
@@ -68,4 +69,27 @@ TEST(EventCoreTest, RunAndConnectEventMultiple)
 
 	EXPECT_TRUE(calledFlag1);
 	EXPECT_TRUE(calledFlag2);
+}
+
+TEST(EventCoreTest, OrderEventCallbacks)
+{
+	static fwEvent<> event;
+	std::vector<int> resultArray;
+	
+	// initialize the event with a few callbacks
+	int initializationOrder[] = { 10, 15, 13, 12, 14 };
+
+	for (auto& index : initializationOrder)
+	{
+		event.Connect([&resultArray, index] ()
+		{
+			resultArray.push_back(index);
+		}, index);
+	}
+
+	// invoke the event to fill the array
+	event();
+
+	// verify the array contents
+	EXPECT_THAT(resultArray, testing::ElementsAre(10, 12, 13, 14, 15));
 }

@@ -44,10 +44,14 @@ CGenericDC::CGenericDC(void(*cb)())
 	CGenericDC__ctor(this, cb);
 }
 
-auto CGenericDC1Arg__ctor = (void(__thiscall*)(CGenericDC1Arg*, void(*)(int), int))0x7BF9B0;
+#define VTABLE_CGenericDC1Arg 0xD55908
 
-CGenericDC1Arg::CGenericDC1Arg(void(*cb)(int arg), int arg)
+auto CGenericDC1Arg__ctor = (void(__thiscall*)(CGenericDC1Arg*, void(*)(int), int*))0x7BF9B0;
+
+CGenericDC1Arg::CGenericDC1Arg(void(*cb)(int arg), int* arg)
 {
+	*(uintptr_t*)this = VTABLE_CGenericDC1Arg;
+
 	CGenericDC1Arg__ctor(this, cb, arg);
 }
 

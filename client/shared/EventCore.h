@@ -281,6 +281,7 @@ private:
 	{
 		TFunc function;
 		callback* next;
+		int order;
 
 		callback(TFunc func)
 			: function(func)
@@ -313,10 +314,34 @@ public:
 
 	void Connect(TFunc func)
 	{
-		auto cb = new callback(func);
-		cb->next = m_callbacks;
+		Connect(func, 0);
+	}
 
-		m_callbacks = cb;
+	void Connect(TFunc func, int order)
+	{
+		auto cb = new callback(func);
+		cb->order = order;
+
+		if (!m_callbacks)
+		{
+			cb->next = nullptr;
+			m_callbacks = cb;
+		}
+		else
+		{
+			callback* cur = m_callbacks;
+			callback* last = nullptr;
+
+			while (cur && order >= cur->order)
+			{
+				last = cur;
+				cur = cur->next;
+			}
+
+			cb->next = cur;
+
+			(!last ? m_callbacks : last->next) = cb;
+		}
 	}
 
 	/*inline void Connect(std::function<void(Args...)> func)

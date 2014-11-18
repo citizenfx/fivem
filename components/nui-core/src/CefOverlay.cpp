@@ -1,5 +1,7 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
+#include "GlobalEvents.h"
+#include "DrawCommands.h"
 
 //#include "GameInit.h"
 
@@ -646,74 +648,77 @@ static InitFunction initFunction([] ()
 		g_nuiWindowsMutex.unlock();
 	});
 
-	OnGrcEndScene.Connect([]()
+	OnPostFrontendRender.Connect([]()
 	{
-		return;
-
-		float bottomLeft[2] = { 0.f, 1.f };
-		float bottomRight[2] = { 1.f, 1.f };
-		float topLeft[2] = { 0.f, 0.f };
-		float topRight[2] = { 1.f, 0.f };
-
-		if (g_mainUIFlag)
+		auto dc = new(0) CGenericDC([] ()
 		{
-			//nui::ProcessInput();
-		}
+			float bottomLeft[2] = { 0.f, 1.f };
+			float bottomRight[2] = { 1.f, 1.f };
+			float topLeft[2] = { 0.f, 0.f };
+			float topRight[2] = { 1.f, 0.f };
 
-		uint32_t color = 0xFFFFFFFF;
-
-		if (g_mainUIFlag)
-		{
-			ClearRenderTarget(true, -1, true, 1.0f, true, -1);
-		}
-
-		g_nuiWindowsMutex.lock();
-
-		for (auto& window : g_nuiWindows)
-		{
-			if (window->GetPaintType() != NUIPaintTypePostRender)
+			if (g_mainUIFlag)
 			{
-				continue;
+				//nui::ProcessInput();
 			}
 
-			if (window->GetTexture())
+			uint32_t color = 0xFFFFFFFF;
+
+			if (g_mainUIFlag)
 			{
-				SetTextureGtaIm(window->GetTexture());
-
-				int resX, resY;
-				GetGameResolution(resX, resY);
-
-				// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
-				DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+				ClearRenderTarget(true, -1, true, 1.0f, true, -1);
 			}
-		}
 
-		g_nuiWindowsMutex.unlock();
+			g_nuiWindowsMutex.lock();
 
-		if (g_mainUIFlag)
-		{
-			//POINT cursorPos;
-			//GetCursorPos(&cursorPos);
+			for (auto& window : g_nuiWindows)
+			{
+				if (window->GetPaintType() != NUIPaintTypePostRender)
+				{
+					continue;
+				}
 
-			POINT cursorPos = g_cursorPos;
+				if (window->GetTexture())
+				{
+					SetTextureGtaIm(window->GetTexture());
 
-			//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
+					int resX, resY;
+					GetGameResolution(resX, resY);
+
+					// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
+					DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+				}
+			}
+
+			g_nuiWindowsMutex.unlock();
+
+			if (g_mainUIFlag)
+			{
+				//POINT cursorPos;
+				//GetCursorPos(&cursorPos);
+
+				POINT cursorPos = g_cursorPos;
+
+				//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
 
 #ifndef GTA_NY
 #error "GTA_NY dependency!"
 #endif
 
-			if (true)//!GameInit::GetGameLoaded())
-			{
-				SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
-			}
-			else
-			{
-				SetTextureGtaIm(*(rage::grcTexture**)(0x18AAC20));
-			}
+				if (true)//!GameInit::GetGameLoaded())
+				{
+					SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
+				}
+				else
+				{
+					SetTextureGtaIm(*(rage::grcTexture**)(0x18AAC20));
+				}
 
-			DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
-		}
+				DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+			}
+		});
+
+		dc->Enqueue();
 	});
 
 	/*g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
