@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "FontRendererImpl.h"
+#include "3rdparty/dxt.h"
 
 FontRendererTexture::~FontRendererTexture()
 { }
@@ -69,7 +70,7 @@ void CachedFontPage::CreateNow()
 	maxHeight += 8;
 
 	// make an initial buffer assuming a width/height of 1024x256
-	uint32_t* pixelData = (uint32_t*)malloc(1024 * 256 * 4);
+	uint32_t* pixelData = (uint32_t*)_aligned_malloc(1024 * 256 * 4, 16);
 	memset(pixelData, 0, 1024 * 256 * 4);
 
 	int x = 0;
@@ -92,7 +93,7 @@ void CachedFontPage::CreateNow()
 			// check for vertical expansion
 			if ((y + maxHeight) > texHeight)
 			{
-				pixelData = (uint32_t*)realloc(pixelData, texWidth * (texHeight + 256) * 4);
+				pixelData = (uint32_t*)_aligned_realloc(pixelData, texWidth * (texHeight + 256) * 4, 16);
 				memset(pixelData + (texWidth * texHeight), 0, 256 * texWidth * 4);
 
 				texHeight += 256;
@@ -124,7 +125,19 @@ void CachedFontPage::CreateNow()
 		delete[] character.pixelData;
 	}
 
+#if defined(USE_ARGB8)
 	m_targetTexture = g_fontRenderer.GetGameInterface()->CreateTexture(texWidth, texHeight, FontRendererTextureFormat::ARGB, pixelData);
+#else
+	uint32_t* inPixelData = pixelData;
+	pixelData = (uint32_t*)_aligned_malloc(texWidth * texHeight, 16);
+
+	int outputBytes;
+	CompressImageDXT5((byte*)inPixelData, (byte*)pixelData, texWidth, texHeight, outputBytes);
+
+	_aligned_free(inPixelData);
+
+	m_targetTexture = g_fontRenderer.GetGameInterface()->CreateTexture(texWidth, texHeight, FontRendererTextureFormat::DXT5, pixelData);
+#endif
 	m_pixelData = pixelData;
 
 	// store addresses
