@@ -83,7 +83,9 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 	{
 		auto vertex = &vertices[indices[j]];
 		uint32_t color = *(uint32_t*)&vertex->color;
-		color = (color & 0xFF00FF00) | (vertex->color.blue | vertex->color.red << 16);
+
+		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
+		color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
 
 		AddImVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
@@ -98,6 +100,11 @@ void GtaGameInterface::UnsetTexture()
 
 void GtaGameInterface::InvokeOnRender(void(*cb)(void*), void* arg)
 {
+	if (IsRunningTests())
+	{
+		return;
+	}
+
 	if (IsOnRenderThread())
 	{
 		cb(arg);
