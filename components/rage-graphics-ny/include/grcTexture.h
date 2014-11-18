@@ -26,6 +26,8 @@ public:
 	virtual grcTexture* createManualTexture(short width, short height, int format, int unknown, const grcTexture* templ) = 0;
 
 public:
+	static GAMESPEC_EXPORT grcTexture* GetNoneTexture();
+
 	static GAMESPEC_EXPORT grcTextureFactory* getInstance();
 };
 }

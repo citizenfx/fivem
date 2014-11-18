@@ -133,6 +133,8 @@ private:
 
 	std::vector<ResultingGlyphRun*> m_queuedGlyphRuns;
 
+	std::vector<ResultingRectangle> m_queuedRectangles;
+
 	std::unordered_map<std::string, fwRefContainer<CachedFont>> m_fontCache;
 
 private:
@@ -156,6 +158,8 @@ public:
 	inline ComPtr<IDWriteFactory2> GetDWriteFactory2() { return m_dwFactory2; }
 
 	virtual void DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef);
+
+	virtual void DrawRectangle(const CRect& rect, const CRGBA& color);
 };
 
 FontRendererGameInterface* CreateGameInterface();

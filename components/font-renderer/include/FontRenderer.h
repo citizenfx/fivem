@@ -12,6 +12,8 @@ public:
 
 	virtual void DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef) = 0;
 
+	virtual void DrawRectangle(const CRect& rect, const CRGBA& color) = 0;
+
 	virtual void DrawPerFrame() = 0;
 };
 

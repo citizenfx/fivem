@@ -72,6 +72,15 @@ fwRefContainer<CachedFont> FontRendererImpl::GetFontInstance(ComPtr<IDWriteFontF
 	return cachedFont;
 }
 
+void FontRendererImpl::DrawRectangle(const CRect& rect, const CRGBA& color)
+{
+	ResultingRectangle resultRect;
+	resultRect.rectangle = rect;
+	resultRect.color = color;
+
+	m_queuedRectangles.push_back(resultRect);
+}
+
 void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef)
 {
 	wchar_t fontRefWide[128];
@@ -101,41 +110,67 @@ void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& 
 
 void FontRendererImpl::DrawPerFrame()
 {
-	auto numRuns = m_queuedGlyphRuns.size();
+	// draw rectangles
+	auto numRectangles = m_queuedRectangles.size();
 
-	if (!numRuns)
+	if (numRectangles)
 	{
-		return;
+		// allocate a structure
+		ResultingRectangles* rectangles = new ResultingRectangles();
+		rectangles->count = numRectangles;
+
+		rectangles->rectangles = new ResultingRectangle[numRectangles];
+
+		// copy to output
+		std::copy(m_queuedRectangles.begin(), m_queuedRectangles.end(), rectangles->rectangles);
+
+		m_gameInterface->InvokeOnRender([] (void* arg)
+		{
+			auto rectangles = (ResultingRectangles*)arg;
+
+			g_fontRenderer.GetGameInterface()->DrawRectangles(rectangles->count, rectangles->rectangles);
+
+			delete[] rectangles->rectangles;
+			delete rectangles;
+		}, rectangles);
+
+		m_queuedRectangles.clear();
 	}
 
-	ResultingGlyphRun** glyphRuns = new ResultingGlyphRun*[numRuns + 1];
-	memcpy(glyphRuns, &m_queuedGlyphRuns[0], sizeof(ResultingGlyphRun*) * numRuns);
-	glyphRuns[numRuns] = nullptr;
+	// draw glyph runs
+	auto numRuns = m_queuedGlyphRuns.size();
 
-	m_gameInterface->InvokeOnRender([] (void* arg)
+	if (numRuns)
 	{
-		auto glyphRuns = (ResultingGlyphRun**)arg;
+		ResultingGlyphRun** glyphRuns = new ResultingGlyphRun*[numRuns + 1];
+		memcpy(glyphRuns, &m_queuedGlyphRuns[0], sizeof(ResultingGlyphRun*) * numRuns);
+		glyphRuns[numRuns] = nullptr;
 
-		for (ResultingGlyphRun** p = glyphRuns; *p; p++)
+		m_gameInterface->InvokeOnRender([] (void* arg)
 		{
-			auto glyphRun = *p;
+			auto glyphRuns = (ResultingGlyphRun**)arg;
 
-			for (int i = 0; i < glyphRun->numSubRuns; i++)
+			for (ResultingGlyphRun** p = glyphRuns; *p; p++)
 			{
-				auto subRun = &glyphRun->subRuns[i];
+				auto glyphRun = *p;
 
-				g_fontRenderer.GetGameInterface()->SetTexture(subRun->texture);
-				g_fontRenderer.GetGameInterface()->DrawIndexedVertices(subRun->numVertices, subRun->numIndices, subRun->vertices, subRun->indices);
-				g_fontRenderer.GetGameInterface()->UnsetTexture();
+				for (int i = 0; i < glyphRun->numSubRuns; i++)
+				{
+					auto subRun = &glyphRun->subRuns[i];
+
+					g_fontRenderer.GetGameInterface()->SetTexture(subRun->texture);
+					g_fontRenderer.GetGameInterface()->DrawIndexedVertices(subRun->numVertices, subRun->numIndices, subRun->vertices, subRun->indices);
+					g_fontRenderer.GetGameInterface()->UnsetTexture();
+				}
+
+				delete glyphRun;
 			}
 
-			delete glyphRun;
-		}
+			delete glyphRuns;
+		}, glyphRuns);
 
-		delete glyphRuns;
-	}, glyphRuns);
-
-	m_queuedGlyphRuns.clear();
+		m_queuedGlyphRuns.clear();
+	}
 }
 
 FontRendererImpl g_fontRenderer;

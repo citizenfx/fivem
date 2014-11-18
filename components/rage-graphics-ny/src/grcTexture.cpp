@@ -8,6 +8,11 @@ grcTextureFactory* grcTextureFactory::getInstance()
 {
 	return *(grcTextureFactory**)0x18A8630;
 }
+
+grcTexture* grcTextureFactory::GetNoneTexture()
+{
+	return *(grcTexture**)0x188AA90;
+}
 }
 
 /*void RegisterD3DPostResetCallback(void(*function)())

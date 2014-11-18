@@ -24,6 +24,18 @@ struct FontRendererVertex
 	CRGBA color;
 };
 
+struct ResultingRectangle
+{
+	CRect rectangle;
+	CRGBA color;
+};
+
+struct ResultingRectangles
+{
+	int count;
+	ResultingRectangle* rectangles;
+};
+
 class FontRendererGameInterface
 {
 public:
@@ -32,6 +44,8 @@ public:
 	virtual void SetTexture(FontRendererTexture* texture) = 0;
 
 	virtual void DrawIndexedVertices(int numVertices, int numIndices, FontRendererVertex* vertices, uint16_t* indices) = 0;
+
+	virtual void DrawRectangles(int numRectangles, const ResultingRectangle* rectangles) = 0;
 
 	virtual void UnsetTexture() = 0;
 
