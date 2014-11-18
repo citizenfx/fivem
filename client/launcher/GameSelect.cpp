@@ -31,16 +31,20 @@ void EnsureGamePath()
 
 	fileDialog->SetTitle(L"Select your GTA IV folder");
 
-	if (FAILED(fileDialog->Show(nullptr)))
+	HRESULT hr = fileDialog->Show(nullptr);
+
+	if (FAILED(hr))
 	{
+		MessageBox(nullptr, va(L"IFileDialog::Show failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		ExitProcess(0);
 	}
 
 	IShellItem* result = nullptr;
-	fileDialog->GetResult(&result);
+	hr = fileDialog->GetResult(&result);
 
 	if (!result)
 	{
+		MessageBox(nullptr, va(L"IFileDialog::GetResult failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		ExitProcess(0);
 	}
 
