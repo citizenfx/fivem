@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "FontRendererImpl.h"
 #include "3rdparty/dxt.h"
+#include <ppltasks.h>
 
 FontRendererTexture::~FontRendererTexture()
 { }
@@ -23,27 +24,33 @@ const CRect& CachedFontPage::GetCharacterSize(uint32_t codePoint)
 
 bool CachedFontPage::EnsureFontPageCreated()
 {
+	// if we haven't set pixel data yet
 	if (!m_pixelData)
 	{
 		if (!m_enqueued)
 		{
 			EnqueueCreateFontPage();
-
-			return true;
 		}
 
 		return false;
 	}
 
-	return true;
+	// return true if we're dequeued
+	return !m_enqueued;
 }
 
 void CachedFontPage::EnqueueCreateFontPage()
 {
-	// create now, rather than soon
-	CreateNow();
-
 	m_enqueued = true;
+
+	concurrency::create_task([=] ()
+	{
+		CreateNow();
+	}).then([=] ()
+	{
+		// clear the queued flag
+		m_enqueued = false;
+	});;
 }
 
 void CachedFontPage::CreateNow()
