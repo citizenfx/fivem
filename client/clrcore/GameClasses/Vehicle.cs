@@ -499,7 +499,7 @@ namespace CitizenFX.Core
                 Pointer c1Ptr = typeof(int), c2Ptr = typeof(int);
 
                 Function.Call(Natives.GET_CAR_COLOURS, m_handle, c1Ptr, c2Ptr);
-                Function.Call(Natives.CHANGE_CAR_COLOUR, value.Index, (int)c2Ptr);
+                Function.Call(Natives.CHANGE_CAR_COLOUR, m_handle, value.Index, (int)c2Ptr);
             }
         }
 
@@ -517,7 +517,7 @@ namespace CitizenFX.Core
                 Pointer c1Ptr = typeof(int), c2Ptr = typeof(int);
 
                 Function.Call(Natives.GET_EXTRA_CAR_COLOURS, m_handle, c1Ptr, c2Ptr);
-                Function.Call(Natives.SET_EXTRA_CAR_COLOURS, value.Index, (int)c2Ptr);
+                Function.Call(Natives.SET_EXTRA_CAR_COLOURS, m_handle, value.Index, (int)c2Ptr);
             }
         }
 
@@ -535,7 +535,7 @@ namespace CitizenFX.Core
                 Pointer c1Ptr = typeof(int), c2Ptr = typeof(int);
 
                 Function.Call(Natives.GET_CAR_COLOURS, m_handle, c1Ptr, c2Ptr);
-                Function.Call(Natives.CHANGE_CAR_COLOUR, (int)c1Ptr, value.Index);
+                Function.Call(Natives.CHANGE_CAR_COLOUR, m_handle, (int)c1Ptr, value.Index);
             }
         }
 
@@ -553,7 +553,7 @@ namespace CitizenFX.Core
                 Pointer c1Ptr = typeof(int), c2Ptr = typeof(int);
 
                 Function.Call(Natives.GET_EXTRA_CAR_COLOURS, m_handle, c1Ptr, c2Ptr);
-                Function.Call(Natives.SET_EXTRA_CAR_COLOURS, (int)c1Ptr, value.Index);
+                Function.Call(Natives.SET_EXTRA_CAR_COLOURS, m_handle, (int)c1Ptr, value.Index);
             }
         }
 

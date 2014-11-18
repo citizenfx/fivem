@@ -491,6 +491,54 @@ namespace CitizenFX.Core
             }
         }
 
+        public bool IsInAnyBoat
+        {
+            get
+            {
+                return Function.Call<bool>(Natives.IS_CHAR_IN_ANY_BOAT, m_handle);
+            }
+        }
+
+        public bool IsInAnyCar
+        {
+            get
+            {
+                return Function.Call<bool>(Natives.IS_CHAR_IN_ANY_CAR, m_handle);
+            }
+        }
+
+        public bool IsInAnyHeli
+        {
+            get
+            {
+                return Function.Call<bool>(Natives.IS_CHAR_IN_ANY_HELI, m_handle);
+            }
+        }
+
+        public bool IsInAnyPlane
+        {
+            get
+            {
+                return Function.Call<bool>(Natives.IS_CHAR_IN_ANY_PLANE, m_handle);
+            }
+        }
+
+        public bool IsInAnyPoliceVehicle
+        {
+            get
+            {
+                return Function.Call<bool>(Natives.IS_CHAR_IN_ANY_POLICE_VEHICLE, m_handle);
+            }
+        }
+
+        public bool IsInAnyTrain
+        {
+            get
+            {
+                return Function.Call<bool>(Natives.IS_CHAR_IN_ANY_TRAIN, m_handle);
+            }
+        }
+
         public void NoLongerNeeded()
         {
             Pointer pedPtr = m_handle;
