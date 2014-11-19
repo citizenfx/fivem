@@ -12,7 +12,8 @@ deps = {
 	"vendor/gmock": "http://googlemock.googlecode.com/svn/trunk/",
 	"vendor/gtest": "http://googletest.googlecode.com/svn/trunk/",
 	"vendor/protobuf": "http://protobuf.googlecode.com/svn/trunk/",
-	"vendor/libopus": "git://git.opus-codec.org/opus.git"
+	"vendor/libopus": "git://git.opus-codec.org/opus.git",
+	"vendor/pash": "http://tohjo.eu/citidev/pash.git"
 }
 
 hooks = [

@@ -112,7 +112,7 @@ solution "CitizenMP"
 		configuration "Release*"
 			links { "libcef" }
 
-	local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
+	--[[local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
 
 	if buildHost == 'FALLARBOR' then
 		project "CitiMono"
@@ -129,7 +129,24 @@ solution "CitizenMP"
 
 			configuration "Release*"
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
-	end
+	end]]
+
+	external 'CitiMono'
+		uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
+		kind 'SharedLib'
+		language 'C#'
+
+	external '010.Irony.2010'
+		uuid 'D81F5C91-D7DB-46E5-BC99-49488FB6814C'
+		kind 'SharedLib'
+		language 'C#'
+		location '../vendor/pash/Libraries/Irony/Irony/'
+
+	external 'System.Management'
+		uuid 'C5E303EC-5684-4C95-B0EC-2593E6662403'
+		kind 'SharedLib'
+		language 'C#'
+		location '../vendor/pash/Source/System.Management/'
 			
 	project "GameNY"
 		targetname "game_ny"
