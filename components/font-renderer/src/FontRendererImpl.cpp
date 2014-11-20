@@ -92,6 +92,15 @@ void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& 
 	ComPtr<IDWriteTextLayout> textLayout;
 	m_dwFactory->CreateTextLayout(text.c_str(), text.length(), textFormat.Get(), rect.Width(), rect.Height(), textLayout.GetAddressOf());
 
+	// set effect
+	DWRITE_TEXT_RANGE effectRange = { 0, UINT32_MAX };
+	ComPtr<CitizenDrawingEffect> effect = Make<CitizenDrawingEffect>();
+
+	effect->SetColor(color);
+
+	textLayout->SetDrawingEffect((IUnknown*)effect.Get(), effectRange);
+
+	// draw
 	auto drawingContext = new CitizenDrawingContext();
 	textLayout->Draw(drawingContext, m_textRenderer.Get(), rect.Left(), rect.Top());
 
@@ -106,6 +115,25 @@ void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& 
 	}
 
 	delete drawingContext;
+}
+
+bool FontRendererImpl::GetStringMetrics(fwWString characterString, float fontSize, float fontScale, fwString fontRef, CRect& outRect)
+{
+	wchar_t fontRefWide[128];
+	mbstowcs(fontRefWide, fontRef.c_str(), _countof(fontRefWide));
+
+	ComPtr<IDWriteTextFormat> textFormat;
+	m_dwFactory->CreateTextFormat(fontRefWide, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize, L"en-us", textFormat.GetAddressOf());
+
+	ComPtr<IDWriteTextLayout> textLayout;
+	m_dwFactory->CreateTextLayout(characterString.c_str(), characterString.length(), textFormat.Get(), 8192.0, 8192.0, textLayout.GetAddressOf());
+
+	DWRITE_TEXT_METRICS textMetrics;
+	textLayout->GetMetrics(&textMetrics);
+
+	outRect.SetRect(textMetrics.left, textMetrics.top, textMetrics.left + textMetrics.width, textMetrics.top + textMetrics.height);
+
+	return true;
 }
 
 void FontRendererImpl::DrawPerFrame()

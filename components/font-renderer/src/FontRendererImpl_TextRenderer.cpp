@@ -50,9 +50,19 @@ HRESULT CitizenTextRenderer::DrawGlyphRun(void * clientDrawingContext, FLOAT bas
 
 	auto cachedFont = g_fontRenderer.GetFontInstance(glyphRun->fontFace, glyphRun->fontEmSize);
 
+	// get drawing effect
+	ComPtr<IUnknown> drawingEffectPtr = clientDrawingEffect;
+	ComPtr<ICitizenDrawingEffect> drawingEffect;
+	drawingEffectPtr.As(&drawingEffect);
+
 	if (cachedFont->EnsureFaceCreated())
 	{
-		drawingContext->glyphRuns.push_back(cachedFont->TargetGlyphRun(baselineOriginX, baselineOriginY, glyphRun, glyphRunDescription, CRGBA(255, 255, 255)));
+		auto resultingRun = cachedFont->TargetGlyphRun(baselineOriginX, baselineOriginY, glyphRun, glyphRunDescription, drawingEffect->GetColor());
+
+		if (resultingRun)
+		{
+			drawingContext->glyphRuns.push_back(resultingRun);
+		}
 	}
 
 	return S_OK;

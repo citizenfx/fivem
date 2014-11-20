@@ -15,6 +15,8 @@ public:
 	virtual void DrawRectangle(const CRect& rect, const CRGBA& color) = 0;
 
 	virtual void DrawPerFrame() = 0;
+
+	virtual bool GetStringMetrics(fwWString characterString, float fontSize, float fontScale, fwString fontRef, CRect& outRect) = 0;
 };
 
 extern

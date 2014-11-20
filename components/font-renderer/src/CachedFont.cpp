@@ -65,8 +65,16 @@ void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRI
 			auto& address = page->GetCharacterAddress(glyphRun->glyphIndices[i]);
 			auto& affect = page->GetCharacterSize(glyphRun->glyphIndices[i]);
 
-			float tX = x + glyphRun->glyphOffsets[i].advanceOffset + affect.Left() - 0.5;
-			float tY = originY - glyphRun->glyphOffsets[i].ascenderOffset + affect.Top() - 0.5;
+			float tX = x + affect.Left() - 0.5;
+			float tY = originY + affect.Top() - 0.5;
+
+			if (glyphRun->glyphOffsets)
+			{
+				auto offset = &glyphRun->glyphOffsets[i];
+
+				tX += offset->advanceOffset;
+				tY -= offset->ascenderOffset;
+			}
 
 			thisRun->vertices[0].x = tX;
 			thisRun->vertices[0].y = tY;
@@ -158,6 +166,11 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 
 			colorEnumerator->MoveNext(&hasRun);
 		} while (hasRun);
+	}
+
+	if (runCount == 0)
+	{
+		return nullptr;
 	}
 
 	// compress the runs

@@ -160,6 +160,34 @@ public:
 	virtual void DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef);
 
 	virtual void DrawRectangle(const CRect& rect, const CRGBA& color);
+
+	virtual bool GetStringMetrics(fwWString characterString, float fontSize, float fontScale, fwString fontRef, CRect& outRect);
+};
+
+// not entirely COM calling convention, but we'll only use it internally
+// {71246052-4EEA-4339-BBC0-D2246A3F5CE3}
+DEFINE_GUID(IID_ICitizenDrawingEffect,
+			0x71246052, 0x4eea, 0x4339, 0xbb, 0xc0, 0xd2, 0x24, 0x6a, 0x3f, 0x5c, 0xe3);
+
+interface DECLSPEC_UUID("71246052-4EEA-4339-BBC0-D2246A3F5CE3") ICitizenDrawingEffect;
+
+class ICitizenDrawingEffect : public IUnknown
+{
+public:
+	virtual CRGBA GetColor() = 0;
+
+	virtual void SetColor(CRGBA color) = 0;
+};
+
+class CitizenDrawingEffect : public RuntimeClass<RuntimeClassFlags<ClassicCom>, ICitizenDrawingEffect>
+{
+private:
+	CRGBA m_color;
+
+public:
+	virtual CRGBA GetColor() { return m_color; }
+
+	virtual void SetColor(CRGBA color) { m_color = color; }
 };
 
 FontRendererGameInterface* CreateGameInterface();
