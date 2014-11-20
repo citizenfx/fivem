@@ -139,6 +139,11 @@ static InitFunction initFunction([] ()
 	//g_hooksDLL->SetHookCallback(StringHash("wndProc"), [] (void* argsPtr)
 	InputHook::OnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
+		if (!pass)
+		{
+			return;
+		}
+
 		if (g_hasFocus)
 		{
 			if (msg == WM_KEYUP || msg == WM_KEYDOWN || msg == WM_CHAR)

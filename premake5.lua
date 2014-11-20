@@ -147,6 +147,12 @@ solution "CitizenMP"
 		kind 'SharedLib'
 		language 'C#'
 		location '../vendor/pash/Source/System.Management/'
+
+	external 'Microsoft.PowerShell.Commands.Utility'
+		uuid '0E1D573C-C57D-4A83-A739-3A38E719D87E'
+		kind 'SharedLib'
+		language 'C#'
+		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/'
 			
 	project "GameNY"
 		targetname "game_ny"
