@@ -28,10 +28,18 @@ VOID WINAPI GetStartupInfoAHook(LPSTARTUPINFOA startupInfo)
 
 	if (!memcmp(charData, "\x6A\xFE\x5F\x89\x7D\xFC\xB8\x4D", 8))
 	{
+		PEXCEPTION_REGISTRATION_RECORD sehPtr = (PEXCEPTION_REGISTRATION_RECORD)__readfsdword(0);
+
+		// and we don't want crt init to use its own exception handler either
+		__writefsdword(0, (DWORD)sehPtr->Next);
+
 		if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
 		{
 			ExitProcess(0);
 		}
+
+		// so it can pop itself
+		__writefsdword(0, (DWORD)sehPtr);
 	}
 	else
 	{

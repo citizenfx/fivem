@@ -27,9 +27,10 @@ inline void set_base()
 }
 
 // adjusts the address passed to the base as set above
-inline void adjust_base(uintptr_t& address)
+template<typename T>
+inline void adjust_base(T& address)
 {
-	address += baseAddressDifference;
+	*(uintptr_t*)&address += baseAddressDifference;
 }
 
 // returns the adjusted address to the stated base
@@ -74,16 +75,16 @@ public:
 };
 #pragma endregion
 
-template<typename ValueType>
-inline void put(uintptr_t address, ValueType value)
+template<typename ValueType, typename AddressType>
+inline void put(AddressType address, ValueType value)
 {
 	adjust_base(address);
 
 	memcpy((void*)address, &value, sizeof(value));
 }
 
-template<typename ValueType>
-inline void putVP(uintptr_t address, ValueType value)
+template<typename ValueType, typename AddressType>
+inline void putVP(AddressType address, ValueType value)
 {
 	adjust_base(address);
 
@@ -95,14 +96,16 @@ inline void putVP(uintptr_t address, ValueType value)
 	VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
 }
 
-inline void nop(uintptr_t address, size_t length)
+template<typename AddressType>
+inline void nop(AddressType address, size_t length)
 {
 	adjust_base(address);
 
 	memset((void*)address, 0x90, length);
 }
 
-inline void return_function(uintptr_t address, uint16_t stackSize = 0)
+template<typename AddressType>
+inline void return_function(AddressType address, uint16_t stackSize = 0)
 {
 	if (stackSize == 0)
 	{
@@ -367,18 +370,35 @@ public:
 };
 #endif
 
-template<typename T>
-inline void jump(uintptr_t address, T func)
+template<typename T, typename AT>
+inline void jump(AT address, T func)
 {
 	put<uint8_t>(address, 0xE9);
 	put<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
 }
 
-template<typename T>
-inline void call(uintptr_t address, T func)
+template<typename T, typename AT>
+inline void call(AT address, T func)
 {
 	put<uint8_t>(address, 0xE8);
 	put<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+}
+
+namespace vp
+{
+	template<typename T, typename AT>
+	inline void jump(AT address, T func)
+	{
+		putVP<uint8_t>(address, 0xE9);
+		putVP<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+	}
+
+	template<typename T, typename AT>
+	inline void call(AT address, T func)
+	{
+		putVP<uint8_t>(address, 0xE8);
+		putVP<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+	}
 }
 
 #pragma region inject call: call stub
