@@ -65,10 +65,11 @@ void main()
 	InitializeDummies();
 
 	// check stuff regarding the game executable
-	std::wstring gameExecutable = MakeRelativeGamePath(L"GTAIV.exe");
+	std::wstring gameExecutable = MakeRelativeGamePath(GAME_EXECUTABLE);
 
 	if (GetFileAttributes(gameExecutable.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
+		MessageBox(nullptr, L"Could not find the game executable (" GAME_EXECUTABLE L") at the configured path. Please check your CitizenFX.ini file.", PRODUCT_NAME, MB_OK | MB_ICONERROR);
 		ExitProcess(1);
 	}
 

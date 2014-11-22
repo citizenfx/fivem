@@ -29,8 +29,6 @@ bool UI_IsCanceled();
 bool Updater_RunUpdate(int numCaches, ...);
 const char* GetUpdateChannel();
 
-#define PRODUCT_NAME L"CitizenMP"
-#define CONTENT_URL "http://content.citizen.re/iv/"
-#define CONTENT_URL_WIDE L"http://content.citizen.re/iv/"
+#include "LauncherConfig.h"
 
 #include <citversion.h>

@@ -29,7 +29,7 @@ void EnsureGamePath()
 
 	fileDialog->SetOptions(opts);
 
-	fileDialog->SetTitle(L"Select your GTA IV folder");
+	fileDialog->SetTitle(L"Select the folder containing " GAME_EXECUTABLE);
 
 	HRESULT hr = fileDialog->Show(nullptr);
 
@@ -56,19 +56,21 @@ void EnsureGamePath()
 	result->Release();
 
 	// check if there's an IV EXE in the path
-	std::wstring ivPath = std::wstring(resultPath) + L"\\GTAIV.exe";
+	std::wstring ivPath = std::wstring(resultPath) + L"\\" GAME_EXECUTABLE;
 
 	if (GetFileAttributes(ivPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
+#if defined(GTA_NY)
 		std::wstring eflcPath = std::wstring(resultPath) + L"\\EFLC.exe";
 
 		if (GetFileAttributes(eflcPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			MessageBox(nullptr, L"The selected path does not contain a GTAIV.exe file. As this is an EFLC installation, placing a GTAIV.exe (version 1.0.7.0) from any source will work as well.", L"CitizenFX:IV", MB_OK | MB_ICONWARNING);
+			MessageBox(nullptr, L"The selected path does not contain a GTAIV.exe file. As this is an EFLC installation, placing a GTAIV.exe (version 1.0.7.0) from any source will work as well.", PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 		}
 		else
+#endif
 		{
-			MessageBox(nullptr, L"The selected path does not contain a GTAIV.exe file.", L"CitizenFX:IV", MB_OK | MB_ICONWARNING);
+			MessageBox(nullptr, L"The selected path does not contain a " GAME_EXECUTABLE L" file.", PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 		}
 
 		ExitProcess(0);
