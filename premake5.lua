@@ -42,10 +42,10 @@ solution "CitizenMP"
 		defines "NDEBUG"
 		optimize "Speed"
 		
-	configuration "ny"
+	configuration "game=ny"
 		defines "GTA_NY"
 
-	configuration "payne"
+	configuration "game=payne"
 		defines "PAYNE"
 			
 	project "CitiLaunch"
@@ -74,10 +74,10 @@ solution "CitizenMP"
 
 		flags { "StaticRuntime" }
 
-		configuration "ny"
+		configuration "game=ny"
 			targetname "CitizenFX"
 
-		configuration "payne"
+		configuration "game=payne"
 			targetname "CitizenPayne"
 		
 		configuration "Debug*"
@@ -128,7 +128,7 @@ solution "CitizenMP"
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 		
-		configuration "ny"
+		configuration "game=ny"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
 			links { "HooksNY", "GameNY" }
 			
@@ -157,7 +157,7 @@ solution "CitizenMP"
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
-	external 'CitiMono'
+	--[[external 'CitiMono'
 		uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
 		kind 'SharedLib'
 		language 'C#'
@@ -178,7 +178,7 @@ solution "CitizenMP"
 		uuid '0E1D573C-C57D-4A83-A739-3A38E719D87E'
 		kind 'SharedLib'
 		language 'C#'
-		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/'
+		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/']]
 			
 	if _OPTIONS['game'] == 'ny' then
 		project "GameNY"
