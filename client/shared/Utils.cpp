@@ -1,6 +1,5 @@
 #include "StdInc.h"
 #include "Utils.h"
-#include "GameInit.h"
 #include <sstream>
 #include <iomanip>
 

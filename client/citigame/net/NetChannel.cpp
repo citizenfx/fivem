@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#if 0
 #include "NetLibrary.h"
 
 NetChannel::NetChannel()
@@ -170,3 +171,4 @@ bool NetChannel::Process(const char* message, size_t size, NetBuffer** buffer)
 		return true;
 	}
 }
+#endif

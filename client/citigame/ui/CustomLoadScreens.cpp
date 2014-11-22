@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#ifdef GTA_NY
 #include "CefOverlay.h"
 #include "CustomLoadScreens.h"
 #include "CrossLibraryInterfaces.h"
@@ -49,3 +51,4 @@ static InitFunction initFunction([] ()
 		g_loadScreenMutex.unlock();
 	});
 });
+#endif

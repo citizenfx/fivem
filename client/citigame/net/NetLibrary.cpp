@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#ifdef GTA_NY
 #include "NetLibrary.h"
 #include "GameInit.h"
 #include "DownloadMgr.h"
@@ -921,4 +922,5 @@ static InitFunction initFunction([] ()
 	HooksDLLInterface::SetNetLibrary(g_netLibrary);
 	GameSpecDLLInterface::SetNetLibrary(g_netLibrary);
 });
+#endif
 #endif
