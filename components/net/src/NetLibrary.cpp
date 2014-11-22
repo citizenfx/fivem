@@ -867,3 +867,54 @@ NetLibrary* NetLibrary::Create()
 		netLibrary.SetHost(hostNetID, hostBase);
 	});
 });*/
+
+static InitFunction initFunction([] ()
+{
+	rage::fiDevice::OnInitialMount.Connect([] ()
+	{
+		static char citRoot[512];
+		std::wstring citPath = MakeRelativeCitPath(L"citizen");
+
+		size_t offset = wcstombs(citRoot, citPath.c_str(), sizeof(citRoot));
+		citRoot[offset] = '\\';
+		citRoot[offset + 1] = '\0';
+
+		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
+		device->setPath(citRoot, nullptr, true);
+		device->mount("citizen:/");
+
+		static char cacheRoot[512];
+		std::wstring cachePath = MakeRelativeCitPath(L"cache");
+
+		if (GetFileAttributes(cachePath.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			CreateDirectory(cachePath.c_str(), nullptr);
+		}
+
+		std::wstring unconfPath = MakeRelativeCitPath(L"cache/unconfirmed");
+
+		if (GetFileAttributes(unconfPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			CreateDirectory(unconfPath.c_str(), nullptr);
+		}
+
+		offset = wcstombs(cacheRoot, cachePath.c_str(), sizeof(cacheRoot));
+		cacheRoot[offset] = '\\';
+		cacheRoot[offset + 1] = '\0';
+
+		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
+		cacheDevice->setPath(cacheRoot, nullptr, false);
+		cacheDevice->mount("rescache:/");
+
+		HttpClient* httpClient = new HttpClient();
+		httpClient->DoFileGetRequest(L"citizen.re", 80, L"/files/iv-temp.zip", cacheDevice, "rescache:/iv-temp.zip", [] (bool, const char*, size_t)
+		{
+			MessageBox(nullptr, L"omg", L"yay", MB_OK | MB_ICONINFORMATION);
+		});
+
+		while (true)
+		{
+			Sleep(50);
+		}
+	});
+});

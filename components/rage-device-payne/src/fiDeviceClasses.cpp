@@ -2,9 +2,6 @@
 #include "fiDevice.h"
 #include "Hooking.h"
 
-#define VTABLE_fiDeviceRelative 0xD53D0C
-#define VTABLE_fiPackfile 0xEB9F84
-
 namespace rage
 {
 static uintptr_t g_vTable_fiDeviceRelative;
@@ -12,19 +9,19 @@ static uintptr_t g_vTable_fiPackfile;
 
 fiDeviceRelative::fiDeviceRelative()
 {
-	*(uintptr_t*)this = VTABLE_fiDeviceRelative;
+	*(uintptr_t*)this = g_vTable_fiDeviceRelative;
 
 	this->m_pad[256] = '\0';
 }
 
-hook::thiscall_stub<void(fiDeviceRelative*, const char*, bool, bool)> fiDeviceRelative__setPath([] ()
+hook::thiscall_stub<void(fiDeviceRelative*, const char*, fiDevice*, bool)> fiDeviceRelative__setPath([] ()
 {
 	return hook::pattern("8B F9 68 00 01 00 00 8D 4C 24 14").count(1).get(0).get<void>(-0x13);
 });
 
-void fiDeviceRelative::setPath(const char* relativeTo, bool onlyPhysical, bool allowRoot)
+void fiDeviceRelative::setPath(const char* relativeTo, rage::fiDevice* baseDevice, bool allowRoot)
 {
-	return fiDeviceRelative__setPath(this, relativeTo, onlyPhysical, allowRoot);
+	return fiDeviceRelative__setPath(this, relativeTo, baseDevice, allowRoot);
 }
 
 hook::thiscall_stub<void(fiDeviceRelative*, const char*)> fiDeviceRelative__mount([] ()
@@ -45,7 +42,7 @@ hook::thiscall_stub<void(fiPackfile*)> fiPackfile__ctor([] ()
 
 fiPackfile::fiPackfile()
 {
-	*(uintptr_t*)this = VTABLE_fiPackfile;
+	*(uintptr_t*)this = g_vTable_fiPackfile;
 
 	fiPackfile__ctor(this);
 }

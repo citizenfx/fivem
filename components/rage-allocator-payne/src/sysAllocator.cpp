@@ -24,5 +24,5 @@ namespace rage
 
 static HookFunction hookFunction([] ()
 {
-	rage::g_tlsOffset = *hook::pattern("8B 14 81 80 BA ? ? ? ? 00 74 0D").get(0).get<uint32_t>(5);
+	rage::g_tlsOffset = *hook::pattern("8B 30 8B 8E ? ? ? ? 8B 44 24 10 8B 11").get(0).get<uint32_t>(4);
 });

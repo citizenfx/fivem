@@ -203,7 +203,7 @@ public:
 	fiDeviceRelative();
 
 	// any RAGE path can be used; including root-relative paths
-	void setPath(const char* relativeTo, bool onlyPhysical, bool allowRoot);
+	void setPath(const char* relativeTo, rage::fiDevice* baseDevice, bool allowRoot);
 
 	// mounts the device in the device stack
 	void mount(const char* mountPoint);

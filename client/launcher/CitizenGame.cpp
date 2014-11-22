@@ -46,6 +46,10 @@ VOID WINAPI GetStartupInfoAHook(LPSTARTUPINFOA startupInfo)
 		// this is here *temporarily*
 		hook::jump(hook::pattern("81 EC 44 02 00 00 55 56 33 F6 33 C0").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
 
+		// mhm
+		memcpy(GetModuleFileNameA, g_gmfOrig, 5);
+		memcpy(GetModuleFileNameW, g_gmfOrigW, 5);
+
 		if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
 		{
 			ExitProcess(0);
