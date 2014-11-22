@@ -1,5 +1,21 @@
+local gamenames = { "ny", "payne" }
+
+newoption {
+	trigger		= "game",
+	value 		= "TARGET",
+	description = "Choose a game to target",
+	allowed 	= {
+		{ "ny",		"Grand Theft Auto IV" },
+		{ "payne",	"Max Payne 3" }
+	}
+}
+
+if not _OPTIONS['game'] then
+	_OPTIONS['game'] = 'dummy'
+end
+
 solution "CitizenMP"
-	configurations { "Debug NY", "Release NY" }
+	configurations { "Debug", "Release" }
 	
 	flags { "No64BitChecks", "Symbols", "Unicode" }
 	
@@ -12,23 +28,27 @@ solution "CitizenMP"
 	libdirs { "deplibs/lib/" }
 
 	links { "winmm" }
+
+	location ("build/" .. _OPTIONS['game'])
 	
 	configuration "Debug*"
-		targetdir "bin/debug"
+		targetdir ("bin/" .. _OPTIONS['game'] .. "/debug")
 		defines "NDEBUG"
 
 		defines { '_ITERATOR_DEBUG_LEVEL=0' }
 		
 	configuration "Release*"
-		targetdir "bin/release"
+		targetdir ("bin/" .. _OPTIONS['game'] .. "/release")
 		defines "NDEBUG"
 		optimize "Speed"
 		
-	configuration "* NY"
+	configuration "ny"
 		defines "GTA_NY"
+
+	configuration "payne"
+		defines "PAYNE"
 			
 	project "CitiLaunch"
-		targetname "CitizenFX"
 		language "C++"
 		kind "WindowedApp"
 		
@@ -53,6 +73,12 @@ solution "CitizenMP"
 		includedirs { "client/libcef/" }
 
 		flags { "StaticRuntime" }
+
+		configuration "ny"
+			targetname "CitizenFX"
+
+		configuration "payne"
+			targetname "CitizenPayne"
 		
 		configuration "Debug*"
 			links { "libcefd" }
@@ -90,19 +116,19 @@ solution "CitizenMP"
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
-		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "rage-nutsnbolts-ny", "nui-core", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net", "resources", "downloadmgr" }
+		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "rage-nutsnbolts-" .. _OPTIONS['game'], "nui-core", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp", "http-client", "net", "resources", "downloadmgr" }
 		
 		defines "COMPILING_GAME"
 		
 		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
-		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/rage-nutsnbolts-ny/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/include/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
+		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/rage-nutsnbolts-" .. _OPTIONS['game'] .. "/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/include/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 		
-		configuration "* NY"
+		configuration "ny"
 			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
 			links { "HooksNY", "GameNY" }
 			
@@ -154,45 +180,47 @@ solution "CitizenMP"
 		language 'C#'
 		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/'
 			
-	project "GameNY"
-		targetname "game_ny"
-		language "C++"
-		kind "SharedLib"
-		
-		links { "Shared", "zlib" }
-		
-		defines "COMPILING_GAMESPEC"
-		
-		pchsource "client/common/StdInc.cpp"
-		pchheader "StdInc.h"
-		
-		configuration "* NY"
-			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "../vendor/zlib/" }
-		
-			files
-			{
-				"client/game_ny/**.cpp", "client/game_ny/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
-			}
+	if _OPTIONS['game'] == 'ny' then
+		project "GameNY"
+			targetname "game_ny"
+			language "C++"
+			kind "SharedLib"
 			
-	project "HooksNY"
-		targetname "hooks_ny"
-		language "C++"
-		kind "SharedLib"
-		
-		links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny", "gta-core-ny" }
-		
-		defines "COMPILING_HOOKS"	
+			links { "Shared", "zlib" }
+			
+			defines "COMPILING_GAMESPEC"
+			
+			pchsource "client/common/StdInc.cpp"
+			pchheader "StdInc.h"
+			
+			configuration "* NY"
+				includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "../vendor/zlib/" }
+			
+				files
+				{
+					"client/game_ny/**.cpp", "client/game_ny/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
+				}
+			
+		project "HooksNY"
+			targetname "hooks_ny"
+			language "C++"
+			kind "SharedLib"
+			
+			links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny", "gta-core-ny" }
+			
+			defines "COMPILING_HOOKS"	
 
-		pchsource "client/hooks_ny/base/StdInc.cpp"
-		pchheader "StdInc.h"		
-		
-		configuration "* NY"
-			includedirs { "components/gta-core-ny/include", "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
+			pchsource "client/hooks_ny/base/StdInc.cpp"
+			pchheader "StdInc.h"		
 			
-			files
-			{
-				"client/hooks_ny/**.cpp", "client/hooks_ny/**.h", "client/common/Error.cpp"
-			}
+			configuration "* NY"
+				includedirs { "components/gta-core-ny/include", "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
+				
+				files
+				{
+					"client/hooks_ny/**.cpp", "client/hooks_ny/**.h", "client/common/Error.cpp"
+				}
+	end
 		
 	project "Shared"
 		targetname "shared"
@@ -201,7 +229,7 @@ solution "CitizenMP"
 
 		defines "COMPILING_SHARED"
 		
-		includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
+		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
 		files
 		{
@@ -217,7 +245,7 @@ solution "CitizenMP"
 
 		defines "COMPILING_SHARED"
 		
-		includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
+		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
 		files
 		{
@@ -512,6 +540,10 @@ solution "CitizenMP"
 
 	package.path = '?.lua'
 
+	function string:ends(match)
+		return (match == '' or self:sub(-match:len()) == match)
+	end
+
 	local json = require('json')
 
 	component = function(name)
@@ -525,37 +557,23 @@ solution "CitizenMP"
 
 		decoded.rawName = name
 
+		-- check if the project name ends in a known game name, and if we should ignore it
+		for _, name in ipairs(gamenames) do
+			-- if it ends in the current game name...
+			if decoded.name:ends(':' .. name) then
+				-- ... and it's not the current game we're targeting...
+				if name ~= _OPTIONS['game'] then
+					-- ... ignore it
+					return
+				end
+			end
+		end
+
+		-- add to the list
 		table.insert(components, decoded)
 	end
 
 	local do_component = function(name, comp)
-		project(name)
-
-		language "C++"
-		kind "SharedLib"
-
-		buildoptions "/MP"
-
-		includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
-		files {
-			'components/' .. name .. "/src/**.cpp",
-			'components/' .. name .. "/src/**.cc",
-			'components/' .. name .. "/src/**.h",
-			'components/' .. name .. "/include/**.h",
-			'components/' .. name .. "/component.rc",
-			"client/common/StdInc.cpp",
-			"client/common/Error.cpp"
-		}
-
-		defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
-
-		links { "Shared", "CitiCore" }
-
-		pchsource "client/common/StdInc.cpp"
-		pchheader "StdInc.h"
-
-		dofile('components/' .. name .. '/component.lua')
-
 		-- do automatic dependencies
 		if not comp.dependencies then
 			comp.dependencies = {}
@@ -593,6 +611,8 @@ solution "CitizenMP"
 		local hasDeps = {}
 
 		local function process_dependencies(comp)
+			local isFulfilled = true
+
 			for _, dep in ipairs(comp.dependencies) do
 				-- find a match for the dependency
 				local match = find_match(dep)
@@ -600,20 +620,62 @@ solution "CitizenMP"
 				if match and not hasDeps[match.rawName] then
 					print(project().name .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
 
-					includedirs { 'components/' .. match.rawName .. '/include/' }
-
-					links { match.rawName }
-
-					dofile('components/' .. match.rawName .. '/component.lua')
-
 					hasDeps[match.rawName] = true
 
-					process_dependencies(match)
+					isFulfilled = isFulfilled and process_dependencies(match)
+				else
+					if not dep:match('%[') then
+						print('Dependency unresolved for ' .. dep .. ' in ' .. comp.name)
+
+						return false
+					end
 				end
 			end
+
+			return isFulfilled
 		end
 
-		process_dependencies(comp)
+		if not process_dependencies(comp) then
+			return
+		end
+
+		-- process the project
+
+		project(name)
+
+		language "C++"
+		kind "SharedLib"
+
+		buildoptions "/MP"
+
+		includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
+		files {
+			'components/' .. name .. "/src/**.cpp",
+			'components/' .. name .. "/src/**.cc",
+			'components/' .. name .. "/src/**.h",
+			'components/' .. name .. "/include/**.h",
+			'components/' .. name .. "/component.rc",
+			"client/common/StdInc.cpp",
+			"client/common/Error.cpp"
+		}
+
+		defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
+
+		links { "Shared", "CitiCore" }
+
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+
+		dofile('components/' .. name .. '/component.lua')
+
+		-- add dependency requirements
+		for dep, _ in pairs(hasDeps) do
+			includedirs { 'components/' .. dep .. '/include/' }
+
+			links { dep }
+
+			dofile('components/' .. dep .. '/component.lua')
+		end
 
 		-- test project
 		project('tests_' .. name)
@@ -638,6 +700,10 @@ solution "CitizenMP"
 
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
+	end
+
+	if _OPTIONS['game'] == 'dummy' then
+		return
 	end
 
 	dofile('components/config.lua')
