@@ -14,7 +14,10 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
 	bool continueRunning = true;
 
+	// HooksDLL only exists for GTA_NY
+#ifdef GTA_NY
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
+#endif
 
 	SetHooksDll(g_hooksDLL);
 
@@ -83,7 +86,11 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 	bool continueRunning = true;
 
 	ComponentLoader::GetInstance()->DoGameLoad(hModule);
+
+	// HooksDLL only exists for GTA_NY
+#ifdef GTA_NY
 	HooksDLLInterface::PostGameLoad(hModule, &continueRunning);
+#endif
 
 	InitFunctionBase::RunAll();
 
