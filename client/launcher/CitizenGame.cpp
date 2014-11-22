@@ -16,6 +16,11 @@ BYTE g_gsiOrig[5];
 
 ILauncherInterface* g_launcher;
 
+bool ThisIsActuallyLaunchery()
+{
+	return true;
+}
+
 VOID WINAPI GetStartupInfoAHook(LPSTARTUPINFOA startupInfo)
 {
 	// put back the original and call it
@@ -32,6 +37,14 @@ VOID WINAPI GetStartupInfoAHook(LPSTARTUPINFOA startupInfo)
 
 		// and we don't want crt init to use its own exception handler either
 		__writefsdword(0, (DWORD)sehPtr->Next);
+
+		// we also need to unVP the read-only data segments
+		DWORD oldProtect;
+
+		VirtualProtect(GetModuleHandle(nullptr), 0x119e000, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		// this is here *temporarily*
+		hook::jump(hook::pattern("81 EC 44 02 00 00 55 56 33 F6 33 C0").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
 
 		if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
 		{
