@@ -61,8 +61,10 @@ void main()
 
 	SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 
+#ifdef GTA_NY
 	// initialize TLS variable so we get a TLS directory
 	InitializeDummies();
+#endif
 
 	// check stuff regarding the game executable
 	std::wstring gameExecutable = MakeRelativeGamePath(GAME_EXECUTABLE);

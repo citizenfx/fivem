@@ -16,11 +16,11 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 {
 	IMAGE_DATA_DIRECTORY* importDirectory = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 
-	auto descriptor = GetRVA<IMAGE_IMPORT_DESCRIPTOR>(importDirectory->VirtualAddress);
+	auto descriptor = GetTargetRVA<IMAGE_IMPORT_DESCRIPTOR>(importDirectory->VirtualAddress);
 
 	while (descriptor->Name)
 	{
-		const char* name = GetRVA<char>(descriptor->Name);
+		const char* name = GetTargetRVA<char>(descriptor->Name);
 
 		HMODULE module = ResolveLibrary(name);
 
@@ -36,8 +36,14 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 			continue;
 		}
 
-		auto nameTableEntry = GetRVA<uint32_t>(descriptor->OriginalFirstThunk);
+		auto nameTableEntry = GetTargetRVA<uint32_t>(descriptor->OriginalFirstThunk);
 		auto addressTableEntry = GetTargetRVA<uint32_t>(descriptor->FirstThunk);
+
+		// GameShield (Payne) uses FirstThunk for original name addresses
+		if (!descriptor->OriginalFirstThunk)
+		{
+			nameTableEntry = GetTargetRVA<uint32_t>(descriptor->FirstThunk);
+		}
 
 		while (*nameTableEntry)
 		{
@@ -52,7 +58,7 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 			}
 			else
 			{
-				auto import = GetRVA<IMAGE_IMPORT_BY_NAME>(*nameTableEntry);
+				auto import = GetTargetRVA<IMAGE_IMPORT_BY_NAME>(*nameTableEntry);
 
 				function = GetProcAddress(module, import->Name);
 				functionName = import->Name;
@@ -88,10 +94,12 @@ void ExecutableLoader::LoadSection(IMAGE_SECTION_HEADER* section)
 
 	if (section->SizeOfRawData > 0)
 	{
-		memcpy(targetAddress, sourceAddress, section->SizeOfRawData);
+		uint32_t sizeOfData = min(section->SizeOfRawData, section->Misc.VirtualSize);
+
+		memcpy(targetAddress, sourceAddress, sizeOfData);
 
 		DWORD oldProtect;
-		VirtualProtect(targetAddress, section->SizeOfRawData, PAGE_EXECUTE_READWRITE, &oldProtect);
+		VirtualProtect(targetAddress, sizeOfData, PAGE_EXECUTE_READWRITE, &oldProtect);
 	}
 }
 
@@ -118,19 +126,44 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 		return;
 	}
 
+	IMAGE_DOS_HEADER* sourceHeader = (IMAGE_DOS_HEADER*)module;
+	IMAGE_NT_HEADERS* sourceNtHeader = GetTargetRVA<IMAGE_NT_HEADERS>(sourceHeader->e_lfanew);
+
+#if defined(PAYNE)
+	IMAGE_TLS_DIRECTORY origTls = *GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+#endif
+
 	IMAGE_NT_HEADERS* ntHeader = (IMAGE_NT_HEADERS*)(m_origBinary + header->e_lfanew);
 
 	LoadSections(ntHeader);
 	LoadImports(ntHeader);
 
 	// copy over TLS index (source in this case indicates the TLS data to copy from, which is the launcher app itself)
-	IMAGE_DOS_HEADER* sourceHeader = (IMAGE_DOS_HEADER*)module;
-	IMAGE_NT_HEADERS* sourceNtHeader = GetTargetRVA<IMAGE_NT_HEADERS>(sourceHeader->e_lfanew);
-
+#if defined(GTA_NY)
 	const IMAGE_TLS_DIRECTORY* targetTls = GetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 	const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
 	*(DWORD*)(targetTls->AddressOfIndex) = *(DWORD*)(sourceTls->AddressOfIndex);
+#else
+	const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+
+	*(DWORD*)(sourceTls->AddressOfIndex) = 0;
+
+	// note: 32-bit!
+#if defined(_M_IX86)
+	LPVOID tlsBase = *(LPVOID*)__readfsdword(0x2C);
+	
+	memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+	memcpy((void*)origTls.StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+#endif
+/*#else
+	const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+
+	m_tlsInitializer(targetTls);*/
+#endif
+
+	// store the entry point
+	m_entryPoint = GetTargetRVA<void>(ntHeader->OptionalHeader.AddressOfEntryPoint);
 
 	// copy over the offset to the new imports directory
 	DWORD oldProtect;

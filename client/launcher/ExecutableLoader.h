@@ -9,7 +9,11 @@ private:
 	HMODULE m_module;
 	uintptr_t m_loadLimit;
 
+	void* m_entryPoint;
+
 	HMODULE(*m_libraryLoader)(const char*);
+
+	std::function<bool(const IMAGE_TLS_DIRECTORY*)> m_tlsInitializer;
 
 private:
 	void LoadSection(IMAGE_SECTION_HEADER* section);
@@ -42,6 +46,16 @@ public:
 	inline void SetLibraryLoader(HMODULE(*loader)(const char*))
 	{
 		m_libraryLoader = loader;
+	}
+
+	inline void SetTLSInitializer(const std::function<bool(const IMAGE_TLS_DIRECTORY*)>& callback)
+	{
+		m_tlsInitializer = callback;
+	}
+
+	inline void* GetEntryPoint()
+	{
+		return m_entryPoint;
 	}
 
 	void LoadIntoModule(HMODULE module);

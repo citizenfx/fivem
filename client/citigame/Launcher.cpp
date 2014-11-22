@@ -97,7 +97,8 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 #if defined(GTA_NY)
 	*entryPoint = (void(*)())0xD0D011;
 #elif defined(PAYNE)
-	*entryPoint = (void(*)())0;
+	// don't modify the entry point
+	//*entryPoint = (void(*)())0;
 #else
 #error TODO: define entry point for this title
 #endif
