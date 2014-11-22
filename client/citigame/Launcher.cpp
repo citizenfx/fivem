@@ -90,7 +90,7 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 #ifdef GTA_NY
 	*entryPoint = (void(*)())0xD0D011;
 #else
-#error "TOOD: define entry point for this title"
+#error TODO: define entry point for this title
 #endif
 
 	return continueRunning;
