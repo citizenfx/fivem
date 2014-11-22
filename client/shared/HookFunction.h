@@ -4,23 +4,38 @@
 // Initialization function that will be called after the game is loaded.
 //
 
-class HookFunction
+class HookFunctionBase
+{
+private:
+	HookFunctionBase* m_next;
+
+public:
+	HookFunctionBase()
+	{
+		Register();
+	}
+
+	virtual void Run() = 0;
+
+	static void RunAll();
+	void Register();
+};
+
+class HookFunction : public HookFunctionBase
 {
 private:
 	void(*m_function)();
-
-	HookFunction* m_next;
 
 public:
 	HookFunction(void(*function)())
 	{
 		m_function = function;
-
-		Register();
 	}
 
-	static void RunAll();
-	void Register();
+	virtual void Run()
+	{
+		m_function();
+	}
 };
 
 class RuntimeHookFunction

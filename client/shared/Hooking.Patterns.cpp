@@ -141,11 +141,14 @@ void pattern::Initialize(const char* pattern, size_t length)
 
 	for (uintptr_t i = executable.begin(); i <= executable.end(); i++)
 	{
-		ConsiderMatch(i);
+		if (ConsiderMatch(i))
+		{
+			g_hints.insert(std::make_pair(hash, i));
+		}
 	}
 }
 
-void pattern::ConsiderMatch(uintptr_t offset)
+bool pattern::ConsiderMatch(uintptr_t offset)
 {
 	const char* pattern = m_bytes.c_str();
 	const char* mask = m_mask.c_str();
@@ -161,10 +164,12 @@ void pattern::ConsiderMatch(uintptr_t offset)
 
 		if (pattern[i] != ptr[i])
 		{
-			return;
+			return false;
 		}
 	}
 
 	m_matches.push_back(pattern_match(ptr));
+
+	return true;
 }
 }

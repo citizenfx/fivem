@@ -34,9 +34,10 @@ inline void adjust_base(T& address)
 }
 
 // returns the adjusted address to the stated base
-inline uintptr_t get_adjusted(uintptr_t address)
+template<typename T>
+inline uintptr_t get_adjusted(T address)
 {
-	return address + baseAddressDifference;
+	return (uintptr_t)address + baseAddressDifference;
 }
 
 struct pass
@@ -374,14 +375,14 @@ template<typename T, typename AT>
 inline void jump(AT address, T func)
 {
 	put<uint8_t>(address, 0xE9);
-	put<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+	put<int>((uintptr_t)address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
 }
 
 template<typename T, typename AT>
 inline void call(AT address, T func)
 {
 	put<uint8_t>(address, 0xE8);
-	put<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+	put<int>((uintptr_t)address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
 }
 
 namespace vp
@@ -390,14 +391,14 @@ namespace vp
 	inline void jump(AT address, T func)
 	{
 		putVP<uint8_t>(address, 0xE9);
-		putVP<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+		putVP<int>((uintptr_t)address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
 	}
 
 	template<typename T, typename AT>
 	inline void call(AT address, T func)
 	{
 		putVP<uint8_t>(address, 0xE8);
-		putVP<int>(address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
+		putVP<int>((uintptr_t)address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
 	}
 }
 
@@ -501,3 +502,6 @@ public:
 };
 #pragma endregion
 }
+
+#include "Hooking.Invoke.h"
+#include "Hooking.Patterns.h"

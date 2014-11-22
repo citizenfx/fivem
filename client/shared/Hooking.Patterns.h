@@ -25,7 +25,7 @@ namespace hook
 		template<typename T>
 		T* get()
 		{
-			return get(0);
+			return get<T>(0);
 		}
 	};
 
@@ -42,7 +42,7 @@ namespace hook
 	private:
 		void Initialize(const char* pattern, size_t length);
 
-		void ConsiderMatch(uintptr_t offset);
+		bool ConsiderMatch(uintptr_t offset);
 
 	public:
 		template<size_t Len>
