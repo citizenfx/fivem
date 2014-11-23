@@ -623,7 +623,7 @@ solution "CitizenMP"
 				local match = find_match(dep)
 
 				if match and not hasDeps[match.rawName] then
-					print(project().name .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
+					print(comp.name .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
 
 					hasDeps[match.rawName] = true
 
