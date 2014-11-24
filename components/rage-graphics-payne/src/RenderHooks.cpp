@@ -27,6 +27,28 @@ static void __fastcall DrawFrontendWrap(void* renderPhase)
 	OnPostFrontendRender();
 }
 
+#include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
+
+HRESULT WINAPI D3D11CreateDeviceAndSwapChain2(
+	_In_   IDXGIAdapter *pAdapter,
+	_In_   D3D_DRIVER_TYPE DriverType,
+	_In_   HMODULE Software,
+	_In_   UINT Flags,
+	_In_   const D3D_FEATURE_LEVEL *pFeatureLevels,
+	_In_   UINT FeatureLevels,
+	_In_   UINT SDKVersion,
+	_In_   const DXGI_SWAP_CHAIN_DESC *pSwapChainDesc,
+	_Out_  IDXGISwapChain **ppSwapChain,
+	_Out_  ID3D11Device **ppDevice,
+	_Out_  D3D_FEATURE_LEVEL *pFeatureLevel,
+	_Out_  ID3D11DeviceContext **ppImmediateContext
+	)
+{
+	return D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, D3D11_CREATE_DEVICE_DEBUG | Flags, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+}
+
+
 static HookFunction hookFunction([] ()
 {
 	// device creation
@@ -64,4 +86,8 @@ static HookFunction hookFunction([] ()
 
 	// in-menu check for renderphasefrontend
 	//*(BYTE*)0x43AF21 = 0xEB;
+
+	// temp: d3d debug layer
+	static void* gFunc = D3D11CreateDeviceAndSwapChain2;
+	hook::put(0xF107CE, &gFunc);
 });

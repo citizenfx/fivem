@@ -130,6 +130,7 @@ void SetTextureGtaIm(rage::grcTexture* texture)
 void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* colorPtr, int subShader)
 {
 	SetRenderState(0, 0);
+	SetRenderState(2, 0);
 
 	PushDrawBlitImShader();
 

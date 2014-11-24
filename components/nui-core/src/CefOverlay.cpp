@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 #include "DrawCommands.h"
+#include <GfxUtil.h>
 
 //#include "GameInit.h"
 
@@ -349,12 +350,19 @@ public:
 			{
 				CefRect rect = *iter;
 
-				for (int y = rect.y; y < (rect.y + rect.height); y++)
+				if (!rage::grcTexture::IsRenderSystemColorSwapped())
 				{
-					int* src = &((int*)(buffer))[(y * width) + rect.x];
-					int* dest = &((int*)(m_window->renderBuffer))[(y * m_window->roundedWidth) + rect.x];
+					for (int y = rect.y; y < (rect.y + rect.height); y++)
+					{
+						int* src = &((int*)(buffer))[(y * width) + rect.x];
+						int* dest = &((int*)(m_window->renderBuffer))[(y * m_window->roundedWidth) + rect.x];
 
-					memcpy(dest, src, (rect.width * 4));
+						memcpy(dest, src, (rect.width * 4));
+					}
+				}
+				else
+				{
+					ConvertImageDataRGBA_BGRA(rect.x, rect.y, rect.width, rect.height, width * 4, buffer, m_window->roundedWidth * 4, m_window->renderBuffer);
 				}
 
 				EnterCriticalSection(&m_window->renderBufferLock);
@@ -394,12 +402,19 @@ public:
 				h -= ((yy + h) - m_window->height);
 			}
 
-			for (int y = yy; y < (yy + h); y++)
+			if (!rage::grcTexture::IsRenderSystemColorSwapped())
 			{
-				int* src = &((int*)(buffer))[((y - yy) * width)];
-				int* dest = &((int*)(m_window->renderBuffer))[(y * m_window->roundedWidth) + x];
+				for (int y = yy; y < (yy + h); y++)
+				{
+					int* src = &((int*)(buffer))[((y - yy) * width)];
+					int* dest = &((int*)(m_window->renderBuffer))[(y * m_window->roundedWidth) + x];
 
-				memcpy(dest, src, (w * 4));
+					memcpy(dest, src, (w * 4));
+				}
+			}
+			else
+			{
+				ConvertImageDataRGBA_BGRA(x, yy, w, h, width * 4, buffer, m_window->roundedWidth * 4, m_window->renderBuffer);
 			}
 
 			EnterCriticalSection(&m_window->renderBufferLock);
@@ -536,6 +551,7 @@ void NUIWindow::UpdateFrame()
 
 		void* pBits = nullptr;
 		int pitch;
+		bool discarded = false;
 
 #ifndef _HAS_GRCTEXTURE_MAP
 		D3DLOCKED_RECT lockedRect;
@@ -551,24 +567,42 @@ void NUIWindow::UpdateFrame()
 			pBits = lockedTexture.pBits;
 			pitch = lockedTexture.pitch;
 		}
+		else if (nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
+		{
+			pBits = lockedTexture.pBits;
+			pitch = lockedTexture.pitch;
+
+			discarded = true;
+		}
 #endif
 
 		if (pBits)
 		{
-			while (!dirtyRects.empty())
+			if (!discarded)
+			{
+				while (!dirtyRects.empty())
+				{
+					EnterCriticalSection(&renderBufferLock);
+					CefRect rect = dirtyRects.front();
+					dirtyRects.pop();
+					LeaveCriticalSection(&renderBufferLock);
+
+					for (int y = rect.y; y < (rect.y + rect.height); y++)
+					{
+						int* src = &((int*)(renderBuffer))[(y * roundedWidth) + rect.x];
+						int* dest = &((int*)(pBits))[(y * (pitch / 4)) + rect.x];
+
+						memcpy(dest, src, (rect.width * 4));
+					}
+				}
+			}
+			else
 			{
 				EnterCriticalSection(&renderBufferLock);
-				CefRect rect = dirtyRects.front();
-				dirtyRects.pop();
+				dirtyRects = std::queue<CefRect>();
 				LeaveCriticalSection(&renderBufferLock);
 
-				for (int y = rect.y; y < (rect.y + rect.height); y++)
-				{
-					int* src = &((int*)(renderBuffer))[(y * roundedWidth) + rect.x];
-					int* dest = &((int*)(pBits))[(y * (pitch / 4)) + rect.x];
-
-					memcpy(dest, src, (rect.width * 4));
-				}
+				memcpy(pBits, renderBuffer, height * pitch);
 			}
 		}
 
@@ -793,7 +827,12 @@ void NUIWindow::Initialize(CefString url)
 
 	renderBuffer = new char[4 * roundedWidth * roundedHeight];
 
-	nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, 1, nullptr);
+	rage::grcManualTextureDef textureDef;
+	memset(&textureDef, 0, sizeof(textureDef));
+	textureDef.isStaging = 0;
+	textureDef.arraySize = 1;
+
+	nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, true, &textureDef);
 
 	m_client = new NUIClient(this);
 

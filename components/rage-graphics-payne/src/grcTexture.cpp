@@ -24,27 +24,6 @@ static HookFunction hookFunction([] ()
 	rage::g_noneTexture = *hook::pattern("8B CE FF D2 A3 ? ? ? ? 83 47 20 FF 75 10").count(1).get(0).get<rage::grcTexture**>(5);
 });
 
-/*void RegisterD3DPostResetCallback(void(*function)())
-{
-	static bool hookInitialized;
-	static std::vector<void(*)()> callbacks;
-
-	if (!hookInitialized)
-	{
-		g_hooksDLL->SetHookCallback(StringHash("d3dPostReset"), [] (void*)
-		{
-			for (auto& cb : callbacks)
-			{
-				cb();
-			}
-		});
-
-		hookInitialized = true;
-	}
-
-	callbacks.push_back(function);
-}*/
-
 __declspec(dllexport) fwEvent<> OnD3DPostReset;
 
 struct ClearRenderTargetDC
@@ -74,4 +53,10 @@ void ClearRenderTarget(bool a1, int value1, bool a2, float value2, bool a3, int 
 	dc.a3 = a3;
 
 	ClearRenderTargetDC__process(&dc);
+}
+
+bool __declspec(dllexport) rage::grcTexture::IsRenderSystemColorSwapped()
+{
+	// D3D9 will swap 21 (BGRA) to 9, others will swap it to 0/something else
+	return rage::grcTextureFactory::getInstance()->TranslateFormatToParamFormat(21) != 9;
 }
