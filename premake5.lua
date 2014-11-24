@@ -248,7 +248,7 @@ solution "CitizenMP"
 
 		flags { "StaticRuntime" }
 
-		defines "COMPILING_SHARED"
+		defines { "COMPILING_SHARED", "COMPILING_SHARED_LIBC" }
 		
 		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		

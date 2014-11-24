@@ -43,6 +43,7 @@ void CachedFontPage::EnqueueCreateFontPage()
 {
 	m_enqueued = true;
 
+#if !defined(PAYNE)
 	concurrency::create_task([=] ()
 	{
 		CreateNow();
@@ -50,7 +51,12 @@ void CachedFontPage::EnqueueCreateFontPage()
 	{
 		// clear the queued flag
 		m_enqueued = false;
-	});;
+	});
+#else
+	CreateNow();
+
+	m_enqueued = false;
+#endif
 }
 
 void CachedFontPage::CreateNow()

@@ -385,6 +385,21 @@ inline void call(AT address, T func)
 	put<int>((uintptr_t)address + 1, (intptr_t)func - (intptr_t)get_adjusted(address) - 5);
 }
 
+template<typename T>
+inline T get_call(T address)
+{
+	intptr_t target = *(uintptr_t*)(get_adjusted(address) + 1);
+	target += (get_adjusted(address) + 5);
+
+	return (T)target;
+}
+
+template<typename TTarget, typename T>
+inline void set_call(TTarget* target, T address)
+{
+	*(T*)target = get_call(address);
+}
+
 namespace vp
 {
 	template<typename T, typename AT>

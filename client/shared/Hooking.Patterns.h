@@ -68,3 +68,5 @@ namespace hook
 		static void hint(uint64_t hash, uintptr_t address);
 	};
 }
+
+void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint);

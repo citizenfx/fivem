@@ -2,7 +2,6 @@
 #include "FontRendererImpl.h"
 #include <DrawCommands.h>
 #include <grcTexture.h>
-#include <GlobalEvents.h>
 
 class GtaGameInterface : public FontRendererGameInterface
 {
@@ -44,6 +43,7 @@ FontRendererTexture* GtaGameInterface::CreateTexture(int width, int height, Font
 {
 	if (!IsRunningTests())
 	{
+#if defined(GTA_NY)
 		// odd NY-specific stuff to force DXT5
 		*(uint32_t*)0x10C45F8 = D3DFMT_DXT5;
 		rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, (format == FontRendererTextureFormat::ARGB) ? FORMAT_A8R8G8B8 : 0, 0, nullptr);
@@ -61,6 +61,18 @@ FontRendererTexture* GtaGameInterface::CreateTexture(int width, int height, Font
 
 		// store pixel data so the game can reload the texture
 		texture->m_pixelData = pixelData;
+#else
+		rage::grcTextureReference reference;
+		memset(&reference, 0, sizeof(reference));
+		reference.width = width;
+		reference.height = height;
+		reference.depth = 1;
+		reference.stride = width;
+		reference.format = 3; // dxt5?
+		reference.pixelData = (uint8_t*)pixelData;
+
+		rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+#endif
 
 		return new GtaFontTexture(texture);
 	}
@@ -72,7 +84,7 @@ void GtaGameInterface::SetTexture(FontRendererTexture* texture)
 {
 	SetTextureGtaIm(static_cast<GtaFontTexture*>(texture)->GetTexture());
 
-	SetRenderState(0, 0);
+	SetRenderState(0, grcCullModeNone); // 0 in NY, 1 in Payne
 	SetRenderState(2, 0); // alpha blending
 
 	PushDrawBlitImShader();
@@ -112,7 +124,7 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 {
 	SetTextureGtaIm(rage::grcTextureFactory::GetNoneTexture());
 
-	SetRenderState(0, 0);
+	SetRenderState(0, grcCullModeNone);
 	SetRenderState(2, 0); // alpha blending m8
 
 	PushDrawBlitImShader();
@@ -158,10 +170,21 @@ void GtaGameInterface::InvokeOnRender(void(*cb)(void*), void* arg)
 	}
 	else
 	{
+#if defined(GTA_NY)
 		int argRef = (int)arg;
 
 		auto dc = new(0) CGenericDC1Arg((void(*)(int))cb, &argRef);
 		dc->Enqueue();
+#else
+		uint32_t argRef = (uint32_t)arg;
+
+		EnqueueGenericDrawCommand([] (uint32_t a, uint32_t b)
+		{
+			auto cb = (void(*)(void*))a;
+
+			cb((void*)b);
+		}, (uint32_t*)&cb, &argRef);
+#endif
 	}
 }
 
@@ -176,7 +199,7 @@ static InitFunction initFunction([] ()
 {
 	OnPostFrontendRender.Connect([] ()
 	{
-	/*	CRect rect(5, 5, 705, 5);
+		/*CRect rect(5, 5, 705, 5);
 		CRGBA color(255, 255, 255);
 
 		wchar_t russian[] = { 0x041f, 0x0440, 0x0438, 0x0432, 0x0435, 0x0442, 0x0020, 0x043c, 0x0438, 0x0440, 0x0000 };
@@ -194,7 +217,7 @@ static InitFunction initFunction([] ()
 			fclose(f);
 		}
 
-		TheFonts->DrawText(va(L"\xD83C\xDF4E @ \xD83C\xDF55... Hi! O\x448\x438\x431\x43A\x430... %s %s %s %s %s", russian, chinese, greek, japanese, runic), rect, color, 14.0f, 1.0f, "Segoe UI");
+		TheFonts->DrawText(va(L"\xD83C\xDF4E @ \xD83C\xDF55... Hi! O\x448\x438\x431\x43A\x430... %s %s %s %s %s", russian, chinese, greek, japanese, runic), rect, color, 44.0f, 1.0f, "Segoe UI");
 
 		rect.SetRect(5, 205, 705, 205);
 

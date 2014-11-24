@@ -36,7 +36,7 @@ VOID WINAPI GetStartupInfoAHook(LPSTARTUPINFOA startupInfo)
 		PEXCEPTION_REGISTRATION_RECORD sehPtr = (PEXCEPTION_REGISTRATION_RECORD)__readfsdword(0);
 
 		// and we don't want crt init to use its own exception handler either
-		__writefsdword(0, (DWORD)sehPtr->Next);
+		__writefsdword(0, (DWORD)sehPtr->Next->Next);
 
 		// we also need to unVP the read-only data segments
 		DWORD oldProtect;
@@ -56,7 +56,7 @@ VOID WINAPI GetStartupInfoAHook(LPSTARTUPINFOA startupInfo)
 		}
 
 		// so it can pop itself
-		__writefsdword(0, (DWORD)sehPtr);
+		//__writefsdword(0, (DWORD)sehPtr);
 	}
 	else
 	{

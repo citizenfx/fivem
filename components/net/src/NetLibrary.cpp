@@ -906,7 +906,7 @@ static InitFunction initFunction([] ()
 		cacheDevice->setPath(cacheRoot, nullptr, false);
 		cacheDevice->mount("rescache:/");
 
-		HttpClient* httpClient = new HttpClient();
+		/*HttpClient* httpClient = new HttpClient();
 		httpClient->DoFileGetRequest(L"citizen.re", 80, L"/files/iv-temp.zip", cacheDevice, "rescache:/iv-temp.zip", [] (bool, const char*, size_t)
 		{
 			MessageBox(nullptr, L"omg", L"yay", MB_OK | MB_ICONINFORMATION);
@@ -915,6 +915,6 @@ static InitFunction initFunction([] ()
 		while (true)
 		{
 			Sleep(50);
-		}
+		}*/
 	});
 });

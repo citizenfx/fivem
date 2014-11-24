@@ -143,6 +143,9 @@ void pattern::Initialize(const char* pattern, size_t length)
 	{
 		if (ConsiderMatch(i))
 		{
+#if !defined(COMPILING_SHARED_LIBC)
+			Citizen_PatternSaveHint(hash, i);
+#endif
 			g_hints.insert(std::make_pair(hash, i));
 		}
 	}
@@ -172,4 +175,31 @@ bool pattern::ConsiderMatch(uintptr_t offset)
 
 	return true;
 }
+
+void pattern::hint(uint64_t hash, uintptr_t address)
+{
+	g_hints.insert(std::make_pair(hash, address));
 }
+}
+
+static InitFunction initFunction([] ()
+{
+	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
+	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
+	
+	if (hints)
+	{
+		while (!feof(hints))
+		{
+			uint64_t hash;
+			uintptr_t hint;
+
+			fread(&hash, 1, sizeof(hash), hints);
+			fread(&hint, 1, sizeof(hint), hints);
+
+			hook::pattern::hint(hash, hint);
+		}
+
+		fclose(hints);
+	}
+});
