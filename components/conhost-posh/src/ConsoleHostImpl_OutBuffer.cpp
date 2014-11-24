@@ -1,7 +1,7 @@
 #include "StdInc.h"
 #include "ConsoleHostImpl.h"
-#include "GlobalEvents.h"
 #include "FontRenderer.h"
+#include "DrawCommands.h"
 #include "Screen.h"
 
 struct ConsoleCharacter

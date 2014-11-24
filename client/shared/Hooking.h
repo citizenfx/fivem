@@ -115,7 +115,7 @@ inline void return_function(AddressType address, uint16_t stackSize = 0)
 	else
 	{
 		put<uint8_t>(address, 0xC2);
-		put<uint16_t>(address + 1, stackSize);
+		put<uint16_t>((uintptr_t)address + 1, stackSize);
 	}
 }
 

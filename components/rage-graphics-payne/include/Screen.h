@@ -1,11 +1,19 @@
 #pragma once
 
+#include "DrawCommands.h"
+
 inline int GetScreenResolutionX()
 {
-	return *(int*)0xFDCEAC;
+	int width, height;
+	GetGameResolution(width, height);
+
+	return width;
 }
 
 inline int GetScreenResolutionY()
 {
-	return *(int*)0xFDCEB0;
+	int width, height;
+	GetGameResolution(width, height);
+
+	return height;
 }

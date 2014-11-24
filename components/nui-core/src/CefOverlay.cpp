@@ -1,6 +1,5 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
-#include "GlobalEvents.h"
 #include "DrawCommands.h"
 
 //#include "GameInit.h"
@@ -535,26 +534,52 @@ void NUIWindow::UpdateFrame()
 	{
 		//int timeBegin = timeGetTime();
 
+		void* pBits = nullptr;
+		int pitch;
+
+#ifndef _HAS_GRCTEXTURE_MAP
 		D3DLOCKED_RECT lockedRect;
 		nuiTexture->m_pITexture->LockRect(0, &lockedRect, NULL, 0);
 
-		while (!dirtyRects.empty())
+		pBits = lockedRect.pBits;
+		pitch = lockedRect.Pitch;
+#else
+		rage::grcLockedTexture lockedTexture;
+
+		if (nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
 		{
-			EnterCriticalSection(&renderBufferLock);
-			CefRect rect = dirtyRects.front();
-			dirtyRects.pop();
-			LeaveCriticalSection(&renderBufferLock);
+			pBits = lockedTexture.pBits;
+			pitch = lockedTexture.pitch;
+		}
+#endif
 
-			for (int y = rect.y; y < (rect.y + rect.height); y++)
+		if (pBits)
+		{
+			while (!dirtyRects.empty())
 			{
-				int* src = &((int*)(renderBuffer))[(y * roundedWidth) + rect.x];
-				int* dest = &((int*)(lockedRect.pBits))[(y * (lockedRect.Pitch / 4)) + rect.x];
+				EnterCriticalSection(&renderBufferLock);
+				CefRect rect = dirtyRects.front();
+				dirtyRects.pop();
+				LeaveCriticalSection(&renderBufferLock);
 
-				memcpy(dest, src, (rect.width * 4));
+				for (int y = rect.y; y < (rect.y + rect.height); y++)
+				{
+					int* src = &((int*)(renderBuffer))[(y * roundedWidth) + rect.x];
+					int* dest = &((int*)(pBits))[(y * (pitch / 4)) + rect.x];
+
+					memcpy(dest, src, (rect.width * 4));
+				}
 			}
 		}
 
+#ifndef _HAS_GRCTEXTURE_MAP
 		nuiTexture->m_pITexture->UnlockRect(0);
+#else
+		if (pBits)
+		{
+			nuiTexture->Unmap(&lockedTexture);
+		}
+#endif
 
 		//int duration = timeGetTime() - timeBegin;
 
@@ -650,8 +675,16 @@ static InitFunction initFunction([] ()
 
 	OnPostFrontendRender.Connect([]()
 	{
+#if defined(GTA_NY)
 		auto dc = new(0) CGenericDC([] ()
 		{
+#else
+		uint32_t a1;
+		uint32_t a2;
+
+		EnqueueGenericDrawCommand([] (uint32_t, uint32_t)
+		{
+#endif
 			float bottomLeft[2] = { 0.f, 1.f };
 			float bottomRight[2] = { 1.f, 1.f };
 			float topLeft[2] = { 0.f, 0.f };
@@ -670,6 +703,13 @@ static InitFunction initFunction([] ()
 			}
 
 			g_nuiWindowsMutex.lock();
+
+#if !defined(GTA_NY)
+			for (auto& window : g_nuiWindows)
+			{
+				window->UpdateFrame();
+			}
+#endif
 
 			for (auto& window : g_nuiWindows)
 			{
@@ -701,10 +741,7 @@ static InitFunction initFunction([] ()
 
 				//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
 
-#ifndef GTA_NY
-#error "GTA_NY dependency!"
-#endif
-
+#if defined(GTA_NY)
 				if (true)//!GameInit::GetGameLoaded())
 				{
 					SetTextureGtaIm(*(rage::grcTexture**)(0x10C8310));
@@ -715,10 +752,15 @@ static InitFunction initFunction([] ()
 				}
 
 				DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+#endif
 			}
+#if defined(GTA_NY)
 		});
 
 		dc->Enqueue();
+#else
+		}, &a1, &a2);
+#endif
 	});
 
 	/*g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
@@ -751,7 +793,7 @@ void NUIWindow::Initialize(CefString url)
 
 	renderBuffer = new char[4 * roundedWidth * roundedHeight];
 
-	nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, 0, nullptr);
+	nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, 1, nullptr);
 
 	m_client = new NUIClient(this);
 
@@ -773,6 +815,11 @@ namespace nui
 {
 	__declspec(dllexport) CefBrowser* GetBrowser()
 	{
+		if (!g_nuiResourceRootWindow.GetRef())
+		{
+			return nullptr;
+		}
+
 		return g_nuiResourceRootWindow->GetBrowser();
 	}
 
@@ -894,6 +941,7 @@ namespace nui
 			}
 		});*/
 
+#if defined(GTA_NY)
 		OnGrcBeginScene.Connect([] ()
 		{
 			if (g_nuiWindowsMutex.try_lock())
@@ -906,6 +954,9 @@ namespace nui
 				g_nuiWindowsMutex.unlock();
 			}
 		});
+#else
+
+#endif
 
 		//g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
 		OnGrcCreateDevice.Connect([]()

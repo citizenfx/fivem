@@ -17,6 +17,7 @@ namespace nui
 {
 	void GiveFocus(bool hasFocus)
 	{
+#if defined(GTA_NY)
 		if (!g_hasFocus && hasFocus)
 		{
 			// TODO: move this elsewhere
@@ -35,6 +36,7 @@ namespace nui
 		{
 			((void(*)(bool))0x623C30)(true);
 		}
+#endif
 
 		g_hasFocus = hasFocus;
 	}
@@ -163,7 +165,12 @@ static InitFunction initFunction([] ()
 					keyEvent.type = KEYEVENT_CHAR;
 				}
 
-				nui::GetBrowser()->GetHost()->SendKeyEvent(keyEvent);
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendKeyEvent(keyEvent);
+				}
 
 				pass = false;
 				lresult = FALSE;
@@ -176,7 +183,12 @@ static InitFunction initFunction([] ()
 				mouseEvent.x = LOWORD(lParam);
 				mouseEvent.y = HIWORD(lParam);
 
-				nui::GetBrowser()->GetHost()->SendMouseClickEvent(mouseEvent, (msg == WM_LBUTTONUP || msg == WM_LBUTTONDOWN) ? MBT_LEFT : MBT_RIGHT, (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP), 1);
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendMouseClickEvent(mouseEvent, (msg == WM_LBUTTONUP || msg == WM_LBUTTONDOWN) ? MBT_LEFT : MBT_RIGHT, (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP), 1);
+				}
 
 				pass = false;
 				lresult = FALSE;
@@ -192,7 +204,12 @@ static InitFunction initFunction([] ()
 				g_cursorPos.x = mouseEvent.x;
 				g_cursorPos.y = mouseEvent.y;
 
-				nui::GetBrowser()->GetHost()->SendMouseMoveEvent(mouseEvent, false);
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendMouseMoveEvent(mouseEvent, false);
+				}
 
 				pass = false;
 				lresult = FALSE;
@@ -210,7 +227,12 @@ static InitFunction initFunction([] ()
 				g_cursorPos.x = mouseEvent.x;
 				g_cursorPos.y = mouseEvent.y;
 
-				nui::GetBrowser()->GetHost()->SendMouseWheelEvent(mouseEvent, 0, delta);
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendMouseWheelEvent(mouseEvent, 0, delta);
+				}
 
 				pass = false;
 				lresult = TRUE;

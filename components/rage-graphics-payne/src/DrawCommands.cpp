@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "DrawCommands.h"
 #include "Hooking.h"
+#include "Rect.h"
 
 #define PURECALL() __asm { jmp _purecall }
 
@@ -126,6 +127,30 @@ void SetTextureGtaIm(rage::grcTexture* texture)
 }
 
 //void WRAPPER DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* color, int subShader) { EAXJMP(0x852CE0); }
+void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* colorPtr, int subShader)
+{
+	SetRenderState(0, 0);
+
+	PushDrawBlitImShader();
+
+	uint32_t color = *colorPtr;
+
+	// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
+	color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+
+	CRect rect(x1, y1, x2, y2);
+
+	BeginImVertices(4, 4);
+
+	AddImVertex(rect.fX1, rect.fY1, z, 0.0f, 0.0f, -1.0f, color, u1, v1);
+	AddImVertex(rect.fX2, rect.fY1, z, 0.0f, 0.0f, -1.0f, color, u2, v1);
+	AddImVertex(rect.fX1, rect.fY2, z, 0.0f, 0.0f, -1.0f, color, u1, v2);
+	AddImVertex(rect.fX2, rect.fY2, z, 0.0f, 0.0f, -1.0f, color, u2, v2);
+
+	DrawImVertices();
+
+	PopDrawBlitImShader();
+}
 
 void GetGameResolution(int& resX, int& resY)
 {

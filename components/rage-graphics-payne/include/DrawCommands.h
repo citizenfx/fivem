@@ -2,7 +2,7 @@
 
 #include "grcTexture.h"
 
-#ifdef COMPILING_RAGE_GRAPHICS_NY
+#ifdef COMPILING_RAGE_GRAPHICS_PAYNE
 #define GAMESPEC_EXPORT_VMT __declspec(dllexport) __declspec(novtable)
 #define GAMESPEC_EXPORT __declspec(dllexport)
 #else
@@ -33,38 +33,22 @@ void GAMESPEC_EXPORT SetTextureGtaIm(rage::grcTexture* texture);
 void GAMESPEC_EXPORT DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* color, int subShader);
 
 extern
-	#ifdef COMPILING_RAGE_GRAPHICS_NY
+#ifdef COMPILING_RAGE_GRAPHICS_PAYNE
 	__declspec(dllexport)
-	#else
+#else
 	__declspec(dllimport)
-	#endif
-	fwEvent<> OnGrcBeginScene;
-
-extern
-	#ifdef COMPILING_RAGE_GRAPHICS_NY
-	__declspec(dllexport)
-	#else
-	__declspec(dllimport)
-	#endif
-	fwEvent<> OnGrcEndScene;
-
-extern
-	#ifdef COMPILING_RAGE_GRAPHICS_NY
-	__declspec(dllexport)
-	#else
-	__declspec(dllimport)
-	#endif
+#endif
 	fwEvent<> OnGrcCreateDevice;
 
 extern
-	#ifdef COMPILING_RAGE_GRAPHICS_NY
+#ifdef COMPILING_RAGE_GRAPHICS_PAYNE
 	__declspec(dllexport)
-	#else
+#else
 	__declspec(dllimport)
-	#endif
+#endif
 	fwEvent<> OnPostFrontendRender;
 
-#ifdef COMPILING_RAGE_GRAPHICS_NY
+#ifdef COMPILING_RAGE_GRAPHICS_PAYNE
 __declspec(dllexport)
 #endif
 	void GetGameResolution(int& width, int& height);

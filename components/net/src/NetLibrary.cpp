@@ -880,7 +880,7 @@ static InitFunction initFunction([] ()
 		citRoot[offset + 1] = '\0';
 
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
-		device->setPath(citRoot, nullptr, true);
+		device->setPath(citRoot, nullptr, false);
 		device->mount("citizen:/");
 
 		static char cacheRoot[512];

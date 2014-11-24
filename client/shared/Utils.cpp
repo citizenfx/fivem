@@ -12,12 +12,16 @@ std::wstring GetAbsoluteCitPath()
 		wchar_t modulePath[512];
 		GetModuleFileName(GetModuleHandle(nullptr), modulePath, sizeof(modulePath) / sizeof(wchar_t));
 
-		wchar_t* dirPtr = wcsrchr(modulePath, L'\\');
+		wchar_t realModulePath[512];
+
+		GetFullPathName(modulePath, _countof(realModulePath), realModulePath, nullptr);
+
+		wchar_t* dirPtr = wcsrchr(realModulePath, L'\\');
 
 		// we do not check if dirPtr happens to be 0, as any valid absolute Win32 file path contains at least one backslash
 		dirPtr[1] = '\0';
 
-		citizenPath = modulePath;
+		citizenPath = realModulePath;
 	}
 
 	return citizenPath;
