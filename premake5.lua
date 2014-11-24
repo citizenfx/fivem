@@ -678,7 +678,10 @@ solution "CitizenMP"
 			includedirs { 'components/' .. dep .. '/include/' }
 
 			links { dep }
+		end
 
+		-- loop again in case a previous file has set a configuration constraint
+		for dep, _ in pairs(hasDeps) do
 			dofile('components/' .. dep .. '/component.lua')
 		end
 
