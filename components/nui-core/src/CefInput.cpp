@@ -4,7 +4,7 @@
 #include "InputHook.h"
 #include <windowsx.h>
 
-static bool g_hasFocus = true;
+static bool g_hasFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
 
@@ -35,6 +35,15 @@ namespace nui
 		else if (!hasFocus && g_hasFocus)
 		{
 			((void(*)(bool))0x623C30)(true);
+		}
+#else
+		if (!g_hasFocus && hasFocus)
+		{
+			InputHook::SetGameMouseFocus(false);
+		}
+		else if (!hasFocus && g_hasFocus)
+		{
+			InputHook::SetGameMouseFocus(true);
 		}
 #endif
 

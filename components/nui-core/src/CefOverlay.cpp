@@ -709,6 +709,11 @@ static InitFunction initFunction([] ()
 
 	OnPostFrontendRender.Connect([]()
 	{
+		if (g_mainUIFlag)
+		{
+			nui::GiveFocus(true);
+		}
+
 #if defined(GTA_NY)
 		auto dc = new(0) CGenericDC([] ()
 		{
