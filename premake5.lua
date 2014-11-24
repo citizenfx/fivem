@@ -671,8 +671,6 @@ solution "CitizenMP"
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 
-		dofile('components/' .. name .. '/component.lua')
-
 		-- add dependency requirements
 		for dep, _ in pairs(hasDeps) do
 			includedirs { 'components/' .. dep .. '/include/' }
@@ -680,8 +678,12 @@ solution "CitizenMP"
 			links { dep }
 		end
 
+		configuration {}
+		dofile('components/' .. name .. '/component.lua')
+
 		-- loop again in case a previous file has set a configuration constraint
 		for dep, _ in pairs(hasDeps) do
+			configuration {}
 			dofile('components/' .. dep .. '/component.lua')
 		end
 
