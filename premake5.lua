@@ -198,7 +198,7 @@ solution "CitizenMP"
 			pchsource "client/common/StdInc.cpp"
 			pchheader "StdInc.h"
 			
-			configuration "* NY"
+			configuration "game=ny"
 				includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "../vendor/zlib/" }
 			
 				files
@@ -218,7 +218,7 @@ solution "CitizenMP"
 			pchsource "client/hooks_ny/base/StdInc.cpp"
 			pchheader "StdInc.h"		
 			
-			configuration "* NY"
+			configuration "game=ny"
 				includedirs { "components/gta-core-ny/include", "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
 				
 				files
@@ -628,7 +628,7 @@ solution "CitizenMP"
 					hasDeps[match.rawName] = true
 
 					isFulfilled = isFulfilled and process_dependencies(match)
-				else
+				elseif not match then
 					if not dep:match('%[') then
 						print('Dependency unresolved for ' .. dep .. ' in ' .. comp.name)
 
