@@ -113,3 +113,5 @@ void GetGameResolution(int& resX, int& resY)
 }
 
 void WRAPPER SetRenderState(int rs, int val) { EAXJMP(0x62D2D0); }
+
+GAMESPEC_EXPORT fwEvent<> OnPostFrontendRender;

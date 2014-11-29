@@ -110,3 +110,7 @@ extern
 __declspec(dllexport)
 #endif
 	void GetGameResolution(int& width, int& height);
+
+extern GAMESPEC_EXPORT fwEvent<> OnPostFrontendRender;
+
+#define grcCullModeNone 0

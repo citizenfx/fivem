@@ -9,5 +9,3 @@
 #endif
 
 extern GTACORE_EXPORT fwEvent<> OnMsgConfirm;
-
-extern GTACORE_EXPORT fwEvent<> OnPostFrontendRender;

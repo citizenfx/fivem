@@ -1,6 +1,6 @@
 #include "StdInc.h"
 #include "Hooking.h"
-#include "GlobalEvents.h"
+#include "DrawCommands.h"
 
 static void DrawFrontendWrap()
 {

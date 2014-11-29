@@ -14,6 +14,42 @@ public:
 	IDirect3DTexture9* m_pITexture;
 	char pad2[44];
 	void* m_pixelData;
+
+public:
+	static inline bool IsRenderSystemColorSwapped() { return false; }
+};
+
+struct grcManualTextureDef
+{
+	int isStaging;
+	char pad[8];
+	int arraySize;
+};
+
+struct grcTextureReference
+{
+	uint16_t width;
+	uint16_t height;
+	int format; // also some flags in higher bits
+	uint8_t type;
+private:
+	uint8_t pad;
+	uint16_t pad2;
+public:
+
+	uint16_t stride;
+	uint16_t depth;
+
+	uint8_t* pixelData;
+
+	uint32_t pad3;
+
+	grcTextureReference* nextMipLevel;
+	grcTextureReference* nextMajorLevel;
+
+	int pad4[4];
+
+	float pad5[6];
 };
 
 #define FORMAT_A8R8G8B8 2
@@ -23,7 +59,9 @@ class grcTextureFactory
 public:
 	virtual ~grcTextureFactory() = 0;
 
-	virtual grcTexture* createManualTexture(short width, short height, int format, int unknown, const grcTexture* templ) = 0;
+	virtual grcTexture* createManualTexture(short width, short height, int format, int unknown, const grcManualTextureDef* templ) = 0;
+
+	virtual grcTexture* createImage(grcTextureReference* texture, void* unkTemplate) = 0;
 
 public:
 	static GAMESPEC_EXPORT grcTexture* GetNoneTexture();
