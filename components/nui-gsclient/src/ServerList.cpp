@@ -5,6 +5,14 @@
 #include <WS2tcpip.h>
 #include <strsafe.h>
 
+#if defined(GTA_NY)
+#define GS_GAMENAME "GTA4"
+#elif defined(PAYNE)
+#define GS_GAMENAME "Payne"
+#else
+#define GS_GAMENAME "CitizenFX"
+#endif
+
 struct gameserveritemext_t
 {
 	DWORD m_IP;
@@ -439,7 +447,7 @@ void GSClient_QueryMaster()
 	}
 
 	char message[128];
-	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers GTA4 2 full empty");
+	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers " GS_GAMENAME " 2 full empty");
 
 	sendto(g_cls.socket, message, strlen(message), 0, (sockaddr*)&masterIP, sizeof(masterIP));
 }
