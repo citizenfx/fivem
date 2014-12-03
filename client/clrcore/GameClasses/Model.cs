@@ -25,7 +25,7 @@ namespace CitizenFX.Core
 
         public Model(string modelName)
         {
-            m_name = modelName;
+            m_name = modelName.ToLower();
             m_hash = Function.Call<int>(Natives.GET_HASH_KEY, m_name);
         }
 
@@ -147,26 +147,21 @@ namespace CitizenFX.Core
         {
             Pointer pV1 = typeof(Vector3);
             Pointer pV2 = typeof(Vector3);
-            Vector3 v1, v2;
 
-            Function.Call(Natives.GET_MODEL_DIMENSIONS, pHash, v1, v1);
+            Function.Call(Natives.GET_MODEL_DIMENSIONS, m_hash, pV1, pV2);
 
-            v1 = (Vector3)pV1;
-            v2 = (Vector3)pV2;
-
-            MinVector.X = v1.X; MinVector.Y = v1.Y; MinVector.Z = v1.Z;
-            MaxVector.X = v2.X; MaxVector.Y = v2.Y; MaxVector.Z = v2.Z;
+            MinVector.X = ((Vector3)pV1).X; MinVector.Y = ((Vector3)pV1).Y; MinVector.Z = ((Vector3)pV1).Z;
+            MaxVector.X = ((Vector3)pV2).X; MaxVector.Y = ((Vector3)pV2).Y; MaxVector.Z = ((Vector3)pV2).Z;
         }
 
         public Vector3 GetDimensions()
         {
             Pointer pV1 = typeof(Vector3);
             Pointer pV2 = typeof(Vector3);
-            Vector3 v1, v2;
 
-            Function.Call(Natives.GET_MODEL_DIMENSIONS, pHash, pV1, pV2);
+            Function.Call(Natives.GET_MODEL_DIMENSIONS, m_hash, pV1, pV2);
 
-            return new Vector3(v2.X - v1.X, v2.Y - v1.Y, v2.Z - v1.Z);
+            return new Vector3(((Vector3)pV2).X - ((Vector3)pV1).X, ((Vector3)pV2).Y - ((Vector3)pV1).Y, ((Vector3)pV2).Z - ((Vector3)pV1).Z);
         }*/
 
         public bool IsBike

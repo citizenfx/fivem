@@ -452,6 +452,17 @@ namespace CitizenFX.Core
             return ped;
         }
 
+        public static Vehicle GetVehicle(int handle)
+        {
+            Vehicle v = ObjectCache<Vehicle>.Get(handle);
+            return v;
+        }
+        public static Ped GetPed(int handle)
+        {
+            Ped p = ObjectCache<Ped>.Get(handle);
+            return p;
+        }
+
         public static Vehicle CreateVehicle(Vector3 position)
         {
             Pointer modelPtr = typeof(int), unknownPtr = typeof(int), carPtr = typeof(int);
