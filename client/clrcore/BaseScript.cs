@@ -163,34 +163,6 @@ namespace CitizenFX.Core
         async Task TestScript_Tick()
         {
             await Delay(1500);
-
-            try
-            {
-                /*var playerId = Function.Invoke<int>(Natives.GET_PLAYER_ID);
-
-                Pointer playerPed = typeof(int);
-                Function.Invoke(Natives.GET_PLAYER_CHAR, playerId, playerPed);
-
-                Pointer pX = typeof(float);
-                Pointer pY = typeof(float);
-                Pointer pZ = typeof(float);
-
-                Function.Invoke(Natives.GET_CHAR_COORDINATES, (int)playerPed, pX, pY, pZ);
-
-                Debug.WriteLine("coords: {0} {1} {2}", pX.Value, pY.Value, pZ.Value);*/
-
-                Debug.WriteLine("coords: {0}", LocalPlayer.Ped.Position);
-
-                // loop through players
-                foreach (var player in Players)
-                {
-                    Debug.WriteLine("{0} {1} netid {2}", player.ID, player.Name, player.ServerId);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("{0}", ex.ToString());
-            }
         }
     }
 }

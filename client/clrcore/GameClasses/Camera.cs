@@ -25,9 +25,10 @@ namespace CitizenFX.Core.client.clrcore.GameClasses
 
         public Camera()
         {
-            Pointer c = typeof(uint);
+            Pointer c = typeof(int);
             Function.Call(Natives.CREATE_CAM, 14, c);
-            this.m_handle = (int)c;
+            SetHandle((int)c);
+            Deactivate();
         }
 
         public Vector3 Position
