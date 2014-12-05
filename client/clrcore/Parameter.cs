@@ -8,7 +8,7 @@ namespace CitizenFX.Core
 {
     public struct Parameter
     {
-        internal enum ParameterType
+        public enum ParameterType
         {
             None,
             Integer,
@@ -77,7 +77,7 @@ namespace CitizenFX.Core
             return new Parameter(boolean);
         }
 
-        internal ParameterType Type
+        public ParameterType Type
         {
             get
             {
@@ -85,7 +85,7 @@ namespace CitizenFX.Core
             }
         }
 
-        internal object Value
+        public object Value
         {
             get
             {
@@ -152,6 +152,16 @@ namespace CitizenFX.Core
         public T GetValue<T>()
         {
             return (T)m_value;
+        }
+
+        public static unsafe float IntAsFloat(int value)
+        {
+            return *(float*)&value;
+        }
+
+        public static unsafe int FloatAsInt(float value)
+        {
+            return *(int*)&value;
         }
 
         internal void SetValue(object value)

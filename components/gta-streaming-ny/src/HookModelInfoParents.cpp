@@ -242,7 +242,7 @@ static inline CPoolExtensions<CEntityExt, CEntity>* GetEntityExtensions()
 
 float* CEntity::GetBoundsHooked(float* out)
 {
-	auto entityExt = g_entityExtensions->GetAtPointer(this);
+	auto entityExt = GetEntityExtensions()->GetAtPointer(this);
 
 	if (g_modelInfoPtrs[m_nModelIndex])
 	{
@@ -260,7 +260,7 @@ float* CEntity::GetBoundsHooked(float* out)
 
 float* CEntity::GetUnkModelHooked(float* out)
 {
-	auto entityExt = g_entityExtensions->GetAtPointer(this);
+	auto entityExt = GetEntityExtensions()->GetAtPointer(this);
 
 	if (g_modelInfoPtrs[m_nModelIndex])
 	{

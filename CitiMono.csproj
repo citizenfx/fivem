@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\debug\citizen\clr\lib\mono\4.5\</OutputPath>
+    <OutputPath>bin\ny\debug\citizen\clr\lib\mono\4.5\</OutputPath>
     <BaseIntermediateOutputPath>obj\Debug NY\CitiMono\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
     <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
@@ -73,6 +73,7 @@
     <Compile Include="client\clrcore\GameClasses\Pickup.cs" />
     <Compile Include="client\clrcore\GameClasses\Player.cs" />
     <Compile Include="client\clrcore\GameClasses\PlayerList.cs" />
+    <Compile Include="client\clrcore\GameClasses\ResourceFile.cs" />
     <Compile Include="client\clrcore\GameClasses\Room.cs" />
     <Compile Include="client\clrcore\GameClasses\ScriptedFire.cs" />
     <Compile Include="client\clrcore\GameClasses\Vehicle.cs" />

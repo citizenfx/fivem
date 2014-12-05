@@ -21,12 +21,6 @@ bool DownloadManager::Process()
 			// create a new HTTP client
 			m_httpClient = new HttpClient();
 
-			// clear the resource list
-			if (!m_isUpdate)
-			{
-				m_requiredResources.clear();
-			}
-
 			// set up the target request
 			auto hostname = m_gameServer.GetWAddress();
 
@@ -55,6 +49,15 @@ bool DownloadManager::Process()
 				postMap["resources"] = resourceString;
 
 				isUpdate = true;
+			}
+
+			// mark this being an update
+			m_isUpdate = isUpdate;
+
+			// clear the resource list
+			if (!m_isUpdate)
+			{
+				m_requiredResources.clear();
 			}
 
 			// perform the request

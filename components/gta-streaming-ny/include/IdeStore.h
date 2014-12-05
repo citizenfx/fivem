@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atArray.h>
 #include <ResourceCache.h>
 
 struct CRect
@@ -144,90 +145,5 @@ public:
 	{
 		ms_drawables.clear();
 		ms_ideNum = 0;
-	}
-};
-
-// NOTE: RAGE SHARED
-template<typename TValue>
-class atArray
-{
-private:
-	TValue* m_offset;
-	uint16_t m_count;
-	uint16_t m_size;
-
-public:
-	atArray()
-	{
-		m_offset = (TValue*)0xDEADC0DE;
-		m_count = 0;
-		m_size = 0;
-	}
-
-	atArray(int capacity)
-	{
-		m_offset = new TValue[capacity];
-		m_count = 0;
-		m_size = capacity;
-	}
-
-	inline uint16_t GetCount()
-	{
-		return m_count;
-	}
-
-	inline uint16_t GetSize()
-	{
-		return m_size;
-	}
-
-	TValue& Get(uint16_t offset)
-	{
-		if (offset >= m_count)
-		{
-			FatalError("atArray index out of bounds");
-		}
-
-		return m_offset[offset];
-	}
-
-	void Expand(uint16_t newSize)
-	{
-		if (m_size >= newSize)
-		{
-			return;
-		}
-
-		TValue* newOffset = (TValue*)rage::GetAllocator()->allocate(newSize * sizeof(TValue), 16, 0);
-		std::copy(m_offset, m_offset + m_count, newOffset);
-
-		rage::GetAllocator()->free(m_offset);
-
-		m_offset = newOffset;
-	}
-
-	void Set(uint16_t offset, const TValue& value)
-	{
-		if (offset >= m_size)
-		{
-			Expand(offset + 1);
-		}
-
-		if (offset >= m_count)
-		{
-			m_count = offset + 1;
-		}
-
-		m_offset[offset] = value;
-	}
-
-	void Remove(int index)
-	{
-		for (int i = index; i < (m_count - 1); i++)
-		{
-			m_offset[i] = m_offset[i + 1];
-		}
-
-		m_count--;
 	}
 };

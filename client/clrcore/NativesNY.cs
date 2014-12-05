@@ -10,6 +10,12 @@ namespace CitizenFX.Core
     {
         // Citizen-specific natives
         public const uint GET_PLAYER_SERVER_ID = 0x4D97BCC7;
+        public const uint OPEN_FILE_FOR_READING = 0x29F354B8;
+        public const uint GET_LENGTH_OF_FILE = 0xE72D05D9;
+        public const uint READ_FILE = 0xEAD2EDDF;
+        public const uint FREE_FILE_BUFFER = 0x751301BE;
+        public const uint CLOSE_FILE = 0x94CDF82D;
+
         
         // NY
         public const uint GET_ASPECT_RATIO = 0x36600272;

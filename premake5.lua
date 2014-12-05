@@ -162,10 +162,11 @@ solution "CitizenMP"
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
-	--[[external 'CitiMono'
+	external 'CitiMono'
 		uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
 		kind 'SharedLib'
 		language 'C#'
+		location '.'
 
 	external '010.Irony.2010'
 		uuid 'D81F5C91-D7DB-46E5-BC99-49488FB6814C'
@@ -183,7 +184,7 @@ solution "CitizenMP"
 		uuid '0E1D573C-C57D-4A83-A739-3A38E719D87E'
 		kind 'SharedLib'
 		language 'C#'
-		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/']]
+		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/'
 			
 	if _OPTIONS['game'] == 'ny' then
 		project "GameNY"

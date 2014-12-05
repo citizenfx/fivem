@@ -155,7 +155,11 @@ public:
 		}
 
 		m_ref = other.GetRef();
-		m_ref->AddRef();
+
+		if (m_ref)
+		{
+			m_ref->AddRef();
+		}
 
 		return *this;
 	}
@@ -169,7 +173,11 @@ public:
 		}
 
 		m_ref = other.GetRef();
-		m_ref->AddRef();
+
+		if (m_ref)
+		{
+			m_ref->AddRef();
+		}
 
 		return *this;
 	}
@@ -182,7 +190,11 @@ public:
 		}
 
 		m_ref = ref;
-		m_ref->AddRef();
+
+		if (m_ref)
+		{
+			m_ref->AddRef();
+		}
 
 		return *this;
 	}

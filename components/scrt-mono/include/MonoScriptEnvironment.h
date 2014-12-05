@@ -69,7 +69,7 @@ public:
 
 	inline MonoDomain* GetScriptDomain() { return m_scriptDomain; }
 
-	inline Resource* GetResource() { return m_resource; }
+	virtual Resource* GetResource() { return m_resource; }
 };
 
 void MonoAddInternalCalls();

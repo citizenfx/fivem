@@ -62,6 +62,28 @@ enum ResourceState
 class
 #ifdef COMPILING_RESOURCES
 	__declspec(dllexport)
+#endif
+	ResourceIdentity
+{
+private:
+	fwString m_name;
+
+public:
+	ResourceIdentity(fwString name);
+
+	inline fwString GetName() const { return m_name; }
+
+	inline bool IsAnonymous() const
+	{
+		return m_name.empty();
+	}
+
+	static inline ResourceIdentity GetAnonymous() { return ResourceIdentity(""); }
+};
+
+class
+#ifdef COMPILING_RESOURCES
+	__declspec(dllexport)
 #else
 	__declspec(dllimport)
 #endif

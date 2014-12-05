@@ -6,6 +6,8 @@ class GtaThread;
 // temp
 typedef int ScriptFunctionRef;
 
+class Resource;
+
 class
 #ifdef COMPILING_RESOURCES
 	__declspec(dllexport)
@@ -40,6 +42,8 @@ public:
 	virtual CMissionCleanup* GetMissionCleanup();
 
 	virtual void Activate();
+
+	virtual Resource* GetResource() = 0;
 
 public:
 	static BaseScriptEnvironment* GetCurrentEnvironment();
