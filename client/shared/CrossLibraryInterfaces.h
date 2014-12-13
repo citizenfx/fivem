@@ -1,3 +1,10 @@
+/*
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
+
 #pragma once
 
 // library for game-specific network integration code to interface with the CitizenGame network library

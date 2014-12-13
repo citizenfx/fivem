@@ -1,3 +1,10 @@
+/*
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
+
 // actually GTA, not RAGE, but who cares
 #define RAGE_FORMATS_FILE CNavMesh
 

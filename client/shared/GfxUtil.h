@@ -1,3 +1,7 @@
+//
+// Copyright (c) 2002-2012 The ANGLE Project Authors. All rights reserved.
+//
+
 #pragma once
 
 #include <intrin.h>

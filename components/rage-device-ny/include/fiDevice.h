@@ -1,3 +1,13 @@
+/*
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
+
+// method names based on research by listener, though they seem to match actual
+// names somewhat (i.e. 'bulk' isn't some made-up shit)
+
 #pragma once
 
 #include "sysAllocator.h"
