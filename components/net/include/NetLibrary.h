@@ -158,6 +158,8 @@ private:
 
 	std::string m_playerName;
 
+	HANDLE m_receiveEvent;
+
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
 
@@ -221,6 +223,8 @@ public:
 
 	virtual void PostProcessNativeNet();
 
+	bool WaitForRoutedPacket(uint32_t timeout);
+
 	void EnqueueRoutedPacket(uint16_t netID, std::string packet);
 
 	void SendOutOfBand(NetAddress& address, const char* format, ...);
@@ -263,6 +267,8 @@ public:
 	fwEvent<const char*> OnAttemptDisconnect;
 
 	fwEvent<NetAddress> OnInitReceived;
+
+	fwEvent<NetAddress> OnConnectOKReceived;
 
 	fwEvent<NetAddress> OnFinalizeDisconnect;
 

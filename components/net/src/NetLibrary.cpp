@@ -192,6 +192,18 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 	} while (msgType != 0xCA569E63); // 'msgEnd'
 }
 
+bool NetLibrary::WaitForRoutedPacket(uint32_t timeout)
+{
+	if (!m_incomingPackets.empty())
+	{
+		return true;
+	}
+
+	WaitForSingleObject(m_receiveEvent, timeout);
+
+	return (!m_incomingPackets.empty());
+}
+
 void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 {
 	RoutingPacket routePacket;
@@ -199,6 +211,8 @@ void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 	routePacket.payload = packet;
 
 	m_incomingPackets.push(routePacket);
+
+	SetEvent(m_receiveEvent);
 }
 
 bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID)
@@ -251,6 +265,8 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 			m_lastReceivedReliableCommand = 0;
 
 			trace("connectOK, our id %d, host id %d\n", m_serverNetID, m_hostNetID);
+
+			OnConnectOKReceived(m_currentServer);
 
 			m_netChannel.Reset(m_currentServer, this);
 			m_connectionState = CS_CONNECTED;
@@ -834,7 +850,7 @@ NetLibrary::NetLibrary()
 	  m_lastReceivedAt(0)
 
 {
-
+	m_receiveEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 }
 
 __declspec(dllexport) fwEvent<NetLibrary*> NetLibrary::OnNetLibraryCreate;
@@ -868,6 +884,7 @@ NetLibrary* NetLibrary::Create()
 	});
 });*/
 
+#if defined(PAYNE)
 static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
@@ -880,7 +897,11 @@ static InitFunction initFunction([] ()
 		citRoot[offset + 1] = '\0';
 
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
+#if defined(GTA_NY)
+		device->setPath(citRoot, false);
+#else
 		device->setPath(citRoot, nullptr, false);
+#endif
 		device->mount("citizen:/");
 
 		static char cacheRoot[512];
@@ -903,18 +924,12 @@ static InitFunction initFunction([] ()
 		cacheRoot[offset + 1] = '\0';
 
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
+#if defined(GTA_NY)
+		cacheDevice->setPath(cacheRoot, false);
+#else
 		cacheDevice->setPath(cacheRoot, nullptr, false);
+#endif
 		cacheDevice->mount("rescache:/");
-
-		/*HttpClient* httpClient = new HttpClient();
-		httpClient->DoFileGetRequest(L"citizen.re", 80, L"/files/iv-temp.zip", cacheDevice, "rescache:/iv-temp.zip", [] (bool, const char*, size_t)
-		{
-			MessageBox(nullptr, L"omg", L"yay", MB_OK | MB_ICONINFORMATION);
-		});
-
-		while (true)
-		{
-			Sleep(50);
-		}*/
 	});
 });
+#endif
