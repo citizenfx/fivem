@@ -20,7 +20,7 @@ public:
 
 	static ComponentId Parse(const char* string);
 
-	const std::string& GetCategory(int idx) const;
+	const std::string& GetCategory(size_t idx) const;
 
 	inline const std::string& GetCategory() const
 	{

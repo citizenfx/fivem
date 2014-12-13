@@ -1,5 +1,7 @@
 #pragma once
 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include <WS2tcpip.h>
 #include "CPlayerInfo.h"
 

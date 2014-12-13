@@ -28,7 +28,6 @@ public:
 		std::string url = request->GetURL();
 		std::wstring hostname;
 		std::wstring path;
-		uint16_t port;
 
 		CefURLParts parts;
 		CefParseURL(url, parts);

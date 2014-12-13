@@ -35,7 +35,7 @@ NetAddress::NetAddress(const char* address, uint16_t port)
 		m_type = NA_INET4;
 
 		m_in4.sin_family = AF_INET;
-		m_in4.sin_addr.s_addr = inet_addr(address);
+		inet_pton(AF_INET, address, &m_in4.sin_addr);
 
 		m_in4.sin_port = htons(port);
 		memset(m_in4.sin_zero, 0, sizeof(m_in4.sin_zero));
@@ -71,6 +71,8 @@ bool NetAddress::operator==(const NetAddress& right) const
 	{
 		return !memcmp(&m_in6, &right.m_in6, sizeof(m_in6));
 	}
+
+	return false;
 }
 
 bool NetAddress::operator!=(const NetAddress& right) const
@@ -110,6 +112,8 @@ fwString NetAddress::GetAddress()
 
 		return buffer;
 	}
+
+	return "unknown";
 }
 
 fwWString NetAddress::GetWAddress()
@@ -134,4 +138,6 @@ fwWString NetAddress::GetWAddress()
 
 		return va(L"[%s]", bufferW);
 	}
+
+	return L"unknown";
 }

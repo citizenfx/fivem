@@ -34,7 +34,7 @@ struct dlState
 	int64_t totalSize;
 	int64_t completedSize;
 
-	int lastTime;
+	uint32_t lastTime;
 	int64_t lastBytes;
 	int bytesPerSecond;
 
@@ -176,7 +176,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	dls.completedSize += (size * nmemb);
 	if ((dls.lastTime + 1000) < GetTickCount())
 	{
-		dls.bytesPerSecond = (dls.completedSize - dls.lastBytes);
+		dls.bytesPerSecond = (int)(dls.completedSize - dls.lastBytes);
 		dls.lastTime = GetTickCount();
 		dls.lastBytes = dls.completedSize;
 	}
@@ -529,6 +529,8 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 	}
 
 	curl_global_cleanup();
+
+	return 0;
 }
 
 bool DL_RunLoop()

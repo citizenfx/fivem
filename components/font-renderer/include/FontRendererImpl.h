@@ -171,9 +171,8 @@ DEFINE_GUID(IID_ICitizenDrawingEffect,
 
 interface DECLSPEC_UUID("71246052-4EEA-4339-BBC0-D2246A3F5CE3") ICitizenDrawingEffect;
 
-class ICitizenDrawingEffect : public IUnknown
+struct ICitizenDrawingEffect : public IUnknown
 {
-public:
 	virtual CRGBA GetColor() = 0;
 
 	virtual void SetColor(CRGBA color) = 0;

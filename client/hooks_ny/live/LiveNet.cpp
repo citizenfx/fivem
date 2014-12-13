@@ -12,7 +12,7 @@ DWORD __stdcall XNetGetTitleXnAddr(XNADDR * pAddr)
 	pAddr->wPortOnline = xuidBase & 0xFFFF;
 	pAddr->ina.s_addr = g_netLibrary->GetServerNetID();
 	pAddr->inaOnline.s_addr = g_netLibrary->GetServerNetID();
-	*(uint64_t*)(pAddr->abOnline) = xuidBase | (xuidBase << 32);
+	*(uint64_t*)(pAddr->abOnline) = xuidBase | ((uint64_t)xuidBase << 32);
 
 	/*if (!_stricmp(getenv("computername"), "fallarbor"))
 	{
@@ -156,7 +156,7 @@ int __stdcall XSocketRecv(SOCKET s, char * buf, int len, int flags)
 	return recv(s, buf, len, flags);
 }
 
-int __stdcall XSocketRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * from, int * fromlen)
+int __stdcall XSocketRecvFrom(SOCKET s, char * buf, size_t len, int flags, sockaddr * from, int * fromlen)
 {
 	if (s == g_gameSocket)
 	{

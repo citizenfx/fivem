@@ -137,10 +137,7 @@ void UI_DoCreation()
 {
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
-	OSVERSIONINFO osVersion;
-	GetVersionEx(&osVersion);
-
-	if (osVersion.dwMajorVersion > 6 || (osVersion.dwMajorVersion == 6 && osVersion.dwMinorVersion >= 1))
+	if (IsWindows7OrGreater())
 	{
 		CoCreateInstance(CLSID_TaskbarList, 
 			NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_uui.tbList));
@@ -169,11 +166,11 @@ void UI_UpdateText(int textControl, const wchar_t* text)
 
 void UI_UpdateProgress(double percentage)
 {
-	SendMessage(g_uui.progressBar, PBM_SETPOS, percentage * 100, 0);
+	SendMessage(g_uui.progressBar, PBM_SETPOS, (int)(percentage * 100), 0);
 
 	if (g_uui.tbList)
 	{
-		g_uui.tbList->SetProgressValue(g_uui.rootWindow, percentage, 100);
+		g_uui.tbList->SetProgressValue(g_uui.rootWindow, (int)percentage, 100);
 
 		if (percentage == 100)
 		{

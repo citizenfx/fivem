@@ -62,8 +62,8 @@ private:
 	std::bitset<65536 / FRAGMENT_SIZE> m_fragmentValidSet;
 	int m_fragmentLastBit;
 
-	int m_inSequence;
-	int m_outSequence;
+	uint32_t m_inSequence;
+	uint32_t m_outSequence;
 
 	NetAddress m_targetAddress;
 	NetLibrary* m_netLibrary;

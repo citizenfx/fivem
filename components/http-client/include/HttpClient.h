@@ -15,7 +15,7 @@
 
 class HTTP_EXPORT HttpClient
 {
-friend class HttpClientRequestContext;
+friend struct HttpClientRequestContext;
 
 public:
 	typedef std::pair<fwWString, uint16_t> ServerPair;

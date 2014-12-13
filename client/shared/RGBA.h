@@ -27,6 +27,6 @@ struct CRGBA
 
 	inline static CRGBA FromFloat(float r, float g, float b, float a)
 	{
-		return CRGBA(r * 255.0f, g * 255.0f, b * 255.0f, a * 255.0f);
+		return CRGBA((uint8_t)(r * 255.0f), (uint8_t)(g * 255.0f), (uint8_t)(b * 255.0f), (uint8_t)(a * 255.0f));
 	}
 };

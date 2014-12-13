@@ -57,9 +57,9 @@ CGenericDC1Arg::CGenericDC1Arg(void(*cb)(int arg), int* arg)
 
 WRAPPER void* CBaseDC::operator new(size_t size, int a2) { EAXJMP(0x7BDD80); }
 
-void CBaseDC::operator delete(void* ptr)
+void CBaseDC::operator delete(void* ptr, int a2)
 {
-	assert(!"HEY");
+	PURECALL();
 }
 
 bool IsOnRenderThread()
@@ -114,4 +114,4 @@ void GetGameResolution(int& resX, int& resY)
 
 void WRAPPER SetRenderState(int rs, int val) { EAXJMP(0x62D2D0); }
 
-GAMESPEC_EXPORT fwEvent<> OnPostFrontendRender;
+DC_EXPORT fwEvent<> OnPostFrontendRender;

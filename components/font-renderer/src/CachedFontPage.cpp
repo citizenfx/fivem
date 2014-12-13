@@ -101,7 +101,7 @@ void CachedFontPage::CreateNow()
 		if ((x + 8 + width) > texWidth)
 		{
 			x = 0;
-			y += maxHeight;
+			y += (int)maxHeight;
 
 			// check for vertical expansion
 			if ((y + maxHeight) > texHeight)
@@ -130,9 +130,9 @@ void CachedFontPage::CreateNow()
 			}
 		}
 
-		character.address.SetRect(x + 4, y + 4, x + 4 + width, y + 4 + height);
+		character.address.SetRect((float)(x + 4), (float)(y + 4), (float)(x + 4 + width), (float)(y + 4 + height));
 
-		x += width + 8;
+		x += (int)width + 8;
 
 		// delete the character's pixel data
 		delete[] character.pixelData;
@@ -181,11 +181,11 @@ void CachedFontPage::CreateCharacter(uint32_t codePoint)
 	RECT textureBounds;
 	glyphRunAnalysis->GetAlphaTextureBounds(DWRITE_TEXTURE_CLEARTYPE_3x1, &textureBounds);
 
-	CRect boundsBits(textureBounds.left, textureBounds.top, textureBounds.right, textureBounds.bottom);
+	CRect boundsBits((float)textureBounds.left, (float)textureBounds.top, (float)textureBounds.right, (float)textureBounds.bottom);
 
 	uint8_t* piecePixelData;
 	uint8_t* pixelData;
-	uint32_t pixelDataSize = boundsBits.Width() * boundsBits.Height();
+	uint32_t pixelDataSize = (uint32_t)(boundsBits.Width() * boundsBits.Height());
 	uint32_t piecePixelDataSize = pixelDataSize * 3;
 
 	pixelData = new uint8_t[pixelDataSize];
@@ -194,7 +194,7 @@ void CachedFontPage::CreateCharacter(uint32_t codePoint)
 	glyphRunAnalysis->CreateAlphaTexture(DWRITE_TEXTURE_CLEARTYPE_3x1, &textureBounds, piecePixelData, piecePixelDataSize);
 
 	// normalize to grayscale
-	for (int i = 0; i < pixelDataSize; i++)
+	for (uint32_t i = 0; i < pixelDataSize; i++)
 	{
 		int r = piecePixelData[i * 3];
 		int g = piecePixelData[(i * 3) + 1];

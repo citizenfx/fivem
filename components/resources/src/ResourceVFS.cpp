@@ -16,7 +16,7 @@ fwString ResolvePath(fwString inPath, bool write, const ResourceIdentity& source
 	}
 
 	// parse the path
-	char* inStr = strdup(inPath.c_str());
+	char* inStr = _strdup(inPath.c_str());
 	char* p = inStr;
 	bool local = false;
 	fwString sourceResource = sourceIdentity.GetName();

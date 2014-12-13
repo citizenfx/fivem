@@ -1,6 +1,12 @@
 #pragma once
 
 // client-side shared include file
+#pragma warning(disable: 4251) // needs to have dll-interface to be used by clients
+#pragma warning(disable: 4273) // inconsistent dll linkage
+#pragma warning(disable: 4275) // non dll-interface class used as base
+#pragma warning(disable: 4244) // possible loss of data
+#pragma warning(disable: 4800) // forcing value to bool
+#pragma warning(disable: 4290) // C++ exception specification ignored
 
 // MSVC odd defines
 #define _CRT_SECURE_NO_WARNINGS
@@ -9,6 +15,8 @@
 // platform primary include
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+#include <versionhelpers.h>
 
 #ifdef GTA_NY
 #include <d3d9.h>

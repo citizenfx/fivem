@@ -30,7 +30,7 @@ void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRI
 
 	for (uint32_t i = 0; i < glyphRun->glyphCount; i++)
 	{
-		int pageIndex = glyphRun->glyphIndices[i] / 256;
+		uint32_t pageIndex = glyphRun->glyphIndices[i] / 256;
 
 		fwRefContainer<CachedFontPage> page;
 
@@ -65,8 +65,8 @@ void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRI
 			auto& address = page->GetCharacterAddress(glyphRun->glyphIndices[i]);
 			auto& affect = page->GetCharacterSize(glyphRun->glyphIndices[i]);
 
-			float tX = x + affect.Left() - 0.5;
-			float tY = originY + affect.Top() - 0.5;
+			float tX = x + affect.Left() - 0.5f;
+			float tY = originY + affect.Top() - 0.5f;
 
 			if (glyphRun->glyphOffsets)
 			{
@@ -209,7 +209,7 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 
 				for (auto run = firstRun + 1; run <= lastRun; run++)
 				{
-					for (int i = 0; i < run->numIndices; i++)
+					for (uint32_t i = 0; i < run->numIndices; i++)
 					{
 						run->indices[i] += numVertices;
 					}

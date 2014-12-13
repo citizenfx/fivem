@@ -790,7 +790,7 @@ static InitFunction initFunction([] ()
 					SetTextureGtaIm(*(rage::grcTexture**)(0x18AAC20));
 				}
 
-				DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+				DrawImSprite((float)cursorPos.x, (float)cursorPos.y, (float)cursorPos.x + 40.0f, (float)cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 #endif
 			}
 #if defined(GTA_NY)

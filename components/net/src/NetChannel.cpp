@@ -76,7 +76,7 @@ bool NetChannel::Process(const char* message, size_t size, NetBuffer** buffer)
 {
 	uint32_t sequence = *(uint32_t*)(message);
 
-	bool fragmented = (sequence & 0x80000000);
+	bool fragmented = ((sequence & 0x80000000) != 0);
 	uint16_t fragmentStart = 0;
 	uint16_t fragmentLength = 0;
 
@@ -148,7 +148,7 @@ bool NetChannel::Process(const char* message, size_t size, NetBuffer** buffer)
 			return false;
 		}
 
-		if (m_fragmentValidSet.count() <= m_fragmentLastBit)
+		if ((int)m_fragmentValidSet.count() <= m_fragmentLastBit)
 		{
 			return false;
 		}

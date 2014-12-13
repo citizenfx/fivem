@@ -21,7 +21,7 @@ const wchar_t* CText::GetCustom(const char* key)
 
 	if (it == g_customTexts.end())
 	{
-		g_customTexts[key] = wcsdup(keyOut);
+		g_customTexts[key] = _wcsdup(keyOut);
 
 		return g_customTexts[key];
 	}
@@ -31,7 +31,7 @@ const wchar_t* CText::GetCustom(const char* key)
 
 void CText::SetCustom(const char* key, const wchar_t* value)
 {
-	g_customTexts[key] = wcsdup(value);
+	g_customTexts[key] = _wcsdup(value);
 }
 
 CText& TheText = *(CText*)0x10F4CE8;

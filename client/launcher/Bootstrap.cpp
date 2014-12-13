@@ -187,7 +187,7 @@ bool Bootstrap_RunInit()
 
 	if (argc == 3)
 	{
-		if (!wcsicmp(argv[1], L"-bootstrap"))
+		if (!_wcsicmp(argv[1], L"-bootstrap"))
 		{
 			FreeConsole();
 
@@ -198,4 +198,6 @@ bool Bootstrap_RunInit()
 	}
 
 	LocalFree(argv);
+
+	return false;
 }

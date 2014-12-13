@@ -55,7 +55,7 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 static void RepairInput()
 {
-	char spillBuffer[256];
+	//char spillBuffer[256];
 
 	// function 1 regarding input
 	//((void(*)(char*, int))0x6366D0)(spillBuffer, 0);

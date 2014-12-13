@@ -7,7 +7,7 @@ ComponentId::ComponentId()
 	memset(m_versions, 0, sizeof(m_versions));
 }
 
-const std::string& ComponentId::GetCategory(int idx) const
+const std::string& ComponentId::GetCategory(size_t idx) const
 {
 	static std::string emptyString = "";
 
@@ -39,7 +39,7 @@ int ComponentId::CompareVersion(const ComponentId& secondId) const
 bool ComponentId::IsMatchedBy(const ComponentId& provider) const
 {
 	// check categories
-	for (int i = 0; i < m_categories.size(); i++)
+	for (size_t i = 0; i < m_categories.size(); i++)
 	{
 		if (provider.GetCategory(i) != GetCategory(i))
 		{
@@ -57,7 +57,7 @@ std::string ComponentId::GetString() const
 
 	ss << GetCategory(0);
 
-	for (int i = 1; i < m_categories.size(); i++)
+	for (size_t i = 1; i < m_categories.size(); i++)
 	{
 		ss << ":" << m_categories[i];
 	}

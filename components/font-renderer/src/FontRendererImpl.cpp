@@ -47,7 +47,7 @@ std::string FontRendererImpl::GetFontKey(ComPtr<IDWriteFontFace> fontFace, float
 	char refKeyBuffer[256];
 	memcpy(refKeyBuffer, referenceKey, referenceKeySizeTarget);
 
-	*(uint32_t*)&refKeyBuffer[referenceKeySizeTarget] = emSize;
+	*(float*)&refKeyBuffer[referenceKeySizeTarget] = emSize;
 
 	// release the file
 	file->Release();
@@ -182,7 +182,7 @@ void FontRendererImpl::DrawPerFrame()
 			{
 				auto glyphRun = *p;
 
-				for (int i = 0; i < glyphRun->numSubRuns; i++)
+				for (uint32_t i = 0; i < glyphRun->numSubRuns; i++)
 				{
 					auto subRun = &glyphRun->subRuns[i];
 
