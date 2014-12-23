@@ -10,6 +10,11 @@ newoption {
 	}
 }
 
+newoption {
+	trigger		= "tests",
+	description	= "Enable building tests"
+}
+
 if not _OPTIONS['game'] then
 	_OPTIONS['game'] = 'dummy'
 end
@@ -713,6 +718,10 @@ solution "CitizenMP"
 		for dep, _ in pairs(hasDeps) do
 			configuration {}
 			dofile('components/' .. dep .. '/component.lua')
+		end
+
+		if not _OPTIONS['tests'] then
+			return
 		end
 
 		-- test project
