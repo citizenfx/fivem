@@ -28,18 +28,7 @@ struct pgPtrRepresentation
 #endif
 };
 
-struct BlockMap
-{
-	uint16_t virtualLen;
-	uint16_t physicalLen;
-
-	struct BlockInfo
-	{
-		uint32_t offset;
-		void* data;
-		uint32_t size;
-	} blocks[128];
-};
+struct BlockMap;
 
 class FORMATS_EXPORT pgStreamManager
 {
@@ -58,7 +47,7 @@ public:
 
 	static void BeginPacking(BlockMap* blockMap);
 
-	static void MarkToBePacked(pgPtrRepresentation* ptrRepresentation, bool physical);
+	static void MarkToBePacked(pgPtrRepresentation* ptrRepresentation, bool physical, void* tag);
 
 	static void EndPacking();
 
@@ -67,10 +56,53 @@ public:
 	static void* Allocate(size_t size, bool isPhysical, BlockMap* blockMap);
 
 	static void* AllocatePlacement(size_t size, void* hintPtr, bool isPhysical, BlockMap* blockMap);
+
+	static inline char* StringDup(const char* str)
+	{
+		char* outStr = (char*)Allocate(strlen(str) + 1, false, nullptr);
+
+		strcpy(outStr, str);
+
+		return outStr;
+	}
 };
 
-template<typename T>
-class pgPtr
+class FORMATS_EXPORT pgStreamableBase
+{
+public:
+	inline void* operator new(size_t size)
+	{
+		return malloc(size);
+	}
+
+	inline void* operator new(size_t size, bool isPhysical)
+	{
+		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	}
+
+	inline void* operator new(size_t size, BlockMap* blockMap, bool isPhysical)
+	{
+		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	}
+
+	inline void* operator new[](size_t size)
+	{
+		return malloc(size);
+	}
+
+	inline void* operator new[](size_t size, bool isPhysical)
+	{
+		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	}
+
+	inline void* operator new[](size_t size, BlockMap* blockMap, bool isPhysical)
+	{
+		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	}
+};
+
+template<typename T, bool Physical = false>
+class pgPtr : public pgStreamableBase
 {
 private:
 union 
@@ -121,7 +153,7 @@ public:
 	{
 		pointer = other;
 
-		pgStreamManager::MarkToBePacked(&on_disk, false);
+		pgStreamManager::MarkToBePacked(&on_disk, Physical, _ReturnAddress());
 		pgStreamManager::MarkResolved(this);
 
 		return *this;
@@ -158,26 +190,37 @@ public:
 	}
 };
 
-class FORMATS_EXPORT pgStreamableBase
+inline void* datBase::operator new(size_t size)
 {
-public:
-	inline void* operator new(size_t size)
-	{
-		return malloc(size);
-	}
+	return malloc(size);
+}
 
-	inline void* operator new(size_t size, bool isPhysical)
-	{
-		return pgStreamManager::Allocate(size, isPhysical, nullptr);
-	}
+inline void* datBase::operator new(size_t size, bool isPhysical)
+{
+	return pgStreamManager::Allocate(size, isPhysical, nullptr);
+}
 
-	inline void* operator new(size_t size, BlockMap* blockMap, bool isPhysical)
+inline void* datBase::operator new(size_t size, BlockMap* blockMap, bool isPhysical)
+{
+	return pgStreamManager::Allocate(size, isPhysical, nullptr);
+}
+
+struct FORMATS_EXPORT BlockMap : public pgStreamableBase
+{
+	uint16_t virtualLen;
+	uint16_t physicalLen;
+
+	struct BlockInfo
 	{
-		return pgStreamManager::Allocate(size, isPhysical, nullptr);
-	}
+		uint32_t offset;
+		void* data;
+		uint32_t size;
+	} blocks[128];
+
+	bool Save(int version, fwAction<const void*, size_t> writer);
 };
 
-struct BlockInfo : public pgStreamableBase
+/*struct BlockInfo : public pgStreamableBase
 {
 	uint16_t m_numVirtual;
 	uint16_t m_numPhysical;
@@ -188,20 +231,20 @@ struct BlockInfo : public pgStreamableBase
 		m_numPhysical = 0;
 		m_numVirtual = 0;
 	}
-};
+};*/
 
-class FORMATS_EXPORT pgBase : public datBase, public pgStreamableBase
+class FORMATS_EXPORT pgBase : public datBase
 {
 private:
-	pgPtr<BlockInfo> m_blockMap;
+	pgPtr<BlockMap> m_blockMap;
 
 public:
+	inline void SetBlockMap() { m_blockMap = new(false) BlockMap; }
+
 	inline pgBase()
 	{
-		
+		SetBlockMap();
 	}
-
-	inline void SetBlockMap() { m_blockMap = new(false) BlockInfo; }
 
 	virtual ~pgBase() { }
 };

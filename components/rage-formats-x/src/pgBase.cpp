@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include <pgBase.h>
 #include <unordered_set>
+#include <tuple>
 
 namespace rage
 {
@@ -61,7 +62,7 @@ void pgStreamManager::UnmarkResolved(const void* ptrAddress)
 }
 
 static __declspec(thread) BlockMap* g_packBlockMap;
-static __declspec(thread) std::vector<std::pair<pgPtrRepresentation*, bool>>* g_packEntries;
+static __declspec(thread) std::vector<std::tuple<pgPtrRepresentation*, bool, void*>>* g_packEntries;
 
 void pgStreamManager::BeginPacking(BlockMap* blockMap)
 {
@@ -70,12 +71,12 @@ void pgStreamManager::BeginPacking(BlockMap* blockMap)
 		delete g_packEntries;
 	}
 
-	g_packEntries = new std::vector<std::pair<pgPtrRepresentation*, bool>>();
+	g_packEntries = new std::vector<std::tuple<pgPtrRepresentation*, bool, void*>>();
 
 	g_packBlockMap = blockMap;
 }
 
-void pgStreamManager::MarkToBePacked(pgPtrRepresentation* ptrRepresentation, bool physical)
+void pgStreamManager::MarkToBePacked(pgPtrRepresentation* ptrRepresentation, bool physical, void* tag)
 {
 	if (!g_packBlockMap)
 	{
@@ -90,8 +91,14 @@ void pgStreamManager::MarkToBePacked(pgPtrRepresentation* ptrRepresentation, boo
 		return;
 	}
 
+	// physical typically doesn't contain pointers to other physicals, so we use false here
+	if (!IsInBlockMap(ptrRepresentation, g_packBlockMap, false))
+	{
+		return;
+	}
+
 	// add the block
-	g_packEntries->push_back(std::make_pair(ptrRepresentation, physical));
+	g_packEntries->push_back(std::make_tuple(ptrRepresentation, physical, tag));
 }
 
 bool pgStreamManager::IsInBlockMap(void* ptr, BlockMap* blockMap, bool physical)
@@ -127,14 +134,14 @@ void pgStreamManager::EndPacking()
 
 	for (auto& packPtr : packEntries)
 	{
-		uintptr_t inPtr = *(uintptr_t*)packPtr.first;
+		uintptr_t inPtr = *(uintptr_t*)std::get<0>(packPtr);
 
 		if (inPtr == 0)
 		{
 			continue;
 		}
 
-		bool physical = packPtr.second;
+		bool physical = std::get<1>(packPtr);
 
 		int startIndex = (!physical) ? 0 : g_packBlockMap->virtualLen;
 		int endIndex = (!physical) ? g_packBlockMap->virtualLen : (g_packBlockMap->virtualLen + g_packBlockMap->physicalLen);
@@ -149,8 +156,8 @@ void pgStreamManager::EndPacking()
 			
 			if (inPtr >= offStart && inPtr < offEnd)
 			{
-				packPtr.first->blockType = (!physical) ? 5 : 6;
-				packPtr.first->pointer = (inPtr - offStart) + block.offset;
+				std::get<0>(packPtr)->blockType = (!physical) ? 5 : 6;
+				std::get<0>(packPtr)->pointer = (inPtr - offStart) + block.offset;
 
 				valid = true;
 
@@ -160,7 +167,7 @@ void pgStreamManager::EndPacking()
 
 		if (!valid)
 		{
-			FatalError("Stray pointer in pgPtr");
+			FatalError("Stray pointer in pgPtr: %p %p", inPtr, std::get<2>(packPtr));
 		}
 	}
 
@@ -196,7 +203,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	// start at the current offset thing
 	int curBlock = (isPhysical) ? (blockMap->physicalLen + blockMap->virtualLen) : blockMap->virtualLen;
 	
-	if (curBlock > 0)
+	if ((!isPhysical && blockMap->virtualLen > 0) || (isPhysical && blockMap->physicalLen > 0))
 	{
 		curBlock--;
 	}
@@ -246,17 +253,17 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 		if (blockMap->physicalLen > 0)
 		{
 			lastIdx = blockMap->virtualLen + blockMap->physicalLen - 1;
+
+			auto& lastBlock = blockMap->blocks[lastIdx];
+	
+			newOffset = lastBlock.offset + lastBlock.size;
+
+			newSize = allocInfo.maxSizes[lastIdx] * 2;
 		}
 		else
 		{
-			lastIdx = blockMap->virtualLen - 1;
+			newOffset = 0;
 		}
-
-		auto& lastBlock = blockMap->blocks[lastIdx];
-
-		newOffset = lastBlock.offset + lastBlock.size;
-
-		newSize = allocInfo.maxSizes[lastIdx] * 2;
 	}
 
 	// determine the new block index

@@ -24,7 +24,7 @@ private:
 public:
 	pgArray()
 	{
-		m_offset = (TValue*)0xDEADC0DE;
+		m_offset = (TValue*)0;
 		m_count = 0;
 		m_size = 0;
 	}
@@ -114,7 +114,7 @@ private:
 public:
 	pgObjectArray()
 	{
-		m_objects = (pgPtr<TValue>*)0xDEADC0DE;
+		m_objects = (pgPtr<TValue>*)0;
 		m_count = 0;
 		m_size = 0;
 	}

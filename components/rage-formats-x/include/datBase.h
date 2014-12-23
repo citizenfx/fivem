@@ -26,10 +26,18 @@
 #define SwapSingleWrite(x) (x)
 #endif
 
+class BlockMap;
+
 class FORMATS_EXPORT datBase
 {
 public:
 	virtual ~datBase() {}
+
+	void* operator new(size_t size, bool isPhysical);
+
+	void* operator new(size_t size, BlockMap* blockMap, bool isPhysical);
+
+	void* operator new(size_t size);
 };
 
 struct Vector3

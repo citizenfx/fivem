@@ -19,12 +19,76 @@
 #define RAGE_FORMATS_ny_rmcDrawable 1
 #endif
 
-class grcTexturePC
+class grcTexture : public pgBase
 {
+private:
+	uint8_t m_objectType;
+	uint8_t m_depth;
+	uint16_t m_usageCount;
+	uint32_t m_pad;
+	uint32_t m_pad2;
+	pgPtr<char> m_name;
+	void* m_nativeHandle;
+	uint16_t m_width;
+	uint16_t m_height;
+	uint32_t m_pixelFormat;
+	uint16_t m_stride;
+	uint8_t m_textureType;
+	uint8_t m_levels;
+
 public:
+	inline grcTexture()
+		: pgBase()
+	{
+		m_objectType = 2;
+		m_depth = 0;
+		m_usageCount = 1;
+		m_pad = 0;
+		m_pad2 = 0;
+		m_nativeHandle = nullptr;
+		m_width = 0;
+		m_height = 0;
+		m_pixelFormat = 0;
+		m_stride = 0;
+		m_textureType = 0;
+		m_levels = 0;
+	}
+
+	inline void SetName(const char* name)
+	{
+		m_name = pgStreamManager::StringDup(name);
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
+		m_name.Resolve(blockMap);
+	}
+};
 
+class grcTexturePC : public grcTexture
+{
+private:
+	float m_28[3];
+	float m_34[3];
+	void* m_next;
+	void* m_prev;
+	pgPtr<void> m_pixelData;
+	uint8_t pad[4];
+
+public:
+	inline grcTexturePC()
+		: grcTexture()
+	{
+		memset(m_28, 0, sizeof(m_28));
+		memset(m_34, 0, sizeof(m_34));
+		m_next = nullptr;
+		m_prev = nullptr;
+		memset(pad, 0, sizeof(pad));
+	}
+
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+		grcTexture::Resolve(blockMap);
 	}
 };
 
@@ -114,16 +178,28 @@ public:
 
 	inline void SetParameters(uint32_t count, uint32_t* names, void** values, grmShaderEffectParamType* types)
 	{
-		static pgPtr<void> valuesInt[64];
+		pgPtr<void>* valuesInt = new(false) pgPtr<void>[count];
 
 		for (int i = 0; i < count; i++)
 		{
 			valuesInt[i] = values[i];
 		}
 
+		m_parameterNameHashes = (uint32_t*)pgStreamManager::Allocate(sizeof(uint32_t) * count, false, nullptr);
+
+		for (int i = 0; i < count; i++)
+		{
+			(*m_parameterNameHashes)[i] = names[i];
+		}
+
+		m_parameterTypes = (grmShaderEffectParamType*)pgStreamManager::Allocate(sizeof(grmShaderEffectParamType) * count, false, nullptr);
+
+		for (int i = 0; i < count; i++)
+		{
+			(*m_parameterTypes)[i] = types[i];
+		}
+
 		m_parameters = valuesInt;
-		m_parameterNameHashes = names;
-		m_parameterTypes = types;
 
 		m_parameterCount = SwapLongWrite(count);
 	}
@@ -202,6 +278,11 @@ public:
 	inline uint16_t GetShaderIndex() { return SwapShortRead(m_shaderIndex); }
 	inline uint8_t GetUsageCount() { return m_usageCount; }
 
+	inline void SetIndex(uint16_t shaderIndex)
+	{
+		m_shaderIndex = shaderIndex;
+	}
+
 	inline void SetVersion(uint8_t version) { m_version = version; }
 	inline void SetUsageCount(uint8_t usageCount) { m_usageCount = SwapShortWrite(usageCount); }
 
@@ -254,9 +335,9 @@ public:
 
 	inline const char* GetSpsName() { return *(m_shaderName); }
 
-	inline void SetShaderName(char* value) { m_shaderName = value; }
+	inline void SetShaderName(char* value) { m_shaderName = pgStreamManager::StringDup(value); }
 
-	inline void SetSpsName(char* value) { m_spsName = value; }
+	inline void SetSpsName(char* value) { m_spsName = pgStreamManager::StringDup(value); }
 
 	inline uint32_t GetPreset() { return SwapLongRead(m_preset); }
 
@@ -271,7 +352,7 @@ public:
 	}
 };
 
-class grmShaderGroup : public datBase, public pgStreamableBase
+class grmShaderGroup : public datBase
 {
 private:
 	pgPtr<pgDictionary<grcTexturePC>> m_textures;
@@ -357,9 +438,29 @@ class grcIndexBuffer : public datBase
 {
 private:
 	uint32_t m_indexCount;
-	pgPtr<uint16_t> m_indexData;
+	pgPtr<uint16_t, true> m_indexData;
 
 public:
+	grcIndexBuffer(uint32_t indexCount, uint16_t* indexData)
+	{
+		m_indexCount = indexCount;
+		
+		if (pgStreamManager::IsInBlockMap(indexData, nullptr, true))
+		{
+			m_indexData = indexData;
+		}
+		else
+		{
+			m_indexData = (uint16_t*)pgStreamManager::Allocate(indexCount * sizeof(uint16_t), true, nullptr);
+			memcpy(*m_indexData, indexData, indexCount * sizeof(uint16_t));
+		}
+	}
+
+	inline uint32_t GetIndexCount()
+	{
+		return m_indexCount;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_indexData.Resolve(blockMap);
@@ -373,13 +474,20 @@ private:
 	uint32_t m_unk[8];
 
 public:
+	grcIndexBufferD3D(uint32_t indexCount, uint16_t* indexData)
+		: grcIndexBuffer(indexCount, indexData)
+	{
+		m_pIIndexBuffer = nullptr;
+		memset(m_unk, 0, sizeof(m_unk));
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		grcIndexBuffer::Resolve(blockMap);
 	}
 };
 
-class grcVertexFormat
+class grcVertexFormat : public pgStreamableBase
 {
 private:
 #ifdef RAGE_FORMATS_GAME_NY
@@ -399,6 +507,17 @@ private:
 #endif
 
 public:
+	grcVertexFormat(uint16_t mask, uint16_t vertexSize, uint8_t fieldCount, uint64_t fvf)
+	{
+		_pad = 0;
+		_f6 = 0;
+
+		m_mask = mask;
+		m_vertexSize = vertexSize;
+		m_vertexFieldCount = fieldCount;
+		m_vertexFields = fvf;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 
@@ -416,7 +535,7 @@ private:
 	uint32_t m_vertexSize;
 	pgPtr<grcVertexFormat> m_vertexFormat;
 	uint32_t m_lockThreadId;
-	pgPtr<void> m_vertexData;
+	pgPtr<void, true> m_vertexData;
 #endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
@@ -430,6 +549,44 @@ private:
 #endif
 
 public:
+	grcVertexBuffer()
+	{
+		m_locked = 0;
+		m_pad = 0;
+		m_lockThreadId = 0;
+	}
+
+	inline void SetVertexFormat(grcVertexFormat* vertexFormat)
+	{
+		m_vertexFormat = vertexFormat;
+	}
+
+	inline void SetVertices(uint32_t vertexCount, uint32_t vertexStride, void* vertexData)
+	{
+		m_vertexCount = vertexCount;
+		m_vertexSize = vertexStride;
+
+		if (pgStreamManager::IsInBlockMap(vertexData, nullptr, true))
+		{
+			m_vertexData = vertexData;
+		}
+		else
+		{
+			m_vertexData = pgStreamManager::Allocate(vertexCount * vertexStride, true, nullptr);
+			memcpy(*m_vertexData, vertexData, vertexCount * vertexStride);
+		}
+	}
+
+	inline uint32_t GetStride()
+	{
+		return m_vertexSize;
+	}
+
+	inline uint32_t GetCount()
+	{
+		return m_vertexCount;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 #ifdef RAGE_FORMATS_GAME_NY
@@ -453,6 +610,13 @@ private:
 	uint32_t m_unk[8];
 
 public:
+	inline grcVertexBufferD3D()
+	{
+		memset(m_unk, 0, sizeof(m_unk));
+
+		m_pIVertexBuffer = nullptr;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		grcVertexBuffer::Resolve(blockMap);
@@ -473,13 +637,39 @@ private:
 
 	// undefined for non-NY
 	pgPtr<uint16_t> m_boneMapping;
-	uint32_t m_vertexStride;
+	uint16_t m_vertexStride;
 	uint16_t m_boneCount;
 	pgPtr<void> m_vertexDeclarationInstance;
 	pgPtr<void> m_vertexBufferInstance;
 	uint32_t m_useGlobalStreamIndex;
 
 public:
+	inline grmGeometryQB()
+	{
+		m_vertexDeclaration = nullptr;
+		_f8 = 0;
+		m_dwIndexCount = 0;
+		m_dwFaceCount = 0;
+		m_wVertexCount = 0;
+		m_wIndicesPerFace = 3;
+		m_boneCount = 0;
+		m_useGlobalStreamIndex = 0;
+	}
+
+	inline void SetVertexBuffer(grcVertexBufferD3D* vertexBuffer)
+	{
+		m_vertexBuffers[0] = vertexBuffer;
+		m_vertexStride = vertexBuffer->GetStride();
+		m_wVertexCount = vertexBuffer->GetCount();
+	}
+
+	inline void SetIndexBuffer(grcIndexBufferD3D* indexBuffer)
+	{
+		m_indexBuffers[0] = indexBuffer;
+		m_dwIndexCount = indexBuffer->GetIndexCount();
+		m_dwFaceCount = indexBuffer->GetIndexCount() / m_wIndicesPerFace;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		for (int i = 0; i < 4; i++)
@@ -532,7 +722,7 @@ private:
 	uint8_t m_zero;
 	uint8_t m_zero2;
 	uint8_t m_hasBoneMapping;
-	uint16_t m_shaderMappingCount;
+	uint16_t m_shaderMappingCount; // may be geometry count by proxy?
 
 public:
 	inline grmModel()
@@ -543,6 +733,41 @@ public:
 		m_zero2 = 0;
 		m_hasBoneMapping = 0;
 		m_shaderMappingCount = 0;
+	}
+
+	inline void SetGeometries(int count, grmGeometryQB** geometries)
+	{
+		static pgPtr<grmGeometryQB> geometriesInd[64];
+
+		for (int i = 0; i < count; i++)
+		{
+			geometriesInd[i] = geometries[i];
+		}
+
+		m_geometries.SetFrom(geometriesInd, count);
+	}
+
+	inline void SetGeometryBounds(const Vector4& vector)
+	{
+		m_geometryBounds = (Vector4*)pgStreamManager::Allocate(sizeof(Vector4), false, nullptr);
+		(*m_geometryBounds)[0] = vector;
+	}
+
+	inline void SetBoneCount(uint8_t count)
+	{
+		m_boneCount = count;
+	}
+
+	inline void SetShaderMappings(uint16_t count, const uint16_t* shaderMappings)
+	{
+		m_shaderMappings = (uint16_t*)pgStreamManager::Allocate(sizeof(uint16_t) * count, false, nullptr);
+
+		for (int i = 0; i < count; i++)
+		{
+			(*m_shaderMappings)[i] = shaderMappings[i];
+		}
+
+		m_shaderMappingCount = count;
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
@@ -594,6 +819,67 @@ public:
 		m_radius = 0.0f;
 	}
 
+	inline Vector3 GetBoundsMin()
+	{
+		return m_boundsMin;
+	}
+
+	inline Vector3 GetBoundsMax()
+	{
+		return m_boundsMax;
+	}
+
+	inline Vector3 GetCenter()
+	{
+		return m_center;
+	}
+
+	inline float GetRadius()
+	{
+		return m_radius;
+	}
+
+	inline void SetBounds(const Vector3& min, const Vector3& max, const Vector3& center, float radius)
+	{
+		m_boundsMin = min;
+		m_boundsMax = max;
+		m_center = center;
+		m_radius = radius;
+	}
+
+	inline grmModel* GetModel(int idx)
+	{
+		if (idx < 0 || idx >= _countof(m_models))
+		{
+			FatalError("");
+		}
+
+		return m_models[idx]->Get(0);
+	}
+
+	inline void SetModel(int idx, grmModel* model)
+	{
+		if (idx < 0 || idx >= _countof(m_models))
+		{
+			FatalError("");
+		}
+
+		pgPtr<grmModel> models[1];
+		models[0] = model;
+
+		m_models[idx] = new(false) pgObjectArray<grmModel>(models, 1);
+	}
+
+	inline void SetDrawBucketMask(int idx, int mask)
+	{
+		if (idx < 0 || idx >= _countof(m_models))
+		{
+			FatalError("");
+		}
+
+		m_drawBucketMask[idx] = mask;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		for (int i = 0; i < 4; i++)
@@ -616,6 +902,11 @@ private:
 	grmLodGroup m_lodGroup;
 
 public:
+	inline grmLodGroup& GetLodGroup()
+	{
+		return m_lodGroup;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		rmcDrawableBase::Resolve(blockMap);
