@@ -13,7 +13,7 @@ extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpR
 void InitializeDummies();
 void EnsureGamePath();
 
-LONG WINAPI CustomUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo);
+bool InitializeExceptionHandler();
 
 void main()
 {
@@ -26,7 +26,10 @@ void main()
 		ExitProcess(0);
 	}
 
-	SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
+	if (InitializeExceptionHandler())
+	{
+		ExitProcess(0);
+	}
 
 	EnsureGamePath();
 	

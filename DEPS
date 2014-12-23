@@ -13,7 +13,8 @@ deps = {
 	"vendor/gtest": "http://googletest.googlecode.com/svn/trunk/",
 	"vendor/protobuf": "http://protobuf.googlecode.com/svn/trunk/",
 	"vendor/libopus": "git://git.opus-codec.org/opus.git",
-	"vendor/pash": "http://tohjo.eu/citidev/pash.git"
+	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
+	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/"
 }
 
 hooks = [

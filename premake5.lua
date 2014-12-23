@@ -54,7 +54,7 @@ solution "CitizenMP"
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "tinyxml", "liblzma", "comctl32" }
+		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "tinyxml", "liblzma", "comctl32", "breakpad", "wininet", "winhttp" }
 		
 		files
 		{
@@ -70,7 +70,7 @@ solution "CitizenMP"
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
-		includedirs { "client/libcef/" }
+		includedirs { "client/libcef/", "../vendor/breakpad/src/" }
 
 		flags { "StaticRuntime" }
 
@@ -162,6 +162,8 @@ solution "CitizenMP"
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
+	group "managed"
+
 	external 'CitiMono'
 		uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
 		kind 'SharedLib'
@@ -228,6 +230,8 @@ solution "CitizenMP"
 				}
 	end
 		
+	group ""
+
 	project "Shared"
 		targetname "shared"
 		language "C++"
@@ -257,6 +261,8 @@ solution "CitizenMP"
 		{
 			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
 		}
+
+	group "vendor"
 		
 	project "libcef_dll"
 		targetname "libcef_dll_wrapper"
@@ -511,6 +517,27 @@ solution "CitizenMP"
 		includedirs { "client/citigame/include/", "client/citicore/" }
 		
 		files { "tests/citigame/*.cpp", "tests/test.cpp" }
+
+	project "breakpad"
+		language "C++"
+		kind "StaticLib"
+
+		flags { "StaticRuntime" }
+
+		includedirs { "../vendor/breakpad/src/" }
+
+		files {
+			"../vendor/breakpad/src/client/windows/handler/exception_handler.cc",
+			"../vendor/breakpad/src/client/windows/crash_generation/client_info.cc",
+			"../vendor/breakpad/src/client/windows/crash_generation/crash_generation_client.cc",
+			"../vendor/breakpad/src/client/windows/crash_generation/crash_generation_server.cc",
+			"../vendor/breakpad/src/client/windows/crash_generation/minidump_generator.cc",
+			"../vendor/breakpad/src/common/windows/guid_string.cc",
+			"../vendor/breakpad/src/common/windows/http_upload.cc",
+			"../vendor/breakpad/src/common/windows/string_utils.cc",
+		}
+
+	group "components"
 
 	-- code for component development
 	local components = { }
