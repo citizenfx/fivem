@@ -1,0 +1,10 @@
+{
+	"name": "debug:net",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net",
+		"font-renderer"
+	],
+	"provides": []
+}

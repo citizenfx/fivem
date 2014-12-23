@@ -13,7 +13,9 @@
 #include "HttpClient.h"
 #include "CrossLibraryInterfaces.h"
 
-#define NETWORK_PROTOCOL 2
+#include "INetMetricSink.h"
+
+#define NETWORK_PROTOCOL 3
 
 enum NetAddressType
 {
@@ -165,6 +167,8 @@ private:
 
 	std::string m_playerName;
 
+	fwRefContainer<INetMetricSink> m_metricSink;
+
 	HANDLE m_receiveEvent;
 
 private:
@@ -260,6 +264,8 @@ public:
 	inline uint32_t GetServerBase() { return m_serverBase; }
 
 	inline bool IsDisconnected() { return m_connectionState == CS_IDLE; }
+
+	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 
 public:
 	static NetLibrary* Create();

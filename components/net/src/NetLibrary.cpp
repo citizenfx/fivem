@@ -88,6 +88,9 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 	// update received-at time
 	m_lastReceivedAt = GetTickCount();
 
+	// metrics bits
+	NetPacketMetrics metrics;
+
 	// receive the message
 	uint32_t msgType;
 
@@ -143,6 +146,9 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			}
 
 			EnqueueRoutedPacket(netID, std::string(routeBuffer, rlength));
+
+			// add to metrics
+			metrics.AddElementSize(NET_PACKET_SUB_ROUTED_MESSAGES, 2 + rlength);
 		}
 		else if (msgType == 0x53FFFA3F) // msgFrame
 		{
@@ -152,6 +158,17 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			uint32_t frameNum = msg.Read<uint32_t>();
 
 			m_lastFrameNumber = frameNum;
+
+			// handle ping status
+			if (m_serverProtocol >= 3)
+			{
+				int currentPing = msg.Read<int>();
+
+				if (m_metricSink.GetRef())
+				{
+					m_metricSink->OnPingResult(currentPing);
+				}
+			}
 		}
 		else if (msgType != 0xCA569E63) // reliable command
 		{
@@ -162,10 +179,14 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			{
 				size = msg.Read<uint32_t>();
 				id &= ~0x80000000;
+
+				metrics.AddElementSize(NET_PACKET_SUB_RELIABLES, 4);
 			}
 			else
 			{
 				size = msg.Read<uint16_t>();
+
+				metrics.AddElementSize(NET_PACKET_SUB_RELIABLES, 2);
 			}
 
 			// test for bad scenarios
@@ -195,8 +216,16 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			}
 
 			delete[] reliableBuf;
+
+			// add to metrics
+			metrics.AddElementSize(NET_PACKET_SUB_RELIABLES, 4 + size);
 		}
 	} while (msgType != 0xCA569E63); // 'msgEnd'
+
+	if (m_metricSink.GetRef())
+	{
+		m_metricSink->OnIncomingPacket(metrics);
+	}
 }
 
 bool NetLibrary::WaitForRoutedPacket(uint32_t timeout)
@@ -309,6 +338,11 @@ uint32_t NetLibrary::GetHostBase()
 	return m_hostBase;
 }
 
+void NetLibrary::SetMetricSink(fwRefContainer<INetMetricSink>& sink)
+{
+	m_metricSink = sink;
+}
+
 void NetLibrary::HandleReliableCommand(uint32_t msgType, const char* buf, size_t length)
 {
 	auto range = m_reliableHandlers.equal_range(msgType);
@@ -359,6 +393,9 @@ void NetLibrary::ProcessSend()
 		return;
 	}
 
+	// metrics
+	NetPacketMetrics metrics;
+
 	// build a nice packet
 	NetBuffer msg(24000);
 
@@ -381,6 +418,8 @@ void NetLibrary::ProcessSend()
 		//trace("sending msgRoute to %d len %d\n", packet.netID, packet.payload.size());
 
 		msg.Write(packet.payload.c_str(), packet.payload.size());
+
+		metrics.AddElementSize(NET_PACKET_SUB_ROUTED_MESSAGES, packet.payload.size() + 2 + 2 + 4);
 	}
 
 	// send pending reliable commands
@@ -393,15 +432,21 @@ void NetLibrary::ProcessSend()
 			msg.Write(command.id | 0x80000000);
 
 			msg.Write<uint32_t>(command.command.size());
+
+			metrics.AddElementSize(NET_PACKET_SUB_RELIABLES, 4);
 		}
 		else
 		{
 			msg.Write(command.id);
 
 			msg.Write<uint16_t>(command.command.size());
+
+			metrics.AddElementSize(NET_PACKET_SUB_RELIABLES, 2);
 		}
 
 		msg.Write(command.command.c_str(), command.command.size());
+
+		metrics.AddElementSize(NET_PACKET_SUB_RELIABLES, command.command.size() + 8);
 	}
 
 	// FIXME: REPLACE HARDCODED STUFF
@@ -418,6 +463,11 @@ void NetLibrary::ProcessSend()
 	m_netChannel.Send(msg);
 
 	m_lastSend = timeGetTime();
+
+	if (m_metricSink.GetRef())
+	{
+		m_metricSink->OnOutgoingPacket(metrics);
+	}
 }
 
 void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
@@ -740,6 +790,29 @@ void NetLibrary::CreateResources()
 
 	m_httpClient = new HttpClient();
 	//m_httpClient = new HttpClient();
+
+	// TEMPTEMP
+	/*uint8_t out[1024];
+	uint8_t in[] = { 0x19, 0x00, 0xF7, 0x03, 0xC7, 0x40, 0x00, 0x02, 0x00, 0x01, 0xB4, 0x8D, 0xFD, 0x94, 0x8D, 0xAD, 0x03, 0xC5, 0xC0, 0xE4, 0x00, 0xB0, 0xF0, 0xDA, 0x30, 0xDA, 0x4D, 0x03, 0xC7, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xB0, 0x53, 0xF0, 0x54, 0x0D };
+
+	__asm
+	{
+		push edx
+		mov ecx, 785B70h
+		mov edx, 1bh
+
+		lea eax, in
+		push eax
+		push 1021
+
+		lea eax, out
+
+		call ecx
+
+		add esp, 8
+
+		pop edx
+	}*/
 }
 
 void NetLibrary::SendOutOfBand(NetAddress& address, const char* format, ...)
