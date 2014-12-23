@@ -158,8 +158,6 @@ bool InitializeExceptionHandler()
 
 	g_exceptionHandler->set_handle_debug_exceptions(true);
 
-	*(int*)0 = 0;
-
 	return false;
 }
 
