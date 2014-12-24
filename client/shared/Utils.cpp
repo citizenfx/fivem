@@ -91,13 +91,19 @@ void InitFunctionBase::RunAll()
 
 const char* va(const char* string, ...)
 {
-	static __declspec(thread) char buffer[BUFFER_COUNT][BUFFER_LENGTH];
 	static __declspec(thread) int currentBuffer;
+	static __declspec(thread) char* buffer;
+
+	if (!buffer)
+	{
+		buffer = new char[BUFFER_COUNT * BUFFER_LENGTH];
+	}
+
 	int thisBuffer = currentBuffer;
 
 	va_list ap;
 	va_start(ap, string);
-	int length = _vsnprintf_s(buffer[thisBuffer], BUFFER_LENGTH, string, ap);
+	int length = _vsnprintf(&buffer[thisBuffer * BUFFER_LENGTH], BUFFER_LENGTH, string, ap);
 	va_end(ap);
 
 	if (length >= BUFFER_LENGTH)
@@ -105,22 +111,28 @@ const char* va(const char* string, ...)
 		GlobalError("Attempted to overrun string in call to va()!");
 	}
 
-	buffer[thisBuffer][BUFFER_LENGTH - 1] = '\0';
+	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
 
 	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
 
-	return buffer[thisBuffer];
+	return &buffer[thisBuffer * BUFFER_LENGTH];
 }
 
 const wchar_t* va(const wchar_t* string, ...)
 {
-	static __declspec(thread) wchar_t buffer[BUFFER_COUNT][BUFFER_LENGTH];
 	static __declspec(thread) int currentBuffer;
+	static __declspec(thread) wchar_t* buffer;
+
+	if (!buffer)
+	{
+		buffer = new wchar_t[BUFFER_COUNT * BUFFER_LENGTH];
+	}
+
 	int thisBuffer = currentBuffer;
 
 	va_list ap;
 	va_start(ap, string);
-	int length = _vsnwprintf_s(buffer[thisBuffer], BUFFER_LENGTH, string, ap);
+	int length = _vsnwprintf(&buffer[thisBuffer * BUFFER_LENGTH], BUFFER_LENGTH, string, ap);
 	va_end(ap);
 
 	if (length >= BUFFER_LENGTH)
@@ -128,11 +140,11 @@ const wchar_t* va(const wchar_t* string, ...)
 		GlobalError("Attempted to overrun string in call to va()!");
 	}
 
-	buffer[thisBuffer][BUFFER_LENGTH - 1] = '\0';
+	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
 
 	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
 
-	return buffer[thisBuffer];
+	return &buffer[thisBuffer * BUFFER_LENGTH];
 }
 
 void trace(const char* string, ...)
