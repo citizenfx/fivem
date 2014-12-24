@@ -368,11 +368,11 @@ StreamingFile* CitizenStreamingModule::GetEntryFromIndex(uint32_t handle)
 	return file;
 }
 
-static CitizenStreamingModule streamingModule;
+static CitizenStreamingModule* streamingModule;
 
 void CSM_CreateStreamingFile(int index, const StreamingResource& entry)
 {
-	streamingModule.CreateStreamingFile(index, entry);
+	streamingModule->CreateStreamingFile(index, entry);
 }
 
 extern fwEvent<void*> OnRequestEntityDo;
@@ -380,6 +380,8 @@ extern fwEvent<void*> OnRequestEntityDo;
 static InitFunction initFunction([] ()
 {
 	httpClient = new HttpClient();
+
+	streamingModule = new CitizenStreamingModule();
 
 	/*OnRequestEntityDo.Connect([] (void* entityPtr)
 	{
@@ -415,7 +417,7 @@ static InitFunction initFunction([] ()
 		file->PreCache();
 	});*/
 
-	CStreaming::SetStreamingModule(&streamingModule);
+	CStreaming::SetStreamingModule(streamingModule);
 });
 
 bool SetStreamingWbnMode(bool fs)
