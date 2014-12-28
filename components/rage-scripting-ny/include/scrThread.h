@@ -56,7 +56,7 @@ public:
 	template<typename T>
 	inline T GetArgument(int idx)
 	{
-		int* arguments = (int*)m_pArgs;
+		intptr_t* arguments = (intptr_t*)m_pArgs;
 
 		return *(T*)&arguments[idx];
 	}
@@ -64,7 +64,7 @@ public:
 	template<typename T>
 	inline void SetResult(int idx, T value)
 	{
-		int* returnValues = (int*)m_pReturn;
+		intptr_t* returnValues = (intptr_t*)m_pReturn;
 
 		*(T*)&returnValues[idx] = value;
 	}
@@ -72,6 +72,14 @@ public:
 	inline int GetArgumentCount()
 	{
 		return m_nArgCount;
+	}
+
+	template<typename T>
+	inline T GetResult(int idx)
+	{
+		intptr_t* returnValues = (intptr_t*)m_pReturn;
+
+		return *(T*)&returnValues[idx];
 	}
 };
 

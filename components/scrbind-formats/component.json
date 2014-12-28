@@ -1,0 +1,11 @@
+{
+	"name": "scrbind:formats",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:formats",
+		"rage:scripting",
+		"scrbind:base"
+	],
+	"provides": []
+}
