@@ -100,9 +100,6 @@ void InitFunctionBase::Register()
 
 		(!last ? g_initFunctions : last->m_next) = this;
 	}
-
-	m_next = g_initFunctions;
-	g_initFunctions = this;
 }
 
 void InitFunctionBase::RunAll()
