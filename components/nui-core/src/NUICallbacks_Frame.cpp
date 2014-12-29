@@ -69,4 +69,4 @@ static FrameCallbacks g_frameCallbacks;
 static InitFunction initFunction([] ()
 {
 	g_frameCallbacks.Initialize();
-}, 100);
+}, 1);

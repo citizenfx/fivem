@@ -61,4 +61,4 @@ static PollCallbacks g_pollCallbacks;
 static InitFunction initFunction([] ()
 {
 	g_pollCallbacks.Initialize();
-}, 100);
+}, 1);

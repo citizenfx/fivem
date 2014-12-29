@@ -21,4 +21,4 @@ static InitFunction initFunction([] ()
 
 		return CefV8Value::CreateUndefined();
 	});
-}, 100);
+}, 1);

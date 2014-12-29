@@ -788,8 +788,10 @@ namespace nui
 		__HrLoadAllImportsForDll("libcef.dll");
 
 		// instantiate a NUIApp
+		auto selfApp = Instance<NUIApp>::Get();
+
 		CefMainArgs args(GetModuleHandle(NULL));
-		CefRefPtr<CefApp> app(Instance<NUIApp>::Get());
+		CefRefPtr<CefApp> app(selfApp);
 
 		// try to execute as a CEF process
 		int exitCode = CefExecuteProcess(args, app, nullptr);
