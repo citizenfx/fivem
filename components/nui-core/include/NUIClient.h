@@ -9,7 +9,7 @@
 
 #include <mutex>
 
-#include <CefOverlay.h>
+#include <NUIWindow.h>
 #include <include/cef_client.h>
 
 class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler

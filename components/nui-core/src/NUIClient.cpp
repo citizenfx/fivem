@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "NUIClient.h"
 #include "NUIRenderHandler.h"
+#include "CefOverlay.h"
 
 #include <sstream>
 

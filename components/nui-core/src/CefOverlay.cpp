@@ -21,6 +21,7 @@
 #include "CefOverlay.h"
 #include "NUIApp.h"
 #include "NUIClient.h"
+#include "NUIWindowManager.h"
 
 #include <delayimp.h>
 #include <include/cef_origin_whitelist.h>
@@ -39,184 +40,6 @@ HWND g_mainWindow;
 
 fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 
-CefBrowser* NUIWindow::GetBrowser()
-{
-	return ((NUIClient*)m_client.get())->GetBrowser();
-}
-
-bool RenderWindowMade();
-
-LRESULT CALLBACK CefWndProc(HWND, UINT, WPARAM, LPARAM);
-
-void NUIWindow::UpdateFrame()
-{
-	//WaitForSingleObject(paintDoneEvent, INFINITE);
-	if (!nuiTexture)
-	{
-		return;
-	}
-
-	for (auto& item : pollQueue)
-	{
-		NUIClient* client = static_cast<NUIClient*>(m_client.get());
-		auto browser = client->GetBrowser();
-
-		auto message = CefProcessMessage::Create("doPoll");
-		auto argList = message->GetArgumentList();
-
-		argList->SetSize(1);
-		argList->SetString(0, item);
-
-		browser->SendProcessMessage(PID_RENDERER, message);
-	}
-
-	pollQueue.clear();
-
-	if (renderBufferDirty)
-	{
-		//int timeBegin = timeGetTime();
-
-		void* pBits = nullptr;
-		int pitch;
-		bool discarded = false;
-
-#ifndef _HAS_GRCTEXTURE_MAP
-		D3DLOCKED_RECT lockedRect;
-		nuiTexture->m_pITexture->LockRect(0, &lockedRect, NULL, 0);
-
-		pBits = lockedRect.pBits;
-		pitch = lockedRect.Pitch;
-#else
-		rage::grcLockedTexture lockedTexture;
-
-		if (nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
-		{
-			pBits = lockedTexture.pBits;
-			pitch = lockedTexture.pitch;
-		}
-		else if (nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
-		{
-			pBits = lockedTexture.pBits;
-			pitch = lockedTexture.pitch;
-
-			discarded = true;
-		}
-#endif
-
-		if (pBits)
-		{
-			if (!discarded)
-			{
-				while (!dirtyRects.empty())
-				{
-					EnterCriticalSection(&renderBufferLock);
-					CefRect rect = dirtyRects.front();
-					dirtyRects.pop();
-					LeaveCriticalSection(&renderBufferLock);
-
-					for (int y = rect.y; y < (rect.y + rect.height); y++)
-					{
-						int* src = &((int*)(renderBuffer))[(y * roundedWidth) + rect.x];
-						int* dest = &((int*)(pBits))[(y * (pitch / 4)) + rect.x];
-
-						memcpy(dest, src, (rect.width * 4));
-					}
-				}
-			}
-			else
-			{
-				EnterCriticalSection(&renderBufferLock);
-				dirtyRects = std::queue<CefRect>();
-				LeaveCriticalSection(&renderBufferLock);
-
-				memcpy(pBits, renderBuffer, height * pitch);
-			}
-		}
-
-#ifndef _HAS_GRCTEXTURE_MAP
-		nuiTexture->m_pITexture->UnlockRect(0);
-#else
-		if (pBits)
-		{
-			nuiTexture->Unmap(&lockedTexture);
-		}
-#endif
-
-		//int duration = timeGetTime() - timeBegin;
-
-		renderBufferDirty = false;
-	}
-}
-
-static int roundUp(int number, int multiple)
-{
-	if ((number % multiple) == 0)
-	{
-		return number;
-	}
-
-	int added = number + multiple;
-
-	return (added)-(added % multiple);
-}
-
-static std::vector<NUIWindow*> g_nuiWindows;
-static std::mutex g_nuiWindowsMutex;
-
-NUIWindow::NUIWindow(bool primary, int width, int height)
-	: primary(primary), width(width), height(height), renderBuffer(nullptr), renderBufferDirty(false), m_onClientCreated(nullptr), nuiTexture(nullptr)
-{
-	g_nuiWindowsMutex.lock();
-	g_nuiWindows.push_back(this);
-	g_nuiWindowsMutex.unlock();
-}
-
-NUIWindow::~NUIWindow()
-{
-	auto nuiClient = ((NUIClient*)m_client.get());
-	auto& mutex = nuiClient->GetWindowLock();
-
-	mutex.lock();
-	nuiClient->SetWindowValid(false);
-	nuiClient->GetBrowser()->GetHost()->CloseBrowser(true);
-	mutex.unlock();
-
-	g_nuiWindowsMutex.lock();
-
-	for (auto it = g_nuiWindows.begin(); it != g_nuiWindows.end(); )
-	{
-		if (*it == this)
-		{
-			it = g_nuiWindows.erase(it);
-		}
-		else
-		{
-			it++;
-		}
-	}
-
-	g_nuiWindowsMutex.unlock();
-}
-
-void NUIWindow::SignalPoll(std::string& argument)
-{
-	if (pollQueue.find(argument) == pollQueue.end())
-	{
-		pollQueue.insert(argument);
-	}
-}
-
-void NUIWindow::SetPaintType(NUIPaintType type)
-{
-	paintType = type;
-}
-
-void NUIWindow::Invalidate()
-{
-	CefRect fullRect(0, 0, width, height);
-	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(fullRect, PET_VIEW);
-}
-
 //#include "RenderCallbacks.h"
 #include "DrawCommands.h"
 
@@ -224,14 +47,10 @@ static InitFunction initFunction([] ()
 {
 	OnD3DPostReset.Connect([] ()
 	{
-		g_nuiWindowsMutex.lock();
-
-		for (auto& window : g_nuiWindows)
+		Instance<NUIWindowManager>::Get()->ForAllWindows([=] (fwRefContainer<NUIWindow> window)
 		{
 			window->Invalidate();
-		}
-
-		g_nuiWindowsMutex.unlock();
+		});
 	});
 
 	OnPostFrontendRender.Connect([]()
@@ -251,37 +70,23 @@ static InitFunction initFunction([] ()
 		EnqueueGenericDrawCommand([] (uint32_t, uint32_t)
 		{
 #endif
-			float bottomLeft[2] = { 0.f, 1.f };
-			float bottomRight[2] = { 1.f, 1.f };
-			float topLeft[2] = { 0.f, 0.f };
-			float topRight[2] = { 1.f, 0.f };
-
-			if (g_mainUIFlag)
-			{
-				//nui::ProcessInput();
-			}
-
-			uint32_t color = 0xFFFFFFFF;
-
 			if (g_mainUIFlag)
 			{
 				ClearRenderTarget(true, -1, true, 1.0f, true, -1);
 			}
 
-			g_nuiWindowsMutex.lock();
-
 #if !defined(GTA_NY)
-			for (auto& window : g_nuiWindows)
+			Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
 			{
 				window->UpdateFrame();
-			}
+			});
 #endif
 
-			for (auto& window : g_nuiWindows)
+			Instance<NUIWindowManager>::Get()->ForAllWindows([=] (fwRefContainer<NUIWindow> window)
 			{
 				if (window->GetPaintType() != NUIPaintTypePostRender)
 				{
-					continue;
+					return;
 				}
 
 				if (window->GetTexture())
@@ -292,20 +97,15 @@ static InitFunction initFunction([] ()
 					GetGameResolution(resX, resY);
 
 					// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
+					uint32_t color = 0xFFFFFFFF;
+
 					DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 				}
-			}
-
-			g_nuiWindowsMutex.unlock();
+			});
 
 			if (g_mainUIFlag)
 			{
-				//POINT cursorPos;
-				//GetCursorPos(&cursorPos);
-
 				POINT cursorPos = g_cursorPos;
-
-				//ScreenToClient(*(HWND*)0x1849DDC, &cursorPos);
 
 #if defined(GTA_NY)
 				if (true)//!GameInit::GetGameLoaded())
@@ -317,6 +117,7 @@ static InitFunction initFunction([] ()
 					SetTextureGtaIm(*(rage::grcTexture**)(0x18AAC20));
 				}
 
+				uint32_t color = 0xFFFFFFFF;
 				DrawImSprite((float)cursorPos.x, (float)cursorPos.y, (float)cursorPos.x + 40.0f, (float)cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 #endif
 			}
@@ -336,54 +137,6 @@ static InitFunction initFunction([] ()
 		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 	});*/
 });
-
-fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url)
-{
-	auto window = new NUIWindow(primary, width, height);
-	window->Initialize(url);
-
-	return window;
-}
-
-void NUIWindow::Initialize(CefString url)
-{
-	InitializeCriticalSection(&renderBufferLock);
-
-	if (renderBuffer)
-	{
-		delete[] renderBuffer;
-	}
-
-	roundedHeight = roundUp(height, 16);
-	roundedWidth = roundUp(width, 16);
-
-	renderBuffer = new char[4 * roundedWidth * roundedHeight];
-
-	rage::grcManualTextureDef textureDef;
-	memset(&textureDef, 0, sizeof(textureDef));
-	textureDef.isStaging = 0;
-	textureDef.arraySize = 1;
-
-	nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, true, &textureDef);
-
-	m_client = new NUIClient(this);
-
-	CefWindowInfo info;
-	info.SetAsWindowless(GetDesktopWindow(), true);
-
-	CefBrowserSettings settings;
-	settings.javascript_close_windows = STATE_DISABLED;
-
-	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
-	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
-}
-
-void NUIWindow::AddDirtyRect(const CefRect& rect)
-{
-	EnterCriticalSection(&renderBufferLock);
-	dirtyRects.push(rect);
-	LeaveCriticalSection(&renderBufferLock);
-}
 
 static NUISchemeHandlerFactory* g_shFactory;
 
@@ -527,15 +280,10 @@ namespace nui
 #if defined(GTA_NY)
 		OnGrcBeginScene.Connect([] ()
 		{
-			if (g_nuiWindowsMutex.try_lock())
+			Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
 			{
-				for (auto& window : g_nuiWindows)
-				{
-					window->UpdateFrame();
-				}
-
-				g_nuiWindowsMutex.unlock();
-			}
+				window->UpdateFrame();
+			});
 		});
 #else
 
