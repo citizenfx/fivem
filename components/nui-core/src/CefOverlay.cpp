@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "CefOverlay.h"
+#include "NUIApp.h"
 
 #include <delayimp.h>
 #include <include/cef_origin_whitelist.h>
@@ -39,161 +40,6 @@ static HANDLE paintDoneEvent;
 nui_s g_nui;
 
 class NUIClient;
-
-class NUIApp : public CefApp, public CefRenderProcessHandler, public CefResourceBundleHandler, public CefV8Handler
-{
-public:
-	virtual void OnRegisterCustomSchemes(CefRefPtr<CefSchemeRegistrar> registrar)
-	{
-		registrar->AddCustomScheme("nui", true, false, false);
-	}
-
-	virtual bool GetDataResource(int resourceID, void*& data, size_t& data_size)
-	{
-		return false;
-	}
-
-	virtual bool GetLocalizedString(int messageID, CefString& string)
-	{
-		string = "";
-		return true;
-	}
-
-	virtual void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
-	{
-		CefRefPtr<CefV8Value> window = context->GetGlobal();
-
-		window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-		window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-		window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-	}
-
-	virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler()
-	{
-		return this;
-	}
-
-private:
-	typedef std::map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>> TCallbackList;
-
-	TCallbackList m_callbacks;
-	TCallbackList m_frameCallbacks;
-
-public:
-	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
-	{
-		command_line->AppendSwitch("enable-experimental-web-platform-features");
-	}
-
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
-	{
-		if (message->GetName() == "doPoll")
-		{
-			auto it = m_callbacks.find(browser->GetIdentifier());
-
-			if (it != m_callbacks.end())
-			{
-				auto context = it->second.first;
-				auto callback = it->second.second;
-
-				context->Enter();
-
-				CefV8ValueList arguments;
-				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
-
-				callback->ExecuteFunction(nullptr, arguments);
-
-				context->Exit();
-
-				return true;
-			}
-		}
-		else if (message->GetName() == "createFrame" || message->GetName() == "destroyFrame")
-		{
-			auto it = m_frameCallbacks.find(browser->GetIdentifier());
-
-			if (it != m_frameCallbacks.end())
-			{
-				auto context = it->second.first;
-				auto callback = it->second.second;
-
-				context->Enter();
-
-				CefV8ValueList arguments;
-				arguments.push_back(CefV8Value::CreateString(message->GetName()));
-				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
-
-				if (message->GetName() == "createFrame")
-				{
-					arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(1)));
-				}
-
-				callback->ExecuteFunction(nullptr, arguments);
-
-				context->Exit();
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	// CefV8Handler implementation
-	virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception)
-	{
-		if (name == "registerPollFunction")
-		{
-			if (arguments.size() == 1 && arguments[0]->IsFunction())
-			{
-				auto context = CefV8Context::GetCurrentContext();
-
-				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
-			}
-
-			retval = CefV8Value::CreateNull();
-
-			return true;
-		}
-		else if (name == "registerFrameFunction")
-		{
-			if (arguments.size() == 1 && arguments[0]->IsFunction())
-			{
-				auto context = CefV8Context::GetCurrentContext();
-
-				m_frameCallbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
-			}
-
-			retval = CefV8Value::CreateNull();
-
-			return true;
-		}
-		else if (name == "invokeNative")
-		{
-			if (arguments.size() == 2)
-			{
-				auto msg = CefProcessMessage::Create("invokeNative");
-				auto argList = msg->GetArgumentList();
-
-				argList->SetSize(2);
-				argList->SetString(0, arguments[0]->GetStringValue());
-				argList->SetString(1, arguments[1]->GetStringValue());
-
-				CefV8Context::GetCurrentContext()->GetBrowser()->SendProcessMessage(PID_BROWSER, msg);
-			}
-
-			retval = CefV8Value::CreateUndefined();
-
-			return true;
-		}
-
-		return false;
-	}
-
-	IMPLEMENT_REFCOUNTING(NUIApp);
-};
-
-static NUIApp* g_app;
 
 static CefBrowser* authUIBrowser;
 HWND g_mainWindow;
@@ -942,10 +788,8 @@ namespace nui
 		__HrLoadAllImportsForDll("libcef.dll");
 
 		// instantiate a NUIApp
-		g_app = new NUIApp();
-
 		CefMainArgs args(GetModuleHandle(NULL));
-		CefRefPtr<CefApp> app(g_app);
+		CefRefPtr<CefApp> app(Instance<NUIApp>::Get());
 
 		// try to execute as a CEF process
 		int exitCode = CefExecuteProcess(args, app, nullptr);
@@ -1022,5 +866,5 @@ namespace nui
 		});
 
 		return;
-	});
+	}, 50);
 }
