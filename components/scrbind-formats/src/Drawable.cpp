@@ -110,12 +110,12 @@ static InitFunction initFunction([] ()
 		.AddMethod("SET_LODGROUP_CENTER", &ScriptLodGroup::SetCenter)
 		.AddMethod("SET_LODGROUP_RADIUS", &ScriptLodGroup::SetRadius);
 
-	scrEngine::OnScriptInit.Connect([] ()
+	/*scrEngine::OnScriptInit.Connect([] ()
 	{
 		void* drawable = NativeInvoke::Invoke<0x33486661, void*>(1, 2, "lovely");
 
 		NativeInvoke::Invoke<0x7DFC57A4, int>(drawable, 1, 2, 3, 4, 5, 6);
 
 		__debugbreak();
-	}, 100);
+	}, 100);*/
 });
