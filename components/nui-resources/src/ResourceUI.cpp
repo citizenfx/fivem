@@ -9,6 +9,8 @@
 #include "ResourceUI.h"
 #include <include/cef_origin_whitelist.h>
 
+#include <NUISchemeHandlerFactory.h>
+
 ResourceUI::ResourceUI(Resource* resource)
 	: m_resource(resource)
 {
@@ -25,7 +27,7 @@ bool ResourceUI::Create()
 	auto& metaData = m_resource->GetMetaData();
 	auto it = metaData.find("uiPage");
 
-	CefRegisterSchemeHandlerFactory("http", m_resource->GetName().c_str(), nui::GetSchemeHandlerFactory());
+	CefRegisterSchemeHandlerFactory("http", m_resource->GetName().c_str(), Instance<NUISchemeHandlerFactory>::Get());
 
 	if (it == metaData.end())
 	{

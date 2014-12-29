@@ -7,7 +7,9 @@
 
 #include "StdInc.h"
 #include "CefOverlay.h"
-#include "fiDevice.h"
+#include "NUISchemeHandlerFactory.h"
+
+#include <fiDevice.h>
 #include <include/cef_url.h>
 
 class NUIResourceHandler : public CefResourceHandler
@@ -178,10 +180,6 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 	{
 		return new NUIResourceHandler();
 	}
-	/*else if (scheme_name == "http")
-	{
-		return CreateRPCResourceHandler();
-	}*/
 
 	CefRefPtr<CefResourceHandler> outHandler;
 

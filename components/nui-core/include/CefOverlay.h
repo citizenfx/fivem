@@ -24,14 +24,6 @@
 
 #include <queue>
 
-class NUISchemeHandlerFactory : public CefSchemeHandlerFactory
-{
-public:
-	virtual CefRefPtr<CefResourceHandler> Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request);
-
-	IMPLEMENT_REFCOUNTING(NUISchemeHandlerFactory);
-};
-
 class NUIExtensionHandler : public CefV8Handler
 {
 public:
@@ -74,8 +66,6 @@ namespace nui
 
 	bool OnPreLoadGame(void* cefSandbox);
 
-	OVERLAY_DECL NUISchemeHandlerFactory* GetSchemeHandlerFactory();
-
 	extern
 		OVERLAY_DECL
 		fwEvent<const wchar_t*, const wchar_t*> OnInvokeNative;
@@ -94,5 +84,3 @@ struct nui_s
 extern
 	OVERLAY_DECL
 	fwEvent<const char*, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
-
-extern nui_s g_nui;
