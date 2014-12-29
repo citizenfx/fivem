@@ -61,6 +61,7 @@
 #include "Hooking.h"
 #endif
 
+#include "Registry.h"
 #include "HookFunction.h"
 
 #ifdef HAS_LOCAL_H

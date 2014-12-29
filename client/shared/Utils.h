@@ -51,10 +51,14 @@ bool IsRunningTests();
 
 class InitFunctionBase
 {
-private:
+protected:
 	InitFunctionBase* m_next;
 
+	int m_order;
+
 public:
+	InitFunctionBase(int order = 0);
+
 	virtual void Run() = 0;
 
 	void Register();
@@ -72,7 +76,8 @@ private:
 	void(*m_function)();
 
 public:
-	InitFunction(void(*function)())
+	InitFunction(void(*function)(), int order = 0)
+		: InitFunctionBase(order)
 	{
 		m_function = function;
 
