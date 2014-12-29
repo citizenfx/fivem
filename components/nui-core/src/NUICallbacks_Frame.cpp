@@ -11,7 +11,7 @@
 class FrameCallbacks
 {
 private:
-	typedef std::map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>> TCallbackList;
+	typedef std::map<int, std::pair<CefV8Context*, CefV8Value*>> TCallbackList;
 
 	TCallbackList m_frameCallbacks;
 
@@ -56,7 +56,10 @@ public:
 			{
 				auto context = CefV8Context::GetCurrentContext();
 
-				m_frameCallbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
+				context->AddRef();
+				arguments[0]->AddRef();
+
+				m_frameCallbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context.get(), arguments[0].get());
 			}
 
 			return CefV8Value::CreateNull();

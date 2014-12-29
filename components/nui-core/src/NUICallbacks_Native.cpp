@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "NUIApp.h"
+#include "NUIClient.h"
 
 static InitFunction initFunction([] ()
 {
@@ -20,5 +21,24 @@ static InitFunction initFunction([] ()
 		}
 
 		return CefV8Value::CreateUndefined();
+	});
+
+	NUIClient::OnClientCreated.Connect([] (NUIClient* client)
+	{
+		client->AddProcessMessageHandler("invokeNative", [] (CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
+		{
+			auto args = message->GetArgumentList();
+			auto nativeType = args->GetString(0);
+
+			nui::OnInvokeNative(nativeType.c_str(), args->GetString(1).c_str());
+
+			if (nativeType == "quit")
+			{
+				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
+				ExitProcess(0);
+			}
+
+			return true;
+		});
 	});
 }, 1);

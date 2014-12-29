@@ -11,7 +11,7 @@
 class PollCallbacks
 {
 private:
-	typedef std::map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>> TCallbackList;
+	typedef std::map<int, std::pair<CefV8Context*, CefV8Value*>> TCallbackList;
 
 	TCallbackList m_callbacks;
 
@@ -48,7 +48,11 @@ public:
 			{
 				auto context = CefV8Context::GetCurrentContext();
 
-				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context, arguments[0]);
+				// manually add a reference so we don't release the CEF handle (workaround for process exit crash)
+				context->AddRef();
+				arguments[0]->AddRef();
+
+				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context.get(), arguments[0].get());
 			}
 
 			return CefV8Value::CreateNull();

@@ -7,8 +7,8 @@
 #include <intrin.h>
 #include <emmintrin.h>
 
-void ConvertImageDataRGBA_BGRA(int xoffset, int yoffset, int width, int height,
-							   int inputPitch, const void *input, size_t outputPitch, void *output)
+static void ConvertImageDataRGBA_BGRA(int xoffset, int yoffset, int width, int height,
+							          int inputPitch, const void *input, size_t outputPitch, void *output)
 {
 	const unsigned int *source = NULL;
 	unsigned int *dest = NULL;

@@ -72,9 +72,7 @@ private:
 
 	void Initialize(CefString url);
 
-	friend class NUIClient;
-
-protected:
+public:
 	NUIWindow(bool primary, int width, int height);
 
 private:
@@ -96,6 +94,18 @@ private:
 	rage::grcTexture* nuiTexture;
 
 	NUIPaintType paintType;
+
+public:
+	inline int		GetWidth()			{ return width;			}
+	inline int		GetHeight()			{ return height;		}
+
+	inline void*	GetRenderBuffer()	{ return renderBuffer;	}
+	inline int		GetRoundedWidth()	{ return roundedWidth;	}
+
+public:
+	void			AddDirtyRect(const CefRect& rect);
+
+	inline void		MarkRenderBufferDirty() { renderBufferDirty = true; }
 
 public:
 	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url);
@@ -143,6 +153,7 @@ namespace nui
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
 	void OVERLAY_DECL GiveFocus(bool hasFocus);
+	bool OVERLAY_DECL HasMainUI();
 	void OVERLAY_DECL SetMainUI(bool enable);
 
 	void ProcessInput();

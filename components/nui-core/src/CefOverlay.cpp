@@ -20,6 +20,7 @@
 
 #include "CefOverlay.h"
 #include "NUIApp.h"
+#include "NUIClient.h"
 
 #include <delayimp.h>
 #include <include/cef_origin_whitelist.h>
@@ -32,336 +33,9 @@ bool g_mainUIFlag = true;
 
 extern POINT g_cursorPos;
 
-static int g_roundedWidth;
-static int g_roundedHeight;
-
-static HANDLE paintDoneEvent;
-
 nui_s g_nui;
 
-class NUIClient;
-
-static CefBrowser* authUIBrowser;
 HWND g_mainWindow;
-
-void GSClient_Refresh();
-
-#include <sstream>
-
-class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRenderHandler
-{
-private:
-	NUIWindow* m_window;
-	bool m_windowValid;
-
-	std::recursive_mutex m_windowLock;
-
-	CefRefPtr<CefBrowser> m_browser;
-
-public:
-	NUIClient(NUIWindow* window)
-		: m_window(window)
-	{
-		m_windowValid = true;
-		_paintingPopup = false;
-	}
-
-	NUIWindow* GetWindow()
-	{
-		return m_window;
-	}
-
-	CefBrowser* GetBrowser()
-	{
-		return m_browser.get();
-	}
-
-	virtual void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame)
-	{
-		GetWindow()->OnClientContextCreated(browser, frame, nullptr);
-	}
-
-	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
-	{
-		auto url = frame->GetURL();
-
-		if (url == "nui://game/ui/root.html" && g_mainUIFlag)
-		{
-			nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
-		}
-	}
-
-	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser)
-	{
-		m_browser = browser;
-
-		if (!m_window->primary)
-		{
-			return;
-		}
-
-		if (browser.get())
-		{
-			authUIBrowser = browser.get();
-			browser->AddRef();
-		}
-	}
-
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
-	{
-		if (message->GetName() == "invokeNative")
-		{
-			auto args = message->GetArgumentList();
-			auto nativeType = args->GetString(0);
-
-			nui::OnInvokeNative(nativeType.c_str(), args->GetString(1).c_str());
-
-			if (nativeType == "quit")
-			{
-				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
-				ExitProcess(0);
-			}
-			
-			return true;
-		}
-
-		return false;
-	}
-
-	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler()
-	{
-		return this;
-	}
-
-	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler()
-	{
-		return this;
-	}
-
-	virtual CefRefPtr<CefContextMenuHandler> GetContextMenuHandler()
-	{
-		return this;
-	}
-
-	virtual CefRefPtr<CefLoadHandler> GetLoadHandler()
-	{
-		return this;
-	}
-
-	virtual CefRefPtr<CefRenderHandler> GetRenderHandler()
-	{
-		return this;
-	}
-
-	virtual void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model)
-	{
-		model->Clear();
-	}
-
-	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString& message, const CefString& source, int line)
-	{
-		std::wstring sourceStr = source.ToWString();
-		std::wstring messageStr = message.ToWString();
-
-		std::wstringstream msg;
-		msg << sourceStr << ":" << line << ", " << messageStr << std::endl;
-
-		OutputDebugStringW(msg.str().c_str());
-
-		return false;
-	}
-
-	virtual bool GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
-	{
-		rect.Set(0, 0, m_window->width, m_window->height);
-
-		return true;
-	}
-
-	bool _paintingPopup;
-	CefRect _popupRect;
-
-	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
-	{
-		m_windowLock.lock();
-
-		if (!m_windowValid)
-		{
-			m_windowLock.unlock();
-			return;
-		}
-
-		if (type == PET_VIEW)
-		{
-			//EnterCriticalSection(&m_window->renderBufferLock);
-
-			//int timeBegin = timeGetTime();
-
-			//LeaveCriticalSection(&m_window->renderBufferLock);
-
-			for (RectList::const_iterator iter = dirtyRects.begin(); iter != dirtyRects.end(); iter++)
-			{
-				CefRect rect = *iter;
-
-				if (!rage::grcTexture::IsRenderSystemColorSwapped())
-				{
-					for (int y = rect.y; y < (rect.y + rect.height); y++)
-					{
-						int* src = &((int*)(buffer))[(y * width) + rect.x];
-						int* dest = &((int*)(m_window->renderBuffer))[(y * m_window->roundedWidth) + rect.x];
-
-						memcpy(dest, src, (rect.width * 4));
-					}
-				}
-				else
-				{
-					ConvertImageDataRGBA_BGRA(rect.x, rect.y, rect.width, rect.height, width * 4, buffer, m_window->roundedWidth * 4, m_window->renderBuffer);
-				}
-
-				EnterCriticalSection(&m_window->renderBufferLock);
-				m_window->dirtyRects.push(rect);
-				LeaveCriticalSection(&m_window->renderBufferLock);
-			}
-
-			//int duration = timeGetTime() - timeBegin;
-		}
-		else if (type == PET_POPUP)
-		{
-			int skip_pixels = 0, x = _popupRect.x;
-			int skip_rows = 0, yy = _popupRect.y;
-
-			int w = width;
-			int h = height;
-
-			if (x < 0)
-			{
-				skip_pixels = -x;
-				x = 0;
-			}
-
-			if (yy < 0)
-			{
-				skip_rows = -yy;
-				yy = 0;
-			}
-
-			if ((x + w) > m_window->width)
-			{
-				w -= ((x + w) - m_window->width);
-			}
-
-			if ((yy + h) > m_window->height)
-			{
-				h -= ((yy + h) - m_window->height);
-			}
-
-			if (!rage::grcTexture::IsRenderSystemColorSwapped())
-			{
-				for (int y = yy; y < (yy + h); y++)
-				{
-					int* src = &((int*)(buffer))[((y - yy) * width)];
-					int* dest = &((int*)(m_window->renderBuffer))[(y * m_window->roundedWidth) + x];
-
-					memcpy(dest, src, (w * 4));
-				}
-			}
-			else
-			{
-				ConvertImageDataRGBA_BGRA(x, yy, w, h, width * 4, buffer, m_window->roundedWidth * 4, m_window->renderBuffer);
-			}
-
-			EnterCriticalSection(&m_window->renderBufferLock);
-			m_window->dirtyRects.push(_popupRect);
-			LeaveCriticalSection(&m_window->renderBufferLock);
-		}
-
-		if (!_paintingPopup)
-		{
-			if (!_popupRect.IsEmpty())
-			{
-				_paintingPopup = true;
-
-				CefRect clientPopupRect(0, 0, _popupRect.width, _popupRect.height);
-
-				browser->GetHost()->Invalidate(clientPopupRect, PET_POPUP);
-
-				_paintingPopup = false;
-			}
-
-			m_window->renderBufferDirty = true;
-			SetEvent(paintDoneEvent);
-		}
-
-		m_windowLock.unlock();
-	}
-
-	virtual void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show)
-	{
-		if (!m_windowValid)
-		{
-			return;
-		}
-
-		if (!show)
-		{
-			CefRect rect = _popupRect;
-			_popupRect.Set(0, 0, 0, 0);
-			browser->GetHost()->Invalidate(rect, PET_VIEW);
-		}
-	}
-
-	virtual void OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect& rect)
-	{
-		if (rect.width <= 0 || rect.height <= 0)
-		{
-			return;
-		}
-
-		_popupRect = rect;
-
-		if (_popupRect.x < 0)
-		{
-			_popupRect.x = 0;
-		}
-
-		if (_popupRect.y < 0)
-		{
-			_popupRect.y = 0;
-		}
-
-		if ((_popupRect.x + _popupRect.width) > m_window->width)
-		{
-			_popupRect.x = m_window->width - _popupRect.width;
-		}
-
-		if ((_popupRect.y + _popupRect.height) > m_window->height)
-		{
-			_popupRect.y = m_window->height - _popupRect.height;
-		}
-
-		if (_popupRect.x < 0)
-		{
-			_popupRect.x = 0;
-		}
-
-		if (_popupRect.y < 0)
-		{
-			_popupRect.y = 0;
-		}
-	}
-
-	void SetWindowValid(bool valid)
-	{
-		m_windowValid = valid;
-	}
-
-	std::recursive_mutex& GetWindowLock()
-	{
-		return m_windowLock;
-	}
-
-	IMPLEMENT_REFCOUNTING(NUIClient);
-};
 
 fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 
@@ -704,6 +378,13 @@ void NUIWindow::Initialize(CefString url)
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
 }
 
+void NUIWindow::AddDirtyRect(const CefRect& rect)
+{
+	EnterCriticalSection(&renderBufferLock);
+	dirtyRects.push(rect);
+	LeaveCriticalSection(&renderBufferLock);
+}
+
 static NUISchemeHandlerFactory* g_shFactory;
 
 static fwRefContainer<NUIWindow> g_nuiResourceRootWindow;
@@ -718,6 +399,11 @@ namespace nui
 		}
 
 		return g_nuiResourceRootWindow->GetBrowser();
+	}
+
+	bool HasMainUI()
+	{
+		return g_mainUIFlag;
 	}
 
 	__declspec(dllexport) void ExecuteRootScript(const char* scriptBit)
