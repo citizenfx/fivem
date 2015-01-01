@@ -9,6 +9,8 @@
 #include <FontRendererImpl.h>
 #include "Hooking.h"
 
+#include "memdbgon.h"
+
 void FontRendererImpl::Initialize()
 {
 	trace("[FontRenderer] Initializing DirectWrite.\n");

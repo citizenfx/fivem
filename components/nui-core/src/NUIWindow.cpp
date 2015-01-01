@@ -11,6 +11,7 @@
 #include "NUIClient.h"
 #include "NUIWindowManager.h"
 
+#include "memdbgon.h"
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_renderBufferDirty(false), m_onClientCreated(nullptr), m_nuiTexture(nullptr)

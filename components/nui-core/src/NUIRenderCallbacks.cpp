@@ -4,6 +4,8 @@
 
 #include <DrawCommands.h>
 
+#include "memdbgon.h"
+
 extern POINT g_cursorPos;
 
 static InitFunction initFunction([] ()
@@ -37,6 +39,8 @@ static InitFunction initFunction([] ()
 			{
 				ClearRenderTarget(true, -1, true, 1.0f, true, -1);
 			}
+
+			nui::OnDrawBackground(nui::HasMainUI());
 
 #if !defined(GTA_NY)
 			Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)

@@ -29,6 +29,8 @@
 #include <d3d9.h>
 #endif
 
+#undef NDEBUG
+
 // C/C++ headers
 #include <stdio.h>
 #include <string.h>

@@ -11,10 +11,13 @@
 #include "NUIWindowManager.h"
 
 #include <DrawCommands.h>
+#include <fiDevice.h>
 
 #include <delayimp.h>
 
 #include <include/cef_origin_whitelist.h>
+
+#include "memdbgon.h"
 
 static InitFunction initFunction([] ()
 {
@@ -107,6 +110,18 @@ static InitFunction initFunction([] ()
 
 		Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
 	});
+
+	rage::fiDevice::OnInitialMount.Connect([] ()
+	{
+		std::wstring emojiPack = MakeRelativeCitPath(L"citizen/emoji.rpf");
+		char emojiPath[MAX_PATH];
+
+		wcstombs(emojiPath, emojiPack.c_str(), sizeof(emojiPath));
+
+		rage::fiPackfile* packFile = new rage::fiPackfile();
+		packFile->openArchive(emojiPath, true, false, 0);
+		packFile->mount("citizen:/ui/img/emoji/");
+	}, 100);
 
 	return;
 }, 50);

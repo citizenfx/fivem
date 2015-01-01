@@ -69,6 +69,10 @@ namespace nui
 	extern
 		OVERLAY_DECL
 		fwEvent<const wchar_t*, const wchar_t*> OnInvokeNative;
+
+	extern
+		OVERLAY_DECL
+		fwEvent<bool> OnDrawBackground;
 }
 
 #define REQUIRE_IO_THREAD()   assert(CefCurrentlyOn(TID_IO));

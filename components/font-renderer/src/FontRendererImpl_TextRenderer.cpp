@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "FontRendererImpl.h"
 
+#include "memdbgon.h"
+
 class CitizenTextRenderer : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IDWriteTextRenderer>
 {
 	// IDWritePixelSnapping methods

@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "NUIWindowManager.h"
 
+#include "memdbgon.h"
+
 void NUIWindowManager::AddWindow(NUIWindow* window)
 {
 	m_nuiWindowMutex.lock();

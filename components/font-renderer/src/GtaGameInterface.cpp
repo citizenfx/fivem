@@ -10,6 +10,8 @@
 #include <DrawCommands.h>
 #include <grcTexture.h>
 
+#include "memdbgon.h"
+
 class GtaGameInterface : public FontRendererGameInterface
 {
 public:

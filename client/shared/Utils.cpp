@@ -9,6 +9,7 @@
 #include "Utils.h"
 #include <sstream>
 #include <iomanip>
+#include <mutex>
 
 std::wstring GetAbsoluteCitPath()
 {
@@ -132,7 +133,8 @@ const char* va(const char* string, ...)
 
 	if (length >= BUFFER_LENGTH)
 	{
-		GlobalError("Attempted to overrun string in call to va()!");
+		//GlobalError("Attempted to overrun string in call to va()!");
+		ExitProcess(1);
 	}
 
 	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
@@ -161,7 +163,8 @@ const wchar_t* va(const wchar_t* string, ...)
 
 	if (length >= BUFFER_LENGTH)
 	{
-		GlobalError("Attempted to overrun string in call to va()!");
+		//GlobalError("Attempted to overrun string in call to va()!");
+		ExitProcess(1);
 	}
 
 	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
@@ -182,7 +185,8 @@ void trace(const char* string, ...)
 
 	if (length >= BUFFER_LENGTH)
 	{
-		GlobalError("Attempted to overrun string in call to trace()!");
+		//GlobalError("Attempted to overrun string in call to trace()!");
+		ExitProcess(1);
 	}
 
 	OutputDebugStringA(buffer);

@@ -12,6 +12,8 @@
 #include <fiDevice.h>
 #include <include/cef_url.h>
 
+#include "memdbgon.h"
+
 class NUIResourceHandler : public CefResourceHandler
 {
 private:
@@ -59,7 +61,7 @@ public:
 		{
 			filename_ = "citizen:/";
 			
-			filename_ += std::string(path.begin(), path.end());
+			filename_ += std::string(path.begin(), path.end()).substr(1);
 		}
 		else
 		{

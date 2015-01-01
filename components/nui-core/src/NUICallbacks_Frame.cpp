@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "NUIApp.h"
+#include "memdbgon.h"
 
 class FrameCallbacks
 {

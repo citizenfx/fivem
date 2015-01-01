@@ -12,6 +12,9 @@
 
 void ComponentLoader::Initialize()
 {
+	// run local initialization functions
+	InitFunctionBase::RunAll();
+
 	// set up the root component
 	m_rootComponent = FxGameComponent::Create();
 	AddComponent(m_rootComponent);

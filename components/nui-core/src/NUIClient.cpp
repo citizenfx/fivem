@@ -9,6 +9,7 @@
 #include "NUIClient.h"
 #include "NUIRenderHandler.h"
 #include "CefOverlay.h"
+#include "memdbgon.h"
 
 #include <sstream>
 

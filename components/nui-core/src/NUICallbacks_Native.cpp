@@ -9,6 +9,7 @@
 #include "NUIApp.h"
 #include "NUIClient.h"
 #include "CefOverlay.h"
+#include "memdbgon.h"
 
 static InitFunction initFunction([] ()
 {

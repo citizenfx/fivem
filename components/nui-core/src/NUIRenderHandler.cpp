@@ -9,6 +9,8 @@
 #include "NUIRenderHandler.h"
 #include "GfxUtil.h"
 
+#include "memdbgon.h"
+
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	: m_paintingPopup(false), m_owner(client)
 {

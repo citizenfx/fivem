@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "FontRendererImpl.h"
 
+#include "memdbgon.h"
+
 CachedFont::CachedFont(ComPtr<IDWriteFontFace> face, float emSize)
 	: m_dwFace(face), m_emSize(emSize)
 {
@@ -177,6 +179,10 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 
 	if (runCount == 0)
 	{
+		delete[] initialRuns;
+		delete[] initialIndices;
+		delete[] initialVertices;
+
 		return nullptr;
 	}
 

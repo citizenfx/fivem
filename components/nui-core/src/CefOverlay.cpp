@@ -12,9 +12,12 @@
 #include "NUIClient.h"
 #include "NUIWindowManager.h"
 
+#include "memdbgon.h"
+
 bool g_mainUIFlag = true;
 
 fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
+fwEvent<bool> nui::OnDrawBackground;
 
 namespace nui
 {
