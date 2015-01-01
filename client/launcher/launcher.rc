@@ -48,7 +48,7 @@ BEGIN
             VALUE "FileDescription", "CitizenMP:IV"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "Citizen"
-            VALUE "LegalCopyright", "Copyright (C) 2010-2014 Bas Timmer/NTAuthority"
+            VALUE "LegalCopyright", "Copyright (C) 2010-2015 Bas Timmer/NTAuthority"
             VALUE "OriginalFilename", "citizenmp.exe"
             VALUE "ProductName", "Citizen"
             VALUE "ProductVersion", "1.0.0.0"
