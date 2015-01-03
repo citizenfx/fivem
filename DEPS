@@ -1,5 +1,5 @@
 vars = {
-	"citidev_root": "http://tohjo.ez.lv/citidev"
+	"citidev_root": "http://tohjo.eu/citidev"
 }
 
 deps = {
@@ -14,10 +14,16 @@ deps = {
 	"vendor/protobuf": "http://protobuf.googlecode.com/svn/trunk/",
 	"vendor/libopus": "git://git.opus-codec.org/opus.git",
 	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
-	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/"
+	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/",
+	"vendor/udis86": "https://github.com/vmt/udis86.git"
 }
 
 hooks = [
+	{
+		"name": "gen_udis_script",
+		"pattern": "vendor/udis86/",
+		"action": [ "citizenmp\prebuild_udis86.cmd" ]
+	},
 	{
 		"name": "premake_premake_win",
 		"pattern": "build/premake/",

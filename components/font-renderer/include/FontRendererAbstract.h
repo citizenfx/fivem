@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "RGBA.h"
+#include "FontRendererAllocator.h"
 
 enum class FontRendererTextureFormat
 {
@@ -22,7 +23,7 @@ public:
 	virtual ~FontRendererTexture() = 0;
 };
 
-struct FontRendererVertex
+struct FontRendererVertex : public FrpUseSequentialAllocator
 {
 	float x;
 	float y;
@@ -31,13 +32,13 @@ struct FontRendererVertex
 	CRGBA color;
 };
 
-struct ResultingRectangle
+struct ResultingRectangle : public FrpUseSequentialAllocator
 {
 	CRect rectangle;
 	CRGBA color;
 };
 
-struct ResultingRectangles
+struct ResultingRectangles : public FrpUseSequentialAllocator
 {
 	int count;
 	ResultingRectangle* rectangles;

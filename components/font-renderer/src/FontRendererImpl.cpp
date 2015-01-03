@@ -92,22 +92,53 @@ void FontRendererImpl::DrawRectangle(const CRect& rect, const CRGBA& color)
 
 void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef)
 {
-	wchar_t fontRefWide[128];
-	mbstowcs(fontRefWide, fontRef.c_str(), _countof(fontRefWide));
+	// wait for a swap to complete
+	FrpSeqAllocatorWaitForSwap();
 
+	// create or find a text format
 	ComPtr<IDWriteTextFormat> textFormat;
-	m_dwFactory->CreateTextFormat(fontRefWide, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize, L"en-us", textFormat.GetAddressOf());
 
+	auto formatKey = std::make_pair(fontRef, fontSize);
+	auto formatIter = m_textFormatCache.find(formatKey);
+
+	if (formatIter != m_textFormatCache.end())
+	{
+		textFormat = formatIter->second;
+	}
+	else
+	{
+		wchar_t fontRefWide[128];
+		mbstowcs(fontRefWide, fontRef.c_str(), _countof(fontRefWide));
+
+		m_dwFactory->CreateTextFormat(fontRefWide, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize, L"en-us", textFormat.GetAddressOf());
+
+		m_textFormatCache[formatKey] = textFormat;
+	}
+
+	// create or find a cached text layout
 	ComPtr<IDWriteTextLayout> textLayout;
-	m_dwFactory->CreateTextLayout(text.c_str(), text.length(), textFormat.Get(), rect.Width(), rect.Height(), textLayout.GetAddressOf());
 
-	// set effect
-	DWRITE_TEXT_RANGE effectRange = { 0, UINT32_MAX };
-	ComPtr<CitizenDrawingEffect> effect = Make<CitizenDrawingEffect>();
+	auto layoutKey = std::make_pair(textFormat.Get(), std::make_pair(color.AsARGB(), text));
+	auto layoutIter = m_textLayoutCache.find(layoutKey);
 
-	effect->SetColor(color);
+	if (layoutIter != m_textLayoutCache.end())
+	{
+		textLayout = layoutIter->second;
+	}
+	else
+	{
+		m_dwFactory->CreateTextLayout(text.c_str(), text.length(), textFormat.Get(), rect.Width(), rect.Height(), textLayout.GetAddressOf());
 
-	textLayout->SetDrawingEffect((IUnknown*)effect.Get(), effectRange);
+		m_textLayoutCache[layoutKey] = textLayout;
+
+		// set effect
+		DWRITE_TEXT_RANGE effectRange = { 0, UINT32_MAX };
+		ComPtr<CitizenDrawingEffect> effect = Make<CitizenDrawingEffect>();
+
+		effect->SetColor(color);
+
+		textLayout->SetDrawingEffect((IUnknown*)effect.Get(), effectRange);
+	}
 
 	// draw
 	auto drawingContext = new CitizenDrawingContext();
@@ -207,6 +238,22 @@ void FontRendererImpl::DrawPerFrame()
 		}, glyphRuns);
 
 		m_queuedGlyphRuns.clear();
+	}
+
+	m_gameInterface->InvokeOnRender([] (void* arg)
+	{
+		FrpSeqAllocatorUnlockSwap();
+	}, nullptr);
+
+	FrpSeqAllocatorSwapPage();
+
+	// clean the layout cache if needed
+	// TODO: keep layouts for longer if they actually get recently used
+	if ((GetTickCount() - m_lastLayoutClean) > 5000)
+	{
+		m_textLayoutCache.clear();
+
+		m_lastLayoutClean = GetTickCount();
 	}
 }
 

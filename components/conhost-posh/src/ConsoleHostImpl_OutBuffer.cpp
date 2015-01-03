@@ -115,10 +115,14 @@ static InitFunction initFunction([] ()
 
 				strIdx = 0;
 
+				// convert to a wstring manually and trim off any trailing spaces (as they make font-renderer sad)
+				fwWString strBits(str);
+				strBits.erase(strBits.find_last_not_of(' ') + 1);
+
 				// write!
 				CRect frontRect((strStart * 16.0f) + 8.0f, y + 8.0f, GetScreenResolutionX() - 8.0f, y + 8.0f);
 
-				TheFonts->DrawText(str, frontRect, frontColor, 16.0f, 1.0f, "Lucida Console");
+				TheFonts->DrawText(strBits, frontRect, frontColor, 16.0f, 1.0f, "Lucida Console");
 			}
 		}
 

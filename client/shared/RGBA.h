@@ -42,7 +42,7 @@ struct CRGBA
 		return CRGBA((argb & 0xFF0000) >> 16, ((argb & 0xFF00) >> 8), argb & 0xFF, (argb & 0xFF000000) >> 24);
 	}
 
-	inline uint32_t AsARGB()
+	inline uint32_t AsARGB() const
 	{
 		return (alpha << 24) | (red << 16) | (green << 8) | blue;
 	}

@@ -542,6 +542,15 @@ solution "CitizenMP"
 			"../vendor/breakpad/src/common/windows/string_utils.cc",
 		}
 
+	project "udis86"
+		language "C"
+		kind "StaticLib"
+
+		files {
+			"../vendor/udis86/libudis86/*.c",
+			"../vendor/udis86/libudis86/*.h",
+		}
+
 	group "components"
 
 	-- code for component development

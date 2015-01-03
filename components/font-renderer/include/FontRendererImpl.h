@@ -68,7 +68,7 @@ public:
 typedef FontRendererVertex ResultingVertex;
 typedef uint16_t ResultingIndex;
 
-struct ResultingSubGlyphRun
+struct ResultingSubGlyphRun : public FrpUseSequentialAllocator
 {
 	FontRendererTexture* texture;
 
@@ -83,7 +83,7 @@ struct ResultingSubGlyphRun
 	~ResultingSubGlyphRun();
 };
 
-struct ResultingGlyphRun
+struct ResultingGlyphRun : public FrpUseSequentialAllocator
 {
 	uint32_t numSubRuns;
 
@@ -127,6 +127,18 @@ struct CitizenDrawingContext
 	~CitizenDrawingContext();
 };
 
+namespace std
+{
+	template<typename T1, typename T2>
+	struct hash<std::pair<T1, T2>>
+	{
+		std::size_t operator()(const std::pair<T1, T2>& x)
+		{
+			return (3 * std::hash<T1>()(x.first)) ^ std::hash<T2>()(x.second);
+		}
+	};
+}
+
 class FontRendererImpl : public FontRenderer
 {
 private:
@@ -143,6 +155,12 @@ private:
 	std::vector<ResultingRectangle> m_queuedRectangles;
 
 	std::unordered_map<std::string, fwRefContainer<CachedFont>> m_fontCache;
+
+	std::unordered_map<std::pair<fwString, float>, ComPtr<IDWriteTextFormat>> m_textFormatCache;
+
+	std::unordered_map<std::pair<IDWriteTextFormat*, std::pair<uint32_t, fwWString>>, ComPtr<IDWriteTextLayout>> m_textLayoutCache;
+
+	uint32_t m_lastLayoutClean;
 
 private:
 	void CreateTextRenderer();

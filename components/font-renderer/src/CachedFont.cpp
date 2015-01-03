@@ -35,6 +35,7 @@ ResultingSubGlyphRun::~ResultingSubGlyphRun()
 
 void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRITE_GLYPH_RUN* glyphRun, ResultingSubGlyphRun* initialRuns, ResultingVertex* initialVertices, ResultingIndex* initialIndices, CRGBA color, int& runCount)
 {
+	// continue on as usual
 	float x = originX;
 
 	for (uint32_t i = 0; i < glyphRun->glyphCount; i++)
