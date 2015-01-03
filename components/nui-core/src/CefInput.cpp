@@ -162,6 +162,21 @@ static InitFunction initFunction([] ()
 			return;
 		}
 
+		static bool g_lastFocus = false;
+
+		// send a focus event to CEF if focus changed
+		auto browser = nui::GetBrowser();
+
+		if (browser)
+		{
+			if (g_hasFocus != g_lastFocus)
+			{
+				browser->GetHost()->SendFocusEvent(g_hasFocus);
+			}
+
+			g_lastFocus = g_hasFocus;
+		}
+
 		if (g_hasFocus)
 		{
 			if (msg == WM_KEYUP || msg == WM_KEYDOWN || msg == WM_CHAR)
