@@ -21,7 +21,7 @@ end
 
 solution "CitizenMP"
 	configurations { "Debug", "Release" }
-	
+
 	flags { "No64BitChecks", "Symbols", "Unicode" }
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
@@ -705,6 +705,8 @@ solution "CitizenMP"
 			"client/common/StdInc.cpp",
 			"client/common/Error.cpp"
 		}
+
+		vpaths { ["z/common/*"] = "client/common/**", ["z/*"] = "components/" .. name .. "/component.rc", ["*"] = "components/" .. name .. "/**" }
 
 		defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
 
