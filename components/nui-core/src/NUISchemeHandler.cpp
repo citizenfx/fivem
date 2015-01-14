@@ -185,9 +185,9 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 
 	CefRefPtr<CefResourceHandler> outHandler;
 
-	OnSchemeCreateRequest(scheme_name.ToString().c_str(), outHandler);
+	OnSchemeCreateRequest(scheme_name.ToString().c_str(), request, outHandler);
 
 	return outHandler;
 }
 
-OVERLAY_DECL fwEvent<const char*, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
+OVERLAY_DECL fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;

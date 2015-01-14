@@ -159,6 +159,7 @@ public:
 
 			memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
 
+			m_cursor += toRead;
 			bytes_read = toRead;
 
 			return (bytes_read > 0);
@@ -173,7 +174,7 @@ public:
 
 static InitFunction initFunction([] ()
 {
-	OnSchemeCreateRequest.Connect([] (const char* name, CefRefPtr<CefResourceHandler>& handler)
+	OnSchemeCreateRequest.Connect([] (const char* name, CefRefPtr<CefRequest> request, CefRefPtr<CefResourceHandler>& handler)
 	{
 		if (!strcmp(name, "http"))
 		{

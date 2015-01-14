@@ -7,7 +7,13 @@
 
 #pragma once
 
-class InterfaceMapper
+#ifdef COMPILING_STEAM
+#define STEAM_EXPORT __declspec(dllexport)
+#else
+#define STEAM_EXPORT
+#endif
+
+class STEAM_EXPORT InterfaceMapper
 {
 public:
 	InterfaceMapper(void* interfacePtr);

@@ -33,11 +33,16 @@ void SteamLoader::Initialize()
 
 CreateInterface_t SteamLoader::GetCreateInterfaceFunc()
 {
-	CreateInterface_t func = nullptr;
+	return GetProcAddress<CreateInterface_t>("CreateInterface");
+}
+
+void* SteamLoader::GetProcAddressInternal(const char* name)
+{
+	void* func = nullptr;
 
 	if (m_hSteamClient)
 	{
-		func = (CreateInterface_t)GetProcAddress(m_hSteamClient, "CreateInterface");
+		func = ::GetProcAddress(m_hSteamClient, name);
 	}
 
 	return func;

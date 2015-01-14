@@ -87,4 +87,4 @@ struct nui_s
 
 extern
 	OVERLAY_DECL
-	fwEvent<const char*, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
+	fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;

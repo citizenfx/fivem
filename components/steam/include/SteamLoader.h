@@ -20,10 +20,18 @@ private:
 
 	void LoadGameOverlayRenderer(const std::wstring& baseDllPath);
 
+	void* GetProcAddressInternal(const char* name);
+
 public:
 	void Initialize();
 
 	bool IsSteamRunning();
+
+	template<typename TProcedure>
+	TProcedure GetProcAddress(const char* name)
+	{
+		return reinterpret_cast<TProcedure>(GetProcAddressInternal(name));
+	}
 
 	CreateInterface_t GetCreateInterfaceFunc();
 };

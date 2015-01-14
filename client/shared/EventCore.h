@@ -139,6 +139,17 @@ public:
 		}
 	}
 
+	template<typename TOther>
+	fwRefContainer(const fwRefContainer<TOther>& rc)
+	{
+		m_ref = static_cast<T*>(rc.GetRef());
+
+		if (m_ref)
+		{
+			m_ref->AddRef();
+		}
+	}
+
 	uint32_t GetRefCount() const
 	{
 		return m_ref->GetRefCount();
@@ -261,7 +272,7 @@ public:
 };
 
 template<typename... Args>
-class __declspec(dllexport) fwAction : public fwRefContainer<fwActionImpl<Args...>>
+class __declspec(dllexport) fwAction : public fwRefContainer < fwActionImpl<Args...> >
 {
 public:
 	fwAction()
@@ -289,11 +300,46 @@ public:
 	}
 };
 
+template<bool IsBoolean>
+struct fwEventConnectProxy
+{
+	template<typename... Args>
+	struct Internal
+	{
+		template<typename TEvent, typename TFunc>
+		static void Proxy(TEvent& event, TFunc func, int order)
+		{
+			event.ConnectInternal(func, order);
+		}
+	};
+};
+
+template<>
+struct fwEventConnectProxy<false>
+{
+	template<typename... Args>
+	struct Internal
+	{
+		template<typename TEvent, typename TFunc>
+		static void Proxy(TEvent& event, TFunc func, int order)
+		{
+			event.ConnectInternal([=] (Args... args)
+			{
+				func(args...);
+				return true;
+			}, order);
+		}
+	};
+};
+
 template<typename... Args>
 class __declspec(dllexport) fwEvent
 {
 public:
-	typedef fwAction<Args...> TFunc;
+	friend struct fwEventConnectProxy<true>;
+	friend struct fwEventConnectProxy<false>;
+
+	typedef std::function<bool(Args...)> TFunc;
 
 private:
 	struct callback
@@ -308,7 +354,7 @@ private:
 
 		}
 	};
-	
+
 	callback* m_callbacks;
 
 public:
@@ -331,12 +377,20 @@ public:
 		}
 	}
 
-	void Connect(TFunc func)
+	template<typename T>
+	void Connect(T func)
 	{
-		Connect(func, 0);
+		fwEventConnectProxy<std::is_same<std::result_of_t<decltype(&T::operator())(T, Args...)>, bool>::value>::Internal<Args...>::Proxy(*this, func, 0);
 	}
 
-	void Connect(TFunc func, int order)
+	template<typename T>
+	void Connect(T func, int order)
+	{
+		fwEventConnectProxy<std::is_same<std::result_of_t<decltype(&T::operator())(T, Args...)>, bool>::value>::Internal<Args...>::Proxy(*this, func, order);
+	}
+
+private:
+	void ConnectInternal(TFunc func, int order)
 	{
 		auto cb = new callback(func);
 		cb->order = order;
@@ -363,11 +417,12 @@ public:
 		}
 	}
 
-	/*inline void Connect(std::function<void(Args...)> func)
+	void ConnectInternal(TFunc func)
 	{
-		Connect(fwAction<Args...>(func));
-	}*/
+		ConnectInternal(func, 0);
+	}
 
+public:
 	void operator()(Args... args)
 	{
 		if (!m_callbacks)
@@ -377,7 +432,10 @@ public:
 
 		for (callback* cb = m_callbacks; cb; cb = cb->next)
 		{
-			cb->function(args...);
+			if (!cb->function(args...))
+			{
+				return;
+			}
 		}
 	}
 };

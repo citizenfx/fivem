@@ -1,0 +1,10 @@
+{
+	"name": "nui:profiles",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+                "nui:core",
+		"profiles"
+	],
+	"provides": []
+}

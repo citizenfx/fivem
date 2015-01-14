@@ -10,6 +10,7 @@
 #include "InterfaceMapper.h"
 
 #include <sstream>
+#include <thread>
 
 class KeyValuesBuilder
 {
@@ -57,6 +58,12 @@ public:
 	}
 };
 
+SteamComponent::SteamComponent()
+	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0)
+{
+
+}
+
 void SteamComponent::Initialize()
 {
 	// check if this is the presence dummy
@@ -72,28 +79,133 @@ void SteamComponent::Initialize()
 		return;
 	}
 
+	// initialize the public Steam API
+	InitializePublicAPI();
+
+	// initialize the private Steam API
+	InitializeClientAPI();
+
+	// run the backend thread
+	RunThread();
+}
+
+void SteamComponent::InitializePublicAPI()
+{
+	auto createInterface = m_steamLoader.GetCreateInterfaceFunc();
+
+	// get a IClientEngine pointer
+	int returnCode;
+	ISteamClient* clientEngine = reinterpret_cast<ISteamClient*>(createInterface("SteamClient016", &returnCode));
+
+	if (clientEngine)
+	{
+		// connect to the local Steam client
+		HSteamPipe steamPipe = clientEngine->CreateSteamPipe();
+		HSteamUser steamUser = clientEngine->ConnectToGlobalUser(steamPipe);
+
+		// if this all worked, set the member variables
+		m_client = clientEngine;
+		m_steamPipe = steamPipe;
+		m_steamUser = steamUser;
+	}
+}
+
+void SteamComponent::InitializeClientAPI()
+{
 	auto createInterface = m_steamLoader.GetCreateInterfaceFunc();
 
 	// get a IClientEngine pointer
 	int returnCode;
 	IClientEngine* clientEngine = reinterpret_cast<IClientEngine*>(createInterface("CLIENTENGINE_INTERFACE_VERSION003", &returnCode));
 
-	if (!clientEngine)
+	if (clientEngine)
 	{
-		return;
+		// if this all worked, set the member variables
+		m_clientEngine = clientEngine;
+
+		// initialize the presence component
+		InitializePresence();
+	}
+}
+
+struct CallbackMsg_t
+{
+	HSteamUser m_hSteamUser;
+	int m_iCallback;
+	uint8_t* m_pubParam;
+	int m_cubParam;
+};
+
+void SteamComponent::RunThread()
+{
+	std::thread runtimeThread([=] ()
+	{
+		auto getCallback = m_steamLoader.GetProcAddress<bool(*)(HSteamPipe, CallbackMsg_t*)>("Steam_BGetCallback");
+		auto freeLastCallback = m_steamLoader.GetProcAddress<void(*)(HSteamPipe)>("Steam_FreeLastCallback");
+
+		while (true)
+		{
+			Sleep(50);
+
+			CallbackMsg_t callbackMsg;
+
+			while (getCallback(m_steamPipe, &callbackMsg))
+			{
+				std::vector<std::function<void(void*)>> toInvoke;
+
+				m_callbackMutex.lock();
+
+				auto range = m_userCallbacks.equal_range(callbackMsg.m_iCallback);
+
+				for (auto& it = range.first; it != range.second; it++)
+				{
+					toInvoke.push_back(it->second.second);
+				}
+
+				m_callbackMutex.unlock();
+
+				// invoke the callbacks
+				for (auto& callback : toInvoke)
+				{
+					callback(callbackMsg.m_pubParam);
+				}
+
+				freeLastCallback(m_steamPipe);
+			}
+		}
+	});
+
+	runtimeThread.detach();
+}
+
+int SteamComponent::RegisterSteamCallbackRaw(int callbackID, std::function<void(void*)> callback)
+{
+	m_callbackMutex.lock();
+
+	int callbackIndex = m_callbackIndex;
+
+	m_userCallbacks.insert(std::make_pair(callbackID, std::make_pair(callbackIndex, callback)));
+	m_callbackIndex++;
+
+	m_callbackMutex.unlock();
+
+	return callbackIndex;
+}
+
+void SteamComponent::RemoveSteamCallback(int registeredID)
+{
+	m_callbackMutex.lock();
+
+	for (auto& it = m_userCallbacks.begin(); it != m_userCallbacks.end(); it++)
+	{
+		if (it->second.first == registeredID)
+		{
+			m_userCallbacks.erase(it);
+			break;
+		}
 	}
 
-	// connect to the local Steam client
-	HSteamPipe steamPipe = clientEngine->CreateSteamPipe();
-	HSteamUser steamUser = clientEngine->ConnectToGlobalUser(steamPipe);
-
-	// if this all worked, set the member variables
-	m_clientEngine = clientEngine;
-	m_steamPipe = steamPipe;
-	m_steamUser = steamUser;
-
-	// initialize the presence component
-	InitializePresence();
+	m_callbackMutex.unlock();
 }
 
 #if defined(GTA_NY)
@@ -209,9 +321,36 @@ bool SteamComponent::RunPresenceDummy()
 	return exitProcess;
 }
 
+ISteamClient* SteamComponent::GetPublicClient()
+{
+	return m_client;
+}
+
+IClientEngine* SteamComponent::GetPrivateClient()
+{
+	return m_clientEngine;
+}
+
+HSteamUser SteamComponent::GetHSteamUser()
+{
+	return m_steamUser;
+}
+
+HSteamPipe SteamComponent::GetHSteamPipe()
+{
+	return m_steamPipe;
+}
+
+bool SteamComponent::IsSteamRunning()
+{
+	return m_steamLoader.IsSteamRunning();
+}
+
 static SteamComponent steamComponent;
 
 static InitFunction initFunction([] ()
 {
 	steamComponent.Initialize();
+
+	Instance<ISteamComponent>::Set(&steamComponent);
 });

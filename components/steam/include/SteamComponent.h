@@ -9,22 +9,59 @@
 
 #include "SteamLoader.h"
 #include "IClientEngine.h"
+#include "ISteamClient.h"
 
-class SteamComponent
+#include "SteamComponentAPI.h"
+
+#include <mutex>
+
+class SteamComponent : public ISteamComponent
 {
 private:
 	SteamLoader m_steamLoader;
+
+	ISteamClient* m_client;
 
 	IClientEngine* m_clientEngine;
 
 	HSteamPipe m_steamPipe;
 	HSteamUser m_steamUser;
 
+	std::recursive_mutex m_callbackMutex;
+
+	std::multimap<int, std::pair<int, std::function<void(void*)>>> m_userCallbacks;
+
+	int m_callbackIndex;
+
 private:
+	void InitializeClientAPI();
+
+	void InitializePublicAPI();
+
 	bool RunPresenceDummy();
 
 	void InitializePresence();
 
+	void RunThread();
+
 public:
-	void Initialize();	
+	SteamComponent();
+
+	void Initialize();
+
+	// ISteamComponent implementation
+public:
+	virtual bool IsSteamRunning() override;
+
+	virtual ISteamClient* GetPublicClient() override;
+
+	virtual IClientEngine* GetPrivateClient() override;
+
+	virtual HSteamUser GetHSteamUser() override;
+
+	virtual HSteamPipe GetHSteamPipe() override;
+
+	virtual int RegisterSteamCallbackRaw(int callbackID, std::function<void(void*)> callback) override;
+
+	virtual void RemoveSteamCallback(int registeredID) override;
 };

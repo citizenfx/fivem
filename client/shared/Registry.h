@@ -53,5 +53,5 @@ public:
 };
 
 #define DECLARE_INSTANCE_TYPE(name) \
-	__declspec(selectany) const char* Instance<name>::ms_name = #name; \
-	__declspec(selectany) name* Instance<name>::ms_cachedInstance = nullptr;
+	__declspec(selectany) const char* ::Instance<name>::ms_name = #name; \
+	__declspec(selectany) name* ::Instance<name>::ms_cachedInstance = nullptr;
