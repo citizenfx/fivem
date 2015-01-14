@@ -56,6 +56,9 @@ static InitFunction initFunction([] ()
 					return;
 				}
 
+				// set the render state to account for premultiplied alpha
+				SetRenderState(2, 13);
+
 				if (window->GetTexture())
 				{
 					SetTextureGtaIm(window->GetTexture());
