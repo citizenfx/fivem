@@ -11,7 +11,7 @@ deps = {
 	"vendor/zlib": "https://github.com/madler/zlib.git",
 	"vendor/gmock": "http://googlemock.googlecode.com/svn/trunk/",
 	"vendor/gtest": "http://googletest.googlecode.com/svn/trunk/",
-	"vendor/protobuf": "http://protobuf.googlecode.com/svn/trunk/",
+	"vendor/protobuf": "https://github.com/google/protobuf.git",
 	"vendor/libopus": "git://git.opus-codec.org/opus.git",
 	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
 	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/",

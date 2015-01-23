@@ -327,6 +327,8 @@ solution "CitizenMP"
 			"../vendor/protobuf/src/google/protobuf/extension_set.cc",
 			"../vendor/protobuf/src/google/protobuf/generated_message_util.cc",
 			"../vendor/protobuf/src/google/protobuf/message_lite.cc",
+			"../vendor/protobuf/src/google/protobuf/arena.cc",
+			"../vendor/protobuf/src/google/protobuf/arenastring.cc",
 			"../vendor/protobuf/src/google/protobuf/stubs/once.cc",
 			"../vendor/protobuf/src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc",
 			"../vendor/protobuf/src/google/protobuf/repeated_field.cc",
@@ -736,6 +738,16 @@ solution "CitizenMP"
 		end
 
 		-- test project
+		local f = io.open('components/' .. name .. '/tests/main.cpp')
+
+		if f then
+			io.close(f)
+		end
+
+		if not f then
+			return
+		end
+
 		project('tests_' .. name)
 
 		language "C++"
@@ -743,12 +755,6 @@ solution "CitizenMP"
 
 		includedirs { 'components/' .. name .. "/include/" }
 		files { 'components/' .. name .. "/tests/**.cpp", 'components/' .. name .. "/tests/**.h", "client/common/StdInc.cpp" }
-
-		local f = io.open('components/' .. name .. '/tests/main.cpp')
-
-		if f then
-			io.close(f)
-		end
 
 		if not f then
 			files { "tests/test.cpp" }
