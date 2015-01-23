@@ -25,12 +25,12 @@ public:
 	//
 	// Connects the client to a specified platform server.
 	//
-	virtual concurrency::task<Result<ConnectRemoteDetail>> ConnectRemote(const char* hostname, uint16_t port) = 0;
+	virtual concurrency::task<Result<ConnectRemoteDetail>> ConnectRemote(const char* uri) = 0;
 
 	//
 	// Obtains an instance of a user service compatible with the specified interface identifier.
 	//
-	virtual void* GetUserService(uint64_t interfaceIdentifier) = 0;
+	virtual Result<void*> GetUserService(uint64_t interfaceIdentifier) = 0;
 };
 
 class ConnectRemoteDetail

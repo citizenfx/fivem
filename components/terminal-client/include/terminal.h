@@ -14,3 +14,4 @@
 
 #include <terminal/types.h>
 #include <terminal/client.h>
+#include <terminal/user_1.h>

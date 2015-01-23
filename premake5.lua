@@ -28,7 +28,7 @@ solution "CitizenMP"
 	
 	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gmock/include/", "../vendor/gtest/include", os.getenv("BOOST_ROOT") }
 	
-	defines { "GTEST_HAS_PTHREAD=0" }
+	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
 	libdirs { "deplibs/lib/" }
 
@@ -551,6 +551,17 @@ solution "CitizenMP"
 		files {
 			"../vendor/udis86/libudis86/*.c",
 			"../vendor/udis86/libudis86/*.h",
+		}
+
+	project "cpp-uri"
+		language "C++"
+		kind "StaticLib"
+
+		includedirs "../vendor/cpp-uri/src/"
+
+		files {
+			"../vendor/cpp-uri/src/**.cpp",
+			os.getenv("BOOST_ROOT") .. "/libs/system/src/error_code.cpp" -- so there's no need for bjam messiness
 		}
 
 	group "components"

@@ -10,6 +10,27 @@
 
 namespace terminal
 {
+void L1FramedTcpConnection::SendMessage(const std::vector<uint8_t>& message)
+{
+	// build the frame header
+	struct
+	{
+		uint32_t signature;
+		uint32_t length;
+	} lengthHeader;
+
+	lengthHeader.signature = 0xDEADC0DE;
+	lengthHeader.length = message.size() - 8;
+
+	// build the full message by copying
+	std::vector<uint8_t> outMessage(sizeof(lengthHeader) + message.size());
+	memcpy(&outMessage[0], &lengthHeader, sizeof(lengthHeader));
+	memcpy(&outMessage[sizeof(lengthHeader)], &message[0], message.size());
+
+	// and send it across the socket
+	m_socket->Write(outMessage);
+}
+
 void L1FramedTcpConnection::BindSocket(fwRefContainer<StreamSocket> socket)
 {
 	m_socket = socket;
@@ -80,5 +101,10 @@ void L1FramedTcpConnection::LengthReadCallback(concurrency::task<Result<SocketRe
 void L1FramedTcpConnection::SetParser(fwRefContainer<Parser> parser)
 {
 	m_parser = parser;
+}
+
+bool L1FramedTcpConnection::HasSocket()
+{
+	return m_socket.GetRef();
 }
 }

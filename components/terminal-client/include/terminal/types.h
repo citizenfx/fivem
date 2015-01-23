@@ -36,6 +36,12 @@ enum class ErrorCode
 	// An unknown error occurred.
 	Unknown,
 
+	// The specified interface is unknown.
+	UnknownInterface,
+
+	// The client is not connected.
+	NotConnected,
+
 	// Starting point for connection-related errors.
 	ConnectionBase = 100,
 
@@ -52,7 +58,25 @@ enum class ErrorCode
 	EndOfStream,
 
 	// An unknown connection error occurred.
-	ConnectionError
+	ConnectionError,
+
+	// An invalid URI scheme was passed.
+	InvalidScheme,
+
+	// An invalid URI was passed.
+	InvalidUri,
+
+	// Starting point for authentication-related errors.
+	AuthenticateBase = 200,
+
+	// Invalid details were passed to the service.
+	InvalidAuthDetails = 201,
+
+	// The authentication service is temporarily unavailable.
+	AuthenticationServiceUnavailable = 202,
+
+	// The passed details are blacklisted.
+	AuthDetailsBanned = 203
 };
 
 //

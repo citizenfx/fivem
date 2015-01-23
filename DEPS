@@ -15,7 +15,8 @@ deps = {
 	"vendor/libopus": "git://git.opus-codec.org/opus.git",
 	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
 	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/",
-	"vendor/udis86": "https://github.com/vmt/udis86.git"
+	"vendor/udis86": "https://github.com/vmt/udis86.git",
+	"vendor/cpp-uri": "https://github.com/cpp-netlib/uri.git"
 }
 
 hooks = [

@@ -28,5 +28,9 @@ public:
 	virtual void SetParser(fwRefContainer<Parser> parser) override;
 
 	virtual void BindSocket(fwRefContainer<StreamSocket> socket) override;
+
+	virtual void SendMessage(const std::vector<uint8_t>& message) override;
+
+	virtual bool HasSocket() override;
 };
 }

@@ -47,6 +47,10 @@ private:
 
 	std::mutex m_readRequestMutex;
 
+	std::queue<concurrency::task_completion_event<Result<void>>> m_writeNotifications;
+
+	std::mutex m_writeNotificationMutex;
+
 private:
 	void Tick();
 

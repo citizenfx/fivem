@@ -140,7 +140,20 @@ void TcpStreamSocket::OnReadEvent(int errorCode)
 
 void TcpStreamSocket::OnWriteEvent(int errorCode)
 {
+	// if there's any write notification
+	if (!m_writeNotifications.empty())
+	{
+		// get the first write notification from the queue
+		m_writeNotificationMutex.lock();
 
+		auto writeNotification = m_writeNotifications.front();
+		m_writeNotifications.pop();
+
+		m_writeNotificationMutex.unlock();
+
+		// mark the task as completed
+		writeNotification.set(ResultFromSocketError(errorCode));
+	}
 }
 
 void TcpStreamSocket::OnCloseEvent(int errorCode)
@@ -272,6 +285,26 @@ concurrency::task<Result<SocketReadResult>> TcpStreamSocket::Read(size_t bytes)
 
 concurrency::task<Result<void>> TcpStreamSocket::Write(const std::vector<uint8_t>& data)
 {
-	return concurrency::task_from_result<Result<void>>(Result<void>());
+	int res = send(m_socket, reinterpret_cast<const char*>(&data[0]), data.size(), 0);
+
+	if (res == SOCKET_ERROR)
+	{
+		int errorCode = WSAGetLastError();
+
+		if (errorCode != WSAEWOULDBLOCK)
+		{
+			trace("[Terminal] send() error %d\n", errorCode);
+
+			return concurrency::task_from_result(ResultFromSocketError(errorCode));
+		}
+	}
+
+	concurrency::task_completion_event<Result<void>> completionEvent;
+
+	m_writeNotificationMutex.lock();
+	m_writeNotifications.push(completionEvent);
+	m_writeNotificationMutex.unlock();
+
+	return concurrency::task<Result<void>>(completionEvent);
 }
 }

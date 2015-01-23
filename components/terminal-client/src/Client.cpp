@@ -10,13 +10,17 @@
 #include <terminal/internal/L1ServiceDispatcher.h>
 #include <terminal/internal/L1LegacyMessageParser.h>
 #include <terminal/internal/L1FramedTcpConnection.h>
+#include <terminal/internal/L1MessageBuilder.h>
 #include <terminal/internal/TcpStreamSocket.h>
+
+#include <terminal/internal/User1.h>
+
+#include <network/uri.hpp>
 
 namespace terminal
 {
-concurrency::task<Result<ConnectRemoteDetail>> Client::ConnectRemote(const char* hostname, uint16_t port)
+Client::Client()
 {
-	// TODO: register this before connecting
 	m_dispatcher = new L1ServiceDispatcher();
 
 	m_parser = new L1LegacyMessageParser();
@@ -25,31 +29,82 @@ concurrency::task<Result<ConnectRemoteDetail>> Client::ConnectRemote(const char*
 	m_connection = new L1FramedTcpConnection();
 	m_connection->SetParser(m_parser);
 
-	concurrency::task_completion_event<Result<ConnectRemoteDetail>> completionSource;
+	m_builder = new L1MessageBuilder();
+	m_builder->SetConnection(m_connection);
+	m_builder->SetDispatcher(m_dispatcher);
+}
 
-	m_socket = new TcpStreamSocket();
-	m_socket->Connect(hostname, port).then([=] (Result<void> result)
+concurrency::task<Result<ConnectRemoteDetail>> Client::ConnectRemote(const char* uri)
+{
+	// parse the host URI
+	std::error_code ec;
+	network::uri serviceUri = network::make_uri(std::string(uri), ec);
+
+	// if the uri couldn't be parsed, return an error
+	if (!static_cast<bool>(ec))
 	{
-		if (result.HasSucceeded())
+		boost::string_ref scheme = serviceUri.scheme().get_value_or("layer1");
+
+		if (scheme == "layer1")
 		{
-			m_connection->BindSocket(m_socket);
+			boost::string_ref hostname = serviceUri.host().get_value_or("localhost");
+			int port = serviceUri.port<int>().get_value_or(3036);
 
-			ConnectRemoteDetail detail(1);
+			concurrency::task_completion_event<Result<ConnectRemoteDetail>> completionSource;
 
-			completionSource.set(Result<ConnectRemoteDetail>(result, detail));
+			m_socket = new TcpStreamSocket();
+			m_socket->Connect(hostname.to_string().c_str(), port).then([=] (Result<void> result)
+			{
+				if (result.HasSucceeded())
+				{
+					m_connection->BindSocket(m_socket);
+
+					ConnectRemoteDetail detail(1);
+
+					completionSource.set(Result<ConnectRemoteDetail>(detail));
+				}
+				else
+				{
+					completionSource.set(result);
+				}
+			});
+
+			return concurrency::task<Result<ConnectRemoteDetail>>(completionSource);
 		}
 		else
 		{
-			completionSource.set(result);
+			return concurrency::task_from_result(Result<ConnectRemoteDetail>(Result<void>(ErrorCode::InvalidScheme)));
 		}
-	});
-
-	return concurrency::task<Result<ConnectRemoteDetail>>(completionSource);
+	}
+	else
+	{
+		return concurrency::task_from_result(Result<ConnectRemoteDetail>(Result<void>(ErrorCode::InvalidUri)));
+	}
 }
 
-void* Client::GetUserService(uint64_t interfaceIdentifier)
+Result<void*> Client::GetUserService(uint64_t interfaceIdentifier)
 {
-	return nullptr;
+	if (m_connection->HasSocket())
+	{
+		if (interfaceIdentifier == IUser1::InterfaceID)
+		{
+			auto it = m_interfaces.find(interfaceIdentifier);
+
+			if (it == m_interfaces.end())
+			{
+				fwRefContainer<User1> user = new User1(this);
+				m_interfaces[interfaceIdentifier] = user;
+
+				return Result<void*>(static_cast<IUser1*>(user.GetRef()));
+			}
+			else
+			{
+				return Result<void*>(static_cast<IUser1*>(static_cast<User1*>(it->second.GetRef())));
+			}
+		}
+	}
+
+	return Result<void>((m_connection->HasSocket()) ? ErrorCode::UnknownInterface : ErrorCode::NotConnected);
 }
 
 REGISTER_INTERFACE(Client);
