@@ -244,6 +244,10 @@ Result<void> TcpStreamSocket::ResultFromSocketError(int errorCode)
 		case WSAETIMEDOUT:
 			error = ErrorCode::ConnectionTimedOut;
 			break;
+
+		case WSAHOST_NOT_FOUND:
+			error = ErrorCode::InvalidHostname;
+			break;
 	}
 
 	return Result<void>(error);
@@ -256,16 +260,26 @@ concurrency::task<Result<void>> TcpStreamSocket::Connect(const char* hostname, u
 
 	addrinfo* outInfo;
 
-	// TODO: handle failure
-	getaddrinfo(hostname, va("%d", port), &base, &outInfo);
+	int result = getaddrinfo(hostname, va("%d", port), &base, &outInfo);
 
-	connect(m_socket, outInfo->ai_addr, outInfo->ai_addrlen);
+	if (result == 0)
+	{
+		if (connect(m_socket, outInfo->ai_addr, outInfo->ai_addrlen) == SOCKET_ERROR)
+		{
+			result = WSAGetLastError();
+		}
+		
+		if (result == 0 || result == WSAEWOULDBLOCK)
+		{
+			m_state = State::Connecting;
 
-	m_state = State::Connecting;
+			m_connectionCompletionEvent = concurrency::task_completion_event<Result<void>>();
 
-	m_connectionCompletionEvent = concurrency::task_completion_event<Result<void>>();
-
-	return concurrency::task<Result<void>>(m_connectionCompletionEvent);
+			return concurrency::task<Result<void>>(m_connectionCompletionEvent);
+		}
+	}
+	
+	return concurrency::task_from_result<Result<void>>(ResultFromSocketError(result));
 }
 
 concurrency::task<Result<SocketReadResult>> TcpStreamSocket::Read(size_t bytes)

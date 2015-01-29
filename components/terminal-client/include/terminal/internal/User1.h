@@ -28,6 +28,8 @@ public:
 
 	virtual concurrency::task<Result<AuthenticateDetail>> AuthenticateWithLicenseKey(const char* licenseKey) override;
 
+	virtual concurrency::task<Result<AuthenticateDetail>> AuthenticateWithTokenBag(const TokenBag& tokenBag) override;
+
 	virtual uint64_t GetNPID() override;
 };
 }

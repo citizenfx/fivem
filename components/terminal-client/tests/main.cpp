@@ -28,11 +28,19 @@ int main()
 		{
 			IUser1* user = static_cast<IUser1*>(client->GetUserService(IUser1::InterfaceID).GetDetail());
 
-			user->AuthenticateWithLicenseKey("").then([=] (Result<AuthenticateDetail> result)
+			TokenBag tokenBag;
+
+
+			//user->AuthenticateWithLicenseKey("").then([=] (Result<AuthenticateDetail> result)
+			user->AuthenticateWithTokenBag(tokenBag).then([=] (Result<AuthenticateDetail> result)
 			{
 				if (result.HasSucceeded())
 				{
 					printf("our npid may be %llx\n", user->GetNPID());
+				}
+				else
+				{
+					__debugbreak();
 				}
 			});
 		}
