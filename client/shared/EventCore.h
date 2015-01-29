@@ -97,7 +97,7 @@ class fwVector : public std::vector<TValue, fwAllocator<TValue>>
 #include <functional>
 
 template<class T>
-class __declspec(dllexport) fwRefContainer
+class fwRefContainer
 {
 private:
 	T* m_ref;
@@ -254,7 +254,7 @@ public:
 };
 
 template<typename... Args>
-class __declspec(dllexport) fwActionImpl : public fwRefCountable
+class fwActionImpl : public fwRefCountable
 {
 private:
 	std::function<void(Args&...)> m_func;
@@ -272,7 +272,7 @@ public:
 };
 
 template<typename... Args>
-class __declspec(dllexport) fwAction : public fwRefContainer < fwActionImpl<Args...> >
+class fwAction : public fwRefContainer < fwActionImpl<Args...> >
 {
 public:
 	fwAction()
@@ -333,7 +333,7 @@ struct fwEventConnectProxy<false>
 };
 
 template<typename... Args>
-class __declspec(dllexport) fwEvent
+class fwEvent
 {
 public:
 	friend struct fwEventConnectProxy<true>;
