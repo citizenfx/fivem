@@ -53,7 +53,7 @@ void L1FramedTcpConnection::PacketReadCallback(uint32_t expectedLength, concurre
 		// if the size is as expected
 		if (byteArray.size() == expectedLength)
 		{
-			// pass it on to the parset (ha!)
+			// pass it on to the parser (ha!)
 			m_parser->HandleIncomingMessage(byteArray);
 		}
 

@@ -264,16 +264,16 @@ concurrency::task<Result<void>> TcpStreamSocket::Connect(const char* hostname, u
 
 	if (result == 0)
 	{
+		m_connectionCompletionEvent = concurrency::task_completion_event<Result<void>>();
+
 		if (connect(m_socket, outInfo->ai_addr, outInfo->ai_addrlen) == SOCKET_ERROR)
 		{
 			result = WSAGetLastError();
 		}
 		
-		if (result == 0 || result == WSAEWOULDBLOCK)
+		if (result == WSAEWOULDBLOCK)
 		{
 			m_state = State::Connecting;
-
-			m_connectionCompletionEvent = concurrency::task_completion_event<Result<void>>();
 
 			return concurrency::task<Result<void>>(m_connectionCompletionEvent);
 		}

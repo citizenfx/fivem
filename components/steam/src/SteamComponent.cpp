@@ -59,7 +59,7 @@ public:
 };
 
 SteamComponent::SteamComponent()
-	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0)
+	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0), m_parentAppID(0)
 {
 
 }
@@ -242,6 +242,9 @@ void SteamComponent::InitializePresence()
 		parentAppID = 218;
 	}
 
+	// set the parent appid in the instance
+	m_parentAppID = parentAppID;
+
 	// create a fake app to hold our gameid
 	uint64_t gameID = 0xA18F2DAB01000000 | parentAppID; // crc32 for 'kekking' + mod
 
@@ -249,7 +252,7 @@ void SteamComponent::InitializePresence()
 
 	// create the keyvalues string for the app
 	KeyValuesBuilder builder;
-	builder.PackString("name", "lovely!");
+	builder.PackString("name", PRODUCT_DISPLAY_NAME);
 	builder.PackUint64("gameid", gameID);
 	builder.PackString("installed", "1");
 	builder.PackString("gamedir", "kekking");
@@ -264,6 +267,11 @@ void SteamComponent::InitializePresence()
 	// if the configuration is valid, launch our child process
 	if (configAdded)
 	{
+		// set our pipe appid
+		InterfaceMapper steamUtils(m_clientEngine->GetIClientUtils(m_steamPipe, "CLIENTUTILS_INTERFACE_VERSION001"));
+
+		steamUtils.Invoke<void>("SetAppIDForCurrentPipe", parentAppID, false);
+
 		// get the base executable path
 		char ourPath[MAX_PATH];
 		GetModuleFileNameA(GetModuleHandle(nullptr), ourPath, _countof(ourPath));
@@ -344,6 +352,11 @@ HSteamPipe SteamComponent::GetHSteamPipe()
 bool SteamComponent::IsSteamRunning()
 {
 	return m_steamLoader.IsSteamRunning();
+}
+
+int SteamComponent::GetParentAppID()
+{
+	return m_parentAppID;
 }
 
 static SteamComponent steamComponent;

@@ -29,6 +29,8 @@ public:
 
 	virtual void RemoveSteamCallback(int registeredID) = 0;
 
+	virtual int GetParentAppID() = 0;
+
 // template bits
 public:
 	template<typename TCallback>

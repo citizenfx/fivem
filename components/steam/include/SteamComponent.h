@@ -33,6 +33,8 @@ private:
 
 	int m_callbackIndex;
 
+	int m_parentAppID;
+
 private:
 	void InitializeClientAPI();
 
@@ -64,4 +66,6 @@ public:
 	virtual int RegisterSteamCallbackRaw(int callbackID, std::function<void(void*)> callback) override;
 
 	virtual void RemoveSteamCallback(int registeredID) override;
+
+	virtual int GetParentAppID() override;
 };

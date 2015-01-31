@@ -67,6 +67,7 @@ static InitFunction initFunction([] ()
 			if (profileId != 0)
 			{
 				int numProfiles = profileManager->GetNumProfiles();
+				bool found = false;
 
 				for (int i = 0; i < numProfiles; i++)
 				{
@@ -78,11 +79,16 @@ static InitFunction initFunction([] ()
 						{
 							cb(va("{ \"error\": %s }", (result.success) ? "null" : va("\"%s\"", result.error.c_str())));
 						});
+
+						found = true;
+
+						break;
 					}
-					else
-					{
-						cb("{ \"error\": \"Invalid profile specified.\" }");
-					}
+				}
+
+				if (!found)
+				{
+					cb("{ \"error\": \"Invalid profile specified.\" }");
 				}
 			}
 		}

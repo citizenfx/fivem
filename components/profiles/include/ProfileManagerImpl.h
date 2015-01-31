@@ -8,6 +8,7 @@
 #pragma once
 
 #include "ProfileManager.h"
+#include <terminal.h>
 
 typedef std::pair<std::string, std::string> ProfileIdentifier;
 
@@ -29,6 +30,53 @@ public:
 	virtual void GetProfiles(std::function<void(fwRefContainer<Profile>)> receiver) = 0;
 };
 
+class ProfileIdentityResult
+{
+private:
+	std::string m_error;
+
+	terminal::TokenType m_tokenType;
+	std::string m_token;
+
+public:
+	inline ProfileIdentityResult()
+	{
+
+	}
+
+	inline ProfileIdentityResult(std::string error)
+		: m_error(error)
+	{
+
+	}
+
+	inline ProfileIdentityResult(terminal::TokenType tokenType, std::string token)
+		: m_tokenType(tokenType), m_token(token)
+	{
+
+	}
+
+	inline const std::string& GetError() const
+	{
+		return m_error;
+	}
+
+	inline const std::string& GetToken() const
+	{
+		return m_token;
+	}
+
+	inline terminal::TokenType GetTokenType() const
+	{
+		return m_tokenType;
+	}
+
+	inline bool HasSucceeded() const
+	{
+		return m_error.empty();
+	}
+};
+
 class ProfileIdentityProvider : public fwRefCountable
 {
 public:
@@ -36,7 +84,7 @@ public:
 
 	virtual bool RequiresCredentials() = 0;
 
-	virtual concurrency::task<ProfileTaskResult> SignIn(fwRefContainer<Profile> profile, const std::map<std::string, std::string>& parameters) = 0;
+	virtual concurrency::task<ProfileIdentityResult> ProcessIdentity(fwRefContainer<Profile> profile, const std::map<std::string, std::string>& parameters) = 0;
 };
 
 class ProfileImpl : public Profile
@@ -110,10 +158,16 @@ private:
 
 	void ParseStoredProfiles(const std::string& profileList);
 
+	void UpdateStoredProfiles();
+
+	void SaveStoredProfiles(const std::string& savedList);
+
 public:
 	void Initialize();
 
 	void AddSuggestionProvider(fwRefContainer<ProfileSuggestionProvider> provider);
+
+	void AddIdentityProvider(fwRefContainer<ProfileIdentityProvider> provider);
 
 	// ProfileManager implementation
 	virtual int GetNumProfiles() override;

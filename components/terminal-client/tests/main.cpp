@@ -29,7 +29,8 @@ int main()
 			IUser1* user = static_cast<IUser1*>(client->GetUserService(IUser1::InterfaceID).GetDetail());
 
 			TokenBag tokenBag;
-
+			tokenBag.AddToken(TokenType::ROS, "QhDsq/pnTuVSTlCeMoM7TT6YZwDhLkyZrwfuLX2bUUCifTb0uJTrEE9JPVzr7dR7yYdk9Pc1UFGmT/STkEWXfafiYBLcSLxZcEUAT7FdpEuDBf4m113xTyrfWjgIw0XK0vrCDraI/xqkulodr6yJQ4wppsWy05fTSZ/z8r25uv1h2G7rLOXBElQ22xUY1CmODytl&&40366");
+			tokenBag.AddToken(TokenType::ROS, "hhBGK3wGkCbjCjySn7vJIrcyXwDfBdJfzHhkJ/KnXNm2ZnSKcWJwX+Wlwf362e4ON6vZFIpLHhLrRr53i2HATTqjCMElHR2sqY6WFk05I9b+GBe0ynmWqcB/gD3IIPm9le+7T8/ZaDYgNIQXuIV3+R4JkKy+hRHgB3AR0dLYURi9Sfb4YLJQ3MBKzA==&&51216702");
 
 			//user->AuthenticateWithLicenseKey("").then([=] (Result<AuthenticateDetail> result)
 			user->AuthenticateWithTokenBag(tokenBag).then([=] (Result<AuthenticateDetail> result)
