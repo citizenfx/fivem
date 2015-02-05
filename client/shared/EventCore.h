@@ -67,8 +67,10 @@ public:
 
 };
 
-typedef std::basic_string<char, std::char_traits<char>, fwAllocator<char>> fwString;
-typedef std::basic_string<wchar_t, std::char_traits<wchar_t>, fwAllocator<wchar_t>> fwWString;
+//typedef std::basic_string<char, std::char_traits<char>, fwAllocator<char>> fwString;
+//typedef std::basic_string<wchar_t, std::char_traits<wchar_t>, fwAllocator<wchar_t>> fwWString;
+typedef std::string fwString;
+typedef std::wstring fwWString;
 
 template<class TKey, class TValue>
 class fwMap : public std::map<TKey, TValue, std::less<TKey>, fwAllocator<std::pair<const TKey, TValue>>>

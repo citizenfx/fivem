@@ -153,6 +153,8 @@ private:
 
 	std::map<std::string, fwRefContainer<ProfileIdentityProvider>> m_identityProviders;
 
+	size_t m_primaryProfileIndex;
+
 private:
 	void LoadStoredProfiles();
 
@@ -174,9 +176,11 @@ public:
 
 	virtual fwRefContainer<Profile> GetProfile(int index) override;
 
-	virtual concurrency::task<ProfileTaskResult> AddProfile(fwRefContainer<Profile> profile) override;
+	virtual fwRefContainer<Profile> GetDummyProfile() override;
 
 	virtual concurrency::task<ProfileTaskResult> SetPrimaryProfile(fwRefContainer<Profile> profile) override;
 
 	virtual concurrency::task<ProfileTaskResult> SignIn(fwRefContainer<Profile> profile, const std::map<std::string, std::string>& parameters) override;
+
+	virtual fwRefContainer<Profile> GetPrimaryProfile() override;
 };

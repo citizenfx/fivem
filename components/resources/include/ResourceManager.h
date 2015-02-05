@@ -7,7 +7,7 @@
 using rage::fiDevice;
 
 #include <msgpack.hpp>
-#include "msgpack_fwstring.h"
+//#include "msgpack_fwstring.h"
 #include "ResourceCache.h"
 //#include "ResourceScripting.h"
 #include "BaseResourceScripting.h"

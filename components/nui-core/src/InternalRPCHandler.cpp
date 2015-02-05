@@ -122,13 +122,13 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 			{
 				int endPos = postDataString.find_first_of('&', curPos);
 
-				int equalsPos = postDataString.find_first_of("=", curPos, endPos);
+				int equalsPos = postDataString.find_first_of('=', curPos);
 
 				std::string key;
 				std::string value;
 
-				UrlDecode(postDataString.substr(curPos, equalsPos), key);
-				UrlDecode(postDataString.substr(equalsPos + 1, endPos), value);
+				UrlDecode(postDataString.substr(curPos, equalsPos - curPos), key);
+				UrlDecode(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1), value);
 
 				postMap[key] = value;
 
@@ -139,6 +139,8 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 				{
 					break;
 				}
+
+				curPos++;
 			}
 		}
 	}

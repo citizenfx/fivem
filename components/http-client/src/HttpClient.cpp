@@ -10,9 +10,9 @@
 #include "fiDevice.h"
 #include <sstream>
 
-HttpClient::HttpClient()
+HttpClient::HttpClient(const wchar_t* userAgent)
 {
-	hWinHttp = WinHttpOpen(L"CitizenIV/1", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
+	hWinHttp = WinHttpOpen(userAgent, WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
 	WinHttpSetTimeouts(hWinHttp, 2000, 5000, 5000, 5000);
 }
 
@@ -87,7 +87,7 @@ void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwS
 	context->postData = postData;
 	context->callback = callback;
 
-	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
+	WinHttpSendRequest(hRequest, L"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n", -1, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
 }
 
 void HttpClient::DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAction<bool, const char*, size_t> callback)

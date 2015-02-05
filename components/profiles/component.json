@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"steam",
-		"terminal:client"
+		"terminal:client",
+		"http-client"
 	],
 	"provides": []
 }

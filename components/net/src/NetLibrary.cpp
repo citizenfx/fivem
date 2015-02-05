@@ -7,11 +7,13 @@
 
 #include "StdInc.h"
 #include "NetLibrary.h"
-#include <libnp.h>
 #include <base64.h>
 #include <mutex>
 #include <mmsystem.h>
 #include <yaml-cpp/yaml.h>
+
+#include <ProfileManager.h>
+#include <terminal.h>
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -549,10 +551,11 @@ void NetLibrary::RunFrame()
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000)
 			{
-				NPID npID;
-				NP_GetNPID(&npID);
+				TerminalClient* clientContainer = Instance<TerminalClient>::Get();
+				auto client = clientContainer->GetClient();
+				auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), npID);
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), user->GetNPID());
 
 				m_lastConnect = GetTickCount();
 
@@ -627,10 +630,11 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
-	NPID npID;
-	NP_GetNPID(&npID);
+	TerminalClient* clientContainer = Instance<TerminalClient>::Get();
+	auto client = clientContainer->GetClient();
+	auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-	postMap["guid"] = va("%lld", npID);
+	postMap["guid"] = va("%lld", user->GetNPID());
 	//postMap["guid"] = va("%lld", 0LL);
 
 	uint16_t capturePort = port;
@@ -661,7 +665,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				if (postMap.find("authTicket") == postMap.end())
 				{
 					unsigned char authTicket[2048] = { 0 }; // zero out to prevent stack leakage to server
-					NP_GetUserTicket(authTicket, sizeof(authTicket), node["authID"].as<uint64_t>());
+					//NP_GetUserTicket(authTicket, sizeof(authTicket), node["authID"].as<uint64_t>());
 
 					size_t ticketLen;
 					char* ticketEncoded = base64_encode(authTicket, sizeof(authTicket), &ticketLen);
@@ -838,7 +842,10 @@ void NetLibrary::SendOutOfBand(NetAddress& address, const char* format, ...)
 
 const char* NetLibrary::GetPlayerName()
 {
-	return Auth_GetUsername();
+	ProfileManager* profileManager = Instance<ProfileManager>::Get();
+	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();
+
+	return (profile.GetRef()) ? profile->GetDisplayName() : "** INVALID **";
 }
 
 void NetLibrary::SetPlayerName(const char* name)

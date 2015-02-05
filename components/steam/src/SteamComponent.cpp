@@ -140,6 +140,8 @@ void SteamComponent::RunThread()
 {
 	std::thread runtimeThread([=] ()
 	{
+		SetThreadName(-1, "Steam Worker Thread");
+
 		auto getCallback = m_steamLoader.GetProcAddress<bool(*)(HSteamPipe, CallbackMsg_t*)>("Steam_BGetCallback");
 		auto freeLastCallback = m_steamLoader.GetProcAddress<void(*)(HSteamPipe)>("Steam_FreeLastCallback");
 

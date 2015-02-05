@@ -102,5 +102,10 @@ public:
 
 		return (it != m_identifiers.end()) ? Result<std::string>(it->second) : Result<void>(ErrorCode::InvalidAuthDetails);
 	}
+
+	inline const std::map<std::string, std::string>& GetIdentifiers() const
+	{
+		return m_identifiers;
+	}
 };
 }

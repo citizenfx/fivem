@@ -351,16 +351,25 @@ fwRefContainer<Profile> ProfileManagerImpl::GetProfile(int index)
 	return m_profiles[m_profileIndices[index]];
 }
 
-concurrency::task<ProfileTaskResult> ProfileManagerImpl::AddProfile(fwRefContainer<Profile> profile)
+fwRefContainer<Profile> ProfileManagerImpl::GetPrimaryProfile()
 {
-	ProfileTaskResult result;
+	auto it = m_profiles.find(m_primaryProfileIndex);
 
-	return concurrency::task_from_result<ProfileTaskResult>(result);
+	return (it == m_profiles.end()) ? nullptr : it->second;
+}
+
+fwRefContainer<Profile> ProfileManagerImpl::GetDummyProfile()
+{
+	fwRefContainer<ProfileImpl> profile = new ProfileImpl();
+
+	return profile;
 }
 
 concurrency::task<ProfileTaskResult> ProfileManagerImpl::SetPrimaryProfile(fwRefContainer<Profile> profile)
 {
 	ProfileTaskResult result;
+
+	m_primaryProfileIndex = profile->GetInternalIdentifier();
 
 	return concurrency::task_from_result<ProfileTaskResult>(result);
 }
@@ -380,8 +389,45 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 	// get the profileimpl
 	fwRefContainer<ProfileImpl> profileImpl(profile);
 
+	// get a list of responsible identity providers (a reference so we won't have to copy this around a lot)
+	std::shared_ptr<std::vector<fwRefContainer<ProfileIdentityProvider>>> identityProviders 
+		= std::make_shared<std::vector<fwRefContainer<ProfileIdentityProvider>>>();
+
+	// stage 1: any stored identifiers
+	for (int i = 0; i < profile->GetNumIdentifiers(); i++)
+	{
+		auto identifier = profileImpl->GetIdentifierInternal(i);
+
+		auto providerIt = m_identityProviders.find(identifier.first);
+
+		if (providerIt != m_identityProviders.end())
+		{
+			identityProviders->push_back(providerIt->second);
+		}
+	}
+
+	// stage 2: if no identifier is set (from cache/suggestions), get the _type from the post map
+	if (profileImpl->GetInternalIdentifier() == 0 || profile->GetNumIdentifiers() == 0)
+	{
+		auto it = parameters.find("_type");
+
+		if (it == parameters.end())
+		{
+			return concurrency::task_from_result(ProfileTaskResult(false, "No `_type' parameter was passed while signing in to an empty profile."));
+		}
+
+		auto providerIt = m_identityProviders.find(it->second);
+
+		if (providerIt == m_identityProviders.end())
+		{
+			return concurrency::task_from_result(ProfileTaskResult(false, va("Invalid identity provider %s passed while signing in to an empty profile.", it->second.c_str())));
+		}
+
+		identityProviders->push_back(providerIt->second);
+	}
+
 	// for each identifier in the profile, get a token
-	int numIdentifiers = profile->GetNumIdentifiers();
+	int numIdentifiers = identityProviders->size();
 
 	// container struct for the function, and a token bag/index
 	std::shared_ptr<VoidFunctionHolder> continueIdentifier = std::make_shared<VoidFunctionHolder>();
@@ -412,14 +458,7 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 		// if there's any identifiers left to handle
 		if (*idx < numIdentifiers)
 		{
-			auto identifier = profileImpl->GetIdentifierInternal(*idx);
-
-			auto providerIt = m_identityProviders.find(identifier.first);
-
-			if (providerIt != m_identityProviders.end())
-			{
-				providerIt->second->ProcessIdentity(profile, parameters).then(identifierCB);
-			}
+			identityProviders->at(*idx)->ProcessIdentity(profile, parameters).then(identifierCB);
 		}
 		else
 		{
@@ -442,9 +481,54 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 					{
 						if (result.HasSucceeded())
 						{
-							UpdateStoredProfiles();
+							// update the profile's stored identifiers
+							std::vector<ProfileIdentifier> profileIdentifiers;
 
-							resultEvent.set(ProfileTaskResult(true));
+							for (auto& id : result.GetDetail().GetIdentifiers())
+							{
+								profileIdentifiers.push_back(std::make_pair(id.first, id.second));
+							}
+
+							profileImpl->SetIdentifiers(profileIdentifiers);
+
+							bool safe = true;
+
+							// if we didn't have an identifier hash before, add it to the list
+							if (profileImpl->GetInternalIdentifier() == 0)
+							{
+								size_t hashKey = 0;
+
+								for (int i = 0; i < profileImpl->GetNumIdentifiers(); i++)
+								{
+									ProfileIdentifier identifier = profileImpl->GetIdentifierInternal(i);
+
+									hashKey ^= 3 * std::hash<ProfileIdentifier>()(identifier);
+								}
+
+								// if this happens to be an existing profile, get annoyed with the user
+								if (m_profiles.find(hashKey) != m_profiles.end())
+								{
+									resultEvent.set(ProfileTaskResult(false, "That's already a profile!"));
+
+									safe = false;
+								}
+								else
+								{
+									// go go watermelon
+									profileImpl->SetInternalIdentifier(hashKey);
+									m_profiles[hashKey] = profileImpl;
+									m_profileIndices.push_back(hashKey);
+								}
+							}
+
+							if (safe)
+							{
+								// save the profile list
+								UpdateStoredProfiles();
+
+								// and mark the result as succeeded
+								resultEvent.set(ProfileTaskResult(true));
+							}
 						}
 						else
 						{

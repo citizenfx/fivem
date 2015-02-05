@@ -3,7 +3,9 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"http-client"
+		"http-client",
+		"terminal:client",
+		"profiles"
 	],
 	"provides": []
 }

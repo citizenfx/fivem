@@ -38,11 +38,14 @@ static InitFunction initFunction([] ()
 				rapidjson::Value profileObject;
 				profileObject.SetObject();
 
+				// very temporary
+				const char* profileType = (profile->GetNumIdentifiers() && strstr(profile->GetIdentifier(0), "ros:")) ? "ros" : "steam";
+
 				profileObject.AddMember("name", rapidjson::Value(profile->GetDisplayName(), outDocument.GetAllocator()).Move(), outDocument.GetAllocator());
 				profileObject.AddMember("tile", rapidjson::Value(profile->GetTileURI(), outDocument.GetAllocator()).Move(), outDocument.GetAllocator());
-				profileObject.AddMember("type", rapidjson::Value("steam").Move(), outDocument.GetAllocator());
+				profileObject.AddMember("type", rapidjson::Value(profileType, outDocument.GetAllocator()).Move(), outDocument.GetAllocator());
 				profileObject.AddMember("identifier", rapidjson::Value(profile->GetInternalIdentifier()).Move(), outDocument.GetAllocator());
-				
+
 				profilesArray.PushBack(profileObject, outDocument.GetAllocator());
 			}
 
@@ -66,30 +69,40 @@ static InitFunction initFunction([] ()
 
 			if (profileId != 0)
 			{
-				int numProfiles = profileManager->GetNumProfiles();
-				bool found = false;
+				fwRefContainer<Profile> profile;
 
-				for (int i = 0; i < numProfiles; i++)
+				if (profileId != 0xFFFFFFFF)
 				{
-					fwRefContainer<Profile> profile = profileManager->GetProfile(i);
+					int numProfiles = profileManager->GetNumProfiles();
+					bool found = false;
 
-					if (profile->GetInternalIdentifier() == profileId)
+					for (int i = 0; i < numProfiles; i++)
 					{
-						profileManager->SignIn(profile, postMap).then([=] (ProfileTaskResult& result)
+						profile = profileManager->GetProfile(i);
+
+						if (profile->GetInternalIdentifier() == profileId)
 						{
-							cb(va("{ \"error\": %s }", (result.success) ? "null" : va("\"%s\"", result.error.c_str())));
-						});
+							found = true;
 
-						found = true;
+							break;
+						}
+					}
 
-						break;
+					if (!found)
+					{
+						cb("{ \"error\": \"Invalid profile specified.\" }");
+						return;
 					}
 				}
-
-				if (!found)
+				else
 				{
-					cb("{ \"error\": \"Invalid profile specified.\" }");
+					profile = profileManager->GetDummyProfile();
 				}
+
+				profileManager->SignIn(profile, postMap).then([=] (ProfileTaskResult& result)
+				{
+					cb(va("{ \"error\": %s }", (result.success) ? "null" : va("\"%s\"", result.error.c_str())));
+				});
 			}
 		}
 	});

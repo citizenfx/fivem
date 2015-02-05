@@ -39,7 +39,7 @@ public:
 
 	virtual ~NUIResourceHandler()
 	{
-		if (file_ && !closed_)
+		if (file_ && file_ != -1 && !closed_)
 		{
 			device_->close(file_);
 		}
@@ -92,7 +92,7 @@ public:
 		//file_ = _wfopen(filename_.c_str(), "rb");
 		device_ = rage::fiDevice::GetDevice(filename_.c_str(), true);
 		
-		if (device_)
+		if (device_ && filename_.find("..") == std::string::npos)
 		{
 			file_ = device_->open(filename_.c_str(), true);
 		}

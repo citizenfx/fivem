@@ -45,7 +45,7 @@ private:
 	void ReaddConnection(ServerPair server, HINTERNET connection);
 
 public:
-	HttpClient();
+	HttpClient(const wchar_t* userAgent = L"CitizenFX/1");
 	virtual ~HttpClient();
 
 	fwString BuildPostString(fwMap<fwString, fwString>& fields);

@@ -9,7 +9,7 @@
 #include "ProfileManagerImpl.h"
 
 ProfileImpl::ProfileImpl()
-	: m_isSuggestion(false)
+	: m_isSuggestion(false), m_internalIdentifier(0)
 {
 
 }

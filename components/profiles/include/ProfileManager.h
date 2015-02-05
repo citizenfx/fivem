@@ -58,11 +58,13 @@ public:
 
 	virtual fwRefContainer<Profile> GetProfile(int index) = 0;
 
-	virtual concurrency::task<ProfileTaskResult> AddProfile(fwRefContainer<Profile> profile) = 0;
+	virtual fwRefContainer<Profile> GetDummyProfile() = 0;
 
 	virtual concurrency::task<ProfileTaskResult> SetPrimaryProfile(fwRefContainer<Profile> profile) = 0;
 
 	virtual concurrency::task<ProfileTaskResult> SignIn(fwRefContainer<Profile> profile, const std::map<std::string, std::string>& parameters) = 0;
+
+	virtual fwRefContainer<Profile> GetPrimaryProfile() = 0;
 };
 
 DECLARE_INSTANCE_TYPE(ProfileManager);

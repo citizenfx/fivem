@@ -177,11 +177,6 @@ void FatalError(const char* string, ...);
 uint32_t HashRageString(const char* string);
 uint32_t HashString(const char* string);
 
-inline void LowerString(std::string& string)
-{
-	std::transform(string.begin(), string.end(), string.begin(), ::tolower);
-}
-
 inline void LowerString(fwString& string)
 {
 	std::transform(string.begin(), string.end(), string.begin(), ::tolower);
