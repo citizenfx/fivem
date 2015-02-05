@@ -98,6 +98,8 @@ private:
 
 	std::vector<ProfileIdentifier> m_identifiers;
 
+	std::map<std::string, std::string> m_parameters;
+
 	uint32_t m_internalIdentifier;
 
 public:
@@ -126,6 +128,8 @@ public:
 
 	void SetIdentifiers(const std::vector<ProfileIdentifier>& identifiers);
 
+	void SetParameters(const std::map<std::string, std::string>& parameters);
+
 	// Profile implementation
 	virtual const char* GetDisplayName() override;
 
@@ -140,6 +144,8 @@ public:
 	virtual uint32_t GetInternalIdentifier() override;
 
 	virtual concurrency::task<ProfileTaskResult> MergeProfile(fwRefContainer<Profile> fromProfile) override;
+
+	virtual const std::map<std::string, std::string>& GetParameters() override;
 };
 
 class ProfileManagerImpl : public ProfileManager

@@ -44,6 +44,8 @@ public:
 
 	virtual const char* GetTileURI() = 0;
 
+	virtual const std::map<std::string, std::string>& GetParameters() = 0;
+
 	virtual uint32_t GetInternalIdentifier() = 0;
 
 	virtual bool IsSignedIn() = 0;

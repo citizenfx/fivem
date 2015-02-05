@@ -72,3 +72,13 @@ void ProfileImpl::SetIdentifiers(const std::vector<ProfileIdentifier>& identifie
 {
 	m_identifiers = identifiers;
 }
+
+const std::map<std::string, std::string>& ProfileImpl::GetParameters()
+{
+	return m_parameters;
+}
+
+void ProfileImpl::SetParameters(const std::map<std::string, std::string>& parameters)
+{
+	m_parameters = parameters;
+}

@@ -233,6 +233,28 @@ void ProfileManagerImpl::ParseStoredProfiles(const std::string& profileList)
 						hashKey ^= 3 * std::hash<ProfileIdentifier>()(identifier);
 					});
 
+					// get parameter map
+					std::map<std::string, std::string> parameters;
+
+					if (value.HasMember("parameters"))
+					{
+						auto& parametersMember = value["parameters"];
+
+						if (parametersMember.IsObject())
+						{
+							for (auto& it = parametersMember.MemberBegin(); it != parametersMember.MemberEnd(); it++)
+							{
+								auto& name = it->name;
+								auto& value = it->value;
+
+								if (name.IsString() && value.IsString())
+								{
+									parameters[name.GetString()] = value.GetString();
+								}
+							}
+						}
+					}
+
 					// create an implemented profile
 					fwRefContainer<ProfileImpl> profile = new ProfileImpl();
 					profile->SetDisplayName(std::string(displayNameMember.GetString(), displayNameMember.GetStringLength()));
@@ -240,6 +262,7 @@ void ProfileManagerImpl::ParseStoredProfiles(const std::string& profileList)
 
 					profile->SetInternalIdentifier(hashKey);
 					profile->SetIdentifiers(identifiers);
+					profile->SetParameters(parameters);
 
 					m_profiles[hashKey] = profile;
 					m_profileIndices.push_back(hashKey);
@@ -317,6 +340,22 @@ void ProfileManagerImpl::UpdateStoredProfiles()
 		}
 
 		profileData.AddMember("identifiers", identifiers, document.GetAllocator());
+
+		rapidjson::Value parameters;
+		parameters.SetObject();
+
+		auto& profileParameters = profile->GetParameters();
+
+		for (auto& parameterPair : profileParameters)
+		{
+			parameters.AddMember(
+				rapidjson::Value(parameterPair.first.c_str(), document.GetAllocator()).Move(),
+				rapidjson::Value(parameterPair.second.c_str(), document.GetAllocator()).Move(),
+				document.GetAllocator()
+			);
+		}
+
+		profileData.AddMember("parameters", parameters, document.GetAllocator());
 
 		profiles.PushBack(profileData, document.GetAllocator());
 	}

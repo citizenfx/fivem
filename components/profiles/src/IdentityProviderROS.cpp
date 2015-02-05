@@ -160,6 +160,16 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 				profileImpl->SetTileURI("http://cdn.sc.rockstargames.com/images/avatars/128x128/" + avatarUrl.substr(avatarUrl.find(std::string("avatars/")) + 8));
 				profileImpl->SetDisplayName(nickname);
 
+				// save the parameter list to the profile
+				std::map<std::string, std::string> storeParameters(parameters);
+
+				if (storeParameters.find("_savePassword") == storeParameters.end() || storeParameters["_savePassword"] == "false")
+				{
+					storeParameters.erase("password");
+				}
+
+				profileImpl->SetParameters(storeParameters);
+
 				resultEvent.set(ProfileIdentityResult(terminal::TokenType::ROS, va("%s&&%lld", ticket.c_str(), rockstarId)));
 			}
 		}
