@@ -119,6 +119,25 @@ DWORD WINAPI GetModuleFileNameWHook(HMODULE hModule, LPWSTR lpFileName, DWORD nS
 }
 #endif
 
+static LONG NTAPI HandleVariant(PEXCEPTION_POINTERS exceptionInfo)
+{
+	return (exceptionInfo->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE) ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_CONTINUE_SEARCH;
+}
+
+void CitizenGame::InvokeEntryPoint(void(*entryPoint)())
+{
+	// SEH call to prevent STATUS_INVALID_HANDLE
+	__try
+	{
+		// and call the entry point
+		entryPoint();
+	}
+	__except (HandleVariant(GetExceptionInformation()))
+	{
+
+	}
+}
+
 void CitizenGame::Launch(std::wstring& gamePath)
 {
 	// initialize the CEF sandbox
@@ -268,6 +287,7 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	g_launcher = launcher;
 #endif
 
-	// and call the entry point
-	entryPoint();
+	AddVectoredExceptionHandler(0, HandleVariant);
+
+	return InvokeEntryPoint(entryPoint);
 }

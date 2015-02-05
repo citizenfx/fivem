@@ -31,13 +31,11 @@ void main()
 		ExitProcess(0);
 	}
 
-	EnsureGamePath();
-	
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
 
-	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"plaza") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
+	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + std::wstring(pathBuf);
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
@@ -68,6 +66,13 @@ void main()
 			return;
 		}
 	}
+
+	EnsureGamePath();
+
+	// readd the game path into the PATH
+	newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
+
+	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
 	SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 

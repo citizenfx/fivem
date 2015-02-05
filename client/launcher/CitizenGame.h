@@ -9,6 +9,9 @@
 
 class CitizenGame
 {
+private:
+	static void InvokeEntryPoint(void(*)());
+
 public:
 	static void Launch(std::wstring& gamePath);
 };
