@@ -242,7 +242,7 @@ fwString url_encode(const fwString &value)
 	for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i)
 	{
 		std::string::value_type c = (*i);
-		if ((isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') && c != '+')
+		if (((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.' || c == '~') && c != '+')
 		{
 			escaped << c;
 		}
@@ -252,7 +252,7 @@ fwString url_encode(const fwString &value)
 		}
 		else
 		{
-			escaped << '%' << std::setw(2) << ((int)c) << std::setw(0);
+			escaped << '%' << std::setw(2) << ((int)(uint8_t)c) << std::setw(0);
 		}
 	}
 
