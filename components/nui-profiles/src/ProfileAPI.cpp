@@ -117,6 +117,11 @@ static InitFunction initFunction([] ()
 
 				profileManager->SignIn(profile, postMap).then([=] (ProfileTaskResult& result)
 				{
+					if (result.success)
+					{
+						profileManager->SetPrimaryProfile(profile);
+					}
+
 					cb(va("{ \"error\": %s, \"identifier\": %lu }", (result.success) ? "null" : va("\"%s\"", result.error.c_str()), result.profileId));
 				});
 			}
