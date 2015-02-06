@@ -103,7 +103,7 @@ bool Bootstrap_DoBootstrap()
 	int exeSize;
 	sscanf(bootstrapVersion, "%i %i", &version, &exeSize);
 
-	if (version > BASE_EXE_VERSION)
+	if (version != BASE_EXE_VERSION)
 	{
 		return Bootstrap_UpdateEXE(exeSize);
 	}
