@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "Hooking.h"
 #include "scrThread.h"
+#include "scrEngine.h"
 
 static uint32_t gtaThreadVTable;
 
@@ -18,7 +19,11 @@ bool IsSafeScriptVTable(uint32_t vTable)
 
 static rage::eThreadState ScriptTickDo(rage::scrThread* thread, int time)
 {
-	if (IsSafeScriptVTable(*(uint32_t*)thread))
+	bool allowed = false;
+
+	rage::scrEngine::CheckNativeScriptAllowed(allowed);
+
+	if (allowed || IsSafeScriptVTable(*(uint32_t*)thread))
 	{
 		thread->Tick(time);
 	}

@@ -10,6 +10,7 @@
 #include "CrossLibraryInterfaces.h"
 
 fwEvent<> rage::scrEngine::OnScriptInit;
+fwEvent<bool&> rage::scrEngine::CheckNativeScriptAllowed;
 
 namespace rage
 {

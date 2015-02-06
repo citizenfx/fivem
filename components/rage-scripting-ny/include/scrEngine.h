@@ -69,6 +69,8 @@ public:
 	
 public:
 	static fwEvent<> OnScriptInit;
+
+	static fwEvent<bool&> CheckNativeScriptAllowed;
 };
 }
 

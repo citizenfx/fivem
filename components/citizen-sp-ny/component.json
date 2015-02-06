@@ -1,0 +1,12 @@
+{
+	"name": "citizen:sp:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"nui:core",
+		"rage:scripting",
+		"resources",
+		"rage:nutsnbolts"
+	],
+	"provides": []
+}
