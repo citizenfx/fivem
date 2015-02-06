@@ -566,7 +566,7 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 								UpdateStoredProfiles();
 
 								// and mark the result as succeeded
-								resultEvent.set(ProfileTaskResult(true));
+								resultEvent.set(ProfileTaskResult(true, profileImpl->GetInternalIdentifier()));
 							}
 						}
 						else

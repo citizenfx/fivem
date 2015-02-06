@@ -13,6 +13,7 @@ struct ProfileTaskResult
 {
 	bool success;
 	std::string error;
+	uint32_t profileId;
 
 	inline ProfileTaskResult()
 		: success(false), error("")
@@ -28,6 +29,12 @@ struct ProfileTaskResult
 
 	inline ProfileTaskResult(bool success, const char* error)
 		: success(success), error(error)
+	{
+
+	}
+
+	inline ProfileTaskResult(bool success, uint32_t profileId)
+		: success(success), profileId(profileId)
 	{
 
 	}
