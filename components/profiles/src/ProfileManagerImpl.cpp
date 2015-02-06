@@ -598,13 +598,6 @@ static InitFunction initFunction([] ()
 	Instance<TerminalClient>::Set(new TerminalClient());
 }, -500);
 
-#include <terminal.h>
-
-using namespace terminal;
-
-#include <SteamComponentAPI.h>
-#include <base64.h>
-
 static InitFunction initFunctionPost([] ()
 {
 	g_profileManager->Initialize();
