@@ -26,7 +26,7 @@ static InitFunction initFunction([] ()
 		}
 
 #if defined(GTA_NY)
-		auto dc = new(0) CGenericDC([] ()
+		void(*rendCB)() = [] ()
 		{
 #else
 		uint32_t a1;
@@ -92,9 +92,18 @@ static InitFunction initFunction([] ()
 #endif
 			}
 #if defined(GTA_NY)
-		});
+		};
 
-		dc->Enqueue();
+		if (!IsOnRenderThread())
+		{
+			auto dc = new(0) CGenericDC(rendCB);
+
+			dc->Enqueue();
+		}
+		else
+		{
+			rendCB();
+		}
 #else
 		}, &a1, &a2);
 #endif

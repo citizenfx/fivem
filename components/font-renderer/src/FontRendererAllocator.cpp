@@ -40,12 +40,12 @@ void FrpSeqAllocatorUnlockSwap()
 
 void FrpSeqAllocatorSwapPage()
 {
-	g_seqPage = (g_seqPage + 1) % 2;
+	g_seqPage = (g_seqPage + 1) % 3;
 	g_seqStart = 0;
 }
 
 static InitFunction initFunction([] ()
 {
-	g_seqArena = VirtualAlloc(nullptr, 16 * 1024 * 1024, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	g_seqArena = VirtualAlloc(nullptr, 3 * 8 * 1024 * 1024, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	g_swapEvent = CreateEvent(nullptr, TRUE, TRUE, nullptr);
 });

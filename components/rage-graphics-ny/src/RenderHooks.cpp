@@ -17,6 +17,7 @@ static void InvokeEndSceneCB()
 {
 	//HookCallbacks::RunCallback(StringHash("renderCB"), "endScene");
 	OnGrcEndScene();
+	OnPostFrontendRender();
 }
 
 static void __declspec(naked) InvokeEndSceneCBStub()
@@ -47,7 +48,7 @@ static HookFunction hookFunction([] ()
 
 
 	// end scene callback dc
-	hook::put(0x796B9E, InvokeEndSceneCBStub);
+	//hook::put(0x796B9E, InvokeEndSceneCBStub);
 
 	// same, for during loading text
 	hook::call(0x7BD74D, InvokeEndSceneCBStub);

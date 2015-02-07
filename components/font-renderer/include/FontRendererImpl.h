@@ -14,6 +14,8 @@
 #include "FontRenderer.h"
 #include "FontRendererAbstract.h"
 
+#include <mutex>
+
 using namespace Microsoft::WRL;
 
 class CachedFont;
@@ -161,6 +163,8 @@ private:
 	std::unordered_map<std::pair<IDWriteTextFormat*, std::pair<uint32_t, fwWString>>, ComPtr<IDWriteTextLayout>> m_textLayoutCache;
 
 	uint32_t m_lastLayoutClean;
+
+	std::recursive_mutex m_mutex;
 
 private:
 	void CreateTextRenderer();

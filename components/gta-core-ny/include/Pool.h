@@ -88,6 +88,11 @@ public:
 		delete m_pObjects;
 	}
 
+	void Clear()
+	{
+		std::uninitialized_fill(m_pObjects, m_pObjects + m_basePool->GetCount(), T());
+	}
+
 	T* GetAt(int index)
 	{
 		if (index >= m_basePool->GetCount())

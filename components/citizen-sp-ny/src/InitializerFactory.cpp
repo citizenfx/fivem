@@ -46,8 +46,26 @@ Episode::EpisodeInitializer InitializerFactory::GetSinglePlayerInitializer(int e
 		// initialize the resource manager on the main thread
 		g_mainThreadQueue.push([=] ()
 		{
-			// tell the game to load after the initial main menu
-			hook::put<uint32_t>(0x10C7F80, 6);
+			// if we're still in the main menu...
+			if (*(uint8_t*)0xF22B3C)
+			{
+				// tell the game to load after the initial main menu
+				hook::put<uint32_t>(0x10C7F80, 6);
+			}
+			else
+			{
+				// make the game reinitialize
+				hook::put<uint8_t>(0x10F8074, 1);
+
+				*(bool*)0x18A8238 = true;
+			}
+
+			// muh
+			hook::put<uint8_t>(0x18A823A, 0);
+
+			((void(*)(int, int, int))0x423CE0)(0, 0, 0);
+
+			*(BYTE*)0x18A823A = 1;
 
 			// reset the resource manager
 			TheResources.Reset();

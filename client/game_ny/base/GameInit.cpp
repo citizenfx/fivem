@@ -193,6 +193,11 @@ static InitFunction initFunction([] ()
 	// LoadGameNow argument 'reload game fully, even if episodes didn't change' in one caller, to be specific the one we actually use indirectly above as the script flag uses it
 	hook::put<uint8_t>(0x420F91, true);
 
+	// other callers for this stuff
+	hook::put<uint8_t>(0x420FD9, 1);
+	hook::put<uint8_t>(0x420EAB, 1);
+	hook::put<uint8_t>(0x420F33, 1);
+
 	// don't load loadscreens at the start
 	hook::nop(0x4028CA, 5);
 
@@ -201,4 +206,11 @@ static InitFunction initFunction([] ()
 
 	// always redo game object variables
 	hook::nop(0x4205C5, 2);
+
+	// silly people doing silly things (related to loadGameNow call types)
+	hook::nop(0x4210FE, 2);
+	hook::nop(0x421108, 2);
+	hook::nop(0x420EAE, 6);
+	hook::put<uint8_t>(0x420ECD, 0xEB);
+	hook::nop(0x420EF9, 2);
 });

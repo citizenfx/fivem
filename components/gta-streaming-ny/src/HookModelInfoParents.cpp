@@ -565,6 +565,11 @@ void ReleaseDrawblDictWrap(int dict)
 	//{
 		//trace("not deferring drawable destruction for %s\n", GetStreamName(dict, *(int*)0xF272E4).c_str());
 
+	if (dict == 1308)
+	{
+		//__debugbreak();
+	}
+
 		ReleaseDrawblDict(dict);
 	/*}
 	else
@@ -1495,11 +1500,63 @@ void __fastcall RemoveModelInstanceLog(CBaseModelInfo* info)
 
 void CleanModelIndices()
 {
+	/*for (auto& mi : g_modelInfos)
+	{
+		int dict = (int)mi.second->GetDrawblDict();
+
+		if (dict != 0xFFFF)
+		{
+			if (HasModelLoaded(dict, *(int*)0xF272E4))
+			{
+				trace("releasing wdd %d\n", dict);
+				//ReleaseDrawblDict(mi.second->GetDrawblDict());
+				ReleaseStreamingObjectNow((void*)0xF21C60, dict + GetTypeStart(*(int*)0xF272E4));
+			}
+		}
+	}*/
+
+	trace("uwddm8\n");
+
 	g_modelInfos.clear();
 	g_modelInfoIdxTable.clear();
 	m_dependencyDrawableDicts.clear();
+	m_dependencyDictEnts.clear();
 
 	m_requestList.clear();
+
+	GetEntityExtensions()->Clear();
+	g_removeRefIdx = 0;
+
+	// placeholder
+	*(bool*)0x18A8238 = false;
+}
+
+void DeleteModelInfosWrap()
+{
+	((void(*)())0xB597C0)();
+
+	for (auto& mi : g_modelInfos)
+	{
+		int txd = (int)mi.second->GetTxd();
+		int dict = (int)mi.second->GetTxd();
+
+		if (txd != 0xFFFF && HasModelLoaded(txd, *(int*)0xF1CD84))
+		{
+			trace("deleting txd %d\n", txd);
+			ReleaseStreamingObjectNow((void*)0xF21C60, txd + GetTypeStart(*(int*)0xF1CD84));
+		}
+
+		if (dict != 0xFFFF && HasModelLoaded(dict, *(int*)0xF272E4))
+		{
+			trace("deleting dict %d\n", dict);
+			ReleaseStreamingObjectNow((void*)0xF21C60, dict + GetTypeStart(*(int*)0xF272E4));
+		}
+
+		mi.second->RemoveInstance();
+		mi.second->m_8();
+
+		trace("deleted mi %x\n", mi.first);
+	}
 }
 
 static void ModelPreRenderPassBPAllow(CEntity* entity)
@@ -1570,6 +1627,9 @@ static void ModelPreRenderPassBP(CEntityDraw* start, CEntityDraw* end, void* ren
 static HookFunction hookModelInfoParents([] ()
 //static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
 {
+	//hook::put<uint8_t>(0x98A941, 0xEB); // don't release models at game reinit (test)
+
+	//return;
 	// temp dbg: see if some model gets render-passed (manual breakpoint)
 	//hook::call(0x7DA22F, ModelPreRenderPassBP);
 
@@ -1854,6 +1914,9 @@ static HookFunction hookModelInfoParents([] ()
 
 	// clean model indices
 	hook::jump(0xB597B1, CleanModelIndices);
+
+	// unload modelinfos on reset
+	hook::call(0x98A922, DeleteModelInfosWrap);
 
 	// temp dbg: relocate datBase vtable
 	/*char* newDatBase = new char[1024];

@@ -98,6 +98,9 @@ static InitFunction initFunction([] ()
 		{
 			RegisterNative(handler.first, handler.second);
 		}
+
+		// to prevent double registration resulting in a game error
+		g_nativeHandlers.clear();
 	});
 });
 

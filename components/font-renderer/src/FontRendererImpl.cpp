@@ -87,13 +87,17 @@ void FontRendererImpl::DrawRectangle(const CRect& rect, const CRGBA& color)
 	resultRect.rectangle = rect;
 	resultRect.color = color;
 
+	m_mutex.lock();
 	m_queuedRectangles.push_back(resultRect);
+	m_mutex.unlock();
 }
 
 void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& color, float fontSize, float fontScale, fwString fontRef)
 {
 	// wait for a swap to complete
 	FrpSeqAllocatorWaitForSwap();
+
+	m_mutex.lock();
 
 	// create or find a text format
 	ComPtr<IDWriteTextFormat> textFormat;
@@ -155,6 +159,8 @@ void FontRendererImpl::DrawText(fwWString text, const CRect& rect, const CRGBA& 
 	}
 
 	delete drawingContext;
+
+	m_mutex.unlock();
 }
 
 bool FontRendererImpl::GetStringMetrics(fwWString characterString, float fontSize, float fontScale, fwString fontRef, CRect& outRect)
@@ -178,6 +184,8 @@ bool FontRendererImpl::GetStringMetrics(fwWString characterString, float fontSiz
 
 void FontRendererImpl::DrawPerFrame()
 {
+	m_mutex.lock();
+
 	// draw rectangles
 	auto numRectangles = m_queuedRectangles.size();
 
@@ -240,12 +248,12 @@ void FontRendererImpl::DrawPerFrame()
 		m_queuedGlyphRuns.clear();
 	}
 
+	FrpSeqAllocatorSwapPage();
+
 	m_gameInterface->InvokeOnRender([] (void* arg)
 	{
 		FrpSeqAllocatorUnlockSwap();
 	}, nullptr);
-
-	FrpSeqAllocatorSwapPage();
 
 	// clean the layout cache if needed
 	// TODO: keep layouts for longer if they actually get recently used
@@ -255,6 +263,8 @@ void FontRendererImpl::DrawPerFrame()
 
 		m_lastLayoutClean = GetTickCount();
 	}
+
+	m_mutex.unlock();
 }
 
 FontRendererImpl g_fontRenderer;
