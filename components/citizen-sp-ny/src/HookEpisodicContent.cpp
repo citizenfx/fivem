@@ -8,33 +8,20 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include "NativeEpisode.h"
+
 int GetCurrentEpisodeID();
 
-struct CEpisode
-{
-	char path[260];
-	char pad[64];
-	char device[20]; // +324
-	int deviceType; // +344
-	char pad2[8];
-	char pad3[2];
-	char useThis; // +358; checked before calling the 'scan and process episode setup' func
-	char unknown1; // +359
-};
+int g_useNorthEpisodes;
 
-struct CEpisodes
-{
-	char pad[332];
-	CEpisode* episodes; // +332
-	short numEpisodes; // +336
-	short numAllocatedEpisodes; // +338
-	char pad2[18]; // +340
-	char unknownScanFlag; // +358
-
-	void addEpisode(const CEpisode* episode);
-};
+CEpisodes*& g_episodes = *(CEpisodes**)0x19AB8F0;
 
 void WRAPPER CEpisodes::addEpisode(const CEpisode* episode) { EAXJMP(0x813E20); }
+
+void WRAPPER CEpisodes::ScanEpisodes()
+{
+	EAXJMP(0x813BD0);
+}
 
 // process a CEpisode, checking activation and some other stuff
 auto ProcessEpisode = (void(__stdcall*)(int episodeMask, CEpisode* episode, int unknown1))0x813480;
@@ -117,6 +104,11 @@ void __declspec(naked) IgnoreNorthEpisodesHook()
 {
 	__asm
 	{
+		mov eax, g_useNorthEpisodes
+		test eax, eax
+
+		jnz executeEpisode
+
 		mov eax, [esp + 4h]
 		mov al, byte ptr [eax + 228h]
 
@@ -126,6 +118,7 @@ void __declspec(naked) IgnoreNorthEpisodesHook()
 		cmp al, 4
 		jz returnNormally
 
+executeEpisode:
 		push 0813D50h
 		retn
 
@@ -175,6 +168,11 @@ static HookFunction hookFunction([] ()
 
 	// or these for the above
 	// actually not, this is important
-	//hook::nop(0x420652, 6);
+	hook::nop(0x420652, 6); // <- ignore episode changes as reason to reload the base game
 	//hook::nop(0x42065C, 6);
+
+	// workaround for episode reloading causing device/ipl tables to contain 0 devices for sources actually being different devices (platformimg:/ and e2:/ - e2-e0-e1-e2 load order is a repro)
+	// this makes the function ignore devices being the same for reloading, as >why would someone load the same IPL twice during the same loading sequence anyway
+	hook::nop(0x8D8843, 2);
+	hook::nop(0x8D8963, 2); // delayed ipl?
 });

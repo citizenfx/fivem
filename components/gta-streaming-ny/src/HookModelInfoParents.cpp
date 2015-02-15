@@ -1529,6 +1529,10 @@ void CleanModelIndices()
 
 	// placeholder
 	*(bool*)0x18A8238 = false;
+
+	// clear the remove-ref list even for generic stuff (as episode switches seem to break this a lot)
+	*(uint16_t*)(0x10F5F80 + 8232 + 0) = 0;
+	*(uint16_t*)(0x10F5F80 + 8232 + 8) = 0;
 }
 
 void DeleteModelInfosWrap()
@@ -1624,6 +1628,39 @@ static void ModelPreRenderPassBP(CEntityDraw* start, CEntityDraw* end, void* ren
 	}
 }
 
+static void __declspec(naked) PhysicsMIHook()
+{
+	__asm
+	{
+		test ecx, ecx
+		jz isInvalid
+
+		mov eax, 6BF770h
+		call eax
+
+		push 96FAE0h
+		retn
+
+	isInvalid:
+		add esp, 4h
+
+		push 96FAEDh
+		retn
+	}
+}
+
+static void LogDoorEntityReset()
+{
+	trace("[DoorEnt] resetting, last %d\n", *(int*)0x1354A64);
+
+	((void(*)())0x8FF050)();
+}
+
+static void LogDoorEntityAdd()
+{
+	trace("[DoorEnt] added one, now %d\n", *(int*)0x1354A64);
+}
+
 static HookFunction hookModelInfoParents([] ()
 //static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
 {
@@ -1662,6 +1699,11 @@ static HookFunction hookModelInfoParents([] ()
 	hook::put(0x98B076, LogLoadDoneStub);*/
 	// END VEHICLE TESTS
 
+	// tests for episode reset
+	hook::call(0x41FDAA, LogDoorEntityReset);
+	hook::call(0x8FFB45, LogDoorEntityAdd);
+
+	// go
 	DWORD dwFunc;
 
 	__asm mov dwFunc, offset CEntity::GetBoundsHooked
@@ -1917,6 +1959,9 @@ static HookFunction hookModelInfoParents([] ()
 
 	// unload modelinfos on reset
 	hook::call(0x98A922, DeleteModelInfosWrap);
+
+	// some reset thing where a physicsstore cleanup does something bad to a modelinfo
+	hook::jump(0x96FADB, PhysicsMIHook);
 
 	// temp dbg: relocate datBase vtable
 	/*char* newDatBase = new char[1024];
