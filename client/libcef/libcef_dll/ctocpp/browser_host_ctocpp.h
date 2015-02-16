@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -34,7 +34,6 @@ class CefBrowserHostCToCpp
   explicit CefBrowserHostCToCpp(cef_browser_host_t* str)
       : CefCToCpp<CefBrowserHostCToCpp, CefBrowserHost, cef_browser_host_t>(
           str) {}
-  virtual ~CefBrowserHostCToCpp() {}
 
   // CefBrowserHost methods
   virtual CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
@@ -48,8 +47,8 @@ class CefBrowserHostCToCpp
   virtual double GetZoomLevel() OVERRIDE;
   virtual void SetZoomLevel(double zoomLevel) OVERRIDE;
   virtual void RunFileDialog(FileDialogMode mode, const CefString& title,
-      const CefString& default_file_name,
-      const std::vector<CefString>& accept_types,
+      const CefString& default_file_path,
+      const std::vector<CefString>& accept_filters, int selected_accept_filter,
       CefRefPtr<CefRunFileDialogCallback> callback) OVERRIDE;
   virtual void StartDownload(const CefString& url) OVERRIDE;
   virtual void Print() OVERRIDE;
@@ -57,17 +56,21 @@ class CefBrowserHostCToCpp
       bool matchCase, bool findNext) OVERRIDE;
   virtual void StopFinding(bool clearSelection) OVERRIDE;
   virtual void ShowDevTools(const CefWindowInfo& windowInfo,
-      CefRefPtr<CefClient> client,
-      const CefBrowserSettings& settings) OVERRIDE;
+      CefRefPtr<CefClient> client, const CefBrowserSettings& settings,
+      const CefPoint& inspect_element_at) OVERRIDE;
   virtual void CloseDevTools() OVERRIDE;
+  virtual void GetNavigationEntries(
+      CefRefPtr<CefNavigationEntryVisitor> visitor,
+      bool current_only) OVERRIDE;
   virtual void SetMouseCursorChangeDisabled(bool disabled) OVERRIDE;
   virtual bool IsMouseCursorChangeDisabled() OVERRIDE;
+  virtual void ReplaceMisspelling(const CefString& word) OVERRIDE;
+  virtual void AddWordToDictionary(const CefString& word) OVERRIDE;
   virtual bool IsWindowRenderingDisabled() OVERRIDE;
   virtual void WasResized() OVERRIDE;
   virtual void WasHidden(bool hidden) OVERRIDE;
   virtual void NotifyScreenInfoChanged() OVERRIDE;
-  virtual void Invalidate(const CefRect& dirtyRect,
-      PaintElementType type) OVERRIDE;
+  virtual void Invalidate(PaintElementType type) OVERRIDE;
   virtual void SendKeyEvent(const CefKeyEvent& event) OVERRIDE;
   virtual void SendMouseClickEvent(const CefMouseEvent& event,
       MouseButtonType type, bool mouseUp, int clickCount) OVERRIDE;
@@ -77,6 +80,7 @@ class CefBrowserHostCToCpp
       int deltaY) OVERRIDE;
   virtual void SendFocusEvent(bool setFocus) OVERRIDE;
   virtual void SendCaptureLostEvent() OVERRIDE;
+  virtual void NotifyMoveOrResizeStarted() OVERRIDE;
   virtual CefTextInputContext GetNSTextInputContext() OVERRIDE;
   virtual void HandleKeyEventBeforeTextInputClient(
       CefEventHandle keyEvent) OVERRIDE;

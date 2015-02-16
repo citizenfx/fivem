@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -199,15 +199,31 @@ typedef struct _cef_context_menu_params_t {
       struct _cef_context_menu_params_t* self);
 
   ///
+  // Returns the text of the misspelled word, if any, that the context menu was
+  // invoked on.
+  ///
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_string_userfree_t (CEF_CALLBACK *get_misspelled_word)(
+      struct _cef_context_menu_params_t* self);
+
+  ///
+  // Returns true (1) if suggestions exist, false (0) otherwise. Fills in
+  // |suggestions| from the spell check service for the misspelled word if there
+  // is one.
+  ///
+  int (CEF_CALLBACK *get_dictionary_suggestions)(
+      struct _cef_context_menu_params_t* self, cef_string_list_t suggestions);
+
+  ///
   // Returns true (1) if the context menu was invoked on an editable node.
   ///
   int (CEF_CALLBACK *is_editable)(struct _cef_context_menu_params_t* self);
 
   ///
   // Returns true (1) if the context menu was invoked on an editable node where
-  // speech-input is enabled.
+  // spell-check is enabled.
   ///
-  int (CEF_CALLBACK *is_speech_input_enabled)(
+  int (CEF_CALLBACK *is_spell_check_enabled)(
       struct _cef_context_menu_params_t* self);
 
   ///

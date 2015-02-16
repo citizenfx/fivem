@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefJSDialogCallbackCToCpp
   explicit CefJSDialogCallbackCToCpp(cef_jsdialog_callback_t* str)
       : CefCToCpp<CefJSDialogCallbackCToCpp, CefJSDialogCallback,
           cef_jsdialog_callback_t>(str) {}
-  virtual ~CefJSDialogCallbackCToCpp() {}
 
   // CefJSDialogCallback methods
   virtual void Continue(bool success, const CefString& user_input) OVERRIDE;

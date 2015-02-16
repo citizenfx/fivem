@@ -3,9 +3,10 @@
 // can be found in the LICENSE file.
 
 #include "include/wrapper/cef_byte_read_handler.h"
+
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
-#include "libcef_dll/cef_logging.h"
 
 CefByteReadHandler::CefByteReadHandler(const unsigned char* bytes, size_t size,
                                        CefRefPtr<CefBase> source)
@@ -13,7 +14,7 @@ CefByteReadHandler::CefByteReadHandler(const unsigned char* bytes, size_t size,
 }
 
 size_t CefByteReadHandler::Read(void* ptr, size_t size, size_t n) {
-  AutoLock lock_scope(this);
+  base::AutoLock lock_scope(lock_);
   size_t s = static_cast<size_t>(size_ - offset_) / size;
   size_t ret = std::min(n, s);
   memcpy(ptr, bytes_ + offset_, ret * size);
@@ -23,7 +24,7 @@ size_t CefByteReadHandler::Read(void* ptr, size_t size, size_t n) {
 
 int CefByteReadHandler::Seek(int64 offset, int whence) {
   int rv = -1L;
-  AutoLock lock_scope(this);
+  base::AutoLock lock_scope(lock_);
   switch (whence) {
   case SEEK_CUR:
     if (offset_ + offset > size_ || offset_ + offset < 0)
@@ -35,7 +36,7 @@ int CefByteReadHandler::Seek(int64 offset, int whence) {
 #if defined(OS_WIN)
     int64 offset_abs = _abs64(offset);
 #else
-    int64 offset_abs = abs(offset);
+    int64 offset_abs = std::abs(offset);
 #endif
     if (offset_abs > size_)
       break;
@@ -55,11 +56,11 @@ int CefByteReadHandler::Seek(int64 offset, int whence) {
 }
 
 int64 CefByteReadHandler::Tell() {
-  AutoLock lock_scope(this);
+  base::AutoLock lock_scope(lock_);
   return offset_;
 }
 
 int CefByteReadHandler::Eof() {
-  AutoLock lock_scope(this);
+  base::AutoLock lock_scope(lock_);
   return (offset_ >= size_);
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -29,7 +29,6 @@ class CefZipReaderCToCpp
  public:
   explicit CefZipReaderCToCpp(cef_zip_reader_t* str)
       : CefCToCpp<CefZipReaderCToCpp, CefZipReader, cef_zip_reader_t>(str) {}
-  virtual ~CefZipReaderCToCpp() {}
 
   // CefZipReader methods
   virtual bool MoveToFirstFile() OVERRIDE;

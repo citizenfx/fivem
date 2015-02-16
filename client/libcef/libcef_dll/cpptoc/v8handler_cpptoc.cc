@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -93,7 +93,7 @@ CefV8HandlerCppToC::CefV8HandlerCppToC(CefV8Handler* cls)
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefV8HandlerCppToC, CefV8Handler,
+template<> base::AtomicRefCount CefCppToC<CefV8HandlerCppToC, CefV8Handler,
     cef_v8handler_t>::DebugObjCt = 0;
 #endif
 

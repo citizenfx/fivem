@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -352,7 +352,7 @@ void CefDragDataCToCpp::AddFile(const CefString& path,
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefDragDataCToCpp, CefDragData,
+template<> base::AtomicRefCount CefCToCpp<CefDragDataCToCpp, CefDragData,
     cef_drag_data_t>::DebugObjCt = 0;
 #endif
 

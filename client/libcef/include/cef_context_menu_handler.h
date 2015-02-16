@@ -194,6 +194,20 @@ class CefContextMenuParams : public virtual CefBase {
   virtual CefString GetSelectionText() =0;
 
   ///
+  // Returns the text of the misspelled word, if any, that the context menu was
+  // invoked on.
+  ///
+  /*--cef()--*/
+  virtual CefString GetMisspelledWord() =0;
+
+  ///
+  // Returns true if suggestions exist, false otherwise. Fills in |suggestions|
+  // from the spell check service for the misspelled word if there is one.
+  ///
+  /*--cef()--*/
+  virtual bool GetDictionarySuggestions(std::vector<CefString>& suggestions) =0;
+
+  ///
   // Returns true if the context menu was invoked on an editable node.
   ///
   /*--cef()--*/
@@ -201,10 +215,10 @@ class CefContextMenuParams : public virtual CefBase {
 
   ///
   // Returns true if the context menu was invoked on an editable node where
-  // speech-input is enabled.
+  // spell-check is enabled.
   ///
   /*--cef()--*/
-  virtual bool IsSpeechInputEnabled() =0;
+  virtual bool IsSpellCheckEnabled() =0;
 
   ///
   // Returns flags representing the actions supported by the editable node, if

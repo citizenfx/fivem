@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -69,6 +69,12 @@ typedef struct _cef_display_handler_t {
   ///
   void (CEF_CALLBACK *on_title_change)(struct _cef_display_handler_t* self,
       struct _cef_browser_t* browser, const cef_string_t* title);
+
+  ///
+  // Called when the page icon changes.
+  ///
+  void (CEF_CALLBACK *on_favicon_urlchange)(struct _cef_display_handler_t* self,
+      struct _cef_browser_t* browser, cef_string_list_t icon_urls);
 
   ///
   // Called when the browser is about to display a tooltip. |text| contains the

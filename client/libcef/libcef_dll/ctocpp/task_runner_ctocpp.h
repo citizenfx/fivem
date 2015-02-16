@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -29,7 +29,6 @@ class CefTaskRunnerCToCpp
  public:
   explicit CefTaskRunnerCToCpp(cef_task_runner_t* str)
       : CefCToCpp<CefTaskRunnerCToCpp, CefTaskRunner, cef_task_runner_t>(str) {}
-  virtual ~CefTaskRunnerCToCpp() {}
 
   // CefTaskRunner methods
   virtual bool IsSame(CefRefPtr<CefTaskRunner> that) OVERRIDE;

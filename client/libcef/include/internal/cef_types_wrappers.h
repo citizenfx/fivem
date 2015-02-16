@@ -134,6 +134,47 @@ class CefStructBase : public traits::struct_type {
 };
 
 
+struct CefPointTraits {
+  typedef cef_point_t struct_type;
+
+  static inline void init(struct_type* s) {}
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing a point.
+///
+class CefPoint : public CefStructBase<CefPointTraits> {
+ public:
+  typedef CefStructBase<CefPointTraits> parent;
+
+  CefPoint() : parent() {}
+  CefPoint(const cef_point_t& r) : parent(r) {}  // NOLINT(runtime/explicit)
+  CefPoint(const CefPoint& r) : parent(r) {}  // NOLINT(runtime/explicit)
+  CefPoint(int x, int y) : parent() {
+    Set(x, y);
+  }
+
+  bool IsEmpty() const { return x <= 0 && y <= 0; }
+  void Set(int x, int y) {
+    this->x = x, this->y = y;
+  }
+};
+
+inline bool operator==(const CefPoint& a, const CefPoint& b) {
+  return a.x == b.x && a.y == b.y;
+}
+
+inline bool operator!=(const CefPoint& a, const CefPoint& b) {
+  return !(a == b);
+}
+
+
 struct CefRectTraits {
   typedef cef_rect_t struct_type;
 
@@ -173,6 +214,48 @@ inline bool operator==(const CefRect& a, const CefRect& b) {
 inline bool operator!=(const CefRect& a, const CefRect& b) {
   return !(a == b);
 }
+
+
+struct CefSizeTraits {
+  typedef cef_size_t struct_type;
+
+  static inline void init(struct_type* s) {}
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing a size.
+///
+class CefSize : public CefStructBase<CefSizeTraits> {
+ public:
+  typedef CefStructBase<CefSizeTraits> parent;
+
+  CefSize() : parent() {}
+  CefSize(const cef_size_t& r) : parent(r) {}  // NOLINT(runtime/explicit)
+  CefSize(const CefSize& r) : parent(r) {}  // NOLINT(runtime/explicit)
+  CefSize(int width, int height) : parent() {
+    Set(width, height);
+  }
+
+  bool IsEmpty() const { return width <= 0 || height <= 0; }
+  void Set(int width, int height) {
+    this->width = width, this->height = height;
+  }
+};
+
+inline bool operator==(const CefSize& a, const CefSize& b) {
+  return a.width == b.width && a.height == b.height;
+}
+
+inline bool operator!=(const CefSize& a, const CefSize& b) {
+  return !(a == b);
+}
+
 
 struct CefScreenInfoTraits {
   typedef cef_screen_info_t struct_type;
@@ -228,6 +311,7 @@ class CefScreenInfo : public CefStructBase<CefScreenInfoTraits> {
   }
 };
 
+
 struct CefKeyEventTraits {
   typedef cef_key_event_t struct_type;
 
@@ -253,6 +337,7 @@ struct CefKeyEventTraits {
 ///
 typedef CefStructBase<CefKeyEventTraits> CefKeyEvent;
 
+
 struct CefMouseEventTraits {
   typedef cef_mouse_event_t struct_type;
 
@@ -272,6 +357,7 @@ struct CefMouseEventTraits {
 // Class representing a mouse event.
 ///
 typedef CefStructBase<CefMouseEventTraits> CefMouseEvent;
+
 
 struct CefPopupFeaturesTraits {
   typedef cef_popup_features_t struct_type;
@@ -406,6 +492,8 @@ struct CefBrowserSettingsTraits {
 
   static inline void set(const struct_type* src, struct_type* target,
       bool copy) {
+    target->windowless_frame_rate = src->windowless_frame_rate;
+
     cef_string_set(src->standard_font_family.str,
         src->standard_font_family.length, &target->standard_font_family, copy);
     cef_string_set(src->fixed_font_family.str, src->fixed_font_family.length,
@@ -450,7 +538,6 @@ struct CefBrowserSettingsTraits {
     target->databases= src->databases;
     target->application_cache = src->application_cache;
     target->webgl = src->webgl;
-    target->accelerated_compositing = src->accelerated_compositing;
 
     target->background_color = src->background_color;
   }
@@ -625,5 +712,69 @@ struct CefGeopositionTraits {
 // Class representing a geoposition.
 ///
 typedef CefStructBase<CefGeopositionTraits> CefGeoposition;
+
+
+struct CefPageRangeTraits {
+  typedef cef_page_range_t struct_type;
+
+  static inline void init(struct_type* s) {}
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing a print job page range.
+///
+class CefPageRange : public CefStructBase<CefPageRangeTraits> {
+ public:
+  typedef CefStructBase<CefPageRangeTraits> parent;
+
+  CefPageRange() : parent() {}
+  CefPageRange(const cef_page_range_t& r)  // NOLINT(runtime/explicit)
+      : parent(r) {}
+  CefPageRange(const CefPageRange& r)  // NOLINT(runtime/explicit)
+      : parent(r) {} 
+  CefPageRange(int from, int to) : parent() {
+    Set(from, to);
+  }
+
+  void Set(int from, int to) {
+    this->from = from, this->to = to;
+  }
+};
+
+inline bool operator==(const CefPageRange& a, const CefPageRange& b) {
+  return a.from == b.from && a.to == b.to;
+}
+
+inline bool operator!=(const CefPageRange& a, const CefPageRange& b) {
+  return !(a == b);
+}
+
+
+struct CefCursorInfoTraits {
+  typedef cef_cursor_info_t struct_type;
+
+  static inline void init(struct_type* s) {}
+
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    target->hotspot = src->hotspot;
+    target->image_scale_factor = src->image_scale_factor;
+    target->buffer = src->buffer;
+    target->size = src->size;
+  }
+};
+
+///
+// Class representing cursor information.
+///
+typedef CefStructBase<CefCursorInfoTraits> CefCursorInfo;
 
 #endif  // CEF_INCLUDE_INTERNAL_CEF_TYPES_WRAPPERS_H_

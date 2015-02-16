@@ -32,7 +32,7 @@
 #define CEF_INCLUDE_INTERNAL_CEF_EXPORT_H_
 #pragma once
 
-#include "include/internal/cef_build.h"
+#include "include/base/cef_build.h"
 
 #if defined(COMPILER_MSVC)
 

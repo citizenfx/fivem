@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -249,7 +249,8 @@ void CEF_CALLBACK render_handler_on_paint(struct _cef_render_handler_t* self,
 
 void CEF_CALLBACK render_handler_on_cursor_change(
     struct _cef_render_handler_t* self, cef_browser_t* browser,
-    cef_cursor_handle_t cursor) {
+    cef_cursor_handle_t cursor, cef_cursor_type_t type,
+    const struct _cef_cursor_info_t* custom_cursor_info) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -259,11 +260,22 @@ void CEF_CALLBACK render_handler_on_cursor_change(
   DCHECK(browser);
   if (!browser)
     return;
+  // Verify param: custom_cursor_info; type: struct_byref_const
+  DCHECK(custom_cursor_info);
+  if (!custom_cursor_info)
+    return;
+
+  // Translate param: custom_cursor_info; type: struct_byref_const
+  CefCursorInfo custom_cursor_infoObj;
+  if (custom_cursor_info)
+    custom_cursor_infoObj.Set(*custom_cursor_info, false);
 
   // Execute
   CefRenderHandlerCppToC::Get(self)->OnCursorChange(
       CefBrowserCToCpp::Wrap(browser),
-      cursor);
+      cursor,
+      type,
+      custom_cursor_infoObj);
 }
 
 int CEF_CALLBACK render_handler_start_dragging(
@@ -353,7 +365,7 @@ CefRenderHandlerCppToC::CefRenderHandlerCppToC(CefRenderHandler* cls)
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefRenderHandlerCppToC, CefRenderHandler,
-    cef_render_handler_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToC<CefRenderHandlerCppToC,
+    CefRenderHandler, cef_render_handler_t>::DebugObjCt = 0;
 #endif
 

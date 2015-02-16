@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -145,7 +145,7 @@ CefJSDialogHandlerCppToC::CefJSDialogHandlerCppToC(CefJSDialogHandler* cls)
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefJSDialogHandlerCppToC, CefJSDialogHandler,
-    cef_jsdialog_handler_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToC<CefJSDialogHandlerCppToC,
+    CefJSDialogHandler, cef_jsdialog_handler_t>::DebugObjCt = 0;
 #endif
 

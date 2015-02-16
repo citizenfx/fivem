@@ -7,8 +7,9 @@
 #pragma once
 
 #include <map>
-#include "libcef_dll/cef_logging.h"
-#include "libcef_dll/cef_macros.h"
+
+#include "include/base/cef_logging.h"
+#include "include/base/cef_macros.h"
 
 // Default traits for CefBrowserInfoMap. Override to provide different object
 // destruction behavior.
@@ -61,7 +62,7 @@ class CefBrowserInfoMap {
     } else {
       info_map = it_browser->second;
       // The specified ID should not already exist in the map.
-      DCHECK_EQ(info_map->find(info_id), info_map->end());
+      DCHECK(info_map->find(info_id) == info_map->end());
     }
 
     info_map->insert(std::make_pair(info_id, info));
@@ -110,7 +111,7 @@ class CefBrowserInfoMap {
     if (browser_info_map_.empty())
       return;
 
-    bool remove, keepgoing;
+    bool remove, keepgoing = true;
 
     typename BrowserInfoMap::iterator it_browser = browser_info_map_.begin();
     while (it_browser != browser_info_map_.end()) {

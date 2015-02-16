@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -11,6 +11,7 @@
 //
 
 #include "libcef_dll/cpptoc/client_cpptoc.h"
+#include "libcef_dll/cpptoc/navigation_entry_visitor_cpptoc.h"
 #include "libcef_dll/cpptoc/run_file_dialog_callback_cpptoc.h"
 #include "libcef_dll/ctocpp/browser_ctocpp.h"
 #include "libcef_dll/ctocpp/browser_host_ctocpp.h"
@@ -112,7 +113,7 @@ void CefBrowserHostCToCpp::SetWindowVisibility(bool visible) {
 
 CefWindowHandle CefBrowserHostCToCpp::GetWindowHandle() {
   if (CEF_MEMBER_MISSING(struct_, get_window_handle))
-    return NULL;
+    return kNullWindowHandle;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -125,7 +126,7 @@ CefWindowHandle CefBrowserHostCToCpp::GetWindowHandle() {
 
 CefWindowHandle CefBrowserHostCToCpp::GetOpenerWindowHandle() {
   if (CEF_MEMBER_MISSING(struct_, get_opener_window_handle))
-    return NULL;
+    return kNullWindowHandle;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -187,37 +188,42 @@ void CefBrowserHostCToCpp::SetZoomLevel(double zoomLevel) {
 }
 
 void CefBrowserHostCToCpp::RunFileDialog(FileDialogMode mode,
-    const CefString& title, const CefString& default_file_name,
-    const std::vector<CefString>& accept_types,
+    const CefString& title, const CefString& default_file_path,
+    const std::vector<CefString>& accept_filters, int selected_accept_filter,
     CefRefPtr<CefRunFileDialogCallback> callback) {
   if (CEF_MEMBER_MISSING(struct_, run_file_dialog))
     return;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
+  // Verify param: selected_accept_filter; type: simple_byval
+  DCHECK_GE(selected_accept_filter, 0);
+  if (selected_accept_filter < 0)
+    return;
   // Verify param: callback; type: refptr_diff
   DCHECK(callback.get());
   if (!callback.get())
     return;
-  // Unverified params: title, default_file_name, accept_types
+  // Unverified params: title, default_file_path, accept_filters
 
-  // Translate param: accept_types; type: string_vec_byref_const
-  cef_string_list_t accept_typesList = cef_string_list_alloc();
-  DCHECK(accept_typesList);
-  if (accept_typesList)
-    transfer_string_list_contents(accept_types, accept_typesList);
+  // Translate param: accept_filters; type: string_vec_byref_const
+  cef_string_list_t accept_filtersList = cef_string_list_alloc();
+  DCHECK(accept_filtersList);
+  if (accept_filtersList)
+    transfer_string_list_contents(accept_filters, accept_filtersList);
 
   // Execute
   struct_->run_file_dialog(struct_,
       mode,
       title.GetStruct(),
-      default_file_name.GetStruct(),
-      accept_typesList,
+      default_file_path.GetStruct(),
+      accept_filtersList,
+      selected_accept_filter,
       CefRunFileDialogCallbackCppToC::Wrap(callback));
 
-  // Restore param:accept_types; type: string_vec_byref_const
-  if (accept_typesList)
-    cef_string_list_free(accept_typesList);
+  // Restore param:accept_filters; type: string_vec_byref_const
+  if (accept_filtersList)
+    cef_string_list_free(accept_filtersList);
 }
 
 void CefBrowserHostCToCpp::StartDownload(const CefString& url) {
@@ -279,7 +285,8 @@ void CefBrowserHostCToCpp::StopFinding(bool clearSelection) {
 }
 
 void CefBrowserHostCToCpp::ShowDevTools(const CefWindowInfo& windowInfo,
-    CefRefPtr<CefClient> client, const CefBrowserSettings& settings) {
+    CefRefPtr<CefClient> client, const CefBrowserSettings& settings,
+    const CefPoint& inspect_element_at) {
   if (CEF_MEMBER_MISSING(struct_, show_dev_tools))
     return;
 
@@ -289,12 +296,14 @@ void CefBrowserHostCToCpp::ShowDevTools(const CefWindowInfo& windowInfo,
   DCHECK(client.get());
   if (!client.get())
     return;
+  // Unverified params: inspect_element_at
 
   // Execute
   struct_->show_dev_tools(struct_,
       &windowInfo,
       CefClientCppToC::Wrap(client),
-      &settings);
+      &settings,
+      &inspect_element_at);
 }
 
 void CefBrowserHostCToCpp::CloseDevTools() {
@@ -305,6 +314,24 @@ void CefBrowserHostCToCpp::CloseDevTools() {
 
   // Execute
   struct_->close_dev_tools(struct_);
+}
+
+void CefBrowserHostCToCpp::GetNavigationEntries(
+    CefRefPtr<CefNavigationEntryVisitor> visitor, bool current_only) {
+  if (CEF_MEMBER_MISSING(struct_, get_navigation_entries))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: visitor; type: refptr_diff
+  DCHECK(visitor.get());
+  if (!visitor.get())
+    return;
+
+  // Execute
+  struct_->get_navigation_entries(struct_,
+      CefNavigationEntryVisitorCppToC::Wrap(visitor),
+      current_only);
 }
 
 void CefBrowserHostCToCpp::SetMouseCursorChangeDisabled(bool disabled) {
@@ -329,6 +356,38 @@ bool CefBrowserHostCToCpp::IsMouseCursorChangeDisabled() {
 
   // Return type: bool
   return _retval?true:false;
+}
+
+void CefBrowserHostCToCpp::ReplaceMisspelling(const CefString& word) {
+  if (CEF_MEMBER_MISSING(struct_, replace_misspelling))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: word; type: string_byref_const
+  DCHECK(!word.empty());
+  if (word.empty())
+    return;
+
+  // Execute
+  struct_->replace_misspelling(struct_,
+      word.GetStruct());
+}
+
+void CefBrowserHostCToCpp::AddWordToDictionary(const CefString& word) {
+  if (CEF_MEMBER_MISSING(struct_, add_word_to_dictionary))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: word; type: string_byref_const
+  DCHECK(!word.empty());
+  if (word.empty())
+    return;
+
+  // Execute
+  struct_->add_word_to_dictionary(struct_,
+      word.GetStruct());
 }
 
 bool CefBrowserHostCToCpp::IsWindowRenderingDisabled() {
@@ -375,8 +434,7 @@ void CefBrowserHostCToCpp::NotifyScreenInfoChanged() {
   struct_->notify_screen_info_changed(struct_);
 }
 
-void CefBrowserHostCToCpp::Invalidate(const CefRect& dirtyRect,
-    PaintElementType type) {
+void CefBrowserHostCToCpp::Invalidate(PaintElementType type) {
   if (CEF_MEMBER_MISSING(struct_, invalidate))
     return;
 
@@ -384,7 +442,6 @@ void CefBrowserHostCToCpp::Invalidate(const CefRect& dirtyRect,
 
   // Execute
   struct_->invalidate(struct_,
-      &dirtyRect,
       type);
 }
 
@@ -460,6 +517,16 @@ void CefBrowserHostCToCpp::SendCaptureLostEvent() {
 
   // Execute
   struct_->send_capture_lost_event(struct_);
+}
+
+void CefBrowserHostCToCpp::NotifyMoveOrResizeStarted() {
+  if (CEF_MEMBER_MISSING(struct_, notify_move_or_resize_started))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  struct_->notify_move_or_resize_started(struct_);
 }
 
 CefTextInputContext CefBrowserHostCToCpp::GetNSTextInputContext() {
@@ -578,7 +645,7 @@ void CefBrowserHostCToCpp::DragSourceSystemDragEnded() {
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefBrowserHostCToCpp, CefBrowserHost,
+template<> base::AtomicRefCount CefCToCpp<CefBrowserHostCToCpp, CefBrowserHost,
     cef_browser_host_t>::DebugObjCt = 0;
 #endif
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -129,19 +129,6 @@ bool CefDOMDocumentCToCpp::HasSelection() {
   return _retval?true:false;
 }
 
-CefRefPtr<CefDOMNode> CefDOMDocumentCToCpp::GetSelectionStartNode() {
-  if (CEF_MEMBER_MISSING(struct_, get_selection_start_node))
-    return NULL;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_domnode_t* _retval = struct_->get_selection_start_node(struct_);
-
-  // Return type: refptr_same
-  return CefDOMNodeCToCpp::Wrap(_retval);
-}
-
 int CefDOMDocumentCToCpp::GetSelectionStartOffset() {
   if (CEF_MEMBER_MISSING(struct_, get_selection_start_offset))
     return 0;
@@ -153,19 +140,6 @@ int CefDOMDocumentCToCpp::GetSelectionStartOffset() {
 
   // Return type: simple
   return _retval;
-}
-
-CefRefPtr<CefDOMNode> CefDOMDocumentCToCpp::GetSelectionEndNode() {
-  if (CEF_MEMBER_MISSING(struct_, get_selection_end_node))
-    return NULL;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_domnode_t* _retval = struct_->get_selection_end_node(struct_);
-
-  // Return type: refptr_same
-  return CefDOMNodeCToCpp::Wrap(_retval);
 }
 
 int CefDOMDocumentCToCpp::GetSelectionEndOffset() {
@@ -249,7 +223,7 @@ CefString CefDOMDocumentCToCpp::GetCompleteURL(const CefString& partialURL) {
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefDOMDocumentCToCpp, CefDOMDocument,
+template<> base::AtomicRefCount CefCToCpp<CefDOMDocumentCToCpp, CefDOMDocument,
     cef_domdocument_t>::DebugObjCt = 0;
 #endif
 

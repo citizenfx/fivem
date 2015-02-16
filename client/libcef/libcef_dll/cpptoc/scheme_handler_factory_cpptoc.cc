@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -61,7 +61,7 @@ CefSchemeHandlerFactoryCppToC::CefSchemeHandlerFactoryCppToC(
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefSchemeHandlerFactoryCppToC,
+template<> base::AtomicRefCount CefCppToC<CefSchemeHandlerFactoryCppToC,
     CefSchemeHandlerFactory, cef_scheme_handler_factory_t>::DebugObjCt = 0;
 #endif
 

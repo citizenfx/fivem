@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefBeforeDownloadCallbackCToCpp
   explicit CefBeforeDownloadCallbackCToCpp(cef_before_download_callback_t* str)
       : CefCToCpp<CefBeforeDownloadCallbackCToCpp, CefBeforeDownloadCallback,
           cef_before_download_callback_t>(str) {}
-  virtual ~CefBeforeDownloadCallbackCToCpp() {}
 
   // CefBeforeDownloadCallback methods
   virtual void Continue(const CefString& download_path,

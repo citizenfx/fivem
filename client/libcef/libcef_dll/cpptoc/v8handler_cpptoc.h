@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -28,7 +28,6 @@ class CefV8HandlerCppToC
     : public CefCppToC<CefV8HandlerCppToC, CefV8Handler, cef_v8handler_t> {
  public:
   explicit CefV8HandlerCppToC(CefV8Handler* cls);
-  virtual ~CefV8HandlerCppToC() {}
 };
 
 #endif  // USING_CEF_SHARED

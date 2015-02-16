@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefDOMDocumentCToCpp
   explicit CefDOMDocumentCToCpp(cef_domdocument_t* str)
       : CefCToCpp<CefDOMDocumentCToCpp, CefDOMDocument, cef_domdocument_t>(
           str) {}
-  virtual ~CefDOMDocumentCToCpp() {}
 
   // CefDOMDocument methods
   virtual Type GetType() OVERRIDE;
@@ -42,9 +41,7 @@ class CefDOMDocumentCToCpp
   virtual CefRefPtr<CefDOMNode> GetElementById(const CefString& id) OVERRIDE;
   virtual CefRefPtr<CefDOMNode> GetFocusedNode() OVERRIDE;
   virtual bool HasSelection() OVERRIDE;
-  virtual CefRefPtr<CefDOMNode> GetSelectionStartNode() OVERRIDE;
   virtual int GetSelectionStartOffset() OVERRIDE;
-  virtual CefRefPtr<CefDOMNode> GetSelectionEndNode() OVERRIDE;
   virtual int GetSelectionEndOffset() OVERRIDE;
   virtual CefString GetSelectionAsMarkup() OVERRIDE;
   virtual CefString GetSelectionAsText() OVERRIDE;

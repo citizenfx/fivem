@@ -32,7 +32,7 @@
 #define CEF_INCLUDE_INTERNAL_CEF_TYPES_H_
 #pragma once
 
-#include "include/internal/cef_build.h"
+#include "include/base/cef_build.h"
 #include "include/internal/cef_string.h"
 #include "include/internal/cef_string_list.h"
 #include "include/internal/cef_time.h"
@@ -150,11 +150,6 @@ typedef enum {
   // ERROR logging.
   ///
   LOGSEVERITY_ERROR,
-
-  ///
-  // ERROR_REPORT logging.
-  ///
-  LOGSEVERITY_ERROR_REPORT,
 
   ///
   // Completely disable logging.
@@ -400,6 +395,14 @@ typedef struct _cef_browser_settings_t {
   ///
   size_t size;
 
+  ///
+  // The maximum rate in frames per second (fps) that CefRenderHandler::OnPaint
+  // will be called for a windowless browser. The actual fps may be lower if
+  // the browser cannot generate frames at the requested rate. The minimum
+  // value is 1 and the maximum value is 60 (default 30).
+  ///
+  int windowless_frame_rate;
+
   // The below values map to WebPreferences settings.
 
   ///
@@ -444,8 +447,9 @@ typedef struct _cef_browser_settings_t {
   ///
   // Controls whether JavaScript can be used to close windows that were not
   // opened via JavaScript. JavaScript can still be used to close windows that
-  // were opened via JavaScript. Also configurable using the
-  // "disable-javascript-close-windows" command-line switch.
+  // were opened via JavaScript or that have no back/forward history. Also
+  // configurable using the "disable-javascript-close-windows" command-line
+  // switch.
   ///
   cef_state_t javascript_close_windows;
 
@@ -551,14 +555,6 @@ typedef struct _cef_browser_settings_t {
   // configurable using the "disable-webgl" command-line switch.
   ///
   cef_state_t webgl;
-
-  ///
-  // Controls whether content that depends on accelerated compositing can be
-  // used. Note that accelerated compositing requires hardware support and may
-  // not work on all systems even when enabled. Also configurable using the
-  // "disable-accelerated-compositing" command-line switch.
-  ///
-  cef_state_t accelerated_compositing;
 
   ///
   // Opaque background color used for the browser before a document is loaded
@@ -920,6 +916,16 @@ typedef enum {
   // XMLHttpRequest.
   ///
   RT_XHR,
+
+  ///
+  // A request for a <ping>
+  ///
+  RT_PING,
+
+  ///
+  // Main resource of a service worker.
+  ///
+  RT_SERVICE_WORKER,
 } cef_resource_type_t;
 
 ///
@@ -1049,11 +1055,6 @@ typedef enum {
   UR_FLAG_REPORT_UPLOAD_PROGRESS    = 1 << 3,
 
   ///
-  // If set load timing info will be collected for the request.
-  ///
-  UR_FLAG_REPORT_LOAD_TIMING        = 1 << 4,
-
-  ///
   // If set the headers sent and received for the request will be recorded.
   ///
   UR_FLAG_REPORT_RAW_HEADERS        = 1 << 5,
@@ -1103,6 +1104,14 @@ typedef enum {
 } cef_urlrequest_status_t;
 
 ///
+// Structure representing a point.
+///
+typedef struct _cef_point_t {
+  int x;
+  int y;
+} cef_point_t;
+
+///
 // Structure representing a rectangle.
 ///
 typedef struct _cef_rect_t {
@@ -1111,6 +1120,14 @@ typedef struct _cef_rect_t {
   int width;
   int height;
 } cef_rect_t;
+
+///
+// Structure representing a size.
+///
+typedef struct _cef_size_t {
+  int width;
+  int height;
+} cef_size_t;
 
 ///
 // Existing process IDs.
@@ -1283,6 +1300,16 @@ typedef enum {
   MENU_ID_FIND                = 130,
   MENU_ID_PRINT               = 131,
   MENU_ID_VIEW_SOURCE         = 132,
+
+  // Spell checking word correction suggestions.
+  MENU_ID_SPELLCHECK_SUGGESTION_0        = 200,
+  MENU_ID_SPELLCHECK_SUGGESTION_1        = 201,
+  MENU_ID_SPELLCHECK_SUGGESTION_2        = 202,
+  MENU_ID_SPELLCHECK_SUGGESTION_3        = 203,
+  MENU_ID_SPELLCHECK_SUGGESTION_4        = 204,
+  MENU_ID_SPELLCHECK_SUGGESTION_LAST     = 204,
+  MENU_ID_NO_SPELLING_SUGGESTIONS        = 205,
+  MENU_ID_ADD_TO_DICTIONARY              = 206,
 
   // All user-defined menu IDs should come between MENU_ID_USER_FIRST and
   // MENU_ID_USER_LAST to avoid overlapping the Chromium and CEF ID ranges
@@ -1461,9 +1488,28 @@ typedef enum {
 // Key event types.
 ///
 typedef enum {
+  ///
+  // Notification that a key transitioned from "up" to "down".
+  ///
   KEYEVENT_RAWKEYDOWN = 0,
+
+  ///
+  // Notification that a key was pressed. This does not necessarily correspond
+  // to a character depending on the key and language. Use KEYEVENT_CHAR for
+  // character input.
+  ///
   KEYEVENT_KEYDOWN,
+
+  ///
+  // Notification that a key was released.
+  ///
   KEYEVENT_KEYUP,
+
+  ///
+  // Notification that a character was typed. Use this for text input. Key
+  // down events may generate 0, 1, or more than one character event depending
+  // on the key, locale, and operating system.
+  ///
   KEYEVENT_CHAR
 } cef_key_event_type_t;
 
@@ -1676,10 +1722,35 @@ typedef enum {
   FILE_DIALOG_OPEN_MULTIPLE,
 
   ///
+  // Like Open, but selects a folder to open.
+  ///
+  FILE_DIALOG_OPEN_FOLDER,
+
+  ///
   // Allows picking a nonexistent file, and prompts to overwrite if the file
   // already exists.
   ///
   FILE_DIALOG_SAVE,
+
+  ///
+  // General mask defining the bits used for the type values.
+  ///
+  FILE_DIALOG_TYPE_MASK = 0xFF,
+
+  // Qualifiers.
+  // Any of the type values above can be augmented by one or more qualifiers.
+  // These qualifiers further define the dialog behavior.
+
+  ///
+  // Prompt to overwrite if the user selects an existing file with the Save
+  // dialog.
+  ///
+  FILE_DIALOG_OVERWRITEPROMPT_FLAG = 0x01000000,
+
+  ///
+  // Do not display read-only files.
+  ///
+  FILE_DIALOG_HIDEREADONLY_FLAG = 0x02000000,
 } cef_file_dialog_mode_t;
 
 ///
@@ -1734,7 +1805,7 @@ typedef struct _cef_geoposition_t {
   double speed;
 
   ///
-  // Time of position measurement in miliseconds since Epoch in UTC time. This
+  // Time of position measurement in milliseconds since Epoch in UTC time. This
   // is taken from the host computer's system clock.
   ///
   cef_time_t timestamp;
@@ -1749,6 +1820,164 @@ typedef struct _cef_geoposition_t {
   ///
   cef_string_t error_message;
 } cef_geoposition_t;
+
+///
+// Print job color mode values.
+///
+typedef enum {
+  COLOR_MODEL_UNKNOWN,
+  COLOR_MODEL_GRAY,
+  COLOR_MODEL_COLOR,
+  COLOR_MODEL_CMYK,
+  COLOR_MODEL_CMY,
+  COLOR_MODEL_KCMY,
+  COLOR_MODEL_CMY_K,  // CMY_K represents CMY+K.
+  COLOR_MODEL_BLACK,
+  COLOR_MODEL_GRAYSCALE,
+  COLOR_MODEL_RGB,
+  COLOR_MODEL_RGB16,
+  COLOR_MODEL_RGBA,
+  COLOR_MODEL_COLORMODE_COLOR,  // Used in samsung printer ppds.
+  COLOR_MODEL_COLORMODE_MONOCHROME,  // Used in samsung printer ppds.
+  COLOR_MODEL_HP_COLOR_COLOR,  // Used in HP color printer ppds.
+  COLOR_MODEL_HP_COLOR_BLACK,  // Used in HP color printer ppds.
+  COLOR_MODEL_PRINTOUTMODE_NORMAL,  // Used in foomatic ppds.
+  COLOR_MODEL_PRINTOUTMODE_NORMAL_GRAY,  // Used in foomatic ppds.
+  COLOR_MODEL_PROCESSCOLORMODEL_CMYK,  // Used in canon printer ppds.
+  COLOR_MODEL_PROCESSCOLORMODEL_GREYSCALE,  // Used in canon printer ppds.
+  COLOR_MODEL_PROCESSCOLORMODEL_RGB,  // Used in canon printer ppds
+} cef_color_model_t;
+
+///
+// Print job duplex mode values.
+///
+typedef enum {
+  DUPLEX_MODE_UNKNOWN = -1,
+  DUPLEX_MODE_SIMPLEX,
+  DUPLEX_MODE_LONG_EDGE,
+  DUPLEX_MODE_SHORT_EDGE,
+} cef_duplex_mode_t;
+
+///
+// Structure representing a print job page range.
+///
+typedef struct _cef_page_range_t {
+  int from;
+  int to;
+} cef_page_range_t;
+
+///
+// Cursor type values.
+///
+typedef enum {
+  CT_POINTER = 0,
+  CT_CROSS,
+  CT_HAND,
+  CT_IBEAM,
+  CT_WAIT,
+  CT_HELP,
+  CT_EASTRESIZE,
+  CT_NORTHRESIZE,
+  CT_NORTHEASTRESIZE,
+  CT_NORTHWESTRESIZE,
+  CT_SOUTHRESIZE,
+  CT_SOUTHEASTRESIZE,
+  CT_SOUTHWESTRESIZE,
+  CT_WESTRESIZE,
+  CT_NORTHSOUTHRESIZE,
+  CT_EASTWESTRESIZE,
+  CT_NORTHEASTSOUTHWESTRESIZE,
+  CT_NORTHWESTSOUTHEASTRESIZE,
+  CT_COLUMNRESIZE,
+  CT_ROWRESIZE,
+  CT_MIDDLEPANNING,
+  CT_EASTPANNING,
+  CT_NORTHPANNING,
+  CT_NORTHEASTPANNING,
+  CT_NORTHWESTPANNING,
+  CT_SOUTHPANNING,
+  CT_SOUTHEASTPANNING,
+  CT_SOUTHWESTPANNING,
+  CT_WESTPANNING,
+  CT_MOVE,
+  CT_VERTICALTEXT,
+  CT_CELL,
+  CT_CONTEXTMENU,
+  CT_ALIAS,
+  CT_PROGRESS,
+  CT_NODROP,
+  CT_COPY,
+  CT_NONE,
+  CT_NOTALLOWED,
+  CT_ZOOMIN,
+  CT_ZOOMOUT,
+  CT_GRAB,
+  CT_GRABBING,
+  CT_CUSTOM,
+} cef_cursor_type_t;
+
+///
+// Structure representing cursor information. |buffer| will be
+// |size.width|*|size.height|*4 bytes in size and represents a BGRA image with
+// an upper-left origin.
+///
+typedef struct _cef_cursor_info_t {
+  cef_point_t hotspot;
+  float image_scale_factor;
+  void* buffer;
+  cef_size_t size;
+} cef_cursor_info_t;
+
+///
+// URI unescape rules passed to CefURIDecode().
+///
+typedef enum {
+  ///
+  // Don't unescape anything at all.
+  ///
+  UU_NONE = 0,
+
+  ///
+  // Don't unescape anything special, but all normal unescaping will happen.
+  // This is a placeholder and can't be combined with other flags (since it's
+  // just the absence of them). All other unescape rules imply "normal" in
+  // addition to their special meaning. Things like escaped letters, digits,
+  // and most symbols will get unescaped with this mode.
+  ///
+  UU_NORMAL = 1,
+
+  ///
+  // Convert %20 to spaces. In some places where we're showing URLs, we may
+  // want this. In places where the URL may be copied and pasted out, then
+  // you wouldn't want this since it might not be interpreted in one piece
+  // by other applications.
+  ///
+  UU_SPACES = 2,
+
+  ///
+  // Unescapes various characters that will change the meaning of URLs,
+  // including '%', '+', '&', '/', '#'. If we unescaped these characters, the
+  // resulting URL won't be the same as the source one. This flag is used when
+  // generating final output like filenames for URLs where we won't be
+  // interpreting as a URL and want to do as much unescaping as possible.
+  ///
+  UU_URL_SPECIAL_CHARS = 4,
+
+  ///
+  // Unescapes control characters such as %01. This INCLUDES NULLs. This is
+  // used for rare cases such as data: URL decoding where the result is binary
+  // data. This flag also unescapes BiDi control characters.
+  //
+  // DO NOT use CONTROL_CHARS if the URL is going to be displayed in the UI
+  // for security reasons.
+  ///
+  UU_CONTROL_CHARS = 8,
+
+  ///
+  // URL queries use "+" for space. This flag controls that replacement.
+  ///
+  UU_REPLACE_PLUS_WITH_SPACE = 16,
+} cef_uri_unescape_rule_t;
 
 #ifdef __cplusplus
 }

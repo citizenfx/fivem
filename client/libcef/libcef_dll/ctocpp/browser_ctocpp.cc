@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -226,10 +226,7 @@ CefRefPtr<CefFrame> CefBrowserCToCpp::GetFrame(const CefString& name) {
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
-  // Verify param: name; type: string_byref_const
-  DCHECK(!name.empty());
-  if (name.empty())
-    return NULL;
+  // Unverified params: name
 
   // Execute
   cef_frame_t* _retval = struct_->get_frame(struct_,
@@ -337,7 +334,7 @@ bool CefBrowserCToCpp::SendProcessMessage(CefProcessId target_process,
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefBrowserCToCpp, CefBrowser,
+template<> base::AtomicRefCount CefCToCpp<CefBrowserCToCpp, CefBrowser,
     cef_browser_t>::DebugObjCt = 0;
 #endif
 

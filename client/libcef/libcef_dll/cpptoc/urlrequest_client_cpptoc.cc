@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -36,7 +36,7 @@ void CEF_CALLBACK urlrequest_client_on_request_complete(
 
 void CEF_CALLBACK urlrequest_client_on_upload_progress(
     struct _cef_urlrequest_client_t* self, cef_urlrequest_t* request,
-    uint64 current, uint64 total) {
+    int64 current, int64 total) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -56,7 +56,7 @@ void CEF_CALLBACK urlrequest_client_on_upload_progress(
 
 void CEF_CALLBACK urlrequest_client_on_download_progress(
     struct _cef_urlrequest_client_t* self, cef_urlrequest_t* request,
-    uint64 current, uint64 total) {
+    int64 current, int64 total) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -148,7 +148,7 @@ CefURLRequestClientCppToC::CefURLRequestClientCppToC(CefURLRequestClient* cls)
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefURLRequestClientCppToC, CefURLRequestClient,
-    cef_urlrequest_client_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToC<CefURLRequestClientCppToC,
+    CefURLRequestClient, cef_urlrequest_client_t>::DebugObjCt = 0;
 #endif
 

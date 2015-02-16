@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -146,7 +146,7 @@ typedef struct _cef_urlrequest_client_t {
   // UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
   ///
   void (CEF_CALLBACK *on_upload_progress)(struct _cef_urlrequest_client_t* self,
-      struct _cef_urlrequest_t* request, uint64 current, uint64 total);
+      struct _cef_urlrequest_t* request, int64 current, int64 total);
 
   ///
   // Notifies the client of download progress. |current| denotes the number of
@@ -155,7 +155,7 @@ typedef struct _cef_urlrequest_client_t {
   ///
   void (CEF_CALLBACK *on_download_progress)(
       struct _cef_urlrequest_client_t* self, struct _cef_urlrequest_t* request,
-      uint64 current, uint64 total);
+      int64 current, int64 total);
 
   ///
   // Called when some part of the response is read. |data| contains the current

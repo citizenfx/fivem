@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,10 +31,11 @@ class CefDownloadItemCallbackCToCpp
   explicit CefDownloadItemCallbackCToCpp(cef_download_item_callback_t* str)
       : CefCToCpp<CefDownloadItemCallbackCToCpp, CefDownloadItemCallback,
           cef_download_item_callback_t>(str) {}
-  virtual ~CefDownloadItemCallbackCToCpp() {}
 
   // CefDownloadItemCallback methods
   virtual void Cancel() OVERRIDE;
+  virtual void Pause() OVERRIDE;
+  virtual void Resume() OVERRIDE;
 };
 
 #endif  // USING_CEF_SHARED

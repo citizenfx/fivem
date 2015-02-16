@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -13,6 +13,7 @@
 #include "libcef_dll/cpptoc/display_handler_cpptoc.h"
 #include "libcef_dll/ctocpp/browser_ctocpp.h"
 #include "libcef_dll/ctocpp/frame_ctocpp.h"
+#include "libcef_dll/transfer_util.h"
 
 
 // MEMBER FUNCTIONS - Body may be edited by hand.
@@ -63,6 +64,30 @@ void CEF_CALLBACK display_handler_on_title_change(
   CefDisplayHandlerCppToC::Get(self)->OnTitleChange(
       CefBrowserCToCpp::Wrap(browser),
       CefString(title));
+}
+
+void CEF_CALLBACK display_handler_on_favicon_urlchange(
+    struct _cef_display_handler_t* self, cef_browser_t* browser,
+    cef_string_list_t icon_urls) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: browser; type: refptr_diff
+  DCHECK(browser);
+  if (!browser)
+    return;
+  // Unverified params: icon_urls
+
+  // Translate param: icon_urls; type: string_vec_byref_const
+  std::vector<CefString> icon_urlsList;
+  transfer_string_list_contents(icon_urls, icon_urlsList);
+
+  // Execute
+  CefDisplayHandlerCppToC::Get(self)->OnFaviconURLChange(
+      CefBrowserCToCpp::Wrap(browser),
+      icon_urlsList);
 }
 
 int CEF_CALLBACK display_handler_on_tooltip(struct _cef_display_handler_t* self,
@@ -143,13 +168,14 @@ CefDisplayHandlerCppToC::CefDisplayHandlerCppToC(CefDisplayHandler* cls)
         cef_display_handler_t>(cls) {
   struct_.struct_.on_address_change = display_handler_on_address_change;
   struct_.struct_.on_title_change = display_handler_on_title_change;
+  struct_.struct_.on_favicon_urlchange = display_handler_on_favicon_urlchange;
   struct_.struct_.on_tooltip = display_handler_on_tooltip;
   struct_.struct_.on_status_message = display_handler_on_status_message;
   struct_.struct_.on_console_message = display_handler_on_console_message;
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefDisplayHandlerCppToC, CefDisplayHandler,
-    cef_display_handler_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToC<CefDisplayHandlerCppToC,
+    CefDisplayHandler, cef_display_handler_t>::DebugObjCt = 0;
 #endif
 

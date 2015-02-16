@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@
 #include "include/capi/cef_base_capi.h"
 #include "include/capi/cef_drag_data_capi.h"
 #include "include/capi/cef_frame_capi.h"
+#include "include/capi/cef_navigation_entry_capi.h"
 #include "include/capi/cef_process_message_capi.h"
 #include "include/capi/cef_request_context_capi.h"
 
@@ -194,14 +195,39 @@ typedef struct _cef_run_file_dialog_callback_t {
   cef_base_t base;
 
   ///
-  // Called asynchronously after the file dialog is dismissed. If the selection
-  // was successful |file_paths| will be a single value or a list of values
-  // depending on the dialog mode. If the selection was cancelled |file_paths|
-  // will be NULL.
+  // Called asynchronously after the file dialog is dismissed.
+  // |selected_accept_filter| is the 0-based index of the value selected from
+  // the accept filters array passed to cef_browser_host_t::RunFileDialog.
+  // |file_paths| will be a single value or a list of values depending on the
+  // dialog mode. If the selection was cancelled |file_paths| will be NULL.
   ///
-  void (CEF_CALLBACK *cont)(struct _cef_run_file_dialog_callback_t* self,
-      struct _cef_browser_host_t* browser_host, cef_string_list_t file_paths);
+  void (CEF_CALLBACK *on_file_dialog_dismissed)(
+      struct _cef_run_file_dialog_callback_t* self, int selected_accept_filter,
+      cef_string_list_t file_paths);
 } cef_run_file_dialog_callback_t;
+
+
+///
+// Callback structure for cef_browser_host_t::GetNavigationEntries. The
+// functions of this structure will be called on the browser process UI thread.
+///
+typedef struct _cef_navigation_entry_visitor_t {
+  ///
+  // Base structure.
+  ///
+  cef_base_t base;
+
+  ///
+  // Method that will be executed. Do not keep a reference to |entry| outside of
+  // this callback. Return true (1) to continue visiting entries or false (0) to
+  // stop. |current| is true (1) if this entry is the currently loaded
+  // navigation entry. |index| is the 0-based index of this entry and |total| is
+  // the total number of entries.
+  ///
+  int (CEF_CALLBACK *visit)(struct _cef_navigation_entry_visitor_t* self,
+      struct _cef_navigation_entry_t* entry, int current, int index,
+      int total);
+} cef_navigation_entry_visitor_t;
 
 
 ///
@@ -291,17 +317,22 @@ typedef struct _cef_browser_host_t {
   // Call to run a file chooser dialog. Only a single file chooser dialog may be
   // pending at any given time. |mode| represents the type of dialog to display.
   // |title| to the title to be used for the dialog and may be NULL to show the
-  // default title ("Open" or "Save" depending on the mode). |default_file_name|
-  // is the default file name to select in the dialog. |accept_types| is a list
-  // of valid lower-cased MIME types or file extensions specified in an input
-  // element and is used to restrict selectable files to such types. |callback|
-  // will be executed after the dialog is dismissed or immediately if another
-  // dialog is already pending. The dialog will be initiated asynchronously on
-  // the UI thread.
+  // default title ("Open" or "Save" depending on the mode). |default_file_path|
+  // is the path with optional directory and/or file name component that will be
+  // initially selected in the dialog. |accept_filters| are used to restrict the
+  // selectable file types and may any combination of (a) valid lower-cased MIME
+  // types (e.g. "text/*" or "image/*"), (b) individual file extensions (e.g.
+  // ".txt" or ".png"), or (c) combined description and file extension delimited
+  // using "|" and ";" (e.g. "Image Types|.png;.gif;.jpg").
+  // |selected_accept_filter| is the 0-based index of the filter that will be
+  // selected by default. |callback| will be executed after the dialog is
+  // dismissed or immediately if another dialog is already pending. The dialog
+  // will be initiated asynchronously on the UI thread.
   ///
   void (CEF_CALLBACK *run_file_dialog)(struct _cef_browser_host_t* self,
       cef_file_dialog_mode_t mode, const cef_string_t* title,
-      const cef_string_t* default_file_name, cef_string_list_t accept_types,
+      const cef_string_t* default_file_path, cef_string_list_t accept_filters,
+      int selected_accept_filter,
       struct _cef_run_file_dialog_callback_t* callback);
 
   ///
@@ -320,7 +351,8 @@ typedef struct _cef_browser_host_t {
   // running simultaniously. |forward| indicates whether to search forward or
   // backward within the page. |matchCase| indicates whether the search should
   // be case-sensitive. |findNext| indicates whether this is the first request
-  // or a follow-up.
+  // or a follow-up. The cef_find_handler_t instance, if any, returned via
+  // cef_client_t::GetFindHandler will be called to report find results.
   ///
   void (CEF_CALLBACK *find)(struct _cef_browser_host_t* self, int identifier,
       const cef_string_t* searchText, int forward, int matchCase,
@@ -333,18 +365,30 @@ typedef struct _cef_browser_host_t {
       int clearSelection);
 
   ///
-  // Open developer tools in its own window.
+  // Open developer tools in its own window. If |inspect_element_at| is non-
+  // NULL the element at the specified (x,y) location will be inspected.
   ///
   void (CEF_CALLBACK *show_dev_tools)(struct _cef_browser_host_t* self,
       const struct _cef_window_info_t* windowInfo,
       struct _cef_client_t* client,
-      const struct _cef_browser_settings_t* settings);
+      const struct _cef_browser_settings_t* settings,
+      const cef_point_t* inspect_element_at);
 
   ///
   // Explicitly close the developer tools window if one exists for this browser
   // instance.
   ///
   void (CEF_CALLBACK *close_dev_tools)(struct _cef_browser_host_t* self);
+
+  ///
+  // Retrieve a snapshot of current navigation entries as values sent to the
+  // specified visitor. If |current_only| is true (1) only the current
+  // navigation entry will be sent, otherwise all navigation entries will be
+  // sent.
+  ///
+  ///
+  void (CEF_CALLBACK *get_navigation_entries)(struct _cef_browser_host_t* self,
+      struct _cef_navigation_entry_visitor_t* visitor, int current_only);
 
   ///
   // Set whether mouse cursor change is disabled.
@@ -357,6 +401,19 @@ typedef struct _cef_browser_host_t {
   ///
   int (CEF_CALLBACK *is_mouse_cursor_change_disabled)(
       struct _cef_browser_host_t* self);
+
+  ///
+  // If a misspelled word is currently selected in an editable node calling this
+  // function will replace it with the specified |word|.
+  ///
+  void (CEF_CALLBACK *replace_misspelling)(struct _cef_browser_host_t* self,
+      const cef_string_t* word);
+
+  ///
+  // Add the specified |word| to the spelling dictionary.
+  ///
+  void (CEF_CALLBACK *add_word_to_dictionary)(struct _cef_browser_host_t* self,
+      const cef_string_t* word);
 
   ///
   // Returns true (1) if window rendering is disabled.
@@ -391,12 +448,12 @@ typedef struct _cef_browser_host_t {
       struct _cef_browser_host_t* self);
 
   ///
-  // Invalidate the |dirtyRect| region of the view. The browser will call
-  // cef_render_handler_t::OnPaint asynchronously with the updated regions. This
-  // function is only used when window rendering is disabled.
+  // Invalidate the view. The browser will call cef_render_handler_t::OnPaint
+  // asynchronously. This function is only used when window rendering is
+  // disabled.
   ///
   void (CEF_CALLBACK *invalidate)(struct _cef_browser_host_t* self,
-      const cef_rect_t* dirtyRect, cef_paint_element_type_t type);
+      cef_paint_element_type_t type);
 
   ///
   // Send a key event to the browser.
@@ -439,6 +496,13 @@ typedef struct _cef_browser_host_t {
   // Send a capture lost event to the browser.
   ///
   void (CEF_CALLBACK *send_capture_lost_event)(
+      struct _cef_browser_host_t* self);
+
+  ///
+  // Notify the browser that the window hosting it is about to be moved or
+  // resized. This function is only used on Windows and Linux.
+  ///
+  void (CEF_CALLBACK *notify_move_or_resize_started)(
       struct _cef_browser_host_t* self);
 
   ///

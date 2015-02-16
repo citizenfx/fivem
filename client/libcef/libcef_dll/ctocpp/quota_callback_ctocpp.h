@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefQuotaCallbackCToCpp
   explicit CefQuotaCallbackCToCpp(cef_quota_callback_t* str)
       : CefCToCpp<CefQuotaCallbackCToCpp, CefQuotaCallback,
           cef_quota_callback_t>(str) {}
-  virtual ~CefQuotaCallbackCToCpp() {}
 
   // CefQuotaCallback methods
   virtual void Continue(bool allow) OVERRIDE;

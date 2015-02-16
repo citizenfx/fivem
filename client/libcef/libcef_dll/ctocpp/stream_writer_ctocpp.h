@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefStreamWriterCToCpp
   explicit CefStreamWriterCToCpp(cef_stream_writer_t* str)
       : CefCToCpp<CefStreamWriterCToCpp, CefStreamWriter, cef_stream_writer_t>(
           str) {}
-  virtual ~CefStreamWriterCToCpp() {}
 
   // CefStreamWriter methods
   virtual size_t Write(const void* ptr, size_t size, size_t n) OVERRIDE;

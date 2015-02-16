@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -196,7 +196,7 @@ void CefResponseCToCpp::SetHeaderMap(const HeaderMap& headerMap) {
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefResponseCToCpp, CefResponse,
+template<> base::AtomicRefCount CefCToCpp<CefResponseCToCpp, CefResponse,
     cef_response_t>::DebugObjCt = 0;
 #endif
 

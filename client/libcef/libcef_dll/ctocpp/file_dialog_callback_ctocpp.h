@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -32,10 +32,10 @@ class CefFileDialogCallbackCToCpp
   explicit CefFileDialogCallbackCToCpp(cef_file_dialog_callback_t* str)
       : CefCToCpp<CefFileDialogCallbackCToCpp, CefFileDialogCallback,
           cef_file_dialog_callback_t>(str) {}
-  virtual ~CefFileDialogCallbackCToCpp() {}
 
   // CefFileDialogCallback methods
-  virtual void Continue(const std::vector<CefString>& file_paths) OVERRIDE;
+  virtual void Continue(int selected_accept_filter,
+      const std::vector<CefString>& file_paths) OVERRIDE;
   virtual void Cancel() OVERRIDE;
 };
 

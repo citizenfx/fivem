@@ -6,9 +6,10 @@
 #define CEF_LIBCEF_DLL_CPPTOC_CPPTOC_H_
 #pragma once
 
+#include "include/base/cef_logging.h"
+#include "include/base/cef_macros.h"
 #include "include/cef_base.h"
 #include "include/capi/cef_base_capi.h"
-#include "libcef_dll/cef_logging.h"
 
 
 // Wrap a C++ class with a C structure.  This is used when the class
@@ -43,7 +44,7 @@ class CefCppToC : public CefBase {
       return NULL;
 
     // Wrap our object with the CefCppToC class.
-    ClassName* wrapper = new ClassName(c);
+    ClassName* wrapper = new ClassName(c.get());
     // Add a reference to our wrapper object that will be released once our
     // structure arrives on the other side.
     wrapper->AddRef();
@@ -79,15 +80,15 @@ class CefCppToC : public CefBase {
     struct_.struct_.base.size = sizeof(StructName);
     struct_.struct_.base.add_ref = struct_add_ref;
     struct_.struct_.base.release = struct_release;
-    struct_.struct_.base.get_refct = struct_get_refct;
+    struct_.struct_.base.has_one_ref = struct_has_one_ref;
 
 #ifndef NDEBUG
-    CefAtomicIncrement(&DebugObjCt);
+    base::AtomicRefCountInc(&DebugObjCt);
 #endif
   }
   virtual ~CefCppToC() {
 #ifndef NDEBUG
-    CefAtomicDecrement(&DebugObjCt);
+    base::AtomicRefCountDec(&DebugObjCt);
 #endif
   }
 
@@ -100,37 +101,42 @@ class CefCppToC : public CefBase {
 
   // CefBase methods increment/decrement reference counts on both this object
   // and the underlying wrapper class.
-  int AddRef() {
+  void AddRef() const {
     UnderlyingAddRef();
-    return refct_.AddRef();
+    ref_count_.AddRef();
   }
-  int Release() {
+  bool Release() const {
     UnderlyingRelease();
-    int retval = refct_.Release();
-    if (retval == 0)
+    if (ref_count_.Release()) {
       delete this;
-    return retval;
+      return true;
+    }
+    return false;
   }
-  int GetRefCt() { return refct_.GetRefCt(); }
+  bool HasOneRef() const { return ref_count_.HasOneRef(); }
 
   // Increment/decrement reference counts on only the underlying class.
-  int UnderlyingAddRef() { return class_->AddRef(); }
-  int UnderlyingRelease() { return class_->Release(); }
-  int UnderlyingGetRefCt() { return class_->GetRefCt(); }
+  void UnderlyingAddRef() const { class_->AddRef(); }
+  bool UnderlyingRelease() const { return class_->Release(); }
+  bool UnderlyingHasOneRef() const { return class_->HasOneRef(); }
 
 #ifndef NDEBUG
   // Simple tracking of allocated objects.
-  static long DebugObjCt;  // NOLINT(runtime/int)
+  static base::AtomicRefCount DebugObjCt;  // NOLINT(runtime/int)
 #endif
 
+ protected:
+  Struct struct_;
+  BaseName* class_;
+
  private:
-  static int CEF_CALLBACK struct_add_ref(struct _cef_base_t* base) {
+  static void CEF_CALLBACK struct_add_ref(struct _cef_base_t* base) {
     DCHECK(base);
     if (!base)
-      return 0;
+      return;
 
     Struct* impl = reinterpret_cast<Struct*>(base);
-    return impl->class_->AddRef();
+    impl->class_->AddRef();
   }
 
   static int CEF_CALLBACK struct_release(struct _cef_base_t* base) {
@@ -142,19 +148,18 @@ class CefCppToC : public CefBase {
     return impl->class_->Release();
   }
 
-  static int CEF_CALLBACK struct_get_refct(struct _cef_base_t* base) {
+  static int CEF_CALLBACK struct_has_one_ref(struct _cef_base_t* base) {
     DCHECK(base);
     if (!base)
       return 0;
 
     Struct* impl = reinterpret_cast<Struct*>(base);
-    return impl->class_->GetRefCt();
+    return impl->class_->HasOneRef();
   }
 
- protected:
-  CefRefCount refct_;
-  Struct struct_;
-  BaseName* class_;
+  CefRefCount ref_count_;
+
+  DISALLOW_COPY_AND_ASSIGN(CefCppToC);
 };
 
 #endif  // CEF_LIBCEF_DLL_CPPTOC_CPPTOC_H_

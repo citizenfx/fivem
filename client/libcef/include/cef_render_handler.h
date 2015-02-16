@@ -50,6 +50,7 @@
 /*--cef(source=client)--*/
 class CefRenderHandler : public virtual CefBase {
  public:
+  typedef cef_cursor_type_t CursorType;
   typedef cef_drag_operations_mask_t DragOperation;
   typedef cef_drag_operations_mask_t DragOperationsMask;
   typedef cef_paint_element_type_t PaintElementType;
@@ -104,18 +105,21 @@ class CefRenderHandler : public virtual CefBase {
 
   ///
   // Called when the browser wants to move or resize the popup widget. |rect|
-  // contains the new location and size.
+  // contains the new location and size in view coordinates.
   ///
   /*--cef()--*/
   virtual void OnPopupSize(CefRefPtr<CefBrowser> browser,
                            const CefRect& rect) {}
 
   ///
-  // Called when an element should be painted. |type| indicates whether the
-  // element is the view or the popup widget. |buffer| contains the pixel data
-  // for the whole image. |dirtyRects| contains the set of rectangles that need
-  // to be repainted. On Windows |buffer| will be |width|*|height|*4 bytes
-  // in size and represents a BGRA image with an upper-left origin.
+  // Called when an element should be painted. Pixel values passed to this
+  // method are scaled relative to view coordinates based on the value of
+  // CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
+  // indicates whether the element is the view or the popup widget. |buffer|
+  // contains the pixel data for the whole image. |dirtyRects| contains the set
+  // of rectangles in pixel coordinates that need to be repainted. |buffer| will
+  // be |width|*|height|*4 bytes in size and represents a BGRA image with an
+  // upper-left origin.
   ///
   /*--cef()--*/
   virtual void OnPaint(CefRefPtr<CefBrowser> browser,
@@ -125,15 +129,19 @@ class CefRenderHandler : public virtual CefBase {
                        int width, int height) =0;
 
   ///
-  // Called when the browser window's cursor has changed.
+  // Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
+  // |custom_cursor_info| will be populated with the custom cursor information.
   ///
   /*--cef()--*/
   virtual void OnCursorChange(CefRefPtr<CefBrowser> browser,
-                              CefCursorHandle cursor) {}
+                              CefCursorHandle cursor,
+                              CursorType type,
+                              const CefCursorInfo& custom_cursor_info) {}
 
   ///
   // Called when the user starts dragging content in the web view. Contextual
   // information about the dragged content is supplied by |drag_data|.
+  // (|x|, |y|) is the drag start location in screen coordinates.
   // OS APIs that run a system message loop may be used within the
   // StartDragging call.
   //

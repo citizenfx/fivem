@@ -1,4 +1,5 @@
-// Copyright (c) 2006-2011 Google Inc. All rights reserved.
+// Copyright (c) 2014 Marshall A. Greenblatt. Portions copyright (c) 2011
+// Google Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -26,8 +27,6 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// The contents of this file are identical to base/tuple.h
 
 // A Tuple is a generic templatized container, similar in concept to std::pair.
 // There are classes Tuple0 to Tuple6, cooresponding to the number of elements
@@ -53,18 +52,91 @@
 //   DispatchToMethod(&foo, &Foo::SomeMeth, MakeTuple(1, 2, 3));
 //   // foo->SomeMeth(1, 2, 3);
 
-#ifndef CEF_INCLUDE_INTERNAL_CEF_TUPLE_H_
-#define CEF_INCLUDE_INTERNAL_CEF_TUPLE_H_
+#ifndef CEF_INCLUDE_BASE_CEF_TUPLE_H_
+#define CEF_INCLUDE_BASE_CEF_TUPLE_H_
 #pragma once
 
-// If base/tuple.h is included first then exclude this file. This is to
-// facilitate the use of both base/bind.h and cef_runnable.h in unit tests.
-#ifndef BASE_TUPLE_H__
+#if defined(BASE_TUPLE_H__)
+// The Chromium header has already been included.
+// This can happen in cases where Chromium code is used directly by the
+// client application. When using Chromium code directly always include
+// the Chromium header first to avoid type conflicts.
 
-#if defined(OS_CHROMEOS)
-// To troubleshoot crosbug.com/7327.
-#include "base/logging.h"
-#endif
+// For legacy compatibility, we name the first 8 tuple elements "a", "b", ...
+// TODO(cef): Remove this code when cef_runnable.h is deleted.
+
+#define DEFINE_TUPLE_LEAF(N, x)                                        \
+  template <typename T>                                                \
+  struct TupleLeaf<N, T> {                                             \
+    TupleLeaf() {}                                                     \
+    explicit TupleLeaf(typename TupleTraits<T>::ParamType x) : x(x) {} \
+                                                                       \
+    T& get() { return x; }                                             \
+    const T& get() const { return x; }                                 \
+                                                                       \
+    T x;                                                               \
+  }
+
+DEFINE_TUPLE_LEAF(0, a);
+DEFINE_TUPLE_LEAF(1, b);
+DEFINE_TUPLE_LEAF(2, c);
+DEFINE_TUPLE_LEAF(3, d);
+DEFINE_TUPLE_LEAF(4, e);
+DEFINE_TUPLE_LEAF(5, f);
+DEFINE_TUPLE_LEAF(6, g);
+DEFINE_TUPLE_LEAF(7, h);
+
+#undef DEFINE_TUPLE_LEAF
+
+// Deprecated compat aliases
+// TODO(cef): Remove this code when cef_runnable.h is deleted.
+
+using Tuple0 = Tuple<>;
+template <typename A>
+using Tuple1 = Tuple<A>;
+template <typename A, typename B>
+using Tuple2 = Tuple<A, B>;
+template <typename A, typename B, typename C>
+using Tuple3 = Tuple<A, B, C>;
+template <typename A, typename B, typename C, typename D>
+using Tuple4 = Tuple<A, B, C, D>;
+template <typename A, typename B, typename C, typename D, typename E>
+using Tuple5 = Tuple<A, B, C, D, E>;
+template <typename A,
+          typename B,
+          typename C,
+          typename D,
+          typename E,
+          typename F>
+using Tuple6 = Tuple<A, B, C, D, E, F>;
+template <typename A,
+          typename B,
+          typename C,
+          typename D,
+          typename E,
+          typename F,
+          typename G>
+using Tuple7 = Tuple<A, B, C, D, E, F, G>;
+template <typename A,
+          typename B,
+          typename C,
+          typename D,
+          typename E,
+          typename F,
+          typename G,
+          typename H>
+using Tuple8 = Tuple<A, B, C, D, E, F, G, H>;
+
+#elif defined(BUILDING_CEF_SHARED)
+// When building CEF include the Chromium header directly.
+#include "base/tuple.h"
+#else  // !BUILDING_CEF_SHARED
+// The following is substantially similar to the Chromium implementation.
+// If the Chromium implementation diverges the below implementation should be
+// updated to match.
+
+#include "include/base/cef_bind_helpers.h"
+
 // Traits ----------------------------------------------------------------------
 //
 // A simple traits class for tuple arguments.
@@ -148,7 +220,7 @@ struct Tuple3 {
   Tuple3(typename TupleTraits<A>::ParamType a,
          typename TupleTraits<B>::ParamType b,
          typename TupleTraits<C>::ParamType c)
-      : a(a), b(b), c(c) {
+      : a(a), b(b), c(c){
   }
 
   A a;
@@ -574,57 +646,86 @@ inline void DispatchToMethod(ObjT* obj, Method method, const Tuple0& arg) {
 
 template <class ObjT, class Method, class A>
 inline void DispatchToMethod(ObjT* obj, Method method, const A& arg) {
-  (obj->*method)(arg);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg));
 }
 
 template <class ObjT, class Method, class A>
 inline void DispatchToMethod(ObjT* obj, Method method, const Tuple1<A>& arg) {
-#if defined(OS_CHROMEOS)
-  // To troubleshoot crosbug.com/7327.
-  CHECK(obj);
-  CHECK(&arg);
-  CHECK(method);
-#endif
-  (obj->*method)(arg.a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a));
 }
 
 template<class ObjT, class Method, class A, class B>
 inline void DispatchToMethod(ObjT* obj,
                              Method method,
                              const Tuple2<A, B>& arg) {
-  (obj->*method)(arg.a, arg.b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b));
 }
 
 template<class ObjT, class Method, class A, class B, class C>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<A, B, C>& arg) {
-  (obj->*method)(arg.a, arg.b, arg.c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<A, B, C, D>& arg) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D, class E>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<A, B, C, D, E>& arg) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d, arg.e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+                 base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D, class E,
          class F>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<A, B, C, D, E, F>& arg) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d, arg.e, arg.f);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+                 base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+                 base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D, class E,
          class F, class G>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple7<A, B, C, D, E, F, G>& arg) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d, arg.e, arg.f, arg.g);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+                 base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+                 base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f),
+                 base::cef_internal::UnwrapTraits<G>::Unwrap(arg.g));
+}
+
+template<class ObjT, class Method, class A, class B, class C, class D, class E,
+         class F, class G, class H>
+inline void DispatchToMethod(ObjT* obj, Method method,
+                             const Tuple8<A, B, C, D, E, F, G, H>& arg) {
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+                 base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+                 base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f),
+                 base::cef_internal::UnwrapTraits<G>::Unwrap(arg.g),
+                 base::cef_internal::UnwrapTraits<H>::Unwrap(arg.h));
 }
 
 // Static Dispatchers with no out params.
@@ -641,49 +742,77 @@ inline void DispatchToFunction(Function function, const A& arg) {
 
 template <class Function, class A>
 inline void DispatchToFunction(Function function, const Tuple1<A>& arg) {
-  (*function)(arg.a);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a));
 }
 
 template<class Function, class A, class B>
 inline void DispatchToFunction(Function function, const Tuple2<A, B>& arg) {
-  (*function)(arg.a, arg.b);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b));
 }
 
 template<class Function, class A, class B, class C>
 inline void DispatchToFunction(Function function, const Tuple3<A, B, C>& arg) {
-  (*function)(arg.a, arg.b, arg.c);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+              base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c));
 }
 
 template<class Function, class A, class B, class C, class D>
 inline void DispatchToFunction(Function function,
                                const Tuple4<A, B, C, D>& arg) {
-  (*function)(arg.a, arg.b, arg.c, arg.d);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+              base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+              base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d));
 }
 
 template<class Function, class A, class B, class C, class D, class E>
 inline void DispatchToFunction(Function function,
                                const Tuple5<A, B, C, D, E>& arg) {
-  (*function)(arg.a, arg.b, arg.c, arg.d, arg.e);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+              base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+              base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+              base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e));
 }
 
 template<class Function, class A, class B, class C, class D, class E, class F>
 inline void DispatchToFunction(Function function,
                                const Tuple6<A, B, C, D, E, F>& arg) {
-  (*function)(arg.a, arg.b, arg.c, arg.d, arg.e, arg.f);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+              base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+              base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+              base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+              base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f));
 }
 
 template<class Function, class A, class B, class C, class D, class E, class F,
          class G>
 inline void DispatchToFunction(Function function,
                                const Tuple7<A, B, C, D, E, F, G>& arg) {
-  (*function)(arg.a, arg.b, arg.c, arg.d, arg.e, arg.f, arg.g);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+              base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+              base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+              base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+              base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f),
+              base::cef_internal::UnwrapTraits<G>::Unwrap(arg.g));
 }
 
 template<class Function, class A, class B, class C, class D, class E, class F,
          class G, class H>
 inline void DispatchToFunction(Function function,
                                const Tuple8<A, B, C, D, E, F, G, H>& arg) {
-  (*function)(arg.a, arg.b, arg.c, arg.d, arg.e, arg.f, arg.g, arg.h);
+  (*function)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+              base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+              base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+              base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+              base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+              base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f),
+              base::cef_internal::UnwrapTraits<G>::Unwrap(arg.g),
+              base::cef_internal::UnwrapTraits<H>::Unwrap(arg.h));
 }
 
 // Dispatchers with 0 out param (as a Tuple0).
@@ -697,46 +826,61 @@ inline void DispatchToMethod(ObjT* obj,
 
 template <class ObjT, class Method, class A>
 inline void DispatchToMethod(ObjT* obj, Method method, const A& arg, Tuple0*) {
-  (obj->*method)(arg);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg));
 }
 
 template <class ObjT, class Method, class A>
 inline void DispatchToMethod(ObjT* obj,
                              Method method,
                              const Tuple1<A>& arg, Tuple0*) {
-  (obj->*method)(arg.a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a));
 }
 
 template<class ObjT, class Method, class A, class B>
 inline void DispatchToMethod(ObjT* obj,
                              Method method,
                              const Tuple2<A, B>& arg, Tuple0*) {
-  (obj->*method)(arg.a, arg.b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b));
 }
 
 template<class ObjT, class Method, class A, class B, class C>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<A, B, C>& arg, Tuple0*) {
-  (obj->*method)(arg.a, arg.b, arg.c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<A, B, C, D>& arg, Tuple0*) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D, class E>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<A, B, C, D, E>& arg, Tuple0*) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d, arg.e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+                 base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e));
 }
 
 template<class ObjT, class Method, class A, class B, class C, class D, class E,
          class F>
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<A, B, C, D, E, F>& arg, Tuple0*) {
-  (obj->*method)(arg.a, arg.b, arg.c, arg.d, arg.e, arg.f);
+  (obj->*method)(base::cef_internal::UnwrapTraits<A>::Unwrap(arg.a),
+                 base::cef_internal::UnwrapTraits<B>::Unwrap(arg.b),
+                 base::cef_internal::UnwrapTraits<C>::Unwrap(arg.c),
+                 base::cef_internal::UnwrapTraits<D>::Unwrap(arg.d),
+                 base::cef_internal::UnwrapTraits<E>::Unwrap(arg.e),
+                 base::cef_internal::UnwrapTraits<F>::Unwrap(arg.f));
 }
 
 // Dispatchers with 1 out param.
@@ -762,7 +906,7 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple1<InA>& in,
                              Tuple1<OutA>* out) {
-  (obj->*method)(in.a, &out->a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a), &out->a);
 }
 
 template<class ObjT, class Method, class InA, class InB,
@@ -770,7 +914,9 @@ template<class ObjT, class Method, class InA, class InB,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple2<InA, InB>& in,
                              Tuple1<OutA>* out) {
-  (obj->*method)(in.a, in.b, &out->a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 &out->a);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC,
@@ -778,7 +924,10 @@ template<class ObjT, class Method, class InA, class InB, class InC,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<InA, InB, InC>& in,
                              Tuple1<OutA>* out) {
-  (obj->*method)(in.a, in.b, in.c, &out->a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 &out->a);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC, class InD,
@@ -786,7 +935,11 @@ template<class ObjT, class Method, class InA, class InB, class InC, class InD,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<InA, InB, InC, InD>& in,
                              Tuple1<OutA>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, &out->a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 &out->a);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC, class InD,
@@ -794,7 +947,12 @@ template<class ObjT, class Method, class InA, class InB, class InC, class InD,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<InA, InB, InC, InD, InE>& in,
                              Tuple1<OutA>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, &out->a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 &out->a);
 }
 
 template<class ObjT, class Method,
@@ -803,7 +961,13 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<InA, InB, InC, InD, InE, InF>& in,
                              Tuple1<OutA>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, in.f, &out->a);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 base::cef_internal::UnwrapTraits<InF>::Unwrap(in.f),
+                 &out->a);
 }
 
 // Dispatchers with 2 out params.
@@ -829,7 +993,8 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple1<InA>& in,
                              Tuple2<OutA, OutB>* out) {
-  (obj->*method)(in.a, &out->a, &out->b);
+  (obj->*method)(
+      base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a), &out->a, &out->b);
 }
 
 template<class ObjT, class Method, class InA, class InB,
@@ -837,7 +1002,10 @@ template<class ObjT, class Method, class InA, class InB,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple2<InA, InB>& in,
                              Tuple2<OutA, OutB>* out) {
-  (obj->*method)(in.a, in.b, &out->a, &out->b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 &out->a,
+                 &out->b);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC,
@@ -845,7 +1013,11 @@ template<class ObjT, class Method, class InA, class InB, class InC,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<InA, InB, InC>& in,
                              Tuple2<OutA, OutB>* out) {
-  (obj->*method)(in.a, in.b, in.c, &out->a, &out->b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 &out->a,
+                 &out->b);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC, class InD,
@@ -853,7 +1025,12 @@ template<class ObjT, class Method, class InA, class InB, class InC, class InD,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<InA, InB, InC, InD>& in,
                              Tuple2<OutA, OutB>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, &out->a, &out->b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 &out->a,
+                 &out->b);
 }
 
 template<class ObjT, class Method,
@@ -862,7 +1039,13 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<InA, InB, InC, InD, InE>& in,
                              Tuple2<OutA, OutB>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, &out->a, &out->b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 &out->a,
+                 &out->b);
 }
 
 template<class ObjT, class Method,
@@ -871,7 +1054,14 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<InA, InB, InC, InD, InE, InF>& in,
                              Tuple2<OutA, OutB>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, in.f, &out->a, &out->b);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 base::cef_internal::UnwrapTraits<InF>::Unwrap(in.f),
+                 &out->a,
+                 &out->b);
 }
 
 // Dispatchers with 3 out params.
@@ -897,7 +1087,10 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple1<InA>& in,
                              Tuple3<OutA, OutB, OutC>* out) {
-  (obj->*method)(in.a, &out->a, &out->b, &out->c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 &out->a,
+                 &out->b,
+                 &out->c);
 }
 
 template<class ObjT, class Method, class InA, class InB,
@@ -905,7 +1098,11 @@ template<class ObjT, class Method, class InA, class InB,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple2<InA, InB>& in,
                              Tuple3<OutA, OutB, OutC>* out) {
-  (obj->*method)(in.a, in.b, &out->a, &out->b, &out->c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 &out->a,
+                 &out->b,
+                 &out->c);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC,
@@ -913,7 +1110,12 @@ template<class ObjT, class Method, class InA, class InB, class InC,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<InA, InB, InC>& in,
                              Tuple3<OutA, OutB, OutC>* out) {
-  (obj->*method)(in.a, in.b, in.c, &out->a, &out->b, &out->c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 &out->a,
+                 &out->b,
+                 &out->c);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC, class InD,
@@ -921,7 +1123,13 @@ template<class ObjT, class Method, class InA, class InB, class InC, class InD,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<InA, InB, InC, InD>& in,
                              Tuple3<OutA, OutB, OutC>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, &out->a, &out->b, &out->c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 &out->a,
+                 &out->b,
+                 &out->c);
 }
 
 template<class ObjT, class Method,
@@ -930,7 +1138,14 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<InA, InB, InC, InD, InE>& in,
                              Tuple3<OutA, OutB, OutC>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, &out->a, &out->b, &out->c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 &out->a,
+                 &out->b,
+                 &out->c);
 }
 
 template<class ObjT, class Method,
@@ -939,7 +1154,15 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<InA, InB, InC, InD, InE, InF>& in,
                              Tuple3<OutA, OutB, OutC>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, in.f, &out->a, &out->b, &out->c);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 base::cef_internal::UnwrapTraits<InF>::Unwrap(in.f),
+                 &out->a,
+                 &out->b,
+                 &out->c);
 }
 
 // Dispatchers with 4 out params.
@@ -957,7 +1180,11 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const InA& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in, &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 template<class ObjT, class Method, class InA,
@@ -965,7 +1192,11 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple1<InA>& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in.a, &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 template<class ObjT, class Method, class InA, class InB,
@@ -973,7 +1204,12 @@ template<class ObjT, class Method, class InA, class InB,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple2<InA, InB>& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in.a, in.b, &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC,
@@ -981,7 +1217,13 @@ template<class ObjT, class Method, class InA, class InB, class InC,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<InA, InB, InC>& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in.a, in.b, in.c, &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC, class InD,
@@ -989,7 +1231,14 @@ template<class ObjT, class Method, class InA, class InB, class InC, class InD,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<InA, InB, InC, InD>& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 template<class ObjT, class Method,
@@ -998,8 +1247,15 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<InA, InB, InC, InD, InE>& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e,
-                 &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 template<class ObjT, class Method,
@@ -1008,8 +1264,16 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<InA, InB, InC, InD, InE, InF>& in,
                              Tuple4<OutA, OutB, OutC, OutD>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, in.f,
-                 &out->a, &out->b, &out->c, &out->d);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 base::cef_internal::UnwrapTraits<InF>::Unwrap(in.f),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d);
 }
 
 // Dispatchers with 5 out params.
@@ -1027,7 +1291,12 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const InA& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in, &out->a, &out->b, &out->c, &out->d, &out->e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
+                 &out->e);
 }
 
 template<class ObjT, class Method, class InA,
@@ -1035,7 +1304,12 @@ template<class ObjT, class Method, class InA,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple1<InA>& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in.a, &out->a, &out->b, &out->c, &out->d, &out->e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
+                 &out->e);
 }
 
 template<class ObjT, class Method, class InA, class InB,
@@ -1043,7 +1317,13 @@ template<class ObjT, class Method, class InA, class InB,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple2<InA, InB>& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in.a, in.b, &out->a, &out->b, &out->c, &out->d, &out->e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
+                 &out->e);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC,
@@ -1051,7 +1331,14 @@ template<class ObjT, class Method, class InA, class InB, class InC,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple3<InA, InB, InC>& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in.a, in.b, in.c, &out->a, &out->b, &out->c, &out->d, &out->e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
+                 &out->e);
 }
 
 template<class ObjT, class Method, class InA, class InB, class InC, class InD,
@@ -1059,7 +1346,14 @@ template<class ObjT, class Method, class InA, class InB, class InC, class InD,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple4<InA, InB, InC, InD>& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, &out->a, &out->b, &out->c, &out->d,
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
                  &out->e);
 }
 
@@ -1069,8 +1363,16 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple5<InA, InB, InC, InD, InE>& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e,
-                 &out->a, &out->b, &out->c, &out->d, &out->e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
+                 &out->e);
 }
 
 template<class ObjT, class Method,
@@ -1079,10 +1381,19 @@ template<class ObjT, class Method,
 inline void DispatchToMethod(ObjT* obj, Method method,
                              const Tuple6<InA, InB, InC, InD, InE, InF>& in,
                              Tuple5<OutA, OutB, OutC, OutD, OutE>* out) {
-  (obj->*method)(in.a, in.b, in.c, in.d, in.e, in.f,
-                 &out->a, &out->b, &out->c, &out->d, &out->e);
+  (obj->*method)(base::cef_internal::UnwrapTraits<InA>::Unwrap(in.a),
+                 base::cef_internal::UnwrapTraits<InB>::Unwrap(in.b),
+                 base::cef_internal::UnwrapTraits<InC>::Unwrap(in.c),
+                 base::cef_internal::UnwrapTraits<InD>::Unwrap(in.d),
+                 base::cef_internal::UnwrapTraits<InE>::Unwrap(in.e),
+                 base::cef_internal::UnwrapTraits<InF>::Unwrap(in.f),
+                 &out->a,
+                 &out->b,
+                 &out->c,
+                 &out->d,
+                 &out->e);
 }
 
-#endif  // BASE_TUPLE_H__
+#endif // !BUILDING_CEF_SHARED
 
-#endif  // CEF_INCLUDE_INTERNAL_CEF_TUPLE_H_
+#endif  // CEF_INCLUDE_BASE_CEF_TUPLE_H_

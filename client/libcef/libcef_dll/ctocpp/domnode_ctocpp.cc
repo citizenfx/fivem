@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -10,7 +10,6 @@
 // for more information.
 //
 
-#include "libcef_dll/cpptoc/domevent_listener_cpptoc.h"
 #include "libcef_dll/ctocpp/domdocument_ctocpp.h"
 #include "libcef_dll/ctocpp/domnode_ctocpp.h"
 #include "libcef_dll/transfer_util.h"
@@ -273,29 +272,6 @@ CefRefPtr<CefDOMNode> CefDOMNodeCToCpp::GetLastChild() {
   return CefDOMNodeCToCpp::Wrap(_retval);
 }
 
-void CefDOMNodeCToCpp::AddEventListener(const CefString& eventType,
-    CefRefPtr<CefDOMEventListener> listener, bool useCapture) {
-  if (CEF_MEMBER_MISSING(struct_, add_event_listener))
-    return;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: eventType; type: string_byref_const
-  DCHECK(!eventType.empty());
-  if (eventType.empty())
-    return;
-  // Verify param: listener; type: refptr_diff
-  DCHECK(listener.get());
-  if (!listener.get())
-    return;
-
-  // Execute
-  struct_->add_event_listener(struct_,
-      eventType.GetStruct(),
-      CefDOMEventListenerCppToC::Wrap(listener),
-      useCapture);
-}
-
 CefString CefDOMNodeCToCpp::GetElementTagName() {
   if (CEF_MEMBER_MISSING(struct_, get_element_tag_name))
     return CefString();
@@ -430,7 +406,7 @@ CefString CefDOMNodeCToCpp::GetElementInnerText() {
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefDOMNodeCToCpp, CefDOMNode,
+template<> base::AtomicRefCount CefCToCpp<CefDOMNodeCToCpp, CefDOMNode,
     cef_domnode_t>::DebugObjCt = 0;
 #endif
 

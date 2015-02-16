@@ -32,21 +32,25 @@
 #define CEF_INCLUDE_INTERNAL_CEF_TYPES_WIN_H_
 #pragma once
 
-#include "include/internal/cef_build.h"
+#include "include/base/cef_build.h"
 
 #if defined(OS_WIN)
 #include <windows.h>
 #include "include/internal/cef_string.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // Handle types.
 #define cef_cursor_handle_t HCURSOR
 #define cef_event_handle_t MSG*
 #define cef_window_handle_t HWND
 #define cef_text_input_context_t void*
+
+#define kNullCursorHandle NULL
+#define kNullEventHandle NULL
+#define kNullWindowHandle NULL
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ///
 // Structure representing CefExecuteProcess arguments.

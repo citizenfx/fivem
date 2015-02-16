@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -40,7 +40,7 @@ bool CefSchemeRegistrarCToCpp::AddCustomScheme(const CefString& scheme_name,
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefSchemeRegistrarCToCpp, CefSchemeRegistrar,
-    cef_scheme_registrar_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCpp<CefSchemeRegistrarCToCpp,
+    CefSchemeRegistrar, cef_scheme_registrar_t>::DebugObjCt = 0;
 #endif
 

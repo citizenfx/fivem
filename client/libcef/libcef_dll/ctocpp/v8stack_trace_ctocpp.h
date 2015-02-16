@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefV8StackTraceCToCpp
   explicit CefV8StackTraceCToCpp(cef_v8stack_trace_t* str)
       : CefCToCpp<CefV8StackTraceCToCpp, CefV8StackTrace, cef_v8stack_trace_t>(
           str) {}
-  virtual ~CefV8StackTraceCToCpp() {}
 
   // CefV8StackTrace methods
   virtual bool IsValid() OVERRIDE;

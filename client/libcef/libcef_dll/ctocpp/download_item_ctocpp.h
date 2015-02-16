@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefDownloadItemCToCpp
   explicit CefDownloadItemCToCpp(cef_download_item_t* str)
       : CefCToCpp<CefDownloadItemCToCpp, CefDownloadItem, cef_download_item_t>(
           str) {}
-  virtual ~CefDownloadItemCToCpp() {}
 
   // CefDownloadItem methods
   virtual bool IsValid() OVERRIDE;
@@ -47,6 +46,7 @@ class CefDownloadItemCToCpp
   virtual CefString GetFullPath() OVERRIDE;
   virtual uint32 GetId() OVERRIDE;
   virtual CefString GetURL() OVERRIDE;
+  virtual CefString GetOriginalUrl() OVERRIDE;
   virtual CefString GetSuggestedFileName() OVERRIDE;
   virtual CefString GetContentDisposition() OVERRIDE;
   virtual CefString GetMimeType() OVERRIDE;

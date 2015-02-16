@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -31,7 +31,6 @@ class CefSchemeRegistrarCToCpp
   explicit CefSchemeRegistrarCToCpp(cef_scheme_registrar_t* str)
       : CefCToCpp<CefSchemeRegistrarCToCpp, CefSchemeRegistrar,
           cef_scheme_registrar_t>(str) {}
-  virtual ~CefSchemeRegistrarCToCpp() {}
 
   // CefSchemeRegistrar methods
   virtual bool AddCustomScheme(const CefString& scheme_name, bool is_standard,
