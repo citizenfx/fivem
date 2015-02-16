@@ -66,6 +66,7 @@ void TcpStreamSocket::OnEvent(HANDLE handle)
 
 		if (errorCode == 0)
 		{
+			m_state = State::Connected;
 			m_connectionCompletionEvent.set(Result<void>());
 		}
 		else
