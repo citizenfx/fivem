@@ -39,6 +39,9 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
+	command_line->AppendSwitch("disable-gpu");
+	command_line->AppendSwitch("disable-gpu-compositing");
+	command_line->AppendSwitch("enable-begin-frame-scheduling");
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)

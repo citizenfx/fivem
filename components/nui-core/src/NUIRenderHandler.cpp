@@ -65,9 +65,8 @@ void NUIRenderHandler::OnPopupShow(CefRefPtr<CefBrowser> browser, bool show)
 	// if we're hiding the popup, redraw the view that the popup was drawn on
 	if (!show)
 	{
-		CefRect rect = m_popupRect;
 		m_popupRect.Set(0, 0, 0, 0);
-		browser->GetHost()->Invalidate(rect, PET_VIEW);
+		browser->GetHost()->Invalidate(PET_VIEW);
 	}
 }
 
@@ -121,9 +120,7 @@ void NUIRenderHandler::UpdatePopup()
 		{
 			m_paintingPopup = true;
 
-			CefRect clientPopupRect(0, 0, m_popupRect.width, m_popupRect.height);
-
-			m_owner->GetBrowser()->GetHost()->Invalidate(clientPopupRect, PET_POPUP);
+			m_owner->GetBrowser()->GetHost()->Invalidate(PET_POPUP);
 
 			m_paintingPopup = false;
 		}

@@ -77,6 +77,7 @@ void NUIWindow::Initialize(CefString url)
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
+	settings.windowless_frame_rate = 60;
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
@@ -208,6 +209,5 @@ void NUIWindow::SetPaintType(NUIPaintType type)
 
 void NUIWindow::Invalidate()
 {
-	CefRect fullRect(0, 0, m_width, m_height);
-	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(fullRect, PET_VIEW);
+	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(PET_VIEW);
 }
