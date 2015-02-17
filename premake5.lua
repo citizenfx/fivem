@@ -211,7 +211,8 @@ else
 
 		includedirs
 		{
-			"client/citicore/"
+			"client/citicore/",
+			"server/launcher/include/"
 		}
 
 		files
@@ -219,7 +220,7 @@ else
 			"server/launcher/**.cpp", "server/launcher/**.h"
 		}
 
-		pchsource "server/launcher/StdInc.cpp"
+		pchsource "server/launcher/src/StdInc.cpp"
 		pchheader "StdInc.h"
 
 		targetname "FXServer"

@@ -11,7 +11,7 @@
 #include "FxGameComponent.h"
 
 #ifdef _WIN32
-#define PLATFORM_LIBRARY_STRING "%s.dll"
+#define PLATFORM_LIBRARY_STRING L"%s.dll"
 #else
 #define PLATFORM_LIBRARY_STRING "lib%s.so"
 #endif
@@ -82,7 +82,7 @@ void ComponentLoader::Initialize()
 
 		free(nameStr);
 		
-		AddComponent(new DllGameComponent(va(_P(PLATFORM_LIBRARY_STRING), nameWide.c_str())));
+		AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, nameWide.c_str())));
 	}
 
 	for (auto& component : components)

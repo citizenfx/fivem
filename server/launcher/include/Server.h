@@ -5,12 +5,13 @@
  * regarding licensing.
  */
 
-#include "StdInc.h"
-#include <ComponentLoader.h>
+#pragma once
 
-int main(int argc, char* argv[])
+namespace fx
 {
-	ComponentLoader* loader = ComponentLoader::GetInstance();
-
-	loader->Initialize();
+class Server
+{
+public:
+	void Start(int argc, char* argv[]);
+};
 }
