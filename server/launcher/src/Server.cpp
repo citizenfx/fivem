@@ -16,5 +16,16 @@ void Server::Start(int argc, char* argv[])
 {
 	ComponentLoader* loader = ComponentLoader::GetInstance();
 	loader->Initialize();
+
+	while (true)
+	{
+		RunFrame();
+	}
+}
+
+void Server::RunFrame()
+{
+	// TODO: somehow select-tick on something?
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 }

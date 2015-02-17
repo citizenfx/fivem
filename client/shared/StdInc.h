@@ -77,6 +77,7 @@
 #include <atomic>
 #include <locale>
 #include <codecvt>
+#include <thread>
 
 // our common includes
 #define COMPONENT_EXPORT

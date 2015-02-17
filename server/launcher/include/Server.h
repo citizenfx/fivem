@@ -11,6 +11,9 @@ namespace fx
 {
 class Server
 {
+private:
+	void RunFrame();
+
 public:
 	void Start(int argc, char* argv[]);
 };
