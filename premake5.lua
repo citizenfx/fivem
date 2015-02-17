@@ -31,6 +31,9 @@ files = function(...)
 
 	configuration "not windows"
 		excludes { "**/*.Win32.cpp" }
+
+	-- reset configuration
+	configuration {}
 end
 
 -- override for GCC-style CXXFLAGS
@@ -43,6 +46,70 @@ function premake.tools.gcc.getcxxflags(cfg)
 
     return r
 end
+
+local config = premake.config
+
+function premake.tools.gcc.ldflags.kind.SharedLib(cfg)
+	local r = { iif(cfg.system == premake.MACOSX, "-dynamiclib", "-shared") }
+	if cfg.system == "windows" and not cfg.flags.NoImportLib then
+		table.insert(r, '-Wl,--out-implib="' .. cfg.linktarget.relpath .. '"')
+	elseif cfg.system == premake.LINUX then
+		table.insert(r, '-Wl,-soname="' .. cfg.linktarget.name .. '"')
+	elseif cfg.system == premake.MACOSX then
+		table.insert(r, '-Wl,-install_name,"@rpath/' .. cfg.linktarget.name .. '"')
+	end
+	return r
+end
+
+function premake.tools.gcc.getlinks(cfg, systemonly)
+	local result = {}
+
+	-- Don't use the -l form for sibling libraries, since they may have
+	-- custom prefixes or extensions that will confuse the linker. Instead
+	-- just list out the full relative path to the library.
+
+	if not systemonly then
+		local siblings = config.getlinks(cfg, "siblings", "fullpath")
+		local sharedlibextension = ".so"
+		sharedlibextension = iif(cfg.system == premake.WINDOWS, ".dll", sharedlibextension)
+		sharedlibextension = iif(cfg.system == premake.MACOSX, ".dylib", sharedlibextension)
+		for _, sibling in ipairs(siblings) do
+			if path.getextension(sibling) == sharedlibextension then
+				local fullpath = path.getabsolute(path.rebase(path.getdirectory(sibling), cfg.location, os.getcwd()))
+				local rpath = path.getrelative(cfg.targetdir, fullpath)
+				if cfg.system == premake.LINUX then
+					rpath = iif(rpath == ".", "", "/" .. rpath)
+					rpath = " -Wl,-rpath,'$$ORIGIN" .. rpath .. "'"
+				elseif cfg.system == premake.MACOSX then
+					rpath = " -Wl,-rpath,'@loader_path/" .. rpath .. "'"
+				else
+					rpath = ""
+				end
+				if (#rpath > 0) and not table.contains(result, rpath) then
+					table.insert(result, rpath)
+				end
+			end
+
+			table.insert(result, sibling)
+		end
+	end
+
+	-- The "-l" flag is fine for system libraries
+
+	local links = config.getlinks(cfg, "system", "fullpath")
+	for _, link in ipairs(links) do
+		if path.isframework(link) then
+			table.insert(result, "-framework " .. path.getbasename(link))
+		elseif path.isobjectfile(link) then
+			table.insert(result, link)
+		else
+			table.insert(result, "-l" .. path.getbasename(link))
+		end
+	end
+
+	return result
+end
+
 
 solution "CitizenMP"
 	configurations { "Debug", "Release" }
@@ -58,17 +125,29 @@ solution "CitizenMP"
 	libdirs { "deplibs/lib/" }
 
 	location ("build/" .. _OPTIONS['game'])
+
+	if _OPTIONS['game'] == 'server' then
+		location ("build/server/" .. os.get())
+	end
 	
 	configuration "Debug*"
 		targetdir ("bin/" .. _OPTIONS['game'] .. "/debug")
 		defines "NDEBUG"
 
 		defines { '_ITERATOR_DEBUG_LEVEL=0' }
+
+		if _OPTIONS['game'] == 'server' then
+			targetdir ("bin/server/" .. os.get() .. "/debug")
+		end
 		
 	configuration "Release*"
 		targetdir ("bin/" .. _OPTIONS['game'] .. "/release")
 		defines "NDEBUG"
 		optimize "Speed"
+
+		if _OPTIONS['game'] == 'server' then
+			targetdir ("bin/server/" .. os.get() .. "/release")
+		end
 		
 	configuration "game=ny"
 		defines "GTA_NY"
@@ -123,10 +202,31 @@ if _OPTIONS['game'] ~= 'server' then
 		
 		configuration "windows"
 			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
+else
+	project "DuplicityMain"
+		language "C++"
+		kind "ConsoleApp"
+
+		links { "Shared", "CitiCore" }
+
+		includedirs
+		{
+			"client/citicore/"
+		}
+
+		files
+		{
+			"server/launcher/**.cpp", "server/launcher/**.h"
+		}
+
+		pchsource "server/launcher/StdInc.cpp"
+		pchheader "StdInc.h"
+
+		targetname "FXServer"
 end
 		
 	project "CitiCore"
-		targetname "CoreRT"
+		targetname "CoreRT" 
 		language "C++"
 		kind "SharedLib"
 
@@ -141,6 +241,9 @@ end
 
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
+
+		configuration "not windows"
+			links { "dl", "c++" }
 
 if _OPTIONS['game'] ~= 'server' then
 	project "CitiGame"
@@ -754,15 +857,6 @@ end
 		language "C++"
 		kind "SharedLib"
 
-		configuration "windows"
-			buildoptions "/MP"
-
-			files {
-				'components/' .. name .. "/component.rc",
-			}
-
-		configuration()
-
 		includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
 		files {
 			'components/' .. name .. "/src/**.cpp",
@@ -797,6 +891,29 @@ end
 			configuration {}
 			dofile('components/' .. dep .. '/component.lua')
 		end
+
+		configuration "windows"
+			buildoptions "/MP"
+
+			files {
+				'components/' .. name .. "/component.rc",
+			}
+
+		configuration "not windows"
+			files {
+				'components/' .. name .. "/component.json"
+			}
+
+		filter { "system:not windows", "files:**/component.json" }
+			buildmessage 'Copying %{file.relpath}'
+
+			buildcommands {
+				'{COPY} "%{file.relpath}" "%{cfg.targetdir}/lib' .. name .. '.json"'
+			}
+
+			buildoutputs {
+				"%{cfg.targetdir}/lib" .. name .. ".json"
+			}
 
 		if not _OPTIONS['tests'] then
 			return

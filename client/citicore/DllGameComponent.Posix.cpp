@@ -26,10 +26,12 @@ Component* DllGameComponent::CreateComponent()
 
 void DllGameComponent::ReadManifest()
 {
-	FILE* file = _pfopen(va(_P("%s.json"), m_path.c_str()), _P("r"));
+	const pchar_t* filename = va(_P("%s.json"), m_path.substr(0, m_path.find_last_of('.')).c_str());
+	FILE* file = _pfopen(filename, _P("r"));
 	
 	if (!file)
 	{
+		trace("Could not open component manifest file %s.\n", filename);
 		return;
 	}
 
