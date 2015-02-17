@@ -13,7 +13,7 @@
 class DllGameComponent : public ComponentData
 {
 private:
-	std::wstring m_path;
+	fwPlatformString m_path;
 
 	rapidjson::Document m_document;
 
@@ -21,7 +21,7 @@ private:
 	void ReadManifest();
 
 public:
-	DllGameComponent(const wchar_t* path);
+	DllGameComponent(const pchar_t* path);
 
 	virtual std::string GetName();
 

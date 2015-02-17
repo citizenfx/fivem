@@ -226,7 +226,7 @@ private:
 	class RefCount
 	{
 	private:
-		uint32_t m_count;
+		std::atomic<uint32_t> m_count;
 
 	public:
 		RefCount()
@@ -234,7 +234,7 @@ private:
 		{
 		}
 
-		inline uint32_t& GetCount()
+		inline std::atomic<uint32_t>& GetCount()
 		{
 			return m_count;
 		}
@@ -274,31 +274,31 @@ public:
 };
 
 template<typename... Args>
-class fwAction : public fwRefContainer < fwActionImpl<Args...> >
+class fwAction : public fwRefContainer<fwActionImpl<Args...>>
 {
 public:
 	fwAction()
-		: fwRefContainer()
+		: fwRefContainer<fwActionImpl<Args...>>()
 	{
 
 	}
 
 	fwAction(const std::function<void(Args...)>& stlFunc)
-		: fwRefContainer(new fwActionImpl<Args...>(stlFunc))
+		: fwRefContainer<fwActionImpl<Args...>>(new fwActionImpl<Args...>(stlFunc))
 	{
 
 	}
 
 	template<typename Fx>
 	fwAction(const Fx& func)
-		: fwRefContainer(new fwActionImpl<Args...>(std::function<void(Args...)>(func)))
+		: fwRefContainer<fwActionImpl<Args...>>(new fwActionImpl<Args...>(std::function<void(Args...)>(func)))
 	{
 
 	}
 
 	void operator()(Args... args)
 	{
-		GetRef()->Invoke(args...);
+		this->GetRef()->Invoke(args...);
 	}
 };
 
@@ -382,13 +382,13 @@ public:
 	template<typename T>
 	void Connect(T func)
 	{
-		fwEventConnectProxy<std::is_same<std::result_of_t<decltype(&T::operator())(T, Args...)>, bool>::value>::Internal<Args...>::Proxy(*this, func, 0);
+		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>, bool>::value>::template Internal<Args...>::Proxy(*this, func, 0);
 	}
 
 	template<typename T>
 	void Connect(T func, int order)
 	{
-		fwEventConnectProxy<std::is_same<std::result_of_t<decltype(&T::operator())(T, Args...)>, bool>::value>::Internal<Args...>::Proxy(*this, func, order);
+		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>, bool>::value>::template Internal<Args...>::Proxy(*this, func, order);
 	}
 
 private:

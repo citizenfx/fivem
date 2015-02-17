@@ -13,19 +13,19 @@
 // Returns the Citizen root directory.
 //
 
-std::wstring GetAbsoluteCitPath();
+fwPlatformString GetAbsoluteCitPath();
 
 //
 // Returns the game root directory.
 //
 
-std::wstring GetAbsoluteGamePath();
+fwPlatformString GetAbsoluteGamePath();
 
 //
 // Returns a said path relative to the Citizen base installation directory (containing the launcher executable).
 //
 
-inline std::wstring MakeRelativeCitPath(std::wstring targetPath)
+inline fwPlatformString MakeRelativeCitPath(fwPlatformString targetPath)
 {
 	return GetAbsoluteCitPath() + targetPath;
 }
@@ -34,7 +34,7 @@ inline std::wstring MakeRelativeCitPath(std::wstring targetPath)
 // Returns a said path relative to the game installation directory (containing the target executable).
 //
 
-inline std::wstring MakeRelativeGamePath(std::wstring targetPath)
+inline fwPlatformString MakeRelativeGamePath(fwPlatformString targetPath)
 {
 	return GetAbsoluteGamePath() + targetPath;
 }
@@ -139,28 +139,28 @@ public:
 //
 
 #ifdef COMPILING_GAME
-#define GAME_EXPORT __declspec(dllexport)
+#define GAME_EXPORT DLL_EXPORT
 #else
-#define GAME_EXPORT __declspec(dllimport)
+#define GAME_EXPORT DLL_IMPORT
 #endif
 
 #ifdef COMPILING_HOOKS
-#define HOOKS_EXPORT __declspec(dllexport)
+#define HOOKS_EXPORT DLL_EXPORT
 #else
-#define HOOKS_EXPORT __declspec(dllimport)
+#define HOOKS_EXPORT DLL_IMPORT
 #endif
 
 #ifdef COMPILING_CORE
-#define CORE_EXPORT __declspec(dllexport)
+#define CORE_EXPORT DLL_EXPORT
 #else
-#define CORE_EXPORT __declspec(dllimport)
+#define CORE_EXPORT DLL_IMPORT
 #endif
 
 #ifdef COMPILING_GAMESPEC
-#define GAMESPEC_EXPORT __declspec(dllexport)
-#define GAMESPEC_EXPORT_VMT __declspec(dllexport)
+#define GAMESPEC_EXPORT DLL_EXPORT
+#define GAMESPEC_EXPORT_VMT DLL_EXPORT
 #else
-#define GAMESPEC_EXPORT __declspec(dllimport)
+#define GAMESPEC_EXPORT DLL_IMPORT
 #define GAMESPEC_EXPORT_VMT
 #endif
 

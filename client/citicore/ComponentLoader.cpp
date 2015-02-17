@@ -20,7 +20,7 @@ void ComponentLoader::Initialize()
 	AddComponent(m_rootComponent);
 
 	// parse and load additional components
-	FILE* componentCache = _wfopen(MakeRelativeCitPath(L"components.json").c_str(), L"rb");
+	FILE* componentCache = _pfopen(MakeRelativeCitPath(L"components.json").c_str(), _P("rb"));
 
 	if (!componentCache)
 	{
@@ -58,11 +58,9 @@ void ComponentLoader::Initialize()
 
 		components.push_back(name);
 
-		wchar_t nameWide[256];
-		mbstowcs(nameWide, name, _countof(nameWide));
-		
 		// replace colons with dashes
-		wchar_t* p = nameWide;
+		char* nameStr = strdup(name);
+		char* p = nameStr;
 
 		while (*p)
 		{
@@ -74,7 +72,11 @@ void ComponentLoader::Initialize()
 			p++;
 		}
 
-		AddComponent(new DllGameComponent(va(L"%s.dll", nameWide)));
+		fwPlatformString nameWide(nameStr);
+
+		free(nameStr);
+		
+		AddComponent(new DllGameComponent(va(_P("%s.dll"), nameWide.c_str())));
 	}
 
 	for (auto& component : components)
@@ -92,7 +94,7 @@ void ComponentLoader::Initialize()
 	}
 }
 
-void ComponentLoader::DoGameLoad(HANDLE hModule)
+void ComponentLoader::DoGameLoad(void* hModule)
 {
 	for (auto& componentName : m_loadedComponents)
 	{
@@ -173,44 +175,4 @@ void ComponentData::Load()
 	assert(m_component.GetRef());
 }
 
-bool Component::DoGameLoad(HANDLE hModule) { return true; }
-
-static HANDLE hHeap;
-
-#define BYTES_PER_PARA      16
-#define PARAS_PER_PAGE      256     /*  tunable value */
-#define BYTES_PER_PAGE      (BYTES_PER_PARA * PARAS_PER_PAGE)
-
-__declspec(dllexport) void* fwAlloc(size_t size)
-{
-	if (!hHeap)
-	{
-		hHeap = HeapCreate(0, BYTES_PER_PAGE, 0);
-	}
-
-	return HeapAlloc(hHeap, 0, size);
-}
-
-__declspec(dllexport) void fwFree(void* ptr)
-{
-	if (ptr == 0)
-	{
-		return;
-	}
-
-	HeapFree(hHeap, 0, ptr);
-}
-
-#include "CrossLibraryInterfaces.h"
-
-static IGameSpecToHooks* g_hooksDLL;
-
-__declspec(dllexport) IGameSpecToHooks* GetHooksDll()
-{
-	return g_hooksDLL;
-}
-
-__declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll)
-{
-	g_hooksDLL = dll;
-}
+bool Component::DoGameLoad(void* hModule) { return true; }

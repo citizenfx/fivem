@@ -111,6 +111,8 @@ union
 
 #if (!defined(RAGE_FORMATS_GAME_FIVE_PC) && defined(_M_IX86)) || (defined(RAGE_FORMATS_GAME_FIVE_PC) && defined(_M_AMD64))
 	T* pointer;
+#elif defined(__i386__) || defined(__amd64__)
+	T* pointer;
 #endif
 };
 

@@ -8,7 +8,7 @@
 #include "StdInc.h"
 #include "DllGameComponent.h"
 
-DllGameComponent::DllGameComponent(const wchar_t* path)
+DllGameComponent::DllGameComponent(const pchar_t* path)
 	: m_path(path)
 {
 	ReadManifest();
@@ -45,45 +45,4 @@ std::vector<ComponentId> DllGameComponent::GetDepends()
 	}
 
 	return componentIds;
-}
-
-Component* DllGameComponent::CreateComponent()
-{
-	HMODULE hModule = LoadLibrary(m_path.c_str());
-
-	if (!hModule)
-	{
-		return nullptr;
-	}
-
-	auto createComponent = (Component*(__cdecl*)())GetProcAddress(hModule, "CreateComponent");
-
-	return createComponent ? createComponent() : nullptr;
-}
-
-void DllGameComponent::ReadManifest()
-{
-	HMODULE hModule = LoadLibraryEx(m_path.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
-
-	if (!hModule)
-	{
-		return;
-	}
-
-	HRSRC hResource = FindResource(hModule, L"FXCOMPONENT", MAKEINTRESOURCE(935));
-	
-	if (hResource)
-	{
-		auto resSize = SizeofResource(hModule, hResource);
-		auto resData = LoadResource(hModule, hResource);
-
-		auto resPtr = static_cast<const char*>(LockResource(resData));
-
-		// copy into a zero-terminated std::string
-		std::string resourceString(resPtr, resSize);
-
-		m_document.Parse(resourceString.c_str());
-	}
-
-	FreeLibrary(hModule);
 }

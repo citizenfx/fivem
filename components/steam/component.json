@@ -2,7 +2,8 @@
 	"name": "steam",
 	"version": "0.1.0",
 	"dependencies": [
-		"fx[2]"
+		"fx[2]",
+		"platform:windows"
 	],
 	"provides": []
 }

@@ -1,4 +1,4 @@
-local gamenames = { "ny", "payne" }
+local gamenames = { "ny", "payne", "server" }
 
 newoption {
 	trigger		= "game",
@@ -6,7 +6,8 @@ newoption {
 	description = "Choose a game to target",
 	allowed 	= {
 		{ "ny",		"Grand Theft Auto IV" },
-		{ "payne",	"Max Payne 3" }
+		{ "payne",	"Max Payne 3" },
+		{ "server", "CitizenFX server build" }
 	}
 }
 
@@ -17,6 +18,30 @@ newoption {
 
 if not _OPTIONS['game'] then
 	_OPTIONS['game'] = 'dummy'
+end
+
+-- final override for files to exclude platform-specific files
+local origFiles = files
+
+files = function(...)
+	origFiles(...)
+
+	configuration "windows"
+		excludes { "**/*.Posix.cpp" }
+
+	configuration "not windows"
+		excludes { "**/*.Win32.cpp" }
+end
+
+-- override for GCC-style CXXFLAGS
+local getcxxflags = premake.tools.gcc.getcxxflags;
+function premake.tools.gcc.getcxxflags(cfg)
+    local r = getcxxflags(cfg)
+
+    table.insert(r, "-std=c++11")
+    table.insert(r, "-stdlib=libc++")
+
+    return r
 end
 
 solution "CitizenMP"
@@ -31,8 +56,6 @@ solution "CitizenMP"
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
 	libdirs { "deplibs/lib/" }
-
-	links { "winmm" }
 
 	location ("build/" .. _OPTIONS['game'])
 	
@@ -52,7 +75,14 @@ solution "CitizenMP"
 
 	configuration "game=payne"
 		defines "PAYNE"
-			
+
+	configuration "windows"
+		links { "winmm" }
+
+	configuration "not windows"
+		buildoptions "-fPIC"
+
+if _OPTIONS['game'] ~= 'server' then
 	project "CitiLaunch"
 		language "C++"
 		kind "WindowedApp"
@@ -93,6 +123,7 @@ solution "CitizenMP"
 		
 		configuration "windows"
 			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
+end
 		
 	project "CitiCore"
 		targetname "CoreRT"
@@ -111,6 +142,7 @@ solution "CitizenMP"
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 
+if _OPTIONS['game'] ~= 'server' then
 	project "CitiGame"
 		targetname "CitizenGame"
 		language "C++"
@@ -121,14 +153,11 @@ solution "CitizenMP"
 			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
 		}
 		
-		links { "Shared", "citicore", "yaml-cpp", "msgpack-c", "lua51", "winmm", "winhttp", "ws2_32", "libcef_dll", "libcef", "delayimp", "libnp" }
+		links { "Shared", "citicore" }
 		
 		defines "COMPILING_GAME"
 		
-		libdirs { "../vendor/luajit/src/", "client/libcef/lib/", "client/shared/np" }
 		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/include/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
-		
-		linkoptions "/DELAYLOAD:libcef.dll"
 		
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
@@ -141,12 +170,7 @@ solution "CitizenMP"
 			links { "rage-nutsnbolts-" .. _OPTIONS['game'], "http-client", "net", "resources", "downloadmgr", "nui-core" }
 
 			includedirs { "components/rage-nutsnbolts-" .. _OPTIONS['game'] .. "/include/" }
-			
-		configuration "Debug*"
-			links { "libcefd" }
-			
-		configuration "Release*"
-			links { "libcef" }
+end
 
 	--[[local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
 
@@ -167,6 +191,7 @@ solution "CitizenMP"
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
+if _OPTIONS['game'] ~= 'server' then
 	group "managed"
 
 	external 'CitiMono'
@@ -192,6 +217,7 @@ solution "CitizenMP"
 		kind 'SharedLib'
 		language 'C#'
 		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/'
+end
 			
 	if _OPTIONS['game'] == 'ny' then
 		project "GameNY"
@@ -251,6 +277,9 @@ solution "CitizenMP"
 			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
 		}
 
+		configuration "not windows"
+			excludes { "**/Hooking.*" }
+
 	project "SharedLibc"
 		targetname "shared_libc"
 		language "C++"
@@ -267,8 +296,12 @@ solution "CitizenMP"
 			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
 		}
 
+		configuration "not windows"
+			excludes { "**/Hooking.*" }
+
 	group "vendor"
 		
+if _OPTIONS['game'] ~= 'server' then
 	project "libcef_dll"
 		targetname "libcef_dll_wrapper"
 		language "C++"
@@ -286,6 +319,7 @@ solution "CitizenMP"
 		{
 			"client/libcef/libcef_dll/**.cc", "client/libcef/libcef_dll/**.cpp", "client/libcef/libcef_dll/**.h"
 		}
+end
 		
 	project "yaml-cpp"
 		targetname "yaml-cpp"
@@ -318,7 +352,8 @@ solution "CitizenMP"
 
 		includedirs { "../vendor/protobuf/src/", "../vendor/protobuf/vsprojects/" }
 
-		buildoptions "/MP /wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305"
+		configuration "windows"
+			buildoptions "/MP /wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305"
 
 		files
 		{
@@ -346,7 +381,8 @@ solution "CitizenMP"
 		files { "../vendor/zlib/*.c", "../vendor/zlib/*.h" }
 		excludes { "../vendor/zlib/example.c", "../vendor/zlib/minigzip.c" }
 
-		defines { "WIN32" }
+		configuration "windows"
+			defines { "WIN32" }
 
 	project "opus"
 		targetname "opus"
@@ -515,6 +551,7 @@ solution "CitizenMP"
 		includedirs { "../vendor/gmock/", "../vendor/gtest/" }
 		files { "../vendor/gmock/src/gmock-all.cc", "../vendor/gmock/src/gmock_main.cc" }
 		
+if _OPTIONS['game'] ~= 'server' then
 	project "tests_citigame"
 		language "C++"
 		kind "ConsoleApp"
@@ -524,6 +561,7 @@ solution "CitizenMP"
 		includedirs { "client/citigame/include/", "client/citicore/" }
 		
 		files { "tests/citigame/*.cpp", "tests/test.cpp" }
+end
 
 	project "breakpad"
 		language "C++"
@@ -533,16 +571,17 @@ solution "CitizenMP"
 
 		includedirs { "../vendor/breakpad/src/" }
 
-		files {
-			"../vendor/breakpad/src/client/windows/handler/exception_handler.cc",
-			"../vendor/breakpad/src/client/windows/crash_generation/client_info.cc",
-			"../vendor/breakpad/src/client/windows/crash_generation/crash_generation_client.cc",
-			"../vendor/breakpad/src/client/windows/crash_generation/crash_generation_server.cc",
-			"../vendor/breakpad/src/client/windows/crash_generation/minidump_generator.cc",
-			"../vendor/breakpad/src/common/windows/guid_string.cc",
-			"../vendor/breakpad/src/common/windows/http_upload.cc",
-			"../vendor/breakpad/src/common/windows/string_utils.cc",
-		}
+		configuration "windows"
+			files {
+				"../vendor/breakpad/src/client/windows/handler/exception_handler.cc",
+				"../vendor/breakpad/src/client/windows/crash_generation/client_info.cc",
+				"../vendor/breakpad/src/client/windows/crash_generation/crash_generation_client.cc",
+				"../vendor/breakpad/src/client/windows/crash_generation/crash_generation_server.cc",
+				"../vendor/breakpad/src/client/windows/crash_generation/minidump_generator.cc",
+				"../vendor/breakpad/src/common/windows/guid_string.cc",
+				"../vendor/breakpad/src/common/windows/http_upload.cc",
+				"../vendor/breakpad/src/common/windows/string_utils.cc",
+			}
 
 	project "udis86"
 		language "C"
@@ -561,8 +600,13 @@ solution "CitizenMP"
 
 		files {
 			"../vendor/cpp-uri/src/**.cpp",
-			os.getenv("BOOST_ROOT") .. "/libs/system/src/error_code.cpp" -- so there's no need for bjam messiness
 		}
+
+		configuration "windows"
+			files { os.getenv("BOOST_ROOT") .. "/libs/system/src/error_code.cpp" } -- so there's no need for bjam messiness
+
+		configuration "not windows"
+			links { "boost_system" }
 
 	group "components"
 
@@ -673,21 +717,25 @@ solution "CitizenMP"
 		local function process_dependencies(comp)
 			local isFulfilled = true
 
-			for _, dep in ipairs(comp.dependencies) do
-				-- find a match for the dependency
-				local match = find_match(dep)
+			if comp.dependencies then
+				for _, dep in ipairs(comp.dependencies) do
+					-- find a match for the dependency
+					local match = find_match(dep)
 
-				if match and not hasDeps[match.rawName] then
-					print(comp.name .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
+					if match and not hasDeps[match.rawName] then
+						print(comp.name .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
 
-					hasDeps[match.rawName] = true
+						if not match.dummy then
+							hasDeps[match.rawName] = true
+						end
 
-					isFulfilled = isFulfilled and process_dependencies(match)
-				elseif not match then
-					if not dep:match('%[') then
-						print('Dependency unresolved for ' .. dep .. ' in ' .. comp.name)
+						isFulfilled = isFulfilled and process_dependencies(match)
+					elseif not match then
+						if not dep:match('%[') then
+							print('Dependency unresolved for ' .. dep .. ' in ' .. comp.name)
 
-						return false
+							return false
+						end
 					end
 				end
 			end
@@ -706,7 +754,14 @@ solution "CitizenMP"
 		language "C++"
 		kind "SharedLib"
 
-		buildoptions "/MP"
+		configuration "windows"
+			buildoptions "/MP"
+
+			files {
+				'components/' .. name .. "/component.rc",
+			}
+
+		configuration()
 
 		includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
 		files {
@@ -714,7 +769,6 @@ solution "CitizenMP"
 			'components/' .. name .. "/src/**.cc",
 			'components/' .. name .. "/src/**.h",
 			'components/' .. name .. "/include/**.h",
-			'components/' .. name .. "/component.rc",
 			"client/common/StdInc.cpp",
 			"client/common/Error.cpp"
 		}
@@ -783,6 +837,14 @@ solution "CitizenMP"
 
 	dofile('components/config.lua')
 
+	table.insert(components, {
+		name = 'platform:' .. os.get(),
+		rawName = os.get(),
+		dummy = true
+	})
+
 	for _, comp in ipairs(components) do
-		do_component(comp.rawName, comp)
+		if not comp.dummy then
+			do_component(comp.rawName, comp)
+		end
 	end

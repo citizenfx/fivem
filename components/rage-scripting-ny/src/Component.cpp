@@ -17,7 +17,7 @@ public:
 
 	virtual bool Shutdown();
 
-	virtual bool DoGameLoad(HANDLE module);
+	virtual bool DoGameLoad(void* module);
 };
 
 bool ComponentInstance::Initialize()
@@ -27,7 +27,7 @@ bool ComponentInstance::Initialize()
 	return true;
 }
 
-bool ComponentInstance::DoGameLoad(HANDLE module)
+bool ComponentInstance::DoGameLoad(void* module)
 {
 	static hook::inject_call<void, bool> scriptInit(0x4201B0);
 

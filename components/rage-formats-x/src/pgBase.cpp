@@ -191,7 +191,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	}
 
 	// find an allocation block for this block map
-	auto& allocBlock = g_allocationData.find(blockMap);
+	auto allocBlock = g_allocationData.find(blockMap);
 
 	if (allocBlock == g_allocationData.end())
 	{

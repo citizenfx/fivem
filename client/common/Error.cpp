@@ -17,13 +17,13 @@
 
 static void SysError(const char* buffer)
 {
+#ifdef WIN32
 	HWND wnd = nullptr;
 
 #ifdef GTA_NY
 	wnd = *(HWND*)0x1849DDC;
 #endif
 
-#ifdef WIN32
 #ifdef _M_IX86
 #ifdef _DEBUG
 	if (IsDebuggerPresent())
@@ -32,10 +32,14 @@ static void SysError(const char* buffer)
 	}
 #endif
 #endif
-#endif
 
 	MessageBoxA(wnd, buffer, "CitizenFX Fatal Error", MB_OK | MB_ICONSTOP);
 	ExitProcess(1);
+#else
+	fprintf(stderr, "%s", buffer);
+
+	abort();
+#endif
 }
 
 static void GlobalErrorHandler(int eType, const char* buffer)
@@ -90,7 +94,7 @@ void GlobalError(const char* string, ...)
 
 	va_list ap;
 	va_start(ap, string);
-	int length = _vsnprintf_s(buffer, BUFFER_LENGTH, string, ap);
+	int length = vsnprintf(buffer, BUFFER_LENGTH, string, ap);
 	va_end(ap);
 
 	if (length >= BUFFER_LENGTH)
@@ -107,7 +111,7 @@ void FatalError(const char* string, ...)
 
 	va_list ap;
 	va_start(ap, string);
-	int length = _vsnprintf_s(buffer, BUFFER_LENGTH, string, ap);
+	int length = vsnprintf(buffer, BUFFER_LENGTH, string, ap);
 	va_end(ap);
 
 	if (length >= BUFFER_LENGTH)

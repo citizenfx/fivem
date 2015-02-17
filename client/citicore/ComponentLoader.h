@@ -58,7 +58,7 @@ public:
 
 	virtual bool Shutdown() = 0;
 
-	virtual bool DoGameLoad(HANDLE hModule);
+	virtual bool DoGameLoad(void* hModule);
 };
 
 class CORE_EXPORT ComponentData : public fwRefCountable
@@ -101,7 +101,7 @@ private:
 public:
 	void Initialize();
 
-	void DoGameLoad(HANDLE hModule);
+	void DoGameLoad(void* hModule);
 
 	fwRefContainer<ComponentData> LoadComponent(const char* component);
 };

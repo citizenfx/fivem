@@ -10,14 +10,14 @@
 
 void fwRefCountable::AddRef()
 {
-	InterlockedIncrement(&m_refCount.GetCount());
+	m_refCount.GetCount()++;
 }
 
 bool fwRefCountable::Release()
 {
-	uint32_t c = InterlockedDecrement(&m_refCount.GetCount());
+	uint32_t c = m_refCount.GetCount().fetch_sub(1);
 
-	if (c == 0)
+	if (c <= 1)
 	{
 		delete this;
 		return true;

@@ -10,7 +10,7 @@ public:
 
 	virtual bool Shutdown() = 0;
 
-	virtual bool DoGameLoad(HANDLE hModule);
+	virtual bool DoGameLoad(void* hModule);
 };
 
 extern "C" Component* CreateComponent();

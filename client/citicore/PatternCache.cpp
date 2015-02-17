@@ -7,10 +7,10 @@
 
 #include "StdInc.h"
 
-void __declspec(dllexport) Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
+void DLL_EXPORT Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
 {
-	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
-	FILE* hints = _wfopen(hintsFile.c_str(), L"ab");
+	fwPlatformString hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
+	FILE* hints = _pfopen(hintsFile.c_str(), _P("ab"));
 
 	if (hints)
 	{
