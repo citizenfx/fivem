@@ -6,9 +6,8 @@
  */
 
 #include "StdInc.h"
-#ifndef COMPILING_LAUNCH
 //#include "GameInit.h"
-#endif
+#include <ICoreGameInit.h>
 
 #define ERR_NORMAL 0 // will continue game execution, but not here
 #define ERR_FATAL 1
@@ -67,14 +66,16 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 	{
 #ifndef COMPILING_LAUNCH
 		// TODO: UI killer for pre-connected state
-		/*if (GameInit::GetGameLoaded())
+		ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+
+		if (gameInit && gameInit->GetGameLoaded())
 		{
 			static wchar_t wbuffer[BUFFER_LENGTH];
 			mbstowcs(wbuffer, buffer, _countof(wbuffer));
 
-			GameInit::KillNetwork(wbuffer);
+			gameInit->KillNetwork(wbuffer);
 		}
-		else*/
+		else
 #endif
 		{
 			SysError(buffer);

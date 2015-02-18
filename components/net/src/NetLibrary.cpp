@@ -483,6 +483,8 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 
 	m_outReliableSequence++;
 
+	trace("queuing send of reliable command %s\n", type);
+
 	OutReliableCommand cmd;
 	cmd.type = HashRageString(type);
 	cmd.id = m_outReliableSequence;
@@ -555,7 +557,7 @@ void NetLibrary::RunFrame()
 				auto client = clientContainer->GetClient();
 				auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%lld", m_token.c_str(), user->GetNPID());
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());
 
 				m_lastConnect = GetTickCount();
 
@@ -634,7 +636,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	auto client = clientContainer->GetClient();
 	auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-	postMap["guid"] = va("%lld", user->GetNPID());
+	postMap["guid"] = va("%llu", user->GetNPID());
 	//postMap["guid"] = va("%lld", 0LL);
 
 	uint16_t capturePort = port;

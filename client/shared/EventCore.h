@@ -382,13 +382,13 @@ public:
 	template<typename T>
 	void Connect(T func)
 	{
-		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>, bool>::value>::template Internal<Args...>::Proxy(*this, func, 0);
+		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>::type, bool>::value>::template Internal<Args...>::Proxy(*this, func, 0);
 	}
 
 	template<typename T>
 	void Connect(T func, int order)
 	{
-		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>, bool>::value>::template Internal<Args...>::Proxy(*this, func, order);
+		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>::type, bool>::value>::template Internal<Args...>::Proxy(*this, func, order);
 	}
 
 private:

@@ -2,6 +2,8 @@
 #include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 
+#include <ICoreGameInit.h>
+
 static bool g_disconnectSafeguard;
 
 void SetDisconnectSafeguard(bool enable)
@@ -11,9 +13,14 @@ void SetDisconnectSafeguard(bool enable)
 
 static void FinalizeDisconnect()
 {
+	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+
 	if (!g_disconnectSafeguard)
 	{
-		g_netLibrary->FinalizeDisconnect();
+		if (gameInit->TryDisconnect())
+		{
+			g_netLibrary->FinalizeDisconnect();
+		}
 	}
 }
 

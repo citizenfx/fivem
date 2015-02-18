@@ -329,7 +329,7 @@ end
 			language "C++"
 			kind "SharedLib"
 			
-			links { "Shared", "zlib" }
+			links { "Shared", "zlib", "CitiCore" }
 			
 			defines "COMPILING_GAMESPEC"
 			
@@ -349,7 +349,7 @@ end
 			language "C++"
 			kind "SharedLib"
 			
-			links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny", "gta-core-ny" }
+			links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny", "gta-core-ny", "CitiCore" }
 			
 			defines "COMPILING_HOOKS"	
 

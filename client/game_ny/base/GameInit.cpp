@@ -4,6 +4,8 @@
 #include "Hooking.h"
 #include "CrossLibraryInterfaces.h"
 
+#include <ICoreGameInit.h>
+
 bool GameInit::GetGameLoaded()
 {
 	return !(*(uint8_t*)0xF22B3C);
@@ -153,6 +155,7 @@ void GameInit::KillNetwork(const wchar_t* reason)
 }
 
 bool& reloadGameNextFrame = *(bool*)0x10F8074;
+static int tryDisconnectFlag;
 
 void GameInit::ReloadGame()
 {
@@ -160,6 +163,8 @@ void GameInit::ReloadGame()
 	//((void(*)())0x40B180)();
 
 	reloadGameNextFrame = true;
+
+	tryDisconnectFlag = 2;
 }
 
 static void ToggleBackGameProcess()
@@ -172,6 +177,33 @@ void GameInit::MurderGame()
 	// unload streamed fonts
 	((void(*)())0x7F9260)();
 }
+
+class CoreGameInit : public ICoreGameInit
+{
+public:
+	virtual bool GetGameLoaded() override
+	{
+		return GameInit::GetGameLoaded();
+	}
+
+	virtual void KillNetwork(const wchar_t* errorString) override
+	{
+		return GameInit::KillNetwork(errorString);
+	}
+
+	virtual bool TryDisconnect()
+	{
+		if (tryDisconnectFlag > 0)
+		{
+			tryDisconnectFlag--;
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+};
 
 static InitFunction initFunction([] ()
 {
@@ -213,4 +245,7 @@ static InitFunction initFunction([] ()
 	hook::nop(0x420EAE, 6);
 	hook::put<uint8_t>(0x420ECD, 0xEB);
 	hook::nop(0x420EF9, 2);
+
+	// create ICoreGameInit instance
+	Instance<ICoreGameInit>::Set(new CoreGameInit());
 });

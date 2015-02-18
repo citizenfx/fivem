@@ -38,6 +38,10 @@ std::vector<ComponentId> FxGameComponent::GetProvides()
 	std::vector<ComponentId> componentIds;
 	componentIds.push_back(ComponentId::Parse("game:gta_ny[1.0.7.0]"));
 	componentIds.push_back(ComponentId::Parse("fx[2]"));
+	
+#if _WIN32
+	componentIds.push_back(ComponentId::Parse("platform:windows"));
+#endif
 
 	return componentIds;
 }
