@@ -510,7 +510,7 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 			Instance<TerminalClient>::Get()->SetClient(client);
 
 			// connect to the Terminal server
-			client->ConnectRemote("layer1://localhost:3036").then([=] (Result<ConnectRemoteDetail> result)
+			client->ConnectRemote("layer1://192.168.178.83:3036").then([=] (Result<ConnectRemoteDetail> result)
 			{
 				if (result.HasSucceeded())
 				{

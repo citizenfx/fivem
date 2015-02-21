@@ -27,6 +27,8 @@ void NetMsgLogType(int* netType)
 {
 	for (AutoIdDescriptor* descriptor = msgAutoId.next; descriptor->next; descriptor = descriptor->next)
 	{
+		//trace("netDict[%d] = \"%s\";\n", descriptor->id, descriptor->name);
+
 		if (descriptor->id == *netType)
 		{
 			trace("[%s] %d\n", descriptor->name, *netType);
@@ -67,8 +69,25 @@ void __declspec(naked) netMsgTypeHook()
 	}
 }
 
+static DWORD WINAPI hi(LPVOID)
+{
+	while (true)
+	{
+		Sleep(50);
+
+		if (GetAsyncKeyState(VK_F9))
+		{
+			int inte = 0xA5;
+			NetMsgLogType(&inte);
+		}
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
-	injectFunction(0x4406F0, (DWORD)netMsgTypeHook);
+	//injectFunction(0x4406F0, (DWORD)netMsgTypeHook);
+	hook::jump(0x4406F0, netMsgTypeHook);
+
+	//CreateThread(0, 0, hi, 0, 0, 0);
 });
 #endif

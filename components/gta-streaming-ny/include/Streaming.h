@@ -209,6 +209,8 @@ public:
 	virtual uint32_t Read(uint64_t ptr, void* buffer, uint32_t toRead) = 0;
 
 	virtual void Close() = 0;
+
+	virtual uint32_t GetUniqueIdentifier() = 0;
 };
 
 class StreamingModule

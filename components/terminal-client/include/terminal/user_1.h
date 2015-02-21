@@ -36,6 +36,11 @@ public:
 	// Gets the current primary account ID we are authenticated with, or 0 if none.
 	//
 	virtual uint64_t GetNPID() = 0;
+
+	//
+	// Gets a ticket representing the current user to send to a remote server.
+	//
+	virtual std::vector<uint8_t> GetUserTicket(uint64_t remoteServerId) = 0;
 };
 
 //

@@ -106,6 +106,20 @@ uint64_t User1::GetNPID()
 	return m_npID;
 }
 
+std::vector<uint8_t> User1::GetUserTicket(uint64_t remoteServerId)
+{
+	// allocate the array to return and cast it to a pointer
+	std::vector<uint8_t> ticketArray(sizeof(NPAuthenticateTicket));
+	NPAuthenticateTicket* ticket = reinterpret_cast<NPAuthenticateTicket*>(&ticketArray[0]);
+
+	ticket->version = 1;
+	ticket->clientID = GetNPID();
+	ticket->serverID = remoteServerId;
+	ticket->time = 0;
+
+	return ticketArray;
+}
+
 // detail structs
 AuthenticateDetail::AuthenticateDetail(uint64_t npID, const std::string& sessionTokenString)
 	: m_npID(npID)

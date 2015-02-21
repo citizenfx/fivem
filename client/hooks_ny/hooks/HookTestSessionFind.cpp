@@ -33,7 +33,7 @@ void FindGameStuff(int, int, int, int)
 		pSessionInfo->hostAddress.inaOnline.s_addr = hostID;
 
 		pSessionInfo->hostAddress.wPortOnline = g_netLibrary->GetHostBase() & 0xFFFF;
-		*(uint64_t*)(pSessionInfo->hostAddress.abOnline) = g_netLibrary->GetHostBase() | ((uint64_t)g_netLibrary->GetHostBase() << 32);
+		*(uint64_t*)(pSessionInfo->hostAddress.abOnline) = g_netLibrary->GetHostBase() | (g_netLibrary->GetHostBase() << 32);
 
 		sessionData.data = 1;
 

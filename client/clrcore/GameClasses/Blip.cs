@@ -38,7 +38,7 @@ namespace CitizenFX.Core
         {
             get
             {
-                return (BlipIcon)Function.Call<uint>(Natives.GET_BLIP_SPRITE, m_handle);
+                return (BlipIcon)Function.Call<int>(Natives.GET_BLIP_SPRITE, m_handle);
             }
             set
             {
@@ -78,11 +78,11 @@ namespace CitizenFX.Core
         {
             get
             {
-                return (BlipDisplay)Function.Call<uint>(Natives.GET_BLIP_INFO_ID_DISPLAY, m_handle);
+                return (BlipDisplay)Function.Call<int>(Natives.GET_BLIP_INFO_ID_DISPLAY, m_handle);
             }
             set
             {
-                Function.Call(Natives.CHANGE_BLIP_DISPLAY, m_handle, (int)Display);
+                Function.Call(Natives.CHANGE_BLIP_DISPLAY, m_handle, (int)value);
             }
         }
 

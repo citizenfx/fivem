@@ -83,6 +83,18 @@ namespace CitizenFX.Core
                     Serialize(dict[key], packer);
                 }
             }
+            else if (obj is IDictionary<string, object>) // special case for ExpandoObject
+            {
+                var dict = (IDictionary<string, object>)obj;
+
+                packer.PackMapHeader(dict.Count);
+
+                foreach (var kvp in dict)
+                {
+                    Serialize(kvp.Key, packer);
+                    Serialize(kvp.Value, packer);
+                }
+            }
             else if (obj is IList)
             {
                 var list = (IList)obj;

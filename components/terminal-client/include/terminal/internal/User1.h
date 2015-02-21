@@ -31,5 +31,18 @@ public:
 	virtual concurrency::task<Result<AuthenticateDetail>> AuthenticateWithTokenBag(const TokenBag& tokenBag) override;
 
 	virtual uint64_t GetNPID() override;
+
+	virtual std::vector<uint8_t> GetUserTicket(uint64_t remoteServerId) override;
 };
+
+#pragma pack(push, 1)
+class NPAuthenticateTicket
+{
+public:
+	int32_t version;
+	uint64_t clientID;
+	uint64_t serverID;
+	uint32_t time;
+};
+#pragma pack(pop)
 }

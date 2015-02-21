@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CitizenFX.Core
 {
-    internal static class ObjectCache<T> where T : HandleObject, new()
+    public static class ObjectCache<T> where T : HandleObject, new()
     {
         private static Dictionary<int, T> m_dictionary = new Dictionary<int, T>();
 
@@ -23,12 +23,12 @@ namespace CitizenFX.Core
             return item;
         }
 
-        public static void Add(T item)
+        internal static void Add(T item)
         {
             m_dictionary[item.Handle] = item;
         }
 
-        public static void Remove(T item)
+        internal static void Remove(T item)
         {
             m_dictionary.Remove(item.Handle);
         }

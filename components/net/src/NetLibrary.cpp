@@ -483,8 +483,6 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 
 	m_outReliableSequence++;
 
-	trace("queuing send of reliable command %s\n", type);
-
 	OutReliableCommand cmd;
 	cmd.type = HashRageString(type);
 	cmd.id = m_outReliableSequence;
@@ -666,11 +664,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			{
 				if (postMap.find("authTicket") == postMap.end())
 				{
-					unsigned char authTicket[2048] = { 0 }; // zero out to prevent stack leakage to server
-					//NP_GetUserTicket(authTicket, sizeof(authTicket), node["authID"].as<uint64_t>());
+					std::vector<uint8_t> authTicket = user->GetUserTicket(node["authID"].as<uint64_t>());
 
 					size_t ticketLen;
-					char* ticketEncoded = base64_encode(authTicket, sizeof(authTicket), &ticketLen);
+					char* ticketEncoded = base64_encode(&authTicket[0], authTicket.size(), &ticketLen);
 
 					postMap["authTicket"] = fwString(ticketEncoded, ticketLen);
 
@@ -847,7 +844,22 @@ const char* NetLibrary::GetPlayerName()
 	ProfileManager* profileManager = Instance<ProfileManager>::Get();
 	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();
 
-	return (profile.GetRef()) ? profile->GetDisplayName() : "** INVALID **";
+	const char* returnName = nullptr;
+
+	if (profile.GetRef())
+	{
+		returnName = profile->GetDisplayName();
+	}
+	else
+	{
+		static char computerName[64];
+		DWORD nameSize = sizeof(computerName);
+		GetComputerNameA(computerName, &nameSize);
+
+		returnName = computerName;
+	}
+
+	return returnName;
 }
 
 void NetLibrary::SetPlayerName(const char* name)

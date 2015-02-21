@@ -65,6 +65,8 @@ public:
 	virtual uint32_t Read(uint64_t ptr, void* buffer, uint32_t toRead);
 
 	virtual void Close();
+
+	virtual uint32_t GetUniqueIdentifier() override;
 };
 
 class CitizenStreamingModule : public StreamingModule
@@ -282,10 +284,17 @@ void CitizenStreamingFile::Close()
 	m_device->closeBulk(m_handle);
 }
 
+uint32_t CitizenStreamingFile::GetUniqueIdentifier()
+{
+	return HashRageString(m_entry.hash.c_str());
+}
+
 void CitizenStreamingModule::CreateStreamingFile(int index, const StreamingResource& entry)
 {
 	m_streamingFiles[index] = std::make_shared<CitizenStreamingFile>(const_cast<StreamingResource&>(entry));
 }
+
+void RegisterWithColCache(const std::string& extn, int extnIndex, uint32_t hash);
 
 void CitizenStreamingModule::ScanEntries()
 {
@@ -304,25 +313,29 @@ void CitizenStreamingModule::ScanEntries()
 
 	for (auto& entry : entries)
 	{
+		std::string extn = entry.filename.substr(entry.filename.length() - 3);
+
 		if (_wbnMode)
 		{
-			if (entry.filename.substr(entry.filename.length() - 3) == "wbn")
+			if (extn == "wbn")
 			{
 				int boundIndex = BoundStreaming::RegisterBound(entry.filename.c_str(), entry.size, entry.rscFlags, entry.rscVersion);
 
 				m_streamingBounds[boundIndex] = std::make_shared<CitizenStreamingFile>(entry);
+				
+				RegisterWithColCache(extn, boundIndex, HashRageString(entry.hash.c_str()));
 				continue;
 			}
 		}
 
-		if (entry.filename.substr(entry.filename.length() - 3) == "zdr") // streaming drawable
+		if (extn == "zdr") // streaming drawable
 		{
 			CIdeStore::RegisterDrawable(entry);
 
 			continue;
 		}
 
-		if (entry.filename.substr(entry.filename.length() - 3) == "ide")
+		if (extn == "ide")
 		{
 			int boundIndex = CIdeStore::RegisterIde(entry.filename.c_str(), entry.size);
 
@@ -344,6 +357,21 @@ void CitizenStreamingModule::ScanEntries()
 		}
 
 		m_streamingFiles[startIndex] = std::make_shared<CitizenStreamingFile>(entry);
+
+		if (extn == "wbn" || extn == "wbd")
+		{
+			int typeStart = 0;
+
+			for (int i = 0; i < _countof(streamingTypes.types); i++)
+			{
+				if (!_stricmp(streamingTypes.types[i].ext, extn.c_str()))
+				{
+					typeStart = streamingTypes.types[i].startIndex;
+				}
+			}
+
+			RegisterWithColCache(extn, startIndex - typeStart, HashRageString(entry.hash.c_str()));
+		}
 	}
 }
 
