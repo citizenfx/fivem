@@ -123,6 +123,8 @@ void BoundStreaming::Process()
 		{
 			if (WaitForSingleObject(g_requests[i].semaphore, 0) == WAIT_OBJECT_0)
 			{
+				auto id = g_requests[i].id - 1;
+
 				//void* memory = ((LoadResource_t)(gameModule + 0x5BBA20))(g_boundsMap[id].c_str(), "#bn", 32, &blockMap, &a5);
 
 				CloseHandle(g_requests[i].semaphore);
@@ -131,7 +133,7 @@ void BoundStreaming::Process()
 
 				uint32_t streamingUsage3 = *(int*)(0xF21C84);
 
-				trace("loaded %d\n", g_requests[i].id - 1);
+				trace("loaded %d\n", id);
 
 				//char debugMsg[512];
 				//sprintf(debugMsg, "Loading collision %s (diff 1-2 %d, diff 2-3 %d)...\n", g_boundsMap[id].filename.c_str(), streamingUsage2 - streamingUsage1, streamingUsage3 - streamingUsage2);
@@ -148,16 +150,23 @@ void BoundStreaming::Process()
 
 				// set data
 				//((void(*)(int, void*))(gameModule + 0xC09F70))(id, memory);
-				((void(*)(int, void*))(0xC09F70))(g_requests[i].id - 1, (void*)g_requests[i].blockMap.data[1]);
+				((void(*)(int, void*))(0xC09F70))(id, (void*)g_requests[i].blockMap.data[1]);
 
 				//((void(*)(int))0x5B1570)(g_requests[i].streamHandle);
 
-				g_refCount[g_requests[i].id - 1]++;
+				g_refCount[id]++;
 
 				g_requests[i].blockMap.virtualLen = 0;
 				g_requests[i].id = 0;
 
 				InterlockedDecrement(&g_ongoingRequests);
+
+				if (g_refCount[id] == 4)
+				{
+					g_refCount[id] = 2;
+
+					ReleaseCollision(id);
+				}
 			}
 		}
 	}
@@ -274,10 +283,26 @@ void __stdcall BoundStreaming::LoadAllObjectsTail(int)
 	CIdeStore::LoadAllRequestedArchetypes();
 }
 
+static uint32_t g_totalWastedSize;
+
 void BoundStreaming::ReleaseCollision(int id)
 {
 	if (g_refCount[id] == 1)
 	{
+		uint32_t size = 0;
+
+		for (int i = 0; i < g_blockMaps[id].virtualLen; i++)
+		{
+			size += g_blockMaps[id].data[(3 * i) + 2];
+		}
+
+		g_totalWastedSize += size;
+
+		trace("[BoundStreaming] tried to unload id %d, but it's still in the process of loading...\n", id);
+		trace("wasted %d kB so far.\n", g_totalWastedSize);
+
+		g_refCount[id] = 3;
+
 		return;
 	}
 

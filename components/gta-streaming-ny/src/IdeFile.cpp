@@ -481,6 +481,8 @@ void IdeFile::Delete()
 
 		if (mi->m_refCount > 0)
 		{
+			trace("Deferring destruction of model info 0x%08x\n", mi->m_modelHash);
+
 			g_modelInfosToRelease.insert(mi->m_modelHash);
 		}
 		else
@@ -525,9 +527,11 @@ static void __fastcall ModelInfoReleaseTail(char* modelInfo)
 		// process our results
 		if (g_modelInfosToRelease.find(modelHash) != g_modelInfosToRelease.end())
 		{
-			trace("Destructing model info 0x%08x w/ delay\n", modelHash);
+			trace("Destructing model info 0x%08x w/ delay - prior VRAM mark: %f kB\n", modelHash, *(uint32_t*)0x18A867C / 1024.0f);
 
 			ReleaseModelInfo(FindModelInfoIdxWithHash(modelHash));
+
+			trace("Post VRAM mark: %f kB\n", *(uint32_t*)0x18A867C / 1024.0f);
 		}
 	}
 }

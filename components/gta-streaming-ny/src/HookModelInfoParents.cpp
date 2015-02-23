@@ -375,6 +375,18 @@ int RequestEntityModel(CEntity* entity)
 	return 1;
 }
 
+void __fastcall MIParents_AddRef(CBaseModelInfo* modelInfo)
+{
+	if (modelInfo->GetRefCount() <= 1)
+	{
+		if (g_primedMIs.find(modelInfo) != g_primedMIs.end())
+		{
+			// add a reference to the drawable dict
+			((void(*)(int))0x907910)(modelInfo->GetDrawblDict());
+		}
+	}
+}
+
 void MIParents_Release(CBaseModelInfo* modelInfo)
 {
 	if (g_primedMIs.find(modelInfo) != g_primedMIs.end())
@@ -417,7 +429,7 @@ void ProcessEntityRequests()
 			int inst = ((int(__thiscall*)(void*, uint32_t))0x908F80)(drawblDict, req.modelInfo->GetModelHash());
 
 			// add reference to drawable dict
-			((void(*)(int))0x907910)(req.drawblDict);
+			//((void(*)(int))0x907910)(req.drawblDict);
 
 			g_primedMIs.insert(req.modelInfo);
 
@@ -439,7 +451,7 @@ void ProcessEntityRequests()
 		}
 		else
 		{
-			if (req.txd != 0xFFFF)
+			/*if (req.txd != 0xFFFF)
 			{
 				RequestModel(req.txd, *(int*)0xF1CD84, 0);
 			}
@@ -448,7 +460,7 @@ void ProcessEntityRequests()
 			{
 				RequestModel(req.drawblDict, *(int*)0xF272E4, 0);
 			}
-
+			*/
 			it++;
 		}
 	}
@@ -1430,7 +1442,7 @@ static void NativeDrawblDictLog(int modelIdx)
 
 static void ReleaseDrawblDictTailDbg(int dict)
 {
-	__asm int 3
+	trace("unloading drawable dict %d\n", dict);
 }
 
 static void ReleaseModelWrapDbg(int modelIdx)
@@ -1661,6 +1673,16 @@ static void LogDoorEntityAdd()
 	trace("[DoorEnt] added one, now %d\n", *(int*)0x1354A64);
 }
 
+void LogDrawblDictAddRef(int dict)
+{
+	trace("add ref for dict %d (%s) from %p - cur refcount %d\n", dict, GetStreamName(dict, *(int*)0xF272E4).c_str(), _ReturnAddress(), DrawblDictGetUsage(dict));
+}
+
+void LogDrawblDictRemoveRef(int dict)
+{
+	trace("remove ref for dict %d (%s) from %p - cur refcount %d\n", dict, GetStreamName(dict, *(int*)0xF272E4).c_str(), _ReturnAddress(), DrawblDictGetUsage(dict));
+}
+
 static HookFunction hookModelInfoParents([] ()
 //static RuntimeHookFunction hookModelInfoParents("ignore_lod_modelinfos", [] ()
 {
@@ -1699,9 +1721,14 @@ static HookFunction hookModelInfoParents([] ()
 	hook::put(0x98B076, LogLoadDoneStub);*/
 	// END VEHICLE TESTS
 
+	//hook::jump(0x907786, ReleaseDrawblDictTailDbg);
+
 	// tests for episode reset
-	hook::call(0x41FDAA, LogDoorEntityReset);
-	hook::call(0x8FFB45, LogDoorEntityAdd);
+	//hook::call(0x41FDAA, LogDoorEntityReset);
+	//hook::call(0x8FFB45, LogDoorEntityAdd);
+
+	//hook::jump(0x907936, LogDrawblDictAddRef);
+	//hook::jump(0x907988, LogDrawblDictRemoveRef);
 
 	// go
 	DWORD dwFunc;
@@ -1962,6 +1989,9 @@ static HookFunction hookModelInfoParents([] ()
 
 	// some reset thing where a physicsstore cleanup does something bad to a modelinfo
 	hook::jump(0x96FADB, PhysicsMIHook);
+
+	// addref call to reference the drawable dict only if the modelinfo got a reference
+	hook::jump(0x98E464, MIParents_AddRef);
 
 	// temp dbg: relocate datBase vtable
 	/*char* newDatBase = new char[1024];
