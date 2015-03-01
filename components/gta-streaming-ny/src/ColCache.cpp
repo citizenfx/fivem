@@ -40,13 +40,13 @@ void LogCollisionBuilding(uint16_t colID, void* building)
 			uint16_t zero = 0;
 			uint32_t colHash = staticBoundHashesReverse[colID];
 
-			g_colCacheDevice->write(g_colCacheHandle, &zero, sizeof(zero));
-			g_colCacheDevice->write(g_colCacheHandle, &colHash, sizeof(colHash));
+			g_colCacheDevice->Write(g_colCacheHandle, &zero, sizeof(zero));
+			g_colCacheDevice->Write(g_colCacheHandle, &colHash, sizeof(colHash));
 
 			CPool* colPool = *(CPool**)(0x16D7028);
 			ColPoolItem* item = colPool->GetAt<ColPoolItem>(colID);
 
-			g_colCacheDevice->write(g_colCacheHandle, item->floaters, sizeof(item->floaters));
+			g_colCacheDevice->Write(g_colCacheHandle, item->floaters, sizeof(item->floaters));
 		}
 	}
 }
@@ -91,11 +91,11 @@ void SetDynamicCollisionDataHook(CollisionShape* shape, uint32_t modelHash, uint
 			uint16_t zero = 1;
 			uint32_t colHash = physBoundHashesReverse[*(uint16_t*)colIndex];
 
-			g_colCacheDevice->write(g_colCacheHandle, &zero, sizeof(zero));
-			g_colCacheDevice->write(g_colCacheHandle, &colHash, sizeof(colHash));
+			g_colCacheDevice->Write(g_colCacheHandle, &zero, sizeof(zero));
+			g_colCacheDevice->Write(g_colCacheHandle, &colHash, sizeof(colHash));
 
-			g_colCacheDevice->write(g_colCacheHandle, &modelHash, sizeof(modelHash));
-			g_colCacheDevice->write(g_colCacheHandle, shape, 172);
+			g_colCacheDevice->Write(g_colCacheHandle, &modelHash, sizeof(modelHash));
+			g_colCacheDevice->Write(g_colCacheHandle, shape, 172);
 		}
 	}
 
@@ -169,7 +169,7 @@ void PreloadCollisions()
 {
 	if (g_colCacheHandle != 0xFFFFFFFF)
 	{
-		g_colCacheDevice->close(g_colCacheHandle);
+		g_colCacheDevice->Close(g_colCacheHandle);
 
 		g_colCacheHandle = 0xFFFFFFFF;
 	}
@@ -180,7 +180,7 @@ void PreloadCollisions()
 
 	const char* cacheFileName = "rescache:/citizen_cache_w.dat";
 
-	uint32_t devHandle = device->open(cacheFileName, true);
+	uint32_t devHandle = device->Open(cacheFileName, true);
 
 	staticBoundHashesReverse.clear();
 	physBoundHashesReverse.clear();
@@ -220,13 +220,13 @@ void PreloadCollisions()
 		// load the collisions from the file
 		uint16_t type;
 
-		while (device->read(devHandle, &type, sizeof(type)) == sizeof(type))
+		while (device->Read(devHandle, &type, sizeof(type)) == sizeof(type))
 		{
 			uint32_t colHash;
 
 			if (type == 0)
 			{
-				if (device->read(devHandle, &colHash, sizeof(colHash)) == sizeof(colHash))
+				if (device->Read(devHandle, &colHash, sizeof(colHash)) == sizeof(colHash))
 				{
 					auto it = staticBoundHashes.find(colHash);
 
@@ -235,13 +235,13 @@ void PreloadCollisions()
 						uint16_t colId = it->second;
 
 						ColPoolItem* item = colPool->GetAt<ColPoolItem>(colId);
-						device->read(devHandle, item->floaters, sizeof(item->floaters));
+						device->Read(devHandle, item->floaters, sizeof(item->floaters));
 						
 						g_isCachedSet.insert((*(int*)0xF3F224 << 24) | colId);
 					}
 					else
 					{
-						device->seek(devHandle, sizeof(((ColPoolItem*)0)->floaters), SEEK_CUR);
+						device->Seek(devHandle, sizeof(((ColPoolItem*)0)->floaters), SEEK_CUR);
 					}
 				}
 			}
@@ -250,11 +250,11 @@ void PreloadCollisions()
 				CollisionShape shape;
 				uint32_t modelHash;
 
-				if (device->read(devHandle, &colHash, sizeof(colHash)) == sizeof(colHash))
+				if (device->Read(devHandle, &colHash, sizeof(colHash)) == sizeof(colHash))
 				{
-					if (device->read(devHandle, &modelHash, sizeof(modelHash)) == sizeof(modelHash))
+					if (device->Read(devHandle, &modelHash, sizeof(modelHash)) == sizeof(modelHash))
 					{
-						if (device->read(devHandle, &shape, sizeof(shape)) == sizeof(shape))
+						if (device->Read(devHandle, &shape, sizeof(shape)) == sizeof(shape))
 						{
 							shape.vtable = 0xEBB998;
 
@@ -278,16 +278,16 @@ void PreloadCollisions()
 			}
 		}
 
-		device->close(devHandle);
+		device->Close(devHandle);
 
 		// reopen the file with a pointer to the end of the file
-		devHandle = device->open(cacheFileName, false);
+		devHandle = device->Open(cacheFileName, false);
 
-		device->seek(devHandle, device->fileLength(devHandle), SEEK_SET);
+		device->Seek(devHandle, device->GetFileLength(devHandle), SEEK_SET);
 	}
 	else
 	{
-		devHandle = device->create(cacheFileName);
+		devHandle = device->Create(cacheFileName);
 	}
 
 	// mark cache as in-use (so we'll check cache flags)
@@ -303,7 +303,7 @@ void PreloadCollisions()
 	((void(*)())0xC0A170)(); // static
 
 	// close the handle to flush data
-	g_colCacheDevice->close(g_colCacheHandle);
+	g_colCacheDevice->Close(g_colCacheHandle);
 
 	g_colCacheHandle = 0xFFFFFFFF;
 }

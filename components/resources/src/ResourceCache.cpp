@@ -64,7 +64,7 @@ bool ResourceCache::ParseFileName(const char* inString, fwString& fileNameOut, f
 void ResourceCache::LoadCache(rage::fiDevice* device)
 {
 	rage::fiFindData findData;
-	int handle = device->findFirst("rescache:/", &findData);
+	int handle = device->FindFirst("rescache:/", &findData);
 
 	m_cache.clear();
 
@@ -85,9 +85,9 @@ void ResourceCache::LoadCache(rage::fiDevice* device)
 		}
 
 		AddEntry(fileName, resourceName, hash);
-	} while (device->findNext(handle, &findData));
+	} while (device->FindNext(handle, &findData));
 
-	device->findClose(handle);
+	device->FindClose(handle);
 
 	// store the cache device
 	m_cacheDevice = device;
@@ -146,7 +146,7 @@ void ResourceCache::AddFile(fwString& sourcePath, fwString& filename, fwString& 
 		FatalError("Tried to add non-existent file %s to cache.", sourcePath.c_str());
 	}
 
-	int handle = device->open(sourcePath.c_str(), true);
+	int handle = device->Open(sourcePath.c_str(), true);
 
 	int read;
 	char buffer[4096];
@@ -154,12 +154,12 @@ void ResourceCache::AddFile(fwString& sourcePath, fwString& filename, fwString& 
 	sha1nfo sha;
 	sha1_init(&sha);
 
-	while ((read = device->read(handle, buffer, sizeof(buffer))) > 0)
+	while ((read = device->Read(handle, buffer, sizeof(buffer))) > 0)
 	{
 		sha1_write(&sha, buffer, read);
 	}
 
-	device->close(handle);
+	device->Close(handle);
 
 	uint8_t* hash = sha1_result(&sha);
 
@@ -168,7 +168,7 @@ void ResourceCache::AddFile(fwString& sourcePath, fwString& filename, fwString& 
 							 hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
 							 hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
 
-	device->rename(sourcePath.c_str(), va("rescache:/%s_%s_%s", filename.c_str(), resource.c_str(), hashString.c_str()));
+	device->RenameFile(sourcePath.c_str(), va("rescache:/%s_%s_%s", filename.c_str(), resource.c_str(), hashString.c_str()));
 
 	m_dataLock.unlock();
 

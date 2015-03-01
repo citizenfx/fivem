@@ -94,7 +94,7 @@ void CitizenStreamingFile::Open()
 
 	uint64_t ptr;
 	m_device = device;
-	m_handle = device->openBulk(filename.c_str(), &ptr);
+	m_handle = device->OpenBulk(filename.c_str(), &ptr);
 
 	if (m_handle == -1)
 	{
@@ -115,14 +115,14 @@ bool CitizenStreamingFile::Exists()
 	auto device = resCache->GetCacheDevice();
 	auto filename = resCache->GetMarkedFilenameFor(m_entry.resData.GetName(), m_entry.filename);
 
-	auto handle = device->open(filename.c_str(), true);
+	auto handle = device->Open(filename.c_str(), true);
 
 	if (handle == -1)
 	{
 		return false;
 	}
 
-	device->close(handle);
+	device->Close(handle);
 
 	return true;
 }
@@ -160,7 +160,7 @@ uint32_t CitizenStreamingFile::Read(uint64_t ptr, void* buffer, uint32_t toRead)
 	}
 	else
 	{
-		return m_device->readBulk(m_handle, ptr, buffer, toRead);
+		return m_device->ReadBulk(m_handle, ptr, buffer, toRead);
 	}
 }
 
@@ -207,7 +207,7 @@ void CitizenStreamingFile::QueueDownload()
 
 		uint64_t ptr;
 		m_device = device;
-		m_handle = device->openBulk(filename.c_str(), &ptr);
+		m_handle = device->OpenBulk(filename.c_str(), &ptr);
 
 		if (m_handle == -1)
 		{
@@ -281,7 +281,7 @@ void CitizenStreamingFile::QueueRead(uint64_t ptr, void* buffer, uint32_t toRead
 
 void CitizenStreamingFile::Close()
 {
-	m_device->closeBulk(m_handle);
+	m_device->CloseBulk(m_handle);
 }
 
 uint32_t CitizenStreamingFile::GetUniqueIdentifier()

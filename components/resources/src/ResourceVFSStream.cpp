@@ -21,7 +21,7 @@ RageVFSStream::RageVFSStream(fiDevice* device, uint32_t handle, bool canWrite)
 
 RageVFSStream::~RageVFSStream()
 {
-	m_device->close(m_handle);
+	m_device->Close(m_handle);
 }
 
 bool RageVFSStream::CanRead()
@@ -41,20 +41,20 @@ bool RageVFSStream::CanWrite()
 
 size_t RageVFSStream::GetLength()
 {
-	return m_device->fileLength(m_handle);
+	return m_device->GetFileLength(m_handle);
 }
 
 size_t RageVFSStream::Read(void* buffer, size_t length)
 {
-	return m_device->read(m_handle, buffer, length);
+	return m_device->Read(m_handle, buffer, length);
 }
 
 size_t RageVFSStream::Write(const void* buffer, size_t length)
 {
-	return m_device->write(m_handle, const_cast<void*>(buffer), length);
+	return m_device->Write(m_handle, const_cast<void*>(buffer), length);
 }
 
 void RageVFSStream::Seek(int position, int seekOrigin)
 {
-	m_device->seek(m_handle, position, seekOrigin);
+	m_device->Seek(m_handle, position, seekOrigin);
 }

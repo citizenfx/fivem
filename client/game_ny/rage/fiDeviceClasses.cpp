@@ -11,8 +11,8 @@ fiDeviceRelative::fiDeviceRelative()
 	*(uintptr_t*)this = VTABLE_fiDeviceRelative;
 }
 
-void WRAPPER fiDeviceRelative::setPath(const char* relativeTo, bool allowRoot) { EAXJMP(0x5B43F0); }
-void WRAPPER fiDeviceRelative::mount(const char* mountPoint) { EAXJMP(0x5B4480); }
+void WRAPPER fiDeviceRelative::SetPath(const char* relativeTo, bool allowRoot) { EAXJMP(0x5B43F0); }
+void WRAPPER fiDeviceRelative::Mount(const char* mountPoint) { EAXJMP(0x5B4480); }
 
 auto fiPackfile__ctor = (void(__thiscall*)(fiPackfile*))0x5BCCF0;
 
@@ -23,7 +23,7 @@ fiPackfile::fiPackfile()
 	fiPackfile__ctor(this);
 }
 
-void WRAPPER fiPackfile::openArchive(const char* archive, bool bTrue, bool bFalse, int type) { EAXJMP(0x5BCE10); }
-void WRAPPER fiPackfile::mount(const char* mountPoint) { EAXJMP(0x5BD3A0); }
-void WRAPPER fiPackfile::closeArchive() { EAXJMP(0x5BCD80); }
+void WRAPPER fiPackfile::OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type) { EAXJMP(0x5BCE10); }
+void WRAPPER fiPackfile::Mount(const char* mountPoint) { EAXJMP(0x5BD3A0); }
+void WRAPPER fiPackfile::ClosePackfile() { EAXJMP(0x5BCD80); }
 }

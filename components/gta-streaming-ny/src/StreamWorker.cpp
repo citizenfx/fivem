@@ -21,12 +21,12 @@ void NewRequestEvent::RunEvent(StreamThread* thread)
 
 	if (req->reqLength)
 	{
-		uint32_t handle = item->device->getParentHandle();
+		uint32_t handle = item->device->GetParentHandle();
 		uint64_t fileStart;
 
 		if (handle == -1)
 		{
-			handle = item->device->openBulk(item->fileName, &fileStart);
+			handle = item->device->OpenBulk(item->fileName, &fileStart);
 		}
 		else
 		{
@@ -140,9 +140,9 @@ void IOCompletedEvent::RunEvent(StreamThread* thread)
 		}
 		else
 		{
-			if (m_request->item->device->getParentHandle() == -1)
+			if (m_request->item->device->GetParentHandle() == -1)
 			{
-				m_request->item->device->closeBulk(m_request->handle);
+				m_request->item->device->CloseBulk(m_request->handle);
 			}
 
 			m_request->item->completeRequest();
@@ -178,12 +178,12 @@ void StreamThread::TriggerNextIO(StreamRequestExt* request)
 
 	if (request->isResource)
 	{
-		len = device->readBulk(handle, fileStart | flags, request->readBuffer, min(page->length, (uint32_t)131072));
+		len = device->ReadBulk(handle, fileStart | flags, request->readBuffer, min(page->length, (uint32_t)131072));
 		request->lastAvailOut = request->strm->avail_in;
 	}
 	else
 	{
-		len = device->readBulk(handle, fileStart | flags, page->buffer, page->length);
+		len = device->ReadBulk(handle, fileStart | flags, page->buffer, page->length);
 	}
 
 	if (len != -1)

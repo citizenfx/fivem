@@ -78,7 +78,7 @@ LUA_FUNCTION(ReadResourceFile)
 		lua_error(L);
 	}
 
-	uint32_t handle = device->open(path.c_str(), true);
+	uint32_t handle = device->Open(path.c_str(), true);
 
 	if (handle == -1)
 	{
@@ -86,12 +86,12 @@ LUA_FUNCTION(ReadResourceFile)
 		lua_error(L);
 	}
 
-	int length = device->fileLength(handle);
+	int length = device->GetFileLength(handle);
 
 	char* buffer = new char[length];
-	device->read(handle, buffer, length);
+	device->Read(handle, buffer, length);
 
-	device->close(handle);
+	device->Close(handle);
 
 	lua_pushlstring(L, buffer, length);
 

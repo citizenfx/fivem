@@ -21,8 +21,8 @@ static InitFunction initFunction([] ()
 		citRoot[offset + 1] = '\0';
 
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
-		device->setPath(citRoot, true);
-		device->mount("citizen:/");
+		device->SetPath(citRoot, true);
+		device->Mount("citizen:/");
 
 		static char cacheRoot[512];
 		std::wstring cachePath = MakeRelativeCitPath(L"cache");
@@ -44,8 +44,8 @@ static InitFunction initFunction([] ()
 		cacheRoot[offset + 1] = '\0';
 
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
-		cacheDevice->setPath(cacheRoot, true);
-		cacheDevice->mount("rescache:/");
+		cacheDevice->SetPath(cacheRoot, true);
+		cacheDevice->Mount("rescache:/");
 
 		TheResources.GetCache()->LoadCache(cacheDevice);
 	});

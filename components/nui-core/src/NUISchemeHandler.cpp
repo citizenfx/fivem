@@ -41,7 +41,7 @@ public:
 	{
 		if (file_ && file_ != -1 && !closed_)
 		{
-			device_->close(file_);
+			device_->Close(file_);
 		}
 	}
 
@@ -94,7 +94,7 @@ public:
 		
 		if (device_ && filename_.find("..") == std::string::npos)
 		{
-			file_ = device_->open(filename_.c_str(), true);
+			file_ = device_->Open(filename_.c_str(), true);
 		}
 
 		// set mime type
@@ -141,7 +141,7 @@ public:
 
 		if (file_ != -1)
 		{
-			response_length = device_->fileLength(file_);
+			response_length = device_->GetFileLength(file_);
 		}
 		else
 		{
@@ -155,7 +155,7 @@ public:
 
 		if (file_ != -1)
 		{
-			device_->close(file_);
+			device_->Close(file_);
 		}
 	}
 
@@ -163,7 +163,7 @@ public:
 	{
 		if (file_ != -1)
 		{
-			bytes_read = device_->read(file_, data_out, bytes_to_read);
+			bytes_read = device_->Read(file_, data_out, bytes_to_read);
 
 			return (bytes_read > 0);
 		}

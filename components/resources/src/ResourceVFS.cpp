@@ -72,7 +72,7 @@ fwString ResolvePath(fwString inPath, bool write, const ResourceIdentity& source
 
 				auto device = fiDevice::GetDevice(dataFile, true);
 
-				if (device && device->getFileAttributes(dataFile) != INVALID_FILE_ATTRIBUTES)
+				if (device && device->GetFileAttributes(dataFile) != INVALID_FILE_ATTRIBUTES)
 				{
 					outPath = dataFile;
 				}
@@ -90,9 +90,9 @@ fwString ResolvePath(fwString inPath, bool write, const ResourceIdentity& source
 				{
 					device = fiDevice::GetDevice("rescache:/", true);
 
-					device->mkdir("rescache:/storage");
-					device->mkdir(va("rescache:/storage/%s/", resource->GetName().c_str()));
-					device->mkdir(va("rescache:/storage/%s/global/", resource->GetName().c_str()));
+					device->CreateDirectory("rescache:/storage");
+					device->CreateDirectory(va("rescache:/storage/%s/", resource->GetName().c_str()));
+					device->CreateDirectory(va("rescache:/storage/%s/global/", resource->GetName().c_str()));
 				}
 				else
 				{
@@ -146,7 +146,7 @@ fwRefContainer<VFSStream> OpenFile(const char* filePath, const ResourceIdentity 
 		return nullptr;
 	}
 
-	uint32_t handle = device->open(nativePath.c_str(), !Write);
+	uint32_t handle = device->Open(nativePath.c_str(), !Write);
 
 	if (handle == -1)
 	{
@@ -156,7 +156,7 @@ fwRefContainer<VFSStream> OpenFile(const char* filePath, const ResourceIdentity 
 
 	if (Write && !Append)
 	{
-		device->truncate(handle);
+		device->Truncate(handle);
 	}
 
 	return new RageVFSStream(device, handle, false);

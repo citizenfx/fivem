@@ -31,7 +31,7 @@ void* GI_OpenFileCall(MonoString* str)
 
 	auto ref = new FileIOReference;
 	ref->device = device;
-	ref->handle = device->open(fileName.c_str(), true);
+	ref->handle = device->Open(fileName.c_str(), true);
 
 	if (ref->handle == -1)
 	{
@@ -53,21 +53,21 @@ int GI_ReadFileCall(FileIOReference* fileHandle, MonoArray* buffer, int offset, 
 	}
 
 	char* buf = mono_array_addr(buffer, char, offset);
-	int len = fileHandle->device->read(fileHandle->handle, buf, length);
+	int len = fileHandle->device->Read(fileHandle->handle, buf, length);
 
 	return len;
 }
 
 void GI_CloseFileCall(FileIOReference* reference)
 {
-	reference->device->close(reference->handle);
+	reference->device->Close(reference->handle);
 
 	delete reference;
 }
 
 int GI_GetFileLengthCall(FileIOReference* reference)
 {
-	return reference->device->fileLength(reference->handle);
+	return reference->device->GetFileLength(reference->handle);
 }
 
 int GI_GetEnvironmentInfoCall(MonoString** resourceName, MonoString** resourcePath, MonoString** resourceAssembly, uint32_t* instanceId)
@@ -94,7 +94,7 @@ int GI_GetEnvironmentInfoCall(MonoString** resourceName, MonoString** resourcePa
 	{
 		rage::fiFindData findData;
 
-		int handle = packFile->findFirst(va("%s/bin", path.c_str()), &findData);
+		int handle = packFile->FindFirst(va("%s/bin", path.c_str()), &findData);
 
 		if (handle > 0)
 		{
@@ -106,9 +106,9 @@ int GI_GetEnvironmentInfoCall(MonoString** resourceName, MonoString** resourcePa
 				{
 					ss << std::string(findData.fileName) << ";";
 				}
-			} while (packFile->findNext(handle, &findData));
+			} while (packFile->FindNext(handle, &findData));
 
-			packFile->findClose(handle);
+			packFile->FindClose(handle);
 		}
 	}
 

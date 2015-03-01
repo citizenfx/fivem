@@ -53,7 +53,7 @@ struct HttpClientRequestContext
 	{
 		if (outDevice)
 		{
-			outDevice->close(outHandle);
+			outDevice->Close(outHandle);
 		}
 
 		callback(success, resData.c_str(), resData.size());
@@ -242,7 +242,7 @@ void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, 
 		return;
 	}
 
-	context->outHandle = context->outDevice->create(outFilename.c_str());
+	context->outHandle = context->outDevice->Create(outFilename.c_str());
 
 	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);
 }
@@ -292,7 +292,7 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 		case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
 			if (ctx->outDevice)
 			{
-				ctx->outDevice->write(ctx->outHandle, ctx->buffer, length);
+				ctx->outDevice->Write(ctx->outHandle, ctx->buffer, length);
 			}
 			else
 			{

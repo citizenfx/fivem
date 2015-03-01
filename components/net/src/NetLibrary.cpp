@@ -999,11 +999,11 @@ static InitFunction initFunction([] ()
 
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
 #if defined(GTA_NY)
-		device->setPath(citRoot, false);
+		device->SetPath(citRoot, false);
 #else
-		device->setPath(citRoot, nullptr, false);
+		device->SetPath(citRoot, nullptr, false);
 #endif
-		device->mount("citizen:/");
+		device->Mount("citizen:/");
 
 		static char cacheRoot[512];
 		std::wstring cachePath = MakeRelativeCitPath(L"cache");
@@ -1026,11 +1026,11 @@ static InitFunction initFunction([] ()
 
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
 #if defined(GTA_NY)
-		cacheDevice->setPath(cacheRoot, false);
+		cacheDevice->SetPath(cacheRoot, false);
 #else
-		cacheDevice->setPath(cacheRoot, nullptr, false);
+		cacheDevice->SetPath(cacheRoot, nullptr, false);
 #endif
-		cacheDevice->mount("rescache:/");
+		cacheDevice->Mount("rescache:/");
 	});
 });
 #endif

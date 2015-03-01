@@ -503,6 +503,9 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 		{
 			trace("[ProfileManager] Connecting to Terminal...\n");
 
+			// destruct any prior Terminal client
+			Instance<TerminalClient>::Get()->SetClient(nullptr);
+
 			// continue signing in to Terminal
 			fwRefContainer<IClient> client = terminal::Create<IClient>();
 

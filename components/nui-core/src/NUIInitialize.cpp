@@ -119,8 +119,8 @@ static InitFunction initFunction([] ()
 		wcstombs(emojiPath, emojiPack.c_str(), sizeof(emojiPath));
 
 		rage::fiPackfile* packFile = new rage::fiPackfile();
-		packFile->openArchive(emojiPath, true, false, 0);
-		packFile->mount("citizen:/ui/img/emoji/");
+		packFile->OpenPackfile(emojiPath, true, false, 0);
+		packFile->Mount("citizen:/ui/img/emoji/");
 	}, 100);
 
 	return;

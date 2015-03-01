@@ -182,7 +182,7 @@ bool DownloadManager::Process()
 								// FIXME: implementation detail from same class
 								fiDevice::Unmount(va("resources:/%s/", resourceData->GetName().c_str()));
 
-								packfile->closeArchive();
+								packfile->ClosePackfile();
 
 								// remove from the to-close list (!)
 								for (auto it = m_packFiles.begin(); it != m_packFiles.end(); it++)
@@ -224,8 +224,8 @@ bool DownloadManager::Process()
 							fwString markedFile = TheResources.GetCache()->GetMarkedFilenameFor(resource.GetName(), file.filename);
 
 							rage::fiPackfile* packFile = new rage::fiPackfile();
-							packFile->openArchive(markedFile.c_str(), true, false, 0);
-							packFile->mount(va("resources:/%s/", resource.GetName().c_str()));
+							packFile->OpenPackfile(markedFile.c_str(), true, false, 0);
+							packFile->Mount(va("resources:/%s/", resource.GetName().c_str()));
 
 							packFiles.push_back(packFile);
 							m_packFiles.push_back(std::make_pair(va("resources:/%s/", resource.GetName().c_str()), packFile));
@@ -501,7 +501,7 @@ void DownloadManager::ReleaseLastServer()
 	{
 		fiDevice::Unmount(packfile.first.c_str());
 
-		packfile.second->closeArchive();
+		packfile.second->ClosePackfile();
 	}
 
 	//nui::ReloadNUI();

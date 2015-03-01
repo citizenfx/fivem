@@ -386,7 +386,7 @@ bool LuaScriptEnvironment::LoadFile(fwString& scriptName, fwString& path)
 	// open the file
 	fiDevice* device = fiDevice::GetDevice(path.c_str(), true);
 
-	int handle = device->open(path.c_str(), true);
+	int handle = device->Open(path.c_str(), true);
 
 	if (handle == -1)
 	{
@@ -396,11 +396,11 @@ bool LuaScriptEnvironment::LoadFile(fwString& scriptName, fwString& path)
 	}
 
 	// read file data
-	int length = device->fileLength(handle);
+	int length = device->GetFileLength(handle);
 	char* fileData = new char[length + 1];
 
-	device->read(handle, fileData, length);
-	device->close(handle);
+	device->Read(handle, fileData, length);
+	device->Close(handle);
 
 	fileData[length] = '\0';
 

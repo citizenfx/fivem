@@ -132,7 +132,7 @@ void ResourceManager::DeleteResource(fwRefContainer<Resource> resource)
 void ResourceManager::ScanResources(fiDevice* device, fwString& path)
 {
 	rage::fiFindData findData;
-	int handle = device->findFirst(path.c_str(), &findData);
+	int handle = device->FindFirst(path.c_str(), &findData);
 
 	if (!handle || handle == -1)
 	{
@@ -157,7 +157,7 @@ void ResourceManager::ScanResources(fiDevice* device, fwString& path)
 		fullPath.append(findData.fileName);
 
 		// is this a directory?
-		if (!(device->getFileAttributes(fullPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY))
+		if (!(device->GetFileAttributes(fullPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY))
 		{
 			continue;
 		}
@@ -182,9 +182,9 @@ void ResourceManager::ScanResources(fiDevice* device, fwString& path)
 			// probably a resource directory...
 			AddResource(fwString(findData.fileName), fullPath);
 		}
-	} while (device->findNext(handle, &findData));
+	} while (device->FindNext(handle, &findData));
 
-	device->findClose(handle);
+	device->FindClose(handle);
 }
 
 void ResourceManager::ScanResources(fwVector<std::pair<fiDevice*, fwString>>& paths)
