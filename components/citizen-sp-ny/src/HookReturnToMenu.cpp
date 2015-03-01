@@ -27,4 +27,7 @@ static HookFunction hookFunction([] ()
 {
 	hook::nop(0x40DAA8, 5);
 	hook::call(0x40DAAF, ExitSinglePlayerGame);
+
+	// saved game protected data validation (from xliveless)
+	hook::nop(0x5B06E5, 2);
 });
