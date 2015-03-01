@@ -326,6 +326,7 @@ static std::vector<EntityRequest> m_requestList;
 static std::unordered_set<CBaseModelInfo*> m_requestExistenceSet;
 static std::unordered_multimap<int, CEntity*> m_dependencyDictEnts;
 static std::unordered_set<CBaseModelInfo*> g_primedMIs;
+static std::unordered_set<CBaseModelInfo*> g_primedEraseMIs;
 
 static void WRAPPER RequestModel(int mIdx, int fileType, int priority) { EAXJMP(0x832C40); }
 static bool WRAPPER HasModelLoaded(int mIdx, int fileType) { EAXJMP(0x832DD0); }
@@ -377,24 +378,25 @@ int RequestEntityModel(CEntity* entity)
 
 void __fastcall MIParents_AddRef(CBaseModelInfo* modelInfo)
 {
-	if (modelInfo->GetRefCount() <= 1)
+	if (g_primedMIs.find(modelInfo) != g_primedMIs.end())
 	{
-		if (g_primedMIs.find(modelInfo) != g_primedMIs.end())
-		{
-			// add a reference to the drawable dict
-			((void(*)(int))0x907910)(modelInfo->GetDrawblDict());
-		}
+		// add a reference to the drawable dict
+		((void(*)(int))0x907910)(modelInfo->GetDrawblDict());
+
+		// add to the proper list
+		g_primedMIs.erase(modelInfo);
+		g_primedEraseMIs.insert(modelInfo);
 	}
 }
 
 void MIParents_Release(CBaseModelInfo* modelInfo)
 {
-	if (g_primedMIs.find(modelInfo) != g_primedMIs.end())
+	if (g_primedEraseMIs.find(modelInfo) != g_primedEraseMIs.end())
 	{
 		//trace("removing reference to drawable dict %s as model info 0x%08x is unused\n", GetStreamName(mi->GetDrawblDict(), *(int*)0xF272E4).c_str(), mi->GetModelHash());
 		((void(*)(int))0x907940)(modelInfo->GetDrawblDict());
 
-		g_primedMIs.erase(modelInfo);
+		g_primedEraseMIs.erase(modelInfo);
 	}
 }
 
