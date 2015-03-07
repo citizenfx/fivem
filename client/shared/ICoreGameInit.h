@@ -15,6 +15,8 @@ public:
 	virtual void KillNetwork(const wchar_t* errorString) = 0;
 
 	virtual bool TryDisconnect() = 0;
+
+	virtual void SetPreventSavePointer(bool* preventSaveValue) = 0;
 };
 
 DECLARE_INSTANCE_TYPE(ICoreGameInit);

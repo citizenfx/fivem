@@ -1955,8 +1955,8 @@ static HookFunction hookModelInfoParents([] ()
 	hook::call(0x7BFB51, RetModelInfoDraw);
 
 	// temp dbg: make gtaDefSched single-threaded
-	hook::put<uint8_t>(0x79706F, 0);
-	hook::put<uint8_t>(0x797072, 1);
+	//hook::put<uint8_t>(0x79706F, 0);
+	//hook::put<uint8_t>(0x797072, 1);
 
 	// temp dbg: ignore 30999
 	hook::put(0x98E5B4, 0x7917);

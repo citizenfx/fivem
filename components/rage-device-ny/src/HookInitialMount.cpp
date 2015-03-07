@@ -16,8 +16,15 @@ static HookFunction hookFunction([] ()
 
 	injectCall.inject([] (int)
 	{
+		static bool didInitialMount = false;
+
 		injectCall.call();
 
-		rage::fiDevice::OnInitialMount();
+		if (!didInitialMount)
+		{
+			rage::fiDevice::OnInitialMount();
+
+			didInitialMount = true;
+		}
 	});
 });

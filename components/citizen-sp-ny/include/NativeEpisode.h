@@ -38,3 +38,4 @@ struct CEpisodes
 
 extern CEpisodes*& g_episodes;
 extern int g_useNorthEpisodes;
+extern bool g_preventSaveLoading;

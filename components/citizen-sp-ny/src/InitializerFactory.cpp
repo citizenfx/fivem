@@ -11,9 +11,10 @@
 #include "NativeEpisode.h"
 
 #include <CefOverlay.h>
-#include <scrEngine.h>
-#include <ResourceManager.h>
+#include <ICoreGameInit.h>
 #include <nutsnbolts.h>
+#include <ResourceManager.h>
+#include <scrEngine.h>
 
 #include <concurrent_queue.h>
 
@@ -138,6 +139,9 @@ Episode::EpisodeInitializer InitializerFactory::GetSinglePlayerInitializer(int e
 				*(bool*)0x18A8238 = true;
 			}
 
+			// prevent save loading for now
+			g_preventSaveLoading = true;
+
 			// muh
 			hook::put<uint8_t>(0x18A823A, 0);
 
@@ -167,6 +171,8 @@ static InitFunction initFunction([] ()
 		{
 			runFunc();
 		}
+
+		Instance<ICoreGameInit>::Get()->SetPreventSavePointer(&g_preventSaveLoading);
 	});
 
 	rage::scrEngine::CheckNativeScriptAllowed.Connect([] (bool& allowed)

@@ -6,6 +6,8 @@
 
 #include <ICoreGameInit.h>
 
+static bool* g_preventSaveLoading;
+
 bool GameInit::GetGameLoaded()
 {
 	return !(*(uint8_t*)0xF22B3C);
@@ -62,6 +64,7 @@ void GameInit::SetLoadScreens()
 	if (GetGameLoaded())
 	{
 		dontProcessTheGame = true;
+		*g_preventSaveLoading = true;
 	}
 
 	//*(BYTE*)0x7BD9F0 = 0xC3;
@@ -170,6 +173,22 @@ void GameInit::ReloadGame()
 static void ToggleBackGameProcess()
 {
 	dontProcessTheGame = false;
+	g_preventSaveLoading = false;
+}
+
+static void __declspec(naked) ToggleBackGameProcessStub()
+{
+	__asm
+	{
+		// preserve ecx and call
+		push ecx
+		call ToggleBackGameProcess
+		pop ecx
+
+		// jump back to original
+		push 788380h
+		retn
+	}
 }
 
 void GameInit::MurderGame()
@@ -203,6 +222,11 @@ public:
 			return true;
 		}
 	}
+
+	virtual void SetPreventSavePointer(bool* preventSaveValue) override
+	{
+		g_preventSaveLoading = preventSaveValue;
+	}
 };
 
 static InitFunction initFunction([] ()
@@ -213,11 +237,9 @@ static InitFunction initFunction([] ()
 	// some function that resets to/undoes weird loading text state rather than continuing on our nice loading screens (during the 'faux game process' state)
 	hook::nop(0x421426, 5);
 
-	// does loading stuff when the game is set to not process
-	hook::return_function(0x421160);
-
 	// hook to reset processing the game after our load caller finishes
-	hook::jump(0x420FA2, ToggleBackGameProcess);
+	//hook::jump(0x420FA2, ToggleBackGameProcess);
+	hook::call(0x421150, ToggleBackGameProcessStub);
 
 	// unused byte which is set to 0 during loading
 	hook::put<uint8_t>(0xF22B3C, 1);
@@ -237,13 +259,13 @@ static InitFunction initFunction([] ()
 	hook::put<uint8_t>(0x402B49, 0xEB);
 
 	// always redo game object variables
-	hook::nop(0x4205C5, 2);
+	//hook::nop(0x4205C5, 2);
 
 	// silly people doing silly things (related to loadGameNow call types)
 	hook::nop(0x4210FE, 2);
 	hook::nop(0x421108, 2);
 	hook::nop(0x420EAE, 6);
-	hook::put<uint8_t>(0x420ECD, 0xEB);
+	//hook::put<uint8_t>(0x420ECD, 0xEB);
 	hook::nop(0x420EF9, 2);
 
 	// create ICoreGameInit instance
