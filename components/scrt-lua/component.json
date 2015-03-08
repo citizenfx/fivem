@@ -6,7 +6,8 @@
 		"resources",
 		"net",
 		"nui:resources",
-		"gta:mission-cleanup"
+		"gta:mission-cleanup",
+		"gta:core"
 	],
 	"provides": []
 }

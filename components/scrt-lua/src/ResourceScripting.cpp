@@ -9,6 +9,8 @@
 #include <mmsystem.h>
 #include "ResourceManager.h"
 #include "ResourceScripting.h"
+
+#include <GlobalEvents.h>
 //#include "CrossLibraryInterfaces.h"
 
 bool g_errorOccurredThisFrame;
@@ -639,6 +641,13 @@ static InitFunction initFunction([] ()
 			handler = environment->GetMissionCleanup();
 		}
 	});
+
+	// reset global error flag on script reset
+	ResourceManager::OnScriptReset.Connect([] ()
+	{
+		g_errorOccurredThisFrame = false;
+	});
+
 	/*g_hooksDLL->SetHookCallback(StringHash("mCleanup"), [] (void* missionCleanupInstance)
 	{
 		CMissionCleanup** instance = (CMissionCleanup**)missionCleanupInstance;
