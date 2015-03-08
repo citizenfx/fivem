@@ -175,7 +175,7 @@ void CitizenNUIBackground::TryInitializeDWM()
 {
 	HMODULE hDwmAPI = LoadLibrary(L"dwmapi.dll");
 
-	if (hDwmAPI)
+	if (hDwmAPI && IsWindows7OrGreater())
 	{
 		m_fDwmpGetColorizationParameters = (DwmpGetColorizationParameters_t)GetProcAddress(hDwmAPI, MAKEINTRESOURCEA(127));
 
@@ -203,7 +203,7 @@ void CitizenNUIBackground::Initialize()
 	// COM stuff
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory1, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory), (void**)m_imagingFactory.ReleaseAndGetAddressOf());
+	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory1, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory), (void**)m_imagingFactory.GetAddressOf());
 
 	if (FAILED(hr))
 	{
