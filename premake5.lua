@@ -295,9 +295,9 @@ end
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
-if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
-	group "managed"
+group "managed"
 
+if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
 	external 'CitiMono'
 		uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
 		kind 'SharedLib'
