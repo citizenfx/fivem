@@ -10,6 +10,17 @@
 #include <NetLibrary.h>
 #include <strsafe.h>
 #include <GlobalEvents.h>
+#include <nutsnbolts.h>
+
+static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
+{
+	if (pointers->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
+	{
+		TerminateProcess(GetCurrentProcess(), 0xDEADCAFE);
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
 
 static InitFunction initFunction([] ()
 {
@@ -51,6 +62,18 @@ static InitFunction initFunction([] ()
 			netLibrary->ConnectToServer(hostname, atoi(port));
 
 			nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+		}
+		else if (!_wcsicmp(type, L"exit"))
+		{
+			// queue an ExitProcess on the next game frame
+			OnGameFrame.Connect([] ()
+			{
+				AddVectoredExceptionHandler(FALSE, TerminateInstantly);
+
+				CefShutdown();
+
+				ExitProcess(0);
+			});
 		}
 	});
 
