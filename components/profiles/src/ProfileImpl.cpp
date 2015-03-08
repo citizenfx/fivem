@@ -9,14 +9,14 @@
 #include "ProfileManagerImpl.h"
 
 ProfileImpl::ProfileImpl()
-	: m_isSuggestion(false), m_internalIdentifier(0)
+	: m_isSuggestion(false), m_internalIdentifier(0), m_signedIn(false)
 {
 
 }
 
 bool ProfileImpl::IsSignedIn()
 {
-	return false;
+	return m_signedIn;
 }
 
 concurrency::task<ProfileTaskResult> ProfileImpl::MergeProfile(fwRefContainer<Profile> fromProfile)

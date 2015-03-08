@@ -565,6 +565,9 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 
 							if (safe)
 							{
+								// mark the profile as signed in
+								profileImpl->SetSignedIn(true);
+
 								// save the profile list
 								UpdateStoredProfiles();
 

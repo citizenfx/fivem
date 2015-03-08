@@ -62,6 +62,8 @@ static InitFunction initFunction([] ()
 
 				profileObject.AddMember("parameters", parameters, outDocument.GetAllocator());
 
+				profileObject.AddMember("signedIn", profile->IsSignedIn(), outDocument.GetAllocator());
+
 				profilesArray.PushBack(profileObject, outDocument.GetAllocator());
 			}
 

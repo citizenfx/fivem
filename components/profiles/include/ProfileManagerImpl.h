@@ -102,6 +102,8 @@ private:
 
 	uint32_t m_internalIdentifier;
 
+	bool m_signedIn;
+
 public:
 	ProfileImpl();
 
@@ -118,6 +120,11 @@ public:
 	inline void SetInternalIdentifier(uint32_t identifier)
 	{
 		m_internalIdentifier = identifier;
+	}
+
+	inline void SetSignedIn(bool signedIn)
+	{
+		m_signedIn = signedIn;
 	}
 
 	ProfileIdentifier GetIdentifierInternal(int index);
