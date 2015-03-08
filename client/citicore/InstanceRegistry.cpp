@@ -19,6 +19,10 @@ void* InstanceRegistry::GetInstance(const char* key)
 	{
 		instance = it->second;
 	}
+	else
+	{
+		FatalError("Could not obtain instance from InstanceRegistry of type `%s`.", key);
+	}
 	
 	return instance;
 }
