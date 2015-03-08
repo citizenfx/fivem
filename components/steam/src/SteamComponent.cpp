@@ -229,6 +229,11 @@ void SteamComponent::InitializePresence()
 	// get a local-only app ID to register our app at
 	InterfaceMapper steamShortcutsInterface(m_clientEngine->GetIClientShortcuts(m_steamUser, m_steamPipe, "CLIENTSHORTCUTS_INTERFACE_VERSION001"));
 
+	if (!steamShortcutsInterface.IsValid())
+	{
+		return;
+	}
+
 	uint32_t appID = steamShortcutsInterface.Invoke<uint32_t>("GetUniqueLocalAppId");
 
 	// check for ownership of a suitable parent game to use for the CGameID instance

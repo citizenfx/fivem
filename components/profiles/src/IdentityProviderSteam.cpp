@@ -46,6 +46,12 @@ concurrency::task<ProfileIdentityResult> SteamIdentityProvider::ProcessIdentity(
 	IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
 	InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+	if (!steamUser.IsValid())
+	{
+		return concurrency::task_from_result<ProfileIdentityResult>(ProfileIdentityResult("Steam must be running to sign in to a Steam-based profile."));
+	}
+
 	InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
 
 	// verify we've the correct steam ID for this profile
