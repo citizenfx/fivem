@@ -35,7 +35,7 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	ResourceManager::OnTriggerEvent.Connect([] (fwString eventName)
+	ResourceManager::OnTriggerEvent.Connect([] (const fwString& eventName, const fwString&, int)
 	{
 		if (eventName == "playerActivated")
 		{

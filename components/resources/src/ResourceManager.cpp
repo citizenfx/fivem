@@ -63,7 +63,7 @@ bool ResourceManager::TriggerEvent(fwString& eventName, fwString& argsSerialized
 		}
 	}*/
 
-	OnTriggerEvent(eventName);
+	OnTriggerEvent(eventName, argsSerialized, source);
 
 	m_eventCancelationState.push(false);
 

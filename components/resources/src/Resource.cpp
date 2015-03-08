@@ -383,4 +383,4 @@ __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStartingReso
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStartedResource;
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>> Resource::OnStoppingResource;
 __declspec(dllexport) fwEvent<fwRefContainer<Resource>, fwString, fwString> Resource::OnSetMetaData;
-__declspec(dllexport) fwEvent<fwString> ResourceManager::OnTriggerEvent;
+__declspec(dllexport) fwEvent<const fwString&, const fwString&, int> ResourceManager::OnTriggerEvent;

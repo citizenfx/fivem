@@ -251,7 +251,7 @@ public:
 
 	inline int GetStateNumber() { return m_stateNumber; }
 
-	static fwEvent<fwString> OnTriggerEvent;
+	static fwEvent<const fwString&, const fwString&, int> OnTriggerEvent;
 
 	static fwEvent<fwString> OnQueueResourceStart;
 

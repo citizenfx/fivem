@@ -74,7 +74,7 @@ int __stdcall XUserGetName(DWORD dwUserId, char * pBuffer, DWORD dwBufLen)
 {
 	if (dwBufLen < 8)
 		return 1;
-	StringCbCopyA(pBuffer, dwBufLen, g_netLibrary->GetPlayerName());
+	sprintf(pBuffer, "%d", GetTickCount());
 
 	return 0;
 }
@@ -118,8 +118,7 @@ int __stdcall XUserGetSigninInfo(DWORD dwUser, DWORD dwFlags, XUSER_SIGNIN_INFO 
 		pInfo->dwInfoFlags = 1;
 		pInfo->UserSigninState = 2;
 	}
-	//strcpy (pInfo->szUserName, "Player");
-	StringCbCopyA(pInfo->szUserName, sizeof(pInfo->szUserName), g_netLibrary->GetPlayerName());
+	sprintf(pInfo->szUserName, "%d", GetTickCount());
 	pInfo->dwSponsorUserIndex = 0;
 	pInfo->dwGuestNumber = 0;
 
