@@ -276,9 +276,9 @@ if _OPTIONS['game'] ~= 'server' then
 			includedirs { "components/rage-nutsnbolts-" .. _OPTIONS['game'] .. "/include/" }
 end
 
-	--[[local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
+	local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
 
-	if buildHost == 'FALLARBOR' then
+	--[[if buildHost == 'FALLARBOR' then
 		project "CitiMono"
 			targetname "CitizenFX.Core"
 			language "C#"
@@ -295,7 +295,7 @@ end
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
-if _OPTIONS['game'] ~= 'server' then
+if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
 	group "managed"
 
 	external 'CitiMono'
