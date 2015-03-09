@@ -29,7 +29,5 @@ void* InstanceRegistry::GetInstance(const char* key)
 
 void InstanceRegistry::SetInstance(const char* key, void* instance)
 {
-	assert(!GetInstance(key));
-
 	g_instanceMap[key] = instance;
 }
