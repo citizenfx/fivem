@@ -38,6 +38,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"ProductName"] = L"CitizenFX";
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20141213000000"; // todo i bet
+		parameters[L"ReleaseChannel"] = L"release";
 
 		std::wstring responseBody;
 		int responseCode;
