@@ -44,75 +44,79 @@ void SteamSuggestionProvider::GetProfiles(std::function<void(fwRefContainer<Prof
 	{
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
-		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-		InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-		if (steamUser.IsValid())
+		// check if the private client class exists; as it might be the case that a 'cracked' steamclient.dll is used which only implements ISteam*
+		if (steamClient)
 		{
-			// NOTE: this may be different on AMD64
-			uint64_t steamID;
-			steamUser.Invoke<void>("GetSteamID", &steamID);
+			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
 
-			int largeAvatar = steamFriends.Invoke<int>("GetLargeFriendAvatar", steamID);
-			std::string personaName = steamFriends.Invoke<const char*>("GetPersonaName");
-
-			auto continueCode = [=] (int avatarId)
+			if (steamUser.IsValid())
 			{
-				InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
-				std::string tileURI;
+				// NOTE: this may be different on AMD64
+				uint64_t steamID;
+				steamUser.Invoke<void>("GetSteamID", &steamID);
 
-				uint32_t width;
-				uint32_t height;
-				if (steamUtils.Invoke<bool>("GetImageSize", avatarId, &width, &height))
+				int largeAvatar = steamFriends.Invoke<int>("GetLargeFriendAvatar", steamID);
+				std::string personaName = steamFriends.Invoke<const char*>("GetPersonaName");
+
+				auto continueCode = [=] (int avatarId)
 				{
-					std::vector<char> imageData;
-					imageData.resize(width * height * 4);
+					InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
+					std::string tileURI;
 
-					if (steamUtils.Invoke<bool>("GetImageRGBA", avatarId, &imageData[0], imageData.size()))
+					uint32_t width;
+					uint32_t height;
+					if (steamUtils.Invoke<bool>("GetImageSize", avatarId, &width, &height))
 					{
-						// convert to PNG
-						size_t pngLength = 0;
-						char* pngData = EncodeImageAsPNG(&imageData[0], width, height, &pngLength);
+						std::vector<char> imageData;
+						imageData.resize(width * height * 4);
 
-						// encode as base64
-						size_t base64Length = 0;
+						if (steamUtils.Invoke<bool>("GetImageRGBA", avatarId, &imageData[0], imageData.size()))
+						{
+							// convert to PNG
+							size_t pngLength = 0;
+							char* pngData = EncodeImageAsPNG(&imageData[0], width, height, &pngLength);
 
-						char* base64 = base64_encode(reinterpret_cast<uint8_t*>(pngData), pngLength, &base64Length);
+							// encode as base64
+							size_t base64Length = 0;
 
-						// free the input buffer
-						delete[] pngData;
+							char* base64 = base64_encode(reinterpret_cast<uint8_t*>(pngData), pngLength, &base64Length);
 
-						// make a funny string
-						tileURI = "data:image/png;base64," + std::string(base64, base64Length);
+							// free the input buffer
+							delete[] pngData;
 
-						// and free the base64
-						free(base64);
+							// make a funny string
+							tileURI = "data:image/png;base64," + std::string(base64, base64Length);
+
+							// and free the base64
+							free(base64);
+						}
 					}
-				}
 
-				fwRefContainer<ProfileImpl> profile = new ProfileImpl();
-				std::vector<ProfileIdentifier> identifiers;
-				identifiers.push_back(std::make_pair("steam", va("%llx", steamID)));
+					fwRefContainer<ProfileImpl> profile = new ProfileImpl();
+					std::vector<ProfileIdentifier> identifiers;
+					identifiers.push_back(std::make_pair("steam", va("%llx", steamID)));
 
-				profile->SetDisplayName(personaName);
-				profile->SetIdentifiers(identifiers);
-				profile->SetTileURI(tileURI);
+					profile->SetDisplayName(personaName);
+					profile->SetIdentifiers(identifiers);
+					profile->SetTileURI(tileURI);
 
-				receiver(profile);
-			};
+					receiver(profile);
+				};
 
-			if (largeAvatar == -1)
-			{
-				int steamCallbackRef = steamComponent->RegisterSteamCallback<AvatarImageLoaded_t>([=] (AvatarImageLoaded_t* callbackData)
+				if (largeAvatar == -1)
 				{
-					continueCode(callbackData->m_iImage);
+					int steamCallbackRef = steamComponent->RegisterSteamCallback<AvatarImageLoaded_t>([=] (AvatarImageLoaded_t* callbackData)
+					{
+						continueCode(callbackData->m_iImage);
 
-					steamComponent->RemoveSteamCallback(steamCallbackRef);
-				});
-			}
-			else
-			{
-				continueCode(largeAvatar);
+						steamComponent->RemoveSteamCallback(steamCallbackRef);
+					});
+				}
+				else
+				{
+					continueCode(largeAvatar);
+				}
 			}
 		}
 	}
