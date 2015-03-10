@@ -74,7 +74,7 @@ void SteamComponent::Initialize()
 
 	m_steamLoader.Initialize();
 
-	if (!m_steamLoader.IsSteamRunning())
+	if (!m_steamLoader.IsSteamRunning(false))
 	{
 		return;
 	}
@@ -358,7 +358,7 @@ HSteamPipe SteamComponent::GetHSteamPipe()
 
 bool SteamComponent::IsSteamRunning()
 {
-	return m_steamLoader.IsSteamRunning();
+	return m_steamLoader.IsSteamRunning(false);
 }
 
 int SteamComponent::GetParentAppID()

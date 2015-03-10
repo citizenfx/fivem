@@ -25,7 +25,7 @@ private:
 public:
 	void Initialize();
 
-	bool IsSteamRunning();
+	bool IsSteamRunning(bool ignoreCreateFunc);
 
 	template<typename TProcedure>
 	TProcedure GetProcAddress(const char* name)

@@ -10,7 +10,7 @@
 
 void SteamLoader::Initialize()
 {
-	if (IsSteamRunning())
+	if (IsSteamRunning(true))
 	{
 		std::wstring steamDllPath = GetSteamDllPath();
 		std::wstring steamDirectory = steamDllPath.substr(0, steamDllPath.rfind(L'\\'));
@@ -48,7 +48,7 @@ void* SteamLoader::GetProcAddressInternal(const char* name)
 	return func;
 }
 
-bool SteamLoader::IsSteamRunning()
+bool SteamLoader::IsSteamRunning(bool ignoreCreateFunc)
 {
 	bool retval = false;
 	uint32_t pid = GetSteamProcessId();
@@ -66,7 +66,7 @@ bool SteamLoader::IsSteamRunning()
 	}
 
 	// safety check to see if CreateInterface is callable
-	if (!GetCreateInterfaceFunc())
+	if (!GetCreateInterfaceFunc() && !ignoreCreateFunc)
 	{
 		retval = false;
 	}
