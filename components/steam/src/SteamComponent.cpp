@@ -242,9 +242,10 @@ void SteamComponent::InitializePresence()
 	uint32_t parentAppID = PARENT_APP_ID;
 
 	uint32_t timeCreated = 0;
-	bool success = steamUserInterface.Invoke<bool>("GetAppOwnershipInfo", parentAppID, &timeCreated, 0, 0);
+	bool success = steamUserInterface.Invoke<bool>("GetAppOwnershipInfo", parentAppID, &timeCreated, nullptr, nullptr);
+	bool legitimateOwnership = steamUserInterface.Invoke<bool>("BIsSubscribedApp", parentAppID);
 
-	if (!success || timeCreated == 0)
+	if (!success || timeCreated == 0 || !legitimateOwnership)
 	{
 		parentAppID = 218;
 	}
