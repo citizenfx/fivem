@@ -65,6 +65,12 @@ bool SteamLoader::IsSteamRunning()
 		}
 	}
 
+	// safety check to see if CreateInterface is callable
+	if (!GetCreateInterfaceFunc())
+	{
+		retval = false;
+	}
+
 	return retval;
 }
 
