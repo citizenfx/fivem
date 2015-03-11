@@ -39,7 +39,12 @@ concurrency::task<ProfileIdentityResult> SteamIdentityProvider::ProcessIdentity(
 	// if Steam isn't running, return an error
 	if (!steamComponent->IsSteamRunning())
 	{
-		return concurrency::task_from_result<ProfileIdentityResult>(ProfileIdentityResult("Steam must be running to sign in to a Steam-based profile."));
+		steamComponent->Initialize();
+
+		if (!steamComponent->IsSteamRunning())
+		{
+			return concurrency::task_from_result<ProfileIdentityResult>(ProfileIdentityResult("Steam must be running to sign in to a Steam-based profile."));
+		}
 	}
 
 	// get the Steam interfaces

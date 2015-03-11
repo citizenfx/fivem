@@ -31,6 +31,8 @@ public:
 
 	virtual int GetParentAppID() = 0;
 
+	virtual void Initialize() = 0;
+
 // template bits
 public:
 	template<typename TCallback>
