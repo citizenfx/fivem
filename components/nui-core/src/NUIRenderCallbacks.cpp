@@ -18,6 +18,14 @@ static InitFunction initFunction([] ()
 		});
 	});
 
+	DoWeIgnoreTheFrontend.Connect([] (bool& dw)
+	{
+		if (nui::HasMainUI())
+		{
+			dw = true;
+		}
+	});
+
 	OnPostFrontendRender.Connect([] ()
 	{
 		if (nui::HasMainUI())

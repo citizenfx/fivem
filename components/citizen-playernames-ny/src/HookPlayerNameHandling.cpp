@@ -8,10 +8,16 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <FontRenderer.h>
+
 #include <NetLibrary.h>
 #include <ResourceManager.h>
 
+#include <Screen.h>
+
 #include <msgpack.hpp>
+
+#include <DrawCommands.h>
 
 static NetLibrary* g_netLibrary;
 static std::unordered_map<int, std::string> g_netIdToNames;
@@ -30,7 +36,16 @@ class CPlayerInfo
 {
 public:
 	XNADDR address; // 36 bytes long
+
+	void* GetPed()
+	{
+		return *(void**)((char*)this + 1420);
+	}
+
+	static CPlayerInfo* GetPlayer(int index);
 };
+
+WRAPPER CPlayerInfo* CPlayerInfo::GetPlayer(int index) { EAXJMP(0x817F20); }
 
 static const char* __fastcall CPlayerInfo__GetName(CPlayerInfo* playerInfo)
 {
@@ -74,6 +89,61 @@ static void __declspec(naked) InlineDrawNameHook()
 	}
 }
 
+static CRGBA g_lastColor;
+static void* g_lastPlayer;
+static uint32_t g_drawnNameBitfield;
+
+void DrawNetworkNameText(float x, float y, const wchar_t* text, int, int)
+{
+	// find a player info with this ped
+	for (int i = 0; i < 32; i++)
+	{
+		auto player = CPlayerInfo::GetPlayer(i);
+
+		if (player && player->GetPed() == g_lastPlayer)
+		{
+			if ((g_drawnNameBitfield & (1 << i)) == 0)
+			{
+				static float fontSize = (28.0f / 1440.0f) * GetScreenResolutionY();
+
+				g_drawnNameBitfield |= (1 << i);
+
+				wchar_t wideStr[512];
+				MultiByteToWideChar(CP_UTF8, 0, CPlayerInfo__GetName(player), -1, wideStr, _countof(wideStr));
+
+				x *= GetScreenResolutionX();
+				y *= GetScreenResolutionY();
+
+				CRect rect(x, y, x + 300, y + 40);
+
+				TheFonts->DrawText(wideStr, rect, g_lastColor, fontSize, 1.0f, "Segoe UI");
+
+				return;
+			}
+		}
+	}
+}
+
+void __declspec(naked) DrawNetworkNameTextStub()
+{
+	__asm
+	{
+		mov g_lastPlayer, edi
+
+		jmp DrawNetworkNameText
+	}
+}
+
+void DrawNetworkNameSetColor(CRGBA color)
+{
+	g_lastColor = color;
+
+	// BGR swap the color
+	uint8_t tempVar = g_lastColor.red;
+	g_lastColor.red = g_lastColor.blue;
+	g_lastColor.blue = tempVar;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// CPlayerInfo non-inlined function
@@ -81,6 +151,18 @@ static HookFunction hookFunction([] ()
 
 	// network player names, inline sneaky asm hook
 	hook::jump(0x4799AF, InlineDrawNameHook);
+
+	// temp dbg: also show network player name for local player
+	hook::nop(0x479271, 6);
+
+	// network name CFont::SetColour
+	hook::call(0x479990, DrawNetworkNameSetColor);
+
+	// network name text draw call
+	hook::call(0x479B30, DrawNetworkNameTextStub);
+
+	// don't do player names at the *right* time as we're too lazy to put our calls in the right place
+	hook::nop(0x86AFAD, 5);
 });
 
 static InitFunction initFunction([] ()
@@ -119,4 +201,12 @@ static InitFunction initFunction([] ()
 			}
 		}
 	});
+
+	OnPostFrontendRender.Connect([] ()
+	{
+		g_drawnNameBitfield = 0;
+
+		// draw player names
+		((void(*)())0x463310)();
+	}, -50);
 });

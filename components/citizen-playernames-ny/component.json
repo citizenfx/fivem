@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
-		"resources"
+		"resources",
+		"font-renderer"
 	],
 	"provides": []
 }

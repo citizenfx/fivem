@@ -119,5 +119,8 @@ __declspec(dllexport)
 	void GetGameResolution(int& width, int& height);
 
 extern DC_EXPORT fwEvent<> OnPostFrontendRender;
+extern DC_EXPORT fwEvent<bool&> DoWeIgnoreTheFrontend;
+
+#define _HAS_DWITF 1
 
 #define grcCullModeNone 0

@@ -11,13 +11,25 @@
 
 static void DrawFrontendWrap()
 {
+	bool dwitf = false;
+
+	DoWeIgnoreTheFrontend(dwitf);
+
+	if (!dwitf)
+	{
+		OnPostFrontendRender();
+	}
+
 	// frontend flag
 	if (*(uint8_t*)0x10C7F6F)
 	{
 		((void(*)())0x44CCD0)();
 	}
 
-	OnPostFrontendRender();
+	if (dwitf)
+	{
+		OnPostFrontendRender();
+	}
 }
 
 static HookFunction hookFunction([] ()
@@ -27,3 +39,5 @@ static HookFunction hookFunction([] ()
 
 	hook::put(0xE9F1AC, DrawFrontendWrap);
 });
+
+DC_EXPORT fwEvent<bool&> DoWeIgnoreTheFrontend;

@@ -40,7 +40,7 @@ static HookFunction hookFunction([] ()
 	static float lodDivisor = 1.0f / (16000 / 30.0f);
 	static float idleLodDivisor = (16000 / 30.0f);
 	static float posExtent = 8000.0f;
-	static float negExtent = -4000.0f;
+	static float negExtent = -8000.0f;
 
 	// 7D7700
 	hook::put(0x7D771A, &divisor);
