@@ -1,0 +1,10 @@
+{
+	"name": "citizen:content-setup:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:device",
+		"resources"
+	],
+	"provides": []
+}
