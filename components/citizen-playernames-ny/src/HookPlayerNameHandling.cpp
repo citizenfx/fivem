@@ -92,6 +92,7 @@ static void __declspec(naked) InlineDrawNameHook()
 static CRGBA g_lastColor;
 static void* g_lastPlayer;
 static uint32_t g_drawnNameBitfield;
+static int g_lastAlignment;
 
 void DrawNetworkNameText(float x, float y, const wchar_t* text, int, int)
 {
@@ -104,7 +105,7 @@ void DrawNetworkNameText(float x, float y, const wchar_t* text, int, int)
 		{
 			if ((g_drawnNameBitfield & (1 << i)) == 0)
 			{
-				static float fontSize = (28.0f / 1440.0f) * GetScreenResolutionY();
+				static float fontSize = round((28.0f / 1440.0f) * GetScreenResolutionY());
 
 				g_drawnNameBitfield |= (1 << i);
 
@@ -114,7 +115,17 @@ void DrawNetworkNameText(float x, float y, const wchar_t* text, int, int)
 				x *= GetScreenResolutionX();
 				y *= GetScreenResolutionY();
 
-				CRect rect(x, y, x + 300, y + 40);
+				float offsetX = 0;
+
+				if (g_lastAlignment == 0) // center
+				{
+					CRect outRect;
+					TheFonts->GetStringMetrics(wideStr, fontSize, 1.0f, "Segoe UI", outRect);
+
+					offsetX = outRect.Width() / 2;
+				}
+
+				CRect rect(round(x - offsetX), y, x + 300, y + 40);
 
 				TheFonts->DrawText(wideStr, rect, g_lastColor, fontSize, 1.0f, "Segoe UI");
 
@@ -144,6 +155,11 @@ void DrawNetworkNameSetColor(CRGBA color)
 	g_lastColor.blue = tempVar;
 }
 
+void DrawNetworkNameSetAlignment(int alignment)
+{
+	g_lastAlignment = alignment;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// CPlayerInfo non-inlined function
@@ -157,6 +173,12 @@ static HookFunction hookFunction([] ()
 
 	// network name CFont::SetColour
 	hook::call(0x479990, DrawNetworkNameSetColor);
+
+	// network name alignment setting
+	hook::call(0x479AA6, DrawNetworkNameSetAlignment);
+
+	// ignore ep2 check in network name drawing
+	hook::put<uint16_t>(0x479B49, 0xE990);
 
 	// network name text draw call
 	hook::call(0x479B30, DrawNetworkNameTextStub);
