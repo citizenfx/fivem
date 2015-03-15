@@ -19,13 +19,15 @@ private:
 	};
 
 public:
-	virtual Component* CreateComponent();
+	virtual Component* CreateComponent() override;
 
-	virtual std::vector<ComponentId> GetDepends();
+	virtual std::vector<ComponentId> GetDepends() override;
 
-	virtual std::vector<ComponentId> GetProvides();
+	virtual std::vector<ComponentId> GetProvides() override;
 
-	virtual std::string GetName();
+	virtual std::string GetName() override;
+
+	virtual bool ShouldAutoInstance() override;
 
 	static fwRefContainer<FxGameComponent> Create();
 };

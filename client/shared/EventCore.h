@@ -220,6 +220,12 @@ public:
 	}
 };
 
+template<typename T>
+bool operator<(const fwRefContainer<T>& left, const fwRefContainer<T>& right)
+{
+	return (left.GetRef() < right.GetRef());
+}
+
 class fwRefCountable
 {
 private:

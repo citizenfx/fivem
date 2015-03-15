@@ -56,6 +56,13 @@ class CORE_EXPORT Component : public fwRefCountable
 public:
 	virtual bool Initialize() = 0;
 
+	virtual bool Initialize(const std::string& userData)
+	{
+		(void)userData;
+
+		return Initialize();
+	}
+
 	virtual bool Shutdown() = 0;
 
 	virtual bool DoGameLoad(void* hModule);
@@ -73,13 +80,46 @@ public:
 
 	virtual std::vector<ComponentId> GetDepends() = 0;
 
+	virtual bool ShouldAutoInstance() = 0;
+
 private:
-	fwRefContainer<Component> m_component;
+	std::vector<fwRefContainer<ComponentData>> m_dependencyComponents;
+
+public:
+	inline void AddDependency(const fwRefContainer<ComponentData>& dependency)
+	{
+		m_dependencyComponents.push_back(dependency);
+	}
+
+	inline const std::vector<fwRefContainer<ComponentData>>& GetDependencyDataList()
+	{
+		return m_dependencyComponents;
+	}
+
+private:
+	std::vector<fwRefContainer<Component>> m_instances;
+
+	bool m_isLoaded;
 
 public:
 	void Load();
 
-	inline fwRefContainer<Component> GetComponent() { return m_component; }
+	inline bool IsLoaded()
+	{
+		return m_isLoaded;
+	}
+
+	inline void SetLoaded(bool value)
+	{
+		m_isLoaded = value;
+	}
+
+	fwRefContainer<Component> CreateInstance(const std::string& userData);
+
+	inline const std::vector<fwRefContainer<Component>>& GetInstances()
+	{
+		return m_instances;
+	}
 };
 
 class CORE_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
@@ -87,7 +127,7 @@ class CORE_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
 private:
 	typedef std::unordered_map<std::string, fwRefContainer<ComponentData>> TComponentList;
 
-	typedef std::set<std::string> TLoadedList;
+	typedef std::vector<fwRefContainer<ComponentData>> TLoadedList;
 
 	fwRefContainer<ComponentData> m_rootComponent;
 
@@ -105,3 +145,59 @@ public:
 
 	fwRefContainer<ComponentData> LoadComponent(const char* component);
 };
+
+#include <stack>
+
+template<typename T>
+struct GetDependencies
+{
+	
+};
+
+template<>
+struct GetDependencies<fwRefContainer<ComponentData>>
+{
+	const std::vector<fwRefContainer<ComponentData>>& operator()(const fwRefContainer<ComponentData>& componentData)
+	{
+		return componentData->GetDependencyDataList();
+	}
+};
+
+template<typename TListEntry, typename TList, typename TGetDependencies = GetDependencies<TListEntry>>
+std::stack<TListEntry> SortDependencyList(const TList& list)
+{
+	std::stack<TListEntry> stack;
+
+	std::map<TListEntry, bool> visited;
+
+	std::function<void(const TListEntry&)> visit = [&] (const TListEntry& entry)
+	{
+		visited[entry] = true;
+
+		for (auto& dependency : TGetDependencies()(entry))
+		{
+			if (!visited[dependency])
+			{
+				visit(dependency);
+			}
+		}
+
+		stack.push(entry);
+	};
+
+	for (auto& entry : list)
+	{
+		if (!visited[entry])
+		{
+			visit(entry);
+		}
+	}
+
+	return stack;
+}
+
+template<typename TListEntry>
+std::stack<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
+{
+	return SortDependencyList<TListEntry, std::vector<TListEntry>>(list);
+}

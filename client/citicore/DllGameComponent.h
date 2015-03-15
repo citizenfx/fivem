@@ -23,11 +23,13 @@ private:
 public:
 	DllGameComponent(const pchar_t* path);
 
-	virtual std::string GetName();
+	virtual std::string GetName() override;
 
-	virtual std::vector<ComponentId> GetProvides();
+	virtual std::vector<ComponentId> GetProvides() override;
 
-	virtual std::vector<ComponentId> GetDepends();
+	virtual std::vector<ComponentId> GetDepends() override;
 
-	virtual Component* CreateComponent();
+	virtual bool ShouldAutoInstance() override;
+
+	virtual Component* CreateComponent() override;
 };

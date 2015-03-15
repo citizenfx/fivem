@@ -46,6 +46,11 @@ std::vector<ComponentId> FxGameComponent::GetProvides()
 	return componentIds;
 }
 
+bool FxGameComponent::ShouldAutoInstance()
+{
+	return false;
+}
+
 fwRefContainer<FxGameComponent> FxGameComponent::Create()
 {
 	return new FxGameComponent();

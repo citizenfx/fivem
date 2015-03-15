@@ -46,3 +46,10 @@ std::vector<ComponentId> DllGameComponent::GetDepends()
 
 	return componentIds;
 }
+
+bool DllGameComponent::ShouldAutoInstance()
+{
+	auto iterator = m_document.FindMember("shouldAutoInstance");
+
+	return (iterator != m_document.MemberEnd()) ? iterator->value.GetBool() : true;
+}

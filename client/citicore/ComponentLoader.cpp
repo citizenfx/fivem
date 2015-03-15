@@ -85,6 +85,9 @@ void ComponentLoader::Initialize()
 		AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, nameWide.c_str())));
 	}
 
+	// load the components, but don't instance them
+	std::vector<fwRefContainer<ComponentData>> componentDatas;
+
 	for (auto& component : components)
 	{
 		auto comp = LoadComponent(component.c_str());
@@ -94,19 +97,42 @@ void ComponentLoader::Initialize()
 			FatalError("Could not load component %s.", component.c_str());
 		}
 
-		trace("Initializing %s.\n", comp->GetName().c_str());
+		componentDatas.push_back(comp);
+	}
 
-		comp->GetComponent()->Initialize();
+	// sort the list by dependency
+	std::stack<fwRefContainer<ComponentData>> sortedList = SortDependencyList(componentDatas);
+
+	// clear the loaded list (it'll be added afterwards in order)
+	m_loadedComponents.clear();
+
+	while (!sortedList.empty())
+	{
+		auto comp = sortedList.top();
+		sortedList.pop();
+
+		m_loadedComponents.push_back(comp);
+
+		// create a component instance if need be 
+		if (comp->ShouldAutoInstance())
+		{
+			trace("Initializing instance of %s.\n", comp->GetName().c_str());
+
+			comp->CreateInstance(std::string());
+		}
 	}
 }
 
 void ComponentLoader::DoGameLoad(void* hModule)
 {
-	for (auto& componentName : m_loadedComponents)
+	for (auto& component : m_loadedComponents)
 	{
-		auto component = m_knownComponents[componentName];
+		auto& instances = component->GetInstances();
 
-		component->GetComponent()->DoGameLoad(hModule);
+		if (instances.size() > 0)
+		{
+			instances[0]->DoGameLoad(hModule);
+		}
 	}
 }
 
@@ -114,17 +140,24 @@ void ComponentLoader::AddComponent(fwRefContainer<ComponentData> component)
 {
 	std::string name = component->GetName();
 
+	component->SetLoaded(false);
+
 	m_knownComponents.insert(std::make_pair(name, component));
 }
 
 fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* componentName)
 {
-	if (m_loadedComponents.find(componentName) != m_loadedComponents.end())
+	auto component = m_knownComponents[componentName];
+
+	if (!component.GetRef())
 	{
-		return m_knownComponents[componentName];
+		FatalError("Unknown component %s.", componentName);
 	}
 
-	auto component = m_knownComponents[componentName];
+	if (component->IsLoaded())
+	{
+		return component;
+	}
 
 	// match and resolve dependencies
 	auto dependencies = component->GetDepends();
@@ -144,7 +177,8 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 				{
 					trace("Resolving dependency for %s by %s (%s).\n", dependency.GetString().c_str(), it.second->GetName().c_str(), provide.GetString().c_str());
 
-					LoadComponent(it.second->GetName().c_str());
+					auto dependencyData = LoadComponent(it.second->GetName().c_str());
+					component->AddDependency(dependencyData);
 
 					match = true;
 
@@ -169,16 +203,22 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 	// load the component
 	component->Load();
 
-	m_loadedComponents.insert(componentName);
-
 	return component;
+}
+
+fwRefContainer<Component> ComponentData::CreateInstance(const std::string& userData)
+{
+	fwRefContainer<Component> instance = CreateComponent();
+	m_instances.push_back(instance);
+
+	instance->Initialize(userData);
+
+	return instance;
 }
 
 void ComponentData::Load()
 {
-	m_component = CreateComponent();
-
-	assert(m_component.GetRef());
+	SetLoaded(true);
 }
 
 bool Component::DoGameLoad(void* hModule) { return true; }
