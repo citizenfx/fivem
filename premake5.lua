@@ -161,6 +161,8 @@ solution "CitizenMP"
 	configuration "not windows"
 		buildoptions "-fPIC"
 
+		links { "c++" }
+
 if _OPTIONS['game'] ~= 'server' then
 	project "CitiLaunch"
 		language "C++"
