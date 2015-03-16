@@ -9,19 +9,32 @@
 
 #ifndef CORE_EXPORT
 #ifdef COMPILING_CORE
-#define CORE_EXPORT __declspec(dllexport)
+#define CORE_EXPORT DLL_EXPORT
 #else
 #define CORE_EXPORT
 #endif
 #endif
 
-class CORE_EXPORT InstanceRegistry
-{
-public:
-	static void* GetInstance(const char* key);
+#ifndef CORE_IMPORT
+#ifdef COMPILING_CORE
+#define CORE_IMPORT
+#else
+#define CORE_IMPORT DLL_IMPORT
+#endif
+#endif
 
-	static void SetInstance(const char* key, void* instance);
+class CORE_EXPORT InstanceRegistry : public fwRefCountable
+{
+private:
+	std::unordered_map<std::string, void*> m_instanceMap;
+
+public:
+	void* GetInstance(const char* key);
+
+	void SetInstance(const char* key, void* instance);
 };
+
+extern CORE_EXPORT CORE_IMPORT InstanceRegistry g_instanceRegistry;
 
 template<class T>
 class Instance
@@ -31,24 +44,33 @@ private:
 	static T* ms_cachedInstance;
 
 public:
-	static T* Get()
+	static T* Get(InstanceRegistry* registry)
 	{
-		if (ms_cachedInstance)
-		{
-			return ms_cachedInstance;
-		}
-
-		T* instance = static_cast<T*>(InstanceRegistry::GetInstance(ms_name));
-		ms_cachedInstance = instance;
+		T* instance = static_cast<T*>(registry->GetInstance(ms_name));
 
 		assert(instance != nullptr);
 
 		return instance;
 	}
 
+	static T* Get()
+	{
+		if (!ms_cachedInstance)
+		{
+			ms_cachedInstance = Get(&g_instanceRegistry);
+		}
+
+		return ms_cachedInstance;
+	}
+
 	static void Set(T* instance)
 	{
-		InstanceRegistry::SetInstance(ms_name, instance);
+		Set(instance, &g_instanceRegistry);
+	}
+
+	static void Set(T* instance, InstanceRegistry* registry)
+	{
+		registry->SetInstance(ms_name, instance);
 	}
 };
 

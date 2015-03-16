@@ -8,14 +8,12 @@
 #include "StdInc.h"
 #include "Registry.h"
 
-static std::unordered_map<std::string, void*> g_instanceMap;
-
 void* InstanceRegistry::GetInstance(const char* key)
 {
-	auto it = g_instanceMap.find(key);
+	auto it = m_instanceMap.find(key);
 	void* instance = nullptr;
 
-	if (it != g_instanceMap.end())
+	if (it != m_instanceMap.end())
 	{
 		instance = it->second;
 	}
@@ -29,5 +27,8 @@ void* InstanceRegistry::GetInstance(const char* key)
 
 void InstanceRegistry::SetInstance(const char* key, void* instance)
 {
-	g_instanceMap[key] = instance;
+	m_instanceMap[key] = instance;
 }
+
+// global registry for use by client-only modules
+CORE_EXPORT InstanceRegistry g_instanceRegistry;
