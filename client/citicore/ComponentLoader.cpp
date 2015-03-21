@@ -101,14 +101,23 @@ void ComponentLoader::Initialize()
 	}
 
 	// sort the list by dependency
-	std::stack<fwRefContainer<ComponentData>> sortedList = SortDependencyList(componentDatas);
+#if !SERVER
+	std::queue<fwRefContainer<ComponentData>> sortedList;
+
+	for (auto& data : componentDatas)
+	{
+		sortedList.push(data);
+	}
+#else
+	std::queue<fwRefContainer<ComponentData>> sortedList = SortDependencyList(componentDatas);
+#endif
 
 	// clear the loaded list (it'll be added afterwards in order)
 	m_loadedComponents.clear();
 
 	while (!sortedList.empty())
 	{
-		auto comp = sortedList.top();
+		auto comp = sortedList.front();
 		sortedList.pop();
 
 		m_loadedComponents.push_back(comp);

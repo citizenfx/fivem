@@ -23,7 +23,7 @@ void Server::Start(int argc, char* argv[])
 
 	if (!serverComponent.GetRef())
 	{
-		//FatalError("Could not obtain citizen:server:main component, which is required for the server to start.\n");
+		trace("Could not obtain citizen:server:main component, which is required for the server to start.\n");
 		return;
 	}
 
@@ -35,17 +35,19 @@ void Server::Start(int argc, char* argv[])
 		args << "\"" << argv[i] << "\" ";
 	}
 
-	serverComponent->CreateInstance(args.str());
+	// create a component instance
+	fwRefContainer<Component> componentInstance = serverComponent->CreateInstance(args.str());
 
-	while (true)
+	// run the server's main routine
+	fwRefContainer<RunnableComponent> runnableServer = dynamic_cast<RunnableComponent*>(componentInstance.GetRef());
+
+	if (runnableServer.GetRef() != nullptr)
 	{
-		RunFrame();
+		runnableServer->Run();
 	}
-}
-
-void Server::RunFrame()
-{
-	// TODO: somehow select-tick on something?
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	else
+	{
+		trace("citizen:server:main component does not implement RunnableComponent. Exiting.\n");
+	}
 }
 }

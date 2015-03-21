@@ -54,7 +54,10 @@ public:
 class CORE_EXPORT Component : public fwRefCountable
 {
 public:
-	virtual bool Initialize() = 0;
+	virtual bool Initialize()
+	{
+		return true;
+	}
 
 	virtual bool Initialize(const std::string& userData)
 	{
@@ -66,6 +69,12 @@ public:
 	virtual bool Shutdown() = 0;
 
 	virtual bool DoGameLoad(void* hModule);
+};
+
+class CORE_EXPORT RunnableComponent : public Component
+{
+public:
+	virtual void Run() = 0;
 };
 
 class CORE_EXPORT ComponentData : public fwRefCountable
@@ -146,7 +155,7 @@ public:
 	fwRefContainer<ComponentData> LoadComponent(const char* component);
 };
 
-#include <stack>
+#include <queue>
 
 template<typename T>
 struct GetDependencies
@@ -164,9 +173,9 @@ struct GetDependencies<fwRefContainer<ComponentData>>
 };
 
 template<typename TListEntry, typename TList, typename TGetDependencies = GetDependencies<TListEntry>>
-std::stack<TListEntry> SortDependencyList(const TList& list)
+std::queue<TListEntry> SortDependencyList(const TList& list)
 {
-	std::stack<TListEntry> stack;
+	std::queue<TListEntry> stack;
 
 	std::map<TListEntry, bool> visited;
 
@@ -197,7 +206,7 @@ std::stack<TListEntry> SortDependencyList(const TList& list)
 }
 
 template<typename TListEntry>
-std::stack<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
+std::queue<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
 {
 	return SortDependencyList<TListEntry, std::vector<TListEntry>>(list);
 }
