@@ -197,6 +197,16 @@ public:
 		(*m_objects)[offset] = value;
 	}
 
+	inline uint16_t GetSize()
+	{
+		return m_size;
+	}
+
+	inline uint16_t GetCount()
+	{
+		return m_count;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_count = SwapShortRead(m_count);

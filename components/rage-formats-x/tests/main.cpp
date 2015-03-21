@@ -4,6 +4,7 @@
 #include <pgBase.h>
 #include <rmcDrawable.h>
 #include <gtaDrawable.h>
+#include <fragType.h>
 
 using namespace rage::ny;
 
@@ -77,30 +78,90 @@ int main(int argc, char **argv)
 	
 	pgStreamManager::EndPacking();*/
 
-	/*char* buffer = new char[4096];
-	FILE* f = fopen("T:/vexp/mm/bh1_01_emissivesigns.wdr.sys", "rb");
-	fread(buffer, 1, 4096, f);
+	char* buffer = new char[163840];
+	FILE* f = fopen("Y:/dls/liefzt/sultanrs.wft.sys", "rb");
+	fread(buffer, 1, 163840, f);
+	fclose(f);
+
+	char* buffer2 = new char[4784128];
+	f = fopen("Y:/dls/liefzt/sultanrs.wft.gfx", "rb");
+	fread(buffer2, 1, 4784128, f);
 	fclose(f);
 
 	BlockMap bm;
 	bm.virtualLen = 1;
-	bm.physicalLen = 0;
+	bm.physicalLen = 1;
 	bm.blocks[0].data = buffer;
 	bm.blocks[0].offset = 0;
-	bm.blocks[0].size = 4096;
+	bm.blocks[0].size = 163840;
+	bm.blocks[1].data = buffer2;
+	bm.blocks[1].offset = 0;
+	bm.blocks[1].size = 4784128;
 
 	pgPtrRepresentation ptr;
 	ptr.blockType = 5;
 	ptr.pointer = 0;
 
 	pgStreamManager::SetBlockInfo(&bm);
+	pgStreamManager::BeginPacking(&bm);
 
-	rmcDrawable* drawable = (rmcDrawable*)pgStreamManager::ResolveFilePointer(ptr, &bm);
-	drawable->Resolve();
+	fragType* frag = (fragType*)pgStreamManager::ResolveFilePointer(ptr, &bm);
+	frag->Resolve();
 
-	return 0;*/
+	auto processDrawable = [] (rmcDrawable* drawable)
+	{
+		if (!drawable)
+		{
+			return;
+		}
 
-	auto blockMap = pgStreamManager::BeginPacking();
+		auto processModel = [] (grmModel* model)
+		{
+			auto& geometries = model->GetGeometries();
+
+			for (int i = 0; i < geometries.GetCount(); i++)
+			{
+				grmGeometryQB* geom = geometries.Get(i);
+
+				geom->FixUpBrokenVertexCounts();
+			}
+		};
+
+		auto& lodGroup = drawable->GetLodGroup();
+
+		for (int i = 0; i < 3; i++)
+		{
+			grmModel* model = lodGroup.GetModel(i);
+
+			if (model)
+			{
+				processModel(model);
+			}
+		}
+	};
+
+	processDrawable(frag->GetDrawable());
+
+	for (int i = 0; i < frag->GetNumChildren(); i++)
+	{
+		processDrawable(frag->GetChild(i)->GetDrawable());
+		processDrawable(frag->GetChild(i)->GetDrawable2());
+	}
+
+	pgStreamManager::EndPacking();
+
+	f = fopen("T:\\mydocs\\rockstar games\\tlad\\avvy.wft", "wb");
+
+	bm.Save(112, [&] (const void* d, size_t s)
+	{
+		fwrite(d, 1, s, f);
+	});
+
+	fclose(f);
+
+	return 0;
+
+	/*auto blockMap = pgStreamManager::BeginPacking();
 
 	auto drawable = new(false) gtaDrawable();
 
@@ -228,5 +289,5 @@ int main(int argc, char **argv)
 		fwrite(d, 1, s, f);
 	});
 
-	fclose(f);
+	fclose(f);*/
 }

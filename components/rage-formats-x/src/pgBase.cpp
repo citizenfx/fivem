@@ -16,8 +16,13 @@ namespace RAGE_FORMATS_GAME
 {
 static __declspec(thread) BlockMap* g_currentBlockMap;
 
-void* pgStreamManager::ResolveFilePointer(const pgPtrRepresentation& ptr, BlockMap* blockMap /* = nullptr */)
+void* pgStreamManager::ResolveFilePointer(pgPtrRepresentation& ptr, BlockMap* blockMap /* = nullptr */)
 {
+	if (ptr.blockType == 0)
+	{
+		return nullptr;
+	}
+
 	if (!blockMap)
 	{
 		blockMap = g_currentBlockMap;

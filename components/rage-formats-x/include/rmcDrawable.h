@@ -406,7 +406,11 @@ public:
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_textures.Resolve(blockMap);
-		m_textures->Resolve(blockMap);
+
+		if (!m_textures.IsNull())
+		{
+			m_textures->Resolve(blockMap);
+		}
 
 		m_shaders.Resolve(blockMap);
 
@@ -430,7 +434,11 @@ public:
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_shaderGroup.Resolve(blockMap);
-		m_shaderGroup->Resolve(blockMap);
+
+		if (!m_shaderGroup.IsNull())
+		{
+			m_shaderGroup->Resolve(blockMap);
+		}
 	}
 };
 
@@ -656,6 +664,25 @@ public:
 		m_useGlobalStreamIndex = 0;
 	}
 
+	inline grcVertexBufferD3D* GetVertexBuffer(int idx)
+	{
+		return *(m_vertexBuffers[idx]);
+	}
+
+	inline grcIndexBufferD3D* GetIndexBuffer(int idx)
+	{
+		return *(m_indexBuffers[idx]);
+	}
+
+	inline void FixUpBrokenVertexCounts()
+	{
+		m_vertexStride = m_vertexBuffers[0]->GetStride();
+		m_wVertexCount = m_vertexBuffers[0]->GetCount();
+
+		m_dwIndexCount = m_indexBuffers[0]->GetIndexCount();
+		m_dwFaceCount = m_indexBuffers[0]->GetIndexCount() / m_wIndicesPerFace;
+	}
+
 	inline void SetVertexBuffer(grcVertexBufferD3D* vertexBuffer)
 	{
 		m_vertexBuffers[0] = vertexBuffer;
@@ -733,6 +760,11 @@ public:
 		m_zero2 = 0;
 		m_hasBoneMapping = 0;
 		m_shaderMappingCount = 0;
+	}
+
+	inline pgObjectArray<grmGeometryQB>& GetGeometries()
+	{
+		return m_geometries;
 	}
 
 	inline void SetGeometries(int count, grmGeometryQB** geometries)
@@ -854,6 +886,11 @@ public:
 			FatalError("");
 		}
 
+		if (m_models[idx].IsNull())
+		{
+			return nullptr;
+		}
+
 		return m_models[idx]->Get(0);
 	}
 
@@ -888,7 +925,7 @@ public:
 
 			if (!m_models[i].IsNull())
 			{
-				m_models->Resolve(blockMap);
+				m_models[i]->Resolve(blockMap);
 			}
 		}
 	}

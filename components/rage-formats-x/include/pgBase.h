@@ -33,7 +33,7 @@ struct BlockMap;
 class FORMATS_EXPORT pgStreamManager
 {
 public:
-	static void* ResolveFilePointer(const pgPtrRepresentation& ptr, BlockMap* blockMap = nullptr);
+	static void* ResolveFilePointer(pgPtrRepresentation& ptr, BlockMap* blockMap = nullptr);
 
 	static void SetBlockInfo(BlockMap* blockMap);
 
@@ -135,7 +135,7 @@ public:
 		}
 		else
 		{
-			return (T*)pgStreamManager::ResolveFilePointer(on_disk);
+			return (T*)pgStreamManager::ResolveFilePointer(const_cast<pgPtrRepresentation&>(on_disk));
 		}
 	}
 
@@ -147,7 +147,7 @@ public:
 		}
 		else
 		{
-			return (T*)pgStreamManager::ResolveFilePointer(on_disk);
+			return (T*)pgStreamManager::ResolveFilePointer(const_cast<pgPtrRepresentation&>(on_disk));
 		}
 	}
 
@@ -185,7 +185,10 @@ public:
 
 		if (!pgStreamManager::IsResolved(this))
 		{
+			bool physical = (on_disk.blockType == 6);
+
 			pointer = (T*)pgStreamManager::ResolveFilePointer(on_disk, blockMap);
+			pgStreamManager::MarkToBePacked(&on_disk, physical, "ResolveFilePointer");
 
 			pgStreamManager::MarkResolved(this);
 		}
