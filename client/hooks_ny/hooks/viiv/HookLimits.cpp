@@ -34,7 +34,7 @@ static HookFunction hookFunction([] ()
 	AdjustLimit("ptrnode_single", 230000);
 
 	// txdstore count
-	hook::put(0x820DB7, 6500);
+	hook::put(0x820DB7, 7500);
 	hook::put(0x820E2F, 6500);
 
 	// placeable matrix?
