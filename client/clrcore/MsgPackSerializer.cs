@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using MsgPack;
+using MsgPack.Serialization;
 
 namespace CitizenFX.Core
 {
@@ -127,6 +128,11 @@ namespace CitizenFX.Core
 
                 packable.PackToMessage(packer, null);
             }
+            else if (obj is Delegate)
+            {
+                var serializer = new DelegateSerializer();
+                serializer.PackTo(packer, (Delegate)obj);
+            }
             else
             {
                 var properties = type.GetProperties();
@@ -142,7 +148,7 @@ namespace CitizenFX.Core
         }
     }
 
-    /*class DelegateSerializer : MessagePackSerializer<Delegate>
+    class DelegateSerializer : MessagePackSerializer<Delegate>
     {
         public DelegateSerializer()
             : base(SerializationContext.Default)
@@ -173,5 +179,5 @@ namespace CitizenFX.Core
         {
             throw new NotImplementedException();
         }
-    }*/
+    }
 }
