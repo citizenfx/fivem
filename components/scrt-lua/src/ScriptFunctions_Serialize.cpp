@@ -342,9 +342,7 @@ LUA_FUNCTION(GetFuncFromRef)
 
 		auto resource = ValidateResourceAndRef(L, reference, instance, resourceName);
 
-		assert(resource.GetRef());
-
-		if (resource->GetState() == ResourceStateStopped)
+		if (!resource.GetRef() || resource->GetState() == ResourceStateStopped)
 		{
 			return 0;
 		}
