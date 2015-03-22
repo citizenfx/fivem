@@ -26,7 +26,10 @@ bool DownloadManager::Process()
 			m_downloadState = DS_FETCHING_CONFIG;
 
 			// create a new HTTP client
-			m_httpClient = new HttpClient();
+			if (!m_httpClient)
+			{
+				m_httpClient = new HttpClient();
+			}
 
 			// set up the target request
 			auto hostname = m_gameServer.GetWAddress();
@@ -88,9 +91,16 @@ bool DownloadManager::Process()
 
 			auto downloadList = resourceCache->GetDownloadsFromList(m_requiredResources);
 
-			resourceCache->ClearMark();
-			resourceCache->MarkList(m_requiredResources);
-			resourceCache->MarkStreamingList(m_streamingFiles);
+			if (m_isUpdate)
+			{
+				resourceCache->MarkList(m_requiredResources);
+			}
+			else
+			{
+				resourceCache->ClearMark();
+				resourceCache->MarkList(m_requiredResources);
+				resourceCache->MarkStreamingList(m_streamingFiles);
+			}
 
 			m_downloadList = std::queue<ResourceDownload>();
 
@@ -270,16 +280,18 @@ bool DownloadManager::Process()
 			{
 				ProcessQueuedUpdates();
 			}
+			else
+			{
+				m_isUpdate = false;
+			}
 
 			/*if (!m_serverLoadScreen.empty() && !m_isUpdate)
 			{
 				CustomLoadScreens::PrepareSwitchTo(m_serverLoadScreen);
 			}*/
 
-			m_isUpdate = false;
-
 			// destroy the HTTP client
-			delete m_httpClient;
+			//delete m_httpClient;
 
 			// signal the network library, and allow it to process further tasks
 			g_netLibrary->DownloadsComplete();
