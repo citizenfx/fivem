@@ -58,6 +58,8 @@ private:
 
 	int m_streamItemIdx;
 
+	std::vector<std::function<void()>> m_cleanupActions;
+
 public:
 	IdeFile(fwString fileName, int size, int ideIdx);
 
@@ -74,6 +76,11 @@ public:
 	void Delete();
 
 	void DoLoad();
+
+	inline void AddCleanupAction(const std::function<void()>& func)
+	{
+		m_cleanupActions.push_back(func);
+	}
 
 	inline void AddModelIndex(uint16_t mi) { m_modelIndices.insert(mi); }
 

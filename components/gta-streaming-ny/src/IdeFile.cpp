@@ -492,6 +492,14 @@ void IdeFile::Delete()
 			ReleaseModelInfo(idx);
 		}
 	}
+
+	// perform cleanup actions
+	for (auto& cleanupAction : m_cleanupActions)
+	{
+		cleanupAction();
+	}
+
+	m_cleanupActions.clear();
 }
 
 static int FindModelInfoIdxWithHash(uint32_t modelHash)
@@ -615,8 +623,78 @@ static void __declspec(naked) BuildingEntityRenderHook()
 	}
 }
 
+struct C2dEffectList
+{
+	int size;
+	int count;
+	char* data;
+};
+
+struct C2dEffectListEx
+{
+	std::vector<bool> freeEntries;
+};
+
+static std::unordered_map<C2dEffectList*, C2dEffectListEx> g_2dfxExtensions;
+
+template<int Size>
+void* __fastcall Allocate2dfx(C2dEffectList* array)
+{
+	auto& extensions = g_2dfxExtensions[array];
+
+	if (!extensions.freeEntries.size())
+	{
+		extensions.freeEntries.resize(array->size);
+	}
+
+	int entryIdx = -1;
+
+	for (int i = 0; i < extensions.freeEntries.size(); i++)
+	{
+		if (!extensions.freeEntries[i])
+		{
+			entryIdx = i;
+			extensions.freeEntries[entryIdx] = true;
+
+			break;
+		}
+	}
+
+	if (entryIdx == -1)
+	{
+		FatalError("Ran out of 2dfx entries in " __FUNCTION__ " called from %p!", _ReturnAddress());
+	}
+
+	if (entryIdx >= array->count)
+	{
+		array->count += 1;
+	}
+
+	if (g_curIdeFile)
+	{
+		g_curIdeFile->AddCleanupAction([=] ()
+		{
+			g_2dfxExtensions[array].freeEntries[entryIdx] = false;
+		});
+	}
+
+	return array->data + (Size * entryIdx);
+}
+
 CDataStore& g_baseModelStore = *(CDataStore*)0xF2C11C;
 CDataStore& g_timeModelStore = *(CDataStore*)0xF2C134;
+
+void* LogMissingModelBitFor2dfx(const char* name, int a2)
+{
+	void* ptr = ((void*(*)(const char*, int))0x98AA80)(name, a2);
+
+	if (!ptr)
+	{
+		trace("invalid model name for 2dfx: %s\n", name);
+	}
+
+	return ptr;
+}
 
 static HookFunction hookFunction([] ()
 {
@@ -641,4 +719,13 @@ static HookFunction hookFunction([] ()
 
 	// debug intel: log model infos that were loaded while nulled
 	hook::put(0x98981B, MIOnLoadFail);
+
+	// 2dfx allocators
+	hook::call(0x8D363C, Allocate2dfx<56>); // ladder
+	
+	// 2dfx counts
+	hook::put<uint32_t>(0xF2C1D0, 0x7A * 8); // because otherwise there's not even enough to load the temporary subset
+
+	// 2dfx 'missing base model' check
+	hook::call(0x8D46B7, LogMissingModelBitFor2dfx);
 });
