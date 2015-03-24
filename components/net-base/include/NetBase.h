@@ -7,21 +7,17 @@
 
 #pragma once
 
-#include <NetBase.h>
+#if defined(_WIN32)
+#include <WS2tcpip.h>
 
-namespace net
-{
-#ifdef _WIN32
 typedef SOCKET PlatformSocketType;
 #else
+#include <netinet/in.h>
+
 typedef int PlatformSocketType;
 #endif
 
-class UdpSocket : public fwRefCountable
+namespace net
 {
-private:
-	PlatformSocketType m_socket;
-
-	
-};
+	void EnsureNetInitialized();
 }

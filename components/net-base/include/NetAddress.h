@@ -9,9 +9,7 @@
 
 #include <boost/optional.hpp>
 
-#ifdef _WIN32
-#include <ws2tcpip.h>
-#endif
+#include <NetBase.h>
 
 namespace net
 {

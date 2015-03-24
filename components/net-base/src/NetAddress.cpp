@@ -20,6 +20,9 @@ PeerAddress::PeerAddress(const sockaddr* addr, int addrlen)
 
 boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int defaultPort /* = 30120 */, LookupType lookupType /* = LookupType::ResolveWithService */)
 {
+	// ensure networking is initialized
+	EnsureNetInitialized();
+
 	// first, find a port argument in the string and see if it precedes any ']' (i.e. an IPv6 address of the form [::1] should not be seen as port 1)
 	int portIdx = str.find_last_of(':');
 	uint16_t port = defaultPort;
@@ -58,18 +61,27 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 
 		if (getaddrinfo(resolveName.c_str(), va("%u", port), nullptr, &addrInfos) == 0)
 		{
-			addrinfo* curInfo = addrInfos;
+			// loop through for both IPv4 and IPv6
+			const int families[] = { AF_INET, AF_INET6, -1 };
+			int curFamily = 0;
 
-			do
+			while (!retval.is_initialized() && families[curFamily] != -1)
 			{
-				// TODO: handle ipv6 properly for cases where such connectivity exists
-				if (curInfo->ai_family == AF_INET)
-				{
-					retval = PeerAddress(curInfo->ai_addr, curInfo->ai_addrlen);
+				addrinfo* curInfo = addrInfos;
 
-					break;
-				}
-			} while (curInfo->ai_next);
+				do
+				{
+					// TODO: prioritize ipv6 properly for cases where such connectivity exists
+					if (curInfo->ai_family == families[curFamily])
+					{
+						retval = PeerAddress(curInfo->ai_addr, curInfo->ai_addrlen);
+
+						break;
+					}
+				} while (curInfo->ai_next);
+
+				curFamily++;
+			}
 
 			freeaddrinfo(addrInfos);
 		}
@@ -81,14 +93,64 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 
 	return retval;
 }
+
+int PeerAddress::GetSocketAddressLength()
+{
+	switch (m_addr.addr.ss_family)
+	{
+		case AF_INET:
+			return sizeof(sockaddr_in);
+
+		case AF_INET6:
+			return sizeof(sockaddr_in6);
+
+		default:
+			assert(!"Unknown sockaddr family");
+			return -1;
+	}
 }
 
-static InitFunction initFunction([] ()
+std::string PeerAddress::ToString()
 {
-	WSADATA data;
-	WSAStartup(MAKEWORD(2, 2), &data);
+	// ensure networking is initialized
+	EnsureNetInitialized();
 
-	auto addr = net::PeerAddress::FromString(std::string("fivem.net"));
+	// call inet_ntop on it
+	char stringBuf[256];
+	int family = m_addr.addr.ss_family;
+	uint16_t port;
 
-	printf("");
-});
+	switch (family)
+	{
+		case AF_INET:
+			inet_ntop(AF_INET, &m_addr.in4.sin_addr, stringBuf, sizeof(stringBuf));
+
+			port = m_addr.in4.sin_port;
+			break;
+
+		case AF_INET6:
+			inet_ntop(AF_INET6, &m_addr.in6.sin6_addr, stringBuf, sizeof(stringBuf));
+
+			port = m_addr.in6.sin6_port;
+			break;
+	}
+
+	// create a string
+	std::string str;
+
+	// add brackets if IPv6
+	if (family == AF_INET6)
+	{
+		str = va("[%s]", stringBuf);
+	}
+	else
+	{
+		str = stringBuf;
+	}
+
+	// and add the port
+	str += ":" + std::to_string(ntohs(port));
+
+	return str;
+}
+}
