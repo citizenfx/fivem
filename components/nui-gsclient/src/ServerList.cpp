@@ -226,19 +226,6 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 
 			g_cls.queryTime = timeGetTime();
 
-			// filter odd characters out of the result
-			int len = strlen(buffer);
-
-			for (int i = 0; i < len; i++)
-			{
-				char thisChar = buffer[i];
-
-				if (thisChar < ' ' || thisChar > '~')
-				{
-					buffer[i] = ' ';
-				}
-			}
-
 			if (g_cls.curNumResults > 8192)
 			{
 				return;
