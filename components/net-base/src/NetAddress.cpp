@@ -94,7 +94,7 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 	return retval;
 }
 
-int PeerAddress::GetSocketAddressLength()
+int PeerAddress::GetSocketAddressLength() const
 {
 	switch (m_addr.addr.ss_family)
 	{
@@ -110,7 +110,7 @@ int PeerAddress::GetSocketAddressLength()
 	}
 }
 
-std::string PeerAddress::ToString()
+std::string PeerAddress::ToString() const
 {
 	// ensure networking is initialized
 	EnsureNetInitialized();
@@ -123,13 +123,13 @@ std::string PeerAddress::ToString()
 	switch (family)
 	{
 		case AF_INET:
-			inet_ntop(AF_INET, &m_addr.in4.sin_addr, stringBuf, sizeof(stringBuf));
+			inet_ntop(AF_INET, const_cast<in_addr*>(&m_addr.in4.sin_addr), stringBuf, sizeof(stringBuf));
 
 			port = m_addr.in4.sin_port;
 			break;
 
 		case AF_INET6:
-			inet_ntop(AF_INET6, &m_addr.in6.sin6_addr, stringBuf, sizeof(stringBuf));
+			inet_ntop(AF_INET6, const_cast<in_addr6*>(&m_addr.in6.sin6_addr), stringBuf, sizeof(stringBuf));
 
 			port = m_addr.in6.sin6_port;
 			break;

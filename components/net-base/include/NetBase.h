@@ -11,10 +11,18 @@
 #include <WS2tcpip.h>
 
 typedef SOCKET PlatformSocketType;
+
+#define GetLastNetError() WSAGetLastError()
+
+#define EAGAIN WSAEWOULDBLOCK
 #else
 #include <netinet/in.h>
 
 typedef int PlatformSocketType;
+
+#define GetLastNetError() errno
+
+#define closesocket close
 #endif
 
 namespace net

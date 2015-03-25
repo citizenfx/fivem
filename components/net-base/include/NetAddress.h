@@ -13,6 +13,13 @@
 
 namespace net
 {
+enum class AddressFamily
+{
+	None,
+	IPv4 = AF_INET,
+	IPv6 = AF_INET6
+};
+
 class 
 #ifdef COMPILING_NET_BASE
 	DLL_EXPORT
@@ -65,7 +72,7 @@ public:
 	//
 	// Get the address family this peer address represents.
 	//
-	inline int GetAddressFamily()
+	inline int GetAddressFamily() const
 	{
 		return m_addr.addr.ss_family;
 	}
@@ -73,19 +80,19 @@ public:
 	//
 	// Obtain the contained address as an abstract sockaddr* structure pointer.
 	//
-	inline sockaddr* GetSocketAddress()
+	inline const sockaddr* GetSocketAddress() const
 	{
-		return (sockaddr*)&m_addr.addr;
+		return reinterpret_cast<const sockaddr*>(&m_addr.addr);
 	}
 
 	//
 	// Obtain a value suitable for use in the the 'addrlen' field of a socket API call.
 	//
-	int GetSocketAddressLength();
+	int GetSocketAddressLength() const;
 
 	//
 	// Present the address as a canonical string.
 	//
-	std::string ToString();
+	std::string ToString() const;
 };
 }
