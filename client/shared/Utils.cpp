@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <mutex>
 
-static InitFunctionBase* g_initFunctions;
+static STATIC InitFunctionBase* g_initFunctions;
 
 InitFunctionBase::InitFunctionBase(int order /* = 0 */)
 	: m_order(order)

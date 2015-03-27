@@ -54,6 +54,7 @@ void SequencedInputDatagramChannel::ProcessPacket(const std::vector<uint8_t>& pa
 }
 }
 
+#ifdef fake_tests
 #include "SequencedOutputDatagramChannel.h"
 
 class StoreOutDatagramSink : public net::DatagramSink
@@ -73,7 +74,6 @@ public:
 	}
 };
 
-#ifdef fake_tests
 static InitFunction initFunction([] ()
 {
 	net::SequencedInputDatagramChannel recvChannel;

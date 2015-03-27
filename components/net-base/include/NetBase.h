@@ -16,7 +16,11 @@ typedef SOCKET PlatformSocketType;
 
 #define EAGAIN WSAEWOULDBLOCK
 #else
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
+#include <linux/in6.h> // FIXME for BSD
 
 typedef int PlatformSocketType;
 

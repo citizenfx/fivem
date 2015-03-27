@@ -49,7 +49,7 @@ bool IsRunningTests();
 // Base initialization function (for running on library init and so on)
 //
 
-class InitFunctionBase
+class STATIC InitFunctionBase
 {
 protected:
 	InitFunctionBase* m_next;
@@ -70,7 +70,7 @@ public:
 // Initialization function that will be called around initialization of the primary component.
 //
 
-class InitFunction : public InitFunctionBase
+class STATIC InitFunction : public InitFunctionBase
 {
 private:
 	void(*m_function)();

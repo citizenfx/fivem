@@ -10,7 +10,7 @@
 
 namespace net
 {
-PeerAddress::PeerAddress(const sockaddr* addr, int addrlen)
+PeerAddress::PeerAddress(const sockaddr* addr, socklen_t addrlen)
 	: PeerAddress()
 {
 	assert(addrlen < sizeof(m_addr));
@@ -69,7 +69,7 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 			{
 				addrinfo* curInfo = addrInfos;
 
-				do
+				while (curInfo)
 				{
 					// TODO: prioritize ipv6 properly for cases where such connectivity exists
 					if (curInfo->ai_family == families[curFamily])
@@ -78,7 +78,9 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 
 						break;
 					}
-				} while (curInfo->ai_next);
+
+					curInfo = curInfo->ai_next;
+				}
 
 				curFamily++;
 			}
@@ -94,7 +96,12 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 	return retval;
 }
 
-int PeerAddress::GetSocketAddressLength() const
+boost::optional<PeerAddress> PeerAddress::FromString(const char* str, int defaultPort /* = 30120 */, LookupType lookupType /* = LookupType::ResolveWithService */)
+{
+	return FromString(std::string(str), defaultPort, lookupType);
+}
+
+socklen_t PeerAddress::GetSocketAddressLength() const
 {
 	switch (m_addr.addr.ss_family)
 	{
@@ -129,7 +136,7 @@ std::string PeerAddress::ToString() const
 			break;
 
 		case AF_INET6:
-			inet_ntop(AF_INET6, const_cast<in_addr6*>(&m_addr.in6.sin6_addr), stringBuf, sizeof(stringBuf));
+			inet_ntop(AF_INET6, const_cast<in6_addr*>(&m_addr.in6.sin6_addr), stringBuf, sizeof(stringBuf));
 
 			port = m_addr.in6.sin6_port;
 			break;

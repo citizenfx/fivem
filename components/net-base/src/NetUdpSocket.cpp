@@ -58,8 +58,8 @@ bool UdpSocket::Bind(const PeerAddress& localAddress)
 
 PeerAddress UdpSocket::GetLocalAddress()
 {
-	sockaddr_storage addr;
-	int addrlen = 0;
+	sockaddr_storage addr = { 0 };
+	socklen_t addrlen = sizeof(addr);
 
 	if (IsValidSocket())
 	{
@@ -78,8 +78,8 @@ bool UdpSocket::ReceiveFrom(std::vector<uint8_t>& outArray, int* outLength, Peer
 		return false;
 	}
 
-	sockaddr_storage fromAddr;
-	int fromLen;
+	sockaddr_storage fromAddr = { 0 };
+	socklen_t fromLen = sizeof(fromAddr);
 
 	int len = recvfrom(m_socket, reinterpret_cast<char*>(&outArray[0]), outArray.size(), 0, reinterpret_cast<sockaddr*>(&fromAddr), &fromLen);
 

@@ -51,18 +51,23 @@ public:
 	};
 
 private:
+	static boost::optional<std::string> LookupServiceRecord(const std::string& serviceHost, uint16_t* servicePort);
+
+public:
 	inline PeerAddress()
 	{
 		memset(&m_addr, 0, sizeof(m_addr));
 	}
 
-	static boost::optional<std::string> LookupServiceRecord(const std::string& serviceHost, uint16_t* servicePort);
-
-public:
 	//
 	// Create an instance of this structure from a standard socket API address.
 	//`
-	PeerAddress(const sockaddr* addr, int addrlen);
+	PeerAddress(const sockaddr* addr, socklen_t addrlen);
+
+	//
+	// Resolve the address of a remote peer from a passed C string in ASCII notation.
+	//
+	static boost::optional<PeerAddress> FromString(const char* str, int defaultPort = 30120, LookupType lookupType = LookupType::ResolveWithService);
 
 	//
 	// Resolve the address of a remote peer from a passed string in ASCII notation.
@@ -88,7 +93,7 @@ public:
 	//
 	// Obtain a value suitable for use in the the 'addrlen' field of a socket API call.
 	//
-	int GetSocketAddressLength() const;
+	socklen_t GetSocketAddressLength() const;
 
 	//
 	// Present the address as a canonical string.

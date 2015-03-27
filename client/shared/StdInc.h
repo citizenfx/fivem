@@ -37,10 +37,14 @@
 #define DLL_IMPORT __declspec(dllimport)
 #define DLL_EXPORT __declspec(dllexport)
 
+#define STATIC
+
 #define __thread __declspec(thread)
 #elif defined(__GNUC__)
 #define DLL_IMPORT 
 #define DLL_EXPORT __attribute__((visibility("default")))
+
+#define STATIC __attribute__((visibility("internal")))
 
 #define FORCEINLINE __attribute__((always_inline))
 

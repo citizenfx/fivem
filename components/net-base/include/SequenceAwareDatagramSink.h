@@ -11,16 +11,14 @@
 
 namespace net
 {
+template<typename TDerived>
 class
-#ifdef COMPILING_NET_BASE
-	DLL_EXPORT
-#endif
 	SequenceAwareDatagramSink : public DatagramSink
 {
 private:
 	SequencedDatagramChannel* m_channel;
 
-protected:
+public:
 	inline uint32_t GetSequence()
 	{
 		return m_channel->GetSequence();
@@ -30,6 +28,15 @@ public:
 	inline void SetChannel(const fwRefContainer<SequencedDatagramChannel>& channel)
 	{
 		m_channel = channel.GetRef();
+	}
+
+	template<typename... Args>
+	fwRefContainer<TDerived> Clone(const Args&& args)
+	{
+		fwRefContainer<TDerived> secondThing(new TDerived(args...));
+		secondThing->SetChannel(m_channel);
+
+		return secondThing;
 	}
 };
 }
