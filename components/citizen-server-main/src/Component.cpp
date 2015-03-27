@@ -18,7 +18,7 @@ private:
 public:
 	virtual bool Initialize(const std::string& args);
 
-	virtual bool DoGameLoad(HANDLE module);
+	virtual bool DoGameLoad(void* module);
 
 	virtual bool Shutdown();
 
@@ -40,7 +40,7 @@ void ServerComponentInstance::Run()
 	m_server->Run();
 }
 
-bool ServerComponentInstance::DoGameLoad(HANDLE module)
+bool ServerComponentInstance::DoGameLoad(void* module)
 {
 	FatalError("ServerComponentInstance should not be loaded into a game instance.");
 
