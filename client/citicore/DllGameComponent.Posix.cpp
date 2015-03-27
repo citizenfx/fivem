@@ -16,6 +16,7 @@ Component* DllGameComponent::CreateComponent()
 
 	if (!hModule)
 	{
+		trace("dlopen() on component %s failed - error %s\n", m_path.c_str(), dlerror());
 		return nullptr;
 	}
 
