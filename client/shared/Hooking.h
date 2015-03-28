@@ -489,7 +489,7 @@ public:
 	{
 		if (*(uint8_t*)address != 0xE8)
 		{
-			throw std::exception("not a call");
+			FatalError("inject_call attempted on something that was not a call. Are you sure you have a compatible version of the game executable? You might need to try poking the guru.");
 		}
 
 		m_address = address;
