@@ -21,6 +21,7 @@
 
 static NetLibrary* g_netLibrary;
 static std::unordered_map<int, std::string> g_netIdToNames;
+static std::unordered_map<int, std::string> g_netIdToEmojiNames;
 
 // redefined here as game_ny migration still isn't complete
 typedef struct
@@ -47,11 +48,36 @@ public:
 
 WRAPPER CPlayerInfo* CPlayerInfo::GetPlayer(int index) { EAXJMP(0x817F20); }
 
-static const char* __fastcall CPlayerInfo__GetName(CPlayerInfo* playerInfo)
+static inline int GetPlayerInfoNetId(CPlayerInfo* playerInfo)
 {
 	int netId = playerInfo->address.inaOnline.s_addr;
 
+	return netId;
+}
+
+static const char* __fastcall CPlayerInfo__GetName(CPlayerInfo* playerInfo)
+{
+	int netId = GetPlayerInfoNetId(playerInfo);
+
 	return g_netIdToNames[netId].c_str();
+}
+
+static std::string AddRandomEmoji(const std::string& name);
+
+static const char* CPlayerInfo__GetEmojiName(CPlayerInfo* playerInfo)
+{
+	int netId = GetPlayerInfoNetId(playerInfo);
+
+	auto emojiNameIt = g_netIdToEmojiNames.find(netId);
+
+	if (emojiNameIt == g_netIdToEmojiNames.end())
+	{
+		auto pair = g_netIdToEmojiNames.insert(std::make_pair(netId, AddRandomEmoji(g_netIdToNames[netId])));
+
+		emojiNameIt = pair.first;
+	}
+	
+	return emojiNameIt->second.c_str();
 }
 
 static void InlineGetName(const char** outNamePtr, char* playerInfoOffset)
@@ -110,7 +136,7 @@ void DrawNetworkNameText(float x, float y, const wchar_t* text, int, int)
 				g_drawnNameBitfield |= (1 << i);
 
 				wchar_t wideStr[512];
-				MultiByteToWideChar(CP_UTF8, 0, CPlayerInfo__GetName(player), -1, wideStr, _countof(wideStr));
+				MultiByteToWideChar(CP_UTF8, 0, CPlayerInfo__GetEmojiName(player), -1, wideStr, _countof(wideStr));
 
 				x *= GetScreenResolutionX();
 				y *= GetScreenResolutionY();
@@ -169,7 +195,7 @@ static HookFunction hookFunction([] ()
 	hook::jump(0x4799AF, InlineDrawNameHook);
 
 	// temp dbg: also show network player name for local player
-	//hook::nop(0x479271, 6);
+	hook::nop(0x479271, 6);
 
 	// network name CFont::SetColour
 	hook::call(0x479990, DrawNetworkNameSetColor);
@@ -1099,7 +1125,7 @@ static InitFunction initFunction([] ()
 				std::string name = arguments[1].as<std::string>();
 
 				// and add to the list
-				g_netIdToNames[netId] = AddRandomEmoji(name);
+				g_netIdToNames[netId] = name;
 			}
 		}
 	});
