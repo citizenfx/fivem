@@ -168,7 +168,7 @@ if _OPTIONS['game'] ~= 'server' then
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "tinyxml", "liblzma", "comctl32", "breakpad", "wininet", "winhttp" }
+		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "tinyxml2", "liblzma", "comctl32", "breakpad", "wininet", "winhttp" }
 		
 		files
 		{
@@ -184,7 +184,7 @@ if _OPTIONS['game'] ~= 'server' then
 		
 		linkoptions "/DELAYLOAD:libcef.dll"
 		
-		includedirs { "client/libcef/", "../vendor/breakpad/src/" }
+		includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
 
 		flags { "StaticRuntime" }
 
@@ -711,6 +711,19 @@ end
 
 		configuration "not windows"
 			links { "boost_system" }
+
+	-- StaticRuntime, intended for launcher
+	project "tinyxml2"
+		language "C++"
+		kind "StaticLib"
+
+		flags "StaticRuntime"
+
+		includedirs "../vendor/tinyxml2/"
+
+		files {
+			"../vendor/tinyxml2/tinyxml2.cpp"
+		}
 
 	group "components"
 

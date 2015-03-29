@@ -6,7 +6,8 @@
  */
 
 #include "StdInc.h"
-#include <tinyxml.h>
+
+#include <tinyxml2.h>
 
 #include <stdint.h>
 
@@ -30,17 +31,17 @@ private:
 public:
 	void Parse(const char* str)
 	{
-		TiXmlDocument doc;
+		tinyxml2::XMLDocument doc;
 		doc.Parse(str);
 
-		TiXmlElement* rootElement = doc.RootElement();
-		TiXmlElement* cacheElement = rootElement->FirstChildElement("Cache");
+		auto rootElement = doc.RootElement();
+		auto cacheElement = rootElement->FirstChildElement("Cache");
 
 		while (cacheElement)
 		{
 			cache_t cache;
 			cache.name = cacheElement->Attribute("ID");
-			cacheElement->Attribute("Version", &cache.version);
+			cache.version = atoi(cacheElement->Attribute("Version"));
 
 			caches.push_back(cache);
 
@@ -85,16 +86,16 @@ public:
 	manifest_t(cache_t& parent)
 		: parentCache(parent)
 	{
-		
+
 	}
 
 	void Parse(const char* str)
 	{
-		TiXmlDocument doc;
+		tinyxml2::XMLDocument doc;
 		doc.Parse(str);
 
-		TiXmlElement* rootElement = doc.RootElement();
-		TiXmlElement* fileElement = rootElement->FirstChildElement("ContentFile");
+		auto rootElement = doc.RootElement();
+		auto fileElement = rootElement->FirstChildElement("ContentFile");
 
 		while (fileElement)
 		{
@@ -102,8 +103,8 @@ public:
 			file.name = fileElement->Attribute("Name");
 
 			int size, compressedSize;
-			fileElement->Attribute("Size", &size);
-			fileElement->Attribute("CompressedSize", &compressedSize);
+			size = atoi(fileElement->Attribute("Size"));
+			compressedSize = atoi(fileElement->Attribute("CompressedSize"));
 
 			file.compressed = (size != compressedSize);
 			file.downloadSize = compressedSize;
@@ -348,30 +349,30 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	if (retval)
 	{
-		TiXmlDocument doc;
-		TiXmlElement* rootElement = new TiXmlElement("Caches");
+		// there used to be an XML writing library here to write the file properly
+		// but people trusting VirusTotal caused me to have to remove it
+		// (both TinyXML1/2/3 and RapidXML cause 'Gen:Variant.Kazy.454890' detections
+		//  by around 7 different antivirus applications all using the same codebase,
+		//  and therefore writing XML like this is the only way antivirus scampanies
+		//  allow me to write XML from a 'suspicious application' like CitiLaunch...)
+		//
+		// TinyXML2 (3.0) does not seem to cause this detection, but only if its
+		// XMLWriter class isn't used - TinyXML1 and boost::property_tree w/ RapidXML
+		// both still cause this detection.
 
-		for (cache_t& cache : cacheFile.GetCaches())
-		{
-			TiXmlElement* element = new TiXmlElement("Cache");
-			element->SetAttribute("ID", cache.name.c_str());
-			element->SetAttribute("Version", cache.version);
-
-			rootElement->LinkEndChild(element);
-		}
-
-		doc.LinkEndChild(rootElement);
-
-		TiXmlPrinter printer;
-		doc.Accept(&printer);
-
-		const char* data = printer.CStr();
+		FILE* outCachesFile = fopen("caches.xml", "w");
 		
-		FILE* f = fopen("caches.xml", "w");
-		if (f)
+		if (outCachesFile)
 		{
-			fwrite(data, 1, strlen(data), f);
-			fclose(f);
+			fprintf(outCachesFile, "<Caches>\n");
+			
+			for (cache_t& cache : cacheFile.GetCaches())
+			{
+				fprintf(outCachesFile, "\t<Cache ID=\"%s\" Version=\"%d\" />\n", cache.name.c_str(), cache.version);
+			}
+
+			fprintf(outCachesFile, "</Caches>");
+			fclose(outCachesFile);
 		}
 	}
 
