@@ -195,7 +195,7 @@ static HookFunction hookFunction([] ()
 	hook::jump(0x4799AF, InlineDrawNameHook);
 
 	// temp dbg: also show network player name for local player
-	hook::nop(0x479271, 6);
+	//hook::nop(0x479271, 6);
 
 	// network name CFont::SetColour
 	hook::call(0x479990, DrawNetworkNameSetColor);
