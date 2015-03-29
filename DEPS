@@ -16,7 +16,7 @@ deps = {
 	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
 	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/",
 	"vendor/udis86": "https://github.com/vmt/udis86.git",
-	"vendor/tinyxml2": "https://github.com/leethomason/tinyxml2.git"
+	"vendor/tinyxml2": "https://github.com/leethomason/tinyxml2.git",
 	"vendor/cpp-uri": "https://github.com/cpp-netlib/uri.git"
 }
 
