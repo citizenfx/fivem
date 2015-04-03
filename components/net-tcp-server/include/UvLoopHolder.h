@@ -13,7 +13,7 @@
 
 namespace net
 {
-class UvLoopHolder : public fwRefCountable
+class UvLoopHolder
 {
 private:
 	uv_loop_t m_loop;

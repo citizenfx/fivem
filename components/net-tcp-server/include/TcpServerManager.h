@@ -11,12 +11,13 @@
 #include "UvLoopHolder.h"
 
 #include "UvTcpServer.h"
+#include "TcpServerFactory.h"
 
 #include <memory>
 
 namespace net
 {
-class TcpServerManager : public UvLoopHolder
+class TcpServerManager : public UvLoopHolder, public TcpServerFactory
 {
 private:
 	std::set<fwRefContainer<UvTcpServer>> m_servers;
@@ -27,6 +28,6 @@ public:
 	virtual ~TcpServerManager();
 
 public:
-	fwRefContainer<TcpServer> CreateServer(const PeerAddress& bindAddress);
+	virtual fwRefContainer<TcpServer> CreateServer(const PeerAddress& bindAddress) override;
 };
 }

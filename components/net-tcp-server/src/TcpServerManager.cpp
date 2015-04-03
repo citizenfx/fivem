@@ -50,10 +50,12 @@ fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bind
 }
 }
 
+#include "MultiplexTcpServer.h"
+
 static InitFunction initFunction([] ()
 {
 	{
-		fwRefContainer<net::TcpServerManager> sm = new net::TcpServerManager();
+		/*fwRefContainer<net::TcpServerManager> sm = new net::TcpServerManager();
 		fwRefContainer<net::TcpServer> server = sm->CreateServer(net::PeerAddress::FromString("localhost:30150").get());
 		fwRefContainer<net::TcpServer> server6 = sm->CreateServer(net::PeerAddress::FromString("[::]:30150").get());
 
@@ -75,6 +77,66 @@ static InitFunction initFunction([] ()
 			trace("Received a connection from %s.\n", stream->GetPeerAddress().ToString().c_str());
 		});
 
-		std::this_thread::sleep_for(std::chrono::seconds(45));
+		std::this_thread::sleep_for(std::chrono::seconds(45));*/
+
+		fwRefContainer<net::TcpServerManager> sm = new net::TcpServerManager();
+		fwRefContainer<net::MultiplexTcpServer> ms = new net::MultiplexTcpServer(sm);
+		ms->Bind(net::PeerAddress::FromString("localhost:30150").get());
+
+		fwRefContainer<net::TcpServer> cakeServer = ms->CreateServer([] (const std::vector<uint8_t>& data)
+		{
+			if (data.size() < 4)
+			{
+				return net::MultiplexPatternMatchResult::InsufficientData;
+			}
+
+			return (memcmp(&data[0], "cake", 4) == 0) ? net::MultiplexPatternMatchResult::Match : net::MultiplexPatternMatchResult::NoMatch;
+		});
+
+		fwRefContainer<net::TcpServer> bakeServer = ms->CreateServer([] (const std::vector<uint8_t>& data)
+		{
+			if (data.size() < 4)
+			{
+				return net::MultiplexPatternMatchResult::InsufficientData;
+			}
+
+			return (memcmp(&data[0], "bake", 4) == 0) ? net::MultiplexPatternMatchResult::Match : net::MultiplexPatternMatchResult::NoMatch;
+		});
+
+		cakeServer->SetConnectionCallback([=] (fwRefContainer<net::TcpServerStream> stream)
+		{
+			trace("Received a cake connection from %s.\n", stream->GetPeerAddress().ToString().c_str());
+
+			stream->SetReadCallback([=] (const std::vector<uint8_t>& buf)
+			{
+				trace("[cake]: ");
+
+				for (auto& entry : buf)
+				{
+					trace("%c", entry);
+				}
+
+				trace("\n");
+			});
+		});
+
+		bakeServer->SetConnectionCallback([=] (fwRefContainer<net::TcpServerStream> stream)
+		{
+			trace("Received a bake connection from %s.\n", stream->GetPeerAddress().ToString().c_str());
+
+			stream->SetReadCallback([=] (const std::vector<uint8_t>& buf)
+			{
+				trace("[bake]: ");
+
+				for (auto& entry : buf)
+				{
+					trace("%c", entry);
+				}
+
+				trace("\n");
+			});
+		});
+
+		std::this_thread::sleep_for(std::chrono::seconds(3600));
 	}
 });

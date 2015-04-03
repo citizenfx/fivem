@@ -25,6 +25,8 @@ protected:
 		return m_readCallback;
 	}
 
+	virtual void OnFirstSetReadCallback() {}
+
 public:
 	virtual PeerAddress GetPeerAddress() = 0;
 

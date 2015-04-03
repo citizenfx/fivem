@@ -22,6 +22,13 @@ void TcpServer::SetConnectionCallback(const TConnectionCallback& callback)
 
 void TcpServerStream::SetReadCallback(const TReadCallback& callback)
 {
+	bool wasFirst = !static_cast<bool>(m_readCallback);
+
 	m_readCallback = callback;
+
+	if (wasFirst)
+	{
+		OnFirstSetReadCallback();
+	}
 }
 }
