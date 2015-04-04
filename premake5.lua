@@ -41,8 +41,10 @@ local getcxxflags = premake.tools.gcc.getcxxflags;
 function premake.tools.gcc.getcxxflags(cfg)
     local r = getcxxflags(cfg)
 
-    table.insert(r, "-std=c++11")
+    table.insert(r, "-std=c++14")
     table.insert(r, "-stdlib=libc++")
+    table.insert(r, "-Xclang") -- to enable the following option
+	table.insert(r, "-fno-sized-deallocation") -- C++14 mode in clang causes sized deallocation operator delete to be referenced, but we don't want to depend on latest libc++
 
     return r
 end
@@ -170,7 +172,9 @@ solution "CitizenMP"
 		links { "winmm" }
 
 	configuration "not windows"
-		buildoptions "-fPIC"
+		buildoptions {
+			"-fPIC", -- required to link on AMD64
+		}
 
 		links { "c++" }
 
@@ -672,7 +676,7 @@ end
 		language "C"
 		kind "SharedLib"
 
-		includedirs { "../vendor/libuv/include/" }
+		includedirs { "../vendor/libuv/include/", "../vendor/libuv/src/" }
 
 		files_project '../vendor/libuv/'
 		{
@@ -698,7 +702,7 @@ end
 
 			links { 'm' }
 
-			linkoptions { '-Wl,-soname,libuv.so.1.0', '-pthread' }
+			linkoptions { '-pthread' }
 
 			files_project '../vendor/libuv/'
 			{
