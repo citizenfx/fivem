@@ -93,7 +93,7 @@ class fwPlatformString : public std::wstring
 private:
 	inline std::wstring ConvertString(const char* narrowString)
 	{
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		return converter.from_bytes(narrowString);
 	}
 
@@ -129,7 +129,7 @@ class fwPlatformString : public std::string
 private:
 	inline std::string ConvertString(const wchar_t* wideString)
 	{
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		return converter.to_bytes(wideString);
 	}
 
