@@ -64,7 +64,8 @@ void MultiplexTcpServer::Bind(const PeerAddress& bindAddress)
 						// forward the result
 						server->AttachToResult(*localRecvQueue, localStream);
 
-						break;
+						// return so that the stream doesn't end up closed
+						return;
 					}
 					else if (matchResult == MultiplexPatternMatchResult::InsufficientData)
 					{
@@ -75,7 +76,7 @@ void MultiplexTcpServer::Bind(const PeerAddress& bindAddress)
 				if (!needMoreData)
 				{
 					// nobody matched, and we don't need more data - this stream is useless to us
-					// TODO: close it
+					stream->Close();
 				}
 			}
 		};
@@ -86,7 +87,7 @@ void MultiplexTcpServer::Bind(const PeerAddress& bindAddress)
 
 void MultiplexTcpChildServer::AttachToResult(const std::vector<uint8_t>& existingData, fwRefContainer<TcpServerStream> baseStream)
 {
-	fwRefContainer<MultiplexTcpChildServerStream> stream = new MultiplexTcpChildServerStream(baseStream);
+	fwRefContainer<MultiplexTcpChildServerStream> stream = new MultiplexTcpChildServerStream(this, baseStream);
 	stream->SetInitialData(existingData);
 
 	auto connectionCallback = GetConnectionCallback();
@@ -97,7 +98,12 @@ void MultiplexTcpChildServer::AttachToResult(const std::vector<uint8_t>& existin
 	}
 
 	// keep a local reference to the connection
-	m_connections.push_back(stream);
+	m_connections.insert(stream);
+}
+
+void MultiplexTcpChildServer::CloseStream(MultiplexTcpChildServerStream* stream)
+{
+	m_connections.erase(stream);
 }
 
 void MultiplexTcpChildServer::SetPatternMatcher(const MultiplexPatternMatchFn& function)
@@ -105,8 +111,8 @@ void MultiplexTcpChildServer::SetPatternMatcher(const MultiplexPatternMatchFn& f
 	m_patternMatcher = function;
 }
 
-MultiplexTcpChildServerStream::MultiplexTcpChildServerStream(fwRefContainer<TcpServerStream> baseStream)
-	: m_baseStream(baseStream)
+MultiplexTcpChildServerStream::MultiplexTcpChildServerStream(MultiplexTcpChildServer* server, fwRefContainer<TcpServerStream> baseStream)
+	: m_baseStream(baseStream), m_server(server)
 {
 	baseStream->SetReadCallback([=] (const std::vector<uint8_t>& data)
 	{
@@ -118,6 +124,18 @@ MultiplexTcpChildServerStream::MultiplexTcpChildServerStream(fwRefContainer<TcpS
 
 			ourReadCallback(data);
 		}
+	});
+
+	baseStream->SetCloseCallback([=] ()
+	{
+		auto ourCloseCallback = GetCloseCallback();
+
+		if (ourCloseCallback)
+		{
+			ourCloseCallback();
+		}
+
+		m_server->CloseStream(this);
 	});
 }
 
@@ -138,6 +156,13 @@ void MultiplexTcpChildServerStream::TrySendInitialData()
 void MultiplexTcpChildServerStream::OnFirstSetReadCallback()
 {
 	TrySendInitialData();
+}
+
+void MultiplexTcpChildServerStream::Close()
+{
+	m_baseStream->Close();
+
+	m_server->CloseStream(this);
 }
 
 PeerAddress MultiplexTcpChildServerStream::GetPeerAddress()

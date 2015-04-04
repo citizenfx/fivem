@@ -12,6 +12,8 @@
 
 namespace net
 {
+class MultiplexTcpChildServer;
+
 class MultiplexTcpChildServerStream : public TcpServerStream
 {
 private:
@@ -19,17 +21,22 @@ private:
 
 	std::vector<uint8_t> m_initialData;
 
+	MultiplexTcpChildServer* m_server;
+
 private:
 	void TrySendInitialData();
 
+protected:
+	virtual void OnFirstSetReadCallback() override;
+
 public:
-	MultiplexTcpChildServerStream(fwRefContainer<TcpServerStream> baseStream);
+	MultiplexTcpChildServerStream(MultiplexTcpChildServer* server, fwRefContainer<TcpServerStream> baseStream);
 
 	void SetInitialData(const std::vector<uint8_t>& initialData);
 
 	virtual PeerAddress GetPeerAddress() override;
 
-	virtual void OnFirstSetReadCallback() override;
+	virtual void Close() override;
 };
 
 enum class MultiplexPatternMatchResult
@@ -46,7 +53,7 @@ class MultiplexTcpChildServer : public TcpServer
 private:
 	MultiplexPatternMatchFn m_patternMatcher;
 
-	std::vector<fwRefContainer<TcpServerStream>> m_connections;
+	std::set<fwRefContainer<TcpServerStream>> m_connections;
 
 public:
 	inline const MultiplexPatternMatchFn& GetPatternMatcher()
@@ -57,6 +64,8 @@ public:
 	void SetPatternMatcher(const MultiplexPatternMatchFn& function);
 
 	void AttachToResult(const std::vector<uint8_t>& existingData, fwRefContainer<TcpServerStream> baseStream);
+
+	void CloseStream(MultiplexTcpChildServerStream* stream);
 };
 
 class MultiplexTcpServer : public fwRefCountable

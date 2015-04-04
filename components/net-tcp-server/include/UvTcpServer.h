@@ -27,6 +27,8 @@ private:
 private:
 	void HandleRead(ssize_t nread, const uv_buf_t* buf);
 
+	void CloseClient();
+
 public:
 	UvTcpServerStream(UvTcpServer* server);
 
@@ -36,6 +38,8 @@ public:
 
 public:
 	virtual PeerAddress GetPeerAddress() override;
+
+	virtual void Close() override;
 };
 
 class TcpServerManager;
@@ -63,5 +67,8 @@ public:
 	{
 		return m_server.get();
 	}
+
+public:
+	void RemoveStream(UvTcpServerStream* stream);
 };
 }

@@ -21,6 +21,28 @@ void UvCallback(Handle* handle, T1 a1, T2 a2)
 	(reinterpret_cast<Class*>(handle->data)->*Callable)(a1, a2);
 }
 
+// wrapper to make sure the libuv handle only gets freed after the close completes
+template<typename Handle>
+void UvClose(std::unique_ptr<Handle> handle)
+{
+	struct TempCloseData
+	{
+		std::unique_ptr<Handle> item;
+	};
+
+	// create temporary object and give it our reference
+	TempCloseData* tempCloseData = new TempCloseData;
+	tempCloseData->item = std::move(handle);
+	tempCloseData->item->data = tempCloseData;
+
+	// close the libuv handle
+	uv_close(reinterpret_cast<uv_handle_t*>(tempCloseData->item.get()), [] (uv_handle_t* handle)
+	{
+		// delete the close holder
+		delete reinterpret_cast<TempCloseData*>(handle->data);
+	});
+}
+
 namespace net
 {
 UvTcpServer::UvTcpServer(TcpServerManager* manager)
@@ -35,7 +57,7 @@ UvTcpServer::~UvTcpServer()
 
 	if (m_server.get())
 	{
-		uv_close(reinterpret_cast<uv_handle_t*>(m_server.get()), nullptr);
+		UvClose(std::move(m_server));
 	}
 }
 
@@ -89,6 +111,11 @@ void UvTcpServer::OnConnection(int status)
 	}
 }
 
+void UvTcpServer::RemoveStream(UvTcpServerStream* stream)
+{
+	m_clients.erase(stream);
+}
+
 UvTcpServerStream::UvTcpServerStream(UvTcpServer* server)
 	: m_server(server)
 {
@@ -97,9 +124,16 @@ UvTcpServerStream::UvTcpServerStream(UvTcpServer* server)
 
 UvTcpServerStream::~UvTcpServerStream()
 {
+	CloseClient();
+}
+
+void UvTcpServerStream::CloseClient()
+{
 	if (m_client.get())
 	{
-		uv_close(reinterpret_cast<uv_handle_t*>(m_client.get()), nullptr);
+		uv_read_stop(reinterpret_cast<uv_stream_t*>(m_client.get()));
+
+		UvClose(std::move(m_client));
 	}
 }
 
@@ -140,7 +174,12 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 	{
 		trace("read error: %s\n", uv_strerror(nread));
 
-		// TODO: handle close
+		if (GetCloseCallback())
+		{
+			GetCloseCallback()();
+		}
+
+		Close();
 	}
 }
 
@@ -152,5 +191,14 @@ PeerAddress UvTcpServerStream::GetPeerAddress()
 	uv_tcp_getpeername(m_client.get(), reinterpret_cast<sockaddr*>(&addr), &len);
 
 	return PeerAddress(reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len));
+}
+
+void UvTcpServerStream::Close()
+{
+	CloseClient();
+
+	SetReadCallback(TReadCallback());
+
+	m_server->RemoveStream(this);
 }
 }

@@ -20,6 +20,11 @@ void TcpServer::SetConnectionCallback(const TConnectionCallback& callback)
 	m_connectionCallback = callback;
 }
 
+void TcpServerStream::SetCloseCallback(const TCloseCallback& callback)
+{
+	m_closeCallback = callback;
+}
+
 void TcpServerStream::SetReadCallback(const TReadCallback& callback)
 {
 	bool wasFirst = !static_cast<bool>(m_readCallback);

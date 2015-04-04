@@ -16,8 +16,12 @@ class TcpServerStream : public fwRefCountable
 public:
 	typedef std::function<void(const std::vector<uint8_t>&)> TReadCallback;
 
+	typedef std::function<void()> TCloseCallback;
+
 private:
 	TReadCallback m_readCallback;
+
+	TCloseCallback m_closeCallback;
 
 protected:
 	inline const TReadCallback& GetReadCallback()
@@ -25,12 +29,21 @@ protected:
 		return m_readCallback;
 	}
 
+	inline const TCloseCallback& GetCloseCallback()
+	{
+		return m_closeCallback;
+	}
+
 	virtual void OnFirstSetReadCallback() {}
 
 public:
 	virtual PeerAddress GetPeerAddress() = 0;
 
+	virtual void Close() = 0;
+
 	void SetReadCallback(const TReadCallback& callback);
+
+	void SetCloseCallback(const TCloseCallback& callback);
 
 protected:
 	TcpServerStream() { }
