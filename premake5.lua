@@ -44,7 +44,7 @@ function premake.tools.gcc.getcxxflags(cfg)
     table.insert(r, "-std=c++14")
     table.insert(r, "-stdlib=libc++")
     table.insert(r, "-Xclang") -- to enable the following option
-	table.insert(r, "-fno-sized-deallocation") -- C++14 mode in clang causes sized deallocation operator delete to be referenced, but we don't want to depend on latest libc++
+    table.insert(r, "-fno-sized-deallocation") -- C++14 mode in clang causes sized deallocation operator delete to be referenced, but we don't want to depend on latest libc++
 
     return r
 end
