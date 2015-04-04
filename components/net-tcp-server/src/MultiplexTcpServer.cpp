@@ -165,6 +165,11 @@ void MultiplexTcpChildServerStream::Close()
 	m_server->CloseStream(this);
 }
 
+void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data)
+{
+	m_baseStream->Write(data);
+}
+
 PeerAddress MultiplexTcpChildServerStream::GetPeerAddress()
 {
 	return m_baseStream->GetPeerAddress();

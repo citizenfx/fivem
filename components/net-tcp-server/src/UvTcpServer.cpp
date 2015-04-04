@@ -193,6 +193,41 @@ PeerAddress UvTcpServerStream::GetPeerAddress()
 	return PeerAddress(reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len));
 }
 
+void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
+{
+	// write request structure
+	struct UvWriteReq
+	{
+		std::vector<uint8_t> sendData;
+		uv_buf_t buffer;
+		uv_write_t write;
+
+		fwRefContainer<UvTcpServerStream> stream;
+	};
+
+	// prepare a write request
+	UvWriteReq* writeReq = new UvWriteReq;
+	writeReq->sendData = data;
+	writeReq->buffer.base = reinterpret_cast<char*>(&writeReq->sendData[0]);
+	writeReq->buffer.len = writeReq->sendData.size();
+	writeReq->stream = this;
+	
+	writeReq->write.data = writeReq;
+
+	// send the write request
+	uv_write(&writeReq->write, reinterpret_cast<uv_stream_t*>(m_client.get()), &writeReq->buffer, 1, [] (uv_write_t* write, int status)
+	{
+		UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
+
+		if (status < 0)
+		{
+			trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
+		}
+
+		delete req;
+	});
+}
+
 void UvTcpServerStream::Close()
 {
 	CloseClient();

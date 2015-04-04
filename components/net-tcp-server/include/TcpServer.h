@@ -39,6 +39,8 @@ protected:
 public:
 	virtual PeerAddress GetPeerAddress() = 0;
 
+	virtual void Write(const std::vector<uint8_t>& data) = 0;
+
 	virtual void Close() = 0;
 
 	void SetReadCallback(const TReadCallback& callback);

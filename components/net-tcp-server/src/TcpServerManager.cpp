@@ -81,7 +81,7 @@ static InitFunction initFunction([] ()
 
 		fwRefContainer<net::TcpServerManager> sm = new net::TcpServerManager();
 		fwRefContainer<net::MultiplexTcpServer> ms = new net::MultiplexTcpServer(sm);
-		ms->Bind(net::PeerAddress::FromString("localhost:30150").get());
+		ms->Bind(net::PeerAddress::FromString("0.0.0.0:30150").get());
 
 		fwRefContainer<net::TcpServer> cakeServer = ms->CreateServer([] (const std::vector<uint8_t>& data)
 		{
@@ -134,6 +134,8 @@ static InitFunction initFunction([] ()
 				}
 
 				trace("\n");
+
+				stream->Write(buf);
 			});
 		});
 
