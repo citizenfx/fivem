@@ -838,6 +838,8 @@ end
 			'external/ge25519.cpp',
 			'external/sc25519.cpp',
 			'external/curve25519_ref.cpp',
+			'libbotan.cpp',
+			'pki_libbotan.cpp',
 			'server.cpp',
 			'bind.cpp',
 			'gzip.cpp',
