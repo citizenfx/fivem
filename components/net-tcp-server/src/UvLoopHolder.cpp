@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "UvLoopHolder.h"
+#include "memdbgon.h"
 
 namespace net
 {

@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "TcpServerManager.h"
+#include "memdbgon.h"
 
 namespace net
 {
@@ -139,6 +140,6 @@ static InitFunction initFunction([] ()
 			});
 		});
 
-		std::this_thread::sleep_for(std::chrono::seconds(3600));
+		//std::this_thread::sleep_for(std::chrono::seconds(3600));
 	}
 });

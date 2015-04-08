@@ -11,6 +11,8 @@
 #include <deque>
 #include <memory>
 
+#include "memdbgon.h"
+
 namespace net
 {
 MultiplexTcpServer::MultiplexTcpServer(const fwRefContainer<TcpServerFactory>& factory)
@@ -90,15 +92,16 @@ void MultiplexTcpChildServer::AttachToResult(const std::vector<uint8_t>& existin
 	fwRefContainer<MultiplexTcpChildServerStream> stream = new MultiplexTcpChildServerStream(this, baseStream);
 	stream->SetInitialData(existingData);
 
+	// keep a local reference to the connection
+	m_connections.insert(stream);
+
+	// invoke the connection callback
 	auto connectionCallback = GetConnectionCallback();
 
 	if (connectionCallback)
 	{
 		connectionCallback(stream);
 	}
-
-	// keep a local reference to the connection
-	m_connections.insert(stream);
 }
 
 void MultiplexTcpChildServer::CloseStream(MultiplexTcpChildServerStream* stream)
@@ -128,14 +131,7 @@ MultiplexTcpChildServerStream::MultiplexTcpChildServerStream(MultiplexTcpChildSe
 
 	baseStream->SetCloseCallback([=] ()
 	{
-		auto ourCloseCallback = GetCloseCallback();
-
-		if (ourCloseCallback)
-		{
-			ourCloseCallback();
-		}
-
-		m_server->CloseStream(this);
+		CloseInternal();
 	});
 }
 
@@ -158,11 +154,33 @@ void MultiplexTcpChildServerStream::OnFirstSetReadCallback()
 	TrySendInitialData();
 }
 
-void MultiplexTcpChildServerStream::Close()
+void MultiplexTcpChildServerStream::CloseInternal()
 {
-	m_baseStream->Close();
+	// keep a reference to ourselves so we only free after returning
+	fwRefContainer<MultiplexTcpChildServerStream> thisRef = this;
+
+	auto ourCloseCallback = GetCloseCallback();
+
+	if (ourCloseCallback)
+	{
+		SetCloseCallback(TCloseCallback());
+		ourCloseCallback();
+	}
+
+	SetReadCallback(TReadCallback());
 
 	m_server->CloseStream(this);
+}
+
+void MultiplexTcpChildServerStream::Close()
+{
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->Close();
+		m_baseStream = nullptr;
+	}
+
+	CloseInternal();
 }
 
 void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data)

@@ -24,10 +24,17 @@ private:
 
 	std::unique_ptr<uv_tcp_t> m_client;
 
+	std::vector<char> m_readBuffer;
+
 private:
 	void HandleRead(ssize_t nread, const uv_buf_t* buf);
 
 	void CloseClient();
+
+	inline std::vector<char>& GetReadBuffer()
+	{
+		return m_readBuffer;
+	}
 
 public:
 	UvTcpServerStream(UvTcpServer* server);
@@ -35,6 +42,16 @@ public:
 	virtual ~UvTcpServerStream();
 
 	bool Accept(std::unique_ptr<uv_tcp_t>&& client);
+
+	virtual void AddRef() override
+	{
+		TcpServerStream::AddRef();
+	}
+
+	virtual bool Release() override
+	{
+		return TcpServerStream::Release();
+	}
 
 public:
 	virtual PeerAddress GetPeerAddress() override;

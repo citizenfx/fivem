@@ -13,13 +13,13 @@ static __declspec(thread) size_t g_newLine;
 static __declspec(thread) bool g_inAlloc = false;
 bool g_inAllocHook = false;
 
-bool __declspec(dllexport) CoreSetMemDebugInfo(const char* file, size_t line)
+/*bool __declspec(dllexport) CoreSetMemDebugInfo(const char* file, size_t line)
 {
 	g_newFile = file;
 	g_newLine = line;
 
 	return true;
-}
+}*/
 
 static LONG g_globalTrackedMemory;
 

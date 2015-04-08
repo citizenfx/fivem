@@ -9,9 +9,15 @@
 
 #include "NetAddress.h"
 
+#ifdef COMPILING_NET_TCP_SERVER
+#define TCP_SERVER_EXPORT DLL_EXPORT
+#else
+#define TCP_SERVER_EXPORT DLL_IMPORT
+#endif
+
 namespace net
 {
-class TcpServerStream : public fwRefCountable
+class TCP_SERVER_EXPORT TcpServerStream : public fwRefCountable
 {
 public:
 	typedef std::function<void(const std::vector<uint8_t>&)> TReadCallback;
@@ -51,7 +57,7 @@ protected:
 	TcpServerStream() { }
 };
 
-class TcpServer : public fwRefCountable
+class TCP_SERVER_EXPORT TcpServer : public fwRefCountable
 {
 public:
 	typedef std::function<void(fwRefContainer<TcpServerStream>)> TConnectionCallback;

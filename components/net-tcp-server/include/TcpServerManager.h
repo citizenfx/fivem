@@ -15,9 +15,15 @@
 
 #include <memory>
 
+#ifdef COMPILING_NET_TCP_SERVER
+#define TCP_SERVER_EXPORT DLL_EXPORT
+#else
+#define TCP_SERVER_EXPORT DLL_IMPORT
+#endif
+
 namespace net
 {
-class TcpServerManager : public UvLoopHolder, public TcpServerFactory
+class TCP_SERVER_EXPORT TcpServerManager : public UvLoopHolder, public TcpServerFactory
 {
 private:
 	std::set<fwRefContainer<UvTcpServer>> m_servers;

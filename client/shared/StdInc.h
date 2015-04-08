@@ -59,6 +59,10 @@
 
 #undef NDEBUG
 
+#ifdef MEMDBGOK
+#define _CRTDBG_MAP_ALLOC
+#endif
+
 // C/C++ headers
 #include <stdio.h>
 #include <string.h>
@@ -177,6 +181,10 @@ typedef char pchar_t;
 
 #ifdef HAS_LOCAL_H
 #include "Local.h"
+#endif
+
+#ifdef MEMDBGOK
+#include <crtdbg.h>
 #endif
 
 #endif

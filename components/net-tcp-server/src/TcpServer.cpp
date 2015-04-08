@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "TcpServer.h"
+#include "memdbgon.h"
 
 namespace net
 {

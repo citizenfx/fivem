@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "UvTcpServer.h"
 #include "TcpServerManager.h"
+#include "memdbgon.h"
 
 template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
 void UvCallback(Handle* handle, T1 a1)
@@ -148,7 +149,12 @@ bool UvTcpServerStream::Accept(std::unique_ptr<uv_tcp_t>&& client)
 	{
 		uv_read_start(reinterpret_cast<uv_stream_t*>(m_client.get()), [] (uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf)
 		{
-			buf->base = new char[suggestedSize];
+			UvTcpServerStream* stream = reinterpret_cast<UvTcpServerStream*>(handle->data);
+
+			auto& readBuffer = stream->GetReadBuffer();
+			readBuffer.resize(suggestedSize);
+
+			buf->base = &readBuffer[0];
 			buf->len = suggestedSize;
 		}, UvCallback<uv_stream_t, UvTcpServerStream, ssize_t, const uv_buf_t*, &UvTcpServerStream::HandleRead>);
 	}
@@ -163,8 +169,6 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 		std::vector<uint8_t> targetBuf(nread);
 		memcpy(&targetBuf[0], buf->base, targetBuf.size());
 
-		delete[] buf->base;
-
 		if (GetReadCallback())
 		{
 			GetReadCallback()(targetBuf);
@@ -172,6 +176,9 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 	}
 	else if (nread < 0)
 	{
+		// hold a reference to ourselves while in this scope
+		fwRefContainer<UvTcpServerStream> tempContainer = this;
+
 		trace("read error: %s\n", uv_strerror(nread));
 
 		if (GetCloseCallback())
@@ -233,6 +240,16 @@ void UvTcpServerStream::Close()
 	CloseClient();
 
 	SetReadCallback(TReadCallback());
+
+	// get it locally as we may recurse
+	auto closeCallback = GetCloseCallback();
+
+	if (closeCallback)
+	{
+		SetCloseCallback(TCloseCallback());
+
+		closeCallback();
+	}
 
 	m_server->RemoveStream(this);
 }

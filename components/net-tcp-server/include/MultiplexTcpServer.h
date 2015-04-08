@@ -10,6 +10,12 @@
 #include "TcpServer.h"
 #include "TcpServerFactory.h"
 
+#ifdef COMPILING_NET_TCP_SERVER
+#define TCP_SERVER_EXPORT DLL_EXPORT
+#else
+#define TCP_SERVER_EXPORT DLL_IMPORT
+#endif
+
 namespace net
 {
 class MultiplexTcpChildServer;
@@ -25,6 +31,8 @@ private:
 
 private:
 	void TrySendInitialData();
+
+	void CloseInternal();
 
 protected:
 	virtual void OnFirstSetReadCallback() override;
@@ -70,7 +78,7 @@ public:
 	void CloseStream(MultiplexTcpChildServerStream* stream);
 };
 
-class MultiplexTcpServer : public fwRefCountable
+class TCP_SERVER_EXPORT MultiplexTcpServer : public fwRefCountable
 {
 private:
 	fwRefContainer<TcpServerFactory> m_factory;
