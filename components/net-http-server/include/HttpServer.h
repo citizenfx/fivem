@@ -1,0 +1,130 @@
+/*
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
+
+#pragma once
+
+#include "TcpServer.h"
+
+namespace net
+{
+class HttpRequest : public fwRefCountable
+{
+private:
+	int m_httpVersionMajor;
+	int m_httpVersionMinor;
+
+	std::string m_requestMethod;
+
+	std::string m_path;
+
+	std::map<std::string, std::string> m_headerList;
+
+public:
+	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const std::map<std::string, std::string>& headerList);
+
+	inline std::pair<int, int> GetHttpVersion() const
+	{
+		return std::make_pair(m_httpVersionMajor, m_httpVersionMinor);
+	}
+
+	inline const std::string& GetRequestMethod() const
+	{
+		return m_requestMethod;
+	}
+
+	inline const std::string& GetPath() const
+	{
+		return m_path;
+	}
+
+	inline const std::map<std::string, std::string>& GetHeaders() const
+	{
+		return m_headerList;
+	}
+
+	inline std::string GetHeader(const std::string& key, const std::string& default = std::string()) const
+	{
+		auto it = m_headerList.find(key);
+
+		return (it != m_headerList.end()) ? it->second : default;
+	}
+};
+
+class HttpResponse : public fwRefCountable
+{
+private:
+	fwRefContainer<TcpServerStream> m_clientStream;
+
+	int m_statusCode;
+
+	bool m_ended;
+
+	bool m_sentHeaders;
+
+	std::map<std::string, std::string> m_headerList;
+
+private:
+	static std::string GetStatusMessage(int statusCode);
+
+public:
+	HttpResponse(fwRefContainer<TcpServerStream> clientStream);
+
+	std::string GetHeader(const std::string& name);
+
+	void RemoveHeader(const std::string& name);
+
+	void SetHeader(const std::string& name, const std::string& value);
+
+	void WriteHead(int statusCode);
+
+	void WriteHead(int statusCode, const std::map<std::string, std::string>& headers);
+
+	void WriteHead(int statusCode, const std::string& statusMessage);
+
+	void WriteHead(int statusCode, const std::string& statusMessage, const std::map<std::string, std::string>& headers);
+
+	void Write(const std::string& data);
+
+	void End();
+
+	void End(const std::string& data);
+
+	inline int GetStatusCode()
+	{
+		return m_statusCode;
+	}
+
+	inline void SetStatusCode(int statusCode)
+	{
+		m_statusCode = statusCode;
+	}
+
+	inline bool HasSentHeaders()
+	{
+		return m_sentHeaders;
+	}
+
+	inline bool HasEnded()
+	{
+		return m_ended;
+	}
+};
+
+class HttpHandler : public fwRefCountable
+{
+public:
+	virtual bool HandleRequest(fwRefContainer<HttpRequest> request, fwRefContainer<HttpResponse> response) = 0;
+};
+
+class HttpServer : public fwRefCountable
+{
+public:
+	virtual void AttachToServer(fwRefContainer<TcpServer> server) = 0;
+
+	virtual void RegisterHandler(fwRefContainer<HttpHandler> handler) = 0;
+};
+};

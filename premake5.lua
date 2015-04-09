@@ -850,6 +850,18 @@ end
 
 		configuration 'Release*'
         	links { 'botan' }
+
+	project "picohttpparser"
+		language "C"
+		kind "StaticLib"
+
+		includedirs { "../vendor/picohttpparser/" }
+
+		files_project '../vendor/picohttpparser/'
+		{
+			'picohttpparser.c',
+			'picohttpparser.h'
+		}
 		
 if _OPTIONS['game'] ~= 'server' then
 	project "tests_citigame"
