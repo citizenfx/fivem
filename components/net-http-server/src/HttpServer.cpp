@@ -15,6 +15,8 @@
 #include <memory>
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
+
 #include <picohttpparser.h>
 
 namespace net
@@ -112,7 +114,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				std::string requestMethodStr(requestMethod, requestMethodLength);
 				std::string pathStr(path, pathLength);
 
-				std::map<std::string, std::string> headerList;
+				HeaderMap headerList;
 				
 				for (int i = 0; i < numHeaders; i++)
 				{
@@ -123,10 +125,11 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 				// remove the original bytes from the queue
 				readQueue.erase(readQueue.begin(), readQueue.begin() + result);
+				localConnectionData->lastLength = 0;
 
 				// store the request in a request instance
 				fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList);
-				fwRefContainer<HttpResponse> response = new HttpResponse(stream);
+				fwRefContainer<HttpResponse> response = new HttpResponse(stream, request);
 				
 				for (auto& handler : m_handlers)
 				{
@@ -142,20 +145,21 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				stream->Close();
 				return;
 			}
-
-			localConnectionData->lastLength = requestData.size();
+			else if (result == -2)
+			{
+				localConnectionData->lastLength = requestData.size();
+			}
 		}
 	});
 }
 
-HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const std::map<std::string, std::string>& headerList)
+HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList)
 	: m_httpVersionMajor(httpVersionMajor), m_httpVersionMinor(httpVersionMinor), m_requestMethod(requestMethod), m_path(path), m_headerList(headerList)
 {
-
 }
 
-HttpResponse::HttpResponse(fwRefContainer<TcpServerStream> clientStream)
-	: m_clientStream(clientStream), m_ended(false), m_statusCode(200), m_sentHeaders(false)
+HttpResponse::HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request)
+	: m_clientStream(clientStream), m_ended(false), m_statusCode(200), m_sentHeaders(false), m_request(request), m_closeConnection(false)
 {
 
 }
@@ -182,17 +186,17 @@ void HttpResponse::WriteHead(int statusCode)
 	return HttpResponse::WriteHead(statusCode, std::string(""));
 }
 
-void HttpResponse::WriteHead(int statusCode, const std::map<std::string, std::string>& headers)
+void HttpResponse::WriteHead(int statusCode, const HeaderMap& headers)
 {
 	return HttpResponse::WriteHead(statusCode, std::string(""), headers);
 }
 
 void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage)
 {
-	return HttpResponse::WriteHead(statusCode, statusMessage, std::map<std::string, std::string>());
+	return HttpResponse::WriteHead(statusCode, statusMessage, HeaderMap());
 }
 
-void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, const std::map<std::string, std::string>& headers)
+void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers)
 {
 	if (m_sentHeaders)
 	{
@@ -215,7 +219,18 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, c
 		outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S %Z") << "\r\n";
 	}
 
-	outData << "Connection: close\r\n";
+	auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("close"));
+
+	if (_stricmp(requestConnection.c_str(), "keep-alive") != 0)
+	{
+		outData << "Connection: close\r\n";
+
+		m_closeConnection = true;
+	}
+	else
+	{
+		outData << "Connection: keep-alive\r\n";
+	}
 
 	for (auto& header : usedHeaders)
 	{
@@ -236,6 +251,8 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, c
 
 void HttpResponse::Write(const std::string& data)
 {
+	SetHeader(std::string("Content-Length"), std::to_string(data.size()));
+
 	if (!m_sentHeaders)
 	{
 		WriteHead(m_statusCode);
@@ -255,8 +272,10 @@ void HttpResponse::End(const std::string& data)
 
 void HttpResponse::End()
 {
-	// TODO: handle keep-alive
-	m_clientStream->Close();
+	if (m_closeConnection)
+	{
+		m_clientStream->Close();
+	}
 }
 
 

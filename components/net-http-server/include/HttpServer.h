@@ -11,6 +11,16 @@
 
 namespace net
 {
+struct HeaderComparator : std::binary_function<std::string, std::string, bool>
+{
+	bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
+
+typedef std::map<std::string, std::string, HeaderComparator> HeaderMap;
+
 class HttpRequest : public fwRefCountable
 {
 private:
@@ -21,10 +31,10 @@ private:
 
 	std::string m_path;
 
-	std::map<std::string, std::string> m_headerList;
+	HeaderMap m_headerList;
 
 public:
-	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const std::map<std::string, std::string>& headerList);
+	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList);
 
 	inline std::pair<int, int> GetHttpVersion() const
 	{
@@ -41,7 +51,7 @@ public:
 		return m_path;
 	}
 
-	inline const std::map<std::string, std::string>& GetHeaders() const
+	inline const HeaderMap& GetHeaders() const
 	{
 		return m_headerList;
 	}
@@ -57,6 +67,8 @@ public:
 class HttpResponse : public fwRefCountable
 {
 private:
+	fwRefContainer<HttpRequest> m_request;
+
 	fwRefContainer<TcpServerStream> m_clientStream;
 
 	int m_statusCode;
@@ -65,13 +77,15 @@ private:
 
 	bool m_sentHeaders;
 
-	std::map<std::string, std::string> m_headerList;
+	bool m_closeConnection;
+
+	HeaderMap m_headerList;
 
 private:
 	static std::string GetStatusMessage(int statusCode);
 
 public:
-	HttpResponse(fwRefContainer<TcpServerStream> clientStream);
+	HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request);
 
 	std::string GetHeader(const std::string& name);
 
@@ -81,11 +95,11 @@ public:
 
 	void WriteHead(int statusCode);
 
-	void WriteHead(int statusCode, const std::map<std::string, std::string>& headers);
+	void WriteHead(int statusCode, const HeaderMap& headers);
 
 	void WriteHead(int statusCode, const std::string& statusMessage);
 
-	void WriteHead(int statusCode, const std::string& statusMessage, const std::map<std::string, std::string>& headers);
+	void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers);
 
 	void Write(const std::string& data);
 
