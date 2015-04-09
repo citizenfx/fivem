@@ -211,7 +211,10 @@ fwRefContainer<Component> ComponentData::CreateInstance(const std::string& userD
 	fwRefContainer<Component> instance = CreateComponent();
 	m_instances.push_back(instance);
 
-	instance->Initialize(userData);
+	if (!instance->Initialize(userData))
+	{
+		instance = nullptr;
+	}
 
 	return instance;
 }

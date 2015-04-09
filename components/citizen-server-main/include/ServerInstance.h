@@ -14,10 +14,12 @@ namespace fx
 	private:
 		InstanceRegistry m_instanceRegistry;
 
+		bool m_shouldTerminate;
+
 	public:
 		ServerInstance();
 
-		void SetArguments(const std::string& arguments);
+		bool SetArguments(const std::string& arguments);
 
 		void Run();
 
@@ -28,6 +30,6 @@ namespace fx
 		}
 
 	public:
-		static fwEvent<fwRefContainer<ServerInstance>> OnServerCreate;
+		static fwEvent<ServerInstance*> OnServerCreate;
 	};
 }

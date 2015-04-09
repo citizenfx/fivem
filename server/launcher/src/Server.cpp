@@ -38,6 +38,12 @@ void Server::Start(int argc, char* argv[])
 	// create a component instance
 	fwRefContainer<Component> componentInstance = serverComponent->CreateInstance(args.str());
 
+	// check if the server initialized properly
+	if (componentInstance.GetRef() == nullptr)
+	{
+		return;
+	}
+
 	// run the server's main routine
 	fwRefContainer<RunnableComponent> runnableServer = dynamic_cast<RunnableComponent*>(componentInstance.GetRef());
 

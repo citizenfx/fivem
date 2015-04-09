@@ -445,5 +445,5 @@ static InitFunction initFunction([] ()
 	fwRefContainer<net::HttpHandler> rc = new LovelyHttpHandler();
 	impl->RegisterHandler(rc);
 
-	std::this_thread::sleep_for(std::chrono::seconds(3600));
+	//std::this_thread::sleep_for(std::chrono::seconds(3600));
 });

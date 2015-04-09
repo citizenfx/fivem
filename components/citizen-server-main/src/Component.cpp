@@ -30,9 +30,7 @@ bool ServerComponentInstance::Initialize(const std::string& args)
 	InitFunctionBase::RunAll();
 
 	m_server = new fx::ServerInstance();
-	m_server->SetArguments(args);
-
-	return true;
+	return m_server->SetArguments(args);
 }
 
 void ServerComponentInstance::Run()

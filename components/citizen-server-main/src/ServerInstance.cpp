@@ -8,25 +8,32 @@
 #include "StdInc.h"
 #include <ServerInstance.h>
 
+#include <OptionParser.h>
+
 namespace fx
 {
 	ServerInstance::ServerInstance()
+		: m_shouldTerminate(false)
 	{
 		// invoke target events
 		OnServerCreate(this);
 	}
 
-	void ServerInstance::SetArguments(const std::string& arguments)
+	bool ServerInstance::SetArguments(const std::string& arguments)
 	{
-		//OptionParser* optionParser = Instance<OptionParser>::Get(GetInstanceRegistry());
-		//
-		//optionParser->ParseArgumentString(arguments);
+		OptionParser* optionParser = Instance<OptionParser>::Get(GetInstanceRegistry());
+		
+		return optionParser->ParseArgumentString(arguments);
 	}
 
 	void ServerInstance::Run()
 	{
-		
+		// tasks should be running in background threads; we'll just wait until someone wants to get rid of us
+		while (!m_shouldTerminate)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
 	}
 
-	fwEvent<fwRefContainer<ServerInstance>> ServerInstance::OnServerCreate;
+	fwEvent<ServerInstance*> ServerInstance::OnServerCreate;
 }
