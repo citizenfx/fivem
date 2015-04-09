@@ -2,7 +2,7 @@
 * CBC-MAC
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_CBC_MAC_H__
@@ -34,6 +34,7 @@ class BOTAN_DLL CBC_MAC : public MessageAuthenticationCode
       */
       CBC_MAC(BlockCipher* cipher);
 
+      static CBC_MAC* make(const Spec& spec);
    private:
       void add_data(const byte[], size_t);
       void final_result(byte[]);

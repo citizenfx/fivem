@@ -2,7 +2,7 @@
 * ECB/CBC Padding Methods
 * (C) 1999-2008,2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_MODE_PADDING_H__
@@ -118,6 +118,8 @@ class BOTAN_DLL Null_Padding : public BlockCipherModePaddingMethod
 
       std::string name() const { return "NoPadding"; }
    };
+
+BlockCipherModePaddingMethod* get_bc_pad(const std::string& algo_spec);
 
 }
 

@@ -2,7 +2,7 @@
 * RandomNumberGenerator
 * (C) 1999-2009 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_RANDOM_NUMBER_GENERATOR_H__
@@ -26,12 +26,6 @@ class BOTAN_DLL RandomNumberGenerator
       * Added in 1.8.0
       */
       static RandomNumberGenerator* make_rng();
-
-      /**
-      * Create a seeded and active RNG object for general application use
-      * Added in 1.11.5
-      */
-      static std::unique_ptr<RandomNumberGenerator> make_rng(class Algorithm_Factory& af);
 
       /**
       * Randomize a byte array.

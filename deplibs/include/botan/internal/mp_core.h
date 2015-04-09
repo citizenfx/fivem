@@ -3,7 +3,7 @@
 * (C) 1999-2010 Jack Lloyd
 *     2006 Luca Piccarreta
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_MP_CORE_OPS_H__
@@ -151,11 +151,13 @@ word bigint_modop(word n1, word n0, word d);
 void bigint_comba_mul4(word z[8], const word x[4], const word y[4]);
 void bigint_comba_mul6(word z[12], const word x[6], const word y[6]);
 void bigint_comba_mul8(word z[16], const word x[8], const word y[8]);
+void bigint_comba_mul9(word z[18], const word x[9], const word y[9]);
 void bigint_comba_mul16(word z[32], const word x[16], const word y[16]);
 
 void bigint_comba_sqr4(word out[8], const word in[4]);
 void bigint_comba_sqr6(word out[12], const word in[6]);
 void bigint_comba_sqr8(word out[16], const word in[8]);
+void bigint_comba_sqr9(word out[18], const word in[9]);
 void bigint_comba_sqr16(word out[32], const word in[16]);
 
 }

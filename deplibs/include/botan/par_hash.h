@@ -2,7 +2,7 @@
 * Parallel Hash
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PARALLEL_HASH_H__
@@ -29,11 +29,18 @@ class BOTAN_DLL Parallel : public HashFunction
       * @param hashes a set of hashes to compute in parallel
       */
       Parallel(const std::vector<HashFunction*>& hashes);
-      ~Parallel();
+
+      Parallel(const Parallel&) = delete;
+      Parallel& operator=(const Parallel&) = delete;
+
+      static Parallel* make(const Spec& spec);
    private:
+      Parallel() {}
+
       void add_data(const byte[], size_t);
       void final_result(byte[]);
-      std::vector<HashFunction*> hashes;
+
+      std::vector<std::unique_ptr<HashFunction>> hashes;
    };
 
 }

@@ -1,8 +1,8 @@
 /*
 * TLS Session
-* (C) 2011-2012 Jack Lloyd
+* (C) 2011-2012,2015 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_SESSION_STATE_H__
@@ -53,7 +53,8 @@ class BOTAN_DLL Session
               const std::vector<X509_Certificate>& peer_certs,
               const std::vector<byte>& session_ticket,
               const Server_Information& server_info,
-              const std::string& srp_identifier);
+              const std::string& srp_identifier,
+              u16bit srtp_profile);
 
       /**
       * Load a session from DER representation (created by DER_encode)
@@ -136,19 +137,17 @@ class BOTAN_DLL Session
       /**
       * Get the SRP identity (if sent by the client in the initial handshake)
       */
-      std::string srp_identifier() const { return m_srp_identifier; }
+      const std::string& srp_identifier() const { return m_srp_identifier; }
 
       /**
       * Get the saved master secret
       */
-      const secure_vector<byte>& master_secret() const
-         { return m_master_secret; }
+      const secure_vector<byte>& master_secret() const { return m_master_secret; }
 
       /**
       * Get the session identifier
       */
-      const std::vector<byte>& session_id() const
-         { return m_identifier; }
+      const std::vector<byte>& session_id() const { return m_identifier; }
 
       /**
       * Get the negotiated maximum fragment size (or 0 if default)
@@ -156,15 +155,19 @@ class BOTAN_DLL Session
       size_t fragment_size() const { return m_fragment_size; }
 
       /**
+      * Get the negotiated DTLS-SRTP algorithm (RFC 5764)
+      */
+      u16bit dtls_srtp_profile() const { return m_srtp_profile; }
+
+      /**
       * Return the certificate chain of the peer (possibly empty)
       */
-      std::vector<X509_Certificate> peer_certs() const { return m_peer_certs; }
+      const std::vector<X509_Certificate>& peer_certs() const { return m_peer_certs; }
 
       /**
       * Get the wall clock time this session began
       */
-      std::chrono::system_clock::time_point start_time() const
-         { return m_start_time; }
+      std::chrono::system_clock::time_point start_time() const { return m_start_time; }
 
       /**
       * Return how long this session has existed (in seconds)
@@ -176,10 +179,10 @@ class BOTAN_DLL Session
       */
       const std::vector<byte>& session_ticket() const { return m_session_ticket; }
 
-      Server_Information server_info() const { return m_server_info; }
+      const Server_Information& server_info() const { return m_server_info; }
 
    private:
-      enum { TLS_SESSION_PARAM_STRUCT_VERSION = 0x2994e301 };
+      enum { TLS_SESSION_PARAM_STRUCT_VERSION = 20150104 };
 
       std::chrono::system_clock::time_point m_start_time;
 
@@ -191,6 +194,7 @@ class BOTAN_DLL Session
       u16bit m_ciphersuite;
       byte m_compression_method;
       Connection_Side m_connection_side;
+      u16bit m_srtp_profile;
 
       size_t m_fragment_size;
 

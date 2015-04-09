@@ -1,8 +1,12 @@
 /*
 * Bit/Word Operations
 * (C) 1999-2008 Jack Lloyd
+* (C) Copyright Projet SECRET, INRIA, Rocquencourt
+* (C) Bhaskar Biswas and  Nicolas Sendrier
+* (C) 2014 cryptosource GmbH
+* (C) 2014 Falko Strenzke fstrenzke@cryptosource.de
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_BIT_OPS_H__
@@ -96,6 +100,24 @@ inline size_t ctz(T n)
       if((n >> i) & 0x01)
          return i;
    return 8*sizeof(T);
+   }
+
+template<typename T>
+size_t ceil_log2(T x)
+   {
+   if(x >> (sizeof(T)*8-1))
+      return sizeof(T)*8;
+
+   size_t result = 0;
+   T compare = 1;
+
+   while(compare < x)
+      {
+      compare <<= 1;
+      result++;
+      }
+
+   return result;
    }
 
 }

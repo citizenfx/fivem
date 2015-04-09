@@ -3,7 +3,7 @@
 * (C) 1999-2011 Jack Lloyd
 *     2007 FlexSecure GmbH
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_SHA_224_256_H__

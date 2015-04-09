@@ -4,7 +4,7 @@
 * (C) 2007 Martin Doering, Christoph Ludwig, Falko Strenzke
 *     2010-2011,2012,2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_GFP_CURVE_H__
@@ -23,6 +23,8 @@ class CurveGFp_Repr
       virtual const BigInt& get_p() const = 0;
       virtual const BigInt& get_a() const = 0;
       virtual const BigInt& get_b() const = 0;
+
+      virtual size_t get_p_words() const = 0;
 
       /*
       * Returns to_curve_rep(get_a())
@@ -43,6 +45,10 @@ class CurveGFp_Repr
 
       virtual void curve_sqr(BigInt& z, const BigInt& x,
                              secure_vector<word>& ws) const = 0;
+
+      virtual void normalize(BigInt& x,
+                             secure_vector<word>& ws,
+                             size_t bound) const;
    };
 
 /**
@@ -109,6 +115,8 @@ class BOTAN_DLL CurveGFp
          return xt;
          }
 
+      // TODO: from_rep taking && ref
+
       void mul(BigInt& z, const BigInt& x, const BigInt& y, secure_vector<word>& ws) const
          {
          m_repr->curve_mul(z, x, y, ws);
@@ -131,6 +139,16 @@ class BOTAN_DLL CurveGFp
          BigInt z;
          m_repr->curve_sqr(z, x, ws);
          return z;
+         }
+
+      /**
+      * Adjust x to be in [0,p)
+      * @param bound if greater than zero, assume that no more than bound
+      *        additions or subtractions are required to move x into range.
+      */
+      void normalize(BigInt& x, secure_vector<word>& ws, size_t bound = 0) const
+         {
+         m_repr->normalize(x, ws, bound);
          }
 
       void swap(CurveGFp& other)
@@ -169,7 +187,7 @@ namespace std {
 
 template<> inline
 void swap<Botan::CurveGFp>(Botan::CurveGFp& curve1,
-                           Botan::CurveGFp& curve2)
+                           Botan::CurveGFp& curve2) BOTAN_NOEXCEPT
    {
    curve1.swap(curve2);
    }

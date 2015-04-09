@@ -2,12 +2,13 @@
 * Block Cipher Base Class
 * (C) 1999-2009 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_BLOCK_CIPHER_H__
 #define BOTAN_BLOCK_CIPHER_H__
 
+#include <botan/scan_name.h>
 #include <botan/sym_algo.h>
 
 namespace Botan {
@@ -18,6 +19,7 @@ namespace Botan {
 class BOTAN_DLL BlockCipher : public SymmetricAlgorithm
    {
    public:
+      typedef SCAN_Name Spec;
 
       /**
       * @return block size of this algorithm

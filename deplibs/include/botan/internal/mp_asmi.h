@@ -3,7 +3,7 @@
 * (C) 1999-2010 Jack Lloyd
 *     2006 Luca Piccarreta
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_MP_ASM_INTERNAL_H__

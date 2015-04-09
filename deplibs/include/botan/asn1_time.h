@@ -2,7 +2,7 @@
 * ASN.1 Time Representation
 * (C) 1999-2007,2012 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_ASN1_TIME_H__

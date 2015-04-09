@@ -2,7 +2,7 @@
 * Buffered Computation
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_BUFFERED_COMPUTATION_H__
@@ -99,6 +99,13 @@ class BOTAN_DLL Buffered_Computation
          secure_vector<byte> output(output_length());
          final_result(&output[0]);
          return output;
+         }
+
+      template<typename Alloc>
+         void final(std::vector<byte, Alloc>& out)
+         {
+         out.resize(output_length());
+         final_result(&out[0]);
          }
 
       /**

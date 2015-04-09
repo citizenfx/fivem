@@ -2,7 +2,7 @@
 * Runtime assertion checking
 * (C) 2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_ASSERTION_CHECKING_H__
@@ -65,7 +65,7 @@ void BOTAN_DLL assertion_failure(const char* expr_str,
 */
 #define BOTAN_ASSERT_NONNULL(ptr)                          \
    do {                                                    \
-      if(static_cast<bool>(ptr) == false)                  \
+     if((ptr) == nullptr)                                  \
          Botan::assertion_failure(#ptr " is not null",     \
                                   "",                      \
                                   BOTAN_CURRENT_FUNCTION,  \

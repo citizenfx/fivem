@@ -2,15 +2,13 @@
 * A vague catch all include file for Botan
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_BOTAN_H__
 #define BOTAN_BOTAN_H__
 
-#include <botan/init.h>
 #include <botan/lookup.h>
-#include <botan/libstate.h>
 #include <botan/version.h>
 #include <botan/parsing.h>
 

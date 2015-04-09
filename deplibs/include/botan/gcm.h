@@ -2,7 +2,7 @@
 * GCM Mode
 * (C) 2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AEAD_GCM_H__
@@ -22,8 +22,6 @@ class GHASH;
 class BOTAN_DLL GCM_Mode : public AEAD_Mode
    {
    public:
-      secure_vector<byte> start(const byte nonce[], size_t nonce_len) override;
-
       void set_associated_data(const byte ad[], size_t ad_len) override;
 
       std::string name() const override;
@@ -39,8 +37,6 @@ class BOTAN_DLL GCM_Mode : public AEAD_Mode
 
       void clear() override;
    protected:
-      void key_schedule(const byte key[], size_t length) override;
-
       GCM_Mode(BlockCipher* cipher, size_t tag_size);
 
       const size_t BS = 16;
@@ -50,6 +46,10 @@ class BOTAN_DLL GCM_Mode : public AEAD_Mode
 
       std::unique_ptr<StreamCipher> m_ctr;
       std::unique_ptr<GHASH> m_ghash;
+   private:
+      secure_vector<byte> start_raw(const byte nonce[], size_t nonce_len) override;
+
+      void key_schedule(const byte key[], size_t length) override;
    };
 
 /**

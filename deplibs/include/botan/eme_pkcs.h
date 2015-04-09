@@ -2,7 +2,7 @@
 * EME PKCS#1 v1.5
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_EME_PKCS1_H__

@@ -1,8 +1,8 @@
 /*
 * SCAN Name Abstraction
-* (C) 2008 Jack Lloyd
+* (C) 2008,2015 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_SCAN_NAME_H__
@@ -26,22 +26,37 @@ class BOTAN_DLL SCAN_Name
       /**
       * @param algo_spec A SCAN-format name
       */
+      SCAN_Name(const char* algo_spec);
+
+      /**
+      * @param algo_spec A SCAN-format name
+      */
       SCAN_Name(std::string algo_spec);
+
+      /**
+      * @param algo_spec A SCAN-format name
+      */
+      SCAN_Name(std::string algo_spec, const std::string& extra);
 
       /**
       * @return original input string
       */
-      std::string as_string() const { return orig_algo_spec; }
+      const std::string& as_string() const { return orig_algo_spec; }
 
       /**
       * @return algorithm name
       */
-      std::string algo_name() const { return alg_name; }
+      const std::string& algo_name() const { return alg_name; }
 
       /**
       * @return algorithm name plus any arguments
       */
-      std::string algo_name_and_args() const;
+      std::string algo_name_and_args() const { return algo_name() + all_arguments(); }
+
+      /**
+      * @return all arguments
+      */
+      std::string all_arguments() const;
 
       /**
       * @return number of arguments
@@ -91,11 +106,9 @@ class BOTAN_DLL SCAN_Name
       static void add_alias(const std::string& alias, const std::string& basename);
 
       static std::string deref_alias(const std::string& alias);
-
-      static void set_default_aliases();
    private:
-      static std::mutex s_alias_map_mutex;
-      static std::map<std::string, std::string> s_alias_map;
+      static std::mutex g_alias_map_mutex;
+      static std::map<std::string, std::string> g_alias_map;
 
       std::string orig_algo_spec;
       std::string alg_name;

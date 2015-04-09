@@ -3,30 +3,30 @@
 #define BOTAN_BUILD_CONFIG_H__
 
 /*
-* This file was automatically generated Fri Oct 17 20:26:13 2014 UTC by
-* Bas@fallarbor running 'configure.py --cc=msvc --cpu=x86 --disable-debug --without-boost'
+* This file was automatically generated Thu Apr 09 10:05:01 2015 UTC by
+* Bas@fallarbor running 'configure.py --disable-modules=win32_stats --makefile-style=nmake --cpu=x86 --cc=msvc --prefix=P:\dev\botan\build_release'
 *
 * Target
-*  - Compiler: cl /MT /O2
+*  - Compiler: cl /MD /O2
 *  - Arch: x86_32/x86_32
 *  - OS: windows
 */
 
 #define BOTAN_VERSION_MAJOR 1
 #define BOTAN_VERSION_MINOR 11
-#define BOTAN_VERSION_PATCH 10
+#define BOTAN_VERSION_PATCH 16
 #define BOTAN_VERSION_DATESTAMP 0
 
 #define BOTAN_VERSION_RELEASE_TYPE "unreleased"
 
-#define BOTAN_VERSION_VC_REVISION "git:8e64b21d99bc92c5c28e1c6e5c4a491fddce99be"
+#define BOTAN_VERSION_VC_REVISION "git:62947773cedb0c9534c5df91271db9a9414e6e2a"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 
-#define BOTAN_INSTALL_PREFIX "c:\Botan"
+#define BOTAN_INSTALL_PREFIX "P:\dev\botan\build_release"
 #define BOTAN_INSTALL_HEADER_DIR "include/botan-1.11"
 #define BOTAN_INSTALL_LIB_DIR "lib"
-#define BOTAN_LIB_LINK "advapi32.lib boost_filesystem user32.lib"
+#define BOTAN_LIB_LINK "advapi32.lib"
 
 #ifndef BOTAN_DLL
   #define BOTAN_DLL __declspec(dllimport)
@@ -35,7 +35,11 @@
 /* How much to allocate for a buffer of no particular size */
 #define BOTAN_DEFAULT_BUFFER_SIZE 1024
 
-/* Maximum size to allocate out of the mlock pool */
+/* Minimum and maximum sizes to allocate out of the mlock pool (bytes)
+   Default min is 16 as smaller values are easily bruteforceable and thus
+   likely not cryptographic keys.
+*/
+#define BOTAN_MLOCK_ALLOCATOR_MIN_ALLOCATION 16
 #define BOTAN_MLOCK_ALLOCATOR_MAX_ALLOCATION 128
 
 /* Multiplier on a block cipher's native parallelism */
@@ -44,17 +48,31 @@
 /* How many bits per limb in a BigInt */
 #define BOTAN_MP_WORD_BITS 32
 
+/*
+* If enabled uses memset via volatile function pointer to zero memory,
+* otherwise does a byte at a time write via a volatile pointer.
+*/
+#define BOTAN_USE_VOLATILE_MEMSET_FOR_ZERO 1
+
+/*
+* If enabled the ECC implementation will use Montgomery ladder
+* instead of a fixed window implementation.
+*/
+#define BOTAN_CURVE_GFP_USE_MONTGOMERY_LADDER 0
+
 /* PK key consistency checking toggles */
 #define BOTAN_PUBLIC_KEY_STRONG_CHECKS_ON_LOAD 1
 #define BOTAN_PRIVATE_KEY_STRONG_CHECKS_ON_LOAD 0
 #define BOTAN_PRIVATE_KEY_STRONG_CHECKS_ON_GENERATE 1
 
 /*
-* RNGs will automatically poll the system for additional
-* seed material after producing this many bytes of output.
+* RNGs will automatically poll the system for additional seed material
+* after producing this many bytes of output.
 */
 #define BOTAN_RNG_MAX_OUTPUT_BEFORE_RESEED 512
 #define BOTAN_RNG_RESEED_POLL_BITS 128
+#define BOTAN_RNG_AUTO_RESEED_TIMEOUT std::chrono::milliseconds(10)
+#define BOTAN_RNG_RESEED_DEFAULT_TIMEOUT std::chrono::milliseconds(100)
 
 /* Should we use GCC-style inline assembler? */
 #if !defined(BOTAN_USE_GCC_INLINE_ASM) && defined(__GNUG__)
@@ -74,16 +92,17 @@
 
 /* Target identification and feature test macros */
 #define BOTAN_TARGET_OS_IS_WINDOWS
+#define BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM
 #define BOTAN_TARGET_OS_HAS_GMTIME_S
 #define BOTAN_TARGET_OS_HAS_LOADLIBRARY
 #define BOTAN_TARGET_OS_HAS_QUERY_PERF_COUNTER
+#define BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY
 #define BOTAN_TARGET_OS_HAS_VIRTUAL_LOCK
 
 #define BOTAN_TARGET_ARCH_IS_X86_32
 #define BOTAN_TARGET_SUPPORTS_AESNI
 #define BOTAN_TARGET_SUPPORTS_AVX2
 #define BOTAN_TARGET_SUPPORTS_BMI2
-#define BOTAN_TARGET_SUPPORTS_CLMUL
 #define BOTAN_TARGET_SUPPORTS_RDRAND
 #define BOTAN_TARGET_SUPPORTS_SHA
 #define BOTAN_TARGET_SUPPORTS_SSE2
@@ -141,13 +160,8 @@
   #define BOTAN_DEPRECATED(msg)
 #endif
 
-// 'noexcept' is not supported in MSVC12 directly, so use the version
-// that Microsoft supports here. Credit to the following URL for the
-// solution:
-//
-//      https://github.com/randombit/botan/issues/16
-//
 #if defined(_MSC_VER)
+  // noexcept is not supported in VS 2013
   #include <yvals.h>
   #define BOTAN_NOEXCEPT _NOEXCEPT
 #else
@@ -159,8 +173,8 @@
 */
 #define BOTAN_HAS_ADLER32 20131128
 #define BOTAN_HAS_AEAD_CCM 20131128
+#define BOTAN_HAS_AEAD_CHACHA20_POLY1305 20141228
 #define BOTAN_HAS_AEAD_EAX 20131128
-#define BOTAN_HAS_AEAD_FILTER 20131128
 #define BOTAN_HAS_AEAD_GCM 20131128
 #define BOTAN_HAS_AEAD_MODES 20131128
 #define BOTAN_HAS_AEAD_OCB 20131128
@@ -168,7 +182,6 @@
 #define BOTAN_HAS_AES 20131128
 #define BOTAN_HAS_AES_NI 20131128
 #define BOTAN_HAS_AES_SSSE3 20131128
-#define BOTAN_HAS_ALGORITHM_FACTORY 20131128
 #define BOTAN_HAS_ANSI_X919_MAC 20131128
 #define BOTAN_HAS_ASN1 20131128
 #define BOTAN_HAS_AUTO_SEEDING_RNG 20131128
@@ -188,21 +201,19 @@
 #define BOTAN_HAS_CMAC 20131128
 #define BOTAN_HAS_CODEC_FILTERS 20131128
 #define BOTAN_HAS_COMB4P 20131128
-#define BOTAN_HAS_CORE_ENGINE 20131128
+#define BOTAN_HAS_COMPRESSION 20141117
 #define BOTAN_HAS_CRC24 20131128
 #define BOTAN_HAS_CRC32 20131128
 #define BOTAN_HAS_CREDENTIALS_MANAGER 20131128
-#define BOTAN_HAS_CRYPTOBOX_PSK 20131128
 #define BOTAN_HAS_CRYPTO_BOX 20131128
 #define BOTAN_HAS_CTR_BE 20131128
+#define BOTAN_HAS_CURVE_25519 20141227
 #define BOTAN_HAS_DES 20131128
 #define BOTAN_HAS_DIFFIE_HELLMAN 20131128
 #define BOTAN_HAS_DLIES 20131128
 #define BOTAN_HAS_DL_GROUP 20131128
 #define BOTAN_HAS_DL_PUBLIC_KEY_FAMILY 20131128
 #define BOTAN_HAS_DSA 20131128
-#define BOTAN_HAS_DYNAMICALLY_LOADED_ENGINE 20131128
-#define BOTAN_HAS_DYNAMIC_LOADER 20131128
 #define BOTAN_HAS_ECC_GROUP 20131128
 #define BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_ECDH 20131128
@@ -211,18 +222,17 @@
 #define BOTAN_HAS_ELGAMAL 20131128
 #define BOTAN_HAS_EME_OAEP 20140118
 #define BOTAN_HAS_EME_PKCS1v15 20131128
+#define BOTAN_HAS_EME_RAW 20150313
 #define BOTAN_HAS_EMSA1 20131128
 #define BOTAN_HAS_EMSA1_BSI 20131128
 #define BOTAN_HAS_EMSA_PKCS1 20140118
 #define BOTAN_HAS_EMSA_PSSR 20131128
 #define BOTAN_HAS_EMSA_RAW 20131128
 #define BOTAN_HAS_EMSA_X931 20140118
-#define BOTAN_HAS_ENGINES 20131128
-#define BOTAN_HAS_ENGINE_AES_ISA 20131128
-#define BOTAN_HAS_ENGINE_SIMD 20131128
+#define BOTAN_HAS_ENTROPY_SOURCE 20150201
 #define BOTAN_HAS_ENTROPY_SRC_CAPI 20131128
 #define BOTAN_HAS_ENTROPY_SRC_HIGH_RESOLUTION_TIMER 20131128
-#define BOTAN_HAS_ENTROPY_SRC_WIN32 20131128
+#define BOTAN_HAS_FFI 20150210
 #define BOTAN_HAS_FILTERS 20131128
 #define BOTAN_HAS_FPE_FE1 20131128
 #define BOTAN_HAS_GCM_CLMUL 20131227
@@ -248,6 +258,7 @@
 #define BOTAN_HAS_KEYPAIR_TESTING 20131128
 #define BOTAN_HAS_LION 20131128
 #define BOTAN_HAS_MARS 20131128
+#define BOTAN_HAS_MCELIECE 20141124
 #define BOTAN_HAS_MD2 20131128
 #define BOTAN_HAS_MD4 20131128
 #define BOTAN_HAS_MD5 20131128
@@ -268,13 +279,12 @@
 #define BOTAN_HAS_PACKAGE_TRANSFORM 20131128
 #define BOTAN_HAS_PARALLEL_HASH 20131128
 #define BOTAN_HAS_PASSHASH9 20131128
-#define BOTAN_HAS_PASSWORD_BASED_ENCRYPTION 20131128
-#define BOTAN_HAS_PBE_PKCS_V20 20131128
 #define BOTAN_HAS_PBKDF1 20131128
 #define BOTAN_HAS_PBKDF2 20131128
 #define BOTAN_HAS_PEM_CODEC 20131128
+#define BOTAN_HAS_PKCS5_PBES2 20141119
 #define BOTAN_HAS_PK_PADDING 20131128
-#define BOTAN_HAS_PUBLIC_KEY_CRYPTO 20131128
+#define BOTAN_HAS_POLY1305 20141227
 #define BOTAN_HAS_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_RC2 20131128
 #define BOTAN_HAS_RC4 20131128
@@ -290,7 +300,6 @@
 #define BOTAN_HAS_SAFER 20131128
 #define BOTAN_HAS_SALSA20 20131128
 #define BOTAN_HAS_SEED 20131128
-#define BOTAN_HAS_SELFTESTS 20131128
 #define BOTAN_HAS_SERPENT 20131128
 #define BOTAN_HAS_SERPENT_SIMD 20131128
 #define BOTAN_HAS_SHA1 20131128
@@ -299,21 +308,22 @@
 #define BOTAN_HAS_SHA2_64 20131128
 #define BOTAN_HAS_SIMD_32 20131128
 #define BOTAN_HAS_SIMD_SSE2 20131128
+#define BOTAN_HAS_SIPHASH 20150110
 #define BOTAN_HAS_SKEIN_512 20131128
 #define BOTAN_HAS_SRP6 20131128
-#define BOTAN_HAS_SSL3_MAC 20131128
-#define BOTAN_HAS_SSL_V3_PRF 20131128
 #define BOTAN_HAS_STREAM_CIPHER 20131128
+#define BOTAN_HAS_SYSTEM_RNG 20141202
 #define BOTAN_HAS_TEA 20131128
 #define BOTAN_HAS_THREEFISH_512 20131224
 #define BOTAN_HAS_THRESHOLD_SECRET_SHARING 20131128
 #define BOTAN_HAS_TIGER 20131128
-#define BOTAN_HAS_TLS 20131128
+#define BOTAN_HAS_TLS 20150319
+#define BOTAN_HAS_TLS_SESSION_MANAGER_SQL_DB 20141219
 #define BOTAN_HAS_TLS_V10_PRF 20131128
 #define BOTAN_HAS_TLS_V12_PRF 20131128
 #define BOTAN_HAS_TRANSFORM 20131209
 #define BOTAN_HAS_TWOFISH 20131128
-#define BOTAN_HAS_UTIL_FUNCTIONS 20131128
+#define BOTAN_HAS_UTIL_FUNCTIONS 20140123
 #define BOTAN_HAS_WHIRLPOOL 20131128
 #define BOTAN_HAS_X509_CERTIFICATES 20131128
 #define BOTAN_HAS_X931_RNG 20131128

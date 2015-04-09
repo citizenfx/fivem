@@ -2,7 +2,7 @@
 * TLS Handshake Hash
 * (C) 2004-2006,2011,2012 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_HANDSHAKE_HASH_H__
@@ -33,10 +33,7 @@ class Handshake_Hash
       secure_vector<byte> final(Protocol_Version version,
                                 const std::string& mac_algo) const;
 
-      secure_vector<byte> final_ssl3(const secure_vector<byte>& master_secret) const;
-
-      const std::vector<byte>& get_contents() const
-         { return data; }
+      const std::vector<byte>& get_contents() const { return data; }
 
       void reset() { data.clear(); }
    private:

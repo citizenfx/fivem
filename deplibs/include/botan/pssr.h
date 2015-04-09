@@ -2,7 +2,7 @@
 * PSSR
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PSSR_H__
@@ -30,6 +30,8 @@ class BOTAN_DLL PSSR : public EMSA
       * @param salt_size the size of the salt to use in bytes
       */
       PSSR(HashFunction* hash, size_t salt_size);
+
+      static PSSR* make(const Spec& spec);
    private:
       void update(const byte input[], size_t length);
 

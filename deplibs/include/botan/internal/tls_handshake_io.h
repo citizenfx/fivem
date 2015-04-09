@@ -2,7 +2,7 @@
 * TLS Handshake Serialization
 * (C) 2012,2014 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_HANDSHAKE_IO_H__
@@ -65,8 +65,9 @@ class Handshake_IO
 class Stream_Handshake_IO : public Handshake_IO
    {
    public:
-      Stream_Handshake_IO(std::function<void (byte, const std::vector<byte>&)> writer) :
-         m_send_hs(writer) {}
+      typedef std::function<void (byte, const std::vector<byte>&)> writer_fn;
+
+      Stream_Handshake_IO(writer_fn writer) : m_send_hs(writer) {}
 
       Protocol_Version initial_record_version() const override;
 
@@ -86,7 +87,7 @@ class Stream_Handshake_IO : public Handshake_IO
          get_next_record(bool expecting_ccs) override;
    private:
       std::deque<byte> m_queue;
-      std::function<void (byte, const std::vector<byte>&)> m_send_hs;
+      writer_fn m_send_hs;
    };
 
 /**
@@ -95,8 +96,10 @@ class Stream_Handshake_IO : public Handshake_IO
 class Datagram_Handshake_IO : public Handshake_IO
    {
    public:
-      Datagram_Handshake_IO(class Connection_Sequence_Numbers& seq,
-                            std::function<void (u16bit, byte, const std::vector<byte>&)> writer,
+      typedef std::function<void (u16bit, byte, const std::vector<byte>&)> writer_fn;
+
+      Datagram_Handshake_IO(writer_fn writer,
+                            class Connection_Sequence_Numbers& seq,
                             u16bit mtu) :
          m_seqs(seq), m_flights(1), m_send_hs(writer), m_mtu(mtu) {}
 
@@ -186,7 +189,7 @@ class Datagram_Handshake_IO : public Handshake_IO
       u16bit m_in_message_seq = 0;
       u16bit m_out_message_seq = 0;
 
-      std::function<void (u16bit, byte, const std::vector<byte>&)> m_send_hs;
+      writer_fn m_send_hs;
       u16bit m_mtu;
    };
 

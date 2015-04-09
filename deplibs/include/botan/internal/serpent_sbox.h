@@ -5,7 +5,7 @@
 * The sbox expressions used here were discovered by Dag Arne Osvik and
 * are described in his paper "Speeding Up Serpent".
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_SERPENT_SBOX_H__

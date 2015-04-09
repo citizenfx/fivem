@@ -2,12 +2,13 @@
 * EME Classes
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PUBKEY_EME_ENCRYPTION_PAD_H__
 #define BOTAN_PUBKEY_EME_ENCRYPTION_PAD_H__
 
+#include <botan/scan_name.h>
 #include <botan/secmem.h>
 #include <botan/rng.h>
 
@@ -19,6 +20,8 @@ namespace Botan {
 class BOTAN_DLL EME
    {
    public:
+      typedef SCAN_Name Spec;
+
       /**
       * Return the maximum input size in bytes we can support
       * @param keybits the size of the key in bits

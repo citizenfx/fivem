@@ -1,8 +1,8 @@
 /*
 * OCB Mode
-* (C) 2013 Jack Lloyd
+* (C) 2013,2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AEAD_OCB_H__
@@ -10,7 +10,6 @@
 
 #include <botan/aead.h>
 #include <botan/block_cipher.h>
-#include <botan/buf_filt.h>
 
 namespace Botan {
 
@@ -28,8 +27,6 @@ class L_computer;
 class BOTAN_DLL OCB_Mode : public AEAD_Mode
    {
    public:
-      secure_vector<byte> start(const byte nonce[], size_t nonce_len) override;
-
       void set_associated_data(const byte ad[], size_t ad_len) override;
 
       std::string name() const override;
@@ -52,18 +49,23 @@ class BOTAN_DLL OCB_Mode : public AEAD_Mode
       */
       OCB_Mode(BlockCipher* cipher, size_t tag_size);
 
-      void key_schedule(const byte key[], size_t length) override;
+      size_t BS() const { return m_BS; }
 
       // fixme make these private
       std::unique_ptr<BlockCipher> m_cipher;
       std::unique_ptr<L_computer> m_L;
 
+      size_t m_BS;
       size_t m_block_index = 0;
 
       secure_vector<byte> m_checksum;
       secure_vector<byte> m_offset;
       secure_vector<byte> m_ad_hash;
    private:
+      secure_vector<byte> start_raw(const byte nonce[], size_t nonce_len) override;
+
+      void key_schedule(const byte key[], size_t length) override;
+
       secure_vector<byte> update_nonce(const byte nonce[], size_t nonce_len);
 
       size_t m_tag_size = 0;

@@ -2,7 +2,7 @@
 * ANSI X9.19 MAC
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_ANSI_X919_MAC_H__
@@ -30,10 +30,7 @@ class BOTAN_DLL ANSI_X919_MAC : public MessageAuthenticationCode
          return Key_Length_Specification(8, 16, 8);
          }
 
-      /**
-      * @param cipher the underlying block cipher to use
-      */
-      ANSI_X919_MAC(BlockCipher* cipher);
+      ANSI_X919_MAC();
 
       ANSI_X919_MAC(const ANSI_X919_MAC&) = delete;
       ANSI_X919_MAC& operator=(const ANSI_X919_MAC&) = delete;

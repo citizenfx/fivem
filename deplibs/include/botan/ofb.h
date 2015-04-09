@@ -2,7 +2,7 @@
 * OFB Mode
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_OUTPUT_FEEDBACK_MODE_H__
@@ -37,6 +37,8 @@ class BOTAN_DLL OFB : public StreamCipher
          { return new OFB(m_cipher->clone()); }
 
       void clear();
+
+      static OFB* make(const Spec& spec);
 
       /**
       * @param cipher the underlying block cipher to use

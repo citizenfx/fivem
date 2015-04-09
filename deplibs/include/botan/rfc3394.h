@@ -2,7 +2,7 @@
 * AES Key Wrap (RFC 3394)
 * (C) 2011 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AES_KEY_WRAP_H__
@@ -12,20 +12,16 @@
 
 namespace Botan {
 
-class Algorithm_Factory;
-
 /**
 * Encrypt a key under a key encryption key using the algorithm
 * described in RFC 3394
 *
 * @param key the plaintext key to encrypt
 * @param kek the key encryption key
-* @param af an algorithm factory
 * @return key encrypted under kek
 */
 secure_vector<byte> BOTAN_DLL rfc3394_keywrap(const secure_vector<byte>& key,
-                                             const SymmetricKey& kek,
-                                             Algorithm_Factory& af);
+                                              const SymmetricKey& kek);
 
 /**
 * Decrypt a key under a key encryption key using the algorithm
@@ -37,8 +33,7 @@ secure_vector<byte> BOTAN_DLL rfc3394_keywrap(const secure_vector<byte>& key,
 * @return key decrypted under kek
 */
 secure_vector<byte> BOTAN_DLL rfc3394_keyunwrap(const secure_vector<byte>& key,
-                                               const SymmetricKey& kek,
-                                               Algorithm_Factory& af);
+                                                const SymmetricKey& kek);
 
 }
 

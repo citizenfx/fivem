@@ -2,7 +2,7 @@
 * CTR-BE Mode
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_CTR_BE_H__
@@ -37,6 +37,8 @@ class BOTAN_DLL CTR_BE : public StreamCipher
          { return new CTR_BE(m_cipher->clone()); }
 
       void clear();
+
+      static CTR_BE* make(const Spec& spec);
 
       /**
       * @param cipher the underlying block cipher to use

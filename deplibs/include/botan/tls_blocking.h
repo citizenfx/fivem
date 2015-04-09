@@ -2,7 +2,7 @@
 * TLS Blocking API
 * (C) 2013 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_BLOCKING_CHANNELS_H__
@@ -14,27 +14,33 @@
 
 namespace Botan {
 
-template<typename T> using secure_deque = std::vector<T, secure_allocator<T>>;
+//template<typename T> using secure_deque = std::vector<T, secure_allocator<T>>;
 
 namespace TLS {
 
 /**
 * Blocking TLS Client
+* Can be used directly, or subclass to get handshake and alert notifications
 */
 class BOTAN_DLL Blocking_Client
    {
    public:
+      /*
+      * These functions are expected to block until completing entirely, or
+      * fail by throwing an exception.
+      */
+      typedef std::function<size_t (byte[], size_t)> read_fn;
+      typedef std::function<void (const byte[], size_t)> write_fn;
 
-      Blocking_Client(std::function<size_t (byte[], size_t)> read_fn,
-                      std::function<void (const byte[], size_t)> write_fn,
+      Blocking_Client(read_fn reader,
+                      write_fn writer,
                       Session_Manager& session_manager,
                       Credentials_Manager& creds,
                       const Policy& policy,
                       RandomNumberGenerator& rng,
                       const Server_Information& server_info = Server_Information(),
                       const Protocol_Version offer_version = Protocol_Version::latest_tls_version(),
-                      std::function<std::string (std::vector<std::string>)> next_protocol =
-                        std::function<std::string (std::vector<std::string>)>());
+                      const std::vector<std::string>& next_protos = {});
 
       /**
       * Completes full handshake then returns
@@ -68,12 +74,12 @@ class BOTAN_DLL Blocking_Client
 
    protected:
       /**
-      * Can override to get the handshake complete notification
+      * Application can override to get the handshake complete notification
       */
       virtual bool handshake_complete(const Session&) { return true; }
 
       /**
-      * Can override to get notification of alerts
+      * Application can override to get notification of alerts
       */
       virtual void alert_notification(const Alert&) {}
 
@@ -85,9 +91,9 @@ class BOTAN_DLL Blocking_Client
 
       void alert_cb(const Alert alert, const byte data[], size_t data_len);
 
-      std::function<size_t (byte[], size_t)> m_read_fn;
+      read_fn m_read;
       TLS::Client m_channel;
-      secure_deque<byte> m_plaintext;
+      secure_vector<byte> m_plaintext;
    };
 
 }

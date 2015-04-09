@@ -2,7 +2,7 @@
 * SRP-6a (RFC 5054 compatatible)
 * (C) 2011,2012 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_RFC5054_SRP6_H__
@@ -87,9 +87,9 @@ class BOTAN_DLL SRP6_Server_Session
       SymmetricKey step2(const BigInt& A);
 
    private:
-      std::string hash_id;
-      BigInt B, b, v, S, p;
-      size_t p_bytes;
+      std::string m_hash_id;
+      BigInt m_B, m_b, m_v, m_S, m_p;
+      size_t m_p_bytes;
    };
 
 }

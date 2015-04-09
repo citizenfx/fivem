@@ -1,8 +1,8 @@
 /*
 * TLS Messages
-* (C) 2004-2011 Jack Lloyd
+* (C) 2004-2011,2015 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_MESSAGES_H__
@@ -27,9 +27,11 @@ class SRP6_Server_Session;
 
 namespace TLS {
 
+class Session;
 class Handshake_IO;
 
-std::vector<byte> make_hello_random(RandomNumberGenerator& rng);
+std::vector<byte> make_hello_random(RandomNumberGenerator& rng,
+                                    const Policy& policy);
 
 /**
 * DTLS Hello Verify Request
@@ -71,6 +73,8 @@ class Client_Hello : public Handshake_Message
 
       bool offered_suite(u16bit ciphersuite) const;
 
+      bool sent_fallback_scsv() const;
+
       std::vector<std::pair<std::string, std::string>> supported_algos() const
          {
          if(Signature_Algorithms* sigs = m_extensions.get<Signature_Algorithms>())
@@ -101,7 +105,7 @@ class Client_Hello : public Handshake_Message
 
       bool secure_renegotiation() const
          {
-         return m_extensions.get<Renegotiation_Extension>();
+         return m_extensions.has<Renegotiation_Extension>();
          }
 
       std::vector<byte> renegotiation_info() const
@@ -109,11 +113,6 @@ class Client_Hello : public Handshake_Message
          if(Renegotiation_Extension* reneg = m_extensions.get<Renegotiation_Extension>())
             return reneg->renegotiation_info();
          return std::vector<byte>();
-         }
-
-      bool next_protocol_notification() const
-         {
-         return m_extensions.get<Next_Protocol_Notification>();
          }
 
       size_t fragment_size() const
@@ -125,7 +124,7 @@ class Client_Hello : public Handshake_Message
 
       bool supports_session_ticket() const
          {
-         return m_extensions.get<Session_Ticket>();
+         return m_extensions.has<Session_Ticket>();
          }
 
       std::vector<byte> session_ticket() const
@@ -135,9 +134,21 @@ class Client_Hello : public Handshake_Message
          return std::vector<byte>();
          }
 
+      bool supports_alpn() const
+         {
+         return m_extensions.has<Application_Layer_Protocol_Notification>();
+         }
+
+      std::vector<std::string> next_protocols() const
+         {
+         if(auto alpn = m_extensions.get<Application_Layer_Protocol_Notification>())
+            return alpn->protocols();
+         return std::vector<std::string>();
+         }
+
       bool supports_heartbeats() const
          {
-         return m_extensions.get<Heartbeat_Support_Indicator>();
+         return m_extensions.has<Heartbeat_Support_Indicator>();
          }
 
       bool peer_can_send_heartbeats() const
@@ -145,6 +156,13 @@ class Client_Hello : public Handshake_Message
          if(Heartbeat_Support_Indicator* hb = m_extensions.get<Heartbeat_Support_Indicator>())
             return hb->peer_allowed_to_send();
          return false;
+         }
+
+      std::vector<u16bit> srtp_profiles() const
+         {
+         if(SRTP_Protection_Profiles* srtp = m_extensions.get<SRTP_Protection_Profiles>())
+            return srtp->profiles();
+         return std::vector<u16bit>();
          }
 
       void update_hello_cookie(const Hello_Verify_Request& hello_verify);
@@ -158,7 +176,7 @@ class Client_Hello : public Handshake_Message
                    const Policy& policy,
                    RandomNumberGenerator& rng,
                    const std::vector<byte>& reneg_info,
-                   bool next_protocol = false,
+                   const std::vector<std::string>& next_protocols,
                    const std::string& hostname = "",
                    const std::string& srp_identifier = "");
 
@@ -168,15 +186,12 @@ class Client_Hello : public Handshake_Message
                    RandomNumberGenerator& rng,
                    const std::vector<byte>& reneg_info,
                    const Session& resumed_session,
-                   bool next_protocol = false);
+                   const std::vector<std::string>& next_protocols);
 
-      Client_Hello(const std::vector<byte>& buf,
-                   Handshake_Type type);
+      Client_Hello(const std::vector<byte>& buf);
 
    private:
       std::vector<byte> serialize() const override;
-      void deserialize(const std::vector<byte>& buf);
-      void deserialize_sslv2(const std::vector<byte>& buf);
 
       Protocol_Version m_version;
       std::vector<byte> m_session_id;
@@ -208,7 +223,7 @@ class Server_Hello : public Handshake_Message
 
       bool secure_renegotiation() const
          {
-         return m_extensions.get<Renegotiation_Extension>();
+         return m_extensions.has<Renegotiation_Extension>();
          }
 
       std::vector<byte> renegotiation_info() const
@@ -216,18 +231,6 @@ class Server_Hello : public Handshake_Message
          if(Renegotiation_Extension* reneg = m_extensions.get<Renegotiation_Extension>())
             return reneg->renegotiation_info();
          return std::vector<byte>();
-         }
-
-      bool next_protocol_notification() const
-         {
-         return m_extensions.get<Next_Protocol_Notification>();
-         }
-
-      std::vector<std::string> next_protocols() const
-         {
-         if(Next_Protocol_Notification* npn = m_extensions.get<Next_Protocol_Notification>())
-            return npn->protocols();
-         return std::vector<std::string>();
          }
 
       size_t fragment_size() const
@@ -239,19 +242,39 @@ class Server_Hello : public Handshake_Message
 
       bool supports_session_ticket() const
          {
-         return m_extensions.get<Session_Ticket>();
+         return m_extensions.has<Session_Ticket>();
          }
 
       bool supports_heartbeats() const
          {
-         return m_extensions.get<Heartbeat_Support_Indicator>();
+         return m_extensions.has<Heartbeat_Support_Indicator>();
          }
 
       bool peer_can_send_heartbeats() const
          {
-         if(Heartbeat_Support_Indicator* hb = m_extensions.get<Heartbeat_Support_Indicator>())
+         if(auto hb = m_extensions.get<Heartbeat_Support_Indicator>())
             return hb->peer_allowed_to_send();
          return false;
+         }
+
+      u16bit srtp_profile() const
+         {
+         if(auto srtp = m_extensions.get<SRTP_Protection_Profiles>())
+            {
+            auto prof = srtp->profiles();
+            if(prof.size() != 1 || prof[0] == 0)
+               throw Decoding_Error("Server sent malformed DTLS-SRTP extension");
+            return prof[0];
+            }
+
+         return 0;
+         }
+
+      std::string next_protocol() const
+         {
+         if(auto alpn = m_extensions.get<Application_Layer_Protocol_Notification>())
+            return alpn->single_protocol();
+         return "";
          }
 
       std::set<Handshake_Extension_Type> extension_types() const
@@ -260,18 +283,25 @@ class Server_Hello : public Handshake_Message
       Server_Hello(Handshake_IO& io,
                    Handshake_Hash& hash,
                    const Policy& policy,
-                   const std::vector<byte>& session_id,
-                   Protocol_Version ver,
+                   RandomNumberGenerator& rng,
+                   const std::vector<byte>& secure_reneg_info,
+                   const Client_Hello& client_hello,
+                   const std::vector<byte>& new_session_id,
+                   Protocol_Version new_session_version,
                    u16bit ciphersuite,
                    byte compression,
-                   size_t max_fragment_size,
-                   bool client_has_secure_renegotiation,
-                   const std::vector<byte>& reneg_info,
                    bool offer_session_ticket,
-                   bool client_has_npn,
-                   const std::vector<std::string>& next_protocols,
-                   bool client_has_heartbeat,
-                   RandomNumberGenerator& rng);
+                   const std::string next_protocol);
+
+      Server_Hello(Handshake_IO& io,
+                   Handshake_Hash& hash,
+                   const Policy& policy,
+                   RandomNumberGenerator& rng,
+                   const std::vector<byte>& secure_reneg_info,
+                   const Client_Hello& client_hello,
+                   Session& resumed_session,
+                   bool offer_session_ticket,
+                   const std::string& next_protocol);
 
       Server_Hello(const std::vector<byte>& buf);
    private:
@@ -503,27 +533,6 @@ class Server_Hello_Done : public Handshake_Message
       Server_Hello_Done(const std::vector<byte>& buf);
    private:
       std::vector<byte> serialize() const override;
-   };
-
-/**
-* Next Protocol Message
-*/
-class Next_Protocol : public Handshake_Message
-   {
-   public:
-      Handshake_Type type() const override { return NEXT_PROTOCOL; }
-
-      std::string protocol() const { return m_protocol; }
-
-      Next_Protocol(Handshake_IO& io,
-                    Handshake_Hash& hash,
-                    const std::string& protocol);
-
-      Next_Protocol(const std::vector<byte>& buf);
-   private:
-      std::vector<byte> serialize() const override;
-
-      std::string m_protocol;
    };
 
 /**

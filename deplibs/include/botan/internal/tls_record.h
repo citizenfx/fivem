@@ -2,7 +2,7 @@
 * TLS Record Handling
 * (C) 2004-2012 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_RECORDS_H__
@@ -45,7 +45,7 @@ class Connection_Cipher_State
 
       const secure_vector<byte>& aead_nonce(u64bit seq);
 
-      const secure_vector<byte>& aead_nonce(const byte record[], size_t record_len);
+      const secure_vector<byte>& aead_nonce(const byte record[], size_t record_len, u64bit seq);
 
       const secure_vector<byte>& format_ad(u64bit seq, byte type,
                                            Protocol_Version version,
@@ -65,9 +65,9 @@ class Connection_Cipher_State
 
       size_t iv_size() const { return m_iv_size; }
 
-      bool mac_includes_record_version() const { return !m_is_ssl3; }
+      size_t nonce_bytes_from_record() const { return m_nonce_bytes_from_record; }
 
-      bool cipher_padding_single_byte() const { return m_is_ssl3; }
+      size_t nonce_bytes_from_handshake() const { return m_nonce_bytes_from_handshake; }
 
       bool cbc_without_explicit_iv() const
          { return (m_block_size > 0) && (m_iv_size == 0); }
@@ -89,8 +89,9 @@ class Connection_Cipher_State
       secure_vector<byte> m_nonce, m_ad;
 
       size_t m_block_size = 0;
+      size_t m_nonce_bytes_from_handshake;
+      size_t m_nonce_bytes_from_record;
       size_t m_iv_size = 0;
-      bool m_is_ssl3 = false;
    };
 
 /**
@@ -112,6 +113,9 @@ void write_record(secure_vector<byte>& write_buffer,
                   Connection_Cipher_State* cipherstate,
                   RandomNumberGenerator& rng);
 
+// epoch -> cipher state
+typedef std::function<std::shared_ptr<Connection_Cipher_State> (u16bit)> get_cipherstate_fn;
+
 /**
 * Decode a TLS record
 * @return zero if full message, else number of bytes still needed
@@ -119,13 +123,14 @@ void write_record(secure_vector<byte>& write_buffer,
 size_t read_record(secure_vector<byte>& read_buffer,
                    const byte input[],
                    size_t input_length,
+                   bool is_datagram,
                    size_t& input_consumed,
                    secure_vector<byte>& record,
                    u64bit* record_sequence,
                    Protocol_Version* record_version,
                    Record_Type* record_type,
                    Connection_Sequence_Numbers* sequence_numbers,
-                   std::function<std::shared_ptr<Connection_Cipher_State> (u16bit)> get_cipherstate);
+                   get_cipherstate_fn get_cipherstate);
 
 }
 

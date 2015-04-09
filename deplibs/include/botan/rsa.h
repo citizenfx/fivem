@@ -2,16 +2,14 @@
 * RSA
 * (C) 1999-2008 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_RSA_H__
 #define BOTAN_RSA_H__
 
 #include <botan/if_algo.h>
-#include <botan/pk_ops.h>
-#include <botan/reducer.h>
-#include <botan/blinding.h>
+
 
 namespace Botan {
 
@@ -81,73 +79,6 @@ class BOTAN_DLL RSA_PrivateKey : public RSA_PublicKey,
       */
       RSA_PrivateKey(RandomNumberGenerator& rng,
                      size_t bits, size_t exp = 65537);
-   };
-
-/**
-* RSA private (decrypt/sign) operation
-*/
-class BOTAN_DLL RSA_Private_Operation : public PK_Ops::Signature,
-                                        public PK_Ops::Decryption
-   {
-   public:
-      RSA_Private_Operation(const RSA_PrivateKey& rsa,
-                            RandomNumberGenerator& rng);
-
-      size_t max_input_bits() const { return (n.bits() - 1); }
-
-      secure_vector<byte> sign(const byte msg[], size_t msg_len,
-                              RandomNumberGenerator& rng);
-
-      secure_vector<byte> decrypt(const byte msg[], size_t msg_len);
-
-   private:
-      BigInt private_op(const BigInt& m) const;
-
-      const BigInt& n;
-      const BigInt& q;
-      const BigInt& c;
-      Fixed_Exponent_Power_Mod powermod_e_n, powermod_d1_p, powermod_d2_q;
-      Modular_Reducer mod_p;
-      Blinder blinder;
-   };
-
-/**
-* RSA public (encrypt/verify) operation
-*/
-class BOTAN_DLL RSA_Public_Operation : public PK_Ops::Verification,
-                                       public PK_Ops::Encryption
-   {
-   public:
-      RSA_Public_Operation(const RSA_PublicKey& rsa) :
-         n(rsa.get_n()), powermod_e_n(rsa.get_e(), rsa.get_n())
-         {}
-
-      size_t max_input_bits() const { return (n.bits() - 1); }
-      bool with_recovery() const { return true; }
-
-      secure_vector<byte> encrypt(const byte msg[], size_t msg_len,
-                                 RandomNumberGenerator&)
-         {
-         BigInt m(msg, msg_len);
-         return BigInt::encode_1363(public_op(m), n.bytes());
-         }
-
-      secure_vector<byte> verify_mr(const byte msg[], size_t msg_len)
-         {
-         BigInt m(msg, msg_len);
-         return BigInt::encode_locked(public_op(m));
-         }
-
-   private:
-      BigInt public_op(const BigInt& m) const
-         {
-         if(m >= n)
-            throw Invalid_Argument("RSA public op - input is too large");
-         return powermod_e_n(m);
-         }
-
-      const BigInt& n;
-      Fixed_Exponent_Power_Mod powermod_e_n;
    };
 
 }

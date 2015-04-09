@@ -2,7 +2,7 @@
 * TLS Extensions
 * (C) 2011-2012 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_EXTENSIONS_H__
@@ -33,11 +33,11 @@ enum Handshake_Extension_Type {
    TLSEXT_EC_POINT_FORMATS       = 11,
    TLSEXT_SRP_IDENTIFIER         = 12,
    TLSEXT_SIGNATURE_ALGORITHMS   = 13,
+   TLSEXT_USE_SRTP               = 14,
    TLSEXT_HEARTBEAT_SUPPORT      = 15,
+   TLSEXT_ALPN                   = 16,
 
    TLSEXT_SESSION_TICKET         = 35,
-
-   TLSEXT_NEXT_PROTOCOL          = 13172,
 
    TLSEXT_SAFE_RENEGOTIATION     = 65281,
 };
@@ -180,41 +180,37 @@ class Maximum_Fragment_Length : public Extension
    };
 
 /**
-* Next Protocol Negotiation
-* http://technotes.googlecode.com/git/nextprotoneg.html
-*
-* This implementation requires the semantics defined in the Google
-* spec (implemented in Chromium); the internet draft leaves the format
-* unspecified.
+* ALPN (RFC 7301)
 */
-class Next_Protocol_Notification : public Extension
+class Application_Layer_Protocol_Notification : public Extension
    {
    public:
-      static Handshake_Extension_Type static_type()
-         { return TLSEXT_NEXT_PROTOCOL; }
+      static Handshake_Extension_Type static_type() { return TLSEXT_ALPN; }
 
       Handshake_Extension_Type type() const { return static_type(); }
 
-      const std::vector<std::string>& protocols() const
-         { return m_protocols; }
+      const std::vector<std::string>& protocols() const { return m_protocols; }
+
+      const std::string& single_protocol() const;
 
       /**
-      * Empty extension, used by client
+      * Single protocol, used by server
       */
-      Next_Protocol_Notification() {}
+      Application_Layer_Protocol_Notification(const std::string& protocol) :
+         m_protocols(1, protocol) {}
 
       /**
-      * List of protocols, used by server
+      * List of protocols, used by client
       */
-      Next_Protocol_Notification(const std::vector<std::string>& protocols) :
+      Application_Layer_Protocol_Notification(const std::vector<std::string>& protocols) :
          m_protocols(protocols) {}
 
-      Next_Protocol_Notification(TLS_Data_Reader& reader,
-                                 u16bit extension_size);
+      Application_Layer_Protocol_Notification(TLS_Data_Reader& reader,
+                                              u16bit extension_size);
 
       std::vector<byte> serialize() const;
 
-      bool empty() const { return false; }
+      bool empty() const { return m_protocols.empty(); }
    private:
       std::vector<std::string> m_protocols;
    };
@@ -353,6 +349,32 @@ class Heartbeat_Support_Indicator : public Extension
    };
 
 /**
+* Used to indicate SRTP algorithms for DTLS (RFC 5764)
+*/
+class SRTP_Protection_Profiles : public Extension
+   {
+   public:
+      static Handshake_Extension_Type static_type()
+         { return TLSEXT_USE_SRTP; }
+
+      Handshake_Extension_Type type() const { return static_type(); }
+
+      const std::vector<u16bit>& profiles() const { return m_pp; }
+
+      std::vector<byte> serialize() const;
+
+      bool empty() const { return m_pp.empty(); }
+
+      SRTP_Protection_Profiles(const std::vector<u16bit>& pp) : m_pp(pp) {}
+
+      SRTP_Protection_Profiles(u16bit pp) : m_pp(1, pp) {}
+
+      SRTP_Protection_Profiles(TLS_Data_Reader& reader, u16bit extension_size);
+   private:
+      std::vector<u16bit> m_pp;
+   };
+
+/**
 * Represents a block of extensions in a hello message
 */
 class Extensions
@@ -370,6 +392,12 @@ class Extensions
          if(i != extensions.end())
             return dynamic_cast<T*>(i->second.get());
          return nullptr;
+         }
+
+      template<typename T>
+      bool has() const
+         {
+         return get<T>() != nullptr;
          }
 
       void add(Extension* extn)

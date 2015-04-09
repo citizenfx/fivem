@@ -3,7 +3,7 @@
 * (C) 1999-2007 Jack Lloyd
 *     2012 Markus Wanner
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PIPE_H__
@@ -70,14 +70,14 @@ class BOTAN_DLL Pipe : public DataSource
       * @param in the secure_vector containing the data to write
       */
       void write(const secure_vector<byte>& in)
-         { write(&in[0], in.size()); }
+         { write(in.data(), in.size()); }
 
       /**
       * Write input to the pipe, i.e. to its first filter.
       * @param in the std::vector containing the data to write
       */
       void write(const std::vector<byte>& in)
-         { write(&in[0], in.size()); }
+         { write(in.data(), in.size()); }
 
       /**
       * Write input to the pipe, i.e. to its first filter.

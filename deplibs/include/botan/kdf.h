@@ -2,12 +2,13 @@
 * Key Derivation Function interfaces
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_KDF_BASE_H__
 #define BOTAN_KDF_BASE_H__
 
+#include <botan/scan_name.h>
 #include <botan/secmem.h>
 #include <botan/types.h>
 #include <string>
@@ -23,6 +24,30 @@ class BOTAN_DLL KDF
       virtual ~KDF() {}
 
       virtual std::string name() const = 0;
+
+      virtual size_t kdf(byte key[], size_t key_len,
+                         const byte secret[], size_t secret_len,
+                         const byte salt[], size_t salt_len) const = 0;
+
+
+      /**
+      * Derive a key
+      * @param key_len the desired output length in bytes
+      * @param secret the secret input
+      * @param secret_len size of secret in bytes
+      * @param salt a diversifier
+      * @param salt_len size of salt in bytes
+      */
+      secure_vector<byte> derive_key(size_t key_len,
+                                    const byte secret[],
+                                    size_t secret_len,
+                                    const byte salt[],
+                                    size_t salt_len) const
+         {
+         secure_vector<byte> key(key_len);
+         key.resize(kdf(&key[0], key.size(), secret, secret_len, salt, salt_len));
+         return key;
+         }
 
       /**
       * Derive a key
@@ -89,29 +114,10 @@ class BOTAN_DLL KDF
                            salt.length());
          }
 
-      /**
-      * Derive a key
-      * @param key_len the desired output length in bytes
-      * @param secret the secret input
-      * @param secret_len size of secret in bytes
-      * @param salt a diversifier
-      * @param salt_len size of salt in bytes
-      */
-      secure_vector<byte> derive_key(size_t key_len,
-                                    const byte secret[],
-                                    size_t secret_len,
-                                    const byte salt[],
-                                    size_t salt_len) const
-         {
-         return derive(key_len, secret, secret_len, salt, salt_len);
-         }
-
       virtual KDF* clone() const = 0;
-   private:
-      virtual secure_vector<byte>
-         derive(size_t key_len,
-                const byte secret[], size_t secret_len,
-                const byte salt[], size_t salt_len) const = 0;
+
+      typedef SCAN_Name Spec;
+
    };
 
 /**

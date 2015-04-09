@@ -2,7 +2,7 @@
 * EAX Mode
 * (C) 1999-2007,2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AEAD_EAX_H__
@@ -21,8 +21,6 @@ namespace Botan {
 class BOTAN_DLL EAX_Mode : public AEAD_Mode
    {
    public:
-      secure_vector<byte> start(const byte nonce[], size_t nonce_len) override;
-
       void set_associated_data(const byte ad[], size_t ad_len) override;
 
       std::string name() const override;
@@ -38,8 +36,6 @@ class BOTAN_DLL EAX_Mode : public AEAD_Mode
 
       void clear() override;
    protected:
-      void key_schedule(const byte key[], size_t length) override;
-
       /**
       * @param cipher the cipher to use
       * @param tag_size is how big the auth tag will be
@@ -57,6 +53,10 @@ class BOTAN_DLL EAX_Mode : public AEAD_Mode
       secure_vector<byte> m_ad_mac;
 
       secure_vector<byte> m_nonce_mac;
+   private:
+      secure_vector<byte> start_raw(const byte nonce[], size_t nonce_len) override;
+
+      void key_schedule(const byte key[], size_t length) override;
    };
 
 /**

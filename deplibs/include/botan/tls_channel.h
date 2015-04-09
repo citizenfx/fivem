@@ -1,8 +1,8 @@
 /*
 * TLS Channel
-* (C) 2011,2012,2014 Jack Lloyd
+* (C) 2011,2012,2014,2015 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_CHANNEL_H__
@@ -31,6 +31,26 @@ class Handshake_State;
 class BOTAN_DLL Channel
    {
    public:
+      typedef std::function<void (const byte[], size_t)> output_fn;
+      typedef std::function<void (const byte[], size_t)> data_cb;
+      typedef std::function<void (Alert, const byte[], size_t)> alert_cb;
+      typedef std::function<bool (const Session&)> handshake_cb;
+
+      Channel(output_fn out,
+              data_cb app_data_cb,
+              alert_cb alert_cb,
+              handshake_cb hs_cb,
+              Session_Manager& session_manager,
+              RandomNumberGenerator& rng,
+              bool is_datagram,
+              size_t reserved_io_buffer_size);
+
+      Channel(const Channel&) = delete;
+
+      Channel& operator=(const Channel&) = delete;
+
+      virtual ~Channel();
+
       /**
       * Inject TLS traffic received from counterparty
       * @return a hint as the how many more bytes we need to process the
@@ -44,14 +64,6 @@ class BOTAN_DLL Channel
       *         current record (this may be 0 if on a record boundary)
       */
       size_t received_data(const std::vector<byte>& buf);
-
-      /**
-      * Perform a handshake timeout check. This does nothing unless
-      * this is a DTLS channel with a pending handshake state, in
-      * which case we check for timeout and potentially retransmit
-      * handshake packets.
-      */
-      bool timeout_check();
 
       /**
       * Inject plaintext intended for counterparty
@@ -107,40 +119,6 @@ class BOTAN_DLL Channel
       */
       bool is_closed() const;
 
-      /**
-      * Attempt to renegotiate the session
-      * @param force_full_renegotiation if true, require a full renegotiation,
-      *                                 otherwise allow session resumption
-      */
-      void renegotiate(bool force_full_renegotiation = false);
-
-      /**
-      * @return true iff the peer supports heartbeat messages
-      */
-      bool peer_supports_heartbeats() const;
-
-      /**
-      * @return true iff we are allowed to send heartbeat messages
-      */
-      bool heartbeat_sending_allowed() const;
-
-      /**
-      * @return true iff the counterparty supports the secure
-      * renegotiation extensions.
-      */
-      bool secure_renegotiation_supported() const;
-
-      /**
-      * Attempt to send a heartbeat message (if negotiated with counterparty)
-      * @param payload will be echoed back
-      * @param payload_size size of payload in bytes
-      */
-      void heartbeat(const byte payload[], size_t payload_size);
-
-      /**
-      * Attempt to send a heartbeat message (if negotiated with counterparty)
-      */
-      void heartbeat() { heartbeat(nullptr, 0); }
 
       /**
       * @return certificate chain of the peer (may be empty)
@@ -158,19 +136,49 @@ class BOTAN_DLL Channel
                                        const std::string& context,
                                        size_t length) const;
 
-      Channel(std::function<void (const byte[], size_t)> socket_output_fn,
-              std::function<void (const byte[], size_t)> data_cb,
-              std::function<void (Alert, const byte[], size_t)> alert_cb,
-              std::function<bool (const Session&)> handshake_cb,
-              Session_Manager& session_manager,
-              RandomNumberGenerator& rng,
-              size_t reserved_io_buffer_size);
+      /**
+      * Attempt to renegotiate the session
+      * @param force_full_renegotiation if true, require a full renegotiation,
+      * otherwise allow session resumption
+      */
+      void renegotiate(bool force_full_renegotiation = false);
 
-      Channel(const Channel&) = delete;
+      /**
+      * @return true iff the counterparty supports the secure
+      * renegotiation extensions.
+      */
+      bool secure_renegotiation_supported() const;
 
-      Channel& operator=(const Channel&) = delete;
+      /**
+      * Perform a handshake timeout check. This does nothing unless
+      * this is a DTLS channel with a pending handshake state, in
+      * which case we check for timeout and potentially retransmit
+      * handshake packets.
+      */
+      bool timeout_check();
 
-      virtual ~Channel();
+      /**
+      * @return true iff the peer supports heartbeat messages
+      */
+      bool peer_supports_heartbeats() const;
+
+      /**
+      * @return true iff we are allowed to send heartbeat messages
+      */
+      bool heartbeat_sending_allowed() const;
+
+      /**
+      * Attempt to send a heartbeat message (if negotiated with counterparty)
+      * @param payload will be echoed back
+      * @param payload_size size of payload in bytes
+      * @param pad_bytes include 16 + pad_bytes extra bytes in the message (not echoed)
+      */
+      void heartbeat(const byte payload[], size_t payload_size, size_t pad_bytes = 0);
+
+      /**
+      * Attempt to send a heartbeat message (if negotiated with counterparty)
+      */
+      void heartbeat() { heartbeat(nullptr, 0); }
    protected:
 
       virtual void process_handshake_msg(const Handshake_State* active_state,
@@ -234,11 +242,13 @@ class BOTAN_DLL Channel
 
       const Handshake_State* pending_state() const { return m_pending_state.get(); }
 
+      bool m_is_datagram;
+
       /* callbacks */
-      std::function<bool (const Session&)> m_handshake_cb;
-      std::function<void (const byte[], size_t)> m_data_cb;
-      std::function<void (Alert, const byte[], size_t)> m_alert_cb;
-      std::function<void (const byte[], size_t)> m_output_fn;
+      handshake_cb m_handshake_cb;
+      data_cb m_data_cb;
+      alert_cb m_alert_cb;
+      output_fn m_output_fn;
 
       /* external state */
       RandomNumberGenerator& m_rng;

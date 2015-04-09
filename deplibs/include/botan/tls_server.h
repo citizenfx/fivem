@@ -2,7 +2,7 @@
 * TLS Server
 * (C) 2004-2011 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_SERVER_H__
@@ -22,24 +22,29 @@ namespace TLS {
 class BOTAN_DLL Server : public Channel
    {
    public:
+      typedef std::function<std::string (std::vector<std::string>)> next_protocol_fn;
+
       /**
       * Server initialization
       */
-      Server(std::function<void (const byte[], size_t)> socket_output_fn,
-             std::function<void (const byte[], size_t)> data_cb,
-             std::function<void (Alert, const byte[], size_t)> alert_cb,
-             std::function<bool (const Session&)> handshake_cb,
+      Server(output_fn output,
+             data_cb data_cb,
+             alert_cb alert_cb,
+             handshake_cb handshake_cb,
              Session_Manager& session_manager,
              Credentials_Manager& creds,
              const Policy& policy,
              RandomNumberGenerator& rng,
-             const std::vector<std::string>& protocols = std::vector<std::string>(),
+             next_protocol_fn next_proto = next_protocol_fn(),
+             bool is_datagram = false,
              size_t reserved_io_buffer_size = 16*1024
          );
 
       /**
       * Return the protocol notification set by the client (using the
-      * NPN extension) for this connection, if any
+      * NPN extension) for this connection, if any. This value is not
+      * tied to the session and a later renegotiation of the same
+      * session can choose a new protocol.
       */
       std::string next_protocol() const { return m_next_protocol; }
 
@@ -60,7 +65,7 @@ class BOTAN_DLL Server : public Channel
       const Policy& m_policy;
       Credentials_Manager& m_creds;
 
-      std::vector<std::string> m_possible_protocols;
+      next_protocol_fn m_choose_next_protocol;
       std::string m_next_protocol;
    };
 

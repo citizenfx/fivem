@@ -2,16 +2,13 @@
 * Diffie-Hellman
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_DIFFIE_HELLMAN_H__
 #define BOTAN_DIFFIE_HELLMAN_H__
 
 #include <botan/dl_algo.h>
-#include <botan/pow_mod.h>
-#include <botan/blinding.h>
-#include <botan/pk_ops.h>
 
 namespace Botan {
 
@@ -70,23 +67,6 @@ class BOTAN_DLL DH_PrivateKey : public DH_PublicKey,
       */
       DH_PrivateKey(RandomNumberGenerator& rng, const DL_Group& grp,
                     const BigInt& x = 0);
-   };
-
-/**
-* DH operation
-*/
-class BOTAN_DLL DH_KA_Operation : public PK_Ops::Key_Agreement
-   {
-   public:
-      DH_KA_Operation(const DH_PrivateKey& key,
-                      RandomNumberGenerator& rng);
-
-      secure_vector<byte> agree(const byte w[], size_t w_len);
-   private:
-      const BigInt& p;
-
-      Fixed_Exponent_Power_Mod powermod_x_p;
-      Blinder blinder;
    };
 
 }

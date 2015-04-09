@@ -2,7 +2,7 @@
 * Public Key Interface
 * (C) 1999-2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PUBKEY_H__
@@ -22,14 +22,6 @@ namespace Botan {
 * The two types of signature format supported by Botan.
 */
 enum Signature_Format { IEEE_1363, DER_SEQUENCE };
-
-/**
-* Enum marking if protection against fault attacks should be used
-*/
-enum Fault_Protection {
-   ENABLE_FAULT_PROTECTION,
-   DISABLE_FAULT_PROTECTION
-};
 
 /**
 * Public Key Encryptor
@@ -79,7 +71,7 @@ class BOTAN_DLL PK_Encryptor
 
    private:
       virtual std::vector<byte> enc(const byte[], size_t,
-                                     RandomNumberGenerator&) const = 0;
+                                    RandomNumberGenerator&) const = 0;
    };
 
 /**
@@ -136,7 +128,11 @@ class BOTAN_DLL PK_Signer
       * @return signature
       */
       std::vector<byte> sign_message(const byte in[], size_t length,
-                                      RandomNumberGenerator& rng);
+                                     RandomNumberGenerator& rng)
+         {
+         this->update(in, length);
+         return this->signature(rng);
+         }
 
       /**
       * Sign a message.
@@ -191,19 +187,12 @@ class BOTAN_DLL PK_Signer
       * @param emsa the EMSA to use
       * An example would be "EMSA1(SHA-224)".
       * @param format the signature format to use
-      * @param prot says if fault protection should be enabled
       */
       PK_Signer(const Private_Key& key,
                 const std::string& emsa,
-                Signature_Format format = IEEE_1363,
-                Fault_Protection prot = ENABLE_FAULT_PROTECTION);
+                Signature_Format format = IEEE_1363);
    private:
-      bool self_test_signature(const std::vector<byte>& msg,
-                               const std::vector<byte>& sig) const;
-
       std::unique_ptr<PK_Ops::Signature> m_op;
-      std::unique_ptr<PK_Ops::Verification> m_verify_op;
-      std::unique_ptr<EMSA> m_emsa;
       Signature_Format m_sig_format;
    };
 
@@ -299,11 +288,7 @@ class BOTAN_DLL PK_Verifier
                   const std::string& emsa,
                   Signature_Format format = IEEE_1363);
    private:
-      bool validate_signature(const secure_vector<byte>& msg,
-                              const byte sig[], size_t sig_len);
-
       std::unique_ptr<PK_Ops::Verification> m_op;
-      std::unique_ptr<EMSA> m_emsa;
       Signature_Format m_sig_format;
    };
 
@@ -381,11 +366,9 @@ class BOTAN_DLL PK_Key_Agreement
       * @param key the key to use
       * @param kdf name of the KDF to use (or 'Raw' for no KDF)
       */
-      PK_Key_Agreement(const PK_Key_Agreement_Key& key,
-                       const std::string& kdf);
+      PK_Key_Agreement(const Private_Key& key, const std::string& kdf);
    private:
       std::unique_ptr<PK_Ops::Key_Agreement> m_op;
-      std::unique_ptr<KDF> m_kdf;
    };
 
 /**
@@ -408,7 +391,6 @@ class BOTAN_DLL PK_Encryptor_EME : public PK_Encryptor
                              RandomNumberGenerator& rng) const;
 
       std::unique_ptr<PK_Ops::Encryption> m_op;
-      std::unique_ptr<EME> m_eme;
    };
 
 /**
@@ -428,7 +410,6 @@ class BOTAN_DLL PK_Decryptor_EME : public PK_Decryptor
       secure_vector<byte> dec(const byte[], size_t) const;
 
       std::unique_ptr<PK_Ops::Decryption> m_op;
-      std::unique_ptr<EME> m_eme;
    };
 
 }

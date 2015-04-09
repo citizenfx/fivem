@@ -2,7 +2,7 @@
 * Threefish
 * (C) 2013,2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_THREEFISH_H__
@@ -26,9 +26,6 @@ class BOTAN_DLL Threefish_512 : public Block_Cipher_Fixed_Params<64, 64>
       void clear() override;
       std::string name() const override { return "Threefish-512"; }
       BlockCipher* clone() const override { return new Threefish_512; }
-
-      Threefish_512() : m_T(3) {}
-
    protected:
       const secure_vector<u64bit>& get_T() const { return m_T; }
       const secure_vector<u64bit>& get_K() const { return m_K; }

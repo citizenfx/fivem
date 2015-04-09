@@ -2,7 +2,7 @@
 * HMAC RNG
 * (C) 2008,2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_HMAC_RNG_H__
@@ -27,13 +27,16 @@ namespace Botan {
 class BOTAN_DLL HMAC_RNG : public RandomNumberGenerator
    {
    public:
-      void randomize(byte buf[], size_t len);
-      bool is_seeded() const;
-      void clear();
-      std::string name() const;
+      void randomize(byte buf[], size_t len) override;
+      bool is_seeded() const override;
+      void clear() override;
+      std::string name() const override;
 
-      void reseed(size_t poll_bits);
-      void add_entropy(const byte[], size_t);
+      void reseed(size_t poll_bits) override;
+
+      void reseed_with_timeout(size_t poll_bits, std::chrono::milliseconds ms);
+
+      void add_entropy(const byte[], size_t) override;
 
       /**
       * @param extractor a MAC used for extracting the entropy
@@ -44,6 +47,13 @@ class BOTAN_DLL HMAC_RNG : public RandomNumberGenerator
    private:
       std::unique_ptr<MessageAuthenticationCode> m_extractor;
       std::unique_ptr<MessageAuthenticationCode> m_prf;
+
+      enum HMAC_PRF_Label {
+         Running,
+         Reseed,
+         ExtractorSeed,
+      };
+      void new_K_value(byte label);
 
       size_t m_collected_entropy_estimate = 0;
       size_t m_output_since_reseed = 0;

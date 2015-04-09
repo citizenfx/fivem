@@ -2,7 +2,7 @@
 * Exceptions
 * (C) 2004-2006 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_EXCEPTION_H__
@@ -21,14 +21,14 @@ namespace TLS {
 class BOTAN_DLL TLS_Exception : public Exception
    {
    public:
-      Alert::Type type() const BOTAN_NOEXCEPT { return alert_type; }
+      Alert::Type type() const { return m_alert_type; }
 
       TLS_Exception(Alert::Type type,
                     const std::string& err_msg = "Unknown error") :
-         Exception(err_msg), alert_type(type) {}
+         Exception(err_msg), m_alert_type(type) {}
 
    private:
-      Alert::Type alert_type;
+      Alert::Type m_alert_type;
    };
 
 /**

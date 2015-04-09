@@ -3,7 +3,7 @@
 * (C) 1999-2011 Jack Lloyd
 * (C) 2007 Yves Jerschow
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_BYTE_SWAP_H__

@@ -2,7 +2,7 @@
 * TLS v1.0 and v1.2 PRFs
 * (C) 2004-2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_PRF_H__
@@ -19,17 +19,18 @@ namespace Botan {
 class BOTAN_DLL TLS_PRF : public KDF
    {
    public:
-      secure_vector<byte> derive(size_t key_len,
-                                const byte secret[], size_t secret_len,
-                                const byte seed[], size_t seed_len) const;
-
       std::string name() const { return "TLS-PRF"; }
+
       KDF* clone() const { return new TLS_PRF; }
+
+      size_t kdf(byte key[], size_t key_len,
+                 const byte secret[], size_t secret_len,
+                 const byte salt[], size_t salt_len) const override;
 
       TLS_PRF();
    private:
-      std::unique_ptr<MessageAuthenticationCode> hmac_md5;
-      std::unique_ptr<MessageAuthenticationCode> hmac_sha1;
+      std::unique_ptr<MessageAuthenticationCode> m_hmac_md5;
+      std::unique_ptr<MessageAuthenticationCode> m_hmac_sha1;
    };
 
 /**
@@ -38,16 +39,19 @@ class BOTAN_DLL TLS_PRF : public KDF
 class BOTAN_DLL TLS_12_PRF : public KDF
    {
    public:
-      secure_vector<byte> derive(size_t key_len,
-                                const byte secret[], size_t secret_len,
-                                const byte seed[], size_t seed_len) const;
+      std::string name() const { return "TLS-12-PRF(" + m_mac->name() + ")"; }
 
-      std::string name() const { return "TLSv12-PRF(" + hmac->name() + ")"; }
-      KDF* clone() const { return new TLS_12_PRF(hmac->clone()); }
+      KDF* clone() const { return new TLS_12_PRF(m_mac->clone()); }
 
-      TLS_12_PRF(MessageAuthenticationCode* hmac);
+      size_t kdf(byte key[], size_t key_len,
+                 const byte secret[], size_t secret_len,
+                 const byte salt[], size_t salt_len) const override;
+
+      TLS_12_PRF(MessageAuthenticationCode* mac) : m_mac(mac) {}
+
+      static TLS_12_PRF* make(const Spec& spec);
    private:
-      std::unique_ptr<MessageAuthenticationCode> hmac;
+      std::unique_ptr<MessageAuthenticationCode> m_mac;
    };
 
 }

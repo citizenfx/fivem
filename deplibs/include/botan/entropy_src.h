@@ -1,12 +1,12 @@
 /*
 * EntropySource
-* (C) 2008-2009,2014 Jack Lloyd
+* (C) 2008,2009,2014,2015 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ENTROPY_SOURCE_BASE_H__
-#define BOTAN_ENTROPY_SOURCE_BASE_H__
+#ifndef BOTAN_ENTROPY_H__
+#define BOTAN_ENTROPY_H__
 
 #include <botan/secmem.h>
 #include <string>
@@ -22,31 +22,25 @@ class BOTAN_DLL Entropy_Accumulator
    public:
       /**
       * Initialize an Entropy_Accumulator
-      * @param goal is how many bits we would like to collect
+      *
+      * @param accum will be called with poll results, first params the data and
+      * length, the second a best estimate of min-entropy for the entire buffer;
+      * out of an abundance of caution this will be zero for many sources.
+      * accum should return true if it wants the polling to stop, though it may
+      * still be called again a few more times, and should be careful to return
+      * true then as well.
       */
       Entropy_Accumulator(std::function<bool (const byte[], size_t, double)> accum) :
-         m_accum_fn(accum), m_done(false) {}
+         m_accum_fn(accum) {}
 
       virtual ~Entropy_Accumulator() {}
-
-      /**
-      * Get a cached I/O buffer (purely for minimizing allocation
-      * overhead to polls)
-      *
-      * @param size requested size for the I/O buffer
-      * @return cached I/O buffer for repeated polls
-      */
-      secure_vector<byte>& get_io_buffer(size_t size)
-         {
-         m_io_buffer.clear();
-         m_io_buffer.resize(size);
-         return m_io_buffer;
-         }
 
       /**
       * @return if our polling goal has been achieved
       */
       bool polling_goal_achieved() const { return m_done; }
+
+      bool polling_finished() const { return m_done; }
 
       /**
       * Add entropy to the accumulator
@@ -58,7 +52,7 @@ class BOTAN_DLL Entropy_Accumulator
       void add(const void* bytes, size_t length, double entropy_bits_per_byte)
          {
          m_done = m_accum_fn(reinterpret_cast<const byte*>(bytes),
-                             length, entropy_bits_per_byte * length);
+                             length, entropy_bits_per_byte * length) || m_done;
          }
 
       /**
@@ -74,8 +68,7 @@ class BOTAN_DLL Entropy_Accumulator
          }
    private:
       std::function<bool (const byte[], size_t, double)> m_accum_fn;
-      bool m_done;
-      secure_vector<byte> m_io_buffer;
+      bool m_done = false;
    };
 
 /**
@@ -84,6 +77,8 @@ class BOTAN_DLL Entropy_Accumulator
 class BOTAN_DLL EntropySource
    {
    public:
+      static void poll_available_sources(class Entropy_Accumulator& accum);
+
       /**
       * @return name identifying this entropy source
       */

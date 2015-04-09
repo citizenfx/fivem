@@ -2,7 +2,7 @@
 * Auto Seeded RNG
 * (C) 2008 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AUTO_SEEDING_RNG_H__
@@ -13,7 +13,7 @@
 
 namespace Botan {
 
-class AutoSeeded_RNG : public RandomNumberGenerator
+class BOTAN_DLL AutoSeeded_RNG : public RandomNumberGenerator
    {
    public:
       void randomize(byte out[], size_t len)
@@ -31,8 +31,6 @@ class AutoSeeded_RNG : public RandomNumberGenerator
          { m_rng->add_entropy(in, len); }
 
       AutoSeeded_RNG() : m_rng(RandomNumberGenerator::make_rng()) {}
-
-      virtual ~AutoSeeded_RNG() {}
    private:
       std::unique_ptr<RandomNumberGenerator> m_rng;
    };

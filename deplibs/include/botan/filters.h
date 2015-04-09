@@ -1,8 +1,8 @@
 /*
 * Filters
-* (C) 1999-2007 Jack Lloyd
+* (C) 1999-2007,2015 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_FILTERS_H__
@@ -34,7 +34,7 @@ class BOTAN_DLL StreamCipher_Filter : public Keyed_Filter
    {
    public:
 
-      std::string name() const { return cipher->name(); }
+      std::string name() const { return m_cipher->name(); }
 
       /**
       * Write input data
@@ -44,34 +44,37 @@ class BOTAN_DLL StreamCipher_Filter : public Keyed_Filter
       void write(const byte input[], size_t input_len);
 
       bool valid_iv_length(size_t iv_len) const
-         { return cipher->valid_iv_length(iv_len); }
+         { return m_cipher->valid_iv_length(iv_len); }
 
       /**
       * Set the initialization vector for this filter.
       * @param iv the initialization vector to set
       */
-      void set_iv(const InitializationVector& iv);
+      void set_iv(const InitializationVector& iv)
+         {
+         m_cipher->set_iv(iv.begin(), iv.length());
+         }
 
       /**
       * Set the key of this filter.
       * @param key the key to set
       */
-      void set_key(const SymmetricKey& key) { cipher->set_key(key); }
+      void set_key(const SymmetricKey& key) { m_cipher->set_key(key); }
 
-      Key_Length_Specification key_spec() const override { return cipher->key_spec(); }
+      Key_Length_Specification key_spec() const override { return m_cipher->key_spec(); }
 
       /**
       * Construct a stream cipher filter.
-      * @param cipher_obj a cipher object to use
+      * @param cipher a cipher object to use
       */
-      StreamCipher_Filter(StreamCipher* cipher_obj);
+      StreamCipher_Filter(StreamCipher* cipher);
 
       /**
       * Construct a stream cipher filter.
-      * @param cipher_obj a cipher object to use
+      * @param cipher a cipher object to use
       * @param key the key to use inside this filter
       */
-      StreamCipher_Filter(StreamCipher* cipher_obj, const SymmetricKey& key);
+      StreamCipher_Filter(StreamCipher* cipher, const SymmetricKey& key);
 
       /**
       * Construct a stream cipher filter.
@@ -85,11 +88,9 @@ class BOTAN_DLL StreamCipher_Filter : public Keyed_Filter
       * @param key the key to use inside this filter
       */
       StreamCipher_Filter(const std::string& cipher, const SymmetricKey& key);
-
-      ~StreamCipher_Filter() { delete cipher; }
    private:
-      secure_vector<byte> buffer;
-      StreamCipher* cipher;
+      secure_vector<byte> m_buffer;
+      std::unique_ptr<StreamCipher> m_cipher;
    };
 
 /**
@@ -98,10 +99,10 @@ class BOTAN_DLL StreamCipher_Filter : public Keyed_Filter
 class BOTAN_DLL Hash_Filter : public Filter
    {
    public:
-      void write(const byte input[], size_t len) { hash->update(input, len); }
+      void write(const byte input[], size_t len) { m_hash->update(input, len); }
       void end_msg();
 
-      std::string name() const { return hash->name(); }
+      std::string name() const { return m_hash->name(); }
 
       /**
       * Construct a hash filter.
@@ -111,8 +112,8 @@ class BOTAN_DLL Hash_Filter : public Filter
       * hash. Otherwise, specify a smaller value here so that the
       * output of the hash algorithm will be cut off.
       */
-      Hash_Filter(HashFunction* hash_fun, size_t len = 0) :
-         OUTPUT_LENGTH(len), hash(hash_fun) {}
+      Hash_Filter(HashFunction* hash, size_t len = 0) :
+         m_hash(hash), m_out_len(len) {}
 
       /**
       * Construct a hash filter.
@@ -124,10 +125,9 @@ class BOTAN_DLL Hash_Filter : public Filter
       */
       Hash_Filter(const std::string& request, size_t len = 0);
 
-      ~Hash_Filter() { delete hash; }
    private:
-      const size_t OUTPUT_LENGTH;
-      HashFunction* hash;
+      std::unique_ptr<HashFunction> m_hash;
+      const size_t m_out_len;
    };
 
 /**
@@ -136,48 +136,50 @@ class BOTAN_DLL Hash_Filter : public Filter
 class BOTAN_DLL MAC_Filter : public Keyed_Filter
    {
    public:
-      void write(const byte input[], size_t len) { mac->update(input, len); }
+      void write(const byte input[], size_t len) { m_mac->update(input, len); }
       void end_msg();
 
-      std::string name() const { return mac->name(); }
+      std::string name() const { return m_mac->name(); }
 
       /**
       * Set the key of this filter.
       * @param key the key to set
       */
-      void set_key(const SymmetricKey& key) { mac->set_key(key); }
+      void set_key(const SymmetricKey& key) { m_mac->set_key(key); }
 
-      Key_Length_Specification key_spec() const override { return mac->key_spec(); }
+      Key_Length_Specification key_spec() const override { return m_mac->key_spec(); }
 
       /**
       * Construct a MAC filter. The MAC key will be left empty.
-      * @param mac_obj the MAC to use
+      * @param mac the MAC to use
       * @param out_len the output length of this filter. Leave the default
       * value 0 if you want to use the full output of the
       * MAC. Otherwise, specify a smaller value here so that the
       * output of the MAC will be cut off.
       */
-      MAC_Filter(MessageAuthenticationCode* mac_obj,
-                 size_t out_len = 0) : OUTPUT_LENGTH(out_len)
+      MAC_Filter(MessageAuthenticationCode* mac,
+                 size_t out_len = 0) :
+         m_mac(mac),
+         m_out_len(out_len)
          {
-         mac = mac_obj;
          }
 
       /**
       * Construct a MAC filter.
-      * @param mac_obj the MAC to use
+      * @param mac the MAC to use
       * @param key the MAC key to use
       * @param out_len the output length of this filter. Leave the default
       * value 0 if you want to use the full output of the
       * MAC. Otherwise, specify a smaller value here so that the
       * output of the MAC will be cut off.
       */
-      MAC_Filter(MessageAuthenticationCode* mac_obj,
+      MAC_Filter(MessageAuthenticationCode* mac,
                  const SymmetricKey& key,
-                 size_t out_len = 0) : OUTPUT_LENGTH(out_len)
+                 size_t out_len = 0) :
+         m_mac(mac),
+         m_out_len(out_len)
          {
-         mac = mac_obj;
-         mac->set_key(key);
+         m_mac->set_key(key);
          }
 
       /**
@@ -201,11 +203,9 @@ class BOTAN_DLL MAC_Filter : public Keyed_Filter
       */
       MAC_Filter(const std::string& mac, const SymmetricKey& key,
                  size_t len = 0);
-
-      ~MAC_Filter() { delete mac; }
    private:
-      const size_t OUTPUT_LENGTH;
-      MessageAuthenticationCode* mac;
+      std::unique_ptr<MessageAuthenticationCode> m_mac;
+      const size_t m_out_len;
    };
 
 }

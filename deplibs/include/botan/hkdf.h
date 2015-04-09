@@ -1,8 +1,8 @@
 /*
 * HKDF
-* (C) 2013 Jack Lloyd
+* (C) 2013,2015 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_HKDF_H__
@@ -10,38 +10,30 @@
 
 #include <botan/mac.h>
 #include <botan/hash.h>
+#include <botan/kdf.h>
 
 namespace Botan {
 
 /**
 * HKDF, see @rfc 5869 for details
+* This is only the expansion portion of HKDF
 */
-class BOTAN_DLL HKDF
+class BOTAN_DLL HKDF : public KDF
    {
    public:
-      HKDF(MessageAuthenticationCode* extractor,
-           MessageAuthenticationCode* prf) :
-         m_extractor(extractor), m_prf(prf) {}
+      HKDF(MessageAuthenticationCode* prf) : m_prf(prf) {}
 
-      HKDF(MessageAuthenticationCode* prf) :
-         m_extractor(prf), m_prf(m_extractor->clone()) {}
+      static HKDF* make(const Spec& spec);
 
-      void start_extract(const byte salt[], size_t salt_len);
-      void extract(const byte input[], size_t input_len);
-      void finish_extract();
+      KDF* clone() const { return new HKDF(m_prf->clone()); }
 
-      /**
-      * Only call after extract
-      * @param output_len must be less than 256*hashlen
-      */
-      void expand(byte output[], size_t output_len,
-                  const byte info[], size_t info_len);
+      std::string name() const { return "HKDF(" + m_prf->name() + ")"; }
 
-      std::string name() const;
+      size_t kdf(byte out[], size_t out_len,
+                 const byte secret[], size_t secret_len,
+                 const byte salt[], size_t salt_len) const override;
 
-      void clear();
    private:
-      std::unique_ptr<MessageAuthenticationCode> m_extractor;
       std::unique_ptr<MessageAuthenticationCode> m_prf;
    };
 

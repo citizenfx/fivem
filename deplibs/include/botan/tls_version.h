@@ -2,7 +2,7 @@
 * TLS Protocol Version Management
 * (C) 2012 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_PROTOCOL_VERSION_H__
@@ -22,7 +22,6 @@ class BOTAN_DLL Protocol_Version
    {
    public:
       enum Version_Code {
-         SSL_V3             = 0x0300,
          TLS_V10            = 0x0301,
          TLS_V11            = 0x0302,
          TLS_V12            = 0x0303,
@@ -80,13 +79,6 @@ class BOTAN_DLL Protocol_Version
       * @return human-readable description of this version
       */
       std::string to_string() const;
-
-      /**
-      * If this version is known, return that. Otherwise return the
-      * best (most recent) version we know of.
-      * @return best matching protocol version
-      */
-      Protocol_Version best_known_match() const;
 
       /**
       * @return true iff this is a DTLS version

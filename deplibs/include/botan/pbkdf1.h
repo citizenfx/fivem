@@ -2,7 +2,7 @@
 * PBKDF1
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PBKDF1_H__
@@ -23,28 +23,27 @@ class BOTAN_DLL PKCS5_PBKDF1 : public PBKDF
    public:
       /**
       * Create a PKCS #5 instance using the specified hash function.
-      * @param hash_in pointer to a hash function object to use
+      * @param hash pointer to a hash function object to use
       */
-      PKCS5_PBKDF1(HashFunction* hash_in) : hash(hash_in) {}
+      PKCS5_PBKDF1(HashFunction* hash) : m_hash(hash) {}
 
       std::string name() const
          {
-         return "PBKDF1(" + hash->name() + ")";
+         return "PBKDF1(" + m_hash->name() + ")";
          }
 
       PBKDF* clone() const
          {
-         return new PKCS5_PBKDF1(hash->clone());
+         return new PKCS5_PBKDF1(m_hash->clone());
          }
 
-      std::pair<size_t, OctetString>
-         key_derivation(size_t output_len,
-                        const std::string& passphrase,
-                        const byte salt[], size_t salt_len,
-                        size_t iterations,
-                        std::chrono::milliseconds msec) const override;
+      size_t pbkdf(byte output_buf[], size_t output_len,
+                           const std::string& passphrase,
+                           const byte salt[], size_t salt_len,
+                           size_t iterations,
+                           std::chrono::milliseconds msec) const override;
    private:
-      std::unique_ptr<HashFunction> hash;
+      std::unique_ptr<HashFunction> m_hash;
    };
 
 }

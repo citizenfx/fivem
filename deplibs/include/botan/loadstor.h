@@ -3,7 +3,7 @@
 * (C) 1999-2007 Jack Lloyd
 *     2007 Yves Jerschow
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_LOAD_STORE_H__
@@ -12,7 +12,8 @@
 #include <botan/types.h>
 #include <botan/bswap.h>
 #include <botan/get_byte.h>
-#include <cstring>
+#include <botan/mem_ops.h>
+#include <vector>
 
 #if BOTAN_TARGET_UNALIGNED_MEMORY_ACCESS_OK
 
@@ -620,6 +621,48 @@ inline void store_be(byte out[], T x0, T x1, T x2, T x3,
    store_be(x5, out + (5 * sizeof(T)));
    store_be(x6, out + (6 * sizeof(T)));
    store_be(x7, out + (7 * sizeof(T)));
+   }
+
+template<typename T>
+void copy_out_be(byte out[], size_t out_bytes, const T in[])
+   {
+   while(out_bytes >= sizeof(T))
+      {
+      store_be(in[0], out);
+      out += sizeof(T);
+      out_bytes -= sizeof(T);
+      in += 1;
+   }
+
+   for(size_t i = 0; i != out_bytes; ++i)
+      out[i] = get_byte(i%8, in[0]);
+   }
+
+template<typename T, typename Alloc>
+void copy_out_vec_be(byte out[], size_t out_bytes, const std::vector<T, Alloc>& in)
+   {
+   copy_out_be(out, out_bytes, &in[0]);
+   }
+
+template<typename T>
+void copy_out_le(byte out[], size_t out_bytes, const T in[])
+   {
+   while(out_bytes >= sizeof(T))
+      {
+      store_le(in[0], out);
+      out += sizeof(T);
+      out_bytes -= sizeof(T);
+      in += 1;
+   }
+
+   for(size_t i = 0; i != out_bytes; ++i)
+      out[i] = get_byte(sizeof(T) - 1 - (i % 8), in[0]);
+   }
+
+template<typename T, typename Alloc>
+void copy_out_vec_le(byte out[], size_t out_bytes, const std::vector<T, Alloc>& in)
+   {
+   copy_out_le(out, out_bytes, &in[0]);
    }
 
 }

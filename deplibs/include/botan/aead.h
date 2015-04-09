@@ -2,7 +2,7 @@
 * Interface for AEAD modes
 * (C) 2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AEAD_MODE_H__
@@ -26,8 +26,8 @@ class BOTAN_DLL AEAD_Mode : public Cipher_Mode
 
       /**
       * Set associated data that is not included in the ciphertext but
-      * that should be authenticated. Must be called after set_key
-      * and before finish.
+      * that should be authenticated. Must be called after set_key and
+      * before start.
       *
       * Unless reset by another call, the associated data is kept
       * between messages. Thus, if the AD does not change, calling
@@ -44,16 +44,17 @@ class BOTAN_DLL AEAD_Mode : public Cipher_Mode
          set_associated_data(&ad[0], ad.size());
          }
 
+      template<typename Alloc>
+      void set_ad(const std::vector<byte, Alloc>& ad)
+         {
+         set_associated_data(&ad[0], ad.size());
+         }
+
       /**
       * Default AEAD nonce size (a commonly supported value among AEAD
       * modes, and large enough that random collisions are unlikely).
       */
       size_t default_nonce_length() const override { return 12; }
-
-      /**
-      * Return the size of the authentication tag used (in bytes)
-      */
-      virtual size_t tag_size() const = 0;
    };
 
 /**

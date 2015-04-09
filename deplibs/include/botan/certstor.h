@@ -2,7 +2,7 @@
 * Certificate Store
 * (C) 1999-2010,2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_CERT_STORE_H__
@@ -31,7 +31,7 @@ class BOTAN_DLL Certificate_Store
 
       bool certificate_known(const X509_Certificate& cert) const
          {
-         return find_cert(cert.subject_dn(), cert.subject_key_id());
+         return find_cert(cert.subject_dn(), cert.subject_key_id()) != nullptr;
          }
 
       // remove this (used by TLS::Server)
@@ -49,6 +49,8 @@ class BOTAN_DLL Certificate_Store_In_Memory : public Certificate_Store
       * as certificates. Ignores errors.
       */
       Certificate_Store_In_Memory(const std::string& dir);
+
+      Certificate_Store_In_Memory(const X509_Certificate& cert);
 
       Certificate_Store_In_Memory() {}
 

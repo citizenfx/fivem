@@ -2,13 +2,15 @@
 * Stream Cipher
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_STREAM_CIPHER_H__
 #define BOTAN_STREAM_CIPHER_H__
 
+#include <botan/transform.h>
 #include <botan/sym_algo.h>
+#include <botan/scan_name.h>
 
 namespace Botan {
 
@@ -51,18 +53,24 @@ class BOTAN_DLL StreamCipher : public SymmetricAlgorithm
       * @param iv the initialization vector
       * @param iv_len the length of the IV in bytes
       */
-      virtual void set_iv(const byte iv[], size_t iv_len);
+      virtual void set_iv(const byte[], size_t iv_len)
+         {
+         if(iv_len)
+            throw Invalid_IV_Length(name(), iv_len);
+         }
 
       /**
       * @param iv_len the length of the IV in bytes
       * @return if the length is valid for this algorithm
       */
-      virtual bool valid_iv_length(size_t iv_len) const;
+      virtual bool valid_iv_length(size_t iv_len) const { return (iv_len == 0); }
 
       /**
       * Get a new object representing the same algorithm as *this
       */
       virtual StreamCipher* clone() const = 0;
+
+      typedef SCAN_Name Spec;
    };
 
 }

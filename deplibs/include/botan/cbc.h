@@ -2,7 +2,7 @@
 * CBC mode
 * (C) 1999-2007,2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_MODE_CBC_H__
@@ -20,8 +20,6 @@ namespace Botan {
 class BOTAN_DLL CBC_Mode : public Cipher_Mode
    {
    public:
-      secure_vector<byte> start(const byte nonce[], size_t nonce_len) override;
-
       std::string name() const override;
 
       size_t update_granularity() const override;
@@ -49,6 +47,8 @@ class BOTAN_DLL CBC_Mode : public Cipher_Mode
       byte* state_ptr() { return &m_state[0]; }
 
    private:
+      secure_vector<byte> start_raw(const byte nonce[], size_t nonce_len) override;
+
       void key_schedule(const byte key[], size_t length) override;
 
       std::unique_ptr<BlockCipher> m_cipher;

@@ -2,7 +2,7 @@
 * X.509 Cert Path Validation
 * (C) 2010-2011 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_X509_CERT_PATH_VALIDATION_H__

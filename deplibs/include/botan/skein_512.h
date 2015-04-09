@@ -2,7 +2,7 @@
 * The Skein-512 hash function
 * (C) 2009,2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_SKEIN_512_H__
@@ -31,6 +31,8 @@ class BOTAN_DLL Skein_512 : public HashFunction
 
       size_t hash_block_size() const { return 64; }
       size_t output_length() const { return output_bits / 8; }
+
+      static Skein_512* make(const Spec& spec);
 
       HashFunction* clone() const;
       std::string name() const;

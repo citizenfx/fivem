@@ -1,8 +1,8 @@
 /*
 * SHA-{384,512}
-* (C) 1999-2010 Jack Lloyd
+* (C) 1999-2010,2015 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_SHA_64BIT_H__
@@ -24,13 +24,13 @@ class BOTAN_DLL SHA_384 : public MDx_HashFunction
 
       void clear();
 
-      SHA_384() : MDx_HashFunction(128, true, true, 16), digest(8)
+      SHA_384() : MDx_HashFunction(128, true, true, 16), m_digest(8)
          { clear(); }
    private:
       void compress_n(const byte[], size_t blocks);
       void copy_out(byte[]);
 
-      secure_vector<u64bit> digest;
+      secure_vector<u64bit> m_digest;
    };
 
 /**
@@ -45,13 +45,33 @@ class BOTAN_DLL SHA_512 : public MDx_HashFunction
 
       void clear();
 
-      SHA_512() : MDx_HashFunction(128, true, true, 16), digest(8)
+      SHA_512() : MDx_HashFunction(128, true, true, 16), m_digest(8)
          { clear(); }
    private:
       void compress_n(const byte[], size_t blocks);
       void copy_out(byte[]);
 
-      secure_vector<u64bit> digest;
+      secure_vector<u64bit> m_digest;
+   };
+
+/**
+* SHA-512/256
+*/
+class BOTAN_DLL SHA_512_256 : public MDx_HashFunction
+   {
+   public:
+      std::string name() const { return "SHA-512/256"; }
+      size_t output_length() const { return 32; }
+      HashFunction* clone() const { return new SHA_512_256; }
+
+      void clear();
+
+      SHA_512_256() : MDx_HashFunction(128, true, true, 16), m_digest(8) { clear(); }
+   private:
+      void compress_n(const byte[], size_t blocks);
+      void copy_out(byte[]);
+
+      secure_vector<u64bit> m_digest;
    };
 
 }

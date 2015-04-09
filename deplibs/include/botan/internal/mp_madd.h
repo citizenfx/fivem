@@ -3,7 +3,7 @@
 * (C) 1999-2008,2013 Jack Lloyd
 *     2006 Luca Piccarreta
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_MP_WORD_MULADD_H__

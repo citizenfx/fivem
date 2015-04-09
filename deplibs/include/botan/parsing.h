@@ -2,7 +2,7 @@
 * Various string utils and parsing functions
 * (C) 1999-2007,2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PARSER_H__
@@ -124,16 +124,9 @@ BOTAN_DLL u32bit string_to_ipv4(const std::string& ip_str);
 */
 BOTAN_DLL std::string ipv4_to_string(u32bit ip_addr);
 
-void BOTAN_DLL lex_cfg(std::istream& is,
-                       std::function<void (std::string)> cb);
+std::map<std::string, std::string> BOTAN_DLL read_cfg(std::istream& is);
 
-void BOTAN_DLL lex_cfg_w_headers(std::istream& is,
-                                 std::function<void (std::string)> cb,
-                                 std::function<void (std::string)> header_cb);
-
-std::map<std::string, std::map<std::string, std::string>>
-BOTAN_DLL
-parse_cfg(std::istream& is);
+std::string BOTAN_DLL clean_ws(const std::string& s);
 
 
 }

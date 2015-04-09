@@ -2,7 +2,7 @@
 * PKCS #8
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_PKCS8_H__
@@ -89,7 +89,7 @@ PEM_encode(const Private_Key& key,
 BOTAN_DLL Private_Key* load_key(
   DataSource& source,
   RandomNumberGenerator& rng,
-  std::function<std::pair<bool, std::string> ()> get_passphrase);
+  std::function<std::string ()> get_passphrase);
 
 /** Load a key from a data source.
 * @param source the data source providing the encoded key
@@ -112,7 +112,7 @@ BOTAN_DLL Private_Key* load_key(DataSource& source,
 BOTAN_DLL Private_Key* load_key(
   const std::string& filename,
   RandomNumberGenerator& rng,
-  std::function<std::pair<bool, std::string> ()> get_passphrase);
+  std::function<std::string ()> get_passphrase);
 
 /** Load a key from a file.
 * @param filename the path to the file containing the encoded key

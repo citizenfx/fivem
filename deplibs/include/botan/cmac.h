@@ -2,7 +2,7 @@
 * CMAC
 * (C) 1999-2007,2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_CMAC_H__
@@ -41,6 +41,8 @@ class BOTAN_DLL CMAC : public MessageAuthenticationCode
       * @param cipher the underlying block cipher to use
       */
       CMAC(BlockCipher* cipher);
+
+      static CMAC* make(const Spec& spec);
 
       CMAC(const CMAC&) = delete;
       CMAC& operator=(const CMAC&) = delete;

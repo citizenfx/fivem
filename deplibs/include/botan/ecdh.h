@@ -4,14 +4,13 @@
 *          Manuel Hartl, FlexSecure GmbH
 * (C) 2008-2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_ECDH_KEY_H__
 #define BOTAN_ECDH_KEY_H__
 
 #include <botan/ecc_key.h>
-#include <botan/pk_ops.h>
 
 namespace Botan {
 
@@ -85,21 +84,6 @@ class BOTAN_DLL ECDH_PrivateKey : public ECDH_PublicKey,
 
       std::vector<byte> public_value() const
          { return ECDH_PublicKey::public_value(); }
-   };
-
-/**
-* ECDH operation
-*/
-class BOTAN_DLL ECDH_KA_Operation : public PK_Ops::Key_Agreement
-   {
-   public:
-      ECDH_KA_Operation(const ECDH_PrivateKey& key);
-
-      secure_vector<byte> agree(const byte w[], size_t w_len);
-   private:
-      const CurveGFp& curve;
-      const BigInt& cofactor;
-      BigInt l_times_priv;
    };
 
 }

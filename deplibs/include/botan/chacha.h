@@ -2,7 +2,7 @@
 * ChaCha20
 * (C) 2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_CHACHA_H__
@@ -23,7 +23,7 @@ class BOTAN_DLL ChaCha : public StreamCipher
       void set_iv(const byte iv[], size_t iv_len);
 
       bool valid_iv_length(size_t iv_len) const
-         { return (iv_len == 8); }
+         { return (iv_len == 8 || iv_len == 12); }
 
       Key_Length_Specification key_spec() const
          {
@@ -31,7 +31,7 @@ class BOTAN_DLL ChaCha : public StreamCipher
          }
 
       void clear();
-      std::string name() const;
+      std::string name() const { return "ChaCha"; }
 
       StreamCipher* clone() const { return new ChaCha; }
    protected:

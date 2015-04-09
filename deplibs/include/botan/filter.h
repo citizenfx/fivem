@@ -3,7 +3,7 @@
 * (C) 1999-2007 Jack Lloyd
 * (C) 2013 Joel Low
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_FILTER_H__

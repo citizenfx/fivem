@@ -2,7 +2,7 @@
 * Blinding for public key operations
 * (C) 1999-2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_BLINDER_H__
@@ -10,6 +10,7 @@
 
 #include <botan/bigint.h>
 #include <botan/reducer.h>
+#include <functional>
 
 namespace Botan {
 
@@ -20,25 +21,20 @@ class BOTAN_DLL Blinder
    {
    public:
       BigInt blind(const BigInt& x) const;
+
       BigInt unblind(const BigInt& x) const;
 
-      bool initialized() const { return reducer.initialized(); }
+      bool initialized() const { return m_reducer.initialized(); }
 
       Blinder() {}
 
-      /**
-      * Construct a blinder
-      * @param mask the forward (blinding) mask
-      * @param inverse_mask the inverse of mask (depends on algo)
-      * @param modulus of the group operations are performed in
-      */
-      Blinder(const BigInt& mask,
-              const BigInt& inverse_mask,
-              const BigInt& modulus);
+      Blinder(const BigInt& modulus,
+              std::function<BigInt (const BigInt&)> fwd_func,
+              std::function<BigInt (const BigInt&)> inv_func);
 
    private:
-      Modular_Reducer reducer;
-      mutable BigInt e, d;
+      Modular_Reducer m_reducer;
+      mutable BigInt m_e, m_d;
    };
 
 }

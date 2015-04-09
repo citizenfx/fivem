@@ -2,7 +2,7 @@
 * OID Registry
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_OIDS_H__
@@ -56,7 +56,7 @@ BOTAN_DLL OID lookup(const std::string& name);
 */
 BOTAN_DLL bool name_of(const OID& oid, const std::string& name);
 
-BOTAN_DLL void set_defaults();
+BOTAN_DLL const char* default_oid_list();
 
 }
 

@@ -2,7 +2,7 @@
 * TLS Handshake State
 * (C) 2004-2006,2011,2012 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_HANDSHAKE_STATE_H__
@@ -36,7 +36,6 @@ class Server_Hello_Done;
 class Certificate;
 class Client_Key_Exchange;
 class Certificate_Verify;
-class Next_Protocol;
 class New_Session_Ticket;
 class Finished;
 
@@ -46,9 +45,9 @@ class Finished;
 class Handshake_State
    {
    public:
-      Handshake_State(Handshake_IO* io,
-                      std::function<void (const Handshake_Message&)> msg_callback =
-                         std::function<void (const Handshake_Message&)>());
+      typedef std::function<void (const Handshake_Message&)> hs_msg_cb;
+
+      Handshake_State(Handshake_IO* io, hs_msg_cb cb);
 
       virtual ~Handshake_State();
 
@@ -83,8 +82,7 @@ class Handshake_State
       std::pair<std::string, Signature_Format>
          understand_sig_format(const Public_Key& key,
                                std::string hash_algo,
-                               std::string sig_algo,
-                               bool for_client_auth) const;
+                               std::string sig_algo) const;
 
       std::pair<std::string, Signature_Format>
          choose_sig_format(const Private_Key& key,
@@ -112,7 +110,6 @@ class Handshake_State
       void client_certs(Certificate* client_certs);
       void client_kex(Client_Key_Exchange* client_kex);
       void client_verify(Certificate_Verify* client_verify);
-      void next_protocol(Next_Protocol* next_protocol);
       void new_session_ticket(New_Session_Ticket* new_session_ticket);
       void server_finished(Finished* server_finished);
       void client_finished(Finished* client_finished);
@@ -144,9 +141,6 @@ class Handshake_State
       const Certificate_Verify* client_verify() const
          { return m_client_verify.get(); }
 
-      const Next_Protocol* next_protocol() const
-         { return m_next_protocol.get(); }
-
       const New_Session_Ticket* new_session_ticket() const
          { return m_new_session_ticket.get(); }
 
@@ -176,7 +170,7 @@ class Handshake_State
 
    private:
 
-      std::function<void (const Handshake_Message&)> m_msg_callback;
+      hs_msg_cb m_msg_callback;
 
       std::unique_ptr<Handshake_IO> m_handshake_io;
 
@@ -196,7 +190,6 @@ class Handshake_State
       std::unique_ptr<Certificate> m_client_certs;
       std::unique_ptr<Client_Key_Exchange> m_client_kex;
       std::unique_ptr<Certificate_Verify> m_client_verify;
-      std::unique_ptr<Next_Protocol> m_next_protocol;
       std::unique_ptr<New_Session_Ticket> m_new_session_ticket;
       std::unique_ptr<Finished> m_server_finished;
       std::unique_ptr<Finished> m_client_finished;

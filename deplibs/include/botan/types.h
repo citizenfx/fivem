@@ -2,7 +2,7 @@
 * Low Level Types
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TYPES_H__
@@ -24,6 +24,7 @@ using ::uint16_t;
 using ::uint32_t;
 using ::uint64_t;
 using ::int32_t;
+using ::int64_t;
 
 using ::size_t;
 
@@ -38,12 +39,6 @@ typedef int32_t s32bit;
 * A default buffer size; typically a memory page
 */
 static const size_t DEFAULT_BUFFERSIZE = BOTAN_DEFAULT_BUFFER_SIZE;
-
-/**
-* The two possible directions for cipher filters, determining whether they
-* actually perform encryption or decryption.
-*/
-enum Cipher_Dir { ENCRYPTION, DECRYPTION };
 
 }
 

@@ -2,7 +2,7 @@
 * Block Cipher Cascade
 * (C) 2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_CASCADE_H__
@@ -32,6 +32,8 @@ class BOTAN_DLL Cascade_Cipher : public BlockCipher
       void clear();
       std::string name() const;
       BlockCipher* clone() const;
+
+      static Cascade_Cipher* make(const Spec& spec);
 
       /**
       * Create a cascade of two block ciphers

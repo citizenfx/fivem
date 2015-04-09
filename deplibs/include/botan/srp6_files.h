@@ -2,7 +2,7 @@
 * SRP-6a File Handling
 * (C) 2011 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_SRP6A_FILES_H__

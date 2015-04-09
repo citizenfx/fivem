@@ -2,7 +2,7 @@
 * RC4
 * (C) 1999-2008 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_RC4_H__
@@ -30,6 +30,8 @@ class BOTAN_DLL RC4 : public StreamCipher
          {
          return Key_Length_Specification(1, 256);
          }
+
+      static RC4* make(const Spec& spec);
 
       /**
       * @param skip skip this many initial bytes in the keystream

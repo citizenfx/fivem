@@ -2,7 +2,7 @@
 * HMAC
 * (C) 1999-2007,2014 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_HMAC_H__
@@ -35,6 +35,8 @@ class BOTAN_DLL HMAC : public MessageAuthenticationCode
       * @param hash the hash to use for HMACing
       */
       HMAC(HashFunction* hash);
+
+      static HMAC* make(const Spec& spec);
 
       HMAC(const HMAC&) = delete;
       HMAC& operator=(const HMAC&) = delete;

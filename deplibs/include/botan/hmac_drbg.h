@@ -1,8 +1,8 @@
 /*
 * HMAC_DRBG (SP800-90A)
-* (C) 2014 Jack Lloyd
+* (C) 2014,2015 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_HMAC_DRBG_H__
@@ -33,7 +33,7 @@ class BOTAN_DLL HMAC_DRBG : public RandomNumberGenerator
       * @param underlying_rng RNG used generating inputs (eg HMAC_RNG)
       */
       HMAC_DRBG(MessageAuthenticationCode* mac,
-                RandomNumberGenerator* underlying_rng);
+                RandomNumberGenerator* underlying_rng = nullptr);
 
    private:
       void update(const byte input[], size_t input_len);

@@ -2,7 +2,7 @@
 * X9.42 PRF
 * (C) 1999-2007 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_ANSI_X942_PRF_H__
@@ -18,15 +18,17 @@ namespace Botan {
 class BOTAN_DLL X942_PRF : public KDF
    {
    public:
-      secure_vector<byte> derive(size_t, const byte[], size_t,
-                                const byte[], size_t) const;
+      std::string name() const { return "X942_PRF(" + m_key_wrap_oid + ")"; }
 
-      std::string name() const { return "X942_PRF(" + key_wrap_oid + ")"; }
-      KDF* clone() const { return new X942_PRF(key_wrap_oid); }
+      KDF* clone() const { return new X942_PRF(m_key_wrap_oid); }
+
+      size_t kdf(byte key[], size_t key_len,
+                 const byte secret[], size_t secret_len,
+                 const byte salt[], size_t salt_len) const override;
 
       X942_PRF(const std::string& oid);
    private:
-      std::string key_wrap_oid;
+      std::string m_key_wrap_oid;
    };
 
 }

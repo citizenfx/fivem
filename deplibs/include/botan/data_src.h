@@ -3,7 +3,7 @@
 * (C) 1999-2007 Jack Lloyd
 *     2012 Markus Wanner
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_DATA_SRC_H__
@@ -127,7 +127,7 @@ class BOTAN_DLL DataSource_Memory : public DataSource
       * @param in the MemoryRegion to read from
       */
       DataSource_Memory(const std::vector<byte>& in) :
-         source(&in[0], &in[in.size()]), offset(0) {}
+         source(in.begin(), in.end()), offset(0) {}
 
       virtual size_t get_bytes_read() const { return offset; }
    private:

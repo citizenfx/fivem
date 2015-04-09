@@ -2,7 +2,7 @@
 * TLS Data Reader
 * (C) 2010-2011,2014 Jack Lloyd
 *
-* Released under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_TLS_READER_H__
@@ -34,14 +34,13 @@ class TLS_Data_Reader
             throw decode_error("Extra bytes at end of message");
          }
 
-      size_t remaining_bytes() const
-         {
-         return m_buf.size() - m_offset;
-         }
+      size_t remaining_bytes() const { return m_buf.size() - m_offset; }
 
-      bool has_remaining() const
+      bool has_remaining() const { return (remaining_bytes() > 0); }
+
+      std::vector<byte> get_remaining()
          {
-         return (remaining_bytes() > 0);
+         return std::vector<byte>(m_buf.begin() + m_offset, m_buf.end());
          }
 
       void discard_next(size_t bytes)

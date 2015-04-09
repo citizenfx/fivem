@@ -4,7 +4,7 @@
 * (C) 2007 Falko Strenzke, FlexSecure GmbH
 *     2008-2010 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_ECC_DOMAIN_PARAMETERS_H__
@@ -89,8 +89,8 @@ class BOTAN_DLL EC_Group
       const CurveGFp& get_curve() const { return curve; }
 
       /**
-      * Return domain parameter curve
-      * @result domain parameter curve
+      * Return group base point
+      * @result base point
       */
       const PointGFp& get_base_point() const { return base_point; }
 

@@ -1,12 +1,12 @@
 /*
-* Filter interface for Transformations
+* Filter interface for Transforms
 * (C) 2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TRANSFORMATION_FILTER_H__
-#define BOTAN_TRANSFORMATION_FILTER_H__
+#ifndef BOTAN_TRANSFORM_FILTER_H__
+#define BOTAN_TRANSFORM_FILTER_H__
 
 #include <botan/transform.h>
 #include <botan/key_filt.h>
@@ -15,13 +15,13 @@
 namespace Botan {
 
 /**
-* Filter interface for Transformations
+* Filter interface for Transforms
 */
-class BOTAN_DLL Transformation_Filter : public Keyed_Filter,
-                                        private Buffered_Filter
+class BOTAN_DLL Transform_Filter : public Keyed_Filter,
+                                   private Buffered_Filter
    {
    public:
-      Transformation_Filter(Transformation* t);
+      Transform_Filter(Transform* t);
 
       void set_iv(const InitializationVector& iv) override;
 
@@ -34,9 +34,9 @@ class BOTAN_DLL Transformation_Filter : public Keyed_Filter,
       std::string name() const override;
 
    protected:
-      const Transformation& get_transform() const { return *m_transform; }
+      const Transform& get_transform() const { return *m_transform; }
 
-      Transformation& get_transform() { return *m_transform; }
+      Transform& get_transform() { return *m_transform; }
 
    private:
       void write(const byte input[], size_t input_length) override;
@@ -59,9 +59,11 @@ class BOTAN_DLL Transformation_Filter : public Keyed_Filter,
          };
 
       Nonce_State m_nonce;
-      std::unique_ptr<Transformation> m_transform;
+      std::unique_ptr<Transform> m_transform;
       secure_vector<byte> m_buffer;
    };
+
+typedef Transform_Filter Transformation_Filter;
 
 }
 

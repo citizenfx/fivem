@@ -2,7 +2,7 @@
 * SIV Mode
 * (C) 2013 Jack Lloyd
 *
-* Distributed under the terms of the Botan license
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
 #ifndef BOTAN_AEAD_SIV_H__
@@ -21,8 +21,6 @@ namespace Botan {
 class BOTAN_DLL SIV_Mode : public AEAD_Mode
    {
    public:
-      secure_vector<byte> start(const byte nonce[], size_t nonce_len) override;
-
       void update(secure_vector<byte>& blocks, size_t offset = 0) override;
 
       void set_associated_data_n(size_t n, const byte ad[], size_t ad_len);
@@ -55,12 +53,11 @@ class BOTAN_DLL SIV_Mode : public AEAD_Mode
 
       secure_vector<byte> S2V(const byte text[], size_t text_len);
    private:
-      MessageAuthenticationCode& cmac() { return *m_cmac; }
+      secure_vector<byte> start_raw(const byte nonce[], size_t nonce_len) override;
 
       void key_schedule(const byte key[], size_t length) override;
 
       const std::string m_name;
-
       std::unique_ptr<StreamCipher> m_ctr;
       std::unique_ptr<MessageAuthenticationCode> m_cmac;
       secure_vector<byte> m_nonce, m_msg_buf;
