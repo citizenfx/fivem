@@ -45,12 +45,7 @@ class MumbleTLSPolicy : public Botan::TLS::Policy
 public:
 	virtual bool acceptable_protocol_version(Botan::TLS::Protocol_Version version) const override
 	{
-		if (version != Botan::TLS::Protocol_Version::SSL_V3)
-		{
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 };
 
