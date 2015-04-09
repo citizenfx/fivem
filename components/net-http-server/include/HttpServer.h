@@ -33,8 +33,22 @@ private:
 
 	HeaderMap m_headerList;
 
+	std::function<void(const std::vector<uint8_t>&)> m_dataHandler;
+
 public:
 	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList);
+
+	virtual ~HttpRequest() override;
+
+	inline const std::function<void(const std::vector<uint8_t>& data)>& GetDataHandler() const
+	{
+		return m_dataHandler;
+	}
+
+	inline void SetDataHandler(const std::function<void(const std::vector<uint8_t>& data)>& handler)
+	{
+		m_dataHandler = handler;
+	}
 
 	inline std::pair<int, int> GetHttpVersion() const
 	{
@@ -56,7 +70,7 @@ public:
 		return m_headerList;
 	}
 
-	inline std::string GetHeader(const std::string& key, const std::string& default = std::string()) const
+	inline const std::string& GetHeader(const std::string& key, const std::string& default = std::string()) const
 	{
 		auto it = m_headerList.find(key);
 

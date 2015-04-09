@@ -59,8 +59,14 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		phr_header headers[50];
 
+		fwRefContainer<HttpRequest> request;
+
+		fwRefContainer<HttpResponse> response;
+
+		int contentLength;
+
 		HttpConnectionData()
-			: readState(ReadStateRequest), lastLength(0)
+			: readState(ReadStateRequest), lastLength(0), contentLength(0)
 		{
 
 		}
@@ -89,65 +95,127 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		// actually copy
 		std::copy(data.begin(), data.end(), readQueue.begin() + origSize);
 
-		// depending on the state, perform an action
-		if (connectionData->readState == ReadStateRequest)
+		// process request data until there's no need anymore
+		bool continueProcessing = true;
+
+		while (continueProcessing)
 		{
-			// copy the deque into a vector for data purposes
-			std::vector<uint8_t> requestData(readQueue.begin(), readQueue.end());
-
-			// define output variables
-			const char* requestMethod;
-			size_t requestMethodLength;
-
-			const char* path;
-			size_t pathLength;
-
-			int minorVersion;
-			size_t numHeaders = 50;
-
-			int result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
-										   &path, &pathLength, &minorVersion, connectionData->headers, &numHeaders, connectionData->lastLength);
-
-			if (result > 0)
+			// depending on the state, perform an action
+			if (connectionData->readState == ReadStateRequest)
 			{
-				// prepare data for a request instance
-				std::string requestMethodStr(requestMethod, requestMethodLength);
-				std::string pathStr(path, pathLength);
+				// copy the deque into a vector for data purposes
+				std::vector<uint8_t> requestData(readQueue.begin(), readQueue.end());
 
-				HeaderMap headerList;
-				
-				for (int i = 0; i < numHeaders; i++)
+				// define output variables
+				const char* requestMethod;
+				size_t requestMethodLength;
+
+				const char* path;
+				size_t pathLength;
+
+				int minorVersion;
+				size_t numHeaders = 50;
+
+				int result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
+											   &path, &pathLength, &minorVersion, connectionData->headers, &numHeaders, connectionData->lastLength);
+
+				if (result > 0)
 				{
-					auto& header = connectionData->headers[i];
+					// prepare data for a request instance
+					std::string requestMethodStr(requestMethod, requestMethodLength);
+					std::string pathStr(path, pathLength);
 
-					headerList.insert(std::make_pair(std::string(header.name, header.name_len), std::string(header.value, header.value_len)));
-				}
+					HeaderMap headerList;
 
-				// remove the original bytes from the queue
-				readQueue.erase(readQueue.begin(), readQueue.begin() + result);
-				localConnectionData->lastLength = 0;
-
-				// store the request in a request instance
-				fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList);
-				fwRefContainer<HttpResponse> response = new HttpResponse(stream, request);
-				
-				for (auto& handler : m_handlers)
-				{
-					if (handler->HandleRequest(request, response) || response->HasEnded())
+					for (int i = 0; i < numHeaders; i++)
 					{
-						break;
+						auto& header = connectionData->headers[i];
+
+						headerList.insert(std::make_pair(std::string(header.name, header.name_len), std::string(header.value, header.value_len)));
+					}
+
+					// remove the original bytes from the queue
+					readQueue.erase(readQueue.begin(), readQueue.begin() + result);
+					localConnectionData->lastLength = 0;
+
+					// store the request in a request instance
+					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList);
+					fwRefContainer<HttpResponse> response = new HttpResponse(stream, request);
+
+					for (auto& handler : m_handlers)
+					{
+						if (handler->HandleRequest(request, response) || response->HasEnded())
+						{
+							break;
+						}
+					}
+
+					continueProcessing = (readQueue.size() > 0);
+
+					if (!response->HasEnded())
+					{
+						// check to see if we'll have to read user data
+						static std::string contentLengthKey = "content-length";
+						static std::string contentLengthDefault = "0";
+
+						auto& contentLengthStr = request->GetHeader(contentLengthKey, contentLengthDefault);
+						int contentLength = atoi(contentLengthStr.c_str());
+
+						if (contentLength > 0)
+						{
+							localConnectionData->request = request;
+							localConnectionData->response = response;
+							localConnectionData->contentLength = contentLength;
+
+							localConnectionData->readState = ReadStateBody;
+						}
 					}
 				}
+				else if (result == -1)
+				{
+					// should probably send 'bad request'?
+					stream->Close();
+					return;
+				}
+				else if (result == -2)
+				{
+					localConnectionData->lastLength = requestData.size();
+				}
 			}
-			else if (result == -1)
+			else if (connectionData->readState == ReadStateBody)
 			{
-				// should probably send 'bad request'?
-				stream->Close();
-				return;
-			}
-			else if (result == -2)
-			{
-				localConnectionData->lastLength = requestData.size();
+				int contentLength = connectionData->contentLength;
+
+				if (readQueue.size() >= contentLength)
+				{
+					// copy the deque into a vector for data purposes, again
+					std::vector<uint8_t> requestData(readQueue.begin(), readQueue.begin() + contentLength);
+
+					// remove the original bytes from the queue
+					readQueue.erase(readQueue.begin(), readQueue.begin() + contentLength);
+
+					// call the data handler
+					auto& dataHandler = connectionData->request->GetDataHandler();
+
+					if (dataHandler)
+					{
+						dataHandler(requestData);
+
+						connectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+					}
+
+					// clean up the req/res
+					connectionData->request = nullptr;
+					connectionData->response = nullptr;
+
+					connectionData->readState = ReadStateRequest;
+
+					continueProcessing = (readQueue.size() > 0);
+				}
+				else
+				{
+					continueProcessing = false;
+				}
 			}
 		}
 	});
@@ -156,6 +224,11 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList)
 	: m_httpVersionMajor(httpVersionMajor), m_httpVersionMinor(httpVersionMinor), m_requestMethod(requestMethod), m_path(path), m_headerList(headerList)
 {
+}
+
+HttpRequest::~HttpRequest()
+{
+	SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
 }
 
 HttpResponse::HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request)
@@ -343,7 +416,19 @@ public:
 	virtual bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
 	{
 		response->SetHeader(std::string("Content-Type"), std::string("text/plain"));
-		response->End(std::string(request->GetPath()));
+
+		if (request->GetRequestMethod() == "GET")
+		{
+			response->End(std::string(request->GetPath()));
+		}
+		else if (request->GetRequestMethod() == "POST")
+		{
+			request->SetDataHandler([=] (const std::vector<uint8_t>& data)
+			{
+				std::string dataStr(data.begin(), data.end());
+				response->End(dataStr);
+			});
+		}
 
 		return true;
 	}
