@@ -119,22 +119,45 @@ void ShellService::OnConnected(fwRefContainer<net::TcpServerStream> stream)
 		return static_cast<int>(size);
 	};
 
+	std::shared_ptr<bool> inInputCallback = std::make_shared<bool>(false);
+
 	outSocket->close_callback = [=] ()
 	{
-		stream->Close();
+		if (!*inInputCallback)
+		{
+			stream->Close();
+		}
+		else
+		{
+			// mark that we need to be closed
+			*inInputCallback = false;
+		}
 	};
 
 	ssh_handle_key_exchange(session);
 
 	stream->SetReadCallback([=] (const std::vector<uint8_t>& data)
 	{
+		// flag to prevent instant closing
+		*inInputCallback = true;
+
+		// call input callback
 		outSocket->input_callback(outSocket, &data[0], data.size());
+
+		// unset if set, kill if not set
+		if (*inInputCallback)
+		{
+			*inInputCallback = false;
+		}
+		else
+		{
+			stream->Close();
+		}
 	});
 
 	stream->SetCloseCallback([=] ()
 	{
 		// clean up the session
-		ssh_disconnect(session);
 		ssh_free(session);
 	});
 }

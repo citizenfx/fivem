@@ -237,6 +237,9 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 
 void UvTcpServerStream::Close()
 {
+	// keep a reference in scope
+	fwRefContainer<UvTcpServerStream> selfRef = this;
+
 	CloseClient();
 
 	SetReadCallback(TReadCallback());

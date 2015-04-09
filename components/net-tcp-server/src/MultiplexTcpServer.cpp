@@ -174,6 +174,9 @@ void MultiplexTcpChildServerStream::CloseInternal()
 
 void MultiplexTcpChildServerStream::Close()
 {
+	// keep a reference to ourselves
+	fwRefContainer<MultiplexTcpChildServerStream> thisRef = this;
+
 	if (m_baseStream.GetRef())
 	{
 		m_baseStream->Close();
