@@ -13,7 +13,7 @@
 
 namespace net
 {
-class UvLoopHolder
+class UvLoopHolder : public fwRefCountable
 {
 private:
 	uv_loop_t m_loop;
@@ -22,14 +22,21 @@ private:
 
 	bool m_shouldExit;
 
+	std::string m_loopTag;
+
 public:
-	UvLoopHolder();
+	UvLoopHolder(const std::string& loopTag);
 
 	virtual ~UvLoopHolder();
 
 	inline uv_loop_t* GetLoop()
 	{
 		return &m_loop;
+	}
+
+	inline const std::string& GetLoopTag() const
+	{
+		return m_loopTag;
 	}
 };
 }

@@ -11,8 +11,8 @@
 
 namespace net
 {
-UvLoopHolder::UvLoopHolder()
-	: m_shouldExit(false)
+UvLoopHolder::UvLoopHolder(const std::string& loopTag)
+	: m_shouldExit(false), m_loopTag(loopTag)
 {
 	// initialize the libuv loop
 	uv_loop_init(&m_loop);

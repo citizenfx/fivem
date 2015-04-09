@@ -23,10 +23,12 @@
 
 namespace net
 {
-class TCP_SERVER_EXPORT TcpServerManager : public UvLoopHolder, public TcpServerFactory
+class TCP_SERVER_EXPORT TcpServerManager : public TcpServerFactory
 {
 private:
 	std::set<fwRefContainer<UvTcpServer>> m_servers;
+
+	fwRefContainer<UvLoopHolder> m_uvLoop;
 
 public:
 	TcpServerManager();
@@ -35,5 +37,10 @@ public:
 
 public:
 	virtual fwRefContainer<TcpServer> CreateServer(const PeerAddress& bindAddress) override;
+
+	inline uv_loop_t* GetLoop()
+	{
+		return m_uvLoop->GetLoop();
+	}
 };
 }

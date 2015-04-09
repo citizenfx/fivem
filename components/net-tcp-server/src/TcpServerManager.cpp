@@ -7,18 +7,19 @@
 
 #include "StdInc.h"
 #include "TcpServerManager.h"
+#include "UvLoopManager.h"
 #include "memdbgon.h"
 
 namespace net
 {
 TcpServerManager::TcpServerManager()
 {
-	UvLoopHolder::UvLoopHolder();
+	m_uvLoop = Instance<UvLoopManager>::Get()->GetOrCreate(std::string("default"));
 }
 
 TcpServerManager::~TcpServerManager()
 {
-	UvLoopHolder::~UvLoopHolder();
+	
 }
 
 fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bindAddress)
@@ -27,7 +28,7 @@ fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bind
 	std::unique_ptr<uv_tcp_t> serverHandle = std::make_unique<uv_tcp_t>();
 
 	// clear and associate the server handle with our loop
-	uv_tcp_init(GetLoop(), serverHandle.get());
+	uv_tcp_init(m_uvLoop->GetLoop(), serverHandle.get());
 
 	// set the socket binding to the peer address
 	uv_tcp_bind(serverHandle.get(), bindAddress.GetSocketAddress(), 0);
