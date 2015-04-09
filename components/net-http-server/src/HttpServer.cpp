@@ -86,7 +86,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		readQueue.resize(origSize + data.size());
 
 		// close the stream if the length is too big
-		if (readQueue.size() > (1024 * 1024))
+		if (readQueue.size() > (1024 * 1024 * 5))
 		{
 			stream->Close();
 			return;
