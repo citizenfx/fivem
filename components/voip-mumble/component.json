@@ -3,7 +3,9 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"platform:windows"
+		"platform:windows",
+		"vendor:protobuf_lite",
+		"vendor:opus"
 	],
 	"provides": []
 }

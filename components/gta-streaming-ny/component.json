@@ -6,7 +6,8 @@
 		"gta:core:ny",
 		"downloadmgr",
 		"resources",
-		"http-client"
+		"http-client",
+		"vendor:zlib"
 	],
 	"provides": []
 }

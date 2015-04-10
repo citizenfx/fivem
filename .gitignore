@@ -181,3 +181,6 @@ FakesAssemblies/
 
 # node modules
 node_modules/
+
+# build system
+!tools/build/

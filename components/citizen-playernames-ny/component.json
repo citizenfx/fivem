@@ -5,7 +5,8 @@
 		"fx[2]",
 		"net",
 		"resources",
-		"font-renderer"
+		"font-renderer",
+		"vendor:msgpack-c"
 	],
 	"provides": []
 }

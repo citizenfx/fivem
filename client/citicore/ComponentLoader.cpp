@@ -193,7 +193,7 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 			}
 		}
 
-		if (!match)
+		if (!match && dependency.GetCategory() != "vendor")
 		{
 			trace("Unable to resolve dependency for %s.\n", dependency.GetString().c_str());
 			return nullptr;

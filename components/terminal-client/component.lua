@@ -1,6 +1,6 @@
-links { 'ws2_32', 'protobuf_lite', 'cpp-uri' }
+links { 'ws2_32' }
 
-includedirs { "../../../vendor/protobuf/src/", "../../../vendor/cpp-uri/src/", "src/messages/" }
+includedirs { "src/messages/" }
 
 configuration 'Debug*'
         links { 'botand' }

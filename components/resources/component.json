@@ -6,7 +6,8 @@
 		"rage:device",
 		"rage:scripting",
 		"net",
-		"gta:mission-cleanup"
+		"gta:mission-cleanup",
+		"vendor:msgpack-c"
 	],
 	"provides": []
 }

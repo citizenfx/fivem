@@ -5,7 +5,8 @@
 		"fx[2]",
 		"http-client",
 		"terminal:client",
-		"profiles"
+		"profiles",
+		"vendor:yaml-cpp"
 	],
 	"provides": []
 }

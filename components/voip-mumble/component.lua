@@ -1,6 +1,4 @@
-links { 'ws2_32', 'protobuf_lite', 'avutil', 'avresample', 'opus' }
-
-includedirs { "../../../vendor/protobuf/src/", "../../../vendor/libopus/include/" }
+links { 'ws2_32', 'avutil', 'avresample' }
 
 configuration 'Debug*'
 	links { 'botand' }
