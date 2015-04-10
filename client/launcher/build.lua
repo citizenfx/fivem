@@ -4,12 +4,12 @@
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "tinyxml2", "liblzma", "comctl32", "breakpad", "wininet", "winhttp" }
+		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "liblzma", "comctl32", "breakpad", "wininet", "winhttp" }
 		
 		files
 		{
 			"**.cpp", "**.h", 
-			"launcher.rc", "client/launcher/launcher.def",
+			"launcher.rc", "launcher.def",
 			"../common/Error.cpp"
 		}
 		

@@ -153,6 +153,8 @@ add_dependencies = function(list)
 	end
 
 	local hasDeps = {}
+	local cwd = os.getcwd()
+	os.chdir(root_cwd)
 
 	if not process_dependencies(list, nil, hasDeps) then
 		error('component dependency from ' .. project().name .. ' unresolved!')
@@ -178,6 +180,8 @@ add_dependencies = function(list)
 			data.vendor.depend()
 		end
 	end
+
+	os.chdir(cwd)
 end
 
 local do_component = function(name, comp)

@@ -10,8 +10,6 @@
 #include "ExecutableLoader.h"
 #include "LauncherInterface.h"
 
-#include "include/cef_sandbox_win.h"
-
 #include "Hooking.h"
 
 #include <winternl.h>
