@@ -97,7 +97,7 @@ concurrency::task<ProfileIdentityResult> SteamIdentityProvider::ProcessIdentity(
 	*(uint16_t*)&ticketBuffer[8] = ticketLength;
 
 	// encode the ticket buffer
-	uint32_t outLength;
+	size_t outLength;
 	char* str = base64_encode(ticketBuffer, ticketLength + 10, &outLength);
 
 	// and return a result

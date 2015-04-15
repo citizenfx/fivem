@@ -295,6 +295,11 @@ void HookQueryInformationProcess()
 
 	*(uint16_t*)(code + 10) = 0xE0FF;
 }
+
+static int NoWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD)
+{
+	return 1;
+}
 #endif
 
 void CitizenGame::Launch(std::wstring& gamePath)
@@ -392,10 +397,16 @@ void CitizenGame::Launch(std::wstring& gamePath)
 
 	exeLoader.SetFunctionResolver([] (HMODULE module, const char* functionName) -> LPVOID
 	{
+#if defined(GTA_FIVE)
 		if (!_stricmp(functionName, "GetStartupInfoW"))
 		{
 			return GetStartupInfoWHook;
 		}
+		else if (!_stricmp(functionName, "SetWindowsHookExA"))
+		{
+			return NoWindowsHookExA;
+		}
+#endif
 
 		return (LPVOID)GetProcAddress(module, functionName);
 	});

@@ -1,0 +1,9 @@
+{
+	"name": "rage:device:five",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+	        "rage:allocator:five"
+	],
+	"provides": []
+}

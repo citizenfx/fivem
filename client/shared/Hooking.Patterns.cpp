@@ -185,6 +185,16 @@ bool pattern::ConsiderMatch(uintptr_t offset)
 
 void pattern::hint(uint64_t hash, uintptr_t address)
 {
+	auto range = g_hints.equal_range(hash);
+
+	for (auto it = range.first; it != range.second; it++)
+	{
+		if (it->second == address)
+		{
+			return;
+		}
+	}
+
 	g_hints.insert(std::make_pair(hash, address));
 }
 }

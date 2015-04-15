@@ -130,9 +130,14 @@ public:
 	}
 };
 
+#ifndef _M_AMD64
 #define CALL_NO_ARGUMENTS(addr) ((void(*)())addr)()
 #define EAXJMP(a) { _asm mov eax, a _asm jmp eax }
 #define WRAPPER __declspec(naked)
+#else
+#define EAXJMP(a)
+#define WRAPPER
+#endif
 
 //
 // export class specifiers

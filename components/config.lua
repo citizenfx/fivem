@@ -34,8 +34,8 @@ component 'debug-net'
 component 'scrbind-formats'
 component 'scrbind-base'
 component 'steam'
-component 'nui-profiles'
-component 'profiles'
+--component 'nui-profiles'
+--component 'profiles'
 component 'terminal-client'
 component 'citizen-sp-ny'
 component 'citizen-playernames-ny'
@@ -50,3 +50,6 @@ if _OPTIONS['game'] == 'server' then
 	component 'net-http-server'
 	component 'citizen-server-instance'
 end
+
+component 'rage-device-five'
+component 'rage-allocator-five'
