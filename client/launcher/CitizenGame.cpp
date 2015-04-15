@@ -14,12 +14,12 @@
 
 #include <winternl.h>
 
+static ILauncherInterface* g_launcher;
+
 #if defined(PAYNE)
 BYTE g_gmfOrig[5];
 BYTE g_gmfOrigW[5];
 BYTE g_gsiOrig[5];
-
-ILauncherInterface* g_launcher;
 
 bool ThisIsActuallyLaunchery()
 {
@@ -114,6 +114,32 @@ DWORD WINAPI GetModuleFileNameWHook(HMODULE hModule, LPWSTR lpFileName, DWORD nS
 	}
 
 	return result;
+}
+#elif defined(GTA_FIVE)
+static bool ThisIsActuallyLaunchery()
+{
+	return true;
+}
+
+VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
+{
+	GetStartupInfoW(lpStartupInfo);
+
+	// ignore launcher requirement
+	hook::call(hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
+
+	// ignore steam requirement
+	auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25 31 E8 4A BE 11 01");
+	if (pattern.size() > 0)
+	{
+		hook::nop(pattern.get(0).get<void>(0), 6);
+		hook::put<uint8_t>(pattern.get(0).get<void>(8), 0xEB);
+	}
+
+	if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
+	{
+		ExitProcess(0);
+	}
 }
 #endif
 
@@ -364,6 +390,16 @@ void CitizenGame::Launch(std::wstring& gamePath)
 		return LoadLibraryA(libName);
 	});
 
+	exeLoader.SetFunctionResolver([] (HMODULE module, const char* functionName) -> LPVOID
+	{
+		if (!_stricmp(functionName, "GetStartupInfoW"))
+		{
+			return GetStartupInfoWHook;
+		}
+
+		return (LPVOID)GetProcAddress(module, functionName);
+	});
+
 	exeLoader.LoadIntoModule(exeModule);
 
 	// overwrite our header
@@ -380,7 +416,7 @@ void CitizenGame::Launch(std::wstring& gamePath)
 
 	entryPoint = (void(*)())exeLoader.GetEntryPoint();
 
-#if !defined(PAYNE)
+#if !defined(PAYNE) && !defined(GTA_FIVE)
 	if (!launcher->PostLoadGame(exeModule, &entryPoint))
 	{
 		ExitProcess(0);
@@ -430,31 +466,10 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	// set GlobalFlags
 	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
 
-	//MessageBox(nullptr, L"a", L"a", MB_OK);
-
 	HookHandleClose();
 	HookQueryInformationProcess();
-	
-	//uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "KiUserExceptionDispatcher");
-	/*uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlLookupFunctionEntry");
-	memcpy(origCode, code, sizeof(origCode));
 
-	RtlRaiseStatus = (uint64_t)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlRaiseStatus");
-
-	procAddr = (uint64_t)code;
-	//procAddr += 0x28;
-	procAddr += 0xE;
-
-	DWORD oldProtect;
-	VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-	*(uint8_t*)code = 0x48;
-	*(uint8_t*)(code + 1) = 0xb8;
-
-	*(uint64_t*)(code + 2) = (uint64_t)ExceptionHandler;
-	//*(uint64_t*)(code + 2) = (uint64_t)0;
-
-	*(uint16_t*)(code + 10) = 0xE0FF;*/
+	g_launcher = launcher;
 #endif
 
 	AddVectoredExceptionHandler(0, HandleVariant);

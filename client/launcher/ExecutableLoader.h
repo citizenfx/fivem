@@ -20,6 +20,8 @@ private:
 
 	HMODULE(*m_libraryLoader)(const char*);
 
+	LPVOID(*m_functionResolver)(HMODULE, const char*);
+
 	std::function<bool(const IMAGE_TLS_DIRECTORY*)> m_tlsInitializer;
 
 private:
@@ -57,6 +59,11 @@ public:
 	inline void SetLibraryLoader(HMODULE(*loader)(const char*))
 	{
 		m_libraryLoader = loader;
+	}
+
+	inline void SetFunctionResolver(LPVOID(*functionResolver)(HMODULE, const char*))
+	{
+		m_functionResolver = functionResolver;
 	}
 
 	inline void SetTLSInitializer(const std::function<bool(const IMAGE_TLS_DIRECTORY*)>& callback)

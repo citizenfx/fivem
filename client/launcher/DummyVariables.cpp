@@ -7137,6 +7137,8 @@ char data[0x95000];
 // only use a single segment as we're supposed to be patch-proof; we'll protect these appropriately later
 #pragma bss_seg(".cdummy")
 char dummy_seg[0x6000000];
+
+char stub_seg[0x100000];
 #else
 #error No dummy segments defined!
 #endif

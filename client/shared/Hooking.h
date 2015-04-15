@@ -21,7 +21,11 @@ static ptrdiff_t baseAddressDifference;
 // sets the base address difference based on an obtained pointer
 inline void set_base(uintptr_t address)
 {
+#ifdef _M_IX86
 	uintptr_t addressDiff = (address - 0x400000);
+#elif defined(_M_AMD64)
+	uintptr_t addressDiff = (address - 0x140000000);
+#endif
 
 	// pointer-style cast to ensure unsigned overflow ends up copied directly into a signed value
 	baseAddressDifference = *(ptrdiff_t*)&addressDiff;
@@ -129,7 +133,11 @@ inline void return_function(AddressType address, uint16_t stackSize = 0)
 template<typename T>
 inline T* getRVA(uintptr_t rva)
 {
+#ifdef _M_IX86
 	return (T*)(baseAddressDifference + 0x400000 + rva);
+#elif defined(_M_AMD64)
+	return (T*)(0x140000000 + rva);
+#endif
 }
 
 template<typename T>
@@ -524,6 +532,41 @@ public:
 	}
 };
 #pragma endregion
+#else
+void* AllocateFunctionStub(void* ptr);
+
+template<typename T, typename AT>
+inline void jump(AT address, T func)
+{
+	LPVOID funcStub = AllocateFunctionStub((void*)func);
+
+	put<uint8_t>(address, 0xE9);
+	put<int>((uintptr_t)address + 1, (intptr_t)funcStub- (intptr_t)get_adjusted(address) - 5);
+}
+
+template<typename T, typename AT>
+inline void call(AT address, T func)
+{
+	LPVOID funcStub = AllocateFunctionStub((void*)func);
+
+	put<uint8_t>(address, 0xE8);
+	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
+}
+
+template<typename T>
+inline T get_call(T address)
+{
+	intptr_t target = *(uintptr_t*)(get_adjusted(address) + 1);
+	target += (get_adjusted(address) + 5);
+
+	return (T)target;
+}
+
+template<typename TTarget, typename T>
+inline void set_call(TTarget* target, T address)
+{
+	*(T*)target = get_call(address);
+}
 #endif
 }
 

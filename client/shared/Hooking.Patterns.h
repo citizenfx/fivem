@@ -65,6 +65,11 @@ namespace hook
 			return *this;
 		}
 
+		inline size_t size()
+		{
+			return m_matches.size();
+		}
+
 		inline pattern_match& get(int index)
 		{
 			return m_matches[index];

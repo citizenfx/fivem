@@ -17,6 +17,11 @@ ExecutableLoader::ExecutableLoader(const uint8_t* origBinary)
 	{
 		return LoadLibraryA(name);
 	});
+
+	SetFunctionResolver([] (HMODULE module, const char* name)
+	{
+		return (LPVOID)GetProcAddress(module, name);
+	});
 }
 
 void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
@@ -67,7 +72,7 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 			{
 				auto import = GetTargetRVA<IMAGE_IMPORT_BY_NAME>(*nameTableEntry);
 
-				function = GetProcAddress(module, import->Name);
+				function = (FARPROC)m_functionResolver(module, import->Name);
 				functionName = import->Name;
 			}
 

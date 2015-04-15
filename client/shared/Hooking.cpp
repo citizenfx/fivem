@@ -28,5 +28,21 @@ namespace hook
 		put<uint8_t>(m_address, 0xE8);
 		put<int>(m_address + 1, (uintptr_t)m_assembly->GetCode() - (uintptr_t)get_adjusted(m_address) - 5);
 	}
+#else
+	void* AllocateFunctionStub(void* ptr)
+	{
+#if defined(GTA_FIVE)
+		typedef void*(*AllocateType)(void*);
+		static AllocateType func;
+
+		if (func == nullptr)
+		{
+			HMODULE coreRuntime = GetModuleHandleW(L"CoreRT.dll");
+			func = (AllocateType)GetProcAddress(coreRuntime, "AllocateFunctionStubImpl");
+		}
+
+		return func(ptr);
+#endif
+	}
 #endif
 }
