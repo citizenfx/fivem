@@ -77,7 +77,7 @@ namespace fx
 
 static InitFunction initFunction([] ()
 {
-	fx::ServerInstance::OnServerCreate.Connect([] (fx::ServerInstance* server)
+	fx::ServerInstance::OnServerCreate.Connect([] (fx::ServerInstanceBase* server)
 	{
 		Instance<fx::OptionParser>::Set(new fx::OptionParser(), server->GetInstanceRegistry());
 	});

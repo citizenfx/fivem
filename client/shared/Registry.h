@@ -23,16 +23,38 @@
 #endif
 #endif
 
-class CORE_EXPORT InstanceRegistry : public fwRefCountable
+template<typename TContained>
+class InstanceRegistryBase : public fwRefCountable
 {
 private:
-	std::unordered_map<std::string, void*> m_instanceMap;
+	std::unordered_map<std::string, TContained> m_instanceMap;
 
 public:
-	void* GetInstance(const char* key);
+	TContained GetInstance(const char* key)
+	{
+		auto it = m_instanceMap.find(key);
+		TContained instance = TContained();
 
-	void SetInstance(const char* key, void* instance);
+		if (it != m_instanceMap.end())
+		{
+			instance = it->second;
+		}
+		else
+		{
+			FatalError("Could not obtain instance from InstanceRegistry of type `%s`.", key);
+		}
+
+		return instance;
+	}
+
+	void SetInstance(const char* key, const TContained& instance)
+	{
+		m_instanceMap[key] = instance;
+	}
 };
+
+using InstanceRegistry = InstanceRegistryBase<void*>;
+using RefInstanceRegistry = InstanceRegistryBase<fwRefContainer<fwRefCountable>>;
 
 extern CORE_EXPORT CORE_IMPORT InstanceRegistry g_instanceRegistry;
 
@@ -49,6 +71,15 @@ public:
 		T* instance = static_cast<T*>(registry->GetInstance(ms_name));
 
 		assert(instance != nullptr);
+
+		return instance;
+	}
+
+	static fwRefContainer<T> Get(RefInstanceRegistry* registry)
+	{
+		fwRefContainer<T> instance = registry->GetInstance(ms_name);
+
+		assert(instance.GetRef());
 
 		return instance;
 	}
@@ -71,6 +102,16 @@ public:
 	static void Set(T* instance, InstanceRegistry* registry)
 	{
 		registry->SetInstance(ms_name, instance);
+	}
+
+	static void Set(const fwRefContainer<T>& instance, RefInstanceRegistry* registry)
+	{
+		registry->SetInstance(ms_name, instance);
+	}
+
+	static const char* GetName()
+	{
+		return ms_name;
 	}
 };
 

@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"citizen:server:net",
+		"citizen:server:instance",
 		"vendor:boost_program_options",
 		"vendor:boost_filesystem"
 	],

@@ -92,7 +92,7 @@ void ShellService::OnConnected(fwRefContainer<net::TcpServerStream> stream)
 	static ssh_server_callbacks_struct callbacks = { 0 };
 	callbacks.auth_password_function = [] (ssh_session session, const char* user, const char* password, void*)
 	{
-		return static_cast<int>(SSH_AUTH_SUCCESS);
+		return static_cast<int>(SSH_AUTH_DENIED);
 	};
 
 	ssh_socket outSocket;
@@ -164,7 +164,7 @@ void ShellService::OnConnected(fwRefContainer<net::TcpServerStream> stream)
 
 static InitFunction initFunction([] ()
 {
-	_CrtMemState s3;
+	/*_CrtMemState s3;
 
 	_CrtMemState souter1;
 	_CrtMemCheckpoint(&souter1);
@@ -197,5 +197,5 @@ static InitFunction initFunction([] ()
 		_CrtMemDumpStatistics(&s3);
 	}
 
-	ExitProcess(0);
+	ExitProcess(0);*/
 });

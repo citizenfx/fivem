@@ -12,6 +12,8 @@
 
 #include <sstream>
 
+#include <boost/algorithm/string/replace.hpp>
+
 namespace fx
 {
 void Server::Start(int argc, char* argv[])
@@ -32,7 +34,10 @@ void Server::Start(int argc, char* argv[])
 	
 	for (int i = 1; i < argc; i++)
 	{
-		args << "\"" << argv[i] << "\" ";
+		std::string arg = argv[i];
+		boost::algorithm::replace_all(arg, "\\", "\\\\");
+
+		args << "\"" << arg << "\" ";
 	}
 
 	// create a component instance

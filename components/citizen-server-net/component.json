@@ -3,7 +3,10 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"net:base"
+		"citizen:server:instance",
+		"net:base",
+		"net:tcp-server",
+		"net:http-server"
 	],
 	"provides": []
 }

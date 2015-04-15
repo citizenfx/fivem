@@ -6,7 +6,6 @@
  */
 
 #include "StdInc.h"
-#include "Registry.h"
+#include <ServerInstanceBase.h>
 
-// global registry for use by client-only modules
-CORE_EXPORT InstanceRegistry g_instanceRegistry;
+fwEvent<fx::ServerInstanceBase*> fx::ServerInstanceBase::OnServerCreate;

@@ -7,14 +7,18 @@
 
 #pragma once
 
+#include <ServerInstanceBase.h>
+
 namespace fx
 {
-	class ServerInstance : public fwRefCountable
+	class ServerInstance : public ServerInstanceBase
 	{
 	private:
 		InstanceRegistry m_instanceRegistry;
 
 		bool m_shouldTerminate;
+
+		std::string m_rootPath;
 
 	public:
 		ServerInstance();
@@ -24,12 +28,14 @@ namespace fx
 		void Run();
 
 	public:
-		inline InstanceRegistry* GetInstanceRegistry()
+		virtual InstanceRegistry* GetInstanceRegistry() override
 		{
 			return &m_instanceRegistry;
 		}
 
-	public:
-		static fwEvent<ServerInstance*> OnServerCreate;
+		virtual const std::string& GetRootPath() override
+		{
+			return m_rootPath;
+		}
 	};
 }
