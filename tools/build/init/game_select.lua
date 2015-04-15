@@ -7,6 +7,7 @@ newoption {
 	allowed 	= {
 		{ "ny",		"Grand Theft Auto IV" },
 		{ "payne",	"Max Payne 3" },
+		{ "five",   "Grand Theft Auto V" },
 		{ "server", "CitizenFX server build" }
 	}
 }

@@ -7133,6 +7133,10 @@ char rsrc[0x38000];
 
 #pragma bss_seg(".cdata")
 char data[0x95000];
+#elif defined(GTA_FIVE)
+// only use a single segment as we're supposed to be patch-proof; we'll protect these appropriately later
+#pragma bss_seg(".cdummy")
+char dummy_seg[0x6000000];
 #else
 #error No dummy segments defined!
 #endif

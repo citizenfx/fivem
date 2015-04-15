@@ -10,6 +10,7 @@
 
 namespace hook
 {
+#ifndef _M_AMD64
 	void inject_hook::inject()
 	{
 		inject_hook_frontend fe(this);
@@ -27,4 +28,5 @@ namespace hook
 		put<uint8_t>(m_address, 0xE8);
 		put<int>(m_address + 1, (uintptr_t)m_assembly->GetCode() - (uintptr_t)get_adjusted(m_address) - 5);
 	}
+#endif
 }

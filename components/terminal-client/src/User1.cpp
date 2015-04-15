@@ -149,7 +149,7 @@ AuthenticateDetail::AuthenticateDetail(uint64_t npID, const std::string& session
 					if (member.IsArray() && member.Size() == 2)
 					{
 						// test if both members are a string and add them
-						auto& key = member[(size_t)0];
+						auto& key = member[(rapidjson::SizeType)0];
 						auto& value = member[1];
 
 						if (key.IsString() && value.IsString())

@@ -96,6 +96,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 bool InitializeExceptionHandler()
 {
+	return false;
+
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 	CreateDirectory(crashDirectory.c_str(), nullptr);
 

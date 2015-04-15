@@ -136,6 +136,141 @@ void CitizenGame::InvokeEntryPoint(void(*entryPoint)())
 	}
 }
 
+#if defined(GTA_FIVE)
+static void* origCloseHandle;
+
+typedef struct _OBJECT_HANDLE_ATTRIBUTE_INFORMATION
+{
+	BOOLEAN Inherit;
+	BOOLEAN ProtectFromClose;
+} OBJECT_HANDLE_ATTRIBUTE_INFORMATION, *POBJECT_HANDLE_ATTRIBUTE_INFORMATION;
+
+#pragma comment(lib, "ntdll.lib")
+
+struct NtCloseHook : public jitasm::Frontend
+{
+	NtCloseHook()
+	{
+
+	}
+
+	static NTSTATUS ValidateHandle(HANDLE handle)
+	{
+		OBJECT_HANDLE_ATTRIBUTE_INFORMATION info;
+
+		if (NtQueryObject(handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(info), nullptr) >= 0)
+		{
+			return 0;
+		}
+		else
+		{
+			return STATUS_INVALID_HANDLE;
+		}
+	}
+
+	void InternalMain()
+	{
+		push(rcx);
+
+		mov(rax, (uint64_t)&ValidateHandle);
+		call(rax);
+
+		pop(rcx);
+
+		cmp(eax, STATUS_INVALID_HANDLE);
+		je("doReturn");
+
+		mov(rax, (uint64_t)origCloseHandle);
+		push(rax); // to return here, as there seems to be no jump-to-rax in jitasm
+
+		L("doReturn");
+		ret();
+	}
+};
+
+void HookHandleClose()
+{
+	// hook NtClose (STATUS_INVALID_HANDLE debugger detection)
+	uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtClose");
+	
+	origCloseHandle = VirtualAlloc(nullptr, 20, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	memcpy(origCloseHandle, code, 20);
+
+	NtCloseHook* hook = new NtCloseHook;
+	hook->Assemble();
+
+	DWORD oldProtect;
+	VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	*(uint8_t*)code = 0x48;
+	*(uint8_t*)(code + 1) = 0xb8;
+
+	*(uint64_t*)(code + 2) = (uint64_t)hook->GetCode();
+
+	*(uint16_t*)(code + 10) = 0xE0FF;
+}
+
+static void* origQIP;
+static DWORD explorerPid;
+
+#include <ntstatus.h>
+
+typedef NTSTATUS(*NtQueryInformationProcessType)(IN HANDLE ProcessHandle, IN PROCESSINFOCLASS ProcessInformationClass, OUT PVOID ProcessInformation, IN ULONG ProcessInformationLength, OUT PULONG ReturnLength OPTIONAL);
+
+static NTSTATUS NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCESSINFOCLASS ProcessInformationClass, OUT PVOID ProcessInformation, IN ULONG ProcessInformationLength, OUT PULONG ReturnLength OPTIONAL)
+{
+	NTSTATUS status = ((NtQueryInformationProcessType)origQIP)(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
+
+	if (NT_SUCCESS(status))
+	{
+		if (ProcessInformationClass == ProcessBasicInformation)
+		{
+			((PPROCESS_BASIC_INFORMATION)ProcessInformation)->Reserved3 = (PVOID)explorerPid;
+		}
+		else if (ProcessInformationClass == 30) // ProcessDebugObjectHandle
+		{
+			*(HANDLE*)ProcessInformation = 0;
+
+			return STATUS_PORT_NOT_SET;
+		}
+		else if (ProcessInformationClass == 7) // ProcessDebugPort
+		{
+			*(HANDLE*)ProcessInformation = 0;
+		}
+		else if (ProcessInformationClass == 31)
+		{
+			*(ULONG*)ProcessInformation = 1;
+		}
+	}
+
+	return status;
+}
+
+void HookQueryInformationProcess()
+{
+	uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
+
+	HWND shellWindow = GetShellWindow();
+	GetWindowThreadProcessId(shellWindow, &explorerPid);
+
+	origQIP = VirtualAlloc(nullptr, 20, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	memcpy(origQIP, code, 20);
+
+	/*NtQueryInformationProcessHook* hook = new NtQueryInformationProcessHook;
+	hook->Assemble();*/
+
+	DWORD oldProtect;
+	VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	*(uint8_t*)code = 0x48;
+	*(uint8_t*)(code + 1) = 0xb8;
+
+	*(uint64_t*)(code + 2) = (uint64_t)NtQueryInformationProcessHook;
+
+	*(uint16_t*)(code + 10) = 0xE0FF;
+}
+#endif
+
 void CitizenGame::Launch(std::wstring& gamePath)
 {
 	// initialize the CEF sandbox
@@ -198,6 +333,8 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	exeLoader.SetLoadLimit(0xF0D000);
 #elif defined(PAYNE)
 	exeLoader.SetLoadLimit(0x20000000);
+#elif defined(GTA_FIVE)
+	exeLoader.SetLoadLimit(0x140000000 + 0x60000000);
 #else
 #error No load limit defined.
 #endif
@@ -285,7 +422,46 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	g_launcher = launcher;
 #endif
 
+#if defined(GTA_FIVE)
+	// set BeingDebugged
+	PPEB peb = (PPEB)__readgsqword(0x60);
+	peb->BeingDebugged = false;
+
+	// set GlobalFlags
+	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
+
+	//MessageBox(nullptr, L"a", L"a", MB_OK);
+
+	HookHandleClose();
+	HookQueryInformationProcess();
+	
+	//uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "KiUserExceptionDispatcher");
+	/*uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlLookupFunctionEntry");
+	memcpy(origCode, code, sizeof(origCode));
+
+	RtlRaiseStatus = (uint64_t)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlRaiseStatus");
+
+	procAddr = (uint64_t)code;
+	//procAddr += 0x28;
+	procAddr += 0xE;
+
+	DWORD oldProtect;
+	VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	*(uint8_t*)code = 0x48;
+	*(uint8_t*)(code + 1) = 0xb8;
+
+	*(uint64_t*)(code + 2) = (uint64_t)ExceptionHandler;
+	//*(uint64_t*)(code + 2) = (uint64_t)0;
+
+	*(uint16_t*)(code + 10) = 0xE0FF;*/
+#endif
+
 	AddVectoredExceptionHandler(0, HandleVariant);
 
+#ifndef _M_AMD64
 	return InvokeEntryPoint(entryPoint);
+#else
+	return entryPoint();
+#endif
 }

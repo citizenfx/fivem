@@ -26,6 +26,10 @@ private:
 	void LoadSection(IMAGE_SECTION_HEADER* section);
 	void LoadSections(IMAGE_NT_HEADERS* ntHeader);
 
+#ifdef _M_AMD64
+	void LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader);
+#endif
+
 	void LoadImports(IMAGE_NT_HEADERS* ntHeader);
 
 	HMODULE ResolveLibrary(const char* name);

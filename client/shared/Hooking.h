@@ -174,6 +174,7 @@ void iat(const char* moduleName, T function, int ordinal)
 	}
 }
 
+#ifndef _M_AMD64
 // a context for the hook function to party on
 struct HookContext
 {
@@ -523,6 +524,7 @@ public:
 	}
 };
 #pragma endregion
+#endif
 }
 
 #include "Hooking.Invoke.h"

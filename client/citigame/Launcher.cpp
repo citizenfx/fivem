@@ -52,6 +52,7 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 #elif defined(PAYNE)
 	// don't modify the entry point
 	//*entryPoint = (void(*)())0;
+#elif defined(GTA_FIVE)
 #else
 #error TODO: define entry point for this title
 #endif

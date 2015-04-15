@@ -111,6 +111,8 @@ const char* InterfaceMapper::GetMethodName(void* methodPtr)
 				}
 			}
 		}
+#elif defined(_M_AMD64)
+		assert(!"lol amd64");
 #else
 #error Current machine type not supported in InterfaceMapper
 #endif

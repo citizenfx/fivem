@@ -113,6 +113,9 @@ union
 	T* pointer;
 #elif defined(__i386__) || defined(__amd64__)
 	T* pointer;
+#else
+	// what
+	T* pointer;
 #endif
 };
 

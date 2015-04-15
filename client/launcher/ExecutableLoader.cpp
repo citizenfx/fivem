@@ -43,13 +43,13 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 			continue;
 		}
 
-		auto nameTableEntry = GetTargetRVA<uint32_t>(descriptor->OriginalFirstThunk);
-		auto addressTableEntry = GetTargetRVA<uint32_t>(descriptor->FirstThunk);
+		auto nameTableEntry = GetTargetRVA<uintptr_t>(descriptor->OriginalFirstThunk);
+		auto addressTableEntry = GetTargetRVA<uintptr_t>(descriptor->FirstThunk);
 
 		// GameShield (Payne) uses FirstThunk for original name addresses
 		if (!descriptor->OriginalFirstThunk)
 		{
-			nameTableEntry = GetTargetRVA<uint32_t>(descriptor->FirstThunk);
+			nameTableEntry = GetTargetRVA<uintptr_t>(descriptor->FirstThunk);
 		}
 
 		while (*nameTableEntry)
@@ -79,7 +79,7 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 				FatalError("Could not load function %s in dependent module %s (%s).\n", functionName, name, pathName);
 			}
 
-			*addressTableEntry = (uint32_t)function;
+			*addressTableEntry = (uintptr_t)function;
 
 			nameTableEntry++;
 			addressTableEntry++;
@@ -122,6 +122,21 @@ void ExecutableLoader::LoadSections(IMAGE_NT_HEADERS* ntHeader)
 	}
 }
 
+#if defined(_M_AMD64)
+void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
+{
+	IMAGE_DATA_DIRECTORY* exceptionDirectory = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
+
+	RUNTIME_FUNCTION* functionList = GetTargetRVA<RUNTIME_FUNCTION>(exceptionDirectory->VirtualAddress);
+	DWORD entryCount = exceptionDirectory->Size / sizeof(RUNTIME_FUNCTION);
+
+	if (!RtlAddFunctionTable(functionList, entryCount, (DWORD64)GetModuleHandle(nullptr)))
+	{
+		FatalError("Setting exception handlers failed.");
+	}
+}
+#endif
+
 void ExecutableLoader::LoadIntoModule(HMODULE module)
 {
 	m_module = module;
@@ -144,6 +159,10 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 
 	LoadSections(ntHeader);
 	LoadImports(ntHeader);
+
+#if defined(_M_AMD64)
+	LoadExceptionTable(ntHeader);
+#endif
 
 	// copy over TLS index (source in this case indicates the TLS data to copy from, which is the launcher app itself)
 #if defined(GTA_NY)
@@ -177,6 +196,10 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 	VirtualProtect(sourceNtHeader, 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect);
 
 	sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+
+#if defined(GTA_FIVE)
+	memcpy(sourceNtHeader, ntHeader, sizeof(IMAGE_NT_HEADERS) + (ntHeader->FileHeader.NumberOfSections * (sizeof(IMAGE_SECTION_HEADER))));
+#endif
 }
 
 HMODULE ExecutableLoader::ResolveLibrary(const char* name)

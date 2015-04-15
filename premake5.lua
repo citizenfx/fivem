@@ -63,6 +63,10 @@ solution "CitizenMP"
 	configuration "game=payne"
 		defines "PAYNE"
 
+	configuration "game=five"
+		architecture 'x64'
+		defines "GTA_FIVE"
+
 	configuration "windows"
 		links { "winmm" }
 
