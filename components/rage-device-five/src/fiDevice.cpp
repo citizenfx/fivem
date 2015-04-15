@@ -31,7 +31,7 @@ static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
-
+		rage::fiDevice* device = rage::fiDevice::GetDevice("platform:/models/farlods.ydd", true);
 	});
 
 #ifdef TESTING_EXPORT
