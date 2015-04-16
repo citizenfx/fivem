@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <sstream>
 
+#include <immintrin.h>
+
 // from boost someplace
 template <std::uint64_t FnvPrime, std::uint64_t OffsetBasis>
 struct basic_fnv_1
@@ -117,7 +119,9 @@ void pattern::Initialize(const char* pattern, size_t length)
 {
 	// get the hash for the base pattern
 	std::string baseString(pattern, length);
-	uint64_t hash = fnv_1()(baseString);
+	m_hash = fnv_1()(baseString);
+
+	m_matched = false;
 
 	// transform the base pattern from IDA format to canonical format
 	TransformPattern(baseString, m_bytes, m_mask);
@@ -125,7 +129,7 @@ void pattern::Initialize(const char* pattern, size_t length)
 	m_size = m_mask.size();
 
 	// if there's hints, try those first
-	auto range = g_hints.equal_range(hash);
+	auto range = g_hints.equal_range(m_hash);
 
 	if (range.first != range.second)
 	{
@@ -137,8 +141,17 @@ void pattern::Initialize(const char* pattern, size_t length)
 		// if the hints succeeded, we don't need to do anything more
 		if (m_matches.size() > 0)
 		{
+			m_matched = true;
 			return;
 		}
+	}
+}
+
+void pattern::EnsureMatches(int maxCount)
+{
+	if (m_matched)
+	{
+		return;
 	}
 
 	// scan the executable for code
@@ -146,16 +159,84 @@ void pattern::Initialize(const char* pattern, size_t length)
 
 	executable.EnsureInit();
 
-	for (uintptr_t i = executable.begin(); i <= executable.end(); i++)
+	// check if SSE 4.2 is supported
+	int cpuid[4];
+	__cpuid(cpuid, 0);
+
+	bool sse42 = false;
+
+	if (m_mask.size() <= 16)
 	{
-		if (ConsiderMatch(i))
+		if (cpuid[0] >= 1)
 		{
-#if !defined(COMPILING_SHARED_LIBC)
-			Citizen_PatternSaveHint(hash, i);
-#endif
-			g_hints.insert(std::make_pair(hash, i));
+			__cpuidex(cpuid, 1, 0);
+
+			sse42 = (cpuid[2] & (1 << 20));
 		}
 	}
+
+	auto matchSuccess = [&] (uintptr_t address)
+	{
+#if !defined(COMPILING_SHARED_LIBC)
+		Citizen_PatternSaveHint(m_hash, address);
+#endif
+		g_hints.insert(std::make_pair(m_hash, address));
+
+		return (m_matches.size() == maxCount);
+	};
+
+	LARGE_INTEGER ticks;
+	QueryPerformanceCounter(&ticks);
+
+	uint64_t startTicksOld = ticks.QuadPart;
+
+	if (!sse42)
+	{
+		for (uintptr_t i = executable.begin(); i <= executable.end(); i++)
+		{
+			if (ConsiderMatch(i))
+			{
+				if (matchSuccess(i))
+				{
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		__declspec(align(16)) char desiredMask[16] = { 0 };
+
+		for (int i = 0; i < m_mask.size(); i++)
+		{
+			desiredMask[i / 8] |= ((m_mask[i] == '?') ? 0 : 1) << (i % 8);
+		}
+
+		__m128i mask = _mm_load_si128(reinterpret_cast<const __m128i*>(desiredMask));
+		__m128i comparand = _mm_loadu_si128(reinterpret_cast<const __m128i*>(m_bytes.c_str()));
+
+		for (uintptr_t i = executable.begin(); i <= executable.end(); i++)
+		{
+			__m128i value = _mm_loadu_si128(reinterpret_cast<const __m128i*>(i));
+			__m128i result = _mm_cmpestrm(value, 16, comparand, m_bytes.size(), _SIDD_CMP_EQUAL_EACH);
+
+			// as the result can match more bits than the mask contains
+			__m128i matches = _mm_and_si128(mask, result);
+			__m128i equivalence = _mm_xor_si128(mask, matches);
+
+			if (_mm_test_all_zeros(equivalence, equivalence))
+			{
+				m_matches.push_back(pattern_match((void*)i));
+
+				if (matchSuccess(i))
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	m_matched = true;
 }
 
 bool pattern::ConsiderMatch(uintptr_t offset)

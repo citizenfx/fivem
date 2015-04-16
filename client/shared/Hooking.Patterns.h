@@ -42,14 +42,20 @@ namespace hook
 		std::string m_bytes;
 		std::string m_mask;
 
+		uint64_t m_hash;
+
 		size_t m_size;
 
 		std::vector<pattern_match> m_matches;
+
+		bool m_matched;
 
 	private:
 		void Initialize(const char* pattern, size_t length);
 
 		bool ConsiderMatch(uintptr_t offset);
+
+		void EnsureMatches(int maxCount);
 
 	public:
 		template<size_t Len>
@@ -60,6 +66,11 @@ namespace hook
 
 		inline pattern& count(int expected)
 		{
+			if (!m_matched)
+			{
+				EnsureMatches(expected);
+			}
+
 			assert(m_matches.size() == expected);
 
 			return *this;
@@ -67,11 +78,21 @@ namespace hook
 
 		inline size_t size()
 		{
+			if (!m_matched)
+			{
+				EnsureMatches(INT_MAX);
+			}
+
 			return m_matches.size();
 		}
 
 		inline pattern_match& get(int index)
 		{
+			if (!m_matched)
+			{
+				EnsureMatches(INT_MAX);
+			}
+
 			return m_matches[index];
 		}
 
