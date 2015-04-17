@@ -29,10 +29,46 @@ __declspec(dllexport) fwEvent<> fiDevice::OnInitialMount;
 
 static InitFunction initFunction([] ()
 {
+#ifdef TESTING_RESOURCE_BITS
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
 		rage::fiDevice* device = rage::fiDevice::GetDevice("platform:/models/farlods.ydd", true);
+
+		uint64_t ptr;
+		uint64_t handle = device->OpenBulk("platform:/models/farlods.ydd", &ptr);
+
+		char* outBuffer = new char[512 * 1024];
+		uint32_t read = device->ReadBulk(handle, ptr, outBuffer, 512 * 1024);
+
+		device->CloseBulk(handle);
+
+		rage::ResourceFlags flags;
+		int32_t version = device->GetResourceVersion("platform:/models/farlods.ydd", &flags);
+
+		FILE* savedFile = fopen("Y:\\farlods.ydd", "wb");
+		fwrite(outBuffer, 1, read, savedFile);
+		fclose(savedFile);
+
+		rage::fiPackfile* packfile = new rage::fiPackfile();
+		packfile->OpenPackfile("x64g.rpf", true, false, 3, false);
+		packfile->Mount("temp:/");
+
+		rage::fiFindData findData;
+		auto findHandle = packfile->FindFirst("temp:/", &findData);
+
+		if (findHandle != -1)
+		{
+			do 
+			{
+				trace("%s\n", findData.fileName);
+			} while (packfile->FindNext(findHandle, &findData));
+
+			packfile->FindClose(findHandle);
+		}
+
+		__debugbreak();
 	});
+#endif
 
 #ifdef TESTING_EXPORT
 	rage::fiDevice::OnInitialMount.Connect([] ()

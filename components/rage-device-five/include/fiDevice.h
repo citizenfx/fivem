@@ -20,6 +20,13 @@ struct fiFindData
 	DWORD fileAttributes;
 };
 
+struct ResourceFlags
+{
+	// TODO: figure out which is physical and which is virtual
+	uint32_t flag1;
+	uint32_t flag2;
+};
+
 // since Payne, RAGE devices are thread-safe (might not apply to V?)
 // in V, RAGE devices use UTF-8
 class DEVICE_EXPORT __declspec(novtable) fiDevice : public sysUseAllocator
@@ -103,7 +110,7 @@ public:
 
 	virtual bool WriteFull(uint64_t handle, void* buffer, uint32_t length) = 0;
 
-	virtual bool GetResourceVersion(const char* fileName, uint32_t* version) = 0;
+	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* flags) = 0;
 
 	/*virtual uint64_t m_84(int a1) = 0;
 
@@ -200,7 +207,7 @@ public:
 
 	virtual bool WriteFull(uint64_t handle, void* buffer, uint32_t length);
 
-	virtual bool GetResourceVersion(const char* fileName, uint32_t* version);
+	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* version);
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiDeviceRelative : public fiDeviceImplemented
