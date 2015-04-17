@@ -556,7 +556,7 @@ inline void call(AT address, T func)
 template<typename T>
 inline T get_call(T address)
 {
-	intptr_t target = *(uintptr_t*)(get_adjusted(address) + 1);
+	intptr_t target = *(int32_t*)(get_adjusted(address) + 1);
 	target += (get_adjusted(address) + 5);
 
 	return (T)target;

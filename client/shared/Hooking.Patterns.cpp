@@ -58,7 +58,7 @@ static void TransformPattern(const std::string& pattern, std::string& data, std:
 			dataStr << '\x00';
 			maskStr << '?';
 		}
-		else if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F'))
+		else if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'))
 		{
 			char str[] = { ch, 0 };
 			int thisDigit = strtol(str, nullptr, 16);
