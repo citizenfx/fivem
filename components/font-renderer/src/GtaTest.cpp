@@ -33,8 +33,12 @@ static void callOurs()
 	if (!str[0])
 	{
 		FILE* f = fopen("A:/lolunicode.txt", "rb");
-		fread(str, 1, sizeof(str), f);
-		fclose(f);
+
+		if (f)
+		{
+			fread(str, 1, sizeof(str), f);
+			fclose(f);
+		}
 	}
 
 	rect.SetRect(5, 205, 705, 205);
