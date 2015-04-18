@@ -182,9 +182,9 @@ struct NtCloseHook : public jitasm::Frontend
 
 	static NTSTATUS ValidateHandle(HANDLE handle)
 	{
-		OBJECT_HANDLE_ATTRIBUTE_INFORMATION info;
+		char info[16];
 
-		if (NtQueryObject(handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(info), nullptr) >= 0)
+		if (NtQueryObject(handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(OBJECT_HANDLE_ATTRIBUTE_INFORMATION), nullptr) >= 0)
 		{
 			return 0;
 		}
