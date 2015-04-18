@@ -14,6 +14,15 @@
 
 class GtaGameInterface : public FontRendererGameInterface
 {
+private:
+#ifdef _HAVE_GRCORE_NEWSTATES
+	uint32_t m_oldBlendState;
+
+	uint32_t m_oldRasterizerState;
+
+	uint32_t m_oldDepthStencilState;
+#endif
+
 public:
 	virtual FontRendererTexture* CreateTexture(int width, int height, FontRendererTextureFormat format, void* pixelData);
 
@@ -93,8 +102,19 @@ void GtaGameInterface::SetTexture(FontRendererTexture* texture)
 {
 	SetTextureGtaIm(static_cast<GtaFontTexture*>(texture)->GetTexture());
 
+#ifndef _HAVE_GRCORE_NEWSTATES
 	SetRenderState(0, grcCullModeNone); // 0 in NY, 1 in Payne
 	SetRenderState(2, 0); // alpha blending
+#else
+	m_oldRasterizerState = GetRasterizerState();
+	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
+
+	m_oldBlendState = GetBlendState();
+	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+
+	m_oldDepthStencilState = GetDepthStencilState();
+	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+#endif
 
 	PushDrawBlitImShader();
 }
@@ -116,7 +136,10 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 		uint32_t color = *(uint32_t*)&vertex->color;
 
 		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
-		color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+		if (!rage::grcTexture::IsRenderSystemColorSwapped())
+		{
+			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+		}
 
 		AddImVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
@@ -133,8 +156,19 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 {
 	SetTextureGtaIm(rage::grcTextureFactory::GetNoneTexture());
 
+#ifndef _HAVE_GRCORE_NEWSTATES
 	SetRenderState(0, grcCullModeNone);
 	SetRenderState(2, 0); // alpha blending m8
+#else
+	auto oldRasterizerState = GetRasterizerState();
+	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
+
+	auto oldBlendState = GetBlendState();
+	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+
+	auto oldDepthStencilState = GetDepthStencilState();
+	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+#endif
 
 	PushDrawBlitImShader();
 
@@ -148,7 +182,10 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 		uint32_t color = *(uint32_t*)&rectangle->color;
 
 		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
-		color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+		if (!rage::grcTexture::IsRenderSystemColorSwapped())
+		{
+			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+		}
 
 		AddImVertex(rect.fX1, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
 		AddImVertex(rect.fX2, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
@@ -159,12 +196,29 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 	}
 
 	PopDrawBlitImShader();
+
+#ifdef _HAVE_GRCORE_NEWSTATES
+	SetRasterizerState(oldRasterizerState);
+
+	SetBlendState(oldBlendState);
+
+	SetDepthStencilState(oldDepthStencilState);
+#endif
 }
 
 void GtaGameInterface::UnsetTexture()
 {
 	PopDrawBlitImShader();
+
+#ifdef _HAVE_GRCORE_NEWSTATES
+	SetRasterizerState(m_oldRasterizerState);
+	SetBlendState(m_oldBlendState);
+	SetDepthStencilState(m_oldDepthStencilState);
+#endif
 }
+
+#include <d3d9.h>
+#pragma comment(lib, "d3d9.lib")
 
 void GtaGameInterface::InvokeOnRender(void(*cb)(void*), void* arg)
 {
@@ -185,14 +239,18 @@ void GtaGameInterface::InvokeOnRender(void(*cb)(void*), void* arg)
 		auto dc = new(0) CGenericDC1Arg((void(*)(int))cb, &argRef);
 		dc->Enqueue();
 #else
-		uint32_t argRef = (uint32_t)arg;
+		uintptr_t argRef = (uintptr_t)arg;
 
-		EnqueueGenericDrawCommand([] (uint32_t a, uint32_t b)
+		EnqueueGenericDrawCommand([] (uintptr_t a, uintptr_t b)
 		{
+			D3DPERF_BeginEvent(D3DCOLOR_ARGB(0, 0, 0, 0), L"FontRenderer");
+
 			auto cb = (void(*)(void*))a;
 
 			cb((void*)b);
-		}, (uint32_t*)&cb, &argRef);
+
+			D3DPERF_EndEvent();
+		}, (uintptr_t*)&cb, &argRef);
 #endif
 	}
 }

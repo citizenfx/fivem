@@ -53,3 +53,4 @@ end
 
 component 'rage-device-five'
 component 'rage-allocator-five'
+component 'rage-graphics-five'

@@ -52,7 +52,7 @@ void CachedFontPage::EnqueueCreateFontPage()
 {
 	m_enqueued = true;
 
-#if !defined(PAYNE)
+#if defined(GTA_NY)
 	concurrency::create_task([=] ()
 	{
 		CreateNow();

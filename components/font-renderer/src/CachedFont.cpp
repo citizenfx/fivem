@@ -75,8 +75,8 @@ void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRI
 			auto& address = page->GetCharacterAddress(glyphRun->glyphIndices[i]);
 			auto& affect = page->GetCharacterSize(glyphRun->glyphIndices[i]);
 
-			float tX = x + affect.Left() - 0.5f;
-			float tY = originY + affect.Top() - 0.5f;
+			float tX = x + affect.Left();// -0.5f;
+			float tY = originY + affect.Top();// -0.5f;
 
 			if (glyphRun->glyphOffsets)
 			{
