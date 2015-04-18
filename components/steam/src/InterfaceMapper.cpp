@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "InterfaceMapper.h"
 
+#include "Hooking.h"
+
 #include <udis86.h>
 
 InterfaceMapper::InterfaceMapper(void* interfacePtr)
@@ -48,6 +50,66 @@ void* InterfaceMapper::LookupMethod(const char* methodName)
 	}
 
 	return (found) ? *methodPtr : nullptr;
+}
+
+static void PatchSteamAMD64Bug(void* methodPtr)
+{
+	ud_t ud;
+	ud_init(&ud);
+
+	// set the correct architecture
+#if defined(_M_IX86)
+	ud_set_mode(&ud, 32);
+#elif defined(_M_AMD64)
+	ud_set_mode(&ud, 64);
+#endif
+
+	// set the program counter
+	ud_set_pc(&ud, reinterpret_cast<uint64_t>(methodPtr));
+
+	// set the input buffer
+	ud_set_input_buffer(&ud, reinterpret_cast<uint8_t*>(methodPtr), INT32_MAX);
+
+	// counter
+	int immMoveCount = 0;
+
+	// loop the instructions
+	while (true)
+	{
+		// disassemble the next instruction
+		ud_disassemble(&ud);
+
+		// if this is a retn, break from the loop
+		if (ud_insn_mnemonic(&ud) == UD_Iret)
+		{
+			break;
+		}
+
+		// offending instruction is the first mov r8d, 8 after the first two mov r8d, 4 instructions
+		if (ud_insn_mnemonic(&ud) == UD_Imov)
+		{
+			// get the target operand
+			auto operand = ud_insn_opr(&ud, 0);
+
+			if (operand->type == UD_OP_REG && operand->base == UD_R_R8D)
+			{
+				// get the source operand
+				auto source = ud_insn_opr(&ud, 1);
+
+				if (source->type == UD_OP_IMM)
+				{
+					if (immMoveCount == 2 && source->lval.sdword == 8)
+					{
+						hook::putVP<uint32_t>(ud_insn_off(&ud) + 2, 4);
+
+						return;
+					}
+
+					immMoveCount++;
+				}
+			}
+		}
+	}
 }
 
 const char* InterfaceMapper::GetMethodName(void* methodPtr)
@@ -112,7 +174,37 @@ const char* InterfaceMapper::GetMethodName(void* methodPtr)
 			}
 		}
 #elif defined(_M_AMD64)
-		assert(!"lol amd64");
+		if (ud_insn_mnemonic(&ud) == UD_Ilea)
+		{
+			// get the first operand
+			auto operand = ud_insn_opr(&ud, 1);
+
+			// if the operand is immediate
+			if (operand->type == UD_OP_MEM)
+			{
+				// and relative to the instruction...
+				if (operand->base == UD_R_RIP)
+				{
+					// cast the relative offset as a char
+					char* operandPtr = reinterpret_cast<char*>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
+
+					// if it's a valid data pointer as well
+					if (IsValidDataPointer(operandPtr))
+					{
+						// it's probably our pointer of interest!
+						name = operandPtr;
+
+						// work around AMD64 steamclient dll bug (passed VAC blob pointer is 8 bytes in CUtlBuffer::Put - this API is clearly meant for in-process usage; should be 4)
+						if (!_stricmp(name, "SpawnProcess"))
+						{
+							PatchSteamAMD64Bug(methodPtr);
+						}
+
+						break;
+					}
+				}
+			}
+		}
 #else
 #error Current machine type not supported in InterfaceMapper
 #endif

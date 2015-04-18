@@ -79,6 +79,9 @@ void SteamComponent::Initialize()
 		return;
 	}
 
+	// delete any existing steam_appid.txt
+	_unlink("steam_appid.txt");
+
 	// initialize the public Steam API
 	InitializePublicAPI();
 
@@ -87,6 +90,15 @@ void SteamComponent::Initialize()
 
 	// run the backend thread
 	RunThread();
+
+	// write back steam_appid.txt for later purposes
+	FILE* f = fopen("steam_appid.txt", "w");
+
+	if (f)
+	{
+		fprintf(f, "%d", m_parentAppID);
+		fclose(f);
+	}
 }
 
 void SteamComponent::InitializePublicAPI()
@@ -288,7 +300,8 @@ void SteamComponent::InitializePresence()
 		GetCurrentDirectoryA(sizeof(ourDirectory), ourDirectory);
 
 		// create an empty VAC blob
-		void* blob = new char[0];
+		void* blob = new char[8];
+		memset(blob, 0, sizeof(blob));
 
 		steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, ourPath, va("\"%s\" -steamchild:%d", ourPath, GetCurrentProcessId()), 0, ourDirectory, gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
 	}
