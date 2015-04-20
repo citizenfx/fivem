@@ -46,7 +46,7 @@ public:
 
 		add(esp, 8);
 #else
-#error Unknown machine type for scrBind!
+//#error Unknown machine type for scrBind!
 #endif
 	}
 };
