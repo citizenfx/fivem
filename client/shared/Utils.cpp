@@ -145,7 +145,7 @@ uint32_t HashRageString(const char* string)
 
 	for (size_t i = 0; i < len; i++)
 	{
-		hash += string[i];
+		hash += tolower(string[i]);
 		hash += (hash << 10);
 		hash ^= (hash >> 6);
 	}
