@@ -12,7 +12,7 @@
 
 static void callOurs()
 {
-	ClearRenderTarget(true, 0, true, 1.0f, true, 0);
+	/*ClearRenderTarget(true, 0, true, 1.0f, true, 0);
 
 	CRect rect(5, 5, 705, 105);
 	CRGBA color(255, 255, 255);
@@ -43,7 +43,7 @@ static void callOurs()
 
 	rect.SetRect(5, 205, 705, 205);
 
-	TheFonts->DrawText(str, rect, color, 26.0f, 1.0f, "Segoe UI");
+	TheFonts->DrawText(str, rect, color, 26.0f, 1.0f, "Segoe UI");*/
 
 	//((void(*)())0x4112A0)();
 }
