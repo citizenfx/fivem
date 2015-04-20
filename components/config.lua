@@ -56,3 +56,5 @@ component 'rage-allocator-five'
 component 'rage-graphics-five'
 component 'rage-scripting-five'
 component 'lovely-script'
+component 'ros-five'
+
