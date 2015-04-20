@@ -129,7 +129,7 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	hook::call(hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
 
 	// ignore steam requirement
-	auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25 31 E8 4A BE 11 01");
+	auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25 31 E8");
 	if (pattern.size() > 0)
 	{
 		hook::nop(pattern.get(0).get<void>(0), 6);
