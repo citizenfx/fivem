@@ -25,7 +25,10 @@ enum NativeIdentifiers : uint64_t
 	LOAD_SCENE = 0x4448EB75B4904BDB,
 	REQUEST_MODEL = 0x963D27A58DF860AC,
 	HAS_MODEL_LOADED = 0x98A4EB5D89A0C952,
-	CREATE_VEHICLE = 0xAF35D0D2583051B0
+	CREATE_VEHICLE = 0xAF35D0D2583051B0,
+	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
+	DO_SCREEN_FADE_IN = 0xD4E8E24955024033,
+	NETWORK_IS_HOST = 0x8DB296B814EDDA07
 };
 
 // BLIP_8 in global.gxt2 -> 'Waypoint'
@@ -36,90 +39,145 @@ class LovelyThread : public GtaThread
 private:
 	bool m_isWaitingForModelToLoad;
 
+	bool m_doInityThings;
+
+	bool m_shouldCreate;
+
+	bool m_markScript;
+
 public:
-	LovelyThread()
+	LovelyThread(bool shouldCreate)
+		: m_shouldCreate(shouldCreate)
 	{
 		m_isWaitingForModelToLoad = false;
+		m_doInityThings = true;
+		m_markScript = false;
 	}
 
 	virtual void DoRun() override
 	{
+		if (!m_markScript)
+		{
+			static int id = 0;
+			id++;
+
+			NativeInvoke::Invoke<0xD1110739EEADB592, uint32_t>(18, false, -1);
+			m_markScript = true;
+		}
+
 		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
+
+		if (!m_shouldCreate && m_doInityThings)
+		{
+			NativeInvoke::Invoke<LOAD_SCENE, int>(-1052.49f, -172.39f, 37.6181f);
+
+			NativeInvoke::Invoke<SHUTDOWN_LOADING_SCREEN, int>();
+			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
+
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -1052.49f, -172.39f, 37.6181f);
+
+			m_doInityThings = false;
+		}
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
-			scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
-
-			CRect rect(400, 100, 900, 200);
-			CRGBA color(255, 255, 255, 255);
-
-			TheFonts->DrawText(va(L"Player coords: %g %g %g", entityCoords.x, entityCoords.y, entityCoords.z), rect, color, 24.0f, 1.0f, "Segoe UI");
-
-			// if the particular key we like is pressed...
-			static bool wasPressed = true;
-
-			if (GetAsyncKeyState(VK_F11) & 0x8000)
+			if (!m_shouldCreate)
 			{
-				if (!wasPressed)
-				{
-					// iterate through blips to find a waypoint
-					int infoId = NativeInvoke::Invoke<GET_FIRST_BLIP_INFO_ID, int>(BLIP_WAYPOINT);
+				scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
 
-					if (infoId > 0)
+				CRect rect(400, 100, 900, 200);
+				CRGBA color(255, 255, 255, 255);
+
+				TheFonts->DrawText(va(L"Player coords: %g %g %g\nSession started: %s", entityCoords.x, entityCoords.y, entityCoords.z, (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>() ? L"yeah" : L"nah")), rect, color, 24.0f, 1.0f, "Segoe UI");
+
+				// if the particular key we like is pressed...
+				static bool wasPressed = true;
+
+				if (GetAsyncKeyState(VK_F11) & 0x8000)
+				{
+					if (!wasPressed)
 					{
-						scrVector blipCoords = NativeInvoke::Invoke<GET_BLIP_COORDS, scrVector>(infoId);
+						// iterate through blips to find a waypoint
+						int infoId = NativeInvoke::Invoke<GET_FIRST_BLIP_INFO_ID, int>(BLIP_WAYPOINT);
 
-						NativeInvoke::Invoke<LOAD_SCENE, int>(blipCoords.x, blipCoords.y, blipCoords.z);
+						if (infoId > 0)
+						{
+							scrVector blipCoords = NativeInvoke::Invoke<GET_BLIP_COORDS, scrVector>(infoId);
 
-						float newZ = 0.0f;
-						NativeInvoke::Invoke<GET_GROUND_Z_FOR_3D_COORD, int>(blipCoords.x, blipCoords.y, 1000.0f, &newZ);
+							NativeInvoke::Invoke<LOAD_SCENE, int>(blipCoords.x, blipCoords.y, blipCoords.z);
 
-						NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, blipCoords.x, blipCoords.y, newZ);
+							float newZ = 0.0f;
+							NativeInvoke::Invoke<GET_GROUND_Z_FOR_3D_COORD, int>(blipCoords.x, blipCoords.y, 1000.0f, &newZ);
+
+							NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, blipCoords.x, blipCoords.y, newZ);
+						}
+
+						wasPressed = true;
 					}
+				}
+				else
+				{
+					wasPressed = false;
+				}
 
-					wasPressed = true;
+				// spawn the vehicle, somewhere
+				static bool wasF9Pressed = true;
+
+				if (GetAsyncKeyState(VK_F9) & 0x8000)
+				{
+					if (!wasF9Pressed)
+					{
+						NativeInvoke::Invoke<REQUEST_MODEL, int>(0x2B6DC64A);
+
+						m_isWaitingForModelToLoad = true;
+
+						wasF9Pressed = true;
+					}
+				}
+				else
+				{
+					wasF9Pressed = false;
+				}
+
+				if (m_isWaitingForModelToLoad)
+				{
+					if (NativeInvoke::Invoke<HAS_MODEL_LOADED, bool>(0x2B6DC64A))
+					{
+						scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
+
+						NativeInvoke::Invoke<CREATE_VEHICLE, int>(0x2B6DC64A, entityCoords.x, entityCoords.y + 2, entityCoords.z, 0.0f, 1, 0);
+
+						m_isWaitingForModelToLoad = false;
+					}
+				}
+
+				static bool hosted = false;
+
+				if (!hosted && NativeInvoke::Invoke<NETWORK_IS_HOST, bool>())
+				{
+					NativeInvoke::Invoke<0xC19F6C8E7865A6FF, int>(1);
+
+					hosted = true;
 				}
 			}
 			else
 			{
-				wasPressed = false;
-			}
+				static bool hosted = false;
 
-			// spawn the vehicle, somewhere
-			static bool wasF9Pressed = true;
-
-			if (GetAsyncKeyState(VK_F9) & 0x8000)
-			{
-				if (!wasF9Pressed)
+				if (!hosted && NativeInvoke::Invoke<NETWORK_IS_HOST, bool>())
 				{
-					NativeInvoke::Invoke<REQUEST_MODEL, int>(0x2B6DC64A);
+					rage::scrEngine::CreateThread(new LovelyThread(true));
 
-					m_isWaitingForModelToLoad = true;
-
-					wasF9Pressed = true;
-				}
-			}
-			else
-			{
-				wasF9Pressed = false;
-			}
-
-			if (m_isWaitingForModelToLoad)
-			{
-				if (NativeInvoke::Invoke<HAS_MODEL_LOADED, bool>(0x2B6DC64A))
-				{
-					scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
-
-					NativeInvoke::Invoke<CREATE_VEHICLE, int>(0x2B6DC64A, entityCoords.x, entityCoords.y + 2, entityCoords.z, 0.0f, 1, 0);
-
-					m_isWaitingForModelToLoad = false;
+					hosted = true;
 				}
 			}
 		}
 	}
 };
 
-static LovelyThread lovelyThread;
+static LovelyThread lovelyThread(false);
+
+#include <Hooking.h>
 
 static InitFunction initFunction([] ()
 {

@@ -143,7 +143,11 @@ inline T* getRVA(uintptr_t rva)
 template<typename T>
 void iat(const char* moduleName, T function, int ordinal)
 {
+#ifdef _M_IX86
 	IMAGE_DOS_HEADER* imageHeader = (IMAGE_DOS_HEADER*)(baseAddressDifference + 0x400000);
+#elif defined(_M_AMD64)
+	IMAGE_DOS_HEADER* imageHeader = (IMAGE_DOS_HEADER*)(baseAddressDifference + 0x140000000);
+#endif
 	IMAGE_NT_HEADERS* ntHeader = getRVA<IMAGE_NT_HEADERS>(imageHeader->e_lfanew);
 
 	IMAGE_IMPORT_DESCRIPTOR* descriptor = getRVA<IMAGE_IMPORT_DESCRIPTOR>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
@@ -159,8 +163,8 @@ void iat(const char* moduleName, T function, int ordinal)
 			continue;
 		}
 
-		auto nameTableEntry = getRVA<uint32_t>(descriptor->OriginalFirstThunk);
-		auto addressTableEntry = getRVA<uint32_t>(descriptor->FirstThunk);
+		auto nameTableEntry = getRVA<uintptr_t>(descriptor->OriginalFirstThunk);
+		auto addressTableEntry = getRVA<uintptr_t>(descriptor->FirstThunk);
 
 		while (*nameTableEntry)
 		{
@@ -169,7 +173,7 @@ void iat(const char* moduleName, T function, int ordinal)
 			{
 				if (IMAGE_ORDINAL(*nameTableEntry) == ordinal)
 				{
-					*addressTableEntry = (uint32_t)function;
+					*addressTableEntry = (uintptr_t)function;
 					return;
 				}
 			}

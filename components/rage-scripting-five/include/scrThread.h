@@ -155,7 +155,10 @@ class
 protected:
 	char gta_pad[64];
 	void* m_pMissionCleanup;
-	char gta_pad2[64];
+	char gta_pad2[40];
+	char flag1;
+	char m_networkFlag;
+	char gta_pad3[22];
 
 public:
 	virtual void					DoRun() = 0;

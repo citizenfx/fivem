@@ -91,6 +91,8 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 	// zero out gtathread bits
 	gtaThreadInit(this);
 
+	m_networkFlag = true;
+
 	m_pszExitMessage = "Normal exit";
 
 	return m_Context.State;

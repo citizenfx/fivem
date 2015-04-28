@@ -10,6 +10,8 @@
 #include "HttpClient.h"
 #include "base64.h"
 
+// as Botan isn't available on AMD64 yet in our environment
+#ifndef _M_AMD64
 #include <botan/botan.h>
 #include <sstream>
 
@@ -331,3 +333,4 @@ static InitFunction initFunction([] ()
 
 	ourProfileManager->AddIdentityProvider(new ROSIdentityProvider());
 });
+#endif

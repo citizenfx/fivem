@@ -121,6 +121,57 @@ static bool ThisIsActuallyLaunchery()
 	return true;
 }
 
+template<int Value>
+int ReturnInt()
+{
+	return Value;
+}
+
+static int CustomGameElementCall(char* element)
+{
+	static std::map<uint32_t, std::string> hashMap;
+
+	if (hashMap.size() == 0)
+	{
+		FILE* f = fopen("Y:\\dev\\v\\strings2.txt", "r");
+
+		if (f)
+		{
+			char stringBuf[4096];
+
+			while (!feof(f))
+			{
+				fgets(stringBuf, sizeof(stringBuf), f);
+				stringBuf[sizeof(stringBuf) - 1] = '\0';
+
+				stringBuf[strlen(stringBuf) - 2] = '\0';
+
+				hashMap[HashString(stringBuf)] = stringBuf;
+			}
+		}
+	}
+
+	uint32_t hash = *(uint32_t*)(element + 16);
+
+	std::string name;
+
+	auto it = hashMap.find(hash);
+
+	if (it != hashMap.end())
+	{
+		name = " - " + it->second;
+	}
+
+	trace("Entered game element %08x%s.\n", hash, name.c_str());
+
+	uintptr_t func = *(uintptr_t*)(element + 32);
+	int retval = ((int(*)())func)();
+
+	trace("Exited game element %08x%s.\n", hash, name.c_str());
+
+	return retval;
+}
+
 VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 {
 	GetStartupInfoW(lpStartupInfo);
@@ -135,6 +186,18 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 		hook::nop(pattern.get(0).get<void>(0), 6);
 		hook::put<uint8_t>(pattern.get(0).get<void>(8), 0xEB);
 	}
+
+	// ignore loading 'videos'
+	hook::call(hook::pattern("48 85 C9 0F 84 ED 00 00 00 48 8D 55 A7 E8").count(1).get(0).get<void>(13), ReturnInt<0>);
+
+	// loading screen stages
+	hook::put<uint8_t>(hook::pattern("8D 4A 03 E8 ? ? ? ? E8 ? ? ? ? 84 C0 75 1E").count(1).get(0).get<void>(2), 8);
+
+	// game elements for crash handling purposes
+	char* vtablePtrLoc = hook::pattern("41 89 40 10 49 83 60 18 00 48 8D 05").count(1).get(0).get<char>(12);
+	void* vtablePtr = (void*)(*(int32_t*)vtablePtrLoc + vtablePtrLoc + 4);
+
+	//hook::put(&((uintptr_t*)vtablePtr)[1], CustomGameElementCall);
 
 	if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
 	{

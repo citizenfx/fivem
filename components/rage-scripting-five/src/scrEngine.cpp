@@ -10,6 +10,8 @@
 #include "CrossLibraryInterfaces.h"
 #include "Hooking.h"
 
+#include <unordered_set>
+
 fwEvent<> rage::scrEngine::OnScriptInit;
 fwEvent<bool&> rage::scrEngine::CheckNativeScriptAllowed;
 
@@ -30,6 +32,8 @@ struct NativeRegistration
 };
 
 static NativeRegistration** registrationTable;
+
+static std::unordered_set<GtaThread*> g_ownedThreads;
 
 namespace rage
 {
@@ -89,7 +93,7 @@ void scrEngine::CreateThread(GtaThread* thread)
 
 	{
 		auto context = thread->GetContext();
-		thread->Reset(1, nullptr, 0);
+		thread->Reset((*scrThreadCount) + 1, nullptr, 0);
 
 		if (*scrThreadId == 0)
 		{
@@ -98,10 +102,12 @@ void scrEngine::CreateThread(GtaThread* thread)
 
 		context->ThreadId = *scrThreadId;
 
-		*(scrThreadId)++;
-		*(scrThreadCount)++;
+		(*scrThreadId)++;
+		(*scrThreadCount)++;
 
 		collection->set(slot, thread);
+
+		g_ownedThreads.insert(thread);
 
 		// attach script to the GTA script handler manager
 		g_scriptHandlerMgr->AttachScript(thread);
@@ -155,6 +161,16 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 }
 }
 
+static int JustNoScript(GtaThread* thread)
+{
+	if (g_ownedThreads.find(thread) != g_ownedThreads.end())
+	{
+		thread->Run(0);
+	}
+
+	return thread->GetContext()->State;
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* location = hook::pattern("48 8B C8 EB 03 48 8B CB 48 8B 05").count(1).get(0).get<char>(11);
@@ -178,4 +194,7 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("74 17 48 8B C8 E8 ? ? ? ? 48 8D 0D").count(1).get(0).get<char>(13);
 
 	g_scriptHandlerMgr = reinterpret_cast<decltype(g_scriptHandlerMgr)>(location + *(int32_t*)location + 4);
+
+	// temp: kill stock scripts
+	hook::jump(hook::pattern("48 83 EC 20 80 B9 46 01  00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript);
 });
