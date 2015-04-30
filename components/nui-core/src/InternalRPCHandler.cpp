@@ -9,7 +9,7 @@
 #include "InternalRPCHandler.h"
 
 #include "CefOverlay.h"
-#include <include/cef_url.h>
+#include <include/cef_parser.h>
 #include "NUISchemeHandlerFactory.h"
 
 #include "memdbgon.h"

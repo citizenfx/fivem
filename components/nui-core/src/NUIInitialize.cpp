@@ -105,12 +105,14 @@ static InitFunction initFunction([] ()
 		int resX, resY;
 		GetGameResolution(resX, resY);
 
-		auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
+		//auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
+		auto rootWindow = NUIWindow::Create(true, resX, resY, "http://fivem.net/progression.html");
 		rootWindow->SetPaintType(NUIPaintTypePostRender);
 
 		Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
 	});
 
+#ifndef GTA_FIVE
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
 		std::wstring emojiPack = MakeRelativeCitPath(L"citizen/emoji.rpf");
@@ -122,6 +124,7 @@ static InitFunction initFunction([] ()
 		packFile->OpenPackfile(emojiPath, true, false, 0);
 		packFile->Mount("citizen:/ui/img/emoji/");
 	}, 100);
+#endif
 
 	return;
 }, 50);

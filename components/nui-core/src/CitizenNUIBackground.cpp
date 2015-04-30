@@ -320,5 +320,7 @@ static CitizenNUIBackground g_nuiBackground;
 
 static InitFunction initFunction([] ()
 {
+	return;
+
 	g_nuiBackground.Initialize();
 });

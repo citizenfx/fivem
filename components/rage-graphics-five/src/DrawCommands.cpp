@@ -89,18 +89,26 @@ static rage::dlDrawCommandBuffer** g_drawCommandBuffer;
 
 void EnqueueGenericDrawCommand(void(*cb)(uintptr_t, uintptr_t), uintptr_t* arg1, uintptr_t* arg2)
 {
-	(*g_drawCommandBuffer)->AddDrawCommand(8);
+	if (!IsOnRenderThread())
+	{
+		(*g_drawCommandBuffer)->AddDrawCommand(8);
 
-	GenericTwoArgDrawCommand* dc = AllocateDrawCommand<GenericTwoArgDrawCommand>();
-	dc->Initialize(cb, arg1, arg2);
+		GenericTwoArgDrawCommand* dc = AllocateDrawCommand<GenericTwoArgDrawCommand>();
+		dc->Initialize(cb, arg1, arg2);
+	}
+	else
+	{
+		cb(*arg1, *arg2);
+	}
 }
+
+static int32_t g_renderThreadTlsIndex;
 
 bool IsOnRenderThread()
 {
-	/*DWORD* gtaTLS = *(DWORD**)(__readfsdword(44) + (4 * *(uint32_t*)0x17237B0));
-	return !gtaTLS[306];*/
+	char* moduleTls = *(char**)__readgsqword(88);
 
-	return false;
+	return (*reinterpret_cast<int32_t*>(moduleTls + g_renderThreadTlsIndex) & 2) != 0;
 }
 
 //void WRAPPER SetTexture(rage::grcTexture* texture) { EAXJMP(0x627FB0); }
@@ -227,8 +235,8 @@ void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, flo
 	auto oldRasterizerState = GetRasterizerState();
 	SetRasterizerState(GetStockStateIdentifier(StateType::RasterizerStateNoCulling));
 
-	//SetRenderState(0, 0);
-	//SetRenderState(2, 0);
+	auto oldDepthStencilState = GetDepthStencilState();
+	SetDepthStencilState(GetStockStateIdentifier(StateType::DepthStencilStateNoDepth));
 
 	PushDrawBlitImShader();
 
@@ -250,6 +258,7 @@ void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, flo
 
 	PopDrawBlitImShader();
 
+	SetDepthStencilState(oldDepthStencilState);
 	SetRasterizerState(oldRasterizerState);
 }
 
@@ -362,7 +371,8 @@ static HookFunction hookFunction([] ()
 
 	stockStates[BlendStateDefault] = (uint32_t*)(*(int32_t*)location + location + 4);
 
-	location = hook::pattern("48 8D 4D D0 33 D2 44 89 7D EC 89 05").count(1).get(0).get<char>(12);
+	// first one is subtractive; motivation for relying on count >1 is that this is a RAGE function, unlikely to get modified by patches
+	location = hook::pattern("48 8D 4D D0 33 D2 44 89 7D EC 89 05").count(2).get(1).get<char>(12);
 
 	stockStates[BlendStatePremultiplied] = (uint32_t*)(*(int32_t*)location + location + 4);
 
@@ -375,5 +385,7 @@ static HookFunction hookFunction([] ()
 
 	g_drawCommandBuffer = (rage::dlDrawCommandBuffer**)(*(int32_t*)location + location + 4);
 
+	location = hook::pattern("42 09 0C 02 BA 01 00 00 00 83 F9 04 0F 44 C2").count(1).get(0).get<char>(-15);
 
+	g_renderThreadTlsIndex = *(int32_t*)location;
 });

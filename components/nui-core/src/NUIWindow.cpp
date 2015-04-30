@@ -67,7 +67,7 @@ void NUIWindow::Initialize(CefString url)
 	textureDef.isStaging = 0;
 	textureDef.arraySize = 1;
 
-	m_nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(m_width, m_height, FORMAT_A8R8G8B8, true, &textureDef);
+	m_nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(m_width, m_height, FORMAT_A8R8G8B8, nullptr, true, &textureDef);
 
 	// create the client/browser instance
 	m_client = new NUIClient(this);

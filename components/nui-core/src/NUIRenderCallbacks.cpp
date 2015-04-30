@@ -18,6 +18,7 @@ static InitFunction initFunction([] ()
 		});
 	});
 
+#if defined(GTA_NY)
 	DoWeIgnoreTheFrontend.Connect([] (bool& dw)
 	{
 		if (nui::HasMainUI())
@@ -25,6 +26,7 @@ static InitFunction initFunction([] ()
 			dw = true;
 		}
 	});
+#endif
 
 	OnPostFrontendRender.Connect([] ()
 	{
@@ -37,10 +39,10 @@ static InitFunction initFunction([] ()
 		void(*rendCB)() = [] ()
 		{
 #else
-		uint32_t a1;
-		uint32_t a2;
+		uintptr_t a1;
+		uintptr_t a2;
 
-		EnqueueGenericDrawCommand([] (uint32_t, uint32_t)
+		EnqueueGenericDrawCommand([] (uintptr_t, uintptr_t)
 		{
 #endif
 			if (nui::HasMainUI())
@@ -64,8 +66,13 @@ static InitFunction initFunction([] ()
 					return;
 				}
 
+#ifndef _HAVE_GRCORE_NEWSTATES
 				// set the render state to account for premultiplied alpha
 				SetRenderState(2, 13);
+#else
+				auto oldBlendState = GetBlendState();
+				SetBlendState(GetStockStateIdentifier(BlendStatePremultiplied));
+#endif
 
 				if (window->GetTexture())
 				{
@@ -77,8 +84,16 @@ static InitFunction initFunction([] ()
 					// we need to subtract 0.5f from each vertex coordinate (half a pixel after scaling) due to the usual half-pixel/texel issue
 					uint32_t color = 0xFFFFFFFF;
 
+#ifndef GTA_FIVE
 					DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+#else
+					DrawImSprite(0, 0, resX, resY, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+#endif
 				}
+
+#ifdef _HAVE_GRCORE_NEWSTATES
+				SetBlendState(oldBlendState);
+#endif
 			});
 
 			if (nui::HasMainUI())

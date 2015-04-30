@@ -6,8 +6,8 @@ includedirs { "../../client/libcef/" }
 
 links { "libcef_dll", "delayimp" }
 
-configuration "Debug*"
-	links { "libcefd" }
-	
-configuration "Release*"
+filter 'architecture:not x64'
 	links { "libcef" }
+
+filter 'architecture:x64'
+	links { "libcef64" }

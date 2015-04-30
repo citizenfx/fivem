@@ -59,3 +59,4 @@ component 'lovely-script'
 component 'ros-five'
 
 component 'gta-net-five'
+component 'rage-input-five'

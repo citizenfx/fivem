@@ -88,6 +88,8 @@ public:
 
 	virtual int m_unk2() = 0;
 
+	virtual int m_unk3() = 0;
+
 	virtual bool Map(int numSubLevels, int subLevel, grcLockedTexture* lockedTexture, grcLockFlags flags) = 0;
 
 	virtual void Unmap(grcLockedTexture* lockedTexture) = 0;
@@ -96,7 +98,7 @@ public:
 	static bool GAMESPEC_EXPORT IsRenderSystemColorSwapped();
 };
 
-#define FORMAT_A8R8G8B8 2
+#define FORMAT_A8R8G8B8 40
 
 struct grcTextureReference
 {
@@ -123,8 +125,9 @@ public:
 struct grcManualTextureDef
 {
 	int isStaging;
-	char pad[24];
+	char pad[32];
 	int arraySize;
+	char pad2[16];
 };
 
 class grcTextureFactory
@@ -134,7 +137,7 @@ public:
 
 	virtual grcTexture* unk_8() = 0;
 
-	virtual grcTexture* createManualTexture(short width, short height, int format, void* unknown, const grcManualTextureDef* templ) = 0;
+	virtual grcTexture* createManualTexture(short width, short height, int format, void* unknown, bool, const grcManualTextureDef* templ) = 0;
 
 	virtual grcTexture* createImage(grcTextureReference* texture, void* unkTemplate) = 0;
 
