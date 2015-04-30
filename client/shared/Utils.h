@@ -192,3 +192,15 @@ bool UrlDecode(const std::string& in, std::string& out);
 void CreateDirectoryAnyDepth(const char *path);
 
 void SetThreadName(int threadId, char* threadName);
+
+extern "C" bool
+#ifdef COMPILING_CORE
+	DLL_EXPORT
+#endif
+	CoreIsDebuggerPresent();
+
+extern "C" void
+#ifdef COMPILING_CORE
+	DLL_EXPORT
+#endif
+	CoreSetDebuggerPresent();

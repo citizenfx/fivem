@@ -379,6 +379,8 @@ void CitizenGame::Launch(std::wstring& gamePath)
 		return;
 	}
 
+	CoreSetDebuggerPresent();
+
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
 

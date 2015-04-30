@@ -114,6 +114,10 @@ const wchar_t* va(const wchar_t* string, ...)
 	return &buffer[thisBuffer * BUFFER_LENGTH];
 }
 
+#ifdef _WIN32
+#include <winternl.h>
+#endif
+
 void trace(const char* string, ...)
 {
 	static char buffer[BUFFER_LENGTH];
@@ -130,7 +134,14 @@ void trace(const char* string, ...)
 	}
 
 #ifdef _WIN32
+	PPEB peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
+
+	bool oldDebugged = peb->BeingDebugged;
+	peb->BeingDebugged = CoreIsDebuggerPresent();
+
 	OutputDebugStringA(buffer);
+
+	peb->BeingDebugged = oldDebugged;
 #endif
 
 	printf("%s", buffer);
