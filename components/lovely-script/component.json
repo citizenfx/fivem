@@ -3,7 +3,8 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"rage:scripting:five"
+		"rage:scripting:five",
+		"font-renderer"
 	],
 	"provides": []
 }

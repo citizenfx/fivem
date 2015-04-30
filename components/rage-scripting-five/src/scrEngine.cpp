@@ -142,8 +142,12 @@ static InitFunction initFunction([] ()
 	});
 });*/
 
+uint64_t MapNative(uint64_t inNative);
+
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 {
+	hash = MapNative(hash);
+
 	NativeRegistration* table = registrationTable[hash & 0xFF];
 
 	for (; table; table = table->nextRegistration)

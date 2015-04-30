@@ -654,6 +654,13 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("C7 45 10 8B 30 7A FE E8 ? ? ? ? 4C 8D 45 10 48 8D 15 ? ? ? ? F3 0F 11").count(1).get(0).get<char>(19);
 
 	uintptr_t addr = (uintptr_t)(location + *(int32_t*)location + 4);
+
+	// patch 350 adds a 'xor ecx, ecx' before the jump
+	if (*(char*)(addr) == 0x33)
+	{
+		addr += 2;
+	}
+
 	hook::set_call(&origNetFrame, addr);
 	hook::jump(addr, CustomNetFrame);
 
@@ -697,7 +704,7 @@ static HookFunction hookFunction([] ()
 	// other security key thing
 	//hook::jump(hook::pattern("8B C0 41 8B C9 48 69 C9 A7 FA DC 5C 48").count(1).get(0).get<void>(-0x38), GetOurSecurityKey);
 
-	void* thing = hook::pattern("4C 8B F1 E8 ? ? ? ? 41 8B 8E E0 00 00 00 83").count(1).get(0).get<void>();
+	/*void* thing = hook::pattern("4C 8B F1 E8 ? ? ? ? 41 8B 8E E0 00 00 00 83").count(1).get(0).get<void>();
 	void* udderThing = hook::pattern("48 8D A8 B8 FD FF FF 48 81 EC 10 03 00 00 4C 8B").count(1).get(0).get<void>();
 
 	void* cmdThing = hook::pattern("4D 8B F0 48 8B FA 44 8D 7B 02 48 8B F1 48 39").count(1).get(0).get<void>();
@@ -761,7 +768,7 @@ static HookFunction hookFunction([] ()
 
 	void* packCloneCreate = hook::pattern("4D 8B E1 4D 8B F8 FF 90  18 01 00 00 33 ED 84 C0").count(1).get(0).get<void>();
 
-	void* aroundPlayerNetObject = hook::pattern("0F 94 C3 E8 ? ? ? ? 84 DB 74 13 45 38").count(1).get(0).get<void>();
+	void* aroundPlayerNetObject = hook::pattern("0F 94 C3 E8 ? ? ? ? 84 DB 74 13 45 38").count(1).get(0).get<void>();*/
 
 	if (!_stricmp(getenv("COMPUTERNAME"), "fallarbor"))
 	{

@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"font-renderer"
+		"vendor:udis86"
 	],
 	"provides": []
 }
