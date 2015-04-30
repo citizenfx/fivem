@@ -16,6 +16,8 @@
 #include "include/capi/cef_geolocation_capi.h"
 #include "include/cef_origin_whitelist.h"
 #include "include/capi/cef_origin_whitelist_capi.h"
+#include "include/cef_parser.h"
+#include "include/capi/cef_parser_capi.h"
 #include "include/cef_path_util.h"
 #include "include/capi/cef_path_util_capi.h"
 #include "include/cef_process_util.h"
@@ -26,8 +28,6 @@
 #include "include/capi/cef_task_capi.h"
 #include "include/cef_trace.h"
 #include "include/capi/cef_trace_capi.h"
-#include "include/cef_url.h"
-#include "include/capi/cef_url_capi.h"
 #include "include/cef_v8.h"
 #include "include/capi/cef_v8_capi.h"
 #include "include/cef_web_plugin.h"
@@ -39,6 +39,7 @@
 #include "libcef_dll/cpptoc/context_menu_handler_cpptoc.h"
 #include "libcef_dll/cpptoc/cookie_visitor_cpptoc.h"
 #include "libcef_dll/cpptoc/domvisitor_cpptoc.h"
+#include "libcef_dll/cpptoc/delete_cookies_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/dialog_handler_cpptoc.h"
 #include "libcef_dll/cpptoc/display_handler_cpptoc.h"
 #include "libcef_dll/cpptoc/download_handler_cpptoc.h"
@@ -62,6 +63,7 @@
 #include "libcef_dll/cpptoc/resource_handler_cpptoc.h"
 #include "libcef_dll/cpptoc/run_file_dialog_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/scheme_handler_factory_cpptoc.h"
+#include "libcef_dll/cpptoc/set_cookie_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/string_visitor_cpptoc.h"
 #include "libcef_dll/cpptoc/task_cpptoc.h"
 #include "libcef_dll/cpptoc/urlrequest_client_cpptoc.h"
@@ -70,7 +72,6 @@
 #include "libcef_dll/cpptoc/web_plugin_info_visitor_cpptoc.h"
 #include "libcef_dll/cpptoc/web_plugin_unstable_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/write_handler_cpptoc.h"
-#include "libcef_dll/ctocpp/allow_certificate_error_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/auth_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/before_download_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/binary_value_ctocpp.h"
@@ -96,7 +97,7 @@
 #include "libcef_dll/ctocpp/print_job_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/print_settings_ctocpp.h"
 #include "libcef_dll/ctocpp/process_message_ctocpp.h"
-#include "libcef_dll/ctocpp/quota_callback_ctocpp.h"
+#include "libcef_dll/ctocpp/request_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/sslcert_principal_ctocpp.h"
 #include "libcef_dll/ctocpp/sslinfo_ctocpp.h"
 #include "libcef_dll/ctocpp/scheme_registrar_ctocpp.h"
@@ -109,6 +110,7 @@
 #include "libcef_dll/ctocpp/v8stack_frame_ctocpp.h"
 #include "libcef_dll/ctocpp/v8stack_trace_ctocpp.h"
 #include "libcef_dll/ctocpp/v8value_ctocpp.h"
+#include "libcef_dll/ctocpp/value_ctocpp.h"
 #include "libcef_dll/ctocpp/web_plugin_info_ctocpp.h"
 #include "libcef_dll/ctocpp/xml_reader_ctocpp.h"
 #include "libcef_dll/ctocpp/zip_reader_ctocpp.h"
@@ -176,8 +178,6 @@ CEF_GLOBAL void CefShutdown() {
 
 #ifndef NDEBUG
   // Check that all wrapper objects have been destroyed
-  DCHECK(base::AtomicRefCountIsZero(
-      &CefAllowCertificateErrorCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefAuthCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefBeforeDownloadCallbackCToCpp::DebugObjCt));
@@ -194,6 +194,8 @@ CEF_GLOBAL void CefShutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefDOMDocumentCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDOMNodeCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDOMVisitorCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefDeleteCookiesCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDialogHandlerCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDictionaryValueCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDisplayHandlerCppToC::DebugObjCt));
@@ -227,11 +229,11 @@ CEF_GLOBAL void CefShutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefPrintJobCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefPrintSettingsCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefProcessMessageCToCpp::DebugObjCt));
-  DCHECK(base::AtomicRefCountIsZero(&CefQuotaCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefReadHandlerCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefRenderHandlerCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefRenderProcessHandlerCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefRequestCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefRequestHandlerCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefResourceBundleHandlerCppToC::DebugObjCt));
@@ -243,6 +245,7 @@ CEF_GLOBAL void CefShutdown() {
   DCHECK(base::AtomicRefCountIsZero(
       &CefSchemeHandlerFactoryCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSchemeRegistrarCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefSetCookieCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStreamReaderCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStreamWriterCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStringVisitorCppToC::DebugObjCt));
@@ -257,6 +260,7 @@ CEF_GLOBAL void CefShutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefV8StackFrameCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8StackTraceCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8ValueCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefValueCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefWebPluginInfoCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefWebPluginInfoVisitorCppToC::DebugObjCt));
@@ -374,152 +378,6 @@ CEF_GLOBAL bool CefClearCrossOriginWhitelist() {
 
   // Return type: bool
   return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefGetPath(PathKey key, CefString& path) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  int _retval = cef_get_path(
-      key,
-      path.GetWritableStruct());
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefLaunchProcess(CefRefPtr<CefCommandLine> command_line) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: command_line; type: refptr_same
-  DCHECK(command_line.get());
-  if (!command_line.get())
-    return false;
-
-  // Execute
-  int _retval = cef_launch_process(
-      CefCommandLineCToCpp::Unwrap(command_line));
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefRegisterSchemeHandlerFactory(const CefString& scheme_name,
-    const CefString& domain_name,
-    CefRefPtr<CefSchemeHandlerFactory> factory) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: scheme_name; type: string_byref_const
-  DCHECK(!scheme_name.empty());
-  if (scheme_name.empty())
-    return false;
-  // Unverified params: domain_name, factory
-
-  // Execute
-  int _retval = cef_register_scheme_handler_factory(
-      scheme_name.GetStruct(),
-      domain_name.GetStruct(),
-      CefSchemeHandlerFactoryCppToC::Wrap(factory));
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefClearSchemeHandlerFactories() {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  int _retval = cef_clear_scheme_handler_factories();
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefCurrentlyOn(CefThreadId threadId) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  int _retval = cef_currently_on(
-      threadId);
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefPostTask(CefThreadId threadId, CefRefPtr<CefTask> task) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: task; type: refptr_diff
-  DCHECK(task.get());
-  if (!task.get())
-    return false;
-
-  // Execute
-  int _retval = cef_post_task(
-      threadId,
-      CefTaskCppToC::Wrap(task));
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefPostDelayedTask(CefThreadId threadId,
-    CefRefPtr<CefTask> task, int64 delay_ms) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: task; type: refptr_diff
-  DCHECK(task.get());
-  if (!task.get())
-    return false;
-
-  // Execute
-  int _retval = cef_post_delayed_task(
-      threadId,
-      CefTaskCppToC::Wrap(task),
-      delay_ms);
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefBeginTracing(const CefString& categories,
-    CefRefPtr<CefCompletionCallback> callback) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Unverified params: categories, callback
-
-  // Execute
-  int _retval = cef_begin_tracing(
-      categories.GetStruct(),
-      CefCompletionCallbackCppToC::Wrap(callback));
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL bool CefEndTracing(const CefString& tracing_file,
-    CefRefPtr<CefEndTracingCallback> callback) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Unverified params: tracing_file, callback
-
-  // Execute
-  int _retval = cef_end_tracing(
-      tracing_file.GetStruct(),
-      CefEndTracingCallbackCppToC::Wrap(callback));
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
-CEF_GLOBAL int64 CefNowFromSystemTraceTime() {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  int64 _retval = cef_now_from_system_trace_time();
-
-  // Return type: simple
-  return _retval;
 }
 
 CEF_GLOBAL bool CefParseURL(const CefString& url, CefURLParts& parts) {
@@ -670,6 +528,171 @@ CEF_GLOBAL CefString CefURIDecode(const CefString& text, bool convert_to_utf8,
   CefString _retvalStr;
   _retvalStr.AttachToUserFree(_retval);
   return _retvalStr;
+}
+
+CEF_GLOBAL bool CefParseCSSColor(const CefString& string, bool strict,
+    cef_color_t& color) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: string; type: string_byref_const
+  DCHECK(!string.empty());
+  if (string.empty())
+    return false;
+
+  // Execute
+  int _retval = cef_parse_csscolor(
+      string.GetStruct(),
+      strict,
+      &color);
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefGetPath(PathKey key, CefString& path) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = cef_get_path(
+      key,
+      path.GetWritableStruct());
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefLaunchProcess(CefRefPtr<CefCommandLine> command_line) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: command_line; type: refptr_same
+  DCHECK(command_line.get());
+  if (!command_line.get())
+    return false;
+
+  // Execute
+  int _retval = cef_launch_process(
+      CefCommandLineCToCpp::Unwrap(command_line));
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefRegisterSchemeHandlerFactory(const CefString& scheme_name,
+    const CefString& domain_name,
+    CefRefPtr<CefSchemeHandlerFactory> factory) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: scheme_name; type: string_byref_const
+  DCHECK(!scheme_name.empty());
+  if (scheme_name.empty())
+    return false;
+  // Unverified params: domain_name, factory
+
+  // Execute
+  int _retval = cef_register_scheme_handler_factory(
+      scheme_name.GetStruct(),
+      domain_name.GetStruct(),
+      CefSchemeHandlerFactoryCppToC::Wrap(factory));
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefClearSchemeHandlerFactories() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = cef_clear_scheme_handler_factories();
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefCurrentlyOn(CefThreadId threadId) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = cef_currently_on(
+      threadId);
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefPostTask(CefThreadId threadId, CefRefPtr<CefTask> task) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: task; type: refptr_diff
+  DCHECK(task.get());
+  if (!task.get())
+    return false;
+
+  // Execute
+  int _retval = cef_post_task(
+      threadId,
+      CefTaskCppToC::Wrap(task));
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefPostDelayedTask(CefThreadId threadId,
+    CefRefPtr<CefTask> task, int64 delay_ms) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: task; type: refptr_diff
+  DCHECK(task.get());
+  if (!task.get())
+    return false;
+
+  // Execute
+  int _retval = cef_post_delayed_task(
+      threadId,
+      CefTaskCppToC::Wrap(task),
+      delay_ms);
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefBeginTracing(const CefString& categories,
+    CefRefPtr<CefCompletionCallback> callback) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Unverified params: categories, callback
+
+  // Execute
+  int _retval = cef_begin_tracing(
+      categories.GetStruct(),
+      CefCompletionCallbackCppToC::Wrap(callback));
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL bool CefEndTracing(const CefString& tracing_file,
+    CefRefPtr<CefEndTracingCallback> callback) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Unverified params: tracing_file, callback
+
+  // Execute
+  int _retval = cef_end_tracing(
+      tracing_file.GetStruct(),
+      CefEndTracingCallbackCppToC::Wrap(callback));
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+CEF_GLOBAL int64 CefNowFromSystemTraceTime() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int64 _retval = cef_now_from_system_trace_time();
+
+  // Return type: simple
+  return _retval;
 }
 
 CEF_GLOBAL bool CefRegisterExtension(const CefString& extension_name,

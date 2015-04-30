@@ -35,13 +35,15 @@
 #ifndef CEF_INCLUDE_CEF_VERSION_H_
 #define CEF_INCLUDE_CEF_VERSION_H_
 
+#define CEF_VERSION "3.2339.1261.g0369063"
 #define CEF_VERSION_MAJOR 3
-#define CEF_REVISION 2032
+#define CEF_COMMIT_NUMBER 1261
+#define CEF_COMMIT_HASH "0369063810f81cabf6f9ad38cc894273a8aecd8c"
 #define COPYRIGHT_YEAR 2015
 
-#define CHROME_VERSION_MAJOR 42
+#define CHROME_VERSION_MAJOR 43
 #define CHROME_VERSION_MINOR 0
-#define CHROME_VERSION_BUILD 2295
+#define CHROME_VERSION_BUILD 2339
 #define CHROME_VERSION_PATCH 0
 
 #define DO_MAKE_STRING(p) #p
@@ -61,25 +63,19 @@ extern "C" {
 // universal hash value will change if any platform is affected whereas the
 // platform hash values will change only if that particular platform is
 // affected.
-#define CEF_API_HASH_UNIVERSAL "a29d033eb13c075125c84f8a9e29068e628c9c75"
+#define CEF_API_HASH_UNIVERSAL "2b3193123e3383250ab2063849efe7db537bd4c1"
 #if defined(OS_WIN)
-#define CEF_API_HASH_PLATFORM "2f0065584764658a036b122989959852a3e439e4"
+#define CEF_API_HASH_PLATFORM "27c1156f5f9b4d4271ec2e146a1e10fb47a01712"
 #elif defined(OS_MACOSX)
-#define CEF_API_HASH_PLATFORM "ac854e931b9a26aadd8ce2c65160b5a4a0100817"
+#define CEF_API_HASH_PLATFORM "f6e8bce3f2a055cb80402692d500986607463e32"
 #elif defined(OS_LINUX)
-#define CEF_API_HASH_PLATFORM "901ddec92013aaed0e66158a31e286fa5fcbe61f"
+#define CEF_API_HASH_PLATFORM "e50a8044ea7deea0578a41f602f412826eb0ea0a"
 #endif
 
-///
-// Returns the CEF build revision for the libcef library.
-///
-CEF_EXPORT int cef_build_revision();
-
-///
 // Returns CEF version information for the libcef library. The |entry|
 // parameter describes which version component will be returned:
 // 0 - CEF_VERSION_MAJOR
-// 1 - CEF_REVISION
+// 1 - CEF_COMMIT_NUMBER
 // 2 - CHROME_VERSION_MAJOR
 // 3 - CHROME_VERSION_MINOR
 // 4 - CHROME_VERSION_BUILD
@@ -93,6 +89,7 @@ CEF_EXPORT int cef_version_info(int entry);
 // hash value will be returned:
 // 0 - CEF_API_HASH_PLATFORM
 // 1 - CEF_API_HASH_UNIVERSAL
+// 2 - CEF_COMMIT_HASH
 ///
 CEF_EXPORT const char* cef_api_hash(int entry);
 

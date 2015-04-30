@@ -54,6 +54,8 @@ set(LIBCEF_CPPTOC_SRCS
   cpptoc/cookie_visitor_cpptoc.cc
   cpptoc/cookie_visitor_cpptoc.h
   cpptoc/cpptoc.h
+  cpptoc/delete_cookies_callback_cpptoc.cc
+  cpptoc/delete_cookies_callback_cpptoc.h
   cpptoc/dialog_handler_cpptoc.cc
   cpptoc/dialog_handler_cpptoc.h
   cpptoc/display_handler_cpptoc.cc
@@ -104,6 +106,8 @@ set(LIBCEF_CPPTOC_SRCS
   cpptoc/run_file_dialog_callback_cpptoc.h
   cpptoc/scheme_handler_factory_cpptoc.cc
   cpptoc/scheme_handler_factory_cpptoc.h
+  cpptoc/set_cookie_callback_cpptoc.cc
+  cpptoc/set_cookie_callback_cpptoc.h
   cpptoc/string_visitor_cpptoc.cc
   cpptoc/string_visitor_cpptoc.h
   cpptoc/task_cpptoc.cc
@@ -124,8 +128,6 @@ set(LIBCEF_CPPTOC_SRCS
 source_group(libcef_dll\\\\cpptoc FILES ${LIBCEF_CPPTOC_SRCS})
 
 set(LIBCEF_CTOCPP_SRCS
-  ctocpp/allow_certificate_error_callback_ctocpp.cc
-  ctocpp/allow_certificate_error_callback_ctocpp.h
   ctocpp/auth_callback_ctocpp.cc
   ctocpp/auth_callback_ctocpp.h
   ctocpp/base_ctocpp.h
@@ -184,8 +186,8 @@ set(LIBCEF_CTOCPP_SRCS
   ctocpp/print_settings_ctocpp.h
   ctocpp/process_message_ctocpp.cc
   ctocpp/process_message_ctocpp.h
-  ctocpp/quota_callback_ctocpp.cc
-  ctocpp/quota_callback_ctocpp.h
+  ctocpp/request_callback_ctocpp.cc
+  ctocpp/request_callback_ctocpp.h
   ctocpp/request_context_ctocpp.cc
   ctocpp/request_context_ctocpp.h
   ctocpp/request_ctocpp.cc
@@ -216,6 +218,8 @@ set(LIBCEF_CTOCPP_SRCS
   ctocpp/v8stack_trace_ctocpp.h
   ctocpp/v8value_ctocpp.cc
   ctocpp/v8value_ctocpp.h
+  ctocpp/value_ctocpp.cc
+  ctocpp/value_ctocpp.h
   ctocpp/web_plugin_info_ctocpp.cc
   ctocpp/web_plugin_info_ctocpp.h
   ctocpp/xml_reader_ctocpp.cc
@@ -257,6 +261,7 @@ set(LIBCEF_INCLUDE_SRCS
   ../include/cef_origin_whitelist.h
   ../include/cef_pack_resources.h
   ../include/cef_pack_strings.h
+  ../include/cef_parser.h
   ../include/cef_path_util.h
   ../include/cef_print_handler.h
   ../include/cef_print_settings.h
@@ -278,7 +283,6 @@ set(LIBCEF_INCLUDE_SRCS
   ../include/cef_string_visitor.h
   ../include/cef_task.h
   ../include/cef_trace.h
-  ../include/cef_url.h
   ../include/cef_urlrequest.h
   ../include/cef_v8.h
   ../include/cef_values.h
@@ -377,6 +381,7 @@ set(LIBCEF_INCLUDE_CAPI_SRCS
   ../include/capi/cef_menu_model_capi.h
   ../include/capi/cef_navigation_entry_capi.h
   ../include/capi/cef_origin_whitelist_capi.h
+  ../include/capi/cef_parser_capi.h
   ../include/capi/cef_path_util_capi.h
   ../include/capi/cef_print_handler_capi.h
   ../include/capi/cef_print_settings_capi.h
@@ -397,7 +402,6 @@ set(LIBCEF_INCLUDE_CAPI_SRCS
   ../include/capi/cef_string_visitor_capi.h
   ../include/capi/cef_task_capi.h
   ../include/capi/cef_trace_capi.h
-  ../include/capi/cef_url_capi.h
   ../include/capi/cef_urlrequest_capi.h
   ../include/capi/cef_v8_capi.h
   ../include/capi/cef_values_capi.h

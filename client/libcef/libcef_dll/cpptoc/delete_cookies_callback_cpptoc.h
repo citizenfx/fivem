@@ -10,33 +10,27 @@
 // for more information.
 //
 
-#ifndef CEF_LIBCEF_DLL_CTOCPP_QUOTA_CALLBACK_CTOCPP_H_
-#define CEF_LIBCEF_DLL_CTOCPP_QUOTA_CALLBACK_CTOCPP_H_
+#ifndef CEF_LIBCEF_DLL_CPPTOC_DELETE_COOKIES_CALLBACK_CPPTOC_H_
+#define CEF_LIBCEF_DLL_CPPTOC_DELETE_COOKIES_CALLBACK_CPPTOC_H_
 #pragma once
 
 #ifndef USING_CEF_SHARED
 #pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
 #else  // USING_CEF_SHARED
 
-#include "include/cef_request_handler.h"
-#include "include/capi/cef_request_handler_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "include/cef_cookie.h"
+#include "include/capi/cef_cookie_capi.h"
+#include "libcef_dll/cpptoc/cpptoc.h"
 
-// Wrap a C structure with a C++ class.
+// Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed wrapper-side only.
-class CefQuotaCallbackCToCpp
-    : public CefCToCpp<CefQuotaCallbackCToCpp, CefQuotaCallback,
-        cef_quota_callback_t> {
+class CefDeleteCookiesCallbackCppToC
+    : public CefCppToC<CefDeleteCookiesCallbackCppToC, CefDeleteCookiesCallback,
+        cef_delete_cookies_callback_t> {
  public:
-  explicit CefQuotaCallbackCToCpp(cef_quota_callback_t* str)
-      : CefCToCpp<CefQuotaCallbackCToCpp, CefQuotaCallback,
-          cef_quota_callback_t>(str) {}
-
-  // CefQuotaCallback methods
-  virtual void Continue(bool allow) OVERRIDE;
-  virtual void Cancel() OVERRIDE;
+  explicit CefDeleteCookiesCallbackCppToC(CefDeleteCookiesCallback* cls);
 };
 
 #endif  // USING_CEF_SHARED
-#endif  // CEF_LIBCEF_DLL_CTOCPP_QUOTA_CALLBACK_CTOCPP_H_
+#endif  // CEF_LIBCEF_DLL_CPPTOC_DELETE_COOKIES_CALLBACK_CPPTOC_H_
 
