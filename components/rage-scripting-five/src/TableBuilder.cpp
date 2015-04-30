@@ -306,6 +306,4 @@ static HookFunction hookFunction([] ()
 
 		fclose(file);
 	}
-
-	__debugbreak();
 });
