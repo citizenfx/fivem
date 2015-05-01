@@ -120,7 +120,12 @@ const wchar_t* va(const wchar_t* string, ...)
 
 void trace(const char* string, ...)
 {
-	static char buffer[BUFFER_LENGTH];
+	static __thread char* buffer;
+
+	if (!buffer)
+	{
+		buffer = new char[BUFFER_LENGTH];
+	}
 
 	va_list ap;
 	va_start(ap, string);
@@ -141,10 +146,15 @@ void trace(const char* string, ...)
 
 	OutputDebugStringA(buffer);
 
-	peb->BeingDebugged = oldDebugged;
-#endif
+	if (!CoreIsDebuggerPresent())
+	{
+		printf("%s", buffer);
+	}
 
+	peb->BeingDebugged = oldDebugged;
+#else
 	printf("%s", buffer);
+#endif
 
 	// TODO: write to a log file too, if enabled?
 }
