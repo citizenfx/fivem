@@ -50,7 +50,14 @@ fwPlatformString GetAbsoluteGamePath()
 
 		wchar_t path[512];
 
-		GetPrivateProfileString(L"Game", L"IVPath", L"", path, _countof(path), fpath.c_str());
+		const wchar_t* pathKey = L"IVPath";
+
+		if (wcsstr(GetCommandLine(), L"cl2"))
+		{
+			pathKey = L"PathCL2";
+		}
+
+		GetPrivateProfileString(L"Game", pathKey, L"", path, _countof(path), fpath.c_str());
 
 		gamePath = path;
 		gamePath += L"\\";

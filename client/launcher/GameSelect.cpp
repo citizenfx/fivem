@@ -11,12 +11,18 @@
 void EnsureGamePath()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	const wchar_t* pathKey = L"IVPath";
+
+	if (wcsstr(GetCommandLine(), L"cl2"))
+	{
+		pathKey = L"PathCL2";
+	}
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
 		wchar_t path[256];
 
-		GetPrivateProfileString(L"Game", L"IVPath", L"", path, _countof(path), fpath.c_str());
+		GetPrivateProfileString(L"Game", pathKey, L"", path, _countof(path), fpath.c_str());
 
 		if (path[0] != L'\0')
 		{
@@ -62,10 +68,10 @@ void EnsureGamePath()
 
 	result->Release();
 
-	// check if there's an IV EXE in the path
-	std::wstring ivPath = std::wstring(resultPath) + L"\\" GAME_EXECUTABLE;
+	// check if there's a game EXE in the path
+	std::wstring gamePath = std::wstring(resultPath) + L"\\" GAME_EXECUTABLE;
 
-	if (GetFileAttributes(ivPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributes(gamePath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 #if defined(GTA_NY)
 		std::wstring eflcPath = std::wstring(resultPath) + L"\\EFLC.exe";
@@ -83,7 +89,7 @@ void EnsureGamePath()
 		ExitProcess(0);
 	}
 	
-	WritePrivateProfileString(L"Game", L"IVPath", resultPath, fpath.c_str());
+	WritePrivateProfileString(L"Game", pathKey, resultPath, fpath.c_str());
 
 	CoTaskMemFree(resultPath);
 }
