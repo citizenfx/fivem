@@ -33,6 +33,11 @@ static void SysError(const char* buffer)
 #endif
 
 	MessageBoxA(wnd, buffer, "CitizenFX Fatal Error", MB_OK | MB_ICONSTOP);
+
+#ifdef _DEBUG
+	assert(!"breakpoint time");
+#endif
+
 	ExitProcess(1);
 #else
 	fprintf(stderr, "%s", buffer);
