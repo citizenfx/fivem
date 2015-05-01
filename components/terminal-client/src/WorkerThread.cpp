@@ -28,6 +28,12 @@ void WorkerThread::ThreadFunc()
 	std::vector<HANDLE> waitHandles;
 	std::vector<HandleFn> waitHandleCallbacks;
 
+	// add ourselves as wait handle to make sure the wait handle list always contains one handle
+	m_waitHandleList.push_back(std::make_pair(GetCurrentThread(), [] (HANDLE)
+	{
+		FatalError("Wait call satisfied our thread handle - this shouldn't be possible.");
+	}));
+
 	m_residualTimeout = 50;
 
 	SetThreadName(-1, "Terminal Worker");
