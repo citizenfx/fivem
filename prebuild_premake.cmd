@@ -1,4 +1,7 @@
 @echo off
-cd build\premake
-..\premake5 vs2013
-..\premake5 embed
+powershell -executionpolicy bypass -file citizenmp\prebuild_premake.ps1
+
+pushd build\premake
+..\premake4 vs2013
+..\premake4 embed
+popd
