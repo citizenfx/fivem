@@ -37,7 +37,7 @@ bool NetBuffer::Read(void* buffer, size_t length)
 		// and if it really doesn't fit out of our buffer
 		if ((m_curOff + length) > m_length)
 		{
-			memset(buffer, 0xCE, sizeof(length));
+			memset(buffer, 0xCE, length);
 			return false;
 		}
 	}

@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <boost/type_index.hpp>
+
 class 
 #ifdef COMPILING_NET
 	__declspec(dllexport)
@@ -36,7 +38,10 @@ public:
 	T Read()
 	{
 		T tempValue;
-		Read(&tempValue, sizeof(T));
+		if (!Read(&tempValue, sizeof(T)))
+		{
+			FatalError("NetBuffer::Read<%s>() failed to read %d bytes.", boost::typeindex::type_id<T>().pretty_name().c_str(), sizeof(T));
+		}
 
 		return tempValue;
 	}
