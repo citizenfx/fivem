@@ -29,7 +29,12 @@ void WorkerThread::ThreadFunc()
 	std::vector<HandleFn> waitHandleCallbacks;
 
 	// add ourselves as wait handle to make sure the wait handle list always contains one handle
-	m_waitHandleList.push_back(std::make_pair(GetCurrentThread(), [] (HANDLE)
+	
+	// to do this, we need to duplicate the GetCurrentThread result, as waiting doesn't like the NtCurrentThread pseudo-handle
+	HANDLE ourHandle;
+	DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &ourHandle, SYNCHRONIZE, FALSE, 0);
+
+	m_waitHandleList.push_back(std::make_pair(ourHandle, [] (HANDLE)
 	{
 		FatalError("Wait call satisfied our thread handle - this shouldn't be possible.");
 	}));
