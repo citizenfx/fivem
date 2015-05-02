@@ -262,13 +262,15 @@ void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, flo
 	SetRasterizerState(oldRasterizerState);
 }
 
+static uint32_t* g_resolution;
+
 void GetGameResolution(int& resX, int& resY)
 {
 	//resX = *(int*)0xFDCEAC;
 	//resY = *(int*)0xFDCEB0;
 
-	resX = 2560;
-	resY = 1440;
+	resX = g_resolution[0];
+	resY = g_resolution[1];
 }
 
 hook::cdecl_stub<void(uint32_t)> setRasterizerState([] ()
@@ -353,6 +355,11 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("3B C2 74 13 80 0D ? ? ? ? 01 89").count(1).get(0).get<char>(13);
 
 	g_nextDepthStencilState = (uint32_t*)(*(int32_t*)location + location + 4);
+
+	// resolution
+	location = hook::pattern("C7 05 ? ? ? ? 00 05 00 00").count(1).get(0).get<char>(2);
+
+	g_resolution = (uint32_t*)(*(int32_t*)location + location + 8);
 
 	// states
 	location = hook::pattern("44 89 74 24 5C 89 05 ? ? ? ? E8").count(1).get(0).get<char>(7);
