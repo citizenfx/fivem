@@ -139,7 +139,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			uint16_t netID = msg.Read<uint16_t>();
 			uint16_t rlength = msg.Read<uint16_t>();
 
-			//trace("msgRoute from %d len %d\n", netID, rlength);
+			trace("msgRoute from %d len %d\n", netID, rlength);
 
 			char routeBuffer[65536];
 			if (!msg.Read(routeBuffer, rlength))
@@ -266,6 +266,8 @@ bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* net
 	memcpy(buffer, packet.payload.c_str(), packet.payload.size());
 	*netID = packet.netID;
 	*length = packet.payload.size();
+
+	ResetEvent(m_receiveEvent);
 
 	return true;
 }
@@ -408,11 +410,10 @@ void NetLibrary::ProcessSend()
 		msg.Write(m_lastFrameNumber);
 	}
 
-	while (!m_outgoingPackets.empty())
-	{
-		auto packet = m_outgoingPackets.front();
-		m_outgoingPackets.pop();
+	RoutingPacket packet;
 
+	while (m_outgoingPackets.try_pop(packet))
+	{
 		msg.Write(0xE938445B); // msgRoute
 		msg.Write(packet.netID);
 		msg.Write<uint16_t>(packet.payload.size());
@@ -954,7 +955,7 @@ NetLibrary::NetLibrary()
 	  m_lastReceivedAt(0)
 
 {
-	m_receiveEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	m_receiveEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 }
 
 __declspec(dllexport) fwEvent<NetLibrary*> NetLibrary::OnNetLibraryCreate;

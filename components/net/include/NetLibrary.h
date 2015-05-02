@@ -15,6 +15,8 @@
 
 #include "INetMetricSink.h"
 
+#include <concurrent_queue.h>
+
 #define NETWORK_PROTOCOL 3
 
 enum NetAddressType
@@ -188,7 +190,7 @@ private:
 
 private:
 	std::queue<RoutingPacket> m_incomingPackets;
-	std::queue<RoutingPacket> m_outgoingPackets;
+	concurrency::concurrent_queue<RoutingPacket> m_outgoingPackets;
 
 private:
 	void ProcessOOB(NetAddress& from, char* oob, size_t length);

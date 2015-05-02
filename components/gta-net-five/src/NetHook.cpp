@@ -16,6 +16,8 @@ static NetLibrary* g_netLibrary;
 static SOCKET g_gameSocket;
 static int lastReceivedFrom;
 
+static ULONG g_pendSendVar;
+
 int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * from, int * fromlen)
 {
 	static char buffer[65536];
@@ -64,7 +66,9 @@ int __stdcall CfxSendTo(SOCKET s, char * buf, int len, int flags, sockaddr * to,
 	{
 		if (toIn->sin_addr.S_un.S_un_b.s_b1 == 0xC0 && toIn->sin_addr.S_un.S_un_b.s_b2 == 0xA8)
 		{
-			trace("CfxSendTo (to internal address %i) %i b\n", (htonl(toIn->sin_addr.s_addr) & 0xFFFF) ^ 0xFEED, len);
+			g_pendSendVar = 0;
+
+			trace("CfxSendTo (to internal address %i) %i b (from thread 0x%x)\n", (htonl(toIn->sin_addr.s_addr) & 0xFFFF) ^ 0xFEED, len, GetCurrentThreadId());
 		}
 		else
 		{
@@ -95,10 +99,29 @@ int __stdcall CfxBind(SOCKET s, sockaddr * addr, int addrlen)
 
 	if (htons(addrIn->sin_port) == 6672)
 	{
+		if (wcsstr(GetCommandLine(), L"cl2"))
+		{
+			addrIn->sin_port = htons(6673);
+		}
+
 		g_gameSocket = s;
 	}
 
 	return bind(s, addr, addrlen);
+}
+
+int __stdcall CfxGetSockName(SOCKET s, struct sockaddr* name, int* namelen)
+{
+	int retval = getsockname(s, name, namelen);
+
+	sockaddr_in* addrIn = (sockaddr_in*)name;
+
+	if (s == g_gameSocket && wcsstr(GetCommandLine(), L"cl2"))
+	{
+		addrIn->sin_port = htons(6672);
+	}
+
+	return retval;
 }
 
 int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_opt_ fd_set FAR *writefds, _Inout_opt_ fd_set FAR *exceptfds, _In_opt_ const struct timeval FAR *timeout)
@@ -111,6 +134,7 @@ int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_o
 		{
 			memmove(&readfds->fd_array[i + 1], &readfds->fd_array[i], readfds->fd_count - i - 1);
 			readfds->fd_count -= 1;
+			nfds--;
 
 			if (g_netLibrary->WaitForRoutedPacket((timeout) ? ((timeout->tv_sec * 1000) + (timeout->tv_usec / 1000)) : INFINITE))
 			{
@@ -121,7 +145,10 @@ int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_o
 
 	//FD_ZERO(readfds);
 
-	nfds = select(nfds, readfds, writefds, exceptfds, timeout);
+	if (nfds > 0)
+	{
+		nfds = select(nfds, readfds, writefds, exceptfds, timeout);
+	}
 
 	if (shouldAddSocket)
 	{
@@ -330,15 +357,17 @@ static InitFunction initFunction([] ()
 			dicks = false;
 		}
 
+		static int localKey = (wcsstr(GetCommandLine(), L"cl2")) ? VK_F4 : VK_F5;
+
 		static bool dicks2 = false;
 
-		if (!dicks2 && GetAsyncKeyState(VK_F5) && g_netLibrary->IsDisconnected())
+		if (!dicks2 && GetAsyncKeyState(localKey) && g_netLibrary->IsDisconnected())
 		{
 			g_netLibrary->ConnectToServer("192.168.178.83", 30122);
 
 			dicks2 = true;
 		}
-		else if (!GetAsyncKeyState(VK_F5))
+		else if (!GetAsyncKeyState(localKey))
 		{
 			dicks2 = false;
 		}
@@ -503,6 +532,14 @@ static void __stdcall LogDescriptorDo(int netType)
 		{
 			if (descriptor->id == netType)
 			{
+				g_pendSendVar++;
+
+				if (g_pendSendVar > 40)
+				{
+					// help! too many pending packets!
+					__debugbreak();
+				}
+
 				trace("[%s] %d\n", descriptor->name, netType);
 				return;
 			}
@@ -578,7 +615,7 @@ static void(*g_origPhysical)(CNonPhysicalPlayerData*, uintptr_t);
 
 void CustomPhysical(CNonPhysicalPlayerData* data, uintptr_t a2)
 {
-	trace("-- CNonPhysicalPlayerData --\nBubble ID: %d\nPlayer ID: %d\nPosition: %f, %f, %f\n", data->bubbleId, data->playerId, data->positionX, data->positionY, data->positionZ);
+	//trace("-- CNonPhysicalPlayerData --\nBubble ID: %d\nPlayer ID: %d\nPosition: %f, %f, %f\n", data->bubbleId, data->playerId, data->positionX, data->positionY, data->positionZ);
 
 	g_origPhysical(data, a2);
 }
@@ -593,6 +630,91 @@ static bool ReturnTrueAndKillThatTask(char* playerObj)
 	return true;
 }
 
+void(*origSemaFunc)(void*, int);
+void CustomSemaFunc(void* a, int b)
+{
+	//trace("signal sendto sema\n");
+
+	origSemaFunc(a, b);
+}
+
+int(*origLogFunc)(intptr_t, intptr_t, intptr_t, intptr_t, intptr_t);
+
+int CustomLogFunc(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4, intptr_t a5)
+{
+	int retval = origLogFunc(a1, a2, a3, a4, a5);
+
+	//trace("unk sendto func (ret %d)\n", retval);
+
+	return retval;
+}
+
+int(*origFrag)(intptr_t, intptr_t, intptr_t, intptr_t);
+
+int CustomFrag(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
+{
+	LARGE_INTEGER initTime;
+	QueryPerformanceCounter(&initTime);
+
+	int retval = origFrag(a1, a2, a3, a4);
+
+	LARGE_INTEGER endTime;
+	QueryPerformanceCounter(&endTime);
+
+	static uint32_t lastTick = timeGetTime();
+
+	uint32_t curTick = timeGetTime();
+
+	if ((curTick - lastTick) > 250)
+	{
+		//trace("net send thread took long-ish (%i msec)\n", curTick - lastTick);
+	}
+
+	lastTick = curTick;
+
+	if (retval)
+	{
+		//trace("got net packet on thread, retval %d, counts %d\n", retval, endTime.QuadPart - initTime.QuadPart);
+	}
+
+	return retval;
+}
+
+int(*origPerfSend)(intptr_t, intptr_t, intptr_t, intptr_t, intptr_t);
+
+int CustomPerfSend(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4, intptr_t a5)
+{
+	int retval = origPerfSend(a1, a2, a3, a4, a5);
+
+	//trace("perf send (ret %d)\n", retval);
+
+	return retval;
+}
+
+bool(*origCheckAddr)(intptr_t);
+
+bool CustomCheckAddr(intptr_t a1)
+{
+	bool retval = origCheckAddr(a1);
+
+	//trace("check addr (ret %d)\n", retval);
+
+	return retval;
+}
+
+static int ReturnBandwidthCheck(char* base, int idx)
+{
+	int* bandwidth = (int*)(base + (96 * idx) + 436);
+
+	//static int initBandwidth = *bandwidth;
+
+	//*bandwidth = initBandwidth;
+	//assert(bandwidth[1] == 0);
+	//assert(*bandwidth >= 0);
+
+	return 0;
+}
+
 static HookFunction hookFunction([] ()
 {
 	/*OnPostFrontendRender.Connect([] ()
@@ -605,6 +727,20 @@ static HookFunction hookFunction([] ()
 		TheFonts->DrawText(va(L"> %i <", value), rect, color, 100.0f, 1.0f, "Comic Sans MS");
 	});*/
 
+	char* fragPtr = hook::pattern("66 44 89 7C 24 34 66 44 89 7C 24 3C E8").count(1).get(0).get<char>(12);
+	hook::set_call(&origFrag, fragPtr);
+	hook::call(fragPtr, CustomFrag);
+
+	fragPtr += 0xF7;
+
+	char* perfSend = hook::get_call(fragPtr);
+
+	hook::set_call(&origPerfSend, fragPtr);
+	hook::call(fragPtr, CustomPerfSend);
+
+	hook::set_call(&origCheckAddr, perfSend + 0x3F);
+	hook::call(perfSend + 0x3F, CustomCheckAddr);
+
 	char* location = hook::pattern("32 DB 38 1D ? ? ? ? 75 24 E8").count(1).get(0).get<char>(4);
 	didPresenceStuff = (bool*)(location + *(int32_t*)location + 4);
 
@@ -614,6 +750,7 @@ static HookFunction hookFunction([] ()
 	hook::iat("ws2_32.dll", CfxRecvFrom, 17);
 	hook::iat("ws2_32.dll", CfxBind, 2);
 	hook::iat("ws2_32.dll", CfxSelect, 18);
+	hook::iat("ws2_32.dll", CfxGetSockName, 6);
 
 	// we also need some pointers from this function
 	char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
@@ -770,14 +907,14 @@ static HookFunction hookFunction([] ()
 
 	void* aroundPlayerNetObject = hook::pattern("0F 94 C3 E8 ? ? ? ? 84 DB 74 13 45 38").count(1).get(0).get<void>();*/
 
-	if (!_stricmp(getenv("COMPUTERNAME"), "fallarbor"))
+	/*if (!_stricmp(getenv("COMPUTERNAME"), "fallarbor"))
 	{
 		hook::call(hook::pattern("0F 84 A2 00 00 00 48 8B D0 48 8B CE E8").count(1).get(0).get<void>(12), ByeWorld);
 
 		hook::jump(hook::pattern("48 81 EC 20 06 00 00 48  8B FA 8B 12 48 8B D9").count(1).get(0).get<void>(-0xB), ByeWorld);
 
 		hook::jump(hook::pattern("41 57 48 81 EC 50 06 00  00 48 8B F1 48").count(1).get(0).get<void>(-0x16), ByeWorld);
-	}
+	}*/
 
 	// non-physical player data logging 'hack'
 	location = hook::pattern("48 8B D0 48 85 C0 74 4E 48 8D 05").count(2).get(0).get<char>(11);
@@ -808,6 +945,45 @@ static HookFunction hookFunction([] ()
 
 	// unknownland
 	hook::put<uint16_t>(hook::pattern("8B B5 A0 02 00 00 85 F6 0F 84 B1").count(1).get(0).get<void>(8), 0xE990);
+
+	// always set the net sendto semaphore
+	char* ptrT = hook::pattern("F7 84 24 80 00 00 00 00 00 00 01 74 23").count(1).get(0).get<char>(11);
+
+	hook::nop(ptrT, 2); // direct condition
+	hook::put<uint8_t>(hook::pattern("83 E5 01 75 13 8B 50 1C 49 8B CF").count(1).get(0).get<void>(3), 0xEB); // always bypass bandwidth checks
+	hook::nop(hook::pattern("84 C0 75 32 85 ED 74 63 49 8B CF").count(1).get(0).get<void>(6), 2); // same as above
+	hook::put<uint8_t>(hook::pattern("F6 84 24 80 00 00 00 01 75 02 B3 01").count(1).get(0).get<void>(8), 0xEB);
+
+	ptrT += (0x110 - 0xF0);
+	hook::set_call(&origSemaFunc, ptrT);
+	hook::call(ptrT, CustomSemaFunc);
+
+	ptrT -= (0x110 - 0xA7);
+	hook::set_call(&origLogFunc, ptrT);
+	hook::call(ptrT, CustomLogFunc);
+
+	// objectmgr bandwidth stuff?
+	hook::put<uint8_t>(hook::pattern("F6 82 98 00 00 00 01 74 2C 48").count(1).get(0).get<void>(7), 0xEB);
+	hook::put<uint8_t>(hook::pattern("74 21 80 7F 2D FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
+
+	// even more stuff in the above function?!
+	hook::nop(hook::pattern("85 ED 78 52 84 C0 74 4E 48").count(1).get(0).get<void>(), 8);
+
+	// bandwidth fubbling
+	hook::nop(hook::pattern("2B 83 B8 09 00 00 3B 46 44 8A C2 77 03").count(1).get(0).get<void>(11), 2);
+
+	// more bandwidth ignorance
+	hook::jump(hook::pattern("48 83 EC 20 8B F2 48 8B D9 48 8D 3C 76 48 C1").count(1).get(0).get<void>(-0xB), ReturnBandwidthCheck);
+
+	// don't subtract bandwidth either
+	hook::return_function(hook::pattern("48 83 EC 20 48 83 79 38 00 41 8B F9 4D 8B F0 48").count(1).get(0).get<void>(-0x15));
+
+	// or maybe it's not bandwidth-related at all, and it just needs this timer thing to not break
+	// >it never breaks anyway, but yeah
+	hook::put<uint8_t>(hook::pattern("83 BB 18 01 00 00 00 89 93 1C 01 00 00 7F 38").count(1).get(0).get<void>(13), 0xEB);
+
+	// and just for kicks we'll remove this one as well
+	hook::nop(hook::pattern("44 29 A3 10 01 00 00 83 BB 10 01 00 00 00 0F 8F").count(1).get(0).get<void>(14), 6);
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");
