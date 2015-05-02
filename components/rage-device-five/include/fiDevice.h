@@ -220,6 +220,12 @@ public:
 	// any RAGE path can be used; including root-relative paths
 	void SetPath(const char* relativeTo, rage::fiDevice* baseDevice, bool allowRoot);
 
+	// compatibility wrapper for NY code
+	inline void SetPath(const char* relativeTo, bool allowRoot)
+	{
+		SetPath(relativeTo, nullptr, allowRoot);
+	}
+
 	// mounts the device in the device stack
 	void Mount(const char* mountPoint);
 };
@@ -233,6 +239,12 @@ public:
 
 	// any RAGE path can be used; including root-relative paths
 	void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, int veryFalse);
+
+	// compatibility wrapper
+	inline void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int veryFalse)
+	{
+		OpenPackfile(archive, bTrue, bFalse, 3, veryFalse);
+	}
 
 	// mounts the device in the device stack
 	void Mount(const char* mountPoint);

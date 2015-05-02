@@ -60,3 +60,6 @@ component 'ros-five'
 
 component 'gta-net-five'
 component 'rage-input-five'
+component 'gta-mission-cleanup-five'
+component 'rage-nutsnbolts-five'
+component 'gta-core-five'

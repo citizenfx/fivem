@@ -7,6 +7,8 @@
 
 #include "StdInc.h"
 #include "ResourceScripting.h"
+
+#if defined(GTA_NY)
 #include "HudPos.h"
 
 LUA_FUNCTION(GetHudPosition)
@@ -38,3 +40,4 @@ LUA_FUNCTION(GetHudSize)
 
 	return 2;
 }
+#endif

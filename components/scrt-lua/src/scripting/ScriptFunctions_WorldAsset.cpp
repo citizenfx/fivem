@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "ResourceManager.h"
 #include "ResourceScripting.h"
+
+#if defined(GTA_NY)
 #include "RuntimeHooks.h"
 
 bool SetStreamingWbnMode(bool fs);
@@ -60,3 +62,4 @@ LUA_FUNCTION(SetWorldAssetConfig)
 
 	return 0;
 }
+#endif

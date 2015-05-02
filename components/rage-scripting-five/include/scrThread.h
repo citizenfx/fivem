@@ -168,7 +168,7 @@ public:
 	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
 	virtual void					Kill();
 
-	//inline void RemoveCleanupFlag() { _f94 = 0; }
+	inline void RemoveCleanupFlag() {  }
 };
 
 static_assert(sizeof(GtaThread) == 344, "GtaThread has wrong size!");

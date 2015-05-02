@@ -10,6 +10,8 @@
 #include "ResourceManager.h"
 
 #include "CrossLibraryInterfaces.h"
+
+#if defined(GTA_NY)
 #include "GameFlags.h"
 
 LUA_FUNCTION(SetNetworkWalkModeEnabled)
@@ -34,6 +36,7 @@ static InitFunction initFunc([] ()
 {
 	g_hooksDLL = GetHooksDll();
 });
+#endif
 
 LUA_FUNCTION(echo)
 {

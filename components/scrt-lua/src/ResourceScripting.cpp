@@ -11,6 +11,7 @@
 #include "ResourceScripting.h"
 
 #include <GlobalEvents.h>
+#include <scrThread.h>
 //#include "CrossLibraryInterfaces.h"
 
 bool g_errorOccurredThisFrame;

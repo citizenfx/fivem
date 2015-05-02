@@ -11,7 +11,7 @@
 #include "ResourceManager.h"
 #include "ResourceUI.h"
 
-#include <include/cef_url.h>
+#include <include/cef_parser.h>
 
 class RPCResourceHandler : public CefResourceHandler
 {
@@ -155,7 +155,7 @@ public:
 	{
 		if (m_found)
 		{
-			int toRead = std::min(m_result.size() - m_cursor, (unsigned int)bytes_to_read);
+			int toRead = std::min((unsigned int)m_result.size() - m_cursor, (unsigned int)bytes_to_read);
 
 			memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
 

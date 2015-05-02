@@ -10,7 +10,10 @@
 #include "ResourceManager.h"
 #include "NetLibrary.h"
 
+#if defined(GTA_NY)
 #include <CPlayerInfo.h>
+#endif
+
 #include <scrEngine.h>
 
 static NetLibrary* g_netLibrary;
@@ -64,6 +67,7 @@ static void SendNetEvent(fwString eventName, fwString jsonString, int i)
 {
 	const char* cmdType = "msgNetEvent";
 
+#if defined(GTA_NY)
 	if (i >= 0)
 	{
 		auto info = CPlayerInfo::GetPlayer(i);
@@ -84,7 +88,9 @@ static void SendNetEvent(fwString eventName, fwString jsonString, int i)
 
 		i = netID;
 	}
-	else if (i == -1)
+	else 
+#endif
+		if (i == -1)
 	{
 		i = UINT16_MAX;
 	}
@@ -188,6 +194,7 @@ static InitFunction initFunction([]()
 			// get the source player ID from the net ID
 			uint16_t playerID = -1;
 
+#if defined(GTA_NY)
 			for (int i = 0; i < 32; i++)
 			{
 				if (NativeInvoke::Invoke<0x4E237943, int>(i))
@@ -203,6 +210,7 @@ static InitFunction initFunction([]()
 					}
 				}
 			}
+#endif
 
 			// probably a message from a since-disconnected-from-game's-vision player
 			if (playerID == -1)

@@ -7,7 +7,11 @@
 
 #include "StdInc.h"
 #include "scrEngine.h"
+
+#ifdef GTA_NY
 #include "CPlayerInfo.h"
+#endif
+
 #include "ResourceVFS.h"
 #include "BaseResourceScripting.h"
 #include "ScriptObjectRegistry.h"
@@ -18,6 +22,7 @@ static InitFunction initFunction([] ()
 {
 	using namespace rage;
 
+#ifdef GTA_NY
 	scrEngine::RegisterNativeHandler("GET_PLAYER_SERVER_ID", [] (rage::scrNativeCallContext* context)
 	{
 		int playerIdx = context->GetArgument<int>(0);
@@ -32,6 +37,7 @@ static InitFunction initFunction([] ()
 			context->SetResult(0, info->address.inaOnline.s_addr);
 		}
 	});
+#endif
 
 	scrEngine::RegisterNativeHandler("OPEN_FILE_FOR_READING", [] (rage::scrNativeCallContext* context)
 	{

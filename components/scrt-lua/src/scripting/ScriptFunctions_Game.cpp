@@ -7,6 +7,8 @@
 
 #include "StdInc.h"
 #include "ResourceScripting.h"
+
+#if defined(GTA_NY)
 #include "CPlayerInfo.h"
 
 LUA_FUNCTION(SetLoadingText)
@@ -124,4 +126,5 @@ LUA_FUNCTION(DrawAvatarSprite)
 
 	return 0;
 }
+#endif
 #endif
