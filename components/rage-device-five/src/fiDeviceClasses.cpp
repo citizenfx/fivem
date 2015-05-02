@@ -80,11 +80,15 @@ void fiPackfile::ClosePackfile()
 
 static HookFunction hookFunction([] ()
 {
-	g_vTable_fiDeviceRelative = *hook::pattern("48 85 C0 74 11 48 83 63 08 00 48").count(1).get(0).get<uintptr_t>(11);
+	auto result = hook::pattern("48 85 C0 74 11 48 83 63 08 00 48").count(1).get(0).get<uint32_t>(13);
 
-	auto result = hook::pattern("44 89 41 28 4C 89 41 38 4C 89 41 50 48 8D 05").count(1).get(0).get<uint32_t>(15);
-	
 	uintptr_t endOffset = ((uintptr_t)result) + 4;
+
+	g_vTable_fiDeviceRelative = endOffset + *result;
+
+	result = hook::pattern("44 89 41 28 4C 89 41 38 4C 89 41 50 48 8D 05").count(1).get(0).get<uint32_t>(15);
+	
+	endOffset = ((uintptr_t)result) + 4;
 
 	g_vTable_fiPackfile = endOffset + *result;
 });
