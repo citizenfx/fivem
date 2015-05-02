@@ -30,18 +30,13 @@ hooks = [
 		"action": [ "citizenmp\prebuild_udis86.cmd" ]
 	},
 	{
-		"name": "premake_premake_win",
+		"name": "build_premake_win",
 		"pattern": "build/premake/",
 		"action": [ "citizenmp\prebuild_premake.cmd" ]
 	},
 	{
-		"name": "build_premake_win",
-		"pattern": "build/premake/",
-		"action": [ "msbuild", "build/premake/Premake5.sln", "/p:configuration=release" ]
-	},
-	{
 		"name": "build_luajit_win",
 		"pattern": "vendor/luajit/src/",
-		"action": ["cd", "vendor/luajit/src", "&&", "msvcbuild", "static" ]
+		"action": [ "citizenmp\prebuild_luajit.cmd" ]
 	}
 ]
