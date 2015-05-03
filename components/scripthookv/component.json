@@ -1,0 +1,10 @@
+{
+	"name": "scripthookv",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:scripting:five",
+		"rage:input:five"
+	],
+	"provides": []
+}
