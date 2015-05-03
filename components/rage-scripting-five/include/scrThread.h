@@ -154,7 +154,7 @@ class
 {
 protected:
 	char gta_pad[64];
-	void* m_pMissionCleanup;
+	void* m_pScriptHandler;
 	char gta_pad2[40];
 	char flag1;
 	char m_networkFlag;
@@ -167,6 +167,10 @@ public:
 	virtual rage::eThreadState		Run(uint32_t opsToExecute);
 	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
 	virtual void					Kill();
+
+	inline void* GetScriptHandler() { return m_pScriptHandler; }
+
+	inline void SetScriptHandler(void* scriptHandler) { m_pScriptHandler = scriptHandler; }
 
 	inline void RemoveCleanupFlag() {  }
 };

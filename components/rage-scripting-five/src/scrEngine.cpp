@@ -110,7 +110,17 @@ void scrEngine::CreateThread(GtaThread* thread)
 		g_ownedThreads.insert(thread);
 
 		// attach script to the GTA script handler manager
-		g_scriptHandlerMgr->AttachScript(thread);
+		static void* scriptHandler;
+
+		if (!scriptHandler)
+		{
+			g_scriptHandlerMgr->AttachScript(thread);
+			scriptHandler = thread->GetScriptHandler();
+		}
+		else
+		{
+			thread->SetScriptHandler(scriptHandler);
+		}
 	}
 }
 
@@ -146,6 +156,7 @@ uint64_t MapNative(uint64_t inNative);
 
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 {
+	uint64_t origHash = hash;
 	hash = MapNative(hash);
 
 	NativeRegistration* table = registrationTable[hash & 0xFF];
@@ -156,6 +167,31 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 		{
 			if (hash == table->hashes[i])
 			{
+				// temporary workaround for marking scripts as network script not storing the script handler
+				if (origHash == 0xD1110739EEADB592)
+				{
+					static scrEngine::NativeHandler hashHandler = table->handlers[i];
+
+					return [] (rage::scrNativeCallContext* context)
+					{
+						hashHandler(context);
+
+						GtaThread* thread = static_cast<GtaThread*>(GetActiveThread());
+						void* handler = thread->GetScriptHandler();
+
+						if (handler)
+						{
+							for (auto& ownedThread : g_ownedThreads)
+							{
+								if (ownedThread != thread)
+								{
+									ownedThread->SetScriptHandler(handler);
+								}
+							}
+						}
+					};
+				}
+
 				return table->handlers[i];
 			}
 		}
