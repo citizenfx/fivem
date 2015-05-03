@@ -201,10 +201,12 @@ static_assert(sizeof(ScSessionAddr) == (56), "ScSessionAddr size seems bad...");
 
 bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr* in, void*, ScUnkAddr* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
 {
+	uint64_t sysKey = in->addr.unkKey1 ^ 0xFEAFEDE;
+
 	memcpy(out->systemKey, in->sessionId, sizeof(out->systemKey));
 	*(uint64_t*)(&out->systemKey[8]) = 0;
 
-	out->pad = *(uint64_t*)in->sessionId;
+	out->pad = sysKey;
 	out->lanAddr = in->addr;
 	out->addr = *in;
 	out->unkVal = 1;
@@ -212,6 +214,22 @@ bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int*
 	*outSuccess = 1;
 
 	return true;
+}
+
+static void(*g_origMigrateCopy)(void*, void*);
+
+void MigrateSessionCopy(char* target, char* source)
+{
+	g_origMigrateCopy(target, source);
+
+	ScSessionAddr* sessionAddress = reinterpret_cast<ScSessionAddr*>(target - 16);
+	
+	std::unique_ptr<NetBuffer> msgBuffer(new NetBuffer(64));
+
+	msgBuffer->Write<uint32_t>((sessionAddress->addr.ipLan & 0xFFFF) ^ 0xFEED);
+	msgBuffer->Write<uint32_t>(sessionAddress->addr.unkKey1);
+
+	g_netLibrary->SendReliableCommand("msgHeHost", msgBuffer->GetBuffer(), msgBuffer->GetCurLength());
 }
 
 static hook::cdecl_stub<bool()> isNetworkHost([] ()
@@ -438,7 +456,7 @@ static InitFunction initFunction([] ()
 				netAddr.addr.ipOnline = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
 				netAddr.addr.portOnline = 6672;
 
-				*(uint32_t*)&netAddr.sessionId[0] = g_netLibrary->GetHostBase() ^ 0xFEAFEDE;
+				*(uint32_t*)&netAddr.sessionId[0] = 0x2;//g_netLibrary->GetHostBase() ^ 0xFEAFEDE;
 				*(uint32_t*)&netAddr.sessionId[8] = 0xCDCDCDCD;
 
 				//*(uint32_t*)&netAddr.addr.hostKey[0] = g_netLibrary->GetHostBase() ^ 0xFEAFEDE;
@@ -507,6 +525,13 @@ bool GetOurSystemKey(char* systemKey)
 	memset(systemKey, 0, 8);
 	*(uint32_t*)&systemKey[0] = g_netLibrary->GetServerBase() ^ 0xFEAFEDE;
 	//*(uint16_t*)&systemKey[4] = 12;// g_netLibrary->GetServerNetID() ^ 0xFEED;
+
+	return true;
+}
+
+bool GetOurSessionKey(char* sessionKey)
+{
+	*(uint64_t*)sessionKey = 2;
 
 	return true;
 }
@@ -715,6 +740,15 @@ static int ReturnBandwidthCheck(char* base, int idx)
 	return 0;
 }
 
+static void(*g_origJR)(void*, void*, void*, void*);
+
+void HandleJR(char* a1, char* a2, void* a3, void* a4)
+{
+	trace("snMsgJoinRequest - client's opinion: %16llx - server's opinion: %16llx\n", *(uint64_t*)a2, *(uint64_t*)(a1 + 3008 + 464));
+
+	return g_origJR(a1, a2, a3, a4);
+}
+
 static HookFunction hookFunction([] ()
 {
 	/*OnPostFrontendRender.Connect([] ()
@@ -726,6 +760,10 @@ static HookFunction hookFunction([] ()
 
 		TheFonts->DrawText(va(L"> %i <", value), rect, color, 100.0f, 1.0f, "Comic Sans MS");
 	});*/
+
+	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 D0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
+	hook::set_call(&g_origJR, handleJoinRequestPtr);
+	hook::call(handleJoinRequestPtr, HandleJR);
 
 	char* fragPtr = hook::pattern("66 44 89 7C 24 34 66 44 89 7C 24 3C E8").count(1).get(0).get<char>(12);
 	hook::set_call(&origFrag, fragPtr);
@@ -751,6 +789,14 @@ static HookFunction hookFunction([] ()
 	hook::iat("ws2_32.dll", CfxBind, 2);
 	hook::iat("ws2_32.dll", CfxSelect, 18);
 	hook::iat("ws2_32.dll", CfxGetSockName, 6);
+
+	// session migration, some 'inline' memcpy of the new address
+	void* migrateCmd = hook::pattern("48 8B 47 68 48 83 E9 80 48 89 41 F8 E8").count(1).get(0).get<void>(12);
+	hook::set_call(&g_origMigrateCopy, migrateCmd);
+	hook::call(migrateCmd, MigrateSessionCopy);
+
+	// session key getting system key; replace with something static for migration purposes
+	hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
 
 	// we also need some pointers from this function
 	char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
@@ -915,6 +961,8 @@ static HookFunction hookFunction([] ()
 
 		hook::jump(hook::pattern("41 57 48 81 EC 50 06 00  00 48 8B F1 48").count(1).get(0).get<void>(-0x16), ByeWorld);
 	}*/
+
+	void* updateScAdvertisement = hook::pattern("48 89 44 24 20 E8 ? ? ? ? F6 D8 1B C9 83 C1").count(1).get(0).get<void>();
 
 	// non-physical player data logging 'hack'
 	location = hook::pattern("48 8B D0 48 85 C0 74 4E 48 8D 05").count(2).get(0).get<char>(11);
