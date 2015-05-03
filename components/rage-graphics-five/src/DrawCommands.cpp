@@ -263,14 +263,15 @@ void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, flo
 }
 
 static uint32_t* g_resolution;
+static uint32_t g_realResolution[2];
 
 void GetGameResolution(int& resX, int& resY)
 {
 	//resX = *(int*)0xFDCEAC;
 	//resY = *(int*)0xFDCEB0;
 
-	resX = g_resolution[0];
-	resY = g_resolution[1];
+	resX = g_realResolution[0];
+	resY = g_realResolution[1];
 }
 
 hook::cdecl_stub<void(uint32_t)> setRasterizerState([] ()
@@ -395,4 +396,10 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("42 09 0C 02 BA 01 00 00 00 83 F9 04 0F 44 C2").count(1).get(0).get<char>(-15);
 
 	g_renderThreadTlsIndex = *(int32_t*)location;
+
+	OnGrcCreateDevice.Connect([] ()
+	{
+		g_realResolution[0] = g_resolution[0];
+		g_realResolution[1] = g_resolution[1];
+	});
 });
