@@ -28,7 +28,10 @@ enum NativeIdentifiers : uint64_t
 	CREATE_VEHICLE = 0xAF35D0D2583051B0,
 	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
 	DO_SCREEN_FADE_IN = 0xD4E8E24955024033,
-	NETWORK_IS_HOST = 0x8DB296B814EDDA07
+	NETWORK_IS_HOST = 0x8DB296B814EDDA07,
+	NETWORK_RESURRECT_LOCAL_PLAYER = 0xEA23C49EAA83ACFB,
+	NETWORK_IS_GAME_IN_PROGRESS = 0x10FAB35428CCC9D7,
+	IS_ENTITY_DEAD = 0x5F9532F3B5CC2551
 };
 
 // BLIP_8 in global.gxt2 -> 'Waypoint'
@@ -81,6 +84,18 @@ public:
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
+			static bool respawning = false;
+
+			if (NativeInvoke::Invoke<NETWORK_IS_GAME_IN_PROGRESS, bool>())
+			{
+				if (NativeInvoke::Invoke<IS_ENTITY_DEAD, bool>(playerPedId))
+				{
+					scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
+
+					NativeInvoke::Invoke<NETWORK_RESURRECT_LOCAL_PLAYER, int>(entityCoords.x, entityCoords.y, entityCoords.z, 0.0f, true, true);
+				}
+			}
+
 			if (!m_shouldCreate)
 			{
 				scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
