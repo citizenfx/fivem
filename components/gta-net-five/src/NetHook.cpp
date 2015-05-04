@@ -437,7 +437,7 @@ static InitFunction initFunction([] ()
 				// a3 & 16: friend-only session
 				// a3 & 32: crew-only session?
 				//hostGame(3, 8, 0x108);
-				hostGame(0, 8, 0x0);
+				hostGame(0, 32, 0x0);
 			}
 			else
 			{
