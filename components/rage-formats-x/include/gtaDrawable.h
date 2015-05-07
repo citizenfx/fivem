@@ -18,6 +18,10 @@
 #define RAGE_FORMATS_ny_gtaDrawable 1
 #endif
 
+#if defined(RAGE_FORMATS_GAME_FIVE)
+#define RAGE_FORMATS_five_gtaDrawable 1
+#endif
+
 class CLightAttr : public datBase
 {
 private:
@@ -40,6 +44,9 @@ private:
 
 	pgArray<CLightAttr> m_lightAttrs;
 
+	pgPtr<void> m_unk1;
+	pgPtr<void> m_unk2;
+
 public:
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
@@ -49,8 +56,18 @@ public:
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 		m_name.Resolve(blockMap);
+
+		m_unk1.Resolve(blockMap);
+		m_unk2.Resolve(blockMap);
 #endif
 	}
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline void SetName(const char* name)
+	{
+		m_name = pgStreamManager::StringDup(name);
+	}
+#endif
 };
 
 #endif

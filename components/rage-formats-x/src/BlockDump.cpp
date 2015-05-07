@@ -20,7 +20,6 @@ namespace rage
 {
 namespace RAGE_FORMATS_GAME
 {
-#if defined(RAGE_FORMATS_GAME_NY)
 inline int CalculateFlag(size_t size, size_t* outSize)
 {
 	int maxBase = (1 << 7) - 1;
@@ -70,6 +69,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	size_t virtualOut;
 	size_t physicalOut;
 
+#ifdef RAGE_FORMATS_GAME_NY
 	uint32_t baseFlags = (1 << 31) | (1 << 30) | CalculateFlag(virtualSize, &virtualOut) | (CalculateFlag(physicalSize, &physicalOut) << 15);
 
 	// write out data to the buffer
@@ -88,6 +88,26 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	// initialize zlib
 	z_stream strm = { 0 };
 	deflateInit(&strm, Z_BEST_COMPRESSION);
+#else
+	uint32_t virtFlags = (version & 0xF0) << 24 | 0xE0040;
+	uint32_t physFlags = (version & 0x0F) << 28 | 0x0;
+
+	virtualOut = 0x2E000;
+	physicalOut = 0;
+
+	uint8_t magic[] = { 'R', 'S', 'C', '7' };
+
+	writer(magic, sizeof(magic));
+
+	writer(&version, sizeof(version));
+
+	writer(&virtFlags, sizeof(virtFlags));
+
+	writer(&physFlags, sizeof(physFlags));
+
+	z_stream strm = { 0 };
+	deflateInit2(&strm, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+#endif
 
 	auto zwriter = [&] (const void* data, size_t size)
 	{
@@ -155,6 +175,5 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	// fin!
 	return true;
 }
-#endif
 }
 }

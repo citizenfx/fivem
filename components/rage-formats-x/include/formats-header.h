@@ -5,8 +5,15 @@
  * regarding licensing.
  */
 
+#ifndef RAGE_FORMATS_GAME
+#ifdef _M_IX86
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
+#else
+#define RAGE_FORMATS_GAME five
+#define RAGE_FORMATS_GAME_FIVE
+#endif
+#endif
 
 #ifdef COMPILING_RAGE_FORMATS_X
 #define FORMATS_EXPORT __declspec(dllexport)

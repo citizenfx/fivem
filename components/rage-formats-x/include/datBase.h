@@ -10,8 +10,9 @@
 
 #ifdef RAGE_FORMATS_OK
 
-#if RAGE_FORMATS_GAME == ny
+#if RAGE_FORMATS_GAME == ny || RAGE_FORMATS_GAME == five
 #define RAGE_FORMATS_ny_datBase 1
+#define RAGE_FORMATS_five_datBase 1
 
 #define SwapShortRead(x) (x)
 #define SwapShortWrite(x) (x)

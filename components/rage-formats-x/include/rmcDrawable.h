@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 
+#include <numeric>
+
 #include <pgBase.h>
 #include <pgContainers.h>
 //#include <grcTexture.h>
@@ -18,6 +20,16 @@
 #if defined(RAGE_FORMATS_GAME_NY)
 #define RAGE_FORMATS_ny_rmcDrawable 1
 #endif
+
+#if defined(RAGE_FORMATS_GAME_FIVE)
+#define RAGE_FORMATS_five_rmcDrawable 1
+#endif
+
+template<typename T, size_t Size, size_t ActualSize = sizeof(T)>
+inline void ValidateSize()
+{
+	static_assert(Size == ActualSize, "Invalid size.");
+}
 
 class grcTexture : public pgBase
 {
@@ -233,12 +245,67 @@ public:
 	{
 		m_value.Resolve(blockMap);
 	}
+
+	inline void SetSampler(bool isSampler)
+	{
+		m_pad = isSampler;
+		m_pad2 = 0;
+	}
+
+	inline void SetRegister(uint8_t reg)
+	{
+		m_type = reg;
+	}
+
+	inline void SetValue(void* value)
+	{
+		m_value = value;
+	}
+};
+
+struct grmShaderParameterMeta
+{
+	bool isSampler;
+	uint8_t registerIdx;
+};
+
+class grcTextureRef : public datBase
+{
+private:
+	uint8_t m_pad[32];
+
+	pgPtr<char> m_name;
+
+	uint16_t m_const1;
+	uint16_t m_const2;
+
+	uint8_t m_pad2[28];
+
+public:
+	inline grcTextureRef()
+	{
+		memset(m_pad, 0, sizeof(m_pad));
+		memset(m_pad2, 0, sizeof(m_pad2));
+
+		m_const1 = 1;
+		m_const2 = 2;
+	}
+
+	inline void SetName(const char* name)
+	{
+		m_name = pgStreamManager::StringDup(name);
+	}
 };
 #endif
 
-class grmShader : public pgBase
+class grmShader
+#ifndef RAGE_FORMATS_GAME_FIVE
+	: public pgBase
+#else
+	: public pgStreamableBase
+#endif
 {
-private:
+protected:
 #ifdef RAGE_FORMATS_GAME_NY
 	uint8_t m_version;
 	uint8_t m_drawBucket;
@@ -252,17 +319,34 @@ private:
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	pgPtr<grmShaderParameter> m_parameters;
-	uint32_t m_shaderHash;
+	uintptr_t m_shaderHash;
 	uint8_t m_parameterCount;
 	uint8_t m_drawBucket;
-	uint16_t m_pad;
+	uint8_t m_pad;
+	uint8_t m_hasComment;
 	uint16_t m_parameterSize;
 	uint16_t m_parameterDataSize;
-	uint32_t m_spsHash;
-	uint32_t m_pad2[3];
+	uintptr_t m_spsHash; // replaced with sps at runtime?
+	uint32_t m_drawBucketMask; // 1 << (bucket) | 0xFF00
+	uint8_t m_instanced;
+	uint8_t m_pad2[2];
+	uint8_t m_resourceCount;
+	uint32_t m_pad3;
 #endif
 
 public:
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline grmShader()
+	{
+		m_resourceCount = 0;
+		m_instanced = 0;
+		memset(m_pad2, 0, sizeof(m_pad2));
+		m_pad3 = 0;
+		m_hasComment = 0;
+		m_pad = 0;
+	}
+#endif
+
 #ifdef RAGE_FORMATS_GAME_NY
 	inline grmShader()
 	{
@@ -296,7 +380,14 @@ public:
 
 	inline uint8_t GetDrawBucket() { return m_drawBucket; }
 
-	inline void SetDrawBucket(uint8_t drawBucket) { m_drawBucket = drawBucket; }
+	inline void SetDrawBucket(uint8_t drawBucket)
+	{
+		m_drawBucket = drawBucket;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_drawBucketMask = (1 << drawBucket) | 0xFF00;
+#endif
+	}
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	inline void Resolve(BlockMap* blockMap = nullptr)
@@ -308,20 +399,77 @@ public:
 			(*m_parameters)[i].Resolve(blockMap);
 		}
 	}
+
+	inline void SetParameters(const std::vector<grmShaderParameterMeta>& parameters, const std::vector<uint32_t>& parameterNames, const std::vector<std::vector<uint8_t>>& parameterValues)
+	{
+		assert(parameters.size() == parameterNames.size());
+		assert(parameters.size() == parameterValues.size());
+
+		m_parameterCount = parameters.size();
+		
+		uint32_t parameterSize = std::accumulate(parameterValues.begin(), parameterValues.end(), 0, [] (int left, const std::vector<uint8_t>& right)
+		{
+			return left + right.size();
+		});
+
+		parameterSize += sizeof(grmShaderParameter) * m_parameterCount;
+
+		uint32_t parameterDataSize = parameterSize + sizeof(uint32_t) * m_parameterCount;
+
+		grmShaderParameter* parameterData = (grmShaderParameter*)pgStreamManager::Allocate(parameterDataSize, false, nullptr);
+		
+		for (int i = 0; i < m_parameterCount; i++)
+		{
+			parameterData[i].SetSampler(parameters[i].isSampler);
+			parameterData[i].SetRegister(parameters[i].registerIdx);
+		}
+
+		char* parameterValueData = (char*)(parameterData + m_parameterCount);
+
+		for (int i = 0; i < m_parameterCount; i++)
+		{
+			if (!parameters[i].isSampler)
+			{
+				memcpy(parameterValueData, &parameterValues[i][0], parameterValues[i].size());
+
+				parameterData[i].SetValue(parameterValueData);
+				parameterValueData += parameterValues[i].size();
+			}
+			else
+			{
+				grcTextureRef* ref = new(false) grcTextureRef();
+				ref->SetName("rsn_dc_roofedges_001");
+
+				parameterData[i].SetValue(ref);
+			}
+		}
+
+		uint32_t* parameterNameData = (uint32_t*)parameterValueData;
+		std::copy(parameterNames.begin(), parameterNames.end(), parameterNameData);
+
+		m_parameters = parameterData;
+		m_parameterSize = parameterSize;
+		m_parameterDataSize = parameterDataSize;
+	}
 #endif
 };
+
+static_assert(sizeof(grmShader) == 48, "grmShader size is incorrect");
 
 class grmShaderFx : public grmShader
 {
 private:
+#ifndef RAGE_FORMATS_GAME_FIVE
 	pgPtr<char> m_shaderName;
 	pgPtr<char> m_spsName;
 	uint32_t _f4C;
 	uint32_t _f50;
 	uint32_t m_preset;
 	uint32_t _f58;
+#endif
 
 public:
+#ifndef RAGE_FORMATS_GAME_FIVE
 	inline grmShaderFx()
 		: grmShader()
 	{
@@ -342,13 +490,26 @@ public:
 	inline uint32_t GetPreset() { return SwapLongRead(m_preset); }
 
 	inline void SetPreset(uint32_t value) { m_preset = SwapLongWrite(value); }
+#else
+	inline void SetShaderName(const char* value)
+	{
+		m_shaderHash = HashString(value);
+	}
+
+	inline void SetSpsName(const char* value)
+	{
+		m_spsHash = HashString(value);
+	}
+#endif
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
+		grmShader::Resolve(blockMap);
+
+#ifndef RAGE_FORMATS_GAME_FIVE
 		m_shaderName.Resolve(blockMap);
 		m_spsName.Resolve(blockMap);
-
-		grmShader::Resolve(blockMap);
+#endif
 	}
 };
 
@@ -357,6 +518,7 @@ class grmShaderGroup : public datBase
 private:
 	pgPtr<pgDictionary<grcTexturePC>> m_textures;
 	pgObjectArray<grmShaderFx> m_shaders;
+#ifdef RAGE_FORMATS_GAME_NY
 	pgObjectArray<int> _f10;
 	pgObjectArray<int> _f18;
 	pgObjectArray<int> _f20;
@@ -365,6 +527,11 @@ private:
 	pgObjectArray<int> _f38;
 	pgArray<uint32_t> m_vertexFormats;
 	pgArray<uint32_t> m_shaderIndices;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+	pgObjectArray<int> _f20;
+	uint32_t _f30;
+	uintptr_t _f38;
+#endif
 
 public:
 	inline pgDictionary<grcTexturePC>& GetTextures() { return **m_textures; }
@@ -374,8 +541,11 @@ public:
 	inline void SetShaders(uint16_t count, pgPtr<grmShaderFx>* shaders)
 	{
 		m_shaders.SetFrom(shaders, count);
+
+		_f30 = 0x1D;
 	}
 
+#if defined(RAGE_FORMATS_GAME_NY)
 	inline uint32_t GetVertexFormat(uint16_t offset) { return SwapLongRead(m_vertexFormats.Get(offset)); }
 
 	inline void SetVertexFormats(uint16_t count, uint32_t* formats)
@@ -402,6 +572,7 @@ public:
 
 		m_shaderIndices.SetFrom(formats, count);
 	}
+#endif
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
@@ -442,24 +613,30 @@ public:
 	}
 };
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+#define PHYSICAL_VERTICES 0
+#else
+#define PHYSICAL_VERTICES 1
+#endif
+
 class grcIndexBuffer : public datBase
 {
 private:
 	uint32_t m_indexCount;
-	pgPtr<uint16_t, true> m_indexData;
+	pgPtr<uint16_t, PHYSICAL_VERTICES> m_indexData;
 
 public:
 	grcIndexBuffer(uint32_t indexCount, uint16_t* indexData)
 	{
 		m_indexCount = indexCount;
-		
-		if (pgStreamManager::IsInBlockMap(indexData, nullptr, true))
+
+		if (pgStreamManager::IsInBlockMap(indexData, nullptr, PHYSICAL_VERTICES))
 		{
 			m_indexData = indexData;
 		}
 		else
 		{
-			m_indexData = (uint16_t*)pgStreamManager::Allocate(indexCount * sizeof(uint16_t), true, nullptr);
+			m_indexData = (uint16_t*)pgStreamManager::Allocate(indexCount * sizeof(uint16_t), PHYSICAL_VERTICES, nullptr);
 			memcpy(*m_indexData, indexData, indexCount * sizeof(uint16_t));
 		}
 	}
@@ -517,8 +694,10 @@ private:
 public:
 	grcVertexFormat(uint16_t mask, uint16_t vertexSize, uint8_t fieldCount, uint64_t fvf)
 	{
+#ifdef RAGE_FORMATS_GAME_NY
 		_pad = 0;
 		_f6 = 0;
+#endif
 
 		m_mask = mask;
 		m_vertexSize = vertexSize;
@@ -549,9 +728,10 @@ private:
 #ifdef RAGE_FORMATS_GAME_FIVE
 	uint16_t m_vertexSize;
 	uint8_t m_locked;
-	pgPtr<void> m_vertexData;
+	pgPtr<void> m_lockedData;
 	uint32_t m_vertexCount;
-	uint32_t m_pad[2];
+	pgPtr<void> m_vertexData;
+	uintptr_t m_pad;
 	pgPtr<grcVertexFormat> m_vertexFormat;
 	pgPtr<void> m_unkData;
 #endif
@@ -560,8 +740,15 @@ public:
 	grcVertexBuffer()
 	{
 		m_locked = 0;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_pad = 0;
+#endif
+
+#ifdef RAGE_FORMATS_GAME_NY
 		m_pad = 0;
 		m_lockThreadId = 0;
+#endif
 	}
 
 	inline void SetVertexFormat(grcVertexFormat* vertexFormat)
@@ -569,18 +756,34 @@ public:
 		m_vertexFormat = vertexFormat;
 	}
 
+	inline void* GetVertices()
+	{
+		return *m_vertexData;
+	}
+
 	inline void SetVertices(uint32_t vertexCount, uint32_t vertexStride, void* vertexData)
 	{
 		m_vertexCount = vertexCount;
 		m_vertexSize = vertexStride;
 
-		if (pgStreamManager::IsInBlockMap(vertexData, nullptr, true))
+		if (pgStreamManager::IsInBlockMap(vertexData, nullptr, PHYSICAL_VERTICES))
 		{
 			m_vertexData = vertexData;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+			// Five resources have this set, although resource loading appears to unset this anyway.
+			m_lockedData = vertexData;
+#endif
 		}
 		else
 		{
-			m_vertexData = pgStreamManager::Allocate(vertexCount * vertexStride, true, nullptr);
+			void* vertexDataBit = pgStreamManager::Allocate(vertexCount * vertexStride, PHYSICAL_VERTICES, nullptr);
+
+			m_vertexData = vertexDataBit;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+			m_lockedData = vertexDataBit;
+#endif
 			memcpy(*m_vertexData, vertexData, vertexCount * vertexStride);
 		}
 	}
@@ -597,9 +800,7 @@ public:
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
-#ifdef RAGE_FORMATS_GAME_NY
 		m_lockedData.Resolve(blockMap);
-#endif
 		m_vertexData.Resolve(blockMap);
 
 		m_vertexFormat.Resolve(blockMap);
@@ -642,14 +843,18 @@ private:
 	uint32_t m_dwFaceCount;
 	uint16_t m_wVertexCount;
 	uint16_t m_wIndicesPerFace;
-
-	// undefined for non-NY
 	pgPtr<uint16_t> m_boneMapping;
 	uint16_t m_vertexStride;
 	uint16_t m_boneCount;
+
+#ifdef RAGE_FORMATS_GAME_NY
 	pgPtr<void> m_vertexDeclarationInstance;
 	pgPtr<void> m_vertexBufferInstance;
 	uint32_t m_useGlobalStreamIndex;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+	pgPtr<void> m_vertexData;
+	uint8_t m_pad[32];
+#endif
 
 public:
 	inline grmGeometryQB()
@@ -661,7 +866,12 @@ public:
 		m_wVertexCount = 0;
 		m_wIndicesPerFace = 3;
 		m_boneCount = 0;
+
+#ifdef RAGE_FORMATS_GAME_NY
 		m_useGlobalStreamIndex = 0;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+		memset(m_pad, 0, sizeof(m_pad));
+#endif
 	}
 
 	inline grcVertexBufferD3D* GetVertexBuffer(int idx)
@@ -688,6 +898,10 @@ public:
 		m_vertexBuffers[0] = vertexBuffer;
 		m_vertexStride = vertexBuffer->GetStride();
 		m_wVertexCount = vertexBuffer->GetCount();
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_vertexData = vertexBuffer->GetVertices();
+#endif
 	}
 
 	inline void SetIndexBuffer(grcIndexBufferD3D* indexBuffer)
@@ -742,7 +956,6 @@ private:
 #endif
 	pgPtr<uint16_t> m_shaderMappings;
 
-	// undefined for non-NY so far
 	uint8_t m_boneCount;
 	uint8_t m_skinned;
 	uint8_t m_pad;
@@ -757,7 +970,11 @@ public:
 		m_boneCount = 0;
 		m_skinned = 0;
 		m_zero = 0;
+#if defined(RAGE_FORMATS_GAME_NY)
 		m_zero2 = 0;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+		m_zero2 = 0xFF;
+#endif
 		m_hasBoneMapping = 0;
 		m_shaderMappingCount = 0;
 	}
@@ -779,11 +996,19 @@ public:
 		m_geometries.SetFrom(geometriesInd, count);
 	}
 
+#ifdef RAGE_FORMATS_GAME_NY
 	inline void SetGeometryBounds(const Vector4& vector)
 	{
 		m_geometryBounds = (Vector4*)pgStreamManager::Allocate(sizeof(Vector4), false, nullptr);
 		(*m_geometryBounds)[0] = vector;
 	}
+#else
+	inline void SetGeometryBounds(const GeometryBound& vector)
+	{
+		m_geometryBounds = (GeometryBound*)pgStreamManager::Allocate(sizeof(GeometryBound), false, nullptr);
+		(*m_geometryBounds)[0] = vector;
+	}
+#endif
 
 	inline void SetBoneCount(uint8_t count)
 	{
@@ -813,7 +1038,7 @@ public:
 class grmLodGroup
 {
 private:
-	Vector3 m_center;
+	Vector4 m_center;
 	Vector3 m_boundsMin;
 	Vector3 m_boundsMax;
 	pgPtr<pgObjectArray<grmModel>> m_models[4];
@@ -826,8 +1051,11 @@ private:
 #endif
 
 	int m_drawBucketMask[4]; // does this apply to five?
+
+#ifndef RAGE_FORMATS_GAME_FIVE
 	float m_radius;
 	float m_zeroes[3];
+#endif
 
 public:
 	inline grmLodGroup()
@@ -837,6 +1065,8 @@ public:
 		m_9999[1] = 9999.f;
 		m_9999[2] = 9999.f;
 		m_9999[3] = 9999.f;
+#else
+		m_maxPoint = Vector4(9998.0f, 9998.0f, 9998.0f, 9998.0f);
 #endif
 
 		m_drawBucketMask[0] = -1;
@@ -844,11 +1074,13 @@ public:
 		m_drawBucketMask[2] = -1;
 		m_drawBucketMask[3] = -1;
 
+#ifndef RAGE_FORMATS_GAME_FIVE
 		m_zeroes[0] = 0;
 		m_zeroes[1] = 0;
 		m_zeroes[2] = 0;
 
 		m_radius = 0.0f;
+#endif
 	}
 
 	inline Vector3 GetBoundsMin()
@@ -863,9 +1095,10 @@ public:
 
 	inline Vector3 GetCenter()
 	{
-		return m_center;
+		return { m_center.x, m_center.y, m_center.z };
 	}
 
+#ifndef RAGE_FORMATS_GAME_FIVE
 	inline float GetRadius()
 	{
 		return m_radius;
@@ -878,6 +1111,19 @@ public:
 		m_center = center;
 		m_radius = radius;
 	}
+#else
+	inline float GetRadius()
+	{
+		return m_center.w;
+	}
+
+	inline void SetBounds(const Vector3& min, const Vector3& max, const Vector3& center, float radius)
+	{
+		m_boundsMin = min;
+		m_boundsMax = max;
+		m_center = { center.x, center.y, center.z, radius };
+	}
+#endif
 
 	inline grmModel* GetModel(int idx)
 	{
@@ -892,6 +1138,11 @@ public:
 		}
 
 		return m_models[idx]->Get(0);
+	}
+
+	inline pgObjectArray<grmModel>* GetPrimaryModel()
+	{
+		return *m_models[0];
 	}
 
 	inline void SetModel(int idx, grmModel* model)
@@ -938,10 +1189,32 @@ private:
 
 	grmLodGroup m_lodGroup;
 
+	uintptr_t m_unk1;
+	uint16_t m_unk2;
+	uint16_t m_unk3;
+	uint32_t m_unk4;
+	
+	pgPtr<pgObjectArray<grmModel>> m_primaryModel;
+
 public:
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline rmcDrawable()
+	{
+		m_unk1 = 0;
+		m_unk2 = 0x60;
+		m_unk3 = 0;
+		m_unk4 = 0;
+	}
+#endif
+
 	inline grmLodGroup& GetLodGroup()
 	{
 		return m_lodGroup;
+	}
+
+	inline void SetPrimaryModel()
+	{
+		m_primaryModel = m_lodGroup.GetPrimaryModel();
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
@@ -956,6 +1229,8 @@ public:
 		}
 
 		m_lodGroup.Resolve(blockMap);
+
+		m_primaryModel.Resolve(blockMap);
 	}
 };
 #endif

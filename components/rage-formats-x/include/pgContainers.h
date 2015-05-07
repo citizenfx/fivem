@@ -13,6 +13,10 @@
 #define RAGE_FORMATS_ny_pgContainers 1
 #endif
 
+#if defined(RAGE_FORMATS_GAME_FIVE)
+#define RAGE_FORMATS_five_pgContainers 1
+#endif
+
 template<typename TValue>
 class pgArray : public pgStreamableBase
 {

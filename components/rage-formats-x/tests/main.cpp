@@ -4,9 +4,11 @@
 #include <pgBase.h>
 #include <rmcDrawable.h>
 #include <gtaDrawable.h>
-#include <fragType.h>
+//#include <fragType.h>
 
-using namespace rage::ny;
+#include <ShaderInfo.h>
+
+using namespace rage::five;
 
 void FatalError(const char* a, ...)
 {
@@ -65,6 +67,9 @@ void* MakeMatrix(float a1, float a2, float a3, float a4, float a5, float a6, flo
 	return ret;
 }
 
+//#include <d3dcompiler.h>
+//#pragma comment(lib, "d3dcompiler.lib")
+
 int main(int argc, char **argv)
 {
 	//::testing::InitGoogleTest(&argc, argv);
@@ -78,23 +83,189 @@ int main(int argc, char **argv)
 	
 	pgStreamManager::EndPacking();*/
 
-	char* buffer = new char[163840];
-	FILE* f = fopen("Y:/dls/liefzt/sultanrs.wft.sys", "rb");
-	fread(buffer, 1, 163840, f);
+	//auto shaderFile = fxc::ShaderFile::Load("Y:\\common\\shaders\\win32_40_final\\normal_spec_pxm_tnt.fxc");
+	/*auto shaderFile = fxc::ShaderFile::Load("Y:\\common\\shaders\\win32_40_final\\postfx.fxc");
+
+	_mkdir("Y:\\dev\\v\\sh");
+
+	for (auto& ps : shaderFile->GetPixelShaders())
+	{
+		auto& data = ps.second->GetShaderData();
+
+		if (data.size() > 0)
+		{
+			ID3D10Blob* blob = nullptr;
+			HRESULT hr = D3DDisassemble(&data[0], data.size(), D3D_DISASM_ENABLE_COLOR_CODE, nullptr, &blob);
+
+			if (blob)
+			{
+				FILE* f = fopen(va("Y:\\dev\\v\\sh\\exp\\%s.html", ps.first.c_str()), "wb");
+				fwrite(blob->GetBufferPointer(), blob->GetBufferSize(), 1, f);
+				fclose(f);
+
+				blob->Release();
+			}
+		}
+	}
+
+	exit(0);*/
+
+	char* buffer = new char[1089536];
+	FILE* f = fopen("Y:/common/lovely.ydr.seg", "rb");
+	//FILE* f = fopen("Y:/dev/ydr/dt1_07_building2.ydr.seg", "rb");
+	fread(buffer, 1, 1089536, f);
 	fclose(f);
 
-	char* buffer2 = new char[4784128];
+	rage::five::ValidateSize<rage::five::grmShaderGroup, 64>();
+
+	auto blockMap = pgStreamManager::BeginPacking();
+
+	auto drawable = new(false) gtaDrawable();
+
+	auto shaderGroup = new(false) grmShaderGroup();
+
+	auto shaderFile = fxc::ShaderFile::Load("Y:\\common\\shaders\\win32_40_final\\default.fxc");
+
+	//
+	grmShaderFx* shader = new(false) grmShaderFx();
+	shader->SetSpsName("default.sps");
+	shader->SetShaderName("default");
+	shader->SetDrawBucket(0);
+
+	auto& localParameters = shaderFile->GetLocalParameters();
+
+	std::vector<grmShaderParameterMeta> parameters(localParameters.size());
+	std::vector<uint32_t> parameterNames(localParameters.size());
+	std::vector<std::vector<uint8_t>> parameterValues(localParameters.size());
+
+	// count the samplers in the parameter list
+	auto numSamplers = std::count_if(localParameters.begin(), localParameters.end(), [] (const decltype(*localParameters.begin())& value) // weird workaround to the lack of auto arguments in VS12
+	{
+		return value.second->IsSampler();
+	});
+
+	int samplerIdx = 0;
+	int nonSamplerIdx = numSamplers;
+
+	for (auto& pair : localParameters)
+	{
+		std::shared_ptr<fxc::ShaderParameter> parameter = pair.second;
+
+		int idx = (parameter->IsSampler()) ? samplerIdx++ : nonSamplerIdx++;
+
+		parameterNames[idx] = parameter->GetNameHash();
+
+		if (!parameter->IsSampler())
+		{
+			parameterValues[idx] = parameter->GetDefaultValue();
+			parameters[idx].registerIdx = shaderFile->MapRegister(parameter->GetRegister());
+		}
+		else
+		{
+			// TODO: set as sampler reference
+			parameters[idx].registerIdx = parameter->GetRegister();
+		}
+
+		parameters[idx].isSampler = parameter->IsSampler();
+	}
+
+	shader->SetParameters(parameters, parameterNames, parameterValues);
+
+	pgPtr<grmShaderFx> shaders[1];
+	shaders[0] = shader;
+
+	shaderGroup->SetShaders(1, shaders);
+	drawable->SetShaderGroup(shaderGroup);
+
+
+
+	auto& lodGroup = drawable->GetLodGroup();
+	lodGroup.SetDrawBucketMask(0, 0xFF01);
+	lodGroup.SetBounds(Vector3(-66.6f, -66.6f, -10.0f), Vector3(66.6f, 66.6f, 10.0f), Vector3(0.0f, 0.0f, 0.0f), 94.8f);
+
+	// model
+	GeometryBound bounds;
+	bounds.aabbMin = Vector4(-1.0f, 0.0f, -1.0f, -94.8f);
+	bounds.aabbMax = Vector4(1.0f, 0.0f, 1.0f, 94.8f);
+
+	grmModel* model = new(false) grmModel();
+	model->SetGeometryBounds(bounds);
+
+	uint16_t shaderMappings[1] = {
+		0
+	};
+
+	model->SetShaderMappings(1, shaderMappings);
+
+	// file buffers
+	f = fopen("X:/temp/indbuf.bin", "rb");
+	static uint16_t indices[40000];
+	fread(indices, 1, sizeof(indices), f);
+	fclose(f);
+
+	f = fopen("X:/temp/vertbuf.bin", "rb");
+	static char vertices[160000];
+	fread(vertices, 1, sizeof(vertices), f);
+	fclose(f);
+
+	// index buffer
+	grcIndexBufferD3D* indexBuffer = new(false) grcIndexBufferD3D(6597, indices);
+
+	// vertex format
+	grcVertexFormat* vertexFormat = new(false) grcVertexFormat(89, 36, 4, 0x6755555555996996);
+
+	// vertex buffer
+	grcVertexBufferD3D* vertexBuffer = new(false) grcVertexBufferD3D();
+	vertexBuffer->SetVertexFormat(vertexFormat);
+	vertexBuffer->SetVertices(4436, 36, vertices);
+
+	// geometry
+	grmGeometryQB* geometry = new(false) grmGeometryQB();
+	geometry->SetIndexBuffer(indexBuffer);
+	geometry->SetVertexBuffer(vertexBuffer);
+
+	grmGeometryQB* geometries[] = {
+		geometry
+	};
+
+	model->SetGeometries(1, geometries);
+
+	// set lod group geom
+	lodGroup.SetModel(0, model);
+
+	drawable->SetPrimaryModel();
+	drawable->SetName("lovely.#dr");
+
+	pgStreamManager::EndPacking();
+
+	f = fopen("Y:\\common\\lovely.ydr", "wb");
+
+	blockMap->Save(165, [&] (const void* d, size_t s)
+	{
+		fwrite(d, 1, s, f);
+	});
+
+	fclose(f);
+
+	/*char* buffer2 = new char[4784128];
 	f = fopen("Y:/dls/liefzt/sultanrs.wft.gfx", "rb");
 	fread(buffer2, 1, 4784128, f);
-	fclose(f);
+	fclose(f);*/
 
 	BlockMap bm;
 	bm.virtualLen = 1;
-	bm.physicalLen = 1;
+	bm.physicalLen = 0;
 	bm.blocks[0].data = buffer;
 	bm.blocks[0].offset = 0;
-	bm.blocks[0].size = 163840;
-	bm.blocks[1].data = buffer2;
+	bm.blocks[0].size = 1089536;
+
+	pgStreamManager::SetBlockInfo(&bm);
+	gtaDrawable* ddrawable = (gtaDrawable*)buffer;
+	ddrawable->Resolve(&bm);
+
+	__debugbreak();
+
+	/*bm.blocks[1].data = buffer2;
 	bm.blocks[1].offset = 0;
 	bm.blocks[1].size = 4784128;
 
@@ -159,7 +330,7 @@ int main(int argc, char **argv)
 
 	fclose(f);
 
-	return 0;
+	return 0;*/
 
 	/*auto blockMap = pgStreamManager::BeginPacking();
 

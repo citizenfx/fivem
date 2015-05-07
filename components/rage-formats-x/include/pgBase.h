@@ -17,14 +17,18 @@
 #define RAGE_FORMATS_ny_pgBase 1
 #endif
 
+#if defined(RAGE_FORMATS_GAME_FIVE)
+#define RAGE_FORMATS_five_pgBase 1
+#endif
+
 struct pgPtrRepresentation
 {
-#if RAGE_FORMATS_GAME_FIVE_PC
-	uint64_t pointer : 60;
-	uint64_t blockType : 4;
-#else
+#ifndef RAGE_FORMATS_GAME_FIVE
 	uint32_t pointer : 28;
 	uint32_t blockType : 4;
+#else
+	uint64_t pointer : 28;
+	uint64_t blockType : 36;
 #endif
 };
 
@@ -224,6 +228,14 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 		void* data;
 		uint32_t size;
 	} blocks[128];
+
+	inline BlockMap()
+	{
+		virtualLen = 0;
+		physicalLen = 0;
+
+		memset(blocks, 0, sizeof(blocks));
+	}
 
 	bool Save(int version, fwAction<const void*, size_t> writer);
 };

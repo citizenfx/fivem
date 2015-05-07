@@ -217,7 +217,16 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	if ((curBlockInfo.size + size) <= allocInfo.maxSizes[curBlock])
 	{
+		size_t oldSize = size;
+		size = ((size % 16) == 0) ? size : (size + (16 - (size % 16)));
+
 		void* newPtr = (char*)curBlockInfo.data + curBlockInfo.size;
+
+		/*if (oldSize % 16)
+		{
+			newPtr = (void*)(((uintptr_t)newPtr + 16) & ~(uintptr_t)0xF);
+		}*/
+
 		curBlockInfo.size += size;
 
 		memset(newPtr, 0xCD, size);
@@ -269,6 +278,31 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 		{
 			newOffset = 0;
 		}
+	}
+	else
+	{
+		int lastIdx;
+
+		// find the last physical block
+		if (blockMap->virtualLen > 0)
+		{
+			lastIdx = blockMap->virtualLen - 1;
+
+			auto& lastBlock = blockMap->blocks[lastIdx];
+
+			newOffset = lastBlock.offset + lastBlock.size;
+
+			newSize = allocInfo.maxSizes[lastIdx] * 2;
+		}
+		else
+		{
+			newOffset = 0;
+		}
+	}
+	
+	while (size >= newSize)
+	{
+		newSize *= 2;
 	}
 
 	// determine the new block index
