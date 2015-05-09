@@ -67,6 +67,8 @@ void* MakeMatrix(float a1, float a2, float a3, float a4, float a5, float a6, flo
 	return ret;
 }
 
+void ConvertDrawable();
+
 //#include <d3dcompiler.h>
 //#pragma comment(lib, "d3dcompiler.lib")
 
@@ -110,11 +112,44 @@ int main(int argc, char **argv)
 
 	exit(0);*/
 
+	ConvertDrawable();
+	return 0;
+
 	char* buffer = new char[1089536];
 	FILE* f = fopen("Y:/common/lovely.ydr.seg", "rb");
 	//FILE* f = fopen("Y:/dev/ydr/dt1_07_building2.ydr.seg", "rb");
 	fread(buffer, 1, 1089536, f);
 	fclose(f);
+
+	char* buffers = new char[1089536];
+	//FILE* f = fopen("Y:/common/lovely.ydr.seg", "rb");
+	f = fopen("Y:/dev/ydr/dt1_07_detaila.ydr.sys", "rb");
+	fread(buffers, 1, 1089536, f);
+	fclose(f);
+
+
+	BlockMap bm;
+	bm.virtualLen = 1;
+	bm.physicalLen = 0;
+	bm.blocks[0].data = buffer;
+	bm.blocks[0].offset = 0;
+	bm.blocks[0].size = 1089536;
+
+	pgStreamManager::SetBlockInfo(&bm);
+	gtaDrawable* ddrawable = (gtaDrawable*)buffer;
+	ddrawable->Resolve(&bm);
+
+	bm.virtualLen = 1;
+	bm.physicalLen = 0;
+	bm.blocks[0].data = buffers;
+	bm.blocks[0].offset = 0;
+	bm.blocks[0].size = 1089536;
+
+	pgStreamManager::SetBlockInfo(&bm);
+	gtaDrawable* ddrawable2 = (gtaDrawable*)buffers;
+	ddrawable2->Resolve(&bm);
+
+	return 0;
 
 	rage::five::ValidateSize<rage::five::grmShaderGroup, 64>();
 
@@ -189,7 +224,7 @@ int main(int argc, char **argv)
 	bounds.aabbMax = Vector4(1.0f, 0.0f, 1.0f, 94.8f);
 
 	grmModel* model = new(false) grmModel();
-	model->SetGeometryBounds(bounds);
+	model->SetGeometryBounds(1, &bounds);
 
 	uint16_t shaderMappings[1] = {
 		0
@@ -208,8 +243,20 @@ int main(int argc, char **argv)
 	fread(vertices, 1, sizeof(vertices), f);
 	fclose(f);
 
+	int maxVerts = 4436 / 4;
+	int maxIndices = 0;
+
+	for (int i = 0; i < 6597; i += 3)
+	{
+		if (indices[i] >= maxVerts || indices[i + 1] >= maxVerts || indices[i + 2] >= maxVerts)
+		{
+			maxIndices = i;
+			break;
+		}
+	}
+
 	// index buffer
-	grcIndexBufferD3D* indexBuffer = new(false) grcIndexBufferD3D(6597, indices);
+	grcIndexBufferD3D* indexBuffer = new(false) grcIndexBufferD3D(maxIndices, indices);
 
 	// vertex format
 	grcVertexFormat* vertexFormat = new(false) grcVertexFormat(89, 36, 4, 0x6755555555996996);
@@ -217,7 +264,7 @@ int main(int argc, char **argv)
 	// vertex buffer
 	grcVertexBufferD3D* vertexBuffer = new(false) grcVertexBufferD3D();
 	vertexBuffer->SetVertexFormat(vertexFormat);
-	vertexBuffer->SetVertices(4436, 36, vertices);
+	vertexBuffer->SetVertices(maxVerts, 36, vertices);
 
 	// geometry
 	grmGeometryQB* geometry = new(false) grmGeometryQB();
@@ -251,17 +298,6 @@ int main(int argc, char **argv)
 	f = fopen("Y:/dls/liefzt/sultanrs.wft.gfx", "rb");
 	fread(buffer2, 1, 4784128, f);
 	fclose(f);*/
-
-	BlockMap bm;
-	bm.virtualLen = 1;
-	bm.physicalLen = 0;
-	bm.blocks[0].data = buffer;
-	bm.blocks[0].offset = 0;
-	bm.blocks[0].size = 1089536;
-
-	pgStreamManager::SetBlockInfo(&bm);
-	gtaDrawable* ddrawable = (gtaDrawable*)buffer;
-	ddrawable->Resolve(&bm);
 
 	__debugbreak();
 

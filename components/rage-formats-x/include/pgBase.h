@@ -61,6 +61,8 @@ public:
 
 	static void* AllocatePlacement(size_t size, void* hintPtr, bool isPhysical, BlockMap* blockMap);
 
+	static BlockMap* GetBlockMap();
+
 	static inline char* StringDup(const char* str)
 	{
 		char* outStr = (char*)Allocate(strlen(str) + 1, false, nullptr);
@@ -81,12 +83,18 @@ public:
 
 	inline void* operator new(size_t size, bool isPhysical)
 	{
-		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+		void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+		memset(data, 0, size);
+
+		return data;
 	}
 
 	inline void* operator new(size_t size, BlockMap* blockMap, bool isPhysical)
 	{
-		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+		void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+		memset(data, 0, size);
+
+		return data;
 	}
 
 	inline void* operator new[](size_t size)
@@ -96,12 +104,18 @@ public:
 
 	inline void* operator new[](size_t size, bool isPhysical)
 	{
-		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+		void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+		memset(data, 0, size);
+
+		return data;
 	}
 
 	inline void* operator new[](size_t size, BlockMap* blockMap, bool isPhysical)
 	{
-		return pgStreamManager::Allocate(size, isPhysical, nullptr);
+		void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+		memset(data, 0, size);
+
+		return data;
 	}
 };
 
@@ -113,12 +127,14 @@ union
 {
 	pgPtrRepresentation on_disk;
 
-#if (!defined(RAGE_FORMATS_GAME_FIVE_PC) && defined(_M_IX86)) || (defined(RAGE_FORMATS_GAME_FIVE_PC) && defined(_M_AMD64))
+#if (!defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_IX86)) || (defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64))
 	T* pointer;
 #elif defined(__i386__) || defined(__amd64__)
 	T* pointer;
-#else
+#elif (defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_IX86)) || (!defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64))
 	// what
+	uint32_t pointer;
+#else
 	T* pointer;
 #endif
 };
@@ -126,7 +142,7 @@ union
 public:
 	pgPtr()
 	{
-		pointer = nullptr;
+		pointer = 0;
 	}
 
 	~pgPtr()
@@ -138,7 +154,7 @@ public:
 	{
 		if (pgStreamManager::IsResolved(this))
 		{
-			return pointer;
+			return (T*)pointer;
 		}
 		else
 		{
@@ -150,7 +166,7 @@ public:
 	{
 		if (pgStreamManager::IsResolved(this))
 		{
-			return pointer;
+			return (T*)pointer;
 		}
 		else
 		{
@@ -160,10 +176,17 @@ public:
 
 	pgPtr operator=(T* other)
 	{
+#if RAGE_NATIVE_ARCHITECTURE
 		pointer = other;
 
 		pgStreamManager::MarkToBePacked(&on_disk, Physical, _ReturnAddress());
 		pgStreamManager::MarkResolved(this);
+#else
+		pointer = (decltype(pointer))other;
+
+		pgStreamManager::MarkToBePacked(&on_disk, Physical, _ReturnAddress());
+		pgStreamManager::MarkResolved(this);
+#endif
 
 		return *this;
 	}
@@ -180,7 +203,7 @@ public:
 
 	inline bool IsNull()
 	{
-		return (pointer == nullptr);
+		return (pointer == 0);
 	}
 
 	void Resolve(BlockMap* blockMap = nullptr)
@@ -194,7 +217,9 @@ public:
 		{
 			bool physical = (on_disk.blockType == 6);
 
+#if RAGE_NATIVE_ARCHITECTURE
 			pointer = (T*)pgStreamManager::ResolveFilePointer(on_disk, blockMap);
+#endif
 			pgStreamManager::MarkToBePacked(&on_disk, physical, "ResolveFilePointer");
 
 			pgStreamManager::MarkResolved(this);
@@ -209,12 +234,20 @@ inline void* datBase::operator new(size_t size)
 
 inline void* datBase::operator new(size_t size, bool isPhysical)
 {
-	return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	//return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+	memset(data, 0, size);
+
+	return data;
 }
 
 inline void* datBase::operator new(size_t size, BlockMap* blockMap, bool isPhysical)
 {
-	return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	//return pgStreamManager::Allocate(size, isPhysical, nullptr);
+	void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+	memset(data, 0, size);
+
+	return data;
 }
 
 struct FORMATS_EXPORT BlockMap : public pgStreamableBase
@@ -235,6 +268,10 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 		physicalLen = 0;
 
 		memset(blocks, 0, sizeof(blocks));
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		*(uint16_t*)((char*)this + 8) = 0x407;
+#endif
 	}
 
 	bool Save(int version, fwAction<const void*, size_t> writer);
@@ -263,10 +300,10 @@ public:
 
 	inline pgBase()
 	{
+#ifndef RAGE_FORMATS_GAME_FIVE
 		SetBlockMap();
+#endif
 	}
-
-	virtual ~pgBase() { }
 };
 #endif
 

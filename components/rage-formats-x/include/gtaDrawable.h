@@ -44,8 +44,10 @@ private:
 
 	pgArray<CLightAttr> m_lightAttrs;
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 	pgPtr<void> m_unk1;
 	pgPtr<void> m_unk2;
+#endif
 
 public:
 	inline void Resolve(BlockMap* blockMap = nullptr)

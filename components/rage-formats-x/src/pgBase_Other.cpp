@@ -5,12 +5,14 @@
  * regarding licensing.
  */
 
-#ifdef RAGE_FORMATS_OK
-#include <formats-namespace-footer.h>
+#include "StdInc.h"
 
-#ifdef RAGE_FORMATS_GAME_NY
-#pragma pack(pop)
-#endif
+#ifdef GTA_FIVE
+#define RAGE_FORMATS_GAME ny
+#define RAGE_FORMATS_GAME_NY
+#else
+#define RAGE_FORMATS_GAME five
+#define RAGE_FORMATS_GAME_FIVE
 #endif
 
-#undef RAGE_FORMATS_FILE
+#include "pgBase.cpp"

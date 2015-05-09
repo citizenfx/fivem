@@ -120,11 +120,11 @@ namespace fxc
 		uint8_t valueLength;
 		reader(&valueLength, sizeof(valueLength));
 
-		m_defaultValue.resize(valueLength * 4);
+		m_defaultValue.resize(max(valueLength * 4, 16));
 
 		if (valueLength > 0)
 		{
-			reader(&m_defaultValue[0], m_defaultValue.size());
+			reader(&m_defaultValue[0], valueLength * 4);
 		}
 	}
 

@@ -40,5 +40,9 @@
 #endif
 
 #ifdef RAGE_FORMATS_OK
+#ifdef RAGE_FORMATS_GAME_NY
+#pragma pack(push, 4)
+#endif
+
 #include <formats-namespace-header.h>
 #endif

@@ -238,6 +238,7 @@ private:
 	uint8_t m_pad;
 	uint8_t m_type;
 	uint16_t m_pad2;
+	uint32_t m_pad3;
 	pgPtr<void> m_value;
 
 public:
@@ -248,8 +249,9 @@ public:
 
 	inline void SetSampler(bool isSampler)
 	{
-		m_pad = isSampler;
+		m_pad = !isSampler;
 		m_pad2 = 0;
+		m_pad3 = 0;
 	}
 
 	inline void SetRegister(uint8_t reg)
@@ -438,9 +440,11 @@ public:
 			else
 			{
 				grcTextureRef* ref = new(false) grcTextureRef();
+
 				ref->SetName("rsn_dc_roofedges_001");
 
 				parameterData[i].SetValue(ref);
+				m_resourceCount++;
 			}
 		}
 
@@ -454,7 +458,9 @@ public:
 #endif
 };
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 static_assert(sizeof(grmShader) == 48, "grmShader size is incorrect");
+#endif
 
 class grmShaderFx : public grmShader
 {
@@ -491,6 +497,8 @@ public:
 
 	inline void SetPreset(uint32_t value) { m_preset = SwapLongWrite(value); }
 #else
+	void FORMATS_EXPORT DoPreset(const char* shader, const char* sps);
+
 	inline void SetShaderName(const char* value)
 	{
 		m_shaderHash = HashString(value);
@@ -535,6 +543,11 @@ private:
 
 public:
 	inline pgDictionary<grcTexturePC>& GetTextures() { return **m_textures; }
+
+	inline uint16_t GetNumShaders()
+	{
+		return m_shaders.GetCount();
+	}
 
 	inline grmShaderFx* GetShader(uint16_t offset) { return m_shaders.Get(offset); }
 
@@ -641,6 +654,11 @@ public:
 		}
 	}
 
+	inline uint16_t* GetIndexData()
+	{
+		return *m_indexData;
+	}
+
 	inline uint32_t GetIndexCount()
 	{
 		return m_indexCount;
@@ -656,7 +674,7 @@ class grcIndexBufferD3D : public grcIndexBuffer
 {
 private:
 	void* m_pIIndexBuffer;
-	uint32_t m_unk[8];
+	uintptr_t m_unk[8];
 
 public:
 	grcIndexBufferD3D(uint32_t indexCount, uint16_t* indexData)
@@ -672,6 +690,10 @@ public:
 	}
 };
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+static_assert(sizeof(grcIndexBufferD3D) >= 96, "grcIndexBufferD3D is too small!");
+#endif
+
 class grcVertexFormat : public pgStreamableBase
 {
 private:
@@ -685,9 +707,11 @@ private:
 #endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-	uint32_t m_mask;
+	uint16_t m_mask;
+	uint16_t _pad;
 	uint16_t m_vertexSize;
-	uint16_t m_vertexFieldCount; // maybe still 2 uint8s?
+	uint8_t _f6;
+	uint8_t m_vertexFieldCount; // maybe still 2 uint8s?
 	uint64_t m_vertexFields;
 #endif
 
@@ -696,13 +720,35 @@ public:
 	{
 #ifdef RAGE_FORMATS_GAME_NY
 		_pad = 0;
-		_f6 = 0;
 #endif
+
+		_pad = 0;
+		_f6 = 0;
 
 		m_mask = mask;
 		m_vertexSize = vertexSize;
 		m_vertexFieldCount = fieldCount;
 		m_vertexFields = fvf;
+	}
+
+	inline decltype(m_mask) GetMask()
+	{
+		return m_mask;
+	}
+
+	inline uint16_t GetVertexSize()
+	{
+		return m_vertexSize;
+	}
+
+	inline uint8_t GetFieldCount()
+	{
+		return m_vertexFieldCount;
+	}
+
+	inline uint64_t GetFVF()
+	{
+		return m_vertexFields;
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
@@ -728,6 +774,7 @@ private:
 #ifdef RAGE_FORMATS_GAME_FIVE
 	uint16_t m_vertexSize;
 	uint8_t m_locked;
+	uint8_t m_flags;
 	pgPtr<void> m_lockedData;
 	uint32_t m_vertexCount;
 	pgPtr<void> m_vertexData;
@@ -743,6 +790,7 @@ public:
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 		m_pad = 0;
+		m_flags = 0; // sets movement flags for 'data'
 #endif
 
 #ifdef RAGE_FORMATS_GAME_NY
@@ -754,6 +802,11 @@ public:
 	inline void SetVertexFormat(grcVertexFormat* vertexFormat)
 	{
 		m_vertexFormat = vertexFormat;
+	}
+
+	inline grcVertexFormat* GetVertexFormat()
+	{
+		return *m_vertexFormat;
 	}
 
 	inline void* GetVertices()
@@ -816,7 +869,7 @@ class grcVertexBufferD3D : public grcVertexBuffer
 {
 private:
 	void* m_pIVertexBuffer;
-	uint32_t m_unk[8];
+	uintptr_t m_unk[8];
 
 public:
 	inline grcVertexBufferD3D()
@@ -832,10 +885,14 @@ public:
 	}
 };
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+static_assert(sizeof(grcVertexBufferD3D) >= 128, "grcIndexBufferD3D is too small!");
+#endif
+
 class grmGeometryQB : public datBase
 {
 private:
-	void* m_vertexDeclaration; // actually IDirect3DVertexDeclaration9* at runtime
+	pgPtr<void> m_vertexDeclaration; // actually IDirect3DVertexDeclaration9* at runtime
 	uint32_t _f8;
 	pgPtr<grcVertexBufferD3D> m_vertexBuffers[4];
 	pgPtr<grcIndexBufferD3D> m_indexBuffers[4];
@@ -1003,16 +1060,30 @@ public:
 		(*m_geometryBounds)[0] = vector;
 	}
 #else
-	inline void SetGeometryBounds(const GeometryBound& vector)
+	inline void SetGeometryBounds(int count, const GeometryBound* vectors)
 	{
-		m_geometryBounds = (GeometryBound*)pgStreamManager::Allocate(sizeof(GeometryBound), false, nullptr);
-		(*m_geometryBounds)[0] = vector;
+		m_geometryBounds = (GeometryBound*)pgStreamManager::Allocate(sizeof(GeometryBound) * count, false, nullptr);
+
+		for (int i = 0; i < count; i++)
+		{
+			(*m_geometryBounds)[i] = vectors[i];
+		}
 	}
 #endif
 
 	inline void SetBoneCount(uint8_t count)
 	{
 		m_boneCount = count;
+	}
+
+	inline uint16_t* GetShaderMappings()
+	{
+		return *m_shaderMappings;
+	}
+
+	inline uint16_t GetShaderMappingCount()
+	{
+		return m_shaderMappingCount;
 	}
 
 	inline void SetShaderMappings(uint16_t count, const uint16_t* shaderMappings)
@@ -1067,14 +1138,19 @@ public:
 		m_9999[3] = 9999.f;
 #else
 		m_maxPoint = Vector4(9998.0f, 9998.0f, 9998.0f, 9998.0f);
+
+		m_drawBucketMask[0] = 0;
+		m_drawBucketMask[1] = 0;
+		m_drawBucketMask[2] = 0;
+		m_drawBucketMask[3] = 0;
 #endif
 
+#ifndef RAGE_FORMATS_GAME_FIVE
 		m_drawBucketMask[0] = -1;
 		m_drawBucketMask[1] = -1;
 		m_drawBucketMask[2] = -1;
 		m_drawBucketMask[3] = -1;
 
-#ifndef RAGE_FORMATS_GAME_FIVE
 		m_zeroes[0] = 0;
 		m_zeroes[1] = 0;
 		m_zeroes[2] = 0;
@@ -1108,7 +1184,7 @@ public:
 	{
 		m_boundsMin = min;
 		m_boundsMax = max;
-		m_center = center;
+		m_center = Vector4(center.x, center.y, center.z, radius);
 		m_radius = radius;
 	}
 #else
@@ -1189,20 +1265,22 @@ private:
 
 	grmLodGroup m_lodGroup;
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 	uintptr_t m_unk1;
 	uint16_t m_unk2;
 	uint16_t m_unk3;
 	uint32_t m_unk4;
 	
 	pgPtr<pgObjectArray<grmModel>> m_primaryModel;
+#endif
 
 public:
 #ifdef RAGE_FORMATS_GAME_FIVE
 	inline rmcDrawable()
 	{
 		m_unk1 = 0;
-		m_unk2 = 0x60;
-		m_unk3 = 0;
+		m_unk2 = 0;
+		m_unk3 = 0x60;
 		m_unk4 = 0;
 	}
 #endif
@@ -1212,10 +1290,12 @@ public:
 		return m_lodGroup;
 	}
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 	inline void SetPrimaryModel()
 	{
 		m_primaryModel = m_lodGroup.GetPrimaryModel();
 	}
+#endif
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
@@ -1230,7 +1310,9 @@ public:
 
 		m_lodGroup.Resolve(blockMap);
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 		m_primaryModel.Resolve(blockMap);
+#endif
 	}
 };
 #endif

@@ -92,7 +92,7 @@ namespace fxc
 
 		inline uint32_t GetNameHash()
 		{
-			return HashRageString(m_name.c_str());
+			return HashString(m_name.c_str());
 		}
 
 		inline void SetConstantBufferName(const std::string& value)

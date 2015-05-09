@@ -10,6 +10,23 @@
 #include <unordered_set>
 #include <tuple>
 
+#ifdef _WIN32
+#include <winternl.h>
+
+extern "C" NTSTATUS ZwAllocateVirtualMemory(
+	_In_    HANDLE    ProcessHandle,
+	_Inout_ PVOID     *BaseAddress,
+	_In_    ULONG_PTR ZeroBits,
+	_Inout_ PSIZE_T   RegionSize,
+	_In_    ULONG     AllocationType,
+	_In_    ULONG     Protect
+	);
+
+
+#pragma comment(lib, "ntdll.lib")
+#endif
+
+
 namespace rage
 {
 namespace RAGE_FORMATS_GAME
@@ -180,17 +197,31 @@ void pgStreamManager::EndPacking()
 	g_packEntries = nullptr;
 }
 
+struct BlockMapGap
+{
+	char* start;
+	size_t size;
+};
+
 struct BlockMapMeta
 {
 	size_t maxSizes[128];
+	size_t realMaxSizes[128];
+
+	std::vector<BlockMapGap> gapList;
 };
 
 static std::unordered_map<BlockMap*, BlockMapMeta> g_allocationData;
 
 void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap)
 {
+	const uint8_t maxMults[] = { 16, 8, 4, 2, 1 };
+	const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
+
 	// is this the packing block map?
-	if (!blockMap)
+	void* oldBlockMap = blockMap;
+
+	if (!blockMap || (uintptr_t)blockMap <= 0xF000)
 	{
 		blockMap = g_packBlockMap;
 	}
@@ -215,10 +246,80 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	auto& curBlockInfo = blockMap->blocks[curBlock];
 
-	if ((curBlockInfo.size + size) <= allocInfo.maxSizes[curBlock])
+	size = ((size % 16) == 0) ? size : (size + (16 - (size % 16)));
+
+	// make sure the allocation can't straddle a native page boundary (unless it's bigger than 0x200 bytes)
+	uint32_t base = 0x4000; // base * 16 is the largest allocation possible - TODO: provide a means for the user to set this/relocate bases (that'd cause all existing pages to be invalidated?)
+	size_t allocOffset;
+
+	auto padAlloc = [&] (size_t padSize)
 	{
-		size_t oldSize = size;
-		size = ((size % 16) == 0) ? size : (size + (16 - (size % 16)));
+		char* pad = (char*)Allocate(padSize, false, (BlockMap*)0x8001);
+
+		for (int i = 0; i < padSize; i++)
+		{
+			pad[i] = '1';
+		}
+
+		allocInfo.gapList.push_back(BlockMapGap{ pad, padSize });
+
+		size_t curSize = curBlockInfo.offset + curBlockInfo.size;
+		assert((curSize % base) == 0);
+
+		return Allocate(size, isPhysical, (BlockMap*)0x8001);
+	};
+
+	/*if (size < base/* && oldBlockMap != (BlockMap*)1* /)
+	{
+		size_t curSize = curBlockInfo.offset + curBlockInfo.size;
+		size_t nextBoundary = curSize + (base - (curSize % base));
+
+		/*if (nextBoundary >= 0x62000 && nextBoundary <= 0x66000)
+		{
+			__debugbreak();
+		}* /
+
+		if ((curSize % base) != 0)
+		{
+			// get the nearest 0x2000 boundary (as pages are always beyond this)
+			if ((curSize + size) > nextBoundary)
+			{
+				size_t padSize = nextBoundary - curSize;
+				return padAlloc(padSize);
+			}
+		}
+	}
+	else if ((uintptr_t)oldBlockMap < 0x8000) // hacky way of preventing reentrancy
+	{
+		size_t curSize = curBlockInfo.offset + curBlockInfo.size;
+		size_t nextBoundary = curSize + (base - (curSize % base));
+
+		if ((curSize % base) != 0)
+		{
+			return padAlloc(nextBoundary - curSize);
+		}
+	}*/
+
+	if ((curBlockInfo.size + size) <= allocInfo.realMaxSizes[curBlock])
+	{
+		// try finding a gap to allocate ourselves into
+		for (auto& gap : allocInfo.gapList)
+		{
+			if (gap.size >= size)
+			{
+				void* ptr = gap.start;
+
+				gap.size -= size;
+				gap.start += size;
+
+				return ptr;
+			}
+		}
+
+		if ((curBlockInfo.size + size) > allocInfo.maxSizes[curBlock])
+		{
+			allocInfo.maxSizes[curBlock] *= 2;
+		}
 
 		void* newPtr = (char*)curBlockInfo.data + curBlockInfo.size;
 
@@ -237,6 +338,19 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	}
 
 	// apparently we need to allocate a new block...
+
+	// pad the page to the maximum size so paging does not break
+	if (blockMap->virtualLen > 0)
+	{
+		char* pad = (char*)curBlockInfo.data + curBlockInfo.size;
+		size_t padSize = allocInfo.realMaxSizes[curBlock] - curBlockInfo.size;
+
+		memset(pad, '1', padSize);
+
+		allocInfo.gapList.push_back(BlockMapGap{ pad, padSize });
+
+		curBlockInfo.size += padSize;
+	}
 
 	// move along all physical pages if we need a new virtual page
 	if (!isPhysical && blockMap->physicalLen > 0)
@@ -257,7 +371,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	// determine the new offset
 	int newOffset = 0;
-	size_t newSize = 64 * 1024;
+	size_t newSize = base;//64 * 1024;
 
 	if (isPhysical)
 	{
@@ -272,7 +386,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	
 			newOffset = lastBlock.offset + lastBlock.size;
 
-			newSize = allocInfo.maxSizes[lastIdx] * 2;
+			//newSize = allocInfo.maxSizes[lastIdx] * 2;
 		}
 		else
 		{
@@ -292,7 +406,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 			newOffset = lastBlock.offset + lastBlock.size;
 
-			newSize = allocInfo.maxSizes[lastIdx] * 2;
+			//newSize = allocInfo.maxSizes[lastIdx] * 2;
 		}
 		else
 		{
@@ -309,10 +423,47 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	int newStart = (!isPhysical) ? blockMap->virtualLen : (blockMap->virtualLen + blockMap->physicalLen);
 	auto& newBlockInfo = blockMap->blocks[newStart];
 
-	newBlockInfo.data = malloc(newSize + 4);
-	memset(newBlockInfo.data, 0xCD, newSize);
-
 	allocInfo.maxSizes[newStart] = newSize;
+	
+	// calculate the real maximum size
+	int curMult = 0;
+	int curCount = 0;
+
+	for (int i = 0; i < blockMap->virtualLen; i++)
+	{
+		curCount++;
+
+		if (curCount == maxCounts[curMult])
+		{
+			curMult++;
+			curCount = 0;
+		}
+	}
+
+	curMult = maxMults[curMult];
+
+	if (newSize > (base * curMult))
+	{
+		FatalError("Tried to allocate more data than the base allocation unit (%d is current maximum page size) allows for, and relocation is not currently supported. Try increasing the base page multiplier (current is %d).", base * curMult, base);
+	}
+
+#if RAGE_NATIVE_ARCHITECTURE
+	//newBlockInfo.data = malloc(newSize + 4);
+	newBlockInfo.data = malloc((curMult * base) + 4);
+#else
+	newBlockInfo.data = nullptr;
+
+	size_t ntsize = (curMult * base) + 4;
+
+	if (!NT_SUCCESS(ZwAllocateVirtualMemory(GetCurrentProcess(), &newBlockInfo.data, 0xFFFFFFF, &ntsize, MEM_COMMIT, PAGE_READWRITE)))
+	{
+		FatalError("ZwAllocateVirtualMemory failed!");
+	}
+#endif
+
+	memset(newBlockInfo.data, 0xCD, base * curMult);
+
+	allocInfo.realMaxSizes[newStart] = base * curMult;
 
 	newBlockInfo.offset = newOffset;
 	newBlockInfo.size = size;
@@ -329,6 +480,11 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	}
 
 	return newBlockInfo.data;
+}
+
+BlockMap* pgStreamManager::GetBlockMap()
+{
+	return g_packBlockMap;
 }
 
 void* pgStreamManager::AllocatePlacement(size_t size, void* hintPtr, bool isPhysical, BlockMap* blockMap)
