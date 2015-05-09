@@ -48,12 +48,12 @@ fiPackfile::fiPackfile()
 }
 
 //// fiPackfile::openArchive ////
-hook::thiscall_stub<void(fiPackfile*, const char*, bool, int, int)> fiPackfile__openArchive([] ()
+hook::thiscall_stub<void(fiPackfile*, const char*, bool, int, intptr_t)> fiPackfile__openArchive([] ()
 {
 	return hook::pattern("48 8D 68 98 48 81 EC 40 01 00 00 41 8B F9").count(1).get(0).get<void>(-0x18);
 });
 
-void fiPackfile::OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, int veryFalse)
+void fiPackfile::OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, intptr_t veryFalse)
 {
 	return fiPackfile__openArchive(this, archive, bTrue, type, veryFalse);
 }

@@ -14,6 +14,16 @@ hook::cdecl_stub<rage::fiDevice*(const char*, bool)> fiDevice__GetDevice([] ()
 
 fiDevice* fiDevice::GetDevice(const char* path, bool allowRoot) { return fiDevice__GetDevice(path, allowRoot); }
 
+hook::cdecl_stub<bool(const char*, fiDevice*, bool)> fiDevice__MountGlobal([] ()
+{
+	return hook::pattern("41 8A F0 48 8B F9 E8 ? ? ? ? 33 DB 85 C0").count(1).get(0).get<void>(-0x28);
+});
+
+bool fiDevice::MountGlobal(const char* mountPoint, fiDevice* device, bool allowRoot)
+{
+	return fiDevice__MountGlobal(mountPoint, device, allowRoot);
+}
+
 // DCEC20
 hook::cdecl_stub<void(const char*)> fiDevice__Unmount([] ()
 {
@@ -34,22 +44,27 @@ static InitFunction initFunction([] ()
 	{
 		rage::fiDevice* device = rage::fiDevice::GetDevice("platform:/models/farlods.ydd", true);
 
+		packfile->OpenPackfile("platform:/levels/gta5/_citye/downtown_01/dt1_07.rpf", true, false, 3, false);
+		packfile->Mount("temp:/");
+
 		uint64_t ptr;
-		uint64_t handle = device->OpenBulk("platform:/models/farlods.ydd", &ptr);
+		uint64_t handle = packfile->OpenBulk("temp:/dt1_07_building2.ydr", &ptr);
 
 		char* outBuffer = new char[512 * 1024];
-		uint32_t read = device->ReadBulk(handle, ptr, outBuffer, 512 * 1024);
+		uint32_t read = packfile->ReadBulk(handle, ptr, outBuffer, 512 * 1024);
 
-		device->CloseBulk(handle);
+		packfile->CloseBulk(handle);
 
 		rage::ResourceFlags flags;
-		int32_t version = device->GetResourceVersion("platform:/models/farlods.ydd", &flags);
+		int32_t version = packfile->GetResourceVersion("temp:/dt1_07_building2.ydr", &flags);
 
-		FILE* savedFile = fopen("Y:\\farlods.ydd", "wb");
+		FILE* savedFile = fopen("Y:\\dev\\ydr\\dt1_07_building2.ydr", "wb");
 		fwrite(outBuffer, 1, read, savedFile);
 		fclose(savedFile);
 
-		rage::fiPackfile* packfile = new rage::fiPackfile();
+		__debugbreak();
+
+		/*rage::fiPackfile* packfile = new rage::fiPackfile();
 		packfile->OpenPackfile("x64g.rpf", true, false, 3, false);
 		packfile->Mount("temp:/");
 
@@ -64,9 +79,9 @@ static InitFunction initFunction([] ()
 			} while (packfile->FindNext(findHandle, &findData));
 
 			packfile->FindClose(findHandle);
-		}
+		}*/
 
-		__debugbreak();
+		//__debugbreak();
 	});
 #endif
 

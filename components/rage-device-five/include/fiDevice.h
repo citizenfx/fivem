@@ -34,6 +34,8 @@ class DEVICE_EXPORT __declspec(novtable) fiDevice : public sysUseAllocator
 public:
 	static fiDevice* GetDevice(const char* path, bool allowRoot);
 
+	static bool MountGlobal(const char* mountPoint, fiDevice* device, bool allowRoot);
+
 	static void Unmount(const char* rootPath);
 
 	static DEVICE_IMPORT fwEvent<> OnInitialMount;
@@ -63,9 +65,9 @@ public:
 
 	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method) = 0;
 
-	virtual void Close(uint64_t handle) = 0;
+	virtual int32_t Close(uint64_t handle) = 0;
 
-	virtual void CloseBulk(uint64_t handle) = 0;
+	virtual int32_t CloseBulk(uint64_t handle) = 0;
 
 	virtual int GetFileLength(uint64_t handle) = 0;
 
@@ -111,6 +113,22 @@ public:
 	virtual bool WriteFull(uint64_t handle, void* buffer, uint32_t length) = 0;
 
 	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* flags) = 0;
+
+	virtual int32_t m_yy() = 0;
+
+	virtual int32_t m_yz() = 0;
+
+	virtual int32_t m_zx() = 0; // return 0x40000000
+
+	virtual bool m_zy() = 0;
+
+	virtual fiDevice* m_zz() = 0; // return this
+
+	virtual bool m_ax() = 0;
+
+	virtual int32_t GetCollectionId() = 0;
+
+	virtual const char* GetName() = 0;
 
 	/*virtual uint64_t m_84(int a1) = 0;
 
@@ -160,9 +178,9 @@ public:
 
 	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method);
 
-	virtual void Close(uint64_t handle);
+	virtual int32_t Close(uint64_t handle);
 
-	virtual void CloseBulk(uint64_t handle);
+	virtual int32_t CloseBulk(uint64_t handle);
 
 	virtual int GetFileLength(uint64_t handle);
 
@@ -208,6 +226,22 @@ public:
 	virtual bool WriteFull(uint64_t handle, void* buffer, uint32_t length);
 
 	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* version);
+
+	virtual int32_t m_yy();
+
+	virtual int32_t m_yz();
+
+	virtual int32_t m_zx(); // return 0x40000000
+
+	virtual bool m_zy();
+
+	virtual fiDevice* m_zz(); // return this
+
+	virtual bool m_ax();
+
+	virtual int32_t GetCollectionId();
+
+	virtual const char* GetName();
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiDeviceRelative : public fiDeviceImplemented
@@ -238,10 +272,10 @@ public:
 	fiPackfile();
 
 	// any RAGE path can be used; including root-relative paths
-	void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, int veryFalse);
+	void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, intptr_t veryFalse);
 
 	// compatibility wrapper
-	inline void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int veryFalse)
+	inline void OpenPackfile(const char* archive, bool bTrue, bool bFalse, intptr_t veryFalse)
 	{
 		OpenPackfile(archive, bTrue, bFalse, 3, veryFalse);
 	}

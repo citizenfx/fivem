@@ -56,14 +56,14 @@ uint32_t WRAPPER fiDeviceImplemented::Seek(uint64_t handle, int32_t distance, ui
 	PURECALL();
 }
 
-void WRAPPER fiDeviceImplemented::Close(uint64_t handle)
+int32_t WRAPPER fiDeviceImplemented::Close(uint64_t handle)
 {
-	return;
+	PURECALL();
 }
 
-void WRAPPER fiDeviceImplemented::CloseBulk(uint64_t handle)
+int32_t WRAPPER fiDeviceImplemented::CloseBulk(uint64_t handle)
 {
-	return;
+	PURECALL();
 }
 
 int WRAPPER fiDeviceImplemented::GetFileLength(uint64_t handle)
@@ -162,6 +162,46 @@ bool WRAPPER fiDeviceImplemented::m_xz()
 }
 
 int WRAPPER fiDeviceImplemented::m_yx()
+{
+	PURECALL();
+}
+
+int WRAPPER fiDeviceImplemented::m_yy()
+{
+	PURECALL();
+}
+
+int WRAPPER fiDeviceImplemented::m_yz()
+{
+	PURECALL();
+}
+
+int WRAPPER fiDeviceImplemented::m_zx()
+{
+	PURECALL();
+}
+
+bool WRAPPER fiDeviceImplemented::m_zy()
+{
+	PURECALL();
+}
+
+fiDevice* WRAPPER fiDeviceImplemented::m_zz()
+{
+	PURECALL();
+}
+
+bool WRAPPER fiDeviceImplemented::m_ax()
+{
+	PURECALL();
+}
+
+int WRAPPER fiDeviceImplemented::GetCollectionId()
+{
+	PURECALL();
+}
+
+const char* WRAPPER fiDeviceImplemented::GetName()
 {
 	PURECALL();
 }
