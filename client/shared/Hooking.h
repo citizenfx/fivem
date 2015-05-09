@@ -571,6 +571,17 @@ inline void set_call(TTarget* target, T address)
 {
 	*(T*)target = get_call(address);
 }
+
+inline uintptr_t get_member_internal(void* function)
+{
+	return *(uintptr_t*)function;
+}
+
+template<typename T>
+inline uintptr_t get_member(T function)
+{
+	return ((uintptr_t(*)(T))get_member_internal)(function);
+}
 #endif
 }
 
