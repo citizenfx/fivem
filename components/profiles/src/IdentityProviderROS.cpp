@@ -10,15 +10,15 @@
 #include "HttpClient.h"
 #include "base64.h"
 
-// as Botan isn't available on AMD64 yet in our environment
-#ifndef _M_AMD64
 #include <botan/botan.h>
+#include <botan/hash.h>
+#include <botan/stream_cipher.h>
 #include <sstream>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#define ROS_PLATFORM_KEY "C/9UmxenWfiN5LxXok/KWT4dX9MA+umtsmsIO3/RvegqJKPWhKne4VgNt+oq5de8Le+JLBsATQXtiKTVMk6CO24="
+#define ROS_PLATFORM_KEY "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc="
 
 class ROSCryptoState
 {
@@ -73,7 +73,7 @@ bool ROSIdentityProvider::RequiresCredentials()
 
 const wchar_t* ROSIdentityProvider::GetROSVersionString()
 {
-	const char* baseString = va("e=%d,t=%s,p=%s,v=%d", 1, "mp3", "pcros", 11);
+	const char* baseString = va("e=%d,t=%s,p=%s,v=%d", 1, "gta5", "pcros", 11);
 
 	// create the XOR'd buffer
 	std::vector<uint8_t> xorBuffer(strlen(baseString) + 4);
@@ -127,7 +127,7 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 	// encrypt the query string
 	fwString queryString = EncryptROSData(httpClient->BuildPostString(postMap));
 
-	httpClient->DoPostRequest(L"prod.ros.rockstargames.com", 80, L"/mp3/11/gameservices/auth.asmx/CreateTicketSc3", queryString, [=] (bool success, const char* data, size_t size)
+	httpClient->DoPostRequest(L"prod.ros.rockstargames.com", 80, L"/gta5/11/gameservices/auth.asmx/CreateTicketSc3", queryString, [=] (bool success, const char* data, size_t size)
 	{
 		std::shared_ptr<HttpClient> httpClientRef = httpClient;
 
@@ -172,7 +172,7 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 
 				profileImpl->SetParameters(storeParameters);
 
-				resultEvent.set(ProfileIdentityResult(terminal::TokenType::ROS, va("%s&&%lld", ticket.c_str(), rockstarId)));
+				resultEvent.set(ProfileIdentityResult(terminal::TokenType::ROS, va("%s&&%lld&&gta5", ticket.c_str(), rockstarId)));
 			}
 		}
 	});
@@ -201,7 +201,7 @@ std::string ROSIdentityProvider::EncryptROSData(const std::string& input)
 	}
 
 	// create a RC4 cipher for the data
-	Botan::StreamCipher* rc4 = Botan::retrieve_stream_cipher("RC4")->clone();
+	Botan::StreamCipher* rc4 = Botan::get_stream_cipher("RC4")->clone();
 	rc4->set_key(rc4Key, sizeof(rc4Key));
 
 	// encrypt the passed user data using the key
@@ -216,7 +216,7 @@ std::string ROSIdentityProvider::EncryptROSData(const std::string& input)
 	// get a hash for the stream's content so far
 	std::string tempContent = output.str();
 
-	Botan::HashFunction* sha1 = Botan::retrieve_hash("SHA1")->clone();
+	Botan::HashFunction* sha1 = Botan::get_hash("SHA1")->clone();
 	sha1->update(reinterpret_cast<const uint8_t*>(tempContent.c_str()), tempContent.size());
 	sha1->update(state.GetHashKey(), 16);
 
@@ -244,7 +244,7 @@ std::string ROSIdentityProvider::DecryptROSData(const char* data, size_t size)
 	}
 
 	// initialize RC4 with the packet key
-	Botan::StreamCipher* rc4 = Botan::retrieve_stream_cipher("RC4")->clone();
+	Botan::StreamCipher* rc4 = Botan::get_stream_cipher("RC4")->clone();
 	rc4->set_key(rc4Key, sizeof(rc4Key));
 
 	// read the block size from the data
@@ -309,7 +309,7 @@ ROSCryptoState::ROSCryptoState()
 	free(platformStr);
 
 	// create the RC4 cipher and decode the keys
-	m_rc4 = Botan::retrieve_stream_cipher("RC4")->clone();
+	m_rc4 = Botan::get_stream_cipher("RC4")->clone();
 
 	// set the key
 	m_rc4->set_key(m_rc4Key, sizeof(m_rc4Key));
@@ -333,4 +333,3 @@ static InitFunction initFunction([] ()
 
 	ourProfileManager->AddIdentityProvider(new ROSIdentityProvider());
 });
-#endif
