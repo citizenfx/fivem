@@ -238,6 +238,11 @@ void CitizenNUIBackground::Initialize()
 
 void CitizenNUIBackground::DrawBackground(rage::grcTexture* texture, CRGBA colorValue)
 {
+#ifdef _HAVE_GRCORE_NEWSTATES
+	auto oldBlendState = GetBlendState();
+	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+#endif
+
 	SetTextureGtaIm(texture);
 
 	int resX, resY;
@@ -246,6 +251,10 @@ void CitizenNUIBackground::DrawBackground(rage::grcTexture* texture, CRGBA color
 	uint32_t color = colorValue.AsARGB();
 
 	DrawImSprite(0.0f, 0.0f, resX, resY, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+
+#ifdef _HAVE_GRCORE_NEWSTATES
+	SetBlendState(oldBlendState);
+#endif
 }
 
 void CitizenNUIBackground::EnsureTextures()
@@ -305,7 +314,11 @@ rage::grcTexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring f
 				reference.height = height;
 				reference.depth = 1;
 				reference.stride = width * 4;
+#ifdef GTA_NY
 				reference.format = 1; // RGBA
+#elif defined(GTA_FIVE)
+				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
+#endif
 				reference.pixelData = (uint8_t*)pixelData;
 
 				return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
@@ -320,7 +333,5 @@ static CitizenNUIBackground g_nuiBackground;
 
 static InitFunction initFunction([] ()
 {
-	return;
-
 	g_nuiBackground.Initialize();
 });
