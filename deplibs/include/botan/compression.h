@@ -15,25 +15,25 @@ namespace Botan {
 class BOTAN_DLL Compressor_Transform : public Transform
    {
    public:
-      size_t update_granularity() const override { return 1; }
+      size_t update_granularity() const override final { return 1; }
 
-      size_t minimum_final_size() const override { return 0; }
+      size_t minimum_final_size() const override final { return 0; }
 
-      size_t default_nonce_length() const override { return 0; }
+      size_t default_nonce_length() const override final { return 0; }
 
-      bool valid_nonce_length(size_t nonce_len) const override
+      bool valid_nonce_length(size_t nonce_len) const override final
          { return nonce_len == 0; }
 
       virtual void flush(secure_vector<byte>& buf, size_t offset = 0) { update(buf, offset); }
 
-      size_t output_length(size_t) const override
+      size_t output_length(size_t) const override final
          {
          throw std::runtime_error(name() + " output length indeterminate");
          }
    };
 
-BOTAN_DLL Transform* make_compressor(const std::string& type, size_t level);
-BOTAN_DLL Transform* make_decompressor(const std::string& type);
+BOTAN_DLL Compressor_Transform* make_compressor(const std::string& type, size_t level);
+BOTAN_DLL Compressor_Transform* make_decompressor(const std::string& type);
 
 class Compression_Stream
    {

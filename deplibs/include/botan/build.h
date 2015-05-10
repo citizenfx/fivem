@@ -3,12 +3,12 @@
 #define BOTAN_BUILD_CONFIG_H__
 
 /*
-* This file was automatically generated Thu Apr 09 10:05:01 2015 UTC by
-* Bas@fallarbor running 'configure.py --disable-modules=win32_stats --makefile-style=nmake --cpu=x86 --cc=msvc --prefix=P:\dev\botan\build_release'
+* This file was automatically generated Sun May 10 21:34:31 2015 UTC by
+* Bas@fallarbor running 'configure.py --disable-modules=win32_stats'
 *
 * Target
 *  - Compiler: cl /MD /O2
-*  - Arch: x86_32/x86_32
+*  - Arch: x86_64/x86_64
 *  - OS: windows
 */
 
@@ -19,11 +19,11 @@
 
 #define BOTAN_VERSION_RELEASE_TYPE "unreleased"
 
-#define BOTAN_VERSION_VC_REVISION "git:62947773cedb0c9534c5df91271db9a9414e6e2a"
+#define BOTAN_VERSION_VC_REVISION "git:9426f6d0f4a760c555379c3af642127df7e1456e"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 
-#define BOTAN_INSTALL_PREFIX "P:\dev\botan\build_release"
+#define BOTAN_INSTALL_PREFIX "c:\Botan"
 #define BOTAN_INSTALL_HEADER_DIR "include/botan-1.11"
 #define BOTAN_INSTALL_LIB_DIR "lib"
 #define BOTAN_LIB_LINK "advapi32.lib"
@@ -46,7 +46,7 @@
 #define BOTAN_BLOCK_CIPHER_PAR_MULT 4
 
 /* How many bits per limb in a BigInt */
-#define BOTAN_MP_WORD_BITS 32
+#define BOTAN_MP_WORD_BITS 64
 
 /*
 * If enabled uses memset via volatile function pointer to zero memory,
@@ -99,10 +99,11 @@
 #define BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY
 #define BOTAN_TARGET_OS_HAS_VIRTUAL_LOCK
 
-#define BOTAN_TARGET_ARCH_IS_X86_32
+#define BOTAN_TARGET_ARCH_IS_X86_64
 #define BOTAN_TARGET_SUPPORTS_AESNI
 #define BOTAN_TARGET_SUPPORTS_AVX2
 #define BOTAN_TARGET_SUPPORTS_BMI2
+#define BOTAN_TARGET_SUPPORTS_CLMUL
 #define BOTAN_TARGET_SUPPORTS_RDRAND
 #define BOTAN_TARGET_SUPPORTS_SHA
 #define BOTAN_TARGET_SUPPORTS_SSE2
@@ -111,7 +112,8 @@
 #define BOTAN_TARGET_SUPPORTS_SSSE3
 #define BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN
 #define BOTAN_TARGET_CPU_IS_X86_FAMILY
-#define BOTAN_TARGET_CPU_NATIVE_WORD_SIZE 32
+#define BOTAN_TARGET_CPU_NATIVE_WORD_SIZE 64
+#define BOTAN_TARGET_CPU_HAS_NATIVE_64BIT
 #define BOTAN_TARGET_UNALIGNED_MEMORY_ACCESS_OK 1
 
 #if defined(BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN) || \
@@ -315,6 +317,7 @@
 #define BOTAN_HAS_SYSTEM_RNG 20141202
 #define BOTAN_HAS_TEA 20131128
 #define BOTAN_HAS_THREEFISH_512 20131224
+#define BOTAN_HAS_THREEFISH_512_AVX2 20131224
 #define BOTAN_HAS_THRESHOLD_SECRET_SHARING 20131128
 #define BOTAN_HAS_TIGER 20131128
 #define BOTAN_HAS_TLS 20150319

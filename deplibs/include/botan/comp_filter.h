@@ -1,6 +1,6 @@
 /*
 * Filter interface for compression
-* (C) 2014 Jack Lloyd
+* (C) 2014,2015 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -28,7 +28,7 @@ class BOTAN_DLL Compression_Decompression_Filter : public Filter
       std::string name() const override;
 
    protected:
-      Compression_Decompression_Filter(Transform* t);
+      Compression_Decompression_Filter(Transform* t, size_t bs);
 
       void flush();
    private:
@@ -39,7 +39,9 @@ class BOTAN_DLL Compression_Decompression_Filter : public Filter
 class BOTAN_DLL Compression_Filter : public Compression_Decompression_Filter
    {
    public:
-      Compression_Filter(const std::string& type, size_t level); // compression
+      Compression_Filter(const std::string& type,
+                         size_t compression_level,
+                         size_t buffer_size = 4096);
 
       using Compression_Decompression_Filter::flush;
    };
@@ -47,7 +49,8 @@ class BOTAN_DLL Compression_Filter : public Compression_Decompression_Filter
 class Decompression_Filter : public Compression_Decompression_Filter
    {
    public:
-      Decompression_Filter(const std::string& type);
+      Decompression_Filter(const std::string& type,
+                           size_t buffer_size = 4096);
    };
 
 }
