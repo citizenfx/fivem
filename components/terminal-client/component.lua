@@ -2,8 +2,14 @@ links { 'ws2_32' }
 
 includedirs { "src/messages/" }
 
-configuration 'Debug*'
+filter { 'Debug', 'architecture:x64' }
+        links { 'botanx64d' }
+
+filter { 'Debug', 'architecture:not x64' }
         links { 'botand' }
 
-configuration 'Release*'
+filter { 'Release', 'architecture:x64' }
+        links { 'botanx64' }
+
+filter { 'Release', 'architecture:not x64' }
         links { 'botan' }
