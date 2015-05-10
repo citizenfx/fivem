@@ -401,5 +401,5 @@ static HookFunction hookFunction([] ()
 	{
 		g_realResolution[0] = g_resolution[0];
 		g_realResolution[1] = g_resolution[1];
-	});
+	}, -500);
 });
