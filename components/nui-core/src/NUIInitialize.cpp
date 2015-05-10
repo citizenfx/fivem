@@ -105,8 +105,7 @@ static InitFunction initFunction([] ()
 		int resX, resY;
 		GetGameResolution(resX, resY);
 
-		//auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
-		auto rootWindow = NUIWindow::Create(true, resX, resY, "http://fivem.net/progression.html");
+		auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
 		rootWindow->SetPaintType(NUIPaintTypePostRender);
 
 		Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
