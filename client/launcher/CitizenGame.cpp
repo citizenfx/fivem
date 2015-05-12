@@ -9,6 +9,7 @@
 #include "CitizenGame.h"
 #include "ExecutableLoader.h"
 #include "LauncherInterface.h"
+#include "UserLibrary.h"
 
 #include "Hooking.h"
 
@@ -277,13 +278,40 @@ struct NtCloseHook : public jitasm::Frontend
 	}
 };
 
-void HookHandleClose()
+class NtdllHooks
+{
+private:
+	UserLibrary m_ntdll;
+
+private:
+	void HookHandleClose();
+
+	void HookQueryInformationProcess();
+
+public:
+	NtdllHooks(const wchar_t* ntdllPath);
+
+	void Install();
+};
+
+NtdllHooks::NtdllHooks(const wchar_t* ntdllPath)
+	: m_ntdll(ntdllPath)
+{
+}
+
+void NtdllHooks::Install()
+{
+	HookHandleClose();
+	HookQueryInformationProcess();
+}
+
+void NtdllHooks::HookHandleClose()
 {
 	// hook NtClose (STATUS_INVALID_HANDLE debugger detection)
 	uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtClose");
-	
+
 	origCloseHandle = VirtualAlloc(nullptr, 20, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	memcpy(origCloseHandle, code, 20);
+	memcpy(origCloseHandle, m_ntdll.GetExportCode("NtClose"), 20);
 
 	NtCloseHook* hook = new NtCloseHook;
 	hook->Assemble();
@@ -335,7 +363,7 @@ static NTSTATUS NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCES
 	return status;
 }
 
-void HookQueryInformationProcess()
+void NtdllHooks::HookQueryInformationProcess()
 {
 	uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
 
@@ -343,7 +371,7 @@ void HookQueryInformationProcess()
 	GetWindowThreadProcessId(shellWindow, &explorerPid);
 
 	origQIP = VirtualAlloc(nullptr, 20, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	memcpy(origQIP, code, 20);
+	memcpy(origQIP, m_ntdll.GetExportCode("NtQueryInformationProcess"), 20);
 
 	/*NtQueryInformationProcessHook* hook = new NtQueryInformationProcessHook;
 	hook->Assemble();*/
@@ -542,8 +570,14 @@ void CitizenGame::Launch(std::wstring& gamePath)
 	// set GlobalFlags
 	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
 
-	HookHandleClose();
-	HookQueryInformationProcess();
+	{
+		// user library stuff ('safe' ntdll hooking callbacks)
+		wchar_t ntdllPath[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(L"ntdll.dll"), ntdllPath, _countof(ntdllPath));
+
+		NtdllHooks hooks(ntdllPath);
+		hooks.Install();
+	}
 
 	g_launcher = launcher;
 #endif
