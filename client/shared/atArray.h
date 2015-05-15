@@ -35,6 +35,11 @@ public:
 		m_size = capacity;
 	}
 
+	~atArray()
+	{
+		delete[] m_offset;
+	}
+
 	inline uint16_t GetCount()
 	{
 		return m_count;

@@ -29,10 +29,10 @@ namespace hook
 		put<int>(m_address + 1, (uintptr_t)m_assembly->GetCode() - (uintptr_t)get_adjusted(m_address) - 5);
 	}
 #else
-	void* AllocateFunctionStub(void* ptr)
+	void* AllocateFunctionStub(void* ptr, int type)
 	{
 #if defined(GTA_FIVE)
-		typedef void*(*AllocateType)(void*);
+		typedef void*(*AllocateType)(void*, int);
 		static AllocateType func;
 
 		if (func == nullptr)
@@ -41,7 +41,7 @@ namespace hook
 			func = (AllocateType)GetProcAddress(coreRuntime, "AllocateFunctionStubImpl");
 		}
 
-		return func(ptr);
+		return func(ptr, type);
 #endif
 	}
 #endif

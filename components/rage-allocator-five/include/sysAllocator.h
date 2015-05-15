@@ -36,6 +36,16 @@ namespace rage
 	public:
 		void* operator new(size_t size);
 
+		inline void* operator new[](size_t size)
+		{
+			return sysUseAllocator::operator new(size);
+		}
+
 		void operator delete(void* memory);
+
+		inline void operator delete[](void* memory)
+		{
+			return sysUseAllocator::operator delete(memory);
+		}
 	};
 }

@@ -206,6 +206,18 @@ static int JustNoScript(GtaThread* thread)
 	if (g_ownedThreads.find(thread) != g_ownedThreads.end())
 	{
 		thread->Run(0);
+
+		// attempt to fix up threads with an unknown thread ID
+		for (auto& script : g_ownedThreads)
+		{
+			if (script != thread && script->GetContext()->ThreadId == 0)
+			{
+				script->GetContext()->ThreadId = *scrThreadId;
+				(*scrThreadId)++;
+
+				script->SetScriptHandler(thread->GetScriptHandler());
+			}
+		}
 	}
 
 	return thread->GetContext()->State;

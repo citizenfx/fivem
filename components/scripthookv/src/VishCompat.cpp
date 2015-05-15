@@ -32,6 +32,14 @@ public:
 		m_wakeAt = timeGetTime();
 	}
 
+	inline ~FishScript()
+	{
+		if (m_fiber)
+		{
+			DeleteFiber(m_fiber);
+		}
+	}
+
 	void Tick();
 
 	void Yield(uint32_t time);
@@ -99,10 +107,34 @@ public:
 		}
 	}
 
+	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override;
+
 	void AddScript(void(*fn)());
 
 	void RemoveScript(void(*fn)());
 };
+
+rage::eThreadState FishThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
+{
+	// collect all script functions
+	std::vector<void(*)()> scriptFunctions;
+
+	for (auto&& script : m_scripts)
+	{
+		scriptFunctions.push_back(script->GetFunction());
+	}
+
+	// clear the script list
+	m_scripts.clear();
+
+	// start all script functions
+	for (auto&& fn : scriptFunctions)
+	{
+		AddScript(fn);
+	}
+
+	return GtaThread::Reset(scriptHash, pArgs, argCount);
+}
 
 void FishThread::AddScript(void(*fn)())
 {

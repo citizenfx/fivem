@@ -961,6 +961,8 @@ void* ResolveQB(char* qb, void* bm)
 
 static HookFunction hookFunction([] ()
 {
+	return;
+
 	// packfile create
 	hook::call(hook::pattern("4C 8B F0 49 8B 06 49 8B CE FF 90 60 01 00 00 48").count(1).get(0).get<void>(-5), ConstructPackfile);
 

@@ -140,8 +140,41 @@ inline T* getRVA(uintptr_t rva)
 #endif
 }
 
-template<typename T>
-void iat(const char* moduleName, T function, int ordinal)
+namespace
+{
+	template<typename TOrdinal>
+	inline bool iat_matches_ordinal(uintptr_t* nameTableEntry, TOrdinal ordinal)
+	{
+		
+	}
+
+	template<>
+	inline bool iat_matches_ordinal(uintptr_t* nameTableEntry, int ordinal)
+	{
+		if (IMAGE_SNAP_BY_ORDINAL(*nameTableEntry))
+		{
+			return IMAGE_ORDINAL(*nameTableEntry) == ordinal;
+		}
+
+		return false;
+	}
+
+	template<>
+	inline bool iat_matches_ordinal(uintptr_t* nameTableEntry, const char* ordinal)
+	{
+		if (!IMAGE_SNAP_BY_ORDINAL(*nameTableEntry))
+		{
+			auto import = getRVA<IMAGE_IMPORT_BY_NAME>(*nameTableEntry);
+
+			return !_stricmp(import->Name, ordinal);
+		}
+
+		return false;
+	}
+}
+
+template<typename T, typename TOrdinal>
+void iat(const char* moduleName, T function, TOrdinal ordinal)
 {
 #ifdef _M_IX86
 	IMAGE_DOS_HEADER* imageHeader = (IMAGE_DOS_HEADER*)(baseAddressDifference + 0x400000);
@@ -168,14 +201,10 @@ void iat(const char* moduleName, T function, int ordinal)
 
 		while (*nameTableEntry)
 		{
-			// is this an ordinal-only import?
-			if (IMAGE_SNAP_BY_ORDINAL(*nameTableEntry))
+			if (iat_matches_ordinal(nameTableEntry, ordinal))
 			{
-				if (IMAGE_ORDINAL(*nameTableEntry) == ordinal)
-				{
-					*addressTableEntry = (uintptr_t)function;
-					return;
-				}
+				*addressTableEntry = (uintptr_t)function;
+				return;
 			}
 
 			nameTableEntry++;
@@ -537,7 +566,7 @@ public:
 };
 #pragma endregion
 #else
-void* AllocateFunctionStub(void* ptr);
+void* AllocateFunctionStub(void* ptr, int type = 0);
 
 template<typename T, typename AT>
 inline void jump(AT address, T func)
@@ -552,6 +581,15 @@ template<typename T, typename AT>
 inline void call(AT address, T func)
 {
 	LPVOID funcStub = AllocateFunctionStub((void*)func);
+
+	put<uint8_t>(address, 0xE8);
+	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
+}
+
+template<typename T, typename AT>
+inline void call_rcx(AT address, T func)
+{
+	LPVOID funcStub = AllocateFunctionStub((void*)func, 1);
 
 	put<uint8_t>(address, 0xE8);
 	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);

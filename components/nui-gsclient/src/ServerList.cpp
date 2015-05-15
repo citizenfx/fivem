@@ -16,6 +16,8 @@
 #define GS_GAMENAME "GTA4"
 #elif defined(PAYNE)
 #define GS_GAMENAME "Payne"
+#elif defined(GTA_FIVE)
+#define GS_GAMENAME "GTA5"
 #else
 #define GS_GAMENAME "CitizenFX"
 #endif

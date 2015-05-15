@@ -57,6 +57,15 @@ public:
 		m_markScript = false;
 	}
 
+	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
+	{
+		m_isWaitingForModelToLoad = false;
+		m_doInityThings = true;
+		m_markScript = false;
+
+		return GtaThread::Reset(scriptHash, pArgs, argCount);
+	}
+
 	virtual void DoRun() override
 	{
 		if (!m_markScript)
@@ -142,9 +151,11 @@ public:
 				{
 					if (!wasF9Pressed)
 					{
-						NativeInvoke::Invoke<REQUEST_MODEL, int>(0x2B6DC64A);
+						//NativeInvoke::Invoke<REQUEST_MODEL, int>(0x2B6DC64A);
 
-						m_isWaitingForModelToLoad = true;
+						//m_isWaitingForModelToLoad = true;
+
+						NativeInvoke::Invoke<0x593850C16A36B692, int>();
 
 						wasF9Pressed = true;
 					}
