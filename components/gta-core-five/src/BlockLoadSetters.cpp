@@ -41,6 +41,13 @@ static void WaitForInitLoop()
 	//*g_initState = 7;
 }
 
+static void WaitForInitLoopWrap()
+{
+	*g_initState = 6;
+
+	WaitForInitLoop();
+}
+
 void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 {
 	OnGameFrame.Connect([=] ()
@@ -596,6 +603,12 @@ static HookFunction hookFunction([] ()
 
 	// and call our little internal loop function from there
 	hook::call(p, WaitForInitLoop);
+
+	// also add a silly loop to state 6 ('wait for landing page'?)
+	p = hook::pattern("C7 05 ? ? ? ? 06 00 00 00 EB 3F").count(1).get(0).get<char>(0);
+
+	hook::nop(p, 10);
+	hook::call(p, WaitForInitLoopWrap);
 
 	// for now, always reload the level in 'reload game' state, even if the current level did not change
 	auto matches = hook::pattern("75 0F E8 ? ? ? ? 8B 0D ? ? ? ? 3B C8 74").count(2);
