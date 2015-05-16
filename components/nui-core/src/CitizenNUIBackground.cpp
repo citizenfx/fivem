@@ -257,6 +257,8 @@ void CitizenNUIBackground::DrawBackground(rage::grcTexture* texture, CRGBA color
 #endif
 }
 
+rage::grcTexture* g_cursorTexture;
+
 void CitizenNUIBackground::EnsureTextures()
 {
 	if (!m_backdropTexture)
@@ -267,6 +269,11 @@ void CitizenNUIBackground::EnsureTextures()
 	if (!m_overlayTexture)
 	{
 		m_overlayTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\base_color.png"));
+	}
+
+	if (!g_cursorTexture)
+	{
+		g_cursorTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\citizen_cursor.png"));
 	}
 }
 

@@ -8,6 +8,8 @@
 
 extern POINT g_cursorPos;
 
+extern rage::grcTexture* g_cursorTexture;
+
 static InitFunction initFunction([] ()
 {
 	OnD3DPostReset.Connect([] ()
@@ -112,6 +114,23 @@ static InitFunction initFunction([] ()
 
 				uint32_t color = 0xFFFFFFFF;
 				DrawImSprite((float)cursorPos.x, (float)cursorPos.y, (float)cursorPos.x + 40.0f, (float)cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+#else
+#if defined(_HAVE_GRCORE_NEWSTATES)
+				auto oldBlendState = GetBlendState();
+				SetBlendState(GetStockStateIdentifier(BlendStatePremultiplied));
+#endif
+
+				if (g_cursorTexture)
+				{
+					SetTextureGtaIm(g_cursorTexture);
+
+					uint32_t color = 0xFFFFFFFF;
+					DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+				}
+
+#if defined(_HAVE_GRCORE_NEWSTATES)
+				SetBlendState(oldBlendState);
+#endif
 #endif
 			}
 #if defined(GTA_NY)
