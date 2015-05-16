@@ -520,8 +520,6 @@ void NetLibrary::PostProcessNativeNet()
 	g_netFrameMutex.unlock();
 }
 
-static uint32_t tempGuid = GetTickCount();
-
 void NetLibrary::RunFrame()
 {
 	if (!g_netFrameMutex.try_lock())
@@ -556,10 +554,9 @@ void NetLibrary::RunFrame()
 			{
 				TerminalClient* clientContainer = Instance<TerminalClient>::Get();
 				auto client = clientContainer->GetClient();
-				//auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
+				auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-				//SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), (uint64_t)tempGuid);
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());
 
 				m_lastConnect = GetTickCount();
 
@@ -636,10 +633,9 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	TerminalClient* clientContainer = Instance<TerminalClient>::Get();
 	auto client = clientContainer->GetClient();
-	//auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
+	auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-	//postMap["guid"] = va("%llu", user->GetNPID());
-	postMap["guid"] = va("%lld", (uint64_t)tempGuid);
+	postMap["guid"] = va("%llu", user->GetNPID());
 
 	uint16_t capturePort = port;
 
@@ -668,7 +664,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			{
 				if (postMap.find("authTicket") == postMap.end())
 				{
-					std::vector<uint8_t> authTicket;// = user->GetUserTicket(node["authID"].as<uint64_t>());
+					std::vector<uint8_t> authTicket = user->GetUserTicket(node["authID"].as<uint64_t>());
 
 					size_t ticketLen;
 					char* ticketEncoded = base64_encode(&authTicket[0], authTicket.size(), &ticketLen);
