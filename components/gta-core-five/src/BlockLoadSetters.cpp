@@ -272,6 +272,20 @@ static std::unordered_map<int, std::vector<uintptr_t>> g_stacks;
 
 static atArray<CInteriorProxy*>* g_vehicleReflEntityArray;
 
+static hook::cdecl_stub<void(void*)> extraContentMgr__doScanInt([] ()
+{
+	return hook::get_call(hook::pattern("48 83 EC 20 80 A1 7A 01 00 00 FE 41 8A D8").count(1).get(0).get<void>(17));
+});
+
+// a3: skip mount?
+static hook::cdecl_stub<void(void*, bool, bool)> extraContentMgr__doScanPost([] ()
+{
+	//return hook::pattern("48 83 EC 20 80 A1 7A 01 00 00 FE 41 8A D8").count(1).get(0).get<void>(-0x6);
+	return hook::get_call(hook::pattern("48 83 EC 20 80 A1 7A 01 00 00 FE 41 8A D8").count(1).get(0).get<void>(30));
+});
+
+static void** g_extraContentMgr;
+
 static void DeinitLevel()
 {
 	static bool initedLateHook = false;
@@ -281,6 +295,9 @@ static void DeinitLevel()
 		// late hook to prevent scenario manager from reinitializing on map load - it messes things up, a lot, and I doubt custom maps use scenarios anyway. :)
 		hook::put<uint16_t>(hook::pattern("83 F9 04 0F 85 F9 00 00 00").count(1).get(0).get<void>(3), 0xE990); // shutdown
 		hook::put<uint16_t>(hook::pattern("83 F9 02 0F 85 C6 01 00 00").count(1).get(0).get<void>(3), 0xE990); // init
+
+		// don't load mounted ped (personality) metadata anymore (temp dbg-y?)
+		hook::nop(hook::pattern("48 8B DA 83 E9 14 74 5B").count(1).get(0).get<void>(0x72 - 12), 5);
 
 		initedLateHook = true;
 	}
@@ -293,6 +310,10 @@ static void DeinitLevel()
 	shutdownModelInfo(1);
 	initModelInfo(1);
 	initStreamingInterface();
+
+	// extra content manager shutdown session removes these, and we want these before init session, so we scan them right here, right now.
+	extraContentMgr__doScanInt(*g_extraContentMgr);
+	extraContentMgr__doScanPost(*g_extraContentMgr, false, false);
 
 	//shutdownPhysics(1);
 	//initPhysics(1);
@@ -562,8 +583,8 @@ static HookFunction hookFunction([] ()
 	g_sceneLinkedList = (void*)(loc + *(int32_t*)loc + 4);
 
 	// temp dbg: don't scan for platform dlc packs... it's mean.
-	//hook::nop(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(5), 5);
-	hook::return_function(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(-0xA8));
+	hook::nop(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(5), 5);
+	//hook::return_function(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(-0xA8));
 
 	//hook::call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), DebugBreakDo);
 	hook::jump(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)), DebugBreakDo);
@@ -635,6 +656,18 @@ static HookFunction hookFunction([] ()
 
 	// debug info for item #2 (generic free hook; might be useful elsewhere)
 	location = hook::pattern("48 89 01 83 61 48 00 48 8B C1 C3").count(1).get(0).get<char>(-4);
+
+	// dlc get
+	void* extraDataGetty = hook::pattern("45 33 F6 48 8B D8 48 85 C0 74 48").count(1).get(0).get<void>(0);
+
+	printf("");
+
+	location = hook::pattern("75 34 48 85 DB 75 34 B9 B0 09 00 00").count(1).get(0).get<char>(-9);
+
+	g_extraContentMgr = (void**)(location + *(int32_t*)location + 4);
+
+	// mount dlc even if allegedly already mounted - bad bad idea
+	//hook::nop(hook::pattern("84 C0 75 7A 48 8D 4C 24 20").count(1).get(0).get<void>(2), 2);
 
 	/*
 	void** vt = (void**)(location + *(int32_t*)location + 4);

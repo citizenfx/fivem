@@ -151,9 +151,9 @@ void WRAPPER fiDeviceImplemented::m_xx()
 	return;
 }
 
-void WRAPPER fiDeviceImplemented::m_xy()
+void* WRAPPER fiDeviceImplemented::m_xy(void*, int, void*)
 {
-	return;
+	PURECALL();
 }
 
 bool WRAPPER fiDeviceImplemented::m_xz()
@@ -171,12 +171,12 @@ int WRAPPER fiDeviceImplemented::m_yy()
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_yz()
+int WRAPPER fiDeviceImplemented::m_yz(void*)
 {
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_zx()
+int WRAPPER fiDeviceImplemented::m_zx(void*)
 {
 	PURECALL();
 }

@@ -95,7 +95,7 @@ public:
 
 	virtual rage::fiDevice* GetUnkDevice() = 0;
 
-	virtual void m_xy() = 0;
+	virtual void* m_xy(void*, int, void*) = 0;
 
 	virtual bool Truncate(uint64_t handle) = 0;
 
@@ -116,9 +116,9 @@ public:
 
 	virtual int32_t m_yy() = 0;
 
-	virtual int32_t m_yz() = 0;
+	virtual int32_t m_yz(void*) = 0;
 
-	virtual int32_t m_zx() = 0; // return 0x40000000
+	virtual int32_t m_zx(void*) = 0; // return 0x40000000
 
 	virtual bool m_zy() = 0;
 
@@ -208,7 +208,7 @@ public:
 
 	virtual rage::fiDevice* GetUnkDevice();
 
-	virtual void m_xy();
+	virtual void* m_xy(void*, int, void*);
 
 	virtual bool Truncate(uint64_t handle);
 
@@ -229,9 +229,9 @@ public:
 
 	virtual int32_t m_yy();
 
-	virtual int32_t m_yz();
+	virtual int32_t m_yz(void*);
 
-	virtual int32_t m_zx(); // return 0x40000000
+	virtual int32_t m_zx(void*); // return 0x40000000
 
 	virtual bool m_zy();
 

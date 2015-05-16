@@ -42,16 +42,16 @@ namespace rage
 
 		virtual int32_t GetUnk1() = 0;
 
-		virtual bool UnkA() = 0;
+		virtual bool UnkA(uint16_t) = 0;
 
 		virtual bool CloseBasePackfile() = 0;
 
-		virtual bool UnkC() = 0;
+		virtual uint8_t UnkC() = 0;
 
-		virtual bool UnkD() = 0;
+		virtual bool UnkD(uint8_t) = 0;
 
-		virtual bool UnkE() = 0;
+		virtual void* UnkE(const char*) = 0;
 
-		virtual bool UnkF() = 0;
+		virtual uint64_t UnkF(void*, bool) = 0;
 	};
 }

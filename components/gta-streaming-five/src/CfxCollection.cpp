@@ -31,6 +31,8 @@ static hook::thiscall_stub<rage::fiCollection*(rage::fiCollection*)> packfileCto
 	return hook::pattern("44 89 41 28 4C 89 41 38 4C 89 41 50 48 8D").count(1).get(0).get<void>(-0x1E);
 });
 
+#define UNDEF_ASSERT() FatalError("Undefined function " __FUNCTION__)
+
 class CfxCollection : public rage::fiCollection
 {
 private:
@@ -138,19 +140,6 @@ public:
 		m_hasCleaned = false;
 	}
 
-	void Reset()
-	{
-		memset(m_handles, 0, sizeof(m_handles));
-
-		m_reverseEntries.clear();
-		m_entries.clear();
-
-		m_lookupFunction = [] (const char*, std::string&)
-		{
-			return false;
-		};
-	}
-
 	void CleanCloseCollection()
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
@@ -246,6 +235,11 @@ public:
 			{
 				m_reverseEntries[entryName] = index;
 				AddEntry(index, PseudoCallContext(this)->GetEntry(index));
+
+				if (entryName[0] != 0x1E)
+				{
+					m_entries[index].fileName = entryName;
+				}
 			}
 		}
 
@@ -260,9 +254,11 @@ public:
 
 		if (entry->origEntry)
 		{
-			//trace("open: %s\n", GetEntryName(index));
+			char entryName[256] = { 0 };
 
-			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), "");// GetEntryName(index));
+			PseudoCallContext(this)->GetEntryNameToBuffer(index, entryName, 255);
+
+			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), entry->fileName.c_str());// GetEntryName(index));
 		}
 
 		rage::fiDevice* device = rage::fiDevice::GetDevice(entry->fileName.c_str(), true);
@@ -302,7 +298,7 @@ public:
 			return PseudoCallContext(this)->Unk1(index, flag);
 		}
 
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 	}
 
 	virtual void GetEntryNameToBuffer(uint16_t index, char* buffer, int maxLen)
@@ -341,11 +337,9 @@ public:
 		return PseudoCallContext(this)->GetUnk1();
 	}
 
-	virtual bool UnkA()
+	virtual bool UnkA(uint16_t a1) override
 	{
-		assert(!__FUNCTION__);
-
-		return 0;
+		return PseudoCallContext(this)->UnkA(a1);
 	}
 
 	virtual bool CloseBasePackfile()
@@ -353,32 +347,24 @@ public:
 		return PseudoCallContext(this)->CloseBasePackfile();
 	}
 
-	virtual bool UnkC()
+	virtual uint8_t UnkC() override
 	{
-		assert(!__FUNCTION__);
-
-		return 0;
+		return PseudoCallContext(this)->UnkC();
 	}
 
-	virtual bool UnkD()
+	virtual bool UnkD(uint8_t value) override
 	{
-		assert(!__FUNCTION__);
-
-		return 0;
+		return PseudoCallContext(this)->UnkD(value);
 	}
 
-	virtual bool UnkE()
+	virtual void* UnkE(const char* a1) override
 	{
-		assert(!__FUNCTION__);
-
-		return 0;
+		return PseudoCallContext(this)->UnkE(a1);
 	}
 
-	virtual bool UnkF()
+	virtual uint64_t UnkF(void* a1, bool a2) override
 	{
-		assert(!__FUNCTION__);
-
-		return 0;
+		return PseudoCallContext(this)->UnkF(a1, a2);
 	}
 
 	virtual uint64_t Open(const char* fileName, bool readOnly)
@@ -417,42 +403,51 @@ public:
 
 	virtual uint32_t ReadBulk(uint64_t handle, uint64_t ptr, void* buffer, uint32_t toRead)
 	{
-		//trace("ReadBulk %s\n", m_handles[handle].name);
+		uint32_t size = -1;
 
 		if (m_handles[handle].parentDevice == this)
 		{
-			return PseudoCallContext(this)->ReadBulk(m_handles[handle].parentHandle, ptr, buffer, toRead);
+			size = PseudoCallContext(this)->ReadBulk(m_handles[handle].parentHandle, ptr, buffer, toRead);
 		}
 		else
 		{
-			return m_handles[handle].parentDevice->ReadBulk(m_handles[handle].parentHandle, ptr, buffer, toRead);
+			size = m_handles[handle].parentDevice->ReadBulk(m_handles[handle].parentHandle, ptr, buffer, toRead);
 		}
+
+		if (size != toRead)
+		{
+			FatalError("CfxCollection::ReadBulk of streaming file %s failed to read %d bytes (got %d).", m_handles[handle].name, toRead, size);
+		}
+
+		return size;
 
 		//return PseudoCallContext(this)->ReadBulk(handle, ptr, buffer, toRead);
 	}
 
 	virtual uint32_t WriteBulk(uint64_t, int, int, int, int)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
 
 	virtual uint32_t Write(uint64_t, void*, int)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
 
 	virtual uint32_t Seek(uint64_t handle, int32_t distance, uint32_t method)
 	{
-		return PseudoCallContext(this)->Seek(m_handles[handle].parentHandle, distance, method);
+		//return PseudoCallContext(this)->Seek(m_handles[handle].parentHandle, distance, method);
+		return PseudoCallContext(this)->Seek(handle, distance, method);
 	}
 
 	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method)
 	{
-		return PseudoCallContext(this)->SeekLong(m_handles[handle].parentHandle, distance, method);
+		//return PseudoCallContext(this)->SeekLong(m_handles[handle].parentHandle, distance, method);
+		return PseudoCallContext(this)->SeekLong(handle, distance, method);
 	}
 
 	virtual int32_t Close(uint64_t handle)
@@ -494,33 +489,33 @@ public:
 	// dummy!
 	virtual int m_40(int)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
 
 	virtual bool RemoveFile(const char* file)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
 	virtual int RenameFile(const char* from, const char* to)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
 	virtual int CreateDirectory(const char* dir)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
 
 	virtual int RemoveDirectory(const char * dir)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
@@ -541,7 +536,7 @@ public:
 	}
 	virtual bool SetFileTime(const char* file, FILETIME fileTime)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 
 		return 0;
 	}
@@ -566,14 +561,15 @@ public:
 		return this;
 	}
 
-	virtual void m_xy()
+	virtual void* m_xy(void* a1, int a2, void* a3)
 	{
-		assert(!__FUNCTION__);
+		//UNDEF_ASSERT();
+		return PseudoCallContext(this)->m_xy(a1, a2, a3);
 	}
 
 	virtual bool Truncate(uint64_t handle)
 	{
-		assert(!__FUNCTION__);
+		UNDEF_ASSERT();
 		return true;
 	}
 
@@ -618,14 +614,14 @@ public:
 		return PseudoCallContext(this)->m_yy();
 	}
 
-	virtual int32_t m_yz()
+	virtual int32_t m_yz(void* a1)
 	{
-		return PseudoCallContext(this)->m_yz();
+		return PseudoCallContext(this)->m_yz(a1);
 	}
 
-	virtual int32_t m_zx() // return 0x40000000
+	virtual int32_t m_zx(void* a1)
 	{
-		return PseudoCallContext(this)->m_zx();
+		return PseudoCallContext(this)->m_zx(a1);
 	}
 
 	virtual bool m_zy()
@@ -737,7 +733,14 @@ public:
 		// weird workaround for fiDeviceRelative not passing this through
 		if (!baseDevice->m_zy())
 		{
-			archive = va("update:/x64/%s", strstr(archive, ":/") + 2);
+			const char* mount = strstr(archive, ":/");
+
+			if (!mount)
+			{
+				mount = strstr(archive, ":\\");
+			}
+
+			archive = va("update:/x64/%s", mount + 2);
 		}
 
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
@@ -760,7 +763,7 @@ public:
 
 		if (unk && dynamic_cast<CfxCollection*>(unk))
 		{
-			FatalError("Tried to open a CfxCollection inside a CfxCollection.");
+			trace("Tried to open a CfxCollection inside a CfxCollection. Is this bad?\n");
 		}
 
 		{
@@ -961,10 +964,14 @@ void* ResolveQB(char* qb, void* bm)
 
 static HookFunction hookFunction([] ()
 {
-	return;
-
 	// packfile create
 	hook::call(hook::pattern("4C 8B F0 49 8B 06 49 8B CE FF 90 60 01 00 00 48").count(1).get(0).get<void>(-5), ConstructPackfile);
+
+	// dlc packfile create
+	hook::call(hook::pattern("48 8B C8 E8 ? ? ? ? 48 8B E8 EB 03 49 8B EF 48 89").count(1).get(0).get<void>(3), ConstructPackfile);
+
+	// dlc packfile open
+	hook::call(hook::pattern("48 8B C8 E8 ? ? ? ? 48 8B E8 EB 03 49 8B EF 48 89").count(1).get(0).get<void>(3 + 52), hook::get_member(&CfxCollection::OpenPackfile));
 
 	// local packfile mount
 	hook::call(hook::pattern("48 8B CF E8 ? ? ? ? 8B 53 10 B9 01 00 00 00").count(1).get(0).get<void>(3), hook::get_member(&CfxCollection::Mount));
