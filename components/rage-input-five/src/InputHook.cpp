@@ -35,6 +35,8 @@ void InputHook::SetGameMouseFocus(bool focus)
 	return (focus) ? enableFocus() : disableFocus();
 }
 
+static char* g_gameKeyArray;
+
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (uMsg == WM_ACTIVATEAPP)
@@ -61,7 +63,14 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	}
 
 	//return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
-	return origWndProc(hwnd, uMsg, wParam, lParam);
+	lresult = origWndProc(hwnd, uMsg, wParam, lParam);
+
+	if (g_isFocusStolen)
+	{
+		memset(g_gameKeyArray, 0, 256);
+	}
+
+	return lresult;
 }
 
 static HookFunction hookFunction([] ()
@@ -81,6 +90,11 @@ static HookFunction hookFunction([] ()
 	patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 33 C9 E8").count(1).get(0).get<void>(10);
 	hook::set_call(&enableFocus, patternMatch);
 	hook::call(patternMatch, EnableFocus);
+
+	// game key array
+	location = hook::pattern("BF 00 01 00 00 48 8D 1D ? ? ? ? 48 3B 05").count(1).get(0).get<char>(8);
+
+	g_gameKeyArray = (char*)(location + *(int32_t*)location + 4);
 
 	// disable directinput keyboard handling
 	// TODO: change for Five
