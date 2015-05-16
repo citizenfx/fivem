@@ -73,4 +73,7 @@ static HookFunction hookFunction([] ()
 			relativeDeviceCrc->Mount("updatecrc:/");
 		}
 	});
+
+	// don't sort update:/ relative devices before ours
+	hook::nop(hook::pattern("C6 80 F0 00 00 00 01 E8 ? ? ? ? E8").count(1).get(0).get<void>(12), 5);
 });
