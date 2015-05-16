@@ -293,6 +293,8 @@ OnlineAddress* GetOurOnlineAddressRaw()
 	return g_onlineAddress;
 }
 
+static uint16_t* g_dlcMountCount;
+
 static HookFunction initFunction([] ()
 {
 	g_netLibrary = NetLibrary::Create();
@@ -376,6 +378,13 @@ static HookFunction initFunction([] ()
 		if (gameLoaded && doTickThisFrame)
 		{
 			gameLoaded = false;
+
+			if (*g_dlcMountCount != 23)
+			{
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 23);
+
+				return;
+			}
 
 			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
 			//if (false)
@@ -985,6 +994,11 @@ static HookFunction hookFunction([] ()
 
 	// and just for kicks we'll remove this one as well
 	hook::nop(hook::pattern("44 29 A3 10 01 00 00 83 BB 10 01 00 00 00 0F 8F").count(1).get(0).get<void>(14), 6);
+
+	// DLC mounts
+	location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
+
+	g_dlcMountCount = (uint16_t*)(location + *(int32_t*)location + 4 + 8);
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");
