@@ -31,6 +31,7 @@ static hook::thiscall_stub<rage::fiCollection*(rage::fiCollection*)> packfileCto
 	return hook::pattern("44 89 41 28 4C 89 41 38 4C 89 41 50 48 8D").count(1).get(0).get<void>(-0x1E);
 });
 
+#define GET_HANDLE(x) ((x) & 0x7FFFFFFF)
 #define UNDEF_ASSERT() FatalError("Undefined function " __FUNCTION__)
 
 class CfxCollection : public rage::fiCollection
@@ -66,7 +67,7 @@ private:
 
 	concurrency::concurrent_unordered_map<std::string, uint16_t> m_reverseEntries;
 
-	HandleEntry m_handles[64];
+	HandleEntry m_handles[512];
 
 	bool m_hasCleaned;
 
@@ -175,7 +176,7 @@ public:
 				m_handles[i].parentHandle = parentHandle;
 				m_handles[i].name = name;
 
-				return i;
+				return i | 0x80000000;
 			}
 		}
 
@@ -405,18 +406,18 @@ public:
 	{
 		uint32_t size = -1;
 
-		if (m_handles[handle].parentDevice == this)
+		if (m_handles[GET_HANDLE(handle)].parentDevice == this)
 		{
-			size = PseudoCallContext(this)->ReadBulk(m_handles[handle].parentHandle, ptr, buffer, toRead);
+			size = PseudoCallContext(this)->ReadBulk(m_handles[GET_HANDLE(handle)].parentHandle, ptr, buffer, toRead);
 		}
 		else
 		{
-			size = m_handles[handle].parentDevice->ReadBulk(m_handles[handle].parentHandle, ptr, buffer, toRead);
+			size = m_handles[GET_HANDLE(handle)].parentDevice->ReadBulk(m_handles[GET_HANDLE(handle)].parentHandle, ptr, buffer, toRead);
 		}
 
 		if (size != toRead)
 		{
-			FatalError("CfxCollection::ReadBulk of streaming file %s failed to read %d bytes (got %d).", m_handles[handle].name, toRead, size);
+			FatalError("CfxCollection::ReadBulk of streaming file %s failed to read %d bytes (got %d).", m_handles[GET_HANDLE(handle)].name, toRead, size);
 		}
 
 		return size;
@@ -452,6 +453,11 @@ public:
 
 	virtual int32_t Close(uint64_t handle)
 	{
+		if ((handle >> 31) == 1)
+		{
+			return CloseBulk(handle);
+		}
+
 		return PseudoCallContext(this)->Close(handle);
 	}
 
@@ -461,16 +467,16 @@ public:
 
 		int32_t retval;
 
-		if (m_handles[handle].parentDevice == this)
+		if (m_handles[GET_HANDLE(handle)].parentDevice == this)
 		{
-			retval = PseudoCallContext(this)->CloseBulk(m_handles[handle].parentHandle);
+			retval = PseudoCallContext(this)->CloseBulk(m_handles[GET_HANDLE(handle)].parentHandle);
 		}
 		else
 		{
-			retval = m_handles[handle].parentDevice->CloseBulk(m_handles[handle].parentHandle);
+			retval = m_handles[GET_HANDLE(handle)].parentDevice->CloseBulk(m_handles[GET_HANDLE(handle)].parentHandle);
 		}
 
-		m_handles[handle].parentDevice = nullptr;
+		m_handles[GET_HANDLE(handle)].parentDevice = nullptr;
 
 		return retval;
 		//PseudoCallContext(this)->CloseBulk(handle);
@@ -731,7 +737,7 @@ public:
 		rage::fiDevice* baseDevice = rage::fiDevice::GetDevice(archive, true);
 
 		// weird workaround for fiDeviceRelative not passing this through
-		if (!baseDevice->m_zy())
+		if (!baseDevice->m_zy() && !strstr(archive, "dlcpacks:"))
 		{
 			const char* mount = strstr(archive, ":/");
 
