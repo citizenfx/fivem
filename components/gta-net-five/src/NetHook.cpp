@@ -9,6 +9,9 @@
 #include "Hooking.h"
 #include "NetLibrary.h"
 
+#include <nutsnbolts.h>
+#include <ICoreGameInit.h>
+
 static NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
@@ -290,9 +293,7 @@ OnlineAddress* GetOurOnlineAddressRaw()
 	return g_onlineAddress;
 }
 
-static fwEvent<> OnGameFrame;
-
-static InitFunction initFunction([] ()
+static HookFunction initFunction([] ()
 {
 	g_netLibrary = NetLibrary::Create();
 
@@ -339,6 +340,8 @@ static InitFunction initFunction([] ()
 		GlobalError("%s", e);
 	});
 
+	g_netLibrary->SetBase(GetTickCount());
+
 	static bool doTickThisFrame = false;
 
 	OnGameFrame.Connect([] ()
@@ -362,66 +365,18 @@ static InitFunction initFunction([] ()
 			isNet = true;
 		}*/
 
-		static bool dicks = false;
+		// TODO: replace this so that reloading can work correctly
+		static bool gameLoaded = false;
 
-		if (!dicks && GetAsyncKeyState(VK_F6) && g_netLibrary->IsDisconnected())
+		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([] ()
 		{
-			g_netLibrary->ConnectToServer("77.21.44.194", 30122);
+			gameLoaded = true;
+		});
 
-			dicks = true;
-		}
-		else if (!GetAsyncKeyState(VK_F6))
+		if (gameLoaded && doTickThisFrame)
 		{
-			dicks = false;
-		}
+			gameLoaded = false;
 
-		static int localKey = (wcsstr(GetCommandLine(), L"cl2")) ? VK_F4 : VK_F5;
-
-		static bool dicks2 = false;
-
-		if (!dicks2 && GetAsyncKeyState(localKey) && g_netLibrary->IsDisconnected())
-		{
-			g_netLibrary->ConnectToServer("192.168.178.83", 30122);
-
-			dicks2 = true;
-		}
-		else if (!GetAsyncKeyState(localKey))
-		{
-			dicks2 = false;
-		}
-
-		static bool lvl = false;
-
-		/*if (!lvl && GetAsyncKeyState(VK_F6))
-		{
-			StartSession(getNetworkManager());
-
-			lvl = true;
-		}
-		else if (!GetAsyncKeyState(VK_F6))
-		{
-			lvl = false;
-		}
-
-		static bool clone = false;
-
-		if (!clone && GetAsyncKeyState(VK_F7))
-		{
-			// start the local player playing
-			((void(*)())0xC23280)();
-
-			// start clone sync?
-			((void(*)())0x86DE40)();
-
-			clone = true;
-		}
-		else if (!GetAsyncKeyState(VK_F7))
-		{
-			clone = false;
-		}*/
-
-		if (doTickThisFrame)
-		{
 			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
 			//if (false)
 			{
@@ -604,7 +559,7 @@ static void(*origNetFrame)(void*, void*);
 
 static void CustomNetFrame(void* a, void* b)
 {
-	OnGameFrame();
+	//OnGameFrame();
 
 	origNetFrame(a, b);
 }
@@ -781,8 +736,6 @@ static HookFunction hookFunction([] ()
 
 	char* location = hook::pattern("32 DB 38 1D ? ? ? ? 75 24 E8").count(1).get(0).get<char>(4);
 	didPresenceStuff = (bool*)(location + *(int32_t*)location + 4);
-
-	g_netLibrary->SetBase(GetTickCount());
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
 	hook::iat("ws2_32.dll", CfxRecvFrom, 17);

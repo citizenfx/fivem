@@ -11,6 +11,9 @@
 #include <atArray.h>
 #include <sysAllocator.h>
 
+#include <GameInit.h>
+#include <nutsnbolts.h>
+
 static hook::cdecl_stub<void()> lookAlive([] ()
 {
 	return hook::pattern("48 8D 6C 24 A0 48 81 EC 60 01 00 00 E8").count(1).get(0).get<void>(-0xC);
@@ -18,21 +21,73 @@ static hook::cdecl_stub<void()> lookAlive([] ()
 
 static int* g_initState;
 
+bool g_shouldSetState;
+bool g_isInInitLoop; // to avoid some GFx crash?
+
 static void WaitForInitLoop()
 {
-	while (true)
-	{
-		if (GetAsyncKeyState(VK_F1) & 0x8000)
-		{
-			break;
-		}
+	g_isInInitLoop = true;
 
+	while (*g_initState <= 6)
+	{
 		lookAlive();
 
-		Sleep(15);
+		if (*g_initState <= 6)
+		{
+			Sleep(15);
+		}
 	}
 
-	*g_initState = 7;
+	//*g_initState = 7;
+}
+
+void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
+{
+	OnGameFrame.Connect([=] ()
+	{
+		if (g_shouldSetState)
+		{
+			if (*g_initState == 6)
+			{
+				*g_initState = 7;
+
+				g_shouldSetState = false;
+			}
+		}
+
+		static bool isLoading = false;
+
+		if (isLoading)
+		{
+			if (*g_initState == 0)
+			{
+				OnGameFinalizeLoad();
+				isLoading = false;
+			}
+		}
+		else
+		{
+			if (*g_initState != 0)
+			{
+				isLoading = true;
+			}
+		}
+	});
+
+	// stuff
+	if (*g_initState == 6)
+	{
+		*g_initState = 7;
+	}
+	else
+	{
+		g_shouldSetState = true;
+	}
+}
+
+void FiveGameInit::ReloadGame()
+{
+	*g_initState = 14;
 }
 
 static void DebugBreakDo()

@@ -40,7 +40,7 @@ public:
 		T tempValue;
 		if (!Read(&tempValue, sizeof(T)))
 		{
-			FatalError("NetBuffer::Read<%s>() failed to read %d bytes.", boost::typeindex::type_id<T>().pretty_name().c_str(), sizeof(T));
+			GlobalError("NetBuffer::Read<%s>() failed to read %d bytes.", boost::typeindex::type_id<T>().pretty_name().c_str(), sizeof(T));
 		}
 
 		return tempValue;

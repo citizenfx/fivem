@@ -17,6 +17,13 @@ public:
 	virtual bool TryDisconnect() = 0;
 
 	virtual void SetPreventSavePointer(bool* preventSaveValue) = 0;
+
+	virtual void LoadGameFirstLaunch(bool(*callBeforeLoad)()) = 0;
+
+	virtual void ReloadGame() = 0;
+
+public:
+	fwEvent<> OnGameFinalizeLoad;
 };
 
 DECLARE_INSTANCE_TYPE(ICoreGameInit);

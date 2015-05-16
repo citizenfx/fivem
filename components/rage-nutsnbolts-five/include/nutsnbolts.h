@@ -14,3 +14,4 @@
 #endif
 
 extern NUTSNBOLTS_EXPORT fwEvent<> OnGameFrame;
+extern NUTSNBOLTS_EXPORT fwEvent<> OnFirstLoadCompleted;
