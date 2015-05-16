@@ -7,8 +7,6 @@
 
 #include "StdInc.h"
 
-// temporary
-#ifndef _M_AMD64
 #define CURL_STATICLIB
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -17,8 +15,10 @@
 #include <math.h>
 #include <queue>
 
+#define restrict
 #define LZMA_API_STATIC
 #include <lzma.h>
+#undef restrict
 
 typedef struct download_s
 {
@@ -566,19 +566,3 @@ bool DL_RunLoop()
 
 	return true;
 }
-#else
-int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
-{
-	return 0;
-}
-
-void CL_QueueDownload(const char* url, const char* file, int64_t size, bool compressed)
-{
-
-}
-
-bool DL_RunLoop()
-{
-	return false;
-}
-#endif

@@ -22,8 +22,8 @@
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
 #define PRODUCT_NAME L"FiveM"
-#define CONTENT_URL "http://localhost/citfx/"
-#define CONTENT_URL_WIDE L"http://localhost/citfx/"
+#define CONTENT_URL "http://content.citizen.re/five/"
+#define CONTENT_URL_WIDE L"http://content.citizen.re/five/"
 #define GAME_EXECUTABLE L"GTA5.exe"
 #else
 #define PRODUCT_NAME L"Unknown CitizenFX Game"

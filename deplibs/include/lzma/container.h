@@ -60,7 +60,6 @@
 #define LZMA_PRESET_EXTREME       (UINT32_C(1) << 31)
 
 
-#ifdef LZMA_UNSTABLE /* Unstable API that may change. Use only for testing. */
 /**
  * \brief       Multithreading options
  */
@@ -97,6 +96,10 @@ typedef struct {
 	 * Set this to 0 to let liblzma choose the block size depending
 	 * on the compression options. For LZMA2 it will be 3*dict_size
 	 * or 1 MiB, whichever is more.
+	 *
+	 * For each thread, about 3 * block_size bytes of memory will be
+	 * allocated. This may change in later liblzma versions. If so,
+	 * the memory usage will probably be reduced, not increased.
 	 */
 	uint64_t block_size;
 
@@ -180,7 +183,6 @@ typedef struct {
 	void *reserved_ptr4;
 
 } lzma_mt;
-#endif
 
 
 /**
@@ -288,7 +290,8 @@ extern LZMA_API(lzma_ret) lzma_easy_encoder(
  */
 extern LZMA_API(lzma_ret) lzma_easy_buffer_encode(
 		uint32_t preset, lzma_check check,
-		lzma_allocator *allocator, const uint8_t *in, size_t in_size,
+		const lzma_allocator *allocator,
+		const uint8_t *in, size_t in_size,
 		uint8_t *out, size_t *out_pos, size_t out_size) lzma_nothrow;
 
 
@@ -313,7 +316,6 @@ extern LZMA_API(lzma_ret) lzma_stream_encoder(lzma_stream *strm,
 		lzma_nothrow lzma_attr_warn_unused_result;
 
 
-#ifdef LZMA_UNSTABLE /* Unstable API that may change. Use only for testing. */
 /**
  * \brief       Calculate approximate memory usage of multithreaded .xz encoder
  *
@@ -339,8 +341,9 @@ extern LZMA_API(uint64_t) lzma_stream_encoder_mt_memusage(
  * This provides the functionality of lzma_easy_encoder() and
  * lzma_stream_encoder() as a single function for multithreaded use.
  *
- * TODO: For lzma_code(), only LZMA_RUN and LZMA_FINISH are currently
- * supported. Support for other actions has been planned.
+ * The supported actions for lzma_code() are LZMA_RUN, LZMA_FULL_FLUSH,
+ * LZMA_FULL_BARRIER, and LZMA_FINISH. Support for LZMA_SYNC_FLUSH might be
+ * added in the future.
  *
  * \param       strm    Pointer to properly prepared lzma_stream
  * \param       options Pointer to multithreaded compression options
@@ -354,7 +357,6 @@ extern LZMA_API(uint64_t) lzma_stream_encoder_mt_memusage(
 extern LZMA_API(lzma_ret) lzma_stream_encoder_mt(
 		lzma_stream *strm, const lzma_mt *options)
 		lzma_nothrow lzma_attr_warn_unused_result;
-#endif
 
 
 /**
@@ -436,7 +438,8 @@ extern LZMA_API(size_t) lzma_stream_buffer_bound(size_t uncompressed_size)
  */
 extern LZMA_API(lzma_ret) lzma_stream_buffer_encode(
 		lzma_filter *filters, lzma_check check,
-		lzma_allocator *allocator, const uint8_t *in, size_t in_size,
+		const lzma_allocator *allocator,
+		const uint8_t *in, size_t in_size,
 		uint8_t *out, size_t *out_pos, size_t out_size)
 		lzma_nothrow lzma_attr_warn_unused_result;
 
@@ -469,6 +472,30 @@ extern LZMA_API(lzma_ret) lzma_stream_buffer_encode(
  * lzma_get_check().
  */
 #define LZMA_TELL_ANY_CHECK             UINT32_C(0x04)
+
+
+/**
+ * This flag makes lzma_code() not calculate and verify the integrity check
+ * of the compressed data in .xz files. This means that invalid integrity
+ * check values won't be detected and LZMA_DATA_ERROR won't be returned in
+ * such cases.
+ *
+ * This flag only affects the checks of the compressed data itself; the CRC32
+ * values in the .xz headers will still be verified normally.
+ *
+ * Don't use this flag unless you know what you are doing. Possible reasons
+ * to use this flag:
+ *
+ *   - Trying to recover data from a corrupt .xz file.
+ *
+ *   - Speeding up decompression, which matters mostly with SHA-256
+ *     or with files that have compressed extremely well. It's recommended
+ *     to not use this flag for this purpose unless the file integrity is
+ *     verified externally in some other way.
+ *
+ * Support for this flag was added in liblzma 5.1.4beta.
+ */
+#define LZMA_IGNORE_CHECK               UINT32_C(0x10)
 
 
 /**
@@ -585,7 +612,8 @@ extern LZMA_API(lzma_ret) lzma_alone_decoder(
  *              - LZMA_PROG_ERROR
  */
 extern LZMA_API(lzma_ret) lzma_stream_buffer_decode(
-		uint64_t *memlimit, uint32_t flags, lzma_allocator *allocator,
+		uint64_t *memlimit, uint32_t flags,
+		const lzma_allocator *allocator,
 		const uint8_t *in, size_t *in_pos, size_t in_size,
 		uint8_t *out, size_t *out_pos, size_t out_size)
 		lzma_nothrow lzma_attr_warn_unused_result;

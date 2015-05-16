@@ -20,7 +20,11 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+#ifdef GTA_NY
 IDI_ICON1               ICON                    "citizeniv.ico"
+#elif defined(GTA_FIVE)
+IDI_ICON1               ICON                    "fivem.ico"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -45,7 +49,13 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "Referential Integrity Labs"
+#ifdef GTA_NY
             VALUE "FileDescription", "CitizenMP:IV"
+#elif defined(GTA_FIVE)
+			VALUE "FileDescription", "FiveM"
+#else
+			VALUE "FileDescription", "CitizenFX"
+#endif
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "Citizen"
             VALUE "LegalCopyright", "Copyright (C) 2010-2015 Bas Timmer/NTAuthority"

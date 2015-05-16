@@ -4,8 +4,8 @@
 		
 		defines "COMPILING_LAUNCH"
 		
-		links { "SharedLibc", "dbghelp", "psapi", "libcurl", "liblzma", "comctl32", "breakpad", "wininet", "winhttp" }
-		
+		links { "SharedLibc", "dbghelp", "psapi", "comctl32", "breakpad", "wininet", "winhttp" }
+
 		files
 		{
 			"**.cpp", "**.h", 
@@ -27,6 +27,21 @@
 
 		configuration "game=payne"
 			targetname "CitizenPayne"
+
+		configuration "game=five"
+			targetname "FiveM"
 		
 		configuration "windows"
 			linkoptions "/ENTRY:main /IGNORE:4254 /DYNAMICBASE:NO /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
+
+		filter "architecture:x64"
+			links { "libcurlx64" }
+
+		filter { "architecture:x64", "Debug" }
+			links { "liblzmax64d" }
+
+		filter { "architecture:x64", "Release" }
+			links { "liblzmax64" }
+
+		filter "architecture:not x64"
+			links { "libcurl", "liblzma" }
