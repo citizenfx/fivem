@@ -734,6 +734,11 @@ static HookFunction hookFunction([] ()
 
 	g_extraContentMgr = (void**)(location + *(int32_t*)location + 4);
 
+	// loading screen frame limit
+	location = hook::pattern("0F 2F 05 ? ? ? ? 0F 82 E6 02 00 00").count(1).get(0).get<char>(3);
+
+	hook::put<float>(location + *(int32_t*)location + 4, 1000.0f / 60.0f);
+
 	// mount dlc even if allegedly already mounted - bad bad idea
 	//hook::nop(hook::pattern("84 C0 75 7A 48 8D 4C 24 20").count(1).get(0).get<void>(2), 2);
 
