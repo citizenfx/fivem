@@ -9,14 +9,24 @@
 
 bool CoreIsDebuggerPresent()
 {
-	static auto func = (bool(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreIsDebuggerPresent");
+	static bool(*func)();
 
-	return func();
+	if (!func)
+	{
+		func = (bool(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreIsDebuggerPresent");
+	}
+
+	return (!func) ? false : func();
 }
 
 void CoreSetDebuggerPresent()
 {
-	static auto func = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetDebuggerPresent");
+	static void(*func)();
 
-	return func();
+	if (!func)
+	{
+		func = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetDebuggerPresent");
+	}
+
+	(func) ? func() : 0;
 }

@@ -72,12 +72,16 @@ bool Bootstrap_DoBootstrap()
 	int exeSize;
 	sscanf(bootstrapVersion, "%i %i", &version, &exeSize);
 
-	if (version != BASE_EXE_VERSION)
+	if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		return Bootstrap_UpdateEXE(exeSize);
 	}
 
+#ifdef GTA_NY
 	return Updater_RunUpdate(1, "citiv");
+#else
+	return Updater_RunUpdate(1, "fivem");
+#endif
 }
 
 void Bootstrap_ReplaceExecutable(const wchar_t* fileName)

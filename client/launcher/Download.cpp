@@ -142,7 +142,7 @@ void DL_UpdateGlobalProgress(int thisSize)
 
 	double percentage = ((double)(dls.doneTotalBytes / 1000) / (dls.totalBytes / 1000)) * 100.0;
 
-	UI_UpdateText(0, L"Updating CitizenIV...");
+	UI_UpdateText(0, L"Updating " PRODUCT_NAME L"...");
 
 	UI_UpdateText(1, va(L"Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)", (dls.doneTotalBytes / 1000) / 1000.f, ((dls.totalBytes / 1000) / 1000.f), percentage, dls.bytesPerSecond / (double)1000000));
 
