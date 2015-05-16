@@ -651,7 +651,7 @@ static HookFunction hookFunction([] ()
 	g_sceneLinkedList = (void*)(loc + *(int32_t*)loc + 4);
 
 	// temp dbg: don't scan for platform dlc packs... it's mean.
-	hook::nop(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(5), 5);
+	//hook::nop(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(5), 5);
 	//hook::return_function(hook::pattern("7C B4 48 8B CF E8").count(1).get(0).get<void>(-0xA8));
 
 	//hook::call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), DebugBreakDo);
