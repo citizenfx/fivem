@@ -513,7 +513,14 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 			Instance<TerminalClient>::Get()->SetClient(client);
 
 			// connect to the Terminal server
-			client->ConnectRemote("layer1://iv-platform.prod.citizen.re:3036").then([=] (Result<ConnectRemoteDetail> result)
+			const char* terminalServer = "layer1://iv-platform.prod.citizen.re:3036";
+
+			if (getenv("TERMINAL_URI"))
+			{
+				terminalServer = getenv("TERMINAL_URI");
+			}
+
+			client->ConnectRemote(terminalServer).then([=] (Result<ConnectRemoteDetail> result)
 			{
 				if (result.HasSucceeded())
 				{
