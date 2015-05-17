@@ -295,6 +295,10 @@ OnlineAddress* GetOurOnlineAddressRaw()
 
 static uint16_t* g_dlcMountCount;
 
+static void SendMetric(const std::string& metric);
+
+static std::string g_globalServerAddress;
+
 static HookFunction initFunction([] ()
 {
 	g_netLibrary = NetLibrary::Create();
@@ -303,12 +307,9 @@ static HookFunction initFunction([] ()
 
 	static bool doTickNextFrame;
 
-	g_netLibrary->OnConnectOKReceived.Connect([] (NetAddress)
+	g_netLibrary->OnConnectOKReceived.Connect([] (NetAddress addr)
 	{
-		// redo presence stuff?
-		*didPresenceStuff = false;
-
-		doPresenceStuff();
+		g_globalServerAddress = va("%s:%d", addr.GetAddress().c_str(), addr.GetPort());
 
 		doTickNextFrame = true;
 	});
@@ -337,10 +338,10 @@ static HookFunction initFunction([] ()
 		g_netLibrary->DownloadsComplete();
 	});
 
-	g_netLibrary->OnConnectionError.Connect([] (const char* e)
+	/*g_netLibrary->OnConnectionError.Connect([] (const char* e)
 	{
 		GlobalError("%s", e);
-	});
+	});*/
 
 	g_netLibrary->SetBase(GetTickCount());
 
@@ -402,6 +403,8 @@ static HookFunction initFunction([] ()
 				// a3 & 32: crew-only session?
 				//hostGame(3, 8, 0x108);
 				hostGame(0, 32, 0x0);
+
+				SendMetric("nethook:info:host");
 			}
 			else
 			{
@@ -431,14 +434,22 @@ static HookFunction initFunction([] ()
 
 				//joinGame(getNetworkManager(), &netAddr, 1, 0);
 				joinGame(getNetworkManager(), &netAddr, 1, 1);
+
+				SendMetric("nethook:info:join");
 			}
 
 			doTickThisFrame = false;
 		}
 
-		if (doTickNextFrame)
+		if (gameLoaded && doTickNextFrame)
 		{
 			doTickThisFrame = true;
+
+			// redo presence stuff?
+			*didPresenceStuff = false;
+
+			// moved here as connection might succeed prior to the rline dispatcher being initialized
+			doPresenceStuff();
 
 			doTickNextFrame = false;
 		}
@@ -708,9 +719,48 @@ static void(*g_origJR)(void*, void*, void*, void*);
 
 void HandleJR(char* a1, char* a2, void* a3, void* a4)
 {
-	trace("snMsgJoinRequest - client's opinion: %16llx - server's opinion: %16llx\n", *(uint64_t*)a2, *(uint64_t*)(a1 + 3008 + 464));
+	auto clientId = *(uint64_t*)a2;
+	auto serverId = *(uint64_t*)(a1 + 3008 + 464);
+
+	trace("snMsgJoinRequest - client's opinion: %16llx - server's opinion: %16llx\n", clientId, serverId);
+
+	if (clientId != serverId)
+	{
+		SendMetric(va("nethook:err:joinrequest:id_mismatch:%16llx:%16llx", clientId, serverId));
+	}
 
 	return g_origJR(a1, a2, a3, a4);
+}
+
+#include <terminal.h>
+
+static void SendMetric(const std::string& metric)
+{
+	fwRefContainer<terminal::IClient> terminalClient = Instance<TerminalClient>::Get()->GetClient();
+	auto utils = reinterpret_cast<terminal::IUtils1*>(terminalClient->GetUtilsService(terminal::IUtils1::InterfaceID).GetDetail());
+
+	utils->SendRandomString("metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");
+}
+
+struct CMsgJoinResponse
+{
+	int result;
+};
+
+static bool(*g_origJoinResponse)(CMsgJoinResponse*, void*, size_t, void*);
+
+static bool HookSendJoinResponse(CMsgJoinResponse* response, void* a2, size_t a3, void* a4)
+{
+	if (response->result != 0)
+	{
+		SendMetric(va("nethook:err:joinresponse:send:%d", response->result));
+	}
+	else
+	{
+		SendMetric(va("nethook:info:joinresponse:send:%d", response->result));
+	}
+
+	return g_origJoinResponse(response, a2, a3, a4);
 }
 
 static HookFunction hookFunction([] ()
@@ -999,6 +1049,12 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
 
 	g_dlcMountCount = (uint16_t*)(location + *(int32_t*)location + 4 + 8);
+
+	// CMsgJoinResponse sending
+	location = hook::pattern("4C 8D 8A 24 02 00 00 48 83 C2 24 E8").count(1).get(0).get<char>(11);
+
+	hook::set_call(&g_origJoinResponse, location);
+	hook::call(location, HookSendJoinResponse);
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");
