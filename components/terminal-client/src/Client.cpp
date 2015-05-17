@@ -14,6 +14,7 @@
 #include <terminal/internal/TcpStreamSocket.h>
 
 #include <terminal/internal/User1.h>
+#include <terminal/internal/Utils1.h>
 
 #include <network/uri.hpp>
 
@@ -86,22 +87,25 @@ Result<void*> Client::GetUserService(uint64_t interfaceIdentifier)
 {
 	if (m_connection->HasSocket())
 	{
-		if (interfaceIdentifier == IUser1::InterfaceID)
-		{
-			auto it = m_interfaces.find(interfaceIdentifier);
+		Result<void*> result(ErrorCode::UnknownInterface, nullptr);
 
-			if (it == m_interfaces.end())
-			{
-				fwRefContainer<User1> user = new User1(this);
-				m_interfaces[interfaceIdentifier] = user;
+		TryCreateService<User1, IUser1>(interfaceIdentifier, &result);
 
-				return Result<void*>(static_cast<IUser1*>(user.GetRef()));
-			}
-			else
-			{
-				return Result<void*>(static_cast<IUser1*>(static_cast<User1*>(it->second.GetRef())));
-			}
-		}
+		return result;
+	}
+
+	return Result<void>((m_connection->HasSocket()) ? ErrorCode::UnknownInterface : ErrorCode::NotConnected);
+}
+
+Result<void*> Client::GetUtilsService(uint64_t interfaceIdentifier)
+{
+	if (m_connection->HasSocket())
+	{
+		Result<void*> result(ErrorCode::UnknownInterface, nullptr);
+
+		TryCreateService<Utils1, IUtils1>(interfaceIdentifier, &result);
+
+		return result;
 	}
 
 	return Result<void>((m_connection->HasSocket()) ? ErrorCode::UnknownInterface : ErrorCode::NotConnected);

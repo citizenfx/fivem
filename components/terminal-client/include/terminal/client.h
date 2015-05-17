@@ -31,6 +31,11 @@ public:
 	// Obtains an instance of a user service compatible with the specified interface identifier.
 	//
 	virtual Result<void*> GetUserService(uint64_t interfaceIdentifier) = 0;
+
+	//
+	// Obtains an instance of a title utilities service compatible with the specified interface identifier.
+	//
+	virtual Result<void*> GetUtilsService(uint64_t interfaceIdentifier) = 0;
 };
 
 class ConnectRemoteDetail
