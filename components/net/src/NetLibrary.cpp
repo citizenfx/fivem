@@ -194,7 +194,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			// test for bad scenarios
 			if (id > (m_lastReceivedReliableCommand + 64))
 			{
-				__debugbreak();
+				return;
 			}
 
 			char* reliableBuf = new(std::nothrow) char[size];
