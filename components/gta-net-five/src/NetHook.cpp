@@ -373,9 +373,20 @@ static HookFunction initFunction([] ()
 			isNet = true;
 		}*/
 
+		static bool sentLog = false;
+
 		if (isSessionStarted())
 		{
-			SendMetric("nethook:info:started");
+			if (!sentLog)
+			{
+				SendMetric("nethook:info:started");
+
+				sentLog = true;
+			}
+		}
+		else
+		{
+			sentLog = false;
 		}
 
 		// TODO: replace this so that reloading can work correctly
