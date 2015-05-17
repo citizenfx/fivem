@@ -293,6 +293,11 @@ OnlineAddress* GetOurOnlineAddressRaw()
 	return g_onlineAddress;
 }
 
+static hook::cdecl_stub<bool()> isSessionStarted([] ()
+{
+	return hook::pattern("74 0E 83 B9 ? ? 00 00 08 75 05 B8 01").count(1).get(0).get<void>(-12);
+});
+
 static uint16_t* g_dlcMountCount;
 
 static void SendMetric(const std::string& metric);
@@ -367,6 +372,11 @@ static HookFunction initFunction([] ()
 
 			isNet = true;
 		}*/
+
+		if (isSessionStarted())
+		{
+			SendMetric("nethook:info:started");
+		}
 
 		// TODO: replace this so that reloading can work correctly
 		static bool gameLoaded = false;
