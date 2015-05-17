@@ -88,6 +88,11 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 	}
 	else
 	{
+		if (*g_initState == 20)
+		{
+			*g_initState = 11;
+		}
+
 		g_shouldSetState = true;
 	}
 }
@@ -591,6 +596,12 @@ void* CustomMemAlloc(void* allocator, int size, int align, int subAlloc)
 	return ptr;
 }
 
+template<int Value>
+static int ReturnInt()
+{
+	return Value;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'?)
@@ -738,6 +749,16 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("0F 2F 05 ? ? ? ? 0F 82 E6 02 00 00").count(1).get(0).get<char>(3);
 
 	hook::put<float>(location + *(int32_t*)location + 4, 1000.0f / 60.0f);
+
+	// bypass the state 20 calibration screen loop (which might be wrong; it doesn't seem to exist in my IDA dumps of 323/331 Steam)
+	matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
+
+	assert(matches.size() <= 1);
+
+	for (int i = 0; i < matches.size(); i++)
+	{
+		hook::call(matches.get(i).get<void>(), ReturnInt<1>);
+	}
 
 	// mount dlc even if allegedly already mounted - bad bad idea
 	//hook::nop(hook::pattern("84 C0 75 7A 48 8D 4C 24 20").count(1).get(0).get<void>(2), 2);
