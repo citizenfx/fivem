@@ -760,7 +760,7 @@ static void SendMetric(const std::string& metric)
 	fwRefContainer<terminal::IClient> terminalClient = Instance<TerminalClient>::Get()->GetClient();
 	auto utils = reinterpret_cast<terminal::IUtils1*>(terminalClient->GetUtilsService(terminal::IUtils1::InterfaceID).GetDetail());
 
-	utils->SendRandomString("metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");
+	utils->SendRandomString("cfx_metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");
 }
 
 struct CMsgJoinResponse
