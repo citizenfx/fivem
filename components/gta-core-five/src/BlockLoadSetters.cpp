@@ -19,6 +19,22 @@ static hook::cdecl_stub<void()> lookAlive([] ()
 	return hook::pattern("48 8D 6C 24 A0 48 81 EC 60 01 00 00 E8").count(1).get(0).get<void>(-0xC);
 });
 
+// map init states to cater for additional '7' in one particular digital distribution version
+static bool g_isDigitalDistrib = false;
+
+static inline int MapInitState(int initState)
+{
+	if (initState >= 7)
+	{
+		if (g_isDigitalDistrib)
+		{
+			initState += 1;
+		}
+	}
+
+	return initState;
+}
+
 static int* g_initState;
 
 bool g_shouldSetState;
@@ -26,13 +42,14 @@ bool g_isInInitLoop; // to avoid some GFx crash?
 
 static void WaitForInitLoop()
 {
+	// run our loop
 	g_isInInitLoop = true;
 
-	while (*g_initState <= 6)
+	while (*g_initState <= MapInitState(6))
 	{
 		lookAlive();
 
-		if (*g_initState <= 6)
+		if (*g_initState <= MapInitState(6))
 		{
 			Sleep(15);
 		}
@@ -41,22 +58,27 @@ static void WaitForInitLoop()
 	//*g_initState = 7;
 }
 
+static bool g_launchedGame = false;
+
 static void WaitForInitLoopWrap()
 {
-	*g_initState = 6;
+	// certain executables may recheck activation after connection, and want to perform this state change after 12 - ignore those cases
+	*g_initState = MapInitState(6);
 
 	WaitForInitLoop();
 }
 
 void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 {
+	g_launchedGame = true;
+
 	OnGameFrame.Connect([=] ()
 	{
 		if (g_shouldSetState)
 		{
-			if (*g_initState == 6)
+			if (*g_initState == MapInitState(6))
 			{
-				*g_initState = 7;
+				*g_initState = MapInitState(7);
 
 				g_shouldSetState = false;
 			}
@@ -82,15 +104,15 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 	});
 
 	// stuff
-	if (*g_initState == 6)
+	if (*g_initState == MapInitState(6))
 	{
-		*g_initState = 7;
+		*g_initState = MapInitState(7);
 	}
 	else
 	{
-		if (*g_initState == 20)
+		if (*g_initState == MapInitState(20))
 		{
-			*g_initState = 11;
+			*g_initState = MapInitState(11);
 		}
 
 		g_shouldSetState = true;
@@ -99,7 +121,7 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 
 void FiveGameInit::ReloadGame()
 {
-	*g_initState = 14;
+	*g_initState = MapInitState(14);
 }
 
 static void DebugBreakDo()
@@ -604,12 +626,23 @@ static int ReturnInt()
 
 static HookFunction hookFunction([] ()
 {
-	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'?)
+	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
 	char* p = hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);
 
+	// check the pointer to see if it's digital distribution
+	g_isDigitalDistrib = (p[-26] == 3);
+
+	// this is also a comparison point to find digital distribution type... this function will also set '3' if it's digital distrib with standalone auth
+	// and if this *is* digital distribution, we want to find a completely different place that sets the value to 8 (i.e. BA 08 ...)
+	if (g_isDigitalDistrib)
+	{
+		p = hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	}
+
+	// nop the right pointer
 	hook::nop(p, 6);
 
 	// and call our little internal loop function from there
