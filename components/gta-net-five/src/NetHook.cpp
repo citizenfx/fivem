@@ -1077,6 +1077,12 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_origJoinResponse, location);
 	hook::call(location, HookSendJoinResponse);
 
+	// ignore CMsgJoinRequest failure reason '7' (seemingly related to tunables not matching?)
+	hook::put<uint8_t>(hook::pattern("84 C0 75 0B 41 BC 07 00 00 00").count(1).get(0).get<void>(2), 0xEB);
+
+	// also ignore the rarer CMsgJoinRequest failure reason '13' (something related to what seems to be like stats)
+	hook::put<uint8_t>(hook::pattern("3B D8 74 0B 41 BC 0D 00 00 00").count(1).get(0).get<void>(2), 0xEB);
+
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");
 
