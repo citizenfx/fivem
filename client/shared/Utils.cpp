@@ -121,6 +121,12 @@ const wchar_t* va(const wchar_t* string, ...)
 void trace(const char* string, ...)
 {
 	static __thread char* buffer;
+	static CRITICAL_SECTION dbgCritSec;
+
+	if (!dbgCritSec.DebugInfo)
+	{
+		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
+	}
 
 	if (!buffer)
 	{
@@ -139,19 +145,59 @@ void trace(const char* string, ...)
 	}
 
 #ifdef _WIN32
-	PPEB peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
+	if (CoreIsDebuggerPresent())
+	{
+		// thanks to anti-debug workarounds (IsBeingDebugged == FALSE), we'll have to raise the exception to the debugger ourselves.
+		// sadly, RaiseException (and, by extension, RtlRaiseException) won't raise a first-chance exception, so we'll have to do such by hand...
+		// again, it may appear things 'work' if using a non-first-chance exception (i.e. the debugger will catch it), but VS doesn't like that and lets some
+		// cases of the exception fall through.
 
-	bool oldDebugged = peb->BeingDebugged;
-	peb->BeingDebugged = CoreIsDebuggerPresent();
+		__try
+		{
+			EXCEPTION_RECORD record;
+			record.ExceptionAddress = reinterpret_cast<PVOID>(_ReturnAddress());
+			record.ExceptionCode = DBG_PRINTEXCEPTION_C;
+			record.ExceptionFlags = 0;
+			record.NumberParameters = 2;
+			record.ExceptionInformation[0] = length + 1;
+			record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(buffer);
+			record.ExceptionRecord = &record;
 
-	OutputDebugStringA(buffer);
+			//NtDoRaiseException(&record);
+			typedef NTSTATUS(*NtRaiseExceptionType)(PEXCEPTION_RECORD record, PCONTEXT context, BOOL firstChance);
+
+			bool threw = false;
+
+			CONTEXT context;
+			RtlCaptureContext(&context);
+
+			static NtRaiseExceptionType NtRaiseException = (NtRaiseExceptionType)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtRaiseException");
+
+			// where will this function return to? hint: it'll return RIGHT AFTER RTLCAPTURECONTEXT, as that's what's in context->Rip!
+			// therefore, check if 'threw' is false first...
+			if (!threw)
+			{
+				threw = true;
+				NtRaiseException(&record, &context, TRUE);
+
+				// force 'threw' to be stack-allocated by messing with it from here (where it won't execute)
+				OutputDebugStringA((char*)&threw);
+			}
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			OutputDebugStringA(buffer);
+		}
+	}
+	else
+	{
+		OutputDebugStringA(buffer);
+	}
 
 	if (!CoreIsDebuggerPresent())
 	{
 		printf("%s", buffer);
 	}
-
-	peb->BeingDebugged = oldDebugged;
 #else
 	printf("%s", buffer);
 #endif

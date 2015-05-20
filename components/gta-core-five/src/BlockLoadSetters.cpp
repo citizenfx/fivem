@@ -429,23 +429,27 @@ static void DeinitLevel()
 
 	if (!g_didLevelFree)
 	{
-		/*for (auto& stack : g_stacks)
+		for (auto& stack : g_stacks)
 		{
-			FILE* f = fopen(va("D:\\dev\\stacks\\%p.txt", stack.first), "w");
+			FILE* f = fopen(va("D:\\dev\\stacks\\%p.txt", ((stack.first / 256) * 256)), "a");
 
 			if (f)
 			{
+				fprintf(f, "--- %p ---\n", stack.first);
+
 				for (auto& entry : stack.second)
 				{
 					fprintf(f, "%p\n", entry);
 				}
+
+				fprintf(f, "--- --- ---\n");
 
 				fclose(f);
 			}
 		}
 
 		g_stackIdx = 0;
-		g_stacks.clear();*/
+		g_stacks.clear();
 
 		g_didLevelFree = true;
 	}
@@ -494,25 +498,25 @@ void DoFreeMapTypes(void* store, void* entry, void* a3, bool a4)
 	}
 }
 
-static void(*g_origMemFree)(void*, void*);
+static intptr_t(*g_origMemFree)(void*, void*);
 static void** g_unsafePointerLoc;
 
 #include <unordered_map>
 #include <mutex>
 
-static std::map<void*, size_t> g_allocData;
+static std::unordered_map<uintptr_t, size_t> g_allocData;
 static std::mutex g_allocMutex;
+
+static CRITICAL_SECTION g_allocCS;
 
 static std::vector<uintptr_t> g_unsafeStack;
 
-void CustomMemFree(void* allocator, void* pointer)
+intptr_t CustomMemFree(void* allocator, void* pointer)
 {
-	if (pointer != nullptr && *g_unsafePointerLoc)
+	intptr_t retval = g_origMemFree(allocator, pointer);
+
+	/*if (pointer != nullptr && *g_unsafePointerLoc)
 	{
-		/*__debugbreak();
-
-		assert(!"Tried to free unsafe pointer!");*/
-
 		size_t allocSize = 0;
 
 		if (g_unsafeStack.size() == 0)
@@ -544,44 +548,79 @@ void CustomMemFree(void* allocator, void* pointer)
 			}
 		}
 
-	}
-
-	/*if (!g_didLevelFree && pointer != nullptr)
-	{
-		std::unique_lock<std::mutex> lock(g_allocMutex);
-
-		if (g_inLevelFree)
-		{
-			size_t allocSize = g_allocData[pointer];
-
-			if (allocSize != -1)
-			{
-				int stackIdx = g_stackIdx++;
-				
-				std::vector<uintptr_t> stackList(96);
-
-				uintptr_t* stack = (uintptr_t*)_AddressOfReturnAddress();
-				
-				for (int i = 0; i < stackList.size(); i++)
-				{
-					stackList[i] = stack[i];
-				}
-
-				g_stacks[stackIdx] = stackList;
-
-				trace("level free: %p-%p - stack idx: %d\n", pointer, (char*)pointer + allocSize, stackIdx);
-			}
-		}
-
-		g_allocData.erase(pointer);
 	}*/
 
-	return g_origMemFree(allocator, pointer);
+	if (/*!g_didLevelFree && */pointer != nullptr)
+	{
+		//std::unique_lock<std::mutex> lock(g_allocMutex);
+		EnterCriticalSection(&g_allocCS);
+
+		uintptr_t ptr = (uintptr_t)pointer;
+
+		auto it = g_allocData.find(ptr);
+
+		if (it != g_allocData.end())
+		{
+			size_t allocSize = it->second;
+
+			static char* location = hook::pattern("4C 8D 0D ? ? ? ? 48 89 01 4C 89 81 80 00 00").count(1).get(0).get<char>(3);
+			static char** g_collectionRoot = (char**)(location + *(int32_t*)location + 4);
+
+			for (int i = 0; i < 0x950; i++)
+			{
+				if (g_collectionRoot[i])
+				{
+					void* baad = *(void**)(g_collectionRoot[i] + 32);
+
+					if (baad >= pointer && baad < ((char*)pointer + allocSize))
+					{
+						atArray<char>* array = (atArray<char>*)(g_collectionRoot[i] + 128);
+
+						trace("freed collection %s (%p-%p)\n", &array->Get(0), pointer, allocSize + (char*)pointer);
+
+						uintptr_t* stack = (uintptr_t*)_AddressOfReturnAddress();
+						stack += (32 / 8);
+
+						for (int i = 0; i < 16; i++)
+						{
+							trace("stack: %p\n", stack[i]);
+						}
+					}
+				}
+			}
+			/*if (g_inLevelFree)
+			{
+			if (allocSize != -1)
+			{
+			int stackIdx = g_stackIdx++;
+
+			std::vector<uintptr_t> stackList(96);
+
+			uintptr_t* stack = (uintptr_t*)_AddressOfReturnAddress();
+
+			for (int i = 0; i < stackList.size(); i++)
+			{
+			stackList[i] = stack[i];
+			}
+
+			g_stacks[stackIdx] = stackList;
+
+			trace("level free: %p-%p - stack idx: %d\n", pointer, (char*)pointer + allocSize, stackIdx);
+			}
+			}*/
+
+			g_allocData.erase(it);
+		}
+
+		LeaveCriticalSection(&g_allocCS);
+	}
+
+	return retval;
 }
 
-static void*(*g_origMemAlloc)(void*, int size, int align, int subAlloc);
+static void*(*g_origMemAlloc)(void*, intptr_t size, intptr_t align, int subAlloc);
 
-void* CustomMemAlloc(void* allocator, int size, int align, int subAlloc)
+void* CustomMemAlloc(void* allocator, intptr_t size, intptr_t align, int subAlloc)
 {
 	void* ptr = g_origMemAlloc(allocator, size, align, subAlloc);
 
@@ -609,10 +648,14 @@ void* CustomMemAlloc(void* allocator, int size, int align, int subAlloc)
 	}*/
 	//memset(ptr, 0, size);
 
-	if (!g_didLevelFree)
+	if (subAlloc == 0)
 	{
-		std::unique_lock<std::mutex> lock(g_allocMutex);
-		g_allocData[ptr] = size;
+		uintptr_t ptr_ = (uintptr_t)ptr;
+
+		//std::unique_lock<std::mutex> lock(g_allocMutex);
+		EnterCriticalSection(&g_allocCS);
+		g_allocData[ptr_] = size;
+		LeaveCriticalSection(&g_allocCS);
 	}
 
 	return ptr;
@@ -626,6 +669,8 @@ static int ReturnInt()
 
 static HookFunction hookFunction([] ()
 {
+	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
+
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
 	char* p = hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
@@ -766,9 +811,6 @@ static HookFunction hookFunction([] ()
 	g_vehicleReflEntityArray = (decltype(g_vehicleReflEntityArray))(location + *(int32_t*)location + 4 + 800);
 	g_unsafePointerLoc = (void**)((location + *(int32_t*)location + 4) + 800);
 
-	// debug info for item #2 (generic free hook; might be useful elsewhere)
-	location = hook::pattern("48 89 01 83 61 48 00 48 8B C1 C3").count(1).get(0).get<char>(-4);
-
 	// dlc get
 	void* extraDataGetty = hook::pattern("45 33 F6 48 8B D8 48 85 C0 74 48").count(1).get(0).get<void>(0);
 
@@ -793,18 +835,30 @@ static HookFunction hookFunction([] ()
 		hook::call(matches.get(i).get<void>(), ReturnInt<1>);
 	}
 
+	// kill GROUP_EARLY_ON DLC - this seems to make it unmount in a really weird way, and this was (as of 350) only ever used to mount platform:/patch_1/, a change
+	// R* reverted through dlc_patches; yet the template setup2.xml was copied pretty much everywhere by then...
+	//hook::put<uint32_t>(hook::pattern("41 B8 08 D4 8B 6F").count(1).get(0).get<void>(2), HashString("GROUP_REALLY_EARLY_ON"));
+
+	// similar to above, except it's actually isLevelPack which matters - get rid of those, as these packs don't even add any 'levels'...
+	//const uint8_t killInst[] = { 0x44, 0x88, 0xB6, 0xB0, 0x00, 0x00, 0x00 }; // mov byte ptr [rsi+0xb0], r15b
+
+	//memcpy(hook::pattern("44 38 B6 B0 00 00 00 74 07").count(1).get(0).get<void>(9), killInst, sizeof(killInst));
+
 	// mount dlc even if allegedly already mounted - bad bad idea
 	//hook::nop(hook::pattern("84 C0 75 7A 48 8D 4C 24 20").count(1).get(0).get<void>(2), 2);
 
-	/*
+	// debug info for item #2 (generic free hook; might be useful elsewhere)
+	location = hook::pattern("48 89 01 83 61 48 00 48 8B C1 C3").count(1).get(0).get<char>(-4);
+	
 	void** vt = (void**)(location + *(int32_t*)location + 4);
 
-	g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
-	vt[2] = CustomMemAlloc;
+	//g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
+	//vt[2] = CustomMemAlloc;
 
-	g_origMemFree = (decltype(g_origMemFree))vt[4];
-	vt[4] = CustomMemFree;
-	*/
+	//g_origMemFree = (decltype(g_origMemFree))vt[4];
+	//vt[4] = CustomMemFree;
+	
+
 
 	/*
 	void* setCache = hook::pattern("40 32 FF 45 84 C9 40 88 3D").count(1).get(0).get<void>(3);

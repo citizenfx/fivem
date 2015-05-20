@@ -47,7 +47,10 @@ int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * f
 
 			lastReceivedFrom = netID;
 
-			trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, s);
+			if (CoreIsDebuggerPresent())
+			{
+				trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, s);
+			}
 
 			return min(len, length);
 		}
@@ -71,7 +74,10 @@ int __stdcall CfxSendTo(SOCKET s, char * buf, int len, int flags, sockaddr * to,
 		{
 			g_pendSendVar = 0;
 
-			trace("CfxSendTo (to internal address %i) %i b (from thread 0x%x)\n", (htonl(toIn->sin_addr.s_addr) & 0xFFFF) ^ 0xFEED, len, GetCurrentThreadId());
+			if (CoreIsDebuggerPresent())
+			{
+				trace("CfxSendTo (to internal address %i) %i b (from thread 0x%x)\n", (htonl(toIn->sin_addr.s_addr) & 0xFFFF) ^ 0xFEED, len, GetCurrentThreadId());
+			}
 		}
 		else
 		{

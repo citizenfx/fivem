@@ -52,7 +52,7 @@ public:
 
 	TValue& Get(uint16_t offset)
 	{
-		if (offset >= m_count)
+		if (offset >= m_size)
 		{
 			FatalError("atArray index out of bounds");
 		}

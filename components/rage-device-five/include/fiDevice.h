@@ -272,12 +272,17 @@ public:
 	fiPackfile();
 
 	// any RAGE path can be used; including root-relative paths
-	void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, intptr_t veryFalse);
+	void OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse);
 
-	// compatibility wrapper
+	// compatibility wrappers
+	inline void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, intptr_t veryFalse)
+	{
+		OpenPackfile(archive, bTrue, type, veryFalse);
+	}
+
 	inline void OpenPackfile(const char* archive, bool bTrue, bool bFalse, intptr_t veryFalse)
 	{
-		OpenPackfile(archive, bTrue, bFalse, 3, veryFalse);
+		OpenPackfile(archive, bTrue, 3, veryFalse);
 	}
 
 	// mounts the device in the device stack

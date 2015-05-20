@@ -16,13 +16,16 @@
 
 #include <sstream>
 
+#include <boost/function_types/function_type.hpp>
+#include <boost/function_types/result_type.hpp>
+
 #pragma comment(lib, "shlwapi.lib")
 #include <shlwapi.h>
 
 static rage::fiCollection** g_collectionRoot;
 
 static void(*g_origCloseCollection)(rage::fiCollection*);
-static void(*g_origOpenPackfileInternal)(rage::fiCollection*, const char* archive, bool bTrue, bool bFalse, intptr_t veryFalse);
+static void(*g_origOpenPackfileInternal)(rage::fiCollection*, const char* archive, bool bTrue, intptr_t veryFalse);
 
 static uintptr_t g_vTable_fiPackfile;
 
@@ -61,7 +64,7 @@ private:
 
 	char m_childPackfile[192];
 
-	//rage::fiCollection* m_parentCollection;
+	rage::fiCollection* m_parentCollection;
 
 	concurrency::concurrent_unordered_map<uint16_t, CollectionEntry> m_entries;
 
@@ -125,8 +128,11 @@ private:
 	};
 
 public:
-	CfxCollection()
+	CfxCollection(rage::fiCollection* parent)
+		: m_parentCollection(parent)
 	{
+		memset(m_pad, 0, sizeof(m_pad));
+
 		uintptr_t ourVt = *(uintptr_t*)this;
 		packfileCtor(this);
 		*(uintptr_t*)this = ourVt;
@@ -141,12 +147,23 @@ public:
 		m_hasCleaned = false;
 	}
 
+	~CfxCollection()
+	{
+		trace("del cfxcollection %p\n", this);
+
+		PseudoCallContext(this)->~fiCollection();
+
+		rage::GetAllocator()->free(m_parentCollection);
+	}
+
 	void CleanCloseCollection()
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
 		m_entries.clear();
 		m_reverseEntries.clear();
+
+		memset(m_handles, 0, sizeof(m_handles));
 
 		m_hasCleaned = true;
 
@@ -165,6 +182,11 @@ public:
 	uint64_t AllocateHandle(rage::fiDevice* parentDevice, uint64_t parentHandle, const char* name)
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
+
+		if (parentHandle == -1)
+		{
+			FatalError("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s", GetName(), name);
+		}
 
 		m_handles[0].parentDevice = this;
 
@@ -370,13 +392,31 @@ public:
 
 	virtual uint64_t Open(const char* fileName, bool readOnly)
 	{
-		trace("open %s\n", fileName);
+		std::string outFileName;
 
-		return PseudoCallContext(this)->Open(fileName, readOnly);
+		if (m_lookupFunction(fileName, outFileName))
+		{
+			rage::fiDevice* device = rage::fiDevice::GetDevice(outFileName.c_str(), true);
+			uint64_t handle = device->Open(outFileName.c_str(), readOnly);
+
+			return AllocateHandle(device, handle, "");
+		}
+
+		return AllocateHandle(this, PseudoCallContext(this)->Open(fileName, readOnly), "");
 	}
 
 	virtual uint64_t OpenBulk(const char* fileName, uint64_t* ptr)
 	{
+		std::string outFileName;
+
+		if (m_lookupFunction(fileName, outFileName))
+		{
+			rage::fiDevice* device = rage::fiDevice::GetDevice(outFileName.c_str(), true);
+			uint64_t handle = device->OpenBulk(outFileName.c_str(), ptr);
+
+			return AllocateHandle(device, handle, "");
+		}
+
 		uint64_t handle = PseudoCallContext(this)->OpenBulk(fileName, ptr);
 
 		return AllocateHandle(this, handle, fileName);
@@ -397,23 +437,41 @@ public:
 		return PseudoCallContext(this)->CreateLocal(fileName);
 	}
 
+private:
+	template<typename TFunc>
+	typename boost::function_types::result_type<decltype(&TFunc::operator())>::type InvokeOnHandle(uint64_t handle, const TFunc& func)
+	{
+		auto ourHandle = GET_HANDLE(handle);
+		auto& handleItem = m_handles[ourHandle];
+
+		if (handleItem.parentDevice == this)
+		{
+			{
+				PseudoCallContext ctx(this);
+				return func(ctx.GetPointer(), handleItem.parentHandle);
+			}
+		}
+		else
+		{
+			return func(handleItem.parentDevice, handleItem.parentHandle);
+		}
+	}
+
+public:
 	virtual uint32_t Read(uint64_t handle, void* buffer, uint32_t toRead)
 	{
-		return PseudoCallContext(this)->Read(handle, buffer, toRead);
+		return InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
+		{
+			return device->Read(handle, buffer, toRead);
+		});
 	}
 
 	virtual uint32_t ReadBulk(uint64_t handle, uint64_t ptr, void* buffer, uint32_t toRead)
 	{
-		uint32_t size = -1;
-
-		if (m_handles[GET_HANDLE(handle)].parentDevice == this)
+		uint32_t size = InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
 		{
-			size = PseudoCallContext(this)->ReadBulk(m_handles[GET_HANDLE(handle)].parentHandle, ptr, buffer, toRead);
-		}
-		else
-		{
-			size = m_handles[GET_HANDLE(handle)].parentDevice->ReadBulk(m_handles[GET_HANDLE(handle)].parentHandle, ptr, buffer, toRead);
-		}
+			return device->ReadBulk(handle, ptr, buffer, toRead);
+		});
 
 		if (size != toRead)
 		{
@@ -442,54 +500,61 @@ public:
 	virtual uint32_t Seek(uint64_t handle, int32_t distance, uint32_t method)
 	{
 		//return PseudoCallContext(this)->Seek(m_handles[handle].parentHandle, distance, method);
-		return PseudoCallContext(this)->Seek(handle, distance, method);
+		return InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
+		{
+			return device->Seek(handle, distance, method);
+		});
 	}
 
 	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method)
 	{
 		//return PseudoCallContext(this)->SeekLong(m_handles[handle].parentHandle, distance, method);
-		return PseudoCallContext(this)->SeekLong(handle, distance, method);
+		return InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
+		{
+			return device->SeekLong(handle, distance, method);
+		});
 	}
 
 	virtual int32_t Close(uint64_t handle)
 	{
-		if ((handle >> 31) == 1)
+		int32_t retval = InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
 		{
-			return CloseBulk(handle);
-		}
+			return device->Close(handle);
+		});
 
-		return PseudoCallContext(this)->Close(handle);
+		auto& handleInfo = m_handles[GET_HANDLE(handle)];
+		handleInfo.parentDevice = nullptr;
+
+		return retval;
 	}
 
 	virtual int32_t CloseBulk(uint64_t handle)
 	{
-		//trace("CloseBulk %s\n", m_handles[handle].name);
-
-		int32_t retval;
-
-		if (m_handles[GET_HANDLE(handle)].parentDevice == this)
+		int32_t retval = InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
 		{
-			retval = PseudoCallContext(this)->CloseBulk(m_handles[GET_HANDLE(handle)].parentHandle);
-		}
-		else
-		{
-			retval = m_handles[GET_HANDLE(handle)].parentDevice->CloseBulk(m_handles[GET_HANDLE(handle)].parentHandle);
-		}
+			return device->CloseBulk(handle);
+		});
 
-		m_handles[GET_HANDLE(handle)].parentDevice = nullptr;
+		auto& handleInfo = m_handles[GET_HANDLE(handle)];
+		handleInfo.parentDevice = nullptr;
 
 		return retval;
-		//PseudoCallContext(this)->CloseBulk(handle);
 	}
 
 	virtual int GetFileLength(uint64_t handle)
 	{
-		return PseudoCallContext(this)->GetFileLength(handle);
+		return InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
+		{
+			return device->GetFileLength(handle);
+		});
 	}
 
 	virtual uint64_t GetFileLengthUInt64(uint64_t handle)
 	{
-		return PseudoCallContext(this)->GetFileLengthUInt64(handle);
+		return InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
+		{
+			return device->GetFileLengthUInt64(handle);
+		});
 	}
 
 	// dummy!
@@ -602,7 +667,10 @@ public:
 	// read even if read() returns less than length
 	virtual bool ReadFull(uint64_t handle, void* buffer, uint32_t length)
 	{
-		return PseudoCallContext(this)->ReadFull(handle, buffer, length);
+		return InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
+		{
+			return device->ReadFull(handle, buffer, length);
+		});
 	}
 
 	virtual bool WriteFull(uint64_t handle, void* buffer, uint32_t length)
@@ -712,13 +780,30 @@ private:
 				// create a lookup function
 				m_lookupFunction = [=] (const char* filename, std::string& newFilename)
 				{
-					auto it = fileList.find(filename);
-
-					if (it != fileList.end())
+					// if this is an absolute filename...
+					if (strchr(filename, ':'))
 					{
-						newFilename = str + "/" + *it;
+						// try looking it up on disk, with the mount removed
+						std::string tryFileName = str + "/" + &filename[*(uint32_t*)(&m_pad[80])]; // + 88 is mountpoint length
 
-						return true;
+						if (device->GetFileAttributes(tryFileName.c_str()) != INVALID_FILE_ATTRIBUTES)
+						{
+							newFilename = tryFileName;
+
+							return true;
+						}
+					}
+					else
+					{
+						// else try looking it up in the streaming list
+						auto it = fileList.find(filename);
+
+						if (it != fileList.end())
+						{
+							newFilename = str + "/" + *it;
+
+							return true;
+						}
 					}
 
 					return false;
@@ -730,36 +815,9 @@ private:
 public:
 
 	// functions
-	bool OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, intptr_t veryFalse)
-	{
-		DetermineLookupFunction(archive);
+	bool OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse);
 
-		rage::fiDevice* baseDevice = rage::fiDevice::GetDevice(archive, true);
-
-		// weird workaround for fiDeviceRelative not passing this through
-		if (!baseDevice->m_zy() && !strstr(archive, "dlcpacks:"))
-		{
-			const char* mount = strstr(archive, ":/");
-
-			if (!mount)
-			{
-				mount = strstr(archive, ":\\");
-			}
-
-			archive = va("update:/x64/%s", mount + 2);
-		}
-
-		std::unique_lock<std::recursive_mutex> lock(m_mutex);
-
-		{
-			PseudoCallContext ctx(this);
-			reinterpret_cast<rage::fiPackfile*>(ctx.GetPointer())->OpenPackfile(archive, bTrue, bFalse, type, veryFalse);
-		}
-
-		return true;
-	}
-
-	bool OpenPackfileInternal(const char* archive, bool bTrue, bool bFalse, intptr_t veryFalse)
+	bool OpenPackfileInternal(const char* archive, bool bTrue, intptr_t veryFalse)
 	{
 		DetermineLookupFunction(archive);
 
@@ -774,7 +832,17 @@ public:
 
 		{
 			PseudoCallContext ctx(this);
-			g_origOpenPackfileInternal(ctx.GetPointer(), archive, bTrue, bFalse, veryFalse);
+			g_origOpenPackfileInternal(ctx.GetPointer(), archive, bTrue, veryFalse);
+		}
+
+		if (*(int64_t*)(&m_pad[40]) == -1)
+		{
+			OpenPackfile(archive, bTrue, 3, veryFalse);
+
+			if (*(int64_t*)(&m_pad[40]) == -1)
+			{
+				FatalError("Reading packfile %s header failed, even after retrying.", archive);
+			}
 		}
 
 		return true;
@@ -784,7 +852,7 @@ public:
 	{
 		{
 			PseudoCallContext ctx(this);
-			
+
 			reinterpret_cast<rage::fiPackfile*>(ctx.GetPointer())->Mount(mountPoint);
 		}
 	}
@@ -792,8 +860,7 @@ public:
 
 static rage::fiCollection* ConstructPackfile(rage::fiCollection* packfile)
 {
-	//rage::fiCollection* collection = packfileCtor(packfile);
-	rage::fiCollection* cfxCollection = new CfxCollection();
+	rage::fiCollection* cfxCollection = new CfxCollection(packfile);
 
 	g_collectionRoot[cfxCollection->GetCollectionId()] = cfxCollection;
 
@@ -803,8 +870,6 @@ static rage::fiCollection* ConstructPackfile(rage::fiCollection* packfile)
 void DoCloseCollection(rage::fiCollection* collection)
 {
 	auto cfxCollection = dynamic_cast<CfxCollection*>(collection);
-
-	trace("clean close collection\n");
 
 	if (cfxCollection != nullptr)
 	{
@@ -968,6 +1033,105 @@ void* ResolveQB(char* qb, void* bm)
 }
 #endif
 
+namespace rage
+{
+	class strStreamingModule
+	{
+	private:
+		uint32_t m_baseIndex;
+
+	public:
+		virtual ~strStreamingModule();
+
+		inline uint32_t GetBaseIndex()
+		{
+			return m_baseIndex;
+		}
+	};
+}
+
+struct StreamingEntry
+{
+	uint16_t a;
+	uint16_t b;
+	uint16_t c;
+	uint16_t d;
+};
+
+static rage::strStreamingModule* g_streamingModule;
+static StreamingEntry** g_streamingEntries;
+
+struct StreamingPackfileEntry
+{
+	uint8_t pad[88];
+	uint32_t parentIdentifier;
+	uint8_t pad2[12];
+};
+
+#include <atArray.h>
+
+static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
+
+static_assert(sizeof(StreamingPackfileEntry) == 104, "muh");
+
+bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse)
+{
+	DetermineLookupFunction(archive);
+
+	rage::fiDevice* baseDevice = rage::fiDevice::GetDevice(archive, true);
+
+	// weird workaround for fiDeviceRelative not passing this through
+	bool isProxiedRelative = false;
+
+	if (!baseDevice->m_zy() && !strstr(archive, "dlcpacks:"))
+	{
+		const char* mount = strstr(archive, ":/");
+
+		if (!mount)
+		{
+			mount = strstr(archive, ":\\");
+		}
+
+		archive = va("update:/x64/%s", mount + 2);
+
+		isProxiedRelative = true;
+	}
+
+	std::unique_lock<std::recursive_mutex> lock(m_mutex);
+
+	{
+		PseudoCallContext ctx(this);
+		reinterpret_cast<rage::fiPackfile*>(ctx.GetPointer())->OpenPackfile(archive, bTrue, type, veryFalse);
+	}
+
+	// dependency for game reloading (gta:core GameInit) - verify the parent collection address in the packfile registry
+	int baseCollectionId = baseDevice->GetCollectionId();
+
+	auto& packfile = g_streamingPackfiles->Get(GetCollectionId());
+
+	// if this is a packfile with an address already...
+	if (!isProxiedRelative && packfile.parentIdentifier != 0)
+	{
+		uint16_t oldCollectionId = packfile.parentIdentifier >> 16;
+
+		// and the collection ID is not the one mentioned in the address...
+		if (oldCollectionId != baseCollectionId)
+		{
+			// and it isn't collection 0, either (pgRawStreamer, which we don't handle)
+			if (baseCollectionId != 0)
+			{
+				// get the entry identifier and make a new address
+				rage::fiCollection* collection = static_cast<rage::fiCollection*>(baseDevice);
+				uint16_t entryIndex = collection->GetEntryByName(archive);
+
+				packfile.parentIdentifier = (baseCollectionId << 16) | entryIndex;
+			}
+		}
+	}
+
+	return true;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// packfile create
@@ -987,12 +1151,27 @@ static HookFunction hookFunction([] ()
 
 	// same
 	hook::call(hook::pattern("49 8B CC 48 89 7C 24 20 45 1B C9 41 83 E1 03 E8").count(1).get(0).get<void>(15), hook::get_member(&CfxCollection::OpenPackfile));
-	
+
 	// similar for a weird case
 	void* internal = hook::pattern("4C 8B CE 41 D0 E8 48 8B D0 48 8B CD 41 80 E0 01").count(1).get(0).get<void>(16);
 
 	hook::set_call(&g_origOpenPackfileInternal, internal);
 	hook::call(internal, hook::get_member(&CfxCollection::OpenPackfileInternal));
+
+	// streaming module
+	char* location = hook::pattern("48 63 D9 A8 01 75 23 83 C8 01").count(1).get(0).get<char>(0xD);
+
+	g_streamingModule = (rage::strStreamingModule*)(location + *(int32_t*)location + 4);
+
+	// streaming entries
+	location = hook::pattern("84 C0 74 3C 8B 53 08 48 8D 0D").count(1).get(0).get<char>(10);
+
+	g_streamingEntries = (StreamingEntry**)(location + *(int32_t*)location + 4);
+
+	// streaming packfile entries
+	location = hook::pattern("48 8B 05 ? ? ? ? 48 8B CB 48 6B C9 68 80 64").count(1).get(0).get<char>(3);
+
+	g_streamingPackfiles = (decltype(g_streamingPackfiles))(location + *(int32_t*)location + 4);
 
 	// collection cleaning
 	void* closeCollection = hook::pattern("EB 05 E8 ? ? ? ? 48 8B 53 30 C6").count(1).get(0).get<void>(2);
@@ -1001,7 +1180,7 @@ static HookFunction hookFunction([] ()
 	hook::call(closeCollection, DoCloseCollection);
 
 	// collection root
-	char* location = hook::pattern("4C 8D 0D ? ? ? ? 48 89 01 4C 89 81 80 00 00").count(1).get(0).get<char>(3);
+	location = hook::pattern("4C 8D 0D ? ? ? ? 48 89 01 4C 89 81 80 00 00").count(1).get(0).get<char>(3);
 
 	g_collectionRoot = (rage::fiCollection**)(location + *(int32_t*)location + 4);
 

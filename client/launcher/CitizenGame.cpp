@@ -579,6 +579,19 @@ void CitizenGame::Launch(std::wstring& gamePath)
 		hooks.Install();
 	}
 
+	if (CoreIsDebuggerPresent())
+	{
+		// NOP OutputDebugStringA; the debugger doesn't like multiple async exceptions
+		uint8_t* func = (uint8_t*)OutputDebugStringA;
+
+		DWORD oldProtect;
+		VirtualProtect(func, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		*func = 0xC3;
+
+		VirtualProtect(func, 1, oldProtect, &oldProtect);
+	}
+
 	g_launcher = launcher;
 #endif
 

@@ -139,7 +139,7 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 			uint16_t netID = msg.Read<uint16_t>();
 			uint16_t rlength = msg.Read<uint16_t>();
 
-			trace("msgRoute from %d len %d\n", netID, rlength);
+			//trace("msgRoute from %d len %d\n", netID, rlength);
 
 			char routeBuffer[65536];
 			if (!msg.Read(routeBuffer, rlength))
