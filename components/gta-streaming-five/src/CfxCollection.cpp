@@ -743,7 +743,7 @@ private:
 
 		basePath << std::string(archive, colon);
 		basePath << "/";
-		basePath << std::string(&colon[1], StrStrIA(colon, ".rpf"));
+		basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
 
 		// get the folder device
 		std::string str = basePath.str();
@@ -761,7 +761,7 @@ private:
 			{
 				struct IgnoreCaseLess
 				{
-					inline bool operator()(const std::string& left, const std::string& right)
+					inline bool operator()(const std::string& left, const std::string& right) const
 					{
 						return _stricmp(left.c_str(), right.c_str()) < 0;
 					}

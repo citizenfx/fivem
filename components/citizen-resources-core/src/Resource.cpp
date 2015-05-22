@@ -22,7 +22,7 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath)
 {
 	auto metaData = GetComponent<ResourceMetaDataComponent>();
 
-	
+	return true;
 }
 
 const std::string& ResourceImpl::GetName()
@@ -49,4 +49,6 @@ fwRefContainer<RefInstanceRegistry> ResourceImpl::GetInstanceRegistry()
 {
 	return m_instanceRegistry;
 }
+
+fwEvent<Resource*> Resource::OnInitializeInstance;
 }

@@ -134,7 +134,7 @@ namespace std
 	template<typename T1, typename T2>
 	struct hash<std::pair<T1, T2>>
 	{
-		std::size_t operator()(const std::pair<T1, T2>& x)
+		std::size_t operator()(const std::pair<T1, T2>& x) const
 		{
 			return (3 * std::hash<T1>()(x.first)) ^ std::hash<T2>()(x.second);
 		}

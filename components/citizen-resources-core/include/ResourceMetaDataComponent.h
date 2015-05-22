@@ -37,7 +37,7 @@ public:
 };
 
 template<typename ContainerType>
-using IteratorTypeView = IteratorView<ContainerType::iterator>;
+using IteratorTypeView = IteratorView<typename ContainerType::iterator>;
 
 template<typename PairType>
 inline auto GetIteratorView(const PairType& pair)
@@ -59,3 +59,5 @@ public:
 	}
 };
 }
+
+DECLARE_INSTANCE_TYPE(fx::ResourceMetaDataComponent);

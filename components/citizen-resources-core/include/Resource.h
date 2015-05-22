@@ -61,7 +61,7 @@ public:
 	template<typename TInstance>
 	void SetComponent(fwRefContainer<TInstance> inst)
 	{
-		Instance<TInstance>::Set(GetInstanceRegistry(), inst);
+		Instance<TInstance>::Set(inst, GetInstanceRegistry());
 	}
 
 public:

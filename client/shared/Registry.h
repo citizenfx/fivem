@@ -75,7 +75,7 @@ public:
 		return instance;
 	}
 
-	static fwRefContainer<T> Get(RefInstanceRegistry* registry)
+	static fwRefContainer<T> Get(fwRefContainer<RefInstanceRegistry> registry)
 	{
 		fwRefContainer<T> instance = registry->GetInstance(ms_name);
 
@@ -104,7 +104,7 @@ public:
 		registry->SetInstance(ms_name, instance);
 	}
 
-	static void Set(const fwRefContainer<T>& instance, RefInstanceRegistry* registry)
+	static void Set(const fwRefContainer<T>& instance, fwRefContainer<RefInstanceRegistry> registry)
 	{
 		registry->SetInstance(ms_name, instance);
 	}
