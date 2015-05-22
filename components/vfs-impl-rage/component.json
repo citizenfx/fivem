@@ -1,0 +1,10 @@
+{
+	"name": "vfs:impl:rage",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:device",
+		"vfs:core"
+	],
+	"provides": []
+}

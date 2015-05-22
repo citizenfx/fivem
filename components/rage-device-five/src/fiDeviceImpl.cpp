@@ -181,7 +181,7 @@ int WRAPPER fiDeviceImplemented::m_zx(void*)
 	PURECALL();
 }
 
-bool WRAPPER fiDeviceImplemented::m_zy()
+bool WRAPPER fiDeviceImplemented::IsBulkDevice()
 {
 	PURECALL();
 }

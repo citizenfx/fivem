@@ -120,7 +120,7 @@ public:
 
 	virtual int32_t m_zx(void*) = 0; // return 0x40000000
 
-	virtual bool m_zy() = 0;
+	virtual bool IsBulkDevice() = 0;
 
 	virtual fiDevice* m_zz() = 0; // return this
 
@@ -233,7 +233,7 @@ public:
 
 	virtual int32_t m_zx(void*); // return 0x40000000
 
-	virtual bool m_zy();
+	virtual bool IsBulkDevice();
 
 	virtual fiDevice* m_zz(); // return this
 

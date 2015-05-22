@@ -15,6 +15,7 @@ static int magicDontReturnBool;
 static int magicForceReturnBool;
 static int magicReturnResultString;
 static int magicReturnResultFloat;
+static int magicReturnResultVector;
 
 static DWORD exceptionAddress;
 
@@ -23,6 +24,18 @@ static int ExceptionStuff(LPEXCEPTION_POINTERS info)
 	exceptionAddress = (DWORD)info->ExceptionRecord->ExceptionAddress;
 	return EXCEPTION_EXECUTE_HANDLER;
 }
+
+#if defined(GTA_FIVE)
+LUA_FUNCTION(GetNative)
+{
+	uint64_t high = luaL_checkinteger(L, 1);
+	uint64_t low = luaL_checkinteger(L, 2);
+
+	lua_pushlightuserdata(L, (void*)((high << 32) | low));
+
+	return 1;
+}
+#endif
 
 // TODO: add pointer safety checks!
 LUA_FUNCTION(CallNative)
@@ -38,8 +51,13 @@ LUA_FUNCTION(CallNative)
 	bool returnBoolAnyway = false;
 	bool returnStringResult = false;
 	bool returnFloatResult = false;
+	bool returnVectorResult = false;
 
+#if !defined(GTA_FIVE)
 	uint32_t hash = luaL_checkinteger(L, 1);
+#else
+	uint64_t hash = (uint64_t)lua_touserdata(L, 1);
+#endif
 
 	for (int i = 2; i <= numArgs; i++)
 	{
@@ -114,6 +132,10 @@ LUA_FUNCTION(CallNative)
 			else if (userData == &magicReturnResultFloat)
 			{
 				returnFloatResult = true;
+			}
+			else if (userData == &magicReturnResultVector)
+			{
+				returnVectorResult = true;
 			}
 			else
 			{
@@ -191,6 +213,29 @@ LUA_FUNCTION(CallNative)
 		else if (returnFloatResult)
 		{
 			lua_pushnumber(L, ctx.GetResult<float>());
+		}
+		else if (returnVectorResult)
+		{
+			scrVector vector = ctx.GetResult<scrVector>();
+
+			STACK_BASE;
+			lua_createtable(L, 3, 0);
+
+			int table = lua_gettop(L);
+
+			lua_pushnumber(L, 1);
+			lua_pushnumber(L, vector.x);
+			lua_settable(L, table);
+
+			lua_pushnumber(L, 2);
+			lua_pushnumber(L, vector.y);
+			lua_settable(L, table);
+
+			lua_pushnumber(L, 3);
+			lua_pushnumber(L, vector.z);
+			lua_settable(L, table);
+
+			STACK_CHECK_N(1);
 		}
 		else if (returnValueDontConvert || ctx.GetResult<uint32_t>() != 0)
 		{
@@ -282,6 +327,13 @@ LUA_FUNCTION(rrs)
 LUA_FUNCTION(rrf)
 {
 	lua_pushlightuserdata(L, &magicReturnResultFloat);
+
+	return 1;
+}
+
+LUA_FUNCTION(rv)
+{
+	lua_pushlightuserdata(L, &magicReturnResultVector);
 
 	return 1;
 }

@@ -28,6 +28,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+// silly win10 prerel sdk defines this for some reason
+#ifdef Yield
+#undef Yield
+#endif
+
 #include <versionhelpers.h>
 
 #ifdef GTA_NY

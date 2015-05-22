@@ -698,9 +698,9 @@ public:
 		return PseudoCallContext(this)->m_zx(a1);
 	}
 
-	virtual bool m_zy()
+	virtual bool IsBulkDevice()
 	{
-		return PseudoCallContext(this)->m_zy();
+		return PseudoCallContext(this)->IsBulkDevice();
 	}
 
 	virtual fiDevice* m_zz() // return this
@@ -1083,7 +1083,7 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 	// weird workaround for fiDeviceRelative not passing this through
 	bool isProxiedRelative = false;
 
-	if (!baseDevice->m_zy() && !strstr(archive, "dlcpacks:"))
+	if (!baseDevice->IsBulkDevice() && !strstr(archive, "dlcpacks:"))
 	{
 		const char* mount = strstr(archive, ":/");
 
