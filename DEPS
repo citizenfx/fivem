@@ -20,6 +20,8 @@ deps = {
 	"vendor/cpp-uri": "https://github.com/cpp-netlib/uri.git",
 	"vendor/picohttpparser": "https://github.com/h2o/picohttpparser.git@98bcc1c3b431d05d4584af66082da48e4638a675",
 	"vendor/libssh": "http://tohjo.eu/citidev/libssh.git",
+	"vendor/xz": "http://git.tukaani.org/xz.git",
+	"vendor/curl": "https://github.com/bagder/curl.git",
 	"vendor/libuv": "https://github.com/libuv/libuv.git@v1.x"
 }
 
