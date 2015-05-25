@@ -49,11 +49,17 @@ public:
 
 	static BlockMap* BeginPacking();
 
+	static BlockMap* CreateBlockMap();
+
+	static void DeleteBlockMap(BlockMap* blockMap);
+
 	static void BeginPacking(BlockMap* blockMap);
 
 	static void MarkToBePacked(pgPtrRepresentation* ptrRepresentation, bool physical, void* tag);
 
 	static void EndPacking();
+
+	static void FinalizeAllocations(BlockMap* blockMap);
 
 	static bool IsInBlockMap(void* ptr, BlockMap* blockMap, bool physical);
 
@@ -91,7 +97,7 @@ public:
 
 	inline void* operator new(size_t size, BlockMap* blockMap, bool isPhysical)
 	{
-		void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+		void* data = pgStreamManager::Allocate(size, isPhysical, blockMap);
 		memset(data, 0, size);
 
 		return data;
@@ -112,7 +118,7 @@ public:
 
 	inline void* operator new[](size_t size, BlockMap* blockMap, bool isPhysical)
 	{
-		void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+		void* data = pgStreamManager::Allocate(size, isPhysical, blockMap);
 		memset(data, 0, size);
 
 		return data;
@@ -244,7 +250,7 @@ inline void* datBase::operator new(size_t size, bool isPhysical)
 inline void* datBase::operator new(size_t size, BlockMap* blockMap, bool isPhysical)
 {
 	//return pgStreamManager::Allocate(size, isPhysical, nullptr);
-	void* data = pgStreamManager::Allocate(size, isPhysical, nullptr);
+	void* data = pgStreamManager::Allocate(size, isPhysical, blockMap);
 	memset(data, 0, size);
 
 	return data;
@@ -261,6 +267,8 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 		void* data;
 		uint32_t size;
 	} blocks[128];
+
+	size_t baseAllocationSize;
 
 	inline BlockMap()
 	{

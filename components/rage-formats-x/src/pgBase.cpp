@@ -33,6 +33,28 @@ namespace RAGE_FORMATS_GAME
 {
 static __declspec(thread) BlockMap* g_currentBlockMap;
 
+struct BlockMapGap
+{
+	char* start;
+	size_t size;
+};
+
+struct BlockMapMeta
+{
+	size_t maxSizes[128];
+	size_t realMaxSizes[128];
+
+	std::vector<BlockMapGap> gapList;
+
+	bool isPerformingFinalAllocation;
+
+	std::list<std::tuple<void*, size_t, bool>> allocations;
+
+	size_t baseMemorySize;
+};
+
+static std::unordered_map<BlockMap*, BlockMapMeta> g_allocationData;
+
 void* pgStreamManager::ResolveFilePointer(pgPtrRepresentation& ptr, BlockMap* blockMap /* = nullptr */)
 {
 	if (ptr.blockType == 0)
@@ -85,6 +107,7 @@ void pgStreamManager::UnmarkResolved(const void* ptrAddress)
 
 static __declspec(thread) BlockMap* g_packBlockMap;
 static __declspec(thread) std::vector<std::tuple<pgPtrRepresentation*, bool, void*>>* g_packEntries;
+static __declspec(thread) std::set<pgPtrRepresentation*>* g_packPointerSet;
 
 void pgStreamManager::BeginPacking(BlockMap* blockMap)
 {
@@ -94,6 +117,7 @@ void pgStreamManager::BeginPacking(BlockMap* blockMap)
 	}
 
 	g_packEntries = new std::vector<std::tuple<pgPtrRepresentation*, bool, void*>>();
+	g_packPointerSet = new std::set<pgPtrRepresentation*>();
 
 	g_packBlockMap = blockMap;
 }
@@ -120,6 +144,7 @@ void pgStreamManager::MarkToBePacked(pgPtrRepresentation* ptrRepresentation, boo
 	}
 
 	// add the block
+	g_packPointerSet->insert(ptrRepresentation);
 	g_packEntries->push_back(std::make_tuple(ptrRepresentation, physical, tag));
 }
 
@@ -128,6 +153,22 @@ bool pgStreamManager::IsInBlockMap(void* ptr, BlockMap* blockMap, bool physical)
 	if (blockMap == nullptr)
 	{
 		blockMap = g_packBlockMap;
+	}
+
+	// find an allocation block for this block map
+	auto allocBlock = g_allocationData.find(blockMap);
+
+	if (allocBlock == g_allocationData.end())
+	{
+		return nullptr;
+	}
+
+	auto& allocInfo = allocBlock->second;
+
+	// a non-resolving block map can contain anything, so ignore that
+	if (!allocInfo.isPerformingFinalAllocation)
+	{
+		return true;
 	}
 
 	int startIndex = (!physical) ? 0 : blockMap->virtualLen;
@@ -152,7 +193,9 @@ bool pgStreamManager::IsInBlockMap(void* ptr, BlockMap* blockMap, bool physical)
 
 void pgStreamManager::EndPacking()
 {
-	auto& packEntries = *g_packEntries;
+	FinalizeAllocations(g_packBlockMap);
+
+	/*auto& packEntries = *g_packEntries;
 
 	for (auto& packPtr : packEntries)
 	{
@@ -191,27 +234,255 @@ void pgStreamManager::EndPacking()
 		{
 			FatalError("Stray pointer in pgPtr: %p %p", inPtr, std::get<2>(packPtr));
 		}
-	}
+	}*/
 
 	delete g_packEntries;
 	g_packEntries = nullptr;
 }
 
-struct BlockMapGap
+void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 {
-	char* start;
-	size_t size;
-};
+	// find an allocation block for this block map
+	auto allocBlock = g_allocationData.find(blockMap);
 
-struct BlockMapMeta
-{
-	size_t maxSizes[128];
-	size_t realMaxSizes[128];
+	if (allocBlock == g_allocationData.end())
+	{
+		return;
+	}
 
-	std::vector<BlockMapGap> gapList;
-};
+	auto& allocInfo = allocBlock->second;
 
-static std::unordered_map<BlockMap*, BlockMapMeta> g_allocationData;
+	allocInfo.isPerformingFinalAllocation = true;
+
+	auto& allocations = allocInfo.allocations;
+
+	// get the first allocation (to not mess with it at any later stage)
+	auto firstAlloc = allocations.front();
+	allocations.pop_front();
+
+	// sort the remaining allocations by size - the biggest goes first (to allow gap-based allocation of pages at a later time)
+	std::vector<std::tuple<void*, size_t, bool>> sortedAllocations(allocations.begin(), allocations.end());
+
+	std::sort(sortedAllocations.begin(), sortedAllocations.end(), [] (const auto& left, const auto& right)
+	{
+		return (std::get<1>(left) > std::get<1>(right));
+	});
+
+	// configure an ideal allocation base - this could get messy; as we'll allocate/free the block map a *lot* of times
+	size_t bestTotalMemory = -1;
+	std::vector<void*> curAllocatedPtrs;
+
+	BlockMap* curBlockMap = nullptr;
+
+	auto attemptAllocation = [&] (size_t base)
+	{
+		// create a new block map and a metadata set for it
+		auto bm = CreateBlockMap();
+		bm->baseAllocationSize = base;
+
+		auto allocBlock = g_allocationData.find(bm);
+		auto& allocInfo = allocBlock->second;
+
+		allocInfo.isPerformingFinalAllocation = true;
+		allocInfo.baseMemorySize = base;
+
+		std::vector<void*> allocatedPtrs;
+
+		void* ptr = Allocate(std::get<1>(firstAlloc), false, bm);
+		bool fitting = true;
+
+		if (ptr)
+		{
+			allocatedPtrs.push_back(ptr);
+
+			for (auto& alloc : sortedAllocations)
+			{
+				ptr = Allocate(std::get<1>(alloc), std::get<2>(alloc), bm);
+
+				if (!ptr)
+				{
+					fitting = false;
+					break;
+				}
+
+				allocatedPtrs.push_back(ptr);
+			}
+		}
+
+		if (!fitting)
+		{
+			DeleteBlockMap(bm);
+
+			bm = nullptr;
+			allocatedPtrs.clear();
+		}
+
+		return std::pair<BlockMap*, std::vector<void*>>(bm, allocatedPtrs);
+	};
+
+	for (int i = 0; i < 16; i++)
+	{
+		// attempt to allocate a block map set for the base
+		size_t newBase = (1 << i) << 13;
+		auto pair = attemptAllocation(newBase);
+
+		// if allocation failed, continue
+		if (pair.first == nullptr)
+		{
+			continue;
+		}
+
+		// count the total in-memory size
+		size_t memorySize = 0;
+
+		const uint8_t maxMults[] = { 16, 8, 4, 2, 1 };
+		const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
+
+		auto getSize = [&] (int first, int count)
+		{
+			int last = first + count;
+			int curMult = 0;
+			int curCount = 0;
+			size_t lastSize = 0;
+
+			size_t thisSize = 0;
+
+			for (int j = first; j < last; j++)
+			{
+				thisSize += lastSize = pair.first->blocks[j].size;
+
+				curCount++;
+
+				if (curCount >= maxCounts[curMult])
+				{
+					curMult++;
+					curCount = 0;
+				}
+			}
+
+			if (lastSize > 0)
+			{
+				for (int j = _countof(maxMults) - 1; j >= 0; j--)
+				{
+					size_t nextSize = (newBase * maxMults[j]);
+
+					if (lastSize <= nextSize)
+					{
+						thisSize += (nextSize - lastSize);
+						break;
+					}
+				}
+			}
+
+			return thisSize;
+		};
+
+		memorySize += getSize(0, pair.first->virtualLen);
+		memorySize += getSize(pair.first->virtualLen, pair.first->physicalLen);
+
+		if (memorySize < bestTotalMemory)
+		{
+			if (curBlockMap)
+			{
+				DeleteBlockMap(curBlockMap);
+			}
+
+			curBlockMap = pair.first;
+			curAllocatedPtrs = pair.second;
+
+			bestTotalMemory = memorySize;
+		}
+		else
+		{
+			DeleteBlockMap(pair.first);
+		}
+		
+		if (memorySize > bestTotalMemory)
+		{
+			// probably not going to get any better
+			break;
+		}
+	}
+
+	// copy allocated data to its true new home
+	//sortedAllocations.push_front(firstAlloc);
+	std::vector<std::tuple<void*, size_t, bool>> fullAllocations(sortedAllocations.size() + 1);
+	fullAllocations[0] = firstAlloc;
+
+	std::copy(sortedAllocations.begin(), sortedAllocations.end(), fullAllocations.begin() + 1);
+
+	sortedAllocations.clear();
+
+	int i = 0;
+
+	for (auto& alloc : fullAllocations)
+	{
+		char* startPtr = reinterpret_cast<char*>(std::get<0>(alloc));
+		char* endPtr = startPtr + std::get<1>(alloc);
+
+		char* newStartPtr = reinterpret_cast<char*>(curAllocatedPtrs[i]);
+		i++;
+
+		memcpy(newStartPtr, startPtr, std::get<1>(alloc));
+
+		auto begin = g_packPointerSet->lower_bound((pgPtrRepresentation*)startPtr);
+		auto end = g_packPointerSet->upper_bound((pgPtrRepresentation*)endPtr);
+
+		for (auto it = begin; it != end; it++)
+		{
+			auto ptrLoc = reinterpret_cast<char*>(*it);
+			ptrLoc = ptrLoc - startPtr + newStartPtr;
+
+			auto rawPtr = reinterpret_cast<char**>(ptrLoc);
+			auto ptr = reinterpret_cast<pgPtrRepresentation*>(ptrLoc);
+
+			// find the new allocation block that relates the most to this pointer
+			// TODO: this is a slow manual search for now, could be better?
+
+			int j = 0;
+
+			for (auto& intAlloc : fullAllocations)
+			{
+				char* startPtr = reinterpret_cast<char*>(std::get<0>(intAlloc));
+				char* endPtr = startPtr + std::get<1>(intAlloc);
+
+				char* newStartPtr = reinterpret_cast<char*>(curAllocatedPtrs[j]);
+				j++;
+
+				if (*rawPtr >= startPtr && *rawPtr < endPtr)
+				{
+					// calculate the new relative pointer
+					*rawPtr = (*rawPtr - startPtr + newStartPtr);
+
+					// find the allocation block this is supposed to be in
+					for (int k = 0; k < (curBlockMap->physicalLen + curBlockMap->virtualLen); k++)
+					{
+						auto& block = curBlockMap->blocks[k];
+
+						if (*rawPtr >= block.data && *rawPtr < ((char*)block.data + block.size))
+						{
+							ptr->blockType = (k >= curBlockMap->virtualLen) ? 2 : 5;
+
+							ptr->pointer = (uintptr_t)((*rawPtr - (char*)block.data) + block.offset);
+
+							break;
+						}
+					}
+
+					break;
+				}
+			}
+		}
+	}
+
+	// swap the block map?
+	g_allocationData[blockMap] = std::move(g_allocationData[curBlockMap]);
+	memcpy(blockMap, curBlockMap, sizeof(*curBlockMap));
+
+	g_allocationData.erase(curBlockMap);
+
+	delete curBlockMap;
+}
 
 void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap)
 {
@@ -236,6 +507,16 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	auto& allocInfo = allocBlock->second;
 
+	// are we performing pre-allocation?
+	if (!allocInfo.isPerformingFinalAllocation)
+	{
+		void* retPtr = malloc(size);
+
+		allocInfo.allocations.push_back(std::tuple<void*, size_t, bool>(retPtr, size, isPhysical));
+
+		return retPtr;
+	}
+
 	// start at the current offset thing
 	int curBlock = (isPhysical) ? (blockMap->physicalLen + blockMap->virtualLen) : blockMap->virtualLen;
 	
@@ -249,7 +530,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	size = ((size % 16) == 0) ? size : (size + (16 - (size % 16)));
 
 	// make sure the allocation can't straddle a native page boundary (unless it's bigger than 0x200 bytes)
-	uint32_t base = 0x4000; // base * 16 is the largest allocation possible - TODO: provide a means for the user to set this/relocate bases (that'd cause all existing pages to be invalidated?)
+	uint32_t base = allocInfo.baseMemorySize;//0x4000; // base * 16 is the largest allocation possible - TODO: provide a means for the user to set this/relocate bases (that'd cause all existing pages to be invalidated?)
 	size_t allocOffset;
 
 	auto padAlloc = [&] (size_t padSize)
@@ -268,37 +549,6 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 		return Allocate(size, isPhysical, (BlockMap*)0x8001);
 	};
-
-	/*if (size < base/* && oldBlockMap != (BlockMap*)1* /)
-	{
-		size_t curSize = curBlockInfo.offset + curBlockInfo.size;
-		size_t nextBoundary = curSize + (base - (curSize % base));
-
-		/*if (nextBoundary >= 0x62000 && nextBoundary <= 0x66000)
-		{
-			__debugbreak();
-		}* /
-
-		if ((curSize % base) != 0)
-		{
-			// get the nearest 0x2000 boundary (as pages are always beyond this)
-			if ((curSize + size) > nextBoundary)
-			{
-				size_t padSize = nextBoundary - curSize;
-				return padAlloc(padSize);
-			}
-		}
-	}
-	else if ((uintptr_t)oldBlockMap < 0x8000) // hacky way of preventing reentrancy
-	{
-		size_t curSize = curBlockInfo.offset + curBlockInfo.size;
-		size_t nextBoundary = curSize + (base - (curSize % base));
-
-		if ((curSize % base) != 0)
-		{
-			return padAlloc(nextBoundary - curSize);
-		}
-	}*/
 
 	if ((curBlockInfo.size + size) <= allocInfo.realMaxSizes[curBlock])
 	{
@@ -322,11 +572,6 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 		}
 
 		void* newPtr = (char*)curBlockInfo.data + curBlockInfo.size;
-
-		/*if (oldSize % 16)
-		{
-			newPtr = (void*)(((uintptr_t)newPtr + 16) & ~(uintptr_t)0xF);
-		}*/
 
 		curBlockInfo.size += size;
 
@@ -444,7 +689,9 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	if (newSize > (base * curMult))
 	{
-		FatalError("Tried to allocate more data than the base allocation unit (%d is current maximum page size) allows for, and relocation is not currently supported. Try increasing the base page multiplier (current is %d).", base * curMult, base);
+		trace("Tried to allocate more data than the base allocation unit (%d is current maximum page size) allows for, and relocation is not currently supported. Try increasing the base page multiplier (current is %d).", base * curMult, base);
+
+		return nullptr;
 	}
 
 #if RAGE_NATIVE_ARCHITECTURE
@@ -497,7 +744,7 @@ void* pgStreamManager::AllocatePlacement(size_t size, void* hintPtr, bool isPhys
 	return Allocate(size, isPhysical, blockMap);
 }
 
-BlockMap* pgStreamManager::BeginPacking()
+BlockMap* pgStreamManager::CreateBlockMap()
 {
 	auto newMap = new BlockMap();
 	memset(newMap, 0, sizeof(BlockMap));
@@ -505,7 +752,29 @@ BlockMap* pgStreamManager::BeginPacking()
 	BlockMapMeta meta = { 0 };
 	g_allocationData[newMap] = meta;
 
-	pgStreamManager::BeginPacking(newMap);
+	return newMap;
+}
+
+void pgStreamManager::DeleteBlockMap(BlockMap* blockMap)
+{
+	for (int i = 0; i < blockMap->physicalLen + blockMap->virtualLen; i++)
+	{
+#if RAGE_NATIVE_ARCHITECTURE
+		free(blockMap->blocks[i].data);
+#else
+		FatalError("?!");
+#endif
+	}
+
+	g_allocationData.erase(blockMap);
+	delete blockMap;
+}
+
+BlockMap* pgStreamManager::BeginPacking()
+{
+	auto newMap = CreateBlockMap();
+	
+	BeginPacking(newMap);
 
 	return newMap;
 }

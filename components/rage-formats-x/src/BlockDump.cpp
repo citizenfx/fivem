@@ -174,7 +174,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 #else
 	auto calcFlag = [&] (bool physical, size_t* outSize)
 	{
-		size_t base = 0x4000; // TODO: pass this from another component
+		size_t base = this->baseAllocationSize; // TODO: pass this from another component
 		uint32_t flag = base >> 14;
 
 		const uint8_t maxMults [] = { 16, 8, 4,  2,  1 };
