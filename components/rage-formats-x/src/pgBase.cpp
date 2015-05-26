@@ -472,7 +472,7 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 
 						if (*rawPtr >= block.data && *rawPtr < ((char*)block.data + block.size))
 						{
-							ptr->blockType = (k >= curBlockMap->virtualLen) ? 2 : 5;
+							ptr->blockType = (k >= curBlockMap->virtualLen) ? 6 : 5;
 
 							ptr->pointer = (uintptr_t)((*rawPtr - (char*)block.data) + block.offset);
 
