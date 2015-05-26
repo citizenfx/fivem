@@ -78,11 +78,11 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 	return out;
 }
 
-/*template<>
+template<>
 five::grcIndexBufferD3D* convert(ny::grcIndexBufferD3D* buffer)
 {
 	return new(false) five::grcIndexBufferD3D(buffer->GetIndexCount(), buffer->GetIndexData());
-}*/
+}
 
 template<>
 five::grcVertexFormat* convert(ny::grcVertexFormat* format)
@@ -96,7 +96,7 @@ five::grcVertexBufferD3D* convert(ny::grcVertexBufferD3D* buffer)
 	auto out = new(false) five::grcVertexBufferD3D;
 
 	out->SetVertexFormat(convert<five::grcVertexFormat*>(buffer->GetVertexFormat()));
-	//out->SetVertices(buffer->GetCount(), buffer->GetStride(), buffer->GetVertices());
+	out->SetVertices(buffer->GetCount(), buffer->GetStride(), buffer->GetVertices());
 
 	return out;
 }
@@ -106,15 +106,8 @@ five::grmGeometryQB* convert(ny::grmGeometryQB* geometry)
 {
 	auto out = new(false) five::grmGeometryQB;
 
-	//out->SetIndexBuffer(convert<five::grcIndexBufferD3D*>(geometry->GetIndexBuffer(0)));
-	out->SetIndexBuffer(new(false) five::grcIndexBufferD3D(geometry->GetIndexBuffer(0)->GetIndexCount(), (uint16_t*)g_ibMapping[g_curGeom]));
-
-	auto inVB = geometry->GetVertexBuffer(0);
-	auto vb = convert<five::grcVertexBufferD3D*>(inVB);
-	vb->SetVertices(inVB->GetCount(), inVB->GetStride(), g_vbMapping[g_curGeom]);
-	out->SetVertexBuffer(vb);
-
-
+	out->SetIndexBuffer(convert<five::grcIndexBufferD3D*>(geometry->GetIndexBuffer(0)));
+	out->SetVertexBuffer(convert<five::grcVertexBufferD3D*>(geometry->GetVertexBuffer(0)));
 
 	return out;
 }
@@ -155,37 +148,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 {
 	auto out = new(false) five::gtaDrawable;
 
-	// prepare vertex/index data (Five wants it to be set *prior* to the rest?)
 	auto& oldLodGroup = drawable->GetLodGroup();
-
-	for (int i = 0; i < 4; i++)
-	{
-		auto oldModel = oldLodGroup.GetModel(i);
-
-		if (oldModel)
-		{
-			auto& geometries = oldModel->GetGeometries();
-
-			for (int j = 0; j < geometries.GetCount(); j++)
-			{
-				auto geom = geometries.Get(j);
-				auto vb = geom->GetVertexBuffer(0);
-				auto ib = geom->GetIndexBuffer(0);
-
-				auto vSize = vb->GetCount() * vb->GetStride();
-				auto iSize = ib->GetIndexCount() * 2;
-
-				void* vertexDataBit = five::pgStreamManager::Allocate(vSize, false, (five::BlockMap*)1);
-				memcpy(vertexDataBit, vb->GetVertices(), vSize);
-
-				void* indexDataBit = five::pgStreamManager::Allocate(iSize, false, (five::BlockMap*)1);
-				memcpy(indexDataBit, ib->GetIndexData(), ib->GetIndexCount() * 2);
-
-				g_vbMapping[j] = vertexDataBit;
-				g_ibMapping[j] = indexDataBit;
-			}
-		}
-	}
 
 	out->SetBlockMap();
 

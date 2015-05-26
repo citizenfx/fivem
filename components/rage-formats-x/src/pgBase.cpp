@@ -165,10 +165,21 @@ bool pgStreamManager::IsInBlockMap(void* ptr, BlockMap* blockMap, bool physical)
 
 	auto& allocInfo = allocBlock->second;
 
-	// a non-resolving block map can contain anything, so ignore that
+	// a non-resolving block map can contain anything, so handle that
 	if (!allocInfo.isPerformingFinalAllocation)
 	{
-		return true;
+		for (auto& allocation : allocInfo.allocations)
+		{
+			char* startPtr = reinterpret_cast<char*>(std::get<0>(allocation));
+			char* endPtr = startPtr + std::get<1>(allocation);
+
+			if (ptr >= startPtr && ptr < endPtr)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	int startIndex = (!physical) ? 0 : blockMap->virtualLen;
