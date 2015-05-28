@@ -174,7 +174,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 #else
 	auto calcFlag = [&] (bool physical, size_t* outSize)
 	{
-		size_t base = this->baseAllocationSize; // TODO: pass this from another component
+		size_t base = this->baseAllocationSize[physical]; // TODO: pass this from another component
 
 		DWORD bitIdx;
 		_BitScanReverse(&bitIdx, base);
@@ -213,7 +213,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 		// capture the remnant block
 		if (remnantBlock)
 		{
-			auto block = this->blocks[this->virtualLen - 1];
+			auto block = this->blocks[this->virtualLen - 1 + (physical ? this->physicalLen : 0)];
 			bool found = false;
 
 			for (int i = _countof(maxMults) - 1; i >= curMult; i--)
@@ -295,6 +295,9 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 			writer(out, sizeof(out) - strm.avail_out);
 		} while (strm.avail_out == 0);
 	};
+
+	assert(virtualOut >= virtualSize);
+	assert(physicalOut >= physicalSize);
 
 	// virtual blocks, start
 	for (int i = 0; i < virtualLen; i++)

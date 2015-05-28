@@ -285,7 +285,7 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 		uint32_t size;
 	} blocks[128];
 
-	size_t baseAllocationSize;
+	size_t baseAllocationSize[2];
 
 	inline BlockMap()
 	{

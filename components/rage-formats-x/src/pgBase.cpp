@@ -285,16 +285,15 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 	});
 
 	// configure an ideal allocation base - this could get messy; as we'll allocate/free the block map a *lot* of times
-	size_t bestTotalMemory = -1;
 	std::vector<void*> curAllocatedPtrs;
 
 	BlockMap* curBlockMap = nullptr;
 
-	auto attemptAllocation = [&] (size_t base)
+	auto attemptAllocation = [&] (size_t base, bool physical)
 	{
 		// create a new block map and a metadata set for it
 		auto bm = CreateBlockMap();
-		bm->baseAllocationSize = base;
+		bm->baseAllocationSize[physical] = base;
 
 		auto allocBlock = g_allocationData.find(bm);
 		auto& allocInfo = allocBlock->second;
@@ -304,16 +303,23 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 
 		std::vector<void*> allocatedPtrs;
 
-		void* ptr = Allocate(std::get<1>(firstAlloc), false, bm);
 		bool fitting = true;
 
-		if (ptr)
+		if (!physical)
 		{
-			allocatedPtrs.push_back(ptr);
+			void* ptr = Allocate(std::get<1>(firstAlloc), false, bm);
 
-			for (auto& alloc : sortedAllocations)
+			if (ptr)
 			{
-				ptr = Allocate(std::get<1>(alloc), std::get<2>(alloc), bm);
+				allocatedPtrs.push_back(ptr);
+			}
+		}
+
+		for (auto& alloc : sortedAllocations)
+		{
+			if (std::get<bool>(alloc) == physical)
+			{
+				void* ptr = Allocate(std::get<1>(alloc), std::get<2>(alloc), bm);
 
 				if (!ptr)
 				{
@@ -336,88 +342,125 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 		return std::pair<BlockMap*, std::vector<void*>>(bm, allocatedPtrs);
 	};
 
-	for (int i = 0; i < 16; i++)
 	{
-		// attempt to allocate a block map set for the base
-		size_t newBase = (1 << i) << 13;
-		auto pair = attemptAllocation(newBase);
+		BlockMap* blockMaps[2] = { nullptr, nullptr };
+		std::vector<void*> ptrLists[2];
 
-		// if allocation failed, continue
-		if (pair.first == nullptr)
+		while (blockMaps[1] == nullptr)
 		{
-			continue;
-		}
+			size_t bestTotalMemory = -1;
 
-		// count the total in-memory size
-		size_t memorySize = 0;
+			bool physical = (blockMaps[0] != nullptr);
+			BlockMap*& curBlockMapRef = *&blockMaps[physical];
+			std::vector<void*>& curAllocatedPtrsRef = *&ptrLists[physical];
 
-		const uint8_t maxMults[] = { 16, 8, 4, 2, 1 };
-		const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
-
-		auto getSize = [&] (int first, int count)
-		{
-			int last = first + count;
-			int curMult = 0;
-			int curCount = 0;
-			size_t lastSize = 0;
-
-			size_t thisSize = 0;
-
-			for (int j = first; j < last; j++)
+			for (int i = 0; i < 16; i++)
 			{
-				thisSize += lastSize = pair.first->blocks[j].size;
+				// attempt to allocate a block map set for the base
+				size_t newBase = (1 << i) << 13;
+				auto pair = attemptAllocation(newBase, physical);
 
-				curCount++;
-
-				if (curCount >= maxCounts[curMult])
+				// if allocation failed, continue
+				if (pair.first == nullptr)
 				{
-					curMult++;
-					curCount = 0;
+					continue;
 				}
-			}
 
-			if (lastSize > 0)
-			{
-				for (int j = _countof(maxMults) - 1; j >= 0; j--)
+				// count the total in-memory size
+				size_t memorySize = 0;
+
+				const uint8_t maxMults[] = { 16, 8, 4, 2, 1 };
+				const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
+
+				auto getSize = [&] (int first, int count)
 				{
-					size_t nextSize = (newBase * maxMults[j]);
+					int last = first + count;
+					int curMult = 0;
+					int curCount = 0;
+					size_t lastSize = 0;
 
-					if (lastSize <= nextSize)
+					size_t thisSize = 0;
+
+					for (int j = first; j < last; j++)
 					{
-						thisSize += (nextSize - lastSize);
-						break;
+						thisSize += lastSize = pair.first->blocks[j].size;
+
+						curCount++;
+
+						if (curCount >= maxCounts[curMult])
+						{
+							curMult++;
+							curCount = 0;
+						}
 					}
+
+					if (lastSize > 0)
+					{
+						for (int j = _countof(maxMults) - 1; j >= 0; j--)
+						{
+							size_t nextSize = (newBase * maxMults[j]);
+
+							if (lastSize <= nextSize)
+							{
+								thisSize += (nextSize - lastSize);
+								break;
+							}
+						}
+					}
+
+					return thisSize;
+				};
+
+				memorySize += getSize(0, pair.first->virtualLen);
+				memorySize += getSize(pair.first->virtualLen, pair.first->physicalLen);
+
+				if (memorySize < bestTotalMemory)
+				{
+					if (curBlockMapRef)
+					{
+						DeleteBlockMap(curBlockMapRef);
+					}
+
+					curBlockMapRef = pair.first;
+					curAllocatedPtrsRef = pair.second;
+
+					bestTotalMemory = memorySize;
+				}
+				else
+				{
+					DeleteBlockMap(pair.first);
+				}
+
+				if (memorySize > bestTotalMemory)
+				{
+					// probably not going to get any better
+					break;
 				}
 			}
-
-			return thisSize;
-		};
-
-		memorySize += getSize(0, pair.first->virtualLen);
-		memorySize += getSize(pair.first->virtualLen, pair.first->physicalLen);
-
-		if (memorySize < bestTotalMemory)
-		{
-			if (curBlockMap)
-			{
-				DeleteBlockMap(curBlockMap);
-			}
-
-			curBlockMap = pair.first;
-			curAllocatedPtrs = pair.second;
-
-			bestTotalMemory = memorySize;
 		}
-		else
-		{
-			DeleteBlockMap(pair.first);
-		}
-		
-		if (memorySize > bestTotalMemory)
-		{
-			// probably not going to get any better
-			break;
-		}
+
+		// merge both blockmaps' block lists
+		curBlockMap = CreateBlockMap();
+
+		curBlockMap->baseAllocationSize[0] = blockMaps[0]->baseAllocationSize[0];
+		curBlockMap->baseAllocationSize[1] = blockMaps[1]->baseAllocationSize[1];
+
+		curBlockMap->virtualLen = blockMaps[0]->virtualLen;
+		curBlockMap->physicalLen = blockMaps[1]->physicalLen;
+
+		memcpy(&curBlockMap->blocks[0], &blockMaps[0]->blocks[0], curBlockMap->virtualLen * sizeof(BlockMap::BlockInfo));
+		memcpy(&curBlockMap->blocks[curBlockMap->virtualLen], &blockMaps[1]->blocks[0], curBlockMap->physicalLen * sizeof(BlockMap::BlockInfo));
+
+		// merge ptr lists
+		curAllocatedPtrs.insert(curAllocatedPtrs.end(), ptrLists[0].begin(), ptrLists[0].end());
+		curAllocatedPtrs.insert(curAllocatedPtrs.end(), ptrLists[1].begin(), ptrLists[1].end());
+
+		// delete the temp block maps
+		g_allocationData.erase(blockMaps[0]);
+		g_allocationData.erase(blockMaps[1]);
+
+		delete blockMaps[0];
+		delete blockMaps[1];
 	}
 
 	// copy allocated data to its true new home
@@ -707,7 +750,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	if (newSize > (base * curMult))
 	{
-		trace("Tried to allocate more data than the base allocation unit (%d is current maximum page size) allows for, and relocation is not currently supported. Try increasing the base page multiplier (current is %d).", base * curMult, base);
+		trace("Tried to allocate more data than the base allocation unit (%d is current maximum page size) allows for, and relocation is not currently supported. Try increasing the base page multiplier (current is %d).\n", base * curMult, base);
 
 		return nullptr;
 	}
