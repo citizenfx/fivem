@@ -31,20 +31,20 @@ namespace rage
 {
 inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 {
-	/*if (strstr(oldSps, "normal"))
+	if (strstr(oldSps, "normal"))
 	{
 		return "normal.sps";
-	}*/
+	}
 
 	return "default.sps";
 }
 
 inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 {
-	/*if (strstr(oldSps, "normal"))
+	if (strstr(oldSps, "normal"))
 	{
 		return "normal";
-	}*/
+	}
 
 	return "default";
 }
@@ -58,6 +58,34 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 {
 	auto out = new(false) five::grmShaderGroup;
 
+	auto texDict = shaderGroup->GetTextures();
+
+	if (texDict)
+	{
+		five::pgDictionary<five::grcTexturePC> newTextures;
+		
+		for (auto& texture : *texDict)
+		{
+			ny::grcTexturePC* nyTexture = texture.second;
+			five::grcTexturePC* fiveTexture = new(false) five::grcTexturePC(
+				nyTexture->GetWidth(),
+				nyTexture->GetHeight(),
+				nyTexture->GetPixelFormat(),
+				nyTexture->GetStride(),
+				nyTexture->GetLevels(),
+				nyTexture->GetPixelData()
+			);
+
+			fiveTexture->SetName(nyTexture->GetName());
+
+			trace("%s: %p\n", nyTexture->GetName(), fiveTexture->GetPixelData());
+
+			newTextures.Add(texture.first, fiveTexture);
+		}
+
+		out->SetTextures(newTextures);
+	}
+
 	five::pgPtr<five::grmShaderFx> newShaders[32];
 	
 	for (int i = 0; i < shaderGroup->GetNumShaders(); i++)
@@ -68,6 +96,59 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 		auto newShader = new(false) five::grmShaderFx();
 		newShader->DoPreset(newShaderName.c_str(), newSpsName.c_str());
+
+		auto& oldEffect = oldShader->GetEffect();
+
+		int rescount = 0;
+
+		for (int j = 0; j < oldEffect.GetParameterCount(); j++)
+		{
+			auto hash = oldEffect.GetParameterNameHash(j);
+
+			const char* newSamplerName = nullptr;
+
+			if (hash == 0x2B5170FD) // TextureSampler
+			{
+				newSamplerName = "DiffuseSampler";
+			}
+			else if (hash == 0x46B7C64F)
+			{
+				newSamplerName = "BumpSampler"; // same as in NY, anyway
+			}
+
+			if (newSamplerName)
+			{
+				ny::grcTexturePC* texture = reinterpret_cast<ny::grcTexturePC*>(oldEffect.GetParameterValue(j));
+				const char* textureName = texture->GetName();
+
+				// look up if we just created one of these as local texture
+				bool found = false;
+
+				for (auto& outTexture : *out->GetTextures())
+				{
+					if (!_stricmp(outTexture.second->GetName(), textureName))
+					{
+						newShader->SetParameter(newSamplerName, outTexture.second);
+						rescount++;
+						found = true;
+
+						break;
+					}
+				}
+
+				// ... it's an external reference
+				if (!found)
+				{
+					newShader->SetParameter(newSamplerName, textureName);
+					rescount++;
+				}
+			}
+		}
+
+		if (newShader->GetResourceCount() != rescount)
+		{
+			__debugbreak();
+		}
 
 		// TODO: change other arguments?
 		newShaders[i] = newShader;

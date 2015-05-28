@@ -44,7 +44,7 @@ struct BlockMapMeta
 	size_t maxSizes[128];
 	size_t realMaxSizes[128];
 
-	std::vector<BlockMapGap> gapList;
+	std::vector<BlockMapGap> gapList[2];
 
 	bool isPerformingFinalAllocation;
 
@@ -276,7 +276,12 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 
 	std::sort(sortedAllocations.begin(), sortedAllocations.end(), [] (const auto& left, const auto& right)
 	{
-		return (std::get<1>(left) > std::get<1>(right));
+		if (std::get<bool>(left) == std::get<bool>(right))
+		{
+			return (std::get<size_t>(left) > std::get<size_t>(right));
+		}
+
+		return std::get<bool>(left) < std::get<bool>(right);
 	});
 
 	// configure an ideal allocation base - this could get messy; as we'll allocate/free the block map a *lot* of times
@@ -472,9 +477,11 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 
 						if (*rawPtr >= block.data && *rawPtr < ((char*)block.data + block.size))
 						{
+							char* rawPtrValue = *rawPtr;
+
 							ptr->blockType = (k >= curBlockMap->virtualLen) ? 6 : 5;
 
-							ptr->pointer = (uintptr_t)((*rawPtr - (char*)block.data) + block.offset);
+							ptr->pointer = (uintptr_t)((rawPtrValue - (char*)block.data) + block.offset);
 
 							break;
 						}
@@ -553,7 +560,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 			pad[i] = '1';
 		}
 
-		allocInfo.gapList.push_back(BlockMapGap{ pad, padSize });
+		allocInfo.gapList[isPhysical].push_back(BlockMapGap{ pad, padSize });
 
 		size_t curSize = curBlockInfo.offset + curBlockInfo.size;
 		assert((curSize % base) == 0);
@@ -564,7 +571,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	if ((curBlockInfo.size + size) <= allocInfo.realMaxSizes[curBlock])
 	{
 		// try finding a gap to allocate ourselves into
-		for (auto& gap : allocInfo.gapList)
+		for (auto& gap : allocInfo.gapList[isPhysical])
 		{
 			if (gap.size >= size)
 			{
@@ -596,14 +603,14 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	// apparently we need to allocate a new block...
 
 	// pad the page to the maximum size so paging does not break
-	if (blockMap->virtualLen > 0)
+	if ((!isPhysical && blockMap->virtualLen > 0) || (isPhysical && blockMap->physicalLen > 0))
 	{
 		char* pad = (char*)curBlockInfo.data + curBlockInfo.size;
 		size_t padSize = allocInfo.realMaxSizes[curBlock] - curBlockInfo.size;
 
 		memset(pad, '1', padSize);
 
-		allocInfo.gapList.push_back(BlockMapGap{ pad, padSize });
+		allocInfo.gapList[isPhysical].push_back(BlockMapGap{ pad, padSize });
 
 		curBlockInfo.size += padSize;
 	}
@@ -685,7 +692,7 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	int curMult = 0;
 	int curCount = 0;
 
-	for (int i = 0; i < blockMap->virtualLen; i++)
+	for (int i = (isPhysical ? blockMap->virtualLen : 0); i < blockMap->virtualLen + (isPhysical ? blockMap->physicalLen : 0); i++)
 	{
 		curCount++;
 

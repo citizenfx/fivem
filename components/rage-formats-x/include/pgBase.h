@@ -197,6 +197,11 @@ public:
 		return *this;
 	}
 
+	pgPtr(pgPtrRepresentation fromRep)
+	{
+		on_disk = fromRep;
+	}
+
 	pgPtr(const pgPtr& from)
 	{
 		if (pgStreamManager::IsResolved(&from))
@@ -205,6 +210,18 @@ public:
 		}
 
 		on_disk = from.on_disk;
+	}
+
+	pgPtr& operator=(const pgPtr& arg)
+	{
+		if (pgStreamManager::IsResolved(&arg))
+		{
+			pgStreamManager::MarkResolved(this);
+		}
+
+		pointer = arg.pointer;
+
+		return *this;
 	}
 
 	inline bool IsNull()

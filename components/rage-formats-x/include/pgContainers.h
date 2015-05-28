@@ -5,6 +5,8 @@
  * regarding licensing.
  */
 
+#include <algorithm>
+
 #define RAGE_FORMATS_FILE pgContainers
 #include <formats-header.h>
 
@@ -72,7 +74,7 @@ public:
 		}
 
 		TValue* newOffset = new TValue[newSize];
-		std::copy(m_offset, m_offset + m_count, newOffset);
+		std::copy((*m_offset), (*m_offset) + m_count, newOffset);
 
 		delete[] *m_offset;
 		m_offset = newOffset;
@@ -96,6 +98,16 @@ public:
 		}
 
 		(*m_offset)[offset] = value;
+	}
+
+	inline uint16_t GetSize() const
+	{
+		return m_size;
+	}
+
+	inline uint16_t GetCount() const
+	{
+		return m_count;
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
@@ -165,7 +177,7 @@ public:
 		}
 
 		pgPtr<TValue>* newObjects = new pgPtr<TValue>[newSize];
-		std::copy(m_objects, m_objects + m_count, newObjects);
+		std::copy((*m_objects), (*m_objects) + m_count, newObjects);
 
 		delete[] *m_objects;
 		m_objects = newObjects;
@@ -201,12 +213,12 @@ public:
 		(*m_objects)[offset] = value;
 	}
 
-	inline uint16_t GetSize()
+	inline uint16_t GetSize() const
 	{
 		return m_size;
 	}
 
-	inline uint16_t GetCount()
+	inline uint16_t GetCount() const
 	{
 		return m_count;
 	}
@@ -236,6 +248,136 @@ private:
 	pgObjectArray<TValue> m_values;
 
 public:
+	struct iterator : public std::iterator<std::forward_iterator_tag, std::pair<uint32_t, TValue*>>
+	{
+	private:
+		pgDictionary* m_base;
+		int m_index;
+
+		std::pair<uint32_t, TValue*> m_value;
+
+	private:
+		inline std::pair<uint32_t, TValue*> GetValue()
+		{
+			return std::make_pair(m_base->m_hashes.Get(m_index), m_base->m_values.Get(m_index));
+		}
+
+	public:
+		inline iterator(pgDictionary* base, int index)
+			: m_base(base), m_index(index)
+		{
+			m_value = GetValue();
+		}
+
+		inline std::pair<uint32_t, TValue*> operator*() const
+		{
+			return m_value;
+		}
+
+		inline const std::pair<uint32_t, TValue*>* operator->() const
+		{
+			return &m_value;
+		}
+
+		inline const iterator& operator++()
+		{
+			m_index++;
+			m_value = GetValue();
+
+			return *this;
+		}
+
+		inline friend bool operator!=(const iterator& left, const iterator& right)
+		{
+			return (left.m_base != right.m_base || left.m_index != right.m_index);
+		}
+
+		inline friend bool operator==(const iterator& left, const iterator& right)
+		{
+			return !(left != right);
+		}
+	};
+
+public:
+	pgDictionary()
+	{
+		m_usageCount = 1;
+	}
+
+	inline iterator begin()
+	{
+		return iterator(this, 0);
+	}
+
+	inline iterator end()
+	{
+		return iterator(this, m_hashes.GetCount());
+	}
+
+	inline void Add(uint32_t keyHash, TValue* value)
+	{
+		m_hashes.Set(m_hashes.GetCount(), keyHash);
+		m_values.Set(m_values.GetCount(), value);
+	}
+
+	inline void Add(const char* key, TValue* value)
+	{
+		Add(HashString(key), value);
+	}
+
+	inline TValue* Get(uint32_t keyHash)
+	{
+		for (int i = 0; i < m_hashes.GetCount(); i++)
+		{
+			if (m_hashes.Get(i) == keyHash)
+			{
+				return m_values.Get(i);
+			}
+		}
+
+		return nullptr;
+	}
+
+	inline TValue* Get(const char* key)
+	{
+		return Get(HashString(key));
+	}
+
+	inline uint16_t GetCount() const
+	{
+		return m_hashes.GetCount();
+	}
+
+	inline void SetFrom(pgDictionary* dictionary)
+	{
+		// allocate a temporary list of pairs to sort from
+		std::vector<std::pair<uint32_t, TValue*>> values(dictionary->GetCount());
+
+		std::copy(dictionary->begin(), dictionary->end(), values.begin());
+		std::sort(values.begin(), values.end(), [] (const auto& left, const auto& right)
+		{
+			return (left.first < right.first);
+		});
+
+		// copy each into a smaller array of values to pass to SetFrom
+		std::vector<uint32_t> fromKeys(values.size());
+		std::vector<pgPtr<TValue>> fromValues(values.size());
+
+		int i = 0;
+
+		for (auto& pair : values)
+		{
+			fromKeys[i] = pair.first;
+			fromValues[i] = pair.second;
+
+			i++;
+		}
+
+		// and set the local arrays from each
+		m_hashes.SetFrom(&fromKeys[0], fromKeys.size());
+		m_values.SetFrom(&fromValues[0], fromValues.size());
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_parent.Resolve(blockMap);

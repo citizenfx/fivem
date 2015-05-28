@@ -175,7 +175,11 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	auto calcFlag = [&] (bool physical, size_t* outSize)
 	{
 		size_t base = this->baseAllocationSize; // TODO: pass this from another component
-		uint32_t flag = base >> 14;
+
+		DWORD bitIdx;
+		_BitScanReverse(&bitIdx, base);
+
+		uint32_t flag = (bitIdx - 13);
 
 		const uint8_t maxMults [] = { 16, 8, 4,  2,  1 };
 		const uint8_t maxCounts[] = { 1,  3, 15, 63, 127 };
@@ -187,7 +191,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 		bool remnantBlock = false;
 
 		// capture all full flags
-		for (int i = 0; i < this->virtualLen; i++)
+		for (int i = (physical ? this->virtualLen : 0); i < this->virtualLen + (physical ? this->physicalLen : 0); i++)
 		{
 			if (this->blocks[i].size == (base * maxMults[curMult]))
 			{
@@ -237,7 +241,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	};
 
 	uint32_t virtFlags = (version & 0xF0) << 24 | calcFlag(false, &virtualOut);
-	uint32_t physFlags = (version & 0x0F) << 28 | CalculateFlag(physicalSize, &physicalOut);
+	uint32_t physFlags = (version & 0x0F) << 28 | calcFlag(true, &physicalOut);
 
 	//uint32_t virtFlags = (version & 0xF0) << 24 | 0xE0040;
 	//uint32_t physFlags = (version & 0x0F) << 28 | 0x0;

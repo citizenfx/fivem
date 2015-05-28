@@ -33,37 +33,56 @@ inline void ValidateSize()
 
 class grcTexture : public pgBase
 {
-private:
+protected:
+#ifdef RAGE_FORMATS_GAME_NY
 	uint8_t m_objectType;
 	uint8_t m_depth;
 	uint16_t m_usageCount;
 	uint32_t m_pad;
 	uint32_t m_pad2;
 	pgPtr<char> m_name;
-	void* m_nativeHandle;
+	uint32_t m_nativeHandle;
 	uint16_t m_width;
 	uint16_t m_height;
 	uint32_t m_pixelFormat;
 	uint16_t m_stride;
 	uint8_t m_textureType;
 	uint8_t m_levels;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+	uint8_t m_pad[24];
+	pgPtr<char> m_name;
+	uint8_t m_pad2[16];
+#endif
 
 public:
 	inline grcTexture()
 		: pgBase()
 	{
+#ifdef RAGE_FORMATS_GAME_NY
 		m_objectType = 2;
 		m_depth = 0;
 		m_usageCount = 1;
 		m_pad = 0;
 		m_pad2 = 0;
-		m_nativeHandle = nullptr;
+		m_nativeHandle = 0;
 		m_width = 0;
 		m_height = 0;
 		m_pixelFormat = 0;
 		m_stride = 0;
 		m_textureType = 0;
 		m_levels = 0;
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+		memset(m_pad, 0, sizeof(m_pad));
+		memset(m_pad2, 0, sizeof(m_pad));
+
+		m_pad2[0] = 1;
+		m_pad2[2] = 0x80;
+#endif
+	}
+
+	inline const char* GetName()
+	{
+		return *m_name;
 	}
 
 	inline void SetName(const char* name)
@@ -80,22 +99,115 @@ public:
 class grcTexturePC : public grcTexture
 {
 private:
+#ifdef RAGE_FORMATS_GAME_NY
 	float m_28[3];
 	float m_34[3];
-	void* m_next;
-	void* m_prev;
+	uint32_t m_next;
+	uint32_t m_prev;
 	pgPtr<void> m_pixelData;
 	uint8_t pad[4];
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+	uint8_t m_pad3[16];
+	uint16_t m_width;
+	uint16_t m_height;
+	uint16_t m_depth; // likely?
+	uint16_t m_stride;
+
+	uint32_t m_pixelFormat;
+
+	uint8_t m_textureType;
+	uint8_t m_levels;
+
+	uint8_t m_pad4[18];
+
+	pgPtr<void, true> m_pixelData;
+
+	uint8_t m_pad5[24];
+#endif
 
 public:
 	inline grcTexturePC()
 		: grcTexture()
 	{
+#ifdef RAGE_FORMATS_GAME_NY
 		memset(m_28, 0, sizeof(m_28));
 		memset(m_34, 0, sizeof(m_34));
-		m_next = nullptr;
-		m_prev = nullptr;
+		m_next = 0;
+		m_prev = 0;
 		memset(pad, 0, sizeof(pad));
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+		memset(m_pad3, 0, sizeof(m_pad3));
+
+		m_depth = 1;
+		m_textureType = 0;
+		m_levels = 0;
+
+		memset(m_pad4, 0, sizeof(m_pad4));
+		memset(m_pad5, 0, sizeof(m_pad5));
+#endif
+	}
+
+	inline size_t GetDataSize()
+	{
+		size_t levelSize = m_stride * m_height;
+		size_t size = 0;
+
+		for (int i = 0; i < m_levels; i++)
+		{
+			size += levelSize;
+			levelSize /= 4;
+		}
+
+		return size;
+	}
+
+	inline uint16_t GetWidth()
+	{
+		return m_width;
+	}
+
+	inline uint16_t GetHeight()
+	{
+		return m_height;
+	}
+
+	inline uint16_t GetStride()
+	{
+		return m_stride;
+	}
+
+	inline uint8_t GetLevels()
+	{
+		return m_levels;
+	}
+
+	inline uint32_t GetPixelFormat()
+	{
+		return m_pixelFormat;
+	}
+
+	inline const void* GetPixelData()
+	{
+		return *m_pixelData;
+	}
+
+	inline grcTexturePC(uint16_t width, uint16_t height, uint32_t pixelFormat, uint16_t stride, uint8_t levels, const void* data)
+		: grcTexturePC()
+	{
+		m_width = width;
+		m_height = height;
+		m_stride = stride;
+
+		m_pixelFormat = pixelFormat;
+
+		m_levels = levels;
+
+		size_t dataSize = GetDataSize();
+		
+		void* outData = pgStreamManager::Allocate(dataSize, true, nullptr);
+		memcpy(outData, data, dataSize);
+
+		m_pixelData = outData;
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)
@@ -259,6 +371,11 @@ public:
 		m_type = reg;
 	}
 
+	inline void* GetValue()
+	{
+		return *m_value;
+	}
+
 	inline void SetValue(void* value)
 	{
 		m_value = value;
@@ -402,6 +519,11 @@ public:
 		}
 	}
 
+	inline uint8_t GetResourceCount()
+	{
+		return m_resourceCount;
+	}
+
 	inline void SetParameters(const std::vector<grmShaderParameterMeta>& parameters, const std::vector<uint32_t>& parameterNames, const std::vector<std::vector<uint8_t>>& parameterValues)
 	{
 		assert(parameters.size() == parameterNames.size());
@@ -439,11 +561,6 @@ public:
 			}
 			else
 			{
-				grcTextureRef* ref = new(false) grcTextureRef();
-
-				ref->SetName("rsn_dc_roofedges_001");
-
-				parameterData[i].SetValue(ref);
 				m_resourceCount++;
 			}
 		}
@@ -454,6 +571,54 @@ public:
 		m_parameters = parameterData;
 		m_parameterSize = parameterSize;
 		m_parameterDataSize = parameterDataSize;
+	}
+
+	inline grmShaderParameter* GetParameter(const char* parameterName)
+	{
+		// get the parameter name list and find the parameter
+		const uint32_t* parameterNames = reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(*m_parameters) + m_parameterSize);
+		uint32_t paramHash = HashString(parameterName);
+
+		for (int i = 0; i < m_parameterCount; i++)
+		{
+			if (parameterNames[i] == paramHash)
+			{
+				return (*m_parameters) + i;
+			}
+		}
+
+		return nullptr;
+	}
+
+	// assumes parameters have been set from a preset already
+	inline void SetParameter(const char* parameterName, grcTexturePC* texture)
+	{
+		// get the parameter index
+		grmShaderParameter* parameter = GetParameter(parameterName);
+
+		// set the value
+		parameter->SetValue(texture);
+	}
+
+	inline void SetParameter(const char* parameterName, const char* extTextureName)
+	{
+		// get the parameter index
+		grmShaderParameter* parameter = GetParameter(parameterName);
+
+		// set the value
+		grcTextureRef* textureRef = new(false) grcTextureRef();
+		textureRef->SetName(extTextureName);
+
+		parameter->SetValue(textureRef);
+	}
+
+	inline void SetParameter(const char* parameterName, const void* data, size_t dataSize)
+	{
+		// get the parameter index
+		grmShaderParameter* parameter = GetParameter(parameterName);
+
+		// set the value (note: unsafe)
+		memcpy(parameter->GetValue(), data, dataSize);
 	}
 #endif
 };
@@ -542,7 +707,16 @@ private:
 #endif
 
 public:
-	inline pgDictionary<grcTexturePC>& GetTextures() { return **m_textures; }
+	inline pgDictionary<grcTexturePC>* GetTextures() { return *m_textures; }
+
+	inline void SetTextures(pgDictionary<grcTexturePC>& textureDict)
+	{
+		pgDictionary<grcTexturePC>* newDict = new(false) pgDictionary<grcTexturePC>();
+
+		newDict->SetFrom(&textureDict);
+
+		m_textures = newDict;
+	}
 
 	inline uint16_t GetNumShaders()
 	{

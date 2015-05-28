@@ -115,15 +115,15 @@ int main(int argc, char **argv)
 	ConvertDrawable();
 	return 0;
 
-	char* buffer = new char[1089536];
+	char* buffer = new char[2089536];
 	FILE* f = fopen("Y:/common/lovely.ydr.seg", "rb");
 	//FILE* f = fopen("Y:/dev/ydr/dt1_07_building2.ydr.seg", "rb");
-	fread(buffer, 1, 1089536, f);
+	fread(buffer, 1, 2089536, f);
 	fclose(f);
 
 	char* buffers = new char[1089536];
 	//FILE* f = fopen("Y:/common/lovely.ydr.seg", "rb");
-	f = fopen("Y:/dev/ydr/dt1_07_detaila.ydr.sys", "rb");
+	f = fopen("Y:/dev/ydr/dt1_07_building2.ydr.seg", "rb");
 	fread(buffers, 1, 1089536, f);
 	fclose(f);
 
