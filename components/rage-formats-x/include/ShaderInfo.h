@@ -15,6 +15,8 @@
 
 #include <memory>
 
+#include <boost/optional.hpp>
+
 namespace fxc
 {
 	typedef std::function<size_t(void*, size_t)> TReader;
@@ -134,7 +136,7 @@ namespace fxc
 	class FORMATS_EXPORT ShaderFile
 	{
 	private:
-		std::vector<std::string> m_preStrings;
+		std::map<std::string, std::string> m_preValues;
 		std::map<std::string, std::shared_ptr<ShaderEntry>> m_vertexShaders;
 		std::map<std::string, std::shared_ptr<ShaderEntry>> m_pixelShaders;
 		std::map<std::string, std::shared_ptr<ShaderEntry>> m_computeShaders;
@@ -153,6 +155,24 @@ namespace fxc
 		void ReadShaders(const TReader& reader, int type, std::map<std::string, std::shared_ptr<ShaderEntry>>& list);
 
 		static std::shared_ptr<ShaderFile> Load(const std::string& filename);
+
+		inline std::map<std::string, std::string>& GetGlobalValues()
+		{
+			return m_preValues;
+		}
+
+		inline boost::optional<std::string> GetGlobalValue(const std::string& key)
+		{
+			auto it = m_preValues.find(key);
+			boost::optional<std::string> retval;
+
+			if (it != m_preValues.end())
+			{
+				retval = it->second;
+			}
+
+			return retval;
+		}
 
 		inline std::map<std::string, std::shared_ptr<ShaderEntry>>& GetPixelShaders()
 		{

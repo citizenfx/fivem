@@ -24,7 +24,25 @@ namespace fxc
 
 			for (int i = 0; i < numPreStrings; i++)
 			{
-				m_preStrings.push_back(ReadString(reader));
+				std::string annotationName = ReadString(reader);
+				std::string annotationValue;
+
+				uint8_t annotationType;
+				reader(&annotationType, sizeof(annotationType));
+
+				if (annotationType == 0 || annotationType == 1)
+				{
+					uint32_t value;
+					reader(&value, sizeof(value));
+
+					annotationValue = std::to_string(value);
+				}
+				else if (annotationType == 2)
+				{
+					annotationValue = ReadString(reader);
+				}
+
+				m_preValues[annotationName] = annotationValue;
 			}
 
 			ReadShaders(reader, 1, m_vertexShaders);

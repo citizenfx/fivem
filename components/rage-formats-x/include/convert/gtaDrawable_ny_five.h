@@ -31,9 +31,9 @@ namespace rage
 {
 inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 {
-	if (strstr(oldSps, "normal"))
+	if (strstr(oldSps, "gta_"))
 	{
-		return "normal.sps";
+		return &oldSps[4] + std::string(".sps");
 	}
 
 	return "default.sps";
@@ -41,9 +41,9 @@ inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 
 inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 {
-	if (strstr(oldSps, "normal"))
+	if (strstr(oldSps, "gta_"))
 	{
-		return "normal";
+		return &oldSps[4];
 	}
 
 	return "default";
@@ -106,6 +106,8 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			auto hash = oldEffect.GetParameterNameHash(j);
 
 			const char* newSamplerName = nullptr;
+			const char* newValueName = nullptr;
+			size_t newValueSize;
 
 			if (hash == 0x2B5170FD) // TextureSampler
 			{
@@ -114,6 +116,15 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			else if (hash == 0x46B7C64F)
 			{
 				newSamplerName = "BumpSampler"; // same as in NY, anyway
+			}
+			else if (hash == 0x608799C6)
+			{
+				newSamplerName = "SpecSampler"; // same, I'd guess?
+			}
+			else if (hash == 0xF6712B81)
+			{
+				newValueName = "bumpiness"; // as, well, it's bumpiness?
+				newValueSize = 4 * sizeof(float);
 			}
 
 			if (newSamplerName)
@@ -142,6 +153,10 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 					newShader->SetParameter(newSamplerName, textureName);
 					rescount++;
 				}
+			}
+			else if (newValueName)
+			{
+				newShader->SetParameter(newValueName, oldEffect.GetParameterValue(j), newValueSize);
 			}
 		}
 
@@ -249,7 +264,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 			auto newModel = convert<five::grmModel*>(oldModel);
 
 			lodGroup.SetModel(i, newModel);
-			lodGroup.SetDrawBucketMask(i, 0xFF01); // TODO: change this
+			lodGroup.SetDrawBucketMask(i, newModel->CalcDrawBucketMask(out->GetShaderGroup())); // TODO: change this
 
 			{
 				Vector3 minBounds = oldLodGroup.GetBoundsMin();

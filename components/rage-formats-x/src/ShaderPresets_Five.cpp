@@ -19,12 +19,22 @@ void grmShaderFx::DoPreset(const char* shaderName, const char* spsName)
 {
 	auto shaderFile = fxc::ShaderFile::Load(va("Y:\\common\\shaders\\win32_40_final\\%s.fxc", shaderName));
 
+	if (!shaderFile)
+	{
+		FatalError("Could not find %s.fxc!", shaderName);
+	}
+
 	//
 	grmShaderFx* shader = this;
 	shader->SetSpsName(spsName);
 	shader->SetShaderName(shaderName);
-	shader->SetDrawBucket(0); // TODO: read draw bucket from .fxc
 
+	// override the draw bucket if needed
+	auto drawBucket = shaderFile->GetGlobalValue("__rage_drawbucket");
+
+	shader->SetDrawBucket(atoi(drawBucket.get_value_or("0").c_str()));
+	
+	// set parameters
 	auto& localParameters = shaderFile->GetLocalParameters();
 
 	std::vector<grmShaderParameterMeta> parameters(localParameters.size());
@@ -40,11 +50,52 @@ void grmShaderFx::DoPreset(const char* shaderName, const char* spsName)
 	int samplerIdx = 0;
 	int nonSamplerIdx = numSamplers;
 
+	// pre-sort samplers based on register index (certain third-party tools want the samplers to be in register order, not .fxc order)
+	std::map<int, int> samplerIndexMapping;
+
+	{
+		std::vector<std::pair<int, int>> samplerIndexList;
+
+		int i = 0;
+
+		for (auto& pair : localParameters)
+		{
+			std::shared_ptr<fxc::ShaderParameter> parameter = pair.second;
+
+			if (parameter->IsSampler())
+			{
+				samplerIndexList.push_back({ i, parameter->GetRegister() });
+
+				i++;
+			}
+		}
+
+		std::sort(samplerIndexList.begin(), samplerIndexList.end(), [] (const auto& left, const auto& right)
+		{
+			return (left.second < right.second);
+		});
+
+		i = 0;
+
+		for (auto& pair : samplerIndexList)
+		{
+			samplerIndexMapping.insert({ pair.first, i });
+
+			i++;
+		}
+	}
+	
+	// apply parameters
 	for (auto& pair : localParameters)
 	{
 		std::shared_ptr<fxc::ShaderParameter> parameter = pair.second;
 
 		int idx = (parameter->IsSampler()) ? samplerIdx++ : nonSamplerIdx++;
+
+		if (parameter->IsSampler())
+		{
+			idx = samplerIndexMapping[idx];
+		}
 
 		parameterNames[idx] = parameter->GetNameHash();
 

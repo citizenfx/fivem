@@ -1272,6 +1272,21 @@ public:
 		m_shaderMappingCount = count;
 	}
 
+	inline uint16_t CalcDrawBucketMask(grmShaderGroup* shaderGroup)
+	{
+		uint16_t drawBucketMask = 0xFF00;
+
+		for (int i = 0; i < m_shaderMappingCount; i++)
+		{
+			uint16_t shaderIdx = (*m_shaderMappings)[i];
+			grmShaderFx* shader = shaderGroup->GetShader(shaderIdx);
+
+			drawBucketMask |= (1 << shader->GetDrawBucket());
+		}
+
+		return drawBucketMask;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_geometries.Resolve(blockMap);
