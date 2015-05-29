@@ -260,6 +260,7 @@ public:
 	}
 };
 
+#ifndef RAGE_FORMATS_GAME_NY
 // RDR+ allegedly, confirmed in Payne/Five
 struct phBoundPoly
 {
@@ -308,6 +309,14 @@ public:
 		} poly;
 	};
 };
+#else
+struct phBoundPoly
+{
+	float vertexUnks[4];
+	int16_t indices[4];
+	int16_t edges[4];
+};
+#endif
 
 class phBoundPolyhedron : public phBound
 {
