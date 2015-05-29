@@ -242,6 +242,8 @@ public:
 
 #if RAGE_NATIVE_ARCHITECTURE
 			pointer = (T*)pgStreamManager::ResolveFilePointer(on_disk, blockMap);
+#else
+			pointer = (decltype(pointer))pgStreamManager::ResolveFilePointer(on_disk, blockMap);
 #endif
 			pgStreamManager::MarkToBePacked(&on_disk, physical, "ResolveFilePointer");
 
@@ -328,6 +330,27 @@ public:
 #ifndef RAGE_FORMATS_GAME_FIVE
 		SetBlockMap();
 #endif
+	}
+};
+
+template<typename TChild>
+class datOwner : public pgBase
+{
+private:
+	pgPtr<TChild> m_child;
+
+	uint32_t m_pad[5];
+
+public:
+	inline TChild* GetChild()
+	{
+		return *m_child;
+	}
+
+	inline void Resolve(BlockMap* blockMap = nullptr)
+	{
+		m_child.Resolve(blockMap);
+		m_child->Resolve(blockMap);
 	}
 };
 #endif

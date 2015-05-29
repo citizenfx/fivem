@@ -86,7 +86,7 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 		out->SetTextures(newTextures);
 	}
 
-	five::pgPtr<five::grmShaderFx> newShaders[32];
+	five::pgPtr<five::grmShaderFx> newShaders[64];
 	
 	for (int i = 0; i < shaderGroup->GetNumShaders(); i++)
 	{
@@ -135,15 +135,18 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 				// look up if we just created one of these as local texture
 				bool found = false;
 
-				for (auto& outTexture : *out->GetTextures())
+				if (out->GetTextures())
 				{
-					if (!_stricmp(outTexture.second->GetName(), textureName))
+					for (auto& outTexture : *out->GetTextures())
 					{
-						newShader->SetParameter(newSamplerName, outTexture.second);
-						rescount++;
-						found = true;
+						if (!_stricmp(outTexture.second->GetName(), textureName))
+						{
+							newShader->SetParameter(newSamplerName, outTexture.second);
+							rescount++;
+							found = true;
 
-						break;
+							break;
+						}
 					}
 				}
 
@@ -216,7 +219,7 @@ five::grmModel* convert(ny::grmModel* model)
 
 	{
 		auto& oldGeometries = model->GetGeometries();
-		five::grmGeometryQB* geometries[32];
+		five::grmGeometryQB* geometries[64];
 
 		for (int i = 0; i < oldGeometries.GetCount(); i++)
 		{
@@ -252,8 +255,8 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 	auto& lodGroup = out->GetLodGroup();
 	
-	//lodGroup.SetBounds(oldLodGroup.GetBoundsMin(), oldLodGroup.GetBoundsMax(), oldLodGroup.GetCenter(), oldLodGroup.GetRadius());
-	lodGroup.SetBounds(Vector3(-66.6f, -66.6f, -10.0f), Vector3(66.6f, 66.6f, 10.0f), Vector3(0.0f, 0.0f, 0.0f), 94.8f);
+	lodGroup.SetBounds(oldLodGroup.GetBoundsMin(), oldLodGroup.GetBoundsMax(), oldLodGroup.GetCenter(), oldLodGroup.GetRadius());
+	//lodGroup.SetBounds(Vector3(-66.6f, -66.6f, -10.0f), Vector3(66.6f, 66.6f, 10.0f), Vector3(0.0f, 0.0f, 0.0f), 94.8f);
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -267,30 +270,17 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 			lodGroup.SetDrawBucketMask(i, newModel->CalcDrawBucketMask(out->GetShaderGroup())); // TODO: change this
 
 			{
-				Vector3 minBounds = oldLodGroup.GetBoundsMin();
-				Vector3 maxBounds = oldLodGroup.GetBoundsMax();
+				Vector4* oldBounds = oldModel->GetGeometryBounds();
 
-				float radius = oldLodGroup.GetRadius();
+				std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount());
 
-				/*five::GeometryBound bound;
-				bound.aabbMin = Vector4(minBounds.x, minBounds.y, minBounds.z, -radius);
-				bound.aabbMax = Vector4(maxBounds.x, maxBounds.y, maxBounds.z, radius);
+				for (int i = 0; i < geometryBounds.size(); i++)
+				{
+					geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
+					geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
+				}
 
-				newModel->SetGeometryBounds(bound);*/
-
-				five::GeometryBound bounds[8];
-				bounds[0].aabbMin = Vector4(-66.0f, -66.0f, -1.0f, -94.8f);
-				bounds[0].aabbMax = Vector4(66.0f, 66.0f, 1.0f, 94.8f);
-
-				bounds[1] = bounds[0];
-				bounds[2] = bounds[0];
-				bounds[3] = bounds[0];
-				bounds[4] = bounds[0];
-				bounds[5] = bounds[0];
-				bounds[6] = bounds[0];
-				bounds[7] = bounds[0];
-
-				newModel->SetGeometryBounds(newModel->GetGeometries().GetCount(), bounds);
+				newModel->SetGeometryBounds(geometryBounds.size(), &geometryBounds[0]);
 			}
 		}
 	}

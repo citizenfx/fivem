@@ -4,6 +4,7 @@
 #include <pgBase.h>
 #include <rmcDrawable.h>
 #include <gtaDrawable.h>
+#include <phBound.h>
 //#include <fragType.h>
 
 #include <ShaderInfo.h>
@@ -72,6 +73,8 @@ void ConvertDrawable();
 //#include <d3dcompiler.h>
 //#pragma comment(lib, "d3dcompiler.lib")
 
+void LoadBoundFour();
+
 int main(int argc, char **argv)
 {
 	//::testing::InitGoogleTest(&argc, argv);
@@ -111,6 +114,46 @@ int main(int argc, char **argv)
 	}
 
 	exit(0);*/
+
+	//LoadBoundFour();
+	//return 0;
+
+	ValidateSizePh<phBound, 112>();
+	ValidateSizePh<phBoundComposite, 176>();
+	ValidateSizePh<phBoundPolyhedron, 240>();
+	ValidateSizePh<phBoundGeometry, 304>();
+	ValidateSizePh<phBoundBVH, 336>();
+	ValidateSizePh<phBVH, 128>();
+
+	char* buffers2 = new char[1089536];
+	FILE* f2 = fopen("Y:/dev/ydr/bh1_07_0.ybn.seg", "rb");
+	fread(buffers2, 1, 1089536, f2);
+	fclose(f2);
+
+	BlockMap bm2;
+	bm2.virtualLen = 1;
+	bm2.physicalLen = 0;
+	bm2.blocks[0].data = buffers2;
+	bm2.blocks[0].offset = 0;
+	bm2.blocks[0].size = 1089536;
+
+	pgStreamManager::SetBlockInfo(&bm2);
+	phBoundComposite* bound = (phBoundComposite*)buffers2;
+	bound->Resolve(&bm2);
+
+	for (uint16_t idx = 0; idx < bound->GetNumChildBounds(); idx++)
+	{
+		phBoundBVH* childBound = static_cast<phBoundBVH*>(bound->GetChildBound(idx));
+		childBound->Resolve(&bm2);
+
+		std::vector<phBoundPoly> polys(childBound->GetNumPolygons());
+
+		memcpy(&polys[0], childBound->GetPolygons(), sizeof(phBoundPoly) * polys.size());
+
+		__debugbreak();
+	}
+	
+	return 0;
 
 	ConvertDrawable();
 	return 0;

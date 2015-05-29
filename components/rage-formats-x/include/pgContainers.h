@@ -19,13 +19,13 @@
 #define RAGE_FORMATS_five_pgContainers 1
 #endif
 
-template<typename TValue>
+template<typename TValue, typename TIndex = uint16_t>
 class pgArray : public pgStreamableBase
 {
 private:
 	pgPtr<TValue> m_offset;
-	uint16_t m_count;
-	uint16_t m_size;
+	TIndex m_count;
+	TIndex m_size;
 
 public:
 	pgArray()
@@ -56,7 +56,7 @@ public:
 		m_size = count;
 	}
 
-	TValue Get(uint16_t offset)
+	TValue Get(TIndex offset)
 	{
 		if (offset >= m_count)
 		{
@@ -66,7 +66,7 @@ public:
 		return (*m_offset)[offset];
 	}
 
-	void Expand(uint16_t newSize)
+	void Expand(TIndex newSize)
 	{
 		if (m_size >= newSize)
 		{
@@ -85,7 +85,7 @@ public:
 		return new(false) pgArray(*m_offset, m_count);
 	}
 
-	void Set(uint16_t offset, const TValue& value)
+	void Set(TIndex offset, const TValue& value)
 	{
 		if (offset >= m_size)
 		{
@@ -100,12 +100,12 @@ public:
 		(*m_offset)[offset] = value;
 	}
 
-	inline uint16_t GetSize() const
+	inline TIndex GetSize() const
 	{
 		return m_size;
 	}
 
-	inline uint16_t GetCount() const
+	inline TIndex GetCount() const
 	{
 		return m_count;
 	}

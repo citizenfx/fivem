@@ -1228,12 +1228,22 @@ public:
 	}
 
 #ifdef RAGE_FORMATS_GAME_NY
+	inline Vector4* GetGeometryBounds()
+	{
+		return (*m_geometryBounds);
+	}
+
 	inline void SetGeometryBounds(const Vector4& vector)
 	{
 		m_geometryBounds = (Vector4*)pgStreamManager::Allocate(sizeof(Vector4), false, nullptr);
 		(*m_geometryBounds)[0] = vector;
 	}
 #else
+	inline GeometryBound* GetGeometryBounds()
+	{
+		return (*m_geometryBounds);
+	}
+
 	inline void SetGeometryBounds(int count, const GeometryBound* vectors)
 	{
 		m_geometryBounds = (GeometryBound*)pgStreamManager::Allocate(sizeof(GeometryBound) * count, false, nullptr);
