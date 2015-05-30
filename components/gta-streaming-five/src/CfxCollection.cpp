@@ -896,7 +896,7 @@ static void DbgError()
 	FatalError(*errorString);
 }
 
-const char* ptrError = "Invalid pointer value found while resolving a pg* resource (attach a debugger for more info)";
+const char* ptrError = "Invalid fixup, address is neither virtual nor physical (paged resources - attach a debugger to find where)";
 
 // this should be moved to another component eventually...
 #ifdef DRAWABLE_DBG
