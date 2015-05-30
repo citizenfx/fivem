@@ -35,7 +35,7 @@ FORMATS_EXPORT rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName)
 	uint32_t version;
 	fread(&version, 1, sizeof(version), f);
 
-	assert(version == 110);
+	assert(version == 110 || version == 32);
 
 	uint32_t flags;
 	fread(&flags, 1, sizeof(flags), f);

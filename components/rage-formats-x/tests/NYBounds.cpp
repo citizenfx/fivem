@@ -60,9 +60,9 @@ void LoadBoundFour()
 
 		phBVH* bvh = childBound->GetBVH();
 
-		//std::vector<phBoundPoly> polys(childBound->GetNumPolygons());
+		std::vector<phBoundPoly> polys(childBound->GetNumPolygons());
 
-		//memcpy(&polys[0], childBound->GetPolygons(), sizeof(phBoundPoly) * polys.size());
+		memcpy(&polys[0], childBound->GetPolygons(), sizeof(phBoundPoly) * polys.size());
 
 		__debugbreak();
 	}

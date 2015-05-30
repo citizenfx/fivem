@@ -28,6 +28,25 @@ namespace rage
 		{
 
 		}
+
+		inline Vector3 operator-(const Vector3& right) const
+		{
+			return Vector3(x - right.x, y - right.y, z - right.z);
+		}
+
+		inline static Vector3 CrossProduct(const Vector3& v1, const Vector3& v2)
+		{
+			return Vector3(
+				(v1.y * v2.z) - (v1.z * v2.y),
+				(v1.z * v2.x) - (v1.x * v2.z),
+				(v1.x * v2.y) - (v1.y * v2.x)
+			);
+		}
+
+		inline float Length() const
+		{
+			return sqrtf((x * x) + (y * y) + (z * z));
+		}
 	};
 
 	struct Vector4

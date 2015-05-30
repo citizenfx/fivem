@@ -18,14 +18,7 @@
 #define RAGE_FORMATS_GAME_FIVE
 #include <gtaDrawable.h>
 
-namespace rage
-{
-template<typename Target, typename Source>
-Target convert(Source source)
-{
-	return (Target)0;
-}
-}
+#include <convert/base.h>
 
 namespace rage
 {

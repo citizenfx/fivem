@@ -37,6 +37,18 @@ static hook::thiscall_stub<rage::fiCollection*(rage::fiCollection*)> packfileCto
 #define GET_HANDLE(x) ((x) & 0x7FFFFFFF)
 #define UNDEF_ASSERT() FatalError("Undefined function " __FUNCTION__)
 
+struct StreamingPackfileEntry
+{
+	FILETIME modificationTime;
+	uint8_t pad[80];
+	uint32_t parentIdentifier;
+	uint8_t pad2[12];
+};
+
+#include <atArray.h>
+
+static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
+
 class CfxCollection : public rage::fiCollection
 {
 private:
@@ -808,6 +820,18 @@ private:
 
 					return false;
 				};
+
+				// if there are any streaming files, somewhat invalidate the parent packfile timestamp
+				if (!fileList.empty())
+				{
+					SYSTEMTIME systemTime;
+					GetSystemTime(&systemTime);
+
+					FILETIME fileTime;
+					SystemTimeToFileTime(&systemTime, &fileTime);
+
+					g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
+				}
 			}
 		}
 	}
@@ -1061,17 +1085,6 @@ struct StreamingEntry
 static rage::strStreamingModule* g_streamingModule;
 static StreamingEntry** g_streamingEntries;
 
-struct StreamingPackfileEntry
-{
-	uint8_t pad[88];
-	uint32_t parentIdentifier;
-	uint8_t pad2[12];
-};
-
-#include <atArray.h>
-
-static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
-
 static_assert(sizeof(StreamingPackfileEntry) == 104, "muh");
 
 bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse)
@@ -1224,4 +1237,26 @@ static HookFunction hookFunction([] ()
 	// pointer resolution
 	hook::set_call(&g_resolvePtr, hook::pattern("48 8B D9 48 89 01 48 83 C1 20 E8 ? ? ? ? 48 8D 4B 30").count(1).get(0).get<void>(10));
 #endif
+
+	// break the game! phBoundPolyhedron + 184
+	static struct : jitasm::Frontend
+	{
+		virtual void InternalMain() override
+		{
+			mov(byte_ptr[rbx + 130], 0);
+			mov(qword_ptr[rbx + 0xB8], 0);
+			xor(rax, rax);
+
+			ret();
+		}
+	} blahHook;
+
+	hook::call(hook::pattern("48 01 83 B0 00 00 00 48 8B 93 B8 00 00 00 48 85").count(1).get(0).get<void>(0x8A - 0x74), blahHook.GetCode());
+
+	// manifest interaction with fwStaticBoundsStore
+	void* boundInt = hook::pattern("48 6B DB 38 48 03 1F 66 44 39 53 10 74 13").count(1).get(0).get<void>(0);
+
+	void* boundAdd = hook::pattern("0F 5C C8 41 8B C0 48 C1 E0 05 48 03 83").count(1).get(0).get<void>(-0x2E);
+
+	__debugbreak();
 });

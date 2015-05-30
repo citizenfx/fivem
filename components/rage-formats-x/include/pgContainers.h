@@ -56,12 +56,9 @@ public:
 		m_size = count;
 	}
 
-	TValue Get(TIndex offset)
+	TValue& Get(TIndex offset)
 	{
-		if (offset >= m_count)
-		{
-			return TValue(0);
-		}
+		assert(offset < m_count);
 
 		return (*m_offset)[offset];
 	}

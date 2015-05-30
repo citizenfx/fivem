@@ -118,6 +118,7 @@ int main(int argc, char **argv)
 	//LoadBoundFour();
 	//return 0;
 
+#if 1
 	ValidateSizePh<phBound, 112>();
 	ValidateSizePh<phBoundComposite, 176>();
 	ValidateSizePh<phBoundPolyhedron, 240>();
@@ -150,10 +151,11 @@ int main(int argc, char **argv)
 
 		memcpy(&polys[0], childBound->GetPolygons(), sizeof(phBoundPoly) * polys.size());
 
-		__debugbreak();
+		//__debugbreak();
 	}
 	
-	return 0;
+	//return 0;
+#endif
 
 	ConvertDrawable();
 	return 0;

@@ -10,13 +10,16 @@
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
 #include <gtaDrawable.h>
+#include <phBound.h>
 
 #undef RAGE_FORMATS_GAME_NY
 #define RAGE_FORMATS_GAME five
 #define RAGE_FORMATS_GAME_FIVE
 #include <gtaDrawable.h>
+#include <phBound.h>
 
 #include <convert/gtaDrawable_ny_five.h>
+#include <convert/phBound_ny_five.h>
 
 rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName);
 
@@ -25,19 +28,22 @@ void ConvertDrawableInternal(const wchar_t* fileName)
 	rage::ny::BlockMap* bm = UnwrapRSC5(fileName);
 
 	rage::ny::pgStreamManager::SetBlockInfo(bm);
-	rage::ny::gtaDrawable* drawable = (rage::ny::gtaDrawable*)bm->blocks[0].data;
+	//rage::ny::gtaDrawable* drawable = (rage::ny::gtaDrawable*)bm->blocks[0].data;
+	rage::ny::datOwner<rage::ny::phBound>* bound = (rage::ny::datOwner<rage::ny::phBound>*)bm->blocks[0].data;
 	//ddrawable->Resolve(&bm);
 
 	auto bm2 = rage::five::pgStreamManager::BeginPacking();
-	auto cdrawable = rage::convert<rage::five::gtaDrawable*>(drawable);
+	//auto cdrawable = rage::convert<rage::five::gtaDrawable*>(drawable);
+	auto cdrawable = rage::convert<rage::five::phBound*>(bound->GetChild());
 	rage::five::pgStreamManager::EndPacking();
 
 	std::wstring outFileName(fileName);
-	outFileName = outFileName.substr(0, outFileName.length() - 3) + L"ydr";
+	outFileName = outFileName.substr(0, outFileName.length() - 3) + L"ybn";
 
 	FILE* f = _wfopen(outFileName.c_str(), L"wb");
+	//FILE* f = _wfopen(L"X:\\gta\\iv\\citizenmp\\citizenmp\\bin\\five\\debug\\citizen\\platform\\levels\\gta5\\_cityw\\beverly_01\\bh1_07\\bh1_07_0.ybn", L"wb");
 
-	bm2->Save(165, [&] (const void* d, size_t s)
+	bm2->Save(43 /* 165 */, [&] (const void* d, size_t s)
 	{
 		fwrite(d, 1, s, f);
 	});
@@ -55,7 +61,7 @@ void ConvertDrawableInternal(const wchar_t* fileName)
 void ConvertDrawable()
 {
 	WIN32_FIND_DATA findData;
-	HANDLE findHandle = FindFirstFile(L"Y:\\dev\\ydr\\speed2\\*.wdr", &findData);
+	HANDLE findHandle = FindFirstFile(L"Y:\\dev\\ydr\\speed2\\*.wbn", &findData);
 
 	if (findHandle != INVALID_HANDLE_VALUE)
 	{

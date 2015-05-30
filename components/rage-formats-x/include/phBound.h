@@ -1,9 +1,9 @@
 /*
-* This file is part of the CitizenFX project - http://citizen.re/
-*
-* See LICENSE and MENTIONS in the root of the source tree for information
-* regarding licensing.
-*/
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
 
 #include <stdint.h>
 
@@ -116,12 +116,117 @@ private:
 
 #ifdef RAGE_FORMATS_GAME_NY
 	float m_margin[3];
-	uint32_t m_unkInt;
+	uint32_t m_unkCount;
 #elif defined(RAGE_FORMATS_GAME_FIVE)
 	float m_unkFloat;
 #endif
 
 public:
+	inline phBound()
+	{
+		m_unk1 = 0;
+		m_unk2 = 0;
+
+		m_radius = 0;
+		m_pad = 0;
+
+		m_unkCount = 1;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_unkInt = 0;
+		m_unkInt2 = 0;
+
+		m_unkFloat = 1.0f;
+
+		m_unkVector2 = phVector3(1.0f, 1.0f, 1.0f);
+#endif
+	}
+
+	inline void SetUnkVector(const phVector3& vector)
+	{
+		m_unkVector2 = vector;
+	}
+
+	inline float GetRadius() const
+	{
+		return m_radius;
+	}
+
+	inline void SetRadius(float radius)
+	{
+		m_radius = radius;
+	}
+
+	inline float GetMargin() const
+	{
+#ifdef RAGE_FORMATS_GAME_NY
+		return m_margin[0];
+#else
+		return m_margin;
+#endif
+	}
+
+	inline void SetMargin(float value)
+	{
+#ifdef RAGE_FORMATS_GAME_NY
+		m_margin[0] = value;
+		m_margin[1] = value;
+		m_margin[2] = value;
+#else
+		m_margin = value;
+#endif
+	}
+
+	inline const phVector3& GetCG() const
+	{
+		return m_cg;
+	}
+
+	inline void SetCG(const phVector3& vector)
+	{
+		m_cg = vector;
+	}
+
+	inline const phVector3& GetCentroid() const
+	{
+		return m_centroid;
+	}
+
+	inline void SetCentroid(const phVector3& centroid)
+	{
+		m_centroid = centroid;
+	}
+
+	inline const phVector3& GetAABBMin() const
+	{
+		return m_aabbMin;
+	}
+
+	inline const phVector3& GetAABBMax() const
+	{
+		return m_aabbMax;
+	}
+
+	inline void SetAABBMin(const phVector3& vector)
+	{
+		m_aabbMin = vector;
+	}
+
+	inline void SetAABBMax(const phVector3& vector)
+	{
+		m_aabbMax = vector;
+	}
+
+	inline phBoundType GetType() const
+	{
+		return m_boundType;
+	}
+
+	inline void SetType(phBoundType type)
+	{
+		m_boundType = type;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		
@@ -190,23 +295,39 @@ public:
 };
 
 #ifdef RAGE_FORMATS_GAME_NY
-struct phBoundAABB
+struct phBoundAABB : public pgStreamableBase
+{
+	Vector3 min;
+	Vector3 max;
+};
+#else
+struct phBoundAABB : public pgStreamableBase
 {
 	phVector3 min;
+	uint32_t intUnk;
 	phVector3 max;
+	float floatUnk;
 };
 #endif
+
+struct Matrix3x4 : public pgStreamableBase
+{
+	Vector3 _1;
+	Vector3 _2;
+	Vector3 _3;
+	Vector3 _4;
+};
 
 class phBoundComposite : public phBound
 {
 private:
 	pgPtr<pgPtr<phBound>> m_childBounds;
 
-	pgPtr<void> m_childMatrices;
-	pgPtr<void> m_childMatricesInternal; // copied from child matrices, only if 'allowinternalmotion:' is set
+	pgPtr<Matrix3x4> m_childMatrices;
+	pgPtr<Matrix3x4> m_childMatricesInternal; // copied from child matrices, only if 'allowinternalmotion:' is set
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-	pgPtr<void> m_childAABBs;
+	pgPtr<phBoundAABB> m_childAABBs;
 
 	pgPtr<phBoundFlagEntry> m_boundFlags; // not set by V import function; might be finalbuild cut, Payne does set it but doesn't do much else with it; still set in V data files
 
@@ -225,6 +346,12 @@ private:
 #endif
 
 public:
+	inline phBoundComposite()
+		: phBound()
+	{
+		SetType(phBoundType::Composite);
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		phBound::Resolve(blockMap);
@@ -258,11 +385,68 @@ public:
 	{
 		return *((*m_childBounds)[index]);
 	}
+
+	inline void SetChildBounds(uint16_t count, phBound** children)
+	{
+		pgPtr<phBound>* childEntries = new(false) pgPtr<phBound>[count];
+
+		for (uint16_t i = 0; i < count; i++)
+		{
+			childEntries[i] = children[i];
+		}
+
+		m_childBounds = childEntries;
+	}
+
+	inline Matrix3x4* GetChildMatrices()
+	{
+		return *m_childMatrices;
+	}
+
+	inline void SetChildMatrices(uint16_t count, Matrix3x4* data)
+	{
+		Matrix3x4* outData = new(false) Matrix3x4[count];
+
+		memcpy(outData, data, sizeof(Matrix3x4) * count);
+
+		m_childMatrices = outData;
+		m_childMatricesInternal = outData;
+	}
+
+	inline phBoundAABB* GetChildAABBs()
+	{
+		return *m_childAABBs;
+	}
+
+	inline void SetChildAABBs(uint16_t count, phBoundAABB* data)
+	{
+		phBoundAABB* outData = new(false) phBoundAABB[count];
+
+		memcpy(outData, data, sizeof(phBoundAABB) * count);
+
+		m_childAABBs = outData;
+	}
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline phBoundFlagEntry* GetBoundFlags()
+	{
+		return *m_boundFlags;
+	}
+
+	inline void SetBoundFlags(uint16_t count, phBoundFlagEntry* data)
+	{
+		std::vector<phBoundFlagEntry> outEntry(count);
+		memcpy(&outEntry[0], data, sizeof(phBoundFlagEntry) * count);
+
+		m_childArray.SetFrom(&outEntry[0], count);
+		m_boundFlags = &m_childArray.Get(0);
+	}
+#endif
 };
 
 #ifndef RAGE_FORMATS_GAME_NY
 // RDR+ allegedly, confirmed in Payne/Five
-struct phBoundPoly
+struct phBoundPoly : public pgStreamableBase
 {
 public:
 	union
@@ -298,7 +482,7 @@ public:
 
 		struct  
 		{
-			float polyRadius;
+			float triangleArea;
 
 			int16_t v1;
 			int16_t v2;
@@ -310,13 +494,21 @@ public:
 	};
 };
 #else
-struct phBoundPoly
+struct phBoundPoly : public pgStreamableBase
 {
 	float vertexUnks[4];
 	int16_t indices[4];
 	int16_t edges[4];
 };
 #endif
+
+struct phBoundVertex : public pgStreamableBase
+{
+	// quantized
+	int16_t x;
+	int16_t y;
+	int16_t z;
+};
 
 class phBoundPolyhedron : public phBound
 {
@@ -338,7 +530,7 @@ private:
 	Vector4 m_vertexScale;
 	Vector4 m_vertexOffset;
 
-	pgPtr<void> m_vertices;
+	pgPtr<phBoundVertex> m_vertices;
 
 	pgPtr<void> m_vertexUnks;
 
@@ -363,6 +555,78 @@ private:
 #endif
 
 public:
+	inline phBoundPolyhedron()
+		: phBound()
+	{
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_unkVal1 = 0;
+		m_unkVal2 = 0;
+		m_unkVal3 = 0;
+
+		m_numUnksPerVertex = 0;
+		m_numVertices = 0;
+		m_numVerticesShort = 0;
+		m_numPolys = 0;
+
+		m_unk1 = 0;
+		m_unkShort1 = 0;
+#endif
+	}
+
+	inline uint32_t GetNumVertices()
+	{
+		return m_numVertices;
+	}
+
+	inline void SetPolys(uint32_t numPolys, phBoundPoly* polys)
+	{
+		phBoundPoly* data = new(false) phBoundPoly[numPolys];
+
+		memcpy(data, polys, sizeof(phBoundPoly) * numPolys);
+
+		m_polyEntries = data;
+		m_numPolys = numPolys;
+	}
+
+	inline phBoundVertex* GetVertices()
+	{
+		return *m_vertices;
+	}
+
+	inline void SetVertices(uint16_t numVertices, phBoundVertex* vertices)
+	{
+		phBoundVertex* data = new(false) phBoundVertex[numVertices];
+
+		memcpy(data, vertices, sizeof(phBoundVertex) * numVertices);
+
+		m_vertices = data;
+		m_numVertices = numVertices;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_numVerticesShort = numVertices;
+#endif
+	}
+
+	inline const Vector4& GetVertexOffset() const
+	{
+		return m_vertexOffset;
+	}
+
+	inline void SetVertexOffset(const Vector4& vector)
+	{
+		m_vertexOffset = vector;
+	}
+
+	inline const Vector4& GetQuantum() const
+	{
+		return m_vertexScale;
+	}
+
+	inline void SetQuantum(const Vector4& vector)
+	{
+		m_vertexScale = vector;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		phBound::Resolve(blockMap);
@@ -395,7 +659,7 @@ private:
 	pgPtr<void> m_materials;
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-	pgPtr<void> m_materialColors;
+	pgPtr<uint32_t> m_materialColors;
 
 	uintptr_t m_pad1;
 
@@ -423,6 +687,55 @@ private:
 #endif
 
 public:
+	inline phBoundGeometry()
+		: phBoundPolyhedron()
+	{
+		SetType(phBoundType::Geometry);
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_pad1 = 0;
+		m_numSecondSurfaceVertices = 0;
+		m_numMaterials = 0;
+		m_numMaterialColors = 0;
+		m_pad2 = 0;
+		m_geomUnkShort1 = 0;
+		m_geomUnkShort2 = 0;
+		m_geomUnkShort3 = 0;
+#endif
+	}
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline void SetMaterialColors(uint8_t count, const uint32_t* inColors)
+	{
+		uint32_t* colors = (uint32_t*)pgStreamManager::Allocate(count * sizeof(uint32_t), false, nullptr);
+		memcpy(colors, inColors, count * sizeof(uint32_t));
+
+		m_materialColors = colors;
+		m_numMaterialColors = count;
+	}
+
+	inline void SetPolysToMaterials(const uint8_t* data)
+	{
+		uint32_t count = GetNumPolygons();
+		uint8_t* mapping = (uint8_t*)pgStreamManager::Allocate(count, false, nullptr);
+
+		memcpy(mapping, data, count);
+
+		m_polysToMaterials = mapping;
+	}
+#endif
+
+	// temporary
+	inline void SetMaterials(uint8_t count, const void* data, size_t dataSize)
+	{
+		void* materials = pgStreamManager::Allocate(dataSize, false, nullptr);
+		memcpy(materials, data, dataSize);
+
+		m_materials = materials;
+
+		m_numMaterials = count;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		phBoundPolyhedron::Resolve(blockMap);

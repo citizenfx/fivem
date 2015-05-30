@@ -81,12 +81,12 @@ public:
 
 		if (!m_shouldCreate && m_doInityThings)
 		{
-			NativeInvoke::Invoke<LOAD_SCENE, int>(-1052.49f, -172.39f, 37.6181f);
+			NativeInvoke::Invoke<LOAD_SCENE, int>(-426.858f, -957.54f, 3.621f);
 
 			NativeInvoke::Invoke<SHUTDOWN_LOADING_SCREEN, int>();
 			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 
-			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -1052.49f, -172.39f, 37.6181f);
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -426.858f, -957.54f, 3.621f);
 
 			m_doInityThings = false;
 		}
