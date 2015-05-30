@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "SteamComponent.h"
 #include "InterfaceMapper.h"
+#include "SafeClientEngine.h"
 
 #include <sstream>
 #include <thread>
@@ -130,10 +131,16 @@ void SteamComponent::InitializeClientAPI()
 	int returnCode;
 	IClientEngine* clientEngine = reinterpret_cast<IClientEngine*>(createInterface("CLIENTENGINE_INTERFACE_VERSION003", &returnCode));
 
+	// if not existent, try ClientEngine004 - these coexisted for a while
+	if (!clientEngine)
+	{
+		clientEngine = reinterpret_cast<IClientEngine*>(createInterface("CLIENTENGINE_INTERFACE_VERSION004", &returnCode));
+	}
+
 	if (clientEngine)
 	{
 		// if this all worked, set the member variables
-		m_clientEngine = clientEngine;
+		m_clientEngine = CreateSafeClientEngine(clientEngine, m_steamPipe, m_steamUser);
 
 		// initialize the presence component
 		InitializePresence();

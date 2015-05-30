@@ -13,6 +13,12 @@
 #include <udis86.h>
 
 InterfaceMapper::InterfaceMapper(void* interfacePtr)
+	: InterfaceMapperBase(interfacePtr)
+{
+
+}
+
+InterfaceMapperBase::InterfaceMapperBase(void* interfacePtr)
 	: m_interface(interfacePtr)
 {
 	if (m_interface)
@@ -229,7 +235,7 @@ void* InterfaceMapper::GetMethodByName(const char* methodName)
 	return it->second;
 }
 
-void InterfaceMapper::UpdateCachedModule()
+void InterfaceMapperBase::UpdateCachedModule()
 {
 	// get the module base
 	void* interfaceTable = *(void**)m_interface;
@@ -267,5 +273,8 @@ void InterfaceMapper::UpdateCachedModule()
 				m_moduleValidDataEnd = reinterpret_cast<uintptr_t>(moduleBasePtr + sectionHeader[i + 1].VirtualAddress);
 			}
 		}
+
+		// store the module pointer
+		m_moduleStart = (uintptr_t)moduleBasePtr;
 	}
 }
