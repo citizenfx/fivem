@@ -70,6 +70,15 @@ private:
 		CollectionEntry* ourEntry;
 	};
 
+	struct IgnoreCaseLess
+	{
+		inline bool operator()(const std::string& left, const std::string& right) const
+		{
+			return _stricmp(left.c_str(), right.c_str()) < 0;
+		}
+	};
+
+
 private:
 	// to be filled with packfile data
 	char m_pad[184];
@@ -84,12 +93,24 @@ private:
 
 	HandleEntry m_handles[512];
 
+	std::set<std::string, IgnoreCaseLess> m_streamingFileList;
+
 	bool m_hasCleaned;
 
 	std::recursive_mutex m_mutex;
 	
 public:
 	typedef std::function<bool(const char*, std::string&)> TLookupFn;
+
+private:
+	bool m_isPseudoPack;
+
+private:
+	bool IsPseudoPack();
+
+	static bool IsPseudoPackPath(const char* path);
+
+	void InitializePseudoPack(const char* path);
 
 private:
 	TLookupFn m_lookupFunction;
@@ -107,9 +128,8 @@ private:
 		PseudoCallContext(CfxCollection* collection)
 			: m_collection(collection)
 		{
-			m_oldVal = *(reinterpret_cast<char*>(this) + 0xA8);
-
 			m_collection->m_mutex.lock();
+
 			memcpy(collection->m_childPackfile, collection, sizeof(collection->m_childPackfile));
 			*(uintptr_t*)collection->m_childPackfile = g_vTable_fiPackfile;
 
@@ -119,13 +139,8 @@ private:
 		~PseudoCallContext()
 		{
 			memcpy(reinterpret_cast<char*>(m_collection) + 8, &m_collection->m_childPackfile[8], sizeof(m_collection->m_childPackfile) - 8);
-			m_collection->m_mutex.unlock();
 
-			bool newVal = *(reinterpret_cast<char*>(this) + 0xA8);
-			if (newVal != m_oldVal)
-			{
-				trace("flag changed from %d to %d.\n", m_oldVal, newVal);
-			}
+			m_collection->m_mutex.unlock();
 		}
 
 		rage::fiCollection* operator->() const
@@ -157,6 +172,7 @@ public:
 		};
 
 		m_hasCleaned = false;
+		m_isPseudoPack = false;
 	}
 
 	~CfxCollection()
@@ -174,6 +190,8 @@ public:
 
 		m_entries.clear();
 		m_reverseEntries.clear();
+
+		m_isPseudoPack = false;
 
 		memset(m_handles, 0, sizeof(m_handles));
 
@@ -295,6 +313,8 @@ public:
 
 			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), entry->fileName.c_str());// GetEntryName(index));
 		}
+
+		trace("coll open %s\n", entry->fileName.c_str());
 
 		rage::fiDevice* device = rage::fiDevice::GetDevice(entry->fileName.c_str(), true);
 		uint64_t handle = device->OpenBulk(entry->fileName.c_str(), ptr);
@@ -451,7 +471,7 @@ public:
 
 private:
 	template<typename TFunc>
-	typename boost::function_types::result_type<decltype(&TFunc::operator())>::type InvokeOnHandle(uint64_t handle, const TFunc& func)
+	auto InvokeOnHandle(uint64_t handle, const TFunc& func)
 	{
 		auto ourHandle = GET_HANDLE(handle);
 		auto& handleItem = m_handles[ourHandle];
@@ -745,17 +765,24 @@ private:
 	void DetermineLookupFunction(const char* archive)
 	{
 		// build a local path string to verify
-		const char* colon = strchr(archive, ':');
-
 		std::stringstream basePath;
 
-		// temporary: make citizen/ path manually
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-		basePath << converter.to_bytes(MakeRelativeCitPath(L"citizen/"));
+		if (!IsPseudoPackPath(archive) || _strnicmp(archive, "pseudoPack:/", 12) == 0)
+		{
+			const char* colon = strchr(archive, ':');
 
-		basePath << std::string(archive, colon);
-		basePath << "/";
-		basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
+			// temporary: make citizen/ path manually
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			basePath << converter.to_bytes(MakeRelativeCitPath(L"citizen/"));
+
+			basePath << std::string(archive, colon);
+			basePath << "/";
+			basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
+		}
+		else
+		{
+			basePath << std::string(archive, const_cast<const char*>(StrStrIA(archive, ".rpf")));
+		}
 
 		// get the folder device
 		std::string str = basePath.str();
@@ -771,20 +798,15 @@ private:
 
 			if (findHandle != (uint64_t)-1)
 			{
-				struct IgnoreCaseLess
-				{
-					inline bool operator()(const std::string& left, const std::string& right) const
-					{
-						return _stricmp(left.c_str(), right.c_str()) < 0;
-					}
-				};
-
 				// read the list
 				std::set<std::string, IgnoreCaseLess> fileList;
 
 				do 
 				{
-					fileList.insert(findData.fileName);
+					if (findData.fileName[0] != '.')
+					{
+						fileList.insert(findData.fileName);
+					}
 				} while (device->FindNext(findHandle, &findData));
 
 				device->FindClose(findHandle);
@@ -831,6 +853,8 @@ private:
 					SystemTimeToFileTime(&systemTime, &fileTime);
 
 					g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
+
+					m_streamingFileList = fileList;
 				}
 			}
 		}
@@ -854,19 +878,36 @@ public:
 			trace("Tried to open a CfxCollection inside a CfxCollection. Is this bad?\n");
 		}
 
+		if (!IsPseudoPackPath(archive))
 		{
-			PseudoCallContext ctx(this);
-			g_origOpenPackfileInternal(ctx.GetPointer(), archive, bTrue, veryFalse);
-		}
+			if (IsPseudoPack())
+			{
+				__debugbreak();
+			}
 
-		if (*(int64_t*)(&m_pad[40]) == -1)
-		{
-			OpenPackfile(archive, bTrue, 3, veryFalse);
+			{
+				PseudoCallContext ctx(this);
+				g_origOpenPackfileInternal(ctx.GetPointer(), archive, bTrue, veryFalse);
+			}
 
 			if (*(int64_t*)(&m_pad[40]) == -1)
 			{
-				FatalError("Reading packfile %s header failed, even after retrying.", archive);
+				OpenPackfile(archive, bTrue, 3, veryFalse);
+
+				if (*(int64_t*)(&m_pad[40]) == -1)
+				{
+					FatalError("Reading packfile %s header failed, even after retrying.", archive);
+				}
 			}
+		}
+		else
+		{
+			/*{
+				PseudoCallContext ctx(this);
+				g_origOpenPackfileInternal(ctx.GetPointer(), "platform:/levels/gta5/_cityw/beverly_01/bh1_07.rpf", bTrue, veryFalse);
+			}*/
+
+			InitializePseudoPack(archive);
 		}
 
 		return true;
@@ -1091,12 +1132,17 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 {
 	DetermineLookupFunction(archive);
 
-	rage::fiDevice* baseDevice = rage::fiDevice::GetDevice(archive, true);
+	rage::fiDevice* baseDevice = nullptr;
+
+	if (!IsPseudoPackPath(archive))
+	{
+		baseDevice = rage::fiDevice::GetDevice(archive, true);
+	}
 
 	// weird workaround for fiDeviceRelative not passing this through
 	bool isProxiedRelative = false;
 
-	if (!baseDevice->IsBulkDevice() && !strstr(archive, "dlcpacks:"))
+	if (baseDevice && !baseDevice->IsBulkDevice() && !strstr(archive, "dlcpacks:"))
 	{
 		const char* mount = strstr(archive, ":/");
 
@@ -1112,41 +1158,196 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 
 	std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
+	if (baseDevice)
 	{
 		PseudoCallContext ctx(this);
 		reinterpret_cast<rage::fiPackfile*>(ctx.GetPointer())->OpenPackfile(archive, bTrue, type, veryFalse);
 	}
+	else
+	{
+		{
+			PseudoCallContext ctx(this);
+			reinterpret_cast<rage::fiPackfile*>(ctx.GetPointer())->OpenPackfile("platform:/levels/gta5/_cityw/beverly_01/bh1_07.rpf", bTrue, type, veryFalse);
+		}
+
+		InitializePseudoPack(archive);
+	}
 
 	// dependency for game reloading (gta:core GameInit) - verify the parent collection address in the packfile registry
-	int baseCollectionId = baseDevice->GetCollectionId();
-
-	auto& packfile = g_streamingPackfiles->Get(GetCollectionId());
-
-	// if this is a packfile with an address already...
-	if (!isProxiedRelative && packfile.parentIdentifier != 0)
+	if (baseDevice)
 	{
-		uint16_t oldCollectionId = packfile.parentIdentifier >> 16;
+		int baseCollectionId = baseDevice->GetCollectionId();
 
-		// and the collection ID is not the one mentioned in the address...
-		if (oldCollectionId != baseCollectionId)
+		auto& packfile = g_streamingPackfiles->Get(GetCollectionId());
+
+		// if this is a packfile with an address already...
+		if (!isProxiedRelative && packfile.parentIdentifier != 0)
 		{
-			// and it isn't collection 0, either (pgRawStreamer, which we don't handle)
-			if (baseCollectionId != 0)
-			{
-				// get the entry identifier and make a new address
-				rage::fiCollection* collection = static_cast<rage::fiCollection*>(baseDevice);
-				uint16_t entryIndex = collection->GetEntryByName(archive);
+			uint16_t oldCollectionId = packfile.parentIdentifier >> 16;
 
-				packfile.parentIdentifier = (baseCollectionId << 16) | entryIndex;
+			// and the collection ID is not the one mentioned in the address...
+			if (oldCollectionId != baseCollectionId)
+			{
+				// and it isn't collection 0, either (pgRawStreamer, which we don't handle)
+				if (baseCollectionId != 0)
+				{
+					// get the entry identifier and make a new address
+					rage::fiCollection* collection = static_cast<rage::fiCollection*>(baseDevice);
+					uint16_t entryIndex = collection->GetEntryByName(archive);
+
+					packfile.parentIdentifier = (baseCollectionId << 16) | entryIndex;
+				}
 			}
 		}
+	}
+	else
+	{
+		// set the parent identifier to our guinea pig's
+		rage::fiCollection* collection = static_cast<rage::fiCollection*>(rage::fiDevice::GetDevice("platform:/levels/gta5/_cityw/beverly_01/bh1_07.rpf", true));
+		uint16_t entryIndex = collection->GetEntryByName("platform:/levels/gta5/_cityw/beverly_01/bh1_07.rpf");
+
+		int baseCollectionId = collection->GetCollectionId();
+
+		auto& packfile = g_streamingPackfiles->Get(GetCollectionId());
+
+		packfile.parentIdentifier = (baseCollectionId << 16) | entryIndex;
 	}
 
 	return true;
 }
 
+bool CfxCollection::IsPseudoPack()
+{
+	return m_isPseudoPack;
+}
+
+bool CfxCollection::IsPseudoPackPath(const char* path)
+{
+	// we better hope no legitimate pack is called 'pseudo' :D
+	return strstr(path, "pseudo") != nullptr;
+}
+
+struct CollectionData
+{
+	uint64_t pad;
+	void* nameTable;
+	uint16_t* parentDirectoryTable;
+	rage::fiCollection::FileEntry* entryTable;
+	uint32_t numEntries;
+	uint32_t pad2;
+	uint64_t parentHandle;
+	rage::fiDevice* unkDevice;
+	char pad4[16];
+	rage::fiDevice* parentDevice;
+	char pad5[4];
+	char smallName[32];
+	uint32_t pad6;
+	atArray<char> name;
+	__declspec(align(8)) char pad7[32];
+	uint32_t entryTableAllocSize;
+	uint32_t keyId;
+};
+
+#include <numeric>
+#include <sysAllocator.h>
+
+void CfxCollection::InitializePseudoPack(const char* path)
+{
+	m_isPseudoPack = true;
+
+	trace("init pseudopack %s\n", path);
+
+	assert(m_streamingFileList.size() > 0);
+
+	auto nameTableSize = std::accumulate(m_streamingFileList.begin(), m_streamingFileList.end(), 2, [] (int left, const std::string& right)
+	{
+		return left + right.length() + 1;
+	});
+
+	auto nameTable = (char*)rage::GetAllocator()->allocate(nameTableSize, 16, 0);
+	auto parentDirectoryTable = (uint16_t*)rage::GetAllocator()->allocate(sizeof(uint16_t) * (m_streamingFileList.size() + 1), 16, 0);
+	auto entryTable = (rage::fiCollection::FileEntry*)rage::GetAllocator()->allocate(sizeof(rage::fiCollection::FileEntry) * (m_streamingFileList.size() + 1), 16, 0);
+	auto entryCount = 0;
+
+	{
+		char* nameTablePtr = nameTable;
+		
+		auto addString = [&] (const std::string& string)
+		{
+			size_t strLength = string.length();
+			memcpy(nameTablePtr, string.c_str(), strLength);
+			nameTablePtr[strLength] = '\0';
+
+			auto startIndex = nameTablePtr - nameTable;
+
+			nameTablePtr += strLength + 1;
+
+			return startIndex;
+		};
+
+		entryTable[0].nameOffset = addString("");
+		entryTable[0].size = 0;
+		entryTable[0].offset = 0x7FFFFF;
+		entryTable[0].virtFlags = 1; // first entry
+		entryTable[0].physFlags = m_streamingFileList.size(); // entry count
+
+		parentDirectoryTable[0] = 0;
+
+		int i = 1;
+
+		for (auto& entry : m_streamingFileList)
+		{
+			std::string entryFullName;
+			m_lookupFunction(entry.c_str(), entryFullName);
+
+			auto entryDevice = rage::fiDevice::GetDevice(entryFullName.c_str(), true);
+
+			rage::ResourceFlags flags;
+			entryDevice->GetResourceVersion(entryFullName.c_str(), &flags);
+
+			entryTable[i].nameOffset = addString(entry);
+			entryTable[i].offset = 0x8FFFFF;
+			entryTable[i].size = entryDevice->GetFileLengthLong(entryFullName.c_str());
+			entryTable[i].virtFlags = flags.flag1;
+			entryTable[i].physFlags = flags.flag2;
+
+			parentDirectoryTable[i] = 0;
+
+			i++;
+		}
+
+		entryCount = i;
+	}
+
+	CollectionData* collectionData = (CollectionData*)m_pad;
+
+	// set the new values
+	collectionData->entryTable = entryTable;
+	collectionData->nameTable = nameTable;
+	collectionData->numEntries = entryCount;
+	collectionData->parentDirectoryTable = parentDirectoryTable;
+
+	collectionData->parentDevice = nullptr;
+	collectionData->unkDevice = nullptr;
+
+	collectionData->parentHandle = -1;
+
+	collectionData->name.Expand(strlen(path) + 2);
+	collectionData->name.Set(strlen(path), 0);
+	strcpy(&collectionData->name.Get(0), path);
+
+	strcpy_s(collectionData->smallName, "gta_ny.rpf");
+
+	collectionData->entryTableAllocSize = sizeof(rage::fiCollection::FileEntry) * (m_streamingFileList.size() + 1);
+	collectionData->keyId = 0;
+
+	static_assert(sizeof(CollectionData) == 176, "m");
+}
+
 static HookFunction hookFunction([] ()
 {
+	assert(offsetof(CollectionData, name) == 120);
+
 	// packfile create
 	hook::call(hook::pattern("4C 8B F0 49 8B 06 49 8B CE FF 90 60 01 00 00 48").count(1).get(0).get<void>(-5), ConstructPackfile);
 
@@ -1204,6 +1405,19 @@ static HookFunction hookFunction([] ()
 
 	g_vTable_fiPackfile = endOffset + *result;
 
+	// initial mount
+	rage::fiDevice::OnInitialMount.Connect([] ()
+	{
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+		std::string pseudoPackPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\pseudopack"));
+
+		// TODO: replace with an empty packfile once suitable
+		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
+		//device->SetPath(pseudoPackPath.c_str(), true);
+		device->SetPath("citizen:/pseudopack/", true);
+		device->Mount("pseudoPack:/");
+	}, 50);
+
 	// resource ptr resolve error
 	hook::call(hook::pattern("B9 3D 27 92 83 E8").count(1).get(0).get<void>(5), DbgError<&ptrError>);
 
@@ -1252,11 +1466,4 @@ static HookFunction hookFunction([] ()
 	} blahHook;
 
 	hook::call(hook::pattern("48 01 83 B0 00 00 00 48 8B 93 B8 00 00 00 48 85").count(1).get(0).get<void>(0x8A - 0x74), blahHook.GetCode());
-
-	// manifest interaction with fwStaticBoundsStore
-	void* boundInt = hook::pattern("48 6B DB 38 48 03 1F 66 44 39 53 10 74 13").count(1).get(0).get<void>(0);
-
-	void* boundAdd = hook::pattern("0F 5C C8 41 8B C0 48 C1 E0 05 48 03 83").count(1).get(0).get<void>(-0x2E);
-
-	__debugbreak();
 });
