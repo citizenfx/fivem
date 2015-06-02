@@ -9,6 +9,10 @@
 #include <Hooking.h>
 
 #include <atArray.h>
+#include <fiDevice.h>
+
+#include <rapidjson/document.h>
+#include <rapidjson/reader.h>
 
 #include <boost/preprocessor.hpp>
 
@@ -94,6 +98,12 @@ public:
 	virtual void m_8() = 0;
 
 	virtual void InitializeFromArchetypeDef(uint32_t nameHash, fwArchetypeDef* archetypeDef, bool) = 0;
+
+public:
+	char pad[36];
+	float radius;
+	float aabbMin[16];
+	float aabbMax[16];
 };
 
 class fwEntityDef
@@ -171,7 +181,14 @@ static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)>
 
 static atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
 
-static void*(*dataFileMgr__getEntries)(void*, int);
+struct DataFileEntry
+{
+	char name[128];
+	char pad[20];
+	int32_t length;
+};
+
+static DataFileEntry*(*dataFileMgr__getEntries)(void*, int);
 
 static void* g_origVT[90];
 
@@ -212,124 +229,382 @@ static hook::cdecl_stub<void(CMapDataContents*, CMapData*, bool, bool)> addToSce
 	return hook::pattern("48 83 EC 50 83 79 18 00 0F 29 70 C8 41 8A F1").count(1).get(0).get<void>(-0x18);
 });
 
+static hook::cdecl_stub<DataFileEntry*(void*, DataFileEntry*)> dataFileMgr__getNextEntry([] ()
+{
+	return hook::pattern("48 89 5C 24 08 0F B7 41 08 44 8B 82 94").count(1).get(0).get<void>();
+});
+
+static fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
+{
+	__try
+	{
+		return getArchetype(archetypeHash, archetypeUnk);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return nullptr;
+	}
+}
+
 static uintptr_t sceneNodeThing;
+
+void ParseArchetypeFile(char* text, size_t length)
+{
+	// null-terminate the input string
+	text[length] = '\0';
+
+	// parse a document
+	rapidjson::Document document;
+	document.Parse(text);
+
+	if (document.HasParseError())
+	{
+		trace("parsing failed: %d\n", document.GetParseError());
+		return;
+	}
+
+	rapidjson::Value entry;
+
+	auto findMember = [&] (const char* name, rapidjson::Value& value)
+	{
+		auto intIt = entry.FindMember(name);
+
+		if (intIt == entry.MemberEnd())
+		{
+			return false;
+		}
+
+		value = intIt->value;
+		return true;
+	};
+
+	auto getVector = [&] (const char* name, float out[])
+	{
+		rapidjson::Value value;
+
+		if (findMember(name, value))
+		{
+			if (value.IsArray())
+			{
+				if (value.Size() >= 3)
+				{
+					out[0] = value[(rapidjson::SizeType)0].GetDouble();
+					out[1] = value[(rapidjson::SizeType)1].GetDouble();
+					out[2] = value[(rapidjson::SizeType)2].GetDouble();
+
+					if (value.Size() >= 4)
+					{
+						out[3] = value[(rapidjson::SizeType)3].GetDouble();
+					}
+
+					return true;
+				}
+			}
+		}
+
+		return false;
+	};
+
+	auto getFloat = [&] (const char* name, float* out)
+	{
+		rapidjson::Value value;
+
+		if (findMember(name, value))
+		{
+			if (value.IsDouble())
+			{
+				*out = value.GetDouble();
+
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	auto getString = [&] (const char* name, const char** out)
+	{
+		rapidjson::Value value;
+
+		if (findMember(name, value))
+		{
+			if (value.IsString())
+			{
+				*out = value.GetString();
+
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	if (document.IsObject())
+	{
+		auto archetypesIt = document.FindMember("archetypes");
+
+		if (archetypesIt != document.MemberEnd())
+		{
+			auto& archetypes = archetypesIt->value;
+
+			if (!archetypes.IsArray())
+			{
+				return;
+			}
+
+			for (auto it = archetypes.Begin(); it != archetypes.End(); it++)
+			{
+				entry = *it;
+
+				if (entry.IsObject())
+				{
+					float aabbMin[3];
+					float aabbMax[3];
+					float centroid[3];
+					float radius;
+					float drawDistance = 300.0f;
+
+					const char* modelName = nullptr;
+					const char* txdName;
+					const char* parentName = nullptr;
+
+					bool valid = true;
+					valid = valid && getVector("aabbMin", aabbMin);
+					valid = valid && getVector("aabbMax", aabbMax);
+					valid = valid && getVector("centroid", centroid);
+					valid = valid && getFloat("radius", &radius);
+
+					getFloat("drawDistance", &drawDistance);
+
+					valid = valid && getString("archetypeName", &modelName);
+					valid = valid && getString("txdName", &txdName);
+
+					getString("lodDictName", &parentName);
+
+					// create the archetype
+					if (valid)
+					{
+						trace("defining %s\n", modelName);
+
+						fwArchetypeDef* archetypeDef = new fwArchetypeDef();
+						archetypeDef->drawDistance = drawDistance;
+
+						archetypeDef->boundingBoxMin[0] = aabbMin[0];
+						archetypeDef->boundingBoxMin[1] = aabbMin[1];
+						archetypeDef->boundingBoxMin[2] = aabbMin[2];
+
+						archetypeDef->boundingBoxMax[0] = aabbMax[0];
+						archetypeDef->boundingBoxMax[1] = aabbMax[1];
+						archetypeDef->boundingBoxMax[2] = aabbMax[2];
+
+						archetypeDef->centroid[0] = centroid[0];
+						archetypeDef->centroid[1] = centroid[1];
+						archetypeDef->centroid[2] = centroid[2];
+
+						archetypeDef->radius = radius;
+
+						archetypeDef->nameHash = HashString(modelName);
+						archetypeDef->txdHash = HashString(txdName);
+
+						if (strcmp(txdName, "null") == 0)
+						{
+							archetypeDef->txdHash = archetypeDef->nameHash;
+						}
+
+						if (parentName)
+						{
+							archetypeDef->dwdHash = HashString(parentName);
+						}
+
+						// assume this is a CBaseModelInfo
+						// TODO: get [mi] from [miPtr]
+						void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->nameHash, 1);
+
+						trace("create\n");
+
+						fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->nameHash);
+
+						trace("get\n");
+
+						// a1 isn't a hash at all, but "lovely" somehow doesn't corrupt things
+						mi->InitializeFromArchetypeDef(HashString("lovely"), archetypeDef, true);
+
+						trace("done!\n");
+
+						// TODO: clean up
+						*(uint32_t*)((char*)mi + 80) &= ~(1 << 31);
+					}
+					else
+					{
+						trace("IDE_FILE archetype %s is invalid...\n", (modelName) ? modelName : "null");
+					}
+				}
+			}
+		}
+
+		auto entitiesIt = document.FindMember("entities");
+
+		if (entitiesIt != document.MemberEnd())
+		{
+			auto& entities = entitiesIt->value;
+
+			if (!entities.IsArray())
+			{
+				return;
+			}
+
+			float aabbMin[3];
+			float aabbMax[3];
+
+			aabbMin[0] = FLT_MAX;
+			aabbMin[1] = FLT_MAX;
+			aabbMin[2] = FLT_MAX;
+
+			aabbMax[0] = 0.0f - FLT_MAX;
+			aabbMax[1] = 0.0f - FLT_MAX;
+			aabbMax[2] = 0.0f - FLT_MAX;
+
+
+			CMapDataContents* contents = makeMapDataContents();
+			contents->entities = new void*[entities.Size()];
+			memset(contents->entities, 0, sizeof(void*) * entities.Size());
+
+			contents->numEntities = entities.Size();
+
+			int i = 0;
+
+			for (auto it = entities.Begin(); it != entities.End(); it++)
+			{
+				entry = *it;
+
+				float position[3];
+				float rotation[4];
+				const char* guid;
+				const char* archetypeName;
+
+				bool valid = true;
+				valid = valid && getVector("position", position);
+				valid = valid && getVector("rotation", rotation);
+				valid = valid && getString("guid", &guid);
+				valid = valid && getString("archetypeName", &archetypeName);
+
+				if (valid)
+				{
+					trace("instantiating %s\n", archetypeName);
+
+					uint32_t archetypeHash = HashString(archetypeName);
+					uint32_t guidHash = HashString(guid);
+
+					uint64_t archetypeUnk = 0xFFFFFFF;
+					fwArchetype* archetype = GetArchetypeSafe(archetypeHash, &archetypeUnk);
+
+					if (archetype)
+					{
+						fwEntityDef* entityDef = new fwEntityDef();
+						entityDef->archetypeNameHash = archetypeHash;
+						entityDef->guidHash = guidHash;
+
+						entityDef->position[0] = position[0];
+						entityDef->position[1] = position[1];
+						entityDef->position[2] = position[2];
+
+						entityDef->rotation[0] = rotation[0];
+						entityDef->rotation[1] = rotation[1];
+						entityDef->rotation[2] = rotation[2];
+						entityDef->rotation[3] = rotation[3];
+
+						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &archetypeUnk);
+
+						contents->entities[i] = entity;
+
+						// update AABB
+						float xMin = position[0] - archetype->radius;
+						float yMin = position[1] - archetype->radius;
+						float zMin = position[2] - archetype->radius;
+
+						float xMax = position[0] + archetype->radius;
+						float yMax = position[1] + archetype->radius;
+						float zMax = position[2] + archetype->radius;
+
+						aabbMin[0] = (xMin < aabbMin[0]) ? xMin : aabbMin[0];
+						aabbMin[1] = (yMin < aabbMin[1]) ? yMin : aabbMin[1];
+						aabbMin[2] = (zMin < aabbMin[2]) ? zMin : aabbMin[2];
+
+						aabbMax[0] = (xMax > aabbMax[0]) ? xMax : aabbMax[0];
+						aabbMax[1] = (yMax > aabbMax[1]) ? yMax : aabbMax[1];
+						aabbMax[2] = (zMax > aabbMax[2]) ? zMax : aabbMax[2];
+					}
+				}
+				else
+				{
+					trace("IDE_FILE entity is invalid...\n");
+				}
+
+				i++;
+			}
+
+			trace("adding to scene...\n");
+
+			CMapData mapData = { 0 };
+			mapData.aabbMax[0] = aabbMax[0];
+			mapData.aabbMax[1] = aabbMax[1];
+			mapData.aabbMax[2] = aabbMax[2];
+			mapData.aabbMax[3] = FLT_MAX;
+
+			mapData.aabbMin[0] = aabbMin[0];
+			mapData.aabbMin[1] = aabbMin[1];
+			mapData.aabbMin[2] = aabbMin[2];
+			mapData.aabbMin[3] = 0.0f - FLT_MAX;
+
+			mapData.unkBool = 2;
+
+			addToScene(contents, &mapData, false, false);
+		}
+	}
+}
+
+void LoadArchetypeFiles(void* dataFileMgr)
+{
+	DataFileEntry* entry = dataFileMgr__getEntries(dataFileMgr, 1);
+
+	std::vector<char> fileBuffer;
+
+	while (entry->length >= 0)
+	{
+		rage::fiDevice* device = rage::fiDevice::GetDevice(entry->name, true);
+
+		if (device)
+		{
+			uint64_t handle = device->Open(entry->name, true);
+
+			if (handle != -1)
+			{
+				int length = device->GetFileLength(handle);
+
+				if (fileBuffer.size() < length)
+				{
+					fileBuffer.resize(length + 1);
+				}
+
+				size_t readLength = device->Read(handle, &fileBuffer[0], length);
+
+				device->Close(handle);
+
+				trace("parsing archetype %s...\n", entry->name);
+
+				ParseArchetypeFile(&fileBuffer[0], length);
+
+				trace("done!\n");
+			}
+		}
+
+		entry = dataFileMgr__getNextEntry(dataFileMgr, entry);
+	}
+}
 
 static void* DoBeforeGetEntries(void* dataFileMgr, int type)
 {
-	uint32_t modelHash = HashString("lovely");
-	//uint32_t modelHash = HashString("bh1_07_build2");
-
-	fwArchetypeDef* archetypeDef = new fwArchetypeDef();
-	archetypeDef->boundingBoxMin[0] = -60.0f;
-	archetypeDef->boundingBoxMin[1] = -60.0f;
-	archetypeDef->boundingBoxMin[2] = -60.0f;
-
-	archetypeDef->boundingBoxMax[0] = 60.0f;
-	archetypeDef->boundingBoxMax[1] = 60.0f;
-	archetypeDef->boundingBoxMax[2] = 60.0f;
-
-	archetypeDef->centroid[0] = 0;
-	archetypeDef->centroid[1] = 0;
-	archetypeDef->centroid[2] = 0;
-
-	archetypeDef->radius = 300.0f;
-
-	archetypeDef->nameHash = modelHash;
-	archetypeDef->txdHash = modelHash;
-
-	//void* lovelyR = (*g_archetypeFactories)[1]->GetOrCreate(modelHash, 1);
-
-	trace("HEY YOU\n");
-
-	fwArchetype* lovely = nullptr;//(*g_archetypeFactories)[1]->Get(modelHash);
-
-	trace("initial lovely: %p\n", lovely);
-
-	if (!lovely)
-	{
-		void* lovelyR = g_archetypeFactories->Get(1)->GetOrCreate(modelHash, 1);
-
-		lovely = g_archetypeFactories->Get(1)->Get(modelHash);
-
-		lovely->InitializeFromArchetypeDef(modelHash, archetypeDef, true);
-
-		*(uint32_t*)((char*)lovely + 80) &= ~(1 << 31);
-	}
-
-	//lovely->InitializeFromArchetypeDef(modelHash, archetypeDef, true);
-
-	// unset some 'is from maptype' thing
-	//*(uint32_t*)((char*)lovely + 80) &= ~(1 << 31);
-
-	uint64_t archetypeUnk = 0xFFFFFFF;
-	fwArchetype* lovely2 = getArchetype(modelHash, &archetypeUnk);
-
-	assert(lovely && lovely2);
-
-	trace("lovely %p - lovely2 %p\n", lovely, lovely2);
-
-	fwEntityDef* entityDef = new fwEntityDef();
-	entityDef->archetypeNameHash = modelHash;
-	entityDef->guidHash = 0xCA3ECA3E;
-
-	entityDef->position[0] = -426.858f; entityDef->position[1] = -957.54f; entityDef->position[2] = 3.621f;
-	entityDef->rotation[0] = 0;
-	entityDef->rotation[1] = 0;
-	entityDef->rotation[2] = 0;
-	entityDef->rotation[3] = 1;
-
-	void* entity = fwEntityDef__instantiate(entityDef, 0, lovely2, &archetypeUnk);
-
-	void** vtableRef = (void**)(entity);
-	static void* customVT[90];
-
-	memcpy(customVT, *vtableRef, sizeof(customVT));
-	*vtableRef = customVT;
-
-	memcpy(g_origVT, customVT, sizeof(g_origVT));
-
-#define SET_VT(z, i, d) customVT[i] = CustomVTWrapper<i>;
-
-	BOOST_PP_REPEAT(90, SET_VT, nullptr);
-
-	assert(entity);
-
-	trace("entity: %p\n", entity);
-
-	CMapDataContents* contents = makeMapDataContents();
-	contents->entities = new void*[1];
-	contents->entities[0] = entity;
-	contents->numEntities = 1;
-
-	CMapData mapData = { 0 };
-	/*mapData.aabbMin[0] = -300.0f;
-	mapData.aabbMin[1] = -1300.0f;
-	mapData.aabbMin[2] = -100.0f;
-
-	mapData.aabbMax[0] = 300.0f;
-	mapData.aabbMax[1] = 1300.0f;
-	mapData.aabbMax[2] = 100.0f;*/
-
-	mapData.aabbMax[0] = FLT_MAX;
-	mapData.aabbMax[1] = FLT_MAX;
-	mapData.aabbMax[2] = FLT_MAX;
-	mapData.aabbMax[3] = FLT_MAX;
-
-	mapData.aabbMin[0] = 0.0f - FLT_MAX;
-	mapData.aabbMin[1] = 0.0f - FLT_MAX;
-	mapData.aabbMin[2] = 0.0f - FLT_MAX;
-	mapData.aabbMin[3] = 0.0f - FLT_MAX;
-
-	mapData.unkBool = 2;
-
-	trace("scene node before: %p\n", contents->sceneNodes);
-
-	//addToScene(contents, &mapData, false, true);
-	addToScene(contents, &mapData, false, false);
-
-	trace("scene node after: %p %p\n", contents->sceneNodes, *(uintptr_t*)((char*)contents->sceneNodes + 24));
-
-	sceneNodeThing = *(uintptr_t*)((char*)contents->sceneNodes + 24);
+	LoadArchetypeFiles(dataFileMgr);
 
 	return dataFileMgr__getEntries(dataFileMgr, type);
 }
@@ -347,6 +622,10 @@ static HookFunction hookFunction([] ()
 	void* getEntries = hook::pattern("BA 03 00 00 00 E8 ? ? ? ? 45 33 E4 B9 20").count(1).get(0).get<void>(5);
 	hook::set_call(&dataFileMgr__getEntries, getEntries);
 	hook::call(getEntries, DoBeforeGetEntries);
+
+	// rename IDE_FILE to ARCHETYPE_FILE
+	uint32_t* ideFile = hook::pattern("E3 94 FB CB 01 00 00 00").count(1).get(0).get<uint32_t>();
+	*ideFile = HashRageString("ARCHETYPE_FILE");
 
 	// yolo
 	//hook::nop(hook::pattern("0F 50 C0 83 E0 07 3C 07 0F 94 C1 85 D1 74 43").count(1).get(0).get<void>(13), 2);
