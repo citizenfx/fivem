@@ -21,6 +21,10 @@ private:
 	uint32_t m_oldRasterizerState;
 
 	uint32_t m_oldDepthStencilState;
+
+	uint32_t m_oldSamplerState;
+
+	uint32_t m_pointSamplerState;
 #endif
 
 public:
@@ -35,6 +39,13 @@ public:
 	virtual void InvokeOnRender(void(*cb)(void*), void* arg);
 
 	virtual void DrawRectangles(int numRectangles, const ResultingRectangle* rectangles);
+
+#ifdef _HAVE_GRCORE_NEWSTATES
+	inline void SetPointSamplerState(uint32_t state)
+	{
+		m_pointSamplerState = state;
+	}
+#endif
 };
 
 class GtaFontTexture : public FontRendererTexture
@@ -100,6 +111,12 @@ FontRendererTexture* GtaGameInterface::CreateTexture(int width, int height, Font
 
 void GtaGameInterface::SetTexture(FontRendererTexture* texture)
 {
+#ifdef _HAVE_GRCORE_NEWSTATES
+	m_oldSamplerState = GetImDiffuseSamplerState();
+
+	SetImDiffuseSamplerState(m_pointSamplerState);
+#endif
+
 	SetTextureGtaIm(static_cast<GtaFontTexture*>(texture)->GetTexture());
 
 #ifndef _HAVE_GRCORE_NEWSTATES
@@ -214,6 +231,7 @@ void GtaGameInterface::UnsetTexture()
 	SetRasterizerState(m_oldRasterizerState);
 	SetBlendState(m_oldBlendState);
 	SetDepthStencilState(m_oldDepthStencilState);
+	SetImDiffuseSamplerState(m_oldSamplerState);
 #endif
 }
 
@@ -268,6 +286,17 @@ static InitFunction initFunction([] ()
 {
 	static std::random_device random_core;
 	static std::mt19937 random(random_core());
+
+#ifdef _HAVE_GRCORE_NEWSTATES
+	OnGrcCreateDevice.Connect([] ()
+	{
+		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		samplerDesc.MaxAnisotropy = 0;
+
+		g_gtaGameInterface.SetPointSamplerState(CreateSamplerState(&samplerDesc));
+	});
+#endif
 
 	OnPostFrontendRender.Connect([=] ()
 	{

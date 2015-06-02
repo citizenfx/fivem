@@ -1,5 +1,7 @@
 #pragma once
 
+#include <d3d11.h>
+
 #include "grcTexture.h"
 
 #define _HAVE_GRCORE_NEWSTATES 1
@@ -31,6 +33,11 @@ void GAMESPEC_EXPORT PopDrawBlitImShader();
 
 void GAMESPEC_EXPORT SetTextureGtaIm(rage::grcTexture* texture);
 void GAMESPEC_EXPORT DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, float v1, float u2, float v2, uint32_t* color, int subShader);
+
+uint32_t GAMESPEC_EXPORT CreateSamplerState(const D3D11_SAMPLER_DESC* desc);
+uint32_t GAMESPEC_EXPORT GetImDiffuseSamplerState();
+void GAMESPEC_EXPORT SetImDiffuseSamplerState(uint32_t samplerStateIdentifier);
+
 
 // new state system
 uint32_t GAMESPEC_EXPORT GetRasterizerState();

@@ -337,6 +337,42 @@ uint32_t GetStockStateIdentifier(StateType state)
 	return 0;
 }
 
+static hook::cdecl_stub<uint32_t(void* shaderGroup, void*, int sampler)> getSamplerState([] ()
+{
+	return hook::get_call(hook::pattern("48 8D 91 88 02 00 00 44 0F 29 54 24 60 44 0F").count(1).get(0).get<void>(25));
+});
+
+static hook::cdecl_stub<void(void* shaderGroup, void*, int sampler, uint32_t)> setSamplerState([] ()
+{
+	return hook::get_call(hook::pattern("48 8D 91 88 02 00 00 44 0F 29 54 24 60 44 0F").count(1).get(0).get<void>(25 + 36));
+});
+
+static hook::cdecl_stub<uint32_t(const D3D11_SAMPLER_DESC*)> createSamplerState([] ()
+{
+	return hook::get_call(hook::pattern("54 03 00 00 00 C7 44 24 58 03 00 00 00").count(1).get(0).get<void>(13));
+});
+
+static int* g_imDiffuseSampler;
+
+uint32_t CreateSamplerState(const D3D11_SAMPLER_DESC* desc)
+{
+	return createSamplerState(desc);
+}
+
+uint32_t GetImDiffuseSamplerState()
+{
+	char* struc = *(char**)((*gtaImShader) + 8);
+
+	return getSamplerState(struc, (void*)(*gtaImShader), *g_imDiffuseSampler);
+}
+
+void SetImDiffuseSamplerState(uint32_t samplerStateIdentifier)
+{
+	char* struc = *(char**)((*gtaImShader) + 8);
+
+	setSamplerState(struc, (void*)(*gtaImShader), *g_imDiffuseSampler, samplerStateIdentifier);
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* location = hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<char>(-4);
@@ -356,6 +392,11 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("3B C2 74 13 80 0D ? ? ? ? 01 89").count(1).get(0).get<char>(13);
 
 	g_nextDepthStencilState = (uint32_t*)(*(int32_t*)location + location + 4);
+
+	// sampler state stuff
+	location = hook::pattern("48 8B D9 4C 8B C9 48 8B 0D").count(1).get(0).get<char>(-4);
+
+	g_imDiffuseSampler = (int*)(*(int32_t*)location + location + 4);
 
 	// resolution
 	location = hook::pattern("C7 05 ? ? ? ? 00 05 00 00").count(1).get(0).get<char>(2);
