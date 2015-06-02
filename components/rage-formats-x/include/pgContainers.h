@@ -58,8 +58,6 @@ public:
 
 	TValue& Get(TIndex offset)
 	{
-		assert(offset < m_count);
-
 		return (*m_offset)[offset];
 	}
 
@@ -350,29 +348,32 @@ public:
 		// allocate a temporary list of pairs to sort from
 		std::vector<std::pair<uint32_t, TValue*>> values(dictionary->GetCount());
 
-		std::copy(dictionary->begin(), dictionary->end(), values.begin());
-		std::sort(values.begin(), values.end(), [] (const auto& left, const auto& right)
+		if (dictionary->GetCount())
 		{
-			return (left.first < right.first);
-		});
+			std::copy(dictionary->begin(), dictionary->end(), values.begin());
+			std::sort(values.begin(), values.end(), [] (const auto& left, const auto& right)
+			{
+				return (left.first < right.first);
+			});
 
-		// copy each into a smaller array of values to pass to SetFrom
-		std::vector<uint32_t> fromKeys(values.size());
-		std::vector<pgPtr<TValue>> fromValues(values.size());
+			// copy each into a smaller array of values to pass to SetFrom
+			std::vector<uint32_t> fromKeys(values.size());
+			std::vector<pgPtr<TValue>> fromValues(values.size());
 
-		int i = 0;
+			int i = 0;
 
-		for (auto& pair : values)
-		{
-			fromKeys[i] = pair.first;
-			fromValues[i] = pair.second;
+			for (auto& pair : values)
+			{
+				fromKeys[i] = pair.first;
+				fromValues[i] = pair.second;
 
-			i++;
+				i++;
+			}
+
+			// and set the local arrays from each
+			m_hashes.SetFrom(&fromKeys[0], fromKeys.size());
+			m_values.SetFrom(&fromValues[0], fromValues.size());
 		}
-
-		// and set the local arrays from each
-		m_hashes.SetFrom(&fromKeys[0], fromKeys.size());
-		m_values.SetFrom(&fromValues[0], fromValues.size());
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)

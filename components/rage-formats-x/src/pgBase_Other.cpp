@@ -25,6 +25,11 @@ FORMATS_EXPORT rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName)
 {
 	FILE* f = _wfopen(fileName, L"rb");
 
+	if (!f)
+	{
+		return nullptr;
+	}
+
 	fseek(f, 0, SEEK_END);
 	size_t fileLength = ftell(f) - 12;
 	fseek(f, 0, SEEK_SET);
@@ -35,7 +40,7 @@ FORMATS_EXPORT rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName)
 	uint32_t version;
 	fread(&version, 1, sizeof(version), f);
 
-	assert(version == 110 || version == 32);
+	assert(version == 110 || version == 32 || version == 8);
 
 	uint32_t flags;
 	fread(&flags, 1, sizeof(flags), f);

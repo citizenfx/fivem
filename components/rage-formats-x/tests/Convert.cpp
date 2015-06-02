@@ -27,26 +27,76 @@ void ConvertDrawableInternal(const wchar_t* fileName)
 {
 	rage::ny::BlockMap* bm = UnwrapRSC5(fileName);
 
-	rage::ny::pgStreamManager::SetBlockInfo(bm);
-	//rage::ny::gtaDrawable* drawable = (rage::ny::gtaDrawable*)bm->blocks[0].data;
-	rage::ny::datOwner<rage::ny::phBound>* bound = (rage::ny::datOwner<rage::ny::phBound>*)bm->blocks[0].data;
-	//ddrawable->Resolve(&bm);
+	if (!bm)
+	{
+		trace("couldn't open input file...\n");
+		return;
+	}
 
+	std::wstring fileExt = std::wstring(wcsrchr(fileName, L'.'));
+
+	rage::ny::pgStreamManager::SetBlockInfo(bm);
 	auto bm2 = rage::five::pgStreamManager::BeginPacking();
-	//auto cdrawable = rage::convert<rage::five::gtaDrawable*>(drawable);
-	auto cdrawable = rage::convert<rage::five::phBound*>(bound->GetChild());
+
+	int fileVersion = 0;
+
+	if (fileExt == L".wbn")
+	{
+		trace("converting bound...\n");
+
+		auto bound = (rage::ny::datOwner<rage::ny::phBound>*)bm->blocks[0].data;
+		rage::convert<rage::five::phBound*>(bound->GetChild());
+
+		fileVersion = 43;
+	}
+	else if (fileExt == L".wdr")
+	{
+		trace("converting drawable...\n");
+
+		auto drawable = (rage::ny::gtaDrawable*)bm->blocks[0].data;
+		rage::convert<rage::five::gtaDrawable*>(drawable);
+
+		fileVersion = 165;
+	}
+	else if (fileExt == L".wtd")
+	{
+		trace("converting txd...\n");
+
+		auto txd = (rage::ny::pgDictionary<rage::ny::grcTexturePC>*)bm->blocks[0].data;
+		rage::convert<rage::five::pgDictionary<rage::five::grcTexturePC>*>(txd);
+
+		fileVersion = 13;
+	}
+	else
+	{
+		trace("unknown file extension...\n");
+
+		return;
+	}
+
 	rage::five::pgStreamManager::EndPacking();
 
 	std::wstring outFileName(fileName);
-	outFileName = outFileName.substr(0, outFileName.length() - 3) + L"ybn";
+	outFileName = outFileName.substr(0, outFileName.length() - 3) + L"y" + fileExt.substr(2);
 
 	FILE* f = _wfopen(outFileName.c_str(), L"wb");
-	//FILE* f = _wfopen(L"X:\\gta\\iv\\citizenmp\\citizenmp\\bin\\five\\debug\\citizen\\platform\\levels\\gta5\\_cityw\\beverly_01\\bh1_07\\bh1_07_0.ybn", L"wb");
 
-	bm2->Save(43 /* 165 */, [&] (const void* d, size_t s)
+	if (!f)
+	{
+		trace("... couldn't open output file for writing.\n");
+		return;
+	}
+
+	size_t outputSize = 0;
+
+	bm2->Save(fileVersion, [&] (const void* d, size_t s)
 	{
 		fwrite(d, 1, s, f);
+
+		outputSize += s;
 	});
+
+	trace("written successfully - compressed size %d\n", outputSize);
 
 	fclose(f);
 
@@ -58,20 +108,9 @@ void ConvertDrawableInternal(const wchar_t* fileName)
 	delete bm;
 }
 
-void ConvertDrawable()
+void ConvertDrawable(const wchar_t* from)
 {
-	WIN32_FIND_DATA findData;
-	HANDLE findHandle = FindFirstFile(L"Y:\\dev\\ydr\\speed2\\*.wbn", &findData);
-
-	if (findHandle != INVALID_HANDLE_VALUE)
-	{
-		do 
-		{
-			ConvertDrawableInternal(va(L"Y:\\dev\\ydr\\speed2\\%s", findData.cFileName));
-		} while (FindNextFile(findHandle, &findData));
-
-		FindClose(findHandle);
-	}
+	ConvertDrawableInternal(from);
 
 #if 0
 	FILE* f = fopen("Y:/dev/ydr/stat_hilberty01.wdr.sys", "rb");

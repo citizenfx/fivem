@@ -709,13 +709,9 @@ private:
 public:
 	inline pgDictionary<grcTexturePC>* GetTextures() { return *m_textures; }
 
-	inline void SetTextures(pgDictionary<grcTexturePC>& textureDict)
+	inline void SetTextures(pgDictionary<grcTexturePC>* textureDict)
 	{
-		pgDictionary<grcTexturePC>* newDict = new(false) pgDictionary<grcTexturePC>();
-
-		newDict->SetFrom(&textureDict);
-
-		m_textures = newDict;
+		m_textures = textureDict;
 	}
 
 	inline uint16_t GetNumShaders()

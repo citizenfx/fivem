@@ -177,6 +177,13 @@ public:
 #endif
 	}
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline void SetUnkFloat(float value)
+	{
+		m_unkFloat = value;
+	}
+#endif
+
 	inline const phVector3& GetCG() const
 	{
 		return m_cg;
@@ -769,6 +776,19 @@ private:
 #endif
 
 public:
+	inline phBoundBVH()
+		: phBoundGeometry()
+	{
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_unkBvhShort1 = 0xFFFF;
+		m_unkBvhPtr1 = 0;
+
+		memset(m_bvhPad, 0, sizeof(m_bvhPad));
+
+		SetType(phBoundType::BVH);
+#endif
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		phBoundGeometry::Resolve(blockMap);

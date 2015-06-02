@@ -68,12 +68,27 @@ void* MakeMatrix(float a1, float a2, float a3, float a4, float a5, float a6, flo
 	return ret;
 }
 
-void ConvertDrawable();
+void ConvertDrawable(const wchar_t* from);
 
 //#include <d3dcompiler.h>
 //#pragma comment(lib, "d3dcompiler.lib")
 
 void LoadBoundFour();
+
+struct PolyEdge
+{
+	uint32_t edges[3];
+};
+
+struct PolyEdgeMap
+{
+	uint32_t left;
+	uint32_t right;
+};
+
+#include <shellapi.h>
+
+#pragma comment(lib, "shell32.lib")
 
 int main(int argc, char **argv)
 {
@@ -118,7 +133,7 @@ int main(int argc, char **argv)
 	//LoadBoundFour();
 	//return 0;
 
-#if 1
+#if 0
 	ValidateSizePh<phBound, 112>();
 	ValidateSizePh<phBoundComposite, 176>();
 	ValidateSizePh<phBoundPolyhedron, 240>();
@@ -127,16 +142,19 @@ int main(int argc, char **argv)
 	ValidateSizePh<phBVH, 128>();
 
 	char* buffers2 = new char[1089536];
-	FILE* f2 = fopen("Y:/dev/ydr/bh1_07_0.ybn.seg", "rb");
-	fread(buffers2, 1, 1089536, f2);
+	//FILE* f2 = fopen("Y:/dev/ydr/bh1_07_0.ybn.seg", "rb");
+	FILE* f2 = fopen("X:/dev/bh1_07_0.ybn.seg", "rb");
+	size_t len = fread(buffers2, 1, 1089536, f2);
 	fclose(f2);
 
 	BlockMap bm2;
 	bm2.virtualLen = 1;
 	bm2.physicalLen = 0;
+	bm2.baseAllocationSize[0] = 0x2000;
+	bm2.baseAllocationSize[1] = 0x2000;
 	bm2.blocks[0].data = buffers2;
 	bm2.blocks[0].offset = 0;
-	bm2.blocks[0].size = 1089536;
+	bm2.blocks[0].size = len;
 
 	pgStreamManager::SetBlockInfo(&bm2);
 	phBoundComposite* bound = (phBoundComposite*)buffers2;
@@ -146,18 +164,18 @@ int main(int argc, char **argv)
 	{
 		phBoundBVH* childBound = static_cast<phBoundBVH*>(bound->GetChildBound(idx));
 		childBound->Resolve(&bm2);
-
-		std::vector<phBoundPoly> polys(childBound->GetNumPolygons());
-
-		memcpy(&polys[0], childBound->GetPolygons(), sizeof(phBoundPoly) * polys.size());
-
-		//__debugbreak();
 	}
-	
-	//return 0;
 #endif
 
-	ConvertDrawable();
+	wchar_t** wargv = CommandLineToArgvW(GetCommandLine(), &argc);
+
+	if (argc == 3)
+	{
+		if (_wcsicmp(wargv[1], L"convert") == 0)
+		{
+			ConvertDrawable(wargv[2]);
+		}
+	}
 	return 0;
 
 	char* buffer = new char[2089536];

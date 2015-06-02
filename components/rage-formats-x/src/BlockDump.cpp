@@ -240,7 +240,11 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 		return flag;
 	};
 
-	uint32_t virtFlags = (version & 0xF0) << 24 | calcFlag(false, &virtualOut);
+	size_t base = 0x2000;
+	size_t flag = 0x1890;
+	virtualOut = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * base);
+
+	uint32_t virtFlags = (version & 0xF0) << 24 | /*0x1890;*/calcFlag(false, &virtualOut);
 	uint32_t physFlags = (version & 0x0F) << 28 | calcFlag(true, &physicalOut);
 
 	//uint32_t virtFlags = (version & 0xF0) << 24 | 0xE0040;

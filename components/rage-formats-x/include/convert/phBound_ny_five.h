@@ -20,6 +20,7 @@
 
 #include <convert/base.h>
 
+#include <map>
 #include <vector>
 
 namespace rage
@@ -52,7 +53,9 @@ five::phBoundComposite* convert(ny::phBoundComposite* bound)
 
 	fillBaseBound(out, bound);
 
-	out->SetUnkVector(five::phVector3(256.436523f, 413.156311f, 451.682312f));
+	out->SetUnkFloat(5.0f);
+
+	//out->SetUnkVector(five::phVector3(256.436523f, 413.156311f, 451.682312f));
 
 	// convert child bounds
 	uint16_t childCount = bound->GetNumChildBounds();
@@ -104,10 +107,10 @@ five::phBoundComposite* convert(ny::phBoundComposite* bound)
 static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBoundPolyhedron* in)
 {
 	auto& quantum = in->GetQuantum();
-	out->SetQuantum(five::Vector4(quantum.x, quantum.y, quantum.z, quantum.w));
+	out->SetQuantum(five::Vector4(quantum.x, quantum.y, quantum.z, /*quantum.w*/7.62962742e-008));
 
 	auto& offset = in->GetVertexOffset();
-	out->SetVertexOffset(five::Vector4(offset.x, offset.y, offset.z, offset.w));
+	out->SetVertexOffset(five::Vector4(offset.x, offset.y, offset.z, /*offset.w*/0.0025f));
 
 	// vertices
 	ny::phBoundVertex* vertices = in->GetVertices();
@@ -145,7 +148,13 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 		return cross.Length() / 2.0f;
 	};
 
+	struct PolyEdge
+	{
+		uint32_t edges[3];
+	};
+
 	std::vector<five::phBoundPoly> outPolys;
+	std::vector<PolyEdge> outPolyEdges;
 
 	for (uint16_t i = 0; i < numPolys; i++)
 	{
@@ -155,9 +164,6 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 		outPoly.poly.v1 = poly.indices[0];
 		outPoly.poly.v2 = poly.indices[1];
 		outPoly.poly.v3 = poly.indices[2];
-		outPoly.poly.e1 = poly.edges[0];
-		outPoly.poly.e2 = poly.edges[1];
-		outPoly.poly.e3 = poly.edges[2];
 		outPoly.poly.triangleArea = calculateArea(outPoly);
 		outPoly.type = 0;
 
@@ -168,14 +174,96 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 			outPoly.poly.v1 = poly.indices[2];
 			outPoly.poly.v2 = poly.indices[3];
 			outPoly.poly.v3 = poly.indices[0];
-			outPoly.poly.e1 = poly.edges[2];
-			outPoly.poly.e2 = poly.edges[3];
-			outPoly.poly.e3 = poly.edges[0];
 			outPoly.poly.triangleArea = calculateArea(outPoly);
 			outPoly.type = 0;
 
 			outPolys.push_back(outPoly);
 		}
+	}
+
+	auto makeEdge = [] (uint16_t a, uint16_t b)
+	{
+		if (a < b)
+		{
+			return (a << 16) | b;
+		}
+		else
+		{
+			return (b << 16) | a;
+		}
+	};
+
+	struct PolyEdgeMap
+	{
+		uint32_t left;
+		uint32_t right;
+	};
+
+	std::map<uint32_t, PolyEdgeMap> edgeMapping;
+
+	for (int i = 0; i < outPolys.size(); i++)
+	{
+		auto& outPoly = outPolys[i];
+
+		PolyEdge edge;
+		edge.edges[0] = makeEdge(outPoly.poly.v1, outPoly.poly.v2);
+		edge.edges[1] = makeEdge(outPoly.poly.v2, outPoly.poly.v3);
+		edge.edges[2] = makeEdge(outPoly.poly.v3, outPoly.poly.v1);
+		outPolyEdges.push_back(edge);
+
+		for (int j = 0; j < 3; j++)
+		{
+			auto it = edgeMapping.find(edge.edges[j]);
+
+			if (it == edgeMapping.end())
+			{
+				PolyEdgeMap map;
+				map.left = i;
+				map.right = -1;
+
+				edgeMapping[edge.edges[j]] = map;
+			}
+			else
+			{
+				auto& edgeMap = it->second;
+
+				if (edgeMap.right == -1)
+				{
+					edgeMap.right = i;
+				}
+			}
+		}
+	}
+
+	auto findEdge = [&] (int i, int edgeIdx) -> int16_t
+	{
+		auto& edge = outPolyEdges[i].edges[edgeIdx];
+		auto& map = edgeMapping[edge];
+
+		if (map.right == -1)
+		{
+			return -1;
+		}
+		else
+		{
+			if (map.left == i)
+			{
+				return map.right;
+			}
+			else
+			{
+				return map.left;
+			}
+		}
+	};
+
+	for (int i = 0; i < outPolys.size(); i++)
+	{
+		auto& outPoly = outPolys[i];
+
+		outPoly.poly.e1 = findEdge(i, 0);
+		outPoly.poly.e2 = findEdge(i, 1);
+		outPoly.poly.e3 = findEdge(i, 2);
 	}
 
 	out->SetPolys(outPolys.size(), &outPolys[0]);
@@ -207,6 +295,18 @@ five::phBoundGeometry* convert(ny::phBoundGeometry* bound)
 	return out;
 }
 
+template<>
+five::phBoundBVH* convert(ny::phBoundBVH* bound)
+{
+	auto out = new(false) five::phBoundBVH;
+
+	fillBaseBound(out, bound);
+	fillPolyhedronBound(out, bound);
+	fillGeometryBound(out, bound);
+
+	return out;
+}
+
 static five::phBound* convertBoundToFive(ny::phBound* bound)
 {
 	switch (bound->GetType())
@@ -217,9 +317,11 @@ static five::phBound* convertBoundToFive(ny::phBound* bound)
 		case ny::phBoundType::Composite:
 			return convert<five::phBoundComposite*>(static_cast<ny::phBoundComposite*>(bound));
 
-		case ny::phBoundType::BVH:
 		case ny::phBoundType::Geometry:
 			return convert<five::phBoundGeometry*>(static_cast<ny::phBoundGeometry*>(bound));
+
+		case ny::phBoundType::BVH:
+			return convert<five::phBoundBVH*>(static_cast<ny::phBoundBVH*>(bound));
 	}
 
 	return nullptr;

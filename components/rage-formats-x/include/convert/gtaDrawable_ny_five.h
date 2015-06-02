@@ -47,17 +47,14 @@ extern FORMATS_EXPORT std::map<int, void*> g_vbMapping;
 extern FORMATS_EXPORT std::map<int, void*> g_ibMapping;
 
 template<>
-five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
+five::pgDictionary<five::grcTexturePC>* convert(ny::pgDictionary<ny::grcTexturePC>* txd)
 {
-	auto out = new(false) five::grmShaderGroup;
+	five::pgDictionary<five::grcTexturePC>* out = new(false) five::pgDictionary<five::grcTexturePC>();
+	five::pgDictionary<five::grcTexturePC> newTextures;
 
-	auto texDict = shaderGroup->GetTextures();
-
-	if (texDict)
+	if (txd->GetCount()) // amazingly there's 0-sized TXDs?
 	{
-		five::pgDictionary<five::grcTexturePC> newTextures;
-		
-		for (auto& texture : *texDict)
+		for (auto& texture : *txd)
 		{
 			ny::grcTexturePC* nyTexture = texture.second;
 			five::grcTexturePC* fiveTexture = new(false) five::grcTexturePC(
@@ -67,7 +64,7 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 				nyTexture->GetStride(),
 				nyTexture->GetLevels(),
 				nyTexture->GetPixelData()
-			);
+				);
 
 			fiveTexture->SetName(nyTexture->GetName());
 
@@ -75,8 +72,23 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 			newTextures.Add(texture.first, fiveTexture);
 		}
+	}
 
-		out->SetTextures(newTextures);
+	out->SetFrom(&newTextures);
+
+	return out;
+}
+
+template<>
+five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
+{
+	auto out = new(false) five::grmShaderGroup;
+
+	auto texDict = shaderGroup->GetTextures();
+
+	if (texDict)
+	{
+		out->SetTextures(convert<five::pgDictionary<five::grcTexturePC>*>(texDict));
 	}
 
 	five::pgPtr<five::grmShaderFx> newShaders[64];
@@ -123,7 +135,8 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			if (newSamplerName)
 			{
 				ny::grcTexturePC* texture = reinterpret_cast<ny::grcTexturePC*>(oldEffect.GetParameterValue(j));
-				const char* textureName = texture->GetName();
+
+				const char* textureName = (texture) ? texture->GetName() : "none";
 
 				// look up if we just created one of these as local texture
 				bool found = false;
@@ -265,15 +278,20 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 			{
 				Vector4* oldBounds = oldModel->GetGeometryBounds();
 
-				std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount());
-
-				for (int i = 0; i < geometryBounds.size(); i++)
+				if (oldBounds)
 				{
-					geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
-					geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
-				}
+					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount());
 
-				newModel->SetGeometryBounds(geometryBounds.size(), &geometryBounds[0]);
+					for (int i = 0; i < geometryBounds.size(); i++)
+					{
+						oldBounds[i].w *= 2;
+
+						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
+						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
+					}
+
+					newModel->SetGeometryBounds(geometryBounds.size(), &geometryBounds[0]);
+				}
 			}
 		}
 	}
