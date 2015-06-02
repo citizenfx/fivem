@@ -495,6 +495,11 @@ void ParseArchetypeFile(char* text, size_t length)
 					uint32_t archetypeHash = HashString(archetypeName);
 					uint32_t guidHash = HashString(guid);
 
+					if (_strnicmp(archetypeName, "hash:", 5) == 0)
+					{
+						archetypeHash = _atoi64(&archetypeName[5]);
+					}
+
 					uint64_t archetypeUnk = 0xFFFFFFF;
 					fwArchetype* archetype = GetArchetypeSafe(archetypeHash, &archetypeUnk);
 
