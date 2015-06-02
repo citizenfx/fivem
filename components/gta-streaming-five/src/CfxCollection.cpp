@@ -1344,6 +1344,30 @@ void CfxCollection::InitializePseudoPack(const char* path)
 	static_assert(sizeof(CollectionData) == 176, "m");
 }
 
+static void(*g_origGeomThing)(void*, void*);
+
+static hook::cdecl_stub<bool(void*)> calculateBVH([] ()
+{
+	return hook::pattern("B9 80 00 00 00 44 0F 29 48 88 44 0F").count(1).get(0).get<void>(-0x36);
+});
+
+static void DoGeomThing(char* a1, void* a2)
+{
+	g_origGeomThing(a1, a2);
+
+	if (*(uintptr_t*)(a1 + 304) == 0)
+	{
+		calculateBVH(a1);
+	}
+}
+
+static void(*g_origBvhSet)(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int64_t a5, int64_t a6, int64_t a7);
+
+static void BvhSet(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int64_t a5, int64_t a6, int64_t a7)
+{
+	return g_origBvhSet(a1, a2, a3, a4, 0, 1, a7);
+}
+
 static HookFunction hookFunction([] ()
 {
 	assert(offsetof(CollectionData, name) == 120);
@@ -1466,4 +1490,15 @@ static HookFunction hookFunction([] ()
 	} blahHook;
 
 	hook::call(hook::pattern("48 01 83 B0 00 00 00 48 8B 93 B8 00 00 00 48 85").count(1).get(0).get<void>(0x8A - 0x74), blahHook.GetCode());
+
+	// boundbvh -> boundgeometry :d
+	hook::set_call(&g_origGeomThing, hook::pattern("EB 4E 48 8B D1 48 8B CB E8").count(1).get(0).get<void>(8));
+
+	hook::call(hook::pattern("EB 4E 48 8B D1 48 8B CB E8").count(1).get(0).get<void>(8), DoGeomThing);
+
+	// somehow this doesn't set a6 for the func; wrap it
+	void* bvhFunc = hook::pattern("48 89 4C 24 20 48 8B 8F 30 01 00 00 49 8B D5").count(1).get(0).get<void>(15);
+
+	hook::set_call(&g_origBvhSet, bvhFunc);
+	hook::call(bvhFunc, BvhSet);
 });
