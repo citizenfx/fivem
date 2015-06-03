@@ -70,6 +70,12 @@ void ConHost_Run()
 	wcstombs(filePath, filePathStr.c_str(), _countof(filePath));
 
 	MonoAssembly* monoAssembly = mono_domain_assembly_open(g_rootDomain, filePath);
+
+	if (!monoAssembly)
+	{
+		return;
+	}
+
 	MonoImage* monoImage = mono_assembly_get_image(monoAssembly);
 
 	// load a side assembly

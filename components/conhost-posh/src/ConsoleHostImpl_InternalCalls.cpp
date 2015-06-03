@@ -6,6 +6,7 @@
  */
 
 #include "StdInc.h"
+#include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
 #include "Screen.h"
 #include "FontRenderer.h"
@@ -56,10 +57,21 @@ void ConHost_GetCursorPos(int& x, int& y)
 	y = g_cursorY;
 }
 
+void ConHostI_InvokeHostFunction(MonoString* functionNameStr, MonoString* argumentStr)
+{
+	char* functionName = mono_string_to_utf8(functionNameStr);
+	char* argument = mono_string_to_utf8(argumentStr);
+
+	ConHost::OnInvokeNative(functionName, argument);
+}
+
 void ConHost_AddInternalCalls()
 {
 	mono_add_internal_call("CitizenFX.UI.ConsoleImpl::GetDesiredBufferSize", ConHostI_GetDesiredBufferSizeCall);
 	mono_add_internal_call("CitizenFX.UI.ConsoleImpl::GetKeyInternal", ConHostI_GetKeyCall);
 	mono_add_internal_call("CitizenFX.UI.ConsoleImpl::SetBuffer", ConHostI_SetBufferCall);
 	mono_add_internal_call("CitizenFX.UI.ConsoleImpl::SetCursorPos", ConHostI_SetCursorPosCall);
+	mono_add_internal_call("CitizenFX.UI.ConsoleImpl::InvokeHostFunction", ConHostI_InvokeHostFunction);
 }
+
+fwEvent<const char*, const char*> ConHost::OnInvokeNative;
