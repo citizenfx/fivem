@@ -109,10 +109,19 @@ public:
 			{
 				scrVector entityCoords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(playerPedId);
 
-				CRect rect(400, 100, 900, 200);
-				CRGBA color(255, 255, 255, 255);
+				CRect rect(0, 0, 22, 22);
+				CRGBA color;
 
-				TheFonts->DrawText(va(L"Player coords: %g %g %g\nSession started: %s", entityCoords.x, entityCoords.y, entityCoords.z, (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>() ? L"yeah" : L"nah")), rect, color, 24.0f, 1.0f, "Segoe UI");
+				if (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
+				{
+					color = CRGBA(0, 200, 0, 180);
+				}
+				else
+				{
+					color = CRGBA(200, 0, 0, 180);
+				}
+
+				TheFonts->DrawRectangle(rect, color);
 
 				// if the particular key we like is pressed...
 				static bool wasPressed = true;

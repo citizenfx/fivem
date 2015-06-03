@@ -12,6 +12,7 @@
 #include "FontRenderer.h"
 #include "DrawCommands.h"
 #include "Screen.h"
+#include "ConsoleHost.h"
 #include <mmsystem.h>
 
 const int g_netOverlayOffsetX = -30;
@@ -47,6 +48,8 @@ private:
 
 	int m_inBytes;
 	int m_outBytes;
+
+	bool m_enabled;
 
 	NetPacketMetrics m_metrics[g_netOverlaySampleCount + 1];
 
@@ -91,18 +94,32 @@ private:
 NetOverlayMetricSink::NetOverlayMetricSink()
 	: m_ping(0), m_lastInBytes(0), m_lastInPackets(0), m_lastOutBytes(0), m_lastOutPackets(0),
 	  m_lastUpdatePerSample(0), m_lastUpdatePerSec(0),
-	  m_inBytes(0), m_inPackets(0), m_outBytes(0), m_outPackets(0)
+	  m_inBytes(0), m_inPackets(0), m_outBytes(0), m_outPackets(0),
+	  m_enabled(false)
 {
+	ConHost::OnInvokeNative.Connect([=] (const char* nativeName, const char* argument)
+	{
+		// enable/disable command
+		if (strcmp(nativeName, "netGraphEnabled") == 0)
+		{
+			m_enabled = argument[0] == 'y';
+		}
+	});
+
 	OnPostFrontendRender.Connect([=] ()
 	{
 		// update metrics
 		UpdateMetrics();
 
-		// draw the base metrics
-		DrawBaseMetrics();
+		// if enabled, render
+		if (m_enabled)
+		{
+			// draw the base metrics
+			DrawBaseMetrics();
 
-		// draw the graph
-		DrawGraph();
+			// draw the graph
+			DrawGraph();
+		}
 	}, 50);
 }
 

@@ -301,30 +301,22 @@ static InitFunction initFunction([] ()
 	OnPostFrontendRender.Connect([=] ()
 	{
 #if defined(GTA_FIVE)
-		static uint64_t lastTime = 0;
-		static int xPos, yPos = 0.0f;
+		int x, y;
+		GetGameResolution(x, y);
 
-		if ((GetTickCount64() - lastTime) > 3000)
+		const wchar_t* brandingString = L"FiveM-PREDEV \xD83C\xDF42";
+
+		static CRect metrics;
+		
+		if (metrics.Width() <= 0.1f)
 		{
-			int x, y;
-			GetGameResolution(x, y);
-
-			x -= 400;
-			y -= 36;
-
-			std::uniform_int_distribution<> distributionX(0, x);
-			std::uniform_int_distribution<> distributionY(0, y);
-
-			xPos = distributionX(random);
-			yPos = distributionY(random);
-
-			lastTime = GetTickCount64();
+			g_fontRenderer.GetStringMetrics(brandingString, 18.0f, 1.0f, "Segoe UI", metrics);
 		}
 
-		CRect rect(xPos, yPos, xPos + 400, yPos + 36);
-		CRGBA color(255, 255, 255, 200);
+		CRect drawRect(x - metrics.Width() - 10.0f, 10.0f, x, y);
+		CRGBA color(180, 180, 180);
 
-		g_fontRenderer.DrawText(L"FiveM-PREDEV \xD83C\xDF42", rect, color, 36.0f, 1.0f, "Segoe UI");
+		g_fontRenderer.DrawText(brandingString, drawRect, color, 18.0f, 1.0f, "Segoe UI");
 #endif
 
 		g_fontRenderer.DrawPerFrame();
