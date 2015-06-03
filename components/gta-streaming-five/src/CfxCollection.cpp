@@ -767,7 +767,19 @@ private:
 		// build a local path string to verify
 		std::stringstream basePath;
 
-		if (!IsPseudoPackPath(archive) || _strnicmp(archive, "pseudoPack:/", 12) == 0)
+		if (_strnicmp(archive, "usermaps:/", 10) == 0)
+		{
+			const char* colon = strchr(archive, ':');
+
+			// temporary: make citizen/ path manually
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			basePath << converter.to_bytes(MakeRelativeCitPath(L"/"));
+
+			basePath << std::string(archive, colon);
+			basePath << "/";
+			basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
+		}
+		else if (!IsPseudoPackPath(archive) || _strnicmp(archive, "pseudoPack:/", 12) == 0)
 		{
 			const char* colon = strchr(archive, ':');
 
@@ -1224,7 +1236,7 @@ bool CfxCollection::IsPseudoPack()
 bool CfxCollection::IsPseudoPackPath(const char* path)
 {
 	// we better hope no legitimate pack is called 'pseudo' :D
-	return strstr(path, "pseudo") != nullptr;
+	return strstr(path, "pseudo") != nullptr || strstr(path, "usermaps") != nullptr;
 }
 
 struct CollectionData

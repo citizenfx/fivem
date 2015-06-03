@@ -1,0 +1,11 @@
+{
+	"name": "citizen:level-loader:five",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"conhost",
+		"rage:device",
+		"gta:streaming:five"
+	],
+	"provides": []
+}

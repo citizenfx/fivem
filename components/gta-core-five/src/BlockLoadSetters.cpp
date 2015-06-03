@@ -103,6 +103,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 		}
 	});
 
+	OnGameRequestLoad();
+
 	// stuff
 	if (*g_initState == MapInitState(6))
 	{
@@ -121,6 +123,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 
 void FiveGameInit::ReloadGame()
 {
+	OnGameRequestLoad();
+
 	*g_initState = MapInitState(14);
 }
 

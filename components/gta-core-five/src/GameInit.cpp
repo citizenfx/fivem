@@ -35,7 +35,7 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 {
 	if (errorString == (wchar_t*)1)
 	{
-		// TODO: disconnect cleanly
+		OnKillNetwork(nullptr);
 	}
 	else
 	{

@@ -19,9 +19,9 @@ static InitFunction initFunction([] ()
 	{
 		library->OnInitReceived.Connect([] (NetAddress server)
 		{
-			nui::SetMainUI(false);
+			//nui::SetMainUI(false);
 
-			nui::DestroyFrame("mpMenu");
+			//nui::DestroyFrame("mpMenu");
 
 			ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 
@@ -44,6 +44,13 @@ static InitFunction initFunction([] ()
 		OnKillNetwork.Connect([=] (const char* message)
 		{
 			library->FinalizeDisconnect();
+		});
+
+		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([] ()
+		{
+			nui::SetMainUI(false);
+
+			nui::DestroyFrame("mpMenu");
 		});
 	});
 

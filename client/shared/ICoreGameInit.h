@@ -24,6 +24,8 @@ public:
 
 public:
 	fwEvent<> OnGameFinalizeLoad;
+
+	fwEvent<> OnGameRequestLoad;
 };
 
 DECLARE_INSTANCE_TYPE(ICoreGameInit);
