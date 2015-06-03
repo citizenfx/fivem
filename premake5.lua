@@ -81,6 +81,7 @@ solution "CitizenMP"
 	if _OPTIONS['game'] ~= 'server' then
 		-- game launcher
 		dofile 'client/launcher/build.lua'
+		dofile 'client/console/build.lua'
 	else
 		dofile 'server/launcher/build.lua'
 	end
@@ -94,6 +95,8 @@ solution "CitizenMP"
 		{
 			"client/citicore/**.cpp", "client/citicore/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
 		}
+
+		add_dependencies { 'vendor:boost_program_options' }
 
 		links { "Shared" }
 

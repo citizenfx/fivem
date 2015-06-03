@@ -194,7 +194,7 @@ void trace(const char* string, ...)
 		OutputDebugStringA(buffer);
 	}
 
-	if (!CoreIsDebuggerPresent())
+	if (!CoreIsDebuggerPresent() && !getenv("CitizenFX_ToolMode"))
 	{
 		printf("%s", buffer);
 	}

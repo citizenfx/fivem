@@ -51,5 +51,11 @@ bool DllGameComponent::ShouldAutoInstance()
 {
 	auto iterator = m_document.FindMember("shouldAutoInstance");
 
+	// we don't auto-instance in tool mode
+	if (getenv("CitizenFX_ToolMode") != nullptr)
+	{
+		return false;
+	}
+
 	return (iterator != m_document.MemberEnd()) ? iterator->value.GetBool() : true;
 }

@@ -8,6 +8,9 @@
 #include "StdInc.h"
 #include "CitizenGame.h"
 
+#include <io.h>
+#include <fcntl.h>
+
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
@@ -17,20 +20,29 @@ bool InitializeExceptionHandler();
 
 #pragma comment(lib, "version.lib")
 
+extern "C" int wmainCRTStartup();
+
 void main()
 {
-	// initialize the CRT
-	_CRT_INIT(GetModuleHandle(NULL), DLL_PROCESS_ATTACH, NULL);
+	bool toolMode = false;
 
-	// bootstrap the game
-	if (Bootstrap_RunInit())
+	if (getenv("CitizenFX_ToolMode"))
 	{
-		ExitProcess(0);
+		toolMode = true;
 	}
 
-	if (InitializeExceptionHandler())
+	if (!toolMode)
 	{
-		ExitProcess(0);
+		// bootstrap the game
+		if (Bootstrap_RunInit())
+		{
+			return;
+		}
+
+		if (InitializeExceptionHandler())
+		{
+			return;
+		}
 	}
 
 	// path environment appending of our primary directories
@@ -53,7 +65,7 @@ void main()
 	exeBaseName[0] = L'\0';
 	exeBaseName++;
 
-	bool devMode = false;
+	bool devMode = toolMode;
 
 	if (GetFileAttributes(va(L"%s.dev", exeBaseName)) != INVALID_FILE_ATTRIBUTES)
 	{
@@ -64,7 +76,6 @@ void main()
 	{
 		if (!Bootstrap_DoBootstrap())
 		{
-			ExitProcess(0);
 			return;
 		}
 	}
@@ -89,7 +100,7 @@ void main()
 	if (GetFileAttributes(gameExecutable.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		MessageBox(nullptr, L"Could not find the game executable (" GAME_EXECUTABLE L") at the configured path. Please check your CitizenFX.ini file.", PRODUCT_NAME, MB_OK | MB_ICONERROR);
-		ExitProcess(1);
+		return;
 	}
 
 #ifdef GTA_FIVE
@@ -118,15 +129,38 @@ void main()
 										   (fixedInfo->dwFileVersionLS >> 16),
 										   (fixedInfo->dwFileVersionLS & 0xFFFF)), PRODUCT_NAME, MB_OK | MB_ICONERROR);
 
-					ExitProcess(1);
+					return;
 				}
 			}
 		}
 	}
 #endif
 
-	// main updater stuff
+	if (!toolMode)
+	{
+		// game launcher initialization
+		CitizenGame::Launch(gameExecutable);
+	}
+	else
+	{
+		HMODULE coreRT = LoadLibrary(MakeRelativeCitPath(L"CoreRT.dll").c_str());
 
-	// game launcher initialization
-	CitizenGame::Launch(gameExecutable);
+		if (coreRT)
+		{
+			auto toolProc = (void(*)())GetProcAddress(coreRT, "ToolMode_Init");
+
+			if (toolProc)
+			{
+				toolProc();
+			}
+			else
+			{
+				printf("Could not find ToolMode_Init in CoreRT.dll.\n");
+			}
+		}
+		else
+		{
+			printf("Could not initialize CoreRT.dll.\n");
+		}
+	}
 }

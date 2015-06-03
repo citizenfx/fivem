@@ -16,5 +16,11 @@ return {
 			'value_semantic.cpp',
 			'variables_map.cpp'
 		}
+
+		filter 'os:windows'
+			files_project(os.getenv("BOOST_ROOT") .. '/libs/program_options/src/')
+			{
+				'winmain.cpp'
+			}
 	end
 }

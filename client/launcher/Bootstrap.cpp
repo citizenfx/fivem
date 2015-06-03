@@ -54,8 +54,6 @@ bool Bootstrap_UpdateEXE(int exeSize)
 
 bool Bootstrap_DoBootstrap()
 {
-	FreeConsole();
-
 	// first check the bootstrapper version
 	char bootstrapVersion[256];
 
@@ -169,8 +167,6 @@ bool Bootstrap_RunInit()
 	{
 		if (!_wcsicmp(argv[1], L"-bootstrap"))
 		{
-			FreeConsole();
-
 			Bootstrap_ReplaceExecutable(argv[2]);
 			LocalFree(argv);
 			return true;

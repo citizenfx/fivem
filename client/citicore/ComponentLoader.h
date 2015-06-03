@@ -125,6 +125,8 @@ public:
 
 	fwRefContainer<Component> CreateInstance(const std::string& userData);
 
+	fwRefContainer<Component> CreateManualInstance();
+
 	inline const std::vector<fwRefContainer<Component>>& GetInstances()
 	{
 		return m_instances;
@@ -151,6 +153,8 @@ public:
 	void Initialize();
 
 	void DoGameLoad(void* hModule);
+
+	void ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback);
 
 	fwRefContainer<ComponentData> LoadComponent(const char* component);
 };

@@ -69,7 +69,7 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 
 	if (eType == ERR_NORMAL)
 	{
-#ifndef COMPILING_LAUNCH
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
 		// TODO: UI killer for pre-connected state
 		ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 

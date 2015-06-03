@@ -145,6 +145,14 @@ void ComponentLoader::AddComponent(fwRefContainer<ComponentData> component)
 	m_knownComponents.insert(std::make_pair(name, component));
 }
 
+void ComponentLoader::ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback)
+{
+	for (auto& component : m_loadedComponents)
+	{
+		callback(component);
+	}
+}
+
 fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* componentName)
 {
 	auto component = m_knownComponents[componentName];
@@ -208,13 +216,20 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 
 fwRefContainer<Component> ComponentData::CreateInstance(const std::string& userData)
 {
-	fwRefContainer<Component> instance = CreateComponent();
-	m_instances.push_back(instance);
+	auto instance = CreateManualInstance();
 
 	if (!instance->Initialize(userData))
 	{
 		instance = nullptr;
 	}
+
+	return instance;
+}
+
+fwRefContainer<Component> ComponentData::CreateManualInstance()
+{
+	fwRefContainer<Component> instance = CreateComponent();
+	m_instances.push_back(instance);
 
 	return instance;
 }
