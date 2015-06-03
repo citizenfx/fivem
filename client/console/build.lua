@@ -6,10 +6,7 @@
 		
 		links { "SharedLibc" }
 
-		linkoptions "/ENTRY:wmainCRTStartup"
-
-		-- set objdir to prevent conflict with launcher
-		objdir ("build/" .. _OPTIONS['game'] .. "/obj/%{cfg.buildcfg}/consoleApp/")
+		linkoptions "/ENTRY:wmainCRTStartup /PDB:CitiCon.pdb"
 
 		files
 		{

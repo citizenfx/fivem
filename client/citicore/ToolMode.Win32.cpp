@@ -137,7 +137,10 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 
 			// parse and store in a new map
 			bpo::variables_map vm;
-			bpo::store(commandImpl->SetupCommandLineParser(bpo::wcommand_line_parser(remnantOptions)).run(), vm);
+			commandImpl->SetupCommandLineParser(bpo::wcommand_line_parser(remnantOptions), [&] (boost::program_options::wcommand_line_parser& parser)
+			{
+				bpo::store(parser.run(), vm);
+			});
 
 			// execute the command
 			commandImpl->InvokeCommand(vm);

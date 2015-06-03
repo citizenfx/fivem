@@ -37,10 +37,24 @@ FORMATS_EXPORT rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName)
 	uint32_t magic;
 	fread(&magic, 1, sizeof(magic), f);
 
+	if (magic != 0x05435352)
+	{
+		printf("that's not a RSC5, you silly goose...\n");
+
+		fclose(f);
+		return nullptr;
+	}
+
 	uint32_t version;
 	fread(&version, 1, sizeof(version), f);
 
-	assert(version == 110 || version == 32 || version == 8);
+	if (version != 110 && version != 32 && version != 8)
+	{
+		printf("not actually a supported file...\n");
+
+		fclose(f);
+		return nullptr;
+	}
 
 	uint32_t flags;
 	fread(&flags, 1, sizeof(flags), f);

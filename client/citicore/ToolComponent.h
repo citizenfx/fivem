@@ -12,7 +12,7 @@
 class CORE_EXPORT ToolCommand : public fwRefCountable
 {
 public:
-	virtual boost::program_options::wcommand_line_parser& SetupCommandLineParser(boost::program_options::wcommand_line_parser& parser) = 0;
+	virtual void SetupCommandLineParser(boost::program_options::wcommand_line_parser& parser, std::function<void(boost::program_options::wcommand_line_parser&)> cb) = 0;
 
 	virtual void InvokeCommand(const boost::program_options::variables_map& variables) = 0;
 };

@@ -145,7 +145,7 @@ int wmain(int argc, const wchar_t** argv)
 		while (true)
 		{
 			// read from the buffer
-			char outputBuffer[128];
+			char outputBuffer[4];
 			DWORD outRead;
 
 			if (!ReadFile(hReadStdout, outputBuffer, sizeof(outputBuffer), &outRead, nullptr))
