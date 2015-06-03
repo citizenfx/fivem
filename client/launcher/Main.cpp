@@ -83,11 +83,14 @@ void main()
 	EnsureGamePath();
 
 	// readd the game path into the PATH
-	newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
+	newPath = MakeRelativeCitPath(L"bin\\crt") + L";" + MakeRelativeCitPath(L"bin") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
-	SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
+	if (!toolMode)
+	{
+		SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
+	}
 
 #ifdef GTA_NY
 	// initialize TLS variable so we get a TLS directory
