@@ -51,8 +51,6 @@ static InitFunction initFunction([] ()
 	// set up CEF as well here as we can do so anyway
 	CefSettings cSettings;
 		
-	// TODO: change to GTA5 when released for PC
-	cef_string_utf16_set(L"ros zc3Nzajw/OG58KC9/uG98L2uv6K+4bvw/Pw=", 40, &cSettings.user_agent, true);
 	cSettings.multi_threaded_message_loop = true;
 	cSettings.remote_debugging_port = 13172;
 	cSettings.pack_loading_disabled = false; // true;
