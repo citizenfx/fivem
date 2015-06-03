@@ -17,7 +17,7 @@ return {
 			'variables_map.cpp'
 		}
 
-		filter 'os:windows'
+		filter 'system:windows'
 			files_project(os.getenv("BOOST_ROOT") .. '/libs/program_options/src/')
 			{
 				'winmain.cpp'
