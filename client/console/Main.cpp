@@ -77,6 +77,21 @@ int wmain(int argc, const wchar_t** argv)
 
 	wcscpy(extStart, L".exe");
 
+	// check if the file exists; if not, prepend it with our path
+	if (GetFileAttributes(&applicationName[0]) == INVALID_FILE_ATTRIBUTES)
+	{
+		wchar_t moduleName[512];
+		GetModuleFileName(GetModuleHandle(nullptr), moduleName, sizeof(moduleName));
+
+		moduleName[_countof(moduleName) - 1] = L'\0';
+
+		wcsrchr(moduleName, L'\\')[1] = L'\0';
+
+		std::wstring tempAppName = &applicationName[0];
+		applicationName.resize(wcslen(moduleName) + tempAppName.length() + 1);
+		_snwprintf(&applicationName[0], applicationName.size(), L"%s%s", moduleName, tempAppName.c_str());
+	}
+
 	// replace the command line's extension
 	wchar_t* commandLineIn = GetCommandLine();
 
@@ -176,6 +191,12 @@ int wmain(int argc, const wchar_t** argv)
 		CloseHandle(hReadStdout);
 
 		return 0;
+	}
+	else
+	{
+		DWORD errorCode = GetLastError();
+
+		wprintf(L"CreateProcess [%s] %s failed - %d\n", &applicationName[0], newCommandLine.c_str(), errorCode);
 	}
 
 	return 3;
