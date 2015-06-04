@@ -55,7 +55,10 @@ void main()
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
 
-	SetCurrentDirectory(MakeRelativeCitPath(L"").c_str());
+	if (!toolMode)
+	{
+		SetCurrentDirectory(MakeRelativeCitPath(L"").c_str());
+	}
 
 	// determine dev mode and do updating
 	wchar_t exeName[512];
