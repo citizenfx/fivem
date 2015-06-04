@@ -205,9 +205,9 @@ namespace fxc
 		}
 	}
 
-	std::shared_ptr<ShaderFile> ShaderFile::Load(const std::string& filename)
+	std::shared_ptr<ShaderFile> ShaderFile::Load(const std::wstring& filename)
 	{
-		FILE* f = fopen(filename.c_str(), "rb");
+		FILE* f = _wfopen(filename.c_str(), L"rb");
 
 		if (!f)
 		{

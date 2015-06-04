@@ -154,7 +154,7 @@ namespace fxc
 
 		void ReadShaders(const TReader& reader, int type, std::map<std::string, std::shared_ptr<ShaderEntry>>& list);
 
-		static std::shared_ptr<ShaderFile> Load(const std::string& filename);
+		static std::shared_ptr<ShaderFile> Load(const std::wstring& filename);
 
 		inline std::map<std::string, std::string>& GetGlobalValues()
 		{

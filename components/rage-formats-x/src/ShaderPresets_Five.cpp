@@ -17,7 +17,10 @@ using namespace rage::five;
 
 void grmShaderFx::DoPreset(const char* shaderName, const char* spsName)
 {
-	auto shaderFile = fxc::ShaderFile::Load(va("Y:\\common\\shaders\\win32_40_final\\%s.fxc", shaderName));
+	wchar_t shaderNameWide[256];
+	mbstowcs(shaderNameWide, shaderName, _countof(shaderNameWide));
+
+	auto shaderFile = fxc::ShaderFile::Load(MakeRelativeCitPath(va(L"citizen\\shaders\\win32_40_final\\%s.fxc", shaderNameWide)));
 
 	if (!shaderFile)
 	{
