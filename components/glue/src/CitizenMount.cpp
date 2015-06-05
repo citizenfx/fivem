@@ -13,18 +13,15 @@ static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
-		static char citRoot[512];
 		std::wstring citPath = MakeRelativeCitPath(L"citizen");
 
-		size_t offset = wcstombs(citRoot, citPath.c_str(), sizeof(citRoot));
-		citRoot[offset] = '\\';
-		citRoot[offset + 1] = '\0';
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+		std::string citRoot = converter.to_bytes(citPath) + "\\";
 
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
-		device->SetPath(citRoot, true);
+		device->SetPath(citRoot.c_str(), true);
 		device->Mount("citizen:/");
 
-		static char cacheRoot[512];
 		std::wstring cachePath = MakeRelativeCitPath(L"cache");
 
 		if (GetFileAttributes(cachePath.c_str()) == INVALID_FILE_ATTRIBUTES)
@@ -39,12 +36,10 @@ static InitFunction initFunction([] ()
 			CreateDirectory(unconfPath.c_str(), nullptr);
 		}
 
-		offset = wcstombs(cacheRoot, cachePath.c_str(), sizeof(cacheRoot));
-		cacheRoot[offset] = '\\';
-		cacheRoot[offset + 1] = '\0';
-
+		std::string cacheRoot = converter.to_bytes(cachePath) + "\\";
+		
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
-		cacheDevice->SetPath(cacheRoot, true);
+		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
 
 		TheResources.GetCache()->LoadCache(cacheDevice);

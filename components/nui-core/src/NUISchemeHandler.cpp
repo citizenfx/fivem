@@ -57,17 +57,19 @@ public:
 		hostname = CefString(&parts.host);
 		path = CefString(&parts.path);
 
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+
 		if (hostname == L"game")
 		{
 			filename_ = "citizen:/";
 			
-			filename_ += std::string(path.begin(), path.end()).substr(1);
+			filename_ += converter.to_bytes(path).substr(1);
 		}
 		else
 		{
 			filename_ = "resources:/";
-			filename_ += std::string(hostname.begin(), hostname.end()) + "/";
-			filename_ += std::string(path.begin(), path.end());
+			filename_ += converter.to_bytes(hostname) + "/";
+			filename_ += converter.to_bytes(path);
 		}
 
 		//filename_ = exeName + std::wstring(L"/citiv/ui/") + url.substr(11);

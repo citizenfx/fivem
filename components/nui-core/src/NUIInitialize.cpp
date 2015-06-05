@@ -113,12 +113,12 @@ static InitFunction initFunction([] ()
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
 		std::wstring emojiPack = MakeRelativeCitPath(L"citizen/emoji.rpf");
-		char emojiPath[MAX_PATH];
 
-		wcstombs(emojiPath, emojiPack.c_str(), sizeof(emojiPath));
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+		std::string emojiPath = converter.to_bytes(emojiPack);
 
 		rage::fiPackfile* packFile = new rage::fiPackfile();
-		packFile->OpenPackfile(emojiPath, true, false, 0);
+		packFile->OpenPackfile(emojiPath.c_str(), true, false, 0);
 		packFile->Mount("citizen:/ui/img/emoji/");
 	}, 100);
 #endif
