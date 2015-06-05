@@ -133,6 +133,8 @@ static InitFunction initFunction([] ()
 				{
 					g_consoleThread = std::thread([] ()
 					{
+						SetThreadName(-1, "ConHost Thread");
+
 						ConHost_Run();
 					});
 				});

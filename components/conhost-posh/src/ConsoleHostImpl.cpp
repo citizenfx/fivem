@@ -45,15 +45,14 @@ void ConHost_Run()
 	// init Mono
 	mono_set_dirs("citizen/clr/lib/", "citizen/clr/cfg/");
 
-	std::wstring citizenClrPath = MakeRelativeCitPath(L"citizen/clr/lib/");
-	char clrPath[256];
-	wcstombs(clrPath, citizenClrPath.c_str(), sizeof(clrPath));
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	std::string clrPath = converter.to_bytes(MakeRelativeCitPath(L"citizen/clr/lib/"));
 
 	std::wstring citizenClrLibPath = MakeRelativeCitPath(L"citizen/clr/lib/mono/4.5/");
 
 	SetEnvironmentVariable(L"MONO_PATH", citizenClrLibPath.c_str());
 
-	mono_assembly_setrootdir(clrPath);
+	mono_assembly_setrootdir(clrPath.c_str());
 
 	g_rootDomain = mono_jit_init_version("ConHost", "v4.0.30319");
 
@@ -65,11 +64,9 @@ void ConHost_Run()
 	ConHost_AddInternalCalls();
 
 	// load the main assembly
-	char filePath[MAX_PATH];
-	std::wstring filePathStr = MakeRelativeCitPath(L"bin/System.Management.Automation.dll");
-	wcstombs(filePath, filePathStr.c_str(), _countof(filePath));
+	std::string filePath = converter.to_bytes(MakeRelativeCitPath(L"bin/System.Management.Automation.dll"));
 
-	MonoAssembly* monoAssembly = mono_domain_assembly_open(g_rootDomain, filePath);
+	MonoAssembly* monoAssembly = mono_domain_assembly_open(g_rootDomain, filePath.c_str());
 
 	if (!monoAssembly)
 	{
@@ -79,10 +76,9 @@ void ConHost_Run()
 	MonoImage* monoImage = mono_assembly_get_image(monoAssembly);
 
 	// load a side assembly
-	filePathStr = MakeRelativeCitPath(L"bin/Microsoft.PowerShell.Commands.Utility.dll");
-	wcstombs(filePath, filePathStr.c_str(), _countof(filePath));
+	filePath = converter.to_bytes(MakeRelativeCitPath(L"bin/Microsoft.PowerShell.Commands.Utility.dll"));
 
-	mono_domain_assembly_open(g_rootDomain, filePath);
+	mono_domain_assembly_open(g_rootDomain, filePath.c_str());
 
 	// find the main method
 	bool methodSearchSuccess = true;
