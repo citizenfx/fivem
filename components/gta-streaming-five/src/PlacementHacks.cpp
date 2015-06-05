@@ -61,7 +61,7 @@ public:
 public:
 	fwArchetypeDef()
 	{
-		flags = 0x2000;
+		flags = 0x0000; // was 0x2000
 		drawDistance = 299.0f;
 		unkDistance = 375.0f;
 
@@ -142,7 +142,7 @@ public:
 public:
 	fwEntityDef()
 	{
-		flags = 0x180010;
+		flags = 0x180000; // was 0x180010
 		lodParentIdx = -1;
 		float1 = 1.0f;
 		float2 = 1.0f;
