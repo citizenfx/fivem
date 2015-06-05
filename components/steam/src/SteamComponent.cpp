@@ -300,17 +300,21 @@ void SteamComponent::InitializePresence()
 		steamUtils.Invoke<void>("SetAppIDForCurrentPipe", parentAppID, false);
 
 		// get the base executable path
-		char ourPath[MAX_PATH];
-		GetModuleFileNameA(GetModuleHandle(nullptr), ourPath, _countof(ourPath));
+		wchar_t ourPath[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), ourPath, _countof(ourPath));
 
-		char ourDirectory[MAX_PATH];
-		GetCurrentDirectoryA(sizeof(ourDirectory), ourDirectory);
+		wchar_t ourDirectory[MAX_PATH];
+		GetCurrentDirectory(sizeof(ourDirectory), ourDirectory);
+
+		std::wstring commandLine = va(L"\"%s\" -steamchild:%d", ourPath, GetCurrentProcessId());
+
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 		// create an empty VAC blob
 		void* blob = new char[8];
 		memset(blob, 0, sizeof(blob));
 
-		steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, ourPath, va("\"%s\" -steamchild:%d", ourPath, GetCurrentProcessId()), 0, ourDirectory, gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
+		steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
 	}
 }
 
