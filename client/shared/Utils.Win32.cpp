@@ -114,6 +114,8 @@ typedef struct tagTHREADNAME_INFO
 } THREADNAME_INFO;
 #pragma pack(pop)
 
+void DoNtRaiseException(EXCEPTION_RECORD* record);
+
 void SetThreadName(int dwThreadID, char* threadName)
 {
 	THREADNAME_INFO info;
@@ -122,11 +124,16 @@ void SetThreadName(int dwThreadID, char* threadName)
 	info.dwThreadID = dwThreadID;
 	info.dwFlags = 0;
 
-	__try
+	if (CoreIsDebuggerPresent())
 	{
-		RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
+		EXCEPTION_RECORD record;
+		record.ExceptionAddress = reinterpret_cast<PVOID>(_ReturnAddress());
+		record.ExceptionCode = MS_VC_EXCEPTION;
+		record.ExceptionFlags = 0;
+		record.NumberParameters = sizeof(info) / sizeof(ULONG_PTR);
+		memcpy(record.ExceptionInformation, &info, sizeof(info));
+		record.ExceptionRecord = &record;
+
+		DoNtRaiseException(&record);			
 	}
 }

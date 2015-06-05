@@ -116,6 +116,29 @@ const wchar_t* va(const wchar_t* string, ...)
 
 #ifdef _WIN32
 #include <winternl.h>
+
+void DoNtRaiseException(EXCEPTION_RECORD* record)
+{
+	typedef NTSTATUS(*NtRaiseExceptionType)(PEXCEPTION_RECORD record, PCONTEXT context, BOOL firstChance);
+
+	bool threw = false;
+
+	CONTEXT context;
+	RtlCaptureContext(&context);
+
+	static NtRaiseExceptionType NtRaiseException = (NtRaiseExceptionType)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtRaiseException");
+
+	// where will this function return to? hint: it'll return RIGHT AFTER RTLCAPTURECONTEXT, as that's what's in context->Rip!
+	// therefore, check if 'threw' is false first...
+	if (!threw)
+	{
+		threw = true;
+		NtRaiseException(record, &context, TRUE);
+
+		// force 'threw' to be stack-allocated by messing with it from here (where it won't execute)
+		OutputDebugStringA((char*)&threw);
+	}
+}
 #endif
 
 void trace(const char* string, ...)
@@ -163,26 +186,7 @@ void trace(const char* string, ...)
 			record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(buffer);
 			record.ExceptionRecord = &record;
 
-			//NtDoRaiseException(&record);
-			typedef NTSTATUS(*NtRaiseExceptionType)(PEXCEPTION_RECORD record, PCONTEXT context, BOOL firstChance);
-
-			bool threw = false;
-
-			CONTEXT context;
-			RtlCaptureContext(&context);
-
-			static NtRaiseExceptionType NtRaiseException = (NtRaiseExceptionType)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtRaiseException");
-
-			// where will this function return to? hint: it'll return RIGHT AFTER RTLCAPTURECONTEXT, as that's what's in context->Rip!
-			// therefore, check if 'threw' is false first...
-			if (!threw)
-			{
-				threw = true;
-				NtRaiseException(&record, &context, TRUE);
-
-				// force 'threw' to be stack-allocated by messing with it from here (where it won't execute)
-				OutputDebugStringA((char*)&threw);
-			}
+			DoNtRaiseException(&record);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
