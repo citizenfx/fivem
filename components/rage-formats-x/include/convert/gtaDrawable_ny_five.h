@@ -24,6 +24,11 @@ namespace rage
 {
 inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 {
+	if (strstr(oldSps, "3lyr") || strstr(oldSps, "2lyr"))
+	{
+		return "terrain_cb_4lyr_lod.sps"; // regular 4lyr has bump mapping/normals
+	}
+
 	if (strstr(oldSps, "gta_"))
 	{
 		return &oldSps[4] + std::string(".sps");
@@ -34,6 +39,11 @@ inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 
 inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 {
+	if (strstr(oldSps, "3lyr") || strstr(oldSps, "2lyr"))
+	{
+		return "terrain_cb_4lyr_lod";
+	}
+
 	if (strstr(oldSps, "gta_"))
 	{
 		return &oldSps[4];
@@ -110,26 +120,31 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 		{
 			auto hash = oldEffect.GetParameterNameHash(j);
 
-			const char* newSamplerName = nullptr;
-			const char* newValueName = nullptr;
+			uint32_t newSamplerName = 0;
+			uint32_t newValueName = 0;
 			size_t newValueSize;
 
 			if (hash == 0x2B5170FD) // TextureSampler
 			{
-				newSamplerName = "DiffuseSampler";
-			}
-			else if (hash == 0x46B7C64F)
-			{
-				newSamplerName = "BumpSampler"; // same as in NY, anyway
-			}
-			else if (hash == 0x608799C6)
-			{
-				newSamplerName = "SpecSampler"; // same, I'd guess?
+				newSamplerName = HashString("DiffuseSampler");
 			}
 			else if (hash == 0xF6712B81)
 			{
-				newValueName = "bumpiness"; // as, well, it's bumpiness?
+				newValueName = HashString("bumpiness"); // as, well, it's bumpiness?
 				newValueSize = 4 * sizeof(float);
+			}
+
+			if (!newSamplerName)
+			{
+				auto newParam = newShader->GetParameter(hash);
+
+				if (newParam)
+				{
+					if (newParam->IsSampler())
+					{
+						newSamplerName = hash;
+					}
+				}
 			}
 
 			if (newSamplerName)
@@ -171,7 +186,29 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 		if (newShader->GetResourceCount() != rescount)
 		{
-			__debugbreak();
+			// add missing layer2/3 maps
+			if (newShaderName == "terrain_cb_4lyr_lod")
+			{
+				int missingEntries = newShader->GetResourceCount() - rescount;
+
+				if (missingEntries >= 1)
+				{
+					newShader->SetParameter("TextureSampler_layer3", "none");
+				}
+
+				if (missingEntries >= 2)
+				{
+					newShader->SetParameter("TextureSampler_layer2", "none");
+				}
+			}
+			else if (newShaderName == "trees")
+			{
+				newShader->SetParameter("SfxWindSampler3D", "none");
+			}
+			else
+			{
+				FatalError("Got %d samplers in the Five shader, but only %d matched from NY...", newShader->GetResourceCount(), rescount);
+			}
 		}
 
 		// TODO: change other arguments?

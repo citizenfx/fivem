@@ -133,6 +133,35 @@ namespace fxc
 		}
 	};
 
+	class FORMATS_EXPORT TechniqueMapping
+	{
+	private:
+		std::string m_vertexShaderName;
+		std::string m_pixelShaderName;
+	
+	public:
+		inline TechniqueMapping()
+		{
+
+		}
+
+		inline TechniqueMapping(const std::string& vs, const std::string& ps)
+			: m_vertexShaderName(vs), m_pixelShaderName(ps)
+		{
+
+		}
+
+		inline const std::string& GetVertexShader()
+		{
+			return m_vertexShaderName;
+		}
+
+		inline const std::string& GetPixelShader()
+		{
+			return m_pixelShaderName;
+		}
+	};
+
 	class FORMATS_EXPORT ShaderFile
 	{
 	private:
@@ -147,12 +176,15 @@ namespace fxc
 		std::map<std::string, std::shared_ptr<ShaderParameter>> m_globalParameters;
 		std::map<std::string, std::shared_ptr<ShaderParameter>> m_localParameters;
 
+		std::map<std::string, TechniqueMapping> m_techniqueMappings;
+
 	public:
 		ShaderFile(const TReader& reader);
 
 		inline ~ShaderFile() {}
 
-		void ReadShaders(const TReader& reader, int type, std::map<std::string, std::shared_ptr<ShaderEntry>>& list);
+		// returns the shader names in file order
+		std::vector<std::string> ReadShaders(const TReader& reader, int type, std::map<std::string, std::shared_ptr<ShaderEntry>>& list);
 
 		static std::shared_ptr<ShaderFile> Load(const std::wstring& filename);
 

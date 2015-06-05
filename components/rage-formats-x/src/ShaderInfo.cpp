@@ -45,8 +45,8 @@ namespace fxc
 				m_preValues[annotationName] = annotationValue;
 			}
 
-			ReadShaders(reader, 1, m_vertexShaders);
-			ReadShaders(reader, 1, m_pixelShaders);
+			auto vertexShaders = ReadShaders(reader, 1, m_vertexShaders);
+			auto pixelShaders = ReadShaders(reader, 1, m_pixelShaders);
 			ReadShaders(reader, 0, m_computeShaders);
 			ReadShaders(reader, 0, m_domainShaders);
 			ReadShaders(reader, 2, m_geometryShaders);
@@ -84,6 +84,28 @@ namespace fxc
 
 				readArguments(m_globalParameters);
 				readArguments(m_localParameters);
+			}
+
+			{
+				uint8_t numTechniques;
+
+				reader(&numTechniques, sizeof(numTechniques));
+
+				for (int i = 0; i < numTechniques; i++)
+				{
+					auto techniqueName = ReadString(reader);
+
+					uint8_t techniqueIndices[8];
+					reader(techniqueIndices, sizeof(techniqueIndices));
+
+					m_techniqueMappings[techniqueName] = TechniqueMapping{ vertexShaders[techniqueIndices[1]], pixelShaders[techniqueIndices[2]] };
+
+					if (techniqueIndices[7] > 0)
+					{
+						std::vector<uint8_t> unk(techniqueIndices[7] * 8);
+						reader(&unk[0], unk.size());
+					}
+				}
 			}
 		}
 	}
@@ -146,17 +168,23 @@ namespace fxc
 		}
 	}
 
-	void ShaderFile::ReadShaders(const TReader& reader, int type, std::map<std::string, std::shared_ptr<ShaderEntry>>& list)
+	std::vector<std::string> ShaderFile::ReadShaders(const TReader& reader, int type, std::map<std::string, std::shared_ptr<ShaderEntry>>& list)
 	{
+		std::vector<std::string> retval;
+
 		uint8_t numShaders;
 		reader(&numShaders, 1);
 
 		for (int i = 0; i < numShaders; i++)
 		{
 			auto entry = std::make_shared<ShaderEntry>(reader, type);
+			auto& name = entry->GetName();
 
-			list[entry->GetName()] = entry;
+			retval.push_back(name);
+			list[name] = entry;
 		}
+
+		return retval;
 	}
 
 	ShaderEntry::ShaderEntry(const TReader& reader, int type)

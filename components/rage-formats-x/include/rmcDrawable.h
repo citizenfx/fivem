@@ -359,6 +359,11 @@ public:
 		m_value.Resolve(blockMap);
 	}
 
+	inline bool IsSampler()
+	{
+		return !m_pad;
+	}
+
 	inline void SetSampler(bool isSampler)
 	{
 		m_pad = !isSampler;
@@ -573,11 +578,10 @@ public:
 		m_parameterDataSize = parameterDataSize;
 	}
 
-	inline grmShaderParameter* GetParameter(const char* parameterName)
+	inline grmShaderParameter* GetParameter(uint32_t paramHash)
 	{
 		// get the parameter name list and find the parameter
 		const uint32_t* parameterNames = reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(*m_parameters) + m_parameterSize);
-		uint32_t paramHash = HashString(parameterName);
 
 		for (int i = 0; i < m_parameterCount; i++)
 		{
@@ -590,7 +594,43 @@ public:
 		return nullptr;
 	}
 
+	inline grmShaderParameter* GetParameter(const char* parameterName)
+	{
+		// get the parameter name list and find the parameter
+		return GetParameter(HashString(parameterName));
+	}
+
 	// assumes parameters have been set from a preset already
+	inline void SetParameter(uint32_t parameterName, grcTexturePC* texture)
+	{
+		// get the parameter index
+		grmShaderParameter* parameter = GetParameter(parameterName);
+
+		// set the value
+		parameter->SetValue(texture);
+	}
+
+	inline void SetParameter(uint32_t parameterName, const char* extTextureName)
+	{
+		// get the parameter index
+		grmShaderParameter* parameter = GetParameter(parameterName);
+
+		// set the value
+		grcTextureRef* textureRef = new(false) grcTextureRef();
+		textureRef->SetName(extTextureName);
+
+		parameter->SetValue(textureRef);
+	}
+
+	inline void SetParameter(uint32_t parameterName, const void* data, size_t dataSize)
+	{
+		// get the parameter index
+		grmShaderParameter* parameter = GetParameter(parameterName);
+
+		// set the value (note: unsafe)
+		memcpy(parameter->GetValue(), data, dataSize);
+	}
+
 	inline void SetParameter(const char* parameterName, grcTexturePC* texture)
 	{
 		// get the parameter index
