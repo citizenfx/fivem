@@ -111,6 +111,7 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 		auto newShader = new(false) five::grmShaderFx();
 		newShader->DoPreset(newShaderName.c_str(), newSpsName.c_str());
+		newShader->SetDrawBucket(oldShader->GetDrawBucket()); // in case the lack of .sps reading doesn't override it, yet
 
 		auto& oldEffect = oldShader->GetEffect();
 
