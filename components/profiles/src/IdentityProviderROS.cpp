@@ -155,11 +155,27 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 			{
 				std::string ticket = tree.get<std::string>("Response.Ticket");
 				std::string nickname = tree.get<std::string>("Response.RockstarAccount.Nickname");
-				std::string avatarUrl = tree.get<std::string>("Response.RockstarAccount.AvatarUrl");
+				boost::optional<std::string> avatarUrl = tree.get_optional<std::string>("Response.RockstarAccount.AvatarUrl");
 				uint64_t rockstarId = tree.get<uint64_t>("Response.RockstarAccount.RockstarId");
 
+				// new ROS security requirements
+				std::string sessionKey = tree.get<std::string>("Response.SessionKey");
+				std::string sessionTicket = tree.get<std::string>("Response.SessionTicket");
+
 				fwRefContainer<ProfileImpl> profileImpl(profile);
-				profileImpl->SetTileURI("http://cdn.sc.rockstargames.com/images/avatars/128x128/" + avatarUrl.substr(avatarUrl.find(std::string("avatars/")) + 8));
+
+				if (avatarUrl)
+				{
+					std::string avatarUrlEntry = avatarUrl.get();
+
+					profileImpl->SetTileURI("http://cdn.sc.rockstargames.com/images/avatars/128x128/" + avatarUrlEntry.substr(avatarUrlEntry.find(std::string("avatars/")) + 8));
+				}
+				else
+				{
+					// placeholder...
+					profileImpl->SetTileURI("data:image/png;base64,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");
+				}
+
 				profileImpl->SetDisplayName(nickname);
 
 				// save the parameter list to the profile
@@ -172,7 +188,7 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 
 				profileImpl->SetParameters(storeParameters);
 
-				resultEvent.set(ProfileIdentityResult(terminal::TokenType::ROS, va("%s&&%lld&&gta5", ticket.c_str(), rockstarId)));
+				resultEvent.set(ProfileIdentityResult(terminal::TokenType::ROS, va("%s&&%lld&&gta5&&%s&&%s", ticket.c_str(), rockstarId, sessionKey.c_str(), sessionTicket.c_str())));
 			}
 		}
 	});
