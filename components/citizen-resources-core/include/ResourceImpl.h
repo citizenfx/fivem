@@ -11,6 +11,15 @@
 
 namespace fx
 {
+enum class ResourceState
+{
+	Uninitialized,
+	Stopped,
+	Starting,
+	Started,
+	Stopping
+};
+
 class ResourceManagerImpl;
 
 class ResourceImpl : public Resource
@@ -24,6 +33,8 @@ private:
 
 	fwRefContainer<RefInstanceRegistry> m_instanceRegistry;
 
+	ResourceState m_state;
+
 public:
 	ResourceImpl(const std::string& name, ResourceManagerImpl* manager);
 
@@ -32,6 +43,8 @@ public:
 	virtual const std::string& GetName() override;
 
 	virtual const std::string& GetIdentifier() override;
+
+	virtual const std::string& GetPath() override;
 
 	virtual bool Start() override;
 

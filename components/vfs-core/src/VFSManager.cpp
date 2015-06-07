@@ -27,7 +27,7 @@ fwRefContainer<Stream> Manager::OpenRead(const std::string& path)
 	return nullptr;
 }
 
-fwRefContainer<Device> Manager::GetDevice(void* nativeDevice)
+fwRefContainer<Device> Manager::GetNativeDevice(void* nativeDevice)
 {
 	return nullptr;
 }
@@ -42,9 +42,9 @@ fwRefContainer<Device> GetDevice(const std::string& path)
 	return Instance<Manager>::Get()->GetDevice(path);
 }
 
-fwRefContainer<Device> GetDevice(void* nativeDevice)
+fwRefContainer<Device> GetNativeDevice(void* nativeDevice)
 {
-	return Instance<Manager>::Get()->GetDevice(nativeDevice);
+	return Instance<Manager>::Get()->GetNativeDevice(nativeDevice);
 }
 
 void Mount(fwRefContainer<Device> device, const std::string& path)

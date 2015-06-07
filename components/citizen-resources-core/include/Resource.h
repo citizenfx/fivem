@@ -32,6 +32,11 @@ public:
 	virtual const std::string& GetIdentifier() = 0;
 
 	//
+	// Gets the root path of the resource in the application file system.
+	//
+	virtual const std::string& GetPath() = 0;
+
+	//
 	// Starts the resource.
 	//
 	virtual bool Start() = 0;

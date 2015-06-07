@@ -23,7 +23,7 @@ concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(con
 	std::error_code ec;
 	network::uri parsed = network::make_uri(uri, ec);
 	
-	if (static_cast<bool>(ec))
+	if (!static_cast<bool>(ec))
 	{
 		// find a valid mounter for this scheme
 		fwRefContainer<ResourceMounter> mounter;
@@ -44,11 +44,36 @@ concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(con
 		// and forward to the mounter, if any.
 		if (mounter.GetRef())
 		{
-			return mounter->LoadResource(uri);
+			concurrency::task_completion_event<fwRefContainer<Resource>> completionEvent;
+
+			// set a completion event, as well
+			mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
+			{
+				// if the load succeeded
+				if (resource.GetRef())
+				{
+					fwRefContainer<ResourceImpl> resourceImpl(resource);
+
+					AddResourceInternal(resource);
+				}
+
+				completionEvent.set(resource);
+			});
+
+			return concurrency::task<fwRefContainer<Resource>>(completionEvent);
 		}
 	}
 
 	return concurrency::task_from_result<fwRefContainer<Resource>>(nullptr);
+}
+
+void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)
+{
+	{
+		std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+
+		m_resources.insert({ resource->GetName(), resource });
+	}
 }
 
 fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& identifier)
@@ -89,6 +114,13 @@ void ResourceManagerImpl::AddMounter(fwRefContainer<ResourceMounter> mounter)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_mountersMutex);
 	m_mounters.push_back(mounter);
+}
+
+fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& resourceName, const std::string& path)
+{
+	fwRefContainer<ResourceImpl> resource = new ResourceImpl(resourceName, this);
+
+	return (resource->LoadFrom(path)) ? resource : nullptr;
 }
 
 ResourceManager* CreateResourceManager()

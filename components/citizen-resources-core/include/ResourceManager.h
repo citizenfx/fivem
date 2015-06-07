@@ -47,6 +47,11 @@ public:
 	// Registers a resource mounter.
 	//
 	virtual void AddMounter(fwRefContainer<ResourceMounter> mounter) = 0;
+
+	//
+	// For use in resource mounters, creates a resource with the passed identity.
+	//
+	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName, const std::string& rootPath) = 0;
 };
 
 RESOURCES_CORE_EXPORT ResourceManager* CreateResourceManager();

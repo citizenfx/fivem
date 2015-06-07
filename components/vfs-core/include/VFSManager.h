@@ -27,14 +27,14 @@ public:
 
 	virtual void Mount(fwRefContainer<Device> device, const std::string& path) = 0;
 
-	virtual fwRefContainer<Device> GetDevice(void* nativeDevice);
+	virtual fwRefContainer<Device> GetNativeDevice(void* nativeDevice);
 };
 
 VFS_CORE_EXPORT fwRefContainer<Stream> OpenRead(const std::string& path);
 
 VFS_CORE_EXPORT fwRefContainer<Device> GetDevice(const std::string& path);
 
-VFS_CORE_EXPORT fwRefContainer<Device> GetDevice(void* nativeDevice);
+VFS_CORE_EXPORT fwRefContainer<Device> GetNativeDevice(void* nativeDevice);
 
 VFS_CORE_EXPORT void Mount(fwRefContainer<Device> device, const std::string& path);
 }

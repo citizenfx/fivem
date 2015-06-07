@@ -28,6 +28,8 @@ private:
 public:
 	ResourceManagerImpl();
 
+	void AddResourceInternal(fwRefContainer<Resource> resource);
+
 	virtual concurrency::task<fwRefContainer<Resource>> AddResource(const std::string& uri) override;
 
 	virtual fwRefContainer<Resource> GetResource(const std::string& identifier) override;
@@ -37,5 +39,7 @@ public:
 	virtual void ResetResources() override;
 
 	virtual void AddMounter(fwRefContainer<ResourceMounter> mounter) override;
+
+	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName, const std::string& path) override;
 };
 }

@@ -280,7 +280,7 @@ private:
 public:
 	virtual fwRefContainer<vfs::Device> GetDevice(const std::string& path) override;
 
-	virtual fwRefContainer<vfs::Device> GetDevice(void* nativeDevice) override;
+	virtual fwRefContainer<vfs::Device> GetNativeDevice(void* nativeDevice) override;
 
 	virtual void Mount(fwRefContainer<vfs::Device> device, const std::string& path) override;
 };
@@ -289,10 +289,10 @@ fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 {
 	rage::fiDevice* nativeDevice = rage::fiDevice::GetDevice(path.c_str(), true);
 
-	return (nativeDevice) ? GetDevice(nativeDevice) : nullptr;
+	return (nativeDevice) ? GetNativeDevice(nativeDevice) : nullptr;
 }
 
-fwRefContainer<vfs::Device> RageVFSManager::GetDevice(void* nativeDevice)
+fwRefContainer<vfs::Device> RageVFSManager::GetNativeDevice(void* nativeDevice)
 {
 	rage::fiDevice* nativeDevicePtr = reinterpret_cast<rage::fiDevice*>(nativeDevice);
 
