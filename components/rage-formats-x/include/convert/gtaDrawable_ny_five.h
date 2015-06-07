@@ -185,6 +185,12 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			}
 		}
 
+		if (newShaderName == "trees")
+		{
+			float alphaValues[4] = { 0.5f, 0.0f, 0.0f, 0.0f };
+			newShader->SetParameter("AlphaTest", alphaValues, sizeof(alphaValues));
+		}
+
 		if (newShader->GetResourceCount() != rescount)
 		{
 			// add missing layer2/3 maps
@@ -318,15 +324,21 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 				if (oldBounds)
 				{
-					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount());
+					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount() + 1);
 
-					for (int i = 0; i < geometryBounds.size(); i++)
+					for (int i = 0; i < geometryBounds.size() - 1; i++)
 					{
 						oldBounds[i].w *= 2;
 
-						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
-						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
+						geometryBounds[i + 1].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
+						geometryBounds[i + 1].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
 					}
+
+					auto& minBounds = oldLodGroup.GetBoundsMin();
+					auto& maxBounds = oldLodGroup.GetBoundsMax();
+
+					geometryBounds[0].aabbMin = Vector4(minBounds.x, minBounds.y, minBounds.z, oldLodGroup.GetRadius() * -2.0f);
+					geometryBounds[0].aabbMax = Vector4(maxBounds.x, maxBounds.y, maxBounds.z, oldLodGroup.GetRadius() * 2.0f);
 
 					newModel->SetGeometryBounds(geometryBounds.size(), &geometryBounds[0]);
 				}
