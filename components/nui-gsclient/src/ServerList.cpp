@@ -11,6 +11,7 @@
 #include <mmsystem.h>
 #include <WS2tcpip.h>
 #include <strsafe.h>
+#include <fstream>
 
 #if defined(GTA_NY)
 #define GS_GAMENAME "GTA4"
@@ -458,6 +459,22 @@ void GSClient_Refresh()
 	GSClient_QueryMaster();
 }
 
+void GSClient_GetFavorites()
+{
+	std::ifstream favFile(MakeRelativeCitPath(L"favorites.json"));
+	std::string json;
+	favFile >> json;
+	favFile.close();
+	nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'getFavorites', list: JSON.parse('%s') }, '*');", json.c_str()));
+}
+
+void GSClient_SaveFavorites(const wchar_t *json)
+{
+	std::wofstream favFile(MakeRelativeCitPath(L"favorites.json"));
+	favFile << json;
+	favFile.close();
+}
+
 static InitFunction initFunction([] ()
 {
 	nui::OnInvokeNative.Connect([] (const wchar_t* type, const wchar_t* arg)
@@ -465,6 +482,16 @@ static InitFunction initFunction([] ()
 		if (!_wcsicmp(type, L"refreshServers"))
 		{
 			GSClient_Refresh();
+		}
+
+		if (!_wcsicmp(type, L"getFavorites"))
+		{
+			GSClient_GetFavorites();
+		}
+
+		if (!_wcsicmp(type, L"saveFavorites"))
+		{
+			GSClient_SaveFavorites(arg);
 		}
 	});
 
