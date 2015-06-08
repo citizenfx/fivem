@@ -155,6 +155,7 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 
 	std::vector<five::phBoundPoly> outPolys;
 	std::vector<PolyEdge> outPolyEdges;
+	std::vector<uint8_t> outPolyMaterials;
 
 	for (uint16_t i = 0; i < numPolys; i++)
 	{
@@ -168,6 +169,7 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 		outPoly.type = 0;
 
 		outPolys.push_back(outPoly);
+		outPolyMaterials.push_back(poly.material);
 
 		if (poly.indices[3])
 		{
@@ -178,6 +180,7 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 			outPoly.type = 0;
 
 			outPolys.push_back(outPoly);
+			outPolyMaterials.push_back(poly.material);
 		}
 	}
 
@@ -267,20 +270,195 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 	}
 
 	out->SetPolys(outPolys.size(), &outPolys[0]);
+
+	if (out->GetType() == five::phBoundType::Geometry || out->GetType() == five::phBoundType::BVH)
+	{
+		five::phBoundGeometry* geom = static_cast<five::phBoundGeometry*>(out);
+
+		geom->SetPolysToMaterials(&outPolyMaterials[0]);
+	}
 }
 
 static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeometry* in)
 {
-	uint32_t materialColors[] = { 0x208Dffff };
+	static std::map<int, int> conversionMap;
+
+#pragma region material conversion mappings
+	if (conversionMap.empty())
+	{
+		conversionMap[0] = 0; // DEFAULT
+		conversionMap[1] = 137; // PHYS_NO_FRICTION
+		conversionMap[2] = 142; // PHYS_CAR_VOID
+		conversionMap[3] = 1; // CONCRETE
+		conversionMap[4] = 1; // CONCRETE
+		conversionMap[5] = 5; // TARMAC_PAINTED
+		conversionMap[6] = 101; // PLASTER_SOLID
+		conversionMap[7] = 7; // RUMBLE_STRIP
+		conversionMap[8] = 4; // TARMAC
+		conversionMap[9] = 8; // BREEZE_BLOCK
+		conversionMap[10] = 10; // ROCK_MOSSY
+		conversionMap[11] = 9; // ROCK
+		conversionMap[12] = 11; // STONE
+		conversionMap[13] = 12; // COBBLESTONE
+		conversionMap[14] = 13; // BRICK
+		conversionMap[15] = 14; // MARBLE
+		conversionMap[16] = 15; // PAVING_SLAB
+		conversionMap[17] = 81; // CERAMIC
+		conversionMap[18] = 82; // ROOF_TILE
+		conversionMap[19] = 70; // WOOD_SOLID_MEDIUM
+		conversionMap[20] = 70; // WOOD_SOLID_MEDIUM
+		conversionMap[21] = 71; // WOOD_SOLID_LARGE
+		conversionMap[22] = 75; // WOOD_HOLLOW_MEDIUM
+		conversionMap[23] = 69; // WOOD_SOLID_SMALL
+		conversionMap[24] = 70; // WOOD_SOLID_MEDIUM
+		conversionMap[25] = 78; // WOOD_OLD_CREAKY
+		conversionMap[26] = 76; // WOOD_HOLLOW_LARGE
+		conversionMap[27] = 96; // LAMINATE
+		conversionMap[28] = 72; // WOOD_SOLID_POLISHED
+		conversionMap[29] = 31; // GRAVEL_SMALL
+		conversionMap[30] = 2; // CONCRETE_POTHOLE
+		conversionMap[31] = 32; // GRAVEL_LARGE
+		conversionMap[32] = 19; // SAND_COMPACT
+		conversionMap[33] = 44; // CLAY_HARD
+		conversionMap[34] = 36; // MUD_HARD
+		conversionMap[35] = 51; // TWIGS
+		conversionMap[36] = 38; // MUD_SOFT
+		conversionMap[37] = 47; // GRASS
+		conversionMap[38] = 48; // GRASS_SHORT
+		conversionMap[39] = 50; // BUSHES
+		conversionMap[40] = 43; // SOIL
+		conversionMap[41] = 52; // LEAVES
+		conversionMap[42] = 53; // WOODCHIPS
+		conversionMap[43] = 54; // TREE_BARK
+		conversionMap[44] = 54; // TREE_BARK
+		conversionMap[45] = 54; // TREE_BARK
+		conversionMap[46] = 66; // METAL_DUCT
+		conversionMap[47] = 64; // METAL_GRILLE
+		conversionMap[48] = 65; // METAL_RAILING
+		conversionMap[49] = 63; // METAL_CORRUGATED_IRON
+		conversionMap[50] = 59; // METAL_HOLLOW_MEDIUM
+		conversionMap[51] = 59; // METAL_HOLLOW_MEDIUM
+		conversionMap[52] = 65; // METAL_RAILING
+		conversionMap[53] = 59; // METAL_HOLLOW_MEDIUM
+		conversionMap[54] = 57; // METAL_SOLID_LARGE
+		conversionMap[55] = 60; // METAL_HOLLOW_LARGE
+		conversionMap[56] = 57; // METAL_SOLID_LARGE
+		conversionMap[57] = 65; // METAL_RAILING
+		conversionMap[58] = 67; // METAL_GARAGE_DOOR
+		conversionMap[59] = 64; // METAL_GRILLE
+		conversionMap[60] = 57; // METAL_SOLID_LARGE
+		conversionMap[61] = 62; // METAL_CHAINLINK_LARGE
+		conversionMap[62] = 68; // METAL_MANHOLE
+		conversionMap[63] = 65; // METAL_RAILING
+		conversionMap[64] = 67; // METAL_GARAGE_DOOR
+		conversionMap[65] = 55; // METAL_SOLID_SMALL
+		conversionMap[66] = 64; // METAL_GRILLE
+		conversionMap[67] = 64; // METAL_GRILLE
+		conversionMap[68] = 65; // METAL_RAILING
+		conversionMap[69] = 67; // METAL_GARAGE_DOOR
+		conversionMap[70] = 56; // METAL_SOLID_MEDIUM
+		conversionMap[71] = 56; // METAL_SOLID_MEDIUM
+		conversionMap[72] = 55; // METAL_SOLID_SMALL
+		conversionMap[73] = 113; // GLASS_BULLETPROOF
+		conversionMap[74] = 114; // GLASS_MEDIUM
+		conversionMap[75] = 114; // GLASS_STRONG
+		conversionMap[76] = 114; // GLASS_WEAK
+		conversionMap[77] = 115; // PERSPEX
+		conversionMap[78] = 114; // GLASS_WEAK
+		conversionMap[79] = 116; // CAR_METAL
+		conversionMap[80] = 117; // CAR_PLASTIC
+		conversionMap[81] = 123; // CAR_GLASS_BULLETPROOF
+		conversionMap[82] = 86; // PLASTIC
+		conversionMap[83] = 84; // FIBREGLASS
+		conversionMap[84] = 86; // PLASTIC
+		conversionMap[85] = 85; // TARPAULIN
+		conversionMap[86] = 95; // LINOLEUM
+		conversionMap[87] = 97; // CARPET_SOLID
+		conversionMap[88] = 100; // CLOTH
+		conversionMap[89] = 83; // ROOF_FELT
+		conversionMap[90] = 97; // CARPET_SOLID
+		conversionMap[91] = 93; // RUBBER
+		conversionMap[92] = 105; // PAPER
+		conversionMap[93] = 103; // CARDBOARD_SHEET
+		conversionMap[94] = 106; // FOAM
+		conversionMap[95] = 107; // FEATHER_PILLOW
+		conversionMap[96] = 125; // WATER
+		conversionMap[97] = 125; // WATER
+		conversionMap[98] = 125; // WATER
+		conversionMap[99] = 143; // PHYS_PED_CAPSULE
+		conversionMap[100] = 150; // BUTTOCKS
+		conversionMap[101] = 151; // THIGH_LEFT
+		conversionMap[102] = 152; // SHIN_LEFT
+		conversionMap[103] = 153; // FOOT_LEFT
+		conversionMap[104] = 154; // THIGH_RIGHT
+		conversionMap[105] = 155; // SHIN_RIGHT
+		conversionMap[106] = 156; // FOOT_RIGHT
+		conversionMap[107] = 157; // SPINE0
+		conversionMap[108] = 158; // SPINE1
+		conversionMap[109] = 159; // SPINE2
+		conversionMap[110] = 160; // SPINE3
+		conversionMap[111] = 169; // NECK
+		conversionMap[112] = 170; // HEAD
+		conversionMap[113] = 161; // CLAVICLE_LEFT
+		conversionMap[114] = 162; // UPPER_ARM_LEFT
+		conversionMap[115] = 163; // LOWER_ARM_LEFT
+		conversionMap[116] = 164; // HAND_LEFT
+		conversionMap[117] = 165; // CLAVICLE_RIGHT
+		conversionMap[118] = 166; // UPPER_ARM_RIGHT
+		conversionMap[119] = 167; // LOWER_ARM_RIGHT
+		conversionMap[120] = 168; // HAND_RIGHT
+		conversionMap[121] = 140; // PHYS_CASTER
+		conversionMap[122] = 75; // WOOD_HOLLOW_MEDIUM
+		conversionMap[123] = 86; // PLASTIC
+		conversionMap[124] = 103; // CARDBOARD_SHEET
+		conversionMap[125] = 84; // FIBREGLASS
+		conversionMap[126] = 120; // CAR_GLASS_WEAK
+		conversionMap[127] = 0; // CAR_GLASS_MED
+		conversionMap[128] = 122; // CAR_GLASS_STRONG
+		conversionMap[129] = 123; // CAR_GLASS_BULLETPROOF
+		conversionMap[130] = 110; // TVSCREEN
+		conversionMap[131] = 110; // TVSCREEN
+		conversionMap[132] = 0; // DEFAULT
+		conversionMap[133] = 0; // DEFAULT
+		conversionMap[134] = 0; // DEFAULT
+		conversionMap[135] = 120; // CAR_GLASS_WEAK
+		conversionMap[136] = 0; // CAR_GLASS_MED
+		conversionMap[137] = 122; // CAR_GLASS_STRONG
+		conversionMap[138] = 123; // CAR_GLASS_BULLETPROOF
+		conversionMap[139] = 0; // DEFAULT
+		conversionMap[140] = 0; // DEFAULT
+		conversionMap[141] = 0; // DEFAULT
+		conversionMap[142] = 0; // DEFAULT
+		conversionMap[143] = 0; // DEFAULT
+		conversionMap[144] = 0; // DEFAULT
+		conversionMap[145] = 0; // DEFAULT
+		conversionMap[146] = 0; // DEFAULT
+		conversionMap[147] = 0; // DEFAULT
+		conversionMap[148] = 0; // DEFAULT
+		conversionMap[149] = 131; // EMISSIVE_GLASS
+		conversionMap[150] = 132; // EMISSIVE_PLASTIC
+		conversionMap[151] = 114; // GLASS_STRONG
+		conversionMap[152] = 47; // GRASS
+		conversionMap[153] = 47; // GRASS
+		conversionMap[154] = 97; // CARPET_SOLID
+		conversionMap[155] = 0; // DEFAULT
+	}
+#pragma endregion
+
+	uint32_t materialColors[] = { 0x208DFFFF };
 
 	out->SetMaterialColors(1, materialColors);
 
-	uint32_t materials[] = { 1, 0x100, 0, 0, 0, 0 };
+	std::vector<five::phBoundMaterial> materials(in->GetNumMaterials());
+	ny::phBoundMaterial* inMaterials = in->GetMaterials();
+	
+	for (int i = 0; i < materials.size(); i++)
+	{
+		materials[i].materialIdx = conversionMap[inMaterials[i].materialIdx];
+		materials[i].pad2 = 0x100;
+	}
 
-	out->SetMaterials(1, materials, sizeof(materials));
-
-	std::vector<uint8_t> materialMappings(out->GetNumPolygons());
-	out->SetPolysToMaterials(&materialMappings[0]);
+	out->SetMaterials(materials.size(), &materials[0]);
 }
 
 template<>

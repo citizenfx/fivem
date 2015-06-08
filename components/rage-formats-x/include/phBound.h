@@ -503,7 +503,13 @@ public:
 #else
 struct phBoundPoly : public pgStreamableBase
 {
-	float vertexUnks[4];
+	float normal[3];
+	union
+	{
+		uint8_t material;
+		float polyArea;
+	};
+
 	int16_t indices[4];
 	int16_t edges[4];
 };
@@ -660,10 +666,20 @@ public:
 	}
 };
 
+struct phBoundMaterial
+{
+	uint8_t materialIdx;
+	uint8_t pad[3];
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	uint32_t pad2;
+#endif
+};
+
 class phBoundGeometry : public phBoundPolyhedron
 {
 private:
-	pgPtr<void> m_materials;
+	pgPtr<phBoundMaterial> m_materials;
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	pgPtr<uint32_t> m_materialColors;
@@ -732,11 +748,21 @@ public:
 	}
 #endif
 
-	// temporary
-	inline void SetMaterials(uint8_t count, const void* data, size_t dataSize)
+	inline uint8_t GetNumMaterials()
 	{
-		void* materials = pgStreamManager::Allocate(dataSize, false, nullptr);
-		memcpy(materials, data, dataSize);
+		return m_numMaterials;
+	}
+
+	inline phBoundMaterial* GetMaterials()
+	{
+		return *m_materials;
+	}
+
+	// temporary
+	inline void SetMaterials(uint8_t count, const phBoundMaterial* data)
+	{
+		phBoundMaterial* materials = (phBoundMaterial*)pgStreamManager::Allocate(sizeof(*data) * count, false, nullptr);
+		memcpy(materials, data, sizeof(*data) * count);
 
 		m_materials = materials;
 
