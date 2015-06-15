@@ -11,7 +11,7 @@ module.exports = function(grunt)
 							config:		'component.name',
 							type: 		'input',
 							message: 	'Component name',
-							validate:   function(v) { return v.match(/^[a-z\-:]+$/) ? true : 'Component names must only contain alphanumerics or dashes.'; }
+							validate:   function(v) { return v.match(/^[a-z0-9\-:]+$/) ? true : 'Component names must only contain alphanumerics or dashes.'; }
 						}
 					]
 				}
