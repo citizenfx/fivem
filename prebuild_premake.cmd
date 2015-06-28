@@ -3,8 +3,8 @@ powershell -executionpolicy bypass -file citizenmp\prebuild_premake.ps1
 
 pushd build\premake
 call git submodule update --init --recursive
-..\premake4 vs2013
-..\premake4 embed
+..\premake5 vs2015
+..\premake5 embed
 popd
 
 call "%VCINSTALLDIR%\vcvarsall.bat" amd64_x86
