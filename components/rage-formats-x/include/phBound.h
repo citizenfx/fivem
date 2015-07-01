@@ -56,12 +56,18 @@ public:
 
 	inline phVector3()
 		: x(0.0f), y(0.0f), z(0.0f)
+#ifdef RAGE_FORMATS_GAME_NY
+			, _pad(NAN)
+#endif
 	{
 
 	}
 
 	inline phVector3(float x, float y, float z)
 		: x(x), y(y), z(z)
+#ifdef RAGE_FORMATS_GAME_NY
+			, _pad(NAN)
+#endif
 	{
 
 	}
@@ -84,7 +90,7 @@ private:
 #ifdef RAGE_FORMATS_GAME_FIVE
 	uintptr_t m_pad;
 #else
-	float m_pad;
+	float m_worldRadius;
 #endif
 
 	phVector3 m_aabbMax;
@@ -128,7 +134,6 @@ public:
 		m_unk2 = 0;
 
 		m_radius = 0;
-		m_pad = 0;
 
 		m_unkCount = 1;
 
@@ -136,16 +141,34 @@ public:
 		m_unkInt = 0;
 		m_unkInt2 = 0;
 
+		m_pad = 0;
+
 		m_unkFloat = 1.0f;
 
 		m_unkVector2 = phVector3(1.0f, 1.0f, 1.0f);
+#else
+		m_unk1 = 1;
+		m_unk2 = 1;
+
+		m_worldRadius = sqrt(3000 * 3000 + 3000 * 3000); // why not (just temp stuff)
 #endif
 	}
 
 	inline void SetUnkVector(const phVector3& vector)
 	{
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_unkVector2 = vector;
+#else
+		m_unkVector = vector;
+#endif
+	}
+
+#ifdef RAGE_FORMATS_GAME_NY
+	inline void SetUnkVector2(const phVector3& vector)
+	{
 		m_unkVector2 = vector;
 	}
+#endif
 
 	inline float GetRadius() const
 	{
@@ -342,12 +365,7 @@ private:
 
 	pgPtr<phBVH> m_bvh; // only set if > 5 child bounds - yes phBoundComposite has its very own BVH nowadays
 #else
-	union
-	{
-		pgPtr<phBoundAABB> m_childAABBs;
-
-		pgArray<phBoundAABB> m_childArray;
-	};
+	pgArray<phBoundAABB> m_childArray;
 
 	uint32_t m_compositePad[3];
 #endif
@@ -422,16 +440,24 @@ public:
 
 	inline phBoundAABB* GetChildAABBs()
 	{
+#ifdef RAGE_FORMATS_GAME_FIVE
 		return *m_childAABBs;
+#else
+		return &m_childArray.Get(0);
+#endif
 	}
 
 	inline void SetChildAABBs(uint16_t count, phBoundAABB* data)
 	{
+#ifdef RAGE_FORMATS_GAME_FIVE
 		phBoundAABB* outData = new(false) phBoundAABB[count];
 
 		memcpy(outData, data, sizeof(phBoundAABB) * count);
 
 		m_childAABBs = outData;
+#else
+		m_childArray.SetFrom(data, count);
+#endif
 	}
 
 #ifdef RAGE_FORMATS_GAME_FIVE
@@ -583,6 +609,14 @@ public:
 
 		m_unk1 = 0;
 		m_unkShort1 = 0;
+#elif defined(RAGE_FORMATS_GAME_NY)
+		m_unk1 = 0;
+
+		m_val = 1;
+
+		m_polyPad2[0] = -1;
+		m_polyPad2[1] = 0;
+		m_polyPad2[2] = 0;
 #endif
 	}
 
@@ -808,11 +842,11 @@ public:
 #ifdef RAGE_FORMATS_GAME_FIVE
 		m_unkBvhShort1 = 0xFFFF;
 		m_unkBvhPtr1 = 0;
+#endif
 
 		memset(m_bvhPad, 0, sizeof(m_bvhPad));
 
 		SetType(phBoundType::BVH);
-#endif
 	}
 
 	inline void Resolve(BlockMap* blockMap = nullptr)

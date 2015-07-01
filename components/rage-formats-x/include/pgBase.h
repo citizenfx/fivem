@@ -347,6 +347,11 @@ public:
 		return *m_child;
 	}
 
+	inline void SetChild(TChild* child)
+	{
+		m_child = child;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_child.Resolve(blockMap);

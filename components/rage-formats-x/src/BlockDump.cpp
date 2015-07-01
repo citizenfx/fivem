@@ -152,26 +152,6 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	size_t virtualOut;
 	size_t physicalOut;
 
-#ifdef RAGE_FORMATS_GAME_NY
-	uint32_t baseFlags = (1 << 31) | (1 << 30) | CalculateFlag(virtualSize, &virtualOut) | (CalculateFlag(physicalSize, &physicalOut) << 15);
-
-	// write out data to the buffer
-
-	// magic
-	uint8_t magic[] = { 'R', 'S', 'C', 0x05 };
-
-	writer(magic, sizeof(magic));
-
-	// version
-	writer(&version, sizeof(version));
-
-	// flags
-	writer(&baseFlags, sizeof(baseFlags));
-
-	// initialize zlib
-	z_stream strm = { 0 };
-	deflateInit(&strm, Z_BEST_COMPRESSION);
-#else
 	auto calcFlag = [&] (bool physical, size_t* outSize)
 	{
 		size_t base = this->baseAllocationSize[physical]; // TODO: pass this from another component
@@ -179,11 +159,18 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 		DWORD bitIdx;
 		_BitScanReverse(&bitIdx, base);
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 		uint32_t flag = (bitIdx - 13);
 
-		const uint8_t maxMults [] = { 16, 8, 4,  2,  1 };
-		const uint8_t maxCounts[] = { 1,  3, 15, 63, 127 };
+		const int8_t maxMults  [] = { 16, 8, 4, 2, 1 };
+		const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
 		const uint8_t valShifts[] = { 4,  5, 7,  11, 17 };
+#else
+		uint32_t flag = 0;
+
+		const int8_t maxMults  [] = { 1, -2, -4, -8, -16 };
+		const uint8_t maxCounts[] = { 0x7F, 1, 1, 1, 1 };
+#endif
 
 		int curMult = 0;
 		int curCounts[_countof(maxMults)] = { 0 };
@@ -193,7 +180,9 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 		// capture all full flags
 		for (int i = (physical ? this->virtualLen : 0); i < this->virtualLen + (physical ? this->physicalLen : 0); i++)
 		{
-			if (this->blocks[i].size == (base * maxMults[curMult]))
+			size_t curMultSize = (maxMults[curMult] >= 0) ? (base * maxMults[curMult]) : (base / -maxMults[curMult]);
+
+			if (this->blocks[i].size == curMultSize)
 			{
 				curCounts[curMult]++;
 
@@ -218,7 +207,9 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 
 			for (int i = _countof(maxMults) - 1; i >= curMult; i--)
 			{
-				if (block.size <= (maxMults[i] * base) && curCounts[i] <= maxCounts[i])
+				size_t curMultSize = (maxMults[i] >= 0) ? (base * maxMults[i]) : (base / -maxMults[i]);
+
+				if (block.size <= curMultSize && curCounts[i] <= maxCounts[i])
 				{
 					curCounts[i]++;
 					found = true;
@@ -229,6 +220,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 			assert(found);
 		}
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 		// set flags
 		for (int i = 0; i < _countof(maxMults); i++)
 		{
@@ -236,10 +228,52 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 		}
 
 		*outSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * base);
+#else
+		// / 16 flag
+		flag |= curCounts[4];
+
+		// / 8 flag
+		flag |= curCounts[3] << 1;
+
+		// / 4 flag
+		flag |= curCounts[2] << 2;
+
+		// / 2 flag
+		flag |= curCounts[1] << 3;
+
+		// big flag
+		flag |= curCounts[0] << 4;
+
+		// base shift
+		size_t baseShift = bitIdx - 12;
+		flag |= baseShift << 11;
+
+		*outSize = (flag & 0x7FF) << (baseShift + 8);
+#endif
 
 		return flag;
 	};
 
+#ifdef RAGE_FORMATS_GAME_NY
+	uint32_t baseFlags = (1 << 31) | (1 << 30) | calcFlag(false, &virtualOut) | (calcFlag(true, &physicalOut) << 15);
+
+	// write out data to the buffer
+
+	// magic
+	uint8_t magic[] = { 'R', 'S', 'C', 0x05 };
+
+	writer(magic, sizeof(magic));
+
+	// version
+	writer(&version, sizeof(version));
+
+	// flags
+	writer(&baseFlags, sizeof(baseFlags));
+
+	// initialize zlib
+	z_stream strm = { 0 };
+	deflateInit(&strm, Z_BEST_COMPRESSION);
+#else
 	size_t base = 0x2000;
 	size_t flag = 0x1890;
 	virtualOut = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * base);

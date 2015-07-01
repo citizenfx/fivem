@@ -663,7 +663,7 @@ public:
 #endif
 };
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64)
 static_assert(sizeof(grmShader) == 48, "grmShader size is incorrect");
 #endif
 
@@ -765,7 +765,9 @@ public:
 	{
 		m_shaders.SetFrom(shaders, count);
 
+#if defined(RAGE_FORMATS_GAME_FIVE)
 		_f30 = 0x1D;
+#endif
 	}
 
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -900,7 +902,7 @@ public:
 	}
 };
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64)
 static_assert(sizeof(grcIndexBufferD3D) >= 96, "grcIndexBufferD3D is too small!");
 #endif
 
@@ -1095,7 +1097,7 @@ public:
 	}
 };
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64)
 static_assert(sizeof(grcVertexBufferD3D) >= 128, "grcIndexBufferD3D is too small!");
 #endif
 
@@ -1269,10 +1271,14 @@ public:
 		return (*m_geometryBounds);
 	}
 
-	inline void SetGeometryBounds(const Vector4& vector)
+	inline void SetGeometryBounds(int count, const Vector4* vectors)
 	{
-		m_geometryBounds = (Vector4*)pgStreamManager::Allocate(sizeof(Vector4), false, nullptr);
-		(*m_geometryBounds)[0] = vector;
+		m_geometryBounds = (Vector4*)pgStreamManager::Allocate(sizeof(Vector4) * count, false, nullptr);
+
+		for (int i = 0; i < count; i++)
+		{
+			(*m_geometryBounds)[i] = vectors[i];
+		}
 	}
 #else
 	inline GeometryBound* GetGeometryBounds()

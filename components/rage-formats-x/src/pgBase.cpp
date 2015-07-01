@@ -369,8 +369,13 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 				// count the total in-memory size
 				size_t memorySize = 0;
 
-				const uint8_t maxMults[] = { 16, 8, 4, 2, 1 };
+#ifdef RAGE_FORMATS_GAME_FIVE
+				const int8_t maxMults[] = { 16, 8, 4, 2, 1 };
 				const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
+#else
+				const int8_t maxMults[] = { 1, -2, -4, -8, -16 };
+				const uint8_t maxCounts[] = { 0x7F, 1, 1, 1, 1 };
+#endif
 
 				auto getSize = [&] (int first, int count)
 				{
@@ -398,7 +403,7 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 					{
 						for (int j = _countof(maxMults) - 1; j >= 0; j--)
 						{
-							size_t nextSize = (newBase * maxMults[j]);
+							size_t nextSize = (maxMults[j] >= 0) ? (newBase * maxMults[j]) : (newBase / -maxMults[j]);
 
 							if (lastSize <= nextSize)
 							{
@@ -547,8 +552,13 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 
 void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap)
 {
-	const uint8_t maxMults[] = { 16, 8, 4, 2, 1 };
+#ifdef RAGE_FORMATS_GAME_FIVE
+	const int8_t maxMults[] = { 16, 8, 4, 2, 1 };
 	const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
+#else
+	const int8_t maxMults[] = { 1, -2, -4, -8, -16 };
+	const uint8_t maxCounts[] = { 0x7F, 1, 1, 1, 1 };
+#endif
 
 	// is this the packing block map?
 	void* oldBlockMap = blockMap;
@@ -748,7 +758,9 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 	curMult = maxMults[curMult];
 
-	if (newSize > (base * curMult))
+	size_t multipliedBase = (curMult >= 0) ? (base * curMult) : (base / -curMult);
+
+	if (newSize > multipliedBase)
 	{
 		trace("Tried to allocate more data than the base allocation unit (%d is current maximum page size) allows for, and relocation is not currently supported. Try increasing the base page multiplier (current is %d).\n", base * curMult, base);
 
@@ -757,8 +769,9 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 
 #if RAGE_NATIVE_ARCHITECTURE
 	//newBlockInfo.data = malloc(newSize + 4);
-	newBlockInfo.data = malloc((curMult * base) + 4);
+	newBlockInfo.data = malloc(multipliedBase + 4);
 #else
+#ifdef _M_AMD64
 	newBlockInfo.data = nullptr;
 
 	size_t ntsize = (curMult * base) + 4;
@@ -767,11 +780,14 @@ void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap
 	{
 		FatalError("ZwAllocateVirtualMemory failed!");
 	}
+#else
+	FatalError(__FUNCTION__ " alloc for x86 not implemented");
+#endif
 #endif
 
-	memset(newBlockInfo.data, 0xCD, base * curMult);
+	memset(newBlockInfo.data, 0xCD, multipliedBase);
 
-	allocInfo.realMaxSizes[newStart] = base * curMult;
+	allocInfo.realMaxSizes[newStart] = multipliedBase;
 
 	newBlockInfo.offset = newOffset;
 	newBlockInfo.size = size;
