@@ -14,7 +14,7 @@ class FxToolCommand;
 class ToolComponentBaseImpl : public fwRefCountable
 {
 private:
-	static fwRefContainer<ToolComponentBaseImpl> ms_instance;
+	static ToolComponentBaseImpl* ms_instance;
 
 	FxToolCommand* m_baseCommand;
 
@@ -24,9 +24,9 @@ public:
 		m_baseCommand = nullptr;
 	}
 
-	static inline fwRefContainer<ToolComponentBaseImpl> Get()
+	static inline ToolComponentBaseImpl* Get()
 	{
-		if (!ms_instance.GetRef())
+		if (!ms_instance)
 		{
 			ms_instance = new ToolComponentBaseImpl();
 		}
@@ -61,10 +61,13 @@ public:
 
 		if (toolCommand)
 		{
+			m_next = toolCommand->m_next;
 			toolCommand->m_next = this;
 		}
-
-		toolCommand = this;
+		else
+		{
+			toolCommand = this;
+		}
 	}
 
 	inline const char* GetName()
@@ -95,7 +98,7 @@ template<typename TBaseComponent>
 class ToolComponentBase : public TBaseComponent, public ToolComponent
 {
 private:
-	fwRefContainer<ToolComponentBaseImpl> m_impl;
+	ToolComponentBaseImpl* m_impl;
 
 public:
 	ToolComponentBase()

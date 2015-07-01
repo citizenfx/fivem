@@ -43,4 +43,4 @@ extern "C" __declspec(dllexport) Component* CreateComponent()
 	return new ComponentInstance();
 }
 
-fwRefContainer<ToolComponentBaseImpl> ToolComponentBaseImpl::ms_instance;
+ToolComponentBaseImpl* ToolComponentBaseImpl::ms_instance;
