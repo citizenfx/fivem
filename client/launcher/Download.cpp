@@ -285,14 +285,6 @@ void DL_ProcessDownload()
 			}
 			else
 			{
-				if (FILE* outFile = _wfopen(converter.from_bytes(opath).c_str(), L"ab"))
-				{
-					fclose(outFile);
-
-					_wunlink(converter.from_bytes(tmpPath).c_str());
-					_wrename(converter.from_bytes(opath).c_str(), converter.from_bytes(tmpPath).c_str());
-				}
-
 				fp = _wfopen(converter.from_bytes(tmpPath).c_str(), L"ab");
 
 				_fseeki64(fp, 0, SEEK_END);
