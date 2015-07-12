@@ -237,103 +237,15 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	UI_DoCreation();
 
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+
 	for (auto& filePair : queuedFiles)
 	{
 		cache_t& cache = filePair.first;
 		manifestFile_t& file = filePair.second;
 
 		// check file hash first
-		bool fileOutdated = true;
-
-		HANDLE hFile = CreateFileA(file.name.c_str(), GENERIC_READ | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-		HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-		static wchar_t fnameWide[512];
-		MultiByteToWideChar(CP_ACP, 0, file.name.c_str(), -1, fnameWide, sizeof(fnameWide) / 2);
-
-		if (hFile != INVALID_HANDLE_VALUE)
-		{
-			UI_UpdateText(1, va(L"Checking %s", fnameWide));
-
-			OVERLAPPED overlapped;
-
-			SHA1Context ctx;
-			SHA1Reset(&ctx);
-
-			bool doneReading = false;
-			DWORD fileOffset = 0;
-
-			while (!doneReading)
-			{
-				memset(&overlapped, 0, sizeof(overlapped));
-				overlapped.OffsetHigh = 0;
-				overlapped.Offset = fileOffset;
-
-				char buffer[4096];
-				if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
-				{
-					if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
-					{
-						MessageBox(NULL, va(L"Reading of %s failed with error %i.", fnameWide, GetLastError()), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-						return false;
-					}
-
-					if (GetLastError() == ERROR_HANDLE_EOF)
-					{
-						break;
-					}
-
-					while (true)
-					{
-						HANDLE pHandles[1];
-						pHandles[0] = hFile;
-
-						DWORD waitResult = MsgWaitForMultipleObjects(1, pHandles, FALSE, INFINITE, QS_ALLINPUT);
-
-						if (waitResult == WAIT_OBJECT_0)
-						{
-							break;
-						}
-
-						MSG msg;
-						while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-						{
-							TranslateMessage(&msg);
-							DispatchMessage(&msg);
-						}
-
-						if (UI_IsCanceled())
-						{
-							return false;
-						}
-					}
-				}
-
-				DWORD bytesRead;
-				BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
-				DWORD err = GetLastError();
-
-				SHA1Input(&ctx, (uint8_t*)buffer, bytesRead);
-
-				if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
-				{
-					doneReading = true;
-				}
-
-				fileOffset += bytesRead;
-			}
-
-			uint8_t outHash[20];
-			SHA1Result(&ctx, outHash);
-
-			if (!memcmp(file.hash, outHash, 20))
-			{
-				fileOutdated = false;
-			}
-		}
-
-		CloseHandle(hFile);
-		CloseHandle(hEvent);
+		bool fileOutdated = CheckFileOutdatedWithUI(converter.from_bytes(file.name).c_str(), file.hash);
 
 		if (fileOutdated)
 		{
@@ -377,6 +289,115 @@ bool Updater_RunUpdate(int numCaches, ...)
 	}
 
 	return retval;
+}
+
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20])
+{
+	bool fileOutdated = true;
+
+	HANDLE hFile = CreateFile(fileName, GENERIC_READ | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+	HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		// skip the game root path if needed
+		int fileNameOffset = 0;
+		std::wstring gameRoot = MakeRelativeGamePath(L"");
+
+		if (_wcsnicmp(fileName, gameRoot.c_str(), gameRoot.size()) == 0)
+		{
+			fileNameOffset = gameRoot.size();
+		}
+
+		UI_UpdateText(1, va(L"Checking %s", &fileName[fileNameOffset]));
+		UI_UpdateProgress(0.0);
+
+		LARGE_INTEGER fileSize;
+		GetFileSizeEx(hFile, &fileSize);
+
+		OVERLAPPED overlapped;
+
+		SHA1Context ctx;
+		SHA1Reset(&ctx);
+
+		bool doneReading = false;
+		DWORD fileOffset = 0;
+
+		while (!doneReading)
+		{
+			memset(&overlapped, 0, sizeof(overlapped));
+			overlapped.OffsetHigh = 0;
+			overlapped.Offset = fileOffset;
+
+			char buffer[65536];
+			if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
+			{
+				if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					MessageBox(NULL, va(L"Reading of %s failed with error %i.", fileName, GetLastError()), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+					return false;
+				}
+
+				if (GetLastError() == ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+
+				while (true)
+				{
+					HANDLE pHandles[1];
+					pHandles[0] = hFile;
+
+					DWORD waitResult = MsgWaitForMultipleObjects(1, pHandles, FALSE, INFINITE, QS_ALLINPUT);
+
+					if (waitResult == WAIT_OBJECT_0)
+					{
+						break;
+					}
+
+					MSG msg;
+					while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+					{
+						TranslateMessage(&msg);
+						DispatchMessage(&msg);
+					}
+
+					if (UI_IsCanceled())
+					{
+						return false;
+					}
+				}
+			}
+
+			DWORD bytesRead;
+			BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
+			DWORD err = GetLastError();
+
+			SHA1Input(&ctx, (uint8_t*)buffer, bytesRead);
+
+			if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
+			{
+				doneReading = true;
+			}
+
+			fileOffset += bytesRead;
+
+			UI_UpdateProgress((fileOffset / (double)fileSize.QuadPart) * 100.0);
+		}
+
+		uint8_t outHash[20];
+		SHA1Result(&ctx, outHash);
+
+		if (!memcmp(hash, outHash, 20))
+		{
+			fileOutdated = false;
+		}
+	}
+
+	CloseHandle(hFile);
+	CloseHandle(hEvent);
+
+	return fileOutdated;
 }
 
 const char* GetUpdateChannel()

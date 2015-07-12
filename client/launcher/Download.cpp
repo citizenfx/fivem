@@ -7,6 +7,9 @@
 
 #include "StdInc.h"
 
+// rockstar: meta-protocol base URL
+#define ROCKSTAR_BASE_URL "http://gtavp.citizen.re/file?name=%s"
+
 #define CURL_STATICLIB
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -133,6 +136,14 @@ void DL_DequeueDownload()
 	memcpy(&thisDownload, &download, sizeof(download_t));
 	dls.currentDownload = &thisDownload;
 
+	// process Rockstar URLs
+	if (_strnicmp(dls.currentDownload->url, "rockstar:", 9) == 0)
+	{
+		std::string newUrl = va(ROCKSTAR_BASE_URL, &dls.currentDownload->url[9]);
+
+		strcpy_s(dls.currentDownload->url, sizeof(dls.currentDownload->url), newUrl.c_str());
+	}
+
 	dls.downloadQueue.pop();
 }
 
@@ -192,6 +203,14 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, FILE *stream)
 
 	DL_UpdateGlobalProgress(size * nmemb);
 
+	// poll message loop in case of file:// transfers or similar
+	MSG msg;
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+
 	return written;
 }
 
@@ -206,7 +225,6 @@ void DL_ProcessDownload()
 	char opath[256];
 	char tmpPath[256];
 	char tmpDir[256];
-	//FS_BuildOSPath((*fs_homepath)->current.string, "", dls.currentDownload->file, opath);
 	opath[0] = '\0';
 	//strcat_s(opath, sizeof(opath), ".");
 	//strcat_s(opath, sizeof(opath), "/");
@@ -221,6 +239,10 @@ void DL_ProcessDownload()
 			*p = '/';
 		}
 	}
+
+	// wsc
+	bool alreadyDone = false;
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 	// create a new handle if we don't have one yet
 	if (!dls.currentDownload->curlHandles[0])
@@ -243,13 +265,13 @@ void DL_ProcessDownload()
 
 		for (int i = 0; i < dls.currentDownload->segments; i++)
 		{
-			FILE* fp;
+			FILE* fp = nullptr;
 			int64_t segStart = (i * segSize);
 			int64_t segEnd = segStart + segSize;
 
 			if (i > 0)
 			{
-				fp = fopen(va("%s.%i", tmpPath, i), "ab");
+				fp = _wfopen(converter.from_bytes(va("%s.%i", tmpPath, i)).c_str(), L"ab");
 				_fseeki64(fp, 0, SEEK_END);
 				segStart += _ftelli64(fp);
 
@@ -263,39 +285,39 @@ void DL_ProcessDownload()
 			}
 			else
 			{
-				if (dls.currentDownload->segments == 1)
+				if (FILE* outFile = _wfopen(converter.from_bytes(opath).c_str(), L"ab"))
 				{
-					fp = fopen(tmpPath, "wb");
-					segStart = 0;
-				}
-				else
-				{
-					fp = fopen(tmpPath, "ab");
+					fclose(outFile);
 
-					_fseeki64(fp, 0, SEEK_END);
-					segStart += _ftelli64(fp);
-
-					dls.doneTotalBytes += _ftelli64(fp);
-					dls.completedSize += _ftelli64(fp);
+					_wunlink(converter.from_bytes(tmpPath).c_str());
+					_wrename(converter.from_bytes(opath).c_str(), converter.from_bytes(tmpPath).c_str());
 				}
+
+				fp = _wfopen(converter.from_bytes(tmpPath).c_str(), L"ab");
+
+				_fseeki64(fp, 0, SEEK_END);
+				segStart += _ftelli64(fp);
+
+				dls.doneTotalBytes += _ftelli64(fp);
+				dls.completedSize += _ftelli64(fp);
 			}
 
 			if (!fp)
 			{
 				dls.isDownloading = false;
-				//Com_Error(1, "Unable to open %s for writing.", opath);
-				MessageBoxA(NULL, va("Unable to open %s for writing.", opath), "Error", MB_OK | MB_ICONSTOP);
+				MessageBox(NULL, va(L"Unable to open %s for writing.", converter.from_bytes(opath).c_str()), L"Error", MB_OK | MB_ICONSTOP);
 
 				ExitProcess(1);
 				return;
 			}
+
+			dls.currentDownload->fp[i] = fp;
 
 			if (segStart != segEnd)
 			{
 				curl_slist* headers = nullptr;
 				headers = curl_slist_append(headers, va("Range: bytes=%llu-%llu", segStart, segEnd - 1));
 
-				dls.currentDownload->fp[i] = fp;
 				dls.currentDownload->curlHandles[i] = curl_easy_init();
 				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_URL, dls.currentDownload->url);
 				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_WRITEDATA, fp);
@@ -309,6 +331,10 @@ void DL_ProcessDownload()
 				dls.strm.next_out = dls.strmOut;
 
 				curl_multi_add_handle(dls.curl, dls.currentDownload->curlHandles[i]);
+			}
+			else
+			{
+				alreadyDone = true;
 			}
 		}
 	}
@@ -332,26 +358,34 @@ void DL_ProcessDownload()
 		// check for success
 		CURLMsg* info = NULL;
 
+		std::wstring opathWide = converter.from_bytes(opath);
+		std::wstring tmpPathWide = converter.from_bytes(tmpPath);
+
 		do 
 		{
 			info = curl_multi_info_read(dls.curl, &stillRunning);
 
-			if (info != NULL)
+			if (info != NULL || alreadyDone)
 			{
-				if (info->msg == CURLMSG_DONE)
+				if (alreadyDone || info->msg == CURLMSG_DONE)
 				{
-					CURLcode code = info->data.result;
-					CURL* handle = info->easy_handle;
+					CURLcode code = CURLE_OK;
 
-					curl_multi_remove_handle(dls.curl, /*dls.currentDownload->curlHandle*/handle);
-					curl_easy_cleanup(/*dls.currentDownload->curlHandle*/handle);
-					lzma_end(&dls.strm);
+					if (!alreadyDone)
+					{
+						code = info->data.result;
+						CURL* handle = info->easy_handle;
+
+						curl_multi_remove_handle(dls.curl, /*dls.currentDownload->curlHandle*/handle);
+						curl_easy_cleanup(/*dls.currentDownload->curlHandle*/handle);
+						lzma_end(&dls.strm);
+					}
 
 					if (code == CURLE_OK)
 					{
 						if (dls.currentDownload->segments == 1)
 						{
-							if (DeleteFileA(opath) == 0)
+							if (DeleteFile(opathWide.c_str()) == 0)
 							{
 								if (GetLastError() != ERROR_FILE_NOT_FOUND)
 								{
@@ -361,10 +395,10 @@ void DL_ProcessDownload()
 								}
 							}
 
-							if (MoveFileA(tmpPath, opath) == 0)//rename(tmpPath, opath) != 0)
+							if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)//rename(tmpPath, opath) != 0)
 							{
 								MessageBoxA(NULL, va("Moving of %s failed (err = %d)", dls.currentDownload->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
-								DeleteFileA(tmpPath);
+								DeleteFile(tmpPathWide.c_str());
 
 								ExitProcess(1);
 							}
@@ -374,7 +408,7 @@ void DL_ProcessDownload()
 					}
 					else
 					{
-						_unlink(tmpPath);
+						_wunlink(tmpPathWide.c_str());
 						MessageBoxA(NULL, va("Downloading of %s failed with CURLcode 0x%x", dls.currentDownload->url, code), "Error", MB_OK | MB_ICONSTOP);
 
 						ExitProcess(1);
@@ -387,7 +421,7 @@ void DL_ProcessDownload()
 		{
 			_unlink(opath);
 
-			FILE* newFile = fopen(opath, "wb");
+			FILE* newFile = _wfopen(opathWide.c_str(), L"wb");
 
 			for (int i = 0; i < dls.currentDownload->segments; i++)
 			{
@@ -395,11 +429,11 @@ void DL_ProcessDownload()
 
 				if (i > 0)
 				{
-					fp = fopen(va("%s.%i", tmpPath, i), "rb");
+					fp = _wfopen(va(L"%s.%i", tmpPathWide.c_str(), i), L"rb");
 				}
 				else
 				{
-					fp = fopen(tmpPath, "rb");
+					fp = _wfopen(tmpPathWide.c_str(), L"rb");
 				}
 
 				char buffer[4096];
@@ -422,11 +456,11 @@ void DL_ProcessDownload()
 				
 				if (i > 0)
 				{
-					_unlink(va("%s.%i", tmpPath, i));
+					_wunlink(va(L"%s.%i", tmpPathWide.c_str(), i));
 				}
 				else
 				{
-					_unlink(tmpPath);
+					_wunlink(tmpPathWide.c_str());
 				}
 			}
 

@@ -15,6 +15,20 @@ static hook::cdecl_stub<void()> loadHudColor([] ()
 	return hook::pattern("45 33 F6 41 8D 56 27 44 89").count(1).get(0).get<void>(-0x23);
 });
 
+static bool LoadHudColorWrap()
+{
+	__try
+	{
+		loadHudColor();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 static InitFunction initFunction([] ()
 {
 	OnGameFrame.Connect([] ()
@@ -23,9 +37,11 @@ static InitFunction initFunction([] ()
 
 		if (!loadedHudColor)
 		{
-			loadHudColor();
-
-			loadedHudColor = true;
+			// really bad way of doing this, but for now it should be fine
+			if (LoadHudColorWrap())
+			{
+				loadedHudColor = true;
+			}
 		}
 	});
 });

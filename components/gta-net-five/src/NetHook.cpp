@@ -180,6 +180,7 @@ struct ScInAddr
 {
 	uint64_t unkKey1;
 	uint64_t unkKey2;
+	uint32_t secKeyTime; // added in 393
 	uint32_t ipLan;
 	uint16_t portLan;
 	uint32_t ipUnk;
@@ -187,6 +188,7 @@ struct ScInAddr
 	uint32_t ipOnline;
 	uint16_t portOnline;
 	uint16_t pad3;
+	uint32_t newVal; // added in 372
 };
 
 struct ScSessionAddr
@@ -205,8 +207,8 @@ struct ScUnkAddr
 	char systemKey[16];
 };
 
-static_assert(sizeof(ScInAddr) == (40), "ScInAddr size seems bad...");
-static_assert(sizeof(ScSessionAddr) == (56), "ScSessionAddr size seems bad...");
+static_assert(sizeof(ScInAddr) == (40 + 8), "ScInAddr size seems bad...");
+static_assert(sizeof(ScSessionAddr) == (56 + 8), "ScSessionAddr size seems bad...");
 
 bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr* in, void*, ScUnkAddr* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
 {
@@ -255,12 +257,14 @@ static hook::cdecl_stub<void()> doPresenceStuff([] ()
 
 static hook::cdecl_stub<void(void*, ScSessionAddr*, int64_t, int)> joinGame([] ()
 {
-	return hook::pattern("F6 81 ? 82 00 00 01 45 8B F9 45 8B E8 4C 8B").count(1).get(0).get<void>(-0x24);
+	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F9 45 8B E8 4C 8B").count(1).get(0).get<void>(-0x24);
 });
 
 static hook::cdecl_stub<void(int, int, int)> hostGame([] ()
 {
-	return hook::get_call(hook::pattern("48 8B 41 10 BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<void>(0x11));
+	// below is original pattern, obfuscated since 372, so will differ per EXE now
+	return hook::get_call(hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00 8B 08 E9").count(1).get(0).get<void>(13));
+	//return hook::get_call(hook::pattern("48 8B 41 10 BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<void>(0x11));
 });
 
 static void* getNetworkManager()
@@ -407,9 +411,9 @@ static HookFunction initFunction([] ()
 		{
 			gameLoaded = false;
 
-			if (*g_dlcMountCount != 41)
+			if (*g_dlcMountCount != 48)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 41);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 48);
 
 				return;
 			}
@@ -437,6 +441,8 @@ static HookFunction initFunction([] ()
 			{
 				static ScSessionAddr netAddr;
 				memset(&netAddr, 0, sizeof(netAddr));
+
+				netAddr.addr.secKeyTime = g_netLibrary->GetHostBase() ^ 0xABCD;
 
 				netAddr.addr.unkKey1 = g_netLibrary->GetHostBase();
 				netAddr.addr.unkKey2 = g_netLibrary->GetHostBase();
@@ -504,7 +510,8 @@ static void GetOurSecurityKey(uint64_t* key)
 
 bool GetOurOnlineAddress(ScInAddr* address)
 {
-	memset(address, 0, 24 + 16);
+	memset(address, 0, sizeof(*address));
+	address->secKeyTime = g_netLibrary->GetServerBase() ^ 0xABCD;
 	address->unkKey1 = g_netLibrary->GetServerBase();
 	address->unkKey2 = g_netLibrary->GetServerBase();
 	address->ipLan = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
@@ -564,10 +571,10 @@ static void __stdcall LogDescriptorDo(int netType)
 				if (g_pendSendVar > 40)
 				{
 					// help! too many pending packets!
-					__debugbreak();
+					//__debugbreak();
 				}
 
-				trace("[%s] %d\n", descriptor->name, netType);
+				trace("[unk due to R*] %d\n", netType);
 				return;
 			}
 		}
@@ -790,6 +797,19 @@ static bool HookSendJoinResponse(CMsgJoinResponse* response, void* a2, size_t a3
 	return g_origJoinResponse(response, a2, a3, a4);
 }
 
+static int* g_netNewVal;
+
+static void GetNetNewVal()
+{
+	*g_netNewVal = 0;
+}
+
+static void HashSecKeyAddress(uint64_t* outValue, uint32_t seed)
+{
+	outValue[0] = seed ^ 0xABCD;
+	outValue[1] = seed ^ 0xABCD;
+}
+
 static HookFunction hookFunction([] ()
 {
 	/*OnPostFrontendRender.Connect([] ()
@@ -802,7 +822,16 @@ static HookFunction hookFunction([] ()
 		TheFonts->DrawText(va(L"> %i <", value), rect, color, 100.0f, 1.0f, "Comic Sans MS");
 	});*/
 
-	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 D0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
+	char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? E8").count(1).get(0).get<char>(10);
+
+	g_netNewVal = (int*)(*(int32_t*)getNewNewVal + getNewNewVal + 4);
+
+	getNewNewVal -= 0x37;
+
+	hook::jump(getNewNewVal, GetNetNewVal);
+
+	// was void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 E0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14); before 372
+	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 E0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
 	hook::set_call(&g_origJR, handleJoinRequestPtr);
 	hook::call(handleJoinRequestPtr, HandleJR);
 
@@ -830,7 +859,9 @@ static HookFunction hookFunction([] ()
 	hook::iat("ws2_32.dll", CfxGetSockName, 6);
 
 	// session migration, some 'inline' memcpy of the new address
-	void* migrateCmd = hook::pattern("48 8B 47 68 48 83 E9 80 48 89 41 F8 E8").count(1).get(0).get<void>(12);
+	//void* migrateCmd = hook::pattern("48 8B 47 68 48 83 E9 80 48 89 41 F8 E8").count(1).get(0).get<void>(12);
+	// 372 change
+	void* migrateCmd = hook::pattern("48 8B 47 70 48 81 C1 88 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
 	hook::call(migrateCmd, MigrateSessionCopy);
 
@@ -838,10 +869,17 @@ static HookFunction hookFunction([] ()
 	hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
 
 	// we also need some pointers from this function
-	char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
+	//char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
+	char* netAddressFunc = hook::pattern("89 79 10 48 89 39 48 89 79 08 89 71 14 66").count(1).get(0).get<char>(-0x1E);
 	hook::jump(netAddressFunc, GetOurOnlineAddress);
 
-	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x75);
+	// added in 393
+	hook::jump(hook::get_call(netAddressFunc + 0x5D), HashSecKeyAddress);
+
+	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x75); // 350-
+	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x78); // 372
+	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x88); // 393
+	// ^ 372 change, 393 change
 
 	netAddressFunc += 0x1A;
 
@@ -849,7 +887,9 @@ static HookFunction hookFunction([] ()
 
 	*didNetAddressBool = true;
 
-	netAddressFunc += 0x25;
+	//netAddressFunc += 0x25;
+	//netAddressFunc += 0x28; // <- 372
+	netAddressFunc += 0x37; // <- 393
 
 	g_globalNetSecurityKey = (uint64_t*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
 
@@ -1031,7 +1071,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(match.get<void>(43), 0xEB);
 
 	// unknownland
-	hook::put<uint16_t>(hook::pattern("8B B5 A0 02 00 00 85 F6 0F 84 B1").count(1).get(0).get<void>(8), 0xE990);
+	hook::put<uint16_t>(hook::pattern("8B B5 ? 02 00 00 85 F6 0F 84 B1").count(1).get(0).get<void>(8), 0xE990);
 
 	// always set the net sendto semaphore
 	char* ptrT = hook::pattern("F7 84 24 80 00 00 00 00 00 00 01 74 23").count(1).get(0).get<char>(11);
@@ -1057,7 +1097,7 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::pattern("85 ED 78 52 84 C0 74 4E 48").count(1).get(0).get<void>(), 8);
 
 	// bandwidth fubbling
-	hook::nop(hook::pattern("2B 83 B8 09 00 00 3B 46 44 8A C2 77 03").count(1).get(0).get<void>(11), 2);
+	/*hook::nop(hook::pattern("2B 83 ? 09 00 00 3B 46 44 8A C2 77 03").count(1).get(0).get<void>(11), 2);
 
 	// more bandwidth ignorance
 	hook::jump(hook::pattern("48 83 EC 20 8B F2 48 8B D9 48 8D 3C 76 48 C1").count(1).get(0).get<void>(-0xB), ReturnBandwidthCheck);
@@ -1067,10 +1107,10 @@ static HookFunction hookFunction([] ()
 
 	// or maybe it's not bandwidth-related at all, and it just needs this timer thing to not break
 	// >it never breaks anyway, but yeah
-	hook::put<uint8_t>(hook::pattern("83 BB 18 01 00 00 00 89 93 1C 01 00 00 7F 38").count(1).get(0).get<void>(13), 0xEB);
+	hook::put<uint8_t>(hook::pattern("83 BB 18 01 00 00 00 89 93 1C 01 00 00 7F 38").count(1).get(0).get<void>(13), 0xEB);*/
 
 	// and just for kicks we'll remove this one as well
-	hook::nop(hook::pattern("44 29 A3 10 01 00 00 83 BB 10 01 00 00 00 0F 8F").count(1).get(0).get<void>(14), 6);
+	//hook::nop(hook::pattern("44 29 A3 10 01 00 00 83 BB 10 01 00 00 00 0F 8F").count(1).get(0).get<void>(14), 6);
 
 	// DLC mounts
 	location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
@@ -1087,7 +1127,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(hook::pattern("84 C0 75 0B 41 BC 07 00 00 00").count(1).get(0).get<void>(2), 0xEB);
 
 	// also ignore the rarer CMsgJoinRequest failure reason '13' (something related to what seems to be like stats)
-	hook::put<uint8_t>(hook::pattern("3B D8 74 0B 41 BC 0D 00 00 00").count(1).get(0).get<void>(2), 0xEB);
+	hook::put<uint8_t>(hook::pattern("3B ? 74 0B 41 BC 0D 00 00 00").count(1).get(0).get<void>(2), 0xEB);
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");

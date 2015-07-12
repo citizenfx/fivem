@@ -32,7 +32,7 @@ void UI_CreateWindow()
 {
 	g_uui.taskbarMsg = RegisterWindowMessage(L"TaskbarButtonCreated");
 
-	HWND rootWindow = CreateWindowEx(0, L"NotSteamAtAll", L"Updating " PRODUCT_NAME, 13238272 /* lol */, 0x80000000, 0, 400, 129, NULL, NULL, GetModuleHandle(NULL), 0);
+	HWND rootWindow = CreateWindowEx(0, L"NotSteamAtAll", L"Updating " PRODUCT_NAME, 13238272 /* lol */, 0x80000000, 0, 500, 129, NULL, NULL, GetModuleHandle(NULL), 0);
 
 	INITCOMMONCONTROLSEX controlSex;
 	controlSex.dwSize = sizeof(controlSex);
@@ -42,17 +42,17 @@ void UI_CreateWindow()
 	HFONT font = CreateFont(-12, 0, 0, 0, 0, 0, 0, 0, 1, 8, 0, 5, 2, L"Tahoma");
 
 	// TODO: figure out which static is placed where
-	HWND static1 = CreateWindowEx(0x20, L"static", L"static1", 0x50000000, 15, 15, 365, 25, rootWindow, 0, GetModuleHandle(NULL) /* what?! */, 0);
+	HWND static1 = CreateWindowEx(0x20, L"static", L"static1", 0x50000000, 15, 15, 455, 25, rootWindow, 0, GetModuleHandle(NULL) /* what?! */, 0);
 
 	SendMessage(static1, WM_SETFONT, (WPARAM)font, 0);
 
-	HWND cancelButton = CreateWindowEx(0, L"button", L"Cancel", 0x50000000, 305, 64, 75, 25, rootWindow, 0, GetModuleHandle(NULL), 0);
+	HWND cancelButton = CreateWindowEx(0, L"button", L"Cancel", 0x50000000, 395, 64, 75, 25, rootWindow, 0, GetModuleHandle(NULL), 0);
 	SendMessage(cancelButton, WM_SETFONT, (WPARAM)font, 0);
 
-	HWND progressBar = CreateWindowEx(0, L"msctls_progress32", 0, 0x50000000, 15, 40, 365, 15, rootWindow, 0, GetModuleHandle(NULL), 0);
+	HWND progressBar = CreateWindowEx(0, L"msctls_progress32", 0, 0x50000000, 15, 40, 455, 15, rootWindow, 0, GetModuleHandle(NULL), 0);
 	SendMessage(progressBar, PBM_SETRANGE32, 0, 10000);
 
-	HWND static2 = CreateWindowEx(0x20, L"static", L"static2", 0x50000000, 15, 64, 270, 25, rootWindow, 0, GetModuleHandle(NULL) /* what?! */, 0);
+	HWND static2 = CreateWindowEx(0x20, L"static", L"static2", 0x50000000, 15, 68, 370, 25, rootWindow, 0, GetModuleHandle(NULL) /* what?! */, 0);
 	SendMessage(static2, WM_SETFONT, (WPARAM)font, 0);
 
 	g_uui.cancelButton = cancelButton;
@@ -64,8 +64,8 @@ void UI_CreateWindow()
 	RECT wndRect;
 	wndRect.left = 0;
 	wndRect.top = 0;
-	wndRect.right = 400;
-	wndRect.bottom = 129;
+	wndRect.right = 500;
+	wndRect.bottom = 139;
 
 	HWND desktop = GetDesktopWindow();
 	HDC dc = GetDC(desktop);
@@ -76,7 +76,7 @@ void UI_CreateWindow()
 
 	SetTimer(rootWindow, 0, 20, NULL);
 
-	MoveWindow(rootWindow, (width - 400) / 2, (height - 129) / 2, wndRect.right - wndRect.left + 1, wndRect.bottom - wndRect.top + 1, TRUE);
+	MoveWindow(rootWindow, (width - 500) / 2, (height - 139) / 2, wndRect.right - wndRect.left + 1, wndRect.bottom - wndRect.top + 1, TRUE);
 
 	ShowWindow(rootWindow, TRUE);
 }

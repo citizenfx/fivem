@@ -181,7 +181,7 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	hook::call(hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
 
 	// ignore steam requirement
-	auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25 31 E8");
+	auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25");// 31 E8");
 	if (pattern.size() > 0)
 	{
 		hook::nop(pattern.get(0).get<void>(0), 6);
@@ -189,7 +189,7 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	}
 
 	// ignore loading 'videos'
-	hook::call(hook::pattern("48 85 C9 0F 84 ED 00 00 00 48 8D 55 A7 E8").count(1).get(0).get<void>(13), ReturnInt<0>);
+	hook::call(hook::pattern("48 85 C9 0F 84 ? 00 00 00 48 8D 55 A7 E8").count(1).get(0).get<void>(13), ReturnInt<0>);
 
 	// loading screen stages
 	hook::put<uint8_t>(hook::pattern("8D 4A 03 E8 ? ? ? ? E8 ? ? ? ? 84 C0 75 1E").count(1).get(0).get<void>(2), 8);
@@ -391,6 +391,60 @@ static int NoWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD)
 {
 	return 1;
 }
+
+extern std::map<std::string, std::string> g_redirectionData;
+
+static std::wstring MapRedirectedFilename(const wchar_t* lpFileName)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+
+	// original filename with backslashes converted to slashes
+	std::wstring origFileName = lpFileName;
+	std::replace(origFileName.begin(), origFileName.end(), L'\\', L'/');
+
+	std::string fileName = converter.to_bytes(origFileName);
+
+	for (auto& redirectedPair : g_redirectionData)
+	{
+		if (fileName.length() >= redirectedPair.first.length())
+		{
+			size_t start = fileName.length() - redirectedPair.first.length();
+
+			// FIXME: what if this is actually a UTF-8 subfilename?
+			if (_stricmp(fileName.substr(start).c_str(), redirectedPair.first.c_str()) == 0)
+			{
+				fileName = redirectedPair.second;
+
+				origFileName = converter.from_bytes(fileName);
+
+				return origFileName;
+			}
+		}
+	}
+
+	return lpFileName;
+}
+
+static HANDLE CreateFileWHook(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
+{
+	std::wstring fileName = MapRedirectedFilename(lpFileName);
+
+	return CreateFileW(fileName.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+static DWORD GetFileAttributesWHook(_In_ LPCWSTR lpFileName)
+{
+	std::wstring fileName = MapRedirectedFilename(lpFileName);
+
+	return GetFileAttributesW(fileName.c_str());
+}
+
+static BOOL GetFileAttributesExWHook(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_INFO_LEVELS fInfoLevelId, _Out_writes_bytes_(sizeof(WIN32_FILE_ATTRIBUTE_DATA)) LPVOID lpFileInformation)
+{
+	std::wstring fileName = MapRedirectedFilename(lpFileName);
+
+	return GetFileAttributesExW(fileName.c_str(), fInfoLevelId, lpFileInformation);
+}
 #endif
 
 void CitizenGame::Launch(std::wstring& gamePath)
@@ -498,6 +552,18 @@ void CitizenGame::Launch(std::wstring& gamePath)
 		else if (!_stricmp(functionName, "SetWindowsHookExA"))
 		{
 			return NoWindowsHookExA;
+		}
+		else if (!_stricmp(functionName, "CreateFileW"))
+		{
+			return CreateFileWHook;
+		}
+		else if (!_stricmp(functionName, "GetFileAttributesExW"))
+		{
+			return GetFileAttributesExWHook;
+		}
+		else if (!_stricmp(functionName, "GetFileAttributesW"))
+		{
+			return GetFileAttributesWHook;
 		}
 #endif
 

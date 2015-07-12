@@ -90,21 +90,15 @@ private:
 	uintptr_t m_end;
 
 public:
-	executable_meta()
-		: m_begin(0), m_end(0)
+	template<typename TReturn, typename TOffset>
+	TReturn* getRVA(TOffset rva)
 	{
-
+		return (TReturn*)(m_begin + rva);
 	}
 
-	void EnsureInit()
+	executable_meta(void* module)
+		: m_begin((uintptr_t)module), m_end(0)
 	{
-		if (m_begin)
-		{
-			return;
-		}
-
-		m_begin = reinterpret_cast<uintptr_t>(getRVA<void>(0));
-
 		PIMAGE_DOS_HEADER dosHeader = getRVA<IMAGE_DOS_HEADER>(0);
 		PIMAGE_NT_HEADERS ntHeader = getRVA<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
 
@@ -155,9 +149,7 @@ void pattern::EnsureMatches(int maxCount)
 	}
 
 	// scan the executable for code
-	static executable_meta executable;
-
-	executable.EnsureInit();
+	executable_meta executable(m_module);
 
 	// check if SSE 4.2 is supported
 	int cpuid[4];

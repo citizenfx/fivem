@@ -18,7 +18,11 @@ void EnsureGamePath();
 
 bool InitializeExceptionHandler();
 
+std::map<std::string, std::string> UpdateGameCache();
+
 #pragma comment(lib, "version.lib")
+
+std::map<std::string, std::string> g_redirectionData;
 
 extern "C" int wmainCRTStartup();
 
@@ -110,6 +114,13 @@ void main()
 	}
 
 #ifdef GTA_FIVE
+	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	auto redirectionData = UpdateGameCache();
+	g_redirectionData = redirectionData;
+
+	gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
+
 	{
 		DWORD versionInfoSize = GetFileVersionInfoSize(gameExecutable.c_str(), nullptr);
 
@@ -126,9 +137,9 @@ void main()
 
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
 				
-				if ((fixedInfo->dwFileVersionLS >> 16) != 350)
+				if ((fixedInfo->dwFileVersionLS >> 16) != 393)
 				{
-					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.350 is currently supported. Please obtain this version, and try again.",
+					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.393 is currently supported. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),
 										   (fixedInfo->dwFileVersionMS >> 16),
 										   (fixedInfo->dwFileVersionMS & 0xFFFF),

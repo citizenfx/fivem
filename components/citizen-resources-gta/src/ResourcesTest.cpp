@@ -41,7 +41,7 @@ concurrency::task<fwRefContainer<fx::Resource>> ExampleMounter::LoadResource(con
 
 static InitFunction initFunction([] ()
 {
-	rage::fiDevice::OnInitialMount.Connect([] ()
+	/*rage::fiDevice::OnInitialMount.Connect([] ()
 	{
 		while (true)
 		{
@@ -56,5 +56,5 @@ static InitFunction initFunction([] ()
 
 			__debugbreak();
 		}
-	}, 9000);
+	}, 9000);*/
 });

@@ -36,6 +36,8 @@ bool UI_IsCanceled();
 bool Updater_RunUpdate(int numCaches, ...);
 const char* GetUpdateChannel();
 
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20]);
+
 #include "LauncherConfig.h"
 
 #include <citversion.h>

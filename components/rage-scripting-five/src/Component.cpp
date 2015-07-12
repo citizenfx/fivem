@@ -27,13 +27,15 @@ bool ComponentInstance::Initialize()
 	return true;
 }
 
-static void(*oldInitCall)(void*);
+static void*(*oldInitCall)(void*, uint32_t, uint32_t);
 
-static void PostScriptInit(void* arg)
+static void* PostScriptInit(void* arg, uint32_t a2, uint32_t a3)
 {
-	oldInitCall(arg);
+	void* retval = oldInitCall(arg, a2, a3);
 
 	rage::scrEngine::OnScriptInit();
+
+	return retval;
 }
 
 bool ComponentInstance::DoGameLoad(void* module)
@@ -48,11 +50,14 @@ bool ComponentInstance::DoGameLoad(void* module)
 	})*/
 
 	// PREPARE FOR PATTERN HELL
-	auto match = hook::pattern("89 1D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? 48  83 C4 20 5B E9 ? ? ? ? 83 F9 08").count(1).get(0);
+	//auto match = hook::pattern("89 1D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? 48  83 C4 20 5B E9 ? ? ? ? 83 F9 08").count(1).get(0);
 
-	oldInitCall = (decltype(oldInitCall))hook::get_call(match.get<void>(23));
+	// 372 obfuscated (tier 1, mutation/jumpception) script core with a fair depth level, now we'll have to hook this internally...
+	auto match = hook::pattern("BA 2F 7B 2E 30 41 B8 0A").count(1).get(0);
 
-	hook::jump(match.get<void>(23), PostScriptInit);
+	oldInitCall = (decltype(oldInitCall))hook::get_call(match.get<void>(/*23*/11));
+
+	hook::call(match.get<void>(/*23*/11), PostScriptInit);
 
 	HookFunction::RunAll();
 

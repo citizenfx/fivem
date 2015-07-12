@@ -50,9 +50,18 @@ namespace hook
 
 		bool m_matched;
 
-	private:
+	protected:
+		void* m_module;
+
+	protected:
+		inline pattern(void* module)
+			: m_module(module)
+		{
+		}
+
 		void Initialize(const char* pattern, size_t length);
 
+	private:
 		bool ConsiderMatch(uintptr_t offset);
 
 		void EnsureMatches(int maxCount);
@@ -61,6 +70,8 @@ namespace hook
 		template<size_t Len>
 		pattern(const char (&pattern)[Len])
 		{
+			m_module = getRVA<void>(0);
+
 			Initialize(pattern, Len);
 		}
 
@@ -99,6 +110,18 @@ namespace hook
 	public:
 		// define a hint
 		static void hint(uint64_t hash, uintptr_t address);
+	};
+
+	class module_pattern
+		: public pattern
+	{
+	public:
+		template<size_t Len>
+		module_pattern(void* module, const char(&pattern)[Len])
+			: pattern(module)
+		{
+			Initialize(pattern, Len);
+		}
 	};
 }
 
