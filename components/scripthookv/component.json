@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:scripting:five",
-		"rage:input:five"
+		"rage:input:five",
+		"rage:graphics:five"
 	],
 	"provides": []
 }

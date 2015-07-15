@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include <scrEngine.h>
 #include <InputHook.h>
+#include <IteratorView.h>
 
 #include <memory>
 
@@ -155,6 +156,8 @@ void FishThread::RemoveScript(void(*fn)())
 
 static FishThread g_fish;
 
+static std::multimap<HMODULE, void(*)()> g_modulesToFunctions;
+
 void DLL_EXPORT scriptWait(unsigned long waitTime)
 {
 	g_fishScript->Yield(waitTime);
@@ -163,11 +166,46 @@ void DLL_EXPORT scriptWait(unsigned long waitTime)
 void DLL_EXPORT scriptRegister(HMODULE hMod, void(*function)())
 {
 	g_fish.AddScript(function);
+	g_modulesToFunctions.insert({ hMod, function });
+}
+
+void DLL_EXPORT scriptRegisterAdditionalThread(HMODULE hMod, void(*function)())
+{
+	scriptRegister(hMod, function);
 }
 
 void DLL_EXPORT scriptUnregister(void(*function)())
 {
 	g_fish.RemoveScript(function);
+}
+
+void DLL_EXPORT scriptUnregister(HMODULE hMod) // 372+ API
+{
+	auto iteratorView = fx::GetIteratorView(g_modulesToFunctions.equal_range(hMod));
+
+	for (auto& entry : iteratorView)
+	{
+		g_fish.RemoveScript(entry.second);
+	}
+}
+
+// CitizenFX doesn't have globals normally - this is therefore a no-op
+DLL_EXPORT uint64_t* getGlobalPtr(int)
+{
+	// let the user party on a dummy global (allocate some buffer size at the end, though)
+	static uint64_t dummyGlobal[128];
+
+	return dummyGlobal;
+}
+
+enum eGameVersion : int
+{
+	DummyVersion = 7
+};
+
+DLL_EXPORT eGameVersion getGameVersion()
+{
+	return DummyVersion;
 }
 
 class FishNativeContext : public NativeContext
