@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <om/core.h>
-
 // Core object model base interface definition.
 class fxIBase
 {

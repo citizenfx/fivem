@@ -26,4 +26,6 @@ typedef unsigned long       size_t;
 
 %{C++
 #endif
+
+#include <om/core.h>
 %}

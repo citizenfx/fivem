@@ -18,6 +18,10 @@ typedef uint32_t result_t;
 #define FX_E_NOINTERFACE		0x80004002
 #define FX_E_INVALIDARG			0x80070057
 
+// Success/failure macros
+#define FX_SUCCEEDED(x)			(((x) & 0x80000000) == 0)
+#define FX_FAILED(x)			(!FX_SUCCEEDED(x))
+
 // GUID type
 struct guid_t
 {
@@ -26,6 +30,10 @@ struct guid_t
 	uint16_t data3;
 	uint8_t  data4[8];
 };
+
+// definition macro
+#define FX_DEFINE_GUID(name, d1, d2, d3, a, b, c, d, e, f, g, h) \
+	static const guid_t name = { d1, d2, d3, { a, b, c, d, e, f, g, h} };
 
 // helper functions
 namespace fx
@@ -107,4 +115,14 @@ extern "C" CORE_EXPORT void fxFindImplClose(intptr_t findHandle);
 extern "C" CORE_EXPORT result_t fxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef);
 
 // C++ helpers one may want
+#include <om/IBase.h>
+
+#include <om/OMPtr.h>
 #include <om/OMClass.h>
+
+// OMComponent helpers
+#define FX_IMPLEMENTS(clsid, iid) \
+	static OMImplements _implements##clsid##iid(clsid, iid::GetIID());
+
+#define FX_NEW_FACTORY(type) \
+	static OMFactoryDefinition _factory##type(CLSID_##type, fx::MakeNewBase<type>);

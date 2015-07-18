@@ -60,38 +60,24 @@ result_t BigFood::Bait(int32_t baity)
 	return FX_S_OK;
 }
 
-static const guid_t CLSID_Food =
-{ 0x1d9a55af, 0xbb3e, 0x46be,{ 0x86, 0x9, 0xf0, 0xab, 0x4c, 0x4f, 0x61, 0x67 } };
+FX_DEFINE_GUID(CLSID_Food, 0x1d9a55af, 0xbb3e, 0x46be, 0x86, 0x9, 0xf0, 0xab, 0x4c, 0x4f, 0x61, 0x67);
+FX_DEFINE_GUID(CLSID_BigFood, 0x1d9a55af, 0xbb3e, 0x46bd, 0x86, 0x9, 0xf0, 0xab, 0x4c, 0x4f, 0x61, 0x67);
 
-static const guid_t CLSID_BigFood =
-{ 0x1d9a55af, 0xbb3e, 0x46bd,{ 0x86, 0x9, 0xf0, 0xab, 0x4c, 0x4f, 0x61, 0x67 } };
+FX_NEW_FACTORY(Food);
+FX_NEW_FACTORY(BigFood);
 
-static OMFactoryDefinition foodFactoryClsid(CLSID_Food, [] ()
-{
-	fxIBase* food = new Food();
-	food->AddRef();
-
-	return food;
-});
-
-static OMFactoryDefinition foodFactoryClsidBig(CLSID_BigFood, [] ()
-{
-	fxIBase* food = static_cast<IFood*>(new BigFood());
-	food->AddRef();
-
-	return food;
-});
-
-static OMImplements foodImplements(CLSID_Food, IFood::GetIID());
-static OMImplements foodImplementsBig(CLSID_BigFood, IFood::GetIID());
-static OMImplements foodImplementsBig2(CLSID_BigFood, IBait::GetIID());
+FX_IMPLEMENTS(CLSID_Food, IFood);
+FX_IMPLEMENTS(CLSID_BigFood, IFood);
+FX_IMPLEMENTS(CLSID_BigFood, IBait);
 
 static InitFunction initFunction([] ()
 {
-	IFood* ppv1;
-	result_t hr = fxCreateObjectInstance(CLSID_Food, IFood::GetIID(), (void**)&ppv1);
+	{
+		fx::OMPtr<IFood> ppv1;
+		fx::MakeInterface(&ppv1, CLSID_Food);
 
-	ppv1->Eat(50);
+		ppv1->Eat(50);
+	}
 
 	guid_t clsid;
 	intptr_t findHandle = fxFindFirstImpl(IFood::GetIID(), &clsid);
@@ -100,33 +86,22 @@ static InitFunction initFunction([] ()
 	{
 		do 
 		{
-			IFood* ppv2;
-
-			hr = fxCreateObjectInstance(clsid, IFood::GetIID(), (void**)&ppv2);
+			fx::OMPtr<IFood> ppv2;
+			fx::MakeInterface(&ppv2, clsid);
 
 			ppv2->Eat(69);
 
-			IBait* ppvBait;
-			if (ppv2->QueryInterface(IBait::GetIID(), (void**)&ppvBait) == 0)
 			{
-				ppvBait->Bait(123);
-
-				ppvBait->Release();
+				fx::OMPtr<IBait> ppvBait;
+				if (FX_SUCCEEDED(ppv2.As(&ppvBait)))
+				{
+					ppvBait->Bait(123);
+				}
 			}
-
-			ppv2->Release();
 		} while (fxFindNextImpl(findHandle, &clsid));
 
 		fxFindImplClose(findHandle);
 	}
-
-	__debugbreak();
-
-	IFood* food = new Food();
-	food->AddRef();
-	
-	IFood* ppv = nullptr;
-	result_t res = food->QueryInterface(IFood::GetIID(), (void**)&ppv);
 
 	__debugbreak();
 });

@@ -20,7 +20,10 @@ template<class... T> class OMClassParent;
 #define _DECLARE_OM_PARENT_BASES(x) BOOST_PP_REPEAT(x, _DECLARE_CLASS_ENTRY, public)
 #define _DECLARE_OM_PARENT_SPEC(x) BOOST_PP_REPEAT(x, _DECLARE_CLASS_ENTRY, )
 #define DECLARE_OM_PARENT(x) template<_DECLARE_OM_PARENT_TEMPLATE(x)> \
-	class OMClassParent<_DECLARE_OM_PARENT_SPEC(x)> : _DECLARE_OM_PARENT_BASES(x) {};
+	class OMClassParent<_DECLARE_OM_PARENT_SPEC(x)> : _DECLARE_OM_PARENT_BASES(x) { \
+		protected: \
+			fxIBase* GetBaseRef() { return static_cast<T0*>(this); } \
+	};
 
 DECLARE_OM_PARENT(1)
 DECLARE_OM_PARENT(2)
@@ -59,6 +62,16 @@ private:
 
 	RefCount m_refCount;
 
+protected:
+	OMClass() {}
+
+public:
+	template<typename TClass, typename... TArg>
+	friend OMPtr<TClass> MakeNew(TArg...);
+
+	template<typename TClass, typename... TArg>
+	friend fxIBase* MakeNewBase(TArg...);
+
 public:
 	virtual result_t QueryInterface(const guid_t& riid, void** outObject) override
 	{
@@ -83,6 +96,11 @@ public:
 
 	virtual uint32_t AddRef() override
 	{
+		if (m_refCount.GetCount() == 0)
+		{
+			trace(__FUNCTION__ " ref'ing %p\n", this);
+		}
+
 		return ++m_refCount.GetCount();
 	}
 
@@ -92,6 +110,8 @@ public:
 
 		if (c <= 1)
 		{
+			trace(__FUNCTION__ " deleting %p\n", this);
+
 			delete this;
 			return true;
 		}
@@ -99,4 +119,25 @@ public:
 		return false;
 	}
 };
+
+template<typename TClass, typename... TArg>
+fxIBase* MakeNewBase(TArg... args)
+{
+	TClass* inst = new TClass(args...);
+	inst->AddRef();
+
+	return inst->GetBaseRef();
+}
+
+template<typename TClass, typename... TArg>
+OMPtr<TClass> MakeNew(TArg... args)
+{
+	OMPtr<TClass> retval;
+	TClass* inst = new TClass(args...);
+	
+	inst->AddRef();
+	*(retval.GetAddressOf()) = inst;
+
+	return retval;
+}
 }
