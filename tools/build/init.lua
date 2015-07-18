@@ -12,3 +12,6 @@ dofile('init/project_files.lua')
 
 -- component handling
 dofile('components.lua')
+
+-- IDL building
+dofile('idl.lua')

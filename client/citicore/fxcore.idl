@@ -1,0 +1,29 @@
+%{C++
+#if 0
+%}
+
+typedef boolean             bool;
+typedef octet               uint8_t;
+typedef unsigned short      uint16_t;
+typedef unsigned short      char16_t;
+typedef unsigned long       uint32_t;
+typedef unsigned long long  uint64_t;
+typedef short               int16_t;
+typedef long                int32_t;
+typedef long long           int64_t;
+
+typedef unsigned long       fxrefcnt ;
+typedef unsigned long       fxresult;
+
+typedef unsigned long       size_t;
+
+[ptr]         native voidPtr(void);
+[ptr]         native charPtr(char);
+
+[ref, nsid]   native fxIIDRef(guid_t);
+
+[ptr] native fxQIResult(void);
+
+%{C++
+#endif
+%}

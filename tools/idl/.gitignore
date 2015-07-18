@@ -1,0 +1,6 @@
+xpidlyacc.py
+xpidllex.py
+*.pyc
+!*.sln
+
+deps/

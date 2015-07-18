@@ -1,0 +1,9 @@
+#include "fxIBase.idl"
+
+[uuid(C1360585-EF2F-43CE-99E8-D4DAA9100AF6)]
+interface IFood : fxIBase
+{
+	void Eat(in int32_t amount);
+
+	void SetSubFood(in IFood food);
+};

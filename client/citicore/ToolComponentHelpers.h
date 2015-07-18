@@ -102,6 +102,7 @@ private:
 
 public:
 	ToolComponentBase()
+		: TBaseComponent()
 	{
 		m_impl = ToolComponentBaseImpl::Get();
 	}

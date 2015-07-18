@@ -91,9 +91,16 @@ solution "CitizenMP"
 		language "C++"
 		kind "SharedLib"
 
+		includedirs "client/citicore/"
+
 		files
 		{
 			"client/citicore/**.cpp", "client/citicore/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
+		}
+
+		files
+		{
+			"client/citicore/**.idl"
 		}
 
 		add_dependencies { 'vendor:boost_program_options' }
@@ -325,5 +332,5 @@ end, function(e)
 	print(e)
 	print(debug.traceback())
 
-	os.exit(0)
+	os.exit(1)
 end)

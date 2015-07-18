@@ -215,6 +215,10 @@ local do_component = function(name, comp)
 
 	vpaths { ["z/common/*"] = "client/common/**", ["z/*"] = "components/" .. name .. "/component.rc", ["*"] = "components/" .. name .. "/**" }
 
+	files {
+		'components/' .. name .. "/include/**.idl",
+	}
+
 	defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
 
 	links { "Shared", "CitiCore" }

@@ -1,0 +1,7 @@
+#include "fxIBase.idl"
+
+[uuid(47C905F1-266E-4F85-BFA6-0BA3C8B27D10)]
+interface IBait : fxIBase
+{
+	void Bait(in int32_t amount);
+};

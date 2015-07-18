@@ -1,0 +1,20 @@
+#include "fxcore.idl"
+
+%{C++
+#if 0
+%}
+
+[uuid(00000000-0000-0000-c000-000000000046)]
+interface fxIBase
+{
+	void QueryInterface(in fxIIDRef riid, [iid_is(riid),retval] out fxQIResult outObject);
+
+	[notxpcom] fxrefcnt AddRef();
+	[notxpcom] fxrefcnt Release();
+};
+
+%{C++
+#endif
+
+#include <om/IBase.h>
+%}
