@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # xpidl.py - A parser for cross-platform IDL (XPIDL) files.
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
@@ -407,6 +407,7 @@ class Native(object):
         'utf8string': 'nsACString',
         'cstring': 'nsACString',
         'astring': 'nsAString',
+        'bstr': 'FXBSTR',
         'jsval': 'JS::Value'
         }
 

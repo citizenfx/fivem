@@ -22,6 +22,9 @@ typedef unsigned long       size_t;
 
 [ref, nsid]   native fxIIDRef(guid_t);
 
+[ref, bstr]   native String(dummy);
+[ptr, bstr]   native StringPtr(dummy);
+
 [ptr] native fxQIResult(void);
 
 %{C++

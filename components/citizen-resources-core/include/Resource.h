@@ -71,6 +71,12 @@ public:
 
 public:
 	//
+	// An event to handle tasks to be performed when starting a resource.
+	//
+	fwEvent<> OnStart;
+
+public:
+	//
 	// An event to add components to a newly-initializing resource's instance registry.
 	//
 	static RESOURCES_CORE_EXPORT fwEvent<Resource*> OnInitializeInstance;

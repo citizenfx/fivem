@@ -58,6 +58,11 @@ const std::string& ResourceImpl::GetPath()
 
 bool ResourceImpl::Start()
 {
+	if (!OnStart())
+	{
+		return false;
+	}
+
 	m_state = ResourceState::Started;
 
 	return true;

@@ -1,0 +1,51 @@
+#include "fxIBase.idl"
+
+%{C++
+#include "fxNativeContext.h"
+%}
+
+[ref] native NativeCtx(fxNativeContext);
+
+[uuid(8FFDC384-4767-4EA2-A935-3BFCAD1DB7BF)]
+interface IScriptHost : fxIBase
+{
+	void InvokeNative(inout NativeCtx context);
+};
+
+[uuid(67B28AF1-AAF9-4368-8296-F93AFC7BDE96)]
+interface IScriptRuntime : fxIBase
+{
+	void Create(in IScriptHost scriptHost);
+
+	void Destroy();
+
+	[notxpcom] int32_t GetInstanceId();
+};
+
+[uuid(91B203C7-F95A-4902-B463-722D55098366)]
+interface IScriptTickRuntime : fxIBase
+{
+	void Tick();
+};
+
+[uuid(637140DB-24E5-46BF-A8BD-08F2DBAC519A)]
+interface IScriptEventRuntime : fxIBase
+{
+	void TriggerEvent(in charPtr eventName, in charPtr argsSerialized, in int32_t sourceId);
+};
+
+[uuid(A2F1B24B-A29F-4121-8162-86901ECA8097)]
+interface IScriptRefRuntime : fxIBase
+{
+	void CallRef(in int32_t refIdx, in charPtr argsSerialized, out charPtr retvalSerialized);
+
+	void DuplicateRef(in int32_t refIdx, out int32_t newRefIdx);
+
+	void RemoveRef(in int32_t refIdx);
+};
+
+[uuid(567634C6-3BDD-4D0E-AF39-7472AED479B7)]
+interface IScriptFileHandlingRuntime : fxIBase
+{
+	[notxpcom] int32_t HandlesFile(in charPtr scriptFile);
+};

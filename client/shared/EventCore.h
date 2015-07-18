@@ -431,19 +431,21 @@ private:
 	}
 
 public:
-	void operator()(Args... args)
+	bool operator()(Args... args)
 	{
 		if (!m_callbacks)
 		{
-			return;
+			return true;
 		}
 
 		for (callback* cb = m_callbacks; cb; cb = cb->next)
 		{
 			if (!cb->function(args...))
 			{
-				return;
+				return false;
 			}
 		}
+
+		return true;
 	}
 };
