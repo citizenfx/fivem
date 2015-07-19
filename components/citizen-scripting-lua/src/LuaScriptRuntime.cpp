@@ -24,6 +24,21 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 {
 	scriptHost->InvokeNative(fxNativeContext{});
 
+	OMPtr<fxIStream> stream;
+	
+	if (SUCCEEDED(scriptHost->OpenHostFile("__resource.lua", stream.GetAddressOf())))
+	{
+		char buffer[8192];
+		uint32_t didRead;
+
+		if (SUCCEEDED(stream->Read(buffer, sizeof(buffer), &didRead)))
+		{
+			buffer[didRead] = '\0';
+
+			trace("read:\n%s\n", buffer);
+		}
+	}
+
 	return FX_S_OK;
 }
 
@@ -51,23 +66,4 @@ FX_NEW_FACTORY(LuaScriptRuntime);
 
 FX_IMPLEMENTS(CLSID_LuaScriptRuntime, IScriptRuntime);
 FX_IMPLEMENTS(CLSID_LuaScriptRuntime, IScriptFileHandlingRuntime);
-
-class TestScriptHost : public OMClass<TestScriptHost, IScriptHost>
-{
-public:
-	NS_DECL_ISCRIPTHOST;
-};
-
-result_t TestScriptHost::InvokeNative(fxNativeContext & context)
-{
-	return FX_S_OK;
-}
-
-// {441CA62C-7A70-4349-8A97-2BCBF7EAA61F}
-FX_DEFINE_GUID(CLSID_TestScriptHost,
-			0x441ca62c, 0x7a70, 0x4349, 0x8a, 0x97, 0x2b, 0xcb, 0xf7, 0xea, 0xa6, 0x1f);
-
-FX_NEW_FACTORY(TestScriptHost);
-
-FX_IMPLEMENTS(CLSID_TestScriptHost, IScriptHost);
 }

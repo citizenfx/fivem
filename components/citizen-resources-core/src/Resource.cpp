@@ -36,6 +36,8 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath)
 		trace("Resource loading for %s failed:\n%s\n", m_name.c_str(), retval->c_str());
 	}
 
+	m_rootPath = rootPath;
+
 	m_state = ResourceState::Stopped;
 
 	return !retval.is_initialized();

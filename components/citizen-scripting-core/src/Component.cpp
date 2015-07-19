@@ -7,8 +7,9 @@
 
 #include "StdInc.h"
 #include "ComponentLoader.h"
+#include "om/OMComponent.h"
 
-class ComponentInstance : public Component
+class ComponentInstance : public OMComponentBase<Component>
 {
 public:
 	virtual bool Initialize();
@@ -41,3 +42,5 @@ extern "C" __declspec(dllexport) Component* CreateComponent()
 {
 	return new ComponentInstance();
 }
+
+OMComponentBaseImpl* OMComponentBaseImpl::ms_instance;

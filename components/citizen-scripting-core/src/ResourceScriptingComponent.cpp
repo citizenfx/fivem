@@ -87,17 +87,15 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 	});
 }
 
-FX_DEFINE_GUID(CLSID_TestScriptHost,
-			   0x441ca62c, 0x7a70, 0x4349, 0x8a, 0x97, 0x2b, 0xcb, 0xf7, 0xea, 0xa6, 0x1f);
+OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
 void ResourceScriptingComponent::CreateEnvironments()
 {
-	if (SUCCEEDED(MakeInterface(&m_scriptHost, CLSID_TestScriptHost)))
+	m_scriptHost = GetScriptHostForResource(m_resource);
+
+	for (auto& environment : m_scriptRuntimes)
 	{
-		for (auto& environment : m_scriptRuntimes)
-		{
-			environment.second->Create(m_scriptHost.GetRef());
-		}
+		environment.second->Create(m_scriptHost.GetRef());
 	}
 }
 }

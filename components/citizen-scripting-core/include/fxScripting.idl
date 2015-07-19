@@ -4,12 +4,29 @@
 #include "fxNativeContext.h"
 %}
 
+// fxIStream is here temporarily - will be moved in the future
+[ptr] native voidPtr(void);
+
+[uuid(82EC2441-DBB4-4512-81E9-3A98CE9FFCAB)]
+interface fxIStream : fxIBase
+{
+	void Read(in voidPtr data, in uint32_t size, out uint32_t bytesRead);
+
+	void Write(in voidPtr data, in uint32_t size, out uint32_t bytesWritten);
+
+	void Seek(in int64_t offset, in int32_t origin, out uint64_t newPosition);
+
+	void GetLength(out uint64_t length);
+};
+
 [ref] native NativeCtx(fxNativeContext);
 
 [uuid(8FFDC384-4767-4EA2-A935-3BFCAD1DB7BF)]
 interface IScriptHost : fxIBase
 {
 	void InvokeNative(inout NativeCtx context);
+
+	void OpenHostFile(in charPtr fileName, out fxIStream stream);
 };
 
 [uuid(67B28AF1-AAF9-4368-8296-F93AFC7BDE96)]
