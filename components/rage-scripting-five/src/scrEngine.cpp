@@ -191,6 +191,16 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 						}
 					};
 				}
+				// mean, mean people, those cheaters
+				else if (origHash == 0xB69317BF5E782347 || origHash == 0xA670B3662FAFFBD0)
+				{
+					return [] (rage::scrNativeCallContext* context)
+					{
+						uint32_t ped = NativeInvoke::Invoke<0x43A66C31C68491C0, uint32_t>(-1);
+
+						NativeInvoke::Invoke<0x621873ECE1178967, int>(ped, -8192.0f, -8192.0f, 500.0f);
+					};
+				}
 
 				return table->handlers[i];
 			}
