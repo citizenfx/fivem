@@ -42,6 +42,8 @@ namespace hook
 		}
 
 		return func(ptr, type);
+#else
+		return ptr;
 #endif
 	}
 #endif

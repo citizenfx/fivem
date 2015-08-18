@@ -36,6 +36,7 @@ solution "CitizenMP"
 
 	if _OPTIONS['game'] == 'server' then
 		location ("build/server/" .. os.get())
+		architecture 'x64'
 	end
 	
 	configuration "Debug*"

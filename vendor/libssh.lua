@@ -65,9 +65,9 @@ return {
 		}
 
 		configuration 'Debug*'
-	        links { 'botand' }
+	        links { 'botanx64d' }
 
 		configuration 'Release*'
-        	links { 'botan' }
+        	links { 'botanx64' }
 	end
 }

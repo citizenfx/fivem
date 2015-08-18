@@ -324,8 +324,13 @@ do_components = function()
 end
 
 do_vendor = function()
+	local changed = false
+
 	for _, comp in ipairs(components) do
-		if comp.vendor and comp.vendor.run and comp.tagged then
+		if comp.vendor and comp.vendor.run and comp.tagged and not comp.ran then
+			comp.ran = true
+			changed = true
+
 			project(comp.rawName)
 
 			if comp.vendor.include then
@@ -334,5 +339,9 @@ do_vendor = function()
 
 			comp.vendor.run()
 		end
+	end
+
+	if changed then
+		do_vendor()
 	end
 end

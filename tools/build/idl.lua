@@ -18,8 +18,14 @@ function files(x)
 			if v:endswith('.idl') then
 				filter 'files:**.idl'
 
+				local prj_root = '%{prj.location}/../../'
+
+				if _OPTIONS['game'] == 'server' then
+					prj_root = prj_root .. '../'
+				end
+
 				buildcommands {
-					'python %{prj.location}/../../tools/idl/header.py -o "%{file and file.directory or ""}/%{file and file.basename or ""}.h" %{process_includedirs(prj.includedirs)} %{file and file.relpath or ""}'
+					'python ' .. prj_root .. 'tools/idl/header.py -o "%{file and file.directory or ""}/%{file and file.basename or ""}.h" %{process_includedirs(prj.includedirs)} %{file and file.relpath or ""}'
 				}
 
 				buildoutputs { '%{file.directory}/%{file.basename}.h' }

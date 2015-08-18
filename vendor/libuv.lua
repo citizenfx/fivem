@@ -75,7 +75,7 @@ return {
 		filter "system:windows"
 			defines { "_GNU_SOURCE" }
 
-			links { 'advapi32', 'iphlpapi', 'psapi', 'shell32', 'ws2_32' }
+			links { 'advapi32', 'iphlpapi', 'psapi', 'shell32', 'ws2_32', 'userenv' }
 
 			files_project '../vendor/libuv/'
 			{

@@ -103,5 +103,5 @@ static InitFunction initFunction([] ()
 		fxFindImplClose(findHandle);
 	}
 
-	__debugbreak();
+	//__debugbreak();
 });
