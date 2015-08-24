@@ -1044,14 +1044,15 @@ static HookFunction hookFunction([] ()
 	void* updateScAdvertisement = hook::pattern("48 89 44 24 20 E8 ? ? ? ? F6 D8 1B C9 83 C1").count(1).get(0).get<void>();
 
 	// non-physical player data logging 'hack'
-	location = hook::pattern("48 8B D0 48 85 C0 74 4E 48 8D 05").count(2).get(0).get<char>(11);
+	// gone in 393.4?!
+	/*location = hook::pattern("48 8B D0 48 85 C0 74 4E 48 8D 05").count(2).get(0).get<char>(11);
 
 	{
 		void** vtPtr = (void**)(location + *(int32_t*)location + 4);
 
 		g_origPhysical = reinterpret_cast<decltype(g_origPhysical)>(vtPtr[2]);
 		vtPtr[2] = CustomPhysical;
-	}
+	}*/
 
 	// temporary(!) patch to force CGameScriptObjInfo to act as if having an unknown identifier set (as regular creation doesn't set it?! - doesn't write to it at all)
 	hook::nop(hook::pattern("83 79 10 00 74 05 48 8D 41 08 C3 33 C0 C3").count(1).get(0).get<void>(4), 2);

@@ -192,7 +192,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 					};
 				}
 				// mean, mean people, those cheaters
-				else if (origHash == 0xB69317BF5E782347 || origHash == 0xA670B3662FAFFBD0)
+				else if (origHash == 0xB69317BF5E782347 || origHash == 0xA670B3662FAFFBD0 || origHash == 0xAAA34F8A7CB32098)
 				{
 					return [] (rage::scrNativeCallContext* context)
 					{

@@ -84,8 +84,8 @@ struct GameCacheStorageEntry
 static GameCacheEntry g_requiredEntries[] =
 {
 	// TODO: replace paths with NSIS variable-based paths
-	{ L"GTA5.exe", "8521673440a6f5df531c8472f001da312e3b495f", "Game_EFIGS/GTA_V_Patch_1_0_393_2.exe", "$/GTA5.exe", 58595720, 425532984 },
-	{ L"update/update.rpf", "49071e99a7ba1540059a8a8165bdc749ad980288", "Game_EFIGS/GTA_V_Patch_1_0_393_2.exe", "$/update/update.rpf", 374835200, 425532984 },
+	{ L"GTA5.exe", "883d05ce147ec01f94f862453bb69fe96cc15539", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/GTA5.exe", 55839112, 422755424 },
+	{ L"update/update.rpf", "d9f84cd5b8b5bafaeee92dd43568887172849d01", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/update/update.rpf", 374835200, 422755424 },
 
 	{ L"update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "DigitalData/DLCPacks2/update/x64/dlcpacks/patchday4ng/dlc.rpf", 312438784 },
 	{ L"update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "DigitalData/DLCPacks2/update/x64/dlcpacks/mpluxe/dlc.rpf", 226260992 },
