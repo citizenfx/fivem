@@ -21,7 +21,7 @@ namespace Botan {
 /**
 * This class represents X.509 Certificate
 */
-class BOTAN_DLL X509_Certificate : public X509_Object
+class X509_Certificate : public X509_Object
    {
    public:
       /**

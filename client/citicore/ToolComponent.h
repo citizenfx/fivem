@@ -24,3 +24,7 @@ public:
 
 	virtual fwRefContainer<ToolCommand> GetCommand(const std::string& commandName) = 0;
 };
+
+extern "C" CORE_EXPORT void ToolMode_RunPostLaunchRoutine();
+extern "C" CORE_EXPORT void ToolMode_SetPostLaunchRoutine(void(*routine)());
+extern "C" CORE_EXPORT void ToolMode_LaunchGame(const wchar_t* argument);

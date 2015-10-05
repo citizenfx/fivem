@@ -123,20 +123,23 @@ void pattern::Initialize(const char* pattern, size_t length)
 	m_size = m_mask.size();
 
 	// if there's hints, try those first
-	auto range = g_hints.equal_range(m_hash);
-
-	if (range.first != range.second)
+	if (m_module == GetModuleHandle(nullptr))
 	{
-		std::for_each(range.first, range.second, [&] (const std::pair<uint64_t, uintptr_t>& hint)
-		{
-			ConsiderMatch(hint.second);
-		});
+		auto range = g_hints.equal_range(m_hash);
 
-		// if the hints succeeded, we don't need to do anything more
-		if (m_matches.size() > 0)
+		if (range.first != range.second)
 		{
-			m_matched = true;
-			return;
+			std::for_each(range.first, range.second, [&] (const std::pair<uint64_t, uintptr_t>& hint)
+			{
+				ConsiderMatch(hint.second);
+			});
+
+			// if the hints succeeded, we don't need to do anything more
+			if (m_matches.size() > 0)
+			{
+				m_matched = true;
+				return;
+			}
 		}
 	}
 }

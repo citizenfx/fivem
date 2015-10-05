@@ -159,3 +159,31 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 		printf("error: %s\n", e.what());
 	}
 }
+
+static void(*g_gameFunction)(const wchar_t*);
+static void(*g_postLaunchRoutine)();
+
+extern "C" DLL_EXPORT void ToolMode_RunPostLaunchRoutine()
+{
+	if (g_postLaunchRoutine)
+	{
+		g_postLaunchRoutine();
+	}
+}
+
+extern "C" DLL_EXPORT void ToolMode_SetPostLaunchRoutine(void(*routine)())
+{
+	g_postLaunchRoutine = routine;
+}
+
+extern "C" DLL_EXPORT void ToolMode_LaunchGame(const wchar_t* argument)
+{
+	assert(g_gameFunction);
+
+	g_gameFunction(argument);
+}
+
+extern "C" DLL_EXPORT void ToolMode_SetGameFunction(void(*gameFunction)(const wchar_t*))
+{
+	g_gameFunction = gameFunction;
+}

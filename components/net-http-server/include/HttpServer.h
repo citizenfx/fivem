@@ -78,7 +78,11 @@ public:
 	}
 };
 
-class HttpResponse : public fwRefCountable
+class
+#ifdef COMPILING_NET_HTTP_SERVER
+	DLL_EXPORT
+#endif
+	HttpResponse : public fwRefCountable
 {
 private:
 	fwRefContainer<HttpRequest> m_request;

@@ -173,9 +173,26 @@ static int CustomGameElementCall(char* element)
 	return retval;
 }
 
+bool g_ranStartupInfo;
+
 VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 {
 	GetStartupInfoW(lpStartupInfo);
+
+	if (g_ranStartupInfo)
+	{
+		return;
+	}
+
+	g_ranStartupInfo = true;
+
+	if (getenv("CitizenFX_ToolMode"))
+	{
+		auto plRoutine = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "ToolMode_RunPostLaunchRoutine");
+		plRoutine();
+
+		return;
+	}
 
 	// ignore launcher requirement
 	hook::call(hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
@@ -447,7 +464,7 @@ static BOOL GetFileAttributesExWHook(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_IN
 }
 #endif
 
-void CitizenGame::Launch(std::wstring& gamePath)
+void CitizenGame::Launch(const std::wstring& gamePath)
 {
 	// initialize the CEF sandbox
 	void* sandboxInfo = nullptr;
@@ -537,6 +554,17 @@ void CitizenGame::Launch(std::wstring& gamePath)
 		if (!_stricmp(libName, "atl80.dll"))
 		{
 			return (HMODULE)INVALID_HANDLE_VALUE;
+		}
+
+		if (_stricmp(libName, "libcef.dll") == 0)
+		{
+			if (getenv("CitizenFX_ToolMode"))
+			{
+				wchar_t dir[MAX_PATH];
+				GetCurrentDirectory(_countof(dir), dir);
+
+				return LoadLibraryW(va(L"%s\\libcef.dll", dir));
+			}
 		}
 
 		return LoadLibraryA(libName);

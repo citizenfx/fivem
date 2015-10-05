@@ -107,6 +107,7 @@ using namespace net;
 
 static InitFunction initFunction([] ()
 {
+	/*
 	PeerAddress addr1 = PeerAddress::FromString("127.0.0.1:0").get();
 	PeerAddress addr2 = PeerAddress::FromString("localhost:0").get();
 
@@ -150,6 +151,7 @@ static InitFunction initFunction([] ()
 
 	trace("bit: %x\n", bit);
 	trace("local addr: %s\n", localAddress.ToString().c_str());
+	*/
 
 	//__debugbreak();
 });

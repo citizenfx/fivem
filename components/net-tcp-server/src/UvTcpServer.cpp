@@ -181,11 +181,6 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 
 		trace("read error: %s\n", uv_strerror(nread));
 
-		if (GetCloseCallback())
-		{
-			GetCloseCallback()();
-		}
-
 		Close();
 	}
 }

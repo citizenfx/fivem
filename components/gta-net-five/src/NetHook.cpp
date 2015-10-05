@@ -133,6 +133,8 @@ int __stdcall CfxGetSockName(SOCKET s, struct sockaddr* name, int* namelen)
 	return retval;
 }
 
+static int(__stdcall* g_oldSelect)(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, const timeval* timeout);
+
 int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_opt_ fd_set FAR *writefds, _Inout_opt_ fd_set FAR *exceptfds, _In_opt_ const struct timeval FAR *timeout)
 {
 	bool shouldAddSocket = false;
@@ -156,7 +158,9 @@ int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_o
 
 	if (nfds > 0)
 	{
-		nfds = select(nfds, readfds, writefds, exceptfds, timeout);
+		Sleep(1);
+
+		nfds = g_oldSelect(nfds, readfds, writefds, exceptfds, timeout);
 	}
 
 	if (shouldAddSocket)
@@ -855,7 +859,7 @@ static HookFunction hookFunction([] ()
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
 	hook::iat("ws2_32.dll", CfxRecvFrom, 17);
 	hook::iat("ws2_32.dll", CfxBind, 2);
-	hook::iat("ws2_32.dll", CfxSelect, 18);
+	g_oldSelect = hook::iat("ws2_32.dll", CfxSelect, 18);
 	hook::iat("ws2_32.dll", CfxGetSockName, 6);
 
 	// session migration, some 'inline' memcpy of the new address

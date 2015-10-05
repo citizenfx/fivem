@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "HttpServer.h"
 #include "HttpServerImpl.h"
+#include "TLSServer.h"
 
 #include <ctime>
 #include <deque>
@@ -46,7 +47,8 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	enum HttpConnectionReadState
 	{
 		ReadStateRequest,
-		ReadStateBody
+		ReadStateBody,
+		ReadStateChunked
 	};
 
 	struct HttpConnectionData
@@ -55,9 +57,13 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		std::deque<uint8_t> readBuffer;
 
+		std::vector<uint8_t> requestData;
+
 		size_t lastLength;
 
 		phr_header headers[50];
+
+		phr_chunked_decoder decoder;
 
 		fwRefContainer<HttpRequest> request;
 
@@ -101,7 +107,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		while (continueProcessing)
 		{
 			// depending on the state, perform an action
-			if (connectionData->readState == ReadStateRequest)
+			if (localConnectionData->readState == ReadStateRequest)
 			{
 				// copy the deque into a vector for data purposes
 				std::vector<uint8_t> requestData(readQueue.begin(), readQueue.end());
@@ -117,7 +123,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				size_t numHeaders = 50;
 
 				int result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
-											   &path, &pathLength, &minorVersion, connectionData->headers, &numHeaders, connectionData->lastLength);
+											   &path, &pathLength, &minorVersion, localConnectionData->headers, &numHeaders, localConnectionData->lastLength);
 
 				if (result > 0)
 				{
@@ -129,7 +135,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 					for (int i = 0; i < numHeaders; i++)
 					{
-						auto& header = connectionData->headers[i];
+						auto& header = localConnectionData->headers[i];
 
 						headerList.insert(std::make_pair(std::string(header.name, header.name_len), std::string(header.value, header.value_len)));
 					}
@@ -169,6 +175,26 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 							localConnectionData->readState = ReadStateBody;
 						}
+						else
+						{
+							static std::string transferEncodingKey = "transfer-encoding";
+							static std::string transferEncodingDefault = "";
+							static std::string transferEncodingComparison = "chunked";
+
+							if (request->GetHeader(transferEncodingKey, transferEncodingDefault) == transferEncodingComparison)
+							{
+								localConnectionData->request = request;
+								localConnectionData->response = response;
+								localConnectionData->contentLength = -1;
+
+								localConnectionData->lastLength = 0;
+
+								localConnectionData->readState = ReadStateChunked;
+
+								memset(&localConnectionData->decoder, 0, sizeof(localConnectionData->decoder));
+								localConnectionData->decoder.consume_trailer = true;
+							}
+						}
 					}
 				}
 				else if (result == -1)
@@ -180,11 +206,13 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				else if (result == -2)
 				{
 					localConnectionData->lastLength = requestData.size();
+
+					continueProcessing = false;
 				}
 			}
 			else if (connectionData->readState == ReadStateBody)
 			{
-				int contentLength = connectionData->contentLength;
+				int contentLength = localConnectionData->contentLength;
 
 				if (readQueue.size() >= contentLength)
 				{
@@ -195,26 +223,79 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					readQueue.erase(readQueue.begin(), readQueue.begin() + contentLength);
 
 					// call the data handler
-					auto& dataHandler = connectionData->request->GetDataHandler();
+					auto& dataHandler = localConnectionData->request->GetDataHandler();
 
 					if (dataHandler)
 					{
 						dataHandler(requestData);
 
-						connectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+						localConnectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
 					}
 
 					// clean up the req/res
-					connectionData->request = nullptr;
-					connectionData->response = nullptr;
+					localConnectionData->request = nullptr;
+					localConnectionData->response = nullptr;
 
-					connectionData->readState = ReadStateRequest;
+					localConnectionData->readState = ReadStateRequest;
 
 					continueProcessing = (readQueue.size() > 0);
 				}
 				else
 				{
 					continueProcessing = false;
+				}
+			}
+			else if (connectionData->readState == ReadStateChunked)
+			{
+				// append the remnant of the read queue to the vector
+				auto& requestData = localConnectionData->requestData;
+
+				size_t addedSize = readQueue.size() - requestData.size();
+				size_t oldSize = requestData.size();
+				requestData.resize(readQueue.size());
+
+				// copy the appendant
+				std::copy(readQueue.begin() + oldSize, readQueue.end(), requestData.begin() + localConnectionData->lastLength);
+
+				// decode stuff
+				size_t requestSize = addedSize;
+
+				int result = phr_decode_chunked(&localConnectionData->decoder, reinterpret_cast<char*>(&requestData[localConnectionData->lastLength]), &requestSize);
+
+				if (result == -2)
+				{
+					localConnectionData->lastLength += requestSize;
+
+					continueProcessing = false;
+				}
+				else if (result == -1)
+				{
+					stream->Close();
+					return;
+				}
+				else
+				{
+					// call the data handler
+					auto& dataHandler = localConnectionData->request->GetDataHandler();
+
+					if (dataHandler)
+					{
+						requestData.resize(localConnectionData->lastLength);
+
+						dataHandler(requestData);
+
+						localConnectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+					}
+
+					// clean up the req/res
+					localConnectionData->request = nullptr;
+					localConnectionData->response = nullptr;
+
+					localConnectionData->requestData.clear();
+
+					localConnectionData->readState = ReadStateRequest;
+
+					continueProcessing = (readQueue.size() > 0);
 				}
 			}
 		}
@@ -434,15 +515,18 @@ public:
 	}
 };
 
+/*
 static InitFunction initFunction([] ()
 {
-	fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
-	fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString("localhost:8081").get());
+	static fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
+	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString("localhost:8081").get());
 
-	fwRefContainer<net::HttpServer> impl = new net::HttpServerImpl();
+	//static fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(tcpServer);
+
+	static fwRefContainer<net::HttpServer> impl = new net::HttpServerImpl();
 	impl->AttachToServer(tcpServer);
 
-	fwRefContainer<net::HttpHandler> rc = new LovelyHttpHandler();
+	static fwRefContainer<net::HttpHandler> rc = new LovelyHttpHandler();
 	impl->RegisterHandler(rc);
 
 	impl->AddRef();
@@ -451,3 +535,4 @@ static InitFunction initFunction([] ()
 
 	//std::this_thread::sleep_for(std::chrono::seconds(3600));
 });
+*/

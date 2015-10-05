@@ -20,7 +20,7 @@ namespace Botan {
 /**
 * Data Store
 */
-class BOTAN_DLL Data_Store
+class Data_Store
    {
    public:
       /**

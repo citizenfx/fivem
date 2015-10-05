@@ -174,7 +174,7 @@ namespace
 }
 
 template<typename T, typename TOrdinal>
-void iat(const char* moduleName, T function, TOrdinal ordinal)
+T iat(const char* moduleName, T function, TOrdinal ordinal)
 {
 #ifdef _M_IX86
 	IMAGE_DOS_HEADER* imageHeader = (IMAGE_DOS_HEADER*)(baseAddressDifference + 0x400000);
@@ -203,16 +203,20 @@ void iat(const char* moduleName, T function, TOrdinal ordinal)
 		{
 			if (iat_matches_ordinal(nameTableEntry, ordinal))
 			{
+				T origEntry = (T)*addressTableEntry;
 				*addressTableEntry = (uintptr_t)function;
-				return;
+
+				return origEntry;
 			}
 
 			nameTableEntry++;
 			addressTableEntry++;
 		}
 
-		return;
+		return nullptr;
 	}
+
+	return nullptr;
 }
 
 #ifndef _M_AMD64

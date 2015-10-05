@@ -168,6 +168,27 @@ void main()
 
 			if (toolProc)
 			{
+				auto gameFunctionProc = (void(*)(void(*)(const wchar_t*)))GetProcAddress(coreRT, "ToolMode_SetGameFunction");
+
+				if (gameFunctionProc)
+				{
+					static auto gameExecutableStr = gameExecutable;
+
+					gameFunctionProc([] (const wchar_t* customExecutable)
+					{
+						if (customExecutable == nullptr)
+						{
+							SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
+
+							CitizenGame::Launch(gameExecutableStr);
+						}
+						else
+						{
+							CitizenGame::Launch(customExecutable);
+						}
+					});
+				}
+
 				toolProc();
 			}
 			else

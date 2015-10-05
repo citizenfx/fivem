@@ -13,5 +13,5 @@ private:
 	static void InvokeEntryPoint(void(*)());
 
 public:
-	static void Launch(std::wstring& gamePath);
+	static void Launch(const std::wstring& gamePath);
 };

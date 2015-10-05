@@ -43,15 +43,16 @@ component 'citizen-content-setup-ny'
 if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-main'
 	component 'citizen-server-net'
-	component 'net-base'
-	component 'net-tcp-server'
-	component 'net-http-server'
 	component 'citizen-ssh-server'
 	component 'citizen-server-instance'
 else
 	component 'tool-formats'
 	component 'rage-formats-x'
 end
+
+component 'net-base'
+component 'net-tcp-server'
+component 'net-http-server'
 
 component 'rage-device-five'
 component 'rage-allocator-five'

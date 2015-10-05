@@ -105,6 +105,7 @@ solution "CitizenMP"
 		}
 
 		add_dependencies { 'vendor:boost_program_options' }
+		add_dependencies { 'vendor:minhook', 'vendor:udis86' }
 
 		links { "Shared" }
 

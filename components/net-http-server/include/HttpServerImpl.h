@@ -13,7 +13,11 @@
 
 namespace net
 {
-class HttpServerImpl : public HttpServer
+class 
+#ifdef COMPILING_NET_HTTP_SERVER
+	DLL_EXPORT
+#endif
+	HttpServerImpl : public HttpServer
 {
 private:
 	fwRefContainer<TcpServer> m_server;

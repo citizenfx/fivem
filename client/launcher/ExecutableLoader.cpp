@@ -135,9 +135,18 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 	RUNTIME_FUNCTION* functionList = GetTargetRVA<RUNTIME_FUNCTION>(exceptionDirectory->VirtualAddress);
 	DWORD entryCount = exceptionDirectory->Size / sizeof(RUNTIME_FUNCTION);
 
-	if (!RtlAddFunctionTable(functionList, entryCount, (DWORD64)GetModuleHandle(nullptr)))
+	// has no use - inverted function tables get used instead from Ldr; we have no influence on those
+	/*if (!RtlAddFunctionTable(functionList, entryCount, (DWORD64)GetModuleHandle(nullptr)))
 	{
 		FatalError("Setting exception handlers failed.");
+	}*/
+
+	// use CoreRT API instead
+	if (HMODULE coreRT = GetModuleHandle(L"CoreRT.dll"))
+	{
+		auto sehMapper = (void(*)(void*, void*, PRUNTIME_FUNCTION, DWORD))GetProcAddress(coreRT, "CoreRT_SetupSEHHandler");
+
+		sehMapper(m_module, ((char*)m_module) + ntHeader->OptionalHeader.ImageBase, functionList, entryCount);
 	}
 }
 #endif
@@ -170,28 +179,31 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 #endif
 
 	// copy over TLS index (source in this case indicates the TLS data to copy from, which is the launcher app itself)
+	if (ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
+	{
 #if defined(GTA_NY)
-	const IMAGE_TLS_DIRECTORY* targetTls = GetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
-	const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+		const IMAGE_TLS_DIRECTORY* targetTls = GetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+		const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
-	*(DWORD*)(targetTls->AddressOfIndex) = *(DWORD*)(sourceTls->AddressOfIndex);
+		*(DWORD*)(targetTls->AddressOfIndex) = *(DWORD*)(sourceTls->AddressOfIndex);
 #else
-	const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+		const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
-	*(DWORD*)(sourceTls->AddressOfIndex) = 0;
+		*(DWORD*)(sourceTls->AddressOfIndex) = 0;
 
-	// note: 32-bit!
+		// note: 32-bit!
 #if defined(_M_IX86)
-	LPVOID tlsBase = *(LPVOID*)__readfsdword(0x2C);
-	
-	memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
-	memcpy((void*)origTls.StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
-#endif
-/*#else
-	const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+		LPVOID tlsBase = *(LPVOID*)__readfsdword(0x2C);
 
-	m_tlsInitializer(targetTls);*/
+		memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+		memcpy((void*)origTls.StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
 #endif
+		/*#else
+			const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+
+			m_tlsInitializer(targetTls);*/
+#endif
+	}
 
 	// store the entry point
 	m_entryPoint = GetTargetRVA<void>(ntHeader->OptionalHeader.AddressOfEntryPoint);
