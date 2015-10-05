@@ -192,13 +192,29 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 					};
 				}
 				// mean, mean people, those cheaters
-				else if (origHash == 0xB69317BF5E782347 || origHash == 0xA670B3662FAFFBD0 || origHash == 0xAAA34F8A7CB32098)
+				else if (origHash == 0xB69317BF5E782347 || origHash == 0xA670B3662FAFFBD0)
 				{
 					return [] (rage::scrNativeCallContext* context)
 					{
 						uint32_t ped = NativeInvoke::Invoke<0x43A66C31C68491C0, uint32_t>(-1);
 
 						NativeInvoke::Invoke<0x621873ECE1178967, int>(ped, -8192.0f, -8192.0f, 500.0f);
+					};
+				}
+				else if (origHash == 0xAAA34F8A7CB32098)
+				{
+					static scrEngine::NativeHandler hashHandler = table->handlers[i];
+
+					return [](rage::scrNativeCallContext* context)
+					{
+						uint32_t arg = context->GetArgument<uint32_t>(0);
+
+						uint32_t ped = NativeInvoke::Invoke<0x43A66C31C68491C0, uint32_t>(-1);
+
+						if (ped == arg)
+							hashHandler(context);
+						else
+							NativeInvoke::Invoke<0x621873ECE1178967, int>(ped, -8192.0f, -8192.0f, 500.0f);
 					};
 				}
 

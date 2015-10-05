@@ -175,7 +175,7 @@ void CitizenNUIBackground::TryInitializeDWM()
 {
 	HMODULE hDwmAPI = LoadLibrary(L"dwmapi.dll");
 
-	if (hDwmAPI && IsWindows7OrGreater())
+	if (false)
 	{
 		m_fDwmpGetColorizationParameters = (DwmpGetColorizationParameters_t)GetProcAddress(hDwmAPI, MAKEINTRESOURCEA(127));
 

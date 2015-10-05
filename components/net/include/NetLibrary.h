@@ -9,6 +9,7 @@
 #include <queue>
 #include <bitset>
 #include <functional>
+#include <thread>
 #include <WS2tcpip.h>
 #include "HttpClient.h"
 #include "CrossLibraryInterfaces.h"
@@ -189,6 +190,7 @@ private:
 	};
 
 private:
+	std::mutex m_incomingPacketMutex;
 	std::queue<RoutingPacket> m_incomingPackets;
 	concurrency::concurrent_queue<RoutingPacket> m_outgoingPackets;
 

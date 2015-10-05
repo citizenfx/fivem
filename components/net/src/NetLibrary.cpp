@@ -232,40 +232,56 @@ void NetLibrary::ProcessServerMessage(NetBuffer& msg)
 
 bool NetLibrary::WaitForRoutedPacket(uint32_t timeout)
 {
-	if (!m_incomingPackets.empty())
 	{
-		return true;
+		std::lock_guard<std::mutex> guard(m_incomingPacketMutex);
+
+		if (!m_incomingPackets.empty())
+		{
+			return true;
+		}
 	}
 
 	WaitForSingleObject(m_receiveEvent, timeout);
 
-	return (!m_incomingPackets.empty());
+	{
+		std::lock_guard<std::mutex> guard(m_incomingPacketMutex);
+
+		return (!m_incomingPackets.empty());
+	}
 }
 
 void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 {
-	RoutingPacket routePacket;
-	routePacket.netID = netID;
-	routePacket.payload = packet;
+	{
+		std::lock_guard<std::mutex> guard(m_incomingPacketMutex);
 
-	m_incomingPackets.push(routePacket);
+		RoutingPacket routePacket;
+		routePacket.netID = netID;
+		routePacket.payload = packet;
+
+		m_incomingPackets.push(routePacket);
+	}
 
 	SetEvent(m_receiveEvent);
 }
 
 bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID)
 {
-	if (m_incomingPackets.empty())
 	{
-		return false;
+		std::lock_guard<std::mutex> guard(m_incomingPacketMutex);
+
+		if (m_incomingPackets.empty())
+		{
+			return false;
+		}
+
+		auto packet = m_incomingPackets.front();
+		m_incomingPackets.pop();
+
+		memcpy(buffer, packet.payload.c_str(), packet.payload.size());
+		*netID = packet.netID;
+		*length = packet.payload.size();
 	}
-
-	auto packet = m_incomingPackets.front();
-	m_incomingPackets.pop();
-
-	memcpy(buffer, packet.payload.c_str(), packet.payload.size());
-	*netID = packet.netID;
-	*length = packet.payload.size();
 
 	ResetEvent(m_receiveEvent);
 
