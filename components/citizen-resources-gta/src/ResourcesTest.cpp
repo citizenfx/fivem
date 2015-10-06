@@ -43,6 +43,7 @@ static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
+		/*
 		while (true)
 		{
 			fwRefContainer<fx::ResourceManager> manager = fx::CreateResourceManager();
@@ -60,5 +61,6 @@ static InitFunction initFunction([] ()
 
 			Sleep(99999999);
 		}
+		*/
 	}, 9000);
 });
