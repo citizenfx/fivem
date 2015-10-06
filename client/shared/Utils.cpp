@@ -57,7 +57,12 @@ void InitFunctionBase::RunAll()
 const char* va(const char* string, ...)
 {
 	static thread_local int currentBuffer;
-	static thread_local std::vector<char> buffer(BUFFER_COUNT * BUFFER_LENGTH);
+	static thread_local std::vector<char> buffer;
+
+	if (!buffer.size())
+	{
+		buffer.resize(BUFFER_COUNT * BUFFER_LENGTH);
+	}
 
 	int thisBuffer = currentBuffer;
 
@@ -82,7 +87,12 @@ const char* va(const char* string, ...)
 const wchar_t* va(const wchar_t* string, ...)
 {
 	static thread_local int currentBuffer;
-	static thread_local std::vector<wchar_t> buffer(BUFFER_COUNT * BUFFER_LENGTH);
+	static thread_local std::vector<wchar_t> buffer;
+
+	if (!buffer.size())
+	{
+		buffer.resize(BUFFER_COUNT * BUFFER_LENGTH);
+	}
 
 	int thisBuffer = currentBuffer;
 
@@ -133,7 +143,12 @@ void DoNtRaiseException(EXCEPTION_RECORD* record)
 
 void trace(const char* string, ...)
 {
-	static thread_local std::vector<char> buffer(BUFFER_LENGTH);
+	static thread_local std::vector<char> buffer;
+
+	if (!buffer.size())
+	{
+		buffer.resize(BUFFER_LENGTH);
+	}
 
 	static CRITICAL_SECTION dbgCritSec;
 
