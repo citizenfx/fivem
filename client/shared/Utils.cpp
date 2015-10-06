@@ -56,13 +56,8 @@ void InitFunctionBase::RunAll()
 
 const char* va(const char* string, ...)
 {
-	static __thread int currentBuffer;
-	static __thread char* buffer;
-
-	if (!buffer)
-	{
-		buffer = new char[BUFFER_COUNT * BUFFER_LENGTH];
-	}
+	static thread_local int currentBuffer;
+	static thread_local std::vector<char> buffer(BUFFER_COUNT * BUFFER_LENGTH);
 
 	int thisBuffer = currentBuffer;
 
@@ -86,13 +81,8 @@ const char* va(const char* string, ...)
 
 const wchar_t* va(const wchar_t* string, ...)
 {
-	static __thread int currentBuffer;
-	static __thread wchar_t* buffer;
-
-	if (!buffer)
-	{
-		buffer = new wchar_t[BUFFER_COUNT * BUFFER_LENGTH];
-	}
+	static thread_local int currentBuffer;
+	static thread_local std::vector<wchar_t> buffer(BUFFER_COUNT * BUFFER_LENGTH);
 
 	int thisBuffer = currentBuffer;
 
@@ -143,7 +133,8 @@ void DoNtRaiseException(EXCEPTION_RECORD* record)
 
 void trace(const char* string, ...)
 {
-	static __thread char* buffer;
+	static thread_local std::vector<char> buffer(BUFFER_LENGTH);
+
 	static CRITICAL_SECTION dbgCritSec;
 
 	if (!dbgCritSec.DebugInfo)
@@ -151,14 +142,9 @@ void trace(const char* string, ...)
 		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
 	}
 
-	if (!buffer)
-	{
-		buffer = new char[BUFFER_LENGTH];
-	}
-
 	va_list ap;
 	va_start(ap, string);
-	int length = vsnprintf(buffer, BUFFER_LENGTH, string, ap);
+	int length = vsnprintf(&buffer[0], BUFFER_LENGTH, string, ap);
 	va_end(ap);
 
 	if (length >= BUFFER_LENGTH)
@@ -183,27 +169,27 @@ void trace(const char* string, ...)
 			record.ExceptionFlags = 0;
 			record.NumberParameters = 2;
 			record.ExceptionInformation[0] = length + 1;
-			record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(buffer);
+			record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(&buffer[0]);
 			record.ExceptionRecord = &record;
 
 			DoNtRaiseException(&record);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
-			OutputDebugStringA(buffer);
+			OutputDebugStringA(&buffer[0]);
 		}
 	}
 	else
 	{
-		OutputDebugStringA(buffer);
+		OutputDebugStringA(&buffer[0]);
 	}
 
 	if (!CoreIsDebuggerPresent() && !getenv("CitizenFX_ToolMode"))
 	{
-		printf("%s", buffer);
+		printf("%s", &buffer[0]);
 	}
 #else
-	printf("%s", buffer);
+	printf("%s", &buffer[0]);
 #endif
 
 	// TODO: write to a log file too, if enabled?
