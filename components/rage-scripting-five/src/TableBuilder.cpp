@@ -199,6 +199,12 @@ static struct
 	int currentComponent;
 } g_nativeRegistrationState;
 
+struct CrossMappingEntry
+{
+	uint64_t first;
+	uint64_t second;
+};
+
 static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTables)
 {
 	// do mapping things
@@ -263,7 +269,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		fclose(file);
 
 		// dump 350 cross-mapped natives
-		static std::pair<uint64_t, uint64_t> crossMapping[] =
+		static const CrossMappingEntry crossMapping[] =
 		{
 #include "CrossMapping_350_372.h"
 		};
@@ -273,7 +279,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 		for (auto& mapping : crossMapping)
 		{
-			crossMappingTable.insert(mapping);
+			crossMappingTable.insert({ mapping.first, mapping.second });
 		}
 
 		// write PC/REL to 372 table (natives_blob_372.dat)
@@ -310,7 +316,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		// if 393, this will likely be true
 		bool isPostNativeVersion = (functionTables.size() == 0);
 
-		static std::pair<uint64_t, uint64_t> crossMapping[] =
+		static const CrossMappingEntry crossMapping[] =
 		{
 #include "CrossMapping_372_393.h"
 		};
@@ -320,7 +326,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 		for (auto& mapping : crossMapping)
 		{
-			crossMappingTable.insert(mapping);
+			crossMappingTable.insert({ mapping.first, mapping.second });
 		}
 
 		while (true)
