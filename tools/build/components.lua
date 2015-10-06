@@ -52,6 +52,7 @@ component = function(name)
 		decoded = json.decode(jsonStr)
 
 		decoded.rawName = name
+		decoded.absPath = path.getabsolute(name)
 	else
 		decoded = name
 
@@ -65,13 +66,20 @@ component = function(name)
 			-- ... and it's not the current game we're targeting...
 			if name ~= _OPTIONS['game'] then
 				-- ... ignore it
-				return
+				return function() end
 			end
 		end
 	end
 
 	-- add to the list
 	table.insert(components, decoded)
+
+	-- return a function to allow table merging for additional parameters
+	return function(t)
+		for k, v in pairs(t) do
+			decoded[k] = v
+		end
+	end
 end
 
 vendor_component = function(name)
@@ -198,25 +206,54 @@ local do_component = function(name, comp)
 
 	-- process the project
 
+	-- path stuff
+	local relPath = path.getrelative(path.getabsolute(''), comp.absPath)
+
+	-- set group depending on privateness
+	if comp.private then
+		group 'components/private'
+	else
+		group 'components'
+	end
+
 	project(name)
 
 	language "C++"
 	kind "SharedLib"
 
-	includedirs { "client/citicore/", 'components/' .. name .. "/include/" }
+	includedirs { "client/citicore/", relPath .. "/include/" }
 	files {
-		'components/' .. name .. "/src/**.cpp",
-		'components/' .. name .. "/src/**.cc",
-		'components/' .. name .. "/src/**.h",
-		'components/' .. name .. "/include/**.h",
+		relPath .. "/src/**.cpp",
+		relPath .. "/src/**.cc",
+		relPath .. "/src/**.h",
+		relPath .. "/include/**.h",
 		"client/common/StdInc.cpp",
 		"client/common/Error.cpp"
 	}
 
-	vpaths { ["z/common/*"] = "client/common/**", ["z/*"] = "components/" .. name .. "/component.rc", ["*"] = "components/" .. name .. "/**" }
+	vpaths { ["z/common/*"] = "client/common/**", ["z/*"] = relPath .. "/component.rc", ["*"] = relPath .. "/**" }
+
+	if not comp.private then
+		for k, repo in all_private_repos() do
+			local repoRel = path.getrelative(path.getabsolute(''), repo) .. '/components/' .. name
+
+			includedirs { repoRel .. '/include/' }
+
+			files {
+				repoRel .. "/src/**.cpp",
+				repoRel .. "/src/**.cc",
+				repoRel .. "/src/**.h",
+				repoRel .. "/include/**.h",
+			}
+
+			vpaths {
+				["private/*"] = repoRel .. '/**'
+			}
+		end
+	end
 
 	files {
-		'components/' .. name .. "/include/**.idl",
+		relPath .. "/include/**.idl",
 	}
 
 	defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
@@ -244,7 +281,7 @@ local do_component = function(name, comp)
 	end
 
 	configuration {}
-	dofile('components/' .. name .. '/component.lua')
+	dofile(comp.absPath .. '/component.lua')
 
 	-- loop again in case a previous file has set a configuration constraint
 	for dep, data in pairs(hasDeps) do
@@ -255,7 +292,7 @@ local do_component = function(name, comp)
 				data.vendor.depend()
 			end
 		else
-			dofile('components/' .. dep .. '/component.lua')
+			dofile(data.absPath .. '/component.lua')
 		end
 	end
 
@@ -263,12 +300,12 @@ local do_component = function(name, comp)
 		buildoptions "/MP"
 
 		files {
-			'components/' .. name .. "/component.rc",
+			relPath .. "/component.rc",
 		}
 
 	configuration "not windows"
 		files {
-			'components/' .. name .. "/component.json"
+			relPath .. "/component.json"
 		}
 
 	filter { "system:not windows", "files:**/component.json" }

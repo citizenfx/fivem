@@ -15,3 +15,6 @@ dofile('components.lua')
 
 -- IDL building
 dofile('idl.lua')
+
+-- private components
+dofile('privates.lua')

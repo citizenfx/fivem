@@ -12,6 +12,8 @@ root_cwd = os.getcwd()
 dofile('components/config.lua')
 dofile('vendor/config.lua')
 
+load_privates('privates_config.lua')
+
 component
 {
 	name = 'platform:' .. os.get(),
