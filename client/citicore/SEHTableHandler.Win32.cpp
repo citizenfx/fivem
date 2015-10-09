@@ -6,10 +6,10 @@
  */
 
 #include "StdInc.h"
+#include <minhook.h>
 
 #ifdef _M_AMD64
 #include <udis86.h>
-#include <minhook.h>
 
 static void* FindCallFromAddress(void* methodPtr)
 {
@@ -123,7 +123,6 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 	}
 
 	// patch it
-	MH_Initialize();
 	MH_CreateHook(internalAddress, RtlpxLookupFunctionTableOverride, (void**)&g_originalLookup);
 	MH_EnableHook(MH_ALL_HOOKS);
 }
@@ -133,3 +132,18 @@ void DLL_EXPORT CoreRT_SetupSEHHandler(...)
 	// no-op for non-AMD64
 }
 #endif
+
+struct InitMHWrapper
+{
+	InitMHWrapper()
+	{
+		MH_Initialize();
+	}
+
+	~InitMHWrapper()
+	{
+		MH_Uninitialize();
+	}
+};
+
+InitMHWrapper mh;

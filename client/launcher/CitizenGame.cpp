@@ -480,6 +480,23 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 
 	CoreSetDebuggerPresent();
 
+#ifdef GTA_FIVE
+	auto CoreSetMappingFunction = (void(*)(wchar_t*(*)(const wchar_t*, void*(*)(size_t))))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetMappingFunction");
+
+	if (CoreSetMappingFunction)
+	{
+		CoreSetMappingFunction([] (const wchar_t* fileName, void*(*allocator)(size_t))
+		{
+			auto outName = MapRedirectedFilename(fileName);
+			wchar_t* outString = reinterpret_cast<wchar_t*>(allocator((outName.length() + 1) * sizeof(wchar_t)));
+
+			wcscpy(outString, outName.c_str());
+
+			return outString;
+		});
+	}
+#endif
+
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
 
@@ -497,7 +514,7 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 	}
 
 	// load the game executable data in temporary memory
-	FILE* gameFile = _wfopen(gamePath.c_str(), L"rb");
+	FILE* gameFile = _wfopen(MapRedirectedFilename(gamePath.c_str()).c_str(), L"rb");
 	
 	if (!gameFile)
 	{
@@ -560,10 +577,7 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 		{
 			if (getenv("CitizenFX_ToolMode"))
 			{
-				wchar_t dir[MAX_PATH];
-				GetCurrentDirectory(_countof(dir), dir);
-
-				return LoadLibraryW(va(L"%s\\libcef.dll", dir));
+				return LoadLibraryW(MapRedirectedFilename(L"Social Club/libcef.dll").c_str());
 			}
 		}
 

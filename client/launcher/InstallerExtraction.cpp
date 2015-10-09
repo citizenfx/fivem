@@ -6,21 +6,7 @@
 */
 
 #include "StdInc.h"
-
-#define NSIS_MAX_STRLEN 1024
-#define NSIS_CONFIG_VISIBLE_SUPPORT
-#define NSIS_SUPPORT_CODECALLBACKS
-#define NSIS_SUPPORT_RENAME
-#define NSIS_SUPPORT_FNUTIL
-#define NSIS_SUPPORT_FILE
-#define NSIS_SUPPORT_DELETE
-#define NSIS_SUPPORT_MESSAGEBOX
-#define NSIS_SUPPORT_RMDIR
-#define NSIS_SUPPORT_STROPTS
-#define NSIS_SUPPORT_ENVIRONMENT
-#define NSIS_SUPPORT_INTOPTS
-#define NSIS_SUPPORT_STACK
-#include "nsis_fileform.h"
+#include "InstallerExtraction.h"
 
 #define restrict
 #define LZMA_API_STATIC
@@ -162,7 +148,7 @@ void LzmaStreamWrapper::SeekAhead(size_t bytes)
 	}
 }
 
-bool ExtractInstallerFile(const std::wstring& installerFile, const std::string& entryName, const std::wstring& outFile)
+bool ExtractInstallerFile(const std::wstring& installerFile, const std::function<void(const InstallerInterface&)>& fileFindCallback)
 {
 	// open the installer file
 	FILE* f = _wfopen(installerFile.c_str(), L"rb");
@@ -174,7 +160,7 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::string& 
 
 	// update UI
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	std::wstring entryPathWide = converter.from_bytes(entryName);
+	std::wstring entryPathWide = installerFile;
 
 	UI_UpdateText(1, va(L"Extracting %s (scanning)", entryPathWide.c_str()));
 	UI_UpdateProgress(0.0);
@@ -286,9 +272,54 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::string& 
 	stream.SeekAhead(h.blocks[NB_STRINGS].offset + 4 - stream.Tell());
 	stream.Read(&strings[0], stringsLength);
 
-	// get code for the section
-	int entryIdx = sections[1].code;
-	int entrySize = sections[1].code_size;
+	// find a list of files to 'extract'
+	std::vector<std::pair<entry, std::wstring>> filesToExtract;
+
+	// set up the installer interface
+	InstallerInterface interface;
+	interface.addFile = [&] (const entry& entry, const std::wstring& outPath)
+	{
+		filesToExtract.push_back({ entry, outPath });
+	};
+
+	interface.getSections = [&] ()
+	{
+		return sections;
+	};
+
+	interface.processSection = [&] (section section, std::function<void(const entry&)> processEntry)
+	{
+		int entryIdx = section.code;
+		int entrySize = section.code_size;
+
+		for (int i = entryIdx; i < (entryIdx + entrySize); i++)
+		{
+			if (entries[i].which == EW_RET)
+			{
+				break;
+			}
+
+			processEntry(entries[i]);
+		}
+	};
+
+	interface.getString = getString;
+
+	// get code for the section we'll scan for
+#if 0
+	int entryIdx = 0;
+	int entrySize = 0;
+
+	for (const auto& section : sections)
+	{
+		entryIdx = section.code;
+		entrySize = section.code_size;
+
+		if (entrySize != 0)
+		{
+			break;
+		}
+	}
 
 	// look for any 'extractfile' entries with the path we use (checking for any 'createdir's with flag [1] set to specify the directory name)
 	std::wstring currentDirectory;
@@ -358,64 +389,89 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::string& 
 		fclose(f);
 		return false;
 	}
+#endif
 
-	// extract said file - seek to the offset first and get length of the file
-	uint32_t fileLength;
+	// run the callback
+	fileFindCallback(interface);
 
-	stream.SeekAhead(headerLength + dataIdx + 4 - stream.Tell());
-	stream.Read(&fileLength, sizeof(fileLength));
-
-	// now, extract the file to disk. we'll probably want to update UI for this, as well...
-	UI_UpdateText(1, va(L"Extracting %s", entryPathWide.c_str()));
-	UI_UpdateProgress(0.0);
-
-	// open the output file
-	std::wstring tmpFile = outFile + L".tmp";
-
-	FILE* of = _wfopen(tmpFile.c_str(), L"wb");
-
-	if (!of)
+	if (filesToExtract.empty())
 	{
 		fclose(f);
 		return false;
 	}
 
-	char buffer[8192];
-	uint32_t bytesWritten = 0;
-
-	while (bytesWritten < fileLength)
+	// sort by compressed offset
+	std::sort(filesToExtract.begin(), filesToExtract.end(), [] (const auto& left, const auto& right)
 	{
-		// write to the output file
-		uint32_t toRead = fileLength - bytesWritten;
-		toRead = min(sizeof(buffer), toRead);
+		return (left.first.offsets[2] < right.first.offsets[2]);
+	});
 
-		toRead = stream.Read(buffer, toRead);
-		bytesWritten += fwrite(buffer, 1, toRead, of);
+	// extract files - seek to the offset first and get length of the file
+	uint32_t fileLength;
 
-		UI_UpdateProgress((bytesWritten / (double)fileLength) * 100.0);
+	// for all files...
+	for (auto& data : filesToExtract)
+	{
+		stream.SeekAhead(headerLength + data.first.offsets[2] + 4 - stream.Tell());
+		stream.Read(&fileLength, sizeof(fileLength));
 
-		// poll message loop
-		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		// now, extract the file to disk. we'll probably want to update UI for this, as well...
+		auto nameStr = getString(data.first.offsets[1]);
+		int lastSlash = nameStr.find_last_of(L'/');
+
+		UI_UpdateText(1, va(L"Extracting %s", nameStr.substr(lastSlash + 1).c_str()));
+		UI_UpdateProgress(0.0);
+
+		// open the output file
+		std::wstring tmpFile = data.second + L".tmp";
+
+		FILE* of = _wfopen(tmpFile.c_str(), L"wb");
+
+		if (!of)
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-
-		if (UI_IsCanceled())
-		{
-			fclose(of);
 			fclose(f);
-
 			return false;
 		}
+
+		char buffer[8192];
+		uint32_t bytesWritten = 0;
+
+		while (bytesWritten < fileLength)
+		{
+			// write to the output file
+			uint32_t toRead = fileLength - bytesWritten;
+			toRead = min(sizeof(buffer), toRead);
+
+			toRead = stream.Read(buffer, toRead);
+			bytesWritten += fwrite(buffer, 1, toRead, of);
+
+			UI_UpdateProgress((bytesWritten / (double)fileLength) * 100.0);
+
+			// poll message loop
+			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+
+			if (UI_IsCanceled())
+			{
+				fclose(of);
+				fclose(f);
+
+				return false;
+			}
+		}
+
+		// we're done? wow!
+		fclose(of);
+
+		// rename the file tooooo
+		_wunlink(data.second.c_str());
+		_wrename(tmpFile.c_str(), data.second.c_str());
 	}
 
-	// we're done? wow!
-	fclose(of);
 	fclose(f);
-
-	// rename the file tooooo
-	_wrename(tmpFile.c_str(), outFile.c_str());
 
 	return true;
 }
