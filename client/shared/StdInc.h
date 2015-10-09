@@ -122,6 +122,12 @@ public:
 	{
 	}
 
+	inline fwPlatformString(const std::string& narrowString)
+		: std::wstring(ConvertString(narrowString.c_str()))
+	{
+
+	}
+
 	inline fwPlatformString(const char* narrowString)
 		: std::wstring(ConvertString(narrowString))
 	{

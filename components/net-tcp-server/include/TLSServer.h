@@ -80,7 +80,7 @@ private:
 	std::set<fwRefContainer<TLSServerStream>> m_connections;
 
 public:
-	TLSServer(fwRefContainer<TcpServer> baseServer);
+	TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath);
 
 	inline std::shared_ptr<Botan::Credentials_Manager> GetCredentials()
 	{

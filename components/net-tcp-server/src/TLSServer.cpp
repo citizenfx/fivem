@@ -15,6 +15,8 @@
 #include <botan/pkcs8.h>
 #include <botan/tls_policy.h>
 
+#include <fstream>
+
 class CredentialManager : public Botan::Credentials_Manager
 {
 private:
@@ -22,13 +24,16 @@ private:
 	std::shared_ptr<Botan::Private_Key> m_key;
 
 public:
-	CredentialManager(Botan::RandomNumberGenerator& rng, const std::string& serverCert, const std::string& serverKey)
+	CredentialManager(Botan::RandomNumberGenerator& rng, const fwPlatformString& serverCert, const fwPlatformString& serverKey)
 	{
 		try
 		{
-			m_key.reset(Botan::PKCS8::load_key(serverKey, rng));
+			std::ifstream serverKeyStream(serverKey);
+			std::ifstream serverCertStream(serverCert);
 
-			Botan::DataSource_Stream in(serverCert);
+			m_key.reset(Botan::PKCS8::load_key(Botan::DataSource_Stream(serverKeyStream), rng));
+
+			Botan::DataSource_Stream in(serverCertStream);
 
 			while (!in.end_of_data())
 			{
@@ -230,12 +235,12 @@ void TLSServerStream::CloseInternal()
 	m_parentServer->CloseStream(this);
 }
 
-TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer)
+TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath)
 	: m_baseServer(baseServer)
 {
 	// initialize credentials
 	Botan::AutoSeeded_RNG rng;
-	m_credentials = std::make_shared<CredentialManager>(rng, "d:/ros.crt", "d:/ros.key");
+	m_credentials = std::make_shared<CredentialManager>(rng, MakeRelativeCitPath(certificatePath), MakeRelativeCitPath(keyPath));
 	
 	m_baseServer->SetConnectionCallback([=] (fwRefContainer<TcpServerStream> stream)
 	{
