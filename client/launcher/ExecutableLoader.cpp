@@ -151,6 +151,8 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 }
 #endif
 
+static void InitTlsFromExecutable();
+
 void ExecutableLoader::LoadIntoModule(HMODULE module)
 {
 	m_module = module;
@@ -187,6 +189,7 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 
 		*(DWORD*)(targetTls->AddressOfIndex) = *(DWORD*)(sourceTls->AddressOfIndex);
 #else
+		const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 		const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
 		*(DWORD*)(sourceTls->AddressOfIndex) = 0;
@@ -194,10 +197,12 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 		// note: 32-bit!
 #if defined(_M_IX86)
 		LPVOID tlsBase = *(LPVOID*)__readfsdword(0x2C);
+#elif defined(_M_AMD64)
+		LPVOID tlsBase = *(LPVOID*)__readgsqword(0x58);
+#endif
 
 		memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
-		memcpy((void*)origTls.StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
-#endif
+		memcpy((void*)targetTls->StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
 		/*#else
 			const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
