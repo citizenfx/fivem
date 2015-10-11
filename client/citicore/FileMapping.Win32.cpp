@@ -64,17 +64,14 @@ LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, RE
 		//LONG status = RegCreateKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, nullptr, 0, KEY_READ, nullptr, outKey, nullptr);
 		LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, KEY_READ, outKey);
 
-		if (status != 0)
+		auto setValue = [&] (const wchar_t* name, const wchar_t* keyString)
 		{
-			auto setValue = [&] (const wchar_t* name, const wchar_t* keyString)
-			{
-				RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
-			};
+			RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
+		};
 
-			setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros").c_str());
-			setValue(L"InstallLang", L"1033");
-			setValue(L"Version", L"1.1.6.5");
-		}
+		setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros").c_str());
+		setValue(L"InstallLang", L"1033");
+		setValue(L"Version", L"1.1.6.5");
 
 		return status;
 	}
