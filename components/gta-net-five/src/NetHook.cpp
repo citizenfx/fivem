@@ -158,8 +158,6 @@ int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_o
 
 	if (nfds > 0)
 	{
-		Sleep(1);
-
 		nfds = g_oldSelect(nfds, readfds, writefds, exceptfds, timeout);
 	}
 
