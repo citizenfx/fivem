@@ -11,7 +11,7 @@
 #ifdef _M_AMD64
 #include <udis86.h>
 
-static void* FindCallFromAddress(void* methodPtr)
+static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD_Icall)
 {
 	// return value holder
 	void* retval = nullptr;
@@ -36,12 +36,12 @@ static void* FindCallFromAddress(void* methodPtr)
 		ud_disassemble(&ud);
 
 		// if this is a retn, break from the loop
-		if (ud_insn_mnemonic(&ud) == UD_Iret)
+		if (ud_insn_mnemonic(&ud) == UD_Inop || ud_insn_mnemonic(&ud) == UD_Iint3)
 		{
 			break;
 		}
 
-		if (ud_insn_mnemonic(&ud) == UD_Icall)
+		if (ud_insn_mnemonic(&ud) == mnemonic)
 		{
 			// get the first operand
 			auto operand = ud_insn_opr(&ud, 0);
@@ -101,6 +101,28 @@ static void* RtlpxLookupFunctionTableOverride(void* exceptionAddress, FUNCTION_T
 	return retval;
 }
 
+static void*(*g_originalLookupDownLevel)(void*, PDWORD64, PULONG);
+
+static void* RtlpxLookupFunctionTableOverrideDownLevel(void* exceptionAddress, PDWORD64 imageBase, PULONG length)
+{
+	void* retval = g_originalLookupDownLevel(exceptionAddress, imageBase, length);
+
+	DWORD64 addressNum = (DWORD64)exceptionAddress;
+
+	if (addressNum >= g_overrideStart && addressNum <= g_overrideEnd)
+	{
+		if (addressNum != 0)
+		{
+			*imageBase = g_overriddenTable.ImageBase;
+			*length = g_overriddenTable.Size;
+
+			retval = (void*)g_overriddenTable.TableAddress;
+		}
+	}
+
+	return retval;
+}
+
 extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* moduleEnd, PRUNTIME_FUNCTION runtimeFunctions, DWORD entryCount)
 {
 	// store passed data
@@ -115,15 +137,38 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlLookupFunctionTable");
 	void* internalAddress = FindCallFromAddress(baseAddress);
 
+	void* patchFunction = RtlpxLookupFunctionTableOverride;
+	void** patchOriginal = (void**)&g_originalLookup;
+
 	// if we couldn't _reliably_ find it, error out
 	if (!internalAddress)
 	{
-		trace("Could not find RtlpxLookupFunctionTable - unsupported version of Windows? Exception handlers from ExecutableLoader EXEs _will_ crash.\n");
-		return;
+		// Windows 8 uses a Rtl*-style call for Rtlpx
+		if (!IsWindows8Point1OrGreater())
+		{
+			internalAddress = FindCallFromAddress(baseAddress, UD_Ijmp);
+
+			patchFunction = RtlpxLookupFunctionTableOverrideDownLevel;
+			patchOriginal = (void**)&g_originalLookupDownLevel;
+		}
+
+		if (!internalAddress)
+		{
+			// and 2k3 to 7 don't even _have_ Rtlpx - so we directly hook the Rtl* function
+			if (!IsWindows8OrGreater())
+			{
+				trace("Could not find RtlpxLookupFunctionTable - hooking RtlLookupFunctionTable directly. This will break on a Win8+ system since RtlpxLookupFunctionTable is supposed to exist!\n");
+
+				internalAddress = baseAddress;
+
+				patchFunction = RtlpxLookupFunctionTableOverrideDownLevel;
+				patchOriginal = (void**)&g_originalLookupDownLevel;
+			}
+		}
 	}
 
 	// patch it
-	MH_CreateHook(internalAddress, RtlpxLookupFunctionTableOverride, (void**)&g_originalLookup);
+	MH_CreateHook(internalAddress, patchFunction, patchOriginal);
 	MH_EnableHook(MH_ALL_HOOKS);
 }
 #else
