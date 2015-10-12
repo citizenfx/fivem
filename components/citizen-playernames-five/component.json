@@ -1,0 +1,11 @@
+{
+	"name": "citizen:playernames:five",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net",
+		"resources",
+		"vendor:msgpack-c"
+	],
+	"provides": []
+}
