@@ -155,15 +155,15 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 		if (!internalAddress)
 		{
 			// and 2k3 to 7 don't even _have_ Rtlpx - so we directly hook the Rtl* function
-			if (!IsWindows8OrGreater())
+			if (IsWindows8OrGreater())
 			{
-				trace("Could not find RtlpxLookupFunctionTable - hooking RtlLookupFunctionTable directly. This will break on a Win8+ system since RtlpxLookupFunctionTable is supposed to exist!\n");
-
-				internalAddress = baseAddress;
-
-				patchFunction = RtlpxLookupFunctionTableOverrideDownLevel;
-				patchOriginal = (void**)&g_originalLookupDownLevel;
+				FatalError("Could not find RtlpxLookupFunctionTable - hooking RtlLookupFunctionTable directly. This will break on a Win8+ system since RtlpxLookupFunctionTable is supposed to exist!\n");
 			}
+
+			internalAddress = baseAddress;
+
+			patchFunction = RtlpxLookupFunctionTableOverrideDownLevel;
+			patchOriginal = (void**)&g_originalLookupDownLevel;
 		}
 	}
 
