@@ -233,6 +233,9 @@ void ProfileManagerImpl::ParseStoredProfiles(const std::string& profileList)
 						hashKey ^= 3 * std::hash<ProfileIdentifier>()(identifier);
 					});
 
+					// clip to 32 bits
+					hashKey &= UINT32_MAX;
+
 					// get parameter map
 					std::map<std::string, std::string> parameters;
 
@@ -553,6 +556,9 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 
 									hashKey ^= 3 * std::hash<ProfileIdentifier>()(identifier);
 								}
+
+								// clip to 32 bits
+								hashKey &= UINT32_MAX;
 
 								// if this happens to be an existing profile, get annoyed with the user
 								if (m_profiles.find(hashKey) != m_profiles.end())
