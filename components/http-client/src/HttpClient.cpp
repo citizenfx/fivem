@@ -78,6 +78,12 @@ void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwS
 	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
 	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"POST", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
 
+	// hacky way to wrap ROS
+	if (host == L"ros.citizenfx.internal")
+	{
+		WinHttpAddRequestHeaders(hRequest, L"Host: prod.ros.rockstargames.com", -1, 0);
+	}
+
 	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
 
 	HttpClientRequestContext* context = new HttpClientRequestContext;

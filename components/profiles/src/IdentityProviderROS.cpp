@@ -127,7 +127,7 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 	// encrypt the query string
 	fwString queryString = EncryptROSData(httpClient->BuildPostString(postMap));
 
-	httpClient->DoPostRequest(L"prod.ros.rockstargames.com", 80, L"/gta5/11/gameservices/auth.asmx/CreateTicketSc3", queryString, [=] (bool success, const char* data, size_t size)
+	httpClient->DoPostRequest(L"ros.citizenfx.internal", 80, L"/gta5/11/gameservices/auth.asmx/CreateTicketSc3", queryString, [=] (bool success, const char* data, size_t size)
 	{
 		std::shared_ptr<HttpClient> httpClientRef = httpClient;
 
