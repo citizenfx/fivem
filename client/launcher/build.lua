@@ -3,6 +3,8 @@
 		kind "WindowedApp"
 		
 		defines "COMPILING_LAUNCH"
+
+		flags "NoManifest"
 		
 		links { "SharedLibc", "dbghelp", "psapi", "comctl32", "breakpad", "wininet", "winhttp" }
 

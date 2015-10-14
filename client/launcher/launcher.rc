@@ -26,6 +26,8 @@ IDI_ICON1               ICON                    "citizeniv.ico"
 IDI_ICON1               ICON                    "fivem.ico"
 #endif
 
+1						RT_MANIFEST				"launcher.manifest"
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -58,7 +60,7 @@ BEGIN
 #endif
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "Citizen"
-            VALUE "LegalCopyright", "Copyright (C) 2010-2015 Bas Timmer/NTAuthority"
+            VALUE "LegalCopyright", "Copyright (C) 2010-2016 Bas Timmer/NTAuthority"
             VALUE "OriginalFilename", "citizenmp.exe"
             VALUE "ProductName", "Citizen"
             VALUE "ProductVersion", "1.0.0.0"
