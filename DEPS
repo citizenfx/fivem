@@ -12,7 +12,7 @@ deps = {
 	"vendor/gmock": "http://googlemock.googlecode.com/svn/trunk/",
 	"vendor/gtest": "http://googletest.googlecode.com/svn/trunk/",
 	"vendor/protobuf": "https://github.com/google/protobuf.git@5eb73dfcce20bdfe421620cb31b7b98a0c5eec88",
-	"vendor/libopus": "git://git.opus-codec.org/opus.git",
+	"vendor/libopus": "http://git.opus-codec.org/opus.git",
 	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
 	"vendor/breakpad": "http://google-breakpad.googlecode.com/svn/trunk/",
 	"vendor/udis86": "https://github.com/vmt/udis86.git",
