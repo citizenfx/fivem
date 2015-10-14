@@ -21,6 +21,11 @@ static NTSTATUS(*g_origLoadDll)(const wchar_t*, uint32_t, UNICODE_STRING*, HANDL
 
 static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 {
+	if (wcsstr(origFileName, L"autosignin.dat") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\autosignin.dat");
+	}
+
 	wchar_t* fileName = g_mappingFunction(origFileName, malloc);
 
 	std::wstring retval(fileName);
@@ -41,6 +46,21 @@ static std::wstring MapRedirectedNtFilename(const wchar_t* origFileName)
 	{
 		return L"\\??\\" + redirected;
 	}
+}
+
+static bool IsMappedFilename(const std::wstring& fileName)
+{
+	if (fileName.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos)
+	{
+		return true;
+	}
+	
+	if (fileName.find(L"autosignin.dat") != std::string::npos)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 static HANDLE(*g_origCreateFileW)(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile);
@@ -111,7 +131,7 @@ NTSTATUS WINAPI NtCreateFileStub(PHANDLE fileHandle, ACCESS_MASK desiredAccess, 
 		// map the filename
 		std::wstring moduleNameStr(objectAttributes->ObjectName->Buffer, objectAttributes->ObjectName->Length / sizeof(wchar_t));
 
-		if (moduleNameStr.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos)
+		if (IsMappedFilename(moduleNameStr))
 		{
 			moduleNameStr = MapRedirectedNtFilename(moduleNameStr.c_str());
 
@@ -149,7 +169,7 @@ NTSTATUS WINAPI NtOpenFileStub(PHANDLE fileHandle, ACCESS_MASK desiredAccess, PO
 		// map the filename
 		std::wstring moduleNameStr(objectAttributes->ObjectName->Buffer, objectAttributes->ObjectName->Length / sizeof(wchar_t));
 
-		if (moduleNameStr.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos)
+		if (IsMappedFilename(moduleNameStr))
 		{
 			moduleNameStr = MapRedirectedNtFilename(moduleNameStr.c_str());
 
@@ -171,6 +191,44 @@ NTSTATUS WINAPI NtOpenFileStub(PHANDLE fileHandle, ACCESS_MASK desiredAccess, PO
 	return g_origNtOpenFile(fileHandle, desiredAccess, objectAttributes, ioBlock, shareAccess, openOptions);
 }
 
+NTSTATUS(WINAPI* g_origNtDeleteFile)(POBJECT_ATTRIBUTES objectAttributes);
+
+NTSTATUS WINAPI NtDeleteFileStub(POBJECT_ATTRIBUTES objectAttributes)
+{
+	static thread_local bool inHook;
+
+	if (!inHook)
+	{
+		inHook = true;
+
+		OBJECT_ATTRIBUTES attributes = *objectAttributes;
+		UNICODE_STRING newString;
+
+		// map the filename
+		std::wstring moduleNameStr(objectAttributes->ObjectName->Buffer, objectAttributes->ObjectName->Length / sizeof(wchar_t));
+
+		if (IsMappedFilename(moduleNameStr))
+		{
+			moduleNameStr = MapRedirectedNtFilename(moduleNameStr.c_str());
+
+			// NT doesn't like slashes
+			std::replace(moduleNameStr.begin(), moduleNameStr.end(), L'/', L'\\');
+
+			// set stuff
+			RtlInitUnicodeString(&newString, moduleNameStr.c_str());
+			attributes.ObjectName = &newString;
+		}
+
+		NTSTATUS retval = g_origNtDeleteFile(&attributes);
+
+		inHook = false;
+
+		return retval;
+	}
+
+	return g_origNtDeleteFile(objectAttributes);
+}
+
 NTSTATUS(WINAPI* g_origNtQueryAttributesFile)(POBJECT_ATTRIBUTES objectAttributes, void* basicInformation);
 
 NTSTATUS WINAPI NtQueryAttributesFileStub(POBJECT_ATTRIBUTES objectAttributes, void* basicInformation)
@@ -187,7 +245,7 @@ NTSTATUS WINAPI NtQueryAttributesFileStub(POBJECT_ATTRIBUTES objectAttributes, v
 		// map the filename
 		std::wstring moduleNameStr(objectAttributes->ObjectName->Buffer, objectAttributes->ObjectName->Length / sizeof(wchar_t));
 
-		if (moduleNameStr.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos)
+		if (IsMappedFilename(moduleNameStr))
 		{
 			moduleNameStr = MapRedirectedNtFilename(moduleNameStr.c_str());
 
@@ -215,6 +273,7 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 
 	MH_CreateHookApi(L"ntdll.dll", "NtCreateFile", NtCreateFileStub, (void**)&g_origNtCreateFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtOpenFile", NtOpenFileStub, (void**)&g_origNtOpenFile);
+	MH_CreateHookApi(L"ntdll.dll", "NtDeleteFile", NtDeleteFileStub, (void**)&g_origNtDeleteFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryAttributesFile", NtQueryAttributesFileStub, (void**)&g_origNtQueryAttributesFile);
 	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", LdrLoadDllStub, (void**)&g_origLoadDll);
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExW", RegOpenKeyExWStub, (void**)&g_origRegOpenKeyExW);
