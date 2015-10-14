@@ -253,7 +253,7 @@ local do_component = function(name, comp)
 	end
 
 	files {
-		relPath .. "/include/**.idl",
+		--relPath .. "/include/**.idl",
 	}
 
 	defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
