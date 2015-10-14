@@ -1,4 +1,4 @@
-﻿Invoke-WebRequest "https://github.com/premake/premake-core/releases/download/v5.0.0.alpha4/premake-5.0.0.alpha4-windows.zip" -OutFile "build\premake.zip"
+﻿Invoke-WebRequest "https://github.com/premake/premake-core/releases/download/v5.0.0-alpha6/premake-5.0.0-alpha6-windows.zip" -OutFile "build\premake.zip"
 
 try {
     [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null

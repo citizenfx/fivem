@@ -1,12 +1,14 @@
 @echo off
-powershell -executionpolicy bypass -file citizenmp\prebuild_premake.ps1
+rem powershell -executionpolicy bypass -file citizenmp\prebuild_premake.ps1
 
 pushd build\premake
 call git submodule update --init --recursive
-..\premake5 vs2015
-..\premake5 embed
+rem ..\premake5 vs2015
+rem ..\premake5 embed
+del src\host\scripts.c
+nmake /f Bootstrap.mak windows
 popd
 
-call "%VCINSTALLDIR%\vcvarsall.bat" amd64_x86
-set PLATFORM=
-msbuild build/premake/Premake5.sln /p:configuration=release
+rem call "%VCINSTALLDIR%\vcvarsall.bat" amd64_x86
+rem set PLATFORM=
+rem msbuild build/premake/Premake5.sln /p:configuration=release
