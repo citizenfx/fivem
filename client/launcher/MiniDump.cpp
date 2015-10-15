@@ -43,7 +43,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::wstring responseBody;
 		int responseCode;
 
-		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, *filePath, L"upload_file_minidump", nullptr, &responseBody, &responseCode))
+		std::map<std::wstring, std::wstring> files;
+		files[L"upload_file_minidump"] = *filePath;
+
+		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 		{
 			TASKDIALOGCONFIG taskDialogConfig = { 0 };
 			taskDialogConfig.cbSize = sizeof(taskDialogConfig);
