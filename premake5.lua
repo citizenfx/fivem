@@ -103,7 +103,7 @@ solution "CitizenMP"
 
 		files
 		{
---			"client/citicore/**.idl"
+			"client/citicore/**.idl"
 		}
 
 		add_dependencies { 'vendor:boost_program_options' }
