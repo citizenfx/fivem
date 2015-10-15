@@ -13,6 +13,7 @@ vendor_component 'udis86'
 vendor_component 'cpp-uri'
 vendor_component 'xz-crt'
 vendor_component 'curl-crt'
+vendor_component 'lua'
 
 if os.get() == 'windows' then
 	vendor_component 'boost_program_options'

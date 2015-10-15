@@ -565,21 +565,27 @@ class NS_NO_VTABLE IScriptFileHandlingRuntime : public fxIBase {
   /* [notxpcom] int32_t HandlesFile (in charPtr scriptFile); */
   NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) = 0;
 
+  /* void LoadFile (in charPtr scriptFile); */
+  NS_IMETHOD LoadFile(char *scriptFile) = 0;
+
 };
 
   NS_DEFINE_STATIC_IID_ACCESSOR(IScriptFileHandlingRuntime, ISCRIPTFILEHANDLINGRUNTIME_IID)
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_ISCRIPTFILEHANDLINGRUNTIME \
-  NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) override; 
+  NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) override; \
+  NS_IMETHOD LoadFile(char *scriptFile) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTFILEHANDLINGRUNTIME(_to) \
-  NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) override { return _to HandlesFile(scriptFile); } 
+  NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) override { return _to HandlesFile(scriptFile); } \
+  NS_IMETHOD LoadFile(char *scriptFile) override { return _to LoadFile(scriptFile); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTFILEHANDLINGRUNTIME(_to) \
-  NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) override; 
+  NS_IMETHOD_(int32_t) HandlesFile(char *scriptFile) override; \
+  NS_IMETHOD LoadFile(char *scriptFile) override { return !_to ? NS_ERROR_NULL_POINTER : _to->LoadFile(scriptFile); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -615,6 +621,12 @@ _MYCLASS_::~_MYCLASS_()
 
 /* [notxpcom] int32_t HandlesFile (in charPtr scriptFile); */
 NS_IMETHODIMP_(int32_t) _MYCLASS_::HandlesFile(char *scriptFile)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void LoadFile (in charPtr scriptFile); */
+NS_IMETHODIMP _MYCLASS_::LoadFile(char *scriptFile)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

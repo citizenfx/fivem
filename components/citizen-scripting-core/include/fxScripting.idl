@@ -65,4 +65,6 @@ interface IScriptRefRuntime : fxIBase
 interface IScriptFileHandlingRuntime : fxIBase
 {
 	[notxpcom] int32_t HandlesFile(in charPtr scriptFile);
+
+	void LoadFile(in charPtr scriptFile);
 };
