@@ -15,7 +15,6 @@ function files(x)
 
 	return
 
---[[
 	if type(x) == 'table' then
 		for _, v in ipairs(x) do
 			if v:endswith('.idl') then
@@ -39,5 +38,5 @@ function files(x)
 			end
 		end
 	end
-]]
+
 end
