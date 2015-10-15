@@ -13,8 +13,6 @@ local old_files = files
 function files(x)
 	old_files(x)
 
-	return
-
 	if type(x) == 'table' then
 		for _, v in ipairs(x) do
 			if v:endswith('.idl') then
