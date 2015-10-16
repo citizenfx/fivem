@@ -39,14 +39,17 @@ concurrency::task<fwRefContainer<fx::Resource>> ExampleMounter::LoadResource(con
 
 #include <VFSManager.h>
 
+fwRefContainer<fx::ResourceManager> g_resourceManager;
+
 static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
-		/*
-		while (true)
+		//while (true)
 		{
 			fwRefContainer<fx::ResourceManager> manager = fx::CreateResourceManager();
+
+			g_resourceManager = manager;
 
 			manager->AddMounter(new ExampleMounter(manager));
 
@@ -54,13 +57,12 @@ static InitFunction initFunction([] ()
 			{
 				resource->Start();
 
-				__debugbreak();
+				//__debugbreak();
 			});
 
-			__debugbreak();
+			//__debugbreak();
 
-			Sleep(99999999);
+			//Sleep(99999999);
 		}
-		*/
 	}, 9000);
 });

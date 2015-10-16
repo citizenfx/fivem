@@ -140,6 +140,9 @@ class NS_NO_VTABLE IScriptHost : public fxIBase {
   /* void InvokeNative (inout NativeCtx context); */
   NS_IMETHOD InvokeNative(fxNativeContext & context) = 0;
 
+  /* void OpenSystemFile (in charPtr fileName, out fxIStream stream); */
+  NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) = 0;
+
   /* void OpenHostFile (in charPtr fileName, out fxIStream stream); */
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) = 0;
 
@@ -150,16 +153,19 @@ class NS_NO_VTABLE IScriptHost : public fxIBase {
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_ISCRIPTHOST \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override; \
+  NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override; \
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTHOST(_to) \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override { return _to InvokeNative(context); } \
+  NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override { return _to OpenSystemFile(fileName, stream); } \
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return _to OpenHostFile(fileName, stream); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTHOST(_to) \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override { return !_to ? NS_ERROR_NULL_POINTER : _to->InvokeNative(context); } \
+  NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenSystemFile(fileName, stream); } \
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenHostFile(fileName, stream); } 
 
 #if 0
@@ -196,6 +202,12 @@ _MYCLASS_::~_MYCLASS_()
 
 /* void InvokeNative (inout NativeCtx context); */
 NS_IMETHODIMP _MYCLASS_::InvokeNative(fxNativeContext & context)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void OpenSystemFile (in charPtr fileName, out fxIStream stream); */
+NS_IMETHODIMP _MYCLASS_::OpenSystemFile(char *fileName, fxIStream * *stream)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -299,6 +311,103 @@ NS_IMETHODIMP _MYCLASS_::Destroy()
 
 /* [notxpcom] int32_t GetInstanceId (); */
 NS_IMETHODIMP_(int32_t) _MYCLASS_::GetInstanceId()
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* End of implementation class template. */
+#endif
+
+
+/* starting interface:    IScriptRuntimeHandler */
+#define ISCRIPTRUNTIMEHANDLER_IID_STR "4720a986-eaa6-4ecc-a31f-2ce2bbf569f7"
+
+#define ISCRIPTRUNTIMEHANDLER_IID \
+  {0x4720a986, 0xeaa6, 0x4ecc, \
+    { 0xa3, 0x1f, 0x2c, 0xe2, 0xbb, 0xf5, 0x69, 0xf7 }}
+
+class NS_NO_VTABLE IScriptRuntimeHandler : public fxIBase {
+ public:
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(ISCRIPTRUNTIMEHANDLER_IID)
+
+  /* void PushRuntime (in IScriptRuntime runtime); */
+  NS_IMETHOD PushRuntime(IScriptRuntime *runtime) = 0;
+
+  /* void GetCurrentRuntime (out IScriptRuntime runtime); */
+  NS_IMETHOD GetCurrentRuntime(IScriptRuntime * *runtime) = 0;
+
+  /* void PopRuntime (in IScriptRuntime runtime); */
+  NS_IMETHOD PopRuntime(IScriptRuntime *runtime) = 0;
+
+};
+
+  NS_DEFINE_STATIC_IID_ACCESSOR(IScriptRuntimeHandler, ISCRIPTRUNTIMEHANDLER_IID)
+
+/* Use this macro when declaring classes that implement this interface. */
+#define NS_DECL_ISCRIPTRUNTIMEHANDLER \
+  NS_IMETHOD PushRuntime(IScriptRuntime *runtime) override; \
+  NS_IMETHOD GetCurrentRuntime(IScriptRuntime * *runtime) override; \
+  NS_IMETHOD PopRuntime(IScriptRuntime *runtime) override; 
+
+/* Use this macro to declare functions that forward the behavior of this interface to another object. */
+#define NS_FORWARD_ISCRIPTRUNTIMEHANDLER(_to) \
+  NS_IMETHOD PushRuntime(IScriptRuntime *runtime) override { return _to PushRuntime(runtime); } \
+  NS_IMETHOD GetCurrentRuntime(IScriptRuntime * *runtime) override { return _to GetCurrentRuntime(runtime); } \
+  NS_IMETHOD PopRuntime(IScriptRuntime *runtime) override { return _to PopRuntime(runtime); } 
+
+/* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
+#define NS_FORWARD_SAFE_ISCRIPTRUNTIMEHANDLER(_to) \
+  NS_IMETHOD PushRuntime(IScriptRuntime *runtime) override { return !_to ? NS_ERROR_NULL_POINTER : _to->PushRuntime(runtime); } \
+  NS_IMETHOD GetCurrentRuntime(IScriptRuntime * *runtime) override { return !_to ? NS_ERROR_NULL_POINTER : _to->GetCurrentRuntime(runtime); } \
+  NS_IMETHOD PopRuntime(IScriptRuntime *runtime) override { return !_to ? NS_ERROR_NULL_POINTER : _to->PopRuntime(runtime); } 
+
+#if 0
+/* Use the code below as a template for the implementation class for this interface. */
+
+/* Header file */
+class _MYCLASS_ : public IScriptRuntimeHandler
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_ISCRIPTRUNTIMEHANDLER
+
+  _MYCLASS_();
+
+private:
+  ~_MYCLASS_();
+
+protected:
+  /* additional members */
+};
+
+/* Implementation file */
+NS_IMPL_ISUPPORTS(_MYCLASS_, IScriptRuntimeHandler)
+
+_MYCLASS_::_MYCLASS_()
+{
+  /* member initializers and constructor code */
+}
+
+_MYCLASS_::~_MYCLASS_()
+{
+  /* destructor code */
+}
+
+/* void PushRuntime (in IScriptRuntime runtime); */
+NS_IMETHODIMP _MYCLASS_::PushRuntime(IScriptRuntime *runtime)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void GetCurrentRuntime (out IScriptRuntime runtime); */
+NS_IMETHODIMP _MYCLASS_::GetCurrentRuntime(IScriptRuntime * *runtime)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void PopRuntime (in IScriptRuntime runtime); */
+NS_IMETHODIMP _MYCLASS_::PopRuntime(IScriptRuntime *runtime)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -634,5 +743,6 @@ NS_IMETHODIMP _MYCLASS_::LoadFile(char *scriptFile)
 /* End of implementation class template. */
 #endif
 
+#include "PushEnvironment.h"
 
 #endif /* __gen_fxScripting_h__ */

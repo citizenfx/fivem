@@ -47,6 +47,11 @@ public:
 	virtual bool Stop() = 0;
 
 	//
+	// Executes a tick on the resource.
+	//
+	virtual void Tick() = 0;
+
+	//
 	// Gets the resource-specific instance registry.
 	//
 	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() = 0;
@@ -74,6 +79,11 @@ public:
 	// An event to handle tasks to be performed when starting a resource.
 	//
 	fwEvent<> OnStart;
+
+	//
+	// An event to handle tasks to be performed when the resource ticks.
+	//
+	fwEvent<> OnTick;
 
 public:
 	//

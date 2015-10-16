@@ -36,6 +36,11 @@ std::vector<uint8_t> Stream::Read(size_t length)
 	return retval;
 }
 
+uint64_t Stream::GetLength()
+{
+	return m_device->GetLength(m_handle);
+}
+
 size_t Stream::Seek(intptr_t offset, int seekType)
 {
 	return m_device->Seek(m_handle, offset, seekType);

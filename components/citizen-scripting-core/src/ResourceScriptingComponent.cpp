@@ -85,6 +85,19 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			CreateEnvironments();
 		}
 	});
+
+	resource->OnTick.Connect([=] ()
+	{
+		for (auto& environment : m_scriptRuntimes)
+		{
+			OMPtr<IScriptTickRuntime> tickRuntime;
+
+			if (FX_SUCCEEDED(environment.second.As(&tickRuntime)))
+			{
+				tickRuntime->Tick();
+			}
+		}
+	});
 }
 
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
@@ -96,6 +109,35 @@ void ResourceScriptingComponent::CreateEnvironments()
 	for (auto& environment : m_scriptRuntimes)
 	{
 		environment.second->Create(m_scriptHost.GetRef());
+	}
+
+	// iterate over the runtimes and load scripts as requested
+	for (auto& environment : m_scriptRuntimes)
+	{
+		OMPtr<IScriptFileHandlingRuntime> ptr;
+
+		fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+		auto clientScripts = metaData->GetEntries("client_script");
+		
+		if (FX_SUCCEEDED(environment.second.As(&ptr)))
+		{
+			bool environmentUsed = false;
+
+			for (auto& clientScript : clientScripts)
+			{
+				if (ptr->HandlesFile(const_cast<char*>(clientScript.second.c_str())))
+				{
+					result_t hr = ptr->LoadFile(const_cast<char*>(clientScript.second.c_str()));
+
+					if (FX_FAILED(hr))
+					{
+						trace("Failed to load client script %s.\n", clientScript.second.c_str());
+					}
+
+					break;
+				}
+			}
+		}
 	}
 }
 }

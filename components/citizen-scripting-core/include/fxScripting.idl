@@ -26,6 +26,8 @@ interface IScriptHost : fxIBase
 {
 	void InvokeNative(inout NativeCtx context);
 
+	void OpenSystemFile(in charPtr fileName, out fxIStream stream);
+
 	void OpenHostFile(in charPtr fileName, out fxIStream stream);
 };
 
@@ -37,6 +39,16 @@ interface IScriptRuntime : fxIBase
 	void Destroy();
 
 	[notxpcom] int32_t GetInstanceId();
+};
+
+[uuid(4720A986-EAA6-4ECC-A31F-2CE2BBF569F7)]
+interface IScriptRuntimeHandler : fxIBase
+{
+	void PushRuntime(in IScriptRuntime runtime);
+
+	void GetCurrentRuntime(out IScriptRuntime runtime);
+
+	void PopRuntime(in IScriptRuntime runtime);
 };
 
 [uuid(91B203C7-F95A-4902-B463-722D55098366)]
@@ -68,3 +80,7 @@ interface IScriptFileHandlingRuntime : fxIBase
 
 	void LoadFile(in charPtr scriptFile);
 };
+
+%{C++
+#include "PushEnvironment.h"
+%}

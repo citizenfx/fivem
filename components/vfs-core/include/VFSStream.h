@@ -40,6 +40,8 @@ public:
 
 	void Close();
 
+	uint64_t GetLength();
+
 	size_t Seek(intptr_t offset, int seekType);
 
 	std::vector<uint8_t> ReadToEnd();

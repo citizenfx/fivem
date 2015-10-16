@@ -50,6 +50,8 @@ public:
 
 	virtual bool Stop() override;
 
+	virtual void Tick() override;
+
 	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() override;
 };
 }

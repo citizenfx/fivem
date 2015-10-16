@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"citizen:resources:core",
-		"rage:device"
+		"rage:device",
+		"rage:scripting"
 	],
 	"provides": []
 }

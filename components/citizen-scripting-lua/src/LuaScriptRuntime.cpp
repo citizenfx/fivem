@@ -41,21 +41,51 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime>
 {
 private:
 	LuaStateHolder m_state;
 
 	IScriptHost* m_scriptHost;
 
+	std::function<void()> m_tickRoutine;
+
+public:
+	static OMPtr<LuaScriptRuntime> GetCurrent();
+
+	void SetTickRoutine(const std::function<void()>& tickRoutine);
+
 private:
-	result_t LoadFileInternal(char* scriptFile);
+	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);
+
+	result_t LoadHostFileInternal(char* scriptFile);
+
+	result_t LoadSystemFileInternal(char* scriptFile);
+
+	result_t RunFileInternal(char* scriptFile, std::function<result_t(char*)> loadFunction);
+
+	result_t LoadSystemFile(char* scriptFile);
 
 public:
 	NS_DECL_ISCRIPTRUNTIME;
 
 	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
+
+	NS_DECL_ISCRIPTTICKRUNTIME;
 };
+
+static int lua_error_handler(lua_State* L);
+
+OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
+{
+	OMPtr<IScriptRuntime> runtime;
+	LuaScriptRuntime* luaRuntime;
+	
+	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
+	assert(luaRuntime = dynamic_cast<LuaScriptRuntime*>(runtime.GetRef()));
+
+	return OMPtr<LuaScriptRuntime>(luaRuntime);
+}
 
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] =
@@ -80,28 +110,94 @@ LUALIB_API void safe_openlibs(lua_State *L)
 	}
 }
 
+static int Lua_SetTickRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the tick callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent();
+	
+	luaRuntime->SetTickRoutine([=] ()
+	{
+		// set the error handler
+		lua_pushcfunction(L, lua_error_handler);
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// invoke the tick routine
+		if (lua_pcall(L, 0, 0, eh) != 0)
+		{
+			std::string err = luaL_checkstring(L, -1);
+			lua_pop(L, 1);
+
+			trace("Error running system tick function for resource %s: %s\n", "TODO", err.c_str());
+		}
+
+		lua_pop(L, 1);
+	});
+
+	return 0;
+}
+
+void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
+{
+	m_tickRoutine = tickRoutine;
+}
+
+int Lua_Trace(lua_State* L)
+{
+	trace("%s", luaL_checkstring(L, 1));
+
+	return 0;
+}
+
+static const struct luaL_Reg g_citizenLib[] =
+{
+	{ "SetTickRoutine", Lua_SetTickRoutine },
+	{ "Trace", Lua_Trace },
+	{ nullptr, nullptr }
+};
+
 result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 {
+	m_scriptHost = scriptHost;
+
 	safe_openlibs(m_state);
+
+	// register the 'Citizen' library
+	lua_newtable(m_state);
+	luaL_setfuncs(m_state, g_citizenLib, 0);
+	lua_setglobal(m_state, "Citizen");
+
+	// load the system scheduler script
+	result_t hr;
+
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/scheduler.lua")))
+	{
+		return hr;
+	}
 
 	scriptHost->InvokeNative(fxNativeContext{});
 
 	OMPtr<fxIStream> stream;
 	
-	if (SUCCEEDED(scriptHost->OpenHostFile("__resource.lua", stream.GetAddressOf())))
+	if (FX_SUCCEEDED(scriptHost->OpenHostFile("__resource.lua", stream.GetAddressOf())))
 	{
 		char buffer[8192];
 		uint32_t didRead;
 
-		if (SUCCEEDED(stream->Read(buffer, sizeof(buffer), &didRead)))
+		if (FX_SUCCEEDED(stream->Read(buffer, sizeof(buffer), &didRead)))
 		{
 			buffer[didRead] = '\0';
 
 			trace("read:\n%s\n", buffer);
 		}
 	}
-
-	m_scriptHost = scriptHost;
 
 	return FX_S_OK;
 }
@@ -117,21 +213,11 @@ int32_t LuaScriptRuntime::GetInstanceId()
 	return 435;
 }
 
-result_t LuaScriptRuntime::LoadFileInternal(char* scriptFile)
+result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile)
 {
-	// open the file
-	OMPtr<fxIStream> stream;
-
-	result_t hr = m_scriptHost->OpenHostFile(scriptFile, stream.GetAddressOf());
-
-	if (FX_FAILED(hr))
-	{
-		// TODO: log this?
-		return hr;
-	}
-
 	// read file data
 	uint64_t length;
+	result_t hr;
 
 	if (FX_FAILED(hr = stream->GetLength(&length)))
 	{
@@ -164,14 +250,68 @@ result_t LuaScriptRuntime::LoadFileInternal(char* scriptFile)
 	return true;
 }
 
-result_t LuaScriptRuntime::LoadFile(char* scriptName)
+result_t LuaScriptRuntime::LoadHostFileInternal(char* scriptFile)
 {
+	// open the file
+	OMPtr<fxIStream> stream;
+
+	result_t hr = m_scriptHost->OpenHostFile(scriptFile, stream.GetAddressOf());
+
+	if (FX_FAILED(hr))
+	{
+		// TODO: log this?
+		return hr;
+	}
+
+	return LoadFileInternal(stream, scriptFile);
+}
+
+result_t LuaScriptRuntime::LoadSystemFileInternal(char* scriptFile)
+{
+	// open the file
+	OMPtr<fxIStream> stream;
+
+	result_t hr = m_scriptHost->OpenSystemFile(scriptFile, stream.GetAddressOf());
+
+	if (FX_FAILED(hr))
+	{
+		// TODO: log this?
+		return hr;
+	}
+
+	return LoadFileInternal(stream, scriptFile);
+}
+
+static int lua_error_handler(lua_State* L)
+{
+	lua_pushglobaltable(L);
+	lua_getfield(L, -1, "traceback");
+
+	lua_pop(L, -2);
+
+	lua_pushvalue(L, 1);
+	lua_pushinteger(L, 2);
+
+	lua_call(L, 2, 1);
+
+	// TODO: proper log channels for this purpose
+	trace("Lua error: %s\n", lua_tostring(L, -1));
+
+	return 1;
+}
+
+result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<result_t(char*)> loadFunction)
+{
+	fx::PushEnvironment pushed(this);
+
 	lua_pushcfunction(m_state, lua_error_handler);
 	int eh = lua_gettop(m_state);
 
-	if (!LoadFileInternal(scriptName))
+	result_t hr;
+
+	if (FX_FAILED(hr = loadFunction(scriptName)))
 	{
-		return FX_E_INVALIDARG;
+		return hr;
 	}
 
 	if (lua_pcall(m_state, 0, 0, eh) != 0)
@@ -181,17 +321,39 @@ result_t LuaScriptRuntime::LoadFile(char* scriptName)
 
 		trace("Error loading script %s in resource %s: %s\n", scriptName, "TODO", err.c_str());
 
-		return false;
+		return FX_E_INVALIDARG;
 	}
 
 	lua_pop(m_state, 1);
 
-	return true;
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::LoadFile(char* scriptName)
+{
+	return RunFileInternal(scriptName, std::bind(&LuaScriptRuntime::LoadHostFileInternal, this, std::placeholders::_1));
+}
+
+result_t LuaScriptRuntime::LoadSystemFile(char* scriptName)
+{
+	return RunFileInternal(scriptName, std::bind(&LuaScriptRuntime::LoadSystemFileInternal, this, std::placeholders::_1));
 }
 
 int32_t LuaScriptRuntime::HandlesFile(char* fileName)
 {
 	return strstr(fileName, ".lua") != 0;
+}
+
+result_t LuaScriptRuntime::Tick()
+{
+	if (m_tickRoutine)
+	{
+		fx::PushEnvironment pushed(this);
+
+		m_tickRoutine();
+	}
+
+	return FX_S_OK;
 }
 
 // {A7242855-0350-4CB5-A0FE-61021E7EAFAA}

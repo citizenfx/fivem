@@ -72,7 +72,7 @@ public:
 typedef std::string fwString;
 typedef std::wstring fwWString;
 
-template<class TKey, class TValue>
+/*template<class TKey, class TValue>
 class fwMap : public std::map<TKey, TValue, std::less<TKey>, fwAllocator<std::pair<const TKey, TValue>>>
 {
 
@@ -94,7 +94,19 @@ template<class TValue>
 class fwVector : public std::vector<TValue, fwAllocator<TValue>>
 {
 
-};
+};*/
+
+template<class TValue>
+using fwVector = std::vector<TValue>;
+
+template<class TValue>
+using fwList = std::list<TValue>;
+
+template<class TKey, class TValue>
+using fwHashMap = std::unordered_map<TKey, TValue>;
+
+template<class TKey, class TValue>
+using fwMap = std::map<TKey, TValue>;
 
 #include <functional>
 

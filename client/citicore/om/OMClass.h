@@ -65,6 +65,19 @@ private:
 protected:
 	OMClass() {}
 
+	virtual ~OMClass() {}
+
+private:
+	void* operator new(size_t size)
+	{
+		return nullptr;
+	}
+
+	void* operator new(size_t size, void* ptr)
+	{
+		return ptr;
+	}
+
 public:
 	template<typename TClass, typename... TArg>
 	friend OMPtr<TClass> MakeNew(TArg...);
@@ -112,7 +125,9 @@ public:
 		{
 			trace(__FUNCTION__ " deleting %p\n", this);
 
-			delete this;
+			this->~OMClass();
+			fwFree(this);
+
 			return true;
 		}
 
@@ -123,7 +138,7 @@ public:
 template<typename TClass, typename... TArg>
 fxIBase* MakeNewBase(TArg... args)
 {
-	TClass* inst = new TClass(args...);
+	TClass* inst = new(fwAlloc(sizeof(TClass))) TClass(args...);
 	inst->AddRef();
 
 	return inst->GetBaseRef();
@@ -133,7 +148,7 @@ template<typename TClass, typename... TArg>
 OMPtr<TClass> MakeNew(TArg... args)
 {
 	OMPtr<TClass> retval;
-	TClass* inst = new TClass(args...);
+	TClass* inst = new(fwAlloc(sizeof(TClass))) TClass(args...);
 	
 	inst->AddRef();
 	*(retval.GetAddressOf()) = inst;

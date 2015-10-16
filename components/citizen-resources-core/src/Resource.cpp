@@ -77,6 +77,13 @@ bool ResourceImpl::Stop()
 	return true;
 }
 
+void ResourceImpl::Tick()
+{
+	assert(m_state == ResourceState::Started);
+
+	OnTick();
+}
+
 fwRefContainer<RefInstanceRegistry> ResourceImpl::GetInstanceRegistry()
 {
 	return m_instanceRegistry;

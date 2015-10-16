@@ -33,6 +33,16 @@ public:
 		}
 	}
 
+	OMPtr(T* ref)
+	{
+		m_ref = ref;
+
+		if (m_ref)
+		{
+			m_ref->AddRef();
+		}
+	}
+
 	OMPtr(const OMPtr& rc)
 	{
 		m_ref = rc.m_ref;
