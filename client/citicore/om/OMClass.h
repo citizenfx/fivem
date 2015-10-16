@@ -109,10 +109,12 @@ public:
 
 	virtual uint32_t AddRef() override
 	{
+#ifdef OM_REF_DEBUG
 		if (m_refCount.GetCount() == 0)
 		{
 			trace(__FUNCTION__ " ref'ing %p\n", this);
 		}
+#endif
 
 		return ++m_refCount.GetCount();
 	}
@@ -123,7 +125,9 @@ public:
 
 		if (c <= 1)
 		{
+#ifdef OM_REF_DEBUG
 			trace(__FUNCTION__ " deleting %p\n", this);
+#endif
 
 			this->~OMClass();
 			fwFree(this);
