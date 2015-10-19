@@ -9,6 +9,8 @@
 #include "fxScripting.h"
 #include "om/OMComponent.h"
 
+#include <ScriptEngine.h>
+
 #include <Resource.h>
 #include <VFSManager.h>
 
@@ -92,6 +94,38 @@ public:
 
 result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 {
+	// get a native handler for the identifier
+	auto nativeHandler = ScriptEngine::GetNativeHandler(context.nativeIdentifier);
+
+	if (nativeHandler)
+	{
+		// prepare an invocation context
+		fx::ScriptContext scriptContext;
+		
+		// push arguments
+		for (int i = 0; i < context.numArguments; i++)
+		{
+			scriptContext.Push(context.arguments[i]);
+		}
+
+		// invoke the native handler
+		try
+		{
+			(*nativeHandler)(scriptContext);
+		}
+		catch (std::exception& e)
+		{
+			trace(__FUNCTION__ ": execution failed: %s\n", e.what());
+
+			return FX_E_INVALIDARG;
+		}
+
+		// set the result value
+		context.numResults = 1;
+		
+		memcpy(&context.arguments[0], &scriptContext.GetArgument<uintptr_t>(0), sizeof(uintptr_t) * 3);
+	}
+
 	return FX_S_OK;
 }
 

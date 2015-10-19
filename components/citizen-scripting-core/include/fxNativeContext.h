@@ -9,5 +9,9 @@
 
 struct fxNativeContext
 {
+	uintptr_t arguments[32];
+	int numArguments;
+	int numResults;
 
+	uint64_t nativeIdentifier;
 };
