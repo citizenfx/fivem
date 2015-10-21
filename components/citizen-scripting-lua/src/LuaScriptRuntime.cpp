@@ -506,6 +506,11 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 	// load the system scheduler script
 	result_t hr;
 
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/natives.lua")))
+	{
+		return hr;
+	}
+
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/scheduler.lua")))
 	{
 		return hr;
