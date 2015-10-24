@@ -95,12 +95,13 @@ OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] =
 {
-	{ "", luaopen_base },
-	{ LUA_LOADLIBNAME, luaopen_package },
+	{ "_G", luaopen_base },
 	{ LUA_TABLIBNAME, luaopen_table },
 	{ LUA_STRLIBNAME, luaopen_string },
 	{ LUA_MATHLIBNAME, luaopen_math },
 	{ LUA_DBLIBNAME, luaopen_debug },
+	{ LUA_COLIBNAME, luaopen_coroutine },
+	{ LUA_UTF8LIBNAME, luaopen_utf8 },
 	{ NULL, NULL }
 };
 
@@ -109,9 +110,8 @@ LUALIB_API void safe_openlibs(lua_State *L)
 	const luaL_Reg *lib = lualibs;
 	for (; lib->func; lib++)
 	{
-		lua_pushcfunction(L, lib->func);
-		lua_pushstring(L, lib->name);
-		lua_call(L, 1, 0);
+		luaL_requiref(L, lib->name, lib->func, 1);
+		lua_pop(L, 1);
 	}
 }
 
@@ -128,7 +128,12 @@ static int Lua_SetTickRoutine(lua_State* L)
 	luaRuntime->SetTickRoutine([=] ()
 	{
 		// set the error handler
-		lua_pushcfunction(L, lua_error_handler);
+		//lua_pushcfunction(L, lua_error_handler);
+
+		lua_getglobal(L, "debug");
+		lua_getfield(L, -1, "traceback");
+		lua_replace(L, -2);
+
 		int eh = lua_gettop(L);
 
 		// get the referenced function
@@ -187,7 +192,7 @@ int Lua_InvokeNative(lua_State* L)
 
 	// return values and their types
 	int numReturnValues = 0;
-	uintptr_t retvals[16];
+	uintptr_t retvals[16] = { 0 };
 	LuaMetaFields rettypes[16];
 
 	// coercion for the result value
@@ -413,11 +418,11 @@ int Lua_InvokeNative(lua_State* L)
 				break;
 			}
 			case LuaMetaFields::ResultAsInteger:
-				lua_pushinteger(L, *reinterpret_cast<uintptr_t*>(&context.arguments[0]));
+				lua_pushinteger(L, *reinterpret_cast<int32_t*>(&context.arguments[0]));
 				break;
 			default:
 			{
-				uintptr_t integer = *reinterpret_cast<uintptr_t*>(&context.arguments[0]);
+				int32_t integer = *reinterpret_cast<int32_t*>(&context.arguments[0]);
 
 				if ((integer & 0xFFFFFFFF) == 0)
 				{
@@ -618,7 +623,7 @@ result_t LuaScriptRuntime::LoadSystemFileInternal(char* scriptFile)
 
 static int lua_error_handler(lua_State* L)
 {
-	lua_pushglobaltable(L);
+	lua_getglobal(L, "debug");
 	lua_getfield(L, -1, "traceback");
 
 	lua_pop(L, -2);
@@ -638,7 +643,12 @@ result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<resul
 {
 	fx::PushEnvironment pushed(this);
 
-	lua_pushcfunction(m_state, lua_error_handler);
+	//lua_pushcfunction(m_state, lua_error_handler);
+
+	lua_getglobal(m_state, "debug");
+	lua_getfield(m_state, -1, "traceback");
+	lua_replace(m_state, -2);
+
 	int eh = lua_gettop(m_state);
 
 	result_t hr;
