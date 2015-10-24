@@ -149,9 +149,9 @@ static int tmove (lua_State *L) {
         (*ta.seti)(L, tt, t + i);
       }
     }
+  }
   lua_pushvalue(L, tt);  /* return "to table" */
   return 1;
-}
 }
 
 
