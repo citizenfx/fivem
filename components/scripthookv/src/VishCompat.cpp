@@ -276,6 +276,22 @@ void DLL_EXPORT keyboardHandlerUnregister(TKeyboardFn function)
 	g_keyboardFunctions.erase(function);
 }
 
+// dummy pool functions (need implementation)
+int DLL_EXPORT worldGetAllVehicles(int* array, int arraySize)
+{
+	return 0;
+}
+
+int DLL_EXPORT worldGetAllPeds(int* array, int arraySize)
+{
+	return 0;
+}
+
+int DLL_EXPORT worldGetAllObjects(int* array, int arraySize)
+{
+	return 0;
+}
+
 static InitFunction initFunction([] ()
 {
 	rage::scrEngine::OnScriptInit.Connect([] ()

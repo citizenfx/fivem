@@ -28,6 +28,11 @@ static struct
 	wchar_t bottomText[512];
 } g_uui;
 
+HWND UI_GetWindowHandle()
+{
+	return g_uui.rootWindow;
+}
+
 void UI_CreateWindow()
 {
 	g_uui.taskbarMsg = RegisterWindowMessage(L"TaskbarButtonCreated");

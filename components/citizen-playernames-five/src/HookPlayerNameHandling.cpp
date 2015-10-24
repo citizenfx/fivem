@@ -30,10 +30,16 @@ struct ScInAddr
 	uint16_t portOnline;
 	uint16_t pad3;
 	uint32_t newVal; // added in 372
+	uint64_t rockstarAccountId; // 463/505
 };
 
 static const char* GetPlayerNameFromScAddr(ScInAddr* addr)
 {
+	if (addr->ipLan != addr->ipOnline || addr->ipLan != addr->ipUnk)
+	{
+		return (char*)addr + sizeof(ScInAddr) + (92 - 64);
+	}
+
 	int netId = (addr->ipLan & 0xFFFF) ^ 0xFEED;
 	auto it = g_netIdToNames.find(netId);
 
@@ -45,12 +51,27 @@ static const char* GetPlayerNameFromScAddr(ScInAddr* addr)
 	return it->second.c_str();
 }
 
+static char* _getPackfileName(char* packfile)
+{
+	return packfile + 92;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// function that (hopefully) is only used for getting names from SC data blocks
 	void* playerNameGetter = hook::pattern("49 8B CE FF 50 30 48 8B C8 E8 ? ? ? ? 48 8D").count(1).get(0).get<void>(9);
 
 	hook::jump(hook::get_call(playerNameGetter), GetPlayerNameFromScAddr);
+
+	// 505 changes cause this to conflict with (at least) packfile naming - change that one therefore
+	{
+		uint32_t* result = hook::pattern("44 89 41 28 4C 89 41 38 4C 89 41 50 48 8D 05").count(1).get(0).get<uint32_t>(15);
+		uintptr_t endOffset = ((uintptr_t)result) + 4;
+
+		uintptr_t packfileVT = endOffset + *result;
+
+		hook::put(packfileVT + 360, _getPackfileName);
+	}
 });
 
 static InitFunction initFunction([] ()

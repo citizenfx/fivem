@@ -31,6 +31,7 @@ void UI_DoDestruction();
 void UI_UpdateText(int textControl, const wchar_t* text);
 void UI_UpdateProgress(double percentage);
 bool UI_IsCanceled();
+HWND UI_GetWindowHandle();
 
 // updater functions
 bool Updater_RunUpdate(int numCaches, ...);

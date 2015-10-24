@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -191,6 +191,7 @@ struct ScInAddr
 	uint16_t portOnline;
 	uint16_t pad3;
 	uint32_t newVal; // added in 372
+	uint64_t rockstarAccountId; // 463/505 addition - really R*? given this field one could easily replace everything with a Steam-like implementation only passing around user IDs...
 };
 
 struct ScSessionAddr
@@ -209,8 +210,8 @@ struct ScUnkAddr
 	char systemKey[16];
 };
 
-static_assert(sizeof(ScInAddr) == (40 + 8), "ScInAddr size seems bad...");
-static_assert(sizeof(ScSessionAddr) == (56 + 8), "ScSessionAddr size seems bad...");
+static_assert(sizeof(ScInAddr) == (40 + 8 + 8), "ScInAddr size seems bad...");
+static_assert(sizeof(ScSessionAddr) == (56 + 8 + 8), "ScSessionAddr size seems bad...");
 
 bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr* in, void*, ScUnkAddr* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
 {
@@ -265,8 +266,11 @@ static hook::cdecl_stub<void(void*, ScSessionAddr*, int64_t, int)> joinGame([] (
 static hook::cdecl_stub<void(int, int, int)> hostGame([] ()
 {
 	// below is original pattern, obfuscated since 372, so will differ per EXE now
-	return hook::get_call(hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00 8B 08 E9").count(1).get(0).get<void>(13));
+	//return hook::get_call(hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00 8B 08 E9").count(1).get(0).get<void>(13));
 	//return hook::get_call(hook::pattern("48 8B 41 10 BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<void>(0x11));
+
+	// 505 has it be a xchg-type jump
+	return hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00 8B 08").count(1).get(0).get<void>(13);
 });
 
 static void* getNetworkManager()
@@ -413,9 +417,9 @@ static HookFunction initFunction([] ()
 		{
 			gameLoaded = false;
 
-			if (*g_dlcMountCount != 48)
+			if (*g_dlcMountCount != (48 + 4 + 6 + 1))
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 48);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 48 + 4 + 6 + 1);
 
 				return;
 			}
@@ -812,6 +816,23 @@ static void HashSecKeyAddress(uint64_t* outValue, uint32_t seed)
 	outValue[1] = seed ^ 0xABCD;
 }
 
+static bool(*g_makeOurSystemKey)(char* key);
+static void* g_sessionKeyReturn;
+
+bool GetOurSessionKeyWrap(char* sessionKey)
+{
+	if (_ReturnAddress() == g_sessionKeyReturn)
+	{
+		*(uint64_t*)sessionKey = 2;
+
+		trace("wrap session key\n");
+
+		return true;
+	}
+
+	return GetOurSystemKey(sessionKey);
+}
+
 static HookFunction hookFunction([] ()
 {
 	/*OnPostFrontendRender.Connect([] ()
@@ -824,7 +845,8 @@ static HookFunction hookFunction([] ()
 		TheFonts->DrawText(va(L"> %i <", value), rect, color, 100.0f, 1.0f, "Comic Sans MS");
 	});*/
 
-	char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? E8").count(1).get(0).get<char>(10);
+	//char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? E8").count(1).get(0).get<char>(10);
+	char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? 88 1D").count(1).get(0).get<char>(10); // 463/505
 
 	g_netNewVal = (int*)(*(int32_t*)getNewNewVal + getNewNewVal + 4);
 
@@ -863,12 +885,53 @@ static HookFunction hookFunction([] ()
 	// session migration, some 'inline' memcpy of the new address
 	//void* migrateCmd = hook::pattern("48 8B 47 68 48 83 E9 80 48 89 41 F8 E8").count(1).get(0).get<void>(12);
 	// 372 change
-	void* migrateCmd = hook::pattern("48 8B 47 70 48 81 C1 88 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
+	//void* migrateCmd = hook::pattern("48 8B 47 70 48 81 C1 88 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
+	// 463/505 change
+	void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
-	hook::call(migrateCmd, MigrateSessionCopy);
+	//hook::call(migrateCmd, MigrateSessionCopy);
 
 	// session key getting system key; replace with something static for migration purposes
-	hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
+	//hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
+	char* sessionKeyAddress = hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<char>(7);
+	char* fillOurSystemKey = hook::get_call(sessionKeyAddress);
+
+	hook::set_call(&g_makeOurSystemKey, fillOurSystemKey + 14);
+	g_sessionKeyReturn = sessionKeyAddress + 5;
+
+	/*
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓▓▓▓███████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓▓▓██████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓▓▓███████████████▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓▓█████▓▓▓▓▓▓██████▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓▓█████▓▓▓▓▓▓▓█████▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓█████▓▓▓▓▓▓▓▓▓████▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓▓█████▓▓▓▓▓▓▓▓█████▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓█████▓▓▓▓▓▓▓▓█████▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓▓█████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓▓██████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓█████▓▓▓▓▓▓█████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+	▓▓▓█████▓▓▓▓▓▓▓█████▓▓▓▓▓▓█▓▓▓▓▓▓▓▓▓ 
+	▓▓█████▓▓▓▓▓▓▓▓██████▓▓▓▓█▀█▓▓▓▓▓▓▓▓ 
+	▓▓█████▓▓▓▓▓▓▓▓██████▓▓▓█▀─▀█▓▓▓▓▓▓▓ 
+	▓█████▓▓▓▓▓▓▓▓▓██████▓▓█▀───▀█▓▓▓▓▓▓ 
+	▓█████▓▓▓▓▓▓▓▓▓▓█████▓█▀─────▀█▓▓▓▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██▀▀▀─────────▀▀▀█▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▄───────────▄█▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▄───▄───▄█▓▓▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█───█▓█───█▓▓▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█───█▓▓▓█───█▓▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█──▄█▓▓▓▓▓█▄──█▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▄█▓▓▓▓▓▓▓▓▓█▄█▓▓ 
+	▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 
+
+	I KNOW YOU'RE READING THIS
+	TRY TO BE NICE AND EITHER A) KEEP THIS CODE INTACT OR B) TELL ME (AT bas@dotbas.net) WHAT I'M DOING WRONG EXCEPT 'PIRACY'
+	*/
+
+	hook::jump(fillOurSystemKey, GetOurSessionKeyWrap);
 
 	// we also need some pointers from this function
 	//char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
@@ -876,12 +939,14 @@ static HookFunction hookFunction([] ()
 	hook::jump(netAddressFunc, GetOurOnlineAddress);
 
 	// added in 393
-	hook::jump(hook::get_call(netAddressFunc + 0x5D), HashSecKeyAddress);
+	//hook::jump(hook::get_call(netAddressFunc + 0x5D), HashSecKeyAddress);
+	hook::jump(hook::get_call(netAddressFunc + 0x61), HashSecKeyAddress); // 505
 
 	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x75); // 350-
 	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x78); // 372
-	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x88); // 393
-	// ^ 372 change, 393 change
+	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x88); // 393
+	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x94); // 505
+	// ^ 372 change, 393 change, 505 change
 
 	netAddressFunc += 0x1A;
 
@@ -891,7 +956,8 @@ static HookFunction hookFunction([] ()
 
 	//netAddressFunc += 0x25;
 	//netAddressFunc += 0x28; // <- 372
-	netAddressFunc += 0x37; // <- 393
+	//netAddressFunc += 0x37; // <- 393
+	netAddressFunc += 0x3B; // <- 505
 
 	g_globalNetSecurityKey = (uint64_t*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
 
@@ -909,7 +975,8 @@ static HookFunction hookFunction([] ()
 	hook::jump(hook::pattern("48 83 F8 FF 75 17 48 8D 0D").count(1).get(0).get<void>(-32), GetOurSystemKey);
 
 	// other system key thing
-	hook::jump(hook::pattern("84 C0 74 0C 48 8B 44 24 38 48 89 03 B0").count(1).get(0).get<void>(-0x13), GetOurSystemKey);
+	//hook::jump(hook::pattern("84 C0 74 0C 48 8B 44 24 38 48 89 03 B0").count(1).get(0).get<void>(-0x13), GetOurSystemKey);
+	// ^ handled by GetOurSessionKeyWrap now
 
 	itemHook.Assemble();
 	hook::call(hook::pattern("48 83 EC 20 48 8B DA BE 01 00 00 00 32 D2 8B F9").count(1).get(0).get<void>(-0xB), itemHook.GetCode());
@@ -1073,9 +1140,12 @@ static HookFunction hookFunction([] ()
 	// and similarly, 'have bgscripts downloaded'
 	hook::put<uint8_t>(match.get<void>(43), 0xEB);
 
+	// UPPER MARK!
+
 	// unknownland
 	hook::put<uint16_t>(hook::pattern("8B B5 ? 02 00 00 85 F6 0F 84 B1").count(1).get(0).get<void>(8), 0xE990);
 
+#if 0
 	// always set the net sendto semaphore
 	char* ptrT = hook::pattern("F7 84 24 80 00 00 00 00 00 00 01 74 23").count(1).get(0).get<char>(11);
 
@@ -1084,6 +1154,7 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::pattern("84 C0 75 32 85 ED 74 63 49 8B CF").count(1).get(0).get<void>(6), 2); // same as above
 	hook::put<uint8_t>(hook::pattern("F6 84 24 80 00 00 00 01 75 02 B3 01").count(1).get(0).get<void>(8), 0xEB);
 
+	// following two are 100% certainly checked by 505
 	ptrT += (0x110 - 0xF0);
 	hook::set_call(&origSemaFunc, ptrT);
 	hook::call(ptrT, CustomSemaFunc);
@@ -1091,6 +1162,9 @@ static HookFunction hookFunction([] ()
 	ptrT -= (0x110 - 0xA7);
 	hook::set_call(&origLogFunc, ptrT);
 	hook::call(ptrT, CustomLogFunc);
+#endif
+
+	// MARK!
 
 	// objectmgr bandwidth stuff?
 	hook::put<uint8_t>(hook::pattern("F6 82 98 00 00 00 01 74 2C 48").count(1).get(0).get<void>(7), 0xEB);

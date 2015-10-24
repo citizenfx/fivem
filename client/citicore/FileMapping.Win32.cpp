@@ -26,6 +26,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\autosignin.dat");
 	}
 
+	if (wcsstr(origFileName, L"version.txt") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\version_orig.txt");
+	}
+
 	wchar_t* fileName = g_mappingFunction(origFileName, malloc);
 
 	std::wstring retval(fileName);
@@ -56,6 +61,11 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	}
 	
 	if (fileName.find(L"autosignin.dat") != std::string::npos)
+	{
+		return true;
+	}
+
+	if (fileName.find(L"version.txt") != std::string::npos)
 	{
 		return true;
 	}

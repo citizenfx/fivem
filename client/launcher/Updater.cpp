@@ -329,7 +329,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20])
 			overlapped.OffsetHigh = 0;
 			overlapped.Offset = fileOffset;
 
-			char buffer[65536];
+			char buffer[131072];
 			if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
 			{
 				if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)

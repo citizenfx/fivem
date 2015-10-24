@@ -824,7 +824,8 @@ static HookFunction hookFunction([] ()
 	hook::jump(hook::pattern("4C 89 89 A8 00 00 00 C3").count(1).get(0).get<void>(), miStub.GetCode());
 
 	// attempted 'fix' for item #2 (also: logging when the destructor gets called)
-	location = hook::pattern("F6 83 A2 00 00 00 40 74 17 48 8D 0D").count(1).get(0).get<char>(12);
+	// 505 changed the jump address; so it's a pattern now
+	location = hook::pattern("1C F6 83 A2 00 00 00 40 74 ? 48 8D 0D").count(1).get(0).get<char>(13);
 
 	g_vehicleReflEntityArray = (decltype(g_vehicleReflEntityArray))(location + *(int32_t*)location + 4 + 800);
 	g_unsafePointerLoc = (void**)((location + *(int32_t*)location + 4) + 800);

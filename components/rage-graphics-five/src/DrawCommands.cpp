@@ -197,7 +197,11 @@ static hook::thiscall_stub<void(intptr_t)> popSubShaderUnk([] ()
 
 static hook::cdecl_stub<void()> popImShaderAndResetParams([] ()
 {
-	return hook::get_call(hook::pattern("0F 28 D8 E8 ? ? ? ? 48 8D 4C 24 68 E8 ? ? ? ? 48 8B").count(1).get(0).get<void>(13));
+	// 393-
+	//return hook::get_call(hook::pattern("0F 28 D8 E8 ? ? ? ? 48 8D 4C 24 68 E8 ? ? ? ? 48 8B").count(1).get(0).get<void>(13));
+
+	// 463/505+
+	return hook::get_call(hook::pattern("F3 0F 11 64 24 20 E8 ? ? ? ? 48 8D 8C 24 98").count(1).get(0).get<void>(19));
 });
 
 void PopDrawBlitImShader()

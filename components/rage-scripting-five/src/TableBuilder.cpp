@@ -313,21 +313,59 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 			return;
 		}
 
+		// find the game build version
+		char* location = hook::pattern("48 8D 8E 09 02 00 00 44 8B C5 33 D2").count(1).get(0).get<char>(20);
+		char* buildString = (char*)(location + *(int32_t*)location + 4);
+
+		int versionIdx = -1;
+
+		if (strncmp(buildString, "Oct 13", 6) == 0)
+		{
+			versionIdx = 505;
+		}
+		else if (strncmp(buildString, "Jun 30", 6) == 0)
+		{
+			versionIdx = 393;
+		}
+
+		// early out if no version index matched
+		if (versionIdx < 0)
+		{
+			FatalError("No native mapping information found for game executable built on %s.", buildString);
+		}
+
 		// if 393, this will likely be true
 		bool isPostNativeVersion = (functionTables.size() == 0);
 
-		static const CrossMappingEntry crossMapping[] =
+		static const CrossMappingEntry crossMapping_372_393[] =
 		{
 #include "CrossMapping_372_393.h"
 		};
 
-		// turn into a std::map
-		std::map<uint64_t, uint64_t> crossMappingTable;
-
-		for (auto& mapping : crossMapping)
+		static const CrossMappingEntry crossMapping_393_463[] =
 		{
-			crossMappingTable.insert({ mapping.first, mapping.second });
-		}
+#include "CrossMapping_393_463.h"
+		};
+
+		static const CrossMappingEntry crossMapping_463_505[] =
+		{
+#include "CrossMapping_463_505.h"
+		};
+
+		// turn into a std::map
+		std::map<uint64_t, uint64_t> crossMappingTable_372_393;
+		std::map<uint64_t, uint64_t> crossMappingTable_393_463;
+		std::map<uint64_t, uint64_t> crossMappingTable_463_505;
+
+#define DO_MAPPING(build_bit) \
+	for (auto& mapping : crossMapping_##build_bit) \
+	{ \
+		crossMappingTable_##build_bit.insert({ mapping.first, mapping.second }); \
+	}
+
+		DO_MAPPING(372_393);
+		DO_MAPPING(393_463);
+		DO_MAPPING(463_505);
 
 		while (true)
 		{
@@ -341,12 +379,20 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 			if (isPostNativeVersion)
 			{
-				g_mappingTable.insert({ sourceNative, crossMappingTable[destNative] });
+				destNative = crossMappingTable_372_393[destNative];
 			}
-			else
+
+			if (versionIdx >= 463)
 			{
-				g_mappingTable.insert({ sourceNative, destNative });
+				destNative = crossMappingTable_393_463[destNative];
 			}
+
+			if (versionIdx >= 505)
+			{
+				destNative = crossMappingTable_463_505[destNative];
+			}
+
+			g_mappingTable.insert({ sourceNative, destNative });
 		}
 
 		fclose(file);
