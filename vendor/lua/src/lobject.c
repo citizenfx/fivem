@@ -329,9 +329,9 @@ int luaO_utf8esc (char *buff, unsigned long x) {
 ** Convert a number object to a string
 */
 void luaO_tostring (lua_State *L, StkId obj) {
-  char buff[MAXNUMBER2STR];
+  char buff[LUAI_MAXVECTOR42STR];
   size_t len;
-  if (ttisinteger(obj))
+  if (ttisnumber(obj) && ttisinteger(obj))
     len = lua_integer2str(buff, ivalue(obj));
   else if (ttisnumber(obj)) {
     len = lua_number2str(buff, fltvalue(obj));
@@ -341,8 +341,14 @@ void luaO_tostring (lua_State *L, StkId obj) {
       buff[len++] = '0';  /* adds '.0' to result */
     }
 #endif
-  } else {
-    return 0;
+  } else if (ttisvector2(obj)) {
+	  len = lua_vector22str(buff, v2value(obj));
+  } else if (ttisvector3(obj)) {
+	  len = lua_vector32str(buff, v3value(obj));
+  } else if (ttisvector4(obj)) {
+	  len = lua_vector42str(buff, v4value(obj));
+  } else if (ttisquat(obj)) {
+	  len = lua_quat2str(buff, qvalue(obj));
   }
   setsvalue2s(L, obj, luaS_newlstr(L, buff, len));
 }
