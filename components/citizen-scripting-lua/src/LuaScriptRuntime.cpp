@@ -232,7 +232,7 @@ int Lua_InvokeNative(lua_State* L)
 			}
 			else
 			{
-				push(lua_tonumber(L, i));
+				push(static_cast<float>(lua_tonumber(L, i)));
 			}
 		}
 		// boolean
