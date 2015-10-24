@@ -42,8 +42,14 @@ static int math_abs (lua_State *L) {
   switch (lua_type(L,1)) {
 
     case LUA_TNUMBER:
-    v = lua_tonumber(L,1);
-    lua_pushnumber(L,l_mathop(fabs)(v));
+    if (lua_isinteger(L, 1)) {
+      lua_Integer n = lua_tointeger(L, 1);
+      if (n < 0) n = (lua_Integer)(0u - n);
+      lua_pushinteger(L, n);
+	} else {
+      v = lua_tonumber(L,1);
+      lua_pushnumber(L,l_mathop(fabs)(v));
+	}
     return 1;
     case LUA_TVECTOR2:
     lua_checkvector2(L,1,&x,&y);
@@ -122,8 +128,12 @@ static int math_floor (lua_State *L) {
   float x, y, z, w;
   switch (lua_type(L,1)) {
     case LUA_TNUMBER:
-    v = lua_tonumber(L,1);
-    pushnumint(L,floor(v));
+	if (lua_isinteger(L, 1)) {
+      lua_settop(L, 1); /* integer is its own floor */
+	} else {
+      v = lua_tonumber(L,1);
+      pushnumint(L,floor(v));
+	}
     return 1;
     case LUA_TVECTOR2:
     lua_checkvector2(L,1,&x,&y);
@@ -148,8 +158,12 @@ static int math_ceil (lua_State *L) {
   float x, y, z, w;
   switch (lua_type(L,1)) {
     case LUA_TNUMBER:
-    v = lua_tonumber(L,1);
-    pushnumint(L,ceil(v));
+    if (lua_isinteger(L, 1)) {
+      lua_settop(L, 1); /* integer is its own ceil */
+	} else {
+      v = lua_tonumber(L,1);
+      pushnumint(L,ceil(v));
+	}
     return 1;
     case LUA_TVECTOR2:
     lua_checkvector2(L,1,&x,&y);
