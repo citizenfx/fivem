@@ -642,11 +642,6 @@ void luaV_concat (lua_State *L, int total) {
 void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
   const TValue *tm;
   switch (ttype(rb)) {
-  case LUA_TNUMBER: {
-	  lua_Number n = nvalue(rb);
-	  setfltvalue(ra, fabs(n));
-	  return;
-  }
   case LUA_TVECTOR2: {
 	  lua_Float4 f4 = v2value(rb);
 	  setfltvalue(ra, sqrtf(f4.x*f4.x + f4.y*f4.y));
@@ -681,7 +676,11 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
     default: {  /* try metamethod */
       tm = luaT_gettmbyobj(L, rb, TM_LEN);
       if (ttisnil(tm))  /* no metamethod? */
-        luaG_typeerror(L, rb, "get length of");
+        if (ttype(rb) == LUA_TNUMBER) {
+          setfltvalue(ra, fabs(nvalue(rb)));
+        } else {
+          luaG_typeerror(L, rb, "get length of");
+		}
       break;
     }
   }
@@ -1056,7 +1055,7 @@ void luaV_execute (lua_State *L) {
         setobj2s(L, ra, rb);
         vmbreak;
       }
-      case OP_LOADKPATH: {
+      vmcase(OP_LOADKPATH) {
         TString *str;
         TValue *rb;
         const char *rel;
@@ -1092,7 +1091,8 @@ void luaV_execute (lua_State *L) {
         }
         setsvalue(L, ra, str);
         checkGC(L, ra + 1);
-      } break;
+        vmbreak;
+      }
       vmcase(OP_LOADKX) {
         TValue *rb;
         lua_assert(GET_OPCODE(*ci->u.l.savedpc) == OP_EXTRAARG);
@@ -1203,10 +1203,8 @@ void luaV_execute (lua_State *L) {
         TValue *rb = RKB(i);
         TValue *rc = RKC(i);
         lua_Number nb; lua_Number nc;
-		if (ttisnumber(rb) && ttisnumber(rc)) {
-			if (tonumber(rb, &nb) && tonumber(rc, &nc)) {
-				setfltvalue(ra, luai_numdiv(L, nb, nc));
-			}
+		if (tonumber(rb, &nb) && tonumber(rc, &nc)) {
+			setfltvalue(ra, luai_numdiv(L, nb, nc));
 		}
         else { 
 			Protect(luaT_trybinTM(L, rb, rc, ra, TM_DIV));
