@@ -454,11 +454,11 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
       luaK_nil(fs, reg, 1);
       break;
     }
-    case VFALSE: case VTRUE: {
-    case VKPATH: {
-      luaK_codekpath(fs, reg, e->u.info);
-      break;
-    }
+	case VKPATH: {
+		luaK_codekpath(fs, reg, e->u.info);
+		break;
+	}
+	case VFALSE: case VTRUE: {
       luaK_codeABC(fs, OP_LOADBOOL, reg, e->k == VTRUE, 0);
       break;
     }
