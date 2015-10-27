@@ -1,12 +1,12 @@
 {
-	"name": "citizen:resources:gta",
+	"name": "citizen:resources:client",
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
 		"citizen:resources:core",
-		"citizen:resources:client",
-		"rage:device",
-		"rage:scripting"
+		"http-client",
+		"vendor:leveldb",
+		"vendor:msgpack-c"
 	],
 	"provides": []
 }

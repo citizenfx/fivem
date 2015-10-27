@@ -12,13 +12,18 @@
 #include <queue>
 #include <winhttp.h>
 
-#include "fiDevice.h"
+#include <VFSDevice.h>
 
 #ifdef COMPILING_HTTP_CLIENT
 #define HTTP_EXPORT __declspec(dllexport)
 #else
 #define HTTP_EXPORT
 #endif
+
+namespace rage
+{
+	class fiDevice;
+}
 
 class HTTP_EXPORT HttpClient
 {
@@ -58,5 +63,8 @@ public:
 	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, fwAction<bool, const char*, size_t> callback);
 
 	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, const char* outDeviceBase, fwString outFilename, fwAction<bool, const char*, size_t> callback);
+	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, fwRefContainer<vfs::Device> outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection = nullptr);
+
+	// compatibility wrapper
 	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, rage::fiDevice* outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection = nullptr);
 };

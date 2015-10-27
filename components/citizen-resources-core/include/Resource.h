@@ -18,6 +18,14 @@
 
 namespace fx
 {
+class Resource;
+
+class IResourceAttached
+{
+public:
+	virtual void AttachToResource(Resource* resource) = 0;
+};
+
 class Resource : public fwRefCountable
 {
 public:
@@ -71,6 +79,14 @@ public:
 	template<typename TInstance>
 	void SetComponent(fwRefContainer<TInstance> inst)
 	{
+		// attach to this resource if the component supports attaching
+		IResourceAttached* attached = dynamic_cast<IResourceAttached*>(inst.GetRef());
+
+		if (attached)
+		{
+			attached->AttachToResource(this);
+		}
+
 		Instance<TInstance>::Set(inst, GetInstanceRegistry());
 	}
 

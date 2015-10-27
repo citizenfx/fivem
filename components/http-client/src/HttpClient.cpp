@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 #include "HttpClient.h"
-#include "fiDevice.h"
+#include <VFSManager.h>
 #include <sstream>
 
 HttpClient::HttpClient(const wchar_t* userAgent)
@@ -40,8 +40,8 @@ struct HttpClientRequestContext
 	std::stringstream resultData;
 	char buffer[32768];
 
-	rage::fiDevice* outDevice;
-	int outHandle;
+	fwRefContainer<vfs::Device> outDevice;
+	vfs::Device::THandle outHandle;
 
 	HttpClientRequestContext()
 		: outDevice(nullptr)
@@ -51,7 +51,7 @@ struct HttpClientRequestContext
 
 	void DoCallback(bool success, fwString& resData)
 	{
-		if (outDevice)
+		if (outDevice.GetRef())
 		{
 			outDevice->Close(outHandle);
 		}
@@ -114,7 +114,7 @@ void HttpClient::DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAc
 
 void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, const char* outDeviceBase, fwString outFilename, fwAction<bool, const char*, size_t> callback)
 {
-	DoFileGetRequest(host, port, url, rage::fiDevice::GetDevice(outDeviceBase, true), outFilename, callback);
+	DoFileGetRequest(host, port, url, vfs::GetDevice(outDeviceBase), outFilename, callback);
 }
 
 void HttpClient::ReaddConnection(ServerPair server, HINTERNET connection)
@@ -197,6 +197,11 @@ void HttpClient::QueueOnConnectionFree(fwAction<HINTERNET> cb)
 
 void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, rage::fiDevice* outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection)
 {
+	return DoFileGetRequest(host, port, url, vfs::GetNativeDevice(outDevice), outFilename, callback, hConnection);
+}
+
+void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, fwRefContainer<vfs::Device> outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection)
+{
 	ServerPair pair = std::make_pair(host, port);
 
 	m_connectionMutex.lock();
@@ -242,7 +247,7 @@ void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, 
 	context->outDevice = outDevice;
 	context->server = pair;
 
-	if (context->outDevice == nullptr)
+	if (!context->outDevice.GetRef())
 	{
 		GlobalError("context->outDevice was null in " __FUNCTION__);
 		return;
@@ -296,7 +301,7 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 			break;
 		}
 		case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
-			if (ctx->outDevice)
+			if (ctx->outDevice.GetRef())
 			{
 				ctx->outDevice->Write(ctx->outHandle, ctx->buffer, length);
 			}

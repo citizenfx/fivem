@@ -22,6 +22,7 @@ deps = {
 	"vendor/libssh": "http://tohjo.eu/citidev/libssh.git",
 	"vendor/xz": "http://git.tukaani.org/xz.git",
 	"vendor/curl": "https://github.com/bagder/curl.git",
+	"vendor/leveldb": "http://tohjo.eu/citidev/leveldb.git",
 	"vendor/minhook": "https://github.com/TsudaKageyu/minhook.git",
 	"vendor/libuv": "https://github.com/libuv/libuv.git@v1.x"
 }

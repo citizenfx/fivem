@@ -9,6 +9,9 @@
 #include "ResourceManager.h"
 
 #include <fiDevice.h>
+#include <CachedResourceMounter.h>
+
+#include <ResourceCacheDevice.h>
 
 class ExampleMounter : public fx::ResourceMounter
 {
@@ -48,14 +51,29 @@ static InitFunction initFunction([] ()
 		//while (true)
 		{
 			fwRefContainer<fx::ResourceManager> manager = fx::CreateResourceManager();
+			Instance<fx::ResourceManager>::Set(manager.GetRef());
 
 			g_resourceManager = manager;
 
 			manager->AddMounter(new ExampleMounter(manager));
+			manager->AddMounter(fx::GetCachedResourceMounter("rescache:/"));
 
 			manager->AddResource("gta:///").then([=] (fwRefContainer<fx::Resource> resource)
 			{
 				resource->Start();
+
+				fwRefContainer<ResourceCacheEntryList> entryList = new ResourceCacheEntryList();
+				resource->SetComponent(entryList);
+
+				ResourceCacheEntryList::Entry entry;
+				entry.remoteUrl = "http://refint.org/files/mspaint.exe";
+				entry.referenceHash = "975b337f7a2576f382cd40dfcbcca994265be599";
+				entry.basename = "mspaint.exe";
+
+				entryList->AddEntry(entry);
+
+				fwRefContainer<vfs::Stream> stream = vfs::OpenRead("cache:/cake/mspaint.exe");
+				auto data = stream->Read(4096);
 
 				//__debugbreak();
 			});

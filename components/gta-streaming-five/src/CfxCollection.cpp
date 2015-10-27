@@ -346,6 +346,8 @@ public:
 	{
 		auto entry = GetCfxEntry(index);
 
+		return 0x00000000;
+
 		//if (entry->origEntry)
 		{
 			//trace("Unk1 - %s\n", GetName());
@@ -1513,4 +1515,20 @@ static HookFunction hookFunction([] ()
 
 	hook::set_call(&g_origBvhSet, bvhFunc);
 	hook::call(bvhFunc, BvhSet);
+
+	// don't even think about thinking (packfile is hdd flag)
+	static struct : jitasm::Frontend
+	{
+		virtual void InternalMain() override
+		{
+			xor(r14d, r14d);
+			mov(word_ptr[rbx + 0x60], r14w);
+
+			ret();
+		}
+	} doHddThing;
+
+	void* hddAddr = hook::pattern("66 89 7B 60 45 33 F6").count(1).get(0).get<void>(0);
+	//hook::nop(hddAddr, 7);
+	//hook::call(hddAddr, doHddThing.GetCode());
 });
