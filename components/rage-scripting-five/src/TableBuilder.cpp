@@ -182,7 +182,15 @@ namespace rage
 			FatalError("Attempted to call a game native function, but no mapping tables were generated and this game executable needs mapping!");
 		}
 
-		return g_mappingTable[inNative];
+		// find the native, and return the original if not mapped (for custom natives and 'new' natives)
+		auto it = g_mappingTable.find(inNative);
+
+		if (it == g_mappingTable.end())
+		{
+			return inNative;
+		}
+
+		return it->second;
 	}
 }
 
