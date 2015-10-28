@@ -215,7 +215,9 @@ public:
 
 		if (parentHandle == -1)
 		{
-			FatalError("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s", GetName(), name);
+			trace("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s\n", GetName(), name);
+
+			return -1;
 		}
 
 		m_handles[0].parentDevice = this;

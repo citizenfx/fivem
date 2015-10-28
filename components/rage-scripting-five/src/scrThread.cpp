@@ -97,3 +97,13 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 
 	return m_Context.State;
 }
+
+static hook::thiscall_stub<void(rage::scrNativeCallContext*)> setVectorResults([] ()
+{
+	return hook::pattern("83 79 18 00 48 8B D1 74 4A FF 4A 18").count(1).get(0).get<void>();
+});
+
+void rage::scrNativeCallContext::SetVectorResults()
+{
+	return setVectorResults(this);
+}

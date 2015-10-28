@@ -257,6 +257,8 @@ DLL_EXPORT uint64_t* nativeCall()
 		{
 			__debugbreak();
 		}
+
+		g_context.SetVectorResults();
 	}
 
 	return reinterpret_cast<uint64_t*>(g_context.GetResultPointer());

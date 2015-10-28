@@ -217,6 +217,14 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 							NativeInvoke::Invoke<0x621873ECE1178967, int>(ped, -8192.0f, -8192.0f, 500.0f);
 					};
 				}
+				// prop density lowering
+				else if (origHash == 0x9BAE5AD2508DF078)
+				{
+					return [] (rage::scrNativeCallContext*)
+					{
+						// no-op
+					};
+				}
 
 				return table->handlers[i];
 			}

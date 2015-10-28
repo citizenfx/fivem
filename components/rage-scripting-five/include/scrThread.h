@@ -32,6 +32,12 @@ misrepresented as being the original software.
 
 #pragma once
 
+#ifdef COMPILING_RAGE_SCRIPTING_FIVE
+#define RAGE_SCRIPTING_EXPORT DLL_EXPORT
+#else
+#define RAGE_SCRIPTING_EXPORT DLL_IMPORT
+#endif
+
 namespace rage
 {
 enum eThreadState
@@ -51,6 +57,9 @@ protected:
 	void* m_pArgs;
 
 	uint32_t m_nDataCount;
+
+	// scratch space for vector things
+	alignas(uintptr_t) uint8_t m_vectorSpace[192];
 
 public:
 	template<typename T>
@@ -81,6 +90,9 @@ public:
 
 		return *(T*)&returnValues[idx];
 	}
+
+	// copy vector3 pointer results to the initial argument
+	void RAGE_SCRIPTING_EXPORT SetVectorResults();
 };
 
 // size should be 168
