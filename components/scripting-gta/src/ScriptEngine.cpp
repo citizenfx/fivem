@@ -43,6 +43,9 @@ namespace fx
 				throw std::exception(va("Error executing native 0x%016x at address %p.", nativeIdentifier, exceptionAddress));
 			}
 
+			// append vector3 result components
+			rageContext.SetVectorResults();
+
 			// set return data
 			context.SetResult(rageContext.GetResult<scrVector>());
 		});
