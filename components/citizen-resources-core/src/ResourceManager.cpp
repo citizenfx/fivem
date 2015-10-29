@@ -49,14 +49,6 @@ concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(con
 			// set a completion event, as well
 			mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
 			{
-				// if the load succeeded
-				if (resource.GetRef())
-				{
-					fwRefContainer<ResourceImpl> resourceImpl(resource);
-
-					AddResourceInternal(resource);
-				}
-
 				completionEvent.set(resource);
 			});
 
@@ -119,6 +111,8 @@ void ResourceManagerImpl::AddMounter(fwRefContainer<ResourceMounter> mounter)
 fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& resourceName)
 {
 	fwRefContainer<ResourceImpl> resource = new ResourceImpl(resourceName, this);
+
+	AddResourceInternal(resource);
 
 	return resource;
 }
