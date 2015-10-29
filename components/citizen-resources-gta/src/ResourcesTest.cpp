@@ -37,7 +37,14 @@ bool ExampleMounter::HandlesScheme(const std::string& scheme)
 
 concurrency::task<fwRefContainer<fx::Resource>> ExampleMounter::LoadResource(const std::string& uri)
 {
-	return concurrency::task_from_result(m_manager->CreateResource("cake", "citizen:/test/"));
+	fwRefContainer<fx::Resource> resource = m_manager->CreateResource("cake");
+
+	if (!resource->LoadFrom("citizen:/test/"))
+	{
+		resource = nullptr;
+	}
+
+	return concurrency::task_from_result(resource);
 }
 
 #include <VFSManager.h>

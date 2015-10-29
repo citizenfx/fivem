@@ -38,7 +38,7 @@ private:
 public:
 	ResourceImpl(const std::string& name, ResourceManagerImpl* manager);
 
-	bool LoadFrom(const std::string& rootPath);
+	virtual bool LoadFrom(const std::string& rootPath) override;
 
 	virtual const std::string& GetName() override;
 

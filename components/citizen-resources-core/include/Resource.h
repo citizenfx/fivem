@@ -45,6 +45,11 @@ public:
 	virtual const std::string& GetPath() = 0;
 
 	//
+	// Loads the resource from the specified root path.
+	//
+	virtual bool LoadFrom(const std::string& rootPath) = 0;
+
+	//
 	// Starts the resource.
 	//
 	virtual bool Start() = 0;

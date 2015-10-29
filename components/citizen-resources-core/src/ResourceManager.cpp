@@ -116,11 +116,11 @@ void ResourceManagerImpl::AddMounter(fwRefContainer<ResourceMounter> mounter)
 	m_mounters.push_back(mounter);
 }
 
-fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& resourceName, const std::string& path)
+fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& resourceName)
 {
 	fwRefContainer<ResourceImpl> resource = new ResourceImpl(resourceName, this);
 
-	return (resource->LoadFrom(path)) ? resource : nullptr;
+	return resource;
 }
 
 ResourceManager* CreateResourceManager()

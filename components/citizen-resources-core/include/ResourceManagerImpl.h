@@ -40,6 +40,6 @@ public:
 
 	virtual void AddMounter(fwRefContainer<ResourceMounter> mounter) override;
 
-	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName, const std::string& path) override;
+	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) override;
 };
 }
