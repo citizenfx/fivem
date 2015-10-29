@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
-		"citizen:resources:client"
+		"citizen:resources:client",
+		"rage:nutsnbolts"
 	],
 	"provides": []
 }

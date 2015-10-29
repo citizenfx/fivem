@@ -9,45 +9,6 @@
 #include "ResourceManager.h"
 
 #include <fiDevice.h>
-#include <CachedResourceMounter.h>
-
-#include <ResourceCacheDevice.h>
-
-class ExampleMounter : public fx::ResourceMounter
-{
-private:
-	fwRefContainer<fx::ResourceManager> m_manager;
-
-public:
-	inline ExampleMounter(fwRefContainer<fx::ResourceManager> manager)
-		: m_manager(manager)
-	{
-
-	}
-
-	virtual bool HandlesScheme(const std::string& scheme) override;
-
-	virtual concurrency::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
-};
-
-bool ExampleMounter::HandlesScheme(const std::string& scheme)
-{
-	return (scheme == "gta");
-}
-
-concurrency::task<fwRefContainer<fx::Resource>> ExampleMounter::LoadResource(const std::string& uri)
-{
-	fwRefContainer<fx::Resource> resource = m_manager->CreateResource("cake");
-
-	if (!resource->LoadFrom("citizen:/test/"))
-	{
-		resource = nullptr;
-	}
-
-	return concurrency::task_from_result(resource);
-}
-
-#include <VFSManager.h>
 
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
@@ -61,33 +22,6 @@ static InitFunction initFunction([] ()
 			Instance<fx::ResourceManager>::Set(manager.GetRef());
 
 			g_resourceManager = manager;
-
-			manager->AddMounter(new ExampleMounter(manager));
-			manager->AddMounter(fx::GetCachedResourceMounter("rescache:/"));
-
-			manager->AddResource("gta:///").then([=] (fwRefContainer<fx::Resource> resource)
-			{
-				resource->Start();
-
-				fwRefContainer<ResourceCacheEntryList> entryList = new ResourceCacheEntryList();
-				resource->SetComponent(entryList);
-
-				ResourceCacheEntryList::Entry entry;
-				entry.remoteUrl = "http://refint.org/files/mspaint.exe";
-				entry.referenceHash = "975b337f7a2576f382cd40dfcbcca994265be599";
-				entry.basename = "mspaint.exe";
-
-				entryList->AddEntry(entry);
-
-				fwRefContainer<vfs::Stream> stream = vfs::OpenRead("cache:/cake/mspaint.exe");
-				auto data = stream->Read(4096);
-
-				//__debugbreak();
-			});
-
-			//__debugbreak();
-
-			//Sleep(99999999);
 		}
 	}, 9000);
 });

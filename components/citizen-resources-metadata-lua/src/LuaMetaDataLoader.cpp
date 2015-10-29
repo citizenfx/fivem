@@ -75,7 +75,7 @@ bool LuaMetaDataLoader::DoFile(const std::string& filename)
 	// put an error handler on the stack
 	lua_pushcfunction(m_luaState, [] (lua_State* L)
 	{
-		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+		lua_getglobal(L, "debug");
 		lua_getfield(L, -1, "traceback");
 
 		lua_pop(L, -2);
@@ -123,6 +123,12 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 
 	// create the Lua state for the metadata loader
 	m_luaState = luaL_newstate();
+
+	// validate if the Lua state exists (with LuaJIT you apparently never know)
+	assert(m_luaState);
+
+	// openlibs as well
+	luaL_openlibs(m_luaState);
 
 	// register a metadata adder for ourselves
 	lua_pushlightuserdata(m_luaState, this);

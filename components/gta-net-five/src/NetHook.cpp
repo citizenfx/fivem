@@ -354,10 +354,10 @@ static HookFunction initFunction([] ()
 		}
 	});
 
-	g_netLibrary->OnInitReceived.Connect([] (NetAddress)
+	/*g_netLibrary->OnInitReceived.Connect([] (NetAddress)
 	{
 		g_netLibrary->DownloadsComplete();
-	});
+	});*/
 
 	/*g_netLibrary->OnConnectionError.Connect([] (const char* e)
 	{

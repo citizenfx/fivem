@@ -36,6 +36,17 @@ public:
 		std::string basename;
 		std::string remoteUrl;
 		std::string referenceHash;
+
+		inline Entry()
+		{
+
+		}
+
+		inline Entry(const std::string& resourceName, const std::string& basename, const std::string& remoteUrl, const std::string& referenceHash)
+			: resourceName(resourceName), basename(basename), remoteUrl(remoteUrl), referenceHash(referenceHash)
+		{
+
+		}
 	};
 
 private:

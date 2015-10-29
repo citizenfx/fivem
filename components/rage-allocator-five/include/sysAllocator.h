@@ -22,11 +22,18 @@ namespace rage
 
 	public:
 		static GAMESPEC_EXPORT uint32_t GetAllocatorTlsOffset();
+
+		static GAMESPEC_EXPORT sysMemAllocator* UpdateAllocatorValue();
 	};
 
 	inline sysMemAllocator* GetAllocator()
 	{
 		sysMemAllocator* allocator = *(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset());
+
+		if (!allocator)
+		{
+			return sysMemAllocator::UpdateAllocatorValue();
+		}
 
 		return allocator;
 	}

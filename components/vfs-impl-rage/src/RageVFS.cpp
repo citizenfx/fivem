@@ -40,6 +40,12 @@ public:
 
 	virtual int32_t CloseBulk(uint64_t handle) override;
 
+	virtual int GetFileLength(uint64_t handle) override;
+
+	virtual uint64_t GetFileLengthLong(const char* fileName) override;
+
+	virtual uint64_t GetFileLengthUInt64(uint64_t handle) override;
+
 	virtual bool RemoveFile(const char* file) override;
 
 	virtual int RenameFile(const char* from, const char* to) override;
@@ -129,6 +135,21 @@ int RageVFSDeviceAdapter::RemoveDirectory(const char* dir)
 int RageVFSDeviceAdapter::RenameFile(const char* from, const char* to)
 {
 	return m_cfxDevice->RenameFile(from, to);
+}
+
+int RageVFSDeviceAdapter::GetFileLength(uint64_t handle)
+{
+	return m_cfxDevice->GetLength(handle);
+}
+
+uint64_t RageVFSDeviceAdapter::GetFileLengthLong(const char* fileName)
+{
+	return m_cfxDevice->GetLength(fileName);
+}
+
+uint64_t RageVFSDeviceAdapter::GetFileLengthUInt64(uint64_t handle)
+{
+	return m_cfxDevice->GetLength(handle);
 }
 
 uint32_t RageVFSDeviceAdapter::Seek(uint64_t handle, int32_t distance, uint32_t method)
