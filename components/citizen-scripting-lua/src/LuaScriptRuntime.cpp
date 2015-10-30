@@ -41,8 +41,11 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime>
 {
+private:
+	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
+
 private:
 	LuaStateHolder m_state;
 
@@ -50,10 +53,14 @@ private:
 
 	std::function<void()> m_tickRoutine;
 
+	TEventRoutine m_eventRoutine;
+
 public:
 	static OMPtr<LuaScriptRuntime> GetCurrent();
 
 	void SetTickRoutine(const std::function<void()>& tickRoutine);
+
+	void SetEventRoutine(const TEventRoutine& eventRoutine);
 
 	inline IScriptHost* GetScriptHost()
 	{
@@ -77,6 +84,8 @@ public:
 	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
 
 	NS_DECL_ISCRIPTTICKRUNTIME;
+
+	NS_DECL_ISCRIPTEVENTRUNTIME;
 };
 
 static int lua_error_handler(lua_State* L);
@@ -157,6 +166,53 @@ static int Lua_SetTickRoutine(lua_State* L)
 void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
 {
 	m_tickRoutine = tickRoutine;
+}
+
+static int Lua_SetEventRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the event callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent();
+
+	luaRuntime->SetEventRoutine([=] (const char* eventName, const char* eventPayload, size_t payloadSize, const char* eventSource)
+	{
+		// set the error handler
+		lua_getglobal(L, "debug");
+		lua_getfield(L, -1, "traceback");
+		lua_replace(L, -2);
+
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// push arguments on the stack
+		lua_pushstring(L, eventName);
+		lua_pushlstring(L, eventPayload, payloadSize);
+		lua_pushstring(L, eventSource);
+
+		// invoke the tick routine
+		if (lua_pcall(L, 3, 0, eh) != 0)
+		{
+			std::string err = luaL_checkstring(L, -1);
+			lua_pop(L, 1);
+
+			trace("Error running system event handling function for resource %s: %s\n", "TODO", err.c_str());
+		}
+
+		lua_pop(L, 1);
+	});
+
+	return 0;
+}
+
+void LuaScriptRuntime::SetEventRoutine(const TEventRoutine& eventRoutine)
+{
+	m_eventRoutine = eventRoutine;
 }
 
 int Lua_Trace(lua_State* L)
@@ -483,6 +539,7 @@ int Lua_GetMetaField(lua_State* L)
 static const struct luaL_Reg g_citizenLib[] =
 {
 	{ "SetTickRoutine", Lua_SetTickRoutine },
+	{ "SetEventRoutine", Lua_SetEventRoutine },
 	{ "Trace", Lua_Trace },
 	{ "InvokeNative", Lua_InvokeNative },
 	// metafields
@@ -516,27 +573,21 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		return hr;
 	}
 
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/MessagePack.lua")))
+	{
+		return hr;
+	}
+
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/scheduler.lua")))
 	{
 		return hr;
 	}
 
-	scriptHost->InvokeNative(fxNativeContext{});
+	lua_pushnil(m_state);
+	lua_setglobal(m_state, "dofile");
 
-	OMPtr<fxIStream> stream;
-	
-	if (FX_SUCCEEDED(scriptHost->OpenHostFile("__resource.lua", stream.GetAddressOf())))
-	{
-		char buffer[8192];
-		uint32_t didRead;
-
-		if (FX_SUCCEEDED(stream->Read(buffer, sizeof(buffer), &didRead)))
-		{
-			buffer[didRead] = '\0';
-
-			trace("read:\n%s\n", buffer);
-		}
-	}
+	lua_pushnil(m_state);
+	lua_setglobal(m_state, "loadfile");
 
 	return FX_S_OK;
 }
@@ -575,7 +626,7 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 	fwString chunkName("@");
 	chunkName.append(scriptFile);
 
-	if (luaL_loadbuffer(m_state, &fileData[0], length, chunkName.c_str()) != 0)
+	if (luaL_loadbufferx(m_state, &fileData[0], length, chunkName.c_str(), "t") != 0)
 	{
 		std::string err = luaL_checkstring(m_state, -1);
 		lua_pop(m_state, 1);
@@ -695,6 +746,18 @@ result_t LuaScriptRuntime::Tick()
 		fx::PushEnvironment pushed(this);
 
 		m_tickRoutine();
+	}
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uint32_t payloadSize, char* eventSource)
+{
+	if (m_eventRoutine)
+	{
+		fx::PushEnvironment pushed(this);
+
+		m_eventRoutine(eventName, eventPayload, payloadSize, eventSource);
 	}
 
 	return FX_S_OK;

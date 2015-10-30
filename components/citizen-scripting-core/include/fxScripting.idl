@@ -60,7 +60,7 @@ interface IScriptTickRuntime : fxIBase
 [uuid(637140DB-24E5-46BF-A8BD-08F2DBAC519A)]
 interface IScriptEventRuntime : fxIBase
 {
-	void TriggerEvent(in charPtr eventName, in charPtr argsSerialized, in int32_t sourceId);
+	void TriggerEvent(in charPtr eventName, in charPtr argsSerialized, in uint32_t serializedSize, in charPtr sourceId);
 };
 
 [uuid(A2F1B24B-A29F-4121-8162-86901ECA8097)]

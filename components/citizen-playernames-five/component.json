@@ -4,7 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
-		"resources",
+		"citizen:resources:core",
 		"vendor:msgpack-c"
 	],
 	"provides": []

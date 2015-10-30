@@ -14,7 +14,7 @@
 
 namespace fx
 {
-class ResourceManagerImpl : public ResourceManager
+class ResourceManagerImpl : public ResourceManager, public ComponentHolderImpl<ResourceManager>
 {
 private:
 	std::recursive_mutex m_resourcesMutex;
@@ -41,5 +41,7 @@ public:
 	virtual void AddMounter(fwRefContainer<ResourceMounter> mounter) override;
 
 	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) override;
+
+	virtual void Tick() override;
 };
 }

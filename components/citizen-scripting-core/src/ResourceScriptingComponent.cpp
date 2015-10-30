@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "Resource.h"
+#include "ResourceEventComponent.h"
 #include "ResourceMetaDataComponent.h"
 #include "ResourceScriptingComponent.h"
 
@@ -138,6 +139,40 @@ void ResourceScriptingComponent::CreateEnvironments()
 				}
 			}
 		}
+	}
+
+	// initialize event handler calls
+	fwRefContainer<ResourceEventComponent> eventComponent = m_resource->GetComponent<ResourceEventComponent>();
+
+	if (eventComponent.GetRef())
+	{
+		// pre-cache event-handling runtimes
+		std::vector<IScriptEventRuntime*> eventRuntimes;
+
+		for (auto& environment : m_scriptRuntimes)
+		{
+			OMPtr<IScriptEventRuntime> ptr;
+
+			if (FX_SUCCEEDED(environment.second.As(&ptr)))
+			{
+				eventRuntimes.push_back(ptr.GetRef());
+			}
+		}
+
+		// add the event
+		eventComponent->OnTriggerEvent.Connect([=] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			// invoke the event runtime
+			for (auto&& runtime : eventRuntimes)
+			{
+				result_t hr;
+
+				if (FX_FAILED(hr = runtime->TriggerEvent(const_cast<char*>(eventName.c_str()), const_cast<char*>(eventPayload.c_str()), eventPayload.size(), const_cast<char*>(eventSource.c_str()))))
+				{
+					trace("Failed to execute event %s - %08x.\n", eventName.c_str(), hr);
+				}
+			}
+		});
 	}
 }
 }

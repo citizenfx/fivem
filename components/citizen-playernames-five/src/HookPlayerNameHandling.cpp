@@ -9,7 +9,9 @@
 #include "Hooking.h"
 
 #include <NetLibrary.h>
+
 #include <ResourceManager.h>
+#include <ResourceEventComponent.h>
 
 #include <msgpack.hpp>
 
@@ -81,33 +83,41 @@ static InitFunction initFunction([] ()
 		g_netLibrary = netLibrary;
 	});
 
-	ResourceManager::OnTriggerEvent.Connect([] (const fwString& eventName, const fwString& argsSerialized, int source)
+	fx::ResourceManager::OnInitializeInstance.Connect([] (fx::ResourceManager* manager)
 	{
-		// if this is the event 'we' handle...
-		if (eventName == "onPlayerJoining")
+		fwRefContainer<fx::ResourceEventManagerComponent> eventComponent = manager->GetComponent<fx::ResourceEventManagerComponent>();
+
+		if (eventComponent.GetRef())
 		{
-			// deserialize the arguments
-			msgpack::unpacked msg;
-			msgpack::unpack(msg, argsSerialized.c_str(), argsSerialized.size());
-
-			msgpack::object obj = msg.get();
-
-			// get the netid/name pair
-
-			// convert to an array
-			std::vector<msgpack::object> arguments;
-			obj.convert(arguments);
-
-			// get the fields from the dictionary, if existent
-			if (arguments.size() >= 2)
+			eventComponent->OnTriggerEvent.Connect([] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 			{
-				// convert to the concrete types
-				int netId = arguments[0].as<int>();
-				std::string name = arguments[1].as<std::string>();
+				// if this is the event 'we' handle...
+				if (eventName == "onPlayerJoining")
+				{
+					// deserialize the arguments
+					msgpack::unpacked msg;
+					msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
 
-				// and add to the list
-				g_netIdToNames[netId] = name;
-			}
+					msgpack::object obj = msg.get();
+
+					// get the netid/name pair
+
+					// convert to an array
+					std::vector<msgpack::object> arguments;
+					obj.convert(arguments);
+
+					// get the fields from the dictionary, if existent
+					if (arguments.size() >= 2)
+					{
+						// convert to the concrete types
+						int netId = arguments[0].as<int>();
+						std::string name = arguments[1].as<std::string>();
+
+						// and add to the list
+						g_netIdToNames[netId] = name;
+					}
+				}
+			});
 		}
-	});
+	}, 500);
 });

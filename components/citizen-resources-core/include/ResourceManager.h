@@ -12,6 +12,8 @@
 #include <Resource.h>
 #include <ResourceMounter.h>
 
+#include <ComponentHolder.h>
+
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define RESOURCES_CORE_EXPORT DLL_EXPORT
 #else
@@ -20,7 +22,7 @@
 
 namespace fx
 {
-class ResourceManager : public fwRefCountable
+class ResourceManager : public fwRefCountable, public ComponentHolderAccessor<ResourceManager>
 {
 public:
 	//
@@ -52,6 +54,20 @@ public:
 	// For use in resource mounters, creates a resource with the passed identity.
 	//
 	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) = 0;
+
+	//
+	// Executes a single tick for the resource manager.
+	//
+	virtual void Tick() = 0;
+
+public:
+	fwEvent<> OnTick;
+
+public:
+	//
+	// An event to add components to a newly-initializing resource manager's instance registry.
+	//
+	static RESOURCES_CORE_EXPORT fwEvent<ResourceManager*> OnInitializeInstance;
 };
 
 RESOURCES_CORE_EXPORT ResourceManager* CreateResourceManager();

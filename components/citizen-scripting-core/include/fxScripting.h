@@ -501,8 +501,8 @@ class NS_NO_VTABLE IScriptEventRuntime : public fxIBase {
 
   NS_DECLARE_STATIC_IID_ACCESSOR(ISCRIPTEVENTRUNTIME_IID)
 
-  /* void TriggerEvent (in charPtr eventName, in charPtr argsSerialized, in int32_t sourceId); */
-  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, int32_t sourceId) = 0;
+  /* void TriggerEvent (in charPtr eventName, in charPtr argsSerialized, in uint32_t serializedSize, in charPtr sourceId); */
+  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, uint32_t serializedSize, char *sourceId) = 0;
 
 };
 
@@ -510,15 +510,15 @@ class NS_NO_VTABLE IScriptEventRuntime : public fxIBase {
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_ISCRIPTEVENTRUNTIME \
-  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, int32_t sourceId) override; 
+  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, uint32_t serializedSize, char *sourceId) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTEVENTRUNTIME(_to) \
-  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, int32_t sourceId) override { return _to TriggerEvent(eventName, argsSerialized, sourceId); } 
+  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, uint32_t serializedSize, char *sourceId) override { return _to TriggerEvent(eventName, argsSerialized, serializedSize, sourceId); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTEVENTRUNTIME(_to) \
-  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, int32_t sourceId) override { return !_to ? NS_ERROR_NULL_POINTER : _to->TriggerEvent(eventName, argsSerialized, sourceId); } 
+  NS_IMETHOD TriggerEvent(char *eventName, char *argsSerialized, uint32_t serializedSize, char *sourceId) override { return !_to ? NS_ERROR_NULL_POINTER : _to->TriggerEvent(eventName, argsSerialized, serializedSize, sourceId); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -552,8 +552,8 @@ _MYCLASS_::~_MYCLASS_()
   /* destructor code */
 }
 
-/* void TriggerEvent (in charPtr eventName, in charPtr argsSerialized, in int32_t sourceId); */
-NS_IMETHODIMP _MYCLASS_::TriggerEvent(char *eventName, char *argsSerialized, int32_t sourceId)
+/* void TriggerEvent (in charPtr eventName, in charPtr argsSerialized, in uint32_t serializedSize, in charPtr sourceId); */
+NS_IMETHODIMP _MYCLASS_::TriggerEvent(char *eventName, char *argsSerialized, uint32_t serializedSize, char *sourceId)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

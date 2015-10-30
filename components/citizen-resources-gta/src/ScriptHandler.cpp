@@ -16,10 +16,7 @@ class TestScriptThread : public GtaThread
 {
 	virtual void DoRun() override
 	{
-		g_resourceManager->ForAllResources([] (fwRefContainer<fx::Resource> resource)
-		{
-			resource->Tick();
-		});
+		g_resourceManager->Tick();
 	}
 };
 

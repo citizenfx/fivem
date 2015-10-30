@@ -9,6 +9,7 @@
 
 #include <ppltasks.h>
 
+#include <ComponentHolder.h>
 
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define RESOURCES_CORE_EXPORT DLL_EXPORT
@@ -20,13 +21,9 @@ namespace fx
 {
 class Resource;
 
-class IResourceAttached
-{
-public:
-	virtual void AttachToResource(Resource* resource) = 0;
-};
+class ResourceManager;
 
-class Resource : public fwRefCountable
+class Resource : public fwRefCountable, public ComponentHolderAccessor<Resource>
 {
 public:
 	//
@@ -65,35 +62,9 @@ public:
 	virtual void Tick() = 0;
 
 	//
-	// Gets the resource-specific instance registry.
+	// Gets a reference to the owning resource manager.
 	//
-	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() = 0;
-
-	//
-	// Utility function to get an instance of a particular interface from the instance registry.
-	//
-	template<typename TInstance>
-	fwRefContainer<TInstance> GetComponent()
-	{
-		return Instance<TInstance>::Get(GetInstanceRegistry());
-	}
-
-	//
-	// Utility function to set an instance of a particular interface in the instance registry.
-	//
-	template<typename TInstance>
-	void SetComponent(fwRefContainer<TInstance> inst)
-	{
-		// attach to this resource if the component supports attaching
-		IResourceAttached* attached = dynamic_cast<IResourceAttached*>(inst.GetRef());
-
-		if (attached)
-		{
-			attached->AttachToResource(this);
-		}
-
-		Instance<TInstance>::Set(inst, GetInstanceRegistry());
-	}
+	virtual ResourceManager* GetManager() = 0;
 
 public:
 	//

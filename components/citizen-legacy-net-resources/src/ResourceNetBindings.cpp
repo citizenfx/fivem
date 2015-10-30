@@ -7,6 +7,7 @@
 
 #include <StdInc.h>
 #include <ResourceManager.h>
+#include <ResourceEventComponent.h>
 
 #include <CachedResourceMounter.h>
 #include <HttpClient.h>
@@ -158,6 +159,8 @@ static InitFunction initFunction([] ()
 						});
 					});
 				}
+
+				netLibrary->DownloadsComplete();
 			});
 		});
 
@@ -171,6 +174,36 @@ static InitFunction initFunction([] ()
 			}
 
 			executeNextGameFrame.clear();
+		});
+
+		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
+		{
+			NetBuffer buffer(buf, len);
+
+			// get the source net ID
+			uint16_t sourceNetID = buffer.Read<uint16_t>();
+
+			// get length of event name and read the event name
+			static char eventName[65536];
+
+			uint16_t nameLength = buffer.Read<uint16_t>();
+			buffer.Read(eventName, nameLength);
+
+			// read the data
+			size_t dataLen = len - nameLength - (sizeof(uint16_t) * 2);
+			std::vector<char> eventData(dataLen);
+
+			buffer.Read(&eventData[0], dataLen);
+
+			// convert the source net ID to a string
+			std::string source = "net:" + std::to_string(sourceNetID);
+
+			// get the resource manager and eventing component
+			static fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
+
+			// and queue the event
+			eventManager->QueueEvent(std::string(eventName, nameLength), std::string(&eventData[0], eventData.size()), source);
 		});
 	});
 });

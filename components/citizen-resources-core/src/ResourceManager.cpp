@@ -14,7 +14,7 @@ namespace fx
 {
 ResourceManagerImpl::ResourceManagerImpl()
 {
-
+	OnInitializeInstance(this);
 }
 
 concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std::string& uri)
@@ -117,8 +117,22 @@ fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& 
 	return resource;
 }
 
+void ResourceManagerImpl::Tick()
+{
+	// execute resource tick functions
+	ForAllResources([] (fwRefContainer<Resource> resource)
+	{
+		resource->Tick();
+	});
+
+	// execute tick events
+	OnTick();
+}
+
 ResourceManager* CreateResourceManager()
 {
 	return new ResourceManagerImpl();
 }
+
+fwEvent<ResourceManager*> ResourceManager::OnInitializeInstance;
 }

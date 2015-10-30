@@ -27,7 +27,7 @@ class
 #ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
 	DLL_EXPORT
 #endif
-	ResourceCacheEntryList : public fwRefCountable, public fx::IResourceAttached
+	ResourceCacheEntryList : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
 public:
 	struct Entry
@@ -55,7 +55,7 @@ private:
 	std::map<std::string, Entry, IgnoreCaseLess> m_entries;
 
 public:
-	virtual void AttachToResource(fx::Resource* resource) override;
+	virtual void AttachToObject(fx::Resource* resource) override;
 
 	inline const std::map<std::string, Entry, IgnoreCaseLess>& GetEntries()
 	{

@@ -22,7 +22,7 @@ enum class ResourceState
 
 class ResourceManagerImpl;
 
-class ResourceImpl : public Resource
+class ResourceImpl : public Resource, public ComponentHolderImpl<Resource>
 {
 private:
 	std::string m_name;
@@ -30,8 +30,6 @@ private:
 	std::string m_rootPath;
 
 	ResourceManagerImpl* m_manager;
-
-	fwRefContainer<RefInstanceRegistry> m_instanceRegistry;
 
 	ResourceState m_state;
 
@@ -52,6 +50,6 @@ public:
 
 	virtual void Tick() override;
 
-	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() override;
+	virtual ResourceManager* GetManager() override;
 };
 }

@@ -7,6 +7,7 @@
 
 #include <StdInc.h>
 #include <ResourceImpl.h>
+#include <ResourceManagerImpl.h>
 
 #include <ResourceMetaDataComponent.h>
 
@@ -15,8 +16,6 @@ namespace fx
 ResourceImpl::ResourceImpl(const std::string& name, ResourceManagerImpl* manager)
 	: m_name(name), m_manager(manager), m_state(ResourceState::Uninitialized)
 {
-	m_instanceRegistry = new RefInstanceRegistry();
-
 	OnInitializeInstance(this);
 }
 
@@ -84,9 +83,9 @@ void ResourceImpl::Tick()
 	OnTick();
 }
 
-fwRefContainer<RefInstanceRegistry> ResourceImpl::GetInstanceRegistry()
+ResourceManager* ResourceImpl::GetManager()
 {
-	return m_instanceRegistry;
+	return m_manager;
 }
 
 fwEvent<Resource*> Resource::OnInitializeInstance;

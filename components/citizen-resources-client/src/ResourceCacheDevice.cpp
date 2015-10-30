@@ -308,7 +308,7 @@ void ResourceCacheDevice::SetPathPrefix(const std::string& pathPrefix)
 	m_pathPrefix = pathPrefix;
 }
 
-void ResourceCacheEntryList::AttachToResource(fx::Resource* resource)
+void ResourceCacheEntryList::AttachToObject(fx::Resource* resource)
 {
 	m_parentResource = resource;
 }
