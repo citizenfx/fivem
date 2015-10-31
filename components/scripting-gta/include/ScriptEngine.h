@@ -67,6 +67,11 @@ namespace fx
 		template<typename T>
 		inline void SetResult(const T& value)
 		{
+			if (sizeof(T) < ArgumentSize)
+			{
+				*reinterpret_cast<uintptr_t*>(&m_functionData[0][0]) = 0;
+			}
+
 			*reinterpret_cast<T*>(&m_functionData[0][0]) = value;
 
 			m_numResults = 1;
@@ -86,5 +91,9 @@ namespace fx
 	{
 	public:
 		static boost::optional<TNativeHandler> GetNativeHandler(uint64_t nativeIdentifier);
+
+		static void RegisterNativeHandler(uint64_t nativeIdentifier, TNativeHandler function);
+
+		static void RegisterNativeHandler(const std::string& nativeName, TNativeHandler function);
 	};
 }
