@@ -683,8 +683,9 @@ static void f_parser (lua_State *L, void *ud) {
   struct SParser *p = cast(struct SParser *, ud);
   int c = zgetc(p->z);  /* read first character */
   if (c == LUA_SIGNATURE[0]) {
-    checkmode(L, p->mode, "binary");
-    cl = luaU_undump(L, p->z, &p->buff, p->name);
+    luaO_pushfstring(L,
+       "attempt to load a binary chunk (which are disabled)");
+    luaD_throw(L, LUA_ERRSYNTAX);
   }
   else {
     checkmode(L, p->mode, "text");
