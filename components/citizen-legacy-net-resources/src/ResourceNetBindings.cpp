@@ -9,6 +9,8 @@
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 
+#include <ScriptEngine.h>
+
 #include <CachedResourceMounter.h>
 #include <HttpClient.h>
 
@@ -204,6 +206,22 @@ static InitFunction initFunction([] ()
 
 			// and queue the event
 			eventManager->QueueEvent(std::string(eventName, nameLength), std::string(&eventData[0], eventData.size()), source);
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [=] (fx::ScriptContext& context)
+		{
+			std::string eventName = context.GetArgument<const char*>(0);
+			size_t payloadSize = context.GetArgument<uint32_t>(2);
+			
+			std::string eventPayload = std::string(context.GetArgument<const char*>(1), payloadSize);
+
+			NetBuffer buffer(131072);
+			buffer.Write<uint16_t>(eventName.size() + 1);
+			buffer.Write(eventName.c_str(), eventName.size() + 1);
+
+			buffer.Write(eventPayload.c_str(), eventPayload.size());
+
+			netLibrary->SendReliableCommand("msgServerEvent", buffer.GetBuffer(), buffer.GetCurLength());
 		});
 	});
 });
