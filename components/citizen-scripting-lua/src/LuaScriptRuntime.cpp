@@ -41,10 +41,16 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
+
+	typedef std::function<void(int32_t, const char*, size_t, char**, size_t*)> TCallRefRoutine;
+
+	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
+
+	typedef std::function<void(int32_t)> TDeleteRefRoutine;
 
 private:
 	LuaStateHolder m_state;
@@ -55,14 +61,42 @@ private:
 
 	TEventRoutine m_eventRoutine;
 
+	TCallRefRoutine m_callRefRoutine;
+
+	TDuplicateRefRoutine m_duplicateRefRoutine;
+
+	TDeleteRefRoutine m_deleteRefRoutine;
+
 	void* m_parentObject;
 
+	int m_instanceId;
+
 public:
+	inline LuaScriptRuntime()
+	{
+		m_instanceId = rand();
+	}
+
 	static OMPtr<LuaScriptRuntime> GetCurrent();
 
 	void SetTickRoutine(const std::function<void()>& tickRoutine);
 
 	void SetEventRoutine(const TEventRoutine& eventRoutine);
+
+	inline void SetCallRefRoutine(const TCallRefRoutine& routine)
+	{
+		m_callRefRoutine = routine;
+	}
+
+	inline void SetDuplicateRefRoutine(const TDuplicateRefRoutine& routine)
+	{
+		m_duplicateRefRoutine = routine;
+	}
+
+	inline void SetDeleteRefRoutine(const TDeleteRefRoutine& routine)
+	{
+		m_deleteRefRoutine = routine;
+	}
 
 	inline IScriptHost* GetScriptHost()
 	{
@@ -88,6 +122,8 @@ public:
 	NS_DECL_ISCRIPTTICKRUNTIME;
 
 	NS_DECL_ISCRIPTEVENTRUNTIME;
+
+	NS_DECL_ISCRIPTREFRUNTIME;
 };
 
 static int lua_error_handler(lua_State* L);
@@ -215,6 +251,201 @@ static int Lua_SetEventRoutine(lua_State* L)
 void LuaScriptRuntime::SetEventRoutine(const TEventRoutine& eventRoutine)
 {
 	m_eventRoutine = eventRoutine;
+}
+
+static int Lua_SetCallRefRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the event callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent();
+
+	luaRuntime->SetCallRefRoutine([=] (int32_t refId, const char* argsSerialized, size_t argsSize, char** retval, size_t* retvalLength)
+	{
+		// static array for retval output (sadly)
+		static std::vector<char> retvalArray(32768);
+
+		// set the error handler
+		lua_getglobal(L, "debug");
+		lua_getfield(L, -1, "traceback");
+		lua_replace(L, -2);
+
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// push arguments on the stack
+		lua_pushinteger(L, refId);
+		lua_pushlstring(L, argsSerialized, argsSize);
+
+		// invoke the tick routine
+		if (lua_pcall(L, 2, 1, eh) != 0)
+		{
+			std::string err = luaL_checkstring(L, -1);
+			lua_pop(L, 1);
+
+			trace("Error running call reference function for resource %s: %s\n", "TODO", err.c_str());
+
+			*retval = nullptr;
+			*retvalLength = 0;
+		}
+		else
+		{
+			const char* retvalString = lua_tolstring(L, -1, retvalLength);
+			strncpy(&retvalArray[0], retvalString, min(retvalArray.size(), *retvalLength));
+
+			*retval = &retvalArray[0];
+
+			lua_pop(L, 1); // as there's a result
+		}
+
+		lua_pop(L, 1);
+	});
+
+	return 0;
+}
+
+static int Lua_SetDeleteRefRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the event callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent();
+
+	luaRuntime->SetDeleteRefRoutine([=] (int32_t refId)
+	{
+		// set the error handler
+		lua_getglobal(L, "debug");
+		lua_getfield(L, -1, "traceback");
+		lua_replace(L, -2);
+
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// push arguments on the stack
+		lua_pushinteger(L, refId);
+
+		// invoke the routine
+		if (lua_pcall(L, 1, 0, eh) != 0)
+		{
+			std::string err = luaL_checkstring(L, -1);
+			lua_pop(L, 1);
+
+			trace("Error running system ref deletion function for resource %s: %s\n", "TODO", err.c_str());
+		}
+
+		lua_pop(L, 1);
+	});
+
+	return 0;
+}
+
+static int Lua_SetDuplicateRefRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the event callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent();
+
+	luaRuntime->SetDuplicateRefRoutine([=] (int32_t refId)
+	{
+		// set the error handler
+		lua_getglobal(L, "debug");
+		lua_getfield(L, -1, "traceback");
+		lua_replace(L, -2);
+
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// push arguments on the stack
+		lua_pushinteger(L, refId);
+
+		// return value holder
+		int32_t retval;
+
+		// invoke the routine
+		if (lua_pcall(L, 1, 1, eh) != 0)
+		{
+			std::string err = luaL_checkstring(L, -1);
+			lua_pop(L, 1);
+
+			trace("Error running system ref duplication function for resource %s: %s\n", "TODO", err.c_str());
+		}
+		else
+		{
+			retval = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+		}
+
+		lua_pop(L, 1);
+
+		return retval;
+	});
+
+	return 0;
+}
+
+static int Lua_CanonicalizeRef(lua_State* L)
+{
+	auto luaRuntime = LuaScriptRuntime::GetCurrent();
+	
+	char* refString;
+	result_t hr = luaRuntime->GetScriptHost()->CanonicalizeRef(luaL_checkinteger(L, 1), luaRuntime->GetInstanceId(), &refString);
+
+	lua_pushstring(L, refString);
+	fwFree(refString);
+
+	return 1;
+}
+
+static int Lua_InvokeFunctionReference(lua_State* L)
+{
+	// get required entries
+	OMPtr<LuaScriptRuntime> luaRuntime = LuaScriptRuntime::GetCurrent();
+	OMPtr<IScriptHost> scriptHost = luaRuntime->GetScriptHost();
+
+	// variables to hold state
+	fxNativeContext context = { 0 };
+
+	context.numArguments = 4;
+	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
+
+	// identifier string
+	context.arguments[0] = reinterpret_cast<uintptr_t>(luaL_checkstring(L, 1));
+
+	// argument data
+	size_t argLength;
+	const char* argString = luaL_checklstring(L, 2, &argLength);
+
+	context.arguments[1] = reinterpret_cast<uintptr_t>(argString);
+	context.arguments[2] = static_cast<uintptr_t>(argLength);
+
+	// return value length
+	size_t retLength = 0;
+	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
+
+	// invoke
+	scriptHost->InvokeNative(context);
+
+	// get return values
+	lua_pushlstring(L, reinterpret_cast<const char*>(context.arguments[0]), retLength);
+
+	// return as such
+	return 1;
 }
 
 int Lua_Trace(lua_State* L)
@@ -544,6 +775,12 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ "SetEventRoutine", Lua_SetEventRoutine },
 	{ "Trace", Lua_Trace },
 	{ "InvokeNative", Lua_InvokeNative },
+	// ref things
+	{ "SetCallRefRoutine", Lua_SetCallRefRoutine },
+	{ "SetDeleteRefRoutine", Lua_SetDeleteRefRoutine },
+	{ "SetDuplicateRefRoutine", Lua_SetDuplicateRefRoutine },
+	{ "CanonicalizeRef", Lua_CanonicalizeRef },
+	{ "InvokeFunctionReference", Lua_InvokeFunctionReference },
 	// metafields
 	{ "PointerValueInt", Lua_GetMetaField<LuaMetaFields::PointerValueInt> },
 	{ "PointerValueFloat", Lua_GetMetaField<LuaMetaFields::PointerValueFloat> },
@@ -601,8 +838,7 @@ result_t LuaScriptRuntime::Destroy()
 
 int32_t LuaScriptRuntime::GetInstanceId()
 {
-	// TODO: handle properly
-	return 435;
+	return m_instanceId;
 }
 
 result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile)
@@ -760,6 +996,44 @@ result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uin
 		fx::PushEnvironment pushed(this);
 
 		m_eventRoutine(eventName, eventPayload, payloadSize, eventSource);
+	}
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+{
+	*retvalLength = 0;
+	*retvalSerialized = nullptr;
+
+	if (m_callRefRoutine)
+	{
+		size_t retvalLengthS;
+		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
+
+		*retvalLength = retvalLengthS;
+	}
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* outRefIdx)
+{
+	*outRefIdx = -1;
+
+	if (m_duplicateRefRoutine)
+	{
+		*outRefIdx = m_duplicateRefRoutine(refIdx);
+	}
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::RemoveRef(int32_t refIdx)
+{
+	if (m_deleteRefRoutine)
+	{
+		m_deleteRefRoutine(refIdx);
 	}
 
 	return FX_S_OK;

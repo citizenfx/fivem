@@ -159,6 +159,17 @@ result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 	return WrapVFSStreamResult(nativeStream, stream);
 }
 
+result_t TestScriptHost::CanonicalizeRef(int32_t refIdx, int32_t instanceId, char** outRefText)
+{
+	// format a string first
+	const char* refString = va("%s:%d:%d", m_resource->GetName().c_str(), instanceId, refIdx);
+
+	*outRefText = reinterpret_cast<char*>(fwAlloc(strlen(refString) + 1));
+	strcpy(*outRefText, refString);
+
+	return FX_S_OK;
+}
+
 // TODO: don't ship with this in
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource)
 {

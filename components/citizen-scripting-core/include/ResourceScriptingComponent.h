@@ -28,6 +28,18 @@ private:
 public:
 	ResourceScriptingComponent(Resource* resource);
 
+	inline OMPtr<IScriptRuntime> GetRuntimeById(int32_t instanceId)
+	{
+		auto it = m_scriptRuntimes.find(instanceId);
+
+		if (it == m_scriptRuntimes.end())
+		{
+			return nullptr;
+		}
+
+		return it->second;
+	}
+
 	inline Resource* GetResource()
 	{
 		return m_resource;

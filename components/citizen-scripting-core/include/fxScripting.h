@@ -146,6 +146,9 @@ class NS_NO_VTABLE IScriptHost : public fxIBase {
   /* void OpenHostFile (in charPtr fileName, out fxIStream stream); */
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) = 0;
 
+  /* void CanonicalizeRef (in int32_t localRef, in int32_t instanceId, out charPtr refString); */
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) = 0;
+
 };
 
   NS_DEFINE_STATIC_IID_ACCESSOR(IScriptHost, ISCRIPTHOST_IID)
@@ -154,19 +157,22 @@ class NS_NO_VTABLE IScriptHost : public fxIBase {
 #define NS_DECL_ISCRIPTHOST \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override; \
   NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override; \
-  NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override; 
+  NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override; \
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTHOST(_to) \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override { return _to InvokeNative(context); } \
   NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override { return _to OpenSystemFile(fileName, stream); } \
-  NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return _to OpenHostFile(fileName, stream); } 
+  NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return _to OpenHostFile(fileName, stream); } \
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override { return _to CanonicalizeRef(localRef, instanceId, refString); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTHOST(_to) \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override { return !_to ? NS_ERROR_NULL_POINTER : _to->InvokeNative(context); } \
   NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenSystemFile(fileName, stream); } \
-  NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenHostFile(fileName, stream); } 
+  NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenHostFile(fileName, stream); } \
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override { return !_to ? NS_ERROR_NULL_POINTER : _to->CanonicalizeRef(localRef, instanceId, refString); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -214,6 +220,12 @@ NS_IMETHODIMP _MYCLASS_::OpenSystemFile(char *fileName, fxIStream * *stream)
 
 /* void OpenHostFile (in charPtr fileName, out fxIStream stream); */
 NS_IMETHODIMP _MYCLASS_::OpenHostFile(char *fileName, fxIStream * *stream)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void CanonicalizeRef (in int32_t localRef, in int32_t instanceId, out charPtr refString); */
+NS_IMETHODIMP _MYCLASS_::CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -598,8 +610,8 @@ class NS_NO_VTABLE IScriptRefRuntime : public fxIBase {
 
   NS_DECLARE_STATIC_IID_ACCESSOR(ISCRIPTREFRUNTIME_IID)
 
-  /* void CallRef (in int32_t refIdx, in charPtr argsSerialized, out charPtr retvalSerialized); */
-  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, char **retvalSerialized) = 0;
+  /* void CallRef (in int32_t refIdx, in charPtr argsSerialized, in uint32_t argsSize, out charPtr retvalSerialized, out uint32_t retvalSize); */
+  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, uint32_t argsSize, char **retvalSerialized, uint32_t *retvalSize) = 0;
 
   /* void DuplicateRef (in int32_t refIdx, out int32_t newRefIdx); */
   NS_IMETHOD DuplicateRef(int32_t refIdx, int32_t *newRefIdx) = 0;
@@ -613,19 +625,19 @@ class NS_NO_VTABLE IScriptRefRuntime : public fxIBase {
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_ISCRIPTREFRUNTIME \
-  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, char **retvalSerialized) override; \
+  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, uint32_t argsSize, char **retvalSerialized, uint32_t *retvalSize) override; \
   NS_IMETHOD DuplicateRef(int32_t refIdx, int32_t *newRefIdx) override; \
   NS_IMETHOD RemoveRef(int32_t refIdx) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTREFRUNTIME(_to) \
-  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, char **retvalSerialized) override { return _to CallRef(refIdx, argsSerialized, retvalSerialized); } \
+  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, uint32_t argsSize, char **retvalSerialized, uint32_t *retvalSize) override { return _to CallRef(refIdx, argsSerialized, argsSize, retvalSerialized, retvalSize); } \
   NS_IMETHOD DuplicateRef(int32_t refIdx, int32_t *newRefIdx) override { return _to DuplicateRef(refIdx, newRefIdx); } \
   NS_IMETHOD RemoveRef(int32_t refIdx) override { return _to RemoveRef(refIdx); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTREFRUNTIME(_to) \
-  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, char **retvalSerialized) override { return !_to ? NS_ERROR_NULL_POINTER : _to->CallRef(refIdx, argsSerialized, retvalSerialized); } \
+  NS_IMETHOD CallRef(int32_t refIdx, char *argsSerialized, uint32_t argsSize, char **retvalSerialized, uint32_t *retvalSize) override { return !_to ? NS_ERROR_NULL_POINTER : _to->CallRef(refIdx, argsSerialized, argsSize, retvalSerialized, retvalSize); } \
   NS_IMETHOD DuplicateRef(int32_t refIdx, int32_t *newRefIdx) override { return !_to ? NS_ERROR_NULL_POINTER : _to->DuplicateRef(refIdx, newRefIdx); } \
   NS_IMETHOD RemoveRef(int32_t refIdx) override { return !_to ? NS_ERROR_NULL_POINTER : _to->RemoveRef(refIdx); } 
 
@@ -661,8 +673,8 @@ _MYCLASS_::~_MYCLASS_()
   /* destructor code */
 }
 
-/* void CallRef (in int32_t refIdx, in charPtr argsSerialized, out charPtr retvalSerialized); */
-NS_IMETHODIMP _MYCLASS_::CallRef(int32_t refIdx, char *argsSerialized, char **retvalSerialized)
+/* void CallRef (in int32_t refIdx, in charPtr argsSerialized, in uint32_t argsSize, out charPtr retvalSerialized, out uint32_t retvalSize); */
+NS_IMETHODIMP _MYCLASS_::CallRef(int32_t refIdx, char *argsSerialized, uint32_t argsSize, char **retvalSerialized, uint32_t *retvalSize)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

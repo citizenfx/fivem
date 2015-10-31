@@ -29,6 +29,8 @@ interface IScriptHost : fxIBase
 	void OpenSystemFile(in charPtr fileName, out fxIStream stream);
 
 	void OpenHostFile(in charPtr fileName, out fxIStream stream);
+
+	void CanonicalizeRef(in int32_t localRef, in int32_t instanceId, out charPtr refString);
 };
 
 [uuid(67B28AF1-AAF9-4368-8296-F93AFC7BDE96)]
@@ -70,7 +72,7 @@ interface IScriptEventRuntime : fxIBase
 [uuid(A2F1B24B-A29F-4121-8162-86901ECA8097)]
 interface IScriptRefRuntime : fxIBase
 {
-	void CallRef(in int32_t refIdx, in charPtr argsSerialized, out charPtr retvalSerialized);
+	void CallRef(in int32_t refIdx, in charPtr argsSerialized, in uint32_t argsSize, out charPtr retvalSerialized, out uint32_t retvalSize);
 
 	void DuplicateRef(in int32_t refIdx, out int32_t newRefIdx);
 
