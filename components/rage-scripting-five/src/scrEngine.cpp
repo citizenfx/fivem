@@ -10,6 +10,8 @@
 #include "CrossLibraryInterfaces.h"
 #include "Hooking.h"
 
+#include <sysAllocator.h>
+
 #include <unordered_set>
 
 fwEvent<> rage::scrEngine::OnScriptInit;
@@ -23,7 +25,7 @@ static uint32_t* scrThreadCount;
 
 static rage::scriptHandlerMgr* g_scriptHandlerMgr;
 
-struct NativeRegistration
+struct NativeRegistration : public rage::sysUseAllocator
 {
 	NativeRegistration* nextRegistration;
 	rage::scrEngine::NativeHandler handlers[7];
@@ -124,18 +126,39 @@ void scrEngine::CreateThread(GtaThread* thread)
 	}
 }
 
-void scrEngine::RegisterNativeHandler(const char* nativeName, NativeHandler handler)
+void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 {
-	// no-op
+	// re-implemented here as the game's own function is obfuscated
+	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
+
+	if (registration->numEntries == 7)
+	{
+		NativeRegistration* newRegistration = new NativeRegistration();
+		newRegistration->nextRegistration = registration;
+		newRegistration->numEntries = 0;
+
+		// should also set the entry in the registration table
+		registration = newRegistration;
+	}
+
+	// add the entry to the list
+	uint32_t index = registration->numEntries;
+	registration->hashes[index] = hash;
+	registration->handlers[index] = handler;
+
+	registration->numEntries++;
 }
 
-/*void WRAPPER RegisterNative(uint32_t hash, scrEngine::NativeHandler handler) { EAXJMP(0x5A6200); }
-
-static std::vector<std::pair<uint32_t, scrEngine::NativeHandler>> g_nativeHandlers;
+static std::vector<std::pair<uint64_t, scrEngine::NativeHandler>> g_nativeHandlers;
 
 void scrEngine::RegisterNativeHandler(const char* nativeName, NativeHandler handler)
 {
 	g_nativeHandlers.push_back(std::make_pair(HashString(nativeName), handler));
+}
+
+void scrEngine::RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler handler)
+{
+	g_nativeHandlers.push_back(std::make_pair(nativeIdentifier, handler));
 }
 
 static InitFunction initFunction([] ()
@@ -149,8 +172,8 @@ static InitFunction initFunction([] ()
 
 		// to prevent double registration resulting in a game error
 		g_nativeHandlers.clear();
-	});
-});*/
+	}, 50000);
+});
 
 uint64_t MapNative(uint64_t inNative);
 

@@ -66,6 +66,9 @@ public:
 
 	// queues the registration of a custom native function handler
 	static void RegisterNativeHandler(const char* nativeName, NativeHandler handler);
+
+	// queues the registration of a custom native function handler with an identifier
+	static void RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler handler);
 	
 public:
 	static fwEvent<> OnScriptInit;
