@@ -52,6 +52,8 @@ namespace fx
 		std::multimap<std::string, ResourceFileEntry> m_resourceEntries;
 
 	public:
+		void RemoveResourceEntries(const std::string& resourceName);
+
 		void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl);
 	};
 

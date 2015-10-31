@@ -38,6 +38,10 @@ interface IScriptRuntime : fxIBase
 
 	void Destroy();
 
+	[notxpcom] voidPtr GetParentObject();
+
+	[notxpcom] void SetParentObject(in voidPtr obj);
+
 	[notxpcom] int32_t GetInstanceId();
 };
 

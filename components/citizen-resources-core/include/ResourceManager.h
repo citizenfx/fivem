@@ -51,6 +51,11 @@ public:
 	virtual void AddMounter(fwRefContainer<ResourceMounter> mounter) = 0;
 
 	//
+	// Remove and destroys a resource.
+	//
+	virtual void RemoveResource(fwRefContainer<Resource> resource) = 0;
+
+	//
 	// For use in resource mounters, creates a resource with the passed identity.
 	//
 	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) = 0;

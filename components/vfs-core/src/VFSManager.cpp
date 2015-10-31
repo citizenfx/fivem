@@ -51,4 +51,9 @@ void Mount(fwRefContainer<Device> device, const std::string& path)
 {
 	return Instance<Manager>::Get()->Mount(device, path);
 }
+
+void Unmount(const std::string& path)
+{
+	return Instance<Manager>::Get()->Unmount(path);
+}
 }

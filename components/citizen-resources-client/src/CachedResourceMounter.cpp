@@ -89,6 +89,13 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 							{
 								localResource = nullptr;
 							}
+							else
+							{
+								localResource->OnRemove.Connect([=] ()
+								{
+									vfs::Unmount(resourceRoot);
+								});
+							}
 						}
 						else
 						{
@@ -108,6 +115,11 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl)
 {
 	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl} });
+}
+
+void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)
+{
+	m_resourceEntries.erase(resourceName);
 }
 
 namespace fx

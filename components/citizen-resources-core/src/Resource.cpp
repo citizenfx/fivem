@@ -71,6 +71,11 @@ bool ResourceImpl::Start()
 
 bool ResourceImpl::Stop()
 {
+	if (!OnStop())
+	{
+		return false;
+	}
+
 	m_state = ResourceState::Stopped;
 
 	return true;
@@ -78,9 +83,19 @@ bool ResourceImpl::Stop()
 
 void ResourceImpl::Tick()
 {
-	assert(m_state == ResourceState::Started);
+	if (m_state != ResourceState::Started)
+	{
+		return;
+	}
 
 	OnTick();
+}
+
+void ResourceImpl::Destroy()
+{
+	m_state = ResourceState::Uninitialized;
+
+	OnRemove();
 }
 
 ResourceManager* ResourceImpl::GetManager()

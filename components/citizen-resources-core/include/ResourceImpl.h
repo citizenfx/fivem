@@ -51,5 +51,8 @@ public:
 	virtual void Tick() override;
 
 	virtual ResourceManager* GetManager() override;
+
+public:
+	void Destroy();
 };
 }

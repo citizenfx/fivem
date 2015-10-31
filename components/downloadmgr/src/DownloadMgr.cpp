@@ -537,10 +537,12 @@ static InitFunction initFunction([] ()
 		g_netLibrary = library;
 	});
 
+#if 0
 	ResourceManager::OnQueueResourceStart.Connect([] (fwString resourceName)
 	{
 		TheDownloads.QueueResourceUpdate(resourceName);
 	});
+#endif
 
 	ResourceManager::OnScriptReset.Connect([] ()
 	{

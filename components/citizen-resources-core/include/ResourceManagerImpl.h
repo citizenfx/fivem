@@ -40,6 +40,8 @@ public:
 
 	virtual void AddMounter(fwRefContainer<ResourceMounter> mounter) override;
 
+	virtual void RemoveResource(fwRefContainer<Resource> resource) override;
+
 	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) override;
 
 	virtual void Tick() override;

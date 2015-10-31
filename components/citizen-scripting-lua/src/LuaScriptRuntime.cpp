@@ -55,6 +55,8 @@ private:
 
 	TEventRoutine m_eventRoutine;
 
+	void* m_parentObject;
+
 public:
 	static OMPtr<LuaScriptRuntime> GetCurrent();
 
@@ -761,6 +763,16 @@ result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uin
 	}
 
 	return FX_S_OK;
+}
+
+void* LuaScriptRuntime::GetParentObject()
+{
+	return m_parentObject;
+}
+
+void LuaScriptRuntime::SetParentObject(void* object)
+{
+	m_parentObject = object;
 }
 
 // {A7242855-0350-4CB5-A0FE-61021E7EAFAA}

@@ -240,6 +240,12 @@ class NS_NO_VTABLE IScriptRuntime : public fxIBase {
   /* void Destroy (); */
   NS_IMETHOD Destroy(void) = 0;
 
+  /* [notxpcom] voidPtr GetParentObject (); */
+  NS_IMETHOD_(void *) GetParentObject(void) = 0;
+
+  /* [notxpcom] void SetParentObject (in voidPtr obj); */
+  NS_IMETHOD_(void) SetParentObject(void *obj) = 0;
+
   /* [notxpcom] int32_t GetInstanceId (); */
   NS_IMETHOD_(int32_t) GetInstanceId(void) = 0;
 
@@ -251,18 +257,24 @@ class NS_NO_VTABLE IScriptRuntime : public fxIBase {
 #define NS_DECL_ISCRIPTRUNTIME \
   NS_IMETHOD Create(IScriptHost *scriptHost) override; \
   NS_IMETHOD Destroy(void) override; \
+  NS_IMETHOD_(void *) GetParentObject(void) override; \
+  NS_IMETHOD_(void) SetParentObject(void *obj) override; \
   NS_IMETHOD_(int32_t) GetInstanceId(void) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTRUNTIME(_to) \
   NS_IMETHOD Create(IScriptHost *scriptHost) override { return _to Create(scriptHost); } \
   NS_IMETHOD Destroy(void) override { return _to Destroy(); } \
+  NS_IMETHOD_(void *) GetParentObject(void) override { return _to GetParentObject(); } \
+  NS_IMETHOD_(void) SetParentObject(void *obj) override { return _to SetParentObject(obj); } \
   NS_IMETHOD_(int32_t) GetInstanceId(void) override { return _to GetInstanceId(); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTRUNTIME(_to) \
   NS_IMETHOD Create(IScriptHost *scriptHost) override { return !_to ? NS_ERROR_NULL_POINTER : _to->Create(scriptHost); } \
   NS_IMETHOD Destroy(void) override { return !_to ? NS_ERROR_NULL_POINTER : _to->Destroy(); } \
+  NS_IMETHOD_(void *) GetParentObject(void) override; \
+  NS_IMETHOD_(void) SetParentObject(void *obj) override; \
   NS_IMETHOD_(int32_t) GetInstanceId(void) override; 
 
 #if 0
@@ -305,6 +317,18 @@ NS_IMETHODIMP _MYCLASS_::Create(IScriptHost *scriptHost)
 
 /* void Destroy (); */
 NS_IMETHODIMP _MYCLASS_::Destroy()
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* [notxpcom] voidPtr GetParentObject (); */
+NS_IMETHODIMP_(void *) _MYCLASS_::GetParentObject()
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* [notxpcom] void SetParentObject (in voidPtr obj); */
+NS_IMETHODIMP_(void) _MYCLASS_::SetParentObject(void *obj)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

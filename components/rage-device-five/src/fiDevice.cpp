@@ -27,7 +27,7 @@ bool fiDevice::MountGlobal(const char* mountPoint, fiDevice* device, bool allowR
 // DCEC20
 hook::cdecl_stub<void(const char*)> fiDevice__Unmount([] ()
 {
-	return (void*)nullptr;
+	return hook::pattern("E8 ? ? ? ? 85 C0 75 23 48 83").count(1).get(0).get<void>(-0x22);
 });
 
 void fiDevice::Unmount(const char* rootPath) { fiDevice__Unmount(rootPath); }

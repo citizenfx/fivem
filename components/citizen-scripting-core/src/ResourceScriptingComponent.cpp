@@ -77,6 +77,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			OMPtr<IScriptRuntime> ptr;
 			if (SUCCEEDED(environment.As(&ptr)))
 			{
+				ptr->SetParentObject(resource);
+
 				m_scriptRuntimes[ptr->GetInstanceId()] = ptr;
 			}
 		}
@@ -98,6 +100,16 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				tickRuntime->Tick();
 			}
 		}
+	});
+
+	resource->OnStop.Connect([=] ()
+	{
+		for (auto& environment : m_scriptRuntimes)
+		{
+			environment.second->Destroy();
+		}
+
+		m_scriptRuntimes.clear();
 	});
 }
 

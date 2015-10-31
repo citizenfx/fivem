@@ -27,6 +27,8 @@ public:
 
 	virtual void Mount(fwRefContainer<Device> device, const std::string& path) = 0;
 
+	virtual void Unmount(const std::string& path) = 0;
+
 	virtual fwRefContainer<Device> GetNativeDevice(void* nativeDevice);
 };
 
@@ -37,6 +39,8 @@ VFS_CORE_EXPORT fwRefContainer<Device> GetDevice(const std::string& path);
 VFS_CORE_EXPORT fwRefContainer<Device> GetNativeDevice(void* nativeDevice);
 
 VFS_CORE_EXPORT void Mount(fwRefContainer<Device> device, const std::string& path);
+
+VFS_CORE_EXPORT void Unmount(const std::string& path);
 }
 
 DECLARE_INSTANCE_TYPE(vfs::Manager);

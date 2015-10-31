@@ -20,6 +20,8 @@
 
 #include <rapidjson/document.h>
 
+static NetAddress g_netAddress;
+
 static InitFunction initFunction([] ()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
@@ -27,8 +29,7 @@ static InitFunction initFunction([] ()
 		static std::mutex executeNextGameFrameMutex;
 		static std::vector<std::function<void()>> executeNextGameFrame;
 
-		// download trigger
-		netLibrary->OnInitReceived.Connect([=] (NetAddress address)
+		auto updateResources = [=] (const std::string& updateList)
 		{
 			// initialize mounter if needed
 			static std::once_flag onceFlag;
@@ -42,12 +43,19 @@ static InitFunction initFunction([] ()
 				manager->AddMounter(mounter);
 			});
 
+			NetAddress address = g_netAddress;
+
 			// fetch configuration
 			std::shared_ptr<HttpClient> httpClient = std::make_shared<HttpClient>();
 
 			// build request
 			std::map<std::string, std::string> postMap;
 			postMap["method"] = "getConfiguration";
+
+			if (!updateList.empty())
+			{
+				postMap["resources"] = updateList;
+			}
 
 			httpClient->DoPostRequest(address.GetWAddress(), address.GetPort(), L"/client", postMap, [=] (bool result, const char* data, size_t size)
 			{
@@ -124,6 +132,8 @@ static InitFunction initFunction([] ()
 
 						std::string resourceBaseUrl = va("%s/%s/", va(baseUrl.c_str(), serverHost.c_str()), resourceName.c_str());
 
+						mounter->RemoveResourceEntries(resourceName);
+
 						auto& files = resource["files"];
 						for (auto i = files.MemberBegin(); i != files.MemberEnd(); i++)
 						{
@@ -142,6 +152,15 @@ static InitFunction initFunction([] ()
 
 				for (auto& resourceName : requiredResources)
 				{
+					{
+						fwRefContainer<fx::Resource> oldResource = manager->GetResource(resourceName);
+
+						if (oldResource.GetRef())
+						{
+							manager->RemoveResource(oldResource);
+						}
+					}
+
 					manager->AddResource("global://" + resourceName).then([=] (fwRefContainer<fx::Resource> resource)
 					{
 						if (!resource.GetRef())
@@ -164,6 +183,15 @@ static InitFunction initFunction([] ()
 
 				netLibrary->DownloadsComplete();
 			});
+		};
+
+
+		// download trigger
+		netLibrary->OnInitReceived.Connect([=] (NetAddress address)
+		{
+			g_netAddress = address;
+
+			updateResources("");
 		});
 
 		OnGameFrame.Connect([] ()
@@ -206,6 +234,52 @@ static InitFunction initFunction([] ()
 
 			// and queue the event
 			eventManager->QueueEvent(std::string(eventName, nameLength), std::string(&eventData[0], eventData.size()), source);
+		});
+
+		netLibrary->AddReliableHandler("msgResStop", [] (const char* buf, size_t len)
+		{
+			std::string resourceName(buf, len);
+
+			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			auto resource = resourceManager->GetResource(resourceName);
+
+			if (resource.GetRef() == nullptr)
+			{
+				trace("Server requested resource %s to be stopped, but we don't know that resource\n", resourceName.c_str());
+				return;
+			}
+
+#if 0
+			if (resource->GetState() != ResourceStateRunning)
+			{
+				trace("Server requested resource %s to be stopped, but it's not running\n", resourceName.c_str());
+				return;
+			}
+#endif
+
+			resource->Stop();
+		});
+
+		netLibrary->AddReliableHandler("msgResStart", [=] (const char* buf, size_t len)
+		{
+			std::string resourceName(buf, len);
+
+			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			auto resource = resourceManager->GetResource(resourceName);
+
+			if (resource.GetRef() != nullptr)
+			{
+#if 0
+				if (resource->GetState() != ResourceStateStopped)
+				{
+					trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
+					return;
+				}
+#endif
+			}
+
+			updateResources(resourceName);
+			//TheDownloads.QueueResourceUpdate(resourceName);
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [=] (fx::ScriptContext& context)

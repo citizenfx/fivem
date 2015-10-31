@@ -40,6 +40,8 @@ misrepresented as being the original software.
 
 namespace rage
 {
+class scriptHandler;
+
 enum eThreadState
 {
 	ThreadStateIdle,
@@ -166,7 +168,7 @@ class
 {
 protected:
 	char gta_pad[64];
-	void* m_pScriptHandler;
+	rage::scriptHandler* m_pScriptHandler;
 	char gta_pad2[40];
 	char flag1;
 	char m_networkFlag;
@@ -180,9 +182,11 @@ public:
 	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
 	virtual void					Kill();
 
-	inline void* GetScriptHandler() { return m_pScriptHandler; }
+	inline rage::scriptHandler* GetScriptHandler() { return m_pScriptHandler; }
 
-	inline void SetScriptHandler(void* scriptHandler) { m_pScriptHandler = scriptHandler; }
+	inline void SetScriptHandler(void* scriptHandler) { m_pScriptHandler = reinterpret_cast<rage::scriptHandler*>(scriptHandler); }
+
+	inline void SetScriptHandler(rage::scriptHandler* scriptHandler) { m_pScriptHandler = scriptHandler; }
 
 	inline void RemoveCleanupFlag() {  }
 };

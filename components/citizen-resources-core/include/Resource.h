@@ -73,9 +73,29 @@ public:
 	fwEvent<> OnStart;
 
 	//
+	// An event to handle tasks to be performed when stopping a resource.
+	//
+	fwEvent<> OnStop;
+
+	//
 	// An event to handle tasks to be performed when the resource ticks.
 	//
 	fwEvent<> OnTick;
+
+	//
+	// An event to handle tasks to be performed when the resource becomes active.
+	//
+	fwEvent<> OnActivate;
+
+	//
+	// An event to handle tasks to be performed when the resource becomes inactive.
+	//
+	fwEvent<> OnDeactivate;
+
+	//
+	// An event to handle tasks to be performed before the resource gets deleted.
+	//
+	fwEvent<> OnRemove;
 
 public:
 	//

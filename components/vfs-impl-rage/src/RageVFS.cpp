@@ -12,6 +12,8 @@
 #include <VFSDevice.h>
 #include <VFSManager.h>
 
+#include <IteratorView.h>
+
 class RageVFSDeviceAdapter : public rage::fiCustomDevice
 {
 private:
@@ -367,6 +369,8 @@ class RageVFSManager : public vfs::Manager
 {
 private:
 	std::unordered_map<rage::fiDevice*, fwRefContainer<vfs::Device>> m_deviceCache;
+	
+	std::multimap<std::string, RageVFSDeviceAdapter*> m_mountedDevices;
 
 public:
 	virtual fwRefContainer<vfs::Device> GetDevice(const std::string& path) override;
@@ -374,6 +378,8 @@ public:
 	virtual fwRefContainer<vfs::Device> GetNativeDevice(void* nativeDevice) override;
 
 	virtual void Mount(fwRefContainer<vfs::Device> device, const std::string& path) override;
+
+	virtual void Unmount(const std::string& path) override;
 };
 
 fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
@@ -399,9 +405,26 @@ fwRefContainer<vfs::Device> RageVFSManager::GetNativeDevice(void* nativeDevice)
 
 void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string& path)
 {
-	rage::fiDevice::MountGlobal(path.c_str(), new RageVFSDeviceAdapter(device), true);
+	auto adapter = new RageVFSDeviceAdapter(device);
+
+	m_mountedDevices.insert({ path, adapter });
+
+	rage::fiDevice::MountGlobal(path.c_str(), adapter, true);
 
 	device->SetPathPrefix(path);
+}
+
+void RageVFSManager::Unmount(const std::string& path)
+{
+	rage::fiDevice::Unmount(path.c_str());
+
+	// destroy all adapters
+	for (auto& entry : fx::GetIteratorView(m_mountedDevices.equal_range(path)))
+	{
+		delete entry.second;
+	}
+
+	m_mountedDevices.erase(path);
 }
 
 static InitFunction initFunction([]()

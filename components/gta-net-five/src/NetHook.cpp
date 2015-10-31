@@ -1126,6 +1126,9 @@ static HookFunction hookFunction([] ()
 	// temporary(!) patch to force CGameScriptObjInfo to act as if having an unknown identifier set (as regular creation doesn't set it?! - doesn't write to it at all)
 	hook::nop(hook::pattern("83 79 10 00 74 05 48 8D 41 08 C3 33 C0 C3").count(1).get(0).get<void>(4), 2);
 
+	// semi-related: adding to a script handler checking for the above value being 0
+	hook::nop(hook::pattern("FF 50 28 45 33 FF 48 85 C0 0F 85").count(1).get(0).get<void>(9), 6);
+
 	// really weird patch to auto-start the session (?s in short jumps are because of +0x38 differences with steam/retail)
 	//hook::put<uint8_t>(hook::pattern("84 C0 74 ? 83 BB ? ? 00 00 07 74 ? E8").count(1).get(0).get<void>(2), 0xEB);
 

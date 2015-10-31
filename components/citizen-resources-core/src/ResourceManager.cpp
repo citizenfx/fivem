@@ -64,7 +64,7 @@ void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
-		m_resources.insert({ resource->GetName(), resource });
+		m_resources[resource->GetName()] = fwRefContainer<ResourceImpl>(resource);
 	}
 }
 
@@ -72,7 +72,9 @@ fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& ide
 {
 	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
-	return m_resources[identifier];
+	auto it = m_resources.find(identifier);
+
+	return (it == m_resources.end()) ? nullptr : it->second;
 }
 
 void ResourceManagerImpl::ForAllResources(const std::function<void(fwRefContainer<Resource>)>& function)
@@ -100,6 +102,15 @@ void ResourceManagerImpl::ResetResources()
 	});
 
 	m_resources.clear();
+}
+
+void ResourceManagerImpl::RemoveResource(fwRefContainer<Resource> resource)
+{
+	fwRefContainer<ResourceImpl> impl = resource;
+	impl->Stop();
+	impl->Destroy();
+
+	m_resources.erase(impl->GetName());
 }
 
 void ResourceManagerImpl::AddMounter(fwRefContainer<ResourceMounter> mounter)
