@@ -824,6 +824,11 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		return hr;
 	}
 
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/json.lua")))
+	{
+		return hr;
+	}
+
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/MessagePack.lua")))
 	{
 		return hr;
