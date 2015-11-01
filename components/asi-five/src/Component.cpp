@@ -48,7 +48,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 			{
 				if (!LoadLibrary(it->path().c_str()))
 				{
-					FatalError(va("Couldn't load ", it->path().filename()));
+					FatalError(va("Couldn't load %s", it->path().filename().string().c_str()));
 				}
 			}
 			it++;
