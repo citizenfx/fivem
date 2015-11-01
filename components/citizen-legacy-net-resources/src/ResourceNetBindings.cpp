@@ -124,12 +124,6 @@ static InitFunction initFunction([] ()
 						// define the resource in the mounter
 						std::string resourceName = resource["name"].GetString();
 
-						// this is old NY stuff
-						if (resourceName == "mapmanager")
-						{
-							continue;
-						}
-
 						std::string resourceBaseUrl = va("%s/%s/", va(baseUrl.c_str(), serverHost.c_str()), resourceName.c_str());
 
 						mounter->RemoveResourceEntries(resourceName);
