@@ -227,7 +227,7 @@ static InitFunction initFunction([] ()
 			static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
 
 			// and queue the event
-			eventManager->QueueEvent(std::string(eventName, nameLength), std::string(&eventData[0], eventData.size()), source);
+			eventManager->QueueEvent(std::string(eventName), std::string(&eventData[0], eventData.size()), source);
 		});
 
 		netLibrary->AddReliableHandler("msgResStop", [] (const char* buf, size_t len)
