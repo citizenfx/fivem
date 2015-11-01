@@ -25,7 +25,7 @@ function files(x)
 				end
 
 				buildcommands {
-					'python ' .. prj_root .. 'tools/idl/header.py -o "%{file and file.directory or ""}/%{file and file.basename or ""}.h" %{process_includedirs(prj.includedirs)} %{file and file.relpath or ""}'
+					'python "' .. prj_root .. 'tools/idl/header.py" -o "%{file and file.directory or ""}/%{file and file.basename or ""}.h" %{process_includedirs(prj.includedirs)} %{file and file.relpath or ""}'
 				}
 
 				buildoutputs { '%{file.directory}/%{file.basename}.h' }
