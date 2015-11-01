@@ -365,12 +365,16 @@ bool RageVFSDeviceAdapter::IsBulkDevice()
 	return false;
 }
 
+#include <mutex>
+
 class RageVFSManager : public vfs::Manager
 {
 private:
 	std::unordered_map<rage::fiDevice*, fwRefContainer<vfs::Device>> m_deviceCache;
 	
 	std::multimap<std::string, RageVFSDeviceAdapter*> m_mountedDevices;
+
+	std::recursive_mutex m_managerLock;
 
 public:
 	virtual fwRefContainer<vfs::Device> GetDevice(const std::string& path) override;
@@ -384,6 +388,8 @@ public:
 
 fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 {
+	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
+
 	rage::fiDevice* nativeDevice = rage::fiDevice::GetDevice(path.c_str(), true);
 
 	return (nativeDevice) ? GetNativeDevice(nativeDevice) : nullptr;
@@ -391,6 +397,8 @@ fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 
 fwRefContainer<vfs::Device> RageVFSManager::GetNativeDevice(void* nativeDevice)
 {
+	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
+
 	rage::fiDevice* nativeDevicePtr = reinterpret_cast<rage::fiDevice*>(nativeDevice);
 
 	auto it = m_deviceCache.find(nativeDevicePtr);
@@ -405,6 +413,8 @@ fwRefContainer<vfs::Device> RageVFSManager::GetNativeDevice(void* nativeDevice)
 
 void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string& path)
 {
+	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
+
 	auto adapter = new RageVFSDeviceAdapter(device);
 
 	m_mountedDevices.insert({ path, adapter });
@@ -416,6 +426,8 @@ void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string
 
 void RageVFSManager::Unmount(const std::string& path)
 {
+	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
+
 	rage::fiDevice::Unmount(path.c_str());
 
 	// destroy all adapters
