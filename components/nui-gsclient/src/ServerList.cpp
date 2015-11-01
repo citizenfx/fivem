@@ -444,7 +444,7 @@ void GSClient_QueryMaster()
 	}
 
 	char message[128];
-	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers " GS_GAMENAME " 2 full empty");
+	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers " GS_GAMENAME " 3 full empty");
 
 	sendto(g_cls.socket, message, strlen(message), 0, (sockaddr*)&masterIP, sizeof(masterIP));
 }
