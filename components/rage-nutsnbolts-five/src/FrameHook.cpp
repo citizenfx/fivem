@@ -46,10 +46,11 @@ static std::mutex g_gameFrameMutex;
 
 static void DoGameFrame()
 {
+	if (g_gameFrameMutex.try_lock())
 	{
-		std::unique_lock<std::mutex> lock(g_gameFrameMutex);
-
 		OnGameFrame();
+
+		g_gameFrameMutex.unlock();
 	}
 
 	g_lastGameFrame = timeGetTime();
