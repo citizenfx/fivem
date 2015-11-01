@@ -209,7 +209,12 @@ result_t ScriptRuntimeHandler::PushRuntime(IScriptRuntime* runtime)
 
 	ms_runtimeStack.push(runtime);
 
-	reinterpret_cast<fx::Resource*>(runtime->GetParentObject())->OnActivate();
+	fx::Resource* parentResource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+	if (parentResource)
+	{
+		parentResource->OnActivate();
+	}
 
 	return FX_S_OK;
 }
@@ -219,7 +224,12 @@ result_t ScriptRuntimeHandler::PopRuntime(IScriptRuntime* runtime)
 	IScriptRuntime* poppedRuntime = ms_runtimeStack.top();
 	assert(poppedRuntime == runtime);
 
-	reinterpret_cast<fx::Resource*>(runtime->GetParentObject())->OnDeactivate();
+	fx::Resource* parentResource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+	if (parentResource)
+	{
+		parentResource->OnDeactivate();
+	}
 
 	ms_runtimeStack.pop();
 	ms_runtimeMutex.unlock();

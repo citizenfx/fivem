@@ -161,7 +161,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 	if (eventComponent.GetRef())
 	{
 		// pre-cache event-handling runtimes
-		std::vector<IScriptEventRuntime*> eventRuntimes;
+		std::vector<OMPtr<IScriptEventRuntime>> eventRuntimes;
 
 		for (auto& environment : m_scriptRuntimes)
 		{
@@ -169,7 +169,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 			if (FX_SUCCEEDED(environment.second.As(&ptr)))
 			{
-				eventRuntimes.push_back(ptr.GetRef());
+				eventRuntimes.push_back(ptr);
 			}
 		}
 
