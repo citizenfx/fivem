@@ -81,12 +81,12 @@ public:
 
 		if (!m_shouldCreate && m_doInityThings)
 		{
-			NativeInvoke::Invoke<LOAD_SCENE, int>(-426.858f, -957.54f, 3.621f);
+			/*NativeInvoke::Invoke<LOAD_SCENE, int>(-426.858f, -957.54f, 3.621f);
 
 			NativeInvoke::Invoke<SHUTDOWN_LOADING_SCREEN, int>();
 			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 
-			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -426.858f, -957.54f, 3.621f);
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -426.858f, -957.54f, 3.621f);*/
 
 			m_doInityThings = false;
 		}
@@ -95,6 +95,7 @@ public:
 		{
 			static bool respawning = false;
 
+			/*
 			if (NativeInvoke::Invoke<NETWORK_IS_GAME_IN_PROGRESS, bool>())
 			{
 				if (NativeInvoke::Invoke<IS_ENTITY_DEAD, bool>(playerPedId))
@@ -104,6 +105,7 @@ public:
 					NativeInvoke::Invoke<NETWORK_RESURRECT_LOCAL_PLAYER, int>(entityCoords.x, entityCoords.y, entityCoords.z, 0.0f, true, true);
 				}
 			}
+			*/
 
 			if (!m_shouldCreate)
 			{
