@@ -27,7 +27,17 @@ public:
 
 	~LuaStateHolder()
 	{
-		lua_close(m_state);
+		Close();
+	}
+
+	void Close()
+	{
+		if (m_state)
+		{
+			lua_close(m_state);
+
+			m_state = nullptr;
+		}
 	}
 
 	operator lua_State*()
@@ -77,6 +87,8 @@ public:
 		m_instanceId = rand();
 	}
 
+	virtual ~LuaScriptRuntime() override;
+
 	static OMPtr<LuaScriptRuntime> GetCurrent();
 
 	void SetTickRoutine(const std::function<void()>& tickRoutine);
@@ -125,6 +137,11 @@ public:
 
 	NS_DECL_ISCRIPTREFRUNTIME;
 };
+
+LuaScriptRuntime::~LuaScriptRuntime()
+{
+	
+}
 
 static int lua_error_handler(lua_State* L);
 
@@ -850,6 +867,18 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 
 result_t LuaScriptRuntime::Destroy()
 {
+	// destroy any routines that may be referencing the Lua state
+	m_eventRoutine.swap(TEventRoutine());
+	m_tickRoutine.swap(std::function<void()>());
+	m_callRefRoutine.swap(TCallRefRoutine());
+	m_deleteRefRoutine.swap(TDeleteRefRoutine());
+	m_duplicateRefRoutine.swap(TDuplicateRefRoutine());
+
+	// we need to push the environment before closing as items may have __gc callbacks requiring a current runtime to be set
+	// in addition, we can't do this in the destructor due to refcounting odditiies (PushEnvironment adds a reference, causing infinite deletion loops)
+	fx::PushEnvironment pushed(this);
+	m_state.Close();
+	
 	return FX_S_OK;
 }
 
@@ -1025,6 +1054,8 @@ result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_
 
 	if (m_callRefRoutine)
 	{
+		fx::PushEnvironment pushed(this);
+
 		size_t retvalLengthS;
 		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
 
@@ -1040,6 +1071,8 @@ result_t LuaScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* outRefIdx)
 
 	if (m_duplicateRefRoutine)
 	{
+		fx::PushEnvironment pushed(this);
+
 		*outRefIdx = m_duplicateRefRoutine(refIdx);
 	}
 
@@ -1050,6 +1083,8 @@ result_t LuaScriptRuntime::RemoveRef(int32_t refIdx)
 {
 	if (m_deleteRefRoutine)
 	{
+		fx::PushEnvironment pushed(this);
+
 		m_deleteRefRoutine(refIdx);
 	}
 
