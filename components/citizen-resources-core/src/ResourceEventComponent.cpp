@@ -11,6 +11,8 @@
 #include <Resource.h>
 #include <ResourceManager.h>
 
+#include <msgpack.hpp>
+
 namespace fx
 {
 ResourceEventComponent::ResourceEventComponent()
@@ -23,6 +25,37 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	m_resource = object;
 
 	m_managerComponent = m_resource->GetManager()->GetComponent<ResourceEventManagerComponent>().GetRef();
+
+	// start/stop handling events
+	object->OnStart.Connect([=] ()
+	{
+		// pack the resource name
+		msgpack::sbuffer buf;
+		msgpack::packer<msgpack::sbuffer> packer(buf);
+
+		// array of a single string
+		packer.pack_array(1);
+		packer.pack(m_resource->GetName());
+
+		// send the event out to the world
+		// TODO: handle server/client split
+		m_managerComponent->QueueEvent("onClientResourceStart", std::string(buf.data(), buf.size()));
+	});
+
+	object->OnStop.Connect([=] ()
+	{
+		// pack the resource name
+		msgpack::sbuffer buf;
+		msgpack::packer<msgpack::sbuffer> packer(buf);
+
+		// array of a single string
+		packer.pack_array(1);
+		packer.pack(m_resource->GetName());
+
+		// send the event out to the world
+		// TODO: handle server/client split
+		m_managerComponent->QueueEvent("onClientResourceStop", std::string(buf.data(), buf.size()));
+	});
 }
 
 void ResourceEventComponent::HandleTriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
@@ -71,6 +104,7 @@ bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, c
 		// if there's none, return
 		if (!eventComponent.GetRef())
 		{
+			trace("no event component for resource %s\n", resource->GetName().c_str());
 			return;
 		}
 
