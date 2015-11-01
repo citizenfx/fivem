@@ -694,8 +694,20 @@ int Lua_InvokeNative(lua_State* L)
 		switch (returnValueCoercion)
 		{
 			case LuaMetaFields::ResultAsString:
-				lua_pushstring(L, *reinterpret_cast<const char**>(&context.arguments[0]));
+			{
+				const char* str = *reinterpret_cast<const char**>(&context.arguments[0]);
+				
+				if (str)
+				{
+					lua_pushstring(L, str);
+				}
+				else
+				{
+					lua_pushnil(L);
+				}
+
 				break;
+			}
 			case LuaMetaFields::ResultAsFloat:
 				lua_pushnumber(L, *reinterpret_cast<float*>(&context.arguments[0]));
 				break;
