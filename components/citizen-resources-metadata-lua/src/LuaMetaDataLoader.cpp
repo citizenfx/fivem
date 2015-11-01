@@ -144,6 +144,8 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 
 	// run global initialization code
 	bool result = true;
+	result = result && DoFile("citizen:/scripting/lua/json.lua", 0);
+
 	result = result && DoFile("citizen:/scripting/resource_init.lua", 1);
 
 	// remove unsafe handlers from the Lua state
