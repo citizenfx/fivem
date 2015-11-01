@@ -43,6 +43,8 @@ static bool(*g_origLookAlive)();
 
 static uint32_t g_lastGameFrame;
 static std::mutex g_gameFrameMutex;
+static DWORD g_mainThreadId;
+static bool g_executedOnMainThread;
 
 static void DoGameFrame()
 {
@@ -51,6 +53,11 @@ static void DoGameFrame()
 		OnGameFrame();
 
 		g_gameFrameMutex.unlock();
+	}
+
+	if (GetCurrentThreadId() == g_mainThreadId)
+	{
+		g_executedOnMainThread = true;
 	}
 
 	g_lastGameFrame = timeGetTime();
@@ -69,14 +76,20 @@ void DoLoadsFrame()
 {
 	g_origFrameFunc();
 
-	if ((timeGetTime() - g_lastGameFrame) > 50)
+	int timeout = (g_executedOnMainThread) ? 500 : 50;
+
+	if ((timeGetTime() - g_lastGameFrame) > timeout)
 	{
+		g_executedOnMainThread = false;
+
 		DoGameFrame();
 	}
 }
 
 static HookFunction hookFunction([] ()
 {
+	g_mainThreadId = GetCurrentThreadId();
+
 	void* lookAliveFrameCall = hook::pattern("48 81 EC 60 01 00 00 E8 ? ? ? ? 33 F6 48 8D").count(1).get(0).get<void>(7);
 
 	hook::set_call(&g_origLookAlive, lookAliveFrameCall);

@@ -18,4 +18,39 @@ static HookFunction hookFunction([] ()
 
 		strcpy((char*)(location + *(int32_t*)location + 4), "fivem_set.bin");
 	}
+
+	// testing hook to not kill blip data when changing to a network game
+	{
+		char* location = hook::pattern("84 C0 0F 84 ? 00 00 00 40 38 3D ? ? ? ? 48").count(1).get(0).get<char>();
+
+		static struct : public jitasm::Frontend
+		{
+			void* retLoc;
+			void* cmpLoc;
+
+			void InternalMain() override
+			{
+				mov(rax, reinterpret_cast<uintptr_t>(cmpLoc));
+				mov(al, byte_ptr[rax]);
+
+				test(al, al);
+				jnz("doReturn");
+
+				mov(qword_ptr[rsp + 8], rbx);
+				mov(rax, reinterpret_cast<uintptr_t>(retLoc));
+
+				jmp(rax);
+
+				L("doReturn");
+				ret();
+			}
+		} stub;
+		
+		stub.retLoc = (location - 0x69 + 5);
+
+		char* cmpLocation = location + 11;
+		stub.cmpLoc = (void*)(cmpLocation + *(int32_t*)cmpLocation + 4);
+
+		hook::jump(location - 0x69, stub.GetCode());
+	}
 });
