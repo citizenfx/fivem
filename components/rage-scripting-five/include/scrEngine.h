@@ -110,7 +110,7 @@ private:
 	// Configuration
 	enum
 	{
-		MaxNativeParams = 16,
+		MaxNativeParams = 32,
 		ArgSize = 8,
 	};
 
