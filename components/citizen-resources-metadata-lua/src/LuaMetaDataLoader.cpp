@@ -25,7 +25,9 @@ private:
 private:
 	bool LoadFile(const std::string& filename);
 
-	bool DoFile(const std::string& filename);
+	bool DoFile(const std::string& filename, int results);
+
+	int PushExceptionHandler();
 
 public:
 	inline fx::ResourceMetaDataComponent* GetComponent()
@@ -70,27 +72,20 @@ bool LuaMetaDataLoader::LoadFile(const std::string& filename)
 	return true;
 }
 
-bool LuaMetaDataLoader::DoFile(const std::string& filename)
+int LuaMetaDataLoader::PushExceptionHandler()
+{
+	lua_getglobal(m_luaState, "debug");
+	lua_getfield(m_luaState, -1, "traceback");
+	lua_replace(m_luaState, -2);
+
+	return lua_gettop(m_luaState);
+}
+
+bool LuaMetaDataLoader::DoFile(const std::string& filename, int results)
 {
 	// put an error handler on the stack
-	lua_pushcfunction(m_luaState, [] (lua_State* L)
-	{
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
+	int eh = PushExceptionHandler();
 
-		lua_pop(L, -2);
-
-		lua_pushvalue(L, 1);
-		lua_pushinteger(L, 2);
-
-		lua_call(L, 2, 1);
-
-		trace("Lua error: %s\n", lua_tostring(L, -1));
-
-		return 1;
-	});
-
-	int eh = lua_gettop(m_luaState);
 	bool result = false;
 
 	// load the file
@@ -99,7 +94,7 @@ bool LuaMetaDataLoader::DoFile(const std::string& filename)
 		// call the top function
 		result = true;
 
-		if (lua_pcall(m_luaState, 0, 0, eh) != 0)
+		if (lua_pcall(m_luaState, 0, results, eh) != 0)
 		{
 			m_error = "Could not execute resource metadata file " + filename  + ": " + luaL_checkstring(m_luaState, -1);
 			lua_remove(m_luaState, -1);
@@ -108,7 +103,7 @@ bool LuaMetaDataLoader::DoFile(const std::string& filename)
 		}
 	}
 
-	lua_pop(m_luaState, 1);
+	lua_remove(m_luaState, eh);
 
 	return result;
 }
@@ -144,9 +139,12 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 
 	lua_setglobal(m_luaState, "AddMetaData");
 
+	// push the exception handler
+	int eh = PushExceptionHandler();
+
 	// run global initialization code
 	bool result = true;
-	//result = result && DoFile("citizen:/scripts/init/resource_init.lua");
+	result = result && DoFile("citizen:/scripting/resource_init.lua", 1);
 
 	// remove unsafe handlers from the Lua state
 	const char* unsafeGlobals[] = { "ffi", "require", "dofile", "load", "loadfile", "package", /*"AddMetaData", */"os", "io" };
@@ -158,7 +156,22 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	}
 
 	// run the user file
-	result = result && DoFile(resourcePath + "/__resource.lua");
+	result = result && LoadFile(resourcePath + "/__resource.lua");
+
+	if (result)
+	{
+		// invoke the init function with the resource chunk as argument
+		if (lua_pcall(m_luaState, 1, 0, eh) != 0)
+		{
+			m_error = "Could not execute resource metadata file " + resourcePath + "/__resource.lua: " + luaL_checkstring(m_luaState, -1);
+			lua_remove(m_luaState, -1);
+
+			result = false;
+		}
+	}
+
+	// remove the exception handler
+	lua_remove(m_luaState, eh);
 
 	if (!result && !m_error)
 	{
