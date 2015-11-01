@@ -156,6 +156,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 	// initialize event handler calls
 	fwRefContainer<ResourceEventComponent> eventComponent = m_resource->GetComponent<ResourceEventComponent>();
 
+	assert(eventComponent.GetRef());
+
 	if (eventComponent.GetRef())
 	{
 		// pre-cache event-handling runtimes
