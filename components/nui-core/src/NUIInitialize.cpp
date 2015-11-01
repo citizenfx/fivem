@@ -21,6 +21,9 @@
 
 static InitFunction initFunction([] ()
 {
+	// CEF keeps loading/unloading this - load it ourselves to make the refcount always 1
+	LoadLibrary(L"bluetoothapis.dll");
+
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
 
