@@ -31,10 +31,10 @@ static HookFunction hookFunction([] ()
 			void InternalMain() override
 			{
 				mov(rax, reinterpret_cast<uintptr_t>(cmpLoc));
-				mov(al, byte_ptr[rax]);
+				mov(eax, dword_ptr[rax]);
 
-				test(al, al);
-				jnz("doReturn");
+				cmp(eax, 0xFFFFFFFF);
+				jne("doReturn");
 
 				mov(qword_ptr[rsp + 8], rbx);
 				mov(rax, reinterpret_cast<uintptr_t>(retLoc));
@@ -48,7 +48,7 @@ static HookFunction hookFunction([] ()
 		
 		stub.retLoc = (location - 0x69 + 5);
 
-		char* cmpLocation = location + 11;
+		char* cmpLocation = location - 28;
 		stub.cmpLoc = (void*)(cmpLocation + *(int32_t*)cmpLocation + 4);
 
 		hook::jump(location - 0x69, stub.GetCode());
