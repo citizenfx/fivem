@@ -14,6 +14,8 @@
 #include "libcef_dll/ctocpp/v8value_ctocpp.h"
 
 
+namespace {
+
 // MEMBER FUNCTIONS - Body may be edited by hand.
 
 int CEF_CALLBACK v8handler_execute(struct _cef_v8handler_t* self,
@@ -50,7 +52,8 @@ int CEF_CALLBACK v8handler_execute(struct _cef_v8handler_t* self,
   std::vector<CefRefPtr<CefV8Value> > argumentsList;
   if (argumentsCount > 0) {
     for (size_t i = 0; i < argumentsCount; ++i) {
-      argumentsList.push_back(CefV8ValueCToCpp::Wrap(arguments[i]));
+      CefRefPtr<CefV8Value> argumentsVal = CefV8ValueCToCpp::Wrap(arguments[i]);
+      argumentsList.push_back(argumentsVal);
     }
   }
   // Translate param: retval; type: refptr_diff_byref
@@ -84,12 +87,19 @@ int CEF_CALLBACK v8handler_execute(struct _cef_v8handler_t* self,
   return _retval;
 }
 
+}  // namespace
+
 
 // CONSTRUCTOR - Do not edit by hand.
 
-CefV8HandlerCppToC::CefV8HandlerCppToC(CefV8Handler* cls)
-    : CefCppToC<CefV8HandlerCppToC, CefV8Handler, cef_v8handler_t>(cls) {
-  struct_.struct_.execute = v8handler_execute;
+CefV8HandlerCppToC::CefV8HandlerCppToC() {
+  GetStruct()->execute = v8handler_execute;
+}
+
+template<> CefRefPtr<CefV8Handler> CefCppToC<CefV8HandlerCppToC, CefV8Handler,
+    cef_v8handler_t>::UnwrapDerived(CefWrapperType type, cef_v8handler_t* s) {
+  NOTREACHED() << "Unexpected class type: " << type;
+  return NULL;
 }
 
 #ifndef NDEBUG
@@ -97,3 +107,5 @@ template<> base::AtomicRefCount CefCppToC<CefV8HandlerCppToC, CefV8Handler,
     cef_v8handler_t>::DebugObjCt = 0;
 #endif
 
+template<> CefWrapperType CefCppToC<CefV8HandlerCppToC, CefV8Handler,
+    cef_v8handler_t>::kWrapperType = WT_V8HANDLER;

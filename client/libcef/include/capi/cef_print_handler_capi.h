@@ -96,6 +96,15 @@ typedef struct _cef_print_handler_t {
   cef_base_t base;
 
   ///
+  // Called when printing has started for the specified |browser|. This function
+  // will be called before the other OnPrint*() functions and irrespective of
+  // how printing was initiated (e.g. cef_browser_host_t::print(), JavaScript
+  // window.print() or PDF extension print button).
+  ///
+  void (CEF_CALLBACK *on_print_start)(struct _cef_print_handler_t* self,
+      struct _cef_browser_t* browser);
+
+  ///
   // Synchronize |settings| with client state. If |get_defaults| is true (1)
   // then populate |settings| with the default print settings. Do not keep a
   // reference to |settings| outside of this callback.
@@ -124,6 +133,13 @@ typedef struct _cef_print_handler_t {
   // Reset client state related to printing.
   ///
   void (CEF_CALLBACK *on_print_reset)(struct _cef_print_handler_t* self);
+
+  ///
+  // Return the PDF paper size in device units. Used in combination with
+  // cef_browser_host_t::print_to_pdf().
+  ///
+  cef_size_t (CEF_CALLBACK *get_pdf_paper_size)(
+      struct _cef_print_handler_t* self, int device_units_per_inch);
 } cef_print_handler_t;
 
 

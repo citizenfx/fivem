@@ -161,8 +161,8 @@ class CefPoint : public CefStructBase<CefPointTraits> {
   }
 
   bool IsEmpty() const { return x <= 0 && y <= 0; }
-  void Set(int x, int y) {
-    this->x = x, this->y = y;
+  void Set(int x_val, int y_val) {
+    x = x_val, y = y_val;
   }
 };
 
@@ -202,8 +202,8 @@ class CefRect : public CefStructBase<CefRectTraits> {
   }
 
   bool IsEmpty() const { return width <= 0 || height <= 0; }
-  void Set(int x, int y, int width, int height) {
-    this->x = x, this->y = y, this->width = width, this->height = height;
+  void Set(int x_val, int y_val, int width_val, int height_val) {
+    x = x_val, y = y_val, width = width_val, height = height_val;
   }
 };
 
@@ -243,8 +243,8 @@ class CefSize : public CefStructBase<CefSizeTraits> {
   }
 
   bool IsEmpty() const { return width <= 0 || height <= 0; }
-  void Set(int width, int height) {
-    this->width = width, this->height = height;
+  void Set(int width_val, int height_val) {
+    width = width_val, height = height_val;
   }
 };
 
@@ -253,6 +253,50 @@ inline bool operator==(const CefSize& a, const CefSize& b) {
 }
 
 inline bool operator!=(const CefSize& a, const CefSize& b) {
+  return !(a == b);
+}
+
+
+struct CefDraggableRegionTraits {
+  typedef cef_draggable_region_t struct_type;
+
+  static inline void init(struct_type* s) {}
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing a draggable region.
+///
+class CefDraggableRegion : public CefStructBase<CefDraggableRegionTraits> {
+ public:
+  typedef CefStructBase<CefDraggableRegionTraits> parent;
+
+  CefDraggableRegion() : parent() {}
+  CefDraggableRegion(const cef_draggable_region_t& r)  // NOLINT(runtime/explicit)
+    : parent(r) {}
+  CefDraggableRegion(const CefDraggableRegion& r)  // NOLINT(runtime/explicit)
+    : parent(r) {}
+  CefDraggableRegion(const CefRect& bounds, bool draggable) : parent() {
+    Set(bounds, draggable);
+  }
+
+  void Set(const CefRect& bounds_val, bool draggable_val) {
+    bounds = bounds_val, draggable = draggable_val;
+  }
+};
+
+inline bool operator==(const CefDraggableRegion& a,
+    const CefDraggableRegion& b) {
+  return a.bounds == b.bounds && a.draggable == b.draggable;
+}
+
+inline bool operator!=(const CefDraggableRegion& a,
+    const CefDraggableRegion& b) {
   return !(a == b);
 }
 
@@ -296,18 +340,18 @@ class CefScreenInfo : public CefStructBase<CefScreenInfoTraits> {
         is_monochrome, rect, available_rect);
   }
 
-  void Set(float device_scale_factor,
-           int depth,
-           int depth_per_component,
-           bool is_monochrome,
-           const CefRect& rect,
-           const CefRect& available_rect) {
-    this->device_scale_factor = device_scale_factor;
-    this->depth = depth;
-    this->depth_per_component = depth_per_component;
-    this->is_monochrome = is_monochrome;
-    this->rect = rect;
-    this->available_rect = available_rect;
+  void Set(float device_scale_factor_val,
+           int depth_val,
+           int depth_per_component_val,
+           bool is_monochrome_val,
+           const CefRect& rect_val,
+           const CefRect& available_rect_val) {
+    device_scale_factor = device_scale_factor_val;
+    depth = depth_val;
+    depth_per_component = depth_per_component_val;
+    is_monochrome = is_monochrome_val;
+    rect = rect_val;
+    available_rect = available_rect_val;
   }
 };
 
@@ -445,6 +489,7 @@ struct CefSettingsTraits {
     cef_string_set(src->user_data_path.str, src->user_data_path.length,
         &target->user_data_path, copy);
     target->persist_session_cookies = src->persist_session_cookies;
+    target->persist_user_preferences = src->persist_user_preferences;
 
     cef_string_set(src->user_agent.str, src->user_agent.length,
         &target->user_agent, copy);
@@ -497,6 +542,7 @@ struct CefRequestContextSettingsTraits {
     cef_string_set(src->cache_path.str, src->cache_path.length,
         &target->cache_path, copy);
     target->persist_session_cookies = src->persist_session_cookies;
+    target->persist_user_preferences = src->persist_user_preferences;
     target->ignore_certificate_errors = src->ignore_certificate_errors;
     cef_string_set(src->accept_language_list.str,
         src->accept_language_list.length, &target->accept_language_list, copy);
@@ -561,7 +607,6 @@ struct CefBrowserSettingsTraits {
     target->javascript_access_clipboard = src->javascript_access_clipboard;
     target->javascript_dom_paste = src->javascript_dom_paste;
     target->caret_browsing = src->caret_browsing;
-    target->java = src->java;
     target->plugins = src->plugins;
     target->universal_access_from_file_urls =
         src->universal_access_from_file_urls;
@@ -778,13 +823,13 @@ class CefPageRange : public CefStructBase<CefPageRangeTraits> {
   CefPageRange(const cef_page_range_t& r)  // NOLINT(runtime/explicit)
       : parent(r) {}
   CefPageRange(const CefPageRange& r)  // NOLINT(runtime/explicit)
-      : parent(r) {} 
+      : parent(r) {}
   CefPageRange(int from, int to) : parent() {
     Set(from, to);
   }
 
-  void Set(int from, int to) {
-    this->from = from, this->to = to;
+  void Set(int from_val, int to_val) {
+    from = from_val, to = to_val;
   }
 };
 
@@ -817,5 +862,45 @@ struct CefCursorInfoTraits {
 // Class representing cursor information.
 ///
 typedef CefStructBase<CefCursorInfoTraits> CefCursorInfo;
+
+
+struct CefPdfPrintSettingsTraits {
+  typedef cef_pdf_print_settings_t struct_type;
+
+  static inline void init(struct_type* s) {}
+
+  static inline void clear(struct_type* s) {
+    cef_string_clear(&s->header_footer_title);
+    cef_string_clear(&s->header_footer_url);
+  }
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+
+    cef_string_set(src->header_footer_title.str,
+        src->header_footer_title.length, &target->header_footer_title, copy);
+    cef_string_set(src->header_footer_url.str, src->header_footer_url.length,
+        &target->header_footer_url, copy);
+
+    target->page_width = src->page_width;
+    target->page_height = src->page_height;
+
+    target->margin_top = src->margin_top;
+    target->margin_right = src->margin_right;
+    target->margin_bottom = src->margin_bottom;
+    target->margin_left = src->margin_left;
+    target->margin_type = src->margin_type;
+
+    target->header_footer_enabled = src->header_footer_enabled;
+    target->selection_only = src->selection_only;
+    target->landscape = src->landscape;
+    target->backgrounds_enabled = src->backgrounds_enabled;
+  }
+};
+
+///
+// Class representing PDF print settings
+///
+typedef CefStructBase<CefPdfPrintSettingsTraits> CefPdfPrintSettings;
 
 #endif  // CEF_INCLUDE_INTERNAL_CEF_TYPES_WRAPPERS_H_

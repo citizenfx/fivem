@@ -20,6 +20,7 @@ endmacro()
 set(LIBCEF_SRCS
   transfer_util.cc
   transfer_util.h
+  wrapper_types.h
   )
 source_group(libcef_dll FILES ${LIBCEF_SRCS})
 
@@ -42,6 +43,7 @@ source_group(libcef_dll\\\\base FILES ${LIBCEF_BASE_SRCS})
 set(LIBCEF_CPPTOC_SRCS
   cpptoc/app_cpptoc.cc
   cpptoc/app_cpptoc.h
+  cpptoc/base_cpptoc.cc
   cpptoc/base_cpptoc.h
   cpptoc/browser_process_handler_cpptoc.cc
   cpptoc/browser_process_handler_cpptoc.h
@@ -86,6 +88,8 @@ set(LIBCEF_CPPTOC_SRCS
   cpptoc/load_handler_cpptoc.h
   cpptoc/navigation_entry_visitor_cpptoc.cc
   cpptoc/navigation_entry_visitor_cpptoc.h
+  cpptoc/pdf_print_callback_cpptoc.cc
+  cpptoc/pdf_print_callback_cpptoc.h
   cpptoc/print_handler_cpptoc.cc
   cpptoc/print_handler_cpptoc.h
   cpptoc/read_handler_cpptoc.cc
@@ -130,7 +134,6 @@ source_group(libcef_dll\\\\cpptoc FILES ${LIBCEF_CPPTOC_SRCS})
 set(LIBCEF_CTOCPP_SRCS
   ctocpp/auth_callback_ctocpp.cc
   ctocpp/auth_callback_ctocpp.h
-  ctocpp/base_ctocpp.h
   ctocpp/before_download_callback_ctocpp.cc
   ctocpp/before_download_callback_ctocpp.h
   ctocpp/binary_value_ctocpp.cc
@@ -192,8 +195,12 @@ set(LIBCEF_CTOCPP_SRCS
   ctocpp/request_context_ctocpp.h
   ctocpp/request_ctocpp.cc
   ctocpp/request_ctocpp.h
+  ctocpp/resource_bundle_ctocpp.cc
+  ctocpp/resource_bundle_ctocpp.h
   ctocpp/response_ctocpp.cc
   ctocpp/response_ctocpp.h
+  ctocpp/run_context_menu_callback_ctocpp.cc
+  ctocpp/run_context_menu_callback_ctocpp.h
   ctocpp/scheme_registrar_ctocpp.cc
   ctocpp/scheme_registrar_ctocpp.h
   ctocpp/sslcert_principal_ctocpp.cc
@@ -273,6 +280,7 @@ set(LIBCEF_INCLUDE_SRCS
   ../include/cef_request_context.h
   ../include/cef_request_context_handler.h
   ../include/cef_request_handler.h
+  ../include/cef_resource_bundle.h
   ../include/cef_resource_bundle_handler.h
   ../include/cef_resource_handler.h
   ../include/cef_response.h
@@ -393,6 +401,7 @@ set(LIBCEF_INCLUDE_CAPI_SRCS
   ../include/capi/cef_request_context_capi.h
   ../include/capi/cef_request_context_handler_capi.h
   ../include/capi/cef_request_handler_capi.h
+  ../include/capi/cef_resource_bundle_capi.h
   ../include/capi/cef_resource_bundle_handler_capi.h
   ../include/capi/cef_resource_handler_capi.h
   ../include/capi/cef_response_capi.h
@@ -447,6 +456,7 @@ set(LIBCEF_INCLUDE_WRAPPER_SRCS
   ../include/wrapper/cef_closure_task.h
   ../include/wrapper/cef_helpers.h
   ../include/wrapper/cef_message_router.h
+  ../include/wrapper/cef_resource_manager.h
   ../include/wrapper/cef_stream_resource_handler.h
   ../include/wrapper/cef_xml_object.h
   ../include/wrapper/cef_zip_archive.h
@@ -458,6 +468,7 @@ set(LIBCEF_WRAPPER_SRCS
   wrapper/cef_byte_read_handler.cc
   wrapper/cef_closure_task.cc
   wrapper/cef_message_router.cc
+  wrapper/cef_resource_manager.cc
   wrapper/cef_stream_resource_handler.cc
   wrapper/cef_xml_object.cc
   wrapper/cef_zip_archive.cc
