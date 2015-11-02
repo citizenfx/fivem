@@ -27,6 +27,11 @@ bool NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 
 void NUIRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 {
+	// OnPaint shouldn't be reached anymore
+	//assert(!"NUIRenderHandler::OnPaint");
+
+	return;
+
 	if (m_owner->GetWindowValid())
 	{
 		// lock the window lock

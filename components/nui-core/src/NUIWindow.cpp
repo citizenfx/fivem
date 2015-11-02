@@ -11,10 +11,19 @@
 #include "NUIClient.h"
 #include "NUIWindowManager.h"
 
+#include <DrawCommands.h>
+
 #include "memdbgon.h"
 
+namespace egl
+{
+	unsigned int DLL_IMPORT SetSwapFrameHandler(void(*handler)(void*));
+
+	unsigned int DLL_IMPORT GetMainWindowSharedHandle(HANDLE* shared_handle);
+}
+
 NUIWindow::NUIWindow(bool primary, int width, int height)
-	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_renderBufferDirty(false), m_onClientCreated(nullptr), m_nuiTexture(nullptr)
+	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr)
 {
 	Instance<NUIWindowManager>::Get()->AddWindow(this);
 }
@@ -67,13 +76,13 @@ void NUIWindow::Initialize(CefString url)
 	textureDef.isStaging = 0;
 	textureDef.arraySize = 1;
 
-	m_nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(m_width, m_height, FORMAT_A8R8G8B8, nullptr, true, &textureDef);
+	m_nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(m_width, m_height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
 
 	// create the client/browser instance
 	m_client = new NUIClient(this);
 
 	CefWindowInfo info;
-	info.SetAsWindowless(GetDesktopWindow(), true);
+	info.SetAsWindowless(NULL, true);
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
@@ -81,6 +90,14 @@ void NUIWindow::Initialize(CefString url)
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
+
+	static NUIWindow* window = this;
+	
+	egl::SetSwapFrameHandler([] (void*)
+	{
+		window->UpdateSharedResource();
+	});
+
 }
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
@@ -93,6 +110,51 @@ void NUIWindow::AddDirtyRect(const CefRect& rect)
 CefBrowser* NUIWindow::GetBrowser()
 {
 	return ((NUIClient*)m_client.get())->GetBrowser();
+}
+
+void NUIWindow::UpdateSharedResource()
+{
+	static bool createdClient;
+
+	static HANDLE lastParentHandle;
+
+	HANDLE parentHandle;
+	if (egl::GetMainWindowSharedHandle(&parentHandle))
+	{
+		if (lastParentHandle != parentHandle)
+		{
+			lastParentHandle = parentHandle;
+
+			ID3D11Device* device = GetD3D11Device();
+
+			ID3D11Resource* resource = nullptr;
+			if (SUCCEEDED(device->OpenSharedResource(parentHandle, __uuidof(IDXGIResource), (void**)&resource)))
+			{
+				ID3D11Texture2D* texture;
+				assert(SUCCEEDED(resource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&texture)));
+
+				NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
+				ID3D11Texture2D* oldTexture = nullptr;
+
+				if (wm->GetParentTexture())
+				{
+					oldTexture = wm->GetParentTexture();
+				}
+
+				wm->SetParentTexture(texture);
+
+				// only release afterward to prevent the parent texture being invalid
+				if (oldTexture)
+				{
+					oldTexture->Release();
+				}
+
+				createdClient = true;
+			}
+		}
+	}
+
+	MarkRenderBufferDirty();
 }
 
 void NUIWindow::UpdateFrame()
@@ -118,79 +180,31 @@ void NUIWindow::UpdateFrame()
 
 	m_pollQueue.clear();
 
-	if (m_renderBufferDirty)
+	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
+	ID3D11Texture2D* texture = wm->GetParentTexture();
+
+	if (texture)
 	{
-		//int timeBegin = timeGetTime();
+		IDXGIKeyedMutex* keyedMutex;
+		texture->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&keyedMutex);
 
-		void* pBits = nullptr;
-		int pitch;
-		bool discarded = false;
-
-#ifndef _HAS_GRCTEXTURE_MAP
-		D3DLOCKED_RECT lockedRect;
-		m_nuiTexture->m_pITexture->LockRect(0, &lockedRect, NULL, 0);
-
-		pBits = lockedRect.pBits;
-		pitch = lockedRect.Pitch;
-#else
-		rage::grcLockedTexture lockedTexture;
-
-		if (m_nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
+		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		{
-			pBits = lockedTexture.pBits;
-			pitch = lockedTexture.pitch;
-		}
-		else if (m_nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
-		{
-			pBits = lockedTexture.pBits;
-			pitch = lockedTexture.pitch;
-
-			discarded = true;
-		}
-#endif
-
-		if (pBits)
-		{
-			if (!discarded)
+			if (keyedMutex->AcquireSync(1, 5) == S_OK)
 			{
-				while (!m_dirtyRects.empty())
-				{
-					EnterCriticalSection(&m_renderBufferLock);
-					CefRect rect = m_dirtyRects.front();
-					m_dirtyRects.pop();
-					LeaveCriticalSection(&m_renderBufferLock);
+				ID3D11DeviceContext* deviceContext = GetD3D11DeviceContext();
+				assert(deviceContext);
 
-					for (int y = rect.y; y < (rect.y + rect.height); y++)
-					{
-						int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
-						int* dest = &((int*)(pBits))[(y * (pitch / 4)) + rect.x];
-
-						memcpy(dest, src, (rect.width * 4));
-					}
-				}
+				deviceContext->CopyResource(m_nuiTexture->texture, texture);
 			}
 			else
 			{
-				EnterCriticalSection(&m_renderBufferLock);
-				m_dirtyRects = std::queue<CefRect>();
-				LeaveCriticalSection(&m_renderBufferLock);
-
-				memcpy(pBits, m_renderBuffer, m_height * pitch);
+				MarkRenderBufferDirty();
 			}
 		}
 
-#ifndef _HAS_GRCTEXTURE_MAP
-		m_nuiTexture->m_pITexture->UnlockRect(0);
-#else
-		if (pBits)
-		{
-			m_nuiTexture->Unmap(&lockedTexture);
-		}
-#endif
-
-		//int duration = timeGetTime() - timeBegin;
-
-		m_renderBufferDirty = false;
+		keyedMutex->ReleaseSync(0);
+		keyedMutex->Release();
 	}
 }
 

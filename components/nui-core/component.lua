@@ -4,7 +4,7 @@ libdirs { "../../client/libcef/lib/" }
 
 includedirs { "../../client/libcef/" }
 
-links { "libcef_dll", "delayimp" }
+links { "libcef_dll", "delayimp", "libGLESv2" }
 
 filter 'architecture:not x64'
 	links { "libcef" }

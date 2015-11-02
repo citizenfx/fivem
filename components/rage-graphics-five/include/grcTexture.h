@@ -1,5 +1,7 @@
 #pragma once
 
+#include <d3d11.h>
+
 #define _HAS_GRCTEXTURE_MAP 1
 
 #ifdef COMPILING_RAGE_GRAPHICS_FIVE
@@ -96,6 +98,13 @@ public:
 
 public:
 	static bool GAMESPEC_EXPORT IsRenderSystemColorSwapped();
+
+	// D3D11 specific
+private:
+	char m_pad[48];
+
+public:
+	ID3D11Resource* texture;
 };
 
 #define FORMAT_A8R8G8B8 40

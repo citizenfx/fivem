@@ -57,7 +57,7 @@ static InitFunction initFunction([] ()
 	cSettings.multi_threaded_message_loop = true;
 	cSettings.remote_debugging_port = 13172;
 	cSettings.pack_loading_disabled = false; // true;
-	cSettings.windowless_rendering_enabled = true;
+	cSettings.windowless_rendering_enabled = false; // true;
 	cef_string_utf16_set(L"en-US", 5, &cSettings.locale, true);
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");

@@ -44,7 +44,7 @@ private:
 	int m_roundedWidth;
 	int m_roundedHeight;
 
-	bool m_renderBufferDirty;
+	unsigned long m_dirtyFlag;
 	CRITICAL_SECTION m_renderBufferLock;
 	char* m_renderBuffer;
 
@@ -66,7 +66,7 @@ public:
 public:
 	void			AddDirtyRect(const CefRect& rect);
 
-	inline void		MarkRenderBufferDirty() { m_renderBufferDirty = true; }
+	inline void		MarkRenderBufferDirty() { InterlockedIncrement(&m_dirtyFlag); }
 
 public:
 	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url);
@@ -83,6 +83,8 @@ public:
 	CefBrowser* GetBrowser();
 
 	void SignalPoll(std::string& argument);
+
+	void UpdateSharedResource();
 
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{

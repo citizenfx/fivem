@@ -59,6 +59,13 @@ static void LoadsDoSceneWrap()
 	g_loadsDoScene();
 }
 
+#pragma comment(lib, "d3d11.lib")
+
+static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// device creation
@@ -106,4 +113,9 @@ static HookFunction hookFunction([] ()
 	// temp: d3d debug layer
 	//static void* gFunc = D3D11CreateDeviceAndSwapChain2;
 	//hook::put(0xF107CE, &gFunc);
+
+	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
+	void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
+	hook::nop(createDeviceLoc, 6);
+	hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
 });

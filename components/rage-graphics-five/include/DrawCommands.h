@@ -15,6 +15,9 @@
 #define GAMESPEC_EXPORT __declspec(dllimport)
 #endif
 
+GAMESPEC_EXPORT ID3D11Device* GetD3D11Device();
+GAMESPEC_EXPORT ID3D11DeviceContext* GetD3D11DeviceContext();
+
 void GAMESPEC_EXPORT EnqueueGenericDrawCommand(void(*cb)(uintptr_t, uintptr_t), uintptr_t* arg1, uintptr_t* arg2);
 
 bool GAMESPEC_EXPORT IsOnRenderThread();

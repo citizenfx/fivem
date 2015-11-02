@@ -27,6 +27,8 @@ protected:
 
 	virtual bool GetDataResource(int resourceID, void*& data, size_t& data_size) override;
 
+	virtual bool GetDataResourceForScale(int resource_id, ScaleFactor scale_factor, void*& data, size_t& data_size) override;
+
 	virtual bool GetLocalizedString(int messageID, CefString& string) override;
 
 	virtual void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;

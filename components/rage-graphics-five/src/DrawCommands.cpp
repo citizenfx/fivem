@@ -377,9 +377,29 @@ void SetImDiffuseSamplerState(uint32_t samplerStateIdentifier)
 	setSamplerState(struc, (void*)(*gtaImShader), *g_imDiffuseSampler, samplerStateIdentifier);
 }
 
+static ID3D11Device** g_d3d11Device;
+static int g_d3d11DeviceContextOffset;
+
+ID3D11Device* GetD3D11Device()
+{
+	return *g_d3d11Device;
+}
+
+ID3D11DeviceContext* GetD3D11DeviceContext()
+{
+	return *(ID3D11DeviceContext**)(*(uintptr_t*)(__readgsqword(88)) + g_d3d11DeviceContextOffset);
+}
+
 static HookFunction hookFunction([] ()
 {
-	char* location = hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<char>(-4);
+	char* location = hook::pattern("44 8B CE 33 D2 48 89 0D").count(1).get(0).get<char>(8);
+
+	g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
+
+	g_d3d11DeviceContextOffset = *(int*)(location - 59);
+
+	// things
+	location = hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<char>(-4);
 
 	g_nextRasterizerState = (uint32_t*)(*(int32_t*)location + location + 4);
 

@@ -89,7 +89,7 @@ static InitFunction initFunction([] ()
 #ifndef GTA_FIVE
 					DrawImSprite(-0.5f, -0.5f, resX - 0.5f, resY - 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 #else
-					DrawImSprite(0, 0, resX, resY, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+					DrawImSprite(0, 0, resX, resY, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, &color, 0);
 #endif
 				}
 
