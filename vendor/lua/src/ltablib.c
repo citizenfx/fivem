@@ -209,7 +209,7 @@ static int unpack (lua_State *L) {
     float x, y; lua_checkvector2(L, 1, &x, &y);
     lua_pushnumber(L,x);
     lua_pushnumber(L,y);
-    return 3;
+    return 2;
   } else if (lua_gettop(L)==1 && lua_isvector3(L,1)) {
     float x, y, z; lua_checkvector3(L, 1, &x, &y, &z);
     lua_pushnumber(L,x);
