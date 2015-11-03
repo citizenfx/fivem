@@ -33,17 +33,17 @@ class BOTAN_DLL PSSR : public EMSA
 
       static PSSR* make(const Spec& spec);
    private:
-      void update(const byte input[], size_t length);
+      void update(const byte input[], size_t length) override;
 
-      secure_vector<byte> raw_data();
+      secure_vector<byte> raw_data() override;
 
       secure_vector<byte> encoding_of(const secure_vector<byte>& msg,
                                       size_t output_bits,
-                                      RandomNumberGenerator& rng);
+                                      RandomNumberGenerator& rng) override;
 
       bool verify(const secure_vector<byte>& coded,
                   const secure_vector<byte>& raw,
-                  size_t key_bits);
+                  size_t key_bits) override;
 
       size_t SALT_SIZE;
       std::unique_ptr<HashFunction> hash;

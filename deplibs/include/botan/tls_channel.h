@@ -24,6 +24,7 @@ namespace TLS {
 class Connection_Cipher_State;
 class Connection_Sequence_Numbers;
 class Handshake_State;
+class Handshake_Message;
 
 /**
 * Generic interface for TLS endpoint
@@ -35,15 +36,18 @@ class BOTAN_DLL Channel
       typedef std::function<void (const byte[], size_t)> data_cb;
       typedef std::function<void (Alert, const byte[], size_t)> alert_cb;
       typedef std::function<bool (const Session&)> handshake_cb;
+      typedef std::function<void (const Handshake_Message&)> handshake_msg_cb;
 
       Channel(output_fn out,
               data_cb app_data_cb,
               alert_cb alert_cb,
               handshake_cb hs_cb,
+              handshake_msg_cb hs_msg_cb,
               Session_Manager& session_manager,
               RandomNumberGenerator& rng,
+              const Policy& policy,
               bool is_datagram,
-              size_t reserved_io_buffer_size);
+              size_t io_buf_sz = 16*1024);
 
       Channel(const Channel&) = delete;
 
@@ -84,7 +88,7 @@ class BOTAN_DLL Channel
       template<typename Alloc>
          void send(const std::vector<unsigned char, Alloc>& val)
          {
-         send(&val[0], val.size());
+         send(val.data(), val.size());
          }
 
       /**
@@ -196,6 +200,8 @@ class BOTAN_DLL Channel
 
       Handshake_State& create_handshake_state(Protocol_Version version);
 
+      void inspect_handshake_message(const Handshake_Message& msg);
+
       void activate_session();
 
       void change_cipher_spec_reader(Connection_Side side);
@@ -214,8 +220,11 @@ class BOTAN_DLL Channel
 
       Session_Manager& session_manager() { return m_session_manager; }
 
+      const Policy& policy() const { return m_policy; }
+
       bool save_session(const Session& session) const { return m_handshake_cb(session); }
 
+      handshake_msg_cb get_handshake_msg_cb() const { return m_handshake_msg_cb; }
    private:
       size_t maximum_fragment_size() const;
 
@@ -245,14 +254,16 @@ class BOTAN_DLL Channel
       bool m_is_datagram;
 
       /* callbacks */
-      handshake_cb m_handshake_cb;
       data_cb m_data_cb;
       alert_cb m_alert_cb;
       output_fn m_output_fn;
+      handshake_cb m_handshake_cb;
+      handshake_msg_cb m_handshake_msg_cb;
 
       /* external state */
-      RandomNumberGenerator& m_rng;
       Session_Manager& m_session_manager;
+      const Policy& m_policy;
+      RandomNumberGenerator& m_rng;
 
       /* sequence number state */
       std::unique_ptr<Connection_Sequence_Numbers> m_sequence_numbers;

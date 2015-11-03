@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL DH_PublicKey : public virtual DL_Scheme_PublicKey
    {
    public:
-      std::string algo_name() const { return "DH"; }
+      std::string algo_name() const override { return "DH"; }
 
       std::vector<byte> public_value() const;
-      size_t max_input_bits() const { return group_p().bits(); }
+      size_t max_input_bits() const override { return group_p().bits(); }
 
-      DL_Group::Format group_format() const { return DL_Group::ANSI_X9_42; }
+      DL_Group::Format group_format() const override { return DL_Group::ANSI_X9_42; }
 
       DH_PublicKey(const AlgorithmIdentifier& alg_id,
                    const secure_vector<byte>& key_bits) :
@@ -47,7 +47,7 @@ class BOTAN_DLL DH_PrivateKey : public DH_PublicKey,
                                 public virtual DL_Scheme_PrivateKey
    {
    public:
-      std::vector<byte> public_value() const;
+      std::vector<byte> public_value() const override;
 
       /**
       * Load a DH private key

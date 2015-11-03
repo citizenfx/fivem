@@ -18,7 +18,7 @@ namespace Botan {
 class BOTAN_DLL RW_PublicKey : public virtual IF_Scheme_PublicKey
    {
    public:
-      std::string algo_name() const { return "RW"; }
+      std::string algo_name() const override { return "RW"; }
 
       RW_PublicKey(const AlgorithmIdentifier& alg_id,
                    const secure_vector<byte>& key_bits) :
@@ -53,7 +53,7 @@ class BOTAN_DLL RW_PrivateKey : public RW_PublicKey,
 
       RW_PrivateKey(RandomNumberGenerator& rng, size_t bits, size_t = 2);
 
-      bool check_key(RandomNumberGenerator& rng, bool) const;
+      bool check_key(RandomNumberGenerator& rng, bool) const override;
    };
 
 }

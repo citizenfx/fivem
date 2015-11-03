@@ -25,9 +25,9 @@ class BOTAN_DLL HKDF : public KDF
 
       static HKDF* make(const Spec& spec);
 
-      KDF* clone() const { return new HKDF(m_prf->clone()); }
+      KDF* clone() const override { return new HKDF(m_prf->clone()); }
 
-      std::string name() const { return "HKDF(" + m_prf->name() + ")"; }
+      std::string name() const override { return "HKDF(" + m_prf->name() + ")"; }
 
       size_t kdf(byte out[], size_t out_len,
                  const byte secret[], size_t secret_len,

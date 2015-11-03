@@ -118,6 +118,8 @@ class BOTAN_DLL CPUID
       static bool has_rdseed()
          { return x86_processor_flags_has(CPUID_RDSEED_BIT); }
 
+      static bool has_simd_32();
+
       static void print(std::ostream& o);
    private:
       enum CPUID_bits {

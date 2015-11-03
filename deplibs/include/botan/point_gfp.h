@@ -2,7 +2,7 @@
 * Point arithmetic on elliptic curves over GF(p)
 *
 * (C) 2007 Martin Doering, Christoph Ludwig, Falko Strenzke
-*     2008-2011,2014 Jack Lloyd
+*     2008-2011,2014,2015 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -57,6 +57,11 @@ class BOTAN_DLL PointGFp
       * @param curve The base curve
       */
       PointGFp(const CurveGFp& curve);
+
+      static PointGFp zero_of(const CurveGFp& curve)
+         {
+         return PointGFp(curve);
+         }
 
       /**
       * Copy constructor
@@ -113,6 +118,7 @@ class BOTAN_DLL PointGFp
       * @param scalar the PointGFp to multiply with *this
       * @result resulting PointGFp
       */
+
       PointGFp& operator*=(const BigInt& scalar);
 
       /**
@@ -142,7 +148,7 @@ class BOTAN_DLL PointGFp
       PointGFp& negate()
          {
          if(!is_zero())
-            coord_y = curve.get_p() - coord_y;
+            m_coord_y = m_curve.get_p() - m_coord_y;
          return *this;
          }
 
@@ -150,7 +156,7 @@ class BOTAN_DLL PointGFp
       * Return base curve of this point
       * @result the curve over GF(p) of this point
       */
-      const CurveGFp& get_curve() const { return curve; }
+      const CurveGFp& get_curve() const { return m_curve; }
 
       /**
       * get affine x coordinate
@@ -169,7 +175,7 @@ class BOTAN_DLL PointGFp
       * @result true, if this point is at infinity, false otherwise.
       */
       bool is_zero() const
-         { return (coord_x.is_zero() && coord_z.is_zero()); }
+         { return (m_coord_x.is_zero() && m_coord_z.is_zero()); }
 
       /**
       * Checks whether the point is to be found on the underlying
@@ -185,33 +191,40 @@ class BOTAN_DLL PointGFp
       void swap(PointGFp& other);
 
       /**
+      * Randomize the point representation
+      * The actual value (get_affine_x, get_affine_y) does not change
+      */
+      void randomize_repr(RandomNumberGenerator& rng);
+
+      /**
       * Equality operator
       */
       bool operator==(const PointGFp& other) const;
    private:
+      friend class Blinded_Point_Multiply;
 
       BigInt curve_mult(const BigInt& x, const BigInt& y) const
          {
          BigInt z;
-         curve.mul(z, x, y, ws);
+         m_curve.mul(z, x, y, m_monty_ws);
          return z;
          }
 
       void curve_mult(BigInt& z, const BigInt& x, const BigInt& y) const
          {
-         curve.mul(z, x, y, ws);
+         m_curve.mul(z, x, y, m_monty_ws);
          }
 
       BigInt curve_sqr(const BigInt& x) const
          {
          BigInt z;
-         curve.sqr(z, x, ws);
+         m_curve.sqr(z, x, m_monty_ws);
          return z;
          }
 
       void curve_sqr(BigInt& z, const BigInt& x) const
          {
-         curve.sqr(z, x, ws);
+         m_curve.sqr(z, x, m_monty_ws);
          }
 
       /**
@@ -226,9 +239,9 @@ class BOTAN_DLL PointGFp
       */
       void mult2(std::vector<BigInt>& workspace);
 
-      CurveGFp curve;
-      BigInt coord_x, coord_y, coord_z;
-      mutable secure_vector<word> ws; // workspace for Montgomery
+      CurveGFp m_curve;
+      BigInt m_coord_x, m_coord_y, m_coord_z;
+      mutable secure_vector<word> m_monty_ws; // workspace for Montgomery
    };
 
 // relational operators
@@ -268,7 +281,23 @@ PointGFp BOTAN_DLL OS2ECP(const byte data[], size_t data_len,
 
 template<typename Alloc>
 PointGFp OS2ECP(const std::vector<byte, Alloc>& data, const CurveGFp& curve)
-   { return OS2ECP(&data[0], data.size(), curve); }
+   { return OS2ECP(data.data(), data.size(), curve); }
+
+/**
+
+*/
+class BOTAN_DLL Blinded_Point_Multiply
+   {
+   public:
+      Blinded_Point_Multiply(const PointGFp& base, const BigInt& order, size_t h = 0);
+
+      PointGFp blinded_multiply(const BigInt& scalar, RandomNumberGenerator& rng);
+   private:
+      const size_t m_h;
+      const BigInt& m_order;
+      std::vector<BigInt> m_ws;
+      std::vector<PointGFp> m_U;
+   };
 
 }
 

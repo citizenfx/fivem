@@ -27,15 +27,15 @@ class BOTAN_DLL Keccak_1600 : public HashFunction
       */
       Keccak_1600(size_t output_bits = 512);
 
-      size_t hash_block_size() const { return bitrate / 8; }
-      size_t output_length() const { return output_bits / 8; }
+      size_t hash_block_size() const override { return bitrate / 8; }
+      size_t output_length() const override { return output_bits / 8; }
 
-      HashFunction* clone() const;
-      std::string name() const;
-      void clear();
+      HashFunction* clone() const override;
+      std::string name() const override;
+      void clear() override;
    private:
-      void add_data(const byte input[], size_t length);
-      void final_result(byte out[]);
+      void add_data(const byte input[], size_t length) override;
+      void final_result(byte out[]) override;
 
       size_t output_bits, bitrate;
       secure_vector<u64bit> S;

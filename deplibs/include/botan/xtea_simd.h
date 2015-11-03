@@ -18,11 +18,11 @@ namespace Botan {
 class BOTAN_DLL XTEA_SIMD : public XTEA
    {
    public:
-      size_t parallelism() const { return 8; }
+      size_t parallelism() const override { return 8; }
 
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
-      BlockCipher* clone() const { return new XTEA_SIMD; }
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      BlockCipher* clone() const override { return new XTEA_SIMD; }
    };
 
 }

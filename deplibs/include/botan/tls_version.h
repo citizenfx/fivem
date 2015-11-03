@@ -8,7 +8,7 @@
 #ifndef BOTAN_TLS_PROTOCOL_VERSION_H__
 #define BOTAN_TLS_PROTOCOL_VERSION_H__
 
-#include <botan/get_byte.h>
+#include <botan/loadstor.h>
 #include <string>
 
 namespace Botan {

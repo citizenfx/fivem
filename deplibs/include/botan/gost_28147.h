@@ -52,13 +52,13 @@ class BOTAN_DLL GOST_28147_89_Params
 class BOTAN_DLL GOST_28147_89 : public Block_Cipher_Fixed_Params<8, 32>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
+      void clear() override;
 
-      std::string name() const;
-      BlockCipher* clone() const { return new GOST_28147_89(SBOX); }
+      std::string name() const override;
+      BlockCipher* clone() const override { return new GOST_28147_89(SBOX); }
 
       /**
       * @param params the sbox parameters to use
@@ -68,7 +68,7 @@ class BOTAN_DLL GOST_28147_89 : public Block_Cipher_Fixed_Params<8, 32>
       GOST_28147_89(const std::vector<u32bit>& other_SBOX) :
          SBOX(other_SBOX), EK(8) {}
 
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       /*
       * The sbox is not secret, this is just a larger expansion of it

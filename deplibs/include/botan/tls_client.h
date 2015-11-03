@@ -67,6 +67,20 @@ class BOTAN_DLL Client : public Channel
              size_t reserved_io_buffer_size = 16*1024
          );
 
+      Client(output_fn out,
+             data_cb app_data_cb,
+             alert_cb alert_cb,
+             handshake_cb hs_cb,
+             handshake_msg_cb hs_msg_cb,
+             Session_Manager& session_manager,
+             Credentials_Manager& creds,
+             const Policy& policy,
+             RandomNumberGenerator& rng,
+             const Server_Information& server_info = Server_Information(),
+             const Protocol_Version offer_version = Protocol_Version::latest_tls_version(),
+             const std::vector<std::string>& next_protocols = {}
+         );
+
       const std::string& application_protocol() const { return m_application_protocol; }
    private:
       std::vector<X509_Certificate>
@@ -88,7 +102,6 @@ class BOTAN_DLL Client : public Channel
 
       Handshake_State* new_handshake_state(Handshake_IO* io) override;
 
-      const Policy& m_policy;
       Credentials_Manager& m_creds;
       const Server_Information m_info;
       std::string m_application_protocol;

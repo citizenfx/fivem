@@ -18,20 +18,20 @@ namespace Botan {
 class BOTAN_DLL Cascade_Cipher : public BlockCipher
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      size_t block_size() const { return m_block; }
+      size_t block_size() const override { return m_block; }
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return Key_Length_Specification(m_cipher1->maximum_keylength() +
                                          m_cipher2->maximum_keylength());
          }
 
-      void clear();
-      std::string name() const;
-      BlockCipher* clone() const;
+      void clear() override;
+      std::string name() const override;
+      BlockCipher* clone() const override;
 
       static Cascade_Cipher* make(const Spec& spec);
 
@@ -45,7 +45,7 @@ class BOTAN_DLL Cascade_Cipher : public BlockCipher
       Cascade_Cipher(const Cascade_Cipher&) = delete;
       Cascade_Cipher& operator=(const Cascade_Cipher&) = delete;
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       size_t m_block;
       std::unique_ptr<BlockCipher> m_cipher1, m_cipher2;

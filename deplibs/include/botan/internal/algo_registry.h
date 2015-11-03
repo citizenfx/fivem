@@ -7,7 +7,7 @@
 #ifndef BOTAN_ALGO_REGISTRY_H__
 #define BOTAN_ALGO_REGISTRY_H__
 
-#include <botan/lookup.h>
+#include <botan/types.h>
 #include <functional>
 #include <stdexcept>
 #include <mutex>
@@ -35,7 +35,8 @@ class Algo_Registry
       void add(const std::string& name, const std::string& provider, maker_fn fn, byte pref)
          {
          std::unique_lock<std::mutex> lock(m_mutex);
-         m_algo_info[name].add_provider(provider, fn, pref);
+         if(!m_algo_info[name].add_provider(provider, fn, pref))
+            throw std::runtime_error("Duplicated registration of " + name + "/" + provider);
          }
 
       std::vector<std::string> providers_of(const Spec& spec)
@@ -102,13 +103,14 @@ class Algo_Registry
       struct Algo_Info
          {
          public:
-            void add_provider(const std::string& provider, maker_fn fn, byte pref)
+            bool add_provider(const std::string& provider, maker_fn fn, byte pref)
                {
                if(m_maker_fns.count(provider) > 0)
-                  throw std::runtime_error("Duplicated registration of '" + provider + "'");
+                  return false;
 
                m_maker_fns[provider] = fn;
                m_prefs.insert(std::make_pair(pref, provider));
+               return true;
                }
 
             std::vector<std::string> providers() const
@@ -152,7 +154,7 @@ class Algo_Registry
                return r;
                }
          private:
-            std::multimap<byte, std::string> m_prefs;
+            std::multimap<byte, std::string, std::greater<byte>> m_prefs;
             std::unordered_map<std::string, maker_fn> m_maker_fns;
          };
 
@@ -212,30 +214,39 @@ make_new_T_1X(const typename Algo_Registry<T>::Spec& spec)
    return new T(x.release());
    }
 
+// Append to macros living outside of functions, so that invocations must end with a semicolon.
+// The struct is only declared to force the semicolon, it is never defined.
+#define BOTAN_FORCE_SEMICOLON struct BOTAN_DUMMY_STRUCT
+
 #define BOTAN_REGISTER_TYPE(T, type, name, maker, provider, pref)        \
-   namespace { Algo_Registry<T>::Add g_ ## type ## _reg(name, maker, provider, pref); }
+   namespace { Algo_Registry<T>::Add g_ ## type ## _reg(name, maker, provider, pref); } \
+   BOTAN_FORCE_SEMICOLON
 
 #define BOTAN_REGISTER_TYPE_COND(cond, T, type, name, maker, provider, pref) \
-   namespace { Algo_Registry<T>::Add g_ ## type ## _reg(cond, name, maker, provider, pref); }
+   namespace { Algo_Registry<T>::Add g_ ## type ## _reg(cond, name, maker, provider, pref); } \
+   BOTAN_FORCE_SEMICOLON
+
+#define BOTAN_DEFAULT_ALGORITHM_PRIO 100
+#define BOTAN_SIMD_ALGORITHM_PRIO    110
 
 #define BOTAN_REGISTER_NAMED_T(T, name, type, maker)                 \
-   BOTAN_REGISTER_TYPE(T, type, name, maker, "base", 128)
+   BOTAN_REGISTER_TYPE(T, type, name, maker, "base", BOTAN_DEFAULT_ALGORITHM_PRIO)
 
 #define BOTAN_REGISTER_T(T, type, maker)                                \
-   BOTAN_REGISTER_TYPE(T, type, #type, maker, "base", 128)
+   BOTAN_REGISTER_TYPE(T, type, #type, maker, "base", BOTAN_DEFAULT_ALGORITHM_PRIO)
 
 #define BOTAN_REGISTER_T_NOARGS(T, type) \
-   BOTAN_REGISTER_TYPE(T, type, #type, make_new_T<type>, "base", 128)
+   BOTAN_REGISTER_TYPE(T, type, #type, make_new_T<type>, "base", BOTAN_DEFAULT_ALGORITHM_PRIO)
 #define BOTAN_REGISTER_T_1LEN(T, type, def) \
-   BOTAN_REGISTER_TYPE(T, type, #type, (make_new_T_1len<type,def>), "base", 128)
+   BOTAN_REGISTER_TYPE(T, type, #type, (make_new_T_1len<type,def>), "base", BOTAN_DEFAULT_ALGORITHM_PRIO)
 
 #define BOTAN_REGISTER_NAMED_T_NOARGS(T, type, name, provider) \
-   BOTAN_REGISTER_TYPE(T, type, name, make_new_T<type>, provider, 128)
+   BOTAN_REGISTER_TYPE(T, type, name, make_new_T<type>, provider, BOTAN_DEFAULT_ALGORITHM_PRIO)
 #define BOTAN_COND_REGISTER_NAMED_T_NOARGS(cond, T, type, name, provider, pref) \
    BOTAN_REGISTER_TYPE_COND(cond, T, type, name, make_new_T<type>, provider, pref)
 
 #define BOTAN_REGISTER_NAMED_T_2LEN(T, type, name, provider, len1, len2) \
-   BOTAN_REGISTER_TYPE(T, type, name, (make_new_T_2len<type,len1,len2>), provider, 128)
+   BOTAN_REGISTER_TYPE(T, type, name, (make_new_T_2len<type,len1,len2>), provider, BOTAN_DEFAULT_ALGORITHM_PRIO)
 
 // TODO move elsewhere:
 #define BOTAN_REGISTER_TRANSFORM(name, maker) BOTAN_REGISTER_T(Transform, name, maker)

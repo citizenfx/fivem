@@ -10,7 +10,6 @@
 
 #include <botan/x509_obj.h>
 #include <botan/x509_dn.h>
-#include <botan/pkcs8.h>
 #include <botan/datastor.h>
 #include <botan/key_constraint.h>
 #include <botan/asn1_attribute.h>
@@ -100,7 +99,7 @@ class BOTAN_DLL PKCS10_Request : public X509_Object
       */
       PKCS10_Request(const std::vector<byte>& vec);
    private:
-      void force_decode();
+      void force_decode() override;
       void handle_attribute(const Attribute&);
 
       Data_Store info;

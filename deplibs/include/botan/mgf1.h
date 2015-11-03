@@ -8,7 +8,6 @@
 #ifndef BOTAN_MGF1_H__
 #define BOTAN_MGF1_H__
 
-#include <botan/kdf.h>
 #include <botan/hash.h>
 
 namespace Botan {

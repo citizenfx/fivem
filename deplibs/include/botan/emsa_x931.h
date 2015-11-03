@@ -26,14 +26,14 @@ class BOTAN_DLL EMSA_X931 : public EMSA
       */
       EMSA_X931(HashFunction* hash);
    private:
-      void update(const byte[], size_t);
-      secure_vector<byte> raw_data();
+      void update(const byte[], size_t) override;
+      secure_vector<byte> raw_data() override;
 
       secure_vector<byte> encoding_of(const secure_vector<byte>&, size_t,
-                                     RandomNumberGenerator& rng);
+                                     RandomNumberGenerator& rng) override;
 
       bool verify(const secure_vector<byte>&, const secure_vector<byte>&,
-                  size_t);
+                  size_t) override;
 
       secure_vector<byte> m_empty_hash;
       std::unique_ptr<HashFunction> m_hash;

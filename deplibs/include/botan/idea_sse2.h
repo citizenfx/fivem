@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL IDEA_SSE2 : public IDEA
    {
    public:
-      size_t parallelism() const { return 8; }
+      size_t parallelism() const override { return 8; }
 
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      BlockCipher* clone() const { return new IDEA_SSE2; }
+      BlockCipher* clone() const override { return new IDEA_SSE2; }
    };
 
 }

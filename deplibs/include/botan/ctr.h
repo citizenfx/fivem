@@ -19,24 +19,24 @@ namespace Botan {
 class BOTAN_DLL CTR_BE : public StreamCipher
    {
    public:
-      void cipher(const byte in[], byte out[], size_t length);
+      void cipher(const byte in[], byte out[], size_t length) override;
 
-      void set_iv(const byte iv[], size_t iv_len);
+      void set_iv(const byte iv[], size_t iv_len) override;
 
-      bool valid_iv_length(size_t iv_len) const
+      bool valid_iv_length(size_t iv_len) const override
          { return (iv_len <= m_cipher->block_size()); }
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return m_cipher->key_spec();
          }
 
-      std::string name() const;
+      std::string name() const override;
 
-      CTR_BE* clone() const
+      CTR_BE* clone() const override
          { return new CTR_BE(m_cipher->clone()); }
 
-      void clear();
+      void clear() override;
 
       static CTR_BE* make(const Spec& spec);
 
@@ -45,7 +45,7 @@ class BOTAN_DLL CTR_BE : public StreamCipher
       */
       CTR_BE(BlockCipher* cipher);
    private:
-      void key_schedule(const byte key[], size_t key_len);
+      void key_schedule(const byte key[], size_t key_len) override;
       void increment_counter();
 
       std::unique_ptr<BlockCipher> m_cipher;

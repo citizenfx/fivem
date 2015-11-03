@@ -18,8 +18,6 @@ namespace Botan {
 */
 const size_t MP_WORD_BITS = BOTAN_MP_WORD_BITS;
 
-extern "C" {
-
 /**
 * Two operand addition
 * @param x the first operand (and output)
@@ -159,8 +157,6 @@ void bigint_comba_sqr6(word out[12], const word in[6]);
 void bigint_comba_sqr8(word out[16], const word in[8]);
 void bigint_comba_sqr9(word out[18], const word in[9]);
 void bigint_comba_sqr16(word out[32], const word in[16]);
-
-}
 
 /*
 * High Level Multiplication/Squaring Interfaces

@@ -1,25 +1,24 @@
-
 #ifndef BOTAN_BUILD_CONFIG_H__
 #define BOTAN_BUILD_CONFIG_H__
 
 /*
-* This file was automatically generated Sun May 10 21:34:31 2015 UTC by
-* Bas@fallarbor running 'configure.py --disable-modules=win32_stats'
+* This file was automatically generated Tue Nov 03 16:56:56 2015 UTC by
+* Bas@fallarbor running 'configure.py --disable-modules=win32_stats --with-build-dir=buildx64 --with-debug-info'
 *
 * Target
-*  - Compiler: cl /MD /O2
+*  - Compiler: cl  /MD /bigobj /EHs /GR /Zi /FS /O2
 *  - Arch: x86_64/x86_64
 *  - OS: windows
 */
 
 #define BOTAN_VERSION_MAJOR 1
 #define BOTAN_VERSION_MINOR 11
-#define BOTAN_VERSION_PATCH 16
+#define BOTAN_VERSION_PATCH 24
 #define BOTAN_VERSION_DATESTAMP 0
 
 #define BOTAN_VERSION_RELEASE_TYPE "unreleased"
 
-#define BOTAN_VERSION_VC_REVISION "git:9426f6d0f4a760c555379c3af642127df7e1456e"
+#define BOTAN_VERSION_VC_REVISION "git:d475735cbe21d9d0dd3f39fb936cdaac8ef56e30"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 
@@ -58,12 +57,45 @@
 * If enabled the ECC implementation will use Montgomery ladder
 * instead of a fixed window implementation.
 */
-#define BOTAN_CURVE_GFP_USE_MONTGOMERY_LADDER 0
+#define BOTAN_POINTGFP_BLINDED_MULTIPLY_USE_MONTGOMERY_LADDER 0
+
+/*
+* Set number of bits used to generate mask for blinding the scalar of
+* a point multiplication. Set to zero to disable this side-channel
+* countermeasure.
+*/
+#define BOTAN_POINTGFP_SCALAR_BLINDING_BITS 20
+
+/*
+* Set number of bits used to generate mask for blinding the
+* representation of an ECC point. Set to zero to diable this
+* side-channel countermeasure.
+*/
+#define BOTAN_POINTGFP_RANDOMIZE_BLINDING_BITS 80
+
+/*
+* Normally blinding is performed by choosing a random starting point (plus
+* its inverse, of a form appropriate to the algorithm being blinded), and
+* then choosing new blinding operands by successive squaring of both
+* values. This is much faster than computing a new starting point but
+* introduces some possible coorelation
+*
+* To avoid possible leakage problems in long-running processes, the blinder
+* periodically reinitializes the sequence. This value specifies how often
+* a new sequence should be started.
+*/
+#define BOTAN_BLINDING_REINIT_INTERVAL 32
 
 /* PK key consistency checking toggles */
 #define BOTAN_PUBLIC_KEY_STRONG_CHECKS_ON_LOAD 1
 #define BOTAN_PRIVATE_KEY_STRONG_CHECKS_ON_LOAD 0
 #define BOTAN_PRIVATE_KEY_STRONG_CHECKS_ON_GENERATE 1
+
+/*
+* Define BOTAN_USE_CTGRIND to enable checking constant time
+* annotations using ctgrind https://github.com/agl/ctgrind
+*/
+//#define BOTAN_USE_CTGRIND
 
 /*
 * RNGs will automatically poll the system for additional seed material
@@ -79,10 +111,6 @@
   #define BOTAN_USE_GCC_INLINE_ASM 1
 #endif
 
-#if !defined(BOTAN_USE_GCC_INLINE_ASM)
-  #define BOTAN_USE_GCC_INLINE_ASM 0
-#endif
-
 #ifdef __GNUC__
   #define BOTAN_GCC_VERSION \
      (__GNUC__ * 100 + __GNUC_MINOR__ * 10 + __GNUC_PATCHLEVEL__)
@@ -95,8 +123,10 @@
 #define BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM
 #define BOTAN_TARGET_OS_HAS_GMTIME_S
 #define BOTAN_TARGET_OS_HAS_LOADLIBRARY
+#define BOTAN_TARGET_OS_HAS_MKGMTIME
 #define BOTAN_TARGET_OS_HAS_QUERY_PERF_COUNTER
 #define BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY
+#define BOTAN_TARGET_OS_HAS_STL_FILESYSTEM_MSVC
 #define BOTAN_TARGET_OS_HAS_VIRTUAL_LOCK
 
 #define BOTAN_TARGET_ARCH_IS_X86_64
@@ -190,11 +220,10 @@
 #define BOTAN_HAS_BASE64_CODEC 20131128
 #define BOTAN_HAS_BCRYPT 20131128
 #define BOTAN_HAS_BIGINT 20131128
-#define BOTAN_HAS_BIGINT_MATH 20131128
 #define BOTAN_HAS_BIGINT_MP 20131128
 #define BOTAN_HAS_BLOCK_CIPHER 20131128
 #define BOTAN_HAS_BLOWFISH 20131128
-#define BOTAN_HAS_CAMELLIA 20131128
+#define BOTAN_HAS_CAMELLIA 20150922
 #define BOTAN_HAS_CASCADE 20131128
 #define BOTAN_HAS_CAST 20131128
 #define BOTAN_HAS_CBC_MAC 20131128
@@ -206,7 +235,6 @@
 #define BOTAN_HAS_COMPRESSION 20141117
 #define BOTAN_HAS_CRC24 20131128
 #define BOTAN_HAS_CRC32 20131128
-#define BOTAN_HAS_CREDENTIALS_MANAGER 20131128
 #define BOTAN_HAS_CRYPTO_BOX 20131128
 #define BOTAN_HAS_CTR_BE 20131128
 #define BOTAN_HAS_CURVE_25519 20141227
@@ -234,7 +262,7 @@
 #define BOTAN_HAS_ENTROPY_SOURCE 20150201
 #define BOTAN_HAS_ENTROPY_SRC_CAPI 20131128
 #define BOTAN_HAS_ENTROPY_SRC_HIGH_RESOLUTION_TIMER 20131128
-#define BOTAN_HAS_FFI 20150210
+#define BOTAN_HAS_FFI 20151015
 #define BOTAN_HAS_FILTERS 20131128
 #define BOTAN_HAS_FPE_FE1 20131128
 #define BOTAN_HAS_GCM_CLMUL 20131227
@@ -259,20 +287,24 @@
 #define BOTAN_HAS_KECCAK 20131128
 #define BOTAN_HAS_KEYPAIR_TESTING 20131128
 #define BOTAN_HAS_LION 20131128
+#define BOTAN_HAS_MAC 20150626
 #define BOTAN_HAS_MARS 20131128
-#define BOTAN_HAS_MCELIECE 20141124
+#define BOTAN_HAS_MCEIES 20150706
+#define BOTAN_HAS_MCELIECE 20150922
 #define BOTAN_HAS_MD2 20131128
 #define BOTAN_HAS_MD4 20131128
 #define BOTAN_HAS_MD5 20131128
 #define BOTAN_HAS_MDX_HASH_FUNCTION 20131128
 #define BOTAN_HAS_MGF1 20140118
 #define BOTAN_HAS_MISTY1 20131128
+#define BOTAN_HAS_MODES 20150626
 #define BOTAN_HAS_MODE_CBC 20131128
 #define BOTAN_HAS_MODE_CFB 20131128
 #define BOTAN_HAS_MODE_ECB 20131128
 #define BOTAN_HAS_MODE_XTS 20131128
 #define BOTAN_HAS_NOEKEON 20131128
 #define BOTAN_HAS_NOEKEON_SIMD 20131128
+#define BOTAN_HAS_NUMBERTHEORY 20131128
 #define BOTAN_HAS_NYBERG_RUEPPEL 20131128
 #define BOTAN_HAS_OCSP 20131128
 #define BOTAN_HAS_OFB 20131128
@@ -281,6 +313,7 @@
 #define BOTAN_HAS_PACKAGE_TRANSFORM 20131128
 #define BOTAN_HAS_PARALLEL_HASH 20131128
 #define BOTAN_HAS_PASSHASH9 20131128
+#define BOTAN_HAS_PBKDF 20150626
 #define BOTAN_HAS_PBKDF1 20131128
 #define BOTAN_HAS_PBKDF2 20131128
 #define BOTAN_HAS_PEM_CODEC 20131128
@@ -326,9 +359,9 @@
 #define BOTAN_HAS_TLS_V12_PRF 20131128
 #define BOTAN_HAS_TRANSFORM 20131209
 #define BOTAN_HAS_TWOFISH 20131128
-#define BOTAN_HAS_UTIL_FUNCTIONS 20140123
+#define BOTAN_HAS_UTIL_FUNCTIONS 20150919
 #define BOTAN_HAS_WHIRLPOOL 20131128
-#define BOTAN_HAS_X509_CERTIFICATES 20131128
+#define BOTAN_HAS_X509_CERTIFICATES 20151023
 #define BOTAN_HAS_X931_RNG 20131128
 #define BOTAN_HAS_X942_PRF 20131128
 #define BOTAN_HAS_XTEA 20131128

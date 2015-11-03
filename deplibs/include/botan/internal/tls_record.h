@@ -12,7 +12,6 @@
 #include <botan/tls_version.h>
 #include <botan/aead.h>
 #include <botan/block_cipher.h>
-#include <botan/stream_cipher.h>
 #include <botan/mac.h>
 #include <vector>
 #include <chrono>
@@ -53,8 +52,6 @@ class Connection_Cipher_State
 
       BlockCipher* block_cipher() { return m_block_cipher.get(); }
 
-      StreamCipher* stream_cipher() { return m_stream_cipher.get(); }
-
       MessageAuthenticationCode* mac() { return m_mac.get(); }
 
       secure_vector<byte>& cbc_state() { return m_block_cipher_cbc_state; }
@@ -82,7 +79,6 @@ class Connection_Cipher_State
       std::chrono::system_clock::time_point m_start_time;
       std::unique_ptr<BlockCipher> m_block_cipher;
       secure_vector<byte> m_block_cipher_cbc_state;
-      std::unique_ptr<StreamCipher> m_stream_cipher;
       std::unique_ptr<MessageAuthenticationCode> m_mac;
 
       std::unique_ptr<AEAD_Mode> m_aead;

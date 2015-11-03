@@ -39,8 +39,8 @@ enum CRL_Code {
 class BOTAN_DLL CRL_Entry : public ASN1_Object
    {
    public:
-      void encode_into(class DER_Encoder&) const;
-      void decode_from(class BER_Decoder&);
+      void encode_into(class DER_Encoder&) const override;
+      void decode_from(class BER_Decoder&) override;
 
       /**
       * Get the serial number of the certificate associated with this entry.

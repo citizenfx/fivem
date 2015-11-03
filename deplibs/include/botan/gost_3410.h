@@ -40,11 +40,11 @@ class BOTAN_DLL GOST_3410_PublicKey : public virtual EC_PublicKey
       * Get this keys algorithm name.
       * @result this keys algorithm name
       */
-      std::string algo_name() const { return "GOST-34.10"; }
+      std::string algo_name() const override { return "GOST-34.10"; }
 
-      AlgorithmIdentifier algorithm_identifier() const;
+      AlgorithmIdentifier algorithm_identifier() const override;
 
-      std::vector<byte> x509_subject_public_key() const;
+      std::vector<byte> x509_subject_public_key() const override;
 
       /**
       * Get the maximum number of bits allowed to be fed to this key.
@@ -52,11 +52,11 @@ class BOTAN_DLL GOST_3410_PublicKey : public virtual EC_PublicKey
 
       * @result the maximum number of input bits
       */
-      size_t max_input_bits() const { return domain().get_order().bits(); }
+      size_t max_input_bits() const override { return domain().get_order().bits(); }
 
-      size_t message_parts() const { return 2; }
+      size_t message_parts() const override { return 2; }
 
-      size_t message_part_size() const
+      size_t message_part_size() const override
          { return domain().get_order().bytes(); }
 
    protected:
@@ -86,7 +86,7 @@ class BOTAN_DLL GOST_3410_PrivateKey : public GOST_3410_PublicKey,
                            const BigInt& x = 0) :
          EC_PrivateKey(rng, domain, x) {}
 
-      AlgorithmIdentifier pkcs8_algorithm_identifier() const
+      AlgorithmIdentifier pkcs8_algorithm_identifier() const override
          { return EC_PublicKey::algorithm_identifier(); }
    };
 

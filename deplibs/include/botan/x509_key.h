@@ -10,7 +10,7 @@
 
 #include <botan/pk_keys.h>
 #include <botan/alg_id.h>
-#include <botan/pipe.h>
+#include <botan/data_src.h>
 #include <string>
 
 namespace Botan {

@@ -49,7 +49,7 @@ std::string BOTAN_DLL base64_encode(const byte input[],
 template<typename Alloc>
 std::string base64_encode(const std::vector<byte, Alloc>& input)
    {
-   return base64_encode(&input[0], input.size());
+   return base64_encode(input.data(), input.size());
    }
 
 /**

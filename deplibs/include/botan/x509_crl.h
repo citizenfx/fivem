@@ -99,7 +99,7 @@ class BOTAN_DLL X509_CRL : public X509_Object
                bool throw_on_unknown_critical = false);
 
    private:
-      void force_decode();
+      void force_decode() override;
 
       bool throw_on_unknown_critical;
       std::vector<CRL_Entry> revoked;

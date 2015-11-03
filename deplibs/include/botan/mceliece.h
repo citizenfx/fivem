@@ -9,141 +9,128 @@
  *
  */
 
-#ifndef BOTAN_MCELIECE_H__
-#define BOTAN_MCELIECE_H__
+#ifndef BOTAN_MCELIECE_KEY_H__
+#define BOTAN_MCELIECE_KEY_H__
 
-#include <botan/secmem.h>
-#include <botan/types.h>
-#include <botan/pk_ops.h>
-#include <botan/mceliece_key.h>
-
-#define MASK_LOG2_BYTE ((1 << 3) - 1)
-#define _BITP_TO_BYTEP(__bit_pos) (__bit_pos >> 3)
-#define _BITP_TO_BYTEOFFS(__bit_pos) (__bit_pos & MASK_LOG2_BYTE)
+#include <botan/pk_keys.h>
+#include <botan/polyn_gf2m.h>
+#include <botan/exceptn.h>
 
 namespace Botan {
 
-secure_vector<gf2m> BOTAN_DLL create_random_error_positions(unsigned code_length, unsigned error_weight, RandomNumberGenerator& rng);
-
-class mceliece_message_parts
+class BOTAN_DLL McEliece_PublicKey : public virtual Public_Key
    {
    public:
+      McEliece_PublicKey(const std::vector<byte>& key_bits);
 
-      mceliece_message_parts(const secure_vector<gf2m>& err_pos, const byte* message, u32bit message_length, u32bit code_length) :
-         m_error_vector(error_vector_from_error_positions(&err_pos[0], err_pos.size(), code_length)),
-         m_code_length(code_length)
-         {
-         m_message_word.resize(message_length);
-         copy_mem(&m_message_word[0], message, message_length);
-         }
+      McEliece_PublicKey(std::vector<byte> const& pub_matrix, u32bit the_t, u32bit the_code_length) :
+         m_public_matrix(pub_matrix),
+         m_t(the_t),
+         m_code_length(the_code_length)
+            {}
 
-      mceliece_message_parts(const secure_vector<gf2m>& err_pos, const secure_vector<byte>& message, unsigned code_length) :
-         m_error_vector(error_vector_from_error_positions(&err_pos[0], err_pos.size(), code_length)),
-         m_message_word(message),
-         m_code_length(code_length)
-         {}
+      McEliece_PublicKey(const McEliece_PublicKey& other);
 
-      static secure_vector<byte> error_vector_from_error_positions(const gf2m* err_pos, size_t err_pos_len, size_t code_length)
-         {
-         secure_vector<byte> result((code_length+7)/8);
-         for(unsigned i = 0; i < err_pos_len; i++)
-            {
-            u16bit pos = err_pos[i];
-            u32bit byte_pos = _BITP_TO_BYTEP(pos);
-            if(byte_pos > result.size())
-               {
-               throw Invalid_Argument("error position larger than code size");
-               }
-            result[byte_pos] |= (1 << _BITP_TO_BYTEOFFS(pos));
-            }
-         return result;
-         }
+      secure_vector<byte> random_plaintext_element(RandomNumberGenerator& rng) const;
 
-      mceliece_message_parts(const byte* message_concat_errors, size_t message_concat_errors_len, unsigned code_length) :
-         m_code_length(code_length)
-         {
-         size_t err_vec_len = (code_length+7)/8;
-         if(message_concat_errors_len < err_vec_len )
-            {
-            throw Invalid_Argument("cannot split McEliece message parts");
-            }
-         size_t err_vec_start_pos = message_concat_errors_len - err_vec_len;
-         m_message_word = secure_vector<byte>(err_vec_start_pos );
-         copy_mem(&m_message_word[0], &message_concat_errors[0], err_vec_start_pos);
-         m_error_vector = secure_vector<byte>(err_vec_len );
-         copy_mem(&m_error_vector[0],  &message_concat_errors[err_vec_start_pos], err_vec_len);
-         }
+      std::string algo_name() const override { return "McEliece"; }
 
-      secure_vector<byte> get_concat() const
-         {
-         secure_vector<byte> result(m_error_vector.size() + m_message_word.size());
-         copy_mem(&result[0], &m_message_word[0], m_message_word.size());
-         copy_mem(&result[m_message_word.size()], &m_error_vector[0], m_error_vector.size());
-         return result;
-         }
+      /**
+      * Get the maximum number of bits allowed to be fed to this key.
+      * @result the maximum number of input bits
+      */
+      size_t max_input_bits() const override { return get_message_word_bit_length(); }
 
-      secure_vector<gf2m> get_error_positions() const
-         {
-         secure_vector<gf2m> result;
-         for(unsigned i = 0; i < m_code_length; i++)
-            {
-            if(i >= m_code_length)
-               {
-               throw Invalid_Argument("index out of range in get_error_positions()");
-               }
-            if((m_error_vector[_BITP_TO_BYTEP(i)] >> _BITP_TO_BYTEOFFS(i)) & 1)
-               {
-               result.push_back(i);
-               }
-            }
-         return result;
-         }
+      AlgorithmIdentifier algorithm_identifier() const override;
 
-      secure_vector<byte> get_error_vector() const { return m_error_vector; }
-      secure_vector<byte> get_message_word() const { return m_message_word; }
-   private:
-      secure_vector<byte> m_error_vector;
-      secure_vector<byte> m_message_word;
-      unsigned m_code_length;
-   };
+      size_t estimated_strength() const override;
 
-class BOTAN_DLL McEliece_Private_Operation : public PK_Ops::Decryption
-   {
-   public:
-      McEliece_Private_Operation(const McEliece_PrivateKey& mce_key);
+      std::vector<byte> x509_subject_public_key() const override;
 
-      size_t max_input_bits() const { return m_priv_key.max_input_bits();  }
+      bool check_key(RandomNumberGenerator&, bool) const override
+         { return true; }
 
-      secure_vector<byte> decrypt(const byte msg[], size_t msg_len);
+      u32bit get_t() const { return m_t; }
+      u32bit get_code_length() const { return m_code_length; }
+      u32bit get_message_word_bit_length() const;
+      const std::vector<byte>& get_public_matrix() const { return m_public_matrix; }
 
-      McEliece_PrivateKey const& get_key() const { return m_priv_key; }
+      bool operator==(const McEliece_PublicKey& other) const;
+      bool operator!=(const McEliece_PublicKey& other) const { return !(*this == other); }
 
-   private:
-      const McEliece_PrivateKey m_priv_key;
-   };
+   protected:
+      McEliece_PublicKey() {}
 
-class BOTAN_DLL McEliece_Public_Operation : public PK_Ops::Encryption
-   {
-   public:
-      McEliece_Public_Operation(const McEliece_PublicKey& public_key, u32bit code_length);
-
-      size_t max_input_bits() const { return m_pub_key.max_input_bits(); }
-      secure_vector<byte> encrypt(const byte msg[], size_t msg_len, RandomNumberGenerator&);
-
-      McEliece_PublicKey const& get_key() const { return m_pub_key; }
-
-   private:
-      McEliece_PublicKey m_pub_key;
+      std::vector<byte> m_public_matrix;
+      u32bit m_t;
       u32bit m_code_length;
+   };
+
+class BOTAN_DLL McEliece_PrivateKey : public virtual McEliece_PublicKey,
+                                      public virtual Private_Key
+   {
+   public:
+      /**
+      * Get the maximum number of bits allowed to be fed to this key.
+      * @result the maximum number of input bits
+      */
+      size_t max_input_bits() const override { return m_Linv.size(); }
+
+      /**
+      Generate a McEliece key pair
+
+      Suggested parameters for a given security level (SL)
+
+      SL=80 n=1632 t=33 - 59 KB pubkey 140 KB privkey
+      SL=107 n=2480 t=45 - 128 KB pubkey 300 KB privkey
+      SL=128 n=2960 t=57 - 195 KB pubkey 459 KB privkey
+      SL=147 n=3408 t=67 - 265 KB pubkey 622 KB privkey
+      SL=191 n=4624 t=95 - 516 KB pubkey 1234 KB privkey
+      SL=256 n=6624 t=115 - 942 KB pubkey 2184 KB privkey
+      */
+      McEliece_PrivateKey(RandomNumberGenerator& rng, size_t code_length, size_t t);
+
+      McEliece_PrivateKey(const secure_vector<byte>& key_bits);
+
+      McEliece_PrivateKey(polyn_gf2m const& goppa_polyn,
+                          std::vector<u32bit> const& parity_check_matrix_coeffs,
+                          std::vector<polyn_gf2m> const& square_root_matrix,
+                          std::vector<gf2m> const& inverse_support,
+                          std::vector<byte> const& public_matrix );
+
+      bool check_key(RandomNumberGenerator& rng, bool strong) const override;
+
+      polyn_gf2m const& get_goppa_polyn() const { return m_g; }
+      std::vector<u32bit> const& get_H_coeffs() const { return m_coeffs; }
+      std::vector<gf2m> const& get_Linv() const { return m_Linv; }
+      std::vector<polyn_gf2m> const& get_sqrtmod() const { return m_sqrtmod; }
+
+      inline u32bit get_dimension() const { return m_dimension; }
+
+      inline u32bit get_codimension() const { return m_codimension; }
+
+      secure_vector<byte> pkcs8_private_key() const override;
+
+      bool operator==(const McEliece_PrivateKey & other) const;
+
+      bool operator!=(const McEliece_PrivateKey& other) const { return !(*this == other); }
+
+   private:
+      polyn_gf2m m_g;
+      std::vector<polyn_gf2m> m_sqrtmod;
+      std::vector<gf2m> m_Linv;
+      std::vector<u32bit> m_coeffs;
+
+      u32bit m_codimension;
+      u32bit m_dimension;
    };
 
 /**
 * Estimate work factor for McEliece
 * @return estimated security level for these key parameters
 */
-BOTAN_DLL size_t mceliece_work_factor(size_t code_size, size_t k, size_t t);
+BOTAN_DLL size_t mceliece_work_factor(size_t code_size, size_t t);
 
 }
-
 
 #endif

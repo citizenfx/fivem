@@ -22,21 +22,21 @@ class BOTAN_DLL Poly1305 : public MessageAuthenticationCode
    public:
       std::string name() const override { return "Poly1305"; }
 
-      MessageAuthenticationCode* clone() const { return new Poly1305; }
+      MessageAuthenticationCode* clone() const override { return new Poly1305; }
 
-      void clear();
+      void clear() override;
 
-      size_t output_length() const { return 16; }
+      size_t output_length() const override { return 16; }
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return Key_Length_Specification(32);
          }
 
    private:
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
-      void key_schedule(const byte[], size_t);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
+      void key_schedule(const byte[], size_t) override;
 
       secure_vector<u64bit> m_poly;
       secure_vector<byte> m_buf;

@@ -18,19 +18,19 @@ namespace Botan {
 class BOTAN_DLL MD2 : public HashFunction
    {
    public:
-      std::string name() const { return "MD2"; }
-      size_t output_length() const { return 16; }
-      size_t hash_block_size() const { return 16; }
-      HashFunction* clone() const { return new MD2; }
+      std::string name() const override { return "MD2"; }
+      size_t output_length() const override { return 16; }
+      size_t hash_block_size() const override { return 16; }
+      HashFunction* clone() const override { return new MD2; }
 
-      void clear();
+      void clear() override;
 
       MD2() : X(48), checksum(16), buffer(16)
          { clear(); }
    private:
-      void add_data(const byte[], size_t);
+      void add_data(const byte[], size_t) override;
       void hash(const byte[]);
-      void final_result(byte[]);
+      void final_result(byte[]) override;
 
       secure_vector<byte> X, checksum, buffer;
       size_t position;

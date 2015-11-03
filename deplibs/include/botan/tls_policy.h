@@ -13,6 +13,7 @@
 #include <botan/x509cert.h>
 #include <botan/dl_group.h>
 #include <vector>
+#include <sstream>
 
 namespace Botan {
 
@@ -173,6 +174,12 @@ class BOTAN_DLL Policy
       virtual std::vector<u16bit> ciphersuite_list(Protocol_Version version,
                                                    bool have_srp) const;
 
+      virtual size_t dtls_default_mtu() const;
+
+      virtual size_t dtls_initial_timeout() const;
+
+      virtual size_t dtls_maximum_timeout() const;
+
       virtual void print(std::ostream& o) const;
 
       virtual ~Policy() {}
@@ -297,6 +304,14 @@ class BOTAN_DLL Text_Policy : public Policy
             r.push_back(to_u32bit(p));
             }
          return r;
+         }
+
+      void set(const std::string& k, const std::string& v) { m_kv[k] = v; }
+
+      Text_Policy(const std::string& s)
+         {
+         std::istringstream iss(s);
+         m_kv = read_cfg(iss);
          }
 
       Text_Policy(std::istream& in)

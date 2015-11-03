@@ -21,20 +21,22 @@ namespace Botan {
 class BOTAN_DLL EMSA_PKCS1v15 : public EMSA
    {
    public:
+      static EMSA* make(const EMSA::Spec& spec);
+
       /**
       * @param hash the hash object to use
       */
       EMSA_PKCS1v15(HashFunction* hash);
 
-      void update(const byte[], size_t);
+      void update(const byte[], size_t) override;
 
-      secure_vector<byte> raw_data();
+      secure_vector<byte> raw_data() override;
 
       secure_vector<byte> encoding_of(const secure_vector<byte>&, size_t,
-                                     RandomNumberGenerator& rng);
+                                     RandomNumberGenerator& rng) override;
 
       bool verify(const secure_vector<byte>&, const secure_vector<byte>&,
-                  size_t);
+                  size_t) override;
    private:
       std::unique_ptr<HashFunction> m_hash;
       std::vector<byte> m_hash_id;
@@ -48,15 +50,15 @@ class BOTAN_DLL EMSA_PKCS1v15 : public EMSA
 class BOTAN_DLL EMSA_PKCS1v15_Raw : public EMSA
    {
    public:
-      void update(const byte[], size_t);
+      void update(const byte[], size_t) override;
 
-      secure_vector<byte> raw_data();
+      secure_vector<byte> raw_data() override;
 
       secure_vector<byte> encoding_of(const secure_vector<byte>&, size_t,
-                                     RandomNumberGenerator& rng);
+                                     RandomNumberGenerator& rng) override;
 
       bool verify(const secure_vector<byte>&, const secure_vector<byte>&,
-                  size_t);
+                  size_t) override;
 
    private:
       secure_vector<byte> message;

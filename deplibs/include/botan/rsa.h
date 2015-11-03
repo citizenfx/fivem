@@ -19,7 +19,7 @@ namespace Botan {
 class BOTAN_DLL RSA_PublicKey : public virtual IF_Scheme_PublicKey
    {
    public:
-      std::string algo_name() const { return "RSA"; }
+      std::string algo_name() const override { return "RSA"; }
 
       RSA_PublicKey(const AlgorithmIdentifier& alg_id,
                     const secure_vector<byte>& key_bits) :
@@ -46,7 +46,7 @@ class BOTAN_DLL RSA_PrivateKey : public RSA_PublicKey,
                                  public IF_Scheme_PrivateKey
    {
    public:
-      bool check_key(RandomNumberGenerator& rng, bool) const;
+      bool check_key(RandomNumberGenerator& rng, bool) const override;
 
       RSA_PrivateKey(const AlgorithmIdentifier& alg_id,
                      const secure_vector<byte>& key_bits,

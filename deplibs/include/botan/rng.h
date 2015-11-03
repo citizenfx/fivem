@@ -42,19 +42,45 @@ class BOTAN_DLL RandomNumberGenerator
       virtual secure_vector<byte> random_vec(size_t bytes)
          {
          secure_vector<byte> output(bytes);
-         randomize(&output[0], output.size());
+         randomize(output.data(), output.size());
          return output;
+         }
+
+      /**
+      * Only usable with POD types, only useful with integers
+      * get_random<u64bit>()
+      */
+      template<typename T> T get_random()
+         {
+         T r;
+         this->randomize(reinterpret_cast<byte*>(&r), sizeof(r));
+         return r;
+         }
+
+      /**
+      * Return a value in range [0,2^bits)
+      */
+      u64bit gen_mask(size_t bits)
+         {
+         if(bits == 0 || bits > 64)
+            throw std::invalid_argument("RandomNumberGenerator::gen_mask invalid argument");
+
+         const u64bit mask = ((1 << bits) - 1);
+         return this->get_random<u64bit>() & mask;
          }
 
       /**
       * Return a random byte
       * @return random byte
       */
-      byte next_byte()
+      byte next_byte() { return get_random<byte>(); }
+
+      byte next_nonzero_byte()
          {
-         byte out;
-         this->randomize(&out, 1);
-         return out;
+         byte b = next_byte();
+         while(b == 0)
+            b = next_byte();
+         return b;
          }
 
       /**
@@ -120,37 +146,37 @@ class BOTAN_DLL Null_RNG : public RandomNumberGenerator
 class BOTAN_DLL Serialized_RNG : public RandomNumberGenerator
    {
    public:
-      void randomize(byte out[], size_t len)
+      void randomize(byte out[], size_t len) override
          {
          std::lock_guard<std::mutex> lock(m_mutex);
          m_rng->randomize(out, len);
          }
 
-      bool is_seeded() const
+      bool is_seeded() const override
          {
          std::lock_guard<std::mutex> lock(m_mutex);
          return m_rng->is_seeded();
          }
 
-      void clear()
+      void clear() override
          {
          std::lock_guard<std::mutex> lock(m_mutex);
          m_rng->clear();
          }
 
-      std::string name() const
+      std::string name() const override
          {
          std::lock_guard<std::mutex> lock(m_mutex);
          return m_rng->name();
          }
 
-      void reseed(size_t poll_bits)
+      void reseed(size_t poll_bits) override
          {
          std::lock_guard<std::mutex> lock(m_mutex);
          m_rng->reseed(poll_bits);
          }
 
-      void add_entropy(const byte in[], size_t len)
+      void add_entropy(const byte in[], size_t len) override
          {
          std::lock_guard<std::mutex> lock(m_mutex);
          m_rng->add_entropy(in, len);

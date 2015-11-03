@@ -19,27 +19,44 @@ namespace Botan {
 class BOTAN_DLL X509_Time : public ASN1_Object
    {
    public:
-      void encode_into(class DER_Encoder&) const;
-      void decode_from(class BER_Decoder&);
+      /// DER encode a X509_Time
+      void encode_into(DER_Encoder&) const override;
 
-      std::string as_string() const;
+      // Decode a BER encoded X509_Time
+      void decode_from(BER_Decoder&) override;
+
+      /// Return an internal string representation of the time
+      std::string to_string() const;
+
+      /// Returns a human friendly string replesentation of no particular formatting
       std::string readable_string() const;
+
+      /// Return if the time has been set somehow
       bool time_is_set() const;
 
-      std::string to_string() const { return readable_string(); }
+      ///  Compare this time against another
+      s32bit cmp(const X509_Time& other) const;
 
-      s32bit cmp(const X509_Time&) const;
+      /// Create an invalid X509_Time
+      X509_Time() {}
 
-      void set_to(const std::string&);
-      void set_to(const std::string&, ASN1_Tag);
-
+      /// Create a X509_Time from a time point
       X509_Time(const std::chrono::system_clock::time_point& time);
-      X509_Time(const std::string& = "");
-      X509_Time(const std::string&, ASN1_Tag);
+
+      /// Create an X509_Time from string
+      X509_Time(const std::string& t_spec, ASN1_Tag tag);
+
    private:
+      void set_to(const std::string& t_spec, ASN1_Tag);
       bool passes_sanity_check() const;
-      u32bit year, month, day, hour, minute, second;
-      ASN1_Tag tag;
+
+      u32bit m_year = 0;
+      u32bit m_month = 0;
+      u32bit m_day = 0;
+      u32bit m_hour = 0;
+      u32bit m_minute = 0;
+      u32bit m_second = 0;
+      ASN1_Tag m_tag = NO_OBJECT;
    };
 
 /*

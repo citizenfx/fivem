@@ -1,6 +1,7 @@
 /*
 * Low Level Types
 * (C) 1999-2007 Jack Lloyd
+* (C) 2015 Simon Warta (Kullo GmbH)
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -11,7 +12,7 @@
 #include <botan/build.h>
 #include <botan/assert.h>
 #include <cstddef>
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 
 /**
@@ -19,33 +20,24 @@
 */
 namespace Botan {
 
-using ::uint8_t;
-using ::uint16_t;
-using ::uint32_t;
-using ::uint64_t;
-using ::int32_t;
-using ::int64_t;
+using std::uint8_t;
+using std::uint16_t;
+using std::uint32_t;
+using std::uint64_t;
+using std::int32_t;
+using std::int64_t;
+using std::size_t;
 
-using ::size_t;
-
-typedef uint8_t byte;
-typedef uint16_t u16bit;
-typedef uint32_t u32bit;
-typedef uint64_t u64bit;
-
-typedef int32_t s32bit;
+using byte   = std::uint8_t;
+using u16bit = std::uint16_t;
+using u32bit = std::uint32_t;
+using u64bit = std::uint64_t;
+using s32bit = std::int32_t;
 
 /**
 * A default buffer size; typically a memory page
 */
 static const size_t DEFAULT_BUFFERSIZE = BOTAN_DEFAULT_BUFFER_SIZE;
-
-}
-
-namespace Botan_types {
-
-using Botan::byte;
-using Botan::u32bit;
 
 }
 

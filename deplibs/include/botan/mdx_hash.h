@@ -29,10 +29,10 @@ class BOTAN_DLL MDx_HashFunction : public HashFunction
                        bool big_bit_endian,
                        size_t counter_size = 8);
 
-      size_t hash_block_size() const { return buffer.size(); }
+      size_t hash_block_size() const override { return buffer.size(); }
    protected:
-      void add_data(const byte input[], size_t length);
-      void final_result(byte output[]);
+      void add_data(const byte input[], size_t length) override;
+      void final_result(byte output[]) override;
 
       /**
       * Run the hash's compression function over a set of blocks
@@ -41,7 +41,7 @@ class BOTAN_DLL MDx_HashFunction : public HashFunction
       */
       virtual void compress_n(const byte blocks[], size_t block_n) = 0;
 
-      void clear();
+      void clear() override;
 
       /**
       * Copy the output to the buffer

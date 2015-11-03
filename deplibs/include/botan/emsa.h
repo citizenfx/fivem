@@ -15,7 +15,9 @@
 namespace Botan {
 
 /**
-* Encoding Method for Signatures, Appendix
+* EMSA, from IEEE 1363s Encoding Method for Signatures, Appendix
+*
+* Any way of encoding/padding signatures
 */
 class BOTAN_DLL EMSA
    {
@@ -55,7 +57,8 @@ class BOTAN_DLL EMSA
       virtual bool verify(const secure_vector<byte>& coded,
                           const secure_vector<byte>& raw,
                           size_t key_bits) = 0;
-      virtual ~EMSA() {}
+
+      virtual ~EMSA();
    };
 
 /**

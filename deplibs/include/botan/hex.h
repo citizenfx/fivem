@@ -46,7 +46,7 @@ template<typename Alloc>
 std::string hex_encode(const std::vector<byte, Alloc>& input,
                        bool uppercase = true)
    {
-   return hex_encode(&input[0], input.size(), uppercase);
+   return hex_encode(input.data(), input.size(), uppercase);
    }
 
 /**

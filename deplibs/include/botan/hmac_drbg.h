@@ -19,20 +19,23 @@ namespace Botan {
 class BOTAN_DLL HMAC_DRBG : public RandomNumberGenerator
    {
    public:
-      void randomize(byte buf[], size_t buf_len);
-      bool is_seeded() const;
-      void clear();
-      std::string name() const;
+      void randomize(byte buf[], size_t buf_len) override;
+      bool is_seeded() const override;
+      void clear() override;
+      std::string name() const override;
 
-      void reseed(size_t poll_bits);
+      void reseed(size_t poll_bits) override;
 
-      void add_entropy(const byte input[], size_t input_len);
+      void add_entropy(const byte input[], size_t input_len) override;
 
       /**
       * @param mac the underlying mac function (eg HMAC(SHA-512))
       * @param underlying_rng RNG used generating inputs (eg HMAC_RNG)
       */
       HMAC_DRBG(MessageAuthenticationCode* mac,
+                RandomNumberGenerator* underlying_rng = nullptr);
+
+      HMAC_DRBG(const std::string& mac,
                 RandomNumberGenerator* underlying_rng = nullptr);
 
    private:

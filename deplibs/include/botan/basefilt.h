@@ -19,9 +19,9 @@ namespace Botan {
 */
 struct BOTAN_DLL BitBucket : public Filter
    {
-   void write(const byte[], size_t) {}
+   void write(const byte[], size_t) override {}
 
-   std::string name() const { return "BitBucket"; }
+   std::string name() const override { return "BitBucket"; }
    };
 
 /**
@@ -33,9 +33,9 @@ struct BOTAN_DLL BitBucket : public Filter
 class BOTAN_DLL Chain : public Fanout_Filter
    {
    public:
-      void write(const byte input[], size_t length) { send(input, length); }
+      void write(const byte input[], size_t length) override { send(input, length); }
 
-      std::string name() const;
+      std::string name() const override;
 
       /**
       * Construct a chain of up to four filters. The filters are set
@@ -60,10 +60,10 @@ class BOTAN_DLL Chain : public Fanout_Filter
 class BOTAN_DLL Fork : public Fanout_Filter
    {
    public:
-      void write(const byte input[], size_t length) { send(input, length); }
+      void write(const byte input[], size_t length) override { send(input, length); }
       void set_port(size_t n) { Fanout_Filter::set_port(n); }
 
-      std::string name() const;
+      std::string name() const override;
 
       /**
       * Construct a Fork filter with up to four forks.
@@ -86,7 +86,7 @@ class BOTAN_DLL Fork : public Fanout_Filter
 class BOTAN_DLL Threaded_Fork : public Fork
    {
    public:
-      std::string name() const;
+      std::string name() const override;
 
       /**
       * Construct a Threaded_Fork filter with up to four forks.
@@ -104,7 +104,7 @@ class BOTAN_DLL Threaded_Fork : public Fork
 
    protected:
       void set_next(Filter* f[], size_t n);
-      void send(const byte in[], size_t length);
+      void send(const byte in[], size_t length) override;
 
    private:
       void thread_delegate_work(const byte input[], size_t length);

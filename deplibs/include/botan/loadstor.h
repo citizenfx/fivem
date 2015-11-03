@@ -11,7 +11,6 @@
 
 #include <botan/types.h>
 #include <botan/bswap.h>
-#include <botan/get_byte.h>
 #include <botan/mem_ops.h>
 #include <vector>
 
@@ -38,6 +37,19 @@
 #endif
 
 namespace Botan {
+
+/**
+* Byte extraction
+* @param byte_num which byte to extract, 0 == highest byte
+* @param input the value to extract from
+* @return byte byte_num of input
+*/
+template<typename T> inline byte get_byte(size_t byte_num, T input)
+   {
+   return static_cast<byte>(
+      input >> ((sizeof(T)-1-(byte_num&(sizeof(T)-1))) << 3)
+      );
+   }
 
 /**
 * Make a u16bit from two bytes
@@ -641,7 +653,7 @@ void copy_out_be(byte out[], size_t out_bytes, const T in[])
 template<typename T, typename Alloc>
 void copy_out_vec_be(byte out[], size_t out_bytes, const std::vector<T, Alloc>& in)
    {
-   copy_out_be(out, out_bytes, &in[0]);
+   copy_out_be(out, out_bytes, in.data());
    }
 
 template<typename T>
@@ -662,7 +674,7 @@ void copy_out_le(byte out[], size_t out_bytes, const T in[])
 template<typename T, typename Alloc>
 void copy_out_vec_le(byte out[], size_t out_bytes, const std::vector<T, Alloc>& in)
    {
-   copy_out_le(out, out_bytes, &in[0]);
+   copy_out_le(out, out_bytes, in.data());
    }
 
 }

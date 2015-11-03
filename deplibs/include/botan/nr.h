@@ -18,13 +18,13 @@ namespace Botan {
 class BOTAN_DLL NR_PublicKey : public virtual DL_Scheme_PublicKey
    {
    public:
-      std::string algo_name() const { return "NR"; }
+      std::string algo_name() const override { return "NR"; }
 
-      DL_Group::Format group_format() const { return DL_Group::ANSI_X9_57; }
+      DL_Group::Format group_format() const override { return DL_Group::ANSI_X9_57; }
 
-      size_t message_parts() const { return 2; }
-      size_t message_part_size() const { return group_q().bytes(); }
-      size_t max_input_bits() const { return (group_q().bits() - 1); }
+      size_t message_parts() const override { return 2; }
+      size_t message_part_size() const override { return group_q().bytes(); }
+      size_t max_input_bits() const override { return (group_q().bits() - 1); }
 
       NR_PublicKey(const AlgorithmIdentifier& alg_id,
                    const secure_vector<byte>& key_bits);
@@ -41,7 +41,7 @@ class BOTAN_DLL NR_PrivateKey : public NR_PublicKey,
                                 public virtual DL_Scheme_PrivateKey
    {
    public:
-      bool check_key(RandomNumberGenerator& rng, bool strong) const;
+      bool check_key(RandomNumberGenerator& rng, bool strong) const override;
 
       NR_PrivateKey(const AlgorithmIdentifier& alg_id,
                     const secure_vector<byte>& key_bits,

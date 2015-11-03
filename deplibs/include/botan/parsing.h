@@ -128,6 +128,8 @@ std::map<std::string, std::string> BOTAN_DLL read_cfg(std::istream& is);
 
 std::string BOTAN_DLL clean_ws(const std::string& s);
 
+bool BOTAN_DLL host_wildcard_match(const std::string& wildcard, const std::string& host);
+
 
 }
 

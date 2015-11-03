@@ -23,20 +23,20 @@ class BOTAN_DLL Skein_512 : public HashFunction
    public:
       /**
       * @param output_bits the output size of Skein in bits
-      * @param personalization is a string that will paramaterize the
+      * @param personalization is a string that will parameterize the
       * hash output
       */
       Skein_512(size_t output_bits = 512,
                 const std::string& personalization = "");
 
-      size_t hash_block_size() const { return 64; }
-      size_t output_length() const { return output_bits / 8; }
+      size_t hash_block_size() const override { return 64; }
+      size_t output_length() const override { return output_bits / 8; }
 
       static Skein_512* make(const Spec& spec);
 
-      HashFunction* clone() const;
-      std::string name() const;
-      void clear();
+      HashFunction* clone() const override;
+      std::string name() const override;
+      void clear() override;
    private:
       enum type_code {
          SKEIN_KEY = 0,
@@ -49,8 +49,8 @@ class BOTAN_DLL Skein_512 : public HashFunction
          SKEIN_OUTPUT = 63
       };
 
-      void add_data(const byte input[], size_t length);
-      void final_result(byte out[]);
+      void add_data(const byte input[], size_t length) override;
+      void final_result(byte out[]) override;
 
       void ubi_512(const byte msg[], size_t msg_len);
 

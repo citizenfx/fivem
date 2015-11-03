@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL IDEA : public Block_Cipher_Fixed_Params<8, 16>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "IDEA"; }
-      BlockCipher* clone() const { return new IDEA; }
+      void clear() override;
+      std::string name() const override { return "IDEA"; }
+      BlockCipher* clone() const override { return new IDEA; }
    protected:
       /**
       * @return const reference to encryption subkeys
@@ -36,7 +36,7 @@ class BOTAN_DLL IDEA : public Block_Cipher_Fixed_Params<8, 16>
       const secure_vector<u16bit>& get_DK() const { return DK; }
 
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       secure_vector<u16bit> EK, DK;
    };

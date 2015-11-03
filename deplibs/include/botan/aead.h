@@ -41,13 +41,13 @@ class BOTAN_DLL AEAD_Mode : public Cipher_Mode
       template<typename Alloc>
       void set_associated_data_vec(const std::vector<byte, Alloc>& ad)
          {
-         set_associated_data(&ad[0], ad.size());
+         set_associated_data(ad.data(), ad.size());
          }
 
       template<typename Alloc>
       void set_ad(const std::vector<byte, Alloc>& ad)
          {
-         set_associated_data(&ad[0], ad.size());
+         set_associated_data(ad.data(), ad.size());
          }
 
       /**
@@ -55,6 +55,8 @@ class BOTAN_DLL AEAD_Mode : public Cipher_Mode
       * modes, and large enough that random collisions are unlikely).
       */
       size_t default_nonce_length() const override { return 12; }
+
+      virtual ~AEAD_Mode();
    };
 
 /**

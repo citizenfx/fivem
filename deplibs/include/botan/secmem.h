@@ -36,6 +36,9 @@ class secure_allocator
 
       secure_allocator() BOTAN_NOEXCEPT {}
 
+      template<typename U>
+      secure_allocator(const secure_allocator<U>&) BOTAN_NOEXCEPT {}
+
       ~secure_allocator() BOTAN_NOEXCEPT {}
 
       pointer address(reference x) const BOTAN_NOEXCEPT
@@ -82,12 +85,12 @@ class secure_allocator
       template<typename U> void destroy(U* p) { p->~U(); }
    };
 
-template<typename T> inline bool
-operator==(const secure_allocator<T>&, const secure_allocator<T>&)
+template<typename T, typename U> inline bool
+operator==(const secure_allocator<T>&, const secure_allocator<U>&)
    { return true; }
 
-template<typename T> inline bool
-operator!=(const secure_allocator<T>&, const secure_allocator<T>&)
+template<typename T, typename U> inline bool
+operator!=(const secure_allocator<T>&, const secure_allocator<U>&)
    { return false; }
 
 template<typename T> using secure_vector = std::vector<T, secure_allocator<T>>;
@@ -97,7 +100,7 @@ template<typename T>
 std::vector<T> unlock(const secure_vector<T>& in)
    {
    std::vector<T> out(in.size());
-   copy_mem(&out[0], &in[0], in.size());
+   copy_mem(out.data(), in.data(), in.size());
    return out;
    }
 
@@ -108,7 +111,10 @@ size_t buffer_insert(std::vector<T, Alloc>& buf,
                      size_t input_length)
    {
    const size_t to_copy = std::min(input_length, buf.size() - buf_offset);
-   copy_mem(&buf[buf_offset], input, to_copy);
+   if (to_copy > 0)
+      {
+      copy_mem(&buf[buf_offset], input, to_copy);
+      }
    return to_copy;
    }
 
@@ -118,7 +124,10 @@ size_t buffer_insert(std::vector<T, Alloc>& buf,
                      const std::vector<T, Alloc2>& input)
    {
    const size_t to_copy = std::min(input.size(), buf.size() - buf_offset);
-   copy_mem(&buf[buf_offset], &input[0], to_copy);
+   if (to_copy > 0)
+      {
+      copy_mem(&buf[buf_offset], input.data(), to_copy);
+      }
    return to_copy;
    }
 
@@ -129,7 +138,10 @@ operator+=(std::vector<T, Alloc>& out,
    {
    const size_t copy_offset = out.size();
    out.resize(out.size() + in.size());
-   copy_mem(&out[copy_offset], &in[0], in.size());
+   if (in.size() > 0)
+      {
+      copy_mem(&out[copy_offset], in.data(), in.size());
+      }
    return out;
    }
 
@@ -146,7 +158,10 @@ std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
    {
    const size_t copy_offset = out.size();
    out.resize(out.size() + in.second);
-   copy_mem(&out[copy_offset], in.first, in.second);
+   if (in.second > 0)
+      {
+      copy_mem(&out[copy_offset], in.first, in.second);
+      }
    return out;
    }
 
@@ -156,7 +171,10 @@ std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
    {
    const size_t copy_offset = out.size();
    out.resize(out.size() + in.second);
-   copy_mem(&out[copy_offset], in.first, in.second);
+   if (in.second > 0)
+      {
+      copy_mem(&out[copy_offset], in.first, in.second);
+      }
    return out;
    }
 
@@ -167,7 +185,7 @@ std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
 template<typename T, typename Alloc>
 void zeroise(std::vector<T, Alloc>& vec)
    {
-   clear_mem(&vec[0], vec.size());
+   clear_mem(vec.data(), vec.size());
    }
 
 /**

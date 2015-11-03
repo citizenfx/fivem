@@ -18,8 +18,8 @@ namespace Botan {
 class BOTAN_DLL ASN1_String : public ASN1_Object
    {
    public:
-      void encode_into(class DER_Encoder&) const;
-      void decode_from(class BER_Decoder&);
+      void encode_into(class DER_Encoder&) const override;
+      void decode_from(class BER_Decoder&) override;
 
       std::string value() const;
       std::string iso_8859() const;

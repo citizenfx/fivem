@@ -26,7 +26,7 @@ class BOTAN_DLL GCM_Mode : public AEAD_Mode
 
       std::string name() const override;
 
-      size_t update_granularity() const;
+      size_t update_granularity() const override;
 
       Key_Length_Specification key_spec() const override;
 
@@ -121,11 +121,12 @@ class BOTAN_DLL GHASH : public SymmetricAlgorithm
 
       secure_vector<byte> final();
 
-      Key_Length_Specification key_spec() const { return Key_Length_Specification(16); }
+      Key_Length_Specification key_spec() const override
+         { return Key_Length_Specification(16); }
 
       void clear() override;
 
-      std::string name() const { return "GHASH"; }
+      std::string name() const override { return "GHASH"; }
    private:
       void key_schedule(const byte key[], size_t key_len) override;
 

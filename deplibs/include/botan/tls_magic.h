@@ -57,6 +57,8 @@ enum Handshake_Type {
    HANDSHAKE_NONE       = 255  // Null value
 };
 
+const char* handshake_type_to_string(Handshake_Type t);
+
 enum Compression_Method {
    NO_COMPRESSION       = 0x00,
    DEFLATE_COMPRESSION  = 0x01

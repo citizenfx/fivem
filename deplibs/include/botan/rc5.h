@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL RC5 : public Block_Cipher_Fixed_Params<8, 1, 32>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const;
-      BlockCipher* clone() const { return new RC5(rounds); }
+      void clear() override;
+      std::string name() const override;
+      BlockCipher* clone() const override { return new RC5(rounds); }
 
       /**
       * @param rounds the number of RC5 rounds to run. Must be between
@@ -31,7 +31,7 @@ class BOTAN_DLL RC5 : public Block_Cipher_Fixed_Params<8, 1, 32>
       */
       RC5(size_t rounds);
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       size_t rounds;
       secure_vector<u32bit> S;

@@ -11,6 +11,7 @@
 #include <botan/internal/algo_registry.h>
 #include <botan/internal/pk_ops_impl.h>
 #include <botan/numthry.h>
+#include <botan/reducer.h>
 #include <algorithm>
 
 namespace Botan {

@@ -50,7 +50,7 @@ class BOTAN_DLL Stream_Cipher_Mode : public Cipher_Mode
          return secure_vector<byte>();
          }
 
-      void key_schedule(const byte key[], size_t length)
+      void key_schedule(const byte key[], size_t length) override
          {
          m_cipher->set_key(key, length);
          }

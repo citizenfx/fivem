@@ -29,7 +29,7 @@ inline std::string encode(const std::vector<byte>& data,
                           const std::string& label,
                           size_t line_width = 64)
    {
-   return encode(&data[0], data.size(), label, line_width);
+   return encode(data.data(), data.size(), label, line_width);
    }
 
 /**
@@ -39,7 +39,7 @@ inline std::string encode(const secure_vector<byte>& data,
                           const std::string& label,
                           size_t line_width = 64)
    {
-   return encode(&data[0], data.size(), label, line_width);
+   return encode(data.data(), data.size(), label, line_width);
    }
 
 /**

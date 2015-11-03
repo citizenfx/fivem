@@ -10,6 +10,8 @@
 
 #include <botan/symkey.h>
 #include <botan/scan_name.h>
+#include <botan/scan_name.h>
+#include <botan/exceptn.h>
 #include <chrono>
 
 namespace Botan {
@@ -22,8 +24,18 @@ namespace Botan {
 class BOTAN_DLL PBKDF
    {
    public:
+      /**
+      * Create an instance based on a name
+      * Will return a null pointer if the algo/provider combination cannot
+      * be found. If provider is empty then best available is chosen.
+      */
+      static std::unique_ptr<PBKDF> create(const std::string& algo_spec,
+                                           const std::string& provider = "");
 
-      virtual ~PBKDF() {}
+      /**
+      * Returns the list of available providers for this algorithm, empty if not available
+      */
+      static std::vector<std::string> providers(const std::string& algo_spec);
 
       typedef SCAN_Name Spec;
 
@@ -33,6 +45,8 @@ class BOTAN_DLL PBKDF
       virtual PBKDF* clone() const = 0;
 
       virtual std::string name() const = 0;
+
+      virtual ~PBKDF();
 
       /**
       * Derive a key from a passphrase for a number of iterations
@@ -107,7 +121,7 @@ class BOTAN_DLL PBKDF
                              const std::vector<byte, Alloc>& salt,
                              size_t iterations) const
          {
-         return pbkdf_iterations(out_len, passphrase, &salt[0], salt.size(), iterations);
+         return pbkdf_iterations(out_len, passphrase, salt.data(), salt.size(), iterations);
          }
 
       /**
@@ -143,9 +157,23 @@ class BOTAN_DLL PBKDF
                              std::chrono::milliseconds msec,
                              size_t& iterations) const
          {
-         return pbkdf_timed(out_len, passphrase, &salt[0], salt.size(), msec, iterations);
+         return pbkdf_timed(out_len, passphrase, salt.data(), salt.size(), msec, iterations);
          }
    };
+
+/**
+* Password based key derivation function factory method
+* @param algo_spec the name of the desired PBKDF algorithm
+* @return pointer to newly allocated object of that type
+*/
+inline PBKDF* get_pbkdf(const std::string& algo_spec,
+                           const std::string& provider = "")
+   {
+   std::unique_ptr<PBKDF> p(PBKDF::create(algo_spec, provider));
+   if(p)
+      return p.release();
+   throw Algorithm_Not_Found(algo_spec);
+   }
 
 }
 

@@ -19,14 +19,14 @@ namespace Botan {
 class BOTAN_DLL RC4 : public StreamCipher
    {
    public:
-      void cipher(const byte in[], byte out[], size_t length);
+      void cipher(const byte in[], byte out[], size_t length) override;
 
-      void clear();
-      std::string name() const;
+      void clear() override;
+      std::string name() const override;
 
-      StreamCipher* clone() const { return new RC4(SKIP); }
+      StreamCipher* clone() const override { return new RC4(SKIP); }
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return Key_Length_Specification(1, 256);
          }
@@ -40,7 +40,7 @@ class BOTAN_DLL RC4 : public StreamCipher
 
       ~RC4() { clear(); }
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
       void generate();
 
       const size_t SKIP;

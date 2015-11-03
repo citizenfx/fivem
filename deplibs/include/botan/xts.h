@@ -35,7 +35,7 @@ class BOTAN_DLL XTS_Mode : public Cipher_Mode
    protected:
       XTS_Mode(BlockCipher* cipher);
 
-      const byte* tweak() const { return &m_tweak[0]; }
+      const byte* tweak() const { return m_tweak.data(); }
 
       const BlockCipher& cipher() const { return *m_cipher; }
 

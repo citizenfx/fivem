@@ -68,7 +68,7 @@ class BOTAN_DLL SymmetricAlgorithm
       template<typename Alloc>
       void set_key(const std::vector<byte, Alloc>& key)
          {
-         set_key(&key[0], key.size());
+         set_key(key.data(), key.size());
          }
 
       /**

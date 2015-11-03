@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL DSA_PublicKey : public virtual DL_Scheme_PublicKey
    {
    public:
-      std::string algo_name() const { return "DSA"; }
+      std::string algo_name() const override { return "DSA"; }
 
-      DL_Group::Format group_format() const { return DL_Group::ANSI_X9_57; }
-      size_t message_parts() const { return 2; }
-      size_t message_part_size() const { return group_q().bytes(); }
-      size_t max_input_bits() const { return group_q().bits(); }
+      DL_Group::Format group_format() const override { return DL_Group::ANSI_X9_57; }
+      size_t message_parts() const override { return 2; }
+      size_t message_part_size() const override { return group_q().bytes(); }
+      size_t max_input_bits() const override { return group_q().bits(); }
 
       DSA_PublicKey(const AlgorithmIdentifier& alg_id,
                     const secure_vector<byte>& key_bits) :
@@ -51,7 +51,7 @@ class BOTAN_DLL DSA_PrivateKey : public DSA_PublicKey,
                      const DL_Group& group,
                      const BigInt& private_key = 0);
 
-      bool check_key(RandomNumberGenerator& rng, bool strong) const;
+      bool check_key(RandomNumberGenerator& rng, bool strong) const override;
    };
 
 }

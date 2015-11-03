@@ -18,8 +18,6 @@ namespace Botan {
 class SIMD_SSE2
    {
    public:
-      static bool enabled() { return CPUID::has_sse2(); }
-
       SIMD_SSE2(const u32bit B[4])
          {
          reg = _mm_loadu_si128(reinterpret_cast<const __m128i*>(B));

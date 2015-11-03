@@ -21,8 +21,8 @@ namespace Botan {
 class High_Resolution_Timestamp : public EntropySource
    {
    public:
-      std::string name() const { return "High Resolution Timestamp"; }
-      void poll(Entropy_Accumulator& accum);
+      std::string name() const override { return "High Resolution Timestamp"; }
+      void poll(Entropy_Accumulator& accum) override;
    };
 
 }

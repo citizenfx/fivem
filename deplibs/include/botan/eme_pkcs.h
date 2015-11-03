@@ -18,11 +18,11 @@ namespace Botan {
 class BOTAN_DLL EME_PKCS1v15 : public EME
    {
    public:
-      size_t maximum_input_size(size_t) const;
+      size_t maximum_input_size(size_t) const override;
    private:
       secure_vector<byte> pad(const byte[], size_t, size_t,
-                             RandomNumberGenerator&) const;
-      secure_vector<byte> unpad(const byte[], size_t, size_t) const;
+                             RandomNumberGenerator&) const override;
+      secure_vector<byte> unpad(const byte[], size_t, size_t) const override;
    };
 
 }

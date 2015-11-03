@@ -19,13 +19,13 @@ namespace Botan {
 class BOTAN_DLL CMAC : public MessageAuthenticationCode
    {
    public:
-      std::string name() const;
-      size_t output_length() const { return m_cipher->block_size(); }
-      MessageAuthenticationCode* clone() const;
+      std::string name() const override;
+      size_t output_length() const override { return m_cipher->block_size(); }
+      MessageAuthenticationCode* clone() const override;
 
-      void clear();
+      void clear() override;
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return m_cipher->key_spec();
          }
@@ -47,9 +47,9 @@ class BOTAN_DLL CMAC : public MessageAuthenticationCode
       CMAC(const CMAC&) = delete;
       CMAC& operator=(const CMAC&) = delete;
    private:
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
-      void key_schedule(const byte[], size_t);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
+      void key_schedule(const byte[], size_t) override;
 
       std::unique_ptr<BlockCipher> m_cipher;
       secure_vector<byte> m_buffer, m_state, m_B, m_P;

@@ -31,7 +31,7 @@ inline u16bit reverse_bytes(u16bit val)
 */
 inline u32bit reverse_bytes(u32bit val)
    {
-#if BOTAN_GCC_VERSION >= 430 && !defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY)
+#if BOTAN_GCC_VERSION >= 430 && !defined(BOTAN_TARGET_ARCH_IS_ARM32)
    /*
    GCC intrinsic added in 4.3, works for a number of CPUs
 
@@ -41,13 +41,13 @@ inline u32bit reverse_bytes(u32bit val)
    */
    return __builtin_bswap32(val);
 
-#elif BOTAN_USE_GCC_INLINE_ASM && defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
 
    // GCC-style inline assembly for x86 or x86-64
    asm("bswapl %0" : "=r" (val) : "0" (val));
    return val;
 
-#elif BOTAN_USE_GCC_INLINE_ASM && defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY)
+#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_ARM32)
 
    asm ("eor r3, %1, %1, ror #16\n\t"
         "bic r3, r3, #0x00FF0000\n\t"
@@ -84,7 +84,7 @@ inline u64bit reverse_bytes(u64bit val)
    // GCC intrinsic added in 4.3, works for a number of CPUs
    return __builtin_bswap64(val);
 
-#elif BOTAN_USE_GCC_INLINE_ASM && defined(BOTAN_TARGET_ARCH_IS_X86_64)
+#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_X86_64)
    // GCC-style inline assembly for x86-64
    asm("bswapq %0" : "=r" (val) : "0" (val));
    return val;

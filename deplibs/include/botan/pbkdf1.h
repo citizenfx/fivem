@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * PKCS #5 v1 PBKDF, aka PBKDF1
 * Can only generate a key up to the size of the hash output.
-* Unless needed for backwards compatability, use PKCS5_PBKDF2
+* Unless needed for backwards compatibility, use PKCS5_PBKDF2
 */
 class BOTAN_DLL PKCS5_PBKDF1 : public PBKDF
    {
@@ -27,12 +27,12 @@ class BOTAN_DLL PKCS5_PBKDF1 : public PBKDF
       */
       PKCS5_PBKDF1(HashFunction* hash) : m_hash(hash) {}
 
-      std::string name() const
+      std::string name() const override
          {
          return "PBKDF1(" + m_hash->name() + ")";
          }
 
-      PBKDF* clone() const
+      PBKDF* clone() const override
          {
          return new PKCS5_PBKDF1(m_hash->clone());
          }

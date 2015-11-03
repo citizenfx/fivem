@@ -25,29 +25,29 @@ class BOTAN_DLL Comb4P : public HashFunction
       */
       Comb4P(HashFunction* h1, HashFunction* h2);
 
-      size_t hash_block_size() const;
+      size_t hash_block_size() const override;
 
-      size_t output_length() const
+      size_t output_length() const override
          {
          return m_hash1->output_length() + m_hash2->output_length();
          }
 
       static Comb4P* make(const Spec& spec);
       
-      HashFunction* clone() const
+      HashFunction* clone() const override
          {
          return new Comb4P(m_hash1->clone(), m_hash2->clone());
          }
 
-      std::string name() const
+      std::string name() const override
          {
          return "Comb4P(" + m_hash1->name() + "," + m_hash2->name() + ")";
          }
 
-      void clear();
+      void clear() override;
    private:
-      void add_data(const byte input[], size_t length);
-      void final_result(byte out[]);
+      void add_data(const byte input[], size_t length) override;
+      void final_result(byte out[]) override;
 
       std::unique_ptr<HashFunction> m_hash1, m_hash2;
    };

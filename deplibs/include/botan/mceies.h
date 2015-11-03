@@ -23,9 +23,10 @@ class McEliece_PrivateKey;
 */
 secure_vector<byte>
 BOTAN_DLL mceies_encrypt(const McEliece_PublicKey& pubkey,
-                         const secure_vector<byte>& pt,
-                         byte ad[], size_t ad_len,
-                         RandomNumberGenerator& rng);
+                         const byte pt[], size_t pt_len,
+                         const byte ad[], size_t ad_len,
+                         RandomNumberGenerator& rng,
+                         const std::string& aead = "AES-256/OCB");
 
 /**
 * McEliece Integrated Encryption System
@@ -34,8 +35,9 @@ BOTAN_DLL mceies_encrypt(const McEliece_PublicKey& pubkey,
 */
 secure_vector<byte>
 BOTAN_DLL mceies_decrypt(const McEliece_PrivateKey& privkey,
-                         const secure_vector<byte>& ct,
-                         byte ad[], size_t ad_len);
+                         const byte ct[], size_t ct_len,
+                         const byte ad[], size_t ad_len,
+                         const std::string& aead = "AES-256/OCB");
 
 
 }

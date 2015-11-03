@@ -19,11 +19,11 @@ namespace Botan {
 class BOTAN_DLL Parallel : public HashFunction
    {
    public:
-      void clear();
-      std::string name() const;
-      HashFunction* clone() const;
+      void clear() override;
+      std::string name() const override;
+      HashFunction* clone() const override;
 
-      size_t output_length() const;
+      size_t output_length() const override;
 
       /**
       * @param hashes a set of hashes to compute in parallel
@@ -37,8 +37,8 @@ class BOTAN_DLL Parallel : public HashFunction
    private:
       Parallel() {}
 
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
 
       std::vector<std::unique_ptr<HashFunction>> hashes;
    };

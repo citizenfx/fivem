@@ -89,7 +89,7 @@ class BOTAN_DLL SRP6_Server_Session
    private:
       std::string m_hash_id;
       BigInt m_B, m_b, m_v, m_S, m_p;
-      size_t m_p_bytes;
+      size_t m_p_bytes = 0;
    };
 
 }

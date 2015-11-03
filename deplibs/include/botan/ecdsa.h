@@ -38,18 +38,19 @@ class BOTAN_DLL ECDSA_PublicKey : public virtual EC_PublicKey
       * Get this keys algorithm name.
       * @result this keys algorithm name ("ECDSA")
       */
-      std::string algo_name() const { return "ECDSA"; }
+      std::string algo_name() const override { return "ECDSA"; }
 
       /**
       * Get the maximum number of bits allowed to be fed to this key.
       * This is the bitlength of the order of the base point.
       * @result the maximum number of input bits
       */
-      size_t max_input_bits() const { return domain().get_order().bits(); }
+      size_t max_input_bits() const override
+         { return domain().get_order().bits(); }
 
-      size_t message_parts() const { return 2; }
+      size_t message_parts() const override { return 2; }
 
-      size_t message_part_size() const
+      size_t message_part_size() const override
          { return domain().get_order().bytes(); }
 
    protected:
@@ -84,7 +85,7 @@ class BOTAN_DLL ECDSA_PrivateKey : public ECDSA_PublicKey,
                        const BigInt& x = 0) :
          EC_PrivateKey(rng, domain, x) {}
 
-      bool check_key(RandomNumberGenerator& rng, bool) const;
+      bool check_key(RandomNumberGenerator& rng, bool) const override;
    };
 
 }

@@ -22,8 +22,8 @@ class BOTAN_DLL AlgorithmIdentifier : public ASN1_Object
    public:
       enum Encoding_Option { USE_NULL_PARAM };
 
-      void encode_into(class DER_Encoder&) const;
-      void decode_from(class BER_Decoder&);
+      void encode_into(class DER_Encoder&) const override;
+      void decode_from(class BER_Decoder&) override;
 
       AlgorithmIdentifier() {}
       AlgorithmIdentifier(const OID&, Encoding_Option);

@@ -19,24 +19,24 @@ namespace Botan {
 class BOTAN_DLL OFB : public StreamCipher
    {
    public:
-      void cipher(const byte in[], byte out[], size_t length);
+      void cipher(const byte in[], byte out[], size_t length) override;
 
-      void set_iv(const byte iv[], size_t iv_len);
+      void set_iv(const byte iv[], size_t iv_len) override;
 
-      bool valid_iv_length(size_t iv_len) const
+      bool valid_iv_length(size_t iv_len) const override
          { return (iv_len <= m_cipher->block_size()); }
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return m_cipher->key_spec();
          }
 
-      std::string name() const;
+      std::string name() const override;
 
-      OFB* clone() const
+      OFB* clone() const override
          { return new OFB(m_cipher->clone()); }
 
-      void clear();
+      void clear() override;
 
       static OFB* make(const Spec& spec);
 
@@ -45,7 +45,7 @@ class BOTAN_DLL OFB : public StreamCipher
       */
       OFB(BlockCipher* cipher);
    private:
-      void key_schedule(const byte key[], size_t key_len);
+      void key_schedule(const byte key[], size_t key_len) override;
 
       std::unique_ptr<BlockCipher> m_cipher;
       secure_vector<byte> m_buffer;

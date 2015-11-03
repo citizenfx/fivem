@@ -18,15 +18,15 @@ namespace Botan {
 class BOTAN_DLL CAST_128 : public Block_Cipher_Fixed_Params<8, 11, 16>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "CAST-128"; }
-      BlockCipher* clone() const { return new CAST_128; }
+      void clear() override;
+      std::string name() const override { return "CAST-128"; }
+      BlockCipher* clone() const override { return new CAST_128; }
 
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       static void cast_ks(secure_vector<u32bit>& ks,
                           secure_vector<u32bit>& user_key);

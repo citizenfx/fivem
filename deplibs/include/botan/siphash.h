@@ -17,21 +17,21 @@ class BOTAN_DLL SipHash : public MessageAuthenticationCode
    public:
       SipHash(size_t c = 2, size_t d = 4) : m_C(c), m_D(d) {}
 
-      void clear();
-      std::string name() const;
+      void clear() override;
+      std::string name() const override;
 
-      MessageAuthenticationCode* clone() const;
+      MessageAuthenticationCode* clone() const override;
 
-      size_t output_length() const { return 8; }
+      size_t output_length() const override { return 8; }
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return Key_Length_Specification(16);
          }
    private:
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
-      void key_schedule(const byte[], size_t);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
+      void key_schedule(const byte[], size_t) override;
 
       const size_t m_C, m_D;
       secure_vector<u64bit> m_V;

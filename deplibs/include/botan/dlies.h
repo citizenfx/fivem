@@ -28,9 +28,9 @@ class BOTAN_DLL DLIES_Encryptor : public PK_Encryptor
       void set_other_key(const std::vector<byte>&);
    private:
       std::vector<byte> enc(const byte[], size_t,
-                            RandomNumberGenerator&) const;
+                            RandomNumberGenerator&) const override;
 
-      size_t maximum_input_size() const;
+      size_t maximum_input_size() const override;
 
       std::vector<byte> other_key, my_key;
 
@@ -52,7 +52,7 @@ class BOTAN_DLL DLIES_Decryptor : public PK_Decryptor
                       size_t mac_key_len = 20);
 
    private:
-      secure_vector<byte> dec(const byte[], size_t) const;
+      secure_vector<byte> dec(const byte[], size_t) const override;
 
       std::vector<byte> my_key;
 

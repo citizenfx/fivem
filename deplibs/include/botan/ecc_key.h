@@ -13,7 +13,6 @@
 #include <botan/ec_group.h>
 #include <botan/pk_keys.h>
 #include <botan/x509_key.h>
-#include <botan/pkcs8.h>
 
 namespace Botan {
 
@@ -44,12 +43,12 @@ class BOTAN_DLL EC_PublicKey : public virtual Public_Key
       */
       const PointGFp& public_point() const { return public_key; }
 
-      AlgorithmIdentifier algorithm_identifier() const;
+      AlgorithmIdentifier algorithm_identifier() const override;
 
-      std::vector<byte> x509_subject_public_key() const;
+      std::vector<byte> x509_subject_public_key() const override;
 
       bool check_key(RandomNumberGenerator& rng,
-                     bool strong) const;
+                     bool strong) const override;
 
       /**
       * Get the domain parameters of this key.
@@ -103,7 +102,7 @@ class BOTAN_DLL EC_PrivateKey : public virtual EC_PublicKey,
       EC_PrivateKey(const AlgorithmIdentifier& alg_id,
                     const secure_vector<byte>& key_bits);
 
-      secure_vector<byte> pkcs8_private_key() const;
+      secure_vector<byte> pkcs8_private_key() const override;
 
       /**
       * Get the private key value of this key object.

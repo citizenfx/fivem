@@ -100,8 +100,14 @@ class Datagram_Handshake_IO : public Handshake_IO
 
       Datagram_Handshake_IO(writer_fn writer,
                             class Connection_Sequence_Numbers& seq,
-                            u16bit mtu) :
-         m_seqs(seq), m_flights(1), m_send_hs(writer), m_mtu(mtu) {}
+                            u16bit mtu, u64bit initial_timeout_ms, u64bit max_timeout_ms) :
+         m_seqs(seq),
+         m_flights(1),
+         m_initial_timeout(initial_timeout_ms),
+         m_max_timeout(max_timeout_ms),
+         m_send_hs(writer),
+         m_mtu(mtu)
+         {}
 
       Protocol_Version initial_record_version() const override;
 
@@ -120,6 +126,9 @@ class Datagram_Handshake_IO : public Handshake_IO
       std::pair<Handshake_Type, std::vector<byte>>
          get_next_record(bool expecting_ccs) override;
    private:
+      void retransmit_flight(size_t flight);
+      void retransmit_last_flight();
+
       std::vector<byte> format_fragment(
          const byte fragment[],
          size_t fragment_len,
@@ -182,6 +191,9 @@ class Datagram_Handshake_IO : public Handshake_IO
       std::set<u16bit> m_ccs_epochs;
       std::vector<std::vector<u16bit>> m_flights;
       std::map<u16bit, Message_Info> m_flight_data;
+
+      u64bit m_initial_timeout = 0;
+      u64bit m_max_timeout = 0;
 
       u64bit m_last_write = 0;
       u64bit m_next_timeout = 0;

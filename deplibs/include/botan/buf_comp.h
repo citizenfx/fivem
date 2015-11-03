@@ -9,7 +9,7 @@
 #define BOTAN_BUFFERED_COMPUTATION_H__
 
 #include <botan/secmem.h>
-#include <botan/get_byte.h>
+#include <botan/loadstor.h>
 #include <string>
 
 namespace Botan {
@@ -39,7 +39,7 @@ class BOTAN_DLL Buffered_Computation
       */
       void update(const secure_vector<byte>& in)
          {
-         add_data(&in[0], in.size());
+         add_data(in.data(), in.size());
          }
 
       /**
@@ -48,7 +48,7 @@ class BOTAN_DLL Buffered_Computation
       */
       void update(const std::vector<byte>& in)
          {
-         add_data(&in[0], in.size());
+         add_data(in.data(), in.size());
          }
 
       /**
@@ -97,7 +97,7 @@ class BOTAN_DLL Buffered_Computation
       secure_vector<byte> final()
          {
          secure_vector<byte> output(output_length());
-         final_result(&output[0]);
+         final_result(output.data());
          return output;
          }
 
@@ -105,7 +105,7 @@ class BOTAN_DLL Buffered_Computation
          void final(std::vector<byte, Alloc>& out)
          {
          out.resize(output_length());
-         final_result(&out[0]);
+         final_result(out.data());
          }
 
       /**
@@ -129,7 +129,7 @@ class BOTAN_DLL Buffered_Computation
       */
       secure_vector<byte> process(const secure_vector<byte>& in)
          {
-         add_data(&in[0], in.size());
+         add_data(in.data(), in.size());
          return final();
          }
 
@@ -141,7 +141,7 @@ class BOTAN_DLL Buffered_Computation
       */
       secure_vector<byte> process(const std::vector<byte>& in)
          {
-         add_data(&in[0], in.size());
+         add_data(in.data(), in.size());
          return final();
          }
 

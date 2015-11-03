@@ -13,6 +13,9 @@
 
 namespace Botan {
 
+class BER_Decoder;
+class DER_Encoder;
+
 /**
 * ASN.1 Type and Class Tags
 */
@@ -44,8 +47,9 @@ enum ASN1_Tag {
    VISIBLE_STRING   = 0x1A,
    BMP_STRING       = 0x1E,
 
-   UTC_TIME         = 0x17,
-   GENERALIZED_TIME = 0x18,
+   UTC_TIME                = 0x17,
+   GENERALIZED_TIME        = 0x18,
+   UTC_OR_GENERALIZED_TIME = 0x19,
 
    NO_OBJECT        = 0xFF00,
    DIRECTORY_STRING = 0xFF01
@@ -61,13 +65,13 @@ class BOTAN_DLL ASN1_Object
       * Encode whatever this object is into to
       * @param to the DER_Encoder that will be written to
       */
-      virtual void encode_into(class DER_Encoder& to) const = 0;
+      virtual void encode_into(DER_Encoder& to) const = 0;
 
       /**
       * Decode whatever this object is from from
       * @param from the BER_Decoder that will be read from
       */
-      virtual void decode_from(class BER_Decoder& from) = 0;
+      virtual void decode_from(BER_Decoder& from) = 0;
 
       virtual ~ASN1_Object() {}
    };

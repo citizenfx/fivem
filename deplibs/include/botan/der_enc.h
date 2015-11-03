@@ -99,13 +99,13 @@ class BOTAN_DLL DER_Encoder
       DER_Encoder& add_object(ASN1_Tag type_tag, ASN1_Tag class_tag,
                               const std::vector<byte>& rep)
          {
-         return add_object(type_tag, class_tag, &rep[0], rep.size());
+         return add_object(type_tag, class_tag, rep.data(), rep.size());
          }
 
       DER_Encoder& add_object(ASN1_Tag type_tag, ASN1_Tag class_tag,
                               const secure_vector<byte>& rep)
          {
-         return add_object(type_tag, class_tag, &rep[0], rep.size());
+         return add_object(type_tag, class_tag, rep.data(), rep.size());
          }
 
       DER_Encoder& add_object(ASN1_Tag type_tag, ASN1_Tag class_tag,

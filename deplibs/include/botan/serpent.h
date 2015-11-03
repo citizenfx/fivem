@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL Serpent : public Block_Cipher_Fixed_Params<16, 16, 32, 8>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "Serpent"; }
-      BlockCipher* clone() const { return new Serpent; }
+      void clear() override;
+      std::string name() const override { return "Serpent"; }
+      BlockCipher* clone() const override { return new Serpent; }
    protected:
       /**
       * For use by subclasses using SIMD, asm, etc
@@ -42,7 +42,7 @@ class BOTAN_DLL Serpent : public Block_Cipher_Fixed_Params<16, 16, 32, 8>
          }
 
    private:
-      void key_schedule(const byte key[], size_t length);
+      void key_schedule(const byte key[], size_t length) override;
       secure_vector<u32bit> round_key;
    };
 

@@ -118,7 +118,7 @@ class TLS_Data_Reader
          std::vector<byte> v =
             get_range_vector<byte>(len_bytes, min_bytes, max_bytes);
 
-         return std::string(reinterpret_cast<char*>(&v[0]), v.size());
+         return std::string(reinterpret_cast<char*>(v.data()), v.size());
          }
 
       template<typename T>
@@ -209,7 +209,7 @@ void append_tls_length_value(std::vector<byte, Alloc>& buf,
                              const std::vector<T, Alloc2>& vals,
                              size_t tag_size)
    {
-   append_tls_length_value(buf, &vals[0], vals.size(), tag_size);
+   append_tls_length_value(buf, vals.data(), vals.size(), tag_size);
    }
 
 template<typename Alloc>
@@ -218,7 +218,7 @@ void append_tls_length_value(std::vector<byte, Alloc>& buf,
                              size_t tag_size)
    {
    append_tls_length_value(buf,
-                           reinterpret_cast<const byte*>(&str[0]),
+                           reinterpret_cast<const byte*>(str.data()),
                            str.size(),
                            tag_size);
    }

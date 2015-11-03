@@ -19,17 +19,17 @@ namespace Botan {
 class BOTAN_DLL SHA_224 : public MDx_HashFunction
    {
    public:
-      std::string name() const { return "SHA-224"; }
-      size_t output_length() const { return 28; }
-      HashFunction* clone() const { return new SHA_224; }
+      std::string name() const override { return "SHA-224"; }
+      size_t output_length() const override { return 28; }
+      HashFunction* clone() const override { return new SHA_224; }
 
-      void clear();
+      void clear() override;
 
       SHA_224() : MDx_HashFunction(64, true, true), digest(8)
          { clear(); }
    private:
-      void compress_n(const byte[], size_t blocks);
-      void copy_out(byte[]);
+      void compress_n(const byte[], size_t blocks) override;
+      void copy_out(byte[]) override;
 
       secure_vector<u32bit> digest;
    };
@@ -40,17 +40,17 @@ class BOTAN_DLL SHA_224 : public MDx_HashFunction
 class BOTAN_DLL SHA_256 : public MDx_HashFunction
    {
    public:
-      std::string name() const { return "SHA-256"; }
-      size_t output_length() const { return 32; }
-      HashFunction* clone() const { return new SHA_256; }
+      std::string name() const override { return "SHA-256"; }
+      size_t output_length() const override { return 32; }
+      HashFunction* clone() const override { return new SHA_256; }
 
-      void clear();
+      void clear() override;
 
       SHA_256() : MDx_HashFunction(64, true, true), digest(8)
          { clear(); }
    private:
-      void compress_n(const byte[], size_t blocks);
-      void copy_out(byte[]);
+      void compress_n(const byte[], size_t blocks) override;
+      void copy_out(byte[]) override;
 
       secure_vector<u32bit> digest;
    };

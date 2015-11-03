@@ -18,14 +18,14 @@ namespace Botan {
 class BOTAN_DLL RC6 : public Block_Cipher_Fixed_Params<16, 1, 32>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "RC6"; }
-      BlockCipher* clone() const { return new RC6; }
+      void clear() override;
+      std::string name() const override { return "RC6"; }
+      BlockCipher* clone() const override { return new RC6; }
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       secure_vector<u32bit> S;
    };

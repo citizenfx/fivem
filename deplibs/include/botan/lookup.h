@@ -8,18 +8,16 @@
 #ifndef BOTAN_LOOKUP_H__
 #define BOTAN_LOOKUP_H__
 
-#include <botan/types.h>
+#include <botan/block_cipher.h>
+#include <botan/stream_cipher.h>
+#include <botan/hash.h>
+#include <botan/mac.h>
+#include <botan/exceptn.h>
 #include <string>
 #include <vector>
 #include <memory>
 
 namespace Botan {
-
-class BlockCipher;
-class StreamCipher;
-class HashFunction;
-class MessageAuthenticationCode;
-class PBKDF;
 
 /*
 * Get an algorithm object
@@ -33,13 +31,25 @@ class PBKDF;
 * @param algo_spec the name of the desired block cipher
 * @return pointer to the block cipher object
 */
-BOTAN_DLL BlockCipher* get_block_cipher(const std::string& algo_spec,
-                                        const std::string& provider = "");
+inline BlockCipher* get_block_cipher(const std::string& algo_spec,
+                                     const std::string& provider = "")
+   {
+   return BlockCipher::create(algo_spec, provider).release();
+   }
 
-BOTAN_DLL std::unique_ptr<BlockCipher> make_block_cipher(const std::string& algo_spec,
-                                                         const std::string& provider = "");
+inline std::unique_ptr<BlockCipher> make_block_cipher(const std::string& algo_spec,
+                                                      const std::string& provider = "")
+   {
+   std::unique_ptr<BlockCipher> p(BlockCipher::create(algo_spec, provider));
+   if(p)
+      return p;
+   throw Algorithm_Not_Found(algo_spec);
+   }
 
-BOTAN_DLL std::vector<std::string> get_block_cipher_providers(const std::string& algo_spec);
+inline std::vector<std::string> get_block_cipher_providers(const std::string& algo_spec)
+   {
+   return BlockCipher::providers(algo_spec);
+   }
 
 /**
 * Stream cipher factory method.
@@ -47,13 +57,25 @@ BOTAN_DLL std::vector<std::string> get_block_cipher_providers(const std::string&
 * @param algo_spec the name of the desired stream cipher
 * @return pointer to the stream cipher object
 */
-BOTAN_DLL StreamCipher* get_stream_cipher(const std::string& algo_spec,
-                                          const std::string& provider = "");
+inline StreamCipher* get_stream_cipher(const std::string& algo_spec,
+                                       const std::string& provider = "")
+   {
+   return StreamCipher::create(algo_spec, provider).release();
+   }
 
-BOTAN_DLL std::unique_ptr<StreamCipher> make_stream_cipher(const std::string& algo_spec,
-                                                           const std::string& provider = "");
+inline std::unique_ptr<StreamCipher> make_stream_cipher(const std::string& algo_spec,
+                                                        const std::string& provider = "")
+   {
+   std::unique_ptr<StreamCipher> p(StreamCipher::create(algo_spec, provider));
+   if(p)
+      return p;
+   throw Algorithm_Not_Found(algo_spec);
+   }
 
-BOTAN_DLL std::vector<std::string> get_stream_cipher_providers(const std::string& algo_spec);
+inline std::vector<std::string> get_stream_cipher_providers(const std::string& algo_spec)
+   {
+   return StreamCipher::providers(algo_spec);
+   }
 
 /**
 * Hash function factory method.
@@ -61,11 +83,20 @@ BOTAN_DLL std::vector<std::string> get_stream_cipher_providers(const std::string
 * @param algo_spec the name of the desired hash function
 * @return pointer to the hash function object
 */
-BOTAN_DLL HashFunction* get_hash_function(const std::string& algo_spec,
-                                          const std::string& provider = "");
+inline HashFunction* get_hash_function(const std::string& algo_spec,
+                                       const std::string& provider = "")
+   {
+   return HashFunction::create(algo_spec, provider).release();
+   }
 
-BOTAN_DLL std::unique_ptr<HashFunction> make_hash_function(const std::string& algo_spec,
-                                                           const std::string& provider = "");
+inline std::unique_ptr<HashFunction> make_hash_function(const std::string& algo_spec,
+                                                        const std::string& provider = "")
+   {
+   std::unique_ptr<HashFunction> p(HashFunction::create(algo_spec, provider));
+   if(p)
+      return p;
+   throw Algorithm_Not_Found(algo_spec);
+   }
 
 inline HashFunction* get_hash(const std::string& algo_spec,
                               const std::string& provider = "")
@@ -73,7 +104,10 @@ inline HashFunction* get_hash(const std::string& algo_spec,
    return get_hash_function(algo_spec, provider);
    }
 
-BOTAN_DLL std::vector<std::string> get_hash_function_providers(const std::string& algo_spec);
+inline std::vector<std::string> get_hash_function_providers(const std::string& algo_spec)
+   {
+   return HashFunction::providers(algo_spec);
+   }
 
 /**
 * MAC factory method.
@@ -81,21 +115,25 @@ BOTAN_DLL std::vector<std::string> get_hash_function_providers(const std::string
 * @param algo_spec the name of the desired MAC
 * @return pointer to the MAC object
 */
-BOTAN_DLL MessageAuthenticationCode* get_mac(const std::string& algo_spec,
-                                             const std::string& provider = "");
+inline MessageAuthenticationCode* get_mac(const std::string& algo_spec,
+                                             const std::string& provider = "")
+   {
+   return MessageAuthenticationCode::create(algo_spec, provider).release();
+   }
 
-BOTAN_DLL std::unique_ptr<MessageAuthenticationCode> make_message_auth(const std::string& algo_spec,
-                                                                       const std::string& provider = "");
+inline std::unique_ptr<MessageAuthenticationCode> make_message_auth(const std::string& algo_spec,
+                                                                       const std::string& provider = "")
+   {
+   std::unique_ptr<MessageAuthenticationCode> p(MessageAuthenticationCode::create(algo_spec, provider));
+   if(p)
+      return p;
+   throw Algorithm_Not_Found(algo_spec);
+   }
 
-BOTAN_DLL std::vector<std::string> get_mac_providers(const std::string& algo_spec);
-
-/**
-* Password based key derivation function factory method
-* @param algo_spec the name of the desired PBKDF algorithm
-* @return pointer to newly allocated object of that type
-*/
-BOTAN_DLL PBKDF* get_pbkdf(const std::string& algo_spec,
-                           const std::string& provider = "");
+inline std::vector<std::string> get_mac_providers(const std::string& algo_spec)
+   {
+   return MessageAuthenticationCode::providers(algo_spec);
+   }
 
 }
 

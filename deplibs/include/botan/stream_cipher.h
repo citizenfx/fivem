@@ -20,6 +20,21 @@ namespace Botan {
 class BOTAN_DLL StreamCipher : public SymmetricAlgorithm
    {
    public:
+      typedef SCAN_Name Spec;
+
+      /**
+      * Create an instance based on a name
+      * Will return a null pointer if the algo/provider combination cannot
+      * be found. If provider is empty then best available is chosen.
+      */
+      static std::unique_ptr<StreamCipher> create(const std::string& algo_spec,
+                                                  const std::string& provider = "");
+
+      /**
+      * Returns the list of available providers for this algorithm, empty if not available
+      */
+      static std::vector<std::string> providers(const std::string& algo_spec);
+
       /**
       * Encrypt or decrypt a message
       * @param in the plaintext
@@ -38,26 +53,22 @@ class BOTAN_DLL StreamCipher : public SymmetricAlgorithm
 
       template<typename Alloc>
          void encipher(std::vector<byte, Alloc>& inout)
-         { cipher(&inout[0], &inout[0], inout.size()); }
+         { cipher(inout.data(), inout.data(), inout.size()); }
 
       template<typename Alloc>
          void encrypt(std::vector<byte, Alloc>& inout)
-         { cipher(&inout[0], &inout[0], inout.size()); }
+         { cipher(inout.data(), inout.data(), inout.size()); }
 
       template<typename Alloc>
          void decrypt(std::vector<byte, Alloc>& inout)
-         { cipher(&inout[0], &inout[0], inout.size()); }
+         { cipher(inout.data(), inout.data(), inout.size()); }
 
       /**
       * Resync the cipher using the IV
       * @param iv the initialization vector
       * @param iv_len the length of the IV in bytes
       */
-      virtual void set_iv(const byte[], size_t iv_len)
-         {
-         if(iv_len)
-            throw Invalid_IV_Length(name(), iv_len);
-         }
+      virtual void set_iv(const byte[], size_t iv_len);
 
       /**
       * @param iv_len the length of the IV in bytes
@@ -70,7 +81,8 @@ class BOTAN_DLL StreamCipher : public SymmetricAlgorithm
       */
       virtual StreamCipher* clone() const = 0;
 
-      typedef SCAN_Name Spec;
+      StreamCipher();
+      virtual ~StreamCipher();
    };
 
 }

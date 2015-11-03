@@ -19,13 +19,13 @@ namespace Botan {
 class BOTAN_DLL ANSI_X931_RNG : public RandomNumberGenerator
    {
    public:
-      void randomize(byte[], size_t);
-      bool is_seeded() const;
-      void clear();
-      std::string name() const;
+      void randomize(byte[], size_t) override;
+      bool is_seeded() const override;
+      void clear() override;
+      std::string name() const override;
 
-      void reseed(size_t poll_bits);
-      void add_entropy(const byte[], size_t);
+      void reseed(size_t poll_bits) override;
+      void add_entropy(const byte[], size_t) override;
 
       /**
       * @param cipher the block cipher to use in this PRNG

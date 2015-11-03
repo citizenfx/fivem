@@ -11,7 +11,6 @@
 #include <botan/x509cert.h>
 #include <botan/x509_crl.h>
 #include <botan/x509_ext.h>
-#include <botan/pkcs8.h>
 #include <botan/pkcs10.h>
 #include <botan/pubkey.h>
 

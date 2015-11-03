@@ -60,8 +60,8 @@ class BOTAN_DLL Certificate_Extension
 class BOTAN_DLL Extensions : public ASN1_Object
    {
    public:
-      void encode_into(class DER_Encoder&) const;
-      void decode_from(class BER_Decoder&);
+      void encode_into(class DER_Encoder&) const override;
+      void decode_from(class BER_Decoder&) override;
 
       void contents_to(Data_Store&, Data_Store&) const;
 
@@ -89,7 +89,7 @@ static const size_t NO_CERT_PATH_LIMIT = 0xFFFFFFF0;
 class BOTAN_DLL Basic_Constraints : public Certificate_Extension
    {
    public:
-      Basic_Constraints* copy() const
+      Basic_Constraints* copy() const override
          { return new Basic_Constraints(is_ca, path_limit); }
 
       Basic_Constraints(bool ca = false, size_t limit = 0) :
@@ -98,11 +98,12 @@ class BOTAN_DLL Basic_Constraints : public Certificate_Extension
       bool get_is_ca() const { return is_ca; }
       size_t get_path_limit() const;
    private:
-      std::string oid_name() const { return "X509v3.BasicConstraints"; }
+      std::string oid_name() const override
+         { return "X509v3.BasicConstraints"; }
 
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       bool is_ca;
       size_t path_limit;
@@ -114,18 +115,19 @@ class BOTAN_DLL Basic_Constraints : public Certificate_Extension
 class BOTAN_DLL Key_Usage : public Certificate_Extension
    {
    public:
-      Key_Usage* copy() const { return new Key_Usage(constraints); }
+      Key_Usage* copy() const override { return new Key_Usage(constraints); }
 
       Key_Usage(Key_Constraints c = NO_CONSTRAINTS) : constraints(c) {}
 
       Key_Constraints get_constraints() const { return constraints; }
    private:
-      std::string oid_name() const { return "X509v3.KeyUsage"; }
+      std::string oid_name() const override { return "X509v3.KeyUsage"; }
 
-      bool should_encode() const { return (constraints != NO_CONSTRAINTS); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override
+         { return (constraints != NO_CONSTRAINTS); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       Key_Constraints constraints;
    };
@@ -136,19 +138,21 @@ class BOTAN_DLL Key_Usage : public Certificate_Extension
 class BOTAN_DLL Subject_Key_ID : public Certificate_Extension
    {
    public:
-      Subject_Key_ID* copy() const { return new Subject_Key_ID(key_id); }
+      Subject_Key_ID* copy() const override
+         { return new Subject_Key_ID(key_id); }
 
       Subject_Key_ID() {}
       Subject_Key_ID(const std::vector<byte>&);
 
       std::vector<byte> get_key_id() const { return key_id; }
    private:
-      std::string oid_name() const { return "X509v3.SubjectKeyIdentifier"; }
+      std::string oid_name() const override
+         { return "X509v3.SubjectKeyIdentifier"; }
 
-      bool should_encode() const { return (key_id.size() > 0); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return (key_id.size() > 0); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::vector<byte> key_id;
    };
@@ -159,19 +163,21 @@ class BOTAN_DLL Subject_Key_ID : public Certificate_Extension
 class BOTAN_DLL Authority_Key_ID : public Certificate_Extension
    {
    public:
-      Authority_Key_ID* copy() const { return new Authority_Key_ID(key_id); }
+      Authority_Key_ID* copy() const override
+         { return new Authority_Key_ID(key_id); }
 
       Authority_Key_ID() {}
       Authority_Key_ID(const std::vector<byte>& k) : key_id(k) {}
 
       std::vector<byte> get_key_id() const { return key_id; }
    private:
-      std::string oid_name() const { return "X509v3.AuthorityKeyIdentifier"; }
+      std::string oid_name() const override
+         { return "X509v3.AuthorityKeyIdentifier"; }
 
-      bool should_encode() const { return (key_id.size() > 0); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return (key_id.size() > 0); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::vector<byte> key_id;
    };
@@ -189,12 +195,12 @@ class BOTAN_DLL Alternative_Name : public Certificate_Extension
 
       Alternative_Name(const std::string&, const std::string&);
    private:
-      std::string oid_name() const { return oid_name_str; }
+      std::string oid_name() const override { return oid_name_str; }
 
-      bool should_encode() const { return alt_name.has_items(); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return alt_name.has_items(); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::string oid_name_str;
       AlternativeName alt_name;
@@ -206,7 +212,7 @@ class BOTAN_DLL Alternative_Name : public Certificate_Extension
 class BOTAN_DLL Subject_Alternative_Name : public Alternative_Name
    {
    public:
-      Subject_Alternative_Name* copy() const
+      Subject_Alternative_Name* copy() const override
          { return new Subject_Alternative_Name(get_alt_name()); }
 
       Subject_Alternative_Name(const AlternativeName& = AlternativeName());
@@ -218,7 +224,7 @@ class BOTAN_DLL Subject_Alternative_Name : public Alternative_Name
 class BOTAN_DLL Issuer_Alternative_Name : public Alternative_Name
    {
    public:
-      Issuer_Alternative_Name* copy() const
+      Issuer_Alternative_Name* copy() const override
          { return new Issuer_Alternative_Name(get_alt_name()); }
 
       Issuer_Alternative_Name(const AlternativeName& = AlternativeName());
@@ -230,19 +236,21 @@ class BOTAN_DLL Issuer_Alternative_Name : public Alternative_Name
 class BOTAN_DLL Extended_Key_Usage : public Certificate_Extension
    {
    public:
-      Extended_Key_Usage* copy() const { return new Extended_Key_Usage(oids); }
+      Extended_Key_Usage* copy() const override
+         { return new Extended_Key_Usage(oids); }
 
       Extended_Key_Usage() {}
       Extended_Key_Usage(const std::vector<OID>& o) : oids(o) {}
 
       std::vector<OID> get_oids() const { return oids; }
    private:
-      std::string oid_name() const { return "X509v3.ExtendedKeyUsage"; }
+      std::string oid_name() const override
+         { return "X509v3.ExtendedKeyUsage"; }
 
-      bool should_encode() const { return (oids.size() > 0); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return (oids.size() > 0); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::vector<OID> oids;
    };
@@ -253,7 +261,7 @@ class BOTAN_DLL Extended_Key_Usage : public Certificate_Extension
 class BOTAN_DLL Certificate_Policies : public Certificate_Extension
    {
    public:
-      Certificate_Policies* copy() const
+      Certificate_Policies* copy() const override
          { return new Certificate_Policies(oids); }
 
       Certificate_Policies() {}
@@ -261,12 +269,13 @@ class BOTAN_DLL Certificate_Policies : public Certificate_Extension
 
       std::vector<OID> get_oids() const { return oids; }
    private:
-      std::string oid_name() const { return "X509v3.CertificatePolicies"; }
+      std::string oid_name() const override
+         { return "X509v3.CertificatePolicies"; }
 
-      bool should_encode() const { return (oids.size() > 0); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return (oids.size() > 0); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::vector<OID> oids;
    };
@@ -274,7 +283,7 @@ class BOTAN_DLL Certificate_Policies : public Certificate_Extension
 class BOTAN_DLL Authority_Information_Access : public Certificate_Extension
    {
    public:
-      Authority_Information_Access* copy() const
+      Authority_Information_Access* copy() const override
          { return new Authority_Information_Access(m_ocsp_responder); }
 
       Authority_Information_Access() {}
@@ -283,14 +292,15 @@ class BOTAN_DLL Authority_Information_Access : public Certificate_Extension
          m_ocsp_responder(ocsp) {}
 
    private:
-      std::string oid_name() const { return "PKIX.AuthorityInformationAccess"; }
+      std::string oid_name() const override
+         { return "PKIX.AuthorityInformationAccess"; }
 
-      bool should_encode() const { return (m_ocsp_responder != ""); }
+      bool should_encode() const override { return (m_ocsp_responder != ""); }
 
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
 
-      void contents_to(Data_Store&, Data_Store&) const;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::string m_ocsp_responder;
    };
@@ -301,19 +311,19 @@ class BOTAN_DLL Authority_Information_Access : public Certificate_Extension
 class BOTAN_DLL CRL_Number : public Certificate_Extension
    {
    public:
-      CRL_Number* copy() const;
+      CRL_Number* copy() const override;
 
       CRL_Number() : has_value(false), crl_number(0) {}
       CRL_Number(size_t n) : has_value(true), crl_number(n) {}
 
       size_t get_crl_number() const;
    private:
-      std::string oid_name() const { return "X509v3.CRLNumber"; }
+      std::string oid_name() const override { return "X509v3.CRLNumber"; }
 
-      bool should_encode() const { return has_value; }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return has_value; }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       bool has_value;
       size_t crl_number;
@@ -325,18 +335,19 @@ class BOTAN_DLL CRL_Number : public Certificate_Extension
 class BOTAN_DLL CRL_ReasonCode : public Certificate_Extension
    {
    public:
-      CRL_ReasonCode* copy() const { return new CRL_ReasonCode(reason); }
+      CRL_ReasonCode* copy() const override
+         { return new CRL_ReasonCode(reason); }
 
       CRL_ReasonCode(CRL_Code r = UNSPECIFIED) : reason(r) {}
 
       CRL_Code get_reason() const { return reason; }
    private:
-      std::string oid_name() const { return "X509v3.ReasonCode"; }
+      std::string oid_name() const override { return "X509v3.ReasonCode"; }
 
-      bool should_encode() const { return (reason != UNSPECIFIED); }
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      bool should_encode() const override { return (reason != UNSPECIFIED); }
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       CRL_Code reason;
    };
@@ -350,15 +361,15 @@ class BOTAN_DLL CRL_Distribution_Points : public Certificate_Extension
       class BOTAN_DLL Distribution_Point : public ASN1_Object
          {
          public:
-            void encode_into(class DER_Encoder&) const;
-            void decode_from(class BER_Decoder&);
+            void encode_into(class DER_Encoder&) const override;
+            void decode_from(class BER_Decoder&) override;
 
             const AlternativeName& point() const { return m_point; }
          private:
             AlternativeName m_point;
          };
 
-      CRL_Distribution_Points* copy() const
+      CRL_Distribution_Points* copy() const override
          { return new CRL_Distribution_Points(m_distribution_points); }
 
       CRL_Distribution_Points() {}
@@ -370,13 +381,15 @@ class BOTAN_DLL CRL_Distribution_Points : public Certificate_Extension
          { return m_distribution_points; }
 
    private:
-      std::string oid_name() const { return "X509v3.CRLDistributionPoints"; }
+      std::string oid_name() const override
+         { return "X509v3.CRLDistributionPoints"; }
 
-      bool should_encode() const { return !m_distribution_points.empty(); }
+      bool should_encode() const override
+         { return !m_distribution_points.empty(); }
 
-      std::vector<byte> encode_inner() const;
-      void decode_inner(const std::vector<byte>&);
-      void contents_to(Data_Store&, Data_Store&) const;
+      std::vector<byte> encode_inner() const override;
+      void decode_inner(const std::vector<byte>&) override;
+      void contents_to(Data_Store&, Data_Store&) const override;
 
       std::vector<Distribution_Point> m_distribution_points;
    };

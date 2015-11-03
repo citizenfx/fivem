@@ -17,219 +17,203 @@
 
 namespace Botan {
 
-namespace gf2m_small_m {
-
 typedef u16bit gf2m;
 
-class Gf2m_Field
+/**
+* GF(2^m) field for m = [2...16]
+*/
+class BOTAN_DLL GF2m_Field
    {
    public:
-      Gf2m_Field(size_t extdeg);
+      GF2m_Field(size_t extdeg);
 
-      gf2m gf_mul(gf2m x, gf2m y)
+      gf2m gf_mul(gf2m x, gf2m y) const
          {
          return ((x) ? gf_mul_fast(x, y) : 0);
          }
 
-      gf2m gf_square(gf2m x)
+      gf2m gf_square(gf2m x) const
          {
-         return ((x) ? m_gf_exp_table[_gf_modq_1(m_gf_log_table[x] << 1)] : 0);
+         return ((x) ? gf_exp(_gf_modq_1(gf_log(x) << 1)) : 0);
          }
 
-      gf2m square_rr(gf2m x)
+      gf2m square_rr(gf2m x) const
          {
          return _gf_modq_1(x << 1);
          }
 
-      // naming convention of GF(2^m) field operations:
-      // l logarithmic, unreduced
-      // r logarithmic, reduced
-      // n normal, non-zero
-      // z normal, might be zero
-      //
-      inline gf2m gf_mul_lll(gf2m a, gf2m b);
-      inline gf2m gf_mul_rrr(gf2m a, gf2m b);
-      inline gf2m gf_mul_nrr(gf2m a, gf2m b);
-      inline gf2m gf_mul_rrn(gf2m a, gf2m y);
-      inline gf2m gf_mul_lnn(gf2m x, gf2m y);
-      inline gf2m gf_mul_rnn(gf2m x, gf2m y);
-      inline gf2m gf_mul_nrn(gf2m a, gf2m y);
-      inline gf2m gf_mul_rnr(gf2m y, gf2m a);
-      inline gf2m gf_mul_zrz(gf2m a, gf2m y);
-      inline gf2m gf_mul_zzr(gf2m a, gf2m y);
-      inline gf2m gf_mul_nnr(gf2m y, gf2m a);
-      inline gf2m gf_sqrt(gf2m x) ;
-      gf2m gf_div(gf2m x, gf2m y);
-      inline gf2m gf_div_rnn(gf2m x, gf2m y);
-      inline gf2m gf_div_rnr(gf2m x, gf2m b);
-      inline gf2m gf_div_nrr(gf2m a, gf2m b);
-      inline gf2m gf_div_zzr(gf2m x, gf2m b);
-      inline gf2m gf_inv(gf2m x);
-      inline gf2m gf_inv_rn(gf2m x);
-      inline gf2m gf_square_ln(gf2m x);
-      inline gf2m gf_square_rr(gf2m a) ;
-      inline gf2m gf_l_from_n(gf2m x);
-
-      inline gf2m gf_mul_fast(gf2m a, gf2m b);
-
-      gf2m gf_exp(gf2m i)
+      gf2m gf_mul_fast(gf2m x, gf2m y) const
          {
-         return m_gf_exp_table[i]; /* alpha^i */
+         return ((y) ? gf_exp(_gf_modq_1(gf_log(x) + gf_log(y))) : 0);
          }
 
-      gf2m gf_log(gf2m i)
+      /*
+      naming convention of GF(2^m) field operations:
+        l logarithmic, unreduced
+        r logarithmic, reduced
+        n normal, non-zero
+        z normal, might be zero
+      */
+
+      gf2m gf_mul_lll(gf2m a, gf2m b) const
          {
-         return m_gf_log_table[i]; /* return i when x=alpha^i */
+         return (a + b);
          }
 
-      inline gf2m gf_ord() const
+      gf2m gf_mul_rrr(gf2m a, gf2m b) const
+         {
+         return (_gf_modq_1(gf_mul_lll(a, b)));
+         }
+
+      gf2m gf_mul_nrr(gf2m a, gf2m b) const
+         {
+         return (gf_exp(gf_mul_rrr(a, b)));
+         }
+
+      gf2m gf_mul_rrn(gf2m a, gf2m y) const
+         {
+         return _gf_modq_1(gf_mul_lll(a, gf_log(y)));
+         }
+
+      gf2m gf_mul_rnr(gf2m y, gf2m a) const
+         {
+         return gf_mul_rrn(a, y);
+         }
+
+      gf2m gf_mul_lnn(gf2m x, gf2m y) const
+         {
+         return (gf_log(x) + gf_log(y));
+         }
+
+      gf2m gf_mul_rnn(gf2m x, gf2m y) const
+         {
+         return _gf_modq_1(gf_mul_lnn(x, y));
+         }
+
+      gf2m gf_mul_nrn(gf2m a, gf2m y) const
+         {
+         return gf_exp(_gf_modq_1((a) + gf_log(y)));
+         }
+
+      /**
+      * zero operand allowed
+      */
+      gf2m gf_mul_zrz(gf2m a, gf2m y) const
+         {
+         return ( (y == 0) ? 0 : gf_mul_nrn(a, y) );
+         }
+
+      gf2m gf_mul_zzr(gf2m a, gf2m y) const
+         {
+         return gf_mul_zrz(y, a);
+         }
+
+      /**
+      * non-zero operand
+      */
+      gf2m gf_mul_nnr(gf2m y, gf2m a) const
+         {
+         return gf_mul_nrn(a, y);
+         }
+
+      gf2m gf_sqrt(gf2m x) const
+         {
+         return ((x) ? gf_exp(_gf_modq_1(gf_log(x) << (get_extension_degree()-1))) : 0);
+         }
+
+      gf2m gf_div_rnn(gf2m x, gf2m y) const
+         {
+         return _gf_modq_1(gf_log(x) - gf_log(y));
+         }
+
+      gf2m gf_div_rnr(gf2m x, gf2m b) const
+         {
+         return _gf_modq_1(gf_log(x) - b);
+         }
+
+      gf2m gf_div_nrr(gf2m a, gf2m b) const
+         {
+         return gf_exp(_gf_modq_1(a - b));
+         }
+
+      gf2m gf_div_zzr(gf2m x, gf2m b) const
+         {
+         return ((x) ? gf_exp(_gf_modq_1(gf_log(x) - b)) : 0);
+         }
+
+      gf2m gf_inv(gf2m x) const
+         {
+         return gf_exp(gf_ord() - gf_log(x));
+         }
+
+      gf2m gf_inv_rn(gf2m x) const
+         {
+         return (gf_ord() - gf_log(x));
+         }
+
+      gf2m gf_square_ln(gf2m x) const
+         {
+         return gf_log(x) << 1;
+         }
+
+      gf2m gf_square_rr(gf2m a) const
+         {
+         return a << 1;
+         }
+
+      gf2m gf_l_from_n(gf2m x) const
+         {
+         return gf_log(x);
+         }
+
+      gf2m gf_div(gf2m x, gf2m y) const;
+
+      gf2m gf_pow(gf2m x, int i) const;
+
+      gf2m gf_exp(gf2m i) const
+         {
+         return m_gf_exp_table.at(i); /* alpha^i */
+         }
+
+      gf2m gf_log(gf2m i) const
+         {
+         return m_gf_log_table.at(i); /* return i when x=alpha^i */
+         }
+
+      gf2m gf_ord() const
          {
          return m_gf_multiplicative_order;
          }
 
-      inline gf2m get_extension_degree() const
+      gf2m get_extension_degree() const
          {
          return m_gf_extension_degree;
          }
 
-      inline gf2m get_cardinality() const
+      gf2m get_cardinality() const
          {
-         return m_gf_cardinality;
+         return static_cast<gf2m>(1 << get_extension_degree());
          }
 
-      gf2m gf_pow(gf2m x, int i) ;
-
    private:
-      gf2m m_gf_extension_degree, m_gf_cardinality, m_gf_multiplicative_order;
-      std::vector<gf2m> m_gf_log_table;
-      std::vector<gf2m> m_gf_exp_table;
+      gf2m _gf_modq_1(s32bit d) const
+         {
+         /* residual modulo q-1
+         when -q < d < 0, we get (q-1+d)
+         when 0 <= d < q, we get (d)
+         when q <= d < 2q-1, we get (d-q+1)
+         */
+         return (((d) & gf_ord()) + ((d) >> get_extension_degree()));
+         }
 
-      inline gf2m _gf_modq_1(s32bit d);
-      void init_log();
-      void init_exp();
+      gf2m m_gf_extension_degree, m_gf_multiplicative_order;
+      const std::vector<gf2m>& m_gf_log_table;
+      const std::vector<gf2m>& m_gf_exp_table;
    };
-
-gf2m Gf2m_Field::_gf_modq_1(s32bit d)
-   {
-   return  (((d) & gf_ord()) + ((d) >> m_gf_extension_degree));
-   }
-
-gf2m Gf2m_Field::gf_mul_fast(gf2m x, gf2m y)
-   {
-   return ((y) ? m_gf_exp_table[_gf_modq_1(m_gf_log_table[x] + m_gf_log_table[y])] : 0);
-   }
-
-gf2m Gf2m_Field::gf_mul_lll(gf2m a, gf2m b)
-   {
-   return  (a + b);
-   }
-
-gf2m Gf2m_Field::gf_mul_rrr(gf2m a, gf2m b)
-   {
-   return (_gf_modq_1(gf_mul_lll(a, b)));
-   }
-
-gf2m Gf2m_Field::gf_mul_nrr(gf2m a, gf2m b)
-   {
-   return (gf_exp(gf_mul_rrr(a, b)));
-   }
-
-gf2m Gf2m_Field::gf_mul_rrn(gf2m a, gf2m y)
-   {
-   return _gf_modq_1(gf_mul_lll(a, gf_log(y)));
-   }
-
-gf2m Gf2m_Field::gf_mul_rnr(gf2m y, gf2m a)
-   {
-   return gf_mul_rrn(a, y);
-   }
-
-gf2m Gf2m_Field::gf_mul_lnn(gf2m x, gf2m y)
-   {
-   return (m_gf_log_table[x] + m_gf_log_table[y]);
-   }
-gf2m Gf2m_Field::gf_mul_rnn(gf2m x, gf2m y)
-   {
-   return _gf_modq_1(gf_mul_lnn(x, y));
-   }
-
-gf2m Gf2m_Field::gf_mul_nrn(gf2m a, gf2m y)
-   {
-   return m_gf_exp_table[_gf_modq_1((a) + m_gf_log_table[y])];
-   }
-
-/**
-* zero operand allowed
-*/
-gf2m Gf2m_Field::gf_mul_zrz(gf2m a, gf2m y)
-   {
-   return ( (y == 0) ? 0 : gf_mul_nrn(a, y) );
-   }
-
-gf2m Gf2m_Field::gf_mul_zzr(gf2m a, gf2m y)
-   {
-   return gf_mul_zrz(y, a);
-   }
-/**
-* non-zero operand
-*/
-gf2m Gf2m_Field::gf_mul_nnr(gf2m y, gf2m a)
-   {
-   return gf_mul_nrn( a, y);
-   }
-
-gf2m Gf2m_Field::gf_sqrt(gf2m x)
-   {
-   return ((x) ? m_gf_exp_table[_gf_modq_1(m_gf_log_table[x] << (m_gf_extension_degree-1))] : 0);
-   }
-
-gf2m Gf2m_Field::gf_div_rnn(gf2m x, gf2m y)
-   {
-   return _gf_modq_1(m_gf_log_table[x] - m_gf_log_table[y]);
-   }
-gf2m Gf2m_Field::gf_div_rnr(gf2m x, gf2m b)
-   {
-   return _gf_modq_1(m_gf_log_table[x] - b);
-   }
-gf2m Gf2m_Field::gf_div_nrr(gf2m a, gf2m b)
-   {
-   return m_gf_exp_table[_gf_modq_1(a - b)];
-   }
-
-gf2m Gf2m_Field::gf_div_zzr(gf2m x, gf2m b)
-   {
-   return ((x) ? m_gf_exp_table[_gf_modq_1(m_gf_log_table[x] - b)] : 0);
-   }
-
-gf2m Gf2m_Field::gf_inv(gf2m x)
-   {
-   return m_gf_exp_table[gf_ord() - m_gf_log_table[x]];
-   }
-gf2m Gf2m_Field::gf_inv_rn(gf2m x)
-   {
-   return (gf_ord() - m_gf_log_table[x]);
-   }
-
-gf2m Gf2m_Field::gf_square_ln(gf2m x)
-   {
-   return m_gf_log_table[x] << 1;
-   }
-
-gf2m Gf2m_Field::gf_square_rr(gf2m a)
-   {
-   return a << 1;
-   }
-
-gf2m Gf2m_Field::gf_l_from_n(gf2m x)
-   {
-   return m_gf_log_table[x];
-   }
 
 u32bit encode_gf2m(gf2m to_enc, byte* mem);
 
 gf2m decode_gf2m(const byte* mem);
-
-}
 
 }
 

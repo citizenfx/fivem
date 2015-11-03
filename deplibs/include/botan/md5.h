@@ -18,17 +18,17 @@ namespace Botan {
 class BOTAN_DLL MD5 : public MDx_HashFunction
    {
    public:
-      std::string name() const { return "MD5"; }
-      size_t output_length() const { return 16; }
-      HashFunction* clone() const { return new MD5; }
+      std::string name() const override { return "MD5"; }
+      size_t output_length() const override { return 16; }
+      HashFunction* clone() const override { return new MD5; }
 
-      void clear();
+      void clear() override;
 
       MD5() : MDx_HashFunction(64, false, true), M(16), digest(4)
          { clear(); }
    protected:
-      void compress_n(const byte[], size_t blocks);
-      void copy_out(byte[]);
+      void compress_n(const byte[], size_t blocks) override;
+      void copy_out(byte[]) override;
 
       /**
       * The message buffer, exposed for use by subclasses (x86 asm)

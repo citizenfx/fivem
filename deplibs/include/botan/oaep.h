@@ -9,7 +9,6 @@
 #define BOTAN_OAEP_H__
 
 #include <botan/eme.h>
-#include <botan/kdf.h>
 #include <botan/hash.h>
 
 namespace Botan {
@@ -20,7 +19,7 @@ namespace Botan {
 class BOTAN_DLL OAEP : public EME
    {
    public:
-      size_t maximum_input_size(size_t) const;
+      size_t maximum_input_size(size_t) const override;
 
       static OAEP* make(const Spec& spec);
 
@@ -31,8 +30,8 @@ class BOTAN_DLL OAEP : public EME
       OAEP(HashFunction* hash, const std::string& P = "");
    private:
       secure_vector<byte> pad(const byte[], size_t, size_t,
-                             RandomNumberGenerator&) const;
-      secure_vector<byte> unpad(const byte[], size_t, size_t) const;
+                             RandomNumberGenerator&) const override;
+      secure_vector<byte> unpad(const byte[], size_t, size_t) const override;
 
       secure_vector<byte> m_Phash;
       std::unique_ptr<HashFunction> m_hash;

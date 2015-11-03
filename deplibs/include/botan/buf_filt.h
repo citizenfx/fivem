@@ -30,7 +30,7 @@ class BOTAN_DLL Buffered_Filter
       template<typename Alloc>
          void write(const std::vector<byte, Alloc>& in, size_t length)
          {
-         write(&in[0], length);
+         write(in.data(), length);
          }
 
       /**

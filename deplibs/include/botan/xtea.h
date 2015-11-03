@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL XTEA : public Block_Cipher_Fixed_Params<8, 16>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "XTEA"; }
-      BlockCipher* clone() const { return new XTEA; }
+      void clear() override;
+      std::string name() const override { return "XTEA"; }
+      BlockCipher* clone() const override { return new XTEA; }
    protected:
       /**
       * @return const reference to the key schedule
@@ -31,7 +31,7 @@ class BOTAN_DLL XTEA : public Block_Cipher_Fixed_Params<8, 16>
       const secure_vector<u32bit>& get_EK() const { return EK; }
 
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
       secure_vector<u32bit> EK;
    };
 

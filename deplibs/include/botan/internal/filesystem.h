@@ -1,11 +1,12 @@
 /*
 * (C) 2015 Jack Lloyd
+* (C) 2015 Simon Warta (Kullo GmbH)
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_UTIL_FS_H__
-#define BOTAN_UTIL_FS_H__
+#ifndef BOTAN_UTIL_FILESYSTEM_H__
+#define BOTAN_UTIL_FILESYSTEM_H__
 
 #include <botan/types.h>
 #include <vector>
@@ -13,8 +14,7 @@
 
 namespace Botan {
 
-BOTAN_DLL std::vector<std::string>
-list_all_readable_files_in_or_under(const std::string& dir);
+BOTAN_DLL std::vector<std::string> get_files_recursive(const std::string& dir);
 
 }
 

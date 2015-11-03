@@ -17,7 +17,7 @@ namespace Botan {
 * Previously botan had state whose lifetime had to be explicitly
 * managed by the application. As of 1.11.14 this is no longer the
 * case, and this class is no longer needed and kept only for backwards
-* compatability.
+* compatibility.
 */
 class BOTAN_DLL LibraryInitializer
    {

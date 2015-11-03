@@ -18,19 +18,19 @@ namespace Botan {
 class BOTAN_DLL Base64_Encoder : public Filter
    {
    public:
-      std::string name() const { return "Base64_Encoder"; }
+      std::string name() const override { return "Base64_Encoder"; }
 
       /**
       * Input a part of a message to the encoder.
       * @param input the message to input as a byte array
       * @param length the length of the byte array input
       */
-      void write(const byte input[], size_t length);
+      void write(const byte input[], size_t length) override;
 
       /**
       * Inform the Encoder that the current message shall be closed.
       */
-      void end_msg();
+      void end_msg() override;
 
       /**
       * Create a base64 encoder.
@@ -57,19 +57,19 @@ class BOTAN_DLL Base64_Encoder : public Filter
 class BOTAN_DLL Base64_Decoder : public Filter
    {
    public:
-      std::string name() const { return "Base64_Decoder"; }
+      std::string name() const override { return "Base64_Decoder"; }
 
       /**
       * Input a part of a message to the decoder.
       * @param input the message to input as a byte array
       * @param length the length of the byte array input
       */
-      void write(const byte input[], size_t length);
+      void write(const byte input[], size_t length) override;
 
       /**
       * Finish up the current message
       */
-      void end_msg();
+      void end_msg() override;
 
       /**
       * Create a base64 decoder.

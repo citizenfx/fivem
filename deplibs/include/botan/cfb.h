@@ -10,7 +10,6 @@
 
 #include <botan/cipher_mode.h>
 #include <botan/block_cipher.h>
-#include <botan/mode_pad.h>
 
 namespace Botan {
 

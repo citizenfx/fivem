@@ -9,22 +9,21 @@
 #define BOTAN_ROUNDING_H__
 
 #include <botan/types.h>
+#include <botan/assert.h>
 
 namespace Botan {
 
 /**
 * Round up
-* @param n an integer
+* @param n a non-negative integer
 * @param align_to the alignment boundary
 * @return n rounded up to a multiple of align_to
 */
-template<typename T>
-inline T round_up(T n, T align_to)
+inline size_t round_up(size_t n, size_t align_to)
    {
-   if(align_to == 0)
-      return n;
+   BOTAN_ASSERT(align_to != 0, "align_to must not be 0");
 
-   if(n % align_to || n == 0)
+   if(n % align_to)
       n += align_to - (n % align_to);
    return n;
    }

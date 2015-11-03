@@ -32,6 +32,8 @@ class BOTAN_DLL DataSource
       */
       virtual size_t read(byte out[], size_t length) = 0;
 
+      virtual bool check_available(size_t n) = 0;
+
       /**
       * Read from the source but do not modify the internal
       * offset. Consecutive calls to peek() will return portions of
@@ -97,9 +99,10 @@ class BOTAN_DLL DataSource
 class BOTAN_DLL DataSource_Memory : public DataSource
    {
    public:
-      size_t read(byte[], size_t);
-      size_t peek(byte[], size_t, size_t) const;
-      bool end_of_data() const;
+      size_t read(byte[], size_t) override;
+      size_t peek(byte[], size_t, size_t) const override;
+      bool check_available(size_t n) override;
+      bool end_of_data() const override;
 
       /**
       * Construct a memory source that reads from a string
@@ -129,7 +132,7 @@ class BOTAN_DLL DataSource_Memory : public DataSource
       DataSource_Memory(const std::vector<byte>& in) :
          source(in.begin(), in.end()), offset(0) {}
 
-      virtual size_t get_bytes_read() const { return offset; }
+      size_t get_bytes_read() const override { return offset; }
    private:
       secure_vector<byte> source;
       size_t offset;
@@ -141,10 +144,11 @@ class BOTAN_DLL DataSource_Memory : public DataSource
 class BOTAN_DLL DataSource_Stream : public DataSource
    {
    public:
-      size_t read(byte[], size_t);
-      size_t peek(byte[], size_t, size_t) const;
-      bool end_of_data() const;
-      std::string id() const;
+      size_t read(byte[], size_t) override;
+      size_t peek(byte[], size_t, size_t) const override;
+      bool check_available(size_t n) override;
+      bool end_of_data() const override;
+      std::string id() const override;
 
       DataSource_Stream(std::istream&,
                         const std::string& id = "<std::istream>");
@@ -162,7 +166,7 @@ class BOTAN_DLL DataSource_Stream : public DataSource
 
       ~DataSource_Stream();
 
-      virtual size_t get_bytes_read() const { return total_read; }
+      size_t get_bytes_read() const override { return total_read; }
    private:
       const std::string identifier;
 

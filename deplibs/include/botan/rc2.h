@@ -18,8 +18,8 @@ namespace Botan {
 class BOTAN_DLL RC2 : public Block_Cipher_Fixed_Params<8, 1, 32>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
       /**
       * Return the code of the effective key bits
@@ -28,11 +28,11 @@ class BOTAN_DLL RC2 : public Block_Cipher_Fixed_Params<8, 1, 32>
       */
       static byte EKB_code(size_t bits);
 
-      void clear();
-      std::string name() const { return "RC2"; }
-      BlockCipher* clone() const { return new RC2; }
+      void clear() override;
+      std::string name() const override { return "RC2"; }
+      BlockCipher* clone() const override { return new RC2; }
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       secure_vector<u16bit> K;
    };

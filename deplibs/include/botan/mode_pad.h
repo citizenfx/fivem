@@ -63,11 +63,11 @@ class BOTAN_DLL PKCS7_Padding : public BlockCipherModePaddingMethod
                        size_t final_block_bytes,
                        size_t block_size) const override;
 
-      size_t unpad(const byte[], size_t) const;
+      size_t unpad(const byte[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const { return (bs > 0 && bs < 256); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 0 && bs < 256); }
 
-      std::string name() const { return "PKCS7"; }
+      std::string name() const override { return "PKCS7"; }
    };
 
 /**
@@ -80,11 +80,11 @@ class BOTAN_DLL ANSI_X923_Padding : public BlockCipherModePaddingMethod
                        size_t final_block_bytes,
                        size_t block_size) const override;
 
-      size_t unpad(const byte[], size_t) const;
+      size_t unpad(const byte[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const { return (bs > 0 && bs < 256); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 0 && bs < 256); }
 
-      std::string name() const { return "X9.23"; }
+      std::string name() const override { return "X9.23"; }
    };
 
 /**
@@ -97,11 +97,11 @@ class BOTAN_DLL OneAndZeros_Padding : public BlockCipherModePaddingMethod
                        size_t final_block_bytes,
                        size_t block_size) const override;
 
-      size_t unpad(const byte[], size_t) const;
+      size_t unpad(const byte[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const { return (bs > 0); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 0); }
 
-      std::string name() const { return "OneAndZeros"; }
+      std::string name() const override { return "OneAndZeros"; }
    };
 
 /**
@@ -112,11 +112,11 @@ class BOTAN_DLL Null_Padding : public BlockCipherModePaddingMethod
    public:
       void add_padding(secure_vector<byte>&, size_t, size_t) const override {}
 
-      size_t unpad(const byte[], size_t size) const { return size; }
+      size_t unpad(const byte[], size_t size) const override { return size; }
 
-      bool valid_blocksize(size_t) const { return true; }
+      bool valid_blocksize(size_t) const override { return true; }
 
-      std::string name() const { return "NoPadding"; }
+      std::string name() const override { return "NoPadding"; }
    };
 
 BlockCipherModePaddingMethod* get_bc_pad(const std::string& algo_spec);

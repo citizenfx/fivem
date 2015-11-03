@@ -21,7 +21,20 @@ namespace Botan {
 class BOTAN_DLL KDF
    {
    public:
-      virtual ~KDF() {}
+      virtual ~KDF();
+
+      /**
+      * Create an instance based on a name
+      * Will return a null pointer if the algo/provider combination cannot
+      * be found. If provider is empty then best available is chosen.
+      */
+      static std::unique_ptr<KDF> create(const std::string& algo_spec,
+                                         const std::string& provider = "");
+
+      /**
+      * Returns the list of available providers for this algorithm, empty if not available
+      */
+      static std::vector<std::string> providers(const std::string& algo_spec);
 
       virtual std::string name() const = 0;
 
@@ -45,7 +58,7 @@ class BOTAN_DLL KDF
                                     size_t salt_len) const
          {
          secure_vector<byte> key(key_len);
-         key.resize(kdf(&key[0], key.size(), secret, secret_len, salt, salt_len));
+         key.resize(kdf(key.data(), key.size(), secret, secret_len, salt, salt_len));
          return key;
          }
 
@@ -59,7 +72,7 @@ class BOTAN_DLL KDF
                                     const secure_vector<byte>& secret,
                                     const std::string& salt = "") const
          {
-         return derive_key(key_len, &secret[0], secret.size(),
+         return derive_key(key_len, secret.data(), secret.size(),
                            reinterpret_cast<const byte*>(salt.data()),
                            salt.length());
          }
@@ -76,8 +89,8 @@ class BOTAN_DLL KDF
                                      const std::vector<byte, Alloc2>& salt) const
          {
          return derive_key(key_len,
-                           &secret[0], secret.size(),
-                           &salt[0], salt.size());
+                           secret.data(), secret.size(),
+                           salt.data(), salt.size());
          }
 
       /**
@@ -93,7 +106,7 @@ class BOTAN_DLL KDF
                                     size_t salt_len) const
          {
          return derive_key(key_len,
-                           &secret[0], secret.size(),
+                           secret.data(), secret.size(),
                            salt, salt_len);
          }
 

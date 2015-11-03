@@ -18,10 +18,10 @@ namespace Botan {
 class BOTAN_DLL ElGamal_PublicKey : public virtual DL_Scheme_PublicKey
    {
    public:
-      std::string algo_name() const { return "ElGamal"; }
-      DL_Group::Format group_format() const { return DL_Group::ANSI_X9_42; }
+      std::string algo_name() const override { return "ElGamal"; }
+      DL_Group::Format group_format() const override { return DL_Group::ANSI_X9_42; }
 
-      size_t max_input_bits() const { return (group_p().bits() - 1); }
+      size_t max_input_bits() const override { return (group_p().bits() - 1); }
 
       ElGamal_PublicKey(const AlgorithmIdentifier& alg_id,
                         const secure_vector<byte>& key_bits) :
@@ -40,7 +40,7 @@ class BOTAN_DLL ElGamal_PrivateKey : public ElGamal_PublicKey,
                                      public virtual DL_Scheme_PrivateKey
    {
    public:
-      bool check_key(RandomNumberGenerator& rng, bool) const;
+      bool check_key(RandomNumberGenerator& rng, bool) const override;
 
       ElGamal_PrivateKey(const AlgorithmIdentifier& alg_id,
                          const secure_vector<byte>& key_bits,

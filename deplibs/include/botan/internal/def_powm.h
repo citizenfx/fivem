@@ -20,11 +20,11 @@ namespace Botan {
 class Fixed_Window_Exponentiator : public Modular_Exponentiator
    {
    public:
-      void set_exponent(const BigInt&);
-      void set_base(const BigInt&);
-      BigInt execute() const;
+      void set_exponent(const BigInt&) override;
+      void set_base(const BigInt&) override;
+      BigInt execute() const override;
 
-      Modular_Exponentiator* copy() const
+      Modular_Exponentiator* copy() const override
          { return new Fixed_Window_Exponentiator(*this); }
 
       Fixed_Window_Exponentiator(const BigInt&, Power_Mod::Usage_Hints);
@@ -42,11 +42,11 @@ class Fixed_Window_Exponentiator : public Modular_Exponentiator
 class Montgomery_Exponentiator : public Modular_Exponentiator
    {
    public:
-      void set_exponent(const BigInt&);
-      void set_base(const BigInt&);
-      BigInt execute() const;
+      void set_exponent(const BigInt&) override;
+      void set_base(const BigInt&) override;
+      BigInt execute() const override;
 
-      Modular_Exponentiator* copy() const
+      Modular_Exponentiator* copy() const override
          { return new Montgomery_Exponentiator(*this); }
 
       Montgomery_Exponentiator(const BigInt&, Power_Mod::Usage_Hints);

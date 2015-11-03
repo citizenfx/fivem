@@ -67,12 +67,12 @@ class BOTAN_DLL Filter
       /**
       * @param in some input for the filter
       */
-      void send(const secure_vector<byte>& in) { send(&in[0], in.size()); }
+      void send(const secure_vector<byte>& in) { send(in.data(), in.size()); }
 
       /**
       * @param in some input for the filter
       */
-      void send(const std::vector<byte>& in) { send(&in[0], in.size()); }
+      void send(const std::vector<byte>& in) { send(in.data(), in.size()); }
 
       /**
       * @param in some input for the filter
@@ -80,7 +80,7 @@ class BOTAN_DLL Filter
       */
       void send(const secure_vector<byte>& in, size_t length)
          {
-         send(&in[0], length);
+         send(in.data(), length);
          }
 
       /**
@@ -89,7 +89,7 @@ class BOTAN_DLL Filter
       */
       void send(const std::vector<byte>& in, size_t length)
          {
-         send(&in[0], length);
+         send(in.data(), length);
          }
 
       Filter();

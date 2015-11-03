@@ -33,7 +33,7 @@ class BOTAN_DLL Transform
       template<typename Alloc>
       secure_vector<byte> start(const std::vector<byte, Alloc>& nonce)
          {
-         return start(&nonce[0], nonce.size());
+         return start(nonce.data(), nonce.size());
          }
 
       /**
@@ -44,7 +44,7 @@ class BOTAN_DLL Transform
       BOTAN_DEPRECATED("Use Transform::start")
       secure_vector<byte> start_vec(const std::vector<byte, Alloc>& nonce)
          {
-         return start(&nonce[0], nonce.size());
+         return start(nonce.data(), nonce.size());
          }
 
       /**
@@ -69,7 +69,7 @@ class BOTAN_DLL Transform
 
       /**
       * Process some data. Input must be in size update_granularity() byte blocks.
-      * @param blocks in/out paramter which will possibly be resized
+      * @param blocks in/out parameter which will possibly be resized
       * @param offset an offset into blocks to begin processing
       */
       virtual void update(secure_vector<byte>& blocks, size_t offset = 0) = 0;
@@ -147,7 +147,7 @@ class BOTAN_DLL Keyed_Transform : public Transform
       template<typename Alloc>
       void set_key(const std::vector<byte, Alloc>& key)
          {
-         set_key(&key[0], key.size());
+         set_key(key.data(), key.size());
          }
 
       void set_key(const SymmetricKey& key)

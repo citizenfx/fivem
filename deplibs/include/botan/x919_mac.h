@@ -19,13 +19,13 @@ namespace Botan {
 class BOTAN_DLL ANSI_X919_MAC : public MessageAuthenticationCode
    {
    public:
-      void clear();
-      std::string name() const;
-      size_t output_length() const { return 8; }
+      void clear() override;
+      std::string name() const override;
+      size_t output_length() const override { return 8; }
 
-      MessageAuthenticationCode* clone() const;
+      MessageAuthenticationCode* clone() const override;
 
-      Key_Length_Specification key_spec() const
+      Key_Length_Specification key_spec() const override
          {
          return Key_Length_Specification(8, 16, 8);
          }
@@ -35,9 +35,9 @@ class BOTAN_DLL ANSI_X919_MAC : public MessageAuthenticationCode
       ANSI_X919_MAC(const ANSI_X919_MAC&) = delete;
       ANSI_X919_MAC& operator=(const ANSI_X919_MAC&) = delete;
    private:
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
-      void key_schedule(const byte[], size_t);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
+      void key_schedule(const byte[], size_t) override;
 
       std::unique_ptr<BlockCipher> m_des1, m_des2;
       secure_vector<byte> m_state;

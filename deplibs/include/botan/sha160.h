@@ -18,11 +18,11 @@ namespace Botan {
 class BOTAN_DLL SHA_160 : public MDx_HashFunction
    {
    public:
-      std::string name() const { return "SHA-160"; }
-      size_t output_length() const { return 20; }
-      HashFunction* clone() const { return new SHA_160; }
+      std::string name() const override { return "SHA-160"; }
+      size_t output_length() const override { return 20; }
+      HashFunction* clone() const override { return new SHA_160; }
 
-      void clear();
+      void clear() override;
 
       SHA_160() : MDx_HashFunction(64, true, true), digest(5), W(80)
          {
@@ -41,8 +41,8 @@ class BOTAN_DLL SHA_160 : public MDx_HashFunction
          clear();
          }
 
-      void compress_n(const byte[], size_t blocks);
-      void copy_out(byte[]);
+      void compress_n(const byte[], size_t blocks) override;
+      void copy_out(byte[]) override;
 
       /**
       * The digest value, exposed for use by subclasses (asm, SSE2)

@@ -18,14 +18,14 @@ namespace Botan {
 class BOTAN_DLL Twofish : public Block_Cipher_Fixed_Params<16, 16, 32, 8>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "Twofish"; }
-      BlockCipher* clone() const { return new Twofish; }
+      void clear() override;
+      std::string name() const override { return "Twofish"; }
+      BlockCipher* clone() const override { return new Twofish; }
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       static void rs_mul(byte[4], byte, size_t);
 

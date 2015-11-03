@@ -1,6 +1,7 @@
 /*
 * STL Utility Functions
 * (C) 1999-2007 Jack Lloyd
+* (C) 2015 Simon Warta (Kullo GmbH)
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -11,13 +12,18 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <botan/secmem.h>
 
 namespace Botan {
 
 inline std::vector<byte> to_byte_vector(const std::string& s)
    {
-   return std::vector<byte>(reinterpret_cast<const byte*>(&s[0]),
-                            reinterpret_cast<const byte*>(&s[s.size()]));
+   return std::vector<byte>(s.cbegin(), s.cend());
+   }
+
+inline std::string to_string(const secure_vector<byte> &bytes)
+   {
+   return std::string(bytes.cbegin(), bytes.cend());
    }
 
 /*

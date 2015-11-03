@@ -28,7 +28,7 @@ class BOTAN_DLL CCM_Mode : public AEAD_Mode
 
       std::string name() const override;
 
-      size_t update_granularity() const;
+      size_t update_granularity() const override;
 
       Key_Length_Specification key_spec() const override;
 
@@ -38,7 +38,7 @@ class BOTAN_DLL CCM_Mode : public AEAD_Mode
 
       void clear() override;
 
-      size_t tag_size() const { return m_tag_size; }
+      size_t tag_size() const override { return m_tag_size; }
 
    protected:
       const size_t BS = 16; // intrinsic to CCM definition

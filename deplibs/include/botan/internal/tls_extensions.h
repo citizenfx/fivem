@@ -75,7 +75,7 @@ class Server_Name_Indicator : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_SERVER_NAME_INDICATION; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       Server_Name_Indicator(const std::string& host_name) :
          sni_host_name(host_name) {}
@@ -85,9 +85,9 @@ class Server_Name_Indicator : public Extension
 
       std::string host_name() const { return sni_host_name; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return sni_host_name == ""; }
+      bool empty() const override { return sni_host_name == ""; }
    private:
       std::string sni_host_name;
    };
@@ -101,7 +101,7 @@ class SRP_Identifier : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_SRP_IDENTIFIER; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       SRP_Identifier(const std::string& identifier) :
          srp_identifier(identifier) {}
@@ -111,9 +111,9 @@ class SRP_Identifier : public Extension
 
       std::string identifier() const { return srp_identifier; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return srp_identifier == ""; }
+      bool empty() const override { return srp_identifier == ""; }
    private:
       std::string srp_identifier;
    };
@@ -127,7 +127,7 @@ class Renegotiation_Extension : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_SAFE_RENEGOTIATION; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       Renegotiation_Extension() {}
 
@@ -140,9 +140,9 @@ class Renegotiation_Extension : public Extension
       const std::vector<byte>& renegotiation_info() const
          { return reneg_data; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return false; } // always send this
+      bool empty() const override { return false; } // always send this
    private:
       std::vector<byte> reneg_data;
    };
@@ -156,13 +156,13 @@ class Maximum_Fragment_Length : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_MAX_FRAGMENT_LENGTH; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
-      bool empty() const { return false; }
+      bool empty() const override { return false; }
 
       size_t fragment_size() const { return m_max_fragment; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
       /**
       * @param max_fragment specifies what maximum fragment size to
@@ -187,7 +187,7 @@ class Application_Layer_Protocol_Notification : public Extension
    public:
       static Handshake_Extension_Type static_type() { return TLSEXT_ALPN; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       const std::vector<std::string>& protocols() const { return m_protocols; }
 
@@ -208,9 +208,9 @@ class Application_Layer_Protocol_Notification : public Extension
       Application_Layer_Protocol_Notification(TLS_Data_Reader& reader,
                                               u16bit extension_size);
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return m_protocols.empty(); }
+      bool empty() const override { return m_protocols.empty(); }
    private:
       std::vector<std::string> m_protocols;
    };
@@ -224,7 +224,7 @@ class Session_Ticket : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_SESSION_TICKET; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       /**
       * @return contents of the session ticket
@@ -247,9 +247,9 @@ class Session_Ticket : public Extension
       */
       Session_Ticket(TLS_Data_Reader& reader, u16bit extension_size);
 
-      std::vector<byte> serialize() const { return m_ticket; }
+      std::vector<byte> serialize() const override { return m_ticket; }
 
-      bool empty() const { return false; }
+      bool empty() const override { return false; }
    private:
       std::vector<byte> m_ticket;
    };
@@ -263,14 +263,14 @@ class Supported_Elliptic_Curves : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_USABLE_ELLIPTIC_CURVES; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       static std::string curve_id_to_name(u16bit id);
       static u16bit name_to_curve_id(const std::string& name);
 
       const std::vector<std::string>& curves() const { return m_curves; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
       Supported_Elliptic_Curves(const std::vector<std::string>& curves) :
          m_curves(curves) {}
@@ -278,7 +278,7 @@ class Supported_Elliptic_Curves : public Extension
       Supported_Elliptic_Curves(TLS_Data_Reader& reader,
                                 u16bit extension_size);
 
-      bool empty() const { return m_curves.empty(); }
+      bool empty() const override { return m_curves.empty(); }
    private:
       std::vector<std::string> m_curves;
    };
@@ -292,7 +292,7 @@ class Signature_Algorithms : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_SIGNATURE_ALGORITHMS; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       static std::string hash_algo_name(byte code);
       static byte hash_algo_code(const std::string& name);
@@ -306,9 +306,9 @@ class Signature_Algorithms : public Extension
          return m_supported_algos;
          }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return false; }
+      bool empty() const override { return false; }
 
       Signature_Algorithms(const std::vector<std::string>& hashes,
                            const std::vector<std::string>& sig_algos);
@@ -331,13 +331,13 @@ class Heartbeat_Support_Indicator : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_HEARTBEAT_SUPPORT; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       bool peer_allowed_to_send() const { return m_peer_allowed_to_send; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return false; }
+      bool empty() const override { return false; }
 
       Heartbeat_Support_Indicator(bool peer_allowed_to_send) :
          m_peer_allowed_to_send(peer_allowed_to_send) {}
@@ -357,13 +357,13 @@ class SRTP_Protection_Profiles : public Extension
       static Handshake_Extension_Type static_type()
          { return TLSEXT_USE_SRTP; }
 
-      Handshake_Extension_Type type() const { return static_type(); }
+      Handshake_Extension_Type type() const override { return static_type(); }
 
       const std::vector<u16bit>& profiles() const { return m_pp; }
 
-      std::vector<byte> serialize() const;
+      std::vector<byte> serialize() const override;
 
-      bool empty() const { return m_pp.empty(); }
+      bool empty() const override { return m_pp.empty(); }
 
       SRTP_Protection_Profiles(const std::vector<u16bit>& pp) : m_pp(pp) {}
 

@@ -86,7 +86,7 @@ class Zlib_Style_Stream : public Compression_Stream
    };
 
 #define BOTAN_REGISTER_COMPRESSION(C, D) \
-   BOTAN_REGISTER_T_1LEN(Transform, C, 9) \
+   BOTAN_REGISTER_T_1LEN(Transform, C, 9); \
    BOTAN_REGISTER_T_NOARGS(Transform, D)
 
 }

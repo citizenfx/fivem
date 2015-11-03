@@ -10,7 +10,6 @@
 
 #include <botan/bigint.h>
 #include <botan/x509_key.h>
-#include <botan/pkcs8.h>
 
 namespace Botan {
 
@@ -27,11 +26,11 @@ class BOTAN_DLL IF_Scheme_PublicKey : public virtual Public_Key
       IF_Scheme_PublicKey(const BigInt& n, const BigInt& e) :
          n(n), e(e) {}
 
-      bool check_key(RandomNumberGenerator& rng, bool) const;
+      bool check_key(RandomNumberGenerator& rng, bool) const override;
 
-      AlgorithmIdentifier algorithm_identifier() const;
+      AlgorithmIdentifier algorithm_identifier() const override;
 
-      std::vector<byte> x509_subject_public_key() const;
+      std::vector<byte> x509_subject_public_key() const override;
 
       /**
       * @return public modulus
@@ -43,7 +42,7 @@ class BOTAN_DLL IF_Scheme_PublicKey : public virtual Public_Key
       */
       const BigInt& get_e() const { return e; }
 
-      size_t max_input_bits() const { return (n.bits() - 1); }
+      size_t max_input_bits() const override { return (n.bits() - 1); }
 
       size_t estimated_strength() const override;
 
@@ -71,7 +70,7 @@ class BOTAN_DLL IF_Scheme_PrivateKey : public virtual IF_Scheme_PublicKey,
                            const AlgorithmIdentifier& alg_id,
                            const secure_vector<byte>& key_bits);
 
-      bool check_key(RandomNumberGenerator& rng, bool) const;
+      bool check_key(RandomNumberGenerator& rng, bool) const override;
 
       /**
       * Get the first prime p.
@@ -95,7 +94,7 @@ class BOTAN_DLL IF_Scheme_PrivateKey : public virtual IF_Scheme_PublicKey,
       const BigInt& get_d1() const { return d1; }
       const BigInt& get_d2() const { return d2; }
 
-      secure_vector<byte> pkcs8_private_key() const;
+      secure_vector<byte> pkcs8_private_key() const override;
 
    protected:
       IF_Scheme_PrivateKey() {}

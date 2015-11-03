@@ -19,9 +19,9 @@ namespace Botan {
 class Win32_CAPI_EntropySource : public EntropySource
    {
    public:
-      std::string name() const { return "Win32 CryptoGenRandom"; }
+      std::string name() const override { return "Win32 CryptoGenRandom"; }
 
-      void poll(Entropy_Accumulator& accum);
+      void poll(Entropy_Accumulator& accum) override;
 
      /**
      * Win32_Capi_Entropysource Constructor

@@ -19,7 +19,7 @@ namespace Botan {
 class BOTAN_DLL DataSink : public Filter
    {
    public:
-      bool attachable() { return false; }
+      bool attachable() override { return false; }
       DataSink() {}
       virtual ~DataSink() {}
 
@@ -33,9 +33,9 @@ class BOTAN_DLL DataSink : public Filter
 class BOTAN_DLL DataSink_Stream : public DataSink
    {
    public:
-      std::string name() const { return identifier; }
+      std::string name() const override { return identifier; }
 
-      void write(const byte[], size_t);
+      void write(const byte[], size_t) override;
 
       /**
       * Construct a DataSink_Stream from a stream.

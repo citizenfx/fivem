@@ -45,10 +45,6 @@ class CurveGFp_Repr
 
       virtual void curve_sqr(BigInt& z, const BigInt& x,
                              secure_vector<word>& ws) const = 0;
-
-      virtual void normalize(BigInt& x,
-                             secure_vector<word>& ws,
-                             size_t bound) const;
    };
 
 /**
@@ -139,16 +135,6 @@ class BOTAN_DLL CurveGFp
          BigInt z;
          m_repr->curve_sqr(z, x, ws);
          return z;
-         }
-
-      /**
-      * Adjust x to be in [0,p)
-      * @param bound if greater than zero, assume that no more than bound
-      *        additions or subtractions are required to move x into range.
-      */
-      void normalize(BigInt& x, secure_vector<word>& ws, size_t bound = 0) const
-         {
-         m_repr->normalize(x, ws, bound);
          }
 
       void swap(CurveGFp& other)

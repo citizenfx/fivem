@@ -13,6 +13,7 @@
 #define BOTAN_CODE_BASED_UTIL_H__
 
 #include <botan/gf2m_small_m.h>
+#include <stdexcept>
 
 namespace Botan {
 
@@ -28,18 +29,18 @@ u16bit expand_mask_16bit(T tst)
    return ~(result - 1);
    }
 
-inline gf2m_small_m::gf2m gray_to_lex(gf2m_small_m::gf2m gray)
+inline gf2m gray_to_lex(gf2m gray)
    {
-   gf2m_small_m::gf2m result = gray ^ (gray>>8);
+   gf2m result = gray ^ (gray >> 8);
    result ^= (result >> 4);
    result ^= (result >> 2);
    result ^= (result >> 1);
    return result;
    }
 
-inline gf2m_small_m::gf2m lex_to_gray(gf2m_small_m::gf2m lex)
+inline gf2m lex_to_gray(gf2m lex)
    {
-   return (lex>>1) ^ lex;
+   return (lex >> 1) ^ lex;
    }
 
 inline u32bit bit_size_to_byte_size(u32bit bit_size)

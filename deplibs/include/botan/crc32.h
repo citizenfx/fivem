@@ -18,17 +18,17 @@ namespace Botan {
 class BOTAN_DLL CRC32 : public HashFunction
    {
    public:
-      std::string name() const { return "CRC32"; }
-      size_t output_length() const { return 4; }
-      HashFunction* clone() const { return new CRC32; }
+      std::string name() const override { return "CRC32"; }
+      size_t output_length() const override { return 4; }
+      HashFunction* clone() const override { return new CRC32; }
 
-      void clear() { crc = 0xFFFFFFFF; }
+      void clear() override { crc = 0xFFFFFFFF; }
 
       CRC32() { clear(); }
       ~CRC32() { clear(); }
    private:
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
       u32bit crc;
    };
 

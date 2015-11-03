@@ -44,7 +44,7 @@ class BOTAN_DLL CBC_Mode : public Cipher_Mode
 
       secure_vector<byte>& state() { return m_state; }
 
-      byte* state_ptr() { return &m_state[0]; }
+      byte* state_ptr() { return m_state.data(); }
 
    private:
       secure_vector<byte> start_raw(const byte nonce[], size_t nonce_len) override;
@@ -88,7 +88,7 @@ class BOTAN_DLL CTS_Encryption : public CBC_Encryption
 
       size_t minimum_final_size() const override;
 
-      bool valid_nonce_length(size_t n) const;
+      bool valid_nonce_length(size_t n) const override;
    };
 
 /**
@@ -123,7 +123,7 @@ class BOTAN_DLL CTS_Decryption : public CBC_Decryption
 
       size_t minimum_final_size() const override;
 
-      bool valid_nonce_length(size_t n) const;
+      bool valid_nonce_length(size_t n) const override;
    };
 
 }

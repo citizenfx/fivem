@@ -12,14 +12,14 @@
 #ifndef BOTAN_POLYN_GF2M_H__
 #define BOTAN_POLYN_GF2M_H__
 
+#include <botan/secmem.h>
 #include <botan/gf2m_small_m.h>
-#include <botan/rng.h>
 #include <memory>
 #include <utility>
 
 namespace Botan {
 
-using namespace gf2m_small_m;
+class RandomNumberGenerator;
 
 struct polyn_gf2m
    {
@@ -27,13 +27,13 @@ struct polyn_gf2m
       /**
       * create a zero polynomial:
       */
-      polyn_gf2m( std::shared_ptr<gf2m_small_m::Gf2m_Field> sp_field );
+      polyn_gf2m( std::shared_ptr<GF2m_Field> sp_field );
 
       polyn_gf2m()
          :m_deg(-1)
          {};
 
-      polyn_gf2m(const secure_vector<byte>& encoded, std::shared_ptr<gf2m_small_m::Gf2m_Field> sp_field );
+      polyn_gf2m(const secure_vector<byte>& encoded, std::shared_ptr<GF2m_Field> sp_field );
 
       polyn_gf2m& operator=(const polyn_gf2m&) = default;
 
@@ -61,7 +61,7 @@ struct polyn_gf2m
       /**
       * create zero polynomial with reservation of space for a degree d polynomial
       */
-      polyn_gf2m(int d, std::shared_ptr<gf2m_small_m::Gf2m_Field> sp_field);
+      polyn_gf2m(int d, std::shared_ptr<GF2m_Field> sp_field);
 
       polyn_gf2m(polyn_gf2m const& other);
       /**
@@ -71,9 +71,9 @@ struct polyn_gf2m
       /**
       * random irreducible polynomial of degree t
       */
-      polyn_gf2m(int t, RandomNumberGenerator& rng, std::shared_ptr<gf2m_small_m::Gf2m_Field> sp_field);
+      polyn_gf2m(int t, RandomNumberGenerator& rng, std::shared_ptr<GF2m_Field> sp_field);
 
-      std::shared_ptr<gf2m_small_m::Gf2m_Field> get_sp_field() const
+      std::shared_ptr<GF2m_Field> get_sp_field() const
          { return msp_field; };
 
       gf2m& operator[](size_t i) { return coeff[i]; };
@@ -97,12 +97,12 @@ struct polyn_gf2m
       std::string to_string() const;
 
       /** decode a polynomial from memory: **/
-      polyn_gf2m(const byte* mem, u32bit mem_len, std::shared_ptr<gf2m_small_m::Gf2m_Field> sp_field);
+      polyn_gf2m(const byte* mem, u32bit mem_len, std::shared_ptr<GF2m_Field> sp_field);
       // remove one! ^v!
       /**
       *  create a polynomial from memory area (encoded)
       */
-      polyn_gf2m(int degree, const unsigned  char* mem, u32bit mem_byte_len, std::shared_ptr<gf2m_small_m::Gf2m_Field> sp_field);
+      polyn_gf2m(int degree, const unsigned  char* mem, u32bit mem_byte_len, std::shared_ptr<GF2m_Field> sp_field);
 
       void encode(u32bit min_numo_coeffs, byte* mem, u32bit mem_len) const;
 
@@ -149,12 +149,19 @@ struct polyn_gf2m
    public:
       int m_deg;
       secure_vector<gf2m> coeff;
-      std::shared_ptr<gf2m_small_m::Gf2m_Field> msp_field;
+      std::shared_ptr<GF2m_Field> msp_field;
    };
 
+gf2m random_gf2m(RandomNumberGenerator& rng);
 gf2m random_code_element(unsigned code_length, RandomNumberGenerator& rng);
 
 std::vector<polyn_gf2m> syndrome_init(polyn_gf2m const& generator, std::vector<gf2m> const& support, int n);
+
+/**
+* Find the roots of a polynomial over GF(2^m) using the method by Federenko
+* et al.
+*/
+secure_vector<gf2m> find_roots_gf2m_decomp(const polyn_gf2m & polyn, u32bit code_length);
 
 }
 

@@ -20,8 +20,8 @@ namespace Botan {
 class BOTAN_DLL Attribute : public ASN1_Object
    {
    public:
-      void encode_into(class DER_Encoder& to) const;
-      void decode_from(class BER_Decoder& from);
+      void encode_into(class DER_Encoder& to) const override;
+      void decode_from(class BER_Decoder& from) override;
 
       OID oid;
       std::vector<byte> parameters;

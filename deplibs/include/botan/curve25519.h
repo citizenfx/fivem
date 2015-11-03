@@ -19,7 +19,7 @@ class BOTAN_DLL Curve25519_PublicKey : public virtual Public_Key
 
       size_t estimated_strength() const override { return 128; }
 
-      size_t max_input_bits() const { return 256; }
+      size_t max_input_bits() const override { return 256; }
 
       bool check_key(RandomNumberGenerator& rng, bool strong) const override;
 

@@ -18,15 +18,15 @@ namespace Botan {
 class BOTAN_DLL AES_128 : public Block_Cipher_Fixed_Params<16, 16>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
+      void clear() override;
 
-      std::string name() const { return "AES-128"; }
-      BlockCipher* clone() const { return new AES_128; }
+      std::string name() const override { return "AES-128"; }
+      BlockCipher* clone() const override { return new AES_128; }
    private:
-      void key_schedule(const byte key[], size_t length);
+      void key_schedule(const byte key[], size_t length) override;
 
       secure_vector<u32bit> EK, DK;
       secure_vector<byte> ME, MD;
@@ -38,15 +38,15 @@ class BOTAN_DLL AES_128 : public Block_Cipher_Fixed_Params<16, 16>
 class BOTAN_DLL AES_192 : public Block_Cipher_Fixed_Params<16, 24>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
+      void clear() override;
 
-      std::string name() const { return "AES-192"; }
-      BlockCipher* clone() const { return new AES_192; }
+      std::string name() const override { return "AES-192"; }
+      BlockCipher* clone() const override { return new AES_192; }
    private:
-      void key_schedule(const byte key[], size_t length);
+      void key_schedule(const byte key[], size_t length) override;
 
       secure_vector<u32bit> EK, DK;
       secure_vector<byte> ME, MD;
@@ -58,15 +58,15 @@ class BOTAN_DLL AES_192 : public Block_Cipher_Fixed_Params<16, 24>
 class BOTAN_DLL AES_256 : public Block_Cipher_Fixed_Params<16, 32>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
+      void clear() override;
 
-      std::string name() const { return "AES-256"; }
-      BlockCipher* clone() const { return new AES_256; }
+      std::string name() const override { return "AES-256"; }
+      BlockCipher* clone() const override { return new AES_256; }
    private:
-      void key_schedule(const byte key[], size_t length);
+      void key_schedule(const byte key[], size_t length) override;
 
       secure_vector<u32bit> EK, DK;
       secure_vector<byte> ME, MD;

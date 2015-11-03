@@ -114,7 +114,7 @@ class BOTAN_DLL Private_Key : public virtual Public_Key
       * Self-test after loading a key
       * @param rng a random number generator
       */
-      void load_check(RandomNumberGenerator& rng) const;
+      void load_check(RandomNumberGenerator& rng) const override;
 
       /**
       * Self-test after generating a key

@@ -12,7 +12,7 @@
 #include <botan/rng.h>
 #include <botan/secmem.h>
 #include <botan/mp_types.h>
-#include <botan/get_byte.h>
+#include <botan/loadstor.h>
 #include <iosfwd>
 
 namespace Botan {
@@ -42,7 +42,7 @@ class BOTAN_DLL BigInt
      /**
      * Create empty BigInt
      */
-     BigInt() { m_signedness = Positive; }
+     BigInt() {}
 
      /**
      * Create BigInt from 64 bit integer
@@ -74,11 +74,15 @@ class BOTAN_DLL BigInt
      BigInt(const byte buf[], size_t length, Base base = Binary);
 
      /**
-     * Create a random BigInt of the specified size
+     * \brief Create a random BigInt of the specified size
+     *
      * @param rng random number generator
      * @param bits size in bits
+     * @param set_high_bit if true, the highest bit is always set
+     *
+     * @see randomize
      */
-     BigInt(RandomNumberGenerator& rng, size_t bits);
+     BigInt(RandomNumberGenerator& rng, size_t bits, bool set_high_bit = true);
 
      /**
      * Create BigInt of specified size, all zeros
@@ -278,7 +282,11 @@ class BOTAN_DLL BigInt
 
         if(top_word < size())
            {
-           clear_mem(&m_reg[top_word+1], size() - (top_word + 1));
+           const size_t len = size() - (top_word + 1);
+           if (len > 0)
+              {
+              clear_mem(&m_reg[top_word+1], len);
+              }
            m_reg[top_word] &= mask;
            }
         }
@@ -384,7 +392,7 @@ class BOTAN_DLL BigInt
      */
      size_t sig_words() const
         {
-        const word* x = &m_reg[0];
+        const word* x = m_reg.data();
         size_t sig = m_reg.size();
 
         while(sig && (x[sig-1] == 0))
@@ -396,7 +404,7 @@ class BOTAN_DLL BigInt
      * Give byte length of the integer
      * @result byte length of the represented integer value
      */
-     size_t bytes() const { return (bits() + 7) / 8; }
+     size_t bytes() const;
 
      /**
      * Get the bit length of the integer
@@ -408,13 +416,13 @@ class BOTAN_DLL BigInt
      * Return a mutable pointer to the register
      * @result a pointer to the start of the internal register
      */
-     word* mutable_data() { return &m_reg[0]; }
+     word* mutable_data() { return m_reg.data(); }
 
      /**
      * Return a const pointer to the register
      * @result a pointer to the start of the internal register
      */
-     const word* data() const { return &m_reg[0]; }
+     const word* data() const { return m_reg.data(); }
 
      secure_vector<word>& get_word_vector() { return m_reg; }
      const secure_vector<word>& get_word_vector() const { return m_reg; }
@@ -423,18 +431,20 @@ class BOTAN_DLL BigInt
      * Increase internal register buffer to at least n words
      * @param n new size of register
      */
-     void grow_to(size_t n)
-        {
-        if(n > size())
-           m_reg.resize(n + (8 - n % 8));
-        }
+     void grow_to(size_t n);
 
      /**
      * Fill BigInt with a random number with size of bitsize
+     *
+     * If \p set_high_bit is true, the highest bit will be set, which causes
+     * the entropy to be \a bits-1. Otherwise the highest bit is randomly chosen
+     * by the rng, causing the entropy to be \a bits.
+     *
      * @param rng the random number generator to use
      * @param bitsize number of bits the created random value should have
+     * @param set_high_bit if true, the highest bit is always set
      */
-     void randomize(RandomNumberGenerator& rng, size_t bitsize = 0);
+     void randomize(RandomNumberGenerator& rng, size_t bitsize, bool set_high_bit = true);
 
      /**
      * Store BigInt-value in a given byte array
@@ -455,7 +465,7 @@ class BOTAN_DLL BigInt
      */
      void binary_decode(const secure_vector<byte>& buf)
         {
-        binary_decode(&buf[0], buf.size());
+        binary_decode(buf.data(), buf.size());
         }
 
      /**
@@ -531,7 +541,7 @@ class BOTAN_DLL BigInt
      static BigInt decode(const secure_vector<byte>& buf,
                           Base base = Binary)
         {
-        return BigInt::decode(&buf[0], buf.size(), base);
+        return BigInt::decode(buf.data(), buf.size(), base);
         }
 
      /**
@@ -543,7 +553,7 @@ class BOTAN_DLL BigInt
      static BigInt decode(const std::vector<byte>& buf,
                           Base base = Binary)
         {
-        return BigInt::decode(&buf[0], buf.size(), base);
+        return BigInt::decode(buf.data(), buf.size(), base);
         }
 
      /**

@@ -18,14 +18,14 @@ namespace Botan {
 class BOTAN_DLL DES : public Block_Cipher_Fixed_Params<8, 8>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "DES"; }
-      BlockCipher* clone() const { return new DES; }
+      void clear() override;
+      std::string name() const override { return "DES"; }
+      BlockCipher* clone() const override { return new DES; }
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       secure_vector<u32bit> round_key;
    };
@@ -36,14 +36,14 @@ class BOTAN_DLL DES : public Block_Cipher_Fixed_Params<8, 8>
 class BOTAN_DLL TripleDES : public Block_Cipher_Fixed_Params<8, 16, 24, 8>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "TripleDES"; }
-      BlockCipher* clone() const { return new TripleDES; }
+      void clear() override;
+      std::string name() const override { return "TripleDES"; }
+      BlockCipher* clone() const override { return new TripleDES; }
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
 
       secure_vector<u32bit> round_key;
    };

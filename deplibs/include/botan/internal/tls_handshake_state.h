@@ -45,9 +45,9 @@ class Finished;
 class Handshake_State
    {
    public:
-      typedef std::function<void (const Handshake_Message&)> hs_msg_cb;
+      typedef std::function<void (const Handshake_Message&)> handshake_msg_cb;
 
-      Handshake_State(Handshake_IO* io, hs_msg_cb cb);
+      Handshake_State(Handshake_IO* io, handshake_msg_cb cb);
 
       virtual ~Handshake_State();
 
@@ -170,7 +170,7 @@ class Handshake_State
 
    private:
 
-      hs_msg_cb m_msg_callback;
+      handshake_msg_cb m_msg_callback;
 
       std::unique_ptr<Handshake_IO> m_handshake_io;
 

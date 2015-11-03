@@ -40,6 +40,19 @@ class BOTAN_DLL Server : public Channel
              size_t reserved_io_buffer_size = 16*1024
          );
 
+      Server(output_fn output,
+             data_cb data_cb,
+             alert_cb alert_cb,
+             handshake_cb handshake_cb,
+             handshake_msg_cb hs_msg_cb,
+             Session_Manager& session_manager,
+             Credentials_Manager& creds,
+             const Policy& policy,
+             RandomNumberGenerator& rng,
+             next_protocol_fn next_proto = next_protocol_fn(),
+             bool is_datagram = false
+         );
+
       /**
       * Return the protocol notification set by the client (using the
       * NPN extension) for this connection, if any. This value is not
@@ -62,7 +75,6 @@ class BOTAN_DLL Server : public Channel
 
       Handshake_State* new_handshake_state(Handshake_IO* io) override;
 
-      const Policy& m_policy;
       Credentials_Manager& m_creds;
 
       next_protocol_fn m_choose_next_protocol;

@@ -20,6 +20,17 @@ typedef std::runtime_error Exception;
 typedef std::invalid_argument Invalid_Argument;
 
 /**
+* Unsupported_Argument Exception
+*
+* An argument that is invalid because it is not supported by Botan.
+* It might or might not be valid in another context like a standard.
+*/
+struct BOTAN_DLL Unsupported_Argument : public Invalid_Argument
+   {
+   Unsupported_Argument(const std::string& msg) : Invalid_Argument(msg) {}
+   };
+
+/**
 * Invalid_State Exception
 */
 struct BOTAN_DLL Invalid_State : public Exception
@@ -102,6 +113,16 @@ struct BOTAN_DLL Algorithm_Not_Found : public Lookup_Error
    };
 
 /**
+* No_Provider_Found Exception
+*/
+struct BOTAN_DLL No_Provider_Found : public Exception
+   {
+   No_Provider_Found(const std::string& name) :
+      Exception("Could not find any provider for algorithm named \"" + name + "\"")
+      {}
+   };
+
+/**
 * Invalid_Algorithm_Name Exception
 */
 struct BOTAN_DLL Invalid_Algorithm_Name : public Invalid_Argument
@@ -158,6 +179,14 @@ struct BOTAN_DLL Stream_IO_Error : public Exception
    };
 
 /**
+* No_Filesystem_Access Exception
+*/
+struct BOTAN_DLL No_Filesystem_Access : public Exception
+   {
+   No_Filesystem_Access() : Exception("No filesystem access enabled.") {}
+   };
+
+/**
 * Self Test Failure Exception
 */
 struct BOTAN_DLL Self_Test_Failure : public Internal_Error
@@ -172,7 +201,7 @@ struct BOTAN_DLL Self_Test_Failure : public Internal_Error
 */
 struct BOTAN_DLL Memory_Exhaustion : public std::bad_alloc
    {
-   const char* what() const BOTAN_NOEXCEPT
+   const char* what() const BOTAN_NOEXCEPT override
       { return "Ran out of memory, allocation failed"; }
    };
 

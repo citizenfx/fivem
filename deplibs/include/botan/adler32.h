@@ -18,17 +18,17 @@ namespace Botan {
 class BOTAN_DLL Adler32 : public HashFunction
    {
    public:
-      std::string name() const { return "Adler32"; }
-      size_t output_length() const { return 4; }
-      HashFunction* clone() const { return new Adler32; }
+      std::string name() const override { return "Adler32"; }
+      size_t output_length() const override { return 4; }
+      HashFunction* clone() const override { return new Adler32; }
 
-      void clear() { S1 = 1; S2 = 0; }
+      void clear() override { S1 = 1; S2 = 0; }
 
       Adler32() { clear(); }
       ~Adler32() { clear(); }
    private:
-      void add_data(const byte[], size_t);
-      void final_result(byte[]);
+      void add_data(const byte[], size_t) override;
+      void final_result(byte[]) override;
       u16bit S1, S2;
    };
 

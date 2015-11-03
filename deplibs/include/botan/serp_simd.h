@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL Serpent_SIMD : public Serpent
    {
    public:
-      size_t parallelism() const { return 4; }
+      size_t parallelism() const override { return 4; }
 
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      BlockCipher* clone() const { return new Serpent_SIMD; }
+      BlockCipher* clone() const override { return new Serpent_SIMD; }
    };
 
 }

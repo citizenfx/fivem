@@ -22,6 +22,8 @@ namespace TLS {
 class BOTAN_DLL Handshake_Message
    {
    public:
+      std::string type_string() const;
+
       virtual Handshake_Type type() const = 0;
 
       virtual std::vector<byte> serialize() const = 0;

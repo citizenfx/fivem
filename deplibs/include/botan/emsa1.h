@@ -28,16 +28,16 @@ class BOTAN_DLL EMSA1 : public EMSA
    protected:
       size_t hash_output_length() const { return m_hash->output_length(); }
    private:
-      void update(const byte[], size_t);
-      secure_vector<byte> raw_data();
+      void update(const byte[], size_t) override;
+      secure_vector<byte> raw_data() override;
 
       secure_vector<byte> encoding_of(const secure_vector<byte>& msg,
                                       size_t output_bits,
-                                      RandomNumberGenerator& rng);
+                                      RandomNumberGenerator& rng) override;
 
       bool verify(const secure_vector<byte>& coded,
                   const secure_vector<byte>& raw,
-                  size_t key_bits);
+                  size_t key_bits) override;
 
       std::unique_ptr<HashFunction> m_hash;
    };

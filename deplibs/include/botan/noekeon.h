@@ -18,12 +18,12 @@ namespace Botan {
 class BOTAN_DLL Noekeon : public Block_Cipher_Fixed_Params<16, 16>
    {
    public:
-      void encrypt_n(const byte in[], byte out[], size_t blocks) const;
-      void decrypt_n(const byte in[], byte out[], size_t blocks) const;
+      void encrypt_n(const byte in[], byte out[], size_t blocks) const override;
+      void decrypt_n(const byte in[], byte out[], size_t blocks) const override;
 
-      void clear();
-      std::string name() const { return "Noekeon"; }
-      BlockCipher* clone() const { return new Noekeon; }
+      void clear() override;
+      std::string name() const override { return "Noekeon"; }
+      BlockCipher* clone() const override { return new Noekeon; }
    protected:
       /**
       * The Noekeon round constants
@@ -41,7 +41,7 @@ class BOTAN_DLL Noekeon : public Block_Cipher_Fixed_Params<16, 16>
       const secure_vector<u32bit>& get_DK() const { return DK; }
 
    private:
-      void key_schedule(const byte[], size_t);
+      void key_schedule(const byte[], size_t) override;
       secure_vector<u32bit> EK, DK;
    };
 
