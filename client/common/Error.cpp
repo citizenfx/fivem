@@ -38,7 +38,7 @@ static void SysError(const char* buffer)
 	assert(!"breakpoint time");
 #endif
 
-	ExitProcess(1);
+	TerminateProcess(GetCurrentProcess(), 1);
 #else
 	fprintf(stderr, "%s", buffer);
 
