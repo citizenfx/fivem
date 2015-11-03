@@ -11,6 +11,8 @@
 #include "ICoreGameInit.h"
 #include "fiDevice.h"
 
+#include <scrEngine.h>
+
 #include "Hooking.h"
 
 static std::string g_overrideNextLoadedLevel;
@@ -18,6 +20,51 @@ static std::string g_nextLevelPath;
 
 static void(*g_origLoadLevelByIndex)(int);
 static void(*g_loadLevel)(const char* levelPath);
+
+enum NativeIdentifiers : uint64_t
+{
+	GET_PLAYER_PED = 0x43A66C31C68491C0,
+	SET_ENTITY_COORDS = 0x621873ECE1178967,
+	LOAD_SCENE = 0x4448EB75B4904BDB,
+	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
+	DO_SCREEN_FADE_IN = 0xD4E8E24955024033
+};
+
+class SpawnThread : public GtaThread
+{
+private:
+	bool m_doInityThings;
+
+public:
+	SpawnThread()
+	{
+		m_doInityThings = true;
+	}
+
+	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
+	{
+		m_doInityThings = true;
+
+		return GtaThread::Reset(scriptHash, pArgs, argCount);
+	}
+
+	virtual void DoRun() override
+	{
+		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
+
+		if (m_doInityThings)
+		{
+			NativeInvoke::Invoke<LOAD_SCENE, int>(-426.858f, -957.54f, 3.621f);
+
+			NativeInvoke::Invoke<SHUTDOWN_LOADING_SCREEN, int>();
+			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
+
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -426.858f, -957.54f, 3.621f);
+
+			m_doInityThings = false;
+		}
+	}
+};
 
 static void DoLoadLevel(int index)
 {
@@ -92,6 +139,8 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_loadLevel, levelByIndex + 0x1F);
 });
 
+static SpawnThread spawnThread;
+
 static void LoadLevel(const char* levelName)
 {
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
@@ -100,6 +149,8 @@ static void LoadLevel(const char* levelName)
 
 	if (!gameInit->GetGameLoaded())
 	{
+		rage::scrEngine::CreateThread(&spawnThread);
+
 		gameInit->LoadGameFirstLaunch([] ()
 		{
 			return true;
@@ -124,7 +175,7 @@ static InitFunction initFunction([] ()
 		device->SetPath(usermapsPath.c_str(), true);
 		device->Mount("usermaps:/");
 	});
-
+	
 	ConHost::OnInvokeNative.Connect([] (const char* type, const char* argument)
 	{
 		if (strcmp(type, "loadLevel") == 0)
