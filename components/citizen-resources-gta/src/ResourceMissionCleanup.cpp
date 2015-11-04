@@ -25,6 +25,8 @@ struct MissionCleanupData
 	}
 };
 
+GtaThread* g_resourceThread;
+
 static InitFunction initFunction([] ()
 {
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
@@ -38,20 +40,14 @@ static InitFunction initFunction([] ()
 
 		resource->OnActivate.Connect([=] ()
 		{
-			// only run if we have an active thread
-			if (!rage::scrEngine::GetActiveThread())
-			{
-				return;
-			}
-
 			// create the script handler if needed
 			if (!data->scriptHandler)
 			{
-				data->scriptHandler = new CGameScriptHandlerNetwork(rage::scrEngine::GetActiveThread());
+				data->scriptHandler = new CGameScriptHandlerNetwork(g_resourceThread);
 			}
 
 			// set the current script handler
-			GtaThread* gtaThread = static_cast<GtaThread*>(rage::scrEngine::GetActiveThread());
+			GtaThread* gtaThread = g_resourceThread;
 
 			data->lastScriptHandler = gtaThread->GetScriptHandler();
 			gtaThread->SetScriptHandler(data->scriptHandler);
@@ -66,7 +62,7 @@ static InitFunction initFunction([] ()
 			}
 
 			// put back the last script handler
-			GtaThread* gtaThread = static_cast<GtaThread*>(rage::scrEngine::GetActiveThread());
+			GtaThread* gtaThread = static_cast<GtaThread*>(g_resourceThread);
 
 			gtaThread->SetScriptHandler(data->lastScriptHandler);
 		}, 10000);

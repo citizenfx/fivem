@@ -21,11 +21,13 @@ class TestScriptThread : public GtaThread
 };
 
 TestScriptThread thread;
+extern GtaThread* g_resourceThread;
 
 static InitFunction initFunction([] ()
 {
 	rage::scrEngine::OnScriptInit.Connect([] ()
 	{
 		rage::scrEngine::CreateThread(&thread);
+		g_resourceThread = &thread;
 	});
 });
