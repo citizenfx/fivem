@@ -7,6 +7,8 @@
 		"citizen:resources:client",
 		"rage:device",
 		"rage:scripting",
+		"scripting",
+		"gta:game",
 		"gta:mission-cleanup"
 	],
 	"provides": []
