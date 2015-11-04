@@ -142,11 +142,14 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 	}*/
 
 	// use CoreRT API instead
-	if (HMODULE coreRT = GetModuleHandle(L"CoreRT.dll"))
+	if (getenv("CitizenFX_ToolMode"))
 	{
-		auto sehMapper = (void(*)(void*, void*, PRUNTIME_FUNCTION, DWORD))GetProcAddress(coreRT, "CoreRT_SetupSEHHandler");
+		if (HMODULE coreRT = GetModuleHandle(L"CoreRT.dll"))
+		{
+			auto sehMapper = (void(*)(void*, void*, PRUNTIME_FUNCTION, DWORD))GetProcAddress(coreRT, "CoreRT_SetupSEHHandler");
 
-		sehMapper(m_module, ((char*)m_module) + ntHeader->OptionalHeader.ImageBase, functionList, entryCount);
+			sehMapper(m_module, ((char*)m_module) + ntHeader->OptionalHeader.ImageBase, functionList, entryCount);
+		}
 	}
 }
 #endif
