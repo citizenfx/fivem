@@ -35,9 +35,16 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [] (void*, const ClientInfo* info, const std::wstring* filePath)
 	{
 		std::map<std::wstring, std::wstring> parameters;
+#ifdef GTA_NY
 		parameters[L"ProductName"] = L"CitizenFX";
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20141213000000"; // todo i bet
+#elif defined(GTA_FIVE)
+		parameters[L"ProductName"] = L"FiveM";
+		parameters[L"Version"] = L"1.0";
+		parameters[L"BuildID"] = L"20151104"; // todo i bet
+#endif
+
 		parameters[L"ReleaseChannel"] = L"release";
 
 		std::wstring responseBody;
@@ -46,17 +53,21 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
 
+#ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
+#elif defined(GTA_FIVE)
+		if (HTTPUpload::SendRequest(L"http://report-crash.fivem.net/submit", parameters, files, nullptr, &responseBody, &responseCode))
+#endif
 		{
 			TASKDIALOGCONFIG taskDialogConfig = { 0 };
 			taskDialogConfig.cbSize = sizeof(taskDialogConfig);
 			taskDialogConfig.hInstance = GetModuleHandle(nullptr);
 			taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
 			taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-			taskDialogConfig.pszWindowTitle = L"CitizenFX Fatal Error";
+			taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
 			taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
-			taskDialogConfig.pszMainInstruction = L"CitizenFX has stopped working";
-			taskDialogConfig.pszContent = L"An error caused CitizenFX to stop working. A crash report has been uploaded to the CitizenFX developers. If you require immediate support, please visit <A HREF=\"http://forum.citizen.re/\">Citizen.re</A> and mention the details below.";
+			taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
+			taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"http://forum.citizen.re/\">Citizen.re</A> and mention the details below.";
 			taskDialogConfig.pszExpandedInformation = va(L"Crash ID: %s(use Ctrl+C to copy)", responseBody.substr(8).c_str());
 			taskDialogConfig.pfCallback = [] (HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 			{
@@ -99,8 +110,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 bool InitializeExceptionHandler()
 {
-	return false;
-
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 	CreateDirectory(crashDirectory.c_str(), nullptr);
 
