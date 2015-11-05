@@ -52,6 +52,7 @@ fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bind
 }
 }
 
+#if 0
 #include "MultiplexTcpServer.h"
 
 static InitFunction initFunction([] ()
@@ -144,3 +145,4 @@ static InitFunction initFunction([] ()
 		//std::this_thread::sleep_for(std::chrono::seconds(3600));
 	}
 });
+#endif
