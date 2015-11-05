@@ -178,6 +178,13 @@ bool Updater_RunUpdate(int numCaches, ...)
 	cacheFile_t cacheFile;
 	cacheFile.Parse(cachesFile);
 
+	// error out if the remote caches file is empty
+	if (cacheFile.GetCaches().empty())
+	{
+		MessageBox(NULL, L"Remote caches file could not be parsed. Check if " CONTENT_URL_WIDE L" is available in your web browser.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+		return false;
+	}
+
 	std::list<cache_t> needsUpdate;
 
 	FILE* cachesReader = fopen("caches.xml", "r");
