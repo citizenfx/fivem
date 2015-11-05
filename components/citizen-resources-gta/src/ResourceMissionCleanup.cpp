@@ -13,10 +13,28 @@
 #include <scrThread.h>
 #include <scrEngine.h>
 
+struct DummyThread : public GtaThread
+{
+	DummyThread(fx::Resource* resource)
+	{
+		rage::scrThreadContext* context = GetContext();
+		context->ScriptHash = HashString(resource->GetName().c_str());
+		context->ThreadId = (HashString(resource->GetName().c_str()) * 31) + rand();
+	}
+
+	virtual void DoRun() override
+	{
+
+	}
+};
+
 struct MissionCleanupData
 {
 	rage::scriptHandler* scriptHandler;
 	rage::scriptHandler* lastScriptHandler;
+
+	DummyThread* dummyThread;
+	rage::scrThread* lastThread;
 
 	MissionCleanupData()
 		: scriptHandler(nullptr)
@@ -36,6 +54,7 @@ static InitFunction initFunction([] ()
 		resource->OnStart.Connect([=] ()
 		{
 			data->scriptHandler = nullptr;
+			data->dummyThread = nullptr;
 		}, -10000);
 
 		resource->OnActivate.Connect([=] ()
@@ -43,11 +62,18 @@ static InitFunction initFunction([] ()
 			// create the script handler if needed
 			if (!data->scriptHandler)
 			{
-				data->scriptHandler = new CGameScriptHandlerNetwork(g_resourceThread);
+				data->dummyThread = new DummyThread(resource);
+				data->scriptHandler = new CGameScriptHandlerNetwork(data->dummyThread);
+
+				data->dummyThread->SetScriptHandler(data->scriptHandler);
+				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
 			}
 
 			// set the current script handler
-			GtaThread* gtaThread = g_resourceThread;
+			GtaThread* gtaThread = data->dummyThread;
+
+			data->lastThread = rage::scrEngine::GetActiveThread();
+			rage::scrEngine::SetActiveThread(gtaThread);
 
 			data->lastScriptHandler = gtaThread->GetScriptHandler();
 			gtaThread->SetScriptHandler(data->scriptHandler);
@@ -62,9 +88,12 @@ static InitFunction initFunction([] ()
 			}
 
 			// put back the last script handler
-			GtaThread* gtaThread = static_cast<GtaThread*>(g_resourceThread);
+			GtaThread* gtaThread = data->dummyThread;
 
 			gtaThread->SetScriptHandler(data->lastScriptHandler);
+
+			// restore the last thread
+			rage::scrEngine::SetActiveThread(data->lastThread);
 		}, 10000);
 
 		resource->OnStop.Connect([=] ()
@@ -74,12 +103,17 @@ static InitFunction initFunction([] ()
 				trace("deletin'\n");
 
 				data->scriptHandler->CleanupObjectList();
-				delete data->scriptHandler;
+				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
+				//data->scriptHandler->CleanupObjectList();
+				//delete data->scriptHandler;
 
 				trace("deletin'd\n");
 
 				data->scriptHandler = nullptr;
 			}
+
+			delete data->dummyThread;
+			data->dummyThread = nullptr;
 		}, 10000);
 	});
 });

@@ -23,7 +23,9 @@ static hook::thiscall_stub<void*(CPool*)> poolAllocate([] ()
 	return hook::pattern("4C 8B D1 48 63 49 18 83 F9 FF 75 03").count(1).get(0).get<void>();
 });
 
-// find the pool
+static CGameScriptHandlerMgr* g_scriptHandlerMgr;
+
+// find data fields and perform patches
 static HookFunction hookFunction([] ()
 {
 	char* location = hook::pattern("BA E8 10 E8 4F 41").count(1).get(0).get<char>(52);
@@ -36,10 +38,10 @@ static HookFunction hookFunction([] ()
 	// therefore, we patch that check out to never execute.
 	hook::put<uint8_t>(hook::pattern("80 78 32 00 75 34 B1 01 E8").count(1).get(0).get<void>(4), 0xEB);
 
-	// debug stuff: 'add object to handler'
-	void* addToHandler = hook::pattern("48 8B CA 41 8A D9 41 8A E8 48 8B F2").count(1).get(0).get<void>();
+	// find CGameScriptHandlerMgr pointer
+	location = hook::pattern("48 8D 55 17 48 8D 0D ? ? ? ? FF").count(1).get(0).get<char>(7);
 
-	printf("");
+	g_scriptHandlerMgr = (CGameScriptHandlerMgr*)(location + *(int32_t*)location + 4);
 });
 
 // functions
@@ -56,6 +58,21 @@ void* CGameScriptHandlerNetwork::operator new(size_t size)
 CGameScriptHandlerNetwork::CGameScriptHandlerNetwork(rage::scrThread* thread)
 {
 	scriptHandlerNetwork__ctor(this, thread);
+}
+
+static hook::thiscall_stub<void(void*, uint32_t*, void*)> setHashMap([] ()
+{
+	return hook::get_call(hook::pattern("48 8D 54 24 50 48 8B CE 89 44 24 50 E8").count(1).get(0).get<void>(12));
+});
+
+void CGameScriptHandlerMgr::scriptHandlerHashMap::Set(uint32_t* hash, rage::scriptHandler** handler)
+{
+	return setHashMap(this, hash, handler);
+}
+
+CGameScriptHandlerMgr* CGameScriptHandlerMgr::GetInstance()
+{
+	return g_scriptHandlerMgr;
 }
 
 // implemented parent functions for shutting up the compiler

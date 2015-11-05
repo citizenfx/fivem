@@ -13,6 +13,10 @@
 #define MISCLEAN_EXPORT
 #endif
 
+#include <scrEngine.h>
+
+class GtaThread;
+
 namespace rage
 {
 	class scrThread;
@@ -95,4 +99,30 @@ public:
 
 	// size is ignored as this is a pool allocator
 	void* operator new(size_t size);
+};
+
+class MISCLEAN_EXPORT CGameScriptHandlerMgr : public rage::scriptHandlerMgr
+{
+private:
+	struct scriptHandlerHashMap
+	{
+		void MISCLEAN_EXPORT Set(uint32_t* hash, rage::scriptHandler** handler);
+	};
+
+private:
+	char m_pad[72];
+
+	// actually atHashMap<rage::scriptHandler*>
+	scriptHandlerHashMap* m_handlers;
+
+public:
+	static CGameScriptHandlerMgr* GetInstance();
+
+	inline void AddScriptHandler(rage::scriptHandler* handler)
+	{
+		uint32_t hashStorage;
+		rage::scriptId* scriptId = handler->GetScriptId();
+
+		m_handlers->Set(scriptId->GetIdentifier(&hashStorage), &handler);
+	}
 };

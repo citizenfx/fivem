@@ -79,7 +79,7 @@ public:
 class scriptHandlerMgr
 {
 public:
-	virtual ~scriptHandlerMgr() = 0;
+	virtual inline ~scriptHandlerMgr() {}
 
 	virtual void m1() = 0;
 
@@ -100,6 +100,8 @@ public:
 	virtual void m9() = 0;
 
 	virtual void AttachScript(scrThread* thread) = 0;
+
+	virtual void DetachScript(scrThread* thread) = 0;
 };
 }
 
