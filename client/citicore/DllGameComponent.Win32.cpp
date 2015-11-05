@@ -11,13 +11,30 @@
 Component* DllGameComponent::CreateComponent()
 {
 	HMODULE hModule = LoadLibrary(m_path.c_str());
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 	if (!hModule)
 	{
+		DWORD errorCode = GetLastError();
+
+		FatalError("Could not load component %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
+
 		return nullptr;
 	}
 
 	auto createComponent = (Component*(__cdecl*)())GetProcAddress(hModule, "CreateComponent");
+
+	if (!createComponent)
+	{
+		const char* additionalInfo = "";
+
+		if (m_path.find(L"scripthookv") != std::string::npos)
+		{
+			additionalInfo = " You likely overwrote scripthookv.dll from FiveM with a non-FiveM version of it. Delete caches.xml to restore from this heinous act.";
+		}
+
+		FatalError("Could not find entry point CreateComponent in component %s.%s", converter.to_bytes(m_path).c_str(), additionalInfo);
+	}
 
 	return createComponent ? createComponent() : nullptr;
 }

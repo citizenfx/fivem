@@ -218,7 +218,7 @@ fwRefContainer<Component> ComponentData::CreateInstance(const std::string& userD
 {
 	auto instance = CreateManualInstance();
 
-	if (!instance->Initialize(userData))
+	if (instance.GetRef() && !instance->Initialize(userData))
 	{
 		instance = nullptr;
 	}
