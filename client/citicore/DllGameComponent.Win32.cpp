@@ -42,9 +42,14 @@ Component* DllGameComponent::CreateComponent()
 void DllGameComponent::ReadManifest()
 {
 	HMODULE hModule = LoadLibraryEx(m_path.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 	if (!hModule)
 	{
+		DWORD errorCode = GetLastError();
+
+		FatalError("Could not load component manifest %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
+
 		return;
 	}
 
@@ -61,6 +66,17 @@ void DllGameComponent::ReadManifest()
 		std::string resourceString(resPtr, resSize);
 
 		m_document.Parse(resourceString.c_str());
+	}
+	else
+	{
+		const char* additionalInfo = "";
+
+		if (m_path.find(L"scripthookv") != std::string::npos)
+		{
+			additionalInfo = " You likely overwrote scripthookv.dll from FiveM with a non-FiveM version of it. Delete caches.xml to restore from this heinous act.";
+		}
+
+		FatalError("Could not find component manifest FXCOMPONENT/935 in component %s.%s", converter.to_bytes(m_path).c_str(), additionalInfo);
 	}
 
 	FreeLibrary(hModule);
