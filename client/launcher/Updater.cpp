@@ -32,20 +32,23 @@ public:
 	void Parse(const char* str)
 	{
 		tinyxml2::XMLDocument doc;
-		doc.Parse(str);
+		tinyxml2::XMLError error = doc.Parse(str);
 
-		auto rootElement = doc.RootElement();
-		auto cacheElement = rootElement->FirstChildElement("Cache");
-
-		while (cacheElement)
+		if (error == tinyxml2::XML_NO_ERROR)
 		{
-			cache_t cache;
-			cache.name = cacheElement->Attribute("ID");
-			cache.version = atoi(cacheElement->Attribute("Version"));
+			auto rootElement = doc.RootElement();
+			auto cacheElement = rootElement->FirstChildElement("Cache");
 
-			caches.push_back(cache);
+			while (cacheElement)
+			{
+				cache_t cache;
+				cache.name = cacheElement->Attribute("ID");
+				cache.version = atoi(cacheElement->Attribute("Version"));
 
-			cacheElement = cacheElement->NextSiblingElement("Cache");
+				caches.push_back(cache);
+
+				cacheElement = cacheElement->NextSiblingElement("Cache");
+			}
 		}
 	}
 
