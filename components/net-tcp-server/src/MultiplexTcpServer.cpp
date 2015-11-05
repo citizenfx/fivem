@@ -30,61 +30,69 @@ void MultiplexTcpServer::Bind(const PeerAddress& bindAddress)
 	}
 
 	m_rootServer = m_factory->CreateServer(bindAddress);
-	m_rootServer->SetConnectionCallback([=] (fwRefContainer<TcpServerStream> stream)
+	
+	if (m_rootServer.GetRef())
 	{
-		// start the attachment process for the stream
-		std::shared_ptr<std::vector<uint8_t>> recvQueue = std::make_shared<std::vector<uint8_t>>();
-
-		TcpServerStream::TReadCallback readCallback = [=] (const std::vector<uint8_t>& data)
+		m_rootServer->SetConnectionCallback([=] (fwRefContainer<TcpServerStream> stream)
 		{
-			if (data.size() > 0)
+			// start the attachment process for the stream
+			std::shared_ptr<std::vector<uint8_t>> recvQueue = std::make_shared<std::vector<uint8_t>>();
+
+			TcpServerStream::TReadCallback readCallback = [=] (const std::vector<uint8_t>& data)
 			{
-				// copy to the receive queue
-				size_t origSize = recvQueue->size();
-				recvQueue->resize(origSize + data.size());
-
-				std::copy(data.begin(), data.end(), recvQueue->begin() + origSize);
-
-				// check all the servers for a pattern match
-				bool needMoreData = false;
-
-				for (auto& server : m_childServers)
+				if (data.size() > 0)
 				{
-					auto& matchFunction = server->GetPatternMatcher();
-					auto matchResult = matchFunction(*recvQueue);
+					// copy to the receive queue
+					size_t origSize = recvQueue->size();
+					recvQueue->resize(origSize + data.size());
 
-					// if we matched on this server
-					if (matchResult == MultiplexPatternMatchResult::Match)
+					std::copy(data.begin(), data.end(), recvQueue->begin() + origSize);
+
+					// check all the servers for a pattern match
+					bool needMoreData = false;
+
+					for (auto& server : m_childServers)
 					{
-						// keep a scope-local reference to the receive queue/stream (as we'll lose the stored reference soon)
-						auto localStream = stream;
-						auto localRecvQueue = recvQueue;
+						auto& matchFunction = server->GetPatternMatcher();
+						auto matchResult = matchFunction(*recvQueue);
 
-						// unset our read callback
-						stream->SetReadCallback(TcpServerStream::TReadCallback());
+						// if we matched on this server
+						if (matchResult == MultiplexPatternMatchResult::Match)
+						{
+							// keep a scope-local reference to the receive queue/stream (as we'll lose the stored reference soon)
+							auto localStream = stream;
+							auto localRecvQueue = recvQueue;
 
-						// forward the result
-						server->AttachToResult(*localRecvQueue, localStream);
+							// unset our read callback
+							stream->SetReadCallback(TcpServerStream::TReadCallback());
 
-						// return so that the stream doesn't end up closed
-						return;
+							// forward the result
+							server->AttachToResult(*localRecvQueue, localStream);
+
+							// return so that the stream doesn't end up closed
+							return;
+						}
+						else if (matchResult == MultiplexPatternMatchResult::InsufficientData)
+						{
+							needMoreData = true;
+						}
 					}
-					else if (matchResult == MultiplexPatternMatchResult::InsufficientData)
+
+					if (!needMoreData)
 					{
-						needMoreData = true;
+						// nobody matched, and we don't need more data - this stream is useless to us
+						stream->Close();
 					}
 				}
+			};
 
-				if (!needMoreData)
-				{
-					// nobody matched, and we don't need more data - this stream is useless to us
-					stream->Close();
-				}
-			}
-		};
-
-		stream->SetReadCallback(readCallback);
-	});
+			stream->SetReadCallback(readCallback);
+		});
+	}
+	else
+	{
+		trace("Could not bind MultiplexTcpServer to %s.\n", bindAddress.ToString().c_str());
+	}
 }
 
 void MultiplexTcpChildServer::AttachToResult(const std::vector<uint8_t>& existingData, fwRefContainer<TcpServerStream> baseStream)
