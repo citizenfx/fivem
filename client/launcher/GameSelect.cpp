@@ -62,7 +62,12 @@ void EnsureGamePath()
 	}
 
 	PWSTR resultPath;
-	result->GetDisplayName(SIGDN_FILESYSPATH, &resultPath);
+
+	if (FAILED(hr = result->GetDisplayName(SIGDN_FILESYSPATH, &resultPath)))
+	{
+		MessageBox(nullptr, va(L"IShellItem::GetDisplayName failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		ExitProcess(0);
+	}
 
 	fileDialog->Release();
 
