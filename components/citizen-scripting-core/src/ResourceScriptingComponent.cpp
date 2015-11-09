@@ -146,8 +146,6 @@ void ResourceScriptingComponent::CreateEnvironments()
 					{
 						trace("Failed to load client script %s.\n", clientScript.second.c_str());
 					}
-
-					break;
 				}
 			}
 		}
