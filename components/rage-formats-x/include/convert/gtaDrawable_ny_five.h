@@ -242,10 +242,22 @@ five::grcVertexFormat* convert(ny::grcVertexFormat* format)
 template<>
 five::grcVertexBufferD3D* convert(ny::grcVertexBufferD3D* buffer)
 {
+	// really hacky fix for multiple vertex buffers sharing the same array
+	static std::map<void*, void*> g_vertexBufferMatches;
+
+	void* oldBuffer = buffer->GetVertices();
+
+	if (g_vertexBufferMatches.find(oldBuffer) != g_vertexBufferMatches.end())
+	{
+		oldBuffer = g_vertexBufferMatches[oldBuffer];
+	}
+
 	auto out = new(false) five::grcVertexBufferD3D;
 
 	out->SetVertexFormat(convert<five::grcVertexFormat*>(buffer->GetVertexFormat()));
-	out->SetVertices(buffer->GetCount(), buffer->GetStride(), buffer->GetVertices());
+	out->SetVertices(buffer->GetCount(), buffer->GetStride(), oldBuffer);
+
+	g_vertexBufferMatches[buffer->GetVertices()] = out->GetVertices();
 
 	return out;
 }
