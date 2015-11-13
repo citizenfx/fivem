@@ -42,8 +42,10 @@ public:
 	virtual int64_t GetTypeIdentifier();
 
 	float drawDistance;
-	uint32_t flags;
-	void* pad[2];
+	uint32_t flags; // 0x10000 = alphaclip
+	uint32_t unkField; // lower 5 bits == 31 -> use alpha clip, get masked to 31 in InitializeFromArchetypeDef
+	uint32_t pad;
+	void* pad2;
 	float boundingBoxMin[4];
 	float boundingBoxMax[4];
 	float centroid[4];
@@ -51,17 +53,17 @@ public:
 	float unkDistance;
 	uint32_t nameHash;
 	uint32_t txdHash;
-	uint32_t pad2;
-	uint32_t dwdHash;
 	uint32_t pad3;
+	uint32_t dwdHash;
+	uint32_t pad4;
 	uint32_t unk_3;
 	uint32_t unkHash;
-	uint32_t pad4[7];
+	uint32_t pad5[7];
 
 public:
 	fwArchetypeDef()
 	{
-		flags = 0x0000; // was 0x2000
+		flags = 0x10000; // was 0x2000
 		drawDistance = 299.0f;
 		unkDistance = 375.0f;
 
@@ -69,10 +71,13 @@ public:
 		unk_3 = 3;
 		unkHash = 0x12345678;
 
-		memset(pad, 0, sizeof(pad));
+		unkField = 31;
+
+		pad = 0;
 		pad2 = 0;
 		pad3 = 0;
-		memset(pad4, 0, sizeof(pad4));
+		pad4 = 0;
+		memset(pad5, 0, sizeof(pad4));
 	}
 };
 
@@ -631,6 +636,9 @@ static HookFunction hookFunction([] ()
 	// rename IDE_FILE to ARCHETYPE_FILE
 	uint32_t* ideFile = hook::pattern("E3 94 FB CB 01 00 00 00").count(1).get(0).get<uint32_t>();
 	*ideFile = HashRageString("ARCHETYPE_FILE");
+
+	// ignore distance scale in determining whether or not to alphaclip a model
+	hook::nop(hook::pattern("44 3B C1 73 3F 83").count(1).get(0).get<void>(3), 2);
 
 	// yolo
 	//hook::nop(hook::pattern("0F 50 C0 83 E0 07 3C 07 0F 94 C1 85 D1 74 43").count(1).get(0).get<void>(13), 2);
