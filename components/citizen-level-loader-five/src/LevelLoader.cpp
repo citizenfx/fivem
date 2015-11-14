@@ -18,6 +18,8 @@
 static std::string g_overrideNextLoadedLevel;
 static std::string g_nextLevelPath;
 
+static bool g_wasLastLevelCustom;
+
 static void(*g_origLoadLevelByIndex)(int);
 static void(*g_loadLevel)(const char* levelPath);
 
@@ -68,6 +70,8 @@ public:
 
 static void DoLoadLevel(int index)
 {
+	g_wasLastLevelCustom = true;
+
 	if (g_overrideNextLoadedLevel.empty())
 	{
 		g_origLoadLevelByIndex(index);
@@ -118,6 +122,9 @@ static void DoLoadLevel(int index)
 		}
 	}
 
+	// mark the level as being custom
+	g_wasLastLevelCustom = true;
+
 	// clear the 'next' level
 	g_overrideNextLoadedLevel.clear();
 	
@@ -126,6 +133,11 @@ static void DoLoadLevel(int index)
 
 	// load the level
 	g_loadLevel(g_nextLevelPath.c_str());
+}
+
+static bool IsLevelApplicable()
+{
+	return (!g_wasLastLevelCustom);
 }
 
 static HookFunction hookFunction([] ()
@@ -137,6 +149,9 @@ static HookFunction hookFunction([] ()
 	hook::call(levelCaller, DoLoadLevel);
 
 	hook::set_call(&g_loadLevel, levelByIndex + 0x1F);
+
+	// change set applicability
+	hook::jump(hook::pattern("40 8A EA 48 8B F9 B0 01 76 43 E8").count(1).get(0).get<void>(-0x19), IsLevelApplicable);
 });
 
 static SpawnThread spawnThread;
