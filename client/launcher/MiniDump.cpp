@@ -176,7 +176,7 @@ bool InitializeExceptionHandler()
 	// disable Windows' SetUnhandledExceptionFilter
 #ifdef _M_AMD64
 	DWORD oldProtect;
-	LPVOID unhandledFilter = GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetUnhandledExceptionFilter");
+	LPVOID unhandledFilter = GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetUnhandledExceptionFilter");
 
 	VirtualProtect(unhandledFilter, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
 
