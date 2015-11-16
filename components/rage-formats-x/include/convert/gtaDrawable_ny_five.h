@@ -317,7 +317,17 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 	auto& lodGroup = out->GetLodGroup();
 	
-	lodGroup.SetBounds(oldLodGroup.GetBoundsMin(), oldLodGroup.GetBoundsMax(), oldLodGroup.GetCenter(), oldLodGroup.GetRadius());
+	Vector3 minBounds = oldLodGroup.GetBoundsMin();
+	minBounds = Vector3(minBounds.x - oldLodGroup.GetRadius(), minBounds.y - oldLodGroup.GetRadius(), minBounds.z - oldLodGroup.GetRadius());
+
+	Vector3 maxBounds = oldLodGroup.GetBoundsMax();
+	maxBounds = Vector3(maxBounds.x + oldLodGroup.GetRadius(), maxBounds.y + oldLodGroup.GetRadius(), maxBounds.z + oldLodGroup.GetRadius());
+
+	lodGroup.SetBounds(
+		minBounds,
+		maxBounds,
+		oldLodGroup.GetCenter(), oldLodGroup.GetRadius() * 2
+	);
 	//lodGroup.SetBounds(Vector3(-66.6f, -66.6f, -10.0f), Vector3(66.6f, 66.6f, 10.0f), Vector3(0.0f, 0.0f, 0.0f), 94.8f);
 
 	for (int i = 0; i < 4; i++)
@@ -338,16 +348,13 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 				{
 					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount() + 1);
 
-					for (int i = 0; i < geometryBounds.size() - 1; i++)
+					for (int i = 1; i < geometryBounds.size(); i++)
 					{
 						oldBounds[i].w *= 2;
 
-						geometryBounds[i + 1].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
-						geometryBounds[i + 1].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
+						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
+						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
 					}
-
-					auto& minBounds = oldLodGroup.GetBoundsMin();
-					auto& maxBounds = oldLodGroup.GetBoundsMax();
 
 					geometryBounds[0].aabbMin = Vector4(minBounds.x, minBounds.y, minBounds.z, oldLodGroup.GetRadius() * -2.0f);
 					geometryBounds[0].aabbMax = Vector4(maxBounds.x, maxBounds.y, maxBounds.z, oldLodGroup.GetRadius() * 2.0f);
