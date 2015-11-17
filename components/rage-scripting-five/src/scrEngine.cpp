@@ -280,6 +280,11 @@ static int JustNoScript(GtaThread* thread)
 	return thread->GetContext()->State;
 }
 
+static int ReturnTrue()
+{
+	return true;
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* location = hook::pattern("48 8B C8 EB 03 48 8B CB 48 8B 05").count(1).get(0).get<char>(11);
@@ -306,4 +311,7 @@ static HookFunction hookFunction([] ()
 
 	// temp: kill stock scripts
 	hook::jump(hook::pattern("48 83 EC 20 80 B9 46 01  00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript);
+
+	// make all CGameScriptId instances return 'true' in matching function (mainly used for 'is script allowed to use this object' checks)
+	hook::jump(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrue);
 });

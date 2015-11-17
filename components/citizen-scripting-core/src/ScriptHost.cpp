@@ -232,6 +232,23 @@ result_t ScriptRuntimeHandler::PopRuntime(IScriptRuntime* runtime)
 	}
 
 	ms_runtimeStack.pop();
+
+	// reactivate the originating resource
+	if (!ms_runtimeStack.empty())
+	{
+		IScriptRuntime* topRuntime = ms_runtimeStack.top();
+
+		if (topRuntime)
+		{
+			parentResource = reinterpret_cast<fx::Resource*>(topRuntime->GetParentObject());
+
+			if (parentResource)
+			{
+				parentResource->OnActivate();
+			}
+		}
+	}
+
 	ms_runtimeMutex.unlock();
 
 	return FX_S_OK;

@@ -167,7 +167,8 @@ class
 		public rage::scrThread
 {
 protected:
-	char gta_pad[64];
+	char scriptName[16];
+	char gta_pad[48];
 	rage::scriptHandler* m_pScriptHandler;
 	char gta_pad2[40];
 	char flag1;
@@ -181,6 +182,11 @@ public:
 	virtual rage::eThreadState		Run(uint32_t opsToExecute);
 	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
 	virtual void					Kill();
+
+	inline void SetScriptName(const char* name)
+	{
+		strcpy(scriptName, va("%08x", HashString(name)));
+	}
 
 	inline rage::scriptHandler* GetScriptHandler() { return m_pScriptHandler; }
 

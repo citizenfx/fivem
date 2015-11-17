@@ -20,6 +20,8 @@ struct DummyThread : public GtaThread
 		rage::scrThreadContext* context = GetContext();
 		context->ScriptHash = HashString(resource->GetName().c_str());
 		context->ThreadId = (HashString(resource->GetName().c_str()) * 31) + rand();
+
+		SetScriptName(resource->GetName().c_str());
 	}
 
 	virtual void DoRun() override
