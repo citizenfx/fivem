@@ -60,6 +60,8 @@ public:
 
 	virtual bool SetFileTime(const char* file, FILETIME fileTime) override;
 
+	virtual uint32_t GetFileAttributes(const char* path) override;
+
 	virtual int m_yx() override
 	{
 		return 2;
@@ -172,6 +174,22 @@ uint32_t RageVFSDeviceAdapter::GetFileTime(const char* file)
 bool RageVFSDeviceAdapter::SetFileTime(const char* file, FILETIME fileTime)
 {
 	return false;
+}
+
+uint32_t RageVFSDeviceAdapter::GetFileAttributes(const char* path)
+{
+	uint32_t attributes = INVALID_FILE_ATTRIBUTES;
+
+	uint64_t handle = Open(path, true);
+
+	if (handle != -1)
+	{
+		attributes = 0;
+		
+		Close(handle);
+	}
+
+	return attributes;
 }
 
 using THandle = vfs::Device::THandle;
