@@ -1332,7 +1332,7 @@ void CfxCollection::InitializePseudoPack(const char* path)
 
 	trace("init pseudopack %s\n", path);
 
-	assert(m_streamingFileList.size() > 0);
+	//assert(m_streamingFileList.size() > 0);
 
 	auto nameTableSize = std::accumulate(m_streamingFileList.begin(), m_streamingFileList.end(), 2, [] (int left, const std::string& right)
 	{
