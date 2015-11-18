@@ -133,8 +133,8 @@ public:
 
 	int32_t lodParentIdx;
 
-	uint32_t unkFloat1;
-	uint32_t unkFloat2;
+	float unkFloat1;
+	float unkFloat2;
 
 	int32_t unkInt1;
 	int32_t unkInt2;
@@ -151,8 +151,8 @@ public:
 		lodParentIdx = -1;
 		float1 = 1.0f;
 		float2 = 1.0f;
-		unkFloat1 = 0x457a0000;
-		unkFloat2 = 0x43fa0000;
+		unkFloat1 = 4000.f;
+		unkFloat2 = 500.f;
 		unkInt1 = 2;
 		unkInt2 = 9;
 		unkFF = 0xFF;
@@ -522,6 +522,9 @@ void ParseArchetypeFile(char* text, size_t length)
 						entityDef->rotation[1] = rotation[1];
 						entityDef->rotation[2] = rotation[2];
 						entityDef->rotation[3] = rotation[3];
+
+						getFloat("float1", &entityDef->float1);
+						getFloat("float2", &entityDef->float2);
 
 						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &archetypeUnk);
 
