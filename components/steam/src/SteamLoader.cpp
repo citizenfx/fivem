@@ -114,6 +114,12 @@ std::wstring SteamLoader::GetSteamDllPath()
 
 void SteamLoader::LoadGameOverlayRenderer(const std::wstring& baseDllPath)
 {
+	// as long as Steam hooks a function socialclub.dll checks, don't run (for me)
+	if (_stricmp(getenv("COMPUTERNAME"), "fallarbor") == 0)
+	{
+		return;
+	}
+
 	std::wstring overlayDllPath = baseDllPath.substr(0, baseDllPath.rfind(L'\\')) + L"\\" OVERLAYRENDERER_DLL;
 
 	LoadLibrary(overlayDllPath.c_str());
