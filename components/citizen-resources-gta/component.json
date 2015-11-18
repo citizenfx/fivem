@@ -10,7 +10,8 @@
 		"scripting",
 		"gta:game",
 		"gta:mission-cleanup",
-		"gta:streaming"
+		"gta:streaming",
+		"citizen:level-loader"
 	],
 	"provides": []
 }

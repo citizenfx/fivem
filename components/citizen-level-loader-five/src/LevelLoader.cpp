@@ -98,27 +98,37 @@ static void DoLoadLevel(int index)
 
 	const char* levelPath = nullptr;
 	
-	// try usermaps
-	levelPath = va("usermaps:/%s/%s", g_overrideNextLoadedLevel.c_str(), g_overrideNextLoadedLevel.c_str());
-	foundLevel = testLevel(levelPath);
+	// try hardcoded level name
+	if (g_overrideNextLoadedLevel.find(':') != std::string::npos)
+	{
+		levelPath = va("%s", g_overrideNextLoadedLevel.c_str());
+		foundLevel = testLevel(levelPath);
+	}
 
 	if (!foundLevel)
 	{
-		levelPath = va("common:/data/levels/%s/%s", g_overrideNextLoadedLevel.c_str(), g_overrideNextLoadedLevel.c_str());
+		// try usermaps
+		levelPath = va("usermaps:/%s/%s", g_overrideNextLoadedLevel.c_str(), g_overrideNextLoadedLevel.c_str());
 		foundLevel = testLevel(levelPath);
 
 		if (!foundLevel)
 		{
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			std::wstring wideLevel = converter.from_bytes(g_overrideNextLoadedLevel);
+			levelPath = va("common:/data/levels/%s/%s", g_overrideNextLoadedLevel.c_str(), g_overrideNextLoadedLevel.c_str());
+			foundLevel = testLevel(levelPath);
 
-			g_overrideNextLoadedLevel.clear();
+			if (!foundLevel)
+			{
+				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+				std::wstring wideLevel = converter.from_bytes(g_overrideNextLoadedLevel);
 
-			Instance<ICoreGameInit>::Get()->KillNetwork(va(L"Could not find requested level (%s) - loaded the default level instead.", wideLevel.c_str()));
+				g_overrideNextLoadedLevel.clear();
 
-			g_origLoadLevelByIndex(index);
+				Instance<ICoreGameInit>::Get()->KillNetwork(va(L"Could not find requested level (%s) - loaded the default level instead.", wideLevel.c_str()));
 
-			return;
+				g_origLoadLevelByIndex(index);
+
+				return;
+			}
 		}
 	}
 
@@ -133,6 +143,14 @@ static void DoLoadLevel(int index)
 
 	// load the level
 	g_loadLevel(g_nextLevelPath.c_str());
+}
+
+namespace streaming
+{
+	void DLL_EXPORT SetNextLevelPath(const std::string& path)
+	{
+		g_overrideNextLoadedLevel = path;
+	}
 }
 
 static bool IsLevelApplicable()
