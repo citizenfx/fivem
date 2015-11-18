@@ -100,6 +100,7 @@ static InitFunction initFunction([] ()
 		// static, so it will persist until the next call
 		static std::vector<uint8_t> returnedArray;
 		returnedArray = stream->ReadToEnd();
+		returnedArray.push_back(0); // zero-terminate
 
 		context.SetResult(&returnedArray[0]);
 	});
