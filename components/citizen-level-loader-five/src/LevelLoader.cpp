@@ -70,7 +70,7 @@ public:
 
 static void DoLoadLevel(int index)
 {
-	g_wasLastLevelCustom = true;
+	g_wasLastLevelCustom = false;
 
 	if (g_overrideNextLoadedLevel.empty())
 	{
