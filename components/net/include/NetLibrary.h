@@ -208,6 +208,11 @@ private:
 	NetLibrary();
 
 public:
+	inline bool AreDownloadsComplete()
+	{
+		return m_connectionState >= CS_DOWNLOADCOMPLETE;
+	}
+
 	virtual uint16_t GetServerNetID();
 
 	virtual uint16_t GetHostNetID();

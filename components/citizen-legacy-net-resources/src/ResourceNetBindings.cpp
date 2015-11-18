@@ -171,6 +171,8 @@ static InitFunction initFunction([] ()
 
 				fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
 
+				std::vector<concurrency::task<fwRefContainer<fx::Resource>>> tasks;
+
 				for (auto& resourceName : requiredResources)
 				{
 					{
@@ -182,8 +184,15 @@ static InitFunction initFunction([] ()
 						}
 					}
 
-					manager->AddResource("global://" + resourceName).then([=] (fwRefContainer<fx::Resource> resource)
+					tasks.push_back(manager->AddResource("global://" + resourceName));
+				}
+
+				concurrency::when_all(tasks.begin(), tasks.end()).then([=] (std::vector<fwRefContainer<fx::Resource>> resources)
+				{
+					for (auto& resource : resources)
 					{
+						std::string resourceName = resource->GetName();
+
 						if (!resource.GetRef())
 						{
 							GlobalError("Couldn't load resource %s. :(", resourceName.c_str());
@@ -199,10 +208,14 @@ static InitFunction initFunction([] ()
 								GlobalError("Couldn't start resource %s. :(", resourceName.c_str());
 							}
 						});
-					});
-				}
+					}
 
-				netLibrary->DownloadsComplete();
+					// mark DownloadsComplete on the next frame so all resources will have started
+					executeNextGameFrame.push_back([=] ()
+					{
+						netLibrary->DownloadsComplete();
+					});
+				});
 			});
 		};
 

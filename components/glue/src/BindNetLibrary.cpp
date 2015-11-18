@@ -17,6 +17,8 @@ static InitFunction initFunction([] ()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* library)
 	{
+		static NetLibrary* netLibrary = library;
+
 		library->OnInitReceived.Connect([] (NetAddress server)
 		{
 			//nui::SetMainUI(false);
@@ -32,7 +34,7 @@ static InitFunction initFunction([] ()
 					// download frame code
 					Sleep(1);
 
-					return true;
+					return netLibrary->AreDownloadsComplete();
 				});
 			}
 			else

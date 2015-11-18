@@ -68,8 +68,12 @@ static void WaitForInitLoopWrap()
 	WaitForInitLoop();
 }
 
+static bool(*g_callBeforeLoad)();
+
 void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 {
+	g_callBeforeLoad = callBeforeLoad;
+
 	g_launchedGame = true;
 
 	OnGameFrame.Connect([=] ()
@@ -680,6 +684,24 @@ static void ErrorDo(uint32_t error)
 	g_origError(error, 0);
 }
 
+static void(*g_runInitFunctions)(void*, int);
+static void(*g_lookAlive)();
+
+static void RunInitFunctionsWrap(void* skel, int type)
+{
+	if (g_callBeforeLoad)
+	{
+		while (!g_callBeforeLoad())
+		{
+			g_lookAlive();
+
+			OnGameFrame();
+		}
+	}
+	
+	g_runInitFunctions(skel, type);
+}
+
 static HookFunction hookFunction([] ()
 {
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
@@ -877,7 +899,12 @@ static HookFunction hookFunction([] ()
 	//g_origMemFree = (decltype(g_origMemFree))vt[4];
 	//vt[4] = CustomMemFree;
 	
+	// block loading until conditions succeed
+	char* loadStarter = hook::pattern("BA 02 00 00 00 E8 ? ? ? ? E8 ? ? ? ? 8B").count(1).get(0).get<char>(5);
+	hook::set_call(&g_runInitFunctions, loadStarter);
+	hook::set_call(&g_lookAlive, loadStarter + 5);
 
+	hook::call(loadStarter, RunInitFunctionsWrap);
 
 	/*
 	void* setCache = hook::pattern("40 32 FF 45 84 C9 40 88 3D").count(1).get(0).get<void>(3);
