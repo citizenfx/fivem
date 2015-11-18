@@ -523,8 +523,8 @@ void ParseArchetypeFile(char* text, size_t length)
 						entityDef->rotation[2] = rotation[2];
 						entityDef->rotation[3] = rotation[3];
 
-						getFloat("float1", &entityDef->float1);
-						getFloat("float2", &entityDef->float2);
+						getFloat("float1", &entityDef->unkFloat1);
+						getFloat("float2", &entityDef->unkFloat2);
 
 						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &archetypeUnk);
 
