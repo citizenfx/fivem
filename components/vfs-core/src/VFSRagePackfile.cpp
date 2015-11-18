@@ -110,6 +110,12 @@ namespace vfs
 				std::string key;
 			};
 
+			// early validity check
+			if (entry == nullptr)
+			{
+				return nullptr;
+			}
+
 			// if this is a directory entry
 			if (entry->isDirectory)
 			{
