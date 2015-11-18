@@ -22,6 +22,29 @@
 #pragma comment(lib, "shlwapi.lib")
 #include <shlwapi.h>
 
+#include <atArray.h>
+
+struct CollectionData
+{
+	uint64_t pad;
+	void* nameTable;
+	uint16_t* parentDirectoryTable;
+	rage::fiCollection::FileEntry* entryTable;
+	uint32_t numEntries;
+	uint32_t pad2;
+	uint64_t parentHandle;
+	rage::fiDevice* unkDevice;
+	char pad4[16];
+	rage::fiDevice* parentDevice;
+	char pad5[4];
+	char smallName[32];
+	uint32_t pad6;
+	atArray<char> name;
+	__declspec(align(8)) char pad7[32];
+	uint32_t entryTableAllocSize;
+	uint32_t keyId;
+};
+
 static rage::fiCollection** g_collectionRoot;
 
 static void(*g_origCloseCollection)(rage::fiCollection*);
@@ -42,12 +65,23 @@ struct StreamingPackfileEntry
 	FILETIME modificationTime;
 	uint8_t pad[80];
 	uint32_t parentIdentifier;
-	uint8_t pad2[12];
+	uint32_t pad2;
+	uint16_t isHdd;
+	uint16_t pad3;
+	uint32_t pad4;
 };
 
-#include <atArray.h>
-
 static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
+
+struct IgnoreCaseLess
+{
+	inline bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
+
+static std::set<std::string, IgnoreCaseLess> g_customStreamingFileSet;
 
 class CfxCollection : public rage::fiCollection
 {
@@ -70,15 +104,6 @@ private:
 		CollectionEntry* ourEntry;
 	};
 
-	struct IgnoreCaseLess
-	{
-		inline bool operator()(const std::string& left, const std::string& right) const
-		{
-			return _stricmp(left.c_str(), right.c_str()) < 0;
-		}
-	};
-
-
 private:
 	// to be filled with packfile data
 	char m_pad[184];
@@ -98,6 +123,8 @@ private:
 	bool m_hasCleaned;
 
 	std::recursive_mutex m_mutex;
+
+	std::map<std::string, rage::ResourceFlags> m_resourceFlags;
 	
 public:
 	typedef std::function<bool(const char*, std::string&)> TLookupFn;
@@ -246,7 +273,15 @@ public:
 		
 		rage::ResourceFlags flags;
 		rage::fiDevice* baseDevice = rage::fiDevice::GetDevice(name.c_str(), true);
-		baseDevice->GetResourceVersion(name.c_str(), &flags);
+
+		if (m_resourceFlags.find(name) != m_resourceFlags.end())
+		{
+			flags = m_resourceFlags[name];
+		}
+		else
+		{
+			baseDevice->GetResourceVersion(name.c_str(), &flags);
+		}
 
 		memcpy(&newEntry.baseEntry, PseudoCallContext(this)->GetEntry(idx), sizeof(newEntry.baseEntry));
 
@@ -271,6 +306,22 @@ public:
 	CollectionEntry* GetCfxEntry(uint16_t index)
 	{
 		auto it = m_entries.find(index);
+
+		// map network entries that shouldn't exist
+		CollectionData* collectionData = (CollectionData*)m_pad;
+		char* nameTable = (char*)collectionData->nameTable;
+		
+		char* name = &nameTable[collectionData->entryTable[index].nameOffset];
+
+		if (!IsPseudoPack())
+		{
+			if (g_customStreamingFileSet.find(name) != g_customStreamingFileSet.end())
+			{
+				trace(__FUNCTION__ ": 'killing' %s\n", name);
+
+				strcpy(name, va("%04x", HashRageString(name) & 0xFFFF));
+			}
+		}
 
 		if (it == m_entries.end())
 		{
@@ -339,7 +390,19 @@ public:
 	{
 		auto entry = GetCfxEntry(index);
 
-		return (entry->origEntry) ? PseudoCallContext(this)->GetEntryName(index) : entry->fileName.c_str();
+		const char* entryName = (entry->origEntry) ? PseudoCallContext(this)->GetEntryName(index) : entry->fileName.c_str();
+
+		if (!IsPseudoPack())
+		{
+			if (g_customStreamingFileSet.find(entryName) != g_customStreamingFileSet.end())
+			{
+				trace(__FUNCTION__ " mapping %s to not exist\n", entryName);
+
+				return va("%08x", HashRageString(entryName));
+			}
+		}
+
+		return entryName;
 
 		//return PseudoCallContext(this)->GetEntryName(index);
 	}
@@ -372,6 +435,16 @@ public:
 		{
 			PseudoCallContext(this)->GetEntryNameToBuffer(index, buffer, maxLen);
 			//strcpy_s(buffer, maxLen, entry->fileName.c_str());
+		}
+
+		if (!IsPseudoPack())
+		{
+			if (g_customStreamingFileSet.find(buffer) != g_customStreamingFileSet.end())
+			{
+				trace(__FUNCTION__ " mapping %s to not exist\n", buffer);
+
+				strcpy(buffer, va("%08x", HashRageString(buffer)));
+			}
 		}
 	}
 
@@ -764,8 +837,18 @@ public:
 	}
 
 private:
+	void PrepareStreamingListFromNetwork();
+
 	void DetermineLookupFunction(const char* archive)
 	{
+		// if this is the streaming surrogate, treat it like such
+		if (strstr(archive, "streaming_surrogate.rpf") != nullptr)
+		{
+			PrepareStreamingListFromNetwork();
+
+			return;
+		}
+
 		// build a local path string to verify
 		std::stringstream basePath;
 
@@ -894,10 +977,7 @@ public:
 
 		if (!IsPseudoPackPath(archive))
 		{
-			if (IsPseudoPack())
-			{
-				__debugbreak();
-			}
+			assert(!IsPseudoPack());
 
 			{
 				PseudoCallContext ctx(this);
@@ -1144,6 +1224,8 @@ static_assert(sizeof(StreamingPackfileEntry) == 104, "muh");
 
 bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse)
 {
+	trace("open archive %s\n", archive);
+
 	DetermineLookupFunction(archive);
 
 	rage::fiDevice* baseDevice = nullptr;
@@ -1238,29 +1320,8 @@ bool CfxCollection::IsPseudoPack()
 bool CfxCollection::IsPseudoPackPath(const char* path)
 {
 	// we better hope no legitimate pack is called 'pseudo' :D
-	return strstr(path, "pseudo") != nullptr || strstr(path, "usermaps") != nullptr;
+	return strstr(path, "pseudo") != nullptr || strstr(path, "usermaps") != nullptr || strstr(path, "streaming_surrogate") != nullptr;
 }
-
-struct CollectionData
-{
-	uint64_t pad;
-	void* nameTable;
-	uint16_t* parentDirectoryTable;
-	rage::fiCollection::FileEntry* entryTable;
-	uint32_t numEntries;
-	uint32_t pad2;
-	uint64_t parentHandle;
-	rage::fiDevice* unkDevice;
-	char pad4[16];
-	rage::fiDevice* parentDevice;
-	char pad5[4];
-	char smallName[32];
-	uint32_t pad6;
-	atArray<char> name;
-	__declspec(align(8)) char pad7[32];
-	uint32_t entryTableAllocSize;
-	uint32_t keyId;
-};
 
 #include <numeric>
 #include <sysAllocator.h>
@@ -1314,10 +1375,19 @@ void CfxCollection::InitializePseudoPack(const char* path)
 			std::string entryFullName;
 			m_lookupFunction(entry.c_str(), entryFullName);
 
+			rage::ResourceFlags flags;
 			auto entryDevice = rage::fiDevice::GetDevice(entryFullName.c_str(), true);
 
-			rage::ResourceFlags flags;
-			entryDevice->GetResourceVersion(entryFullName.c_str(), &flags);
+			if (m_resourceFlags.find(entryFullName) != m_resourceFlags.end())
+			{
+				flags = m_resourceFlags[entryFullName];
+			}
+			else
+			{
+				entryDevice->GetResourceVersion(entryFullName.c_str(), &flags);
+			}
+
+			trace("fake pseudo entry: %s @ %s - %d %d %d\n", entry.c_str(), entryFullName.c_str(), flags.flag1, flags.flag2);
 
 			entryTable[i].nameOffset = addString(entry);
 			entryTable[i].offset = 0x8FFFFF;
@@ -1358,6 +1428,60 @@ void CfxCollection::InitializePseudoPack(const char* path)
 	static_assert(sizeof(CollectionData) == 176, "m");
 }
 
+static std::vector<std::pair<std::string, rage::ResourceFlags>> g_customStreamingFiles;
+
+void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags)
+{
+	g_customStreamingFileSet.insert(strrchr(fileName.c_str(), '/') + 1);
+	g_customStreamingFiles.push_back({ fileName, flags });
+}
+
+void CfxCollection::PrepareStreamingListFromNetwork()
+{
+	std::set<std::string, IgnoreCaseLess> fileList;
+	std::map<std::string, std::pair<std::string, rage::ResourceFlags>, IgnoreCaseLess> fileMapping;
+
+	for (auto& file : g_customStreamingFiles)
+	{
+		std::string baseName = strrchr(file.first.c_str(), '/') + 1;
+
+		fileMapping.insert({ baseName, file });
+		fileList.insert(baseName);
+
+		m_resourceFlags.insert(file);
+	}
+
+	m_lookupFunction = [=] (const char* lookupName, std::string& fileName)
+	{
+		auto it = fileMapping.find(lookupName);
+
+		if (it == fileMapping.end())
+		{
+			return false;
+		}
+
+		fileName = it->second.first;
+		return true;
+	};
+
+	// as streaming may be slow, we should do it from a separate thread
+	g_streamingPackfiles->Get(GetCollectionId()).isHdd = false;
+
+	// if there are any streaming files, somewhat invalidate the parent packfile timestamp
+	if (!fileList.empty())
+	{
+		SYSTEMTIME systemTime;
+		GetSystemTime(&systemTime);
+
+		FILETIME fileTime;
+		SystemTimeToFileTime(&systemTime, &fileTime);
+
+		g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
+
+		m_streamingFileList = fileList;
+	}
+}
+
 static void(*g_origGeomThing)(void*, void*);
 
 static hook::cdecl_stub<bool(void*)> calculateBVH([] ()
@@ -1380,6 +1504,58 @@ static void(*g_origBvhSet)(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int64
 static void BvhSet(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int64_t a5, int64_t a6, int64_t a7)
 {
 	return g_origBvhSet(a1, a2, a3, a4, 0, 1, a7);
+}
+
+static char* g_registerStreamingFile;
+
+static std::set<std::string, IgnoreCaseLess> g_registeredFileSet;
+
+static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch)
+{
+	// scan for the entry in the streaming list and patch as appropriate
+	bool isNetworkFile = (g_customStreamingFileSet.find(str) != g_customStreamingFileSet.end());
+
+	// DLC/update overriding - seems irrelevant
+#if 0
+	static char* startBit = hook::pattern("45 33 DB 85 C0 74 35 48 8B 05").count(1).get(0).get<char>(5);
+
+	if (isNetworkFile)
+	{
+		hook::nop(startBit, 2);
+		hook::put<uint16_t>(startBit + 49, 0xE990);
+	}
+	else
+	{
+		hook::put<uint16_t>(startBit, 0x3574);
+		hook::put<uint16_t>(startBit + 49, 0x850F);
+	}
+#endif
+
+	// if this file has not been registered yet, allow it to be for this one time
+	// FIXME: clear this state if server reconnecting is ever to work again
+	if (isNetworkFile)
+	{
+		if (g_registeredFileSet.find(str) == g_registeredFileSet.end())
+		{
+			g_registeredFileSet.insert(str);
+
+			isNetworkFile = false;
+		}
+	}
+
+	static char* startBit = hook::pattern("44 88 6C 1C 4F 44 3B F6 0F 84").count(1).get(0).get<char>(8);
+
+	if (isNetworkFile)
+	{
+		hook::put<uint16_t>(startBit, 0xE990);
+	}
+	else
+	{
+		hook::put<uint16_t>(startBit, 0x840F);
+	}
+
+	// return strchr
+	return strrchr(str, ch);
 }
 
 static HookFunction hookFunction([] ()
@@ -1531,4 +1707,9 @@ static HookFunction hookFunction([] ()
 	void* hddAddr = hook::pattern("66 89 7B 60 45 33 F6").count(1).get(0).get<void>(0);
 	//hook::nop(hddAddr, 7);
 	//hook::call(hddAddr, doHddThing.GetCode());
+
+	// streaming file registration - disable DLC override capability if the file is also existent in global streaming
+	g_registerStreamingFile = hook::pattern("48 8B D8 41 8B C6 25 00 00 00 C0 3D").count(1).get(0).get<char>(-0x42);
+
+	hook::call(g_registerStreamingFile + 0x3A, RegisterStreamingFileStrchrWrap);
 });

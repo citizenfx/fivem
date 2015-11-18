@@ -36,14 +36,15 @@ public:
 		std::string basename;
 		std::string remoteUrl;
 		std::string referenceHash;
+		size_t size;
 
 		inline Entry()
 		{
 
 		}
 
-		inline Entry(const std::string& resourceName, const std::string& basename, const std::string& remoteUrl, const std::string& referenceHash)
-			: resourceName(resourceName), basename(basename), remoteUrl(remoteUrl), referenceHash(referenceHash)
+		inline Entry(const std::string& resourceName, const std::string& basename, const std::string& remoteUrl, const std::string& referenceHash, size_t size)
+			: resourceName(resourceName), basename(basename), remoteUrl(remoteUrl), referenceHash(referenceHash), size(size)
 		{
 
 		}
@@ -182,4 +183,8 @@ public:
 	virtual void FindClose(THandle handle) override;
 
 	virtual void SetPathPrefix(const std::string& pathPrefix) override;
+
+	virtual size_t GetLength(THandle handle) override;
+
+	virtual size_t GetLength(const std::string& fileName) override;
 };

@@ -64,7 +64,7 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 				// and add the entries from the list to the resource
 				for (auto& entry : GetIteratorView(m_resourceEntries.equal_range(host)))
 				{
-					entryList->AddEntry(ResourceCacheEntryList::Entry{ entry.first, entry.second.basename, entry.second.remoteUrl, entry.second.referenceHash });
+					entryList->AddEntry(ResourceCacheEntryList::Entry{ entry.first, entry.second.basename, entry.second.remoteUrl, entry.second.referenceHash, entry.second.size });
 				}
 
 				// verify if we even had an entry called 'resource.rpf'
@@ -112,9 +112,9 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 	return concurrency::task<fwRefContainer<fx::Resource>>();
 }
 
-void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl)
+void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size)
 {
-	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl} });
+	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl, size} });
 }
 
 void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)
@@ -137,4 +137,6 @@ namespace fx
 
 		return it->second;
 	}
+
+	fwEvent<const StreamingEntryData&> OnAddStreamingResource;
 }

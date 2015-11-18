@@ -40,9 +40,10 @@ namespace fx
 			std::string basename;
 			std::string referenceHash;
 			std::string remoteUrl;
+			size_t size;
 
-			inline ResourceFileEntry(const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl)
-				: basename(basename), referenceHash(referenceHash), remoteUrl(remoteUrl)
+			inline ResourceFileEntry(const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0)
+				: basename(basename), referenceHash(referenceHash), remoteUrl(remoteUrl), size(size)
 			{
 
 			}
@@ -54,9 +55,20 @@ namespace fx
 	public:
 		void RemoveResourceEntries(const std::string& resourceName);
 
-		void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl);
+		void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0);
 	};
 
 
 	RESCLIENT_EXPORT fwRefContainer<CachedResourceMounter> GetCachedResourceMounter(fx::ResourceManager* manager, const std::string& cachePath);
+
+	struct StreamingEntryData
+	{
+		std::string fileName;
+		std::string resourceName;
+		uint32_t rscVersion;
+		uint32_t rscPagesPhysical;
+		uint32_t rscPagesVirtual;
+	};
+
+	extern RESCLIENT_EXPORT fwEvent<const StreamingEntryData&> OnAddStreamingResource;
 }

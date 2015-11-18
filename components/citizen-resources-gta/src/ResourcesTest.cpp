@@ -9,11 +9,19 @@
 #include "ResourceManager.h"
 
 #include <fiDevice.h>
+#include <CachedResourceMounter.h>
 
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
+void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags);
+
 static InitFunction initFunction([] ()
 {
+	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
+	{
+		CfxCollection_AddStreamingFile("cache:/" + entry.resourceName + "/" + entry.fileName, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+	});
+
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
 		//while (true)

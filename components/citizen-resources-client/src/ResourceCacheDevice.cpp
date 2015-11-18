@@ -303,6 +303,31 @@ void ResourceCacheDevice::FindClose(THandle handle)
 	
 }
 
+size_t ResourceCacheDevice::GetLength(THandle handle)
+{
+	auto handleData = &m_handles[handle];
+
+	// close any parent device handle
+	if (handleData->status == HandleData::StatusFetched)
+	{
+		return handleData->parentDevice->GetLength(handleData->parentHandle);
+	}
+
+	return handleData->entry.size;
+}
+
+size_t ResourceCacheDevice::GetLength(const std::string& fileName)
+{
+	auto entry = GetEntryForFileName(fileName);
+
+	if (entry)
+	{
+		return entry->size;
+	}
+
+	return -1;
+}
+
 void ResourceCacheDevice::SetPathPrefix(const std::string& pathPrefix)
 {
 	m_pathPrefix = pathPrefix;
