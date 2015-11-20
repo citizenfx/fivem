@@ -80,7 +80,10 @@ void main()
 		{
 			return;
 		}
+	}
 
+	if (!toolMode)
+	{
 		if (InitializeExceptionHandler())
 		{
 			return;
