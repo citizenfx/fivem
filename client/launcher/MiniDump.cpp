@@ -156,7 +156,10 @@ bool InitializeExceptionHandler()
 		}
 
 		DWORD waitResult = WaitForSingleObject(initEvent, 7500);
-		client->Register();
+		if (!client->Register())
+		{
+			trace("Could not register with breakpad server.\n");
+		}
 	}
 
 	g_exceptionHandler = new ExceptionHandler(
@@ -176,16 +179,21 @@ bool InitializeExceptionHandler()
 	// disable Windows' SetUnhandledExceptionFilter
 #ifdef _M_AMD64
 	DWORD oldProtect;
-	LPVOID unhandledFilter = GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetUnhandledExceptionFilter");
 
-	if (!unhandledFilter)
+	LPVOID unhandledFilters[] = { 
+		GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetUnhandledExceptionFilter"),
+		GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetUnhandledExceptionFilter"),
+	};
+
+	for (auto& unhandledFilter : unhandledFilters)
 	{
-		unhandledFilter = GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetUnhandledExceptionFilter");
+		if (unhandledFilter)
+		{
+			VirtualProtect(unhandledFilter, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+			*(uint8_t*)unhandledFilter = 0xC3;
+		}
 	}
-
-	VirtualProtect(unhandledFilter, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-	*(uint8_t*)unhandledFilter = 0xC3;
 #endif
 
 	return false;
