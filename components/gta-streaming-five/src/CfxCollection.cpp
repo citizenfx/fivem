@@ -223,8 +223,6 @@ public:
 		memset(m_handles, 0, sizeof(m_handles));
 
 		m_hasCleaned = true;
-
-		trace("cleanup %s\n", GetName());
 	}
 
 	virtual void CloseCollection() override
@@ -1224,8 +1222,6 @@ static_assert(sizeof(StreamingPackfileEntry) == 104, "muh");
 
 bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse)
 {
-	trace("open archive %s\n", archive);
-
 	DetermineLookupFunction(archive);
 
 	rage::fiDevice* baseDevice = nullptr;
