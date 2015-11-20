@@ -407,11 +407,17 @@ static HookFunction initFunction([] ()
 
 		// TODO: replace this so that reloading can work correctly
 		static bool gameLoaded = false;
+		static bool eventConnected = false;
 
-		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([] ()
+		if (!eventConnected)
 		{
-			gameLoaded = true;
-		});
+			Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([] ()
+			{
+				gameLoaded = true;
+			});
+
+			eventConnected = true;
+		}
 
 		if (gameLoaded && doTickThisFrame)
 		{
