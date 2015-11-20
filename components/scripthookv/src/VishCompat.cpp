@@ -160,7 +160,25 @@ static std::multimap<HMODULE, void(*)()> g_modulesToFunctions;
 
 void DLL_EXPORT scriptWait(unsigned long waitTime)
 {
-	g_fishScript->Yield(waitTime);
+	if (g_fishScript)
+	{
+		g_fishScript->Yield(waitTime);
+	}
+	else
+	{
+		const char* moduleBaseString = "";
+		HMODULE module;
+
+		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)_ReturnAddress(), &module))
+		{
+			char filename[MAX_PATH];
+			GetModuleFileNameA(module, filename, _countof(filename));
+
+			moduleBaseString = va(" - %s+%X", strrchr(filename, '\\') + 1, (char*)_ReturnAddress() - (char*)module);
+		}
+
+		GlobalError("Attempted to call ViSH scriptWait() while no ViSH script hook thread was active. (called from %p%s)", _ReturnAddress(), moduleBaseString);
+	}
 }
 
 void DLL_EXPORT scriptRegister(HMODULE hMod, void(*function)())
