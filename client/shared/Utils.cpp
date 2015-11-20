@@ -141,6 +141,17 @@ void DoNtRaiseException(EXCEPTION_RECORD* record)
 }
 #endif
 
+static void PerformFileLog(const char* string)
+{
+	FILE* logFile = _wfopen(MakeRelativeCitPath(L"CitizenFX.log").c_str(), L"a");
+
+	if (logFile)
+	{
+		fprintf(logFile, "[%lld] %s", GetTickCount64(), string);
+		fclose(logFile);
+	}
+}
+
 void trace(const char* string, ...)
 {
 	static thread_local std::vector<char> buffer;
@@ -207,7 +218,7 @@ void trace(const char* string, ...)
 	printf("%s", &buffer[0]);
 #endif
 
-	// TODO: write to a log file too, if enabled?
+	PerformFileLog(&buffer[0]);
 }
 
 uint32_t HashRageString(const char* string)

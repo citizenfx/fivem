@@ -89,6 +89,38 @@ void main()
 
 	EnsureGamePath();
 
+	if (!toolMode)
+	{
+		if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex") == nullptr)
+		{
+			// create the mutex
+			CreateMutex(nullptr, TRUE, L"CitizenFX_LogMutex");
+
+			// rotate any CitizenFX.log files cleanly
+			const int MaxLogs = 10;
+
+			auto makeLogName = [] (int idx)
+			{
+				return MakeRelativeCitPath(va(L"CitizenFX.log%s", (idx == 0) ? L"" : va(L".%d", idx)));
+			};
+
+			for (int i = (MaxLogs - 1); i >= 0; i--)
+			{
+				std::wstring logPath = makeLogName(i);
+				std::wstring newLogPath = makeLogName(i + 1);
+
+				if ((i + 1) == MaxLogs)
+				{
+					_wunlink(logPath.c_str());
+				}
+				else
+				{
+					_wrename(logPath.c_str(), newLogPath.c_str());
+				}
+			}
+		}
+	}
+
 	// readd the game path into the PATH
 	newPath = MakeRelativeCitPath(L"bin\\crt") + L";" + MakeRelativeCitPath(L"bin") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
 
