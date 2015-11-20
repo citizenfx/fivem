@@ -191,14 +191,14 @@ static InitFunction initFunction([] ()
 				{
 					for (auto& resource : resources)
 					{
-						std::string resourceName = resource->GetName();
-
 						if (!resource.GetRef())
 						{
-							GlobalError("Couldn't load resource %s. :(", resourceName.c_str());
+							GlobalError("Couldn't load some resource. :(");
 
 							return;
 						}
+
+						std::string resourceName = resource->GetName();
 
 						std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
 						executeNextGameFrame.push_back([=] ()
