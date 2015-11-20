@@ -44,6 +44,7 @@ struct HttpClientRequestContext
 	vfs::Device::THandle outHandle;
 
 	std::string url;
+	size_t getSize{ 0 };
 
 	HttpClientRequestContext()
 		: outDevice(nullptr)
@@ -58,7 +59,7 @@ struct HttpClientRequestContext
 			outDevice->Close(outHandle);
 		}
 
-		callback(success, resData.c_str(), resData.size());
+		callback(success, resData.c_str(), (!resData.empty()) ? resData.size() : getSize);
 
 		if (server.second)
 		{
@@ -349,6 +350,8 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 
 				ctx->resultData << fwString(ctx->buffer, length);
 			}
+
+			ctx->getSize += length;
 
 			if (length > 0)
 			{
