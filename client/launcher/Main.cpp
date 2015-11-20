@@ -42,11 +42,6 @@ void main()
 		{
 			return;
 		}
-
-		if (InitializeExceptionHandler())
-		{
-			return;
-		}
 	}
 
 	// path environment appending of our primary directories
@@ -82,6 +77,11 @@ void main()
 	if (!devMode)
 	{
 		if (!Bootstrap_DoBootstrap())
+		{
+			return;
+		}
+
+		if (InitializeExceptionHandler())
 		{
 			return;
 		}
