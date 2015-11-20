@@ -10,6 +10,9 @@
 
 #include <ResourceManager.h>
 
+#pragma comment(lib, "winmm.lib")
+#include <mmsystem.h>
+
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking)
 	: m_cache(cache), m_blocking(blocking)
 {
@@ -147,12 +150,17 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		return false;
 	}
 
+	// log the request starting
+	uint32_t initTime = timeGetTime();
+
+	trace(__FUNCTION__ " downloading %s (hash %s) from %s\n", handleData->entry.basename.c_str(), handleData->entry.referenceHash.c_str(), handleData->entry.remoteUrl.c_str());
+
 	// file extension for cache stuff
 	std::string extension = handleData->entry.basename.substr(handleData->entry.basename.find_last_of('.') + 1);
 	std::string outFileName = m_cache->GetCachePath() + extension + "_" + handleData->entry.referenceHash;
 
 	// http request
-	m_httpClient->DoFileGetRequest(hostname, port, path, m_cache->GetCachePath().c_str(), outFileName, [=] (bool result, const char*, size_t)
+	m_httpClient->DoFileGetRequest(hostname, port, path, m_cache->GetCachePath().c_str(), outFileName, [=] (bool result, const char*, size_t outSize)
 	{
 		if (!result)
 		{
@@ -160,6 +168,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		}
 		else
 		{
+			// log success
+			trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", handleData->entry.basename.c_str(), (timeGetTime() - initTime), outSize);
+
 			// add the file to the resource cache
 			std::map<std::string, std::string> metaData;
 			metaData["filename"] = handleData->entry.basename;
