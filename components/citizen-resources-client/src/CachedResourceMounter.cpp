@@ -87,6 +87,8 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 							// if that went well, we should be able to _open_ the resource now
 							if (!localResource->LoadFrom(resourceRoot))
 							{
+								GlobalError("Couldn't load resource %s from %s.", host.c_str(), resourceRoot.c_str());
+
 								localResource = nullptr;
 							}
 							else
@@ -99,6 +101,8 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 						}
 						else
 						{
+							GlobalError("Couldn't load resource packfile for %s.", host.c_str());
+
 							localResource = nullptr;
 						}
 
