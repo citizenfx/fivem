@@ -580,7 +580,6 @@ static void __stdcall LogDescriptorDo(int netType)
 					//__debugbreak();
 				}
 
-				trace("[unk due to R*] %d\n", netType);
 				return;
 			}
 		}
