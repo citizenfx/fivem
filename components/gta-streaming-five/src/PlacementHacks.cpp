@@ -389,8 +389,6 @@ void ParseArchetypeFile(char* text, size_t length)
 					// create the archetype
 					if (valid)
 					{
-						trace("defining %s\n", modelName);
-
 						fwArchetypeDef* archetypeDef = new fwArchetypeDef();
 						archetypeDef->drawDistance = drawDistance;
 
@@ -425,16 +423,10 @@ void ParseArchetypeFile(char* text, size_t length)
 						// TODO: get [mi] from [miPtr]
 						void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->nameHash, 1);
 
-						trace("create\n");
-
 						fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->nameHash);
-
-						trace("get\n");
 
 						// a1 isn't a hash at all, but "lovely" somehow doesn't corrupt things
 						mi->InitializeFromArchetypeDef(HashString("lovely"), archetypeDef, true);
-
-						trace("done!\n");
 
 						// TODO: clean up
 						*(uint32_t*)((char*)mi + 80) &= ~(1 << 31);
@@ -495,8 +487,6 @@ void ParseArchetypeFile(char* text, size_t length)
 
 				if (valid)
 				{
-					trace("instantiating %s\n", archetypeName);
-
 					uint32_t archetypeHash = HashString(archetypeName);
 					uint32_t guidHash = HashString(guid);
 
