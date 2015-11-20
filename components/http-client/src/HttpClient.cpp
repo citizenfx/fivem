@@ -43,6 +43,8 @@ struct HttpClientRequestContext
 	fwRefContainer<vfs::Device> outDevice;
 	vfs::Device::THandle outHandle;
 
+	std::string url;
+
 	HttpClientRequestContext()
 		: outDevice(nullptr)
 	{
@@ -93,6 +95,9 @@ void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwS
 	context->postData = postData;
 	context->callback = callback;
 
+	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
+
 	WinHttpSendRequest(hRequest, L"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n", -1, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
 }
 
@@ -108,6 +113,9 @@ void HttpClient::DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAc
 	context->hConnection = hConnection;
 	context->hRequest = hRequest;
 	context->callback = callback;
+
+	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
 
 	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);
 }
@@ -247,6 +255,9 @@ void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, 
 	context->outDevice = outDevice;
 	context->server = pair;
 
+	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
+
 	if (!context->outDevice.GetRef())
 	{
 		GlobalError("context->outDevice was null in " __FUNCTION__);
@@ -265,8 +276,35 @@ void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code,
 	switch (code)
 	{
 		case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
+		{
+			WINHTTP_ASYNC_RESULT* infoStruct = reinterpret_cast<WINHTTP_ASYNC_RESULT*>(info);
+
+			const char* apiCall = "unknown WinHTTP call";
+
+			switch (infoStruct->dwResult)
+			{
+				case API_RECEIVE_RESPONSE:
+					apiCall = "WinHttpReceiveResponse";
+					break;
+				case API_QUERY_DATA_AVAILABLE:
+					apiCall = "WinHttpQueryDataAvailable";
+					break;
+				case API_READ_DATA:
+					apiCall = "WinHttpReadData";
+					break;
+				case API_WRITE_DATA:
+					apiCall = "WinHttpWriteData";
+					break;
+				case API_SEND_REQUEST:
+					apiCall = "WinHttpSendRequest";
+					break;
+			}
+			
+			trace("%s on %s failed - error code %d\n", apiCall, ctx->url.c_str(), infoStruct->dwError);
+
 			ctx->DoCallback(false, fwString());
 			break;
+		}
 
 		case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
 			if (!WinHttpReceiveResponse(ctx->hRequest, 0))
