@@ -21,6 +21,14 @@
 
 static InitFunction initFunction([] ()
 {
+#ifdef _M_AMD64
+	// again, a Win7 SP1 check (Chromium x64 isn't supported below this operating level)
+	if (!IsWindows7SP1OrGreater())
+	{
+		FatalError("CitizenFX requires Windows 7 SP1 or higher. Please upgrade to this operating system version to run CitizenFX.");
+	}
+#endif
+
 	// CEF keeps loading/unloading this - load it ourselves to make the refcount always 1
 	LoadLibrary(L"bluetoothapis.dll");
 
