@@ -72,7 +72,7 @@ struct FUNCTION_TABLE_DATA
 {
 	DWORD64 TableAddress;
 	DWORD64 ImageBase;
-	DWORD __unk;
+	DWORD ImageSize; // field +8 in ZwQueryVirtualMemory class 6
 	DWORD Size;
 };
 
@@ -84,6 +84,8 @@ static DWORD64 g_overrideEnd;
 
 static void* RtlpxLookupFunctionTableOverride(void* exceptionAddress, FUNCTION_TABLE_DATA* outData)
 {
+	memset(outData, 0, sizeof(*outData));
+
 	void* retval = g_originalLookup(exceptionAddress, outData);
 
 	DWORD64 addressNum = (DWORD64)exceptionAddress;
@@ -123,6 +125,8 @@ static void* RtlpxLookupFunctionTableOverrideDownLevel(void* exceptionAddress, P
 	return retval;
 }
 
+#include <winternl.h>
+
 extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* moduleEnd, PRUNTIME_FUNCTION runtimeFunctions, DWORD entryCount)
 {
 	// store passed data
@@ -132,6 +136,23 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 	g_overriddenTable.ImageBase = g_overrideStart;
 	g_overriddenTable.TableAddress = (DWORD64)runtimeFunctions;
 	g_overriddenTable.Size = entryCount * sizeof(RUNTIME_FUNCTION);
+
+	if (IsWindows8Point1OrGreater())
+	{
+		auto ZwQueryVirtualMemory = (NTSTATUS(NTAPI*)(HANDLE, PVOID, INT, PVOID, SIZE_T, PSIZE_T))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryVirtualMemory");
+		
+		struct
+		{
+			DWORD64 field0;
+			DWORD imageSize;
+			DWORD fieldC;
+			DWORD64 field10;
+		} queryResult;
+
+		ZwQueryVirtualMemory(GetCurrentProcess(), GetModuleHandle(nullptr), 6, &queryResult, sizeof(queryResult), nullptr);
+
+		g_overriddenTable.ImageSize = queryResult.imageSize;
+	}
 
 	// find the location to hook (RtlpxLookupFunctionTable from RtlLookupFunctionTable)
 	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlLookupFunctionTable");
