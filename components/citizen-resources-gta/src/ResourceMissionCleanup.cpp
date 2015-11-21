@@ -47,6 +47,20 @@ struct MissionCleanupData
 
 GtaThread* g_resourceThread;
 
+static void DeleteDummyThread(DummyThread** dummyThread)
+{
+	__try
+	{
+		delete *dummyThread;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+
+	}
+
+	*dummyThread = nullptr;
+}
+
 static InitFunction initFunction([] ()
 {
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
@@ -114,8 +128,8 @@ static InitFunction initFunction([] ()
 				data->scriptHandler = nullptr;
 			}
 
-			delete data->dummyThread;
-			data->dummyThread = nullptr;
+			// having the function content inlined causes a compiler ICE - so we do it separately
+			DeleteDummyThread(&data->dummyThread);
 		}, 10000);
 	});
 });
