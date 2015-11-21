@@ -185,8 +185,13 @@ void NUIWindow::UpdateFrame()
 
 	if (texture)
 	{
-		IDXGIKeyedMutex* keyedMutex;
+		IDXGIKeyedMutex* keyedMutex = nullptr;
 		texture->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&keyedMutex);
+
+		if (!keyedMutex)
+		{
+			FatalError(__FUNCTION__ ": ID3D11Texture2D::QueryInterface(IDXGIKeyedMutex) failed - your GPU driver likely does not support Direct3D shared resources correctly. Please update to the latest version of Windows and your GPU driver to resolve this problem.");
+		}
 
 		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		{
