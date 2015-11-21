@@ -267,13 +267,26 @@ DLL_EXPORT uint64_t* nativeCall()
 
 	if (fn != 0)
 	{
+		void* returnAddress = _ReturnAddress();
+
 		__try
 		{
 			fn(&g_context);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
-			__debugbreak();
+			const char* moduleBaseString = "";
+			HMODULE module;
+
+			if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)returnAddress, &module))
+			{
+				char filename[MAX_PATH];
+				GetModuleFileNameA(module, filename, _countof(filename));
+
+				moduleBaseString = va(" - %s+%X", strrchr(filename, '\\') + 1, (char*)returnAddress - (char*)module);
+			}
+
+			FatalError("An exception occurred executing native 0x%llx in a ViSH plugin (%p%s). The game has been terminated.", g_hash, returnAddress, moduleBaseString);
 		}
 
 		g_context.SetVectorResults();
