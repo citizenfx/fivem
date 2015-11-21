@@ -63,6 +63,9 @@ static InitFunction initFunction([] ()
 			Instance<fx::ResourceManager>::Set(manager.GetRef());
 
 			g_resourceManager = manager;
+
+			// prevent this from getting destructed on exit - that might try doing really weird things to the game
+			g_resourceManager->AddRef();
 		}
 	}, 9000);
 });
