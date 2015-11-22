@@ -7,7 +7,6 @@
 
 #include "StdInc.h"
 #include "fiDevice.h"
-#include "ResourceManager.h"
 
 static InitFunction initFunction([] ()
 {
@@ -29,19 +28,10 @@ static InitFunction initFunction([] ()
 			CreateDirectory(cachePath.c_str(), nullptr);
 		}
 
-		std::wstring unconfPath = MakeRelativeCitPath(L"cache/unconfirmed");
-
-		if (GetFileAttributes(unconfPath.c_str()) == INVALID_FILE_ATTRIBUTES)
-		{
-			CreateDirectory(unconfPath.c_str(), nullptr);
-		}
-
 		std::string cacheRoot = converter.to_bytes(cachePath) + "\\";
 		
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
 		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
-
-		TheResources.GetCache()->LoadCache(cacheDevice);
 	});
 });

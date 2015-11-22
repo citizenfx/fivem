@@ -3,8 +3,9 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"resources",
-		"nui:core"
+		"citizen:resources:client",
+		"nui:core",
+		"citizen:scripting:core"
 	],
 	"provides": []
 }

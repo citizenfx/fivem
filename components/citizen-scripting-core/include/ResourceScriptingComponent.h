@@ -22,14 +22,30 @@ private:
 
 	std::map<int32_t, fx::OMPtr<IScriptRuntime>> m_scriptRuntimes;
 
+	std::mutex m_scriptRuntimesLock;
+
 private:
 	void CreateEnvironments();
 
 public:
 	ResourceScriptingComponent(Resource* resource);
 
+	inline fx::OMPtr<IScriptHost> GetScriptHost()
+	{
+		return m_scriptHost;
+	}
+
+	inline void AddRuntime(OMPtr<IScriptRuntime> runtime)
+	{
+		std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+
+		m_scriptRuntimes.insert({ runtime->GetInstanceId(), runtime });
+	}
+
 	inline OMPtr<IScriptRuntime> GetRuntimeById(int32_t instanceId)
 	{
+		std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+
 		auto it = m_scriptRuntimes.find(instanceId);
 
 		if (it == m_scriptRuntimes.end())

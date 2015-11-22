@@ -10,8 +10,10 @@
 #include "CefOverlay.h"
 #include "ResourceManager.h"
 
-typedef fwAction<fwString> ResUIResultCallback;
-typedef fwAction<fwString, ResUIResultCallback> ResUICallback;
+using fx::Resource;
+
+typedef std::function<void(const std::string&)> ResUIResultCallback;
+typedef std::function<void(const std::string&, ResUIResultCallback)> ResUICallback;
 
 class
 #ifdef COMPILING_NUI_RESOURCES
@@ -24,23 +26,41 @@ class
 private:
 	Resource* m_resource;
 
-	std::map<fwString, ResUICallback> m_callbacks;
+	bool m_hasFrame;
+
+	bool m_hasCallbacks;
+
+	std::map<std::string, ResUICallback> m_callbacks;
 
 public:
 	ResourceUI(Resource* resource);
 
 	virtual ~ResourceUI();
 
+	inline bool HasFrame()
+	{
+		return m_hasFrame;
+	}
+
+	inline bool HasCallbacks()
+	{
+		return m_hasCallbacks;
+	}
+
+	inline void SetHasCallbacks(bool value)
+	{
+		m_hasCallbacks = value;
+	}
+
 	bool Create();
 
 	void Destroy();
 
-	void AddCallback(fwString type, ResUICallback callback);
+	void AddCallback(const std::string& type, ResUICallback callback);
 
-	bool InvokeCallback(fwString type, fwString data, ResUIResultCallback resultCB);
+	bool InvokeCallback(const std::string& type, const std::string& data, ResUIResultCallback resultCB);
 
 	void SignalPoll();
-
-public:
-	static fwRefContainer<ResourceUI> GetForResource(fwRefContainer<Resource> resource);
 };
+
+DECLARE_INSTANCE_TYPE(ResourceUI);

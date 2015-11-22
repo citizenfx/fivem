@@ -60,7 +60,7 @@ namespace nui
 
 	void ProcessInput();
 
-	void OVERLAY_DECL ExecuteRootScript(const char* scriptBit);
+	void OVERLAY_DECL ExecuteRootScript(const std::string& scriptBit);
 
 	OVERLAY_DECL CefBrowser* GetBrowser();
 

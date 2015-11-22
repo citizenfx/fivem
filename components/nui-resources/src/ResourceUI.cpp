@@ -11,8 +11,10 @@
 
 #include <NUISchemeHandlerFactory.h>
 
+#include <ResourceMetaDataComponent.h>
+
 ResourceUI::ResourceUI(Resource* resource)
-	: m_resource(resource)
+	: m_resource(resource), m_hasFrame(false), m_hasCallbacks(false)
 {
 
 }
@@ -24,48 +26,69 @@ ResourceUI::~ResourceUI()
 
 bool ResourceUI::Create()
 {
-	auto& metaData = m_resource->GetMetaData();
-	auto it = metaData.find("uiPage");
+	// get the metadata component
+	fwRefContainer<fx::ResourceMetaDataComponent> metaData = m_resource->GetComponent<fx::ResourceMetaDataComponent>();
 
-	CefRegisterSchemeHandlerFactory("http", m_resource->GetName().c_str(), Instance<NUISchemeHandlerFactory>::Get());
+	// get the UI page list and a number of pages
+	auto uiPageData = metaData->GetEntries("ui_page");
+	int pageCount = std::distance(uiPageData.begin(), uiPageData.end());
 
-	if (it == metaData.end())
+	// if no page exists, return
+	if (pageCount == 0)
 	{
 		return false;
 	}
 
-	fwString path = "nui://" + m_resource->GetName() + "/" + it->second;
+	// if more than one, warn
+	if (pageCount > 1)
+	{
+		trace(__FUNCTION__ ": more than one ui_page in resource %s\n", m_resource->GetName().c_str());
+		return false;
+	}
 
+	// mark us as having a frame
+	m_hasFrame = true;
+
+	// get the page name from the iterator
+	std::string pageName = uiPageData.begin()->second;
+
+	// initialize the page
+	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), Instance<NUISchemeHandlerFactory>::Get());
+
+	// create the NUI frame
+	std::string path = "nui://" + m_resource->GetName() + "/" + pageName;
 	nui::CreateFrame(m_resource->GetName(), path);
 
-	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName().c_str(), true);
+	// add a cross-origin entry to allow fetching the callback handler
+	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
 
 	return true;
 }
 
 void ResourceUI::Destroy()
 {
+	// destroy the target frame
 	nui::DestroyFrame(m_resource->GetName());
 }
 
-void ResourceUI::AddCallback(fwString type, ResUICallback callback)
+void ResourceUI::AddCallback(const std::string& type, ResUICallback callback)
 {
-	m_callbacks.insert(std::make_pair(type, callback));
+	m_callbacks.insert({ type, callback });
 }
 
-bool ResourceUI::InvokeCallback(fwString type, fwString data, ResUIResultCallback resultCB)
+bool ResourceUI::InvokeCallback(const std::string& type, const std::string& data, ResUIResultCallback resultCB)
 {
-	auto set = m_callbacks.equal_range(type);
+	auto set = fx::GetIteratorView(m_callbacks.equal_range(type));
 
-	if (set.first == set.second)
+	if (set.begin() == set.end())
 	{
 		return false;
 	}
 
-	std::for_each(set.first, set.second, [&] (std::pair<fwString, ResUICallback> cb)
+	for (auto& cb : set)
 	{
 		cb.second(data, resultCB);
-	});
+	}
 
 	return true;
 }
@@ -75,31 +98,35 @@ void ResourceUI::SignalPoll()
 	nui::SignalPoll(m_resource->GetName());
 }
 
-static fwMap<fwString, fwRefContainer<ResourceUI>> g_resourceUIs;
-
-fwRefContainer<ResourceUI> ResourceUI::GetForResource(fwRefContainer<Resource> resource)
-{
-	return g_resourceUIs[resource->GetName()];
-}
+static std::map<std::string, fwRefContainer<ResourceUI>> g_resourceUIs;
+static std::mutex g_resourceUIMutex;
 
 static InitFunction initFunction([] ()
 {
-	Resource::OnStartingResource.Connect([] (fwRefContainer<Resource> resource)
+	Resource::OnInitializeInstance.Connect([] (Resource* resource)
 	{
-		auto ui = new ResourceUI(resource.GetRef());
-		ui->Create();
+		// create the UI instance
+		fwRefContainer<ResourceUI> resourceUI(new ResourceUI(resource));
 
-		g_resourceUIs[resource->GetName()] = ui;
-	});
-
-	Resource::OnStoppingResource.Connect([] (fwRefContainer<Resource> resource)
-	{
-		auto uiRef = g_resourceUIs.find(resource->GetName());
-
-		if (uiRef != g_resourceUIs.end())
+		// start event
+		resource->OnStart.Connect([=] ()
 		{
-			uiRef->second->Destroy();
-			g_resourceUIs.erase(uiRef);
-		}
+			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
+
+			resourceUI->Create();
+			g_resourceUIs[resource->GetName()] = resourceUI;
+		});
+
+		// stop event
+		resource->OnStop.Connect([=] ()
+		{
+			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
+
+			resourceUI->Destroy();
+			g_resourceUIs.erase(resource->GetName());
+		});
+
+		// add component
+		resource->SetComponent(resourceUI);
 	});
 });

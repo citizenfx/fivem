@@ -38,7 +38,7 @@ namespace nui
 		return g_mainUIFlag;
 	}
 
-	__declspec(dllexport) void ExecuteRootScript(const char* scriptBit)
+	__declspec(dllexport) void ExecuteRootScript(const std::string& scriptBit)
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 

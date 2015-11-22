@@ -56,11 +56,42 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 		// TODO: handle server/client split
 		m_managerComponent->QueueEvent("onClientResourceStop", std::string(buf.data(), buf.size()));
 	});
+
+	object->OnTick.Connect([=] ()
+	{
+		// take queued events and trigger them
+		std::unique_lock<std::mutex> lock(m_eventQueueLock);
+
+		while (!m_eventQueue.empty())
+		{
+			// get the event
+			EventData event = m_eventQueue.front();
+			m_eventQueue.pop();
+
+			// and trigger it
+			bool canceled = false;
+
+			HandleTriggerEvent(event.eventName, event.eventPayload, event.eventSource, &canceled);
+		}
+	});
 }
 
 void ResourceEventComponent::HandleTriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 {
 	OnTriggerEvent(eventName, eventPayload, eventSource, eventCanceled);
+}
+
+void ResourceEventComponent::QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource /* = std::string() */)
+{
+	EventData event;
+	event.eventName = eventName;
+	event.eventPayload = eventPayload;
+	event.eventSource = eventSource;
+
+	{
+		std::unique_lock<std::mutex> lock(m_eventQueueLock);
+		m_eventQueue.push(event);
+	}
 }
 
 ResourceEventManagerComponent::ResourceEventManagerComponent()

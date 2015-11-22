@@ -4,9 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
-		"resources",
 		"nui:core",
-		"downloadmgr",
 		"gta:core"
 	],
 	"provides": []

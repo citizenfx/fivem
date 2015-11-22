@@ -32,6 +32,19 @@ private:
 
 	ResourceEventManagerComponent* m_managerComponent;
 
+private:
+	struct EventData
+	{
+		std::string eventName;
+		std::string eventSource;
+		std::string eventPayload;
+	};
+
+private:
+	std::queue<EventData> m_eventQueue;
+
+	std::mutex m_eventQueueLock;
+
 public:
 	ResourceEventComponent();
 
@@ -41,6 +54,8 @@ public:
 	}
 
 	void HandleTriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled);
+
+	void QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
 
 	virtual void AttachToObject(Resource* object) override;
 

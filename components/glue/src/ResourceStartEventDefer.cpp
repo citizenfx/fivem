@@ -6,6 +6,8 @@
  */
 
 #include "StdInc.h"
+
+#ifdef GTA_NY
 #include <ResourceManager.h>
 #include <NetLibrary.h>
 
@@ -54,3 +56,4 @@ static InitFunction initFunction([] ()
 		}
 	});
 });
+#endif

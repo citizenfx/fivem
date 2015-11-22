@@ -13,6 +13,10 @@
 
 #include <include/cef_parser.h>
 
+#ifdef min
+#undef min
+#endif
+
 class RPCResourceHandler : public CefResourceHandler
 {
 private:
@@ -33,8 +37,8 @@ public:
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
 	{
 		std::string url = request->GetURL();
-		std::wstring hostname;
-		std::wstring path;
+		std::string hostname;
+		std::string path;
 
 		CefURLParts parts;
 		CefParseURL(url, parts);
@@ -44,7 +48,8 @@ public:
 
 		fwString host(hostname.begin(), hostname.end());
 
-		auto resource = TheResources.GetResource(host);
+		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+		auto resource = resourceManager->GetResource(host);
 
 		if (!resource.GetRef())
 		{
@@ -55,24 +60,24 @@ public:
 			return true;
 		}
 
-		auto ui = ResourceUI::GetForResource(resource);
+		fwRefContainer<ResourceUI> ui = resource->GetComponent<ResourceUI>();
 
 		// remove # parts
-		auto hash = path.find_first_of(L'#');
+		auto hash = path.find_first_of('#');
 
 		if (hash != std::string::npos)
 		{
 			path.erase(hash);
 		}
 
-		hash = path.find_first_of(L'?');
+		hash = path.find_first_of('?');
 
 		if (hash != std::string::npos)
 		{
 			path.erase(hash);
 		}
 
-		fwString postDataString = "null";
+		std::string postDataString = "null";
 
 		if (request->GetMethod() == "POST")
 		{
@@ -85,12 +90,12 @@ public:
 			char* bytes = new char[element->GetBytesCount()];
 			element->GetBytes(element->GetBytesCount(), bytes);
 
-			postDataString = fwString(bytes, element->GetBytesCount());
+			postDataString = std::string(bytes, element->GetBytesCount());
 
 			delete[] bytes;
 		}
 
-		auto result = ui->InvokeCallback(fwString(path.begin(), path.end()).substr(1), postDataString, [=] (fwString callResult)
+		auto result = ui->InvokeCallback(path.substr(1), postDataString, [=] (const std::string& callResult)
 		{
 			m_result = callResult;
 
