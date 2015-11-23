@@ -103,6 +103,17 @@ static HookFunction hookFunction([] ()
 	// focus testing
 	//hook::call(hook::pattern("83 7E 0C 00 0F 84 23 01 00 00 83 7E 08 00 0F 84").count(1).get(0).get<void>(20), AreWeFocused);
 	//hook::jump(hook::pattern("8B 51 08 50 FF D2 84 C0 74 06 B8").count(1).get(0).get<void>(-17), AreWeFocused);
+
+	// force input to be handled using WM_KEYUP/KEYDOWN, not DInput/RawInput
+
+	// disable DInput device creation
+	void* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<void>(0);
+	hook::nop(dinputCreate, 228); // that's a lot of nops!
+
+	// jump over raw input keyboard handling
+	hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
+
+
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::OnWndProc;
