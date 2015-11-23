@@ -60,6 +60,7 @@ static HookFunction hookFunction([] ()
 			relativeDeviceCrc->Mount("platformcrc:/");
 		}
 
+		/*
 		{
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\update"));
@@ -72,6 +73,7 @@ static HookFunction hookFunction([] ()
 			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
 			relativeDeviceCrc->Mount("updatecrc:/");
 		}
+		*/
 	});
 
 	// don't sort update:/ relative devices before ours
