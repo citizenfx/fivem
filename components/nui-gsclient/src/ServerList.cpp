@@ -129,6 +129,8 @@ void GSClient_QueryStep()
 	{
 		if (!g_cls.servers[i].queried)
 		{
+			trace("query server %d %x\n", i, g_cls.servers[i].m_IP);
+
 			GSClient_QueryServer(i);
 			count++;
 		}
@@ -495,8 +497,13 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	OnGameFrame.Connect([] ()
+	std::thread([] ()
 	{
-		GSClient_RunFrame();
-	});
+		while (true)
+		{
+			Sleep(1);
+
+			GSClient_RunFrame();
+		}
+	}).detach();
 });
