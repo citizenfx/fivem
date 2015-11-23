@@ -279,7 +279,7 @@ void ParseArchetypeFile(char* text, size_t length)
 			return false;
 		}
 
-		value = intIt->value;
+		value = std::move(intIt->value);
 		return true;
 	};
 
@@ -327,7 +327,7 @@ void ParseArchetypeFile(char* text, size_t length)
 		return false;
 	};
 
-	auto getString = [&] (const char* name, const char** out)
+	auto getString = [&] (const char* name, std::string* out)
 	{
 		rapidjson::Value value;
 
@@ -369,9 +369,9 @@ void ParseArchetypeFile(char* text, size_t length)
 					float radius;
 					float drawDistance = 300.0f;
 
-					const char* modelName = nullptr;
-					const char* txdName;
-					const char* parentName = nullptr;
+					std::string modelName;
+					std::string txdName;
+					std::string parentName;
 
 					bool valid = true;
 					valid = valid && getVector("aabbMin", aabbMin);
@@ -406,17 +406,17 @@ void ParseArchetypeFile(char* text, size_t length)
 
 						archetypeDef->radius = radius;
 
-						archetypeDef->nameHash = HashString(modelName);
-						archetypeDef->txdHash = HashString(txdName);
+						archetypeDef->nameHash = HashString(modelName.c_str());
+						archetypeDef->txdHash = HashString(txdName.c_str());
 
-						if (strcmp(txdName, "null") == 0)
+						if (strcmp(txdName.c_str(), "null") == 0)
 						{
 							archetypeDef->txdHash = archetypeDef->nameHash;
 						}
 
-						if (parentName)
+						if (!parentName.empty())
 						{
-							archetypeDef->dwdHash = HashString(parentName);
+							archetypeDef->dwdHash = HashString(parentName.c_str());
 						}
 
 						// assume this is a CBaseModelInfo
@@ -433,7 +433,7 @@ void ParseArchetypeFile(char* text, size_t length)
 					}
 					else
 					{
-						trace("IDE_FILE archetype %s is invalid...\n", (modelName) ? modelName : "null");
+						trace("IDE_FILE archetype %s is invalid...\n", modelName.c_str());
 					}
 				}
 			}
@@ -476,8 +476,8 @@ void ParseArchetypeFile(char* text, size_t length)
 
 				float position[3];
 				float rotation[4];
-				const char* guid;
-				const char* archetypeName;
+				std::string guid;
+				std::string archetypeName;
 
 				bool valid = true;
 				valid = valid && getVector("position", position);
@@ -487,12 +487,12 @@ void ParseArchetypeFile(char* text, size_t length)
 
 				if (valid)
 				{
-					uint32_t archetypeHash = HashString(archetypeName);
-					uint32_t guidHash = HashString(guid);
+					uint32_t archetypeHash = HashString(archetypeName.c_str());
+					uint32_t guidHash = HashString(guid.c_str());
 
-					if (_strnicmp(archetypeName, "hash:", 5) == 0)
+					if (_strnicmp(archetypeName.c_str(), "hash:", 5) == 0)
 					{
-						archetypeHash = _atoi64(&archetypeName[5]);
+						archetypeHash = _atoi64(&(archetypeName.c_str())[5]);
 					}
 
 					uint64_t archetypeUnk = 0xFFFFFFF;
