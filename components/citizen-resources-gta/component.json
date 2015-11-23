@@ -5,6 +5,7 @@
 		"fx[2]",
 		"citizen:resources:core",
 		"citizen:resources:client",
+		"citizen:scripting:core",
 		"rage:device",
 		"rage:scripting",
 		"scripting",
