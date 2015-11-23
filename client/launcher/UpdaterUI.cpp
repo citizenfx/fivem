@@ -92,7 +92,9 @@ LRESULT CALLBACK UI_WndProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 	{
 		case WM_CTLCOLORSTATIC:
 			SetBkMode((HDC)wparam, TRANSPARENT);
-			return (LRESULT)GetStockObject(0);
+			SetTextColor((HDC)wparam, COLORREF(GetSysColor(COLOR_WINDOWTEXT)));
+
+			return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
 		case WM_COMMAND:
 			if ((HWND)lparam == g_uui.cancelButton)
 			{
