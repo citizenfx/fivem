@@ -94,4 +94,34 @@ static InitFunction initFunction([] ()
 
 		context.SetResult(false);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_NUI_FOCUS", [] (fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				fwRefContainer<ResourceUI> resourceUI = resource->GetComponent<ResourceUI>();
+
+				if (resourceUI.GetRef())
+				{
+					if (resourceUI->HasFrame())
+					{
+						if (resource->GetName().find('"') == std::string::npos)
+						{
+							bool hasFocus = context.GetArgument<bool>(0);
+							const char* functionName = (hasFocus) ? "focusFrame" : "blurFrame";
+
+							nui::ExecuteRootScript(va("%s(\"%s\");", functionName, resource->GetName().c_str()));
+							nui::GiveFocus(hasFocus);
+						}
+					}
+				}
+			}
+		}
+	});
 });
