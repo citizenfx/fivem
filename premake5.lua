@@ -28,7 +28,7 @@ solution "CitizenMP"
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
-	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "deplibs/include/", "../vendor/gmock/include/", "../vendor/gtest/include", os.getenv("BOOST_ROOT") }
+	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "deplibs/include/", "../vendor/gmock/include/", "../vendor/gtest/include", os.getenv("BOOST_ROOT") }
 	
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
