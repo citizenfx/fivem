@@ -548,6 +548,12 @@ private:
 	template<typename TFunc>
 	auto InvokeOnHandle(uint64_t handle, const TFunc& func)
 	{
+		// return an appropriate -1 error value if the handle is -1
+		if (handle == -1)
+		{
+			return static_cast<decltype(func(nullptr, -1))>(-1);
+		}
+
 		auto ourHandle = GET_HANDLE(handle);
 		auto& handleItem = m_handles[ourHandle];
 
