@@ -9,7 +9,6 @@ deps = {
 	"vendor/yaml-cpp": "https://github.com/jbeder/yaml-cpp.git",
 	"vendor/msgpack-c": "https://github.com/msgpack/msgpack-c.git",
 	"vendor/zlib": "https://github.com/madler/zlib.git",
-	"vendor/gmock": "http://github.com/google/googlemock.git",
 	"vendor/gtest": "http://github.com/google/googletest.git",
 	"vendor/protobuf": "https://github.com/google/protobuf.git@5eb73dfcce20bdfe421620cb31b7b98a0c5eec88",
 	"vendor/libopus": "http://git.opus-codec.org/opus.git",

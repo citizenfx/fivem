@@ -28,7 +28,7 @@ solution "CitizenMP"
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
-	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "deplibs/include/", "../vendor/gmock/include/", "../vendor/gtest/include", os.getenv("BOOST_ROOT") }
+	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "deplibs/include/", "../vendor/gtest/googletest/include/", "../vendor/gtest/googlemock/include/", os.getenv("BOOST_ROOT") }
 	
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
@@ -302,16 +302,16 @@ end
 		language "C++"
 		kind "StaticLib"
 
-		includedirs { "../vendor/gtest/" }
+		includedirs { "../vendor/gtest/googletest/" }
 
-		files { "../vendor/gtest/src/gtest-all.cc", "../vendor/gtest/src/gtest_main.cc" }
+		files { "../vendor/gtest/googletest/src/gtest-all.cc", "../vendor/gtest/googletest/src/gtest_main.cc" }
 
 	project "gmock_main"
 		language "C++"
 		kind "StaticLib"
 		
-		includedirs { "../vendor/gmock/", "../vendor/gtest/" }
-		files { "../vendor/gmock/src/gmock-all.cc", "../vendor/gmock/src/gmock_main.cc" }
+		includedirs { "../vendor/gtest/googlemock/", "../vendor/gtest/googletest/" }
+		files { "../vendor/gtest/googlemock/src/gmock-all.cc", "../vendor/gtest/googlemock/src/gmock_main.cc" }
 
 if _OPTIONS['game'] ~= 'server' then
 	project "tests_citigame"
