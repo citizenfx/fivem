@@ -42,7 +42,7 @@ namespace fx
 			}
 			__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
 			{
-				throw std::exception(va("Error executing native 0x%016x at address %p.", nativeIdentifier, exceptionAddress));
+				throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 			}
 
 			// append vector3 result components
