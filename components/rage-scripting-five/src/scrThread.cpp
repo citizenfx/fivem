@@ -92,6 +92,7 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 	gtaThreadInit(this);
 
 	m_networkFlag = true;
+	m_canRemoveBlipsFromOtherScripts = false;
 
 	m_pszExitMessage = "Normal exit";
 

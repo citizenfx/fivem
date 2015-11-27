@@ -173,7 +173,10 @@ protected:
 	char gta_pad2[40];
 	char flag1;
 	char m_networkFlag;
-	char gta_pad3[22];
+	uint16_t gta_pad3;
+	char gta_pad4[12];
+	uint8_t m_canRemoveBlipsFromOtherScripts;
+	char gta_pad5[7];
 
 public:
 	virtual void					DoRun() = 0;
