@@ -9,6 +9,7 @@
 #include "fxScripting.h"
 
 #include <include/v8.h>
+#include <include/v8-profiler.h>
 
 #include <V8Platform.h>
 #include <V8Debugger.h>
@@ -667,11 +668,43 @@ static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set(External::New(GetV8Isolate(), (pointerField) ? static_cast<void*>(pointerField) : &dummyOut));
 }
 
+std::string SaveProfileToString(CpuProfile* profile);
+
+static void V8_StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	CpuProfiler* profiler = args.GetIsolate()->GetCpuProfiler();
+
+	profiler->StartProfiling((args.Length() == 0) ? String::Empty(args.GetIsolate()) : Local<String>::Cast(args[0]), true);
+}
+
+static void V8_StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	CpuProfiler* profiler = args.GetIsolate()->GetCpuProfiler();
+
+	CpuProfile* profile = profiler->StopProfiling((args.Length() == 0) ? String::Empty(args.GetIsolate()) : Local<String>::Cast(args[0]));
+		
+	SYSTEMTIME systemTime;
+	GetSystemTime(&systemTime);
+
+	std::string jsonString = SaveProfileToString(profile);
+
+	profile->Delete();
+
+	{
+		std::ofstream stream(MakeRelativeCitPath(va(L"v8-%04d%02d%02d-%02d%02d%02d.cpuprofile", systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond)));
+		stream << jsonString;
+	}
+
+	args.GetReturnValue().Set(JSON::Parse(String::NewFromUtf8(args.GetIsolate(), jsonString.c_str(), NewStringType::kNormal, jsonString.size()).ToLocalChecked()));
+}
+
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
 	{ "setTickFunction", V8_SetTickFunction },
 	{ "getTickCount", V8_GetTickCount },
 	{ "invokeNative", V8_InvokeNative },
+	{ "startProfiling", V8_StartProfiling },
+	{ "stopProfiling", V8_StopProfiling },
 	// metafields
 	{ "pointerValueIntInitialized", V8_GetPointerField<V8MetaFields::PointerValueInt> },
 	{ "pointerValueFloatInitialized", V8_GetPointerField<V8MetaFields::PointerValueFloat> },
@@ -987,6 +1020,20 @@ V8ScriptGlobals::V8ScriptGlobals()
 	// initialize platform
 	m_platform = std::make_unique<V8Platform>();
 	V8::InitializePlatform(m_platform.get());
+
+#if 0
+	// set profiling disabled, but timer event logging enabled
+	int argc = 4;
+	const char* argv[] =
+	{
+		"",
+		"--noprof-auto",
+		"--prof",
+		"--log-timer-events"
+	};
+
+	V8::SetFlagsFromCommandLine(&argc, (char**)argv, false);
+#endif
 
 	// initialize global V8
 	V8::Initialize();
