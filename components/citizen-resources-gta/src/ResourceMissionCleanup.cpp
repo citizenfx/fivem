@@ -28,6 +28,20 @@ struct DummyThread : public GtaThread
 	{
 
 	}
+
+	// zero-initialize the structure when new'd (to fix, for instance, 'can remove blips set by other scripts' defaulting to 0xCD)
+	void* operator new(size_t size)
+	{
+		void* data = malloc(size);
+		memset(data, 0, size);
+
+		return data;
+	}
+
+	void operator delete(void* ptr)
+	{
+		free(ptr);
+	}
 };
 
 struct MissionCleanupData
