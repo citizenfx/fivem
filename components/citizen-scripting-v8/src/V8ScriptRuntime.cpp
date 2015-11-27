@@ -9,7 +9,9 @@
 #include "fxScripting.h"
 
 #include <include/v8.h>
+
 #include <V8Platform.h>
+#include <V8Debugger.h>
 
 #include <om/OMComponent.h>
 
@@ -20,6 +22,22 @@ using namespace v8;
 namespace fx
 {
 static Isolate* GetV8Isolate();
+
+struct PointerFieldEntry
+{
+	bool empty;
+	uintptr_t value;
+
+	PointerFieldEntry()
+	{
+		empty = true;
+	}
+};
+
+struct PointerField
+{
+	PointerFieldEntry data[64];
+};
 
 class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime>
 {
@@ -33,6 +51,13 @@ private:
 	int m_instanceId;
 
 	void* m_parentObject;
+
+	PointerField m_pointerFields[3];
+
+	// string values, which need to be persisted across calls as well
+	std::unique_ptr<String::Utf8Value> m_stringValues[50];
+
+	int m_curStringValue;
 
 private:
 	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile, Local<Script>* outScript);
@@ -49,6 +74,7 @@ public:
 	inline V8ScriptRuntime()
 	{
 		m_instanceId = rand() ^ 0x3e3;
+		m_curStringValue = 0;
 	}
 
 	inline Local<Context> GetContext()
@@ -65,6 +91,13 @@ public:
 	{
 		return m_scriptHost;
 	}
+
+	inline PointerField* GetPointerFields()
+	{
+		return m_pointerFields;
+	}
+
+	const char* AssignStringValue(const Local<Value>& value);
 
 	NS_DECL_ISCRIPTRUNTIME;
 
@@ -171,11 +204,28 @@ static void V8_GetTickCount(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set((double)GetTickCount64());
 }
 
+const char* V8ScriptRuntime::AssignStringValue(const Local<Value>& value)
+{
+	auto stringValue = std::make_unique<String::Utf8Value>(value);
+	const char* str = **(stringValue.get());
+
+	// take ownership
+	m_stringValues[m_curStringValue] = std::move(stringValue);
+	
+	// increment the string value
+	m_curStringValue = (m_curStringValue + 1) % _countof(m_stringValues);
+
+	// return the string
+	return str;
+}
+
 static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	// get required entries
 	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
 	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
+
+	auto pointerFields = runtime->GetPointerFields();
 
 	// exception thrower
 	auto throwException = [&] (const std::string& exceptionString)
@@ -208,7 +258,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 	// get the hash
 	String::Utf8Value hashString(args[0]);
-	uint64_t hash = _strtoi64(*hashString, nullptr, 16);
+	uint64_t hash = _strtoui64(*hashString, nullptr, 16);
 
 	context.nativeIdentifier = hash;
 
@@ -261,9 +311,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		}
 		else if (arg->IsString())
 		{
-			String::Utf8Value str(arg);
-
-			push(*str);
+			push(runtime->AssignStringValue(arg));
 		}
 		// placeholder vectors
 		else if (arg->IsArray())
@@ -329,6 +377,31 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		// metafield
 		else if (arg->IsExternal())
 		{
+			auto pushPtr = [&] (V8MetaFields metaField)
+			{
+				if (numReturnValues >= _countof(retvals))
+				{
+					throwException("too many return value arguments");
+					return false;
+				}
+
+				// push the offset and set the type
+				push(&retvals[numReturnValues]);
+				rettypes[numReturnValues] = metaField;
+
+				// increment the counter
+				if (metaField == V8MetaFields::PointerValueVector)
+				{
+					numReturnValues += 3;
+				}
+				else
+				{
+					numReturnValues += 1;
+				}
+
+				return true;
+			};
+
 			uint8_t* ptr = reinterpret_cast<uint8_t*>(Local<External>::Cast(arg)->Value());
 
 			// if the pointer is a metafield
@@ -343,23 +416,9 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 					case V8MetaFields::PointerValueFloat:
 					case V8MetaFields::PointerValueVector:
 					{
-						if (numReturnValues >= _countof(retvals))
+						if (!pushPtr(metaField))
 						{
-							return throwException("too many return value arguments");
-						}
-
-						// push the offset and set the type
-						push(&retvals[numReturnValues]);
-						rettypes[numReturnValues] = metaField;
-
-						// increment the counter
-						if (metaField == V8MetaFields::PointerValueVector)
-						{
-							numReturnValues += 3;
-						}
-						else
-						{
-							numReturnValues += 1;
+							return;
 						}
 
 						break;
@@ -373,6 +432,26 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 					case V8MetaFields::ResultAsVector:
 						returnValueCoercion = metaField;
 						break;
+				}
+			}
+			// or if the pointer is a runtime pointer field
+			else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
+			{
+				// guess the type based on the pointer field type
+				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
+				V8MetaFields metaField = static_cast<V8MetaFields>(ptrField / sizeof(PointerField));
+
+				if (metaField == V8MetaFields::PointerValueInt || metaField == V8MetaFields::PointerValueFloat)
+				{
+					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
+
+					retvals[numReturnValues] = ptrFieldEntry->value;
+					ptrFieldEntry->empty = true;
+
+					if (!pushPtr(metaField))
+					{
+						return;
+					}
 				}
 			}
 			else
@@ -548,12 +627,54 @@ static void V8_GetMetaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set(External::New(GetV8Isolate(), &g_metaFields[(int)MetaField]));
 }
 
+template<V8MetaFields MetaField>
+static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	auto pointerFields = runtime->GetPointerFields();
+	auto pointerFieldStart = &pointerFields[(int)MetaField];
+
+	static uintptr_t dummyOut;
+	PointerFieldEntry* pointerField = nullptr;
+	
+	for (int i = 0; i < _countof(pointerFieldStart->data); i++)
+	{
+		if (pointerFieldStart->data[i].empty)
+		{
+			pointerField = &pointerFieldStart->data[i];
+			pointerField->empty = false;
+			
+			auto& arg = args[0];
+
+			if (MetaField == V8MetaFields::PointerValueFloat)
+			{
+				float value = static_cast<float>(arg->NumberValue());
+
+				pointerField->value = *reinterpret_cast<uint32_t*>(&value);
+			}
+			else if (MetaField == V8MetaFields::PointerValueInt)
+			{
+				intptr_t value = arg->IntegerValue();
+
+				pointerField->value = value;
+			}
+
+			break;
+		}
+	}
+
+	args.GetReturnValue().Set(External::New(GetV8Isolate(), (pointerField) ? static_cast<void*>(pointerField) : &dummyOut));
+}
+
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
 	{ "setTickFunction", V8_SetTickFunction },
 	{ "getTickCount", V8_GetTickCount },
 	{ "invokeNative", V8_InvokeNative },
 	// metafields
+	{ "pointerValueIntInitialized", V8_GetPointerField<V8MetaFields::PointerValueInt> },
+	{ "pointerValueFloatInitialized", V8_GetPointerField<V8MetaFields::PointerValueFloat> },
 	{ "pointerValueInt", V8_GetMetaField<V8MetaFields::PointerValueInt> },
 	{ "pointerValueFloat", V8_GetMetaField<V8MetaFields::PointerValueFloat> },
 	{ "pointerValueVector", V8_GetMetaField<V8MetaFields::PointerValueVector> },
@@ -814,6 +935,8 @@ private:
 
 	std::unique_ptr<v8::ArrayBuffer::Allocator> m_arrayBufferAllocator;
 
+	std::unique_ptr<V8Debugger> m_debugger;
+
 public:
 	V8ScriptGlobals();
 
@@ -880,6 +1003,9 @@ V8ScriptGlobals::V8ScriptGlobals()
 	{
 		FatalError("V8 error at %s: %s", location, message);
 	});
+
+	// initialize the debugger
+	m_debugger = std::unique_ptr<V8Debugger>(CreateDebugger(m_isolate));
 }
 
 V8ScriptGlobals::~V8ScriptGlobals()
