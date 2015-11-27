@@ -110,6 +110,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 bool InitializeExceptionHandler()
 {
+	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
+	if (IsDebuggerPresent())
+	{
+		return false;
+	}
+
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 	CreateDirectory(crashDirectory.c_str(), nullptr);
 
