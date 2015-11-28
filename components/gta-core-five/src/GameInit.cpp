@@ -42,12 +42,15 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		std::string smallReason = converter.to_bytes(errorString);
 
-		AddCustomText("CFX_NETERR", smallReason.c_str());
-		AddCustomText("CFX_NETERR_TITLE", "\xD0\x9E\xD0\xA8\xD0\x98\xD0\x91\xD0\x9A\xD0\x90"); // Oshibka!
+		if (!g_showWarningMessage)
+		{
+			AddCustomText("CFX_NETERR", smallReason.c_str());
+			AddCustomText("CFX_NETERR_TITLE", "\xD0\x9E\xD0\xA8\xD0\x98\xD0\x91\xD0\x9A\xD0\x90"); // Oshibka!
 
-		g_showWarningMessage = true;
+			g_showWarningMessage = true;
 
-		OnKillNetwork(smallReason.c_str());
+			OnKillNetwork(smallReason.c_str());
+		}
 	}
 }
 
