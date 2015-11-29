@@ -63,12 +63,18 @@ static hook::thiscall_stub<rage::fiCollection*(rage::fiCollection*)> packfileCto
 struct StreamingPackfileEntry
 {
 	FILETIME modificationTime;
-	uint8_t pad[80];
+	uint8_t pad[32];
+	uint64_t packfileParentHandle;
+	uint64_t pad1;
+	rage::fiPackfile* packfile;
+	uint8_t pad2[2];
+	uint8_t loadedFlag;
+	uint8_t pad3[21];
 	uint32_t parentIdentifier;
-	uint32_t pad2;
-	uint16_t isHdd;
-	uint16_t pad3;
 	uint32_t pad4;
+	uint16_t isHdd;
+	uint16_t pad5;
+	uint32_t pad6;
 };
 
 static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
@@ -82,6 +88,7 @@ struct IgnoreCaseLess
 };
 
 static std::set<std::string, IgnoreCaseLess> g_customStreamingFileSet;
+static std::vector<int> g_streamingCollections;
 
 class CfxCollection : public rage::fiCollection
 {
@@ -956,6 +963,8 @@ private:
 					g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
 
 					m_streamingFileList = fileList;
+
+					g_streamingCollections.push_back(GetCollectionId());
 				}
 			}
 		}
@@ -1334,6 +1343,11 @@ void CfxCollection::InitializePseudoPack(const char* path)
 
 	trace("init pseudopack %s\n", path);
 
+	// clear existing items
+	m_entries.clear();
+	m_reverseEntries.clear();
+
+	// process
 	//assert(m_streamingFileList.size() > 0);
 
 	auto nameTableSize = std::accumulate(m_streamingFileList.begin(), m_streamingFileList.end(), 2, [] (int left, const std::string& right)
@@ -1443,6 +1457,8 @@ void CfxCollection::PrepareStreamingListFromNetwork()
 	std::set<std::string, IgnoreCaseLess> fileList;
 	std::map<std::string, std::pair<std::string, rage::ResourceFlags>, IgnoreCaseLess> fileMapping;
 
+	m_resourceFlags.clear();
+
 	for (auto& file : g_customStreamingFiles)
 	{
 		std::string baseName = strrchr(file.first.c_str(), '/') + 1;
@@ -1472,15 +1488,13 @@ void CfxCollection::PrepareStreamingListFromNetwork()
 	// if there are any streaming files, somewhat invalidate the parent packfile timestamp
 	if (!fileList.empty())
 	{
-		SYSTEMTIME systemTime;
-		GetSystemTime(&systemTime);
-
-		FILETIME fileTime;
-		SystemTimeToFileTime(&systemTime, &fileTime);
-
-		g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
+		auto& packfileInfo = g_streamingPackfiles->Get(GetCollectionId());
+		packfileInfo.modificationTime.dwHighDateTime = 0;
+		packfileInfo.modificationTime.dwLowDateTime = 0;
 
 		m_streamingFileList = fileList;
+
+		g_streamingCollections.push_back(GetCollectionId());
 	}
 }
 
@@ -1560,9 +1574,51 @@ static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch
 	return strrchr(str, ch);
 }
 
+static void(*g_origOpenPackfiles)();
+
+void OpenPackfilesWrap()
+{
+	// clear parent handles of streaming collections so we'll reload them
+	for (auto& collection : g_streamingCollections)
+	{
+		auto& spf = g_streamingPackfiles->Get(collection);
+		spf.modificationTime.dwHighDateTime = 0;
+		spf.modificationTime.dwLowDateTime = 0;
+		spf.loadedFlag = false;
+		spf.packfileParentHandle = -1;
+
+		trace("cleared collection metadata for %s\n", spf.packfile->GetName());
+	}
+
+	g_streamingCollections.clear();
+
+	// reload the packfiles
+	g_origOpenPackfiles();
+}
+
+#include <ICoreGameInit.h>
+
 static HookFunction hookFunction([] ()
 {
 	assert(offsetof(CollectionData, name) == 120);
+
+	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+	gameInit->OnGameRequestLoad.Connect([] ()
+	{
+		// clear blacklisted files
+		g_registeredFileSet.clear();
+
+		// clear custom files
+		g_customStreamingFiles.clear();
+		g_customStreamingFileSet.clear();
+	});
+
+	{
+		void* location = hook::pattern("41 B0 01 BA 1B E6 DA 93 E8").count(1).get(0).get<void>(-12);
+
+		hook::set_call(&g_origOpenPackfiles, location);
+		hook::call(location, OpenPackfilesWrap);
+	}
 
 	// packfile create
 	hook::call(hook::pattern("4C 8B F0 49 8B 06 49 8B CE FF 90 60 01 00 00 48").count(1).get(0).get<void>(-5), ConstructPackfile);
