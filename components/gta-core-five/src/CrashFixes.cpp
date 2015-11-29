@@ -29,6 +29,12 @@ static void* ProbePointer(char* pointer)
 	}
 }
 
+template<int Integer>
+static int ReturnInt()
+{
+	return Integer;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -51,4 +57,7 @@ static HookFunction hookFunction([] ()
 	void* txdFixStubLoc = hook::pattern("48 23 D0 48 8B 02 48 85 C0 74 7F 48").count(1).get(0).get<void>(0);
 	hook::nop(txdFixStubLoc, 6);
 	hook::call_rcx(txdFixStubLoc, txdFixStub.GetCode()); // call_rcx as the stub depends on rax being valid
+
+	// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
+	hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
 });
