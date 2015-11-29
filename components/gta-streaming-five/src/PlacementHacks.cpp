@@ -16,6 +16,8 @@
 
 #include <boost/preprocessor.hpp>
 
+#include <ICoreGameInit.h>
+
 template<typename TSubClass>
 class fwFactoryBase
 {
@@ -234,6 +236,11 @@ static hook::cdecl_stub<void(CMapDataContents*, CMapData*, bool, bool)> addToSce
 	return hook::pattern("48 83 EC 50 83 79 18 00 0F 29 70 C8 41 8A F1").count(1).get(0).get<void>(-0x18);
 });
 
+static hook::cdecl_stub<void(CMapDataContents*)> removeFromScene([] ()
+{
+	return hook::pattern("48 85 DB 74 4B 48 8B 5B 18 EB 0C 48").count(1).get(0).get<void>(-0x11);
+});
+
 static hook::cdecl_stub<DataFileEntry*(void*, DataFileEntry*)> dataFileMgr__getNextEntry([] ()
 {
 	return hook::pattern("48 89 5C 24 08 0F B7 41 08 44 8B 82 94").count(1).get(0).get<void>();
@@ -251,6 +258,7 @@ static fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetype
 	}
 }
 
+static std::vector<CMapDataContents*> g_sceneContentsList;
 static uintptr_t sceneNodeThing;
 
 void ParseArchetypeFile(char* text, size_t length)
@@ -562,6 +570,8 @@ void ParseArchetypeFile(char* text, size_t length)
 			mapData.unkBool = 2;
 
 			addToScene(contents, &mapData, false, false);
+			
+			g_sceneContentsList.push_back(contents);
 		}
 	}
 }
@@ -614,6 +624,17 @@ static void* DoBeforeGetEntries(void* dataFileMgr, int type)
 
 static HookFunction hookFunction([] ()
 {
+	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+	gameInit->OnGameRequestLoad.Connect([] ()
+	{
+		for (auto& contents : g_sceneContentsList)
+		{
+			removeFromScene(contents);
+		}
+
+		g_sceneContentsList.clear();
+	});
+
 	char* creator = hook::pattern("48 8B 0C C8 48 8B 01 FF 50 08 41 B1 01 4C").count(1).get(0).get<char>(-4);
 
 	g_archetypeFactories = (decltype(g_archetypeFactories))(creator + *(int32_t*)creator + 4);
