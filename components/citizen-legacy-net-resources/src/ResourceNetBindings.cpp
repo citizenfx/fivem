@@ -225,6 +225,9 @@ static InitFunction initFunction([] ()
 		{
 			g_netAddress = address;
 
+			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			resourceManager->ResetResources();
+
 			updateResources("");
 		});
 
