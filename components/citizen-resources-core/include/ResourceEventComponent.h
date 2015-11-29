@@ -9,6 +9,8 @@
 
 #include <ComponentHolder.h>
 
+#include <concurrent_queue.h>
+
 #include <mutex>
 #include <queue>
 #include <stack>
@@ -41,9 +43,7 @@ private:
 	};
 
 private:
-	std::queue<EventData> m_eventQueue;
-
-	std::mutex m_eventQueueLock;
+	concurrency::concurrent_queue<EventData> m_eventQueue;
 
 public:
 	ResourceEventComponent();
@@ -82,9 +82,7 @@ private:
 private:
 	ResourceManager* m_manager;
 
-	std::queue<EventData> m_eventQueue;
-
-	std::mutex m_eventQueueLock;
+	concurrency::concurrent_queue<EventData> m_eventQueue;
 
 	std::stack<bool*> m_eventCancelationStack;
 

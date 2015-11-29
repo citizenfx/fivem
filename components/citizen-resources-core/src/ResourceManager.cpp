@@ -79,16 +79,9 @@ fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& ide
 
 void ResourceManagerImpl::ForAllResources(const std::function<void(fwRefContainer<Resource>)>& function)
 {
-	// copy resources locally
-	decltype(m_resources) resources;
+	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
-	{
-		std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
-
-		resources = m_resources;
-	}
-
-	for (auto& resource : resources)
+	for (auto& resource : m_resources)
 	{
 		function(resource.second);
 	}
@@ -98,7 +91,10 @@ void ResourceManagerImpl::ResetResources()
 {
 	ForAllResources([] (fwRefContainer<Resource> resource)
 	{
-		resource->Stop();
+		fwRefContainer<ResourceImpl> impl = resource;
+
+		impl->Stop();
+		impl->Destroy();
 	});
 
 	m_resources.clear();
@@ -106,6 +102,9 @@ void ResourceManagerImpl::ResetResources()
 
 void ResourceManagerImpl::RemoveResource(fwRefContainer<Resource> resource)
 {
+	// lock the mutex (to provide a common root for a lock hierarchy)
+	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+
 	fwRefContainer<ResourceImpl> impl = resource;
 	impl->Stop();
 	impl->Destroy();

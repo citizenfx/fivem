@@ -60,18 +60,18 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	object->OnTick.Connect([=] ()
 	{
 		// take queued events and trigger them
-		std::unique_lock<std::mutex> lock(m_eventQueueLock);
-
 		while (!m_eventQueue.empty())
 		{
 			// get the event
-			EventData event = m_eventQueue.front();
-			m_eventQueue.pop();
+			EventData event;
 
-			// and trigger it
-			bool canceled = false;
+			if (m_eventQueue.try_pop(event))
+			{
+				// and trigger it
+				bool canceled = false;
 
-			HandleTriggerEvent(event.eventName, event.eventPayload, event.eventSource, &canceled);
+				HandleTriggerEvent(event.eventName, event.eventPayload, event.eventSource, &canceled);
+			}
 		}
 	});
 }
@@ -89,7 +89,6 @@ void ResourceEventComponent::QueueEvent(const std::string& eventName, const std:
 	event.eventSource = eventSource;
 
 	{
-		std::unique_lock<std::mutex> lock(m_eventQueueLock);
 		m_eventQueue.push(event);
 	}
 }
@@ -103,16 +102,16 @@ ResourceEventManagerComponent::ResourceEventManagerComponent()
 void ResourceEventManagerComponent::Tick()
 {
 	// take queued events and trigger them
-	std::unique_lock<std::mutex> lock(m_eventQueueLock);
-
 	while (!m_eventQueue.empty())
 	{
 		// get the event
-		EventData event = m_eventQueue.front();
-		m_eventQueue.pop();
-
-		// and trigger it
-		TriggerEvent(event.eventName, event.eventPayload, event.eventSource);
+		EventData event;
+		
+		if (m_eventQueue.try_pop(event))
+		{
+			// and trigger it
+			TriggerEvent(event.eventName, event.eventPayload, event.eventSource);
+		}
 	}
 }
 
@@ -163,7 +162,6 @@ void ResourceEventManagerComponent::QueueEvent(const std::string& eventName, con
 	trace("queue event %s\n", eventName.c_str());
 
 	{
-		std::unique_lock<std::mutex> lock(m_eventQueueLock);
 		m_eventQueue.push(event);
 	}
 }
