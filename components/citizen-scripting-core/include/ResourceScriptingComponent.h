@@ -22,7 +22,7 @@ private:
 
 	std::map<int32_t, fx::OMPtr<IScriptRuntime>> m_scriptRuntimes;
 
-	std::mutex m_scriptRuntimesLock;
+	std::recursive_mutex m_scriptRuntimesLock;
 
 private:
 	void CreateEnvironments();
@@ -37,14 +37,14 @@ public:
 
 	inline void AddRuntime(OMPtr<IScriptRuntime> runtime)
 	{
-		std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
 		m_scriptRuntimes.insert({ runtime->GetInstanceId(), runtime });
 	}
 
 	inline OMPtr<IScriptRuntime> GetRuntimeById(int32_t instanceId)
 	{
-		std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
 		auto it = m_scriptRuntimes.find(instanceId);
 

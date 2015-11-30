@@ -77,7 +77,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			OMPtr<IScriptRuntime> ptr;
 			if (SUCCEEDED(environment.As(&ptr)))
 			{
-				std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+				std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
 				ptr->SetParentObject(resource);
 
@@ -93,7 +93,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnTick.Connect([=] ()
 	{
-		std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
 		for (auto& environment : m_scriptRuntimes)
 		{
@@ -108,7 +108,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnStop.Connect([=] ()
 	{
-		std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
 		for (auto& environment : m_scriptRuntimes)
 		{
@@ -123,7 +123,7 @@ OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
 void ResourceScriptingComponent::CreateEnvironments()
 {
-	std::unique_lock<std::mutex> lock(m_scriptRuntimesLock);
+	std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
 	m_scriptHost = GetScriptHostForResource(m_resource);
 	
