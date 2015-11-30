@@ -145,19 +145,26 @@ static InitFunction initFunction([] ()
 							{
 								fwString filename = i->name.GetString();
 								fwString hash = i->value["hash"].GetString();
-								uint32_t rscPagesPhysical = i->value["rscPagesPhysical"].GetUint();
-								uint32_t rscPagesVirtual = i->value["rscPagesVirtual"].GetUint();
-								uint32_t rscVersion = i->value["rscVersion"].GetUint();
+
+								fx::StreamingEntryData entry;
+
+								if (i->value.HasMember("rscPagesPhysical"))
+								{
+									uint32_t rscPagesPhysical = i->value["rscPagesPhysical"].GetUint();
+									uint32_t rscPagesVirtual = i->value["rscPagesVirtual"].GetUint();
+									uint32_t rscVersion = i->value["rscVersion"].GetUint();
+
+									entry.rscVersion = rscVersion;
+									entry.rscPagesPhysical = rscPagesPhysical;
+									entry.rscPagesVirtual = rscPagesVirtual;
+								}
+
 								uint32_t size = i->value["size"].GetUint();
 
 								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size);
 
-								fx::StreamingEntryData entry;
 								entry.resourceName = resourceName;
 								entry.fileName = filename;
-								entry.rscVersion = rscVersion;
-								entry.rscPagesPhysical = rscPagesPhysical;
-								entry.rscPagesVirtual = rscPagesVirtual;
 
 								fx::OnAddStreamingResource(entry);
 							}
