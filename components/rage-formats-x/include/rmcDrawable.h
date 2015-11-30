@@ -1230,7 +1230,7 @@ private:
 	uint8_t m_pad;
 	uint8_t m_zero;
 	uint8_t m_zero2;
-	uint8_t m_hasBoneMapping;
+	uint8_t m_hasBoneMapping; // bitfield: bit 0 - has bone mapping, bit 1-7: number of geometries with bone mapping
 	uint16_t m_shaderMappingCount; // may be geometry count by proxy?
 
 public:
@@ -1242,7 +1242,7 @@ public:
 #if defined(RAGE_FORMATS_GAME_NY)
 		m_zero2 = 0;
 #elif defined(RAGE_FORMATS_GAME_FIVE)
-		m_zero2 = 0xFF;
+		m_zero2 = 0xFF; // gets tested against the upper byte of the draw bucket mask
 #endif
 		m_hasBoneMapping = 0;
 		m_shaderMappingCount = 0;
