@@ -582,6 +582,15 @@ inline void jump(AT address, T func)
 }
 
 template<typename T, typename AT>
+inline void jump_rcx(AT address, T func)
+{
+	LPVOID funcStub = AllocateFunctionStub((void*)func, 1);
+
+	put<uint8_t>(address, 0xE9);
+	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
+}
+
+template<typename T, typename AT>
 inline void call(AT address, T func)
 {
 	LPVOID funcStub = AllocateFunctionStub((void*)func);

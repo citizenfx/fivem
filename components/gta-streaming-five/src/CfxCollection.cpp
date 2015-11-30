@@ -69,12 +69,14 @@ struct StreamingPackfileEntry
 	rage::fiPackfile* packfile;
 	uint8_t pad2[2];
 	uint8_t loadedFlag;
-	uint8_t pad3[21];
+	uint8_t pad3;
+	uint8_t enabled;
+	uint8_t pad4[19];
 	uint32_t parentIdentifier;
-	uint32_t pad4;
+	uint32_t pad5;
 	uint16_t isHdd;
-	uint16_t pad5;
-	uint32_t pad6;
+	uint16_t pad6;
+	uint32_t pad7;
 };
 
 static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
@@ -909,7 +911,7 @@ private:
 				// read the list
 				std::set<std::string, IgnoreCaseLess> fileList;
 
-				do 
+				do
 				{
 					if (findData.fileName[0] != '.')
 					{
@@ -952,20 +954,17 @@ private:
 				};
 
 				// if there are any streaming files, somewhat invalidate the parent packfile timestamp
-				if (!fileList.empty())
-				{
-					SYSTEMTIME systemTime;
-					GetSystemTime(&systemTime);
+				SYSTEMTIME systemTime;
+				GetSystemTime(&systemTime);
 
-					FILETIME fileTime;
-					SystemTimeToFileTime(&systemTime, &fileTime);
+				FILETIME fileTime;
+				SystemTimeToFileTime(&systemTime, &fileTime);
 
-					g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
+				g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
 
-					m_streamingFileList = fileList;
+				m_streamingFileList = fileList;
 
-					g_streamingCollections.push_back(GetCollectionId());
-				}
+				g_streamingCollections.push_back(GetCollectionId());
 			}
 		}
 	}
@@ -1486,16 +1485,13 @@ void CfxCollection::PrepareStreamingListFromNetwork()
 	g_streamingPackfiles->Get(GetCollectionId()).isHdd = false;
 
 	// if there are any streaming files, somewhat invalidate the parent packfile timestamp
-	if (!fileList.empty())
-	{
-		auto& packfileInfo = g_streamingPackfiles->Get(GetCollectionId());
-		packfileInfo.modificationTime.dwHighDateTime = 0;
-		packfileInfo.modificationTime.dwLowDateTime = 0;
+	auto& packfileInfo = g_streamingPackfiles->Get(GetCollectionId());
+	packfileInfo.modificationTime.dwHighDateTime = 0;
+	packfileInfo.modificationTime.dwLowDateTime = 0;
 
-		m_streamingFileList = fileList;
+	m_streamingFileList = fileList;
 
-		g_streamingCollections.push_back(GetCollectionId());
-	}
+	g_streamingCollections.push_back(GetCollectionId());
 }
 
 static void(*g_origGeomThing)(void*, void*);
@@ -1525,9 +1521,15 @@ static void BvhSet(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int64_t a5, i
 static char* g_registerStreamingFile;
 
 static std::set<std::string, IgnoreCaseLess> g_registeredFileSet;
+static std::map<uint32_t, std::string> g_hashes;
+
+std::string g_lastStreamingName;
 
 static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch)
 {
+	// set the name for the later hook to use
+	g_lastStreamingName = str;
+
 	// scan for the entry in the streaming list and patch as appropriate
 	bool isNetworkFile = (g_customStreamingFileSet.find(str) != g_customStreamingFileSet.end());
 
@@ -1570,6 +1572,19 @@ static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch
 		hook::put<uint16_t>(startBit, 0x840F);
 	}
 
+	// temp: store hashes
+	char nameWithoutExt[256];
+	strcpy(nameWithoutExt, str);
+
+	char* dot = strrchr(nameWithoutExt, '.');
+
+	if (dot)
+	{
+		dot[0] = '\0';
+
+		g_hashes[HashString(nameWithoutExt)] = nameWithoutExt;
+	}
+
 	// return strchr
 	return strrchr(str, ch);
 }
@@ -1596,11 +1611,32 @@ void OpenPackfilesWrap()
 	g_origOpenPackfiles();
 }
 
+static void(*g_origAddCollision)(void* module, uint32_t* outIdx, uint32_t* inHash);
+
+void AddCollisionWrap(void* module, uint32_t* outIdx, uint32_t* inHash)
+{
+	uint32_t hash = *inHash;
+	g_origAddCollision(module, outIdx, inHash);
+
+#if 0
+	trace("collision %d -> %s\n", *outIdx, g_hashes[hash].c_str());
+#endif
+}
+
+void SetStreamingPackfileEnabled(uint32_t index, bool enabled)
+{
+	if (index != -1)
+	{
+		g_streamingPackfiles->Get(index).enabled = enabled;
+	}
+}
+
 #include <ICoreGameInit.h>
 
 static HookFunction hookFunction([] ()
 {
 	assert(offsetof(CollectionData, name) == 120);
+	assert(offsetof(StreamingPackfileEntry, enabled) == 68);
 
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 	gameInit->OnGameRequestLoad.Connect([] ()
@@ -1618,6 +1654,13 @@ static HookFunction hookFunction([] ()
 
 		hook::set_call(&g_origOpenPackfiles, location);
 		hook::call(location, OpenPackfilesWrap);
+	}
+
+	{
+		void* location = hook::pattern("48 8B FA 89 44 24 30 48 8B D9 E8 ? ? ? ? 0F").count(1).get(0).get<void>(10);
+
+		hook::set_call(&g_origAddCollision, location);
+		hook::call(location, AddCollisionWrap);
 	}
 
 	// packfile create

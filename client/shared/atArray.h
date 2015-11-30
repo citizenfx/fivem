@@ -84,6 +84,19 @@ public:
 		m_size = newSize;
 	}
 
+	void Clear()
+	{
+		m_size = 0;
+		m_count = 0;
+
+		if (m_offset)
+		{
+			rage::GetAllocator()->free(m_offset);
+
+			m_offset = nullptr;
+		}
+	}
+
 	void Set(uint16_t offset, const TValue& value)
 	{
 		if (offset >= m_size)

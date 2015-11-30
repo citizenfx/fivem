@@ -158,6 +158,16 @@ static bool IsLevelApplicable()
 	return (!g_wasLastLevelCustom);
 }
 
+static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
+{
+	// technically we should verify the hash, as with the above - but as nobody writes DLCs assuming custom levels
+	// we shouldn't care about this at all - non-custom is always MO_JIM_L11 (display label for 'gta5'), custom is never MO_JIM_L11
+
+	trace("level hash match - was custom: %d\n", g_wasLastLevelCustom);
+
+	return (!g_wasLastLevelCustom);
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* levelCaller = hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
@@ -170,6 +180,13 @@ static HookFunction hookFunction([] ()
 
 	// change set applicability
 	hook::jump(hook::pattern("40 8A EA 48 8B F9 B0 01 76 43 E8").count(1).get(0).get<void>(-0x19), IsLevelApplicable);
+
+	// change set condition evaluator's $level variable comparer
+	{
+		char* location = hook::pattern("EB 03 4C 8B F3 48 8D 05 ? ? ? ? 48 8B CE 49").count(1).get(0).get<char>(8);
+
+		hook::jump(location + *(int32_t*)location + 4, DoesLevelHashMatch);
+	}
 });
 
 static SpawnThread spawnThread;

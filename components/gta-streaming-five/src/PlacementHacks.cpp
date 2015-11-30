@@ -195,7 +195,7 @@ struct DataFileEntry
 	int32_t length;
 };
 
-static DataFileEntry*(*dataFileMgr__getEntries)(void*, int);
+DataFileEntry*(*dataFileMgr__getEntries)(void*, int);
 
 static void* g_origVT[90];
 
@@ -241,7 +241,7 @@ static hook::cdecl_stub<void(CMapDataContents*)> removeFromScene([] ()
 	return hook::pattern("48 85 DB 74 4B 48 8B 5B 18 EB 0C 48").count(1).get(0).get<void>(-0x11);
 });
 
-static hook::cdecl_stub<DataFileEntry*(void*, DataFileEntry*)> dataFileMgr__getNextEntry([] ()
+hook::cdecl_stub<DataFileEntry*(void*, DataFileEntry*)> dataFileMgr__getNextEntry([] ()
 {
 	return hook::pattern("48 89 5C 24 08 0F B7 41 08 44 8B 82 94").count(1).get(0).get<void>();
 });
