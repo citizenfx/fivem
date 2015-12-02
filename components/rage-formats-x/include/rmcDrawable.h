@@ -910,9 +910,9 @@ class grcVertexFormat : public pgStreamableBase
 {
 private:
 #ifdef RAGE_FORMATS_GAME_NY
-	uint16_t m_mask;
-	uint16_t _pad;
-	uint16_t m_vertexSize;
+	uint32_t m_mask;
+	uint8_t m_vertexSize;
+	uint8_t _f5;
 	uint8_t _f6;
 	uint8_t m_vertexFieldCount;
 	uint64_t m_vertexFields;
@@ -921,7 +921,8 @@ private:
 #ifdef RAGE_FORMATS_GAME_FIVE
 	uint16_t m_mask;
 	uint16_t _pad;
-	uint16_t m_vertexSize;
+	uint8_t m_vertexSize;
+	uint8_t _f5;
 	uint8_t _f6;
 	uint8_t m_vertexFieldCount; // maybe still 2 uint8s?
 	uint64_t m_vertexFields;
@@ -930,11 +931,10 @@ private:
 public:
 	grcVertexFormat(uint16_t mask, uint16_t vertexSize, uint8_t fieldCount, uint64_t fvf)
 	{
-#ifdef RAGE_FORMATS_GAME_NY
+#ifndef RAGE_FORMATS_GAME_NY
 		_pad = 0;
 #endif
-
-		_pad = 0;
+		_f5 = 0;
 		_f6 = 0;
 
 		m_mask = mask;
