@@ -39,11 +39,6 @@ hooks = [
 		"action": [ "citizenmp\prebuild_premake.cmd" ]
 	},
 	{
-		"name": "build_luajit_win",
-		"pattern": "vendor/luajit/src/",
-		"action": [ "citizenmp\prebuild_luajit.cmd" ]
-	},
-	{
 		"name": "generic_prebuild_win",
 		"action": [ "citizenmp\prebuild_misc.cmd" ]
 	}
