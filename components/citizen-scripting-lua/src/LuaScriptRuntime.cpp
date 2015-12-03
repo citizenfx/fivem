@@ -51,6 +51,22 @@ public:
 	}
 };
 
+struct PointerFieldEntry
+{
+	bool empty;
+	uintptr_t value;
+
+	PointerFieldEntry()
+	{
+		empty = true;
+	}
+};
+
+struct PointerField
+{
+	PointerFieldEntry data[64];
+};
+
 class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime>
 {
 private:
@@ -78,6 +94,8 @@ private:
 	TDeleteRefRoutine m_deleteRefRoutine;
 
 	void* m_parentObject;
+
+	PointerField m_pointerFields[3];
 
 	int m_instanceId;
 
@@ -113,6 +131,11 @@ public:
 	inline IScriptHost* GetScriptHost()
 	{
 		return m_scriptHost;
+	}
+
+	inline PointerField* GetPointerFields()
+	{
+		return m_pointerFields;
 	}
 
 private:
@@ -493,6 +516,8 @@ int Lua_InvokeNative(lua_State* L)
 	OMPtr<LuaScriptRuntime> luaRuntime = LuaScriptRuntime::GetCurrent();
 	OMPtr<IScriptHost> scriptHost = luaRuntime->GetScriptHost();
 
+	auto pointerFields = luaRuntime->GetPointerFields();
+
 	// variables to hold state
 	fxNativeContext context = { 0 };
 
@@ -611,6 +636,29 @@ int Lua_InvokeNative(lua_State* L)
 		// metafield
 		else if (type == LUA_TLIGHTUSERDATA)
 		{
+			auto pushPtr = [&] (LuaMetaFields metaField)
+			{
+				if (numReturnValues >= _countof(retvals))
+				{
+					lua_pushstring(L, "too many return value arguments");
+					lua_error(L);
+				}
+
+				// push the offset and set the type
+				push(&retvals[numReturnValues]);
+				rettypes[numReturnValues] = metaField;
+
+				// increment the counter
+				if (metaField == LuaMetaFields::PointerValueVector)
+				{
+					numReturnValues += 3;
+				}
+				else
+				{
+					numReturnValues += 1;
+				}
+			};
+
 			uint8_t* ptr = reinterpret_cast<uint8_t*>(lua_touserdata(L, i));
 
 			// if the pointer is a metafield
@@ -625,25 +673,7 @@ int Lua_InvokeNative(lua_State* L)
 					case LuaMetaFields::PointerValueFloat:
 					case LuaMetaFields::PointerValueVector:
 					{
-						if (numReturnValues >= _countof(retvals))
-						{
-							lua_pushstring(L, "too many return value arguments");
-							lua_error(L);
-						}
-
-						// push the offset and set the type
-						push(&retvals[numReturnValues]);
-						rettypes[numReturnValues] = metaField;
-
-						// increment the counter
-						if (metaField == LuaMetaFields::PointerValueVector)
-						{
-							numReturnValues += 3;
-						}
-						else
-						{
-							numReturnValues += 1;
-						}
+						pushPtr(metaField);
 
 						break;
 					}
@@ -656,6 +686,23 @@ int Lua_InvokeNative(lua_State* L)
 					case LuaMetaFields::ResultAsVector:
 						returnValueCoercion = metaField;
 						break;
+				}
+			}
+			// or if the pointer is a runtime pointer field
+			else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
+			{
+				// guess the type based on the pointer field type
+				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
+				LuaMetaFields metaField = static_cast<LuaMetaFields>(ptrField / sizeof(PointerField));
+
+				if (metaField == LuaMetaFields::PointerValueInt || metaField == LuaMetaFields::PointerValueFloat)
+				{
+					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
+
+					retvals[numReturnValues] = ptrFieldEntry->value;
+					ptrFieldEntry->empty = true;
+
+					pushPtr(metaField);
 				}
 			}
 			else
@@ -798,6 +845,45 @@ int Lua_GetMetaField(lua_State* L)
 	return 1;
 }
 
+template<LuaMetaFields MetaField>
+int Lua_GetPointerField(lua_State* L)
+{
+	auto runtime = LuaScriptRuntime::GetCurrent();
+
+	auto pointerFields = runtime->GetPointerFields();
+	auto pointerFieldStart = &pointerFields[(int)MetaField];
+
+	static uintptr_t dummyOut;
+	PointerFieldEntry* pointerField = nullptr;
+
+	for (int i = 0; i < _countof(pointerFieldStart->data); i++)
+	{
+		if (pointerFieldStart->data[i].empty)
+		{
+			pointerField = &pointerFieldStart->data[i];
+			pointerField->empty = false;
+
+			if (MetaField == LuaMetaFields::PointerValueFloat)
+			{
+				float value = static_cast<float>(luaL_checknumber(L, 1));
+
+				pointerField->value = *reinterpret_cast<uint32_t*>(&value);
+			}
+			else if (MetaField == LuaMetaFields::PointerValueInt)
+			{
+				intptr_t value = luaL_checkinteger(L, 1);
+
+				pointerField->value = value;
+			}
+
+			break;
+		}
+	}
+
+	lua_pushlightuserdata(L, (pointerField) ? static_cast<void*>(pointerField) : &dummyOut);
+	return 1;
+}
+
 static const struct luaL_Reg g_citizenLib[] =
 {
 	{ "SetTickRoutine", Lua_SetTickRoutine },
@@ -811,6 +897,8 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ "CanonicalizeRef", Lua_CanonicalizeRef },
 	{ "InvokeFunctionReference", Lua_InvokeFunctionReference },
 	// metafields
+	{ "PointerValueIntInitialized", Lua_GetPointerField<LuaMetaFields::PointerValueInt> },
+	{ "PointerValueFloatInitialized", Lua_GetPointerField<LuaMetaFields::PointerValueFloat> },
 	{ "PointerValueInt", Lua_GetMetaField<LuaMetaFields::PointerValueInt> },
 	{ "PointerValueFloat", Lua_GetMetaField<LuaMetaFields::PointerValueFloat> },
 	{ "PointerValueVector", Lua_GetMetaField<LuaMetaFields::PointerValueVector> },
