@@ -101,7 +101,7 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 		out->SetTextures(convert<five::pgDictionary<five::grcTexturePC>*>(texDict));
 	}
 
-	five::pgPtr<five::grmShaderFx> newShaders[64];
+	five::pgPtr<five::grmShaderFx> newShaders[128];
 	
 	for (int i = 0; i < shaderGroup->GetNumShaders(); i++)
 	{
