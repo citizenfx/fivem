@@ -62,6 +62,8 @@ public:
 	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwMap<fwString, fwString>& fields, fwAction<bool, const char*, size_t> callback);
 	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, fwAction<bool, const char*, size_t> callback);
 
+	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, const fwMap<fwString, fwString>& headers, fwAction<bool, const char*, size_t> callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback = std::function<void(const std::map<std::string, std::string>&)>());
+
 	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, const char* outDeviceBase, fwString outFilename, fwAction<bool, const char*, size_t> callback);
 	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, fwRefContainer<vfs::Device> outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection = nullptr);
 

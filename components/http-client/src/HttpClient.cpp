@@ -36,6 +36,7 @@ struct HttpClientRequestContext
 	HINTERNET hRequest;
 	fwString postData;
 	fwAction<bool, const char*, size_t> callback;
+	std::function<void(const std::map<std::string, std::string>&)> headerCallback;
 
 	std::stringstream resultData;
 	char buffer[32768];
@@ -58,6 +59,74 @@ struct HttpClientRequestContext
 		{
 			outDevice->Close(outHandle);
 		}
+		
+		if (headerCallback)
+		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			std::map<std::string, std::string> headers;
+
+			DWORD dwSize = 0;
+			WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF, WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &dwSize, WINHTTP_NO_HEADER_INDEX);
+
+			if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+			{
+				std::vector<wchar_t> buffer(dwSize);
+
+				if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF, WINHTTP_HEADER_NAME_BY_INDEX, &buffer[0], &dwSize, WINHTTP_NO_HEADER_INDEX))
+				{
+					wchar_t* lastHeaderName = nullptr;
+					wchar_t* lastHeaderValue = nullptr;
+
+					enum
+					{
+						STATE_NONE,
+						STATE_NAME,
+						STATE_VALUE
+					} state = STATE_NONE;
+
+					wchar_t* cursor = &buffer[0];
+
+					while ((cursor - &buffer[0]) < buffer.size() && *cursor)
+					{
+						switch (state)
+						{
+							case STATE_NONE:
+								state = STATE_NAME;
+								lastHeaderName = cursor;
+								break;
+
+							case STATE_NAME:
+								if (*cursor == L':')
+								{
+									*cursor = L'\0';
+									++cursor;
+
+									state = STATE_VALUE;
+									lastHeaderValue = cursor + 1;
+								}
+								break;
+
+							case STATE_VALUE:
+								if (*cursor == L'\r')
+								{
+									*cursor = L'\0';
+									++cursor;
+
+									headers.insert({ converter.to_bytes(lastHeaderName), converter.to_bytes(lastHeaderValue) });
+
+									state = STATE_NAME;
+									lastHeaderName = cursor + 1;
+								}
+								break;
+						}
+
+						++cursor;
+					}
+				}
+			}
+
+			headerCallback(headers);
+		}
 
 		callback(success, resData.c_str(), (!resData.empty()) ? resData.size() : getSize);
 
@@ -78,6 +147,11 @@ struct HttpClientRequestContext
 
 void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, fwAction<bool, const char*, size_t> callback)
 {
+	DoPostRequest(host, port, url, postData, {}, callback);
+}
+
+void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, const fwMap<fwString, fwString>& headers, fwAction<bool, const char*, size_t> callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback)
+{
 	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
 	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"POST", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
 
@@ -85,6 +159,13 @@ void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwS
 	if (host == L"ros.citizenfx.internal")
 	{
 		WinHttpAddRequestHeaders(hRequest, L"Host: prod.ros.rockstargames.com", -1, 0);
+	}
+
+	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+
+	for (auto& header : headers)
+	{
+		WinHttpAddRequestHeaders(hRequest, converter.from_bytes(va("%s: %s", header.first.c_str(), header.second.c_str())).c_str(), -1, 0);
 	}
 
 	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
@@ -95,8 +176,8 @@ void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwS
 	context->hRequest = hRequest;
 	context->postData = postData;
 	context->callback = callback;
+	context->headerCallback = headerCallback;
 
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
 
 	WinHttpSendRequest(hRequest, L"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n", -1, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
