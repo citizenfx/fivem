@@ -304,7 +304,7 @@ static InitFunction initFunction([] ()
 		int x, y;
 		GetGameResolution(x, y);
 
-		const wchar_t* brandingString = L"FiveM-PREDEV \xD83C\xDF42";
+		const wchar_t* brandingString = L"FiveM-ALPHA \xD83C\xDF42";
 
 		static CRect metrics;
 		
