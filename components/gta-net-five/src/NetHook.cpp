@@ -263,14 +263,21 @@ static hook::cdecl_stub<void(void*, ScSessionAddr*, int64_t, int)> joinGame([] (
 	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F9 45 8B E8 4C 8B").count(1).get(0).get<void>(-0x24);
 });
 
-static hook::cdecl_stub<void(int, int, int)> hostGame([] ()
+static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 {
 	// below is original pattern, obfuscated since 372, so will differ per EXE now
 	//return hook::get_call(hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00 8B 08 E9").count(1).get(0).get<void>(13));
 	//return hook::get_call(hook::pattern("48 8B 41 10 BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<void>(0x11));
 
 	// 505 has it be a xchg-type jump
-	return hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00 8B 08").count(1).get(0).get<void>(13);
+	uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
+
+	if (*loc == 0xE9)
+	{
+		loc = hook::get_call(loc);
+	}
+
+	return loc + 2;
 });
 
 static void* getNetworkManager()

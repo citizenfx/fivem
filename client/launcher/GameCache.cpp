@@ -699,7 +699,42 @@ std::map<std::string, std::string> UpdateGameCache()
 			origFileName = "Social Club/" + origFileName.substr(4);
 		}
 
-		retval.insert({ origFileName, converter.to_bytes(entry.GetCacheFileName()) });
+		if (origFileName == "GTA5.exe" || origFileName == "GTAVLauncher.exe")
+		{
+			if (GetFileAttributes(MakeRelativeGamePath(L"steam_api64.dll").c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				std::wstring gtaExe = MakeRelativeGamePath(L"GTA5_FiveM.exe");
+				std::wstring launcherExe = MakeRelativeGamePath(L"GTAVLauncher_FiveM.exe");
+
+				struct _stat64i32 stats;
+
+				if (GetFileAttributes(gtaExe.c_str()) == INVALID_FILE_ATTRIBUTES || GetFileAttributes(launcherExe.c_str()) == INVALID_FILE_ATTRIBUTES || (_wstat(gtaExe.c_str(), &stats), stats.st_size != 55408520))
+				{
+					MessageBox(nullptr, L"Using FiveM on Steam requires the 1.0.505.2 GTA5.exe/GTAVLauncher.exe (Steam versions) to be located in the game folder with names GTA5_FiveM.exe and GTAVLauncher_FiveM.exe. We can't obtain them for you, so you'll have to do that yourself.", L"FiveM", MB_OK | MB_ICONINFORMATION);
+
+					ExitProcess(0);
+				}
+				else
+				{
+					if (origFileName == "GTA5.exe")
+					{
+						retval.insert({ origFileName, converter.to_bytes(gtaExe) });
+					}
+					else if (origFileName == "GTAVLauncher.exe")
+					{
+						retval.insert({ origFileName, converter.to_bytes(launcherExe) });
+					}
+				}
+			}
+			else
+			{
+				retval.insert({ origFileName, converter.to_bytes(entry.GetCacheFileName()) });
+			}
+		}
+		else
+		{
+			retval.insert({ origFileName, converter.to_bytes(entry.GetCacheFileName()) });
+		}
 	}
 
 	return retval;
