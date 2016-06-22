@@ -430,7 +430,7 @@ void GSClient_QueryMaster()
 
 	if (!lookedUp)
 	{
-		hostent* host = gethostbyname("refint.org");
+		hostent* host = gethostbyname("updater.fivereborn.com");
 
 		if (!host)
 		{
