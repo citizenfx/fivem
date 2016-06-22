@@ -697,7 +697,7 @@ std::map<std::string, std::string> UpdateGameCache()
 
 		if (origFileName == "GTA5.exe" || origFileName == "GTAVLauncher.exe")
 		{
-			if (GetFileAttributes(MakeRelativeGamePath(L"steam_api64.dll").c_str()) != INVALID_FILE_ATTRIBUTES)
+			if (false)// no steam, please! - GetFileAttributes(MakeRelativeGamePath(L"steam_api64.dll").c_str()) != INVALID_FILE_ATTRIBUTES)
 			{
 				std::wstring gtaExe = MakeRelativeGamePath(L"GTA5_FiveM.exe");
 				std::wstring launcherExe = MakeRelativeGamePath(L"GTAVLauncher_FiveM.exe");
