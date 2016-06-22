@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include <scrEngine.h>
+#include "ICoreGameInit.h"
 #include <InputHook.h>
 #include <IteratorView.h>
 
@@ -56,6 +57,7 @@ static FishScript* g_fishScript;
 
 void FishScript::Tick()
 {
+	if (!Instance<ICoreGameInit>::Get()->ShAllowed) return;
 	if (g_mainFiber == nullptr)
 	{
 		g_mainFiber = ConvertThreadToFiber(nullptr);

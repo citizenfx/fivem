@@ -22,6 +22,8 @@ public:
 
 	virtual void ReloadGame() = 0;
 
+	bool ShAllowed = false;
+
 public:
 	fwEvent<> OnGameFinalizeLoad;
 

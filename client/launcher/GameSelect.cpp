@@ -48,7 +48,7 @@ void EnsureGamePath()
 
 	if (FAILED(hr))
 	{
-		MessageBox(nullptr, va(L"IFileDialog::Show failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, va(L"Could not show game folder selection window: IFileDialog::Show failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		ExitProcess(0);
 	}
 
@@ -57,7 +57,7 @@ void EnsureGamePath()
 
 	if (!result)
 	{
-		MessageBox(nullptr, va(L"IFileDialog::GetResult failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, va(L"You did not select a game folder: IFileDialog::GetResult failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		ExitProcess(0);
 	}
 
@@ -65,7 +65,7 @@ void EnsureGamePath()
 
 	if (FAILED(hr = result->GetDisplayName(SIGDN_FILESYSPATH, &resultPath)))
 	{
-		MessageBox(nullptr, va(L"IShellItem::GetDisplayName failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, va(L"Could not get game directory: IShellItem::GetDisplayName failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		ExitProcess(0);
 	}
 

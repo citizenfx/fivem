@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "NetLibrary.h"
 #include <base64.h>
+#include "ICoreGameInit.h"
 #include <mutex>
 #include <mmsystem.h>
 #include <yaml-cpp/yaml.h>
@@ -674,7 +675,13 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		try
 		{
 			auto node = YAML::Load(connData);
-
+			if (!node["sH"].IsDefined()) {
+				// Server did not send a scripts setting: old server or rival project
+				OnConnectionError("Legacy servers are incompatible with this version of FiveReborn. Update the server to the latest files from fivereborn.com");
+				m_connectionState = CS_IDLE;
+				return;
+			}
+			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>();
 			// ha-ha, you need to authenticate first!
 			if (node["authID"].IsDefined())
 			{
