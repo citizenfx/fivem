@@ -53,7 +53,7 @@ void DllGameComponent::ReadManifest()
 		return;
 	}
 
-	HRSRC hResource = FindResource(hModule, L"FXCOMPONENT", MAKEINTRESOURCE(935));
+	HRSRC hResource = FindResource(hModule, L"FXCOMPONENT", MAKEINTRESOURCE(115));
 
 	if (hResource)
 	{
@@ -76,7 +76,7 @@ void DllGameComponent::ReadManifest()
 			additionalInfo = " You likely overwrote scripthookv.dll from FiveM with a non-FiveM version of it. Delete caches.xml to restore from this heinous act.";
 		}
 
-		FatalError("Could not find component manifest FXCOMPONENT/935 in component %s.%s", converter.to_bytes(m_path).c_str(), additionalInfo);
+		FatalError("Component manifest mismatch in component %s.%s", converter.to_bytes(m_path).c_str(), additionalInfo);
 	}
 
 	FreeLibrary(hModule);

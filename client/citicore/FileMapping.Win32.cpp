@@ -115,7 +115,7 @@ LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, RE
 
 		setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros").c_str());
 		setValue(L"InstallLang", L"1033");
-		setValue(L"Version", L"1.1.6.5");
+		setValue(L"Version", L"1.1.6.8");
 
 		return status;
 	}
