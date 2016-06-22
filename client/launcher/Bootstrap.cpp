@@ -78,7 +78,7 @@ bool Bootstrap_DoBootstrap()
 #ifdef GTA_NY
 	return Updater_RunUpdate(1, "citiv");
 #else
-	return Updater_RunUpdate(1, "fivem");
+	return Updater_RunUpdate(1, "fivereborn");
 #endif
 }
 
