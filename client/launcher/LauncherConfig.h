@@ -21,7 +21,7 @@
 #define CONTENT_URL_WIDE L"http://content.citizen.re/payne/"
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
-#define PRODUCT_NAME L"FiveM"
+#define PRODUCT_NAME L"FiveReborn"
 #define CONTENT_URL "http://updater.fivereborn.com/client/"
 #define CONTENT_URL_WIDE L"http://updater.fivereborn.com/client/"
 #define GAME_EXECUTABLE L"GTA5.exe"

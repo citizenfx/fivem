@@ -40,7 +40,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20141213000000"; // todo i bet
 #elif defined(GTA_FIVE)
-		parameters[L"ProductName"] = L"FiveM";
+		parameters[L"ProductName"] = L"FiveReborn";
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20151104"; // todo i bet
 #endif

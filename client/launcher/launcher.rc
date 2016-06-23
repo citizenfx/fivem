@@ -54,7 +54,7 @@ BEGIN
 #ifdef GTA_NY
             VALUE "FileDescription", "CitizenMP:IV"
 #elif defined(GTA_FIVE)
-			VALUE "FileDescription", "FiveM"
+			VALUE "FileDescription", "FiveReborn"
 #else
 			VALUE "FileDescription", "CitizenFX"
 #endif

@@ -30,7 +30,7 @@ Component* DllGameComponent::CreateComponent()
 
 		if (m_path.find(L"scripthookv") != std::string::npos)
 		{
-			additionalInfo = " You likely overwrote scripthookv.dll from FiveM with a non-FiveM version of it. Delete caches.xml to restore from this heinous act.";
+			additionalInfo = " You likely overwrote scripthookv.dll from FiveReborn with a non-FiveReborn version of it. Delete caches.xml to restore from this heinous act.";
 		}
 
 		FatalError("Could not find entry point CreateComponent in component %s.%s", converter.to_bytes(m_path).c_str(), additionalInfo);
@@ -73,7 +73,7 @@ void DllGameComponent::ReadManifest()
 
 		if (m_path.find(L"scripthookv") != std::string::npos)
 		{
-			additionalInfo = " You likely overwrote scripthookv.dll from FiveM with a non-FiveM version of it. Delete caches.xml to restore from this heinous act.";
+			additionalInfo = " You likely overwrote scripthookv.dll from FiveReborn with a non-FiveReborn version of it. Delete caches.xml to restore from this heinous act.";
 		}
 
 		FatalError("Component manifest mismatch in component %s.%s", converter.to_bytes(m_path).c_str(), additionalInfo);
