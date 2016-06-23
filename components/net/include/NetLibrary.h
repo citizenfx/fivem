@@ -136,8 +136,6 @@ private:
 
 	std::string m_token;
 
-	uint32_t m_tempGuid;
-
 	uint32_t m_lastConnect;
 
 	uint32_t m_connectAttempts;

@@ -784,14 +784,12 @@ void HandleJR(char* a1, char* a2, void* a3, void* a4)
 	return g_origJR(a1, a2, a3, a4);
 }
 
-#include <terminal.h>
-
 static void SendMetric(const std::string& metric)
 {
-	fwRefContainer<terminal::IClient> terminalClient = Instance<TerminalClient>::Get()->GetClient();
+	/*fwRefContainer<terminal::IClient> terminalClient = Instance<TerminalClient>::Get()->GetClient();
 	auto utils = reinterpret_cast<terminal::IUtils1*>(terminalClient->GetUtilsService(terminal::IUtils1::InterfaceID).GetDetail());
 
-	utils->SendRandomString("cfx_metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");
+	utils->SendRandomString("cfx_metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");*/
 }
 
 struct CMsgJoinResponse

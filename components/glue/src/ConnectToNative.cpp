@@ -63,6 +63,15 @@ static InitFunction initFunction([] ()
 
 			nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
 		}
+		else if (!_wcsicmp(type, L"changeName"))
+		{
+			std::wstring newusernameStrW = arg;
+			std::string newusername(newusernameStrW.begin(), newusernameStrW.end());
+			if (!newusername.empty()) {
+				netLibrary->SetPlayerName(newusername.c_str());
+				trace(va("Changed player name to %s", newusername.c_str()));
+			}
+		}
 		else if (!_wcsicmp(type, L"exit"))
 		{
 			// queue an ExitProcess on the next game frame

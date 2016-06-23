@@ -13,8 +13,7 @@
 #include <mmsystem.h>
 #include <yaml-cpp/yaml.h>
 
-#include <ProfileManager.h>
-#include <terminal.h>
+static uint32_t m_tempGuid = GetTickCount();
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -569,11 +568,14 @@ void NetLibrary::RunFrame()
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000)
 			{
+				/*
 				TerminalClient* clientContainer = Instance<TerminalClient>::Get();
 				auto client = clientContainer->GetClient();
 				auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
 
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());*/
+
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), (uint64_t)m_tempGuid);
 
 				m_lastConnect = GetTickCount();
 
@@ -623,7 +625,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 {
 	if (m_connectionState != CS_IDLE)
 	{
-		Disconnect("Bye!");
+		Disconnect("Connecting to another server.");
 	}
 
 	m_connectionState = CS_INITING;
@@ -648,12 +650,12 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
-	TerminalClient* clientContainer = Instance<TerminalClient>::Get();
+	/*TerminalClient* clientContainer = Instance<TerminalClient>::Get();
 	auto client = clientContainer->GetClient();
-	auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
+	auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());*/
 
-	postMap["guid"] = va("%llu", user->GetNPID());
-
+	//postMap["guid"] = va("%llu", user->GetNPID());
+	postMap["guid"] = va("%lld", (uint64_t)m_tempGuid);
 	uint16_t capturePort = port;
 
 	static fwAction<bool, const char*, size_t> handleAuthResult;
@@ -681,8 +683,9 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				m_connectionState = CS_IDLE;
 				return;
 			}
-			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>();
+			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
 			// ha-ha, you need to authenticate first!
+			/*
 			if (node["authID"].IsDefined())
 			{
 				if (postMap.find("authTicket") == postMap.end())
@@ -708,7 +711,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				return;
 			}
 
-			postMap.erase("authTicket");
+			postMap.erase("authTicket");*/
 
 			if (node["error"].IsDefined())
 			{
@@ -864,11 +867,13 @@ void NetLibrary::SendOutOfBand(NetAddress& address, const char* format, ...)
 
 const char* NetLibrary::GetPlayerName()
 {
+	/*
 	ProfileManager* profileManager = Instance<ProfileManager>::Get();
-	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();
+	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();*/
+	if (!m_playerName.empty()) return m_playerName.c_str();
 
 	const char* returnName = nullptr;
-
+	/*
 	if (profile.GetRef())
 	{
 		returnName = profile->GetDisplayName();
@@ -880,8 +885,20 @@ const char* NetLibrary::GetPlayerName()
 		GetComputerNameA(computerName, &nameSize);
 
 		returnName = computerName;
+	}*/
+	returnName = getenv("USERNAME");
+	if (returnName == "" || returnName == nullptr) {
+		returnName = getenv("USER");
 	}
-
+	if (returnName == "" || returnName == nullptr) {
+		static char computerName[64];
+		DWORD nameSize = sizeof(computerName);
+		GetComputerNameA(computerName, &nameSize);
+		returnName = computerName;
+	}
+	if (returnName == "" || returnName == nullptr) {
+		returnName = "UnknownUser";
+	}
 	return returnName;
 }
 
@@ -970,7 +987,7 @@ void NetLibrary::SendNetEvent(fwString eventName, fwString jsonString, int i)
 
 NetLibrary::NetLibrary()
 	: m_serverNetID(0), m_serverBase(0), m_hostBase(0), m_hostNetID(0), m_connectionState(CS_IDLE),
-	  m_tempGuid(0), m_lastConnect(0), m_lastSend(0), m_outSequence(0), m_lastReceivedReliableCommand(0), m_outReliableAcknowledged(0), m_outReliableSequence(0),
+	  m_lastConnect(0), m_lastSend(0), m_outSequence(0), m_lastReceivedReliableCommand(0), m_outReliableAcknowledged(0), m_outReliableSequence(0),
 	  m_lastReceivedAt(0)
 
 {
