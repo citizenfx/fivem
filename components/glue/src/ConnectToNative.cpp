@@ -47,19 +47,18 @@ static InitFunction initFunction([] ()
 
 			StringCbCopyA(hostname, sizeof(hostname), hostnameStr.c_str());
 
-			char* port = strrchr(hostname, ':');
+			std::string port = std::string(hostname);
+			std::string ip = std::string(hostname);
+			ip = ip.substr(0, ip.find(":"));
+			port = port.substr(port.find(":") + 1);
+			const char* portnum = port.c_str();
 
-			if (!port)
+			if (port.empty())
 			{
-				port = "30120";
-			}
-			else
-			{
-				*port = '\0';
-				port++;
+				portnum = "30120";
 			}
 
-			netLibrary->ConnectToServer(hostname, atoi(port));
+			netLibrary->ConnectToServer(ip.c_str(), atoi(portnum));
 
 			nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
 		}

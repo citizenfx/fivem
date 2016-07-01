@@ -126,6 +126,7 @@ public:
 				TheFonts->DrawRectangle(rect, color);
 
 				// if the particular key we like is pressed...
+				/*
 				static bool wasPressed = true;
 
 				if (GetAsyncKeyState(VK_F11) & 0x8000)
@@ -186,7 +187,7 @@ public:
 
 						m_isWaitingForModelToLoad = false;
 					}
-				}
+				}*/
 
 				static bool hosted = false;
 

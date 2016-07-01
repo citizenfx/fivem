@@ -154,7 +154,7 @@ char *Info_ValueForKey(const char *s, const char *key)
 {
 	char	pkey[BIG_INFO_KEY];
 	static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
-	// work without stomping on each other
+											// work without stomping on each other
 	static	int	valueindex = 0;
 	char	*o;
 
@@ -185,9 +185,32 @@ char *Info_ValueForKey(const char *s, const char *key)
 
 		o = value[valueindex];
 
-		while (*s != '\\' && *s)
+		while (true)
 		{
-			*o++ = *s++;
+			if (!*s)
+			{
+				break;
+			}
+
+			if (*s == '\\')
+			{
+				if (*(s + 1) == '\\')
+				{
+					*o = '\\';
+					o++;
+					s += 2;
+				}
+				else
+				{
+					break;
+				}
+			}
+			else
+			{
+				*o = *s;
+				o++;
+				s++;
+			}
 		}
 		*o = 0;
 
@@ -352,6 +375,7 @@ void GSClient_HandleServersResponse(const char* buffer, int len)
 	GSClient_QueryStep();
 
 	g_cls.numServers = count;
+	nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'refreshingDone' }, '*');");
 }
 
 #define CMD_GSR "getserversResponse"
@@ -467,7 +491,6 @@ void GSClient_GetFavorites()
 	std::string json;
 	favFile >> json;
 	favFile.close();
-	nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'getFavorites', list: JSON.parse('%s') }, '*');", json.c_str()));
 }
 
 void GSClient_SaveFavorites(const wchar_t *json)

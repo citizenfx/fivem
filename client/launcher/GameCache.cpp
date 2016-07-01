@@ -96,18 +96,18 @@ static GameCacheEntry g_requiredEntries[] =
 	{ L"GTA5.exe", "a6b255a2e2b8ea48ec5776f42770cf54522a85bf", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/GTA5.exe", 54920072, 505185312 },
 	{ L"update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
 
-	{ L"update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "DigitalData/DLCPacks2/update/x64/dlcpacks/patchday4ng/dlc.rpf", 312438784 },
-	{ L"update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "DigitalData/DLCPacks2/update/x64/dlcpacks/mpluxe/dlc.rpf", 226260992 },
+	{ L"update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpf", 312438784 },
+	{ L"update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "http://updater.fivereborn.com/patches/dlcpacks/mpluxe/dlc.rpf", 226260992 },
 
-	{ L"update/x64/dlcpacks/patchday5ng/dlc.rpf", "af3b2a59b4e1e5fd220c308d85753bdbffd8063c", "DigitalData/DLCPacks3/update/x64/dlcpacks/patchday5ng/dlc.rpf", 7827456 },
-	{ L"update/x64/dlcpacks/mpluxe2/dlc.rpf", "1e59e1f05be5dba5650a1166eadfcb5aeaf7737b", "DigitalData/DLCPacks3/update/x64/dlcpacks/mpluxe2/dlc.rpf", 105105408 },
+	{ L"update/x64/dlcpacks/patchday5ng/dlc.rpf", "af3b2a59b4e1e5fd220c308d85753bdbffd8063c", "http://updater.fivereborn.com/patches/dlcpacks/patchday5ng/dlc.rpf", 7827456 },
+	{ L"update/x64/dlcpacks/mpluxe2/dlc.rpf", "1e59e1f05be5dba5650a1166eadfcb5aeaf7737b", "http://updater.fivereborn.com/patches/dlcpacks/mpluxe2/dlc.rpf", 105105408 },
 
-	{ L"update/x64/dlcpacks/mpreplay/dlc.rpf", "f5375beef591178d8aaf334431a7b6596d0d793a", "DigitalData/DLCPacks4/update/x64/dlcpacks/mpreplay/dlc.rpf", 429932544 },
-	{ L"update/x64/dlcpacks/patchday6ng/dlc.rpf", "5d38b40ad963a6cf39d24bb5e008e9692838b33b", "DigitalData/DLCPacks4/update/x64/dlcpacks/patchday6ng/dlc.rpf", 31907840 },
+	{ L"update/x64/dlcpacks/mpreplay/dlc.rpf", "f5375beef591178d8aaf334431a7b6596d0d793a", "http://updater.fivereborn.com/patches/dlcpacks/mpreplay/dlc.rpf", 429932544 },
+	{ L"update/x64/dlcpacks/patchday6ng/dlc.rpf", "5d38b40ad963a6cf39d24bb5e008e9692838b33b", "http://updater.fivereborn.com/patches/dlcpacks/patchday6ng/dlc.rpf", 31907840 },
 
-	{ L"update/x64/dlcpacks/mphalloween/dlc.rpf", "3f960c014e83be00cf8e6b520bbf22f7da6160a4", "DigitalData/DLCPacks5/update/x64/dlcpacks/mphalloween/dlc.rpf", 104658944 },
-	{ L"update/x64/dlcpacks/mplowrider/dlc.rpf", "eab744fe959ca29a2e5f36843d259ffc9d04a7f6", "DigitalData/DLCPacks5/update/x64/dlcpacks/mplowrider/dlc.rpf", 1088813056 },
-	{ L"update/x64/dlcpacks/patchday7ng/dlc.rpf", "29df23f3539907a4e15f1cdb9426d462c1ad0337", "DigitalData/DLCPacks5/update/x64/dlcpacks/patchday7ng/dlc.rpf", 43843584 },
+	{ L"update/x64/dlcpacks/mphalloween/dlc.rpf", "3f960c014e83be00cf8e6b520bbf22f7da6160a4", "http://updater.fivereborn.com/patches/dlcpacks/mphalloween/dlc.rpf", 104658944 },
+	{ L"update/x64/dlcpacks/mplowrider/dlc.rpf", "eab744fe959ca29a2e5f36843d259ffc9d04a7f6", "http://updater.fivereborn.com/patches/dlcpacks/mplowrider/dlc.rpf", 1088813056 },
+	{ L"update/x64/dlcpacks/patchday7ng/dlc.rpf", "29df23f3539907a4e15f1cdb9426d462c1ad0337", "http://updater.fivereborn.com/patches/dlcpacks/patchday7ng/dlc.rpf", 43843584 },
 
 	{ L"ros/cef.pak", "EC38FF4278D4E13FD8681A205F29CDA000D05759", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef.pak", 2018390, 56061688 },
 	{ L"ros/cef_100_percent.pak", "6B96A6E9E418AE73B4EC7CB6CB7C10BAA2A98449", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_100_percent.pak", 444515, 56061688 },
