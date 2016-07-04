@@ -57,7 +57,9 @@ void loadSettings() {
 			std::string json;
 			settingsFile >> json;
 			settingsFile.close();
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', settings: '%s' }, '*');", json));
 		}
+		
 		CoTaskMemFree(appDataPath);
 	}
 }
@@ -116,6 +118,19 @@ static InitFunction initFunction([] ()
 		{
 			loadSettings();
 			trace("Settings loaded\n!");
+		}
+		else if (!_wcsicmp(type, L"checkNickname"))
+		{
+			if (arg == L"") return;
+			const char* text = netLibrary->GetPlayerName();
+			size_t size = strlen(text) + 1;
+			wchar_t* wa = new wchar_t[size];
+			mbstowcs(wa, text, size);
+			if (arg != wa)
+			{
+				trace(va("Changed nickname (was new) to %s", text));
+				netLibrary->SetPlayerName(text);
+			}
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{
