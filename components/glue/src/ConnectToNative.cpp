@@ -119,6 +119,11 @@ static InitFunction initFunction([] ()
 			loadSettings();
 			trace("Settings loaded\n!");
 		}
+		else if (!_wcsicmp(type, L"saveSettings"))
+		{
+			saveSettings(arg);
+			trace("Settings saved\n!");
+		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
 			if (arg == L"") return;

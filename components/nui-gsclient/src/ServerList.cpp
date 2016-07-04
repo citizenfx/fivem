@@ -372,6 +372,7 @@ void GSClient_HandleServersResponse(const char* buffer, int len)
 	}
 
 	g_cls.queryTime = timeGetTime();
+	nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'clearServers' }, '*');");
 	GSClient_QueryStep();
 
 	g_cls.numServers = count;
