@@ -11,6 +11,10 @@
 #include <strsafe.h>
 #include <GlobalEvents.h>
 #include <nutsnbolts.h>
+//New libs needed for saveSettings
+#include <fstream>
+#include "KnownFolders.h"
+#include <ShlObj.h>
 
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 {
@@ -20,6 +24,42 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 	}
 
 	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+void saveSettings(const wchar_t *json) {
+	PWSTR appDataPath;
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath))) {
+		// create the directory if not existent
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		CreateDirectory(cfxPath.c_str(), nullptr);
+		// open and read the profile file
+		std::wstring settingsPath = cfxPath + L"\\settings.json";
+		std::wofstream settingsFile(settingsPath);
+		settingsFile << json;
+		settingsFile.close();
+		CoTaskMemFree(appDataPath);
+	}
+}
+
+void loadSettings() {
+	PWSTR appDataPath;
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath))) {
+		// create the directory if not existent
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		CreateDirectory(cfxPath.c_str(), nullptr);
+
+		// open and read the profile file
+		std::wstring settingsPath = cfxPath + L"\\settings.json";
+
+		if (FILE* profileFile = _wfopen(settingsPath.c_str(), L"rb"))
+		{
+			std::ifstream settingsFile(settingsPath);
+			std::string json;
+			settingsFile >> json;
+			settingsFile.close();
+		}
+		CoTaskMemFree(appDataPath);
+	}
 }
 
 static InitFunction initFunction([] ()
@@ -36,7 +76,7 @@ static InitFunction initFunction([] ()
 		});
 	});
 
-	nui::OnInvokeNative.Connect([] (const wchar_t* type, const wchar_t* arg)
+	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
 	{
 		if (!_wcsicmp(type, L"connectTo"))
 		{
@@ -68,8 +108,14 @@ static InitFunction initFunction([] ()
 			std::string newusername(newusernameStrW.begin(), newusernameStrW.end());
 			if (!newusername.empty()) {
 				netLibrary->SetPlayerName(newusername.c_str());
-				trace(va("Changed player name to %s", newusername.c_str()));
+				saveSettings(arg);
+				trace(va("Changed player name to %s\n", newusername.c_str()));
 			}
+		}
+		else if (!_wcsicmp(type, L"loadSettings"))
+		{
+			loadSettings();
+			trace("Settings loaded\n!");
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{
