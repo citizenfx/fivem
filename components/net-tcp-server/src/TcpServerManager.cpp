@@ -46,6 +46,7 @@ fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bind
 	else
 	{
 		tcpServer = nullptr;
+		trace("net-tcp-server failed to create server: couldn't listen");
 	}
 
 	return tcpServer;

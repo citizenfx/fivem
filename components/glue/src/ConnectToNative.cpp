@@ -50,14 +50,13 @@ void loadSettings() {
 
 		// open and read the profile file
 		std::wstring settingsPath = cfxPath + L"\\settings.json";
-
 		if (FILE* profileFile = _wfopen(settingsPath.c_str(), L"rb"))
 		{
 			std::ifstream settingsFile(settingsPath);
 			std::string json;
 			settingsFile >> json;
 			settingsFile.close();
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', settings: '%s' }, '*');", json));
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", json.c_str()));
 		}
 		
 		CoTaskMemFree(appDataPath);
@@ -109,32 +108,34 @@ static InitFunction initFunction([] ()
 			std::wstring newusernameStrW = arg;
 			std::string newusername(newusernameStrW.begin(), newusernameStrW.end());
 			if (!newusername.empty()) {
-				netLibrary->SetPlayerName(newusername.c_str());
-				saveSettings(arg);
-				trace(va("Changed player name to %s\n", newusername.c_str()));
+				if (newusername.c_str() != netLibrary->GetPlayerName()) {
+					netLibrary->SetPlayerName(newusername.c_str());
+					saveSettings(arg);
+					trace(va("Changed player name to %s\n", newusername.c_str()));
+					nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setSettingsNick', nickname: '%s' }, '*');", newusername.c_str()));
+				}
 			}
 		}
 		else if (!_wcsicmp(type, L"loadSettings"))
 		{
 			loadSettings();
-			trace("Settings loaded\n!");
+			trace("Settings loaded!");
 		}
 		else if (!_wcsicmp(type, L"saveSettings"))
 		{
 			saveSettings(arg);
-			trace("Settings saved\n!");
+			trace("Settings saved!");
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
 			if (arg == L"") return;
 			const char* text = netLibrary->GetPlayerName();
-			size_t size = strlen(text) + 1;
-			wchar_t* wa = new wchar_t[size];
-			mbstowcs(wa, text, size);
-			if (arg != wa)
+			char* newusername = new char[wcslen(arg)];
+			wcstombs(newusername, arg, wcslen(arg));
+			if (text != newusername)
 			{
-				trace(va("Changed nickname (was new) to %s", text));
-				netLibrary->SetPlayerName(text);
+				trace(va("Loaded nickname: %s", newusername));
+				netLibrary->SetPlayerName(newusername);
 			}
 		}
 		else if (!_wcsicmp(type, L"exit"))
