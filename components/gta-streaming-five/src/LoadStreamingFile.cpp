@@ -155,8 +155,11 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 	//dataFileMgr__loadDefDat(dataFileMgr, "citizen:/citizen.meta", enabled);
 
 	// load before-level metas
+	trace("LoadDefDats: %s\n", name);
+
 	for (const auto& meta : g_beforeDefaultMetas)
 	{
+		trace("LoadDefDats: %s\n", meta.c_str());
 		dataFileMgr__loadDefDat(dataFileMgr, meta.c_str(), enabled);
 	}
 
@@ -166,6 +169,7 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 	// load after-level metas
 	for (const auto& meta : g_afterDefaultMetas)
 	{
+		trace("LoadDefDats: %s\n", meta.c_str());
 		dataFileMgr__loadDefDat(dataFileMgr, meta.c_str(), enabled);
 	}
 }
@@ -398,149 +402,6 @@ static void LoadLevelDatHook(void* dataFileMgr, const char* name, bool enabled)
 	g_boundDependencyArray->Clear();
 }
 
-static void LoadDefaultDatHook(void* dataFileMgr, const char* name, bool enabled)
-{
-	// perform a dummy load first to see what this load will add to the list
-	void* dummyMgr = CreateDataFileMgr();
-
-	// load entries into the dummy manager
-	LoadDefDats(dummyMgr, name, enabled);
-
-	// function to fill an entry map
-	std::unordered_map<std::string, DataFileEntry*> entryMap;
-
-	auto fillEntryMap = [&]()
-	{
-		// get the entries currently existing in the global manager
-		std::set<DataFileEntry*> curEntries = GetCurrentPackList<std::set<DataFileEntry*>>(dataFileMgr);
-
-		// map all entries for faster lookup
-		entryMap.clear();
-
-		for (auto& entry : curEntries)
-		{
-			entryMap.insert({ entry->name, entry });
-		}
-	};
-
-	// get an entry set from the dummy manager
-	std::vector<std::string> entries = GetCurrentPackList<std::vector<std::string>>(dummyMgr);
-	std::sort(entries.begin(), entries.end());
-#if 0
-	// if there's an old list, as well, do some differencing
-	if (!g_oldEntryList.empty())
-	{
-		// the entries seem to need to be preallocated
-		std::vector<std::string> removableEntries(max(g_oldEntryList.size(), entries.size()));
-
-		// calculate difference
-		auto it = std::set_difference(g_oldEntryList.begin(), g_oldEntryList.end(), entries.begin(), entries.end(), removableEntries.begin());
-
-		// remove trailing entries
-		removableEntries.resize(it - removableEntries.begin());
-
-		// get the entries currently existing in the global manager
-		fillEntryMap();
-
-		// disable all the entries we found in here in the global manager
-		for (auto& entry : removableEntries)
-		{
-			auto it = entryMap.find(entry);
-
-			if (it != entryMap.end())
-			{
-				trace("disabling %s (previous state: %d)\n", entry.c_str(), it->second->disabled);
-
-				dataFileEntry__disablePackfile(it->second);
-				SwitchPackfile(it->first, false);
-			}
-			else
-			{
-				trace("force-disabling %s\n", entry.c_str());
-
-				DataFileEntry tempEntry = { 0 };
-				strcpy(tempEntry.name, entry.c_str());
-				tempEntry.disabled = false;
-
-				dataFileEntry__disablePackfile(&tempEntry);
-				SwitchPackfile(entry, false);
-			}
-		}
-
-		// and disable DLC entries as well because *why not*
-		for (auto& entry : entryMap)
-		{
-			if (entry.first.find("dlc") == 0 && entry.first.find("levels/gta5") != std::string::npos)
-			{
-				trace("disabling %s (previous state: %d)\n", entry.first.c_str(), entry.second->disabled);
-
-				dataFileEntry__disablePackfile(entry.second);
-				SwitchPackfile(entry.first, false);
-			}
-		}
-	}
-
-	g_oldEntryList = entries;
-#endif
-	// load entries into the *global* data file manager
-	LoadDefDats(dataFileMgr, name, enabled);
-
-	// refill the entry map
-	fillEntryMap();
-
-	// and enable anything that might've been disabled
-	for (auto& entry : entries)
-	{
-		auto it = entryMap.find(entry);
-
-		if (it != entryMap.end())
-		{
-			trace("LoadDefaultDatHook: enabling %s (previous state: %d)\n", entry.c_str(), it->second->disabled);
-
-			dataFileEntry__enablePackfile(it->second);
-			SwitchPackfile(it->first, true);
-		}
-	}
-
-	// free the dummy manager (NOTE: this won't actually free the entries contained - and there doesn't seem to be a dtor in the game?)
-	free(dummyMgr);
-
-#if 0
-	// clear the fwMapDataStore box streamer entry list
-	clearEntries(&g_mapDataBoxStreamer->entries);
-
-	delete g_mapDataBoxStreamer->_fF8;
-	g_mapDataBoxStreamer->_fF8 = nullptr;
-
-	g_mapDataBoxStreamer->entries.indices[0].Clear();
-	g_mapDataBoxStreamer->entries.indices[1].Clear();
-
-	if (g_mapDataBoxStreamer->_f8.GetSize())
-	{
-		g_mapDataBoxStreamer->_f8.Clear();
-		// following two are the quadtree-esques
-		g_mapDataBoxStreamer->_f20.Clear();
-		g_mapDataBoxStreamer->_f30.Clear();
-		g_mapDataBoxStreamer->_f48.Clear();
-		// another quadtree
-		g_mapDataBoxStreamer->_f100.Clear();
-		g_mapDataBoxStreamer->_f110.Clear();
-
-		delete g_mapDataBoxStreamer->_f120;
-		g_mapDataBoxStreamer->_f120 = nullptr;
-
-		// reset the quadtree list
-		if (g_mapDataBoxStreamer->entryCount)
-		{
-			g_mapDataBoxStreamer->ResetQuadTree(g_mapDataBoxStreamer->streamingModule, g_mapDataBoxStreamer->_f68);
-		}
-	}
-
-	// an array of static bound dependencies on map data sectors
-	g_boundDependencyArray->Clear();
-#endif
-}
-
 static void(*g_origAddStreamingPackfile)(const char*, bool);
 
 void AddStreamingPackfileWrap(const char* fileName, bool scanNow)
@@ -581,7 +442,7 @@ static HookFunction hookFunction([] ()
 
 	hookPoint = hook::pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 41 8B CE E8 ? ? ? ?").count(1).get(0).get<void>(0); //Jayceon - If I understood right, is this what we were supposed to do? It seems wrong to me
 	hook::set_call(&dataFileMgr__loadDefDat, hookPoint);
-	hook::call(hookPoint, LoadDefaultDatHook); //Call the new function to load the handling files
+	hook::call(hookPoint, LoadDefDats); //Call the new function to load the handling files
 
 	// box streamer
 	{
