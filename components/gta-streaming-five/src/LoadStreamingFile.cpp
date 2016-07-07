@@ -133,7 +133,6 @@ static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 	// load before-level metas
 	for (const auto& meta : g_beforeLevelMetas)
 	{
-		trace("LoadDats - Loading %s", meta.c_str());
 		dataFileMgr__loadDat(dataFileMgr, meta.c_str(), enabled);
 	}
 
