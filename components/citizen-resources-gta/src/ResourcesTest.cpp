@@ -20,6 +20,7 @@ void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceF
 namespace streaming
 {
 	void AddMetaToLoadList(bool before, const std::string& meta);
+	void AddDefMetaToLoadList(bool before, const std::string& meta);
 
 	void SetNextLevelPath(const std::string& path);
 }
@@ -40,12 +41,18 @@ static InitFunction initFunction([] ()
 			//Why does this seem so wrong?? 7-6-2016 - Jayceon
 			for (auto& meta : metaData->GetEntries("before_default_meta"))
 			{
-				streaming::AddMetaToLoadList(true, resourceRoot + meta.second);
+				trace("before_default_meta: %s/%s", resourceRoot.c_str(), meta.second.c_str());
+				streaming::AddDefMetaToLoadList(true, resourceRoot + meta.second);
 			}
 
 			for (auto& meta : metaData->GetEntries("after_default_meta"))
 			{
-				streaming::AddMetaToLoadList(false, resourceRoot + meta.second);
+				streaming::AddDefMetaToLoadList(false, resourceRoot + meta.second);
+			}
+
+			for (auto& meta : metaData->GetEntries("replace_default_meta"))
+			{
+				streaming::SetNextLevelPath(resourceRoot + meta.second);
 			}
 			//
 			for (auto& meta : metaData->GetEntries("before_level_meta"))
