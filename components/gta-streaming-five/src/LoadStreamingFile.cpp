@@ -133,6 +133,7 @@ static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 	// load before-level metas
 	for (const auto& meta : g_beforeLevelMetas)
 	{
+		trace("LoadDats - Loading %s", meta.c_str());
 		dataFileMgr__loadDat(dataFileMgr, meta.c_str(), enabled);
 	}
 
@@ -404,8 +405,8 @@ static InitFunction initFunction([] ()
 static HookFunction hookFunction([] ()
 {
 	// level load
-	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3").count(1).get(0).get<void>(18);
-
+	//void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3").count(1).get(0).get<void>(18);
+	void* hookPoint = hook::pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 41 8B CE E8 ? ? ? ?").count(1).get(0).get<void>(0); //Jayceon - If I understood right, is this what we were supposed to do? It seems wrong to me
 	hook::set_call(&dataFileMgr__loadDat, hookPoint);
 	hook::call(hookPoint, LoadLevelDatHook);
 

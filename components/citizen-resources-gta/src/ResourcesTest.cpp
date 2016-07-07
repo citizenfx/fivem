@@ -37,7 +37,17 @@ static InitFunction initFunction([] ()
 		{
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 			std::string resourceRoot = resource->GetPath();
+			//Why does this seem so wrong?? 7-6-2016 - Jayceon
+			for (auto& meta : metaData->GetEntries("before_default_meta"))
+			{
+				streaming::AddMetaToLoadList(true, resourceRoot + meta.second);
+			}
 
+			for (auto& meta : metaData->GetEntries("after_default_meta"))
+			{
+				streaming::AddMetaToLoadList(false, resourceRoot + meta.second);
+			}
+			//
 			for (auto& meta : metaData->GetEntries("before_level_meta"))
 			{
 				streaming::AddMetaToLoadList(true, resourceRoot + meta.second);
