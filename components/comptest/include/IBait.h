@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM ../../components/comptest/include/IBait.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM ../../../components/comptest/include/IBait.idl
  */
 
 #ifndef __gen_IBait_h__

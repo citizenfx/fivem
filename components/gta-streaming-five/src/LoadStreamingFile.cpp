@@ -169,7 +169,7 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 	// load after-level metas
 	for (const auto& meta : g_afterDefaultMetas)
 	{
-		trace("LoadDefDats: %s\n", meta.c_str());
+		trace("LoadDefDats: %s.\n", meta.c_str());
 		dataFileMgr__loadDefDat(dataFileMgr, meta.c_str(), enabled);
 	}
 }
@@ -440,7 +440,8 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&dataFileMgr__loadDat, hookPoint);
 	hook::call(hookPoint, LoadLevelDatHook);
 
-	hookPoint = hook::pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 41 8B CE E8 ? ? ? ?").count(1).get(0).get<void>(0); //Jayceon - If I understood right, is this what we were supposed to do? It seems wrong to me
+	//hookPoint = hook::pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 41 8B CE E8 ? ? ? ?").count(1).get(0).get<void>(0); //Jayceon - If I understood right, is this what we were supposed to do? It seems wrong to me
+	hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 1D ? ? ? ? 41 8B F7").count(1).get(0).get<void>(0);
 	hook::set_call(&dataFileMgr__loadDefDat, hookPoint);
 	hook::call(hookPoint, LoadDefDats); //Call the new function to load the handling files
 

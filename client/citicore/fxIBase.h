@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM ../../client/citicore/fxIBase.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM ../../../client/citicore/fxIBase.idl
  */
 
 #ifndef __gen_fxIBase_h__

@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM ../../client/citicore/fxcore.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM ../../../client/citicore/fxcore.idl
  */
 
 #ifndef __gen_fxcore_h__
