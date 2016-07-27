@@ -114,16 +114,11 @@ public:
 				CRect rect(0, 0, 22, 22);
 				CRGBA color;
 
-				if (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
-				{
-					color = CRGBA(0, 200, 0, 180);
-				}
-				else
+				if (!NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
 				{
 					color = CRGBA(200, 0, 0, 180);
+					TheFonts->DrawRectangle(rect, color);
 				}
-
-				TheFonts->DrawRectangle(rect, color);
 
 				// if the particular key we like is pressed...
 				/*
@@ -188,7 +183,6 @@ public:
 						m_isWaitingForModelToLoad = false;
 					}
 				}*/
-
 				static bool hosted = false;
 
 				if (!hosted && NativeInvoke::Invoke<NETWORK_IS_HOST, bool>())
