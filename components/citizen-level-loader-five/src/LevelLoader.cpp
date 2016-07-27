@@ -212,6 +212,8 @@ static void LoadLevel(const char* levelName)
 
 		gameInit->ReloadGame();
 	}
+
+	Instance<ICoreGameInit>::Get()->ShAllowed = true;
 }
 
 static InitFunction initFunction([] ()
@@ -220,7 +222,6 @@ static InitFunction initFunction([] ()
 	{
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		std::string usermapsPath = converter.to_bytes(MakeRelativeCitPath(L"usermaps/"));
-
 		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
 		device->SetPath(usermapsPath.c_str(), true);
 		device->Mount("usermaps:/");
