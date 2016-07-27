@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "ComponentLoader.h"
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
 class ComponentInstance : public Component
@@ -40,15 +41,24 @@ bool ComponentInstance::DoGameLoad(void* module)
 		{
 			boost::filesystem::create_directory(plugins_path);
 		}
-
+		char* const blacklistedAsis[] = {"openiv.asi"};
 		// load all .asi files in the plugins/ directory
 		while (it != end)
 		{
 			if (it->path().extension() == ".asi")
 			{
-				if (!LoadLibrary(it->path().c_str()))
-				{
-					FatalError(va("Couldn't load %s", it->path().filename().string().c_str()));
+				bool bad = false;
+				for (int i = 0; i < sizeof(blacklistedAsis); i++) {
+					if (boost::iequals(it->path().filename().string(), std::string(blacklistedAsis[i]))) {
+						bad = true;
+						trace(va("Skipping blacklisted ASI %s", it->path().filename().string()));
+					}
+				}
+				if (!bad) {
+					if (!LoadLibrary(it->path().c_str()))
+					{
+						FatalError(va("Couldn't load %s", it->path().filename().string().c_str()));
+					}
 				}
 			}
 			it++;
