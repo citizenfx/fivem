@@ -9,6 +9,7 @@
 #include "ComponentLoader.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <wchar.h>
 
 class ComponentInstance : public Component
 {
@@ -41,17 +42,23 @@ bool ComponentInstance::DoGameLoad(void* module)
 		{
 			boost::filesystem::create_directory(plugins_path);
 		}
-		char* const blacklistedAsis[] = {"openiv.asi"};
+		std::vector<wchar_t*> blacklistedAsis = std::vector<wchar_t*>({
+			L"openiv.asi"
+		});
 		// load all .asi files in the plugins/ directory
 		while (it != end)
 		{
 			if (it->path().extension() == ".asi")
 			{
 				bool bad = false;
-				for (int i = 0; i < sizeof(blacklistedAsis); i++) {
-					if (boost::iequals(it->path().filename().string(), std::string(blacklistedAsis[i]))) {
-						bad = true;
-						trace(va("Skipping blacklisted ASI %s", it->path().filename().string()));
+				for (std::vector<wchar_t*>::iterator itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt){
+					
+					if (*itt != nullptr && *itt != L"")
+					{
+						if (wcsicmp(it->path().filename().c_str(), *itt) == 0) {
+							bad = true;
+							trace(va("Skipping blacklisted ASI %s - this plugin is not compatible with FiveReborn", it->path().filename().string().c_str()));
+						}
 					}
 				}
 				if (!bad) {
