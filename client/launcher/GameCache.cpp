@@ -94,8 +94,8 @@ static GameCacheEntry g_requiredEntries[] =
 	//{ L"update/update.rpf", "d9f84cd5b8b5bafaeee92dd43568887172849d01", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/update/update.rpf", 374835200, 422755424 },
 
 	{ L"GTA5.exe", "a6b255a2e2b8ea48ec5776f42770cf54522a85bf", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/GTA5.exe", 54920072, 505185312 },
-	{ L"update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
-
+	//{ L"update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
+	{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "http://updater.fivereborn.com/patches/dlcpacks/update.rpf", 560553984 },
 	{ L"update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpf", 312438784 },
 	{ L"update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "http://updater.fivereborn.com/patches/dlcpacks/mpluxe/dlc.rpf", 226260992 },
 
@@ -108,6 +108,27 @@ static GameCacheEntry g_requiredEntries[] =
 	{ L"update/x64/dlcpacks/mphalloween/dlc.rpf", "3f960c014e83be00cf8e6b520bbf22f7da6160a4", "http://updater.fivereborn.com/patches/dlcpacks/mphalloween/dlc.rpf", 104658944 },
 	{ L"update/x64/dlcpacks/mplowrider/dlc.rpf", "eab744fe959ca29a2e5f36843d259ffc9d04a7f6", "http://updater.fivereborn.com/patches/dlcpacks/mplowrider/dlc.rpf", 1088813056 },
 	{ L"update/x64/dlcpacks/patchday7ng/dlc.rpf", "29df23f3539907a4e15f1cdb9426d462c1ad0337", "http://updater.fivereborn.com/patches/dlcpacks/patchday7ng/dlc.rpf", 43843584 },
+	
+	//573
+	{ L"update/x64/dlcpacks/mpxmas_604490/dlc.rpf", "929e5b79c9915f40f212f1ed9f9783f558242c3d", "http://updater.fivereborn.com/patches/dlcpacks/mpxmas_604490/dlc.rpf", 46063616 },
+	{ L"update/x64/dlcpacks/mpapartment/dlc.rpf", "e1bed90e750848407f6afbe1db21aa3691bf9d82", "http://updater.fivereborn.com/patches/dlcpacks/mpapartment/dlc.rpf", 636985344 },
+	{ L"update/x64/dlcpacks/patchday8ng/dlc.rpf", "2f9840c20c9a93b48cfcf61e07cf17c684858e36", "http://updater.fivereborn.com/patches/dlcpacks/patchday8ng/dlc.rpf", 365330432 },
+
+	//617
+	{ L"update/x64/dlcpacks/mpjanuary2016/dlc.rpf", "4f0d5fa835254eb918716857a47e8ce63e158c22", "http://updater.fivereborn.com/patches/dlcpacks/mpjanuary2016/dlc.rpf", 149417984 },
+	{ L"update/x64/dlcpacks/mpvalentines2/dlc.rpf", "b1ef3b0e4741978b5b04c54c6eca8b475681469a", "http://updater.fivereborn.com/patches/dlcpacks/mpvalentines2/dlc.rpf", 25075712 },
+
+	//678
+	{ L"update/x64/dlcpacks/mplowrider2/dlc.rpf", "6b9ac7b7b35b56208541692cf544788d35a84c82", "http://updater.fivereborn.com/patches/dlcpacks/mplowrider2/dlc.rpf", 334028800 },
+	{ L"update/x64/dlcpacks/patchday9ng/dlc.rpf", "e29c191561d8fa4988a71be7be5ca9c6e1335537", "http://updater.fivereborn.com/patches/dlcpacks/patchday9ng/dlc.rpf", 160526336 },
+
+	//757
+	{ L"update/x64/dlcpacks/mpexecutive/dlc.rpf", "3fa67dd4005993c9a7a66879d9f244a55fea95e9", "http://updater.fivereborn.com/patches/dlcpacks/mpexecutive/dlc.rpf", 801570816 },
+	{ L"update/x64/dlcpacks/patchday10ng/dlc.rpf", "4140c1f56fd29b0364be42a11fcbccd9e345d6ff", "http://updater.fivereborn.com/patches/dlcpacks/patchday10ng/dlc.rpf", 94134272 },
+
+	//791 Cunning Stunts
+	{ L"update/x64/dlcpacks/mpstunt/dlc.rpf", "c5d338068f72685523a49fddfd431a18c4628f61", "http://updater.fivereborn.com/patches/dlcpacks/mpstunt/dlc.rpf", 348049408 },
+	{ L"update/x64/dlcpacks/patchday11ng/dlc.rpf", "7941a22c6238c065f06ff667664c368b6dc10711", "http://updater.fivereborn.com/patches/dlcpacks/patchday11ng/dlc.rpf", 9957376 },
 
 	{ L"ros/cef.pak", "EC38FF4278D4E13FD8681A205F29CDA000D05759", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef.pak", 2018390, 56061688 },
 	{ L"ros/cef_100_percent.pak", "6B96A6E9E418AE73B4EC7CB6CB7C10BAA2A98449", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_100_percent.pak", 444515, 56061688 },
