@@ -984,7 +984,7 @@ public:
 
 		if (unk && dynamic_cast<CfxCollection*>(unk))
 		{
-			trace("Tried to open a CfxCollection inside a CfxCollection. Is this bad?\n");
+			//trace("Tried to open a CfxCollection inside a CfxCollection. Is this bad?\n");
 		}
 
 		if (!IsPseudoPackPath(archive))
