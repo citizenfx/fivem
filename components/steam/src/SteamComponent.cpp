@@ -310,11 +310,18 @@ void SteamComponent::InitializePresence()
 
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
-		// create an empty VAC blob
-		void* blob = new char[8];
-		memset(blob, 0, sizeof(blob));
+		if (g_isOldSpawnProcess)
+		{
+			// create an empty VAC blob
+			void* blob = new char[8];
+			memset(blob, 0, sizeof(blob));
 
-		steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
+			steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
+		}
+		else
+		{
+			steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
+		}
 	}
 }
 

@@ -39,3 +39,5 @@ public:
 		return ((TReturn(__thiscall*)(void*, TArgs...))method)(m_interface, args...);
 	}
 };
+
+extern bool g_isOldSpawnProcess;
