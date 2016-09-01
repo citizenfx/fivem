@@ -35,6 +35,7 @@ void saveSettings(const wchar_t *json) {
 		// open and read the profile file
 		std::wstring settingsPath = cfxPath + L"\\settings.json";
 		std::wofstream settingsFile(settingsPath);
+		//trace(va("Saving settings data %s\n", json));
 		settingsFile << json;
 		settingsFile.close();
 		CoTaskMemFree(appDataPath);
@@ -56,6 +57,7 @@ void loadSettings() {
 			std::string json;
 			settingsFile >> json;
 			settingsFile.close();
+			//trace(va("Loaded JSON settings %s\n", json.c_str()));
 			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", json.c_str()));
 		}
 		
@@ -110,7 +112,6 @@ static InitFunction initFunction([] ()
 			if (!newusername.empty()) {
 				if (newusername.c_str() != netLibrary->GetPlayerName()) {
 					netLibrary->SetPlayerName(newusername.c_str());
-					saveSettings(arg);
 					trace(va("Changed player name to %s\n", newusername.c_str()));
 					nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setSettingsNick', nickname: '%s' }, '*');", newusername.c_str()));
 				}
@@ -119,12 +120,12 @@ static InitFunction initFunction([] ()
 		else if (!_wcsicmp(type, L"loadSettings"))
 		{
 			loadSettings();
-			trace("Settings loaded!");
+			trace("Settings loaded!\n");
 		}
 		else if (!_wcsicmp(type, L"saveSettings"))
 		{
 			saveSettings(arg);
-			trace("Settings saved!");
+			trace("Settings saved!\n");
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
@@ -134,7 +135,7 @@ static InitFunction initFunction([] ()
 			wcstombs(newusername, arg, wcslen(arg));
 			if (text != newusername)
 			{
-				trace(va("Loaded nickname: %s", newusername));
+				trace(va("Loaded nickname: %s\n", newusername));
 				netLibrary->SetPlayerName(newusername);
 			}
 		}
