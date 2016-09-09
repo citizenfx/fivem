@@ -239,7 +239,7 @@ void FontRendererImpl::DrawPerFrame()
 					g_fontRenderer.GetGameInterface()->UnsetTexture();
 				}
 
-				delete glyphRun;
+				delete[] glyphRun;
 			}
 
 			delete glyphRuns;

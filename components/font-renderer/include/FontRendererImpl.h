@@ -80,6 +80,8 @@ struct ResultingSubGlyphRun : public FrpUseSequentialAllocator
 	ResultingVertex* vertices;
 	ResultingIndex* indices;
 
+	int order;
+
 	ResultingSubGlyphRun();
 
 	~ResultingSubGlyphRun();

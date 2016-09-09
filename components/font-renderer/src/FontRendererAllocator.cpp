@@ -28,6 +28,21 @@ void FrpUseSequentialAllocator::operator delete[] (void* ptr)
 	// no-op
 }
 
+void* FrpUseSequentialAllocator::operator new(size_t size)
+{
+	char* arenaPtr = reinterpret_cast<char*>(g_seqArena) + (g_seqPage * (8 * 1024 * 1024));
+
+	LONG offset = InterlockedAdd(&g_seqStart, size) - size;
+	void* retPtr = &arenaPtr[offset];
+
+	return retPtr;
+}
+
+void FrpUseSequentialAllocator::operator delete(void* ptr)
+{
+	// no-op
+}
+
 void FrpSeqAllocatorWaitForSwap()
 {
 	WaitForSingleObject(g_swapEvent, INFINITE);

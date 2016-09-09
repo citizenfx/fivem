@@ -118,6 +118,8 @@ void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRI
 			thisRun->indices[4] = 3;
 			thisRun->indices[5] = 0;
 
+			thisRun->order = runCount;
+
 			runCount++;
 		}
 
@@ -159,13 +161,15 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 	else
 	{
 		// assume there's 6 layers at most on average
-		initialRuns = new ResultingSubGlyphRun[(glyphRun->glyphCount * 6) + 1];
-		initialVertices = new ResultingVertex[glyphRun->glyphCount * 6 * 4];
-		initialIndices = new ResultingIndex[glyphRun->glyphCount * 6 * 6];
+		initialRuns = new ResultingSubGlyphRun[(glyphRun->glyphCount * 20) + 1];
+		initialVertices = new ResultingVertex[glyphRun->glyphCount * 20 * 4];
+		initialIndices = new ResultingIndex[glyphRun->glyphCount * 20 * 6];
 
 		BOOL hasRun = TRUE;
+		
+		colorEnumerator->MoveNext(&hasRun);
 
-		do 
+		while(hasRun)
 		{
 			const DWRITE_COLOR_GLYPH_RUN* colorGlyphRun;
 			colorEnumerator->GetCurrentRun(&colorGlyphRun);
@@ -175,7 +179,7 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 			TargetGlyphRunInternal(colorGlyphRun->baselineOriginX, colorGlyphRun->baselineOriginY, &colorGlyphRun->glyphRun, initialRuns, initialVertices, initialIndices, curColor, runCount);
 
 			colorEnumerator->MoveNext(&hasRun);
-		} while (hasRun);
+		}
 	}
 
 	if (runCount == 0)
@@ -195,7 +199,11 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 
 		if (left->texture == right->texture)
 		{
-			return 0;
+			if (left->order == right->order)
+			{
+				return 0;
+			}
+			return (left->order < right->order) ? -1 : 1;
 		}
 
 		return (left->texture < right->texture) ? -1 : 1;
@@ -203,9 +211,9 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 
 	initialRuns[runCount].texture = nullptr;
 
-	ResultingGlyphRun* resultRun = new ResultingGlyphRun();
+	ResultingGlyphRun* resultRun = new ResultingGlyphRun[1];
 	resultRun->numSubRuns = 0;
-	resultRun->subRuns = new ResultingSubGlyphRun[glyphRun->glyphCount];
+	resultRun->subRuns = new ResultingSubGlyphRun[runCount];
 
 	if (runCount > 0)
 	{
