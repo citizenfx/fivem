@@ -185,32 +185,9 @@ char *Info_ValueForKey(const char *s, const char *key)
 
 		o = value[valueindex];
 
-		while (true)
+		while (*s != '\\' && *s)
 		{
-			if (!*s)
-			{
-				break;
-			}
-
-			if (*s == '\\')
-			{
-				if (*(s + 1) == '\\')
-				{
-					*o = '\\';
-					o++;
-					s += 2;
-				}
-				else
-				{
-					break;
-				}
-			}
-			else
-			{
-				*o = *s;
-				o++;
-				s++;
-			}
+			*o++ = *s++;
 		}
 		*o = 0;
 
