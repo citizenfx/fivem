@@ -323,3 +323,15 @@ bool UrlDecode(const std::string& in, std::string& out)
 	}
 	return true;
 }
+
+static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
+
+std::string ToNarrow(const std::wstring& wide)
+{
+	return g_converter.to_bytes(wide);
+}
+
+std::wstring ToWide(const std::string& narrow)
+{
+	return g_converter.from_bytes(narrow);
+}

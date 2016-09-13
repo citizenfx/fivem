@@ -193,6 +193,9 @@ void CreateDirectoryAnyDepth(const char *path);
 
 void SetThreadName(int threadId, char* threadName);
 
+std::wstring ToWide(const std::string& narrow);
+std::string ToNarrow(const std::wstring& wide);
+
 extern "C" bool
 #ifdef COMPILING_CORE
 	DLL_EXPORT
