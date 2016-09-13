@@ -304,7 +304,49 @@ static InitFunction initFunction([] ()
 		int x, y;
 		GetGameResolution(x, y);
 
-		const wchar_t* brandingString = L"FiveReborn \xD83C\xDF42 \xD83E\xDDC0 \xD83D\xDC36 \xD83C\xDFC8";
+		SYSTEMTIME systemTime;
+		GetLocalTime(&systemTime);
+
+		const wchar_t* brandingString = L"";
+
+		switch (systemTime.wHour)
+		{
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+				brandingString = L"FiveReborn \xD83C\xDF19";
+				break;
+			case 7:
+			case 8:
+			case 9:
+			case 10:
+			case 11:
+			case 12:
+				brandingString = L"FiveReborn \xD83C\xDF42";
+				break;
+			case 13:
+			case 14:
+			case 15:
+			case 16:
+			case 17:
+			case 18:
+				brandingString = L"FiveReborn \xD83D\xDD25";
+				break;
+			case 19:
+			case 20:
+			case 21:
+			case 22:
+			case 23:
+			case 0:
+				brandingString = L"FiveReborn \xD83C\xDF59";
+				break;
+		}
+
+		// no!
+		//const wchar_t* brandingString = L"FiveReborn \xD83C\xDF42 \xD83E\xDDC0 \xD83D\xDC36 \xD83C\xDFC8";
 
 		static CRect metrics;
 		
