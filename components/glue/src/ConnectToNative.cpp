@@ -16,6 +16,8 @@
 #include "KnownFolders.h"
 #include <ShlObj.h>
 
+#include <SteamComponentAPI.h>
+
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 {
 	if (pointers->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
@@ -53,16 +55,54 @@ void loadSettings() {
 		std::wstring settingsPath = cfxPath + L"\\settings.json";
 		if (FILE* profileFile = _wfopen(settingsPath.c_str(), L"rb"))
 		{
-			std::ifstream settingsFile(settingsPath);
-			std::string json;
+			std::wifstream settingsFile(settingsPath);
+			std::wstring json;
 			settingsFile >> json;
 			settingsFile.close();
+
 			//trace(va("Loaded JSON settings %s\n", json.c_str()));
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", json.c_str()));
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", ToNarrow(json).c_str()));
 		}
 		
 		CoTaskMemFree(appDataPath);
 	}
+}
+
+inline ISteamComponent* GetSteam()
+{
+	auto steamComponent = Instance<ISteamComponent>::Get();
+
+	// if Steam isn't running, return an error
+	if (!steamComponent->IsSteamRunning())
+	{
+		steamComponent->Initialize();
+
+		if (!steamComponent->IsSteamRunning())
+		{
+			return nullptr;
+		}
+	}
+
+	return steamComponent;
+}
+
+inline bool HasDefaultName()
+{
+	auto steamComponent = GetSteam();
+
+	if (steamComponent)
+	{
+		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+		InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+		if (steamFriends.IsValid())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 static InitFunction initFunction([] ()
@@ -129,14 +169,14 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
-			if (arg == L"") return;
+			if (!arg || !arg[0]) return;
 			const char* text = netLibrary->GetPlayerName();
-			char* newusername = new char[wcslen(arg)];
-			wcstombs(newusername, arg, wcslen(arg));
-			if (text != newusername)
+			std::string newusername = ToNarrow(arg);
+
+			if (text != newusername && !HasDefaultName()) // one's a string, two's a char, string meets char, string::operator== exists
 			{
-				trace(va("Loaded nickname: %s\n", newusername));
-				netLibrary->SetPlayerName(newusername);
+				trace("Loaded nickname: %s\n", newusername.c_str());
+				netLibrary->SetPlayerName(newusername.c_str());
 			}
 		}
 		else if (!_wcsicmp(type, L"exit"))

@@ -12,6 +12,25 @@
 #include <mutex>
 #include <mmsystem.h>
 #include <yaml-cpp/yaml.h>
+#include <SteamComponentAPI.h>
+
+inline ISteamComponent* GetSteam()
+{
+	auto steamComponent = Instance<ISteamComponent>::Get();
+
+	// if Steam isn't running, return an error
+	if (!steamComponent->IsSteamRunning())
+	{
+		steamComponent->Initialize();
+
+		if (!steamComponent->IsSteamRunning())
+		{
+			return nullptr;
+		}
+	}
+
+	return steamComponent;
+}
 
 static uint32_t m_tempGuid = GetTickCount();
 
@@ -536,6 +555,27 @@ void NetLibrary::PostProcessNativeNet()
 	g_netFrameMutex.unlock();
 }
 
+inline uint64_t GetGUID()
+{
+	auto steamComponent = GetSteam();
+
+	if (steamComponent)
+	{
+		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+		uint64_t steamID;
+		steamUser.Invoke<void>("GetSteamID", &steamID);
+
+		return steamID;
+	}
+	else
+	{
+		return (uint64_t)(0x210000100000000 | m_tempGuid);
+	}
+}
+
 void NetLibrary::RunFrame()
 {
 	if (!g_netFrameMutex.try_lock())
@@ -575,7 +615,7 @@ void NetLibrary::RunFrame()
 
 				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());*/
 
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), (uint64_t)m_tempGuid);
+				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), (uint64_t)GetGUID());
 
 				m_lastConnect = GetTickCount();
 
@@ -650,13 +690,33 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
-	/*TerminalClient* clientContainer = Instance<TerminalClient>::Get();
-	auto client = clientContainer->GetClient();
-	auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());*/
-
-	//postMap["guid"] = va("%llu", user->GetNPID());
-	postMap["guid"] = va("%lld", (uint64_t)m_tempGuid);
 	uint16_t capturePort = port;
+
+	auto steamComponent = GetSteam();
+
+	if (steamComponent)
+	{
+		uint32_t ticketLength;
+		uint8_t ticketBuffer[4096];
+
+		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+		steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
+
+		// encode the ticket buffer
+		std::stringstream str;
+
+		for (int i = 0; i < ticketLength; i++)
+		{
+			str << va("%02x", ticketBuffer[i]);
+		}
+
+		postMap["authTicket"] = str.str();
+	}
+
+	postMap["guid"] = va("%lld", GetGUID());
 
 	static fwAction<bool, const char*, size_t> handleAuthResult;
 	handleAuthResult = [=] (bool result, const char* connDataStr, size_t size) mutable
@@ -677,13 +737,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		try
 		{
 			auto node = YAML::Load(connData);
-			if (!node["sH"].IsDefined()) {
-				// Server did not send a scripts setting: old server or rival project
-				OnConnectionError("Legacy servers are incompatible with this version of FiveReborn. Update the server to the latest files from fivereborn.com");
-				m_connectionState = CS_IDLE;
-				return;
-			}
-			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
+
 			// ha-ha, you need to authenticate first!
 			/*
 			if (node["authID"].IsDefined())
@@ -723,6 +777,15 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 				return;
 			}
+
+			if (!node["sH"].IsDefined())
+			{
+				// Server did not send a scripts setting: old server or rival project
+				OnConnectionError("Legacy servers are incompatible with this version of FiveReborn. Update the server to the latest files from fivereborn.com");
+				m_connectionState = CS_IDLE;
+				return;
+			}
+			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
 
 			m_token = node["token"].as<std::string>();
 
@@ -872,6 +935,23 @@ const char* NetLibrary::GetPlayerName()
 	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();*/
 	if (!m_playerName.empty()) return m_playerName.c_str();
 
+	auto steamComponent = GetSteam();
+
+	if (steamComponent)
+	{
+		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+		InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+		if (steamFriends.IsValid())
+		{
+			// TODO: name changing
+			static std::string personaName = steamFriends.Invoke<const char*>("GetPersonaName");
+
+			return personaName.c_str();
+		}
+	}
+
 	const char* returnName = nullptr;
 	/*
 	if (profile.GetRef())
@@ -887,17 +967,14 @@ const char* NetLibrary::GetPlayerName()
 		returnName = computerName;
 	}*/
 	returnName = getenv("USERNAME");
-	if (returnName == "" || returnName == nullptr) {
-		returnName = getenv("USER");
-	}
-	if (returnName == "" || returnName == nullptr) {
+	if (returnName == nullptr || !returnName[0]) {
 		static char computerName[64];
 		DWORD nameSize = sizeof(computerName);
 		GetComputerNameA(computerName, &nameSize);
 		returnName = computerName;
 	}
-	if (returnName == "" || returnName == nullptr) {
-		returnName = "UnknownUser";
+	if (returnName == nullptr || !returnName[0]) {
+		returnName = "Unknown Solderer";
 	}
 	return returnName;
 }

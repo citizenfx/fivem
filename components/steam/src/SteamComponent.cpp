@@ -10,6 +10,7 @@
 #include "InterfaceMapper.h"
 #include "SafeClientEngine.h"
 
+#include <fstream>
 #include <sstream>
 #include <thread>
 
@@ -64,6 +65,8 @@ SteamComponent::SteamComponent()
 {
 
 }
+
+#include <base64.h>
 
 void SteamComponent::Initialize()
 {
@@ -236,7 +239,7 @@ void SteamComponent::RemoveSteamCallback(int registeredID)
 #define PARENT_APP_ID 204100
 #define PRODUCT_DISPLAY_NAME "CitizenPayne \xF0\x9F\x92\x8A"
 #elif defined(GTA_FIVE)
-#define PARENT_APP_ID 271590
+#define PARENT_APP_ID 218
 #define PRODUCT_DISPLAY_NAME "FiveReborn \xF0\x9F\x92\x8A - GTA V, modified"
 #else
 #define PARENT_APP_ID 218
@@ -258,16 +261,7 @@ void SteamComponent::InitializePresence()
 	// check for ownership of a suitable parent game to use for the CGameID instance
 	InterfaceMapper steamUserInterface(m_clientEngine->GetIClientUser(m_steamUser, m_steamPipe, "CLIENTUSER_INTERFACE_VERSION001"));
 
-	uint32_t parentAppID = PARENT_APP_ID;
-
-	uint32_t timeCreated = 0;
-	bool success = steamUserInterface.Invoke<bool>("GetAppOwnershipInfo", parentAppID, &timeCreated, nullptr, nullptr);
-	bool legitimateOwnership = steamUserInterface.Invoke<bool>("BIsSubscribedApp", parentAppID);
-
-	if (!success || timeCreated == 0 || !legitimateOwnership)
-	{
-		parentAppID = 218;
-	}
+	uint32_t parentAppID = 218;
 
 	// set the parent appid in the instance
 	m_parentAppID = parentAppID;
@@ -294,6 +288,20 @@ void SteamComponent::InitializePresence()
 	// if the configuration is valid, launch our child process
 	if (configAdded)
 	{
+		std::string productName = PRODUCT_DISPLAY_NAME;
+
+		std::wstring namePath = MakeRelativeCitPath(L"steamname.txt");
+
+		if (GetFileAttributes(namePath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			std::wifstream nameFile(namePath);
+			std::wstring prodNameWide;
+			nameFile >> prodNameWide;
+			nameFile.close();
+
+			productName = ToNarrow(prodNameWide);
+		}
+
 		// set our pipe appid
 		InterfaceMapper steamUtils(m_clientEngine->GetIClientUtils(m_steamPipe, "CLIENTUTILS_INTERFACE_VERSION001"));
 
@@ -316,11 +324,11 @@ void SteamComponent::InitializePresence()
 			void* blob = new char[8];
 			memset(blob, 0, sizeof(blob));
 
-			steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
+			steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, productName.c_str(), 0);
 		}
 		else
 		{
-			steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, PRODUCT_DISPLAY_NAME, 0);
+			steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, productName.c_str(), 0);
 		}
 	}
 }

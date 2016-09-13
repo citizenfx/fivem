@@ -18,7 +18,7 @@
 void ProfileManagerImpl::Initialize()
 {
 	// load stored profiles
-	LoadStoredProfiles();
+	//LoadStoredProfiles();
 
 	// initialize profiles from profile suggestion providers
 	for (auto&& provider : m_suggestionProviders)
