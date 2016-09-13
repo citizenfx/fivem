@@ -94,8 +94,8 @@ static GameCacheEntry g_requiredEntries[] =
 	//{ L"update/update.rpf", "d9f84cd5b8b5bafaeee92dd43568887172849d01", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/update/update.rpf", 374835200, 422755424 },
 
 	{ L"GTA5.exe", "a6b255a2e2b8ea48ec5776f42770cf54522a85bf", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/GTA5.exe", 54920072, 505185312 },
-	//{ L"update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
-	{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "http://updater.fivereborn.com/patches/dlcpacks/update.rpf", 560553984 },
+	{ L"update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
+	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "http://updater.fivereborn.com/patches/dlcpacks/update.rpf", 560553984 },
 	{ L"update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpf", 312438784 },
 	{ L"update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "http://updater.fivereborn.com/patches/dlcpacks/mpluxe/dlc.rpf", 226260992 },
 
