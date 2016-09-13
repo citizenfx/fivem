@@ -295,11 +295,11 @@ void SteamComponent::InitializePresence()
 		if (GetFileAttributes(namePath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			std::wifstream nameFile(namePath);
-			std::wstring prodNameWide;
-			nameFile >> prodNameWide;
+			std::wstringstream nameStream;
+			nameStream << nameFile.rdbuf();
 			nameFile.close();
 
-			productName = ToNarrow(prodNameWide);
+			productName = ToNarrow(nameStream.str());
 		}
 
 		// set our pipe appid

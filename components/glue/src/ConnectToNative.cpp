@@ -13,6 +13,7 @@
 #include <nutsnbolts.h>
 //New libs needed for saveSettings
 #include <fstream>
+#include <sstream>
 #include "KnownFolders.h"
 #include <ShlObj.h>
 
@@ -56,12 +57,13 @@ void loadSettings() {
 		if (FILE* profileFile = _wfopen(settingsPath.c_str(), L"rb"))
 		{
 			std::wifstream settingsFile(settingsPath);
-			std::wstring json;
-			settingsFile >> json;
+
+			std::wstringstream settingsStream;
+			settingsStream << settingsFile.rdbuf();
 			settingsFile.close();
 
 			//trace(va("Loaded JSON settings %s\n", json.c_str()));
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", ToNarrow(json).c_str()));
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", ToNarrow(settingsStream.str()).c_str()));
 		}
 		
 		CoTaskMemFree(appDataPath);
