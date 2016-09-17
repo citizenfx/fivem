@@ -281,7 +281,7 @@ five::grmModel* convert(ny::grmModel* model)
 
 	{
 		auto& oldGeometries = model->GetGeometries();
-		five::grmGeometryQB* geometries[64];
+		five::grmGeometryQB* geometries[256];
 
 		for (int i = 0; i < oldGeometries.GetCount(); i++)
 		{
