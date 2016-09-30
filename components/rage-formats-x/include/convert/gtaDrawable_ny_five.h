@@ -350,10 +350,10 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 					for (int i = 1; i < geometryBounds.size(); i++)
 					{
-						oldBounds[i].w *= 2;
+						oldBounds[i - 1].w *= 2;
 
-						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
-						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
+						geometryBounds[i].aabbMin = Vector4(oldBounds[i - 1].x - oldBounds[i - 1].w, oldBounds[i - 1].y - oldBounds[i - 1].w, oldBounds[i - 1].z - oldBounds[i - 1].w, -oldBounds[i - 1].w);
+						geometryBounds[i].aabbMax = Vector4(oldBounds[i - 1].x + oldBounds[i - 1].w, oldBounds[i - 1].y + oldBounds[i - 1].w, oldBounds[i - 1].z + oldBounds[i - 1].w, oldBounds[i - 1].w);
 					}
 
 					geometryBounds[0].aabbMin = Vector4(minBounds.x, minBounds.y, minBounds.z, oldLodGroup.GetRadius() * -2.0f);
@@ -367,6 +367,25 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 	out->SetPrimaryModel();
 	out->SetName("lovely.#dr");
+
+	return out;
+}
+
+template<>
+five::pgDictionary<five::gtaDrawable>* convert(ny::pgDictionary<ny::gtaDrawable>* dwd)
+{
+	five::pgDictionary<five::gtaDrawable>* out = new(false) five::pgDictionary<five::gtaDrawable>();
+	five::pgDictionary<five::gtaDrawable> newDrawables;
+
+	if (dwd->GetCount()) // amazingly there's 0-sized TXDs?
+	{
+		for (auto& drawable : *dwd)
+		{
+			newDrawables.Add(drawable.first, convert<five::gtaDrawable*>(drawable.second));
+		}
+	}
+
+	out->SetFrom(&newDrawables);
 
 	return out;
 }

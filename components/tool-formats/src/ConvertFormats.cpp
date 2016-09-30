@@ -66,6 +66,15 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		fileVersion = 165;
 	}
+	else if (fileExt == L".wdd")
+	{
+		wprintf(L"converting drawable dictionary %s...\n", path.filename().c_str());
+
+		auto drawable = (rage::ny::pgDictionary<rage::ny::gtaDrawable>*)bm->blocks[0].data;
+		rage::convert<rage::five::pgDictionary<rage::five::gtaDrawable>*>(drawable);
+
+		fileVersion = 165;
+	}
 	else if (fileExt == L".wtd")
 	{
 		wprintf(L"converting txd %s...\n", path.filename().c_str());
