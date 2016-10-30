@@ -71,13 +71,5 @@ static InitFunction initFunction([] ()
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
 		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
-
-		std::string dlcPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\dlc\\update\\"));
-		if (GetFileAttributes(std::wstring(dlcPath.begin(), dlcPath.end()).c_str()) != INVALID_FILE_ATTRIBUTES)
-		{
-			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
-			relativeDevice->SetPath(dlcPath.c_str(), nullptr, true);
-			relativeDevice->Mount("update:/");
-		}
 	});
 });

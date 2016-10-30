@@ -18,7 +18,7 @@
 
 #include <concurrent_queue.h>
 
-#define NETWORK_PROTOCOL 3
+#define NETWORK_PROTOCOL 4
 
 enum NetAddressType
 {
