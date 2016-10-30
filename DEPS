@@ -13,7 +13,7 @@ deps = {
 	"vendor/protobuf": "https://github.com/google/protobuf.git@5eb73dfcce20bdfe421620cb31b7b98a0c5eec88",
 	"vendor/libopus": "http://git.opus-codec.org/opus.git",
 	"vendor/pash": "http://tohjo.eu/citidev/pash.git",
-	"vendor/breakpad": "https://chromium.googlesource.com/breakpad/breakpad",
+	"vendor/breakpad": "https://chromium.googlesource.com/breakpad/breakpad@704f41ec901c419f8c321742114b415e6f5ceacc",
 	"vendor/udis86": "https://github.com/vmt/udis86.git",
 	"vendor/tinyxml2": "https://github.com/leethomason/tinyxml2.git@9c8582c7c3a7a55798940dca3bfbb78d4d97fa05",
 	"vendor/cpp-uri": "https://github.com/cpp-netlib/uri.git@094e114255bb228341163803976a9f55b2551371",
