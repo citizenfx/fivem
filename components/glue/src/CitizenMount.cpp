@@ -10,7 +10,7 @@
 #include "Hooking.h"
 #include "boost\assign.hpp"
 
-/*static int(__cdecl* origSetFunc)(void* extraContentMgr, void* a2, const char* deviceName);
+static int(__cdecl* origSetFunc)(void* extraContentMgr, void* a2, const char* deviceName);
 int someFunc(void* a1, void* a2, const char* a3)
 {
 	int someResult = origSetFunc(a1, a2, a3);
@@ -44,7 +44,7 @@ static HookFunction hookFunction([]()
 {
 	hook::set_call(&origSetFunc, hook::pattern("66 39 79 38 74 06 4C 8B  41 30 EB 07 4C 8D").count(1).get(0).get<void>(19));
 	hook::call(hook::pattern("66 39 79 38 74 06 4C 8B  41 30 EB 07 4C 8D").count(1).get(0).get<void>(19), someFunc);
-});*/
+});
 
 static InitFunction initFunction([] ()
 {
@@ -71,5 +71,13 @@ static InitFunction initFunction([] ()
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
 		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
+
+		std::string dlcPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\dlc\\update\\"));
+		if (GetFileAttributes(std::wstring(dlcPath.begin(), dlcPath.end()).c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
+			relativeDevice->SetPath(dlcPath.c_str(), nullptr, true);
+			relativeDevice->Mount("update:/");
+		}
 	});
 });

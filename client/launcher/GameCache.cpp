@@ -130,6 +130,10 @@ static GameCacheEntry g_requiredEntries[] =
 	{ L"update/x64/dlcpacks/mpstunt/dlc.rpf", "c5d338068f72685523a49fddfd431a18c4628f61", "http://updater.fivereborn.com/patches/dlcpacks/mpstunt/dlc.rpf", 348049408 },
 	{ L"update/x64/dlcpacks/patchday11ng/dlc.rpf", "7941a22c6238c065f06ff667664c368b6dc10711", "http://updater.fivereborn.com/patches/dlcpacks/patchday11ng/dlc.rpf", 9957376 },
 
+	//877 Bikers
+	{ L"update/x64/dlcpacks/mpbiker/dlc.rpf", "52c48252eeed97e9a30efeabbc6623c67566c237", "http://updater.fivereborn.com/patches/dlcpacks/mpbiker/dlc.rpf", 1794048000 },
+	{ L"update/x64/dlcpacks/patchday12ng/dlc.rpf", "4f3f3e88d4f01760648057c56fb109e1fbeb116a", "http://updater.fivereborn.com/patches/dlcpacks/patchday12ng/dlc.rpf", 155365376 },
+
 	{ L"ros/cef.pak", "EC38FF4278D4E13FD8681A205F29CDA000D05759", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef.pak", 2018390, 56061688 },
 	{ L"ros/cef_100_percent.pak", "6B96A6E9E418AE73B4EC7CB6CB7C10BAA2A98449", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_100_percent.pak", 444515, 56061688 },
 	{ L"ros/cef_200_percent.pak", "273A18D4BBB2F2E7080A95BFC2EF2EF034AC5E2C", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_200_percent.pak", 598403, 56061688 },
