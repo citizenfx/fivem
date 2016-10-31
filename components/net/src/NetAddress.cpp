@@ -42,7 +42,21 @@ NetAddress::NetAddress(const char* address, uint16_t port)
 		m_type = NA_INET4;
 
 		m_in4.sin_family = AF_INET;
-		inet_pton(AF_INET, address, &m_in4.sin_addr);
+
+		addrinfo* ai;
+		if (getaddrinfo(address, nullptr, nullptr, &ai) >= 0)
+		{
+			for (addrinfo* i = ai; i; i = i->ai_next)
+			{
+				if (i->ai_family == AF_INET)
+				{
+					memcpy(&m_in4, i->ai_addr, sizeof(m_in4));
+					break;
+				}
+			}
+
+			freeaddrinfo(ai);
+		}
 
 		m_in4.sin_port = htons(port);
 		memset(m_in4.sin_zero, 0, sizeof(m_in4.sin_zero));
