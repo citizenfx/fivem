@@ -8,7 +8,7 @@ namespace CitizenFX.Core
 {
     internal static class QuaternionExtensions
     {
-        internal static Vector3 ToRotation(this Quaternion q)
+        /*internal static Vector3 ToRotation(this Quaternion q)
         {
             float pitch = (float)Math.Atan2(2.0f * (q.Y * q.Z + q.W * q.X), q.W * q.W - q.X * q.X - q.Y * q.Y + q.Z * q.Z);
             float yaw = (float)Math.Atan2(2.0f * (q.X * q.Y + q.W * q.Z), q.W * q.W + q.X * q.X - q.Y * q.Y - q.Z * q.Z);
@@ -36,6 +36,6 @@ namespace CitizenFX.Core
 		    yawpitch.Normalize();
 
 		    return yawpitch;
-        }
+        }*/
     }
 }

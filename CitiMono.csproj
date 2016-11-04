@@ -9,19 +9,20 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CitizenFX.Core</RootNamespace>
     <AssemblyName>CitizenFX.Core</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>Citizen</TargetFrameworkProfile>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug NY|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\ny\debug\citizen\clr\lib\mono\4.5\</OutputPath>
+    <OutputPath>bin\five\debug\citizen\clr2\lib\mono\4.5\</OutputPath>
     <BaseIntermediateOutputPath>obj\Debug NY\CitiMono\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
+    <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_FIVE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -47,51 +48,94 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="MsgPack" />
-    <Reference Include="winmm" />
+    <Reference Include="MsgPack, Version=0.5.0.0, Culture=neutral, PublicKeyToken=a2625990d5dc0167, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\five\debug\citizen\clr2\lib\mono\4.5\MsgPack.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="client\clrcore\BaseScript.cs" />
     <Compile Include="client\clrcore\CitizenTaskScheduler.cs" />
     <Compile Include="client\clrcore\Debug.cs" />
-    <Compile Include="client\clrcore\Enums.cs" />
     <Compile Include="client\clrcore\EventHandlerDictionary.cs" />
     <Compile Include="client\clrcore\ExportDictionary.cs" />
-    <Compile Include="client\clrcore\Function.cs" />
+    <Compile Include="client\clrcore\External\Audio.cs" />
+    <Compile Include="client\clrcore\External\Blip.cs" />
+    <Compile Include="client\clrcore\External\BoneID.cs" />
+    <Compile Include="client\clrcore\External\ButtonCombination.cs" />
+    <Compile Include="client\clrcore\External\Camera.cs" />
+    <Compile Include="client\clrcore\External\Checkpoint.cs" />
+    <Compile Include="client\clrcore\External\Controls.cs" />
+    <Compile Include="client\clrcore\External\DlcWeaponStructs.cs" />
+    <Compile Include="client\clrcore\External\Element.cs" />
+    <Compile Include="client\clrcore\External\Entity.cs" />
+    <Compile Include="client\clrcore\External\EntityBone.cs" />
+    <Compile Include="client\clrcore\External\EntityBoneCollection.cs" />
+    <Compile Include="client\clrcore\External\Euphoria.cs" />
+    <Compile Include="client\clrcore\External\EuphoriaBase.cs" />
+    <Compile Include="client\clrcore\External\EuphoriaHelpers.cs" />
+    <Compile Include="client\clrcore\External\Font.cs" />
+    <Compile Include="client\clrcore\External\Game.cs" />
+    <Compile Include="client\clrcore\External\Interfaces.cs" />
+    <Compile Include="client\clrcore\External\Model.cs" />
+    <Compile Include="client\clrcore\External\ParticleEffects.cs" />
+    <Compile Include="client\clrcore\External\Ped.cs" />
+    <Compile Include="client\clrcore\External\PedBone.cs" />
+    <Compile Include="client\clrcore\External\PedBoneCollection.cs" />
+    <Compile Include="client\clrcore\External\PedGroup.cs" />
+    <Compile Include="client\clrcore\External\PedHash.cs" />
+    <Compile Include="client\clrcore\External\Pickup.cs" />
+    <Compile Include="client\clrcore\External\Player.cs" />
+    <Compile Include="client\clrcore\External\Prop.cs" />
+    <Compile Include="client\clrcore\External\RadioStation.cs" />
+    <Compile Include="client\clrcore\External\Raycast.cs" />
+    <Compile Include="client\clrcore\External\Relationship.cs" />
+    <Compile Include="client\clrcore\External\RelationshipGroup.cs" />
+    <Compile Include="client\clrcore\External\Rope.cs" />
+    <Compile Include="client\clrcore\External\Scaleform.cs" />
+    <Compile Include="client\clrcore\External\Screen.cs" />
+    <Compile Include="client\clrcore\External\Sprite.cs" />
+    <Compile Include="client\clrcore\External\Style.cs" />
+    <Compile Include="client\clrcore\External\Tasks.cs" />
+    <Compile Include="client\clrcore\External\Text.cs" />
+    <Compile Include="client\clrcore\External\Vehicle.cs" />
+    <Compile Include="client\clrcore\External\VehicleDoor.cs" />
+    <Compile Include="client\clrcore\External\VehicleDoorCollection.cs" />
+    <Compile Include="client\clrcore\External\VehicleHash.cs" />
+    <Compile Include="client\clrcore\External\VehicleMod.cs" />
+    <Compile Include="client\clrcore\External\VehicleModCollection.cs" />
+    <Compile Include="client\clrcore\External\VehicleToggleMod.cs" />
+    <Compile Include="client\clrcore\External\VehicleWheel.cs" />
+    <Compile Include="client\clrcore\External\VehicleWheelCollection.cs" />
+    <Compile Include="client\clrcore\External\VehicleWindow.cs" />
+    <Compile Include="client\clrcore\External\VehicleWindowCollection.cs" />
+    <Compile Include="client\clrcore\External\Weapon.cs" />
+    <Compile Include="client\clrcore\External\WeaponAsset.cs" />
+    <Compile Include="client\clrcore\External\WeaponCollection.cs" />
+    <Compile Include="client\clrcore\External\WeaponComponent.cs" />
+    <Compile Include="client\clrcore\External\WeaponComponentCollection.cs" />
+    <Compile Include="client\clrcore\External\WeaponHash.cs" />
+    <Compile Include="client\clrcore\External\World.cs" />
     <Compile Include="client\clrcore\FunctionReference.cs" />
-    <Compile Include="client\clrcore\GameClasses\Blip.cs" />
-    <Compile Include="client\clrcore\GameClasses\Camera.cs" />
-    <Compile Include="client\clrcore\GameClasses\ColorIndex.cs" />
-    <Compile Include="client\clrcore\GameClasses\Entity.cs" />
-    <Compile Include="client\clrcore\GameClasses\GameObject.cs" />
-    <Compile Include="client\clrcore\GameClasses\General\World.cs" />
-    <Compile Include="client\clrcore\GameClasses\HandleObject.cs" />
-    <Compile Include="client\clrcore\GameClasses\Model.cs" />
-    <Compile Include="client\clrcore\GameClasses\ObjectCache.cs" />
-    <Compile Include="client\clrcore\GameClasses\Ped.cs" />
-    <Compile Include="client\clrcore\GameClasses\Pickup.cs" />
-    <Compile Include="client\clrcore\GameClasses\Player.cs" />
-    <Compile Include="client\clrcore\GameClasses\PlayerList.cs" />
-    <Compile Include="client\clrcore\GameClasses\ResourceFile.cs" />
-    <Compile Include="client\clrcore\GameClasses\Room.cs" />
-    <Compile Include="client\clrcore\GameClasses\ScriptedFire.cs" />
-    <Compile Include="client\clrcore\GameClasses\Vehicle.cs" />
-    <Compile Include="client\clrcore\GameClasses\VehicleDoor.cs" />
-    <Compile Include="client\clrcore\GameClasses\VehicleExtra.cs" />
-    <Compile Include="client\clrcore\GameClasses\Weapon.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
+    <Compile Include="client\clrcore\Math\Color.cs" />
     <Compile Include="client\clrcore\Math\GameMath.cs" />
     <Compile Include="client\clrcore\Math\MathUtil.cs" />
     <Compile Include="client\clrcore\Math\Matrix.cs" />
     <Compile Include="client\clrcore\Math\Matrix3x3.cs" />
+    <Compile Include="client\clrcore\Math\Point.cs" />
+    <Compile Include="client\clrcore\Math\PointF.cs" />
     <Compile Include="client\clrcore\Math\Quaternion.cs" />
     <Compile Include="client\clrcore\Math\QuaternionExtensions.cs" />
+    <Compile Include="client\clrcore\Math\Size.cs" />
+    <Compile Include="client\clrcore\Math\SizeF.cs" />
     <Compile Include="client\clrcore\Math\Vector4.cs" />
     <Compile Include="client\clrcore\MsgPackDeserializer.cs" />
     <Compile Include="client\clrcore\MsgPackSerializer.cs" />
-    <Compile Include="client\clrcore\NativesNY.cs" />
-    <Compile Include="client\clrcore\Parameter.cs" />
+    <Compile Include="client\clrcore\Native.cs" />
+    <Compile Include="client\clrcore\NativesFive.cs" />
+    <Compile Include="client\clrcore\PlayerList.cs" />
     <Compile Include="client\clrcore\RageFileStream.cs" />
     <Compile Include="client\clrcore\RemoteFunctionReference.cs" />
     <Compile Include="client\clrcore\RuntimeManager.cs" />
@@ -102,6 +146,7 @@
   <ItemGroup>
     <None Include="client\clrcore\EcmaPublicKey.snk" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.

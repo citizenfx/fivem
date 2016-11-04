@@ -366,6 +366,11 @@ static InitFunction initFunction([] ()
 			context.SetResult(false);
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ADDRESS", [] (fx::ScriptContext& context)
+	{
+		context.SetResult(getScriptEntity(context.GetArgument<int>(0)));
+	});
 });
 
 static HookFunction hookFunction([] ()

@@ -25,13 +25,6 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
 #endif
 
-	if (GetFileAttributes(MakeRelativeGamePath(L"steam_api_ext64.dll").c_str()) != INVALID_FILE_ATTRIBUTES)
-	{
-		auto hWnd = CreateWindowExW(0, L"Static", NULL, 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, NULL, NULL);
-		SetWindowLong(hWnd, GWL_STYLE, WS_CHILD);
-		SetWindowLongPtr(hWnd, GWLP_ID, 0x4141414141414141);
-	}
-
 	SetHooksDll(g_hooksDLL);
 
 	// make the component loader initialize

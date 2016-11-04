@@ -33,38 +33,30 @@ namespace CitizenFX.Core
             m_resourceName = resourceName;
         }
 
+        private class DelegateFn
+        {
+            public dynamic Delegate { get; set; }
+        }
+
         public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
         {
-            // serialize arguments
-            var argsSerialized = MsgPackSerializer.Serialize(args);
+            // get the event name
+            var eventName = $"__cfx_export_{m_resourceName}_{binder.Name}";
 
-            // try invoking the actual member
-            var resultSerialized = InvokeResourceExport(binder.Name, argsSerialized);
+            // get the member
+            var exportDelegate = new DelegateFn();
+            BaseScript.TriggerEvent(eventName, new Action<dynamic>(a => exportDelegate.Delegate = a));
 
-            if (resultSerialized == null)
+            if (exportDelegate.Delegate == null)
             {
                 result = null;
                 return false;
             }
 
-            var returnData = MsgPackDeserializer.Deserialize(resultSerialized) as List<object>;
-
-            if (returnData == null || returnData.Count == 0)
-            {
-                result = null;
-            }
-            else
-            {
-                result = returnData[0];
-            }
+            // try invoking it
+            result = exportDelegate.Delegate(args);
 
             return true;
-        }
-        
-        [SecuritySafeCritical]
-        private byte[] InvokeResourceExport(string exportName, byte[] argsSerialized)
-        {
-            return GameInterface.InvokeResourceExport(m_resourceName, exportName, argsSerialized);
         }
     }
 }

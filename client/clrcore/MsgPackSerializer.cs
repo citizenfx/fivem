@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 using MsgPack;
 using MsgPack.Serialization;
+using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -156,23 +157,32 @@ namespace CitizenFX.Core
 
         }
 
+        [SecuritySafeCritical]
         protected override void PackToCore(MsgPack.Packer packer, Delegate objectTree)
         {
             if (objectTree is CallbackDelegate)
             {
-                throw new InvalidOperationException("Resending callback delegates is currently not supported.");
+                var funcRef = objectTree.Method.DeclaringType?.GetFields(BindingFlags.NonPublic |
+                                                                        BindingFlags.Instance |
+                                                                        BindingFlags.Public |
+                                                                        BindingFlags.Static).FirstOrDefault(a => a.FieldType == typeof(RemoteFunctionReference));
+
+                if (funcRef == null)
+                {
+                    throw new ArgumentException("The CallbackDelegate does not contain a RemoteFunctionReference capture.");
+                }
+
+                RemoteFunctionReference fr = (RemoteFunctionReference)funcRef.GetValue(objectTree.Target);
+
+                packer.PackExtendedTypeValue(10, fr.Duplicate());
             }
+            else
+            {
+                var funcRefDetails = FunctionReference.Create(objectTree);
+                string refType = InternalManager.CanonicalizeRef(funcRefDetails.Identifier);
 
-            var funcRefDetails = FunctionReference.Create(objectTree);
-
-            var resourceNameBytes = Encoding.UTF8.GetBytes(funcRefDetails.Resource);
-            var delegateData = new byte[8 + resourceNameBytes.Length];
-
-            Array.Copy(BitConverter.GetBytes(funcRefDetails.Identifier).Reverse().ToArray(), 0, delegateData, 0, 4);
-            Array.Copy(BitConverter.GetBytes(funcRefDetails.Instance).Reverse().ToArray(), 0, delegateData, 4, 4);
-            Array.Copy(resourceNameBytes, 0, delegateData, 8, resourceNameBytes.Length);
-
-            packer.PackExtendedTypeValue(1, delegateData);
+                packer.PackExtendedTypeValue(10, Encoding.UTF8.GetBytes(refType));
+            }
         }
 
         protected override Delegate UnpackFromCore(MsgPack.Unpacker unpacker)

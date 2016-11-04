@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CitizenFX.Core.client.clrcore
+namespace CitizenFX.Core
 {
     public class GameMath
     {

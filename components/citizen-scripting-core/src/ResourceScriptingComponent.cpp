@@ -129,7 +129,12 @@ void ResourceScriptingComponent::CreateEnvironments()
 	
 	for (auto& environment : m_scriptRuntimes)
 	{
-		environment.second->Create(m_scriptHost.GetRef());
+		auto hr = environment.second->Create(m_scriptHost.GetRef());
+
+		if (FX_FAILED(hr))
+		{
+			FatalError("Failed to create environment, hresult %x", hr);
+		}
 	}
 
 	// iterate over the runtimes and load scripts as requested

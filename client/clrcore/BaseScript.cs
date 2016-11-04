@@ -5,6 +5,8 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
+using CitizenFX.Core.Native;
+
 namespace CitizenFX.Core
 {
     public abstract class BaseScript
@@ -27,9 +29,9 @@ namespace CitizenFX.Core
         {
             get
             {
-                var id = Function.Call<int>(Natives.GET_PLAYER_ID);
+                var id = Function.Call<int>(Hash.PLAYER_ID);
 
-                if (m_player == null || id != m_player.ID)
+                if (m_player == null || id != m_player.Handle)
                 {
                     m_player = new Player(id);
                 }
@@ -82,6 +84,7 @@ namespace CitizenFX.Core
             return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
         }
 
+        [SecuritySafeCritical]
         public static void TriggerEvent(string eventName, params object[] args)
         {
             var argsSerialized = MsgPackSerializer.Serialize(args);
@@ -89,6 +92,7 @@ namespace CitizenFX.Core
             TriggerEventInternal(eventName, argsSerialized, false);
         }
 
+        [SecuritySafeCritical]
         public static void TriggerServerEvent(string eventName, params object[] args)
         {
             var argsSerialized = MsgPackSerializer.Serialize(args);
@@ -96,15 +100,23 @@ namespace CitizenFX.Core
             TriggerEventInternal(eventName, argsSerialized, true);
         }
 
-        [SecuritySafeCritical]
+        [SecurityCritical]
         private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
         {
-            GameInterface.TriggerEvent(eventName, argsSerialized, isRemote);
+            var nativeHash = (isRemote) ? Hash.TRIGGER_SERVER_EVENT_INTERNAL : Hash.TRIGGER_EVENT_INTERNAL;
+
+            unsafe
+            {
+                fixed (byte* serialized = &argsSerialized[0])
+                {
+                    Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
+                }
+            }
         }
 
         private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
         {
-            RuntimeManager.AddDelay(delay, callback);
+            InternalManager.AddDelay(delay, callback);
 
             return new DummyAsyncResult();
         }
@@ -116,7 +128,7 @@ namespace CitizenFX.Core
 
         public static void RegisterScript(BaseScript script)
         {
-            RuntimeManager.AddScript(script);
+            //RuntimeManager.AddScript(script);
         }
     }
 
@@ -158,11 +170,49 @@ namespace CitizenFX.Core
             });
 
             Tick += TestScript_Tick;
+
+            EventHandlers["chatMessage"] += new Action<dynamic, dynamic, dynamic>((name, color, text) =>
+            {
+                Debug.WriteLine("hmm, nice bike!45? " + text.ToString());
+
+                CitizenFX.Core.UI.Screen.ShowNotification($"oi m9 - {text}");
+
+                if (text.Contains("freeze"))
+                {
+                    Debug.WriteLine("hmm, nice bike!4534!!!");
+                    Game.PlayerPed.IsPositionFrozen = !Game.PlayerPed.IsPositionFrozen;
+                    /*var vehicle = await World.CreateVehicle("infernus", Game.PlayerPed.Position, 120.0f);
+                    vehicle.Mods.LicensePlate = await Game.GetUserInput(8);
+                    vehicle.Doors[VehicleDoorIndex.FrontLeftDoor].Open(instantly: true);*/
+
+                    Debug.WriteLine("hmm, nice bike!!356457!!");
+
+                    TriggerEvent("chatMessage", "heya", new int[] { 255, 0, 0 }, "i'm frozen!!");
+                }
+                else if (text.Contains("spown"))
+                {
+                    Exports["spawnmanager"].spawnPlayer(new
+                    {
+                        model = new Model("player_one").Hash,
+                        x = -31.010f,
+                        y = 6316.830f,
+                        z = 40.083f,
+                        heading = 180.0f
+                    }, new Action<dynamic>(s =>
+                    {
+                        Debug.WriteLine("omg cb?");
+                        Debug.WriteLine($"spawned on {s.x}");
+
+                        TriggerEvent("chatMessage", "heya", new int[] { 255, 0, 0 }, $"wew {s.model}");
+                    }));
+                }
+            });
         }
 
         async Task TestScript_Tick()
         {
-            await Delay(1500);
+            await Delay(1000);
+            CitizenFX.Core.UI.Screen.ShowNotification($"oi m8!!! {Game.Player.Name} @ {DateTime.Now.ToLongTimeString()}");
         }
     }
 }

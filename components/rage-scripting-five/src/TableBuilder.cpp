@@ -455,7 +455,7 @@ static HookFunction hookFunction([] ()
 	// find the root function for native registration, and perform matching
 	auto pattern = hook::pattern("48 89 05 ? ? ? ? 88 1D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 8D 4B 04");
 
-	if (pattern.size())
+	if (false)//pattern.size())
 	{
 		std::map<int, std::shared_ptr<FunctionTable>> functionTables;
 		char* regFunc = pattern.count(1).get(0).get<char>(13);
@@ -523,14 +523,14 @@ static HookFunction hookFunction([] ()
 		// sneaky function beyond another function - likely not universal!
 		auto pattern = hook::pattern("48 83 C4 20 5B E9 ? ? ? ? ? ? ? ? ? ? ? 8B D1 48 8D 0D");
 
-		if (pattern.size() > 0)
+		/*if (pattern.size() > 0)
 		{
 			void* match = pattern.get(0).get<void>(26);
 
 			hook::set_call(&registerNative, match);
 			hook::jump(match, RegisterNativeObf);
 		}
-		else
+		else*/
 		{
 			// 393+? (we can't tell anything about registration anymore)
 			std::map<int, std::shared_ptr<FunctionTable>> dummyTables;

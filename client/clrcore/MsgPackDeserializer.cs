@@ -257,25 +257,13 @@ namespace CitizenFX.Core
             var length = reader.ReadByte();
             var extType = reader.ReadByte();
 
-            if (extType != 1)
+            if (extType != 10)
             {
-                throw new InvalidOperationException("Only extension type 1 (Citizen callback) is handled by this class.");
+                throw new InvalidOperationException("Only extension type 10 (Citizen funcref) is handled by this class.");
             }
 
-            // read the local reference ID
-            var tmpBytes = reader.ReadBytes(4);
-            var reference = BitConverter.ToUInt32(new byte[] { tmpBytes[3], tmpBytes[2], tmpBytes[1], tmpBytes[0] }, 0);
-
-            // read the environment instance ID
-            tmpBytes = reader.ReadBytes(4);
-            var instance = BitConverter.ToUInt32(new byte[] { tmpBytes[3], tmpBytes[2], tmpBytes[1], tmpBytes[0] }, 0);
-
-            // read the resource name
-            tmpBytes = reader.ReadBytes(length - 8);
-
-            var resource = Encoding.UTF8.GetString(tmpBytes, 0, tmpBytes.Length);
-
-            var remoteFunctionReference = new RemoteFunctionReference(resource, instance, reference);
+            var funcRefData = reader.ReadBytes(length);
+            var remoteFunctionReference = new RemoteFunctionReference(funcRefData);
 
             return new CallbackDelegate(delegate(object[] args)
             {

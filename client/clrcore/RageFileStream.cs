@@ -6,6 +6,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
+#if nope
 namespace CitizenFX.Core
 {
     public class RageFileStream : Stream
@@ -95,3 +96,4 @@ namespace CitizenFX.Core
         }
     }
 }
+#endif

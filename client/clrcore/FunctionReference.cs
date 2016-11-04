@@ -17,11 +17,8 @@ namespace CitizenFX.Core
             m_method = method;
         }
 
-        public uint Identifier { get; private set; }
+        public int Identifier { get; private set; }
 
-        public uint Instance { get; private set; }
-
-        public string Resource { get; private set; }
 
         public static FunctionReference Create(Delegate method)
         {
@@ -30,34 +27,14 @@ namespace CitizenFX.Core
 
             reference.Identifier = referenceId;
 
-            reference.FillOutOurDetails();
-
             return reference;            
         }
+        private static Dictionary<int, FunctionReference> ms_references = new Dictionary<int, FunctionReference>();
+        private static int ms_referenceId = 0;
 
-        [SecuritySafeCritical]
-        private void FillOutOurDetails()
+        private static int Register(FunctionReference reference)
         {
-            string resourceName;
-            string resourcePath;
-            string resourceAssembly;
-            uint instanceId;
-
-            if (!GameInterface.GetEnvironmentInfo(out resourceName, out resourcePath, out resourceAssembly, out instanceId))
-            {
-                throw new Exception("Could not get environment information while creating a callback junction.");
-            }
-
-            Resource = resourceName;
-            Instance = instanceId;
-        }
-
-        private static Dictionary<uint, FunctionReference> ms_references = new Dictionary<uint, FunctionReference>();
-        private static uint ms_referenceId = 0;
-
-        private static uint Register(FunctionReference reference)
-        {
-            uint thisRefId = ms_referenceId;
+            int thisRefId = ms_referenceId;
             ms_references[thisRefId] = reference;
 
             unchecked { ms_referenceId++; }
@@ -65,7 +42,7 @@ namespace CitizenFX.Core
             return thisRefId;
         }
 
-        public static byte[] Invoke(uint reference, byte[] arguments)
+        public static byte[] Invoke(int reference, byte[] arguments)
         {
             FunctionReference funcRef;
             
@@ -87,7 +64,19 @@ namespace CitizenFX.Core
             return MsgPackSerializer.Serialize(new object[] { method.DynamicInvoke(argArray) });
         }
 
-        public static void Remove(uint reference)
+        public static int Duplicate(int reference)
+        {
+            FunctionReference funcRef;
+
+            if (ms_references.TryGetValue(reference, out funcRef))
+            {
+                return Register(funcRef);
+            }
+
+            return -1;
+        }
+
+        public static void Remove(int reference)
         {
             if (ms_references.ContainsKey(reference))
             {

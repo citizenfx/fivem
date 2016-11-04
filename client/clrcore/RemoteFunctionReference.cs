@@ -5,20 +5,17 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Security;
+using System.Runtime.InteropServices;
 
 namespace CitizenFX.Core
 {
     class RemoteFunctionReference : IDisposable
     {
-        private string m_resource;
-        private uint m_instance;
-        private uint m_reference;
+        private string m_reference;
 
-        public RemoteFunctionReference(string resource, uint instance, uint reference)
+        public RemoteFunctionReference(byte[] reference)
         {
-            m_resource = resource;
-            m_instance = instance;
-            m_reference = reference;
+            m_reference = Encoding.UTF8.GetString(reference);
         }
 
         private bool m_disposed = false;
@@ -46,16 +43,41 @@ namespace CitizenFX.Core
             m_disposed = true;
         }
 
-        [SecuritySafeCritical]
         private void FreeNativeReference()
         {
-            GameInterface.DeleteNativeReference(m_resource, m_instance, m_reference);
+            Native.Function.Call(Native.Hash.DELETE_FUNCTION_REFERENCE, m_reference);
+        }
+
+        public byte[] Duplicate()
+        {
+            return Encoding.UTF8.GetBytes(Native.Function.Call<string>(Native.Hash.DUPLICATE_FUNCTION_REFERENCE, m_reference));
         }
 
         [SecuritySafeCritical]
         public byte[] InvokeNative(byte[] argsSerialized)
         {
-            return GameInterface.InvokeNativeReference(m_resource, m_instance, m_reference, argsSerialized);
+            return _InvokeNative(argsSerialized);
+        }
+
+        [SecurityCritical]
+        private byte[] _InvokeNative(byte[] argsSerialized)
+        {
+            byte[] retval;
+            IntPtr resBytes;
+            long retLength;
+
+            unsafe
+            {
+                fixed (byte* argsSerializedRef = &argsSerialized[0])
+                {
+                    resBytes = Native.Function.Call<IntPtr>(Native.Hash.INVOKE_FUNCTION_REFERENCE, m_reference, argsSerializedRef, argsSerialized.Length, &retLength);
+                }
+            }
+
+            retval = new byte[retLength];
+            Marshal.Copy(resBytes, retval, 0, retval.Length);
+
+            return retval;
         }
     }
 }

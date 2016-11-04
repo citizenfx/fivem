@@ -1792,5 +1792,15 @@ namespace CitizenFX.Core
             var strongValue = (Vector3)value;
             return Equals(ref strongValue);
         }
+
+        public float DistanceToSquared2D(Vector3 other)
+        {
+            return (new Vector2(this.X, this.Y) - new Vector2(other.X, other.Y)).LengthSquared();
+        }
+
+        public float DistanceToSquared(Vector3 other)
+        {
+            return (this - other).LengthSquared();
+        }
     }
 }

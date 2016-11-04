@@ -198,12 +198,12 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	hook::call(hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
 
 	// ignore steam requirement
-	auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25");// 31 E8");
+	/*auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25");// 31 E8");
 	if (pattern.size() > 0)
 	{
 		hook::nop(pattern.get(0).get<void>(0), 6);
 		hook::put<uint8_t>(pattern.get(0).get<void>(8), 0xEB);
-	}
+	}*/
 
 	// ignore loading 'videos'
 	hook::call(hook::pattern("48 85 C9 0F 84 ? 00 00 00 48 8D 55 A7 E8").count(1).get(0).get<void>(13), ReturnInt<0>);
@@ -695,7 +695,7 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 		DWORD oldProtect;
 		VirtualProtect(func, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
 
-		*func = 0xC3;
+		//*func = 0xC3;
 
 		VirtualProtect(func, 1, oldProtect, &oldProtect);
 	}

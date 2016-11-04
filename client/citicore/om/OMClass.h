@@ -104,6 +104,17 @@ public:
 			}
 		}(), 1)... };
 
+		if (result == FX_E_NOINTERFACE)
+		{
+			if (riid == guid_t{ 0x00000000, 0x0000, 0x0000,{ 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } })
+			{
+				result = FX_S_OK;
+				*outObject = this;
+
+				AddRef();
+			}
+		}
+
 		return result;
 	}
 

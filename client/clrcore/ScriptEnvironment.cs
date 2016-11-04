@@ -12,7 +12,9 @@ namespace CitizenFX.Core
         {
             get
             {
-                return RuntimeManager.ResourceName;
+                return "";
+
+                //return RuntimeManager.ResourceName;
             }
         }
     }
