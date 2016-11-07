@@ -46,7 +46,7 @@ module.exports = function(grunt)
 			'provides': []
 		}, null, '\t'));
 
-		fs.writeFileSync('components/' + name + '/component.rc', "fxComponent 935 component.json\r\n")
+		fs.writeFileSync('components/' + name + '/component.rc', "fxComponent 115 component.json\r\n")
 
 		fs.mkdirSync('components/' + name + '/include');
 		fs.mkdirSync('components/' + name + '/src');
