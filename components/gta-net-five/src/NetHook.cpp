@@ -843,6 +843,11 @@ bool GetOurSessionKeyWrap(char* sessionKey)
 	return GetOurSystemKey(sessionKey);
 }
 
+static void WINAPI ExitProcessReplacement(UINT exitCode)
+{
+	TerminateProcess(GetCurrentProcess(), exitCode);
+}
+
 static HookFunction hookFunction([] ()
 {
 	/*OnPostFrontendRender.Connect([] ()
@@ -1218,6 +1223,12 @@ static HookFunction hookFunction([] ()
 
 	// also ignore the rarer CMsgJoinRequest failure reason '13' (something related to what seems to be like stats)
 	hook::put<uint8_t>(hook::pattern("3B ? 74 0B 41 BC 0D 00 00 00").count(1).get(0).get<void>(2), 0xEB);
+
+	// don't wait for shut down of NetRelay thread
+	hook::return_function(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 3D ? ? ? ? FF 74", -16));
+
+	// exitprocess -> terminateprocess
+	hook::iat("kernel32.dll", ExitProcessReplacement, "ExitProcess");
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");

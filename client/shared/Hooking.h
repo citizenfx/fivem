@@ -572,10 +572,19 @@ public:
 #else
 void* AllocateFunctionStub(void* ptr, int type = 0);
 
+template<typename T>
+struct get_func_ptr
+{
+	static void* get(T func)
+	{
+		return (void*)func;
+	}
+};
+
 template<typename T, typename AT>
 inline void jump(AT address, T func)
 {
-	LPVOID funcStub = AllocateFunctionStub((void*)func);
+	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func));
 
 	put<uint8_t>(address, 0xE9);
 	put<int>((uintptr_t)address + 1, (intptr_t)funcStub- (intptr_t)get_adjusted(address) - 5);
@@ -584,7 +593,7 @@ inline void jump(AT address, T func)
 template<typename T, typename AT>
 inline void jump_rcx(AT address, T func)
 {
-	LPVOID funcStub = AllocateFunctionStub((void*)func, 1);
+	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func), 1);
 
 	put<uint8_t>(address, 0xE9);
 	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
@@ -593,7 +602,7 @@ inline void jump_rcx(AT address, T func)
 template<typename T, typename AT>
 inline void call(AT address, T func)
 {
-	LPVOID funcStub = AllocateFunctionStub((void*)func);
+	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func));
 
 	put<uint8_t>(address, 0xE8);
 	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
@@ -602,7 +611,7 @@ inline void call(AT address, T func)
 template<typename T, typename AT>
 inline void call_rcx(AT address, T func)
 {
-	LPVOID funcStub = AllocateFunctionStub((void*)func, 1);
+	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func), 1);
 
 	put<uint8_t>(address, 0xE8);
 	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
@@ -629,10 +638,40 @@ inline uintptr_t get_member_internal(void* function)
 }
 
 template<typename T>
-inline uintptr_t get_member(T function)
+inline uintptr_t get_member_old(T function)
 {
 	return ((uintptr_t(*)(T))get_member_internal)(function);
 }
+
+template<typename TClass, typename TMember>
+inline uintptr_t get_member(TMember TClass::*function)
+{
+	union member_cast
+	{
+		TMember TClass::*function;
+		void* ptr;
+	};
+
+	member_cast cast;
+
+	if (sizeof(cast.function) != sizeof(cast.ptr))
+	{
+		return get_member_old(function);
+	}
+
+	cast.function = function;
+
+	return (uintptr_t)cast.ptr;
+}
+
+template<typename TClass, typename TMember>
+struct get_func_ptr<TMember TClass::*>
+{
+	static void* get(TMember TClass::* function)
+	{
+		return (void*)get_member(function);
+	}
+};
 #endif
 }
 

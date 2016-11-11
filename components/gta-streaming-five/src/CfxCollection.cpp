@@ -10,7 +10,21 @@
 
 #include <Hooking.h>
 
+#include <fnv.h>
+
+// unset _DEBUG so that there will be no range checking
+#ifdef _DEBUG
+#undef _DEBUG
+#define DEBUG_WAS_SET
+#endif
+
 #include <concurrent_unordered_map.h>
+#include <unordered_set>
+
+#ifdef DEBUG_WAS_SET
+#define _DEBUG
+#undef DEBUG_WAS_SET
+#endif
 
 #include <mutex>
 
@@ -23,6 +37,61 @@
 #include <shlwapi.h>
 
 #include <atArray.h>
+
+// TODO: replace with C++14 transparent comparison
+struct StringRef
+{
+	inline StringRef(const char* string)
+		: m_stringPtr(string)
+	{
+	}
+
+	inline explicit StringRef(const std::string& string)
+		: m_string(std::make_unique<std::string>(string)), m_stringPtr(nullptr)
+	{
+	}
+
+	inline const char* c_str() const
+	{
+		if (m_stringPtr)
+		{
+			return m_stringPtr;
+		}
+		
+		return m_string->c_str();
+	}
+
+private:
+	const char* m_stringPtr;
+	std::unique_ptr<std::string> m_string;
+};
+
+struct IgnoreCaseHash
+{
+	inline size_t operator()(const std::string& value) const
+	{
+		return fnv1a_size_lower_t()(value);
+	}
+
+	inline size_t operator()(const StringRef& value) const
+	{
+		return fnv1a_size_lower_t()(value.c_str());
+	}
+};
+
+struct IgnoreCaseEqualTo
+{
+	bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) == 0;
+	}
+
+	bool operator()(const StringRef& left, const StringRef& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) == 0;
+	}
+};
+
 
 struct CollectionData
 {
@@ -45,10 +114,33 @@ struct CollectionData
 	uint32_t keyId;
 };
 
+
+static uint32_t(*rage__fiFile__Read)(void* file, void* read, uint32_t size);
+static uint32_t(*rage__fiFile__Write)(void* file, const void* write, uint32_t size);
+
+namespace rage
+{
+	class fiFile
+	{
+	public:
+		uint32_t Read(void* buffer, uint32_t size)
+		{
+			return rage__fiFile__Read(this, buffer, size);
+		}
+
+		uint32_t Write(const void* buffer, uint32_t size)
+		{
+			return rage__fiFile__Write(this, buffer, size);
+		}
+	};
+}
+
 static rage::fiCollection** g_collectionRoot;
 
 static void(*g_origCloseCollection)(rage::fiCollection*);
 static void(*g_origOpenPackfileInternal)(rage::fiCollection*, const char* archive, bool bTrue, intptr_t veryFalse);
+static bool(*g_origLoadFromCache)(rage::fiCollection*, rage::fiFile*);
+static bool(*g_origSaveToCache)(rage::fiCollection*, rage::fiFile*);
 
 static uintptr_t g_vTable_fiPackfile;
 
@@ -89,7 +181,7 @@ struct IgnoreCaseLess
 	}
 };
 
-static std::set<std::string, IgnoreCaseLess> g_customStreamingFileSet;
+static std::unordered_set<StringRef, IgnoreCaseHash, IgnoreCaseEqualTo> g_customStreamingFileSet;
 static std::vector<int> g_streamingCollections;
 
 class CfxCollection : public rage::fiCollection
@@ -133,7 +225,9 @@ private:
 
 	std::recursive_mutex m_mutex;
 
-	std::map<std::string, rage::ResourceFlags> m_resourceFlags;
+	std::unordered_map<std::string, rage::ResourceFlags> m_resourceFlags;
+
+	std::vector<uint32_t> m_nameOffsetTable;
 	
 public:
 	typedef std::function<bool(const char*, std::string&)> TLookupFn;
@@ -273,7 +367,7 @@ public:
 		return -1;
 	}
 
-	void AddEntry(uint16_t idx, const std::string& name)
+	auto AddEntry(uint16_t idx, const std::string& name)
 	{
 		CollectionEntry newEntry = { 0 };
 		newEntry.fileName = name;
@@ -298,27 +392,39 @@ public:
 		newEntry.baseEntry.physFlags = flags.flag2;
 
 		m_reverseEntries[name] = idx;
-		m_entries[idx] = newEntry;
+
+		return m_entries.insert({ idx, newEntry }).first;
 	}
 
-	void AddEntry(uint16_t idx, const FileEntry* entry)
+	auto AddEntry(uint16_t idx, const FileEntry* entry)
 	{
 		CollectionEntry newEntry;
 		newEntry.origEntry = entry;
 		memcpy(&newEntry.baseEntry, entry, sizeof(FileEntry));
 
-		m_entries[idx] = newEntry;
+		return m_entries.insert({ idx, newEntry }).first;
 	}
 
 	CollectionEntry* GetCfxEntry(uint16_t index)
 	{
-		auto it = m_entries.find(index);
-
 		// map network entries that shouldn't exist
 		CollectionData* collectionData = (CollectionData*)m_pad;
 		char* nameTable = (char*)collectionData->nameTable;
 		
-		char* name = &nameTable[collectionData->entryTable[index].nameOffset];
+		if (!nameTable)
+		{
+			return nullptr;
+		}
+
+		auto it = m_entries.find(index);
+		auto& nentry = collectionData->entryTable[index];
+
+		if (!m_nameOffsetTable.empty())
+		{
+			nentry.nameOffset = m_nameOffsetTable[index];
+		}
+
+		char* name = &nameTable[nentry.nameOffset];
 
 		if (!IsPseudoPack())
 		{
@@ -342,21 +448,21 @@ public:
 			std::string newName;
 			if (m_lookupFunction(entryName, newName))
 			{
-				AddEntry(index, newName);
+				it = AddEntry(index, newName);
 			}
 			else
 			{
 				m_reverseEntries[entryName] = index;
-				AddEntry(index, PseudoCallContext(this)->GetEntry(index));
+				it = AddEntry(index, PseudoCallContext(this)->GetEntry(index));
 
 				if (entryName[0] != 0x1E)
 				{
-					m_entries[index].fileName = entryName;
+					it->second.fileName = entryName;
 				}
 			}
 		}
 
-		return &m_entries[index];
+		return &it->second;
 	}
 
 	virtual int64_t OpenCollectionEntry(uint16_t index, uint64_t* ptr) override
@@ -365,11 +471,18 @@ public:
 
 		auto entry = GetCfxEntry(index);
 
+		if (!entry)
+		{
+			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), "<unknown>");
+		}
+
 		if (entry->origEntry)
 		{
 			char entryName[256] = { 0 };
 
 			PseudoCallContext(this)->GetEntryNameToBuffer(index, entryName, 255);
+
+			CollectionData* data = (CollectionData*)this->m_pad;
 
 			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), entry->fileName.c_str());// GetEntryName(index));
 		}
@@ -388,6 +501,11 @@ public:
 	{
 		auto entry = GetCfxEntry(index);
 
+		if (!entry)
+		{
+			return PseudoCallContext(this)->GetEntry(index);
+		}
+
 		return (entry->origEntry) ? entry->origEntry : &entry->baseEntry;
 
 		//return PseudoCallContext(this)->GetEntry(index);
@@ -396,6 +514,11 @@ public:
 	virtual const char* GetEntryName(uint16_t index) override
 	{
 		auto entry = GetCfxEntry(index);
+
+		if (!entry)
+		{
+			return PseudoCallContext(this)->GetEntryName(index);
+		}
 
 		const char* entryName = (entry->origEntry) ? PseudoCallContext(this)->GetEntryName(index) : entry->fileName.c_str();
 
@@ -433,6 +556,12 @@ public:
 	virtual void GetEntryNameToBuffer(uint16_t index, char* buffer, int maxLen)
 	{
 		auto entry = GetCfxEntry(index);
+
+		if (!entry)
+		{
+			PseudoCallContext(this)->GetEntryNameToBuffer(index, buffer, maxLen);
+			return;
+		}
 
 		if (entry->origEntry)
 		{
@@ -850,6 +979,10 @@ public:
 	}
 
 private:
+	void BeforeNativeOpen(const char* archive);
+
+	void AfterNativeOpen(const char* archive);
+
 	void PrepareStreamingListFromNetwork();
 
 	void DetermineLookupFunction(const char* archive)
@@ -973,6 +1106,10 @@ public:
 
 	// functions
 	bool OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse);
+
+	bool LoadFromCache(rage::fiFile* cacheFile);
+
+	bool SaveToCache(rage::fiFile* cacheFile);
 
 	bool OpenPackfileInternal(const char* archive, bool bTrue, intptr_t veryFalse)
 	{
@@ -1234,9 +1371,160 @@ static StreamingEntry** g_streamingEntries;
 
 static_assert(sizeof(StreamingPackfileEntry) == 104, "muh");
 
-bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse)
+void CfxCollection::BeforeNativeOpen(const char* archive)
 {
 	DetermineLookupFunction(archive);
+}
+
+bool CfxCollection::LoadFromCache(rage::fiFile* cacheFile)
+{
+	uint8_t shouldRead;
+	cacheFile->Read(&shouldRead, 1);
+
+	if (!shouldRead)
+	{
+		char buf[10];
+		cacheFile->Read(buf, 10);
+
+		uint32_t numEntries;
+		cacheFile->Read(&numEntries, 4);
+
+		// however, pretend to read what was written.
+		uint64_t r1;
+		uint32_t r2;
+		cacheFile->Read(&r1, 8);
+		cacheFile->Read(&r2, 4);
+
+		char dummyBuffer[1024];
+
+		for (size_t i = 0; i < r2; i++)
+		{
+			cacheFile->Read(dummyBuffer, 1);
+			cacheFile->Read(dummyBuffer, dummyBuffer[0]);
+			cacheFile->Read(dummyBuffer, 4);
+			cacheFile->Read(dummyBuffer, 16);
+		}
+
+		return false;
+	}
+
+	bool result;
+
+	{
+		PseudoCallContext ctx(this);
+		result = g_origLoadFromCache(ctx.GetPointer(), cacheFile);
+	}
+
+	assert(result);
+
+	if (result)
+	{
+		CollectionData* collectionData = (CollectionData*)m_pad;
+
+		{
+			std::vector<char> nameTableBuffer(32768);
+			std::vector<uint16_t> parentDirectoryTableBuffer;
+			size_t offset = 0;
+
+			uint32_t tableEntries;
+			cacheFile->Read(&tableEntries, sizeof(tableEntries));
+
+			m_nameOffsetTable.reserve(tableEntries);
+			parentDirectoryTableBuffer.reserve(tableEntries);
+
+			for (size_t i = 0; i < tableEntries; i++)
+			{
+				uint32_t nameLength;
+				cacheFile->Read(&nameLength, sizeof(nameLength));
+
+				if ((offset + nameLength) >= nameTableBuffer.size())
+				{
+					nameTableBuffer.resize(nameTableBuffer.size() * 2);
+				}
+
+				cacheFile->Read(&nameTableBuffer[offset], nameLength);
+
+				//collectionData->entryTable[i].nameOffset = offset;
+				m_nameOffsetTable.push_back(offset);
+
+				uint16_t parentDirectory;
+				cacheFile->Read(&parentDirectory, 2);
+
+				parentDirectoryTableBuffer.push_back(parentDirectory);
+
+				offset += (nameLength + 1);
+			}
+
+			collectionData->nameTable = rage::GetAllocator()->allocate(nameTableBuffer.size(), 16, 0);
+			memcpy(collectionData->nameTable, nameTableBuffer.data(), nameTableBuffer.size());
+
+			collectionData->parentDirectoryTable = (uint16_t*)rage::GetAllocator()->allocate(parentDirectoryTableBuffer.size() * 2, 16, 0);
+			memcpy(collectionData->parentDirectoryTable, parentDirectoryTableBuffer.data(), parentDirectoryTableBuffer.size() * 2);
+		}
+
+		const char* archive = &collectionData->name[0];
+
+		BeforeNativeOpen(archive);
+
+		rage::fiDevice* baseDevice = nullptr;
+
+		if (!IsPseudoPackPath(archive))
+		{
+			baseDevice = rage::fiDevice::GetDevice(archive, true);
+		}
+		else
+		{
+			InitializePseudoPack(archive);
+		}
+	}
+
+	return result;
+}
+
+bool CfxCollection::SaveToCache(rage::fiFile* cacheFile)
+{
+	uint8_t shouldRead = !IsPseudoPack();
+	cacheFile->Write(&shouldRead, 1);
+
+	CollectionData* collectionData = (CollectionData*)m_pad;
+
+	if (!shouldRead)
+	{
+		char surrogateTag[] = { 's', 'u', 'r', 'r', 'o', 'g', 'a', 't', 'e', '\0' };
+
+		cacheFile->Write(surrogateTag, sizeof(surrogateTag));
+
+		// so we can reconcile reading this file later on
+		cacheFile->Write(&collectionData->numEntries, 4);
+		return false;
+	}
+
+	{
+		PseudoCallContext ctx(this);
+		g_origSaveToCache(ctx.GetPointer(), cacheFile);
+	}
+
+	char* nameTable = (char*)collectionData->nameTable;
+
+	cacheFile->Write(&collectionData->numEntries, sizeof(collectionData->numEntries));
+
+	for (size_t i = 0; i < collectionData->numEntries; i++)
+	{
+		char* name = &nameTable[collectionData->entryTable[i].nameOffset];
+		uint32_t length = strlen(name);
+
+		cacheFile->Write(&length, sizeof(length));
+		cacheFile->Write(name, length);
+
+		cacheFile->Write(&collectionData->parentDirectoryTable[i], 2);
+	}
+
+	return true;
+}
+
+bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse)
+{
+	BeforeNativeOpen(archive);
 
 	rage::fiDevice* baseDevice = nullptr;
 
@@ -1447,7 +1735,7 @@ static std::vector<std::pair<std::string, rage::ResourceFlags>> g_customStreamin
 
 void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags)
 {
-	g_customStreamingFileSet.insert(strrchr(fileName.c_str(), '/') + 1);
+	g_customStreamingFileSet.insert(StringRef(std::string(strrchr(fileName.c_str(), '/') + 1)));
 	g_customStreamingFiles.push_back({ fileName, flags });
 }
 
@@ -1520,7 +1808,7 @@ static void BvhSet(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int64_t a5, i
 
 static char* g_registerStreamingFile;
 
-static std::set<std::string, IgnoreCaseLess> g_registeredFileSet;
+static std::unordered_set<std::string, IgnoreCaseHash, IgnoreCaseEqualTo> g_registeredFileSet;
 static std::map<uint32_t, std::string> g_hashes;
 
 std::string g_lastStreamingName;
@@ -1572,6 +1860,7 @@ static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch
 		hook::put<uint16_t>(startBit, 0x840F);
 	}
 
+#if 0
 	// temp: store hashes
 	char nameWithoutExt[256];
 	strcpy(nameWithoutExt, str);
@@ -1584,6 +1873,7 @@ static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch
 
 		g_hashes[HashString(nameWithoutExt)] = nameWithoutExt;
 	}
+#endif
 
 	// return strchr
 	return strrchr(str, ch);
@@ -1629,6 +1919,19 @@ void SetStreamingPackfileEnabled(uint32_t index, bool enabled)
 	{
 		g_streamingPackfiles->Get(index).enabled = enabled;
 	}
+}
+
+static rage::fiFile*(*rage__fiFile__Open)(const char* fileName, rage::fiDevice* device, bool readOnly);
+
+rage::fiFile* rage__fiFile__OpenWrap(const char* fileName, rage::fiDevice* device, bool readOnly)
+{
+	// force this to be a *real* fiDeviceLocal
+	auto localDevice = rage::fiDevice::GetDevice(fileName, true);
+
+	// by replacing the vtable.
+	*(uintptr_t*)device = *(uintptr_t*)localDevice;
+	
+	return rage__fiFile__Open(fileName, device, true);
 }
 
 #include <ICoreGameInit.h>
@@ -1680,6 +1983,20 @@ static HookFunction hookFunction([] ()
 
 	// same
 	hook::call(hook::pattern("49 8B CC 48 89 7C 24 20 45 1B C9 41 83 E1 03 E8").count(1).get(0).get<void>(15), hook::get_member(&CfxCollection::OpenPackfile));
+
+	// streaming packfile load-from-meta
+	void* cacheLoadAddr = hook::get_pattern("45 84 ED 0F 85 ? 01 00 00 49 8B CC E8", 12);
+	hook::set_call(&g_origLoadFromCache, cacheLoadAddr);
+	hook::call(cacheLoadAddr, &CfxCollection::LoadFromCache);
+
+	hook::set_call(&rage__fiFile__Read, (char*)g_origLoadFromCache + 0x34);
+
+	// save-to-meta
+	void* cacheSaveAddr = hook::get_pattern("75 7E 49 8B CC E8 ? ? ? ? 8B CF 89", 5);
+	hook::set_call(&g_origSaveToCache, cacheSaveAddr);
+	hook::call(cacheSaveAddr, &CfxCollection::SaveToCache);
+
+	hook::set_call(&rage__fiFile__Write, (char*)g_origSaveToCache + 0x2F);
 
 	// similar for a weird case
 	void* internal = hook::pattern("4C 8B CE 41 D0 E8 48 8B D0 48 8B CD 41 80 E0 01").count(1).get(0).get<void>(16);
@@ -1767,21 +2084,6 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_resolvePtr, hook::pattern("48 8B D9 48 89 01 48 83 C1 20 E8 ? ? ? ? 48 8D 4B 30").count(1).get(0).get<void>(10));
 #endif
 
-	// break the game! phBoundPolyhedron + 184
-	static struct : jitasm::Frontend
-	{
-		virtual void InternalMain() override
-		{
-			mov(byte_ptr[rbx + 130], 0);
-			mov(qword_ptr[rbx + 0xB8], 0);
-			xor(rax, rax);
-
-			ret();
-		}
-	} blahHook;
-
-	hook::call(hook::pattern("48 01 83 B0 00 00 00 48 8B 93 B8 00 00 00 48 85").count(1).get(0).get<void>(0x8A - 0x74), blahHook.GetCode());
-
 	// boundbvh -> boundgeometry :d
 	hook::set_call(&g_origGeomThing, hook::pattern("EB 4E 48 8B D1 48 8B CB E8").count(1).get(0).get<void>(8));
 
@@ -1813,4 +2115,14 @@ static HookFunction hookFunction([] ()
 	g_registerStreamingFile = hook::pattern("48 8B D8 41 8B C6 25 00 00 00 C0 3D").count(1).get(0).get<char>(-0x42);
 
 	hook::call(g_registerStreamingFile + 0x3A, RegisterStreamingFileStrchrWrap);
+
+	// (not temp dbg: )InvalidFile overwrite fuckery
+	hook::nop(hook::get_pattern("33 D2 E8 ? ? ? ? 48 8B 0D ? ? ? ? 48 8D 15", -7), 58);
+
+	// make the pfm.dat read-only
+	{
+		auto loc = hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 70);
+		hook::set_call(&rage__fiFile__Open, loc);
+		hook::call(loc, rage__fiFile__OpenWrap);
+	}
 });

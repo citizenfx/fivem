@@ -42,7 +42,7 @@ namespace nui
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 
-		if (rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+		if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
 		{
 			rootWindow->GetBrowser()->GetMainFrame()->ExecuteJavaScript(scriptBit, "internal", 1);
 		}

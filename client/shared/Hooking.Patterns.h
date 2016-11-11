@@ -107,6 +107,23 @@ namespace hook
 			return m_matches[index];
 		}
 
+		inline pattern_match& get_one()
+		{
+			return count(1).get(0);
+		}
+
+		template<typename T = void>
+		inline auto get_first()
+		{
+			return get_one().get<T>();
+		}
+
+		template<typename T = void>
+		inline auto get_first(int offset)
+		{
+			return get_one().get<T>(offset);
+		}
+
 	public:
 		// define a hint
 		static void hint(uint64_t hash, uintptr_t address);
@@ -123,6 +140,18 @@ namespace hook
 			Initialize(pattern, Len);
 		}
 	};
+
+	template<typename T = void, size_t Len>
+	auto get_pattern(const char(&pattern_string)[Len])
+	{
+		return pattern(pattern_string).get_first<T>();
+	}
+
+	template<typename T = void, size_t Len>
+	auto get_pattern(const char(&pattern_string)[Len], int offset)
+	{
+		return pattern(pattern_string).get_first<T>(offset);
+	}
 }
 
 void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint);

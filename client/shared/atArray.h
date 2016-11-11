@@ -121,6 +121,21 @@ public:
 
 		m_count--;
 	}
+
+	auto begin()
+	{
+		return &m_offset[0];
+	}
+
+	auto end()
+	{
+		return &m_offset[m_count];
+	}
+
+	auto& operator[](uint16_t idx)
+	{
+		return Get(idx);
+	}
 };
 
 #ifdef max_defined

@@ -375,6 +375,8 @@ template<>
 five::pgDictionary<five::gtaDrawable>* convert(ny::pgDictionary<ny::gtaDrawable>* dwd)
 {
 	five::pgDictionary<five::gtaDrawable>* out = new(false) five::pgDictionary<five::gtaDrawable>();
+	out->SetBlockMap();
+
 	five::pgDictionary<five::gtaDrawable> newDrawables;
 
 	if (dwd->GetCount()) // amazingly there's 0-sized TXDs?

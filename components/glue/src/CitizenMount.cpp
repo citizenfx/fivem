@@ -14,30 +14,53 @@ static int(__cdecl* origSetFunc)(void* extraContentMgr, void* a2, const char* de
 int someFunc(void* a1, void* a2, const char* a3)
 {
 	int someResult = origSetFunc(a1, a2, a3);
+
 	// add a fiDeviceRelative for a3 (f.i. dlc_dick:/, breakpoint to be sure) to wherever-the-fuck-you-want, removing the :/ at the end for the target path)
-	trace(va("somefunc found %s!", a3));
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	trace("somefunc found %s!\n", a3);
+	
 	std::string dlcName = std::string(a3);
 	dlcName = dlcName.substr(0, dlcName.find(":"));
-	std::wstring dlcNameTwo(dlcName.begin(), dlcName.end());
-	std::string dlcPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\dlc\\" + dlcNameTwo + L"\\"));
-	if (GetFileAttributes(std::wstring(dlcPath.begin(), dlcPath.end()).c_str()) != INVALID_FILE_ATTRIBUTES)
+
+	auto exists = [] (const std::string& path)
 	{
-		trace(va("dlc mounted: %s", dlcPath.c_str()));
-		rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
-		dlc->SetPath(dlcPath.c_str(), true);
-		dlcName = dlcName + ":/";
-		dlc->Mount(dlcName.c_str());
-	}
-	dlcPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\dlc\\" + dlcNameTwo + L"CRC\\"));
-	if (GetFileAttributes(std::wstring(dlcPath.begin(), dlcPath.end()).c_str()) != INVALID_FILE_ATTRIBUTES)
+		auto device = rage::fiDevice::GetDevice(path.c_str(), true);
+
+		if (device)
+		{
+			return (device->GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES);
+		}
+
+		return false;
+	};
+
 	{
-		trace(va("dlc mounted: %s", dlcPath.c_str()));
-		rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
-		dlc->SetPath(dlcPath.c_str(), true);
-		dlcName = dlcName + "CRC:/";
-		dlc->Mount(dlcName.c_str());
+		std::string name = "citizen:/dlc/" + dlcName + "/";
+
+		if (exists(name))
+		{
+			trace("dlc mounted: %s\n", name.c_str());
+
+			rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
+			dlc->SetPath(name.c_str(), true);
+
+			dlc->Mount((dlcName + ":/").c_str());
+			dlc->Mount((dlcName + "CRC:/").c_str());
+		}
 	}
+
+	{
+		std::string name = "citizen:/dlc/" + dlcName + "CRC/";
+
+		if (exists(name))
+		{
+			trace("dlc mounted: %s\n", name.c_str());
+
+			rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
+			dlc->SetPath(name.c_str(), true);
+			dlc->Mount((dlcName + "CRC:/").c_str());
+		}
+	}
+
 	return someResult;
 }
 static HookFunction hookFunction([]()

@@ -1,0 +1,15 @@
+{
+	"name": "loading-screens:five",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"gta:core",
+		"gta:game",
+		"rage:graphics",
+		"vfs:core",
+		"nui:core",
+		"citizen:resources:client",
+		"vendor:udis86"
+	],
+	"provides": []
+}
