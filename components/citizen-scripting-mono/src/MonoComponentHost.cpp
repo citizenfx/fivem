@@ -205,6 +205,11 @@ result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** 
 
 	*objectRef = *(void**)(mono_object_unbox(retval));
 
+    if (!*objectRef)
+    {
+        return FX_E_INVALIDARG;
+    }
+
 	return FX_S_OK;
 }
 

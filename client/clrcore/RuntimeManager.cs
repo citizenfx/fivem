@@ -35,16 +35,25 @@ namespace CitizenFX.Core
         [SecuritySafeCritical]
         public static IntPtr CreateObjectInstance(Guid guid, Guid iid)
         {
-            var type = Assembly.GetExecutingAssembly().GetTypes()
-                                .Where(a => a.GetCustomAttribute<GuidAttribute>() != null)
-                                .First(
-                                       a => Guid.Parse(a.GetCustomAttribute<GuidAttribute>().Value) == guid);
+            try
+            {
+                var type = Assembly.GetExecutingAssembly().GetTypes()
+                                    .Where(a => a.GetCustomAttribute<GuidAttribute>() != null)
+                                    .First(
+                                           a => Guid.Parse(a.GetCustomAttribute<GuidAttribute>().Value) == guid);
 
-            return Marshal.GetComInterfaceForObject(
-                Activator.CreateInstance(type),
-                Assembly.GetExecutingAssembly().GetTypes()
-                    .Where(a => a.GetCustomAttribute<GuidAttribute>() != null)
-                    .First(a => a.IsInterface && Guid.Parse(a.GetCustomAttribute<GuidAttribute>().Value) == iid));
+                return Marshal.GetComInterfaceForObject(
+                    Activator.CreateInstance(type),
+                    Assembly.GetExecutingAssembly().GetTypes()
+                        .Where(a => a.GetCustomAttribute<GuidAttribute>() != null)
+                        .First(a => a.IsInterface && Guid.Parse(a.GetCustomAttribute<GuidAttribute>().Value) == iid));
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Failed to get instance for guid {guid} and iid {iid}: {e}");
+
+                return IntPtr.Zero;
+            }
         }
     }
 
