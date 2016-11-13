@@ -52,7 +52,7 @@ namespace CitizenFX.Core
             {
                 Debug.WriteLine($"Failed to get instance for guid {guid} and iid {iid}: {e}");
 
-                return IntPtr.Zero;
+                throw;
             }
         }
     }

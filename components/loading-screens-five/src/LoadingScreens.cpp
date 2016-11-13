@@ -121,6 +121,8 @@ static InitFunction initFunction([] ()
 
 	OnInstrumentedFunctionCall.Connect([] (int idx, void* origin, void* target)
 	{
+        static std::set<int> hadIndices;
+
 		if (primedMapLoad)
 		{
 			rapidjson::Document doc;
@@ -132,12 +134,15 @@ static InitFunction initFunction([] ()
 			primedMapLoad = false;
 		}
 
+        if (hadIndices.find(idx) == hadIndices.end())
 		{
 			rapidjson::Document doc;
 			doc.SetObject();
 			doc.AddMember("idx", idx, doc.GetAllocator());
 
 			InvokeNUIScript("performMapLoadFunction", doc);
+
+            hadIndices.insert(idx);
 		}
 	});
 

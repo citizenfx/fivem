@@ -21,6 +21,8 @@ static void SysError(const char* buffer)
 
 #ifdef GTA_NY
 	wnd = *(HWND*)0x1849DDC;
+#else
+    wnd = FindWindow(L"grcWindow", nullptr);
 #endif
 
 #ifdef _M_IX86

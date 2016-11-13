@@ -18,6 +18,7 @@
 #include <include/cef_origin_whitelist.h>
 
 #include "ResumeComponent.h"
+#include "HookFunction.h"
 
 #include "memdbgon.h"
 
@@ -106,6 +107,8 @@ void FinalizeInitNUI()
 	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
 	//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
+
+    HookFunctionBase::RunAll();
 
 	/*g_hooksDLL->SetHookCallback(StringHash("beginScene"), [] (void*)
 	{

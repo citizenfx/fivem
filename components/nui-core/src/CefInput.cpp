@@ -144,7 +144,7 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 	return modifiers;
 }
 
-static InitFunction initFunction([] ()
+static HookFunction initFunction([] ()
 {
 	InputHook::QueryMayLockCursor.Connect([](int& argPtr)
 	{

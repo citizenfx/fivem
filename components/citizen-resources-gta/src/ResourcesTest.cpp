@@ -29,6 +29,12 @@ static InitFunction initFunction([] ()
 {
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
+        // don't allow overriding manifest.ymf
+        if (entry.fileName == "_manifest.ymf")
+        {
+            return;
+        }
+
 		CfxCollection_AddStreamingFile("cache:/" + entry.resourceName + "/" + entry.fileName, { entry.rscPagesVirtual, entry.rscPagesPhysical });
 	});
 

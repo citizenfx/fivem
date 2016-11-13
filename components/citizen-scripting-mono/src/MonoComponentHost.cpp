@@ -191,23 +191,21 @@ static void InitMono()
 
 result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
-	void* args[2];
-	args[0] = (char*)&guid;
-	args[1] = (char*)&iid;
+	MonoException* exc = nullptr;
 
-	MonoObject* exc = nullptr;
-	MonoObject* retval = mono_runtime_invoke(g_createObjectMethod, nullptr, args, &exc);
+    auto invokeMethod = (MonoObject*(*)(const guid_t&, const guid_t&, MonoException**))mono_method_get_unmanaged_thunk(g_createObjectMethod);
+    auto retval = invokeMethod(guid, iid, &exc);
 
 	if (exc)
 	{
-		OutputExceptionDetails(exc);
+        return FX_E_NOINTERFACE;
 	}
 
 	*objectRef = *(void**)(mono_object_unbox(retval));
 
     if (!*objectRef)
     {
-        return FX_E_INVALIDARG;
+        return FX_E_NOINTERFACE;
     }
 
 	return FX_S_OK;
@@ -223,7 +221,7 @@ std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 
 	if (exc)
 	{
-		OutputExceptionDetails(exc);
+        return std::vector<guid_t>();
 	}
 
 	guid_t* retvalStart = mono_array_addr(retval, guid_t, 0);

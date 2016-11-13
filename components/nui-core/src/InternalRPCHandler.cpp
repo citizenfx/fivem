@@ -12,6 +12,8 @@
 #include <include/cef_parser.h>
 #include "NUISchemeHandlerFactory.h"
 
+#include <HookFunction.h>
+
 #include "memdbgon.h"
 
 class InternalRPCHandler : public CefResourceHandler, public nui::RPCHandlerManager
@@ -216,14 +218,17 @@ void InternalRPCHandler::RegisterEndpoint(std::string endpointName, TEndpointFn 
 	m_endpointHandlers[endpointName] = callback;
 }
 
-static InitFunction initFunction([] ()
+static CefRefPtr<InternalRPCHandler> rpcHandler;
+
+static InitFunction prefunction([] ()
 {
-	static CefRefPtr<InternalRPCHandler> rpcHandler;
+    rpcHandler = new InternalRPCHandler();
 
-	rpcHandler = new InternalRPCHandler();
+    Instance<nui::RPCHandlerManager>::Set(rpcHandler.get());
+});
 
-	Instance<nui::RPCHandlerManager>::Set(rpcHandler.get());
-
+static HookFunction initFunction([] ()
+{
 	OnSchemeCreateRequest.Connect([] (const char* scheme, CefRefPtr<CefRequest> request, CefRefPtr<CefResourceHandler>& handler)
 	{
 		if (!strcmp(scheme, "http"))
@@ -249,4 +254,4 @@ static InitFunction initFunction([] ()
 	}, -100);
 
 	CefRegisterSchemeHandlerFactory("http", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
-}, 1500);
+});

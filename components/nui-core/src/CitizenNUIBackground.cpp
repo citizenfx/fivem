@@ -338,7 +338,7 @@ rage::grcTexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring f
 
 static CitizenNUIBackground g_nuiBackground;
 
-static InitFunction initFunction([] ()
+static HookFunction initFunction([] ()
 {
 	g_nuiBackground.Initialize();
 });
