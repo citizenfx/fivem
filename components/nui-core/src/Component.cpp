@@ -1,7 +1,8 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
+#include "ResumeComponent.h"
 
-class ComponentInstance : public Component
+class ComponentInstance : public LifeCyclePreInitComponentBase<Component>
 {
 public:
 	virtual bool Initialize();
@@ -11,7 +12,7 @@ public:
 
 bool ComponentInstance::Initialize()
 {
-	InitFunctionBase::RunAll();
+	//InitFunctionBase::RunAll();
 
 	return true;
 }

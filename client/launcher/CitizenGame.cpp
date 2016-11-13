@@ -221,6 +221,11 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	{
 		ExitProcess(0);
 	}
+
+	if (!g_launcher->PreResumeGame())
+	{
+		ExitProcess(0);
+	}
 }
 #endif
 
@@ -506,6 +511,11 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 	}
 
 	ILauncherInterface* launcher = getLauncherInterface();
+
+	if (!launcher->PreInitializeGame())
+	{
+		ExitProcess(0);
+	}
 	
 	// call into the launcher code
 	if (!launcher->PreLoadGame(sandboxInfo))

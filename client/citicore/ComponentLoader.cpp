@@ -16,8 +16,17 @@
 #define PLATFORM_LIBRARY_STRING "lib%s.so"
 #endif
 
+static bool g_initialized;
+
 void ComponentLoader::Initialize()
 {
+    if (g_initialized)
+    {
+        return;
+    }
+
+    g_initialized = true;
+
 	// run local initialization functions
 	InitFunctionBase::RunAll();
 
@@ -218,7 +227,7 @@ fwRefContainer<Component> ComponentData::CreateInstance(const std::string& userD
 {
 	auto instance = CreateManualInstance();
 
-	if (instance.GetRef() && !instance->Initialize(userData))
+	if (instance.GetRef() && !instance->SetUserData(userData))
 	{
 		instance = nullptr;
 	}

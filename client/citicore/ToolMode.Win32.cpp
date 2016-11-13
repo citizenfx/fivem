@@ -17,6 +17,14 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 	ComponentLoader* componentLoader = ComponentLoader::GetInstance();
 	componentLoader->Initialize();
 
+    componentLoader->ForAllComponents([&] (fwRefContainer<ComponentData> componentData)
+    {
+        for (auto& instance : componentData->GetInstances())
+        {
+            instance->Initialize();
+        }
+    });
+
 	// instantiate all components, however do not initialize them - also save any components implementing tool functionality
 	std::map<std::string, fwRefContainer<ComponentData>> toolCommands;
 

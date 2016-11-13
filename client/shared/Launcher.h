@@ -15,4 +15,8 @@ public:
 	bool PreLoadGame(void* cefSandbox);
 
 	bool PostLoadGame(HMODULE hModule, void(**entryPoint)());
+
+	bool PreResumeGame();
+
+	bool PreInitializeGame();
 };

@@ -9,6 +9,7 @@
 #include "LauncherInterface.h"
 #include "Launcher.h"
 #include "CrossLibraryInterfaces.h"
+#include "ResumeComponent.h"
 
 #include <ComponentLoader.h>
 
@@ -25,10 +26,19 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
 #endif
 
-	SetHooksDll(g_hooksDLL);
+	// initialize component instances
+    if (!getenv("CitizenFX_ToolMode"))
+    {
+        ComponentLoader::GetInstance()->ForAllComponents([&] (fwRefContainer<ComponentData> componentData)
+        {
+            for (auto& instance : componentData->GetInstances())
+            {
+                instance->Initialize();
+            }
+        });
+    }
 
-	// make the component loader initialize
-	ComponentLoader::GetInstance()->Initialize();
+	SetHooksDll(g_hooksDLL);
 
 	// and start running the game
 	return continueRunning;
@@ -58,6 +68,54 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 #endif
 
 	return continueRunning;
+}
+
+template<typename T>
+void RunLifeCycleCallback(const T& cb)
+{
+	ComponentLoader::GetInstance()->ForAllComponents([&] (fwRefContainer<ComponentData> componentData)
+	{
+		auto& instances = componentData->GetInstances();
+
+		if (instances.size())
+		{
+			auto& component = instances[0];
+
+			auto lifeCycle = dynamic_cast<LifeCycleComponent*>(component.GetRef());
+
+			if (lifeCycle)
+			{
+				cb(lifeCycle);
+			}
+		}
+	});
+}
+
+bool LauncherInterface::PreResumeGame()
+{
+	RunLifeCycleCallback([] (LifeCycleComponent* component)
+	{
+		component->PreResumeGame();
+	});
+
+	return true;
+}
+
+bool LauncherInterface::PreInitializeGame()
+{
+	// make the component loader initialize
+	ComponentLoader::GetInstance()->Initialize();
+
+	// run callbacks on the component loader
+    if (!getenv("CitizenFX_ToolMode"))
+    {
+        RunLifeCycleCallback([] (LifeCycleComponent* component)
+        {
+            component->PreInitGame();
+        });
+    }
+
+	return true;
 }
 
 static LauncherInterface g_launcherInterface;

@@ -70,6 +70,11 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
+	if (fileName.length() > 10 && fileName.compare(fileName.length() - 8, 8, L"GTA5.exe") == 0)
+	{
+		return true;
+	}
+
 	return false;
 }
 

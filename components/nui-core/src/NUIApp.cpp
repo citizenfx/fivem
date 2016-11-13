@@ -97,8 +97,3 @@ void NUIApp::AddV8Handler(std::string key, TV8Handler handler)
 {
 	m_v8Handlers[key] = handler;
 }
-
-static InitFunction initFunction([] ()
-{
-	Instance<NUIApp>::Set(new NUIApp());
-});

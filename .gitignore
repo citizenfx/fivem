@@ -187,6 +187,3 @@ node_modules/
 
 # private configs
 privates_config.lua
-
-#rosfive
-components/ros-five/

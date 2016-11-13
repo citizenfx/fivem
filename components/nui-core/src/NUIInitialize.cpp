@@ -17,9 +17,13 @@
 
 #include <include/cef_origin_whitelist.h>
 
+#include "ResumeComponent.h"
+
 #include "memdbgon.h"
 
-static InitFunction initFunction([] ()
+void FinalizeInitNUI();
+
+void Component_RunPreInit()
 {
 #ifdef _M_AMD64
 	// again, a Win7 SP1 check (Chromium x64 isn't supported below this operating level)
@@ -44,11 +48,24 @@ static InitFunction initFunction([] ()
 
 	__HrLoadAllImportsForDll("libcef.dll");
 
+	Instance<NUIApp>::Set(new NUIApp());
+
 	// instantiate a NUIApp
 	auto selfApp = Instance<NUIApp>::Get();
 
 	CefMainArgs args(GetModuleHandle(NULL));
-	CefRefPtr<CefApp> app(selfApp);
+	static CefRefPtr<CefApp> app(selfApp);
+
+    auto schemeHandlerFactory = new NUISchemeHandlerFactory();
+    schemeHandlerFactory->AddRef();
+    Instance<NUISchemeHandlerFactory>::Set(schemeHandlerFactory);
+
+    InitFunctionBase::RunAll();
+
+    OnResumeGame.Connect([] ()
+    {
+        FinalizeInitNUI();
+    });
 
 	// try to execute as a CEF process
 	int exitCode = CefExecuteProcess(args, app, nullptr);
@@ -58,8 +75,20 @@ static InitFunction initFunction([] ()
 	{
 		ExitProcess(0);
 	}
+}
 
-	// set up CEF as well here as we can do so anyway
+void FinalizeInitNUI()
+{
+    if (getenv("CitizenFX_ToolMode"))
+    {
+        return;
+    }
+
+	auto selfApp = Instance<NUIApp>::Get();
+
+	CefMainArgs args(GetModuleHandle(NULL));
+	CefRefPtr<CefApp> app(selfApp);
+
 	CefSettings cSettings;
 		
 	cSettings.multi_threaded_message_loop = true;
@@ -72,12 +101,9 @@ static InitFunction initFunction([] ()
 	cef_string_utf16_set(resPath.c_str(), resPath.length(), &cSettings.resources_dir_path, true);
 	cef_string_utf16_set(resPath.c_str(), resPath.length(), &cSettings.locales_dir_path, true);
 
-	auto schemeHandlerFactory = new NUISchemeHandlerFactory();
-	Instance<NUISchemeHandlerFactory>::Set(schemeHandlerFactory);
-
 	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
 	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
-	CefRegisterSchemeHandlerFactory("nui", "", schemeHandlerFactory);
+	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
 	//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 
@@ -135,4 +161,4 @@ static InitFunction initFunction([] ()
 #endif
 
 	return;
-}, 50);
+}

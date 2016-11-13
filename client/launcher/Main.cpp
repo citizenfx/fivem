@@ -215,7 +215,12 @@ void main()
 						{
 							SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 
-							CitizenGame::Launch(gameExecutableStr);
+							if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_GameMutex") == nullptr)
+							{
+								CreateMutex(nullptr, TRUE, L"CitizenFX_GameMutex");
+
+								CitizenGame::Launch(gameExecutableStr);
+							}
 						}
 						else
 						{

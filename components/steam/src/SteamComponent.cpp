@@ -70,12 +70,6 @@ SteamComponent::SteamComponent()
 
 void SteamComponent::Initialize()
 {
-	// check if this is the presence dummy
-	if (RunPresenceDummy())
-	{
-		ExitProcess(0);
-	}
-
 	m_steamLoader.Initialize();
 
 	if (!m_steamLoader.IsSteamRunning(false))
@@ -414,3 +408,11 @@ static InitFunction initFunction([] ()
 
 	Instance<ISteamComponent>::Set(&steamComponent);
 });
+
+void Component_RunPreInit()
+{
+	if (steamComponent.RunPresenceDummy())
+	{
+		ExitProcess(0);
+	}
+}

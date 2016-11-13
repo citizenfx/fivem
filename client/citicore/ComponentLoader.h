@@ -59,11 +59,11 @@ public:
 		return true;
 	}
 
-	virtual bool Initialize(const std::string& userData)
+	virtual bool SetUserData(const std::string& userData)
 	{
 		(void)userData;
 
-		return Initialize();
+		return true;
 	}
 
 	virtual bool Shutdown() = 0;

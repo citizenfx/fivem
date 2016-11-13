@@ -40,8 +40,6 @@ private:
 
 	void InitializePublicAPI();
 
-	bool RunPresenceDummy();
-
 	void InitializePresence();
 
 	void RunThread();
@@ -50,6 +48,8 @@ public:
 	SteamComponent();
 
 	void Initialize();
+
+	bool RunPresenceDummy();
 
 	// ISteamComponent implementation
 public:

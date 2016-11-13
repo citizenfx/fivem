@@ -25,7 +25,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	static bool g_running = true;
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
-	HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | SYNCHRONIZE, FALSE, parentPid);
+	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE, FALSE, parentPid);
 
 	CrashGenerationServer::OnClientConnectedCallback connectCallback = [] (void*, const ClientInfo* info)
 	{
@@ -43,6 +43,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"ProductName"] = L"FiveReborn";
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20151104"; // todo i bet
+
+        parameters[L"prod"] = L"FiveReborn";
+        parameters[L"ver"] = L"1.0";
 #endif
 
 		parameters[L"ReleaseChannel"] = L"release";
@@ -56,9 +59,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
-		if (HTTPUpload::SendRequest(L"http://report-crash.fivem.net/submit", parameters, files, nullptr, &responseBody, &responseCode))
+		if (HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
 #endif
 		{
+            TerminateProcess(parentProcess, -2);
+
 			TASKDIALOGCONFIG taskDialogConfig = { 0 };
 			taskDialogConfig.cbSize = sizeof(taskDialogConfig);
 			taskDialogConfig.hInstance = GetModuleHandle(nullptr);
@@ -67,8 +72,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
 			taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
 			taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
-			taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"http://forum.citizen.re/\">Citizen.re</A> and mention the details below.";
-			taskDialogConfig.pszExpandedInformation = va(L"Crash ID: %s(use Ctrl+C to copy)", responseBody.substr(8).c_str());
+			taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"http://forum.fivereborn.com/\">something</A> and mention the details below.";
+			taskDialogConfig.pszExpandedInformation = va(L"Crash ID: %s (use Ctrl+C to copy)", responseBody.c_str());
 			taskDialogConfig.pfCallback = [] (HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 			{
 				if (type == TDN_HYPERLINK_CLICKED)
