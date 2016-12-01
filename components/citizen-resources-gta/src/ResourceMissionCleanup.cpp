@@ -13,6 +13,8 @@
 #include <scrThread.h>
 #include <scrEngine.h>
 
+#include <Pool.h>
+
 struct DummyThread : public GtaThread
 {
 	DummyThread(fx::Resource* resource)
@@ -130,14 +132,10 @@ static InitFunction initFunction([] ()
 		{
 			if (data->scriptHandler)
 			{
-				trace("deletin'\n");
-
 				data->scriptHandler->CleanupObjectList();
 				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
-				//data->scriptHandler->CleanupObjectList();
-				//delete data->scriptHandler;
 
-				trace("deletin'd\n");
+				delete data->scriptHandler;
 
 				data->scriptHandler = nullptr;
 			}

@@ -128,6 +128,30 @@ void ExecutableLoader::LoadSections(IMAGE_NT_HEADERS* ntHeader)
 }
 
 #if defined(_M_AMD64)
+typedef enum _FUNCTION_TABLE_TYPE
+{
+	RF_SORTED,
+	RF_UNSORTED,
+	RF_CALLBACK
+} FUNCTION_TABLE_TYPE;
+
+typedef struct _DYNAMIC_FUNCTION_TABLE
+{
+	LIST_ENTRY Links;
+	PRUNTIME_FUNCTION FunctionTable;
+	LARGE_INTEGER TimeStamp;
+
+	ULONG_PTR MinimumAddress;
+	ULONG_PTR MaximumAddress;
+	ULONG_PTR BaseAddress;
+
+	PGET_RUNTIME_FUNCTION_CALLBACK Callback;
+	PVOID Context;
+	PWSTR OutOfProcessCallbackDll;
+	FUNCTION_TABLE_TYPE Type;
+	ULONG EntryCount;
+} DYNAMIC_FUNCTION_TABLE, *PDYNAMIC_FUNCTION_TABLE;
+
 void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 {
 	IMAGE_DATA_DIRECTORY* exceptionDirectory = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
@@ -136,10 +160,34 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 	DWORD entryCount = exceptionDirectory->Size / sizeof(RUNTIME_FUNCTION);
 
 	// has no use - inverted function tables get used instead from Ldr; we have no influence on those
-	/*if (!RtlAddFunctionTable(functionList, entryCount, (DWORD64)GetModuleHandle(nullptr)))
+	if (!RtlAddFunctionTable(functionList, entryCount, (DWORD64)GetModuleHandle(nullptr)))
 	{
 		FatalError("Setting exception handlers failed.");
-	}*/
+	}
+
+	// replace the function table stored for debugger purposes (though we just added it above)
+	{
+		PLIST_ENTRY(NTAPI *rtlGetFunctionTableListHead)(VOID);
+		rtlGetFunctionTableListHead = (decltype(rtlGetFunctionTableListHead))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlGetFunctionTableListHead");
+
+		auto tableListHead = rtlGetFunctionTableListHead();
+		auto tableListEntry = tableListHead->Flink;
+
+		while (tableListEntry != tableListHead)
+		{
+			auto functionTable = CONTAINING_RECORD(tableListEntry, DYNAMIC_FUNCTION_TABLE, Links);
+			
+			if (functionTable->BaseAddress == (ULONG_PTR)m_module)
+			{
+				trace("Replacing function table list entry %p with %p\n", functionTable->FunctionTable, functionList);
+
+				functionTable->EntryCount = entryCount;
+				functionTable->FunctionTable = functionList;
+			}
+
+			tableListEntry = functionTable->Links.Flink;
+		}
+	}
 
 	// use CoreRT API instead
 	if (HMODULE coreRT = GetModuleHandle(L"CoreRT.dll"))

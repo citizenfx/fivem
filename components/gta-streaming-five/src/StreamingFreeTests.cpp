@@ -99,6 +99,8 @@ rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleM
 
 extern std::string g_lastStreamingName;
 
+static FILE* sfLog = fopen("B:\\sf.log", "w");
+
 uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 {
 	if (*indexRet != -1)
@@ -109,6 +111,9 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 			trace("registered mapdata %s as %d\n", g_lastStreamingName.c_str(), *indexRet);
 		}
 #endif
+
+		fprintf(sfLog, "registered %s as %d\n", g_lastStreamingName.c_str(), *indexRet);
+		fflush(sfLog);
 
 		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
 	}

@@ -349,6 +349,35 @@ void NtdllHooks::HookHandleClose()
 	*(uint16_t*)(code + 10) = 0xE0FF;
 }
 
+#define DEFINE_MODULE_CHECK(key, name) \
+	struct key##Module { static inline const wchar_t* GetName() { return L##name; }	};
+
+DEFINE_MODULE_CHECK(Base, "kernelbase.dll");
+
+struct NullModule { static inline const wchar_t* GetName() { return nullptr; } };
+
+template<typename TModule>
+bool IsModule(void* address)
+{
+	static char* g_module;
+	static char* g_moduleEnd;
+
+	if (!g_module)
+	{
+		g_module = (char*)GetModuleHandle(TModule::GetName());
+
+		if (g_module)
+		{
+			PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)g_module;
+			PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)(g_module + dosHeader->e_lfanew);
+
+			g_moduleEnd = g_module + ntHeader->OptionalHeader.SizeOfImage;
+		}
+	}
+
+	return (address >= g_module && address <= g_moduleEnd);
+}
+
 static void* origQIP;
 static DWORD explorerPid;
 
@@ -374,7 +403,10 @@ static NTSTATUS NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCES
 		}
 		else if (ProcessInformationClass == 7) // ProcessDebugPort
 		{
-			*(HANDLE*)ProcessInformation = 0;
+			if (!IsModule<BaseModule>(_ReturnAddress()))
+			{
+				*(HANDLE*)ProcessInformation = 0;
+			}
 		}
 		else if (ProcessInformationClass == 31)
 		{

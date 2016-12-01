@@ -380,7 +380,10 @@ static HookFunction initFunction([] ()
 		GetOurOnlineAddressRaw();
 
 		g_netLibrary->RunFrame();
+	});
 
+	OnMainGameFrame.Connect([] ()
+	{
 		/*static bool isNet = false;
 
 		if (!isNet)
@@ -432,9 +435,9 @@ static HookFunction initFunction([] ()
 			
 			if (*g_dlcMountCount != 90)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 90);
+				//GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 90);
 
-				return;
+				//return;
 			}
 
 			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
@@ -904,7 +907,7 @@ static HookFunction hookFunction([] ()
 	// 463/505 change
 	void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
-	//hook::call(migrateCmd, MigrateSessionCopy);
+	hook::call(migrateCmd, MigrateSessionCopy);
 
 	// session key getting system key; replace with something static for migration purposes
 	//hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);

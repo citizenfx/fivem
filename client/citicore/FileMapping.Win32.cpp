@@ -17,7 +17,7 @@ typedef wchar_t*(*MappingFunctionType)(const wchar_t*, void*(*)(size_t));
 
 static MappingFunctionType g_mappingFunction;
 
-static NTSTATUS(*g_origLoadDll)(const wchar_t*, uint32_t, UNICODE_STRING*, HANDLE*);
+static NTSTATUS(*g_origLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*, HANDLE*);
 
 static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 {
@@ -87,7 +87,7 @@ static HANDLE CreateFileWStub(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAcces
 	return g_origCreateFileW(fileName.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
-NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t flags, UNICODE_STRING* moduleName, HANDLE* handle)
+NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_STRING* moduleName, HANDLE* handle)
 {
 	UNICODE_STRING newString;
 	std::wstring moduleNameStr(moduleName->Buffer, moduleName->Length / sizeof(wchar_t));

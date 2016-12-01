@@ -40,11 +40,17 @@ int someFunc(void* a1, void* a2, const char* a3)
 		{
 			trace("dlc mounted: %s\n", name.c_str());
 
-			rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
-			dlc->SetPath(name.c_str(), true);
+			{
+				rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
+				dlc->SetPath(name.c_str(), true);
+				dlc->Mount((dlcName + ":/").c_str());
+			}
 
-			dlc->Mount((dlcName + ":/").c_str());
-			dlc->Mount((dlcName + "CRC:/").c_str());
+			{
+				rage::fiDeviceRelative* dlc = new rage::fiDeviceRelative();
+				dlc->SetPath(name.c_str(), true);
+				dlc->Mount((dlcName + "CRC:/").c_str());
+			}
 		}
 	}
 

@@ -11,6 +11,8 @@
 #include <GlobalEvents.h>
 #include <nutsnbolts.h>
 
+#include <gameSkeleton.h>
+
 #include <Hooking.h>
 
 FiveGameInit g_gameInit;
@@ -92,6 +94,14 @@ static InitFunction initFunction([] ()
 
 				OnMsgConfirm();
 			}
+		}
+	});
+
+	rage::OnInitFunctionEnd.Connect([] (rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_SESSION)
+		{
+			g_gameInit.SetGameLoaded();
 		}
 	});
 

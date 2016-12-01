@@ -118,12 +118,12 @@ bool InitializeExceptionHandler()
 	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
 	if (IsDebuggerPresent())
 	{
-		SetUnhandledExceptionFilter([] (LPEXCEPTION_POINTERS pointers) -> LONG
+		/*SetUnhandledExceptionFilter([] (LPEXCEPTION_POINTERS pointers) -> LONG
 		{
 			__debugbreak();
 
 			return 0;
-		});
+		});*/
 
 		return false;
 	}

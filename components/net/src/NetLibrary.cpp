@@ -565,15 +565,16 @@ inline uint64_t GetGUID()
 
 		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
 
-		uint64_t steamID;
-		steamUser.Invoke<void>("GetSteamID", &steamID);
+		if (steamUser.IsValid())
+		{
+			uint64_t steamID;
+			steamUser.Invoke<void>("GetSteamID", &steamID);
 
-		return steamID;
+			return steamID;
+		}
 	}
-	else
-	{
-		return (uint64_t)(0x210000100000000 | m_tempGuid);
-	}
+
+	return (uint64_t)(0x210000100000000 | m_tempGuid);
 }
 
 void NetLibrary::RunFrame()
@@ -672,6 +673,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	m_currentServer = NetAddress(hostname, port);
 
 	m_outReliableAcknowledged = 0;
+	m_outReliableSequence = 0;
 	m_outSequence = 0;
 	m_lastReceivedReliableCommand = 0;
 	m_outReliableCommands.clear();
@@ -703,17 +705,20 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
 
-		steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
-
-		// encode the ticket buffer
-		std::stringstream str;
-
-		for (int i = 0; i < ticketLength; i++)
+		if (steamUser.IsValid())
 		{
-			str << va("%02x", ticketBuffer[i]);
-		}
+			steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
 
-		postMap["authTicket"] = str.str();
+			// encode the ticket buffer
+			std::stringstream str;
+
+			for (int i = 0; i < ticketLength; i++)
+			{
+				str << va("%02x", ticketBuffer[i]);
+			}
+
+			//postMap["authTicket"] = str.str();
+		}
 	}
 
 	postMap["guid"] = va("%lld", GetGUID());

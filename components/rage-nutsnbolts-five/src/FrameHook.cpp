@@ -10,7 +10,10 @@
 
 #include <Hooking.h>
 
+#include <ICoreGameInit.h>
+
 fwEvent<> OnGameFrame;
+fwEvent<> OnMainGameFrame;
 fwEvent<> OnFirstLoadCompleted;
 
 static int(*g_appState)(void* fsm, int state, void* unk, int type);
@@ -57,6 +60,8 @@ static void DoGameFrame()
 
 	if (GetCurrentThreadId() == g_mainThreadId)
 	{
+		OnMainGameFrame();
+
 		g_executedOnMainThread = true;
 	}
 
@@ -65,7 +70,10 @@ static void DoGameFrame()
 
 static bool OnLookAlive()
 {
-	DoGameFrame();
+	if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+	{
+		DoGameFrame();
+	}
 
 	return g_origLookAlive();
 }

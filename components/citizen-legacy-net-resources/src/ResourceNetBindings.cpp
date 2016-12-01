@@ -238,7 +238,7 @@ static InitFunction initFunction([] ()
 			updateResources("");
 		});
 
-		OnGameFrame.Connect([] ()
+		OnMainGameFrame.Connect([] ()
 		{
 			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
 

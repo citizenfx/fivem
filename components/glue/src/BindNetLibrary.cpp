@@ -29,6 +29,8 @@ static InitFunction initFunction([] ()
 
 			if (!gameInit->GetGameLoaded())
 			{
+				trace("Triggering LoadGameFirstLaunch()\n");
+
 				gameInit->LoadGameFirstLaunch([] ()
 				{
 					// download frame code
@@ -39,9 +41,11 @@ static InitFunction initFunction([] ()
 			}
 			else
 			{
+				trace("Triggering ReloadGame()\n");
+
 				gameInit->ReloadGame();
 			}
-		});
+		}, 1000);
 
 		OnKillNetwork.Connect([=] (const char* message)
 		{

@@ -8,6 +8,8 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <Pool.h>
+
 #include <algorithm>
 #include <array>
 
@@ -217,16 +219,30 @@ public:
 	alignas(uint64_t) uint32_t entryCount;
 	uint32_t _f44;
 	atArray<int> _f48;
-	void* _f58;
+	
+	union
+	{
+		void* _f58;
+		char _a58[8];
+	};
 
 	void* _f60;
 	float _f68;
 
-	alignas(uint64_t) char pad[80];
+	void* _f70;
+	float _f78[4];
+
+	char pad[16];
+
+	float _f98[4];
+
+	alignas(uint64_t) char pad2[24]; // @70
 
 	fwBoxStreamerEntries entries;
 
-	alignas(uint64_t) char pad2[16];
+	//alignas(uint64_t) char pad2[16];
+
+	atArray<int> _fE8;
 
 	fwBoxStreamer_obj1* _fF8;
 
@@ -241,6 +257,8 @@ fwBoxStreamer* g_mapDataBoxStreamer;
 
 static hook::cdecl_stub<void(fwBoxStreamerEntries*)> clearEntries([] ()
 {
+	static_assert(sizeof(fwBoxStreamer) == 296, "");
+
 	return hook::pattern("57 48 83 EC 20 48 8B F9 33 F6 B9 01 00").count(1).get(0).get<void>(-0xA);
 });
 
@@ -263,6 +281,48 @@ atArray<std::array<char, 40>>* g_boundDependencyArray;
 
 static void LoadLevelDatHook(void* dataFileMgr, const char* name, bool enabled)
 {
+	void* module = g_mapDataBoxStreamer->streamingModule;
+
+	g_mapDataBoxStreamer->_f8.Clear();
+	g_mapDataBoxStreamer->_f20.Clear();
+	g_mapDataBoxStreamer->_f30.Clear();
+	g_mapDataBoxStreamer->entryCount = 0;
+	g_mapDataBoxStreamer->_f48.Clear();
+	g_mapDataBoxStreamer->_f58 = nullptr;
+	memset(g_mapDataBoxStreamer->pad, 0, sizeof(g_mapDataBoxStreamer->pad));
+
+	clearEntries(&g_mapDataBoxStreamer->entries);
+
+	g_mapDataBoxStreamer->_fE8.Clear();
+
+	delete g_mapDataBoxStreamer->_fF8;
+	g_mapDataBoxStreamer->_fF8 = nullptr;
+
+	g_mapDataBoxStreamer->_f100.Clear();
+	g_mapDataBoxStreamer->_f110.Clear();
+
+	delete g_mapDataBoxStreamer->_f120;
+	g_mapDataBoxStreamer->_f120 = nullptr;
+
+	g_mapDataBoxStreamer->ResetQuadTree(module, 30.0f);
+
+	g_mapDataBoxStreamer->_a58[0] |= 8 | 16 | 32 | 64;
+	g_mapDataBoxStreamer->_a58[2] |= 8 | 16 | 32 | 64;
+	g_mapDataBoxStreamer->_a58[4] |= 8 | 16 | 32 | 64;
+	g_mapDataBoxStreamer->_a58[6] |= 8 | 16 | 32 | 64;
+
+	g_mapDataBoxStreamer->_a58[5] |= 32 | 64;
+
+	g_mapDataBoxStreamer->_f78[0] = 50.0f;
+	g_mapDataBoxStreamer->_f78[1] = 50.0f;
+	g_mapDataBoxStreamer->_f78[2] = 50.0f;
+	g_mapDataBoxStreamer->_f78[3] = 50.0f;
+
+	g_mapDataBoxStreamer->_f98[0] = 1.0f;
+	g_mapDataBoxStreamer->_f98[1] = 1.0f;
+	g_mapDataBoxStreamer->_f98[2] = 1.0f;
+	g_mapDataBoxStreamer->_f98[3] = 1.0f;
+
 	// perform a dummy load first to see what this load will add to the list
 	void* dummyMgr = CreateDataFileMgr();
 
@@ -369,7 +429,7 @@ static void LoadLevelDatHook(void* dataFileMgr, const char* name, bool enabled)
 	free(dummyMgr);
 
 	// clear the fwMapDataStore box streamer entry list
-	clearEntries(&g_mapDataBoxStreamer->entries);
+	/*clearEntries(&g_mapDataBoxStreamer->entries);
 
 	delete g_mapDataBoxStreamer->_fF8;
 	g_mapDataBoxStreamer->_fF8 = nullptr;
@@ -396,7 +456,7 @@ static void LoadLevelDatHook(void* dataFileMgr, const char* name, bool enabled)
 		{
 			g_mapDataBoxStreamer->ResetQuadTree(g_mapDataBoxStreamer->streamingModule, g_mapDataBoxStreamer->_f68);
 		}
-	}
+	}*/
 
 	// an array of static bound dependencies on map data sectors
 	g_boundDependencyArray->Clear();

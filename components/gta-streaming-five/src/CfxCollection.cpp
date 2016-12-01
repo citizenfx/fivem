@@ -12,6 +12,8 @@
 
 #include <fnv.h>
 
+#define CFX_COLLECTION_DISABLE 1
+
 // unset _DEBUG so that there will be no range checking
 #ifdef _DEBUG
 #undef _DEBUG
@@ -1735,8 +1737,10 @@ static std::vector<std::pair<std::string, rage::ResourceFlags>> g_customStreamin
 
 void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags)
 {
+#ifndef CFX_COLLECTION_DISABLE
 	g_customStreamingFileSet.insert(StringRef(std::string(strrchr(fileName.c_str(), '/') + 1)));
 	g_customStreamingFiles.push_back({ fileName, flags });
+#endif
 }
 
 void CfxCollection::PrepareStreamingListFromNetwork()
@@ -1919,6 +1923,15 @@ void SetStreamingPackfileEnabled(uint32_t index, bool enabled)
 	{
 		g_streamingPackfiles->Get(index).enabled = enabled;
 	}
+}
+
+static void(*g_origRemoveStreamingPackfile)(uint32_t);
+
+static void RemoveStreamingPackfileWrap(uint32_t index)
+{
+	g_origRemoveStreamingPackfile(index);
+
+	(*g_streamingPackfiles)[index].loadedFlag = true;
 }
 
 static rage::fiFile*(*rage__fiFile__Open)(const char* fileName, rage::fiDevice* device, bool readOnly);
@@ -2118,6 +2131,13 @@ static HookFunction hookFunction([] ()
 
 	// (not temp dbg: )InvalidFile overwrite fuckery
 	hook::nop(hook::get_pattern("33 D2 E8 ? ? ? ? 48 8B 0D ? ? ? ? 48 8D 15", -7), 58);
+
+	// reloading dependency: flag streaming packfiles from DLC changesets to not automatically load
+	{
+		void* loc = hook::get_pattern("45 33 C0 8B D3 E8 ? ? ? ? 8B CB E8", 12);
+		hook::set_call(&g_origRemoveStreamingPackfile, loc);
+		hook::call(loc, RemoveStreamingPackfileWrap);
+	}
 
 	// make the pfm.dat read-only
 	{

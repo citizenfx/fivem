@@ -9,6 +9,7 @@
 #include "Hooking.h"
 
 #include <atArray.h>
+#include <Pool.h>
 #include <sysAllocator.h>
 
 #include <GameInit.h>
@@ -94,6 +95,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 		{
 			if (*g_initState == 0)
 			{
+				trace("Triggering OnGameFinalizeLoad\n");
+
 				OnGameFinalizeLoad();
 				isLoading = false;
 			}
@@ -129,6 +132,7 @@ void FiveGameInit::ReloadGame()
 {
 	OnGameRequestLoad();
 
+	m_gameLoaded = false;
 	*g_initState = MapInitState(14);
 }
 
@@ -331,34 +335,7 @@ static hook::cdecl_stub<void(int)> shutdownPhysics([] ()
 	return hook::pattern("83 F9 04 75 15 48 8D 0D").count(1).get(0).get<void>(-0x12);
 });
 
-template<typename T>
-class fwPool
-{
-private:
-	char* m_data;
-	int8_t* m_flags;
-	uint32_t m_count;
-	uint32_t m_entrySize;
-
-public:
-	T* GetAt(int index) const
-	{
-		return reinterpret_cast<T*>(m_data + (index * m_entrySize));
-	}
-
-	void Clear()
-	{
-		for (int i = 0; i < m_count; i++)
-		{
-			if (m_flags[i] >= 0)
-			{
-				delete GetAt(i);
-			}
-		}
-	}
-};
-
-static fwPool<CInteriorProxy>** g_interiorProxyPool;
+static atPool<CInteriorProxy>** g_interiorProxyPool;
 
 static bool g_inLevelFree;
 static bool g_didLevelFree;
@@ -383,6 +360,27 @@ static hook::cdecl_stub<void(void*, bool, bool)> extraContentMgr__doScanPost([] 
 
 static void** g_extraContentMgr;
 
+static void ClearInteriorProxyPool()
+{
+	trace(__FUNCTION__ ": no-op\n");
+}
+
+struct CPortalScanner
+{
+	char pad[24];
+	void* interiorProxy;
+};
+
+struct CRenderPhaseScanned
+{
+	char pad[1280];
+	CPortalScanner* portalScanner;
+};
+
+static std::map<std::string, CRenderPhaseScanned*> g_renderPhases;
+
+static void(*g_loadClipSets)();
+
 static void DeinitLevel()
 {
 	static bool initedLateHook = false;
@@ -396,6 +394,12 @@ static void DeinitLevel()
 		// don't load mounted ped (personality) metadata anymore (temp dbg-y?)
 		hook::nop(hook::pattern("48 8B DA 83 E9 14 74 5B").count(1).get(0).get<void>(0x72 - 12), 5);
 
+		// recreate interior proxy pool sanely
+		//char* poolFn = hook::get_pattern<char>("41 0F B7 C6 4D 89 73 E8 41 8B F6 66 89 44 24 28", -0x23);
+		//poolFn += 0xD4;
+		//hook::nop(poolFn, 44);
+		//hook::jump(poolFn, ClearInteriorProxyPool);
+
 		initedLateHook = true;
 	}
 
@@ -408,7 +412,10 @@ static void DeinitLevel()
 	initModelInfo(1);
 	initStreamingInterface();
 
+	g_loadClipSets();
+
 	// extra content manager shutdown session removes these, and we want these before init session, so we scan them right here, right now.
+	// TEMP REMOVE
 	extraContentMgr__doScanInt(*g_extraContentMgr);
 	extraContentMgr__doScanPost(*g_extraContentMgr, false, false);
 
@@ -416,7 +423,10 @@ static void DeinitLevel()
 	//initPhysics(1);
 
 	// unknown value in the bounds streaming module, doesn't get cleared on 'after map loaded' shutdown
-	*(uint32_t*)(g_boundsStreamingModule + 5664) = 0;
+	int colCrashOffset = *hook::get_pattern<int>("0F B7 83 ? ? 00 00 BA FF 1F 00 00 66 33 C1 66", 3);
+	int colCrashCountMax = (colCrashOffset - 464) / 4;
+
+	*(uint32_t*)(g_boundsStreamingModule + colCrashOffset) = 0;
 
 	// bounds streaming module, 'has preloading bounds completed' value
 	*(uint8_t*)(g_boundsStreamingModule + 255) = 0;
@@ -432,6 +442,19 @@ static void DeinitLevel()
 
 	// and some global vehicle audio entity also houses... interior proxies.
 	*g_vehicleReflEntityArray = atArray<CInteriorProxy*>();
+
+	// clear interior proxies from render phases
+	for (auto& pair : g_renderPhases)
+	{
+		CRenderPhaseScanned* renderPhase = pair.second;
+
+		if (renderPhase->portalScanner)
+		{
+			trace("clearing %s interior proxy (was %p)\n", pair.first.c_str(), renderPhase->portalScanner->interiorProxy);
+
+			renderPhase->portalScanner->interiorProxy = nullptr;
+		}
+	}
 
 	g_inLevelFree = false;
 
@@ -511,6 +534,7 @@ static void** g_unsafePointerLoc;
 
 #include <unordered_map>
 #include <mutex>
+#include <array>
 
 static std::unordered_map<uintptr_t, size_t> g_allocData;
 static std::mutex g_allocMutex;
@@ -518,6 +542,8 @@ static std::mutex g_allocMutex;
 static CRITICAL_SECTION g_allocCS;
 
 static std::vector<uintptr_t> g_unsafeStack;
+static std::map<uintptr_t, std::pair<size_t, std::array<uintptr_t, 16>>> g_freeThings;
+static std::map<std::pair<uintptr_t, size_t>, std::array<uintptr_t, 16>> g_allocStuff;
 
 intptr_t CustomMemFree(void* allocator, void* pointer)
 {
@@ -571,7 +597,25 @@ intptr_t CustomMemFree(void* allocator, void* pointer)
 		{
 			size_t allocSize = it->second;
 
-			static char* location = hook::pattern("4C 8D 0D ? ? ? ? 48 89 01 4C 89 81 80 00 00").count(1).get(0).get<char>(3);
+			g_allocStuff.erase({ ptr, allocSize });
+
+			if (allocSize >= 8)
+			{
+				if (*(uintptr_t*)ptr == 0x141826A10)
+				{
+					uintptr_t* stack = (uintptr_t*)_AddressOfReturnAddress();
+					stack += (32 / 8);
+
+					std::array<uintptr_t, 16> stacky;
+					memcpy(stacky.data(), stack, 16 * 8);
+
+					{
+						g_freeThings.insert({ ptr, { allocSize, stacky } });
+					}
+				}
+			}
+
+			/*static char* location = hook::pattern("4C 8D 0D ? ? ? ? 48 89 01 4C 89 81 80 00 00").count(1).get(0).get<char>(3);
 			static char** g_collectionRoot = (char**)(location + *(int32_t*)location + 4);
 
 			for (int i = 0; i < 0x950; i++)
@@ -595,7 +639,10 @@ intptr_t CustomMemFree(void* allocator, void* pointer)
 						}
 					}
 				}
-			}
+			}*/
+
+
+
 			/*if (g_inLevelFree)
 			{
 			if (allocSize != -1)
@@ -663,6 +710,39 @@ void* CustomMemAlloc(void* allocator, intptr_t size, intptr_t align, int subAllo
 		//std::unique_lock<std::mutex> lock(g_allocMutex);
 		EnterCriticalSection(&g_allocCS);
 		g_allocData[ptr_] = size;
+
+		/*auto first = g_freeThings.lower_bound(ptr_);
+		auto second = g_freeThings.upper_bound(ptr_ + size);
+
+		for (auto it = first; first != second; first++)
+		{
+			if (ptr_ >= it->first && ptr_ < (it->first + it->second.first))
+			{
+				if (size == it->second.first)
+				{
+					trace("allocate over stacky!\n");
+
+					auto stacky = it->second.second;
+
+					for (auto& entry : stacky)
+					{
+						trace("%p\n", entry);
+					}
+
+					trace("noooooooooo!\n");
+				}
+			}
+		}*/
+
+		//g_allocData[ptr_] = size;
+		uintptr_t* stack = (uintptr_t*)_AddressOfReturnAddress();
+		stack += (32 / 8);
+
+		std::array<uintptr_t, 16> stacky;
+		memcpy(stacky.data(), stack, 16 * 8);
+
+		g_allocStuff[{ ptr_, size }] = stacky;
+
 		LeaveCriticalSection(&g_allocCS);
 	}
 
@@ -696,10 +776,87 @@ static void RunInitFunctionsWrap(void* skel, int type)
 			g_lookAlive();
 
 			OnGameFrame();
+			OnMainGameFrame();
 		}
 	}
 	
 	g_runInitFunctions(skel, type);
+}
+
+static void(*g_openPopCycle)(void*, void*);
+void ClearAndOpenPopCycle(atArray<allocWrap<std::array<char, 608>>>* popArray, void* fname)
+{
+	popArray->Clear();
+	//g_openPopCycle(popArray, fname);
+}
+
+int ReturnFalse()
+{
+	return 0;
+}
+
+int BlipAsIndex(int blip)
+{
+	assert(blip >= 0);
+
+	return (blip & 0xFFFF);
+}
+
+static HANDLE hHeap = HeapCreate(0, 0, 0);
+
+static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
+{
+	DWORD_PTR ptr = (DWORD_PTR)malloc(size + 32);
+	ptr += 4;
+
+	void* mem = (void*)(((uintptr_t)ptr + 15) & ~(uintptr_t)0xF);
+
+	*(uint32_t*)((uintptr_t)mem - 4) = 0xDEADC0C0 | (((uintptr_t)ptr + 15) & 0xF);
+
+	return mem;
+}
+
+static void FreeEntry(void* allocator, void* ptr)
+{
+	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
+
+	//HeapFree(hHeap, 0, memReal);
+	free(memReal);
+}
+
+static bool isMineHook(void* allocator, void* mem)
+{
+	return (*(uint32_t*)((DWORD_PTR)mem - 4) & 0xFFFFFFF0) == 0xDEADC0C0;
+}
+
+static void ReallocEntry(void* allocator, void* ptr, size_t size)
+{
+	assert(isMineHook(allocator, ptr));
+
+	FreeEntry(allocator, ptr);
+
+/*	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
+	ptrdiff_t delta = (char*)ptr - (char*)memReal;
+
+	//HeapFree(hHeap, 0, memReal);
+	memReal = realloc(memReal, size);
+
+	void* mem = (char*)memReal + delta;
+
+	assert(isMineHook(allocator, mem));
+
+	return mem;*/
+
+	return;
+}
+
+static void*(*CRenderPhase__ctor)(void* renderPhase, void* a2, void* a3, void* a4, void* a5, int a6);
+
+void* CRenderPhaseScanned__ctorWrap(CRenderPhaseScanned* renderPhase, void* a2, char* name, void* a4, void* a5, int a6)
+{
+	g_renderPhases[name] = renderPhase;
+
+	return CRenderPhase__ctor(renderPhase, a2, name, a4, a5, a6);
 }
 
 static HookFunction hookFunction([] ()
@@ -889,15 +1046,23 @@ static HookFunction hookFunction([] ()
 	//hook::nop(hook::pattern("84 C0 75 7A 48 8D 4C 24 20").count(1).get(0).get<void>(2), 2);
 
 	// debug info for item #2 (generic free hook; might be useful elsewhere)
-	location = hook::pattern("48 89 01 83 61 48 00 48 8B C1 C3").count(1).get(0).get<char>(-4);
+	//location = hook::pattern("48 89 01 83 61 48 00 48 8B C1 C3").count(1).get(0).get<char>(-4); // multiallocator
+	location = hook::pattern("48 8B D9 41 8A E9 48 89 01 41 8B F8 48 63 F2 B9").count(1).get(0).get<char>(-4); // simpleallocator
 	
 	void** vt = (void**)(location + *(int32_t*)location + 4);
 
-	//g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
+	g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
 	//vt[2] = CustomMemAlloc;
-
-	//g_origMemFree = (decltype(g_origMemFree))vt[4];
+	
+	g_origMemFree = (decltype(g_origMemFree))vt[4];
 	//vt[4] = CustomMemFree;
+
+	//vt[6] = ReallocEntry;
+
+	//vt[26] = isMineHook;
+
+	// stop the ros sdk input blocker
+	hook::jump(hook::get_pattern("48 8B 01 FF 50 10 84 C0 74 05 BB 01 00 00 00 8A", -0x14), ReturnFalse);
 	
 	// block loading until conditions succeed
 	char* loadStarter = hook::pattern("BA 02 00 00 00 E8 ? ? ? ? E8 ? ? ? ? 8B").count(1).get(0).get<char>(5);
@@ -905,6 +1070,54 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_lookAlive, loadStarter + 5);
 
 	hook::call(loadStarter, RunInitFunctionsWrap);
+
+	// temp dbg: do not load interior proxy ordering files
+	hook::nop(hook::get_pattern("81 BA 90 00 00 00 AD 00 00 00 74 04", 10), 2);
+
+	// temp dbg: do not even load interior proxy bounds (for DLC)
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 84 DB 74 12 E8", 0), 5);
+
+	// do not even load DLC at all
+	hook::nop(hook::get_pattern("B4 48 8B CF E8 ? ? ? ? 48 8D 4C 24 40 E8", 4), 5);
+
+	// don't shut down DLC either
+	//hook::return_function(hook::get_pattern("48 85 C9 74 3B 41 B8 01 00 00 00 8B D3 E8", -15));
+
+	// nor rline really
+	//hook::nop((void*)0x14001B429, 5);
+
+	// or the other rline
+	//hook::nop((void*)0x1400172ED, 5);
+
+	// don't conditionally check player blip handle
+	hook::call(hook::get_pattern("C8 89 05 ? ? ? ? E8 ? ? ? ? 89 05", 7), BlipAsIndex);
+
+	// clear popcycle file upon non-dlc load too
+	{
+		void* loc = hook::get_pattern("BA 0E 00 00 00 E8 ? ? ? ? 83 B8 94", 29);
+		hook::set_call(&g_openPopCycle, loc);
+		hook::call(loc, ClearAndOpenPopCycle);
+	}
+
+	// don't even try to set any popcycle zonebinds
+	{
+		hook::put<uint8_t>(hook::get_pattern("44 89 7C 24 60 81 FA DB 3E 14 7D 74 16", 11), 0xEB);
+		hook::put<uint8_t>(hook::get_pattern("44 89 44 24 60 81 FA DB 3E 14 7D 74 16", 11), 0xEB);
+	}
+
+	// also don't reload clipsets because whoever implemented V DLC loading is a cuntflap
+	//hook::return_function(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19));
+	hook::set_call(&g_loadClipSets, hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", 12));
+
+	// track scanned render phases which may have interior proxies in portal/vis trackers
+	location = hook::get_pattern<char>("66 89 83 08 05 00 00 48 8B C3 48 83 C4 30 5B C3", -36);
+
+	hook::set_call(&CRenderPhase__ctor, location);
+	hook::call(location, CRenderPhaseScanned__ctorWrap);
+
+	// argh.
+	//hook::jump(0x1400012F4, AllocEntry);
+	//hook::jump(0x14000132C, FreeEntry);
 
 	/*
 	void* setCache = hook::pattern("40 32 FF 45 84 C9 40 88 3D").count(1).get(0).get<void>(3);
