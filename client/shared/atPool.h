@@ -18,6 +18,11 @@ public:
 	template<typename T>
 	T* GetAt(int index) const
 	{
+		if (m_flags[index] < 0)
+		{
+			return nullptr;
+		}
+
 		return reinterpret_cast<T*>(m_data + (index * m_entrySize));
 	}
 

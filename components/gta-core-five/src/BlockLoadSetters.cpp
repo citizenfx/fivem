@@ -22,6 +22,7 @@ static hook::cdecl_stub<void()> lookAlive([] ()
 
 // map init states to cater for additional '7' in one particular digital distribution version
 static bool g_isDigitalDistrib = false;
+static bool g_triedLoading = false;
 
 static inline int MapInitState(int initState)
 {
@@ -84,6 +85,7 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 			if (*g_initState == MapInitState(6))
 			{
 				*g_initState = MapInitState(7);
+				g_triedLoading = true;
 
 				g_shouldSetState = false;
 			}
@@ -116,6 +118,7 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 	if (*g_initState == MapInitState(6))
 	{
 		*g_initState = MapInitState(7);
+		g_triedLoading = true;
 	}
 	else
 	{
@@ -432,7 +435,8 @@ static void DeinitLevel()
 	*(uint8_t*)(g_boundsStreamingModule + 255) = 0;
 
 	// clear the 'loaded cache hashes' list
-	*g_cacheArray = atArray<allocWrap<uint32_t>>(16);
+	//*g_cacheArray = atArray<allocWrap<uint32_t>>(16);
+	g_cacheArray->ClearCount();
 
 	// free one CScene list of all the bad influences from the last session
 	ClearInteriorProxyList(g_sceneLinkedList);
@@ -804,9 +808,29 @@ int BlipAsIndex(int blip)
 
 static HANDLE hHeap = HeapCreate(0, 0, 0);
 
+static bool(*g_origIsMine)(void*, void*);
+static bool(*g_origRealloc)(void*, void*, size_t);
+
+static bool isMine(void* allocator, void* mem)
+{
+	return (*(uint32_t*)((DWORD_PTR)mem - 4) & 0xFFFFFFF0) == 0xDEADC0C0;
+}
+
+static bool isMineHook(void* allocator, void* mem)
+{
+	return isMine(allocator, mem) || g_origIsMine(allocator, mem);
+}
+
+DWORD g_mainThreadId;
+
 static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
 {
-	DWORD_PTR ptr = (DWORD_PTR)malloc(size + 32);
+	if (!g_triedLoading && g_mainThreadId != GetCurrentThreadId())
+	{
+		return g_origMemAlloc(allocator, size, align, subAlloc);
+	}
+
+	DWORD_PTR ptr = (DWORD_PTR)HeapAlloc(hHeap, 0, size + 32);//malloc(size + 32);
 	ptr += 4;
 
 	void* mem = (void*)(((uintptr_t)ptr + 15) & ~(uintptr_t)0xF);
@@ -818,22 +842,27 @@ static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
 
 static void FreeEntry(void* allocator, void* ptr)
 {
+	if (!isMine(allocator, ptr))
+	{
+		g_origMemFree(allocator, ptr);
+		return;
+	}
+
 	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
 
-	//HeapFree(hHeap, 0, memReal);
-	free(memReal);
-}
-
-static bool isMineHook(void* allocator, void* mem)
-{
-	return (*(uint32_t*)((DWORD_PTR)mem - 4) & 0xFFFFFFF0) == 0xDEADC0C0;
+	HeapFree(hHeap, 0, memReal);
+	//free(memReal);
 }
 
 static void ReallocEntry(void* allocator, void* ptr, size_t size)
 {
-	assert(isMineHook(allocator, ptr));
+	if (g_origIsMine(allocator, ptr))
+	{
+		g_origRealloc(allocator, ptr, size);
+		return;
+	}
 
-	FreeEntry(allocator, ptr);
+	//FreeEntry(allocator, ptr);
 
 /*	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
 	ptrdiff_t delta = (char*)ptr - (char*)memReal;
@@ -859,9 +888,83 @@ void* CRenderPhaseScanned__ctorWrap(CRenderPhaseScanned* renderPhase, void* a2, 
 	return CRenderPhase__ctor(renderPhase, a2, name, a4, a5, a6);
 }
 
+template<typename T>
+struct atDictionary
+{
+	bool isValid;
+	atArray<T> data;
+};
+
+struct fwClipSet
+{
+	char pad[20];
+	uint32_t dicthash;
+};
+
+struct ClipSetEntry
+{
+	uint32_t key;
+	fwClipSet* clipSet;
+};
+
+struct ClipMetaEntry
+{
+	uint32_t key;
+	char streamingPolicy;
+	void* clipMeta;
+};
+
+atDictionary<ClipSetEntry>* g_clipSets = (atDictionary<ClipSetEntry>*)0x141C986A0;
+atDictionary<ClipMetaEntry>* g_clipSetMetas = (atDictionary<ClipMetaEntry>*)0x141C986B8;
+
+
+void TrackClipSetShutdown()
+{
+	auto& clipSets = g_clipSets->data;
+	auto& clipMetas = g_clipSetMetas->data;
+
+	trace("clipset count: %d\n", clipSets.GetCount());
+	trace("clipmeta count: %d\n", clipMetas.GetCount());
+
+	for (auto& cs : clipSets)
+	{
+		trace("cs %08x: %08x\n", cs.key, cs.clipSet->dicthash);
+	}
+
+	for (auto& cm : clipMetas)
+	{
+		trace("cm %08x: %d%s\n", cm.key, cm.streamingPolicy, (cm.streamingPolicy & 2) ? " UNLOADING" : "");
+	}
+}
+
+void(*g_origAssetRelease)(void*, uint32_t);
+
+struct AssetStore
+{
+	void* vtable;
+	char pad[48];
+	atPoolBase pool;
+};
+
+void WrapAssetRelease(AssetStore* assetStore, uint32_t entry)
+{
+	auto d = assetStore->pool.GetAt<void*>(entry);
+
+	if (d && *d)
+	{
+		g_origAssetRelease(assetStore, entry);
+	}
+	else
+	{
+		trace("didn't like entry %d :(\n", entry);
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
+
+	g_mainThreadId = GetCurrentThreadId();
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
 	char* p = hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
@@ -1052,13 +1155,15 @@ static HookFunction hookFunction([] ()
 	void** vt = (void**)(location + *(int32_t*)location + 4);
 
 	g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
-	//vt[2] = CustomMemAlloc;
+	//vt[2] = AllocEntry;
 	
 	g_origMemFree = (decltype(g_origMemFree))vt[4];
-	//vt[4] = CustomMemFree;
+	//vt[4] = FreeEntry;
 
+	g_origRealloc = (decltype(g_origRealloc))vt[6];
 	//vt[6] = ReallocEntry;
 
+	g_origIsMine = (decltype(g_origIsMine))vt[26];
 	//vt[26] = isMineHook;
 
 	// stop the ros sdk input blocker
@@ -1106,14 +1211,31 @@ static HookFunction hookFunction([] ()
 	}
 
 	// also don't reload clipsets because whoever implemented V DLC loading is a cuntflap
-	//hook::return_function(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19));
 	hook::set_call(&g_loadClipSets, hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", 12));
+	//hook::return_function(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19));
+	//hook::jump(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19), TrackClipSetShutdown);
+
+	// disable fwclipsetmanager session shutdown by making it test for 9 shutdown
+	hook::put<uint8_t>(hook::get_pattern("83 F9 08 0F 85 26 01 00 00 44 0F", 2), 9);
 
 	// track scanned render phases which may have interior proxies in portal/vis trackers
 	location = hook::get_pattern<char>("66 89 83 08 05 00 00 48 8B C3 48 83 C4 30 5B C3", -36);
 
 	hook::set_call(&CRenderPhase__ctor, location);
 	hook::call(location, CRenderPhaseScanned__ctorWrap);
+
+	// avoid releasing released clipdictionaries
+	{
+		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 90 00 00 00 48", 3);
+		hook::set_call(&g_origAssetRelease, loc);
+		hook::call(loc, WrapAssetRelease);
+	}
+
+	// don't switch clipset manager to network mode ever
+	hook::return_function(hook::get_pattern("A8 04 75 30 8B 04 13 4C", -0x3B));
+
+	// dlc conditional anims? bah.
+	hook::nop(hook::get_pattern("48 85 C0 75 38 8D 48 28", -14), 7);
 
 	// argh.
 	//hook::jump(0x1400012F4, AllocEntry);

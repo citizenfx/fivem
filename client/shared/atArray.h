@@ -97,6 +97,11 @@ public:
 		}
 	}
 
+	void ClearCount()
+	{
+		m_count = 0;
+	}
+
 	void Set(uint16_t offset, const TValue& value)
 	{
 		if (offset >= m_size)
