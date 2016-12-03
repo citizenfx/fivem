@@ -422,10 +422,10 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	taskDialogConfig.hInstance = GetModuleHandle(nullptr);
 	taskDialogConfig.dwFlags = TDF_EXPAND_FOOTER_AREA;
 	taskDialogConfig.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
-	taskDialogConfig.pszWindowTitle = L"FiveReborn: Game cache outdated";
+	taskDialogConfig.pszWindowTitle = L"\x039B: Game cache outdated";
 	taskDialogConfig.pszMainIcon = TD_INFORMATION_ICON;
-	taskDialogConfig.pszMainInstruction = L"FiveReborn needs to update the game cache";
-	taskDialogConfig.pszContent = va(L"The local FiveReborn game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+	taskDialogConfig.pszMainInstruction = L"\x039B needs to update the game cache";
+	taskDialogConfig.pszContent = va(L"The local \x039B game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
 	taskDialogConfig.pszExpandedInformation = footerString.c_str();
 	taskDialogConfig.pfCallback = [] (HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 	{

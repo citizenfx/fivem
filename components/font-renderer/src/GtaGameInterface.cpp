@@ -317,7 +317,7 @@ static InitFunction initFunction([] ()
 			case 4:
 			case 5:
 			case 6:
-				brandingString = L"FiveReborn \xD83C\xDF19";
+				brandingString = L"p\x039B \xD83C\xDF19";
 				break;
 			case 7:
 			case 8:
@@ -325,7 +325,7 @@ static InitFunction initFunction([] ()
 			case 10:
 			case 11:
 			case 12:
-				brandingString = L"FiveReborn \xD83C\xDF42";
+				brandingString = L"p\x039B \xD83C\xDF42";
 				break;
 			case 13:
 			case 14:
@@ -333,7 +333,7 @@ static InitFunction initFunction([] ()
 			case 16:
 			case 17:
 			case 18:
-				brandingString = L"FiveReborn \xD83D\xDD25";
+				brandingString = L"p\x039B \xD83D\xDD25";
 				break;
 			case 19:
 			case 20:
@@ -341,12 +341,9 @@ static InitFunction initFunction([] ()
 			case 22:
 			case 23:
 			case 0:
-				brandingString = L"FiveReborn \xD83C\xDF59";
+				brandingString = L"p\x039B \xD83C\xDF59";
 				break;
 		}
-
-		// no!
-		//const wchar_t* brandingString = L"FiveReborn \xD83C\xDF42 \xD83E\xDDC0 \xD83D\xDC36 \xD83C\xDFC8";
 
 		static CRect metrics;
 		

@@ -121,6 +121,46 @@ void main()
 					_wrename(logPath.c_str(), newLogPath.c_str());
 				}
 			}
+
+			// also do checks here to complain at BAD USERS
+			if (!GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetThreadDescription"))
+			{
+				MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the p\x039B client. Please update to Windows 10 version 1607 or higher in case you are experiencing "
+					L"any issues. The game will continue to start now.", L"p\x039B", MB_OK | MB_ICONWARNING);
+			}
+
+			{
+				HANDLE hToken;
+
+				if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+				{
+					TOKEN_ELEVATION_TYPE elevationData;
+					DWORD size;
+
+					if (GetTokenInformation(hToken, TokenElevationType, &elevationData, sizeof(elevationData), &size))
+					{
+						if (elevationData == TokenElevationTypeFull)
+						{
+							const wchar_t* elevationComplaint = L"p\x039B does not support running under elevated privileges. Please change your Windows settings to not run p\x039B as administrator.\nIf anyone told you to do this in order to fix an issue, tell them they are wrong. The game will exit now.";
+
+							auto result = MessageBox(nullptr, elevationComplaint, L"p\x039B", MB_ABORTRETRYIGNORE | MB_ICONERROR);
+
+							if (result == IDIGNORE)
+							{
+								MessageBox(nullptr, L"No, you can't ignore this. The game will exit now.", L"p\x039B", MB_OK | MB_ICONINFORMATION);
+							}
+							else if (result == IDRETRY)
+							{
+								MessageBox(nullptr, elevationComplaint, L"p\x039B", MB_OK | MB_ICONWARNING);
+							}
+
+							return;
+						}
+					}
+
+					CloseHandle(hToken);
+				}
+			}
 		}
 	}
 
