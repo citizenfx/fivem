@@ -190,7 +190,7 @@ static InitFunction initFunction([] ()
 
 				CefShutdown();
 
-				ExitProcess(0);
+				TerminateProcess(GetCurrentProcess(), 0);
 			});
 		}
 	});

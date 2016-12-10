@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "Hooking.h"
+#include <atPool.h>
 
 struct ResBmInfoInt
 {
@@ -121,6 +122,31 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 	return indexRet;
 }
 
+void(*g_origAssetRelease)(void*, uint32_t);
+
+struct AssetStore
+{
+	void* vtable;
+	uint32_t baseIndex;
+	uint32_t pad1;
+	char pad[40];
+	atPoolBase pool;
+};
+
+void WrapAssetRelease(AssetStore* assetStore, uint32_t entry)
+{
+	auto d = assetStore->pool.GetAt<void*>(entry);
+
+	if (d && *d)
+	{
+		g_origAssetRelease(assetStore, entry);
+	}
+	else
+	{
+		trace("didn't like entry %d - %s :(\n", entry, g_streamingIndexesToNames[assetStore->baseIndex + entry].c_str());
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	void* getBlockMapCall = hook::pattern("CC FF 50 48 48 85 C0 74 0D").count(1).get(0).get<void>(17);
@@ -164,5 +190,12 @@ static HookFunction hookFunction([] ()
 		doStub.addFunc = AddStreamingFileWrap;
 
 		hook::jump_rcx(location, doStub.GetCode());
+	}
+
+	// avoid releasing released clipdictionaries
+	{
+		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 90 00 00 00 48", 3);
+		hook::set_call(&g_origAssetRelease, loc);
+		hook::call(loc, WrapAssetRelease);
 	}
 });

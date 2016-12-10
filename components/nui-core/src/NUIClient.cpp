@@ -21,7 +21,7 @@ NUIClient::NUIClient(NUIWindow* window)
 	m_renderHandler = new NUIRenderHandler(this);
 }
 
-void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame)
+void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType)
 {
 	GetWindow()->OnClientContextCreated(browser, frame, nullptr);
 }

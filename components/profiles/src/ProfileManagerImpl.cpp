@@ -416,8 +416,6 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SetPrimaryProfile(fwRef
 	return concurrency::task_from_result<ProfileTaskResult>(result);
 }
 
-using namespace terminal;
-
 struct VoidFunctionHolder
 {
 	std::function<void()> func;
@@ -428,6 +426,7 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 	// create a result
 	concurrency::task_completion_event<ProfileTaskResult> resultEvent;
 
+#if 0
 	// get the profileimpl
 	fwRefContainer<ProfileImpl> profileImpl(profile);
 
@@ -603,6 +602,7 @@ concurrency::task<ProfileTaskResult> ProfileManagerImpl::SignIn(fwRefContainer<P
 	};
 	
 	continueIdentifier->func();
+#endif
 
 	return concurrency::task<ProfileTaskResult>(resultEvent);
 }
@@ -613,8 +613,6 @@ static InitFunction initFunction([] ()
 {
 	g_profileManager = new ProfileManagerImpl();
 	Instance<ProfileManager>::Set(g_profileManager);
-
-	Instance<TerminalClient>::Set(new TerminalClient());
 }, -500);
 
 static InitFunction initFunctionPost([] ()

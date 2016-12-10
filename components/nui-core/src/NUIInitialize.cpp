@@ -78,12 +78,25 @@ void Component_RunPreInit()
 	}
 }
 
+extern HANDLE g_fileMapping;
+extern HANDLE g_swapEvent;
+
 void FinalizeInitNUI()
 {
     if (getenv("CitizenFX_ToolMode"))
     {
         return;
     }
+
+	std::wstring cachePath = MakeRelativeCitPath(L"cache\\browser\\");
+	CreateDirectory(cachePath.c_str(), nullptr);
+
+	// delete any old CEF logs
+	DeleteFile(MakeRelativeCitPath(L"debug.log").c_str());
+
+	HANDLE hMutex = CreateMutex(nullptr, TRUE, L"NUI_IPC_SwapMutex");
+	g_swapEvent = CreateSemaphore(nullptr, 0, 1000, L"NUI_IPC_SwapSema");
+	g_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(HANDLE), L"NUI_IPC_Data");
 
 	auto selfApp = Instance<NUIApp>::Get();
 
@@ -96,32 +109,22 @@ void FinalizeInitNUI()
 	cSettings.remote_debugging_port = 13172;
 	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = false; // true;
-	cef_string_utf16_set(L"en-US", 5, &cSettings.locale, true);
+	cSettings.log_severity = LOGSEVERITY_DISABLE;
+
+	CefString(&cSettings.locale).FromASCII("en-US");
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
-	cef_string_utf16_set(resPath.c_str(), resPath.length(), &cSettings.resources_dir_path, true);
-	cef_string_utf16_set(resPath.c_str(), resPath.length(), &cSettings.locales_dir_path, true);
+
+	CefString(&cSettings.resources_dir_path).FromWString(resPath);
+	CefString(&cSettings.locales_dir_path).FromWString(resPath);
+	CefString(&cSettings.cache_path).FromWString(cachePath);
 
 	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
 	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
 	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
-	//CefRegisterSchemeHandlerFactory("rpc", "", shFactory);
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 
     HookFunctionBase::RunAll();
-
-	/*g_hooksDLL->SetHookCallback(StringHash("beginScene"), [] (void*)
-	{
-		if (g_nuiWindowsMutex.try_lock())
-		{
-			for (auto& window : g_nuiWindows)
-			{
-				window->UpdateFrame();
-			}
-
-			g_nuiWindowsMutex.unlock();
-		}
-	});*/
 
 #if defined(GTA_NY)
 	OnGrcBeginScene.Connect([] ()

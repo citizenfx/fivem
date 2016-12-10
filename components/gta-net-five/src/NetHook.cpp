@@ -31,7 +31,7 @@ int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * f
 	{
 		if (g_netLibrary->DequeueRoutedPacket(buffer, &length, &netID))
 		{
-			memcpy(buf, buffer, min(len, length));
+			memcpy(buf, buffer, min((size_t)len, length));
 
 			sockaddr_in* outFrom = (sockaddr_in*)from;
 			memset(outFrom, 0, sizeof(sockaddr_in));
@@ -49,10 +49,10 @@ int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * f
 
 			if (CoreIsDebuggerPresent())
 			{
-				trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, s);
+				trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, (void*)s);
 			}
 
-			return min(len, length);
+			return min((size_t)len, length);
 		}
 		else
 		{
@@ -104,7 +104,7 @@ int __stdcall CfxBind(SOCKET s, sockaddr * addr, int addrlen)
 {
 	sockaddr_in* addrIn = (sockaddr_in*)addr;
 
-	trace("binder on %i is %p\n", htons(addrIn->sin_port), s);
+	trace("binder on %i is %p\n", htons(addrIn->sin_port), (void*)s);
 
 	if (htons(addrIn->sin_port) == 6672)
 	{

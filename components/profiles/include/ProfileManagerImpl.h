@@ -8,7 +8,6 @@
 #pragma once
 
 #include "ProfileManager.h"
-#include <terminal.h>
 
 typedef std::pair<std::string, std::string> ProfileIdentifier;
 
@@ -35,7 +34,7 @@ class ProfileIdentityResult
 private:
 	std::string m_error;
 
-	terminal::TokenType m_tokenType;
+	int m_tokenType;
 	std::string m_token;
 
 public:
@@ -50,7 +49,7 @@ public:
 
 	}
 
-	inline ProfileIdentityResult(terminal::TokenType tokenType, std::string token)
+	inline ProfileIdentityResult(int tokenType, std::string token)
 		: m_tokenType(tokenType), m_token(token)
 	{
 
@@ -66,7 +65,7 @@ public:
 		return m_token;
 	}
 
-	inline terminal::TokenType GetTokenType() const
+	inline int GetTokenType() const
 	{
 		return m_tokenType;
 	}

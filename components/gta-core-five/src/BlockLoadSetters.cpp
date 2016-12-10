@@ -161,7 +161,7 @@ struct InitFunctionStub : public jitasm::Frontend
 {
 	static uintptr_t LogStub(uintptr_t stub, int type)
 	{
-		trace("Running shutdown %s function: %p\n", typeMap[type], stub);
+		trace("Running shutdown %s function: %p\n", typeMap[type], (void*)stub);
 		return stub;
 	}
 
@@ -415,7 +415,7 @@ static void DeinitLevel()
 	initModelInfo(1);
 	initStreamingInterface();
 
-	g_loadClipSets();
+	//g_loadClipSets();
 
 	// extra content manager shutdown session removes these, and we want these before init session, so we scan them right here, right now.
 	// TEMP REMOVE
@@ -937,29 +937,6 @@ void TrackClipSetShutdown()
 	}
 }
 
-void(*g_origAssetRelease)(void*, uint32_t);
-
-struct AssetStore
-{
-	void* vtable;
-	char pad[48];
-	atPoolBase pool;
-};
-
-void WrapAssetRelease(AssetStore* assetStore, uint32_t entry)
-{
-	auto d = assetStore->pool.GetAt<void*>(entry);
-
-	if (d && *d)
-	{
-		g_origAssetRelease(assetStore, entry);
-	}
-	else
-	{
-		trace("didn't like entry %d :(\n", entry);
-	}
-}
-
 static HookFunction hookFunction([] ()
 {
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
@@ -1216,7 +1193,7 @@ static HookFunction hookFunction([] ()
 	//hook::jump(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19), TrackClipSetShutdown);
 
 	// disable fwclipsetmanager session shutdown by making it test for 9 shutdown
-	hook::put<uint8_t>(hook::get_pattern("83 F9 08 0F 85 26 01 00 00 44 0F", 2), 9);
+	//hook::put<uint8_t>(hook::get_pattern("83 F9 08 0F 85 26 01 00 00 44 0F", 2), 9);
 
 	// track scanned render phases which may have interior proxies in portal/vis trackers
 	location = hook::get_pattern<char>("66 89 83 08 05 00 00 48 8B C3 48 83 C4 30 5B C3", -36);
@@ -1224,15 +1201,8 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&CRenderPhase__ctor, location);
 	hook::call(location, CRenderPhaseScanned__ctorWrap);
 
-	// avoid releasing released clipdictionaries
-	{
-		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 90 00 00 00 48", 3);
-		hook::set_call(&g_origAssetRelease, loc);
-		hook::call(loc, WrapAssetRelease);
-	}
-
 	// don't switch clipset manager to network mode ever
-	hook::return_function(hook::get_pattern("A8 04 75 30 8B 04 13 4C", -0x3B));
+	//hook::return_function(hook::get_pattern("A8 04 75 30 8B 04 13 4C", -0x3B));
 
 	// dlc conditional anims? bah.
 	hook::nop(hook::get_pattern("48 85 C0 75 38 8D 48 28", -14), 7);

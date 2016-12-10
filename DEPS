@@ -24,7 +24,8 @@ deps = {
 	"vendor/leveldb": "http://tohjo.eu/citidev/leveldb.git",
 	"vendor/minhook": "https://github.com/TsudaKageyu/minhook.git",
 	"vendor/rapidjson": "https://github.com/miloyip/rapidjson.git",
-	"vendor/libuv": "https://github.com/libuv/libuv.git@7639dd510ec13dd577677dce2a673f5046432903"
+	"vendor/libuv": "https://github.com/libuv/libuv.git@7639dd510ec13dd577677dce2a673f5046432903",
+	"vendor/fmtlib": "https://github.com/fmtlib/fmt.git"
 }
 
 hooks = [

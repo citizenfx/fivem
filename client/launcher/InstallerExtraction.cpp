@@ -439,7 +439,7 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 		while (bytesWritten < fileLength)
 		{
 			// write to the output file
-			uint32_t toRead = fileLength - bytesWritten;
+			size_t toRead = fileLength - bytesWritten;
 			toRead = min(sizeof(buffer), toRead);
 
 			toRead = stream.Read(buffer, toRead);

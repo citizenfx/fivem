@@ -15,6 +15,8 @@ vendor_component 'xz-crt'
 vendor_component 'curl-crt'
 vendor_component 'lua'
 vendor_component 'leveldb'
+vendor_component 'fmtlib'
+vendor_component 'fmtlib-crt'
 
 if os.get() == 'windows' then
 	vendor_component 'boost_program_options'

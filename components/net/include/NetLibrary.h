@@ -63,7 +63,7 @@ public:
 
 class NetLibrary;
 
-#define FRAGMENT_SIZE 1300
+#define FRAGMENT_SIZE (uint32_t)1300
 
 class NetChannel
 {

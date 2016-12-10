@@ -54,10 +54,11 @@ void InitFunctionBase::RunAll()
 #define BUFFER_COUNT 8
 #define BUFFER_LENGTH 32768
 
-const char* va(const char* string, ...)
+template<typename CharType>
+inline const CharType* va_impl(const CharType* string, const fmt::ArgList& formatList)
 {
 	static thread_local int currentBuffer;
-	static thread_local std::vector<char> buffer;
+	static thread_local std::vector<CharType> buffer;
 
 	if (!buffer.size())
 	{
@@ -66,52 +67,28 @@ const char* va(const char* string, ...)
 
 	int thisBuffer = currentBuffer;
 
-	va_list ap;
-	va_start(ap, string);
-	int length = vsnprintf(&buffer[thisBuffer * BUFFER_LENGTH], BUFFER_LENGTH, string, ap);
-	va_end(ap);
+	auto formatted = fmt::sprintf(string, formatList);
 
-	if (length >= BUFFER_LENGTH)
+	if (formatted.length() >= BUFFER_LENGTH)
 	{
-		//GlobalError("Attempted to overrun string in call to va()!");
 		exit(1);
 	}
 
-	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
+	memcpy(&buffer[thisBuffer * BUFFER_LENGTH], formatted.c_str(), (formatted.length() + 1) * sizeof(CharType));
 
 	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
 
 	return &buffer[thisBuffer * BUFFER_LENGTH];
 }
 
-const wchar_t* va(const wchar_t* string, ...)
+const char* va(const char* string, const fmt::ArgList& formatList)
 {
-	static thread_local int currentBuffer;
-	static thread_local std::vector<wchar_t> buffer;
+	return va_impl(string, formatList);
+}
 
-	if (!buffer.size())
-	{
-		buffer.resize(BUFFER_COUNT * BUFFER_LENGTH);
-	}
-
-	int thisBuffer = currentBuffer;
-
-	va_list ap;
-	va_start(ap, string);
-	int length = vswprintf(&buffer[thisBuffer * BUFFER_LENGTH], BUFFER_LENGTH, string, ap);
-	va_end(ap);
-
-	if (length >= BUFFER_LENGTH)
-	{
-		//GlobalError("Attempted to overrun string in call to va()!");
-		exit(1);
-	}
-
-	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
-
-	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
-
-	return &buffer[thisBuffer * BUFFER_LENGTH];
+const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList)
+{
+	return va_impl(string, formatList);
 }
 
 #ifdef _WIN32
@@ -152,31 +129,44 @@ static void PerformFileLog(const char* string)
 	}
 }
 
-void trace(const char* string, ...)
+static void RaiseDebugException(const char* buffer, size_t length)
 {
-	static thread_local std::vector<char> buffer;
-
-	if (!buffer.size())
+	__try
 	{
-		buffer.resize(BUFFER_LENGTH);
+		/*EXCEPTION_RECORD record;
+		record.ExceptionAddress = reinterpret_cast<PVOID>(_ReturnAddress());
+		record.ExceptionCode = DBG_PRINTEXCEPTION_C;
+		record.ExceptionFlags = 0;
+		record.NumberParameters = 2;
+		record.ExceptionInformation[0] = length + 1;
+		record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(buffer);
+		record.ExceptionRecord = &record;
+
+		DoNtRaiseException(&record);*/
 	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		OutputDebugStringA(buffer);
+	}
+}
+
+enum class Meow
+{
+	Meow1,
+	Meow2
+};
+
+void trace(const char* string, const fmt::ArgList& formatList)
+{
+	fmt::printf("meow %d\n", Meow::Meow2);
+
+	std::string buffer = fmt::sprintf(string, formatList);
 
 	static CRITICAL_SECTION dbgCritSec;
 
 	if (!dbgCritSec.DebugInfo)
 	{
 		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
-	}
-
-	va_list ap;
-	va_start(ap, string);
-	int length = vsnprintf(&buffer[0], BUFFER_LENGTH, string, ap);
-	va_end(ap);
-
-	if (length >= BUFFER_LENGTH)
-	{
-		//GlobalError("Attempted to overrun string in call to trace()!");
-		exit(1);
 	}
 
 #ifdef _WIN32
@@ -187,38 +177,22 @@ void trace(const char* string, ...)
 		// again, it may appear things 'work' if using a non-first-chance exception (i.e. the debugger will catch it), but VS doesn't like that and lets some
 		// cases of the exception fall through.
 
-		__try
-		{
-			EXCEPTION_RECORD record;
-			record.ExceptionAddress = reinterpret_cast<PVOID>(_ReturnAddress());
-			record.ExceptionCode = DBG_PRINTEXCEPTION_C;
-			record.ExceptionFlags = 0;
-			record.NumberParameters = 2;
-			record.ExceptionInformation[0] = length + 1;
-			record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(&buffer[0]);
-			record.ExceptionRecord = &record;
-
-			DoNtRaiseException(&record);
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER)
-		{
-			OutputDebugStringA(&buffer[0]);
-		}
+		RaiseDebugException(buffer.c_str(), buffer.length());
 	}
 	else
 	{
-		OutputDebugStringA(&buffer[0]);
+		OutputDebugStringA(buffer.c_str());
 	}
 
 	if (!CoreIsDebuggerPresent() && !getenv("CitizenFX_ToolMode"))
 	{
-		printf("%s", &buffer[0]);
+		printf("%s", buffer.c_str());
 	}
 #else
-	printf("%s", &buffer[0]);
+	printf("%s", buffer.c_str());
 #endif
 
-	PerformFileLog(&buffer[0]);
+	PerformFileLog(buffer.c_str());
 }
 
 uint32_t HashRageString(const char* string)

@@ -22,7 +22,7 @@ static void* ProbePointer(char* pointer)
 		{
 			hasCrashedBefore = true;
 
-			trace("WARNING: TXD store reference crash triggered (invalid pointer: %p)\n", pointer);
+			trace("WARNING: TXD store reference crash triggered (invalid pointer: %p)\n", (void*)pointer);
 		}
 
 		return nullptr;

@@ -309,7 +309,7 @@ public:
 
 	~CfxCollection()
 	{
-		trace("del cfxcollection %p\n", this);
+		trace("del cfxcollection %p\n", (void*)this);
 
 		PseudoCallContext(this)->~fiCollection();
 
@@ -485,6 +485,11 @@ public:
 			PseudoCallContext(this)->GetEntryNameToBuffer(index, entryName, 255);
 
 			CollectionData* data = (CollectionData*)this->m_pad;
+
+			if (strstr(entry->fileName.c_str(), "lo_res_idles"))
+			{
+				trace("coll2 open %s\n", entry->fileName.c_str());
+			}
 
 			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), entry->fileName.c_str());// GetEntryName(index));
 		}

@@ -14,7 +14,7 @@
 
 #define BUFFER_LENGTH 32768
 
-static void SysError(const char* buffer)
+void SysError(const char* buffer)
 {
 #ifdef WIN32
 	HWND wnd = nullptr;
@@ -96,36 +96,12 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 	inError = false;
 }
 
-void GlobalError(const char* string, ...)
+void GlobalError(const char* string, const fmt::ArgList& formatList)
 {
-	static char buffer[BUFFER_LENGTH];
-
-	va_list ap;
-	va_start(ap, string);
-	int length = vsnprintf(buffer, BUFFER_LENGTH, string, ap);
-	va_end(ap);
-
-	if (length >= BUFFER_LENGTH)
-	{
-		SysError("Attempted to overrun string in call to GlobalError()!");
-	}
-
-	GlobalErrorHandler(ERR_NORMAL, buffer);
+	GlobalErrorHandler(ERR_NORMAL, fmt::sprintf(string, formatList).c_str());
 }
 
-void FatalError(const char* string, ...)
+void FatalError(const char* string, const fmt::ArgList& formatList)
 {
-	static char buffer[BUFFER_LENGTH];
-
-	va_list ap;
-	va_start(ap, string);
-	int length = vsnprintf(buffer, BUFFER_LENGTH, string, ap);
-	va_end(ap);
-
-	if (length >= BUFFER_LENGTH)
-	{
-		SysError("Attempted to overrun string in call to FatalError()!");
-	}
-
-	GlobalErrorHandler(ERR_FATAL, buffer);
+	GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
 }

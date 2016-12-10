@@ -173,11 +173,30 @@ public:
 // formatting/logging functions
 //
 
-const char* va(const char* string, ...);
-const wchar_t* va(const wchar_t* string, ...);
-void trace(const char* string, ...);
-void GlobalError(const char* string, ...);
-void FatalError(const char* string, ...);
+#include <fmt/format.h>
+#include <fmt/printf.h>
+
+template<typename TEnum, typename = std::enable_if_t<std::is_enum<TEnum>::value>>
+std::ostream& operator<<(std::ostream& os, const TEnum& value)
+{
+	os << static_cast<typename std::underlying_type_t<TEnum>>(value);
+	return os;
+}
+
+const char* va(const char* string, const fmt::ArgList& formatList);
+FMT_VARIADIC(const char*, va, const char*);
+
+void trace(const char* string, const fmt::ArgList& formatList);
+FMT_VARIADIC(void, trace, const char*);
+
+const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList);
+FMT_VARIADIC_W(const wchar_t*, va, const wchar_t*);
+
+void GlobalError(const char* string, const fmt::ArgList& formatList);
+void FatalError(const char* string, const fmt::ArgList& formatList);
+
+FMT_VARIADIC(void, GlobalError, const char*);
+FMT_VARIADIC(void, FatalError, const char*);
 
 uint32_t HashRageString(const char* string);
 uint32_t HashString(const char* string);
@@ -207,3 +226,84 @@ extern "C" void
 	DLL_EXPORT
 #endif
 	CoreSetDebuggerPresent();
+
+// min/max
+template<typename T, typename = void>
+struct MinMax
+{
+	inline static T min(T a, T b)
+	{
+		return (a < b) ? a : b;
+	}
+
+	inline static T max(T a, T b)
+	{
+		return (a > b) ? a : b;
+	}
+};
+
+template<typename TValue>
+struct MinMax<TValue, std::enable_if_t<std::is_integral<TValue>::value>>
+{
+	using TSigned = std::make_signed_t<TValue>;
+
+	inline static TValue min(TValue aa, TValue bb)
+	{
+		TSigned a = (TSigned)aa;
+		TSigned b = (TSigned)bb;
+
+		return b + ((a - b) & (a - b) >> (sizeof(TSigned) * std::numeric_limits<TSigned>::max() - 1));
+	}
+
+	inline static TValue max(TValue aa, TValue bb)
+	{
+		TSigned a = (TSigned)aa;
+		TSigned b = (TSigned)bb;
+
+		return a - ((a - b) & (a - b) >> (sizeof(TSigned) * std::numeric_limits<TSigned>::max() - 1));
+	}
+};
+
+template<>
+struct MinMax<float>
+{
+	inline static float min(float a, float b)
+	{
+		_mm_store_ss(&a, _mm_min_ss(_mm_set_ss(a), _mm_set_ss(b)));
+		return a;
+	}
+
+	inline static float max(float a, float b)
+	{
+		_mm_store_ss(&a, _mm_max_ss(_mm_set_ss(a), _mm_set_ss(b)));
+		return a;
+	}
+};
+
+template<>
+struct MinMax<double>
+{
+	inline static double min(double a, double b)
+	{
+		_mm_store_sd(&a, _mm_min_sd(_mm_set_sd(a), _mm_set_sd(b)));
+		return a;
+	}
+
+	inline static double max(double a, double b)
+	{
+		_mm_store_sd(&a, _mm_max_sd(_mm_set_sd(a), _mm_set_sd(b)));
+		return a;
+	}
+};
+
+template<typename T>
+inline T min(T a, T b)
+{
+	return MinMax<T>::min(a, b);
+}
+
+template<typename T>
+inline T max(T a, T b)
+{
+	return MinMax<T>::max(a, b);
+}

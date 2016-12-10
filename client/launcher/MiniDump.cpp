@@ -163,7 +163,10 @@ bool InitializeExceptionHandler()
 
 		// create the command line including argument
 		wchar_t commandLine[MAX_PATH * 2];
-		_snwprintf(commandLine, sizeof(commandLine), L"%s -dumpserver:%i -parentpid:%i", GetCommandLine(), (int)initEvent, GetCurrentProcessId());
+		if (_snwprintf(commandLine, _countof(commandLine), L"%s -dumpserver:%i -parentpid:%i", GetCommandLine(), (int)initEvent, GetCurrentProcessId()) >= _countof(commandLine))
+		{
+			return false;
+		}
 
 		BOOL result = CreateProcess(applicationName, commandLine, nullptr, nullptr, TRUE, 0, nullptr, nullptr, &startupInfo, &processInfo);
 
@@ -203,7 +206,7 @@ bool InitializeExceptionHandler()
 		GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetUnhandledExceptionFilter"),
 	};
 
-	for (auto& unhandledFilter : unhandledFilters)
+	for (auto unhandledFilter : unhandledFilters)
 	{
 		if (unhandledFilter)
 		{

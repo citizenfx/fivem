@@ -15,12 +15,13 @@
 
 #include "memdbgon.h"
 
-namespace egl
-{
-	unsigned int DLL_IMPORT SetSwapFrameHandler(void(*handler)(void*));
+HANDLE g_fileMapping;
+HANDLE g_swapEvent;
 
-	unsigned int DLL_IMPORT GetMainWindowSharedHandle(HANDLE* shared_handle);
-}
+struct EGLSharedData
+{
+	HANDLE d3dSharedHandle;
+};
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr)
@@ -82,9 +83,10 @@ void NUIWindow::Initialize(CefString url)
 	m_client = new NUIClient(this);
 
 	CefWindowInfo info;
-	info.SetAsWindowless(NULL, true);
+	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr), true);
 
 	CefBrowserSettings settings;
+	settings.javascript_open_windows = STATE_DISABLED;
 	settings.javascript_close_windows = STATE_DISABLED;
 	settings.windowless_frame_rate = 60;
 
@@ -93,11 +95,14 @@ void NUIWindow::Initialize(CefString url)
 
 	static NUIWindow* window = this;
 	
-	egl::SetSwapFrameHandler([] (void*)
+	std::thread([=] ()
 	{
-		window->UpdateSharedResource();
-	});
-
+		while (true)
+		{
+			WaitForSingleObject(g_swapEvent, INFINITE);
+			window->UpdateSharedResource();
+		}
+	}).detach();
 }
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
@@ -118,9 +123,25 @@ void NUIWindow::UpdateSharedResource()
 
 	static HANDLE lastParentHandle;
 
-	HANDLE parentHandle;
-	if (egl::GetMainWindowSharedHandle(&parentHandle))
+	static std::once_flag initFlag;
+
+	static EGLSharedData* sharedData;
+
+	std::call_once(initFlag, [] ()
 	{
+		sharedData = (EGLSharedData*)MapViewOfFile(g_fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(EGLSharedData));
+	});
+
+	if (!sharedData)
+	{
+		FatalError("no EGLSharedData - why?");
+	}
+
+	HANDLE parentHandle;
+	if (sharedData && sharedData->d3dSharedHandle)
+	{
+		parentHandle = sharedData->d3dSharedHandle;
+
 		if (lastParentHandle != parentHandle)
 		{
 			lastParentHandle = parentHandle;
@@ -195,7 +216,9 @@ void NUIWindow::UpdateFrame()
 
 		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		{
-			if (keyedMutex->AcquireSync(1, 5) == S_OK)
+			HRESULT hr = keyedMutex->AcquireSync(1, 0);
+
+			if (hr == S_OK)
 			{
 				ID3D11DeviceContext* deviceContext = GetD3D11DeviceContext();
 				assert(deviceContext);

@@ -20,7 +20,6 @@
 #include <include/cef_app.h>
 #include <include/cef_browser.h>
 #include <include/cef_client.h>
-#include <include/cef_runnable.h>
 
 #include <queue>
 
@@ -29,7 +28,7 @@ class NUIExtensionHandler : public CefV8Handler
 public:
 	NUIExtensionHandler();
 
-	virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception);
+	virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override;
 
 	void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
 

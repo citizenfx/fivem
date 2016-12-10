@@ -28,7 +28,7 @@ solution "CitizenMP"
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
-	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "deplibs/include/", "../vendor/gtest/googletest/include/", "../vendor/gtest/googlemock/include/", os.getenv("BOOST_ROOT") }
+	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "../vendor/fmtlib/", "deplibs/include/", "../vendor/gtest/googletest/include/", "../vendor/gtest/googlemock/include/", os.getenv("BOOST_ROOT") }
 	
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
@@ -245,6 +245,8 @@ end
 		language "C++"
 		kind "StaticLib"
 
+		add_dependencies { 'vendor:fmtlib' }
+
 		defines "COMPILING_SHARED"
 		
 		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
@@ -263,6 +265,8 @@ end
 		kind "StaticLib"
 
 		flags { "StaticRuntime" }
+
+		add_dependencies { 'vendor:fmtlib-crt' }
 
 		defines { "COMPILING_SHARED", "COMPILING_SHARED_LIBC" }
 		
@@ -284,7 +288,7 @@ if _OPTIONS['game'] ~= 'server' then
 		language "C++"
 		kind "StaticLib"
 		
-		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32" }
+		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32", "WRAPPING_CEF_SHARED" }
 		
 		flags { "NoIncrementalLink", "NoMinimalRebuild" }
 		

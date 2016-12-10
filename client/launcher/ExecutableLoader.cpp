@@ -179,7 +179,7 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 			
 			if (functionTable->BaseAddress == (ULONG_PTR)m_module)
 			{
-				trace("Replacing function table list entry %p with %p\n", functionTable->FunctionTable, functionList);
+				trace("Replacing function table list entry %p with %p\n", (void*)functionTable->FunctionTable, (void*)functionList);
 
 				functionTable->EntryCount = entryCount;
 				functionTable->FunctionTable = functionList;

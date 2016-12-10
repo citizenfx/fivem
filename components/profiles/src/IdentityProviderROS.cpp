@@ -188,7 +188,7 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 
 				profileImpl->SetParameters(storeParameters);
 
-				resultEvent.set(ProfileIdentityResult(terminal::TokenType::ROS, va("%s&&%lld&&gta5&&%s&&%s", ticket.c_str(), rockstarId, sessionKey.c_str(), sessionTicket.c_str())));
+				resultEvent.set(ProfileIdentityResult(1, va("%s&&%lld&&gta5&&%s&&%s", ticket.c_str(), rockstarId, sessionKey.c_str(), sessionTicket.c_str())));
 			}
 		}
 	});
@@ -288,7 +288,7 @@ std::string ROSIdentityProvider::DecryptROSData(const char* data, size_t size)
 	while (start < size)
 	{
 		// calculate the end of this block
-		int end = min(size, start + blockSize);
+		int end = min(size, (size_t)start + blockSize);
 
 		// remove the size of the SHA1 hash from the end
 		end -= 20;

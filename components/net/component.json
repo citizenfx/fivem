@@ -4,7 +4,6 @@
 	"dependencies": [
 		"fx[2]",
 		"http-client",
-		"terminal:client",
 		"profiles",
 		"vendor:yaml-cpp"
 	],

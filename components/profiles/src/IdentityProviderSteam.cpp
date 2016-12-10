@@ -101,7 +101,7 @@ concurrency::task<ProfileIdentityResult> SteamIdentityProvider::ProcessIdentity(
 	char* str = base64_encode(ticketBuffer, ticketLength + 10, &outLength);
 
 	// and return a result
-	auto task = concurrency::task_from_result<ProfileIdentityResult>(ProfileIdentityResult(terminal::TokenType::Steam, va("%d&", steamComponent->GetParentAppID()) + std::string(str, outLength)));
+	auto task = concurrency::task_from_result<ProfileIdentityResult>(ProfileIdentityResult(0, va("%d&", steamComponent->GetParentAppID()) + std::string(str, outLength)));
 
 	free(str);
 
