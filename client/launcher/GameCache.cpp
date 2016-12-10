@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This file is part of the CitizenFX project - http://citizen.re/
 *
 * See LICENSE and MENTIONS in the root of the source tree for information
@@ -91,44 +91,44 @@ static GameCacheEntry g_requiredEntries[] =
 
 	{ "GTA5.exe", "a6b255a2e2b8ea48ec5776f42770cf54522a85bf", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/GTA5.exe", 54920072, 505185312 },
 	{ "update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "http://updater.fivereborn.com/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
-	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "http://updater.fivereborn.com/patches/dlcpacks/update.rpf", 560553984 },
-	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpf", 312438784 },
-	{ "update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "http://updater.fivereborn.com/patches/dlcpacks/mpluxe/dlc.rpf", 226260992 },
+	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
+	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
+	{ "update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpluxe/dlc.rpf", 226260992 },
 
-	{ "update/x64/dlcpacks/patchday5ng/dlc.rpf", "af3b2a59b4e1e5fd220c308d85753bdbffd8063c", "http://updater.fivereborn.com/patches/dlcpacks/patchday5ng/dlc.rpf", 7827456 },
-	{ "update/x64/dlcpacks/mpluxe2/dlc.rpf", "1e59e1f05be5dba5650a1166eadfcb5aeaf7737b", "http://updater.fivereborn.com/patches/dlcpacks/mpluxe2/dlc.rpf", 105105408 },
+	{ "update/x64/dlcpacks/patchday5ng/dlc.rpf", "af3b2a59b4e1e5fd220c308d85753bdbffd8063c", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday5ng/dlc.rpf", 7827456 },
+	{ "update/x64/dlcpacks/mpluxe2/dlc.rpf", "1e59e1f05be5dba5650a1166eadfcb5aeaf7737b", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpluxe2/dlc.rpf", 105105408 },
 
-	{ "update/x64/dlcpacks/mpreplay/dlc.rpf", "f5375beef591178d8aaf334431a7b6596d0d793a", "http://updater.fivereborn.com/patches/dlcpacks/mpreplay/dlc.rpf", 429932544 },
-	{ "update/x64/dlcpacks/patchday6ng/dlc.rpf", "5d38b40ad963a6cf39d24bb5e008e9692838b33b", "http://updater.fivereborn.com/patches/dlcpacks/patchday6ng/dlc.rpf", 31907840 },
+	{ "update/x64/dlcpacks/mpreplay/dlc.rpf", "f5375beef591178d8aaf334431a7b6596d0d793a", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpreplay/dlc.rpf", 429932544 },
+	{ "update/x64/dlcpacks/patchday6ng/dlc.rpf", "5d38b40ad963a6cf39d24bb5e008e9692838b33b", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday6ng/dlc.rpf", 31907840 },
 
-	{ "update/x64/dlcpacks/mphalloween/dlc.rpf", "3f960c014e83be00cf8e6b520bbf22f7da6160a4", "http://updater.fivereborn.com/patches/dlcpacks/mphalloween/dlc.rpf", 104658944 },
-	{ "update/x64/dlcpacks/mplowrider/dlc.rpf", "eab744fe959ca29a2e5f36843d259ffc9d04a7f6", "http://updater.fivereborn.com/patches/dlcpacks/mplowrider/dlc.rpf", 1088813056 },
-	{ "update/x64/dlcpacks/patchday7ng/dlc.rpf", "29df23f3539907a4e15f1cdb9426d462c1ad0337", "http://updater.fivereborn.com/patches/dlcpacks/patchday7ng/dlc.rpf", 43843584 },
+	{ "update/x64/dlcpacks/mphalloween/dlc.rpf", "3f960c014e83be00cf8e6b520bbf22f7da6160a4", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmphalloween/dlc.rpf", 104658944 },
+	{ "update/x64/dlcpacks/mplowrider/dlc.rpf", "eab744fe959ca29a2e5f36843d259ffc9d04a7f6", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmplowrider/dlc.rpf", 1088813056 },
+	{ "update/x64/dlcpacks/patchday7ng/dlc.rpf", "29df23f3539907a4e15f1cdb9426d462c1ad0337", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday7ng/dlc.rpf", 43843584 },
 	
 	//573
-	{ "update/x64/dlcpacks/mpxmas_604490/dlc.rpf", "929e5b79c9915f40f212f1ed9f9783f558242c3d", "http://updater.fivereborn.com/patches/dlcpacks/mpxmas_604490/dlc.rpf", 46063616 },
-	{ "update/x64/dlcpacks/mpapartment/dlc.rpf", "e1bed90e750848407f6afbe1db21aa3691bf9d82", "http://updater.fivereborn.com/patches/dlcpacks/mpapartment/dlc.rpf", 636985344 },
-	{ "update/x64/dlcpacks/patchday8ng/dlc.rpf", "2f9840c20c9a93b48cfcf61e07cf17c684858e36", "http://updater.fivereborn.com/patches/dlcpacks/patchday8ng/dlc.rpf", 365330432 },
+	{ "update/x64/dlcpacks/mpxmas_604490/dlc.rpf", "929e5b79c9915f40f212f1ed9f9783f558242c3d", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpxmas_604490/dlc.rpf", 46063616 },
+	{ "update/x64/dlcpacks/mpapartment/dlc.rpf", "e1bed90e750848407f6afbe1db21aa3691bf9d82", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpapartment/dlc.rpf", 636985344 },
+	{ "update/x64/dlcpacks/patchday8ng/dlc.rpf", "2f9840c20c9a93b48cfcf61e07cf17c684858e36", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday8ng/dlc.rpf", 365330432 },
 
 	//617
-	{ "update/x64/dlcpacks/mpjanuary2016/dlc.rpf", "4f0d5fa835254eb918716857a47e8ce63e158c22", "http://updater.fivereborn.com/patches/dlcpacks/mpjanuary2016/dlc.rpf", 149417984 },
-	{ "update/x64/dlcpacks/mpvalentines2/dlc.rpf", "b1ef3b0e4741978b5b04c54c6eca8b475681469a", "http://updater.fivereborn.com/patches/dlcpacks/mpvalentines2/dlc.rpf", 25075712 },
+	{ "update/x64/dlcpacks/mpjanuary2016/dlc.rpf", "4f0d5fa835254eb918716857a47e8ce63e158c22", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpjanuary2016/dlc.rpf", 149417984 },
+	{ "update/x64/dlcpacks/mpvalentines2/dlc.rpf", "b1ef3b0e4741978b5b04c54c6eca8b475681469a", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpvalentines2/dlc.rpf", 25075712 },
 
 	//678
-	{ "update/x64/dlcpacks/mplowrider2/dlc.rpf", "6b9ac7b7b35b56208541692cf544788d35a84c82", "http://updater.fivereborn.com/patches/dlcpacks/mplowrider2/dlc.rpf", 334028800 },
-	{ "update/x64/dlcpacks/patchday9ng/dlc.rpf", "e29c191561d8fa4988a71be7be5ca9c6e1335537", "http://updater.fivereborn.com/patches/dlcpacks/patchday9ng/dlc.rpf", 160526336 },
+	{ "update/x64/dlcpacks/mplowrider2/dlc.rpf", "6b9ac7b7b35b56208541692cf544788d35a84c82", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmplowrider2/dlc.rpf", 334028800 },
+	{ "update/x64/dlcpacks/patchday9ng/dlc.rpf", "e29c191561d8fa4988a71be7be5ca9c6e1335537", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday9ng/dlc.rpf", 160526336 },
 
 	//757
-	{ "update/x64/dlcpacks/mpexecutive/dlc.rpf", "3fa67dd4005993c9a7a66879d9f244a55fea95e9", "http://updater.fivereborn.com/patches/dlcpacks/mpexecutive/dlc.rpf", 801570816 },
-	{ "update/x64/dlcpacks/patchday10ng/dlc.rpf", "4140c1f56fd29b0364be42a11fcbccd9e345d6ff", "http://updater.fivereborn.com/patches/dlcpacks/patchday10ng/dlc.rpf", 94134272 },
+	{ "update/x64/dlcpacks/mpexecutive/dlc.rpf", "3fa67dd4005993c9a7a66879d9f244a55fea95e9", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpexecutive/dlc.rpf", 801570816 },
+	{ "update/x64/dlcpacks/patchday10ng/dlc.rpf", "4140c1f56fd29b0364be42a11fcbccd9e345d6ff", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday10ng/dlc.rpf", 94134272 },
 
 	//791 Cunning Stunts
-	{ "update/x64/dlcpacks/mpstunt/dlc.rpf", "c5d338068f72685523a49fddfd431a18c4628f61", "http://updater.fivereborn.com/patches/dlcpacks/mpstunt/dlc.rpf", 348049408 },
-	{ "update/x64/dlcpacks/patchday11ng/dlc.rpf", "7941a22c6238c065f06ff667664c368b6dc10711", "http://updater.fivereborn.com/patches/dlcpacks/patchday11ng/dlc.rpf", 9957376 },
+	{ "update/x64/dlcpacks/mpstunt/dlc.rpf", "c5d338068f72685523a49fddfd431a18c4628f61", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpstunt/dlc.rpf", 348049408 },
+	{ "update/x64/dlcpacks/patchday11ng/dlc.rpf", "7941a22c6238c065f06ff667664c368b6dc10711", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday11ng/dlc.rpf", 9957376 },
 
 	//877 Bikers
-	{ "update/x64/dlcpacks/mpbiker/dlc.rpf", "52c48252eeed97e9a30efeabbc6623c67566c237", "http://updater.fivereborn.com/patches/dlcpacks/mpbiker/dlc.rpf", 1794048000 },
-	{ "update/x64/dlcpacks/patchday12ng/dlc.rpf", "4f3f3e88d4f01760648057c56fb109e1fbeb116a", "http://updater.fivereborn.com/patches/dlcpacks/patchday12ng/dlc.rpf", 155365376 },
+	{ "update/x64/dlcpacks/mpbiker/dlc.rpf", "52c48252eeed97e9a30efeabbc6623c67566c237", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1794048000 },
+	{ "update/x64/dlcpacks/patchday12ng/dlc.rpf", "4f3f3e88d4f01760648057c56fb109e1fbeb116a", "nope:http://updater.fivereborn.com/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 155365376 },
 
 	{ "ros/cef.pak", "EC38FF4278D4E13FD8681A205F29CDA000D05759", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef.pak", 2018390, 56061688 },
 	{ "ros/cef_100_percent.pak", "6B96A6E9E418AE73B4EC7CB6CB7C10BAA2A98449", "http://updater.fivereborn.com/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_100_percent.pak", 444515, 56061688 },
@@ -353,7 +353,7 @@ static std::vector<GameCacheEntry> CompareCacheDifferences()
 				// check if the file exists
 				std::wstring cacheFileName = entry.GetCacheFileName();
 
-				if (GetFileAttributes(cacheFileName.c_str()) == INVALID_FILE_ATTRIBUTES)
+				if (GetFileAttributes(cacheFileName.c_str()) == INVALID_FILE_ATTRIBUTES && (GetFileAttributes(entry.GetLocalFileName().c_str()) == INVALID_FILE_ATTRIBUTES || strncmp(entry.remotePath, "nope:", 5) != 0))
 				{
 					// as it doesn't add to the list
 					retval.push_back(entry);
@@ -388,8 +388,16 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	size_t localSize = 0;
 	size_t remoteSize = 0;
 
+	bool shouldAllow = true;
+
 	for (auto& entry : entries)
 	{
+		// is the file allowed?
+		if (_strnicmp(entry.first.remotePath, "nope:", 5) == 0)
+		{
+			shouldAllow = false;
+		}
+
 		// if it's a local file...
 		if (entry.second)
 		{
@@ -421,7 +429,24 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	taskDialogConfig.pszWindowTitle = L"\x039B: Game cache outdated";
 	taskDialogConfig.pszMainIcon = TD_INFORMATION_ICON;
 	taskDialogConfig.pszMainInstruction = L"\x039B needs to update the game cache";
-	taskDialogConfig.pszContent = va(L"The local \x039B game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+
+	if (shouldAllow)
+	{
+		taskDialogConfig.pszContent = va(L"The local \x039B game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+	}
+	else
+	{
+		const TASKDIALOG_BUTTON buttons[] = {
+			{ 42, L"сука блять" }
+		};
+
+		taskDialogConfig.pszContent = va(L"DLC files are missing from your game installation. Please update the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info.");
+
+		taskDialogConfig.cButtons = 1;
+		taskDialogConfig.dwCommonButtons = 0;
+		taskDialogConfig.pButtons = buttons;
+	}
+
 	taskDialogConfig.pszExpandedInformation = footerString.c_str();
 	taskDialogConfig.pfCallback = [] (HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 	{
@@ -437,7 +462,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 	TaskDialogIndirect(&taskDialogConfig, &outButton, nullptr, nullptr);
 
-	return (outButton != IDNO);
+	return (outButton != IDNO && outButton != 42);
 }
 
 static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
@@ -464,9 +489,28 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		// if not, copy it from the local filesystem (we're abusing the download code here a lot)
 		if (!fileOutdated)
 		{
-			CL_QueueDownload(va("file:///%s", converter.to_bytes(entry.GetLocalFileName()).c_str()), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
+			// should we 'nope' this file?
+			if (_strnicmp(entry.remotePath, "nope:", 5) == 0)
+			{
+				if (FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\cache.dat").c_str(), L"ab"))
+				{
+					auto hash = ParseHexString<20>(entry.checksum);
 
-			notificationEntries.push_back({ entry, true });
+					GameCacheStorageEntry storageEntry;
+					memcpy(storageEntry.checksum, &hash[0], sizeof(storageEntry.checksum));
+					storageEntry.fileTime = time(nullptr);
+
+					fwrite(&storageEntry, sizeof(GameCacheStorageEntry), 1, f);
+
+					fclose(f);
+				}
+			}
+			else
+			{
+				CL_QueueDownload(va("file:///%s", converter.to_bytes(entry.GetLocalFileName()).c_str()), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
+
+				notificationEntries.push_back({ entry, true });
+			}
 		}
 		else
 		{
@@ -504,6 +548,10 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 			ExitProcess(0);
 		}
+	}
+	else
+	{
+		return;
 	}
 
 	bool retval = DL_RunLoop();
