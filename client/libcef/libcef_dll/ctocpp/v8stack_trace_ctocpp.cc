@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -86,7 +86,7 @@ template<> cef_v8stack_trace_t* CefCToCpp<CefV8StackTraceCToCpp,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefV8StackTraceCToCpp,
     CefV8StackTrace, cef_v8stack_trace_t>::DebugObjCt = 0;
 #endif

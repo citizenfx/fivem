@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -41,6 +41,32 @@ bool CefResponseCToCpp::IsReadOnly() {
 
   // Return type: bool
   return _retval?true:false;
+}
+
+cef_errorcode_t CefResponseCToCpp::GetError() {
+  cef_response_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_error))
+    return ERR_NONE;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_errorcode_t _retval = _struct->get_error(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefResponseCToCpp::SetError(cef_errorcode_t error) {
+  cef_response_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, set_error))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_error(_struct,
+      error);
 }
 
 int CefResponseCToCpp::GetStatus() {
@@ -216,7 +242,7 @@ template<> cef_response_t* CefCToCpp<CefResponseCToCpp, CefResponse,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefResponseCToCpp, CefResponse,
     cef_response_t>::DebugObjCt = 0;
 #endif

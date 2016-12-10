@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -41,7 +41,8 @@ void CEF_CALLBACK load_handler_on_loading_state_change(
 }
 
 void CEF_CALLBACK load_handler_on_load_start(struct _cef_load_handler_t* self,
-    cef_browser_t* browser, cef_frame_t* frame) {
+    cef_browser_t* browser, cef_frame_t* frame,
+    cef_transition_type_t transition_type) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -59,7 +60,8 @@ void CEF_CALLBACK load_handler_on_load_start(struct _cef_load_handler_t* self,
   // Execute
   CefLoadHandlerCppToC::Get(self)->OnLoadStart(
       CefBrowserCToCpp::Wrap(browser),
-      CefFrameCToCpp::Wrap(frame));
+      CefFrameCToCpp::Wrap(frame),
+      transition_type);
 }
 
 void CEF_CALLBACK load_handler_on_load_end(struct _cef_load_handler_t* self,
@@ -135,7 +137,7 @@ template<> CefRefPtr<CefLoadHandler> CefCppToC<CefLoadHandlerCppToC,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCppToC<CefLoadHandlerCppToC, CefLoadHandler,
     cef_load_handler_t>::DebugObjCt = 0;
 #endif

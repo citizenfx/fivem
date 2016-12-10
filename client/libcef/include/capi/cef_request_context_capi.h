@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -38,6 +38,7 @@
 #define CEF_INCLUDE_CAPI_CEF_REQUEST_CONTEXT_CAPI_H_
 #pragma once
 
+#include "include/capi/cef_callback_capi.h"
 #include "include/capi/cef_cookie_capi.h"
 #include "include/capi/cef_request_context_handler_capi.h"
 #include "include/capi/cef_values_capi.h"
@@ -47,6 +48,26 @@ extern "C" {
 #endif
 
 struct _cef_scheme_handler_factory_t;
+
+///
+// Callback structure for cef_request_tContext::ResolveHost.
+///
+typedef struct _cef_resolve_callback_t {
+  ///
+  // Base structure.
+  ///
+  cef_base_t base;
+
+  ///
+  // Called after the ResolveHost request has completed. |result| will be the
+  // result code. |resolved_ips| will be the list of resolved IP addresses or
+  // NULL if the resolution failed.
+  ///
+  void (CEF_CALLBACK *on_resolve_completed)(
+      struct _cef_resolve_callback_t* self, cef_errorcode_t result,
+      cef_string_list_t resolved_ips);
+} cef_resolve_callback_t;
+
 
 ///
 // A request context provides request handling for a set of related browser or
@@ -199,6 +220,45 @@ typedef struct _cef_request_context_t {
   int (CEF_CALLBACK *set_preference)(struct _cef_request_context_t* self,
       const cef_string_t* name, struct _cef_value_t* value,
       cef_string_t* error);
+
+  ///
+  // Clears all certificate exceptions that were added as part of handling
+  // cef_request_tHandler::on_certificate_error(). If you call this it is
+  // recommended that you also call close_all_connections() or you risk not
+  // being prompted again for server certificates if you reconnect quickly. If
+  // |callback| is non-NULL it will be executed on the UI thread after
+  // completion.
+  ///
+  void (CEF_CALLBACK *clear_certificate_exceptions)(
+      struct _cef_request_context_t* self,
+      struct _cef_completion_callback_t* callback);
+
+  ///
+  // Clears all active and idle connections that Chromium currently has. This is
+  // only recommended if you have released all other CEF objects but don't yet
+  // want to call cef_shutdown(). If |callback| is non-NULL it will be executed
+  // on the UI thread after completion.
+  ///
+  void (CEF_CALLBACK *close_all_connections)(
+      struct _cef_request_context_t* self,
+      struct _cef_completion_callback_t* callback);
+
+  ///
+  // Attempts to resolve |origin| to a list of associated IP addresses.
+  // |callback| will be executed on the UI thread after completion.
+  ///
+  void (CEF_CALLBACK *resolve_host)(struct _cef_request_context_t* self,
+      const cef_string_t* origin, struct _cef_resolve_callback_t* callback);
+
+  ///
+  // Attempts to resolve |origin| to a list of associated IP addresses using
+  // cached data. |resolved_ips| will be populated with the list of resolved IP
+  // addresses or NULL if no cached data is available. Returns ERR_NONE on
+  // success. This function must be called on the browser process IO thread.
+  ///
+  cef_errorcode_t (CEF_CALLBACK *resolve_host_cached)(
+      struct _cef_request_context_t* self, const cef_string_t* origin,
+      cef_string_list_t resolved_ips);
 } cef_request_context_t;
 
 
@@ -219,7 +279,7 @@ CEF_EXPORT cef_request_context_t* cef_request_context_create_context(
 // Creates a new context object that shares storage with |other| and uses an
 // optional |handler|.
 ///
-CEF_EXPORT cef_request_context_t* create_context_shared(
+CEF_EXPORT cef_request_context_t* cef_create_context_shared(
     cef_request_context_t* other,
     struct _cef_request_context_handler_t* handler);
 

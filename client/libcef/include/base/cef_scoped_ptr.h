@@ -119,10 +119,9 @@
 // This can happen in cases where Chromium code is used directly by the
 // client application. When using Chromium code directly always include
 // the Chromium header first to avoid type conflicts.
-#elif defined(BUILDING_CEF_SHARED)
-// When building CEF include the Chromium header directly.
-#include "base/memory/scoped_ptr.h"
-#else  // !BUILDING_CEF_SHARED
+#elif defined(USING_CHROMIUM_INCLUDES)
+// Do nothing when building CEF.
+#else  // !USING_CHROMIUM_INCLUDES
 // The following is substantially similar to the Chromium implementation.
 // If the Chromium implementation diverges the below implementation should be
 // updated to match.
@@ -619,6 +618,6 @@ scoped_ptr<T> make_scoped_ptr(T* ptr) {
   return scoped_ptr<T>(ptr);
 }
 
-#endif  // !BUILDING_CEF_SHARED
+#endif  // !USING_CHROMIUM_INCLUDES
 
 #endif  // CEF_INCLUDE_BASE_CEF_MEMORY_SCOPED_PTR_H_

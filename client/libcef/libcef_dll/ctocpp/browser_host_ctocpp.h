@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,9 +14,9 @@
 #define CEF_LIBCEF_DLL_CTOCPP_BROWSER_HOST_CTOCPP_H_
 #pragma once
 
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 
 #include <vector>
 #include "include/cef_browser.h"
@@ -36,10 +36,11 @@ class CefBrowserHostCToCpp
   // CefBrowserHost methods.
   CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
   void CloseBrowser(bool force_close) OVERRIDE;
+  bool TryCloseBrowser() OVERRIDE;
   void SetFocus(bool focus) OVERRIDE;
-  void SetWindowVisibility(bool visible) OVERRIDE;
   CefWindowHandle GetWindowHandle() OVERRIDE;
   CefWindowHandle GetOpenerWindowHandle() OVERRIDE;
+  bool HasView() OVERRIDE;
   CefRefPtr<CefClient> GetClient() OVERRIDE;
   CefRefPtr<CefRequestContext> GetRequestContext() OVERRIDE;
   double GetZoomLevel() OVERRIDE;
@@ -49,6 +50,9 @@ class CefBrowserHostCToCpp
       const std::vector<CefString>& accept_filters, int selected_accept_filter,
       CefRefPtr<CefRunFileDialogCallback> callback) OVERRIDE;
   void StartDownload(const CefString& url) OVERRIDE;
+  void DownloadImage(const CefString& image_url, bool is_favicon,
+      uint32 max_image_size, bool bypass_cache,
+      CefRefPtr<CefDownloadImageCallback> callback) OVERRIDE;
   void Print() OVERRIDE;
   void PrintToPDF(const CefString& path, const CefPdfPrintSettings& settings,
       CefRefPtr<CefPdfPrintCallback> callback) OVERRIDE;
@@ -59,6 +63,7 @@ class CefBrowserHostCToCpp
       CefRefPtr<CefClient> client, const CefBrowserSettings& settings,
       const CefPoint& inspect_element_at) OVERRIDE;
   void CloseDevTools() OVERRIDE;
+  bool HasDevTools() OVERRIDE;
   void GetNavigationEntries(CefRefPtr<CefNavigationEntryVisitor> visitor,
       bool current_only) OVERRIDE;
   void SetMouseCursorChangeDisabled(bool disabled) OVERRIDE;
@@ -81,9 +86,14 @@ class CefBrowserHostCToCpp
   void NotifyMoveOrResizeStarted() OVERRIDE;
   int GetWindowlessFrameRate() OVERRIDE;
   void SetWindowlessFrameRate(int frame_rate) OVERRIDE;
-  CefTextInputContext GetNSTextInputContext() OVERRIDE;
-  void HandleKeyEventBeforeTextInputClient(CefEventHandle keyEvent) OVERRIDE;
-  void HandleKeyEventAfterTextInputClient(CefEventHandle keyEvent) OVERRIDE;
+  void ImeSetComposition(const CefString& text,
+      const std::vector<CefCompositionUnderline>& underlines,
+      const CefRange& replacement_range,
+      const CefRange& selection_range) OVERRIDE;
+  void ImeCommitText(const CefString& text, const CefRange& replacement_range,
+      int relative_cursor_pos) OVERRIDE;
+  void ImeFinishComposingText(bool keep_selection) OVERRIDE;
+  void ImeCancelComposition() OVERRIDE;
   void DragTargetDragEnter(CefRefPtr<CefDragData> drag_data,
       const CefMouseEvent& event, DragOperationsMask allowed_ops) OVERRIDE;
   void DragTargetDragOver(const CefMouseEvent& event,
@@ -92,7 +102,7 @@ class CefBrowserHostCToCpp
   void DragTargetDrop(const CefMouseEvent& event) OVERRIDE;
   void DragSourceEndedAt(int x, int y, DragOperationsMask op) OVERRIDE;
   void DragSourceSystemDragEnded() OVERRIDE;
+  CefRefPtr<CefNavigationEntry> GetVisibleNavigationEntry() OVERRIDE;
 };
 
-#endif  // USING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_BROWSER_HOST_CTOCPP_H_

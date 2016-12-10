@@ -205,6 +205,17 @@ class CefRect : public CefStructBase<CefRectTraits> {
   void Set(int x_val, int y_val, int width_val, int height_val) {
     x = x_val, y = y_val, width = width_val, height = height_val;
   }
+
+  // Returns true if the point identified by point_x and point_y falls inside
+  // this rectangle.  The point (x, y) is inside the rectangle, but the
+  // point (x + width, y + height) is not.
+  bool Contains(int point_x, int point_y) const {
+    return (point_x >= x) && (point_x < x + width) && (point_y >= y) &&
+           (point_y < y + height);
+  }
+  bool Contains(const CefPoint& point) const {
+    return Contains(point.x, point.y);
+  }
 };
 
 inline bool operator==(const CefRect& a, const CefRect& b) {
@@ -253,6 +264,89 @@ inline bool operator==(const CefSize& a, const CefSize& b) {
 }
 
 inline bool operator!=(const CefSize& a, const CefSize& b) {
+  return !(a == b);
+}
+
+
+struct CefRangeTraits {
+  typedef cef_range_t struct_type;
+
+  static inline void init(struct_type* s) {}
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing a range.
+///
+class CefRange : public CefStructBase<CefRangeTraits> {
+ public:
+  typedef CefStructBase<CefRangeTraits> parent;
+
+  CefRange() : parent() {}
+  CefRange(const cef_range_t& r)  // NOLINT(runtime/explicit)
+      : parent(r) {}
+  CefRange(const CefRange& r)  // NOLINT(runtime/explicit)
+      : parent(r) {}
+  CefRange(int from, int to) : parent() {
+    Set(from, to);
+  }
+
+  void Set(int from_val, int to_val) {
+    from = from_val, to = to_val;
+  }
+};
+
+inline bool operator==(const CefRange& a, const CefRange& b) {
+  return a.from == b.from && a.to == b.to;
+}
+
+inline bool operator!=(const CefRange& a, const CefRange& b) {
+  return !(a == b);
+}
+
+
+struct CefInsetsTraits {
+  typedef cef_insets_t struct_type;
+
+  static inline void init(struct_type* s) {}
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing insets.
+///
+class CefInsets : public CefStructBase<CefInsetsTraits> {
+ public:
+  typedef CefStructBase<CefInsetsTraits> parent;
+
+  CefInsets() : parent() {}
+  CefInsets(const cef_insets_t& r) : parent(r) {}  // NOLINT(runtime/explicit)
+  CefInsets(const CefInsets& r) : parent(r) {}  // NOLINT(runtime/explicit)
+  CefInsets(int top, int left, int bottom, int right) : parent() {
+    Set(top, left, bottom, right);
+  }
+
+  void Set(int top_val, int left_val, int bottom_val, int right_val) {
+    top = top_val, left = left_val, bottom = bottom_val, right = right_val;
+  }
+};
+
+inline bool operator==(const CefInsets& a, const CefInsets& b) {
+  return a.top == b.top && a.left == b.left && a.bottom == b.bottom &&
+         a.right == b.right;
+}
+
+inline bool operator!=(const CefInsets& a, const CefInsets& b) {
   return !(a == b);
 }
 
@@ -481,6 +575,7 @@ struct CefSettingsTraits {
         src->browser_subprocess_path.length,
         &target->browser_subprocess_path, copy);
     target->multi_threaded_message_loop = src->multi_threaded_message_loop;
+    target->external_message_pump = src->external_message_pump;
     target->windowless_rendering_enabled = src->windowless_rendering_enabled;
     target->command_line_args_disabled = src->command_line_args_disabled;
 
@@ -512,6 +607,8 @@ struct CefSettingsTraits {
     target->uncaught_exception_stack_size = src->uncaught_exception_stack_size;
     target->context_safety_implementation = src->context_safety_implementation;
     target->ignore_certificate_errors = src->ignore_certificate_errors;
+    target->enable_net_security_expiration =
+        src->enable_net_security_expiration;
     target->background_color = src->background_color;
 
     cef_string_set(src->accept_language_list.str,
@@ -544,6 +641,8 @@ struct CefRequestContextSettingsTraits {
     target->persist_session_cookies = src->persist_session_cookies;
     target->persist_user_preferences = src->persist_user_preferences;
     target->ignore_certificate_errors = src->ignore_certificate_errors;
+    target->enable_net_security_expiration =
+        src->enable_net_security_expiration;
     cef_string_set(src->accept_language_list.str,
         src->accept_language_list.length, &target->accept_language_list, copy);
   }
@@ -606,7 +705,6 @@ struct CefBrowserSettingsTraits {
     target->javascript_close_windows = src->javascript_close_windows;
     target->javascript_access_clipboard = src->javascript_access_clipboard;
     target->javascript_dom_paste = src->javascript_dom_paste;
-    target->caret_browsing = src->caret_browsing;
     target->plugins = src->plugins;
     target->universal_access_from_file_urls =
         src->universal_access_from_file_urls;
@@ -800,48 +898,6 @@ struct CefGeopositionTraits {
 typedef CefStructBase<CefGeopositionTraits> CefGeoposition;
 
 
-struct CefPageRangeTraits {
-  typedef cef_page_range_t struct_type;
-
-  static inline void init(struct_type* s) {}
-  static inline void clear(struct_type* s) {}
-
-  static inline void set(const struct_type* src, struct_type* target,
-      bool copy) {
-    *target = *src;
-  }
-};
-
-///
-// Class representing a print job page range.
-///
-class CefPageRange : public CefStructBase<CefPageRangeTraits> {
- public:
-  typedef CefStructBase<CefPageRangeTraits> parent;
-
-  CefPageRange() : parent() {}
-  CefPageRange(const cef_page_range_t& r)  // NOLINT(runtime/explicit)
-      : parent(r) {}
-  CefPageRange(const CefPageRange& r)  // NOLINT(runtime/explicit)
-      : parent(r) {}
-  CefPageRange(int from, int to) : parent() {
-    Set(from, to);
-  }
-
-  void Set(int from_val, int to_val) {
-    from = from_val, to = to_val;
-  }
-};
-
-inline bool operator==(const CefPageRange& a, const CefPageRange& b) {
-  return a.from == b.from && a.to == b.to;
-}
-
-inline bool operator!=(const CefPageRange& a, const CefPageRange& b) {
-  return !(a == b);
-}
-
-
 struct CefCursorInfoTraits {
   typedef cef_cursor_info_t struct_type;
 
@@ -902,5 +958,51 @@ struct CefPdfPrintSettingsTraits {
 // Class representing PDF print settings
 ///
 typedef CefStructBase<CefPdfPrintSettingsTraits> CefPdfPrintSettings;
+
+
+struct CefBoxLayoutSettingsTraits {
+  typedef cef_box_layout_settings_t struct_type;
+
+  static inline void init(struct_type* s) {}
+
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src, struct_type* target,
+      bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing CefBoxLayout settings.
+///
+typedef CefStructBase<CefBoxLayoutSettingsTraits> CefBoxLayoutSettings;
+
+struct CefCompositionUnderlineTraits {
+  typedef cef_composition_underline_t struct_type;
+
+  static inline void init(struct_type* s) {
+    s->range = {0, 0};
+    s->color = 0;
+    s->background_color = 0;
+    s->thick = 0;
+  }
+
+  static inline void clear(struct_type* s) {
+  }
+
+  static inline void set(const struct_type* src, struct_type* target,
+                         bool copy) {
+    target->range = src->range;
+    target->color = src->color;
+    target->background_color = src->background_color;
+    target->thick = src->thick;
+  }
+};
+
+///
+// Class representing IME composition underline.
+///
+typedef CefStructBase<CefCompositionUnderlineTraits> CefCompositionUnderline;
 
 #endif  // CEF_INCLUDE_INTERNAL_CEF_TYPES_WRAPPERS_H_

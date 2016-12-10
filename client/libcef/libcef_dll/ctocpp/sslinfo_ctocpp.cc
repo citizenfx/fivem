@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -10,109 +10,38 @@
 // for more information.
 //
 
-#include "libcef_dll/ctocpp/binary_value_ctocpp.h"
-#include "libcef_dll/ctocpp/sslcert_principal_ctocpp.h"
 #include "libcef_dll/ctocpp/sslinfo_ctocpp.h"
+#include "libcef_dll/ctocpp/x509certificate_ctocpp.h"
 
 
 // VIRTUAL METHODS - Body may be edited by hand.
 
-CefRefPtr<CefSSLCertPrincipal> CefSSLInfoCToCpp::GetSubject() {
+cef_cert_status_t CefSSLInfoCToCpp::GetCertStatus() {
   cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_subject))
-    return NULL;
+  if (CEF_MEMBER_MISSING(_struct, get_cert_status))
+    return CERT_STATUS_NONE;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  cef_sslcert_principal_t* _retval = _struct->get_subject(_struct);
-
-  // Return type: refptr_same
-  return CefSSLCertPrincipalCToCpp::Wrap(_retval);
-}
-
-CefRefPtr<CefSSLCertPrincipal> CefSSLInfoCToCpp::GetIssuer() {
-  cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_issuer))
-    return NULL;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_sslcert_principal_t* _retval = _struct->get_issuer(_struct);
-
-  // Return type: refptr_same
-  return CefSSLCertPrincipalCToCpp::Wrap(_retval);
-}
-
-CefRefPtr<CefBinaryValue> CefSSLInfoCToCpp::GetSerialNumber() {
-  cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_serial_number))
-    return NULL;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_binary_value_t* _retval = _struct->get_serial_number(_struct);
-
-  // Return type: refptr_same
-  return CefBinaryValueCToCpp::Wrap(_retval);
-}
-
-CefTime CefSSLInfoCToCpp::GetValidStart() {
-  cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_valid_start))
-    return CefTime();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_time_t _retval = _struct->get_valid_start(_struct);
+  cef_cert_status_t _retval = _struct->get_cert_status(_struct);
 
   // Return type: simple
   return _retval;
 }
 
-CefTime CefSSLInfoCToCpp::GetValidExpiry() {
+CefRefPtr<CefX509Certificate> CefSSLInfoCToCpp::GetX509Certificate() {
   cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_valid_expiry))
-    return CefTime();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_time_t _retval = _struct->get_valid_expiry(_struct);
-
-  // Return type: simple
-  return _retval;
-}
-
-CefRefPtr<CefBinaryValue> CefSSLInfoCToCpp::GetDEREncoded() {
-  cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_derencoded))
+  if (CEF_MEMBER_MISSING(_struct, get_x509certificate))
     return NULL;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  cef_binary_value_t* _retval = _struct->get_derencoded(_struct);
+  cef_x509certificate_t* _retval = _struct->get_x509certificate(_struct);
 
   // Return type: refptr_same
-  return CefBinaryValueCToCpp::Wrap(_retval);
-}
-
-CefRefPtr<CefBinaryValue> CefSSLInfoCToCpp::GetPEMEncoded() {
-  cef_sslinfo_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_pemencoded))
-    return NULL;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Execute
-  cef_binary_value_t* _retval = _struct->get_pemencoded(_struct);
-
-  // Return type: refptr_same
-  return CefBinaryValueCToCpp::Wrap(_retval);
+  return CefX509CertificateCToCpp::Wrap(_retval);
 }
 
 
@@ -127,7 +56,7 @@ template<> cef_sslinfo_t* CefCToCpp<CefSSLInfoCToCpp, CefSSLInfo,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefSSLInfoCToCpp, CefSSLInfo,
     cef_sslinfo_t>::DebugObjCt = 0;
 #endif

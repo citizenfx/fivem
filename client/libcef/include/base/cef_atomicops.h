@@ -59,10 +59,10 @@
 // This can happen in cases where Chromium code is used directly by the
 // client application. When using Chromium code directly always include
 // the Chromium header first to avoid type conflicts.
-#elif defined(BUILDING_CEF_SHARED)
+#elif defined(USING_CHROMIUM_INCLUDES)
 // When building CEF include the Chromium header directly.
 #include "base/atomicops.h"
-#else  // !BUILDING_CEF_SHARED
+#else  // !USING_CHROMIUM_INCLUDES
 // The following is substantially similar to the Chromium implementation.
 // If the Chromium implementation diverges the below implementation should be
 // updated to match.
@@ -183,6 +183,8 @@ Atomic64 Release_Load(volatile const Atomic64* ptr);
 #include "include/base/internal/cef_atomicops_mac.h"
 #elif defined(COMPILER_GCC) && defined(ARCH_CPU_X86_FAMILY)
 #include "include/base/internal/cef_atomicops_x86_gcc.h"
+#elif defined(COMPILER_GCC) && defined(__ARM_ARCH)
+#include "include/base/internal/cef_atomicops_arm_gcc.h"
 #else
 #error "Atomic operations are not supported on your platform"
 #endif
@@ -193,6 +195,6 @@ Atomic64 Release_Load(volatile const Atomic64* ptr);
 #include "include/base/internal/cef_atomicops_atomicword_compat.h"
 #endif
 
-#endif  // !BUILDING_CEF_SHARED
+#endif  // !USING_CHROMIUM_INCLUDES
 
 #endif  // CEF_INCLUDE_BASE_CEF_ATOMICOPS_H_

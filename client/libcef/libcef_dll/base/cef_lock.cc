@@ -6,12 +6,13 @@
 // is functionally a wrapper around the LockImpl class, so the only
 // real intelligence in the class is in the debugging logic.
 
-#if !defined(NDEBUG)
-
 #include "include/base/cef_lock.h"
 #include "include/base/cef_logging.h"
 
+#if DCHECK_IS_ON()
+
 namespace base {
+namespace cef_internal {
 
 Lock::Lock() : lock_() {
 }
@@ -39,6 +40,7 @@ void Lock::CheckUnheldAndMark() {
   owning_thread_ref_ = PlatformThread::CurrentRef();
 }
 
+}  // namespace cef_internal
 }  // namespace base
 
-#endif  // NDEBUG
+#endif  // DCHECK_IS_ON()

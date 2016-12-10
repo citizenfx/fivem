@@ -38,72 +38,10 @@
 #define CEF_INCLUDE_CEF_SSL_INFO_H_
 #pragma once
 
-#include <vector>
-
 #include "include/cef_base.h"
 #include "include/cef_values.h"
 
-///
-// Class representing the issuer or subject field of an X.509 certificate.
-///
-/*--cef(source=library)--*/
-class CefSSLCertPrincipal : public virtual CefBase {
- public:
-  ///
-  // Returns a name that can be used to represent the issuer.  It tries in this
-  // order: CN, O and OU and returns the first non-empty one found.
-  ///
-  /*--cef()--*/
-  virtual CefString GetDisplayName() =0;
-
-  ///
-  // Returns the common name.
-  ///
-  /*--cef()--*/
-  virtual CefString GetCommonName() =0;
-
-  ///
-  // Returns the locality name.
-  ///
-  /*--cef()--*/
-  virtual CefString GetLocalityName() =0;
-
-  ///
-  // Returns the state or province name.
-  ///
-  /*--cef()--*/
-  virtual CefString GetStateOrProvinceName() =0;
-
-  ///
-  // Returns the country name.
-  ///
-  /*--cef()--*/
-  virtual CefString GetCountryName() =0;
-
-  ///
-  // Retrieve the list of street addresses.
-  ///
-  /*--cef()--*/
-  virtual void GetStreetAddresses(std::vector<CefString>& addresses) =0;
-
-  ///
-  // Retrieve the list of organization names.
-  ///
-  /*--cef()--*/
-  virtual void GetOrganizationNames(std::vector<CefString>& names) =0;
-
-  ///
-  // Retrieve the list of organization unit names.
-  ///
-  /*--cef()--*/
-  virtual void GetOrganizationUnitNames(std::vector<CefString>& names) =0;
-
-  ///
-  // Retrieve the list of domain components.
-  ///
-  /*--cef()--*/
-  virtual void GetDomainComponents(std::vector<CefString>& components) =0;
-};
+#include "include/cef_x509_certificate.h"
 
 ///
 // Class representing SSL information.
@@ -112,51 +50,31 @@ class CefSSLCertPrincipal : public virtual CefBase {
 class CefSSLInfo : public virtual CefBase {
  public:
   ///
-  // Returns the subject of the X.509 certificate. For HTTPS server
-  // certificates this represents the web server.  The common name of the
-  // subject should match the host name of the web server.
+  // Returns a bitmask containing any and all problems verifying the server
+  // certificate.
   ///
-  /*--cef()--*/
-  virtual CefRefPtr<CefSSLCertPrincipal> GetSubject() =0;
+  /*--cef(default_retval=CERT_STATUS_NONE)--*/
+  virtual cef_cert_status_t GetCertStatus() =0;
 
   ///
-  // Returns the issuer of the X.509 certificate.
+  // Returns the X.509 certificate.
   ///
   /*--cef()--*/
-  virtual CefRefPtr<CefSSLCertPrincipal> GetIssuer() =0;
-
-  ///
-  // Returns the DER encoded serial number for the X.509 certificate. The value
-  // possibly includes a leading 00 byte.
-  ///
-  /*--cef()--*/
-  virtual CefRefPtr<CefBinaryValue> GetSerialNumber() =0;
-  
-  ///
-  // Returns the date before which the X.509 certificate is invalid.
-  // CefTime.GetTimeT() will return 0 if no date was specified.
-  ///
-  /*--cef()--*/
-  virtual CefTime GetValidStart() =0;
-
-  ///
-  // Returns the date after which the X.509 certificate is invalid.
-  // CefTime.GetTimeT() will return 0 if no date was specified.
-  ///
-  /*--cef()--*/
-  virtual CefTime GetValidExpiry() =0;
-
-  ///
-  // Returns the DER encoded data for the X.509 certificate.
-  ///
-  /*--cef()--*/
-  virtual CefRefPtr<CefBinaryValue> GetDEREncoded() =0;
-
-  ///
-  // Returns the PEM encoded data for the X.509 certificate.
-  ///
-  /*--cef()--*/
-  virtual CefRefPtr<CefBinaryValue> GetPEMEncoded() =0;
+  virtual CefRefPtr<CefX509Certificate> GetX509Certificate() =0;
 };
+
+
+///
+// Returns true if the certificate status has any error, major or minor.
+///
+/*--cef()--*/
+bool CefIsCertStatusError(cef_cert_status_t status);
+
+///
+// Returns true if the certificate status represents only minor errors
+// (e.g. failure to verify certificate revocation).
+///
+/*--cef()--*/
+bool CefIsCertStatusMinorError(cef_cert_status_t status);
 
 #endif  // CEF_INCLUDE_CEF_SSL_INFO_H_

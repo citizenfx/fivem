@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -172,7 +172,8 @@ bool CefV8ContextCToCpp::IsSame(CefRefPtr<CefV8Context> that) {
 }
 
 bool CefV8ContextCToCpp::Eval(const CefString& code,
-    CefRefPtr<CefV8Value>& retval, CefRefPtr<CefV8Exception>& exception) {
+    const CefString& script_url, int start_line, CefRefPtr<CefV8Value>& retval,
+    CefRefPtr<CefV8Exception>& exception) {
   cef_v8context_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, eval))
     return false;
@@ -183,6 +184,7 @@ bool CefV8ContextCToCpp::Eval(const CefString& code,
   DCHECK(!code.empty());
   if (code.empty())
     return false;
+  // Unverified params: script_url
 
   // Translate param: retval; type: refptr_same_byref
   cef_v8value_t* retvalStruct = NULL;
@@ -198,6 +200,8 @@ bool CefV8ContextCToCpp::Eval(const CefString& code,
   // Execute
   int _retval = _struct->eval(_struct,
       code.GetStruct(),
+      script_url.GetStruct(),
+      start_line,
       &retvalStruct,
       &exceptionStruct);
 
@@ -234,7 +238,7 @@ template<> cef_v8context_t* CefCToCpp<CefV8ContextCToCpp, CefV8Context,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefV8ContextCToCpp, CefV8Context,
     cef_v8context_t>::DebugObjCt = 0;
 #endif

@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -39,6 +39,20 @@ bool CefPostDataCToCpp::IsReadOnly() {
 
   // Execute
   int _retval = _struct->is_read_only(_struct);
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+bool CefPostDataCToCpp::HasExcludedElements() {
+  cef_post_data_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, has_excluded_elements))
+    return false;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->has_excluded_elements(_struct);
 
   // Return type: bool
   return _retval?true:false;
@@ -160,7 +174,7 @@ template<> cef_post_data_t* CefCToCpp<CefPostDataCToCpp, CefPostData,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefPostDataCToCpp, CefPostData,
     cef_post_data_t>::DebugObjCt = 0;
 #endif

@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -178,9 +178,9 @@ void CefPrintSettingsCToCpp::SetPageRanges(const PageRangeList& ranges) {
 
   // Translate param: ranges; type: simple_vec_byref_const
   const size_t rangesCount = ranges.size();
-  cef_page_range_t* rangesList = NULL;
+  cef_range_t* rangesList = NULL;
   if (rangesCount > 0) {
-    rangesList = new cef_page_range_t[rangesCount];
+    rangesList = new cef_range_t[rangesCount];
     DCHECK(rangesList);
     if (rangesList) {
       for (size_t i = 0; i < rangesCount; ++i) {
@@ -223,12 +223,12 @@ void CefPrintSettingsCToCpp::GetPageRanges(PageRangeList& ranges) {
   // Translate param: ranges; type: simple_vec_byref
   size_t rangesSize = ranges.size();
   size_t rangesCount = std::max(GetPageRangesCount(), rangesSize);
-  cef_page_range_t* rangesList = NULL;
+  cef_range_t* rangesList = NULL;
   if (rangesCount > 0) {
-    rangesList = new cef_page_range_t[rangesCount];
+    rangesList = new cef_range_t[rangesCount];
     DCHECK(rangesList);
     if (rangesList) {
-       memset(rangesList, 0, sizeof(cef_page_range_t)*rangesCount);
+       memset(rangesList, 0, sizeof(cef_range_t)*rangesCount);
     }
     if (rangesList && rangesSize > 0) {
       for (size_t i = 0; i < rangesSize; ++i) {
@@ -395,7 +395,7 @@ template<> cef_print_settings_t* CefCToCpp<CefPrintSettingsCToCpp,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefPrintSettingsCToCpp,
     CefPrintSettings, cef_print_settings_t>::DebugObjCt = 0;
 #endif

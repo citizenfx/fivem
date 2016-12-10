@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -55,7 +55,7 @@ int CEF_CALLBACK geolocation_handler_on_request_geolocation_permission(
 
 void CEF_CALLBACK geolocation_handler_on_cancel_geolocation_permission(
     struct _cef_geolocation_handler_t* self, cef_browser_t* browser,
-    const cef_string_t* requesting_url, int request_id) {
+    int request_id) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -65,15 +65,10 @@ void CEF_CALLBACK geolocation_handler_on_cancel_geolocation_permission(
   DCHECK(browser);
   if (!browser)
     return;
-  // Verify param: requesting_url; type: string_byref_const
-  DCHECK(requesting_url);
-  if (!requesting_url)
-    return;
 
   // Execute
   CefGeolocationHandlerCppToC::Get(self)->OnCancelGeolocationPermission(
       CefBrowserCToCpp::Wrap(browser),
-      CefString(requesting_url),
       request_id);
 }
 
@@ -96,7 +91,7 @@ template<> CefRefPtr<CefGeolocationHandler> CefCppToC<CefGeolocationHandlerCppTo
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCppToC<CefGeolocationHandlerCppToC,
     CefGeolocationHandler, cef_geolocation_handler_t>::DebugObjCt = 0;
 #endif

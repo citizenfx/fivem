@@ -38,11 +38,33 @@
 #define CEF_INCLUDE_CEF_REQUEST_CONTEXT_H_
 #pragma once
 
+#include <vector>
+
+#include "include/cef_callback.h"
 #include "include/cef_cookie.h"
 #include "include/cef_request_context_handler.h"
 #include "include/cef_values.h"
 
 class CefSchemeHandlerFactory;
+
+
+///
+// Callback interface for CefRequestContext::ResolveHost.
+///
+/*--cef(source=client)--*/
+class CefResolveCallback : public virtual CefBase {
+ public:
+  ///
+  // Called after the ResolveHost request has completed. |result| will be the
+  // result code. |resolved_ips| will be the list of resolved IP addresses or
+  // empty if the resolution failed.
+  ///
+  /*--cef(optional_param=resolved_ips)--*/
+  virtual void OnResolveCompleted(
+      cef_errorcode_t result,
+      const std::vector<CefString>& resolved_ips) =0;
+};
+
 
 ///
 // A request context provides request handling for a set of related browser
@@ -82,7 +104,7 @@ class CefRequestContext : public virtual CefBase {
   // Creates a new context object that shares storage with |other| and uses an
   // optional |handler|.
   ///
-  /*--cef(capi_name=create_context_shared,optional_param=handler)--*/
+  /*--cef(capi_name=cef_create_context_shared,optional_param=handler)--*/
   static CefRefPtr<CefRequestContext> CreateContext(
       CefRefPtr<CefRequestContext> other,
       CefRefPtr<CefRequestContextHandler> handler);
@@ -217,6 +239,48 @@ class CefRequestContext : public virtual CefBase {
   virtual bool SetPreference(const CefString& name,
                              CefRefPtr<CefValue> value,
                              CefString& error) =0;
+
+  ///
+  // Clears all certificate exceptions that were added as part of handling
+  // CefRequestHandler::OnCertificateError(). If you call this it is
+  // recommended that you also call CloseAllConnections() or you risk not
+  // being prompted again for server certificates if you reconnect quickly.
+  // If |callback| is non-NULL it will be executed on the UI thread after
+  // completion.
+  ///
+  /*--cef(optional_param=callback)--*/
+  virtual void ClearCertificateExceptions(
+      CefRefPtr<CefCompletionCallback> callback) =0;
+
+  ///
+  // Clears all active and idle connections that Chromium currently has.
+  // This is only recommended if you have released all other CEF objects but
+  // don't yet want to call CefShutdown(). If |callback| is non-NULL it will be
+  // executed on the UI thread after completion.
+  ///
+  /*--cef(optional_param=callback)--*/
+  virtual void CloseAllConnections(
+      CefRefPtr<CefCompletionCallback> callback) =0;
+
+  ///
+  // Attempts to resolve |origin| to a list of associated IP addresses.
+  // |callback| will be executed on the UI thread after completion.
+  ///
+  /*--cef()--*/
+  virtual void ResolveHost(
+      const CefString& origin,
+      CefRefPtr<CefResolveCallback> callback) =0;
+
+  ///
+  // Attempts to resolve |origin| to a list of associated IP addresses using
+  // cached data. |resolved_ips| will be populated with the list of resolved IP
+  // addresses or empty if no cached data is available. Returns ERR_NONE on
+  // success. This method must be called on the browser process IO thread.
+  ///
+  /*--cef(default_retval=ERR_FAILED)--*/
+  virtual cef_errorcode_t ResolveHostCached(
+      const CefString& origin,
+      std::vector<CefString>& resolved_ips) =0;
 };
 
 #endif  // CEF_INCLUDE_CEF_REQUEST_CONTEXT_H_

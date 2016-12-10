@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -11,6 +11,7 @@
 //
 
 #include "libcef_dll/ctocpp/navigation_entry_ctocpp.h"
+#include "libcef_dll/ctocpp/sslstatus_ctocpp.h"
 
 
 // VIRTUAL METHODS - Body may be edited by hand.
@@ -150,6 +151,20 @@ int CefNavigationEntryCToCpp::GetHttpStatusCode() {
   return _retval;
 }
 
+CefRefPtr<CefSSLStatus> CefNavigationEntryCToCpp::GetSSLStatus() {
+  cef_navigation_entry_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_sslstatus))
+    return NULL;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_sslstatus_t* _retval = _struct->get_sslstatus(_struct);
+
+  // Return type: refptr_same
+  return CefSSLStatusCToCpp::Wrap(_retval);
+}
+
 
 // CONSTRUCTOR - Do not edit by hand.
 
@@ -163,7 +178,7 @@ template<> cef_navigation_entry_t* CefCToCpp<CefNavigationEntryCToCpp,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefNavigationEntryCToCpp,
     CefNavigationEntry, cef_navigation_entry_t>::DebugObjCt = 0;
 #endif

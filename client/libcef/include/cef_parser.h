@@ -65,14 +65,13 @@ bool CefCreateURL(const CefURLParts& parts,
 // friendly way to help users make security-related decisions (or in other
 // circumstances when people need to distinguish sites, origins, or otherwise-
 // simplified URLs from each other). Internationalized domain names (IDN) may be
-// presented in Unicode if |languages| accepts the Unicode representation. The
-// returned value will (a) omit the path for standard schemes, excepting file
-// and filesystem, and (b) omit the port if it is the default for the scheme. Do
-// not use this for URLs which will be parsed or sent to other applications.
+// presented in Unicode if the conversion is considered safe. The returned value
+// will (a) omit the path for standard schemes, excepting file and filesystem,
+// and (b) omit the port if it is the default for the scheme. Do not use this
+// for URLs which will be parsed or sent to other applications.
 ///
 /*--cef(optional_param=languages)--*/
-CefString CefFormatUrlForSecurityDisplay(const CefString& origin_url,
-                                         const CefString& languages);
+CefString CefFormatUrlForSecurityDisplay(const CefString& origin_url);
 
 ///
 // Returns the mime type for the specified file extension or an empty string if
@@ -81,10 +80,12 @@ CefString CefFormatUrlForSecurityDisplay(const CefString& origin_url,
 /*--cef()--*/
 CefString CefGetMimeType(const CefString& extension);
 
+///
 // Get the extensions associated with the given mime type. This should be passed
 // in lower case. There could be multiple extensions for a given mime type, like
 // "html,htm" for "text/html", or "txt,text,html,..." for "text/*". Any existing
 // elements in the provided vector will not be erased.
+///
 /*--cef()--*/
 void CefGetExtensionsForMimeType(const CefString& mime_type,
                                  std::vector<CefString>& extensions);
@@ -127,26 +128,19 @@ CefString CefURIDecode(const CefString& text,
                        cef_uri_unescape_rule_t unescape_rule);
 
 ///
-// Parses |string| which represents a CSS color value. If |strict| is true
-// strict parsing rules will be applied. Returns true on success or false on
-// error. If parsing succeeds |color| will be set to the color value otherwise
-// |color| will remain unchanged.
-///
-/*--cef()--*/
-bool CefParseCSSColor(const CefString& string,
-                      bool strict,
-                      cef_color_t& color);
-
 // Parses the specified |json_string| and returns a dictionary or list
 // representation. If JSON parsing fails this method returns NULL.
+///
 /*--cef()--*/
 CefRefPtr<CefValue> CefParseJSON(const CefString& json_string,
                                  cef_json_parser_options_t options);
 
+///
 // Parses the specified |json_string| and returns a dictionary or list
 // representation. If JSON parsing fails this method returns NULL and populates
 // |error_code_out| and |error_msg_out| with an error code and a formatted error
 // message respectively.
+///
 /*--cef()--*/
 CefRefPtr<CefValue> CefParseJSONAndReturnError(
     const CefString& json_string,
@@ -154,9 +148,11 @@ CefRefPtr<CefValue> CefParseJSONAndReturnError(
     cef_json_parser_error_t& error_code_out,
     CefString& error_msg_out);
 
+///
 // Generates a JSON string from the specified root |node| which should be a
 // dictionary or list value. Returns an empty string on failure. This method
 // requires exclusive access to |node| including any underlying data.
+///
 /*--cef()--*/
 CefString CefWriteJSON(CefRefPtr<CefValue> node,
                        cef_json_writer_options_t options);

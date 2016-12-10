@@ -38,10 +38,10 @@
 // This can happen in cases where Chromium code is used directly by the
 // client application. When using Chromium code directly always include
 // the Chromium header first to avoid type conflicts.
-#elif defined(BUILDING_CEF_SHARED)
+#elif defined(USING_CHROMIUM_INCLUDES)
 // When building CEF include the Chromium header directly.
 #include "base/memory/ref_counted.h"
-#else  // !BUILDING_CEF_SHARED
+#else  // !USING_CHROMIUM_INCLUDES
 // The following is substantially similar to the Chromium implementation.
 // If the Chromium implementation diverges the below implementation should be
 // updated to match.
@@ -50,9 +50,7 @@
 
 #include "include/base/cef_atomic_ref_count.h"
 #include "include/base/cef_build.h"
-#ifndef NDEBUG
 #include "include/base/cef_logging.h"
-#endif
 #include "include/base/cef_thread_collision_warner.h"
 
 namespace base {
@@ -66,14 +64,14 @@ class RefCountedBase {
  protected:
   RefCountedBase()
       : ref_count_(0)
-  #ifndef NDEBUG
+  #if DCHECK_IS_ON()
       , in_dtor_(false)
   #endif
       {
   }
 
   ~RefCountedBase() {
-  #ifndef NDEBUG
+  #if DCHECK_IS_ON()
     DCHECK(in_dtor_) << "RefCounted object deleted without calling Release()";
   #endif
   }
@@ -84,7 +82,7 @@ class RefCountedBase {
     // Current thread books the critical section "AddRelease"
     // without release it.
     // DFAKE_SCOPED_LOCK_THREAD_LOCKED(add_release_);
-  #ifndef NDEBUG
+  #if DCHECK_IS_ON()
     DCHECK(!in_dtor_);
   #endif
     ++ref_count_;
@@ -96,11 +94,11 @@ class RefCountedBase {
     // Current thread books the critical section "AddRelease"
     // without release it.
     // DFAKE_SCOPED_LOCK_THREAD_LOCKED(add_release_);
-  #ifndef NDEBUG
+  #if DCHECK_IS_ON()
     DCHECK(!in_dtor_);
   #endif
     if (--ref_count_ == 0) {
-  #ifndef NDEBUG
+  #if DCHECK_IS_ON()
       in_dtor_ = true;
   #endif
       return true;
@@ -110,7 +108,7 @@ class RefCountedBase {
 
  private:
   mutable int ref_count_;
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
   mutable bool in_dtor_;
 #endif
 
@@ -134,7 +132,7 @@ class RefCountedThreadSafeBase {
 
  private:
   mutable AtomicRefCount ref_count_;
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
   mutable bool in_dtor_;
 #endif
 
@@ -381,6 +379,6 @@ scoped_refptr<T> make_scoped_refptr(T* t) {
   return scoped_refptr<T>(t);
 }
 
-#endif  // !BUILDING_CEF_SHARED
+#endif  // !USING_CHROMIUM_INCLUDES
 
 #endif  // CEF_INCLUDE_BASE_CEF_REF_COUNTED_H_

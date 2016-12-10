@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,9 +14,9 @@
 #define CEF_LIBCEF_DLL_CTOCPP_V8CONTEXT_CTOCPP_H_
 #pragma once
 
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 
 #include "include/cef_v8.h"
 #include "include/capi/cef_v8_capi.h"
@@ -38,9 +38,9 @@ class CefV8ContextCToCpp
   bool Enter() OVERRIDE;
   bool Exit() OVERRIDE;
   bool IsSame(CefRefPtr<CefV8Context> that) OVERRIDE;
-  bool Eval(const CefString& code, CefRefPtr<CefV8Value>& retval,
+  bool Eval(const CefString& code, const CefString& script_url, int start_line,
+      CefRefPtr<CefV8Value>& retval,
       CefRefPtr<CefV8Exception>& exception) OVERRIDE;
 };
 
-#endif  // USING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_V8CONTEXT_CTOCPP_H_

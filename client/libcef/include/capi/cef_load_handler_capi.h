@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -62,7 +62,8 @@ typedef struct _cef_load_handler_t {
   // Called when the loading state has changed. This callback will be executed
   // twice -- once when loading is initiated either programmatically or by user
   // action, and once when loading is terminated due to completion, cancellation
-  // of failure.
+  // of failure. It will be called before any calls to OnLoadStart and after all
+  // calls to OnLoadError and/or OnLoadEnd.
   ///
   void (CEF_CALLBACK *on_loading_state_change)(struct _cef_load_handler_t* self,
       struct _cef_browser_t* browser, int isLoading, int canGoBack,
@@ -71,14 +72,17 @@ typedef struct _cef_load_handler_t {
   ///
   // Called when the browser begins loading a frame. The |frame| value will
   // never be NULL -- call the is_main() function to check if this frame is the
-  // main frame. Multiple frames may be loading at the same time. Sub-frames may
-  // start or continue loading after the main frame load has ended. This
-  // function may not be called for a particular frame if the load request for
-  // that frame fails. For notification of overall browser load status use
+  // main frame. |transition_type| provides information about the source of the
+  // navigation and an accurate value is only available in the browser process.
+  // Multiple frames may be loading at the same time. Sub-frames may start or
+  // continue loading after the main frame load has ended. This function will
+  // always be called for all frames irrespective of whether the request
+  // completes successfully. For notification of overall browser load status use
   // OnLoadingStateChange instead.
   ///
   void (CEF_CALLBACK *on_load_start)(struct _cef_load_handler_t* self,
-      struct _cef_browser_t* browser, struct _cef_frame_t* frame);
+      struct _cef_browser_t* browser, struct _cef_frame_t* frame,
+      cef_transition_type_t transition_type);
 
   ///
   // Called when the browser is done loading a frame. The |frame| value will
@@ -86,7 +90,8 @@ typedef struct _cef_load_handler_t {
   // main frame. Multiple frames may be loading at the same time. Sub-frames may
   // start or continue loading after the main frame load has ended. This
   // function will always be called for all frames irrespective of whether the
-  // request completes successfully.
+  // request completes successfully. For notification of overall browser load
+  // status use OnLoadingStateChange instead.
   ///
   void (CEF_CALLBACK *on_load_end)(struct _cef_load_handler_t* self,
       struct _cef_browser_t* browser, struct _cef_frame_t* frame,

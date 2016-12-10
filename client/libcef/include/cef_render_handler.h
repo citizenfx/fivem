@@ -38,10 +38,11 @@
 #define CEF_INCLUDE_CEF_RENDER_HANDLER_H_
 #pragma once
 
+#include <vector>
+
 #include "include/cef_base.h"
 #include "include/cef_browser.h"
 #include "include/cef_drag_data.h"
-#include <vector>
 
 ///
 // Implement this interface to handle events when window rendering is disabled.
@@ -175,6 +176,16 @@ class CefRenderHandler : public virtual CefBase {
   virtual void OnScrollOffsetChanged(CefRefPtr<CefBrowser> browser,
                                      double x,
                                      double y) {}
+
+  ///
+  // Called when the IME composition range has changed. |selected_range| is the
+  // range of characters that have been selected. |character_bounds| is the
+  // bounds of each character in view coordinates.
+  ///
+  /*--cef()--*/
+  virtual void OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser,
+                                            const CefRange& selected_range,
+                                            const RectList& character_bounds) {}
 };
 
 #endif  // CEF_INCLUDE_CEF_RENDER_HANDLER_H_

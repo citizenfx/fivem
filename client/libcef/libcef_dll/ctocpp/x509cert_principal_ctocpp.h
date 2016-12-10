@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -10,28 +10,28 @@
 // for more information.
 //
 
-#ifndef CEF_LIBCEF_DLL_CTOCPP_SSLCERT_PRINCIPAL_CTOCPP_H_
-#define CEF_LIBCEF_DLL_CTOCPP_SSLCERT_PRINCIPAL_CTOCPP_H_
+#ifndef CEF_LIBCEF_DLL_CTOCPP_X509CERT_PRINCIPAL_CTOCPP_H_
+#define CEF_LIBCEF_DLL_CTOCPP_X509CERT_PRINCIPAL_CTOCPP_H_
 #pragma once
 
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 
 #include <vector>
-#include "include/cef_ssl_info.h"
-#include "include/capi/cef_ssl_info_capi.h"
+#include "include/cef_x509_certificate.h"
+#include "include/capi/cef_x509_certificate_capi.h"
 #include "libcef_dll/ctocpp/ctocpp.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
-class CefSSLCertPrincipalCToCpp
-    : public CefCToCpp<CefSSLCertPrincipalCToCpp, CefSSLCertPrincipal,
-        cef_sslcert_principal_t> {
+class CefX509CertPrincipalCToCpp
+    : public CefCToCpp<CefX509CertPrincipalCToCpp, CefX509CertPrincipal,
+        cef_x509cert_principal_t> {
  public:
-  CefSSLCertPrincipalCToCpp();
+  CefX509CertPrincipalCToCpp();
 
-  // CefSSLCertPrincipal methods.
+  // CefX509CertPrincipal methods.
   CefString GetDisplayName() OVERRIDE;
   CefString GetCommonName() OVERRIDE;
   CefString GetLocalityName() OVERRIDE;
@@ -43,5 +43,4 @@ class CefSSLCertPrincipalCToCpp
   void GetDomainComponents(std::vector<CefString>& components) OVERRIDE;
 };
 
-#endif  // USING_CEF_SHARED
-#endif  // CEF_LIBCEF_DLL_CTOCPP_SSLCERT_PRINCIPAL_CTOCPP_H_
+#endif  // CEF_LIBCEF_DLL_CTOCPP_X509CERT_PRINCIPAL_CTOCPP_H_

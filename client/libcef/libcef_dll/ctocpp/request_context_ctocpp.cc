@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -12,11 +12,13 @@
 
 #include "libcef_dll/cpptoc/completion_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/request_context_handler_cpptoc.h"
+#include "libcef_dll/cpptoc/resolve_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/scheme_handler_factory_cpptoc.h"
 #include "libcef_dll/ctocpp/cookie_manager_ctocpp.h"
 #include "libcef_dll/ctocpp/dictionary_value_ctocpp.h"
 #include "libcef_dll/ctocpp/request_context_ctocpp.h"
 #include "libcef_dll/ctocpp/value_ctocpp.h"
+#include "libcef_dll/transfer_util.h"
 
 
 // STATIC METHODS - Body may be edited by hand.
@@ -59,7 +61,7 @@ CefRefPtr<CefRequestContext> CefRequestContext::CreateContext(
   // Unverified params: handler
 
   // Execute
-  cef_request_context_t* _retval = create_context_shared(
+  cef_request_context_t* _retval = cef_create_context_shared(
       CefRequestContextCToCpp::Unwrap(other),
       CefRequestContextHandlerCppToC::Wrap(handler));
 
@@ -325,6 +327,94 @@ bool CefRequestContextCToCpp::SetPreference(const CefString& name,
   return _retval?true:false;
 }
 
+void CefRequestContextCToCpp::ClearCertificateExceptions(
+    CefRefPtr<CefCompletionCallback> callback) {
+  cef_request_context_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, clear_certificate_exceptions))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Unverified params: callback
+
+  // Execute
+  _struct->clear_certificate_exceptions(_struct,
+      CefCompletionCallbackCppToC::Wrap(callback));
+}
+
+void CefRequestContextCToCpp::CloseAllConnections(
+    CefRefPtr<CefCompletionCallback> callback) {
+  cef_request_context_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, close_all_connections))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Unverified params: callback
+
+  // Execute
+  _struct->close_all_connections(_struct,
+      CefCompletionCallbackCppToC::Wrap(callback));
+}
+
+void CefRequestContextCToCpp::ResolveHost(const CefString& origin,
+    CefRefPtr<CefResolveCallback> callback) {
+  cef_request_context_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, resolve_host))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: origin; type: string_byref_const
+  DCHECK(!origin.empty());
+  if (origin.empty())
+    return;
+  // Verify param: callback; type: refptr_diff
+  DCHECK(callback.get());
+  if (!callback.get())
+    return;
+
+  // Execute
+  _struct->resolve_host(_struct,
+      origin.GetStruct(),
+      CefResolveCallbackCppToC::Wrap(callback));
+}
+
+cef_errorcode_t CefRequestContextCToCpp::ResolveHostCached(
+    const CefString& origin, std::vector<CefString>& resolved_ips) {
+  cef_request_context_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, resolve_host_cached))
+    return ERR_FAILED;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: origin; type: string_byref_const
+  DCHECK(!origin.empty());
+  if (origin.empty())
+    return ERR_FAILED;
+
+  // Translate param: resolved_ips; type: string_vec_byref
+  cef_string_list_t resolved_ipsList = cef_string_list_alloc();
+  DCHECK(resolved_ipsList);
+  if (resolved_ipsList)
+    transfer_string_list_contents(resolved_ips, resolved_ipsList);
+
+  // Execute
+  cef_errorcode_t _retval = _struct->resolve_host_cached(_struct,
+      origin.GetStruct(),
+      resolved_ipsList);
+
+  // Restore param:resolved_ips; type: string_vec_byref
+  if (resolved_ipsList) {
+    resolved_ips.clear();
+    transfer_string_list_contents(resolved_ipsList, resolved_ips);
+    cef_string_list_free(resolved_ipsList);
+  }
+
+  // Return type: simple
+  return _retval;
+}
+
 
 // CONSTRUCTOR - Do not edit by hand.
 
@@ -338,7 +428,7 @@ template<> cef_request_context_t* CefCToCpp<CefRequestContextCToCpp,
   return NULL;
 }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
 template<> base::AtomicRefCount CefCToCpp<CefRequestContextCToCpp,
     CefRequestContext, cef_request_context_t>::DebugObjCt = 0;
 #endif
