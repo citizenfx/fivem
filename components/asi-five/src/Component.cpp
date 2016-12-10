@@ -11,6 +11,8 @@
 #include <boost/filesystem.hpp>
 #include <wchar.h>
 
+#pragma comment(lib, "version.lib")
+
 class ComponentInstance : public Component
 {
 public:
@@ -42,7 +44,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 		{
 			boost::filesystem::create_directory(plugins_path);
 		}
-		std::vector<wchar_t*> blacklistedAsis = std::vector<wchar_t*>({
+		std::vector<std::wstring> blacklistedAsis = std::vector<std::wstring>({
 			L"openiv.asi"
 		});
 		// load all .asi files in the plugins/ directory
@@ -51,13 +53,32 @@ bool ComponentInstance::DoGameLoad(void* module)
 			if (it->path().extension() == ".asi")
 			{
 				bool bad = false;
-				for (std::vector<wchar_t*>::iterator itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt){
-					
-					if (*itt != nullptr && *itt != L"")
+				std::wstring badFileName;
+
+				DWORD versionInfoSize = GetFileVersionInfoSize(it->path().c_str(), nullptr);
+
+				if (versionInfoSize)
+				{
+					std::vector<uint8_t> versionInfo(versionInfoSize);
+
+					if (GetFileVersionInfo(it->path().c_str(), 0, versionInfo.size(), &versionInfo[0]))
 					{
-						if (wcsicmp(it->path().filename().c_str(), *itt) == 0) {
+						void* fixedInfoBuffer;
+						UINT fixedInfoSize;
+
+						VerQueryValue(&versionInfo[0], L"\\StringFileInfo\\040904b0\\OriginalFilename", &fixedInfoBuffer, &fixedInfoSize);
+
+						badFileName = std::wstring((wchar_t*)fixedInfoBuffer, fixedInfoSize);
+					}
+				}
+
+				for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt){
+					
+					if (*itt != L"")
+					{
+						if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0) {
 							bad = true;
-							trace(va("Skipping blacklisted ASI %s - this plugin is not compatible with FiveReborn", it->path().filename().string().c_str()));
+							trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveReborn", it->path().filename().string());
 							if (*itt == L"openiv.asi")
 							{
 								FatalError("You cannot use OpenIV with FiveReborn. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivereborn.com on how to use modded files with FiveReborn.");
@@ -65,10 +86,11 @@ bool ComponentInstance::DoGameLoad(void* module)
 						}
 					}
 				}
+
 				if (!bad) {
 					if (!LoadLibrary(it->path().c_str()))
 					{
-						FatalError(va("Couldn't load %s", it->path().filename().string().c_str()));
+						FatalError("Couldn't load %s", it->path().filename().string());
 					}
 				}
 			}
