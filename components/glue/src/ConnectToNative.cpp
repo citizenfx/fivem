@@ -17,6 +17,9 @@
 #include "KnownFolders.h"
 #include <ShlObj.h>
 
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
 #include <SteamComponentAPI.h>
 
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
@@ -117,7 +120,15 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([] (const char* error)
 		{
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: '%s' }, '*');", error));
+			rapidjson::Document document;
+			document.SetString(error, document.GetAllocator());
+
+			rapidjson::StringBuffer sbuffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+			document.Accept(writer);
+
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: %s }, '*');", sbuffer.GetString()));
 		});
 	});
 

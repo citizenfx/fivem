@@ -12,6 +12,14 @@
 #include <WS2tcpip.h>
 #include <strsafe.h>
 #include <fstream>
+#include <array>
+
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
+#include <fnv.h>
+
+#include <HttpClient.h>
 
 #if defined(GTA_NY)
 #define GS_GAMENAME "GTA4"
@@ -22,6 +30,100 @@
 #else
 #define GS_GAMENAME "CitizenFX"
 #endif
+
+template<typename TFunc>
+void RequestInfoBlob(const std::string& server, const TFunc& cb)
+{
+	static HttpClient* httpClient = new HttpClient();
+
+	std::string port = std::string(server);
+	std::string ip = std::string(server);
+	ip = ip.substr(0, ip.find(":"));
+	port = port.substr(port.find(":") + 1);
+	const char* portnum = port.c_str();
+
+	if (port.empty())
+	{
+		portnum = "30120";
+	}
+
+	httpClient->DoGetRequest(ToWide(ip), atoi(portnum), L"/info.json", [=] (bool success, const char* data, size_t length)
+	{
+		if (!success)
+		{
+			cb("{}");
+			return;
+		}
+
+		rapidjson::Document doc;
+		doc.Parse(data, length);
+
+		if (!doc.HasParseError())
+		{
+			auto member = doc.FindMember("version");
+
+			if (member != doc.MemberEnd() && member->value.IsInt())
+			{
+				rapidjson::StringBuffer sbuffer;
+				rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+				doc.Accept(writer);
+
+				cb(sbuffer.GetString());
+
+				uint64_t infoBlobKey = fnv1a_t<8>()(server);
+				std::wstring blobPath = MakeRelativeCitPath(fmt::sprintf(L"cache\\servers\\%016llx.json", infoBlobKey));
+
+				FILE* blobFile = _wfopen(blobPath.c_str(), L"w");
+
+				if (blobFile)
+				{
+					fprintf(blobFile, "%s", sbuffer.GetString());
+					fclose(blobFile);
+				}
+			}
+		}
+	});
+}
+
+template<typename TFunc>
+void LoadInfoBlob(const std::string& server, int expectedVersion, const TFunc& cb)
+{
+	uint64_t infoBlobKey = fnv1a_t<8>()(server);
+	std::wstring blobPath = MakeRelativeCitPath(fmt::sprintf(L"cache\\servers\\%016llx.json", infoBlobKey));
+	
+	FILE* blobFile = _wfopen(blobPath.c_str(), L"r");
+
+	if (blobFile)
+	{
+		fseek(blobFile, 0, SEEK_END);
+
+		int fOff = ftell(blobFile);
+
+		fseek(blobFile, 0, SEEK_SET);
+
+		std::vector<char> blob(fOff);
+		fread(&blob[0], 1, blob.size(), blobFile);
+
+		fclose(blobFile);
+
+		rapidjson::Document doc;
+		doc.Parse(blob.data(), blob.size());
+
+		if (!doc.HasParseError())
+		{
+			auto member = doc.FindMember("version");
+
+			if (member != doc.MemberEnd() && member->value.IsInt() && member->value.GetInt() == expectedVersion)
+			{
+				cb(std::string(blob.begin(), blob.end()));
+				return;
+			}
+		}
+	}
+
+	RequestInfoBlob(server, cb);
+}
 
 struct gameserveritemext_t
 {
@@ -81,6 +183,8 @@ bool GSClient_Init()
 
 	ULONG nonBlocking = 1;
 	ioctlsocket(g_cls.socket, FIONBIO, &nonBlocking);
+
+	setsockopt(g_cls.socket, SOL_SOCKET, SO_BROADCAST, (char*)&nonBlocking, sizeof(nonBlocking));
 
 	return true;
 }
@@ -218,62 +322,109 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 {
 	trace("received infoResponse\n");
 
+	auto tempServer = std::make_shared<gameserveritemext_t>();
+	tempServer->queryTime = timeGetTime();
+	tempServer->m_IP = ntohl(g_cls.from.sin_addr.s_addr);
+	tempServer->m_Port = ntohs(g_cls.from.sin_port);
+
+	gameserveritemext_t* server = tempServer.get();
+
 	for (int i = 0; i < g_cls.numServers; i++)
 	{
-		gameserveritemext_t* server = &g_cls.servers[i];
+		gameserveritemext_t* thisServer = &g_cls.servers[i];
 
-		if ((server->m_IP == ntohl(g_cls.from.sin_addr.s_addr)) && (server->m_Port == ntohs(g_cls.from.sin_port)))
+		if ((thisServer->m_IP == ntohl(g_cls.from.sin_addr.s_addr)) && (thisServer->m_Port == ntohs(g_cls.from.sin_port)))
 		{
-			bufferx++;
-
-			char buffer[8192];
-			strcpy(buffer, bufferx);
-
-			g_cls.queryTime = timeGetTime();
-
-			if (g_cls.curNumResults > 8192)
-			{
-				return;
-			}
-
-			int j = g_cls.curNumResults;
-
-			g_cls.curNumResults++;
-
-			server->m_ping = timeGetTime() - server->queryTime;
-			server->m_maxClients = atoi(Info_ValueForKey(buffer, "sv_maxclients"));
-			server->m_clients = atoi(Info_ValueForKey(buffer, "clients"));
-			server->m_hostName = Info_ValueForKey(buffer, "hostname");
-			server->m_IP = htonl(server->m_IP);
-
-			replaceAll(server->m_hostName, "'", "\\'");
-
-			const char* mapnameStr = Info_ValueForKey(buffer, "mapname");
-			const char* gametypeStr = Info_ValueForKey(buffer, "gametype");
-
-			std::string mapname;
-			std::string gametype;
-
-			if (mapnameStr)
-			{
-				mapname = mapnameStr;
-			}
-
-			if (gametypeStr)
-			{
-				gametype = gametypeStr;
-			}
-
-			replaceAll(mapname, "'", "\\'");
-			replaceAll(gametype, "'", "\\'");
-
-			char address[32];
-			inet_ntop(AF_INET, &server->m_IP, address, sizeof(address));
-
-			nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'serverAdd', name: '%s', mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d, addr: '%s:%d' }, '*');", server->m_hostName.c_str(), mapname.c_str(), gametype.c_str(), server->m_clients, server->m_maxClients, server->m_ping, address, server->m_Port));
-
+			server = thisServer;
 			break;
 		}
+	}
+
+	bufferx++;
+
+	char buffer[8192];
+	strcpy(buffer, bufferx);
+
+	g_cls.queryTime = timeGetTime();
+
+	if (g_cls.curNumResults > 8192)
+	{
+		return;
+	}
+
+	int j = g_cls.curNumResults;
+
+	g_cls.curNumResults++;
+
+	server->m_ping = timeGetTime() - server->queryTime;
+	server->m_maxClients = atoi(Info_ValueForKey(buffer, "sv_maxclients"));
+	server->m_clients = atoi(Info_ValueForKey(buffer, "clients"));
+	server->m_hostName = Info_ValueForKey(buffer, "hostname");
+
+	server->m_IP = htonl(server->m_IP);
+
+	replaceAll(server->m_hostName, "'", "\\'");
+
+	const char* mapnameStr = Info_ValueForKey(buffer, "mapname");
+	const char* gametypeStr = Info_ValueForKey(buffer, "gametype");
+
+	std::string mapname;
+	std::string gametype;
+
+	if (mapnameStr)
+	{
+		mapname = mapnameStr;
+	}
+
+	if (gametypeStr)
+	{
+		gametype = gametypeStr;
+	}
+
+	replaceAll(mapname, "'", "\\'");
+	replaceAll(gametype, "'", "\\'");
+
+	std::array<char, 32> address;
+	inet_ntop(AF_INET, &server->m_IP, address.data(), address.size());
+
+	std::string addressStr = address.data();
+
+	const char* infoBlobVersionString = Info_ValueForKey(buffer, "iv");
+
+	auto onLoadCB = [=](const std::string& infoBlobJson)
+	{
+		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: 'serverAdd', name: '%s',"
+			"mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d,"
+			"addr: '%s:%d', infoBlob: %s }, '*');",
+			server->m_hostName,
+			mapname,
+			gametype,
+			server->m_clients,
+			server->m_maxClients,
+			server->m_ping,
+			addressStr,
+			server->m_Port,
+			infoBlobJson));
+
+		tempServer->m_IP = 0;
+	};
+
+	if (infoBlobVersionString && infoBlobVersionString[0])
+	{
+		std::string serverId = fmt::sprintf("%s:%d", addressStr, server->m_Port);
+		int infoBlobVersion = atoi(infoBlobVersionString);
+
+		LoadInfoBlob(serverId, infoBlobVersion, onLoadCB);
+	}
+	else
+	{
+		onLoadCB("{}");
+	}
+
+	// have over 60% of servers been shown?
+	if (g_cls.curNumResults >= (g_cls.numServers * 0.6))
+	{
+		nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'refreshingDone' }, '*');");
 	}
 }
 
@@ -349,11 +500,9 @@ void GSClient_HandleServersResponse(const char* buffer, int len)
 	}
 
 	g_cls.queryTime = timeGetTime();
-	nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'clearServers' }, '*');");
 	GSClient_QueryStep();
 
 	g_cls.numServers = count;
-	nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'refreshingDone' }, '*');");
 }
 
 #define CMD_GSR "getserversResponse"
@@ -447,10 +596,25 @@ void GSClient_QueryMaster()
 		lookedUp = true;
 	}
 
+	g_cls.curNumResults = 0;
+
+	nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'clearServers' }, '*');");
+
 	char message[128];
 	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers " GS_GAMENAME " 4 full empty");
 
 	sendto(g_cls.socket, message, strlen(message), 0, (sockaddr*)&masterIP, sizeof(masterIP));
+
+	for (int i = 30120; i < 30120 + 6; i++)
+	{
+		sockaddr_in broadcastIP = { 0 };
+		broadcastIP.sin_family = AF_INET;
+		broadcastIP.sin_port = htons(i);
+		broadcastIP.sin_addr.s_addr = INADDR_BROADCAST;
+
+		_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetinfo xxx");
+		sendto(g_cls.socket, message, strlen(message), 0, (sockaddr*)&broadcastIP, sizeof(broadcastIP));
+	}
 }
 
 void GSClient_Refresh()
@@ -469,6 +633,8 @@ void GSClient_GetFavorites()
 	std::string json;
 	favFile >> json;
 	favFile.close();
+
+	nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'getFavorites', list: %s }, '*');", json));
 }
 
 void GSClient_SaveFavorites(const wchar_t *json)
@@ -480,6 +646,8 @@ void GSClient_SaveFavorites(const wchar_t *json)
 
 static InitFunction initFunction([] ()
 {
+	CreateDirectory(MakeRelativeCitPath(L"cache\\servers\\").c_str(), nullptr);
+
 	nui::OnInvokeNative.Connect([] (const wchar_t* type, const wchar_t* arg)
 	{
 		if (!_wcsicmp(type, L"refreshServers"))

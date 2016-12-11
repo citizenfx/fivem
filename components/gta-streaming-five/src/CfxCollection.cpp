@@ -12,7 +12,7 @@
 
 #include <fnv.h>
 
-#define CFX_COLLECTION_DISABLE 1
+//#define CFX_COLLECTION_DISABLE 1
 
 // unset _DEBUG so that there will be no range checking
 #ifdef _DEBUG

@@ -141,7 +141,7 @@ void main()
 					{
 						if (elevationData == TokenElevationTypeFull)
 						{
-							const wchar_t* elevationComplaint = L"p\x039B does not support running under elevated privileges. Please change your Windows settings to not run p\x039B as administrator.\nIf anyone told you to do this in order to fix an issue, tell them they are wrong. The game will exit now.";
+							const wchar_t* elevationComplaint = L"p\x039B does not support running under elevated privileges. Please change your Windows settings to not run p\x039B as administrator.\nThat won't fix anything. The game will exit now.";
 
 							auto result = MessageBox(nullptr, elevationComplaint, L"p\x039B", MB_ABORTRETRYIGNORE | MB_ICONERROR);
 

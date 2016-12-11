@@ -1153,6 +1153,8 @@ static HookFunction hookFunction([] ()
 
 	hook::call(loadStarter, RunInitFunctionsWrap);
 
+	// RELOADING ATTEMPT NOP
+#if 0
 	// temp dbg: do not load interior proxy ordering files
 	hook::nop(hook::get_pattern("81 BA 90 00 00 00 AD 00 00 00 74 04", 10), 2);
 
@@ -1161,6 +1163,7 @@ static HookFunction hookFunction([] ()
 
 	// do not even load DLC at all
 	hook::nop(hook::get_pattern("B4 48 8B CF E8 ? ? ? ? 48 8D 4C 24 40 E8", 4), 5);
+#endif
 
 	// don't shut down DLC either
 	//hook::return_function(hook::get_pattern("48 85 C9 74 3B 41 B8 01 00 00 00 8B D3 E8", -15));
@@ -1174,6 +1177,8 @@ static HookFunction hookFunction([] ()
 	// don't conditionally check player blip handle
 	hook::call(hook::get_pattern("C8 89 05 ? ? ? ? E8 ? ? ? ? 89 05", 7), BlipAsIndex);
 
+	// RELOADING ATTEMPT NOP
+#if 0
 	// clear popcycle file upon non-dlc load too
 	{
 		void* loc = hook::get_pattern("BA 0E 00 00 00 E8 ? ? ? ? 83 B8 94", 29);
@@ -1186,6 +1191,7 @@ static HookFunction hookFunction([] ()
 		hook::put<uint8_t>(hook::get_pattern("44 89 7C 24 60 81 FA DB 3E 14 7D 74 16", 11), 0xEB);
 		hook::put<uint8_t>(hook::get_pattern("44 89 44 24 60 81 FA DB 3E 14 7D 74 16", 11), 0xEB);
 	}
+#endif
 
 	// also don't reload clipsets because whoever implemented V DLC loading is a cuntflap
 	hook::set_call(&g_loadClipSets, hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", 12));
