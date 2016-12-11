@@ -123,7 +123,7 @@ void main()
 			}
 
 			// also do checks here to complain at BAD USERS
-			if (!GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetThreadDescription"))
+			if (!GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetThreadDescription"))
 			{
 				MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the p\x039B client. Please update to Windows 10 version 1607 or higher in case you are experiencing "
 					L"any issues. The game will continue to start now.", L"p\x039B", MB_OK | MB_ICONWARNING);
