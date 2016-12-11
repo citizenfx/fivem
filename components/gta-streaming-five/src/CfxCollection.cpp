@@ -1697,7 +1697,7 @@ void CfxCollection::InitializePseudoPack(const char* path)
 				entryDevice->GetResourceVersion(entryFullName.c_str(), &flags);
 			}
 
-			trace("fake pseudo entry: %s @ %s - %d %d %d\n", entry.c_str(), entryFullName.c_str(), flags.flag1, flags.flag2);
+			trace("fake pseudo entry: %s @ %s - %d %d\n", entry.c_str(), entryFullName.c_str(), flags.flag1, flags.flag2);
 
 			entryTable[i].nameOffset = addString(entry);
 			entryTable[i].offset = 0x8FFFFF;
