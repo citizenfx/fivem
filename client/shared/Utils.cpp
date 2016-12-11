@@ -150,17 +150,18 @@ static void RaiseDebugException(const char* buffer, size_t length)
 	}
 }
 
-enum class Meow
-{
-	Meow1,
-	Meow2
-};
-
 void trace(const char* string, const fmt::ArgList& formatList)
 {
-	fmt::printf("meow %d\n", Meow::Meow2);
+	std::string buffer;
 
-	std::string buffer = fmt::sprintf(string, formatList);
+	try
+	{
+		buffer = fmt::sprintf(string, formatList);
+	}
+	catch (fmt::FormatError& e)
+	{
+		buffer = fmt::sprintf("fmt::FormatError while formatting %s: %s\n", string, e.what());
+	}
 
 	static CRITICAL_SECTION dbgCritSec;
 
