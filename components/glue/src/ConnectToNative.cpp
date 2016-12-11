@@ -40,9 +40,9 @@ void saveSettings(const wchar_t *json) {
 		CreateDirectory(cfxPath.c_str(), nullptr);
 		// open and read the profile file
 		std::wstring settingsPath = cfxPath + L"\\settings.json";
-		std::wofstream settingsFile(settingsPath);
+		std::ofstream settingsFile(settingsPath);
 		//trace(va("Saving settings data %s\n", json));
-		settingsFile << json;
+		settingsFile << ToNarrow(json);
 		settingsFile.close();
 		CoTaskMemFree(appDataPath);
 	}
@@ -59,14 +59,14 @@ void loadSettings() {
 		std::wstring settingsPath = cfxPath + L"\\settings.json";
 		if (FILE* profileFile = _wfopen(settingsPath.c_str(), L"rb"))
 		{
-			std::wifstream settingsFile(settingsPath);
+			std::ifstream settingsFile(settingsPath);
 
-			std::wstringstream settingsStream;
+			std::stringstream settingsStream;
 			settingsStream << settingsFile.rdbuf();
 			settingsFile.close();
 
 			//trace(va("Loaded JSON settings %s\n", json.c_str()));
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: '%s' }, '*');", ToNarrow(settingsStream.str()).c_str()));
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: %s }, '*');", settingsStream.str()));
 		}
 		
 		CoTaskMemFree(appDataPath);
@@ -160,8 +160,7 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"changeName"))
 		{
-			std::wstring newusernameStrW = arg;
-			std::string newusername(newusernameStrW.begin(), newusernameStrW.end());
+			std::string newusername = ToNarrow(arg);
 			if (!newusername.empty()) {
 				if (newusername.c_str() != netLibrary->GetPlayerName()) {
 					netLibrary->SetPlayerName(newusername.c_str());

@@ -259,7 +259,7 @@ static HookFunction hookFunction([] ()
 	InstrumentFunction(functions[4], functions);
 
 	// 'should packfile meta cache be used'
-	//hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
+	hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
 });
 
 static InitFunction initFunction([] ()

@@ -1191,12 +1191,12 @@ static HookFunction hookFunction([] ()
 		hook::put<uint8_t>(hook::get_pattern("44 89 7C 24 60 81 FA DB 3E 14 7D 74 16", 11), 0xEB);
 		hook::put<uint8_t>(hook::get_pattern("44 89 44 24 60 81 FA DB 3E 14 7D 74 16", 11), 0xEB);
 	}
-#endif
 
 	// also don't reload clipsets because whoever implemented V DLC loading is a cuntflap
 	hook::set_call(&g_loadClipSets, hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", 12));
 	//hook::return_function(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19));
 	//hook::jump(hook::get_pattern("45 33 E4 44 39 25 ? ? ? 00 75 0A E8", -0x19), TrackClipSetShutdown);
+#endif
 
 	// disable fwclipsetmanager session shutdown by making it test for 9 shutdown
 	//hook::put<uint8_t>(hook::get_pattern("83 F9 08 0F 85 26 01 00 00 44 0F", 2), 9);
@@ -1207,11 +1207,14 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&CRenderPhase__ctor, location);
 	hook::call(location, CRenderPhaseScanned__ctorWrap);
 
+	// RELOADING ATTEMPT NOP
+#if 0
 	// don't switch clipset manager to network mode ever
 	//hook::return_function(hook::get_pattern("A8 04 75 30 8B 04 13 4C", -0x3B));
 
 	// dlc conditional anims? bah.
 	hook::nop(hook::get_pattern("48 85 C0 75 38 8D 48 28", -14), 7);
+#endif
 
 	// argh.
 	//hook::jump(0x1400012F4, AllocEntry);

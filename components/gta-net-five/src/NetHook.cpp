@@ -435,9 +435,9 @@ static HookFunction initFunction([] ()
 			
 			if (*g_dlcMountCount != 90)
 			{
-				//GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 90);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 90);
 
-				//return;
+				return;
 			}
 
 			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())

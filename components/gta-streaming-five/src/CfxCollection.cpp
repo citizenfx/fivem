@@ -2138,11 +2138,14 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::get_pattern("33 D2 E8 ? ? ? ? 48 8B 0D ? ? ? ? 48 8D 15", -7), 58);
 
 	// reloading dependency: flag streaming packfiles from DLC changesets to not automatically load
+	// RELOADING ATTEMPT NOP
+#if 0
 	{
 		void* loc = hook::get_pattern("45 33 C0 8B D3 E8 ? ? ? ? 8B CB E8", 12);
 		hook::set_call(&g_origRemoveStreamingPackfile, loc);
 		hook::call(loc, RemoveStreamingPackfileWrap);
 	}
+#endif
 
 	// make the pfm.dat read-only
 	{

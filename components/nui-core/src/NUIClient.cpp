@@ -34,6 +34,9 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	{
 		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
 	}
+
+	// replace any segoe ui symbol font
+	frame->ExecuteJavaScript("[].concat.apply([], Array.from(document.styleSheets).map(a => Array.from(a.rules).filter(b => b.style && b.style.fontFamily))).forEach(a => a.style.fontFamily = a.style.fontFamily.replace(/Segoe UI Symbol/g, 'Segoe UI Emoji'));", "nui://patches", 0);
 }
 
 void NUIClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)

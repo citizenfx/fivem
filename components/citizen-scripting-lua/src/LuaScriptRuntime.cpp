@@ -493,14 +493,14 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 int Lua_Trace(lua_State* L)
 {
 	// VERY TEMP DBG
-	if (strstr(luaL_checkstring(L, 1), "bye world."))
+	/*if (strstr(luaL_checkstring(L, 1), "bye world."))
 	{
 		void* call = hook::pattern("48 8D 8D 18 01 00 00 BE 74 26 B5 9F").count(1).get(0).get<void>(-5);
 		void(*t)(uint32_t, uint32_t, uint32_t);
 		hook::set_call(&t, call);
 
 		t(145, 0, 0);
-	}
+	}*/
 
 	trace("%s", luaL_checkstring(L, 1));
 

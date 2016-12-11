@@ -24,7 +24,9 @@ static InitFunction initFunction([] ()
 
 			argList->SetSize(2);
 			argList->SetString(0, arguments[0]->GetStringValue());
-			argList->SetString(1, arguments[1]->GetStringValue());
+
+			CefString str = arguments[1]->GetStringValue();
+			argList->SetString(1, str);
 
 			CefV8Context::GetCurrentContext()->GetBrowser()->SendProcessMessage(PID_BROWSER, msg);
 		}
@@ -39,7 +41,7 @@ static InitFunction initFunction([] ()
 			auto args = message->GetArgumentList();
 			auto nativeType = args->GetString(0);
 
-			nui::OnInvokeNative(nativeType.c_str(), args->GetString(1).c_str());
+			nui::OnInvokeNative(nativeType.c_str(), ToWide(args->GetString(1).ToString()).c_str());
 
 			if (nativeType == "quit")
 			{
