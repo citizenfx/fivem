@@ -100,7 +100,7 @@ rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleM
 
 extern std::string g_lastStreamingName;
 
-static FILE* sfLog = fopen("B:\\sf.log", "w");
+static FILE* sfLog;// = fopen("B:\\sf.log", "w");
 
 uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 {
@@ -113,8 +113,11 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 		}
 #endif
 
-		fprintf(sfLog, "registered %s as %d\n", g_lastStreamingName.c_str(), *indexRet);
-		fflush(sfLog);
+		if (sfLog)
+		{
+			fprintf(sfLog, "registered %s as %d\n", g_lastStreamingName.c_str(), *indexRet);
+			fflush(sfLog);
+		}
 
 		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
 	}
