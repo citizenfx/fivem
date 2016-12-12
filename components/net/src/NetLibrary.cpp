@@ -717,7 +717,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				str << va("%02x", ticketBuffer[i]);
 			}
 
-			//postMap["authTicket"] = str.str();
+			postMap["authTicket"] = str.str();
 		}
 	}
 
