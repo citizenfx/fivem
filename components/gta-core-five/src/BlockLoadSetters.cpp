@@ -1241,5 +1241,8 @@ static HookFunction hookFunction([] ()
 			hook::nop(ptr, 9);
 		}
 	}*/
+
+	// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
+	hook::nop(hook::get_pattern("48 50 C1 E9 04 F6 C1 01 0F 84 ? ? 00 00 45", 8), 6);
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9
