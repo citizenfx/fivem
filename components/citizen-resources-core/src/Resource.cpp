@@ -59,24 +59,33 @@ const std::string& ResourceImpl::GetPath()
 
 bool ResourceImpl::Start()
 {
-	if (!OnStart())
+	if (m_state != ResourceState::Starting && m_state != ResourceState::Started)
 	{
-		return false;
-	}
+		m_state = ResourceState::Starting;
 
-	m_state = ResourceState::Started;
+		if (!OnStart())
+		{
+			m_state = ResourceState::Stopped;
+			return false;
+		}
+
+		m_state = ResourceState::Started;
+	}
 
 	return true;
 }
 
 bool ResourceImpl::Stop()
 {
-	if (!OnStop())
+	if (m_state != ResourceState::Stopped)
 	{
-		return false;
-	}
+		if (!OnStop())
+		{
+			return false;
+		}
 
-	m_state = ResourceState::Stopped;
+		m_state = ResourceState::Stopped;
+	}
 
 	return true;
 }
