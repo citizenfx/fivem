@@ -10,38 +10,10 @@
 
 #include <nutsnbolts.h>
 
-static hook::cdecl_stub<void()> loadHudColor([] ()
+static HookFunction hookFunction([] ()
 {
-	return hook::pattern("45 33 F6 41 8D 56 27 44 89").count(1).get(0).get<void>(-0x23);
-});
+	char* location = hook::get_pattern<char>("0F 57 C9 48 2B C1 48 8D 0D", 9);
+	uint32_t* legalScreenTime = (uint32_t*)(location + *(int32_t*)location + 4);
 
-static bool LoadHudColorWrap()
-{
-	__try
-	{
-		loadHudColor();
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-static InitFunction initFunction([] ()
-{
-	OnGameFrame.Connect([] ()
-	{
-		static bool loadedHudColor = false;
-
-		if (!loadedHudColor)
-		{
-			// really bad way of doing this, but for now it should be fine
-			if (LoadHudColorWrap())
-			{
-				loadedHudColor = true;
-			}
-		}
-	});
+	*legalScreenTime = 0;
 });

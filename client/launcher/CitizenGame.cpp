@@ -173,6 +173,12 @@ static int CustomGameElementCall(char* element)
 	return retval;
 }
 
+static void* DeleteVideo(void*, char* videoName)
+{
+	strcpy(videoName, "nah");
+	return nullptr;
+}
+
 bool g_ranStartupInfo;
 
 VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
@@ -206,10 +212,7 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	}*/
 
 	// ignore loading 'videos'
-	hook::call(hook::pattern("48 85 C9 0F 84 ? 00 00 00 48 8D 55 A7 E8").count(1).get(0).get<void>(13), ReturnInt<0>);
-
-	// loading screen stages
-	hook::put<uint8_t>(hook::pattern("8D 4A 03 E8 ? ? ? ? E8 ? ? ? ? 84 C0 75 1E").count(1).get(0).get<void>(2), 8);
+	hook::call(hook::get_pattern("8B F8 48 85 C0 74 47 48 8B C8 E8 ? ? ? ? 4C", -6), DeleteVideo);
 
 	// game elements for crash handling purposes
 	char* vtablePtrLoc = hook::pattern("41 89 40 10 49 83 60 18 00 48 8D 05").count(1).get(0).get<char>(12);
