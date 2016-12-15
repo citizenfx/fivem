@@ -69,7 +69,7 @@ void main()
 
 	bool devMode = toolMode;
 
-	if (GetFileAttributes(va(L"%s.dev", exeBaseName)) != INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributes(va(L"%s.formaldev", exeBaseName)) != INVALID_FILE_ATTRIBUTES)
 	{
 		devMode = true;
 	}
@@ -159,6 +159,23 @@ void main()
 					}
 
 					CloseHandle(hToken);
+				}
+			}
+
+			{
+				HANDLE hFile = CreateFile(MakeRelativeCitPath(L"writable_test").c_str(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+
+				if (hFile == INVALID_HANDLE_VALUE)
+				{
+					if (GetLastError() == ERROR_ACCESS_DENIED)
+					{
+						MessageBox(nullptr, L"project\x039B could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
+						return;
+					}
+				}
+				else
+				{
+					CloseHandle(hFile);
 				}
 			}
 		}

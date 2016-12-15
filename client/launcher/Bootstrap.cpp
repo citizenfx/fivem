@@ -61,8 +61,13 @@ bool Bootstrap_DoBootstrap()
 
 	if (result != 0)
 	{
-		MessageBox(NULL, va(L"An error (%i) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-		return false;
+		if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			MessageBox(NULL, va(L"An error (%i) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			return false;
+		}
+
+		return true;
 	}
 
 	//int version = atoi(bootstrapVersion);
@@ -73,6 +78,15 @@ bool Bootstrap_DoBootstrap()
 	if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		return Bootstrap_UpdateEXE(exeSize);
+	}
+
+	if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		if (GetFileAttributes(MakeRelativeCitPath(L"GTA5.exe").c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			MessageBox(NULL, L"Please do not place FiveReborn.exe in your game folder. Make a new empty folder (for example, on your desktop) instead.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			return false;
+		}
 	}
 
 #ifdef GTA_NY
