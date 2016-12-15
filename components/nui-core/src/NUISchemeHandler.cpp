@@ -14,6 +14,9 @@
 
 #include "memdbgon.h"
 
+static std::atomic<int> g_fileHandleCount;
+static std::queue<std::function<void()>> g_deleteQueue;
+
 class NUIResourceHandler : public CefResourceHandler
 {
 private:
@@ -27,7 +30,7 @@ private:
 
 	std::string filename_;
 
-	uint32_t file_;
+	uintptr_t file_;
 
 	bool closed_;
 public:
@@ -43,10 +46,20 @@ public:
 		{
 			device_->Close(file_);
 		}
+
+		g_fileHandleCount.fetch_sub(1);
+
+		if (!g_deleteQueue.empty())
+		{
+			g_deleteQueue.front()();
+			g_deleteQueue.pop();
+		}
 	}
 
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
 	{
+		rage::sysMemAllocator::UpdateAllocatorValue();
+
 		std::string url = request->GetURL();
 		std::wstring hostname;
 		std::wstring path;
@@ -93,31 +106,45 @@ public:
 
 		//file_ = _wfopen(filename_.c_str(), "rb");
 		device_ = rage::fiDevice::GetDevice(filename_.c_str(), true);
-		
-		if (device_ && filename_.find("..") == std::string::npos)
-		{
-			file_ = device_->Open(filename_.c_str(), true);
-		}
 
-		// set mime type
-		std::string ext = url.substr(url.rfind('.') + 1);
+		int count = g_fileHandleCount.fetch_add(1);
 
-		mimeType_ = "text/html";
+		auto handleOpen = [=] ()
+		{
+			if (device_ && filename_.find("..") == std::string::npos)
+			{
+				file_ = device_->Open(filename_.c_str(), true);
+			}
 
-		if (ext == "png")
-		{
-			mimeType_ = "image/png";
-		}
-		else if (ext == "js")
-		{
-			mimeType_ = "application/javascript";
-		}
-		else if (ext == "css")
-		{
-			mimeType_ = "text/css";
-		}
+			// set mime type
+			std::string ext = url.substr(url.rfind('.') + 1);
 
-		callback->Continue();
+			mimeType_ = "text/html";
+
+			if (ext == "png")
+			{
+				mimeType_ = "image/png";
+			}
+			else if (ext == "js")
+			{
+				mimeType_ = "application/javascript";
+			}
+			else if (ext == "css")
+			{
+				mimeType_ = "text/css";
+			}
+
+			callback->Continue();
+		};
+
+		if (count < 2)
+		{
+			handleOpen();
+		}
+		else
+		{
+			g_deleteQueue.push(handleOpen);
+		}
 
 		return true;
 	}

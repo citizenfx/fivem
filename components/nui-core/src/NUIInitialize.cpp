@@ -81,6 +81,141 @@ void Component_RunPreInit()
 extern HANDLE g_fileMapping;
 extern HANDLE g_swapEvent;
 
+#include <fiCustomDevice.h>
+
+class ObfuscatedDevice : public rage::fiCustomDevice
+{
+private:
+	rage::fiDevice* m_device;
+	std::string m_fileName;
+
+public:
+	ObfuscatedDevice(rage::fiDevice* parent, const std::string& fileName)
+		: m_device(parent), m_fileName(fileName)
+	{
+	}
+
+	virtual uint64_t Open(const char* fileName, bool readOnly) override
+	{
+		return m_device->Open(m_fileName.c_str(), readOnly);
+	}
+
+	virtual uint64_t OpenBulk(const char* fileName, uint64_t* ptr) override
+	{
+		return m_device->OpenBulk(m_fileName.c_str(), ptr);
+	}
+
+	virtual uint64_t OpenBulkWrap(const char* fileName, uint64_t* ptr, void*) override
+	{
+		return OpenBulk(fileName, ptr);
+	}
+
+	virtual uint64_t Create(const char* fileName) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t Read(uint64_t handle, void* buffer, uint32_t toRead) override
+	{
+		return m_device->Read(handle, buffer, toRead);
+	}
+
+	virtual uint32_t ReadBulk(uint64_t handle, uint64_t ptr, void* buffer, uint32_t toRead) override
+	{
+		return m_device->ReadBulk(handle, ptr, buffer, toRead);
+	}
+
+	virtual uint32_t Write(uint64_t, void*, int) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t Seek(uint64_t handle, int32_t distance, uint32_t method) override
+	{
+		return m_device->Seek(handle, distance, method);
+	}
+
+	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method) override
+	{
+		return m_device->SeekLong(handle, distance, method);
+	}
+
+	virtual int32_t Close(uint64_t handle) override
+	{
+		return m_device->Close(handle);
+	}
+
+	virtual int32_t CloseBulk(uint64_t handle) override
+	{
+		return m_device->CloseBulk(handle);
+	}
+
+	virtual int GetFileLength(uint64_t handle) override
+	{
+		return m_device->GetFileLength(handle);
+	}
+
+	virtual uint64_t GetFileLengthLong(const char* fileName) override
+	{
+		return m_device->GetFileLengthLong(m_fileName.c_str());
+	}
+
+	virtual uint64_t GetFileLengthUInt64(uint64_t handle) override
+	{
+		return m_device->GetFileLengthUInt64(handle);
+	}
+
+	virtual bool RemoveFile(const char* file) override
+	{
+		return false;
+	}
+
+	virtual int RenameFile(const char* from, const char* to) override
+	{
+		return false;
+	}
+
+	virtual int CreateDirectory(const char* dir) override
+	{
+		return false;
+	}
+
+	virtual int RemoveDirectory(const char* dir) override
+	{
+		return false;
+	}
+
+	virtual uint32_t GetFileTime(const char* file) override
+	{
+		return m_device->GetFileTime(m_fileName.c_str());
+	}
+
+	virtual bool SetFileTime(const char* file, FILETIME fileTime) override
+	{
+		return false;
+	}
+
+	virtual uint32_t GetFileAttributes(const char* path) override
+	{
+		return m_device->GetFileAttributes(m_fileName.c_str());
+	}
+
+	virtual int m_yx() override
+	{
+		return m_device->m_yx();
+	}
+
+	virtual bool IsBulkDevice() override
+	{
+		return m_device->IsBulkDevice();
+	}
+
+	virtual const char* GetName() override
+	{
+		return "RageVFSDeviceAdapter";
+	}
+};
+
 void FinalizeInitNUI()
 {
     if (getenv("CitizenFX_ToolMode"))
@@ -152,19 +287,23 @@ void FinalizeInitNUI()
 		Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
 	});
 
-#ifndef GTA_FIVE
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
-		std::wstring emojiPack = MakeRelativeCitPath(L"citizen/emoji.rpf");
+		std::wstring uiPack = MakeRelativeCitPath(L"citizen/ui.rpf");
 
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-		std::string emojiPath = converter.to_bytes(emojiPack);
+		if (GetFileAttributes(uiPack.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			std::string uiPath = converter.to_bytes(uiPack);
 
-		rage::fiPackfile* packFile = new rage::fiPackfile();
-		packFile->OpenPackfile(emojiPath.c_str(), true, false, 0);
-		packFile->Mount("citizen:/ui/img/emoji/");
+			ObfuscatedDevice* obfuscatedDevice = new ObfuscatedDevice(rage::fiDevice::GetDevice(uiPath.c_str(), true), uiPath);
+			rage::fiDevice::MountGlobal("obf:/", obfuscatedDevice, true);
+
+			rage::fiPackfile* packFile = new rage::fiPackfile();
+			packFile->OpenPackfile("obf:/fi.rpf", true, false, 0);
+			packFile->Mount("citizen:/ui/");
+		}
 	}, 100);
-#endif
 
 	return;
 }
