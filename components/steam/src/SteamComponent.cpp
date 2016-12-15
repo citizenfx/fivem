@@ -360,10 +360,13 @@ bool SteamComponent::RunPresenceDummy()
 			// ... wait for it to exit and close the handle afterwards
 			WaitForSingleObject(processHandle, INFINITE);
 
+			DWORD exitCode;
+			GetExitCodeProcess(processHandle, &exitCode);
+
 			CloseHandle(processHandle);
 
 			// log it
-			trace("process exited!\n");
+			trace("process exited with %d!\n", exitCode);
 		}
 	}
 

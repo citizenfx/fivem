@@ -71,7 +71,7 @@ inline const CharType* va_impl(const CharType* string, const fmt::ArgList& forma
 
 	if (formatted.length() >= BUFFER_LENGTH)
 	{
-		exit(1);
+		FatalError("Exceeded buffer length in va()!");
 	}
 
 	memcpy(&buffer[thisBuffer * BUFFER_LENGTH], formatted.c_str(), (formatted.length() + 1) * sizeof(CharType));

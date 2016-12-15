@@ -138,7 +138,6 @@ static void InitMono()
 	mono_install_unhandled_exception_hook([] (MonoObject* exc, void*)
 	{
 		OutputExceptionDetails(exc);
-		TerminateProcess(GetCurrentProcess(), 1);
 	}, nullptr);
 
 	char* args[1];
