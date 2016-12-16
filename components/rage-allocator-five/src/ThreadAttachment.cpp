@@ -44,8 +44,11 @@ BOOL WINAPI DllMain(HANDLE, DWORD reason, LPVOID)
 {
 	if (reason == DLL_THREAD_ATTACH)
 	{
-		*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset()) = g_gtaTlsEntry;
-		*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset() - 8) = g_gtaTlsEntry; // temp allocator is at 192
+		if (g_gtaTlsEntry)
+		{
+			*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset()) = g_gtaTlsEntry;
+			*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset() - 8) = g_gtaTlsEntry; // temp allocator is at 192
+		}
 	}
 
 	return TRUE;
