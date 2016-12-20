@@ -148,7 +148,7 @@ namespace CitizenFX.Core
                 }
             }
 
-            ms_definedScripts.Add(new TestScript());
+            //ms_definedScripts.Add(new TestScript());
 
             return assembly;
         }
@@ -508,7 +508,17 @@ namespace CitizenFX.Core
         [SecuritySafeCritical]
         public void Push(object arg)
         {
-            if (arg.GetType() == typeof(string))
+			if (arg == null)
+			{
+				arg = 0;
+			}
+
+			if (arg.GetType().IsEnum)
+			{
+				arg = Convert.ChangeType(arg, arg.GetType().GetEnumUnderlyingType());
+			}
+
+			if (arg is string)
             {
                 var str = (string)Convert.ChangeType(arg, typeof(string));
                 var b = Encoding.UTF8.GetBytes(str);
@@ -523,7 +533,7 @@ namespace CitizenFX.Core
                 b = BitConverter.GetBytes(ptr.ToInt64());
                 Array.Copy(b, 0, m_context.functionData, 8 * m_context.numArguments, 8);
             }
-            else if (arg.GetType() == typeof(Vector3))
+            else if (arg is Vector3)
             {
                 var v = (Vector3)arg;
 

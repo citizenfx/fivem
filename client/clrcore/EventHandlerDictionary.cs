@@ -79,6 +79,18 @@ namespace CitizenFX.Core
             {
                 try
                 {
+					var paras = callback.Method.GetParameters();
+					var passArgs = args;
+
+					if (passArgs.Length < paras.Length)
+					{
+						passArgs = passArgs.Concat(new object[paras.Length - passArgs.Length]).ToArray();
+					}
+					else
+					{
+						passArgs = passArgs.Take(paras.Length).ToArray();
+					}
+
                     callback.DynamicInvoke(args);
                 }
                 catch (Exception e)

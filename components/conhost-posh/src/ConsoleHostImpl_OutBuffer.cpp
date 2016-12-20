@@ -18,7 +18,8 @@ struct ConsoleCharacter
 };
 
 static int g_bufferWidth;
-static int g_bufferHeight;
+int g_bufferHeight;
+int g_scrollTop;
 static ConsoleCharacter* g_consoleBuffer;
 
 void ConHost_NewBuffer(int width, int height)
@@ -34,6 +35,7 @@ void ConHost_NewBuffer(int width, int height)
 	g_consoleBuffer = new ConsoleCharacter[width * height];
 	g_bufferWidth = width;
 	g_bufferHeight = height;
+	g_scrollTop = height - 25;
 
 	memset(g_consoleBuffer, 0, width * height * sizeof(ConsoleCharacter));
 }
@@ -76,7 +78,7 @@ static InitFunction initFunction([] ()
 
 		TheFonts->DrawRectangle(backRect, backColor);
 
-		for (int i = 0; i < g_bufferHeight; i++)
+		for (int i = 0; i < 25; i++)
 		{
 			wchar_t str[2048];
 			int strIdx = 0;
@@ -86,7 +88,7 @@ static InitFunction initFunction([] ()
 
 			for (int j = 0; j < g_bufferWidth; j++)
 			{
-				ConsoleCharacter character = g_consoleBuffer[(j * g_bufferHeight) + i];
+				ConsoleCharacter character = g_consoleBuffer[(j * g_bufferHeight) + i + g_scrollTop];
 
 				if (character.character == '\0')
 				{

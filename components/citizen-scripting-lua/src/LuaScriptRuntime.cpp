@@ -85,6 +85,8 @@ private:
 
 	IScriptHost* m_scriptHost;
 
+	IScriptHostWithResourceData* m_resourceHost;
+
 	std::function<void()> m_tickRoutine;
 
 	TEventRoutine m_eventRoutine;
@@ -135,9 +137,22 @@ public:
 		return m_scriptHost;
 	}
 
+	inline IScriptHostWithResourceData* GetScriptHost2()
+	{
+		return m_resourceHost;
+	}
+
 	inline PointerField* GetPointerFields()
 	{
 		return m_pointerFields;
+	}
+
+	inline const char* GetResourceName()
+	{
+		char* resourceName = "";
+		m_resourceHost->GetResourceName(&resourceName);
+
+		return resourceName;
 	}
 
 private:
@@ -180,6 +195,15 @@ OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
 
 	return OMPtr<LuaScriptRuntime>(luaRuntime);
 }
+
+void ScriptTrace(const char* string, const fmt::ArgList& formatList)
+{
+	trace(string, formatList);
+
+	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(fmt::sprintf(string, formatList).c_str()));
+}
+
+FMT_VARIADIC(void, ScriptTrace, const char*);
 
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] =
@@ -234,7 +258,7 @@ static int Lua_SetTickRoutine(lua_State* L)
 			std::string err = luaL_checkstring(L, -1);
 			lua_pop(L, 1);
 
-			trace("Error running system tick function for resource %s: %s\n", "TODO", err.c_str());
+			ScriptTrace("Error running system tick function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
 		}
 
 		lua_pop(L, 1);
@@ -281,7 +305,7 @@ static int Lua_SetEventRoutine(lua_State* L)
 			std::string err = luaL_checkstring(L, -1);
 			lua_pop(L, 1);
 
-			trace("Error running system event handling function for resource %s: %s\n", "TODO", err.c_str());
+			ScriptTrace("Error running system event handling function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
 		}
 
 		lua_pop(L, 1);
@@ -330,7 +354,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 			std::string err = luaL_checkstring(L, -1);
 			lua_pop(L, 1);
 
-			trace("Error running call reference function for resource %s: %s\n", "TODO", err.c_str());
+			ScriptTrace("Error running call reference function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
 
 			*retval = nullptr;
 			*retvalLength = 0;
@@ -382,7 +406,7 @@ static int Lua_SetDeleteRefRoutine(lua_State* L)
 			std::string err = luaL_checkstring(L, -1);
 			lua_pop(L, 1);
 
-			trace("Error running system ref deletion function for resource %s: %s\n", "TODO", err.c_str());
+			ScriptTrace("Error running system ref deletion function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
 		}
 
 		lua_pop(L, 1);
@@ -425,7 +449,7 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 			std::string err = luaL_checkstring(L, -1);
 			lua_pop(L, 1);
 
-			trace("Error running system ref duplication function for resource %s: %s\n", "TODO", err.c_str());
+			ScriptTrace("Error running system ref duplication function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
 		}
 		else
 		{
@@ -502,7 +526,7 @@ int Lua_Trace(lua_State* L)
 		t(145, 0, 0);
 	}*/
 
-	trace("%s", luaL_checkstring(L, 1));
+	ScriptTrace("%s", luaL_checkstring(L, 1));
 
 	return 0;
 }
@@ -875,7 +899,11 @@ int Lua_GetPointerField(lua_State* L)
 			pointerField = &pointerFieldStart->data[i];
 			pointerField->empty = false;
 
-			if (MetaField == LuaMetaFields::PointerValueFloat)
+			if (lua_isnil(L, 1))
+			{
+				pointerField->value = 0;
+			}
+			else if (MetaField == LuaMetaFields::PointerValueFloat)
 			{
 				float value = static_cast<float>(luaL_checknumber(L, 1));
 
@@ -925,6 +953,29 @@ static const struct luaL_Reg g_citizenLib[] =
 result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 {
 	m_scriptHost = scriptHost;
+	
+	{
+		fx::OMPtr<IScriptHost> ptr(scriptHost);
+		fx::OMPtr<IScriptHostWithResourceData> resourcePtr;
+		ptr.As(&resourcePtr);
+
+		m_resourceHost = resourcePtr.GetRef();
+	}
+
+	std::string nativesBuild = "";
+
+	{
+		char* value;
+		if (FX_SUCCEEDED(m_resourceHost->GetResourceMetaData("client_natives", 0, &value)))
+		{
+			nativesBuild = "-" + std::string(value);
+			
+			if (nativesBuild.find('.') != std::string::npos)
+			{
+				nativesBuild = "";
+			}
+		}
+	}
 
 	safe_openlibs(m_state);
 
@@ -936,7 +987,7 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 	// load the system scheduler script
 	result_t hr;
 
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/natives.lua")))
+	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/natives%s.lua", nativesBuild)))))
 	{
 		return hr;
 	}
@@ -1015,7 +1066,7 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 		std::string err = luaL_checkstring(m_state, -1);
 		lua_pop(m_state, 1);
 
-		trace("Error parsing script %s in resource %s: %s\n", scriptFile, "TODO", err.c_str());
+		ScriptTrace("Error parsing script %s in resource %s: %s\n", scriptFile, GetResourceName(), err.c_str());
 
 		// TODO: change?
 		return FX_E_INVALIDARG;
@@ -1069,7 +1120,7 @@ static int lua_error_handler(lua_State* L)
 	lua_call(L, 2, 1);
 
 	// TODO: proper log channels for this purpose
-	trace("Lua error: %s\n", lua_tostring(L, -1));
+	ScriptTrace("Lua error: %s\n", lua_tostring(L, -1));
 
 	return 1;
 }
@@ -1098,7 +1149,7 @@ result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<resul
 		std::string err = luaL_checkstring(m_state, -1);
 		lua_pop(m_state, 1);
 
-		trace("Error loading script %s in resource %s: %s\n", scriptName, "TODO", err.c_str());
+		ScriptTrace("Error loading script %s in resource %s: %s\n", scriptName, GetResourceName(), err.c_str());
 
 		return FX_E_INVALIDARG;
 	}

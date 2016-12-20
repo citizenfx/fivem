@@ -149,6 +149,9 @@ class NS_NO_VTABLE IScriptHost : public fxIBase {
   /* void CanonicalizeRef (in int32_t localRef, in int32_t instanceId, out charPtr refString); */
   NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) = 0;
 
+  /* void ScriptTrace (in charPtr message); */
+  NS_IMETHOD ScriptTrace(char *message) = 0;
+
 };
 
   NS_DEFINE_STATIC_IID_ACCESSOR(IScriptHost, ISCRIPTHOST_IID)
@@ -158,21 +161,24 @@ class NS_NO_VTABLE IScriptHost : public fxIBase {
   NS_IMETHOD InvokeNative(fxNativeContext & context) override; \
   NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override; \
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override; \
-  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override; 
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override; \
+  NS_IMETHOD ScriptTrace(char *message) override; 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_ISCRIPTHOST(_to) \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override { return _to InvokeNative(context); } \
   NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override { return _to OpenSystemFile(fileName, stream); } \
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return _to OpenHostFile(fileName, stream); } \
-  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override { return _to CanonicalizeRef(localRef, instanceId, refString); } 
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override { return _to CanonicalizeRef(localRef, instanceId, refString); } \
+  NS_IMETHOD ScriptTrace(char *message) override { return _to ScriptTrace(message); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_ISCRIPTHOST(_to) \
   NS_IMETHOD InvokeNative(fxNativeContext & context) override { return !_to ? NS_ERROR_NULL_POINTER : _to->InvokeNative(context); } \
   NS_IMETHOD OpenSystemFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenSystemFile(fileName, stream); } \
   NS_IMETHOD OpenHostFile(char *fileName, fxIStream * *stream) override { return !_to ? NS_ERROR_NULL_POINTER : _to->OpenHostFile(fileName, stream); } \
-  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override { return !_to ? NS_ERROR_NULL_POINTER : _to->CanonicalizeRef(localRef, instanceId, refString); } 
+  NS_IMETHOD CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString) override { return !_to ? NS_ERROR_NULL_POINTER : _to->CanonicalizeRef(localRef, instanceId, refString); } \
+  NS_IMETHOD ScriptTrace(char *message) override { return !_to ? NS_ERROR_NULL_POINTER : _to->ScriptTrace(message); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -226,6 +232,109 @@ NS_IMETHODIMP _MYCLASS_::OpenHostFile(char *fileName, fxIStream * *stream)
 
 /* void CanonicalizeRef (in int32_t localRef, in int32_t instanceId, out charPtr refString); */
 NS_IMETHODIMP _MYCLASS_::CanonicalizeRef(int32_t localRef, int32_t instanceId, char **refString)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void ScriptTrace (in charPtr message); */
+NS_IMETHODIMP _MYCLASS_::ScriptTrace(char *message)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* End of implementation class template. */
+#endif
+
+
+/* starting interface:    IScriptHostWithResourceData */
+#define ISCRIPTHOSTWITHRESOURCEDATA_IID_STR "9568df2d-27c8-4b9e-b29d-48272c317084"
+
+#define ISCRIPTHOSTWITHRESOURCEDATA_IID \
+  {0x9568df2d, 0x27c8, 0x4b9e, \
+    { 0xb2, 0x9d, 0x48, 0x27, 0x2c, 0x31, 0x70, 0x84 }}
+
+class NS_NO_VTABLE IScriptHostWithResourceData : public fxIBase {
+ public:
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(ISCRIPTHOSTWITHRESOURCEDATA_IID)
+
+  /* void GetResourceName (out charPtr resourceName); */
+  NS_IMETHOD GetResourceName(char **resourceName) = 0;
+
+  /* void GetNumResourceMetaData (in charPtr fieldName, out int32_t numFields); */
+  NS_IMETHOD GetNumResourceMetaData(char *fieldName, int32_t *numFields) = 0;
+
+  /* void GetResourceMetaData (in charPtr fieldName, in int32_t fieldIndex, out charPtr fieldValue); */
+  NS_IMETHOD GetResourceMetaData(char *fieldName, int32_t fieldIndex, char **fieldValue) = 0;
+
+};
+
+  NS_DEFINE_STATIC_IID_ACCESSOR(IScriptHostWithResourceData, ISCRIPTHOSTWITHRESOURCEDATA_IID)
+
+/* Use this macro when declaring classes that implement this interface. */
+#define NS_DECL_ISCRIPTHOSTWITHRESOURCEDATA \
+  NS_IMETHOD GetResourceName(char **resourceName) override; \
+  NS_IMETHOD GetNumResourceMetaData(char *fieldName, int32_t *numFields) override; \
+  NS_IMETHOD GetResourceMetaData(char *fieldName, int32_t fieldIndex, char **fieldValue) override; 
+
+/* Use this macro to declare functions that forward the behavior of this interface to another object. */
+#define NS_FORWARD_ISCRIPTHOSTWITHRESOURCEDATA(_to) \
+  NS_IMETHOD GetResourceName(char **resourceName) override { return _to GetResourceName(resourceName); } \
+  NS_IMETHOD GetNumResourceMetaData(char *fieldName, int32_t *numFields) override { return _to GetNumResourceMetaData(fieldName, numFields); } \
+  NS_IMETHOD GetResourceMetaData(char *fieldName, int32_t fieldIndex, char **fieldValue) override { return _to GetResourceMetaData(fieldName, fieldIndex, fieldValue); } 
+
+/* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
+#define NS_FORWARD_SAFE_ISCRIPTHOSTWITHRESOURCEDATA(_to) \
+  NS_IMETHOD GetResourceName(char **resourceName) override { return !_to ? NS_ERROR_NULL_POINTER : _to->GetResourceName(resourceName); } \
+  NS_IMETHOD GetNumResourceMetaData(char *fieldName, int32_t *numFields) override { return !_to ? NS_ERROR_NULL_POINTER : _to->GetNumResourceMetaData(fieldName, numFields); } \
+  NS_IMETHOD GetResourceMetaData(char *fieldName, int32_t fieldIndex, char **fieldValue) override { return !_to ? NS_ERROR_NULL_POINTER : _to->GetResourceMetaData(fieldName, fieldIndex, fieldValue); } 
+
+#if 0
+/* Use the code below as a template for the implementation class for this interface. */
+
+/* Header file */
+class _MYCLASS_ : public IScriptHostWithResourceData
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_ISCRIPTHOSTWITHRESOURCEDATA
+
+  _MYCLASS_();
+
+private:
+  ~_MYCLASS_();
+
+protected:
+  /* additional members */
+};
+
+/* Implementation file */
+NS_IMPL_ISUPPORTS(_MYCLASS_, IScriptHostWithResourceData)
+
+_MYCLASS_::_MYCLASS_()
+{
+  /* member initializers and constructor code */
+}
+
+_MYCLASS_::~_MYCLASS_()
+{
+  /* destructor code */
+}
+
+/* void GetResourceName (out charPtr resourceName); */
+NS_IMETHODIMP _MYCLASS_::GetResourceName(char **resourceName)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void GetNumResourceMetaData (in charPtr fieldName, out int32_t numFields); */
+NS_IMETHODIMP _MYCLASS_::GetNumResourceMetaData(char *fieldName, int32_t *numFields)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void GetResourceMetaData (in charPtr fieldName, in int32_t fieldIndex, out charPtr fieldValue); */
+NS_IMETHODIMP _MYCLASS_::GetResourceMetaData(char *fieldName, int32_t fieldIndex, char **fieldValue)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

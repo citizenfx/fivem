@@ -31,7 +31,20 @@ interface IScriptHost : fxIBase
 	void OpenHostFile(in charPtr fileName, out fxIStream stream);
 
 	void CanonicalizeRef(in int32_t localRef, in int32_t instanceId, out charPtr refString);
+	
+	void ScriptTrace(in charPtr message);
 };
+
+[uuid(9568DF2D-27C8-4B9E-B29D-48272C317084)]
+interface IScriptHostWithResourceData : fxIBase
+{
+	void GetResourceName(out charPtr resourceName);
+
+	void GetNumResourceMetaData(in charPtr fieldName, out int32_t numFields);
+
+	void GetResourceMetaData(in charPtr fieldName, in int32_t fieldIndex, out charPtr fieldValue);
+};
+
 
 [uuid(67B28AF1-AAF9-4368-8296-F93AFC7BDE96)]
 interface IScriptRuntime : fxIBase

@@ -14,6 +14,8 @@
 static std::thread g_consoleThread;
 static std::once_flag g_consoleInitialized;
 bool g_consoleFlag;
+extern int g_scrollTop;
+extern int g_bufferHeight;
 
 static InitFunction initFunction([] ()
 {
@@ -24,7 +26,7 @@ static InitFunction initFunction([] ()
 			static bool g_consoleClosing = false;
 
 			// should the console be closed?
-			if (wParam == VK_OEM_3 || wParam == VK_F10)
+			if (wParam == VK_F8)
 			{
 				if (msg == WM_KEYDOWN)
 				{
@@ -40,6 +42,30 @@ static InitFunction initFunction([] ()
 						g_consoleFlag = false;
 
 						return;
+					}
+				}
+			}
+			else if (wParam == VK_PRIOR)
+			{
+				if (msg == WM_KEYDOWN)
+				{
+					g_scrollTop -= 10;
+
+					if (g_scrollTop < 0)
+					{
+						g_scrollTop = 0;
+					}
+				}
+			}
+			else if (wParam == VK_NEXT)
+			{
+				if (msg == WM_KEYDOWN)
+				{
+					g_scrollTop += 10;
+
+					if (g_scrollTop >= (g_bufferHeight - 25))
+					{
+						g_scrollTop = (g_bufferHeight - 25);
 					}
 				}
 			}
@@ -124,7 +150,7 @@ static InitFunction initFunction([] ()
 		else
 		{
 			// check if the console should be opened
-			if (msg == WM_KEYUP && (wParam == VK_OEM_3 || wParam == VK_F10))
+			if (msg == WM_KEYUP && wParam == VK_F8)
 			{
 				g_consoleFlag = true;
 

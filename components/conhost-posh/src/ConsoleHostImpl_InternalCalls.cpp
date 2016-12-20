@@ -39,7 +39,8 @@ void ConHostI_GetDesiredBufferSizeCall(int* width, int* height)
 	TheFonts->GetStringMetrics(L"a", 16.0f, 1.0f, "Lucida Console", stringRect);
 
 	*width = (GetScreenResolutionX() - 16) / stringRect.Width();
-	*height = 25;
+	//*height = 25;
+	*height = 2500;
 }
 
 static int g_cursorX;

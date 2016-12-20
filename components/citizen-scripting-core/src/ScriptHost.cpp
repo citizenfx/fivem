@@ -14,8 +14,12 @@
 #include <Resource.h>
 #include <VFSManager.h>
 
+#include <ResourceMetaDataComponent.h>
+
 #include <stack>
 #include <mutex>
+
+#include <ConsoleHost.h>
 
 namespace fx
 {
@@ -73,10 +77,12 @@ result_t StreamWrapper::GetLength(uint64_t *length)
 	return FX_S_OK;
 }
 
-class TestScriptHost : public OMClass<TestScriptHost, IScriptHost>
+class TestScriptHost : public OMClass<TestScriptHost, IScriptHost, IScriptHostWithResourceData>
 {
 public:
 	NS_DECL_ISCRIPTHOST;
+
+	NS_DECL_ISCRIPTHOSTWITHRESOURCEDATA;
 
 private:
 	Resource* m_resource;
@@ -145,6 +151,13 @@ result_t TestScriptHost::WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream,
 	return FX_E_INVALIDARG;
 }
 
+result_t TestScriptHost::ScriptTrace(char* string)
+{
+	ConHost::Print(0, string);
+
+	return FX_S_OK;
+}
+
 result_t TestScriptHost::OpenSystemFile(char *fileName, fxIStream * *stream)
 {
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileName);
@@ -168,6 +181,46 @@ result_t TestScriptHost::CanonicalizeRef(int32_t refIdx, int32_t instanceId, cha
 	strcpy(*outRefText, refString);
 
 	return FX_S_OK;
+}
+
+result_t TestScriptHost::GetResourceName(char** outResourceName)
+{
+	*outResourceName = const_cast<char*>(m_resource->GetName().c_str());
+	return FX_S_OK;
+}
+
+result_t TestScriptHost::GetNumResourceMetaData(char* metaDataName, int32_t* entryCount)
+{
+	fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+
+	auto entries = metaData->GetEntries(metaDataName);
+
+	*entryCount = static_cast<int32_t>(std::distance(entries.begin(), entries.end()));
+
+	return FX_S_OK;
+}
+
+result_t TestScriptHost::GetResourceMetaData(char* metaDataName, int32_t entryIndex, char** outMetaData)
+{
+	fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+	
+	auto entries = metaData->GetEntries(metaDataName);
+
+	// and loop over the entries to see if we find anything
+	int i = 0;
+
+	for (auto& entry : entries)
+	{
+		if (entryIndex == i)
+		{
+			*outMetaData = const_cast<char*>(entry.second.c_str());
+			return FX_S_OK;
+		}
+
+		i++;
+	}
+
+	return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
 }
 
 // TODO: don't ship with this in

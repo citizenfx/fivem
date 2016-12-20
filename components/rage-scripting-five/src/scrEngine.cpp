@@ -25,6 +25,8 @@ static uint32_t* scrThreadCount;
 
 static rage::scriptHandlerMgr* g_scriptHandlerMgr;
 
+static bool g_hasObfuscated;
+
 struct NativeRegistration : public rage::sysUseAllocator
 {
 	NativeRegistration* nextRegistration;
@@ -142,6 +144,11 @@ void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 	}
 
 	// add the entry to the list
+	if (g_hasObfuscated)
+	{
+		handler = (scrEngine::NativeHandler)EncodePointer(handler);
+	}
+
 	uint32_t index = registration->numEntries;
 	registration->hashes[index] = hash;
 	registration->handlers[index] = handler;
@@ -177,8 +184,41 @@ static InitFunction initFunction([] ()
 
 uint64_t MapNative(uint64_t inNative);
 
+struct NativeObfuscation
+{
+	NativeObfuscation()
+	{
+		for (size_t i = 0; i < 256; i++)
+		{
+			NativeRegistration* table = registrationTable[i];
+
+			for (; table; table = table->nextRegistration)
+			{
+				for (size_t j = 0; j < table->numEntries; j++)
+				{
+					table->handlers[j] = (scrEngine::NativeHandler)EncodePointer(table->handlers[j]);
+				}
+			}
+		}
+
+		g_hasObfuscated = true;
+	}
+
+	~NativeObfuscation()
+	{
+
+	}
+};
+
+static void EnsureNativeObfuscation()
+{
+	static NativeObfuscation nativeObfuscation;
+}
+
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 {
+	EnsureNativeObfuscation();
+
 	uint64_t origHash = hash;
 	hash = MapNative(hash);
 
@@ -191,9 +231,11 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 			if (hash == table->hashes[i])
 			{
 				// temporary workaround for marking scripts as network script not storing the script handler
+				auto handler = (scrEngine::NativeHandler)DecodePointer(table->handlers[i]);
+
 				if (origHash == 0xD1110739EEADB592)
 				{
-					static scrEngine::NativeHandler hashHandler = table->handlers[i];
+					static scrEngine::NativeHandler hashHandler = handler;
 
 					return [] (rage::scrNativeCallContext* context)
 					{
@@ -226,7 +268,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 				}
 				else if (origHash == 0xAAA34F8A7CB32098)
 				{
-					static scrEngine::NativeHandler hashHandler = table->handlers[i];
+					static scrEngine::NativeHandler hashHandler = handler;
 
 					return [](rage::scrNativeCallContext* context)
 					{
@@ -256,7 +298,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 						// no-op
 					};
 				}
-				return table->handlers[i];
+				return handler;
 			}
 		}
 	}

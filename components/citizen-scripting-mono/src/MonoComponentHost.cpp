@@ -190,10 +190,16 @@ static void InitMono()
 
 result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
-	MonoException* exc = nullptr;
+	MonoObject* exc = nullptr;
 
-    auto invokeMethod = (MonoObject*(*)(const guid_t&, const guid_t&, MonoException**))mono_method_get_unmanaged_thunk(g_createObjectMethod);
-    auto retval = invokeMethod(guid, iid, &exc);
+	guid_t lguid = guid;
+	guid_t liid = iid;
+
+	void* args[2];
+	args[0] = &lguid;
+	args[1] = &liid;
+
+	auto retval = mono_runtime_invoke(g_createObjectMethod, nullptr, args, &exc);
 
 	if (exc)
 	{

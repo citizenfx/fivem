@@ -143,7 +143,8 @@ namespace CitizenFX.Core
         public bool IsCompleted { get { return false; } }
     }
 
-    class TestScript : BaseScript
+#if test
+	class TestScript : BaseScript
     {
         public TestScript()
         {
@@ -215,4 +216,5 @@ namespace CitizenFX.Core
             CitizenFX.Core.UI.Screen.ShowNotification($"oi m8!!! {Game.Player.Name} @ {DateTime.Now.ToLongTimeString()}");
         }
     }
+#endif
 }

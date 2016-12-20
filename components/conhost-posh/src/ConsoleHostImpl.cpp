@@ -6,6 +6,7 @@
  */
 
 #include "StdInc.h"
+#include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
 
 #include <mono/jit/jit.h>
@@ -17,8 +18,17 @@
 #include <mutex>
 #include <queue>
 
+#include <sstream>
+
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
 static bool g_conHostInitialized = false;
 static MonoDomain* g_rootDomain;
+static MonoMethod* g_sendMessageMethod;
+
+static std::mutex g_traceBufferMutex;
+static std::stringstream g_traceBuffer;
 
 HANDLE g_keyWaitSemaphore;
 
@@ -91,6 +101,7 @@ void ConHost_Run()
 
 	MonoMethod* runMethod;
 	method_search("CitizenFX.UI.Application:Run", runMethod);
+	method_search("CitizenFX.UI.Application:SendMessage", g_sendMessageMethod);
 
 	if (!methodSearchSuccess)
 	{
@@ -98,8 +109,21 @@ void ConHost_Run()
 		return;
 	}
 
+	g_conHostInitialized = true;
+
+	void* runArgs[1];
+
+	{
+		std::unique_lock<std::mutex> lock(g_traceBufferMutex);
+
+		std::string runString = g_traceBuffer.str();
+		g_traceBuffer.str("");
+
+		runArgs[0] = mono_string_new_len(g_rootDomain, runString.data(), runString.size());
+	}
+
 	MonoObject* exc = nullptr;
-	mono_runtime_invoke(runMethod, nullptr, nullptr, &exc);
+	mono_runtime_invoke(runMethod, nullptr, runArgs, &exc);
 
 	if (exc)
 	{
@@ -145,4 +169,58 @@ void ConHost_WaitForKey(uint32_t& vKey, wchar_t& character, ConsoleModifiers& mo
 	vKey = event.vKey;
 	character = event.character;
 	modifiers = event.modifiers;
+}
+
+void ConHost_SendMessage(MonoString* string)
+{
+	static thread_local bool isMonoAttached = false;
+
+	if (!isMonoAttached)
+	{
+		mono_thread_attach(g_rootDomain);
+		isMonoAttached = true;
+	}
+	
+	void* runArgs[1];
+	runArgs[0] = string;
+
+	MonoObject* exc = nullptr;
+	mono_runtime_invoke(g_sendMessageMethod, nullptr, runArgs, &exc);
+
+	if (exc)
+	{
+		OutputExceptionDetails(exc);
+	}
+}
+
+void SendPrintMessage(const std::string& message)
+{
+	/*rapidjson::Document doc;
+	doc.SetObject();
+
+	doc.AddMember("type", "print", doc.GetAllocator());
+	doc.AddMember("data", rapidjson::Value(message.c_str(), message.size()), doc.GetAllocator()));
+
+	rapidjson::StringBuffer sb;
+	rapidjson::Writer<rapidjson::StringBuffer> w(sb);
+
+	if (doc.Accept(w))
+	{
+		ConHost_SendMessage(mono_string_new_len(g_rootDomain, sb.GetString(), sb.GetSize()));
+	}*/
+
+	ConHost_SendMessage(mono_string_new_len(g_rootDomain, message.c_str(), message.size()));
+}
+
+void ConHost::Print(int channel, const std::string& message)
+{
+	if (!g_conHostInitialized)
+	{
+		std::unique_lock<std::mutex> lock(g_traceBufferMutex);
+		g_traceBuffer << message;
+
+		return;
+	}
+
+	SendPrintMessage(message);
 }
