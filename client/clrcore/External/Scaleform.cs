@@ -24,21 +24,32 @@ namespace CitizenFX.Core
 			_handle = Function.Call<int>(Hash.REQUEST_SCALEFORM_MOVIE, scaleformID);
 		}
 
-        [SecurityCritical]
+		~Scaleform()
+		{
+			Dispose();
+		}
+
+        [SecuritySafeCritical]
 		public void Dispose()
 		{
 			if (IsLoaded)
 			{
-				unsafe
-				{
-					fixed (int* handlePtr = &_handle)
-					{
-						Function.Call(Hash.SET_SCALEFORM_MOVIE_AS_NO_LONGER_NEEDED, handlePtr);
-					}
-				}
+				DeleteThat();
 			}
 
 			GC.SuppressFinalize(this);
+		}
+
+		[SecurityCritical]
+		private void DeleteThat()
+		{
+			unsafe
+			{
+				fixed (int* handlePtr = &_handle)
+				{
+					Function.Call(Hash.SET_SCALEFORM_MOVIE_AS_NO_LONGER_NEEDED, handlePtr);
+				}
+			}
 		}
 
 		public int Handle
