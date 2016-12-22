@@ -763,6 +763,11 @@ static void(*g_origError)(uint32_t, void*);
 
 static void ErrorDo(uint32_t error)
 {
+	if (error == 0xbe0e0aea) // ERR_GEN_INVALID
+	{
+		FatalError("Invalid rage::fiPackfile encryption type specified. If you have any modified game files, please remove or verify them. See http://rsg.ms/verify for more information.");
+	}
+
 	trace("error function called from %p for code 0x%08x\n", _ReturnAddress(), error);
 
 	g_origError(error, 0);
