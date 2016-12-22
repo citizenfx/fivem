@@ -160,11 +160,13 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	std::string outFileName = m_cache->GetCachePath() + extension + "_" + handleData->entry.referenceHash;
 
 	// http request
-	m_httpClient->DoFileGetRequest(hostname, port, path, m_cache->GetCachePath().c_str(), outFileName, [=] (bool result, const char*, size_t outSize)
+	m_httpClient->DoFileGetRequest(hostname, port, path, m_cache->GetCachePath().c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
 	{
 		if (!result)
 		{
 			handleData->status = HandleData::StatusError;
+
+			FatalError("Failed a request in ResourceCacheDevice::EnsureFetched for %s (origin %s) - error result %s", handleData->entry.basename, handleData->entry.remoteUrl, errorData);
 		}
 		else
 		{
