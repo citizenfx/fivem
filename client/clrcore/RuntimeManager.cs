@@ -744,7 +744,10 @@ namespace CitizenFX.Core
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         IntPtr CanonicalizeRef(int localRef, int instanceId);
-    }
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message);
+	}
 
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [System.Runtime.InteropServices.Guid("67b28af1-aaf9-4368-8296-f93afc7bde96")]

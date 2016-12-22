@@ -14,6 +14,7 @@ namespace CitizenFX.Core
         public static void Write(string data)
         {
             GameInterface.PrintLog(data);
+			InternalManager.ScriptHost?.ScriptTrace(data);
         }
 
         public static void Write(string format, params object[] args)
