@@ -347,6 +347,11 @@ public:
 		{
 			trace("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s\n", GetName(), name);
 
+			if (strcmp(GetName(), "dlc.rpf") != 0)
+			{
+				FatalError("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s\n", GetName(), name);
+			}
+
 			return -1;
 		}
 
@@ -651,10 +656,10 @@ public:
 			rage::fiDevice* device = rage::fiDevice::GetDevice(outFileName.c_str(), true);
 			uint64_t handle = device->Open(outFileName.c_str(), readOnly);
 
-			return AllocateHandle(device, handle, "");
+			return AllocateHandle(device, handle, outFileName.c_str());
 		}
 
-		return AllocateHandle(this, PseudoCallContext(this)->Open(fileName, readOnly), "");
+		return AllocateHandle(this, PseudoCallContext(this)->Open(fileName, readOnly), fileName);
 	}
 
 	virtual uint64_t OpenBulk(const char* fileName, uint64_t* ptr)
@@ -666,7 +671,7 @@ public:
 			rage::fiDevice* device = rage::fiDevice::GetDevice(outFileName.c_str(), true);
 			uint64_t handle = device->OpenBulk(outFileName.c_str(), ptr);
 
-			return AllocateHandle(device, handle, "");
+			return AllocateHandle(device, handle, outFileName.c_str());
 		}
 
 		uint64_t handle = PseudoCallContext(this)->OpenBulk(fileName, ptr);
