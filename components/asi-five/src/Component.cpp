@@ -45,7 +45,8 @@ bool ComponentInstance::DoGameLoad(void* module)
 			boost::filesystem::create_directory(plugins_path);
 		}
 		std::vector<std::wstring> blacklistedAsis = std::vector<std::wstring>({
-			L"openiv.asi"
+			L"openiv.asi",
+			L"scripthookvdotnet.asi"
 		});
 		// load all .asi files in the plugins/ directory
 		while (it != end)
