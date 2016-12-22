@@ -46,7 +46,8 @@ bool ComponentInstance::DoGameLoad(void* module)
 		}
 		std::vector<std::wstring> blacklistedAsis = std::vector<std::wstring>({
 			L"openiv.asi",
-			L"scripthookvdotnet.asi"
+			L"scripthookvdotnet.asi",
+			L"fspeedometerv.asi"
 		});
 		// load all .asi files in the plugins/ directory
 		while (it != end)
