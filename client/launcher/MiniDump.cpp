@@ -113,6 +113,73 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	}
 }
 
+void CheckModule(void* address)
+{
+	const char* moduleBaseString = "";
+	HMODULE module = nullptr;
+
+	if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)address, &module))
+	{
+		char filename[MAX_PATH];
+		GetModuleFileNameA(module, filename, _countof(filename));
+
+		moduleBaseString = va(" - %s+%X", strrchr(filename, '\\') + 1, (char*)address - (char*)module);
+	}
+
+	if (module)
+	{
+		char filename[MAX_PATH];
+		GetModuleFileNameA(module, filename, _countof(filename));
+
+		const wchar_t* blame = nullptr;
+		const wchar_t* blame_two = nullptr;
+
+		if (strstr(filename, "nvwgf"))
+		{
+			blame = L"NVIDIA GPU drivers";
+			blame_two = L"This is not the fault of the " PRODUCT_NAME L" developers, and can not be resolved by them. NVIDIA does not provide any error reporting contacts to use to report this problem, nor do they provide "
+						L"debugging information that the developers can use to resolve this issue. The only solution is buying a desktop computer, or a laptop computer with Intel Iris Pro graphics.";
+		}
+
+		if (strstr(filename, ".asi"))
+		{
+			blame = L"a third-party game plugin";
+			blame_two = L"Please try removing the \"plugins\" folder in your" PRODUCT_NAME L" installation and restarting the game.";
+		}
+
+		if (blame)
+		{
+			auto wbs = ToWide(moduleBaseString);
+
+			TASKDIALOGCONFIG taskDialogConfig = { 0 };
+			taskDialogConfig.cbSize = sizeof(taskDialogConfig);
+			taskDialogConfig.hInstance = GetModuleHandle(nullptr);
+			taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
+			taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+			taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
+			taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
+			taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
+			taskDialogConfig.pszContent = va(L"An error in %s caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n%s", blame, blame_two);
+			taskDialogConfig.pszExpandedInformation = wbs.c_str();
+			taskDialogConfig.pfCallback = [](HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
+			{
+				if (type == TDN_HYPERLINK_CLICKED)
+				{
+					ShellExecute(nullptr, L"open", (LPCWSTR)lParam, nullptr, nullptr, SW_NORMAL);
+				}
+				else if (type == TDN_BUTTON_CLICKED)
+				{
+					return S_OK;
+				}
+
+				return S_FALSE;
+			};
+
+			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+		}
+	}
+}
+
 bool InitializeExceptionHandler()
 {
 	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
@@ -185,7 +252,15 @@ bool InitializeExceptionHandler()
 
 	g_exceptionHandler = new ExceptionHandler(
 							L"",
-							nullptr,
+							[](void* context, EXCEPTION_POINTERS* exinfo,
+								MDRawAssertionInfo* assertion)
+							{
+								void* pEx = exinfo->ExceptionRecord->ExceptionAddress;
+
+								CheckModule(pEx);
+
+								return true;
+							},
 							[] (const wchar_t* dump_path, const wchar_t* minidump_id, void* context, EXCEPTION_POINTERS* exinfo, MDRawAssertionInfo* assertion, bool succeeded)
 							{
 								return succeeded;
