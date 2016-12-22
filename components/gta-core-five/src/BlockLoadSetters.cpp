@@ -936,6 +936,18 @@ void TrackClipSetShutdown()
 		trace("cm %08x: %d%s\n", cm.key, cm.streamingPolicy, (cm.streamingPolicy & 2) ? " UNLOADING" : "");
 	}
 }
+template<typename T>
+static void SafeRun(const T&& func)
+{
+	__try
+	{
+		func();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+
+	}
+}
 
 static HookFunction hookFunction([] ()
 {
@@ -1242,7 +1254,11 @@ static HookFunction hookFunction([] ()
 		}
 	}*/
 
-	// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
-	hook::nop(hook::get_pattern("48 50 C1 E9 04 F6 C1 01 0F 84 ? ? 00 00 45", 8), 6);
+	// sometimes this crashes
+	SafeRun([]()
+	{
+		// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
+		hook::nop(hook::get_pattern("48 50 C1 E9 04 F6 C1 01 0F 84 ? ? 00 00 45", 8), 6);
+	});
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9
