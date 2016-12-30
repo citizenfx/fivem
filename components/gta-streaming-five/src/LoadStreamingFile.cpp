@@ -13,24 +13,31 @@
 #include <algorithm>
 #include <array>
 
+#include <gameSkeleton.h>
+
+#include <boost/algorithm/string.hpp>
+
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
 static std::vector<std::string> g_beforeLevelMetas;
 static std::vector<std::string> g_afterLevelMetas;
 
-static std::vector<std::string> g_beforeDefaultMetas;
-static std::vector<std::string> g_afterDefaultMetas;
+static std::vector<std::string> g_defaultMetas;
+
+static std::vector<std::pair<int, std::string>> g_dataFiles;
 
 struct DataFileEntry
 {
 	char name[128];
-	char pad[20];
-	int32_t length;
-	bool flag1;
-	bool flag2;
-	bool flag3;
-	bool disabled;
+	char pad[16]; // 128
+	int32_t type; // 140
+	int32_t index; // 148
+	bool flag1; // 152
+	bool flag2; // 153
+	bool flag3; // 154
+	bool disabled; // 155
+	char pad2[12];
 };
 
 struct DataFileLess
@@ -109,7 +116,7 @@ static void GetEnabledEntryList(void* dataFileMgr, int type, TargetSet& entries)
 {
 	DataFileEntry* entry = dataFileMgr__getEntries(dataFileMgr, type);
 
-	while (entry->length >= 0)
+	while (entry->index >= 0)
 	{
 		if (!entry->disabled)
 		{
@@ -152,28 +159,19 @@ static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 	}
 }
 
+static void* g_dataFileMgr;
+
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 {
 	//dataFileMgr__loadDefDat(dataFileMgr, "citizen:/citizen.meta", enabled);
 
+	g_dataFileMgr = dataFileMgr;
+
 	// load before-level metas
 	trace("LoadDefDats: %s\n", name);
 
-	for (const auto& meta : g_beforeDefaultMetas)
-	{
-		trace("LoadDefDats: %s\n", meta.c_str());
-		dataFileMgr__loadDefDat(dataFileMgr, meta.c_str(), enabled);
-	}
-
 	// load the level
 	dataFileMgr__loadDefDat(dataFileMgr, name, enabled);
-
-	// load after-level metas
-	for (const auto& meta : g_afterDefaultMetas)
-	{
-		trace("LoadDefDats: %s.\n", meta.c_str());
-		dataFileMgr__loadDefDat(dataFileMgr, meta.c_str(), enabled);
-	}
 }
 
 static std::vector<std::string> g_oldEntryList;
@@ -472,15 +470,66 @@ void AddStreamingPackfileWrap(const char* fileName, bool scanNow)
 	g_origAddStreamingPackfile(fileName, scanNow);
 }
 
+struct EnumEntry
+{
+	uint32_t hash;
+	uint32_t index;
+};
+
+static EnumEntry* g_dataFileTypes;
+
+static int LookupDataFileType(const std::string& type)
+{
+	uint32_t thisHash = HashRageString(boost::to_upper_copy(type).c_str());
+
+	for (size_t i = 0; i < 0xC9; i++)
+	{
+		auto entry = &g_dataFileTypes[i];
+
+		if (entry->hash == thisHash)
+		{
+			return entry->index;
+		}
+	}
+
+	return -1;
+}
+
+class CDataFileMountInterface
+{
+public:
+	virtual ~CDataFileMountInterface() = 0;
+
+	virtual bool MountFile(DataFileEntry* entry) = 0;
+
+	virtual bool UnmountFile(DataFileEntry* entry) = 0;
+};
+
+static CDataFileMountInterface** g_dataFileMounters;
+
 namespace streaming
 {
 	void DLL_EXPORT AddMetaToLoadList(bool before, const std::string& meta)
 	{
 		((before) ? g_beforeLevelMetas : g_afterLevelMetas).push_back(meta);
 	}
-	void DLL_EXPORT AddDefMetaToLoadList(bool before, const std::string& meta)
+
+	void DLL_EXPORT AddDefMetaToLoadList(const std::string& meta)
 	{
-		((before) ? g_beforeDefaultMetas : g_afterDefaultMetas).push_back(meta);
+		g_defaultMetas.push_back(meta);
+	}
+
+	void DLL_EXPORT AddDataFileToLoadList(const std::string& type, const std::string& path)
+	{
+		int typeIdx = LookupDataFileType(type);
+
+		if (typeIdx < 0)
+		{
+			trace("Could not add data_file %s - invalid type %s.\n", path, type);
+			return;
+		}
+
+		g_dataFiles.push_back({ typeIdx, path });
 	}
 }
 
@@ -492,6 +541,36 @@ static InitFunction initFunction([] ()
 	char test[40];
 	static_assert(sizeof(std::array<char, 40>) == sizeof(test), "std::array size is not the same as the underlying array");
 });
+
+static int SehRoutine(const char* typePtr, PEXCEPTION_POINTERS exception)
+{
+	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
+	{
+		if (!typePtr)
+		{
+			typePtr = "a safe-call operation";
+		}
+
+		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
+			exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
+			typePtr);
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+template<typename T>
+static auto SafeCall(const T& fn, const char* whatPtr = nullptr)
+{
+	__try
+	{
+		return fn();
+	}
+	__except (SehRoutine(whatPtr, GetExceptionInformation()))
+	{
+		return std::result_of_t<T()>();
+	}
+}
 
 static HookFunction hookFunction([] ()
 {
@@ -526,4 +605,77 @@ static HookFunction hookFunction([] ()
 		hook::set_call(&g_origAddStreamingPackfile, location);
 		hook::call(location, AddStreamingPackfileWrap);
 	}
+
+	g_dataFileTypes = hook::get_pattern<EnumEntry>("61 44 DF 04 00 00 00 00");
+
+	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_BEFORE_MAP_LOADED)
+		{
+			assert(g_dataFileMgr);
+
+			trace("Loading default meta overrides (total: %d)\n", g_defaultMetas.size());
+
+			for (const auto& dat : g_defaultMetas)
+			{
+				trace("Loading default meta %s\n", dat);
+
+				dataFileMgr__loadDat(g_dataFileMgr, dat.c_str(), true);
+			}
+
+			trace("Done loading default meta overrides!\n");
+		}
+	});
+
+	{
+		char* location = hook::get_pattern<char>("48 63 82 90 00 00 00 49 8B 8C C0 ? ? ? ? 48", 11);
+
+		g_dataFileMounters = (decltype(g_dataFileMounters))(0x140000000 + *(int32_t*)location); // why is this an RVA?!
+	}
+
+	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_SESSION)
+		{
+			trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
+
+			for (auto& dataFile : g_dataFiles)
+			{
+				int fileType;
+				std::string fileName;
+
+				std::tie(fileType, fileName) = dataFile;
+
+				CDataFileMountInterface* mounter = g_dataFileMounters[fileType];
+
+				if (mounter)
+				{
+					std::string typeName = typeid(*mounter).name();
+
+					DataFileEntry entry;
+					memset(&entry, 0, sizeof(entry));
+					strcpy(entry.name, fileName.c_str()); // muahaha
+					entry.type = fileType;
+					
+					bool result = SafeCall([&]()
+					{
+						return mounter->MountFile(&entry);
+					}, va("loading of %s in data file mounter %s", fileName, typeName));
+
+					if (result)
+					{
+						trace("Loaded %s in data file mounter %s.\n", fileName, typeName);
+					}
+					else
+					{
+						trace("Failed to load %s in data file mounter %s.\n", fileName, typeName);
+					}
+				}
+				else
+				{
+					trace("Loading %s failed (no mounter for type %d)\n", fileName, fileType);
+				}
+			}
+		}
+	});
 });

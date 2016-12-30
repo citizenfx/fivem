@@ -13,6 +13,13 @@
 
 #include <ResourceMetaDataComponent.h>
 
+#include <boost/fusion/adapted/std_tuple.hpp>
+#include <boost/fusion/include/std_tuple.hpp>
+
+#include <boost/iterator/zip_iterator.hpp>
+
+#include <rapidjson/document.h>
+
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags);
@@ -20,9 +27,20 @@ void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceF
 namespace streaming
 {
 	void AddMetaToLoadList(bool before, const std::string& meta);
-	void AddDefMetaToLoadList(bool before, const std::string& meta);
+	void AddDefMetaToLoadList(const std::string& meta);
+	void AddDataFileToLoadList(const std::string& type, const std::string& path);
 
 	void SetNextLevelPath(const std::string& path);
+}
+
+template<typename... T>
+auto MakeIterator(const T&... args)
+{
+	return fx::GetIteratorView
+	(
+		boost::make_zip_iterator(std::make_tuple(std::begin(args)...)),
+		boost::make_zip_iterator(std::make_tuple(std::end(args)...))
+	);
 }
 
 static InitFunction initFunction([] ()
@@ -44,23 +62,12 @@ static InitFunction initFunction([] ()
 		{
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 			std::string resourceRoot = resource->GetPath();
-			//Why does this seem so wrong?? 7-6-2016 - Jayceon
-			for (auto& meta : metaData->GetEntries("before_default_meta"))
+
+			for (auto& meta : metaData->GetEntries("init_meta"))
 			{
-				trace("before_default_meta: %s/%s", resourceRoot.c_str(), meta.second.c_str());
-				streaming::AddDefMetaToLoadList(true, resourceRoot + meta.second);
+				streaming::AddDefMetaToLoadList(resourceRoot + meta.second);
 			}
 
-			for (auto& meta : metaData->GetEntries("after_default_meta"))
-			{
-				streaming::AddDefMetaToLoadList(false, resourceRoot + meta.second);
-			}
-
-			for (auto& meta : metaData->GetEntries("replace_default_meta"))
-			{
-				streaming::SetNextLevelPath(resourceRoot + meta.second);
-			}
-			//
 			for (auto& meta : metaData->GetEntries("before_level_meta"))
 			{
 				streaming::AddMetaToLoadList(true, resourceRoot + meta.second);
@@ -74,6 +81,20 @@ static InitFunction initFunction([] ()
 			for (auto& meta : metaData->GetEntries("replace_level_meta"))
 			{
 				streaming::SetNextLevelPath(resourceRoot + meta.second);
+			}
+			
+			for (auto& pair : MakeIterator(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
+			{
+				const std::string& type = std::get<0>(pair).second;
+				const std::string& name = std::get<1>(pair).second;
+
+				rapidjson::Document document;
+				document.Parse(name.c_str(), name.length());
+
+				if (!document.HasParseError() && document.IsString())
+				{
+					streaming::AddDataFileToLoadList(type, resourceRoot + document.GetString());
+				}
 			}
 		}, 500);
 	});
