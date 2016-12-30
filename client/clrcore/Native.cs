@@ -262,7 +262,7 @@ namespace CitizenFX.Core.Native
 
     public class InputArgument
     {
-        private object m_value;
+        protected object m_value;
 
         internal object Value => m_value;
 
@@ -359,4 +359,50 @@ namespace CitizenFX.Core.Native
             return new InputArgument(new IntPtr(value));
         }
     }
+
+	public class OutputArgument : InputArgument
+	{
+		private readonly IntPtr m_dataPtr;
+
+		[SecuritySafeCritical]
+		public OutputArgument()
+			: base(AllocateData())
+		{
+			m_dataPtr = (IntPtr)m_value;
+		}
+
+		[SecuritySafeCritical]
+		public OutputArgument(object arg)
+			: this()
+		{
+			if (Marshal.SizeOf(arg.GetType()) > 8)
+			{
+				return;
+			}
+
+			Marshal.WriteInt64(m_dataPtr, 0, 0);
+			Marshal.StructureToPtr(arg, m_dataPtr, false);
+		}
+
+		[SecuritySafeCritical]
+		~OutputArgument()
+		{
+			Marshal.FreeHGlobal(m_dataPtr);
+		}
+
+		[SecuritySafeCritical]
+		public T GetResult<T>()
+		{
+			var data = new byte[24];
+			Marshal.Copy(m_dataPtr, data, 0, 24);
+
+			return (T)ScriptContext.GetResult(typeof(T), data);
+		}
+
+		[SecuritySafeCritical]
+		private static IntPtr AllocateData()
+		{
+			return Marshal.AllocHGlobal(24);
+		}
+	}
 }

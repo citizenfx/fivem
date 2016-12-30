@@ -579,40 +579,46 @@ namespace CitizenFX.Core
         [SecuritySafeCritical]
         public object GetResult(Type type)
         {
-            if (type == typeof(string))
-            {
-                IntPtr nativeUtf8 = new IntPtr(BitConverter.ToInt64(m_context.functionData, 0));
+			return GetResult(type, m_context.functionData);
+		}
 
-                int len = 0;
-                while (Marshal.ReadByte(nativeUtf8, len) != 0)
-                {
-                    ++len;
-                }
+		[SecurityCritical]
+		internal static object GetResult(Type type, byte[] ptr)
+		{
+			if (type == typeof(string))
+			{
+				IntPtr nativeUtf8 = new IntPtr(BitConverter.ToInt64(ptr, 0));
 
-                byte[] buffer = new byte[len];
-                Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);
-                return Encoding.UTF8.GetString(buffer);
-            }
-            else if (type == typeof(Vector3))
-            {
-                float x = BitConverter.ToSingle(m_context.functionData, 0);
-                float y = BitConverter.ToSingle(m_context.functionData, 8);
-                float z = BitConverter.ToSingle(m_context.functionData, 16);
+				int len = 0;
+				while (Marshal.ReadByte(nativeUtf8, len) != 0)
+				{
+					++len;
+				}
 
-                return new Vector3(x, y, z);
-            }
-            else if (Marshal.SizeOf(type) <= 8)
-            {
-                return GetResultInternal(type);
-            }
+				byte[] buffer = new byte[len];
+				Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);
+				return Encoding.UTF8.GetString(buffer);
+			}
+			else if (type == typeof(Vector3))
+			{
+				float x = BitConverter.ToSingle(ptr, 0);
+				float y = BitConverter.ToSingle(ptr, 8);
+				float z = BitConverter.ToSingle(ptr, 16);
 
-            return null;
-        }
+				return new Vector3(x, y, z);
+			}
+			else if (Marshal.SizeOf(type) <= 8)
+			{
+				return GetResultInternal(type, ptr);
+			}
+
+			return null;
+		}
 
         [SecurityCritical]
-        private unsafe object GetResultInternal(Type type)
+        private static unsafe object GetResultInternal(Type type, byte[] ptr)
         {
-            fixed (byte* bit = &m_context.functionData[0])
+            fixed (byte* bit = &ptr[0])
             {
                 return Marshal.PtrToStructure(new IntPtr(bit), type);
             }
@@ -746,6 +752,7 @@ namespace CitizenFX.Core
         IntPtr CanonicalizeRef(int localRef, int instanceId);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
+		[PreserveSig]
 		void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message);
 	}
 
