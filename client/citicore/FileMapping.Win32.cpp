@@ -304,6 +304,34 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 	return g_origGetProcAddress(hModule, lpProcName, caller);
 }
 
+extern "C" BOOLEAN NTAPI RtlEqualString(
+	_In_ const STRING  *String1,
+	_In_ const STRING  *String2,
+	_In_       BOOLEAN CaseInSensitive
+);
+
+static NTSTATUS(NTAPI* g_origGetProcedureAddress)(HMODULE hModule, PANSI_STRING functionName, WORD ordinal, PVOID* fnAddress);
+
+NTSTATUS NTAPI LdrGetProcedureAddressStub(HMODULE hModule, PANSI_STRING functionName, WORD ordinal, PVOID* fnAddress)
+{
+	static const DWORD bigOne = 1;
+
+	if (functionName)
+	{
+		ANSI_STRING compareNv, compareAmd;
+		RtlInitAnsiString(&compareNv, "NvOptimusEnablement");
+		RtlInitAnsiString(&compareAmd, "AmdPowerXpressRequestHighPerformance");
+
+		if (RtlEqualString(functionName, &compareNv, TRUE) || RtlEqualString(functionName, &compareAmd, TRUE))
+		{
+			*fnAddress = const_cast<DWORD*>(&bigOne);
+			return 0;
+		}
+	}
+
+	return g_origGetProcedureAddress(hModule, functionName, ordinal, fnAddress);
+}
+
 extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 {
 	g_mappingFunction = function;
@@ -313,8 +341,11 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"ntdll.dll", "NtDeleteFile", NtDeleteFileStub, (void**)&g_origNtDeleteFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryAttributesFile", NtQueryAttributesFileStub, (void**)&g_origNtQueryAttributesFile);
 	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", LdrLoadDllStub, (void**)&g_origLoadDll);
+	MH_CreateHookApi(L"ntdll.dll", "LdrGetProcedureAddress", LdrGetProcedureAddressStub, (void**)&g_origGetProcedureAddress);
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExW", RegOpenKeyExWStub, (void**)&g_origRegOpenKeyExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetProcAddressForCaller", GetProcAddressStub, (void**)&g_origGetProcAddress);
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	trace("Initialized system mapping!\n");
 }
 #endif
