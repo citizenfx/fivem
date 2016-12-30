@@ -1259,6 +1259,9 @@ static HookFunction hookFunction([] ()
 		}
 	}*/
 
+	// don't load commandline.txt
+	hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
+
 	// sometimes this crashes
 	SafeRun([]()
 	{
