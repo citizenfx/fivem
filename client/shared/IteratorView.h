@@ -42,4 +42,10 @@ namespace fx
 	{
 		return IteratorView<decltype(pair.first)>(pair);
 	}
+
+	template<typename ItType>
+	inline auto GetIteratorView(const ItType& first, const ItType& second)
+	{
+		return IteratorView<ItType>({ first, second });
+	}
 }
