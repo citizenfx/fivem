@@ -9,6 +9,11 @@
 #include "Hooking.h"
 
 #include <mutex>
+#include <stack>
+
+#include <boost/optional.hpp>
+
+#include <CustomText.h>
 
 static const char*(*g_origGetText)(void* theText, uint32_t hash);
 
@@ -35,6 +40,27 @@ void AddCustomText(const char* key, const char* value)
 {
 	std::unique_lock<std::mutex> lock(g_textMutex);
 	g_textMap[HashString(key)] = value;
+}
+
+namespace game
+{
+	void AddCustomText(const std::string& key, const std::string& value)
+	{
+		AddCustomText(HashString(key.c_str()), value);
+	}
+
+	void AddCustomText(uint32_t hash, const std::string& value)
+	{
+		std::unique_lock<std::mutex> lock(g_textMutex);
+		g_textMap[hash] = value;
+	}
+
+	void RemoveCustomText(uint32_t hash)
+	{
+		std::unique_lock<std::mutex> lock(g_textMutex);
+
+		g_textMap.erase(hash);
+	}
 }
 
 static HookFunction hookFunction([] ()
