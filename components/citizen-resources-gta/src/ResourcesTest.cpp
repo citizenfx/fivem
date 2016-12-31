@@ -43,6 +43,26 @@ auto MakeIterator(const T&... args)
 	);
 }
 
+template<typename T>
+bool SequenceEquals(const std::initializer_list<T>& list)
+{
+	if (list.size() == 0)
+	{
+		return true;
+	}
+
+	return std::all_of(list.begin() + 1, list.end(), [&](const T& v)
+	{
+		return (v == *list.begin());
+	});
+}
+
+template<typename... T>
+bool RangeLengthMatches(const T&... args)
+{
+	return SequenceEquals({ std::distance(args.begin(), args.end())... });
+}
+
 static InitFunction initFunction([] ()
 {
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
@@ -82,7 +102,13 @@ static InitFunction initFunction([] ()
 			{
 				streaming::SetNextLevelPath(resourceRoot + meta.second);
 			}
-			
+
+			if (!RangeLengthMatches(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
+			{
+				GlobalError("data_file entry count mismatch in resource %s", resource->GetName());
+				return;
+			}
+
 			for (auto& pair : MakeIterator(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
 			{
 				const std::string& type = std::get<0>(pair).second;
