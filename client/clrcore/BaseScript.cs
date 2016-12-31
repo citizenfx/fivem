@@ -67,7 +67,15 @@ namespace CitizenFX.Core
         {
             if (!CurrentTaskList.ContainsKey(call))
             {
-                CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a => CurrentTaskList.Remove(call)));
+                CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
+				{
+					if (a.IsFaulted)
+					{
+						Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
+					}
+
+					CurrentTaskList.Remove(call);
+				}));
             }
         }
         
