@@ -341,7 +341,7 @@ namespace CitizenFX.Core.Native
             return new InputArgument(value);
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public static implicit operator InputArgument(INativeValue value)
         {
             return new InputArgument(value.NativeValue);
