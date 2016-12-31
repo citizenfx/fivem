@@ -147,8 +147,8 @@ result_t TestScriptHost::WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream,
 		return FX_S_OK;
 	}
 
-	// TODO: replace with other error?
-	return FX_E_INVALIDARG;
+	// TODO: replace when porting
+	return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
 }
 
 result_t TestScriptHost::ScriptTrace(char* string)
