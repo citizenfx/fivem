@@ -43,24 +43,22 @@ auto MakeIterator(const T&... args)
 	);
 }
 
-template<typename T>
-bool SequenceEquals(const std::initializer_list<T>& list)
+// TODO: replace with fold expressions when moving to C++17 compilers
+bool SequenceEquals(ptrdiff_t head = 0)
 {
-	if (list.size() == 0)
-	{
-		return true;
-	}
+	return true;
+}
 
-	return std::all_of(list.begin() + 1, list.end(), [&](const T& v)
-	{
-		return (v == *list.begin());
-	});
+template<typename... Tail>
+bool SequenceEquals(ptrdiff_t head, ptrdiff_t mid, Tail... tail)
+{
+	return head == mid && SequenceEquals(head, tail...);
 }
 
 template<typename... T>
 bool RangeLengthMatches(const T&... args)
 {
-	return SequenceEquals({ std::distance(args.begin(), args.end())... });
+	return SequenceEquals(std::distance(args.begin(), args.end())...);
 }
 
 static InitFunction initFunction([] ()
