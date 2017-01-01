@@ -146,7 +146,7 @@ static InitFunction initFunction([] ()
 			std::string port = std::string(hostname);
 			std::string ip = std::string(hostname);
 			ip = ip.substr(0, ip.find_last_of(":"));
-			port = port.substr(port.find(":") + 1);
+			port = port.substr(port.find_last_of(":") + 1);
 			const char* portnum = port.c_str();
 
 			if (port.empty())
