@@ -107,8 +107,10 @@ static HookFunction hookFunction([] ()
 	// force input to be handled using WM_KEYUP/KEYDOWN, not DInput/RawInput
 
 	// disable DInput device creation
-	void* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<void>(0);
-	hook::nop(dinputCreate, 228); // that's a lot of nops!
+	char* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<char>(0);
+	hook::nop(dinputCreate, 200); // that's a lot of nops!
+	hook::nop(dinputCreate + 212, 6);
+	hook::nop(dinputCreate + 222, 6);
 
 	// jump over raw input keyboard handling
 	hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
