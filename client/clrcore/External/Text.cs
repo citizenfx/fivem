@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using CitizenFX.Core.Native;
 
+using System.Security;
+
 namespace CitizenFX.Core.UI
 {
 	public enum Alignment
@@ -66,6 +68,7 @@ namespace CitizenFX.Core.UI
 		public string Caption
 		{
 			get { return _caption; }
+			[SecuritySafeCritical]
 			set
 			{
 				_caption = value;
@@ -143,6 +146,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		public float Width
 		{
+			[SecuritySafeCritical]
 			get
 			{
 				Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
@@ -164,6 +168,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		public float ScaledWidth
 		{
+			[SecuritySafeCritical]
 			get
 			{
 				Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
@@ -266,11 +271,17 @@ namespace CitizenFX.Core.UI
 
 		~Text()
 		{
+			ClearText();
+			_pinnedText.Clear();
+		}
+
+		[SecuritySafeCritical]
+		private void ClearText()
+		{
 			foreach (var ptr in _pinnedText)
 			{
 				Marshal.FreeCoTaskMem(ptr); //free any existing allocated text
 			}
-			_pinnedText.Clear();
 		}
 
 		/// <summary>
@@ -282,6 +293,7 @@ namespace CitizenFX.Core.UI
 		/// <returns>
 		/// The amount of pixels scaled on a 1280 pixel width base
 		/// </returns>
+		[SecuritySafeCritical]
 		public static float GetStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
 			Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
@@ -307,6 +319,7 @@ namespace CitizenFX.Core.UI
 		/// <returns>
 		/// The amount of pixels scaled by the pixel width base return in <see cref="Screen.ScaledWidth"/>
 		/// </returns>
+		[SecuritySafeCritical]
 		public static float GetScaledStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
 			Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
@@ -359,6 +372,7 @@ namespace CitizenFX.Core.UI
 			InternalDraw(offset, Screen.ScaledWidth, Screen.Height);
 		}
 
+		[SecuritySafeCritical]
 		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
 		{
 			if (!Enabled)

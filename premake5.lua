@@ -26,7 +26,7 @@ solution "CitizenMP"
 
 	flags { "No64BitChecks", "Symbols", "Unicode" }
 	
-	flags { "NoIncrementalLink", "NoEditAndContinue" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
+	flags { "NoIncrementalLink", "NoEditAndContinue", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
 	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "../vendor/fmtlib/", "deplibs/include/", "../vendor/gtest/googletest/include/", "../vendor/gtest/googlemock/include/", os.getenv("BOOST_ROOT") }
 	

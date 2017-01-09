@@ -1,15 +1,25 @@
+local a = ...
+
 return {
 	include = function()
 		includedirs { "../vendor/curl/include/" }
 
-		links { 'ws2_32' }
+		links { 'ws2_32', 'crypt32' }
 	end,
 
 	run = function()
-		targetname "curl-crt"
+		if a then
+			targetname "curl"
+		else
+			targetname "curl-crt"
+		end
+
 		language "C"
 		kind "StaticLib"
-		flags "StaticRuntime"
+
+		if not a then
+			flags "StaticRuntime"
+		end
 
 		-- all the disables except http/file
 		defines { 'CURL_STATICLIB', 'BUILDING_LIBCURL', 'USE_IPV6', 'CURL_DISABLE_TFTP', 'CURL_DISABLE_FTP', 'CURL_DISABLE_LDAP', 'CURL_DISABLE_TELNET',

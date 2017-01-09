@@ -142,8 +142,122 @@ static void FormatsConvert_HandleArguments(boost::program_options::wcommand_line
 	cb();
 }
 
+#include <zlib.h>
+
+rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName)
+{
+    FILE* f = _wfopen(fileName, L"rb");
+
+    if (!f)
+    {
+        return nullptr;
+    }
+
+    fseek(f, 0, SEEK_END);
+    size_t fileLength = ftell(f) - 16;
+    fseek(f, 0, SEEK_SET);
+
+    uint32_t magic;
+    fread(&magic, 1, sizeof(magic), f);
+
+    if (magic != 0x37435352)
+    {
+        printf("that's not a RSC7, you silly goose...\n");
+
+        fclose(f);
+        return nullptr;
+    }
+
+    uint32_t version;
+    fread(&version, 1, sizeof(version), f);
+
+    if (version != 165)
+    {
+        printf("not actually a supported file...\n");
+
+        fclose(f);
+        return nullptr;
+    }
+
+    uint32_t flag;
+    fread(&flag, 1, sizeof(flag), f);
+
+    uint32_t virtualSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
+
+    fread(&flag, 1, sizeof(flag), f);
+    uint32_t physicalSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
+
+    std::vector<uint8_t> tempBytes(virtualSize + physicalSize);
+
+    {
+        std::vector<uint8_t> tempInBytes(fileLength);
+        fread(&tempInBytes[0], 1, fileLength, f);
+
+        size_t destLength = tempBytes.size();
+        
+        {
+            z_stream stream;
+            int err;
+
+            stream.next_in = (z_const Bytef *)&tempInBytes[0];
+            stream.avail_in = (uInt)tempInBytes.size();
+
+            stream.next_out = &tempBytes[0];
+            stream.avail_out = (uInt)destLength;
+
+            stream.zalloc = (alloc_func)0;
+            stream.zfree = (free_func)0;
+
+            err = inflateInit2(&stream, -15);
+            if (err != Z_OK) return nullptr;
+
+            err = inflate(&stream, Z_FINISH);
+            /*if (err != Z_STREAM_END) {
+                inflateEnd(&stream);
+                if (err == Z_NEED_DICT || (err == Z_BUF_ERROR && stream.avail_in == 0))
+                    return nullptr;
+                return nullptr;
+            }*/
+            destLength = stream.total_out;
+
+            err = inflateEnd(&stream);
+        }
+        //uncompress(&tempBytes[0], (uLongf*)&destLength, &tempInBytes[0], tempInBytes.size());
+    }
+
+    char* virtualData = new char[virtualSize + physicalSize];
+    memcpy(virtualData, &tempBytes[0], virtualSize + physicalSize);
+
+    char* physicalData = new char[physicalSize];
+    memcpy(physicalData, &tempBytes[virtualSize], physicalSize);
+
+    auto bm = new rage::five::BlockMap();
+    bm->physicalLen = 1;
+    bm->virtualLen = 1;
+
+    bm->blocks[0].data = virtualData;
+    bm->blocks[0].offset = 0;
+    bm->blocks[0].size = virtualSize + physicalSize;
+
+    bm->blocks[1].data = physicalData;
+    bm->blocks[1].offset = 0;
+    bm->blocks[1].size = physicalSize;
+
+    return bm;
+}
+
 static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 {
+    auto bm = UnwrapRSC7(L"B:\\dev\\prop_tree_oak_01.ydr");
+    rage::five::pgStreamManager::SetBlockInfo(bm);
+
+    auto dr = (rage::five::gtaDrawable*)bm->blocks[0].data;
+    dr->Resolve(bm);
+
+    __debugbreak();
+
+    (new rage::five::grmShaderFx())->DoPreset("trees_normal_spec", "trees_normal_spec.sps");
+
 	if (map.count("filename") == 0)
 	{
 		printf("Usage:\n\n   fivem formats:convert filename<1-n>...\n\nCurrently, GTA:NY static bounds (wbn), drawables (wdr) and texture dictionaries (wtd) are supported.\nSee your vendor for details.\n");

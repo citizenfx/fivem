@@ -12,11 +12,13 @@ vendor_component 'picohttpparser'
 vendor_component 'udis86'
 vendor_component 'cpp-uri'
 vendor_component 'xz-crt'
+vendor_component 'curl'
 vendor_component 'curl-crt'
 vendor_component 'lua'
 vendor_component 'leveldb'
 vendor_component 'fmtlib'
 vendor_component 'fmtlib-crt'
+vendor_component 'cpr'
 
 if os.get() == 'windows' then
 	vendor_component 'boost_program_options'

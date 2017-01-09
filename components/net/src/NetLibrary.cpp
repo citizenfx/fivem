@@ -662,6 +662,23 @@ void NetLibrary::Resurrection()
 	g_netFrameMutex.lock();
 }
 
+static void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
+{
+    unsigned char* pin = in;
+    const char* hex = "0123456789ABCDEF";
+    char* pout = out;
+    for (; pin < in + insz; pout += 2, pin++)
+    {
+        pout[0] = hex[(*pin >> 4) & 0xF];
+        pout[1] = hex[*pin & 0xF];
+        if (pout + 3 - out > outsz)
+        {
+            break;
+        }
+    }
+    pout[0] = 0;
+}
+
 void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 {
 	if (m_connectionState != CS_IDLE)
@@ -710,14 +727,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
 
 			// encode the ticket buffer
-			std::stringstream str;
+            char outHex[16384];
+            tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
 
-			for (int i = 0; i < ticketLength; i++)
-			{
-				str << va("%02x", ticketBuffer[i]);
-			}
-
-			postMap["authTicket"] = str.str();
+			postMap["authTicket"] = outHex;
 		}
 	}
 

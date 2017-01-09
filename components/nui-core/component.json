@@ -5,8 +5,7 @@
 		"fx[2]",
 		"rage:device",
 		"rage:graphics",
-		"rage:input",
-		"ros:five"
+		"rage:input"
 	],
 	"provides": []
 }
