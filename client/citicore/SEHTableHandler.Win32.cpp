@@ -36,7 +36,7 @@ static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD
 		ud_disassemble(&ud);
 
 		// if this is a retn, break from the loop
-		if (ud_insn_mnemonic(&ud) == UD_Inop || ud_insn_mnemonic(&ud) == UD_Iint3)
+		if (ud_insn_mnemonic(&ud) == UD_Iint3)
 		{
 			break;
 		}
