@@ -1097,6 +1097,16 @@ NetLibrary* NetLibrary::Create()
 
 	lib->CreateResources();
 
+	lib->AddReliableHandler("msgIHost", [=] (const char* buf, size_t len)
+	{
+		NetBuffer buffer(buf, len);
+
+		uint16_t hostNetID = buffer.Read<uint16_t>();
+		uint32_t hostBase = buffer.Read<uint32_t>();
+
+		lib->SetHost(hostNetID, hostBase);
+	});
+
 	OnNetLibraryCreate(lib);
 
 	return lib;
