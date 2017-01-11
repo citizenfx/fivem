@@ -134,7 +134,7 @@ public:
 	{
         auto c = InterlockedDecrement(&m_refCount.GetCount());
 
-		if (c <= 1)
+		if (c <= 0)
 		{
 #ifdef OM_REF_DEBUG
 			trace(__FUNCTION__ " deleting %p\n", this);
