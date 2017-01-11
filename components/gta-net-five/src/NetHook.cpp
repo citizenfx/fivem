@@ -349,15 +349,6 @@ static HookFunction initFunction([] ()
 		{
 			msg.Write(0xB3EA30DE); // msgIHost
 			msg.Write(g_netLibrary->GetServerBase());
-
-			static bool doneSound;
-
-			if (!doneSound)
-			{
-				PlaySound(MAKEINTRESOURCE(SND_ALIAS_SYSTEMHAND), nullptr, SND_ALIAS_ID | SND_ASYNC);
-
-				doneSound = true;
-			}
 		}
 	});
 
