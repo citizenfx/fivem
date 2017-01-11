@@ -286,6 +286,8 @@ void main()
 					});
 				}
 
+                CitizenGame::SetCoreMapping();
+
 				toolProc();
 			}
 			else

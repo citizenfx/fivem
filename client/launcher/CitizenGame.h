@@ -14,4 +14,6 @@ private:
 
 public:
 	static void Launch(const std::wstring& gamePath);
+
+    static void SetCoreMapping();
 };

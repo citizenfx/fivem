@@ -67,5 +67,15 @@ bool VerifyViability()
         return false;
     }
 
+    auto SetProcessMitigationPolicy = (decltype(&::SetProcessMitigationPolicy))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetProcessMitigationPolicy");
+
+    if (SetProcessMitigationPolicy)
+    {
+        PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY dp;
+        dp.DisableExtensionPoints = true;
+
+        SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
+    }
+
     return true;
 }

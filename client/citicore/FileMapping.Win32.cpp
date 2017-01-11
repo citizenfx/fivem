@@ -111,13 +111,13 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 
 LONG (WINAPI* g_origRegOpenKeyExW)(HKEY key, const wchar_t* subKey, DWORD options, REGSAM samDesired, PHKEY outKey);
 
+void LSP_InitializeHooks();
+
 LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, REGSAM samDesired, PHKEY outKey)
 {
 	if (subKey && wcsstr(subKey, L"Rockstar Games Social Club"))
 	{
 		//LONG status = RegCreateKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, nullptr, 0, KEY_READ, nullptr, outKey, nullptr);
-		LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, KEY_READ, outKey);
-
 		auto setValue = [&] (const wchar_t* name, const wchar_t* keyString)
 		{
 			RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
@@ -126,6 +126,8 @@ LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, RE
 		setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros").c_str());
 		setValue(L"InstallLang", L"1033");
 		setValue(L"Version", L"1.1.6.8");
+
+        LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, KEY_READ, outKey);
 
 		return status;
 	}
@@ -345,6 +347,8 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExW", RegOpenKeyExWStub, (void**)&g_origRegOpenKeyExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetProcAddressForCaller", GetProcAddressStub, (void**)&g_origGetProcAddress);
 	MH_EnableHook(MH_ALL_HOOKS);
+
+    LSP_InitializeHooks();
 
 	trace("Initialized system mapping!\n");
 }

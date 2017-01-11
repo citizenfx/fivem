@@ -504,6 +504,24 @@ static BOOL GetFileAttributesExWHook(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_IN
 }
 #endif
 
+void CitizenGame::SetCoreMapping()
+{
+    auto CoreSetMappingFunction = (void(*)(wchar_t*(*)(const wchar_t*, void*(*)(size_t))))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetMappingFunction");
+
+    if (CoreSetMappingFunction)
+    {
+        CoreSetMappingFunction([](const wchar_t* fileName, void*(*allocator)(size_t))
+        {
+            auto outName = MapRedirectedFilename(fileName);
+            wchar_t* outString = reinterpret_cast<wchar_t*>(allocator((outName.length() + 1) * sizeof(wchar_t)));
+
+            wcscpy(outString, outName.c_str());
+
+            return outString;
+        });
+    }
+}
+
 void CitizenGame::Launch(const std::wstring& gamePath)
 {
 	// initialize the CEF sandbox
@@ -520,22 +538,7 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 
 	CoreSetDebuggerPresent();
 
-#ifdef GTA_FIVE
-	auto CoreSetMappingFunction = (void(*)(wchar_t*(*)(const wchar_t*, void*(*)(size_t))))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetMappingFunction");
-
-	if (CoreSetMappingFunction)
-	{
-		CoreSetMappingFunction([] (const wchar_t* fileName, void*(*allocator)(size_t))
-		{
-			auto outName = MapRedirectedFilename(fileName);
-			wchar_t* outString = reinterpret_cast<wchar_t*>(allocator((outName.length() + 1) * sizeof(wchar_t)));
-
-			wcscpy(outString, outName.c_str());
-
-			return outString;
-		});
-	}
-#endif
+    SetCoreMapping();
 
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
