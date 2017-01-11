@@ -41,7 +41,7 @@ private:
 	class RefCount
 	{
 	private:
-		std::atomic<uint32_t> m_count;
+		uint32_t m_count;
 
 	public:
 		RefCount()
@@ -49,7 +49,7 @@ private:
 		{
 		}
 
-		inline std::atomic<uint32_t>& GetCount()
+		inline uint32_t& GetCount()
 		{
 			return m_count;
 		}
@@ -127,12 +127,12 @@ public:
 		}
 #endif
 
-		return ++m_refCount.GetCount();
+        return InterlockedIncrement(&m_refCount.GetCount());
 	}
 
 	virtual uint32_t Release() override
 	{
-		uint32_t c = m_refCount.GetCount().fetch_sub(1);
+        auto c = InterlockedDecrement(&m_refCount.GetCount());
 
 		if (c <= 1)
 		{
