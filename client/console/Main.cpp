@@ -52,11 +52,6 @@ static BOOL WINAPI ControlHandler(DWORD ctrlType)
 	return FALSE;
 }
 
-bool CoreIsDebuggerPresent()
-{
-	return false;
-}
-
 int wmain(int argc, const wchar_t** argv)
 {
 	// get our application name, and replace the extension with '.exe'.

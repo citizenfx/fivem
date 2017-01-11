@@ -7,20 +7,6 @@
 
 #include "StdInc.h"
 
-void DLL_EXPORT Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
-{
-	fwPlatformString hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
-	FILE* hints = _pfopen(hintsFile.c_str(), _P("ab"));
-
-	if (hints)
-	{
-		fwrite(&hash, 1, sizeof(hash), hints);
-		fwrite(&hint, 1, sizeof(hint), hints);
-
-		fclose(hints);
-	}
-}
-
 #ifdef GTA_FIVE
 static uintptr_t g_currentStub = 0x146000000;
 

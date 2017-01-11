@@ -248,7 +248,8 @@ end
 		add_dependencies { 'vendor:fmtlib' }
 
 		defines "COMPILING_SHARED"
-		
+
+		includedirs { "client/citicore" }
 		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
 		files
@@ -269,7 +270,8 @@ end
 		add_dependencies { 'vendor:fmtlib-crt' }
 
 		defines { "COMPILING_SHARED", "COMPILING_SHARED_LIBC" }
-		
+
+		includedirs { "client/citicore" }		
 		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
 		
 		files

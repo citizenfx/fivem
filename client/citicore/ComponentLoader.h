@@ -51,15 +51,15 @@ public:
 	int CompareVersion(const ComponentId& secondId) const;
 };
 
-class CORE_EXPORT Component : public fwRefCountable
+class Component : public fwRefCountable
 {
 public:
-	virtual bool Initialize()
+	virtual inline bool Initialize()
 	{
 		return true;
 	}
 
-	virtual bool SetUserData(const std::string& userData)
+	virtual inline bool SetUserData(const std::string& userData)
 	{
 		(void)userData;
 
@@ -68,10 +68,13 @@ public:
 
 	virtual bool Shutdown() = 0;
 
-	virtual bool DoGameLoad(void* hModule);
+    virtual inline bool DoGameLoad(void* hModule)
+    {
+        return true;
+    }
 };
 
-class CORE_EXPORT RunnableComponent : public Component
+class RunnableComponent : public Component
 {
 public:
 	virtual void Run() = 0;

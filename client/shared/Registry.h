@@ -56,7 +56,26 @@ public:
 using InstanceRegistry = InstanceRegistryBase<void*>;
 using RefInstanceRegistry = InstanceRegistryBase<fwRefContainer<fwRefCountable>>;
 
-extern CORE_EXPORT CORE_IMPORT InstanceRegistry g_instanceRegistry;
+#ifdef COMPILING_CORE
+extern "C" CORE_EXPORT InstanceRegistry* CoreGetGlobalInstanceRegistry();
+#else
+inline auto CoreGetGlobalInstanceRegistry()
+{
+    static struct RefSource
+    {
+        RefSource()
+        {
+            auto func = (InstanceRegistry*(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreGetGlobalInstanceRegistry");
+            
+            this->registry = func();
+        }
+
+        InstanceRegistry* registry;
+    } instanceRegistryRef;
+
+    return instanceRegistryRef.registry;
+}
+#endif
 
 template<class T>
 class Instance
@@ -88,7 +107,7 @@ public:
 	{
 		if (!ms_cachedInstance)
 		{
-			ms_cachedInstance = Get(&g_instanceRegistry);
+			ms_cachedInstance = Get(CoreGetGlobalInstanceRegistry());
 		}
 
 		return ms_cachedInstance;
@@ -96,7 +115,7 @@ public:
 
 	static void Set(T* instance)
 	{
-		Set(instance, &g_instanceRegistry);
+		Set(instance, CoreGetGlobalInstanceRegistry());
 	}
 
 	static void Set(T* instance, InstanceRegistry* registry)

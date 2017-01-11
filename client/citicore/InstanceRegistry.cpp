@@ -9,4 +9,9 @@
 #include "Registry.h"
 
 // global registry for use by client-only modules
-CORE_EXPORT InstanceRegistry g_instanceRegistry;
+InstanceRegistry g_instanceRegistry;
+
+InstanceRegistry* CoreGetGlobalInstanceRegistry()
+{
+    return &g_instanceRegistry;
+}

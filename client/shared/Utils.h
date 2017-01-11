@@ -215,17 +215,35 @@ void SetThreadName(int threadId, char* threadName);
 std::wstring ToWide(const std::string& narrow);
 std::string ToNarrow(const std::wstring& wide);
 
-extern "C" bool
 #ifdef COMPILING_CORE
-	DLL_EXPORT
-#endif
-	CoreIsDebuggerPresent();
+extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();
+extern "C" void DLL_EXPORT CoreSetDebuggerPresent();
+#else
+inline bool CoreIsDebuggerPresent()
+{
+    static bool(*func)();
 
-extern "C" void
-#ifdef COMPILING_CORE
-	DLL_EXPORT
+    if (!func)
+    {
+        func = (bool(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreIsDebuggerPresent");
+    }
+
+    return (!func) ? false : func();
+}
+
+inline void CoreSetDebuggerPresent()
+{
+    static void(*func)();
+
+    if (!func)
+    {
+        func = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetDebuggerPresent");
+    }
+
+    (func) ? func() : 0;
+}
 #endif
-	CoreSetDebuggerPresent();
+
 
 // min/max
 template<typename T, typename = void>

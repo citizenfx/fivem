@@ -7,94 +7,18 @@
 
 #pragma once
 
-#ifdef COMPILING_CORE
-#define GAME_EXPORT_ __declspec(dllexport)
-#else
-#define GAME_EXPORT_
-#endif
-
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_GAMESPEC) && !defined(COMPILING_HOOKS) && !defined(COMPILING_SHARED)
-GAME_EXPORT_ void* fwAlloc(size_t size);
-GAME_EXPORT_ void fwFree(void* ptr);
-#elif defined(COMPILING_SHARED)
-inline void* fwAllocSexy(size_t size)
+inline void* fwAlloc(size_t size)
 {
-	return malloc(size);
+    return malloc(size);
 }
 
-inline void fwFreeSexy(void* ptr)
+inline void fwFree(void* p)
 {
-	free(ptr);
+    free(p);
 }
-#endif
 
-template<class T>
-class fwAllocator : public std::allocator<T>
-{
-public:
-	typedef size_t size_type;
-	typedef T* pointer;
-
-	template<typename _Tp1>
-	struct rebind
-	{
-		typedef fwAllocator<_Tp1> other;
-	};
-
-	pointer allocate(size_type n, const void *hint = 0)
-	{
-#ifndef COMPILING_SHARED
-		return reinterpret_cast<pointer>(fwAlloc(n * sizeof(T)));
-#else
-		return reinterpret_cast<pointer>(fwAllocSexy(n * sizeof(T)));
-#endif
-	}
-
-	void deallocate(pointer p, size_type n)
-	{
-#ifndef COMPILING_SHARED
-		fwFree(p);
-#else
-		fwFreeSexy(p);
-#endif
-	}
-
-	fwAllocator() throw() : std::allocator<T>() { }
-	fwAllocator(const fwAllocator &a) throw() : std::allocator<T>(a) {}
-	template <class U>
-	fwAllocator(const fwAllocator<U> &a) throw() : std::allocator<T>(a) {}
-	~fwAllocator() throw() {}
-
-};
-
-//typedef std::basic_string<char, std::char_traits<char>, fwAllocator<char>> fwString;
-//typedef std::basic_string<wchar_t, std::char_traits<wchar_t>, fwAllocator<wchar_t>> fwWString;
 typedef std::string fwString;
 typedef std::wstring fwWString;
-
-/*template<class TKey, class TValue>
-class fwMap : public std::map<TKey, TValue, std::less<TKey>, fwAllocator<std::pair<const TKey, TValue>>>
-{
-
-};
-
-template<class TKey, class TValue>
-class fwHashMap : public std::unordered_map<TKey, TValue, std::hash<TKey>, std::equal_to<TKey>, fwAllocator<std::pair<const TKey, TValue>>>
-{
-
-};
-
-template<class TValue>
-class fwList : public std::list<TValue, fwAllocator<TValue>>
-{
-
-};
-
-template<class TValue>
-class fwVector : public std::vector<TValue, fwAllocator<TValue>>
-{
-
-};*/
 
 template<class TValue>
 using fwVector = std::vector<TValue>;

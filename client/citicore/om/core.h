@@ -103,16 +103,16 @@ inline bool operator!=(const guid_t& left, const guid_t& right)
 #define NS_DEFINE_STATIC_IID_ACCESSOR(x, y)
 
 // Start a search, returning the first class implementation matching the IID.
-extern "C" CORE_EXPORT intptr_t fxFindFirstImpl(const guid_t& iid, guid_t* clsid);
+extern "C" intptr_t fxFindFirstImpl(const guid_t& iid, guid_t* clsid);
 
 // Continue a fxFindFirstImpl search.
-extern "C" CORE_EXPORT int32_t fxFindNextImpl(intptr_t findHandle, guid_t* clsid);
+extern "C" int32_t fxFindNextImpl(intptr_t findHandle, guid_t* clsid);
 
 // Close a fxFindFirstImpl handle.
-extern "C" CORE_EXPORT void fxFindImplClose(intptr_t findHandle);
+extern "C" void fxFindImplClose(intptr_t findHandle);
 
 // Instance creation routine
-extern "C" CORE_EXPORT result_t fxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef);
+extern "C" result_t fxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef);
 
 // C++ helpers one may want
 #include <om/IBase.h>

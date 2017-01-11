@@ -247,5 +247,3 @@ void ComponentData::Load()
 {
 	SetLoaded(true);
 }
-
-bool Component::DoGameLoad(void* hModule) { return true; }

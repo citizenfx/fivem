@@ -52,6 +52,8 @@ bool Bootstrap_UpdateEXE(int exeSize)
 	return false;
 }
 
+bool VerifyViability();
+
 bool Bootstrap_DoBootstrap()
 {
 	// first check the bootstrapper version
@@ -88,6 +90,11 @@ bool Bootstrap_DoBootstrap()
 			return false;
 		}
 	}
+
+    if (!VerifyViability())
+    {
+        return false;
+    }
 
 #ifdef GTA_NY
 	return Updater_RunUpdate(1, "citiv");

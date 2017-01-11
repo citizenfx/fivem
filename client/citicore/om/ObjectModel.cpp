@@ -41,7 +41,7 @@ namespace
 	}
 }
 
-extern "C" CORE_EXPORT intptr_t fxFindFirstImpl(const guid_t& iid, guid_t* clsid)
+extern "C" DLL_EXPORT intptr_t CoreFxFindFirstImpl(const guid_t& iid, guid_t* clsid)
 {
 	// allocate a list of returned class IDs
 	std::vector<guid_t> clsids;
@@ -72,7 +72,7 @@ extern "C" CORE_EXPORT intptr_t fxFindFirstImpl(const guid_t& iid, guid_t* clsid
 	return 0;
 }
 
-extern "C" CORE_EXPORT int32_t fxFindNextImpl(intptr_t findHandle, guid_t* clsid)
+extern "C" DLL_EXPORT int32_t CoreFxFindNextImpl(intptr_t findHandle, guid_t* clsid)
 {
 	// verify the handle for not being null
 	if (findHandle == 0)
@@ -104,13 +104,13 @@ extern "C" CORE_EXPORT int32_t fxFindNextImpl(intptr_t findHandle, guid_t* clsid
 	return true;
 }
 
-extern "C" CORE_EXPORT void fxFindImplClose(intptr_t findHandle)
+extern "C" DLL_EXPORT void CoreFxFindImplClose(intptr_t findHandle)
 {
 	// delete the cast handle
 	delete reinterpret_cast<FindHandle*>(findHandle);
 }
 
-extern "C" result_t fxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
+extern "C" DLL_EXPORT result_t CoreFxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
 	// look through the object list and try to create an instance until it succeeds or fails *badly*
 	result_t result = FX_E_NOINTERFACE;

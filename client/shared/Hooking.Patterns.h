@@ -153,5 +153,3 @@ namespace hook
 		return pattern(pattern_string).get_first<T>(offset);
 	}
 }
-
-void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint);

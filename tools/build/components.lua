@@ -258,7 +258,7 @@ local do_component = function(name, comp)
 
 	defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
 
-	links { "Shared", "CitiCore" }
+	links { "Shared" }
 
 	pchsource "client/common/StdInc.cpp"
 	pchheader "StdInc.h"
