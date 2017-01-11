@@ -42,7 +42,14 @@ public:
 		return m_functions.size();
 	}
 
-	static void CrossReference(const FunctionTable& oldTable, const FunctionTable& newTable, std::unordered_map<uint64_t, uint64_t>& map);
+    template<typename TMap>
+    static void CrossReference(const FunctionTable& oldTable, const FunctionTable& newTable, TMap& map)
+    {
+        for (int i = 0; i < newTable.m_functions.size(); i++)
+        {
+            map.insert(std::make_pair(oldTable.GetAt(i), newTable.GetAt(i)));
+        }
+    }
 
 	void Serialize(std::function<void(const void*, size_t)> writer);
 };
@@ -66,14 +73,6 @@ FunctionTable::FunctionTable(std::function<void(void*, size_t)> reader)
 		reader(&functionValue, sizeof(functionValue));
 
 		m_functions.push_back(std::make_pair(functionValue, nullptr));
-	}
-}
-
-void FunctionTable::CrossReference(const FunctionTable& oldTable, const FunctionTable& newTable, std::unordered_map<uint64_t, uint64_t>& map)
-{
-	for (int i = 0; i < newTable.m_functions.size(); i++)
-	{
-		map.insert(std::make_pair(oldTable.GetAt(i), newTable.GetAt(i)));
 	}
 }
 
@@ -166,7 +165,7 @@ void TableGenerator::GenerateForComponent(void* regFunc, FunctionTable& table)
 }
 
 static bool g_needsMapping;
-static std::unordered_map<uint64_t, uint64_t> g_mappingTable;
+static std::map<uint64_t, uint64_t> g_mappingTable;
 
 namespace rage
 {
