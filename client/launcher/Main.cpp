@@ -301,3 +301,6 @@ void main()
 		}
 	}
 }
+
+extern "C" __declspec(dllexport) DWORD NvOptimusEnablement = 1;
+extern "C" __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
