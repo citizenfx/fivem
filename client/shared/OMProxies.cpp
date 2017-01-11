@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#define FXOM_NO_HELPERS
 #include <../citicore/om/core.h> // HACKHACK
 
 extern "C" intptr_t fxFindFirstImpl(const guid_t& iid, guid_t* clsid)

@@ -114,6 +114,7 @@ extern "C" void fxFindImplClose(intptr_t findHandle);
 // Instance creation routine
 extern "C" result_t fxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef);
 
+#ifndef FXOM_NO_HELPERS
 // C++ helpers one may want
 #include <om/IBase.h>
 
@@ -126,3 +127,4 @@ extern "C" result_t fxCreateObjectInstance(const guid_t& guid, const guid_t& iid
 
 #define FX_NEW_FACTORY(type) \
 	static OMFactoryDefinition _factory##type(CLSID_##type, fx::MakeNewBase<type>);
+#endif
