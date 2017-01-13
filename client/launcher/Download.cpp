@@ -544,6 +544,7 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, RequestDataReceived);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &bufferData);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "CitizenIV");
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
 
 		CURLcode code = curl_easy_perform(curl);
