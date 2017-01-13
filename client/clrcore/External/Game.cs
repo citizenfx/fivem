@@ -2,6 +2,7 @@ using System;
 using CitizenFX.Core.Native;
 using System.Threading.Tasks;
 using CitizenFX.Core;
+using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -257,6 +258,7 @@ namespace CitizenFX.Core
 
 				return (RadioStation)Array.IndexOf(_radioNames, radioName);
 			}
+			[SecuritySafeCritical]
 			set
 			{
 				if (Enum.IsDefined(typeof(RadioStation), value) && value != RadioStation.RadioOff)
@@ -773,7 +775,7 @@ namespace CitizenFX.Core
 		{
 			//ScriptDomain.CurrentDomain.PauseKeyboardEvents(true);
 
-			Function.Call(Hash.DISPLAY_ONSCREEN_KEYBOARD, true, windowTitle.ToString(), MemoryAccess.NullString, defaultText, MemoryAccess.NullString, MemoryAccess.NullString, MemoryAccess.NullString, maxLength + 1);
+			ClearKeyboard(windowTitle, defaultText, maxLength);
 
 			while (Function.Call<int>(Hash.UPDATE_ONSCREEN_KEYBOARD) == 0)
 			{
@@ -783,6 +785,11 @@ namespace CitizenFX.Core
 			//ScriptDomain.CurrentDomain.PauseKeyboardEvents(false);
 
 			return Function.Call<string>(Hash.GET_ONSCREEN_KEYBOARD_RESULT);
+		}
+		[SecuritySafeCritical]
+		private static void ClearKeyboard(WindowTitle windowTitle, string defaultText, int maxLength)
+		{
+			Function.Call(Hash.DISPLAY_ONSCREEN_KEYBOARD, true, windowTitle.ToString(), MemoryAccess.NullString, defaultText, MemoryAccess.NullString, MemoryAccess.NullString, MemoryAccess.NullString, maxLength + 1);
 		}
 	}
 }

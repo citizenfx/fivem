@@ -86,6 +86,7 @@ namespace CitizenFX.Core
 			}
 		}
 
+		[SecuritySafeCritical]
 		public void CallFunction(string function, params object[] arguments)
 		{
 			Function.Call(Hash._PUSH_SCALEFORM_MOVIE_FUNCTION, Handle, function);

@@ -243,6 +243,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="message">The message to display.</param>
 		/// <param name="duration">The duration to display the subtitle in milliseconds.</param>
+		[SecuritySafeCritical]
 		public static void ShowSubtitle(string message, int duration = 2500)
 		{
 			Function.Call(Hash._SET_TEXT_ENTRY_2, MemoryAccess.CellEmailBcon);
@@ -261,6 +262,7 @@ namespace CitizenFX.Core.UI
 		/// Displays a help message in the top corner of the screen this frame.
 		/// </summary>
 		/// <param name="helpText">The text to display.</param>
+		[SecuritySafeCritical]
 		public static void DisplayHelpTextThisFrame(string helpText)
 		{
 			Function.Call(Hash._SET_TEXT_COMPONENT_FORMAT, MemoryAccess.CellEmailBcon);
@@ -330,6 +332,7 @@ namespace CitizenFX.Core.UI
 			/// <see cref="LoadingSpinnerType.Clockwise1"/>, <see cref="LoadingSpinnerType.Clockwise2"/>, <see cref="LoadingSpinnerType.Clockwise3"/> and <see cref="LoadingSpinnerType.RegularClockwise"/> all see to be the same. 
 			/// But Rockstar always seem to use the <see cref="LoadingSpinnerType.RegularClockwise"/> in the scripts
 			/// </remarks>
+			[SecuritySafeCritical]
 			public static void Show(string loadingText = null, LoadingSpinnerType spinnerType = LoadingSpinnerType.RegularClockwise)
 			{
 				if(IsActive)

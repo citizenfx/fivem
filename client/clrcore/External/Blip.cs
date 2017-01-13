@@ -348,6 +348,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public string Name
 		{
+			[SecuritySafeCritical]
 			set
 			{
 				Function.Call(Hash.BEGIN_TEXT_COMMAND_SET_BLIP_NAME, MemoryAccess.StringPtr);

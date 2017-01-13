@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using CitizenFX.Core.Native;
+using System.Security;
 
 namespace CitizenFX.Core.UI
 {
@@ -129,6 +130,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Sprite"/>.</param>
 		/// <param name="rotation">Set the rotation to draw the sprite, measured in degrees, see also <seealso cref="Rotation"/>.</param>
 		/// <param name="centered">Position the <see cref="Sprite"/> based on its center instead of top left corner, see also <seealso cref="Centered"/>.</param>
+		[SecuritySafeCritical]
 		public Sprite(string textureDict, string textureName, SizeF size, PointF position, Color color, float rotation, bool centered)
 		{
 			byte[] data = Encoding.UTF8.GetBytes(textureDict + "\0");
@@ -165,6 +167,7 @@ namespace CitizenFX.Core.UI
 			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
+		[SecuritySafeCritical]
 		protected virtual void Dispose(bool disposing)
 		{
 			if (disposing)
