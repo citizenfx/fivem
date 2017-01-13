@@ -248,7 +248,21 @@ namespace CitizenFX.Core.Native
             }
         }
 
-        public static string CellEmailBcon => "CELL_EMAIL_BCON";
+		private static IntPtr ms_cellEmailBconString;
+
+		public static IntPtr CellEmailBcon
+		{
+			[SecuritySafeCritical]
+			get
+			{
+				if (ms_cellEmailBconString == IntPtr.Zero)
+				{
+					ms_cellEmailBconString = Marshal.StringToHGlobalAnsi("CELL_EMAIL_BCON");
+				}
+
+				return ms_cellEmailBconString;
+			}
+		}
     }
 
     public abstract class INativeValue
