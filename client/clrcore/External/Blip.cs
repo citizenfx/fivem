@@ -452,6 +452,7 @@ namespace CitizenFX.Core
         /// <summary>
         /// Removes this <see cref="Blip"/>.
         /// </summary>
+		[SecuritySafeCritical]
         public override void Delete()
         {
             _Delete();
