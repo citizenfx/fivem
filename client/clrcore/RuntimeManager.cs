@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using CitizenFX.Core;
+using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
@@ -206,6 +207,8 @@ namespace CitizenFX.Core
         {
             try
             {
+				ScriptContext.GlobalCleanUp();
+
                 var delays = ms_delays.ToArray();
                 var now = DateTime.Now;
 
@@ -488,7 +491,7 @@ namespace CitizenFX.Core
     public class ScriptContext : IDisposable
     {
         private fxScriptContext m_context;
-        private List<Action> m_finalizers;
+        private static List<Action> ms_finalizers = new List<Action>();
 
         public ScriptContext()
         {
@@ -497,12 +500,10 @@ namespace CitizenFX.Core
 
         public void Reset()
         {
-            CleanUp();
+            //CleanUp();
 
             m_context = new fxScriptContext();
             m_context.functionData = new byte[32 * 8];
-
-            m_finalizers = new List<Action>();
         }
 
         [SecuritySafeCritical]
@@ -528,7 +529,7 @@ namespace CitizenFX.Core
                 Marshal.Copy(b, 0, ptr, b.Length);
                 Marshal.WriteByte(ptr, b.Length, 0);
                 
-                m_finalizers.Add(() => Free(ptr));
+                ms_finalizers.Add(() => Free(ptr));
 
                 b = BitConverter.GetBytes(ptr.ToInt64());
                 Array.Copy(b, 0, m_context.functionData, 8 * m_context.numArguments, 8);
@@ -599,6 +600,12 @@ namespace CitizenFX.Core
 				Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);
 				return Encoding.UTF8.GetString(buffer);
 			}
+			else if (type.IsAssignableFrom(typeof(INativeValue)))
+			{
+				int a = (int)GetResultInternal(typeof(int), ptr);
+
+				return Activator.CreateInstance(type, a);
+			}
 			else if (type == typeof(Vector3))
 			{
 				float x = BitConverter.ToSingle(ptr, 0);
@@ -649,12 +656,13 @@ namespace CitizenFX.Core
                 
             }
 
-            CleanUp();
+            //CleanUp();
         }
 
-        private void CleanUp()
+        internal static void GlobalCleanUp()
         {
-            m_finalizers?.ForEach(a => a());
+            ms_finalizers?.ForEach(a => a());
+			ms_finalizers?.Clear();
         }
     }
 
