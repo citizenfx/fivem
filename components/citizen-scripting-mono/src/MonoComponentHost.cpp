@@ -23,13 +23,13 @@ extern "C"
 
 static MonoDomain* g_rootDomain;
 
-const static char* g_platformAssemblies[] =
+const static wchar_t* const g_platformAssemblies[] =
 {
-	"mscorlib.dll",
-	"System.dll",
-	"System.Core.dll",
-	"CitizenFX.Core.dll",
-	"Mono.CSharp.dll"
+	L"mscorlib.dll",
+	L"System.dll",
+	L"System.Core.dll",
+	L"CitizenFX.Core.dll",
+	L"Mono.CSharp.dll"
 };
 
 static int CoreClrCallback(const char* imageName)
@@ -39,10 +39,10 @@ static int CoreClrCallback(const char* imageName)
 		return FALSE;
 	}
 
-	char* filePart = nullptr;
-	char fullPath[512];
+	wchar_t* filePart = nullptr;
+	wchar_t fullPath[512];
 
-	if (GetFullPathNameA(imageName, sizeof(fullPath), fullPath, &filePart) == 0)
+	if (GetFullPathNameW(ToWide(imageName).c_str(), _countof(fullPath), fullPath, &filePart) == 0)
 	{
 		return FALSE;
 	}
@@ -55,31 +55,28 @@ static int CoreClrCallback(const char* imageName)
 	*(filePart - 1) = '\0';
 
 	std::wstring platformPath = MakeRelativeCitPath(L"citizen\\clr2\\lib");
-	char clrPath[256];
-	wcstombs(clrPath, platformPath.c_str(), sizeof(clrPath));
 
-	if (_stricmp(clrPath, fullPath) != 0)
+	if (_wcsicmp(platformPath.c_str(), fullPath) != 0)
 	{
 		platformPath = MakeRelativeCitPath(L"citizen\\clr2\\lib\\mono\\4.5");
-		wcstombs(clrPath, platformPath.c_str(), sizeof(clrPath));
 
-		if (_stricmp(clrPath, fullPath) != 0)
+		if (_wcsicmp(platformPath.c_str(), fullPath) != 0)
 		{
-			trace("%s %s is not a platform image.\n", fullPath, filePart);
+			trace("%s %s is not a platform image.\n", ToNarrow(fullPath), ToNarrow(filePart));
 			return FALSE;
 		}
 	}
 
 	for (int i = 0; i < _countof(g_platformAssemblies); i++)
 	{
-		if (!_stricmp(filePart, g_platformAssemblies[i]))
+		if (!_wcsicmp(filePart, g_platformAssemblies[i]))
 		{
-			trace("%s %s is a platform image.\n", fullPath, filePart);
+			trace("%s %s is a platform image.\n", ToNarrow(fullPath), ToNarrow(filePart));
 			return TRUE;
 		}
 	}
 
-	trace("%s %s is not a platform image (even though the dir matches).\n", fullPath, filePart);
+	trace("%s %s is not a platform image (even though the dir matches).\n", ToNarrow(fullPath), ToNarrow(filePart));
 
 	return FALSE;
 }
