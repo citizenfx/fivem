@@ -312,6 +312,22 @@ namespace CitizenFX.Core
         {
             FunctionReference.Remove(refIndex);
         }
+
+		[SecuritySafeCritical]
+		public static T CreateInstance<T>(Guid clsid)
+		{
+			var hr = GameInterface.CreateObjectInstance(clsid, typeof(T).GUID, out IntPtr ptr);
+
+			if (hr < 0)
+			{
+				Marshal.ThrowExceptionForHR(hr);
+			}
+
+			var obj = (T)Marshal.GetObjectForIUnknown(ptr);
+			Marshal.Release(ptr);
+
+			return obj;
+		}
     }
 
     [Guid("C068E0AB-DD9C-48F2-A7F3-69E866D27F17")]
@@ -385,22 +401,25 @@ namespace CitizenFX.Core
         {
             try
             {
-                var assemblyStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile)));
-                var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
+				using (GetPushRuntime())
+				{
+					var assemblyStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile)));
+					var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
 
-                byte[] symbolBytes = null;
+					byte[] symbolBytes = null;
 
-                try
-                {
-                    var symbolStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile + ".mdb")));
-                    symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
-                }
-                catch
-                {
-                    // nothing
-                }
+					try
+					{
+						var symbolStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile + ".mdb")));
+						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+					}
+					catch
+					{
+						// nothing
+					}
 
-                m_intManager.CreateAssembly(assemblyBytes, symbolBytes);
+					m_intManager.CreateAssembly(assemblyBytes, symbolBytes);
+				}
             }
             catch (Exception e)
             {
@@ -412,14 +431,20 @@ namespace CitizenFX.Core
 
         public void Tick()
         {
-            m_intManager?.Tick();
+			using (GetPushRuntime())
+			{
+				m_intManager?.Tick();
+			}
         }
 
         public void TriggerEvent(string eventName, byte[] argsSerialized, int serializedSize, string sourceId)
         {
             try
             {
-                m_intManager?.TriggerEvent(eventName, argsSerialized, sourceId);
+				using (GetPushRuntime())
+				{
+					m_intManager?.TriggerEvent(eventName, argsSerialized, sourceId);
+				}
             }
             catch (Exception e)
             {
@@ -436,7 +461,10 @@ namespace CitizenFX.Core
 
             try
             {
-                m_intManager?.CallRef(refIndex, argsSerialized, out retvalSerialized, out retvalSize);
+				using (GetPushRuntime())
+				{
+					m_intManager?.CallRef(refIndex, argsSerialized, out retvalSerialized, out retvalSize);
+				}
             }
             catch (Exception e)
             {
@@ -450,7 +478,10 @@ namespace CitizenFX.Core
         {
             try
             {
-                return m_intManager?.DuplicateRef(refIndex) ?? 0;
+				using (GetPushRuntime())
+				{
+					return m_intManager?.DuplicateRef(refIndex) ?? 0;
+				}
             }
             catch (Exception e)
             {
@@ -464,7 +495,10 @@ namespace CitizenFX.Core
         {
             try
             {
-                m_intManager?.RemoveRef(refIndex);
+				using (GetPushRuntime())
+				{
+					m_intManager?.RemoveRef(refIndex);
+				}
             }
             catch (Exception e)
             {
@@ -473,9 +507,33 @@ namespace CitizenFX.Core
                 throw;
             }
         }
+
+		public PushRuntime GetPushRuntime()
+		{
+			return new PushRuntime(this);
+		}
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+	internal class PushRuntime : IDisposable
+	{
+		private readonly IScriptRuntime m_runtime;
+		private readonly IScriptRuntimeHandler m_runtimeHandler;
+
+		public PushRuntime(IScriptRuntime runtime)
+		{
+			m_runtimeHandler = InternalManager.CreateInstance<IScriptRuntimeHandler>(new Guid(0xc41e7194, 0x7556, 0x4c02, 0xba, 0x45, 0xa9, 0xc8, 0x4d, 0x18, 0xad, 0x43));
+			m_runtimeHandler.PushRuntime(runtime);
+
+			m_runtime = runtime;
+		}
+
+		public void Dispose()
+		{
+			m_runtimeHandler.PopRuntime(m_runtime);
+		}
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
     [Serializable]
     public struct fxScriptContext
     {
@@ -781,6 +839,21 @@ namespace CitizenFX.Core
         [PreserveSig]
         int GetInstanceId();
     }
+
+	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+	[Guid("4720a986-eaa6-4ecc-a31f-2ce2bbf569f7")]
+	[ComImport]
+	public interface IScriptRuntimeHandler
+	{
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		void PushRuntime(IScriptRuntime runtime);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		IScriptRuntime GetCurrentRuntime();
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		void PopRuntime(IScriptRuntime runtime);
+	}
 
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("91b203c7-f95a-4902-b463-722d55098366")]

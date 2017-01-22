@@ -14,5 +14,9 @@ namespace CitizenFX.Core
         [SecurityCritical]
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void PrintLog(string text);
+
+		[SecurityCritical]
+		[DllImport("CoreRT", EntryPoint = "CoreFxCreateObjectInstance")]
+		public static extern int CreateObjectInstance(Guid clsid, Guid iid, out IntPtr objectPtr);
     }
 }
