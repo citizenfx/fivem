@@ -27,6 +27,18 @@ static HookFunction hookFunction([] ()
 		rage::fiDevice::OnInitialMount();
 	});*/
 
+	// increase non-DLC fiDevice mount limit
+	{
+		/*auto location = hook::get_pattern<char>("44 8B 35 ? ? ? ? 45 85 F6 74 1B 48 8D", 3);
+		int* limit = (int*)(location + *(int32_t*)location + 4);
+
+		*limit *= 8;*/
+
+		// GTA project initialization code, arxan-obfuscated
+		auto location = hook::get_pattern<int>("C7 05 ? ? ? ? 64 00 00 00 48 8B", 6);
+		hook::put<int>(location, *location * 5);
+	}
+
 	// patch 2 changed register alloc (2015-04-17)
 	//hook::call(hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 3C 38 66").count(1).get(0).get<void>(0x15), CallInitialMount);
 	hook::call(hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 34 38 66").count(1).get(0).get<void>(0x15), CallInitialMount);
