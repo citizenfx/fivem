@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
@@ -11,7 +13,7 @@ namespace CitizenFX.Core
 
         public IEnumerator<Player> GetEnumerator()
         {
-            for (int i = 0; i < MaxPlayers; i++)
+            for (var i = 0; i < MaxPlayers; i++)
             {
                 if (Function.Call<bool>(Hash.NETWORK_IS_PLAYER_ACTIVE, i))
                 {
@@ -25,36 +27,8 @@ namespace CitizenFX.Core
             return GetEnumerator();
         }
         
-        public Player this[int netId]
-        {
-            get
-            {
-                foreach (var player in this)
-                {
-                    if (player.ServerId == netId)
-                    {
-                        return player;
-                    }
-                }
+        public Player this[int netId] => this.FirstOrDefault(player => player.ServerId == netId);
 
-                return null;
-            }
-        }
-
-        public Player this[string name]
-        {
-            get
-            {
-                foreach (var player in this)
-                {
-                    if (player.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        return player;
-                    }
-                }
-
-                return null;
-            }
-        }
+	    public Player this[string name] => this.FirstOrDefault(player => player.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
     }
 }

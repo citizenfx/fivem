@@ -8,14 +8,6 @@ namespace CitizenFX.Core
 {
     public static class ScriptEnvironment
     {
-        public static string ResourceName
-        {
-            get
-            {
-                return "";
-
-                //return RuntimeManager.ResourceName;
-            }
-        }
+        public static string ResourceName => "";
     }
 }

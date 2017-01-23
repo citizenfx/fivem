@@ -42,7 +42,7 @@ namespace CitizenFX.Core
 
         protected PlayerList Players { get; private set; }
 
-        public BaseScript()
+	    protected BaseScript()
         {
             EventHandlers = new EventHandlerDictionary();
             Exports = new ExportDictionary();
@@ -142,13 +142,13 @@ namespace CitizenFX.Core
 
     class DummyAsyncResult : IAsyncResult
     {
-        public object AsyncState { get { return null; } }
+        public object AsyncState => null;
 
-        public System.Threading.WaitHandle AsyncWaitHandle { get { return null; } }
+	    public System.Threading.WaitHandle AsyncWaitHandle => null;
 
-        public bool CompletedSynchronously { get { return false; } }
+	    public bool CompletedSynchronously => false;
 
-        public bool IsCompleted { get { return false; } }
+	    public bool IsCompleted => false;
     }
 
 #if test

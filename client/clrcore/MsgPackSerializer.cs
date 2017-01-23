@@ -108,45 +108,41 @@ namespace CitizenFX.Core
                     Serialize(item, packer);
                 }
             }
-            else if (obj is IEnumerable)
-            {
-                var enu = (IEnumerable)obj;
+            else if (obj is IEnumerable enu)
+			{
+				var list = new List<object>();
 
-                var list = new List<object>();
+				foreach (var item in enu)
+				{
+					list.Add(item);
+				}
 
-                foreach (var item in enu)
-                {
-                    list.Add(item);
-                }
+				packer.PackArrayHeader(list.Count);
 
-                packer.PackArrayHeader(list.Count);
+				list.ForEach(a => Serialize(a, packer));
+			}
+			else if (obj is IPackable packable)
+			{
+				packable.PackToMessage(packer, null);
+			}
+			else if (obj is Delegate deleg)
+			{
+				var serializer = new DelegateSerializer();
+				serializer.PackTo(packer, deleg);
+			}
+			else
+			{
+				var properties = type.GetProperties();
+				var dict = new Dictionary<string, object>();
 
-                list.ForEach(a => Serialize(a, packer));
-            }
-            else if (obj is IPackable)
-            {
-                var packable = (IPackable)obj;
+				foreach (var property in properties)
+				{
+					dict[property.Name] = property.GetValue(obj, null);
+				}
 
-                packable.PackToMessage(packer, null);
-            }
-            else if (obj is Delegate)
-            {
-                var serializer = new DelegateSerializer();
-                serializer.PackTo(packer, (Delegate)obj);
-            }
-            else
-            {
-                var properties = type.GetProperties();
-                var dict = new Dictionary<string, object>();
-
-                foreach (var property in properties)
-                {
-                    dict[property.Name] = property.GetValue(obj, null);
-                }
-
-                Serialize(dict, packer);
-            }
-        }
+				Serialize(dict, packer);
+			}
+		}
     }
 
     class DelegateSerializer : MessagePackSerializer<Delegate>
@@ -158,7 +154,7 @@ namespace CitizenFX.Core
         }
 
         [SecuritySafeCritical]
-        protected override void PackToCore(MsgPack.Packer packer, Delegate objectTree)
+        protected override void PackToCore(Packer packer, Delegate objectTree)
         {
             if (objectTree is CallbackDelegate)
             {
@@ -172,20 +168,20 @@ namespace CitizenFX.Core
                     throw new ArgumentException("The CallbackDelegate does not contain a RemoteFunctionReference capture.");
                 }
 
-                RemoteFunctionReference fr = (RemoteFunctionReference)funcRef.GetValue(objectTree.Target);
+                var fr = (RemoteFunctionReference)funcRef.GetValue(objectTree.Target);
 
                 packer.PackExtendedTypeValue(10, fr.Duplicate());
             }
             else
             {
                 var funcRefDetails = FunctionReference.Create(objectTree);
-                string refType = InternalManager.CanonicalizeRef(funcRefDetails.Identifier);
+                var refType = InternalManager.CanonicalizeRef(funcRefDetails.Identifier);
 
                 packer.PackExtendedTypeValue(10, Encoding.UTF8.GetBytes(refType));
             }
         }
 
-        protected override Delegate UnpackFromCore(MsgPack.Unpacker unpacker)
+        protected override Delegate UnpackFromCore(Unpacker unpacker)
         {
             throw new NotImplementedException();
         }

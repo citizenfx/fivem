@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CitizenFX.Core
 {
@@ -32,7 +30,7 @@ namespace CitizenFX.Core
         {
             var retObject = new ExpandoObject() as IDictionary<string, object>;
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 var key = UnpackAny(reader).ToString();
                 var value = UnpackAny(reader);
@@ -45,9 +43,9 @@ namespace CitizenFX.Core
 
         static object UnpackArray(BinaryReader reader, int length)
         {
-            List<object> retObject = new List<object>();
+            var retObject = new List<object>();
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 var value = UnpackAny(reader);
 
@@ -76,14 +74,14 @@ namespace CitizenFX.Core
         {
             var bytes = reader.ReadBytes(4);
 
-            return BitConverter.ToSingle(new byte[] { bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
+            return BitConverter.ToSingle(new[] { bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackDouble(byte a, BinaryReader reader)
         {
             var bytes = reader.ReadBytes(8);
 
-            return BitConverter.ToDouble(new byte[] { bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
+            return BitConverter.ToDouble(new[] { bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackFixNumPos(byte a, BinaryReader reader)
@@ -100,21 +98,21 @@ namespace CitizenFX.Core
         {
             var bytes = reader.ReadBytes(2);
 
-            return BitConverter.ToUInt16(new byte[] { bytes[1], bytes[0] }, 0);
+            return BitConverter.ToUInt16(new[] { bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackUInt32(byte a, BinaryReader reader)
         {
             var bytes = reader.ReadBytes(4);
 
-            return BitConverter.ToUInt32(new byte[] { bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
+            return BitConverter.ToUInt32(new[] { bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackUInt64(byte a, BinaryReader reader)
         {
             var bytes = reader.ReadBytes(8);
 
-            return BitConverter.ToUInt64(new byte[] { bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
+            return BitConverter.ToUInt64(new[] { bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackInt8(byte a, BinaryReader reader)
@@ -126,26 +124,26 @@ namespace CitizenFX.Core
         {
             var bytes = reader.ReadBytes(2);
 
-            return BitConverter.ToInt16(new byte[] { bytes[1], bytes[0] }, 0);
+            return BitConverter.ToInt16(new[] { bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackInt32(byte a, BinaryReader reader)
         {
             var bytes = reader.ReadBytes(4);
 
-            return BitConverter.ToInt32(new byte[] { bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
+            return BitConverter.ToInt32(new[] { bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackInt64(byte a, BinaryReader reader)
         {
             var bytes = reader.ReadBytes(8);
 
-            return BitConverter.ToInt64(new byte[] { bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
+            return BitConverter.ToInt64(new[] { bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0] }, 0);
         }
 
         static object UnpackFixNumNeg(byte a, BinaryReader reader)
         {
-            return (int)a - 256;
+            return a - 256;
         }
 
         static object UnpackFixStr(byte a, BinaryReader reader)
@@ -167,7 +165,7 @@ namespace CitizenFX.Core
         static object UnpackString16(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(2);
-            var len = BitConverter.ToUInt16(new byte[] { lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToUInt16(new[] { lenBytes[1], lenBytes[0] }, 0);
 
             var bytes = reader.ReadBytes(len);
 
@@ -177,7 +175,7 @@ namespace CitizenFX.Core
         static object UnpackString32(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(4);
-            var len = BitConverter.ToInt32(new byte[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToInt32(new[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
 
             var bytes = reader.ReadBytes(len);
 
@@ -193,7 +191,7 @@ namespace CitizenFX.Core
         static object UnpackBin16(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(2);
-            var len = BitConverter.ToUInt16(new byte[] { lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToUInt16(new[] { lenBytes[1], lenBytes[0] }, 0);
 
             return reader.ReadBytes(len);
         }
@@ -201,7 +199,7 @@ namespace CitizenFX.Core
         static object UnpackBin32(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(4);
-            var len = BitConverter.ToInt32(new byte[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToInt32(new[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
 
             return reader.ReadBytes(len);
         }
@@ -216,7 +214,7 @@ namespace CitizenFX.Core
         static object UnpackArray16(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(2);
-            var len = BitConverter.ToUInt16(new byte[] { lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToUInt16(new[] { lenBytes[1], lenBytes[0] }, 0);
 
             return UnpackArray(reader, len);
         }
@@ -224,7 +222,7 @@ namespace CitizenFX.Core
         static object UnpackArray32(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(4);
-            var len = BitConverter.ToInt32(new byte[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToInt32(new[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
 
             return UnpackArray(reader, len);
         }
@@ -239,7 +237,7 @@ namespace CitizenFX.Core
         static object UnpackMap16(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(2);
-            var len = BitConverter.ToUInt16(new byte[] { lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToUInt16(new[] { lenBytes[1], lenBytes[0] }, 0);
 
             return UnpackMap(reader, len);
         }
@@ -247,7 +245,7 @@ namespace CitizenFX.Core
         static object UnpackMap32(byte a, BinaryReader reader)
         {
             var lenBytes = reader.ReadBytes(4);
-            var len = BitConverter.ToInt32(new byte[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
+            var len = BitConverter.ToInt32(new[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
 
             return UnpackMap(reader, len);
         }
@@ -282,7 +280,7 @@ namespace CitizenFX.Core
             });
         }
 
-        private static Dictionary<byte, Func<byte, BinaryReader, object>> ms_unpackMap = new Dictionary<byte, Func<byte, BinaryReader, object>>()
+        private static readonly Dictionary<byte, Func<byte, BinaryReader, object>> ms_unpackMap = new Dictionary<byte, Func<byte, BinaryReader, object>>
         {
             { 0xC0, UnpackNil },
             { 0xC2, UnpackFalse },
@@ -307,7 +305,7 @@ namespace CitizenFX.Core
             { 0xDC, UnpackArray16 },
             { 0xDD, UnpackArray32 },
             { 0xDE, UnpackMap16 },
-            { 0xDF, UnpackMap32 },
+            { 0xDF, UnpackMap32 }
         };
 
         private static Func<byte, BinaryReader, object> GetUnpacker(byte type)
@@ -318,23 +316,26 @@ namespace CitizenFX.Core
                 {
                     return UnpackFixNumPos;
                 }
-                else if (type < 0x90)
-                {
-                    return UnpackFixMap;
-                }
-                else if (type < 0xA0)
-                {
-                    return UnpackFixArray;
-                }
 
-                return UnpackFixStr;
-            }
-            else if (type > 0xDF)
-            {
-                return UnpackFixNumNeg;
+	            if (type < 0x90)
+	            {
+		            return UnpackFixMap;
+	            }
+
+	            if (type < 0xA0)
+	            {
+		            return UnpackFixArray;
+	            }
+
+	            return UnpackFixStr;
             }
 
-            return ms_unpackMap[type];
+	        if (type > 0xDF)
+	        {
+		        return UnpackFixNumNeg;
+	        }
+
+	        return ms_unpackMap[type];
         }
     }
 }

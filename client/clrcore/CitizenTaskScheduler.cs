@@ -9,7 +9,7 @@ namespace CitizenFX.Core
 {
     class CitizenTaskScheduler : TaskScheduler
     {
-        private List<Task> m_runningTasks = new List<Task>();
+        private readonly List<Task> m_runningTasks = new List<Task>();
 
         protected CitizenTaskScheduler()
         {
@@ -39,15 +39,9 @@ namespace CitizenFX.Core
             return m_runningTasks;
         }
 
-        public override int MaximumConcurrencyLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
+        public override int MaximumConcurrencyLevel => 1;
 
-        public void Tick()
+	    public void Tick()
         {
             var tasks = m_runningTasks.ToArray();
 

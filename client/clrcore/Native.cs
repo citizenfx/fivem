@@ -1,11 +1,6 @@
-﻿using CitizenFX.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CitizenFX.Core.Native
 {
@@ -59,11 +54,11 @@ namespace CitizenFX.Core.Native
         public static uint GetHashKey(string input)
         {
             uint hash = 0;
-            int len = input.Length;
+            var len = input.Length;
 
             input = input.ToLowerInvariant();
 
-            for (int i = 0; i < len; i++)
+            for (var i = 0; i < len; i++)
             {
                 hash += input[i];
                 hash += (hash << 10);
@@ -179,7 +174,7 @@ namespace CitizenFX.Core.Native
         {
             unsafe
             {
-                int* ptr = (int*)pointer.ToPointer();
+                var ptr = (int*)pointer.ToPointer();
                 return (*ptr & (1 << bit)) != 0;
             }
         }
@@ -195,7 +190,7 @@ namespace CitizenFX.Core.Native
         {
             unsafe
             {
-                int* ptr = (int*)pointer.ToPointer();
+                var ptr = (int*)pointer.ToPointer();
                 *ptr &= ~(1 << bit);
             }
         }
@@ -362,7 +357,7 @@ namespace CitizenFX.Core.Native
         }
 
         [SecurityCritical]
-        public static unsafe implicit operator InputArgument(IntPtr value)
+        public static implicit operator InputArgument(IntPtr value)
         {
             return new InputArgument(value);
         }

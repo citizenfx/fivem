@@ -10,27 +10,16 @@ namespace CitizenFX.Core
 {
     public class ExportDictionary
     {
-        public dynamic this[string resourceName]
-        {
-            get
-            {
-                return new ExportSet(resourceName);
-            }
-        }
+        public dynamic this[string resourceName] => new ExportSet(resourceName);
     }
 
     public class ExportSet : DynamicObject
     {
-        private string m_resourceName;
+        private readonly string m_resourceName;
 
         public ExportSet(string resourceName)
         {
-            if (resourceName == null)
-            {
-                throw new ArgumentNullException("resourceName");
-            }
-
-            m_resourceName = resourceName;
+			m_resourceName = resourceName ?? throw new ArgumentNullException(nameof(resourceName));
         }
 
         private class DelegateFn

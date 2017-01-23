@@ -11,7 +11,7 @@ namespace CitizenFX.Core
 {
     class RemoteFunctionReference : IDisposable
     {
-        private string m_reference;
+        private readonly string m_reference;
 
         public RemoteFunctionReference(byte[] reference)
         {
@@ -62,8 +62,7 @@ namespace CitizenFX.Core
         [SecurityCritical]
         private byte[] _InvokeNative(byte[] argsSerialized)
         {
-            byte[] retval;
-            IntPtr resBytes;
+	        IntPtr resBytes;
             long retLength;
 
             unsafe
@@ -74,7 +73,7 @@ namespace CitizenFX.Core
                 }
             }
 
-            retval = new byte[retLength];
+            var retval = new byte[retLength];
             Marshal.Copy(resBytes, retval, 0, retval.Length);
 
             return retval;

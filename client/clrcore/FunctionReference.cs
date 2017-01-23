@@ -10,7 +10,7 @@ namespace CitizenFX.Core
 {
     class FunctionReference
     {
-        private Delegate m_method;
+        private readonly Delegate m_method;
 
         private FunctionReference(Delegate method)
         {
@@ -34,7 +34,7 @@ namespace CitizenFX.Core
 
         private static int Register(FunctionReference reference)
         {
-            int thisRefId = ms_referenceId;
+            var thisRefId = ms_referenceId;
             ms_references[thisRefId] = reference;
 
             unchecked { ms_referenceId++; }
@@ -44,9 +44,7 @@ namespace CitizenFX.Core
 
         public static byte[] Invoke(int reference, byte[] arguments)
         {
-            FunctionReference funcRef;
-            
-            if (!ms_references.TryGetValue(reference, out funcRef))
+			if (!ms_references.TryGetValue(reference, out var funcRef))
             {
                 Debug.WriteLine("No such reference for {0}.", reference);
 
@@ -61,7 +59,7 @@ namespace CitizenFX.Core
             var argArray = argList.ToArray();
 
             // the Lua runtime expects this to be an array, so it be an array.
-            return MsgPackSerializer.Serialize(new object[] { method.DynamicInvoke(argArray) });
+            return MsgPackSerializer.Serialize(new[] { method.DynamicInvoke(argArray) });
         }
 
         public static int Duplicate(int reference)

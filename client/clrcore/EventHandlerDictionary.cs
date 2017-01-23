@@ -49,8 +49,8 @@ namespace CitizenFX.Core
 
     public class EventHandlerEntry
     {
-        private string m_eventName;
-        private List<Delegate> m_callbacks = new List<Delegate>();
+        private readonly string m_eventName;
+        private readonly List<Delegate> m_callbacks = new List<Delegate>();
 
         public EventHandlerEntry(string eventName)
         {
@@ -91,7 +91,7 @@ namespace CitizenFX.Core
 						passArgs = passArgs.Take(paras.Length).ToArray();
 					}
 
-                    callback.DynamicInvoke(args);
+                    callback.DynamicInvoke(passArgs);
                 }
                 catch (Exception e)
                 {

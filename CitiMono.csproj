@@ -118,7 +118,21 @@
     <Compile Include="client\clrcore\External\WeaponHash.cs" />
     <Compile Include="client\clrcore\External\World.cs" />
     <Compile Include="client\clrcore\FunctionReference.cs" />
+    <Compile Include="client\clrcore\fxIStream.cs" />
+    <Compile Include="client\clrcore\fxScriptContext.cs" />
+    <Compile Include="client\clrcore\FxStreamWrapper.cs" />
     <Compile Include="client\clrcore\GameInterface.cs" />
+    <Compile Include="client\clrcore\IInternalHost.cs" />
+    <Compile Include="client\clrcore\InternalHost.cs" />
+    <Compile Include="client\clrcore\InternalManager.cs" />
+    <Compile Include="client\clrcore\InternalManagerInterface.cs" />
+    <Compile Include="client\clrcore\IScriptEventRuntime.cs" />
+    <Compile Include="client\clrcore\IScriptFileHandlingRuntime.cs" />
+    <Compile Include="client\clrcore\IScriptHost.cs" />
+    <Compile Include="client\clrcore\IScriptRefRuntime.cs" />
+    <Compile Include="client\clrcore\IScriptRuntime.cs" />
+    <Compile Include="client\clrcore\IScriptRuntimeHandler.cs" />
+    <Compile Include="client\clrcore\IScriptTickRuntime.cs" />
     <Compile Include="client\clrcore\Math\Color.cs" />
     <Compile Include="client\clrcore\Math\GameMath.cs" />
     <Compile Include="client\clrcore\Math\MathUtil.cs" />
@@ -131,16 +145,19 @@
     <Compile Include="client\clrcore\Math\Size.cs" />
     <Compile Include="client\clrcore\Math\SizeF.cs" />
     <Compile Include="client\clrcore\Math\Vector4.cs" />
+    <Compile Include="client\clrcore\MonoScriptRuntime.cs" />
     <Compile Include="client\clrcore\MsgPackDeserializer.cs" />
     <Compile Include="client\clrcore\MsgPackSerializer.cs" />
     <Compile Include="client\clrcore\Native.cs" />
     <Compile Include="client\clrcore\NativesFive.cs" />
     <Compile Include="client\clrcore\PlayerList.cs" />
+    <Compile Include="client\clrcore\PushRuntime.cs" />
     <Compile Include="client\clrcore\RageFileStream.cs" />
     <Compile Include="client\clrcore\RemoteFunctionReference.cs" />
     <Compile Include="client\clrcore\RuntimeManager.cs" />
     <Compile Include="client\clrcore\Math\Vector2.cs" />
     <Compile Include="client\clrcore\Math\Vector3.cs" />
+    <Compile Include="client\clrcore\ScriptContext.cs" />
     <Compile Include="client\clrcore\ScriptEnvironment.cs" />
   </ItemGroup>
   <ItemGroup>
