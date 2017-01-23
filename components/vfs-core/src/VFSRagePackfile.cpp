@@ -120,6 +120,7 @@ namespace vfs
 			if (entry->isDirectory)
 			{
 				auto proxy = EntryProxy{ m_nameTable, relativePath.substr(pos, nextPos - pos) };
+				const auto origEntry = entry;
 
 				entry = reinterpret_cast<const Entry*>(
 							bsearch(&proxy,
@@ -133,6 +134,24 @@ namespace vfs
 								}
 							)
 						);
+
+				// try alternative search method
+				if (entry == nullptr)
+				{
+					const char* compName = proxy.key.c_str();
+
+					for (size_t i = 0; i < origEntry->length; ++i)
+					{
+						const Entry* thisEntry = &m_entries[origEntry->dataOffset + i];
+						const char* name = &m_nameTable[thisEntry->nameOffset];
+
+						if (_stricmp(compName, name) == 0)
+						{
+							entry = thisEntry;
+							break;
+						}
+					}
+				}
 			}
 			else
 			{
