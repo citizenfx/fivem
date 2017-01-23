@@ -609,6 +609,14 @@ void LoadArchetypeFiles(void* dataFileMgr)
 
 				trace("done!\n");
 			}
+			else
+			{
+				trace("failed to open %s: device returned vfs::InvalidHandle\n", entry->name);
+			}
+		}
+		else
+		{
+			trace("failed to open %s: no device\n", entry->name);
 		}
 
 		entry = dataFileMgr__getNextEntry(dataFileMgr, entry);
