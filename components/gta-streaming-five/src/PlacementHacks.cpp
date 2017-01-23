@@ -318,6 +318,40 @@ void ParseArchetypeFile(char* text, size_t length)
 		return false;
 	};
 
+	auto getInt = [&](const char* name, int* out)
+	{
+		rapidjson::Value value;
+
+		if (findMember(name, value))
+		{
+			if (value.IsInt())
+			{
+				*out = value.GetInt();
+
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	auto getUInt = [&](const char* name, uint32_t* out)
+	{
+		rapidjson::Value value;
+
+		if (findMember(name, value))
+		{
+			if (value.IsInt())
+			{
+				*out = value.GetInt();
+
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	auto getFloat = [&] (const char* name, float* out)
 	{
 		rapidjson::Value value;
@@ -523,6 +557,8 @@ void ParseArchetypeFile(char* text, size_t length)
 
 						getFloat("float1", &entityDef->unkFloat1);
 						getFloat("float2", &entityDef->unkFloat2);
+
+						getUInt("flags", &entityDef->flags);
 
 						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &archetypeUnk);
 
