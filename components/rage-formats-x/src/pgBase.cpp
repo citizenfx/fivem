@@ -80,7 +80,7 @@ void* pgStreamManager::ResolveFilePointer(pgPtrRepresentation& ptr, BlockMap* bl
 		}
 	}
 
-	FatalError("Pointer %p not found in passed block map in pgStreamManager::ResolveFilePointer.", *(uintptr_t*)&ptr);
+	FatalError("Pointer %016llx not found in passed block map in pgStreamManager::ResolveFilePointer.", *(uintptr_t*)&ptr);
 }
 
 void pgStreamManager::SetBlockInfo(BlockMap* blockMap)
