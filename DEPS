@@ -4,7 +4,7 @@ vars = {
 
 deps = {
 	"vendor/luajit": Var("citidev_root") + "/luajit.git",
-	"build/premake": "http://tohjo.eu/citidev/premake-core.git",
+	"build/premake": "https://github.com/premake/premake-core.git",
 	"vendor/jitasm": "http://tohjo.eu/citidev/jitasm.git",
 	"vendor/yaml-cpp": "https://github.com/jbeder/yaml-cpp.git",
 	"vendor/msgpack-c": "https://github.com/msgpack/msgpack-c.git@e183efcce27437bf7f9107ec1862f032d0b8a00e",
