@@ -171,13 +171,13 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName)
     uint32_t version;
     fread(&version, 1, sizeof(version), f);
 
-    if (version != 165)
+    /*if (version != 165)
     {
         printf("not actually a supported file...\n");
 
         fclose(f);
         return nullptr;
-    }
+    }*/
 
     uint32_t flag;
     fread(&flag, 1, sizeof(flag), f);
@@ -248,16 +248,6 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName)
 
 static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 {
-    auto bm = UnwrapRSC7(L"B:\\dev\\prop_tree_oak_01.ydr");
-    rage::five::pgStreamManager::SetBlockInfo(bm);
-
-    auto dr = (rage::five::gtaDrawable*)bm->blocks[0].data;
-    dr->Resolve(bm);
-
-    __debugbreak();
-
-    (new rage::five::grmShaderFx())->DoPreset("trees_normal_spec", "trees_normal_spec.sps");
-
 	if (map.count("filename") == 0)
 	{
 		printf("Usage:\n\n   fivem formats:convert filename<1-n>...\n\nCurrently, GTA:NY static bounds (wbn), drawables (wdr) and texture dictionaries (wtd) are supported.\nSee your vendor for details.\n");
