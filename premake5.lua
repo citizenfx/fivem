@@ -32,9 +32,13 @@ solution "CitizenMP"
 	
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
+	defines { "_HAS_AUTO_PTR_ETC" } -- until boost gets fixed
+
 	libdirs { "deplibs/lib/" }
 
 	location ("build/" .. _OPTIONS['game'])
+
+	buildoptions '/std:c++latest'
 
 	if _OPTIONS['game'] == 'server' then
 		location ("build/server/" .. os.get())
@@ -304,33 +308,6 @@ if _OPTIONS['game'] ~= 'server' then
 		}
 end
 		
-	project "gtest_main"
-		language "C++"
-		kind "StaticLib"
-
-		includedirs { "../vendor/gtest/googletest/" }
-
-		files { "../vendor/gtest/googletest/src/gtest-all.cc", "../vendor/gtest/googletest/src/gtest_main.cc" }
-
-	project "gmock_main"
-		language "C++"
-		kind "StaticLib"
-		
-		includedirs { "../vendor/gtest/googlemock/", "../vendor/gtest/googletest/" }
-		files { "../vendor/gtest/googlemock/src/gmock-all.cc", "../vendor/gtest/googlemock/src/gmock_main.cc" }
-
-if _OPTIONS['game'] ~= 'server' then
-	project "tests_citigame"
-		language "C++"
-		kind "ConsoleApp"
-		
-		links { "gmock_main", "gtest_main", "CitiGame", "CitiCore", "Shared" }
-		
-		includedirs { "client/citigame/include/", "client/citicore/" }
-		
-		files { "tests/citigame/*.cpp", "tests/test.cpp" }
-end
-
 	-- run components
 	group "components"
 		do_components()
