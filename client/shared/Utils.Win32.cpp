@@ -118,6 +118,23 @@ void DoNtRaiseException(EXCEPTION_RECORD* record);
 
 void SetThreadName(int dwThreadID, char* threadName)
 {
+	auto SetThreadDescription = (HRESULT(WINAPI*)(HANDLE, PCWSTR))GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetThreadDescription");
+
+	if (SetThreadDescription)
+	{
+		HANDLE hThread = (dwThreadID < 0) ? GetCurrentThread() : OpenThread(THREAD_SET_LIMITED_INFORMATION, FALSE, dwThreadID);
+
+		if (hThread != NULL)
+		{
+			SetThreadDescription(hThread, ToWide(threadName).c_str());
+
+			if (dwThreadID >= 0)
+			{
+				CloseHandle(hThread);
+			}
+		}
+	}
+
 	THREADNAME_INFO info;
 	info.dwType = 0x1000;
 	info.szName = threadName;
