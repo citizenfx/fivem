@@ -58,18 +58,6 @@ public:
 		return std::vector<Botan::Certificate_Store*>();
 	}
 
-	virtual void verify_certificate_chain(const std::string& type, const std::string& hostname, const std::vector<Botan::X509_Certificate>& cert_chain) override
-	{
-		try
-		{
-			Credentials_Manager::verify_certificate_chain(type, hostname, cert_chain);
-		}
-		catch (std::exception& e)
-		{
-			trace("%s\n", e.what());
-		}
-	}
-
 	virtual std::vector<Botan::X509_Certificate> cert_chain(const std::vector<std::string>& cert_key_types, const std::string& type, const std::string& context) override
 	{
 		if (std::find(cert_key_types.begin(), cert_key_types.end(), m_key->algo_name()) != cert_key_types.end())
@@ -124,18 +112,11 @@ void TLSServerStream::Initialize()
 	m_sessionManager = std::make_unique<Botan::TLS::Session_Manager_In_Memory>(m_rng);
 
 	m_tlsServer.reset(new Botan::TLS::Server(
-		std::bind(&TLSServerStream::WriteToClient, this, std::placeholders::_1, std::placeholders::_2),
-		std::bind(&TLSServerStream::ReceivedData, this, std::placeholders::_1, std::placeholders::_2),
-		std::bind(&TLSServerStream::ReceivedAlert, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-		std::bind(&TLSServerStream::HandshakeComplete, this, std::placeholders::_1),
+		*this,
 		*(m_sessionManager.get()),
 		*m_parentServer->GetCredentials(),
 		*(m_policy.get()),
-		m_rng,
-		[] (std::vector<std::string> protocols)
-		{
-			return "";
-		}
+		m_rng
 	));
 
 	m_baseStream->SetReadCallback([=] (const std::vector<uint8_t>& data)

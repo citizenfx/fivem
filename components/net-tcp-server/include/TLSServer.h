@@ -29,7 +29,7 @@ namespace net
 {
 class TLSServer;
 
-class TLSServerStream : public TcpServerStream
+class TLSServerStream : public TcpServerStream, public Botan::TLS::Callbacks
 {
 private:
 	fwRefContainer<TcpServerStream> m_baseStream;
@@ -54,6 +54,51 @@ public:
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
 	virtual void Close() override;
+
+public:
+	// Botan::TLS::Callbacks
+	virtual inline void tls_emit_data(const uint8_t data[], size_t size) override
+	{
+		return WriteToClient(data, size);
+	}
+
+	virtual inline void tls_record_received(uint64_t seq_no, const uint8_t data[], size_t size) override
+	{
+		return ReceivedData(data, size);
+	}
+
+	virtual inline void tls_alert(Botan::TLS::Alert alert) override
+	{
+		return ReceivedAlert(alert, nullptr, 0);
+	}
+
+	virtual inline bool tls_session_established(const Botan::TLS::Session& session) override
+	{
+		return HandshakeComplete(session);
+	}
+
+	virtual inline std::string tls_server_choose_app_protocol(const std::vector<std::string>& client_protos) override
+	{
+		return "";
+	}
+
+	virtual inline void tls_verify_cert_chain(
+		const std::vector<Botan::X509_Certificate>& cert_chain,
+		const std::vector<std::shared_ptr<const Botan::OCSP::Response>>& ocsp_responses,
+		const std::vector<Botan::Certificate_Store*>& trusted_roots,
+		Botan::Usage_Type usage,
+		const std::string& hostname,
+		const Botan::TLS::Policy& policy) override
+	{
+		try
+		{
+			Botan::TLS::Callbacks::tls_verify_cert_chain(cert_chain, ocsp_responses, trusted_roots, usage, hostname, policy);
+		}
+		catch (std::exception& e)
+		{
+			trace("%s\n", e.what());
+		}
+	}
 
 private:
 	void WriteToClient(const uint8_t buf[], size_t length);
