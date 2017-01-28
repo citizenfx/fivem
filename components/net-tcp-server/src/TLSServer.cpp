@@ -94,6 +94,20 @@ public:
 	{
 		return Botan::TLS::Policy::acceptable_ciphersuite(suite);
 	}
+
+	virtual std::vector<std::string> allowed_key_exchange_methods() const override
+	{
+		return {
+			//"SRP_SHA",
+			//"ECDHE_PSK",
+			//"DHE_PSK",
+			//"PSK",
+			"CECPQ1",
+			"ECDH",
+			"DH",
+			"RSA",
+		};
+	}
 };
 
 #include <sstream>
