@@ -12,6 +12,9 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#include <ResourceManager.h>
+#include <ResourceMetaDataComponent.h>
+
 #include <ScriptEngine.h>
 
 using fx::Resource;
@@ -74,7 +77,21 @@ static InitFunction initFunction([] ()
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([] ()
 	{
 		frameOn = true;
-		nui::CreateFrame("loadingScreen", "nui://game/ui/loadscreen/index.html");
+
+		std::vector<std::string> loadingScreens = { "nui://game/ui/loadscreen/index.html" };
+
+		Instance<fx::ResourceManager>::Get()->ForAllResources([&](fwRefContainer<fx::Resource> resource)
+		{
+			auto mdComponent = resource->GetComponent<fx::ResourceMetaDataComponent>();
+			auto entries = mdComponent->GetEntries("loadscreen");
+
+			if (entries.begin() != entries.end())
+			{
+				loadingScreens.push_back("nui://" + resource->GetName() + "/" + entries.begin()->second);
+			}
+		});
+
+		nui::CreateFrame("loadingScreen", loadingScreens.back());
 	}, 100);
 
 	rage::OnInitFunctionStart.Connect([] (rage::InitFunctionType type)
