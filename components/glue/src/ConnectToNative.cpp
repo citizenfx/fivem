@@ -130,6 +130,22 @@ static InitFunction initFunction([] ()
 
 			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: %s }, '*');", sbuffer.GetString()));
 		});
+
+		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
+		{
+			rapidjson::Document document;
+			document.SetObject();
+			document.AddMember("message", rapidjson::Value(message.c_str(), message.size(), document.GetAllocator()), document.GetAllocator());
+			document.AddMember("count", progress, document.GetAllocator());
+			document.AddMember("total", totalProgress, document.GetAllocator());
+
+			rapidjson::StringBuffer sbuffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+			document.Accept(writer);
+
+			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectStatus', data: %s }, '*');", sbuffer.GetString()));
+		});
 	});
 
 	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)

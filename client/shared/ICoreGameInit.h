@@ -22,9 +22,14 @@ public:
 
 	virtual void ReloadGame() = 0;
 
+	virtual bool TriggerError(const char* errorString) = 0;
+
 	bool ShAllowed = false;
 
 public:
+	// a1: error message
+	fwEvent<const std::string&> OnTriggerError;
+
 	fwEvent<> OnGameFinalizeLoad;
 
 	fwEvent<> OnGameRequestLoad;

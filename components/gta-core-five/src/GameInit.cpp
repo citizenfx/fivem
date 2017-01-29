@@ -76,6 +76,11 @@ bool FiveGameInit::TryDisconnect()
 	return true;
 }
 
+bool FiveGameInit::TriggerError(const char* message)
+{
+	return (!OnTriggerError(message));
+}
+
 static InitFunction initFunction([] ()
 {
 	OnGameFrame.Connect([] ()

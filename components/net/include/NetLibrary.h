@@ -132,6 +132,8 @@ private:
 
 	ConnectionState m_connectionState;
 
+	ConnectionState m_lastConnectionState;
+
 	NetAddress m_currentServer;
 
 	std::string m_token;
@@ -294,8 +296,20 @@ public:
 
 	fwEvent<const char*> OnConnectionError;
 
+	// a1: status message
+	// a2: current progress
+	// a3: total progress
+	fwEvent<const std::string&, int, int> OnConnectionProgress;
+
+	// a1: detailed progress message
+	fwEvent<const std::string&> OnConnectionSubProgress;
+
 	fwEvent<NetBuffer&> OnBuildMessage;
 
 	fwEvent<> OnConnectionTimedOut;
+
+	// a1: new connection state
+	// a2: previous connection state
+	fwEvent<ConnectionState, ConnectionState> OnStateChanged;
 };
 //extern NetLibrary* g_netLibrary;

@@ -584,6 +584,13 @@ void NetLibrary::RunFrame()
 		return;
 	}
 
+	if (m_connectionState != m_lastConnectionState)
+	{
+		OnStateChanged(m_connectionState, m_lastConnectionState);
+
+		m_lastConnectionState = m_connectionState;
+	}
+
 	ProcessPackets();
 
 	ProcessSend();
@@ -595,6 +602,7 @@ void NetLibrary::RunFrame()
 			m_connectionState = CS_DOWNLOADING;
 
 			// trigger task event
+			OnConnectionProgress("Downloading content", 0, 1);
 			OnInitReceived(m_currentServer);
 
 			break;
@@ -603,6 +611,8 @@ void NetLibrary::RunFrame()
 			m_connectionState = CS_CONNECTING;
 			m_lastConnect = 0;
 			m_connectAttempts = 0;
+
+			OnConnectionProgress("Downloading completed", 1, 1);
 
 			break;
 
@@ -621,6 +631,11 @@ void NetLibrary::RunFrame()
 				m_lastConnect = GetTickCount();
 
 				m_connectAttempts++;
+
+				// advertise status
+				auto specStatus = (m_connectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_connectAttempts) : "";
+
+				OnConnectionProgress(fmt::sprintf("Connecting to server...%s", specStatus), 1, 1);
 			}
 
 			if (m_connectAttempts > 3)
@@ -685,6 +700,28 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	{
 		Disconnect("Connecting to another server.");
 	}
+
+	// late-initialize error state in ICoreGameInit
+	// this happens here so it only tries capturing if connection was attempted
+	static struct ErrorState 
+	{
+		ErrorState(NetLibrary* lib)
+		{
+			Instance<ICoreGameInit>::Get()->OnTriggerError.Connect([=] (const std::string& errorMessage)
+			{
+				if (lib->m_connectionState != CS_ACTIVE)
+				{
+					lib->OnConnectionError(errorMessage.c_str());
+
+					lib->m_connectionState = CS_IDLE;
+
+					return false;
+				}
+
+				return true;
+			});
+		}
+	} es(this);
 
 	m_connectionState = CS_INITING;
 	m_currentServer = NetAddress(hostname, port);
@@ -1081,7 +1118,7 @@ void NetLibrary::SendNetEvent(fwString eventName, fwString jsonString, int i)
 }*/
 
 NetLibrary::NetLibrary()
-	: m_serverNetID(0), m_serverBase(0), m_hostBase(0), m_hostNetID(0), m_connectionState(CS_IDLE),
+	: m_serverNetID(0), m_serverBase(0), m_hostBase(0), m_hostNetID(0), m_connectionState(CS_IDLE), m_lastConnectionState(CS_IDLE),
 	  m_lastConnect(0), m_lastSend(0), m_outSequence(0), m_lastReceivedReliableCommand(0), m_outReliableAcknowledged(0), m_outReliableSequence(0),
 	  m_lastReceivedAt(0)
 

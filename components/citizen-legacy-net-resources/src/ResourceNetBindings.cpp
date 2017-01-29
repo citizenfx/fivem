@@ -178,7 +178,19 @@ static InitFunction initFunction([] ()
 
 				fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
 
-				std::vector<concurrency::task<fwRefContainer<fx::Resource>>> tasks;
+				using ResultTuple = std::tuple<fwRefContainer<fx::Resource>, std::string>;
+				std::vector<concurrency::task<ResultTuple>> tasks;
+
+				// used for reporting progress
+				struct ProgressData
+				{
+					std::atomic<int> current;
+					int total;
+				};
+
+				auto progressCounter = std::make_shared<ProgressData>();
+				progressCounter->current = 0;
+				progressCounter->total = requiredResources.size();
 
 				for (auto& resourceName : requiredResources)
 				{
@@ -191,16 +203,26 @@ static InitFunction initFunction([] ()
 						}
 					}
 
-					tasks.push_back(manager->AddResource("global://" + resourceName));
+					tasks.push_back(manager->AddResource("global://" + resourceName).then([=](fwRefContainer<fx::Resource> resource) -> ResultTuple
+					{
+						// report progress
+						int currentCount = progressCounter->current.fetch_add(1) + 1;
+						netLibrary->OnConnectionProgress(fmt::sprintf("Downloaded %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total);
+
+						// return tuple
+						return { resource, resourceName };
+					}));
 				}
 
-				concurrency::when_all(tasks.begin(), tasks.end()).then([=] (std::vector<fwRefContainer<fx::Resource>> resources)
+				concurrency::when_all(tasks.begin(), tasks.end()).then([=] (std::vector<ResultTuple> resources)
 				{
-					for (auto& resource : resources)
+					for (auto& resourceData : resources)
 					{
+						auto resource = std::get<fwRefContainer<fx::Resource>>(resourceData);
+
 						if (!resource.GetRef())
 						{
-							GlobalError("Couldn't load some resource. :(");
+							GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
 
 							return;
 						}
@@ -238,7 +260,7 @@ static InitFunction initFunction([] ()
 			updateResources("");
 		});
 
-		OnMainGameFrame.Connect([] ()
+		OnGameFrame.Connect([] ()
 		{
 			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
 

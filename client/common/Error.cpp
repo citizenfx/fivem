@@ -72,17 +72,25 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 	if (eType == ERR_NORMAL)
 	{
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
-		// TODO: UI killer for pre-connected state
 		ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+		bool handled = false;
 
+		if (gameInit && gameInit->TriggerError(buffer))
+		{
+			handled = true;
+		}
+		
 		if (gameInit && gameInit->GetGameLoaded())
 		{
 			static wchar_t wbuffer[BUFFER_LENGTH];
 			mbstowcs(wbuffer, buffer, _countof(wbuffer));
 
 			gameInit->KillNetwork(wbuffer);
+
+			handled = true;
 		}
-		else
+		
+		if (!handled)
 #endif
 		{
 			SysError(buffer);

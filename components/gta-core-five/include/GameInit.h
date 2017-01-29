@@ -33,6 +33,8 @@ public:
 
 	virtual void ReloadGame() override;
 
+	virtual bool TriggerError(const char* message) override;
+
 	void SetGameLoaded();
 };
 

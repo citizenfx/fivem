@@ -19,33 +19,32 @@ static InitFunction initFunction([] ()
 	{
 		static NetLibrary* netLibrary = library;
 
-		library->OnInitReceived.Connect([] (NetAddress server)
+		library->OnStateChanged.Connect([] (NetLibrary::ConnectionState curState, NetLibrary::ConnectionState lastState)
 		{
-			//nui::SetMainUI(false);
-
-			//nui::DestroyFrame("mpMenu");
-
-			ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
-
-			if (!gameInit->GetGameLoaded())
+			if (curState == NetLibrary::CS_ACTIVE)
 			{
-				trace("Triggering LoadGameFirstLaunch()\n");
+				ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 
-				gameInit->LoadGameFirstLaunch([] ()
+				if (!gameInit->GetGameLoaded())
 				{
-					// download frame code
-					Sleep(1);
+					trace("Triggering LoadGameFirstLaunch()\n");
 
-					return netLibrary->AreDownloadsComplete();
-				});
-			}
-			else
-			{
-				trace("Triggering ReloadGame()\n");
+					gameInit->LoadGameFirstLaunch([]()
+					{
+						// download frame code
+						Sleep(1);
 
-				gameInit->ReloadGame();
+						return netLibrary->AreDownloadsComplete();
+					});
+				}
+				else
+				{
+					trace("Triggering ReloadGame()\n");
+
+					gameInit->ReloadGame();
+				}
 			}
-		}, 1000);
+		});
 
 		OnKillNetwork.Connect([=] (const char* message)
 		{
