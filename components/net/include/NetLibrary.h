@@ -268,7 +268,7 @@ public:
 
 	void Resurrection();
 
-	void SendNetEvent(fwString eventName, fwString argsSerialized, int target);
+	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
 
 	inline uint32_t GetServerBase() { return m_serverBase; }
 

@@ -842,6 +842,8 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			}
 			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
 
+			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
+
 			m_token = node["token"].as<std::string>();
 
 			m_serverProtocol = node["protocol"].as<uint32_t>();
@@ -1082,7 +1084,7 @@ bool NetLibrary::ProcessPreGameTick()
 	return true;
 }
 
-void NetLibrary::SendNetEvent(fwString eventName, fwString jsonString, int i)
+void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString, int i)
 {
 	const char* cmdType = "msgNetEvent";
 

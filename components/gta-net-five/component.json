@@ -4,7 +4,9 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
-		"rage:nutsnbolts:five"
+		"rage:nutsnbolts:five",
+		"citizen:resources:core",
+		"vendor:msgpack-c"
 	],
 	"provides": []
 }

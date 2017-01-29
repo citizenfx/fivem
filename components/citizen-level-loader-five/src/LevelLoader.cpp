@@ -195,6 +195,8 @@ static void LoadLevel(const char* levelName)
 {
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 
+	gameInit->SetVariable("networkInited");
+
 	g_overrideNextLoadedLevel = levelName;
 
 	if (!gameInit->GetGameLoaded())
@@ -213,7 +215,7 @@ static void LoadLevel(const char* levelName)
 		gameInit->ReloadGame();
 	}
 
-	Instance<ICoreGameInit>::Get()->ShAllowed = true;
+	gameInit->ShAllowed = true;
 }
 
 static InitFunction initFunction([] ()

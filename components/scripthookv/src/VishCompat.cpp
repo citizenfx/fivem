@@ -58,6 +58,8 @@ static FishScript* g_fishScript;
 void FishScript::Tick()
 {
 	if (!Instance<ICoreGameInit>::Get()->ShAllowed) return;
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited")) return;
+
 	if (g_mainFiber == nullptr)
 	{
 		g_mainFiber = ConvertThreadToFiber(nullptr);

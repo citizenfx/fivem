@@ -26,6 +26,23 @@ public:
 
 	bool ShAllowed = false;
 
+	bool EnhancedHostSupport = false;
+
+private:
+	std::set<std::string, std::less<>> VariableList;
+
+public:
+	template<typename T>
+	inline bool HasVariable(const T& variable)
+	{
+		return (VariableList.find(variable) != VariableList.end());
+	}
+
+	inline void SetVariable(const std::string& variable)
+	{
+		VariableList.insert(variable);
+	}
+
 public:
 	// a1: error message
 	fwEvent<const std::string&> OnTriggerError;

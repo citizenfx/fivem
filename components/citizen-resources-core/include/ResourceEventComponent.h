@@ -117,6 +117,12 @@ public:
 	fwEvent<const std::string&, const std::string&, const std::string&, bool*> OnTriggerEvent;
 
 	//
+	// An event to handle event execution externally, before the event is running on the main thread.
+	// Arguments: eventName, eventPayload, eventSource
+	//
+	fwEvent<const std::string&, const std::string&, const std::string&> OnQueueEvent;
+
+	//
 	// Triggers an event immediately. Returns whether or not the event was canceled.
 	//
 	bool TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());

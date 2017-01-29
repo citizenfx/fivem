@@ -128,10 +128,48 @@ void scrEngine::CreateThread(GtaThread* thread)
 	}
 }
 
+uint64_t MapNative(uint64_t inNative);
+
+bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
+{
+	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
+
+	uint64_t origHash = hash;
+	hash = MapNative(hash);
+
+	NativeRegistration* table = registrationTable[hash & 0xFF];
+
+	for (; table; table = table->nextRegistration)
+	{
+		for (int i = 0; i < table->numEntries; i++)
+		{
+			if (hash == table->hashes[i])
+			{
+				if (g_hasObfuscated)
+				{
+					handler = (scrEngine::NativeHandler)EncodePointer(handler);
+				}
+
+				table->handlers[i] = handler;
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 {
 	// re-implemented here as the game's own function is obfuscated
 	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
+
+	// see if there's somehow an entry by this name already
+	if (RegisterNativeOverride(hash, handler))
+	{
+		return;
+	}
 
 	if (registration->numEntries == 7)
 	{
@@ -181,8 +219,6 @@ static InitFunction initFunction([] ()
 		g_nativeHandlers.clear();
 	}, 50000);
 });
-
-uint64_t MapNative(uint64_t inNative);
 
 struct NativeObfuscation
 {

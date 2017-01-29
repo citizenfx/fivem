@@ -16,6 +16,8 @@ static NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
 
+static bool* g_isNetGame;
+
 static SOCKET g_gameSocket;
 static int lastReceivedFrom;
 
@@ -321,6 +323,258 @@ static hook::cdecl_stub<bool()> isSessionStarted([] ()
 	return hook::pattern("74 0E 83 B9 ? ? 00 00 08 75 05 B8 01").count(1).get(0).get<void>(-12);
 });
 
+#include <HostSystem.h>
+
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
+
+#include <msgpack.hpp>
+
+GTA_NET_EXPORT fwEvent<HostState, HostState> OnHostStateTransition;
+
+struct HostStateHolder
+{
+	HostState state;
+
+	inline bool operator==(HostState right)
+	{
+		return (state == right);
+	}
+
+	inline HostState operator=(HostState right)
+	{
+		trace("HostState transitioning from %s to %s\n", HostStateToString(state), HostStateToString(right));
+
+		OnHostStateTransition(right, state);
+		state = right;
+
+		return right;
+	}
+};
+
+struct  
+{
+	HostStateHolder state;
+	int attempts;
+
+	std::string hostResult;
+
+	void handleHostResult(const std::string& str)
+	{
+		hostResult = str;
+	}
+
+	void process()
+	{
+		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
+
+		if (state == HS_LOADED)
+		{
+			// if there's no host, start hosting - if there is, start joining
+			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
+			{
+				state = HS_START_HOSTING;
+			}
+			else
+			{
+				state = HS_START_JOINING;
+			}
+		}
+		else if (state == HS_START_JOINING)
+		{
+			static ScSessionAddr netAddr;
+			memset(&netAddr, 0, sizeof(netAddr));
+
+			netAddr.addr.secKeyTime = g_netLibrary->GetHostBase() ^ 0xABCD;
+
+			netAddr.addr.unkKey1 = g_netLibrary->GetHostBase();
+			netAddr.addr.unkKey2 = g_netLibrary->GetHostBase();
+
+			netAddr.addr.ipLan = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.portLan = 6672;
+
+			netAddr.addr.ipUnk = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.portUnk = 6672;
+
+			netAddr.addr.ipOnline = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.portOnline = 6672;
+
+			*(uint32_t*)&netAddr.sessionId[0] = 0x2;//g_netLibrary->GetHostBase() ^ 0xFEAFEDE;
+			*(uint32_t*)&netAddr.sessionId[8] = 0xCDCDCDCD;
+
+			joinGame(getNetworkManager(), &netAddr, 1, 1);
+
+			state = HS_JOINING;
+		}
+		else if (state == HS_JOINING)
+		{
+			if (*g_isNetGame)
+			{
+				state = HS_JOINING_NET_GAME;
+			}
+		}
+		else if (state == HS_JOINING_NET_GAME)
+		{
+			// two possible target states
+			if (isSessionStarted())
+			{
+				cgi->SetVariable("networkInited");
+				state = HS_JOINED;
+			}
+			else if (!*g_isNetGame)
+			{
+				state = HS_JOIN_FAILURE;
+			}
+		}
+		else if (state == HS_JOIN_FAILURE)
+		{
+			if (cgi->EnhancedHostSupport)
+			{
+				state = HS_START_HOSTING;
+			}
+			else
+			{
+				trace("No enhanced host support is active, failing fast.\n");
+
+				state = HS_FATAL;
+			}
+		}
+		else if (state == HS_START_HOSTING)
+		{
+			if (cgi->EnhancedHostSupport)
+			{
+				msgpack::sbuffer nameArgs;
+				msgpack::packer<msgpack::sbuffer> packer(nameArgs);
+
+				packer.pack_array(0);
+
+				g_netLibrary->SendNetEvent("hostingSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+
+				state = HS_WAIT_HOSTING;
+			}
+			else
+			{
+				hostGame(0, 32, 0x0);
+				state = HS_HOSTING;
+			}
+		}
+		else if (state == HS_WAIT_HOSTING || state == HS_WAIT_HOSTING_2)
+		{
+			if (!hostResult.empty())
+			{
+				std::string result = hostResult;
+				hostResult = "";
+
+				trace("received hostResult %s\n", result);
+
+				// 'wait' is a no-op, should wait for the next response
+				if (result == "wait")
+				{
+					state = HS_WAIT_HOSTING_2;
+					return;
+				}
+
+				if (state == HS_WAIT_HOSTING_2)
+				{
+					if (result == "free")
+					{
+						// if free after a wait, restart as if loaded
+						state = HS_LOADED;
+						return;
+					}
+				}
+
+				if (result == "conflict")
+				{
+					if (g_netLibrary->GetHostNetID() != 0xFFFF && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
+					{
+						trace("session creation conflict");
+
+						state = HS_FATAL;
+						return;
+					}
+				}
+
+				// no conflict, no wait, start hosting
+				hostGame(0, 32, 0x0);
+				state = HS_HOSTING;
+			}
+		}
+		else if (state == HS_HOSTING)
+		{
+			if (*g_isNetGame)
+			{
+				state = HS_HOSTING_NET_GAME;
+			}
+		}
+		else if (state == HS_HOSTING_NET_GAME)
+		{
+			if (isSessionStarted())
+			{
+				cgi->SetVariable("networkInited");
+				state = HS_HOSTED;
+
+				if (cgi->EnhancedHostSupport)
+				{
+					msgpack::sbuffer nameArgs;
+					msgpack::packer<msgpack::sbuffer> packer(nameArgs);
+
+					packer.pack_array(0);
+
+					g_netLibrary->SendNetEvent("hostedSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+				}
+			}
+			else if (!*g_isNetGame)
+			{
+				state = HS_FATAL;
+			}
+		}
+		else if (state == HS_FATAL)
+		{
+			if (attempts < 3)
+			{
+				++attempts;
+				state = HS_LOADED;
+			}
+			else
+			{
+				GlobalError("Could not connect to session provider.");
+				state = HS_IDLE;
+			}
+		}
+	}
+} hostSystem;
+
+static InitFunction hsInitFunction([]()
+{
+	fx::ResourceManager::OnInitializeInstance.Connect([] (fx::ResourceManager* manager)
+	{
+		fwRefContainer<fx::ResourceEventManagerComponent> eventComponent = manager->GetComponent<fx::ResourceEventManagerComponent>();
+
+		if (eventComponent.GetRef())
+		{
+			eventComponent->OnQueueEvent.Connect([](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource)
+			{
+				// if this is the event 'we' handle...
+				if (eventName == "sessionHostResult")
+				{
+					// deserialize the arguments
+					msgpack::unpacked msg;
+					msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+					msgpack::object obj = msg.get();
+
+					// convert to an array
+					std::vector<msgpack::object> arguments;
+					obj.convert(arguments);
+
+					hostSystem.handleHostResult(arguments[0].as<std::string>());
+				}
+			});
+		}
+	});
+});
+
 static uint16_t* g_dlcMountCount;
 
 static void SendMetric(const std::string& metric);
@@ -431,13 +685,15 @@ static HookFunction initFunction([] ()
 				return;
 			}
 
-			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
+			hostSystem.state = HS_LOADED;
+
+			/*if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
 			//if (false)
 			{
 				/*GameInit::LoadGameFirstLaunch([] ()
 				{
 					return true;
-				});*/
+				});* /
 
 				// a2: player count
 				// a3 & 1: private session
@@ -482,9 +738,14 @@ static HookFunction initFunction([] ()
 				joinGame(getNetworkManager(), &netAddr, 1, 1);
 
 				SendMetric("nethook:info:join");
-			}
+			}*/
 
 			doTickThisFrame = false;
+		}
+
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			hostSystem.process();
 		}
 
 		if (gameLoaded && doTickNextFrame)
@@ -635,12 +896,12 @@ static int ReturnTrue()
 	return true;
 }
 
-static bool* g_isNetworkGame;
+/*static bool* g_isNetworkGame;
 
 static void DummySetNetworkGame()
 {
 	*g_isNetworkGame = true;
-}
+}*/
 
 static void ByeWorld()
 {
@@ -1205,6 +1466,11 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
 
 	g_dlcMountCount = (uint16_t*)(location + *(int32_t*)location + 4 + 8);
+
+	// netgame state - includes connecting state
+	location = hook::get_pattern<char>("48 83 EC 20 80 3D ? ? ? ? 00 48 8B D9 74 5F", 6);
+
+	g_isNetGame = (bool*)(location + *(int32_t*)location + 4 + 1); // 1 as end of instruction is after '00', cmp
 
 	// CMsgJoinResponse sending
 	location = hook::pattern("4C 8D 8A 24 02 00 00 48 83 C2 24 E8").count(1).get(0).get<char>(11);

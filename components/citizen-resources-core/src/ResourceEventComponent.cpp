@@ -164,6 +164,9 @@ void ResourceEventManagerComponent::QueueEvent(const std::string& eventName, con
 	{
 		m_eventQueue.push(event);
 	}
+
+	// trigger global handlers for the queued event
+	OnQueueEvent(eventName, eventPayload, eventSource);
 }
 
 void ResourceEventManagerComponent::AttachToObject(ResourceManager* object)

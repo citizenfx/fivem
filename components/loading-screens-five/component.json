@@ -9,7 +9,9 @@
 		"vfs:core",
 		"nui:core",
 		"citizen:resources:client",
-		"vendor:udis86"
+		"vendor:udis86",
+		"gta:net",
+		"scripting"
 	],
 	"provides": []
 }

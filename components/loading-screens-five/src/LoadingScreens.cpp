@@ -7,8 +7,12 @@
 
 #include <gameSkeleton.h>
 
+#include <HostSystem.h>
+
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
+
+#include <ScriptEngine.h>
 
 using fx::Resource;
 
@@ -36,6 +40,34 @@ static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& j
 int CountRelevantDataFileEntries();
 extern fwEvent<int, const char*> OnReturnDataFileEntry;
 extern fwEvent<int, void*, void*> OnInstrumentedFunctionCall;
+
+#include <scrEngine.h>
+
+static HookFunction hookFunction([]()
+{
+	rage::scrEngine::OnScriptInit.Connect([]()
+	{
+		// override SHUTDOWN_LOADING_SCREEN
+		auto handler = fx::ScriptEngine::GetNativeHandler(0x078EBE9809CCD637);
+
+		if (!handler)
+		{
+			FatalError("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!");
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
+		{
+			(*handler)(ctx);
+
+			if (frameOn)
+			{
+				nui::DestroyFrame("loadingScreen");
+
+				frameOn = false;
+			}
+		});
+	});
+});
 
 static InitFunction initFunction([] ()
 {
@@ -112,10 +144,47 @@ static InitFunction initFunction([] ()
 		}
 		else if (type == rage::INIT_SESSION)
 		{
-			// TODO: replace with proper SHUTDOWN_LOADING_SCREEN
+			if (Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+			{
+				nui::DestroyFrame("loadingScreen");
+
+				frameOn = false;
+			}
+		}
+	});
+
+	OnHostStateTransition.Connect([] (HostState newState, HostState oldState)
+	{
+		auto printLog = [] (const std::string& message)
+		{
+			rapidjson::Document doc;
+			doc.SetObject();
+			doc.AddMember("message", rapidjson::Value(message.c_str(), message.size(), doc.GetAllocator()), doc.GetAllocator());
+
+			InvokeNUIScript("onLogLine", doc);
+		};
+
+		if (newState == HS_FATAL)
+		{
 			nui::DestroyFrame("loadingScreen");
 
 			frameOn = false;
+		}
+		else if (newState == HS_JOINING)
+		{
+			printLog("Entering session");
+		}
+		else if (newState == HS_WAIT_HOSTING)
+		{
+			printLog("Setting up game");
+		}
+		else if (newState == HS_JOIN_FAILURE)
+		{
+			printLog("Adjusting settings for best experience");
+		}
+		else if (newState == HS_HOSTING)
+		{
+			printLog("Initializing session");
 		}
 	});
 

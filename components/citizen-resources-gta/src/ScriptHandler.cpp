@@ -10,12 +10,23 @@
 #include <ResourceManager.h>
 #include <scrEngine.h>
 
+#include <ICoreGameInit.h>
+
 extern fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 class TestScriptThread : public GtaThread
 {
 	virtual void DoRun() override
 	{
+		static bool initedGame = false;
+
+		if (!initedGame)
+		{
+			initedGame = Instance<ICoreGameInit>::Get()->HasVariable("networkInited");
+
+			return;
+		}
+
 		g_resourceManager->Tick();
 	}
 };

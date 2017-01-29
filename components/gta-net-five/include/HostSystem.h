@@ -1,0 +1,58 @@
+#pragma once
+
+enum HostState
+{
+	HS_IDLE,
+	HS_LOADED,
+	HS_START_JOINING,
+	HS_JOINING,
+	HS_JOINING_NET_GAME,
+	HS_JOINED,
+	HS_JOIN_FAILURE,
+	HS_START_HOSTING,
+	HS_WAIT_HOSTING,
+	HS_WAIT_HOSTING_2,
+	HS_HOSTING,
+	HS_HOSTING_NET_GAME,
+	HS_HOSTED,
+	HS_FATAL,
+};
+
+inline const char* HostStateToString(HostState hs)
+{
+#define TS_HELPER(x) \
+	case x: \
+		return #x;
+
+	switch (hs)
+	{
+		TS_HELPER(HS_IDLE)
+		TS_HELPER(HS_LOADED)
+		TS_HELPER(HS_START_JOINING)
+		TS_HELPER(HS_JOINING)
+		TS_HELPER(HS_JOINING_NET_GAME)
+		TS_HELPER(HS_JOINED)
+		TS_HELPER(HS_JOIN_FAILURE)
+		TS_HELPER(HS_START_HOSTING)
+		TS_HELPER(HS_WAIT_HOSTING)
+		TS_HELPER(HS_WAIT_HOSTING_2)
+		TS_HELPER(HS_HOSTING)
+		TS_HELPER(HS_HOSTING_NET_GAME)
+		TS_HELPER(HS_HOSTED)
+		TS_HELPER(HS_FATAL)
+	}
+
+	return va("%d", (int)hs);
+
+#undef TS_HELPER
+}
+
+#ifdef COMPILING_GTA_NET_FIVE
+#define GTA_NET_EXPORT DLL_EXPORT
+#else
+#define GTA_NET_EXPORT DLL_IMPORT
+#endif
+
+// a1: new state
+// a2: old state
+extern GTA_NET_EXPORT fwEvent<HostState, HostState> OnHostStateTransition;
