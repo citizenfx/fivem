@@ -73,6 +73,33 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	return lresult;
 }
 
+BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
+{
+	static RECT lastRect;
+	static RECT* lastRectPtr;
+
+	if ((lpRekt && !lastRectPtr) ||
+		(lastRectPtr && !lpRekt) ||
+		!EqualRect(&lastRect, lpRekt))
+	{
+		// update last rect
+		if (lpRekt)
+		{
+			lastRect = *lpRekt;
+			lastRectPtr = &lastRect;
+		}
+		else
+		{
+			memset(&lastRect, 0xCC, 0);
+			lastRectPtr = nullptr;
+		}
+
+		return ClipCursor(lpRekt);
+	}
+
+	return TRUE;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// window procedure
@@ -115,7 +142,8 @@ static HookFunction hookFunction([] ()
 	// jump over raw input keyboard handling
 	hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
 
-
+	// fix repeated ClipCursor calls (causing DWM load)
+	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::OnWndProc;
