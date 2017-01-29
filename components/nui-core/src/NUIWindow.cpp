@@ -89,6 +89,7 @@ void NUIWindow::Initialize(CefString url)
 	settings.javascript_open_windows = STATE_DISABLED;
 	settings.javascript_close_windows = STATE_DISABLED;
 	settings.windowless_frame_rate = 60;
+	CefString(&settings.default_encoding).FromString("utf-8");
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
