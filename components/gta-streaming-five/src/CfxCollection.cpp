@@ -1965,6 +1965,7 @@ static HookFunction hookFunction([] ()
 	assert(offsetof(StreamingPackfileEntry, enabled) == 68);
 
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+	/*
 	gameInit->OnGameRequestLoad.Connect([] ()
 	{
 		// clear blacklisted files
@@ -1974,6 +1975,7 @@ static HookFunction hookFunction([] ()
 		g_customStreamingFiles.clear();
 		g_customStreamingFileSet.clear();
 	});
+	*/
 
 	{
 		void* location = hook::pattern("41 B0 01 BA 1B E6 DA 93 E8").count(1).get(0).get<void>(-12);

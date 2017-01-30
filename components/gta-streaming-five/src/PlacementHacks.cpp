@@ -668,6 +668,7 @@ static void* DoBeforeGetEntries(void* dataFileMgr, int type)
 
 static HookFunction hookFunction([] ()
 {
+	/*
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 	gameInit->OnGameRequestLoad.Connect([] ()
 	{
@@ -678,6 +679,7 @@ static HookFunction hookFunction([] ()
 
 		g_sceneContentsList.clear();
 	});
+	*/
 
 	char* creator = hook::pattern("48 8B 0C C8 48 8B 01 FF 50 08 41 B1 01 4C").count(1).get(0).get<char>(-4);
 
