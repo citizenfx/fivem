@@ -699,6 +699,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	if (m_connectionState != CS_IDLE)
 	{
 		Disconnect("Connecting to another server.");
+		FinalizeDisconnect();
 	}
 
 	// late-initialize error state in ICoreGameInit
@@ -716,6 +717,18 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 					lib->m_connectionState = CS_IDLE;
 
 					return false;
+				}
+				else if (lib->m_connectionState != CS_IDLE)
+				{
+					auto nlPos = errorMessage.find_first_of('\n');
+
+					if (nlPos == std::string::npos || nlPos > 100)
+					{
+						nlPos = 100;
+					}
+
+					lib->Disconnect(errorMessage.substr(0, nlPos).c_str());
+					lib->FinalizeDisconnect();
 				}
 
 				return true;

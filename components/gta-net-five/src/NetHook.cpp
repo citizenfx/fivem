@@ -1100,6 +1100,12 @@ bool GetOurSessionKeyWrap(char* sessionKey)
 
 static void WINAPI ExitProcessReplacement(UINT exitCode)
 {
+	if (g_netLibrary)
+	{
+		g_netLibrary->Disconnect("Exiting");
+		g_netLibrary->FinalizeDisconnect();
+	}
+
 	TerminateProcess(GetCurrentProcess(), exitCode);
 }
 
