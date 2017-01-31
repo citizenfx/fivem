@@ -50,13 +50,13 @@ void SysError(const char* buffer)
 
 static void GlobalErrorHandler(int eType, const char* buffer)
 {
-	static bool inError = false;
+	static thread_local bool inError = false;
 
 	trace("GlobalError: %s\n", buffer);
 
 	if (inError)
 	{
-		static bool inRecursiveError = false;
+		static thread_local bool inRecursiveError = false;
 
 		if (inRecursiveError)
 		{
