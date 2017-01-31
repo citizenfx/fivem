@@ -64,6 +64,8 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 	// is this a bulk handle?
 	handleData->bulkHandle = (bulkPtr != nullptr);
+	handleData->entry = entry.get();
+	handleData->status = HandleData::StatusNotFetched;
 
 	// open the file beforehand if it's in the cache
 	auto cacheEntry = m_cache->GetEntryFor(entry->referenceHash);
@@ -83,18 +85,6 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 				handleData->status = HandleData::StatusFetched;
 			}
 		}
-	}
-	else
-	{
-		handleData->entry = entry.get();
-		handleData->status = HandleData::StatusNotFetched;
-	}
-
-	// if we didn't set a status, ignore everything we did
-	if (handleData->status == HandleData::StatusError)
-	{
-		handleData->status = HandleData::StatusEmpty;
-		return InvalidHandle;
 	}
 
 	return handle;
