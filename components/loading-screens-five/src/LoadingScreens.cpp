@@ -17,6 +17,8 @@
 
 #include <ScriptEngine.h>
 
+#include <GameInit.h>
+
 using fx::Resource;
 
 static bool frameOn = false;
@@ -37,6 +39,16 @@ static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& j
 	if (json.Accept(writer))
 	{
 		nui::ExecuteRootScript(va("citFrames['loadingScreen'].contentWindow.postMessage(%s, '*');", sb.GetString()));
+	}
+}
+
+static void DestroyFrame()
+{
+	if (frameOn)
+	{
+		nui::DestroyFrame("loadingScreen");
+
+		frameOn = false;
 	}
 }
 
@@ -62,18 +74,18 @@ static HookFunction hookFunction([]()
 		{
 			(*handler)(ctx);
 
-			if (frameOn)
-			{
-				nui::DestroyFrame("loadingScreen");
-
-				frameOn = false;
-			}
+			DestroyFrame();
 		});
 	});
 });
 
 static InitFunction initFunction([] ()
 {
+	OnKillNetwork.Connect([] (const char*)
+	{
+		DestroyFrame();
+	});
+
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([] ()
 	{
 		frameOn = true;
@@ -163,9 +175,7 @@ static InitFunction initFunction([] ()
 		{
 			if (Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
 			{
-				nui::DestroyFrame("loadingScreen");
-
-				frameOn = false;
+				DestroyFrame();
 			}
 		}
 	});
@@ -183,9 +193,7 @@ static InitFunction initFunction([] ()
 
 		if (newState == HS_FATAL)
 		{
-			nui::DestroyFrame("loadingScreen");
-
-			frameOn = false;
+			DestroyFrame();
 		}
 		else if (newState == HS_JOINING)
 		{
