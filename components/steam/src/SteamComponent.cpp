@@ -240,6 +240,29 @@ void SteamComponent::RemoveSteamCallback(int registeredID)
 #define PRODUCT_DISPLAY_NAME "Unknown CitizenFX product"
 #endif
 
+static int SehRoutine(PEXCEPTION_POINTERS exception)
+{
+	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
+	{
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+template<typename T>
+static auto SafeCall(const T& fn)
+{
+	__try
+	{
+		return fn();
+	}
+	__except (SehRoutine(GetExceptionInformation()))
+	{
+		return std::result_of_t<T()>();
+	}
+}
+
 void SteamComponent::InitializePresence()
 {
 	// get a local-only app ID to register our app at
@@ -312,17 +335,38 @@ void SteamComponent::InitializePresence()
 
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
-		if (g_isOldSpawnProcess)
-		{
-			// create an empty VAC blob
-			void* blob = new char[8];
-			memset(blob, 0, sizeof(blob));
+		auto steamAttempts = std::vector<std::function<bool()>>{
+			// before 2017-02 VR updates
+			[&]()
+			{
+				steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, productName.c_str(), 0);
+				return true;
+			},
 
-			steamUserInterface.Invoke<bool>("SpawnProcess", blob, 0, converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, productName.c_str(), 0);
-		}
-		else
+			// 2017-02-0x~ VR updates
+			[&]()
+			{
+				// removed: parent app ID explicit argument
+				// added: last argument (bitfield, related to SteamVR)
+				steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, productName.c_str(), 0, 0);
+				return true;
+			}
+		};
+
+		bool passedSteamPresence = false;
+
+		for (const auto& fn : steamAttempts)
 		{
-			steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, productName.c_str(), 0);
+			if (SafeCall(fn))
+			{
+				passedSteamPresence = true;
+				break;
+			}
+		}
+
+		if (!passedSteamPresence)
+		{
+			trace("Valve API change? SpawnProcess for presence helper failed on all attempts!\n");
 		}
 	}
 }
