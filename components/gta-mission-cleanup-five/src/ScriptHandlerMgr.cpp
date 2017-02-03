@@ -10,18 +10,10 @@
 
 #include "Hooking.h"
 
+#include "Pool.h"
+
 // pool functions, here temporarily we hope :)
-struct CPool
-{
-
-};
-
-static CPool** g_scriptHandlerNetworkPool;
-
-static hook::thiscall_stub<void*(CPool*)> poolAllocate([] ()
-{
-	return hook::pattern("4C 8B D1 48 63 49 18 83 F9 FF 75 03").count(1).get(0).get<void>();
-});
+static atPoolBase** g_scriptHandlerNetworkPool;
 
 static CGameScriptHandlerMgr* g_scriptHandlerMgr;
 
@@ -30,7 +22,7 @@ static HookFunction hookFunction([] ()
 {
 	char* location = hook::pattern("BA E8 10 E8 4F 41").count(1).get(0).get<char>(52);
 
-	g_scriptHandlerNetworkPool = (CPool**)(location + *(int32_t*)location + 4);
+	g_scriptHandlerNetworkPool = (atPoolBase**)(location + *(int32_t*)location + 4);
 
 	// rage::scriptHandler destructor does something incredibly stupid - the vtable gets set to the base as usual, but then the 'custom' code
 	// in the case when we execute it decides to call GetScriptId, which is a __purecall in rage::scriptHandler.
@@ -52,7 +44,7 @@ static hook::thiscall_stub<void(CGameScriptHandlerNetwork*, rage::scrThread*)> s
 
 void* CGameScriptHandlerNetwork::operator new(size_t size)
 {
-	return poolAllocate(*g_scriptHandlerNetworkPool);
+	return rage::PoolAllocate(*g_scriptHandlerNetworkPool);
 }
 
 CGameScriptHandlerNetwork::CGameScriptHandlerNetwork(rage::scrThread* thread)

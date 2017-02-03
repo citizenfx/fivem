@@ -12,6 +12,8 @@ namespace rage
 {
 GTA_CORE_EXPORT atPoolBase* GetPoolBase(uint32_t hash);
 
+GTA_CORE_EXPORT void* PoolAllocate(atPoolBase* pool);
+
 inline atPoolBase* GetPoolBase(const char* hashString)
 {
 	return GetPoolBase(HashString(hashString));

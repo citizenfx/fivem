@@ -3,7 +3,188 @@
 
 #include <Hooking.h>
 
+#include <MinHook.h>
+
+class RageHashList
+{
+public:
+	RageHashList(std::initializer_list<std::string> list)
+	{
+		for (auto& entry : list)
+		{
+			m_lookupList.insert({ HashString(entry.c_str()), entry });
+		}
+	}
+
+	inline std::string LookupHash(uint32_t hash)
+	{
+		auto it = m_lookupList.find(hash);
+
+		if (it != m_lookupList.end())
+		{
+			return it->second;
+		}
+
+		return fmt::sprintf("0x%08x", hash);
+	}
+
+private:
+	std::map<uint32_t, std::string> m_lookupList;
+};
+
 static std::map<uint32_t, atPoolBase*> g_pools;
+static std::map<atPoolBase*, uint32_t> g_inversePools;
+
+static RageHashList poolEntries = {
+	"AnimatedBuilding",
+	"AttachmentExtension",
+	"AudioHeap",
+	"BlendshapeStore",
+	"Building",
+	"carrec",
+	"CBoatChaseDirector",
+	"CVehicleCombatAvoidanceArea",
+	"CCargen",
+	"CCargenForScenarios",
+	"CCombatDirector",
+	"CCombatInfo",
+	"CCombatSituation",
+	"CCoverFinder",
+	"CDefaultCrimeInfo",
+	"CTacticalAnalysis",
+	"CTaskUseScenarioEntityExtension",
+	"AnimStore",
+	"CGameScriptResource",
+	"ClothStore",
+	"CombatMeleeManager_Groups",
+	"CombatMountedManager_Attacks",
+	"CompEntity",
+	"CPrioritizedClipSetBucket",
+	"CPrioritizedClipSetRequest",
+	"CRoadBlock",
+	"CStuntJump",
+	"CScenarioInfo",
+	"CScenarioPointExtraData",
+	"CutsceneStore",
+	"CScriptEntityExtension",
+	"CVehicleChaseDirector",
+	"CVehicleClipRequestHelper",
+	"CPathNodeRouteSearchHelper",
+	"CGrabHelper",
+	"CGpsNumNodesStored",
+	"CClimbHandHoldDetected",
+	"CAmbientLookAt",
+	"DecoratorExtension",
+	"DrawableStore",
+	"Dummy Object",
+	"DwdStore",
+	"EntityBatch",
+	"GrassBatch",
+	"ExprDictStore",
+	"FrameFilterStore",
+	"FragmentStore",
+	"GamePlayerBroadcastDataHandler_Remote",
+	"InstanceBuffer",
+	"InteriorInst",
+	"InteriorProxy",
+	"IplStore",
+	"MaxLoadedInfo",
+	"MaxLoadRequestedInfo",
+	"ActiveLoadedInfo",
+	"ActivePersistentLoadedInfo",
+	"Known Refs",
+	"LightEntity",
+	"MapDataLoadedNode",
+	"MapDataStore",
+	"MapTypesStore",
+	"MetaDataStore",
+	"NavMeshes",
+	"NetworkDefStore",
+	"NetworkCrewDataMgr",
+	"Object",
+	"OcclusionInteriorInfo",
+	"OcclusionPathNode",
+	"OcclusionPortalEntity",
+	"OcclusionPortalInfo",
+	"Peds",
+	"CWeapon",
+	"phInstGta",
+	"PhysicsBounds",
+	"CPickup",
+	"CPickupPlacement",
+	"CPickupPlacementCustomScriptData",
+	"CRegenerationInfo",
+	"PortalInst",
+	"PoseMatcherStore",
+	"PMStore",
+	"PtFxSortedEntity",
+	"PtFxAssetStore",
+	"QuadTreeNodes",
+	"ScaleformStore",
+	"ScaleformMgrArray",
+	"ScriptStore",
+	"StaticBounds",
+	"tcBox",
+	"TrafficLightInfos",
+	"TxdStore",
+	"Vehicles",
+	"VehicleStreamRequest",
+	"VehicleStreamRender",
+	"VehicleStruct",
+	"HandlingData",
+	"wptrec",
+	"fwLodNode",
+	"CTask",
+	"CEvent",
+	"CMoveObject",
+	"CMoveAnimatedBuilding",
+	"atDScriptObjectNode",
+	"fwDynamicArchetypeComponent",
+	"fwDynamicEntityComponent",
+	"fwEntityContainer",
+	"fwMatrixTransform",
+	"fwQuaternionTransform",
+	"fwSimpleTransform",
+	"ScenarioCarGensPerRegion",
+	"ScenarioPointsAndEdgesPerRegion",
+	"ScenarioPoint",
+	"ScenarioPointEntity",
+	"ScenarioPointWorld",
+	"MaxNonRegionScenarioPointSpatialObjects",
+	"ObjectIntelligence",
+	"VehicleScenarioAttractors",
+	"AircraftFlames",
+	"CScenarioPointChainUseInfo",
+	"CScenarioClusterSpawnedTrackingData",
+	"CSPClusterFSMWrapper",
+	"fwArchetypePooledMap",
+	"CTaskConversationHelper",
+	"SyncedScenes",
+	"AnimScenes",
+	"CPropManagementHelper",
+	"ActionTable_Definitions",
+	"ActionTable_Results",
+	"ActionTable_Impulses",
+	"ActionTable_Interrelations",
+	"ActionTable_Homings",
+	"ActionTable_Damages",
+	"ActionTable_StrikeBones",
+	"ActionTable_Rumbles",
+	"ActionTable_Branches",
+	"ActionTable_StealthKills",
+	"ActionTable_Vfx",
+	"ActionTable_FacialAnimSets",
+	"NetworkEntityAreas",
+	"NavMeshRoute",
+	"CScriptEntityExtension",
+	"AnimStore",
+	"CutSceneStore",
+	"OcclusionPathNode",
+	"OcclusionPortalInfo",
+	"CTask",
+	"OcclusionPathNode",
+	"OcclusionPortalInfo",
+};
 
 GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 {
@@ -20,8 +201,45 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
 {
 	g_pools.insert({ hash, pool });
+	g_inversePools.insert({ pool, hash });
 
 	return pool;
+}
+
+static void*(*g_origPoolAllocate)(atPoolBase*);
+
+static void* PoolAllocateWrap(atPoolBase* pool)
+{
+	void* value = g_origPoolAllocate(pool);
+
+	if (!value)
+	{
+		auto it = g_inversePools.find(pool);
+		std::string poolName = "<<unknown pool>>";
+
+		if (it != g_inversePools.end())
+		{
+			uint32_t poolHash = it->second;
+			
+			poolName = poolEntries.LookupHash(poolHash);
+		}
+
+		std::string extraWarning = (poolName.find("0x") == std::string::npos)
+			? fmt::sprintf(" (you need to raise %s PoolSize in common/data/gameconfig.xml)", poolName)
+			: "";
+
+		FatalError("%s Pool Full, Size == %d%s", poolName, pool->GetSize(), extraWarning);
+	}
+
+	return value;
+}
+
+namespace rage
+{
+	GTA_CORE_EXPORT void* PoolAllocate(atPoolBase* pool)
+	{
+		return PoolAllocateWrap(pool);
+	}
 }
 
 static HookFunction hookFunction([] ()
@@ -74,4 +292,11 @@ static HookFunction hookFunction([] ()
 	// find initial pools
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? 00 E8 ? ? ? ? 4C 8D 05"), 0x2C, 1);
 	registerPools(hook::pattern("C6 BA ? ? ? ? E8 ? ? ? ? 4C 8D 05"), 0x27, 2);
+	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? C6 ? ? ? 01 4C"), 0x2F, 1);
+	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? 00 00 00 E8 ? ? ? ? C6"), 0x35, 1);
+
+	// min hook
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("18 83 F9 FF 75 03 33 C0 C3 41", -6), PoolAllocateWrap, (void**)&g_origPoolAllocate);
+	MH_EnableHook(MH_ALL_HOOKS);
 });

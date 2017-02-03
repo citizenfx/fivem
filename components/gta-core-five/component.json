@@ -5,7 +5,8 @@
 		"fx[2]",
 		"rage:allocator:five",
 		"rage:nutsnbolts:five",
-		"rage:scripting:five"
+		"rage:scripting:five",
+		"vendor:minhook"
 	],
 	"provides": []
 }
