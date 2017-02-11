@@ -718,6 +718,96 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
 };
 
+static v8::Handle<v8::Value> Throw(v8::Isolate* isolate, const char* message) {
+	return isolate->ThrowException(v8::String::NewFromUtf8(isolate, message));
+}
+
+static bool ReadFileData(const v8::FunctionCallbackInfo<v8::Value>& args, std::vector<char>* fileData)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
+
+	V8PushEnvironment pushed(runtime);
+	String::Utf8Value filename(args[0]);
+
+	OMPtr<fxIStream> stream;
+	HRESULT hr = scriptHost->OpenHostFile(*filename, stream.GetAddressOf());
+
+	if (FX_FAILED(hr))
+	{
+		Throw(args.GetIsolate(), "Error loading file");
+		return false;
+	}
+
+	uint64_t length;
+	stream->GetLength(&length);
+
+	uint32_t bytesRead;
+	fileData->resize(length);
+	stream->Read(fileData->data(), length, &bytesRead);
+
+	return true;
+}
+
+static void V8_Read(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	std::vector<char> fileData;
+
+	if (!ReadFileData(args, &fileData))
+	{
+		return;
+	}
+
+	Handle<String> str = String::NewFromUtf8(args.GetIsolate(), fileData.data(), String::kNormalString, fileData.size());
+	args.GetReturnValue().Set(str);
+}
+
+struct DataAndPersistent {
+	std::vector<char> data;
+	Persistent<ArrayBuffer> handle;
+};
+
+static void ReadBufferWeakCallback(
+	const v8::WeakCallbackData<ArrayBuffer, DataAndPersistent>& data)
+{
+	size_t byte_length = data.GetValue()->ByteLength();
+	data.GetIsolate()->AdjustAmountOfExternalAllocatedMemory(
+		-static_cast<intptr_t>(byte_length));
+	data.GetParameter()->handle.Reset();
+	delete data.GetParameter();
+}
+
+static void V8_ReadBuffer(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	std::vector<char> fileData;
+
+	if (!ReadFileData(args, &fileData))
+	{
+		return;
+	}
+
+	auto isolate = args.GetIsolate();
+
+	DataAndPersistent* data = new DataAndPersistent;
+	data->data = std::move(fileData);
+
+	Handle<v8::ArrayBuffer> buffer =
+		ArrayBuffer::New(isolate, data->data.data(), data->data.size());
+
+	data->handle.Reset(isolate, buffer);
+	data->handle.SetWeak(data, ReadBufferWeakCallback);
+	data->handle.MarkIndependent();
+
+	isolate->AdjustAmountOfExternalAllocatedMemory(data->data.size());
+	args.GetReturnValue().Set(buffer);
+}
+
+static std::pair<std::string, FunctionCallback> g_globalFunctions[] =
+{
+	{ "read", V8_Read },
+	{ "readbuffer", V8_ReadBuffer },
+};
+
 result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 {
 	// assign the script host
@@ -770,6 +860,14 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	// run the following entries in the context scope
 	Context::Scope scope(context);
+
+	// set global IO functions
+	for (auto& routine : g_globalFunctions)
+	{
+		context->Global()->Set(
+			String::NewFromUtf8(GetV8Isolate(), routine.first.c_str(), NewStringType::kNormal).ToLocalChecked(),
+			Function::New(GetV8Isolate(), routine.second, External::New(GetV8Isolate(), this)));
+	}
 
 	// set the 'window' variable to the global itself
 	context->Global()->Set(String::NewFromUtf8(GetV8Isolate(), "window", NewStringType::kNormal).ToLocalChecked(), context->Global());
