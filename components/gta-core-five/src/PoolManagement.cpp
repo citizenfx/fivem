@@ -184,6 +184,7 @@ static RageHashList poolEntries = {
 	"CTask",
 	"OcclusionPathNode",
 	"OcclusionPortalInfo",
+#include "gta_vtables.h"
 };
 
 GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
