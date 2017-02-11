@@ -1493,6 +1493,14 @@ static HookFunction hookFunction([] ()
 	// don't wait for shut down of NetRelay thread
 	hook::return_function(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 3D ? ? ? ? FF 74", -16));
 
+	// don't switch clipset manager to network mode
+	// (blocks on a LoadAllObjectsNow after scene has initialized already)
+	hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
+
+	// start clipset manager off in network mode
+	hook::put<uint32_t>(hook::get_pattern("0F 85 6B FF FF FF C7 05", 12), 2); // network state flag
+	hook::put<uint8_t>(hook::get_pattern("F6 44 07 04 02 74 7A", 4), 4); // check persistent sp flag -> persistent mp
+
 	// exitprocess -> terminateprocess
 	hook::iat("kernel32.dll", ExitProcessReplacement, "ExitProcess");
 
