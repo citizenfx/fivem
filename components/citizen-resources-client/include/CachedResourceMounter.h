@@ -10,6 +10,10 @@
 #include <ResourceCache.h>
 #include <ResourceMounter.h>
 
+#include <VFSDevice.h>
+
+#include <network/uri.hpp>
+
 #ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
 #define RESCLIENT_EXPORT DLL_EXPORT
 #else
@@ -22,10 +26,13 @@ namespace fx
 
 	class RESCLIENT_EXPORT CachedResourceMounter : public fx::ResourceMounter
 	{
-	private:
+	protected:
 		std::shared_ptr<ResourceCache> m_resourceCache;
 
 		ResourceManager* m_manager;
+
+	protected:
+		CachedResourceMounter(ResourceManager* manager);
 
 	public:
 		CachedResourceMounter(ResourceManager* manager, const std::string& cachePath);
@@ -34,7 +41,7 @@ namespace fx
 
 		virtual concurrency::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
 
-	private:
+	protected:
 		struct ResourceFileEntry
 		{
 			std::string basename;
@@ -49,13 +56,18 @@ namespace fx
 			}
 		};
 
-	private:
+	protected:
+		virtual fwRefContainer<fx::Resource> InitializeLoad(const std::string& uri, network::uri* parsedUri);
+
+		virtual fwRefContainer<vfs::Device> OpenResourcePackfile(const fwRefContainer<fx::Resource>& resource);
+
+	protected:
 		std::multimap<std::string, ResourceFileEntry> m_resourceEntries;
 
 	public:
-		void RemoveResourceEntries(const std::string& resourceName);
+		virtual void RemoveResourceEntries(const std::string& resourceName);
 
-		void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0);
+		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0);
 	};
 
 

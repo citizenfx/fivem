@@ -31,6 +31,11 @@ public:
 	virtual concurrency::task<fwRefContainer<Resource>> AddResource(const std::string& uri) = 0;
 
 	//
+	// Gets the mounter that is responsible for handling a particular resource URI.
+	//
+	virtual fwRefContainer<ResourceMounter> GetMounterForUri(const std::string& uri) = 0;
+
+	//
 	// Obtains a reference to the resource with the passed identity string.
 	//
 	virtual fwRefContainer<Resource> GetResource(const std::string& identifier) = 0;

@@ -12,7 +12,13 @@
 
 #include <boost/optional.hpp>
 
-class ResourceCache
+class
+#ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
+	DLL_EXPORT
+#else
+	DLL_IMPORT
+#endif
+	ResourceCache
 {
 private:
 	std::unique_ptr<leveldb::DB> m_indexDatabase;

@@ -20,7 +20,26 @@
 
 #include <rapidjson/document.h>
 
+#include <network/uri.hpp>
+
 static NetAddress g_netAddress;
+
+static std::string CrackResourceName(const std::string& uri)
+{
+	std::error_code ec;
+	network::uri parsed = network::make_uri(uri, ec);
+
+	if (!static_cast<bool>(ec))
+	{
+		if (parsed.host())
+		{
+			return parsed.host().get().to_string();
+		}
+	}
+
+	assert(!"Should not be reached.");
+	return "MISSING";
+}
 
 static InitFunction initFunction([] ()
 {
@@ -32,16 +51,18 @@ static InitFunction initFunction([] ()
 		auto updateResources = [=] (const std::string& updateList)
 		{
 			// initialize mounter if needed
-			static std::once_flag onceFlag;
-			static fwRefContainer<fx::CachedResourceMounter> mounter;
-
-			std::call_once(onceFlag, [=] ()
 			{
-				fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
-				mounter = fx::GetCachedResourceMounter(manager, "rescache:/");
+				static std::once_flag onceFlag;
+				static fwRefContainer<fx::CachedResourceMounter> mounter;
 
-				manager->AddMounter(mounter);
-			});
+				std::call_once(onceFlag, [=]()
+				{
+					fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+					mounter = fx::GetCachedResourceMounter(manager, "rescache:/");
+
+					manager->AddMounter(mounter);
+				});
+			}
 
 			NetAddress address = g_netAddress;
 
@@ -102,6 +123,8 @@ static InitFunction initFunction([] ()
 					}
 				}
 
+				fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+
 				std::vector<std::string> requiredResources;
 
 				if (hasValidResources)
@@ -124,6 +147,33 @@ static InitFunction initFunction([] ()
 						// define the resource in the mounter
 						std::string resourceName = resource["name"].GetString();
 
+						// get the mounter, first
+						auto uri = "global://" + resourceName;
+
+						{
+							auto rit = resource.FindMember("uri");
+
+							if (rit != resource.MemberEnd())
+							{
+								const auto& value = rit->value;
+
+								if (value.IsString())
+								{
+									uri = value.GetString();
+								}
+							}
+						}
+
+						fwRefContainer<fx::CachedResourceMounter> mounter = manager->GetMounterForUri(uri);
+
+						if (!mounter.GetRef())
+						{
+							trace("Resource URI %s has no mounter.\n", uri);
+							GlobalError("Could not get resource mounter for resource %s.", resourceName);
+							break;
+						}
+
+						// ok
 						std::string resourceBaseUrl = va("%s/%s/", va(baseUrl.c_str(), serverHost.c_str()), resourceName.c_str());
 
 						mounter->RemoveResourceEntries(resourceName);
@@ -172,11 +222,9 @@ static InitFunction initFunction([] ()
 
 						trace("[%s]\n", resourceName.c_str());
 
-						requiredResources.push_back(resourceName);
+						requiredResources.push_back(uri);
 					}
 				}
-
-				fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
 
 				using ResultTuple = std::tuple<fwRefContainer<fx::Resource>, std::string>;
 				std::vector<concurrency::task<ResultTuple>> tasks;
@@ -192,8 +240,10 @@ static InitFunction initFunction([] ()
 				progressCounter->current = 0;
 				progressCounter->total = requiredResources.size();
 
-				for (auto& resourceName : requiredResources)
+				for (auto& resourceUri : requiredResources)
 				{
+					auto resourceName = CrackResourceName(resourceUri);
+
 					{
 						fwRefContainer<fx::Resource> oldResource = manager->GetResource(resourceName);
 
@@ -203,7 +253,7 @@ static InitFunction initFunction([] ()
 						}
 					}
 
-					tasks.push_back(manager->AddResource("global://" + resourceName).then([=](fwRefContainer<fx::Resource> resource) -> ResultTuple
+					tasks.push_back(manager->AddResource(resourceUri).then([=](fwRefContainer<fx::Resource> resource) -> ResultTuple
 					{
 						// report progress
 						int currentCount = progressCounter->current.fetch_add(1) + 1;

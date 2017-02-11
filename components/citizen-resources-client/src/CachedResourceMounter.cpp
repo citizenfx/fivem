@@ -23,6 +23,12 @@ using fx::CachedResourceMounter;
 
 void MountResourceCacheDevice(std::shared_ptr<ResourceCache> cache);
 
+CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager)
+	: m_manager(manager)
+{
+
+}
+
 CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager, const std::string& cachePath)
 	: m_manager(manager)
 {
@@ -36,11 +42,16 @@ bool CachedResourceMounter::HandlesScheme(const std::string& scheme)
 	return (scheme == "global");
 }
 
-concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(const std::string& uri)
+fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::string& uri, network::uri* parsedUri)
 {
 	// parse the input URI
 	std::error_code ec;
 	auto uriParsed = network::make_uri(uri, ec);
+
+	if (parsedUri)
+	{
+		*parsedUri = uriParsed;
+	}
 
 	if (!ec)
 	{
@@ -57,7 +68,7 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 			{
 				// if there is one, start by creating a resource with a list component
 				fwRefContainer<fx::Resource> resource = m_manager->CreateResource(host);
-				
+
 				fwRefContainer<ResourceCacheEntryList> entryList = new ResourceCacheEntryList();
 				resource->SetComponent(entryList);
 
@@ -67,49 +78,76 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 					entryList->AddEntry(ResourceCacheEntryList::Entry{ entry.first, entry.second.basename, entry.second.remoteUrl, entry.second.referenceHash, entry.second.size });
 				}
 
-				// verify if we even had an entry called 'resource.rpf'
-				if (entryList->GetEntry("resource.rpf"))
-				{
-					// follow up by mounting resource.rpf (using the legacy mounter) from the resource on a background thread
-					return concurrency::create_task([=] ()
-					{
-						// copy the pointer in case we need to nullptr it
-						fwRefContainer<fx::Resource> localResource = resource;
-
-						// open the packfile
-						fwRefContainer<vfs::RagePackfile> packfile = new vfs::RagePackfile();
-						if (packfile->OpenArchive(va("cache:/%s/resource.rpf", host.c_str())))
-						{
-							// and mount it
-							std::string resourceRoot = "resources:/" + host + "/";
-							vfs::Mount(packfile, resourceRoot);
-
-							// if that went well, we should be able to _open_ the resource now
-							if (!localResource->LoadFrom(resourceRoot))
-							{
-								GlobalError("Couldn't load resource %s from %s.", host.c_str(), resourceRoot.c_str());
-
-								localResource = nullptr;
-							}
-							else
-							{
-								localResource->OnRemove.Connect([=] ()
-								{
-									vfs::Unmount(resourceRoot);
-								});
-							}
-						}
-						else
-						{
-							GlobalError("Couldn't load resource packfile for %s.", host.c_str());
-
-							localResource = nullptr;
-						}
-
-						return localResource;
-					});
-				}
+				return resource;
 			}
+		}
+	}
+
+	return nullptr;
+}
+
+fwRefContainer<vfs::Device> CachedResourceMounter::OpenResourcePackfile(const fwRefContainer<fx::Resource>& resource)
+{
+	fwRefContainer<vfs::RagePackfile> packfile = new vfs::RagePackfile();
+
+	if (packfile->OpenArchive(fmt::sprintf("cache:/%s/resource.rpf", resource->GetName())))
+	{
+		return packfile;
+	}
+
+	return nullptr;
+}
+
+concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(const std::string& uri)
+{
+	fwRefContainer<fx::Resource> resource = InitializeLoad(uri, nullptr);
+
+	if (resource.GetRef())
+	{
+		auto entryList = resource->GetComponent<ResourceCacheEntryList>();
+
+		// verify if we even had an entry called 'resource.rpf'
+		if (entryList->GetEntry("resource.rpf"))
+		{
+			// follow up by mounting resource.rpf (using the legacy mounter) from the resource on a background thread
+			return concurrency::create_task([=]()
+			{
+				// copy the pointer in case we need to nullptr it
+				fwRefContainer<fx::Resource> localResource = resource;
+
+				// open the packfile
+				fwRefContainer<vfs::Device> packfile = OpenResourcePackfile(resource);
+				
+				if (packfile.GetRef())
+				{
+					// and mount it
+					std::string resourceRoot = "resources:/" + resource->GetName() + "/";
+					vfs::Mount(packfile, resourceRoot);
+
+					// if that went well, we should be able to _open_ the resource now
+					if (!localResource->LoadFrom(resourceRoot))
+					{
+						GlobalError("Couldn't load resource %s from %s.", resource->GetName(), resourceRoot);
+
+						localResource = nullptr;
+					}
+					else
+					{
+						localResource->OnRemove.Connect([=]()
+						{
+							vfs::Unmount(resourceRoot);
+						});
+					}
+				}
+				else
+				{
+					GlobalError("Couldn't load resource packfile for %s.", resource->GetName());
+
+					localResource = nullptr;
+				}
+
+				return localResource;
+			});
 		}
 	}
 

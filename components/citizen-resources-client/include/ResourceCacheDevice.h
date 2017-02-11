@@ -84,9 +84,15 @@ public:
 
 DECLARE_INSTANCE_TYPE(ResourceCacheEntryList);
 
-class ResourceCacheDevice : public vfs::Device
+class
+#ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
+	DLL_EXPORT
+#else
+	DLL_IMPORT
+#endif
+	ResourceCacheDevice : public vfs::Device
 {
-private:
+protected:
 	struct HandleData
 	{
 		enum
@@ -118,7 +124,7 @@ private:
 		}
 	};
 
-private:
+protected:
 	bool m_blocking;
 
 	std::shared_ptr<ResourceCache> m_cache;
@@ -134,7 +140,7 @@ private:
 public:
 	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking);
 
-private:
+protected:
 	boost::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);
 
 	inline HandleData* AllocateHandle(THandle* idx)
