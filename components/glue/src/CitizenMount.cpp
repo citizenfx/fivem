@@ -75,6 +75,8 @@ static HookFunction hookFunction([]()
 	hook::call(hook::pattern("66 39 79 38 74 06 4C 8B  41 30 EB 07 4C 8D").count(1).get(0).get<void>(19), someFunc);
 });
 
+#include <ShlObj.h>
+
 static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
@@ -100,5 +102,23 @@ static InitFunction initFunction([] ()
 		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
 		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
+
+		{
+			PWSTR appDataPath;
+			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+			{
+				// create the directory if not existent
+				std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+				CreateDirectory(cfxPath.c_str(), nullptr);
+
+				std::wstring profilePath = cfxPath + L"\\";
+
+				rage::fiDeviceRelative* fxUserDevice = new rage::fiDeviceRelative();
+				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), true);
+				fxUserDevice->Mount("fxd:/");
+
+				CoTaskMemFree(appDataPath);
+			}
+		}
 	});
 });
