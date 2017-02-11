@@ -6,7 +6,9 @@
 		"citizen:resources:core",
 		"http-client",
 		"vendor:leveldb",
-		"vendor:msgpack-c"
+		"vendor:msgpack-c",
+		"citizen:scripting:core",
+		"scripting"
 	],
 	"provides": []
 }
