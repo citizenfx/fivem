@@ -48,6 +48,7 @@ static InitFunction initFunction([] ()
 
 		OnKillNetwork.Connect([=] (const char* message)
 		{
+			library->Disconnect(message);
 			library->FinalizeDisconnect();
 		});
 
