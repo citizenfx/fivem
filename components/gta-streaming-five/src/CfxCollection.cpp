@@ -1032,11 +1032,11 @@ private:
 
 			basePath << std::string(archive, colon);
 			basePath << "/";
-			basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
+			basePath << std::string(&colon[1], const_cast<const char*>(strrchr(colon, '.')));
 		}
 		else
 		{
-			basePath << std::string(archive, const_cast<const char*>(StrStrIA(archive, ".rpf")));
+			basePath << std::string(archive, const_cast<const char*>(strrchr(archive, '.')));
 		}
 
 		// get the folder device
