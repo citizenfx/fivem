@@ -1462,11 +1462,29 @@ public:
 		return *m_models[0];
 	}
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline const Vector4& GetMaxPoint()
+	{
+		return m_maxPoint;
+	}
+
+	inline void SetMaxPoint(const Vector4& point)
+	{
+		m_maxPoint = point;
+	}
+#endif
+
 	inline void SetModel(int idx, grmModel* model)
 	{
 		if (idx < 0 || idx >= _countof(m_models))
 		{
 			FatalError("");
+		}
+
+		if (model == nullptr)
+		{
+			m_models[idx] = nullptr;
+			return;
 		}
 
 		pgPtr<grmModel> models[1];

@@ -132,7 +132,7 @@ inline int CalculateFlag(size_t size, size_t* outSize)
 #endif
 }
 
-bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
+bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceFlags* flags)
 {
 	// calculate physical/virtual sizes
 	size_t virtualSize = 0;
@@ -274,12 +274,29 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer)
 	z_stream strm = { 0 };
 	deflateInit(&strm, Z_BEST_COMPRESSION);
 #else
-	size_t base = 0x2000;
-	size_t flag = 0x1890;
-	virtualOut = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * base);
+	uint32_t virtFlags;
+	uint32_t physFlags;
 
-	uint32_t virtFlags = (version & 0xF0) << 24 | /*0x1890;*/calcFlag(false, &virtualOut);
-	uint32_t physFlags = (version & 0x0F) << 28 | calcFlag(true, &physicalOut);
+	if (!flags)
+	{
+		size_t base = 0x2000;
+		size_t flag = 0x1890;
+		virtualOut = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * base);
+
+		virtFlags = (version & 0xF0) << 24 | /*0x1890;*/calcFlag(false, &virtualOut);
+		physFlags = (version & 0x0F) << 28 | calcFlag(true, &physicalOut);
+	}
+	else
+	{
+		virtFlags = flags->virtualFlag;
+		physFlags = flags->physicalFlag;
+
+		version = flags->version;
+
+		// TEMP
+		virtualOut = this->blocks[0].size;
+		physicalOut = this->blocks[1].size;
+	}
 
 	//uint32_t virtFlags = (version & 0xF0) << 24 | 0xE0040;
 	//uint32_t physFlags = (version & 0x0F) << 28 | 0x0;

@@ -144,7 +144,7 @@ static void FormatsConvert_HandleArguments(boost::program_options::wcommand_line
 
 #include <zlib.h>
 
-rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName)
+rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFlags* flags)
 {
     FILE* f = _wfopen(fileName, L"rb");
 
@@ -171,6 +171,8 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName)
     uint32_t version;
     fread(&version, 1, sizeof(version), f);
 
+	flags->version = version;
+
     /*if (version != 165)
     {
         printf("not actually a supported file...\n");
@@ -180,11 +182,15 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName)
     }*/
 
     uint32_t flag;
-    fread(&flag, 1, sizeof(flag), f);
+
+	fread(&flag, 1, sizeof(flag), f);
+	flags->virtualFlag = flag;
 
     uint32_t virtualSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
 
     fread(&flag, 1, sizeof(flag), f);
+	flags->physicalFlag = flag;
+
     uint32_t physicalSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
 
     std::vector<uint8_t> tempBytes(virtualSize + physicalSize);

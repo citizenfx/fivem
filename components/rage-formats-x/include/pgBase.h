@@ -275,6 +275,8 @@ inline void* datBase::operator new(size_t size, BlockMap* blockMap, bool isPhysi
 	return data;
 }
 
+struct ResourceFlags;
+
 struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 {
 	uint16_t virtualLen;
@@ -301,7 +303,7 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 #endif
 	}
 
-	bool Save(int version, fwAction<const void*, size_t> writer);
+	bool Save(int version, fwAction<const void*, size_t> writer, ResourceFlags* flags = nullptr);
 };
 
 /*struct BlockInfo : public pgStreamableBase
@@ -357,6 +359,13 @@ public:
 		m_child.Resolve(blockMap);
 		m_child->Resolve(blockMap);
 	}
+};
+
+struct ResourceFlags
+{
+	uint32_t physicalFlag;
+	uint32_t virtualFlag;
+	int version;
 };
 #endif
 
