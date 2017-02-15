@@ -225,17 +225,24 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		public static Size Resolution
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
 			get
 			{
-			    int width, height;
-				unsafe
-				{
-					Function.Call(Hash._GET_SCREEN_ACTIVE_RESOLUTION, &width, &height);
-				}
-
-				return new Size(width, height);
+				return GetResolution();
 			}
+		}
+
+		[SecurityCritical]
+		private static Size GetResolution()
+		{
+		    int width, height;
+
+			unsafe
+			{
+				Function.Call(Hash._GET_SCREEN_ACTIVE_RESOLUTION, &width, &height);
+			}
+
+			return new Size(width, height);
 		}
 
 		/// <summary>
