@@ -249,6 +249,14 @@ static void EndFindKvp(fx::ScriptContext& context)
 	handle->dbIter.reset();
 }
 
+static void DeleteResourceKvp(fx::ScriptContext& context)
+{
+	auto db = EnsureDatabase();
+	auto key = FormatKey(context.GetArgument<const char*>(0));
+
+	db->Delete(leveldb::WriteOptions{}, key);
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP", GetResourceKvp<AnyType>);
@@ -261,6 +269,8 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP_INT", SetResourceKvp<int>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP_FLOAT", SetResourceKvp<float>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_RAW_KVP", SetResourceKvpRaw);
+
+	fx::ScriptEngine::RegisterNativeHandler("DELETE_RESOURCE_KVP", DeleteResourceKvp);
 
 	fx::ScriptEngine::RegisterNativeHandler("START_FIND_KVP", StartFindKvp);
 	fx::ScriptEngine::RegisterNativeHandler("FIND_KVP", FindKvp);
