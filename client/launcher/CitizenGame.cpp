@@ -311,8 +311,6 @@ private:
 private:
 	void HookHandleClose();
 
-	void HookQueryInformationProcess();
-
 public:
 	NtdllHooks(const wchar_t* ntdllPath);
 
@@ -327,7 +325,6 @@ NtdllHooks::NtdllHooks(const wchar_t* ntdllPath)
 void NtdllHooks::Install()
 {
 	HookHandleClose();
-	HookQueryInformationProcess();
 }
 
 void NtdllHooks::HookHandleClose()
@@ -348,98 +345,6 @@ void NtdllHooks::HookHandleClose()
 	*(uint8_t*)(code + 1) = 0xb8;
 
 	*(uint64_t*)(code + 2) = (uint64_t)hook->GetCode();
-
-	*(uint16_t*)(code + 10) = 0xE0FF;
-}
-
-#define DEFINE_MODULE_CHECK(key, name) \
-	struct key##Module { static inline const wchar_t* GetName() { return L##name; }	};
-
-DEFINE_MODULE_CHECK(Base, "kernelbase.dll");
-
-struct NullModule { static inline const wchar_t* GetName() { return nullptr; } };
-
-template<typename TModule>
-bool IsModule(void* address)
-{
-	static char* g_module;
-	static char* g_moduleEnd;
-
-	if (!g_module)
-	{
-		g_module = (char*)GetModuleHandle(TModule::GetName());
-
-		if (g_module)
-		{
-			PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)g_module;
-			PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)(g_module + dosHeader->e_lfanew);
-
-			g_moduleEnd = g_module + ntHeader->OptionalHeader.SizeOfImage;
-		}
-	}
-
-	return (address >= g_module && address <= g_moduleEnd);
-}
-
-static void* origQIP;
-static DWORD explorerPid;
-
-#include <ntstatus.h>
-
-typedef NTSTATUS(*NtQueryInformationProcessType)(IN HANDLE ProcessHandle, IN PROCESSINFOCLASS ProcessInformationClass, OUT PVOID ProcessInformation, IN ULONG ProcessInformationLength, OUT PULONG ReturnLength OPTIONAL);
-
-static NTSTATUS NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCESSINFOCLASS ProcessInformationClass, OUT PVOID ProcessInformation, IN ULONG ProcessInformationLength, OUT PULONG ReturnLength OPTIONAL)
-{
-	NTSTATUS status = ((NtQueryInformationProcessType)origQIP)(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
-
-	if (NT_SUCCESS(status))
-	{
-		if (ProcessInformationClass == ProcessBasicInformation)
-		{
-			((PPROCESS_BASIC_INFORMATION)ProcessInformation)->Reserved3 = (PVOID)explorerPid;
-		}
-		else if (ProcessInformationClass == 30) // ProcessDebugObjectHandle
-		{
-			*(HANDLE*)ProcessInformation = 0;
-
-			return STATUS_PORT_NOT_SET;
-		}
-		else if (ProcessInformationClass == 7) // ProcessDebugPort
-		{
-			if (!IsModule<BaseModule>(_ReturnAddress()))
-			{
-				*(HANDLE*)ProcessInformation = 0;
-			}
-		}
-		else if (ProcessInformationClass == 31)
-		{
-			*(ULONG*)ProcessInformation = 1;
-		}
-	}
-
-	return status;
-}
-
-void NtdllHooks::HookQueryInformationProcess()
-{
-	uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
-
-	HWND shellWindow = GetShellWindow();
-	GetWindowThreadProcessId(shellWindow, &explorerPid);
-
-	origQIP = VirtualAlloc(nullptr, 1024, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	memcpy(origQIP, m_ntdll.GetExportCode("NtQueryInformationProcess"), 1024);
-
-	/*NtQueryInformationProcessHook* hook = new NtQueryInformationProcessHook;
-	hook->Assemble();*/
-
-	DWORD oldProtect;
-	VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-	*(uint8_t*)code = 0x48;
-	*(uint8_t*)(code + 1) = 0xb8;
-
-	*(uint64_t*)(code + 2) = (uint64_t)NtQueryInformationProcessHook;
 
 	*(uint16_t*)(code + 10) = 0xE0FF;
 }
