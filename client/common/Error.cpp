@@ -14,24 +14,34 @@
 
 #define BUFFER_LENGTH 32768
 
-void SysError(const char* buffer)
+static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = nullptr;
+	HWND wnd = FindWindow(L"grcWindow", nullptr);
 
-#ifdef GTA_NY
-	wnd = *(HWND*)0x1849DDC;
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
+	if (CoreIsDebuggerPresent())
 #else
-    wnd = FindWindow(L"grcWindow", nullptr);
+	if (IsDebuggerPresent())
+#endif
+	{
+		__debugbreak();
+	}
+
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+
+	if (f)
+	{
+		fprintf(f, "%s", buffer);
+		fclose(f);
+
+#ifdef _DEBUG
+		assert(!"breakpoint time");
 #endif
 
-#ifdef _M_IX86
-#ifdef _DEBUG
-	if (IsDebuggerPresent())
-	{
-		__asm int 3
+		return -1;
 	}
-#endif
 #endif
 
 	MessageBoxA(wnd, buffer, "Fatal Error", MB_OK | MB_ICONSTOP);
@@ -46,9 +56,11 @@ void SysError(const char* buffer)
 
 	abort();
 #endif
+
+	return 0;
 }
 
-static void GlobalErrorHandler(int eType, const char* buffer)
+static int GlobalErrorHandler(int eType, const char* buffer)
 {
 	static thread_local bool inError = false;
 
@@ -60,11 +72,11 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 
 		if (inRecursiveError)
 		{
-			SysError("RECURSIVE RECURSIVE ERROR");
+			return SysError("RECURSIVE RECURSIVE ERROR");
 		}
 
 		inRecursiveError = true;
-		SysError(va("Recursive error: %s", buffer));
+		return SysError(va("Recursive error: %s", buffer));
 	}
 
 	inError = true;
@@ -93,17 +105,30 @@ static void GlobalErrorHandler(int eType, const char* buffer)
 		if (!handled)
 #endif
 		{
-			SysError(buffer);
+			return SysError(buffer);
 		}
 	}
 	else
 	{
-		SysError(buffer);
+		return SysError(buffer);
 	}
 
 	inError = false;
+
+	return 0;
 }
 
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
+int GlobalErrorReal(const char* string, const fmt::ArgList& formatList)
+{
+	return GlobalErrorHandler(ERR_NORMAL, fmt::sprintf(string, formatList).c_str());
+}
+
+int FatalErrorReal(const char* string, const fmt::ArgList& formatList)
+{
+	return GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
+}
+#else
 void GlobalError(const char* string, const fmt::ArgList& formatList)
 {
 	GlobalErrorHandler(ERR_NORMAL, fmt::sprintf(string, formatList).c_str());
@@ -113,3 +138,4 @@ void FatalError(const char* string, const fmt::ArgList& formatList)
 {
 	GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
 }
+#endif

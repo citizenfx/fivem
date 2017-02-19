@@ -192,11 +192,22 @@ FMT_VARIADIC(void, trace, const char*);
 const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList);
 FMT_VARIADIC_W(const wchar_t*, va, const wchar_t*);
 
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
+int GlobalErrorReal(const char* string, const fmt::ArgList& formatList);
+int FatalErrorReal(const char* string, const fmt::ArgList& formatList);
+
+FMT_VARIADIC(int, GlobalErrorReal, const char*);
+FMT_VARIADIC(int, FatalErrorReal, const char*);
+
+#define GlobalError(...) do { if (GlobalErrorReal(__VA_ARGS__) < 0) { *(int*)0 = 0; } } while(false)
+#define FatalError(...) do { if (FatalErrorReal(__VA_ARGS__) < 0) { *(int*)0 = 0; } } while(false)
+#else
 void GlobalError(const char* string, const fmt::ArgList& formatList);
 void FatalError(const char* string, const fmt::ArgList& formatList);
 
 FMT_VARIADIC(void, GlobalError, const char*);
 FMT_VARIADIC(void, FatalError, const char*);
+#endif
 
 uint32_t HashRageString(const char* string);
 uint32_t HashString(const char* string);

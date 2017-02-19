@@ -770,7 +770,25 @@ static void ErrorDo(uint32_t error)
 
 	trace("error function called from %p for code 0x%08x\n", _ReturnAddress(), error);
 
-	g_origError(error, 0);
+	//g_origError(error, 0);
+
+	// provide pickup file for minidump handler to use
+	FILE* dbgFile = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"wb");
+
+	if (dbgFile)
+	{
+		fwrite(&error, 1, 4, dbgFile);
+
+		uint64_t retAddr = (uint64_t)_ReturnAddress();
+		fwrite(&retAddr, 1, 8, dbgFile);
+
+		fclose(dbgFile);
+	}
+
+	// NOTE: crashes on this line are supposed to be read based on the exception-write address!
+	*(uint32_t*)(error | 0x100000000) = 0xDEADBADE;
+
+	TerminateProcess(GetCurrentProcess(), -1);
 }
 
 static void(*g_runInitFunctions)(void*, int);
@@ -956,6 +974,8 @@ static void SafeRun(const T&& func)
 
 static HookFunction hookFunction([] ()
 {
+	_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
+
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
 
 	g_mainThreadId = GetCurrentThreadId();

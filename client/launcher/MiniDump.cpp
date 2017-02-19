@@ -16,9 +16,168 @@
 #include <commctrl.h>
 #include <shellapi.h>
 
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
+#include <regex>
+#include <sstream>
+
 using namespace google_breakpad;
 
 static ExceptionHandler* g_exceptionHandler;
+
+struct ErrorData
+{
+	std::string errorName;
+	std::string errorDescription;
+
+	ErrorData()
+	{
+	}
+
+	ErrorData(const std::string& errorName, const std::string& errorDescription)
+		: errorName(errorName), errorDescription(errorDescription)
+	{
+
+	}
+};
+
+static ErrorData LookupError(uint32_t hash)
+{
+	FILE* f = _wfopen(MakeRelativeGamePath(L"update/x64/data/errorcodes/american.txt").c_str(), L"r");
+
+	if (f)
+	{
+		char line[8192] = { 0 };
+
+		while (fgets(line, 8191, f))
+		{
+			if (line[0] == '[')
+			{
+				strrchr(line, ']')[0] = '\0';
+
+				if (HashString(&line[1]) == hash)
+				{
+					char data[8192] = { 0 };
+					fgets(data, 8191, f);
+
+					return ErrorData{&line[1], data};
+				}
+			}
+		}
+	}
+
+	return ErrorData{};
+}
+
+template<typename T>
+static std::string ParseLinks(const T& text)
+{
+	// parse hyperlinks in the error text
+	std::regex url_re(R"((http|ftp|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?)");
+
+	std::ostringstream oss;
+	std::regex_replace(std::ostreambuf_iterator<char>(oss),
+		text.begin(), text.end(), url_re, "<A HREF=\"$&\">$&</A>");
+
+	return oss.str();
+}
+
+static void OverloadCrashData(TASKDIALOGCONFIG* config)
+{
+	// error files?
+	{
+		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"rb");
+
+		if (f)
+		{
+			uint32_t error;
+			uint64_t retAddr;
+			fread(&error, 1, 4, f);
+			fread(&retAddr, 1, 8, f);
+			fclose(f);
+
+			_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
+
+			static ErrorData errData = LookupError(error);
+
+			if (!errData.errorName.empty())
+			{
+				static std::wstring errTitle = fmt::sprintf(L"RAGE error: %s", ToWide(errData.errorName));
+				static std::wstring errDescription = fmt::sprintf(L"A game error (at %016llx) caused " PRODUCT_NAME L" to stop working. "
+					L"A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n"
+					L"If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.\n\n%s",
+					retAddr,
+					ToWide(ParseLinks(errData.errorDescription)));
+
+				config->pszMainInstruction = errTitle.c_str();
+				config->pszContent = errDescription.c_str();
+
+				return;
+			}
+		}
+	}
+
+	// FatalError crash pickup?
+	{
+		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"rb");
+
+		if (f)
+		{
+			fseek(f, 0, SEEK_END);
+			int len = ftell(f);
+			fseek(f, 0, SEEK_SET);
+
+			std::vector<char> text(len);
+			fread(&text[0], 1, len, f);
+
+			fclose(f);
+
+			_wunlink(MakeRelativeCitPath(L"cache\\error-pickup").c_str());
+
+			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
+			static std::wstring errDescription = ToWide(fmt::sprintf("%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", ParseLinks(text)));
+
+			config->pszMainInstruction = errTitle.c_str();
+			config->pszContent = errDescription.c_str();
+
+			return;
+		}
+	}
+}
+
+static std::wstring GetAdditionalData()
+{
+	{
+		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"rb");
+
+		if (f)
+		{
+			fseek(f, 0, SEEK_END);
+			int len = ftell(f);
+			fseek(f, 0, SEEK_SET);
+
+			std::vector<char> text(len);
+			fread(&text[0], 1, len, f);
+
+			fclose(f);
+
+			rapidjson::Document doc;
+			doc.SetObject();
+			doc.AddMember("ErrorPickup", rapidjson::Value(text.data(), text.size(), doc.GetAllocator()), doc.GetAllocator());
+
+			rapidjson::StringBuffer sb;
+			rapidjson::Writer<rapidjson::StringBuffer> w(sb);
+
+			if (doc.Accept(w))
+			{
+				return ToWide(std::string(sb.GetString(), sb.GetSize()));
+			}
+		}
+	}
+
+	return L"{}";
+}
 
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
@@ -40,15 +199,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20141213000000"; // todo i bet
 #elif defined(GTA_FIVE)
-		parameters[L"ProductName"] = L"FiveReborn";
+		parameters[L"ProductName"] = L"FiveM";
 		parameters[L"Version"] = L"1.0";
-		parameters[L"BuildID"] = L"20151104"; // todo i bet
+		parameters[L"BuildID"] = L"20170101"; // todo i bet
 
-        parameters[L"prod"] = L"FiveReborn";
+        parameters[L"prod"] = L"FiveM";
         parameters[L"ver"] = L"1.0";
 #endif
 
 		parameters[L"ReleaseChannel"] = L"release";
+
+		parameters[L"AdditionalData"] = GetAdditionalData();
 
 		std::wstring responseBody;
 		int responseCode;
@@ -72,7 +233,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
 			taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
 			taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
-			taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"http://forum.fivereborn.com/\">something</A> and mention the details below.";
+			taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.";
 			taskDialogConfig.pszExpandedInformation = va(L"Crash ID: %s (use Ctrl+C to copy)", responseBody.c_str());
 			taskDialogConfig.pfCallback = [] (HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 			{
@@ -87,6 +248,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				return S_FALSE;
 			};
+
+			OverloadCrashData(&taskDialogConfig);
 
 			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
 		}
