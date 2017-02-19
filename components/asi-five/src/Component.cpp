@@ -49,6 +49,30 @@ bool ComponentInstance::DoGameLoad(void* module)
 			L"scripthookvdotnet.asi",
 			L"fspeedometerv.asi"
 		});
+
+		std::map<std::wstring, std::function<void(void*)>> compatShims =
+		{
+			{
+				L"pld.asi", [] (void* pldModule)
+				{
+					// log file writing function
+					// a missing null pointer check causes the game to terminate with a C runtime error.
+					// the log file contains nothing useful, so this gets removed.
+					char* patchAddress = (char*)pldModule + 0x1560;
+
+					if (memcmp(patchAddress, "\x4c\x89\x44\x24\x18", 5) == 0)
+					{
+						DWORD oldProtect;
+						VirtualProtect(patchAddress, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+						*(uint8_t*)patchAddress = 0xC3;
+
+						VirtualProtect(patchAddress, 1, oldProtect, &oldProtect);
+					}
+				}	
+			}
+		};
+
 		// load all .asi files in the plugins/ directory
 		while (it != end)
 		{
@@ -90,9 +114,21 @@ bool ComponentInstance::DoGameLoad(void* module)
 				}
 
 				if (!bad) {
-					if (!LoadLibrary(it->path().c_str()))
+					void* module = LoadLibrary(it->path().c_str());
+
+					if (!module)
 					{
 						FatalError("Couldn't load %s", it->path().filename().string());
+					}
+
+					for (const auto& shim : compatShims)
+					{
+						if (wcsicmp(it->path().filename().c_str(), shim.first.c_str()) == 0)
+						{
+							shim.second(module);
+
+							trace("Executed compat patches on %s (loaded at %016llx).", ToNarrow(shim.first), (uint64_t)module);
+						}
 					}
 				}
 			}
