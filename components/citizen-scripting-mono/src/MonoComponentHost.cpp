@@ -185,8 +185,38 @@ static void InitMono()
 	}
 }
 
+struct MonoAttachment
+{
+	MonoThread* thread;
+
+	MonoAttachment()
+		: thread(nullptr)
+	{
+		if (!mono_domain_get())
+		{
+			thread = mono_thread_attach(g_rootDomain);
+		}
+	}
+
+	~MonoAttachment()
+	{
+		if (thread)
+		{
+			mono_thread_detach(thread);
+			thread = nullptr;
+		}
+	}
+};
+
+static void MonoEnsureThreadAttached()
+{
+	static thread_local MonoAttachment attachment;
+}
+
 result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
+	MonoEnsureThreadAttached();
+
 	MonoObject* exc = nullptr;
 
 	guid_t lguid = guid;
@@ -215,6 +245,8 @@ result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** 
 
 std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 {
+	MonoEnsureThreadAttached();
+
 	void* args[1];
 	args[0] = (char*)&iid;
 
@@ -236,33 +268,3 @@ static InitFunction initFunction([] ()
 {
 	InitMono();
 });
-
-__declspec(thread) MonoThread* monoThread;
-
-DWORD WINAPI DllMain(HANDLE hDllHandle, DWORD dwReason, LPVOID lpreserved)
-{
-	if (g_rootDomain)
-	{
-		if (dwReason == DLL_THREAD_ATTACH)
-		{
-			monoThread = mono_thread_attach(g_rootDomain);
-		}
-		else if (dwReason == DLL_THREAD_DETACH)
-		{
-			if (monoThread)
-			{
-				// causes some weird assertions in mono
-				//mono_thread_detach(monoThread);
-			}
-		}
-	}
-	else
-	{
-		if (dwReason == DLL_THREAD_ATTACH)
-		{
-			monoThread = nullptr;
-		}
-	}
-
-	return TRUE;
-}
