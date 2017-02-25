@@ -213,8 +213,7 @@ static InitFunction initFunction([] ()
 
 								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size);
 
-								entry.resourceName = resourceName;
-								entry.fileName = filename;
+								entry.filePath = mounter->FormatPath(resourceName, filename);
 
 								fx::OnAddStreamingResource(entry);
 							}

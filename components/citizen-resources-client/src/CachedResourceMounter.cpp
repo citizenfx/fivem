@@ -164,6 +164,11 @@ void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceNam
 	m_resourceEntries.erase(resourceName);
 }
 
+std::string CachedResourceMounter::FormatPath(const std::string& resourceName, const std::string& basename)
+{
+	return fmt::sprintf("cache:/%s/%s", resourceName, basename);
+}
+
 namespace fx
 {
 	fwRefContainer<CachedResourceMounter> GetCachedResourceMounter(ResourceManager* manager, const std::string& cachePath)

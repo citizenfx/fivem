@@ -114,6 +114,8 @@ protected:
 
 		bool bulkHandle;
 
+		std::map<std::string, std::string> metaData;
+
 		std::mutex lockMutex;
 		std::condition_variable lockVar;
 
@@ -137,8 +139,12 @@ protected:
 
 	std::string m_pathPrefix;
 
+	std::string m_cachePath;
+
 public:
 	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking);
+
+	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath);
 
 protected:
 	boost::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);
@@ -166,6 +172,15 @@ protected:
 	THandle OpenInternal(const std::string& fileName, uint64_t* bulkPtr);
 
 	bool EnsureFetched(HandleData* handleData);
+
+	virtual void AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, HandleData* handleData);
+
+	virtual void MarkFetched(HandleData* handleData);
+
+	inline THandle GetHandleForData(HandleData* data)
+	{
+		return data - m_handles;
+	}
 
 public:
 	virtual THandle Open(const std::string& fileName, bool readOnly) override;

@@ -66,12 +66,12 @@ static InitFunction initFunction([] ()
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
         // don't allow overriding manifest.ymf
-        if (entry.fileName == "_manifest.ymf")
+        if (entry.filePath.find("_manifest.ymf") != std::string::npos)
         {
             return;
         }
 
-		CfxCollection_AddStreamingFile("cache:/" + entry.resourceName + "/" + entry.fileName, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+		CfxCollection_AddStreamingFile(entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
 	});
 
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)

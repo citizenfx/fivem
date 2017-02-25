@@ -62,6 +62,8 @@ public:
 
 	void AddEntry(const std::string& localFileName, const std::map<std::string, std::string>& metaData);
 
+	void AddEntry(const std::string& localFileName, const std::array<uint8_t, 20>& hashData, const std::map<std::string, std::string>& metaData);
+
 	boost::optional<Entry> GetEntryFor(const std::string& hashString);
 
 	boost::optional<Entry> GetEntryFor(const std::array<uint8_t, 20>& hash);

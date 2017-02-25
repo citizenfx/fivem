@@ -68,6 +68,8 @@ namespace fx
 		virtual void RemoveResourceEntries(const std::string& resourceName);
 
 		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0);
+
+		virtual std::string FormatPath(const std::string& resourceName, const std::string& basename);
 	};
 
 
@@ -75,8 +77,7 @@ namespace fx
 
 	struct StreamingEntryData
 	{
-		std::string fileName;
-		std::string resourceName;
+		std::string filePath;
 		uint32_t rscVersion;
 		uint32_t rscPagesPhysical;
 		uint32_t rscPagesVirtual;

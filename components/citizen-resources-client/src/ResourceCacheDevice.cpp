@@ -14,7 +14,13 @@
 #include <mmsystem.h>
 
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking)
-	: m_cache(cache), m_blocking(blocking)
+	: ResourceCacheDevice(cache, blocking, cache->GetCachePath())
+{
+
+}
+
+ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath)
+	: m_cache(cache), m_blocking(blocking), m_cachePath(cachePath)
 {
 	m_httpClient = std::make_shared<HttpClient>();
 }
@@ -83,6 +89,9 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 			if (handleData->parentHandle != InvalidHandle)
 			{
 				handleData->status = HandleData::StatusFetched;
+				handleData->metaData = cacheEntry->GetMetaData();
+
+				MarkFetched(handleData);
 			}
 		}
 	}
@@ -147,10 +156,10 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	// file extension for cache stuff
 	std::string extension = handleData->entry.basename.substr(handleData->entry.basename.find_last_of('.') + 1);
-	std::string outFileName = m_cache->GetCachePath() + extension + "_" + handleData->entry.referenceHash;
+	std::string outFileName = m_cachePath + extension + "_" + handleData->entry.referenceHash;
 
 	// http request
-	m_httpClient->DoFileGetRequest(hostname, port, path, m_cache->GetCachePath().c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
+	m_httpClient->DoFileGetRequest(hostname, port, path, m_cachePath.c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
 	{
 		if (!result)
 		{
@@ -169,7 +178,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			metaData["resource"] = handleData->entry.resourceName;
 			metaData["from"] = handleData->entry.remoteUrl;
 
-			m_cache->AddEntry(outFileName, metaData);
+			AddEntryToCache(outFileName, metaData, handleData);
 
 			// open the file as desired
 			handleData->parentDevice = vfs::GetDevice(outFileName);
@@ -182,6 +191,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			}
 
 			handleData->status = HandleData::StatusFetched;
+			handleData->metaData = metaData;
+
+			MarkFetched(handleData);
 		}
 
 		// unblock the mutex
@@ -195,6 +207,16 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	}
 
 	return (handleData->status == HandleData::StatusFetched);
+}
+
+void ResourceCacheDevice::AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, HandleData* handleData)
+{
+	m_cache->AddEntry(outFileName, metaData);
+}
+
+void ResourceCacheDevice::MarkFetched(HandleData* handleData)
+{
+
 }
 
 size_t ResourceCacheDevice::Read(THandle handle, void* outBuffer, size_t size)

@@ -30,7 +30,16 @@ void ResourceCache::OpenDatabase()
 	options.create_if_missing = true;
 
 	auto status = leveldb::DB::Open(options, m_cachePath + "/db/", &dbPointer);
-	assert(status.ok());
+
+	if (status.IsCorruption())
+	{
+		FatalError("Opening database (%s) failed with corruption state (%s) - please delete this folder.", m_cachePath + "/db/", status.ToString());
+	}
+
+	if (!status.ok())
+	{
+		FatalError("Opening database (%s) failed: %s", m_cachePath, status.ToString());
+	}
 
 	m_indexDatabase = std::unique_ptr<leveldb::DB>(dbPointer);
 	dbPointer = nullptr; // as the unique_ptr 'owns' it now
@@ -104,31 +113,39 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::map<st
 		// get the hash result and convert it to a string
 		uint8_t* hash = sha1_result(&sha1);
 
-		std::string hashString = va("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-									hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
-									hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+		std::array<uint8_t, 20> h;
+		memcpy(h.data(), hash, 20);
 
-		// serialize the data for placement in the database
-		msgpack::sbuffer buffer;
-		msgpack::packer<msgpack::sbuffer> packer(buffer);
-
-		// we want to pack a map with 3 entries - filename, hash and metadata
-		packer.pack_map(3);
-
-		packer.pack("fn");
-		packer.pack(localFileName);
-
-		packer.pack("h");
-		packer.pack(hashString);
-
-		packer.pack("m");
-		packer.pack(metaData);
-
-		// add an entry to the database
-		std::string key = "cache:v1:" + std::string(reinterpret_cast<char*>(hash), 20);
-
-		m_indexDatabase->Put(leveldb::WriteOptions{}, key, leveldb::Slice(buffer.data(), buffer.size()));
+		return AddEntry(localFileName, h, metaData);
 	}
+}
+
+void ResourceCache::AddEntry(const std::string& localFileName, const std::array<uint8_t, 20>& hash, const std::map<std::string, std::string>& metaData)
+{
+	std::string hashString = va("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+		hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+
+	// serialize the data for placement in the database
+	msgpack::sbuffer buffer;
+	msgpack::packer<msgpack::sbuffer> packer(buffer);
+
+	// we want to pack a map with 3 entries - filename, hash and metadata
+	packer.pack_map(3);
+
+	packer.pack("fn");
+	packer.pack(localFileName);
+
+	packer.pack("h");
+	packer.pack(hashString);
+
+	packer.pack("m");
+	packer.pack(metaData);
+
+	// add an entry to the database
+	std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), 20);
+
+	m_indexDatabase->Put(leveldb::WriteOptions{}, key, leveldb::Slice(buffer.data(), buffer.size()));
 }
 
 boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<uint8_t, 20>& hash)
@@ -143,6 +160,13 @@ boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::arra
 	{
 		return boost::optional<Entry>(Entry(value));
 	}
+
+#if _DEBUG
+	if (!status.IsNotFound())
+	{
+		FatalError("Failed to fetch ResourceCache entry: %s", status.ToString());
+	}
+#endif
 
 	return boost::optional<Entry>();
 }
