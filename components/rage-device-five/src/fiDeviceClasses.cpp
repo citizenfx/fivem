@@ -4,6 +4,7 @@
 
 namespace rage
 {
+static uintptr_t g_vTable_fiEncryptingDevice;
 static uintptr_t g_vTable_fiDeviceRelative;
 static uintptr_t g_vTable_fiPackfile;
 
@@ -32,6 +33,39 @@ hook::thiscall_stub<void(fiDeviceRelative*, const char*, bool)> fiDeviceRelative
 void fiDeviceRelative::Mount(const char* mountPoint)
 { 
 	return fiDeviceRelative__mount(this, mountPoint, true);
+}
+
+////  fiEncryptingDevice  ////
+fiEncryptingDevice::fiEncryptingDevice(const std::array<uint8_t, 32>& key)
+{
+	*(uintptr_t*)this = g_vTable_fiEncryptingDevice;
+
+	this->m_keyState = AllocKeyState(key.data());
+
+	this->m_0010 = nullptr;
+	this->m_1018 = false;
+}
+
+hook::thiscall_stub<void(void*, const uint8_t*)> keyState__ctor([]()
+{
+	return hook::get_call(hook::get_pattern("45 33 F6 48 89 85 30 02 00 00 48 8D 45 30 48", -12));
+});
+
+void* fiEncryptingDevice::AllocKeyState(const uint8_t* key)
+{
+	void* keyState = new char[1024]; // actually 512
+	keyState__ctor(keyState, key);
+
+	return keyState;
+}
+
+void fiEncryptingDevice::FreeKeyState()
+{
+	if (m_keyState)
+	{
+		delete[] m_keyState;
+		m_keyState = nullptr;
+	}
 }
 
 //// ---- fiPackfile ---- ////
@@ -91,5 +125,11 @@ static HookFunction hookFunction([] ()
 	endOffset = ((uintptr_t)result) + 4;
 
 	g_vTable_fiPackfile = endOffset + *result;
+
+	result = hook::get_pattern<uint32_t>("45 33 F6 48 89 85 30 02 00 00 48 8D 45 30 48", -4);
+
+	endOffset = ((uintptr_t)result) + 4;
+
+	g_vTable_fiEncryptingDevice = endOffset + *result;
 });
 }

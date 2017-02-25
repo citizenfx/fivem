@@ -10,6 +10,8 @@
 #define DEVICE_EXPORT
 #endif
 
+#include <array>
+
 namespace rage
 {
 struct fiFindData
@@ -262,6 +264,24 @@ public:
 
 	// mounts the device in the device stack
 	void Mount(const char* mountPoint);
+};
+
+class DEVICE_EXPORT __declspec(novtable) fiEncryptingDevice : public fiDeviceImplemented
+{
+private:
+	void* m_keyState;
+	void* m_0010;
+	char m_buffer[4096];
+	bool m_1018;
+	alignas(int) char m_pad[64]; // unsure
+
+private:
+	void* AllocKeyState(const uint8_t* key);
+
+public:
+	fiEncryptingDevice(const std::array<uint8_t, 32>& key);
+
+	void FreeKeyState();
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiPackfile : public fiDeviceImplemented
