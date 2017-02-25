@@ -40,7 +40,10 @@ struct InstrumentedCallStub : public jitasm::Frontend
 			auto data = g_lastInstrumentedFuncs.top();
 			g_lastInstrumentedFuncs.pop();
 
-			trace("instrumented function %p (%i) took %dmsec\n", data.func, data.index, (timeGetTime() - data.tickCount));
+			if (data.index != 67 && data.index != 68)
+			{
+				trace("instrumented function %p (%i) took %dmsec\n", data.func, data.index, (timeGetTime() - data.tickCount));
+			}
 		}
 
 		InstrumentedFuncMeta meta;
