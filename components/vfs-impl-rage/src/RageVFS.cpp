@@ -14,6 +14,8 @@
 
 #include <IteratorView.h>
 
+#include <strsafe.h>
+
 class RageVFSDeviceAdapter : public rage::fiCustomDevice
 {
 private:
@@ -61,6 +63,12 @@ public:
 	virtual bool SetFileTime(const char* file, FILETIME fileTime) override;
 
 	virtual uint32_t GetFileAttributes(const char* path) override;
+
+	virtual uint64_t FindFirst(const char* path, rage::fiFindData* findData) override;
+
+	virtual bool FindNext(uint64_t handle, rage::fiFindData* findData) override;
+
+	virtual int FindClose(uint64_t handle) override;
 
 	virtual int m_yx() override
 	{
@@ -192,6 +200,42 @@ uint32_t RageVFSDeviceAdapter::GetFileAttributes(const char* path)
 	return attributes;
 }
 
+uint64_t RageVFSDeviceAdapter::FindFirst(const char* folder, rage::fiFindData* findData)
+{
+	vfs::FindData findDataOrig;
+	auto handle = m_cfxDevice->FindFirst(folder, &findDataOrig);
+
+	if (handle != vfs::Device::InvalidHandle)
+	{
+		StringCbCopyA(findData->fileName, sizeof(findData->fileName), findDataOrig.name.c_str());
+		findData->fileAttributes = findDataOrig.attributes;
+		findData->fileSize = findDataOrig.length;
+	}
+
+	return handle;
+}
+
+bool RageVFSDeviceAdapter::FindNext(uint64_t handle, rage::fiFindData* findData)
+{
+	vfs::FindData findDataOrig;
+	bool valid = m_cfxDevice->FindNext(handle, &findDataOrig);
+
+	if (valid)
+	{
+		StringCbCopyA(findData->fileName, sizeof(findData->fileName), findDataOrig.name.c_str());
+		findData->fileAttributes = findDataOrig.attributes;
+		findData->fileSize = findDataOrig.length;
+	}
+
+	return valid;
+}
+
+int RageVFSDeviceAdapter::FindClose(uint64_t handle)
+{
+	m_cfxDevice->FindClose(handle);
+	return 0;
+}
+
 using THandle = vfs::Device::THandle;
 
 class RageVFSDevice : public vfs::Device
@@ -251,6 +295,25 @@ RageVFSDevice::RageVFSDevice(rage::fiDevice* device)
 
 }
 
+template<typename T>
+static std::enable_if_t<sizeof(size_t) <= sizeof(T), size_t> WrapInt(T value)
+{
+	return value;
+}
+
+template<typename T>
+static std::enable_if_t<(sizeof(size_t) > sizeof(T)), size_t> WrapInt(T value)
+{
+	auto unsignedValue = (std::make_unsigned_t<T>)value;
+
+	if (unsignedValue == std::numeric_limits<decltype(unsignedValue)>::max())
+	{
+		return std::numeric_limits<size_t>::max();
+	}
+
+	return static_cast<size_t>(value);
+}
+
 THandle RageVFSDevice::Open(const std::string& fileName, bool readOnly)
 {
 	return m_device->Open(fileName.substr(m_pathPrefixLength).c_str(), readOnly);
@@ -268,22 +331,22 @@ THandle RageVFSDevice::Create(const std::string& filename)
 
 size_t RageVFSDevice::Read(THandle handle, void* outBuffer, size_t size)
 {
-	return m_device->Read(handle, outBuffer, size);
+	return WrapInt(m_device->Read(handle, outBuffer, size));
 }
 
 size_t RageVFSDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuffer, size_t size)
 {
-	return m_device->ReadBulk(handle, ptr, outBuffer, size);
+	return WrapInt(m_device->ReadBulk(handle, ptr, outBuffer, size));
 }
 
 size_t RageVFSDevice::Write(THandle handle, const void* buffer, size_t size)
 {
-	return m_device->Write(handle, const_cast<void*>(buffer), size);
+	return WrapInt(m_device->Write(handle, const_cast<void*>(buffer), size));
 }
 
 size_t RageVFSDevice::Seek(THandle handle, intptr_t offset, int seekType)
 {
-	return m_device->SeekLong(handle, offset, seekType);
+	return WrapInt(m_device->SeekLong(handle, offset, seekType));
 }
 
 bool RageVFSDevice::Close(THandle handle)
