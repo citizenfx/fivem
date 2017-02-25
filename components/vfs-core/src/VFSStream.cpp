@@ -36,6 +36,11 @@ std::vector<uint8_t> Stream::Read(size_t length)
 	return retval;
 }
 
+size_t Stream::Write(const void* buffer, size_t length)
+{
+	return m_device->Write(m_handle, buffer, length);
+}
+
 uint64_t Stream::GetLength()
 {
 	return m_device->GetLength(m_handle);

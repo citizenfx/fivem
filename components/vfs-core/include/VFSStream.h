@@ -33,9 +33,18 @@ public:
 
 	size_t Read(void* buffer, size_t length);
 
-	inline size_t Read(std::vector<uint8_t>& buffer)
+	template<typename TAlloc>
+	inline size_t Read(std::vector<uint8_t, TAlloc>& buffer)
 	{
 		return Read(&buffer[0], buffer.size());
+	}
+
+	size_t Write(const void* buffer, size_t length);
+
+	template<typename TAlloc>
+	inline size_t Write(const std::vector<uint8_t, TAlloc>& buffer)
+	{
+		return Write(&buffer[0], buffer.size());
 	}
 
 	void Close();
