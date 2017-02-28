@@ -104,10 +104,10 @@ bool ComponentInstance::DoGameLoad(void* module)
 					{
 						if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0) {
 							bad = true;
-							trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveReborn", it->path().filename().string());
+							trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM", it->path().filename().string());
 							if (*itt == L"openiv.asi")
 							{
-								FatalError("You cannot use OpenIV with FiveReborn. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivereborn.com on how to use modded files with FiveReborn.");
+								FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
 							}
 						}
 					}

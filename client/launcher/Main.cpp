@@ -125,8 +125,8 @@ void main()
 			// also do checks here to complain at BAD USERS
 			if (!GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetThreadDescription"))
 			{
-				MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the p\x039B client. Please update to Windows 10 version 1607 or higher in case you are experiencing "
-					L"any issues. The game will continue to start now.", L"p\x039B", MB_OK | MB_ICONWARNING);
+				MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the FiveM client. Please update to Windows 10 version 1607 or higher in case you are experiencing "
+					L"any issues. The game will continue to start now.", L"FiveM", MB_OK | MB_ICONWARNING);
 			}
 
 			{
@@ -141,17 +141,17 @@ void main()
 					{
 						if (elevationData == TokenElevationTypeFull)
 						{
-							const wchar_t* elevationComplaint = L"p\x039B does not support running under elevated privileges. Please change your Windows settings to not run p\x039B as administrator.\nThat won't fix anything. The game will exit now.";
+							const wchar_t* elevationComplaint = L"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\nThat won't fix anything. The game will exit now.";
 
-							auto result = MessageBox(nullptr, elevationComplaint, L"p\x039B", MB_ABORTRETRYIGNORE | MB_ICONERROR);
+							auto result = MessageBox(nullptr, elevationComplaint, L"FiveM", MB_ABORTRETRYIGNORE | MB_ICONERROR);
 
 							if (result == IDIGNORE)
 							{
-								MessageBox(nullptr, L"No, you can't ignore this. The game will exit now.", L"p\x039B", MB_OK | MB_ICONINFORMATION);
+								MessageBox(nullptr, L"No, you can't ignore this. The game will exit now.", L"FiveM", MB_OK | MB_ICONINFORMATION);
 							}
 							else if (result == IDRETRY)
 							{
-								MessageBox(nullptr, elevationComplaint, L"p\x039B", MB_OK | MB_ICONWARNING);
+								MessageBox(nullptr, elevationComplaint, L"FiveM", MB_OK | MB_ICONWARNING);
 							}
 
 							return;
@@ -169,7 +169,7 @@ void main()
 				{
 					if (GetLastError() == ERROR_ACCESS_DENIED)
 					{
-						MessageBox(nullptr, L"project\x039B could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
+						MessageBox(nullptr, L"FiveM could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
 						return;
 					}
 				}

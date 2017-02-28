@@ -849,7 +849,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			if (!node["sH"].IsDefined())
 			{
 				// Server did not send a scripts setting: old server or rival project
-				OnConnectionError("Legacy servers are incompatible with this version of FiveReborn. Update the server to the latest files from fivereborn.com");
+				OnConnectionError("Legacy servers are incompatible with this version of FiveM. Update the server to the latest files from fivem.net");
 				m_connectionState = CS_IDLE;
 				return;
 			}

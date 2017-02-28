@@ -317,7 +317,7 @@ static InitFunction initFunction([] ()
 			case 4:
 			case 5:
 			case 6:
-				brandingString = L"проект\x039B \xD83C\xDF19";
+				brandingString = L"FiveM \xD83C\xDF19";
 				break;
 			case 7:
 			case 8:
@@ -325,7 +325,7 @@ static InitFunction initFunction([] ()
 			case 10:
 			case 11:
 			case 12:
-				brandingString = L"проект\x039B \xD83C\xDF42";
+				brandingString = L"FiveM \xD83C\xDF42";
 				break;
 			case 13:
 			case 14:
@@ -333,7 +333,7 @@ static InitFunction initFunction([] ()
 			case 16:
 			case 17:
 			case 18:
-				brandingString = L"проект\x039B \xD83D\xDD25";
+				brandingString = L"FiveM \xD83D\xDD25";
 				break;
 			case 19:
 			case 20:
@@ -341,7 +341,7 @@ static InitFunction initFunction([] ()
 			case 22:
 			case 23:
 			case 0:
-				brandingString = L"проект\x039B \xD83C\xDF59";
+				brandingString = L"FiveM \xD83C\xDF59";
 				break;
 		}
 
