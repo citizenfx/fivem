@@ -768,9 +768,11 @@ struct DataAndPersistent {
 };
 
 static void ReadBufferWeakCallback(
-	const v8::WeakCallbackData<ArrayBuffer, DataAndPersistent>& data)
+	const v8::WeakCallbackInfo<DataAndPersistent>& data)
 {
-	size_t byte_length = data.GetValue()->ByteLength();
+	v8::Local<ArrayBuffer> v = data.GetParameter()->handle.Get(data.GetIsolate());
+
+	size_t byte_length = v->ByteLength();
 	data.GetIsolate()->AdjustAmountOfExternalAllocatedMemory(
 		-static_cast<intptr_t>(byte_length));
 	data.GetParameter()->handle.Reset();
@@ -795,7 +797,7 @@ static void V8_ReadBuffer(const v8::FunctionCallbackInfo<v8::Value>& args)
 		ArrayBuffer::New(isolate, data->data.data(), data->data.size());
 
 	data->handle.Reset(isolate, buffer);
-	data->handle.SetWeak(data, ReadBufferWeakCallback);
+	data->handle.SetWeak(data, ReadBufferWeakCallback, v8::WeakCallbackType::kParameter);
 	data->handle.MarkIndependent();
 
 	isolate->AdjustAmountOfExternalAllocatedMemory(data->data.size());
