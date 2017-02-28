@@ -542,18 +542,15 @@ static InitFunction initFunction([] ()
 	static_assert(sizeof(std::array<char, 40>) == sizeof(test), "std::array size is not the same as the underlying array");
 });
 
+static PEXCEPTION_POINTERS g_exception;
+
 static int SehRoutine(const char* typePtr, PEXCEPTION_POINTERS exception)
 {
 	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 	{
-		if (!typePtr)
-		{
-			typePtr = "a safe-call operation";
-		}
+		g_exception = exception;
 
-		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
-			exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
-			typePtr);
+		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
 	return EXCEPTION_CONTINUE_SEARCH;
@@ -568,6 +565,15 @@ static auto SafeCall(const T& fn, const char* whatPtr = nullptr)
 	}
 	__except (SehRoutine(whatPtr, GetExceptionInformation()))
 	{
+		if (!typePtr)
+		{
+			typePtr = "a safe-call operation";
+		}
+
+		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
+			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
+			typePtr);
+
 		return std::result_of_t<T()>();
 	}
 }

@@ -39,13 +39,14 @@ namespace rage
 		return va("0x%08x", funcHash);
 	}
 
+	static PEXCEPTION_POINTERS g_exception;
+
 	static int SehRoutine(InitFunctionData* func, InitFunctionType type, PEXCEPTION_POINTERS exception)
 	{
 		if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 		{
-			FatalError("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
-					   exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
-					   InitFunctionTypeToString(type), func->GetName());
+			g_exception = exception;
+			return EXCEPTION_EXECUTE_HANDLER;
 		}
 
 		return EXCEPTION_CONTINUE_SEARCH;
@@ -61,6 +62,10 @@ namespace rage
 		}
 		__except (SehRoutine(this, type, GetExceptionInformation()))
 		{
+			FatalError("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
+				g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
+				InitFunctionTypeToString(type), this->GetName());
+
 			return false;
 		}
 	}
