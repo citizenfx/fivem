@@ -1158,10 +1158,12 @@ V8ScriptGlobals::V8ScriptGlobals()
 V8ScriptGlobals::~V8ScriptGlobals()
 {
 	// clean up V8
-	m_isolate->Dispose();
+	/*m_isolate->Dispose();
 
 	V8::Dispose();
-	V8::ShutdownPlatform();
+	V8::ShutdownPlatform();*/
+
+	// actually don't, this deadlocks from a global destructor
 }
 
 // {9C268449-7AF4-4A3B-995A-3B1692E958AC}
