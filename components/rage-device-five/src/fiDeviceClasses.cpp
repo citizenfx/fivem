@@ -137,13 +137,13 @@ static HookFunction hookFunction([] ()
 		// check if OpenIV.asi hooks have been applied
 		void** vtbl = (void**)g_vTable_fiEncryptingDevice;
 
-		// fiDeviceLocal::Open
-		uint8_t* fn = (uint8_t*)vtbl[1];
+		// fiDeviceLocal::OpenBulk
+		uint8_t* fn = (uint8_t*)vtbl[2];
 
 		// a 40 53 aka push rbx
 		if (fn[0] != 0x40 || fn[1] != 0x53)
 		{
-			FatalError("Corrupted file state has been detected in fiDeviceLocal::Open. Please remove any plugins from your plugins folder (%s).", ToNarrow(MakeRelativeCitPath(L"plugins")));
+			FatalError("Corrupted file state has been detected in fiDeviceLocal::OpenBulk. Please remove any plugins from your plugins folder (%s).", ToNarrow(MakeRelativeCitPath(L"plugins")));
 		}
 	}, 999);
 });
