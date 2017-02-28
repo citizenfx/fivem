@@ -565,14 +565,14 @@ static auto SafeCall(const T& fn, const char* whatPtr = nullptr)
 	}
 	__except (SehRoutine(whatPtr, GetExceptionInformation()))
 	{
-		if (!typePtr)
+		if (!whatPtr)
 		{
-			typePtr = "a safe-call operation";
+			whatPtr = "a safe-call operation";
 		}
 
 		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
 			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
-			typePtr);
+			whatPtr);
 
 		return std::result_of_t<T()>();
 	}
