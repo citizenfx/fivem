@@ -36,14 +36,18 @@ namespace fx
 			// call the original function
 			static void* exceptionAddress;
 
+#ifndef _DEBUG
 			__try
 			{
+#endif
 				rageHandler(&rageContext);
+#ifndef _DEBUG
 			}
 			__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
 			{
 				throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 			}
+#endif
 
 			// append vector3 result components
 			rageContext.SetVectorResults();
