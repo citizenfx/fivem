@@ -12,6 +12,8 @@
 
 #include "Pool.h"
 
+#include <Error.h>
+
 // pool functions, here temporarily we hope :)
 static atPoolBase** g_scriptHandlerNetworkPool;
 

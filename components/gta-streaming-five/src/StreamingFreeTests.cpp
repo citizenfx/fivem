@@ -9,6 +9,8 @@
 #include "Hooking.h"
 #include <atPool.h>
 
+#include <Error.h>
+
 struct ResBmInfoInt
 {
 	void* pad;

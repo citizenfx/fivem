@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include "fiDevice.h"
 
+#include <Error.h>
+
 #define PURECALL() FatalError("pure fiDevice call (" __FUNCTION__ ")"); return 0
 
 namespace rage

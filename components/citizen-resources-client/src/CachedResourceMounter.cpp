@@ -19,6 +19,8 @@
 
 #include <network/uri.hpp>
 
+#include <Error.h>
+
 using fx::CachedResourceMounter;
 
 void MountResourceCacheDevice(std::shared_ptr<ResourceCache> cache);

@@ -16,11 +16,33 @@
 #include <commctrl.h>
 #include <shellapi.h>
 
-#include <rapidjson/document.h>
-#include <rapidjson/writer.h>
+#include <json.hpp>
 
 #include <regex>
 #include <sstream>
+
+using json = nlohmann::json;
+
+static json load_error_pickup()
+{
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"rb");
+
+	if (f)
+	{
+		fseek(f, 0, SEEK_END);
+		int len = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		std::vector<uint8_t> text(len);
+		fread(&text[0], 1, len, f);
+
+		fclose(f);
+
+		return json::parse(text);
+	}
+
+	return json(nullptr);
+}
 
 using namespace google_breakpad;
 
@@ -120,23 +142,14 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 	// FatalError crash pickup?
 	{
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"rb");
+		json pickup = load_error_pickup();
 
-		if (f)
+		if (!pickup.is_null())
 		{
-			fseek(f, 0, SEEK_END);
-			int len = ftell(f);
-			fseek(f, 0, SEEK_SET);
-
-			std::vector<char> text(len);
-			fread(&text[0], 1, len, f);
-
-			fclose(f);
-
 			_wunlink(MakeRelativeCitPath(L"cache\\error-pickup").c_str());
 
 			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
-			static std::wstring errDescription = ToWide(fmt::sprintf("%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", ParseLinks(text)));
+			static std::wstring errDescription = ToWide(fmt::sprintf("%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", ParseLinks(pickup["message"].get<std::string>())));
 
 			config->pszMainInstruction = errTitle.c_str();
 			config->pszContent = errDescription.c_str();
@@ -149,30 +162,15 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 static std::wstring GetAdditionalData()
 {
 	{
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"rb");
+		json error_pickup = load_error_pickup();
 
-		if (f)
+		if (!error_pickup.is_null())
 		{
-			fseek(f, 0, SEEK_END);
-			int len = ftell(f);
-			fseek(f, 0, SEEK_SET);
+			json doc = json{
+				{"ErrorPickup", error_pickup }
+			};
 
-			std::vector<char> text(len);
-			fread(&text[0], 1, len, f);
-
-			fclose(f);
-
-			rapidjson::Document doc;
-			doc.SetObject();
-			doc.AddMember("ErrorPickup", rapidjson::Value(text.data(), text.size(), doc.GetAllocator()), doc.GetAllocator());
-
-			rapidjson::StringBuffer sb;
-			rapidjson::Writer<rapidjson::StringBuffer> w(sb);
-
-			if (doc.Accept(w))
-			{
-				return ToWide(std::string(sb.GetString(), sb.GetSize()));
-			}
+			return ToWide(doc.dump());
 		}
 	}
 

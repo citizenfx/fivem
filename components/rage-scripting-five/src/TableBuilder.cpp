@@ -10,6 +10,8 @@
 
 #include <udis86.h>
 
+#include <Error.h>
+
 class FunctionTable
 {
 private:

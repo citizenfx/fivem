@@ -12,6 +12,8 @@
 
 #include <fnv.h>
 
+#include <Error.h>
+
 //#define CFX_COLLECTION_DISABLE 1
 
 // unset _DEBUG so that there will be no range checking
@@ -1205,18 +1207,15 @@ void DoCloseCollection(rage::fiCollection* collection)
 	}
 }
 
-template<const char** errorString>
-static void DbgError()
+static void PtrError()
 {
 	if (CoreIsDebuggerPresent())
 	{
 		__debugbreak();
 	}
 
-	FatalError(*errorString);
+	FatalError("Invalid fixup, address is neither virtual nor physical (rage::pg*)");
 }
-
-const char* ptrError = "Invalid fixup, address is neither virtual nor physical (paged resources - attach a debugger to find where)";
 
 // this should be moved to another component eventually...
 #ifdef DRAWABLE_DBG
@@ -2076,7 +2075,7 @@ static HookFunction hookFunction([] ()
 	}, 50);
 
 	// resource ptr resolve error
-	hook::call(hook::pattern("B9 3D 27 92 83 E8").count(1).get(0).get<void>(5), DbgError<&ptrError>);
+	hook::call(hook::pattern("B9 3D 27 92 83 E8").count(1).get(0).get<void>(5), PtrError);
 
 #ifdef DRAWABLE_DBG
 	// 

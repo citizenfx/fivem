@@ -2,6 +2,7 @@
 #include "Hooking.h"
 
 #include <gameSkeleton.h>
+#include <Error.h>
 
 static std::unordered_map<uint32_t, std::string> g_initFunctionNames;
 

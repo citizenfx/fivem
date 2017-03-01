@@ -9,6 +9,8 @@
 #include <minhook.h>
 
 #ifdef _M_AMD64
+#include <Error.h>
+
 #include <udis86.h>
 
 static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD_Icall)

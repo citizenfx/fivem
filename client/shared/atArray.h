@@ -54,7 +54,9 @@ public:
 	{
 		if (offset >= m_size)
 		{
-			FatalError("atArray index out of bounds");
+#ifdef _DEBUG
+			assert(!"atArray index out of bounds");
+#endif
 		}
 
 		return m_offset[offset];

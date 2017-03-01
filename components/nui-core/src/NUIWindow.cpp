@@ -13,6 +13,8 @@
 
 #include <DrawCommands.h>
 
+#include <Error.h>
+
 #include "memdbgon.h"
 
 HANDLE g_fileMapping;

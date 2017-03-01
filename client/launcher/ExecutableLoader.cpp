@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "ExecutableLoader.h"
 
+#include <Error.h>
+
 ExecutableLoader::ExecutableLoader(const uint8_t* origBinary)
 {
 	m_origBinary = origBinary;

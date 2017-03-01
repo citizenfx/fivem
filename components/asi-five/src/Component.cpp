@@ -11,6 +11,8 @@
 #include <boost/filesystem.hpp>
 #include <wchar.h>
 
+#include <Error.h>
+
 #pragma comment(lib, "version.lib")
 
 class ComponentInstance : public Component

@@ -13,6 +13,8 @@
 
 #include <memory>
 
+#include <Error.h>
+
 #pragma comment(lib, "winmm.lib")
 #include <mmsystem.h>
 

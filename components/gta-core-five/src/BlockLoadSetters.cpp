@@ -15,6 +15,8 @@
 #include <GameInit.h>
 #include <nutsnbolts.h>
 
+#include <Error.h>
+
 static hook::cdecl_stub<void()> lookAlive([] ()
 {
 	return hook::pattern("48 8D 6C 24 A0 48 81 EC 60 01 00 00 E8").count(1).get(0).get<void>(-0xC);

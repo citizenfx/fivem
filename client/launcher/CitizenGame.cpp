@@ -15,6 +15,8 @@
 
 #include <winternl.h>
 
+#include <Error.h>
+
 static ILauncherInterface* g_launcher;
 
 #if defined(PAYNE)

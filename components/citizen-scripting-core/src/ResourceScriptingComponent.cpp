@@ -11,6 +11,8 @@
 #include "ResourceMetaDataComponent.h"
 #include "ResourceScriptingComponent.h"
 
+#include <Error.h>
+
 namespace fx
 {
 ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)

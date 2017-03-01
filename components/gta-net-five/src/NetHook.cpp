@@ -12,6 +12,8 @@
 #include <nutsnbolts.h>
 #include <ICoreGameInit.h>
 
+#include <Error.h>
+
 static NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>

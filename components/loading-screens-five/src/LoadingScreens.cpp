@@ -19,6 +19,8 @@
 
 #include <GameInit.h>
 
+#include <Error.h>
+
 using fx::Resource;
 
 static bool frameOn = false;

@@ -10,6 +10,8 @@
 #include <VFSManager.h>
 #include <sstream>
 
+#include <Error.h>
+
 #define MAKE_ERROR_CODE(x) \
 	case x: \
 		return #x;

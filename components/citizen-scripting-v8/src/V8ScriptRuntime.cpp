@@ -18,6 +18,8 @@
 
 #include <fstream>
 
+#include <Error.h>
+
 using namespace v8;
 
 namespace fx

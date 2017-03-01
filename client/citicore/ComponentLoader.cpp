@@ -9,6 +9,7 @@
 #include "ComponentLoader.h"
 #include "DllGameComponent.h"
 #include "FxGameComponent.h"
+#include <Error.h>
 
 #ifdef _WIN32
 #define PLATFORM_LIBRARY_STRING L"%s.dll"

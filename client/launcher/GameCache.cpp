@@ -9,6 +9,8 @@
 #include "InstallerExtraction.h"
 #include <array>
 
+#include <Error.h>
+
 #ifdef GTA_FIVE
 // entry for a cached-intent file
 struct GameCacheEntry
@@ -739,7 +741,7 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	// failed?
 	if (!retval)
 	{
-		FatalError("are you still the one i knoooooooooow?");
+		FatalError("Fetching game cache failed.");
 	}
 }
 

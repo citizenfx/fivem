@@ -13,6 +13,8 @@
 
 #include <ShaderInfo.h>
 
+#include <Error.h>
+
 using namespace rage::five;
 
 void grmShaderFx::DoPreset(const char* shaderName, const char* spsName)

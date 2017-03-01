@@ -13,6 +13,8 @@
 #pragma comment(lib, "winmm.lib")
 #include <mmsystem.h>
 
+#include <Error.h>
+
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking)
 	: ResourceCacheDevice(cache, blocking, cache->GetCachePath())
 {
@@ -116,6 +118,26 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenBulk(const std::string& fi
 	*ptr = 0;
 
 	return OpenInternal(fileName, ptr);
+}
+
+auto ResourceCacheDevice::AllocateHandle(THandle* idx) -> HandleData*
+{
+	std::lock_guard<std::mutex> lock(m_handleLock);
+
+	for (int i = 0; i < _countof(m_handles); i++)
+	{
+		if (m_handles[i].status == HandleData::StatusEmpty)
+		{
+			*idx = i;
+			m_handles[i].status = HandleData::StatusError;
+
+			return &m_handles[i];
+		}
+	}
+
+	FatalError(__FUNCTION__ " - failed to allocate file handle");
+
+	return nullptr;
 }
 
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)

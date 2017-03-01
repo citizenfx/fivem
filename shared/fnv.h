@@ -8,7 +8,7 @@
 
 struct fnv1a_process_noop
 {
-	static constexpr inline uint8_t Process(uint8_t value) noexcept
+	static constexpr inline uint8_t Process(const uint8_t value) noexcept
 	{
 		return value;
 	}
@@ -16,7 +16,7 @@ struct fnv1a_process_noop
 
 struct fnv1a_process_tolower
 {
-	static constexpr inline uint8_t Process(uint8_t value) noexcept
+	static constexpr inline uint8_t Process(const uint8_t value) noexcept
 	{
 		return __tolower(value);
 	}
@@ -25,35 +25,45 @@ struct fnv1a_process_tolower
 template<typename TInteger, TInteger Seed, TInteger Prime, typename ProcessByte = fnv1a_process_noop>
 struct fnv1a_impl
 {
-	TInteger operator()(const std::string& buffer) noexcept
+	inline constexpr fnv1a_impl()
+	{
+
+	}
+
+	inline TInteger operator()(const std::string& buffer) const noexcept
 	{
 		return ProcessUnrolled<sizeof(size_t)>(buffer.c_str(), buffer.length(), Seed);
 	}
 
-	TInteger operator()(const void* buffer, size_t length) noexcept
+	inline TInteger operator()(const void* buffer, size_t length) const noexcept
 	{
 		return ProcessUnrolled<sizeof(size_t)>(buffer, length, Seed);
 	}
 
-	TInteger operator()(const char* buffer) noexcept
+	constexpr inline TInteger operator()(const char* const buffer) const noexcept
+	{
+		return Process(buffer, Seed);
+	}
+
+	constexpr static inline TInteger Hash(const char* const buffer) noexcept
 	{
 		return Process(buffer, Seed);
 	}
 
 private:
-	TInteger Process(const char* buffer, TInteger hash) noexcept
+	inline static constexpr TInteger Process(const char* buffer, const TInteger hash_) noexcept
 	{
-		auto data = reinterpret_cast<const uint8_t*>(buffer);
+		TInteger hash = hash_;
 
-		while (*data)
+		while (*buffer)
 		{
-			hash = (ProcessByte::Process(*data++) ^ hash) * Prime;
+			hash = static_cast<TInteger>(1ULL * (ProcessByte::Process(*buffer++) ^ hash) * Prime);
 		}
 
 		return hash;
 	}
 
-	TInteger Process(const void* buffer, size_t length, TInteger hash) noexcept
+	TInteger Process(const void* buffer, size_t length, TInteger hash) const noexcept
 	{
 		auto data = static_cast<const uint8_t*>(buffer);
 
@@ -66,7 +76,7 @@ private:
 	}
 
 	template<size_t Unroll>
-	TInteger ProcessUnrolled(const void* buffer, size_t length, TInteger hash) noexcept
+	TInteger ProcessUnrolled(const void* buffer, size_t length, TInteger hash) const noexcept
 	{
 		auto data = static_cast<const uint8_t*>(buffer);
 
@@ -81,13 +91,13 @@ private:
 	}
 
 	template<>
-	inline TInteger ProcessUnrolled<0>(const void* buffer, size_t length, TInteger hash) noexcept
+	inline TInteger ProcessUnrolled<0>(const void* buffer, size_t length, TInteger hash) const noexcept
 	{
 		return Process(buffer, length, hash);
 	}
 
 	template<>
-	inline TInteger ProcessUnrolled<1>(const void* buffer, size_t length, TInteger hash) noexcept
+	inline TInteger ProcessUnrolled<1>(const void* buffer, size_t length, TInteger hash) const noexcept
 	{
 		return Process(buffer, length, hash);
 	}

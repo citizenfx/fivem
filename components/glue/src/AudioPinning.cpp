@@ -1,4 +1,5 @@
 #include <StdInc.h>
+#include <Error.h>
 
 static InitFunction initFunction([] ()
 {

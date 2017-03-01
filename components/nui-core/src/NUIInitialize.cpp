@@ -20,6 +20,8 @@
 #include "ResumeComponent.h"
 #include "HookFunction.h"
 
+#include <Error.h>
+
 #include "memdbgon.h"
 
 void FinalizeInitNUI();

@@ -13,6 +13,8 @@
 
 #include <msgpack.hpp>
 
+#include <Error.h>
+
 ResourceCache::ResourceCache(const std::string& cachePath)
 	: m_cachePath(cachePath)
 {

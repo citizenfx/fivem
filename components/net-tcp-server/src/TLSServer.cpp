@@ -17,6 +17,8 @@
 
 #include <fstream>
 
+#include <Error.h>
+
 class CredentialManager : public Botan::Credentials_Manager
 {
 private:

@@ -41,7 +41,9 @@ public:
 		}
 		else
 		{
-			FatalError("Could not obtain instance from InstanceRegistry of type `%s`.", key);
+#ifdef _DEBUG
+			assert(!"Could not obtain instance from InstanceRegistry.");
+#endif
 		}
 
 		return instance;

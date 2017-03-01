@@ -9,6 +9,9 @@
 
 #include <boost/type_index.hpp>
 
+// for now!
+#include <Error.h>
+
 class 
 #ifdef COMPILING_NET
 	__declspec(dllexport)

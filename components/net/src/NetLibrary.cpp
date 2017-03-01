@@ -14,6 +14,8 @@
 #include <yaml-cpp/yaml.h>
 #include <SteamComponentAPI.h>
 
+#include <Error.h>
+
 inline ISteamComponent* GetSteam()
 {
 	auto steamComponent = Instance<ISteamComponent>::Get();
@@ -1011,14 +1013,17 @@ const char* NetLibrary::GetPlayerName()
 	{
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
-		InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-		if (steamFriends.IsValid())
+		if (steamClient)
 		{
-			// TODO: name changing
-			static std::string personaName = steamFriends.Invoke<const char*>("GetPersonaName");
+			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
 
-			return personaName.c_str();
+			if (steamFriends.IsValid())
+			{
+				// TODO: name changing
+				static std::string personaName = steamFriends.Invoke<const char*>("GetPersonaName");
+
+				return personaName.c_str();
+			}
 		}
 	}
 

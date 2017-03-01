@@ -10,6 +10,8 @@
 #include "3rdparty/dxt.h"
 #include <ppltasks.h>
 
+#include <Error.h>
+
 #include "memdbgon.h"
 
 FontRendererTexture::~FontRendererTexture()

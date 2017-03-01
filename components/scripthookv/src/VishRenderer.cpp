@@ -21,6 +21,8 @@
 
 #include <GfxUtil.h>
 
+#include <Error.h>
+
 using namespace Microsoft::WRL;
 
 #pragma comment(lib, "winmm.lib")

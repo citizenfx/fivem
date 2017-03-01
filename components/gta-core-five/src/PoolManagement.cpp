@@ -5,6 +5,8 @@
 
 #include <MinHook.h>
 
+#include <Error.h>
+
 class RageHashList
 {
 public:

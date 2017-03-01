@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <mutex>
+#include "Error.h"
 
 static STATIC InitFunctionBase* g_initFunctions;
 

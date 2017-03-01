@@ -22,6 +22,8 @@
 
 #include <network/uri.hpp>
 
+#include <Error.h>
+
 static NetAddress g_netAddress;
 
 static std::string CrackResourceName(const std::string& uri)

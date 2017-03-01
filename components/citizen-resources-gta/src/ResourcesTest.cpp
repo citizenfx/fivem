@@ -20,6 +20,8 @@
 
 #include <rapidjson/document.h>
 
+#include <Error.h>
+
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags);

@@ -8,14 +8,19 @@
 #include "StdInc.h"
 #include "DllGameComponent.h"
 
+#include <Error.h>
+
 Component* DllGameComponent::CreateComponent()
 {
-	HMODULE hModule = LoadLibrary(m_path.c_str());
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	HMODULE hModule = LoadLibrary(m_path.c_str());
 
 	if (!hModule)
 	{
 		DWORD errorCode = GetLastError();
+
+		// delete caches.xml so the game will be verified
+		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
 
 		FatalError("Could not load component %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
 
@@ -41,12 +46,15 @@ Component* DllGameComponent::CreateComponent()
 
 void DllGameComponent::ReadManifest()
 {
-	HMODULE hModule = LoadLibraryEx(m_path.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	HMODULE hModule = LoadLibraryEx(m_path.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
 
 	if (!hModule)
 	{
 		DWORD errorCode = GetLastError();
+
+		// delete caches.xml so the game will be verified
+		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
 
 		FatalError("Could not load component manifest %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
 
@@ -69,6 +77,9 @@ void DllGameComponent::ReadManifest()
 	}
 	else
 	{
+		// delete caches.xml so the game will be verified
+		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
+
 		const char* additionalInfo = "";
 
 		if (m_path.find(L"scripthookv") != std::string::npos)

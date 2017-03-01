@@ -149,25 +149,7 @@ public:
 protected:
 	boost::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);
 
-	inline HandleData* AllocateHandle(THandle* idx)
-	{
-		std::lock_guard<std::mutex> lock(m_handleLock);
-
-		for (int i = 0; i < _countof(m_handles); i++)
-		{
-			if (m_handles[i].status == HandleData::StatusEmpty)
-			{
-				*idx = i;
-				m_handles[i].status = HandleData::StatusError;
-
-				return &m_handles[i];
-			}
-		}
-
-		FatalError(__FUNCTION__ " - failed to allocate file handle");
-
-		return nullptr;
-	}
+	HandleData* AllocateHandle(THandle* idx);
 
 	THandle OpenInternal(const std::string& fileName, uint64_t* bulkPtr);
 

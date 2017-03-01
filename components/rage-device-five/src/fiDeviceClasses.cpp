@@ -2,6 +2,8 @@
 #include "fiDevice.h"
 #include "Hooking.h"
 
+#include <Error.h>
+
 namespace rage
 {
 static uintptr_t g_vTable_fiEncryptingDevice;

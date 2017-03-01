@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <tuple>
 
+#include <Error.h>
+
 #ifdef _WIN32
 #include <winternl.h>
 

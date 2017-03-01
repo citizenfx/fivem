@@ -6,6 +6,7 @@
  */
 
 #include "StdInc.h"
+#include <Error.h>
 #include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
 

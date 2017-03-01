@@ -17,6 +17,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <Error.h>
+
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 

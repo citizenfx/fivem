@@ -10,6 +10,8 @@
 
 #include <mutex>
 
+#include "Error.h"
+
 namespace net
 {
 static std::once_flag g_netInitFlag;

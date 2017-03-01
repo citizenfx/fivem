@@ -9,6 +9,8 @@
 
 #include <string>
 
+#include <Error.h>
+
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
 #include <gtaDrawable.h>

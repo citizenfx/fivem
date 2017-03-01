@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <Error.h>
+
 #include <typeinfo>
 
 struct VirtualBase

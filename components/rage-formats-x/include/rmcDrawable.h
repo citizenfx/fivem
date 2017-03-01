@@ -1446,7 +1446,7 @@ public:
 	{
 		if (idx < 0 || idx >= _countof(m_models))
 		{
-			FatalError("");
+			abort();
 		}
 
 		if (m_models[idx].IsNull())
@@ -1478,7 +1478,7 @@ public:
 	{
 		if (idx < 0 || idx >= _countof(m_models))
 		{
-			FatalError("");
+			abort();
 		}
 
 		if (model == nullptr)
@@ -1497,7 +1497,7 @@ public:
 	{
 		if (idx < 0 || idx >= _countof(m_models))
 		{
-			FatalError("");
+			abort();
 		}
 
 		m_drawBucketMask[idx] = mask;

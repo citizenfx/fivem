@@ -8,11 +8,18 @@
 #include "StdInc.h"
 //#include "GameInit.h"
 #include <ICoreGameInit.h>
+#include <fnv.h>
+
+#include <json.hpp>
+
+using json = nlohmann::json;
 
 #define ERR_NORMAL 0 // will continue game execution, but not here
 #define ERR_FATAL 1
 
 #define BUFFER_LENGTH 32768
+
+static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
 
 static int SysError(const char* buffer)
 {
@@ -29,11 +36,17 @@ static int SysError(const char* buffer)
 	}
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
+	json o = json::object();
+	o["message"] = buffer;
+	o["file"] = std::get<0>(g_thisError);
+	o["line"] = std::get<1>(g_thisError);
+	o["sigHash"] = std::get<2>(g_thisError);
+
 	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
 
 	if (f)
 	{
-		fprintf(f, "%s", buffer);
+		fprintf(f, "%s", o.dump().c_str());
 		fclose(f);
 
 #ifdef _DEBUG
@@ -118,14 +131,29 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 	return 0;
 }
 
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
-int GlobalErrorReal(const char* string, const fmt::ArgList& formatList)
+struct ScopedError
 {
+	ScopedError(const char* file, int line, uint32_t stringHash)
+	{
+		g_thisError = std::make_tuple(file, line, stringHash);
+	}
+
+	~ScopedError()
+	{
+		g_thisError = std::make_tuple(nullptr, 0, 0);
+	}
+};
+
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
+int GlobalErrorReal(const char* file, int line, uint32_t stringHash, const char* string, const fmt::ArgList& formatList)
+{
+	ScopedError error(file, line, stringHash);
 	return GlobalErrorHandler(ERR_NORMAL, fmt::sprintf(string, formatList).c_str());
 }
 
-int FatalErrorReal(const char* string, const fmt::ArgList& formatList)
+int FatalErrorReal(const char* file, int line, uint32_t stringHash, const char* string, const fmt::ArgList& formatList)
 {
+	ScopedError error(file, line, stringHash);
 	return GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
 }
 #else
