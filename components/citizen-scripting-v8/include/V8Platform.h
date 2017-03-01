@@ -9,7 +9,13 @@
 
 #include <include/v8-platform.h>
 
-class V8Platform : public v8::Platform
+class
+#ifdef COMPILING_CITIZEN_SCRIPTING_V8
+	DLL_EXPORT
+#else
+	DLL_IMPORT
+#endif
+	V8Platform : public v8::Platform
 {
 private:
 	uint64_t m_startTime;
