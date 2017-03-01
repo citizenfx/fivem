@@ -166,11 +166,9 @@ static std::wstring GetAdditionalData()
 
 		if (!error_pickup.is_null())
 		{
-			json doc = json{
-				{"ErrorPickup", error_pickup }
-			};
+			error_pickup["type"] = "error_pickup";
 
-			return ToWide(doc.dump());
+			return ToWide(error_pickup.dump());
 		}
 	}
 
