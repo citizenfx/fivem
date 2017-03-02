@@ -32,6 +32,44 @@ bool ComponentInstance::Initialize()
 	return true;
 }
 
+static bool IsCLRAssembly(const boost::filesystem::path& path)
+{
+	FILE* f = _wfopen(path.c_str(), L"rb");
+
+	if (f)
+	{
+		fseek(f, 0, SEEK_END);
+		std::vector<uint8_t> libraryBuffer(ftell(f));
+
+		fseek(f, 0, SEEK_SET);
+		fread(&libraryBuffer[0], 1, libraryBuffer.size(), f);
+
+		fclose(f);
+
+		// get the DOS header
+		IMAGE_DOS_HEADER* header = (IMAGE_DOS_HEADER*)&libraryBuffer[0];
+
+		if (header->e_magic == IMAGE_DOS_SIGNATURE)
+		{
+			// get the NT header
+			const IMAGE_NT_HEADERS* ntHeader = (const IMAGE_NT_HEADERS*)&libraryBuffer[header->e_lfanew];
+
+			// find the COM+ directory
+			auto comPlusDirectoryData = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR];
+
+			if (comPlusDirectoryData.Size > 0)
+			{
+				if (comPlusDirectoryData.VirtualAddress < ntHeader->OptionalHeader.SizeOfImage)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 bool ComponentInstance::DoGameLoad(void* module)
 {
 	HookFunction::RunAll();
@@ -106,12 +144,22 @@ bool ComponentInstance::DoGameLoad(void* module)
 					{
 						if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0) {
 							bad = true;
-							trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM", it->path().filename().string());
+							trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
 							if (*itt == L"openiv.asi")
 							{
 								FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
 							}
 						}
+					}
+				}
+
+				if (!bad)
+				{
+					if (IsCLRAssembly(it->path()))
+					{
+						trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+
+						bad = true;
 					}
 				}
 
@@ -129,7 +177,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 						{
 							shim.second(module);
 
-							trace("Executed compat patches on %s (loaded at %016llx).", ToNarrow(shim.first), (uint64_t)module);
+							trace("Executed compat patches on %s (loaded at %016llx).\n", ToNarrow(shim.first), (uint64_t)module);
 						}
 					}
 				}
