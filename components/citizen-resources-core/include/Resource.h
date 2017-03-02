@@ -23,7 +23,7 @@ class Resource;
 
 class ResourceManager;
 
-class Resource : public fwRefCountable, public ComponentHolderAccessor<Resource>
+class Resource : public fwRefCountable, public ComponentHolderImpl<Resource>
 {
 public:
 	//

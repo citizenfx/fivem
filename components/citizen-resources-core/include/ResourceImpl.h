@@ -22,7 +22,7 @@ enum class ResourceState
 
 class ResourceManagerImpl;
 
-class ResourceImpl : public Resource, public ComponentHolderImpl<Resource>
+class ResourceImpl : public Resource
 {
 private:
 	std::string m_name;

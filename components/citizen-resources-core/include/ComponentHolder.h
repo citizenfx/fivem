@@ -19,22 +19,32 @@ public:
 template<typename THolder>
 class ComponentHolder
 {
+private:
+	template<bool value>
+	struct AttachToImpl
+	{
+		template<typename TInstance>
+		static void Run(TInstance* inst, THolder* holder)
+		{
+			
+		}
+	};
+
+	template<>
+	struct AttachToImpl<true>
+	{
+		template<typename TInstance>
+		static void Run(TInstance* inst, THolder* holder)
+		{
+			static_cast<IAttached<THolder>*>(inst)->AttachToObject(holder);
+		}
+	};
+
 public:
 	//
 	// Gets the object-specific instance registry.
 	//
 	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() = 0;
-};
-
-template<typename THolder>
-class ComponentHolderAccessor
-{
-public:
-	// mark this as a virtual type to allow dynamic_cast
-	virtual ~ComponentHolderAccessor()
-	{
-
-	}
 
 	//
 	// Utility function to get an instance of a particular interface from the instance registry.
@@ -42,10 +52,7 @@ public:
 	template<typename TInstance>
 	fwRefContainer<TInstance> GetComponent()
 	{
-		auto asHolder = dynamic_cast<ComponentHolder<THolder>*>(this);
-		assert(asHolder);
-
-		return Instance<TInstance>::Get(asHolder->GetInstanceRegistry());
+		return Instance<TInstance>::Get(this->GetInstanceRegistry());
 	}
 
 	//
@@ -55,17 +62,9 @@ public:
 	void SetComponent(fwRefContainer<TInstance> inst)
 	{
 		// attach to this resource if the component supports attaching
-		IAttached<THolder>* attached = dynamic_cast<IAttached<THolder>*>(inst.GetRef());
+		AttachToImpl<std::is_base_of_v<IAttached<THolder>, TInstance>>::Run(inst.GetRef(), static_cast<THolder*>(this));
 
-		if (attached)
-		{
-			attached->AttachToObject(dynamic_cast<THolder*>(this));
-		}
-
-		auto asHolder = dynamic_cast<ComponentHolder<THolder>*>(this);
-		assert(asHolder);
-
-		Instance<TInstance>::Set(inst, asHolder->GetInstanceRegistry());
+		Instance<TInstance>::Set(inst, this->GetInstanceRegistry());
 	}
 };
 

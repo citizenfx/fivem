@@ -22,7 +22,7 @@
 
 namespace fx
 {
-class ResourceManager : public fwRefCountable, public ComponentHolderAccessor<ResourceManager>
+class ResourceManager : public fwRefCountable, public ComponentHolderImpl<ResourceManager>
 {
 public:
 	//
