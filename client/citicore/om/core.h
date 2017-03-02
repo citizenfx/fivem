@@ -47,6 +47,8 @@ inline guid_t GetNullGuid()
 // GUID equivalence testing
 inline bool GuidEquals(const guid_t* left, const guid_t* right)
 {
+	static_assert(std::is_pod_v<guid_t>, "guid isn't a POD type");
+
 	return (memcmp(left, right, sizeof(guid_t)) == 0);
 }
 
@@ -72,6 +74,11 @@ inline bool operator==(const guid_t& left, const guid_t& right)
 inline bool operator!=(const guid_t& left, const guid_t& right)
 {
 	return !(left == right);
+}
+
+inline bool operator<(const guid_t& left, const guid_t& right)
+{
+	return (memcmp(&left, &right, sizeof(right)) < 0);
 }
 
 // definitions for various things used by m.o's IDL compiler

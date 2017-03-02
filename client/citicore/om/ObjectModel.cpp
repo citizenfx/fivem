@@ -11,6 +11,8 @@
 #include <om/core.h>
 #include <om/OMComponent.h>
 
+#include <mutex>
+
 struct FindHandle
 {
 	std::vector<guid_t> clsids;
@@ -43,16 +45,41 @@ namespace
 
 extern "C" DLL_EXPORT intptr_t CoreFxFindFirstImpl(const guid_t& iid, guid_t* clsid)
 {
+	// set of cache entries
+	static std::map<guid_t, std::vector<guid_t>> cacheSet;
+	static std::mutex cacheMutex;
+
 	// allocate a list of returned class IDs
 	std::vector<guid_t> clsids;
 
-	// loop through each component in the global component loader
-	ForAllOMComponents([&] (OMComponent* component)
+	// find entry in cache
 	{
-		auto implementedClasses = component->GetImplementedClasses(iid);
+		std::unique_lock<std::mutex> lock(cacheMutex);
 
-		clsids.insert(clsids.begin(), implementedClasses.begin(), implementedClasses.end());
-	});
+		auto it = cacheSet.find(iid);
+
+		if (it != cacheSet.end())
+		{
+			clsids = it->second;
+		}
+	}
+
+	// if not cached
+	if (clsids.empty())
+	{
+		// loop through each component in the global component loader
+		ForAllOMComponents([&](OMComponent* component)
+		{
+			auto implementedClasses = component->GetImplementedClasses(iid);
+
+			clsids.insert(clsids.begin(), implementedClasses.begin(), implementedClasses.end());
+		});
+
+		// add entry to cache
+		std::unique_lock<std::mutex> lock(cacheMutex);
+
+		cacheSet.insert({ iid, clsids });
+	}
 
 	// if the list isn't empty...
 	if (!clsids.empty())
@@ -112,14 +139,49 @@ extern "C" DLL_EXPORT void CoreFxFindImplClose(intptr_t findHandle)
 
 extern "C" DLL_EXPORT result_t CoreFxCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
+	// set of cache entries
+	static std::map<std::pair<guid_t, guid_t>, OMComponent*> cacheSet;
+	static std::mutex cacheMutex;
+
+	OMComponent* earlyComponent = nullptr;
+
+	{
+		std::unique_lock<std::mutex> lock(cacheMutex);
+
+		auto it = cacheSet.find({ guid, iid });
+
+		if (it != cacheSet.end())
+		{
+			// save for use outside of the mutex
+			earlyComponent = it->second;
+		}
+	}
+
 	// look through the object list and try to create an instance until it succeeds or fails *badly*
 	result_t result = FX_E_NOINTERFACE;
+
+	if (earlyComponent)
+	{
+		result = earlyComponent->CreateObjectInstance(guid, iid, objectRef);
+
+		if (FX_SUCCEEDED(result))
+		{
+			return result;
+		}
+	}
 
 	ForAllOMComponents([&] (OMComponent* component)
 	{
 		if (result != FX_S_OK)
 		{
 			result = component->CreateObjectInstance(guid, iid, objectRef);
+			
+			// if succeeded, add the component to cache
+			if (FX_SUCCEEDED(result))
+			{
+				std::unique_lock<std::mutex> lock(cacheMutex);
+				cacheSet.insert({ {guid, iid}, component });
+			}
 		}
 	});
 
