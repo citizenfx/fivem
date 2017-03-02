@@ -260,8 +260,11 @@ local do_component = function(name, comp)
 
 	links { "Shared" }
 
-	pchsource "client/common/StdInc.cpp"
-	pchheader "StdInc.h"
+	-- HACKHACK: premake doesn't allow unsetting these
+	if name ~= 'adhesive' then
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+	end
 
 	-- add dependency requirements
 	for dep, data in pairs(hasDeps) do
