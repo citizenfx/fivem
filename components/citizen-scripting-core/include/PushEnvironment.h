@@ -46,8 +46,12 @@ namespace fx
 	template<typename TRuntime>
 	inline result_t GetCurrentScriptRuntime(OMPtr<TRuntime>* runtime)
 	{
-		OMPtr<IScriptRuntimeHandler> handler;
-		fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+		static OMPtr<IScriptRuntimeHandler> handler;
+
+		if (handler.GetRef() == nullptr)
+		{
+			fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+		}
 
 		OMPtr<IScriptRuntime> runtimePtr;
 
