@@ -195,7 +195,7 @@ OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
 #ifdef _DEBUG
 	assert(luaRuntime = dynamic_cast<LuaScriptRuntime*>(runtime.GetRef()));
 #else
-	luaRuntime = static_cast<LuaScriptRuntime*>(runtime.GetRef())
+	luaRuntime = static_cast<LuaScriptRuntime*>(runtime.GetRef());
 #endif
 
 	return OMPtr<LuaScriptRuntime>(luaRuntime);
