@@ -81,7 +81,7 @@ void RunLifeCycleCallback(const T& cb)
 		{
 			auto& component = instances[0];
 
-			auto lifeCycle = dynamic_cast<LifeCycleComponent*>(component.GetRef());
+			auto lifeCycle = dynamic_component_cast<LifeCycleComponent*>(component.GetRef());
 
 			if (lifeCycle)
 			{

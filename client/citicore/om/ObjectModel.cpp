@@ -30,7 +30,7 @@ namespace
 			if (!instances.empty())
 			{
 				fwRefContainer<Component> instance = instances[0];
-				OMComponent* omInstance = dynamic_cast<OMComponent*>(instance.GetRef());
+				OMComponent* omInstance = dynamic_component_cast<OMComponent*>(instance.GetRef());
 
 				if (omInstance != nullptr)
 				{

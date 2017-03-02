@@ -34,7 +34,7 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 		Component* componentPtr = componentInstance.GetRef();
 
 		// try it as tool
-		ToolComponent* tool = dynamic_cast<ToolComponent*>(componentPtr);
+		ToolComponent* tool = dynamic_component_cast<ToolComponent*>(componentPtr);
 
 		if (tool)
 		{
@@ -135,7 +135,7 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 			fwRefContainer<Component> component = componentData->GetInstances()[0];
 
 			// get the command implementation
-			ToolComponent* tool = dynamic_cast<ToolComponent*>(component.GetRef());
+			ToolComponent* tool = dynamic_component_cast<ToolComponent*>(component.GetRef());
 
 			fwRefContainer<ToolCommand> commandImpl = tool->GetCommand(command);
 

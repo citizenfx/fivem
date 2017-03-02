@@ -217,3 +217,16 @@ std::queue<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
 {
 	return SortDependencyList<TListEntry, std::vector<TListEntry>>(list);
 }
+
+template<typename T, typename TOther>
+inline T dynamic_component_cast(TOther value)
+{
+	try
+	{
+		return dynamic_cast<T>(value);
+	}
+	catch (std::bad_typeid)
+	{
+		return T();
+	}
+}
