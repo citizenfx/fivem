@@ -3,30 +3,42 @@
 
 #include "scrEngine.h"
 
-void* CScriptEntityExtension__GetOwner(char* entityExtension)
+static HookFunction hookFunction([] ()
 {
-	void* owner = *(void**)(entityExtension + 60);
+	// CGameScriptHandlerObject::GetOwner vs. GetCurrentScriptHandler checks
 
-	if (!owner)
+	// common pattern:
+	// call qword ptr [r?x + 38h]
+	// mov rbx, rax
+	// call GetGameScriptHandler
+	// cmp rbx, rax
+
+	// this pattern starts at the + 38h portion, and matches 7 functions, all of which are script calls.
+	// these include:
+	// - DELETE_ENTITY
+	// - DOES_ENTITY_BELONG_TO_THIS_SCRIPT
+	// - the common group of:
+	//   - SET_ENTITY_AS_NO_LONGER_NEEDED
+	//   - SET_PED_AS_NO_LONGER_NEEDED
+	//   - SET_VEHICLE_AS_NO_LONGER_NEEDED
+	//   - SET_OBJECT_AS_NO_LONGER_NEEDED
+	//   (these all use the same function)
+	// - DELETE_OBJECT
+	// - DELETE_PED
+	// - REMOVE_PED_ELEGANTLY
 	{
-		rage::scrThread* thread = rage::scrEngine::GetActiveThread();
+		auto pattern = hook::pattern("38 48 8B D8 E8 ? ? ? ? 48 3B D8").count(7);
 
-		if (thread)
+		for (int i = 0; i < 7; i++)
 		{
-			GtaThread* gtaThread = static_cast<GtaThread*>(thread);
+			// is this DOES_ENTITY_BELONG_TO_THIS_SCRIPT?
+			if (*pattern.get(i).get<uint16_t>(13) == 0xB004) // jnz $+4 (the 04 byte); mov al, 1 (the B0 byte)
+			{
+				// if so, then ship
+				continue;
+			}
 
-			owner = gtaThread->GetScriptHandler();
+			hook::nop(pattern.get(i).get<void>(0xC), 2);
 		}
 	}
-
-	return owner;
-}
-
-static HookFunction hookFunction([]()
-{
-	// CScriptEntityExtension vtable
-	char* location = hook::get_pattern<char>("48 8B DA 48 89 41 08 89 71 18 66 89 71 1C 89 71", -4);
-	void** vt = (void**)(location + *(int32_t*)location + 4);
-
-	vt[7] = CScriptEntityExtension__GetOwner;
 });
