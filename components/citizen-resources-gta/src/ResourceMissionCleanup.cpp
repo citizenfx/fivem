@@ -55,7 +55,7 @@ struct MissionCleanupData
 	rage::scrThread* lastThread;
 
 	MissionCleanupData()
-		: scriptHandler(nullptr)
+		: scriptHandler(nullptr), lastScriptHandler(nullptr), dummyThread(nullptr), lastThread(nullptr)
 	{
 
 	}
