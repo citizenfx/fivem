@@ -64,20 +64,47 @@ static HookFunction hookFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
-		// override SHUTDOWN_LOADING_SCREEN
-		auto handler = fx::ScriptEngine::GetNativeHandler(0x078EBE9809CCD637);
+		static bool endedLoadingScreens = false;
 
-		if (!handler)
 		{
-			FatalError("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!");
+			// override SHUTDOWN_LOADING_SCREEN
+			auto handler = fx::ScriptEngine::GetNativeHandler(0x078EBE9809CCD637);
+
+			if (!handler)
+			{
+				FatalError("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!");
+			}
+
+			fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
+			{
+				(*handler)(ctx);
+
+				endedLoadingScreens = true;
+
+				DestroyFrame();
+			});
 		}
 
-		fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
 		{
-			(*handler)(ctx);
+			// override LOAD_ALL_OBJECTS_NOW
+			auto handler = fx::ScriptEngine::GetNativeHandler(0xBD6E84632DD4CB3F);
 
-			DestroyFrame();
-		});
+			if (!handler)
+			{
+				FatalError("Couldn't find LOAD_ALL_OBJECTS_NOW to hook!");
+			}
+
+			fx::ScriptEngine::RegisterNativeHandler(0xBD6E84632DD4CB3F, [=](fx::ScriptContext& ctx)
+			{
+				if (!endedLoadingScreens)
+				{
+					trace("Skipping LOAD_ALL_OBJECTS_NOW as loading screens haven't ended yet!\n");
+					return;
+				}
+
+				(*handler)(ctx);
+			});
+		}
 	});
 });
 
