@@ -234,7 +234,7 @@ void SteamComponent::RemoveSteamCallback(int registeredID)
 #define PRODUCT_DISPLAY_NAME "CitizenPayne \xF0\x9F\x92\x8A"
 #elif defined(GTA_FIVE)
 #define PARENT_APP_ID 218
-#define PRODUCT_DISPLAY_NAME "p\xCE\x9B"
+#define PRODUCT_DISPLAY_NAME "FiveM \xF0\x9F\x90\x8C" // snail
 #else
 #define PARENT_APP_ID 218
 #define PRODUCT_DISPLAY_NAME "Unknown CitizenFX product"
