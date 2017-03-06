@@ -356,9 +356,12 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 				return;
 			}
 
-			char* errorStr = &oob[6];
+			if (length >= 6)
+			{
+				char* errorStr = &oob[6];
 
-			GlobalError("%s", errorStr);
+				GlobalError("%s", std::string(errorStr, length - 6));
+			}
 		}
 	}
 }
