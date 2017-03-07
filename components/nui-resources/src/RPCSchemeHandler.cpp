@@ -82,17 +82,21 @@ public:
 		if (request->GetMethod() == "POST")
 		{
 			auto postData = request->GetPostData();
-			CefPostData::ElementVector elements;
-			postData->GetElements(elements);
 
-			auto element = elements[0];
+			if (postData.get())
+			{
+				CefPostData::ElementVector elements;
+				postData->GetElements(elements);
 
-			char* bytes = new char[element->GetBytesCount()];
-			element->GetBytes(element->GetBytesCount(), bytes);
+				auto element = elements[0];
 
-			postDataString = std::string(bytes, element->GetBytesCount());
+				char* bytes = new char[element->GetBytesCount()];
+				element->GetBytes(element->GetBytesCount(), bytes);
 
-			delete[] bytes;
+				postDataString = std::string(bytes, element->GetBytesCount());
+
+				delete[] bytes;
+			}
 		}
 
 		auto result = ui->InvokeCallback(path.substr(1), postDataString, [=] (const std::string& callResult)
