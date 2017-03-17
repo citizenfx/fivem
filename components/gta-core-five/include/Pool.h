@@ -14,6 +14,8 @@ GTA_CORE_EXPORT atPoolBase* GetPoolBase(uint32_t hash);
 
 GTA_CORE_EXPORT void* PoolAllocate(atPoolBase* pool);
 
+GTA_CORE_EXPORT void PoolRelease(atPoolBase* pool, void* entry);
+
 inline atPoolBase* GetPoolBase(const char* hashString)
 {
 	return GetPoolBase(HashString(hashString));

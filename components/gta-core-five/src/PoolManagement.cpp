@@ -237,11 +237,21 @@ static void* PoolAllocateWrap(atPoolBase* pool)
 	return value;
 }
 
+static hook::cdecl_stub<void(atPoolBase*, void*)> poolRelease([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B D3 E8 ? ? ? ? 0F 28 45 E0 66 0F 7F", 3));
+});
+
 namespace rage
 {
 	GTA_CORE_EXPORT void* PoolAllocate(atPoolBase* pool)
 	{
 		return PoolAllocateWrap(pool);
+	}
+
+	GTA_CORE_EXPORT void PoolRelease(atPoolBase* pool, void* entry)
+	{
+		return poolRelease(pool, entry);
 	}
 }
 
