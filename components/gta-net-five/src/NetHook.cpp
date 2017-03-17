@@ -1100,6 +1100,58 @@ bool GetOurSessionKeyWrap(char* sessionKey)
 	return GetOurSystemKey(sessionKey);
 }
 
+struct ncmi_struct1
+{
+	uintptr_t unk;
+	SOCKET socket;
+	ncmi_struct1* secondarySocket;
+};
+
+struct netConnectionManagerInternal
+{
+	ncmi_struct1* socketData;
+
+	SOCKET GetSocket()
+	{
+		if (socketData->secondarySocket)
+		{
+			return socketData->secondarySocket->socket;
+		}
+		else
+		{
+			return socketData->socket;
+		}
+	}
+};
+
+static netConnectionManagerInternal* g_internalNet;
+static void* g_netConnectionManager;
+
+static bool(*g_handleQueuedSend)(void*);
+static bool(*g_origCreateSendThreads)(netConnectionManagerInternal*, void*, int);
+
+bool CustomCreateSendThreads(netConnectionManagerInternal* a1, void* a2, int a3)
+{
+	g_internalNet = a1;
+	g_netConnectionManager = a2;
+
+	return g_origCreateSendThreads(a1, a2, a3);
+}
+
+void RunNetworkStuff()
+{
+	// handle queued sends
+	g_handleQueuedSend(g_netConnectionManager);
+
+
+	// handle recv triggering
+	// ... this actually does nothing? what
+	// code calls select() then does nothing with the result
+	{
+
+	}
+}
+
 static void WINAPI ExitProcessReplacement(UINT exitCode)
 {
 	if (g_netLibrary)
@@ -1505,6 +1557,28 @@ static HookFunction hookFunction([] ()
 
 	// exitprocess -> terminateprocess
 	hook::iat("kernel32.dll", ExitProcessReplacement, "ExitProcess");
+
+	// nullify RageNetSend thread
+	hook::put<uint16_t>(hook::get_pattern("41 BC 88 13 00 00 E8 ? ? ? ? 83 C8 01", -6), 0xE990);
+
+	// nullify RageNetRecv thread
+	hook::nop(hook::get_pattern("41 F6 47 40 02 0F 84 ? ? ? ? 49 8B 4F 28 BA", 5), 6);
+
+	// get calls for RageNetSend function
+	hook::set_call(&g_handleQueuedSend, hook::get_pattern("48 8B CE E8 ? ? ? ? 48 8D BE A8 01 00 00 41", 3));
+
+	// replace the call to thread init to get the internal connection manager struct address
+	{
+		void* callOff = hook::get_pattern("80 8B ? ? ? ? 04 48 8D 8B ? ? ? ? 48 8B", 17);
+		hook::set_call(&g_origCreateSendThreads, callOff);
+		hook::call(callOff, CustomCreateSendThreads);
+	}
+
+	// add a OnMainGameFrame to do net stuff
+	OnMainGameFrame.Connect([]()
+	{
+		RunNetworkStuff();
+	});
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");
