@@ -1100,16 +1100,40 @@ bool GetOurSessionKeyWrap(char* sessionKey)
 	return GetOurSystemKey(sessionKey);
 }
 
-struct ncmi_struct1
+static hook::cdecl_stub<void(void*, void*)> setUnkTimeValue([]()
 {
-	uintptr_t unk;
-	SOCKET socket;
-	ncmi_struct1* secondarySocket;
+	return hook::get_pattern("48 8B F2 48 8B D9 74 1A 48 8B", -0x14);
+});
+
+struct ncm_struct
+{
+	char pad[96];
+
+	inline void SetUnkTimeValue(void* a1)
+	{
+		return setUnkTimeValue(this, a1);
+	}
+};
+
+struct netConnectionManager
+{
+private:
+	virtual ~netConnectionManager() = 0;
+
+public:
+	SOCKET socket; // +8
+	netConnectionManager* secondarySocket; // +16 // or similar..
+	char m_pad[400]; // +24
+	ncm_struct unkStructs[16];
 };
 
 struct netConnectionManagerInternal
 {
-	ncmi_struct1* socketData;
+	netConnectionManager* socketData;
+
+	char pad[60]; // 68 - 8
+
+	int unk_marker;
 
 	SOCKET GetSocket()
 	{
@@ -1125,12 +1149,12 @@ struct netConnectionManagerInternal
 };
 
 static netConnectionManagerInternal* g_internalNet;
-static void* g_netConnectionManager;
+static netConnectionManager* g_netConnectionManager;
 
 static bool(*g_handleQueuedSend)(void*);
 static bool(*g_origCreateSendThreads)(netConnectionManagerInternal*, void*, int);
 
-bool CustomCreateSendThreads(netConnectionManagerInternal* a1, void* a2, int a3)
+bool CustomCreateSendThreads(netConnectionManagerInternal* a1, netConnectionManager* a2, int a3)
 {
 	g_internalNet = a1;
 	g_netConnectionManager = a2;
@@ -1143,6 +1167,15 @@ void RunNetworkStuff()
 	// handle queued sends
 	g_handleQueuedSend(g_netConnectionManager);
 
+	// set timer stuff in connection manager
+	// this seems to be required to actually retain sync
+	// NOTE: 505-specific (struct offsets, ..)!!
+	for (auto& entry : g_netConnectionManager->unkStructs)
+	{
+		entry.SetUnkTimeValue(&g_internalNet->unk_marker);
+	}
+
+	
 
 	// handle recv triggering
 	// ... this actually does nothing? what
