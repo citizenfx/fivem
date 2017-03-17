@@ -121,10 +121,6 @@ static HookFunction hookFunction([] ()
 	g_appState = (decltype(g_appState))vt[0];
 	vt[0] = DoAppState;
 
-	// temp nop of script handler mgr shutdown because of curiosity
-	void* fpt = hook::pattern("48 8B CB FF 50 48 84 C0 74 23 48").count(1).get(0).get<void>(-0x24);
-	hook::return_function(fpt);
-
 	// loading screen render thread function, to 'safely' handle game frames while loading (as a kind of watchdog)
 	void* func = hook::pattern("83 FB 0A 0F 85 80 00 00 00 8B").count(1).get(0).get<void>(-17);
 	
