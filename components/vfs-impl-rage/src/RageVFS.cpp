@@ -500,6 +500,10 @@ void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string
 
 	m_mountedDevices.insert({ path, adapter });
 
+	// track the owner of the VFS device so it won't have to go
+	// through a VFS adapter (which loses refcounts) if the caller is the VFS.
+	m_deviceCache.insert({ adapter, device });
+
 	rage::fiDevice::MountGlobal(path.c_str(), adapter, true);
 
 	device->SetPathPrefix(path);
@@ -514,6 +518,7 @@ void RageVFSManager::Unmount(const std::string& path)
 	// destroy all adapters
 	for (auto& entry : fx::GetIteratorView(m_mountedDevices.equal_range(path)))
 	{
+		m_deviceCache.erase(entry.second);
 		delete entry.second;
 	}
 
