@@ -81,6 +81,25 @@ bool FiveGameInit::TriggerError(const char* message)
 	return (!OnTriggerError(message));
 }
 
+static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu_init([]()
+{
+	return hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D", 0);
+});
+
+static void(*g_origLoadMultiplayerTextChat)();
+
+static HookFunction hookFunction([]()
+{
+	// really bad pattern pointing to switch-to-netgame
+	auto location = hook::get_pattern("E8 ? ? ? ? B9 08 00 00 00 E8 ? ? ? ? E8", 15);
+
+	hook::set_call(&g_origLoadMultiplayerTextChat, location);
+	hook::nop(location, 5);
+
+	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
+	hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
+});
+
 static InitFunction initFunction([] ()
 {
 	OnGameFrame.Connect([] ()
@@ -106,6 +125,14 @@ static InitFunction initFunction([] ()
 	{
 		if (type == rage::INIT_SESSION)
 		{
+			// early-init the mp_gamer_info menu (doing this when switching will cause blocking LoadObjectsNow calls)
+			// TODO: this should be made more permanent by properly integrating into initSession/shutdownSession
+			gamerInfoMenu_init(rage::INIT_SESSION);
+
+			// also early-load MULTIPLAYER_TEXT_CHAT gfx, this changed sometime between 323 and 505
+			// and also causes a blocking load.
+			g_origLoadMultiplayerTextChat();
+
 			g_gameInit.SetGameLoaded();
 		}
 	});
