@@ -1,0 +1,4 @@
+# temporary placeholder that'll just invoke C:\f\build.cmd
+buildscript:
+  script:
+    - "C:\\f\\build.cmd"
