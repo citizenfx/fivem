@@ -263,7 +263,14 @@ static void LoadObjectsNowWrap(void* streaming, bool a2)
 {
 	uint64_t beginTime = GetTickCount64();
 
+	ICoreGameInit* init = Instance<ICoreGameInit>::Get();
+
+	init->SetData("gta-core-five:loadCaller", fmt::sprintf("%016x", (uintptr_t)_ReturnAddress()));
+	init->SetData("gta-core-five:loadTime", fmt::sprintf("%d", beginTime));
+
 	g_origLoadObjectsNow(streaming, a2);
+
+	init->SetData("gta-core-five:loadCaller", "");
 
 	uint64_t elapsedTime = (GetTickCount64() - beginTime);
 
