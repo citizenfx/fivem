@@ -98,6 +98,9 @@ static HookFunction hookFunction([]()
 
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
 	hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
+
+	// force SET_GAME_PAUSES_FOR_STREAMING (which makes collision loading, uh, blocking) to be off
+	hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
 });
 
 static InitFunction initFunction([] ()
