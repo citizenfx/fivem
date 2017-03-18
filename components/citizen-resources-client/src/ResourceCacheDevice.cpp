@@ -140,6 +140,8 @@ auto ResourceCacheDevice::AllocateHandle(THandle* idx) -> HandleData*
 	return nullptr;
 }
 
+#include <ICoreGameInit.h>
+
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 {
 	// is it fetched already?
@@ -187,7 +189,25 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		{
 			handleData->status = HandleData::StatusError;
 
-			FatalError("Failed a request in ResourceCacheDevice::EnsureFetched for %s (origin %s) - error result %s", handleData->entry.basename, handleData->entry.remoteUrl, errorData);
+			ICoreGameInit* init = Instance<ICoreGameInit>::Get();
+			std::string reason;
+
+			std::string caller;
+			std::string initTime;
+
+			if (init->GetData("gta-core-five:loadCaller", &caller))
+			{
+				if (!caller.empty())
+				{
+					init->GetData("gta-core-five:loadTime", &initTime);
+
+					uint64_t time = GetTickCount64() - _atoi64(initTime.c_str());
+
+					reason = fmt::sprintf("\nThis happened during a LoadObjectsNow call from %s, which by now took %d msec. Please report this.", caller, time);
+				}
+			}
+
+			FatalError("Failed a request in ResourceCacheDevice::EnsureFetched for %s (origin %s) - error result %s%s", handleData->entry.basename, handleData->entry.remoteUrl, errorData, reason);
 		}
 		else
 		{
