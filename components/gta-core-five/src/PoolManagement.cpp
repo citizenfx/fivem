@@ -255,6 +255,34 @@ namespace rage
 	}
 }
 
+static void(*g_origLoadObjectsNow)(void*, bool);
+
+#include <ICoreGameInit.h>
+
+static void LoadObjectsNowWrap(void* streaming, bool a2)
+{
+	uint64_t beginTime = GetTickCount64();
+
+	g_origLoadObjectsNow(streaming, a2);
+
+	uint64_t elapsedTime = (GetTickCount64() - beginTime);
+
+	if (elapsedTime > 2000)
+	{
+		trace("Warning: LoadObjectsNow took %d msec (invoked from %016x)!\n", elapsedTime, (uintptr_t)_ReturnAddress());
+		trace("---------------- DO FIX THE ABOVE ^\n");
+
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			trace("---------------- IF YOU CAN NOT FIX IT AND THIS OCCURS DURING GAMEPLAY\n");
+			trace("---------------- PLEASE CONTACT THE FIVEM DEVELOPERS ON https://forum.fivem.net/\n");
+			trace("---------------- WITH THIS CITIZENFX.LOG FILE\n");
+			trace("---------------- \n");
+			trace("---------------- THIS BLOCKING LOAD _WILL_ CAUSE CLIENT GAME CRASHES\n");
+		}
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto registerPools = [] (hook::pattern& patternMatch, int callOffset, int hashOffset)
@@ -311,5 +339,9 @@ static HookFunction hookFunction([] ()
 	// min hook
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("18 83 F9 FF 75 03 33 C0 C3 41", -6), PoolAllocateWrap, (void**)&g_origPoolAllocate);
+
+	// in a bit of a wrong place, but OK
+	MH_CreateHook(hook::get_call(hook::get_pattern("0D ? ? ? ? B2 01 E8 ? ? ? ? B0 01 48", 7)), LoadObjectsNowWrap, (void**)&g_origLoadObjectsNow);
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });
