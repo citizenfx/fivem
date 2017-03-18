@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <shared_mutex>
+
 class ICoreGameInit
 {
 public:
@@ -31,6 +33,10 @@ public:
 private:
 	std::set<std::string, std::less<>> VariableList;
 
+	std::shared_mutex DataMutex;
+
+	std::map<std::string, std::string, std::less<>> DataList;
+
 public:
 	template<typename T>
 	inline bool HasVariable(const T& variable)
@@ -41,6 +47,28 @@ public:
 	inline void SetVariable(const std::string& variable)
 	{
 		VariableList.insert(variable);
+	}
+
+	inline bool GetData(const std::string& key, std::string* value)
+	{
+		std::shared_lock<std::shared_mutex> lock(DataMutex);
+
+		auto it = DataList.find(key);
+
+		if (it != DataList.end())
+		{
+			*value = it->second;
+			return true;
+		}
+
+		return false;
+	}
+
+	inline void SetData(const std::string& key, const std::string& value)
+	{
+		std::unique_lock<std::shared_mutex> lock(DataMutex);
+
+		DataList[key] = value;
 	}
 
 public:
