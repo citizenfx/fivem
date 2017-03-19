@@ -221,6 +221,8 @@ local do_component = function(name, comp)
 	language "C++"
 	kind "SharedLib"
 
+	dependson { 'CitiCore' }
+
 	includedirs { "client/citicore/", relPath .. "/include/" }
 	files {
 		relPath .. "/src/**.cpp",
