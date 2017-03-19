@@ -10,6 +10,13 @@ buildscript:
       - caches/CitizenFX.exe.xz
       - caches/version.txt
     expire_in: 1 week
+  cache:
+    untracked: true
+    paths:
+      - shared/citversion.h
+      - caches/
+      - ../vendor/
+      - ../build/
 
 deploy_specific:
   stage: deploy
@@ -46,11 +53,3 @@ deploy_prod:
   when: manual
   only:
     - master
-
-cache:
-  untracked: true
-  paths:
-    - shared/citversion.h
-    - caches/
-    - ../vendor/
-    - ../build/
