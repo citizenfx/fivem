@@ -2,11 +2,55 @@
 buildscript:
   stage: build
   script:
-    - "C:\\f\\build.cmd"
+    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontUpload $true"
+  artifacts:
+    paths:
+      - caches/diff/
+      - caches/caches.xml
+      - caches/CitizenFX.exe.xz
+      - caches/version.txt
+    expire_in: 1 week
+
+deploy_specific:
+  stage: deploy
+  dependencies:
+    - buildscript
+  script:
+    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: specific/$CI_BUILD_REF_NAME
+  only:
+    - branches
+  except:
+    - master
+
+deploy_canary:
+  stage: deploy
+  dependencies:
+    - buildscript
+  script:
+    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: canary
+  only:
+    - master
+
+deploy_prod:
+  stage: deploy
+  dependencies:
+    - buildscript
+  script:
+    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: production
+  when: manual
+  only:
+    - master
 
 cache:
   untracked: true
   paths:
-    - bin/
-    - build/
     - shared/citversion.h
+    - caches/
+    - ../vendor/
+    - ../build/

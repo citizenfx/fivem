@@ -1,4 +1,16 @@
 xpcall(function()
+newoption {
+	trigger     = "builddir",
+	value       = "path",
+	description = "Output directory for build/ files."
+}
+
+newoption {
+	trigger     = "bindir",
+	value       = "path",
+	description = "Root directory for bin/ files."
+}
+
 dofile('tools/build/init.lua')
 
 -- perform component processing
@@ -21,10 +33,13 @@ component
 	vendor = { dummy = true }
 }
 
-solution "CitizenMP"
+workspace "CitizenMP"
 	configurations { "Debug", "Release" }
 
-	flags { "No64BitChecks", "Symbols", "Unicode" }
+	symbols "On"
+	characterset "Unicode"
+
+	flags { "No64BitChecks" }
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
@@ -36,9 +51,11 @@ solution "CitizenMP"
 
 	libdirs { "deplibs/lib/" }
 
-	location ("build/" .. _OPTIONS['game'])
+	location ((_OPTIONS['builddir'] or "build/") .. _OPTIONS['game'])
 
 	buildoptions '/std:c++latest'
+
+	systemversion '10.0.14393.0'
 
 	if _OPTIONS['game'] == 'server' then
 		location ("build/server/" .. os.get())
@@ -46,7 +63,7 @@ solution "CitizenMP"
 	end
 	
 	configuration "Debug*"
-		targetdir ("bin/" .. _OPTIONS['game'] .. "/debug")
+		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/debug")
 		defines "NDEBUG"
 
 		defines { '_ITERATOR_DEBUG_LEVEL=0' }
@@ -56,7 +73,7 @@ solution "CitizenMP"
 		end
 		
 	configuration "Release*"
-		targetdir ("bin/" .. _OPTIONS['game'] .. "/release")
+		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/release")
 		defines "NDEBUG"
 		optimize "Speed"
 
@@ -181,7 +198,7 @@ if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
 		language 'C#'
 		location '.'
 
-	external '010.Irony.2010'
+	--[[external '010.Irony.2010'
 		uuid 'D81F5C91-D7DB-46E5-BC99-49488FB6814C'
 		kind 'SharedLib'
 		language 'C#'
@@ -197,7 +214,7 @@ if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
 		uuid '0E1D573C-C57D-4A83-A739-3A38E719D87E'
 		kind 'SharedLib'
 		language 'C#'
-		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/'
+		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/']]
 end
 			
 	if _OPTIONS['game'] == 'ny' then

@@ -29,7 +29,12 @@ return {
 		prebuildcommands
 		{
 			-- sadly premake's {COPY} breaks on Windows (xcopy error 'Cannot perform a cyclic copy')
-			'copy /y "%{prj.location}\\..\\..\\..\\vendor\\curl\\include\\curl\\curlbuild.h.dist" "%{prj.location}\\..\\..\\..\\vendor\\curl\\include\\curl\\curlbuild.h"'
+			(
+				'copy /y "%s\\vendor\\curl\\include\\curl\\curlbuild.h.dist" "%s\\vendor\\curl\\include\\curl\\curlbuild.h"'
+			):format(
+				path.getabsolute('../'),
+				path.getabsolute('../')
+			)
 		}
 
 		includedirs {

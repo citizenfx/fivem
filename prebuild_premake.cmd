@@ -8,7 +8,7 @@ call git submodule update --init --recursive
 rem ..\premake5 vs2015
 rem ..\premake5 embed
 del src\host\scripts.c
-nmake /f Bootstrap.mak MSDEV=vs2015 windows-msbuild
+nmake /f Bootstrap.mak MSDEV=vs2017 windows-msbuild
 popd
 
 :dontbuild
