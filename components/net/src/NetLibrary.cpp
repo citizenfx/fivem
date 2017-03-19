@@ -430,7 +430,7 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 					StripColors(hostname, cleaned, 256);
 
 					steam->SetRichPresenceTemplate("{0}\n\n{2} on {3} with {1}");
-					steam->SetRichPresenceValue(0, cleaned);
+					steam->SetRichPresenceValue(0, std::string(cleaned).substr(0, 64) + "...");
 					steam->SetRichPresenceValue(1, "Connecting...");
 					steam->SetRichPresenceValue(2, Info_ValueForKey(infoString, "gametype"));
 					steam->SetRichPresenceValue(3, Info_ValueForKey(infoString, "mapname"));
