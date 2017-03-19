@@ -1,5 +1,6 @@
 # temporary placeholder that'll just invoke C:\f\build.cmd
 buildscript:
+  stage: build
   script:
     - "C:\\f\\build.cmd"
 
