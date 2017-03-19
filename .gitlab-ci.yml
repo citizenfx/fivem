@@ -2,3 +2,10 @@
 buildscript:
   script:
     - "C:\\f\\build.cmd"
+
+cache:
+  untracked: true
+  paths:
+    - bin/
+    - build/
+    - shared/citversion.h
