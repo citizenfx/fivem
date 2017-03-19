@@ -318,11 +318,130 @@ void NetLibrary::RoutePacket(const char* buffer, size_t length, uint16_t netID)
 	m_outgoingPackets.push(routePacket);
 }
 
+#define	BIG_INFO_STRING		8192  // used for system info key only
+#define	BIG_INFO_KEY		  8192
+#define	BIG_INFO_VALUE		8192
+
+/*
+===============
+Info_ValueForKey
+
+Searches the string for the given
+key and returns the associated value, or an empty string.
+FIXME: overflow check?
+===============
+*/
+char *Info_ValueForKey(const char *s, const char *key)
+{
+	char	pkey[BIG_INFO_KEY];
+	static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
+											// work without stomping on each other
+	static	int	valueindex = 0;
+	char	*o;
+
+	if (!s || !key)
+	{
+		return "";
+	}
+
+	if (strlen(s) >= BIG_INFO_STRING)
+	{
+		return "";
+	}
+
+	valueindex ^= 1;
+	if (*s == '\\')
+		s++;
+	while (1)
+	{
+		o = pkey;
+		while (*s != '\\')
+		{
+			if (!*s)
+				return "";
+			*o++ = *s++;
+		}
+		*o = 0;
+		s++;
+
+		o = value[valueindex];
+
+		while (*s != '\\' && *s)
+		{
+			*o++ = *s++;
+		}
+		*o = 0;
+
+		if (!_stricmp(key, pkey))
+			return value[valueindex];
+
+		if (!*s)
+			break;
+		s++;
+	}
+
+	return "";
+}
+
+
+#define Q_IsColorString( p )  ( ( p ) && *( p ) == '^' && *( ( p ) + 1 ) && isdigit( *( ( p ) + 1 ) ) ) // ^[0-9]
+
+void StripColors(const char* in, char* out, int max)
+{
+	max--; // \0
+	int current = 0;
+	while (*in != 0 && current < max)
+	{
+		if (!Q_IsColorString(in))
+		{
+			*out = *in;
+			out++;
+			current++;
+		}
+		else
+		{
+			*in++;
+		}
+		*in++;
+	}
+	*out = '\0';
+}
+
 void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 {
 	if (from == m_currentServer)
 	{
-		if (!_strnicmp(oob, "connectOK", 9))
+		if (!_strnicmp(oob, "infoResponse", 12))
+		{
+			const char* infoString = &oob[13];
+
+			m_infoString = infoString;
+
+			{
+				auto steam = GetSteam();
+
+				if (steam)
+				{
+					char hostname[256] = { 0 };
+					strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 255);
+
+					char cleaned[256];
+
+					StripColors(hostname, cleaned, 256);
+
+					steam->SetRichPresenceTemplate("{0}\n\n{2} on {3} with {1}");
+					steam->SetRichPresenceValue(0, cleaned);
+					steam->SetRichPresenceValue(1, "Connecting...");
+					steam->SetRichPresenceValue(2, Info_ValueForKey(infoString, "gametype"));
+					steam->SetRichPresenceValue(3, Info_ValueForKey(infoString, "mapname"));
+				}
+			}
+
+			m_connectionState = CS_CONNECTING;
+			m_lastConnect = 0;
+			m_connectAttempts = 0;
+		}
+		else if (!_strnicmp(oob, "connectOK", 9))
 		{
 			char* clientNetIDStr = &oob[10];
 			char* hostIDStr = strchr(clientNetIDStr, ' ');
@@ -613,7 +732,7 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_DOWNLOADCOMPLETE:
-			m_connectionState = CS_CONNECTING;
+			m_connectionState = CS_FETCHING;
 			m_lastConnect = 0;
 			m_connectAttempts = 0;
 
@@ -621,16 +740,35 @@ void NetLibrary::RunFrame()
 
 			break;
 
+		case CS_FETCHING:
+			if ((GetTickCount() - m_lastConnect) > 5000)
+			{
+				SendOutOfBand(m_currentServer, "getinfo xyz");
+
+				m_lastConnect = GetTickCount();
+
+				m_connectAttempts++;
+
+				// advertise status
+				auto specStatus = (m_connectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_connectAttempts) : "";
+
+				OnConnectionProgress(fmt::sprintf("Fetching info from server...%s", specStatus), 1, 1);
+			}
+
+			if (m_connectAttempts > 3)
+			{
+				g_disconnectReason = "Fetching info timed out.";
+				FinalizeDisconnect();
+
+				OnConnectionTimedOut();
+
+				GlobalError("Failed to getinfo server after 3 attempts.");
+			}
+			break;
+
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000)
 			{
-				/*
-				TerminalClient* clientContainer = Instance<TerminalClient>::Get();
-				auto client = clientContainer->GetClient();
-				auto user = static_cast<terminal::IUser1*>(client->GetUserService(terminal::IUser1::InterfaceID).GetDetail());
-
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), user->GetNPID());*/
-
 				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), (uint64_t)GetGUID());
 
 				m_lastConnect = GetTickCount();
@@ -865,6 +1003,13 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 			m_token = node["token"].as<std::string>();
 
 			m_serverProtocol = node["protocol"].as<uint32_t>();
+
+			auto steam = GetSteam();
+
+			if (steam)
+			{
+				steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
+			}
 
 			m_connectionState = CS_INITRECEIVED;
 		}

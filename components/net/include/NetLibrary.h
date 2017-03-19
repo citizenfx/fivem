@@ -109,6 +109,7 @@ public:
 		CS_INITRECEIVED,
 		CS_DOWNLOADING,
 		CS_DOWNLOADCOMPLETE,
+		CS_FETCHING,
 		CS_CONNECTING,
 		CS_CONNECTED,
 		CS_ACTIVE
@@ -171,6 +172,8 @@ private:
 	std::string m_playerName;
 
 	fwRefContainer<INetMetricSink> m_metricSink;
+
+	std::string m_infoString;
 
 	HANDLE m_receiveEvent;
 

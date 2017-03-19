@@ -165,6 +165,7 @@ void SteamComponent::RunThread()
 		{
 			Sleep(50);
 
+			uint32_t lastRichPresence = 0;
 			CallbackMsg_t callbackMsg;
 
 			while (getCallback(m_steamPipe, &callbackMsg))
@@ -190,6 +191,14 @@ void SteamComponent::RunThread()
 
 				freeLastCallback(m_steamPipe);
 			}
+
+			if ((GetTickCount() - lastRichPresence) > 5000)
+			{
+				UpdateRichPresence();
+
+				lastRichPresence = GetTickCount();
+			}
+
 		}
 	});
 
@@ -368,6 +377,8 @@ void SteamComponent::InitializePresence()
 		{
 			trace("Valve API change? SpawnProcess for presence helper failed on all attempts!\n");
 		}
+
+		SetRichPresenceTemplate("In the menus");
 	}
 }
 
@@ -445,6 +456,61 @@ bool SteamComponent::IsSteamRunning()
 int SteamComponent::GetParentAppID()
 {
 	return m_parentAppID;
+}
+
+void SteamComponent::SetConnectValue(const std::string& text)
+{
+	if (m_clientEngine)
+	{
+		InterfaceMapper steamFriendsInterface(m_clientEngine->GetIClientFriends(m_steamUser, m_steamPipe, "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+		if (steamFriendsInterface.IsValid())
+		{
+			steamFriendsInterface.Invoke<bool>("SetRichPresence", 218, "status", text.c_str());
+		}
+	}
+}
+
+void SteamComponent::UpdateRichPresence()
+{
+	if (m_clientEngine)
+	{
+		InterfaceMapper steamFriendsInterface(m_clientEngine->GetIClientFriends(m_steamUser, m_steamPipe, "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+		if (steamFriendsInterface.IsValid())
+		{
+			std::string formattedRichPresence = fmt::format(m_richPresenceTemplate,
+				m_richPresenceValues[0],
+				m_richPresenceValues[1],
+				m_richPresenceValues[2],
+				m_richPresenceValues[3],
+				m_richPresenceValues[4],
+				m_richPresenceValues[5],
+				m_richPresenceValues[6],
+				m_richPresenceValues[7]
+			);
+
+			steamFriendsInterface.Invoke<bool>("SetRichPresence", 218, "status", formattedRichPresence.c_str());
+
+			trace("Changing Steam rich presence status to %s\n", formattedRichPresence);
+		}
+	}
+}
+
+void SteamComponent::SetRichPresenceTemplate(const std::string& text)
+{
+	m_richPresenceTemplate = text;
+
+	UpdateRichPresence();
+}
+
+void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
+{
+	assert(idx >= 0 && idx < _countof(m_richPresenceValues));
+
+	m_richPresenceValues[idx] = value;
+
+	UpdateRichPresence();
 }
 
 static SteamComponent steamComponent;

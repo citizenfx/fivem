@@ -35,6 +35,10 @@ private:
 
 	int m_parentAppID;
 
+	std::string m_richPresenceTemplate;
+
+	std::string m_richPresenceValues[8];
+
 private:
 	void InitializeClientAPI();
 
@@ -43,6 +47,8 @@ private:
 	void InitializePresence();
 
 	void RunThread();
+
+	void UpdateRichPresence();
 
 public:
 	SteamComponent();
@@ -68,4 +74,10 @@ public:
 	virtual void RemoveSteamCallback(int registeredID) override;
 
 	virtual int GetParentAppID() override;
+
+	virtual void SetConnectValue(const std::string& text) override;
+
+	virtual void SetRichPresenceTemplate(const std::string& text) override;
+
+	virtual void SetRichPresenceValue(int idx, const std::string& value) override;
 };

@@ -37,6 +37,21 @@ enum NativeIdentifiers : uint64_t
 // BLIP_8 in global.gxt2 -> 'Waypoint'
 #define BLIP_WAYPOINT 8
 
+#include <SteamComponentAPI.h>
+
+inline ISteamComponent* GetSteam()
+{
+	auto steamComponent = Instance<ISteamComponent>::Get();
+
+	// if Steam isn't running, return an error
+	if (!steamComponent->IsSteamRunning())
+	{
+		return nullptr;
+	}
+
+	return steamComponent;
+}
+
 class LovelyThread : public GtaThread
 {
 private:
@@ -118,6 +133,32 @@ public:
 				{
 					color = CRGBA(200, 0, 0, 180);
 					TheFonts->DrawRectangle(rect, color);
+				}
+				else
+				{
+					auto steam = GetSteam();
+
+					if (steam)
+					{
+						int playerCount = 0;
+
+						for (int i = 0; i < 32; i++)
+						{
+							// NETWORK_IS_PLAYER_ACTIVE
+							if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
+							{
+								++playerCount;
+							}
+						}
+
+						static bool lastPlayerCount;
+
+						if (playerCount != lastPlayerCount)
+						{
+							steam->SetRichPresenceValue(1, fmt::sprintf("%d players", playerCount));
+							lastPlayerCount = playerCount;
+						}
+					}
 				}
 
 				// if the particular key we like is pressed...

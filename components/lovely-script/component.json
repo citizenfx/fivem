@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:scripting:five",
-		"font-renderer"
+		"font-renderer",
+		"steam"
 	],
 	"provides": []
 }

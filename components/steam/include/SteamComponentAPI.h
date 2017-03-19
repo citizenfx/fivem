@@ -33,6 +33,12 @@ public:
 
 	virtual void Initialize() = 0;
 
+	virtual void SetConnectValue(const std::string& text) = 0;
+
+	virtual void SetRichPresenceTemplate(const std::string& text) = 0;
+
+	virtual void SetRichPresenceValue(int idx, const std::string& value) = 0;
+
 // template bits
 public:
 	template<typename TCallback>
