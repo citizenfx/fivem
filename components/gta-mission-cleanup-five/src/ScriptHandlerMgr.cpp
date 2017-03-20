@@ -64,8 +64,36 @@ void CGameScriptHandlerMgr::scriptHandlerHashMap::Set(uint32_t* hash, rage::scri
 	return setHashMap(this, hash, handler);
 }
 
+static void(*g_origDetachScript)(void*, void*);
+void WrapDetachScript(void* a1, void* script)
+{
+	__try
+	{
+		g_origDetachScript(a1, script);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		trace("CGameScriptHandlerMgr::DetachScript() excepted, caught and returned.\n");
+	}
+}
+
+#include <mutex>
+
 CGameScriptHandlerMgr* CGameScriptHandlerMgr::GetInstance()
 {
+	// if the vtable is set
+	if (*(uintptr_t*)g_scriptHandlerMgr)
+	{
+		static std::once_flag of;
+
+		std::call_once(of, []()
+		{
+			uintptr_t* vtable = *(uintptr_t**)g_scriptHandlerMgr;
+			g_origDetachScript = ((decltype(g_origDetachScript))vtable[11]);
+			vtable[11] = (uintptr_t)WrapDetachScript;
+		});
+	}
+
 	return g_scriptHandlerMgr;
 }
 
