@@ -151,7 +151,7 @@ public:
 							}
 						}
 
-						static bool lastPlayerCount;
+						static int lastPlayerCount;
 
 						if (playerCount != lastPlayerCount)
 						{
