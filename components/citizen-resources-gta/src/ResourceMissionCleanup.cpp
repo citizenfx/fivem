@@ -13,6 +13,8 @@
 #include <scrThread.h>
 #include <scrEngine.h>
 
+#include <ICoreGameInit.h>
+
 #include <Pool.h>
 
 struct DummyThread : public GtaThread
@@ -91,6 +93,11 @@ static InitFunction initFunction([] ()
 
 		resource->OnActivate.Connect([=] ()
 		{
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				return;
+			}
+
 			// create the script handler if needed
 			if (!data->scriptHandler)
 			{
@@ -113,6 +120,11 @@ static InitFunction initFunction([] ()
 
 		resource->OnDeactivate.Connect([=] ()
 		{
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				return;
+			}
+
 			// only run if we have an active thread
 			if (!rage::scrEngine::GetActiveThread())
 			{
@@ -130,6 +142,11 @@ static InitFunction initFunction([] ()
 
 		resource->OnStop.Connect([=] ()
 		{
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				return;
+			}
+
 			if (data->scriptHandler)
 			{
 				data->scriptHandler->CleanupObjectList();
