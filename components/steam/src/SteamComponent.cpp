@@ -491,8 +491,6 @@ void SteamComponent::UpdateRichPresence()
 			);
 
 			steamFriendsInterface.Invoke<bool>("SetRichPresence", 218, "status", formattedRichPresence.c_str());
-
-			trace("Changing Steam rich presence status to %s\n", formattedRichPresence);
 		}
 	}
 }
@@ -500,8 +498,6 @@ void SteamComponent::UpdateRichPresence()
 void SteamComponent::SetRichPresenceTemplate(const std::string& text)
 {
 	m_richPresenceTemplate = text;
-
-	UpdateRichPresence();
 }
 
 void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
@@ -509,8 +505,6 @@ void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
 	assert(idx >= 0 && idx < _countof(m_richPresenceValues));
 
 	m_richPresenceValues[idx] = value;
-
-	UpdateRichPresence();
 }
 
 static SteamComponent steamComponent;
