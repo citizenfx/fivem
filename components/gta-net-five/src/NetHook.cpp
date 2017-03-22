@@ -1162,6 +1162,9 @@ bool CustomCreateSendThreads(netConnectionManagerInternal* a1, netConnectionMana
 	return g_origCreateSendThreads(a1, a2, a3);
 }
 
+static uint32_t(*g_receivePacket)(void*, void*);
+static void(*g_handlePacket)(void*, void*, uint32_t);
+
 void RunNetworkStuff()
 {
 	// handle queued sends
@@ -1177,11 +1180,20 @@ void RunNetworkStuff()
 
 	
 
-	// handle recv triggering
-	// ... this actually does nothing? what
-	// code calls select() then does nothing with the result
+	// handle recv triggering from NetRelay
 	{
+		while (g_netLibrary->WaitForRoutedPacket(0))
+		{
+			// hopefully these sizes are fine
+			char buffer[4096];
+			char buffer2[4096];
 
+			*(uint32_t*)&buffer[0] = -1;
+			*(uint32_t*)&buffer[4] = 0;
+
+			auto size = g_receivePacket(buffer, buffer2);
+			g_handlePacket(buffer, buffer2, size);
+		}
 	}
 }
 
@@ -1606,6 +1618,16 @@ static HookFunction hookFunction([] ()
 		hook::set_call(&g_origCreateSendThreads, callOff);
 		hook::call(callOff, CustomCreateSendThreads);
 	}
+
+	// netrelay thread handle calls
+	{
+		char* location = hook::get_pattern<char>("48 8D 8D C8 09 00 00 41 B8", 13);
+		hook::set_call(&g_receivePacket, location);
+		hook::set_call(&g_handlePacket, location + 22);
+	}
+
+	// disable netrelay thread
+	hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()
