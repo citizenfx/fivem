@@ -1547,7 +1547,7 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 	// weird workaround for fiDeviceRelative not passing this through
 	bool isProxiedRelative = false;
 
-	if (baseDevice && !baseDevice->IsBulkDevice() && !strstr(archive, "dlcpacks:"))
+	/*if (baseDevice && !baseDevice->IsBulkDevice() && !strstr(archive, "dlcpacks:"))
 	{
 		const char* mount = strstr(archive, ":/");
 
@@ -1559,7 +1559,7 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 		archive = va("update:/x64/%s", mount + 2);
 
 		isProxiedRelative = true;
-	}
+	}*/
 
 	std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
