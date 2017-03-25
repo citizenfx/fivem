@@ -1596,6 +1596,9 @@ static HookFunction hookFunction([] ()
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
 	hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
 
+	// don't switch to SP mode either
+	hook::return_function(hook::get_pattern("48 8D 2D ? ? ? ? 8B F0 85 C0 0F", -0x15));
+
 	// start clipset manager off in network mode
 	hook::put<uint32_t>(hook::get_pattern("0F 85 6B FF FF FF C7 05", 12), 2); // network state flag
 	hook::put<uint8_t>(hook::get_pattern("F6 44 07 04 02 74 7A", 4), 4); // check persistent sp flag -> persistent mp
