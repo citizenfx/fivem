@@ -31,6 +31,8 @@ std::map<std::string, std::string> g_redirectionData;
 
 extern "C" int wmainCRTStartup();
 
+void DoPreLaunchTasks();
+
 void main()
 {
 	bool toolMode = false;
@@ -79,6 +81,12 @@ void main()
 		devMode = true;
 	}
 
+	// don't allow running a subprocess executable directly
+	if (MakeRelativeCitPath(L"").find(L"cache\\subprocess") != std::string::npos)
+	{
+		return;
+	}
+
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	// if not the master process, force devmode
@@ -110,13 +118,15 @@ void main()
 
 		if (hJob)
 		{
-			AssignProcessToJobObject(hJob, GetCurrentProcess());
-
-			JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
-			info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-			SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &info, sizeof(info));
-
-			initState->inJobObject = true;
+			if (AssignProcessToJobObject(hJob, GetCurrentProcess()))
+			{
+				JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
+				info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+				if (SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &info, sizeof(info)))
+				{
+					initState->inJobObject = true;
+				}
+			}
 		}
 	}
 
@@ -137,6 +147,11 @@ void main()
 				return;
 			}
 		}
+	}
+
+	if (initState->IsMasterProcess())
+	{
+		DoPreLaunchTasks();
 	}
 
 	// make sure the game path exists

@@ -5,6 +5,7 @@
 #include <d3d11_1.h>
 
 #include <shellapi.h>
+#include <shlobj.h>
 
 #pragma comment(lib, "d3d11.lib")
 
@@ -67,15 +68,35 @@ bool VerifyViability()
         return false;
     }
 
-    auto SetProcessMitigationPolicy = (decltype(&::SetProcessMitigationPolicy))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetProcessMitigationPolicy");
-
-    if (SetProcessMitigationPolicy)
-    {
-        PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY dp;
-        dp.DisableExtensionPoints = true;
-
-        SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
-    }
-
     return true;
+}
+
+void DoPreLaunchTasks()
+{
+	auto SetProcessMitigationPolicy = (decltype(&::SetProcessMitigationPolicy))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetProcessMitigationPolicy");
+
+	if (SetProcessMitigationPolicy)
+	{
+		PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY dp;
+		dp.DisableExtensionPoints = true;
+
+		SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
+	}
+
+	if (MakeRelativeCitPath(L"").find(L".app") != std::string::npos)
+	{
+		wchar_t thisFileName[512];
+		GetModuleFileName(GetModuleHandle(NULL), thisFileName, sizeof(thisFileName) / 2);
+
+		SHFOLDERCUSTOMSETTINGS fcs = { 0 };
+		fcs.dwSize = sizeof(SHFOLDERCUSTOMSETTINGS);
+		fcs.dwMask = FCSM_ICONFILE;
+		fcs.pszIconFile = thisFileName;
+		fcs.cchIconFile = 0;
+		fcs.iIconIndex = -201;
+
+		SHGetSetFolderCustomSettings(&fcs, MakeRelativeCitPath(L"").c_str(), FCS_FORCEWRITE);
+
+		SHSetLocalizedName(MakeRelativeCitPath(L"").c_str(), thisFileName, 101);
+	}
 }
