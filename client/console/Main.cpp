@@ -5,194 +5,44 @@
  * regarding licensing.
  */
 
-/* Console-forwarding executable. */
-
 #include "StdInc.h"
-
-static bool SetupPipe(HANDLE* ourHandle, HANDLE* otherHandle, bool ourIsWrite)
-{
-	HANDLE readPipe;
-	HANDLE writePipe;
-
-	if (!CreatePipe(&readPipe, &writePipe, nullptr, 1024))
-	{
-		return false;
-	}
-
-	// define which handle belongs where
-	HANDLE otherHandleRef = (ourIsWrite) ? readPipe : writePipe;
-	HANDLE ourHandleRef = (ourIsWrite) ? writePipe : readPipe;
-
-	// duplicate the other handle to be inheritable
-	if (!DuplicateHandle(GetCurrentProcess(), otherHandleRef, GetCurrentProcess(), otherHandle, 0, TRUE, DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS))
-	{
-		CloseHandle(ourHandleRef);
-
-		return false;
-	}
-
-	// store the handle for our usage
-	*ourHandle = ourHandleRef;
-
-	return true;
-}
-
-static HANDLE g_processHandle;
-
-static BOOL WINAPI ControlHandler(DWORD ctrlType)
-{
-	if (g_processHandle)
-	{
-		TerminateProcess(g_processHandle, -1);
-		g_processHandle = NULL;
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
 
 int wmain(int argc, const wchar_t** argv)
 {
-	// get our application name, and replace the extension with '.exe'.
-	const wchar_t* applicationNameIn = argv[0];
-	std::vector<wchar_t> applicationName(wcslen(applicationNameIn) + 5);
+	// path environment appending of our primary directories
+	static wchar_t pathBuf[32768];
+	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
 
-	wcscpy(&applicationName[0], applicationNameIn);
+	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"") + L";" + std::wstring(pathBuf);
 
-	// extension
-	wchar_t* extStart = wcsrchr(&applicationName[0], L'.');
-	wchar_t* separatorStart = wcsrchr(&applicationName[0], L'\\');
+	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
-	// replace the extension
-	if (!extStart || extStart < separatorStart) // if no extension exists, or the . is before the separator, start at the end of the string
-	{
-		extStart = &applicationName[wcslen(&applicationName[0])];
-	}
+	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
 
-	wcscpy(extStart, L".exe");
-
-	// check if the file exists; if not, prepend it with our path
-	if (GetFileAttributes(&applicationName[0]) == INVALID_FILE_ATTRIBUTES)
-	{
-		wchar_t moduleName[512];
-		GetModuleFileName(GetModuleHandle(nullptr), moduleName, sizeof(moduleName));
-
-		moduleName[_countof(moduleName) - 1] = L'\0';
-
-		wcsrchr(moduleName, L'\\')[1] = L'\0';
-
-		std::wstring tempAppName = &applicationName[0];
-		applicationName.resize(wcslen(moduleName) + tempAppName.length() + 1);
-		_snwprintf(&applicationName[0], applicationName.size(), L"%s%s", moduleName, tempAppName.c_str());
-	}
-
-	// replace the command line's extension
-	wchar_t* commandLineIn = GetCommandLine();
-
-	// try finding the original application name
-	wchar_t* applicationNameSubStr = wcsstr(commandLineIn, applicationNameIn);
-	wchar_t* spaceEntry = wcschr(applicationNameSubStr, L' ');
-
-	if (!spaceEntry)
-	{
-		spaceEntry = L"";
-	}
-
-	// and replace it with our 'new' application name
-	std::wstring newCommandLine = va(L"\"%s\" %s", &applicationName[0], spaceEntry);
-
-	// next up: application initialization
-
-	// get our STARTUPINFO and modify it to say we use inherited standard handles
-	STARTUPINFO startupInfo;
-	GetStartupInfo(&startupInfo);
-
-	startupInfo.dwFlags |= STARTF_USESTDHANDLES;
-
-	// initialize the stdin/stdout pipes
-	HANDLE hWriteStdin;
-	HANDLE hReadStdin;
-
-	HANDLE hWriteStdout;
-	HANDLE hReadStdout;
-
-	if (!SetupPipe(&hWriteStdin, &hReadStdin, true))
-	{
-		return 1;
-	}
-
-	if (!SetupPipe(&hReadStdout, &hWriteStdout, false))
-	{
-		return 2;
-	}
-
-	// set up the environment for the client application
-	SetConsoleCtrlHandler(ControlHandler, TRUE);
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", L"1");
 
-	startupInfo.hStdInput = hReadStdin;
-	startupInfo.hStdOutput = hWriteStdout;
-	startupInfo.hStdError = hWriteStdout;
+	// initializing toolmode
+	HMODULE coreRT = LoadLibrary(MakeRelativeCitPath(L"CoreRT.dll").c_str());
 
-	// create the process
-	PROCESS_INFORMATION processInfo;
-
-	if (CreateProcess(&applicationName[0], const_cast<wchar_t*>(newCommandLine.c_str()), nullptr, nullptr, TRUE, 0, nullptr, nullptr, &startupInfo, &processInfo))
+	if (coreRT)
 	{
-		// store our stdout handle (for writing to it)
-		HANDLE hOurStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+		auto toolProc = (void(*)())GetProcAddress(coreRT, "ToolMode_Init");
 
-		// pass the handle to the ctrl-C handler
-		g_processHandle = processInfo.hProcess;
-		CloseHandle(processInfo.hThread);
-
-		// close our copies of the inherited handles
-		CloseHandle(hReadStdin);
-		CloseHandle(hWriteStdout);
-
-		// do the main output forwarding loop
-		while (true)
+		if (toolProc)
 		{
-			// read from the buffer
-			char outputBuffer[4];
-			DWORD outRead;
-
-			if (!ReadFile(hReadStdout, outputBuffer, sizeof(outputBuffer), &outRead, nullptr))
-			{
-				break;
-			}
-
-			// should we detach the console? (UI started)
-			if (outRead == 1 && outputBuffer[0] == '\x01')
-			{
-				break;
-			}
-
-			// write to our stdout
-			WriteFile(hOurStdout, outputBuffer, outRead, &outRead, nullptr);
-
-			// check if the process terminated
-			if (WaitForSingleObject(processInfo.hProcess, 0) != WAIT_TIMEOUT)
-			{
-				break;
-			}
+			toolProc();
 		}
-
-		// exit cleanly
-		CloseHandle(g_processHandle);
-		CloseHandle(hOurStdout);
-		CloseHandle(hWriteStdin);
-		CloseHandle(hReadStdout);
-
-		return 0;
+		else
+		{
+			printf("Couldn't load ToolMode_Init from CoreRT.dll.\n");
+			return 1;
+		}
 	}
 	else
 	{
-		DWORD errorCode = GetLastError();
-
-		wprintf(L"CreateProcess [%s] %s failed - %d\n", &applicationName[0], newCommandLine.c_str(), errorCode);
+		printf("Couldn't load CoreRT.dll.\n");
+		return 1;
 	}
 
-	return 3;
+	return 0;
 }
