@@ -7,6 +7,18 @@
 
 #include "StdInc.h"
 
+// the maximum number of concurrent downloads
+#define MAX_CONCURRENT_DOWNLOADS 6
+
+// the maximum number of downloads allowed to be running before queueing a huge file
+#define MAX_CONCURRENT_DOWNLOADS_HUGE 2
+
+// what to consider a huge file
+#define HUGE_SIZE (5 * 1024 * 1024)
+
+// what to consider a mega-huge file (should be the sole file)
+#define MEGA_HUGE_SIZE (25 * 1024 * 1024)
+
 // rockstar: meta-protocol base URL
 #define ROCKSTAR_BASE_URL "http://gtavp.citizen.re/file?name=%s"
 
@@ -25,6 +37,9 @@
 
 typedef struct download_s
 {
+	std::string opath;
+	std::string tmpPath;
+
 	char url[512];
 	char file[512];
 	int64_t size;
@@ -36,6 +51,9 @@ typedef struct download_s
 	int segments;
 
 	uint8_t conditionalHash[20];
+
+	lzma_stream strm;
+	uint8_t strmOut[65535];
 } download_t;
 
 struct dlState
@@ -50,19 +68,19 @@ struct dlState
 	int64_t lastBytes;
 	int bytesPerSecond;
 
+	uint32_t lastPoll;
+
 	// these are global?!
 	int64_t totalBytes;
 	int64_t doneTotalBytes;
 
 	bool downloadInitialized;
 	CURLM* curl;
-
-	lzma_stream strm;
-	uint8_t strmOut[65535];
-
+	
 	bool isDownloading;
-	download_t* currentDownload;
-	std::queue<download_t> downloadQueue;
+
+	std::queue<std::shared_ptr<download_t>> downloadQueue;
+	std::vector<std::shared_ptr<download_t>> currentDownloads;
 } dls;
 
 void CL_InitDownloadQueue()
@@ -71,7 +89,6 @@ void CL_InitDownloadQueue()
 	dls.totalSize = 0;
 	dls.completedDownloads = 0;
 	dls.numDownloads = 0;
-	dls.currentDownload = NULL;
 	dls.isDownloading = false;
 	dls.lastTime = 0;
 	dls.lastBytes = 0;
@@ -79,7 +96,7 @@ void CL_InitDownloadQueue()
 	dls.totalBytes = 0;
 	dls.doneTotalBytes = 0;
 	
-	std::queue<download_t> empty;
+	std::queue<std::shared_ptr<download_t>> empty;
 	std::swap(dls.downloadQueue, empty);
 }
 
@@ -92,7 +109,9 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, bool comp
 
 void CL_QueueDownload(const char* url, const char* file, int64_t size, bool compressed, int segments)
 {
-	download_t download;
+	auto downloadPtr = std::make_shared<download_t>();
+	auto& download = *downloadPtr.get();
+
 	sprintf_s(download.url, sizeof(download.url), "%s", url);
 	strcpy_s(download.file, sizeof(download.file), file);
 	download.size = size;
@@ -106,7 +125,7 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, bool comp
 	}
 
 
-	dls.downloadQueue.push(download);
+	dls.downloadQueue.push(downloadPtr);
 
 	dls.numDownloads++;
 	dls.totalSize += size;
@@ -119,6 +138,8 @@ void DL_Initialize()
 {
 	dls.curl = curl_multi_init();
 	dls.downloadInitialized = true;
+
+	curl_multi_setopt(dls.curl, CURLMOPT_PIPELINING, CURLPIPE_HTTP1 | CURLPIPE_MULTIPLEX);
 }
 
 void DL_Shutdown()
@@ -131,23 +152,46 @@ static download_t thisDownload;
 
 void DL_DequeueDownload()
 {
-	download_t download = dls.downloadQueue.front();
+	auto download = dls.downloadQueue.front();
 
-	memcpy(&thisDownload, &download, sizeof(download_t));
-	dls.currentDownload = &thisDownload;
+	// limit concurrent downloads
+	if (dls.currentDownloads.size() >= MAX_CONCURRENT_DOWNLOADS)
+	{
+		return;
+	}
+
+	// is this download 'huge'? then skip until we're the MAX_CONCURRENT_DOWNLOADS_HUGEth file
+	if (dls.currentDownloads.size() >= MAX_CONCURRENT_DOWNLOADS_HUGE)
+	{
+		if (download->size > HUGE_SIZE)
+		{
+			return;
+		}
+	}
+
+	// is this a mega-huge file? then only allow this file
+	if (dls.currentDownloads.size() >= 1)
+	{
+		if (download->size > MEGA_HUGE_SIZE)
+		{
+			return;
+		}
+	}
+
+	dls.currentDownloads.push_back(download);
 
 	// process Rockstar URLs
-	if (_strnicmp(dls.currentDownload->url, "rockstar:", 9) == 0)
+	if (_strnicmp(download->url, "rockstar:", 9) == 0)
 	{
-		std::string newUrl = va(ROCKSTAR_BASE_URL, &dls.currentDownload->url[9]);
+		std::string newUrl = va(ROCKSTAR_BASE_URL, &download->url[9]);
 
-		strcpy_s(dls.currentDownload->url, sizeof(dls.currentDownload->url), newUrl.c_str());
+		strcpy_s(download->url, sizeof(download->url), newUrl.c_str());
 	}
 
 	dls.downloadQueue.pop();
 }
 
-void DL_UpdateGlobalProgress(int thisSize)
+void DL_UpdateGlobalProgress(size_t thisSize)
 {
 	dls.doneTotalBytes += thisSize;
 
@@ -160,33 +204,33 @@ void DL_UpdateGlobalProgress(int thisSize)
 	UI_UpdateProgress(percentage);
 }
 
-size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download)
 {
 	size_t written = 0;
 
-	if (!dls.currentDownload->compressed)
+	if (!download->compressed)
 	{
-		written = fwrite(ptr, size, nmemb, stream);
+		written = fwrite(ptr, size, nmemb, download->fp[0]);
 	}
 	else
 	{
-		dls.strm.next_in = (uint8_t*)ptr;
-		dls.strm.avail_in = size * nmemb;
+		download->strm.next_in = (uint8_t*)ptr;
+		download->strm.avail_in = size * nmemb;
 
-		while (dls.strm.avail_in)
+		while (download->strm.avail_in)
 		{
-			dls.strm.next_out = dls.strmOut;
-			dls.strm.avail_out = sizeof(dls.strmOut);
+			download->strm.next_out = download->strmOut;
+			download->strm.avail_out = sizeof(download->strmOut);
 
-			lzma_ret ret = lzma_code(&dls.strm, LZMA_RUN);
+			lzma_ret ret = lzma_code(&download->strm, LZMA_RUN);
 
 			if (ret != LZMA_OK && ret != LZMA_STREAM_END)
 			{
-				MessageBoxA(NULL, va("LZMA decoding error %i in %s.", ret, dls.currentDownload->file), "Error", MB_OK | MB_ICONSTOP);
+				MessageBoxA(NULL, va("LZMA decoding error %i in %s.", ret, download->file), "Error", MB_OK | MB_ICONSTOP);
 				ExitProcess(1);
 			}
 
-			fwrite(dls.strmOut, 1, (sizeof(dls.strmOut) - dls.strm.avail_out), stream);
+			fwrite(download->strmOut, 1, (sizeof(download->strmOut) - download->strm.avail_out), download->fp[0]);
 		}
 
 		written = size * nmemb;
@@ -203,96 +247,89 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, FILE *stream)
 
 	DL_UpdateGlobalProgress(size * nmemb);
 
-	// poll message loop in case of file:// transfers or similar
-	MSG msg;
-	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	if ((GetTickCount() - dls.lastPoll) > 50)
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		// poll message loop in case of file:// transfers or similar
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		dls.lastPoll = GetTickCount();
 	}
 
 	return written;
 }
 
+static int DL_CurlDebug(CURL *handle,
+	curl_infotype type,
+	char *data,
+	size_t size,
+	void *userptr)
+{
+	if (type == CURLINFO_TEXT)
+	{
+		if (strstr(data, "schannel") == nullptr)
+		{
+			trace("CURL: %s", std::string(data, size));
+		}
+	}
+
+	return 0;
+}
+
 void DL_ProcessDownload()
 {
-	if (!dls.currentDownload)
+	if (!dls.currentDownloads.size())
 	{
 		return;
 	}
 
-	// build path stuff, TODO: should be saved somewhere intermediate
-	char opath[256];
-	char tmpPath[256];
-	char tmpDir[256];
-	opath[0] = '\0';
-	//strcat_s(opath, sizeof(opath), ".");
-	//strcat_s(opath, sizeof(opath), "/");
-	strcat_s(opath, sizeof(opath), dls.currentDownload->file);
-	strcpy_s(tmpPath, sizeof(tmpPath), opath);
-	strcat_s(tmpPath, sizeof(tmpPath), ".tmp");
-
-	for (char* p = tmpPath; *p; p++)
-	{
-		if (*p == '\\')
-		{
-			*p = '/';
-		}
-	}
-
-	// wsc
-	bool alreadyDone = false;
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
-	// create a new handle if we don't have one yet
-	if (!dls.currentDownload->curlHandles[0])
+	// create new handles if we don't have one yet
+	for (auto& download : dls.currentDownloads)
 	{
-		// create the parent directory too
-		strncpy(tmpDir, tmpPath, sizeof(tmpDir));
-
-		char* slashPos = strrchr(tmpDir, '/');
-
-		if (slashPos)
+		if (!download->curlHandles[0])
 		{
-			slashPos[0] = '\0';
-			CreateDirectoryAnyDepth(tmpDir);
-		}
+			// build path stuff
+			char opath[256];
+			char tmpPath[256];
+			char tmpDir[256];
+			opath[0] = '\0';
+			strcat_s(opath, sizeof(opath), download->file);
+			strcpy_s(tmpPath, sizeof(tmpPath), opath);
+			strcat_s(tmpPath, sizeof(tmpPath), ".tmp");
 
-		int64_t segSize = (dls.currentDownload->size / dls.currentDownload->segments);
-		int64_t segRemainder = (dls.currentDownload->size % dls.currentDownload->segments);
-
-		memset(&dls.strm, 0, sizeof(dls.strm));
-
-		for (int i = 0; i < dls.currentDownload->segments; i++)
-		{
-			FILE* fp = nullptr;
-			int64_t segStart = (i * segSize);
-			int64_t segEnd = segStart + segSize;
-
-			if (i > 0)
+			for (char* p = tmpPath; *p; p++)
 			{
-				fp = _wfopen(converter.from_bytes(va("%s.%i", tmpPath, i)).c_str(), L"ab");
-				_fseeki64(fp, 0, SEEK_END);
-				segStart += _ftelli64(fp);
-
-				dls.doneTotalBytes += _ftelli64(fp);
-				dls.completedSize += _ftelli64(fp);
-
-				if (i == (dls.currentDownload->segments - 1))
+				if (*p == '\\')
 				{
-					segEnd += segRemainder;
+					*p = '/';
 				}
 			}
-			else
+
+			download->opath = opath;
+			download->tmpPath = tmpPath;
+
+			// create the parent directory too
+			strncpy(tmpDir, tmpPath, sizeof(tmpDir));
+
+			char* slashPos = strrchr(tmpDir, '/');
+
+			if (slashPos)
 			{
-				fp = _wfopen(converter.from_bytes(tmpPath).c_str(), L"ab");
-
-				_fseeki64(fp, 0, SEEK_END);
-				segStart += _ftelli64(fp);
-
-				dls.doneTotalBytes += _ftelli64(fp);
-				dls.completedSize += _ftelli64(fp);
+				slashPos[0] = '\0';
+				CreateDirectoryAnyDepth(tmpDir);
 			}
+
+			memset(&download->strm, 0, sizeof(download->strm));
+
+			FILE* fp = nullptr;
+
+			fp = _wfopen(converter.from_bytes(tmpPath).c_str(), L"wb");
 
 			if (!fp)
 			{
@@ -303,31 +340,34 @@ void DL_ProcessDownload()
 				return;
 			}
 
-			dls.currentDownload->fp[i] = fp;
+			download->fp[0] = fp;
 
-			if (segStart != segEnd)
+			curl_slist* headers = nullptr;
+			headers = curl_slist_append(headers, va("X-Cfx-Client: 1"));
+
+			auto curlHandle = curl_easy_init();
+			download->curlHandles[0] = curlHandle;
+
+			curl_easy_setopt(curlHandle, CURLOPT_URL, download->url);
+			curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, download.get());
+			curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, download.get());
+			curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, DL_WriteToFile);
+			curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
+			curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
+			curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
+
+			if (getenv("CFX_CURL_DEBUG"))
 			{
-				curl_slist* headers = nullptr;
-				headers = curl_slist_append(headers, va("Range: bytes=%llu-%llu", segStart, segEnd - 1));
-
-				dls.currentDownload->curlHandles[i] = curl_easy_init();
-				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_URL, dls.currentDownload->url);
-				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_WRITEDATA, fp);
-				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_WRITEFUNCTION, DL_WriteToFile);
-				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_FAILONERROR, true);
-				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_HTTPHEADER, headers);
-				curl_easy_setopt(dls.currentDownload->curlHandles[i], CURLOPT_FOLLOWLOCATION, true);
-
-				lzma_stream_decoder(&dls.strm, UINT32_MAX, 0);
-				dls.strm.avail_out = sizeof(dls.strmOut);
-				dls.strm.next_out = dls.strmOut;
-
-				curl_multi_add_handle(dls.curl, dls.currentDownload->curlHandles[i]);
+				curl_easy_setopt(curlHandle, CURLOPT_VERBOSE, 1);
+				curl_easy_setopt(curlHandle, CURLOPT_DEBUGFUNCTION, DL_CurlDebug);
 			}
-			else
-			{
-				alreadyDone = true;
-			}
+
+			lzma_stream_decoder(&download->strm, UINT32_MAX, 0);
+			download->strm.avail_out = sizeof(download->strmOut);
+			download->strm.next_out = download->strmOut;
+
+			curl_multi_add_handle(dls.curl, curlHandle);
 		}
 	}
 
@@ -335,135 +375,84 @@ void DL_ProcessDownload()
 	int stillRunning;
 	curl_multi_perform(dls.curl, &stillRunning);
 
-	if (stillRunning == 0)
+	CURLMsg* info = NULL;
+
+	do
 	{
-		bool allOK = true;
-
-		if (dls.currentDownload->fp[0])
-		{
-			for (int i = 0; i < dls.currentDownload->segments; i++)
-			{
-				fclose(dls.currentDownload->fp[i]);
-			}
-		}
-
 		// check for success
-		CURLMsg* info = NULL;
+		info = curl_multi_info_read(dls.curl, &stillRunning);
 
-		std::wstring opathWide = converter.from_bytes(opath);
-		std::wstring tmpPathWide = converter.from_bytes(tmpPath);
-
-		do 
+		if (info != NULL)
 		{
-			info = curl_multi_info_read(dls.curl, &stillRunning);
-
-			if (info != NULL || alreadyDone)
+			if (info->msg == CURLMSG_DONE)
 			{
-				if (alreadyDone || info->msg == CURLMSG_DONE)
+				CURLcode code = info->data.result;
+				CURL* handle = info->easy_handle;
+
+				char* outPtr;
+				curl_easy_getinfo(handle, CURLINFO_PRIVATE, &outPtr);
+
+				auto it = std::find_if(dls.currentDownloads.begin(), dls.currentDownloads.end(), [&](auto& d)
 				{
-					CURLcode code = CURLE_OK;
+					return ((char*)d.get() == outPtr);
+				});
 
-					if (!alreadyDone)
+				if (it == dls.currentDownloads.end())
+				{
+					continue;
+				}
+
+				auto download = *it;
+
+				bool allOK = true;
+
+				if (download->fp[0])
+				{
+					fclose(download->fp[0]);
+				}
+
+				std::wstring opathWide = converter.from_bytes(download->opath);
+				std::wstring tmpPathWide = converter.from_bytes(download->tmpPath);
+
+				curl_multi_remove_handle(dls.curl, handle);
+				curl_easy_cleanup(handle);
+				lzma_end(&download->strm);
+
+				if (code == CURLE_OK)
+				{
+					if (DeleteFile(opathWide.c_str()) == 0)
 					{
-						code = info->data.result;
-						CURL* handle = info->easy_handle;
-
-						curl_multi_remove_handle(dls.curl, /*dls.currentDownload->curlHandle*/handle);
-						curl_easy_cleanup(/*dls.currentDownload->curlHandle*/handle);
-						lzma_end(&dls.strm);
-					}
-
-					if (code == CURLE_OK)
-					{
-						if (dls.currentDownload->segments == 1)
+						if (GetLastError() != ERROR_FILE_NOT_FOUND)
 						{
-							if (DeleteFile(opathWide.c_str()) == 0)
-							{
-								if (GetLastError() != ERROR_FILE_NOT_FOUND)
-								{
-									MessageBoxA(NULL, va("Deleting old %s failed (err = %d)", dls.currentDownload->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
-									
-									ExitProcess(1);
-								}
-							}
+							MessageBoxA(NULL, va("Deleting old %s failed (err = %d)", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
 
-							if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)//rename(tmpPath, opath) != 0)
-							{
-								MessageBoxA(NULL, va("Moving of %s failed (err = %d)", dls.currentDownload->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
-								DeleteFile(tmpPathWide.c_str());
-
-								ExitProcess(1);
-							}
-
-							dls.completedDownloads++;
+							ExitProcess(1);
 						}
 					}
-					else
+
+					if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)//rename(tmpPath, opath) != 0)
 					{
-						_wunlink(tmpPathWide.c_str());
-						MessageBoxA(NULL, va("Downloading of %s failed with CURLcode 0x%x", dls.currentDownload->url, code), "Error", MB_OK | MB_ICONSTOP);
+						MessageBoxA(NULL, va("Moving of %s failed (err = %d)", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
+						DeleteFile(tmpPathWide.c_str());
 
 						ExitProcess(1);
 					}
-				}
-			}
-		} while (info != NULL);
 
-		if (dls.currentDownload->segments > 1)
-		{
-			_unlink(opath);
+					dls.completedDownloads++;
 
-			FILE* newFile = _wfopen(opathWide.c_str(), L"wb");
-
-			for (int i = 0; i < dls.currentDownload->segments; i++)
-			{
-				FILE* fp;
-
-				if (i > 0)
-				{
-					fp = _wfopen(va(L"%s.%i", tmpPathWide.c_str(), i), L"rb");
-				}
-				else
-				{
-					fp = _wfopen(tmpPathWide.c_str(), L"rb");
-				}
-
-				char buffer[4096];
-				int len;
-
-				while ((len = fread(buffer, 1, sizeof(buffer), fp)) > 0)
-				{
-					if (fwrite(buffer, 1, len, newFile) != len)
-					{
-						fclose(newFile);
-						_unlink(opath);
-
-						MessageBoxA(NULL, va("Writing to %s failed.", dls.currentDownload->url), "Error", MB_OK | MB_ICONSTOP);
-
-						ExitProcess(1);
-					}
-				}
-
-				fclose(fp);
-				
-				if (i > 0)
-				{
-					_wunlink(va(L"%s.%i", tmpPathWide.c_str(), i));
+					dls.currentDownloads.erase(it);
 				}
 				else
 				{
 					_wunlink(tmpPathWide.c_str());
+					MessageBoxA(NULL, va("Downloading of %s failed with CURLcode 0x%x", download->url, (int)code), "Error", MB_OK | MB_ICONSTOP);
+
+					ExitProcess(1);
 				}
 			}
-
-			fclose(newFile);
-
-			//rename(tmpPath, opath);
-			dls.completedDownloads++;
 		}
 
-		dls.currentDownload = NULL;
-	}
+	} while (info != NULL);
 }
 
 bool DL_Process()
@@ -483,20 +472,19 @@ bool DL_Process()
 		DL_Initialize();
 	}
 
-	if (dls.currentDownload)
+	if (!dls.currentDownloads.empty())
 	{
 		DL_ProcessDownload();
 	}
-	else
+	
+	if (dls.downloadQueue.size() > 0)
 	{
-		if (dls.downloadQueue.size() > 0)
-		{
-			DL_DequeueDownload();
-		}
-		else
-		{
-			return true;
-		}
+		DL_DequeueDownload();
+	}
+	
+	if (dls.downloadQueue.empty() && dls.currentDownloads.empty())
+	{
+		return true;
 	}
 
 	return false;
