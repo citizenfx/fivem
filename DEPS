@@ -17,12 +17,13 @@ deps = {
 	"vendor/picohttpparser": "https://github.com/h2o/picohttpparser.git@98bcc1c3b431d05d4584af66082da48e4638a675",
 	"vendor/libssh": "http://tohjo.eu/citidev/libssh.git",
 	"vendor/xz": "http://git.tukaani.org/xz.git",
-	"vendor/curl": "https://github.com/bagder/curl.git@curl-7_52_1",
+	"vendor/curl": "https://github.com/bagder/curl.git@curl-7_53_1",
 	"vendor/leveldb": "http://tohjo.eu/citidev/leveldb.git",
 	"vendor/minhook": "https://github.com/TsudaKageyu/minhook.git",
 	"vendor/rapidjson": "https://github.com/miloyip/rapidjson.git",
 	"vendor/libuv": "https://github.com/libuv/libuv.git@7639dd510ec13dd577677dce2a673f5046432903",
 	"vendor/fmtlib": "https://github.com/fmtlib/fmt.git",
+	"vendor/nghttp2": "https://github.com/nghttp2/nghttp2@v1.20.0",
 	"vendor/cpr": "https://github.com/whoshuu/cpr.git@master"
 }
 
