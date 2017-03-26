@@ -115,13 +115,13 @@ void CreateDirectoryAnyDepth(const char *path)
 		if (*p == L'/' || *p == L'\\')
 		{
 			*p = L'\0';
-			if (_access(opath, 0))
-				_mkdir(opath);
+			if (_waccess(ToWide(opath).c_str(), 0))
+				_wmkdir(ToWide(opath).c_str());
 			*p = L'\\';
 		}
 	}
-	if (_access(opath, 0))
-		_mkdir(opath);
+	if (_waccess(ToWide(opath).c_str(), 0))
+		_wmkdir(ToWide(opath).c_str());
 }
 
 const DWORD MS_VC_EXCEPTION = 0x406D1388;
