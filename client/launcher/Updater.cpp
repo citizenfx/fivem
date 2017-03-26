@@ -187,7 +187,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	std::list<cache_t> needsUpdate;
 
-	FILE* cachesReader = fopen("caches.xml", "r");
+	FILE* cachesReader = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"r");
 
 	if (!cachesReader)
 	{
@@ -255,13 +255,15 @@ bool Updater_RunUpdate(int numCaches, ...)
 		manifestFile_t& file = filePair.second;
 
 		// check file hash first
-		bool fileOutdated = CheckFileOutdatedWithUI(converter.from_bytes(file.name).c_str(), file.hash);
+		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), file.hash);
 
 		if (fileOutdated)
 		{
 			const char* url = va(CONTENT_URL "/%s/content/%s/%s%s", GetUpdateChannel(), cache.name.c_str(), file.name.c_str(), (file.compressed) ? ".xz" : "");
 
-			CL_QueueDownload(url, file.name.c_str(), file.downloadSize, file.compressed);
+			std::string outPath = converter.to_bytes(MakeRelativeCitPath(converter.from_bytes(file.name)));
+
+			CL_QueueDownload(url, outPath.c_str(), file.downloadSize, file.compressed);
 		}
 	}
 
@@ -282,7 +284,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 		// XMLWriter class isn't used - TinyXML1 and boost::property_tree w/ RapidXML
 		// both still cause this detection.
 
-		FILE* outCachesFile = fopen("caches.xml", "w");
+		FILE* outCachesFile = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"w");
 		
 		if (outCachesFile)
 		{
@@ -317,6 +319,13 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20])
 		if (_wcsnicmp(fileName, gameRoot.c_str(), gameRoot.size()) == 0)
 		{
 			fileNameOffset = gameRoot.size();
+		}
+
+		std::wstring citizenRoot = MakeRelativeCitPath(L"");
+
+		if (_wcsnicmp(fileName, citizenRoot.c_str(), citizenRoot.size()) == 0)
+		{
+			fileNameOffset = citizenRoot.size();
 		}
 
 		UI_UpdateText(1, va(L"Checking %s", &fileName[fileNameOffset]));
