@@ -30,6 +30,35 @@ fwPlatformString GetAbsoluteCitPath()
 		dirPtr[1] = '\0';
 
 		citizenPath = realModulePath;
+
+		// is this a new install, if so, migrate to subdirectory-based Citizen
+		{
+			if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				if (!CreateDirectory((citizenPath + L"FiveM.app").c_str(), nullptr))
+				{
+					DWORD error = GetLastError();
+
+					if (error != ERROR_ALREADY_EXISTS)
+					{
+						ExitProcess(1);
+					}
+				}
+			}
+		}
+
+		// is this subdirectory-based Citizen? if so, append the subdirectory
+		{
+			std::wstring subPath = citizenPath + L"FiveM.app";
+
+			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				if (GetFileAttributes(subPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					citizenPath = subPath + L"\\";
+				}
+			}
+		}
 	}
 
 	return citizenPath;
