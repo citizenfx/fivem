@@ -40,5 +40,3 @@ const char* GetUpdateChannel();
 bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20]);
 
 #include "LauncherConfig.h"
-
-#include <citversion.h>
