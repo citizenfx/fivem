@@ -92,9 +92,9 @@ static GameCacheEntry g_requiredEntries[] =
 	//{ L"update/update.rpf", "d9f84cd5b8b5bafaeee92dd43568887172849d01", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/update/update.rpf", 374835200, 422755424 },
 
 	{ "GTA5.exe", "a6b255a2e2b8ea48ec5776f42770cf54522a85bf", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_505_2.exe", "$/GTA5.exe", 54920072, 505185312 },
-	//{ "update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
+	{ "update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
 	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
-	{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
+	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
 	{ "update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpluxe/dlc.rpf", 226260992 },
 
