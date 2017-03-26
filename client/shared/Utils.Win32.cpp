@@ -11,25 +11,18 @@
 #include <direct.h>
 #include <io.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 fwPlatformString GetAbsoluteCitPath()
 {
 	static fwPlatformString citizenPath;
 
 	if (!citizenPath.size())
 	{
-		wchar_t modulePath[512];
-		GetModuleFileName(GetModuleHandle(nullptr), modulePath, sizeof(modulePath) / sizeof(wchar_t));
+		static HostSharedData<CfxState> initState("CfxInitState");
 
-		wchar_t realModulePath[512];
-
-		GetFullPathName(modulePath, _countof(realModulePath), realModulePath, nullptr);
-
-		wchar_t* dirPtr = wcsrchr(realModulePath, L'\\');
-
-		// we do not check if dirPtr happens to be 0, as any valid absolute Win32 file path contains at least one backslash
-		dirPtr[1] = '\0';
-
-		citizenPath = realModulePath;
+		citizenPath = initState->initPath;
 
 		// is this a new install, if so, migrate to subdirectory-based Citizen
 		{

@@ -10,6 +10,8 @@
 #include "InterfaceMapper.h"
 #include "SafeClientEngine.h"
 
+#include <CfxSubProcess.h>
+
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -334,8 +336,7 @@ void SteamComponent::InitializePresence()
 		steamUtils.Invoke<void>("SetAppIDForCurrentPipe", parentAppID, false);
 
 		// get the base executable path
-		wchar_t ourPath[MAX_PATH];
-		GetModuleFileName(GetModuleHandle(nullptr), ourPath, _countof(ourPath));
+		auto ourPath = MakeCfxSubProcess(L"SteamChild.exe");
 
 		wchar_t ourDirectory[MAX_PATH];
 		GetCurrentDirectory(sizeof(ourDirectory), ourDirectory);

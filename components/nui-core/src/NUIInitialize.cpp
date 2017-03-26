@@ -20,6 +20,8 @@
 #include "ResumeComponent.h"
 #include "HookFunction.h"
 
+#include <CfxSubProcess.h>
+
 #include <Error.h>
 
 #include "memdbgon.h"
@@ -247,6 +249,8 @@ void FinalizeInitNUI()
 	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = false; // true;
 	cSettings.log_severity = LOGSEVERITY_DISABLE;
+	
+	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser"));
 
 	CefString(&cSettings.locale).FromASCII("en-US");
 

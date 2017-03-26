@@ -11,6 +11,11 @@
 #include <io.h>
 #include <fcntl.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
+#include <array>
+
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
@@ -74,6 +79,14 @@ void main()
 		devMode = true;
 	}
 
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	// if not the master process, force devmode
+	if (!devMode)
+	{
+		devMode = !initState->IsMasterProcess();
+	}
+
 	if (!devMode)
 	{
 		if (!Bootstrap_DoBootstrap())
@@ -90,6 +103,43 @@ void main()
 		}
 	}
 
+	// assign us to a job object
+	if (initState->IsMasterProcess())
+	{
+		HANDLE hJob = CreateJobObject(nullptr, nullptr);
+
+		if (hJob)
+		{
+			AssignProcessToJobObject(hJob, GetCurrentProcess());
+
+			JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
+			info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+			SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &info, sizeof(info));
+
+			initState->inJobObject = true;
+		}
+	}
+
+	// exit if not in a job object
+	if (initState->inJobObject)
+	{
+		BOOL result;
+		IsProcessInJob(GetCurrentProcess(), nullptr, &result);
+
+		if (!result)
+		{
+			// and if this isn't a subprocess
+			wchar_t fxApplicationName[MAX_PATH];
+			GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+			if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
+			{
+				return;
+			}
+		}
+	}
+
+	// make sure the game path exists
 	EnsureGamePath();
 
 	if (!toolMode)

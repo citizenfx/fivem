@@ -21,6 +21,8 @@
 #include <regex>
 #include <sstream>
 
+#include <CfxSubProcess.h>
+
 using json = nlohmann::json;
 
 static json load_error_pickup()
@@ -372,8 +374,7 @@ bool InitializeExceptionHandler()
 
 	if (!client->Register())
 	{
-		wchar_t applicationName[MAX_PATH];
-		GetModuleFileName(nullptr, applicationName, _countof(applicationName));
+		auto applicationName = MakeCfxSubProcess(L"DumpServer");
 
 		// prepare initial structures
 		STARTUPINFO startupInfo = { 0 };
@@ -388,8 +389,8 @@ bool InitializeExceptionHandler()
 		HANDLE initEvent = CreateEvent(&securityAttributes, TRUE, FALSE, nullptr);
 
 		// create the command line including argument
-		wchar_t commandLine[MAX_PATH * 2];
-		if (_snwprintf(commandLine, _countof(commandLine), L"%s -dumpserver:%i -parentpid:%i", GetCommandLine(), (int)initEvent, GetCurrentProcessId()) >= _countof(commandLine))
+		wchar_t commandLine[MAX_PATH * 8];
+		if (_snwprintf(commandLine, _countof(commandLine), L"\"%s\" -dumpserver:%i -parentpid:%i", applicationName, (int)initEvent, GetCurrentProcessId()) >= _countof(commandLine))
 		{
 			return false;
 		}
