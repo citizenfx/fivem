@@ -48,7 +48,7 @@ void main()
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
 
-	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + std::wstring(pathBuf);
+	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"") + L";" + std::wstring(pathBuf);
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
@@ -182,7 +182,7 @@ void main()
 	}
 
 	// readd the game path into the PATH
-	newPath = MakeRelativeCitPath(L"bin\\crt") + L";" + MakeRelativeCitPath(L"bin") + L";" + MakeRelativeGamePath(L"") + L";" + std::wstring(pathBuf);
+	newPath = MakeRelativeCitPath(L"bin\\crt") + L";" + MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"") + L";" + MakeRelativeGamePath(L"") + L"; " + std::wstring(pathBuf);
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
