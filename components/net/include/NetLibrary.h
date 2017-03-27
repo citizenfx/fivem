@@ -277,6 +277,11 @@ public:
 
 	inline bool IsDisconnected() { return m_connectionState == CS_IDLE; }
 
+	inline INetMetricSink* GetMetricSink()
+	{
+		return m_metricSink.GetRef();
+	}
+
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 
 public:

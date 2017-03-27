@@ -16,7 +16,7 @@
 #include <mmsystem.h>
 
 const int g_netOverlayOffsetX = -30;
-const int g_netOverlayOffsetY = -30;
+const int g_netOverlayOffsetY = -60;
 const int g_netOverlayWidth = 400;
 const int g_netOverlayHeight = 300;
 
@@ -28,11 +28,13 @@ class NetOverlayMetricSink : public INetMetricSink
 public:
 	NetOverlayMetricSink();
 
-	virtual void OnIncomingPacket(const NetPacketMetrics& packetMetrics);
+	virtual void OnIncomingPacket(const NetPacketMetrics& packetMetrics) override;
 
-	virtual void OnOutgoingPacket(const NetPacketMetrics& packetMetrics);
+	virtual void OnOutgoingPacket(const NetPacketMetrics& packetMetrics) override;
 
-	virtual void OnPingResult(int msec);
+	virtual void OnPingResult(int msec) override;
+
+	virtual void OnRouteDelayResult(int msec) override;
 
 private:
 	int m_ping;
@@ -43,11 +45,22 @@ private:
 	int m_lastInBytes;
 	int m_lastOutBytes;
 
+	int m_lastInRoutePackets;
+	int m_lastOutRoutePackets;
+
 	int m_inPackets;
 	int m_outPackets;
 
 	int m_inBytes;
 	int m_outBytes;
+
+	int m_inRoutePackets;
+	int m_outRoutePackets;
+
+	int m_inRouteDelay;
+
+	int m_inRouteDelaySample;
+	int m_inRouteDelaySamples[8];
 
 	bool m_enabled;
 
@@ -95,8 +108,12 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 	: m_ping(0), m_lastInBytes(0), m_lastInPackets(0), m_lastOutBytes(0), m_lastOutPackets(0),
 	  m_lastUpdatePerSample(0), m_lastUpdatePerSec(0),
 	  m_inBytes(0), m_inPackets(0), m_outBytes(0), m_outPackets(0),
+	  m_inRoutePackets(0), m_lastInRoutePackets(0), m_outRoutePackets(0), m_lastOutRoutePackets(0),
+	  m_inRouteDelay(0), m_inRouteDelaySample(0),
 	  m_enabled(false)
 {
+	memset(m_inRouteDelaySamples, 0, sizeof(m_inRouteDelaySamples));
+
 	ConHost::OnInvokeNative.Connect([=] (const char* nativeName, const char* argument)
 	{
 		// enable/disable command
@@ -129,17 +146,37 @@ void NetOverlayMetricSink::OnIncomingPacket(const NetPacketMetrics& packetMetric
 
 	m_inPackets++;
 	m_inBytes += packetMetrics.GetTotalSize();
+
+	m_inRoutePackets += packetMetrics.GetElementCount(NET_PACKET_SUB_ROUTED_MESSAGES);
 }
 
 void NetOverlayMetricSink::OnOutgoingPacket(const NetPacketMetrics& packetMetrics)
 {
 	m_outPackets++;
 	m_outBytes += packetMetrics.GetTotalSize();
+
+	m_outRoutePackets += packetMetrics.GetElementCount(NET_PACKET_SUB_ROUTED_MESSAGES);
 }
 
 void NetOverlayMetricSink::OnPingResult(int msec)
 {
 	m_ping = msec;
+}
+
+void NetOverlayMetricSink::OnRouteDelayResult(int msec)
+{
+	m_inRouteDelaySamples[m_inRouteDelaySample] = msec;
+
+	m_inRouteDelaySample = (m_inRouteDelaySample + 1) % _countof(m_inRouteDelaySamples);
+
+	int m = 1;
+
+	for (int sample : m_inRouteDelaySamples)
+	{
+		m += sample;
+	}
+
+	m_inRouteDelay = m / _countof(m_inRouteDelaySamples);
 }
 
 void NetOverlayMetricSink::UpdateMetrics()
@@ -167,12 +204,18 @@ void NetOverlayMetricSink::UpdateMetrics()
 		m_lastOutBytes = m_outBytes;
 		m_lastOutPackets = m_outPackets;
 
+		m_lastInRoutePackets = m_inRoutePackets;
+		m_lastOutRoutePackets = m_outRoutePackets;
+
 		// reset 'current' values
 		m_inBytes = 0;
 		m_inPackets = 0;
 
 		m_outBytes = 0;
 		m_outPackets = 0;
+
+		m_inRoutePackets = 0;
+		m_outRoutePackets = 0;
 
 		// update the timer
 		m_lastUpdatePerSec = time;
@@ -257,9 +300,11 @@ void NetOverlayMetricSink::DrawBaseMetrics()
 	int ping = m_ping;
 	int inPackets = m_lastInPackets;
 	int outPackets = m_lastOutPackets;
+	int inRoutePackets = m_lastInRoutePackets;
+	int outRoutePackets = m_lastOutRoutePackets;
 
 	// drawing
-	TheFonts->DrawText(va(L"ping: %dms\nin: %d/s\nout: %d/s", ping, inPackets, outPackets), rect, color, 22.0f, 1.0f, "Lucida Console");
+	TheFonts->DrawText(va(L"ping: %dms\nin: %d/s\nout: %d/s\nrt: %d/%d/s", ping, inPackets, outPackets, inRoutePackets, outRoutePackets), rect, color, 22.0f, 1.0f, "Lucida Console");
 
 	//
 	// second column
@@ -271,9 +316,10 @@ void NetOverlayMetricSink::DrawBaseMetrics()
 	// collecting
 	int inBytes = m_lastInBytes;
 	int outBytes = m_lastOutBytes;
+	int inRouteDelay = m_inRouteDelay;
 
 	// drawing
-	TheFonts->DrawText(va(L"\nin: %d b/s\nout: %d b/s", inBytes, outBytes), rect, color, 22.0f, 1.0f, "Lucida Console");
+	TheFonts->DrawText(va(L"\nin: %d b/s\nout: %d b/s\nrdelay: %dms", inBytes, outBytes, inRouteDelay), rect, color, 22.0f, 1.0f, "Lucida Console");
 }
 
 static InitFunction initFunction([] ()

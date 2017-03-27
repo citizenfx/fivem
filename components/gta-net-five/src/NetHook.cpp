@@ -1178,8 +1178,6 @@ void RunNetworkStuff()
 		entry.SetUnkTimeValue(&g_internalNet->unk_marker);
 	}
 
-	
-
 	// handle recv triggering from NetRelay
 	{
 		while (g_netLibrary->WaitForRoutedPacket(0))

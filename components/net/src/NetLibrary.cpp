@@ -279,6 +279,7 @@ void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 		RoutingPacket routePacket;
 		routePacket.netID = netID;
 		routePacket.payload = packet;
+		routePacket.genTime = timeGetTime();
 
 		m_incomingPackets.push(routePacket);
 	}
@@ -302,6 +303,11 @@ bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* net
 		memcpy(buffer, packet.payload.c_str(), packet.payload.size());
 		*netID = packet.netID;
 		*length = packet.payload.size();
+
+		// store metrics
+		auto timeval = (timeGetTime() - packet.genTime);
+
+		m_metricSink->OnRouteDelayResult(timeval);
 	}
 
 	ResetEvent(m_receiveEvent);
