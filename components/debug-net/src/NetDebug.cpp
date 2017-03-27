@@ -58,9 +58,13 @@ private:
 	int m_outRoutePackets;
 
 	int m_inRouteDelay;
+	int m_inRouteDelayMax;
 
 	int m_inRouteDelaySample;
 	int m_inRouteDelaySamples[8];
+
+	int m_inRouteDelaySampleArchive;
+	int m_inRouteDelaySamplesArchive[2000];
 
 	bool m_enabled;
 
@@ -109,10 +113,11 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 	  m_lastUpdatePerSample(0), m_lastUpdatePerSec(0),
 	  m_inBytes(0), m_inPackets(0), m_outBytes(0), m_outPackets(0),
 	  m_inRoutePackets(0), m_lastInRoutePackets(0), m_outRoutePackets(0), m_lastOutRoutePackets(0),
-	  m_inRouteDelay(0), m_inRouteDelaySample(0),
+	  m_inRouteDelay(0), m_inRouteDelaySample(0), m_inRouteDelayMax(0), m_inRouteDelaySampleArchive(0),
 	  m_enabled(false)
 {
 	memset(m_inRouteDelaySamples, 0, sizeof(m_inRouteDelaySamples));
+	memset(m_inRouteDelaySamplesArchive, 0, sizeof(m_inRouteDelaySamplesArchive));
 
 	ConHost::OnInvokeNative.Connect([=] (const char* nativeName, const char* argument)
 	{
@@ -165,10 +170,15 @@ void NetOverlayMetricSink::OnPingResult(int msec)
 
 void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 {
+	// quick samples
 	m_inRouteDelaySamples[m_inRouteDelaySample] = msec;
-
 	m_inRouteDelaySample = (m_inRouteDelaySample + 1) % _countof(m_inRouteDelaySamples);
 
+	// long archive
+	m_inRouteDelaySamplesArchive[m_inRouteDelaySampleArchive] = msec;
+	m_inRouteDelaySampleArchive = (m_inRouteDelaySampleArchive + 1) % _countof(m_inRouteDelaySamplesArchive);
+
+	// calculate average
 	int m = 1;
 
 	for (int sample : m_inRouteDelaySamples)
@@ -177,6 +187,9 @@ void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 	}
 
 	m_inRouteDelay = m / _countof(m_inRouteDelaySamples);
+
+	// calculate max
+	m_inRouteDelayMax = *std::max_element(m_inRouteDelaySamplesArchive, m_inRouteDelaySamplesArchive + _countof(m_inRouteDelaySamplesArchive));
 }
 
 void NetOverlayMetricSink::UpdateMetrics()
@@ -317,9 +330,10 @@ void NetOverlayMetricSink::DrawBaseMetrics()
 	int inBytes = m_lastInBytes;
 	int outBytes = m_lastOutBytes;
 	int inRouteDelay = m_inRouteDelay;
+	int inRouteDelayMax = m_inRouteDelayMax;
 
 	// drawing
-	TheFonts->DrawText(va(L"\nin: %d b/s\nout: %d b/s\nrdelay: %dms", inBytes, outBytes, inRouteDelay), rect, color, 22.0f, 1.0f, "Lucida Console");
+	TheFonts->DrawText(va(L"\nin: %d b/s\nout: %d b/s\nrd: %d~%dms", inBytes, outBytes, inRouteDelay, inRouteDelayMax), rect, color, 22.0f, 1.0f, "Lucida Console");
 }
 
 static InitFunction initFunction([] ()
