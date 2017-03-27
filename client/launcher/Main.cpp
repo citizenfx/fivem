@@ -51,6 +51,9 @@ void main()
 		}
 	}
 
+	// delete any old .exe.new file
+	_unlink("CitizenFX.exe.new");
+
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
