@@ -54,6 +54,8 @@ bool Bootstrap_UpdateEXE(int exeSize)
 	return false;
 }
 
+bool Install_RunInstallMode();
+
 bool VerifyViability();
 
 bool Bootstrap_DoBootstrap()
@@ -82,6 +84,12 @@ bool Bootstrap_DoBootstrap()
 	if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		return Bootstrap_UpdateEXE(exeSize);
+	}
+
+	// after self-updating, attempt to run install mode if needed
+	if (Install_RunInstallMode())
+	{
+		return false;
 	}
 
 	if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
