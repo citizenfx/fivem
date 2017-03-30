@@ -69,6 +69,18 @@ void main()
 		SetCurrentDirectory(MakeRelativeCitPath(L"").c_str());
 	}
 
+	{
+		auto addDllDirectory = (decltype(&AddDllDirectory))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "AddDllDirectory");
+		auto setDefaultDllDirectories = (decltype(&SetDefaultDllDirectories))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
+
+		if (addDllDirectory && setDefaultDllDirectories)
+		{
+			setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+			addDllDirectory(MakeRelativeCitPath(L"").c_str());
+			addDllDirectory(MakeRelativeCitPath(L"bin").c_str());
+		}
+	}
+
 	// determine dev mode and do updating
 	wchar_t exeName[512];
 	GetModuleFileName(GetModuleHandle(NULL), exeName, sizeof(exeName) / 2);
