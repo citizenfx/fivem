@@ -24,6 +24,9 @@ void SteamLoader::Initialize()
 
 		SetEnvironmentVariable(L"PATH", pathBuffer);
 
+		// oh you wanted this to work on old win7? ehhh
+		AddDllDirectory(steamDirectory.c_str());
+
 		// load steamclient*.dll
 		m_hSteamClient = LoadLibrary(steamDllPath.c_str());
 

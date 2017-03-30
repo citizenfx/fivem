@@ -69,16 +69,14 @@ void main()
 		SetCurrentDirectory(MakeRelativeCitPath(L"").c_str());
 	}
 
-	{
-		auto addDllDirectory = (decltype(&AddDllDirectory))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "AddDllDirectory");
-		auto setDefaultDllDirectories = (decltype(&SetDefaultDllDirectories))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
+	auto addDllDirectory = (decltype(&AddDllDirectory))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "AddDllDirectory");
+	auto setDefaultDllDirectories = (decltype(&SetDefaultDllDirectories))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
 
-		if (addDllDirectory && setDefaultDllDirectories)
-		{
-			setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
-			addDllDirectory(MakeRelativeCitPath(L"").c_str());
-			addDllDirectory(MakeRelativeCitPath(L"bin").c_str());
-		}
+	if (addDllDirectory && setDefaultDllDirectories)
+	{
+		setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
+		addDllDirectory(MakeRelativeCitPath(L"").c_str());
+		addDllDirectory(MakeRelativeCitPath(L"bin").c_str());
 	}
 
 	// determine dev mode and do updating
@@ -171,6 +169,11 @@ void main()
 
 	// make sure the game path exists
 	EnsureGamePath();
+
+	if (addDllDirectory)
+	{
+		addDllDirectory(MakeRelativeGamePath(L"").c_str());
+	}
 
 	if (!toolMode)
 	{
