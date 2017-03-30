@@ -34,7 +34,7 @@ void EnsureGamePath()
 		}
 	}
 
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
 	if (FAILED(hr))
 	{
@@ -137,4 +137,6 @@ void EnsureGamePath()
 	WritePrivateProfileString(L"Game", pathKey, resultPath, fpath.c_str());
 
 	CoTaskMemFree(resultPath);
+
+	CoUninitialize();
 }

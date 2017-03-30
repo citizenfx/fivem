@@ -124,6 +124,8 @@ void main()
 		}
 	}
 
+	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
+
 	// assign us to a job object
 	if (initState->IsMasterProcess())
 	{
