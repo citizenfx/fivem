@@ -8,6 +8,10 @@
 #include "StdInc.h"
 #include <ShlObj.h>
 
+#include <wrl.h>
+
+namespace WRL = Microsoft::WRL;
+
 void EnsureGamePath()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -32,8 +36,8 @@ void EnsureGamePath()
 
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-	IFileDialog* fileDialog;
-	CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&fileDialog));
+	WRL::ComPtr<IFileDialog> fileDialog;
+	CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileDialog, (void**)fileDialog.ReleaseAndGetAddressOf());
 
 	FILEOPENDIALOGOPTIONS opts;
 	fileDialog->GetOptions(&opts);
@@ -42,18 +46,44 @@ void EnsureGamePath()
 
 	fileDialog->SetOptions(opts);
 
+#ifndef GTA_FIVE
 	fileDialog->SetTitle(L"Select the folder containing " GAME_EXECUTABLE);
+#else
+	fileDialog->SetTitle(L"Select the folder containing Grand Theft Auto V");
+
+	// set the default folder, if we can find one
+	{
+		wchar_t gameRoot[1024];
+		DWORD gameRootLength = sizeof(gameRoot);
+
+		if (RegGetValue(HKEY_LOCAL_MACHINE,
+			L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", L"InstallFolder",
+			RRF_RT_REG_SZ, nullptr, gameRoot, &gameRootLength) == ERROR_SUCCESS)
+		{
+			WRL::ComPtr<IShellItem> item;
+
+			if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot, nullptr, IID_IShellItem, (void**)item.GetAddressOf())))
+			{
+				fileDialog->SetFolder(item.Get());
+			}
+		}
+	}
+#endif
 
 	HRESULT hr = fileDialog->Show(nullptr);
 
 	if (FAILED(hr))
 	{
-		MessageBox(nullptr, va(L"Could not show game folder selection window: IFileDialog::Show failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		if (hr != HRESULT_FROM_WIN32(ERROR_CANCELLED))
+		{
+			MessageBox(nullptr, va(L"Could not show game folder selection window: IFileDialog::Show failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		}
+
 		ExitProcess(0);
 	}
 
-	IShellItem* result = nullptr;
-	hr = fileDialog->GetResult(&result);
+	WRL::ComPtr<IShellItem> result;
+	hr = fileDialog->GetResult(result.GetAddressOf());
 
 	if (!result)
 	{
@@ -68,10 +98,6 @@ void EnsureGamePath()
 		MessageBox(nullptr, va(L"Could not get game directory: IShellItem::GetDisplayName failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		ExitProcess(0);
 	}
-
-	fileDialog->Release();
-
-	result->Release();
 
 	// check if there's a game EXE in the path
 	std::wstring gamePath = std::wstring(resultPath) + L"\\" GAME_EXECUTABLE;
