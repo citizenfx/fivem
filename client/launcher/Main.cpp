@@ -75,7 +75,7 @@ void main()
 
 		if (addDllDirectory && setDefaultDllDirectories)
 		{
-			setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+			setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
 			addDllDirectory(MakeRelativeCitPath(L"").c_str());
 			addDllDirectory(MakeRelativeCitPath(L"bin").c_str());
 		}

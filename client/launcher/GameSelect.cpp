@@ -34,10 +34,24 @@ void EnsureGamePath()
 		}
 	}
 
-	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+	if (FAILED(hr))
+	{
+		MessageBox(nullptr, va(L"CoInitializeEx failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+
+		ExitProcess(hr);
+	}
 
 	WRL::ComPtr<IFileDialog> fileDialog;
-	CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileDialog, (void**)fileDialog.ReleaseAndGetAddressOf());
+	hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileDialog, (void**)fileDialog.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		MessageBox(nullptr, va(L"CoCreateInstance(IFileDialog) failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+
+		ExitProcess(hr);
+	}
 
 	FILEOPENDIALOGOPTIONS opts;
 	fileDialog->GetOptions(&opts);
@@ -70,7 +84,7 @@ void EnsureGamePath()
 	}
 #endif
 
-	HRESULT hr = fileDialog->Show(nullptr);
+	hr = fileDialog->Show(nullptr);
 
 	if (FAILED(hr))
 	{
