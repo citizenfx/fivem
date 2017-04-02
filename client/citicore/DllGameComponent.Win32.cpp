@@ -13,7 +13,7 @@
 Component* DllGameComponent::CreateComponent()
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	HMODULE hModule = LoadLibrary(m_path.c_str());
+	HMODULE hModule = LoadLibrary(MakeRelativeCitPath(m_path).c_str());
 
 	if (!hModule)
 	{
@@ -47,7 +47,7 @@ Component* DllGameComponent::CreateComponent()
 void DllGameComponent::ReadManifest()
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	HMODULE hModule = LoadLibraryEx(m_path.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
+	HMODULE hModule = LoadLibraryEx(MakeRelativeCitPath(m_path).c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
 
 	if (!hModule)
 	{
