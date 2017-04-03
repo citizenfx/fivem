@@ -85,6 +85,11 @@ static HookFunction hookFunction([]()
 			});
 		}
 
+		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+		{
+			endedLoadingScreens = false;
+		});
+
 		{
 			// override LOAD_ALL_OBJECTS_NOW
 			auto handler = fx::ScriptEngine::GetNativeHandler(0xBD6E84632DD4CB3F);
@@ -110,7 +115,7 @@ static HookFunction hookFunction([]()
 
 static InitFunction initFunction([] ()
 {
-	OnKillNetwork.Connect([] (const char*)
+	OnKillNetworkDone.Connect([] ()
 	{
 		DestroyFrame();
 	});

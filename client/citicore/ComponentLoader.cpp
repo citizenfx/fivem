@@ -126,8 +126,6 @@ void ComponentLoader::Initialize()
 		// create a component instance if need be 
 		if (comp->ShouldAutoInstance())
 		{
-			trace("Initializing instance of %s.\n", comp->GetName().c_str());
-
 			comp->CreateInstance(std::string());
 		}
 	}
@@ -193,8 +191,6 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 			{
 				if (dependency.IsMatchedBy(provide))
 				{
-					trace("Resolving dependency for %s by %s (%s).\n", dependency.GetString().c_str(), it.second->GetName().c_str(), provide.GetString().c_str());
-
 					auto dependencyData = LoadComponent(it.second->GetName().c_str());
 					component->AddDependency(dependencyData);
 

@@ -186,7 +186,11 @@ struct IgnoreCaseLess
 };
 
 static std::unordered_set<StringRef, IgnoreCaseHash, IgnoreCaseEqualTo> g_customStreamingFileSet;
+static std::unordered_set<std::string, IgnoreCaseHash, IgnoreCaseEqualTo> g_ignoredStreamingFileSet;
 static std::vector<int> g_streamingCollections;
+static std::map<std::string, std::tuple<std::string, rage::ResourceFlags>, std::less<>> g_customStreamingFileRefs;
+
+static std::set<rage::fiCollection*> g_cfxCollections;
 
 class CfxCollection : public rage::fiCollection
 {
@@ -197,6 +201,8 @@ private:
 
 		const FileEntry* origEntry;
 		std::string fileName;
+
+		bool valid;
 	};
 
 	struct HandleEntry
@@ -307,11 +313,15 @@ public:
 
 		m_hasCleaned = false;
 		m_isPseudoPack = false;
+
+		g_cfxCollections.insert(this);
 	}
 
 	~CfxCollection()
 	{
 		trace("del cfxcollection %p\n", (void*)this);
+
+		g_cfxCollections.erase(this);
 
 		PseudoCallContext(this)->~fiCollection();
 
@@ -320,6 +330,11 @@ public:
 
 	void CleanCloseCollection()
 	{
+		if (m_isPseudoPack)
+		{
+			trace("close packfile %s\n", GetName());
+		}
+
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
 		m_entries.clear();
@@ -380,6 +395,7 @@ public:
 	{
 		CollectionEntry newEntry = { 0 };
 		newEntry.fileName = name;
+		newEntry.valid = true;
 		
 		rage::ResourceFlags flags;
 		rage::fiDevice* baseDevice = rage::fiDevice::GetDevice(name.c_str(), true);
@@ -409,6 +425,7 @@ public:
 	{
 		CollectionEntry newEntry;
 		newEntry.origEntry = entry;
+		newEntry.valid = true;
 		memcpy(&newEntry.baseEntry, entry, sizeof(FileEntry));
 
 		return m_entries.insert({ idx, newEntry }).first;
@@ -445,8 +462,10 @@ public:
 			}
 		}
 
-		if (it == m_entries.end())
+		if (it == m_entries.end() || !it->second.valid)
 		{
+			m_entries.unsafe_erase(index);
+
 			char entryName[256] = { 0x1E };
 			PseudoCallContext(this)->GetEntryNameToBuffer(index, entryName, sizeof(entryName));
 
@@ -461,12 +480,29 @@ public:
 			}
 			else
 			{
-				m_reverseEntries[entryName] = index;
-				it = AddEntry(index, PseudoCallContext(this)->GetEntry(index));
+				g_ignoredStreamingFileSet.insert(entryName);
 
-				if (entryName[0] != 0x1E)
+				auto rit = g_customStreamingFileRefs.find(entryName);
+
+				if (rit != g_customStreamingFileRefs.end())
 				{
-					it->second.fileName = entryName;
+					auto n = std::get<std::string>(rit->second);
+					m_resourceFlags[n] = std::get<rage::ResourceFlags>(rit->second);
+					m_reverseEntries.unsafe_erase(entryName);
+
+					// ignore streaming entries insert was here
+
+					it = AddEntry(index, n);
+				}
+				else
+				{
+					m_reverseEntries[entryName] = index;
+					it = AddEntry(index, PseudoCallContext(this)->GetEntry(index));
+
+					if (entryName[0] != 0x1E)
+					{
+						it->second.fileName = entryName;
+					}
 				}
 			}
 		}
@@ -492,11 +528,6 @@ public:
 			PseudoCallContext(this)->GetEntryNameToBuffer(index, entryName, 255);
 
 			CollectionData* data = (CollectionData*)this->m_pad;
-
-			if (strstr(entry->fileName.c_str(), "lo_res_idles"))
-			{
-				trace("coll2 open %s\n", entry->fileName.c_str());
-			}
 
 			return AllocateHandle(this, PseudoCallContext(this)->OpenCollectionEntry(index, ptr), entry->fileName.c_str());// GetEntryName(index));
 		}
@@ -999,8 +1030,26 @@ private:
 
 	void PrepareStreamingListFromNetwork();
 
+	void PrepareStreamingListForTag(const char* tag);
+
+	void PrepareStreamingListFromList(const std::vector<std::pair<std::string, rage::ResourceFlags>>& entries);
+
 	void DetermineLookupFunction(const char* archive)
 	{
+		if (strstr(archive, "resource_surrogate:/") != nullptr)
+		{
+			PrepareStreamingListForTag(&archive[20]);
+
+			return;
+		}
+
+		if (strstr(archive, "dunno") != nullptr)
+		{
+			PrepareStreamingListForTag(archive);
+
+			return;
+		}
+
 		// if this is the streaming surrogate, treat it like such
 		if (strstr(archive, "streaming_surrogate.rpf") != nullptr)
 		{
@@ -1168,6 +1217,16 @@ public:
 		}
 
 		return true;
+	}
+
+	void Invalidate()
+	{
+		for (auto& entry : m_entries)
+		{
+			entry.second.valid = false;
+		}
+
+		m_resourceFlags.clear();
 	}
 
 	void Mount(const char* mountPoint)
@@ -1543,6 +1602,10 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 	{
 		baseDevice = rage::fiDevice::GetDevice(archive, true);
 	}
+	else
+	{
+		trace("open packfile %s\n", archive);
+	}
 
 	// weird workaround for fiDeviceRelative not passing this through
 	bool isProxiedRelative = false;
@@ -1629,7 +1692,11 @@ bool CfxCollection::IsPseudoPack()
 bool CfxCollection::IsPseudoPackPath(const char* path)
 {
 	// we better hope no legitimate pack is called 'pseudo' :D
-	return strstr(path, "pseudo") != nullptr || strstr(path, "usermaps") != nullptr || strstr(path, "streaming_surrogate") != nullptr;
+	return strstr(path, "pseudo") != nullptr ||
+		   strstr(path, "usermaps") != nullptr ||
+		   strstr(path, "streaming_surrogate") != nullptr ||
+		   strstr(path, "dunno") != nullptr ||
+		   strstr(path, "resource_surrogate") != nullptr;
 }
 
 #include <numeric>
@@ -1639,7 +1706,10 @@ void CfxCollection::InitializePseudoPack(const char* path)
 {
 	m_isPseudoPack = true;
 
-	trace("init pseudopack %s\n", path);
+	if (!m_streamingFileList.empty())
+	{
+		trace("Initializing pseudo-pack %s\n", path);
+	}
 
 	// clear existing items
 	m_entries.clear();
@@ -1686,6 +1756,11 @@ void CfxCollection::InitializePseudoPack(const char* path)
 
 		for (auto& entry : m_streamingFileList)
 		{
+			if (g_ignoredStreamingFileSet.find(entry) != g_ignoredStreamingFileSet.end())
+			{
+				continue;
+			}
+
 			std::string entryFullName;
 			m_lookupFunction(entry.c_str(), entryFullName);
 
@@ -1701,8 +1776,6 @@ void CfxCollection::InitializePseudoPack(const char* path)
 				entryDevice->GetResourceVersion(entryFullName.c_str(), &flags);
 			}
 
-			trace("fake pseudo entry: %s @ %s - %d %d\n", entry.c_str(), entryFullName.c_str(), flags.flag1, flags.flag2);
-
 			entryTable[i].nameOffset = addString(entry);
 			entryTable[i].offset = 0x8FFFFF;
 			entryTable[i].size = entryDevice->GetFileLengthLong(entryFullName.c_str());
@@ -1715,6 +1788,11 @@ void CfxCollection::InitializePseudoPack(const char* path)
 		}
 
 		entryCount = i;
+
+		if (entryCount > 1)
+		{
+			trace("Scanned packfile: %d entries.\n", entryCount);
+		}
 	}
 
 	CollectionData* collectionData = (CollectionData*)m_pad;
@@ -1734,7 +1812,15 @@ void CfxCollection::InitializePseudoPack(const char* path)
 	collectionData->name.Set(strlen(path), 0);
 	strcpy(&collectionData->name.Get(0), path);
 
-	strcpy_s(collectionData->smallName, "gta_ny.rpf");
+	std::string pathBits = path;
+	pathBits = pathBits.substr(pathBits.find_last_of("/\\") + 1);
+
+	if (pathBits.length() >= 32)
+	{
+		pathBits = pathBits.substr(0, 31);
+	}
+
+	strcpy_s(collectionData->smallName, pathBits.c_str());
 
 	collectionData->entryTableAllocSize = sizeof(rage::fiCollection::FileEntry) * (m_streamingFileList.size() + 1);
 	collectionData->keyId = 0;
@@ -1743,6 +1829,7 @@ void CfxCollection::InitializePseudoPack(const char* path)
 }
 
 static std::vector<std::pair<std::string, rage::ResourceFlags>> g_customStreamingFiles;
+static std::map<std::string, std::vector<std::pair<std::string, rage::ResourceFlags>>, std::less<>> g_customStreamingFilesByTag;
 
 void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags)
 {
@@ -1752,16 +1839,43 @@ void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage
 #endif
 }
 
-void CfxCollection::PrepareStreamingListFromNetwork()
+void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
+{
+#ifndef CFX_COLLECTION_DISABLE
+	auto baseName = std::string(strrchr(fileName.c_str(), '/') + 1);
+
+	g_customStreamingFilesByTag[tag].push_back({ fileName, flags });
+
+	if (baseName != "_manifest.ymf")
+	{
+		g_customStreamingFileRefs.insert({ baseName, { fileName, flags } });
+	}
+#endif
+}
+
+void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
+{
+	for (auto& entry : g_customStreamingFileRefs)
+	{
+		cb(entry.first);
+	}
+}
+
+void CfxCollection::PrepareStreamingListFromList(const std::vector<std::pair<std::string, rage::ResourceFlags>>& entries)
 {
 	std::set<std::string, IgnoreCaseLess> fileList;
 	std::map<std::string, std::pair<std::string, rage::ResourceFlags>, IgnoreCaseLess> fileMapping;
 
 	m_resourceFlags.clear();
 
-	for (auto& file : g_customStreamingFiles)
+	for (auto& file : entries)
 	{
 		std::string baseName = strrchr(file.first.c_str(), '/') + 1;
+
+		if (g_ignoredStreamingFileSet.find(baseName) != g_ignoredStreamingFileSet.end())
+		{
+			continue;
+		}
 
 		fileMapping.insert({ baseName, file });
 		fileList.insert(baseName);
@@ -1769,7 +1883,7 @@ void CfxCollection::PrepareStreamingListFromNetwork()
 		m_resourceFlags.insert(file);
 	}
 
-	m_lookupFunction = [=] (const char* lookupName, std::string& fileName)
+	m_lookupFunction = [=](const char* lookupName, std::string& fileName)
 	{
 		auto it = fileMapping.find(lookupName);
 
@@ -1793,6 +1907,24 @@ void CfxCollection::PrepareStreamingListFromNetwork()
 	m_streamingFileList = fileList;
 
 	g_streamingCollections.push_back(GetCollectionId());
+}
+
+
+void CfxCollection::PrepareStreamingListFromNetwork()
+{
+	PrepareStreamingListFromList(g_customStreamingFiles);
+}
+
+void CfxCollection::PrepareStreamingListForTag(const char* tag)
+{
+	// parse \ as apparently it expects a real fs path
+	std::string tagName = tag;
+	std::replace(tagName.begin(), tagName.end(), '\\', '/');
+
+	tagName = tagName.substr(tagName.find_last_of('/') + 1);
+	tagName = tagName.substr(0, tagName.find_last_of('.'));
+
+	PrepareStreamingListFromList(g_customStreamingFilesByTag[tagName]);
 }
 
 static void(*g_origGeomThing)(void*, void*);
@@ -1957,6 +2089,7 @@ rage::fiFile* rage__fiFile__OpenWrap(const char* fileName, rage::fiDevice* devic
 }
 
 #include <ICoreGameInit.h>
+#include <GameInit.h>
 
 static HookFunction hookFunction([] ()
 {
@@ -1964,8 +2097,8 @@ static HookFunction hookFunction([] ()
 	assert(offsetof(StreamingPackfileEntry, enabled) == 68);
 
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
-	/*
-	gameInit->OnGameRequestLoad.Connect([] ()
+	
+	OnKillNetworkDone.Connect([] ()
 	{
 		// clear blacklisted files
 		g_registeredFileSet.clear();
@@ -1973,8 +2106,17 @@ static HookFunction hookFunction([] ()
 		// clear custom files
 		g_customStreamingFiles.clear();
 		g_customStreamingFileSet.clear();
-	});
-	*/
+
+		// clear new custom files
+		g_customStreamingFilesByTag.clear();
+		g_customStreamingFileRefs.clear();
+
+		// clear state
+		for (auto& collection : g_cfxCollections)
+		{
+			((CfxCollection*)collection)->Invalidate();
+		}
+	}, -500);
 
 	{
 		void* location = hook::pattern("41 B0 01 BA 1B E6 DA 93 E8").count(1).get(0).get<void>(-12);

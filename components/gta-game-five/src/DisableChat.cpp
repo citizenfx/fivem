@@ -48,7 +48,7 @@ namespace game
 		{
 			if (enabled)
 			{
-				*g_textChat = g_textChatBackup;
+				//*g_textChat = g_textChatBackup;
 			}
 		}
 	}

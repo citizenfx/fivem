@@ -443,6 +443,25 @@ void NetLibrary::ProcessOOB(NetAddress& from, char* oob, size_t length)
 				}
 			}
 
+			// until map reloading is in existence
+			std::string thisWorld = Info_ValueForKey(infoString, "world");
+
+			if (thisWorld.empty())
+			{
+				thisWorld = "gta5";
+			}
+
+			static std::string lastWorld = thisWorld;
+
+			if (lastWorld != thisWorld && Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				GlobalError("Was loaded in world %s, but this server is world %s. Restart the game to join.", lastWorld, thisWorld);
+				return;
+			}
+
+			lastWorld = thisWorld;
+
+			// finalize connecting
 			m_connectionState = CS_CONNECTING;
 			m_lastConnect = 0;
 			m_connectAttempts = 0;

@@ -53,3 +53,11 @@ extern
 	__declspec(dllimport)
 #endif
 	fwEvent<const char*> OnKillNetwork;
+
+extern
+	#ifdef COMPILING_GTA_CORE_FIVE
+	__declspec(dllexport)
+	#else
+	__declspec(dllimport)
+	#endif
+	fwEvent<> OnKillNetworkDone;

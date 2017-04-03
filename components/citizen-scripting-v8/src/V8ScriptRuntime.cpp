@@ -112,6 +112,10 @@ public:
 class V8PushEnvironment
 {
 private:
+	Locker m_locker;
+
+	Isolate::Scope m_isolateScope;
+
 	HandleScope m_handleScope;
 
 	Context::Scope m_contextScope;
@@ -120,7 +124,7 @@ private:
 
 public:
 	inline V8PushEnvironment(V8ScriptRuntime* runtime)
-		: m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext()), m_pushEnvironment(runtime)
+		: m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext()), m_pushEnvironment(runtime)
 	{
 
 	}
@@ -818,6 +822,8 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	m_scriptHost = scriptHost;
 
 	// create a scope to hold handles we use here
+	Locker locker(GetV8Isolate());
+	Isolate::Scope isolateScope(GetV8Isolate());
 	HandleScope handleScope(GetV8Isolate());
 
 	// create global state
@@ -830,6 +836,8 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 		bool first = true;
 		for (int i = 0; i < args.Length(); i++)
 		{
+			Locker locker(args.GetIsolate());
+			Isolate::Scope isolateScope(args.GetIsolate());
 			v8::HandleScope handle_scope(args.GetIsolate());
 			if (first)
 			{

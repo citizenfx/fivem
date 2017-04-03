@@ -55,11 +55,14 @@ namespace rage
 
 	bool InitFunctionData::TryInvoke(InitFunctionType type)
 	{
+#ifndef _DEBUG
 		__try
 		{
+#endif
 			initFunction(type);
 
 			return true;
+#ifndef _DEBUG
 		}
 		__except (SehRoutine(this, type, GetExceptionInformation()))
 		{
@@ -69,6 +72,7 @@ namespace rage
 
 			return false;
 		}
+#endif
 	}
 
 	fwEvent<InitFunctionType> OnInitFunctionStart;

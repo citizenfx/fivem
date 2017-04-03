@@ -18,6 +18,7 @@
 FiveGameInit g_gameInit;
 
 fwEvent<const char*> OnKillNetwork;
+fwEvent<> OnKillNetworkDone;
 
 void AddCustomText(const char* key, const char* value);
 
@@ -86,6 +87,11 @@ static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu_init([]()
 	return hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D", 0);
 });
 
+static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu__shutdown([]()
+{
+	return hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0);
+});
+
 static void(*g_origLoadMultiplayerTextChat)();
 
 static HookFunction hookFunction([]()
@@ -97,7 +103,7 @@ static HookFunction hookFunction([]()
 	hook::nop(location, 5);
 
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
-	hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
+	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
 
 	// force SET_GAME_PAUSES_FOR_STREAMING (which makes collision loading, uh, blocking) to be off
 	hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
@@ -124,12 +130,16 @@ static InitFunction initFunction([] ()
 		}
 	});
 
+	OnKillNetworkDone.Connect([]()
+	{
+		gamerInfoMenu__shutdown(rage::INIT_SESSION);
+	});
+
 	rage::OnInitFunctionEnd.Connect([] (rage::InitFunctionType type)
 	{
 		if (type == rage::INIT_SESSION)
 		{
 			// early-init the mp_gamer_info menu (doing this when switching will cause blocking LoadObjectsNow calls)
-			// TODO: this should be made more permanent by properly integrating into initSession/shutdownSession
 			gamerInfoMenu_init(rage::INIT_SESSION);
 
 			// also early-load MULTIPLAYER_TEXT_CHAT gfx, this changed sometime between 323 and 505

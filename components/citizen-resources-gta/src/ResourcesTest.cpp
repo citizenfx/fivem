@@ -22,15 +22,19 @@
 
 #include <Error.h>
 
+#include <deque>
+
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags);
+void CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 
 namespace streaming
 {
 	void AddMetaToLoadList(bool before, const std::string& meta);
 	void AddDefMetaToLoadList(const std::string& meta);
 	void AddDataFileToLoadList(const std::string& type, const std::string& path);
+	void RemoveDataFileFromLoadList(const std::string& type, const std::string& path);
 
 	void SetNextLevelPath(const std::string& path);
 }
@@ -67,17 +71,13 @@ static InitFunction initFunction([] ()
 {
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
-        // don't allow overriding manifest.ymf
-        if (entry.filePath.find("_manifest.ymf") != std::string::npos)
-        {
-            return;
-        }
-
-		CfxCollection_AddStreamingFile(entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
 	});
 
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
+		auto entryList = std::make_shared<std::deque<std::pair<std::string, std::string>>>();
+
 		resource->OnStart.Connect([=] ()
 		{
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
@@ -109,6 +109,8 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
+
 			for (auto& pair : MakeIterator(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
 			{
 				const std::string& type = std::get<0>(pair).second;
@@ -119,10 +121,32 @@ static InitFunction initFunction([] ()
 
 				if (!document.HasParseError() && document.IsString())
 				{
-					streaming::AddDataFileToLoadList(type, resourceRoot + document.GetString());
+					auto path = resourceRoot + document.GetString();
+
+					streaming::AddDataFileToLoadList(type, path);
+					entryList->push_front({ type, path });
+				}
+			}
+
+			{
+				auto map = metaData->GetEntries("this_is_a_map");
+
+				if (map.begin() != map.end())
+				{
+					streaming::AddDataFileToLoadList("CFX_PSEUDO_ENTRY", "RELOAD_MAP_STORE");
 				}
 			}
 		}, 500);
+
+		resource->OnStop.Connect([=] ()
+		{
+			for (const auto& entry : *entryList)
+			{
+				streaming::RemoveDataFileFromLoadList(entry.first, entry.second);
+			}
+
+			entryList->clear();
+		}, -500);
 	});
 
 	rage::fiDevice::OnInitialMount.Connect([] ()

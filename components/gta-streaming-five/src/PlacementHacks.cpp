@@ -18,6 +18,9 @@
 
 #include <ICoreGameInit.h>
 
+#include <gameSkeleton.h>
+#include "Streaming.h"
+
 template<typename TSubClass>
 class fwFactoryBase
 {
@@ -104,13 +107,20 @@ public:
 
 	virtual void m_8() = 0;
 
-	virtual void InitializeFromArchetypeDef(uint32_t nameHash, fwArchetypeDef* archetypeDef, bool) = 0;
+	virtual void InitializeFromArchetypeDef(uint32_t mapTypesStoreIdx, fwArchetypeDef* archetypeDef, bool) = 0;
 
 public:
 	char pad[36];
 	float radius;
-	float aabbMin[16];
-	float aabbMax[16];
+	float aabbMin[4];
+	float aabbMax[4];
+	uint32_t flags;
+
+	uint8_t pad2[12];
+	uint8_t assetType;
+	uint8_t pad3;
+
+	uint16_t assetIndex;
 };
 
 class fwEntityDef
@@ -244,6 +254,11 @@ static hook::cdecl_stub<void(CMapDataContents*)> removeFromScene([] ()
 hook::cdecl_stub<DataFileEntry*(void*, DataFileEntry*)> dataFileMgr__getNextEntry([] ()
 {
 	return hook::pattern("48 89 5C 24 08 0F B7 41 08 44 8B 82 94").count(1).get(0).get<void>();
+});
+
+static hook::cdecl_stub<void(fwArchetype*)> registerArchetype([]()
+{
+	return hook::get_pattern("44 0F B7 41 66 48 8B D9 8A 49 60 80 F9", -6);
 });
 
 static fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
@@ -467,11 +482,13 @@ void ParseArchetypeFile(char* text, size_t length)
 
 						fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->nameHash);
 
-						// a1 isn't a hash at all, but "lovely" somehow doesn't corrupt things
-						mi->InitializeFromArchetypeDef(HashString("lovely"), archetypeDef, true);
+						mi->InitializeFromArchetypeDef(1390, archetypeDef, true);
 
 						// TODO: clean up
-						*(uint32_t*)((char*)mi + 80) &= ~(1 << 31);
+						mi->flags &= ~(1 << 31);
+
+						// register the archetype in the streaming module
+						registerArchetype(mi);
 					}
 					else
 					{
@@ -581,6 +598,10 @@ void ParseArchetypeFile(char* text, size_t length)
 						aabbMax[1] = (yMax > aabbMax[1]) ? yMax : aabbMax[1];
 						aabbMax[2] = (zMax > aabbMax[2]) ? zMax : aabbMax[2];
 					}
+					else
+					{
+						trace("Couldn't find archetype %s\n", archetypeName);
+					}
 				}
 				else
 				{
@@ -612,19 +633,32 @@ void ParseArchetypeFile(char* text, size_t length)
 	}
 }
 
-void LoadArchetypeFiles(void* dataFileMgr)
-{
-	DataFileEntry* entry = dataFileMgr__getEntries(dataFileMgr, 1);
+static std::vector<std::string> g_itypRequests;
+static std::vector<std::string> g_jsonRequests;
 
-	std::vector<char> fileBuffer;
+void IterateDataFiles(void* dataFileMgr, int type, std::vector<std::string>& list)
+{
+	DataFileEntry* entry = dataFileMgr__getEntries(dataFileMgr, type);
 
 	while (entry->length >= 0)
 	{
-		rage::fiDevice* device = rage::fiDevice::GetDevice(entry->name, true);
+		list.push_back(entry->name);
+
+		entry = dataFileMgr__getNextEntry(dataFileMgr, entry);
+	}
+}
+
+void LoadArchetypeFiles()
+{
+	std::vector<char> fileBuffer;
+
+	for (const std::string& entry : g_jsonRequests)
+	{
+		rage::fiDevice* device = rage::fiDevice::GetDevice(entry.c_str(), true);
 
 		if (device)
 		{
-			uint64_t handle = device->Open(entry->name, true);
+			uint64_t handle = device->Open(entry.c_str(), true);
 
 			if (handle != -1)
 			{
@@ -639,7 +673,7 @@ void LoadArchetypeFiles(void* dataFileMgr)
 
 				device->Close(handle);
 
-				trace("parsing archetype %s...\n", entry->name);
+				trace("parsing archetype %s...\n", entry);
 
 				ParseArchetypeFile(&fileBuffer[0], length);
 
@@ -647,23 +681,56 @@ void LoadArchetypeFiles(void* dataFileMgr)
 			}
 			else
 			{
-				trace("failed to open %s: device returned vfs::InvalidHandle\n", entry->name);
+				trace("failed to open %s: device returned vfs::InvalidHandle\n", entry);
 			}
 		}
 		else
 		{
-			trace("failed to open %s: no device\n", entry->name);
+			trace("failed to open %s: no device\n", entry);
 		}
-
-		entry = dataFileMgr__getNextEntry(dataFileMgr, entry);
 	}
 }
 
+static void* g_dataFileMgr;
+
 static void* DoBeforeGetEntries(void* dataFileMgr, int type)
 {
-	LoadArchetypeFiles(dataFileMgr);
+	g_dataFileMgr = dataFileMgr;
+
+	IterateDataFiles(dataFileMgr, 1, g_jsonRequests);
+	IterateDataFiles(dataFileMgr, 4, g_itypRequests);
 
 	return dataFileMgr__getEntries(dataFileMgr, type);
+}
+
+namespace streaming
+{
+	void AddDataFileToLoadList(const std::string& type, const std::string& path);
+}
+
+static void RunCompatibilityBehavior()
+{
+	// turn PERMANENT_ITYP_FILE into DLC_ITYP_REQUEST
+	bool requestedItyp = false;
+
+	for (auto& entry : g_itypRequests)
+	{
+		if (strstr(entry.c_str(), "platform:/") == nullptr)
+		{
+			streaming::AddDataFileToLoadList("DLC_ITYP_REQUEST", entry);
+
+			requestedItyp = true;
+		}
+	}
+
+	// load archetype files
+	LoadArchetypeFiles();
+
+	// compatibility behavior!
+	if (!g_jsonRequests.empty() || requestedItyp)
+	{
+		streaming::AddDataFileToLoadList("CFX_PSEUDO_ENTRY", "RELOAD_MAP_STORE");
+	}
 }
 
 static HookFunction hookFunction([] ()
@@ -699,6 +766,18 @@ static HookFunction hookFunction([] ()
 
 	// ignore distance scale in determining whether or not to alphaclip a model
 	hook::nop(hook::pattern("44 3B C1 73 3F 83").count(1).get(0).get<void>(3), 2);
+
+	// don't lock creation of anonymous archetypes at all
+	hook::put<uint8_t>(hook::get_pattern("00 41 8A E8 8B F2 48 8B D9 74", 9), 0xEB);
+
+	// compatibility
+	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_SESSION)
+		{
+			RunCompatibilityBehavior();
+		}
+	}, 5000);
 
 	// yolo
 	//hook::nop(hook::pattern("0F 50 C0 83 E0 07 3C 07 0F 94 C1 85 D1 74 43").count(1).get(0).get<void>(13), 2);

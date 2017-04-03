@@ -233,8 +233,6 @@ void GSClient_QueryStep()
 	{
 		if (!g_cls.servers[i].queried)
 		{
-			trace("query server %d %x\n", i, g_cls.servers[i].m_IP);
-
 			GSClient_QueryServer(i);
 			count++;
 		}
@@ -320,8 +318,6 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 
 void GSClient_HandleInfoResponse(const char* bufferx, int len)
 {
-	trace("received infoResponse\n");
-
 	auto tempServer = std::make_shared<gameserveritemext_t>();
 	tempServer->queryTime = timeGetTime();
 	tempServer->m_IP = ntohl(g_cls.from.sin_addr.s_addr);
@@ -652,6 +648,8 @@ static InitFunction initFunction([] ()
 	{
 		if (!_wcsicmp(type, L"refreshServers"))
 		{
+			trace("Refreshing server list...\n");
+
 			GSClient_Refresh();
 		}
 

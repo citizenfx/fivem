@@ -216,6 +216,7 @@ static InitFunction initFunction([] ()
 								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size);
 
 								entry.filePath = mounter->FormatPath(resourceName, filename);
+								entry.resourceName = resourceName;
 
 								fx::OnAddStreamingResource(entry);
 							}
@@ -413,6 +414,11 @@ static InitFunction initFunction([] ()
 			buffer.Write(eventPayload.c_str(), eventPayload.size());
 
 			netLibrary->SendReliableCommand("msgServerEvent", buffer.GetBuffer(), buffer.GetCurLength());
+		});
+
+		netLibrary->OnFinalizeDisconnect.Connect([=] (NetAddress address)
+		{
+			Instance<fx::ResourceManager>::Get()->ResetResources();
 		});
 	});
 });

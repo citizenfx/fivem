@@ -13,9 +13,16 @@
 
 #include <DisableChat.h>
 
+#include <ICoreGameInit.h>
+
 static InitFunction initFunction([] ()
 {
 	static std::set<std::string> g_textChatDisableResources;
+
+	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+	{
+		g_textChatDisableResources.clear();
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_TEXT_CHAT_ENABLED", [] (fx::ScriptContext& context)
 	{

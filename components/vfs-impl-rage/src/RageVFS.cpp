@@ -16,6 +16,8 @@
 
 #include <strsafe.h>
 
+#include <Error.h>
+
 class RageVFSDeviceAdapter : public rage::fiCustomDevice
 {
 private:
@@ -69,6 +71,13 @@ public:
 	virtual bool FindNext(uint64_t handle, rage::fiFindData* findData) override;
 
 	virtual int FindClose(uint64_t handle) override;
+
+	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override
+	{
+		FatalError(__FUNCTION__ " not implemented");
+
+		return 0;
+	}
 
 	virtual int m_yx() override
 	{

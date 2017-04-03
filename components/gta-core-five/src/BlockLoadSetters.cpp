@@ -43,6 +43,7 @@ static int* g_initState;
 
 bool g_shouldSetState;
 bool g_isInInitLoop; // to avoid some GFx crash?
+static bool g_shouldReloadGame;
 
 static void WaitForInitLoop()
 {
@@ -70,6 +71,22 @@ static void WaitForInitLoopWrap()
 	*g_initState = MapInitState(6);
 
 	WaitForInitLoop();
+}
+
+static volatile bool g_isNetworkKilled;
+
+static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
+{
+	// trailing byte differs between 323 and 505
+	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
+});
+
+static bool g_setLoadingScreens;
+static bool g_shouldKillNetwork;
+
+void SetRenderThreadOverride()
+{
+	g_setLoadingScreens = true;
 }
 
 static bool(*g_callBeforeLoad)();
@@ -114,6 +131,20 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 		}
 	});
 
+	OnKillNetwork.Connect([=] (const char* message)
+	{
+		trace("Killing network: %s\n", message);
+
+		g_shouldKillNetwork = true;
+
+		SetRenderThreadOverride();
+	}, 500);
+
+	/*OnGameRequestLoad.Connect([=] ()
+	{
+		
+	});*/
+
 	OnGameRequestLoad();
 
 	// stuff
@@ -135,10 +166,12 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 
 void FiveGameInit::ReloadGame()
 {
-	OnGameRequestLoad();
-
+	//g_shouldReloadGame = true;
 	m_gameLoaded = false;
-	*g_initState = MapInitState(14);
+
+	g_isNetworkKilled = false;
+
+	ClearVariable("gameKilled");
 }
 
 static void DebugBreakDo()
@@ -788,7 +821,7 @@ static void ErrorDo(uint32_t error)
 	}
 
 	// NOTE: crashes on this line are supposed to be read based on the exception-write address!
-	*(uint32_t*)(error | 0x100000000) = 0xDEADBADE;
+	*(uint32_t*)(error | 0x1000000000) = 0xDEADBADE;
 
 	TerminateProcess(GetCurrentProcess(), -1);
 }
@@ -961,6 +994,102 @@ void TrackClipSetShutdown()
 		trace("cm %08x: %d%s\n", cm.key, cm.streamingPolicy, (cm.streamingPolicy & 2) ? " UNLOADING" : "");
 	}
 }
+
+static hook::cdecl_stub<void()> g_runWarning([]()
+{
+	return hook::get_pattern("83 F9 FF 74 0E E8 ? ? ? ? 84 C0 0F 94", -0x22);
+});
+
+static void(*g_origRunInitState)();
+static void WrapRunInitState()
+{
+	if (g_setLoadingScreens)
+	{
+		setupLoadingScreens(10, 0);
+
+		g_setLoadingScreens = false;
+	}
+
+	if (g_shouldReloadGame)
+	{
+		Instance<ICoreGameInit>::Get()->OnGameRequestLoad();
+
+		*g_initState = MapInitState(14);
+
+		g_shouldReloadGame = false;
+	}
+
+	if (g_shouldKillNetwork)
+	{
+		trace("Killing network, stage 2...\n");
+
+		*g_initState = MapInitState(14);
+
+		g_shouldKillNetwork = false;
+	}
+
+	/*while (g_isNetworkKilled)
+	{
+		Sleep(50);
+
+		// warning screens apparently need to run on main thread
+		OnGameFrame();
+		OnMainGameFrame();
+
+		g_runWarning();
+	}*/
+
+	if (!g_isNetworkKilled)
+	{
+		g_origRunInitState();
+	}
+}
+
+static bool(*g_origSkipInit)(int);
+
+static bool WrapSkipInit(int a1)
+{
+	if (g_isNetworkKilled)
+	{
+		if (g_origSkipInit(a1))
+		{
+			printf("");
+		}
+
+		return false;
+	}
+
+	return g_origSkipInit(a1);
+}
+
+static void(*g_shutdownSession)();
+
+void ShutdownSessionWrap()
+{
+	Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
+	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
+
+	g_isNetworkKilled = true;
+	*g_initState = MapInitState(14);
+
+	OnKillNetworkDone();
+	
+	g_shutdownSession();
+
+	while (g_isNetworkKilled)
+	{
+		Sleep(50);
+
+		// warning screens apparently need to run on main thread
+		OnGameFrame();
+		OnMainGameFrame();
+
+		g_runWarning();
+	}
+
+	Instance<ICoreGameInit>::Get()->OnGameRequestLoad();
+}
+
 template<typename T>
 static void SafeRun(const T&& func)
 {
@@ -981,6 +1110,25 @@ static HookFunction hookFunction([] ()
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
 
 	g_mainThreadId = GetCurrentThreadId();
+
+	// fwApp 2:1 state handler (loaded game), before running init state machine
+	{
+		auto loc = hook::get_pattern<char>("32 DB EB 02 B3 01 E8 ? ? ? ? 48 8B", 6);
+
+		hook::set_call(&g_origRunInitState, loc);
+		hook::call(loc, WrapRunInitState);
+
+		loc -= 9;
+		loc -= 6;
+
+		hook::set_call(&g_origSkipInit, loc);
+		hook::call(loc, WrapSkipInit);
+	}
+
+	// don't run north audio stuff in loading screens
+	{
+		// maybe
+	}
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
 	char* p = hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
@@ -1010,8 +1158,15 @@ static HookFunction hookFunction([] ()
 	hook::nop(p, 10);
 	hook::call(p, WaitForInitLoopWrap);
 
+	// grr, reloading stage
+	{
+		auto loc = hook::get_pattern("75 0F E8 ? ? ? ? 8B 0D ? ? ? ? 3B C8", -12);
+		hook::set_call(&g_shutdownSession, loc);
+		hook::call(loc, ShutdownSessionWrap);
+	}
+
 	// for now, always reload the level in 'reload game' state, even if the current level did not change
-	auto matches = hook::pattern("75 0F E8 ? ? ? ? 8B 0D ? ? ? ? 3B C8 74").count(2);
+	/*auto matches = hook::pattern("75 0F E8 ? ? ? ? 8B 0D ? ? ? ? 3B C8 74").count(2);
 
 	for (int i = 0; i < matches.size(); i++)
 	{
@@ -1024,7 +1179,7 @@ static HookFunction hookFunction([] ()
 		}
 
 		hook::nop(matches.get(i).get<void>(15), 2);
-	}
+	}*/
 
 	// fwmaptypesstore shutdown in CScene type 1 shutdown
 	//hook::nop(hook::pattern("BB 01 00 00 00 8B CB E8 ? ? ? ? E8").count(1).get(0).get<void>(-0x5), 5);
@@ -1039,11 +1194,11 @@ static HookFunction hookFunction([] ()
 	//hook::return_function(hook::pattern("FF 90 00 01 00 00 85 C0 7E 72 8B D7").count(1).get(0).get<void>(-0x12));
 
 	// CModelInfo shutdown: also call destructor on said archetypes (as that's what those little bitches are in the end)
-	char* miPtr = hook::pattern("83 F9 04 0F 85 ? 01 00 00 48 8D 1D").count(1).get(0).get<char>(12);
-	*(int32_t*)miPtr = (int32_t)((char*)hook::AllocateFunctionStub(DestructMI) - miPtr - 4);
+	//char* miPtr = hook::pattern("83 F9 04 0F 85 ? 01 00 00 48 8D 1D").count(1).get(0).get<char>(12);
+	//*(int32_t*)miPtr = (int32_t)((char*)hook::AllocateFunctionStub(DestructMI) - miPtr - 4);
 
 	// CVehicleRecording streaming module 'freeing' in shutdown 4
-	hook::nop(hook::pattern("48 83 EC 20 83 F9 04 75 11 48 8D 0D").count(1).get(0).get<void>(0x10), 5);
+	//hook::nop(hook::pattern("48 83 EC 20 83 F9 04 75 11 48 8D 0D").count(1).get(0).get<void>(0x10), 5);
 
 	// scene linked list
 	char* loc = hook::pattern("41 D2 E0 41 F6 D9 48 8D 0D").count(1).get(0).get<char>(9);
@@ -1061,8 +1216,8 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_origError, errorFunc + 6);
 	hook::jump(errorFunc, ErrorDo);
 
-	hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(0x14), 5);
-	hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), 5);
+	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(0x14), 5);
+	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), 5);
 
 	// init function bit #1
 	static InitFunctionStub initFunctionStub;
@@ -1096,10 +1251,10 @@ static HookFunction hookFunction([] ()
 	g_interiorProxyPool = (decltype(g_interiorProxyPool))(location + *(int32_t*)location + 4);
 
 	// unverified 'fix' for data pointer in fwMapTypesStore entries pointing to whatever structure being null upon free, however pool flags not having been nulled themselves
-	void* freeMapTypes = hook::pattern("45 8A CE 4C 8B 01 48 83 C2 10").count(1).get(0).get<void>(10);
+	//void* freeMapTypes = hook::pattern("45 8A CE 4C 8B 01 48 83 C2 10").count(1).get(0).get<void>(10);
 
-	hook::set_call(&g_origFreeMapTypes, freeMapTypes);
-	hook::call(freeMapTypes, DoFreeMapTypes);
+	//hook::set_call(&g_origFreeMapTypes, freeMapTypes);
+	//hook::call(freeMapTypes, DoFreeMapTypes);
 
 	// OF NOTE:
 	// -> CBaseModelInfo + 0x70 (instance?) being a weird FF-style pointer on deletion
@@ -1131,8 +1286,6 @@ static HookFunction hookFunction([] ()
 	// dlc get
 	void* extraDataGetty = hook::pattern("45 33 F6 48 8B D8 48 85 C0 74 48").count(1).get(0).get<void>(0);
 
-	printf("");
-
 	location = hook::pattern("75 34 48 85 DB 75 34 B9 B0 09 00 00").count(1).get(0).get<char>(-9);
 
 	g_extraContentMgr = (void**)(location + *(int32_t*)location + 4);
@@ -1143,7 +1296,7 @@ static HookFunction hookFunction([] ()
 	hook::put<float>(location + *(int32_t*)location + 4, 1000.0f / 60.0f);
 
 	// bypass the state 20 calibration screen loop (which might be wrong; it doesn't seem to exist in my IDA dumps of 323/331 Steam)
-	matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
+	auto matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
 
 	assert(matches.size() <= 1);
 

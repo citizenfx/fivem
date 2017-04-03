@@ -9,6 +9,8 @@
 #include "Hooking.h"
 #include <atPool.h>
 
+#include <Streaming.h>
+
 #include <Error.h>
 
 struct ResBmInfoInt
@@ -78,6 +80,7 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 	return fwAssetStoreBase__isResourceValid(this, idx);
 }
 
+static std::map<std::string, uint32_t> g_streamingNamesToIndices;
 static std::map<uint32_t, std::string> g_streamingIndexesToNames;
 
 template<bool IsRequest>
@@ -121,10 +124,19 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 			fflush(sfLog);
 		}
 
+		g_streamingNamesToIndices[g_lastStreamingName] = *indexRet;
 		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
 	}
 
 	return indexRet;
+}
+
+namespace streaming
+{
+	uint32_t GetStreamingIndexForName(const std::string& name)
+	{
+		return g_streamingNamesToIndices[name];
+	}
 }
 
 void(*g_origAssetRelease)(void*, uint32_t);
@@ -202,5 +214,33 @@ static HookFunction hookFunction([] ()
 		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 90 00 00 00 48", 3);
 		hook::set_call(&g_origAssetRelease, loc);
 		hook::call(loc, WrapAssetRelease);
+	}
+
+	// same for mapdatastore
+	{
+		// vehicle metadata unmount: don't die if a vehicle is not loaded
+		static struct : jitasm::Frontend
+		{
+			void InternalMain() override
+			{
+				not(rax);
+				and(rbx, rax);
+
+				jz("justReturn");
+
+				mov(rax, qword_ptr[rbx]);
+				test(rax, rax);
+
+				L("justReturn");
+
+				ret();
+			}
+		} fixStub;
+
+		{
+			auto location = hook::get_pattern("48 F7 D0 48 23 D8 0F 84 C6 00 00 00 48", 0);
+			hook::nop(location, 6);
+			hook::call_reg<1>(location, fixStub.GetCode());
+		}
 	}
 });

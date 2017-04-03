@@ -49,6 +49,11 @@ public:
 		VariableList.insert(variable);
 	}
 
+	inline void ClearVariable(const std::string& variable)
+	{
+		VariableList.erase(variable);
+	}
+
 	inline bool GetData(const std::string& key, std::string* value)
 	{
 		std::shared_lock<std::shared_mutex> lock(DataMutex);

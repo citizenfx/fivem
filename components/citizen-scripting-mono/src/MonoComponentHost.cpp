@@ -73,7 +73,6 @@ static int CoreClrCallback(const char* imageName)
 	{
 		if (!_wcsicmp(filePart, g_platformAssemblies[i]))
 		{
-			trace("%s %s is a platform image.\n", ToNarrow(fullPath), ToNarrow(filePart));
 			return TRUE;
 		}
 	}

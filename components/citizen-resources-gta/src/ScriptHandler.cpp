@@ -10,7 +10,7 @@
 #include <ResourceManager.h>
 #include <scrEngine.h>
 
-#include <ICoreGameInit.h>
+#include <GameInit.h>
 
 extern fwRefContainer<fx::ResourceManager> g_resourceManager;
 
@@ -26,6 +26,11 @@ class TestScriptThread : public GtaThread
 
 			return;
 		}
+
+		OnKillNetworkDone.Connect([] ()
+		{
+			initedGame = false;
+		});
 
 		g_resourceManager->Tick();
 	}

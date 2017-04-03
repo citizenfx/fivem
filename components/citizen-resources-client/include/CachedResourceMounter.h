@@ -77,6 +77,7 @@ namespace fx
 
 	struct StreamingEntryData
 	{
+		std::string resourceName;
 		std::string filePath;
 		uint32_t rscVersion;
 		uint32_t rscPagesPhysical;

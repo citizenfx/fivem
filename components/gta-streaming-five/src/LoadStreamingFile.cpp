@@ -19,6 +19,8 @@
 
 #include <Error.h>
 
+#include <ICoreGameInit.h>
+
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
@@ -27,7 +29,9 @@ static std::vector<std::string> g_afterLevelMetas;
 
 static std::vector<std::string> g_defaultMetas;
 
-static std::vector<std::pair<int, std::string>> g_dataFiles;
+static std::vector<std::string> g_gtxdFiles;
+static std::vector<std::pair<std::string, std::string>> g_dataFiles;
+static std::vector<std::pair<std::string, std::string>> g_loadedDataFiles;
 
 struct DataFileEntry
 {
@@ -35,111 +39,14 @@ struct DataFileEntry
 	char pad[16]; // 128
 	int32_t type; // 140
 	int32_t index; // 148
-	bool flag1; // 152
+	bool locked; // 152
 	bool flag2; // 153
 	bool flag3; // 154
 	bool disabled; // 155
-	char pad2[12];
+	bool persistent; // 156
+	bool overlay;
+	char pad2[10];
 };
-
-struct DataFileLess
-{
-	bool operator()(const std::string& left, const std::string& right)
-	{
-		return (_stricmp(left.c_str(), right.c_str()) < 0);
-	}
-};
-
-using DataFileSet = std::set<std::string, DataFileLess>;
-
-extern hook::cdecl_stub<DataFileEntry*(void*, DataFileEntry*)> dataFileMgr__getNextEntry;
-extern DataFileEntry*(*dataFileMgr__getEntries)(void*, int);
-
-static hook::cdecl_stub<void*(void*)> dataFileMgr__ctor([] ()
-{
-	return hook::pattern("83 C8 FF 48 8B F9 48 89 31 89 71 08").count(1).get(0).get<void>(-0x11);
-});
-
-static hook::cdecl_stub<void(DataFileEntry*)> dataFileEntry__enablePackfile([] ()
-{
-	return hook::pattern("80 B9 9B 00 00 00 00 48 8B F9 74 59").count(1).get(0).get<void>(-0xA);
-});
-
-static hook::cdecl_stub<void(DataFileEntry*)> dataFileEntry__disablePackfile([] ()
-{
-	return hook::pattern("80 B9 9B 00 00 00 00 48 8B F9 0F 85 A6").count(1).get(0).get<void>(-0xD);
-});
-
-static hook::cdecl_stub<void(char* buffer, int size, const char* inString, const char* inExt)> formatFilename([] ()
-{
-	return hook::pattern("83 64 24 28 00 4C 89 4C 24 20 4D 8B C8 44 8B C2").count(1).get(0).get<void>(-4);
-});
-
-static hook::cdecl_stub<uint32_t(const char* packfileName)> lookupStreamingPackfileByName([] ()
-{
-	return hook::get_call(hook::pattern("8D 4C 24 30 E8 ? ? ? ? 8B D8 83 F8 FF 74").count(1).get(0).get<void>(4));
-});
-
-void SetStreamingPackfileEnabled(uint32_t index, bool enabled);
-
-static void* CreateDataFileMgr()
-{
-	void* data = malloc(264);
-
-	return dataFileMgr__ctor(data);
-}
-
-template<typename Set>
-void InsertInto(DataFileEntry* entry, Set& entries)
-{
-	entries.insert(entry);
-}
-
-template<typename TLess, typename TAllocator>
-void InsertInto(DataFileEntry* entry, std::set<std::string, TLess, TAllocator>& entries)
-{
-	entries.insert(entry->name);
-}
-
-template<typename TField, typename TAllocator>
-void InsertInto(DataFileEntry* entry, std::vector<TField, TAllocator>& entries)
-{
-	entries.push_back(entry);
-}
-
-template<typename TAllocator>
-void InsertInto(DataFileEntry* entry, std::vector<std::string, TAllocator>& entries)
-{
-	entries.push_back(entry->name);
-}
-
-template<typename TargetSet>
-static void GetEnabledEntryList(void* dataFileMgr, int type, TargetSet& entries)
-{
-	DataFileEntry* entry = dataFileMgr__getEntries(dataFileMgr, type);
-
-	while (entry->index >= 0)
-	{
-		if (!entry->disabled)
-		{
-			InsertInto(entry, entries);
-		}
-
-		entry = dataFileMgr__getNextEntry(dataFileMgr, entry);
-	}
-}
-
-template<typename TargetSet>
-static TargetSet GetCurrentPackList(void* dataFileMgr)
-{
-	TargetSet entries;
-
-	GetEnabledEntryList(dataFileMgr, 0, entries); // RPF_FILE
-	GetEnabledEntryList(dataFileMgr, 0xB9, entries); // RPF_FILE_PRE_INSTALL
-	GetEnabledEntryList(dataFileMgr, 0x9, entries); // another one
-
-	return entries;
-}
 
 static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 {
@@ -178,298 +85,47 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 
 static std::vector<std::string> g_oldEntryList;
 
+static PEXCEPTION_POINTERS g_exception;
+
+static int SehRoutine(const char* typePtr, PEXCEPTION_POINTERS exception)
+{
+	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
+	{
+		g_exception = exception;
+
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 #include <sysAllocator.h>
 #include <atArray.h>
 
-struct fwBoxStreamerEntries
+template<typename T>
+static auto SafeCall(const T& fn, const char* whatPtr = nullptr)
 {
-	atArray<uint32_t> indices[2];
-	uint8_t indicesUsed;
-};
-
-static hook::cdecl_stub<void(void*)> freeObj1([] ()
-{
-	return hook::pattern("48 8B D9 48 8B 49 08 48 85 C9 74 2A 83 64").count(1).get(0).get<void>(-6);
-});
-
-struct fwBoxStreamer_obj1
-{
-	~fwBoxStreamer_obj1()
+#ifndef _DEBUG
+	__try
 	{
-		freeObj1(this);
+#endif
+		return fn();
+#ifndef _DEBUG
 	}
-
-	void operator delete(void* ptr)
+	__except (SehRoutine(whatPtr, GetExceptionInformation()))
 	{
-		rage::GetAllocator()->free(ptr);
-	}
-};
-
-struct fwBoxStreamer
-{
-public:
-	virtual ~fwBoxStreamer() {}
-
-	virtual void ResetQuadTree(void* streamingModule, float a3) = 0;
-
-	atArray<int> _f8;
-	void* streamingModule;
-	atArray<int> _f20;
-	atArray<int> _f30;
-	alignas(uint64_t) uint32_t entryCount;
-	uint32_t _f44;
-	atArray<int> _f48;
-	
-	union
-	{
-		void* _f58;
-		char _a58[8];
-	};
-
-	void* _f60;
-	float _f68;
-
-	void* _f70;
-	float _f78[4];
-
-	char pad[16];
-
-	float _f98[4];
-
-	alignas(uint64_t) char pad2[24]; // @70
-
-	fwBoxStreamerEntries entries;
-
-	//alignas(uint64_t) char pad2[16];
-
-	atArray<int> _fE8;
-
-	fwBoxStreamer_obj1* _fF8;
-
-	// fwBoxStreamerVariable members
-	atArray<int> _f100;
-	atArray<int> _f110;
-
-	fwBoxStreamer_obj1* _f120;
-};
-
-fwBoxStreamer* g_mapDataBoxStreamer;
-
-static hook::cdecl_stub<void(fwBoxStreamerEntries*)> clearEntries([] ()
-{
-	static_assert(sizeof(fwBoxStreamer) == 296, "");
-
-	return hook::pattern("57 48 83 EC 20 48 8B F9 33 F6 B9 01 00").count(1).get(0).get<void>(-0xA);
-});
-
-static void SwitchPackfile(const std::string& packfileName, bool enabled)
-{
-	char buffer[256];
-	formatFilename(buffer, sizeof(buffer), packfileName.c_str(), "");
-
-	uint32_t idx = lookupStreamingPackfileByName(buffer);
-
-	if (idx == 0xFFFFFFFF)
-	{
-		return;
-	}
-
-	SetStreamingPackfileEnabled(idx, enabled);
-}
-
-atArray<std::array<char, 40>>* g_boundDependencyArray;
-
-static void LoadLevelDatHook(void* dataFileMgr, const char* name, bool enabled)
-{
-	void* module = g_mapDataBoxStreamer->streamingModule;
-
-	g_mapDataBoxStreamer->_f8.Clear();
-	g_mapDataBoxStreamer->_f20.Clear();
-	g_mapDataBoxStreamer->_f30.Clear();
-	g_mapDataBoxStreamer->entryCount = 0;
-	g_mapDataBoxStreamer->_f48.Clear();
-	g_mapDataBoxStreamer->_f58 = nullptr;
-	memset(g_mapDataBoxStreamer->pad, 0, sizeof(g_mapDataBoxStreamer->pad));
-
-	clearEntries(&g_mapDataBoxStreamer->entries);
-
-	g_mapDataBoxStreamer->_fE8.Clear();
-
-	delete g_mapDataBoxStreamer->_fF8;
-	g_mapDataBoxStreamer->_fF8 = nullptr;
-
-	g_mapDataBoxStreamer->_f100.Clear();
-	g_mapDataBoxStreamer->_f110.Clear();
-
-	delete g_mapDataBoxStreamer->_f120;
-	g_mapDataBoxStreamer->_f120 = nullptr;
-
-	g_mapDataBoxStreamer->ResetQuadTree(module, 30.0f);
-
-	g_mapDataBoxStreamer->_a58[0] |= 8 | 16 | 32 | 64;
-	g_mapDataBoxStreamer->_a58[2] |= 8 | 16 | 32 | 64;
-	g_mapDataBoxStreamer->_a58[4] |= 8 | 16 | 32 | 64;
-	g_mapDataBoxStreamer->_a58[6] |= 8 | 16 | 32 | 64;
-
-	g_mapDataBoxStreamer->_a58[5] |= 32 | 64;
-
-	g_mapDataBoxStreamer->_f78[0] = 50.0f;
-	g_mapDataBoxStreamer->_f78[1] = 50.0f;
-	g_mapDataBoxStreamer->_f78[2] = 50.0f;
-	g_mapDataBoxStreamer->_f78[3] = 50.0f;
-
-	g_mapDataBoxStreamer->_f98[0] = 1.0f;
-	g_mapDataBoxStreamer->_f98[1] = 1.0f;
-	g_mapDataBoxStreamer->_f98[2] = 1.0f;
-	g_mapDataBoxStreamer->_f98[3] = 1.0f;
-
-	// perform a dummy load first to see what this load will add to the list
-	void* dummyMgr = CreateDataFileMgr();
-
-	// load entries into the dummy manager
-	LoadDats(dummyMgr, name, enabled);
-
-	// function to fill an entry map
-	std::unordered_map<std::string, DataFileEntry*> entryMap;
-
-	auto fillEntryMap = [&] ()
-	{
-		// get the entries currently existing in the global manager
-		std::set<DataFileEntry*> curEntries = GetCurrentPackList<std::set<DataFileEntry*>>(dataFileMgr);
-
-		// map all entries for faster lookup
-		entryMap.clear();
-
-		for (auto& entry : curEntries)
+		if (!whatPtr)
 		{
-			entryMap.insert({ entry->name, entry });
-		}
-	};
-
-	// get an entry set from the dummy manager
-	std::vector<std::string> entries = GetCurrentPackList<std::vector<std::string>>(dummyMgr);
-	std::sort(entries.begin(), entries.end());
-
-	// if there's an old list, as well, do some differencing
-	if (!g_oldEntryList.empty())
-	{
-		// the entries seem to need to be preallocated
-		std::vector<std::string> removableEntries(max(g_oldEntryList.size(), entries.size()));
-
-		// calculate difference
-		auto it = std::set_difference(g_oldEntryList.begin(), g_oldEntryList.end(), entries.begin(), entries.end(), removableEntries.begin());
-
-		// remove trailing entries
-		removableEntries.resize(it - removableEntries.begin());
-
-		// get the entries currently existing in the global manager
-		fillEntryMap();
-
-		// disable all the entries we found in here in the global manager
-		for (auto& entry : removableEntries)
-		{
-			auto it = entryMap.find(entry);
-
-			if (it != entryMap.end())
-			{
-				trace("disabling %s (previous state: %d)\n", entry.c_str(), it->second->disabled);
-
-				dataFileEntry__disablePackfile(it->second);
-				SwitchPackfile(it->first, false);
-			}
-			else
-			{
-				trace("force-disabling %s\n", entry.c_str());
-
-				DataFileEntry tempEntry = { 0 };
-				strcpy(tempEntry.name, entry.c_str());
-				tempEntry.disabled = false;
-
-				dataFileEntry__disablePackfile(&tempEntry);
-				SwitchPackfile(entry, false);
-			}
+			whatPtr = "a safe-call operation";
 		}
 
-		// and disable DLC entries as well because *why not*
-		for (auto& entry : entryMap)
-		{
-			if (entry.first.find("dlc") == 0 && entry.first.find("levels/gta5") != std::string::npos)
-			{
-				trace("disabling %s (previous state: %d)\n", entry.first.c_str(), entry.second->disabled);
+		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
+			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
+			whatPtr);
 
-				dataFileEntry__disablePackfile(entry.second);
-				SwitchPackfile(entry.first, false);
-			}
-		}
+		return std::result_of_t<T()>();
 	}
-
-	g_oldEntryList = entries;
-
-	// load entries into the *global* data file manager
-	LoadDats(dataFileMgr, name, enabled);
-
-	// refill the entry map
-	fillEntryMap();
-
-	// and enable anything that might've been disabled
-	for (auto& entry : entries)
-	{
-		auto it = entryMap.find(entry);
-
-		if (it != entryMap.end())
-		{
-			trace("enabling %s (previous state: %d)\n", entry.c_str(), it->second->disabled);
-
-			dataFileEntry__enablePackfile(it->second);
-			SwitchPackfile(it->first, true);
-		}
-	}
-
-	// free the dummy manager (NOTE: this won't actually free the entries contained - and there doesn't seem to be a dtor in the game?)
-	free(dummyMgr);
-
-	// clear the fwMapDataStore box streamer entry list
-	/*clearEntries(&g_mapDataBoxStreamer->entries);
-
-	delete g_mapDataBoxStreamer->_fF8;
-	g_mapDataBoxStreamer->_fF8 = nullptr;
-
-	g_mapDataBoxStreamer->entries.indices[0].Clear();
-	g_mapDataBoxStreamer->entries.indices[1].Clear();
-
-	if (g_mapDataBoxStreamer->_f8.GetSize())
-	{
-		g_mapDataBoxStreamer->_f8.Clear();
-		// following two are the quadtree-esques
-		g_mapDataBoxStreamer->_f20.Clear();
-		g_mapDataBoxStreamer->_f30.Clear();
-		g_mapDataBoxStreamer->_f48.Clear();
-		// another quadtree
-		g_mapDataBoxStreamer->_f100.Clear();
-		g_mapDataBoxStreamer->_f110.Clear();
-
-		delete g_mapDataBoxStreamer->_f120;
-		g_mapDataBoxStreamer->_f120 = nullptr;
-
-		// reset the quadtree list
-		if (g_mapDataBoxStreamer->entryCount)
-		{
-			g_mapDataBoxStreamer->ResetQuadTree(g_mapDataBoxStreamer->streamingModule, g_mapDataBoxStreamer->_f68);
-		}
-	}*/
-
-	// an array of static bound dependencies on map data sectors
-	g_boundDependencyArray->Clear();
-}
-
-static void(*g_origAddStreamingPackfile)(const char*, bool);
-
-void AddStreamingPackfileWrap(const char* fileName, bool scanNow)
-{
-	// if it's already registered but stupid us disabled it, re-enable
-	SwitchPackfile(fileName, true);
-
-	g_origAddStreamingPackfile(fileName, scanNow);
+#endif
 }
 
 struct EnumEntry
@@ -500,14 +156,219 @@ static int LookupDataFileType(const std::string& type)
 class CDataFileMountInterface
 {
 public:
-	virtual ~CDataFileMountInterface() = 0;
+	virtual ~CDataFileMountInterface() = default;
 
 	virtual bool MountFile(DataFileEntry* entry) = 0;
 
 	virtual bool UnmountFile(DataFileEntry* entry) = 0;
 };
 
+class CfxPackfileMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool MountFile(DataFileEntry* entry) override;
+
+	virtual bool UnmountFile(DataFileEntry* entry) override;
+};
+
+static hook::cdecl_stub<void(DataFileEntry* entry)> _addPackfile([]()
+{
+	return hook::get_call(hook::get_pattern("EB 15 48 8B 0B 40 38 7B 0C 74 07 E8", 11));
+});
+
+static hook::cdecl_stub<void(DataFileEntry* entry)> _removePackfile([]()
+{
+	return hook::get_call(hook::get_pattern("EB 15 48 8B 0B 40 38 7B 0C 74 07 E8", 18));
+});
+
+bool CfxPackfileMounter::MountFile(DataFileEntry* entry)
+{
+	entry->disabled = true;
+	//entry->persistent = true;
+	//entry->locked = true;
+	//entry->overlay = true;
+	_addPackfile(entry);
+	return true;
+}
+
+bool CfxPackfileMounter::UnmountFile(DataFileEntry* entry)
+{
+	_removePackfile(entry);
+	return true;
+}
+
+static void** g_extraContentManager;
+static void(*g_disableContentGroup)(void*, uint32_t);
+static void(*g_enableContentGroup)(void*, uint32_t);
+static void(*g_clearContentCache)(int);
+
+static CfxPackfileMounter g_staticRpfMounter;
+
+#include <Streaming.h>
+
+void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb);
+
+static CDataFileMountInterface* LookupDataFileMounter(const std::string& type);
+
+class CfxPseudoMounter : public CDataFileMountInterface
+{
+private:
+	std::set<std::string> loadedCollisions;
+
+public:
+	virtual bool MountFile(DataFileEntry* entry) override
+	{
+		if (strcmp(entry->name, "RELOAD_MAP_STORE") == 0)
+		{
+			// preload collisions for the world
+			ForAllStreamingFiles([&](const std::string& file)
+			{
+				if (file.find(".ybn") != std::string::npos)
+				{
+					if (loadedCollisions.find(file) == loadedCollisions.end())
+					{
+						auto obj = streaming::GetStreamingIndexForName(file);
+
+						if (obj == 0)
+						{
+							trace("waaaa?\n");
+							return;
+						}
+
+						auto mgr = streaming::Manager::GetInstance();
+						mgr->RequestObject(obj, 0);
+
+						streaming::LoadObjectsNow(0);
+
+						mgr->ReleaseObject(obj);
+
+						loadedCollisions.insert(file);
+
+						trace("Loaded %s (id %d)\n", file, obj);
+					}
+				}
+			});
+
+			// workaround by unloading/reloading MP map group
+			g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+			g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+
+			g_clearContentCache(0);
+
+			// load gtxd files
+			for (auto& file : g_gtxdFiles)
+			{
+				auto mounter = LookupDataFileMounter("GTXD_PARENTING_DATA");
+
+				DataFileEntry ventry;
+				memset(&ventry, 0, sizeof(ventry));
+				strcpy(ventry.name, file.c_str()); // muahaha
+				ventry.type = LookupDataFileType("GTXD_PARENTING_DATA");
+
+				mounter->MountFile(&ventry);
+
+				trace("Mounted gtxd parenting data %s\n", file);
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	virtual bool UnmountFile(DataFileEntry* entry) override
+	{
+		if (strcmp(entry->name, "RELOAD_MAP_STORE") == 0)
+		{
+			// empty?
+			loadedCollisions.clear();
+		}
+
+
+		return true;
+	}
+};
+
+static CfxPseudoMounter g_staticPseudoMounter;
+
 static CDataFileMountInterface** g_dataFileMounters;
+
+static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
+{
+	if (type == "CFX_PSEUDO_ENTRY")
+	{
+		return &g_staticPseudoMounter;
+	}
+
+	int fileType = LookupDataFileType(type);
+
+	if (fileType < 0)
+	{
+		return nullptr;
+	}
+
+	if (fileType == 0)
+	{
+		return &g_staticRpfMounter;
+	}
+
+	return g_dataFileMounters[fileType];
+}
+
+static void LoadDataFiles();
+
+static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, const std::function<bool(CDataFileMountInterface*, DataFileEntry& entry)>& fn, const char* op)
+{
+	std::string typeName;
+	std::string fileName;
+
+	std::tie(typeName, fileName) = dataFile;
+
+	CDataFileMountInterface* mounter = LookupDataFileMounter(typeName);
+
+	if (mounter == nullptr)
+	{
+		trace("Could not add data_file %s - invalid type %s.\n", fileName, typeName);
+		return;
+	}
+
+	if (mounter)
+	{
+		std::string typeName = typeid(*mounter).name();
+
+		DataFileEntry entry;
+		memset(&entry, 0, sizeof(entry));
+		strcpy(entry.name, fileName.c_str()); // muahaha
+		entry.type = LookupDataFileType(typeName);
+
+		bool result = SafeCall([&]()
+		{
+			return fn(mounter, entry);
+		}, va("%s of %s in data file mounter %s", op, fileName, typeName));
+
+		if (result)
+		{
+			trace("done %s %s in data file mounter %s.\n", op, fileName, typeName);
+		}
+		else
+		{
+			trace("failed %s %s in data file mounter %s.\n", op, fileName, typeName);
+		}
+	}
+	else
+	{
+		trace("%s %s failed (no mounter for type %s)\n", op, fileName, typeName);
+	}
+}
+
+template<typename TFn, typename TList>
+inline void HandleDataFileList(const TList& list, const TFn& fn, const char* op = "loading")
+{
+	for (const auto& dataFile : list)
+	{
+		HandleDataFile(dataFile, fn, op);
+	}
+}
 
 namespace streaming
 {
@@ -523,96 +384,80 @@ namespace streaming
 
 	void DLL_EXPORT AddDataFileToLoadList(const std::string& type, const std::string& path)
 	{
-		int typeIdx = LookupDataFileType(type);
-
-		if (typeIdx < 0)
+		if (type == "GTXD_PARENTING_DATA")
 		{
-			trace("Could not add data_file %s - invalid type %s.\n", path, type);
+			g_gtxdFiles.push_back(path);
 			return;
 		}
 
-		g_dataFiles.push_back({ typeIdx, path });
+		g_dataFiles.push_back({ type, path });
+
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !Instance<ICoreGameInit>::Get()->HasVariable("gameKilled"))
+		{
+			LoadDataFiles();
+		}
+	}
+
+	void DLL_EXPORT RemoveDataFileFromLoadList(const std::string& type, const std::string& path)
+	{
+		auto dataFilePair = std::make_pair(type, path);
+		std::remove(g_loadedDataFiles.begin(), g_loadedDataFiles.end(), dataFilePair);
+
+		auto singlePair = { dataFilePair };
+
+		HandleDataFileList(singlePair, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
+		{
+			return mounter->UnmountFile(&entry);
+		}, "removing");
 	}
 }
 
-static InitFunction initFunction([] ()
+static void LoadDataFiles()
 {
-	assert(offsetof(fwBoxStreamer, entries) == 192);
-	assert(offsetof(fwBoxStreamer, _f100) == 256);
+	trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
 
-	char test[40];
-	static_assert(sizeof(std::array<char, 40>) == sizeof(test), "std::array size is not the same as the underlying array");
+	HandleDataFileList(g_dataFiles, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
+	{
+		return mounter->MountFile(&entry);
+	});
+	
+	g_loadedDataFiles.insert(g_loadedDataFiles.end(), g_dataFiles.begin(), g_dataFiles.end());
+	g_dataFiles.clear();
+}
+
+static void UnloadDataFiles()
+{
+	if (!g_loadedDataFiles.empty())
+	{
+		trace("Unloading data files (%d entries)\n", g_loadedDataFiles.size());
+
+		HandleDataFileList(g_dataFiles, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
+		{
+			return mounter->UnmountFile(&entry);
+		}, "unloading");
+
+		g_loadedDataFiles.clear();
+	}
+}
+
+static hook::cdecl_stub<void()> _unloadMultiplayerContent([]()
+{
+	return hook::get_pattern("BA 79 91 C8 BC C6 05 ? ? ? ? 01 E8", -0xB);
 });
 
-static PEXCEPTION_POINTERS g_exception;
-
-static int SehRoutine(const char* typePtr, PEXCEPTION_POINTERS exception)
-{
-	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
-	{
-		g_exception = exception;
-
-		return EXCEPTION_EXECUTE_HANDLER;
-	}
-
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-
-template<typename T>
-static auto SafeCall(const T& fn, const char* whatPtr = nullptr)
-{
-	__try
-	{
-		return fn();
-	}
-	__except (SehRoutine(whatPtr, GetExceptionInformation()))
-	{
-		if (!whatPtr)
-		{
-			whatPtr = "a safe-call operation";
-		}
-
-		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
-			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
-			whatPtr);
-
-		return std::result_of_t<T()>();
-	}
-}
+#include <GameInit.h>
 
 static HookFunction hookFunction([] ()
 {
 	// level load
 	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3").count(1).get(0).get<void>(18);
 	hook::set_call(&dataFileMgr__loadDat, hookPoint);
-	hook::call(hookPoint, LoadLevelDatHook);
+	//hook::call(hookPoint, LoadLevelDatHook);
 
 	//hookPoint = hook::pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 41 8B CE E8 ? ? ? ?").count(1).get(0).get<void>(0); //Jayceon - If I understood right, is this what we were supposed to do? It seems wrong to me
 	hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 1D ? ? ? ? 41 8B F7").count(1).get(0).get<void>(0);
 	hook::set_call(&dataFileMgr__loadDefDat, hookPoint);
 	hook::call(hookPoint, LoadDefDats); //Call the new function to load the handling files
-
-	// box streamer
-	{
-		char* location = hook::pattern("48 8D 53 10 48 8D 0D ? ? ? ? 45 33 C0 E8").count(1).get(0).get<char>(7);
-
-		g_mapDataBoxStreamer = (fwBoxStreamer*)(location + *(int32_t*)location + 4);
-	}
-
-	// bound dependency array
-	{
-		char* location = hook::pattern("48 8B 05 ? ? ? ? 48 8D 14 9B 48 8D 0C D0 48").count(1).get(0).get<char>(3);
-
-		g_boundDependencyArray = (decltype(g_boundDependencyArray))(location + *(int32_t*)location + 4);
-	}
-
-	// re-enabling of DLC packfiles once loaded legitimately
-	{
-		char* location = hook::pattern("80 B9 9B 00 00 00 00 48 8B F9 74 59").count(1).get(0).get<char>(21);
-
-		hook::set_call(&g_origAddStreamingPackfile, location);
-		hook::call(location, AddStreamingPackfileWrap);
-	}
 
 	g_dataFileTypes = hook::get_pattern<EnumEntry>("61 44 DF 04 00 00 00 00");
 
@@ -620,7 +465,10 @@ static HookFunction hookFunction([] ()
 	{
 		if (type == rage::INIT_BEFORE_MAP_LOADED)
 		{
-			assert(g_dataFileMgr);
+			if (!g_dataFileMgr)
+			{
+				return;
+			}
 
 			trace("Loading default meta overrides (total: %d)\n", g_defaultMetas.size());
 
@@ -635,55 +483,54 @@ static HookFunction hookFunction([] ()
 		}
 	});
 
+	// unload GROUP_MAP before reloading, for it'll break fwMapTypesStore if there's a map CCS loaded
+	// by the time DLC reinitializes
+	OnKillNetworkDone.Connect([]()
+	{
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			// unload GROUP_MAP and load GROUP_MAP_SP
+			_unloadMultiplayerContent();
+		}
+	}, 99925);
+
+	OnKillNetworkDone.Connect([]()
+	{
+		UnloadDataFiles();
+
+		/*if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			// toggle map group again?
+			g_enableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+			g_disableContentGroup(*g_extraContentManager, 0xBCC89179);
+
+			g_clearContentCache(0);
+		}*/
+	}, 99900);
+
 	{
 		char* location = hook::get_pattern<char>("48 63 82 90 00 00 00 49 8B 8C C0 ? ? ? ? 48", 11);
 
 		g_dataFileMounters = (decltype(g_dataFileMounters))(0x140000000 + *(int32_t*)location); // why is this an RVA?!
 	}
 
+	{
+		char* location = hook::get_pattern<char>("E2 99 8F 57 C6 05 ? ? ? ? 00 E8", -0xC);
+
+		location += 7;
+		g_extraContentManager = (void**)(*(int32_t*)location + location + 4);
+		location -= 7;
+
+		hook::set_call(&g_disableContentGroup, location + 0x17);
+		hook::set_call(&g_enableContentGroup, location + 0x28);
+		hook::set_call(&g_clearContentCache, location + 0x33);
+	}
+
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
 	{
 		if (type == rage::INIT_SESSION)
 		{
-			trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
-
-			for (auto& dataFile : g_dataFiles)
-			{
-				int fileType;
-				std::string fileName;
-
-				std::tie(fileType, fileName) = dataFile;
-
-				CDataFileMountInterface* mounter = g_dataFileMounters[fileType];
-
-				if (mounter)
-				{
-					std::string typeName = typeid(*mounter).name();
-
-					DataFileEntry entry;
-					memset(&entry, 0, sizeof(entry));
-					strcpy(entry.name, fileName.c_str()); // muahaha
-					entry.type = fileType;
-					
-					bool result = SafeCall([&]()
-					{
-						return mounter->MountFile(&entry);
-					}, va("loading of %s in data file mounter %s", fileName, typeName));
-
-					if (result)
-					{
-						trace("Loaded %s in data file mounter %s.\n", fileName, typeName);
-					}
-					else
-					{
-						trace("Failed to load %s in data file mounter %s.\n", fileName, typeName);
-					}
-				}
-				else
-				{
-					trace("Loading %s failed (no mounter for type %d)\n", fileName, fileType);
-				}
-			}
+			LoadDataFiles();
 		}
 	});
 });
