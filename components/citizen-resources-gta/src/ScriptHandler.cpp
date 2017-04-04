@@ -27,9 +27,14 @@ class TestScriptThread : public GtaThread
 			return;
 		}
 
-		OnKillNetworkDone.Connect([] ()
+		static std::once_flag of;
+
+		std::call_once(of, []()
 		{
-			initedGame = false;
+			OnKillNetworkDone.Connect([]()
+			{
+				initedGame = false;
+			});
 		});
 
 		g_resourceManager->Tick();
