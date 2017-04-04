@@ -1179,7 +1179,7 @@ void RunNetworkStuff()
 	}
 
 	// handle recv triggering from NetRelay
-	{
+	/*{
 		while (g_netLibrary->WaitForRoutedPacket(0))
 		{
 			// hopefully these sizes are fine
@@ -1192,7 +1192,7 @@ void RunNetworkStuff()
 			auto size = g_receivePacket(buffer, buffer2);
 			g_handlePacket(buffer, buffer2, size);
 		}
-	}
+	}*/
 }
 
 static void WINAPI ExitProcessReplacement(UINT exitCode)
@@ -1628,7 +1628,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	// disable netrelay thread
-	hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
+	//hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()
