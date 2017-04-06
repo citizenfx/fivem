@@ -191,13 +191,13 @@ end
 
 group "managed"
 
-if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
-	external 'CitiMono'
-		uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
-		kind 'SharedLib'
-		language 'C#'
-		location '.'
+external 'CitiMono'
+	uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
+	kind 'SharedLib'
+	language 'C#'
+	location '.'
 
+if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
 	--[[external '010.Irony.2010'
 		uuid 'D81F5C91-D7DB-46E5-BC99-49488FB6814C'
 		kind 'SharedLib'
