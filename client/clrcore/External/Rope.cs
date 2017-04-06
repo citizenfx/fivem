@@ -78,7 +78,7 @@ namespace CitizenFX.Core
 			return Function.Call<Vector3>(Hash.GET_ROPE_VERTEX_COORD, Handle, vertex);
 		}
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public override void Delete()
 		{
 			int handle = Handle;
@@ -89,7 +89,7 @@ namespace CitizenFX.Core
 			Handle = handle;
 		}
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public override bool Exists()
 		{
 			int handle = Handle;

@@ -77,7 +77,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public int Money
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int stat;
@@ -181,7 +181,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public ParachuteTint PrimaryParachuteTint
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int result;
@@ -203,7 +203,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public ParachuteTint ReserveParachuteTint
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int result;
@@ -242,7 +242,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public Color ParachuteSmokeTrailColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int r, g, b;
@@ -620,7 +620,7 @@ namespace CitizenFX.Core
         /// Gets the <see cref="Entity"/> this <see cref="Player"/> is targetting.
         /// </summary>
         /// <returns>The <see cref="Entity"/> if this <see cref="Player"/> is targetting any <see cref="Entity"/>; otherwise, <c>null</c></returns>
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public Entity GetTargetedEntity()
 		{
 			int entityHandle;

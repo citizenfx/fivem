@@ -232,7 +232,7 @@ namespace CitizenFX.Core.UI
 			}
 		}
 
-		[SecurityCritical]
+		[SecuritySafeCritical]
 		private static Size GetResolution()
 		{
 		    int width, height;
@@ -313,7 +313,7 @@ namespace CitizenFX.Core.UI
 		{
 			return WorldToScreen(position, scaleWidth ? ScaledWidth : Width, Height);
 		}
-        [SecurityCritical]
+        [SecuritySafeCritical]
 		private static PointF WorldToScreen(Vector3 position, float screenWidth, float screenHeight)
 		{
 			float pointX, pointY;

@@ -275,7 +275,7 @@ namespace CitizenFX.Core
         /// </summary>
         /// <param name="minimum">The minimum dimensions.</param>
         /// <param name="maximum">The maximum dimensions.</param>
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public void GetDimensions(out Vector3 minimum, out Vector3 maximum)
 		{
 		    NativeVector3 min, max;

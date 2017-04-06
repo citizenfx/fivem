@@ -215,7 +215,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Quaternion Quaternion
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
 			get
 			{
 				float x;
@@ -1174,7 +1174,7 @@ namespace CitizenFX.Core
             _Delete();
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private void _Delete()
 		{
 			Function.Call(Hash.SET_ENTITY_AS_MISSION_ENTITY, Handle, false, true);
@@ -1194,7 +1194,7 @@ namespace CitizenFX.Core
             _MarkAsNoLongerNeeded();
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private void _MarkAsNoLongerNeeded()
 		{
 			Function.Call(Hash.SET_ENTITY_AS_MISSION_ENTITY, Handle, false, true);

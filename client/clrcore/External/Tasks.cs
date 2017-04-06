@@ -474,7 +474,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private void Create()
         {
             int handle;
@@ -494,7 +494,7 @@ namespace CitizenFX.Core
 			GC.SuppressFinalize(this);
 		}
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private void ClearHandle()
         {
             int handle = Handle;

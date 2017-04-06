@@ -568,7 +568,7 @@ namespace CitizenFX.Core
             return _GetGroundHeight(position);
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private static float _GetGroundHeight(Vector2 position)
 		{
 			float resultArg;
@@ -890,7 +890,7 @@ namespace CitizenFX.Core
             return _GetSafeCoordForPed(position, sidewalk, flags);
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private static Vector3 _GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
 		{
 			NativeVector3 outPos;
@@ -1381,7 +1381,7 @@ namespace CitizenFX.Core
             return _AddRelationshipGroup(name);
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private static RelationshipGroup _AddRelationshipGroup(string name)
 		{
 			int resultArg;

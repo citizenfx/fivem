@@ -325,7 +325,7 @@ namespace CitizenFX.Core
 
 		public VehicleColor PrimaryColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int color1, color2;
@@ -343,7 +343,7 @@ namespace CitizenFX.Core
 		}
 		public VehicleColor SecondaryColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int color1, color2;
@@ -361,7 +361,7 @@ namespace CitizenFX.Core
 		}
 		public VehicleColor RimColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int color1, color2;
@@ -379,7 +379,7 @@ namespace CitizenFX.Core
 		}
 		public VehicleColor PearlescentColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int color1, color2;
@@ -397,7 +397,7 @@ namespace CitizenFX.Core
 		}
 		public VehicleColor TrimColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int color;
@@ -450,7 +450,7 @@ namespace CitizenFX.Core
 		}
 		public Color TireSmokeColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int red, green, blue;
@@ -468,7 +468,7 @@ namespace CitizenFX.Core
 		}
 		public Color NeonLightsColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int red, green, blue;
@@ -516,7 +516,7 @@ namespace CitizenFX.Core
 
 		public Color CustomPrimaryColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int red, green, blue;
@@ -535,7 +535,7 @@ namespace CitizenFX.Core
 		}
 		public Color CustomSecondaryColor
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
 			get
 			{
 				int red, green, blue;

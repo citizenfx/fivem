@@ -458,7 +458,7 @@ namespace CitizenFX.Core
             _Delete();
         }
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         private void _Delete()
 		{
 		    int handle = Handle;

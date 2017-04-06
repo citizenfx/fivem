@@ -1042,7 +1042,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool AreLightsOn
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				bool lightState1, lightState2;
@@ -1066,7 +1066,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool AreHighBeamsOn
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				bool lightState1, lightState2;
@@ -1616,7 +1616,7 @@ namespace CitizenFX.Core
 		{
 			return Function.Call<bool>(Hash.SET_VEHICLE_ON_GROUND_PROPERLY, Handle);
 		}
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public void PlaceOnNextStreet()
 		{
 			Vector3 currentPosition = Position;

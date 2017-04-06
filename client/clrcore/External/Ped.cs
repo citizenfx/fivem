@@ -326,7 +326,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public VehicleWeaponHash VehicleWeapon
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int hash;
@@ -1501,7 +1501,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-        [SecurityCritical]
+        [SecuritySafeCritical]
         public Vector3 GetLastWeaponImpactPosition()
 		{
 			NativeVector3 position;

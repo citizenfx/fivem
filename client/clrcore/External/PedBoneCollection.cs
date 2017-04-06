@@ -90,7 +90,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public PedBone LastDamaged
 		{
-            [SecurityCritical]
+            [SecuritySafeCritical]
             get
 			{
 				int outBone;
