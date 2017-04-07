@@ -32,10 +32,10 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\release\citizen\clr\lib\</OutputPath>
+    <OutputPath>bin\five\release\citizen\clr2\lib\mono\4.5\</OutputPath>
     <BaseIntermediateOutputPath>obj\Release NY\CitiMono\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_NY</DefineConstants>
+    <DefineConstants>GTEST_HAS_PTHREAD=0;NDEBUG;GTA_FIVE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
