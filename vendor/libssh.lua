@@ -8,6 +8,7 @@ return {
 		kind "SharedLib"
 
 		add_dependencies 'vendor:zlib'
+		add_dependencies 'vendor:botan'
 
 		files_project '../vendor/libssh/src/'
 		{
@@ -63,11 +64,5 @@ return {
 			'bind.cpp',
 			'gzip.cpp',
 		}
-
-		configuration 'Debug*'
-	        links { 'botanx64d' }
-
-		configuration 'Release*'
-        	links { 'botanx64' }
 	end
 }

@@ -19,6 +19,8 @@
 
 static bool g_initialized;
 
+static void LoadDependencies(ComponentLoader* loader, fwRefContainer<ComponentData>& component);
+
 void ComponentLoader::Initialize()
 {
     if (g_initialized)
@@ -91,26 +93,25 @@ void ComponentLoader::Initialize()
 		fwPlatformString nameWide(nameStr);
 
 		free(nameStr);
-		
+
 		AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, nameWide.c_str())));
 	}
 
-	// load the components, but don't instance them
-	std::vector<fwRefContainer<ComponentData>> componentDatas;
-
-	for (auto& component : components)
+	for (auto& component : m_knownComponents)
 	{
-		auto comp = LoadComponent(component.c_str());
-
-		if (!comp.GetRef())
-		{
-			FatalError("Could not load component %s.", component.c_str());
-		}
-
-		componentDatas.push_back(comp);
+		LoadDependencies(this, component.second);
 	}
 
 	// sort the list by dependency
+	std::vector<fwRefContainer<ComponentData>> componentDatas;
+
+	// get a set of values from the map
+	std::transform(m_knownComponents.begin(), m_knownComponents.end(),
+		std::back_inserter(componentDatas), [](const auto& a)
+	{
+		return std::get<1>(a);
+	});
+
 	std::queue<fwRefContainer<ComponentData>> sortedList = SortDependencyList(componentDatas);
 
 	// clear the loaded list (it'll be added afterwards in order)
@@ -121,12 +122,59 @@ void ComponentLoader::Initialize()
 		auto comp = sortedList.front();
 		sortedList.pop();
 
+		comp = LoadComponent(comp->GetName().c_str());
+
+		if (!comp.GetRef())
+		{
+			FatalError("Could not load component %s.", comp->GetName().c_str());
+		}
+
 		m_loadedComponents.push_back(comp);
 
 		// create a component instance if need be 
 		if (comp->ShouldAutoInstance())
 		{
 			comp->CreateInstance(std::string());
+		}
+	}
+}
+
+static void LoadDependencies(ComponentLoader* loader, fwRefContainer<ComponentData>& component)
+{
+	// match and resolve dependencies
+	auto dependencies = component->GetDepends();
+
+	for (auto& dependency : dependencies)
+	{
+		// find the first component to provide this
+		bool match = false;
+
+		for (auto& it : loader->GetKnownComponents())
+		{
+			auto matchProvides = it.second->GetProvides();
+
+			for (auto& provide : matchProvides)
+			{
+				if (dependency.IsMatchedBy(provide))
+				{
+					component->AddDependency(it.second);
+
+					match = true;
+
+					break;
+				}
+			}
+
+			// break if matched
+			if (match)
+			{
+				break;
+			}
+		}
+
+		if (!match && dependency.GetCategory() != "vendor")
+		{
+			FatalError("Unable to resolve dependency for %s.\n", dependency.GetString().c_str());
 		}
 	}
 }
@@ -173,45 +221,6 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 	if (component->IsLoaded())
 	{
 		return component;
-	}
-
-	// match and resolve dependencies
-	auto dependencies = component->GetDepends();
-
-	for (auto& dependency : dependencies)
-	{
-		// find the first component to provide this
-		bool match = false;
-
-		for (auto& it : m_knownComponents)
-		{
-			auto matchProvides = it.second->GetProvides();
-
-			for (auto& provide : matchProvides)
-			{
-				if (dependency.IsMatchedBy(provide))
-				{
-					auto dependencyData = LoadComponent(it.second->GetName().c_str());
-					component->AddDependency(dependencyData);
-
-					match = true;
-
-					break;
-				}
-			}
-
-			// break if matched
-			if (match)
-			{
-				break;
-			}
-		}
-
-		if (!match && dependency.GetCategory() != "vendor")
-		{
-			trace("Unable to resolve dependency for %s.\n", dependency.GetString().c_str());
-			return nullptr;
-		}
 	}
 
 	// load the component

@@ -160,6 +160,11 @@ public:
 	void ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback);
 
 	fwRefContainer<ComponentData> LoadComponent(const char* component);
+
+	inline auto& GetKnownComponents()
+	{
+		return m_knownComponents;
+	}
 };
 
 #include <queue>

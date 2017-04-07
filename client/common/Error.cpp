@@ -35,7 +35,7 @@ static int SysError(const char* buffer)
 		__debugbreak();
 	}
 
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 	json o = json::object();
 	o["message"] = buffer;
 	o["file"] = std::get<0>(g_thisError);
@@ -96,7 +96,7 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 
 	if (eType == ERR_NORMAL)
 	{
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 		ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 		bool handled = false;
 

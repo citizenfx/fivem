@@ -15,7 +15,7 @@ deps = {
 	"vendor/tinyxml2": "https://github.com/leethomason/tinyxml2.git@b840b7e6736bca889ae9c9ce6d7b3ed9d85bbc64",
 	"vendor/cpp-uri": "https://github.com/cpp-netlib/uri.git@094e114255bb228341163803976a9f55b2551371",
 	"vendor/picohttpparser": "https://github.com/h2o/picohttpparser.git@98bcc1c3b431d05d4584af66082da48e4638a675",
-	"vendor/libssh": "http://tohjo.eu/citidev/libssh.git",
+	"vendor/libssh": "https://github.com/citizenfx/libssh.git",
 	"vendor/xz": "http://git.tukaani.org/xz.git@v5.2.3",
 	"vendor/curl": "https://github.com/bagder/curl.git@curl-7_54_0",
 	"vendor/leveldb": "https://github.com/citizenfx/leveldb.git",

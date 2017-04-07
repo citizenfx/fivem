@@ -23,6 +23,14 @@ namespace fx
 
 		fwRefContainer<ComponentData> serverComponent = loader->LoadComponent("citizen:server:main");
 
+		ComponentLoader::GetInstance()->ForAllComponents([&](fwRefContainer<ComponentData> componentData)
+		{
+			for (auto& instance : componentData->GetInstances())
+			{
+				instance->Initialize();
+			}
+		});
+
 		if (!serverComponent.GetRef())
 		{
 			trace("Could not obtain citizen:server:main component, which is required for the server to start.\n");

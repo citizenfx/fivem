@@ -4,6 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"net:tcp-server",
+		"citizen:server:instance",
+		"citizen:server:net",
 		"vendor:libssh"
 	],
 	"provides": []

@@ -119,7 +119,7 @@ namespace net
 TLSServerStream::TLSServerStream(TLSServer* server, fwRefContainer<TcpServerStream> baseStream)
 	: m_parentServer(server), m_baseStream(baseStream), m_closing(false)
 {
-	Initialize();
+	
 }
 
 void TLSServerStream::Initialize()
@@ -241,7 +241,10 @@ TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& ce
 	
 	m_baseServer->SetConnectionCallback([=] (fwRefContainer<TcpServerStream> stream)
 	{
-		m_connections.insert(new TLSServerStream(this, stream));
+		fwRefContainer<TLSServerStream> childStream = new TLSServerStream(this, stream);
+		childStream->Initialize();
+
+		m_connections.insert(childStream);
 	});
 }
 }

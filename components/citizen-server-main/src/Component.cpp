@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
 
+#include <Error.h>
 #include <ServerInstance.h>
 
 class ServerComponentInstance : public RunnableComponent
@@ -16,16 +17,23 @@ private:
 	fwRefContainer<fx::ServerInstance> m_server;
 
 public:
-	virtual bool Initialize(const std::string& args);
+	virtual bool Initialize() override;
 
-	virtual bool DoGameLoad(void* module);
+	virtual bool SetUserData(const std::string& userData) override;
 
-	virtual bool Shutdown();
+	virtual bool DoGameLoad(void* module) override;
 
-	virtual void Run();
+	virtual bool Shutdown() override;
+
+	virtual void Run() override;
 };
 
-bool ServerComponentInstance::Initialize(const std::string& args)
+bool ServerComponentInstance::Initialize()
+{
+	return true;
+}
+
+bool ServerComponentInstance::SetUserData(const std::string& args)
 {
 	InitFunctionBase::RunAll();
 

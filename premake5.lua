@@ -55,11 +55,12 @@ workspace "CitizenMP"
 
 	buildoptions '/std:c++latest'
 
-	systemversion '10.0.14393.0'
+	systemversion '10.0.15063.0'
 
 	if _OPTIONS['game'] == 'server' then
 		location ("build/server/" .. os.get())
 		architecture 'x64'
+		defines 'IS_FXSERVER'
 	end
 	
 	configuration "Debug*"

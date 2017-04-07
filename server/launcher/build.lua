@@ -12,7 +12,7 @@
 
 		files
 		{
-			"**.cpp", "**.h"
+			"**.cpp", "**.h", "../../client/common/Error.cpp"
 		}
 
 		pchsource "src/StdInc.cpp"

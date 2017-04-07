@@ -55,6 +55,8 @@ public:
 
 	virtual void Close() override;
 
+	void Initialize();
+
 public:
 	// Botan::TLS::Callbacks
 	virtual inline void tls_emit_data(const uint8_t data[], size_t size) override
@@ -110,8 +112,6 @@ private:
 	bool HandshakeComplete(const Botan::TLS::Session& session);
 
 private:
-	void Initialize();
-
 	void CloseInternal();
 };
 

@@ -8,23 +8,16 @@
 #include "StdInc.h"
 #include <ServerInstanceBase.h>
 
-#include <MultiplexTcpServer.h>
-#include <TcpServerManager.h>
+#include <TcpListenManager.h>
 
 namespace fx
 {
-	class TcpListenManager
+	TcpListenManager::TcpListenManager()
 	{
-	private:
-		fwRefContainer<net::TcpServerManager> m_tcpStack;
+		
+	}
 
-		std::vector<fwRefContainer<net::MultiplexTcpServer>> m_multiplexServers;
-
-	public:
-		TcpListenManager(const boost::property_tree::ptree& pt);
-	};
-
-	TcpListenManager::TcpListenManager(const boost::property_tree::ptree& pt)
+	void TcpListenManager::Initialize(const boost::property_tree::ptree& pt)
 	{
 		// initialize a TCP stack
 		m_tcpStack = new net::TcpServerManager();
@@ -46,6 +39,12 @@ namespace fx
 				m_multiplexServers.push_back(server);
 			}
 		}
+
+		// for each multiplex server
+		for (auto& child : m_multiplexServers)
+		{
+			OnInitializeMultiplexServer(child);
+		}
 	}
 }
 
@@ -53,10 +52,11 @@ static InitFunction initFunction([] ()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([] (fx::ServerInstanceBase* instance)
 	{
-		instance->OnReadConfiguration.Connect([] (const boost::property_tree::ptree& pt)
+		Instance<fx::TcpListenManager>::Set(new fx::TcpListenManager(), instance->GetInstanceRegistry());
+
+		instance->OnReadConfiguration.Connect([=] (const boost::property_tree::ptree& pt)
 		{
-			// TODO: someone will need to clean these up?!
-			new fx::TcpListenManager(pt);
+			Instance<fx::TcpListenManager>::Get(instance->GetInstanceRegistry())->Initialize(pt);
 		});
-	});
+	}, -1000);
 });

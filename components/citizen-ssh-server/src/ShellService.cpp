@@ -162,40 +162,55 @@ void ShellService::OnConnected(fwRefContainer<net::TcpServerStream> stream)
 	});
 }
 
-static InitFunction initFunction([] ()
+#include "StdInc.h"
+#include <ServerInstanceBase.h>
+#include <TcpListenManager.h>
+
+static InitFunction initFunction([]()
 {
-	/*_CrtMemState s3;
-
-	_CrtMemState souter1;
-	_CrtMemCheckpoint(&souter1);
-
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
+		fx::TcpListenManager* listenManager = Instance<fx::TcpListenManager>::Get(instance->GetInstanceRegistry());
 
-		fwRefContainer<net::MultiplexTcpServer> multiplexHost = new net::MultiplexTcpServer(tcpStack);
-		multiplexHost->Bind(net::PeerAddress::FromString("0.0.0.0:30125").get());
+		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
+		{
+			static ShellService shellService;
+			shellService.Initialize(server);
 
-		ShellService shellService;
-		shellService.Initialize(multiplexHost);
+			/*_CrtMemState s3;
 
-		_CrtMemState s1;
-		_CrtMemCheckpoint(&s1);
+			_CrtMemState souter1;
+			_CrtMemCheckpoint(&souter1);
 
-		std::this_thread::sleep_for(std::chrono::seconds(3600));
+			{
+				fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
 
-		// dump all new objects
-		_CrtMemDumpAllObjectsSince(&s1);
+				fwRefContainer<net::MultiplexTcpServer> multiplexHost = new net::MultiplexTcpServer(tcpStack);
+				multiplexHost->Bind(net::PeerAddress::FromString("0.0.0.0:30125").get());
 
-		_CrtMemState s2;
+				ShellService shellService;
+				shellService.Initialize(multiplexHost);
 
-		_CrtMemCheckpoint(&s2);
+				_CrtMemState s1;
+				_CrtMemCheckpoint(&s1);
 
-		_CrtMemDifference(&s3, &s1, &s2);
-	}
+				std::this_thread::sleep_for(std::chrono::seconds(3600));
 
-	{
-		_CrtMemDumpStatistics(&s3);
-	}
+				// dump all new objects
+				_CrtMemDumpAllObjectsSince(&s1);
 
-	ExitProcess(0);*/
+				_CrtMemState s2;
+
+				_CrtMemCheckpoint(&s2);
+
+				_CrtMemDifference(&s3, &s1, &s2);
+			}
+
+			{
+				_CrtMemDumpStatistics(&s3);
+			}
+
+			ExitProcess(0);*/
+		});
+	});
 });
