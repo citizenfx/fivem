@@ -191,11 +191,11 @@ end
 
 group "managed"
 
-external 'CitiMono'
+--[[external 'CitiMono'
 	uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
 	kind 'SharedLib'
 	language 'C#'
-	location '.'
+	location '.']]
 
 if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
 	--[[external '010.Irony.2010'

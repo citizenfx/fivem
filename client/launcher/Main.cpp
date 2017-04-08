@@ -209,10 +209,22 @@ void main()
 			}
 
 			// also do checks here to complain at BAD USERS
-			if (!GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetThreadDescription"))
+			if (!GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetThreadDescription")) // kernel32 forwarder only got this export in 1703, kernelbase.dll got this in 1607.
 			{
-				MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the FiveM client. Please update to Windows 10 version 1607 or higher in case you are experiencing "
-					L"any issues. The game will continue to start now.", L"FiveM", MB_OK | MB_ICONWARNING);
+				std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+				bool showOSWarning = true;
+
+				if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+				{
+					showOSWarning = (GetPrivateProfileInt(L"Game", L"DisableOSVersionCheck", 0, fpath.c_str()) != 1);
+				}
+
+				if (showOSWarning)
+				{
+					MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the FiveM client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing "
+						L"any issues. The game will continue to start now.", L"FiveM", MB_OK | MB_ICONWARNING);
+				}
 			}
 
 			{
