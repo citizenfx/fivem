@@ -11,6 +11,7 @@
 #include "SafeClientEngine.h"
 
 #include <CfxSubProcess.h>
+#include <HostSharedData.h>
 
 #include <fstream>
 #include <sstream>
@@ -70,8 +71,20 @@ SteamComponent::SteamComponent()
 
 #include <base64.h>
 
+struct SteamComponentData
+{
+	char connectIP[256];
+};
+
 void SteamComponent::Initialize()
 {
+	static HostSharedData<SteamComponentData> hostData("SteamStub_Data");
+
+	uint64_t gameID = 0xA18F2DAB01000000 | 218;
+
+	SetEnvironmentVariableW(L"SteamAppId", va(L"%lld", 218));
+	SetEnvironmentVariableW(L"SteamGameId", va(L"%lld", gameID));
+
 	m_steamLoader.Initialize();
 
 	if (!m_steamLoader.IsSteamRunning(false))
@@ -122,7 +135,7 @@ void SteamComponent::InitializePublicAPI()
 	}
 }
 
-void SteamComponent::InitializeClientAPI()
+void SteamComponent::InitializeClientAPI(bool usePresence)
 {
 	auto createInterface = m_steamLoader.GetCreateInterfaceFunc();
 
@@ -141,8 +154,11 @@ void SteamComponent::InitializeClientAPI()
 		// if this all worked, set the member variables
 		m_clientEngine = CreateSafeClientEngine(clientEngine, m_steamPipe, m_steamUser);
 
-		// initialize the presence component
-		InitializePresence();
+		if (usePresence)
+		{
+			// initialize the presence component
+			InitializePresence();
+		}
 	}
 }
 
@@ -333,7 +349,7 @@ void SteamComponent::InitializePresence()
 		// set our pipe appid
 		InterfaceMapper steamUtils(m_clientEngine->GetIClientUtils(m_steamPipe, "CLIENTUTILS_INTERFACE_VERSION001"));
 
-		steamUtils.Invoke<void>("SetAppIDForCurrentPipe", parentAppID, false);
+		//steamUtils.Invoke<void>("SetAppIDForCurrentPipe", parentAppID, false);
 
 		// get the base executable path
 		auto ourPath = MakeCfxSubProcess(L"SteamChild.exe");
@@ -413,6 +429,48 @@ bool SteamComponent::RunPresenceDummy()
 			// do we like the process?
 			trace("waiting for process to exit...\n");
 
+			// run a thread for presence updates
+			std::thread([=]()
+			{
+				static HostSharedData<SteamComponentData> hostData("SteamStub_Data");
+
+				m_steamLoader.Initialize();
+
+				if (!m_steamLoader.IsSteamRunning(false))
+				{
+					return;
+				}
+
+				// initialize the public Steam API
+				InitializePublicAPI();
+
+				// initialize the private Steam API
+				InitializeClientAPI(false);
+
+				// loop
+				static std::string lastConnectIP;
+
+				while (true)
+				{
+					Sleep(100);
+
+					if (hostData->connectIP != lastConnectIP)
+					{
+						lastConnectIP = hostData->connectIP;
+
+						if (m_clientEngine)
+						{
+							InterfaceMapper steamFriendsInterface(m_clientEngine->GetIClientFriends(m_steamUser, m_steamPipe, "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+							if (steamFriendsInterface.IsValid())
+							{
+								steamFriendsInterface.Invoke<bool>("SetRichPresence", 218, "connect", lastConnectIP.c_str());
+							}
+						}
+					}
+				}
+			}).detach();
+
 			// ... wait for it to exit and close the handle afterwards
 			WaitForSingleObject(processHandle, INFINITE);
 
@@ -461,15 +519,8 @@ int SteamComponent::GetParentAppID()
 
 void SteamComponent::SetConnectValue(const std::string& text)
 {
-	if (m_clientEngine)
-	{
-		InterfaceMapper steamFriendsInterface(m_clientEngine->GetIClientFriends(m_steamUser, m_steamPipe, "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-		if (steamFriendsInterface.IsValid())
-		{
-			steamFriendsInterface.Invoke<bool>("SetRichPresence", 218, "status", text.c_str());
-		}
-	}
+	static HostSharedData<SteamComponentData> hostData("SteamStub_Data");
+	strcpy(hostData->connectIP, text.c_str());
 }
 
 void SteamComponent::UpdateRichPresence()

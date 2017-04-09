@@ -40,7 +40,7 @@ private:
 	std::string m_richPresenceValues[8];
 
 private:
-	void InitializeClientAPI();
+	void InitializeClientAPI(bool usePresence = true);
 
 	void InitializePublicAPI();
 
