@@ -45,6 +45,11 @@ interface IScriptHostWithResourceData : fxIBase
 	void GetResourceMetaData(in charPtr fieldName, in int32_t fieldIndex, out charPtr fieldValue);
 };
 
+[uuid(5E212027-3AAD-46D1-97E0-B8BC5EF89E18)]
+interface IScriptHostWithManifest : fxIBase
+{
+	boolean IsManifestVersionBetween(in fxIIDRef lowerBound, in fxIIDRef upperBound);
+};
 
 [uuid(67B28AF1-AAF9-4368-8296-F93AFC7BDE96)]
 interface IScriptRuntime : fxIBase

@@ -21,6 +21,8 @@
 
 #include <ConsoleHost.h>
 
+#include <ManifestVersion.h>
+
 namespace fx
 {
 class StreamWrapper : public OMClass<StreamWrapper, fxIStream>
@@ -77,12 +79,14 @@ result_t StreamWrapper::GetLength(uint64_t *length)
 	return FX_S_OK;
 }
 
-class TestScriptHost : public OMClass<TestScriptHost, IScriptHost, IScriptHostWithResourceData>
+class TestScriptHost : public OMClass<TestScriptHost, IScriptHost, IScriptHostWithResourceData, IScriptHostWithManifest>
 {
 public:
 	NS_DECL_ISCRIPTHOST;
 
 	NS_DECL_ISCRIPTHOSTWITHRESOURCEDATA;
+
+	NS_DECL_ISCRIPTHOSTWITHMANIFEST;
 
 private:
 	Resource* m_resource;
@@ -223,6 +227,78 @@ result_t TestScriptHost::GetResourceMetaData(char* metaDataName, int32_t entryIn
 	return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
 }
 
+static constexpr const ManifestVersion g_manifestVersionOrder[] = {
+	guid_t{0},
+	#include <ManifestVersions.h>
+};
+
+static size_t FindManifestVersionIndex(const guid_t& guid)
+{
+	auto begin = g_manifestVersionOrder;
+	auto end = g_manifestVersionOrder + _countof(g_manifestVersionOrder);
+	auto found = std::find(begin, end, guid);
+
+	if (found == end)
+	{
+		return -1;
+	}
+
+	return (found - g_manifestVersionOrder);
+}
+
+result_t TestScriptHost::IsManifestVersionBetween(const guid_t & lowerBound, const guid_t & upperBound, bool *_retval)
+{
+	// get the manifest version
+	auto metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+	auto entries = metaData->GetEntries("resource_manifest_version");
+
+	guid_t manifestVersion = { 0 };
+
+	// if there's a manifest version
+	if (entries.begin() != entries.end())
+	{
+		// parse it
+		manifestVersion = ParseGuid(entries.begin()->second);
+	}
+
+	// find the manifest version in the manifest version stack
+	auto resourceVersion = FindManifestVersionIndex(manifestVersion);
+
+	// if not found, return failure
+	if (resourceVersion == -1)
+	{
+		return FX_E_INVALIDARG;
+	}
+
+	// test lower/upper bound
+	static const guid_t nullGuid = { 0 };
+	bool matches = true;
+
+	if (lowerBound != nullGuid)
+	{
+		auto lowerVersion = FindManifestVersionIndex(lowerBound);
+
+		if (resourceVersion < lowerVersion)
+		{
+			matches = false;
+		}
+	}
+
+	if (matches && upperBound != nullGuid)
+	{
+		auto upperVersion = FindManifestVersionIndex(upperBound);
+
+		if (resourceVersion >= upperVersion)
+		{
+			matches = false;
+		}
+	}
+
+	*_retval = matches;
+
+	return FX_S_OK;
+}
+
 // TODO: don't ship with this in
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource)
 {
@@ -268,7 +344,7 @@ result_t ScriptRuntimeHandler::PushRuntime(IScriptRuntime* runtime)
 	{
 		parentResource->OnActivate();
 	}
-
+	
 	return FX_S_OK;
 }
 

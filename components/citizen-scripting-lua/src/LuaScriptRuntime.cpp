@@ -8,6 +8,13 @@
 #include "StdInc.h"
 #include "fxScripting.h"
 
+#include <ManifestVersion.h>
+
+static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
+	{ "natives_21e43a33.lua", guid_t{0} },
+	{ "natives_0193d0af.lua", "f15e72ec-3972-4fe4-9c7d-afc5394ae207" }
+};
+
 #include <lua.hpp>
 
 #include <om/OMComponent.h>
@@ -86,6 +93,8 @@ private:
 	IScriptHost* m_scriptHost;
 
 	IScriptHostWithResourceData* m_resourceHost;
+
+	IScriptHostWithManifest* m_manifestHost;
 
 	std::function<void()> m_tickRoutine;
 
@@ -965,19 +974,23 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		ptr.As(&resourcePtr);
 
 		m_resourceHost = resourcePtr.GetRef();
+
+		fx::OMPtr<IScriptHostWithManifest> manifestPtr;
+		ptr.As(&manifestPtr);
+
+		m_manifestHost = manifestPtr.GetRef();
 	}
 
-	std::string nativesBuild = "";
+	std::string nativesBuild = "natives_21e43a33.lua";
 
 	{
-		char* value;
-		if (FX_SUCCEEDED(m_resourceHost->GetResourceMetaData("client_natives", 0, &value)))
+		for (const auto& versionPair : g_scriptVersionPairs)
 		{
-			nativesBuild = "-" + std::string(value);
-			
-			if (nativesBuild.find('.') != std::string::npos)
+			bool isGreater;
+
+			if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionBetween(std::get<ManifestVersion>(versionPair).guid, guid_t{0}, &isGreater)) && isGreater)
 			{
-				nativesBuild = "";
+				nativesBuild = std::get<const char*>(versionPair);
 			}
 		}
 	}
@@ -992,7 +1005,7 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 	// load the system scheduler script
 	result_t hr;
 
-	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/natives%s.lua", nativesBuild)))))
+	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/%s", nativesBuild)))))
 	{
 		return hr;
 	}
