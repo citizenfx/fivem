@@ -36,6 +36,7 @@ return {
 			'db/write_batch.cc',
 			'helpers/memenv/memenv.cc',
 			'port/port_win.cc',
+			'port/port_win_sse.cc',
 			'table/block.cc',
 			'table/block_builder.cc',
 			'table/filter_block.cc',

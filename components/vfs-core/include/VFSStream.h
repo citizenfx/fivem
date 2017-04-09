@@ -54,5 +54,10 @@ public:
 	size_t Seek(intptr_t offset, int seekType);
 
 	std::vector<uint8_t> ReadToEnd();
+
+	inline Device::THandle GetHandle()
+	{
+		return m_handle;
+	}
 };
 }

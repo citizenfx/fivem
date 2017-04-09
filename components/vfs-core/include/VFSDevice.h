@@ -71,5 +71,14 @@ public:
 	virtual void FindClose(THandle handle) = 0;
 
 	virtual void SetPathPrefix(const std::string& pathPrefix);
+
+	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize);
+};
+
+#define VFS_FLUSH_BUFFERS 0x10001
+
+struct FlushBuffersExtension
+{
+	Device::THandle handle;
 };
 }

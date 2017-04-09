@@ -113,8 +113,6 @@ namespace leveldb
 
 		uint64_t m_basePtr;
 
-		std::mutex m_mutex;
-
 	public:
 		VFSRandomAccessFile(fwRefContainer<vfs::Device> device, vfs::Device::THandle handle, uint64_t basePtr);
 
@@ -135,7 +133,7 @@ namespace leveldb
 
 	VFSRandomAccessFile::~VFSRandomAccessFile()
 	{
-		m_device->Close(m_handle);
+		m_device->CloseBulk(m_handle);
 	}
 
 	Status VFSRandomAccessFile::Read(uint64_t offset, size_t n, Slice* result, char* scratch) const
@@ -146,16 +144,7 @@ namespace leveldb
 
 	Status VFSRandomAccessFile::ActualRead(uint64_t offset, size_t n, Slice* result, char* scratch)
 	{
-		//size_t read = m_device->ReadBulk(m_handle, m_basePtr + offset, scratch, n);
-		size_t read;
-
-		{
-			std::unique_lock<std::mutex> lock(m_mutex);
-
-			m_device->Seek(m_handle, m_basePtr + offset, SEEK_SET);
-
-			read = m_device->Read(m_handle, scratch, n);
-		}
+		size_t read = m_device->ReadBulk(m_handle, m_basePtr + offset, scratch, n);
 
 		if (read == -1)
 		{
@@ -226,7 +215,13 @@ namespace leveldb
 
 	Status VFSWritableFile::Sync()
 	{
-		// we don't support syncing either
+		// assume this is a valid NT handle (rage::fiDeviceLocal handles will typically be NT handles,
+		// and rage::fiDeviceRelative will just wrap around these)
+		vfs::FlushBuffersExtension flushBuffersCtl;
+		flushBuffersCtl.handle = m_handle;
+
+		m_device->ExtensionCtl(VFS_FLUSH_BUFFERS, &flushBuffersCtl, sizeof(flushBuffersCtl));
+
 		return Status();
 	}
 
@@ -273,7 +268,7 @@ namespace leveldb
 		// open the file
 		uint64_t ptr = 0;
 
-		vfs::Device::THandle handle = device->Open(f, true);
+		vfs::Device::THandle handle = device->OpenBulk(f, &ptr);
 
 		if (handle == vfs::Device::InvalidHandle)
 		{

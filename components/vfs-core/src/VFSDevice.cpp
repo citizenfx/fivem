@@ -88,4 +88,9 @@ void Device::SetPathPrefix(const std::string& pathPrefix)
 {
 
 }
+
+bool Device::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
+{
+	return false;
+}
 }

@@ -18,7 +18,7 @@ deps = {
 	"vendor/libssh": "http://tohjo.eu/citidev/libssh.git",
 	"vendor/xz": "http://git.tukaani.org/xz.git",
 	"vendor/curl": "https://github.com/bagder/curl.git@curl-7_53_1",
-	"vendor/leveldb": "http://tohjo.eu/citidev/leveldb.git",
+	"vendor/leveldb": "https://github.com/citizenfx/leveldb.git",
 	"vendor/minhook": "https://github.com/TsudaKageyu/minhook.git",
 	"vendor/rapidjson": "https://github.com/miloyip/rapidjson.git",
 	"vendor/libuv": "https://github.com/libuv/libuv.git@7639dd510ec13dd577677dce2a673f5046432903",

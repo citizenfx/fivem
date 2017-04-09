@@ -295,6 +295,8 @@ public:
 
 	virtual void SetPathPrefix(const std::string& pathPrefix) override;
 
+	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
+
 	bool IsBulkDevice();
 };
 
@@ -441,6 +443,18 @@ bool RageVFSDevice::IsBulkDevice()
 void RageVFSDevice::SetPathPrefix(const std::string& pathPrefix)
 {
 	m_pathPrefixLength = pathPrefix.length();
+}
+
+bool RageVFSDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
+{
+	if (controlIdx == VFS_FLUSH_BUFFERS)
+	{
+		auto data = reinterpret_cast<vfs::FlushBuffersExtension*>(controlData);
+
+		return FlushFileBuffers(reinterpret_cast<HANDLE>(data->handle));
+	}
+
+	return false;
 }
 
 bool RageVFSDeviceAdapter::IsBulkDevice()
