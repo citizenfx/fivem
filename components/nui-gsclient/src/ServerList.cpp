@@ -389,6 +389,41 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 
 	auto onLoadCB = [=](const std::string& infoBlobJson)
 	{
+		rapidjson::Document doc;
+		doc.Parse(infoBlobJson.c_str(), infoBlobJson.size());
+
+		bool hasHardCap = true;
+
+		auto it = doc.FindMember("resources");
+
+		if (it != doc.MemberEnd())
+		{
+			auto& value = it->value;
+
+			if (value.IsArray())
+			{
+				hasHardCap = false;
+
+				for (auto i = value.Begin(); i != value.End(); ++i)
+				{
+					if (i->IsString())
+					{
+						if (strcmp(i->GetString(), "hardcap") == 0)
+						{
+							hasHardCap = true;
+						}
+					}
+				}
+			}
+		}
+
+		if (!hasHardCap)
+		{
+			server->m_clients = 0;
+			server->m_ping = 404;
+			server->m_hostName += " [BROKEN, DO NOT JOIN - ERROR CODE #53]";
+		}
+
 		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: 'serverAdd', name: '%s',"
 			"mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d,"
 			"addr: '%s:%d', infoBlob: %s }, '*');",
