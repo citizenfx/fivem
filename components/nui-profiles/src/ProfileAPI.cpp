@@ -45,6 +45,7 @@ static InitFunction initFunction([] ()
 				profileObject.AddMember("tile", rapidjson::Value(profile->GetTileURI(), outDocument.GetAllocator()).Move(), outDocument.GetAllocator());
 				profileObject.AddMember("type", rapidjson::Value(profileType, outDocument.GetAllocator()).Move(), outDocument.GetAllocator());
 				profileObject.AddMember("identifier", rapidjson::Value(profile->GetInternalIdentifier()).Move(), outDocument.GetAllocator());
+				profileObject.AddMember("externalIdentifier", rapidjson::Value(profile->GetIdentifier(0), outDocument.GetAllocator()).Move(), outDocument.GetAllocator());
 
 				rapidjson::Value parameters;
 				parameters.SetObject();
