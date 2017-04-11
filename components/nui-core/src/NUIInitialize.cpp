@@ -257,6 +257,7 @@ void FinalizeInitNUI()
 	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
 	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
+	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
 
     HookFunctionBase::RunAll();
 
