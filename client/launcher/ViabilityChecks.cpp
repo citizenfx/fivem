@@ -61,12 +61,36 @@ bool DXGICheck()
     return true;
 }
 
+bool BaseLdrCheck()
+{
+	auto addDllDirectory = GetProcAddress(GetModuleHandle(L"kernel32.dll"), "AddDllDirectory");
+
+	if (addDllDirectory == nullptr)
+	{
+		MessageBox(nullptr, PRODUCT_NAME L" requires Security Update for Windows 7 (KB2758857) to be installed to run. Please install it, and try again.", PRODUCT_NAME, MB_OK | MB_ICONSTOP);
+
+		if (!IsWindows8OrGreater())
+		{
+			ShellExecute(nullptr, L"open", L"https://www.microsoft.com/en-us/download/details.aspx?id=35903", nullptr, nullptr, SW_SHOWNORMAL);
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 bool VerifyViability()
 {
     if (!DXGICheck())
     {
         return false;
     }
+
+	if (!BaseLdrCheck())
+	{
+		return false;
+	}
 
     return true;
 }
