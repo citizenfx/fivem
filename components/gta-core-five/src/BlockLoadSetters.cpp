@@ -1293,7 +1293,7 @@ static HookFunction hookFunction([] ()
 	// loading screen frame limit
 	location = hook::pattern("0F 2F 05 ? ? ? ? 0F 82 E6 02 00 00").count(1).get(0).get<char>(3);
 
-	hook::put<float>(location + *(int32_t*)location + 4, 1000.0f / 60.0f);
+	hook::put<float>(location + *(int32_t*)location + 4, 1000.0f / 120.0f);
 
 	// bypass the state 20 calibration screen loop (which might be wrong; it doesn't seem to exist in my IDA dumps of 323/331 Steam)
 	auto matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
