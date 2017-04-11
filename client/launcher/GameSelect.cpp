@@ -12,6 +12,35 @@
 
 namespace WRL = Microsoft::WRL;
 
+struct ScopedCoInitialize
+{
+	template<typename... TArg>
+	ScopedCoInitialize(const TArg&&... args) : m_hr(CoInitializeEx(nullptr, args...))
+	{
+	}
+
+	~ScopedCoInitialize()
+	{
+		if (SUCCEEDED(m_hr))
+		{
+			CoUninitialize();
+		}
+	}
+
+	inline operator bool()
+	{
+		return (SUCCEEDED(m_hr));
+	}
+
+	inline HRESULT GetResult()
+	{
+		return m_hr;
+	}
+
+private:
+	HRESULT m_hr;
+};
+
 void EnsureGamePath()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -34,17 +63,17 @@ void EnsureGamePath()
 		}
 	}
 
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	ScopedCoInitialize coInit(COINIT_APARTMENTTHREADED);
 
-	if (FAILED(hr))
+	if (!coInit)
 	{
-		MessageBox(nullptr, va(L"CoInitializeEx failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, va(L"CoInitializeEx failed. HRESULT = 0x%08x.", coInit.GetResult()), L"Error", MB_OK | MB_ICONERROR);
 
-		ExitProcess(hr);
+		ExitProcess(coInit.GetResult());
 	}
 
 	WRL::ComPtr<IFileDialog> fileDialog;
-	hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileDialog, (void**)fileDialog.GetAddressOf());
+	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileDialog, (void**)fileDialog.GetAddressOf());
 
 	if (FAILED(hr))
 	{
