@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -100,16 +100,17 @@ bool CefBoxLayoutCToCpp::IsValid() {
 CefBoxLayoutCToCpp::CefBoxLayoutCToCpp() {
 }
 
-template<> cef_box_layout_t* CefCToCpp<CefBoxLayoutCToCpp, CefBoxLayout,
-    cef_box_layout_t>::UnwrapDerived(CefWrapperType type, CefBoxLayout* c) {
+template<> cef_box_layout_t* CefCToCppRefCounted<CefBoxLayoutCToCpp,
+    CefBoxLayout, cef_box_layout_t>::UnwrapDerived(CefWrapperType type,
+    CefBoxLayout* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefBoxLayoutCToCpp, CefBoxLayout,
-    cef_box_layout_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefBoxLayoutCToCpp,
+    CefBoxLayout, cef_box_layout_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefBoxLayoutCToCpp, CefBoxLayout,
+template<> CefWrapperType CefCToCppRefCounted<CefBoxLayoutCToCpp, CefBoxLayout,
     cef_box_layout_t>::kWrapperType = WT_BOX_LAYOUT;

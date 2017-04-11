@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -236,16 +236,16 @@ void CefResponseCToCpp::SetHeaderMap(const HeaderMap& headerMap) {
 CefResponseCToCpp::CefResponseCToCpp() {
 }
 
-template<> cef_response_t* CefCToCpp<CefResponseCToCpp, CefResponse,
+template<> cef_response_t* CefCToCppRefCounted<CefResponseCToCpp, CefResponse,
     cef_response_t>::UnwrapDerived(CefWrapperType type, CefResponse* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefResponseCToCpp, CefResponse,
-    cef_response_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefResponseCToCpp,
+    CefResponse, cef_response_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefResponseCToCpp, CefResponse,
+template<> CefWrapperType CefCToCppRefCounted<CefResponseCToCpp, CefResponse,
     cef_response_t>::kWrapperType = WT_RESPONSE;

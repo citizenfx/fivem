@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -206,7 +206,7 @@ void CefX509CertPrincipalCToCpp::GetDomainComponents(
 CefX509CertPrincipalCToCpp::CefX509CertPrincipalCToCpp() {
 }
 
-template<> cef_x509cert_principal_t* CefCToCpp<CefX509CertPrincipalCToCpp,
+template<> cef_x509cert_principal_t* CefCToCppRefCounted<CefX509CertPrincipalCToCpp,
     CefX509CertPrincipal, cef_x509cert_principal_t>::UnwrapDerived(
     CefWrapperType type, CefX509CertPrincipal* c) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -214,10 +214,10 @@ template<> cef_x509cert_principal_t* CefCToCpp<CefX509CertPrincipalCToCpp,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefX509CertPrincipalCToCpp,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefX509CertPrincipalCToCpp,
     CefX509CertPrincipal, cef_x509cert_principal_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefX509CertPrincipalCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefX509CertPrincipalCToCpp,
     CefX509CertPrincipal, cef_x509cert_principal_t>::kWrapperType =
     WT_X509CERT_PRINCIPAL;

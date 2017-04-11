@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -58,7 +58,7 @@ typedef struct _cef_scheme_registrar_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_scoped_t base;
 
   ///
   // Register a custom scheme. This function should not be called for the built-
@@ -87,20 +87,30 @@ typedef struct _cef_scheme_registrar_t {
   // is. For example, "scheme:///some%20text" will remain the same. Non-standard
   // scheme URLs cannot be used as a target for form submission.
   //
-  // If |is_local| is true (1) the scheme will be treated as local (i.e., with
-  // the same security rules as those applied to "file" URLs). Normal pages
-  // cannot link to or access local URLs. Also, by default, local URLs can only
-  // perform XMLHttpRequest calls to the same URL (origin + path) that
-  // originated the request. To allow XMLHttpRequest calls from a local URL to
-  // other URLs with the same origin set the
-  // CefSettings.file_access_from_file_urls_allowed value to true (1). To allow
-  // XMLHttpRequest calls from a local URL to all origins set the
-  // CefSettings.universal_access_from_file_urls_allowed value to true (1).
+  // If |is_local| is true (1) the scheme will be treated with the same security
+  // rules as those applied to "file" URLs. Normal pages cannot link to or
+  // access local URLs. Also, by default, local URLs can only perform
+  // XMLHttpRequest calls to the same URL (origin + path) that originated the
+  // request. To allow XMLHttpRequest calls from a local URL to other URLs with
+  // the same origin set the CefSettings.file_access_from_file_urls_allowed
+  // value to true (1). To allow XMLHttpRequest calls from a local URL to all
+  // origins set the CefSettings.universal_access_from_file_urls_allowed value
+  // to true (1).
   //
-  // If |is_display_isolated| is true (1) the scheme will be treated as display-
-  // isolated. This means that pages cannot display these URLs unless they are
-  // from the same scheme. For example, pages in another origin cannot create
-  // iframes or hyperlinks to URLs with this scheme.
+  // If |is_display_isolated| is true (1) the scheme can only be displayed from
+  // other content hosted with the same scheme. For example, pages in other
+  // origins cannot create iframes or hyperlinks to URLs with the scheme. For
+  // schemes that must be accessible from other schemes set this value to false
+  // (0), set |is_cors_enabled| to true (1), and use CORS "Access-Control-Allow-
+  // Origin" headers to further restrict access.
+  //
+  // If |is_secure| is true (1) the scheme will be treated with the same
+  // security rules as those applied to "https" URLs. For example, loading this
+  // scheme from other secure schemes will not trigger mixed content warnings.
+  //
+  // If |is_cors_enabled| is true (1) the scheme that can be sent CORS requests.
+  // This value should be true (1) in most cases where |is_standard| is true
+  // (1).
   //
   // This function may be called on any thread. It should only be called once
   // per unique |scheme_name| value. If |scheme_name| is already registered or
@@ -108,7 +118,7 @@ typedef struct _cef_scheme_registrar_t {
   ///
   int (CEF_CALLBACK *add_custom_scheme)(struct _cef_scheme_registrar_t* self,
       const cef_string_t* scheme_name, int is_standard, int is_local,
-      int is_display_isolated);
+      int is_display_isolated, int is_secure, int is_cors_enabled);
 } cef_scheme_registrar_t;
 
 
@@ -121,7 +131,7 @@ typedef struct _cef_scheme_handler_factory_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_ref_counted_t base;
 
   ///
   // Return a new resource handler instance to handle the request or an NULL

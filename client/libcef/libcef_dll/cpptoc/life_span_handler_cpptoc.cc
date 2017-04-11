@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -188,7 +188,7 @@ CefLifeSpanHandlerCppToC::CefLifeSpanHandlerCppToC() {
   GetStruct()->on_before_close = life_span_handler_on_before_close;
 }
 
-template<> CefRefPtr<CefLifeSpanHandler> CefCppToC<CefLifeSpanHandlerCppToC,
+template<> CefRefPtr<CefLifeSpanHandler> CefCppToCRefCounted<CefLifeSpanHandlerCppToC,
     CefLifeSpanHandler, cef_life_span_handler_t>::UnwrapDerived(
     CefWrapperType type, cef_life_span_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -196,10 +196,10 @@ template<> CefRefPtr<CefLifeSpanHandler> CefCppToC<CefLifeSpanHandlerCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefLifeSpanHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefLifeSpanHandlerCppToC,
     CefLifeSpanHandler, cef_life_span_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefLifeSpanHandlerCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefLifeSpanHandlerCppToC,
     CefLifeSpanHandler, cef_life_span_handler_t>::kWrapperType =
     WT_LIFE_SPAN_HANDLER;

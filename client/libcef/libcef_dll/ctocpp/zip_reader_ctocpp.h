@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,12 +20,13 @@
 
 #include "include/cef_zip_reader.h"
 #include "include/capi/cef_zip_reader_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefZipReaderCToCpp
-    : public CefCToCpp<CefZipReaderCToCpp, CefZipReader, cef_zip_reader_t> {
+    : public CefCToCppRefCounted<CefZipReaderCToCpp, CefZipReader,
+        cef_zip_reader_t> {
  public:
   CefZipReaderCToCpp();
 

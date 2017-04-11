@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -37,16 +37,16 @@ CefTaskCppToC::CefTaskCppToC() {
   GetStruct()->execute = task_execute;
 }
 
-template<> CefRefPtr<CefTask> CefCppToC<CefTaskCppToC, CefTask,
+template<> CefRefPtr<CefTask> CefCppToCRefCounted<CefTaskCppToC, CefTask,
     cef_task_t>::UnwrapDerived(CefWrapperType type, cef_task_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefTaskCppToC, CefTask,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefTaskCppToC, CefTask,
     cef_task_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefTaskCppToC, CefTask,
+template<> CefWrapperType CefCppToCRefCounted<CefTaskCppToC, CefTask,
     cef_task_t>::kWrapperType = WT_TASK;

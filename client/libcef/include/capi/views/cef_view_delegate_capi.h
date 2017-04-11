@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -55,7 +55,7 @@ typedef struct _cef_view_delegate_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_ref_counted_t base;
 
   ///
   // Return the preferred size for |view|. The Layout will use this information
@@ -105,6 +105,18 @@ typedef struct _cef_view_delegate_t {
   ///
   void (CEF_CALLBACK *on_child_view_changed)(struct _cef_view_delegate_t* self,
       struct _cef_view_t* view, int added, struct _cef_view_t* child);
+
+  ///
+  // Called when |view| gains focus.
+  ///
+  void (CEF_CALLBACK *on_focus)(struct _cef_view_delegate_t* self,
+      struct _cef_view_t* view);
+
+  ///
+  // Called when |view| loses focus.
+  ///
+  void (CEF_CALLBACK *on_blur)(struct _cef_view_delegate_t* self,
+      struct _cef_view_t* view);
 } cef_view_delegate_t;
 
 

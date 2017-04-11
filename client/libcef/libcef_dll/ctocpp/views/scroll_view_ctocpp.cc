@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -343,6 +343,32 @@ void CefScrollViewCToCpp::SetID(int id) {
   // Execute
   _struct->set_id(_struct,
       id);
+}
+
+int CefScrollViewCToCpp::GetGroupID() {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, get_group_id))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->get_group_id(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefScrollViewCToCpp::SetGroupID(int group_id) {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_group_id))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_group_id(_struct,
+      group_id);
 }
 
 CefRefPtr<CefView> CefScrollViewCToCpp::GetParentView() {
@@ -798,16 +824,17 @@ bool CefScrollViewCToCpp::ConvertPointFromView(CefRefPtr<CefView> view,
 CefScrollViewCToCpp::CefScrollViewCToCpp() {
 }
 
-template<> cef_scroll_view_t* CefCToCpp<CefScrollViewCToCpp, CefScrollView,
-    cef_scroll_view_t>::UnwrapDerived(CefWrapperType type, CefScrollView* c) {
+template<> cef_scroll_view_t* CefCToCppRefCounted<CefScrollViewCToCpp,
+    CefScrollView, cef_scroll_view_t>::UnwrapDerived(CefWrapperType type,
+    CefScrollView* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefScrollViewCToCpp, CefScrollView,
-    cef_scroll_view_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefScrollViewCToCpp,
+    CefScrollView, cef_scroll_view_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefScrollViewCToCpp, CefScrollView,
-    cef_scroll_view_t>::kWrapperType = WT_SCROLL_VIEW;
+template<> CefWrapperType CefCToCppRefCounted<CefScrollViewCToCpp,
+    CefScrollView, cef_scroll_view_t>::kWrapperType = WT_SCROLL_VIEW;

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -71,6 +71,17 @@ void CefMenuButtonCToCpp::ShowMenu(CefRefPtr<CefMenuModel> menu_model,
       CefMenuModelCToCpp::Unwrap(menu_model),
       &screen_point,
       anchor_position);
+}
+
+void CefMenuButtonCToCpp::TriggerMenu() {
+  cef_menu_button_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, trigger_menu))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->trigger_menu(_struct);
 }
 
 CefRefPtr<CefMenuButton> CefMenuButtonCToCpp::AsMenuButton() {
@@ -281,6 +292,18 @@ cef_button_state_t CefMenuButtonCToCpp::GetState() {
 
   // Return type: simple
   return _retval;
+}
+
+void CefMenuButtonCToCpp::SetInkDropEnabled(bool enabled) {
+  cef_button_t* _struct = reinterpret_cast<cef_button_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_ink_drop_enabled))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_ink_drop_enabled(_struct,
+      enabled);
 }
 
 void CefMenuButtonCToCpp::SetTooltipText(const CefString& tooltip_text) {
@@ -520,6 +543,32 @@ void CefMenuButtonCToCpp::SetID(int id) {
   // Execute
   _struct->set_id(_struct,
       id);
+}
+
+int CefMenuButtonCToCpp::GetGroupID() {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, get_group_id))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->get_group_id(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefMenuButtonCToCpp::SetGroupID(int group_id) {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_group_id))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_group_id(_struct,
+      group_id);
 }
 
 CefRefPtr<CefView> CefMenuButtonCToCpp::GetParentView() {
@@ -975,16 +1024,17 @@ bool CefMenuButtonCToCpp::ConvertPointFromView(CefRefPtr<CefView> view,
 CefMenuButtonCToCpp::CefMenuButtonCToCpp() {
 }
 
-template<> cef_menu_button_t* CefCToCpp<CefMenuButtonCToCpp, CefMenuButton,
-    cef_menu_button_t>::UnwrapDerived(CefWrapperType type, CefMenuButton* c) {
+template<> cef_menu_button_t* CefCToCppRefCounted<CefMenuButtonCToCpp,
+    CefMenuButton, cef_menu_button_t>::UnwrapDerived(CefWrapperType type,
+    CefMenuButton* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefMenuButtonCToCpp, CefMenuButton,
-    cef_menu_button_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefMenuButtonCToCpp,
+    CefMenuButton, cef_menu_button_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefMenuButtonCToCpp, CefMenuButton,
-    cef_menu_button_t>::kWrapperType = WT_MENU_BUTTON;
+template<> CefWrapperType CefCToCppRefCounted<CefMenuButtonCToCpp,
+    CefMenuButton, cef_menu_button_t>::kWrapperType = WT_MENU_BUTTON;

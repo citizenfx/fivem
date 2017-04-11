@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -79,6 +79,18 @@ CefRefPtr<CefBrowser> CefBrowserViewCToCpp::GetBrowser() {
 
   // Return type: refptr_same
   return CefBrowserCToCpp::Wrap(_retval);
+}
+
+void CefBrowserViewCToCpp::SetPreferAccelerators(bool prefer_accelerators) {
+  cef_browser_view_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, set_prefer_accelerators))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_prefer_accelerators(_struct,
+      prefer_accelerators);
 }
 
 CefRefPtr<CefBrowserView> CefBrowserViewCToCpp::AsBrowserView() {
@@ -284,6 +296,32 @@ void CefBrowserViewCToCpp::SetID(int id) {
   // Execute
   _struct->set_id(_struct,
       id);
+}
+
+int CefBrowserViewCToCpp::GetGroupID() {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, get_group_id))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->get_group_id(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefBrowserViewCToCpp::SetGroupID(int group_id) {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_group_id))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_group_id(_struct,
+      group_id);
 }
 
 CefRefPtr<CefView> CefBrowserViewCToCpp::GetParentView() {
@@ -739,17 +777,17 @@ bool CefBrowserViewCToCpp::ConvertPointFromView(CefRefPtr<CefView> view,
 CefBrowserViewCToCpp::CefBrowserViewCToCpp() {
 }
 
-template<> cef_browser_view_t* CefCToCpp<CefBrowserViewCToCpp, CefBrowserView,
-    cef_browser_view_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_browser_view_t* CefCToCppRefCounted<CefBrowserViewCToCpp,
+    CefBrowserView, cef_browser_view_t>::UnwrapDerived(CefWrapperType type,
     CefBrowserView* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefBrowserViewCToCpp, CefBrowserView,
-    cef_browser_view_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefBrowserViewCToCpp,
+    CefBrowserView, cef_browser_view_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefBrowserViewCToCpp, CefBrowserView,
-    cef_browser_view_t>::kWrapperType = WT_BROWSER_VIEW;
+template<> CefWrapperType CefCToCppRefCounted<CefBrowserViewCToCpp,
+    CefBrowserView, cef_browser_view_t>::kWrapperType = WT_BROWSER_VIEW;

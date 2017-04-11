@@ -18,6 +18,7 @@ endmacro()
 set(CEF_TARGET libcef_dll_wrapper)
 
 set(LIBCEF_SRCS
+  ptr_util.h
   transfer_util.cc
   transfer_util.h
   wrapper_types.h
@@ -43,8 +44,10 @@ source_group(libcef_dll\\\\base FILES ${LIBCEF_BASE_SRCS})
 set(LIBCEF_CPPTOC_SRCS
   cpptoc/app_cpptoc.cc
   cpptoc/app_cpptoc.h
-  cpptoc/base_cpptoc.cc
-  cpptoc/base_cpptoc.h
+  cpptoc/base_ref_counted_cpptoc.cc
+  cpptoc/base_ref_counted_cpptoc.h
+  cpptoc/base_scoped_cpptoc.cc
+  cpptoc/base_scoped_cpptoc.h
   cpptoc/browser_process_handler_cpptoc.cc
   cpptoc/browser_process_handler_cpptoc.h
   cpptoc/client_cpptoc.cc
@@ -55,7 +58,8 @@ set(LIBCEF_CPPTOC_SRCS
   cpptoc/context_menu_handler_cpptoc.h
   cpptoc/cookie_visitor_cpptoc.cc
   cpptoc/cookie_visitor_cpptoc.h
-  cpptoc/cpptoc.h
+  cpptoc/cpptoc_ref_counted.h
+  cpptoc/cpptoc_scoped.h
   cpptoc/delete_cookies_callback_cpptoc.cc
   cpptoc/delete_cookies_callback_cpptoc.h
   cpptoc/dialog_handler_cpptoc.cc
@@ -144,10 +148,14 @@ set(LIBCEF_CPPTOC_SRCS
 source_group(libcef_dll\\\\cpptoc FILES ${LIBCEF_CPPTOC_SRCS})
 
 set(LIBCEF_CPPTOC_TEST_SRCS
-  cpptoc/test/translator_test_handler_child_cpptoc.cc
-  cpptoc/test/translator_test_handler_child_cpptoc.h
-  cpptoc/test/translator_test_handler_cpptoc.cc
-  cpptoc/test/translator_test_handler_cpptoc.h
+  cpptoc/test/translator_test_ref_ptr_client_child_cpptoc.cc
+  cpptoc/test/translator_test_ref_ptr_client_child_cpptoc.h
+  cpptoc/test/translator_test_ref_ptr_client_cpptoc.cc
+  cpptoc/test/translator_test_ref_ptr_client_cpptoc.h
+  cpptoc/test/translator_test_scoped_client_child_cpptoc.cc
+  cpptoc/test/translator_test_scoped_client_child_cpptoc.h
+  cpptoc/test/translator_test_scoped_client_cpptoc.cc
+  cpptoc/test/translator_test_scoped_client_cpptoc.h
   )
 source_group(libcef_dll\\\\cpptoc\\\\test FILES ${LIBCEF_CPPTOC_TEST_SRCS})
 
@@ -188,7 +196,8 @@ set(LIBCEF_CTOCPP_SRCS
   ctocpp/context_menu_params_ctocpp.h
   ctocpp/cookie_manager_ctocpp.cc
   ctocpp/cookie_manager_ctocpp.h
-  ctocpp/ctocpp.h
+  ctocpp/ctocpp_ref_counted.h
+  ctocpp/ctocpp_scoped.h
   ctocpp/dictionary_value_ctocpp.cc
   ctocpp/dictionary_value_ctocpp.h
   ctocpp/domdocument_ctocpp.cc
@@ -289,12 +298,18 @@ source_group(libcef_dll\\\\ctocpp FILES ${LIBCEF_CTOCPP_SRCS})
 set(LIBCEF_CTOCPP_TEST_SRCS
   ctocpp/test/translator_test_ctocpp.cc
   ctocpp/test/translator_test_ctocpp.h
-  ctocpp/test/translator_test_object_child_child_ctocpp.cc
-  ctocpp/test/translator_test_object_child_child_ctocpp.h
-  ctocpp/test/translator_test_object_child_ctocpp.cc
-  ctocpp/test/translator_test_object_child_ctocpp.h
-  ctocpp/test/translator_test_object_ctocpp.cc
-  ctocpp/test/translator_test_object_ctocpp.h
+  ctocpp/test/translator_test_ref_ptr_library_child_child_ctocpp.cc
+  ctocpp/test/translator_test_ref_ptr_library_child_child_ctocpp.h
+  ctocpp/test/translator_test_ref_ptr_library_child_ctocpp.cc
+  ctocpp/test/translator_test_ref_ptr_library_child_ctocpp.h
+  ctocpp/test/translator_test_ref_ptr_library_ctocpp.cc
+  ctocpp/test/translator_test_ref_ptr_library_ctocpp.h
+  ctocpp/test/translator_test_scoped_library_child_child_ctocpp.cc
+  ctocpp/test/translator_test_scoped_library_child_child_ctocpp.h
+  ctocpp/test/translator_test_scoped_library_child_ctocpp.cc
+  ctocpp/test/translator_test_scoped_library_child_ctocpp.h
+  ctocpp/test/translator_test_scoped_library_ctocpp.cc
+  ctocpp/test/translator_test_scoped_library_ctocpp.h
   )
 source_group(libcef_dll\\\\ctocpp\\\\test FILES ${LIBCEF_CTOCPP_TEST_SRCS})
 
@@ -339,6 +354,7 @@ set(LIBCEF_INCLUDE_SRCS
   ../include/cef_command_line.h
   ../include/cef_context_menu_handler.h
   ../include/cef_cookie.h
+  ../include/cef_crash_util.h
   ../include/cef_dialog_handler.h
   ../include/cef_display_handler.h
   ../include/cef_dom.h
@@ -468,6 +484,7 @@ set(LIBCEF_INCLUDE_CAPI_SRCS
   ../include/capi/cef_command_line_capi.h
   ../include/capi/cef_context_menu_handler_capi.h
   ../include/capi/cef_cookie_capi.h
+  ../include/capi/cef_crash_util_capi.h
   ../include/capi/cef_dialog_handler_capi.h
   ../include/capi/cef_display_handler_capi.h
   ../include/capi/cef_dom_capi.h

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -218,7 +218,7 @@ bool CefCookieManagerCToCpp::FlushStore(
 CefCookieManagerCToCpp::CefCookieManagerCToCpp() {
 }
 
-template<> cef_cookie_manager_t* CefCToCpp<CefCookieManagerCToCpp,
+template<> cef_cookie_manager_t* CefCToCppRefCounted<CefCookieManagerCToCpp,
     CefCookieManager, cef_cookie_manager_t>::UnwrapDerived(CefWrapperType type,
     CefCookieManager* c) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -226,9 +226,9 @@ template<> cef_cookie_manager_t* CefCToCpp<CefCookieManagerCToCpp,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefCookieManagerCToCpp,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefCookieManagerCToCpp,
     CefCookieManager, cef_cookie_manager_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefCookieManagerCToCpp, CefCookieManager,
-    cef_cookie_manager_t>::kWrapperType = WT_COOKIE_MANAGER;
+template<> CefWrapperType CefCToCppRefCounted<CefCookieManagerCToCpp,
+    CefCookieManager, cef_cookie_manager_t>::kWrapperType = WT_COOKIE_MANAGER;

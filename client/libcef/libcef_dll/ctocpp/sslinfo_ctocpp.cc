@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -50,16 +50,16 @@ CefRefPtr<CefX509Certificate> CefSSLInfoCToCpp::GetX509Certificate() {
 CefSSLInfoCToCpp::CefSSLInfoCToCpp() {
 }
 
-template<> cef_sslinfo_t* CefCToCpp<CefSSLInfoCToCpp, CefSSLInfo,
+template<> cef_sslinfo_t* CefCToCppRefCounted<CefSSLInfoCToCpp, CefSSLInfo,
     cef_sslinfo_t>::UnwrapDerived(CefWrapperType type, CefSSLInfo* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefSSLInfoCToCpp, CefSSLInfo,
-    cef_sslinfo_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefSSLInfoCToCpp,
+    CefSSLInfo, cef_sslinfo_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefSSLInfoCToCpp, CefSSLInfo,
+template<> CefWrapperType CefCToCppRefCounted<CefSSLInfoCToCpp, CefSSLInfo,
     cef_sslinfo_t>::kWrapperType = WT_SSLINFO;

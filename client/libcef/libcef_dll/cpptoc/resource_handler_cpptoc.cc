@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -198,7 +198,7 @@ CefResourceHandlerCppToC::CefResourceHandlerCppToC() {
   GetStruct()->cancel = resource_handler_cancel;
 }
 
-template<> CefRefPtr<CefResourceHandler> CefCppToC<CefResourceHandlerCppToC,
+template<> CefRefPtr<CefResourceHandler> CefCppToCRefCounted<CefResourceHandlerCppToC,
     CefResourceHandler, cef_resource_handler_t>::UnwrapDerived(
     CefWrapperType type, cef_resource_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -206,10 +206,10 @@ template<> CefRefPtr<CefResourceHandler> CefCppToC<CefResourceHandlerCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefResourceHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefResourceHandlerCppToC,
     CefResourceHandler, cef_resource_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefResourceHandlerCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefResourceHandlerCppToC,
     CefResourceHandler, cef_resource_handler_t>::kWrapperType =
     WT_RESOURCE_HANDLER;

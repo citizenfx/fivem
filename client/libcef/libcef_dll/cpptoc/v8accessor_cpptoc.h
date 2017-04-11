@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,12 +20,13 @@
 
 #include "include/cef_v8.h"
 #include "include/capi/cef_v8_capi.h"
-#include "libcef_dll/cpptoc/cpptoc.h"
+#include "libcef_dll/cpptoc/cpptoc_ref_counted.h"
 
 // Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed wrapper-side only.
 class CefV8AccessorCppToC
-    : public CefCppToC<CefV8AccessorCppToC, CefV8Accessor, cef_v8accessor_t> {
+    : public CefCppToCRefCounted<CefV8AccessorCppToC, CefV8Accessor,
+        cef_v8accessor_t> {
  public:
   CefV8AccessorCppToC();
 };

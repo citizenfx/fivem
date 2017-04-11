@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -103,6 +103,22 @@ typedef struct _cef_window_delegate_t {
   ///
   int (CEF_CALLBACK *can_close)(struct _cef_window_delegate_t* self,
       struct _cef_window_t* window);
+
+  ///
+  // Called when a keyboard accelerator registered with
+  // cef_window_t::SetAccelerator is triggered. Return true (1) if the
+  // accelerator was handled or false (0) otherwise.
+  ///
+  int (CEF_CALLBACK *on_accelerator)(struct _cef_window_delegate_t* self,
+      struct _cef_window_t* window, int command_id);
+
+  ///
+  // Called after all other controls in the window have had a chance to handle
+  // the event. |event| contains information about the keyboard event. Return
+  // true (1) if the keyboard event was handled or false (0) otherwise.
+  ///
+  int (CEF_CALLBACK *on_key_event)(struct _cef_window_delegate_t* self,
+      struct _cef_window_t* window, const struct _cef_key_event_t* event);
 } cef_window_delegate_t;
 
 

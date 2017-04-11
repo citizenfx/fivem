@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -434,6 +434,32 @@ void CefPanelCToCpp::SetID(int id) {
   // Execute
   _struct->set_id(_struct,
       id);
+}
+
+int CefPanelCToCpp::GetGroupID() {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, get_group_id))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->get_group_id(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefPanelCToCpp::SetGroupID(int group_id) {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_group_id))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_group_id(_struct,
+      group_id);
 }
 
 CefRefPtr<CefView> CefPanelCToCpp::GetParentView() {
@@ -889,7 +915,7 @@ bool CefPanelCToCpp::ConvertPointFromView(CefRefPtr<CefView> view,
 CefPanelCToCpp::CefPanelCToCpp() {
 }
 
-template<> cef_panel_t* CefCToCpp<CefPanelCToCpp, CefPanel,
+template<> cef_panel_t* CefCToCppRefCounted<CefPanelCToCpp, CefPanel,
     cef_panel_t>::UnwrapDerived(CefWrapperType type, CefPanel* c) {
   if (type == WT_WINDOW) {
     return reinterpret_cast<cef_panel_t*>(CefWindowCToCpp::Unwrap(
@@ -900,9 +926,9 @@ template<> cef_panel_t* CefCToCpp<CefPanelCToCpp, CefPanel,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefPanelCToCpp, CefPanel,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefPanelCToCpp, CefPanel,
     cef_panel_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefPanelCToCpp, CefPanel,
+template<> CefWrapperType CefCToCppRefCounted<CefPanelCToCpp, CefPanel,
     cef_panel_t>::kWrapperType = WT_PANEL;

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -22,12 +22,13 @@
 #include "include/capi/views/cef_box_layout_capi.h"
 #include "include/views/cef_view.h"
 #include "include/capi/views/cef_view_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefBoxLayoutCToCpp
-    : public CefCToCpp<CefBoxLayoutCToCpp, CefBoxLayout, cef_box_layout_t> {
+    : public CefCToCppRefCounted<CefBoxLayoutCToCpp, CefBoxLayout,
+        cef_box_layout_t> {
  public:
   CefBoxLayoutCToCpp();
 

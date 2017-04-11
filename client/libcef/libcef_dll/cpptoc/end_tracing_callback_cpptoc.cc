@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -45,7 +45,7 @@ CefEndTracingCallbackCppToC::CefEndTracingCallbackCppToC() {
       end_tracing_callback_on_end_tracing_complete;
 }
 
-template<> CefRefPtr<CefEndTracingCallback> CefCppToC<CefEndTracingCallbackCppToC,
+template<> CefRefPtr<CefEndTracingCallback> CefCppToCRefCounted<CefEndTracingCallbackCppToC,
     CefEndTracingCallback, cef_end_tracing_callback_t>::UnwrapDerived(
     CefWrapperType type, cef_end_tracing_callback_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -53,10 +53,10 @@ template<> CefRefPtr<CefEndTracingCallback> CefCppToC<CefEndTracingCallbackCppTo
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefEndTracingCallbackCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefEndTracingCallbackCppToC,
     CefEndTracingCallback, cef_end_tracing_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefEndTracingCallbackCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefEndTracingCallbackCppToC,
     CefEndTracingCallback, cef_end_tracing_callback_t>::kWrapperType =
     WT_END_TRACING_CALLBACK;

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,16 +20,18 @@
 
 #include "include/cef_menu_model.h"
 #include "include/capi/cef_menu_model_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefMenuModelCToCpp
-    : public CefCToCpp<CefMenuModelCToCpp, CefMenuModel, cef_menu_model_t> {
+    : public CefCToCppRefCounted<CefMenuModelCToCpp, CefMenuModel,
+        cef_menu_model_t> {
  public:
   CefMenuModelCToCpp();
 
   // CefMenuModel methods.
+  bool IsSubMenu() OVERRIDE;
   bool Clear() OVERRIDE;
   int GetCount() OVERRIDE;
   bool AddSeparator() OVERRIDE;
@@ -88,6 +90,16 @@ class CefMenuModelCToCpp
       bool& ctrl_pressed, bool& alt_pressed) OVERRIDE;
   bool GetAcceleratorAt(int index, int& key_code, bool& shift_pressed,
       bool& ctrl_pressed, bool& alt_pressed) OVERRIDE;
+  bool SetColor(int command_id, cef_menu_color_type_t color_type,
+      cef_color_t color) OVERRIDE;
+  bool SetColorAt(int index, cef_menu_color_type_t color_type,
+      cef_color_t color) OVERRIDE;
+  bool GetColor(int command_id, cef_menu_color_type_t color_type,
+      cef_color_t& color) OVERRIDE;
+  bool GetColorAt(int index, cef_menu_color_type_t color_type,
+      cef_color_t& color) OVERRIDE;
+  bool SetFontList(int command_id, const CefString& font_list) OVERRIDE;
+  bool SetFontListAt(int index, const CefString& font_list) OVERRIDE;
 };
 
 #endif  // CEF_LIBCEF_DLL_CTOCPP_MENU_MODEL_CTOCPP_H_

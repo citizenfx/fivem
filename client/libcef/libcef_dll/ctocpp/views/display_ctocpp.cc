@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -200,16 +200,16 @@ int CefDisplayCToCpp::GetRotation() {
 CefDisplayCToCpp::CefDisplayCToCpp() {
 }
 
-template<> cef_display_t* CefCToCpp<CefDisplayCToCpp, CefDisplay,
+template<> cef_display_t* CefCToCppRefCounted<CefDisplayCToCpp, CefDisplay,
     cef_display_t>::UnwrapDerived(CefWrapperType type, CefDisplay* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefDisplayCToCpp, CefDisplay,
-    cef_display_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefDisplayCToCpp,
+    CefDisplay, cef_display_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefDisplayCToCpp, CefDisplay,
+template<> CefWrapperType CefCToCppRefCounted<CefDisplayCToCpp, CefDisplay,
     cef_display_t>::kWrapperType = WT_DISPLAY;

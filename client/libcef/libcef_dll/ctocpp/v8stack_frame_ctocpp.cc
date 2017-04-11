@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -140,7 +140,7 @@ bool CefV8StackFrameCToCpp::IsConstructor() {
 CefV8StackFrameCToCpp::CefV8StackFrameCToCpp() {
 }
 
-template<> cef_v8stack_frame_t* CefCToCpp<CefV8StackFrameCToCpp,
+template<> cef_v8stack_frame_t* CefCToCppRefCounted<CefV8StackFrameCToCpp,
     CefV8StackFrame, cef_v8stack_frame_t>::UnwrapDerived(CefWrapperType type,
     CefV8StackFrame* c) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -148,9 +148,9 @@ template<> cef_v8stack_frame_t* CefCToCpp<CefV8StackFrameCToCpp,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefV8StackFrameCToCpp,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefV8StackFrameCToCpp,
     CefV8StackFrame, cef_v8stack_frame_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefV8StackFrameCToCpp, CefV8StackFrame,
-    cef_v8stack_frame_t>::kWrapperType = WT_V8STACK_FRAME;
+template<> CefWrapperType CefCToCppRefCounted<CefV8StackFrameCToCpp,
+    CefV8StackFrame, cef_v8stack_frame_t>::kWrapperType = WT_V8STACK_FRAME;

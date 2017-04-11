@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -61,7 +61,7 @@ typedef struct _cef_view_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_ref_counted_t base;
 
   ///
   // Returns this View as a BrowserView or NULL if this is not a BrowserView.
@@ -147,6 +147,18 @@ typedef struct _cef_view_t {
   // intend to search for it. 0 is the default ID for views.
   ///
   void (CEF_CALLBACK *set_id)(struct _cef_view_t* self, int id);
+
+  ///
+  // Returns the group id of this View, or -1 if not set.
+  ///
+  int (CEF_CALLBACK *get_group_id)(struct _cef_view_t* self);
+
+  ///
+  // A group id is used to tag Views which are part of the same logical group.
+  // Focus can be moved between views with the same group using the arrow keys.
+  // The group id is immutable once it's set.
+  ///
+  void (CEF_CALLBACK *set_group_id)(struct _cef_view_t* self, int group_id);
 
   ///
   // Returns the View that contains this View, if any.

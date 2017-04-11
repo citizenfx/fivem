@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -202,6 +202,42 @@ void CEF_CALLBACK textfield_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK textfield_delegate_on_focus(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefTextfieldDelegateCppToC::Get(reinterpret_cast<cef_textfield_delegate_t*>(
+      self))->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK textfield_delegate_on_blur(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefTextfieldDelegateCppToC::Get(reinterpret_cast<cef_textfield_delegate_t*>(
+      self))->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -219,9 +255,11 @@ CefTextfieldDelegateCppToC::CefTextfieldDelegateCppToC() {
       textfield_delegate_on_parent_view_changed;
   GetStruct()->base.on_child_view_changed =
       textfield_delegate_on_child_view_changed;
+  GetStruct()->base.on_focus = textfield_delegate_on_focus;
+  GetStruct()->base.on_blur = textfield_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefTextfieldDelegate> CefCppToC<CefTextfieldDelegateCppToC,
+template<> CefRefPtr<CefTextfieldDelegate> CefCppToCRefCounted<CefTextfieldDelegateCppToC,
     CefTextfieldDelegate, cef_textfield_delegate_t>::UnwrapDerived(
     CefWrapperType type, cef_textfield_delegate_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -229,10 +267,10 @@ template<> CefRefPtr<CefTextfieldDelegate> CefCppToC<CefTextfieldDelegateCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefTextfieldDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefTextfieldDelegateCppToC,
     CefTextfieldDelegate, cef_textfield_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefTextfieldDelegateCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefTextfieldDelegateCppToC,
     CefTextfieldDelegate, cef_textfield_delegate_t>::kWrapperType =
     WT_TEXTFIELD_DELEGATE;

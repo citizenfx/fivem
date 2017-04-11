@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -495,16 +495,17 @@ bool CefListValueCToCpp::SetList(size_t index, CefRefPtr<CefListValue> value) {
 CefListValueCToCpp::CefListValueCToCpp() {
 }
 
-template<> cef_list_value_t* CefCToCpp<CefListValueCToCpp, CefListValue,
-    cef_list_value_t>::UnwrapDerived(CefWrapperType type, CefListValue* c) {
+template<> cef_list_value_t* CefCToCppRefCounted<CefListValueCToCpp,
+    CefListValue, cef_list_value_t>::UnwrapDerived(CefWrapperType type,
+    CefListValue* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefListValueCToCpp, CefListValue,
-    cef_list_value_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefListValueCToCpp,
+    CefListValue, cef_list_value_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefListValueCToCpp, CefListValue,
+template<> CefWrapperType CefCToCppRefCounted<CefListValueCToCpp, CefListValue,
     cef_list_value_t>::kWrapperType = WT_LIST_VALUE;

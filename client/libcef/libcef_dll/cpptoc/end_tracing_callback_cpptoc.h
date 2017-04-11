@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,13 +20,13 @@
 
 #include "include/cef_trace.h"
 #include "include/capi/cef_trace_capi.h"
-#include "libcef_dll/cpptoc/cpptoc.h"
+#include "libcef_dll/cpptoc/cpptoc_ref_counted.h"
 
 // Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed wrapper-side only.
 class CefEndTracingCallbackCppToC
-    : public CefCppToC<CefEndTracingCallbackCppToC, CefEndTracingCallback,
-        cef_end_tracing_callback_t> {
+    : public CefCppToCRefCounted<CefEndTracingCallbackCppToC,
+        CefEndTracingCallback, cef_end_tracing_callback_t> {
  public:
   CefEndTracingCallbackCppToC();
 };

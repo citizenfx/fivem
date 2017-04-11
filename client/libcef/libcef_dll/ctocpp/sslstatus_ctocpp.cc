@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -92,16 +92,17 @@ CefRefPtr<CefX509Certificate> CefSSLStatusCToCpp::GetX509Certificate() {
 CefSSLStatusCToCpp::CefSSLStatusCToCpp() {
 }
 
-template<> cef_sslstatus_t* CefCToCpp<CefSSLStatusCToCpp, CefSSLStatus,
-    cef_sslstatus_t>::UnwrapDerived(CefWrapperType type, CefSSLStatus* c) {
+template<> cef_sslstatus_t* CefCToCppRefCounted<CefSSLStatusCToCpp,
+    CefSSLStatus, cef_sslstatus_t>::UnwrapDerived(CefWrapperType type,
+    CefSSLStatus* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefSSLStatusCToCpp, CefSSLStatus,
-    cef_sslstatus_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefSSLStatusCToCpp,
+    CefSSLStatus, cef_sslstatus_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefSSLStatusCToCpp, CefSSLStatus,
+template<> CefWrapperType CefCToCppRefCounted<CefSSLStatusCToCpp, CefSSLStatus,
     cef_sslstatus_t>::kWrapperType = WT_SSLSTATUS;

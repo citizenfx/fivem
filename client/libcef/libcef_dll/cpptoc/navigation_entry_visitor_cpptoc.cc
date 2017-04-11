@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -52,7 +52,7 @@ CefNavigationEntryVisitorCppToC::CefNavigationEntryVisitorCppToC() {
   GetStruct()->visit = navigation_entry_visitor_visit;
 }
 
-template<> CefRefPtr<CefNavigationEntryVisitor> CefCppToC<CefNavigationEntryVisitorCppToC,
+template<> CefRefPtr<CefNavigationEntryVisitor> CefCppToCRefCounted<CefNavigationEntryVisitorCppToC,
     CefNavigationEntryVisitor, cef_navigation_entry_visitor_t>::UnwrapDerived(
     CefWrapperType type, cef_navigation_entry_visitor_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -60,11 +60,11 @@ template<> CefRefPtr<CefNavigationEntryVisitor> CefCppToC<CefNavigationEntryVisi
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefNavigationEntryVisitorCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefNavigationEntryVisitorCppToC,
     CefNavigationEntryVisitor, cef_navigation_entry_visitor_t>::DebugObjCt =
     0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefNavigationEntryVisitorCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefNavigationEntryVisitorCppToC,
     CefNavigationEntryVisitor, cef_navigation_entry_visitor_t>::kWrapperType =
     WT_NAVIGATION_ENTRY_VISITOR;

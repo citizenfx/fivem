@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -153,6 +153,59 @@ int CEF_CALLBACK window_delegate_can_close(struct _cef_window_delegate_t* self,
   return _retval;
 }
 
+int CEF_CALLBACK window_delegate_on_accelerator(
+    struct _cef_window_delegate_t* self, cef_window_t* window,
+    int command_id) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Verify param: window; type: refptr_diff
+  DCHECK(window);
+  if (!window)
+    return 0;
+
+  // Execute
+  bool _retval = CefWindowDelegateCppToC::Get(self)->OnAccelerator(
+      CefWindowCToCpp::Wrap(window),
+      command_id);
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK window_delegate_on_key_event(
+    struct _cef_window_delegate_t* self, cef_window_t* window,
+    const struct _cef_key_event_t* event) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Verify param: window; type: refptr_diff
+  DCHECK(window);
+  if (!window)
+    return 0;
+  // Verify param: event; type: struct_byref_const
+  DCHECK(event);
+  if (!event)
+    return 0;
+
+  // Translate param: event; type: struct_byref_const
+  CefKeyEvent eventObj;
+  if (event)
+    eventObj.Set(*event, false);
+
+  // Execute
+  bool _retval = CefWindowDelegateCppToC::Get(self)->OnKeyEvent(
+      CefWindowCToCpp::Wrap(window),
+      eventObj);
+
+  // Return type: bool
+  return _retval;
+}
+
 cef_size_t CEF_CALLBACK window_delegate_get_preferred_size(
     struct _cef_view_delegate_t* self, cef_view_t* view) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -288,6 +341,42 @@ void CEF_CALLBACK window_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK window_delegate_on_focus(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefWindowDelegateCppToC::Get(reinterpret_cast<cef_window_delegate_t*>(
+      self))->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK window_delegate_on_blur(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefWindowDelegateCppToC::Get(reinterpret_cast<cef_window_delegate_t*>(
+      self))->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -301,6 +390,8 @@ CefWindowDelegateCppToC::CefWindowDelegateCppToC() {
   GetStruct()->can_maximize = window_delegate_can_maximize;
   GetStruct()->can_minimize = window_delegate_can_minimize;
   GetStruct()->can_close = window_delegate_can_close;
+  GetStruct()->on_accelerator = window_delegate_on_accelerator;
+  GetStruct()->on_key_event = window_delegate_on_key_event;
   GetStruct()->base.base.get_preferred_size =
       window_delegate_get_preferred_size;
   GetStruct()->base.base.get_minimum_size = window_delegate_get_minimum_size;
@@ -311,9 +402,11 @@ CefWindowDelegateCppToC::CefWindowDelegateCppToC() {
       window_delegate_on_parent_view_changed;
   GetStruct()->base.base.on_child_view_changed =
       window_delegate_on_child_view_changed;
+  GetStruct()->base.base.on_focus = window_delegate_on_focus;
+  GetStruct()->base.base.on_blur = window_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefWindowDelegate> CefCppToC<CefWindowDelegateCppToC,
+template<> CefRefPtr<CefWindowDelegate> CefCppToCRefCounted<CefWindowDelegateCppToC,
     CefWindowDelegate, cef_window_delegate_t>::UnwrapDerived(
     CefWrapperType type, cef_window_delegate_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -321,9 +414,10 @@ template<> CefRefPtr<CefWindowDelegate> CefCppToC<CefWindowDelegateCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefWindowDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefWindowDelegateCppToC,
     CefWindowDelegate, cef_window_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefWindowDelegateCppToC, CefWindowDelegate,
-    cef_window_delegate_t>::kWrapperType = WT_WINDOW_DELEGATE;
+template<> CefWrapperType CefCppToCRefCounted<CefWindowDelegateCppToC,
+    CefWindowDelegate, cef_window_delegate_t>::kWrapperType =
+    WT_WINDOW_DELEGATE;

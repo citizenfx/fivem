@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -96,16 +96,17 @@ CefV8HandlerCppToC::CefV8HandlerCppToC() {
   GetStruct()->execute = v8handler_execute;
 }
 
-template<> CefRefPtr<CefV8Handler> CefCppToC<CefV8HandlerCppToC, CefV8Handler,
-    cef_v8handler_t>::UnwrapDerived(CefWrapperType type, cef_v8handler_t* s) {
+template<> CefRefPtr<CefV8Handler> CefCppToCRefCounted<CefV8HandlerCppToC,
+    CefV8Handler, cef_v8handler_t>::UnwrapDerived(CefWrapperType type,
+    cef_v8handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefV8HandlerCppToC, CefV8Handler,
-    cef_v8handler_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToCRefCounted<CefV8HandlerCppToC,
+    CefV8Handler, cef_v8handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefV8HandlerCppToC, CefV8Handler,
+template<> CefWrapperType CefCppToCRefCounted<CefV8HandlerCppToC, CefV8Handler,
     cef_v8handler_t>::kWrapperType = WT_V8HANDLER;

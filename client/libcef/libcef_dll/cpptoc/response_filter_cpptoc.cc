@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -91,7 +91,7 @@ CefResponseFilterCppToC::CefResponseFilterCppToC() {
   GetStruct()->filter = response_filter_filter;
 }
 
-template<> CefRefPtr<CefResponseFilter> CefCppToC<CefResponseFilterCppToC,
+template<> CefRefPtr<CefResponseFilter> CefCppToCRefCounted<CefResponseFilterCppToC,
     CefResponseFilter, cef_response_filter_t>::UnwrapDerived(
     CefWrapperType type, cef_response_filter_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -99,9 +99,10 @@ template<> CefRefPtr<CefResponseFilter> CefCppToC<CefResponseFilterCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefResponseFilterCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefResponseFilterCppToC,
     CefResponseFilter, cef_response_filter_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefResponseFilterCppToC, CefResponseFilter,
-    cef_response_filter_t>::kWrapperType = WT_RESPONSE_FILTER;
+template<> CefWrapperType CefCppToCRefCounted<CefResponseFilterCppToC,
+    CefResponseFilter, cef_response_filter_t>::kWrapperType =
+    WT_RESPONSE_FILTER;

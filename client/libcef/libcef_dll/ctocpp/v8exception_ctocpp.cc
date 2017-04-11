@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -139,17 +139,17 @@ int CefV8ExceptionCToCpp::GetEndColumn() {
 CefV8ExceptionCToCpp::CefV8ExceptionCToCpp() {
 }
 
-template<> cef_v8exception_t* CefCToCpp<CefV8ExceptionCToCpp, CefV8Exception,
-    cef_v8exception_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_v8exception_t* CefCToCppRefCounted<CefV8ExceptionCToCpp,
+    CefV8Exception, cef_v8exception_t>::UnwrapDerived(CefWrapperType type,
     CefV8Exception* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefV8ExceptionCToCpp, CefV8Exception,
-    cef_v8exception_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefV8ExceptionCToCpp,
+    CefV8Exception, cef_v8exception_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefV8ExceptionCToCpp, CefV8Exception,
-    cef_v8exception_t>::kWrapperType = WT_V8EXCEPTION;
+template<> CefWrapperType CefCToCppRefCounted<CefV8ExceptionCToCpp,
+    CefV8Exception, cef_v8exception_t>::kWrapperType = WT_V8EXCEPTION;

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -154,6 +154,42 @@ void CEF_CALLBACK panel_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK panel_delegate_on_focus(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefPanelDelegateCppToC::Get(reinterpret_cast<cef_panel_delegate_t*>(
+      self))->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK panel_delegate_on_blur(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefPanelDelegateCppToC::Get(reinterpret_cast<cef_panel_delegate_t*>(
+      self))->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -168,9 +204,11 @@ CefPanelDelegateCppToC::CefPanelDelegateCppToC() {
       panel_delegate_on_parent_view_changed;
   GetStruct()->base.on_child_view_changed =
       panel_delegate_on_child_view_changed;
+  GetStruct()->base.on_focus = panel_delegate_on_focus;
+  GetStruct()->base.on_blur = panel_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefPanelDelegate> CefCppToC<CefPanelDelegateCppToC,
+template<> CefRefPtr<CefPanelDelegate> CefCppToCRefCounted<CefPanelDelegateCppToC,
     CefPanelDelegate, cef_panel_delegate_t>::UnwrapDerived(CefWrapperType type,
     cef_panel_delegate_t* s) {
   if (type == WT_WINDOW_DELEGATE) {
@@ -182,9 +220,9 @@ template<> CefRefPtr<CefPanelDelegate> CefCppToC<CefPanelDelegateCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefPanelDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefPanelDelegateCppToC,
     CefPanelDelegate, cef_panel_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefPanelDelegateCppToC, CefPanelDelegate,
-    cef_panel_delegate_t>::kWrapperType = WT_PANEL_DELEGATE;
+template<> CefWrapperType CefCppToCRefCounted<CefPanelDelegateCppToC,
+    CefPanelDelegate, cef_panel_delegate_t>::kWrapperType = WT_PANEL_DELEGATE;

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -22,13 +22,13 @@
 #include "include/capi/cef_web_plugin_capi.h"
 #include "include/cef_browser.h"
 #include "include/capi/cef_browser_capi.h"
-#include "libcef_dll/cpptoc/cpptoc.h"
+#include "libcef_dll/cpptoc/cpptoc_ref_counted.h"
 
 // Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed wrapper-side only.
 class CefRegisterCdmCallbackCppToC
-    : public CefCppToC<CefRegisterCdmCallbackCppToC, CefRegisterCdmCallback,
-        cef_register_cdm_callback_t> {
+    : public CefCppToCRefCounted<CefRegisterCdmCallbackCppToC,
+        CefRegisterCdmCallback, cef_register_cdm_callback_t> {
  public:
   CefRegisterCdmCallbackCppToC();
 };

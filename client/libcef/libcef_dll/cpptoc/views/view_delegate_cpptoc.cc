@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -153,6 +153,40 @@ void CEF_CALLBACK view_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK view_delegate_on_focus(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefViewDelegateCppToC::Get(self)->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK view_delegate_on_blur(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefViewDelegateCppToC::Get(self)->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -165,9 +199,11 @@ CefViewDelegateCppToC::CefViewDelegateCppToC() {
   GetStruct()->get_height_for_width = view_delegate_get_height_for_width;
   GetStruct()->on_parent_view_changed = view_delegate_on_parent_view_changed;
   GetStruct()->on_child_view_changed = view_delegate_on_child_view_changed;
+  GetStruct()->on_focus = view_delegate_on_focus;
+  GetStruct()->on_blur = view_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefViewDelegate> CefCppToC<CefViewDelegateCppToC,
+template<> CefRefPtr<CefViewDelegate> CefCppToCRefCounted<CefViewDelegateCppToC,
     CefViewDelegate, cef_view_delegate_t>::UnwrapDerived(CefWrapperType type,
     cef_view_delegate_t* s) {
   if (type == WT_BROWSER_VIEW_DELEGATE) {
@@ -199,9 +235,9 @@ template<> CefRefPtr<CefViewDelegate> CefCppToC<CefViewDelegateCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefViewDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefViewDelegateCppToC,
     CefViewDelegate, cef_view_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefViewDelegateCppToC, CefViewDelegate,
-    cef_view_delegate_t>::kWrapperType = WT_VIEW_DELEGATE;
+template<> CefWrapperType CefCppToCRefCounted<CefViewDelegateCppToC,
+    CefViewDelegate, cef_view_delegate_t>::kWrapperType = WT_VIEW_DELEGATE;

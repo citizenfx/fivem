@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -216,7 +216,7 @@ void CefX509CertificateCToCpp::GetPEMEncodedIssuerChain(
 CefX509CertificateCToCpp::CefX509CertificateCToCpp() {
 }
 
-template<> cef_x509certificate_t* CefCToCpp<CefX509CertificateCToCpp,
+template<> cef_x509certificate_t* CefCToCppRefCounted<CefX509CertificateCToCpp,
     CefX509Certificate, cef_x509certificate_t>::UnwrapDerived(
     CefWrapperType type, CefX509Certificate* c) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -224,10 +224,10 @@ template<> cef_x509certificate_t* CefCToCpp<CefX509CertificateCToCpp,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefX509CertificateCToCpp,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefX509CertificateCToCpp,
     CefX509Certificate, cef_x509certificate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefX509CertificateCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefX509CertificateCToCpp,
     CefX509Certificate, cef_x509certificate_t>::kWrapperType =
     WT_X509CERTIFICATE;

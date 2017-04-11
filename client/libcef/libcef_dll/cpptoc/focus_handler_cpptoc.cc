@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -85,7 +85,7 @@ CefFocusHandlerCppToC::CefFocusHandlerCppToC() {
   GetStruct()->on_got_focus = focus_handler_on_got_focus;
 }
 
-template<> CefRefPtr<CefFocusHandler> CefCppToC<CefFocusHandlerCppToC,
+template<> CefRefPtr<CefFocusHandler> CefCppToCRefCounted<CefFocusHandlerCppToC,
     CefFocusHandler, cef_focus_handler_t>::UnwrapDerived(CefWrapperType type,
     cef_focus_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -93,9 +93,9 @@ template<> CefRefPtr<CefFocusHandler> CefCppToC<CefFocusHandlerCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefFocusHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefFocusHandlerCppToC,
     CefFocusHandler, cef_focus_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefFocusHandlerCppToC, CefFocusHandler,
-    cef_focus_handler_t>::kWrapperType = WT_FOCUS_HANDLER;
+template<> CefWrapperType CefCppToCRefCounted<CefFocusHandlerCppToC,
+    CefFocusHandler, cef_focus_handler_t>::kWrapperType = WT_FOCUS_HANDLER;

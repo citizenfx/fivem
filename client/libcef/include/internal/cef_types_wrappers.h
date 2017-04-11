@@ -555,6 +555,7 @@ struct CefSettingsTraits {
 
   static inline void clear(struct_type* s) {
     cef_string_clear(&s->browser_subprocess_path);
+    cef_string_clear(&s->framework_dir_path);
     cef_string_clear(&s->cache_path);
     cef_string_clear(&s->user_data_path);
     cef_string_clear(&s->user_agent);
@@ -574,6 +575,9 @@ struct CefSettingsTraits {
     cef_string_set(src->browser_subprocess_path.str,
         src->browser_subprocess_path.length,
         &target->browser_subprocess_path, copy);
+    cef_string_set(src->framework_dir_path.str,
+        src->framework_dir_path.length,
+        &target->framework_dir_path, copy);
     target->multi_threaded_message_loop = src->multi_threaded_message_loop;
     target->external_message_pump = src->external_message_pump;
     target->windowless_rendering_enabled = src->windowless_rendering_enabled;
@@ -941,6 +945,8 @@ struct CefPdfPrintSettingsTraits {
     target->page_width = src->page_width;
     target->page_height = src->page_height;
 
+    target->scale_factor = src->scale_factor;
+
     target->margin_top = src->margin_top;
     target->margin_right = src->margin_right;
     target->margin_bottom = src->margin_bottom;
@@ -982,7 +988,8 @@ struct CefCompositionUnderlineTraits {
   typedef cef_composition_underline_t struct_type;
 
   static inline void init(struct_type* s) {
-    s->range = {0, 0};
+    s->range.from = 0;
+    s->range.to = 0;
     s->color = 0;
     s->background_color = 0;
     s->thick = 0;

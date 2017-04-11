@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -22,12 +22,12 @@
 #include "include/capi/views/cef_window_delegate_capi.h"
 #include "include/views/cef_window.h"
 #include "include/capi/views/cef_window_capi.h"
-#include "libcef_dll/cpptoc/cpptoc.h"
+#include "libcef_dll/cpptoc/cpptoc_ref_counted.h"
 
 // Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed wrapper-side only.
 class CefWindowDelegateCppToC
-    : public CefCppToC<CefWindowDelegateCppToC, CefWindowDelegate,
+    : public CefCppToCRefCounted<CefWindowDelegateCppToC, CefWindowDelegate,
         cef_window_delegate_t> {
  public:
   CefWindowDelegateCppToC();

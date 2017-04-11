@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -122,7 +122,7 @@ CefV8AccessorCppToC::CefV8AccessorCppToC() {
   GetStruct()->set = v8accessor_set;
 }
 
-template<> CefRefPtr<CefV8Accessor> CefCppToC<CefV8AccessorCppToC,
+template<> CefRefPtr<CefV8Accessor> CefCppToCRefCounted<CefV8AccessorCppToC,
     CefV8Accessor, cef_v8accessor_t>::UnwrapDerived(CefWrapperType type,
     cef_v8accessor_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -130,9 +130,9 @@ template<> CefRefPtr<CefV8Accessor> CefCppToC<CefV8AccessorCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefV8AccessorCppToC, CefV8Accessor,
-    cef_v8accessor_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToCRefCounted<CefV8AccessorCppToC,
+    CefV8Accessor, cef_v8accessor_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefV8AccessorCppToC, CefV8Accessor,
-    cef_v8accessor_t>::kWrapperType = WT_V8ACCESSOR;
+template<> CefWrapperType CefCppToCRefCounted<CefV8AccessorCppToC,
+    CefV8Accessor, cef_v8accessor_t>::kWrapperType = WT_V8ACCESSOR;

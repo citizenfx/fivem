@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -56,7 +56,7 @@ typedef struct _cef_run_context_menu_callback_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_ref_counted_t base;
 
   ///
   // Complete context menu display by selecting the specified |command_id| and
@@ -80,7 +80,7 @@ typedef struct _cef_context_menu_handler_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_ref_counted_t base;
 
   ///
   // Called before a context menu is displayed. |params| provides information
@@ -140,7 +140,7 @@ typedef struct _cef_context_menu_params_t {
   ///
   // Base structure.
   ///
-  cef_base_t base;
+  cef_base_ref_counted_t base;
 
   ///
   // Returns the X coordinate of the mouse where the context menu was invoked.
@@ -190,6 +190,14 @@ typedef struct _cef_context_menu_params_t {
   // NULL contents.
   ///
   int (CEF_CALLBACK *has_image_contents)(
+      struct _cef_context_menu_params_t* self);
+
+  ///
+  // Returns the title text or the alt text if the context menu was invoked on
+  // an image.
+  ///
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  cef_string_userfree_t (CEF_CALLBACK *get_title_text)(
       struct _cef_context_menu_params_t* self);
 
   ///

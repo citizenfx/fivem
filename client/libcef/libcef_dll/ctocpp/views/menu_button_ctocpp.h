@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,12 +20,13 @@
 
 #include "include/views/cef_menu_button.h"
 #include "include/capi/views/cef_menu_button_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefMenuButtonCToCpp
-    : public CefCToCpp<CefMenuButtonCToCpp, CefMenuButton, cef_menu_button_t> {
+    : public CefCToCppRefCounted<CefMenuButtonCToCpp, CefMenuButton,
+        cef_menu_button_t> {
  public:
   CefMenuButtonCToCpp();
 
@@ -33,6 +34,7 @@ class CefMenuButtonCToCpp
   void ShowMenu(CefRefPtr<CefMenuModel> menu_model,
       const CefPoint& screen_point,
       cef_menu_anchor_position_t anchor_position) OVERRIDE;
+  void TriggerMenu() OVERRIDE;
 
   // CefLabelButton methods.
   CefRefPtr<CefMenuButton> AsMenuButton() OVERRIDE;
@@ -52,6 +54,7 @@ class CefMenuButtonCToCpp
   CefRefPtr<CefLabelButton> AsLabelButton() OVERRIDE;
   void SetState(cef_button_state_t state) OVERRIDE;
   cef_button_state_t GetState() OVERRIDE;
+  void SetInkDropEnabled(bool enabled) OVERRIDE;
   void SetTooltipText(const CefString& tooltip_text) OVERRIDE;
   void SetAccessibleName(const CefString& name) OVERRIDE;
 
@@ -70,6 +73,8 @@ class CefMenuButtonCToCpp
   CefRefPtr<CefWindow> GetWindow() OVERRIDE;
   int GetID() OVERRIDE;
   void SetID(int id) OVERRIDE;
+  int GetGroupID() OVERRIDE;
+  void SetGroupID(int group_id) OVERRIDE;
   CefRefPtr<CefView> GetParentView() OVERRIDE;
   CefRefPtr<CefView> GetViewForID(int id) OVERRIDE;
   void SetBounds(const CefRect& bounds) OVERRIDE;

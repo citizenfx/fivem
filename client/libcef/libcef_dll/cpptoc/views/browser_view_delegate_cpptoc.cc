@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -270,6 +270,42 @@ void CEF_CALLBACK browser_view_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK browser_view_delegate_on_focus(
+    struct _cef_view_delegate_t* self, cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefBrowserViewDelegateCppToC::Get(
+      reinterpret_cast<cef_browser_view_delegate_t*>(self))->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK browser_view_delegate_on_blur(
+    struct _cef_view_delegate_t* self, cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefBrowserViewDelegateCppToC::Get(
+      reinterpret_cast<cef_browser_view_delegate_t*>(self))->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -293,9 +329,11 @@ CefBrowserViewDelegateCppToC::CefBrowserViewDelegateCppToC() {
       browser_view_delegate_on_parent_view_changed;
   GetStruct()->base.on_child_view_changed =
       browser_view_delegate_on_child_view_changed;
+  GetStruct()->base.on_focus = browser_view_delegate_on_focus;
+  GetStruct()->base.on_blur = browser_view_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefBrowserViewDelegate> CefCppToC<CefBrowserViewDelegateCppToC,
+template<> CefRefPtr<CefBrowserViewDelegate> CefCppToCRefCounted<CefBrowserViewDelegateCppToC,
     CefBrowserViewDelegate, cef_browser_view_delegate_t>::UnwrapDerived(
     CefWrapperType type, cef_browser_view_delegate_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -303,10 +341,10 @@ template<> CefRefPtr<CefBrowserViewDelegate> CefCppToC<CefBrowserViewDelegateCpp
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefBrowserViewDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefBrowserViewDelegateCppToC,
     CefBrowserViewDelegate, cef_browser_view_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefBrowserViewDelegateCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefBrowserViewDelegateCppToC,
     CefBrowserViewDelegate, cef_browser_view_delegate_t>::kWrapperType =
     WT_BROWSER_VIEW_DELEGATE;

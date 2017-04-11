@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -49,14 +49,18 @@ void CEF_CALLBACK app_on_register_custom_schemes(struct _cef_app_t* self,
   DCHECK(self);
   if (!self)
     return;
-  // Verify param: registrar; type: refptr_diff
+  // Verify param: registrar; type: rawptr_diff
   DCHECK(registrar);
   if (!registrar)
     return;
 
+  // Translate param: registrar; type: rawptr_diff
+  CefOwnPtr<CefSchemeRegistrar> registrarPtr(CefSchemeRegistrarCToCpp::Wrap(
+      registrar));
+
   // Execute
   CefAppCppToC::Get(self)->OnRegisterCustomSchemes(
-      CefSchemeRegistrarCToCpp::Wrap(registrar));
+      registrarPtr.get());
 }
 
 struct _cef_resource_bundle_handler_t* CEF_CALLBACK app_get_resource_bundle_handler(
@@ -121,16 +125,16 @@ CefAppCppToC::CefAppCppToC() {
   GetStruct()->get_render_process_handler = app_get_render_process_handler;
 }
 
-template<> CefRefPtr<CefApp> CefCppToC<CefAppCppToC, CefApp,
+template<> CefRefPtr<CefApp> CefCppToCRefCounted<CefAppCppToC, CefApp,
     cef_app_t>::UnwrapDerived(CefWrapperType type, cef_app_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefAppCppToC, CefApp,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefAppCppToC, CefApp,
     cef_app_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefAppCppToC, CefApp,
+template<> CefWrapperType CefCppToCRefCounted<CefAppCppToC, CefApp,
     cef_app_t>::kWrapperType = WT_APP;

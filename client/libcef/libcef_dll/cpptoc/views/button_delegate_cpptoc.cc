@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -34,6 +34,23 @@ void CEF_CALLBACK button_delegate_on_button_pressed(
 
   // Execute
   CefButtonDelegateCppToC::Get(self)->OnButtonPressed(
+      CefButtonCToCpp::Wrap(button));
+}
+
+void CEF_CALLBACK button_delegate_on_button_state_changed(
+    struct _cef_button_delegate_t* self, cef_button_t* button) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: button; type: refptr_diff
+  DCHECK(button);
+  if (!button)
+    return;
+
+  // Execute
+  CefButtonDelegateCppToC::Get(self)->OnButtonStateChanged(
       CefButtonCToCpp::Wrap(button));
 }
 
@@ -172,6 +189,42 @@ void CEF_CALLBACK button_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK button_delegate_on_focus(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefButtonDelegateCppToC::Get(reinterpret_cast<cef_button_delegate_t*>(
+      self))->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK button_delegate_on_blur(struct _cef_view_delegate_t* self,
+    cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefButtonDelegateCppToC::Get(reinterpret_cast<cef_button_delegate_t*>(
+      self))->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -179,6 +232,8 @@ void CEF_CALLBACK button_delegate_on_child_view_changed(
 
 CefButtonDelegateCppToC::CefButtonDelegateCppToC() {
   GetStruct()->on_button_pressed = button_delegate_on_button_pressed;
+  GetStruct()->on_button_state_changed =
+      button_delegate_on_button_state_changed;
   GetStruct()->base.get_preferred_size = button_delegate_get_preferred_size;
   GetStruct()->base.get_minimum_size = button_delegate_get_minimum_size;
   GetStruct()->base.get_maximum_size = button_delegate_get_maximum_size;
@@ -187,9 +242,11 @@ CefButtonDelegateCppToC::CefButtonDelegateCppToC() {
       button_delegate_on_parent_view_changed;
   GetStruct()->base.on_child_view_changed =
       button_delegate_on_child_view_changed;
+  GetStruct()->base.on_focus = button_delegate_on_focus;
+  GetStruct()->base.on_blur = button_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefButtonDelegate> CefCppToC<CefButtonDelegateCppToC,
+template<> CefRefPtr<CefButtonDelegate> CefCppToCRefCounted<CefButtonDelegateCppToC,
     CefButtonDelegate, cef_button_delegate_t>::UnwrapDerived(
     CefWrapperType type, cef_button_delegate_t* s) {
   if (type == WT_MENU_BUTTON_DELEGATE) {
@@ -201,9 +258,10 @@ template<> CefRefPtr<CefButtonDelegate> CefCppToC<CefButtonDelegateCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefButtonDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefButtonDelegateCppToC,
     CefButtonDelegate, cef_button_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefButtonDelegateCppToC, CefButtonDelegate,
-    cef_button_delegate_t>::kWrapperType = WT_BUTTON_DELEGATE;
+template<> CefWrapperType CefCppToCRefCounted<CefButtonDelegateCppToC,
+    CefButtonDelegate, cef_button_delegate_t>::kWrapperType =
+    WT_BUTTON_DELEGATE;

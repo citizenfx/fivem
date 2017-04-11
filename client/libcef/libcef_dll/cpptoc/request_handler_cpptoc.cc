@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -606,7 +606,7 @@ CefRequestHandlerCppToC::CefRequestHandlerCppToC() {
       request_handler_on_render_process_terminated;
 }
 
-template<> CefRefPtr<CefRequestHandler> CefCppToC<CefRequestHandlerCppToC,
+template<> CefRefPtr<CefRequestHandler> CefCppToCRefCounted<CefRequestHandlerCppToC,
     CefRequestHandler, cef_request_handler_t>::UnwrapDerived(
     CefWrapperType type, cef_request_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -614,9 +614,10 @@ template<> CefRefPtr<CefRequestHandler> CefCppToC<CefRequestHandlerCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefRequestHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefRequestHandlerCppToC,
     CefRequestHandler, cef_request_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefRequestHandlerCppToC, CefRequestHandler,
-    cef_request_handler_t>::kWrapperType = WT_REQUEST_HANDLER;
+template<> CefWrapperType CefCppToCRefCounted<CefRequestHandlerCppToC,
+    CefRequestHandler, cef_request_handler_t>::kWrapperType =
+    WT_REQUEST_HANDLER;

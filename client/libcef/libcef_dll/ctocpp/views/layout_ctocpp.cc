@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -65,7 +65,7 @@ bool CefLayoutCToCpp::IsValid() {
 CefLayoutCToCpp::CefLayoutCToCpp() {
 }
 
-template<> cef_layout_t* CefCToCpp<CefLayoutCToCpp, CefLayout,
+template<> cef_layout_t* CefCToCppRefCounted<CefLayoutCToCpp, CefLayout,
     cef_layout_t>::UnwrapDerived(CefWrapperType type, CefLayout* c) {
   if (type == WT_BOX_LAYOUT) {
     return reinterpret_cast<cef_layout_t*>(CefBoxLayoutCToCpp::Unwrap(
@@ -80,9 +80,9 @@ template<> cef_layout_t* CefCToCpp<CefLayoutCToCpp, CefLayout,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefLayoutCToCpp, CefLayout,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefLayoutCToCpp, CefLayout,
     cef_layout_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefLayoutCToCpp, CefLayout,
+template<> CefWrapperType CefCToCppRefCounted<CefLayoutCToCpp, CefLayout,
     cef_layout_t>::kWrapperType = WT_LAYOUT;

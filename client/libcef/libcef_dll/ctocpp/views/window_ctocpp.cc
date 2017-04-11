@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -505,6 +505,46 @@ void CefWindowCToCpp::SendMouseEvents(cef_mouse_button_type_t button,
       mouse_up);
 }
 
+void CefWindowCToCpp::SetAccelerator(int command_id, int key_code,
+    bool shift_pressed, bool ctrl_pressed, bool alt_pressed) {
+  cef_window_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, set_accelerator))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_accelerator(_struct,
+      command_id,
+      key_code,
+      shift_pressed,
+      ctrl_pressed,
+      alt_pressed);
+}
+
+void CefWindowCToCpp::RemoveAccelerator(int command_id) {
+  cef_window_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, remove_accelerator))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->remove_accelerator(_struct,
+      command_id);
+}
+
+void CefWindowCToCpp::RemoveAllAccelerators() {
+  cef_window_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, remove_all_accelerators))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->remove_all_accelerators(_struct);
+}
+
 CefRefPtr<CefWindow> CefWindowCToCpp::AsWindow() {
   cef_panel_t* _struct = reinterpret_cast<cef_panel_t*>(GetStruct());
   if (CEF_MEMBER_MISSING(_struct, as_window))
@@ -896,6 +936,32 @@ void CefWindowCToCpp::SetID(int id) {
   // Execute
   _struct->set_id(_struct,
       id);
+}
+
+int CefWindowCToCpp::GetGroupID() {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, get_group_id))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->get_group_id(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefWindowCToCpp::SetGroupID(int group_id) {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_group_id))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_group_id(_struct,
+      group_id);
 }
 
 CefRefPtr<CefView> CefWindowCToCpp::GetParentView() {
@@ -1351,16 +1417,16 @@ bool CefWindowCToCpp::ConvertPointFromView(CefRefPtr<CefView> view,
 CefWindowCToCpp::CefWindowCToCpp() {
 }
 
-template<> cef_window_t* CefCToCpp<CefWindowCToCpp, CefWindow,
+template<> cef_window_t* CefCToCppRefCounted<CefWindowCToCpp, CefWindow,
     cef_window_t>::UnwrapDerived(CefWrapperType type, CefWindow* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefWindowCToCpp, CefWindow,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefWindowCToCpp, CefWindow,
     cef_window_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefWindowCToCpp, CefWindow,
+template<> CefWrapperType CefCToCppRefCounted<CefWindowCToCpp, CefWindow,
     cef_window_t>::kWrapperType = WT_WINDOW;

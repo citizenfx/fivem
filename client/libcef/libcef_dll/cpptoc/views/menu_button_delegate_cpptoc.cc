@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -61,6 +61,25 @@ void CEF_CALLBACK menu_button_delegate_on_button_pressed(
   // Execute
   CefMenuButtonDelegateCppToC::Get(
       reinterpret_cast<cef_menu_button_delegate_t*>(self))->OnButtonPressed(
+      CefButtonCToCpp::Wrap(button));
+}
+
+void CEF_CALLBACK menu_button_delegate_on_button_state_changed(
+    struct _cef_button_delegate_t* self, cef_button_t* button) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: button; type: refptr_diff
+  DCHECK(button);
+  if (!button)
+    return;
+
+  // Execute
+  CefMenuButtonDelegateCppToC::Get(
+      reinterpret_cast<cef_menu_button_delegate_t*>(
+      self))->OnButtonStateChanged(
       CefButtonCToCpp::Wrap(button));
 }
 
@@ -199,6 +218,42 @@ void CEF_CALLBACK menu_button_delegate_on_child_view_changed(
       CefViewCToCpp::Wrap(child));
 }
 
+void CEF_CALLBACK menu_button_delegate_on_focus(
+    struct _cef_view_delegate_t* self, cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefMenuButtonDelegateCppToC::Get(
+      reinterpret_cast<cef_menu_button_delegate_t*>(self))->OnFocus(
+      CefViewCToCpp::Wrap(view));
+}
+
+void CEF_CALLBACK menu_button_delegate_on_blur(
+    struct _cef_view_delegate_t* self, cef_view_t* view) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: view; type: refptr_diff
+  DCHECK(view);
+  if (!view)
+    return;
+
+  // Execute
+  CefMenuButtonDelegateCppToC::Get(
+      reinterpret_cast<cef_menu_button_delegate_t*>(self))->OnBlur(
+      CefViewCToCpp::Wrap(view));
+}
+
 }  // namespace
 
 
@@ -208,6 +263,8 @@ CefMenuButtonDelegateCppToC::CefMenuButtonDelegateCppToC() {
   GetStruct()->on_menu_button_pressed =
       menu_button_delegate_on_menu_button_pressed;
   GetStruct()->base.on_button_pressed = menu_button_delegate_on_button_pressed;
+  GetStruct()->base.on_button_state_changed =
+      menu_button_delegate_on_button_state_changed;
   GetStruct()->base.base.get_preferred_size =
       menu_button_delegate_get_preferred_size;
   GetStruct()->base.base.get_minimum_size =
@@ -220,9 +277,11 @@ CefMenuButtonDelegateCppToC::CefMenuButtonDelegateCppToC() {
       menu_button_delegate_on_parent_view_changed;
   GetStruct()->base.base.on_child_view_changed =
       menu_button_delegate_on_child_view_changed;
+  GetStruct()->base.base.on_focus = menu_button_delegate_on_focus;
+  GetStruct()->base.base.on_blur = menu_button_delegate_on_blur;
 }
 
-template<> CefRefPtr<CefMenuButtonDelegate> CefCppToC<CefMenuButtonDelegateCppToC,
+template<> CefRefPtr<CefMenuButtonDelegate> CefCppToCRefCounted<CefMenuButtonDelegateCppToC,
     CefMenuButtonDelegate, cef_menu_button_delegate_t>::UnwrapDerived(
     CefWrapperType type, cef_menu_button_delegate_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -230,10 +289,10 @@ template<> CefRefPtr<CefMenuButtonDelegate> CefCppToC<CefMenuButtonDelegateCppTo
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefMenuButtonDelegateCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefMenuButtonDelegateCppToC,
     CefMenuButtonDelegate, cef_menu_button_delegate_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefMenuButtonDelegateCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefMenuButtonDelegateCppToC,
     CefMenuButtonDelegate, cef_menu_button_delegate_t>::kWrapperType =
     WT_MENU_BUTTON_DELEGATE;

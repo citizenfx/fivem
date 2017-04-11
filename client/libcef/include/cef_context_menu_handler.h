@@ -50,7 +50,7 @@ class CefContextMenuParams;
 // Callback interface used for continuation of custom context menu display.
 ///
 /*--cef(source=library)--*/
-class CefRunContextMenuCallback : public virtual CefBase {
+class CefRunContextMenuCallback : public virtual CefBaseRefCounted {
  public:
   typedef cef_event_flags_t EventFlags;
 
@@ -74,7 +74,7 @@ class CefRunContextMenuCallback : public virtual CefBase {
 // class will be called on the UI thread.
 ///
 /*--cef(source=client)--*/
-class CefContextMenuHandler : public virtual CefBase {
+class CefContextMenuHandler : public virtual CefBaseRefCounted {
  public:
   typedef cef_event_flags_t EventFlags;
 
@@ -139,7 +139,7 @@ class CefContextMenuHandler : public virtual CefBase {
 // can only be accessed on browser process the UI thread.
 ///
 /*--cef(source=library)--*/
-class CefContextMenuParams : public virtual CefBase {
+class CefContextMenuParams : public virtual CefBaseRefCounted {
  public:
   typedef cef_context_menu_type_flags_t TypeFlags;
   typedef cef_context_menu_media_type_t MediaType;
@@ -194,6 +194,13 @@ class CefContextMenuParams : public virtual CefBase {
   ///
   /*--cef()--*/
   virtual bool HasImageContents() =0;
+
+  ///
+  // Returns the title text or the alt text if the context menu was invoked on
+  // an image.
+  ///
+  /*--cef()--*/
+  virtual CefString GetTitleText() = 0;
 
   ///
   // Returns the URL of the top level page that the context menu was invoked on.

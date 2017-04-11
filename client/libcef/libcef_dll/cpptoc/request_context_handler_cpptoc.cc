@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -37,7 +37,8 @@ cef_cookie_manager_t* CEF_CALLBACK request_context_handler_get_cookie_manager(
 
 int CEF_CALLBACK request_context_handler_on_before_plugin_load(
     struct _cef_request_context_handler_t* self, const cef_string_t* mime_type,
-    const cef_string_t* plugin_url, const cef_string_t* top_origin_url,
+    const cef_string_t* plugin_url, int is_main_frame,
+    const cef_string_t* top_origin_url,
     struct _cef_web_plugin_info_t* plugin_info,
     cef_plugin_policy_t* plugin_policy) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -63,6 +64,7 @@ int CEF_CALLBACK request_context_handler_on_before_plugin_load(
   bool _retval = CefRequestContextHandlerCppToC::Get(self)->OnBeforePluginLoad(
       CefString(mime_type),
       CefString(plugin_url),
+      is_main_frame?true:false,
       CefString(top_origin_url),
       CefWebPluginInfoCToCpp::Wrap(plugin_info),
       plugin_policy);
@@ -82,7 +84,7 @@ CefRequestContextHandlerCppToC::CefRequestContextHandlerCppToC() {
       request_context_handler_on_before_plugin_load;
 }
 
-template<> CefRefPtr<CefRequestContextHandler> CefCppToC<CefRequestContextHandlerCppToC,
+template<> CefRefPtr<CefRequestContextHandler> CefCppToCRefCounted<CefRequestContextHandlerCppToC,
     CefRequestContextHandler, cef_request_context_handler_t>::UnwrapDerived(
     CefWrapperType type, cef_request_context_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -90,10 +92,10 @@ template<> CefRefPtr<CefRequestContextHandler> CefCppToC<CefRequestContextHandle
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefRequestContextHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefRequestContextHandlerCppToC,
     CefRequestContextHandler, cef_request_context_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefRequestContextHandlerCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefRequestContextHandlerCppToC,
     CefRequestContextHandler, cef_request_context_handler_t>::kWrapperType =
     WT_REQUEST_CONTEXT_HANDLER;

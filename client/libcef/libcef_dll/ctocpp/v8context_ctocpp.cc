@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -232,16 +232,17 @@ bool CefV8ContextCToCpp::Eval(const CefString& code,
 CefV8ContextCToCpp::CefV8ContextCToCpp() {
 }
 
-template<> cef_v8context_t* CefCToCpp<CefV8ContextCToCpp, CefV8Context,
-    cef_v8context_t>::UnwrapDerived(CefWrapperType type, CefV8Context* c) {
+template<> cef_v8context_t* CefCToCppRefCounted<CefV8ContextCToCpp,
+    CefV8Context, cef_v8context_t>::UnwrapDerived(CefWrapperType type,
+    CefV8Context* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefV8ContextCToCpp, CefV8Context,
-    cef_v8context_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefV8ContextCToCpp,
+    CefV8Context, cef_v8context_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefV8ContextCToCpp, CefV8Context,
+template<> CefWrapperType CefCToCppRefCounted<CefV8ContextCToCpp, CefV8Context,
     cef_v8context_t>::kWrapperType = WT_V8CONTEXT;

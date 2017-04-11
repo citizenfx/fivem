@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -118,6 +118,22 @@ bool CefContextMenuParamsCToCpp::HasImageContents() {
 
   // Return type: bool
   return _retval?true:false;
+}
+
+CefString CefContextMenuParamsCToCpp::GetTitleText() {
+  cef_context_menu_params_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_title_text))
+    return CefString();
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_string_userfree_t _retval = _struct->get_title_text(_struct);
+
+  // Return type: string
+  CefString _retvalStr;
+  _retvalStr.AttachToUserFree(_retval);
+  return _retvalStr;
 }
 
 CefString CefContextMenuParamsCToCpp::GetPageUrl() {
@@ -337,7 +353,7 @@ bool CefContextMenuParamsCToCpp::IsPepperMenu() {
 CefContextMenuParamsCToCpp::CefContextMenuParamsCToCpp() {
 }
 
-template<> cef_context_menu_params_t* CefCToCpp<CefContextMenuParamsCToCpp,
+template<> cef_context_menu_params_t* CefCToCppRefCounted<CefContextMenuParamsCToCpp,
     CefContextMenuParams, cef_context_menu_params_t>::UnwrapDerived(
     CefWrapperType type, CefContextMenuParams* c) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -345,10 +361,10 @@ template<> cef_context_menu_params_t* CefCToCpp<CefContextMenuParamsCToCpp,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefContextMenuParamsCToCpp,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefContextMenuParamsCToCpp,
     CefContextMenuParams, cef_context_menu_params_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefContextMenuParamsCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefContextMenuParamsCToCpp,
     CefContextMenuParams, cef_context_menu_params_t>::kWrapperType =
     WT_CONTEXT_MENU_PARAMS;

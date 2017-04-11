@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,12 +20,12 @@
 
 #include "include/views/cef_display.h"
 #include "include/capi/views/cef_display_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefDisplayCToCpp
-    : public CefCToCpp<CefDisplayCToCpp, CefDisplay, cef_display_t> {
+    : public CefCToCppRefCounted<CefDisplayCToCpp, CefDisplay, cef_display_t> {
  public:
   CefDisplayCToCpp();
 

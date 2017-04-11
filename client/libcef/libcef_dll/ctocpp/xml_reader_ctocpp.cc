@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -528,16 +528,17 @@ bool CefXmlReaderCToCpp::MoveToCarryingElement() {
 CefXmlReaderCToCpp::CefXmlReaderCToCpp() {
 }
 
-template<> cef_xml_reader_t* CefCToCpp<CefXmlReaderCToCpp, CefXmlReader,
-    cef_xml_reader_t>::UnwrapDerived(CefWrapperType type, CefXmlReader* c) {
+template<> cef_xml_reader_t* CefCToCppRefCounted<CefXmlReaderCToCpp,
+    CefXmlReader, cef_xml_reader_t>::UnwrapDerived(CefWrapperType type,
+    CefXmlReader* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefXmlReaderCToCpp, CefXmlReader,
-    cef_xml_reader_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefXmlReaderCToCpp,
+    CefXmlReader, cef_xml_reader_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefXmlReaderCToCpp, CefXmlReader,
+template<> CefWrapperType CefCToCppRefCounted<CefXmlReaderCToCpp, CefXmlReader,
     cef_xml_reader_t>::kWrapperType = WT_XML_READER;

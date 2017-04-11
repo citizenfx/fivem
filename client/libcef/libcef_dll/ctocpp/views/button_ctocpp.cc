@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -62,6 +62,18 @@ cef_button_state_t CefButtonCToCpp::GetState() {
 
   // Return type: simple
   return _retval;
+}
+
+void CefButtonCToCpp::SetInkDropEnabled(bool enabled) {
+  cef_button_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, set_ink_drop_enabled))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_ink_drop_enabled(_struct,
+      enabled);
 }
 
 void CefButtonCToCpp::SetTooltipText(const CefString& tooltip_text) {
@@ -301,6 +313,32 @@ void CefButtonCToCpp::SetID(int id) {
   // Execute
   _struct->set_id(_struct,
       id);
+}
+
+int CefButtonCToCpp::GetGroupID() {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, get_group_id))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->get_group_id(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+void CefButtonCToCpp::SetGroupID(int group_id) {
+  cef_view_t* _struct = reinterpret_cast<cef_view_t*>(GetStruct());
+  if (CEF_MEMBER_MISSING(_struct, set_group_id))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  _struct->set_group_id(_struct,
+      group_id);
 }
 
 CefRefPtr<CefView> CefButtonCToCpp::GetParentView() {
@@ -756,7 +794,7 @@ bool CefButtonCToCpp::ConvertPointFromView(CefRefPtr<CefView> view,
 CefButtonCToCpp::CefButtonCToCpp() {
 }
 
-template<> cef_button_t* CefCToCpp<CefButtonCToCpp, CefButton,
+template<> cef_button_t* CefCToCppRefCounted<CefButtonCToCpp, CefButton,
     cef_button_t>::UnwrapDerived(CefWrapperType type, CefButton* c) {
   if (type == WT_LABEL_BUTTON) {
     return reinterpret_cast<cef_button_t*>(CefLabelButtonCToCpp::Unwrap(
@@ -771,9 +809,9 @@ template<> cef_button_t* CefCToCpp<CefButtonCToCpp, CefButton,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefButtonCToCpp, CefButton,
+template<> base::AtomicRefCount CefCToCppRefCounted<CefButtonCToCpp, CefButton,
     cef_button_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefButtonCToCpp, CefButton,
+template<> CefWrapperType CefCToCppRefCounted<CefButtonCToCpp, CefButton,
     cef_button_t>::kWrapperType = WT_BUTTON;

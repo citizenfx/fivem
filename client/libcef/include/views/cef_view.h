@@ -54,7 +54,7 @@ class CefWindow;
 // process UI thread unless otherwise indicated.
 ///
 /*--cef(source=library)--*/
-class CefView : public CefBase {
+class CefView : public CefBaseRefCounted {
  public:
   ///
   // Returns this View as a BrowserView or NULL if this is not a BrowserView.
@@ -144,6 +144,20 @@ class CefView : public CefBase {
   ///
   /*--cef()--*/
   virtual void SetID(int id) =0;
+
+  ///
+  // Returns the group id of this View, or -1 if not set.
+  ///
+  /*--cef()--*/
+  virtual int GetGroupID() =0;
+
+  ///
+  // A group id is used to tag Views which are part of the same logical group.
+  // Focus can be moved between views with the same group using the arrow keys.
+  // The group id is immutable once it's set.
+  ///
+  /*--cef()--*/
+  virtual void SetGroupID(int group_id) =0;
 
   ///
   // Returns the View that contains this View, if any.

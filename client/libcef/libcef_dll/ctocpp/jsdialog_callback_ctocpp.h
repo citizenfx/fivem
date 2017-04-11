@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -20,12 +20,12 @@
 
 #include "include/cef_jsdialog_handler.h"
 #include "include/capi/cef_jsdialog_handler_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefJSDialogCallbackCToCpp
-    : public CefCToCpp<CefJSDialogCallbackCToCpp, CefJSDialogCallback,
+    : public CefCToCppRefCounted<CefJSDialogCallbackCToCpp, CefJSDialogCallback,
         cef_jsdialog_callback_t> {
  public:
   CefJSDialogCallbackCToCpp();

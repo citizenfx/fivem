@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -416,17 +416,17 @@ void CefCommandLineCToCpp::PrependWrapper(const CefString& wrapper) {
 CefCommandLineCToCpp::CefCommandLineCToCpp() {
 }
 
-template<> cef_command_line_t* CefCToCpp<CefCommandLineCToCpp, CefCommandLine,
-    cef_command_line_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_command_line_t* CefCToCppRefCounted<CefCommandLineCToCpp,
+    CefCommandLine, cef_command_line_t>::UnwrapDerived(CefWrapperType type,
     CefCommandLine* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCToCpp<CefCommandLineCToCpp, CefCommandLine,
-    cef_command_line_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCppRefCounted<CefCommandLineCToCpp,
+    CefCommandLine, cef_command_line_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefCommandLineCToCpp, CefCommandLine,
-    cef_command_line_t>::kWrapperType = WT_COMMAND_LINE;
+template<> CefWrapperType CefCToCppRefCounted<CefCommandLineCToCpp,
+    CefCommandLine, cef_command_line_t>::kWrapperType = WT_COMMAND_LINE;

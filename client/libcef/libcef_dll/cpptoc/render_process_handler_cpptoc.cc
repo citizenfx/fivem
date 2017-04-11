@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -312,7 +312,7 @@ CefRenderProcessHandlerCppToC::CefRenderProcessHandlerCppToC() {
       render_process_handler_on_process_message_received;
 }
 
-template<> CefRefPtr<CefRenderProcessHandler> CefCppToC<CefRenderProcessHandlerCppToC,
+template<> CefRefPtr<CefRenderProcessHandler> CefCppToCRefCounted<CefRenderProcessHandlerCppToC,
     CefRenderProcessHandler, cef_render_process_handler_t>::UnwrapDerived(
     CefWrapperType type, cef_render_process_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -320,10 +320,10 @@ template<> CefRefPtr<CefRenderProcessHandler> CefCppToC<CefRenderProcessHandlerC
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefRenderProcessHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefRenderProcessHandlerCppToC,
     CefRenderProcessHandler, cef_render_process_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefRenderProcessHandlerCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefRenderProcessHandlerCppToC,
     CefRenderProcessHandler, cef_render_process_handler_t>::kWrapperType =
     WT_RENDER_PROCESS_HANDLER;

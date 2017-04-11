@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -412,7 +412,7 @@ CefRenderHandlerCppToC::CefRenderHandlerCppToC() {
       render_handler_on_ime_composition_range_changed;
 }
 
-template<> CefRefPtr<CefRenderHandler> CefCppToC<CefRenderHandlerCppToC,
+template<> CefRefPtr<CefRenderHandler> CefCppToCRefCounted<CefRenderHandlerCppToC,
     CefRenderHandler, cef_render_handler_t>::UnwrapDerived(CefWrapperType type,
     cef_render_handler_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
@@ -420,9 +420,9 @@ template<> CefRefPtr<CefRenderHandler> CefCppToC<CefRenderHandlerCppToC,
 }
 
 #if DCHECK_IS_ON()
-template<> base::AtomicRefCount CefCppToC<CefRenderHandlerCppToC,
+template<> base::AtomicRefCount CefCppToCRefCounted<CefRenderHandlerCppToC,
     CefRenderHandler, cef_render_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefRenderHandlerCppToC, CefRenderHandler,
-    cef_render_handler_t>::kWrapperType = WT_RENDER_HANDLER;
+template<> CefWrapperType CefCppToCRefCounted<CefRenderHandlerCppToC,
+    CefRenderHandler, cef_render_handler_t>::kWrapperType = WT_RENDER_HANDLER;

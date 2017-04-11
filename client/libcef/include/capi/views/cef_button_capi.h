@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -73,6 +73,12 @@ typedef struct _cef_button_t {
   // Returns the current display state of the Button.
   ///
   cef_button_state_t (CEF_CALLBACK *get_state)(struct _cef_button_t* self);
+
+  ///
+  // Sets the Button will use an ink drop effect for displaying state changes.
+  ///
+  void (CEF_CALLBACK *set_ink_drop_enabled)(struct _cef_button_t* self,
+      int enabled);
 
   ///
   // Sets the tooltip text that will be displayed when the user hovers the mouse
