@@ -54,12 +54,10 @@ static InitFunction initFunction([] ()
 
 			nui::OnDrawBackground(nui::HasMainUI());
 
-#if !defined(GTA_NY)
 			Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
 			{
 				window->UpdateFrame();
 			});
-#endif
 
 			Instance<NUIWindowManager>::Get()->ForAllWindows([=] (fwRefContainer<NUIWindow> window)
 			{
