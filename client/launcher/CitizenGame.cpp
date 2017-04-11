@@ -522,6 +522,31 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 			}
 		}
 
+		if (!_stricmp(libName, "xinput1_3.dll"))
+		{
+			HMODULE hm = LoadLibrary(L"xinput1_4.dll");
+			
+			if (hm)
+			{
+				return hm;
+			}
+		}
+
+		if (!_stricmp(libName, "d3dcompiler_43.dll"))
+		{
+			HMODULE hm = LoadLibrary(L"d3dcompiler_47.dll");
+
+			if (hm)
+			{
+				return hm;
+			}
+		}
+
+		if (!_stricmp(libName, "gfsdk_shadowlib.win64.dll"))
+		{
+			return LoadLibrary(MakeRelativeCitPath(L"bin/gfsdk_shadowlib.dll").c_str());
+		}
+
 		// ATL80.dll is SxS, but it's unused by the game
 		if (!_stricmp(libName, "atl80.dll"))
 		{

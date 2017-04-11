@@ -3,6 +3,14 @@
 
 static InitFunction initFunction([] ()
 {
+	HMODULE hXA8 = LoadLibrary(L"xaudio2_8.dll");
+
+	// we don't have to pin if XAudio 2.8 is present as we're loading that ourselves
+	if (hXA8)
+	{
+		return;
+	}
+
     HMODULE hXA_pin;
     HMODULE hXA = LoadLibrary(L"xaudio2_7.dll");
 
