@@ -913,7 +913,8 @@ int Lua_GetPointerField(lua_State* L)
 			pointerField = &pointerFieldStart->data[i];
 			pointerField->empty = false;
 
-			if (lua_isnil(L, 1))
+			// to prevent accidental passing of arguments like _r, we check if this is a userdata
+			if (lua_isnil(L, 1) || lua_islightuserdata(L, 1) || lua_isuserdata(L, 1))
 			{
 				pointerField->value = 0;
 			}
