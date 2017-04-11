@@ -17,13 +17,11 @@
 
 #include "memdbgon.h"
 
-HANDLE g_fileMapping;
-HANDLE g_swapEvent;
-
-struct EGLSharedData
+namespace egl
 {
-	HANDLE d3dSharedHandle;
-};
+	unsigned int DLL_IMPORT SetSwapFrameHandler(void(*handler)(void*));
+	unsigned int DLL_IMPORT GetMainWindowSharedHandle(HANDLE* shared_handle);
+}
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr)
@@ -95,17 +93,6 @@ void NUIWindow::Initialize(CefString url)
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
-
-	static NUIWindow* window = this;
-	
-	std::thread([=] ()
-	{
-		while (true)
-		{
-			WaitForSingleObject(g_swapEvent, INFINITE);
-			window->UpdateSharedResource();
-		}
-	}).detach();
 }
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
@@ -120,31 +107,17 @@ CefBrowser* NUIWindow::GetBrowser()
 	return ((NUIClient*)m_client.get())->GetBrowser();
 }
 
+static HANDLE g_resetEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
 void NUIWindow::UpdateSharedResource()
 {
 	static bool createdClient;
 
 	static HANDLE lastParentHandle;
 
-	static std::once_flag initFlag;
-
-	static EGLSharedData* sharedData;
-
-	std::call_once(initFlag, [] ()
-	{
-		sharedData = (EGLSharedData*)MapViewOfFile(g_fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(EGLSharedData));
-	});
-
-	if (!sharedData)
-	{
-		FatalError("no EGLSharedData - why?");
-	}
-
 	HANDLE parentHandle;
-	if (sharedData && sharedData->d3dSharedHandle)
+	if (egl::GetMainWindowSharedHandle(&parentHandle))
 	{
-		parentHandle = sharedData->d3dSharedHandle;
-
 		if (lastParentHandle != parentHandle)
 		{
 			lastParentHandle = parentHandle;
@@ -179,6 +152,7 @@ void NUIWindow::UpdateSharedResource()
 	}
 
 	MarkRenderBufferDirty();
+	WaitForSingleObject(g_resetEvent, INFINITE);
 }
 
 void NUIWindow::UpdateFrame()
@@ -204,6 +178,18 @@ void NUIWindow::UpdateFrame()
 
 	m_pollQueue.clear();
 
+	static std::once_flag of;
+
+	std::call_once(of, [&] ()
+	{
+		static NUIWindow* window = this;
+
+		egl::SetSwapFrameHandler([](void*)
+		{
+			window->UpdateSharedResource();
+		});
+	});
+
 	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
 	ID3D11Texture2D* texture = wm->GetParentTexture();
 
@@ -223,18 +209,26 @@ void NUIWindow::UpdateFrame()
 
 			if (hr == S_OK)
 			{
-				ID3D11DeviceContext* deviceContext = GetD3D11DeviceContext();
-				assert(deviceContext);
+				ID3D11Device* device = GetD3D11Device();
 
-				deviceContext->CopyResource(m_nuiTexture->texture, texture);
+				if (device)
+				{
+					ID3D11DeviceContext* deviceContext = GetD3D11DeviceContext();
+					assert(deviceContext);
+
+					deviceContext->CopyResource(m_nuiTexture->texture, texture);
+				}
+
+				keyedMutex->ReleaseSync(0);
 			}
 			else
 			{
 				MarkRenderBufferDirty();
 			}
-		}
 
-		keyedMutex->ReleaseSync(0);
+			SetEvent(g_resetEvent);
+		}
+		
 		keyedMutex->Release();
 	}
 }

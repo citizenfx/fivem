@@ -23,7 +23,7 @@ public:
 
 protected:
 	// CefApp overrides
-	virtual void OnRegisterCustomSchemes(CefRefPtr<CefSchemeRegistrar> registrar) override;
+	virtual void OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) override;
 
 	virtual bool GetDataResource(int resourceID, void*& data, size_t& data_size) override;
 

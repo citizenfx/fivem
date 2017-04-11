@@ -9,10 +9,10 @@
 #include "NUIApp.h"
 #include "memdbgon.h"
 
-void NUIApp::OnRegisterCustomSchemes(CefRefPtr<CefSchemeRegistrar> registrar)
+void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
 {
 	// add the 'nui://' internal scheme
-	registrar->AddCustomScheme("nui", true, false, false);
+	registrar->AddCustomScheme("nui", true, false, false, true, false);
 }
 
 // null data resource functions
@@ -44,8 +44,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
-	command_line->AppendSwitch("disable-gpu-watchdog");
-	//command_line->AppendSwitch("gpu-startup-dialog");
+	command_line->AppendSwitch("in-process-gpu");
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)

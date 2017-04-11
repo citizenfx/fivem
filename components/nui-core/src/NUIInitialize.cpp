@@ -82,9 +82,6 @@ void Component_RunPreInit()
 	}
 }
 
-extern HANDLE g_fileMapping;
-extern HANDLE g_swapEvent;
-
 #include <fiCustomDevice.h>
 
 class ObfuscatedDevice : public rage::fiCustomDevice
@@ -232,10 +229,6 @@ void FinalizeInitNUI()
 
 	// delete any old CEF logs
 	DeleteFile(MakeRelativeCitPath(L"debug.log").c_str());
-
-	HANDLE hMutex = CreateMutex(nullptr, TRUE, L"NUI_IPC_SwapMutex");
-	g_swapEvent = CreateSemaphore(nullptr, 0, 1000, L"NUI_IPC_SwapSema");
-	g_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(HANDLE), L"NUI_IPC_Data");
 
 	auto selfApp = Instance<NUIApp>::Get();
 
