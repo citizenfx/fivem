@@ -1,0 +1,40 @@
+	<div class="nav-bottom material-5">
+		<div class="top-portion material-1">
+			<nav class="nav">
+				<div class="nav-left"></div>
+
+				<div class="nav-center">
+					<a class="nav-item browse"><h1 class="title is-4 is-active">Browse</h1></a>
+					<a class="nav-item history"><h1 class="title is-4">History</h1></a>
+					<a class="nav-item faves"><h1 class="title is-4">Favourites</h1></a>
+					<a class="nav-item direct"><h1 class="title is-4">Direct Connect</h1></a>
+				</div>
+
+				<div class="nav-right">
+					<a class="nav-item minimize-nav">
+						<span class="icon">
+							<i class="fa fa-angle-down"></i>
+						</span>
+					</a>
+				</div>
+			</nav>
+		</div>
+
+		<div class="bottom-portion">
+			<nav class="nav">
+				<div class="nav-left">
+					<span class="nav-item">
+						<h1 class="title is-1">Five<span class="highlight-blue">M</span>_</h1>
+					</span>
+				</div>
+
+				<div class="nav-center">
+					<a [routerLink]="['/home']" class="nav-item" routerLinkActive="is-active"><h1 class="title">Home</h1></a>
+					<a [routerLink]="['/servers']" class="nav-item" routerLinkActive="is-active"><h1 class="title">Servers</h1></a>
+					<a class="nav-item"><h1 class="title">Settings</h1></a>
+				</div>
+
+				<div class="nav-right"></div>
+			</nav>
+		</div>
+	</div>

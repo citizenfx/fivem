@@ -1,0 +1,306 @@
+/* You can add global styles to this file, and also import other style files */
+@import "~bulma/css/bulma.css";
+@import "~font-awesome/css/font-awesome.css";
+
+@font-face
+{
+    font-family: 'FiraSans';
+    src: url(assets/fonts/FiraSans-Regular.otf);
+	font-weight: normal;
+}
+
+@font-face
+{
+    font-family: 'FiraSans';
+    src: url(assets/fonts/FiraSans-Light.otf);
+	font-weight: 300;
+}
+
+$fonts: FiraSans;
+
+/* disable chromeme scrollbar */
+::-webkit-scrollbar { display: none; }
+
+html {
+	background: url(assets/images/background1.jpg) no-repeat center center fixed;
+	background-size: cover;
+}
+
+.highlight-blue {
+	color: #51B3EC;
+}
+
+.nav-bottom {
+	background: hsl(222, 23%, 11%);
+	border-radius: 2px;
+	display: inline-block;
+	height: 18%;
+	position: absolute;
+	width: 100%;
+	bottom: 0;
+	left: 0;
+}
+
+.nav-bottom h1, .nav-bottom h2 {
+	color: #fff;
+	font-family: $fonts;
+	font-weight: 300;
+}
+
+.nav-bottom .top-portion {
+	background-color: #51B3EC;
+	width: 100%;
+	height: 30%;
+}
+
+.nav-bottom .top-portion .nav-item {
+	border-bottom: 2px solid transparent;
+	transition: 0.2s;
+}
+
+.nav-bottom .top-portion .nav-item:hover {
+	border-bottom: 2px solid #fff;
+	transition: 0.2s;
+}
+
+.nav-bottom .bottom-portion {
+	width: 100%;
+	height: 70%;
+	padding: 1em;
+}
+
+.nav-bottom .bottom-portion .nav,
+.nav-bottom .top-portion .nav {
+	background-color: transparent;
+}
+
+.nav-bottom .nav h1,
+.nav-bottom .nav .minimize-nav,
+.server-list .server-filter a.panel-block,
+.server-list .server-filter .panel-tabs a {
+	color: rgba(255, 255, 255, 0.6);
+	transition: 0.2s;
+}
+
+.nav-bottom .nav h1:hover,
+.nav-bottom .nav .minimize-nav:hover,
+.server-list .server-filter a.panel-block:hover,
+.server-list .server-filter .panel-tabs a:hover {
+	color: #fff;
+	transition: 0.2s;
+}
+
+.nav-bottom .nav .is-active h1 {
+	color: #fff;
+}
+
+.server-list {
+	height: 82%;
+	width: 80%;
+	position: absolute;
+	top: 0;
+	left: 10%;
+	background-color: rgba(21, 25, 34, 0.8);
+	overflow: hidden;
+}
+
+.server-list .server-filter {
+	width: 15%;
+	height: 100%;
+	border-right: 2px solid #51B3EC;
+	background-color: hsl(222, 23%, 11%);
+}
+
+.server-list .server-filter .panel-heading {
+	border: 0px solid transparent;
+	background-color: transparent;
+	color: #fff;
+	font-family: $fonts;
+	font-weight: 400;
+}
+
+.server-list .server-filter a {
+	font-family: $fonts;
+	font-weight: 400;
+}
+
+.server-list .server-filter .filters {
+	margin-left: 1em;
+	margin-right: 1em;
+}
+
+.server-list .server-filter .filters label {
+	color: rgba(255, 255, 255, 0.8);
+	font-family: $fonts;
+	font-weight: 300;
+	transition: 0.2s;
+}
+
+.server-list .server-filter .filters label:hover {
+	color: #fff;
+}
+
+.server-list .server-filter .panel-tabs,
+.server-list .server-filter .panel-block {
+	border: 0px solid transparent;
+}
+
+.server-list .server-filter .panel-block:hover {
+	background-color: transparent;
+}
+
+.server-list .server-filter a.panel-block.is-active {
+	color: #fff;
+}
+
+.server-list .server-filter .panel-tabs a {
+	border-bottom: 1px solid transparent;
+}
+
+.server-list .server-filter .panel-tabs a.is-active,
+.server-list .server-filter .panel-tabs a:hover {
+	color: #fff;
+}
+.server-list .server-filter .panel-tabs a:hover {
+	border-bottom: 1px solid #fff;
+}
+
+.server-list .server-filter .input.is-small,
+.direct-connect .input.is-small {
+	border-radius: 0;
+	border: 1px solid transparent;
+}
+
+.server-list .server-filter .input:active,
+.server-list .server-filter .input:focus,
+.direct-connect .input:active,
+.direct-connect .input:focus {
+	border: 1px solid #51B3EC;
+}
+
+.server-list .servers {
+	position: absolute;
+	width: 85%;
+	height: 82%;
+	top: 0%;
+	margin-left: 15%; /* same as width of server-filter */
+}
+
+.server-list .servers .table {
+	background-color: rgba(0, 0, 0, 0.0);
+}
+
+.server-list .servers .table thead th,
+.server-list .servers .table tbody td {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.server-list .servers .table th,
+.server-list .servers .table td {
+	border: none;
+}
+
+.server-list .servers .table tbody tr {
+	border-bottom: 2px solid transparent;
+	transition: 0.2s;
+}
+
+.server-list .servers .table tbody tr:hover {
+	color: #fff;
+	background-color: rgba(0, 0, 0, 0.4);
+	border-bottom: 2px solid #51B3EC;
+}
+
+.server-list .servers .table tr:hover {
+	background-color: transparent;
+}
+
+.direct-connect .input {
+	background-color: rgba(21, 25, 34, 0.8);
+}
+
+.direct-connect input:not(placeholder) {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.direct-connect {
+	height: 40%;
+	width: 60%;
+	position: absolute;
+	top: 42%;
+	left: 20%;
+	background-color: rgba(21, 25, 34, 0.8);
+	overflow: hidden;
+}
+
+.direct-connect .loading,
+.direct-connect .error {
+	margin-top: 1em;
+	color: #fff;
+	text-align: center;
+}
+
+.direct-connect .error h1,
+.direct-connect .error h2 {
+	font-family: $fonts;
+	font-weight: 400;
+	color: #fff;
+}
+
+.direct-connect .server-info {
+	padding: 1em;
+}
+
+.direct-connect .server-info p {
+	color: #fff;
+	font-family: $fonts;
+	font-weight: 400;
+}
+
+/* material design shadows */
+.material-1 { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); transition: all 0.3s cubic-bezier(.25,.8,.25,1); }
+.material-1:hover { box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22); }
+.material-2 { box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23); }
+.material-3 { box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23); }
+.material-4 { box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22); }
+.material-5 { box-shadow: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22); }
+
+/* noUiSlider style */
+.noUi-horizontal {
+	height: 8px;
+}
+
+.noUi-horizontal .noUi-handle {
+	width: 12px;
+	height: 12px;
+	left: -6px;
+	top: -2.5px;
+	border-radius: 50%;
+	background-color: hsl(222, 23%, 11%);
+	box-shadow: none;
+	border: 2px solid #51B3EC;
+	transition: 0.2s;
+}
+
+.noUi-horizontal .noUi-handle:hover,
+.noUi-horizontal .noUi-handle:focus {
+	border: 2px solid #fff;
+}
+
+.noUi-target {
+	background: rgba(21, 25, 34, 0.8);
+	border-radius: 0;
+	border: 1px solid #51B3EC;
+	box-shadow: none;
+}
+.noUi-connect {
+	background: #51B3EC;
+	box-shadow: none;
+	-webkit-transition: background 450ms;
+	transition: background 450ms;
+}
+
+.noUi-handle:before,
+.noUi-handle:after {
+	display: none;
+}

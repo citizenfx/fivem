@@ -1,0 +1,122 @@
+$fonts: FiraSans;
+
+:host {
+	height: 82%;
+	width: 80%;
+	position: absolute;
+	top: 0;
+	left: 10%;
+	background-color: rgba(21, 25, 34, 0.8);
+	overflow: hidden;
+}
+
+.server-filter {
+	width: 15%;
+	height: 100%;
+	border-right: 2px solid #51B3EC;
+	background-color: hsl(222, 23%, 11%);
+}
+
+.server-filter .panel-heading {
+	border: 0px solid transparent;
+	background-color: transparent;
+	color: #fff;
+	font-family: $fonts;
+	font-weight: 400;
+}
+
+.server-filter a {
+	font-family: $fonts;
+	font-weight: 400;
+}
+
+.server-filter .filters {
+	margin-left: 1em;
+	margin-right: 1em;
+}
+
+.server-filter .filters label {
+	color: rgba(255, 255, 255, 0.8);
+	font-family: $fonts;
+	font-weight: 300;
+	transition: 0.2s;
+}
+
+.server-filter .filters label:hover {
+	color: #fff;
+}
+
+.server-filter .panel-tabs,
+.server-filter .panel-block {
+	border: 0px solid transparent;
+}
+
+.server-filter .panel-block:hover {
+	background-color: transparent;
+}
+
+.server-filter a.panel-block.is-active {
+	color: #fff;
+}
+
+.server-filter .panel-tabs a {
+	border-bottom: 1px solid transparent;
+}
+
+.server-filter .panel-tabs a.is-active,
+.server-filter .panel-tabs a:hover {
+	color: #fff;
+}
+.server-filter .panel-tabs a:hover {
+	border-bottom: 1px solid #fff;
+}
+
+.server-filter .input.is-small,
+.direct-connect .input.is-small {
+	border-radius: 0;
+	border: 1px solid transparent;
+}
+
+.server-filter .input:active,
+.server-filter .input:focus,
+.direct-connect .input:active,
+.direct-connect .input:focus {
+	border: 1px solid #51B3EC;
+}
+
+.servers {
+	position: absolute;
+	width: 85%;
+	height: 82%;
+	top: 0%;
+	margin-left: 15%; /* same as width of server-filter */
+}
+
+.servers .table {
+	background-color: rgba(0, 0, 0, 0.0);
+}
+
+.servers .table thead th,
+.servers .table tbody td {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.servers .table th,
+.servers .table td {
+	border: none;
+}
+
+.servers .table tbody tr {
+	border-bottom: 2px solid transparent;
+	transition: 0.2s;
+}
+
+.servers .table tbody tr:hover {
+	color: #fff;
+	background-color: rgba(0, 0, 0, 0.4);
+	border-bottom: 2px solid #51B3EC;
+}
+
+.servers .table tr:hover {
+	background-color: transparent;
+}
