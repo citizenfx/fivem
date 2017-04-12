@@ -71,16 +71,13 @@ $fonts: FiraSans;
 	border-bottom: 1px solid #fff;
 }
 
-.server-filter .input.is-small,
-.direct-connect .input.is-small {
+.server-filter .input.is-small {
 	border-radius: 0;
 	border: 1px solid transparent;
 }
 
 .server-filter .input:active,
-.server-filter .input:focus,
-.direct-connect .input:active,
-.direct-connect .input:focus {
+.server-filter .input:focus {
 	border: 1px solid #51B3EC;
 }
 
@@ -119,4 +116,16 @@ $fonts: FiraSans;
 
 .servers .table tr:hover {
 	background-color: transparent;
+}
+
+.server-filter a.panel-block:hover,
+.server-filter .panel-tabs a:hover {
+	color: #fff;
+	transition: 0.2s;
+}
+
+.server-filter a.panel-block,
+.server-filter .panel-tabs a {
+	color: rgba(255, 255, 255, 0.6);
+	transition: 0.2s;
 }

@@ -3,12 +3,16 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpModule } from '@angular/http';
 
+import { NguiTabModule } from '@ngui/tab';
+
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
 import { BottomNavComponent } from './bottom-nav.component';
 import { HomeComponent } from './home.component';
 import { ServerListComponent } from './server-list.component';
+
+import { ServersService } from './servers.service';
 
 @NgModule({
   declarations: [
@@ -21,11 +25,14 @@ import { ServerListComponent } from './server-list.component';
     BrowserModule,
     FormsModule,
     HttpModule,
-    AppRoutingModule
+    AppRoutingModule,
+    NguiTabModule
   ],
-  providers: [],
+  providers: [
+    ServersService
+  ],
   bootstrap: [
     AppComponent
   ]
-})
+}) 
 export class AppModule { }

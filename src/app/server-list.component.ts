@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 
+import { Server } from './server';
+import { ServersService } from './servers.service';
+
 @Component({
     moduleId: module.id,
     selector: 'app-server-list',
@@ -8,7 +11,15 @@ import { Component, OnInit } from '@angular/core';
 })
 
 export class ServerListComponent implements OnInit {
-    constructor() { }
+    servers: Server[];
 
-    ngOnInit() { }
+    constructor(private serverService: ServersService) { }
+
+    ngOnInit() {
+        this.loadServers();
+    }
+
+    loadServers() {
+        this.serverService.getServers().then(list => this.servers = list);
+    }
 }

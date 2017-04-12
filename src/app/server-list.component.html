@@ -9,38 +9,40 @@
 				</p>
 			</div>
 
-			<p class="panel-tabs material-1">
-				<a class="categories is-active">Categories</a>
-				<a class="filters">Filter</a>
-			</p>
+            <ngui-tab selected-index-class="is-active">
+                <p class="panel-tabs material-1">
+                    <a index="categories" class="is-active">Categories</a>
+                    <a index="filters">Filter</a>
+                </p>
 
-			<div class="content">
-				<div class="categories">
-					<a class="panel-block is-active">#all</a>
-					<a class="panel-block">#featured</a>
-					<a class="panel-block">#roleplay</a>
-					<a class="panel-block">#drifting</a>
-					<a class="panel-block">#copsnrobbers</a>
-					<a class="panel-block">#racing</a>
-					<a class="panel-block">#freeroam</a>
-					<a class="panel-block">.. and 67 more</a>
-				</div>
+                <div class="content">
+                    <div contents="categories" class="categories">
+                        <a class="panel-block is-active">#all</a>
+                        <a class="panel-block">#featured</a>
+                        <a class="panel-block">#roleplay</a>
+                        <a class="panel-block">#drifting</a>
+                        <a class="panel-block">#copsnrobbers</a>
+                        <a class="panel-block">#racing</a>
+                        <a class="panel-block">#freeroam</a>
+                        <a class="panel-block">.. and 67 more</a>
+                    </div>
 
-				<div class="filters">
-					<label class="checkbox">
-						<input type="checkbox" class="hide-empty">
-						Hide Empty
-					</label>
-					<label class="checkbox">
-						<input type="checkbox" class="hide-full">
-						Hide Full
-					</label>
-					<label class="label">
-						Max Ping [ <span class="ping-amount"></span> ]
-						<div id="ping-slider"></div>
-					</label>
-				</div>
-			</div>
+                    <div contents="filters" class="filters">
+                        <label class="checkbox">
+                            <input type="checkbox" class="hide-empty">
+                            Hide Empty
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" class="hide-full">
+                            Hide Full
+                        </label>
+                        <label class="label">
+                            Max Ping [ <span class="ping-amount"></span> ]
+                            <div id="ping-slider"></div>
+                        </label>
+                    </div>
+                </div>
+            </ngui-tab>
 		</nav>
 
 		<div class="servers">
@@ -56,41 +58,17 @@
 					</tr>
 				</thead>
 				<tbody>
-					<tr>
+					<tr *ngFor="let server of servers">
 						<td>
 							<figure class="image is-32x32">
-								<img src="images/server-placeholder.jpg">
+								<img src="{{server.iconUri}}">
 							</figure>
 						</td>
-						<td>・+;｡.✯GTADrifting✯.｡;+・</td>
-						<td>eurobeat intensifies</td>
-						<td>#drifting</td>
-						<td>14/32</td>
-						<td>69</td>
-					</tr>
-					<tr>
-						<td>
-							<figure class="image is-32x32">
-								<img src="http://5r.kngrektor.com/servericon/109.130.24.174:30120">
-							</figure>
-						</td>
-						<td>FUNNYSERVER</td>
-						<td>fivem-map-skater</td>
-						<td>#freeroam</td>
-						<td>9/24</td>
-						<td>125</td>
-					</tr>
-					<tr>
-						<td>
-							<figure class="image is-32x32">
-								<img src="http://5r.kngrektor.com/servericon/213.32.73.58:32121">
-							</figure>
-						</td>
-						<td>&lt;&lt;Zombie PVP(40+ modded cars)&gt;&gt;</td>
-						<td>fivem-map-skater</td>
-						<td>#zombie</td>
-						<td>10/24</td>
-						<td>250</td>
+						<td>{{server.hostname}}</td>
+						<td>amode</td>
+						<td>atag</td>
+						<td>{{server.currentPlayers}}/{{server.maxPlayers}}</td>
+						<td>{{server.ping}}</td>
 					</tr>
 				</tbody>
 			</table>
