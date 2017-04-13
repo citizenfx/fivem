@@ -12,6 +12,7 @@ import { ServersService } from './servers.service';
 
 export class ServerListComponent implements OnInit {
     servers: Server[];
+    localServers: Server[]; // temp value
 
     constructor(private serverService: ServersService) { }
 
