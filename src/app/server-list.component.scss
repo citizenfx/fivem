@@ -8,13 +8,39 @@ $fonts: FiraSans;
 	left: 10%;
 	background-color: rgba(21, 25, 34, 0.8);
 	overflow: hidden;
+
+	box-sizing: border-box;
+}
+
+:host > div {
+	height: 100%;
+	margin-bottom: 0px;
+	margin-top: 0px;
+}
+
+:host .servers.column {
+	padding: 0px;
 }
 
 .server-filter {
 	width: 15%;
 	height: 100%;
-	border-right: 2px solid #51B3EC;
 	background-color: hsl(222, 23%, 11%);
+
+	box-shadow: 0 6px 3px rgba(0,0,0,0.12), 0 6px 3px rgba(0,0,0,0.24);
+
+	position: relative;
+}
+
+.server-filter > div.a {
+	z-index: 1000;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	right: 0px;
+	left: 0px;
+
+	border-right: 2px solid #51B3EC;
 }
 
 .server-filter .panel-heading {
@@ -81,12 +107,80 @@ $fonts: FiraSans;
 	border: 1px solid #51B3EC;
 }
 
+$columns: (
+	icon: 40px,
+	name: calc(80% - 40px),
+	players: calc(10%),
+	ping: calc(10%),
+);
+
 .servers {
+	height: 100%;
+}
+
+.servers dl {
+	display: flex;
+	flex-direction: row;
+	flex-grow: 0;
+	align-items: center;
+
+	height: 40px;
+}
+
+.servers dt, .servers dd
+{
+	flex-grow: 1;
+	white-space: nowrap;
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.servers .icon
+{
+	height: 100%;
+}
+
+@each $key, $width in $columns {
+	.servers .#{$key} {
+		width: $width;
+	}
+}
+
+.servers {
+	position: relative;
+}
+
+.servers dl.heading {
+	height: auto;
+	padding-top: 8px;
+	padding-bottom: 6px;
+	margin-bottom: 0px;
+
+	background-color: hsl(222, 23%, 11%);
+
+	box-shadow: 0 3px 6px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.24);
+
+	z-index: 999;
+
 	position: absolute;
-	width: 85%;
-	height: 82%;
-	top: 0%;
-	margin-left: 15%; /* same as width of server-filter */
+	left: 0;
+	right: 0;
+}
+
+.servers .list {
+	margin-top: 32px;
+
+	display: block;
+	height: 100%;
+	overflow-y: scroll;
+}
+
+virtual-scroll {
+	padding-top: 32px;
+	display: block;
+	height: 100%;
 }
 
 .servers .table {
@@ -103,12 +197,12 @@ $fonts: FiraSans;
 	border: none;
 }
 
-.servers .table tbody tr {
+.servers .list dl {
 	border-bottom: 2px solid transparent;
 	transition: 0.2s;
 }
 
-.servers .table tbody tr:hover {
+.servers .list dl:hover {
 	color: #fff;
 	background-color: rgba(0, 0, 0, 0.4);
 	border-bottom: 2px solid #51B3EC;

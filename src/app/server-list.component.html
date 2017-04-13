@@ -1,4 +1,5 @@
-		<nav class="panel server-filter">
+	<div class="columns">
+        <nav class="panel server-filter column is-one-quarter">
 			<p class="panel-heading">Filter</p>
 			<div class="panel-block">
 				<p class="control has-icon">
@@ -43,33 +44,47 @@
                     </div>
                 </div>
             </ngui-tab>
+
+            <div class="a"></div>
 		</nav>
 
-		<div class="servers">
-			<table class="table">
-				<thead>
-					<tr>
-						<th><!-- icon bit --></th>
-						<th>Name</th>
-						<th>Gametype</th>
-						<th>Category</th>
-						<th>Players</th>
-						<th>Ping</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr *ngFor="let server of servers">
-						<td>
-							<figure class="image is-32x32">
-								<img src="{{server.iconUri}}">
-							</figure>
-						</td>
-						<td>{{server.hostname}}</td>
-						<td>amode</td>
-						<td>atag</td>
-						<td>{{server.currentPlayers}}/{{server.maxPlayers}}</td>
-						<td>{{server.ping}}</td>
-					</tr>
-				</tbody>
-			</table>
+		<div class="servers column">
+            <dl class="heading">
+                <dt class="icon">
+
+                </dt>
+                <dd class="name" translate>
+                    #ServerList_Name
+                </dd>
+                <dd class="players" translate>
+                    #ServerList_Players
+                </dd>
+                <dd class="ping" translate>
+                    #ServerList_Ping
+                </dd>
+            </dl>
+            <div class="list">
+                <virtual-scroll [items]="servers" (update)="localServers = $event">
+                    <div class="server" *ngFor="let server of localServers">
+                        <dl>
+                            <dt class="icon">
+                                <figure class="image is-32x32">
+                                    <img src="{{server.iconUri}}">
+                                </figure>
+                            </dt>
+                            <dd class="name">
+                                {{server.hostname}}
+                            </dd>
+                            <dd class="players">
+                                {{server.currentPlayers}}/{{server.maxPlayers}}
+                            </dd>
+                            <dd class="ping">
+                                {{server.ping}}
+                            </dd>
+                        </dl>
+                    </div>
+                </virtual-scroll>
+            </div>
+            
 		</div>
+	</div>
