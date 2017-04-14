@@ -17,6 +17,7 @@ import { ServerListComponent } from './servers/ui/server-list.component';
 import { ServerListingComponent } from './servers/ui/server-listing.component';
 import { ServerListingItemComponent } from './servers/ui/server-listing-item.component';
 import { ServerHeadingComponent } from './servers/ui/server-heading.component';
+import { ServerFilterComponent } from './servers/ui/server-filter.component';
 
 import { ServersService } from './servers/servers.service';
 
@@ -28,7 +29,8 @@ import { ServersService } from './servers/servers.service';
     ServerListComponent,
     ServerListingComponent,
     ServerListingItemComponent,
-    ServerHeadingComponent
+    ServerHeadingComponent,
+    ServerFilterComponent
   ],
   imports: [
     BrowserModule,

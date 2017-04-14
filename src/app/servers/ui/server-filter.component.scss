@@ -1,0 +1,72 @@
+.panel-heading {
+	border: 0px solid transparent;
+	background-color: transparent;
+	color: #fff;
+	font-weight: 400;
+}
+
+a {
+	font-weight: 400;
+}
+
+.filters {
+	margin-left: 1em;
+	margin-right: 1em;
+}
+
+.filters label {
+	color: rgba(255, 255, 255, 0.8);
+	font-weight: 300;
+	transition: 0.2s;
+}
+
+.filters label:hover {
+	color: #fff;
+}
+
+.panel-tabs,
+.panel-block {
+	border: 0px solid transparent;
+}
+
+.panel-block:hover {
+	background-color: transparent;
+}
+
+a.panel-block.is-active {
+	color: #fff;
+}
+
+.panel-tabs a {
+	border-bottom: 1px solid transparent;
+}
+
+.panel-tabs a.is-active,
+.panel-tabs a:hover {
+	color: #fff;
+}
+.panel-tabs a:hover {
+	border-bottom: 1px solid #fff;
+}
+
+.input.is-small {
+	border-radius: 0;
+	border: 1px solid transparent;
+}
+
+.input:active,
+.input:focus {
+	border: 1px solid #51B3EC;
+}
+
+a.panel-block:hover,
+.panel-tabs a:hover {
+	color: #fff;
+	transition: 0.2s;
+}
+
+a.panel-block,
+.panel-tabs a {
+	color: rgba(255, 255, 255, 0.6);
+	transition: 0.2s;
+}

@@ -1,55 +1,11 @@
 	<div class="columns">
         <nav class="panel server-filter column is-one-quarter">
-            <!--<app-server-filter (filterChanged)="void()"></app-server-filter>-->
-			<p class="panel-heading">Filter</p>
-			<div class="panel-block">
-				<p class="control has-icon">
-					<input class="input is-small material-1" type="text" placeholder="Search">
-					<span class="icon is-small">
-						<i class="fa fa-search"></i>
-					</span>
-				</p>
-			</div>
-
-            <ngui-tab selected-index-class="is-active">
-                <p class="panel-tabs material-1">
-                    <a index="categories" class="is-active">Categories</a>
-                    <a index="filters">Filter</a>
-                </p>
-
-                <div class="content">
-                    <div contents="categories" class="categories">
-                        <a class="panel-block is-active">#all</a>
-                        <a class="panel-block">#featured</a>
-                        <a class="panel-block">#roleplay</a>
-                        <a class="panel-block">#drifting</a>
-                        <a class="panel-block">#copsnrobbers</a>
-                        <a class="panel-block">#racing</a>
-                        <a class="panel-block">#freeroam</a>
-                        <a class="panel-block">.. and 67 more</a>
-                    </div>
-
-                    <div contents="filters" class="filters">
-                        <label class="checkbox">
-                            <input type="checkbox" class="hide-empty">
-                            Hide Empty
-                        </label>
-                        <label class="checkbox">
-                            <input type="checkbox" class="hide-full">
-                            Hide Full
-                        </label>
-                        <label class="label">
-                            Max Ping [ <span class="ping-amount"></span> ]
-                            <div id="ping-slider"></div>
-                        </label>
-                    </div>
-                </div>
-            </ngui-tab>
+			<app-server-filter (filtersChanged)="setFilters($event)"></app-server-filter>
 
             <div class="a"></div>
 		</nav>
 
 		<div class="servers column">
-            <app-server-listing [servers]="servers"></app-server-listing>
+            <app-server-listing [servers]="servers" [filters]="filters"></app-server-listing>
 		</div>
 	</div>

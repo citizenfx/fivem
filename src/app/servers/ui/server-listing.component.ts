@@ -2,6 +2,7 @@ import { Component, OnInit, OnChanges, Input } from '@angular/core';
 import { Server } from '../server';
 
 import { ServerHeadingColumn } from './server-heading.component';
+import { ServerFilters } from './server-filter.component';
 
 @Component({
     moduleId: module.id,
@@ -13,6 +14,9 @@ import { ServerHeadingColumn } from './server-heading.component';
 export class ServerListingComponent implements OnInit, OnChanges {
     @Input()
     private servers: Server[];
+
+    @Input()
+    private filters: ServerFilters;
 
     private sortOrder: string[];
 
@@ -44,8 +48,32 @@ export class ServerListingComponent implements OnInit, OnChanges {
         this.sortOrder = ['ping', '-'];
     }
 
-    sortServers() {
-        const servers = (this.servers || []).concat();
+    getFilter(filters: ServerFilters): (server: Server) => boolean {
+        const reString = 
+            (filters.searchText.match(/^\/(.+)\/$/)) ?
+                filters.searchText.replace(/^\/(.+)\/$/, '$1')
+            :
+                filters.searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        let re: RegExp;
+
+        try {
+            re = new RegExp(reString, 'i');
+        } catch (e) {}
+
+        return (server) => {
+            if (re) {
+                if (!re.test(server.hostname)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    sortAndFilterServers() {
+        const servers = (this.servers || []).concat().filter(this.getFilter(this.filters));
 
         servers.sort((a, b) => {
             const sortChain = (...stack: ((a: Server, b: Server) => number)[]) => {
@@ -105,12 +133,12 @@ export class ServerListingComponent implements OnInit, OnChanges {
             ];
         }
 
-        this.sortServers();
+        this.sortAndFilterServers();
     }
 
     ngOnInit() { }
 
     ngOnChanges() {
-        this.sortServers();
+        this.sortAndFilterServers();
     }
 }
