@@ -21,13 +21,13 @@ export class ServerHeadingColumn {
 })
 export class ServerHeadingComponent extends Translation {
     @Input()
-    private columns: ServerHeadingColumn[];
+    columns: ServerHeadingColumn[];
 
     @Input()
-    private sortOrder: string[];
+    sortOrder: string[];
 
     @Output()
-    private sort = new EventEmitter<string>();
+    sort = new EventEmitter<string>();
 
     @HostListener('click', ['$event.target'])
     private onClick(target: Element) {

@@ -10,7 +10,7 @@ import { Server } from '../server';
 
 export class ServerListingItemComponent {
     @Input()
-    private server: Server;
+    server: Server;
 
     constructor() { }
 }

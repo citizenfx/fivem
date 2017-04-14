@@ -17,7 +17,7 @@ export class ServerFilters {
     styleUrls: ['server-filter.component.scss']
 })
 export class ServerFilterComponent implements OnChanges {
-    private filters: ServerFilters;
+    filters: ServerFilters;
 
     @Output()
     public filtersChanged = new EventEmitter<ServerFilters>();

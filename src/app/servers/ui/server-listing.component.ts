@@ -18,7 +18,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
     @Input()
     private filters: ServerFilters;
 
-    private sortOrder: string[];
+    sortOrder: string[];
 
     get columns(): ServerHeadingColumn[] {
         return [
@@ -41,7 +41,8 @@ export class ServerListingComponent implements OnInit, OnChanges {
         ];
     }
 
-    private sortedServers: Server[];
+    localServers: Server[];
+    sortedServers: Server[];
 
     constructor() {
         this.servers = [];
