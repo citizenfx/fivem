@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
-import { Server } from './server';
-import { ServersService } from './servers.service';
+import { Server } from '../server';
+import { ServersService } from '../servers.service';
 
 @Component({
     moduleId: module.id,

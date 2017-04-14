@@ -38,7 +38,7 @@ $fonts: FiraSans;
 	top: 0px;
 	bottom: 0px;
 	right: 0px;
-	left: 0px;
+	width: 0%;
 
 	border-right: 2px solid #51B3EC;
 }
@@ -105,111 +105,6 @@ $fonts: FiraSans;
 .server-filter .input:active,
 .server-filter .input:focus {
 	border: 1px solid #51B3EC;
-}
-
-$columns: (
-	icon: 40px,
-	name: calc(80% - 40px),
-	players: calc(10%),
-	ping: calc(10%),
-);
-
-.servers {
-	height: 100%;
-}
-
-.servers dl {
-	display: flex;
-	flex-direction: row;
-	flex-grow: 0;
-	align-items: center;
-
-	height: 40px;
-}
-
-.servers dt, .servers dd
-{
-	flex-grow: 1;
-	white-space: nowrap;
-	overflow-x: hidden;
-	text-overflow: ellipsis;
-
-	color: rgba(255, 255, 255, 0.8);
-}
-
-.servers .icon
-{
-	height: 100%;
-}
-
-@each $key, $width in $columns {
-	.servers .#{$key} {
-		width: $width;
-	}
-}
-
-.servers {
-	position: relative;
-}
-
-.servers dl.heading {
-	height: auto;
-	padding-top: 8px;
-	padding-bottom: 6px;
-	margin-bottom: 0px;
-
-	background-color: hsl(222, 23%, 11%);
-
-	box-shadow: 0 3px 6px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.24);
-
-	z-index: 999;
-
-	position: absolute;
-	left: 0;
-	right: 0;
-}
-
-.servers .list {
-	margin-top: 32px;
-
-	display: block;
-	height: 100%;
-	overflow-y: scroll;
-}
-
-virtual-scroll {
-	padding-top: 32px;
-	display: block;
-	height: 100%;
-}
-
-.servers .table {
-	background-color: rgba(0, 0, 0, 0.0);
-}
-
-.servers .table thead th,
-.servers .table tbody td {
-	color: rgba(255, 255, 255, 0.8);
-}
-
-.servers .table th,
-.servers .table td {
-	border: none;
-}
-
-.servers .list dl {
-	border-bottom: 2px solid transparent;
-	transition: 0.2s;
-}
-
-.servers .list dl:hover {
-	color: #fff;
-	background-color: rgba(0, 0, 0, 0.4);
-	border-bottom: 2px solid #51B3EC;
-}
-
-.servers .table tr:hover {
-	background-color: transparent;
 }
 
 .server-filter a.panel-block:hover,

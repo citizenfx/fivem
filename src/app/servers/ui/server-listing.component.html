@@ -1,0 +1,19 @@
+            <dl class="heading">
+                <dt class="icon">
+
+                </dt>
+                <dd class="name" translate>
+                    #ServerList_Name
+                </dd>
+                <dd class="players" translate>
+                    #ServerList_Players
+                </dd>
+                <dd class="ping" translate>
+                    #ServerList_Ping
+                </dd>
+            </dl>
+            <div class="list">
+                <virtual-scroll [items]="sortedServers" (update)="localServers = $event">
+                    <app-server-listing-item [server]="server" *ngFor="let server of localServers"></app-server-listing-item>
+                </virtual-scroll>
+            </div>

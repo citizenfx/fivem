@@ -12,16 +12,21 @@ import { AppComponent } from './app.component';
 
 import { BottomNavComponent } from './bottom-nav.component';
 import { HomeComponent } from './home.component';
-import { ServerListComponent } from './server-list.component';
 
-import { ServersService } from './servers.service';
+import { ServerListComponent } from './servers/ui/server-list.component';
+import { ServerListingComponent } from './servers/ui/server-listing.component';
+import { ServerListingItemComponent } from './servers/ui/server-listing-item.component';
+
+import { ServersService } from './servers/servers.service';
 
 @NgModule({
   declarations: [
     AppComponent,
     BottomNavComponent,
     HomeComponent,
-    ServerListComponent
+    ServerListComponent,
+    ServerListingComponent,
+    ServerListingItemComponent
   ],
   imports: [
     BrowserModule,

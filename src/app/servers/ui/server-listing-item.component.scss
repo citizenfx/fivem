@@ -1,0 +1,12 @@
+@import "./server-listing-shared.scss";
+
+dl {
+	border-bottom: 2px solid transparent;
+	transition: 0.2s;
+}
+
+dl:hover {
+	color: #fff;
+	background-color: rgba(0, 0, 0, 0.4);
+	border-bottom: 2px solid #51B3EC;
+}

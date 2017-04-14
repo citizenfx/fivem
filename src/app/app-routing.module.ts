@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
 import { HomeComponent } from './home.component';
-import { ServerListComponent } from './server-list.component';
+import { ServerListComponent } from './servers/ui/server-list.component';
 
 const routes: Routes = [
   {
