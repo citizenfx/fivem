@@ -6,23 +6,6 @@
 	position: relative;
 }
 
-.heading {
-	height: auto;
-	padding-top: 8px;
-	padding-bottom: 6px;
-	margin-bottom: 0px;
-
-	background-color: hsl(222, 23%, 11%);
-
-	box-shadow: 0 3px 6px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.24);
-
-	z-index: 999;
-
-	position: absolute;
-	left: 0;
-	right: 0;
-}
-
 .list {
 	padding-top: 30px;
 
