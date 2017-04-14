@@ -1,17 +1,9 @@
-            <dl class="heading">
-                <dt class="icon">
-
-                </dt>
-                <dd class="name" translate>
-                    #ServerList_Name
-                </dd>
-                <dd class="players" translate>
-                    #ServerList_Players
-                </dd>
-                <dd class="ping" translate>
-                    #ServerList_Ping
-                </dd>
-            </dl>
+            <div class="heading ui-row">
+                <app-server-heading-column column="icon" no-sort="true"></app-server-heading-column>
+                <app-server-heading-column column="name" label="#ServerList_Name"></app-server-heading-column>
+                <app-server-heading-column column="players" label="#ServerList_Players"></app-server-heading-column>
+                <app-server-heading-column column="ping" label="#ServerList_Ping"></app-server-heading-column>
+            </div>
             <div class="list">
                 <virtual-scroll [items]="sortedServers" (update)="localServers = $event">
                     <app-server-listing-item [server]="server" *ngFor="let server of localServers"></app-server-listing-item>
