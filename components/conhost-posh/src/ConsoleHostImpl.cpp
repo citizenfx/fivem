@@ -172,15 +172,32 @@ void ConHost_WaitForKey(uint32_t& vKey, wchar_t& character, ConsoleModifiers& mo
 	modifiers = event.modifiers;
 }
 
+struct MonoAttachment
+{
+	MonoThread* thread;
+
+	MonoAttachment()
+		: thread(nullptr)
+	{
+		if (!mono_domain_get())
+		{
+			thread = mono_thread_attach(g_rootDomain);
+		}
+	}
+
+	~MonoAttachment()
+	{
+		if (thread)
+		{
+			mono_thread_detach(thread);
+			thread = nullptr;
+		}
+	}
+};
+
 void ConHost_SendMessage(MonoString* string)
 {
-	static thread_local bool isMonoAttached = false;
-
-	if (!isMonoAttached)
-	{
-		mono_thread_attach(g_rootDomain);
-		isMonoAttached = true;
-	}
+	static thread_local MonoAttachment monoAttachment;
 	
 	void* runArgs[1];
 	runArgs[0] = string;
@@ -196,20 +213,6 @@ void ConHost_SendMessage(MonoString* string)
 
 void SendPrintMessage(const std::string& message)
 {
-	/*rapidjson::Document doc;
-	doc.SetObject();
-
-	doc.AddMember("type", "print", doc.GetAllocator());
-	doc.AddMember("data", rapidjson::Value(message.c_str(), message.size()), doc.GetAllocator()));
-
-	rapidjson::StringBuffer sb;
-	rapidjson::Writer<rapidjson::StringBuffer> w(sb);
-
-	if (doc.Accept(w))
-	{
-		ConHost_SendMessage(mono_string_new_len(g_rootDomain, sb.GetString(), sb.GetSize()));
-	}*/
-
 	ConHost_SendMessage(mono_string_new_len(g_rootDomain, message.c_str(), message.size()));
 }
 
