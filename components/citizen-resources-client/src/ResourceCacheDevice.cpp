@@ -212,6 +212,11 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		else
 		{
 			// log success
+			{
+				auto device = vfs::GetDevice(outFileName);
+				outSize = device->GetLength(outFileName);
+			}
+
 			trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", handleData->entry.basename.c_str(), (timeGetTime() - initTime), outSize);
 
 			// add the file to the resource cache
