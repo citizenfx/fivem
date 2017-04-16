@@ -24,7 +24,8 @@ deps = {
 	"vendor/libuv": "https://github.com/libuv/libuv.git@7639dd510ec13dd577677dce2a673f5046432903",
 	"vendor/fmtlib": "https://github.com/fmtlib/fmt.git",
 	"vendor/nghttp2": "https://github.com/nghttp2/nghttp2@v1.20.0",
-	"vendor/cpr": "https://github.com/whoshuu/cpr.git@master"
+	"vendor/cpr": "https://github.com/whoshuu/cpr.git@master",
+	"vendor/imgui": "https://github.com/ocornut/imgui.git@v1.49"
 }
 
 hooks = [

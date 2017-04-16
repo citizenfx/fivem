@@ -20,6 +20,7 @@ vendor_component 'botan'
 vendor_component 'fmtlib'
 vendor_component 'fmtlib-crt'
 vendor_component 'cpr'
+vendor_component 'imgui'
 
 if os.get() == 'windows' then
 	vendor_component 'boost_program_options'
