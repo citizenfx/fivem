@@ -19,11 +19,26 @@
 
 #include <network/uri.hpp>
 
+#include <ppl.h>
+
 #include <Error.h>
 
 using fx::CachedResourceMounter;
 
 void MountResourceCacheDevice(std::shared_ptr<ResourceCache> cache);
+
+static auto g_limitedScheduler = concurrency::Scheduler::Create(
+	concurrency::SchedulerPolicy(2, 
+		concurrency::MinConcurrency, 1, 
+		concurrency::MaxConcurrency, 4));
+
+static struct : public concurrency::scheduler_interface
+{
+	virtual void schedule(concurrency::TaskProc_t proc, void* arg) override
+	{
+		g_limitedScheduler->ScheduleTask(proc, arg);
+	}
+} g_schedulerWrap;
 
 CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager)
 	: m_manager(manager)
@@ -149,7 +164,7 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 				}
 
 				return localResource;
-			});
+			}, concurrency::task_options(g_schedulerWrap));
 		}
 	}
 
