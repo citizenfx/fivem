@@ -11,6 +11,7 @@
 #include <strsafe.h>
 #include <GlobalEvents.h>
 #include <nutsnbolts.h>
+#include <ConsoleHost.h>
 //New libs needed for saveSettings
 #include <fstream>
 #include <sstream>
@@ -110,10 +111,32 @@ inline bool HasDefaultName()
 	return false;
 }
 
+static NetLibrary* netLibrary;
+
+static void ConnectTo(const std::string& hostnameStr)
+{
+	static char hostname[256];
+
+	StringCbCopyA(hostname, sizeof(hostname), hostnameStr.c_str());
+
+	std::string port = std::string(hostname);
+	std::string ip = std::string(hostname);
+	ip = ip.substr(0, ip.find_last_of(":"));
+	port = port.substr(port.find_last_of(":") + 1);
+	const char* portnum = port.c_str();
+
+	if (port.empty())
+	{
+		portnum = "30120";
+	}
+
+	netLibrary->ConnectToServer(ip.c_str(), atoi(portnum));
+
+	nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+}
+
 static InitFunction initFunction([] ()
 {
-	static NetLibrary* netLibrary;
-
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* lib)
 	{
 		netLibrary = lib;
@@ -148,6 +171,14 @@ static InitFunction initFunction([] ()
 		});
 	});
 
+	ConHost::OnInvokeNative.Connect([](const char* type, const char* arg)
+	{
+		if (!_stricmp(type, "connectTo"))
+		{
+			ConnectTo(arg);
+		}
+	});
+
 	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
 	{
 		if (!_wcsicmp(type, L"connectTo"))
@@ -155,24 +186,7 @@ static InitFunction initFunction([] ()
 			std::wstring hostnameStrW = arg;
 			std::string hostnameStr(hostnameStrW.begin(), hostnameStrW.end());
 
-			static char hostname[256];
-
-			StringCbCopyA(hostname, sizeof(hostname), hostnameStr.c_str());
-
-			std::string port = std::string(hostname);
-			std::string ip = std::string(hostname);
-			ip = ip.substr(0, ip.find_last_of(":"));
-			port = port.substr(port.find_last_of(":") + 1);
-			const char* portnum = port.c_str();
-
-			if (port.empty())
-			{
-				portnum = "30120";
-			}
-
-			netLibrary->ConnectToServer(ip.c_str(), atoi(portnum));
-
-			nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+			ConnectTo(hostnameStr);
 		}
 		else if (!_wcsicmp(type, L"changeName"))
 		{

@@ -5,7 +5,8 @@
 		"fx[2]",
 		"net",
 		"nui:core",
-		"gta:core"
+		"gta:core",
+		"conhost"
 	],
 	"provides": []
 }
