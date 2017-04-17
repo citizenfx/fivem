@@ -3,6 +3,8 @@ export class Server {
     readonly hostname: string;
     readonly sortname: string;
     readonly strippedname: string;
+    readonly data: any;
+
     currentPlayers: number;
 
     get maxPlayers(): number {
@@ -35,11 +37,18 @@ export class Server {
     }
 
     private constructor(address: string, object: any) {
+        // temp compat behavior
+        if (object.Resources) {
+            object.resources = object.Resources;
+        }
+
         this.address = address;
         this.hostname = object.hostname;
         this.currentPlayers = object.clients | 0;
 
         this.strippedname = this.hostname.replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         this.sortname = this.strippedname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+        this.data = object;
     }
 }

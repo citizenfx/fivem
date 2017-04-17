@@ -49,11 +49,16 @@ export class ServerListingComponent implements OnInit, OnChanges {
         this.sortOrder = ['ping', '-'];
     }
 
-    private buildNameMatch(filters: ServerFilters) {
+    private static quoteRe(text: string) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    private buildSearchMatch(filters: ServerFilters) {
         const searchText = filters.searchText;
-        const filterFns: ((name: string) => boolean)[] = [];
+        const filterFns: ((server: Server) => boolean)[] = [];
 
         const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
+        const categoryRe = /^([^:]*?):(.*)$/
 
         let match: RegExpExecArray;
 
@@ -70,22 +75,50 @@ export class ServerListingComponent implements OnInit, OnChanges {
                 continue;
             }
 
-            const reString = 
-                (searchGroup.match(/^\/(.+)\/$/)) ?
-                    searchGroup.replace(/^\/(.+)\/$/, '$1')
-                :
-                    searchGroup.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const categoryMatch = searchGroup.match(categoryRe);
+            
+            if (!categoryMatch) {
+                const reString = 
+                    (searchGroup.match(/^\/(.+)\/$/)) ?
+                        searchGroup.replace(/^\/(.+)\/$/, '$1')
+                    :
+                        ServerListingComponent.quoteRe(searchGroup);
 
-            try {
-                const re = new RegExp(reString, 'i');
-                filterFns.push(a => (invertSearch) ? !re.test(a) : re.test(a));
-            } catch (e) {}
+                try {
+                    const re = new RegExp(reString, 'i');
+                    filterFns.push(a => (invertSearch) ? !re.test(a.strippedname) : re.test(a.strippedname));
+                } catch (e) {}
+            } else {
+                const category = categoryMatch[1];
+                const match = new RegExp(ServerListingComponent.quoteRe(categoryMatch[2]), 'i');
+
+                filterFns.push(server =>
+                {
+                    let result = false;
+
+                    if (server.data[category]) {
+                        result = match.test(String(server.data[category]));
+                    } else if (server.data[category + 's']) {
+                        const fields = server.data[category + 's'];
+
+                        if (Array.isArray(fields)) {
+                            result = fields.filter(a => match.test(String(a))).length > 0;
+                        }
+                    }
+
+                    if (invertSearch) {
+                        result = !result;
+                    }
+
+                    return result;
+                });
+            }
         }
         
         return (server: Server) =>
         {
             for (const fn of filterFns) {
-                if (!fn(server.strippedname)) {
+                if (!fn(server)) {
                     return false;
                 }
             }
@@ -95,7 +128,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
     }
 
     getFilter(filters: ServerFilters): (server: Server) => boolean {
-        const nameMatchCallback = this.buildNameMatch(filters);
+        const nameMatchCallback = this.buildSearchMatch(filters);
 
         return (server) => {
             if (!nameMatchCallback(server)) {
