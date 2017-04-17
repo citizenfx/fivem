@@ -85,7 +85,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
         return (server: Server) =>
         {
             for (const fn of filterFns) {
-                if (!fn(server.sortname)) {
+                if (!fn(server.strippedname)) {
                     return false;
                 }
             }
