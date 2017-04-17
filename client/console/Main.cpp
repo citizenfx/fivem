@@ -9,6 +9,9 @@
 
 int wmain(int argc, const wchar_t** argv)
 {
+	SetEnvironmentVariable(L"CitizenFX_ToolMode", L"1");
+	_putenv("CitizenFX_ToolMode=1");
+
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
@@ -18,8 +21,6 @@ int wmain(int argc, const wchar_t** argv)
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
-
-	SetEnvironmentVariable(L"CitizenFX_ToolMode", L"1");
 
 	// initializing toolmode
 	HMODULE coreRT = LoadLibrary(MakeRelativeCitPath(L"CoreRT.dll").c_str());
