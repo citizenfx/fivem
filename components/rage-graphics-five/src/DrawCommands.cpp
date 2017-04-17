@@ -271,11 +271,19 @@ static uint32_t g_realResolution[2];
 
 void GetGameResolution(int& resX, int& resY)
 {
-	//resX = *(int*)0xFDCEAC;
-	//resY = *(int*)0xFDCEB0;
+	resX = g_resolution[0];
+	resY = g_resolution[1];
 
-	resX = g_realResolution[0];
-	resY = g_realResolution[1];
+	if (IsOnRenderThread() && (resX != resY))
+	{
+		g_realResolution[0] = resX;
+		g_realResolution[1] = resY;
+	}
+	else
+	{
+		resX = g_realResolution[0];
+		resY = g_realResolution[1];
+	}
 }
 
 hook::cdecl_stub<void(uint32_t)> setRasterizerState([] ()
