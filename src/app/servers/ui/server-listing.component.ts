@@ -49,24 +49,57 @@ export class ServerListingComponent implements OnInit, OnChanges {
         this.sortOrder = ['ping', '-'];
     }
 
-    getFilter(filters: ServerFilters): (server: Server) => boolean {
-        const reString = 
-            (filters.searchText.match(/^\/(.+)\/$/)) ?
-                filters.searchText.replace(/^\/(.+)\/$/, '$1')
-            :
-                filters.searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    private buildNameMatch(filters: ServerFilters) {
+        const searchText = filters.searchText;
+        const filterFns: ((name: string) => boolean)[] = [];
 
-        let re: RegExp;
+        const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
 
-        try {
-            re = new RegExp(reString, 'i');
-        } catch (e) {}
+        let match: RegExpExecArray;
 
-        return (server) => {
-            if (re) {
-                if (!re.test(server.strippedname)) {
+        while (match = searchRe.exec(searchText)) {
+            let searchGroup = match[1];
+            let invertSearch = false;
+
+            if (searchGroup.startsWith('~')) {
+                searchGroup = searchGroup.substring(1);
+                invertSearch = true;
+            }
+
+            if (searchGroup.length < 2) {
+                continue;
+            }
+
+            const reString = 
+                (searchGroup.match(/^\/(.+)\/$/)) ?
+                    searchGroup.replace(/^\/(.+)\/$/, '$1')
+                :
+                    searchGroup.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            try {
+                const re = new RegExp(reString, 'i');
+                filterFns.push(a => (invertSearch) ? !re.test(a) : re.test(a));
+            } catch (e) {}
+        }
+        
+        return (server: Server) =>
+        {
+            for (const fn of filterFns) {
+                if (!fn(server.sortname)) {
                     return false;
                 }
+            }
+
+            return true;
+        };
+    }
+
+    getFilter(filters: ServerFilters): (server: Server) => boolean {
+        const nameMatchCallback = this.buildNameMatch(filters);
+
+        return (server) => {
+            if (!nameMatchCallback(server)) {
+                return false;
             }
 
             return true;
