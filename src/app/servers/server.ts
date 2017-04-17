@@ -39,8 +39,7 @@ export class Server {
         this.hostname = object.hostname;
         this.currentPlayers = object.clients | 0;
 
-        // TODO: unicode normalization
-        this.strippedname = this.hostname.replace(/\^[0-9]/g, '');
-        this.sortname = this.hostname.replace(/\^[0-9]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        this.strippedname = this.hostname.replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        this.sortname = this.strippedname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     }
 }
