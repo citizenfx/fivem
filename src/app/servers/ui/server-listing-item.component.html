@@ -4,8 +4,7 @@
             <img src="{{server.iconUri}}">
         </figure>
     </dt>
-    <dd class="name">
-        {{server.hostname}}
+    <dd class="name" [innerHTML]="server.hostname | escape | colorize">
     </dd>
     <dd class="players">
         {{server.currentPlayers}}/{{server.maxPlayers}}

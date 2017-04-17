@@ -21,6 +21,9 @@ import { ServerFilterComponent } from './servers/ui/server-filter.component';
 
 import { ServersService } from './servers/servers.service';
 
+import { ColorizePipe } from './colorize.pipe';
+import { EscapePipe } from './escape.pipe';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -30,7 +33,9 @@ import { ServersService } from './servers/servers.service';
     ServerListingComponent,
     ServerListingItemComponent,
     ServerHeadingComponent,
-    ServerFilterComponent
+    ServerFilterComponent,
+    ColorizePipe,
+    EscapePipe
   ],
   imports: [
     BrowserModule,

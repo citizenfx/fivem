@@ -1,6 +1,8 @@
 export class Server {
     readonly address: string;
     readonly hostname: string;
+    readonly sortname: string;
+    readonly strippedname: string;
     currentPlayers: number;
 
     get maxPlayers(): number {
@@ -18,7 +20,7 @@ export class Server {
     public getSortable(name: string): any {
         switch (name) {
             case 'name':
-                return this.hostname;
+                return this.sortname;
             case 'ping':
                 return this.ping;
             case 'players':
@@ -36,5 +38,8 @@ export class Server {
         this.address = address;
         this.hostname = object.hostname;
         this.currentPlayers = object.clients | 0;
+
+        this.strippedname = this.hostname.replace(/\^[0-9]/g, '');
+        this.sortname = this.hostname.replace(/\^[0-9]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     }
 }

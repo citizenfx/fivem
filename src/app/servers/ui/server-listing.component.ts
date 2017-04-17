@@ -64,7 +64,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
         return (server) => {
             if (re) {
-                if (!re.test(server.hostname)) {
+                if (!re.test(server.strippedname)) {
                     return false;
                 }
             }
