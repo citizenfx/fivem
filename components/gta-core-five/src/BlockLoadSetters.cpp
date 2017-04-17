@@ -45,6 +45,11 @@ bool g_shouldSetState;
 bool g_isInInitLoop; // to avoid some GFx crash?
 static bool g_shouldReloadGame;
 
+static hook::cdecl_stub<void()> runCriticalSystemServicing([]()
+{
+	return hook::get_call(hook::get_pattern("48 8D 0D ? ? ? ? BA 32 00 00 00 E8", 17));
+});
+
 static void WaitForInitLoop()
 {
 	// run our loop
@@ -52,6 +57,7 @@ static void WaitForInitLoop()
 
 	while (*g_initState <= MapInitState(6))
 	{
+		runCriticalSystemServicing();
 		lookAlive();
 
 		if (*g_initState <= MapInitState(6))
