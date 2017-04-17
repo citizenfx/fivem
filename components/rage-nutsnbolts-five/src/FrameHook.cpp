@@ -68,6 +68,9 @@ static void DoGameFrame()
 	g_lastGameFrame = timeGetTime();
 }
 
+static bool* g_isD3DInvalid;
+
+// actually: 'should exit game' function called by LookAlive
 static bool OnLookAlive()
 {
 	if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
@@ -126,6 +129,10 @@ static HookFunction hookFunction([] ()
 	
 	hook::set_call(&g_origFrameFunc, func);
 	hook::call(func, DoLoadsFrame);
+
+	location = hook::get_pattern<char>("84 C9 74 0D 38 05 ? ? ? ? 75 05 B8 01 00", 6);
+
+	g_isD3DInvalid = (bool*)(location + *(int32_t*)location + 4);
 
 	//__debugbreak();
 });
