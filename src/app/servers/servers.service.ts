@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Http, ResponseContentType } from '@angular/http';
+import {DomSanitizer} from '@angular/platform-browser';
 
 import 'rxjs/add/operator/toPromise';
 
@@ -11,7 +12,7 @@ import idb from 'idb';
 
 @Injectable()
 export class ServersService {
-    constructor(private http: Http) { }
+    constructor(private http: Http, private domSanitizer: DomSanitizer) { }
 
     public getServers(): Promise<Server[]> {
         return this.http.get('https://runtime.fivem.net/servers/proto', { responseType: ResponseContentType.ArrayBuffer })
@@ -19,7 +20,7 @@ export class ServersService {
             .then(result =>
                 master.Servers.decode(new Uint8Array(result.arrayBuffer())).servers.
                     filter(a => a.Data).
-                    map((value) => Server.fromObject(value.EndPoint, value.Data)));
+                    map((value) => Server.fromObject(this.domSanitizer, value.EndPoint, value.Data)));
     }
 
     public async getIcons(servers: Server[]): Promise<ServerIcon[]> {

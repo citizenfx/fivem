@@ -1,5 +1,4 @@
 import { Component, Input } from '@angular/core';
-import {DomSanitizer} from '@angular/platform-browser';
 
 import { Server } from '../server';
 
@@ -13,10 +12,4 @@ import { Server } from '../server';
 export class ServerListingItemComponent {
     @Input()
     server: Server;
-
-    constructor(private sanitizer:DomSanitizer) { }
-
-    sanitize(url:string){
-        return this.sanitizer.bypassSecurityTrustUrl(url);
-    }
 }

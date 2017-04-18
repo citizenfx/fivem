@@ -1,7 +1,7 @@
 <dl>
     <dt class="icon">
         <figure class="image is-32x32">
-            <img [src]="sanitize(server.iconUri)">
+            <img [src]="server.sanitizedUri">
         </figure>
     </dt>
     <dd class="name" [innerHTML]="server.hostname | escape | colorize">

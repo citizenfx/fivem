@@ -1,3 +1,5 @@
+import {DomSanitizer} from '@angular/platform-browser';
+
 import { master } from './master';
 
 import { Avatar } from './avatar';
@@ -10,7 +12,18 @@ export class Server {
     readonly data: any;
     readonly int: master.ServerData$Properties;
 
-    iconUri: string;
+    realIconUri: string;
+
+    get iconUri(): string {
+        return this.realIconUri;
+    }
+
+    set iconUri(value: string) {
+        this.realIconUri = value;
+        this.sanitizedUri = this.sanitizer.bypassSecurityTrustUrl(value);
+    }
+
+    sanitizedUri: any;
     currentPlayers: number;
 
     get maxPlayers(): number {
@@ -34,11 +47,11 @@ export class Server {
         }
     }
 
-    public static fromObject(address: string, object: master.ServerData$Properties): Server {
-        return new Server(address, object);
+    public static fromObject(sanitizer: DomSanitizer, address: string, object: master.ServerData$Properties): Server {
+        return new Server(sanitizer, address, object);
     }
 
-    private constructor(address: string, object: master.ServerData$Properties) {
+    private constructor(private sanitizer: DomSanitizer, address: string, object: master.ServerData$Properties) {
         // temp compat behavior
         this.address = address;
         this.hostname = object.hostname;
