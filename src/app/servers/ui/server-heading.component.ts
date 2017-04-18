@@ -12,7 +12,10 @@ export class ServerHeadingColumn {
     template: `
     <div class="ui-row heading">
         <div *ngFor="let column of columns" class="{{column.column}}" [attr.sortName]="column.column">
-            {{column.label | translate}}
+            <span
+                class="sorted"
+                [class.sortedAscending]="isSorted(column, '+')"
+                [class.sortedDescending]="isSorted(column, '-')">{{column.label | translate}}</span>
         </div>
     </div>
 `,
@@ -31,7 +34,7 @@ export class ServerHeadingComponent extends Translation {
 
     @HostListener('click', ['$event.target'])
     private onClick(target: Element) {
-        const nameAttribute: Attr = target.attributes['sortName'];
+        const nameAttribute: Attr = target.attributes['sortName'] || target.parentElement.attributes['sortName'];
 
         if (!nameAttribute) {
             return;
@@ -42,5 +45,9 @@ export class ServerHeadingComponent extends Translation {
 
     constructor(public translation: TranslationService) {
         super(translation);
+    }
+
+    isSorted(column: ServerHeadingColumn, type: String) {
+        return (this.sortOrder[0] == column.column && this.sortOrder[1] == type);
     }
 }

@@ -23,3 +23,31 @@
     padding-bottom: 7px;
     margin-bottom: 0px;
 }
+
+span {
+    position: relative;
+}
+
+span:after
+{
+	position: absolute;
+	bottom: 0px;
+	left: -12px;
+	font-size: 8px;
+}
+
+span:after
+{
+	left: initial;
+	right: -12px;
+}
+
+span.sortedAscending:after
+{
+	content: '\25B2';
+}
+
+span.sortedDescending:after
+{
+	content: '\25BC';
+}
