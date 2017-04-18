@@ -1,0 +1,7 @@
+{
+  "name": "cfx-ui",
+  "dependencies": {},
+  "globalDependencies": {
+    "node": "registry:env/node#6.0.0+20170213133316"
+  }
+}

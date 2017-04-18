@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 
-import { Server } from '../server';
+import { Server, ServerIcon } from '../server';
 import { ServersService } from '../servers.service';
 import { ServerFilters } from './server-filter.component';
 
@@ -13,6 +13,8 @@ import { ServerFilters } from './server-filter.component';
 export class ServerListComponent implements OnInit {
     servers: Server[];
     localServers: Server[]; // temp value
+    icons: ServerIcon[];
+
     filters: ServerFilters;
 
     constructor(private serverService: ServersService) {
@@ -28,6 +30,19 @@ export class ServerListComponent implements OnInit {
     }
 
     loadServers() {
-        this.serverService.getServers().then(list => this.servers = list);
+        this.serverService
+            .getServers()
+            .then(list => this.servers = list)
+            .then(list => this.serverService.getIcons(list))
+            .then(list => this.icons = list)
+            .then(list => {
+                for (const entry of list) {
+                    const server = this.servers.find(a => a.address == entry.addr)
+                    
+                    if (server) {
+                        server.iconUri = entry.icon;
+                    }
+                }
+            });
     }
 }
