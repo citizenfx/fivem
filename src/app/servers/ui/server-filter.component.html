@@ -28,16 +28,16 @@
 
                     <div contents="filters" class="filters">
                         <label class="checkbox">
-                            <input type="checkbox" class="hide-empty">
+                            <input type="checkbox" class="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
                             Hide Empty
                         </label>
                         <label class="checkbox">
-                            <input type="checkbox" class="hide-full">
+                            <input type="checkbox" class="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
                             Hide Full
                         </label>
                         <label class="label">
-                            Max Ping [ <span class="ping-amount"></span> ]
-                            <div id="ping-slider"></div>
+                            Max Ping [ {{ filters.maxPing }} ]
+                            <nouislider [connect]="true" [min]="0" [max]="500" [step]="10" [(ngModel)]="filters.maxPing" (ngModelChange)="updateFilters()"></nouislider>
                         </label>
                     </div>
                 </div>

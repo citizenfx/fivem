@@ -6,6 +6,7 @@ import { HttpModule } from '@angular/http';
 import { NguiTabModule } from '@ngui/tab';
 import { VirtualScrollModule } from 'angular2-virtual-scroll';
 import { TranslationModule } from 'angular-l10n';
+import { NouisliderModule } from 'ng2-nouislider';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -44,6 +45,7 @@ import { EscapePipe } from './escape.pipe';
     AppRoutingModule,
     NguiTabModule,
     VirtualScrollModule,
+    NouisliderModule,
     TranslationModule.forRoot()
   ],
   providers: [

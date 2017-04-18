@@ -135,6 +135,18 @@ export class ServerListingComponent implements OnInit, OnChanges {
                 return false;
             }
 
+            if (server.currentPlayers == 0 && filters.hideEmpty) {
+                return false;
+            }
+
+            if (server.currentPlayers >= server.maxPlayers && filters.hideFull) {
+                return false;
+            }
+
+            if (filters.maxPing > 0 && server.ping >= filters.maxPing) {
+                return false;
+            }
+
             return true;
         }
     }

@@ -4,6 +4,9 @@ import { Server } from '../server';
 
 export class ServerFilters {
     public searchText: string;
+    public hideEmpty = false;
+    public hideFull = false;
+    public maxPing = 0;
 
     constructor() {
         this.searchText = '';
