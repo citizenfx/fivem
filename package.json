@@ -23,9 +23,11 @@
     "angular-l10n": "^3.0.3",
     "angular2-virtual-scroll": "^0.1.5",
     "bulma": "^0.4.0",
+    "color": "^1.0.3",
     "core-js": "^2.4.1",
     "font-awesome": "^4.7.0",
     "idb": "^2.0.1",
+    "js-md5": "^0.4.2",
     "protobufjs": "^6.7.3",
     "rxjs": "^5.3.0",
     "zone.js": "^0.8.5"

@@ -1,5 +1,7 @@
 import { master } from './master';
 
+import { Avatar } from './avatar';
+
 export class Server {
     readonly address: string;
     readonly hostname: string;
@@ -8,7 +10,7 @@ export class Server {
     readonly data: any;
     readonly int: master.ServerData$Properties;
 
-    iconUri = 'http://5r.kngrektor.com/servericon/217.182.207.14:30120';
+    iconUri: string;
     currentPlayers: number;
 
     get maxPlayers(): number {
@@ -47,6 +49,10 @@ export class Server {
 
         this.data = object;
         this.int = object;
+
+        const svg = Avatar.getFor(this.address);
+
+        this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     }
 }
 
