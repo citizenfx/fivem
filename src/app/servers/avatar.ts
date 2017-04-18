@@ -33,9 +33,7 @@ export class Avatar {
 
         let firstColor = Color(Avatar.hashStringToColor(hashStr)).saturate(0.5);
 
-        const anyColor: any = firstColor;
-
-        const lightning = anyColor.hsl().color[2];
+        const lightning = (<Color.Color>(<any>firstColor).hsl()).array()[2];
         if (lightning < 25) {
             firstColor = firstColor.lighten(3);
         }
