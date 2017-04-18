@@ -9,6 +9,7 @@ export class Server {
     readonly hostname: string;
     readonly sortname: string;
     readonly strippedname: string;
+    readonly maxPlayers: number;
     readonly data: any;
     readonly int: master.ServerData$Properties;
 
@@ -25,10 +26,6 @@ export class Server {
 
     sanitizedUri: any;
     currentPlayers: number;
-
-    get maxPlayers(): number {
-        return 24;
-    }
 
     get ping(): number {
         return 42;
@@ -56,6 +53,7 @@ export class Server {
         this.address = address;
         this.hostname = object.hostname;
         this.currentPlayers = object.clients | 0;
+        this.maxPlayers = object.svMaxclients | 0;
 
         this.strippedname = this.hostname.replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         this.sortname = this.strippedname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
