@@ -9,8 +9,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import Color from 'color';
-import md5 from 'js-md5';
+import * as Color from 'color';
+import * as md5 from 'js-md5';
 
 export class Avatar {
     private static svg = `<?xml version="1.0" standalone="no"?>
@@ -31,9 +31,11 @@ export class Avatar {
     public static getFor(key: string) {
         const hashStr: string = md5(key);
 
-        let firstColor: Color = new Color(Avatar.hashStringToColor(hashStr)).saturate(0.5);
+        let firstColor = Color(Avatar.hashStringToColor(hashStr)).saturate(0.5);
 
-        const lightning = firstColor.hsl().color[2];
+        const anyColor: any = firstColor;
+
+        const lightning = anyColor.hsl().color[2];
         if (lightning < 25) {
             firstColor = firstColor.lighten(3);
         }
@@ -73,7 +75,7 @@ export class Avatar {
         );
     }
 
-    private static getMatchingColor(firstColor: Color) {
+    private static getMatchingColor(firstColor: Color.Color) {
         let color = firstColor;
         if (color.dark()) {
             color = color.saturate(0.3).rotate(90);
@@ -86,7 +88,7 @@ export class Avatar {
         return color;
     }
 
-    private static shouldChangeColor(color: Color) {
+    private static shouldChangeColor(color: Color.Color) {
         const rgb = color.rgb().array();
         const val = 765 - (rgb[0] + rgb[1] + rgb[2]);
         if (val < 250 || val > 700) {
