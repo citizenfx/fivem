@@ -1,4 +1,4 @@
-import { Component, OnChanges, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, Output, EventEmitter } from '@angular/core';
 
 import { Server } from '../server';
 
@@ -19,18 +19,30 @@ export class ServerFilters {
     templateUrl: 'server-filter.component.html',
     styleUrls: ['server-filter.component.scss']
 })
-export class ServerFilterComponent implements OnChanges {
+export class ServerFilterComponent implements OnInit, OnChanges {
     filters: ServerFilters;
 
     @Output()
     public filtersChanged = new EventEmitter<ServerFilters>();
 
     constructor() {
-        this.filters = new ServerFilters();
+        const storedFilters = localStorage.getItem('filters');
+
+        if (storedFilters) {
+            this.filters = {...<ServerFilters>JSON.parse(storedFilters)};
+        } else {
+            this.filters = new ServerFilters();
+        }
+    }
+
+    ngOnInit() {
+        this.filtersChanged.emit(this.filters);
     }
 
     ngOnChanges() {
         this.filtersChanged.emit(this.filters);
+
+        localStorage.setItem('filters', JSON.stringify(this.filters));
     }
 
     updateFilters() {

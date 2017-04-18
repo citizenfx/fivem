@@ -152,6 +152,8 @@ export class ServerListingComponent implements OnInit, OnChanges {
     }
 
     sortAndFilterServers() {
+        console.log(this.filters);
+
         const servers = (this.servers || []).concat().filter(this.getFilter(this.filters));
 
         servers.sort((a, b) => {
