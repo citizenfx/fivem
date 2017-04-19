@@ -24,6 +24,8 @@ import { ServerFilterComponent } from './servers/ui/server-filter.component';
 import { ServersService } from './servers/servers.service';
 import { TweetService } from './home/tweet.service';
 
+import { GameService, DummyGameService } from './game.service';
+
 import { ColorizePipe } from './colorize.pipe';
 import { EscapePipe } from './escape.pipe';
 
@@ -53,7 +55,11 @@ import { EscapePipe } from './escape.pipe';
   ],
   providers: [
     ServersService,
-    TweetService
+    TweetService,
+    {
+      provide: GameService,
+      useClass: ((<any>window).cefQuery) ? GameService : DummyGameService
+    }
   ],
   bootstrap: [
     AppComponent
