@@ -203,3 +203,57 @@ body {
 .color-6{color: #aa66cc;}
 .color-8{color: #cc0000;}
 .color-9{color: #cc0000;}
+
+.panel-tabs,
+.panel-block {
+	border: 0px solid transparent;
+}
+
+.panel-block:hover {
+	background-color: transparent;
+}
+
+a.panel-block.is-active {
+	color: #fff;
+}
+
+.panel-tabs a {
+	border-bottom: 1px solid transparent;
+}
+
+.panel-tabs a.is-active,
+.panel-tabs a:hover {
+	color: #fff;
+}
+.panel-tabs a:hover {
+	border-bottom: 1px solid #fff;
+}
+
+.input.is-small {
+	border-radius: 0;
+	border: 1px solid transparent;
+}
+
+.input:active,
+.input:focus {
+	border: 1px solid #51B3EC;
+}
+
+a.panel-block:hover,
+.panel-tabs a:hover {
+	color: #fff;
+	transition: 0.2s;
+}
+
+a.panel-block,
+.panel-tabs a {
+	color: rgba(255, 255, 255, 0.6);
+	transition: 0.2s;
+}
+
+.panel-heading {
+	border: 0px solid transparent;
+	background-color: transparent;
+	color: #fff;
+	font-weight: 400;
+}

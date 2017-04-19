@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Http, ResponseContentType } from '@angular/http';
-import {DomSanitizer} from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 
 import 'rxjs/add/operator/toPromise';
 

@@ -1,0 +1,80 @@
+$fonts: FiraSans;
+
+:host {
+	height: 82%;
+	width: 80%;
+	position: absolute;
+	top: 0;
+	left: 10%;
+	background-color: rgba(21, 25, 34, 0.8);
+	overflow: hidden;
+
+	box-sizing: border-box;
+}
+
+:host > * {
+	height: 100%;
+}
+
+:host > * > * {
+	height: 100%;
+}
+
+.column {
+	display: flex;
+	flex-direction: column;
+}
+
+.panel {
+	right: 0px;
+	position: absolute;
+	height: 100%;
+	width: 25%;
+	border-left: 2px solid #51B3EC;
+	background-color: hsl(222, 23%, 11%);
+}
+
+.hero {
+	padding-left: 3em;
+	background-color: #51B3EC;
+
+	flex: none;
+}
+.hero .title,
+.hero .subtitle {
+	color: #fff;
+	font-family: $fonts;
+}
+
+.hero .subtitle strong {
+	color: #fff;
+	font-weight: 500;
+}
+
+.message {
+	background-color: transparent;
+}
+
+.message-header + .message-body {
+	border: 0px solid transparent;
+}
+
+.message-header .image {
+	padding-right: 3px;
+}
+
+.message-header {
+	background-color: hsl(222, 23%, 11%);
+}
+
+.message-body {
+	background-color: rgba(0, 0, 0, 0.4);
+}
+
+.media .content p {
+	color: #fff;
+}
+
+.feed {
+	overflow-y: scroll;
+}
