@@ -257,3 +257,7 @@ a.panel-block,
 	color: #fff;
 	font-weight: 400;
 }
+
+.panel-heading:first-child, .panel-tabs:first-child {
+	border: 0px solid transparent;
+}
