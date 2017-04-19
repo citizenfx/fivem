@@ -29,7 +29,7 @@
 				</div>
 
 				<div class="nav-center">
-					<a [routerLink]="['/home']" class="nav-item" routerLinkActive="is-active"><h1 class="title">Home</h1></a>
+					<a [routerLink]="['/']" [routerLinkActiveOptions]="{ exact: true }" class="nav-item" routerLinkActive="is-active"><h1 class="title">Home</h1></a>
 					<a [routerLink]="['/servers']" class="nav-item" routerLinkActive="is-active"><h1 class="title">Servers</h1></a>
 					<a class="nav-item"><h1 class="title">Settings</h1></a>
 				</div>
