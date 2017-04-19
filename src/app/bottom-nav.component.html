@@ -1,25 +1,5 @@
-	<div class="nav-bottom material-5">
-		<div class="top-portion material-1">
-			<nav class="nav">
-				<div class="nav-left"></div>
 
-				<div class="nav-center">
-					<a class="nav-item browse"><h1 class="title is-4 is-active">Browse</h1></a>
-					<a class="nav-item history"><h1 class="title is-4">History</h1></a>
-					<a class="nav-item faves"><h1 class="title is-4">Favourites</h1></a>
-					<a class="nav-item direct"><h1 class="title is-4">Direct Connect</h1></a>
-				</div>
-
-				<div class="nav-right">
-					<a class="nav-item minimize-nav">
-						<span class="icon">
-							<i class="fa fa-angle-down"></i>
-						</span>
-					</a>
-				</div>
-			</nav>
-		</div>
-
+	<div class="nav-bottom with-bottom material-5">
 		<div class="bottom-portion">
 			<nav class="nav">
 				<div class="nav-left">
@@ -29,9 +9,9 @@
 				</div>
 
 				<div class="nav-center">
-					<a [routerLink]="['/']" [routerLinkActiveOptions]="{ exact: true }" class="nav-item" routerLinkActive="is-active"><h1 class="title">Home</h1></a>
-					<a [routerLink]="['/servers']" class="nav-item" routerLinkActive="is-active"><h1 class="title">Servers</h1></a>
-					<a class="nav-item"><h1 class="title">Settings</h1></a>
+					<a [routerLink]="['/']" [routerLinkActiveOptions]="{ exact: true }" class="nav-item" routerLinkActive="is-active"><h1 class="title" translate>#BottomNav_Home</h1></a>
+					<a [routerLink]="['/servers']" class="nav-item" routerLinkActive="is-active"><h1 class="title" translate>#BottomNav_Servers</h1></a>
+					<a [routerLink]="['/settings']" class="nav-item" routerLinkActive="is-active"><h1 class="title" translate>#BottomNav_Settings</h1></a>
 				</div>
 
 				<div class="nav-right"></div>

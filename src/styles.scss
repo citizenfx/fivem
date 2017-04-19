@@ -39,11 +39,23 @@ body {
 	background: hsl(222, 23%, 11%);
 	border-radius: 2px;
 	display: inline-block;
-	height: 18%;
 	position: absolute;
 	width: 100%;
 	bottom: 0;
 	left: 0;
+}
+
+.nav-bottom.with-bottom {
+	height: calc(13%);
+}
+
+.nav-bottom.with-top .nav-item {
+	padding: 0.41rem 0.75rem;
+}
+
+.nav-bottom.with-top {
+	height: calc(5%);
+	bottom: calc(13%);
 }
 
 .nav-bottom h1, .nav-bottom h2 {
@@ -55,7 +67,7 @@ body {
 .nav-bottom .top-portion {
 	background-color: #51B3EC;
 	width: 100%;
-	height: 30%;
+	height: 100%;
 }
 
 .nav-bottom .top-portion .nav-item {
@@ -70,7 +82,6 @@ body {
 
 .nav-bottom .bottom-portion {
 	width: 100%;
-	height: 70%;
 	padding: 1em;
 }
 

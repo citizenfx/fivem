@@ -1,11 +1,36 @@
-	<div class="columns">
-		<nav class="panel server-filter column is-one-quarter">
-			<app-server-filter (filtersChanged)="setFilters($event)"></app-server-filter>
+	<div class="list">
+		<div class="columns">
+			<nav class="panel server-filter column is-one-quarter">
+				<app-server-filter (filtersChanged)="setFilters($event)"></app-server-filter>
 
-			<div class="a"></div>
-		</nav>
+				<div class="a"></div>
+			</nav>
 
-		<div class="servers column">
-			<app-server-listing [servers]="servers" [filters]="filters"></app-server-listing>
+			<div class="servers column">
+				<app-server-listing [servers]="servers" [filters]="filters"></app-server-listing>
+			</div>
+		</div>
+	</div>
+
+	<div class="nav-bottom with-top">
+		<div class="top-portion material-1">
+			<nav class="nav">
+				<div class="nav-left"></div>
+
+				<div class="nav-center">
+					<a class="nav-item browse is-active"><h1 class="title is-4" translate>#ServerList_Browse</h1></a>
+					<a class="nav-item history"><h1 class="title is-4" translate>#ServerList_History</h1></a>
+					<a class="nav-item faves"><h1 class="title is-4" translate>#ServerList_Favorites</h1></a>
+					<a class="nav-item direct"><h1 class="title is-4" translate>#ServerList_DirectConnect</h1></a>
+				</div>
+
+				<div class="nav-right">
+					<a class="nav-item minimize-nav">
+						<span class="icon">
+							<i class="fa fa-angle-down"></i>
+						</span>
+					</a>
+				</div>
+			</nav>
 		</div>
 	</div>

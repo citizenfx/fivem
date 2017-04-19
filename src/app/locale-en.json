@@ -2,5 +2,15 @@
     "#ServerList_Name": "Name",
     "#ServerList_Players": "Players",
     "#ServerList_Ping": "Ping",
-    "#ServerList_Filter": "Filter"
+    "#ServerList_Filter": "Filter",
+    "#ServerList_Browse": "Browse",
+    "#ServerList_Favorites": "Favorites",
+    "#ServerList_History": "History",
+    "#ServerList_DirectConnect": "Direct Connect",
+    "#BottomNav_Home": "Home",
+    "#BottomNav_Servers": "Servers",
+    "#BottomNav_Settings": "Settings",
+    "#ServerList_HideFull": "Hide Full",
+    "#ServerList_HideEmpty": "Hide Empty",
+    "#ServerList_MaxPing": "Max Ping"
 }

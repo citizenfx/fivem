@@ -1,6 +1,6 @@
 $fonts: FiraSans;
 
-:host {
+:host > div.list {
 	height: 82%;
 	width: 80%;
 	position: absolute;
@@ -12,7 +12,7 @@ $fonts: FiraSans;
 	box-sizing: border-box;
 }
 
-:host > div {
+div.list > div {
 	height: 100%;
 	margin-bottom: 0px;
 	margin-top: 0px;

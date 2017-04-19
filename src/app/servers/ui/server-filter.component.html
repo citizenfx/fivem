@@ -11,7 +11,7 @@
             <ngui-tab selected-index-class="is-active">
                 <p class="panel-tabs material-1">
                     <!--<a index="categories">Categories</a>-->
-                    <a index="filters">Filter</a>
+                    <a index="filters" translate>#ServerList_Filter</a>
                 </p>
 
                 <div class="content">
@@ -29,14 +29,14 @@
                     <div contents="filters" class="filters">
                         <label class="checkbox">
                             <input type="checkbox" class="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
-                            Hide Empty
+                            <span translate>#ServerList_HideEmpty</span>
                         </label>
                         <label class="checkbox">
                             <input type="checkbox" class="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
-                            Hide Full
+                            <span translate>#ServerList_HideFull</span>
                         </label>
                         <label class="label">
-                            Max Ping [ {{ filters.maxPing }} ]
+                            <span translate>#ServerList_MaxPing</span> [ {{ filters.maxPing }} ]
                             <nouislider [connect]="true" [min]="0" [max]="500" [step]="10" [(ngModel)]="filters.maxPing" (ngModelChange)="updateFilters()"></nouislider>
                         </label>
                     </div>
