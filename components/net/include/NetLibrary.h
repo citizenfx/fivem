@@ -16,6 +16,8 @@
 
 #include "INetMetricSink.h"
 
+#include "NetLibraryImplBase.h"
+
 #include <concurrent_queue.h>
 
 #define NETWORK_PROTOCOL 4
@@ -56,7 +58,7 @@ public:
 	fwWString GetWAddress();
 	int GetPort();
 
-	void GetSockAddr(sockaddr_storage* addr, int* addrLen);
+	void GetSockAddr(sockaddr_storage* addr, int* addrLen) const;
 };
 
 #include "NetBuffer.h"
@@ -78,7 +80,7 @@ private:
 	uint32_t m_outSequence;
 
 	NetAddress m_targetAddress;
-	NetLibrary* m_netLibrary;
+	NetLibraryImplBase* m_netLibrary;
 
 private:
 	void SendFragmented(NetBuffer& buffer);
@@ -86,7 +88,7 @@ private:
 public:
 	NetChannel();
 
-	void Reset(NetAddress& target, NetLibrary* netLibrary);
+	void Reset(NetAddress& target, NetLibraryImplBase* netLibrary);
 
 	void Send(NetBuffer& buffer);
 
@@ -99,7 +101,7 @@ class
 #ifdef COMPILING_NET
 	__declspec(dllexport)
 #endif
-	NetLibrary : public INetLibrary
+	NetLibrary : public INetLibrary, public INetLibraryInherit
 {
 public:
 	enum ConnectionState
@@ -115,14 +117,9 @@ public:
 		CS_ACTIVE
 	};
 
-	struct OutReliableCommand
-	{
-		uint32_t id;
-		uint32_t type;
-		std::string command;
-	};
-
 private:
+	std::unique_ptr<NetLibraryImplBase> m_impl;
+
 	uint16_t m_serverNetID;
 
 	uint16_t m_hostNetID;
@@ -145,29 +142,9 @@ private:
 
 	HttpClient* m_httpClient;
 
-	SOCKET m_socket;
-
-	SOCKET m_socket6;
-
-	uint32_t m_lastSend;
-
 	uint32_t m_outSequence;
 
-	NetChannel m_netChannel;
-
 	uint32_t m_serverProtocol;
-
-	uint32_t m_lastReceivedReliableCommand;
-
-	uint32_t m_outReliableAcknowledged;
-
-	uint32_t m_outReliableSequence;
-
-	std::list<OutReliableCommand> m_outReliableCommands;
-
-	uint32_t m_lastReceivedAt;
-
-	uint32_t m_lastFrameNumber;
 
 	std::string m_playerName;
 
@@ -183,30 +160,16 @@ private:
 	std::unordered_multimap<uint32_t, ReliableHandlerType> m_reliableHandlers;
 
 private:
-	struct RoutingPacket
-	{
-		uint16_t netID;
-		std::string payload;
-		uint32_t genTime;
-
-		RoutingPacket();
-	};
-
-private:
 	std::mutex m_incomingPacketMutex;
 	std::queue<RoutingPacket> m_incomingPackets;
 	concurrency::concurrent_queue<RoutingPacket> m_outgoingPackets;
 
 private:
-	void ProcessOOB(NetAddress& from, char* oob, size_t length);
-
 	void ProcessServerMessage(NetBuffer& msg);
 
 	void ProcessSend();
 
 	void HandleReliableCommand(uint32_t msgType, const char* buf, size_t length);
-
-	void ProcessPacketsInternal(NetAddressType addrType);
 
 	NetLibrary();
 
@@ -215,6 +178,8 @@ public:
 	{
 		return m_connectionState >= CS_DOWNLOADCOMPLETE;
 	}
+
+	virtual void ProcessOOB(const NetAddress& from, const char* oob, size_t length);
 
 	virtual uint16_t GetServerNetID();
 
@@ -242,23 +207,21 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length);
 
-	virtual void PreProcessNativeNet();
+	void HandleConnected(int serverNetID, int hostNetID, int hostBase) override;
 
-	virtual void PostProcessNativeNet();
+	bool GetOutgoingPacket(RoutingPacket& packet) override;
 
 	bool WaitForRoutedPacket(uint32_t timeout);
 
-	void EnqueueRoutedPacket(uint16_t netID, std::string packet);
+	void EnqueueRoutedPacket(uint16_t netID, const std::string& packet) override;
 
-	void SendOutOfBand(NetAddress& address, const char* format, ...);
+	void SendOutOfBand(const NetAddress& address, const char* format, ...);
 
-	void SendData(NetAddress& address, const char* data, size_t length);
+	void SendData(const NetAddress& address, const char* data, size_t length);
 
 	void CreateResources();
 
 	void SetHost(uint16_t netID, uint32_t base);
-
-	void ProcessPackets();
 
 	void DownloadsComplete();
 
@@ -280,6 +243,26 @@ public:
 	inline INetMetricSink* GetMetricSink()
 	{
 		return m_metricSink.GetRef();
+	}
+
+	inline virtual NetAddress GetCurrentServer() override
+	{
+		return m_currentServer;
+	}
+
+	inline int GetServerProtocol() override
+	{
+		return m_serverProtocol;
+	}
+
+	inline int GetConnectionState() override
+	{
+		return m_connectionState;
+	}
+
+	inline void SetConnectionState(int state) override
+	{
+		m_connectionState = (ConnectionState)state;
 	}
 
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
@@ -312,7 +295,11 @@ public:
 	// a1: detailed progress message
 	fwEvent<const std::string&> OnConnectionSubProgress;
 
-	fwEvent<NetBuffer&> OnBuildMessage;
+	static
+#ifndef COMPILING_NET
+		__declspec(dllimport)
+#endif
+		fwEvent<const std::function<void(uint32_t, const char*, int)>&> OnBuildMessage;
 
 	fwEvent<> OnConnectionTimedOut;
 

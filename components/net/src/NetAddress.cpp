@@ -63,7 +63,7 @@ NetAddress::NetAddress(const char* address, uint16_t port)
 	}
 }
 
-void NetAddress::GetSockAddr(sockaddr_storage* addr, int* addrLen)
+void NetAddress::GetSockAddr(sockaddr_storage* addr, int* addrLen) const
 {
 	if (m_type == NA_INET4)
 	{

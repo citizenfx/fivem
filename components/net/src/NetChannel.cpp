@@ -15,7 +15,7 @@ NetChannel::NetChannel()
 	Reset(dummyAddress, nullptr);
 }
 
-void NetChannel::Reset(NetAddress& target, NetLibrary* netLibrary)
+void NetChannel::Reset(NetAddress& target, NetLibraryImplBase* netLibrary)
 {
 	m_fragmentBuffer = "";
 	m_fragmentLength = 0;

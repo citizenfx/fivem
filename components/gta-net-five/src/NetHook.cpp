@@ -598,13 +598,13 @@ static HookFunction initFunction([] ()
 		doTickNextFrame = true;
 	});
 
-	g_netLibrary->OnBuildMessage.Connect([] (NetBuffer& msg)
+	g_netLibrary->OnBuildMessage.Connect([] (const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
 		// hostie
 		if (isNetworkHost())
 		{
-			msg.Write(0xB3EA30DE); // msgIHost
-			msg.Write(g_netLibrary->GetServerBase());
+			auto base = g_netLibrary->GetServerBase();
+			writeReliable(0xB3EA30DE, (char*)&base, sizeof(base));
 		}
 	});
 
