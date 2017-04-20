@@ -299,7 +299,13 @@ void CheckModule(void* address)
 		{
 			blame = L"NVIDIA GPU drivers";
 			blame_two = L"This is not the fault of the " PRODUCT_NAME L" developers, and can not be resolved by them. NVIDIA does not provide any error reporting contacts to use to report this problem, nor do they provide "
-						L"debugging information that the developers can use to resolve this issue. The only solution is buying a desktop computer, or a laptop computer with Intel Iris Pro graphics.";
+						L"debugging information that the developers can use to resolve this issue.";
+		}
+
+		if (strstr(filename, "guard64"))
+		{
+			blame = L"Comodo Internet Security";
+			blame_two = L"Please uninstall Comodo Internet Security and try again, or report the issue on the Comodo forums.";
 		}
 
 		if (strstr(filename, ".asi"))
