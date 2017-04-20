@@ -1105,7 +1105,7 @@ class grmGeometryQB : public datBase
 {
 private:
 	pgPtr<void> m_vertexDeclaration; // actually IDirect3DVertexDeclaration9* at runtime
-	uint32_t _f8;
+	uint32_t m_objectType;
 	pgPtr<grcVertexBufferD3D> m_vertexBuffers[4];
 	pgPtr<grcIndexBufferD3D> m_indexBuffers[4];
 	uint32_t m_dwIndexCount;
@@ -1129,7 +1129,7 @@ public:
 	inline grmGeometryQB()
 	{
 		m_vertexDeclaration = nullptr;
-		_f8 = 0;
+		m_objectType = 0;
 		m_dwIndexCount = 0;
 		m_dwFaceCount = 0;
 		m_wVertexCount = 0;
