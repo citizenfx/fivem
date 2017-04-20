@@ -8,6 +8,19 @@
 #include "StdInc.h"
 #include "NetLibrary.h"
 
+NetAddress::NetAddress(const ENetAddress* address)
+{
+	m_type = NA_INET6;
+
+	memset(&m_in6, 0, sizeof(m_in6));
+	m_in6.sin6_family = AF_INET6;
+
+	memcpy(&m_in6.sin6_addr, &address->host, sizeof(in6_addr));
+
+	m_in6.sin6_port = htons(address->port);
+	m_in6.sin6_scope_id = address->sin6_scope_id;
+}
+
 NetAddress::NetAddress(const sockaddr* sockaddr)
 {
 	auto family = sockaddr->sa_family;
@@ -77,10 +90,42 @@ void NetAddress::GetSockAddr(sockaddr_storage* addr, int* addrLen) const
 	}
 }
 
+ENetAddress NetAddress::GetENetAddress() const
+{
+	ENetAddress addr = { 0 };
+
+	if (m_type == NA_INET4)
+	{
+		addr.host.u.Byte[10] = 0xFF;
+		addr.host.u.Byte[11] = 0xFF;
+
+		memcpy(&addr.host.u.Byte[12], &m_in4.sin_addr.S_un.S_un_b.s_b1, 4);
+		addr.port = ntohs(m_in4.sin_port);
+		addr.sin6_scope_id = 0;
+	}
+	else if (m_type == NA_INET6)
+	{
+		memcpy(&addr.host, &m_in6.sin6_addr, sizeof(addr.host));
+		addr.port = ntohs(m_in6.sin6_port);
+		addr.sin6_scope_id = m_in6.sin6_scope_id;
+	}
+
+	return addr;
+}
+
 bool NetAddress::operator==(const NetAddress& right) const
 {
 	if (m_type != right.m_type)
 	{
+		if (m_type == NA_INET4 && right.m_type == NA_INET6)
+		{
+			return (m_in4.sin_port == right.m_in6.sin6_port && memcmp(&m_in4.sin_addr, &right.m_in6.sin6_addr.u.Byte[12], 4) == 0);
+		}
+		else if (m_type == NA_INET6 && right.m_type == NA_INET4)
+		{
+			return (right.m_in4.sin_port == m_in6.sin6_port && memcmp(&right.m_in4.sin_addr, &m_in6.sin6_addr.u.Byte[12], 4) == 0);
+		}
+
 		return false;
 	}
 

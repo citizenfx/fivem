@@ -25,6 +25,7 @@ deps = {
 	"vendor/fmtlib": "https://github.com/fmtlib/fmt.git",
 	"vendor/nghttp2": "https://github.com/nghttp2/nghttp2@v1.20.0",
 	"vendor/cpr": "https://github.com/whoshuu/cpr.git@master",
+	"vendor/enet": "https://github.com/freeminer/enet.git@ipv6",
 	"vendor/imgui": "https://github.com/ocornut/imgui.git@v1.49"
 }
 

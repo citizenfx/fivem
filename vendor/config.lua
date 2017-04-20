@@ -21,6 +21,7 @@ vendor_component 'fmtlib'
 vendor_component 'fmtlib-crt'
 vendor_component 'cpr'
 vendor_component 'imgui'
+vendor_component 'enet'
 
 if os.get() == 'windows' then
 	vendor_component 'boost_program_options'

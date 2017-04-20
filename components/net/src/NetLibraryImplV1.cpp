@@ -34,6 +34,8 @@ public:
 
 	virtual void Flush() override;
 
+	virtual void SendConnect(const std::string& connectData) override;
+
 private:
 	void ProcessSend();
 
@@ -549,6 +551,11 @@ void NetLibraryImplV1::CreateResources()
 		// make non-blocking
 		ioctlsocket(m_socket6, FIONBIO, &arg);
 	}
+}
+
+void NetLibraryImplV1::SendConnect(const std::string& connectData)
+{
+	m_base->SendOutOfBand(m_base->GetCurrentServer(), "%s", connectData.c_str());
 }
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV1(INetLibraryInherit* base)

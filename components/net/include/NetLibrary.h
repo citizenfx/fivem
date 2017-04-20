@@ -18,6 +18,8 @@
 
 #include "NetLibraryImplBase.h"
 
+#include <enet/enet.h>
+
 #include <concurrent_queue.h>
 
 #define NETWORK_PROTOCOL 4
@@ -49,6 +51,7 @@ public:
 	NetAddress(const sockaddr* addr);
 	NetAddress(const sockaddr_in* addr) : NetAddress((const sockaddr*)addr) {}
 	NetAddress(const sockaddr_in6* addr) : NetAddress((const sockaddr*)addr) {}
+	NetAddress(const ENetAddress* addr);
 	NetAddress(const char* address, uint16_t port);
 
 	bool operator==(const NetAddress& right) const;
@@ -59,6 +62,8 @@ public:
 	int GetPort();
 
 	void GetSockAddr(sockaddr_storage* addr, int* addrLen) const;
+
+	ENetAddress GetENetAddress() const;
 };
 
 #include "NetBuffer.h"

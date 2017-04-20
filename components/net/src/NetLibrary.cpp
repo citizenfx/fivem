@@ -17,6 +17,7 @@
 #include <Error.h>
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV1(INetLibraryInherit* base);
+std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
 
 inline ISteamComponent* GetSteam()
 {
@@ -436,7 +437,7 @@ void NetLibrary::RunFrame()
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000)
 			{
-				SendOutOfBand(m_currentServer, "connect token=%s&guid=%llu", m_token.c_str(), (uint64_t)GetGUID());
+				m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 
 				m_lastConnect = GetTickCount();
 
@@ -679,7 +680,14 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 			m_connectionState = CS_INITRECEIVED;
 
-			m_impl = CreateNetLibraryImplV1(this);
+			if (node["netlibVersion"].as<int>(1) == 2)
+			{
+				m_impl = CreateNetLibraryImplV2(this);
+			}
+			else
+			{
+				m_impl = CreateNetLibraryImplV1(this);
+			}
 		}
 		catch (YAML::Exception&)
 		{

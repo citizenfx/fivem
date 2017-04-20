@@ -32,6 +32,8 @@ public:
 
 	virtual void SendReliableCommand(uint32_t type, const char* buffer, size_t length) = 0;
 
+	virtual void SendConnect(const std::string& connectData) = 0;
+
 	virtual bool HasTimedOut() = 0;
 
 	virtual void Flush() = 0;
@@ -59,4 +61,6 @@ public:
 	virtual void EnqueueRoutedPacket(uint16_t netID, const std::string& packet) = 0;
 
 	virtual bool GetOutgoingPacket(RoutingPacket& packet) = 0;
+
+	virtual void SendOutOfBand(const NetAddress& address, const char* format, ...) = 0;
 };
