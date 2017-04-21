@@ -230,6 +230,10 @@ struct FiveMConsole
 			}
 
 		}
+		else if (Stricmp(command_line, "strdbg") == 0)
+		{
+			ConHost::OnInvokeNative("streamingDebug", "");
+		}
 		else
 		{
 			AddLog("Unknown command: '%s'\n", command_line);

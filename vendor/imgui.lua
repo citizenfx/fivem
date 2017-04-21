@@ -5,11 +5,14 @@ return {
 
 	run = function()
 		language "C++"
-		kind "StaticLib"
+		kind "SharedLib"
+
+		defines { 'IMGUI_API=__declspec(dllexport)' }
 
 		files_project "../vendor/imgui/" {
 			"imgui.cpp",
-			"imgui_draw.cpp"
+			"imgui_draw.cpp",
+			"imgui_demo.cpp"
 		}
 	end
 }

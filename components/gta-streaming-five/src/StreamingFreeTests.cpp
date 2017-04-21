@@ -137,6 +137,11 @@ namespace streaming
 	{
 		return g_streamingNamesToIndices[name];
 	}
+
+	const std::string& GetStreamingNameForIndex(uint32_t index)
+	{
+		return g_streamingIndexesToNames[index];
+	}
 }
 
 void(*g_origAssetRelease)(void*, uint32_t);

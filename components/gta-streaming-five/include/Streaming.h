@@ -6,6 +6,33 @@
 #define STREAMING_EXPORT DLL_IMPORT
 #endif
 
+#include <fiCollectionWrapper.h>
+
+struct StreamingPackfileEntry
+{
+	FILETIME modificationTime;
+	uint8_t pad[32];
+	uint64_t packfileParentHandle;
+	uint64_t pad1;
+	rage::fiPackfile* packfile;
+	uint8_t pad2[2];
+	uint8_t loadedFlag;
+	uint8_t pad3;
+	uint8_t enabled;
+	uint8_t pad4[19];
+	uint32_t parentIdentifier;
+	uint32_t pad5;
+	uint16_t isHdd;
+	uint16_t pad6;
+	uint32_t pad7;
+};
+
+struct StreamingDataEntry
+{
+	uint32_t handle;
+	uint32_t flags;
+};
+
 namespace streaming
 {
 	class STREAMING_EXPORT Manager
@@ -24,6 +51,10 @@ namespace streaming
 	void STREAMING_EXPORT LoadObjectsNow(bool a1);
 
 	uint32_t STREAMING_EXPORT GetStreamingIndexForName(const std::string& name);
+
+	STREAMING_EXPORT const std::string& GetStreamingNameForIndex(uint32_t index);
+
+	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry);
 }
 
 #if 0

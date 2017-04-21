@@ -1,0 +1,12 @@
+{
+	"name": "devtools:five",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"vendor:imgui",
+		"conhost",
+		"gta:core",
+		"gta:streaming"
+	],
+	"provides": []
+}

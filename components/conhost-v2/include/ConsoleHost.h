@@ -16,6 +16,10 @@
 namespace ConHost
 {
 	extern CONHOST_EXPORT fwEvent<const char*, const char*> OnInvokeNative;
+
+	extern CONHOST_EXPORT fwEvent<> OnDrawGui;
+
+	extern CONHOST_EXPORT fwEvent<bool*> OnShouldDrawGui;
 	
 	CONHOST_EXPORT void Print(int channel, const std::string& message);
 }

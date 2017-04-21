@@ -23,6 +23,8 @@
 
 #include <InputHook.h>
 
+#include <mmsystem.h>
+
 #include <imgui.h>
 
 static bool g_conHostInitialized = false;
@@ -35,9 +37,9 @@ static rage::grcTexture* g_fontTexture;
 
 struct DrawList
 {
-	ImVector<ImDrawVert> vertices;
-	ImVector<ImDrawIdx> indices;
-	ImVector<ImDrawCmd> commands;
+	ImVector<ImDrawVert> VtxBuffer;
+	ImVector<ImDrawIdx> IdxBuffer;
+	ImVector<ImDrawCmd> CmdBuffer;
 };
 
 static void RenderDrawListInternal(DrawList* drawList)
@@ -51,9 +53,9 @@ static void RenderDrawListInternal(DrawList* drawList)
 	auto oldDepthStencilState = GetDepthStencilState();
 	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
 
-	SetTextureGtaIm(rage::grcTextureFactory::GetNoneTexture());
+	size_t idxOff = 0;
 
-	for (auto& cmd : drawList->commands)
+	for (auto& cmd : drawList->CmdBuffer)
 	{
 		if (cmd.UserCallback != nullptr)
 		{
@@ -70,17 +72,13 @@ static void RenderDrawListInternal(DrawList* drawList)
 
 			for (int i = 0; i < cmd.ElemCount; i++)
 			{
-				auto& vertex = drawList->vertices[drawList->indices[i]];
+				auto& vertex = drawList->VtxBuffer.Data[drawList->IdxBuffer.Data[i + idxOff]];
 				auto color = vertex.col;
-
-				// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
-				if (!rage::grcTexture::IsRenderSystemColorSwapped())
-				{
-					color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
-				}
 
 				AddImVertex(vertex.pos.x, vertex.pos.y, 0.0f, 0.0f, 0.0f, -1.0f, color, vertex.uv.x, vertex.uv.y);
 			}
+
+			idxOff += cmd.ElemCount;
 
 			DrawImVertices();
 
@@ -109,9 +107,9 @@ static void RenderDrawLists(ImDrawData* drawData)
 		ImDrawList* drawList = drawData->CmdLists[i];
 		
 		DrawList* grDrawList = new DrawList();
-		grDrawList->commands.swap(drawList->CmdBuffer);
-		grDrawList->indices.swap(drawList->IdxBuffer);
-		grDrawList->vertices.swap(drawList->VtxBuffer);
+		grDrawList->CmdBuffer.swap(drawList->CmdBuffer);
+		grDrawList->IdxBuffer.swap(drawList->IdxBuffer);
+		grDrawList->VtxBuffer.swap(drawList->VtxBuffer);
 
 		if (IsOnRenderThread())
 		{
@@ -230,6 +228,10 @@ static InitFunction initFunction([] ()
 
 	InputHook::OnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
 	{
+		bool shouldDrawGui = false;
+
+		ConHost::OnShouldDrawGui(&shouldDrawGui);
+
 		if (!g_consoleFlag || !pass)
 		{
 			return;
@@ -302,8 +304,15 @@ static InitFunction initFunction([] ()
 			CreateFontTexture();
 		}
 
-		if (!g_consoleFlag)
+		static uint32_t lastDrawTime = timeGetTime();
+
+		bool shouldDrawGui = false;
+
+		ConHost::OnShouldDrawGui(&shouldDrawGui);
+
+		if (!g_consoleFlag && !shouldDrawGui)
 		{
+			lastDrawTime = timeGetTime();
 			return;
 		}
 
@@ -316,7 +325,7 @@ static InitFunction initFunction([] ()
 
 			io.DisplaySize = ImVec2(width, height);
 
-			// TODO: delta time
+			io.DeltaTime = (timeGetTime() - lastDrawTime) / 1000.0f;
 		}
 
 		io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -326,9 +335,16 @@ static InitFunction initFunction([] ()
 
 		ImGui::NewFrame();
 
-		DrawConsole();
+		if (g_consoleFlag)
+		{
+			DrawConsole();
+		}
+
+		ConHost::OnDrawGui();
 
 		ImGui::Render();
+
+		lastDrawTime = timeGetTime();
 	});
 });
 
@@ -347,3 +363,5 @@ void ConHost::Print(int channel, const std::string& message)
 }
 
 fwEvent<const char*, const char*> ConHost::OnInvokeNative;
+fwEvent<> ConHost::OnDrawGui;
+fwEvent<bool*> ConHost::OnShouldDrawGui;

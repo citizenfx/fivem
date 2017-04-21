@@ -40,6 +40,8 @@
 #pragma comment(lib, "shlwapi.lib")
 #include <shlwapi.h>
 
+#include <Streaming.h>
+
 #include <atArray.h>
 
 // TODO: replace with C++14 transparent comparison
@@ -155,25 +157,6 @@ static hook::thiscall_stub<rage::fiCollection*(rage::fiCollection*)> packfileCto
 
 #define GET_HANDLE(x) ((x) & 0x7FFFFFFF)
 #define UNDEF_ASSERT() FatalError("Undefined function " __FUNCTION__)
-
-struct StreamingPackfileEntry
-{
-	FILETIME modificationTime;
-	uint8_t pad[32];
-	uint64_t packfileParentHandle;
-	uint64_t pad1;
-	rage::fiPackfile* packfile;
-	uint8_t pad2[2];
-	uint8_t loadedFlag;
-	uint8_t pad3;
-	uint8_t enabled;
-	uint8_t pad4[19];
-	uint32_t parentIdentifier;
-	uint32_t pad5;
-	uint16_t isHdd;
-	uint16_t pad6;
-	uint32_t pad7;
-};
 
 static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
 
@@ -2086,6 +2069,29 @@ rage::fiFile* rage__fiFile__OpenWrap(const char* fileName, rage::fiDevice* devic
 	*(uintptr_t*)device = *(uintptr_t*)localDevice;
 	
 	return rage__fiFile__Open(fileName, device, true);
+}
+
+namespace streaming
+{
+	StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry)
+	{
+		auto handle = entry->handle;
+		if ((handle & 0xC0000000) == 0x80000000)
+		{
+			uint32_t idx = (handle) & 0x3FFFFFFF;
+
+			if (idx != 0x3FFFFFFF)
+			{
+				return &g_streamingPackfiles->Get(idx);
+			}
+		}
+		else
+		{
+			return &g_streamingPackfiles->Get(handle >> 16);
+		}
+
+		return nullptr;
+	}
 }
 
 #include <ICoreGameInit.h>
