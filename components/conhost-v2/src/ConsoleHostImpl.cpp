@@ -317,7 +317,7 @@ static InitFunction initFunction([] ()
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
-		io.MouseDrawCursor = true;
+		io.MouseDrawCursor = g_consoleFlag;
 
 		{
 			int width, height;
