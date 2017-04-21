@@ -34,7 +34,7 @@ public:
 		tinyxml2::XMLDocument doc;
 		tinyxml2::XMLError error = doc.Parse(str);
 
-		if (error == tinyxml2::XML_NO_ERROR)
+		if (error == tinyxml2::XML_SUCCESS)
 		{
 			auto rootElement = doc.RootElement();
 			auto cacheElement = rootElement->FirstChildElement("Cache");
