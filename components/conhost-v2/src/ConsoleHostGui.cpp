@@ -69,6 +69,11 @@ struct FiveMConsole
 
 	void Draw(const char* title, bool* p_open)
 	{
+		if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
+		{
+			return;
+		}
+
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetItemsLineHeightWithSpacing() * 12.0f), ImGuiSetCond_FirstUseEver);
 
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar |
