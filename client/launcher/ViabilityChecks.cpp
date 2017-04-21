@@ -67,11 +67,11 @@ bool BaseLdrCheck()
 
 	if (addDllDirectory == nullptr)
 	{
-		MessageBox(nullptr, PRODUCT_NAME L" requires Security Update for Windows 7 (KB2758857) to be installed to run. Please install it, and try again.", PRODUCT_NAME, MB_OK | MB_ICONSTOP);
+		MessageBox(nullptr, PRODUCT_NAME L" requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again.", PRODUCT_NAME, MB_OK | MB_ICONSTOP);
 
 		if (!IsWindows8OrGreater())
 		{
-			ShellExecute(nullptr, L"open", L"https://www.microsoft.com/en-us/download/details.aspx?id=35903", nullptr, nullptr, SW_SHOWNORMAL);
+			ShellExecute(nullptr, L"open", L"https://www.microsoft.com/en-us/download/details.aspx?id=35936", nullptr, nullptr, SW_SHOWNORMAL);
 		}
 
 		return false;
