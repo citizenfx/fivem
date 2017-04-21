@@ -32,6 +32,7 @@ struct FiveMConsole
 		Commands.push_back("LOADLEVEL");
 		Commands.push_back("CONNECT");
 		Commands.push_back("NETGRAPH");
+		Commands.push_back("STRDBG");
 	}
 
 	~FiveMConsole()
