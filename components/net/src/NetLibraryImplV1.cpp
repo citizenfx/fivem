@@ -555,7 +555,7 @@ void NetLibraryImplV1::CreateResources()
 
 void NetLibraryImplV1::SendConnect(const std::string& connectData)
 {
-	m_base->SendOutOfBand(m_base->GetCurrentServer(), "%s", connectData.c_str());
+	m_base->SendOutOfBand(m_base->GetCurrentServer(), "connect %s", connectData.c_str());
 }
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV1(INetLibraryInherit* base)
