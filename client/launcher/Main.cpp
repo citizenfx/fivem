@@ -116,12 +116,9 @@ void main()
 		}
 	}
 
-	if (!toolMode)
+	if (InitializeExceptionHandler())
 	{
-		if (InitializeExceptionHandler())
-		{
-			return;
-		}
+		return;
 	}
 
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
