@@ -217,6 +217,8 @@ static InitFunction initFunction([] ()
 		}
 	}
 
+	static std::mutex g_conHostMutex;
+
 	OnGrcCreateDevice.Connect([=]()
 	{
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
@@ -236,6 +238,8 @@ static InitFunction initFunction([] ()
 		{
 			return;
 		}
+
+		std::unique_lock<std::mutex> g_conHostMutex;
 
 		ImGuiIO& io = ImGui::GetIO();
 		switch (msg)
@@ -299,6 +303,11 @@ static InitFunction initFunction([] ()
 
 	OnPostFrontendRender.Connect([]()
 	{
+		if (!g_conHostMutex.try_lock())
+		{
+			return;
+		}
+
 		if (!g_fontTexture)
 		{
 			CreateFontTexture();
@@ -313,6 +322,8 @@ static InitFunction initFunction([] ()
 		if (!g_consoleFlag && !shouldDrawGui)
 		{
 			lastDrawTime = timeGetTime();
+
+			g_conHostMutex.unlock();
 			return;
 		}
 
@@ -345,6 +356,8 @@ static InitFunction initFunction([] ()
 		ImGui::Render();
 
 		lastDrawTime = timeGetTime();
+
+		g_conHostMutex.unlock();
 	});
 });
 
