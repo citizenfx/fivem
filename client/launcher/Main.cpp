@@ -72,6 +72,13 @@ void main()
 	auto addDllDirectory = (decltype(&AddDllDirectory))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "AddDllDirectory");
 	auto setDefaultDllDirectories = (decltype(&SetDefaultDllDirectories))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
 
+	// don't set DLL directories for ros:legit under Windows 7
+	// see https://connect.microsoft.com/VisualStudio/feedback/details/2281687/setdefaultdlldirectories-results-in-exception-during-opening-a-winform-on-win7
+	if (!IsWindows8OrGreater() && toolMode && wcsstr(GetCommandLineW(), L"ros:legit"))
+	{
+		setDefaultDllDirectories = nullptr;
+	}
+
 	if (addDllDirectory && setDefaultDllDirectories)
 	{
 		setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
