@@ -153,11 +153,18 @@ public:
 
 	~pgPtr()
 	{
+#ifdef RAGE_FORMATS_IN_GAME
+		return;
+#else
 		pgStreamManager::UnmarkResolved(this);
+#endif
 	}
 
 	T* operator->() const
 	{
+#ifdef RAGE_FORMATS_IN_GAME
+		return (T*)pointer;
+#else
 		if (pgStreamManager::IsResolved(this))
 		{
 			return (T*)pointer;
@@ -166,10 +173,14 @@ public:
 		{
 			return (T*)pgStreamManager::ResolveFilePointer(const_cast<pgPtrRepresentation&>(on_disk));
 		}
+#endif
 	}
 
 	T* operator*() const
 	{
+#ifdef RAGE_FORMATS_IN_GAME
+		return (T*)pointer;
+#else
 		if (pgStreamManager::IsResolved(this))
 		{
 			return (T*)pointer;
@@ -178,10 +189,14 @@ public:
 		{
 			return (T*)pgStreamManager::ResolveFilePointer(const_cast<pgPtrRepresentation&>(on_disk));
 		}
+#endif
 	}
 
 	pgPtr operator=(T* other)
 	{
+#ifdef RAGE_FORMATS_IN_GAME
+		pointer = other;
+#else
 #if RAGE_NATIVE_ARCHITECTURE
 		pointer = other;
 
@@ -192,6 +207,7 @@ public:
 
 		pgStreamManager::MarkToBePacked(&on_disk, Physical, _ReturnAddress());
 		pgStreamManager::MarkResolved(this);
+#endif
 #endif
 
 		return *this;
@@ -204,20 +220,24 @@ public:
 
 	pgPtr(const pgPtr& from)
 	{
+#ifndef RAGE_FORMATS_IN_GAME
 		if (pgStreamManager::IsResolved(&from))
 		{
 			pgStreamManager::MarkResolved(this);
 		}
+#endif
 
 		on_disk = from.on_disk;
 	}
 
 	pgPtr& operator=(const pgPtr& arg)
 	{
+#ifndef RAGE_FORMATS_IN_GAME
 		if (pgStreamManager::IsResolved(&arg))
 		{
 			pgStreamManager::MarkResolved(this);
 		}
+#endif
 
 		pointer = arg.pointer;
 
@@ -236,6 +256,7 @@ public:
 			return;
 		}
 
+#ifndef RAGE_FORMATS_IN_GAME
 		if (!pgStreamManager::IsResolved(this))
 		{
 			bool physical = (on_disk.blockType == 6);
@@ -249,6 +270,7 @@ public:
 
 			pgStreamManager::MarkResolved(this);
 		}
+#endif
 	}
 };
 
