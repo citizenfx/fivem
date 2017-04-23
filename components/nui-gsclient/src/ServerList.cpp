@@ -14,6 +14,8 @@
 #include <fstream>
 #include <array>
 
+#include <NetLibrary.h>
+
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
@@ -610,26 +612,7 @@ void GSClient_QueryMaster()
 
 	g_cls.numServers = 0;
 
-	if (!lookedUp)
-	{
-		hostent* host = gethostbyname("updater.fivereborn.com");
-
-		if (!host)
-		{
-			trace("gethostbyname() failed - %d\n", WSAGetLastError());
-			return;
-		}
-
-		masterIP.sin_family = AF_INET;
-		masterIP.sin_addr.s_addr = *(ULONG*)host->h_addr_list[0];
-		masterIP.sin_port = htons(30110);
-
-		lookedUp = true;
-	}
-
 	g_cls.curNumResults = 0;
-
-	nui::ExecuteRootScript("citFrames['mpMenu'].contentWindow.postMessage({ type: 'clearServers' }, '*');");
 
 	char message[128];
 	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetservers " GS_GAMENAME " 4 full empty");
@@ -656,6 +639,96 @@ void GSClient_Refresh()
 	}
 
 	GSClient_QueryMaster();
+}
+
+void GSClient_QueryAddresses(const std::vector<NetAddress>& addrs)
+{
+	if (!g_cls.socket)
+	{
+		GSClient_Init();
+	}
+
+	g_cls.numServers = 0;
+	g_cls.curNumResults = 0;
+
+	char message[128];
+	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetinfo xxx");
+
+	for (const auto& na : addrs)
+	{
+		sockaddr_storage addr;
+		int addrlen;
+		
+		na.GetSockAddr(&addr, &addrlen);
+
+		// TODO: support IPv6
+		if (addr.ss_family == AF_INET)
+		{
+			int count = g_cls.numServers;
+
+			if (count < 8192)
+			{
+				sockaddr_in* in4 = (sockaddr_in*)&addr;
+
+				// build net address
+				unsigned int ip = in4->sin_addr.S_un.S_addr;
+				g_cls.servers[count].m_IP = htonl(ip);
+				g_cls.servers[count].m_Port = htons(in4->sin_port);
+				g_cls.servers[count].queried = false;
+
+				g_cls.numServers++;
+			}
+		}
+	}
+}
+
+void GSClient_Ping(const std::wstring& arg)
+{
+	std::string serverArray = ToNarrow(arg);
+
+	rapidjson::Document doc;
+	doc.Parse(serverArray.c_str(), serverArray.size());
+
+	if (doc.HasParseError())
+	{
+		return;
+	}
+
+	if (!doc.IsArray())
+	{
+		return;
+	}
+
+	std::vector<NetAddress> addresses;
+
+	for (auto it = doc.Begin(); it != doc.End(); it++)
+	{
+		if (!it->IsArray())
+		{
+			continue;
+		}
+
+		if (it->Size() != 2)
+		{
+			continue;
+		}
+
+		auto& addrVal = (*it)[0];
+		auto& portVal = (*it)[1];
+
+		if (!addrVal.IsString() || !portVal.IsInt())
+		{
+			continue;
+		}
+
+		auto addr = addrVal.GetString();
+		auto port = portVal.GetInt();
+
+		NetAddress netAddr(addr, port);
+		addresses.push_back(netAddr);
+	}
+
+	GSClient_QueryAddresses(addresses);
 }
 
 void GSClient_GetFavorites()
@@ -686,6 +759,13 @@ static InitFunction initFunction([] ()
 			trace("Refreshing server list...\n");
 
 			GSClient_Refresh();
+		}
+
+		if (!_wcsicmp(type, L"pingServers"))
+		{
+			trace("Pinging specified servers...\n");
+
+			GSClient_Ping(arg);
 		}
 
 		if (!_wcsicmp(type, L"getFavorites"))

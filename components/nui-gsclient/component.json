@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"nui:core",
+		"net",
 		"http-client",
 		"rage:nutsnbolts"
 	],
