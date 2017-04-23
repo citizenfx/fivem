@@ -15,5 +15,6 @@
     "#ServerList_MaxPing": "Max Ping",
     "#Servers_Connecting": "Connecting",
     "#Servers_ConnectingTo": "Connecting to {{ server.address }}...",
-    "#Servers_ConnectFailed": "Connection failed"
+    "#Servers_ConnectFailed": "Connection failed",
+    "#Servers_CloseOverlay": "Close"
 }
