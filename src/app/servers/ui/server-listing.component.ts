@@ -151,7 +151,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
                 return false;
             }
 
-            if (filters.maxPing > 0 && server.ping >= filters.maxPing) {
+            if (filters.maxPing > 0 && server.ping >= filters.maxPing && server.ping != 9999) {
                 return false;
             }
 
