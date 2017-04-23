@@ -272,3 +272,43 @@ a.panel-block,
 .panel-heading:first-child, .panel-tabs:first-child {
 	border: 0px solid transparent;
 }
+
+.checkbox {
+	position: relative;
+
+	.label {
+		width: 18px;
+		height: 18px;
+		position: absolute;
+		top: 3px;
+		left: 1px;
+
+		border: 1px solid #51B3EC;
+
+		box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+
+		&:after {
+			content: '✓';
+			position: absolute;
+			top: 0px;
+			left: 1px;
+			opacity: 0;
+			transition: 0.1s;
+
+			font-size: 18px;
+			line-height: 18px;
+
+			color: #51B3EC;
+		}
+	}
+
+	input[type=checkbox] {
+		visibility: hidden;
+
+		width: 16px;
+
+		&:checked + .label:after {
+			opacity: 1;
+		}
+	}
+}

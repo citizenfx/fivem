@@ -27,14 +27,16 @@
                     </div>
 
                     <div contents="filters" class="filters">
-                        <label class="checkbox">
-                            <input type="checkbox" class="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
-                            <span translate>#ServerList_HideEmpty</span>
-                        </label>
-                        <label class="checkbox">
-                            <input type="checkbox" class="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
-                            <span translate>#ServerList_HideFull</span>
-                        </label>
+                        <div class="checkbox">
+                            <input type="checkbox" id="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
+                            <label for="hide-empty" class="label"></label>
+                            <label for="hide-empty" translate>#ServerList_HideEmpty</label>
+                        </div>
+                        <div class="checkbox">
+                            <input type="checkbox" id="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
+                            <label for="hide-full" class="label"></label>
+                            <label for="hide-full" translate>#ServerList_HideFull</label>
+                        </div>
                         <label class="label">
                             <span translate>#ServerList_MaxPing</span> [ {{ filters.maxPing }} ]
                             <nouislider [connect]="true" [min]="0" [max]="500" [step]="10" [(ngModel)]="filters.maxPing" (ngModelChange)="updateFilters()"></nouislider>
