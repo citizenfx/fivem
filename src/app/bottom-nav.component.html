@@ -18,3 +18,12 @@
 			</nav>
 		</div>
 	</div>
+
+	<div class="overlay" *ngIf="showOverlay">
+		<div class="inner">
+			<div>
+				<h1>{{overlayTitle|translate}}</h1>
+				<p>{{overlayMessage|translate:{data: overlayMessageData} }}</p>
+			</div>
+		</div>
+	</div>

@@ -103,6 +103,18 @@ export class DummyGameService extends GameService {
 
     connectTo(server: Server) {
         console.log('faking connection to ' + server.address);
+
+        this.invokeConnecting(server);
+
+        setTimeout(() =>
+        {
+            this.invokeConnectStatus(server, 'hey!', 12, 12)
+
+            setTimeout(() =>
+            {
+                this.invokeConnectFailed(server, 'Sorry, we\'re closed. :(');
+            }, 2000);
+        }, 1500);
     }
 
     pingServers(servers: Server[]): Server[] {

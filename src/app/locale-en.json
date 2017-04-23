@@ -12,5 +12,8 @@
     "#BottomNav_Settings": "Settings",
     "#ServerList_HideFull": "Hide Full",
     "#ServerList_HideEmpty": "Hide Empty",
-    "#ServerList_MaxPing": "Max Ping"
+    "#ServerList_MaxPing": "Max Ping",
+    "#Servers_Connecting": "Connecting",
+    "#Servers_ConnectingTo": "Connecting to {{ server.address }}...",
+    "#Servers_ConnectFailed": "Connection failed"
 }
