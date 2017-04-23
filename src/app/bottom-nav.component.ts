@@ -12,6 +12,7 @@ import { Translation, TranslationService } from 'angular-l10n';
 
 export class BottomNavComponent extends Translation implements OnInit {
     showOverlay = false;
+    overlayClosable = true;
     overlayTitle: string;
     overlayMessage: string;
     overlayMessageData = {};
@@ -26,12 +27,14 @@ export class BottomNavComponent extends Translation implements OnInit {
             this.overlayMessage = '#Servers_ConnectingTo';
             this.overlayMessageData = { server: a };
             this.showOverlay = true;
+            this.overlayClosable = false;
         });
 
         this.gameService.connectFailed.subscribe(([server, message]) => {
             this.overlayTitle = '#Servers_ConnectFailed';
             this.overlayMessage = message;
             this.showOverlay = true;
+            this.overlayClosable = true;
         });
 
         this.gameService.connectStatus.subscribe(a => {
@@ -39,6 +42,7 @@ export class BottomNavComponent extends Translation implements OnInit {
             this.overlayMessage = a.message;
             this.overlayMessageData = {};
             this.showOverlay = true;
+            this.overlayClosable = false;
         });
     }
 }

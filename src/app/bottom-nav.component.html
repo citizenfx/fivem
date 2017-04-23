@@ -24,6 +24,7 @@
 			<div>
 				<h1>{{overlayTitle|translate}}</h1>
 				<p>{{overlayMessage|translate:{data: overlayMessageData} }}</p>
+				<a class="closeOverlay" href="#" *ngIf="overlayClosable" (click)="showOverlay = false" translate>#Servers_CloseOverlay</a>
 			</div>
 		</div>
 	</div>
