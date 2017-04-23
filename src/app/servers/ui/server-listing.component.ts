@@ -50,7 +50,14 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
     constructor() {
         this.servers = [];
-        this.sortOrder = ['ping', '+'];
+
+        const storedOrder = localStorage.getItem('sortOrder');
+
+        if (storedOrder) {
+            this.sortOrder = JSON.parse(storedOrder);
+        } else {
+            this.sortOrder = ['ping', '+'];
+        }
 
         this.changeObservable.throttleTime(1000).subscribe(() => {
             this.sortAndFilterServers();
@@ -209,6 +216,8 @@ export class ServerListingComponent implements OnInit, OnChanges {
         });
 
         this.sortedServers = servers;
+
+        window.localStorage.setItem('sortOrder', JSON.stringify(this.sortOrder));
     }
 
     updateSorting(column: string) {
