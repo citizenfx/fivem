@@ -4,6 +4,8 @@ import { Server, ServerIcon } from '../server';
 import { ServersService } from '../servers.service';
 import { ServerFilters } from './server-filter.component';
 
+import { GameService } from '../../game.service';
+
 @Component({
     moduleId: module.id,
     selector: 'app-server-list',
@@ -17,7 +19,7 @@ export class ServerListComponent implements OnInit {
 
     filters: ServerFilters;
 
-    constructor(private serverService: ServersService) {
+    constructor(private serverService: ServersService, private gameService: GameService) {
         this.filters = new ServerFilters();
     }
 
@@ -33,6 +35,7 @@ export class ServerListComponent implements OnInit {
         this.serverService
             .getServers()
             .then(list => this.servers = list)
+            .then(list => this.gameService.pingServers(list))
             .then(list => this.serverService.getIcons(list))
             .then(list => this.icons = list)
             .then(list => {

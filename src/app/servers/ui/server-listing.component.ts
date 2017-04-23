@@ -4,6 +4,8 @@ import { Server } from '../server';
 import { ServerHeadingColumn } from './server-heading.component';
 import { ServerFilters } from './server-filter.component';
 
+import {Subject} from 'rxjs/Rx';
+
 @Component({
     moduleId: module.id,
     selector: 'app-server-listing',
@@ -17,6 +19,8 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
     @Input()
     private filters: ServerFilters;
+
+    private subscriptions: { [addr: string]: any } = {};
 
     sortOrder: string[];
 
@@ -46,7 +50,11 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
     constructor() {
         this.servers = [];
-        this.sortOrder = ['ping', '-'];
+        this.sortOrder = ['ping', '+'];
+
+        this.changeObservable.throttleTime(1000).subscribe(() => {
+            this.sortAndFilterServers();
+        });
     }
 
     private static quoteRe(text: string) {
@@ -195,7 +203,8 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
             return sortChain(
                 sortSortable(this.sortOrder),
-                sortSortable(['ping', '-'])
+                sortSortable(['ping', '+']),
+                sortSortable(['name', '+'])
             );
         });
 
@@ -217,7 +226,17 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
     ngOnInit() { }
 
+    changeSubject: Subject<void> = new Subject<void>();
+    changeObservable = this.changeSubject.asObservable();
+
     ngOnChanges() {
+        for (const server of (this.servers || [])) {
+            if (!this.subscriptions[server.address]) {
+                this.subscriptions[server.address] = server.onChanged.subscribe(a => this.changeSubject.next());
+            }
+        }
+
         this.sortAndFilterServers();
+        this.changeSubject.next();
     }
 }

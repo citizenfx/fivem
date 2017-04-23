@@ -10,6 +10,6 @@
         {{server.currentPlayers}}/{{server.maxPlayers}}
     </dd>
     <dd class="ping">
-        {{server.ping}}
+        {{server.ping >= 1000 ? '-' : server.ping}}
     </dd>
 </dl>

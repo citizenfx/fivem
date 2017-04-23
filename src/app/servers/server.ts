@@ -1,4 +1,5 @@
 import {DomSanitizer} from '@angular/platform-browser';
+import { EventEmitter } from '@angular/core';
 
 import { master } from './master';
 
@@ -13,6 +14,8 @@ export class Server {
     readonly data: any;
     readonly int: master.ServerData$Properties;
 
+    onChanged = new EventEmitter<void>();
+
     realIconUri: string;
 
     get iconUri(): string {
@@ -26,9 +29,12 @@ export class Server {
 
     sanitizedUri: any;
     currentPlayers: number;
+    ping = 9999;
 
-    get ping(): number {
-        return 42;
+    public updatePing(newValue: number): void {
+        this.ping = newValue;
+
+        this.onChanged.emit();
     }
 
     public getSortable(name: string): any {

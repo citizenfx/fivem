@@ -19,6 +19,8 @@ export abstract class GameService {
 
     abstract connectTo(server: Server): void;
 
+    abstract pingServers(servers: Server[]): Server[];
+
     protected invokeConnectFailed(server: Server, message: string) {
         this.connectFailed.emit([server, message]);
     }
@@ -41,6 +43,8 @@ export abstract class GameService {
 export class CfxGameService extends GameService {
     private lastServer: Server;
 
+    private pingList: {[addr: string]: Server} = {};
+
     private inConnecting = false;
 
     init() {
@@ -54,6 +58,9 @@ export class CfxGameService extends GameService {
                     break;
                 case 'connectStatus':
                     this.invokeConnectStatus(this.lastServer, event.data.message, event.data.count, event.data.total);
+                    break;
+                case 'serverAdd':
+                    this.pingList[event.data.addr].updatePing(event.data.ping);
                     break;
             }
         });
@@ -74,6 +81,18 @@ export class CfxGameService extends GameService {
 
         (<any>window).invokeNative('connectTo', server.address);
     }
+
+    pingServers(servers: Server[]) {
+        for (const server of servers) {
+            this.pingList[server.address] = server;
+        }
+
+        (<any>window).invokeNative('pingServers', JSON.stringify(
+            servers.map(a => [ a.address.split(':')[0], parseInt(a.address.split(':')[1]) ])
+        ));
+
+        return servers;
+    }
 }
 
 @Injectable()
@@ -84,5 +103,9 @@ export class DummyGameService extends GameService {
 
     connectTo(server: Server) {
         console.log('faking connection to ' + server.address);
+    }
+
+    pingServers(servers: Server[]): Server[] {
+        return servers;
     }
 }
