@@ -60,7 +60,10 @@ export class CfxGameService extends GameService {
                     this.invokeConnectStatus(this.lastServer, event.data.message, event.data.count, event.data.total);
                     break;
                 case 'serverAdd':
-                    this.pingList[event.data.addr].updatePing(event.data.ping);
+                    if (event.data.addr in this.pingList)
+                    {
+                        this.pingList[event.data.addr].updatePing(event.data.ping);
+                    }
                     break;
             }
         });
