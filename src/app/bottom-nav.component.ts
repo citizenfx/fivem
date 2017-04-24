@@ -25,22 +25,23 @@ export class BottomNavComponent extends Translation implements OnInit {
         this.gameService.connecting.subscribe(a => {
             this.overlayTitle = '#Servers_Connecting';
             this.overlayMessage = '#Servers_ConnectingTo';
-            this.overlayMessageData = { server: a };
+            this.overlayMessageData = { serverName: a.address };
             this.showOverlay = true;
             this.overlayClosable = false;
         });
 
         this.gameService.connectFailed.subscribe(([server, message]) => {
             this.overlayTitle = '#Servers_ConnectFailed';
-            this.overlayMessage = message;
+            this.overlayMessage = '#Servers_Message';
+            this.overlayMessageData = { message };
             this.showOverlay = true;
             this.overlayClosable = true;
         });
 
         this.gameService.connectStatus.subscribe(a => {
             this.overlayTitle = '#Servers_Connecting';
-            this.overlayMessage = a.message;
-            this.overlayMessageData = {};
+            this.overlayMessage = '#Servers_Message';
+            this.overlayMessageData = { message: a.message };
             this.showOverlay = true;
             this.overlayClosable = false;
         });

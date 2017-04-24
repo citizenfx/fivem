@@ -14,7 +14,8 @@
     "#ServerList_HideEmpty": "Hide Empty",
     "#ServerList_MaxPing": "Max Ping",
     "#Servers_Connecting": "Connecting",
-    "#Servers_ConnectingTo": "Connecting to {{ server.address }}...",
+    "#Servers_ConnectingTo": "Connecting to {{ serverName }}...",
     "#Servers_ConnectFailed": "Connection failed",
-    "#Servers_CloseOverlay": "Close"
+    "#Servers_CloseOverlay": "Close",
+    "#Servers_Message": "{{ message }}"
 }
