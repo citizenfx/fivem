@@ -8,6 +8,7 @@ import { VirtualScrollModule } from 'angular2-virtual-scroll';
 import { TranslationModule } from 'angular-l10n';
 import { NouisliderModule } from 'ng2-nouislider';
 import { MomentModule } from 'angular2-moment';
+import { ContextMenuModule } from 'ngx-contextmenu';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -16,6 +17,7 @@ import { BottomNavComponent } from './bottom-nav.component';
 import { HomeComponent } from './home/home.component';
 
 import { ServerListComponent } from './servers/ui/server-list.component';
+import { ServerListUiComponent } from './servers/ui/server-list-ui.component';
 import { ServerListingComponent } from './servers/ui/server-listing.component';
 import { ServerListingItemComponent } from './servers/ui/server-listing-item.component';
 import { ServerHeadingComponent } from './servers/ui/server-heading.component';
@@ -35,6 +37,7 @@ import { EscapePipe } from './escape.pipe';
     BottomNavComponent,
     HomeComponent,
     ServerListComponent,
+    ServerListUiComponent,
     ServerListingComponent,
     ServerListingItemComponent,
     ServerHeadingComponent,
@@ -51,6 +54,7 @@ import { EscapePipe } from './escape.pipe';
     VirtualScrollModule,
     NouisliderModule,
     MomentModule,
+    ContextMenuModule,
     TranslationModule.forRoot()
   ],
   providers: [
@@ -58,7 +62,7 @@ import { EscapePipe } from './escape.pipe';
     TweetService,
     {
       provide: GameService,
-      useClass: CfxGameService
+      useClass: DummyGameService
     }
   ],
   bootstrap: [

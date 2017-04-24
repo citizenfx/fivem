@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angular/core';
 
 import { Server } from '../server';
 
@@ -20,19 +20,18 @@ export class ServerFilters {
     styleUrls: ['server-filter.component.scss']
 })
 export class ServerFilterComponent implements OnInit, OnChanges {
-    filters: ServerFilters;
+    filters: ServerFilters = new ServerFilters();
+
+    @Input()
+    type: string;
+
+    lastType = "";
 
     @Output()
     public filtersChanged = new EventEmitter<ServerFilters>();
 
     constructor() {
-        const storedFilters = localStorage.getItem('filters');
 
-        if (storedFilters) {
-            this.filters = {...<ServerFilters>JSON.parse(storedFilters)};
-        } else {
-            this.filters = new ServerFilters();
-        }
     }
 
     ngOnInit() {
@@ -40,9 +39,22 @@ export class ServerFilterComponent implements OnInit, OnChanges {
     }
 
     ngOnChanges() {
+        if (this.type != this.lastType)
+        {
+            const storedFilters = localStorage.getItem(`sfilters:${this.type}`);
+
+            if (storedFilters) {
+                this.filters = {...<ServerFilters>JSON.parse(storedFilters)};
+            } else {
+                this.filters = new ServerFilters();
+            }
+
+            this.lastType = this.type;
+        }
+
         this.filtersChanged.emit(this.filters);
 
-        localStorage.setItem('filters', JSON.stringify(this.filters));
+        localStorage.setItem(`sfilters:${this.type}`, JSON.stringify(this.filters));
     }
 
     updateFilters() {

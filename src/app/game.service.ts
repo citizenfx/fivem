@@ -21,6 +21,10 @@ export abstract class GameService {
 
     abstract pingServers(servers: Server[]): Server[];
 
+    abstract isMatchingServer(type: string, server: Server): boolean;
+
+    abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
+
     protected invokeConnectFailed(server: Server, message: string) {
         this.connectFailed.emit([server, message]);
     }
@@ -45,9 +49,15 @@ export class CfxGameService extends GameService {
 
     private pingList: {[addr: string]: Server} = {};
 
+    private favorites: string[] = [];
+
+    private history: string[] = [];
+
     private inConnecting = false;
 
     init() {
+        (<any>window).invokeNative('getFavorites');
+
         window.addEventListener('message', (event) => {
             switch (event.data.type) {
                 case 'connectFailed':
@@ -65,12 +75,25 @@ export class CfxGameService extends GameService {
                         this.pingList[event.data.addr].updatePing(event.data.ping);
                     }
                     break;
+                case 'getFavorites':
+                    this.favorites = event.data.list;
+                    break;
+                case 'addToHistory':
+                    this.history.push(event.data.address);
+                    this.saveHistory();
+                    break;
             }
         });
+
+        this.history = JSON.parse(localStorage.getItem('history'));
 
         this.connecting.subscribe(server => {
             this.inConnecting = false;
         })
+    }
+
+    private saveHistory() {
+        localStorage.setItem('history', JSON.stringify(this.history));
     }
 
     connectTo(server: Server) {
@@ -96,12 +119,47 @@ export class CfxGameService extends GameService {
 
         return servers;
     }
+
+    isMatchingServer(type: string, server: Server) {
+        if (type == 'favorites') {
+            return this.favorites.indexOf(server.address) >= 0;
+        } else if (type == 'history') {
+            return this.history.indexOf(server.address) >= 0;
+        }
+
+        return true;
+    }
+
+    toggleListEntry(list: string, server: Server, isInList: boolean) {
+        if (this.isMatchingServer(list, server) !== isInList) {
+            if (isInList) {
+                if (list == 'favorites') {
+                    this.favorites.push(server.address);
+                } else if (list == 'history') {
+                    this.history.push(server.address);
+
+                }
+            } else {
+                if (list == 'favorites') {
+                    this.favorites = this.favorites.filter(a => a != server.address);
+                } else if (list == 'history') {
+                    this.history = this.history.filter(a => a != server.address);
+                }
+            }
+        }
+
+        if (list == 'favorites') {
+            (<any>window).invokeNative('saveFavorites', JSON.stringify(list))
+        } else if (list == 'history') {
+            this.saveHistory();
+        }
+    }
 }
 
 @Injectable()
 export class DummyGameService extends GameService {
     init() {
-
+        document.body.style.zoom = ((window.innerHeight / 720) * 100) + '%';
     }
 
     connectTo(server: Server) {
@@ -122,5 +180,12 @@ export class DummyGameService extends GameService {
 
     pingServers(servers: Server[]): Server[] {
         return servers;
+    }
+
+    isMatchingServer(type: string, server: Server): boolean {
+        return ((type != 'history' && type != 'favorites') || server.currentPlayers < 12);
+    }
+
+    toggleListEntry(list: string, server: Server, isInList: boolean) {
     }
 }

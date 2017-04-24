@@ -1,4 +1,4 @@
-<dl (dblclick)="attemptConnect()">
+<dl (dblclick)="attemptConnect()" [contextMenu]="menu">
     <dt class="icon">
         <figure class="image is-32x32" (click)="attemptConnect()">
             <img [src]="server.sanitizedUri">
@@ -13,3 +13,8 @@
         {{server.ping >= 1000 ? '-' : server.ping}}
     </dd>
 </dl>
+<context-menu>
+    <ng-template contextMenuItem (execute)="attemptConnect()" translate>#ServerList_Connect</ng-template>
+    <ng-template contextMenuItem (execute)="addFavorite()" [visible]="!isFavorite()" translate>#ServerList_AddFavorite</ng-template>
+    <ng-template contextMenuItem (execute)="removeFavorite()" [visible]="isFavorite()" translate>#ServerList_RemoveFavorite</ng-template>
+</context-menu>

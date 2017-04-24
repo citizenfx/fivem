@@ -1,16 +1,4 @@
-	<div class="list">
-		<div class="columns">
-			<nav class="panel server-filter column is-one-quarter">
-				<app-server-filter (filtersChanged)="setFilters($event)"></app-server-filter>
-
-				<div class="a"></div>
-			</nav>
-
-			<div class="servers column">
-				<app-server-listing [servers]="servers" [filters]="filters"></app-server-listing>
-			</div>
-		</div>
-	</div>
+	<router-outlet></router-outlet>
 
 	<div class="nav-bottom with-top">
 		<div class="top-portion material-1">
@@ -18,10 +6,10 @@
 				<div class="nav-left"></div>
 
 				<div class="nav-center">
-					<a class="nav-item browse is-active"><h1 class="title is-4" translate>#ServerList_Browse</h1></a>
-					<a class="nav-item history"><h1 class="title is-4" translate>#ServerList_History</h1></a>
-					<a class="nav-item faves"><h1 class="title is-4" translate>#ServerList_Favorites</h1></a>
-					<a class="nav-item direct"><h1 class="title is-4" translate>#ServerList_DirectConnect</h1></a>
+					<a [routerLink]="['/servers']" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="is-active" class="nav-item browse"><h1 class="title is-4" translate>#ServerList_Browse</h1></a>
+					<a [routerLink]="['/servers/history']" class="nav-item history" routerLinkActive="is-active"><h1 class="title is-4" translate>#ServerList_History</h1></a>
+					<a [routerLink]="['/servers/favorites']" class="nav-item faves" routerLinkActive="is-active"><h1 class="title is-4" translate>#ServerList_Favorites</h1></a>
+					<a [routerLink]="['/servers/direct-connect']" class="nav-item direct" routerLinkActive="is-active"><h1 class="title is-4" translate>#ServerList_DirectConnect</h1></a>
 				</div>
 
 				<div class="nav-right">
