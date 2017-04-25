@@ -133,7 +133,7 @@ protected:
 
 	std::shared_ptr<HttpClient> m_httpClient;
 
-	HandleData m_handles[64];
+	HandleData m_handles[512];
 
 	std::mutex m_handleLock;
 
