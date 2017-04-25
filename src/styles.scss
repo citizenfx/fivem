@@ -138,6 +138,12 @@ body {
 	overflow: hidden;
 }
 
+.direct-connect.settings {
+	height: auto;
+	bottom: 13%;
+	top: auto;
+}
+
 .direct-connect .loading,
 .direct-connect .error {
 	margin-top: 1em;

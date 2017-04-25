@@ -16,6 +16,14 @@ export abstract class GameService {
     connectStatus = new EventEmitter<ConnectStatus>();
     connecting = new EventEmitter<Server>();
 
+    get nickname(): string {
+        return 'UnknownPlayer';
+    }
+
+    set nickname(name: string) {
+        
+    }
+
     abstract init(): void;
 
     abstract connectTo(server: Server): void;
@@ -58,6 +66,8 @@ export class CfxGameService extends GameService {
 
     private history: string[] = [];
 
+    private realNickname: string;
+
     private inConnecting = false;
 
     constructor(private sanitizer: DomSanitizer) {
@@ -96,9 +106,24 @@ export class CfxGameService extends GameService {
 
         this.history = JSON.parse(localStorage.getItem('history')) || [];
 
+        if (localStorage.getItem('nickOverride')) {
+            (<any>window).invokeNative('checkNickname', localStorage.getItem('nickOverride'));
+        }
+
         this.connecting.subscribe(server => {
             this.inConnecting = false;
         })
+    }
+
+    get nickname(): string {
+        return this.realNickname;
+    }
+
+    set nickname(name: string) {
+        this.realNickname = name;
+        localStorage.setItem('nickOverride', name);
+
+        (<any>window).invokeNative('checkNickname', name);
     }
 
     private saveHistory() {

@@ -15,6 +15,7 @@ import { AppComponent } from './app.component';
 
 import { BottomNavComponent } from './bottom-nav.component';
 import { HomeComponent } from './home/home.component';
+import { SettingsComponent } from './settings/settings.component';
 
 import { ServerListComponent } from './servers/ui/server-list.component';
 import { ServerListUiComponent } from './servers/ui/server-list-ui.component';
@@ -37,6 +38,7 @@ import { EscapePipe } from './escape.pipe';
     AppComponent,
     BottomNavComponent,
     HomeComponent,
+    SettingsComponent,
     ServerListComponent,
     ServerListUiComponent,
     ServerListingComponent,
