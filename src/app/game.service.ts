@@ -108,6 +108,7 @@ export class CfxGameService extends GameService {
 
         if (localStorage.getItem('nickOverride')) {
             (<any>window).invokeNative('checkNickname', localStorage.getItem('nickOverride'));
+            this.realNickname = localStorage.getItem('nickOverride');
         }
 
         this.connecting.subscribe(server => {
@@ -205,8 +206,6 @@ export class CfxGameService extends GameService {
                     return;
                 }
 
-                console.log('timed out?');
-
                 reject(new Error("Server query timed out."));
 
                 window.removeEventListener('message', cb);
@@ -221,15 +220,11 @@ export class CfxGameService extends GameService {
 
                 if (event.data.type == 'queryingFailed') {
                     if (event.data.arg == addrString) {
-                        console.log('failed?');
-
                         reject(new Error("Failed to query server."));
                         window.removeEventListener('message', cb);
                         window.clearTimeout(to);
                     }
                 } else if (event.data.type == 'serverQueried') {
-                    console.log('queried?');
-
                     resolve(Server.fromNative(this.sanitizer, event.data));
                     window.removeEventListener('message', cb);
                     window.clearTimeout(to);
