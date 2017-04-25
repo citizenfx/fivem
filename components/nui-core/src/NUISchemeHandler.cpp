@@ -104,6 +104,11 @@ public:
 			filename_.erase(hash);
 		}
 
+		if (filename_.length() >= 256)
+		{
+			filename_ = filename_.substr(0, 255);
+		}
+
 		//file_ = _wfopen(filename_.c_str(), "rb");
 		device_ = rage::fiDevice::GetDevice(filename_.c_str(), true);
 
