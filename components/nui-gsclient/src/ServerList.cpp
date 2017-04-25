@@ -14,7 +14,7 @@
 #include <fstream>
 #include <array>
 
-#include <NetLibrary.h>
+#include <NetAddress.h> // net:base
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -38,18 +38,38 @@ void RequestInfoBlob(const std::string& server, const TFunc& cb)
 {
 	static HttpClient* httpClient = new HttpClient();
 
-	std::string port = std::string(server);
-	std::string ip = std::string(server);
-	ip = ip.substr(0, ip.find(":"));
-	port = port.substr(port.find(":") + 1);
-	const char* portnum = port.c_str();
+	net::PeerAddress addr = net::PeerAddress::FromString(server).get();
 
-	if (port.empty())
+	int port = 30120;
+
+	std::string ip;
+	std::array<char, 80> buffer;
+
+	switch (addr.GetAddressFamily())
 	{
-		portnum = "30120";
+	case AF_INET:
+	{
+		auto sa = (const sockaddr_in*)addr.GetSocketAddress();
+		inet_ntop(AF_INET, &sa->sin_addr, buffer.data(), buffer.size());
+
+		ip = buffer.data();
+
+		port = htons(sa->sin_port);
+		break;
+	}
+	case AF_INET6:
+	{
+		auto sa = (const sockaddr_in6*)addr.GetSocketAddress();
+		inet_ntop(AF_INET6, &sa->sin6_addr, buffer.data(), buffer.size());
+
+		port = htons(sa->sin6_port);
+
+		ip = std::string("[") + buffer.data() + "]";
+		break;
+	}
 	}
 
-	httpClient->DoGetRequest(ToWide(ip), atoi(portnum), L"/info.json", [=] (bool success, const char* data, size_t length)
+	httpClient->DoGetRequest(ToWide(ip), port, L"/info.json", [=] (bool success, const char* data, size_t length)
 	{
 		if (!success)
 		{
@@ -129,8 +149,7 @@ void LoadInfoBlob(const std::string& server, int expectedVersion, const TFunc& c
 
 struct gameserveritemext_t
 {
-	DWORD m_IP;
-	WORD m_Port;
+	net::PeerAddress m_Address;
 	DWORD queryTime;
 	bool responded;
 	bool queried;
@@ -143,7 +162,7 @@ struct gameserveritemext_t
 static struct
 {
 	SOCKET socket;
-	sockaddr_in from;
+	SOCKET socket6;
 	gameserveritemext_t servers[8192];
 	int numServers;
 	DWORD lastQueryStep;
@@ -151,7 +170,58 @@ static struct
 	int curNumResults;
 
 	DWORD queryTime;
+
+	bool isOneQuery;
 } g_cls;
+
+static bool InitSocket(SOCKET* sock, int af)
+{
+	auto socket = ::socket(af, SOCK_DGRAM, IPPROTO_UDP);
+
+	if (socket == INVALID_SOCKET)
+	{
+		trace("socket() failed - %d\n", WSAGetLastError());
+		return false;
+	}
+
+	if (af == AF_INET)
+	{
+		sockaddr_in bindAddr;
+		memset(&bindAddr, 0, sizeof(bindAddr));
+		bindAddr.sin_family = af;
+		bindAddr.sin_port = 0;
+		bindAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+		if (bind(socket, (sockaddr*)&bindAddr, sizeof(bindAddr)) == SOCKET_ERROR)
+		{
+			trace("bind() failed - %d\n", WSAGetLastError());
+			return false;
+		}
+	}
+	else
+	{
+		sockaddr_in6 bindAddr;
+		memset(&bindAddr, 0, sizeof(bindAddr));
+		bindAddr.sin6_family = af;
+		bindAddr.sin6_port = 0;
+		bindAddr.sin6_addr = in6addr_any;
+
+		if (bind(socket, (sockaddr*)&bindAddr, sizeof(bindAddr)) == SOCKET_ERROR)
+		{
+			trace("bind() failed - %d\n", WSAGetLastError());
+			return false;
+		}
+	}
+
+	ULONG nonBlocking = 1;
+	ioctlsocket(socket, FIONBIO, &nonBlocking);
+
+	setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (char*)&nonBlocking, sizeof(nonBlocking));
+
+	*sock = socket;
+
+	return true;
+}
 
 bool GSClient_Init()
 {
@@ -163,30 +233,15 @@ bool GSClient_Init()
 		return false;
 	}
 
-	g_cls.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-	if (g_cls.socket == INVALID_SOCKET)
+	if (!InitSocket(&g_cls.socket, AF_INET))
 	{
-		trace("socket() failed - %d\n", WSAGetLastError());
 		return false;
 	}
 
-	sockaddr_in bindAddr;
-	memset(&bindAddr, 0, sizeof(bindAddr));
-	bindAddr.sin_family = AF_INET;
-	bindAddr.sin_port = 0;
-	bindAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	if (bind(g_cls.socket, (sockaddr*)&bindAddr, sizeof(bindAddr)) == SOCKET_ERROR)
+	if (!InitSocket(&g_cls.socket6, AF_INET6))
 	{
-		trace("bind() failed - %d\n", WSAGetLastError());
 		return false;
 	}
-
-	ULONG nonBlocking = 1;
-	ioctlsocket(g_cls.socket, FIONBIO, &nonBlocking);
-
-	setsockopt(g_cls.socket, SOL_SOCKET, SO_BROADCAST, (char*)&nonBlocking, sizeof(nonBlocking));
 
 	return true;
 }
@@ -209,15 +264,15 @@ void GSClient_QueryServer(int i)
 	server->responded = false;
 	server->queryTime = timeGetTime();
 
-	sockaddr_in serverIP;
-	serverIP.sin_family = AF_INET;
-	serverIP.sin_addr.s_addr = htonl(server->m_IP);
-	serverIP.sin_port = htons(server->m_Port);
+	const sockaddr* addr = server->m_Address.GetSocketAddress();
+	int addrlen = server->m_Address.GetSocketAddressLength();
 
+	auto socket = (server->m_Address.GetAddressFamily() == AF_INET6) ? g_cls.socket6 : g_cls.socket;
+	
 	char message[128];
 	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetinfo xxx");
 
-	sendto(g_cls.socket, message, strlen(message), 0, (sockaddr*)&serverIP, sizeof(serverIP));
+	sendto(socket, message, strlen(message), 0, (sockaddr*)addr, addrlen);
 }
 
 void GSClient_QueryStep()
@@ -318,12 +373,11 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 	}
 }
 
-void GSClient_HandleInfoResponse(const char* bufferx, int len)
+void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAddress& from)
 {
 	auto tempServer = std::make_shared<gameserveritemext_t>();
 	tempServer->queryTime = timeGetTime();
-	tempServer->m_IP = ntohl(g_cls.from.sin_addr.s_addr);
-	tempServer->m_Port = ntohs(g_cls.from.sin_port);
+	tempServer->m_Address = from;
 
 	gameserveritemext_t* server = tempServer.get();
 
@@ -331,7 +385,7 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 	{
 		gameserveritemext_t* thisServer = &g_cls.servers[i];
 
-		if ((thisServer->m_IP == ntohl(g_cls.from.sin_addr.s_addr)) && (thisServer->m_Port == ntohs(g_cls.from.sin_port)))
+		if (thisServer->m_Address == from)
 		{
 			server = thisServer;
 			break;
@@ -359,8 +413,6 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 	server->m_clients = atoi(Info_ValueForKey(buffer, "clients"));
 	server->m_hostName = Info_ValueForKey(buffer, "hostname");
 
-	server->m_IP = htonl(server->m_IP);
-
 	replaceAll(server->m_hostName, "'", "\\'");
 
 	const char* mapnameStr = Info_ValueForKey(buffer, "mapname");
@@ -382,10 +434,7 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 	replaceAll(mapname, "'", "\\'");
 	replaceAll(gametype, "'", "\\'");
 
-	std::array<char, 32> address;
-	inet_ntop(AF_INET, &server->m_IP, address.data(), address.size());
-
-	std::string addressStr = address.data();
+	std::string addressStr = server->m_Address.ToString();
 
 	const char* infoBlobVersionString = Info_ValueForKey(buffer, "iv");
 
@@ -426,9 +475,10 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 			server->m_hostName += " [BROKEN, DO NOT JOIN - ERROR CODE #53]";
 		}
 
-		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: 'serverAdd', name: '%s',"
+		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: '%s', name: '%s',"
 			"mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d,"
-			"addr: '%s:%d', infoBlob: %s }, '*');",
+			"addr: '%s', infoBlob: %s }, '*');",
+			(g_cls.isOneQuery) ? "serverQueried" : "serverAdd",
 			server->m_hostName,
 			mapname,
 			gametype,
@@ -436,15 +486,16 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len)
 			server->m_maxClients,
 			server->m_ping,
 			addressStr,
-			server->m_Port,
 			infoBlobJson));
 
-		tempServer->m_IP = 0;
+		g_cls.isOneQuery = false;
+
+		tempServer->m_Address = net::PeerAddress();
 	};
 
 	if (infoBlobVersionString && infoBlobVersionString[0])
 	{
-		std::string serverId = fmt::sprintf("%s:%d", addressStr, server->m_Port);
+		std::string serverId = fmt::sprintf("%s", addressStr);
 		int infoBlobVersion = atoi(infoBlobVersionString);
 
 		LoadInfoBlob(serverId, infoBlobVersion, onLoadCB);
@@ -467,6 +518,7 @@ typedef struct
 	unsigned short port;
 } serverAddress_t;
 
+#if 0
 void GSClient_HandleServersResponse(const char* buffer, int len)
 {
 	int numservers = 0;
@@ -537,36 +589,39 @@ void GSClient_HandleServersResponse(const char* buffer, int len)
 
 	g_cls.numServers = count;
 }
+#endif
 
 #define CMD_GSR "getserversResponse"
 #define CMD_INFO "infoResponse"
 
-void GSClient_HandleOOB(const char* buffer, size_t len)
+void GSClient_HandleOOB(const char* buffer, size_t len, const net::PeerAddress& from)
 {
+#if 0
 	if (!_strnicmp(buffer, CMD_GSR, strlen(CMD_GSR)))
 	{
 		GSClient_HandleServersResponse(&buffer[strlen(CMD_GSR)], len - strlen(CMD_GSR));
 	}
+#endif
 
 	if (!_strnicmp(buffer, CMD_INFO, strlen(CMD_INFO)))
 	{
-		GSClient_HandleInfoResponse(&buffer[strlen(CMD_INFO)], len - strlen(CMD_INFO));
+		GSClient_HandleInfoResponse(&buffer[strlen(CMD_INFO)], len - strlen(CMD_INFO), from);
 	}
 }
 
-void GSClient_PollSocket()
+void GSClient_PollSocket(SOCKET socket)
 {
 	char buf[2048];
 	memset(buf, 0, sizeof(buf));
 
-	sockaddr_in from;
+	sockaddr_storage from;
 	memset(&from, 0, sizeof(from));
 
 	int fromlen = sizeof(from);
 
 	while (true)
 	{
-		int len = recvfrom(g_cls.socket, buf, 2048, 0, (sockaddr*)&from, &fromlen);
+		int len = recvfrom(socket, buf, 2048, 0, (sockaddr*)&from, &fromlen);
 
 		if (len == SOCKET_ERROR)
 		{
@@ -580,8 +635,6 @@ void GSClient_PollSocket()
 			return;
 		}
 
-		g_cls.from = from;
-
 		if (*(int*)buf == -1)
 		{
 			if (len < sizeof(buf))
@@ -589,7 +642,7 @@ void GSClient_PollSocket()
 				buf[len] = '\0';
 			}
 
-			GSClient_HandleOOB(&buf[4], len - 4);
+			GSClient_HandleOOB(&buf[4], len - 4, net::PeerAddress((sockaddr*)&from, fromlen));
 		}
 	}
 }
@@ -599,7 +652,8 @@ void GSClient_RunFrame()
 	if (g_cls.socket)
 	{
 		GSClient_QueryStep();
-		GSClient_PollSocket();
+		GSClient_PollSocket(g_cls.socket);
+		GSClient_PollSocket(g_cls.socket6);
 	}
 }
 
@@ -641,7 +695,8 @@ void GSClient_Refresh()
 	GSClient_QueryMaster();
 }
 
-void GSClient_QueryAddresses(const std::vector<NetAddress>& addrs)
+template<typename TContainer>
+void GSClient_QueryAddresses(const TContainer& addrs)
 {
 	if (!g_cls.socket)
 	{
@@ -654,36 +709,40 @@ void GSClient_QueryAddresses(const std::vector<NetAddress>& addrs)
 	char message[128];
 	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetinfo xxx");
 
-	for (const auto& na : addrs)
+	for (const net::PeerAddress& na : addrs)
 	{
-		sockaddr_storage addr;
-		int addrlen;
-		
-		na.GetSockAddr(&addr, &addrlen);
+		int count = g_cls.numServers;
 
-		// TODO: support IPv6
-		if (addr.ss_family == AF_INET)
+		if (count < 8192)
 		{
-			int count = g_cls.numServers;
-
-			if (count < 8192)
-			{
-				sockaddr_in* in4 = (sockaddr_in*)&addr;
-
-				// build net address
-				unsigned int ip = in4->sin_addr.S_un.S_addr;
-				g_cls.servers[count].m_IP = htonl(ip);
-				g_cls.servers[count].m_Port = htons(in4->sin_port);
-				g_cls.servers[count].queried = false;
-
-				g_cls.numServers++;
-			}
+			// build net address
+			g_cls.servers[count].m_Address = na;
+			g_cls.servers[count].queried = false;
+			
+			g_cls.numServers++;
 		}
+	}
+}
+
+void GSClient_QueryOneServer(const std::wstring& arg)
+{
+	auto peerAddress = net::PeerAddress::FromString(ToNarrow(arg));
+
+	if (peerAddress)
+	{
+		g_cls.isOneQuery = true;
+		GSClient_QueryAddresses(std::vector<net::PeerAddress>{ peerAddress.get() });
+	}
+	else
+	{
+		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: 'queryingFailed', arg: '%s' }, '*');", ToNarrow(arg)));
 	}
 }
 
 void GSClient_Ping(const std::wstring& arg)
 {
+	g_cls.isOneQuery = false;
+
 	std::string serverArray = ToNarrow(arg);
 
 	rapidjson::Document doc;
@@ -699,7 +758,7 @@ void GSClient_Ping(const std::wstring& arg)
 		return;
 	}
 
-	std::vector<NetAddress> addresses;
+	std::vector<net::PeerAddress> addresses;
 
 	for (auto it = doc.Begin(); it != doc.End(); it++)
 	{
@@ -724,8 +783,8 @@ void GSClient_Ping(const std::wstring& arg)
 		auto addr = addrVal.GetString();
 		auto port = portVal.GetInt();
 
-		NetAddress netAddr(addr, port);
-		addresses.push_back(netAddr);
+		auto netAddr = net::PeerAddress::FromString(addr, port);
+		addresses.push_back(netAddr.get());
 	}
 
 	GSClient_QueryAddresses(addresses);
@@ -766,6 +825,13 @@ static InitFunction initFunction([] ()
 			trace("Pinging specified servers...\n");
 
 			GSClient_Ping(arg);
+		}
+
+		if (!_wcsicmp(type, L"queryServer"))
+		{
+			trace("Pinging specified server...\n");
+
+			GSClient_QueryOneServer(arg);
 		}
 
 		if (!_wcsicmp(type, L"getFavorites"))

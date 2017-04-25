@@ -99,5 +99,18 @@ public:
 	// Present the address as a canonical string.
 	//
 	std::string ToString() const;
+
+	//
+	// Compare a network address.
+	//
+	inline bool operator==(const PeerAddress& right) const
+	{
+		return memcmp(&this->m_addr, &right.m_addr, GetSocketAddressLength()) == 0;
+	}
+
+	inline bool operator!=(const PeerAddress& right) const
+	{
+		return !(*this == right);
+	}
 };
 }
