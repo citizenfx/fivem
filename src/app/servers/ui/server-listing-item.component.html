@@ -14,7 +14,7 @@
     </dd>
 </dl>
 <context-menu>
-    <ng-template contextMenuItem (execute)="attemptConnect()" translate>#ServerList_Connect</ng-template>
-    <ng-template contextMenuItem (execute)="addFavorite()" [visible]="!isFavorite()" translate>#ServerList_AddFavorite</ng-template>
-    <ng-template contextMenuItem (execute)="removeFavorite()" [visible]="isFavorite()" translate>#ServerList_RemoveFavorite</ng-template>
+    <ng-template contextMenuItem (execute)="attemptConnect()">{{'#ServerList_Connect'|translate}}</ng-template>
+    <ng-template contextMenuItem (execute)="addFavorite()" [visible]="!isFavorite()">{{'#ServerList_AddFavorite'|translate}}</ng-template>
+    <ng-template contextMenuItem (execute)="removeFavorite()" [visible]="isFavorite()">{{'#ServerList_RemoveFavorite'|translate}}</ng-template>
 </context-menu>

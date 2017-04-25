@@ -13,8 +13,14 @@
 
   <!-- yeah, legacy JS -->
   <script type="text/javascript">
-  /*zoomLevel = (window.innerHeight / 720);
-  document.body.style.zoom = (zoomLevel * 100) + '%';*/
+  zoomLevel = (window.innerHeight / 720);
+  inverseZoom = ((1 / zoomLevel) * 100) + '%';
+  document.body.style.zoom = (zoomLevel * 100) + '%';
+
+  var style = document.createElement("style");
+  document.head.appendChild(style);
+
+  style.sheet.insertRule(`context-menu-content{zoom: ${inverseZoom};}`, 0);
   </script>
 </body>
 </html>

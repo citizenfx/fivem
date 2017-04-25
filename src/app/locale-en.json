@@ -17,5 +17,8 @@
     "#Servers_ConnectingTo": "Connecting to {{ serverName }}...",
     "#Servers_ConnectFailed": "Connection failed",
     "#Servers_CloseOverlay": "Close",
-    "#Servers_Message": "{{ message }}"
+    "#Servers_Message": "{{ message }}",
+    "#ServerList_Connect": "Connect...",
+    "#ServerList_AddFavorite": "Add Favorite",
+    "#ServerList_RemoveFavorite": "Remove Favorite"
 }

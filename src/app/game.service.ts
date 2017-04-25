@@ -56,7 +56,7 @@ export class CfxGameService extends GameService {
     private inConnecting = false;
 
     init() {
-        (<any>window).invokeNative('getFavorites');
+        (<any>window).invokeNative('getFavorites', '');
 
         window.addEventListener('message', (event) => {
             switch (event.data.type) {
@@ -67,7 +67,7 @@ export class CfxGameService extends GameService {
                     this.invokeConnecting(this.lastServer);
                     break;
                 case 'connectStatus':
-                    this.invokeConnectStatus(this.lastServer, event.data.message, event.data.count, event.data.total);
+                    this.invokeConnectStatus(this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total);
                     break;
                 case 'serverAdd':
                     if (event.data.addr in this.pingList)
@@ -85,7 +85,7 @@ export class CfxGameService extends GameService {
             }
         });
 
-        this.history = JSON.parse(localStorage.getItem('history'));
+        this.history = JSON.parse(localStorage.getItem('history')) || [];
 
         this.connecting.subscribe(server => {
             this.inConnecting = false;
@@ -106,6 +106,10 @@ export class CfxGameService extends GameService {
         this.lastServer = server;
 
         (<any>window).invokeNative('connectTo', server.address);
+
+        // temporary, we hope
+        this.history.push(server.address);
+        this.saveHistory();
     }
 
     pingServers(servers: Server[]) {
@@ -149,7 +153,7 @@ export class CfxGameService extends GameService {
         }
 
         if (list == 'favorites') {
-            (<any>window).invokeNative('saveFavorites', JSON.stringify(list))
+            (<any>window).invokeNative('saveFavorites', JSON.stringify(this.favorites))
         } else if (list == 'history') {
             this.saveHistory();
         }
@@ -159,7 +163,7 @@ export class CfxGameService extends GameService {
 @Injectable()
 export class DummyGameService extends GameService {
     init() {
-        document.body.style.zoom = ((window.innerHeight / 720) * 100) + '%';
+        
     }
 
     connectTo(server: Server) {

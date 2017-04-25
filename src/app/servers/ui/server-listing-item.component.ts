@@ -36,7 +36,7 @@ export class ServerListingItemComponent {
         this.gameService.toggleListEntry('favorites', this.server, true);
     }
 
-    delFavorite() {
+    removeFavorite() {
         this.gameService.toggleListEntry('favorites', this.server, false);
     }
 }
