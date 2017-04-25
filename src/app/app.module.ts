@@ -22,6 +22,7 @@ import { ServerListingComponent } from './servers/ui/server-listing.component';
 import { ServerListingItemComponent } from './servers/ui/server-listing-item.component';
 import { ServerHeadingComponent } from './servers/ui/server-heading.component';
 import { ServerFilterComponent } from './servers/ui/server-filter.component';
+import { DirectConnectComponent } from './servers/direct/direct-connect.component';
 
 import { ServersService } from './servers/servers.service';
 import { TweetService } from './home/tweet.service';
@@ -42,6 +43,7 @@ import { EscapePipe } from './escape.pipe';
     ServerListingItemComponent,
     ServerHeadingComponent,
     ServerFilterComponent,
+    DirectConnectComponent,
     ColorizePipe,
     EscapePipe
   ],
@@ -62,7 +64,7 @@ import { EscapePipe } from './escape.pipe';
     TweetService,
     {
       provide: GameService,
-      useClass: DummyGameService
+      useClass: CfxGameService
     }
   ],
   bootstrap: [

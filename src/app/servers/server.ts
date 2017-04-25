@@ -54,6 +54,25 @@ export class Server {
         return new Server(sanitizer, address, object);
     }
 
+    public static fromNative(sanitizer: DomSanitizer, object: any): Server {
+        const mappedData = {
+            hostname: object.name,
+            clients: object.clients,
+            svMaxclients: object.maxclients,
+            resources: [],
+            mapname: object.mapname,
+            gametype: object.gametype
+        };
+
+        const server = new Server(sanitizer, object.addr, { ...mappedData });
+
+        if (object.infoBlob) {
+            server.iconUri = 'data:image/png;base64,' + object.infoBlob.icon;
+        }
+
+        return server;
+    }
+
     private constructor(private sanitizer: DomSanitizer, address: string, object: master.ServerData$Properties) {
         // temp compat behavior
         this.address = address;

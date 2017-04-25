@@ -4,6 +4,7 @@ import { Routes, RouterModule } from '@angular/router';
 import { HomeComponent } from './home/home.component';
 import { ServerListComponent } from './servers/ui/server-list.component';
 import { ServerListUiComponent } from './servers/ui/server-list-ui.component';
+import { DirectConnectComponent } from './servers/direct/direct-connect.component';
 
 const routes: Routes = [
   {
@@ -28,6 +29,10 @@ const routes: Routes = [
         path: 'history',
         component: ServerListUiComponent,
         data: { type: 'history' }
+      },
+      {
+        path: 'direct-connect',
+        component: DirectConnectComponent
       }
     ]
   }

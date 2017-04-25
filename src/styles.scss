@@ -116,6 +116,10 @@ body {
 	border: 1px solid #51B3EC;
 }
 
+.direct-connect .input.invalid {
+	border: 1px solid #ECB351;
+}
+
 .direct-connect .input {
 	background-color: rgba(21, 25, 34, 0.8);
 }

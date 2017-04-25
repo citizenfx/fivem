@@ -20,5 +20,9 @@
     "#Servers_Message": "{{ message }}",
     "#ServerList_Connect": "Connect...",
     "#ServerList_AddFavorite": "Add Favorite",
-    "#ServerList_RemoveFavorite": "Remove Favorite"
+    "#ServerList_RemoveFavorite": "Remove Favorite",
+    "#DirectConnect_ServerInvalid": "Server could not be found",
+    "#DirectConnect_ServerInvalid_SubTitle": "Make sure you've entered the correct address.",
+    "#DirectConnect_IPPort": "IP:Port",
+    "#DirectConnect_Connect": "Connect"
 }

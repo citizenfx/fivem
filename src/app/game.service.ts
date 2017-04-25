@@ -1,4 +1,5 @@
 import { Injectable, EventEmitter } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 
 import { Server } from './servers/server';
 
@@ -24,6 +25,10 @@ export abstract class GameService {
     abstract isMatchingServer(type: string, server: Server): boolean;
 
     abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
+
+    queryAddress(address: [string, number]): Promise<Server> {
+        return new Promise<Server>((resolve, reject) => setTimeout(() => reject(new Error("Querying isn't supported in GameService.")), 2500));
+    }
 
     protected invokeConnectFailed(server: Server, message: string) {
         this.connectFailed.emit([server, message]);
@@ -54,6 +59,10 @@ export class CfxGameService extends GameService {
     private history: string[] = [];
 
     private inConnecting = false;
+
+    constructor(private sanitizer: DomSanitizer) {
+        super();
+    }
 
     init() {
         (<any>window).invokeNative('getFavorites', '');
@@ -157,6 +166,58 @@ export class CfxGameService extends GameService {
         } else if (list == 'history') {
             this.saveHistory();
         }
+    }
+
+    lastQuery: string;
+
+    queryAddress(address: [string, number]): Promise<Server> {
+        const addrString = address[0] + ':' + address[1];
+
+        const promise = new Promise<Server>((resolve, reject) =>
+        {
+            const to = setTimeout(() => {
+                if (addrString != this.lastQuery) {
+                    return;
+                }
+
+                console.log('timed out?');
+
+                reject(new Error("Server query timed out."));
+
+                window.removeEventListener('message', cb);
+            }, 2500);
+
+            const cb = (event) =>
+            {
+                if (addrString != this.lastQuery) {
+                    window.removeEventListener('message', cb);
+                    return;
+                }
+
+                if (event.data.type == 'queryingFailed') {
+                    if (event.data.arg == addrString) {
+                        console.log('failed?');
+
+                        reject(new Error("Failed to query server."));
+                        window.removeEventListener('message', cb);
+                        window.clearTimeout(to);
+                    }
+                } else if (event.data.type == 'serverQueried') {
+                    console.log('queried?');
+
+                    resolve(Server.fromNative(this.sanitizer, event.data));
+                    window.removeEventListener('message', cb);
+                    window.clearTimeout(to);
+                }
+            };
+
+            window.addEventListener('message', cb);
+        });
+
+        (<any>window).invokeNative('queryServer', addrString);
+        this.lastQuery = addrString;
+
+        return promise;
     }
 }
 
