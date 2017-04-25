@@ -32,7 +32,7 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 
 	if (url == "nui://game/ui/root.html" && nui::HasMainUI())
 	{
-		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
+		nui::CreateFrame("mpMenu", "nui://game/ui/app/index.html");
 	}
 
 	// replace any segoe ui symbol font

@@ -148,11 +148,4 @@ static InitFunction initFunction([] ()
 		}, &a1, &a2);
 #endif
 	});
-
-	/*g_hooksDLL->SetHookCallback(StringHash("msgConfirm"), [] (void*)
-	{
-		nui::SetMainUI(true);
-
-		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
-	});*/
 });

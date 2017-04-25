@@ -239,6 +239,6 @@ static InitFunction initFunction([] ()
 	{
 		nui::SetMainUI(true);
 
-		nui::CreateFrame("mpMenu", "nui://game/ui/mpmenu.html");
+		nui::CreateFrame("mpMenu", "nui://game/ui/app/index.html");
 	});
 });
