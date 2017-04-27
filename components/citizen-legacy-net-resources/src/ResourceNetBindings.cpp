@@ -69,7 +69,7 @@ static InitFunction initFunction([] ()
 			NetAddress address = g_netAddress;
 
 			// fetch configuration
-			std::shared_ptr<HttpClient> httpClient = std::make_shared<HttpClient>();
+			HttpClient* httpClient = Instance<HttpClient>::Get();
 
 			// build request
 			std::map<std::string, std::string> postMap;

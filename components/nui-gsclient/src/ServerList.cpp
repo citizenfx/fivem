@@ -36,7 +36,7 @@
 template<typename TFunc>
 void RequestInfoBlob(const std::string& server, const TFunc& cb)
 {
-	static HttpClient* httpClient = new HttpClient();
+	static HttpClient* httpClient = Instance<HttpClient>::Get();
 
 	net::PeerAddress addr = net::PeerAddress::FromString(server).get();
 

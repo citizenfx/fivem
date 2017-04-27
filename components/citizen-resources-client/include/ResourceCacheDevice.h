@@ -131,7 +131,7 @@ protected:
 
 	std::shared_ptr<ResourceCache> m_cache;
 
-	std::shared_ptr<HttpClient> m_httpClient;
+	HttpClient* m_httpClient;
 
 	HandleData m_handles[512];
 

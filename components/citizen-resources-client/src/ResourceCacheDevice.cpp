@@ -24,7 +24,7 @@ ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, b
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath)
 	: m_cache(cache), m_blocking(blocking), m_cachePath(cachePath)
 {
-	m_httpClient = std::make_shared<HttpClient>();
+	m_httpClient = Instance<HttpClient>::Get();
 }
 
 boost::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForFileName(const std::string& fileName)
@@ -163,18 +163,6 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	handleData->status = HandleData::StatusFetching;
 
-	// fetch the file
-	std::wstring hostname;
-	std::wstring path;
-	uint16_t port;
-
-	if (!m_httpClient->CrackUrl(handleData->entry.remoteUrl, hostname, path, port))
-	{
-		handleData->status = HandleData::StatusError;
-
-		return false;
-	}
-
 	// log the request starting
 	uint32_t initTime = timeGetTime();
 
@@ -185,7 +173,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	std::string outFileName = m_cachePath + extension + "_" + handleData->entry.referenceHash;
 
 	// http request
-	m_httpClient->DoFileGetRequest(hostname, port, path, m_cachePath.c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
+	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, m_cachePath.c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
 	{
 		if (!result)
 		{

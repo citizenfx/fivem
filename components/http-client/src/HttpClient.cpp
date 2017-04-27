@@ -7,590 +7,204 @@
 
 #include "StdInc.h"
 #include "HttpClient.h"
-#include <VFSManager.h>
-#include <sstream>
+
+#include <chrono>
 
 #include <Error.h>
 
-#define MAKE_ERROR_CODE(x) \
-	case x: \
-		return #x;
+#include <sstream>
 
-const char* FormatWinHttpError(int errorCode)
+#define CURL_STATICLIB
+#include <curl/multi.h>
+
+#include <VFSManager.h>
+
+class HttpClientImpl
 {
-	switch (errorCode)
+public:
+	CURLM* multi;
+	bool shouldRun;
+	std::thread thread;
+	std::mutex mutex;
+
+	HttpClientImpl()
+		: multi(nullptr), shouldRun(true)
 	{
-	MAKE_ERROR_CODE(ERROR_WINHTTP_AUTO_PROXY_SERVICE_ERROR)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_BAD_AUTO_PROXY_SCRIPT)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CANNOT_CALL_AFTER_OPEN)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CANNOT_CALL_AFTER_SEND)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CANNOT_CONNECT)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CHUNKED_ENCODING_HEADER_SIZE_OVERFLOW)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_CONNECTION_ERROR)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_HEADER_ALREADY_EXISTS)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_HEADER_COUNT_EXCEEDED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_HEADER_NOT_FOUND)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_HEADER_SIZE_OVERFLOW)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INCORRECT_HANDLE_STATE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INCORRECT_HANDLE_TYPE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INTERNAL_ERROR)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INVALID_OPTION)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INVALID_QUERY_REQUEST)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INVALID_SERVER_RESPONSE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_INVALID_URL)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_LOGIN_FAILURE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_NAME_NOT_RESOLVED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_NOT_INITIALIZED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_OPERATION_CANCELLED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_OPTION_NOT_SETTABLE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_OUT_OF_HANDLES)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_REDIRECT_FAILED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_RESEND_REQUEST)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_RESPONSE_DRAIN_OVERFLOW)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_CERT_CN_INVALID)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_CERT_DATE_INVALID)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_CERT_REV_FAILED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_CERT_REVOKED)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_CERT_WRONG_USAGE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_CHANNEL_ERROR)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_FAILURE)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_INVALID_CA)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SECURE_INVALID_CERT)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_SHUTDOWN)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_TIMEOUT)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_UNABLE_TO_DOWNLOAD_SCRIPT)
-	MAKE_ERROR_CODE(ERROR_WINHTTP_UNRECOGNIZED_SCHEME)
-	default:
-		return va("%d", errorCode);
+
+	}
+
+	void AddCurlHandle(CURL* easy);
+};
+
+void HttpClientImpl::AddCurlHandle(CURL* easy)
+{
+	std::unique_lock<std::mutex> lock(mutex);
+	curl_multi_add_handle(multi, easy);
+}
+
+class CurlData
+{
+public:
+	std::string url;
+	std::string postData;
+	std::function<void(bool, const char*, size_t)> callback;
+	std::function<size_t(const void*, size_t)> writeFunction;
+	std::function<void()> preCallback;
+	std::stringstream ss;
+	char errBuffer[CURL_ERROR_SIZE];
+
+	CurlData();
+
+	void HandleResult(CURL* handle, CURLcode result);
+
+	size_t HandleWrite(const void* data, size_t size, size_t nmemb);
+};
+
+CurlData::CurlData()
+{
+	writeFunction = [=] (const void* data, size_t size)
+	{
+		ss << std::string((const char*)data, size);
+		return size;
+	};
+}
+
+size_t CurlData::HandleWrite(const void* data, size_t size, size_t nmemb)
+{
+	return writeFunction(data, size * nmemb);
+}
+
+void CurlData::HandleResult(CURL* handle, CURLcode result)
+{
+	if (preCallback)
+	{
+		preCallback();
+	}
+
+	if (result != CURLE_OK)
+	{
+		auto failure = fmt::sprintf("%s - CURL error code %d (%s)", errBuffer, (int)result, curl_easy_strerror(result));
+
+		callback(false, failure.c_str(), failure.size());
+	}
+	else
+	{
+		long code;
+		curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &code);
+
+		if (code >= 400)
+		{
+			auto failure = fmt::sprintf("HTTP %d", code);
+
+			callback(false, failure.c_str(), failure.size());
+		}
+		else
+		{
+			auto str = ss.str();
+
+			callback(true, str.c_str(), str.size());
+		}
 	}
 }
 
-const char* FormatHttpError(int statusCode)
+HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
+	: m_impl(new HttpClientImpl())
 {
-	switch (statusCode)
+	m_impl->multi = curl_multi_init();
+	curl_multi_setopt(m_impl->multi, CURLMOPT_PIPELINING, CURLPIPE_HTTP1 | CURLPIPE_MULTIPLEX);
+	curl_multi_setopt(m_impl->multi, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
+	
+	m_impl->thread = std::move(std::thread([=]()
 	{
-	MAKE_ERROR_CODE(HTTP_STATUS_CONTINUE)
-	MAKE_ERROR_CODE(HTTP_STATUS_SWITCH_PROTOCOLS)
+		using namespace std::literals;
 
-	MAKE_ERROR_CODE(HTTP_STATUS_OK)
-	MAKE_ERROR_CODE(HTTP_STATUS_CREATED)
-	MAKE_ERROR_CODE(HTTP_STATUS_ACCEPTED)
-	MAKE_ERROR_CODE(HTTP_STATUS_PARTIAL)
-	MAKE_ERROR_CODE(HTTP_STATUS_NO_CONTENT)
-	MAKE_ERROR_CODE(HTTP_STATUS_RESET_CONTENT)
-	MAKE_ERROR_CODE(HTTP_STATUS_PARTIAL_CONTENT)
-	MAKE_ERROR_CODE(HTTP_STATUS_WEBDAV_MULTI_STATUS)
+		int lastRunning = 0;
 
-	MAKE_ERROR_CODE(HTTP_STATUS_AMBIGUOUS)
-	MAKE_ERROR_CODE(HTTP_STATUS_MOVED)
-	MAKE_ERROR_CODE(HTTP_STATUS_REDIRECT)
-	MAKE_ERROR_CODE(HTTP_STATUS_REDIRECT_METHOD)
-	MAKE_ERROR_CODE(HTTP_STATUS_NOT_MODIFIED)
-	MAKE_ERROR_CODE(HTTP_STATUS_USE_PROXY)
-	MAKE_ERROR_CODE(HTTP_STATUS_REDIRECT_KEEP_VERB)
+		do 
+		{
+			CURLMcode mc;
+			int numfds;
+			int nowRunning;
 
-	MAKE_ERROR_CODE(HTTP_STATUS_BAD_REQUEST)
-	MAKE_ERROR_CODE(HTTP_STATUS_DENIED)
-	MAKE_ERROR_CODE(HTTP_STATUS_PAYMENT_REQ)
-	MAKE_ERROR_CODE(HTTP_STATUS_FORBIDDEN)
-	MAKE_ERROR_CODE(HTTP_STATUS_NOT_FOUND)
-	MAKE_ERROR_CODE(HTTP_STATUS_BAD_METHOD)
-	MAKE_ERROR_CODE(HTTP_STATUS_NONE_ACCEPTABLE)
-	MAKE_ERROR_CODE(HTTP_STATUS_PROXY_AUTH_REQ)
-	MAKE_ERROR_CODE(HTTP_STATUS_REQUEST_TIMEOUT)
-	MAKE_ERROR_CODE(HTTP_STATUS_CONFLICT)
-	MAKE_ERROR_CODE(HTTP_STATUS_GONE)
-	MAKE_ERROR_CODE(HTTP_STATUS_LENGTH_REQUIRED)
-	MAKE_ERROR_CODE(HTTP_STATUS_PRECOND_FAILED)
-	MAKE_ERROR_CODE(HTTP_STATUS_REQUEST_TOO_LARGE)
-	MAKE_ERROR_CODE(HTTP_STATUS_URI_TOO_LONG)
-	MAKE_ERROR_CODE(HTTP_STATUS_UNSUPPORTED_MEDIA)
-	MAKE_ERROR_CODE(HTTP_STATUS_RETRY_WITH)
+			// perform requests
+			{
+				std::unique_lock<std::mutex> lock(m_impl->mutex);
+				mc = curl_multi_perform(m_impl->multi, &nowRunning);
+			}
 
-	MAKE_ERROR_CODE(HTTP_STATUS_SERVER_ERROR)
-	MAKE_ERROR_CODE(HTTP_STATUS_NOT_SUPPORTED)
-	MAKE_ERROR_CODE(HTTP_STATUS_BAD_GATEWAY)
-	MAKE_ERROR_CODE(HTTP_STATUS_SERVICE_UNAVAIL)
-	MAKE_ERROR_CODE(HTTP_STATUS_GATEWAY_TIMEOUT)
-	MAKE_ERROR_CODE(HTTP_STATUS_VERSION_NOT_SUP)
-	default:
-		return "";
-	}
-}
+			if (mc == CURLM_OK)
+			{
+				// read infos
+				CURLMsg* msg;
 
-HttpClient::HttpClient(const wchar_t* userAgent)
-{
-	hWinHttp = WinHttpOpen(userAgent, WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
-	WinHttpSetTimeouts(hWinHttp, 2000, 5000, 5000, 5000);
+				do 
+				{
+					int nq;
+					{
+						std::unique_lock<std::mutex> lock(m_impl->mutex);
+						msg = curl_multi_info_read(m_impl->multi, &nq);
+					}
+
+					// is this a completed transfer?
+					if (msg && msg->msg == CURLMSG_DONE)
+					{
+						// get the handle and the result
+						CURL* curl = msg->easy_handle;
+						CURLcode result = msg->data.result;
+
+						char* dataPtr;
+						curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
+
+						CurlData* data = reinterpret_cast<CurlData*>(dataPtr);
+						data->HandleResult(curl, result);
+
+						delete data;
+
+						{
+							std::unique_lock<std::mutex> lock(m_impl->mutex);
+							curl_multi_remove_handle(m_impl->multi, curl);
+						}
+
+						curl_easy_cleanup(curl);
+					}
+				} while (msg);
+
+				// save the last value
+				lastRunning = nowRunning;
+			}
+
+			{
+				std::unique_lock<std::mutex> lock(m_impl->mutex);
+				mc = curl_multi_wait(m_impl->multi, nullptr, 0, 50, &numfds);
+			}
+
+			if (mc != CURLM_OK)
+			{
+				FatalError("curl_multi_wait failed with error %s", curl_multi_strerror(mc));
+				return;
+			}
+
+			if (numfds == 0)
+			{
+				std::this_thread::sleep_for(100ms);
+			}
+		} while (m_impl->shouldRun);
+	}));
 }
 
 HttpClient::~HttpClient()
 {
-	WinHttpCloseHandle(hWinHttp);
-}
+	m_impl->shouldRun = false;
 
-void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwMap<fwString, fwString>& fields, fwAction<bool, const char*, size_t> callback)
-{
-	fwString postData = BuildPostString(fields);
-
-	DoPostRequest(host, port, url, postData, callback);
-}
-
-struct HttpClientRequestContext
-{
-	HttpClient* client;
-	HttpClient::ServerPair server;
-	HINTERNET hConnection;
-	HINTERNET hRequest;
-	fwString postData;
-	fwAction<bool, const char*, size_t> callback;
-	std::function<void(const std::map<std::string, std::string>&)> headerCallback;
-
-	std::stringstream resultData;
-	char buffer[32768];
-
-	fwRefContainer<vfs::Device> outDevice;
-	vfs::Device::THandle outHandle;
-
-	std::string url;
-	size_t getSize{ 0 };
-
-	HttpClientRequestContext()
-		: outDevice(nullptr)
+	if (m_impl->thread.joinable())
 	{
-
+		m_impl->thread.join();
 	}
 
-	void DoCallback(bool success, const fwString& resData)
-	{
-		if (outDevice.GetRef())
-		{
-			outDevice->Close(outHandle);
-		}
-		
-		if (headerCallback)
-		{
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			std::map<std::string, std::string> headers;
-
-			DWORD dwSize = 0;
-			WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF, WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &dwSize, WINHTTP_NO_HEADER_INDEX);
-
-			if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-			{
-				std::vector<wchar_t> buffer(dwSize);
-
-				if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF, WINHTTP_HEADER_NAME_BY_INDEX, &buffer[0], &dwSize, WINHTTP_NO_HEADER_INDEX))
-				{
-					wchar_t* lastHeaderName = nullptr;
-					wchar_t* lastHeaderValue = nullptr;
-
-					enum
-					{
-						STATE_NONE,
-						STATE_NAME,
-						STATE_VALUE
-					} state = STATE_NONE;
-
-					wchar_t* cursor = &buffer[0];
-
-					while ((cursor - &buffer[0]) < buffer.size() && *cursor)
-					{
-						switch (state)
-						{
-							case STATE_NONE:
-								state = STATE_NAME;
-								lastHeaderName = cursor;
-								break;
-
-							case STATE_NAME:
-								if (*cursor == L':')
-								{
-									*cursor = L'\0';
-									++cursor;
-
-									state = STATE_VALUE;
-									lastHeaderValue = cursor + 1;
-								}
-								break;
-
-							case STATE_VALUE:
-								if (*cursor == L'\r')
-								{
-									*cursor = L'\0';
-									++cursor;
-
-									headers.insert({ converter.to_bytes(lastHeaderName), converter.to_bytes(lastHeaderValue) });
-
-									state = STATE_NAME;
-									lastHeaderName = cursor + 1;
-								}
-								break;
-						}
-
-						++cursor;
-					}
-				}
-			}
-
-			headerCallback(headers);
-		}
-
-		callback(success, resData.c_str(), (!resData.empty()) ? resData.size() : 0);
-
-		if (server.second)
-		{
-			client->ReaddConnection(server, hConnection);
-		}
-		else
-		{
-			WinHttpCloseHandle(hConnection);
-		}
-
-		WinHttpCloseHandle(hRequest);
-
-		delete this;
-	}
-};
-
-void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, fwAction<bool, const char*, size_t> callback)
-{
-	DoPostRequest(host, port, url, postData, {}, callback);
+	delete m_impl;
 }
 
-void HttpClient::DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, const fwMap<fwString, fwString>& headers, fwAction<bool, const char*, size_t> callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback)
-{
-	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
-	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"POST", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
-
-	WinHttpSetTimeouts(hRequest, 30000, 15000, 30000, 30000);
-
-	// hacky way to wrap ROS
-	if (host == L"ros.citizenfx.internal")
-	{
-		WinHttpAddRequestHeaders(hRequest, L"Host: prod.ros.rockstargames.com", -1, 0);
-	}
-
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-
-	for (auto& header : headers)
-	{
-		WinHttpAddRequestHeaders(hRequest, converter.from_bytes(va("%s: %s", header.first.c_str(), header.second.c_str())).c_str(), -1, 0);
-	}
-
-	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
-
-	HttpClientRequestContext* context = new HttpClientRequestContext;
-	context->client = this;
-	context->hConnection = hConnection;
-	context->hRequest = hRequest;
-	context->postData = postData;
-	context->callback = callback;
-	context->headerCallback = headerCallback;
-
-	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
-
-	WinHttpSendRequest(hRequest, L"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n", -1, const_cast<char*>(context->postData.c_str()), context->postData.length(), context->postData.length(), (DWORD_PTR)context);
-}
-
-void HttpClient::DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAction<bool, const char*, size_t> callback)
-{
-	HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
-	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
-
-	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
-
-	HttpClientRequestContext* context = new HttpClientRequestContext;
-	context->client = this;
-	context->hConnection = hConnection;
-	context->hRequest = hRequest;
-	context->callback = callback;
-
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
-
-	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);
-}
-
-void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, const char* outDeviceBase, fwString outFilename, fwAction<bool, const char*, size_t> callback)
-{
-	DoFileGetRequest(host, port, url, vfs::GetDevice(outDeviceBase), outFilename, callback);
-}
-
-void HttpClient::ReaddConnection(ServerPair server, HINTERNET connection)
-{
-	m_connectionMutex.lock();
-
-	if (!m_connectionFreeCBs.empty())
-	{
-		auto cb = m_connectionFreeCBs.front();
-		m_connectionFreeCBs.pop();
-
-		m_connectionMutex.unlock();
-
-		cb(connection);
-
-		return;
-	}
-	else
-	{
-		auto range = m_connections.equal_range(server);
-
-		for (auto& it = range.first; it != range.second; it++)
-		{
-			if (!it->second)
-			{
-				it->second = connection;
-
-				m_connectionMutex.unlock();
-
-				return;
-			}
-		}
-	}
-
-	m_connectionMutex.unlock();
-}
-
-HINTERNET HttpClient::GetConnection(ServerPair server)
-{
-	auto range = m_connections.equal_range(server);
-
-	int numConnections = 0;
-
-	for (auto& it = range.first; it != range.second; it++)
-	{
-		numConnections++;
-
-		if (it->second)
-		{
-			auto conn = it->second;
-			it->second = nullptr;
-
-			return conn;
-		}
-	}
-
-	if (numConnections >= 8)
-	{
-		return nullptr;
-	}
-
-	HINTERNET hConnection = WinHttpConnect(hWinHttp, server.first.c_str(), server.second, 0);
-
-	if (!hConnection)
-	{
-		return INVALID_HANDLE_VALUE;
-	}
-
-	m_connections.insert(std::make_pair(server, nullptr));
-
-	return hConnection;
-}
-
-void HttpClient::QueueOnConnectionFree(fwAction<HINTERNET> cb)
-{
-	m_connectionFreeCBs.push(cb);
-
-	// FIXME: possible race condition if a request just completed?
-}
-
-void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, rage::fiDevice* outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection)
-{
-	return DoFileGetRequest(host, port, url, vfs::GetNativeDevice(outDevice), outFilename, callback, hConnection);
-}
-
-void HttpClient::DoFileGetRequest(fwWString host, uint16_t port, fwWString url, fwRefContainer<vfs::Device> outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection)
-{
-	ServerPair pair = std::make_pair(host, port);
-
-	m_connectionMutex.lock();
-
-	if (!hConnection)
-	{
-		hConnection = GetConnection(pair);
-
-		if (hConnection == INVALID_HANDLE_VALUE)
-		{
-			callback(false, "", 0);
-
-			m_connectionMutex.unlock();
-
-			return;
-		}
-
-		if (!hConnection)
-		{
-			QueueOnConnectionFree([=] (HINTERNET connection)
-			{
-				DoFileGetRequest(host, port, url, outDevice, outFilename, callback, connection);
-			});
-
-			m_connectionMutex.unlock();
-
-			return;
-		}
-	}
-
-	m_connectionMutex.unlock();
-
-	//HINTERNET hConnection = WinHttpConnect(hWinHttp, host.c_str(), port, 0);
-	HINTERNET hRequest = WinHttpOpenRequest(hConnection, L"GET", url.c_str(), 0, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
-
-	WinHttpSetStatusCallback(hRequest, StatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
-
-	HttpClientRequestContext* context = new HttpClientRequestContext;
-	context->client = this;
-	context->hConnection = hConnection;
-	context->hRequest = hRequest;
-	context->callback = callback;
-	context->outDevice = outDevice;
-	context->server = pair;
-
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	context->url = "http://" + converter.to_bytes(host) + ":" + std::to_string(port) + converter.to_bytes(url);
-
-	if (!context->outDevice.GetRef())
-	{
-		GlobalError("context->outDevice was null in " __FUNCTION__);
-		return;
-	}
-
-	context->outHandle = context->outDevice->Create(outFilename.c_str());
-
-	WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, nullptr, 0, 0, (DWORD_PTR)context);
-}
-
-void HttpClient::StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code, void* info, DWORD length)
-{
-	HttpClientRequestContext* ctx = (HttpClientRequestContext*)context;
-
-	switch (code)
-	{
-		case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
-		{
-			WINHTTP_ASYNC_RESULT* infoStruct = reinterpret_cast<WINHTTP_ASYNC_RESULT*>(info);
-
-			const char* apiCall = "unknown WinHTTP call";
-
-			switch (infoStruct->dwResult)
-			{
-				case API_RECEIVE_RESPONSE:
-					apiCall = "WinHttpReceiveResponse";
-					break;
-				case API_QUERY_DATA_AVAILABLE:
-					apiCall = "WinHttpQueryDataAvailable";
-					break;
-				case API_READ_DATA:
-					apiCall = "WinHttpReadData";
-					break;
-				case API_WRITE_DATA:
-					apiCall = "WinHttpWriteData";
-					break;
-				case API_SEND_REQUEST:
-					apiCall = "WinHttpSendRequest";
-					break;
-			}
-			
-			trace("%s on %s failed - error code %d\n", apiCall, ctx->url.c_str(), infoStruct->dwError);
-
-			ctx->DoCallback(false, va("%s failed with error code %s", apiCall, FormatWinHttpError(infoStruct->dwError)));
-			break;
-		}
-
-		case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
-			if (!WinHttpReceiveResponse(ctx->hRequest, 0))
-			{
-				ctx->DoCallback(false, fwString());
-			}
-
-			break;
-
-		case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
-		{
-			uint32_t statusCode;
-			DWORD statusCodeLength = sizeof(uint32_t);
-
-			if (!WinHttpQueryHeaders(ctx->hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &statusCode, &statusCodeLength, WINHTTP_NO_HEADER_INDEX))
-			{
-				ctx->DoCallback(false, fwString());
-				return;
-			}
-
-			if (statusCode != HTTP_STATUS_OK)
-			{
-				ctx->DoCallback(false, va("Received error code from server: %d %s", statusCode, FormatHttpError(statusCode)));
-				return;
-			}
-
-			if (!WinHttpReadData(ctx->hRequest, ctx->buffer, sizeof(ctx->buffer) - 1, nullptr))
-			{
-				ctx->DoCallback(false, fwString());
-			}
-
-			break;
-		}
-		case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
-			if (ctx->outDevice.GetRef())
-			{
-				ctx->outDevice->Write(ctx->outHandle, ctx->buffer, length);
-			}
-			else
-			{
-				ctx->buffer[length] = '\0';
-
-				ctx->resultData << fwString(ctx->buffer, length);
-			}
-
-			ctx->getSize += length;
-
-			if (length > 0)
-			{
-				if (!WinHttpReadData(ctx->hRequest, ctx->buffer, sizeof(ctx->buffer) - 1, nullptr))
-				{
-					ctx->DoCallback(false, fwString());
-				}
-			}
-			else
-			{
-				std::string str = ctx->resultData.str();
-				ctx->DoCallback(true, fwString(str.c_str(), str.size()));
-			}
-
-			break;
-	}
-}
-
-bool HttpClient::CrackUrl(fwString url, fwWString& hostname, fwWString& path, uint16_t& port)
-{
-	wchar_t wideUrl[1024];
-	mbstowcs(wideUrl, url.c_str(), _countof(wideUrl));
-	wideUrl[1023] = L'\0';
-
-	URL_COMPONENTS components = { 0 };
-	components.dwStructSize = sizeof(components);
-
-	components.dwHostNameLength = -1;
-	components.dwUrlPathLength = -1;
-	components.dwExtraInfoLength = -1;
-
-	if (!WinHttpCrackUrl(wideUrl, wcslen(wideUrl), 0, &components))
-	{
-		return false;
-	}
-
-	hostname = fwWString(components.lpszHostName, components.dwHostNameLength);
-	path = fwWString(components.lpszUrlPath, components.dwUrlPathLength);
-	path += fwWString(components.lpszExtraInfo, components.dwExtraInfoLength);
-	port = components.nPort;
-
-	return true;
-}
-
-fwString HttpClient::BuildPostString(fwMap<fwString, fwString>& fields)
+std::string HttpClient::BuildPostString(const std::map<std::string, std::string>& fields)
 {
 	std::stringstream retval;
 
@@ -602,3 +216,129 @@ fwString HttpClient::BuildPostString(fwMap<fwString, fwString>& fields)
 	fwString str = fwString(retval.str().c_str());
 	return str.substr(0, str.length() - 1);
 }
+
+static std::string MakeURL(const std::wstring& host, uint16_t port, const std::wstring& url)
+{
+	return fmt::sprintf("http://%s:%d%s", ToNarrow(host), port, ToNarrow(url));
+}
+
+static auto CurlWrite(char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t
+{
+	CurlData* cd = reinterpret_cast<CurlData*>(userdata);
+
+	return cd->HandleWrite(ptr, size, nmemb);
+}
+
+static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	auto curlHandle = curl_easy_init();
+
+	auto curlData = new CurlData();
+	curlData->url = url;
+	curlData->callback = callback;
+
+	curl_easy_setopt(curlHandle, CURLOPT_URL, curlData->url.c_str());
+	curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, curlData);
+	curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, curlData);
+	curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, CurlWrite);
+	curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
+	curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
+	curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, &curlData->errBuffer);
+
+	return { curlHandle, curlData };
+}
+
+void HttpClient::DoGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	auto urlStr = MakeURL(host, port, url);
+	
+	CURL* curlHandle;
+	CurlData* curlData;
+	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+
+	m_impl->AddCurlHandle(curlHandle);
+}
+
+void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoPostRequest(host, port, url, BuildPostString(fields), callback);
+}
+
+void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoPostRequest(host, port, url, postData, {}, callback);
+}
+
+void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+{
+	auto urlStr = MakeURL(host, port, url);
+
+	// make handle
+	CURL* curlHandle;
+	CurlData* curlData;
+	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+
+	// assign post data
+	curlData->postData = postData;
+
+	curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+
+	curl_slist* headers = nullptr;
+	for (const auto& header : headersMap)
+	{
+		headers = curl_slist_append(headers, va("%s: %s", header.first, header.second));
+	}
+
+	curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
+
+	// write out
+	m_impl->AddCurlHandle(curlHandle);
+}
+
+void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoFileGetRequest(host, port, url, vfs::GetDevice(outDeviceBase), outFilename, callback);
+}
+
+void HttpClient::DoFileGetRequest(const std::string& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoFileGetRequest(url, vfs::GetDevice(outDeviceBase), outFilename, callback);
+}
+
+void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoFileGetRequest(MakeURL(host, port, url), outDevice, outFilename, callback);
+}
+
+void HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	CURL* curlHandle;
+	CurlData* curlData;
+	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+
+	auto handle = outDevice->Create(outFilename);
+
+	curlData->writeFunction = [=] (const void* data, size_t length)
+	{
+		outDevice->Write(handle, data, length);
+
+		return length;
+	};
+
+	curlData->preCallback = [=] ()
+	{
+		outDevice->Close(handle);
+	};
+
+	m_impl->AddCurlHandle(curlHandle);
+}
+
+void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, rage::fiDevice* outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoFileGetRequest(host, port, url, vfs::GetNativeDevice(outDevice), outFilename, callback);
+}
+
+static InitFunction initFunction([]()
+{
+	Instance<HttpClient>::Set(new HttpClient());
+});

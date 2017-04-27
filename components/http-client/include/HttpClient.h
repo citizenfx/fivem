@@ -10,7 +10,6 @@
 #include <functional>
 #include <mutex>
 #include <queue>
-#include <winhttp.h>
 
 #include <VFSDevice.h>
 
@@ -25,48 +24,34 @@ namespace rage
 	class fiDevice;
 }
 
+class HttpClientImpl;
+
 class HTTP_EXPORT HttpClient
 {
-friend struct HttpClientRequestContext;
-
-public:
-	typedef std::pair<fwWString, uint16_t> ServerPair;
-
-private:
-	HINTERNET hWinHttp;
-
-	std::multimap<ServerPair, HINTERNET> m_connections;
-
-	std::queue<fwAction<HINTERNET>> m_connectionFreeCBs;
-
-	std::mutex m_connectionMutex;
-
-	static void CALLBACK StatusCallback(HINTERNET handle, DWORD_PTR context, DWORD code, void* info, DWORD length);
-
-	HINTERNET GetConnection(ServerPair server);
-
-	void QueueOnConnectionFree(fwAction<HINTERNET> cb);
-
-	void ReaddConnection(ServerPair server, HINTERNET connection);
-
 public:
 	HttpClient(const wchar_t* userAgent = L"CitizenFX/1");
 	virtual ~HttpClient();
 
-	fwString BuildPostString(fwMap<fwString, fwString>& fields);
+	std::string BuildPostString(const std::map<std::string, std::string>& fields);
 
-	bool CrackUrl(fwString url, fwWString& hostname, fwWString& path, uint16_t& port);
+	void DoGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::function<void(bool, const char*, size_t)>& callback);
 
-	void DoGetRequest(fwWString host, uint16_t port, fwWString url, fwAction<bool, const char*, size_t> callback);
+	void DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback);
+	void DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback);
 
-	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwMap<fwString, fwString>& fields, fwAction<bool, const char*, size_t> callback);
-	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, fwAction<bool, const char*, size_t> callback);
+	void DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const fwMap<fwString, fwString>& headers, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback = std::function<void(const std::map<std::string, std::string>&)>());
 
-	void DoPostRequest(fwWString host, uint16_t port, fwWString url, fwString postData, const fwMap<fwString, fwString>& headers, fwAction<bool, const char*, size_t> callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback = std::function<void(const std::map<std::string, std::string>&)>());
+	void DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);
+	void DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);
 
-	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, const char* outDeviceBase, fwString outFilename, fwAction<bool, const char*, size_t> callback);
-	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, fwRefContainer<vfs::Device> outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection = nullptr);
+	void DoFileGetRequest(const std::string& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);
+	void DoFileGetRequest(const std::string& url, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);
 
 	// compatibility wrapper
-	void DoFileGetRequest(fwWString host, uint16_t port, fwWString url, rage::fiDevice* outDevice, fwString outFilename, fwAction<bool, const char*, size_t> callback, HANDLE hConnection = nullptr);
+	void DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, rage::fiDevice* outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);
+
+private:
+	HttpClientImpl* m_impl;
 };
+
+DECLARE_INSTANCE_TYPE(HttpClient);

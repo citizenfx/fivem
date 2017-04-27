@@ -723,7 +723,7 @@ void NetLibrary::FinalizeDisconnect()
 
 void NetLibrary::CreateResources()
 {
-	m_httpClient = new HttpClient();
+	m_httpClient = Instance<HttpClient>::Get();
 }
 
 void NetLibrary::SendOutOfBand(const NetAddress& address, const char* format, ...)

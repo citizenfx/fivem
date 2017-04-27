@@ -1,3 +1,3 @@
-links { "winhttp" }
-
 dependency 'rage-device'
+
+flags { 'NoRuntimeChecks' }

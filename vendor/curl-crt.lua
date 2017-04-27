@@ -17,6 +17,8 @@ return {
 		language "C"
 		kind "StaticLib"
 
+		flags "NoRuntimeChecks"
+
 		if not a then
 			flags "StaticRuntime"
 		end
