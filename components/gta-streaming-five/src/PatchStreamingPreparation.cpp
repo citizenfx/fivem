@@ -29,6 +29,11 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 			collection->GetEntryNameToBuffer(entry->handle & 0xFFFF, fileNameBuffer, sizeof(fileNameBuffer));
 
+			if (strstr(fileNameBuffer, ".ymap") != nullptr)
+			{
+				continue;
+			}
+
 			bool isCache = false;
 			std::string fileName;
 
@@ -96,9 +101,13 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 static HookFunction hookFunction([] ()
 {
+	// dequeue GTA streaming request function
 	auto location = hook::get_pattern("89 7C 24 28 4C 8D 7C 24 40 89 44 24 20 E8", 13);
 	hook::set_call(&g_origHandleObjectLoad, location);
 	hook::call(location, HandleObjectLoadWrap);
+
+	// parallelize streaming (force 'disable parallel streaming' flag off)
+	hook::put<uint8_t>(hook::get_pattern("C0 C6 05 ? ? ? ? 01 44 88 35", 7), 0);
 
 	//MH_Initialize();
 
