@@ -41,4 +41,7 @@ static HookFunction hookFunction([] ()
 
 	// increase the heap size for allocator 0
 	hook::put<uint32_t>(hook::get_pattern("83 C8 01 48 8D 0D ? ? ? ? 41 B1 01 45 33 C0", 17), 600 * 1024 * 1024); // 600 MiB, default in 323 was 412 MiB
+
+	// don't pass flag 4 for streaming requests of netobjs
+	hook::put<int>(hook::get_pattern("BA 06 00 00 00 41 23 CE 44 33 C1 44 23 C6 41 33", 1), 2);
 });

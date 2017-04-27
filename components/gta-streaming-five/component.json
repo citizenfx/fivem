@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:device:five",
+		"vendor:minhook",
 		"gta:core"
 	],
 	"provides": []

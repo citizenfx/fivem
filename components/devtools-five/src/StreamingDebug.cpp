@@ -5,27 +5,6 @@
 
 #include <Streaming.h>
 
-struct StreamingListEntry
-{
-	StreamingListEntry* Prev;
-	StreamingListEntry* Next;
-	uint32_t Index;
-};
-
-struct CStreaming
-{
-	StreamingDataEntry* Entries;
-	char pad[88];
-	StreamingListEntry* RequestListHead;
-	StreamingListEntry* RequestListTail;
-
-	char pad2[368];
-
-	int NumPendingRequests;
-	int NumPendingRequests3;
-	int NumPendingRequestsPrio;
-};
-
 static InitFunction initFunction([]()
 {
 	static bool streamingDebugEnabled;
@@ -52,7 +31,7 @@ static InitFunction initFunction([]()
 
 		static bool streamingStatsOpen;
 
-		auto streaming = (CStreaming*)streaming::Manager::GetInstance();
+		auto streaming = streaming::Manager::GetInstance();
 		
 		if (ImGui::Begin("Streaming Stats", &streamingStatsOpen))
 		{

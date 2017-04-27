@@ -35,6 +35,14 @@ struct StreamingDataEntry
 
 namespace streaming
 {
+	struct StreamingListEntry
+	{
+		StreamingListEntry* Prev;
+		StreamingListEntry* Next;
+		uint32_t Index;
+	};
+
+	// actually CStreaming
 	class STREAMING_EXPORT Manager
 	{
 	private:
@@ -46,6 +54,18 @@ namespace streaming
 		void ReleaseObject(uint32_t objectId);
 
 		static Manager* GetInstance();
+
+	public:
+		StreamingDataEntry* Entries;
+		char pad[88];
+		StreamingListEntry* RequestListHead;
+		StreamingListEntry* RequestListTail;
+
+		char pad2[368];
+
+		int NumPendingRequests;
+		int NumPendingRequests3;
+		int NumPendingRequestsPrio;
 	};
 
 	void STREAMING_EXPORT LoadObjectsNow(bool a1);

@@ -420,7 +420,7 @@ public:
 		CollectionData* collectionData = (CollectionData*)m_pad;
 		char* nameTable = (char*)collectionData->nameTable;
 		
-		if (!nameTable)
+		if (!nameTable || !collectionData->entryTable)
 		{
 			return nullptr;
 		}
@@ -584,6 +584,15 @@ public:
 	virtual void GetEntryNameToBuffer(uint16_t index, char* buffer, int maxLen)
 	{
 		auto entry = GetCfxEntry(index);
+
+		if (strcmp(buffer, "CfxRequest") == 0)
+		{
+			if (entry)
+			{
+				strcpy_s(buffer, maxLen, entry->fileName.c_str());
+				return;
+			}
+		}
 
 		if (!entry)
 		{
@@ -2078,12 +2087,7 @@ namespace streaming
 		auto handle = entry->handle;
 		if ((handle & 0xC0000000) == 0x80000000)
 		{
-			uint32_t idx = (handle) & 0x3FFFFFFF;
-
-			if (idx != 0x3FFFFFFF)
-			{
-				return &g_streamingPackfiles->Get(idx);
-			}
+			return nullptr;
 		}
 		else
 		{
