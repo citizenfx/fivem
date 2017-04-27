@@ -87,13 +87,20 @@ static std::vector<std::string> g_oldEntryList;
 
 static PEXCEPTION_POINTERS g_exception;
 
-static int SehRoutine(const char* typePtr, PEXCEPTION_POINTERS exception)
+static int SehRoutine(const char* whatPtr, PEXCEPTION_POINTERS exception)
 {
 	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 	{
 		g_exception = exception;
 
-		return EXCEPTION_EXECUTE_HANDLER;
+		if (!whatPtr)
+		{
+			whatPtr = "a safe-call operation";
+		}
+
+		FatalErrorNoExcept("An exception occurred (%08x at %p) during %s. The game will be terminated.",
+			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
+			whatPtr);
 	}
 
 	return EXCEPTION_CONTINUE_SEARCH;
@@ -114,15 +121,6 @@ static auto SafeCall(const T& fn, const char* whatPtr = nullptr)
 	}
 	__except (SehRoutine(whatPtr, GetExceptionInformation()))
 	{
-		if (!whatPtr)
-		{
-			whatPtr = "a safe-call operation";
-		}
-
-		FatalError("An exception occurred (%08x at %p) during %s. The game will be terminated.",
-			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
-			whatPtr);
-
 		return std::result_of_t<T()>();
 	}
 #endif

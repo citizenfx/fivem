@@ -46,8 +46,9 @@ namespace rage
 	{
 		if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 		{
-			g_exception = exception;
-			return EXCEPTION_EXECUTE_HANDLER;
+			FatalErrorNoExcept("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
+				g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
+				InitFunctionTypeToString(type), func->GetName());
 		}
 
 		return EXCEPTION_CONTINUE_SEARCH;
@@ -66,10 +67,6 @@ namespace rage
 		}
 		__except (SehRoutine(this, type, GetExceptionInformation()))
 		{
-			FatalError("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
-				g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
-				InitFunctionTypeToString(type), this->GetName());
-
 			return false;
 		}
 #endif

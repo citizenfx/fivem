@@ -23,6 +23,7 @@ inline uint32_t const_uint32()
 
 #define GlobalError(f, ...) do { if (GlobalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, __VA_ARGS__) < 0) { *(int*)0 = 0; } } while(false)
 #define FatalError(f, ...) do { if (FatalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, __VA_ARGS__) < 0) { *(int*)0 = 0; } } while(false)
+#define FatalErrorNoExcept(f, ...) do { if (FatalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, __VA_ARGS__) < 0) { } } while(false)
 #else
 void GlobalError(const char* string, const fmt::ArgList& formatList);
 void FatalError(const char* string, const fmt::ArgList& formatList);
