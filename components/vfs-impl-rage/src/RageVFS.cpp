@@ -527,6 +527,9 @@ void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string
 	// through a VFS adapter (which loses refcounts) if the caller is the VFS.
 	m_deviceCache.insert({ adapter, device });
 
+	// ensure the allocator is defined
+	rage::sysMemAllocator::UpdateAllocatorValue();
+
 	rage::fiDevice::MountGlobal(path.c_str(), adapter, true);
 
 	device->SetPathPrefix(path);
@@ -535,6 +538,9 @@ void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string
 void RageVFSManager::Unmount(const std::string& path)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
+
+	// ensure the allocator is defined
+	rage::sysMemAllocator::UpdateAllocatorValue();
 
 	rage::fiDevice::Unmount(path.c_str());
 
