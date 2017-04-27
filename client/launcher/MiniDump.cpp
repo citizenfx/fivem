@@ -168,7 +168,10 @@ static std::wstring GetAdditionalData()
 
 		if (!error_pickup.is_null())
 		{
-			error_pickup["type"] = "error_pickup";
+			if (error_pickup["line"] != 99999)
+			{
+				error_pickup["type"] = "error_pickup";
+			}
 
 			return ToWide(error_pickup.dump());
 		}
