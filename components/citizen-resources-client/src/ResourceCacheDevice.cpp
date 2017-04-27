@@ -161,6 +161,8 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		return false;
 	}
 
+	handleData->status = HandleData::StatusFetching;
+
 	// fetch the file
 	std::wstring hostname;
 	std::wstring path;
