@@ -22,6 +22,21 @@ Component* DllGameComponent::CreateComponent()
 		// delete caches.xml so the game will be verified
 		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
 
+		// sanity check
+		if (m_path == L"adhesive.dll" && errorCode == ERROR_PROC_NOT_FOUND)
+		{
+			HMODULE rosFive = GetModuleHandle(L"ros-five.dll");
+
+			if (rosFive)
+			{
+				if (GetProcAddress(rosFive, "?IDidntDoNothing@@YAXXZ") == nullptr)
+				{
+					// vague error to not immediately discourage pirates
+					FatalError("Failed to compute buffer alias alignment.");
+				}
+			}
+		}
+
 		FatalError("Could not load component %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
 
 		return nullptr;
