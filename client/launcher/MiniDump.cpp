@@ -21,7 +21,11 @@
 #include <regex>
 #include <sstream>
 
+#include <optional>
+
 #include <CfxSubProcess.h>
+
+#include <citversion.h>
 
 using json = nlohmann::json;
 
@@ -201,7 +205,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"BuildID"] = L"20141213000000"; // todo i bet
 #elif defined(GTA_FIVE)
 		parameters[L"ProductName"] = L"FiveM";
-		parameters[L"Version"] = L"1.2";
+		parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
 		parameters[L"BuildID"] = L"20170101"; // todo i bet
 
         parameters[L"prod"] = L"FiveM";
@@ -218,41 +222,90 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
 
+		TerminateProcess(parentProcess, -2);
+
+		static std::optional<std::wstring> crashId;
+
+		static const TASKDIALOG_BUTTON buttons[] = {
+			{ 42, L"Close" }
+		};
+
+		static TASKDIALOGCONFIG taskDialogConfig = { 0 };
+		taskDialogConfig.cbSize = sizeof(taskDialogConfig);
+		taskDialogConfig.hInstance = GetModuleHandle(nullptr);
+		taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER;
+		taskDialogConfig.dwCommonButtons = 0;
+		taskDialogConfig.cButtons = 1;
+		taskDialogConfig.pButtons = buttons;
+		taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
+		taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
+		taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
+		taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.";
+		taskDialogConfig.pszExpandedInformation = L"...";
+		taskDialogConfig.pfCallback = [](HWND hWnd, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
+		{
+			if (type == TDN_HYPERLINK_CLICKED)
+			{
+				ShellExecute(nullptr, L"open", (LPCWSTR)lParam, nullptr, nullptr, SW_NORMAL);
+			}
+			else if (type == TDN_BUTTON_CLICKED)
+			{
+				return S_OK;
+			}
+			else if (type == TDN_CREATED)
+			{
+				SendMessage(hWnd, TDM_ENABLE_BUTTON, 42, 0);
+				SendMessage(hWnd, TDM_SET_MARQUEE_PROGRESS_BAR, 1, 0);
+				SendMessage(hWnd, TDM_SET_PROGRESS_BAR_MARQUEE, 1, 15);
+			}
+			else if (type == TDN_TIMER)
+			{
+				if (crashId)
+				{
+					if (!crashId->empty())
+					{
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash ID: %s (use Ctrl+C to copy)", crashId->c_str()));
+					}
+					else
+					{
+						SendMessage(hWnd, TDM_SET_PROGRESS_BAR_STATE, PBST_ERROR, 0);
+					}
+
+					SendMessage(hWnd, TDM_ENABLE_BUTTON, 42, 1);
+					SendMessage(hWnd, TDM_SET_MARQUEE_PROGRESS_BAR, 0, 0);
+					SendMessage(hWnd, TDM_SET_PROGRESS_BAR_POS, 100, 0);
+					SendMessage(hWnd, TDM_SET_PROGRESS_BAR_STATE, PBST_NORMAL, 0);
+
+					crashId.reset();
+				}
+			}
+
+			return S_FALSE;
+		};
+
+		OverloadCrashData(&taskDialogConfig);
+
+		auto thread = std::thread([=]()
+		{
+			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+		});
+
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
 		if (HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
 #endif
 		{
-            TerminateProcess(parentProcess, -2);
+			crashId = responseBody;
+		}
+		else
+		{
+			crashId = L"";
+		}
 
-			TASKDIALOGCONFIG taskDialogConfig = { 0 };
-			taskDialogConfig.cbSize = sizeof(taskDialogConfig);
-			taskDialogConfig.hInstance = GetModuleHandle(nullptr);
-			taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
-			taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-			taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
-			taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
-			taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
-			taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.";
-			taskDialogConfig.pszExpandedInformation = va(L"Crash ID: %s (use Ctrl+C to copy)", responseBody.c_str());
-			taskDialogConfig.pfCallback = [] (HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
-			{
-				if (type == TDN_HYPERLINK_CLICKED)
-				{
-					ShellExecute(nullptr, L"open", (LPCWSTR)lParam, nullptr, nullptr, SW_NORMAL);
-				}
-				else if (type == TDN_BUTTON_CLICKED)
-				{
-					return S_OK;
-				}
-
-				return S_FALSE;
-			};
-
-			OverloadCrashData(&taskDialogConfig);
-
-			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+		if (thread.joinable())
+		{
+			thread.join();
 		}
 	};
 
