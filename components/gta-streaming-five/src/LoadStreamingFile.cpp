@@ -85,21 +85,17 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 
 static std::vector<std::string> g_oldEntryList;
 
-static PEXCEPTION_POINTERS g_exception;
-
 static int SehRoutine(const char* whatPtr, PEXCEPTION_POINTERS exception)
 {
 	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 	{
-		g_exception = exception;
-
 		if (!whatPtr)
 		{
 			whatPtr = "a safe-call operation";
 		}
 
 		FatalErrorNoExcept("An exception occurred (%08x at %p) during %s. The game will be terminated.",
-			g_exception->ExceptionRecord->ExceptionCode, g_exception->ExceptionRecord->ExceptionAddress,
+			exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
 			whatPtr);
 	}
 
