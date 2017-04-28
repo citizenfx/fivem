@@ -175,7 +175,13 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	// http request
 	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, m_cachePath.c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
 	{
-		if (!result)
+		if (result)
+		{
+			auto device = vfs::GetDevice(outFileName);
+			outSize = device->GetLength(outFileName);
+		}
+
+		if (!result || outSize == 0)
 		{
 			handleData->status = HandleData::StatusError;
 
@@ -197,16 +203,17 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 				}
 			}
 
-			FatalError("Failed a request in ResourceCacheDevice::EnsureFetched for %s (origin %s) - error result %s%s", handleData->entry.basename, handleData->entry.remoteUrl, errorData, reason);
+			if (outSize == 0)
+			{
+				reason += "\nThe file was empty.";
+			}
+
+			trace("ResourceCacheDevice reporting failure: %s%s", errorData, reason);
+			init->SetData("rcd:error", fmt::sprintf("Failed in ResourceCacheDevice: error result %s%s", errorData, reason));
 		}
 		else
 		{
 			// log success
-			{
-				auto device = vfs::GetDevice(outFileName);
-				outSize = device->GetLength(outFileName);
-			}
-
 			trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", handleData->entry.basename.c_str(), (timeGetTime() - initTime), outSize);
 
 			// add the file to the resource cache
@@ -227,10 +234,10 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 					handleData->parentDevice->Open(outFileName, true);
 			}
 
-			handleData->status = HandleData::StatusFetched;
 			handleData->metaData = metaData;
-
 			MarkFetched(handleData);
+
+			handleData->status = HandleData::StatusFetched;
 		}
 
 		// unblock the mutex

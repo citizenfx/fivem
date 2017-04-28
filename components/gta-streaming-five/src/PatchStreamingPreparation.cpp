@@ -4,15 +4,19 @@
 #include "Streaming.h"
 #include <fiCollectionWrapper.h>
 
+#include <Error.h>
+#include <ICoreGameInit.h>
+
 static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
 
 static std::map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>, std::less<>> g_handleMap;
+static std::map<std::string, int> g_failures;
 
 static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, int* requests, int a5, int a6, int a7)
 {
 	int remainingRequests = g_origHandleObjectLoad(streaming, a2, a3, requests, a5, a6, a7);
 
-	for (int i = 0; i < remainingRequests; i++)
+	for (int i = remainingRequests - 1; i >= 0; i--)
 	{
 		bool shouldRemove = false;
 		int index = requests[i];
@@ -70,13 +74,33 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 					char readBuffer[2048];
 					uint32_t numRead = device->ReadBulk(handle, ptr, readBuffer, 2048);
 
-					if (numRead == -1 || numRead == 0)
+					bool killHandle = true;
+
+					if (numRead == 0)
 					{
+						killHandle = false;
 						shouldRemove = true;
 
 						g_handleMap.insert({ fileName, { device, handle, ptr } });
 					}
-					else
+					else if (numRead == -1)
+					{
+						shouldRemove = true;
+
+						g_failures[fileName]++;
+
+						if (g_failures[fileName] > 3)
+						{
+							std::string error;
+							ICoreGameInit* init = Instance<ICoreGameInit>::Get();
+
+							init->GetData("gta-core-five:loadCaller", &error);
+
+							FatalError("Failed to request %s. %s", error);
+						}
+					}
+					
+					if (killHandle)
 					{
 						device->CloseBulk(handle);
 						g_handleMap.erase(fileName);
