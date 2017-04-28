@@ -505,6 +505,16 @@ static void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
     pout[0] = 0;
 }
 
+typedef uint32 HAuthTicket;
+const HAuthTicket k_HAuthTicketInvalid = 0;
+
+struct GetAuthSessionTicketResponse_t
+{
+	enum { k_iCallback = 100 + 63 };
+	HAuthTicket m_hAuthTicket;
+	int m_eResult;
+};
+
 void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 {
 	if (m_connectionState != CS_IDLE)
@@ -569,36 +579,17 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
+	static std::function<void()> performRequest;
+
 	uint16_t capturePort = port;
-
-	auto steamComponent = GetSteam();
-
-	if (steamComponent)
-	{
-		uint32_t ticketLength;
-		uint8_t ticketBuffer[4096];
-
-		IClientEngine* steamClient = steamComponent->GetPrivateClient();
-
-		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-		if (steamUser.IsValid())
-		{
-			steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
-
-			// encode the ticket buffer
-            char outHex[16384];
-            tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
-
-			postMap["authTicket"] = outHex;
-		}
-	}
 
 	postMap["guid"] = va("%lld", GetGUID());
 
 	static fwAction<bool, const char*, size_t> handleAuthResult;
 	handleAuthResult = [=] (bool result, const char* connDataStr, size_t size) mutable
 	{
+		OnConnectionProgress("Handshaking...", 0, 100);
+
 		std::string connData(connDataStr, size);
 
 		if (!result)
@@ -615,35 +606,6 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		try
 		{
 			auto node = YAML::Load(connData);
-
-			// ha-ha, you need to authenticate first!
-			/*
-			if (node["authID"].IsDefined())
-			{
-				if (postMap.find("authTicket") == postMap.end())
-				{
-					std::vector<uint8_t> authTicket = user->GetUserTicket(node["authID"].as<uint64_t>());
-
-					size_t ticketLen;
-					char* ticketEncoded = base64_encode(&authTicket[0], authTicket.size(), &ticketLen);
-
-					postMap["authTicket"] = fwString(ticketEncoded, ticketLen);
-
-					free(ticketEncoded);
-
-					m_httpClient->DoPostRequest(wideHostnameStr, capturePort, L"/client", postMap, handleAuthResult);
-				}
-				else
-				{
-					postMap.erase("authTicket");
-
-					GlobalError("you're so screwed, the server still asked for an auth ticket even though we gave them one");
-				}
-
-				return;
-			}
-
-			postMap.erase("authTicket");*/
 
 			if (node["error"].IsDefined())
 			{
@@ -695,7 +657,72 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		}
 	};
 
-	m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, handleAuthResult);
+	performRequest = [=]()
+	{
+		m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, handleAuthResult);
+	};
+
+
+	auto steamComponent = GetSteam();
+
+	if (steamComponent)
+	{
+		static uint32_t ticketLength;
+		static uint8_t ticketBuffer[4096];
+
+		static int lastCallback = -1;
+
+		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+		if (steamUser.IsValid())
+		{
+			auto removeCallback = []()
+			{
+				if (lastCallback != -1)
+				{
+					GetSteam()->RemoveSteamCallback(lastCallback);
+					lastCallback = -1;
+				}
+			};
+
+			removeCallback();
+
+			lastCallback = steamComponent->RegisterSteamCallback<GetAuthSessionTicketResponse_t>([=](GetAuthSessionTicketResponse_t* response)
+			{
+				removeCallback();
+
+				if (response->m_eResult != 1) // k_EResultOK
+				{
+					OnConnectionError(va("Failed to obtain Steam ticket, EResult %d.", response->m_eResult));
+				}
+				else
+				{
+					// encode the ticket buffer
+					char outHex[16384];
+					tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
+
+					postMap["authTicket"] = outHex;
+
+					performRequest();
+				}
+			});
+
+			steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
+
+			OnConnectionProgress("Obtaining Steam ticket...", 0, 100);
+		}
+		else
+		{
+			performRequest();
+		}
+	}
+	else
+	{
+		performRequest();
+	}
+	
 }
 
 void NetLibrary::Disconnect(const char* reason)
