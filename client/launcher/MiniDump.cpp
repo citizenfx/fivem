@@ -98,6 +98,24 @@ static ErrorData LookupError(uint32_t hash)
 	return ErrorData{};
 }
 
+static std::optional<std::tuple<ErrorData, uint64_t>> LoadErrorData()
+{
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"rb");
+
+	if (f)
+	{
+		uint32_t error;
+		uint64_t retAddr;
+		fread(&error, 1, 4, f);
+		fread(&retAddr, 1, 8, f);
+		fclose(f);
+
+		return { { LookupError(error), retAddr } };
+	}
+
+	return {};
+}
+
 template<typename T>
 static std::string ParseLinks(const T& text)
 {
@@ -115,19 +133,14 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 {
 	// error files?
 	{
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"rb");
+		auto data = LoadErrorData();
 
-		if (f)
+		if (data)
 		{
-			uint32_t error;
-			uint64_t retAddr;
-			fread(&error, 1, 4, f);
-			fread(&retAddr, 1, 8, f);
-			fclose(f);
-
 			_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
 
-			static ErrorData errData = LookupError(error);
+			static ErrorData errData = std::get<ErrorData>(*data);
+			static uint64_t retAddr = std::get<uint64_t>(*data);
 
 			if (!errData.errorName.empty())
 			{
@@ -178,6 +191,22 @@ static std::wstring GetAdditionalData()
 			}
 
 			return ToWide(error_pickup.dump());
+		}
+	}
+
+	{
+		auto errorData = LoadErrorData();
+
+		if (errorData)
+		{
+			json jsonData = json::object({
+				{ "type", "rage_error" },
+				{ "key", std::get<ErrorData>(*errorData).errorName },
+				{ "description", std::get<ErrorData>(*errorData).errorDescription },
+				{ "retAddr", std::get<uint64_t>(*errorData) },
+			});
+
+			return ToWide(jsonData.dump());
 		}
 	}
 
