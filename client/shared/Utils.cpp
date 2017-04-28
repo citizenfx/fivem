@@ -187,14 +187,14 @@ static void PerformFileLog(const char* string)
 			if (*p == '\n')
 			{
 				// flush the line
-				FILE* logFile = _wfopen(MakeRelativeCitPath(L"CitizenFX.log").c_str(), L"a");
+				FILE* logFile = _wfopen(MakeRelativeCitPath(L"CitizenFX.log").c_str(), L"ab");
 
 				if (logFile)
 				{
 					// null-terminate the string
 					lineBuffer[lineIndex] = '\0';
 
-					fprintf(logFile, "[%10lld] %s\n", GetTickCount64() - initTickCount->tickCount, lineBuffer.data());
+					fprintf(logFile, "[%10lld] %s\r\n", GetTickCount64() - initTickCount->tickCount, lineBuffer.data());
 					fclose(logFile);
 				}
 
