@@ -1,0 +1,69 @@
+[submodule "vendor/jitasm"]
+	path = vendor/jitasm
+	url = http://tohjo.eu/citidev/jitasm.git
+	branch = master
+[submodule "vendor/yaml-cpp"]
+	path = vendor/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "vendor/msgpack-c"]
+	path = vendor/msgpack-c
+	url = https://github.com/msgpack/msgpack-c.git
+[submodule "vendor/zlib"]
+	path = vendor/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "vendor/protobuf"]
+	path = vendor/protobuf
+	url = https://github.com/google/protobuf.git
+[submodule "vendor/breakpad"]
+	path = vendor/breakpad
+	url = https://chromium.googlesource.com/breakpad/breakpad
+[submodule "vendor/udis86"]
+	path = vendor/udis86
+	url = https://github.com/vmt/udis86.git
+	branch = master
+[submodule "vendor/tinyxml2"]
+	path = vendor/tinyxml2
+	url = https://github.com/leethomason/tinyxml2.git
+[submodule "vendor/cpp-uri"]
+	path = vendor/cpp-uri
+	url = https://github.com/cpp-netlib/uri.git
+[submodule "vendor/picohttpparser"]
+	path = vendor/picohttpparser
+	url = https://github.com/h2o/picohttpparser.git
+[submodule "vendor/libssh"]
+	path = vendor/libssh
+	url = https://github.com/citizenfx/libssh.git
+[submodule "vendor/xz"]
+	path = vendor/xz
+	url = http://git.tukaani.org/xz.git
+[submodule "vendor/curl"]
+	path = vendor/curl
+	url = https://github.com/bagder/curl.git
+[submodule "vendor/leveldb"]
+	path = vendor/leveldb
+	url = https://github.com/citizenfx/leveldb.git
+[submodule "vendor/minhook"]
+	path = vendor/minhook
+	url = https://github.com/TsudaKageyu/minhook.git
+[submodule "vendor/rapidjson"]
+	path = vendor/rapidjson
+	url = https://github.com/miloyip/rapidjson.git
+[submodule "vendor/libuv"]
+	path = vendor/libuv
+	url = https://github.com/libuv/libuv.git
+[submodule "vendor/fmtlib"]
+	path = vendor/fmtlib
+	url = https://github.com/fmtlib/fmt.git
+[submodule "vendor/nghttp2"]
+	path = vendor/nghttp2
+	url = https://github.com/nghttp2/nghttp2
+[submodule "vendor/cpr"]
+	path = vendor/cpr
+	url = https://github.com/whoshuu/cpr.git
+[submodule "vendor/enet"]
+	path = vendor/enet
+	url = https://github.com/freeminer/enet.git
+	branch = ipv6
+[submodule "vendor/imgui"]
+	path = vendor/imgui
+	url = https://github.com/ocornut/imgui.git
