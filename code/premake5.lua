@@ -129,9 +129,12 @@ if _OPTIONS['game'] ~= 'server' then
 		targetname "CitizenGame"
 		language "C++"
 		kind "SharedLib"
+
+		includedirs { 'client/citicore/' }
 		
 		files
 		{
+			"client/common/Error.cpp",
 			"client/citigame/Launcher.cpp",
 			"client/common/StdInc.cpp"
 		}

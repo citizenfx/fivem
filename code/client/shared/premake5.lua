@@ -9,9 +9,10 @@
 
 			if libc then
 				flags { "StaticRuntime" }
+				add_dependencies { 'vendor:fmtlib-crt' }
+			else
+				add_dependencies { 'vendor:fmtlib' }
 			end
-
-			add_dependencies { 'vendor:fmtlib' }
 
 			defines "COMPILING_SHARED"
 
