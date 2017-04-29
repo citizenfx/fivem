@@ -82,6 +82,7 @@ return {
 				'src/win/async.c',
 				'src/win/atomicops-inl.h',
 				'src/win/core.c',
+				'src/win/detect-wakeup.c',
 				'src/win/dl.c',
 				'src/win/error.c',
 				'src/win/fs.c',
