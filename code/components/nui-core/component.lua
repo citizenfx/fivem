@@ -1,13 +1,9 @@
 linkoptions "/DELAYLOAD:libcef.dll"
 
-libdirs { "../../client/libcef/lib/" }
+libdirs { "../../../vendor/cef/Release/" }
 
-includedirs { "../../client/libcef/" }
+includedirs { "../../../vendor/cef/" }
 
 links { "libcef_dll", "delayimp", "libGLESv2" }
 
-filter 'architecture:not x64'
-	links { "libcef" }
-
-filter 'architecture:x64'
-	links { "libcef64" }
+links { "libcef" }

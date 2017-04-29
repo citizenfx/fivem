@@ -43,7 +43,15 @@ workspace "CitizenMP"
 	
 	flags { "NoIncrementalLink", "NoEditAndContinue", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 	
-	includedirs { "shared/", "client/shared/", "../vendor/jitasm/", "../vendor/rapidjson/include/", "../vendor/fmtlib/", "deplibs/include/", "../vendor/gtest/googletest/include/", "../vendor/gtest/googlemock/include/", os.getenv("BOOST_ROOT") }
+	includedirs {
+		"shared/",
+		"client/shared/",
+		"../vendor/jitasm/",
+		"../vendor/rapidjson/include/",
+		"../vendor/fmtlib/",
+		"deplibs/include/",
+		os.getenv("BOOST_ROOT")
+	}
 	
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
@@ -57,22 +65,30 @@ workspace "CitizenMP"
 
 	systemversion '10.0.15063.0'
 
+	-- special build dirs for FXServer
 	if _OPTIONS['game'] == 'server' then
 		location ("build/server/" .. os.get())
 		architecture 'x64'
 		defines 'IS_FXSERVER'
 	end
 	
+	-- debug output
 	configuration "Debug*"
 		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/debug")
 		defines "NDEBUG"
 
+		-- this slows down the application a lot
 		defines { '_ITERATOR_DEBUG_LEVEL=0' }
 
+		-- allow one level of inlining
+		buildoptions '/Ob1'
+
+		-- special path for server
 		if _OPTIONS['game'] == 'server' then
 			targetdir ("bin/server/" .. os.get() .. "/debug")
 		end
 		
+	-- release output
 	configuration "Release*"
 		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/release")
 		defines "NDEBUG"
@@ -82,12 +98,6 @@ workspace "CitizenMP"
 			targetdir ("bin/server/" .. os.get() .. "/release")
 		end
 		
-	configuration "game=ny"
-		defines "GTA_NY"
-
-	configuration "game=payne"
-		defines "PAYNE"
-
 	configuration "game=five"
 		architecture 'x64'
 		defines "GTA_FIVE"
@@ -105,41 +115,14 @@ workspace "CitizenMP"
 	-- TARGET: launcher
 	if _OPTIONS['game'] ~= 'server' then
 		-- game launcher
-		dofile 'client/launcher/build.lua'
-		dofile 'client/console/build.lua'
+		include 'client/launcher'
+		include 'client/console'
 	else
-		dofile 'server/launcher/build.lua'
+		include 'server/launcher'
 	end
 
-	project "CitiCore"
-		targetname "CoreRT" 
-		language "C++"
-		kind "SharedLib"
-
-		includedirs "client/citicore/"
-
-		files
-		{
-			"client/citicore/**.cpp", "client/citicore/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
-		}
-
-		files
-		{
-			"client/citicore/**.idl"
-		}
-
-		add_dependencies { 'vendor:boost_program_options' }
-		add_dependencies { 'vendor:minhook', 'vendor:udis86' }
-
-		links { "Shared" }
-
-		defines "COMPILING_CORE"
-
-		pchsource "client/common/StdInc.cpp"
-		pchheader "StdInc.h"
-
-		configuration "not windows"
-			links { "dl", "c++" }
+	-- TARGET: corert
+	include 'client/citicore'
 
 if _OPTIONS['game'] ~= 'server' then
 	project "CitiGame"
@@ -149,26 +132,16 @@ if _OPTIONS['game'] ~= 'server' then
 		
 		files
 		{
-			"client/citigame/**.cpp", "client/citigame/**.h", "client/common/Error.cpp", "client/citigame/**.c", "client/common/StdInc.cpp"
+			"client/citigame/Launcher.cpp",
+			"client/common/StdInc.cpp"
 		}
 		
 		links { "Shared", "citicore" }
 		
 		defines "COMPILING_GAME"
 		
-		includedirs { "client/citigame/include/", "components/nui-core/include/", "components/downloadmgr/include/", "components/net/include/", "client/citicore/", "components/resources/include/", "components/http-client/include/", "../vendor/luajit/src/", "../vendor/yaml-cpp/include/", "../vendor/msgpack-c/include/", "deplibs/include/msgpack-c/", "client/libcef/", "client/shared/np" }
-		
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
-		
-		configuration "game=ny"
-			includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/citigame/net/" }
-			links { "HooksNY", "GameNY" }
-
-			-- temp, until CitiGame is gone
-			links { "rage-nutsnbolts-" .. _OPTIONS['game'], "http-client", "net", "resources", "downloadmgr", "nui-core" }
-
-			includedirs { "components/rage-nutsnbolts-" .. _OPTIONS['game'] .. "/include/" }
 end
 
 	local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
@@ -190,119 +163,10 @@ end
 				targetdir "bin/release/citizen/clr/lib/mono/4.5"
 	end]]
 
-group "managed"
-
---[[external 'CitiMono'
-	uuid 'E781BFF9-D34E-1A05-FC67-08ADE8934F93'
-	kind 'SharedLib'
-	language 'C#'
-	location '.']]
-
-if _OPTIONS['game'] ~= 'server' and buildHost == 'FALLARBOR' then
-	--[[external '010.Irony.2010'
-		uuid 'D81F5C91-D7DB-46E5-BC99-49488FB6814C'
-		kind 'SharedLib'
-		language 'C#'
-		location '../vendor/pash/Libraries/Irony/Irony/'
-
-	external 'System.Management'
-		uuid 'C5E303EC-5684-4C95-B0EC-2593E6662403'
-		kind 'SharedLib'
-		language 'C#'
-		location '../vendor/pash/Source/System.Management/'
-
-	external 'Microsoft.PowerShell.Commands.Utility'
-		uuid '0E1D573C-C57D-4A83-A739-3A38E719D87E'
-		kind 'SharedLib'
-		language 'C#'
-		location '../vendor/pash/Source/Microsoft.PowerShell.Commands.Utility/']]
-end
-			
-	if _OPTIONS['game'] == 'ny' then
-		project "GameNY"
-			targetname "game_ny"
-			language "C++"
-			kind "SharedLib"
-			
-			links { "Shared", "zlib", "CitiCore" }
-			
-			defines "COMPILING_GAMESPEC"
-			
-			pchsource "client/common/StdInc.cpp"
-			pchheader "StdInc.h"
-			
-			configuration "game=ny"
-				includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "../vendor/zlib/" }
-			
-				files
-				{
-					"client/game_ny/**.cpp", "client/game_ny/**.h", "client/common/Error.cpp", "client/common/StdInc.cpp"
-				}
-			
-		project "HooksNY"
-			targetname "hooks_ny"
-			language "C++"
-			kind "SharedLib"
-			
-			links { "Shared", "GameNY", "ws2_32", "rage-graphics-ny", "gta-core-ny", "CitiCore" }
-			
-			defines "COMPILING_HOOKS"	
-
-			pchsource "client/hooks_ny/base/StdInc.cpp"
-			pchheader "StdInc.h"		
-			
-			configuration "game=ny"
-				includedirs { "components/gta-core-ny/include", "components/rage-graphics-ny/include", "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/", "client/hooks_ny/base/" }
-				
-				files
-				{
-					"client/hooks_ny/**.cpp", "client/hooks_ny/**.h", "client/common/Error.cpp"
-				}
-	end
-		
 	group ""
 
-	project "Shared"
-		targetname "shared"
-		language "C++"
-		kind "StaticLib"
-
-		add_dependencies { 'vendor:fmtlib' }
-
-		defines "COMPILING_SHARED"
-
-		includedirs { "client/citicore" }
-		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
-		
-		files
-		{
-			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
-		}
-
-		configuration "not windows"
-			excludes { "**/Hooking.*" }
-
-	project "SharedLibc"
-		targetname "shared_libc"
-		language "C++"
-		kind "StaticLib"
-
-		flags { "StaticRuntime" }
-
-		add_dependencies { 'vendor:fmtlib-crt' }
-
-		defines { "COMPILING_SHARED", "COMPILING_SHARED_LIBC" }
-
-		includedirs { "client/citicore" }		
-		--includedirs { "client/game_ny/base/", "client/game_ny/gta/", "client/game_ny/rage/" }
-		
-		files
-		{
-			"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
-		}
-
-		configuration "not windows"
-			excludes { "**/Hooking.*" }
+	-- TARGET: shared component
+	include "client/shared"
 
 	group "vendor"
 		
@@ -316,13 +180,15 @@ if _OPTIONS['game'] ~= 'server' then
 		
 		flags { "NoIncrementalLink", "NoMinimalRebuild" }
 		
-		includedirs { ".", "client/libcef" }
+		includedirs { ".", "vendor/cef" }
 		
 		buildoptions "/MP"
 		
 		files
 		{
-			"client/libcef/libcef_dll/**.cc", "client/libcef/libcef_dll/**.cpp", "client/libcef/libcef_dll/**.h"
+			"vendor/cef/libcef_dll/**.cc",
+			"vendor/cef/libcef_dll/**.cpp",
+			"vendor/cef/libcef_dll/**.h"
 		}
 end
 		
