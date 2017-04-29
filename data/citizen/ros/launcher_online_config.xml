@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Options>
+	<Option name="UseDev" value="0" />
+
+	<Option name="ConnectionLimit" value="10" />
+	<Option name="DownloadChunkSizeBytes" value="2097152"/>
+	<Option name="DownloadBufferSizeBytes" value="16384"/>
+
+	<Option name="DownloadTimeoutInitialSeconds" value="30" />
+	<Option name="DownloadTimeoutIncreaseSeconds" value="30" />
+	<Option name="DownloadTimeoutMaximumSeconds" value="90" />
+
+	<Option name="PatchRetries" value="3" />
+	<Option name="DIPRetries" value="10" />
+</Options>

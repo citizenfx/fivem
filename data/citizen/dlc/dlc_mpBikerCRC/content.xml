@@ -1,0 +1,1115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CDataFileMgr__ContentsOfDataFileXml>
+  <disabledFiles />
+  <includedXmlFiles />
+  <includedDataFiles />
+  <dataFiles>
+	<Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/loadouts.meta</filename>
+      <fileType>LOADOUTS_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/vehiclelayouts.meta</filename>
+      <fileType>VEHICLE_LAYOUTS_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponanimations.meta</filename>
+      <fileType>WEAPON_ANIMATIONS_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponAutoShotgun.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponBattleAxe.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponCompactLauncher.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponcomponents.meta</filename>
+      <fileType>WEAPONCOMPONENTSINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponMiniSMG.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponPipeBomb.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponPoolCue.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/ai/weaponWrench.meta</filename>
+      <fileType>WEAPONINFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/anim/clip_sets/clip_sets.xml</filename>
+      <fileType>CLIP_SETS_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/effects/explosionfx.dat</filename>
+      <fileType>EXPLOSIONFX_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/carcols.meta</filename>
+      <fileType>CARCOLS_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBikerCRC:/common/data/levels/gta5/vehicles.meta</filename>
+      <fileType>VEHICLE_METADATA_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/carvariations.meta</filename>
+      <fileType>VEHICLE_VARIATION_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/contentunlocks.meta</filename>
+      <fileType>CONTENT_UNLOCKING_META_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/common/data/dlctext.meta</filename>
+      <fileType>TEXTFILE_METAFILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/explosion.meta</filename>
+      <fileType>EXPLOSION_INFO_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/common/data/interiorproxies.meta</filename>
+      <fileType>INTERIOR_PROXY_ORDER_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="false"/>
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/mpStatsSetup.xml</filename>
+      <fileType>MP_STATS_DISPLAY_LIST_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/common/data/mpStatsUISetup.xml</filename>
+      <fileType>MP_STATS_UI_LIST_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/common/data/overlayinfo.xml</filename>
+      <fileType>OVERLAY_INFO_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="false"/>
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/pedpersonality.meta</filename>
+      <fileType>PED_PERSONALITY_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/pickups.meta</filename>
+      <fileType>DLC_WEAPON_PICKUPS</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/shop_tattoo.meta</filename>
+      <fileType>TATTOO_SHOP_DLC_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/shop_vehicle.meta</filename>
+      <fileType>VEHICLE_SHOP_DLC_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/shop_weapon.meta</filename>
+      <fileType>WEAPON_SHOP_INFO_METADATA_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/weaponArchetypes.meta</filename>
+      <fileType>WEAPON_METADATA_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/anim/ingame/clip_anim@.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_06.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_07.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_23.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_occl.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+      <loadCompletely value="true" />
+      <contents>CONTENTS_DLC_MAP_DATA</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/indust_01.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/indust_01_metadata.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+      <loadCompletely value="true" />
+      <contents>CONTENTS_DLC_MAP_DATA</contents>
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_interior_placement.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+      <contents>CONTENTS_DLC_MAP_DATA</contents>
+    </Item>
+  	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_01.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_02.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_03.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware01.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware02.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware03.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware04.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware05.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Biker_DLC_Int_Props.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Biker_DLC_Int_Props.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Coke.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Coke.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_FakeID.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_FakeID.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Meth.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Meth.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Weed.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Weed.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_GunLocker.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_GunLocker.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_PrintingMachines.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_PrintingMachines.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Money.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Money.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Mp_Biker_Deadline_Jumps.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Mp_Biker_Deadline_Jumps.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Mp_Biker_Deadline_Tubes.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Mp_Biker_Deadline_Tubes.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_rt_clubhouse_table.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_rt_clubhouse_table.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Memorial_Wall.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Memorial_Wall.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Clubhouse_Seating.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Clubhouse_Seating.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Slow_Down.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Slow_Down.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Clubhouse_Jukebox.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Clubhouse_Jukebox.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+    <Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/mp_biker_Clubhouse.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_mp_biker_Clubhouse.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/mp_biker_deadline.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_mp_biker_deadline.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+ 	<Item>	
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Grenades.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Grenades.ityp</filename>
+      <fileType>DLC_ITYP_REQUEST</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+      <contents>CONTENTS_PROPS</contents>
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/handling.meta</filename>
+      <fileType>HANDLING_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/gta5/vehicles/mpbikervehicles.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/wheels3_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>    
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/zombiea_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/zombieb_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/daemon2_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/avarus_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/sanctus_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/tornado6_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>       
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/defiler_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>    
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/vortex_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/nightblade_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item> 
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/ratbike_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/chimera_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/esskey_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/hakuchou2_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item> 
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/wolfsbane_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/blazer4_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item> 
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/manchez_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>   
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/faggio3_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/youga2_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/shotaro_mods.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>        
+  	<Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/weapons.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false"/>
+      <disabled value="true"/>
+      <persistent value="true"/>
+    </Item>
+		<Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/DLCBIKER_game.dat</filename>
+      <fileType>AUDIO_GAMEDATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/DLCBIKER_sounds.dat</filename>
+      <fileType>AUDIO_SOUNDDATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/DLCBIKER_mix.dat</filename>
+      <fileType>AUDIO_DYNAMIXDATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/DLCBIKER_amp.dat</filename>
+      <fileType>AUDIO_SYNTHDATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/DLCBIKER_speech.dat</filename>
+      <fileType>AUDIO_SPEECHDATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/sfx/DLC_BIKER</filename>
+      <fileType>AUDIO_WAVEPACK</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/audio/occlusion.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBIKER:/%PLATFORM%/data/effects/ptfx.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBIKER:/common/data/effects/scriptfx.dat</filename>
+      <fileType>SCRIPTFX_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/mp_f_freemode_01_biker_shop.meta</filename>
+      <fileType>SHOP_PED_APPAREL_META_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/mp_m_freemode_01_biker_shop.meta</filename>
+      <fileType>SHOP_PED_APPAREL_META_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/anim/creaturemetadata.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/common/data/effects/peds/first_person.meta</filename>
+      <fileType>PED_FIRST_PERSON_ASSET_DATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/common/data/effects/peds/first_person_alternates.meta</filename>
+      <fileType>PED_FIRST_PERSON_ALTERNATE_DATA</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/common/data/peds.meta</filename>
+      <fileType>PED_METADATA_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_female.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_female_p.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_male.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_male_p.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_p.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="true" />
+    </Item>
+    <Item>
+      <filename>dlc_mpBikerCRC:/common/data/pedalternatevariations.meta</filename>
+      <fileType>ALTERNATE_VARIATIONS_FILE</fileType>
+      <overlay value="false" />
+      <disabled value="true" />
+      <persistent value="false" />
+    </Item>
+	<Item>
+	  <filename>dlc_mpBikerCRC:/common/data/effects/peds/mpBiker_overlays.xml</filename>
+	  <fileType>PED_OVERLAY_FILE</fileType>
+	  <overlay value="false" />
+	  <disabled value="true" />
+	  <persistent value="false" />
+	</Item>
+	<Item>
+	  <filename>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_ped_mp_overlay_txds.rpf</filename>
+	  <fileType>RPF_FILE</fileType>
+	  <overlay value="false" />
+	  <disabled value="true" />
+	  <persistent value="true" />
+	</Item>
+  </dataFiles>
+  <contentChangeSets>
+	<Item>
+      <changeSetName>MPBIKER_AUTOGEN</changeSetName>
+      <mapChangeSetData />
+      <filesToInvalidate />
+      <filesToDisable />
+      <filesToEnable>
+		<Item>dlc_mpBikerCRC:/common/data/handling.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/carcols.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/levels/gta5/vehicles.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/carvariations.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/ai/loadouts.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/vehiclelayouts.meta</Item>
+        <!--<Item>dlc_mpBikerCRC:/common/data/ai/weaponanimations.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponAutoShotgun.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponBattleAxe.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponCompactLauncher.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponcomponents.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponMiniSMG.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponPipeBomb.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponPoolCue.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponWrench.meta</Item>
+		<Item>dlc_mpBiker:/common/data/overlayinfo.xml</Item>
+        <Item>dlc_mpBikerCRC:/common/data/mpStatsSetup.xml</Item>
+        <Item>dlc_mpBiker:/common/data/mpStatsUISetup.xml</Item>
+        <Item>dlc_mpBikerCRC:/common/data/pickups.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/shop_tattoo.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/shop_vehicle.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/shop_weapon.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/anim/clip_sets/clip_sets.xml</Item>-->
+		<Item>dlc_mpBiker:/common/data/dlctext.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/explosion.meta</Item>
+		<Item>dlc_mpBiker:/common/data/interiorproxies.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/weaponArchetypes.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/effects/explosionfx.dat</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/anim/ingame/clip_anim@.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Biker_DLC_Int_Props.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Biker_DLC_Int_Props.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Coke.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Coke.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_FakeID.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_FakeID.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Meth.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Meth.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Weed.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Weed.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_GunLocker.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_GunLocker.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Clubhouse.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Clubhouse.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_deadline.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_deadline.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_PrintingMachines.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_PrintingMachines.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/MP_Biker_Money.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_MP_Biker_Money.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Mp_Biker_Deadline_Jumps.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Mp_Biker_Deadline_Jumps.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Mp_Biker_Deadline_Tubes.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Mp_Biker_Deadline_Tubes.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_rt_clubhouse_table.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_rt_clubhouse_table.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Clubhouse_Seating.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Clubhouse_Seating.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Clubhouse_Jukebox.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Clubhouse_Jukebox.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Grenades.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Grenades.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Slow_Down.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Slow_Down.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Prop_Memorial_Wall.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Prop_Memorial_Wall.ityp</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/vehicles/mpbikervehicles.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/wheels3_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/zombiea_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/zombieb_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/daemon2_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/avarus_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/sanctus_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/tornado6_mods.rpf</Item>		
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/defiler_mods.rpf</Item>		
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/vortex_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/nightblade_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/ratbike_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/chimera_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/esskey_mods.rpf</Item>	
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/hakuchou2_mods.rpf</Item>	
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/wolfsbane_mods.rpf</Item>	
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/blazer4_mods.rpf</Item>	
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/manchez_mods.rpf</Item>	
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/faggio3_mods.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/youga2_mods.rpf</Item>		
+		<Item>dlc_mpBiker:/%PLATFORM%/levels/mpbiker/vehiclemods/shotaro_mods.rpf</Item>			
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/weapons.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/DLCBIKER_amp.dat</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/DLCBIKER_game.dat</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/DLCBIKER_sounds.dat</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/DLCBIKER_mix.dat</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/DLCBIKER_speech.dat</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/occlusion.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/audio/sfx/DLC_BIKER</Item>
+        <Item>dlc_mpBiker:/%PLATFORM%/data/effects/ptfx.rpf</Item>
+        <Item>dlc_mpBiker:/common/data/effects/scriptfx.dat</Item>
+<!--        <Item>dlc_mpBiker:/%PLATFORM%/anim/creaturemetadata.rpf</Item>
+        <Item>dlc_mpBiker:/common/data/effects/peds/first_person.meta</Item>
+        <Item>dlc_mpBiker:/common/data/effects/peds/first_person_alternates.meta</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_female.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_female_p.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_male.rpf</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_male_p.rpf</Item>
+        <Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker.rpf</Item>
+        <Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_p.rpf</Item>
+        <Item>dlc_mpBikerCRC:/common/data/pedalternatevariations.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/effects/peds/mpBiker_overlays.xml</Item>
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_ped_mp_overlay_txds.rpf</Item>-->
+      </filesToEnable>
+      <txdToLoad />
+      <txdToUnload />
+      <residentResources />
+      <unregisterResources />
+      <requiresLoadingScreen value="false" />
+    </Item>	
+    <Item>
+      <changeSetName>MPBIKER_UNLOCKS_AUTOGEN</changeSetName>
+      <mapChangeSetData />
+      <filesToInvalidate />
+      <filesToDisable />
+      <filesToEnable>
+        <Item>dlc_mpBikerCRC:/common/data/contentunlocks.meta</Item>
+      </filesToEnable>
+	  <txdToLoad />
+      <txdToUnload />
+      <residentResources />
+      <unregisterResources />
+      <requiresLoadingScreen value="false" />
+    </Item>
+	<Item>
+      <changeSetName>MPBIKER_GTA5_CITYE_INDUST_01</changeSetName>
+      <mapChangeSetData>
+        <Item>
+          <associatedMap>MO_JIM_L11</associatedMap>
+          <filesToInvalidate>
+			<Item>platform:/levels/gta5/_citye/indust_01/id1_06.rpf</Item>
+			<Item>platform:/levels/gta5/_citye/indust_01/id1_07.rpf</Item>
+			<Item>platform:/levels/gta5/_citye/indust_01/id1_23.rpf</Item>
+            <Item>platform:/levels/gta5/_citye/indust_01/id1_occl.rpf</Item>
+			<Item>platform:/levels/gta5/_citye/indust_01/indust_01.rpf</Item>
+            <Item>platform:/levels/gta5/_citye/indust_01/indust_01_metadata.rpf</Item>
+          </filesToInvalidate>
+          <filesToEnable>
+            <Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_06.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_07.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_23.rpf</Item>
+            <Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/id1_occl.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/indust_01.rpf</Item>
+            <Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/_citye/indust_01/indust_01_metadata.rpf</Item>
+          </filesToEnable>
+        </Item>
+      </mapChangeSetData>
+      <requiresLoadingScreen value="true" />
+      <loadingScreenContext>LOADINGSCREEN_CONTEXT_LAST_FRAME</loadingScreenContext>
+      <useCacheLoader value="true" />
+    </Item>
+	<Item>
+      <changeSetName>MPBIKER_INTERIOR_ADDITIONS</changeSetName>
+      <mapChangeSetData>
+        <Item>
+          <associatedMap>MO_JIM_L11</associatedMap>
+          <filesToInvalidate />
+          <filesToEnable>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_interior_placement.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_01.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_02.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_03.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware01.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware02.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware03.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware04.rpf</Item>
+			<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/interiors/Biker_DLC_INT_Ware05.rpf</Item>			
+          </filesToEnable>
+        </Item>
+      </mapChangeSetData>
+      <requiresLoadingScreen value="true"/>
+      <loadingScreenContext>LOADINGSCREEN_CONTEXT_LAST_FRAME</loadingScreenContext>
+      <useCacheLoader value="true"/>
+    </Item> 
+  </contentChangeSets>
+  <patchFiles />
+</CDataFileMgr__ContentsOfDataFileXml>

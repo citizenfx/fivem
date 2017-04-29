@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html style="height: 100%; overflow-y: hidden;">
+<head>
+    <script type="text/javascript">
+        function RGSC_JS_READY_TO_ACCEPT_COMMANDS()
+        {
+            RGSC_READY_TO_ACCEPT_COMMANDS();
+
+            var titleId = JSON.parse(RGSC_GET_TITLE_ID());
+
+            if (titleId.IsLauncher)
+            {
+                document.querySelector('div.launcher').style.display = 'block';
+            }
+            else
+            {
+                document.querySelector('div.ingame').style.display = 'block';
+            }
+
+            setTimeout(function()
+            {
+                var xhr = new XMLHttpRequest();
+                xhr.addEventListener('readystatechange', function()
+                {
+                    if (xhr.readyState == 4)
+                    {
+                        var jsonObject = JSON.parse(xhr.responseText);
+
+                        jsonObject.XMLResponse = encodeURIComponent(jsonObject.XMLResponse);
+
+                        RGSC_SIGN_IN(JSON.stringify(jsonObject));
+                    }
+                });
+
+                xhr.open("GET", "/cfx/login", true);
+                xhr.send();
+            }, 1000);
+        }
+
+        function RGSC_JS_PING()
+        {
+            RGSC_PONG();
+        }
+
+        function RGSC_JS_REQUEST_UI_STATE(a)
+        {
+            var s = JSON.parse(a);
+
+            console.log(s);
+
+            if (s.State.toUpperCase() == "ACTIVATION")
+            {
+                document.querySelector('body').classList.add("rotate");
+            }
+
+            //document.querySelector('p').innerHTML = s.State;
+        }
+    </script>
+
+    <link rel="stylesheet" href="/prod/gtav/font-awesome.css" type="text/css">
+
+    <style type="text/css">
+        .rotate
+        {
+            -webkit-animation-name: spin;
+            -webkit-animation-duration: 4000ms;
+            -webkit-animation-iteration-count: infinite;
+            -webkit-animation-timing-function: linear;
+        }
+
+        @-webkit-keyframes spin
+        {
+            from
+            {
+                transform: rotate(0deg);
+            }
+            to
+            {
+                transform: rotate(360deg);
+            }
+        }
+
+        body
+        {
+            margin: 0px;
+            padding: 0px;
+
+            overflow: hidden;
+        }
+
+        .ingame, .launcher
+        {
+            display: none;
+        }
+
+        .launcher *
+        {
+            padding: 0px;
+            margin: 0px;
+        }
+
+        .launcher
+        {
+            height: 100%;
+            width: 100%;
+
+            background-image: url('/prod/gtav/splash.png');
+        }
+
+        @font-face {
+            font-family: 'Titillium';
+            src: url('/prod/gtav/logotype.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            src: url('/prod/gtav/roboto.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        #content
+        {
+            right: 10px;
+            top: 10px;
+            position: absolute;
+            height: 50px;
+        }
+
+        #subtitle
+        {
+            display: block;
+
+            color: #77a6b6;
+
+            font-family: "Roboto";
+            font-weight: 500;
+
+            text-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            /* lazy fix for static page */
+            position: relative;
+            left: 80%;
+            bottom: 125%;
+        }
+
+        .logotype i
+        {
+            vertical-align: middle;
+            display: inline-block;
+            color: #77a6b6;
+
+            font-size: 150%;
+
+            text-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+
+        .logotype
+        {
+            -webkit-font-smoothing: antialiased; /* screw Trident/Gecko, they have weird fonts anyway :-) */
+
+            font-family: 'Titillium';
+            font-size: 48px;
+
+            display: inline-block;
+        }
+
+        .logotype a
+        {
+            text-decoration: none;
+            color: #77a6b6;;
+        }
+
+        #logo
+        {
+            display: inline-block;
+            vertical-align: middle;
+
+            padding-right: 10px;
+            margin-right: 5px;
+
+            border-right: 2px solid #77a6b6;
+        }
+    </style>
+</head>
+
+<body style="height: 100%; position: relative; overflow-y: hidden;">
+    <div class="ingame" style="height: 100%">
+        <div style="height: 100%; position: absolute; top: 0px; left: 0px; right: 0px;">
+            <div style="position: relative; top: 50%; transform: translateY(-50%); z-index: -99;">
+                <svg width="350px" height="350px" style="transform: scale(2) rotate(180deg); display: block; margin-left: auto; margin-right: auto;">
+                    <g transform="translate(-328.50774,-40.933616)"
+                       id="layer1">
+                        <g transform="matrix(1.0844784,0,0,1.1092381,-28.277611,-37.042263)"
+                           id="g2384">
+                            <rect width="305.84595"
+                                  height="280.98871"
+                                  rx="56.50713"
+                                  ry="51.914581"
+                                  x="338.50562"
+                                  y="80.439255"
+                                  id="rect2245"
+                                  style="fill:#ffa500;fill-opacity:1;stroke:#000000;stroke-width:7.58270693px;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+                            <path d="m 446.49031,128.00565 58.0688,0.13369 c 12.13666,-0.0891 21.1983,1.80491 27.18493,5.68211 7.30872,4.75364 10.9631,12.9314 10.9631,24.53327 0,19.10374 -9.06165,29.92572 -27.18493,32.46594 l 0,0.26739 c 7.99208,1.94603 12.03267,8.41545 12.12181,19.40827 0,5.63009 -0.21541,12.84227 -0.6462,21.63653 0,5.89749 1.27754,11.00023 3.83262,15.30823 l -31.81973,0 c -1.48551,-1.57465 -2.22827,-4.78337 -2.22827,-9.62614 0.60905,-8.09606 0.91358,-14.73632 0.91358,-19.92076 0,-10.47288 -5.1473,-15.70933 -15.44192,-15.70933 l -20.58925,0 -8.97994,42.35947 -30.99527,0 24.80067,-116.53867 z m 49.08886,24.28818 -22.81752,0 -5.94948,28.1208 24.68925,0 c 13.80045,0 20.74523,-5.32557 20.83436,-15.97672 0,-8.09606 -5.58554,-12.14408 -16.75661,-12.14408 z"
+                                  id="path18"
+                                  style="fill:#000000;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round" />
+                            <path d="m 535.04188,247.30738 22.97349,-38.92793 6.1946,39.19532 39.19532,0 -35.36269,24.82297 5.65981,38.92792 -30.61647,-23.48599 -41.1562,24.42186 19.25229,-41.44587 -22.43871,-23.61969 36.29856,0.11141 z"
+                                  id="path20"
+                                  style="fill:#000000;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round" />
+                            <path d="m 639.76336,349.97742 c 1.27198,1e-5 2.51383,0.32638 3.72557,0.97909 1.21172,0.65275 2.15566,1.58664 2.83184,2.80171 0.67614,1.21509 1.01422,2.48204 1.01423,3.80088 -1e-5,1.30546 -0.33307,2.56071 -0.99917,3.76574 -0.66613,1.20504 -1.60003,2.14061 -2.80171,2.80672 -1.2017,0.66612 -2.45862,0.99918 -3.77076,0.99918 -1.31216,0 -2.56907,-0.33306 -3.77076,-0.99918 -1.20169,-0.66611 -2.13725,-1.60168 -2.80672,-2.80672 -0.66947,-1.20503 -1.0042,-2.46028 -1.0042,-3.76574 0,-1.31884 0.33975,-2.58579 1.01926,-3.80088 0.6795,-1.21507 1.62512,-2.14896 2.83685,-2.80171 1.21172,-0.65271 2.45358,-0.97908 3.72557,-0.97909 l 0,0 z m 0,1.25525 c -1.06445,1e-5 -2.10045,0.27282 -3.10798,0.81842 -1.00755,0.54562 -1.79584,1.32555 -2.36488,2.33977 -0.56905,1.01425 -0.85357,2.07033 -0.85357,3.16824 0,1.09123 0.2795,2.13727 0.8385,3.13812 0.559,1.00085 1.3406,1.78077 2.3448,2.33977 1.00419,0.55901 2.0519,0.83851 3.14313,0.83851 1.09123,0 2.13892,-0.2795 3.14313,-0.83851 1.00419,-0.559 1.78412,-1.33892 2.33978,-2.33977 0.55564,-1.00085 0.83347,-2.04689 0.83349,-3.13812 -2e-5,-1.09791 -0.28287,-2.15399 -0.84855,-3.16824 -0.56571,-1.01422 -1.354,-1.79415 -2.36488,-2.33977 -1.0109,-0.5456 -2.04523,-0.81841 -3.10297,-0.81842 l 0,0 z m -3.32389,10.51393 0,-8.15407 2.80171,0 c 0.95733,10e-6 1.65022,0.0753 2.07869,0.22594 0.42844,0.15065 0.76987,0.41341 1.02428,0.78829 0.25438,0.37492 0.38158,0.77325 0.38159,1.195 -10e-6,0.59583 -0.21257,1.11466 -0.63766,1.5565 -0.42513,0.44185 -0.98915,0.68955 -1.69207,0.74311 0.28786,0.12051 0.51882,0.26444 0.69289,0.4318 0.32804,0.32136 0.72971,0.86027 1.20503,1.61675 l 0.99416,1.59668 -1.60672,0 -0.72301,-1.28537 c -0.56906,-1.01088 -1.02764,-1.64353 -1.37575,-1.89793 -0.24102,-0.18745 -0.59248,-0.28118 -1.05441,-0.28118 l -0.77323,0 0,3.46448 -1.3155,0 z m 1.3155,-4.58917 1.59668,0 c 0.76318,0 1.28368,-0.11381 1.56152,-0.34143 0.27782,-0.22762 0.41673,-0.52887 0.41674,-0.90379 -1e-5,-0.24099 -0.067,-0.45689 -0.20084,-0.6477 -0.1339,-0.19078 -0.31967,-0.33305 -0.55733,-0.42677 -0.23767,-0.0937 -0.67784,-0.14059 -1.32052,-0.1406 l -1.49625,0 0,2.46029 z"
+                                  id="flowRoot3616"
+                                  style="font-size:40px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans" />
+                            <path d="m 561.82572,269.6124 23.486,-16.35553 -25.98166,0 -4.50112,-28.36592 -16.48922,28.09852 -26.24905,0 15.95443,16.75662 -13.19137,28.12081 28.63331,-16.89032 22.5724,17.2914 -4.23372,-28.65558 z"
+                                  id="path3659"
+                                  style="fill:#ffffff;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round" />
+                        </g>
+                    </g>
+                </svg>
+            </div>
+        </div>
+        <div style="height: 100%; position: absolute; top: 0px; left: 0px; right: 0px;">
+            <div style="position: relative; top: 50%; transform: translateY(-50%); z-index: 99; text-align: center;">
+                <p style="font-family: Segoe UI, sans-serif; font-size: 40px; color: #fff; line-height: 40px; margin: 0px; text-shadow: 0px 0px 4px #333;">
+                    CitizenFX ROS &copy; http://citizen.re/
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="launcher">
+        <div id="content">
+                <svg width='94px' height='94px' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" class="uil-default"><rect x="0" y="0" width="100" height="100" fill="none" class="bk"></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(0 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(30 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.08333333333333333s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(60 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.16666666666666666s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(90 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.25s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(120 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.3333333333333333s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(150 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.4166666666666667s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(180 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.5s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(210 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.5833333333333334s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(240 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.6666666666666666s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(270 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.75s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(300 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.8333333333333334s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(330 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.9166666666666666s' repeatCount='indefinite'/></rect></svg>
+            <div id="subtitle">
+                <br />
+                
+            </div>
+        </div>
+    </div>
+</body>
+</html>

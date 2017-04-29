@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SMandatoryPacksData>
+	<Paths>
+  		<Item>platform:\dlcPacks\mpBeach\</Item>
+		<Item>platform:\dlcPacks\mpBusiness\</Item>
+		<Item>platform:\dlcPacks\mpChristmas\</Item>
+		<Item>platform:\dlcPacks\mpValentines\</Item>
+		<Item>platform:\dlcPacks\mpBusiness2\</Item>
+		<Item>platform:\dlcPacks\mpHipster\</Item>
+		<Item>platform:\dlcPacks\mpIndependence\</Item>
+		<Item>platform:\dlcPacks\mpPilot\</Item>
+		<Item>platform:\dlcPacks\spUpgrade\</Item>
+		<Item>platform:\dlcPacks\mpLTS\</Item>
+		<Item>dlcpacks:\mpheist\</Item>		
+		<Item>dlcpacks:\mppatchesng\</Item>
+		<Item>dlcpacks:\patchday1ng\</Item>
+		<Item>dlcpacks:\patchday2ng\</Item>
+		<Item>dlcpacks:\mpchristmas2\</Item>
+		<Item>dlcpacks:\patchday2bng\</Item>
+		<Item>dlcpacks:\patchday3ng\</Item>
+		<Item>dlcpacks:\patchday4ng\</Item>
+		<Item>dlcpacks:\mpluxe\</Item>
+		<Item>dlcpacks:\patchday5ng\</Item>
+		<Item>dlcpacks:\mpluxe2\</Item>
+		<Item>dlcpacks:\patchday6ng\</Item>
+		<Item>dlcpacks:\mpreplay\</Item>
+		<Item>dlcpacks:\patchday7ng\</Item>
+		<Item>dlcpacks:\mplowrider\</Item>
+		<Item>dlcpacks:\mphalloween\</Item>
+		<Item>dlcpacks:\patchday8ng\</Item>
+		<Item>dlcpacks:\mpapartment\</Item>
+		<item>dlcpacks:\mpxmas_604490\</item>
+		<Item>dlcpacks:\mplowrider2\</Item>
+		<Item>dlcpacks:\mpjanuary2016\</Item>
+		<Item>dlcpacks:\mpvalentines2\</Item>
+		<Item>dlcpacks:\patchday9ng\</Item>
+		<Item>dlcpacks:\mpexecutive\</Item>
+		<Item>dlcpacks:\patchday10ng\</Item>
+		<Item>dlcpacks:\mpstunt\</Item>
+		<Item>dlcpacks:\patchday11ng\</Item>
+		<Item>dlcpacks:\mpbiker\</Item>
+		<Item>dlcpacks:\patchday12ng\</Item>
+	</Paths>	
+</SMandatoryPacksData>
+
