@@ -1,3 +1,33 @@
+  CitizenFX/FiveM are (c) 2017 the CitizenFX Collective.
+
+  Use of this source code is subject to the terms provided on the CitizenFX
+Collective web site, currently versioned (1) at the following web URL:
+
+  https://runtime.fivem.net/fivem-service-agreement-1.pdf
+
+  The following files, as long as they are marked as licensed under the
+CitizenFX Project license, are optionally available under the LGPLv2, as in
+point 21) of the FiveM Platform Service Agreement, as of the time of this
+writing:
+
+  client/shared/
+  client/citicore/
+  client/launcher/
+  client/common/
+  tools/
+  components/citizen-*/
+  components/font-renderer/
+  components/vfs-core/
+  components/steam/
+  vendor/*.lua
+  ./
+
+  When using other components, please take into account point 20) in the FiveM
+PSA.
+
+  This project is based on the original CitizenFX framework by NTAuthority,
+the original permission notice of which is reproduced below.
+
 Copyright (c) 2014 Bas Timmer/NTAuthority et al.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
