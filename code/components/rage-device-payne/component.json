@@ -1,9 +1,0 @@
-{
-	"name": "rage:device:payne",
-	"version": "0.1.0",
-	"dependencies": [
-        "fx[2]",
-        "rage:allocator:payne"
-	],
-	"provides": []
-}
