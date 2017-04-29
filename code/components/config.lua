@@ -33,7 +33,7 @@ component 'rage-allocator-five'
 component 'rage-graphics-five'
 component 'rage-scripting-five'
 component 'lovely-script'
-component 'ros-five'
+component 'ros-patches-five'
 
 component 'gta-net-five'
 component 'rage-input-five'
