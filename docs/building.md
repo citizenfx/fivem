@@ -13,6 +13,7 @@ set PATH=%path%;C:\tools\python27amd64
 git clone https://github.com/citizenfx/fivem.git
 git submodule init
 git submodule update --recursive
+prebuild
 cd code
 premake5 vs2017 --game=five
 ```
