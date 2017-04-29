@@ -19,7 +19,7 @@
 
 namespace egl
 {
-	unsigned int DLL_IMPORT SetSwapFrameHandler(void(*handler)(void*));
+	unsigned int DLL_IMPORT SetAccelerationHandlers(void(*swap_handler)(void*), void(*post_handler)(void*, int, int, int, int), void* data);
 	unsigned int DLL_IMPORT GetMainWindowSharedHandle(HANDLE* shared_handle);
 }
 
@@ -83,7 +83,7 @@ void NUIWindow::Initialize(CefString url)
 	m_client = new NUIClient(this);
 
 	CefWindowInfo info;
-	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr), true);
+	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
 
 	CefBrowserSettings settings;
 	settings.javascript_open_windows = STATE_DISABLED;
@@ -110,7 +110,7 @@ CefBrowser* NUIWindow::GetBrowser()
 
 static HANDLE g_resetEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
-void NUIWindow::UpdateSharedResource()
+void NUIWindow::UpdateSharedResource(int x, int y, int width, int height)
 {
 	static bool createdClient;
 
@@ -152,6 +152,7 @@ void NUIWindow::UpdateSharedResource()
 		}
 	}
 
+	m_lastDirtyRect = { x, y, width, height };
 	MarkRenderBufferDirty();
 	WaitForSingleObject(g_resetEvent, INFINITE);
 }
@@ -185,10 +186,13 @@ void NUIWindow::UpdateFrame()
 	{
 		static NUIWindow* window = this;
 
-		egl::SetSwapFrameHandler([](void*)
+		egl::SetAccelerationHandlers([](void*)
 		{
-			window->UpdateSharedResource();
-		});
+			window->UpdateSharedResource(0, 0, window->GetWidth(), window->GetHeight());
+		}, [](void*, int x, int y, int width, int height)
+		{
+			window->UpdateSharedResource(x, y, width, height);
+		}, nullptr);
 	});
 
 	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
@@ -217,7 +221,15 @@ void NUIWindow::UpdateFrame()
 					ID3D11DeviceContext* deviceContext = GetD3D11DeviceContext();
 					assert(deviceContext);
 
-					deviceContext->CopyResource(m_nuiTexture->texture, texture);
+					D3D11_BOX box = CD3D11_BOX(std::get<0>(m_lastDirtyRect),
+											   std::get<1>(m_lastDirtyRect),
+											   0,
+											   std::get<0>(m_lastDirtyRect) + std::get<2>(m_lastDirtyRect),
+											   std::get<1>(m_lastDirtyRect) + std::get<3>(m_lastDirtyRect),
+											   1);
+					
+
+					deviceContext->CopySubresourceRegion(m_nuiTexture->texture, 0, std::get<0>(m_lastDirtyRect), std::get<1>(m_lastDirtyRect), 0, texture, 0, &box);
 				}
 
 				keyedMutex->ReleaseSync(0);

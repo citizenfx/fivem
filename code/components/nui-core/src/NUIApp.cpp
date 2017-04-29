@@ -12,7 +12,7 @@
 void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
 {
 	// add the 'nui://' internal scheme
-	registrar->AddCustomScheme("nui", true, false, false, true, false);
+	registrar->AddCustomScheme("nui", true, false, false, true, false, true);
 }
 
 // null data resource functions

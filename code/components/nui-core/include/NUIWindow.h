@@ -45,6 +45,7 @@ private:
 	int m_roundedHeight;
 
 	unsigned long m_dirtyFlag;
+	std::tuple<int, int, int, int> m_lastDirtyRect;
 	CRITICAL_SECTION m_renderBufferLock;
 	char* m_renderBuffer;
 
@@ -84,7 +85,7 @@ public:
 
 	void SignalPoll(std::string& argument);
 
-	void UpdateSharedResource();
+	void UpdateSharedResource(int x, int y, int width, int height);
 
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{
