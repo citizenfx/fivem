@@ -7,6 +7,8 @@
 
 #include <TLSServer.h>
 
+DECLARE_INSTANCE_TYPE(net::HttpServer);
+
 class LovelyHttpHandler : public net::HttpHandler
 {
 public:
@@ -35,12 +37,15 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		fx::TcpListenManager* listenManager = Instance<fx::TcpListenManager>::Get(instance->GetInstanceRegistry());
+		fwRefContainer<fx::TcpListenManager> listenManager = instance->GetComponent<fx::TcpListenManager>();
+
+		fwRefContainer<net::HttpServer> impl = new net::HttpServerImpl();
+
+		instance->SetComponent(impl);
 
 		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
 		{
-			fwRefContainer<net::HttpServer> impl = new net::HttpServerImpl();
-			impl->AttachToServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
+			instance->GetComponent<net::HttpServer>()->AttachToServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
 			{
 				if (bytes.size() > 10)
 				{
@@ -70,7 +75,7 @@ static InitFunction initFunction([]()
 				return net::MultiplexPatternMatchResult::InsufficientData;
 			}));
 
-			fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
+			/*fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
 			{
 				if (bytes.size() >= 6)
 				{
@@ -79,11 +84,8 @@ static InitFunction initFunction([]()
 
 				return net::MultiplexPatternMatchResult::InsufficientData;
 			}), "citizen/ros/ros.crt", "citizen/ros/ros.key");
-			tlsServer->AddRef();
 
-			impl->AttachToServer(tlsServer);
-
-			impl->AddRef();
+			impl->AttachToServer(tlsServer);*/
 
 			static fwRefContainer<net::HttpHandler> rc = new LovelyHttpHandler();
 			impl->RegisterHandler(rc);

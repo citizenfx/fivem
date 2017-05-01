@@ -79,6 +79,6 @@ static InitFunction initFunction([] ()
 {
 	fx::ServerInstance::OnServerCreate.Connect([] (fx::ServerInstanceBase* server)
 	{
-		Instance<fx::OptionParser>::Set(new fx::OptionParser(), server->GetInstanceRegistry());
+		server->SetComponent(new fx::OptionParser());
 	});
 });

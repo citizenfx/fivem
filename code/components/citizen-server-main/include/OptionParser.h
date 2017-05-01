@@ -9,7 +9,7 @@
 
 namespace fx
 {
-	class OptionParser
+	class OptionParser : public fwRefCountable
 	{
 	private:
 		std::string m_configFile;

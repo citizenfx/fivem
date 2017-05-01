@@ -14,8 +14,6 @@ namespace fx
 	class ServerInstance : public ServerInstanceBase
 	{
 	private:
-		InstanceRegistry m_instanceRegistry;
-
 		bool m_shouldTerminate;
 
 		std::string m_rootPath;
@@ -28,11 +26,6 @@ namespace fx
 		void Run();
 
 	public:
-		virtual InstanceRegistry* GetInstanceRegistry() override
-		{
-			return &m_instanceRegistry;
-		}
-
 		virtual const std::string& GetRootPath() override
 		{
 			return m_rootPath;

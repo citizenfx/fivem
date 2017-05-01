@@ -52,11 +52,11 @@ static InitFunction initFunction([] ()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([] (fx::ServerInstanceBase* instance)
 	{
-		Instance<fx::TcpListenManager>::Set(new fx::TcpListenManager(), instance->GetInstanceRegistry());
+		instance->SetComponent(new fx::TcpListenManager());
 
 		instance->OnReadConfiguration.Connect([=] (const boost::property_tree::ptree& pt)
 		{
-			Instance<fx::TcpListenManager>::Get(instance->GetInstanceRegistry())->Initialize(pt);
+			instance->GetComponent<fx::TcpListenManager>()->Initialize(pt);
 		});
 	}, -1000);
 });

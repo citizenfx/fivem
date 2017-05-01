@@ -8,6 +8,7 @@
 #pragma once
 
 #include <boost/property_tree/ptree.hpp>
+#include <ComponentHolder.h>
 
 namespace fx
 {
@@ -17,11 +18,9 @@ namespace fx
 #else
 		DLL_IMPORT
 #endif
-		ServerInstanceBase : public fwRefCountable
+		ServerInstanceBase : public fwRefCountable, public ComponentHolderImpl<ServerInstanceBase>
 	{
 	public:
-		virtual InstanceRegistry* GetInstanceRegistry() = 0;
-
 		virtual const std::string& GetRootPath() = 0;
 
 	public:

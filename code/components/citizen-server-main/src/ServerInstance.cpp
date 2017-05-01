@@ -25,7 +25,7 @@ namespace fx
 
 	bool ServerInstance::SetArguments(const std::string& arguments)
 	{
-		OptionParser* optionParser = Instance<OptionParser>::Get(GetInstanceRegistry());
+		auto optionParser = GetComponent<OptionParser>();
 		
 		return optionParser->ParseArgumentString(arguments);
 	}
@@ -34,7 +34,7 @@ namespace fx
 	{
 		// initialize the server configuration
 		{
-			OptionParser* optionParser = Instance<OptionParser>::Get(GetInstanceRegistry());
+			auto optionParser = GetComponent<OptionParser>();
 
 			boost::filesystem::path rootPath;
 

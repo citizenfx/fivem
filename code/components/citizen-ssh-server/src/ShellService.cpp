@@ -14,7 +14,7 @@
 #include <libssh/server.h>
 #include <libssh/socket.h>
 
-class ShellService
+class ShellService : public fwRefCountable
 {
 private:
 	fwRefContainer<net::TcpServer> m_server;
@@ -34,6 +34,8 @@ public:
 
 	~ShellService();
 };
+
+DECLARE_INSTANCE_TYPE(ShellService);
 
 void ShellService::Initialize(fwRefContainer<net::MultiplexTcpServer> serverHost)
 {
@@ -170,12 +172,14 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		fx::TcpListenManager* listenManager = Instance<fx::TcpListenManager>::Get(instance->GetInstanceRegistry());
+		auto listenManager = instance->GetComponent<fx::TcpListenManager>();
 
 		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
 		{
-			static ShellService shellService;
-			shellService.Initialize(server);
+			fwRefContainer<ShellService> shellService = new ShellService();
+			shellService->Initialize(server);
+
+			instance->SetComponent(shellService);
 
 			/*_CrtMemState s3;
 
