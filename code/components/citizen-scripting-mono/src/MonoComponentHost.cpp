@@ -17,6 +17,7 @@
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/threads.h>
 #include <mono/metadata/exception.h>
+#include <mono/metadata/mono-debug.h>
 
 extern "C"
 {
@@ -131,6 +132,13 @@ static void InitMono()
 	mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 	mono_security_set_core_clr_platform_callback(CoreClrCallback);
 
+	char* args[1];
+	args[0] = "--soft-breakpoints";
+
+	mono_jit_parse_options(1, args);
+
+	mono_debug_init(MONO_DEBUG_FORMAT_MONO);
+
 	g_rootDomain = mono_jit_init_version("Citizen", "v4.0.30319");
 
 	mono_install_unhandled_exception_hook([] (MonoObject* exc, void*)
@@ -138,10 +146,6 @@ static void InitMono()
 		OutputExceptionDetails(exc);
 	}, nullptr);
 
-	char* args[1];
-	args[0] = "--soft-breakpoints";
-
-	mono_jit_parse_options(1, args);
 	mono_set_crash_chaining(true);
 
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", GI_PrintLogCall);
