@@ -1,51 +1,54 @@
 #include "StdInc.h"
-#include <ServerInstanceBase.h>
+
+#include <HttpServerManager.h>
+
 #include <TcpListenManager.h>
-
-#include <HttpServer.h>
 #include <HttpServerImpl.h>
-
 #include <TLSServer.h>
 
-DECLARE_INSTANCE_TYPE(net::HttpServer);
-
-class LovelyHttpHandler : public net::HttpHandler
+namespace fx
 {
-public:
-	virtual bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
+	HttpServerManager::HttpServerManager()
 	{
-		response->SetHeader(std::string("Content-Type"), std::string("text/plain"));
-
-		if (request->GetRequestMethod() == "GET")
+		m_httpHandler = new Handler();
+		m_httpHandler->handler = [=] (fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
 		{
-			response->End(std::string(request->GetPath()));
-		}
-		else if (request->GetRequestMethod() == "POST")
-		{
-			request->SetDataHandler([=](const std::vector<uint8_t>& data)
+			for (auto& prefixEntry : m_handlers)
 			{
-				std::string dataStr(data.begin(), data.end());
-				response->End(dataStr);
-			});
-		}
+				if (_strnicmp(request->GetPath().c_str(), prefixEntry.first.c_str(), prefixEntry.first.length()) == 0)
+				{
+					prefixEntry.second(request, response);
+					return true;
+				}
+			}
 
-		return true;
+			response->SetStatusCode(404);
+			response->End(va("Route %s not found.", request->GetPath().c_str()));
+
+			return true;
+		};
+
+		m_httpServer = new net::HttpServerImpl();
+		m_httpServer->RegisterHandler(m_httpHandler);
 	}
-};
 
-static InitFunction initFunction([]()
-{
-	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	HttpServerManager::~HttpServerManager()
+	{
+
+	}
+
+	void HttpServerManager::AddEndpoint(const std::string& prefix, const TEndpointHandler& handler)
+	{
+		m_handlers.insert({ prefix, handler });
+	}
+
+	void HttpServerManager::AttachToObject(ServerInstanceBase* instance)
 	{
 		fwRefContainer<fx::TcpListenManager> listenManager = instance->GetComponent<fx::TcpListenManager>();
 
-		fwRefContainer<net::HttpServer> impl = new net::HttpServerImpl();
-
-		instance->SetComponent(impl);
-
 		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
 		{
-			instance->GetComponent<net::HttpServer>()->AttachToServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
+			m_httpServer->AttachToServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
 			{
 				if (bytes.size() > 10)
 				{
@@ -77,18 +80,28 @@ static InitFunction initFunction([]()
 
 			/*fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
 			{
-				if (bytes.size() >= 6)
-				{
-					return (bytes[0] == 0x16 && bytes[5] == 1) ? net::MultiplexPatternMatchResult::Match : net::MultiplexPatternMatchResult::NoMatch;
-				}
+			if (bytes.size() >= 6)
+			{
+			return (bytes[0] == 0x16 && bytes[5] == 1) ? net::MultiplexPatternMatchResult::Match : net::MultiplexPatternMatchResult::NoMatch;
+			}
 
-				return net::MultiplexPatternMatchResult::InsufficientData;
+			return net::MultiplexPatternMatchResult::InsufficientData;
 			}), "citizen/ros/ros.crt", "citizen/ros/ros.key");
 
 			impl->AttachToServer(tlsServer);*/
-
-			static fwRefContainer<net::HttpHandler> rc = new LovelyHttpHandler();
-			impl->RegisterHandler(rc);
 		});
+	}
+
+	bool HttpServerManager::Handler::HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
+	{
+		return handler(request, response);
+	}
+}
+
+static InitFunction initFunction([]()
+{
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		instance->SetComponent(new fx::HttpServerManager());
 	});
 });
