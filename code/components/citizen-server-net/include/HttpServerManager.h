@@ -16,7 +16,7 @@ namespace fx
 	public:
 		using TEndpointHandler = std::function<void(const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)>;
 
-		void AddEndpoint(const std::string& prefix, const TEndpointHandler& handler);
+		virtual void AddEndpoint(const std::string& prefix, const TEndpointHandler& handler);
 
 		virtual void AttachToObject(ServerInstanceBase* instance);
 

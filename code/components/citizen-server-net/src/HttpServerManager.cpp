@@ -103,5 +103,5 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		instance->SetComponent(new fx::HttpServerManager());
-	});
+	}, -100);
 });

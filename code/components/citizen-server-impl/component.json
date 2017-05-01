@@ -1,0 +1,10 @@
+{
+	"name": "citizen:server:impl",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"citizen:server:instance",
+		"citizen:server:net"
+	],
+	"provides": []
+}

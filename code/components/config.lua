@@ -19,6 +19,7 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-net'
 	component 'citizen-ssh-server'
 	component 'citizen-server-instance'
+	component 'citizen-server-impl'
 else
 	component 'tool-formats'
 	component 'rage-formats-x'
