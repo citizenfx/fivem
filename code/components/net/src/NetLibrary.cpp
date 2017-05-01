@@ -674,6 +674,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
+		InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
 		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
 
 		if (steamUser.IsValid())
@@ -708,6 +709,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 					performRequest();
 				}
 			});
+
+			int appID = steamUtils.Invoke<int>("GetAppID");
+
+			trace("Getting auth ticket for pipe appID %d - should be 218.\n", appID);
 
 			steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
 
