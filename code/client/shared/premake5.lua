@@ -20,15 +20,15 @@
 				defines "COMPILING_SHARED_LIBC"
 			end
 
-			includedirs { "client/citicore" }
+			includedirs { "../citicore" }
 			
 			files
 			{
-				"shared/**.cpp", "shared/**.h", "client/shared/**.cpp", "client/shared/**.h"
+				"../../shared/**.cpp", "../../shared/**.h", "**.cpp", "**.h"
 			}
 
 			configuration "not windows"
-				excludes { "**/Hooking.*" }
+				excludes { "Hooking.*" }
 	end
 
 	do_shared(false)
