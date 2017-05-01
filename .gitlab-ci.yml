@@ -13,10 +13,10 @@ buildscript:
   cache:
     untracked: true
     paths:
-      - shared/citversion.h
+      - code/shared/citversion.h
       - caches/
-      - ../vendor/
-      - ../build/
+      - vendor/
+      - code/build/
 
 deploy_specific:
   stage: deploy
