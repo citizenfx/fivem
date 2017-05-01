@@ -183,15 +183,15 @@ if _OPTIONS['game'] ~= 'server' then
 		
 		flags { "NoIncrementalLink", "NoMinimalRebuild" }
 		
-		includedirs { ".", "vendor/cef" }
+		includedirs { ".", "../vendor/cef" }
 		
 		buildoptions "/MP"
 		
 		files
 		{
-			"vendor/cef/libcef_dll/**.cc",
-			"vendor/cef/libcef_dll/**.cpp",
-			"vendor/cef/libcef_dll/**.h"
+			"../vendor/cef/libcef_dll/**.cc",
+			"../vendor/cef/libcef_dll/**.cpp",
+			"../vendor/cef/libcef_dll/**.h"
 		}
 end
 		

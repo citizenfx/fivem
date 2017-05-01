@@ -2,7 +2,7 @@
 buildscript:
   stage: build
   script:
-    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontUpload $true"
+    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontUpload $true"
   artifacts:
     paths:
       - caches/diff/
@@ -23,7 +23,7 @@ deploy_specific:
   dependencies:
     - buildscript
   script:
-    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontBuild $true"
+    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: specific/$CI_BUILD_REF_NAME
   only:
@@ -36,7 +36,7 @@ deploy_canary:
   dependencies:
     - buildscript
   script:
-    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontBuild $true"
+    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: canary
   only:
@@ -47,7 +47,7 @@ deploy_prod:
   dependencies:
     - buildscript
   script:
-    - "powershell -ExecutionPolicy Unrestricted tools\\ci\\build.ps1 -DontBuild $true"
+    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: production
   when: manual
