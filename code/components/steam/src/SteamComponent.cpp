@@ -10,6 +10,9 @@
 #include "InterfaceMapper.h"
 #include "SafeClientEngine.h"
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 #include <CfxSubProcess.h>
 
 #include <fstream>
@@ -63,41 +66,76 @@ public:
 };
 
 SteamComponent::SteamComponent()
-	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0), m_parentAppID(0)
+	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0), m_parentAppID(218)
 {
 
+}
+
+static void RunChildLauncher()
+{
+	// get the base executable path
+	auto ourPath = MakeCfxSubProcess(L"SteamChild.exe");
+
+	wchar_t ourDirectory[MAX_PATH];
+	GetCurrentDirectory(sizeof(ourDirectory), ourDirectory);
+
+	std::wstring commandLine = va(L"\"%s\" -steamparent:%d", ourPath, GetCurrentProcessId());
+
+	// run the steam parent
+	STARTUPINFO si = { sizeof(STARTUPINFO) };
+	PROCESS_INFORMATION pi;
+
+	CreateProcess(ourPath, (wchar_t*)commandLine.c_str(), nullptr, nullptr, FALSE, 0, nullptr, ourDirectory, &si, &pi);
+
+	// wait for it to finish
+	WaitForSingleObject(pi.hProcess, 15000);
+
+	// and close up afterwards
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
 }
 
 #include <base64.h>
 
 void SteamComponent::Initialize()
 {
-	m_steamLoader.Initialize();
+	// launch the presence dummy dummy if needed
+	static HostSharedData<CfxState> hostData("CfxInitState");
 
-	if (!m_steamLoader.IsSteamRunning(false))
+	if (hostData->IsMasterProcess())
 	{
-		return;
-	}
+		SetEnvironmentVariable(L"SteamAppId", L"218");
 
-	// delete any existing steam_appid.txt
-	_unlink("steam_appid.txt");
+		m_steamLoader.Initialize();
 
-	// initialize the public Steam API
-	InitializePublicAPI();
+		if (!m_steamLoader.IsSteamRunning(false))
+		{
+			return;
+		}
 
-	// initialize the private Steam API
-	InitializeClientAPI();
+		// delete any existing steam_appid.txt
+		_unlink("steam_appid.txt");
 
-	// run the backend thread
-	RunThread();
+		// initialize the public Steam API
+		InitializePublicAPI();
 
-	// write back steam_appid.txt for later purposes
-	FILE* f = fopen("steam_appid.txt", "w");
+		// run the child launcher
+		RunChildLauncher();
 
-	if (f)
-	{
-		fprintf(f, "%d", m_parentAppID);
-		fclose(f);
+		// initialize the private Steam API
+		InitializeClientAPI();
+
+		// run the backend thread
+		RunThread();
+
+		// write back steam_appid.txt for later purposes
+		FILE* f = fopen("steam_appid.txt", "w");
+
+		if (f)
+		{
+			fprintf(f, "%d", m_parentAppID);
+			fclose(f);
+		}
 	}
 }
 
@@ -140,9 +178,6 @@ void SteamComponent::InitializeClientAPI()
 	{
 		// if this all worked, set the member variables
 		m_clientEngine = CreateSafeClientEngine(clientEngine, m_steamPipe, m_steamUser);
-
-		// initialize the presence component
-		InitializePresence();
 	}
 }
 
@@ -276,6 +311,8 @@ static auto SafeCall(const T& fn)
 
 void SteamComponent::InitializePresence()
 {
+	trace("Initializing Steam parent: Initializing presence.\n");
+
 	// get a local-only app ID to register our app at
 	InterfaceMapper steamShortcutsInterface(m_clientEngine->GetIClientShortcuts(m_steamUser, m_steamPipe, "CLIENTSHORTCUTS_INTERFACE_VERSION001"));
 
@@ -289,7 +326,7 @@ void SteamComponent::InitializePresence()
 	// check for ownership of a suitable parent game to use for the CGameID instance
 	InterfaceMapper steamUserInterface(m_clientEngine->GetIClientUser(m_steamUser, m_steamPipe, "CLIENTUSER_INTERFACE_VERSION001"));
 
-	uint32_t parentAppID = 218;
+	uint32_t parentAppID = 243750;
 
 	// set the parent appid in the instance
 	m_parentAppID = parentAppID;
@@ -341,7 +378,9 @@ void SteamComponent::InitializePresence()
 		wchar_t ourDirectory[MAX_PATH];
 		GetCurrentDirectory(sizeof(ourDirectory), ourDirectory);
 
-		std::wstring commandLine = va(L"\"%s\" -steamchild:%d", ourPath, GetCurrentProcessId());
+		static HostSharedData<CfxState> hostData("CfxInitState");
+
+		std::wstring commandLine = va(L"\"%s\" -steamchild:%d", ourPath, hostData->initialPid);
 
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
@@ -362,6 +401,8 @@ void SteamComponent::InitializePresence()
 				return true;
 			}
 		};
+
+		trace("Initializing Steam parent: Attempting to run processes.\n");
 
 		bool passedSteamPresence = false;
 
@@ -423,6 +464,33 @@ bool SteamComponent::RunPresenceDummy()
 
 			// log it
 			trace("process exited with %d!\n", exitCode);
+		}
+	}
+	else
+	{
+		steamChildPart = L"-steamparent:";
+		commandLineMatch = wcsstr(GetCommandLine(), steamChildPart);
+
+		if (commandLineMatch)
+		{
+			trace("Initializing Steam parent.\n");
+
+			SetEnvironmentVariable(L"SteamAppId", nullptr);
+
+			m_steamLoader.Initialize();
+
+			if (m_steamLoader.IsSteamRunning(false))
+			{
+				trace("Initializing Steam parent: Steam's running.\n");
+
+				_unlink("steam_appid.txt");
+
+				InitializePublicAPI();
+				InitializeClientAPI();
+				InitializePresence();
+			}
+
+			exitProcess = true;
 		}
 	}
 
