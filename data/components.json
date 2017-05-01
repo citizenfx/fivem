@@ -3,7 +3,7 @@
 	"rage:device:five",
 	"rage:graphics:five",
 	"font-renderer",
-	"ros:five",
+	"ros-patches:five",
 	"rage:scripting:five",
 	"debug:net",
 	"net",
