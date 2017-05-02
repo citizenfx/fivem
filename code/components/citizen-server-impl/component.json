@@ -5,7 +5,8 @@
 		"fx[2]",
 		"citizen:server:instance",
 		"citizen:server:net",
-		"vendor:enet"
+		"vendor:enet",
+		"vendor:tbb"
 	],
 	"provides": []
 }

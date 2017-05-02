@@ -4,6 +4,8 @@
 
 #include <GameServer.h>
 
+#include <NetBuffer.h>
+
 inline static uint64_t msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -51,7 +53,7 @@ namespace fx
 	static std::map<ENetHost*, GameServer*> g_hostInstances;
 
 	GameServer::GameServer()
-		: m_residualTime(0)
+		: m_residualTime(0), m_serverTime(msec())
 	{
 
 	}
@@ -73,6 +75,8 @@ namespace fx
 				Run();
 			});
 		}, 100);
+
+		m_clientRegistry = instance->GetComponent<ClientRegistry>().GetRef();
 	}
 
 	void GameServer::Run()
@@ -81,6 +85,67 @@ namespace fx
 		{
 			m_runLoop();
 		}
+	}
+
+	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
+
+	void GameServer::ProcessPacket(ENetPeer* peer, const uint8_t* data, size_t size)
+	{
+		auto peerAddr = GetPeerAddress(peer->address);
+
+		// create a netbuffer and read the message type
+		net::Buffer msg(data, size);
+		uint32_t msgType = msg.Read<uint32_t>();
+
+		// get the client
+		auto client = m_clientRegistry->GetClientByEndPoint(peerAddr);
+
+		// handle connection handshake message
+		if (msgType == 1)
+		{
+			if (!client)
+			{
+				std::vector<char> dataBuffer(msg.GetRemainingBytes());
+				msg.Read(dataBuffer.data(), dataBuffer.size());
+
+				auto postMap = ParsePOSTString(std::string_view(dataBuffer.data(), dataBuffer.size()));
+				auto guid = postMap["guid"];
+
+				client = m_clientRegistry->GetClientByGuid(guid);
+
+				if (client)
+				{
+					client->Touch();
+
+					if (client->GetNetId() == 0xFFFF)
+					{
+						m_clientRegistry->HandleConnectingClient(client);
+					}
+
+					client->SetNetId(1);
+					client->SetPeer(peer);
+
+					net::Buffer outMsg;
+					outMsg.Write(1);
+
+					auto outStr = fmt::sprintf(" %d -1 -1", 1);
+					outMsg.Write(outStr.c_str(), outStr.size());
+
+					auto packet = enet_packet_create(outMsg.GetBuffer(), outMsg.GetLength(), ENET_PACKET_FLAG_RELIABLE);
+					enet_peer_send(peer, 0, packet);
+				}
+			}
+
+			return;
+		}
+
+		// if not type 1, and no client, bail out
+		if (!client)
+		{
+			return;
+		}
+
+		client->Touch();
 	}
 
 	void GameServer::ProcessHost(ENetHost* host)
@@ -92,7 +157,7 @@ namespace fx
 			switch (event.type)
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
-				trace("got an enet packet\n");
+				ProcessPacket(event.peer, event.packet->data, event.packet->dataLength);
 				break;
 			}
 		}
@@ -101,6 +166,21 @@ namespace fx
 	void GameServer::ProcessServerFrame(int frameTime)
 	{
 		m_serverTime += frameTime;
+
+		m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+		{
+			auto peer = client->GetPeer();
+
+			if (peer)
+			{
+				net::Buffer outMsg;
+				outMsg.Write(0x53FFFA3F);
+				outMsg.Write(0);
+
+				auto packet = enet_packet_create(outMsg.GetBuffer(), outMsg.GetLength(), ENET_PACKET_FLAG_RELIABLE);
+				enet_peer_send(peer, 0, packet);
+			}
+		});
 	}
 
 	void GameServer::SendOutOfBand(const AddressPair& to, const std::string_view& oob)

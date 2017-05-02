@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ClientRegistry.h>
+
 #include <NetAddress.h>
 
 #include <enet/enet.h>
@@ -45,6 +47,8 @@ namespace fx
 	private:
 		void Run();
 
+		void ProcessPacket(ENetPeer* peer, const uint8_t* data, size_t size);
+
 	public:
 		using THostPtr = std::unique_ptr<ENetHost, enet_deleter<&enet_host_destroy>>;
 
@@ -62,6 +66,8 @@ namespace fx
 		uint64_t m_residualTime;
 
 		uint64_t m_serverTime;
+
+		ClientRegistry* m_clientRegistry;
 	};
 }
 

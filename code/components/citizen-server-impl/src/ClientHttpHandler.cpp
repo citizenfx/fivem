@@ -21,7 +21,7 @@ namespace fx
 		m_methods.insert({ method, handler });
 	}
 
-	static std::map<std::string, std::string> ParsePOSTString(const std::string& postDataString)
+	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString)
 	{
 		std::map<std::string, std::string> postMap;
 
@@ -37,8 +37,8 @@ namespace fx
 			std::string key;
 			std::string value;
 
-			UrlDecode(postDataString.substr(curPos, equalsPos - curPos), key);
-			UrlDecode(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1), value);
+			UrlDecode(std::string(postDataString.substr(curPos, equalsPos - curPos)), key);
+			UrlDecode(std::string(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1)), value);
 
 			postMap[key] = value;
 

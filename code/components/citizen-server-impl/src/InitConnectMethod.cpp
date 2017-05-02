@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include <ClientHttpHandler.h>
 
+#include <ClientRegistry.h>
+
 #include <ServerInstanceBase.h>
 
 static InitFunction initFunction([]()
@@ -24,6 +26,11 @@ static InitFunction initFunction([]()
 			json["sH"] = true;
 			json["token"] = "lol";
 			json["netlibVersion"] = 2;
+
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+			auto client = clientRegistry->MakeClient(guid);
+			client->Touch();
 
 			return json;
 		});

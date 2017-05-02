@@ -9,9 +9,15 @@
 
 #include <memory>
 
+#ifdef COMPILING_NET_BASE
+#define NET_BASE_EXPORT DLL_EXPORT
+#else
+#define NET_BASE_EXPORT DLL_IMPORT
+#endif
+
 namespace net
 {
-class Buffer
+class NET_BASE_EXPORT Buffer
 {
 private:
 	std::shared_ptr<std::vector<uint8_t>> m_bytes;

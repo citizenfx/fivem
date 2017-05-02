@@ -24,7 +24,9 @@ namespace fx
 
 					residualTime += now;
 
-					waiter(server, residualTime - frameTime);
+					lastTime = msec();
+
+					waiter(server, std::max<int>(0, frameTime - residualTime));
 
 					// intervals
 					while (residualTime > frameTime)
@@ -33,8 +35,6 @@ namespace fx
 
 						ticker(server, frameTime);
 					}
-
-					lastTime = msec();
 				}
 			});
 
