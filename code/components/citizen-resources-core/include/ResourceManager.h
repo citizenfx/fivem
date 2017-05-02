@@ -78,6 +78,11 @@ public:
 	// An event to add components to a newly-initializing resource manager's instance registry.
 	//
 	static RESOURCES_CORE_EXPORT fwEvent<ResourceManager*> OnInitializeInstance;
+
+	//
+	// Gets the current resource manager.
+	//
+	static RESOURCES_CORE_EXPORT ResourceManager* GetCurrent();
 };
 
 RESOURCES_CORE_EXPORT ResourceManager* CreateResourceManager();

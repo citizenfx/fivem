@@ -38,7 +38,7 @@ boost::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForF
 	std::string itemName = relativeName.substr(slashOffset + 1);
 
 	// get the relative resource
-	fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+	fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
 	fwRefContainer<fx::Resource> resource = resourceManager->GetResource(resourceName);
 
 	// TODO: handle this some better way

@@ -6,7 +6,6 @@ component 'glue'
 component 'nui-gsclient'
 component 'nui-resources'
 component 'font-renderer'
-component 'conhost-v2'
 component 'debug-net'
 component 'scrbind-formats'
 component 'scrbind-base'
@@ -20,9 +19,13 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-ssh-server'
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'
+	component 'conhost-server'
+	component 'scripting-server'
+	component 'vfs-impl-server'
 else
 	component 'tool-formats'
 	component 'rage-formats-x'
+	component 'conhost-v2'
 end
 
 component 'net-base'

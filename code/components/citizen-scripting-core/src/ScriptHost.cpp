@@ -135,6 +135,10 @@ result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 		
 		memcpy(&context.arguments[0], &scriptContext.GetArgument<uintptr_t>(0), sizeof(uintptr_t) * 3);
 	}
+	else
+	{
+		trace("WARNING: NON-EXISTENT NATIVE %016llx\n", context.nativeIdentifier);
+	}
 
 	return FX_S_OK;
 }

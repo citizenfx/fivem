@@ -10,6 +10,8 @@
 
 #include <network/uri.hpp>
 
+static thread_local fx::ResourceManager* g_currentManager;
+
 namespace fx
 {
 ResourceManagerImpl::ResourceManagerImpl()
@@ -37,6 +39,10 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 				break;
 			}
 		}
+	}
+	else
+	{
+		trace("%s: %s\n", __func__, ec.message());
 	}
 
 	return mounter;
@@ -134,6 +140,9 @@ fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& 
 
 void ResourceManagerImpl::Tick()
 {
+	auto lastManager = g_currentManager;
+	g_currentManager = this;
+
 	// execute resource tick functions
 	ForAllResources([] (fwRefContainer<Resource> resource)
 	{
@@ -142,6 +151,15 @@ void ResourceManagerImpl::Tick()
 
 	// execute tick events
 	OnTick();
+
+	g_currentManager = lastManager;
+}
+
+ResourceManager* ResourceManager::GetCurrent()
+{
+	assert(g_currentManager);
+
+	return g_currentManager;
 }
 
 ResourceManager* CreateResourceManager()

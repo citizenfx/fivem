@@ -18,7 +18,7 @@ static InitFunction initFunction([] ()
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_RESOURCE_METADATA", [] (fx::ScriptContext& context)
 	{
 		// find the resource
-		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
 		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
 
 		if (!resource.GetRef())
@@ -42,7 +42,7 @@ static InitFunction initFunction([] ()
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_METADATA", [] (fx::ScriptContext& context)
 	{
 		// find the resource
-		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
 		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
 
 		if (!resource.GetRef())
@@ -79,7 +79,7 @@ static InitFunction initFunction([] ()
 	fx::ScriptEngine::RegisterNativeHandler("LOAD_RESOURCE_FILE", [] (fx::ScriptContext& context)
 	{
 		// find the resource
-		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
 		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
 
 		if (!resource.GetRef())

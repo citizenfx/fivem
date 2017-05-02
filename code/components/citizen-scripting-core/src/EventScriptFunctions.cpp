@@ -15,8 +15,7 @@ static InitFunction initFunction([] ()
 {
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_EVENT_INTERNAL", [] (fx::ScriptContext& context)
 	{
-		// TODO: handle multiple resource managers for server
-		static fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		// trigger the event
@@ -28,8 +27,7 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("CANCEL_EVENT", [] (fx::ScriptContext& context)
 	{
-		// TODO: handle multiple resource managers for server
-		static fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		eventManager->CancelEvent();
@@ -37,8 +35,7 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("WAS_EVENT_CANCELED", [] (fx::ScriptContext& context)
 	{
-		// TODO: handle multiple resource managers for server
-		static fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		context.SetResult(eventManager->WasLastEventCanceled());

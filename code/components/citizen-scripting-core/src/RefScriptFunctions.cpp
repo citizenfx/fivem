@@ -22,7 +22,7 @@ static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refS
 	int refId = atoi(refString.substr(colonIndexEnd + 1).c_str());
 
 	// get the resource manager and find stuff in it
-	fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+	fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
 
 	// if there's a resource by that name...
 	fwRefContainer<fx::Resource> resource = manager->GetResource(resourceName);
