@@ -44,10 +44,13 @@ namespace fx
 
 	net::PeerAddress GetPeerAddress(const ENetAddress& enetAddress)
 	{
-		char name[128];
-		enet_address_get_host_ip(&enetAddress, name, sizeof(name));
+		sockaddr_in6 in6 = { 0 };
+		in6.sin6_family = AF_INET6;
+		in6.sin6_addr = enetAddress.host;
+		in6.sin6_port = htons(enetAddress.port);
+		in6.sin6_scope_id = enetAddress.sin6_scope_id;
 
-		return net::PeerAddress::FromString(fmt::sprintf("[%s]", name), enetAddress.port).get();
+		return net::PeerAddress((sockaddr*)&in6, sizeof(in6));
 	}
 
 	static std::map<ENetHost*, GameServer*> g_hostInstances;
@@ -98,7 +101,7 @@ namespace fx
 		uint32_t msgType = msg.Read<uint32_t>();
 
 		// get the client
-		auto client = m_clientRegistry->GetClientByEndPoint(peerAddr);
+		auto client = m_clientRegistry->GetClientByPeer(peer);
 
 		// handle connection handshake message
 		if (msgType == 1)
@@ -158,6 +161,7 @@ namespace fx
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
 				ProcessPacket(event.peer, event.packet->data, event.packet->dataLength);
+				enet_packet_destroy(event.packet);
 				break;
 			}
 		}

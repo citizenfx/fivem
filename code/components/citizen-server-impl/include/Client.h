@@ -44,6 +44,7 @@ namespace fx
 		}
 
 		fwEvent<> OnAssignNetId;
+		fwEvent<> OnAssignPeer;
 
 	private:
 		// a temporary token for tying HTTP connections to UDP connections

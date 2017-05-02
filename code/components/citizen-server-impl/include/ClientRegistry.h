@@ -24,6 +24,8 @@ namespace fx
 
 		inline void RemoveClient(const std::shared_ptr<Client>& client)
 		{
+			m_clientsByPeer[client->GetPeer()].reset();
+			m_clientsByNetId[client->GetNetId()].reset();
 			m_clients[client->GetGuid()] = nullptr;
 		}
 
@@ -35,6 +37,22 @@ namespace fx
 			if (it != m_clients.end())
 			{
 				ptr = it->second;
+			}
+
+			return ptr;
+		}
+
+		inline std::shared_ptr<Client> GetClientByPeer(ENetPeer* peer)
+		{
+			auto ptr = std::shared_ptr<Client>();
+			auto it = m_clientsByPeer.find(peer);
+
+			if (it != m_clientsByPeer.end())
+			{
+				if (!it->second.expired())
+				{
+					ptr = it->second.lock();
+				}
 			}
 
 			return ptr;
@@ -86,6 +104,7 @@ namespace fx
 		// aliases for fast lookup
 		tbb::concurrent_unordered_map<uint16_t, std::weak_ptr<Client>> m_clientsByNetId;
 		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
+		tbb::concurrent_unordered_map<ENetPeer*, std::weak_ptr<Client>> m_clientsByPeer;
 	};
 }
 

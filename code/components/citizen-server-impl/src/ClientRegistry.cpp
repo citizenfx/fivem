@@ -10,9 +10,16 @@ namespace fx
 		auto client = std::make_shared<Client>(guid);
 		m_clients[guid] = client;
 
+		std::weak_ptr<Client> weakClient(client);
+
 		client->OnAssignNetId.Connect([=]()
 		{
-			m_clientsByNetId[client->GetNetId()] = client;
+			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
+		});
+
+		client->OnAssignPeer.Connect([=]()
+		{
+			m_clientsByPeer[weakClient.lock()->GetPeer()] = weakClient;
 		});
 
 		return client;

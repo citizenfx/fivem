@@ -17,6 +17,8 @@ namespace fx
 	void Client::SetPeer(ENetPeer* peer)
 	{
 		m_peer.reset(peer);
+
+		OnAssignPeer();
 	}
 
 	void Client::SetNetId(uint16_t netId)
