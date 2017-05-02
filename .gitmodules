@@ -67,3 +67,6 @@
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "vendor/tbb"]
+	path = vendor/tbb
+	url = https://github.com/01org/tbb.git
