@@ -131,11 +131,11 @@ namespace fx
 					net::Buffer outMsg;
 					outMsg.Write(1);
 
+					// TODO(fxserver): enable when doing routing
 					auto outStr = fmt::sprintf(" %d -1 -1", 1);
 					outMsg.Write(outStr.c_str(), outStr.size());
 
-					auto packet = enet_packet_create(outMsg.GetBuffer(), outMsg.GetLength(), ENET_PACKET_FLAG_RELIABLE);
-					enet_peer_send(peer, 0, packet);
+					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
 				}
 			}
 
@@ -181,8 +181,7 @@ namespace fx
 				outMsg.Write(0x53FFFA3F);
 				outMsg.Write(0);
 
-				auto packet = enet_packet_create(outMsg.GetBuffer(), outMsg.GetLength(), ENET_PACKET_FLAG_RELIABLE);
-				enet_peer_send(peer, 0, packet);
+				client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
 			}
 		});
 	}

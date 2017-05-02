@@ -1,11 +1,13 @@
 #pragma once
 
 #include <NetAddress.h>
+#include <NetBuffer.h>
 
 #include <enet/enet.h>
 
 namespace fx
 {
+	// TODO(fxserver): consolidate
 	template<void* Fn>
 	struct enet_deleter2
 	{
@@ -42,6 +44,8 @@ namespace fx
 		{
 			return (m_peer) ? m_peer.get() : nullptr;
 		}
+
+		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
 
 		fwEvent<> OnAssignNetId;
 		fwEvent<> OnAssignPeer;

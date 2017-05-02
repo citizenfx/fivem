@@ -35,4 +35,13 @@ namespace fx
 	{
 		m_lastSeen = msec();
 	}
+
+	void Client::SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags /* = (ENetPacketFlag)0 */)
+	{
+		if (m_peer)
+		{
+			auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetLength(), flags);
+			enet_peer_send(m_peer.get(), channel, packet);
+		}
+	}
 }
