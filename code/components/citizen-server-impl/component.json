@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"citizen:server:instance",
-		"citizen:server:net"
+		"citizen:server:net",
+		"vendor:enet"
 	],
 	"provides": []
 }

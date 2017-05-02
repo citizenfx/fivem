@@ -9,6 +9,8 @@ return {
 		language "C"
 		kind "StaticLib"
 
+		defines { "HAS_INET_NTOP", "HAS_INET_PTON" }
+
 		files_project "../vendor/enet/" {
 			"*.c"
 		}

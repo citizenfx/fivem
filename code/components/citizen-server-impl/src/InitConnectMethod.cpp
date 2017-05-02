@@ -20,7 +20,10 @@ static InitFunction initFunction([]()
 			}
 
 			json json = json::object();
+			json["protocol"] = 4;
+			json["sH"] = true;
 			json["token"] = "lol";
+			json["netlibVersion"] = 2;
 
 			return json;
 		});

@@ -9,7 +9,11 @@ public:
 		m_data = &m_fakeData;
 
 		bool initTime = true;
+#ifdef IS_FXSERVER
+		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(TData), ToWide("CFX_SV_SharedData_" + name).c_str());
+#else
 		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(TData), ToWide("CFX_SharedData_" + name).c_str());
+#endif
 
 		if (m_fileMapping != nullptr)
 		{
