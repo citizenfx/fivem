@@ -30,6 +30,8 @@ public:
 
 	void AddResourceInternal(fwRefContainer<Resource> resource);
 
+	virtual void MakeCurrent() override;
+
 	virtual fwRefContainer<ResourceMounter> GetMounterForUri(const std::string& uri) override;
 
 	virtual concurrency::task<fwRefContainer<Resource>> AddResource(const std::string& uri) override;

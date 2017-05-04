@@ -70,6 +70,11 @@ public:
 	//
 	virtual void Tick() = 0;
 
+	//
+	// Makes this resource manager the current resource manager.
+	//
+	virtual void MakeCurrent() = 0;
+
 public:
 	fwEvent<> OnTick;
 

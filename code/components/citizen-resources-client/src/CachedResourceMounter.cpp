@@ -134,6 +134,8 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 			// follow up by mounting resource.rpf (using the legacy mounter) from the resource on a background thread
 			return concurrency::create_task([=]()
 			{
+				m_manager->MakeCurrent();
+
 				// copy the pointer in case we need to nullptr it
 				fwRefContainer<fx::Resource> localResource = resource;
 

@@ -162,6 +162,11 @@ ResourceManager* ResourceManager::GetCurrent()
 	return g_currentManager;
 }
 
+void ResourceManagerImpl::MakeCurrent()
+{
+	g_currentManager = this;
+}
+
 ResourceManager* CreateResourceManager()
 {
 	return new ResourceManagerImpl();
