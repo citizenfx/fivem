@@ -29,6 +29,16 @@ namespace CitizenFX.Core
 			ms_instanceId = instanceId;
 		}
 
+		internal static void AddScript(BaseScript script)
+		{
+			ms_definedScripts.Add(script);
+		}
+
+		internal static void RemoveScript(BaseScript script)
+		{
+			ms_definedScripts.Remove(script);
+		}
+
 		public void CreateAssembly(byte[] assemblyData, byte[] symbolData)
 		{
 			CreateAssemblyInternal(assemblyData, symbolData);

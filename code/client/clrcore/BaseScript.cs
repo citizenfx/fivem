@@ -136,7 +136,12 @@ namespace CitizenFX.Core
 
         public static void RegisterScript(BaseScript script)
         {
-            //RuntimeManager.AddScript(script);
+            InternalManager.AddScript(script);
+        }
+
+        public static void UnregisterScript(BaseScript script)
+        {
+            InternalManager.RemoveScript(script);
         }
     }
 
