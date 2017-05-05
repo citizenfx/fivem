@@ -12,6 +12,7 @@
 #include <fxScripting.h>
 
 #include <CustomText.h>
+#include <sfFontStuff.h>
 
 static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, const char* textValue)
 {
@@ -89,5 +90,15 @@ static InitFunction initFunction([] ()
 		}
 
 		context.SetResult<bool>(false);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_ID", [](fx::ScriptContext& context)
+	{
+		context.SetResult(sf::RegisterFontIndex(context.GetArgument<const char*>(0)));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_FILE", [](fx::ScriptContext& context)
+	{
+		sf::RegisterFontLib(context.GetArgument<const char*>(0));
 	});
 });
