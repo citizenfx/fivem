@@ -100,6 +100,9 @@ void ResourceManagerImpl::ForAllResources(const std::function<void(fwRefContaine
 
 void ResourceManagerImpl::ResetResources()
 {
+	auto lastManager = g_currentManager;
+	g_currentManager = this;
+
 	ForAllResources([] (fwRefContainer<Resource> resource)
 	{
 		fwRefContainer<ResourceImpl> impl = resource;
@@ -109,6 +112,8 @@ void ResourceManagerImpl::ResetResources()
 	});
 
 	m_resources.clear();
+
+	g_currentManager = lastManager;
 }
 
 void ResourceManagerImpl::RemoveResource(fwRefContainer<Resource> resource)
