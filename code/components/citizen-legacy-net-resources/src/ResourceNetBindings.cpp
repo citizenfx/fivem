@@ -210,6 +210,12 @@ static InitFunction initFunction([] ()
 									entry.rscPagesPhysical = rscPagesPhysical;
 									entry.rscPagesVirtual = rscPagesVirtual;
 								}
+								else
+								{
+									entry.rscVersion = 0;
+									entry.rscPagesVirtual = i->value["size"].GetUint();
+									entry.rscPagesPhysical = 0;
+								}
 
 								uint32_t size = i->value["size"].GetUint();
 
