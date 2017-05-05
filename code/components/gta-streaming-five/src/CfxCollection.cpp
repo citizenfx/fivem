@@ -392,9 +392,11 @@ public:
 			baseDevice->GetResourceVersion(name.c_str(), &flags);
 		}
 
+		bool isResource = ((flags.flag1 >> 28) | (flags.flag2 >> 28)) != 0;
+
 		memcpy(&newEntry.baseEntry, PseudoCallContext(this)->GetEntry(idx), sizeof(newEntry.baseEntry));
 
-		newEntry.baseEntry.size = baseDevice->GetFileLengthLong(name.c_str());
+		newEntry.baseEntry.size = (isResource) ? baseDevice->GetFileLengthLong(name.c_str()) : 0;
 
 		newEntry.baseEntry.virtFlags = flags.flag1;
 		newEntry.baseEntry.physFlags = flags.flag2;
@@ -1768,9 +1770,11 @@ void CfxCollection::InitializePseudoPack(const char* path)
 				entryDevice->GetResourceVersion(entryFullName.c_str(), &flags);
 			}
 
+			bool isResource = ((flags.flag1 >> 28) | (flags.flag2 >> 28)) != 0;
+
 			entryTable[i].nameOffset = addString(entry);
-			entryTable[i].offset = 0x8FFFFF;
-			entryTable[i].size = entryDevice->GetFileLengthLong(entryFullName.c_str());
+			entryTable[i].offset = (isResource) ? 0x8FFFFF : 0xFFFFF;
+			entryTable[i].size = (isResource) ? entryDevice->GetFileLengthLong(entryFullName.c_str()) : 0; // non-resource files in Cfx aren't compressed
 			entryTable[i].virtFlags = flags.flag1;
 			entryTable[i].physFlags = flags.flag2;
 
