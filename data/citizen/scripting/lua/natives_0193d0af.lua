@@ -6903,6 +6903,14 @@ function Global.RegisterHatedTargetsAroundPed(ped, radius)
 	return _in(0x9222F300BF8354FE, ped, radius)
 end
 
+function Global.RegisterFontId(fontName)
+	return _in(0xacf6d8ee, fontName, _r, _ri)
+end
+
+function Global.RegisterFontFile(fileName)
+	return _in(0x01b3a363, fileName)
+end
+
 function Global.RegisterFloatToSave(name)
 	return _in(0x7CAEC29ECB5DFEBB, _i, name)
 end
