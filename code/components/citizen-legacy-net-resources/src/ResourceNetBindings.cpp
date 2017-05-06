@@ -192,7 +192,6 @@ static InitFunction initFunction([] ()
 						{
 							auto& streamFiles = resource["streamFiles"];
 
-							//for (auto& file : resource["streamFiles"])
 							for (auto i = streamFiles.MemberBegin(); i != streamFiles.MemberEnd(); i++)
 							{
 								fwString filename = i->name.GetString();
@@ -218,6 +217,12 @@ static InitFunction initFunction([] ()
 								}
 
 								uint32_t size = i->value["size"].GetUint();
+
+								// skip >16 MiB resources
+								if (size >= (16 * 1024 * 1024))
+								{
+									continue;
+								}
 
 								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size);
 
