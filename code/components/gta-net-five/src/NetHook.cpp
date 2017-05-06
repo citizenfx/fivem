@@ -347,6 +347,8 @@ struct HostStateHolder
 	{
 		trace("HostState transitioning from %s to %s\n", HostStateToString(state), HostStateToString(right));
 
+		AddCrashometry("hs_state", HostStateToString(right));
+
 		OnHostStateTransition(right, state);
 		state = right;
 

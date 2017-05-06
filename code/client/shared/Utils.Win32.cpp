@@ -176,3 +176,24 @@ void SetThreadName(int dwThreadID, char* threadName)
 		DoNtRaiseException(&record);			
 	}
 }
+
+void AddCrashometry(const std::string& key, const std::string& format, const fmt::ArgList& value)
+{
+	std::string formatted = fmt::sprintf(format, value);
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"ab");
+
+	if (f)
+	{
+		uint32_t keyLen = key.size();
+		uint32_t valLen = formatted.size();
+
+		fwrite(&keyLen, 1, sizeof(keyLen), f);
+		fwrite(&valLen, 1, sizeof(valLen), f);
+
+		fwrite(key.c_str(), 1, key.size(), f);
+		fwrite(formatted.c_str(), 1, formatted.size(), f);
+
+		fclose(f);
+	}
+}

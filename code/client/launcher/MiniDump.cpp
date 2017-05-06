@@ -50,6 +50,49 @@ static json load_error_pickup()
 	return json(nullptr);
 }
 
+static std::map<std::string, std::string> load_crashometry()
+{
+	std::map<std::string, std::string> rv;
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"rb");
+
+	if (f)
+	{
+		while (!feof(f))
+		{
+			uint32_t keyLen = 0;
+			uint32_t valLen = 0;
+
+			fread(&keyLen, 1, sizeof(keyLen), f);
+			fread(&valLen, 1, sizeof(valLen), f);
+
+			if (keyLen > 0 && valLen > 0)
+			{
+				std::vector<char> data(keyLen + valLen + 2);
+				fread(&data[0], 1, keyLen, f);
+				fread(&data[keyLen + 1], 1, valLen, f);
+
+				rv[&data[0]] = &data[keyLen + 1];
+			}
+		}
+
+		fclose(f);
+	}
+
+	return rv;
+}
+
+static void add_crashometry(json& data)
+{
+	auto map = load_crashometry();
+	_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
+
+	for (const auto& pair : map)
+	{
+		data["crashometry_" + pair.first] = pair.second;
+	}
+}
+
 using namespace google_breakpad;
 
 static ExceptionHandler* g_exceptionHandler;
@@ -190,6 +233,8 @@ static std::wstring GetAdditionalData()
 				error_pickup["type"] = "error_pickup";
 			}
 
+			add_crashometry(error_pickup);
+
 			return ToWide(error_pickup.dump());
 		}
 	}
@@ -206,11 +251,18 @@ static std::wstring GetAdditionalData()
 				{ "retAddr", std::get<uint64_t>(*errorData) },
 			});
 
+			add_crashometry(jsonData);
+
 			return ToWide(jsonData.dump());
 		}
 	}
 
-	return L"{}";
+	{
+		json data = json::object();
+		add_crashometry(data);
+
+		return ToWide(data.dump());;
+	}
 }
 
 void InitializeDumpServer(int inheritedHandle, int parentPid)

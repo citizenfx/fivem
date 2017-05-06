@@ -134,6 +134,10 @@ void main()
 	// assign us to a job object
 	if (initState->IsMasterProcess())
 	{
+		// delete crashometry
+		_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
+
+		// create job
 		HANDLE hJob = CreateJobObject(nullptr, nullptr);
 
 		if (hJob)

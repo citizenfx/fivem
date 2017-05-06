@@ -10,6 +10,8 @@
 #include "Hooking.h"
 #include "boost\assign.hpp"
 
+#include <Error.h>
+
 static int(__cdecl* origSetFunc)(void* extraContentMgr, void* a2, const char* deviceName);
 int someFunc(void* a1, void* a2, const char* a3)
 {
@@ -119,6 +121,39 @@ static InitFunction initFunction([] ()
 
 				CoTaskMemFree(appDataPath);
 			}
+		}
+
+		// look for files in citizen\common\data
+		rage::fiFindData findData;
+		auto handle = device->FindFirst("citizen:/common/data/", &findData);
+
+		if (handle != -1)
+		{
+			do 
+			{
+				if ((findData.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+				{
+					AddCrashometry(fmt::sprintf("common_data_%s", findData.fileName), "%d", findData.fileSize);
+				}
+			} while (device->FindNext(handle, &findData));
+
+			device->FindClose(handle);
+		}
+
+		// look for files in citizen\platform\data too
+		handle = device->FindFirst("citizen:/platform/data/", &findData);
+
+		if (handle != -1)
+		{
+			do
+			{
+				if ((findData.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+				{
+					AddCrashometry(fmt::sprintf("platform_data_%s", findData.fileName), "%d", findData.fileSize);
+				}
+			} while (device->FindNext(handle, &findData));
+
+			device->FindClose(handle);
 		}
 	});
 });

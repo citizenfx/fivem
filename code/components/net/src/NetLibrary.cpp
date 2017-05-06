@@ -560,6 +560,8 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	m_connectionState = CS_INITING;
 	m_currentServer = NetAddress(hostname, port);
 
+	AddCrashometry("last_server", "%s:%d", hostname, port);
+
 	if (m_impl)
 	{
 		m_impl->Reset();

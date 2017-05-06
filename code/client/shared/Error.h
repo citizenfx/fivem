@@ -31,3 +31,6 @@ void FatalError(const char* string, const fmt::ArgList& formatList);
 FMT_VARIADIC(void, GlobalError, const char*);
 FMT_VARIADIC(void, FatalError, const char*);
 #endif
+
+void AddCrashometry(const std::string& key, const std::string& format, const fmt::ArgList& value);
+FMT_VARIADIC(void, AddCrashometry, const std::string&, const std::string&);
