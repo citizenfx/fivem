@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -128,6 +128,17 @@ void main()
 		return;
 	}
 
+	// load global dinput8.dll over any that might exist in the game directory
+	{
+		wchar_t systemPath[512];
+		GetSystemDirectory(systemPath, _countof(systemPath));
+
+		wcscat_s(systemPath, L"\\dinput8.dll");
+
+		LoadLibrary(systemPath);
+	}
+
+	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
 
