@@ -118,6 +118,28 @@ static NTSTATUS NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCES
 	return status;
 }
 
+typedef NTSTATUS(*NtCloseType)(IN HANDLE Handle);
+static NtCloseType origClose;
+
+typedef struct _OBJECT_HANDLE_ATTRIBUTE_INFORMATION
+{
+	BOOLEAN Inherit;
+	BOOLEAN ProtectFromClose;
+} OBJECT_HANDLE_ATTRIBUTE_INFORMATION, *POBJECT_HANDLE_ATTRIBUTE_INFORMATION;
+
+NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
+{
+	char info[16];
+
+	if (NtQueryObject(Handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(OBJECT_HANDLE_ATTRIBUTE_INFORMATION), nullptr) >= 0)
+	{
+		return origClose(Handle);
+	}
+	
+	return STATUS_INVALID_HANDLE;
+}
+
+
 void LSP_InitializeHooks()
 {
 	HWND shellWindow = GetShellWindow();
@@ -125,5 +147,6 @@ void LSP_InitializeHooks()
 
     MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExA", ProcessLSPRegOpenKeyExA, (void**)&g_origRegOpenKeyExA);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryInformationProcess", NtQueryInformationProcessHook, (void**)&origQIP);
+	MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
     MH_EnableHook(MH_ALL_HOOKS);
 }

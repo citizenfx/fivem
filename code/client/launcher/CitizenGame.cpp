@@ -253,104 +253,7 @@ void CitizenGame::InvokeEntryPoint(void(*entryPoint)())
 	}
 }
 
-#if defined(GTA_FIVE)
-static void* origCloseHandle;
-
-typedef struct _OBJECT_HANDLE_ATTRIBUTE_INFORMATION
-{
-	BOOLEAN Inherit;
-	BOOLEAN ProtectFromClose;
-} OBJECT_HANDLE_ATTRIBUTE_INFORMATION, *POBJECT_HANDLE_ATTRIBUTE_INFORMATION;
-
-#pragma comment(lib, "ntdll.lib")
-
-struct NtCloseHook : public jitasm::Frontend
-{
-	NtCloseHook()
-	{
-
-	}
-
-	static NTSTATUS ValidateHandle(HANDLE handle)
-	{
-		char info[16];
-
-		if (NtQueryObject(handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(OBJECT_HANDLE_ATTRIBUTE_INFORMATION), nullptr) >= 0)
-		{
-			return 0;
-		}
-		else
-		{
-			return STATUS_INVALID_HANDLE;
-		}
-	}
-
-	void InternalMain()
-	{
-		push(rcx);
-
-		mov(rax, (uint64_t)&ValidateHandle);
-		call(rax);
-
-		pop(rcx);
-
-		cmp(eax, STATUS_INVALID_HANDLE);
-		je("doReturn");
-
-		mov(rax, (uint64_t)origCloseHandle);
-		push(rax); // to return here, as there seems to be no jump-to-rax in jitasm
-
-		L("doReturn");
-		ret();
-	}
-};
-
-class NtdllHooks
-{
-private:
-	UserLibrary m_ntdll;
-
-private:
-	void HookHandleClose();
-
-public:
-	NtdllHooks(const wchar_t* ntdllPath);
-
-	void Install();
-};
-
-NtdllHooks::NtdllHooks(const wchar_t* ntdllPath)
-	: m_ntdll(ntdllPath)
-{
-}
-
-void NtdllHooks::Install()
-{
-	HookHandleClose();
-}
-
-void NtdllHooks::HookHandleClose()
-{
-	// hook NtClose (STATUS_INVALID_HANDLE debugger detection)
-	uint8_t* code = (uint8_t*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtClose");
-
-	origCloseHandle = VirtualAlloc(nullptr, 1024, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	memcpy(origCloseHandle, m_ntdll.GetExportCode("NtClose"), 1024);
-
-	NtCloseHook* hook = new NtCloseHook;
-	hook->Assemble();
-
-	DWORD oldProtect;
-	VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-	*(uint8_t*)code = 0x48;
-	*(uint8_t*)(code + 1) = 0xb8;
-
-	*(uint64_t*)(code + 2) = (uint64_t)hook->GetCode();
-
-	*(uint16_t*)(code + 10) = 0xE0FF;
-}
-
+#ifdef GTA_FIVE
 static int NoWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD)
 {
 	return 1;
@@ -657,15 +560,6 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 
 	// set GlobalFlags
 	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
-
-	{
-		// user library stuff ('safe' ntdll hooking callbacks)
-		wchar_t ntdllPath[MAX_PATH];
-		GetModuleFileName(GetModuleHandle(L"ntdll.dll"), ntdllPath, _countof(ntdllPath));
-
-		NtdllHooks hooks(ntdllPath);
-		hooks.Install();
-	}
 
 	if (CoreIsDebuggerPresent())
 	{
