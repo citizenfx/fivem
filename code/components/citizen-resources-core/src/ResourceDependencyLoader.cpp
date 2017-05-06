@@ -12,6 +12,8 @@ static InitFunction initFunction([]()
 		resource->OnStart.Connect([=] ()
 		{
 			fx::ResourceManager* manager = resource->GetManager();
+			manager->MakeCurrent();
+
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 
 			auto loadDeps = [&] (const std::string& type)

@@ -92,10 +92,15 @@ void ResourceManagerImpl::ForAllResources(const std::function<void(fwRefContaine
 {
 	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
+	auto lastManager = g_currentManager;
+	g_currentManager = this;
+
 	for (auto& resource : m_resources)
 	{
 		function(resource.second);
 	}
+
+	g_currentManager = lastManager;
 }
 
 void ResourceManagerImpl::ResetResources()
@@ -118,6 +123,9 @@ void ResourceManagerImpl::ResetResources()
 
 void ResourceManagerImpl::RemoveResource(fwRefContainer<Resource> resource)
 {
+	auto lastManager = g_currentManager;
+	g_currentManager = this;
+
 	// lock the mutex (to provide a common root for a lock hierarchy)
 	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
@@ -126,6 +134,8 @@ void ResourceManagerImpl::RemoveResource(fwRefContainer<Resource> resource)
 	impl->Destroy();
 
 	m_resources.erase(impl->GetName());
+
+	g_currentManager = lastManager;
 }
 
 void ResourceManagerImpl::AddMounter(fwRefContainer<ResourceMounter> mounter)
