@@ -386,11 +386,13 @@ void SteamComponent::InitializePresence()
 
 		auto steamAttempts = std::vector<std::function<bool()>>{
 			// before 2017-02 VR updates
+#if 0
 			[&]()
 			{
 				steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, parentAppID, productName.c_str(), 0);
 				return true;
 			},
+#endif
 
 			// 2017-02-0x~ VR updates
 			[&]()
