@@ -15,7 +15,6 @@ buildscript:
     paths:
       - code/shared/citversion.h
       - caches/
-      - vendor/
       - code/build/
 
 deploy_specific:
