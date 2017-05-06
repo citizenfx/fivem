@@ -16,6 +16,8 @@
 
 #include <array>
 
+#include <shellscalingapi.h>
+
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
@@ -145,6 +147,19 @@ void main()
 	// assign us to a job object
 	if (initState->IsMasterProcess())
 	{
+		// set DPI-aware
+		HMODULE shCore = LoadLibrary(L"shcore.dll");
+
+		if (shCore)
+		{
+			auto SetProcessDpiAwareness = (decltype(&::SetProcessDpiAwareness))GetProcAddress(shCore, "SetProcessDpiAwareness");
+
+			if (SetProcessDpiAwareness)
+			{
+				SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+			}
+		}
+
 		// delete crashometry
 		_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
 
