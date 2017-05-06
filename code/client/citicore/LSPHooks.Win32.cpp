@@ -145,8 +145,8 @@ void LSP_InitializeHooks()
 	HWND shellWindow = GetShellWindow();
 	GetWindowThreadProcessId(shellWindow, &explorerPid);
 
-    MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExA", ProcessLSPRegOpenKeyExA, (void**)&g_origRegOpenKeyExA);
+	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExA", ProcessLSPRegOpenKeyExA, (void**)&g_origRegOpenKeyExA);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryInformationProcess", NtQueryInformationProcessHook, (void**)&origQIP);
 	MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
-    MH_EnableHook(MH_ALL_HOOKS);
+	MH_EnableHook(MH_ALL_HOOKS);
 }
