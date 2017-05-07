@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -104,8 +104,13 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 	if (moduleNameStr.find(L"fraps64.dll") != std::string::npos || moduleNameStr.find(L"avghooka.dll") != std::string::npos ||
 		// certain versions of RTSS crash d3d9.dll by badly patching Win10 RS2 hotpatch stubs
 		moduleNameStr.find(L"RTSSHooks64.dll") != std::string::npos || moduleNameStr.find(L"rtsshooks64.dll") != std::string::npos ||
+		// apparently crashes NUI
+		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
 		// lots of crashes occur in the DiscordApp overlay
-		moduleNameStr.find(L"overlay.x64.dll") != std::string::npos)
+		moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
+		// Ad Muncher, causes LoopbackTcpServer to crash
+		moduleNameStr.find(L"AM64-34121.dll") != std::string::npos
+	)
 	{
 		return 0xC0000135;
 	}
