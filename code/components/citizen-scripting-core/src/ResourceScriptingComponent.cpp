@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -46,7 +46,14 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 		// get metadata and list scripting environments we *do* want to use
 		{
 			fwRefContainer<ResourceMetaDataComponent> metaData = resource->GetComponent<ResourceMetaDataComponent>();
-			auto clientScripts = metaData->GetEntries("client_script");
+
+			auto clientScripts = metaData->GetEntries(
+#ifdef IS_FXSERVER
+				"server_script"
+#else
+				"client_script"
+#endif
+			);
 
 			for (auto it = environments.begin(); it != environments.end(); )
 			{
@@ -145,7 +152,13 @@ void ResourceScriptingComponent::CreateEnvironments()
 		OMPtr<IScriptFileHandlingRuntime> ptr;
 
 		fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
-		auto clientScripts = metaData->GetEntries("client_script");
+		auto clientScripts = metaData->GetEntries(
+#ifdef IS_FXSERVER
+			"server_script"
+#else
+			"client_script"
+#endif
+		);
 		
 		if (FX_SUCCEEDED(environment.second.As(&ptr)))
 		{
