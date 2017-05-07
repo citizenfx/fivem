@@ -30,7 +30,7 @@ inline static std::chrono::milliseconds msec()
 
 static InitFunction initFunction([]()
 {
-	fx::ScriptEngine::RegisterNativeHandler(0x9cd27b0045628463, [](fx::ScriptContext& ctx)
+	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_TIMER", [](fx::ScriptContext& ctx)
 	{
 		ctx.SetResult(msec().count());
 	});
