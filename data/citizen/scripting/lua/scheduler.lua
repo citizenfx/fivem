@@ -151,10 +151,20 @@ function TriggerEvent(eventName, ...)
 	return TriggerEventInternal(eventName, payload, payload:len())
 end
 
-function TriggerServerEvent(eventName, ...)
-	local payload = msgpack.pack({...})
+if not IsDuplicityVersion() then
+	function TriggerClientEvent(eventName, playerId, ...)
+		local payload = msgpack.pack({...})
 
-	return TriggerServerEventInternal(eventName, payload, payload:len())
+		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
+	end
+else
+	function TriggerServerEvent(eventName, ...)
+		local payload = msgpack.pack({...})
+
+		return TriggerServerEventInternal(eventName, payload, payload:len())
+	end
+
+	RegisterServerEvent = RegisterNetEvent
 end
 
 local funcRefs = {}
@@ -263,12 +273,14 @@ local function getExportEventName(resource, name)
 	return string.format('__cfx_export_%s_%s', resource, name)
 end
 
-AddEventHandler('onClientResourceStart', function(resource)
+local exportKey = (IsDuplicityVersion() and 'server_export' or 'export')
+
+AddEventHandler('onResourceStart', function(resource)
 	if resource == GetCurrentResourceName() then
-		local numMetaData = GetNumResourceMetadata(resource, 'export') or 0
+		local numMetaData = GetNumResourceMetadata(resource, exportKey) or 0
 
 		for i = 0, numMetaData-1 do
-			local exportName = GetResourceMetadata(resource, 'export', i)
+			local exportName = GetResourceMetadata(resource, exportKey, i)
 
 			AddEventHandler(getExportEventName(resource, exportName), function(setCB)
 				-- get the entry from *our* global table and invoke the set callback
@@ -314,22 +326,24 @@ setmetatable(exports, {
 })
 
 -- NUI callbacks
-function RegisterNUICallback(type, callback)
-	RegisterNuiCallbackType(type)
+if not IsDuplicityVersion() then
+	function RegisterNUICallback(type, callback)
+		RegisterNuiCallbackType(type)
 
-	AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
-		local status, err = pcall(function()
-			callback(body, resultCallback)
+		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
+			local status, err = pcall(function()
+				callback(body, resultCallback)
+			end)
+
+			if err then
+				Citizen.Trace("error during NUI callback " .. type .. ": " .. err .. "\n")
+			end
 		end)
+	end
 
-		if err then
-			Citizen.Trace("error during NUI callback " .. type .. ": " .. err .. "\n")
-		end
-	end)
-end
+	local _sendNuiMessage = SendNuiMessage
 
-local _sendNuiMessage = SendNuiMessage
-
-function SendNUIMessage(message)
-	_sendNuiMessage(json.encode(message))
+	function SendNUIMessage(message)
+		_sendNuiMessage(json.encode(message))
+	end
 end
