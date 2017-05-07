@@ -211,6 +211,11 @@ inline constexpr uint32_t HashRageString(const char* string)
 	return hash;
 }
 
+inline constexpr char ToLower(const char c)
+{
+	return (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
+}
+
 // hash string, lowercase
 inline constexpr uint32_t HashString(const char* string)
 {
@@ -218,7 +223,7 @@ inline constexpr uint32_t HashString(const char* string)
 
 	for (; *string; ++string)
 	{
-		hash += _tolower(*string);
+		hash += ToLower(*string);
 		hash += (hash << 10);
 		hash ^= (hash >> 6);
 	}
