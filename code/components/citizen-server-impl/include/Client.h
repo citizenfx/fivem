@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <NetAddress.h>
 #include <NetBuffer.h>
@@ -27,12 +27,21 @@ namespace fx
 
 		void SetNetId(uint16_t netId);
 
+		void SetNetBase(uint32_t netBase);
+
 		// updates the last-seen timer
 		void Touch();
+
+		bool IsDead();
 
 		inline uint16_t GetNetId()
 		{
 			return m_netId;
+		}
+
+		inline uint32_t GetNetBase()
+		{
+			return m_netBase;
 		}
 
 		inline const std::string& GetGuid()
@@ -58,7 +67,7 @@ namespace fx
 		net::PeerAddress m_peerAddress;
 
 		// when the client was last seen
-		uint64_t m_lastSeen;
+		std::chrono::milliseconds m_lastSeen;
 
 		// the client's primary GUID
 		std::string m_guid;

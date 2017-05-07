@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <Client.h>
 
@@ -18,6 +18,8 @@ namespace fx
 	class ClientRegistry : public fwRefCountable
 	{
 	public:
+		ClientRegistry();
+
 		void HandleConnectingClient(const std::shared_ptr<Client>& client);
 
 		std::shared_ptr<Client> MakeClient(const std::string& guid);
@@ -94,11 +96,20 @@ namespace fx
 		{
 			for (auto& client : m_clients)
 			{
-				cb(client.second);
+				if (client.second)
+				{
+					cb(client.second);
+				}
 			}
 		}
 
+		std::shared_ptr<Client> GetHost();
+
+		void SetHost(const std::shared_ptr<Client>& client);
+
 	private:
+		uint16_t m_hostNetId;
+
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<Client>> m_clients;
 
 		// aliases for fast lookup

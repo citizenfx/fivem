@@ -1,7 +1,11 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 
 #include <ResourceManager.h>
+#include <ResourceEventComponent.h>
+
 #include <ServerInstanceBase.h>
+
+#include <GameServer.h>
 
 #include <RelativeDevice.h>
 
@@ -57,6 +61,52 @@ private:
 	fx::ResourceManager* m_manager;
 };
 
+static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+{
+	uint16_t eventNameLength = buffer.Read<uint16_t>();
+
+	std::vector<char> eventNameBuffer(eventNameLength - 1);
+	buffer.Read(eventNameBuffer.data(), eventNameBuffer.size());
+	buffer.Read<uint8_t>();
+
+	uint32_t dataLength = buffer.GetRemainingBytes();
+
+	std::vector<uint8_t> data(dataLength);
+	buffer.Read(data.data(), data.size());
+
+	fwRefContainer<fx::ResourceManager> resourceManager = instance->GetComponent<fx::ResourceManager>();
+	fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
+
+	eventManager->QueueEvent(
+		std::string(eventNameBuffer.begin(), eventNameBuffer.end()),
+		std::string(data.begin(), data.end()),
+		fmt::sprintf("net:%d", client->GetNetId())
+	);
+}
+
+namespace fx
+{
+	class ServerInstanceBaseRef : public fwRefCountable
+	{
+	public:
+		ServerInstanceBaseRef(ServerInstanceBase* instance)
+			: m_ref(instance)
+		{
+			
+		}
+
+		inline ServerInstanceBase* Get()
+		{
+			return m_ref;
+		}
+
+	private:
+		ServerInstanceBase* m_ref;
+	};
+}
+
+DECLARE_INSTANCE_TYPE(fx::ServerInstanceBaseRef);
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -66,7 +116,82 @@ static InitFunction initFunction([]()
 		vfs::Mount(new vfs::RelativeDevice("C:/fivem/data/citizen/"), "citizen:/");
 
 		fwRefContainer<fx::ResourceManager> resman = instance->GetComponent<fx::ResourceManager>();
+		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
+
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 		resman->AddResource("file:///C:/cfx-server-data/resources/%5Bsystem%5D/spawnmanager#spawnmanager");
+		resman->AddResource("file:///C:/cfx-server-data/resources/%5Bsystem%5D/chat#chat");
+
+		auto gameServer = instance->GetComponent<fx::GameServer>();
+		gameServer->AddPacketHandler("msgServerEvent", std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
+		gameServer->OnTick.Connect([=]()
+		{
+			resman->Tick();
+		});
+	}, 50);
+});
+
+#include <ScriptEngine.h>
+#include <optional>
+
+static InitFunction initFunction2([]()
+{
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
+	{
+		std::string_view eventName = context.GetArgument<const char*>(0);
+		std::optional<std::string_view> targetSrc;
+
+		if (context.GetArgument<int>(1) != -1)
+		{
+			targetSrc = context.GetArgument<const char*>(1);
+		}
+
+		const void* data = context.GetArgument<const void*>(2);
+		uint32_t dataLen = context.GetArgument<uint32_t>(3);
+
+		// build the target event
+		net::Buffer outBuffer;
+		outBuffer.Write(0x7337FD7A);
+
+		// source netId
+		outBuffer.Write<uint16_t>(-1);
+
+		// event name
+		outBuffer.Write<uint16_t>(eventName.size() + 1);
+		outBuffer.Write(eventName.data(), eventName.size());
+		outBuffer.Write<uint8_t>(0);
+
+		// payload
+		outBuffer.Write(data, dataLen);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the game server and client registry
+		auto gameServer = instance->GetComponent<fx::GameServer>();
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		// do we have a specific client to send to?
+		if (targetSrc)
+		{
+			int targetNetId = atoi(targetSrc->substr(4).data());
+			auto client = clientRegistry->GetClientByNetID(targetNetId);
+
+			if (client)
+			{
+				// TODO(fxserver): >MTU size?
+				client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			}
+		}
+		else
+		{
+			clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			{
+				client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			});
+		}
 	});
 });

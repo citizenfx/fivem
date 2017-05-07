@@ -1,4 +1,4 @@
-		#include "StdInc.h"
+﻿#include "StdInc.h"
 #include <ClientHttpHandler.h>
 
 #include <ServerInstanceBase.h>
@@ -29,9 +29,9 @@ static InitFunction initFunction([]()
 					}),
 
 					json::object({
-						{ "name", "spawnmanager" },
+						{ "name", "mapmanager" },
 						{ "files",{
-							{ "resource.rpf", "885154A635EA296DC168DC046089BEBA5140DC4E" }
+							{ "resource.rpf", "3D9461FAB8D5C138059C46CFF350CEC664B4560C" }
 						} },
 						{ "streamFiles",json::object() }
 					}),
@@ -43,6 +43,14 @@ static InitFunction initFunction([]()
 						} },
 						{ "streamFiles",json::object() }
 					}),
+
+					json::object({
+						{ "name", "chat" },
+						{ "files",{
+							{ "resource.rpf", "8b53024682ccb8e49e4914b97cc31a9aec2a62d4" }
+						} },
+						{ "streamFiles",json::object() }
+			}),
 				})}
 			});
 		});

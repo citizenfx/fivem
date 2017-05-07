@@ -1,9 +1,13 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 #include <Client.h>
 
-inline static uint64_t msec()
+using namespace std::literals::chrono_literals;
+
+constexpr const auto CLIENT_DEAD_TIMEOUT = 15s;
+
+inline static std::chrono::milliseconds msec()
 {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
 namespace fx
@@ -21,6 +25,11 @@ namespace fx
 		OnAssignPeer();
 	}
 
+	void Client::SetNetBase(uint32_t netBase)
+	{
+		m_netBase = netBase;
+	}
+
 	void Client::SetNetId(uint16_t netId)
 	{
 		if (m_netId == 0xFFFF)
@@ -34,6 +43,11 @@ namespace fx
 	void Client::Touch()
 	{
 		m_lastSeen = msec();
+	}
+
+	bool Client::IsDead()
+	{
+		return (msec() - m_lastSeen) > CLIENT_DEAD_TIMEOUT;
 	}
 
 	void Client::SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags /* = (ENetPacketFlag)0 */)

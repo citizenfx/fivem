@@ -1,4 +1,4 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 
 #include <ServerInstanceBase.h>
 
@@ -125,14 +125,17 @@ namespace fx
 						m_clientRegistry->HandleConnectingClient(client);
 					}
 
-					client->SetNetId(1);
+					static int netId = 0;
+
+					client->SetNetId(++netId);
 					client->SetPeer(peer);
 
 					net::Buffer outMsg;
 					outMsg.Write(1);
 
-					// TODO(fxserver): enable when doing routing
-					auto outStr = fmt::sprintf(" %d -1 -1", 1);
+					auto host = m_clientRegistry->GetHost();
+
+					auto outStr = fmt::sprintf(" %d %d %d", client->GetNetId(), (host) ? host->GetNetId() : -1, (host) ? host->GetNetBase() : -1);
 					outMsg.Write(outStr.c_str(), outStr.size());
 
 					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
@@ -148,7 +151,29 @@ namespace fx
 			return;
 		}
 
+		{
+			auto it = m_handlers.find(msgType);
+
+			if (it != m_handlers.end())
+			{
+				it->second(client, msg);
+			}
+		}
+
 		client->Touch();
+	}
+
+	void GameServer::Broadcast(const net::Buffer& buffer)
+	{
+		m_clientRegistry->ForAllClients([&](const std::shared_ptr<Client>& client)
+		{
+			client->SendPacket(0, buffer, ENET_PACKET_FLAG_RELIABLE);
+		});
+	}
+
+	void GameServer::AddPacketHandler(const std::string& packetType, const TPacketHandler& handler)
+	{
+		m_handlers[HashRageString(packetType.c_str())] = handler;
 	}
 
 	void GameServer::ProcessHost(ENetHost* host)
@@ -184,6 +209,8 @@ namespace fx
 				client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
 			}
 		});
+
+		OnTick();
 	}
 
 	void GameServer::SendOutOfBand(const AddressPair& to, const std::string_view& oob)
@@ -277,5 +304,51 @@ static InitFunction initFunction([]()
 				20
 			)
 		);
+
+		fx::ClientRegistry* clientRegistry = instance->GetComponent<fx::ClientRegistry>().GetRef();
+		fx::GameServer* gameServer = instance->GetComponent<fx::GameServer>().GetRef();
+		gameServer->AddPacketHandler("msgRoute", [=](const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+		{
+			//client->SetHasRouted(true);
+
+			uint16_t targetNetId = packet.Read<uint16_t>();
+			uint16_t packetLength = packet.Read<uint16_t>();
+
+			std::vector<uint8_t> packetData(packetLength);
+			if (packet.Read(packetData.data(), packetData.size()))
+			{
+				auto targetClient = clientRegistry->GetClientByNetID(targetNetId);
+
+				if (targetClient)
+				{
+					net::Buffer outPacket;
+					outPacket.Write(0xE938445B);
+					outPacket.Write(client->GetNetId());
+					outPacket.Write(packetLength);
+					outPacket.Write(packetData.data(), packetLength);
+
+					targetClient->SendPacket(1, outPacket, ENET_PACKET_FLAG_UNSEQUENCED);
+				}
+			}
+		});
+
+		gameServer->AddPacketHandler("msgIHost", [=](const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+		{
+			auto baseNum = packet.Read<uint32_t>();
+			auto currentHost = clientRegistry->GetHost();
+
+			if (!currentHost || currentHost->IsDead())
+			{
+				client->SetNetBase(baseNum);
+				clientRegistry->SetHost(client);
+
+				net::Buffer hostBroadcast;
+				hostBroadcast.Write(0xB3EA30DE);
+				hostBroadcast.Write(client->GetNetId());
+				hostBroadcast.Write(client->GetNetBase());
+
+				gameServer->Broadcast(hostBroadcast);
+			}
+		});
 	});
 });

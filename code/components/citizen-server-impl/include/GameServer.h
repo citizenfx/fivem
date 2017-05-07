@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <ClientRegistry.h>
 
@@ -39,10 +39,17 @@ namespace fx
 
 		void ProcessServerFrame(int frameTime);
 
+		void Broadcast(const net::Buffer& buffer);
+
 		inline void SetRunLoop(const std::function<void()>& runLoop)
 		{
 			m_runLoop = runLoop;
 		}
+
+	public:
+		using TPacketHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
+
+		void AddPacketHandler(const std::string& packetType, const TPacketHandler& handler);
 
 	private:
 		void Run();
@@ -56,6 +63,8 @@ namespace fx
 
 		fwEvent<> OnHostsRegistered;
 
+		fwEvent<> OnTick;
+
 		fwEvent<fx::ServerInstanceBase*> OnAttached;
 
 	private:
@@ -66,6 +75,8 @@ namespace fx
 		uint64_t m_residualTime;
 
 		uint64_t m_serverTime;
+
+		std::map<uint32_t, TPacketHandler> m_handlers;
 
 		ClientRegistry* m_clientRegistry;
 	};

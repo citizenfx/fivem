@@ -1,10 +1,16 @@
-#include <StdInc.h>
+﻿#include <StdInc.h>
 #include <ClientRegistry.h>
 
 #include <ServerInstanceBase.h>
 
 namespace fx
 {
+	ClientRegistry::ClientRegistry()
+		: m_hostNetId(-1)
+	{
+
+	}
+
 	std::shared_ptr<Client> ClientRegistry::MakeClient(const std::string& guid)
 	{
 		auto client = std::make_shared<Client>(guid);
@@ -28,6 +34,21 @@ namespace fx
 	void ClientRegistry::HandleConnectingClient(const std::shared_ptr<Client>& client)
 	{
 
+	}
+
+	std::shared_ptr<fx::Client> ClientRegistry::GetHost()
+	{
+		if (m_hostNetId == -1)
+		{
+			return nullptr;
+		}
+
+		return GetClientByNetID(m_hostNetId);
+	}
+
+	void ClientRegistry::SetHost(const std::shared_ptr<Client>& client)
+	{
+		m_hostNetId = client->GetNetId();
 	}
 }
 

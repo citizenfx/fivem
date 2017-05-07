@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"citizen:resources:core",
+		"citizen:scripting:core",
 		"citizen:server:instance",
 		"citizen:server:net",
 		"vfs:impl:server",
