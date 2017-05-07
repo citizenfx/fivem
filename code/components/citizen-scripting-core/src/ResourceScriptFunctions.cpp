@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -29,5 +29,16 @@ static InitFunction initFunction([] ()
 		}
 
 		context.SetResult(nullptr);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_DUPLICITY_VERSION", [](fx::ScriptContext& context)
+	{
+		context.SetResult(
+#ifdef IS_FXSERVER
+			true
+#else
+			false
+#endif
+		);
 	});
 });

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -12,6 +12,15 @@
 #include <ResourceManager.h>
 
 #include <msgpack.hpp>
+
+static inline bool IsServer()
+{
+#ifdef IS_FXSERVER
+	return true;
+#else
+	return false;
+#endif
+}
 
 namespace fx
 {
@@ -38,8 +47,10 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 		packer.pack(m_resource->GetName());
 
 		// send the event out to the world
-		// TODO: handle server/client split
-		m_managerComponent->QueueEvent("onClientResourceStart", std::string(buf.data(), buf.size()));
+		std::string event(buf.data(), buf.size());
+
+		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStart", IsServer() ? "Server" : "Client"), event);
+		m_managerComponent->QueueEvent("onResourceStart", event);
 	});
 
 	object->OnStop.Connect([=] ()
@@ -53,8 +64,10 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 		packer.pack(m_resource->GetName());
 
 		// send the event out to the world
-		// TODO: handle server/client split
-		m_managerComponent->QueueEvent("onClientResourceStop", std::string(buf.data(), buf.size()));
+		std::string event(buf.data(), buf.size());
+
+		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStop", IsServer() ? "Server" : "Client"), event);
+		m_managerComponent->QueueEvent("onResourceStop", event);
 	});
 
 	object->OnTick.Connect([=] ()
