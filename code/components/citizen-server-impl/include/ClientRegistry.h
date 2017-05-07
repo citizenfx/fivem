@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Client.h>
+#include <ComponentHolder.h>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -15,12 +16,18 @@ namespace tbb
 
 namespace fx
 {
-	class ClientRegistry : public fwRefCountable
+	class ServerInstanceBase;
+
+	class ClientRegistry : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
 	public:
 		ClientRegistry();
 
+		// invoked upon receiving the `connect` ENet packet
 		void HandleConnectingClient(const std::shared_ptr<Client>& client);
+
+		// invoked upon receiving the `connect` ENet packet, after sending `connectOK`
+		void HandleConnectedClient(const std::shared_ptr<Client>& client);
 
 		std::shared_ptr<Client> MakeClient(const std::string& guid);
 
@@ -107,6 +114,8 @@ namespace fx
 
 		void SetHost(const std::shared_ptr<Client>& client);
 
+		virtual void AttachToObject(ServerInstanceBase* instance) override;
+
 	private:
 		uint16_t m_hostNetId;
 
@@ -116,6 +125,10 @@ namespace fx
 		tbb::concurrent_unordered_map<uint16_t, std::weak_ptr<Client>> m_clientsByNetId;
 		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
 		tbb::concurrent_unordered_map<ENetPeer*, std::weak_ptr<Client>> m_clientsByPeer;
+
+		std::atomic<uint16_t> m_curNetId;
+
+		ServerInstanceBase* m_instance;
 	};
 }
 

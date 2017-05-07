@@ -6,6 +6,7 @@
 #include <ServerInstanceBase.h>
 
 #include <GameServer.h>
+#include <ServerEventComponent.h>
 
 #include <RelativeDevice.h>
 
@@ -109,6 +110,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		instance->SetComponent(fx::CreateResourceManager());
+		instance->SetComponent(new fx::ServerEventComponent());
 
 		vfs::Mount(new vfs::RelativeDevice("C:/fivem/data/citizen/"), "citizen:/");
 
@@ -131,6 +133,48 @@ static InitFunction initFunction([]()
 #include <ScriptEngine.h>
 #include <optional>
 
+void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
+{
+	// build the target event
+	net::Buffer outBuffer;
+	outBuffer.Write(0x7337FD7A);
+
+	// source netId
+	outBuffer.Write<uint16_t>(-1);
+
+	// event name
+	outBuffer.Write<uint16_t>(eventName.size() + 1);
+	outBuffer.Write(eventName.data(), eventName.size());
+	outBuffer.Write<uint8_t>(0);
+
+	// payload
+	outBuffer.Write(data, dataLen);
+
+	// get the game server and client registry
+	auto gameServer = m_instance->GetComponent<fx::GameServer>();
+	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
+
+	// do we have a specific client to send to?
+	if (targetSrc)
+	{
+		int targetNetId = atoi(targetSrc->substr(4).data());
+		auto client = clientRegistry->GetClientByNetID(targetNetId);
+
+		if (client)
+		{
+			// TODO(fxserver): >MTU size?
+			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+		}
+	}
+	else
+	{
+		clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+		{
+			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+		});
+	}
+}
+
 static InitFunction initFunction2([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
@@ -146,49 +190,12 @@ static InitFunction initFunction2([]()
 		const void* data = context.GetArgument<const void*>(2);
 		uint32_t dataLen = context.GetArgument<uint32_t>(3);
 
-		// build the target event
-		net::Buffer outBuffer;
-		outBuffer.Write(0x7337FD7A);
-
-		// source netId
-		outBuffer.Write<uint16_t>(-1);
-
-		// event name
-		outBuffer.Write<uint16_t>(eventName.size() + 1);
-		outBuffer.Write(eventName.data(), eventName.size());
-		outBuffer.Write<uint8_t>(0);
-
-		// payload
-		outBuffer.Write(data, dataLen);
-
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
 
 		// get the owning server instance
 		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
-		// get the game server and client registry
-		auto gameServer = instance->GetComponent<fx::GameServer>();
-		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-
-		// do we have a specific client to send to?
-		if (targetSrc)
-		{
-			int targetNetId = atoi(targetSrc->substr(4).data());
-			auto client = clientRegistry->GetClientByNetID(targetNetId);
-
-			if (client)
-			{
-				// TODO(fxserver): >MTU size?
-				client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
-			}
-		}
-		else
-		{
-			clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
-			{
-				client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
-			});
-		}
+		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent(eventName, data, dataLen, targetSrc);
 	});
 });

@@ -1,4 +1,4 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 #include <ClientHttpHandler.h>
 
 #include <ClientRegistry.h>
@@ -30,6 +30,7 @@ static InitFunction initFunction([]()
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 			auto client = clientRegistry->MakeClient(guid);
+			client->SetName(name);
 			client->Touch();
 
 			return json;

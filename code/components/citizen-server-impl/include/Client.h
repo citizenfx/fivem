@@ -54,6 +54,16 @@ namespace fx
 			return (m_peer) ? m_peer.get() : nullptr;
 		}
 
+		inline const std::string& GetName()
+		{
+			return m_name;
+		}
+
+		inline void SetName(const std::string& name)
+		{
+			m_name = name;
+		}
+
 		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
 
 		fwEvent<> OnAssignNetId;
@@ -77,6 +87,9 @@ namespace fx
 
 		// the client's netbase
 		uint32_t m_netBase;
+
+		// the client's nickname
+		std::string m_name;
 
 		// the client's ENet peer
 		std::unique_ptr<ENetPeer, enet_deleter2<&enet_peer_reset>> m_peer;

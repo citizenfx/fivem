@@ -121,15 +121,12 @@ namespace fx
 				{
 					client->Touch();
 
+					client->SetPeer(peer);
+
 					if (client->GetNetId() == 0xFFFF)
 					{
 						m_clientRegistry->HandleConnectingClient(client);
 					}
-
-					static int netId = 0;
-
-					client->SetNetId(++netId);
-					client->SetPeer(peer);
 
 					net::Buffer outMsg;
 					outMsg.Write(1);
@@ -140,6 +137,8 @@ namespace fx
 					outMsg.Write(outStr.c_str(), outStr.size());
 
 					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
+
+					m_clientRegistry->HandleConnectedClient(client);
 				}
 			}
 

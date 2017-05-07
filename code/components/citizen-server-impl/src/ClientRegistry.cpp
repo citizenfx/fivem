@@ -2,11 +2,14 @@
 #include <ClientRegistry.h>
 
 #include <ServerInstanceBase.h>
+#include <ServerEventComponent.h>
+
+#include <msgpack.hpp>
 
 namespace fx
 {
 	ClientRegistry::ClientRegistry()
-		: m_hostNetId(-1)
+		: m_hostNetId(-1), m_curNetId(1)
 	{
 
 	}
@@ -33,7 +36,24 @@ namespace fx
 
 	void ClientRegistry::HandleConnectingClient(const std::shared_ptr<Client>& client)
 	{
+		client->SetNetId(m_curNetId.fetch_add(1));
+	}
 
+	void ClientRegistry::HandleConnectedClient(const std::shared_ptr<Client>& client)
+	{
+		// for name handling, send player state
+		fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
+
+		// send every player information about the joining client
+		events->TriggerClientEvent("onPlayerJoining", std::optional<std::string_view>(), client->GetNetId(), client->GetName());
+
+		// send the JOINING CLIENT information about EVERY OTHER CLIENT
+		std::string target = fmt::sprintf("net:%d", client->GetNetId());
+
+		ForAllClients([&](const std::shared_ptr<fx::Client>& otherClient)
+		{
+			events->TriggerClientEvent("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName());
+		});
 	}
 
 	std::shared_ptr<fx::Client> ClientRegistry::GetHost()
@@ -49,6 +69,11 @@ namespace fx
 	void ClientRegistry::SetHost(const std::shared_ptr<Client>& client)
 	{
 		m_hostNetId = client->GetNetId();
+	}
+
+	void ClientRegistry::AttachToObject(ServerInstanceBase* instance)
+	{
+		m_instance = instance;
 	}
 }
 
