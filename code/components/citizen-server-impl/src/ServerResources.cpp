@@ -48,9 +48,6 @@ public:
 				resource = m_manager->CreateResource(fragRef->to_string());
 				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
 				resource->Start();
-
-				m_manager->Tick();
-				m_manager->Tick();
 			}
 		}
 
@@ -123,7 +120,7 @@ static InitFunction initFunction([]()
 		resman->AddResource("file:///C:/cfx-server-data/resources/%5Bsystem%5D/chat#chat");
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
-		gameServer->AddPacketHandler("msgServerEvent", std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerEvent"), std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
 		gameServer->OnTick.Connect([=]()
 		{
 			resman->Tick();

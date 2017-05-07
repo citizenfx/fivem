@@ -2,6 +2,7 @@
 
 #include <ClientRegistry.h>
 
+#include <MapComponent.h>
 #include <NetAddress.h>
 
 #include <enet/enet.h>
@@ -24,7 +25,7 @@ namespace fx
 
 	using AddressPair = std::tuple<ENetHost*, net::PeerAddress>;
 
-	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>
+	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
 	{
 	public:
 		GameServer();
@@ -46,15 +47,23 @@ namespace fx
 			m_runLoop = runLoop;
 		}
 
-	public:
-		using TPacketHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
-
-		void AddPacketHandler(const std::string& packetType, const TPacketHandler& handler);
+		inline ServerInstanceBase* GetInstance()
+		{
+			return m_instance;
+		}
 
 	private:
 		void Run();
 
 		void ProcessPacket(ENetPeer* peer, const uint8_t* data, size_t size);
+
+	public:
+		using TPacketHandler = std::function<void(uint32_t packetId, const std::shared_ptr<Client>& client, net::Buffer& packet)>;
+
+		inline void SetPacketHandler(const TPacketHandler& handler)
+		{
+			m_packetHandler = handler;
+		}
 
 	public:
 		using THostPtr = std::unique_ptr<ENetHost, enet_deleter<&enet_host_destroy>>;
@@ -70,16 +79,22 @@ namespace fx
 	private:
 		std::thread m_thread;
 
+		TPacketHandler m_packetHandler;
+
 		std::function<void()> m_runLoop;
 
 		uint64_t m_residualTime;
 
 		uint64_t m_serverTime;
 
-		std::map<uint32_t, TPacketHandler> m_handlers;
-
 		ClientRegistry* m_clientRegistry;
+
+		ServerInstanceBase* m_instance;
 	};
+
+	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
+	using HandlerMapComponent = MapComponent<uint32_t, TPacketTypeHandler>;
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);
+DECLARE_INSTANCE_TYPE(fx::HandlerMapComponent);
