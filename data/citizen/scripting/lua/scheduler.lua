@@ -151,20 +151,20 @@ function TriggerEvent(eventName, ...)
 	return TriggerEventInternal(eventName, payload, payload:len())
 end
 
-if not IsDuplicityVersion() then
+if IsDuplicityVersion() then
 	function TriggerClientEvent(eventName, playerId, ...)
 		local payload = msgpack.pack({...})
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
+	
+	RegisterServerEvent = RegisterNetEvent
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack.pack({...})
 
 		return TriggerServerEventInternal(eventName, payload, payload:len())
 	end
-
-	RegisterServerEvent = RegisterNetEvent
 end
 
 local funcRefs = {}
