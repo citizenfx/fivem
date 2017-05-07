@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -283,44 +283,6 @@ void trace(const char* string, const fmt::ArgList& formatList)
 #endif
 
 	PerformFileLog(buffer.c_str());
-}
-
-uint32_t HashRageString(const char* string)
-{
-	uint32_t hash = 0;
-	size_t len = strlen(string);
-
-	for (size_t i = 0; i < len; i++)
-	{
-		hash += string[i];
-		hash += (hash << 10);
-		hash ^= (hash >> 6);
-	}
-
-	hash += (hash << 3);
-	hash ^= (hash >> 11);
-	hash += (hash << 15);
-
-	return hash;
-}
-
-uint32_t HashString(const char* string)
-{
-	uint32_t hash = 0;
-	size_t len = strlen(string);
-
-	for (size_t i = 0; i < len; i++)
-	{
-		hash += tolower(string[i]);
-		hash += (hash << 10);
-		hash ^= (hash >> 6);
-	}
-
-	hash += (hash << 3);
-	hash ^= (hash >> 11);
-	hash += (hash << 15);
-
-	return hash;
 }
 
 fwString url_encode(const fwString &value)

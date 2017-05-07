@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -192,8 +192,43 @@ FMT_VARIADIC(void, trace, const char*);
 const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList);
 FMT_VARIADIC_W(const wchar_t*, va, const wchar_t*);
 
-uint32_t HashRageString(const char* string);
-uint32_t HashString(const char* string);
+// hash string, don't lowercase
+inline constexpr uint32_t HashRageString(const char* string)
+{
+	uint32_t hash = 0;
+
+	for (; *string; ++string)
+	{
+		hash += *string;
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash;
+}
+
+// hash string, lowercase
+inline constexpr uint32_t HashString(const char* string)
+{
+	uint32_t hash = 0;
+
+	for (; *string; ++string)
+	{
+		hash += _tolower(*string);
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash;
+}
 
 inline void LowerString(fwString& string)
 {
