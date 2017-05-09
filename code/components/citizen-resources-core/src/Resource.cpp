@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -55,6 +55,11 @@ const std::string& ResourceImpl::GetIdentifier()
 const std::string& ResourceImpl::GetPath()
 {
 	return m_rootPath;
+}
+
+ResourceState ResourceImpl::GetState()
+{
+	return m_state;
 }
 
 bool ResourceImpl::Start()

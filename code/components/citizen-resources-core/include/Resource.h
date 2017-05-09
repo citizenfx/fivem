@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -23,6 +23,15 @@ class Resource;
 
 class ResourceManager;
 
+enum class ResourceState
+{
+	Uninitialized,
+	Stopped,
+	Starting,
+	Started,
+	Stopping
+};
+
 class Resource : public fwRefCountable, public ComponentHolderImpl<Resource>
 {
 public:
@@ -40,6 +49,11 @@ public:
 	// Gets the root path of the resource in the application file system.
 	//
 	virtual const std::string& GetPath() = 0;
+
+	//
+	// Gets the current state of the resource.
+	//
+	virtual ResourceState GetState() = 0;
 
 	//
 	// Loads the resource from the specified root path.

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -11,15 +11,6 @@
 
 namespace fx
 {
-enum class ResourceState
-{
-	Uninitialized,
-	Stopped,
-	Starting,
-	Started,
-	Stopping
-};
-
 class ResourceManagerImpl;
 
 class ResourceImpl : public Resource
@@ -43,6 +34,8 @@ public:
 	virtual const std::string& GetIdentifier() override;
 
 	virtual const std::string& GetPath() override;
+
+	virtual ResourceState GetState() override;
 
 	virtual bool Start() override;
 
