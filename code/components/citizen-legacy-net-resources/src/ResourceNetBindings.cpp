@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This file is part of the CitizenFX project - http://citizen.re/
 *
 * See LICENSE and MENTIONS in the root of the source tree for information
@@ -370,6 +370,8 @@ static InitFunction initFunction([] ()
 			std::string resourceName(buf, len);
 
 			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			resourceManager->MakeCurrent();
+
 			auto resource = resourceManager->GetResource(resourceName);
 
 			if (resource.GetRef() == nullptr)
@@ -394,6 +396,8 @@ static InitFunction initFunction([] ()
 			std::string resourceName(buf, len);
 
 			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			resourceManager->MakeCurrent();
+
 			auto resource = resourceManager->GetResource(resourceName);
 
 			if (resource.GetRef() != nullptr)
