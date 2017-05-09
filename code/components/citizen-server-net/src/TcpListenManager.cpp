@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -23,8 +23,13 @@ namespace fx
 		m_tcpStack = new net::TcpServerManager();
 
 		// for each defined endpoint
-		for (auto& child : pt.get_child("server.endpoints"))
+		for (auto& child : pt.get_child("server"))
 		{
+			if (child.first != "endpoint")
+			{
+				continue;
+			}
+
 			// parse the endpoint to a peer address
 			boost::optional<net::PeerAddress> peerAddress = net::PeerAddress::FromString(child.second.get_value<std::string>());
 

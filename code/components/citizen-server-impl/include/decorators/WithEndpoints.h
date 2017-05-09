@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace fx
 {
@@ -11,8 +11,13 @@ namespace fx
 				instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
 				{
 					// for each defined endpoint
-					for (auto& child : pt.get_child("server.endpoints"))
+					for (auto& child : pt.get_child("server"))
 					{
+						if (child.first != "endpoint")
+						{
+							continue;
+						}
+
 						// parse the endpoint to a peer address
 						boost::optional<net::PeerAddress> peerAddress = net::PeerAddress::FromString(child.second.get_value<std::string>());
 

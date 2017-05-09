@@ -1,5 +1,7 @@
 ﻿#include "StdInc.h"
 #include <ClientHttpHandler.h>
+#include <ResourceManager.h>
+#include <ResourceFilesComponent.h>
 
 #include <ServerInstanceBase.h>
 
@@ -7,52 +9,38 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		fx::ResourceManager* resman = instance->GetComponent<fx::ResourceManager>().GetRef();
+
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request)
 		{
+			json resources = json::array();
+
+			resman->ForAllResources([&](fwRefContainer<fx::Resource> resource)
+			{
+				if (resource->GetState() != fx::ResourceState::Started)
+				{
+					return;
+				}
+
+				json resourceFiles = json::object();
+				fwRefContainer<fx::ResourceFilesComponent> files = resource->GetComponent<fx::ResourceFilesComponent>();
+
+				for (const auto& entry : files->GetFileHashPairs())
+				{
+					resourceFiles[entry.first] = entry.second;
+				}
+
+				resources.push_back(json::object({
+					{ "name", resource->GetName() },
+					{ "files", resourceFiles },
+					{ "streamFiles", json::object() }
+				}));
+			});
+
 			return json::object({
 				{ "fileServer", "http://localhost:8000/files" },
-				{ "resources", json::array({
-					json::object({
-						{ "name", "spawnmanager" },
-						{ "files", {
-							{ "resource.rpf", "885154A635EA296DC168DC046089BEBA5140DC4E" }
-						}},
-						{ "streamFiles", json::object() }
-					}),
-
-					json::object({
-						{ "name", "fivem" },
-						{ "files",{
-							{ "resource.rpf", "713E007005A2651FDEA45AC2AFB1E1DEF44675BD" }
-						} },
-						{ "streamFiles",json::object() }
-					}),
-
-					json::object({
-						{ "name", "mapmanager" },
-						{ "files",{
-							{ "resource.rpf", "3D9461FAB8D5C138059C46CFF350CEC664B4560C" }
-						} },
-						{ "streamFiles",json::object() }
-					}),
-
-					json::object({
-						{ "name", "fivem-map-skater" },
-						{ "files",{
-							{ "resource.rpf", "7DDD435700B2B3DC7B90E42E922BEE6B132885B8" }
-						} },
-						{ "streamFiles",json::object() }
-					}),
-
-					json::object({
-						{ "name", "chat" },
-						{ "files",{
-							{ "resource.rpf", "8b53024682ccb8e49e4914b97cc31a9aec2a62d4" }
-						} },
-						{ "streamFiles",json::object() }
-			}),
-				})}
+				{ "resources", resources }
 			});
 		});
-	});
+	}, 5000);
 });

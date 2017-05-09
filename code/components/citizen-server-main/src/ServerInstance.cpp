@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -42,7 +42,7 @@ namespace fx
 			{
 				rootPath = boost::filesystem::canonical(optionParser->GetConfigFile());
 
-				m_rootPath = rootPath.string();
+				m_rootPath = rootPath.parent_path().string();
 			}
 			catch (std::exception& error)
 			{

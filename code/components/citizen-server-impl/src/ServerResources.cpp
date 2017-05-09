@@ -48,7 +48,6 @@ public:
 
 				resource = m_manager->CreateResource(fragRef->to_string());
 				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
-				resource->Start();
 			}
 		}
 
@@ -105,6 +104,66 @@ namespace fx
 
 DECLARE_INSTANCE_TYPE(fx::ServerInstanceBaseRef);
 
+static void ScanResources(fx::ServerInstanceBase* instance)
+{
+	auto resMan = instance->GetComponent<fx::ResourceManager>();
+
+	std::string resourceRoot(instance->GetRootPath() + "/resources/");
+
+	std::queue<std::string> pathsToIterate;
+	pathsToIterate.push(resourceRoot);
+
+	std::vector<concurrency::task<fwRefContainer<fx::Resource>>> tasks;
+
+	while (!pathsToIterate.empty())
+	{
+		std::string thisPath = pathsToIterate.front();
+		pathsToIterate.pop();
+
+		auto vfsDevice = vfs::GetDevice(thisPath);
+
+		vfs::FindData findData;
+		auto handle = vfsDevice->FindFirst(thisPath, &findData);
+
+		if (handle != INVALID_DEVICE_HANDLE)
+		{
+			do
+			{
+				if (findData.name[0] == '.')
+				{
+					continue;
+				}
+
+				// TODO(fxserver): non-win32
+				if (findData.attributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					std::string resPath(thisPath + "/" + findData.name);
+
+					// is this a category?
+					if (findData.name[0] == '[' && findData.name[findData.name.size() - 1] == ']')
+					{
+						pathsToIterate.push(resPath);
+					}
+					// it's a resource
+					else
+					{
+						tasks.push_back(resMan->AddResource(network::uri_builder{}
+							.scheme("file")
+							.host("")
+							.path(resPath)
+							.fragment(findData.name)
+							.uri().string()));
+					}
+				}
+			} while (vfsDevice->FindNext(handle, &findData));
+
+			vfsDevice->FindClose(handle);
+		}
+	}
+
+	concurrency::when_all(tasks.begin(), tasks.end()).wait();
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -118,8 +177,47 @@ static InitFunction initFunction([]()
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
 
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
-		resman->AddResource("file:///C:/cfx-server-data/resources/%5Bsystem%5D/spawnmanager#spawnmanager");
-		resman->AddResource("file:///C:/cfx-server-data/resources/%5Bsystem%5D/chat#chat");
+
+		instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
+		{
+			vfs::Mount(new vfs::RelativeDevice(instance->GetRootPath() + "/cache/"), "cache:/");
+
+			ScanResources(instance);
+
+			// start all auto-start resources
+			for (auto& child : pt.get_child("server"))
+			{
+				if (child.first != "resource")
+				{
+					continue;
+				}
+
+				auto resourceName = child.second.get_optional<std::string>("<xmlattr>.name").get_value_or(
+					child.second.get_value_optional<std::string>().get_value_or(
+						""
+					)
+				);
+
+				if (resourceName.empty())
+				{
+					continue;
+				}
+
+				auto resource = resman->GetResource(resourceName);
+
+				if (!resource.GetRef())
+				{
+					trace("^3Couldn't find auto-started resource %s.^7\n", resourceName);
+					continue;
+				}
+
+				if (!resource->Start())
+				{
+					trace("^3Couldn't start resource %s.^7\n", resourceName);
+					continue;
+				}
+			}
+		});
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerEvent"), std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
