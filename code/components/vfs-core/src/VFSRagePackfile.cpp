@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -87,6 +87,11 @@ namespace vfs
 
 	const RagePackfile::Entry* RagePackfile::FindEntry(const std::string& path)
 	{
+		if (path.find(".awc") != std::string::npos)
+		{
+			trace(".");
+		}
+
 		// first, remove the path prefix
 		std::string relativePath = path.substr(m_pathPrefix.length());
 

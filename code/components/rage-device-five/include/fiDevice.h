@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "sysAllocator.h"
 
@@ -88,7 +88,7 @@ public:
 
 	virtual uint64_t GetFileLengthLong(const char* fileName) = 0;
 
-	virtual uint32_t GetFileTime(const char* file) = 0;
+	virtual uint64_t GetFileTime(const char* file) = 0;
 	virtual bool SetFileTime(const char* file, FILETIME fileTime) = 0;
 
 	virtual uint64_t FindFirst(const char* path, fiFindData* findData) = 0;
@@ -122,9 +122,9 @@ public:
 
 	virtual int32_t m_zx(void*) = 0; // return 0x40000000
 
-	virtual bool IsBulkDevice() = 0;
+	virtual bool IsCollection() = 0;
 
-	virtual fiDevice* m_zz() = 0; // return this
+	virtual fiDevice* GetCollection() = 0; // return this
 
 	virtual bool m_ax() = 0;
 
@@ -201,7 +201,7 @@ public:
 
 	virtual uint64_t GetFileLengthLong(const char* fileName);
 
-	virtual uint32_t GetFileTime(const char* file);
+	virtual uint64_t GetFileTime(const char* file);
 	virtual bool SetFileTime(const char* file, FILETIME fileTime);
 
 	virtual uint64_t FindFirst(const char* path, fiFindData* findData);
@@ -235,9 +235,9 @@ public:
 
 	virtual int32_t m_zx(void*); // return 0x40000000
 
-	virtual bool IsBulkDevice();
+	virtual bool IsCollection();
 
-	virtual fiDevice* m_zz(); // return this
+	virtual fiDevice* GetCollection(); // return this
 
 	virtual bool m_ax();
 

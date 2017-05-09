@@ -153,14 +153,14 @@ int WRAPPER fiCustomDevice::m_zx(void* a)
 	return m_parentDeviceRef->m_zx(a);
 }
 
-bool WRAPPER fiCustomDevice::IsBulkDevice()
+bool WRAPPER fiCustomDevice::IsCollection()
 {
-	return m_parentDeviceRef->IsBulkDevice();
+	return m_parentDeviceRef->IsCollection();
 }
 
-fiDevice* WRAPPER fiCustomDevice::m_zz()
+fiDevice* WRAPPER fiCustomDevice::GetCollection()
 {
-	return m_parentDeviceRef->m_zz();
+	return m_parentDeviceRef->GetCollection();
 }
 
 bool WRAPPER fiCustomDevice::m_ax()

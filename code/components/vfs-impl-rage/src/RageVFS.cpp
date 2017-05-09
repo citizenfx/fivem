@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -60,7 +60,7 @@ public:
 
 	virtual int RemoveDirectory(const char* dir) override;
 
-	virtual uint32_t GetFileTime(const char* file) override;
+	virtual uint64_t GetFileTime(const char* file) override;
 
 	virtual bool SetFileTime(const char* file, FILETIME fileTime) override;
 
@@ -74,7 +74,10 @@ public:
 
 	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override
 	{
-		FatalError(__FUNCTION__ " not implemented");
+		version->flag1 = 0;
+		version->flag2 = 0;
+
+		trace(__FUNCTION__ " not implemented");
 
 		return 0;
 	}
@@ -84,7 +87,7 @@ public:
 		return 2;
 	}
 
-	virtual bool IsBulkDevice() override;
+	virtual bool IsCollection() override;
 
 	virtual const char* GetName() override
 	{
@@ -183,9 +186,12 @@ uint64_t RageVFSDeviceAdapter::SeekLong(uint64_t handle, int64_t distance, uint3
 	return m_cfxDevice->Seek(handle, distance, method);
 }
 
-uint32_t RageVFSDeviceAdapter::GetFileTime(const char* file)
+uint64_t RageVFSDeviceAdapter::GetFileTime(const char* file)
 {
-	return 0;
+	// returning 0 is bad because some subsystems use 0 as a sentinel value
+	// we return the modification time of README.txt on the GTA1 EU release:
+	// 1997-10-15T08:31:50Z
+	return 125213779100000000;
 }
 
 bool RageVFSDeviceAdapter::SetFileTime(const char* file, FILETIME fileTime)
@@ -297,7 +303,7 @@ public:
 
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 
-	bool IsBulkDevice();
+	bool IsCollection();
 };
 
 RageVFSDevice::RageVFSDevice(rage::fiDevice* device)
@@ -435,9 +441,9 @@ void RageVFSDevice::FindClose(THandle handle)
 	m_device->FindClose(handle);
 }
 
-bool RageVFSDevice::IsBulkDevice()
+bool RageVFSDevice::IsCollection()
 {
-	return m_device->IsBulkDevice();
+	return m_device->IsCollection();
 }
 
 void RageVFSDevice::SetPathPrefix(const std::string& pathPrefix)
@@ -457,13 +463,20 @@ bool RageVFSDevice::ExtensionCtl(int controlIdx, void* controlData, size_t contr
 	return false;
 }
 
-bool RageVFSDeviceAdapter::IsBulkDevice()
+bool RageVFSDeviceAdapter::IsCollection()
 {
-	auto rageDevice = dynamic_cast<RageVFSDevice*>(m_cfxDevice.GetRef());
-
-	if (rageDevice != nullptr)
+	try
 	{
-		return rageDevice->IsBulkDevice();
+		auto rageDevice = dynamic_cast<RageVFSDevice*>(m_cfxDevice.GetRef());
+
+		if (rageDevice != nullptr)
+		{
+			return rageDevice->IsCollection();
+		}
+	}
+	catch (std::bad_typeid)
+	{
+
 	}
 
 	return false;

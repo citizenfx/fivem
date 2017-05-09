@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -12,6 +12,8 @@
 #else
 #define VFS_CORE_EXPORT DLL_IMPORT
 #endif
+
+#include <ctime>
 
 namespace vfs
 {
@@ -63,6 +65,8 @@ public:
 	virtual size_t GetLength(THandle handle);
 
 	virtual size_t GetLength(const std::string& fileName);
+
+	virtual std::time_t GetModifiedTime(const std::string& fileName);
 
 	virtual THandle FindFirst(const std::string& folder, FindData* findData) = 0;
 

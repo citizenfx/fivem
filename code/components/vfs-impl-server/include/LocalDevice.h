@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <VFSDevice.h>
 
@@ -34,6 +34,8 @@ public:
 	virtual bool CreateDirectory(const std::string& name) override;
 
 	virtual bool RemoveDirectory(const std::string& name) override;
+
+	virtual std::time_t GetModifiedTime(const std::string& fileName) override;
 
 	virtual size_t GetLength(THandle handle) override;
 

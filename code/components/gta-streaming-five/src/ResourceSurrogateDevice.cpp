@@ -1,4 +1,4 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 
 #include <fiCustomDevice.h>
 
@@ -134,7 +134,7 @@ public:
 		return false;
 	}
 
-	virtual uint32_t GetFileTime(const char* file) override
+	virtual uint64_t GetFileTime(const char* file) override
 	{
 		return m_device->GetFileTime(m_fileName.c_str());
 	}
@@ -154,9 +154,9 @@ public:
 		return m_device->m_yx();
 	}
 
-	virtual bool IsBulkDevice() override
+	virtual bool IsCollection() override
 	{
-		return m_device->IsBulkDevice();
+		return m_device->IsCollection();
 	}
 
 	virtual const char* GetName() override

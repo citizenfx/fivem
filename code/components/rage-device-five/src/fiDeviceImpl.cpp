@@ -1,4 +1,4 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 #include "fiDevice.h"
 
 #include <Error.h>
@@ -108,7 +108,7 @@ uint64_t WRAPPER fiDeviceImplemented::GetFileLengthLong(const char* fileName)
 	PURECALL();
 }
 
-uint32_t WRAPPER fiDeviceImplemented::GetFileTime(const char* file)
+uint64_t WRAPPER fiDeviceImplemented::GetFileTime(const char* file)
 {
 	PURECALL();
 }
@@ -183,12 +183,12 @@ int WRAPPER fiDeviceImplemented::m_zx(void*)
 	PURECALL();
 }
 
-bool WRAPPER fiDeviceImplemented::IsBulkDevice()
+bool WRAPPER fiDeviceImplemented::IsCollection()
 {
 	PURECALL();
 }
 
-fiDevice* WRAPPER fiDeviceImplemented::m_zz()
+fiDevice* WRAPPER fiDeviceImplemented::GetCollection()
 {
 	PURECALL();
 }

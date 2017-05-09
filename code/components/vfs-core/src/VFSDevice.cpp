@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -58,6 +58,11 @@ bool Device::RemoveFile(const std::string& name)
 bool Device::RenameFile(const std::string& from, const std::string& to)
 {
 	return false;
+}
+
+std::time_t Device::GetModifiedTime(const std::string& fileName)
+{
+	return 0;
 }
 
 size_t Device::GetLength(const std::string& fileName)

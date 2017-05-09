@@ -1,4 +1,4 @@
-#include <StdInc.h>
+﻿#include <StdInc.h>
 #include <LocalDevice.h>
 
 #include <windows.h>
@@ -180,6 +180,27 @@ bool LocalDevice::RemoveDirectory(const std::string& name)
 	return ::RemoveDirectoryW(wideName.c_str()) != FALSE;
 }
 
+std::time_t LocalDevice::GetModifiedTime(const std::string& fileName)
+{
+	THandle handle = Open(fileName, true);
+	
+	if (handle != InvalidHandle)
+	{
+		FILETIME lastWriteTime;
+		GetFileTime(reinterpret_cast<HANDLE>(handle), nullptr, nullptr, &lastWriteTime);
+
+		Close(handle);
+
+		ULARGE_INTEGER li;
+		li.HighPart = lastWriteTime.dwHighDateTime;
+		li.LowPart = lastWriteTime.dwLowDateTime;
+
+		return li.QuadPart / 10000000ULL - 11644473600ULL;
+	}
+
+	return 0;
+}
+
 size_t LocalDevice::GetLength(THandle handle)
 {
 	DWORD highPortion;
@@ -190,7 +211,7 @@ size_t LocalDevice::GetLength(THandle handle)
 
 Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* findData)
 {
-	std::wstring wideName = ToWide(folder);
+	std::wstring wideName = ToWide(folder + "/*");
 
 	WIN32_FIND_DATA winFindData;
 	HANDLE hFind = FindFirstFile(wideName.c_str(), &winFindData);

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -889,7 +889,7 @@ public:
 		return PseudoCallContext(this)->GetFileLengthLong(fileName);
 	}
 
-	virtual uint32_t GetFileTime(const char* file)
+	virtual uint64_t GetFileTime(const char* file)
 	{
 		return PseudoCallContext(this)->GetFileTime(file);
 	}
@@ -986,12 +986,12 @@ public:
 		return PseudoCallContext(this)->m_zx(a1);
 	}
 
-	virtual bool IsBulkDevice()
+	virtual bool IsCollection()
 	{
-		return PseudoCallContext(this)->IsBulkDevice();
+		return PseudoCallContext(this)->IsCollection();
 	}
 
-	virtual fiDevice* m_zz() // return this
+	virtual fiDevice* GetCollection() // return this
 	{
 		return this;
 	}
@@ -1604,7 +1604,7 @@ bool CfxCollection::OpenPackfile(const char* archive, bool bTrue, int type, intp
 	// weird workaround for fiDeviceRelative not passing this through
 	bool isProxiedRelative = false;
 
-	/*if (baseDevice && !baseDevice->IsBulkDevice() && !strstr(archive, "dlcpacks:"))
+	/*if (baseDevice && !baseDevice->IsCollection() && !strstr(archive, "dlcpacks:"))
 	{
 		const char* mount = strstr(archive, ":/");
 
