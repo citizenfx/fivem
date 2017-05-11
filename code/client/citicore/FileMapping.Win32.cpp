@@ -108,6 +108,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
 		// lots of crashes occur in the DiscordApp overlay
 		moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
+		// HideMyIP, causes LoopbackTcpServer to crash
+		moduleNameStr.find(L"HMIPCore64.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
 		moduleNameStr.find(L"AM64-34121.dll") != std::string::npos
 	)
