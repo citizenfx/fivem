@@ -35,6 +35,18 @@ function Citizen.CreateThreadNow(threadFunction)
 	end
 end
 
+-- SetTimeout
+local timeouts = {}
+
+function Citizen.SetTimeout(msec, callback)
+	table.insert(threads, {
+		coroutine = coroutine.create(callback),
+		wakeTime = GetGameTimer() + msec
+	})
+end
+
+SetTimeout = Citizen.SetTimeout
+
 Citizen.SetTickRoutine(function()
 	local curTime = GetGameTimer()
 
