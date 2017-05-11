@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -64,17 +64,27 @@ ResourceState ResourceImpl::GetState()
 
 bool ResourceImpl::Start()
 {
-	if (m_state != ResourceState::Starting && m_state != ResourceState::Started)
+	if (m_state != ResourceState::Started)
 	{
-		m_state = ResourceState::Starting;
+		// skip the starting stage if we're already started
+		if (m_state != ResourceState::Starting)
+		{
+			m_state = ResourceState::Starting;
+
+			if (!OnBeforeStart())
+			{
+				m_state = ResourceState::Stopped;
+				return false;
+			}
+		}
+
+		m_state = ResourceState::Started;
 
 		if (!OnStart())
 		{
 			m_state = ResourceState::Stopped;
 			return false;
 		}
-
-		m_state = ResourceState::Started;
 	}
 
 	return true;

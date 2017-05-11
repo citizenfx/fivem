@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -81,6 +81,11 @@ public:
 	virtual ResourceManager* GetManager() = 0;
 
 public:
+	//
+	// An event to handle tasks to be performed before starting a resource.
+	//
+	fwEvent<> OnBeforeStart;
+
 	//
 	// An event to handle tasks to be performed when starting a resource.
 	//
