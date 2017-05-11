@@ -8,6 +8,8 @@ local natives = {}
 local curType
 local curNative
 
+local cfx = require('cfx')
+
 function codeEnvironment.type(typeName)
 	-- create a new type entry
 	types[typeName] = {
@@ -61,7 +63,8 @@ function codeEnvironment.native(nativeName)
 	-- create a new entry
 	local native = {
 		name = nativeName,
-		apiset = {}
+		apiset = {},
+		hash = ("0x%x"):format(cfx.hash(nativeName:lower()))
 	}
 
 	table.insert(natives, native)
