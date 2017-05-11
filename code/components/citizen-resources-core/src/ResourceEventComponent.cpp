@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -36,6 +36,22 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	m_managerComponent = m_resource->GetManager()->GetComponent<ResourceEventManagerComponent>().GetRef();
 
 	// start/stop handling events
+	object->OnBeforeStart.Connect([=] ()
+	{
+		// pack the resource name
+		msgpack::sbuffer buf;
+		msgpack::packer<msgpack::sbuffer> packer(buf);
+
+		// array of a single string
+		packer.pack_array(1);
+		packer.pack(m_resource->GetName());
+
+		// send the event out to the world
+		std::string event(buf.data(), buf.size());
+
+		return m_managerComponent->TriggerEvent("onResourceStarting", event);
+	}, -10000);
+
 	object->OnStart.Connect([=] ()
 	{
 		// pack the resource name
@@ -49,8 +65,9 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 		// send the event out to the world
 		std::string event(buf.data(), buf.size());
 
+		// on[type]ResourceStart is queued so that clients will only run it during the first tick
 		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStart", IsServer() ? "Server" : "Client"), event);
-		m_managerComponent->QueueEvent("onResourceStart", event);
+		m_managerComponent->TriggerEvent("onResourceStart", event);
 	});
 
 	object->OnStop.Connect([=] ()
@@ -67,7 +84,7 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 		std::string event(buf.data(), buf.size());
 
 		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStop", IsServer() ? "Server" : "Client"), event);
-		m_managerComponent->QueueEvent("onResourceStop", event);
+		m_managerComponent->TriggerEvent("onResourceStop", event);
 	});
 
 	object->OnTick.Connect([=] ()

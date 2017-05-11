@@ -123,7 +123,7 @@ public:
 	fwEvent<const std::string&, const std::string&, const std::string&> OnQueueEvent;
 
 	//
-	// Triggers an event immediately. Returns whether or not the event was canceled.
+	// Triggers an event immediately. Returns a value indicating whether the event was not canceled.
 	//
 	bool TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
 
