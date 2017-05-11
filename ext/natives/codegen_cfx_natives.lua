@@ -270,4 +270,45 @@ native 'GET_INSTANCE_ID'
 	apiset 'shared'
 	returns 'int'
 
+native 'SET_GAME_TYPE'
+	arguments {
+		charPtr 'gametypeName'
+	}
+	apiset 'server'
+	returns 'void'
+
+native 'SET_MAP_NAME'
+	arguments {
+		charPtr 'mapName'
+	}
+	apiset 'server'
+	returns 'void'
+
+native 'GET_NUM_RESOURCES'
+	arguments {
+	}
+	apiset 'shared'
+	returns 'int'
+
+native 'GET_RESOURCE_BY_FIND_INDEX'
+	arguments {
+		int 'findIndex'
+	}
+	apiset 'shared'
+	returns 'charPtr'
+
+native 'START_RESOURCE'
+	arguments {
+		charPtr 'resourceName'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
+native 'STOP_RESOURCE'
+	arguments {
+		charPtr 'resourceName'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
 -- TODO: handling field natives
