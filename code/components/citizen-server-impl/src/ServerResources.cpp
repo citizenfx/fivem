@@ -296,4 +296,34 @@ static InitFunction initFunction2([]()
 
 		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent(eventName, data, dataLen, targetSrc);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("START_RESOURCE", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+
+		bool success = false;
+
+		if (resource.GetRef())
+		{
+			success = resource->Start();
+		}
+
+		context.SetResult(success);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("STOP_RESOURCE", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+
+		bool success = false;
+
+		if (resource.GetRef())
+		{
+			success = resource->Stop();
+		}
+
+		context.SetResult(success);
+	});
 });
