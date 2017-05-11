@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -175,7 +175,7 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 		}
 	}
 
-	return concurrency::task<fwRefContainer<fx::Resource>>();
+	return concurrency::task_from_result(fwRefContainer<fx::Resource>());
 }
 
 void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size)
