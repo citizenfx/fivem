@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -9,6 +9,7 @@
 #include <ScriptEngine.h>
 
 #include <Resource.h>
+#include <ResourceManager.h>
 #include <fxScripting.h>
 
 static InitFunction initFunction([] ()
@@ -40,5 +41,46 @@ static InitFunction initFunction([] ()
 			false
 #endif
 		);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INSTANCE_ID", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			context.SetResult(runtime->GetInstanceId());
+		}
+		else
+		{
+			context.SetResult(0);
+		}
+	});
+
+	static std::vector<fx::Resource*> resources;
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_RESOURCES", [](fx::ScriptContext& context)
+	{
+		resources.clear();
+
+		auto manager = fx::ResourceManager::GetCurrent();
+		manager->ForAllResources([&] (fwRefContainer<fx::Resource> resource)
+		{
+			resources.push_back(resource.GetRef());
+		});
+
+		context.SetResult(resources.size());
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_BY_FIND_INDEX", [](fx::ScriptContext& context)
+	{
+		int i = context.GetArgument<int>(0);
+		if (i < 0 || i >= resources.size())
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+		context.SetResult(resources[i]->GetName().c_str());
 	});
 });
