@@ -46,6 +46,8 @@ class
 
 	virtual bool RemoveDirectory(const std::string& name) override;
 
+	virtual std::time_t GetModifiedTime(const std::string& fileName) override;
+
 	virtual size_t GetLength(THandle handle) override;
 
 	virtual size_t GetLength(const std::string& fileName) override;

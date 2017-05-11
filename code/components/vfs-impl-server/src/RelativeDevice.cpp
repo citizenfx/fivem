@@ -85,6 +85,11 @@ bool RelativeDevice::RemoveDirectory(const std::string& name)
 	return m_otherDevice->RemoveDirectory(TranslatePath(name));
 }
 
+std::time_t RelativeDevice::GetModifiedTime(const std::string& fileName)
+{
+	return m_otherDevice->GetModifiedTime(TranslatePath(fileName));
+}
+
 size_t RelativeDevice::GetLength(THandle handle)
 {
 	return m_otherDevice->GetLength(handle);
