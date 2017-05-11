@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <ClientRegistry.h>
 
@@ -66,7 +66,7 @@ namespace fx
 		}
 
 	public:
-		using THostPtr = std::unique_ptr<ENetHost, enet_deleter<&enet_host_destroy>>;
+		using THostPtr = std::unique_ptr<ENetHost, enet_deleter<enet_host_destroy>>;
 
 		std::vector<THostPtr> hosts;
 

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <NetAddress.h>
 #include <NetBuffer.h>
@@ -92,6 +92,6 @@ namespace fx
 		std::string m_name;
 
 		// the client's ENet peer
-		std::unique_ptr<ENetPeer, enet_deleter2<&enet_peer_reset>> m_peer;
+		std::unique_ptr<ENetPeer, enet_deleter2<enet_peer_reset>> m_peer;
 	};
 }
