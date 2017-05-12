@@ -20,7 +20,7 @@ template<typename THolder>
 class ComponentHolder
 {
 private:
-	template<bool value>
+	template<bool value, bool = true>
 	struct AttachToImpl
 	{
 		template<typename TInstance>
@@ -30,8 +30,8 @@ private:
 		}
 	};
 
-	template<>
-	struct AttachToImpl<true>
+	template<bool dummy>
+	struct AttachToImpl<true, dummy>
 	{
 		template<typename TInstance>
 		static void Run(TInstance* inst, THolder* holder)
@@ -62,7 +62,7 @@ public:
 	void SetComponent(fwRefContainer<TInstance> inst)
 	{
 		// attach to this resource if the component supports attaching
-		AttachToImpl<std::is_base_of_v<IAttached<THolder>, TInstance>>::Run(inst.GetRef(), static_cast<THolder*>(this));
+		AttachToImpl<std::is_base_of<IAttached<THolder>, TInstance>::value>::Run(inst.GetRef(), static_cast<THolder*>(this));
 
 		Instance<TInstance>::Set(inst, this->GetInstanceRegistry());
 	}
@@ -71,7 +71,7 @@ public:
 	// Utility function to set a non-refcontainer (constructed?) instance of a particular interface in the instance registry.
 	//
 	template<typename TInstance>
-	std::enable_if_t<std::is_base_of_v<fwRefCountable, TInstance>> SetComponent(TInstance*&& inst)
+	std::enable_if_t<std::is_base_of<fwRefCountable, TInstance>::value> SetComponent(TInstance*&& inst)
 	{
 		SetComponent(fwRefContainer<TInstance>(inst));
 	}

@@ -33,7 +33,8 @@ public:
 			std::ifstream serverKeyStream(serverKey);
 			std::ifstream serverCertStream(serverCert);
 
-			m_key.reset(Botan::PKCS8::load_key(Botan::DataSource_Stream(serverKeyStream), rng));
+			Botan::DataSource_Stream ds(serverKeyStream);
+			m_key.reset(Botan::PKCS8::load_key(ds, rng));
 
 			Botan::DataSource_Stream in(serverCertStream);
 

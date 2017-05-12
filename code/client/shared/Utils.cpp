@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -117,7 +117,6 @@ void DoNtRaiseException(EXCEPTION_RECORD* record)
 		OutputDebugStringA((char*)&threw);
 	}
 }
-#endif
 
 struct SharedTickCount
 {
@@ -238,6 +237,7 @@ static void RaiseDebugException(const char* buffer, size_t length)
 		OutputDebugStringA(buffer);
 	}
 }
+#endif
 
 void trace(const char* string, const fmt::ArgList& formatList)
 {
@@ -252,6 +252,7 @@ void trace(const char* string, const fmt::ArgList& formatList)
 		buffer = fmt::sprintf("fmt::FormatError while formatting %s: %s\n", string, e.what());
 	}
 
+#ifdef _WIN32
 	static CRITICAL_SECTION dbgCritSec;
 
 	if (!dbgCritSec.DebugInfo)
@@ -259,7 +260,6 @@ void trace(const char* string, const fmt::ArgList& formatList)
 		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
 	}
 
-#ifdef _WIN32
 	if (CoreIsDebuggerPresent())
 	{
 		// thanks to anti-debug workarounds (IsBeingDebugged == FALSE), we'll have to raise the exception to the debugger ourselves.
@@ -278,11 +278,11 @@ void trace(const char* string, const fmt::ArgList& formatList)
 	{
 		printf("%s", buffer.c_str());
 	}
+
+	PerformFileLog(buffer.c_str());
 #else
 	printf("%s", buffer.c_str());
 #endif
-
-	PerformFileLog(buffer.c_str());
 }
 
 fwString url_encode(const fwString &value)

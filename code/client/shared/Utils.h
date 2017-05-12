@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -252,7 +252,7 @@ std::string ToNarrow(const std::wstring& wide);
 #ifdef COMPILING_CORE
 extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();
 extern "C" void DLL_EXPORT CoreSetDebuggerPresent();
-#else
+#elif _WIN32
 inline bool CoreIsDebuggerPresent()
 {
     static bool(*func)();
@@ -275,6 +275,16 @@ inline void CoreSetDebuggerPresent()
     }
 
     (func) ? func() : 0;
+}
+#else
+inline bool CoreIsDebuggerPresent()
+{
+	return false;
+}
+
+inline void CoreSetDebuggerPresent()
+{
+
 }
 #endif
 
@@ -316,6 +326,7 @@ struct MinMax<TValue, std::enable_if_t<std::is_integral<TValue>::value>>
 	}
 };
 
+#ifdef _MSC_VER
 template<>
 struct MinMax<float>
 {
@@ -347,6 +358,7 @@ struct MinMax<double>
 		return a;
 	}
 };
+#endif
 
 template<typename T>
 inline T min(T a, T b)

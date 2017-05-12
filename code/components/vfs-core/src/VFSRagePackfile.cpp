@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -52,7 +52,7 @@ namespace vfs
 
 		if (m_parentDevice->ReadBulk(m_parentHandle, m_parentPtr, &m_header, sizeof(m_header)) != sizeof(m_header))
 		{
-			trace(__FUNCTION__ ": ReadBulk of header failed\n");
+			trace("%s: ReadBulk of header failed\n", __func__);
 
 			return false;
 		}
@@ -60,7 +60,7 @@ namespace vfs
 		// verify if the header magic is, in fact, RPF2 and it's non-encrypted
 		if (m_header.magic != 0x32465052 || m_header.cryptoFlag != 0)
 		{
-			trace(__FUNCTION__ ": only non-encrypted RPF2 is supported\n");
+			trace("%s: only non-encrypted RPF2 is supported\n", __func__);
 
 			return false;
 		}

@@ -47,7 +47,7 @@ inline guid_t GetNullGuid()
 // GUID equivalence testing
 inline bool GuidEquals(const guid_t* left, const guid_t* right)
 {
-	static_assert(std::is_pod_v<guid_t>, "guid isn't a POD type");
+	static_assert(std::is_pod<guid_t>::value, "guid isn't a POD type");
 
 	return (memcmp(left, right, sizeof(guid_t)) == 0);
 }

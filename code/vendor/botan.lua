@@ -1,6 +1,8 @@
 -- tinyxml2 with static runtime, as used for launcher
 return {
 	include = function()
+		defines { "BOTAN_DLL=" }
+
 		includedirs "vendor/botan/include/"
 	end,
 
@@ -8,13 +10,26 @@ return {
 		language "C++"
 		kind "SharedLib"
 
-		defines { "BOTAN_DLL=__declspec(dllexport)" }
+		if os.is('windows') then
+			defines { "BOTAN_DLL=__declspec(dllexport)" }
 
-		buildoptions '/bigobj'
+			buildoptions '/bigobj'
+		else
+			defines { "BOTAN_DLL=" }
 
-		files {
-			"vendor/botan/src/*.cpp",
-			"vendor/botan/src/*.h"
-		}
+			buildoptions { '-msse', '-msse2' }
+		end
+
+		if os.is('windows') then
+			files {
+				"vendor/botan/src/*.cpp",
+				"vendor/botan/src/*.h"
+			}
+		elseif os.is('linux') then
+			files {
+				"vendor/botan/src/linux/*.cpp",
+				"vendor/botan/src/linux/*.h"
+			}
+		end
 	end
 }

@@ -46,12 +46,6 @@ public:
 	}
 
 	template<typename TReceiver>
-	void AddHandlers(const TReceiver& receiver)
-	{
-		AddTo(m_handlers, receiver);
-	}
-
-	template<typename TReceiver>
 	void AddComponents(const TReceiver& receiver)
 	{
 		AddTo(m_components, receiver);
@@ -78,7 +72,7 @@ public:
 	template<typename TComponent, typename... TArgs>
 	void RegisterComponent(TArgs... args)
 	{
-		m_components.push_back(std::make_pair(Instance<TComponent>::GetName(), new TComponent(Args...)));
+		m_components.push_back(std::make_pair(Instance<TComponent>::GetName(), new TComponent(args...)));
 	}
 };
 

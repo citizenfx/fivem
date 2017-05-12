@@ -7,13 +7,3 @@
 
 #include "StdInc.h"
 #include "ComponentLoader.h"
-
-void* fwAlloc(size_t size)
-{
-	return malloc(size);
-}
-
-void fwFree(void* ptr)
-{
-	return free(ptr);
-}

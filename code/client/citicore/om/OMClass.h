@@ -41,7 +41,7 @@ private:
 	class RefCount
 	{
 	private:
-		uint32_t m_count;
+		std::atomic<int32_t> m_count;
 
 	public:
 		RefCount()
@@ -49,7 +49,7 @@ private:
 		{
 		}
 
-		inline uint32_t& GetCount()
+		inline std::atomic<int32_t>& GetCount()
 		{
 			return m_count;
 		}
@@ -68,7 +68,7 @@ protected:
 	virtual ~OMClass() {}
 
 private:
-	void* operator new(size_t size)
+	void* operator new(size_t size) noexcept
 	{
 		return nullptr;
 	}
@@ -79,10 +79,10 @@ private:
 	}
 
 public:
-	template<typename TClass, typename... TArg>
-	friend OMPtr<TClass> MakeNew(TArg...);
+	template<typename TNewClass, typename... TArg>
+	friend OMPtr<TNewClass> MakeNew(TArg...);
 
-	template<typename TClass, typename... TArg>
+	template<typename TNewClass, typename... TArg>
 	friend fxIBase* MakeNewBase(TArg...);
 
 public:
@@ -127,12 +127,12 @@ public:
 		}
 #endif
 
-        return InterlockedIncrement(&m_refCount.GetCount());
+		return m_refCount.GetCount().fetch_add(1) + 1;
 	}
 
 	virtual uint32_t Release() override
 	{
-        auto c = InterlockedDecrement(&m_refCount.GetCount());
+        auto c = m_refCount.GetCount().fetch_sub(1) - 1;
 
 		if (c <= 0)
 		{

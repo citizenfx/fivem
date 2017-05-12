@@ -16,7 +16,9 @@ component 'profiles'
 if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-main'
 	component 'citizen-server-net'
-	component 'citizen-ssh-server'
+	if os.is('windows') then
+		component 'citizen-ssh-server'
+	end
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'
 	component 'conhost-server'
@@ -26,6 +28,9 @@ else
 	component 'tool-formats'
 	component 'rage-formats-x'
 	component 'conhost-v2'
+
+	component 'citizen-legacy-net-resources'
+	component 'citizen-resources-client'
 end
 
 component 'net-base'
@@ -57,8 +62,6 @@ component 'citizen-scripting-core'
 component 'citizen-scripting-lua'
 component 'citizen-playernames-five'
 component 'scripting-gta'
-component 'citizen-legacy-net-resources'
-component 'citizen-resources-client'
 component 'gta-game-five'
 component 'citizen-scripting-v8'
 component 'handling-loader-five'

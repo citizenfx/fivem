@@ -24,8 +24,11 @@ vendor_component 'imgui'
 vendor_component 'enet'
 vendor_component 'tbb'
 
+vendor_component 'boost_program_options'
+vendor_component 'boost_filesystem'
+vendor_component 'boost_random'
+vendor_component 'boost_system'
+
 if os.get() == 'windows' then
-	vendor_component 'boost_program_options'
-	vendor_component 'boost_filesystem'
 	vendor_component 'minhook' -- r
 end

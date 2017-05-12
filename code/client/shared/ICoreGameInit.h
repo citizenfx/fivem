@@ -9,6 +9,7 @@
 
 #include <shared_mutex>
 
+#ifndef IS_FXSERVER
 class ICoreGameInit
 {
 public:
@@ -86,3 +87,4 @@ public:
 };
 
 DECLARE_INSTANCE_TYPE(ICoreGameInit);
+#endif

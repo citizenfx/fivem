@@ -58,7 +58,7 @@ bool ServerComponentInstance::Shutdown()
 	return true;
 }
 
-extern "C" __declspec(dllexport) Component* CreateComponent()
+extern "C" DLL_EXPORT Component* CreateComponent()
 {
 	return new ServerComponentInstance();
 }

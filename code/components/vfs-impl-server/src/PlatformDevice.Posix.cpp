@@ -1,5 +1,5 @@
 #include <StdInc.h>
-#include <vfs/LocalDevice.h>
+#include <LocalDevice.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -7,8 +7,6 @@
 #include <dirent.h>
 #include <fcntl.h>
 
-namespace krt
-{
 namespace vfs
 {
 Device::THandle LocalDevice::Open(const std::string& fileName, bool readOnly)
@@ -160,7 +158,6 @@ bool LocalDevice::FindNext(THandle handle, FindData* findData)
 void LocalDevice::FindClose(THandle handle)
 {
 	closedir(reinterpret_cast<DIR*>(handle));
-}
 }
 }
 

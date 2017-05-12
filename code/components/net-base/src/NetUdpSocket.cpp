@@ -35,7 +35,7 @@ bool UdpSocket::Bind(const PeerAddress& localAddress)
 {
 	if (localAddress.GetAddressFamily() != (int)m_addressFamily)
 	{
-		trace("Failed to bind socket - address family %d does not match %d.\n", m_addressFamily, localAddress.GetAddressFamily());
+		trace("Failed to bind socket - address family %d does not match %d.\n", (int)m_addressFamily, localAddress.GetAddressFamily());
 		return false;
 	}
 

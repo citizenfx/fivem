@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -14,6 +14,10 @@
 #endif
 
 #include <ctime>
+
+#ifndef FILE_ATTRIBUTE_DIRECTORY
+#define FILE_ATTRIBUTE_DIRECTORY 0x10
+#endif
 
 namespace vfs
 {

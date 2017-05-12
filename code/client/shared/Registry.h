@@ -61,13 +61,21 @@ using RefInstanceRegistry = InstanceRegistryBase<fwRefContainer<fwRefCountable>>
 #ifdef COMPILING_CORE
 extern "C" CORE_EXPORT InstanceRegistry* CoreGetGlobalInstanceRegistry();
 #else
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
 inline auto CoreGetGlobalInstanceRegistry()
 {
     static struct RefSource
     {
         RefSource()
         {
+#ifdef _WIN32
             auto func = (InstanceRegistry*(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreGetGlobalInstanceRegistry");
+#else
+			auto func = (InstanceRegistry*(*)())dlsym(dlopen("./libCoreRT.so", RTLD_LAZY), "CoreGetGlobalInstanceRegistry");
+#endif
             
             this->registry = func();
         }
@@ -136,6 +144,12 @@ public:
 	}
 };
 
+#ifdef _MSC_VER
+#define SELECT_ANY __declspec(selectany)
+#else
+#define SELECT_ANY inline
+#endif
+
 #define DECLARE_INSTANCE_TYPE(name) \
-	template<> __declspec(selectany) const char* ::Instance<name>::ms_name = #name; \
-	template<> __declspec(selectany) name* ::Instance<name>::ms_cachedInstance = nullptr;
+	template<> SELECT_ANY const char* ::Instance<name>::ms_name = #name; \
+	template<> SELECT_ANY name* ::Instance<name>::ms_cachedInstance = nullptr;

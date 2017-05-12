@@ -16,5 +16,7 @@ bool CoreIsDebuggerPresent()
 
 void CoreSetDebuggerPresent()
 {
+#ifdef _WIN32
 	g_isDebuggerPresent = IsDebuggerPresent();
+#endif
 }

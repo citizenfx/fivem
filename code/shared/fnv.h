@@ -32,12 +32,12 @@ struct fnv1a_impl
 
 	inline TInteger operator()(const std::string& buffer) const noexcept
 	{
-		return ProcessUnrolled<sizeof(size_t)>(buffer.c_str(), buffer.length(), Seed);
+		return Process(buffer.c_str(), buffer.length(), Seed);
 	}
 
 	inline TInteger operator()(const void* buffer, size_t length) const noexcept
 	{
-		return ProcessUnrolled<sizeof(size_t)>(buffer, length, Seed);
+		return Process(buffer, length, Seed);
 	}
 
 	constexpr inline TInteger operator()(const char* const buffer) const noexcept
@@ -73,33 +73,6 @@ private:
 		}
 
 		return hash;
-	}
-
-	template<size_t Unroll>
-	TInteger ProcessUnrolled(const void* buffer, size_t length, TInteger hash) const noexcept
-	{
-		auto data = static_cast<const uint8_t*>(buffer);
-
-		while (length >= Unroll)
-		{
-			hash = Process(data, Unroll, hash);
-			data += Unroll;
-			length -= Unroll;
-		}
-
-		return Process(data, length, hash);
-	}
-
-	template<>
-	inline TInteger ProcessUnrolled<0>(const void* buffer, size_t length, TInteger hash) const noexcept
-	{
-		return Process(buffer, length, hash);
-	}
-
-	template<>
-	inline TInteger ProcessUnrolled<1>(const void* buffer, size_t length, TInteger hash) const noexcept
-	{
-		return Process(buffer, length, hash);
 	}
 };
 

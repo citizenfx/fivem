@@ -20,7 +20,6 @@ typedef SOCKET PlatformSocketType;
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <linux/in6.h> // FIXME for BSD
 
 typedef int PlatformSocketType;
 

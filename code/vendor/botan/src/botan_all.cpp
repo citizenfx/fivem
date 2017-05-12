@@ -4244,7 +4244,7 @@ std::string base64_encode(const uint8_t input[],
 
    size_t consumed = 0;
    size_t produced = 0;
-   
+
    if (output_length > 0)
    {
       produced = base64_encode(&output.front(),
@@ -16959,7 +16959,7 @@ ECIES_Encryptor::ECIES_Encryptor(const PK_Key_Agreement_Key& private_key,
    {
    if(ecies_params.compression_type() != PointGFp::UNCOMPRESSED)
       {
-      // ISO 18033: step d 
+      // ISO 18033: step d
       // convert only if necessary; m_eph_public_key_bin has been initialized with the uncompressed format
       m_eph_public_key_bin = unlock(EC2OSP(OS2ECP(m_eph_public_key_bin, m_params.domain().get_curve()),
                                            static_cast<uint8_t>(ecies_params.compression_type())));
@@ -17073,7 +17073,7 @@ secure_vector<uint8_t> ECIES_Decryptor::do_decrypt(uint8_t& valid_mask, const ui
       throw Decoding_Error("ECIES decryption: received public key is not on the curve");
       }
 
-   // ISO 18033: step e (and step f because get_affine_x (called by ECDH_KA_Operation::raw_agree) 
+   // ISO 18033: step e (and step f because get_affine_x (called by ECDH_KA_Operation::raw_agree)
    // throws Illegal_Transformation if the point is zero)
    const SymmetricKey secret_key = m_ka.derive_secret(other_public_key_bin, other_public_key);
 
@@ -17098,7 +17098,7 @@ secure_vector<uint8_t> ECIES_Decryptor::do_decrypt(uint8_t& valid_mask, const ui
          {
          cipher->start(m_iv.bits_of());
          }
-      
+
       try
          {
          // the decryption can fail:
@@ -17283,7 +17283,7 @@ bool ECKCDSA_Verification_Operation::verify(const uint8_t msg[], size_t,
    xor_buf(r_xor_e, msg, r.size());
    BigInt w(r_xor_e.data(), r_xor_e.size());
    w = m_mod_order.reduce(w);
-   
+
    const PointGFp q = multi_exponentiate(m_base_point, w, m_public_point, s);
    const BigInt q_x = q.get_affine_x();
    secure_vector<uint8_t> c(q_x.bytes());
@@ -17568,8 +17568,8 @@ secure_vector<uint8_t> OAEP::unpad(uint8_t& valid_mask,
 
    Also have to be careful about timing attacks! Pointed out by Falko
    Strenzke.
-    
-   According to the standard (Section 7.1.1), the encryptor always 
+
+   According to the standard (Section 7.1.1), the encryptor always
    creates a message as follows:
       i. Concatenate a single octet with hexadecimal value 0x00,
          maskedSeed, and maskedDB to form an encoded message EM of
@@ -17580,7 +17580,7 @@ secure_vector<uint8_t> OAEP::unpad(uint8_t& valid_mask,
    */
 
    uint8_t skip_first = CT::is_zero<uint8_t>(in[0]) & 0x01;
-   
+
    secure_vector<uint8_t> input(in + skip_first, in + in_length);
 
    CT::poison(input.data(), input.size());
@@ -42790,7 +42790,7 @@ System_RNG_Impl::System_RNG_Impl()
 #endif
 
    m_fd = ::open(BOTAN_SYSTEM_RNG_DEVICE, O_RDWR | O_NOCTTY);
-   
+
    // Cannot open in read-write mode. Fall back to read-only
    // Calls to add_entropy will fail, but randomize will work
    if(m_fd < 0)
@@ -49285,7 +49285,7 @@ void Policy::check_peer_key_acceptable(const Public_Key& public_key) const
 
    if(keylength < expected_keylength)
       throw TLS_Exception(Alert::INSUFFICIENT_SECURITY,
-                          "Peer sent " + 
+                          "Peer sent " +
                            std::to_string(keylength) + " bit " + algo_name + " key"
                            ", policy requires at least " +
                            std::to_string(expected_keylength));
@@ -49312,7 +49312,7 @@ bool Policy::send_fallback_scsv(Protocol_Version version) const
 bool Policy::acceptable_protocol_version(Protocol_Version version) const
    {
    // Uses boolean optimization:
-   // First check the current version (left part), then if it is allowed 
+   // First check the current version (left part), then if it is allowed
    // (right part)
    // checks are ordered according to their probability
    return (
@@ -50232,14 +50232,14 @@ bool check_for_resume(Session& session_info,
    // Checking encrypt_then_mac on resume (RFC 7366 section 3.1)
    if( !client_hello->supports_encrypt_then_mac() && session_info.supports_encrypt_then_mac())
       {
-      
+
       /*
       Client previously negotiated session with Encrypt-then-MAC,
       but has now attempted to resume without the extension: abort
       */
       throw TLS_Exception(Alert::HANDSHAKE_FAILURE,
                              "Client resumed Encrypt-then-MAC session without sending extension");
-         
+
       }
 
    return true;
@@ -51960,46 +51960,46 @@ size_t TLS_CBC_HMAC_AEAD_Decryption::output_length(size_t) const
    }
 
 /*
-* This function performs additional compression calls in order 
-* to protect from the Lucky 13 attack. It adds new compression 
+* This function performs additional compression calls in order
+* to protect from the Lucky 13 attack. It adds new compression
 * function calls over dummy data, by computing additional HMAC updates.
 *
 * The countermeasure was described (in a similar way) in the Lucky 13 paper.
-* 
+*
 * Background:
 * - One SHA-1/SHA-256 compression is performed with 64 bytes of data.
 * - HMAC adds 8 byte length field and padding (at least 1 byte) so that we have:
 *   - 0 - 55 bytes: 1 compression
 *   - 56 - 55+64 bytes: 2 compressions
 *   - 56+64 - 55+2*64 bytes: 3 compressions ...
-* - For SHA-384, this works similarly, but we have 128 byte blocks and 16 byte 
+* - For SHA-384, this works similarly, but we have 128 byte blocks and 16 byte
 *   long length field. This results in:
 *   - 0 - 111 bytes: 1 compression
 *   - 112 - 111+128 bytes: 2 compressions ...
-* 
+*
 * The implemented countermeasure works as follows:
 * 1) It computes max_compressions: number of maximum compressions performed on
 *    the decrypted data
-* 2) It computes current_compressions: number of compressions performed on the 
+* 2) It computes current_compressions: number of compressions performed on the
 *    decrypted data, after padding has been removed
-* 3) If current_compressions != max_compressions: It invokes an HMAC update 
-*    over dummy data so that (max_compressions - current_compressions) 
+* 3) If current_compressions != max_compressions: It invokes an HMAC update
+*    over dummy data so that (max_compressions - current_compressions)
 *    compressions are performed. Otherwise, it invokes an HMAC update so that
 *    no compressions are performed.
-* 
+*
 * Note that the padding validation in Botan is always performed over
 * min(plen,256) bytes, see the function check_tls_padding. This differs
 * from the countermeasure described in the paper.
-* 
+*
 * Note that the padding length padlen does also count the last byte
 * of the decrypted plaintext. This is different from the Lucky 13 paper.
-* 
-* This countermeasure leaves a difference of about 100 clock cycles (in 
+*
+* This countermeasure leaves a difference of about 100 clock cycles (in
 * comparison to >1000 clock cycles observed without it).
-* 
+*
 * plen represents the length of the decrypted plaintext message P
 * padlen represents the padding length
-* 
+*
 */
 void TLS_CBC_HMAC_AEAD_Decryption::perform_additional_compressions(size_t plen, size_t padlen)
    {
@@ -52018,7 +52018,7 @@ void TLS_CBC_HMAC_AEAD_Decryption::perform_additional_compressions(size_t plen, 
    // number of maximum MACed bytes
    const uint16_t L1 = 13 + plen - tag_size();
    // number of current MACed bytes (L1 - padlen)
-   // Here the Lucky 13 paper is different because the padlen length in the paper 
+   // Here the Lucky 13 paper is different because the padlen length in the paper
    // does not count the last message byte.
    const uint16_t L2 = 13 + plen - padlen - tag_size();
    // From the paper, for SHA-256/SHA-1 compute: ceil((L1-55)/64) and ceil((L2-55)/64)
@@ -54233,7 +54233,7 @@ size_t get_memory_locking_limit()
 
    // According to Microsoft MSDN:
    // The maximum number of pages that a process can lock is equal to the number of pages in its minimum working set minus a small overhead
-   // In the book "Windows Internals Part 2": the maximum lockable pages are minimum working set size - 8 pages 
+   // In the book "Windows Internals Part 2": the maximum lockable pages are minimum working set size - 8 pages
    // But the information in the book seems to be inaccurate/outdated
    // I've tested this on Windows 8.1 x64, Windows 10 x64 and Windows 7 x86
    // On all three OS the value is 11 instead of 8
@@ -61934,7 +61934,7 @@ void XTEA::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
 
       store_be(out + 4*BLOCK_SIZE*i, L0, R0, L1, R1, L2, R2, L3, R3);
       }
-      
+
    BOTAN_PARALLEL_FOR(size_t i = 0; i < blocks_left; ++i)
       {
       uint32_t L, R;
@@ -61980,7 +61980,7 @@ void XTEA::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
 
       store_be(out + 4*BLOCK_SIZE*i, L0, R0, L1, R1, L2, R2, L3, R3);
       }
-      
+
    BOTAN_PARALLEL_FOR(size_t i = 0; i < blocks_left; ++i)
       {
       uint32_t L, R;

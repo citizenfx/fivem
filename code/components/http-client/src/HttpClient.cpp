@@ -252,9 +252,7 @@ void HttpClient::DoGetRequest(const std::wstring& host, uint16_t port, const std
 {
 	auto urlStr = MakeURL(host, port, url);
 	
-	CURL* curlHandle;
-	CurlData* curlData;
-	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+	auto [curlHandle, curlData] = SetupCURLHandle(urlStr, callback);
 
 	m_impl->AddCurlHandle(curlHandle);
 }
@@ -274,9 +272,7 @@ void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const st
 	auto urlStr = MakeURL(host, port, url);
 
 	// make handle
-	CURL* curlHandle;
-	CurlData* curlData;
-	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+	auto [curlHandle, curlData] = SetupCURLHandle(urlStr, callback);
 
 	// assign post data
 	curlData->postData = postData;

@@ -4,6 +4,8 @@
 
 		links { "Shared", "CitiCore" }
 
+		add_dependencies { 'vendor:fmtlib' }
+
 		includedirs
 		{
 			"../../client/citicore/",

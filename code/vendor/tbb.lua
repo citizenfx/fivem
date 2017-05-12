@@ -49,6 +49,9 @@ return {
 			"src/tbb/tbb_main.cpp"
 		}
 
+		filter { 'system:not windows' }
+			defines { 'USE_PTHREAD' }
+
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
 	end

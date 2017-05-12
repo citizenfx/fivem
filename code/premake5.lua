@@ -40,9 +40,9 @@ workspace "CitizenMP"
 	characterset "Unicode"
 
 	flags { "No64BitChecks" }
-	
+
 	flags { "NoIncrementalLink", "NoEditAndContinue", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
-	
+
 	includedirs {
 		"shared/",
 		"client/shared/",
@@ -52,7 +52,7 @@ workspace "CitizenMP"
 		"deplibs/include/",
 		os.getenv("BOOST_ROOT")
 	}
-	
+
 	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
 	defines { "_HAS_AUTO_PTR_ETC" } -- until boost gets fixed
@@ -61,9 +61,11 @@ workspace "CitizenMP"
 
 	location ((_OPTIONS['builddir'] or "build/") .. _OPTIONS['game'])
 
-	buildoptions '/std:c++latest'
+	if os.is('windows') then
+		buildoptions '/std:c++latest'
 
-	systemversion '10.0.15063.0'
+		systemversion '10.0.15063.0'
+	end
 
 	-- special build dirs for FXServer
 	if _OPTIONS['game'] == 'server' then
@@ -71,7 +73,7 @@ workspace "CitizenMP"
 		architecture 'x64'
 		defines 'IS_FXSERVER'
 	end
-	
+
 	-- debug output
 	configuration "Debug*"
 		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/debug")
@@ -81,13 +83,15 @@ workspace "CitizenMP"
 		defines { '_ITERATOR_DEBUG_LEVEL=0' }
 
 		-- allow one level of inlining
-		buildoptions '/Ob1'
+		if os.is('windows') then
+			buildoptions '/Ob1'
+		end
 
 		-- special path for server
 		if _OPTIONS['game'] == 'server' then
 			targetdir ("bin/server/" .. os.get() .. "/debug")
 		end
-		
+
 	-- release output
 	configuration "Release*"
 		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/release")
@@ -97,7 +101,7 @@ workspace "CitizenMP"
 		if _OPTIONS['game'] == 'server' then
 			targetdir ("bin/server/" .. os.get() .. "/release")
 		end
-		
+
 	configuration "game=five"
 		architecture 'x64'
 		defines "GTA_FIVE"
@@ -110,7 +114,7 @@ workspace "CitizenMP"
 			"-fPIC", -- required to link on AMD64
 		}
 
-		links { "c++" }
+		--links { "c++" }
 
 	-- TARGET: launcher
 	if _OPTIONS['game'] ~= 'server' then
@@ -131,18 +135,18 @@ if _OPTIONS['game'] ~= 'server' then
 		kind "SharedLib"
 
 		includedirs { 'client/citicore/' }
-		
+
 		files
 		{
 			"client/common/Error.cpp",
 			"client/citigame/Launcher.cpp",
 			"client/common/StdInc.cpp"
 		}
-		
+
 		links { "Shared", "citicore" }
-		
+
 		defines "COMPILING_GAME"
-		
+
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 end
@@ -172,21 +176,21 @@ end
 	include "client/shared"
 
 	group "vendor"
-		
+
 if _OPTIONS['game'] ~= 'server' then
 	project "libcef_dll"
 		targetname "libcef_dll_wrapper"
 		language "C++"
 		kind "StaticLib"
-		
+
 		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32", "WRAPPING_CEF_SHARED" }
-		
+
 		flags { "NoIncrementalLink", "NoMinimalRebuild" }
-		
+
 		includedirs { ".", "../vendor/cef" }
-		
+
 		buildoptions "/MP"
-		
+
 		files
 		{
 			"../vendor/cef/libcef_dll/**.cc",
@@ -194,7 +198,7 @@ if _OPTIONS['game'] ~= 'server' then
 			"../vendor/cef/libcef_dll/**.h"
 		}
 end
-		
+
 	-- run components
 	group "components"
 		do_components()

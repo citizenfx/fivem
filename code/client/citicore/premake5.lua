@@ -1,5 +1,5 @@
 project "CitiCore"
-	targetname "CoreRT" 
+	targetname "CoreRT"
 	language "C++"
 	kind "SharedLib"
 
@@ -19,7 +19,10 @@ project "CitiCore"
 	}
 
 	add_dependencies { 'vendor:boost_program_options' }
-	add_dependencies { 'vendor:minhook', 'vendor:udis86' }
+
+	if os.is('windows') then
+		add_dependencies { 'vendor:minhook', 'vendor:udis86' }
+	end
 
 	links { "Shared" }
 
@@ -29,4 +32,4 @@ project "CitiCore"
 	pchheader "StdInc.h"
 
 	configuration "not windows"
-		links { "dl", "c++" }
+		links { "dl" }

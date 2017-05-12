@@ -14,7 +14,7 @@
 #include <VFSDevice.h>
 
 #ifdef COMPILING_HTTP_CLIENT
-#define HTTP_EXPORT __declspec(dllexport)
+#define HTTP_EXPORT DLL_EXPORT
 #else
 #define HTTP_EXPORT
 #endif

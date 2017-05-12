@@ -70,11 +70,11 @@ public:
 		return m_headerList;
 	}
 
-	inline const std::string& GetHeader(const std::string& key, const std::string& default = std::string()) const
+	inline const std::string& GetHeader(const std::string& key, const std::string& default_ = std::string()) const
 	{
 		auto it = m_headerList.find(key);
 
-		return (it != m_headerList.end()) ? it->second : default;
+		return (it != m_headerList.end()) ? it->second : default_;
 	}
 };
 
