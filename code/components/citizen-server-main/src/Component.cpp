@@ -11,7 +11,7 @@
 #include <Error.h>
 #include <ServerInstance.h>
 
-class ServerComponentInstance : public RunnableComponent
+class EXPORTED_TYPE ServerComponentInstance : public RunnableComponent
 {
 private:
 	fwRefContainer<fx::ServerInstance> m_server;

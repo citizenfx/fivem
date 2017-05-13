@@ -44,6 +44,7 @@
 #define DLL_EXPORT __declspec(dllexport)
 
 #define STATIC
+#define EXPORTED_TYPE
 
 #define __thread __declspec(thread)
 #elif defined(__GNUC__)
@@ -51,6 +52,7 @@
 #define DLL_EXPORT __attribute__((visibility("default")))
 
 #define STATIC __attribute__((visibility("internal")))
+#define EXPORTED_TYPE __attribute__((__type_visibility__("default"))) 
 
 #define FORCEINLINE __attribute__((always_inline))
 
