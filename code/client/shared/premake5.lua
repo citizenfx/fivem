@@ -14,6 +14,10 @@
 				add_dependencies { 'vendor:fmtlib' }
 			end
 
+			if os.is('windows') then
+				links { libc and 'fmtlib-crt' or 'fmtlib' }
+			end
+
 			defines "COMPILING_SHARED"
 
 			if libc then
@@ -21,7 +25,7 @@
 			end
 
 			includedirs { "../citicore" }
-			
+
 			files
 			{
 				"../../shared/**.cpp", "../../shared/**.h", "**.cpp", "**.h"
