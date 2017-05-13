@@ -32,6 +32,9 @@ else
 	component 'citizen-resources-client'
 
 	component 'net'
+
+	component 'citizen-scripting-mono'
+	component 'citizen-scripting-v8'
 end
 
 component 'net-base'
@@ -64,9 +67,7 @@ component 'citizen-scripting-lua'
 component 'citizen-playernames-five'
 component 'scripting-gta'
 component 'gta-game-five'
-component 'citizen-scripting-v8'
 component 'handling-loader-five'
-component 'citizen-scripting-mono'
 component 'loading-screens-five'
 component 'adhesive'
 component 'devtools-five'
