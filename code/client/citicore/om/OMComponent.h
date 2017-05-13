@@ -123,7 +123,7 @@ public:
 	virtual result_t CreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef) override
 	{
 		// if the GUID is the null GUID, we assume matching by interface
-		const guid_t& matchingGuid = (fx::IsNullGuid(guid)) ? iid : guid;
+		guid_t matchingGuid = (fx::IsNullGuid(guid)) ? iid : guid;
 
 		for (const OMFactoryDefinition* entry = m_impl->GetCurrentFactory(); entry; entry = entry->next)
 		{
