@@ -9,13 +9,11 @@
 
 namespace fx
 {
-	template<void* Fn>
-	struct enet_deleter
+	struct enet_host_deleter
 	{
-		template<typename T>
-		void operator()(T* data)
+		inline void operator()(ENetHost* data)
 		{
-			((void(*)(T*))Fn)(data);
+			enet_host_destroy(data);
 		}
 	};
 
@@ -66,7 +64,7 @@ namespace fx
 		}
 
 	public:
-		using THostPtr = std::unique_ptr<ENetHost, enet_deleter<enet_host_destroy>>;
+		using THostPtr = std::unique_ptr<ENetHost, enet_host_deleter>;
 
 		std::vector<THostPtr> hosts;
 

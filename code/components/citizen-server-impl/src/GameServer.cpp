@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <ServerInstanceBase.h>
 
@@ -23,10 +23,10 @@ namespace fx
 		{
 			auto in4 = (sockaddr_in*)sa;
 
-			addr.host.u.Byte[10] = 0xFF;
-			addr.host.u.Byte[11] = 0xFF;
+			addr.host.s6_addr[10] = 0xFF;
+			addr.host.s6_addr[11] = 0xFF;
 
-			memcpy(&addr.host.u.Byte[12], &in4->sin_addr.S_un.S_un_b.s_b1, 4);
+			memcpy(&addr.host.s6_addr[12], &in4->sin_addr.s_addr, 4);
 			addr.port = ntohs(in4->sin_port);
 			addr.sin6_scope_id = 0;
 		}
@@ -114,11 +114,21 @@ namespace fx
 
 				auto postMap = ParsePOSTString(std::string_view(dataBuffer.data(), dataBuffer.size()));
 				auto guid = postMap["guid"];
+				auto token = postMap["token"];
 
 				client = m_clientRegistry->GetClientByGuid(guid);
 
 				if (client)
 				{
+					if (token != client->GetConnectionToken())
+					{
+						SendOutOfBand(AddressPair{ peer->host, client->GetAddress() }, "error Invalid connection token received.");
+
+						m_clientRegistry->RemoveClient(client);
+
+						return;
+					}
+
 					client->Touch();
 
 					client->SetPeer(peer);

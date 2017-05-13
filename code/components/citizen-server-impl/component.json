@@ -9,7 +9,8 @@
 		"citizen:server:net",
 		"vfs:impl:server",
 		"vendor:enet",
-		"vendor:tbb"
+		"vendor:tbb",
+		"vendor:boost_random"
 	],
 	"provides": []
 }

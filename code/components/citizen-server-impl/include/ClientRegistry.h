@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <Client.h>
 #include <ComponentHolder.h>
@@ -7,10 +7,13 @@
 
 namespace tbb
 {
-	template<>
-	inline size_t tbb_hasher(const net::PeerAddress& addr)
+	namespace interface5
 	{
-		return std::hash<std::string_view>()(std::string_view{ (const char*)addr.GetSocketAddress(), (size_t)addr.GetSocketAddressLength() });
+		template<>
+		inline size_t tbb_hasher(const net::PeerAddress& addr)
+		{
+			return std::hash<std::string_view>()(std::string_view{ (const char*)addr.GetSocketAddress(), (size_t)addr.GetSocketAddressLength() });
+		}
 	}
 }
 

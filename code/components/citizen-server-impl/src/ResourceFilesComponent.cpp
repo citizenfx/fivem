@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 #include <ResourceFilesComponent.h>
 #include <ResourceMetaDataComponent.h>
 
@@ -356,6 +356,8 @@ namespace fi
 			writer.WriteMark<int>("tocSize", stream->Seek(0, SEEK_CUR));
 
 			m_rootEntry->WriteFiles(writer);
+
+			return true;
 		}
 
 	private:
@@ -410,7 +412,7 @@ namespace fx
 		}
 
 		// return true if the files were modified after the set
-		return (lastModifiedTime > setModifiedTime);
+		return (setModifiedTime == 0 || lastModifiedTime > setModifiedTime);
 	}
 
 	void ResourceFilesComponent::AddFileToDefaultSet(const std::string& fileName)
@@ -438,6 +440,14 @@ namespace fx
 
 			// add client scripts
 			files = metaData->GetEntries("client_script");
+
+			for (auto& file : files)
+			{
+				fileEntries.emplace_back(file.second);
+			}
+
+			// TEMP DBG: add `map`
+			files = metaData->GetEntries("map");
 
 			for (auto& file : files)
 			{

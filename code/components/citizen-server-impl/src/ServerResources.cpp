@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
@@ -43,7 +43,11 @@ public:
 			if (pathRef && fragRef)
 			{
 				std::vector<char> path;
+#ifdef _WIN32
 				std::string pr = pathRef->substr(1).to_string();
+#else
+				std::string pr = pathRef->to_string();
+#endif
 				network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
 
 				resource = m_manager->CreateResource(fragRef->to_string());
@@ -171,8 +175,6 @@ static InitFunction initFunction([]()
 		instance->SetComponent(fx::CreateResourceManager());
 		instance->SetComponent(new fx::ServerEventComponent());
 
-		vfs::Mount(new vfs::RelativeDevice("C:/fivem/data/citizen/"), "citizen:/");
-
 		fwRefContainer<fx::ResourceManager> resman = instance->GetComponent<fx::ResourceManager>();
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
 
@@ -180,6 +182,7 @@ static InitFunction initFunction([]()
 
 		instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
 		{
+			vfs::Mount(new vfs::RelativeDevice(pt.get<std::string>("citizen_dir")), "citizen:/");
 			vfs::Mount(new vfs::RelativeDevice(instance->GetRootPath() + "/cache/"), "cache:/");
 
 			ScanResources(instance);

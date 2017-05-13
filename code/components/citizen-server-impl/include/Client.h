@@ -7,14 +7,11 @@
 
 namespace fx
 {
-	// TODO(fxserver): consolidate
-	template<void* Fn>
-	struct enet_deleter2
+	struct enet_peer_deleter
 	{
-		template<typename T>
-		void operator()(T* data)
+		inline void operator()(ENetPeer* data)
 		{
-			((void(*)(T*))Fn)(data);
+			enet_peer_reset(data);
 		}
 	};
 
@@ -49,6 +46,11 @@ namespace fx
 			return m_guid;
 		}
 
+		inline const net::PeerAddress& GetAddress()
+		{
+			return m_peerAddress;
+		}
+
 		inline ENetPeer* GetPeer()
 		{
 			return (m_peer) ? m_peer.get() : nullptr;
@@ -62,6 +64,16 @@ namespace fx
 		inline void SetName(const std::string& name)
 		{
 			m_name = name;
+		}
+
+		inline const std::string& GetConnectionToken()
+		{
+			return m_connectionToken;
+		}
+
+		inline void SetConnectionToken(const std::string& value)
+		{
+			m_connectionToken = value;
 		}
 
 		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
@@ -92,6 +104,6 @@ namespace fx
 		std::string m_name;
 
 		// the client's ENet peer
-		std::unique_ptr<ENetPeer, enet_deleter2<enet_peer_reset>> m_peer;
+		std::unique_ptr<ENetPeer, enet_peer_deleter> m_peer;
 	};
 }

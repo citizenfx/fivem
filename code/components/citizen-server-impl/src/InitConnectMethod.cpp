@@ -1,9 +1,13 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 #include <ClientHttpHandler.h>
 
 #include <ClientRegistry.h>
 
 #include <ServerInstanceBase.h>
+
+#include <boost/random/random_device.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 static InitFunction initFunction([]()
 {
@@ -21,16 +25,19 @@ static InitFunction initFunction([]()
 				return json::object({ {"error", "fields missing"} });
 			}
 
+			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
+
 			json json = json::object();
 			json["protocol"] = 4;
 			json["sH"] = true;
-			json["token"] = "lol";
+			json["token"] = token;
 			json["netlibVersion"] = 2;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 			auto client = clientRegistry->MakeClient(guid);
 			client->SetName(name);
+			client->SetConnectionToken(token);
 			client->Touch();
 
 			return json;
