@@ -17,7 +17,7 @@ public:
 	virtual void InvokeCommand(const boost::program_options::variables_map& variables) = 0;
 };
 
-class ToolComponent
+class EXPORTED_TYPE ToolComponent
 {
 public:
 	virtual std::vector<std::string> GetCommandNames() = 0;

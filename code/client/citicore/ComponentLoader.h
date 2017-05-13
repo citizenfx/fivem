@@ -51,7 +51,7 @@ public:
 	int CompareVersion(const ComponentId& secondId) const;
 };
 
-class Component : public fwRefCountable
+class EXPORTED_TYPE Component : public fwRefCountable
 {
 public:
 	virtual inline bool Initialize()
@@ -74,7 +74,7 @@ public:
     }
 };
 
-class RunnableComponent : public Component
+class EXPORTED_TYPE RunnableComponent : public Component
 {
 public:
 	virtual void Run() = 0;

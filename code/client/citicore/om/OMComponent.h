@@ -10,7 +10,7 @@
 #include <om/core.h>
 #include <om/IBase.h>
 
-class OMComponent
+class EXPORTED_TYPE OMComponent
 {
 public:
 	virtual result_t CreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef) = 0;
