@@ -40,7 +40,7 @@ namespace streaming
 }
 
 template<typename... T>
-auto MakeIterator(const T&... args)
+auto MakeIterator(const T&&... args)
 {
 	return fx::GetIteratorView
 	(
@@ -111,10 +111,13 @@ static InitFunction initFunction([] ()
 
 			streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
 
-			for (auto& pair : MakeIterator(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
+			auto view1 = metaData->GetEntries("data_file");
+			auto view2 = metaData->GetEntries("data_file_extra");
+
+			for (auto it1 = view1.begin(), end1 = view1.end(), it2 = view2.begin(), end2 = view2.end(); it1 != end1 && it2 != end2; ++it1, ++it2)
 			{
-				const std::string& type = std::get<0>(pair).second;
-				const std::string& name = std::get<1>(pair).second;
+				const std::string& type = it1->second;
+				const std::string& name = it2->second;
 
 				rapidjson::Document document;
 				document.Parse(name.c_str(), name.length());
