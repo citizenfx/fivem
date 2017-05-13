@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -24,8 +24,6 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 #include <lua.hpp>
 
 #include <om/OMComponent.h>
-
-#include "Hooking.h"
 
 namespace fx
 {
@@ -1044,11 +1042,11 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 result_t LuaScriptRuntime::Destroy()
 {
 	// destroy any routines that may be referencing the Lua state
-	m_eventRoutine.swap(TEventRoutine());
-	m_tickRoutine.swap(std::function<void()>());
-	m_callRefRoutine.swap(TCallRefRoutine());
-	m_deleteRefRoutine.swap(TDeleteRefRoutine());
-	m_duplicateRefRoutine.swap(TDuplicateRefRoutine());
+	m_eventRoutine = TEventRoutine();
+	m_tickRoutine = std::function<void()>();
+	m_callRefRoutine = TCallRefRoutine();
+	m_deleteRefRoutine = TDeleteRefRoutine();
+	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
 	// we need to push the environment before closing as items may have __gc callbacks requiring a current runtime to be set
 	// in addition, we can't do this in the destructor due to refcounting odditiies (PushEnvironment adds a reference, causing infinite deletion loops)
