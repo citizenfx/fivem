@@ -182,7 +182,7 @@ static InitFunction initFunction([]()
 
 		instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
 		{
-			vfs::Mount(new vfs::RelativeDevice(pt.get<std::string>("citizen_dir")), "citizen:/");
+			vfs::Mount(new vfs::RelativeDevice(pt.get<std::string>("server.citizen_dir")), "citizen:/");
 			vfs::Mount(new vfs::RelativeDevice(instance->GetRootPath() + "/cache/"), "cache:/");
 
 			ScanResources(instance);
