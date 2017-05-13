@@ -287,7 +287,7 @@ end
 
 local exportKey = (IsDuplicityVersion() and 'server_export' or 'export')
 
-AddEventHandler('onResourceStart', function(resource)
+AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
 	if resource == GetCurrentResourceName() then
 		local numMetaData = GetNumResourceMetadata(resource, exportKey) or 0
 
