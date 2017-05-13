@@ -10,6 +10,14 @@
 #include <ComponentLoader.h>
 #include <Server.h>
 
+class ServerMain
+{
+public:
+	virtual void Run(fwRefContainer<Component> component) = 0;
+};
+
+DECLARE_INSTANCE_TYPE(ServerMain);
+
 #include <sstream>
 
 #include <boost/algorithm/string/replace.hpp>
@@ -57,16 +65,6 @@ namespace fx
 			return;
 		}
 
-		// run the server's main routine
-		fwRefContainer<RunnableComponent> runnableServer = dynamic_cast<RunnableComponent*>(componentInstance.GetRef());
-
-		if (runnableServer.GetRef() != nullptr)
-		{
-			runnableServer->Run();
-		}
-		else
-		{
-			trace("citizen:server:main component does not implement RunnableComponent. Exiting.\n");
-		}
+		Instance<ServerMain>::Get()->Run(componentInstance);
 	}
 }

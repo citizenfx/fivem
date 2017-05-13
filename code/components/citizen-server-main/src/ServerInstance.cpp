@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -13,6 +13,8 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include <boost/filesystem.hpp>
+
+#include <ComponentLoader.h>
 
 namespace fx
 {
@@ -74,3 +76,30 @@ namespace fx
 		}
 	}
 }
+
+class ServerMain
+{
+	virtual void Run(fwRefContainer<Component> component)
+	{
+		// run the server's main routine
+		fwRefContainer<RunnableComponent> runnableServer = dynamic_cast<RunnableComponent*>(component.GetRef());
+
+		if (runnableServer.GetRef() != nullptr)
+		{
+			runnableServer->Run();
+		}
+		else
+		{
+			trace("citizen:server:main component does not implement RunnableComponent. Exiting.\n");
+		}
+	}
+};
+
+static ServerMain g_main;
+
+DECLARE_INSTANCE_TYPE(ServerMain);
+
+static InitFunction initFunction([]()
+{
+	Instance<ServerMain>::Set(&g_main);
+});
