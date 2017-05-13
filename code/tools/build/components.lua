@@ -260,7 +260,7 @@ local do_component = function(name, comp)
 
 	defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
 
-	links { "Shared" }
+	links { "Shared", "fmtlib" }
 
 	-- HACKHACK: premake doesn't allow unsetting these
 	if name ~= 'adhesive' then

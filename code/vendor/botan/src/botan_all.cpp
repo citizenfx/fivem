@@ -45916,7 +45916,7 @@ namespace Botan {
 
 namespace TLS {
 
-size_t TLS::Channel::IO_BUF_DEFAULT_SIZE = 10*1024;
+size_t Channel::IO_BUF_DEFAULT_SIZE = 10*1024;
 
 Channel::Channel(Callbacks& callbacks,
                  Session_Manager& session_manager,

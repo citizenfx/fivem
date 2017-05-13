@@ -54,5 +54,10 @@ return {
 
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
+
+			files_project "../vendor/tbb/" {
+				'src/tbb/intel64-masm/intel64_misc.asm',
+				'src/tbb/intel64-masm/atomic_support.asm',
+			}
 	end
 }

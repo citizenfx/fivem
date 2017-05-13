@@ -1,5 +1,4 @@
 component 'comptest'
-component 'net'
 component 'http-client'
 component 'nui-core'
 component 'glue'
@@ -31,6 +30,8 @@ else
 
 	component 'citizen-legacy-net-resources'
 	component 'citizen-resources-client'
+
+	component 'net'
 end
 
 component 'net-base'

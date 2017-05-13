@@ -114,7 +114,7 @@ workspace "CitizenMP"
 			"-fPIC", -- required to link on AMD64
 		}
 
-		--links { "c++" }
+		links { "c++" }
 
 	-- TARGET: launcher
 	if _OPTIONS['game'] ~= 'server' then

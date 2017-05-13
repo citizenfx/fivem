@@ -32,3 +32,5 @@ vendor_component 'boost_system'
 if os.get() == 'windows' then
 	vendor_component 'minhook' -- r
 end
+
+vendor_component 'pplx'

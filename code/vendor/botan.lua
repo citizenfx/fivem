@@ -1,7 +1,9 @@
 -- tinyxml2 with static runtime, as used for launcher
 return {
 	include = function()
-		defines { "BOTAN_DLL=" }
+		if not os.is('windows') then
+			defines { "BOTAN_DLL=" }
+		end
 
 		includedirs "vendor/botan/include/"
 	end,
