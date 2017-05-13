@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This file is part of the CitizenFX project - http://citizen.re/
 *
 * See LICENSE and MENTIONS in the root of the source tree for information
@@ -240,7 +240,7 @@ static InitFunction initFunction([] ()
 				}
 
 				using ResultTuple = std::tuple<fwRefContainer<fx::Resource>, std::string>;
-				std::vector<concurrency::task<ResultTuple>> tasks;
+				std::vector<pplx::task<ResultTuple>> tasks;
 
 				// used for reporting progress
 				struct ProgressData
@@ -277,7 +277,7 @@ static InitFunction initFunction([] ()
 					}));
 				}
 
-				concurrency::when_all(tasks.begin(), tasks.end()).then([=] (std::vector<ResultTuple> resources)
+				pplx::when_all(tasks.begin(), tasks.end()).then([=] (std::vector<ResultTuple> resources)
 				{
 					for (auto& resourceData : resources)
 					{

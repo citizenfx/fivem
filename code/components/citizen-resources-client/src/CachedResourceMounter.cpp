@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -32,9 +32,9 @@ static auto g_limitedScheduler = concurrency::Scheduler::Create(
 		concurrency::MinConcurrency, 1, 
 		concurrency::MaxConcurrency, 4));
 
-static struct : public concurrency::scheduler_interface
+static struct : public pplx::scheduler_interface
 {
-	virtual void schedule(concurrency::TaskProc_t proc, void* arg) override
+	virtual void schedule(pplx::TaskProc_t proc, void* arg) override
 	{
 		g_limitedScheduler->ScheduleTask(proc, arg);
 	}
@@ -115,7 +115,7 @@ fwRefContainer<vfs::Device> CachedResourceMounter::OpenResourcePackfile(const fw
 	return nullptr;
 }
 
-concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(const std::string& uri)
+pplx::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(const std::string& uri)
 {
 	fwRefContainer<fx::Resource> resource = InitializeLoad(uri, nullptr);
 
@@ -132,7 +132,7 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 			}*/
 
 			// follow up by mounting resource.rpf (using the legacy mounter) from the resource on a background thread
-			return concurrency::create_task([=]()
+			return pplx::create_task([=]()
 			{
 				m_manager->MakeCurrent();
 
@@ -171,11 +171,11 @@ concurrency::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResou
 				}
 
 				return localResource;
-			}, concurrency::task_options(g_schedulerWrap));
+			}, pplx::task_options(g_schedulerWrap));
 		}
 	}
 
-	return concurrency::task_from_result(fwRefContainer<fx::Resource>());
+	return pplx::task_from_result(fwRefContainer<fx::Resource>());
 }
 
 void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size)

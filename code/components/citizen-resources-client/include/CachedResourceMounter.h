@@ -39,7 +39,7 @@ namespace fx
 
 		virtual bool HandlesScheme(const std::string& scheme) override;
 
-		virtual concurrency::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
+		virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
 
 	protected:
 		struct ResourceFileEntry

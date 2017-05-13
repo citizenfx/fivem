@@ -13,6 +13,8 @@
 
 #include <ResourceMetaDataComponent.h>
 
+#include <mutex>
+
 ResourceUI::ResourceUI(Resource* resource)
 	: m_resource(resource), m_hasFrame(false), m_hasCallbacks(false)
 {
