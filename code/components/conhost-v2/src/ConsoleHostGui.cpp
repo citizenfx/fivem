@@ -31,6 +31,7 @@ struct FiveMConsole
 		Commands.push_back("CLEAR");
 		Commands.push_back("LOADLEVEL");
 		Commands.push_back("CONNECT");
+		Commands.push_back("QUIT");
 		Commands.push_back("NETGRAPH");
 		Commands.push_back("STRDBG");
 	}
@@ -214,6 +215,10 @@ struct FiveMConsole
 			lastState = !lastState;
 
 			ConHost::OnInvokeNative("netGraphEnabled", (lastState) ? "y" : "n");
+		}
+		else if (Strnicmp(command_line, "quit", 4) == 0)
+		{
+			TerminateProcess(GetCurrentProcess(), -1);
 		}
 		else if (Strnicmp(command_line, "connect", 7) == 0)
 		{
