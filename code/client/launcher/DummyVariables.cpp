@@ -580,7 +580,6 @@ __declspec(thread) int tls568;
 __declspec(thread) int tls569;
 __declspec(thread) int tls570;
 __declspec(thread) int tls571;
-#if defined(PAYNE)
 __declspec(thread) int tls572;
 __declspec(thread) int tls573;
 __declspec(thread) int tls574;
@@ -781,6 +780,7 @@ __declspec(thread) int tls768;
 __declspec(thread) int tls769;
 __declspec(thread) int tls770;
 __declspec(thread) int tls771;
+#if defined(PAYNE)
 __declspec(thread) int tls772;
 __declspec(thread) int tls773;
 __declspec(thread) int tls774;

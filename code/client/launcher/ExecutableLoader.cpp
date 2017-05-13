@@ -251,6 +251,9 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 		LPVOID tlsBase = *(LPVOID*)__readgsqword(0x58);
 #endif
 
+		DWORD oldProtect;
+		VirtualProtect((void*)targetTls->StartAddressOfRawData, sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData, PAGE_READWRITE, &oldProtect);
+
 		memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
 		memcpy((void*)targetTls->StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
 		/*#else
