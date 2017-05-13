@@ -21,7 +21,7 @@ CreateThread = Citizen.CreateThread
 function Citizen.CreateThreadNow(threadFunction)
 	local coro = coroutine.create(threadFunction)
 
-	local result, err = coroutine.resume(coro)
+	local err = select(2,coroutine.resume(coro))
 
 	if err then
 		error('Failed to execute thread: ' .. debug.traceback(coro, err))
@@ -52,7 +52,7 @@ Citizen.SetTickRoutine(function()
 				local result, err = coroutine.resume(thread.coroutine)
 
 				if not result then
-					Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
+					Citizen.Trace('Error resuming coroutine: ' .. debug.traceback(thread.coroutine, err) .. '\n')
 
 					table.remove(threads, i)
 				end
@@ -74,7 +74,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 		-- if this is a net event and we don't allow this event to be triggered from the network, return
 		if eventSource:sub(1, 3) == 'net' then
 			if not eventHandlerEntry.safeForNet then
-				Citizen.Trace('event ' .. eventName .. " was not safe for net\n")
+				Citizen.Trace('event ' .. eventName .. ' was not safe for net\n')
 
 				return
 			end
@@ -174,7 +174,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local ref = funcRefs[refId]
 
 	if not ref then
-		Citizen.Trace('Invalid ref call attempt: ' .. refId .. "\n")
+		Citizen.Trace('Invalid ref call attempt: ' .. refId .. '\n')
 
 		return msgpack.pack({})
 	end
@@ -318,9 +318,9 @@ function RegisterNUICallback(type, callback)
 	RegisterNuiCallbackType(type)
 
 	AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
-		local status, err = pcall(function()
+		local err = select(2, pcall(function()
 			callback(body, resultCallback)
-		end)
+		end))
 
 		if err then
 			Citizen.Trace("error during NUI callback " .. type .. ": " .. err .. "\n")
