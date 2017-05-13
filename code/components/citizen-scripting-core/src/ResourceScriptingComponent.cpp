@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -33,7 +33,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				{
 					OMPtr<IScriptFileHandlingRuntime> ptr;
 
-					if (SUCCEEDED(MakeInterface(&ptr, clsid)))
+					if (FX_SUCCEEDED(MakeInterface(&ptr, clsid)))
 					{
 						environments.push_back(ptr);
 					}
@@ -84,7 +84,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 		for (auto& environment : environments)
 		{
 			OMPtr<IScriptRuntime> ptr;
-			if (SUCCEEDED(environment.As(&ptr)))
+			if (FX_SUCCEEDED(environment.As(&ptr)))
 			{
 				std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 
