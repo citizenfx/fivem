@@ -125,7 +125,7 @@ result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 		}
 		catch (std::exception& e)
 		{
-			trace(__FUNCTION__ ": execution failed: %s\n", e.what());
+			trace("%s: execution failed: %s\n", __func__, e.what());
 
 			return FX_E_INVALIDARG;
 		}
@@ -155,8 +155,8 @@ result_t TestScriptHost::WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream,
 		return FX_S_OK;
 	}
 
-	// TODO: replace when porting
-	return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+	// return not-found
+	return 0x80070002;
 }
 
 result_t TestScriptHost::ScriptTrace(char* string)
@@ -228,7 +228,8 @@ result_t TestScriptHost::GetResourceMetaData(char* metaDataName, int32_t entryIn
 		i++;
 	}
 
-	return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+	// return not-found
+	return 0x80070490;
 }
 
 static constexpr const ManifestVersion g_manifestVersionOrder[] = {
