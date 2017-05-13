@@ -3,6 +3,8 @@ return {
 	include = function()
 		if not os.is('windows') then
 			defines { "BOTAN_DLL=" }
+		else
+			defines { "BOTAN_DLL=__declspec(dllimport)" }
 		end
 
 		includedirs "vendor/botan/include/"
