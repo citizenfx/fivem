@@ -110,6 +110,17 @@ bool LocalDevice::RemoveDirectory(const std::string& name)
 	return (rmdir(name.c_str()) == 0);
 }
 
+std::time_t LocalDevice::GetModifiedTime(const std::string& fileName)
+{
+	struct stat statBuf;
+	if (stat(fileName.c_str(), &statBuf) < 0)
+	{
+		return 0;
+	}
+
+	return statBuf.st_mtime;
+}
+
 size_t LocalDevice::GetLength(THandle handle)
 {
 	struct stat buf;
@@ -117,6 +128,12 @@ size_t LocalDevice::GetLength(THandle handle)
 
 	return buf.st_size;
 }
+
+struct DirFind
+{
+	DIR* dir;
+	std::string path;
+};
 
 Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* findData)
 {
@@ -128,11 +145,18 @@ Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* find
 
 		if (entry)
 		{
+			struct stat st;
+			stat((folder + "/" + entry->d_name).c_str(), &st);
+
 			findData->name = entry->d_name;
-			findData->attributes = 0;
+			findData->attributes = S_ISDIR(st.st_mode) ? FILE_ATTRIBUTE_DIRECTORY : 0;
 			findData->length = 0; // TODO: implement
 
-			return reinterpret_cast<Device::THandle>(dir);
+			auto find = new DirFind();
+			find->dir = dir;
+			find->path = folder;
+
+			return reinterpret_cast<Device::THandle>(find);
 		}
 	}
 
@@ -141,12 +165,15 @@ Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* find
 
 bool LocalDevice::FindNext(THandle handle, FindData* findData)
 {
-	dirent* entry = readdir(reinterpret_cast<DIR*>(handle));
+	dirent* entry = readdir(reinterpret_cast<DirFind*>(handle)->dir);
 
 	if (entry)
 	{
+		struct stat st;
+		stat((reinterpret_cast<DirFind*>(handle)->path + "/" + entry->d_name).c_str(), &st);
+
 		findData->name = entry->d_name;
-		findData->attributes = 0;
+		findData->attributes = S_ISDIR(st.st_mode) ? FILE_ATTRIBUTE_DIRECTORY : 0;
 		findData->length = 0; // TODO: implement
 
 		return true;
@@ -157,7 +184,10 @@ bool LocalDevice::FindNext(THandle handle, FindData* findData)
 
 void LocalDevice::FindClose(THandle handle)
 {
-	closedir(reinterpret_cast<DIR*>(handle));
+	auto data = reinterpret_cast<DirFind*>(handle);
+
+	closedir(data->dir);
+	delete data;
 }
 }
 
