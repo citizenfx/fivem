@@ -162,7 +162,7 @@ bool operator<(const fwRefContainer<T>& left, const fwRefContainer<T>& right)
 	return (left.GetRef() < right.GetRef());
 }
 
-class fwRefCountable
+class EXPORTED_TYPE fwRefCountable
 {
 private:
 	class RefCount
