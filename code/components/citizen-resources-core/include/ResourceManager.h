@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include <ppltasks.h>
+#define CPPREST_FORCE_PPLX 1
+#include <pplx/pplxtasks.h>
 
 #include <Resource.h>
 #include <ResourceMounter.h>
@@ -28,7 +29,7 @@ public:
 	//
 	// Adds a resource to the resource manager from the passed resource URI.
 	//
-	virtual concurrency::task<fwRefContainer<Resource>> AddResource(const std::string& uri) = 0;
+	virtual pplx::task<fwRefContainer<Resource>> AddResource(const std::string& uri) = 0;
 
 	//
 	// Gets the mounter that is responsible for handling a particular resource URI.

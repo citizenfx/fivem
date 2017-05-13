@@ -22,6 +22,6 @@ public:
 	//
 	// If overridden, loads the resource matching a a particular URI.
 	//
-	virtual concurrency::task<fwRefContainer<Resource>> LoadResource(const std::string& uri) = 0;
+	virtual pplx::task<fwRefContainer<Resource>> LoadResource(const std::string& uri) = 0;
 };
 }

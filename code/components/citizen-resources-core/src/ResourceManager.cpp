@@ -48,7 +48,7 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 	return mounter;
 }
 
-concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std::string& uri)
+pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std::string& uri)
 {
 	// find a valid mounter for this scheme
 	auto mounter = GetMounterForUri(uri);
@@ -56,7 +56,7 @@ concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(con
 	// and forward to the mounter, if any.
 	if (mounter.GetRef())
 	{
-		concurrency::task_completion_event<fwRefContainer<Resource>> completionEvent;
+		pplx::task_completion_event<fwRefContainer<Resource>> completionEvent;
 
 		// set a completion event, as well
 		mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
@@ -64,10 +64,10 @@ concurrency::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(con
 			completionEvent.set(resource);
 		});
 
-		return concurrency::task<fwRefContainer<Resource>>(completionEvent);
+		return pplx::task<fwRefContainer<Resource>>(completionEvent);
 	}
 
-	return concurrency::task_from_result<fwRefContainer<Resource>>(nullptr);
+	return pplx::task_from_result<fwRefContainer<Resource>>(nullptr);
 }
 
 void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)

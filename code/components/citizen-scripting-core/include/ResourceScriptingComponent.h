@@ -9,6 +9,8 @@
 
 #include <fxScripting.h>
 
+#include <mutex>
+
 namespace fx
 {
 class Resource;

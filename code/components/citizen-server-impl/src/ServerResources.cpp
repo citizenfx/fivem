@@ -28,7 +28,7 @@ public:
 		return (scheme == "file");
 	}
 
-	virtual concurrency::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override
+	virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override
 	{
 		std::error_code ec;
 		auto uriParsed = network::make_uri(uri, ec);
@@ -51,7 +51,7 @@ public:
 			}
 		}
 
-		return concurrency::task_from_result<fwRefContainer<fx::Resource>>(resource);
+		return pplx::task_from_result<fwRefContainer<fx::Resource>>(resource);
 	}
 
 private:
@@ -113,7 +113,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	std::queue<std::string> pathsToIterate;
 	pathsToIterate.push(resourceRoot);
 
-	std::vector<concurrency::task<fwRefContainer<fx::Resource>>> tasks;
+	std::vector<pplx::task<fwRefContainer<fx::Resource>>> tasks;
 
 	while (!pathsToIterate.empty())
 	{
@@ -161,7 +161,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 		}
 	}
 
-	concurrency::when_all(tasks.begin(), tasks.end()).wait();
+	pplx::when_all(tasks.begin(), tasks.end()).wait();
 }
 
 static InitFunction initFunction([]()
