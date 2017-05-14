@@ -186,8 +186,35 @@ std::ostream& operator<<(std::ostream& os, const TEnum& value)
 const char* va(const char* string, const fmt::ArgList& formatList);
 FMT_VARIADIC(const char*, va, const char*);
 
-void trace(const char* string, const fmt::ArgList& formatList);
-FMT_VARIADIC(void, trace, const char*);
+void TraceReal(const char* channel, const char* func, const char* file, int line, const char* string, const fmt::ArgList& formatList);
+FMT_VARIADIC(void, TraceReal, const char*, const char*, const char*, int, const char*);
+
+#ifdef COMPILING_ADHESIVE
+#define _CFX_TRACE_FILE "adhesive"
+#define _CFX_TRACE_FUNC "adhesive"
+#else
+#define _CFX_TRACE_FILE __FILE__
+#define _CFX_TRACE_FUNC __func__
+#endif
+
+#ifndef _CFX_COMPONENT_NAME
+#ifdef COMPILING_SHARED
+#define _CFX_COMPONENT_NAME Shared
+#elif defined(COMPILING_SHARED_LIBC)
+#define _CFX_COMPONENT_NAME SharedLibc
+#elif defined(COMPILING_LAUNCHER)
+#define _CFX_COMPONENT_NAME Launcher
+#elif defined(COMPILING_CORE)
+#define _CFX_COMPONENT_NAME CitiCore
+#else
+#define _CFX_COMPONENT_NAME Any
+#endif
+#endif
+
+#define _CFX_NAME_STRING_(x) #x
+#define _CFX_NAME_STRING(x) _CFX_NAME_STRING_(x)
+
+#define trace(f, ...) TraceReal(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), _CFX_TRACE_FUNC, _CFX_TRACE_FILE, __LINE__, f, ##__VA_ARGS__)
 
 const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList);
 FMT_VARIADIC_W(const wchar_t*, va, const wchar_t*);
@@ -252,6 +279,7 @@ std::string ToNarrow(const std::wstring& wide);
 #ifdef COMPILING_CORE
 extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();
 extern "C" void DLL_EXPORT CoreSetDebuggerPresent();
+extern "C" void DLL_EXPORT CoreTrace(const char* channel, const char* func, const char* file, int line, const char* string);
 #elif _WIN32
 inline bool CoreIsDebuggerPresent()
 {
@@ -275,6 +303,20 @@ inline void CoreSetDebuggerPresent()
     }
 
     (func) ? func() : 0;
+}
+
+inline void CoreTrace(const char* channel, const char* funcName, const char* file, int line, const char* string)
+{
+	using TCoreTraceFunc = decltype(&CoreTrace);
+
+	static TCoreTraceFunc func;
+
+	if (!func)
+	{
+		func = (TCoreTraceFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreTrace");
+	}
+
+	(func) ? func(channel, funcName, file, line, string) : 0;
 }
 #else
 inline bool CoreIsDebuggerPresent()

@@ -239,7 +239,7 @@ static void RaiseDebugException(const char* buffer, size_t length)
 }
 #endif
 
-void trace(const char* string, const fmt::ArgList& formatList)
+void TraceReal(const char* channel, const char* func, const char* file, int line, const char* string, const fmt::ArgList& formatList)
 {
 	std::string buffer;
 
@@ -251,6 +251,8 @@ void trace(const char* string, const fmt::ArgList& formatList)
 	{
 		buffer = fmt::sprintf("fmt::FormatError while formatting %s: %s\n", string, e.what());
 	}
+
+	CoreTrace(channel, func, file, line, buffer.data());
 
 #ifdef _WIN32
 	static CRITICAL_SECTION dbgCritSec;

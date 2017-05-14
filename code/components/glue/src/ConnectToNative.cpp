@@ -12,6 +12,7 @@
 #include <GlobalEvents.h>
 #include <nutsnbolts.h>
 #include <ConsoleHost.h>
+#include <CoreConsole.h>
 //New libs needed for saveSettings
 #include <fstream>
 #include <sstream>
@@ -171,6 +172,11 @@ static InitFunction initFunction([] ()
 		});
 	});
 
+	static ConsoleCommand connectCommand("connect", [](const std::string& server)
+	{
+		ConnectTo(server);
+	});
+
 	ConHost::OnInvokeNative.Connect([](const char* type, const char* arg)
 	{
 		if (!_stricmp(type, "connectTo"))
@@ -233,6 +239,11 @@ static InitFunction initFunction([] ()
 				TerminateProcess(GetCurrentProcess(), 0);
 			});
 		}
+	});
+
+	OnGameFrame.Connect([]()
+	{
+		Instance<console::Context>::Get()->ExecuteBuffer();
 	});
 
 	OnMsgConfirm.Connect([] ()

@@ -6,10 +6,13 @@
  */
 
 #include "StdInc.h"
+#include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
 #include "InputHook.h"
 #include <thread>
 #include <condition_variable>
+
+#include <CoreConsole.h>
 
 static std::thread g_consoleThread;
 static std::once_flag g_consoleInitialized;
@@ -19,6 +22,11 @@ extern int g_bufferHeight;
 
 static InitFunction initFunction([] ()
 {
+	console::CoreAddPrintListener([](ConsoleChannel channel, const char* msg)
+	{
+		ConHost::Print(0, msg);
+	});
+
 	InputHook::OnWndProc.Connect([] (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
 		if (g_consoleFlag)
@@ -60,4 +68,21 @@ static InitFunction initFunction([] ()
 			}
 		}
 	}, -10);
+
+	static ConsoleCommand consoleCommand("help", []()
+	{
+		auto mgr = Instance<ConsoleCommandManager>::Get();
+
+		std::set<std::string, console::IgnoreCaseLess> commands;
+
+		mgr->ForAllCommands([&](const std::string& cmd)
+		{
+			commands.insert(cmd);
+		});
+
+		for (const auto& cmd : commands)
+		{
+			console::Printf("cmd", "- %s\n", cmd);
+		}
+	});
 });

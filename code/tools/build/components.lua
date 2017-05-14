@@ -258,7 +258,7 @@ local do_component = function(name, comp)
 		relPath .. "/include/**.idl",
 	}
 
-	defines { "COMPILING_" .. name:upper():gsub('-', '_'), 'HAS_LOCAL_H' }
+	defines { "COMPILING_" .. name:upper():gsub('-', '_'), "_CFX_COMPONENT_NAME=" .. name, 'HAS_LOCAL_H' }
 
 	links { "Shared", "fmtlib" }
 
