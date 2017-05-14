@@ -251,8 +251,11 @@ static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, cons
 void HttpClient::DoGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	auto urlStr = MakeURL(host, port, url);
-	
-	auto [curlHandle, curlData] = SetupCURLHandle(urlStr, callback);
+
+	CURL* curlHandle;
+	CurlData* curlData;
+
+	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
 
 	m_impl->AddCurlHandle(curlHandle);
 }
@@ -272,7 +275,10 @@ void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const st
 	auto urlStr = MakeURL(host, port, url);
 
 	// make handle
-	auto [curlHandle, curlData] = SetupCURLHandle(urlStr, callback);
+	CURL* curlHandle;
+	CurlData* curlData;
+
+	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
 
 	// assign post data
 	curlData->postData = postData;
