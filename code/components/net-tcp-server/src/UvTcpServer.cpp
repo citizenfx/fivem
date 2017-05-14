@@ -223,7 +223,7 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 
 		if (status < 0)
 		{
-			trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
+			//trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
 		}
 
 		delete req;
