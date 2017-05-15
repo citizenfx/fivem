@@ -38,6 +38,10 @@ export abstract class GameService {
         return new Promise<Server>((resolve, reject) => setTimeout(() => reject(new Error("Querying isn't supported in GameService.")), 2500));
     }
 
+    exitGame(): void {
+
+    }
+
     protected invokeConnectFailed(server: Server, message: string) {
         this.connectFailed.emit([server, message]);
     }
@@ -238,6 +242,10 @@ export class CfxGameService extends GameService {
         this.lastQuery = addrString;
 
         return promise;
+    }
+
+    exitGame(): void {
+        (<any>window).invokeNative('exit', '');
     }
 }
 

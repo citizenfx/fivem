@@ -1,6 +1,6 @@
             <app-server-heading [columns]="columns" [sortOrder]="sortOrder" (sort)="updateSorting($event)"></app-server-heading>
             <div class="list">
-                <virtual-scroll [items]="sortedServers" (update)="localServers = $event" childHeight="40">
+                <virtual-scroll [items]="sortedServers" (update)="localServers = $event" childHeight="40" childWidth="1000">
                     <app-server-listing-item [server]="server" *ngFor="let server of localServers"></app-server-listing-item>
                 </virtual-scroll>
             </div>
