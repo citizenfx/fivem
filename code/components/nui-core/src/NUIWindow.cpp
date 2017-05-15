@@ -164,6 +164,28 @@ void NUIWindow::UpdateFrame()
 		return;
 	}
 
+	int resX, resY;
+	GetGameResolution(resX, resY);
+
+	if (m_width != resX || m_height != resY)
+	{
+		m_width = resX;
+		m_height = resY;
+
+		((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+
+		// make a new texture
+		delete m_nuiTexture;
+
+		rage::grcManualTextureDef textureDef;
+		memset(&textureDef, 0, sizeof(textureDef));
+		textureDef.isStaging = 0;
+		textureDef.arraySize = 1;
+
+		// create the new texture
+		m_nuiTexture = rage::grcTextureFactory::getInstance()->createManualTexture(m_width, m_height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
+	}
+
 	for (auto& item : m_pollQueue)
 	{
 		NUIClient* client = static_cast<NUIClient*>(m_client.get());
