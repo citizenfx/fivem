@@ -12,6 +12,8 @@
 
 #include <VFSManager.h>
 
+#include <CoreConsole.h>
+
 #include <mutex>
 
 namespace leveldb
@@ -33,6 +35,8 @@ namespace leveldb
 
 		virtual Status NewWritableFile(const std::string& fname,
 									   WritableFile** result) override;
+
+		virtual Status NewLogger(const std::string& fname, Logger** result) override;
 
 		virtual bool FileExists(const std::string& fname) override;
 
@@ -99,7 +103,10 @@ namespace leveldb
 
 	Status VFSSequentialFile::Skip(uint64_t n)
 	{
-		m_device->Seek(m_handle, n, SEEK_CUR);
+		if (m_device->Seek(m_handle, n, SEEK_CUR) == -1)
+		{
+			return Status::IOError("m_device->Seek failed");
+		}
 
 		return Status();
 	}
@@ -225,6 +232,22 @@ namespace leveldb
 		return Status();
 	}
 
+	class CfxLogger : public Logger
+	{
+		virtual void Logv(const char* format, va_list ap) override
+		{
+			static thread_local std::vector<char> buffer(8192);
+			int len = vsnprintf(buffer.data(), buffer.size() - 1, format, ap);
+
+			if (buffer[len - 1] != '\n')
+			{
+				buffer[len - 1] = '\n';
+			}
+
+			console::Printf("ldb", "%s", buffer.data());
+		}
+	};
+
 	// vfsenvironment impl
 	Status VFSEnvironment::NewSequentialFile(const std::string& f, SequentialFile** r)
 	{
@@ -303,6 +326,13 @@ namespace leveldb
 		}
 
 		*result = new VFSWritableFile(device, handle);
+
+		return Status();
+	}
+
+	Status VFSEnvironment::NewLogger(const std::string& fname, Logger** result)
+	{
+		*result = new CfxLogger();
 
 		return Status();
 	}
@@ -420,15 +450,43 @@ namespace leveldb
 
 	class VFSFileLock : public FileLock
 	{
+	public:
+		VFSFileLock(const std::string& fn)
+		{
+			uint64_t dummy;
 
+			m_device = vfs::GetDevice(fn);
+
+			if (m_device.GetRef())
+			{
+				m_handle = m_device->Create(fn);
+			}
+		}
+
+		~VFSFileLock()
+		{
+			if (IsValid())
+			{
+				m_device->Close(m_handle);
+			}
+		}
+
+		bool IsValid()
+		{
+			return (m_device.GetRef() && m_handle != INVALID_DEVICE_HANDLE);
+		}
+
+	private:
+		fwRefContainer<vfs::Device> m_device;
+		vfs::Device::THandle m_handle;
 	};
 
 	Status VFSEnvironment::LockFile(const std::string& fname, FileLock** lock)
 	{
-		// no locking support for now
-		*lock = new VFSFileLock();
+		auto vfsLock = new VFSFileLock(fname);
+		*lock = vfsLock;
 
-		return Status();
+		return vfsLock->IsValid() ? Status() : Status::IOError("Could not lock file.");
 	}
 
 	Status VFSEnvironment::UnlockFile(FileLock* lock)
