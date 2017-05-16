@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CfxUi</title>
+  <base href=".">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+  <app-root>Loading...</app-root>
+
+  <!-- yeah, legacy JS -->
+  <script type="text/javascript">
+  zoomLevel = (window.innerHeight / 720);
+  inverseZoom = ((1 / zoomLevel) * 100) + '%';
+  document.body.style.zoom = (zoomLevel * 100) + '%';
+
+  var style = document.createElement("style");
+  document.head.appendChild(style);
+
+  style.sheet.insertRule(`context-menu-content{zoom: ${inverseZoom};}`, 0);
+  </script>
+</body>
+</html>

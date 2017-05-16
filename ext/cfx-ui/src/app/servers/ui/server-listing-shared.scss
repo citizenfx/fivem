@@ -1,0 +1,36 @@
+$columns: (
+	icon: 40px,
+	name: calc(80% - 40px),
+	players: calc(10%),
+	ping: calc(10%),
+);
+
+dl, .ui-row {
+	display: flex;
+	flex-direction: row;
+	flex-grow: 0;
+	align-items: center;
+
+	height: 40px;
+}
+
+dl > *, .ui-row > *
+{
+	flex-grow: 1;
+	white-space: nowrap;
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.icon
+{
+	height: 100%;
+}
+
+@each $key, $width in $columns {
+	.#{$key} {
+		width: $width;
+	}
+}

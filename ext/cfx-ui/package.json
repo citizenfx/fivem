@@ -1,0 +1,50 @@
+{
+  "name": "cfx-ui",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "test": "ng test",
+    "lint": "ng lint"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "^4.0.2",
+    "@angular/compiler": "^4.0.2",
+    "@angular/core": "^4.0.2",
+    "@angular/forms": "^4.0.2",
+    "@angular/http": "^4.0.2",
+    "@angular/platform-browser": "^4.0.2",
+    "@angular/platform-browser-dynamic": "^4.0.2",
+    "@angular/router": "^4.0.2",
+    "@ngui/tab": "https://runtime.fivem.net/source/ngui-tab-0.5.0.tgz",
+    "@types/color": "^1.0.1",
+    "@types/js-md5": "^0.4.1",
+    "angular-l10n": "^3.0.3",
+    "angular2-moment": "^1.3.3",
+    "angular2-virtual-scroll": "^0.1.5",
+    "bulma": "^0.4.0",
+    "color": "^1.0.3",
+    "core-js": "^2.4.1",
+    "font-awesome": "^4.7.0",
+    "idb": "^2.0.1",
+    "js-md5": "^0.4.2",
+    "ng2-nouislider": "^1.6.0",
+    "ngx-contextmenu": "^1.0.3",
+    "nouislider": "^9.2.0",
+    "protobufjs": "^6.7.3",
+    "rxjs": "^5.3.0",
+    "zone.js": "^0.8.5"
+  },
+  "devDependencies": {
+    "@angular/cli": "1.0.0",
+    "@angular/compiler-cli": "^4.0.2",
+    "@types/jasmine": "2.5.47",
+    "codelyzer": "~2.1.1",
+    "ts-node": "~3.0.2",
+    "tslint": "~5.1.0",
+    "typescript": "~2.2.2"
+  }
+}

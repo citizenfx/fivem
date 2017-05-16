@@ -1,0 +1,69 @@
+<div class="tab">
+    <div class="columns is-gapless">
+        <div class="column">
+            <section class="hero">
+                <div class="hero-body">
+                    <div class="container">
+                        <h1 class="title">Welcome to FiveM</h1>
+                        <h2 class="subtitle">the past, present, and <strong>future</strong> of RAGE modifications.</h2>
+                    </div>
+                </div>
+            </section>
+
+            <div class="feed">
+                <!-- TODO: make this into a proper home feed -->
+                <article class="message" *ngFor="let tweet of tweets">
+                    <div class="message-header">
+                        <p><span class="image is-24x24 is-pulled-left"><img src="{{tweet.avatar}}"></span> <strong>{{tweet.user_displayname}}</strong> <small>@{{tweet.user_screenname}}</small> <small>{{tweet.date | amTimeAgo}}</small></p>
+                        <!--<button class="delete"></button>-->
+                    </div>
+                    <div class="message-body">
+                        <article class="media">
+                            <figure class="media-left" *ngIf="tweet.image">
+                                <p class="image is-64x64">
+                                    <img src="{{tweet.image}}">
+                                </p>
+                            </figure>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>{{tweet.content}}</p>
+                                </div>
+                                <nav class="level is-mobile"></nav>
+                            </div>
+                            <div class="media-right">
+                            </div>
+                        </article>
+                    </div>
+                </article>
+            </div>
+        </div>
+<!--
+        <div class="column is-one-quarter">
+            <nav class="panel">
+                <p class="panel-heading">Friends</p>
+
+                <div class="panel-block">
+                    <p class="control has-icon">
+                        <input class="input is-small" type="text" placeholder="Search">
+                        <span class="icon is-small">
+                            <i class="fa fa-search"></i>
+                        </span>
+                    </p>
+                </div>
+
+                <p class="panel-tabs">
+                    <a class="is-active">Steam</a>
+                    <a>Social Club</a>
+                </p>
+
+                <a class="panel-block is-active">
+                    <figure class="image is-32x32">
+                        <img src="file:///home/jun/Pictures/1480239118004.png">
+                    </figure>
+                    a friend? :o
+                </a>
+            </nav>
+        </div>
+-->
+    </div>
+</div>

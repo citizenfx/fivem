@@ -1,0 +1,20 @@
+@import "./server-listing-shared.scss";
+
+:host {
+	height: 100%;
+    display: block;
+	position: relative;
+}
+
+.list {
+	padding-top: 30px;
+
+	display: block;
+	height: 100%;
+	overflow-y: scroll;
+}
+
+virtual-scroll {
+	display: block;
+	height: 100%;
+}

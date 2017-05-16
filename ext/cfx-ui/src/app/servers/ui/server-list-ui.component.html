@@ -1,0 +1,13 @@
+<div class="list">
+    <div class="columns">
+        <nav class="panel server-filter column is-one-quarter">
+            <app-server-filter [type]="type" (filtersChanged)="setFilters($event)"></app-server-filter>
+
+            <div class="a"></div>
+        </nav>
+
+        <div class="servers column">
+            <app-server-listing [servers]="servers" [filters]="filters"></app-server-listing>
+        </div>
+    </div>
+</div>

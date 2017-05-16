@@ -1,0 +1,24 @@
+	<router-outlet></router-outlet>
+
+	<div class="nav-bottom with-top">
+		<div class="top-portion material-1">
+			<nav class="nav">
+				<div class="nav-left"></div>
+
+				<div class="nav-center">
+					<a [routerLink]="['/servers']" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="is-active" class="nav-item browse"><h1 class="title is-4" translate>#ServerList_Browse</h1></a>
+					<a [routerLink]="['/servers/history']" class="nav-item history" routerLinkActive="is-active"><h1 class="title is-4" translate>#ServerList_History</h1></a>
+					<a [routerLink]="['/servers/favorites']" class="nav-item faves" routerLinkActive="is-active"><h1 class="title is-4" translate>#ServerList_Favorites</h1></a>
+					<a [routerLink]="['/servers/direct-connect']" class="nav-item direct" routerLinkActive="is-active"><h1 class="title is-4" translate>#ServerList_DirectConnect</h1></a>
+				</div>
+
+				<div class="nav-right">
+					<a class="nav-item minimize-nav" (click)="exitGame()">
+						<span class="icon">
+							<i class="fa fa-close"></i>
+						</span>
+					</a>
+				</div>
+			</nav>
+		</div>
+	</div>
