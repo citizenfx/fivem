@@ -175,7 +175,7 @@
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="61550"/>
+							<PoolSize value="64550"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
@@ -203,7 +203,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="13000"/>
+							<PoolSize value="16000"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -219,7 +219,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
-							<PoolSize value="1000"/>
+							<PoolSize value="1040"/>
 						</Item>
 						<Item>
 							<PoolName>IplStore</PoolName>
@@ -255,7 +255,7 @@
 						</Item>
 						<Item>
 							<PoolName>MapDataStore</PoolName>
-							<PoolSize value="8920"/>
+							<PoolSize value="9400"/>
 						</Item>
 						<Item>
 							<PoolName>MapTypesStore</PoolName>
@@ -279,7 +279,7 @@
 						</Item>
 						<Item>
 							<PoolName>Object</PoolName>
-							<PoolSize value="2100"/>
+							<PoolSize value="2300"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionInteriorInfo</PoolName>
@@ -291,7 +291,7 @@
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalEntity</PoolName>
-							<PoolSize value="180"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalInfo</PoolName>
@@ -379,7 +379,7 @@
 						</Item>
 						<Item>
 							<PoolName>TxdStore</PoolName>
-							<PoolSize value="43790"/>
+							<PoolSize value="65000"/>
 						</Item>
 						<Item>
 							<PoolName>Vehicles</PoolName>
@@ -387,11 +387,11 @@
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRequest</PoolName>
-							<PoolSize value="45"/>
+							<PoolSize value="60"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRender</PoolName>
-							<PoolSize value="45"/>
+							<PoolSize value="60"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStruct</PoolName>
@@ -399,7 +399,7 @@
 						</Item>
         		<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="1100"/>
+							<PoolSize value="3500"/>
 						</Item>    
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->
@@ -797,7 +797,7 @@
 				</ConfigExtensions>
 
 				<ConfigStreamingEngine>
-					<ArchiveCount value="2392"/>
+					<ArchiveCount value="2648"/>
 					<PhysicalStreamingBuffer value="252"/>
 					<VirtualStreamingBuffer value="1000"/>
 				</ConfigStreamingEngine>
