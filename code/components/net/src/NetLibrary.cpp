@@ -664,6 +664,21 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, handleAuthResult);
 	};
 
+	m_httpClient->DoGetRequest(L"runtime.fivem.net", 80, fmt::sprintf(L"/blacklist/%s_%d", ToWide(hostname), port), [=](bool success, const char* data, size_t length)
+	{
+		if (success)
+		{
+			FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
+		}
+	});
+
+	m_httpClient->DoGetRequest(L"runtime.fivem.net", 80, fmt::sprintf(L"/blacklist/%s", ToWide(hostname)), [=](bool success, const char* data, size_t length)
+	{
+		if (success)
+		{
+			FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
+		}
+	});
 
 	auto steamComponent = GetSteam();
 
