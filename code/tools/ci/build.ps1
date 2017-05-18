@@ -1,0 +1,263 @@
+param (
+    #[Parameter(Mandatory=$true)]
+    [string]
+    $WorkDir = "C:\f\work",
+
+    #[Parameter(Mandatory=$true)]
+    [string]
+    $SaveDir = "C:\f\save",
+
+    [string]
+    $GitRepo = "git@git.internal.fivem.net:cfx/cfx-client.git",
+
+    [string]
+    $Branch = "master",
+
+    [bool]
+    $DontUpload = $false,
+
+    [bool]
+    $DontBuild = $false,
+
+    [string]
+    $Identity = "C:\guava_deploy.ppk"
+)
+
+$CefName = "cef_binary_3.3071.1610.g5a5b538_windows64_minimal"
+
+# from http://stackoverflow.com/questions/2124753/how-i-can-use-powershell-with-the-visual-studio-command-prompt
+function Invoke-BatchFile
+{
+   param([string]$Path)
+
+   $tempFile = [IO.Path]::GetTempFileName()
+
+   ## Store the output of cmd.exe.  We also ask cmd.exe to output
+   ## the environment table after the batch file completesecho
+   cmd.exe /c " `"$Path`" && set > `"$tempFile`" "
+
+   ## Go through the environment variables in the temp file.
+   ## For each of them, set the variable in our local environment.
+   Get-Content $tempFile | Foreach-Object {
+       if ($_ -match "^(.*?)=(.*)$")
+       {
+           Set-Content "env:\$($matches[1])" $matches[2]
+       }
+   }
+
+   Remove-Item $tempFile
+}
+
+function Invoke-WebHook
+{
+    param([string]$Text)
+
+    $payload = @{
+	    "text" = $Text;
+    }
+
+    if (!$env:TG_WEBHOOK)
+    {
+        return
+    }
+
+    iwr -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
+
+    $payload.text += " <@&297070674898321408>"
+
+    iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
+}
+
+$inCI = $false
+$Triggerer = "$env:USERDOMAIN\$env:USERNAME"
+$UploadBranch = "canary"
+
+if ($env:CI) {
+    $inCI = $true
+
+    $Branch = $env:CI_BUILD_REF_NAME
+    $WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
+
+    $Triggerer = $env:GITLAB_USER_EMAIL
+
+    $UploadBranch = $env:CI_ENVIRONMENT_NAME
+}
+
+$WorkRootDir = "$WorkDir\code\"
+
+$BinRoot = "$SaveDir\bin\$Branch\" -replace '/','\'
+$BuildRoot = "$SaveDir\build\$Branch\"  -replace '/','\'
+
+$env:TargetPlatformVersion = "10.0.15063.0"
+
+Add-Type -A 'System.IO.Compression.FileSystem'
+
+New-Item -ItemType Directory -Force $SaveDir | Out-Null
+New-Item -ItemType Directory -Force $WorkDir | Out-Null
+
+Set-Location $WorkRootDir
+
+if ((Get-Command "python.exe" -ErrorAction SilentlyContinue) -eq $null) {
+    $env:Path = "C:\python27\;" + $env:Path
+}
+
+if (!($env:BOOST_ROOT)) {
+    $env:BOOST_ROOT = "C:\dev\boost_1_60_0"
+}
+
+if (!$DontBuild)
+{
+    Invoke-WebHook "Bloop, building a new cfx-client $UploadBranch build, triggered by $Triggerer"
+
+    Write-Host "[checking if repository is latest version]" -ForegroundColor DarkMagenta
+
+    $ci_dir = $env:CI_PROJECT_DIR -replace '/','\'
+
+    #cmd /c mklink /d citizenmp cfx-client
+
+    $VCDir = (Get-ItemProperty HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7)."15.0"
+
+    if (!(Test-Path Env:\DevEnvDir)) {
+        Invoke-BatchFile "$VCDir\VC\Auxiliary\Build\vcvars64.bat"
+    }
+
+    if (!(Test-Path Env:\DevEnvDir)) {
+        throw "No VC path!"
+    }
+
+    Write-Host "[updating submodules]" -ForegroundColor DarkMagenta
+    git submodule update --init --recursive
+
+    Write-Host "[running prebuild]" -ForegroundColor DarkMagenta
+    Push-Location $WorkDir
+    .\prebuild.cmd
+    Pop-Location
+
+    Write-Host "[downloading chrome]" -ForegroundColor DarkMagenta
+    try {
+        if (!(Test-Path "$SaveDir\$CefName.zip")) {
+            Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
+        }
+
+        Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
+        Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
+    } catch {
+        return
+    }
+
+    Write-Host "[building]" -ForegroundColor DarkMagenta
+
+    # cloned, building
+    Set-Location cfx-client
+
+    Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=five --builddir=$BuildRoot --bindir=$BinRoot"
+
+    $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1000000
+    $LauncherVersion = $GameVersion
+
+    "#pragma once
+    #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
+
+    #echo $env:Path
+    #/logger:C:\f\customlogger.dll /noconsolelogger
+    msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /p:platform=x64 /v:q /fl /m:4 $BuildRoot\five\CitizenMP.sln
+
+    if (!$?) {
+        Invoke-WebHook "Building cfx-client failed :("
+        throw "Failed to build the code."
+    }
+
+    if ($env:COMPUTERNAME -eq "BUILDVM") {
+        Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot"
+    }
+}
+
+Set-Location $WorkRootDir
+$GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1000000
+$LauncherVersion = $GameVersion
+
+if (!$DontBuild) {
+    # prepare caches
+    New-Item -ItemType Directory -Force $WorkDir\caches | Out-Null
+    New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn | Out-Null
+    Set-Location $WorkDir\caches
+
+    # create cache folders
+
+    # copy output files
+    #Copy-Item -Force -Recurse $WorkDir\src\definitelynot\data\ship\* $WorkDir\caches\iw4m\
+    #Copy-Item -Force $WorkDir\src\definitelynot\bin\release\clientdll.dll $WorkDir\caches\iw4m\clientdll.dll
+
+    #Move-Item -Force $WorkDir\src\cfx-client\bin\five\release\FiveM.com $WorkDir\src\cfx-client\bin\five\release\FiveReborn.com
+
+    Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
+
+    Copy-Item -Force -Recurse $WorkDir\data\* $WorkDir\caches\fivereborn\
+    Copy-Item -Force -Recurse C:\f\tdd2\citizen\ui.rpf $WorkDir\caches\fivereborn\citizen\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $WorkDir\caches\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $WorkDir\caches\fivereborn\bin\
+
+    New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn\bin\cef
+
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $WorkDir\caches\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $WorkDir\caches\fivereborn\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $WorkDir\caches\fivereborn\bin\cef\
+
+    # build meta/xz variants
+    "<Caches>
+        <Cache ID=`"fivereborn`" Version=`"$GameVersion`" />
+    </Caches>" | Out-File -Encoding ascii $WorkDir\caches\caches.xml
+
+    Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
+
+    Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
+
+    # build bootstrap executable
+    Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
+
+    if (Test-Path CitizenFX.exe.xz) {
+        Remove-Item CitizenFX.exe.xz
+    }
+
+    Invoke-Expression "& $WorkRootDir\tools\ci\xz.exe -9 CitizenFX.exe"
+
+    Invoke-WebRequest -Method POST -UseBasicParsing "https://crashes.fivem.net/management/add-version/1.3.0.$GameVersion"
+
+    $LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
+    "$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
+}
+
+if (!$DontUpload) {
+    Set-Location $WorkDir\caches
+
+    $Branch = $UploadBranch
+
+    $env:Path += ";C:\msys64\usr\bin"
+
+    New-Item -ItemType Directory -Force $WorkDir\upload\$Branch\bootstrap | Out-Null
+    New-Item -ItemType Directory -Force $WorkDir\upload\$Branch\content | Out-Null
+
+    Copy-Item -Force CitizenFX.exe.xz $WorkDir\upload\$Branch\bootstrap
+    Copy-Item -Force version.txt $WorkDir\upload\$Branch\bootstrap
+    Copy-Item -Force caches.xml $WorkDir\upload\$Branch\content
+    Copy-Item -Recurse -Force diff\fivereborn\ $WorkDir\upload\$Branch\content\
+
+    $BaseRoot = (Split-Path -Leaf $WorkDir)
+    Set-Location (Split-Path -Parent $WorkDir)
+
+    rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
+    Invoke-WebHook "Built and uploaded a new cfx-client version ($GameVersion) to $UploadBranch! Go and test it!"
+
+    # clear cloudflare cache
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("X-Auth-Email", $env:CLOUDFLARE_EMAIL)
+    $headers.Add("X-Auth-Key", $env:CLOUDFLARE_KEY)
+
+    $uri = 'https://api.cloudflare.com/client/v4/zones/783470409082113ad973c9bb845b62e5/purge_cache'
+    $json = @{
+        purge_everything=$true
+    } | ConvertTo-Json
+
+    Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -Body $json -ContentType 'application/json'
+}
