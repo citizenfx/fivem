@@ -147,6 +147,8 @@ if (!$DontBuild)
 
     Write-Host "[building]" -ForegroundColor DarkMagenta
 
+    Push-Location $WorkDir\..\
+
     # cloned, building
     if (!(Test-Path fivem-private)) {
         git clone $env:FIVEM_PRIVATE_URI
@@ -159,9 +161,9 @@ if (!$DontBuild)
         cd ..
     }
 
-    Set-Location $env:CI_PROJECT_NAME
+    echo "private_repo '../../fivem-private/'" > $WorkRootDir\privates_config.lua
 
-    echo "private_repo '../../fivem-private/'" > code/privates_config.lua
+    Pop-Location
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=five --builddir=$BuildRoot --bindir=$BinRoot"
 
