@@ -139,7 +139,24 @@ if (!$DontBuild)
     }
 
     Write-Host "[updating submodules]" -ForegroundColor DarkMagenta
-    git submodule update --init --recursive
+    git submodule init
+
+    $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
+
+    foreach ($submodule in $SubModules) {
+        $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
+        $SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
+
+        $Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash) -replace '^.*tags/([^^]+).*$','$1'
+
+        if (!$Tag) {
+            git clone $SubmoduleRemote $SubmodulePath
+        } else {
+            git clone -b $Tag --depth 1 --single-branch $SubmoduleRemote $SubmodulePath
+        }
+    }
+
+    git submodule update
 
     Write-Host "[running prebuild]" -ForegroundColor DarkMagenta
     Push-Location $WorkDir
