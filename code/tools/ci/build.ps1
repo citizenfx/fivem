@@ -139,6 +139,8 @@ if (!$DontBuild)
     }
 
     Write-Host "[updating submodules]" -ForegroundColor DarkMagenta
+    Push-Location $WorkDir
+
     git submodule init
 
     $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
@@ -157,6 +159,8 @@ if (!$DontBuild)
     }
 
     git submodule update
+    
+    Pop-Location
 
     Write-Host "[running prebuild]" -ForegroundColor DarkMagenta
     Push-Location $WorkDir
