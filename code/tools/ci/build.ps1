@@ -75,12 +75,21 @@ $UploadBranch = "canary"
 if ($env:CI) {
     $inCI = $true
 
-    $Branch = $env:CI_BUILD_REF_NAME
-    $WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
+    if ($env:APPVEYOR) {
+    	$Branch = $env:APPVEYOR_REPO_BRANCH
+    	$WorkDir = $env:APPVEYOR_BUILD_FOLDER -replace '/','\'
 
-    $Triggerer = $env:GITLAB_USER_EMAIL
+    	$Triggerer = $env:APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL
 
-    $UploadBranch = $env:CI_ENVIRONMENT_NAME
+    	$UploadBranch = ''
+    } else {
+    	$Branch = $env:CI_BUILD_REF_NAME
+    	$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
+
+    	$Triggerer = $env:GITLAB_USER_EMAIL
+
+    	$UploadBranch = $env:CI_ENVIRONMENT_NAME
+    }
 }
 
 $WorkRootDir = "$WorkDir\code\"
@@ -102,7 +111,11 @@ if ((Get-Command "python.exe" -ErrorAction SilentlyContinue) -eq $null) {
 }
 
 if (!($env:BOOST_ROOT)) {
-    $env:BOOST_ROOT = "C:\dev\boost_1_60_0"
+	if (Test-Path "C:\Libraries\boost_1_60_0") {
+		$env:BOOST_ROOT = "C:\dev\boost_1_60_0"
+	} else {
+    	$env:BOOST_ROOT = "C:\dev\boost_1_60_0"
+    }
 }
 
 if (!$DontBuild)
@@ -147,23 +160,25 @@ if (!$DontBuild)
 
     Write-Host "[building]" -ForegroundColor DarkMagenta
 
-    Push-Location $WorkDir\..\
+	if (!($env:APPVEYOR)) {
+	    Push-Location $WorkDir\..\
 
-    # cloned, building
-    if (!(Test-Path fivem-private)) {
-        git clone $env:FIVEM_PRIVATE_URI
-    } else {
-        cd fivem-private
+	    # cloned, building
+	    if (!(Test-Path fivem-private)) {
+	        git clone $env:FIVEM_PRIVATE_URI
+	    } else {
+	        cd fivem-private
 
-        git fetch origin | Out-Null
-        git reset --hard origin/master | Out-Null
+	        git fetch origin | Out-Null
+	        git reset --hard origin/master | Out-Null
 
-        cd ..
-    }
+	        cd ..
+	    }
 
-    echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
+	    echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
 
-    Pop-Location
+	    Pop-Location
+	}
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=five --builddir=$BuildRoot --bindir=$BinRoot"
 
@@ -209,7 +224,11 @@ if (!$DontBuild) {
     Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
 
     Copy-Item -Force -Recurse $WorkDir\data\* $WorkDir\caches\fivereborn\
-    Copy-Item -Force -Recurse C:\f\tdd2\citizen\ui.rpf $WorkDir\caches\fivereborn\citizen\
+
+    if (Test-Path C:\f\tdd2) {
+    	Copy-Item -Force -Recurse C:\f\tdd2\citizen\ui.rpf $WorkDir\caches\fivereborn\citizen\
+    }
+
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $WorkDir\caches\fivereborn\bin\
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $WorkDir\caches\fivereborn\bin\
 
