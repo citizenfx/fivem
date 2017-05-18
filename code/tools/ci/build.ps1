@@ -149,7 +149,7 @@ if (!$DontBuild)
 
     # cloned, building
     if (!(Test-Path fivem-private)) {
-        git clone git@git.internal.fivem.net:cfx/fivem-private.git
+        git clone $env:FIVEM_PRIVATE_URI
     } else {
         cd fivem-private
 
@@ -160,6 +160,8 @@ if (!$DontBuild)
     }
 
     Set-Location $env:CI_PROJECT_NAME
+
+    echo "private_repo '../../fivem-private/'" > code/privates_config.lua
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=five --builddir=$BuildRoot --bindir=$BinRoot"
 
