@@ -107,7 +107,7 @@ if (!($env:BOOST_ROOT)) {
 
 if (!$DontBuild)
 {
-    Invoke-WebHook "Bloop, building a new cfx-client $UploadBranch build, triggered by $Triggerer"
+    Invoke-WebHook "Bloop, building a new $env:CI_PROJECT_NAME $UploadBranch build, triggered by $Triggerer"
 
     Write-Host "[checking if repository is latest version]" -ForegroundColor DarkMagenta
 
@@ -148,7 +148,18 @@ if (!$DontBuild)
     Write-Host "[building]" -ForegroundColor DarkMagenta
 
     # cloned, building
-    Set-Location cfx-client
+    if (!(Test-Path fivem-private)) {
+        git clone git@git.internal.fivem.net:cfx/fivem-private.git
+    } else {
+        cd fivem-private
+
+        git fetch origin | Out-Null
+        git reset --hard origin/master | Out-Null
+
+        cd ..
+    }
+
+    Set-Location $env:CI_PROJECT_NAME
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=five --builddir=$BuildRoot --bindir=$BinRoot"
 
@@ -247,7 +258,7 @@ if (!$DontUpload) {
     Set-Location (Split-Path -Parent $WorkDir)
 
     rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
-    Invoke-WebHook "Built and uploaded a new cfx-client version ($GameVersion) to $UploadBranch! Go and test it!"
+    Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
 
     # clear cloudflare cache
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
