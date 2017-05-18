@@ -42,4 +42,4 @@ $env:Path += ";C:\msys64\usr\bin"
 remove-item R:\sym-pack.zip
 C:\f\temp\7z.exe a R:\sym-pack.zip R:\sym-pack\*
 C:\f\temp\curl.exe -F symbols=@R:\sym-pack.zip -F version=1.0 -F platform=windows https://crashes.fivem.net/symbols/
-rsync -r -a -v -e $env:RSH_COMMAND /r/sym-upload/ $env:SSH_TARGET
+rsync -r -a -v -e $env:RSH_COMMAND /r/sym-upload/ $env:SSH_SYMBOLS_TARGET
