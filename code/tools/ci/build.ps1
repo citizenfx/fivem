@@ -161,7 +161,7 @@ if (!$DontBuild)
         cd ..
     }
 
-    echo "private_repo '../../fivem-private/'" > $WorkRootDir\privates_config.lua
+    echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
 
     Pop-Location
 
