@@ -251,29 +251,24 @@ std::string UnparseArgument(const TArgument& input)
 	return ConsoleArgumentType<TArgument>::Unparse(input);
 }
 
-template<typename T>
-struct fn_detail
-{
-
-};
-
-template <typename ClassType, typename ReturnType, typename... Args>
-struct fn_detail<ReturnType(ClassType::*)(Args...) const>
-{
-	using ArgTuple = std::tuple<Args...>;
-};
-
 template <class TFunc>
 struct ConsoleCommandFunction
 {
-	using ArgTuple = typename fn_detail<decltype(&TFunc::operator())>::ArgTuple;
+};
+
+template <typename... Args>
+struct ConsoleCommandFunction<std::function<void(Args...)>>
+{
+	using TFunc = std::function<void(Args...)>;
+
+	using ArgTuple = std::tuple<Args...>;
 
 	static bool Call(TFunc func, ConsoleExecutionContext& context)
 	{
 		// check if the argument count matches
-		if (std::tuple_size_v<ArgTuple> != context.arguments.Count())
+		if (sizeof...(Args) != context.arguments.Count())
 		{
-			context.errorBuffer << "Argument count mismatch (passed " << std::to_string(context.arguments.Count()) << ", wanted " << std::to_string(std::tuple_size_v<ArgTuple>) << ")" << std::endl;
+			context.errorBuffer << "Argument count mismatch (passed " << std::to_string(context.arguments.Count()) << ", wanted " << std::to_string(sizeof...(Args)) << ")" << std::endl;
 			return false;
 		}
 
@@ -283,7 +278,7 @@ struct ConsoleCommandFunction
 
 	// non-terminator iterator
 	template <size_t Iterator, typename TupleType>
-	static std::enable_if_t<(Iterator < std::tuple_size_v<ArgTuple>), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
+	static std::enable_if_t<(Iterator < sizeof...(Args)), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
 	{
 		// the type of the current argument
 		using ArgType = std::tuple_element_t<Iterator, ArgTuple>;
@@ -304,7 +299,7 @@ struct ConsoleCommandFunction
 
 	// terminator
 	template <size_t Iterator, typename TupleType>
-	static std::enable_if_t<(Iterator == std::tuple_size_v<ArgTuple>), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
+	static std::enable_if_t<(Iterator == sizeof...(Args)), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
 	{
 		apply(func, std::move(tuple));
 
