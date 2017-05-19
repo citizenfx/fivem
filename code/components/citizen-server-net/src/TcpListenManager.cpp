@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -10,46 +10,47 @@
 
 #include <TcpListenManager.h>
 
+#include <CoreConsole.h>
+
 namespace fx
 {
 	TcpListenManager::TcpListenManager()
 	{
-		
+		Initialize();
 	}
 
-	void TcpListenManager::Initialize(const boost::property_tree::ptree& pt)
+	void TcpListenManager::Initialize()
 	{
 		// initialize a TCP stack
 		m_tcpStack = new net::TcpServerManager();
+	}
 
-		// for each defined endpoint
-		for (auto& child : pt.get_child("server"))
+	void TcpListenManager::AddEndpoint(const std::string& endPoint)
+	{
+		// parse the endpoint to a peer address
+		boost::optional<net::PeerAddress> peerAddress = net::PeerAddress::FromString(endPoint);
+
+		// if a peer address is set
+		if (peerAddress.is_initialized())
 		{
-			if (child.first != "endpoint")
-			{
-				continue;
-			}
+			// create a multiplexable TCP server and bind it
+			fwRefContainer<net::MultiplexTcpServer> server = new net::MultiplexTcpServer(m_tcpStack);
+			server->Bind(peerAddress.get());
 
-			// parse the endpoint to a peer address
-			boost::optional<net::PeerAddress> peerAddress = net::PeerAddress::FromString(child.second.get_value<std::string>());
+			// add the server to the list
+			m_multiplexServers.push_back(server);
 
-			// if a peer address is set
-			if (peerAddress.is_initialized())
-			{
-				// create a multiplexable TCP server and bind it
-				fwRefContainer<net::MultiplexTcpServer> server = new net::MultiplexTcpServer(m_tcpStack);
-				server->Bind(peerAddress.get());
-
-				// add the server to the list
-				m_multiplexServers.push_back(server);
-			}
+			// trigger event
+			OnInitializeMultiplexServer(server);
 		}
+	}
 
-		// for each multiplex server
-		for (auto& child : m_multiplexServers)
+	void TcpListenManager::AttachToObject(ServerInstanceBase* instance)
+	{
+		m_addEndpointCommand = instance->AddCommand("endpoint_add_tcp", [=](const std::string& endPoint)
 		{
-			OnInitializeMultiplexServer(child);
-		}
+			AddEndpoint(endPoint);
+		});
 	}
 }
 
@@ -58,10 +59,5 @@ static InitFunction initFunction([] ()
 	fx::ServerInstanceBase::OnServerCreate.Connect([] (fx::ServerInstanceBase* instance)
 	{
 		instance->SetComponent(new fx::TcpListenManager());
-
-		instance->OnReadConfiguration.Connect([=] (const boost::property_tree::ptree& pt)
-		{
-			instance->GetComponent<fx::TcpListenManager>()->Initialize(pt);
-		});
 	}, -1000);
 });

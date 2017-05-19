@@ -170,11 +170,3 @@ ConsoleVariableManager* ConsoleVariableManager::GetDefaultInstance()
 {
 	return console::GetDefaultContext()->GetVariableManager();
 }
-
-namespace internal
-{
-void MarkConsoleVarModified(ConsoleVariableManager* manager, const std::string& name)
-{
-	manager->AddEntryFlags(name, ConVar_Modified);
-}
-}

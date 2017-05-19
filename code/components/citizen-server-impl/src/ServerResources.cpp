@@ -180,45 +180,34 @@ static InitFunction initFunction([]()
 
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 
-		instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
 		{
-			vfs::Mount(new vfs::RelativeDevice(pt.get<std::string>("server.citizen_dir")), "citizen:/");
+			static auto citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, "");
+
+			vfs::Mount(new vfs::RelativeDevice(citizenDir->GetValue() + "/"), "citizen:/");
 			vfs::Mount(new vfs::RelativeDevice(instance->GetRootPath() + "/cache/"), "cache:/");
+		}
 
-			ScanResources(instance);
+		ScanResources(instance);
 
-			// start all auto-start resources
-			for (auto& child : pt.get_child("server"))
+		static auto commandRef = instance->AddCommand("start", [=](const std::string& resourceName)
+		{
+			if (resourceName.empty())
 			{
-				if (child.first != "resource")
-				{
-					continue;
-				}
+				return;
+			}
 
-				auto resourceName = child.second.get_optional<std::string>("<xmlattr>.name").get_value_or(
-					child.second.get_value_optional<std::string>().get_value_or(
-						""
-					)
-				);
+			auto resource = resman->GetResource(resourceName);
 
-				if (resourceName.empty())
-				{
-					continue;
-				}
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
 
-				auto resource = resman->GetResource(resourceName);
-
-				if (!resource.GetRef())
-				{
-					trace("^3Couldn't find auto-started resource %s.^7\n", resourceName);
-					continue;
-				}
-
-				if (!resource->Start())
-				{
-					trace("^3Couldn't start resource %s.^7\n", resourceName);
-					continue;
-				}
+			if (!resource->Start())
+			{
+				trace("^3Couldn't start resource %s.^7\n", resourceName);
+				return;
 			}
 		});
 

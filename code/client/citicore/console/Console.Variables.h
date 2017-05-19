@@ -42,8 +42,6 @@ struct Constraints<T, std::enable_if_t<std::is_arithmetic<T>::value>>
 		return true;
 	}
 };
-
-void MarkConsoleVarModified(ConsoleVariableManager* manager, const std::string& name);
 }
 
 enum ConsoleVariableFlags
@@ -67,21 +65,21 @@ public:
 
 	~ConsoleVariableManager();
 
-	int Register(const std::string& name, int flags, const THandlerPtr& variable);
+	virtual int Register(const std::string& name, int flags, const THandlerPtr& variable);
 
-	void Unregister(int token);
+	virtual void Unregister(int token);
 
-	bool Process(const std::string& commandName, const ProgramArguments& arguments);
+	virtual bool Process(const std::string& commandName, const ProgramArguments& arguments);
 
-	THandlerPtr FindEntryRaw(const std::string& name);
+	virtual THandlerPtr FindEntryRaw(const std::string& name);
 
-	void AddEntryFlags(const std::string& name, int flags);
+	virtual void AddEntryFlags(const std::string& name, int flags);
 
-	void RemoveEntryFlags(const std::string& name, int flags);
+	virtual void RemoveEntryFlags(const std::string& name, int flags);
 
-	void ForAllVariables(const TVariableCB& callback, int flagMask = 0xFFFFFFFF);
+	virtual void ForAllVariables(const TVariableCB& callback, int flagMask = 0xFFFFFFFF);
 
-	void SaveConfiguration(const TWriteLineCB& writeLineFunction);
+	virtual void SaveConfiguration(const TWriteLineCB& writeLineFunction);
 
 	inline console::Context* GetParentContext()
 	{
@@ -126,6 +124,11 @@ public:
 
 namespace internal
 {
+inline void MarkConsoleVarModified(ConsoleVariableManager* manager, const std::string& name)
+{
+	manager->AddEntryFlags(name, ConVar_Modified);
+}
+
 template <typename T>
 class ConsoleVariableEntry : public ConsoleVariableEntryBase
 {

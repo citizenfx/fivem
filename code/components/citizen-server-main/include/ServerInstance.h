@@ -9,6 +9,8 @@
 
 #include <ServerInstanceBase.h>
 
+#include <console/Console.CommandHelpers.h>
+
 namespace fx
 {
 	class ServerInstance : public ServerInstanceBase
@@ -30,5 +32,8 @@ namespace fx
 		{
 			return m_rootPath;
 		}
+
+	private:
+		std::unique_ptr<ConsoleCommand> m_execCommand;
 	};
 }

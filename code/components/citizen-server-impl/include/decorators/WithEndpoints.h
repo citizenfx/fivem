@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace fx
 {
@@ -6,40 +6,33 @@ namespace fx
 	{
 		const fwRefContainer<fx::GameServer>& WithEndPoints(const fwRefContainer<fx::GameServer>& server)
 		{
+			static std::unique_ptr<ConsoleCommand> cmd;
+
 			server->OnAttached.Connect([=](fx::ServerInstanceBase* instance)
 			{
-				instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
+				cmd = std::move(instance->AddCommand("endpoint_add_udp", [=](const std::string& endPoint)
 				{
-					// for each defined endpoint
-					for (auto& child : pt.get_child("server"))
+					// parse the endpoint to a peer address
+					boost::optional<net::PeerAddress> peerAddress = net::PeerAddress::FromString(endPoint);
+
+					// if a peer address is set
+					if (peerAddress.is_initialized())
 					{
-						if (child.first != "endpoint")
-						{
-							continue;
-						}
+						// create an ENet host
+						ENetAddress addr = GetENetAddress(*peerAddress);
+						ENetHost* host = enet_host_create(&addr, 64, 2, 0, 0);
 
-						// parse the endpoint to a peer address
-						boost::optional<net::PeerAddress> peerAddress = net::PeerAddress::FromString(child.second.get_value<std::string>());
+						// ensure the host exists
+						assert(host);
 
-						// if a peer address is set
-						if (peerAddress.is_initialized())
-						{
-							// create an ENet host
-							ENetAddress addr = GetENetAddress(*peerAddress);
-							ENetHost* host = enet_host_create(&addr, 64, 2, 0, 0);
+						// register the global host
+						g_hostInstances[host] = server.GetRef();
 
-							// ensure the host exists
-							assert(host);
+						server->hosts.push_back(fx::GameServer::THostPtr{ host });
 
-							// register the global host
-							g_hostInstances[host] = server.GetRef();
-
-							server->hosts.push_back(fx::GameServer::THostPtr{ host });
-						}
+						server->OnHostRegistered(host);
 					}
-
-					server->OnHostsRegistered();
-				});
+				}));
 			});
 
 			return server;

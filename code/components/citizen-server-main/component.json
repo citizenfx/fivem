@@ -5,7 +5,8 @@
 		"fx[2]",
 		"citizen:server:instance",
 		"vendor:boost_program_options",
-		"vendor:boost_filesystem"
+		"vendor:boost_filesystem",
+		"vfs:core"
 	],
 	"provides": [],
 	"shouldAutoInstance": false

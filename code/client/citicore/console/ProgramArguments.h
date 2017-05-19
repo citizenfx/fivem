@@ -44,7 +44,7 @@ public:
 		return m_arguments.size();
 	}
 
-	std::string Shift()
+	inline std::string Shift()
 	{
 		std::string value = *(m_arguments.begin());
 		m_arguments.erase(m_arguments.begin());

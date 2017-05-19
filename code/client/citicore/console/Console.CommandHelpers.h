@@ -26,10 +26,8 @@ public:
 	ConsoleCommand(ConsoleCommandManager* manager, const std::string& name, TFunction function)
 	    : m_manager(manager)
 	{
-		auto functionRef = detail::make_function(function);
-
 		m_token = m_manager->Register(name, [=](ConsoleExecutionContext& context) {
-			return internal::ConsoleCommandFunction<decltype(functionRef)>::Call(functionRef, context);
+			return internal::ConsoleCommandFunction<decltype(function)>::Call(function, context);
 		});
 	}
 

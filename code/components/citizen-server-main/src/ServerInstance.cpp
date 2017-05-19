@@ -16,13 +16,40 @@
 
 #include <ComponentLoader.h>
 
+#include <CoreConsole.h>
+
+#include <VFSManager.h>
+
 namespace fx
 {
 	ServerInstance::ServerInstance()
 		: m_shouldTerminate(false)
 	{
-		// invoke target events
-		OnServerCreate(this);
+		// create a console context
+		fwRefContainer<console::Context> consoleContext;
+		console::CreateContext(console::GetDefaultContext(), &consoleContext);
+
+		SetComponent(consoleContext);
+
+		m_execCommand = AddCommand("exec", [=](const std::string& path) {
+			fwRefContainer<vfs::Stream> stream = vfs::OpenRead(path);
+
+			if (!stream.GetRef())
+			{
+				console::Printf("cmd", "No such config file: %s\n", path.c_str());
+				return;
+			}
+
+			std::vector<uint8_t> data = stream->ReadToEnd();
+			data.push_back('\n'); // add a newline at the end
+
+			auto consoleCtx = GetComponent<console::Context>();
+
+			consoleCtx->AddToBuffer(std::string(reinterpret_cast<char*>(&data[0]), data.size()));
+			consoleCtx->ExecuteBuffer();
+		});
+
+		SetComponent(new fx::OptionParser());
 	}
 
 	bool ServerInstance::SetArguments(const std::string& arguments)
@@ -37,36 +64,34 @@ namespace fx
 		// initialize the server configuration
 		{
 			auto optionParser = GetComponent<OptionParser>();
+			auto consoleCtx = GetComponent<console::Context>();
+
+			for (const auto& set : optionParser->GetSetList())
+			{
+				consoleCtx->ExecuteSingleCommand(ProgramArguments{ "set", set.first, set.second });
+			}
 
 			boost::filesystem::path rootPath;
 
 			try
 			{
-				rootPath = boost::filesystem::canonical(optionParser->GetConfigFile());
+				rootPath = boost::filesystem::canonical(".");
 
-				m_rootPath = rootPath.parent_path().string();
+				m_rootPath = rootPath.string();
 			}
 			catch (std::exception& error)
 			{
 			}
 
-			try
-			{
-				boost::property_tree::ptree pt;
-				boost::property_tree::read_xml(optionParser->GetConfigFile(), pt);
+			// invoke target events
+			OnServerCreate(this);
 
-				OnReadConfiguration(pt);
-			}
-			catch (boost::property_tree::ptree_error& error)
+			for (const auto& bit : optionParser->GetArguments())
 			{
-				trace("error parsing configuration: %s\n", error.what());
-				return;
+				consoleCtx->ExecuteSingleCommand(bit);
 			}
-			catch (std::exception& error)
-			{
-				trace("error: %s\n", error.what());
-				return;
-			}
+
+			OnInitialConfiguration();
 		}
 
 		// tasks should be running in background threads; we'll just wait until someone wants to get rid of us

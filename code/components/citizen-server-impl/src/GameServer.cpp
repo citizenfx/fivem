@@ -71,7 +71,9 @@ namespace fx
 	{
 		OnAttached(instance);
 
-		instance->OnReadConfiguration.Connect([=](const boost::property_tree::ptree& pt)
+		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
+
+		instance->OnInitialConfiguration.Connect([=]()
 		{
 			m_thread = std::thread([=]()
 			{
@@ -227,6 +229,64 @@ namespace fx
 		enet_socket_send(std::get<ENetHost*>(to)->socket, &addr, &buffer, 1);
 	}
 
+	struct FxPrintListener
+	{
+		static thread_local std::function<void(const std::string_view& cb)> listener;
+
+		FxPrintListener()
+		{
+			console::CoreAddPrintListener([](ConsoleChannel channel, const char* data)
+			{
+				if (listener)
+				{
+					listener(data);
+				}
+			});
+		}
+	};
+
+	FxPrintListener printListener;
+
+	thread_local std::function<void(const std::string_view& cb)> FxPrintListener::listener;
+
+	struct PrintListenerContext
+	{
+		PrintListenerContext(const std::function<void(const std::string_view& cb)>& fn)
+		{
+			oldFn = FxPrintListener::listener;
+
+			FxPrintListener::listener = fn;
+		}
+
+		~PrintListenerContext()
+		{
+			FxPrintListener::listener = oldFn;
+		}
+
+	private:
+		std::function<void(const std::string_view& cb)> oldFn;
+	};
+
+	struct ScopeDestructor
+	{
+		ScopeDestructor(const std::function<void()>& fn)
+			: m_fn(fn)
+		{
+			
+		}
+
+		~ScopeDestructor()
+		{
+			if (m_fn)
+			{
+				m_fn();
+			}
+		}
+
+	private:
+		std::function<void()> m_fn;
+	};
+
 	namespace ServerDecorators
 	{
 		fwRefContainer<fx::GameServer> NewGameServer()
@@ -278,6 +338,50 @@ namespace fx
 			inline const char* GetName() const
 			{
 				return "getinfo";
+			}
+		};
+
+		struct RconOOB
+		{
+			void Process(const fwRefContainer<fx::GameServer>& server, const AddressPair& from, const std::string_view& data) const
+			{
+				int spacePos = data.find_first_of(" \n");
+
+				auto password = data.substr(0, spacePos);
+				auto command = data.substr(spacePos);
+
+				auto serverPassword = server->GetRconPassword();
+
+				std::string printString;
+
+				PrintListenerContext context([&](const std::string_view& print)
+				{
+					printString += print;
+				});
+
+				ScopeDestructor destructor([&]()
+				{
+					server->SendOutOfBand(from, "print " + printString);
+				});
+
+				if (serverPassword.empty())
+				{
+					trace("The server must set rcon_password to be able to use this command.\n");
+					return;
+				}
+
+				if (password != serverPassword)
+				{
+					trace("Invalid password.\n");
+					return;
+				}
+
+				server->GetInstance()->GetComponent<console::Context>()->ExecuteSingleCommand(std::string(command));
+			}
+
+			inline const char* GetName() const
+			{
+				return "rcon";
 			}
 		};
 
@@ -360,7 +464,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler>(
 				WithProcessTick<ENetWait, GameServerTick>(
-					WithOutOfBand<GetInfoOOB>(
+					WithOutOfBand<GetInfoOOB, RconOOB>(
 						WithEndPoints(
 							NewGameServer()
 						)

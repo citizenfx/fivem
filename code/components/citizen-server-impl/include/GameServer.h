@@ -50,6 +50,11 @@ namespace fx
 			return m_instance;
 		}
 
+		inline std::string GetRconPassword()
+		{
+			return m_rconPassword->GetValue();
+		}
+
 	private:
 		void Run();
 
@@ -68,7 +73,7 @@ namespace fx
 
 		std::vector<THostPtr> hosts;
 
-		fwEvent<> OnHostsRegistered;
+		fwEvent<ENetHost*> OnHostRegistered;
 
 		fwEvent<> OnTick;
 
@@ -88,6 +93,8 @@ namespace fx
 		ClientRegistry* m_clientRegistry;
 
 		ServerInstanceBase* m_instance;
+
+		std::unique_ptr<ConVar<std::string>> m_rconPassword;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
