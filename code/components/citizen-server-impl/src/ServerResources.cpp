@@ -2,6 +2,7 @@
 
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
+#include <ResourceMetaDataComponent.h>
 
 #include <ServerInstanceBase.h>
 
@@ -151,12 +152,23 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 					// it's a resource
 					else
 					{
-						tasks.push_back(resMan->AddResource(network::uri_builder{}
-							.scheme("file")
-							.host("")
-							.path(resPath)
-							.fragment(findData.name)
-							.uri().string()));
+						auto oldRes = resMan->GetResource(findData.name);
+
+						if (oldRes.GetRef())
+						{
+							oldRes->GetComponent<fx::ResourceMetaDataComponent>()->LoadMetaData(resPath);
+						}
+						else
+						{
+							trace("Found new resource %s in %s\n", findData.name, resPath);
+
+							tasks.push_back(resMan->AddResource(network::uri_builder{}
+								.scheme("file")
+								.host("")
+								.path(resPath)
+								.fragment(findData.name)
+								.uri().string()));
+						}
 					}
 				}
 			} while (vfsDevice->FindNext(handle, &findData));
