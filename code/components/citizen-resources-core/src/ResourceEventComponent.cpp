@@ -189,8 +189,6 @@ void ResourceEventManagerComponent::QueueEvent(const std::string& eventName, con
 	event.eventPayload = eventPayload;
 	event.eventSource = eventSource;
 
-	trace("queue event %s\n", eventName.c_str());
-
 	{
 		m_eventQueue.push(event);
 	}
