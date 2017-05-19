@@ -255,9 +255,49 @@ static InitFunction initFunction([]()
 
 			if (!resource->Start())
 			{
-				trace("^3Couldn't start resource %s.^7\n", resourceName);
+				if (resource->GetState() == fx::ResourceState::Stopped)
+				{
+					trace("^3Couldn't start resource %s.^7\n", resourceName);
+					return;
+				}
+			}
+		});
+
+		static auto stopCommandRef = instance->AddCommand("stop", [=](const std::string& resourceName)
+		{
+			if (resourceName.empty())
+			{
 				return;
 			}
+
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			if (!resource->Stop())
+			{
+				if (resource->GetState() != fx::ResourceState::Stopped)
+				{
+					trace("^3Couldn't stop resource %s.^7\n", resourceName);
+					return;
+				}
+			}
+		});
+
+		static auto restartCommandRef = instance->AddCommand("restart", [=](const std::string& resourceName)
+		{
+			auto conCtx = instance->GetComponent<console::Context>();
+			conCtx->ExecuteSingleCommand(ProgramArguments{ "stop", resourceName });
+			conCtx->ExecuteSingleCommand(ProgramArguments{ "start", resourceName });
+		});
+
+		static auto refreshCommandRef = instance->AddCommand("refresh", [=]()
+		{
+			ScanResources(instance);
 		});
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
