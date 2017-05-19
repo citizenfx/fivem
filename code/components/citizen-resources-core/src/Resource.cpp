@@ -73,19 +73,27 @@ bool ResourceImpl::Start()
 
 			if (!OnBeforeStart())
 			{
-				m_state = ResourceState::Stopped;
+				if (m_state != ResourceState::Started)
+				{
+					m_state = ResourceState::Stopped;
+				}
+
 				return false;
 			}
 		}
 
-		m_state = ResourceState::Started;
-
 		if (!OnStart())
 		{
-			m_state = ResourceState::Stopped;
+			if (m_state != ResourceState::Started)
+			{
+				m_state = ResourceState::Stopped;
+			}
+
 			return false;
 		}
 	}
+
+	m_state = ResourceState::Started;
 
 	return true;
 }
