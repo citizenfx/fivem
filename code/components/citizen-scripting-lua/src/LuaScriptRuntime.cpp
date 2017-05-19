@@ -969,6 +969,28 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ nullptr, nullptr }
 };
 
+static int Lua_Print(lua_State* L)
+{
+	int n = lua_gettop(L);  /* number of arguments */
+	int i;
+	lua_getglobal(L, "tostring");
+	for (i = 1; i <= n; i++) {
+		const char *s;
+		size_t l;
+		lua_pushvalue(L, -1);  /* function to be called */
+		lua_pushvalue(L, i);   /* value to print */
+		lua_call(L, 1, 1);
+		s = lua_tolstring(L, -1, &l);  /* get result */
+		if (s == NULL)
+			return luaL_error(L, "'tostring' must return a string to 'print'");
+		if (i > 1) trace("%s", std::string("\t", 1));
+		trace("%s", std::string(s, l));
+		lua_pop(L, 1);  /* pop result */
+	}
+	trace("\n");
+	return 0;
+}
+
 result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 {
 	m_scriptHost = scriptHost;
@@ -1035,6 +1057,9 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 
 	lua_pushnil(m_state);
 	lua_setglobal(m_state, "loadfile");
+
+	lua_pushcfunction(m_state, Lua_Print);
+	lua_setglobal(m_state, "print");
 
 	return FX_S_OK;
 }
