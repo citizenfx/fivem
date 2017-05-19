@@ -169,6 +169,11 @@ Context* GetDefaultContext()
 	return defaultContext.get();
 }
 
+void CreateContext(Context* parentContext, fwRefContainer<Context>* outContext)
+{
+	*outContext = new Context(parentContext);
+}
+
 void ExecuteSingleCommand(const std::string& command)
 {
 	return GetDefaultContext()->ExecuteSingleCommand(command);

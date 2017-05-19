@@ -52,7 +52,7 @@ class ConsoleVariableManager;
 
 namespace console
 {
-class Context
+class Context : public fwRefCountable
 {
 public:
 	Context();
@@ -92,7 +92,39 @@ private:
 	std::mutex m_commandBufferMutex;
 };
 
-Context* GetDefaultContext();
+#ifdef COMPILING_CORE
+extern "C" DLL_EXPORT Context* GetDefaultContext();
+
+extern "C" DLL_EXPORT void CreateContext(Context* parentContext, fwRefContainer<Context>* outContext);
+#else
+inline Context* GetDefaultContext()
+{
+	using TCoreFunc = decltype(&GetDefaultContext);
+
+	static TCoreFunc func;
+
+	if (!func)
+	{
+		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "GetDefaultContext");
+	}
+
+	return (func) ? func() : 0;
+}
+
+inline void CreateContext(Context* parentContext, fwRefContainer<Context>* outContext)
+{
+	using TCoreFunc = decltype(&CreateContext);
+
+	static TCoreFunc func;
+
+	if (!func)
+	{
+		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CreateContext");
+	}
+
+	return (func) ? func(parentContext, outContext) : nullptr;
+}
+#endif
 
 void ExecuteSingleCommand(const std::string& command);
 
