@@ -192,6 +192,43 @@ static InitFunction initFunction([]()
 
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 
+		fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+		{
+			fx::ServerInstanceBase* instance = resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+			
+			resource->OnStart.Connect([=]()
+			{
+				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+				net::Buffer outBuffer;
+				outBuffer.Write(HashRageString("msgResStart"));
+				outBuffer.Write(resource->GetName().c_str(), resource->GetName().length());
+
+				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				{
+					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+				});
+
+				trace("Started resource %s\n", resource->GetName());
+			}, 1000);
+
+			resource->OnStop.Connect([=]()
+			{
+				trace("Stopping resource %s\n", resource->GetName());
+
+				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+				net::Buffer outBuffer;
+				outBuffer.Write(HashRageString("msgResStop"));
+				outBuffer.Write(resource->GetName().c_str(), resource->GetName().length());
+
+				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				{
+					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+				});
+			}, -1000);
+		});
+
 		{
 			static auto citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, "");
 
