@@ -72,7 +72,7 @@ namespace fx
 		OnAttached(instance);
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
-		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_None, "default FXServer");
+		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
 
 		instance->OnInitialConfiguration.Connect([=]()
 		{
@@ -369,6 +369,53 @@ namespace fx
 			}
 		};
 
+		struct GetStatusOOB
+		{
+			inline void Process(const fwRefContainer<fx::GameServer>& server, const AddressPair& from, const std::string_view& data) const
+			{
+				int numClients = 0;
+				std::stringstream clientList;
+
+				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				{
+					if (client->GetNetId() != -1)
+					{
+						clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
+
+						++numClients;
+					}
+				});
+
+				std::stringstream infoVars;
+
+				auto addInfo = [&](const std::string& key, const std::string& value)
+				{
+					infoVars << "\\" << key << "\\" << value;
+				};
+
+				addInfo("sv_maxclients", "24");
+				addInfo("clients", std::to_string(numClients));
+
+				server->GetInstance()->GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+				{
+					addInfo(name, var->GetValue());
+				}, ConVar_ServerInfo);
+
+				server->SendOutOfBand(from, fmt::format(
+					"statusResponse\n"
+					"{0}\n"
+					"{1}",
+					infoVars.str(),
+					clientList.str()
+				));
+			}
+
+			inline const char* GetName() const
+			{
+				return "getstatus";
+			}
+		};
+
 		struct RconOOB
 		{
 			void Process(const fwRefContainer<fx::GameServer>& server, const AddressPair& from, const std::string_view& data) const
@@ -492,7 +539,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler>(
 				WithProcessTick<ENetWait, GameServerTick>(
-					WithOutOfBand<GetInfoOOB, RconOOB>(
+					WithOutOfBand<GetInfoOOB, GetStatusOOB, RconOOB>(
 						WithEndPoints(
 							NewGameServer()
 						)
