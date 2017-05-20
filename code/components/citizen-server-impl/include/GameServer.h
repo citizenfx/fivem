@@ -102,9 +102,17 @@ namespace fx
 
 		ServerInstanceBase* m_instance;
 
+		std::shared_ptr<ConsoleCommand> m_heartbeatCommand;
+
 		std::shared_ptr<ConVar<std::string>> m_rconPassword;
 
 		std::shared_ptr<ConVar<std::string>> m_hostname;
+
+		std::shared_ptr<ConVar<std::string>> m_masters[3];
+
+		std::map<std::string, net::PeerAddress> m_masterCache;
+
+		int64_t m_nextHeartbeatTime;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;

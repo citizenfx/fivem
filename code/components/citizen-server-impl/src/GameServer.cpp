@@ -59,7 +59,7 @@ namespace fx
 	static std::map<ENetHost*, GameServer*> g_hostInstances;
 
 	GameServer::GameServer()
-		: m_residualTime(0), m_serverTime(msec())
+		: m_residualTime(0), m_serverTime(msec()), m_nextHeartbeatTime(0)
 	{
 
 	}
@@ -76,6 +76,14 @@ namespace fx
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
+		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, "live-internal.fivem.net:30110");
+		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
+		m_masters[2] = instance->AddVariable<std::string>("sv_master3", ConVar_None, "");
+
+		m_heartbeatCommand = instance->AddCommand("heartbeat", [=]()
+		{
+			ForceHeartbeat();
+		});
 
 		instance->OnInitialConfiguration.Connect([=]()
 		{
@@ -168,6 +176,8 @@ namespace fx
 					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
 
 					m_clientRegistry->HandleConnectedClient(client);
+
+					ForceHeartbeat();
 				}
 			}
 
@@ -243,6 +253,55 @@ namespace fx
 			DropClient(client, "Timed out after {0} seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
 		}
 
+		// if we should heartbeat
+		if ((int64_t)msec() >= m_nextHeartbeatTime)
+		{
+			// loop through each master
+			for (auto& master : m_masters)
+			{
+				// if the master is set
+				std::string masterName = master->GetValue();
+
+				if (!masterName.empty())
+				{
+					// find a cached address
+					auto it = m_masterCache.find(masterName);
+
+					if (it == m_masterCache.end())
+					{
+						// look up if not cached
+						auto address = net::PeerAddress::FromString(masterName, 30110, net::PeerAddress::LookupType::ResolveName);
+
+						if (address)
+						{
+							trace("Resolved %s to %s\n", masterName, address->ToString());
+
+							it = m_masterCache.insert({ masterName, *address }).first;
+						}
+						else
+						{
+							// can't look up? unset master
+							master->GetHelper()->SetValue("");
+						}
+					}
+
+					if (it != m_masterCache.end())
+					{
+						// loop through each primary host
+						for (auto& host : hosts)
+						{
+							// send a heartbeat to the master
+							SendOutOfBand({ host.get(), it->second }, "heartbeat DarkPlaces\n");
+						}
+
+						trace("Sending heartbeat to %s\n", masterName);
+					}
+				}
+			}
+
+			m_nextHeartbeatTime = msec() + (180 * 1000);
+		}
+
 		OnTick();
 	}
 
@@ -294,7 +353,7 @@ namespace fx
 
 	void GameServer::ForceHeartbeat()
 	{
-
+		m_nextHeartbeatTime = -1;
 	}
 
 	void GameServer::SendOutOfBand(const AddressPair& to, const std::string_view& oob)
