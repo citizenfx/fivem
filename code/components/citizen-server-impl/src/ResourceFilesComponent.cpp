@@ -320,6 +320,8 @@ namespace fi
 		inline bool Write(const std::string& outFileName)
 		{
 			fwRefContainer<vfs::Device> device = vfs::GetDevice(outFileName);
+			device->CreateDirectory(outFileName.substr(0, outFileName.find_last_of('/')));
+
 			auto handle = device->Create(outFileName);
 
 			if (handle == INVALID_DEVICE_HANDLE)
