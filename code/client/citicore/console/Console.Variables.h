@@ -46,9 +46,10 @@ struct Constraints<T, std::enable_if_t<std::is_arithmetic<T>::value>>
 
 enum ConsoleVariableFlags
 {
-	ConVar_None     = 0,
-	ConVar_Archive  = 0x1,
-	ConVar_Modified = 2
+	ConVar_None       = 0,
+	ConVar_Archive    = 0x1,
+	ConVar_Modified   = 0x2,
+	ConVar_ServerInfo = 0x4,
 };
 
 class ConsoleVariableManager
