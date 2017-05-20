@@ -161,8 +161,6 @@ result_t TestScriptHost::WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream,
 
 result_t TestScriptHost::ScriptTrace(char* string)
 {
-	ConHost::Print(0, string);
-
 	return FX_S_OK;
 }
 

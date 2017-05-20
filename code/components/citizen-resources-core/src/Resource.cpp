@@ -66,11 +66,6 @@ ResourceState ResourceImpl::GetState()
 
 bool ResourceImpl::Start()
 {
-	if (HashString(m_name.c_str()) == 0xdf1fe10a)
-	{
-		FatalError("RSC10");
-	}
-
 	if (m_state != ResourceState::Started)
 	{
 		// skip the starting stage if we're already started
