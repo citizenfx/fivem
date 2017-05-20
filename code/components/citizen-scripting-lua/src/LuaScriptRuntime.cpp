@@ -233,6 +233,10 @@ static const luaL_Reg lualibs[] =
 	{ LUA_DBLIBNAME, luaopen_debug },
 	{ LUA_COLIBNAME, luaopen_coroutine },
 	{ LUA_UTF8LIBNAME, luaopen_utf8 },
+#ifdef IS_FXSERVER
+	{ LUA_IOLIBNAME, luaopen_io },
+	{ LUA_OSLIBNAME, luaopen_os },
+#endif
 	{ NULL, NULL }
 };
 
