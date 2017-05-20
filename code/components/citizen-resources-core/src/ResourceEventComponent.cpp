@@ -67,8 +67,12 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 
 		// on[type]ResourceStart is queued so that clients will only run it during the first tick
 		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStart", IsServer() ? "Server" : "Client"), event);
-		m_managerComponent->TriggerEvent("onResourceStart", event);
 	});
+
+	object->OnStart.Connect([=]()
+	{
+		m_managerComponent->TriggerEvent2("onResourceStart", {}, m_resource->GetName());
+	}, 99999);
 
 	object->OnStop.Connect([=] ()
 	{
