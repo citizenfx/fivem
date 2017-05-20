@@ -115,6 +115,17 @@ namespace fi
 
 			inline void AddFile(const std::string& fileName, const std::string& backingFile)
 			{
+				// check if the file is readable
+				{
+					auto backingStream = vfs::OpenRead(backingFile);
+
+					if (!backingStream.GetRef())
+					{
+						return;
+					}
+				}
+
+				// continue
 				std::string_view sv = fileName;
 				int pos = sv.find_first_of("/\\");
 
@@ -232,6 +243,7 @@ namespace fi
 					writer.WriteMark<uint32_t>("fOff_" + m_fullName, writer.Tell());
 
 					auto backingStream = vfs::OpenRead(m_backingFile);
+
 					writer.WriteMark<uint32_t>("fLen_" + m_fullName, backingStream->GetLength());
 					writer.WriteMark<uint32_t>("fLen2_" + m_fullName, backingStream->GetLength());
 
