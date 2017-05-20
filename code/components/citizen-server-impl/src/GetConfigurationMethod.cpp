@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 #include <ClientHttpHandler.h>
 #include <ResourceManager.h>
 #include <ResourceFilesComponent.h>
@@ -38,7 +38,7 @@ static InitFunction initFunction([]()
 			});
 
 			return json::object({
-				{ "fileServer", "http://localhost:8000/files" },
+				{ "fileServer", "http://%s/files" },
 				{ "resources", resources }
 			});
 		});
