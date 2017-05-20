@@ -44,3 +44,5 @@ public:
 	}
 };
 }
+
+DECLARE_INSTANCE_TYPE(net::TcpServerManager);
