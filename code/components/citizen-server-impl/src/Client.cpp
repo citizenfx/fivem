@@ -43,6 +43,12 @@ namespace fx
 
 	bool Client::IsDead()
 	{
+		// if we've not connected yet, we can't be dead
+		if (m_netId == 0xFFFF)
+		{
+			return false;
+		}
+
 		return (msec() - m_lastSeen) > CLIENT_DEAD_TIMEOUT;
 	}
 

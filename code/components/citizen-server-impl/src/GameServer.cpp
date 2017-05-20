@@ -256,7 +256,10 @@ namespace fx
 		}
 
 		// send an out-of-band error to the client
-		SendOutOfBand({ client->GetPeer()->host, client->GetAddress() }, fmt::sprintf("error %s", std::string(realReason)));
+		if (client->GetPeer())
+		{
+			SendOutOfBand({ client->GetPeer()->host, client->GetAddress() }, fmt::sprintf("error %s", std::string(realReason)));
+		}
 
 		// force a hearbeat
 		ForceHeartbeat();
