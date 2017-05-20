@@ -407,4 +407,106 @@ static InitFunction initFunction2([]()
 
 		context.SetResult(success);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_GAME_TYPE", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// set gametype variable
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "gametype", context.GetArgument<const char*>(0) });
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_MAP_NAME", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// set mapname variable
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "mapname", context.GetArgument<const char*>(0) });
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// get the variable manager
+		auto varMan = consoleContext->GetVariableManager();
+
+		// get the variable
+		auto var = varMan->FindEntryRaw(context.GetArgument<const char*>(0));
+
+		if (!var)
+		{
+			context.SetResult(context.GetArgument<const char*>(1));
+		}
+		else
+		{
+			static std::string varVal;
+			varVal = var->GetValue();
+
+			context.SetResult(varVal.c_str());
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_INT", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// get the variable manager
+		auto varMan = consoleContext->GetVariableManager();
+
+		// get the variable
+		auto var = varMan->FindEntryRaw(context.GetArgument<const char*>(0));
+
+		if (!var)
+		{
+			context.SetResult(context.GetArgument<int>(1));
+		}
+		else
+		{
+			context.SetResult(atoi(var->GetValue().c_str()));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_CONVAR", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// set variable
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", context.GetArgument<const char*>(0), context.GetArgument<const char*>(1) });
+	});
 });

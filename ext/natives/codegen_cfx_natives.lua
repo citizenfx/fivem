@@ -311,4 +311,28 @@ native 'STOP_RESOURCE'
 	apiset 'server'
 	returns 'BOOL'
 
+native 'GET_CONVAR'
+	arguments {
+		charPtr 'varName',
+		charPtr 'default'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'GET_CONVAR_INT'
+	arguments {
+		charPtr 'varName',
+		int 'default'
+	}
+	apiset 'server'
+	returns 'int'
+
+native 'SET_CONVAR'
+	arguments {
+		charPtr 'varName',
+		charPtr 'value'
+	}
+	apiset 'server'
+	returns 'void'
+
 -- TODO: handling field natives
