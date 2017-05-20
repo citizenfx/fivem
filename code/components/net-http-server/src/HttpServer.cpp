@@ -370,7 +370,7 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, c
 		std::time(&timeVal);
 
 		std::tm time = *std::gmtime(&timeVal);
-		outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S %Z") << "\r\n";
+		outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S GMT") << "\r\n";
 	}
 
 	auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("close"));
