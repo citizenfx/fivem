@@ -1,4 +1,4 @@
-﻿#include <StdInc.h>
+#include <StdInc.h>
 #include <ClientRegistry.h>
 
 #include <ServerInstanceBase.h>
@@ -68,7 +68,14 @@ namespace fx
 
 	void ClientRegistry::SetHost(const std::shared_ptr<Client>& client)
 	{
-		m_hostNetId = client->GetNetId();
+		if (!client)
+		{
+			m_hostNetId = -1;
+		}
+		else
+		{
+			m_hostNetId = client->GetNetId();
+		}
 	}
 
 	void ClientRegistry::AttachToObject(ServerInstanceBase* instance)

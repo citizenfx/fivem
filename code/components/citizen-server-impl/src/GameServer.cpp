@@ -4,6 +4,9 @@
 
 #include <GameServer.h>
 
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
+
 #include <NetBuffer.h>
 
 inline static uint64_t msec()
@@ -213,6 +216,8 @@ namespace fx
 	{
 		m_serverTime += frameTime;
 
+		std::vector<std::shared_ptr<fx::Client>> toRemove;
+
 		m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
 			auto peer = client->GetPeer();
@@ -225,9 +230,68 @@ namespace fx
 
 				client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
 			}
+
+			// time out the client if needed
+			if (client->IsDead())
+			{
+				toRemove.push_back(client);
+			}
 		});
 
+		for (auto& client : toRemove)
+		{
+			DropClient(client, "Timed out after {0} seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
+		}
+
 		OnTick();
+	}
+
+	void GameServer::DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args)
+	{
+		std::string_view realReason = reason;
+
+		if (reason.empty())
+		{
+			realReason = "Dropped.";
+		}
+
+		// send an out-of-band error to the client
+		SendOutOfBand({ client->GetPeer()->host, client->GetAddress() }, fmt::sprintf("error %s", std::string(realReason)));
+
+		// force a hearbeat
+		ForceHeartbeat();
+
+		// trigger a event signaling the player's drop
+		m_instance
+			->GetComponent<fx::ResourceManager>()
+			->GetComponent<fx::ResourceEventManagerComponent>()
+			->QueueEvent2(
+				"playerDropped",
+				{ fmt::sprintf("net:%d", client->GetNetId()) },
+				std::string(realReason)
+			);
+
+		// remove the host if this was the host
+		if (m_clientRegistry->GetHost() == client)
+		{
+			m_clientRegistry->SetHost(nullptr);
+
+			// broadcast the current host
+			net::Buffer hostBroadcast;
+			hostBroadcast.Write(0xB3EA30DE);
+			hostBroadcast.Write<uint16_t>(0xFFFF);
+			hostBroadcast.Write(0xFFFF);
+
+			Broadcast(hostBroadcast);
+		}
+
+		// drop the client
+		m_clientRegistry->RemoveClient(client);
+	}
+
+	void GameServer::ForceHeartbeat()
+	{
+
 	}
 
 	void GameServer::SendOutOfBand(const AddressPair& to, const std::string_view& oob)
@@ -520,6 +584,24 @@ namespace fx
 				return "msgIHost";
 			}
 		};
+
+		struct IQuitPacketHandler
+		{
+			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+			{
+				std::vector<char> reason(packet.GetRemainingBytes());
+				packet.Read(reason.data(), reason.size());
+
+				auto gameServer = instance->GetComponent<fx::GameServer>();
+
+				gameServer->DropClient(client, "Quit: %s", reason.data());
+			}
+
+			inline static constexpr const char* GetPacketId()
+			{
+				return "msgIQuit";
+			}
+		};
 	}
 }
 
@@ -537,7 +619,7 @@ static InitFunction initFunction([]()
 		using namespace fx::ServerDecorators;
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler>(
 				WithProcessTick<ENetWait, GameServerTick>(
 					WithOutOfBand<GetInfoOOB, GetStatusOOB, RconOOB>(
 						WithEndPoints(

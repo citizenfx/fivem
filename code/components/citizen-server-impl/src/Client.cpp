@@ -1,9 +1,5 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 #include <Client.h>
-
-using namespace std::literals::chrono_literals;
-
-constexpr const auto CLIENT_DEAD_TIMEOUT = 15s;
 
 inline static std::chrono::milliseconds msec()
 {

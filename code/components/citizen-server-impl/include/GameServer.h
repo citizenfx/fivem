@@ -42,6 +42,12 @@ namespace fx
 
 		std::string GetVariable(const std::string& key);
 
+		void DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args);
+
+		FMT_VARIADIC(void, DropClient, const std::shared_ptr<Client>&, const std::string&);
+
+		void ForceHeartbeat();
+
 		inline void SetRunLoop(const std::function<void()>& runLoop)
 		{
 			m_runLoop = runLoop;

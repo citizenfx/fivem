@@ -5,6 +5,12 @@
 
 #include <enet/enet.h>
 
+namespace {
+	using namespace std::literals::chrono_literals;
+
+	constexpr const auto CLIENT_DEAD_TIMEOUT = 15s;
+}
+
 namespace fx
 {
 	struct enet_peer_deleter
