@@ -47,6 +47,8 @@ namespace fx
 
 	void TcpListenManager::AttachToObject(ServerInstanceBase* instance)
 	{
+		instance->SetComponent(m_tcpStack);
+
 		m_addEndpointCommand = instance->AddCommand("endpoint_add_tcp", [=](const std::string& endPoint)
 		{
 			AddEndpoint(endPoint);
