@@ -72,6 +72,7 @@ namespace fx
 		OnAttached(instance);
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
+		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_None, "default FXServer");
 
 		instance->OnInitialConfiguration.Connect([=]()
 		{
@@ -91,6 +92,19 @@ namespace fx
 		{
 			m_runLoop();
 		}
+	}
+
+	std::string GameServer::GetVariable(const std::string& key)
+	{
+		auto consoleCtx = m_instance->GetComponent<console::Context>();
+		auto variable = consoleCtx->GetVariableManager()->FindEntryRaw(key);
+
+		if (!variable)
+		{
+			return "";
+		}
+
+		return variable->GetValue();
 	}
 
 	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
@@ -328,10 +342,24 @@ namespace fx
 		{
 			inline void Process(const fwRefContainer<fx::GameServer>& server, const AddressPair& from, const std::string_view& data) const
 			{
+				int numClients = 0;
+
+				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				{
+					if (client->GetNetId() != -1)
+					{
+						++numClients;
+					}
+				});
+
 				server->SendOutOfBand(from, fmt::format(
 					"infoResponse\n"
-					"\\sv_maxclients\\24\\clients\\0\\challenge\\{0}\\gamename\\CitizenFX\\protocol\\4\\hostname\\empty\\gametype\\\\mapname\\\\iv\\0",
-					std::string(data.substr(0, data.find_first_of(" \n")))
+					"\\sv_maxclients\\24\\clients\\{4}\\challenge\\{0}\\gamename\\CitizenFX\\protocol\\4\\hostname\\{1}\\gametype\\{2}\\mapname\\{3}\\iv\\0",
+					std::string(data.substr(0, data.find_first_of(" \n"))),
+					server->GetVariable("sv_hostname"),
+					server->GetVariable("gametype"),
+					server->GetVariable("mapname"),
+					numClients
 				));
 			}
 

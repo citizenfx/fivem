@@ -40,6 +40,8 @@ namespace fx
 
 		void Broadcast(const net::Buffer& buffer);
 
+		std::string GetVariable(const std::string& key);
+
 		inline void SetRunLoop(const std::function<void()>& runLoop)
 		{
 			m_runLoop = runLoop;
@@ -95,6 +97,8 @@ namespace fx
 		ServerInstanceBase* m_instance;
 
 		std::unique_ptr<ConVar<std::string>> m_rconPassword;
+
+		std::unique_ptr<ConVar<std::string>> m_hostname;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
