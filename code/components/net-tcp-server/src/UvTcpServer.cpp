@@ -197,6 +197,11 @@ PeerAddress UvTcpServerStream::GetPeerAddress()
 
 void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 {
+	if (!m_client)
+	{
+		return;
+	}
+
 	// write request structure
 	struct UvWriteReq
 	{
