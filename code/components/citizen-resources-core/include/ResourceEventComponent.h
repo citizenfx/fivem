@@ -14,6 +14,9 @@
 #include <mutex>
 #include <queue>
 #include <stack>
+#include <optional>
+
+#include <msgpack.hpp>
 
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define RESOURCES_CORE_EXPORT DLL_EXPORT
@@ -131,6 +134,45 @@ public:
 	// Enqueues an event for execution on the next resource manager tick.
 	//
 	void QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
+
+private:
+	struct pass
+	{
+		template<typename ...T> pass(T...) {}
+	};
+
+public:
+	//
+	// Triggers a formatted event on the manager.
+	//
+	template<typename... TArg>
+	inline bool TriggerEvent2(const std::string_view& eventName, const std::optional<std::string_view>& targetSrc, const TArg&... args)
+	{
+		msgpack::sbuffer buf;
+		msgpack::packer<msgpack::sbuffer> packer(buf);
+
+		// pack the argument pack as array
+		packer.pack_array(sizeof...(args));
+		pass{ (packer.pack(args), 0)... };
+
+		return TriggerEvent(std::string(eventName), std::string(buf.data(), buf.size()), std::string(targetSrc.value_or("")));
+	}
+
+	//
+	// Enqueues a formatted event on the manager.
+	//
+	template<typename... TArg>
+	inline void QueueEvent2(const std::string_view& eventName, const std::optional<std::string_view>& targetSrc, const TArg&... args)
+	{
+		msgpack::sbuffer buf;
+		msgpack::packer<msgpack::sbuffer> packer(buf);
+
+		// pack the argument pack as array
+		packer.pack_array(sizeof...(args));
+		pass{ (packer.pack(args), 0)... };
+
+		QueueEvent(std::string(eventName), std::string(buf.data(), buf.size()), std::string(targetSrc.value_or("")));
+	}
 
 	virtual void AttachToObject(ResourceManager* object) override;
 };
