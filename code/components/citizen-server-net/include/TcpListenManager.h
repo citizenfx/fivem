@@ -17,7 +17,7 @@ namespace fx
 
 		std::vector<fwRefContainer<net::MultiplexTcpServer>> m_multiplexServers;
 
-		std::unique_ptr<ConsoleCommand> m_addEndpointCommand;
+		std::shared_ptr<ConsoleCommand> m_addEndpointCommand;
 
 	public:
 		TcpListenManager();

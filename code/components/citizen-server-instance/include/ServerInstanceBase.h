@@ -33,19 +33,19 @@ namespace fx
 
 	public:
 		template<typename TFunc>
-		inline std::unique_ptr<ConsoleCommand> AddCommand(const std::string& name, const TFunc& func)
+		inline std::shared_ptr<ConsoleCommand> AddCommand(const std::string& name, const TFunc& func)
 		{
 			auto context = GetComponent<console::Context>();
 
-			return std::make_unique<ConsoleCommand>(context.GetRef(), name, func);
+			return std::make_shared<ConsoleCommand>(context.GetRef(), name, func);
 		}
 
 		template<typename TVar, typename... TArgs>
-		inline std::unique_ptr<ConVar<TVar>> AddVariable(const TArgs&... args)
+		inline std::shared_ptr<ConVar<TVar>> AddVariable(const TArgs&... args)
 		{
 			auto context = GetComponent<console::Context>();
 
-			return std::make_unique<ConVar<TVar>>(context.GetRef(), args...);
+			return std::make_shared<ConVar<TVar>>(context.GetRef(), args...);
 		}
 	};
 }

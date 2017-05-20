@@ -34,6 +34,6 @@ namespace fx
 		}
 
 	private:
-		std::unique_ptr<ConsoleCommand> m_execCommand;
+		std::shared_ptr<ConsoleCommand> m_execCommand;
 	};
 }

@@ -6,7 +6,7 @@ namespace fx
 	{
 		const fwRefContainer<fx::GameServer>& WithEndPoints(const fwRefContainer<fx::GameServer>& server)
 		{
-			static std::unique_ptr<ConsoleCommand> cmd;
+			static std::shared_ptr<ConsoleCommand> cmd;
 
 			server->OnAttached.Connect([=](fx::ServerInstanceBase* instance)
 			{
