@@ -201,6 +201,28 @@ if IsDuplicityVersion() then
 
 		return t
 	end
+
+	local httpDispatch = {}
+	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers)
+		if httpDispatch[token] then
+			httpDispatch[token](status, body, headers)
+			httpDispatch[token] = nil
+		end
+	end)
+
+	function PerformHttpRequest(url, cb, method, data, headers)
+		local t = {
+			url = url,
+			method = method or 'GET',
+			data = data or '',
+			headers = headers or {}
+		}
+
+		local d = json.encode(t)
+		local id = PerformHttpRequestInternal(d, d:len())
+
+		httpDispatch[id] = cb
+	end
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack.pack({...})
