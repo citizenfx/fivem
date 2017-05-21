@@ -66,6 +66,8 @@ ResourceState ResourceImpl::GetState()
 
 bool ResourceImpl::Start()
 {
+	m_manager->MakeCurrent();
+
 	if (m_state != ResourceState::Started)
 	{
 		// skip the starting stage if we're already started
@@ -102,6 +104,8 @@ bool ResourceImpl::Start()
 
 bool ResourceImpl::Stop()
 {
+	m_manager->MakeCurrent();
+
 	if (m_state != ResourceState::Stopped)
 	{
 		if (!OnStop())
