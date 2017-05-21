@@ -34,13 +34,7 @@ static InitFunction initFunction([]()
 
 			uint16_t netId;
 
-			if (id.find("net:") != 0)
-			{
-				context.SetResult(nullptr);
-				return;
-			}
-
-			netId = atoi(id.c_str() + 4);
+			netId = atoi(id.c_str());
 
 			auto client = clientRegistry->GetClientByNetID(netId);
 

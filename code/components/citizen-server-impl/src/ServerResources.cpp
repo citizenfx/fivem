@@ -322,7 +322,7 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 	// do we have a specific client to send to?
 	if (targetSrc)
 	{
-		int targetNetId = atoi(targetSrc->substr(4).data());
+		int targetNetId = atoi(targetSrc->data());
 		auto client = clientRegistry->GetClientByNetID(targetNetId);
 
 		if (client)
