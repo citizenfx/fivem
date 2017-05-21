@@ -94,6 +94,8 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 
 				return
 			end
+
+			_G.source = tonumber(eventSource:sub(5))
 		end
 
 		-- if we found one, deserialize the data structure
