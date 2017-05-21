@@ -166,7 +166,9 @@ end)
 -- header bit
 print("local _i, _f, _v, _r, _ri, _rf, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
 
-print("local g = _G\n")
+print("local g = _G")
+
+print("local _ts = tostring\n")
 
 print("local function _ch(hash)")
 print("\tif g.type(hash) == 'string' then")
@@ -227,6 +229,8 @@ local function printArgument(argument, native)
 		end
 	elseif argument.type.name == 'Hash' then
 		return '_ch(' .. printArgumentName(argument.name) .. ')'
+	elseif argument.type.name == 'charPtr' then
+		return '_ts(' .. printArgumentName(argument.name) .. ')'
 	end
 
 	return printArgumentName(argument.name)
