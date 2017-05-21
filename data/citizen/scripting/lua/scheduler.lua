@@ -175,6 +175,7 @@ if IsDuplicityVersion() then
 	end
 	
 	RegisterServerEvent = RegisterNetEvent
+	RconPrint = Citizen.Trace
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack.pack({...})
