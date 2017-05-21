@@ -300,6 +300,14 @@ static InitFunction initFunction([]()
 			ScanResources(instance);
 		});
 
+		instance->GetComponent<console::Context>()->GetCommandManager()->SetFallbackHandler([=](const std::string& commandName, const ProgramArguments& arguments)
+		{
+			auto eventComponent = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+			// if canceled, the command was handled
+			return (!eventComponent->TriggerEvent2("rconCommand", {}, commandName, arguments.GetArguments()));
+		});
+
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerEvent"), std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
 		gameServer->OnTick.Connect([=]()
