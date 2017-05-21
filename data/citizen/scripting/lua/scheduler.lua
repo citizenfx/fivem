@@ -19,6 +19,13 @@ Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
 function Citizen.CreateThreadNow(threadFunction)
+	local t = {
+		coroutine = coro,
+		wakeTime = 0
+	}
+
+	curThread = t
+
 	local coro = coroutine.create(threadFunction)
 
 	local result, err = coroutine.resume(coro)
@@ -28,10 +35,7 @@ function Citizen.CreateThreadNow(threadFunction)
 	end
 
 	if coroutine.status(coro) ~= 'dead' then
-		table.insert(threads, {
-			coroutine = coro,
-			wakeTime = 0
-		})
+		table.insert(threads, t)
 	end
 end
 
