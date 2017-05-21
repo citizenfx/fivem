@@ -2,6 +2,7 @@
 #include <ClientHttpHandler.h>
 #include <ResourceManager.h>
 #include <ResourceFilesComponent.h>
+#include <ResourceStreamComponent.h>
 
 #include <ServerInstanceBase.h>
 
@@ -54,10 +55,31 @@ static InitFunction initFunction([]()
 					resourceFiles[entry.first] = entry.second;
 				}
 
+				json resourceStreamFiles = json::object();
+				fwRefContainer<fx::ResourceStreamComponent> streamFiles = resource->GetComponent<fx::ResourceStreamComponent>();
+
+				for (const auto& entry : streamFiles->GetStreamingList())
+				{
+					json obj = json::object({
+						{ "hash", entry.second.hashString },
+						{ "rscFlags", entry.second.rscFlags },
+						{ "rscVersion", entry.second.rscVersion },
+						{ "size", entry.second.size },
+					});
+
+					if (entry.second.isResource)
+					{
+						obj["rscPagesVirtual"] = entry.second.rscPagesVirtual;
+						obj["rscPagesPhysical"] = entry.second.rscPagesPhysical;
+					}
+
+					resourceStreamFiles[entry.first] = obj;
+				}
+
 				resources.push_back(json::object({
 					{ "name", resource->GetName() },
 					{ "files", resourceFiles },
-					{ "streamFiles", json::object() }
+					{ "streamFiles", resourceStreamFiles }
 				}));
 			});
 

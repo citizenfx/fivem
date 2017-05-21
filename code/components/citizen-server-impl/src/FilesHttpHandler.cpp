@@ -5,6 +5,7 @@
 
 #include <ResourceManager.h>
 #include <ResourceFilesComponent.h>
+#include <ResourceStreamComponent.h>
 
 #include <array>
 
@@ -73,14 +74,25 @@ namespace fx
 			auto filesComponent = resource->GetComponent<fx::ResourceFilesComponent>();
 			auto filePairs = filesComponent->GetFileHashPairs();
 
+			std::string fn = instance->GetRootPath() + "/cache/files/" + resourceName + "/" + fileName;
+
 			if (filePairs.find(fileName) == filePairs.end())
 			{
-				response->SetStatusCode(404);
-				response->End("Not found.");
-				return;
-			}
+				// is it a stream file, instead?
+				auto streamComponent = resource->GetComponent<fx::ResourceStreamComponent>();
+				const auto& streamPairs = streamComponent->GetStreamingList();
 
-			std::string fn = instance->GetRootPath() + "/cache/files/" + resourceName + "/" + fileName;
+				auto sit = streamPairs.find(fileName);
+
+				if (sit == streamPairs.end())
+				{
+					response->SetStatusCode(404);
+					response->End("Not found.");
+					return;
+				}
+
+				fn = sit->second.onDiskPath;
+			}
 
 			// get the TCP manager for a libuv loop
 			fwRefContainer<net::TcpServerManager> tcpManager = instance->GetComponent<net::TcpServerManager>();
