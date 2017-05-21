@@ -55,6 +55,8 @@ public:
 
 	virtual void ForAllCommands(const std::function<void(const std::string&)>& callback);
 
+	virtual void SetFallbackHandler(const std::function<bool(const std::string&, const ProgramArguments&)>& handler);
+
 private:
 	struct Entry
 	{
@@ -77,6 +79,8 @@ private:
 	std::shared_mutex m_mutex;
 
 	std::atomic<int> m_curToken;
+
+	std::function<bool(const std::string&, const ProgramArguments&)> m_fallbackHandler;
 
 public:
 	inline static ConsoleCommandManager* GetDefaultInstance()

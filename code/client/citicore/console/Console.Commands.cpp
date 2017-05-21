@@ -60,7 +60,16 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 
 		if (entryPair.first == entryPair.second)
 		{
-			// try in the fallback context first
+			// try the fallback command handler
+			if (m_fallbackHandler)
+			{
+				if (m_fallbackHandler(commandName, arguments))
+				{
+					return;
+				}
+			}
+
+			// try in the fallback context, then
 			console::Context* fallbackContext = m_parentContext->GetFallbackContext();
 
 			if (fallbackContext)
@@ -68,7 +77,6 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 				return fallbackContext->GetCommandManager()->Invoke(commandName, arguments);
 			}
 
-			// TODO: replace with console stream output
 			console::Printf("cmd", "No such command %s.\n", commandName.c_str());
 			return;
 		}
@@ -101,6 +109,11 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 	{
 		console::Printf("cmd", "%s", context.errorBuffer.str().c_str());
 	}
+}
+
+void ConsoleCommandManager::SetFallbackHandler(const std::function<bool(const std::string &, const ProgramArguments &)>& handler)
+{
+	m_fallbackHandler = handler;
 }
 
 void ConsoleCommandManager::ForAllCommands(const std::function<void(const std::string&)>& callback)
