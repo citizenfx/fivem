@@ -51,4 +51,9 @@ public:
 
 		return value;
 	}
+
+	inline const std::vector<std::string>& GetArguments() const
+	{
+		return m_arguments;
+	}
 };
