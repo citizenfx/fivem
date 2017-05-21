@@ -176,6 +176,29 @@ if IsDuplicityVersion() then
 	
 	RegisterServerEvent = RegisterNetEvent
 	RconPrint = Citizen.Trace
+	GetPlayerEP = GetPlayerEndpoint
+
+	function GetPlayerIdentifiers(player)
+		local numIds = GetNumPlayerIdentifiers(player)
+		local t = {}
+
+		for i = 0, numIds - 1 do
+			table.insert(t, GetPlayerIdentifier(player, i))
+		end
+
+		return t
+	end
+
+	function GetPlayers()
+		local num = GetNumPlayerIndices()
+		local t = {}
+
+		for i = 0, num - 1 do
+			table.insert(t, GetPlayerFromIndex(i))
+		end
+
+		return t
+	end
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack.pack({...})

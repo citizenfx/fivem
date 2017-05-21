@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CoreConsole.h>
+
 #include <ClientRegistry.h>
 
 #include <MapComponent.h>

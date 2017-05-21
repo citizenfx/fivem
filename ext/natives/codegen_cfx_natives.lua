@@ -335,4 +335,132 @@ native 'SET_CONVAR'
 	apiset 'server'
 	returns 'void'
 
+native 'GET_PLAYER_NAME'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'GET_PLAYER_GUID'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'GET_NUM_PLAYER_IDENTIFIERS'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'int'
+
+native 'GET_PLAYER_IDENTIFIER'
+	arguments {
+		charPtr 'playerSrc',
+		int 'identifier'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'GET_PLAYER_ENDPOINT'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'GET_PLAYER_PING'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'int'
+
+native 'GET_PLAYER_LAST_MSG'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'int'
+
+native 'GET_HOST_ID'
+	arguments {
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'DROP_PLAYER'
+	arguments {
+		charPtr 'playerSrc',
+		charPtr 'reason'
+	}
+	apiset 'server'
+	returns 'void'
+
+native 'TEMP_BAN_PLAYER'
+	arguments {
+		charPtr 'playerSrc',
+		charPtr 'reason'
+	}
+	apiset 'server'
+	returns 'void'
+
+native 'GET_INVOKING_RESOURCE'
+	arguments {
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'ENABLE_ENHANCED_HOST_SUPPORT'
+	arguments {
+		BOOL 'enabled'
+	}
+	apiset 'server'
+	returns 'void'
+
+native 'FLAG_SERVER_AS_PRIVATE'
+	arguments {
+		BOOL 'private'
+	}
+	apiset 'server'
+	returns 'void'
+
+native 'GET_NUM_PLAYER_INDICES'
+	arguments {
+	}
+	apiset 'server'
+	returns 'int'
+
+native 'GET_PLAYER_FROM_INDEX'
+	arguments {
+		int 'index'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'PERFORM_HTTP_REQUEST_INTERNAL'
+	arguments {
+		charPtr 'requestData',
+		int 'requestDataLength'
+	}
+	apiset 'server'
+	returns 'int'
+
+native 'GET_PASSWORD_HASH'
+	arguments {
+		charPtr 'password'
+	}
+	apiset 'server'
+	returns 'charPtr'
+
+native 'VERIFY_PASSWORD_HASH'
+	arguments {
+		charPtr 'password',
+		charPtr 'hash'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
 -- TODO: handling field natives

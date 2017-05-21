@@ -5,6 +5,7 @@
 #include <ResourceMetaDataComponent.h>
 
 #include <ServerInstanceBase.h>
+#include <ServerInstanceBaseRef.h>
 
 #include <GameServer.h>
 #include <ServerEventComponent.h>
@@ -85,29 +86,6 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::share
 		fmt::sprintf("net:%d", client->GetNetId())
 	);
 }
-
-namespace fx
-{
-	class ServerInstanceBaseRef : public fwRefCountable
-	{
-	public:
-		ServerInstanceBaseRef(ServerInstanceBase* instance)
-			: m_ref(instance)
-		{
-			
-		}
-
-		inline ServerInstanceBase* Get()
-		{
-			return m_ref;
-		}
-
-	private:
-		ServerInstanceBase* m_ref;
-	};
-}
-
-DECLARE_INSTANCE_TYPE(fx::ServerInstanceBaseRef);
 
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
@@ -369,7 +347,7 @@ static InitFunction initFunction2([]()
 		std::string_view eventName = context.GetArgument<const char*>(0);
 		std::optional<std::string_view> targetSrc;
 
-		if (context.GetArgument<int>(1) != -1)
+		if (strcmp(context.GetArgument<const char*>(1), "-1") != 0)
 		{
 			targetSrc = context.GetArgument<const char*>(1);
 		}

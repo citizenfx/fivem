@@ -82,6 +82,11 @@ namespace fx
 			m_connectionToken = value;
 		}
 
+		inline std::chrono::milliseconds GetLastSeen()
+		{
+			return m_lastSeen;
+		}
+
 		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
 
 		fwEvent<> OnAssignNetId;
