@@ -477,7 +477,7 @@ namespace fx
 
 				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					if (client->GetNetId() != -1)
+					if (client->GetNetId() != 0xFFFF)
 					{
 						++numClients;
 					}
@@ -509,7 +509,7 @@ namespace fx
 
 				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					if (client->GetNetId() != -1)
+					if (client->GetNetId() != 0xFFFF)
 					{
 						clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
 
