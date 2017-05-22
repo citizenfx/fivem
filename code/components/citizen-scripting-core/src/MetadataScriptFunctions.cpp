@@ -9,7 +9,7 @@
 #include <ScriptEngine.h>
 
 #include <ResourceManager.h>
-#include <ResourceMetadataComponent.h>
+#include <ResourceMetaDataComponent.h>
 
 #include <VFSManager.h>
 
