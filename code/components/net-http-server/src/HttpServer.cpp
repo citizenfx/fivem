@@ -79,8 +79,10 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	};
 
 	std::shared_ptr<HttpConnectionData> connectionData = std::make_shared<HttpConnectionData>();
+	std::shared_ptr<HttpState> reqState = std::make_shared<HttpState>();
 
-	stream->SetReadCallback([=] (const std::vector<uint8_t>& data)
+	std::function<void(const std::vector<uint8_t>&)> readCallback;
+	readCallback = [=](const std::vector<uint8_t>& data)
 	{
 		// keep a reference to the connection data locally
 		std::shared_ptr<HttpConnectionData> localConnectionData = connectionData;
@@ -109,6 +111,11 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			// depending on the state, perform an action
 			if (localConnectionData->readState == ReadStateRequest)
 			{
+				if (reqState->blocked)
+				{
+					break;
+				}
+
 				// copy the deque into a vector for data purposes
 				std::vector<uint8_t> requestData(readQueue.begin(), readQueue.end());
 
@@ -123,7 +130,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				size_t numHeaders = 50;
 
 				int result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
-											   &path, &pathLength, &minorVersion, localConnectionData->headers, &numHeaders, localConnectionData->lastLength);
+					&path, &pathLength, &minorVersion, localConnectionData->headers, &numHeaders, localConnectionData->lastLength);
 
 				if (result > 0)
 				{
@@ -146,7 +153,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 					// store the request in a request instance
 					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList);
-					fwRefContainer<HttpResponse> response = new HttpResponse(stream, request);
+					fwRefContainer<HttpResponse> response = new HttpResponse(stream, request, reqState);
+
+					reqState->blocked = true;
 
 					for (auto& handler : m_handlers)
 					{
@@ -299,7 +308,14 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				}
 			}
 		}
-	});
+	};
+
+	reqState->ping = [=]()
+	{
+		readCallback({});
+	};
+
+	stream->SetReadCallback(readCallback);
 }
 
 HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList)
@@ -312,8 +328,8 @@ HttpRequest::~HttpRequest()
 	SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
 }
 
-HttpResponse::HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request)
-	: m_clientStream(clientStream), m_ended(false), m_statusCode(200), m_sentHeaders(false), m_request(request), m_closeConnection(false)
+HttpResponse::HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState)
+	: m_clientStream(clientStream), m_ended(false), m_statusCode(200), m_sentHeaders(false), m_request(request), m_closeConnection(false), m_requestState(reqState)
 {
 
 }
@@ -429,6 +445,12 @@ void HttpResponse::End()
 	if (m_closeConnection)
 	{
 		m_clientStream->Close();
+	}
+
+	if (m_requestState->blocked)
+	{
+		m_requestState->blocked = false;
+		m_requestState->ping();
 	}
 }
 

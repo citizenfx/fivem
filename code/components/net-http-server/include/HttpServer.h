@@ -78,6 +78,15 @@ public:
 	}
 };
 
+struct HttpState
+{
+	// should this request parser be blocked?
+	bool blocked;
+
+	// a function to call when we want to unblock the request
+	std::function<void()> ping;
+};
+
 class
 #ifdef COMPILING_NET_HTTP_SERVER
 	DLL_EXPORT
@@ -99,11 +108,13 @@ private:
 
 	HeaderMap m_headerList;
 
+	std::shared_ptr<HttpState> m_requestState;
+
 private:
 	static std::string GetStatusMessage(int statusCode);
 
 public:
-	HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request);
+	HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState);
 
 	std::string GetHeader(const std::string& name);
 
@@ -143,6 +154,11 @@ public:
 	inline bool HasEnded()
 	{
 		return m_ended;
+	}
+
+	inline std::shared_ptr<HttpState> GetState()
+	{
+		return m_requestState;
 	}
 };
 
