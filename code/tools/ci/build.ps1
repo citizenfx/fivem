@@ -236,15 +236,11 @@ if (!$DontBuild) {
     # create cache folders
 
     # copy output files
-    #Copy-Item -Force -Recurse $WorkDir\src\definitelynot\data\ship\* $WorkDir\caches\iw4m\
-    #Copy-Item -Force $WorkDir\src\definitelynot\bin\release\clientdll.dll $WorkDir\caches\iw4m\clientdll.dll
-
-    #Move-Item -Force $WorkDir\src\cfx-client\bin\five\release\FiveM.com $WorkDir\src\cfx-client\bin\five\release\FiveReborn.com
-
     Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
     Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
 
-    Copy-Item -Force -Recurse $WorkDir\data\* $WorkDir\caches\fivereborn\
+    Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\caches\fivereborn\
+    Copy-Item -Force -Recurse $WorkDir\data\client\* $WorkDir\caches\fivereborn\
 
     if (Test-Path C:\f\tdd2) {
     	Copy-Item -Force -Recurse C:\f\tdd2\citizen\ui.rpf $WorkDir\caches\fivereborn\citizen\
