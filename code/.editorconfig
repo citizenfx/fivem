@@ -12,3 +12,6 @@ trim_trailing_whitespace = true
 
 [*.sh]
 end_of_line = lf
+
+[*.idl]
+end_of_line = lf
