@@ -360,7 +360,7 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, c
 	std::ostringstream outData;
 	outData.imbue(std::locale());
 
-	outData << "HTTP/1.0 " << std::to_string(statusCode) << " " << (statusMessage.empty() ? GetStatusMessage(statusCode) : statusMessage) << "\r\n";
+	outData << "HTTP/1.1 " << std::to_string(statusCode) << " " << (statusMessage.empty() ? GetStatusMessage(statusCode) : statusMessage) << "\r\n";
 
 	auto& usedHeaders = (headers.size() == 0) ? m_headerList : headers;
 	
@@ -373,7 +373,7 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage, c
 		outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S GMT") << "\r\n";
 	}
 
-	auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("close"));
+	auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("keep-alive"));
 
 	if (_stricmp(requestConnection.c_str(), "keep-alive") != 0)
 	{
