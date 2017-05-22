@@ -23,7 +23,7 @@ pip install ply
 curl -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-src.zip
 
 cd /tmp
-unzip premake.zip
+unzip -q premake.zip
 rm premake.zip
 cd premake-*
 
@@ -38,7 +38,7 @@ rm -rf premake-*
 
 # download and extract boost
 curl -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2
-tar xvf boost.tar.bz2
+tar xf boost.tar.bz2
 rm boost.tar.bz2
 
 mv boost_* boost
