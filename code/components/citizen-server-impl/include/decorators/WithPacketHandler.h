@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace fx
 {
@@ -9,11 +9,6 @@ namespace fx
 		{
 			return I;
 		}
-
-		struct pass
-		{
-			template<typename ...T> pass(T...) {}
-		};
 
 		template<typename... THandler>
 		const fwRefContainer<fx::GameServer>& WithPacketHandler(const fwRefContainer<fx::GameServer>& server)
