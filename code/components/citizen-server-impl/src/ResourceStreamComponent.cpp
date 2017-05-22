@@ -206,6 +206,8 @@ namespace fx
 		fwRefContainer<vfs::Stream> stream(new vfs::Stream(device, handle));
 
 		stream->Write(&entries[0], entries.size() * sizeof(Entry));
+
+		return true;
 	}
 
 	void ResourceStreamComponent::AttachToObject(fx::Resource* object)
