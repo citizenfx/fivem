@@ -328,6 +328,8 @@ inline void CoreSetDebuggerPresent()
 {
 
 }
+
+extern "C" void CoreTrace(const char* channel, const char* funcName, const char* file, int line, const char* string);
 #endif
 
 

@@ -96,7 +96,7 @@ private:
 extern "C" DLL_EXPORT Context* GetDefaultContext();
 
 extern "C" DLL_EXPORT void CreateContext(Context* parentContext, fwRefContainer<Context>* outContext);
-#else
+#elif defined(_WIN32)
 inline Context* GetDefaultContext()
 {
 	using TCoreFunc = decltype(&GetDefaultContext);
@@ -124,6 +124,9 @@ inline void CreateContext(Context* parentContext, fwRefContainer<Context>* outCo
 
 	return (func) ? func(parentContext, outContext) : nullptr;
 }
+#else
+extern "C" Context* GetDefaultContext();
+extern "C" void CreateContext(Context* parentContext, fwRefContainer<Context>* outContext);
 #endif
 
 void ExecuteSingleCommand(const std::string& command);

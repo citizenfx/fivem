@@ -9,7 +9,7 @@ extern "C" DLL_EXPORT void Printf(ConsoleChannel channel, const char* format, co
 extern "C" DLL_EXPORT void DPrintf(ConsoleChannel, const char* format, const fmt::ArgList& argumentList);
 extern "C" DLL_EXPORT void PrintWarning(ConsoleChannel, const char* format, const fmt::ArgList& argumentList);
 extern "C" DLL_EXPORT void PrintError(ConsoleChannel, const char* format, const fmt::ArgList& argumentList);
-#else
+#elif defined(_WIN32)
 inline void Printf(ConsoleChannel channel, const char* format, const fmt::ArgList& argumentList)
 {
 	using TCoreFunc = decltype(&Printf);
@@ -65,18 +65,7 @@ inline void PrintError(ConsoleChannel channel, const char* format, const fmt::Ar
 
 	(func) ? func(channel, format, argumentList) : 0;
 }
-#endif
 
-FMT_VARIADIC(void, Printf, ConsoleChannel, const char*);
-
-FMT_VARIADIC(void, DPrintf, ConsoleChannel, const char*);
-
-FMT_VARIADIC(void, PrintWarning, ConsoleChannel, const char*);
-
-FMT_VARIADIC(void, PrintError, ConsoleChannel, const char*);
-
-// NOT thread-safe!
-#ifndef COMPILING_CORE
 inline void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 {
 	using TCoreFunc = decltype(&CoreAddPrintListener);
@@ -90,7 +79,21 @@ inline void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 
 	(func) ? func(function) : 0;
 }
+#else
+extern "C" void Printf(ConsoleChannel channel, const char* format, const fmt::ArgList& argumentList);
+extern "C" void DPrintf(ConsoleChannel, const char* format, const fmt::ArgList& argumentList);
+extern "C" void PrintWarning(ConsoleChannel, const char* format, const fmt::ArgList& argumentList);
+extern "C" void PrintError(ConsoleChannel, const char* format, const fmt::ArgList& argumentList);
+extern "C" void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*));
 #endif
+
+FMT_VARIADIC(void, Printf, ConsoleChannel, const char*);
+
+FMT_VARIADIC(void, DPrintf, ConsoleChannel, const char*);
+
+FMT_VARIADIC(void, PrintWarning, ConsoleChannel, const char*);
+
+FMT_VARIADIC(void, PrintError, ConsoleChannel, const char*);
 }
 
 namespace sys
