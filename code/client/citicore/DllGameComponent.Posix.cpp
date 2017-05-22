@@ -12,7 +12,7 @@
 
 Component* DllGameComponent::CreateComponent()
 {
-	void* hModule = dlopen(m_path.c_str(), RTLD_NOW);
+	void* hModule = dlopen(MakeRelativeCitPath(m_path).c_str(), RTLD_NOW);
 
 	if (!hModule)
 	{
@@ -28,7 +28,7 @@ Component* DllGameComponent::CreateComponent()
 void DllGameComponent::ReadManifest()
 {
 	const pchar_t* filename = va(_P("%s.json"), m_path.substr(0, m_path.find_last_of('.')).c_str());
-	FILE* file = _pfopen(filename, _P("r"));
+	FILE* file = _pfopen(MakeRelativeCitPath(filename).c_str(), _P("r"));
 	
 	if (!file)
 	{
