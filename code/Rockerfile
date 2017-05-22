@@ -1,0 +1,6 @@
+FROM alpine:edge
+MOUNT ..:/src
+RUN /bin/sh /src/code/tools/ci/build_server_2.sh
+WORKDIR /data
+CMD ["/bin/sh", "/opt/cfx-server/run.sh"]
+TAG citizenfx/server:dev
