@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#if _WIN32
 #include <CoreConsole.h>
 
 #include <CfxState.h>
@@ -311,3 +312,4 @@ static InitFunction initFunction([]()
 		});
 	});
 });
+#endif
