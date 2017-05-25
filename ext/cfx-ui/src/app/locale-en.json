@@ -10,6 +10,7 @@
     "#BottomNav_Home": "Home",
     "#BottomNav_Servers": "Servers",
     "#BottomNav_Settings": "Settings",
+    "#BottomNav_Exit": "Exit",
     "#ServerList_HideFull": "Hide Full",
     "#ServerList_HideEmpty": "Hide Empty",
     "#ServerList_MaxPing": "Max Ping",
@@ -26,4 +27,5 @@
     "#DirectConnect_ServerInvalid_SubTitle": "Make sure you've entered the correct address.",
     "#DirectConnect_IPPort": "IP:Port",
     "#DirectConnect_Connect": "Connect"
+    
 }

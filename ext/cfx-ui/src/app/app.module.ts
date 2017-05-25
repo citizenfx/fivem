@@ -32,6 +32,7 @@ import { GameService, CfxGameService, DummyGameService } from './game.service';
 
 import { ColorizePipe } from './colorize.pipe';
 import { EscapePipe } from './escape.pipe';
+import { ExitComponent } from './exit/exit.component';
 
 @NgModule({
   declarations: [
@@ -47,7 +48,8 @@ import { EscapePipe } from './escape.pipe';
     ServerFilterComponent,
     DirectConnectComponent,
     ColorizePipe,
-    EscapePipe
+    EscapePipe,
+    ExitComponent
   ],
   imports: [
     BrowserModule,
