@@ -60,17 +60,19 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_IDENTIFIERS", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
-		return 1;
+		return client->GetIdentifiers().size();
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
-		if (context.GetArgument<int>(1) == 0)
+		int idx = context.GetArgument<int>(1);
+
+		if (idx < 0 || idx >= client->GetIdentifiers().size())
 		{
-			return "steam:110000100000001";
+			return (const char*)nullptr;
 		}
 
-		return (const char*)nullptr;
+		return client->GetIdentifiers()[idx].c_str();
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ENDPOINT", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)

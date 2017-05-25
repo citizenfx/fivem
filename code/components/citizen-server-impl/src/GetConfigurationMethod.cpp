@@ -12,7 +12,7 @@ static InitFunction initFunction([]()
 	{
 		fx::ResourceManager* resman = instance->GetComponent<fx::ResourceManager>().GetRef();
 
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request)
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			json resources = json::array();
 
@@ -83,10 +83,10 @@ static InitFunction initFunction([]()
 				}));
 			});
 
-			return json::object({
+			cb(json::object({
 				{ "fileServer", "http://%s/files" },
 				{ "resources", resources }
-			});
+			}));
 		});
 	}, 5000);
 });

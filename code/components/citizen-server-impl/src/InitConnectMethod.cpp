@@ -9,13 +9,33 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <ServerIdentityProvider.h>
+
+static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
+static std::map<std::string, fx::ServerIdentityProviderBase*> g_providersByType;
+
+namespace fx
+{
+void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
+{
+	g_serverProviders.push_front(provider);
+	g_providersByType.insert({ provider->GetIdentifierPrefix(), provider });
+}
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		auto minTrustVar = instance->AddVariable<int>("sv_authMinTrust", ConVar_None, 1);
+		minTrustVar->GetHelper()->SetConstraints(1, 5);
+
+		auto maxVarianceVar = instance->AddVariable<int>("sv_authMaxVariance", ConVar_None, 5);
+		maxVarianceVar->GetHelper()->SetConstraints(1, 5);
+
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request)
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto name = postMap["name"];
 			auto guid = postMap["guid"];
@@ -40,9 +60,66 @@ static InitFunction initFunction([]()
 			auto client = clientRegistry->MakeClient(guid);
 			client->SetName(name);
 			client->SetConnectionToken(token);
+			client->SetEndPoint(request->GetRemoteAddress());
 			client->Touch();
 
-			return json;
+			auto it = g_serverProviders.begin();
+
+			auto done = [=]()
+			{
+				int maxTrust = INT_MIN;
+				int minVariance = INT_MAX;
+
+				for (const auto& identifier : client->GetIdentifiers())
+				{
+					std::string idType = identifier.substr(0, identifier.find_first_of(':'));
+
+					auto provider = g_providersByType[idType];
+					maxTrust = std::max(provider->GetTrustLevel(), maxTrust);
+					minVariance = std::min(provider->GetVarianceLevel(), minVariance);
+				}
+
+				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
+				{
+					cb({ {"error", "You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again."} });
+					return;
+				}
+
+				cb(json);
+			};
+
+			// seriously C++?
+			auto runOneIdentifier = std::make_shared<std::unique_ptr<std::function<void(decltype(g_serverProviders.begin()))>>>();
+
+			*runOneIdentifier = std::make_unique<std::function<void(decltype(g_serverProviders.begin()))>>([=](auto it)
+			{
+				if (it == g_serverProviders.end())
+				{
+					done();
+				}
+				else
+				{
+					auto auth = (*it);
+
+					auto thisIt = ++it;
+
+					auth->RunAuthentication(client, postMap, [=](std::optional<std::string> err)
+					{
+						if (err)
+						{
+							clientRegistry->RemoveClient(client);
+
+							cb(json::object({ {"error", *err} }));
+
+							return;
+						}
+
+						(**runOneIdentifier)(thisIt);
+					});
+				}
+			});
+
+			(**runOneIdentifier)(it);
 		});
 	}, 50);
 });

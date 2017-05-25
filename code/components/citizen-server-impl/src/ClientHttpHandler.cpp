@@ -92,9 +92,10 @@ namespace fx
 					return;
 				}
 
-				json data = (*handler)(postMap, request);
-
-				response->End(data.dump());
+				(*handler)(postMap, request, [=](const json& data)
+				{
+					response->End(data.dump());
+				});
 			});
 		};
 	}

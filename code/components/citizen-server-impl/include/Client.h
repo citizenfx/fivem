@@ -11,6 +11,12 @@ namespace {
 	constexpr const auto CLIENT_DEAD_TIMEOUT = 15s;
 }
 
+#ifdef COMPILING_CITIZEN_SERVER_IMPL
+#define SERVER_IMPL_EXPORT DLL_EXPORT
+#else
+#define SERVER_IMPL_EXPORT DLL_IMPORT
+#endif
+
 namespace fx
 {
 	struct enet_peer_deleter
@@ -21,7 +27,7 @@ namespace fx
 		}
 	};
 
-	class Client
+	class SERVER_IMPL_EXPORT Client
 	{
 	public:
 		Client(const std::string& guid);
@@ -72,6 +78,16 @@ namespace fx
 			m_name = name;
 		}
 
+		inline const std::string& GetEndPoint()
+		{
+			return m_endPoint;
+		}
+
+		inline void SetEndPoint(const std::string& value)
+		{
+			m_endPoint = value;
+		}
+
 		inline const std::string& GetConnectionToken()
 		{
 			return m_connectionToken;
@@ -85,6 +101,16 @@ namespace fx
 		inline std::chrono::milliseconds GetLastSeen()
 		{
 			return m_lastSeen;
+		}
+
+		inline const std::vector<std::string>& GetIdentifiers()
+		{
+			return m_identifiers;
+		}
+
+		inline void AddIdentifier(const std::string& identifier)
+		{
+			m_identifiers.emplace_back(identifier);
 		}
 
 		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
@@ -105,6 +131,9 @@ namespace fx
 		// the client's primary GUID
 		std::string m_guid;
 
+		// the client's identifiers
+		std::vector<std::string> m_identifiers;
+
 		// the client's netid
 		uint16_t m_netId;
 
@@ -113,6 +142,9 @@ namespace fx
 
 		// the client's nickname
 		std::string m_name;
+
+		// the client's remote endpoint used for HTTP
+		std::string m_endPoint;
 
 		// the client's ENet peer
 		std::unique_ptr<ENetPeer, enet_peer_deleter> m_peer;
