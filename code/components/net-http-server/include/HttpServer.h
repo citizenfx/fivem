@@ -31,12 +31,14 @@ private:
 
 	std::string m_path;
 
+	std::string m_remoteAddress;
+
 	HeaderMap m_headerList;
 
 	std::function<void(const std::vector<uint8_t>&)> m_dataHandler;
 
 public:
-	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList);
+	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList, const std::string& remoteAddress);
 
 	virtual ~HttpRequest() override;
 
@@ -75,6 +77,11 @@ public:
 		auto it = m_headerList.find(key);
 
 		return (it != m_headerList.end()) ? it->second : default_;
+	}
+
+	inline const std::string& GetRemoteAddress() const
+	{
+		return m_remoteAddress;
 	}
 };
 

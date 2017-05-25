@@ -152,7 +152,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					localConnectionData->lastLength = 0;
 
 					// store the request in a request instance
-					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList);
+					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList, stream->GetPeerAddress().ToString());
 					fwRefContainer<HttpResponse> response = new HttpResponse(stream, request, reqState);
 
 					reqState->blocked = true;
@@ -318,8 +318,8 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	stream->SetReadCallback(readCallback);
 }
 
-HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList)
-	: m_httpVersionMajor(httpVersionMajor), m_httpVersionMinor(httpVersionMinor), m_requestMethod(requestMethod), m_path(path), m_headerList(headerList)
+HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList, const std::string& remoteAddress)
+	: m_httpVersionMajor(httpVersionMajor), m_httpVersionMinor(httpVersionMinor), m_requestMethod(requestMethod), m_path(path), m_headerList(headerList), m_remoteAddress(remoteAddress)
 {
 }
 
