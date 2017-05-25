@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include <Client.h>
+#include <GameServer.h>
 
 inline static std::chrono::milliseconds msec()
 {
@@ -17,6 +18,7 @@ namespace fx
 	void Client::SetPeer(ENetPeer* peer)
 	{
 		m_peer.reset(peer);
+		m_peerAddress = GetPeerAddress(peer->address);
 
 		OnAssignPeer();
 	}
