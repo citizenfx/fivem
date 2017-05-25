@@ -179,6 +179,7 @@ if IsDuplicityVersion() then
 	RegisterServerEvent = RegisterNetEvent
 	RconPrint = Citizen.Trace
 	GetPlayerEP = GetPlayerEndpoint
+	RconLog = function() end
 
 	function GetPlayerIdentifiers(player)
 		local numIds = GetNumPlayerIdentifiers(player)
