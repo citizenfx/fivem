@@ -8,6 +8,7 @@
 #pragma once
 
 #define CPPREST_FORCE_PPLX 1
+#define _PPLTASK_ASYNC_LOGGING 0
 #include <pplx/pplxtasks.h>
 
 #include <Resource.h>
