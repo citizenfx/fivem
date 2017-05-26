@@ -78,7 +78,7 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ENDPOINT", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		static thread_local std::string str;
-		str = client->GetAddress().ToString();
+		str = client->GetTcpEndPoint();
 
 		return str.c_str();
 	}));
