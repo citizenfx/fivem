@@ -12,15 +12,17 @@ static InitFunction initFunction([]()
 	{
 		fx::ResourceManager* resman = instance->GetComponent<fx::ResourceManager>().GetRef();
 
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			json resources = json::array();
 
-			std::string_view filterValues = postMap["resources"];
+			auto resourceIt = postMap.find("resources");
 			std::set<std::string_view> filters;
 
-			if (!filterValues.empty())
+			if (resourceIt != postMap.end())
 			{
+				std::string_view filterValues = resourceIt->second;
+
 				int lastPos = 0;
 				int pos = -1;
 

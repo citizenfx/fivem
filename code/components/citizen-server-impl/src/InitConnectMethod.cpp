@@ -35,17 +35,20 @@ static InitFunction initFunction([]()
 
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
-			auto name = postMap["name"];
-			auto guid = postMap["guid"];
+			auto nameIt = postMap.find("name");
+			auto guidIt = postMap.find("guid");
 
-			auto protocol = postMap["protocol"];
+			auto protocolIt = postMap.find("protocol");
 
-			if (name.empty() || guid.empty() || protocol.empty())
+			if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end())
 			{
 				return json::object({ {"error", "fields missing"} });
 			}
+
+			auto name = nameIt->second;
+			auto guid = guidIt->second;
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 

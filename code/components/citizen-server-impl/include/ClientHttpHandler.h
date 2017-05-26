@@ -14,11 +14,15 @@ namespace fx
 	public:
 		using TCallback = std::function<void(const json&)>;
 
-		using THandler = std::function<void(std::map<std::string, std::string>&, const fwRefContainer<net::HttpRequest>&, const TCallback&)>;
+		using THandler = std::function<void(const std::map<std::string, std::string>&, const fwRefContainer<net::HttpRequest>&, const TCallback&)>;
 
-		std::optional<THandler> GetHandler(const std::string& method);
+		using TFilter = std::function<void(const json&, const std::map<std::string, std::string>&, const fwRefContainer<net::HttpRequest>&, const TCallback&)>;
 
-		void AddHandler(const std::string& method, const THandler& handler);
+		virtual std::optional<THandler> GetHandler(const std::string& method);
+
+		virtual void AddHandler(const std::string& method, const THandler& handler);
+
+		virtual void AddAfterFilter(const std::string& method, const TFilter& handler);
 
 	private:
 		std::map<std::string, THandler> m_methods;
