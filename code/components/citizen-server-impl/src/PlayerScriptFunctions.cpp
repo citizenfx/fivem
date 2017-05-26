@@ -131,7 +131,7 @@ static InitFunction initFunction([]()
 
 		registry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
-			if (client->GetNetId() == 0xFFFF)
+			if (client->GetNetId() >= 0xFFFF)
 			{
 				return;
 			}

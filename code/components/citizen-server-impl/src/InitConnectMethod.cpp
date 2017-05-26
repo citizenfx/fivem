@@ -5,6 +5,10 @@
 
 #include <ServerInstanceBase.h>
 
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
+#include <ResourceCallbackComponent.h>
+
 #include <boost/random/random_device.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -62,10 +66,14 @@ static InitFunction initFunction([]()
 
 			auto ra = request->GetRemoteAddress();
 
+			static std::atomic<uint32_t> g_tempIds;
+			auto tempId = g_tempIds.fetch_add(1);
+
 			auto client = clientRegistry->MakeClient(guid);
 			client->SetName(name);
 			client->SetConnectionToken(token);
 			client->SetTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
+			client->SetNetId(0x10000 + tempId);
 			client->Touch();
 
 			auto it = g_serverProviders.begin();
@@ -90,7 +98,55 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				cb(json);
+				auto resman = instance->GetComponent<fx::ResourceManager>();
+				auto eventManager = resman->GetComponent<fx::ResourceEventManagerComponent>();
+				auto cbComponent = resman->GetComponent<fx::ResourceCallbackComponent>();
+
+				// TODO: replace with event stacks once implemented
+				std::string noReason("Resource prevented connection.");
+
+				std::map<std::string, fx::ResourceCallbackComponent::CallbackRef> cbs;
+				bool isDeferred = false;
+
+				cbs["defer"] = cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
+				{
+					isDeferred = true;
+				});
+
+				cbs["done"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
+				{
+					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+
+					if (obj.size() == 1)
+					{
+						cb({ { "error", obj[0].as<std::string>() } });
+					}
+					else
+					{
+						cb(json);
+					}
+				});
+
+				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
+				{
+					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+
+					if (obj.size() == 1)
+					{
+						noReason = obj[0].as<std::string>();
+					}
+				}), cbs);
+
+				if (!isDeferred)
+				{
+					if (!shouldAllow)
+					{
+						cb({ {"error", noReason} });
+						return;
+					}
+
+					cb(json);
+				}
 			};
 
 			// seriously C++?

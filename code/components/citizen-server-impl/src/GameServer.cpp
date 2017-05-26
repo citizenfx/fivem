@@ -160,7 +160,7 @@ namespace fx
 
 					client->SetPeer(peer);
 
-					if (client->GetNetId() == 0xFFFF)
+					if (client->GetNetId() >= 0xFFFF)
 					{
 						m_clientRegistry->HandleConnectingClient(client);
 					}
@@ -477,7 +477,7 @@ namespace fx
 
 				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					if (client->GetNetId() != 0xFFFF)
+					if (client->GetNetId() < 0xFFFF)
 					{
 						++numClients;
 					}
@@ -509,7 +509,7 @@ namespace fx
 
 				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					if (client->GetNetId() != 0xFFFF)
+					if (client->GetNetId() < 0xFFFF)
 					{
 						clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
 
@@ -607,7 +607,7 @@ namespace fx
 					{
 						net::Buffer outPacket;
 						outPacket.Write(0xE938445B);
-						outPacket.Write(client->GetNetId());
+						outPacket.Write<uint16_t>(client->GetNetId());
 						outPacket.Write(packetLength);
 						outPacket.Write(packetData.data(), packetLength);
 
@@ -639,7 +639,7 @@ namespace fx
 
 					net::Buffer hostBroadcast;
 					hostBroadcast.Write(0xB3EA30DE);
-					hostBroadcast.Write(client->GetNetId());
+					hostBroadcast.Write<uint16_t>(client->GetNetId());
 					hostBroadcast.Write(client->GetNetBase());
 
 					gameServer->Broadcast(hostBroadcast);

@@ -10,7 +10,7 @@ inline static std::chrono::milliseconds msec()
 namespace fx
 {
 	Client::Client(const std::string& guid)
-		: m_guid(guid), m_netId(-1), m_netBase(-1), m_lastSeen(0)
+		: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0)
 	{
 
 	}
@@ -28,14 +28,11 @@ namespace fx
 		m_netBase = netBase;
 	}
 
-	void Client::SetNetId(uint16_t netId)
+	void Client::SetNetId(uint32_t netId)
 	{
-		if (m_netId == 0xFFFF)
-		{
-			m_netId = netId;
+		m_netId = netId;
 
-			OnAssignNetId();
-		}
+		OnAssignNetId();
 	}
 
 	void Client::Touch()
@@ -46,7 +43,7 @@ namespace fx
 	bool Client::IsDead()
 	{
 		// if we've not connected yet, we can't be dead
-		if (m_netId == 0xFFFF)
+		if (m_netId >= 0xFFFF)
 		{
 			return false;
 		}

@@ -36,7 +36,7 @@ namespace fx
 
 		void SetPeer(ENetPeer* peer);
 
-		void SetNetId(uint16_t netId);
+		void SetNetId(uint32_t netId);
 
 		void SetNetBase(uint32_t netBase);
 
@@ -45,7 +45,7 @@ namespace fx
 
 		bool IsDead();
 
-		inline uint16_t GetNetId()
+		inline uint32_t GetNetId()
 		{
 			return m_netId;
 		}
@@ -140,7 +140,7 @@ namespace fx
 		std::vector<std::string> m_identifiers;
 
 		// the client's netid
-		uint16_t m_netId;
+		uint32_t m_netId;
 
 		// the client's netbase
 		uint32_t m_netBase;

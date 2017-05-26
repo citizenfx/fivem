@@ -102,7 +102,7 @@ namespace fx
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientByNetID(uint16_t netId)
+		inline std::shared_ptr<Client> GetClientByNetID(uint32_t netId)
 		{
 			auto ptr = std::shared_ptr<Client>();
 			auto it = m_clientsByNetId.find(netId);
@@ -143,7 +143,7 @@ namespace fx
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<Client>> m_clients;
 
 		// aliases for fast lookup
-		tbb::concurrent_unordered_map<uint16_t, std::weak_ptr<Client>> m_clientsByNetId;
+		tbb::concurrent_unordered_map<uint32_t, std::weak_ptr<Client>> m_clientsByNetId;
 		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
 		tbb::concurrent_unordered_map<ENetPeer*, std::weak_ptr<Client>> m_clientsByPeer;
