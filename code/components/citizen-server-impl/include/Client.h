@@ -5,6 +5,8 @@
 
 #include <enet/enet.h>
 
+#include <ComponentHolder.h>
+
 namespace {
 	using namespace std::literals::chrono_literals;
 
@@ -27,7 +29,7 @@ namespace fx
 		}
 	};
 
-	class SERVER_IMPL_EXPORT Client
+	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>
 	{
 	public:
 		Client(const std::string& guid);
@@ -78,14 +80,16 @@ namespace fx
 			m_name = name;
 		}
 
-		inline const std::string& GetEndPoint()
+		inline const std::string& GetTcpEndPoint()
 		{
-			return m_endPoint;
+			return m_tcpEndPoint;
 		}
 
-		inline void SetEndPoint(const std::string& value)
+		inline void SetTcpEndPoint(const std::string& value)
 		{
-			m_endPoint = value;
+			m_tcpEndPoint = value;
+
+			OnAssignTcpEndPoint();
 		}
 
 		inline const std::string& GetConnectionToken()
@@ -117,6 +121,7 @@ namespace fx
 
 		fwEvent<> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
+		fwEvent<> OnAssignTcpEndPoint;
 
 	private:
 		// a temporary token for tying HTTP connections to UDP connections
@@ -144,7 +149,7 @@ namespace fx
 		std::string m_name;
 
 		// the client's remote endpoint used for HTTP
-		std::string m_endPoint;
+		std::string m_tcpEndPoint;
 
 		// the client's ENet peer
 		std::unique_ptr<ENetPeer, enet_peer_deleter> m_peer;

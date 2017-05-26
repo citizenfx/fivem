@@ -31,6 +31,13 @@ namespace fx
 			m_clientsByPeer[weakClient.lock()->GetPeer()] = weakClient;
 		});
 
+		client->OnAssignTcpEndPoint.Connect([=]()
+		{
+			m_clientsByTcpEndPoint[weakClient.lock()->GetTcpEndPoint()] = weakClient;
+		});
+
+		OnClientCreated(client.get());
+
 		return client;
 	}
 

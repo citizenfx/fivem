@@ -479,6 +479,21 @@ namespace fx
 		return m_fileHashPairs;
 	}
 
+	std::shared_ptr<ResourceFilesFilter> ResourceFilesComponent::CreateFilesFilter(const std::string& file, const fwRefContainer<fwRefCountable>& context)
+	{
+		if (m_filesFilter)
+		{
+			return m_filesFilter(m_resource->GetName(), file, context);
+		}
+
+		return {};
+	}
+
+	void ResourceFilesComponent::SetFilesFilter(const TFilesFilterFactory& filter)
+	{
+		m_filesFilter = filter;
+	}
+
 	void ResourceFilesComponent::AttachToObject(fx::Resource* object)
 	{
 		m_resource = object;

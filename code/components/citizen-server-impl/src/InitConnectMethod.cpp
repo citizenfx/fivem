@@ -60,10 +60,12 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
+			auto ra = request->GetRemoteAddress();
+
 			auto client = clientRegistry->MakeClient(guid);
 			client->SetName(name);
 			client->SetConnectionToken(token);
-			client->SetEndPoint(request->GetRemoteAddress());
+			client->SetTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
 			client->Touch();
 
 			auto it = g_serverProviders.begin();

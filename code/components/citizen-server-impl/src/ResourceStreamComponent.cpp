@@ -127,9 +127,15 @@ namespace fx
 
 		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [&](const std::string& fullPath)
 		{
+			if (fullPath.find(".stream_raw") != std::string::npos)
+			{
+				return;
+			}
+
 			Entry entry = { 0 };
 
 			auto stream = vfs::OpenRead(fullPath);
+			auto rawStream = vfs::OpenRead(fullPath + ".stream_raw");
 
 			if (!stream.GetRef())
 			{
@@ -144,6 +150,8 @@ namespace fx
 			entry.rscFlags = entry.size;
 
 			{
+				auto rscStream = (rawStream.GetRef()) ? rawStream : stream;
+
 				struct  
 				{
 					uint32_t magic;
@@ -152,7 +160,7 @@ namespace fx
 					uint32_t physPages;
 				} rsc7Header;
 
-				stream->Read(&rsc7Header, sizeof(rsc7Header));
+				rscStream->Read(&rsc7Header, sizeof(rsc7Header));
 
 				if (rsc7Header.magic == 0x37435352) // RSC7
 				{
@@ -162,7 +170,7 @@ namespace fx
 					entry.isResource = true;
 				}
 
-				stream->Seek(0, SEEK_SET);
+				rscStream->Seek(0, SEEK_SET);
 			}
 
 			{

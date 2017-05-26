@@ -57,7 +57,7 @@ namespace fx
 
 	static auto GetFilesEndpointHandler(fx::ServerInstanceBase* instance)
 	{
-		auto sendFile = [=](const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName)
+		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName)
 		{
 			// get resource manager and resource
 			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
@@ -132,6 +132,15 @@ namespace fx
 
 					uv_fs_req_cleanup(fsReq);
 
+					auto filter = filesComponent->CreateFilesFilter(fileName, request);
+
+					if (filter && filter->ShouldTerminate())
+					{
+						response->SetStatusCode(403);
+						response->End("Filter says no.");
+						return;
+					}
+
 					// write a 200 OK
 					response->WriteHead(200);
 
@@ -162,6 +171,12 @@ namespace fx
 
 						// cleanup request
 						uv_fs_req_cleanup(fsReq);
+
+						// filter
+						if (filter)
+						{
+							filter->Filter(buffer->data(), fsReq->result);
+						}
 
 						// write to response
 						response->Write(std::string(buffer->data(), fsReq->result));
@@ -219,7 +234,7 @@ namespace fx
 						resourceEnd = filesPath.find('/');
 					} while (resourceEnd != std::string::npos);
 
-					sendFile(response, resourceName, filesPath);
+					sendFile(request, response, resourceName, filesPath);
 					return;
 				}
 			}

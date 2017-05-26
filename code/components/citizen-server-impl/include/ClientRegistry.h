@@ -86,6 +86,22 @@ namespace fx
 			return ptr;
 		}
 
+		inline std::shared_ptr<Client> GetClientByTcpEndPoint(const std::string& address)
+		{
+			auto ptr = std::shared_ptr<Client>();
+			auto it = m_clientsByTcpEndPoint.find(address);
+
+			if (it != m_clientsByTcpEndPoint.end())
+			{
+				if (!it->second.expired())
+				{
+					ptr = it->second.lock();
+				}
+			}
+
+			return ptr;
+		}
+
 		inline std::shared_ptr<Client> GetClientByNetID(uint16_t netId)
 		{
 			auto ptr = std::shared_ptr<Client>();
@@ -119,6 +135,8 @@ namespace fx
 
 		virtual void AttachToObject(ServerInstanceBase* instance) override;
 
+		fwEvent<Client*> OnClientCreated;
+
 	private:
 		uint16_t m_hostNetId;
 
@@ -127,6 +145,7 @@ namespace fx
 		// aliases for fast lookup
 		tbb::concurrent_unordered_map<uint16_t, std::weak_ptr<Client>> m_clientsByNetId;
 		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
+		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
 		tbb::concurrent_unordered_map<ENetPeer*, std::weak_ptr<Client>> m_clientsByPeer;
 
 		std::atomic<uint16_t> m_curNetId;
