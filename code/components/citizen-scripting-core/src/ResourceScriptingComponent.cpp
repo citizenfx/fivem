@@ -94,7 +94,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 		}
 
-		if (!m_scriptRuntimes.empty())
+		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
 		{
 			CreateEnvironments();
 		}
