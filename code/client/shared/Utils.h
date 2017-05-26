@@ -189,7 +189,7 @@ FMT_VARIADIC(const char*, va, const char*);
 void TraceReal(const char* channel, const char* func, const char* file, int line, const char* string, const fmt::ArgList& formatList);
 FMT_VARIADIC(void, TraceReal, const char*, const char*, const char*, int, const char*);
 
-#ifdef COMPILING_ADHESIVE
+#if defined(COMPILING_ADHESIVE) || defined(COMPILING_SVADHESIVE)
 #define _CFX_TRACE_FILE "adhesive"
 #define _CFX_TRACE_FUNC "adhesive"
 #else

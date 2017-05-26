@@ -15,7 +15,7 @@ inline uint32_t const_uint32()
 	return I;
 }
 
-#ifdef COMPILING_ADHESIVE
+#if defined(COMPILING_ADHESIVE) || defined(COMPILING_SVADHESIVE)
 #define _CFX_FILE "adhesive"
 #else
 #define _CFX_FILE __FILE__
