@@ -179,8 +179,6 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 		// hold a reference to ourselves while in this scope
 		fwRefContainer<UvTcpServerStream> tempContainer = this;
 
-		trace("read error: %s\n", uv_strerror(nread));
-
 		Close();
 	}
 }
