@@ -66,7 +66,7 @@ static InitFunction initFunction([]()
 
 						if (object.find("error") != object.end())
 						{
-							cb({ "Steam rejected authentication: " + object["error"].get<std::string>() });
+							cb({ "Steam rejected authentication: " + object["error"]["errordesc"].get<std::string>() });
 							return;
 						}
 
