@@ -162,4 +162,31 @@ static InitFunction initFunction([]()
 
 		context.SetResult(clientId.c_str());
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HOST_ID", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the client registry
+		auto registry = instance->GetComponent<fx::ClientRegistry>();
+
+		// get the host
+		auto host = registry->GetHost();
+
+		if (!host)
+		{
+			context.SetResult(nullptr);
+		}
+		else
+		{
+			static thread_local std::string id;
+			id = std::to_string(host->GetNetId());
+
+			context.SetResult(id.c_str());
+		}
+	});
 });
