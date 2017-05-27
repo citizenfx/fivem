@@ -376,7 +376,7 @@ public:
 
 		for (callback* cb = m_callbacks; cb; cb = cb->next)
 		{
-			if (!cb->function(args...))
+			if (cb->function && !cb->function(args...))
 			{
 				return false;
 			}
