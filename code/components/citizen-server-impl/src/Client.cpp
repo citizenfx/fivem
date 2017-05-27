@@ -35,6 +35,13 @@ namespace fx
 		OnAssignNetId();
 	}
 
+	void Client::SetTcpEndPoint(const std::string& value)
+	{
+		m_tcpEndPoint = value;
+
+		OnAssignTcpEndPoint();
+	}
+
 	void Client::Touch()
 	{
 		m_lastSeen = msec();

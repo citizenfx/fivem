@@ -85,12 +85,7 @@ namespace fx
 			return m_tcpEndPoint;
 		}
 
-		inline void SetTcpEndPoint(const std::string& value)
-		{
-			m_tcpEndPoint = value;
-
-			OnAssignTcpEndPoint();
-		}
+		void SetTcpEndPoint(const std::string& value);
 
 		inline const std::string& GetConnectionToken()
 		{
