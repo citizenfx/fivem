@@ -48,7 +48,8 @@ static InitFunction initFunction([]()
 
 			if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end())
 			{
-				return json::object({ {"error", "fields missing"} });
+				cb(json::object({ {"error", "fields missing"} }));
+				return;
 			}
 
 			auto name = nameIt->second;
