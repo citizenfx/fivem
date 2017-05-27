@@ -329,7 +329,7 @@ namespace fx
 			->GetComponent<fx::ResourceEventManagerComponent>()
 			->QueueEvent2(
 				"playerDropped",
-				{ fmt::sprintf("net:%d", client->GetNetId()) },
+				{ fmt::sprintf("%d", client->GetNetId()) },
 				std::string(realReason)
 			);
 
