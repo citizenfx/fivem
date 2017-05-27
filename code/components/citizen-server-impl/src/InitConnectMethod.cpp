@@ -111,6 +111,8 @@ static InitFunction initFunction([]()
 				std::map<std::string, fx::ResourceCallbackComponent::CallbackRef> cbs;
 				bool isDeferred = false;
 
+				auto returnedCb = std::make_shared<bool>(false);
+
 				cbs["defer"] = cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
 				{
 					isDeferred = true;
@@ -118,6 +120,11 @@ static InitFunction initFunction([]()
 
 				cbs["done"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
 				{
+					if (*returnedCb)
+					{
+						return;
+					}
+
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
 					if (obj.size() == 1)
@@ -128,6 +135,8 @@ static InitFunction initFunction([]()
 					{
 						cb(json);
 					}
+
+					*returnedCb = true;
 				});
 
 				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
@@ -140,14 +149,16 @@ static InitFunction initFunction([]()
 					}
 				}), cbs);
 
+				if (!shouldAllow)
+				{
+					*returnedCb = true;
+
+					cb({ {"error", noReason} });
+					return;
+				}
+
 				if (!isDeferred)
 				{
-					if (!shouldAllow)
-					{
-						cb({ {"error", noReason} });
-						return;
-					}
-
 					cb(json);
 				}
 			};
