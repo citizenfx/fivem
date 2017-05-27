@@ -55,7 +55,7 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_GUID", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
-		return "";
+		return client->GetGuid().c_str();
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_IDENTIFIERS", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
@@ -158,7 +158,7 @@ static InitFunction initFunction([]()
 		}
 
 		static thread_local std::string clientId;
-		clientId = fmt::sprintf("net:%d", clients[i].lock()->GetNetId());
+		clientId = fmt::sprintf("%d", clients[i].lock()->GetNetId());
 
 		context.SetResult(clientId.c_str());
 	});
