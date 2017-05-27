@@ -424,6 +424,21 @@ static InitFunction initFunction2([]()
 		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "mapname", context.GetArgument<const char*>(0) });
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("ENABLE_ENHANCED_HOST_SUPPORT", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// set mapname variable
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "sv_enhancedHostSupport", context.GetArgument<bool>(0) ? "1" : "0" });
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager

@@ -38,6 +38,7 @@ static InitFunction initFunction([]()
 		maxVarianceVar->GetHelper()->SetConstraints(1, 5);
 
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
+		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
@@ -60,6 +61,7 @@ static InitFunction initFunction([]()
 			json json = json::object();
 			json["protocol"] = 4;
 			json["sH"] = shVar->GetValue();
+			json["enhancedHostSupport"] = ehVar->GetValue();
 			json["token"] = token;
 			json["netlibVersion"] = 2;
 
