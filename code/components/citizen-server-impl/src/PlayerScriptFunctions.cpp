@@ -32,7 +32,7 @@ static InitFunction initFunction([]()
 			// parse the client ID
 			std::string id = context.GetArgument<const char*>(0);
 
-			uint16_t netId;
+			uint32_t netId;
 
 			netId = atoi(id.c_str());
 
