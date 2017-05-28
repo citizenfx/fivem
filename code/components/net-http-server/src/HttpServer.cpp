@@ -221,6 +221,12 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			}
 			else if (connectionData->readState == ReadStateBody)
 			{
+				// skip if this is an empty write
+				if (data.empty())
+				{
+					break;
+				}
+
 				int contentLength = localConnectionData->contentLength;
 
 				if (readQueue.size() >= contentLength)
@@ -256,6 +262,12 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			}
 			else if (connectionData->readState == ReadStateChunked)
 			{
+				// skip if this is an empty write
+				if (data.empty())
+				{
+					break;
+				}
+
 				// append the remnant of the read queue to the vector
 				auto& requestData = localConnectionData->requestData;
 
@@ -284,6 +296,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				}
 				else
 				{
+					// remove the original bytes from the queue
+					readQueue.erase(readQueue.begin(), readQueue.begin() + readQueue.size() - result);
+
 					// call the data handler
 					auto& dataHandler = localConnectionData->request->GetDataHandler();
 
