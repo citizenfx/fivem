@@ -26,6 +26,11 @@ namespace fx
 
 					lastTime = msec();
 
+					if (now >= 150)
+					{
+						trace("hitch warning: frame time of %d milliseconds\n", now);
+					}
+
 					waiter(server, std::max<int>(0, frameTime - residualTime));
 
 					// intervals
