@@ -55,7 +55,7 @@ namespace fx
 		events->TriggerClientEvent("onPlayerJoining", std::optional<std::string_view>(), client->GetNetId(), client->GetName());
 
 		// send the JOINING CLIENT information about EVERY OTHER CLIENT
-		std::string target = fmt::sprintf("net:%d", client->GetNetId());
+		std::string target = fmt::sprintf("%d", client->GetNetId());
 
 		ForAllClients([&](const std::shared_ptr<fx::Client>& otherClient)
 		{
