@@ -19,6 +19,8 @@
 
 #include <msgpack.hpp>
 
+// TODO: replace this file with something using ResourceCallbackComponent
+
 void ConvertToMsgPack(const rapidjson::Value& json, msgpack::object& object, msgpack::zone& zone)
 {
 	switch (json.GetType())
@@ -248,7 +250,7 @@ result_t ResourceUIScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, 
 		sb.clear();
 		
 		msgpack::packer<msgpack::sbuffer> packer(sb);
-		packer.pack_nil();
+		packer.pack_array(0);
 
 		*retvalSerialized = sb.data();
 		*retvalLength = sb.size();
