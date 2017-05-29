@@ -10,7 +10,7 @@ inline static std::chrono::milliseconds msec()
 namespace fx
 {
 	Client::Client(const std::string& guid)
-		: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0)
+		: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false)
 	{
 
 	}

@@ -107,6 +107,16 @@ namespace fx
 			return m_identifiers;
 		}
 
+		inline bool HasRouted()
+		{
+			return m_hasRouted;
+		}
+
+		inline void SetHasRouted()
+		{
+			m_hasRouted = true;
+		}
+
 		inline void AddIdentifier(const std::string& identifier)
 		{
 			m_identifiers.emplace_back(identifier);
@@ -148,5 +158,8 @@ namespace fx
 
 		// the client's ENet peer
 		std::unique_ptr<ENetPeer, enet_peer_deleter> m_peer;
+
+		// whether the client has sent a routing msg once
+		bool m_hasRouted;
 	};
 }
