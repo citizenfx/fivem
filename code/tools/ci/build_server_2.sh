@@ -69,6 +69,8 @@ cp -a ../data/server/* /opt/cfx-server
 cp -a bin/server/linux/release/FXServer /opt/cfx-server
 cp -a bin/server/linux/release/*.so /opt/cfx-server
 cp -a bin/server/linux/release/*.json /opt/cfx-server
+cp tools/ci/run.sh /opt/cfx-server
+chmod +x /opt/cfx-server/run.sh
 
 # strip output files
 strip --strip-unneeded /opt/cfx-server/*.so
