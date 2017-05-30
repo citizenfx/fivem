@@ -205,7 +205,7 @@ export class CfxGameService extends GameService {
 
         const promise = new Promise<Server>((resolve, reject) =>
         {
-            const to = setTimeout(() => {
+            const to = window.setTimeout(() => {
                 if (addrString != this.lastQuery) {
                     return;
                 }
