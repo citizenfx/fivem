@@ -194,6 +194,10 @@ static InitFunction initFunction([] ()
 
 			ConnectTo(hostnameStr);
 		}
+		else if (!_wcsicmp(type, L"cancelDefer"))
+		{
+			netLibrary->CancelDeferredConnection();
+		}
 		else if (!_wcsicmp(type, L"changeName"))
 		{
 			std::string newusername = ToNarrow(arg);
