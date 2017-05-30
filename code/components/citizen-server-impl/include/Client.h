@@ -7,6 +7,10 @@
 
 #include <ComponentHolder.h>
 
+#include <tbb/concurrent_unordered_map.h>
+
+#include <any>
+
 namespace {
 	using namespace std::literals::chrono_literals;
 
@@ -122,6 +126,10 @@ namespace fx
 			m_identifiers.emplace_back(identifier);
 		}
 
+		const std::any& GetData(const std::string& key);
+
+		void SetData(const std::string& key, const std::any& data);
+
 		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
 
 		fwEvent<> OnAssignNetId;
@@ -161,5 +169,8 @@ namespace fx
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;
+
+		// an arbitrary set of data
+		tbb::concurrent_unordered_map<std::string, std::any> m_userData;
 	};
 }

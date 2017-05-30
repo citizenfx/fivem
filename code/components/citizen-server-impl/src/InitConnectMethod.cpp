@@ -2,6 +2,7 @@
 #include <ClientHttpHandler.h>
 
 #include <ClientRegistry.h>
+#include <GameServer.h>
 
 #include <ServerInstanceBase.h>
 
@@ -55,17 +56,28 @@ static InitFunction initFunction([]()
 
 			auto name = nameIt->second;
 			auto guid = guidIt->second;
+			auto protocol = atoi(protocolIt->second.c_str());
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 
-			json json = json::object();
-			json["protocol"] = 4;
-			json["sH"] = shVar->GetValue();
-			json["enhancedHostSupport"] = ehVar->GetValue();
-			json["token"] = token;
-			json["netlibVersion"] = 2;
+			json data = json::object();
+			data["protocol"] = 4;
+			data["sH"] = shVar->GetValue();
+			data["enhancedHostSupport"] = ehVar->GetValue();
+			data["token"] = token;
+			data["netlibVersion"] = 2;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+			auto gameServer = instance->GetComponent<fx::GameServer>();
+
+			{
+				auto oldClient = clientRegistry->GetClientByGuid(guid);
+
+				if (oldClient)
+				{
+					gameServer->DropClient(oldClient, "Reconnecting");
+				}
+			}
 
 			auto ra = request->GetRemoteAddress();
 
@@ -83,6 +95,12 @@ static InitFunction initFunction([]()
 
 			auto done = [=]()
 			{
+				auto allowClient = [=]()
+				{
+					client->SetData("passedValidation", true);
+					client->SetData("canBeDead", false);
+				};
+
 				int maxTrust = INT_MIN;
 				int minVariance = INT_MAX;
 
@@ -111,11 +129,35 @@ static InitFunction initFunction([]()
 				std::map<std::string, fx::ResourceCallbackComponent::CallbackRef> cbs;
 				bool isDeferred = false;
 
+				using TDeferFn = std::function<void(const json&)>;
+				using TDeferPtr = std::unique_ptr<TDeferFn>;
+
+				json deferData = { { "defer", true },{ "token", token },{ "status", "Deferred connection." } };
+
 				auto returnedCb = std::make_shared<bool>(false);
+				auto deferDoneCb = std::make_shared<TDeferPtr>(std::make_unique<TDeferFn>([&](const json& data)
+				{
+					deferData = data;
+				}));
 
 				cbs["defer"] = cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
 				{
 					isDeferred = true;
+				});
+
+				cbs["update"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
+				{
+					if (*returnedCb)
+					{
+						return;
+					}
+
+					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+
+					if (obj.size() == 1)
+					{
+						(**deferDoneCb)({ { "status", obj[0].as<std::string>() }, {"token", token}, {"defer", true} });
+					}
 				});
 
 				cbs["done"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
@@ -129,11 +171,12 @@ static InitFunction initFunction([]()
 
 					if (obj.size() == 1)
 					{
-						cb({ { "error", obj[0].as<std::string>() } });
+						(**deferDoneCb)({ { "error", obj[0].as<std::string>() } });
 					}
 					else
 					{
-						cb(json);
+						allowClient();
+						(**deferDoneCb)(data);
 					}
 
 					*returnedCb = true;
@@ -159,7 +202,30 @@ static InitFunction initFunction([]()
 
 				if (!isDeferred)
 				{
-					cb(json);
+					allowClient();
+					cb(data);
+				}
+				else
+				{
+					if (protocol >= 5)
+					{
+						*deferDoneCb = std::make_unique<TDeferFn>([=](const json& data)
+						{
+							client->SetData("deferralState", std::any{ data });
+
+							auto& updateCb = client->GetData("deferralCallback");
+
+							if (updateCb.has_value())
+							{
+								std::any_cast<std::function<void()>>(updateCb)();
+							}
+						});
+
+						if (!*returnedCb)
+						{
+							cb(deferData);
+						}
+					}
 				}
 			};
 

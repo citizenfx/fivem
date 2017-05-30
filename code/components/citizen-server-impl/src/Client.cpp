@@ -52,10 +52,33 @@ namespace fx
 		// if we've not connected yet, we can't be dead
 		if (m_netId >= 0xFFFF)
 		{
-			return false;
+			auto canBeDead = GetData("canBeDead");
+
+			if (!canBeDead.has_value() || !std::any_cast<bool>(canBeDead))
+			{
+				return false;
+			}
 		}
 
 		return (msec() - m_lastSeen) > CLIENT_DEAD_TIMEOUT;
+	}
+
+	void Client::SetData(const std::string& key, const std::any& data)
+	{
+		m_userData[key] = data;
+	}
+
+	const std::any& Client::GetData(const std::string& key)
+	{
+		auto it = m_userData.find(key);
+
+		if (it == m_userData.end())
+		{
+			static const std::any emptyAny;
+			return emptyAny;
+		}
+
+		return it->second;
 	}
 
 	void Client::SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags /* = (ENetPacketFlag)0 */)

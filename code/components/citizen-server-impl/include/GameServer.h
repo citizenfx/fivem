@@ -50,6 +50,8 @@ namespace fx
 
 		void ForceHeartbeat();
 
+		void DeferCall(int inMsec, const std::function<void()>& fn);
+
 		inline void SetRunLoop(const std::function<void()>& runLoop)
 		{
 			m_runLoop = runLoop;
@@ -115,6 +117,8 @@ namespace fx
 		std::map<std::string, net::PeerAddress> m_masterCache;
 
 		int64_t m_nextHeartbeatTime;
+
+		tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;

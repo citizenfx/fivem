@@ -156,6 +156,15 @@ namespace fx
 						return;
 					}
 
+					if (!client->GetData("passedValidation").has_value())
+					{
+						SendOutOfBand(AddressPair{ peer->host, client->GetAddress() }, "error Invalid connection.");
+
+						m_clientRegistry->RemoveClient(client);
+
+						return;
+					}
+
 					client->Touch();
 
 					client->SetPeer(peer);
@@ -222,9 +231,42 @@ namespace fx
 		}
 	}
 
+	void GameServer::DeferCall(int inMsec, const std::function<void()>& fn)
+	{
+		static std::atomic<int> cbIdx;
+
+		// find an empty slot first
+		for (auto& pair : m_deferCallbacks)
+		{
+			if (std::get<int>(pair.second) == 0)
+			{
+				pair.second = { m_serverTime + inMsec, fn };
+				return;
+			}
+		}
+
+		m_deferCallbacks.insert({ cbIdx.fetch_add(1), { m_serverTime + inMsec, fn } });
+	}
+
 	void GameServer::ProcessServerFrame(int frameTime)
 	{
 		m_serverTime += frameTime;
+
+		// check callbacks
+		for (auto& cb : m_deferCallbacks)
+		{
+			if (std::get<int>(cb.second) == 0)
+			{
+				continue;
+			}
+
+			if (m_serverTime >= std::get<int>(cb.second))
+			{
+				std::get<1>(cb.second)();
+
+				cb.second = {};
+			}
+		}
 
 		std::vector<std::shared_ptr<fx::Client>> toRemove;
 
@@ -327,7 +369,7 @@ namespace fx
 		m_instance
 			->GetComponent<fx::ResourceManager>()
 			->GetComponent<fx::ResourceEventManagerComponent>()
-			->QueueEvent2(
+			->TriggerEvent2(
 				"playerDropped",
 				{ fmt::sprintf("%d", client->GetNetId()) },
 				std::string(realReason)
