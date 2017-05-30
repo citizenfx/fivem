@@ -590,6 +590,11 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 	static fwAction<bool, const char*, size_t> handleAuthResult;
 	handleAuthResult = [=] (bool result, const char* connDataStr, size_t size) mutable
 	{
+		if (m_connectionState != CS_INITING)
+		{
+			return;
+		}
+
 		OnConnectionProgress("Handshaking...", 0, 100);
 
 		std::string connData(connDataStr, size);
@@ -608,6 +613,25 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		try
 		{
 			auto node = YAML::Load(connData);
+
+			if (node["token"].IsDefined())
+			{
+				m_token = node["token"].as<std::string>();
+			}
+
+			if (node["defer"].IsDefined())
+			{
+				OnConnectionProgress(node["status"].as<std::string>(), 133, 133);
+
+				static fwMap<fwString, fwString> newMap;
+				newMap["method"] = "getDeferState";
+				newMap["guid"] = va("%lld", GetGUID());
+				newMap["token"] = m_token;
+
+				m_httpClient->DoPostRequest(wideHostname, port, L"/client", newMap, handleAuthResult);
+
+				return;
+			}
 
 			if (node["error"].IsDefined())
 			{
@@ -631,8 +655,6 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
 
-			m_token = node["token"].as<std::string>();
-
 			m_serverProtocol = node["protocol"].as<uint32_t>();
 
 			auto steam = GetSteam();
@@ -653,8 +675,9 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				m_impl = CreateNetLibraryImplV1(this);
 			}
 		}
-		catch (YAML::Exception&)
+		catch (YAML::Exception& e)
 		{
+			OnConnectionError(e.what());
 			m_connectionState = CS_IDLE;
 		}
 	};
@@ -745,6 +768,14 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		performRequest();
 	}
 	
+}
+
+void NetLibrary::CancelDeferredConnection()
+{
+	if (m_connectionState == CS_INITING)
+	{
+		m_connectionState = CS_IDLE;
+	}
 }
 
 void NetLibrary::Disconnect(const char* reason)

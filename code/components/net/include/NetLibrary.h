@@ -22,7 +22,7 @@
 
 #include <concurrent_queue.h>
 
-#define NETWORK_PROTOCOL 4
+#define NETWORK_PROTOCOL 5
 
 enum NetAddressType
 {
@@ -238,6 +238,8 @@ public:
 	void Death();
 
 	void Resurrection();
+
+	void CancelDeferredConnection();
 
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
 
