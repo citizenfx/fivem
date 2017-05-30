@@ -16,6 +16,7 @@ export class BottomNavComponent extends Translation implements OnInit {
     overlayTitle: string;
     overlayMessage: string;
     overlayMessageData = {};
+    closeLabel = "#Servers_CloseOverlay";
 
     constructor(private gameService: GameService, public translation: TranslationService) {
         super(translation);
@@ -36,6 +37,7 @@ export class BottomNavComponent extends Translation implements OnInit {
             this.overlayMessageData = { message };
             this.showOverlay = true;
             this.overlayClosable = true;
+            this.closeLabel = "#Servers_CloseOverlay";
         });
 
         this.gameService.connectStatus.subscribe(a => {
@@ -43,7 +45,17 @@ export class BottomNavComponent extends Translation implements OnInit {
             this.overlayMessage = '#Servers_Message';
             this.overlayMessageData = { message: a.message };
             this.showOverlay = true;
-            this.overlayClosable = false;
+            this.overlayClosable = (a.count == 133 && a.total == 133); // magic numbers, yeah :(
+
+            if (this.overlayClosable) {
+                this.closeLabel = "#Servers_CancelOverlay";
+            }
         });
+    }
+
+    closeOverlay() {
+        this.showOverlay = false;
+
+        this.gameService.cancelNativeConnect();
     }
 }

@@ -42,6 +42,10 @@ export abstract class GameService {
 
     }
 
+    cancelNativeConnect(): void {
+
+    }
+
     protected invokeConnectFailed(server: Server, message: string) {
         this.connectFailed.emit([server, message]);
     }
@@ -196,6 +200,10 @@ export class CfxGameService extends GameService {
         } else if (list == 'history') {
             this.saveHistory();
         }
+    }
+
+    cancelNativeConnect(): void {
+        (<any>window).invokeNative('cancelDefer', '');
     }
 
     lastQuery: string;
