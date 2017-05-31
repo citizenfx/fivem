@@ -207,24 +207,39 @@ static InitFunction initFunction([]()
 				}
 				else
 				{
-					if (protocol >= 5)
+					if (protocol < 5)
 					{
+						// set a callback so setting data won't crash
 						*deferDoneCb = std::make_unique<TDeferFn>([=](const json& data)
 						{
-							client->SetData("deferralState", std::any{ data });
 
-							auto& updateCb = client->GetData("deferralCallback");
-
-							if (updateCb.has_value())
-							{
-								std::any_cast<std::function<void()>>(updateCb)();
-							}
 						});
 
 						if (!*returnedCb)
 						{
-							cb(deferData);
+							*returnedCb = true;
+
+							cb({ {"error", "You need to update your client to join this server."} });
 						}
+
+						return;
+					}
+
+					*deferDoneCb = std::make_unique<TDeferFn>([=](const json& data)
+					{
+						client->SetData("deferralState", std::any{ data });
+
+						auto& updateCb = client->GetData("deferralCallback");
+
+						if (updateCb.has_value())
+						{
+							std::any_cast<std::function<void()>>(updateCb)();
+						}
+					});
+
+					if (!*returnedCb)
+					{
+						cb(deferData);
 					}
 				}
 			};
