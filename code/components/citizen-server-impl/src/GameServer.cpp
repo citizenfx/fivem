@@ -527,12 +527,13 @@ namespace fx
 
 				server->SendOutOfBand(from, fmt::format(
 					"infoResponse\n"
-					"\\sv_maxclients\\24\\clients\\{4}\\challenge\\{0}\\gamename\\CitizenFX\\protocol\\4\\hostname\\{1}\\gametype\\{2}\\mapname\\{3}\\iv\\1",
+					"\\sv_maxclients\\24\\clients\\{4}\\challenge\\{0}\\gamename\\CitizenFX\\protocol\\4\\hostname\\{1}\\gametype\\{2}\\mapname\\{3}\\iv\\{5}",
 					std::string(data.substr(0, data.find_first_of(" \n"))),
 					server->GetVariable("sv_hostname"),
 					server->GetVariable("gametype"),
 					server->GetVariable("mapname"),
-					numClients
+					numClients,
+					server->GetVariable("sv_infoVersion")
 				));
 			}
 
