@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+#include <ClientRegistry.h>
+
 #include <ServerInstanceBase.h>
 #include <HttpServerManager.h>
 
@@ -26,7 +28,27 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
-			response->End("[]");
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+			json data = json::array();
+
+			clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			{
+				if (client->GetNetId() >= 0xFFFF)
+				{
+					return;
+				}
+
+				data.push_back({
+					{ "endpoint", client->GetAddress().ToString() },
+					{ "id", client->GetNetId() },
+					{ "identifiers", client->GetIdentifiers() },
+					{ "name", client->GetName() },
+					{ "ping", client->GetPeer()->roundTripTime }
+				});
+			});
+
+			response->End(data.dump());
 		});
 	});
 });
