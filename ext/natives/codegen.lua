@@ -139,7 +139,9 @@ table.sort(_natives, function(a, b)
 end)
 
 --[[for _, v in pairs(_natives) do
-	print(string.format("%s = %s,", v.name, v.hash))
+	if matchApiSet(v) then
+		print(string.format("%s = %s,", v.name, v.hash))
+	end
 end
 
 os.exit(0)]]
@@ -168,7 +170,13 @@ print("local _i, _f, _v, _r, _ri, _rf, _s, _rv, _in, _ii, _fi =\n\tCitizen.Point
 
 print("local g = _G")
 
-print("local _ts = tostring\n")
+print("local _tostring = tostring")
+print("local function _ts(num)")
+print("\tif num == 0 or not num then -- workaround for users calling string parameters with '0', also nil being translated")
+print("\t\treturn nil")
+print("\tend")
+print("\treturn _tostring(num)")
+print("end")
 
 print("local function _ch(hash)")
 print("\tif g.type(hash) == 'string' then")
