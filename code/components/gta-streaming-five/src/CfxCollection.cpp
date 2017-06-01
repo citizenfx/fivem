@@ -345,11 +345,9 @@ public:
 
 		if (parentHandle == -1)
 		{
-			trace("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s\n", GetName(), name);
-
-			if (strcmp(GetName(), "dlc.rpf") != 0)
+			if (!name || strstr(name, "_manifest.ymf") == nullptr)
 			{
-				FatalError("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s\n", GetName(), name);
+				trace("CfxCollection[%s]::AllocateHandle got passed a failed handle for %s\n", GetName(), name);
 			}
 
 			return -1;
@@ -465,7 +463,11 @@ public:
 			}
 			else
 			{
-				g_ignoredStreamingFileSet.insert(entryName);
+				// if _manifest.ymf, don't ignore globally
+				if (stricmp(entryName, "_manifest.ymf") != 0)
+				{
+					g_ignoredStreamingFileSet.insert(entryName);
+				}
 
 				auto rit = g_customStreamingFileRefs.find(entryName);
 
@@ -1230,9 +1232,7 @@ public:
 	void Mount(const char* mountPoint)
 	{
 		{
-			PseudoCallContext ctx(this);
-
-			reinterpret_cast<rage::fiPackfile*>(ctx.GetPointer())->Mount(mountPoint);
+			reinterpret_cast<rage::fiPackfile*>(this)->Mount(mountPoint);
 		}
 	}
 };

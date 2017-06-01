@@ -177,11 +177,20 @@ static hook::cdecl_stub<void(DataFileEntry* entry)> _removePackfile([]()
 
 bool CfxPackfileMounter::MountFile(DataFileEntry* entry)
 {
+	// 505 hardcoded
+	auto _initManifestChunk = (void(*)(void*))0x1408C8B94;
+	auto _loadManifestChunk = (void(*)(void*))0x1408CCA6C;
+	auto _clearManifestChunk = (void(*)(void*))0x14089AC8C;
+	auto manifestChunkPtr = (void*)0x1422F5230;
+
 	entry->disabled = true;
 	//entry->persistent = true;
 	//entry->locked = true;
 	//entry->overlay = true;
+	_initManifestChunk(manifestChunkPtr);
 	_addPackfile(entry);
+	_loadManifestChunk(manifestChunkPtr);
+	_clearManifestChunk(manifestChunkPtr);
 	return true;
 }
 
