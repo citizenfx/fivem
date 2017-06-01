@@ -349,10 +349,6 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 			trace("failed %s %s in data file mounter %s.\n", op, fileName, className);
 		}
 	}
-	else
-	{
-		trace("%s %s failed (no mounter for type %s)\n", op, fileName, typeName);
-	}
 }
 
 template<typename TFn, typename TList>
