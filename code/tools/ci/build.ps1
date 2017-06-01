@@ -209,6 +209,8 @@ if (!$DontBuild)
     "#pragma once
     #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
 
+    remove-item env:\platform
+
     #echo $env:Path
     #/logger:C:\f\customlogger.dll /noconsolelogger
     msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /p:platform=x64 /v:q /fl /m:4 $BuildRoot\five\CitizenMP.sln
