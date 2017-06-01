@@ -290,6 +290,14 @@ static void LoadObjectsNowWrap(void* streaming, bool a2)
 	}
 }
 
+static struct MhInit
+{
+	MhInit()
+	{
+		MH_Initialize();
+	}
+} mhInit;
+
 static HookFunction hookFunction([] ()
 {
 	auto registerPools = [] (hook::pattern& patternMatch, int callOffset, int hashOffset)
@@ -344,7 +352,6 @@ static HookFunction hookFunction([] ()
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? 00 00 00 E8 ? ? ? ? C6"), 0x35, 1);
 
 	// min hook
-	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("18 83 F9 FF 75 03 33 C0 C3 41", -6), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 
 	// in a bit of a wrong place, but OK

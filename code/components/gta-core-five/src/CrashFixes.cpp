@@ -8,6 +8,8 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <Error.h>
+
 static void* ProbePointer(char* pointer)
 {
 	__try
@@ -51,6 +53,59 @@ static void* GetModelInfoOnlyIfFrag(void* data)
 	}
 
 	return nullptr;
+}
+
+#include <MinHook.h>
+
+static intptr_t(*origVerifyNetObj1)(void*, int);
+static intptr_t(*origVerifyNetObj2)(void*, int);
+
+intptr_t VerifyNetObj1(char* a1, int a2)
+{
+	if (*(void**)(a1 + 176) == 0)
+	{
+		return 0;
+	}
+
+	return origVerifyNetObj1(a1, a2);
+}
+
+intptr_t VerifyNetObj2(char* a1, int a2)
+{
+	if (*(void**)(a1 + 176) == 0)
+	{
+		return 0;
+	}
+
+	return origVerifyNetObj2(a1, a2);
+}
+
+struct VirtualBase
+{
+	virtual ~VirtualBase() {}
+};
+
+struct VirtualDerivative : public VirtualBase
+{
+	virtual ~VirtualDerivative() override {}
+};
+
+std::string GetType(void* d)
+{
+	VirtualBase* self = (VirtualBase*)d;
+
+	std::string typeName = fmt::sprintf("unknown (vtable %p)", *(void**)self);
+
+	try
+	{
+		typeName = typeid(*self).name();
+	}
+	catch (std::__non_rtti_object&)
+	{
+
+	}
+
+	return typeName;
 }
 
 static HookFunction hookFunction([] ()
@@ -135,5 +190,83 @@ static HookFunction hookFunction([] ()
 
 		// register 2: dx
 		hook::call_reg<2>(location, carFixStub2.GetCode());
+	}
+
+	// something related to netobjs, crash sig FiveM.exe@0x5cd7e4
+	// (on disconnecting with certain cars)
+	{
+		auto matches = hook::pattern("41 0F B6 80 4A 03 00 00 3B D0").count(2);
+
+		MH_CreateHook(matches.get(0).get<void>(-12), VerifyNetObj1, (void**)&origVerifyNetObj1);
+		MH_CreateHook(matches.get(1).get<void>(-12), VerifyNetObj2, (void**)&origVerifyNetObj2);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	// crash signature FiveM.exe@0x75c050
+	// CPed collision handling with phInstFrag in certain cases (climbing on cars?)
+	static struct : jitasm::Frontend
+	{
+		static void VerifyPedInst(char* inst)
+		{
+			char* archetype = *(char**)(inst + 16);
+			char* bound = *(char**)(archetype + 32);
+
+			// check if this is a composite bound
+			if (*(uint8_t*)(bound + 16) != 10) // actually 10, but to verify this works
+			{
+				auto boundType = GetType(bound);
+				auto instType = GetType(inst);
+
+				std::string frag = "<unknown>";
+
+				if (instType.find("frag") != std::string::npos)
+				{
+					char* fragment = *(char**)(inst + 120);
+
+					if (fragment)
+					{
+						char* name = *(char**)(fragment + 0x58);
+
+						if (name)
+						{
+							frag = name;
+						}
+					}
+				}
+
+				FatalError("Bound used in CPed collision function with instance %s (frag %s) was of type %s, but should be phBoundComposite!", instType, frag, boundType);
+			}
+		}
+
+		void InternalMain() override
+		{
+			push(rdx);
+			push(rax);
+
+			push(rbp);
+			mov(rbp, rsp);
+			sub(rsp, 32);
+
+			// rbx is the phInst
+			mov(rcx, rbx);
+			mov(rax, (uintptr_t)&VerifyPedInst);
+			call(rax);
+
+			add(rsp, 32);
+			pop(rbp);
+
+			pop(rax);
+			pop(rdx);
+
+			test(dword_ptr[rdx + rax * 8], 0x100000);
+
+			ret();
+		}
+	} colFixStub1;
+
+	{
+		auto location = hook::get_pattern("F7 04 C2 00 00 10 00 74 5A");
+		hook::nop(location, 7);
+		hook::call_reg<1>(location, colFixStub1.GetCode());
 	}
 });
