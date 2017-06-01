@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -111,7 +111,7 @@ struct CollectionData
 	rage::fiDevice* unkDevice;
 	char pad4[16];
 	rage::fiDevice* parentDevice;
-	char pad5[4];
+	uint32_t namePrefixLength;
 	char smallName[32];
 	uint32_t pad6;
 	atArray<char> name;
@@ -678,7 +678,9 @@ public:
 	{
 		std::string outFileName;
 
-		if (m_lookupFunction(fileName, outFileName))
+		CollectionData* collectionData = (CollectionData*)m_pad;
+
+		if (m_lookupFunction(fileName + collectionData->namePrefixLength, outFileName))
 		{
 			rage::fiDevice* device = rage::fiDevice::GetDevice(outFileName.c_str(), true);
 			uint64_t handle = device->Open(outFileName.c_str(), readOnly);
@@ -693,7 +695,9 @@ public:
 	{
 		std::string outFileName;
 
-		if (m_lookupFunction(fileName, outFileName))
+		CollectionData* collectionData = (CollectionData*)m_pad;
+
+		if (m_lookupFunction(fileName + collectionData->namePrefixLength, outFileName))
 		{
 			rage::fiDevice* device = rage::fiDevice::GetDevice(outFileName.c_str(), true);
 			uint64_t handle = device->OpenBulk(outFileName.c_str(), ptr);
