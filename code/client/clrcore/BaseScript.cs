@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security;
@@ -23,7 +23,8 @@ namespace CitizenFX.Core
 
         protected ExportDictionary Exports { get; private set; }
 
-        private Player m_player;
+#if !IS_FXSERVER
+		private Player m_player;
 
         protected Player LocalPlayer
         {
@@ -41,13 +42,17 @@ namespace CitizenFX.Core
         }
 
         protected PlayerList Players { get; private set; }
+#endif
 
 	    protected BaseScript()
         {
             EventHandlers = new EventHandlerDictionary();
             Exports = new ExportDictionary();
             CurrentTaskList = new Dictionary<Delegate, Task>();
+
+#if !IS_FXSERVER
             Players = new PlayerList();
+#endif
         }
         
         internal void ScheduleRun()

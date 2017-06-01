@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,8 @@ using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-    public class PlayerList : IEnumerable<Player>
+#if !IS_FXSERVER
+	public class PlayerList : IEnumerable<Player>
     {
         public const int MaxPlayers = 32;
 
@@ -31,4 +32,5 @@ namespace CitizenFX.Core
 
 	    public Player this[string name] => this.FirstOrDefault(player => player.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
     }
+#endif
 }

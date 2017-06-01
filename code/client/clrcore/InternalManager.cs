@@ -169,12 +169,16 @@ namespace CitizenFX.Core
 				var obj = MsgPackDeserializer.Deserialize(argsSerialized) as List<object> ?? (IEnumerable<object>)new object[0];
 
 				var scripts = ms_definedScripts.ToArray();
+
+				// TODO: store source someplace
 				var objArray = obj.ToArray();
 
 				foreach (var script in scripts)
 				{
 					script.EventHandlers.Invoke(eventName, objArray);
 				}
+
+				ExportDictionary.Invoke(eventName, objArray);
 			}
 			catch (Exception e)
 			{
