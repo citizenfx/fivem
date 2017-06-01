@@ -117,7 +117,9 @@ MonoMethod* g_createObjectMethod;
 
 static void InitMono()
 {
+#ifdef _WIN32
 	mono_set_dirs("citizen/clr2/lib/", "citizen/clr2/cfg/");
+#endif
 
 	std::wstring citizenClrPath = MakeRelativeCitPath(L"citizen/clr2/lib/");
 	std::wstring citizenClrLibPath = MakeRelativeCitPath(L"citizen/clr2/lib/mono/4.5/");
@@ -128,9 +130,11 @@ static void InitMono()
 	mono_assembly_setrootdir(ToNarrow(citizenClrPath).c_str());
 	mono_set_crash_chaining(true);
 
+#ifndef IS_FXSERVER
 	mono_security_enable_core_clr();
 	mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 	mono_security_set_core_clr_platform_callback(CoreClrCallback);
+#endif
 
 	char* args[1];
 	args[0] = "--soft-breakpoints";
