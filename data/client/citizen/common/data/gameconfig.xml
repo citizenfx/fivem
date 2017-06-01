@@ -170,8 +170,12 @@
 							<PoolSize value="40"/>
 						</Item>
 						<Item>
+							<PoolName>Decorator</PoolName>
+							<PoolSize value="900"/>
+						</Item>
+						<Item>
 							<PoolName>DecoratorExtension</PoolName>
-							<PoolSize value="320"/>
+							<PoolSize value="1000"/>
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
