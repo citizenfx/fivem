@@ -292,7 +292,7 @@ namespace fx
 
 		for (auto& client : toRemove)
 		{
-			DropClient(client, "Timed out after {0} seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
+			DropClient(client, "Timed out after %d seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
 		}
 
 		// if we should heartbeat
