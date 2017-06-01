@@ -74,9 +74,15 @@ workspace "CitizenMP"
 		defines 'IS_FXSERVER'
 	end
 
+	local binroot = ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game']) .. '/'
+
+	if _OPTIONS['game'] == 'server' then
+		binroot = (_OPTIONS['bindir'] or "bin/") .. 'server/' .. os.get() .. '/'
+	end
+
 	-- debug output
 	configuration "Debug*"
-		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/debug")
+		targetdir (binroot .. "/debug")
 		defines "NDEBUG"
 
 		-- this slows down the application a lot
@@ -87,20 +93,11 @@ workspace "CitizenMP"
 			buildoptions '/Ob1'
 		end
 
-		-- special path for server
-		if _OPTIONS['game'] == 'server' then
-			targetdir ("bin/server/" .. os.get() .. "/debug")
-		end
-
 	-- release output
 	configuration "Release*"
-		targetdir ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game'] .. "/release")
+		targetdir (binroot .. "/release")
 		defines "NDEBUG"
 		optimize "Speed"
-
-		if _OPTIONS['game'] == 'server' then
-			targetdir ("bin/server/" .. os.get() .. "/release")
-		end
 
 	configuration "game=five"
 		architecture 'x64'
@@ -151,24 +148,28 @@ if _OPTIONS['game'] ~= 'server' then
 		pchheader "StdInc.h"
 end
 
-	local buildHost = os.getenv("COMPUTERNAME") or 'dummy'
+if os.is('windows') then
+	project "CitiMono"
+		targetname "CitizenFX.Core"
+		language "C#"
+		kind "SharedLib"
 
-	--[[if buildHost == 'FALLARBOR' then
-		project "CitiMono"
-			targetname "CitizenFX.Core"
-			language "C#"
-			kind "SharedLib"
+		flags { 'Unsafe' }
 
-			files { "client/clrcore/**.cs" }
+		files { "client/clrcore/*.cs", "client/clrcore/Math/*.cs" }
 
-			links { "System" }
+		if _OPTIONS['game'] ~= 'server' then
+			files { "client/clrcore/External/*.cs" }
+		end
 
-			configuration "Debug*"
-				targetdir "bin/debug/citizen/clr/lib/mono/4.5"
+		links { "System", "Microsoft.CSharp", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
 
-			configuration "Release*"
-				targetdir "bin/release/citizen/clr/lib/mono/4.5"
-	end]]
+		configuration "Debug*"
+			targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
+
+		configuration "Release*"
+			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
+end
 
 	group ""
 
