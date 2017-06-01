@@ -328,7 +328,7 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 	if (mounter)
 	{
-		std::string typeName = typeid(*mounter).name();
+		std::string className = typeid(*mounter).name();
 
 		DataFileEntry entry;
 		memset(&entry, 0, sizeof(entry));
@@ -338,15 +338,15 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 		bool result = SafeCall([&]()
 		{
 			return fn(mounter, entry);
-		}, va("%s of %s in data file mounter %s", op, fileName, typeName));
+		}, va("%s of %s in data file mounter %s", op, fileName, className));
 
 		if (result)
 		{
-			trace("done %s %s in data file mounter %s.\n", op, fileName, typeName);
+			trace("done %s %s in data file mounter %s.\n", op, fileName, className);
 		}
 		else
 		{
-			trace("failed %s %s in data file mounter %s.\n", op, fileName, typeName);
+			trace("failed %s %s in data file mounter %s.\n", op, fileName, className);
 		}
 	}
 	else
