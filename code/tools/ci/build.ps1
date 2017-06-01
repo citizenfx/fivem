@@ -242,6 +242,8 @@ if (!$DontBuild) {
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\caches\fivereborn\
     Copy-Item -Force -Recurse $WorkDir\data\client\* $WorkDir\caches\fivereborn\
 
+    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
+
     if (Test-Path C:\f\tdd2) {
     	Copy-Item -Force -Recurse C:\f\tdd2\citizen\ui.rpf $WorkDir\caches\fivereborn\citizen\
     }
