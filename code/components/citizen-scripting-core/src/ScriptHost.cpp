@@ -12,12 +12,15 @@
 #include <ScriptEngine.h>
 
 #include <Resource.h>
+#include <ResourceManager.h>
 #include <VFSManager.h>
 
 #include <ResourceMetaDataComponent.h>
 
 #include <stack>
 #include <mutex>
+
+#include <string_view>
 
 #include <ConsoleHost.h>
 
@@ -173,7 +176,26 @@ result_t TestScriptHost::OpenSystemFile(char *fileName, fxIStream * *stream)
 
 result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 {
-	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(m_resource->GetPath() + "/" + fileName);
+	std::string_view fn = fileName;
+	std::string fileNameStr = m_resource->GetPath() + "/" + fileName;
+
+	if (fn.length() > 1 && fn[0] == '@')
+	{
+		std::string_view resName = fn.substr(1, fn.find_first_of('/') - 1);
+		fn = fn.substr(1 + resName.length() + 1);
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto resource = resourceManager->GetResource(std::string(resName));
+
+		if (!resource.GetRef())
+		{
+			return 0x80070002;
+		}
+
+		fileNameStr = resource->GetPath() + "/" + std::string(fn);
+	}
+
+	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileNameStr);
 	
 	return WrapVFSStreamResult(nativeStream, stream);
 }
