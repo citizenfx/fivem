@@ -100,8 +100,10 @@ workspace "CitizenMP"
 		optimize "Speed"
 
 	configuration "game=five"
-		architecture 'x64'
 		defines "GTA_FIVE"
+
+		filter 'language:C or language:C++'
+			architecture 'x64'
 
 	configuration "windows"
 		links { "winmm" }
