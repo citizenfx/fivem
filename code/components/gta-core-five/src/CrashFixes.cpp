@@ -206,7 +206,7 @@ static HookFunction hookFunction([] ()
 	// CPed collision handling with phInstFrag in certain cases (climbing on cars?)
 	static struct : jitasm::Frontend
 	{
-		static void VerifyPedInst(char* inst)
+		static bool VerifyPedInst(char* inst)
 		{
 			char* archetype = *(char**)(inst + 16);
 			char* bound = *(char**)(archetype + 32);
@@ -234,8 +234,12 @@ static HookFunction hookFunction([] ()
 					}
 				}
 
-				FatalError("Bound used in CPed collision function with instance %s (frag %s) was of type %s, but should be phBoundComposite!", instType, frag, boundType);
+				trace("Bound used in CPed collision function with instance %s (frag %s) was of type %s, but should be phBoundComposite! ignoring...\n", instType, frag, boundType);
+
+				return false;
 			}
+
+			return true;
 		}
 
 		void InternalMain() override
@@ -252,6 +256,9 @@ static HookFunction hookFunction([] ()
 			mov(rax, (uintptr_t)&VerifyPedInst);
 			call(rax);
 
+			test(al, al);
+			jz("otherReturn");
+
 			add(rsp, 32);
 			pop(rbp);
 
@@ -259,6 +266,19 @@ static HookFunction hookFunction([] ()
 			pop(rdx);
 
 			test(dword_ptr[rdx + rax * 8], 0x100000);
+
+			ret();
+
+			L("otherReturn");
+
+			add(rsp, 32);
+			pop(rbp);
+
+			pop(rax);
+			pop(rdx);
+
+			// set ZF, primarily
+			xor(rdx, rdx);
 
 			ret();
 		}
