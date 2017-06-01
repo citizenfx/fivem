@@ -172,7 +172,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 					if (FX_FAILED(hr))
 					{
-						trace("Failed to load client script %s.\n", clientScript.second.c_str());
+						trace("Failed to load script %s.\n", clientScript.second.c_str());
 					}
 				}
 			}
