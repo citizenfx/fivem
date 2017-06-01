@@ -133,7 +133,10 @@ public:
 	//
 	inline void CancelEvent()
 	{
-		*(m_eventCancelationStack.top()) = true;
+		if (!m_eventCancelationStack.empty())
+		{
+			*(m_eventCancelationStack.top()) = true;
+		}
 	}
 
 	//
