@@ -349,7 +349,7 @@ namespace fx
 
 	void GameServer::DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args)
 	{
-		std::string_view realReason = reason;
+		std::string_view realReason = fmt::sprintf(reason, args);
 
 		if (reason.empty())
 		{
