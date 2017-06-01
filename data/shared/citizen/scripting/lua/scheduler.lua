@@ -26,9 +26,14 @@ function Citizen.CreateThreadNow(threadFunction)
 		wakeTime = 0
 	}
 
+	-- add new thread and save old thread
+	local oldThread = curThread
 	curThread = t
 
 	local result, err = coroutine.resume(coro)
+
+	-- restore last thread
+	curThread = oldThread
 
 	if err then
 		error('Failed to execute thread: ' .. debug.traceback(coro, err))
