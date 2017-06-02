@@ -67,7 +67,10 @@ static void PutResourceKvp(fx::ScriptContext& context, const char* data, size_t 
 	auto db = EnsureDatabase();
 	auto key = FormatKey(context.GetArgument<const char*>(0));
 
-	db->Put(leveldb::WriteOptions{}, key, leveldb::Slice{ data, size });
+	leveldb::WriteOptions options;
+	options.sync = true;
+
+	db->Put(options, key, leveldb::Slice{ data, size });
 }
 
 template<typename T>

@@ -147,7 +147,10 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	// add an entry to the database
 	std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), 20);
 
-	m_indexDatabase->Put(leveldb::WriteOptions{}, key, leveldb::Slice(buffer.data(), buffer.size()));
+	leveldb::WriteOptions options;
+	options.sync = true;
+
+	m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
 }
 
 boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<uint8_t, 20>& hash)
