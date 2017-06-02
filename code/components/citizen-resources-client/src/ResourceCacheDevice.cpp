@@ -10,10 +10,14 @@
 
 #include <ResourceManager.h>
 
+#include <concurrent_unordered_set.h>
+
 #pragma comment(lib, "winmm.lib")
 #include <mmsystem.h>
 
 #include <Error.h>
+
+static concurrency::concurrent_unordered_set<std::string> g_downloadedSet;
 
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking)
 	: ResourceCacheDevice(cache, blocking, cache->GetCachePath())
@@ -95,6 +99,14 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 				MarkFetched(handleData);
 			}
+		}
+	}
+
+	if (handleData->status != HandleData::StatusFetched)
+	{
+		if (g_downloadedSet.find(handleData->entry.referenceHash) != g_downloadedSet.end())
+		{
+			trace("Huh - we fetched %s already, and it isn't in the cache now. That's strange.\n", handleData->entry.basename);
 		}
 	}
 
@@ -215,6 +227,13 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		{
 			// log success
 			trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", handleData->entry.basename.c_str(), (timeGetTime() - initTime), outSize);
+
+			if (g_downloadedSet.find(handleData->entry.referenceHash) != g_downloadedSet.end())
+			{
+				trace("Downloaded the same asset (%s) twice in the same run - that's bad.\n", handleData->entry.basename);
+			}
+
+			g_downloadedSet.insert(handleData->entry.referenceHash);
 
 			// add the file to the resource cache
 			std::map<std::string, std::string> metaData;

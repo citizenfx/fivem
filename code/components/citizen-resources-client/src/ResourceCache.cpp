@@ -151,6 +151,8 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	options.sync = true;
 
 	m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+
+	trace("ResourceCache::AddEntry: Saved %s to the index cache.\n", key);
 }
 
 boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<uint8_t, 20>& hash)
@@ -166,12 +168,14 @@ boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::arra
 		return boost::optional<Entry>(Entry(value));
 	}
 
-#if _DEBUG
 	if (!status.IsNotFound())
 	{
+#if _DEBUG
 		FatalError("Failed to fetch ResourceCache entry: %s", status.ToString());
-	}
+#else
+		trace("Failed to fetch ResourceCache entry: %s\n", status.ToString());
 #endif
+	}
 
 	return boost::optional<Entry>();
 }
