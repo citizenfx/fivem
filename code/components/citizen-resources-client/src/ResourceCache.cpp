@@ -152,7 +152,7 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 
 	m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
 
-	trace("ResourceCache::AddEntry: Saved %s to the index cache.\n", key);
+	trace("ResourceCache::AddEntry: Saved cache:v1:%s to the index cache.\n", hashString);
 }
 
 boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<uint8_t, 20>& hash)
