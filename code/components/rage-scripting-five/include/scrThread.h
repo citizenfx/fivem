@@ -167,16 +167,19 @@ class
 		public rage::scrThread
 {
 protected:
-	char scriptName[16];
-	char gta_pad[48];
-	rage::scriptHandler* m_pScriptHandler;
-	char gta_pad2[40];
-	char flag1;
-	char m_networkFlag;
-	uint16_t gta_pad3;
-	char gta_pad4[12];
-	uint8_t m_canRemoveBlipsFromOtherScripts;
-	char gta_pad5[7];
+	char scriptName[16];                        // 208
+	char gta_pad[48];                           // 224
+	rage::scriptHandler* m_pScriptHandler;      // 272
+	void* m_pNetcomponent;                      // 280
+	char gta_pad2[24];                          // 288
+	uint32_t m_networkId;                       // 312
+	uint32_t gta_padInt;                        // 316
+	char flag1;                                 // 320
+	char m_networkFlag;                         // 321
+	uint16_t gta_pad3;                          // 322
+	char gta_pad4[12];                          // 324
+	uint8_t m_canRemoveBlipsFromOtherScripts;   // 336
+	char gta_pad5[7];                           // 337
 
 public:
 	virtual void					DoRun() = 0;
@@ -188,7 +191,8 @@ public:
 
 	inline void SetScriptName(const char* name)
 	{
-		strcpy(scriptName, va("%08x", HashString(name)));
+		strncpy(scriptName, name, sizeof(scriptName) - 1);
+		scriptName[sizeof(scriptName) - 1] = '\0';
 	}
 
 	inline rage::scriptHandler* GetScriptHandler() { return m_pScriptHandler; }

@@ -53,6 +53,8 @@ namespace rage
 
 		virtual bool IsNetworkScript() = 0;
 
+		virtual void CreateNetComponent() = 0;
+
 		// more functions that aren't needed
 		/*
 		m_38
@@ -89,6 +91,11 @@ namespace rage
 		virtual scriptId* GetScriptId_2();
 
 		virtual bool IsNetworkScript();
+
+		virtual inline void CreateNetComponent()
+		{
+
+		}
 	};
 }
 

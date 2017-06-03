@@ -13,6 +13,9 @@
 #include <scrThread.h>
 #include <scrEngine.h>
 
+#include <ResourceMetaDataComponent.h>
+#include <ManifestVersion.h>
+
 #include <ICoreGameInit.h>
 
 #include <Pool.h>
@@ -23,7 +26,7 @@ struct DummyThread : public GtaThread
 	{
 		rage::scrThreadContext* context = GetContext();
 		context->ScriptHash = HashString(resource->GetName().c_str());
-		context->ThreadId = (HashString(resource->GetName().c_str()) * 31) + rand();
+		context->ThreadId = HashString(resource->GetName().c_str());
 
 		SetScriptName(resource->GetName().c_str());
 	}
@@ -56,6 +59,8 @@ struct MissionCleanupData
 	DummyThread* dummyThread;
 	rage::scrThread* lastThread;
 
+	int behaviorVersion;
+
 	MissionCleanupData()
 		: scriptHandler(nullptr), lastScriptHandler(nullptr), dummyThread(nullptr), lastThread(nullptr)
 	{
@@ -79,6 +84,8 @@ static void DeleteDummyThread(DummyThread** dummyThread)
 	*dummyThread = nullptr;
 }
 
+static constexpr ManifestVersion mfVer1 = "05cfa83c-a124-4cfa-a768-c24a5811d8f9";
+
 static InitFunction initFunction([] ()
 {
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
@@ -89,6 +96,15 @@ static InitFunction initFunction([] ()
 		{
 			data->scriptHandler = nullptr;
 			data->dummyThread = nullptr;
+
+			auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
+
+			data->behaviorVersion = 0;
+
+			if (metaData->IsManifestVersionBetween(mfVer1.guid, guid_t{ 0 }))
+			{
+				data->behaviorVersion = 1;
+			}
 		}, -10000);
 
 		resource->OnActivate.Connect([=] ()
@@ -98,14 +114,26 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			bool setScriptNow = false;
+
 			// create the script handler if needed
 			if (!data->scriptHandler)
 			{
 				data->dummyThread = new DummyThread(resource);
-				data->scriptHandler = new CGameScriptHandlerNetwork(data->dummyThread);
 
-				data->dummyThread->SetScriptHandler(data->scriptHandler);
+				// old behavior, removed as it will make a broken handler be left over (lastScriptHandler from AttachScript)
+				if (data->behaviorVersion >= 0 && data->behaviorVersion < 1)
+				{
+					data->scriptHandler = new CGameScriptHandlerNetwork(data->dummyThread);
+
+					data->dummyThread->SetScriptHandler(data->scriptHandler);
+				}
+
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
+
+				data->scriptHandler = data->dummyThread->GetScriptHandler();
+
+				setScriptNow = true;
 			}
 
 			// set the current script handler
@@ -116,6 +144,15 @@ static InitFunction initFunction([] ()
 
 			data->lastScriptHandler = gtaThread->GetScriptHandler();
 			gtaThread->SetScriptHandler(data->scriptHandler);
+
+			if (setScriptNow)
+			{
+				if (data->behaviorVersion >= 1)
+				{
+					// make this a network script
+					NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
+				}
+			}
 		}, -10000);
 
 		resource->OnDeactivate.Connect([=] ()
@@ -133,6 +170,16 @@ static InitFunction initFunction([] ()
 
 			// put back the last script handler
 			GtaThread* gtaThread = data->dummyThread;
+
+			// will cause breakage if combined with old behavior with unneeded script handler
+			if (data->behaviorVersion >= 1)
+			{
+				if (gtaThread->GetScriptHandler() != data->scriptHandler)
+				{
+					auto handler = gtaThread->GetScriptHandler();
+					data->scriptHandler = handler;
+				}
+			}
 
 			gtaThread->SetScriptHandler(data->lastScriptHandler);
 
@@ -152,7 +199,10 @@ static InitFunction initFunction([] ()
 				data->scriptHandler->CleanupObjectList();
 				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
 
-				delete data->scriptHandler;
+				if (data->behaviorVersion >= 0 && data->behaviorVersion < 1)
+				{
+					delete data->scriptHandler;
+				}
 
 				data->scriptHandler = nullptr;
 			}
