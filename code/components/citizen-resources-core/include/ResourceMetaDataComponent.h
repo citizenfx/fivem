@@ -7,7 +7,10 @@
 
 #pragma once
 
+#include <om/core.h>
+
 #include <boost/optional.hpp>
+#include <optional>
 #include "IteratorView.h"
 
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
@@ -41,6 +44,8 @@ public:
 	ResourceMetaDataComponent(Resource* resourceRef);
 
 	boost::optional<std::string> LoadMetaData(const std::string& resourcePath);
+
+	std::optional<bool> IsManifestVersionBetween(const guid_t& lowerBound, const guid_t& upperBound);
 
 	inline Resource* GetResource()
 	{
