@@ -172,6 +172,7 @@ static struct
 	DWORD queryTime;
 
 	bool isOneQuery;
+	net::PeerAddress oneQueryAddress;
 } g_cls;
 
 static bool InitSocket(SOCKET* sock, int af)
@@ -475,10 +476,12 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 			server->m_hostName += " [BROKEN, DO NOT JOIN - ERROR CODE #53]";
 		}
 
+		bool isThisOneQuery = (g_cls.isOneQuery && from == g_cls.oneQueryAddress);
+
 		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: '%s', name: '%s',"
 			"mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d,"
 			"addr: '%s', infoBlob: %s }, '*');",
-			(g_cls.isOneQuery) ? "serverQueried" : "serverAdd",
+			(isThisOneQuery) ? "serverQueried" : "serverAdd",
 			server->m_hostName,
 			mapname,
 			gametype,
@@ -488,7 +491,11 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 			addressStr,
 			infoBlobJson));
 
-		g_cls.isOneQuery = false;
+		if (isThisOneQuery)
+		{
+			g_cls.isOneQuery = false;
+			g_cls.oneQueryAddress = net::PeerAddress();
+		}
 
 		tempServer->m_Address = net::PeerAddress();
 	};
@@ -731,6 +738,7 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 	if (peerAddress)
 	{
 		g_cls.isOneQuery = true;
+		g_cls.oneQueryAddress = peerAddress.get();
 		GSClient_QueryAddresses(std::vector<net::PeerAddress>{ peerAddress.get() });
 	}
 	else
