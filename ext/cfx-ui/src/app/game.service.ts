@@ -1,4 +1,4 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable, EventEmitter, NgZone } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 
 import { Server } from './servers/server';
@@ -70,6 +70,8 @@ export class CfxGameService extends GameService {
 
     private pingList: {[addr: string]: Server} = {};
 
+    private pingListEvents: [string, number][] = [];
+
     private favorites: string[] = [];
 
     private history: string[] = [];
@@ -78,38 +80,55 @@ export class CfxGameService extends GameService {
 
     private inConnecting = false;
 
-    constructor(private sanitizer: DomSanitizer) {
+    constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
         super();
     }
 
     init() {
         (<any>window).invokeNative('getFavorites', '');
 
-        window.addEventListener('message', (event) => {
-            switch (event.data.type) {
-                case 'connectFailed':
-                    this.invokeConnectFailed(this.lastServer, event.data.message);
-                    break;
-                case 'connecting':
-                    this.invokeConnecting(this.lastServer);
-                    break;
-                case 'connectStatus':
-                    this.invokeConnectStatus(this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total);
-                    break;
-                case 'serverAdd':
-                    if (event.data.addr in this.pingList)
-                    {
-                        this.pingList[event.data.addr].updatePing(event.data.ping);
-                    }
-                    break;
-                case 'getFavorites':
-                    this.favorites = event.data.list;
-                    break;
-                case 'addToHistory':
-                    this.history.push(event.data.address);
-                    this.saveHistory();
-                    break;
-            }
+        this.zone.runOutsideAngular(() => {
+            window.addEventListener('message', (event) => {
+                switch (event.data.type) {
+                    case 'connectFailed':
+                        this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message));
+                        break;
+                    case 'connecting':
+                        this.zone.run(() => this.invokeConnecting(this.lastServer));
+                        break;
+                    case 'connectStatus':
+                        this.zone.run(() =>
+                            this.invokeConnectStatus(
+                                this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total));
+                        break;
+                    case 'serverAdd':
+                        if (event.data.addr in this.pingList) {
+                            this.pingListEvents.push([event.data.addr, event.data.ping]);
+                        }
+                        break;
+                    case 'getFavorites':
+                        this.zone.run(() => this.favorites = event.data.list);
+                        break;
+                    case 'addToHistory':
+                        this.history.push(event.data.address);
+                        this.saveHistory();
+                        break;
+                }
+            });
+
+            window.setInterval(() => {
+                if (this.pingListEvents.length > 0) {
+                    this.zone.run(() => {
+                        const ple = this.pingListEvents;
+
+                        for (const event of ple) {
+                            this.pingList[event[0]].updatePing(event[1]);
+                        }
+                    });
+                }
+
+                this.pingListEvents = [];
+            }, 500);
         });
 
         this.history = JSON.parse(localStorage.getItem('history')) || [];
