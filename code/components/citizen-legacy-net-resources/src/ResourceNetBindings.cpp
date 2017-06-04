@@ -50,7 +50,7 @@ static InitFunction initFunction([] ()
 		static std::mutex executeNextGameFrameMutex;
 		static std::vector<std::function<void()>> executeNextGameFrame;
 
-		auto updateResources = [=] (const std::string& updateList)
+		auto updateResources = [=] (const std::string& updateList, const std::function<void()>& doneCb)
 		{
 			// initialize mounter if needed
 			{
@@ -285,7 +285,10 @@ static InitFunction initFunction([] ()
 
 						if (!resource.GetRef())
 						{
-							GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
+							if (updateList.empty())
+							{
+								GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
+							}
 
 							return;
 						}
@@ -303,14 +306,35 @@ static InitFunction initFunction([] ()
 					}
 
 					// mark DownloadsComplete on the next frame so all resources will have started
-					executeNextGameFrame.push_back([=] ()
 					{
-						netLibrary->DownloadsComplete();
-					});
+						std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+						executeNextGameFrame.push_back([=]()
+						{
+							netLibrary->DownloadsComplete();
+						});
+					}
+
+					doneCb();
 				});
 			});
 		};
 
+		static std::queue<std::string> g_resourceUpdateQueue;
+
+		std::shared_ptr<std::unique_ptr<std::function<void()>>> updateResource = std::make_shared<std::unique_ptr<std::function<void()>>>();
+		*updateResource = std::make_unique<std::function<void()>>([=]()
+		{
+			if (!g_resourceUpdateQueue.empty())
+			{
+				auto resource = g_resourceUpdateQueue.front();
+				g_resourceUpdateQueue.pop();
+
+				updateResources(resource, [=]()
+				{
+					executeNextGameFrame.push_back(**updateResource);
+				});
+			}
+		});
 
 		// download trigger
 		netLibrary->OnInitReceived.Connect([=] (NetAddress address)
@@ -320,7 +344,9 @@ static InitFunction initFunction([] ()
 			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 			resourceManager->ResetResources();
 
-			updateResources("");
+			updateResources("", []()
+			{
+			});
 		});
 
 		OnGameFrame.Connect([] ()
@@ -411,8 +437,12 @@ static InitFunction initFunction([] ()
 #endif
 			}
 
-			updateResources(resourceName);
-			//TheDownloads.QueueResourceUpdate(resourceName);
+			g_resourceUpdateQueue.push(resourceName);
+
+			{
+				std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+				executeNextGameFrame.push_back(**updateResource);
+			}
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [=] (fx::ScriptContext& context)
