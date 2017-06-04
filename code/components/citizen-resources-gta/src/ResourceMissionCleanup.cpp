@@ -131,7 +131,10 @@ static InitFunction initFunction([] ()
 
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
 
-				data->scriptHandler = data->dummyThread->GetScriptHandler();
+				if (data->behaviorVersion >= 1)
+				{
+					data->scriptHandler = data->dummyThread->GetScriptHandler();
+				}
 
 				setScriptNow = true;
 			}
