@@ -101,7 +101,9 @@ static InitFunction initFunction([] ()
 
 			data->behaviorVersion = 0;
 
-			if (metaData->IsManifestVersionBetween(mfVer1.guid, guid_t{ 0 }))
+			auto result = metaData->IsManifestVersionBetween(mfVer1.guid, guid_t{ 0 });
+
+			if (result && *result)
 			{
 				data->behaviorVersion = 1;
 			}
