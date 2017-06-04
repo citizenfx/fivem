@@ -32,6 +32,10 @@ public:
 
 	virtual void OnOutgoingPacket(const NetPacketMetrics& packetMetrics) override;
 
+	virtual void OnIncomingRoutePackets(int num) override;
+
+	virtual void OnOutgoingRoutePackets(int num) override;
+
 	virtual void OnPingResult(int msec) override;
 
 	virtual void OnRouteDelayResult(int msec) override;
@@ -163,6 +167,16 @@ void NetOverlayMetricSink::OnOutgoingPacket(const NetPacketMetrics& packetMetric
 	m_outRoutePackets += packetMetrics.GetElementCount(NET_PACKET_SUB_ROUTED_MESSAGES);
 }
 
+void NetOverlayMetricSink::OnIncomingRoutePackets(int num)
+{
+	m_inRoutePackets += num;
+}
+
+void NetOverlayMetricSink::OnOutgoingRoutePackets(int num)
+{
+	m_outRoutePackets += num;
+}
+
 void NetOverlayMetricSink::OnPingResult(int msec)
 {
 	m_ping = msec;
@@ -265,7 +279,7 @@ void NetOverlayMetricSink::DrawGraph()
 		for (int j = 0; j < NET_PACKET_SUB_MAX; j++)
 		{
 			// get Y for this submetric
-			float y1 = y - ((metric.GetElementSize((NetPacketSubComponent)j) / maxHeight) * (g_netOverlayHeight - 100));
+			float y1 = ceilf(y - ((metric.GetElementSize((NetPacketSubComponent)j) / maxHeight) * (g_netOverlayHeight - 100)));
 			float y2 = y;
 
 			// set a rectangle

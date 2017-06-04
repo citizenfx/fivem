@@ -20,6 +20,10 @@ public:
 
 	virtual void OnOutgoingPacket(const NetPacketMetrics& packetMetrics) = 0;
 
+	virtual void OnIncomingRoutePackets(int num) = 0;
+
+	virtual void OnOutgoingRoutePackets(int num) = 0;
+
 	virtual void OnPingResult(int msec) = 0;
 
 	virtual void OnRouteDelayResult(int msec) = 0;
