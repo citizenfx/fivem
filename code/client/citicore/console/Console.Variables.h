@@ -120,7 +120,10 @@ private:
 	std::unique_ptr<ConsoleCommand> m_vstrCommand;
 
 public:
-	static ConsoleVariableManager* GetDefaultInstance();
+	inline static ConsoleVariableManager* GetDefaultInstance()
+	{
+		return Instance<ConsoleVariableManager>::Get();
+	}
 };
 
 namespace internal
@@ -274,3 +277,5 @@ static std::shared_ptr<internal::ConsoleVariableEntry<TValue>> CreateVariableEnt
 		return newEntry;
 	}
 }
+
+DECLARE_INSTANCE_TYPE(ConsoleVariableManager);

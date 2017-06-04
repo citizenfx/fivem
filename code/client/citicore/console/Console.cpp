@@ -374,5 +374,6 @@ static InitFunction initFunction([]()
 {
 	auto cxt = console::GetDefaultContext();
 	Instance<ConsoleCommandManager>::Set(cxt->GetCommandManager());
+	Instance<ConsoleVariableManager>::Set(cxt->GetVariableManager());
 	Instance<console::Context>::Set(cxt);
 });
