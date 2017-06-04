@@ -891,11 +891,11 @@ void NetLibrary::SendData(const NetAddress& address, const char* data, size_t le
 	m_impl->SendData(address, data, length);
 }
 
-void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
+void NetLibrary::AddReliableHandler(const char* type, const ReliableHandlerType& function)
 {
 	uint32_t hash = HashRageString(type);
 
-	m_reliableHandlers.insert(std::make_pair(hash, function));
+	m_reliableHandlers.insert({ hash, function });
 }
 
 void NetLibrary::DownloadsComplete()

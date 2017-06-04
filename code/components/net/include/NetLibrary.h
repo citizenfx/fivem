@@ -233,7 +233,7 @@ public:
 	// waits for connection during the pre-game loading sequence
 	bool ProcessPreGameTick();
 
-	void AddReliableHandler(const char* type, ReliableHandlerType function);
+	void AddReliableHandler(const char* type, const ReliableHandlerType& function);
 
 	void Death();
 
