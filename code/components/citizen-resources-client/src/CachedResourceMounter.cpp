@@ -139,6 +139,15 @@ pplx::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(con
 				// copy the pointer in case we need to nullptr it
 				fwRefContainer<fx::Resource> localResource = resource;
 
+				if (!m_manager->GetResource(resource->GetName()).GetRef())
+				{
+					trace("Our resource - %s - disappeared right from under our nose?\n", resource->GetName());
+
+					localResource = nullptr;
+
+					return localResource;
+				}
+
 				// open the packfile
 				fwRefContainer<vfs::Device> packfile = OpenResourcePackfile(resource);
 				
