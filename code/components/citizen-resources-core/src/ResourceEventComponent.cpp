@@ -54,19 +54,8 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 
 	object->OnStart.Connect([=] ()
 	{
-		// pack the resource name
-		msgpack::sbuffer buf;
-		msgpack::packer<msgpack::sbuffer> packer(buf);
-
-		// array of a single string
-		packer.pack_array(1);
-		packer.pack(m_resource->GetName());
-
-		// send the event out to the world
-		std::string event(buf.data(), buf.size());
-
 		// on[type]ResourceStart is queued so that clients will only run it during the first tick
-		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStart", IsServer() ? "Server" : "Client"), event);
+		m_managerComponent->QueueEvent2(fmt::sprintf("on%sResourceStart", IsServer() ? "Server" : "Client"), {}, m_resource->GetName());
 	});
 
 	object->OnStart.Connect([=]()
@@ -76,20 +65,13 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 
 	object->OnStop.Connect([=] ()
 	{
-		// pack the resource name
-		msgpack::sbuffer buf;
-		msgpack::packer<msgpack::sbuffer> packer(buf);
-
-		// array of a single string
-		packer.pack_array(1);
-		packer.pack(m_resource->GetName());
-
-		// send the event out to the world
-		std::string event(buf.data(), buf.size());
-
-		m_managerComponent->QueueEvent(fmt::sprintf("on%sResourceStop", IsServer() ? "Server" : "Client"), event);
-		m_managerComponent->TriggerEvent("onResourceStop", event);
+		m_managerComponent->QueueEvent2(fmt::sprintf("on%sResourceStop", IsServer() ? "Server" : "Client"), {}, m_resource->GetName());
 	});
+
+	object->OnStop.Connect([=]()
+	{
+		m_managerComponent->TriggerEvent2("onResourceStop", {}, m_resource->GetName());
+	}, -99999);
 
 	object->OnTick.Connect([=] ()
 	{
