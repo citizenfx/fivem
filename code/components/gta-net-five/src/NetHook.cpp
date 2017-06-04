@@ -602,11 +602,27 @@ static HookFunction initFunction([] ()
 
 	g_netLibrary->OnBuildMessage.Connect([] (const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
+		static bool lastHostState;
+
 		// hostie
-		if (isNetworkHost())
+		bool isHost = isNetworkHost();
+		if (isHost != lastHostState)
 		{
-			auto base = g_netLibrary->GetServerBase();
-			writeReliable(0xB3EA30DE, (char*)&base, sizeof(base));
+			if (isHost)
+			{
+				auto base = g_netLibrary->GetServerBase();
+				writeReliable(0xB3EA30DE, (char*)&base, sizeof(base));
+			}
+
+			lastHostState = isHost;
+		}
+
+		static uint32_t lastHostSend = timeGetTime();
+
+		if ((timeGetTime() - lastHostSend) > 1500)
+		{
+			lastHostState = false;
+			lastHostSend = timeGetTime();
 		}
 	});
 
