@@ -82,6 +82,10 @@ static std::map<std::string, std::string> load_crashometry()
 	return rv;
 }
 
+static std::wstring crashHash;
+
+static std::wstring HashCrash(const std::wstring& key);
+
 static void add_crashometry(json& data)
 {
 	auto map = load_crashometry();
@@ -90,6 +94,15 @@ static void add_crashometry(json& data)
 	for (const auto& pair : map)
 	{
 		data["crashometry_" + pair.first] = pair.second;
+	}
+
+	if (!crashHash.empty())
+	{
+		auto ch = ToNarrow(crashHash);
+
+		data["crash_hash"] = ch;
+		data["crash_hash_id"] = HashString(ch.c_str());
+		data["crash_hash_key"] = ToNarrow(HashCrash(crashHash));
 	}
 }
 
@@ -219,6 +232,40 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 			return;
 		}
 	}
+
+	// module blame?
+	const wchar_t* blame = nullptr;
+	const wchar_t* blame_two = nullptr;
+
+	if (wcsstr(crashHash.c_str(), L"nvwgf"))
+	{
+		blame = L"NVIDIA GPU drivers";
+		blame_two = L"This is not the fault of the " PRODUCT_NAME L" developers, and can not be resolved by them. NVIDIA does not provide any error reporting contacts to use to report this problem, nor do they provide "
+			L"debugging information that the developers can use to resolve this issue.";
+	}
+
+	if (wcsstr(crashHash.c_str(), L"guard64"))
+	{
+		blame = L"Comodo Internet Security";
+		blame_two = L"Please uninstall Comodo Internet Security and try again, or report the issue on the Comodo forums.";
+	}
+
+	if (wcsstr(crashHash.c_str(), L".asi"))
+	{
+		blame = L"a third-party game plugin";
+		blame_two = L"Please try removing the \"plugins\" folder in your" PRODUCT_NAME L" installation and restarting the game.";
+	}
+
+	if (blame)
+	{
+		static std::wstring errTitle = fmt::sprintf(L"%s encountered an error", blame);
+		static std::wstring errDescription = fmt::sprintf(L"FiveM crashed due to %s.\n%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", blame, blame_two);
+
+		config->pszMainInstruction = errTitle.c_str();
+		config->pszContent = errDescription.c_str();
+
+		return;
+	}
 }
 
 static std::wstring GetAdditionalData()
@@ -265,6 +312,23 @@ static std::wstring GetAdditionalData()
 	}
 }
 
+#include <psapi.h>
+
+static const char* const wordList[256] = {
+#include "CrashWordList.h"
+};
+
+static std::wstring HashCrash(const std::wstring& key)
+{
+	uint32_t hash = HashString(ToNarrow(key).c_str());
+
+	return ToWide(fmt::sprintf("%s-%s-%s",
+		std::string{ wordList[(hash >>  0) & 0xFF] },
+		std::string{ wordList[(hash >>  8) & 0xFF] },
+		std::string{ wordList[(hash >> 16) & 0xFF] }
+	));
+}
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
@@ -279,6 +343,77 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [] (void*, const ClientInfo* info, const std::wstring* filePath)
 	{
+		auto process_handle = info->process_handle();
+
+		{
+			EXCEPTION_POINTERS* ei;
+			if (info->GetClientExceptionInfo(&ei))
+			{
+				auto readClient = [&](void* ptr, auto* out)
+				{
+					SIZE_T bytes_count = 0;
+					if (!ReadProcessMemory(process_handle,
+						ptr,
+						out,
+						sizeof(*out),
+						&bytes_count)) {
+						return false;
+					}
+
+					return bytes_count == sizeof(*out);
+				};
+
+				EXCEPTION_POINTERS ep;
+				if (readClient(ei, &ep))
+				{
+					EXCEPTION_RECORD ex;
+					CONTEXT cx;
+
+					bool valid = readClient(ep.ExceptionRecord, &ex);
+					valid = valid && readClient(ep.ContextRecord, &cx);
+
+					if (valid)
+					{
+						DWORD processLen = 0;
+						if (EnumProcessModules(process_handle, nullptr, 0, &processLen))
+						{
+							std::vector<HMODULE> buffer(processLen / sizeof(HMODULE));
+
+							if (EnumProcessModules(process_handle, buffer.data(), buffer.size() * sizeof(HMODULE), &processLen))
+							{
+								for (HMODULE module : buffer)
+								{
+									const wchar_t* moduleBaseString = L"";
+									MODULEINFO mi;
+
+									if (GetModuleInformation(process_handle, module, &mi, sizeof(mi)))
+									{
+										auto base = reinterpret_cast<char*>(mi.lpBaseOfDll);
+
+										if (ex.ExceptionAddress >= base && ex.ExceptionAddress < (base + mi.SizeOfImage))
+										{
+											wchar_t filename[MAX_PATH] = { 0 };
+											GetModuleFileNameExW(process_handle, module, filename, _countof(filename));
+
+											if (wcsstr(filename, L".exe") != nullptr)
+											{
+												wcscpy(filename, L"\\FiveM.exe");
+											}
+
+											moduleBaseString = va(L"%s+%X", wcsrchr(filename, '\\') + 1, (uintptr_t)((char*)ex.ExceptionAddress - (char*)module));
+
+											crashHash = moduleBaseString;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			
+		}
+
 		std::map<std::wstring, std::wstring> parameters;
 #ifdef GTA_NY
 		parameters[L"ProductName"] = L"CitizenFX";
@@ -305,6 +440,22 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		TerminateProcess(parentProcess, -2);
 
+		static std::wstring windowTitle = PRODUCT_NAME L" Fatal Error";
+		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
+		
+		std::wstring cuz = L"An error";
+
+		if (!crashHash.empty())
+		{
+			auto ch = HashCrash(crashHash);
+
+			windowTitle = fmt::sprintf(L"Error %s", ch);
+			mainInstruction = fmt::sprintf(L"\"%s\"", ch);
+			cuz = fmt::sprintf(L"A %s", ch);
+		}
+
+		static std::wstring content = fmt::sprintf(L"%s caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.", cuz);
+
 		static std::optional<std::wstring> crashId;
 
 		static const TASKDIALOG_BUTTON buttons[] = {
@@ -318,10 +469,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		taskDialogConfig.dwCommonButtons = 0;
 		taskDialogConfig.cButtons = 1;
 		taskDialogConfig.pButtons = buttons;
-		taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
+		taskDialogConfig.pszWindowTitle = windowTitle.c_str();
 		taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
-		taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
-		taskDialogConfig.pszContent = L"An error caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.";
+		taskDialogConfig.pszMainInstruction = mainInstruction.c_str();
+		taskDialogConfig.pszContent = content.c_str();
 		taskDialogConfig.pszExpandedInformation = L"...";
 		taskDialogConfig.pfCallback = [](HWND hWnd, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 		{
@@ -345,7 +496,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				{
 					if (!crashId->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash ID: %s (use Ctrl+C to copy)", crashId->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Report ID: %s (use Ctrl+C to copy)", crashId->c_str()));
 					}
 					else
 					{
@@ -408,79 +559,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	{
 		SetEvent(inheritedHandleBit);
 		WaitForSingleObject(parentProcess, INFINITE);
-	}
-}
-
-void CheckModule(void* address)
-{
-	const char* moduleBaseString = "";
-	HMODULE module = nullptr;
-
-	if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)address, &module))
-	{
-		char filename[MAX_PATH];
-		GetModuleFileNameA(module, filename, _countof(filename));
-
-		moduleBaseString = va(" - %s+%X", strrchr(filename, '\\') + 1, (char*)address - (char*)module);
-	}
-
-	if (module)
-	{
-		char filename[MAX_PATH];
-		GetModuleFileNameA(module, filename, _countof(filename));
-
-		const wchar_t* blame = nullptr;
-		const wchar_t* blame_two = nullptr;
-
-		if (strstr(filename, "nvwgf"))
-		{
-			blame = L"NVIDIA GPU drivers";
-			blame_two = L"This is not the fault of the " PRODUCT_NAME L" developers, and can not be resolved by them. NVIDIA does not provide any error reporting contacts to use to report this problem, nor do they provide "
-						L"debugging information that the developers can use to resolve this issue.";
-		}
-
-		if (strstr(filename, "guard64"))
-		{
-			blame = L"Comodo Internet Security";
-			blame_two = L"Please uninstall Comodo Internet Security and try again, or report the issue on the Comodo forums.";
-		}
-
-		if (strstr(filename, ".asi"))
-		{
-			blame = L"a third-party game plugin";
-			blame_two = L"Please try removing the \"plugins\" folder in your" PRODUCT_NAME L" installation and restarting the game.";
-		}
-
-		if (blame)
-		{
-			auto wbs = ToWide(moduleBaseString);
-
-			TASKDIALOGCONFIG taskDialogConfig = { 0 };
-			taskDialogConfig.cbSize = sizeof(taskDialogConfig);
-			taskDialogConfig.hInstance = GetModuleHandle(nullptr);
-			taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
-			taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-			taskDialogConfig.pszWindowTitle = PRODUCT_NAME L" Fatal Error";
-			taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
-			taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" has stopped working";
-			taskDialogConfig.pszContent = va(L"An error in %s caused " PRODUCT_NAME L" to stop working. A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n%s", blame, blame_two);
-			taskDialogConfig.pszExpandedInformation = wbs.c_str();
-			taskDialogConfig.pfCallback = [](HWND, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
-			{
-				if (type == TDN_HYPERLINK_CLICKED)
-				{
-					ShellExecute(nullptr, L"open", (LPCWSTR)lParam, nullptr, nullptr, SW_NORMAL);
-				}
-				else if (type == TDN_BUTTON_CLICKED)
-				{
-					return S_OK;
-				}
-
-				return S_FALSE;
-			};
-
-			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
-		}
 	}
 }
 
@@ -558,10 +636,6 @@ bool InitializeExceptionHandler()
 							[](void* context, EXCEPTION_POINTERS* exinfo,
 								MDRawAssertionInfo* assertion)
 							{
-								void* pEx = exinfo->ExceptionRecord->ExceptionAddress;
-
-								CheckModule(pEx);
-
 								return true;
 							},
 							[] (const wchar_t* dump_path, const wchar_t* minidump_id, void* context, EXCEPTION_POINTERS* exinfo, MDRawAssertionInfo* assertion, bool succeeded)
