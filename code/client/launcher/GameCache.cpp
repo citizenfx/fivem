@@ -747,7 +747,9 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	// failed?
 	if (!retval)
 	{
-		FatalError("Fetching game cache failed.");
+		FatalError("Fetching game cache failed. Please retry again.");
+		//UI Doesn't break cleanly, thus we destroy it with no mem traces
+		UI_DoDestruction();
 	}
 }
 
