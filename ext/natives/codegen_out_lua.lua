@@ -1,0 +1,201 @@
+local function printFunctionName(native)
+	return native.name:lower():gsub('0x', 'n_0x'):gsub('_(%a)', string.upper):gsub('(%a)(.+)', function(a, b)
+		return a:upper() .. b
+	end)
+end
+
+-- sort the natives table
+local _natives = {}
+
+for _, v in ipairs(natives) do
+	table.insert(_natives, v)
+end
+
+table.sort(_natives, function(a, b)
+	return printFunctionName(a) < printFunctionName(b)
+end)
+
+-- output the Lua low-level native definition file
+
+-- header bit
+print("local _i, _f, _v, _r, _ri, _rf, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
+
+print("local g = _G")
+
+print("local _tostring = tostring")
+print("local function _ts(num)")
+print("\tif num == 0 or not num then -- workaround for users calling string parameters with '0', also nil being translated")
+print("\t\treturn nil")
+print("\tend")
+print("\treturn _tostring(num)")
+print("end")
+
+print("local function _ch(hash)")
+print("\tif g.type(hash) == 'string' then")
+print("\t\treturn g.GetHashKey(hash)")
+print("\tend\n")
+print("\treturn hash")
+print("end\n")
+
+print("local Global = setmetatable({}, { __newindex = function(_, n, v)\n\tg[n] = v\n\n\trawset(_, n, v)\nend})\n")
+
+print("_ENV = nil\n")
+
+-- functions
+local function printArgumentName(name)
+	if name == 'end' then
+		return 'end_'
+	elseif name == 'repeat' then
+		return 'repeat_'
+	end
+
+	return name
+end
+
+local function isSinglePointerNative(native)
+	local foundPointer = false
+
+	for _, v in ipairs(native.arguments) do
+		if v.pointer then
+			if foundPointer then
+				return false
+			else
+				foundPointer = true
+			end
+		end
+	end
+
+	return native.arguments[#native.arguments].pointer
+end
+
+local function printArgument(argument, native)
+	if argument.pointer then
+		if argument.type.nativeType == 'int' then
+			if isSinglePointerNative(native) then
+				return '_ii(' .. printArgumentName(argument.name) .. ') --[[ may be optional ]]'
+			else
+				return '_i'
+			end
+		elseif argument.type.nativeType == 'float' then
+			if isSinglePointerNative(native) then
+				return '_fi(' .. printArgumentName(argument.name) .. ') --[[ may be optional ]]'
+			else
+				return '_f'
+			end
+		elseif argument.type.nativeType == 'vector3' then
+			return '_v'
+		else
+			return '_i --[[ actually ' .. argument.type.nativeType .. ' ]]'
+		end
+	elseif argument.type.name == 'Hash' then
+		return '_ch(' .. printArgumentName(argument.name) .. ')'
+	elseif argument.type.name == 'charPtr' then
+		return '_ts(' .. printArgumentName(argument.name) .. ')'
+	end
+
+	return printArgumentName(argument.name)
+end
+
+local function printArgumentList(native)
+	if not native.arguments then
+		return ''
+	end
+
+	local args = {}
+
+	for _, v in ipairs(native.arguments) do
+		if not v.pointer or isSinglePointerNative(native) then
+			table.insert(args, printArgumentName(v.name))
+		end
+	end
+
+	return table.concat(args, ', ')
+end
+
+local function printReturnType(type)
+	if type.nativeType == 'string' then
+		return '_s'
+	elseif type.nativeType == 'float' then
+		return '_rf'
+	elseif type.nativeType == 'vector3' then
+		return '_rv'
+	elseif type.nativeType == 'int' then
+		return '_ri'
+	elseif type.nativeType == 'Any*' then
+		return '_ri'
+	end
+end
+
+local function printInvocationArguments(native)
+	local args = {
+		native.hash
+	}
+
+	if native.arguments then
+		for _, v in pairs(native.arguments) do
+			table.insert(args, printArgument(v, native))
+		end
+	end
+
+	if native.returns then
+		table.insert(args, '_r')
+
+		if native.returns.nativeType ~= 'bool' then
+			table.insert(args, printReturnType(native.returns))
+		end
+	end
+
+	return table.concat(args, ', ')
+end
+
+local function formatDocString(native)
+	local d = parseDocString(native)
+
+	if not d then
+		return ''
+	end
+
+	local firstLine, nextLines = d.summary:match("([^\n]+)\n?(.*)")
+
+	if not firstLine then
+		return ''
+	end
+
+	local l = '--- ' .. trim(firstLine) .. "\n"
+
+	for line in nextLines:gmatch("([^\n]+)") do
+		l = l .. '-- ' .. trim(line) .. "\n"
+	end
+
+	if d.hasParams then
+		for n, v in pairs(d.params) do
+			l = l .. '-- @param ' .. n .. ' ' .. v .. '\n'
+		end
+	end
+
+	if d.returns then
+		l = l .. '-- @return ' .. d.returns .. '\n'
+	end
+
+	return l
+end
+
+local function printNative(native)
+	local str = string.format("%sfunction Global.%s(%s)\n", formatDocString(native), printFunctionName(native), printArgumentList(native))
+
+	str = str .. string.format("\treturn _in(%s)\n", printInvocationArguments(native))
+
+	str = str .. "end\n"
+
+	for _, alias in ipairs(native.aliases) do
+		str = str .. ("Global.%s = Global.%s\n"):format(printFunctionName({ name = alias }), printFunctionName(native))
+	end
+
+	return str
+end
+
+for _, v in pairs(_natives) do
+	if matchApiSet(v) then
+		print(printNative(v))
+	end
+end

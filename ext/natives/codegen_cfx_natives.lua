@@ -2,11 +2,21 @@ native 'GET_GAME_TIMER'
 	arguments {}
 	apiset 'server'
 	returns 'int'
+	doc [[
+<summary>
+Gets the current game timer in milliseconds.
+</summary>
+<returns>The game time.</returns>
+]]
 
 native 'IS_DUPLICITY_VERSION'
 	arguments {}
 	apiset 'shared'
 	returns 'BOOL'
+	doc [[
+<summary>Gets whether or not this is the CitizenFX server.</summary>
+<returns>A boolean value.</returns>
+]]
 
 native 'TRIGGER_EVENT_INTERNAL'
 	arguments {
@@ -16,6 +26,11 @@ native 'TRIGGER_EVENT_INTERNAL'
 	}
 	apiset 'shared'
 	returns 'void'
+	doc [[
+	<summary>
+	The backing function for TriggerEvent.
+	</summary>
+]]
 
 native 'TRIGGER_SERVER_EVENT_INTERNAL'
 	arguments {
@@ -25,6 +40,11 @@ native 'TRIGGER_SERVER_EVENT_INTERNAL'
 	}
 	apiset 'client'
 	returns 'void'
+	doc [[
+	<summary>
+	The backing function for TriggerServerEvent.
+	</summary>
+]]
 
 native 'TRIGGER_CLIENT_EVENT_INTERNAL'
 	arguments {
@@ -35,16 +55,32 @@ native 'TRIGGER_CLIENT_EVENT_INTERNAL'
 	}
 	apiset 'server'
 	returns 'void'
+	doc [[
+	<summary>
+	The backing function for TriggerClientEvent.
+	</summary>
+]]
 
 native 'CANCEL_EVENT'
 	arguments {}
 	returns 'void'
 	apiset 'shared'
+	doc [[
+	<summary>
+	Cancels the currently executing event. See https://wiki.fivem.net/wiki/CancelEvent
+	</summary>
+]]
 
 native 'WAS_EVENT_CANCELED'
 	arguments {}
 	returns 'BOOL'
 	apiset 'shared'
+	doc [[
+	<summary>
+	Returns whether or not the currently executing event was canceled. See https://wiki.fivem.net/wiki/WasEventCanceled
+	</summary>
+	<returns>A boolean.</returns>
+]]
 
 native 'INVOKE_FUNCTION_REFERENCE'
 	arguments {
@@ -77,6 +113,15 @@ native 'GET_NUM_RESOURCE_METADATA'
 	}
 	apiset 'shared'
 	returns 'int'
+	doc [[
+	<summary>
+	Gets the amount of metadata values with the specified key existing in the specified resource's manifest.
+	See also: [Resource manifest](https://wiki.fivem.net/wiki/Resource_manifest)
+	</summary>
+	<param name="resourceName">The resource name.</param>
+	<param name="metadataKey">The key to look up in the resource manifest.</param>
+	<returns>The amount of values.</return>
+]]
 
 native 'GET_RESOURCE_METADATA'
 	arguments {
@@ -86,6 +131,16 @@ native 'GET_RESOURCE_METADATA'
 	}
 	apiset 'shared'
 	returns 'charPtr'
+	doc [[
+	<summary>
+	Gets the metadata value at a specified key/index from a resource's manifest.
+	See also: [Resource manifest](https://wiki.fivem.net/wiki/Resource_manifest)
+	</summary>
+	<param name="resourceName">The resource name.</param>
+	<param name="metadataKey">The key in the resource manifest.</param>
+	<param name="index">The value index, in a range from [0..GET_NUM_RESOURCE_METDATA-1].</param>
+	<returns>The metadata value.</return>
+]]
 
 native 'LOAD_RESOURCE_FILE'
 	arguments {
@@ -94,6 +149,17 @@ native 'LOAD_RESOURCE_FILE'
 	}
 	apiset 'shared'
 	returns 'charPtr'
+	doc [[
+	<summary>
+	Reads the contents of a text file in a specified resource.
+	If executed on the client, this file has to be included in `files` in the resource manifest.
+
+	Example: `local data = LoadResourceFile("devtools", "data.json")`
+	</summary>
+	<param name="resourceName">The resource name.</param>
+	<param name="fileName">The file in the resource.</param>
+	<returns>The file contents</returns>
+]]
 
 native 'SAVE_RESOURCE_FILE'
 	arguments {
@@ -104,11 +170,29 @@ native 'SAVE_RESOURCE_FILE'
 	}
 	apiset 'server'
 	returns 'BOOL'
+	doc [[
+	<summary>
+	Writes the specified data to a file in the specified resource.
+
+	Using a length of `-1` will automatically detect the length assuming the data is a C string.
+	</summary>
+	<param name="resourceName">The name of the resource.</param>
+	<param name="fileName">The name of the file.</param>
+	<param name="data">The data to write to the file.</param>
+	<param name="dataLength">The length of the written data.</param>
+	<returns>A value indicating if the write succeeded.</returns>
+]]
 
 native 'GET_CURRENT_RESOURCE_NAME'
 	arguments {}
 	apiset 'shared'
 	returns 'charPtr'
+	doc [[
+	<summary>
+	Returns the name of the currently executing resource.
+	</summary>
+	<returns>The name of the resource.</returns>
+	]]
 
 native 'GET_PLAYER_FROM_SERVER_ID'
 	arguments {
@@ -266,6 +350,14 @@ native 'REGISTER_FONT_FILE'
 	}
 	apiset 'client'
 	returns 'void'
+	doc [[
+	<summary>
+	Registers a specified .gfx file as GFx font library.
+
+	The .gfx file has to be registered with the streamer already.
+	</summary>
+	<param name="fileName">The name of the .gfx file, without extension.</param>
+]]
 
 native 'REGISTER_FONT_ID'
 	arguments {
@@ -273,6 +365,13 @@ native 'REGISTER_FONT_ID'
 	}
 	apiset 'client'
 	returns 'int'
+	doc [[
+	<summary>
+	Registers a specified font name for use with text draw commands.
+	</summary>
+	<param name="fontName">The name of the font in the GFx font library.</param>
+	<returns>An index to use with [SET\_TEXT\_FONT](#_0x66E0276CC5F6B9DA) and similar natives.</returns>
+]]
 
 native 'GET_INSTANCE_ID'
 	arguments {

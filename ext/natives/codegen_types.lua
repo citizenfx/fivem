@@ -1,6 +1,9 @@
 type 'Void'
 	nativeType 'int'
 
+type 'AnyPtr'
+	nativeType 'Any*'
+
 type 'Any'
 	nativeType 'int'
 

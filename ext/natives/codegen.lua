@@ -3,8 +3,8 @@ local codeEnvironment = {
 	
 }
 
-local types = {}
-local natives = {}
+types = {}
+natives = {}
 local curType
 local curNative
 
@@ -64,7 +64,9 @@ function codeEnvironment.native(nativeName)
 	local native = {
 		name = nativeName,
 		apiset = {},
-		hash = ("0x%x"):format(cfx.hash(nativeName:lower()))
+		hash = ("0x%x"):format(cfx.hash(nativeName:lower())),
+		arguments = {},
+		aliases = {}
 	}
 
 	table.insert(natives, native)
@@ -73,8 +75,24 @@ function codeEnvironment.native(nativeName)
 	curNative = native
 end
 
+function codeEnvironment.doc(docString)
+	if not curNative then
+		return
+	end
+
+	curNative.doc = docString
+end
+
+function codeEnvironment.ns(nsString)
+	curNative.ns = nsString
+end
+
 function codeEnvironment.hash(hashString)
 	curNative.hash = hashString
+end
+
+function codeEnvironment.alias(name)
+	table.insert(curNative.aliases, name)
 end
 
 function codeEnvironment.jhash(hash)
@@ -100,9 +118,44 @@ function loadDefinition(filename)
 	chunk()
 end
 
+function trim(s)
+	return s:gsub("^%s*(.-)%s*$", "%1")
+end
+
+function parseDocString(native)
+	local docString = native.doc
+
+	if not docString then
+		return nil
+	end
+
+	local summary = trim(docString:match("<summary>(.+)</summary>"))
+	local params = docString:gmatch("<param name=\"([^\"]+)\">([^<]+)</param>")
+	local returns = docString:match("<returns>(.+)</returns>")
+
+	if not summary then
+		return nil
+	end
+
+	local paramsData = {}
+	local hasParams = false
+
+	for k, v in params do
+		paramsData[k] = v
+		hasParams = true
+	end
+
+	return {
+		summary = summary,
+		params = paramsData,
+		hasParams = hasParams,
+		returns = returns
+	}
+end
+
 local gApiSet = 'server'
 
-local function matchApiSet(native)
+function matchApiSet(native)
 	local apisets = native.apiset
 
 	if #apisets == 0 then
@@ -120,15 +173,21 @@ end
 
 loadDefinition 'codegen_types.lua'
 
+local outputType = 'lua'
+
 if #arg > 0 then
 	loadDefinition(arg[1])
 
 	gApiSet = 'client'
 end
 
+if #arg > 1 then
+	outputType = arg[2]
+end
+
 loadDefinition 'codegen_cfx_natives.lua'
 
-local _natives = {}
+_natives = {}
 
 for _, v in ipairs(natives) do
 	table.insert(_natives, v)
@@ -138,174 +197,4 @@ table.sort(_natives, function(a, b)
 	return a.name < b.name
 end)
 
---[[for _, v in pairs(_natives) do
-	if matchApiSet(v) then
-		print(string.format("%s = %s,", v.name, v.hash))
-	end
-end
-
-os.exit(0)]]
-
-local function printFunctionName(native)
-	return native.name:lower():gsub('0x', 'n_0x'):gsub('_(%a)', string.upper):gsub('(%a)(.+)', function(a, b)
-		return a:upper() .. b
-	end)
-end
-
--- sort the natives table
-local _natives = {}
-
-for _, v in ipairs(natives) do
-	table.insert(_natives, v)
-end
-
-table.sort(_natives, function(a, b)
-	return printFunctionName(a) < printFunctionName(b)
-end)
-
--- output the Lua low-level native definition file
-
--- header bit
-print("local _i, _f, _v, _r, _ri, _rf, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
-
-print("local g = _G")
-
-print("local _tostring = tostring")
-print("local function _ts(num)")
-print("\tif num == 0 or not num then -- workaround for users calling string parameters with '0', also nil being translated")
-print("\t\treturn nil")
-print("\tend")
-print("\treturn _tostring(num)")
-print("end")
-
-print("local function _ch(hash)")
-print("\tif g.type(hash) == 'string' then")
-print("\t\treturn g.GetHashKey(hash)")
-print("\tend\n")
-print("\treturn hash")
-print("end\n")
-
-print("local Global = setmetatable({}, { __newindex = function(_, n, v)\n\tg[n] = v\nend})\n")
-
-print("_ENV = nil\n")
-
--- functions
-local function printArgumentName(name)
-	if name == 'end' then
-		return 'end_'
-	elseif name == 'repeat' then
-		return 'repeat_'
-	end
-
-	return name
-end
-
-local function isSinglePointerNative(native)
-	local foundPointer = false
-
-	for _, v in ipairs(native.arguments) do
-		if v.pointer then
-			if foundPointer then
-				return false
-			else
-				foundPointer = true
-			end
-		end
-	end
-
-	return native.arguments[#native.arguments].pointer
-end
-
-local function printArgument(argument, native)
-	if argument.pointer then
-		if argument.type.nativeType == 'int' then
-			if isSinglePointerNative(native) then
-				return '_ii(' .. printArgumentName(argument.name) .. ') --[[ may be optional ]]'
-			else
-				return '_i'
-			end
-		elseif argument.type.nativeType == 'float' then
-			if isSinglePointerNative(native) then
-				return '_fi(' .. printArgumentName(argument.name) .. ') --[[ may be optional ]]'
-			else
-				return '_f'
-			end
-		elseif argument.type.nativeType == 'vector3' then
-			return '_v'
-		else
-			return '_i --[[ actually ' .. argument.type.nativeType .. ' ]]'
-		end
-	elseif argument.type.name == 'Hash' then
-		return '_ch(' .. printArgumentName(argument.name) .. ')'
-	elseif argument.type.name == 'charPtr' then
-		return '_ts(' .. printArgumentName(argument.name) .. ')'
-	end
-
-	return printArgumentName(argument.name)
-end
-
-local function printArgumentList(native)
-	if not native.arguments then
-		return ''
-	end
-
-	local args = {}
-
-	for _, v in ipairs(native.arguments) do
-		if not v.pointer or isSinglePointerNative(native) then
-			table.insert(args, printArgumentName(v.name))
-		end
-	end
-
-	return table.concat(args, ', ')
-end
-
-local function printReturnType(type)
-	if type.nativeType == 'string' then
-		return '_s'
-	elseif type.nativeType == 'float' then
-		return '_rf'
-	elseif type.nativeType == 'vector3' then
-		return '_rv'
-	elseif type.nativeType == 'int' then
-		return '_ri'
-	end
-end
-
-local function printInvocationArguments(native)
-	local args = {
-		native.hash
-	}
-
-	if native.arguments then
-		for _, v in pairs(native.arguments) do
-			table.insert(args, printArgument(v, native))
-		end
-	end
-
-	if native.returns then
-		table.insert(args, '_r')
-
-		if native.returns.nativeType ~= 'bool' then
-			table.insert(args, printReturnType(native.returns))
-		end
-	end
-
-	return table.concat(args, ', ')
-end
-
-local function printNative(native)
-	local str = string.format("function Global.%s(%s)\n", printFunctionName(native), printArgumentList(native))
-
-	str = str .. string.format("\treturn _in(%s)\n", printInvocationArguments(native))
-
-	str = str .. "end\n"
-
-	return str
-end
-
-for _, v in pairs(_natives) do
-	if matchApiSet(v) then
-		print(printNative(v))
-	end
-end
+dofile('codegen_out_' .. outputType .. '.lua')
