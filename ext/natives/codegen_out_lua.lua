@@ -21,6 +21,7 @@ end)
 print("local _i, _f, _v, _r, _ri, _rf, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
 
 print("local g = _G")
+print("local rs = rawset")
 
 print("local _tostring = tostring")
 print("local function _ts(num)")
@@ -37,7 +38,7 @@ print("\tend\n")
 print("\treturn hash")
 print("end\n")
 
-print("local Global = setmetatable({}, { __newindex = function(_, n, v)\n\tg[n] = v\n\n\trawset(_, n, v)\nend})\n")
+print("local Global = setmetatable({}, { __newindex = function(_, n, v)\n\tg[n] = v\n\n\trs(_, n, v)\nend})\n")
 
 print("_ENV = nil\n")
 
