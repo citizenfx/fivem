@@ -104,4 +104,47 @@ static InitFunction initFunction([] ()
 
 		context.SetResult(&returnedArray[0]);
 	});
+
+#ifdef IS_FXSERVER
+	fx::ScriptEngine::RegisterNativeHandler("SAVE_RESOURCE_FILE", [](fx::ScriptContext& context)
+	{
+		// find the resource
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+
+		if (!resource.GetRef())
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+		// try opening a writable file in the resource's home directory
+		std::string filePath = resource->GetPath() + "/" + context.GetArgument<const char*>(1);
+
+		fwRefContainer<vfs::Device> device = vfs::GetDevice(filePath);
+		auto handle = device->Create(filePath);
+
+		if (handle == vfs::Device::InvalidHandle)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		// create a stream
+		fwRefContainer<vfs::Stream> stream(new vfs::Stream(device, handle));
+
+		// get data + length
+		const char* data = context.GetArgument<const char*>(2);
+		int length = context.GetArgument<int>(3);
+
+		if (length == 0 || length == -1)
+		{
+			length = strlen(data);
+		}
+
+		stream->Write(data, length);
+
+		context.SetResult(true);
+	});
+#endif
 });
