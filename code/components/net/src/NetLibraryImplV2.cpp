@@ -74,12 +74,13 @@ NetLibraryImplV2::~NetLibraryImplV2()
 
 void NetLibraryImplV2::CreateResources()
 {
+	// TODO: dynamically rate limit based on bandwidth estimates
 	m_host = enet_host_create(
 		nullptr, // this is a client
 		1, // 1 peer max
 		2, // support 2 channels
-		100 * 1024, // 100kB down
-		25 * 1024); // 25 kB up
+		0, // no rate limiting for now
+		0);
 
 	static NetLibraryImplV2* nl = this;
 	static INetLibraryInherit* base = m_base;
