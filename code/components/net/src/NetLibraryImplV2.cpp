@@ -173,26 +173,26 @@ void NetLibraryImplV2::RunFrame()
 		}
 	}
 
-	RoutingPacket packet;
-
-	while (m_base->GetOutgoingPacket(packet))
-	{
-		NetBuffer msg(1300);
-		msg.Write(0xE938445B); // msgRoute
-		msg.Write(packet.netID);
-		msg.Write<uint16_t>(packet.payload.size());
-
-		//trace("sending msgRoute to %d len %d\n", packet.netID, packet.payload.size());
-
-		msg.Write(packet.payload.c_str(), packet.payload.size());
-
-		enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
-
-		m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
-	}
-
 	if (m_serverPeer && !m_timedOut)
 	{
+		RoutingPacket packet;
+
+		while (m_base->GetOutgoingPacket(packet))
+		{
+			NetBuffer msg(1300);
+			msg.Write(0xE938445B); // msgRoute
+			msg.Write(packet.netID);
+			msg.Write<uint16_t>(packet.payload.size());
+
+			//trace("sending msgRoute to %d len %d\n", packet.netID, packet.payload.size());
+
+			msg.Write(packet.payload.c_str(), packet.payload.size());
+
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
+
+			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
+		}
+
 		if ((timeGetTime() - m_lastKeepaliveSent) > static_cast<uint32_t>(1000 / m_maxPackets->GetValue()))
 		{
 			NetBuffer msg(1300);
@@ -241,9 +241,9 @@ void NetLibraryImplV2::RunFrame()
 
 			m_host->totalSentPackets = 0;
 		}
-	}
 
-	NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	}
 }
 
 void NetLibraryImplV2::SendConnect(const std::string& connectData)
