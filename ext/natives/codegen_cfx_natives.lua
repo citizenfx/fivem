@@ -95,6 +95,16 @@ native 'LOAD_RESOURCE_FILE'
 	apiset 'shared'
 	returns 'charPtr'
 
+native 'SAVE_RESOURCE_FILE'
+	arguments {
+		charPtr 'resourceName',
+		charPtr 'fileName',
+		charPtr 'data',
+		int 'dataLength'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
 native 'GET_CURRENT_RESOURCE_NAME'
 	arguments {}
 	apiset 'shared'
