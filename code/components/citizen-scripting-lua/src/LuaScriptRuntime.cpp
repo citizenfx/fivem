@@ -12,8 +12,9 @@
 
 #ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
-	{ "natives_21e43a33.lua", guid_t{0} },
-	{ "natives_0193d0af.lua", "f15e72ec-3972-4fe4-9c7d-afc5394ae207" }
+	{ "natives_21e43a33.lua",  guid_t{0} },
+	{ "natives_0193d0af.lua",  "f15e72ec-3972-4fe4-9c7d-afc5394ae207" },
+	{ "natives_universal.lua", "44febabe-d386-4d18-afbe-5e627f4af937" }
 };
 #else
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
