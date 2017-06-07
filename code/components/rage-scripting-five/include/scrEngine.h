@@ -201,9 +201,6 @@ public:
 			cxt.Push(args);
 		}(), 1)...};
 
-		// reverse the order of the list since the pass method pushes in reverse
-		cxt.Reverse();
-
 		Invoke(&cxt, Hash);
 
 		return cxt.GetResult<R>();
