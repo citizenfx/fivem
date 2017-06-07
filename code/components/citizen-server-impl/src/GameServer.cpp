@@ -349,7 +349,7 @@ namespace fx
 
 	void GameServer::DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args)
 	{
-		std::string_view realReason = fmt::sprintf(reason, args);
+		std::string realReason = fmt::sprintf(reason, args);
 
 		if (reason.empty())
 		{
@@ -359,7 +359,7 @@ namespace fx
 		// send an out-of-band error to the client
 		if (client->GetPeer())
 		{
-			SendOutOfBand({ client->GetPeer()->host, client->GetAddress() }, fmt::sprintf("error %s", std::string(realReason)));
+			SendOutOfBand({ client->GetPeer()->host, client->GetAddress() }, fmt::sprintf("error %s", realReason));
 		}
 
 		// force a hearbeat
@@ -372,7 +372,7 @@ namespace fx
 			->TriggerEvent2(
 				"playerDropped",
 				{ fmt::sprintf("%d", client->GetNetId()) },
-				std::string(realReason)
+				realReason
 			);
 
 		// remove the host if this was the host
