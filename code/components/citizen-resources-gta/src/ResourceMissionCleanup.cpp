@@ -156,6 +156,9 @@ static InitFunction initFunction([] ()
 				{
 					// make this a network script
 					NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
+
+					// get script status; this sets a flag in the CGameScriptHandlerNetComponent
+					NativeInvoke::Invoke<0x57D158647A6BFABF, int>();
 				}
 			}
 		}, -10000);
@@ -181,6 +184,8 @@ static InitFunction initFunction([] ()
 			{
 				if (gtaThread->GetScriptHandler() != data->scriptHandler)
 				{
+					assert(gtaThread->GetScriptHandler());
+
 					auto handler = gtaThread->GetScriptHandler();
 					data->scriptHandler = handler;
 				}
