@@ -14,7 +14,9 @@
 
 #include <ICoreGameInit.h>
 
+#ifndef IS_LAUNCHER
 #include <nutsnbolts.h>
+#endif
 
 #include <se/Security.h>
 
@@ -424,13 +426,17 @@ void SendPrintMessage(const std::string& message)
 	flushStream();
 }
 
+DLL_EXPORT void RunConsoleGameFrame()
+{
+	if (g_console)
+	{
+		g_console->RunCommandQueue();
+	}
+}
+
+#ifndef IS_LAUNCHER
 static InitFunction initFunction([]()
 {
-	OnGameFrame.Connect([]()
-	{
-		if (g_console)
-		{
-			g_console->RunCommandQueue();
-		}
-	});
+	OnGameFrame.Connect([] { RunConsoleGameFrame(); });
 });
+#endif

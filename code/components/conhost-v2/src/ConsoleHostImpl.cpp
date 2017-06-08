@@ -18,10 +18,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#ifndef IS_LAUNCHER
 #include <DrawCommands.h>
 #include <grcTexture.h>
 
 #include <InputHook.h>
+#endif
 
 #include <mmsystem.h>
 
@@ -32,6 +34,7 @@ extern bool g_consoleFlag;
 int g_scrollTop;
 int g_bufferHeight;
 
+#ifndef IS_LAUNCHER
 static uint32_t g_pointSamplerState;
 static rage::grcTexture* g_fontTexture;
 
@@ -166,10 +169,167 @@ static void CreateFontTexture()
 
 	io.Fonts->TexID = (void *)g_fontTexture;
 }
+#else
+DLL_EXPORT fwEvent<ImDrawData*> OnRenderImDrawData;
+
+static void RenderDrawLists(ImDrawData* drawData)
+{
+	if (!drawData->Valid)
+	{
+		return;
+	}
+
+	OnRenderImDrawData(drawData);
+}
+#endif
 
 void DrawConsole();
 
-static InitFunction initFunction([] ()
+static std::mutex g_conHostMutex;
+
+DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
+{
+	if (!g_conHostMutex.try_lock())
+	{
+		return;
+	}
+
+#ifndef IS_LAUNCHER
+	if (!g_fontTexture)
+	{
+		CreateFontTexture();
+	}
+#endif
+
+	static uint32_t lastDrawTime = timeGetTime();
+
+	bool shouldDrawGui = false;
+
+	ConHost::OnShouldDrawGui(&shouldDrawGui);
+
+	if (!g_consoleFlag && !shouldDrawGui)
+	{
+		lastDrawTime = timeGetTime();
+
+		g_conHostMutex.unlock();
+		return;
+	}
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.MouseDrawCursor = g_consoleFlag;
+
+	{
+		io.DisplaySize = ImVec2(width, height);
+
+		io.DeltaTime = (timeGetTime() - lastDrawTime) / 1000.0f;
+	}
+
+	io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+	io.KeyShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+	io.KeyAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+	io.KeySuper = false;
+
+	ImGui::NewFrame();
+
+	if (g_consoleFlag)
+	{
+		DrawConsole();
+	}
+
+	ConHost::OnDrawGui();
+
+	ImGui::Render();
+
+	lastDrawTime = timeGetTime();
+
+	g_conHostMutex.unlock();
+}
+
+static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
+{
+	bool shouldDrawGui = false;
+
+	ConHost::OnShouldDrawGui(&shouldDrawGui);
+
+	if (!g_consoleFlag || !pass)
+	{
+		return;
+	}
+
+	std::unique_lock<std::mutex> g_conHostMutex;
+
+	ImGuiIO& io = ImGui::GetIO();
+	switch (msg)
+	{
+	case WM_LBUTTONDOWN:
+		io.MouseDown[0] = true;
+		pass = false;
+		break;
+	case WM_LBUTTONUP:
+		io.MouseDown[0] = false;
+		pass = false;
+		break;
+	case WM_RBUTTONDOWN:
+		io.MouseDown[1] = true;
+		pass = false;
+		break;
+	case WM_RBUTTONUP:
+		io.MouseDown[1] = false;
+		pass = false;
+		break;
+	case WM_MBUTTONDOWN:
+		io.MouseDown[2] = true;
+		pass = false;
+		break;
+	case WM_MBUTTONUP:
+		io.MouseDown[2] = false;
+		pass = false;
+		break;
+	case WM_MOUSEWHEEL:
+		io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
+		pass = false;
+		break;
+	case WM_MOUSEMOVE:
+		io.MousePos.x = (signed short)(lParam);
+		io.MousePos.y = (signed short)(lParam >> 16);
+		pass = false;
+		break;
+	case WM_KEYDOWN:
+		if (wParam < 256)
+			io.KeysDown[wParam] = 1;
+		pass = false;
+		break;
+	case WM_KEYUP:
+		if (wParam < 256)
+			io.KeysDown[wParam] = 0;
+		pass = false;
+		break;
+	case WM_CHAR:
+		// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
+		if (wParam > 0 && wParam < 0x10000)
+			io.AddInputCharacter((unsigned short)wParam);
+		pass = false;
+		break;
+	case WM_INPUT:
+		pass = false;
+		break;
+	}
+
+	if (!pass)
+	{
+		result = true;
+	}
+}
+
+void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult);
+
+DLL_EXPORT void RunConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
+{
+	ProcessWndProc(hWnd, msg, wParam, lParam, pass, result);
+	OnConsoleWndProc(hWnd, msg, wParam, lParam, pass, result);
+}
+
+static InitFunction initFunction([]()
 {
 	auto cxt = ImGui::CreateContext();
 	ImGui::SetCurrentContext(cxt);
@@ -246,8 +406,7 @@ static InitFunction initFunction([] ()
 		}
 	}
 
-	static std::mutex g_conHostMutex;
-
+#ifndef IS_LAUNCHER
 	OnGrcCreateDevice.Connect([=]()
 	{
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
@@ -257,140 +416,99 @@ static InitFunction initFunction([] ()
 		g_pointSamplerState = CreateSamplerState(&samplerDesc);
 	});
 
-	InputHook::OnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
+	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		bool shouldDrawGui = false;
-
-		ConHost::OnShouldDrawGui(&shouldDrawGui);
-
-		if (!g_consoleFlag || !pass)
+		if (!g_consoleFlag)
 		{
-			return;
+			return true;
 		}
 
-		std::unique_lock<std::mutex> g_conHostMutex;
+		static struct : InputTarget
+		{
+			virtual inline void KeyDown(UINT vKey, UINT scanCode) override
+			{
+				std::unique_lock<std::mutex> g_conHostMutex;
 
-		ImGuiIO& io = ImGui::GetIO();
-		switch (msg)
-		{
-		case WM_LBUTTONDOWN:
-			io.MouseDown[0] = true;
-			pass = false;
-			break;
-		case WM_LBUTTONUP:
-			io.MouseDown[0] = false;
-			pass = false;
-			break;
-		case WM_RBUTTONDOWN:
-			io.MouseDown[1] = true;
-			pass = false;
-			break;
-		case WM_RBUTTONUP:
-			io.MouseDown[1] = false;
-			pass = false;
-			break;
-		case WM_MBUTTONDOWN:
-			io.MouseDown[2] = true;
-			pass = false;
-			break;
-		case WM_MBUTTONUP:
-			io.MouseDown[2] = false;
-			pass = false;
-			break;
-		case WM_MOUSEWHEEL:
-			io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
-			pass = false;
-			break;
-		case WM_MOUSEMOVE:
-			io.MousePos.x = (signed short)(lParam);
-			io.MousePos.y = (signed short)(lParam >> 16);
-			pass = false;
-			break;
-		case WM_KEYDOWN:
-			if (wParam < 256)
-				io.KeysDown[wParam] = 1;
-			pass = false;
-			break;
-		case WM_KEYUP:
-			if (wParam < 256)
-				io.KeysDown[wParam] = 0;
-			pass = false;
-			break;
-		case WM_CHAR:
-			// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
-			if (wParam > 0 && wParam < 0x10000)
-				io.AddInputCharacter((unsigned short)wParam);
-			pass = false;
-			break;
-		case WM_INPUT:
-			pass = false;
-			break;
-		}
-		
-		if (!pass)
-		{
-			result = true;
-		}
+				ImGuiIO& io = ImGui::GetIO();
+
+				if (vKey < 256)
+				{
+					io.KeysDown[vKey] = 1;
+				}
+			}
+
+			virtual inline void KeyUp(UINT vKey, UINT scanCode) override
+			{
+				std::unique_lock<std::mutex> g_conHostMutex;
+
+				ImGuiIO& io = ImGui::GetIO();
+
+				if (vKey < 256)
+				{
+					io.KeysDown[vKey] = 0;
+				}
+			}
+
+			virtual inline void MouseDown(int buttonIdx, int x, int y) override
+			{
+				std::unique_lock<std::mutex> g_conHostMutex;
+
+				ImGuiIO& io = ImGui::GetIO();
+
+				if (buttonIdx < std::size(io.MouseDown))
+				{
+					io.MouseDown[buttonIdx] = true;
+				}
+			}
+
+			virtual inline void MouseUp(int buttonIdx, int x, int y) override
+			{
+				std::unique_lock<std::mutex> g_conHostMutex;
+
+				ImGuiIO& io = ImGui::GetIO();
+
+				if (buttonIdx < std::size(io.MouseDown))
+				{
+					io.MouseDown[buttonIdx] = false;
+				}
+			}
+
+			virtual inline void MouseWheel(int delta) override
+			{
+				std::unique_lock<std::mutex> g_conHostMutex;
+
+				ImGuiIO& io = ImGui::GetIO();
+				io.MouseWheel += delta > 0 ? +1.0f : -1.0f;
+			}
+
+			virtual inline void MouseMove(int x, int y) override
+			{
+				std::unique_lock<std::mutex> g_conHostMutex;
+
+				ImGuiIO& io = ImGui::GetIO();
+				io.MousePos.x = (signed short)(x);
+				io.MousePos.y = (signed short)(y);
+			}
+		} tgt;
+
+		targets.push_back(&tgt);
+
+		return false;
+	});
+
+	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
+	{
+		OnConsoleWndProc(hWnd, msg, wParam, lParam, pass, lresult);
 	});
 
 	OnPostFrontendRender.Connect([]()
 	{
-		if (!g_conHostMutex.try_lock())
-		{
-			return;
-		}
+		int width, height;
+		GetGameResolution(width, height);
 
-		if (!g_fontTexture)
-		{
-			CreateFontTexture();
-		}
-
-		static uint32_t lastDrawTime = timeGetTime();
-
-		bool shouldDrawGui = false;
-
-		ConHost::OnShouldDrawGui(&shouldDrawGui);
-
-		if (!g_consoleFlag && !shouldDrawGui)
-		{
-			lastDrawTime = timeGetTime();
-
-			g_conHostMutex.unlock();
-			return;
-		}
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.MouseDrawCursor = g_consoleFlag;
-
-		{
-			int width, height;
-			GetGameResolution(width, height);
-
-			io.DisplaySize = ImVec2(width, height);
-
-			io.DeltaTime = (timeGetTime() - lastDrawTime) / 1000.0f;
-		}
-
-		io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-		io.KeyShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-		io.KeyAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
-		io.KeySuper = false;
-
-		ImGui::NewFrame();
-
-		if (g_consoleFlag)
-		{
-			DrawConsole();
-		}
-
-		ConHost::OnDrawGui();
-
-		ImGui::Render();
-
-		lastDrawTime = timeGetTime();
-
-		g_conHostMutex.unlock();
+		OnConsoleFrameDraw(width, height);
 	});
+#endif
 });
 
 struct ConsoleKeyEvent

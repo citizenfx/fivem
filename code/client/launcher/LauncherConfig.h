@@ -25,6 +25,11 @@
 #define CONTENT_URL "https://runtime.fivem.net/client"
 #define CONTENT_URL_WIDE L"https://runtime.fivem.net/client"
 #define GAME_EXECUTABLE L"GTA5.exe"
+#elif defined(IS_LAUNCHER)
+#define PRODUCT_NAME L"Cfx.re Launcher"
+#define CONTENT_URL "https://runtime.fivem.net/citfx"
+#define CONTENT_URL_WIDE L"https://runtime.fivem.net/citfx"
+#define GAME_EXECUTABLE L"DUMMY.exe"
 #else
 #define PRODUCT_NAME L"Unknown CitizenFX Game"
 #define CONTENT_URL "http://localhost/citfx/"

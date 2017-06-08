@@ -158,13 +158,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 
+#ifdef IS_LAUNCHER
+	initState->isReverseGame = true;
+#endif
+
 	// check if the master process still lives
 	{
-		HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, initState->initialPid);
+		HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, initState->GetInitialPid());
 
 		if (hProcess == nullptr)
 		{
-			initState->initialPid = GetCurrentProcessId();
+			initState->SetInitialPid(GetCurrentProcessId());
 		}
 		else
 		{
@@ -173,7 +177,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 			if (exitCode != STILL_ACTIVE)
 			{
-				initState->initialPid = GetCurrentProcessId();
+				initState->SetInitialPid(GetCurrentProcessId());
 			}
 
 			CloseHandle(hProcess);
@@ -426,11 +430,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// check stuff regarding the game executable
 	std::wstring gameExecutable = MakeRelativeGamePath(GAME_EXECUTABLE);
 
+#ifndef IS_LAUNCHER
 	if (GetFileAttributes(gameExecutable.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		MessageBox(nullptr, L"Could not find the game executable (" GAME_EXECUTABLE L") at the configured path. Please check your CitizenFX.ini file.", PRODUCT_NAME, MB_OK | MB_ICONERROR);
 		return 0;
 	}
+#endif
 
 #ifdef GTA_FIVE
 	if (!ExecutablePreload_Init())
@@ -492,6 +498,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		std::thread([/*tui = std::move(tui)*/]() mutable
 		{
+			static HostSharedData<CfxState> initState("CfxInitState");
+
+			if (!initState->isReverseGame)
 			{
 				//auto tuiTen = std::move(tui);
 				auto tuiTen = UI_InitTen();
@@ -536,8 +545,47 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	if (!toolMode)
 	{
-		// game launcher initialization
-		CitizenGame::Launch(gameExecutable, true);
+		wchar_t fxApplicationName[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+#ifdef IS_LAUNCHER
+		// is this the game runtime subprocess?
+		if (wcsstr(fxApplicationName, L"GameRuntime") != nullptr)
+		{
+#else
+		if (initState->IsMasterProcess())
+		{
+#endif
+#ifdef _DEBUG
+			//MessageBox(nullptr, va(L"Gameruntime starting (pid %d)", GetCurrentProcessId()), L"CitizenFx", MB_OK);
+#endif
+
+			// game launcher initialization
+			CitizenGame::Launch(gameExecutable);
+		}
+#ifdef IS_LAUNCHER
+		// it's not, is this the first process running?
+		else if (initState->IsMasterProcess())
+		{
+			// run game mode
+			HMODULE coreRT = LoadLibrary(MakeRelativeCitPath(L"CoreRT.dll").c_str());
+
+			if (coreRT)
+			{
+				auto gameProc = (void(*)())GetProcAddress(coreRT, "GameMode_Init");
+
+				if (gameProc)
+				{
+					gameProc();
+				}
+			}
+		}
+#endif
+		else
+		{
+			// could be it's a prelauncher like Chrome
+			CitizenGame::Launch(gameExecutable, true);
+		}
 	}
 	else
 	{

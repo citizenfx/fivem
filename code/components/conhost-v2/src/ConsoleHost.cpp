@@ -8,7 +8,11 @@
 #include "StdInc.h"
 #include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
+
+#ifndef IS_LAUNCHER
 #include "InputHook.h"
+#endif
+
 #include <thread>
 #include <condition_variable>
 
@@ -21,6 +25,48 @@ static std::once_flag g_consoleInitialized;
 bool g_consoleFlag;
 extern int g_scrollTop;
 extern int g_bufferHeight;
+
+void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
+{
+	if (g_consoleFlag)
+	{
+		static bool g_consoleClosing = false;
+
+		// should the console be closed?
+		if (wParam == VK_F8)
+		{
+			if (msg == WM_KEYDOWN)
+			{
+				g_consoleClosing = true;
+				return;
+			}
+
+			if (g_consoleClosing)
+			{
+				if (msg == WM_KEYUP)
+				{
+					g_consoleClosing = false;
+					g_consoleFlag = false;
+
+					return;
+				}
+			}
+		}
+	}
+	else
+	{
+		// check if the console should be opened
+		if (msg == WM_KEYUP && wParam == VK_F8)
+		{
+			g_consoleFlag = true;
+
+			pass = false;
+			lresult = 0;
+
+			return;
+		}
+	}
+}
 
 static InitFunction initFunction([] ()
 {
@@ -42,45 +88,57 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	InputHook::OnWndProc.Connect([] (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
+#ifndef IS_LAUNCHER
+	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
 		if (g_consoleFlag)
 		{
 			static bool g_consoleClosing = false;
 
-			// should the console be closed?
-			if (wParam == VK_F8)
+			static struct : InputTarget
 			{
-				if (msg == WM_KEYDOWN)
+				virtual void KeyDown(UINT vKey, UINT scanCode) override
 				{
-					g_consoleClosing = true;
-					return;
+					if (vKey == VK_F8)
+					{
+						g_consoleClosing = true;
+					}
 				}
 
-				if (g_consoleClosing)
+				virtual void KeyUp(UINT vKey, UINT scanCode) override
 				{
-					if (msg == WM_KEYUP)
+					if (vKey == VK_F8 && g_consoleClosing)
 					{
 						g_consoleClosing = false;
 						g_consoleFlag = false;
-
-						return;
 					}
 				}
-			}
+			} closeTarget;
+
+			targets.push_back(&closeTarget);
 		}
 		else
 		{
-			// check if the console should be opened
-			if (msg == WM_KEYUP && wParam == VK_F8)
+			static struct : InputTarget
 			{
-				g_consoleFlag = true;
+				virtual void KeyUp(UINT vKey, UINT scanCode) override
+				{
+					if (vKey == VK_F8)
+					{
+						g_consoleFlag = true;
+					}
+				}
+			} openTarget;
 
-				pass = false;
-				lresult = 0;
-
-				return;
-			}
+			targets.push_back(&openTarget);
 		}
+
+		return true;
+	}, -100);
+
+	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
+	{
+		ProcessWndProc(hWnd, msg, wParam, lParam, pass, lresult);
 	}, -10);
+#endif
 });

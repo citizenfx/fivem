@@ -7139,7 +7139,7 @@ char data[0x95000];
 char dummy_seg[0x6000000];
 
 char stub_seg[0x100000];
-#else
+#elif (!defined(IS_LAUNCHER))
 #error No dummy segments defined!
 #endif
 

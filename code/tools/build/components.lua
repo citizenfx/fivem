@@ -176,12 +176,16 @@ add_dependencies = function(list)
 		local dep = v.dep
 		local data = v.data
 
+		configuration {}
+		filter {}
+
 		if not data.vendor or not data.vendor.dummy then
 			links { dep }
 		end
-
-		configuration {}
-		filter {}
+		
+		if not data.vendor then
+			includedirs { 'components/' .. dep .. '/include/' }
+		end
 
 		if data.vendor and data.vendor.include then
 			data.vendor.include()

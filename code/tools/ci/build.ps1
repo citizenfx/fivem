@@ -72,11 +72,15 @@ $inCI = $false
 $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
 $IsServer = $false
+$IsLauncher = $false
 $UploadType = "client"
 
 if ($env:IS_FXSERVER -eq 1) {
     $IsServer = $true
     $UploadType = "server"
+} elseif ($env:IS_LAUNCHER -eq 1) {
+    $IsLauncher = $true
+    $UploadType = "launcher"
 }
 
 if ($env:CI) {
@@ -115,6 +119,8 @@ if ($env:CI) {
 
     if ($IsServer) {
         $UploadBranch += " SERVER"
+    } elseif ($IsLauncher) {
+        $UploadBranch += " COMPOSITOR"
     }
 }
 
@@ -250,6 +256,9 @@ if (!$DontBuild)
     if ($IsServer) {
         $GameName = "server"
         $BuildPath = "$BuildRoot\server\windows"
+    } elseif ($IsLauncher) {
+        $GameName = "launcher"
+        $BuildPath = "$BuildRoot\launcher"
     }
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
@@ -345,6 +354,10 @@ if (!$DontBuild -and $IsServer) {
 
 $CacheDir = "$SaveDir\caches"
 
+if ($IsLauncher) {
+    $CacheDir = "$SaveDir\lcaches"
+}
+
 if (!$DontBuild -and !$IsServer) {
     # prepare caches
     New-Item -ItemType Directory -Force $CacheDir | Out-Null
@@ -384,28 +397,38 @@ if (!$DontBuild -and !$IsServer) {
     # remove CEF as redownloading is broken and this slows down gitlab ci cache
     Remove-Item -Recurse $WorkDir\vendor\cef\*
 
-    Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
-    Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
+    if (!$IsLauncher) {
+        Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
+    } else {
+        Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
+    }
 
     Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
     Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
 
-    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
+    if (!$IsLauncher) {
+        Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
+    }
     
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
 
-    if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
-        Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
-    }
+    if (!$IsLauncher) {
+        if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
+            Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
+        }
 
-    # build compliance stuff
-    if ($env:COMPUTERNAME -eq "AVALON") {
-        Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
+        # build compliance stuff
+        if ($env:COMPUTERNAME -eq "AVALON") {
+            Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
 
-        Push-Location C:\f\bci\
-        .\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
-        Pop-Location
+            Push-Location C:\f\bci\
+            .\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
+            Pop-Location
+        }
     }
 
     # build meta/xz variants
@@ -418,7 +441,11 @@ if (!$DontBuild -and !$IsServer) {
     Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
 
     # build bootstrap executable
-    Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
+    if (!$IsLauncher) {
+        Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
+    } else {
+        Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe CitizenFX.exe
+    }
 
     if (Test-Path CitizenFX.exe.xz) {
         Remove-Item CitizenFX.exe.xz
@@ -475,8 +502,15 @@ if (!$DontUpload) {
     $BaseRoot = (Split-Path -Leaf $WorkDir)
     Set-Location (Split-Path -Parent $WorkDir)
 
-    rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
-    Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
+    if ($IsLauncher) {
+        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_LAUNCHER
+
+        Invoke-WebHook "Built and uploaded a new CfxGL version ($GameVersion) to $UploadBranch! Go and test it!"
+    } else {
+        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
+
+        Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
+    }
 
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 

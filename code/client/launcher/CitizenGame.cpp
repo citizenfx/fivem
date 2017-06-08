@@ -326,7 +326,8 @@ static BOOL GetFileAttributesExWHook(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_IN
 
 void CitizenGame::SetCoreMapping()
 {
-    auto CoreSetMappingFunction = (void(*)(wchar_t*(*)(const wchar_t*, void*(*)(size_t))))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetMappingFunction");
+#ifndef IS_LAUNCHER
+	auto CoreSetMappingFunction = (void(*)(wchar_t*(*)(const wchar_t*, void*(*)(size_t))))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetMappingFunction");
 
     if (CoreSetMappingFunction)
     {
@@ -340,6 +341,7 @@ void CitizenGame::SetCoreMapping()
             return outString;
         });
     }
+#endif
 }
 
 void AAD_Initialize()
@@ -421,6 +423,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		return;
 	}
 
+#ifndef IS_LAUNCHER
 	// load the game executable data in temporary memory
 	FILE* gameFile = _wfopen(MapRedirectedFilename(gamePath.c_str()).c_str(), L"rb");
 	
@@ -570,7 +573,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		ExitProcess(0);
 	}
 #endif
-
+	
 #if defined(GTA_NY)
 	// apply memory protection
 	DWORD oldProtect;
@@ -613,5 +616,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	return InvokeEntryPoint(entryPoint);
 #else
 	return entryPoint();
+#endif
+#else
+	return;
 #endif
 }

@@ -13,13 +13,18 @@
 #define OVERLAY_DECL __declspec(dllimport)
 #endif
 
+#include <d3d11.h>
+
 #include <memory>
 
-#include "grcTexture.h"
+#include "RGBA.h"
+#include "Rect.h"
 
 #include <include/cef_app.h>
 #include <include/cef_browser.h>
 #include <include/cef_client.h>
+
+#include <SharedInput.h>
 
 #include <queue>
 
@@ -44,6 +49,95 @@ private:
 
 namespace nui
 {
+	struct GILockedTexture
+	{
+		int level;
+		void* pBits;
+		int pitch;
+		int width;
+		int height;
+		int format;
+		int numSubLevels;
+	};
+
+	enum class GILockFlags : int
+	{
+		Read = 1,
+		Write = 2,
+		Unknown = 4,
+		WriteDiscard = 8,
+		NoOverwrite = 16
+	};
+
+	class OVERLAY_DECL GITexture
+	{
+	public:
+		virtual ~GITexture() = default;
+
+		virtual void* GetNativeTexture() = 0;
+
+		virtual void* GetHostTexture() = 0;
+
+		virtual bool Map(int numSubLevels, int subLevel, GILockedTexture* lockedTexture, GILockFlags flags) = 0;
+
+		virtual void Unmap(GILockedTexture* lockedTexture) = 0;
+	};
+
+	enum class GITextureFormat
+	{
+		ARGB
+	};
+
+	struct ResultingRectangle
+	{
+		CRect rectangle;
+		CRGBA color;
+	};
+
+	class GameInterface
+	{
+	public:
+		virtual void GetGameResolution(int* width, int* height) = 0;
+
+		virtual GITexture* CreateTexture(int width, int height, GITextureFormat format, void* pixelData) = 0;
+
+		virtual GITexture* CreateTextureBacking(int width, int height, GITextureFormat format) = 0;
+
+		virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle) = 0;
+
+		virtual void SetTexture(GITexture* texture, bool pm = false) = 0;
+
+		virtual void DrawRectangles(int numRectangles, const ResultingRectangle* rectangles) = 0;
+
+		virtual void UnsetTexture() = 0;
+
+		virtual void SetGameMouseFocus(bool val) = 0;
+
+		virtual HWND GetHWND() = 0;
+
+		virtual void BlitTexture(GITexture* dst, GITexture* src) = 0;
+
+		virtual ID3D11Device* GetD3D11Device() = 0;
+
+		virtual ID3D11DeviceContext* GetD3D11DeviceContext() = 0;
+
+		virtual GITexture* CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) = 0;
+
+		fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> OnWndProc;
+
+		fwEvent<std::vector<InputTarget*>&> QueryInputTarget;
+
+		fwEvent<int&> QueryMayLockCursor;
+
+		fwEvent<> OnInitVfs;
+
+		fwEvent<> OnInitRenderer;
+
+		fwEvent<> OnRender;
+	};
+
+	void OVERLAY_DECL Initialize(nui::GameInterface* gi);
+
 	enum class CefChannelLayout
 	{
 		CEF_CHANNEL_LAYOUT_NONE = 0,
@@ -201,8 +295,6 @@ namespace nui
 
 	OVERLAY_DECL CefBrowser* GetBrowser();
 
-	bool OnPreLoadGame(void* cefSandbox);
-
 	// window API
 	OVERLAY_DECL CefBrowser* GetNUIWindowBrowser(fwString windowName);
 
@@ -211,7 +303,7 @@ namespace nui
 	OVERLAY_DECL void ExecuteWindowScript(const std::string& windowName, const std::string& scriptBit);
 	OVERLAY_DECL void SetNUIWindowURL(fwString windowName, fwString url);
 
-	OVERLAY_DECL rage::grcTexture* GetWindowTexture(fwString windowName);
+	OVERLAY_DECL GITexture* GetWindowTexture(fwString windowName);
 
 	extern
 		OVERLAY_DECL

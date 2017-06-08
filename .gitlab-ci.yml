@@ -1,6 +1,7 @@
 stages:
   - build
   - deploy
+  - post
   - linux
 
 .buildscript: &build_windows
@@ -15,6 +16,7 @@ build_client:
     - client
   variables:
     IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
   artifacts:
     paths:
       - caches/diff/
@@ -31,6 +33,32 @@ build_client:
   except:
     - server-ci
     - tags
+    
+build_launcher:
+  <<: *build_windows
+  stage: post
+  tags:
+    - vs2017
+    - client
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '1'
+  artifacts:
+    paths:
+      - caches/diff/
+      - caches/caches.xml
+      - caches/CitizenFX.exe.xz
+      - caches/version.txt
+    expire_in: 1 month
+  cache:
+    key: launcher
+    untracked: true
+    paths:
+      - code/shared/citversion.h
+      - code/build/
+  except:
+    - server-ci
+    - tags
 
 build_server_windows:
   <<: *build_windows
@@ -39,6 +67,7 @@ build_server_windows:
     - server
   variables:
     IS_FXSERVER: '1'
+    IS_LAUNCHER: '0'
   artifacts:
     paths:
       - out/server.zip
@@ -96,6 +125,22 @@ deploy_canary:
   stage: deploy
   dependencies:
     - build_client
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: canary
+  tags:
+    - vs2017
+    - client
+  only:
+    - master
+    
+deploy_launcher:
+  stage: linux
+  dependencies:
+    - build_launcher
+  variables:
+    IS_LAUNCHER: '1'
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:

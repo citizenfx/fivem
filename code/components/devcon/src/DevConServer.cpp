@@ -143,7 +143,8 @@ static void FlushKnownCommands(net::TcpServerStream* stream)
 		buf.Write<uint16_t>(0);
 
 		char cmdBuf[64];
-		strcpy_s(cmdBuf, cmd.c_str());
+		strncpy(cmdBuf, cmd.c_str(), sizeof(cmdBuf));
+		cmdBuf[63] = '\0';
 
 		buf.Write(cmdBuf, sizeof(cmdBuf));
 

@@ -19,18 +19,20 @@
 			"../common/Error.cpp"
 		}
 		
-		postbuildcommands {
-			("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
-				path.getabsolute('../../tools/dbg/bin/msobj140.dll'):gsub('/', '\\')
-			),
-			("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
-				path.getabsolute('../../tools/dbg/bin/mspdbcore.dll'):gsub('/', '\\')
-			),
-			"if exist C:\\f\\GTA5_1604_dump.exe ( %{cfg.buildtarget.directory}\\retarget_pe \"%{cfg.buildtarget.abspath}\" C:\\f\\GTA5_1604_dump.exe )",
-			("%%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\""):format(
-				path.getabsolute('../../tools/dbg/dump_1604.txt')
-			)
-		}
+		if _OPTIONS['game'] == 'five' then
+			postbuildcommands {
+				("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
+					path.getabsolute('../../tools/dbg/bin/msobj140.dll'):gsub('/', '\\')
+				),
+				("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
+					path.getabsolute('../../tools/dbg/bin/mspdbcore.dll'):gsub('/', '\\')
+				),
+				"if exist C:\\f\\GTA5_1604_dump.exe ( %{cfg.buildtarget.directory}\\retarget_pe \"%{cfg.buildtarget.abspath}\" C:\\f\\GTA5_1604_dump.exe )",
+				("%%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\""):format(
+					path.getabsolute('../../tools/dbg/dump_1604.txt')
+				)
+			}
+		end
 		
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
@@ -49,6 +51,9 @@
 
 		configuration "game=five"
 			targetname "FiveM"
+			
+		configuration "game=launcher"
+			targetname "CfxLauncher"
 		
 		configuration "windows"
 			linkoptions "/IGNORE:4254 /SAFESEH:NO /DYNAMICBASE:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get

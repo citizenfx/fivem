@@ -1,0 +1,11 @@
+{
+	"name": "citizen:game:ipc",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"vendor:nng",
+		"vendor:nngpp",
+		"vendor:msgpack-c"
+	],
+	"provides": []
+}
