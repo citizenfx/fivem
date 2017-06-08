@@ -1,4 +1,4 @@
-<dl (dblclick)="attemptConnect()" [contextMenu]="menu">
+<dl (dblclick)="attemptConnect()" [contextMenu]="menu" [class.pinned]="pinned">
     <dt class="icon">
         <figure class="image is-32x32" (click)="attemptConnect()">
             <img [src]="server.sanitizedUri">

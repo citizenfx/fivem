@@ -41,9 +41,22 @@ dl {
 			position: relative;
 
 			&:after {
+				content: '▶';
+
 				opacity: 1.0;
 				transition: 175ms;
 			}
 		}
+	}
+}
+
+dl.pinned {
+	figure:after {
+		content: '📌';
+		opacity: 1.0;
+		background-color: transparent;
+
+		left: 22px;
+		top: 22px;
 	}
 }

@@ -17,6 +17,9 @@ export class ServerListingItemComponent {
     @Input()
     server: Server;
 
+    @Input()
+    pinned = false;
+
     @ViewChild(ContextMenuComponent)
     menu: ContextMenuComponent;
 

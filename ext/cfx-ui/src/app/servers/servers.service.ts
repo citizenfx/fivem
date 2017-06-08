@@ -4,7 +4,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 
 import 'rxjs/add/operator/toPromise';
 
-import { Server, ServerIcon } from './server';
+import { Server, ServerIcon, PinConfig } from './server';
 
 import { master } from './master';
 
@@ -30,5 +30,11 @@ export class ServersService {
                 a.address,
                 `https://runtime.fivem.net/servers/icon/${a.address}/${a.int.iconVersion}.png`,
                 a.int.iconVersion));
+    }
+
+    public loadPinConfig(): Promise<PinConfig> {
+        return this.http.get('https://runtime.fivem.net/pins.json')
+            .toPromise()
+            .then(result => <PinConfig>result.json());
     }
 }

@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { Server, ServerIcon } from '../server';
+import { Server, ServerIcon, PinConfig } from '../server';
 import { ServersService } from '../servers.service';
 import { ServerFilters } from './server-filter.component';
 
@@ -19,12 +19,15 @@ export class ServerListUiComponent implements OnInit {
     localServers: Server[]; // temp value
     icons: ServerIcon[];
 
+    pinConfig: PinConfig;
+
     filters: ServerFilters;
 
     type: string;
 
     constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute) {
         this.filters = new ServerFilters();
+        this.pinConfig = new PinConfig();
     }
 
     ngOnInit() {
@@ -57,6 +60,8 @@ export class ServerListUiComponent implements OnInit {
                         server.iconUri = entry.icon;
                     }
                 }
-            });
+            })
+            .then(() => this.serverService.loadPinConfig())
+            .then(pinConfig => this.pinConfig = pinConfig);
     }
 }

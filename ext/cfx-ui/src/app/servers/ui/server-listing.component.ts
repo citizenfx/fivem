@@ -1,5 +1,5 @@
 import { Component, OnInit, OnChanges, Input } from '@angular/core';
-import { Server } from '../server';
+import { Server, PinConfig } from '../server';
 
 import { ServerHeadingColumn } from './server-heading.component';
 import { ServerFilters } from './server-filter.component';
@@ -19,6 +19,9 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
     @Input()
     private filters: ServerFilters;
+
+    @Input()
+    private pinConfig: PinConfig;
 
     private subscriptions: { [addr: string]: any } = {};
 
@@ -62,6 +65,14 @@ export class ServerListingComponent implements OnInit, OnChanges {
         this.changeObservable.throttleTime(1000).subscribe(() => {
             this.sortAndFilterServers();
         });
+    }
+
+    isPinned(server: Server) {
+        if (!this.pinConfig || !this.pinConfig.pinnedServers) {
+            return false;
+        }
+
+        return (this.pinConfig.pinnedServers.indexOf(server.address) >= 0)
     }
 
     private static quoteRe(text: string) {
@@ -151,7 +162,9 @@ export class ServerListingComponent implements OnInit, OnChanges {
             }
 
             if (server.currentPlayers == 0 && filters.hideEmpty) {
-                return false;
+                if (!this.isPinned(server) || !this.pinConfig.pinIfEmpty) {
+                    return false;
+                }
             }
 
             if (server.currentPlayers >= server.maxPlayers && filters.hideFull) {
@@ -209,6 +222,18 @@ export class ServerListingComponent implements OnInit, OnChanges {
             };
 
             return sortChain(
+                (a: Server, b: Server) => {
+                    const aPinned = this.isPinned(a);
+                    const bPinned = this.isPinned(b);
+
+                    if (aPinned === bPinned) {
+                        return 0;
+                    } else if (aPinned && !bPinned) {
+                        return -1;
+                    } else if (!aPinned && bPinned) {
+                        return 1;
+                    }
+                },
                 sortSortable(this.sortOrder),
                 sortSortable(['ping', '+']),
                 sortSortable(['name', '+'])

@@ -103,3 +103,9 @@ export class ServerIcon {
         this.iconVersion = iconVersion;
     }
 }
+
+export class PinConfig {
+    pinIfEmpty = false;
+
+    pinnedServers: string[] = [];
+}
