@@ -25,6 +25,7 @@ static InitFunction initFunction([]()
 	{
 		// TODO: make instanceable
 		static auto ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
+		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, false);
 
 		struct InfoData
 		{
@@ -141,10 +142,24 @@ static InitFunction initFunction([]()
 					return;
 				}
 
+				bool showEP = !epPrivacy->GetValue();
+
+				auto identifiers = client->GetIdentifiers();
+
+				if (!showEP)
+				{
+					auto newEnd = std::remove_if(identifiers.begin(), identifiers.end(), [](const std::string& identifier)
+					{
+						return (identifier.find("ip:") == 0);
+					});
+
+					identifiers.erase(newEnd, identifiers.end());
+				}
+
 				data.push_back({
-					{ "endpoint", client->GetAddress().ToString() },
+					{ "endpoint", (showEP) ? client->GetAddress().ToString() : "127.0.0.1" },
 					{ "id", client->GetNetId() },
-					{ "identifiers", client->GetIdentifiers() },
+					{ "identifiers", identifiers },
 					{ "name", client->GetName() },
 					{ "ping", client->GetPeer()->roundTripTime }
 				});
