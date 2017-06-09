@@ -13,6 +13,7 @@ import { ContextMenuModule } from 'ngx-contextmenu';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
+import { AppNavComponent } from './app-nav.component';
 import { BottomNavComponent } from './bottom-nav.component';
 import { HomeComponent } from './home/home.component';
 import { SettingsComponent } from './settings/settings.component';
@@ -36,7 +37,7 @@ import { EscapePipe } from './escape.pipe';
 @NgModule({
   declarations: [
     AppComponent,
-    BottomNavComponent,
+    AppNavComponent,
     HomeComponent,
     SettingsComponent,
     ServerListComponent,
@@ -66,11 +67,11 @@ import { EscapePipe } from './escape.pipe';
     TweetService,
     {
       provide: GameService,
-      useClass: CfxGameService
+      useClass: DummyGameService
     }
   ],
   bootstrap: [
     AppComponent
   ]
-}) 
+})
 export class AppModule { }

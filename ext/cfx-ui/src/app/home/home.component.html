@@ -1,4 +1,35 @@
-<div class="tab">
+<div class="home">
+	<div class="feed">
+		<!-- TODO: make this into a proper home feed -->
+		<article class="message" *ngFor="let tweet of tweets">
+			<div class="backdroppy">
+				<div class="message-header">
+					<img class="avatar" src="{{tweet.avatar}}">
+					<strong>{{tweet.user_displayname}}</strong>
+					<small>@{{tweet.user_screenname}}</small>
+					<small>{{tweet.date | amTimeAgo}}</small>
+				</div>
+				<div class="message-body">
+					<article class="media">
+						<figure class="media-left" *ngIf="tweet.image">
+							<img src="{{tweet.image}}">
+						</figure>
+						<div class="media-content">
+							<div class="content">
+								<p>{{tweet.content}}</p>
+							</div>
+							<nav class="level is-mobile"></nav>
+						</div>
+						<div class="media-right">
+						</div>
+					</article>
+				</div>
+			</div>
+		</article>
+	</div>
+</div>
+
+<div class="tab" style="display: none">
     <div class="columns is-gapless">
         <div class="column">
             <section class="hero">

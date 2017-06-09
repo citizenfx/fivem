@@ -10,11 +10,16 @@ import localeEn from './locale-en.json';
   selector: 'app-root',
   template: `
     <router-outlet></router-outlet>
-    <app-bottom-nav></app-bottom-nav>
-  `
+	<app-nav></app-nav>
+  `,
+	styleUrls:   ['app.component.scss']
 })
 export class AppComponent extends Translation {
-  constructor(public locale: LocaleService, public translation: TranslationService, private gameService: GameService) {
+  constructor(
+    public locale: LocaleService,
+    public translation: TranslationService,
+    private gameService: GameService
+  ) {
     super(translation);
 
     this.locale.addConfiguration()
@@ -25,6 +30,7 @@ export class AppComponent extends Translation {
 
     this.translation.addConfiguration()
       .addTranslation('en', localeEn);
+
     this.translation.init();
 
     this.gameService.init();

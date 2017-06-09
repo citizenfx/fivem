@@ -13,7 +13,6 @@ import { GameService } from '../../game.service';
     templateUrl: 'server-list-ui.component.html',
     styleUrls: ['server-list-ui.component.scss']
 })
-
 export class ServerListUiComponent implements OnInit {
     servers: Server[];
     localServers: Server[]; // temp value

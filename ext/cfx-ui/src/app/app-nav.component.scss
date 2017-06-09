@@ -1,0 +1,105 @@
+@import 'variables';
+
+:host {
+	display: flex;
+	height: $appNavHeight;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+
+	backdrop-filter: blur(25px);
+	background-color: rgba($bgColour, .2);
+
+	justify-content: center;
+}
+
+.app-nav-container {
+	display: flex;
+	height: $appNavHeight;
+
+	width: $width;
+
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: flex-end;
+
+	overflow: hidden;
+	z-index: 100;
+
+	.logo,
+	.user,
+	.nav-list {
+		width: 30vw;
+	}
+
+	.logo {
+		text-align: left;
+		font-size: 30px;
+		padding-bottom: $padding/2;
+	}
+
+	.user {
+		color: $textColour;
+		text-align: right;
+		padding-bottom: $padding/2;
+	}
+
+	.nav-list {
+		display: flex;
+		justify-content: center;
+
+		transition: transform .2s ease-out;
+
+		&.has-sub-nav {
+			transform: translateY(-30px);
+		}
+
+		.nav-item {
+			display: flex;
+			height: $appNavHeight;
+			position: relative;
+
+			padding: 0 $padding*$multiplier $padding/2 $padding*$multiplier;
+
+			align-items: flex-end;
+
+			overflow: hidden;
+
+			text-decoration: none;
+			font-size: 30px;
+			font-weight: 100;
+			color: $textColour;
+			text-shadow: 0 0 1px $bgColour;
+
+			&:after {
+				display: block;
+				content: '';
+				position: absolute;
+				bottom: -4px;
+				left: 50%;
+				margin-left: -20px;
+				opacity: .5;
+
+				width: 40px;
+				height: 4px;
+
+				border-radius: 2px;
+				background-color: $greenyColour;
+
+				transition: bottom .2s ease-out;
+			}
+
+			&.active::after,
+			&.active:hover::after {
+				bottom: -2px;
+				box-shadow: 0 0 10px darken($greenyColour, 5%);
+				opacity: 1;
+			}
+
+			&:hover::after {
+				bottom: -2px;
+			}
+		}
+	}
+}
