@@ -69,7 +69,7 @@ workspace "CitizenMP"
 
 	-- special build dirs for FXServer
 	if _OPTIONS['game'] == 'server' then
-		location ("build/server/" .. os.get())
+		location ((_OPTIONS['builddir'] or "build/") .. "server/" .. os.get())
 		architecture 'x64'
 		defines 'IS_FXSERVER'
 	end

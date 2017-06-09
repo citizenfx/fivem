@@ -1,8 +1,15 @@
-# temporary placeholder that'll just invoke C:\f\build.cmd
-buildscript:
+.buildscript: &build_windows
   stage: build
   script:
     - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontUpload $true"
+
+build_client:
+  <<: *build_windows
+  tags:
+    - vs2017
+    - client
+  variables:
+    IS_FXSERVER: '0'
   artifacts:
     paths:
       - caches/diff/
@@ -11,16 +18,48 @@ buildscript:
       - caches/version.txt
     expire_in: 1 week
   cache:
+    key: client
     untracked: true
     paths:
       - code/shared/citversion.h
       - caches/
       - code/build/
+  except:
+    - server-ci
+
+build_server_windows:
+  <<: *build_windows
+  tags:
+    - vs2017
+    - server
+  variables:
+    IS_FXSERVER: '1'
+  artifacts:
+    paths:
+      - out/server.zip
+  cache:
+    key: server
+    untracked: true
+
+build_proot_linux:
+  stage: build
+  image: alpine:edge
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    # workaround gitlab-ci-multi-runner#2148
+    GIT_SSL_CAPATH: /etc/ssl/certs/
+  script: 
+    - sh code/tools/ci/build_server_proot.sh
+  artifacts:
+    paths:
+      - fx.tar.xz
+  tags:
+    - linux
 
 deploy_specific:
   stage: deploy
   dependencies:
-    - buildscript
+    - build_client
   script:
     - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
@@ -29,11 +68,12 @@ deploy_specific:
     - branches
   except:
     - master
+    - server-ci
 
 deploy_canary:
   stage: deploy
   dependencies:
-    - buildscript
+    - build_client
   script:
     - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
@@ -44,7 +84,7 @@ deploy_canary:
 deploy_prod:
   stage: deploy
   dependencies:
-    - buildscript
+    - build_client
   script:
     - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:

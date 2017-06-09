@@ -1,0 +1,19 @@
+[
+  "net:base",
+  "net:tcp-server",
+  "net:http-server",
+  "citizen:server:net",
+  "citizen:scripting:core",
+  "citizen:scripting:lua",
+  "conhost:server",
+  "citizen:server:main",
+  "citizen:server:instance",
+  "citizen:server:impl",
+  "citizen:resources:core",
+  "citizen:resources:metadata:lua",
+  "vfs:core",
+  "vfs:impl:server",
+  "scripting:server",
+  "svadhesive",
+  "citizen:scripting:mono"
+]

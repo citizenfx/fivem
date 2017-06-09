@@ -63,7 +63,7 @@ function Invoke-WebHook
 
     iwr -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 
-    $payload.text += " <@&297070674898321408>"
+    $payload.text += " <:mascot:295575900446130176>"#<@&297070674898321408>"
 
     iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 }
@@ -71,6 +71,13 @@ function Invoke-WebHook
 $inCI = $false
 $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
+$IsServer = $false
+$UploadType = "client"
+
+if ($env:IS_FXSERVER -eq 1) {
+    $IsServer = $true
+    $UploadType = "server"
+}
 
 if ($env:CI) {
     $inCI = $true
@@ -81,21 +88,25 @@ if ($env:CI) {
 
     	$Triggerer = $env:APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL
 
-    	$UploadBranch = ''
+    	$UploadBranch = $env:APPVEYOR_REPO_BRANCH
     } else {
     	$Branch = $env:CI_BUILD_REF_NAME
     	$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
 
     	$Triggerer = $env:GITLAB_USER_EMAIL
 
-    	$UploadBranch = $env:CI_ENVIRONMENT_NAME
+    	$UploadBranch = $env:CI_BUILD_REF_NAME
+    }
+
+    if ($IsServer) {
+        $UploadBranch += " SERVER"
     }
 }
 
 $WorkRootDir = "$WorkDir\code\"
 
-$BinRoot = "$SaveDir\bin\$Branch\" -replace '/','\'
-$BuildRoot = "$SaveDir\build\$Branch\"  -replace '/','\'
+$BinRoot = "$SaveDir\bin\$UploadType\$Branch\" -replace '/','\'
+$BuildRoot = "$SaveDir\build\$UploadType\$Branch\" -replace '/', '\'
 
 $env:TargetPlatformVersion = "10.0.15063.0"
 
@@ -103,6 +114,8 @@ Add-Type -A 'System.IO.Compression.FileSystem'
 
 New-Item -ItemType Directory -Force $SaveDir | Out-Null
 New-Item -ItemType Directory -Force $WorkDir | Out-Null
+New-Item -ItemType Directory -Force $BinRoot | Out-Null
+New-Item -ItemType Directory -Force $BuildRoot | Out-Null
 
 Set-Location $WorkRootDir
 
@@ -167,16 +180,18 @@ if (!$DontBuild)
     .\prebuild.cmd
     Pop-Location
 
-    Write-Host "[downloading chrome]" -ForegroundColor DarkMagenta
-    try {
-        if (!(Test-Path "$SaveDir\$CefName.zip")) {
-            Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
-        }
+    if (!$IsServer) {
+        Write-Host "[downloading chrome]" -ForegroundColor DarkMagenta
+        try {
+            if (!(Test-Path "$SaveDir\$CefName.zip")) {
+                Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
+            }
 
-        Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
-        Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
-    } catch {
-        return
+            Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
+            Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
+        } catch {
+            return
+        }
     }
 
     Write-Host "[building]" -ForegroundColor DarkMagenta
@@ -201,7 +216,15 @@ if (!$DontBuild)
 	    Pop-Location
 	}
 
-    Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=five --builddir=$BuildRoot --bindir=$BinRoot"
+    $GameName = "five"
+    $BuildPath = "$BuildRoot\five"
+    
+    if ($IsServer) {
+        $GameName = "server"
+        $BuildPath = "$BuildRoot\server\windows"
+    }
+
+    Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
 
     $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
     $LauncherVersion = $GameVersion
@@ -213,14 +236,14 @@ if (!$DontBuild)
 
     #echo $env:Path
     #/logger:C:\f\customlogger.dll /noconsolelogger
-    msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m:4 $BuildRoot\five\CitizenMP.sln
+    msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m:4 $BuildPath\CitizenMP.sln
 
     if (!$?) {
-        Invoke-WebHook "Building cfx-client failed :("
+        Invoke-WebHook "Building FiveM failed :("
         throw "Failed to build the code."
     }
 
-    if ($env:COMPUTERNAME -eq "BUILDVM") {
+    if (($env:COMPUTERNAME -eq "BUILDVM") -and (!$IsServer)) {
         Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot"
     }
 }
@@ -229,7 +252,29 @@ Set-Location $WorkRootDir
 $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
 $LauncherVersion = $GameVersion
 
-if (!$DontBuild) {
+if (!$DontBuild -and $IsServer) {
+    Remove-Item -Recurse -Force $WorkDir\out
+
+    New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
+    New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
+
+    Copy-Item -Force $BinRoot\server\windows\release\*.exe $WorkDir\out\server\
+    Copy-Item -Force $BinRoot\server\windows\release\*.dll $WorkDir\out\server\
+
+    Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\out\server\
+    Copy-Item -Force -Recurse $WorkDir\data\server\* $WorkDir\out\server\
+    Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
+
+    Copy-Item -Force -Recurse $BinRoot\server\windows\release\citizen\* $WorkDir\out\server\citizen\
+
+    Copy-Item -Force "$WorkRootDir\tools\ci\7z.exe" 7z.exe
+
+    .\7z.exe a $WorkDir\out\server.zip $WorkDir\out\server\*
+
+    Invoke-WebHook "Bloop, building a SERVER/WINDOWS build completed!"
+}
+
+if (!$DontBuild -and !$IsServer) {
     # prepare caches
     New-Item -ItemType Directory -Force $WorkDir\caches | Out-Null
     New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn | Out-Null
