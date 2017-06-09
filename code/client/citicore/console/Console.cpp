@@ -12,6 +12,8 @@ struct ConsoleManagers : public ConsoleManagersBase
 	std::unique_ptr<ConsoleCommandManager> commandManager;
 
 	std::unique_ptr<ConsoleVariableManager> variableManager;
+
+	std::shared_ptr<ConsoleCommand> helpCommand;
 };
 
 Context::Context()
@@ -27,6 +29,30 @@ Context::Context(Context* fallbackContext)
 	ConsoleManagers* managers = static_cast<ConsoleManagers*>(m_managers.get());
 	managers->commandManager  = std::make_unique<ConsoleCommandManager>(this);
 	managers->variableManager = std::make_unique<ConsoleVariableManager>(this);
+
+	managers->helpCommand = std::make_shared<ConsoleCommand>(managers->commandManager.get(), "help", [=]()
+	{
+		std::set<std::string> commands;
+
+		managers->commandManager->ForAllCommands([&](const std::string& cmdName)
+		{
+			commands.insert(cmdName);
+		});
+
+		for (auto& commandName : commands)
+		{
+			auto cvar = managers->variableManager->FindEntryRaw(commandName);
+
+			if (cvar)
+			{
+				console::Printf("CmdSystem", "%s = %s\n", commandName, cvar->GetValue());
+			}
+			else
+			{
+				console::Printf("CmdSystem", "%s\n", commandName);
+			}
+		}
+	});
 
 	m_variableModifiedFlags = 0;
 }
