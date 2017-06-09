@@ -210,8 +210,17 @@ static InitFunction initFunction([]()
 		{
 			static auto citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, "");
 
+			// create cache directory if needed
+			auto device = vfs::GetDevice(instance->GetRootPath());
+			auto cacheDir = instance->GetRootPath() + "/cache/";
+
+			if (device.GetRef())
+			{
+				device->CreateDirectory(cacheDir);
+			}
+
 			vfs::Mount(new vfs::RelativeDevice(citizenDir->GetValue() + "/"), "citizen:/");
-			vfs::Mount(new vfs::RelativeDevice(instance->GetRootPath() + "/cache/"), "cache:/");
+			vfs::Mount(new vfs::RelativeDevice(cacheDir), "cache:/");
 		}
 
 		ScanResources(instance);
