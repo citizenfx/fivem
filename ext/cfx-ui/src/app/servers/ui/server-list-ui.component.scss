@@ -27,8 +27,9 @@
 		}
 
 		article {
-			width: 100%;
-			padding-left: 30%;
+			position: relative;
+			width: calc(100% - 30%);
+			margin-left: 30%;
 		}
 	}
 }

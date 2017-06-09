@@ -1,0 +1,60 @@
+@import 'variables';
+@import './server-listing-shared.scss';
+
+$headerHeight: 40px;
+
+.header {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+    height: $headerHeight;
+
+    background-color: rgba($bgColour, .2);
+	backdrop-filter: blur(25px);
+
+	z-index: 20;
+
+	div {
+		height: 40px;
+		line-height: 40px;
+
+		text-transform: lowercase;
+
+		&:hover {
+			background-color: rgba($bgColour, .2);
+		}
+
+		&.name {
+			padding-left: $padding;
+		}
+
+		&.ping {
+			text-align: right;
+			padding-right: $padding*$multiplier;
+		}
+
+		span {
+			position: relative;
+		}
+
+		span::after
+		{
+			position: absolute;
+			right: -$padding;
+
+			font-size: 8px;
+			color: rgba($textColour, .5);
+		}
+
+		span.sortedAscending::after
+		{
+			content: '\25B2';
+		}
+
+		span.sortedDescending::after
+		{
+			content: '\25BC';
+		}
+	}
+}

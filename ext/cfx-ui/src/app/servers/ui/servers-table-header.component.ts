@@ -1,30 +1,21 @@
 import { Component, Input, Output, HostListener, EventEmitter } from '@angular/core';
 import { Translation, TranslationService } from 'angular-l10n';
 
-export class ServerHeadingColumn {
+export class ServersTableHeadingColumn {
     public column: string;
     public label: string;
 }
 
 @Component({
     moduleId: module.id,
-    selector: 'app-server-heading',
-    template: `
-    <div class="ui-row heading">
-        <div *ngFor="let column of columns" class="{{column.column}}" [attr.sortName]="column.column">
-            <span
-                class="sorted"
-                [class.sortedAscending]="isSorted(column, '+')"
-                [class.sortedDescending]="isSorted(column, '-')">{{column.label | translate}}</span>
-        </div>
-    </div>
-`,
+    selector: 'servers-table-header',
+    templateUrl: 'servers-table-header.component.html',
 
-    styleUrls: ['./server-heading.component.scss']
+    styleUrls: ['./servers-table-header.component.scss']
 })
-export class ServerHeadingComponent extends Translation {
+export class ServersTableHeaderComponent extends Translation {
     @Input()
-    columns: ServerHeadingColumn[];
+    columns: ServersTableHeadingColumn[];
 
     @Input()
     sortOrder: string[];
@@ -47,7 +38,7 @@ export class ServerHeadingComponent extends Translation {
         super(translation);
     }
 
-    isSorted(column: ServerHeadingColumn, type: String) {
+    isSorted(column: ServersTableHeadingColumn, type: String) {
         return (this.sortOrder[0] == column.column && this.sortOrder[1] == type);
     }
 }

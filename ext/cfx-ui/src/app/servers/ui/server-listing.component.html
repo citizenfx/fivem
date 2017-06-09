@@ -1,8 +1,8 @@
-<app-server-heading
+<servers-table-header
 	[columns]="columns"
 	[sortOrder]="sortOrder"
 	(sort)="updateSorting($event)"
-></app-server-heading>
+></servers-table-header>
 
 <div class="list">
 	<virtual-scroll
@@ -11,6 +11,7 @@
 		childHeight="40"
 		childWidth="1000"
 	>
+		<div class="dummy"></div>
 		<app-server-listing-item
 			[pinned]="isPinned(server)" [server]="server"
 			*ngFor="let server of localServers"

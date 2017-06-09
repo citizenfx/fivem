@@ -5,7 +5,7 @@ $columns: (
 	ping: calc(10%),
 );
 
-dl, .ui-row {
+dl, .header {
 	display: flex;
 	flex-direction: row;
 	flex-grow: 0;
@@ -14,7 +14,7 @@ dl, .ui-row {
 	height: 40px;
 }
 
-dl > *, .ui-row > *
+dl > *, .header > *
 {
 	flex-grow: 1;
 	white-space: nowrap;

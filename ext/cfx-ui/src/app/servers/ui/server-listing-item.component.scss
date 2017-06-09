@@ -1,11 +1,40 @@
+@import 'variables';
 @import "./server-listing-shared.scss";
 
 dl {
-	border-bottom: 2px solid transparent;
-	transition: 0.2s;
+	transition: all .2s ease-out;
+
+	cursor: default;
+	user-select: none;
+
+	border-bottom: solid .5px rgba($fgColour, .2);
+	font-weight: 100;
+
+	dd.name {
+		padding: 0 $padding;
+		color: $textColour;
+	}
+
+	dd.players {
+		text-align: center;
+	}
+
+	dd.ping {
+		text-align: right;
+		padding-right: $padding*$multiplier;
+	}
 
 	figure {
 		position: relative;
+
+		padding: 2px;
+
+		img {
+			width: 35px;
+			height: 35px;
+
+			transition: .2s ease-out;
+		}
 
 		&:after {
 			content: '▶';
@@ -24,27 +53,27 @@ dl {
 
 			align-items: center;
 
-			background-color: rgba(0, 0, 0, .7);
+			font-weight: bold;
 
-			color: #fff;
+			color: $greenyColour;
 
 			opacity: 0;
 		}
 	}
 
 	&:hover {
-		color: #fff;
-		background-color: rgba(0, 0, 0, 0.4);
-		border-bottom: 2px solid #51B3EC;
+		background-color: rgba($bgColour, .4);
 
 		figure {
-			position: relative;
+			img {
+				opacity: .25;
+			}
 
 			&:after {
 				content: '▶';
 
-				opacity: 1.0;
-				transition: 175ms;
+				opacity: 1;
+				text-shadow: 0 0 2px rgba($bgColour, .5);
 			}
 		}
 	}

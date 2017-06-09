@@ -1,7 +1,7 @@
 import { Component, OnInit, OnChanges, Input } from '@angular/core';
 import { Server, PinConfig } from '../server';
 
-import { ServerHeadingColumn } from './server-heading.component';
+import { ServersTableHeadingColumn } from './servers-table-header.component';
 import { ServerFilters } from './server-filter.component';
 
 import {Subject} from 'rxjs/Rx';
@@ -27,7 +27,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
 
     sortOrder: string[];
 
-    get columns(): ServerHeadingColumn[] {
+    get columns(): ServersTableHeadingColumn[] {
         return [
             {
                 column: 'icon',
@@ -102,9 +102,9 @@ export class ServerListingComponent implements OnInit, OnChanges {
             }
 
             const categoryMatch = searchGroup.match(categoryRe);
-            
+
             if (!categoryMatch) {
-                const reString = 
+                const reString =
                     (searchGroup.match(/^\/(.+)\/$/)) ?
                         searchGroup.replace(/^\/(.+)\/$/, '$1')
                     :
@@ -140,7 +140,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
                 });
             }
         }
-        
+
         return (server: Server) =>
         {
             for (const fn of filterFns) {
