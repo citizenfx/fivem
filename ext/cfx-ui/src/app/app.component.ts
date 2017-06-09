@@ -11,6 +11,7 @@ import localeEn from './locale-en.json';
   template: `
     <router-outlet></router-outlet>
 	<app-nav></app-nav>
+	<connecting-popup></connecting-popup>
   `,
 	styleUrls:   ['app.component.scss']
 })

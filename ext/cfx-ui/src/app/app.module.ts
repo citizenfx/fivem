@@ -14,7 +14,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
 import { AppNavComponent } from './app-nav.component';
-import { BottomNavComponent } from './bottom-nav.component';
+import { ConnectingPopupComponent } from './servers/connecting-popup.component';
 import { HomeComponent } from './home/home.component';
 import { SettingsComponent } from './settings/settings.component';
 
@@ -38,6 +38,7 @@ import { EscapePipe } from './escape.pipe';
   declarations: [
     AppComponent,
     AppNavComponent,
+  	ConnectingPopupComponent,
     HomeComponent,
     SettingsComponent,
     ServerListComponent,

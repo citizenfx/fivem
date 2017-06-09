@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { GameService } from './game.service';
 import { Translation, TranslationService } from 'angular-l10n';
@@ -9,14 +9,8 @@ import { Translation, TranslationService } from 'angular-l10n';
 	templateUrl: 'app-nav.component.html',
 	styleUrls:   ['app-nav.component.scss']
 })
-export class AppNavComponent extends Translation implements OnInit {
+export class AppNavComponent extends Translation {
 	id = 'ololo';
-	showOverlay = false;
-	overlayClosable = true;
-	overlayTitle: string;
-	overlayMessage: string;
-	overlayMessageData = {};
-	closeLabel = "#Servers_CloseOverlay";
 
 	hasSubNav: boolean = false;
 
@@ -34,40 +28,7 @@ export class AppNavComponent extends Translation implements OnInit {
 		});
 	}
 
-	ngOnInit() {
-		this.gameService.connecting.subscribe(a => {
-			this.overlayTitle = '#Servers_Connecting';
-			this.overlayMessage = '#Servers_ConnectingTo';
-			this.overlayMessageData = {serverName: a.address};
-			this.showOverlay = true;
-			this.overlayClosable = false;
-		});
-
-		this.gameService.connectFailed.subscribe(([server, message]) => {
-			this.overlayTitle = '#Servers_ConnectFailed';
-			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = {message};
-			this.showOverlay = true;
-			this.overlayClosable = true;
-			this.closeLabel = "#Servers_CloseOverlay";
-		});
-
-		this.gameService.connectStatus.subscribe(a => {
-			this.overlayTitle = '#Servers_Connecting';
-			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = {message: a.message};
-			this.showOverlay = true;
-			this.overlayClosable = (a.count == 133 && a.total == 133); // magic numbers, yeah :(
-
-			if (this.overlayClosable) {
-				this.closeLabel = "#Servers_CancelOverlay";
-			}
-		});
-	}
-
-	closeOverlay() {
-		this.showOverlay = false;
-
-		this.gameService.cancelNativeConnect();
+	exitGame() {
+		this.gameService.exitGame();
 	}
 }

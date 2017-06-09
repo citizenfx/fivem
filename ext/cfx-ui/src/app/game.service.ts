@@ -21,7 +21,7 @@ export abstract class GameService {
     }
 
     set nickname(name: string) {
-        
+
     }
 
     abstract init(): void;
@@ -51,7 +51,7 @@ export abstract class GameService {
     }
 
     protected invokeConnecting(server: Server) {
-        this.connecting.emit(server);   
+        this.connecting.emit(server);
     }
 
     protected invokeConnectStatus(server: Server, message: string, count: number, total: number) {
@@ -279,7 +279,7 @@ export class CfxGameService extends GameService {
 @Injectable()
 export class DummyGameService extends GameService {
     init() {
-        
+
     }
 
     connectTo(server: Server) {
@@ -294,8 +294,8 @@ export class DummyGameService extends GameService {
             setTimeout(() =>
             {
                 this.invokeConnectFailed(server, 'Sorry, we\'re closed. :(');
-            }, 2000);
-        }, 1500);
+            }, 500);
+        }, 500);
     }
 
     pingServers(servers: Server[]): Server[] {
