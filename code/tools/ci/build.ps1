@@ -329,6 +329,8 @@ if (!$DontBuild -and !$IsServer) {
 }
 
 if (!$DontUpload) {
+    $UploadBranch = $env:CI_ENVIRONMENT_NAME
+
     Set-Location $WorkDir\caches
 
     $Branch = $UploadBranch
