@@ -66,6 +66,9 @@ deploy_specific:
     name: specific/$CI_BUILD_REF_NAME
   only:
     - branches
+  tags:
+    - vs2017
+    - client
   except:
     - master
     - server-ci
@@ -78,6 +81,9 @@ deploy_canary:
     - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: canary
+  tags:
+    - vs2017
+    - client
   only:
     - master
 
@@ -90,5 +96,8 @@ deploy_prod:
   environment:
     name: production
   when: manual
+  tags:
+    - vs2017
+    - client
   only:
     - master
