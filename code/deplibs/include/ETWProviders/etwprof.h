@@ -165,6 +165,11 @@ private:
 
 // Portability macros to allow compiling on non-Windows platforms
 
+#ifndef _WIN32
+#define PCSTR const char*
+#define PCWSTR const wchar_t*
+#endif
+
 inline void ETWMark(PCSTR) {}
 inline void ETWMarkW(PCWSTR) {}
 inline void ETWWorkerMark(PCSTR) {}
