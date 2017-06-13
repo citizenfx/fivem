@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
 
 namespace CitizenFX.Core
 {
@@ -18,6 +20,12 @@ namespace CitizenFX.Core
 
 		public InternalManager()
 		{
+			//CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+			//CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+			Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+
 			InitializeAssemblyResolver();
 			CitizenTaskScheduler.Create();
 		}
