@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <sysAllocator.h>
+
 #ifndef max
 #define max std::max
 #define max_defined 1
@@ -15,7 +17,7 @@
 template<typename TValue>
 class atArray
 {
-private:
+public:
 	TValue* m_offset;
 	uint16_t m_count;
 	uint16_t m_size;
@@ -30,14 +32,14 @@ public:
 
 	atArray(int capacity)
 	{
-		m_offset = new TValue[capacity];
+		m_offset = (TValue*)rage::GetAllocator()->allocate(capacity * sizeof(TValue), 16, 0);
 		m_count = 0;
 		m_size = capacity;
 	}
 
 	~atArray()
 	{
-		delete[] m_offset;
+		rage::GetAllocator()->free(m_offset);
 	}
 
 	inline uint16_t GetCount()
