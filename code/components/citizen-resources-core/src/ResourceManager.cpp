@@ -10,6 +10,8 @@
 
 #include <network/uri.hpp>
 
+#include <ETWProviders/etwprof.h>
+
 static thread_local fx::ResourceManager* g_currentManager;
 
 namespace fx
@@ -161,6 +163,7 @@ void ResourceManagerImpl::Tick()
 	// execute resource tick functions
 	ForAllResources([] (fwRefContainer<Resource> resource)
 	{
+		CETWScope etwScope(va("%s tick", resource->GetName()));
 		resource->Tick();
 	});
 

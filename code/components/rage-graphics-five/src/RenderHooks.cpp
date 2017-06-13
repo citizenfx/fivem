@@ -2,6 +2,8 @@
 #include "DrawCommands.h"
 #include "Hooking.h"
 
+#include <ETWProviders/etwprof.h>
+
 #include <mutex>
 
 fwEvent<> OnGrcCreateDevice;
@@ -66,6 +68,15 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 	return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 }
 
+static bool(*g_origRunGame)();
+
+static int RunGameWrap()
+{
+	ETWRenderFrameMark();
+
+	return g_origRunGame();
+}
+
 static HookFunction hookFunction([] ()
 {
 	// device creation
@@ -84,9 +95,13 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_origFrontend, ((uintptr_t*)vtablePtr)[2] + 0xAB);
 	hook::call(((uintptr_t*)vtablePtr)[2] + 0xAB, DrawFrontendWrap);
 
-	/*ptrFunc = hook::pattern("83 64 24 28 00 41 B0 01 C6 44 24 20 01 41 8A C8").count(1).get(0).get<void>(-30);
-	hook::set_call(&g_origEndScene, ptrFunc);
-	hook::call(ptrFunc, EndSceneWrap);*/
+	//ptrFunc = hook::pattern("83 64 24 28 00 41 B0 01 C6 44 24 20 01 41 8A C8").count(1).get(0).get<void>(-30);
+	//hook::set_call(&g_origEndScene, ptrFunc);
+	//hook::call(ptrFunc, EndSceneWrap);
+
+	ptrFunc = hook::get_pattern("41 83 F9 01 75 34 48 83 C4 28 E9", 10);
+	hook::set_call(&g_origRunGame, ptrFunc);
+	hook::jump(ptrFunc, RunGameWrap);
 
 	ptrFunc = hook::pattern("EB 0E 80 3D ? ? ? ? 00 74 05 E8").count(1).get(0).get<void>(55);
 	hook::set_call(&g_loadsDoScene, ptrFunc);

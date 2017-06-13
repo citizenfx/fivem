@@ -12,12 +12,16 @@
 
 #include <GameInit.h>
 
+#include <ETWProviders/etwprof.h>
+
 extern fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 class TestScriptThread : public GtaThread
 {
 	virtual void DoRun() override
 	{
+		CETWScope etwScope("TestScriptThread run");
+
 		static bool initedGame = false;
 
 		if (!initedGame)

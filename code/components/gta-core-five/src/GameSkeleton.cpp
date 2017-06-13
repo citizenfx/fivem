@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <ETWProviders/etwprof.h>
+
 #include <gameSkeleton.h>
 #include <Error.h>
 
@@ -101,6 +103,8 @@ namespace rage
 						if (OnInitFunctionInvoking(type, i, func))
 						{
 							trace(__FUNCTION__ ": Invoking %s %s init (%i out of %i)\n", func.GetName(), InitFunctionTypeToString(type), i + 1, entry->functions.GetCount());
+
+							CETWScope scope(va("%s %s", func.GetName(), InitFunctionTypeToString(type)));
 
 							assert(func.TryInvoke(type));
 						}
