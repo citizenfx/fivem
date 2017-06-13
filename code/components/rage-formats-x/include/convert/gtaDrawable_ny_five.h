@@ -31,6 +31,11 @@ inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 		return "terrain_cb_4lyr_lod.sps"; // regular 4lyr has bump mapping/normals
 	}
 
+	if (strstr(oldSps, "gta_wire"))
+	{
+		return "default.sps";
+	}
+
 	if (strstr(oldSps, "gta_"))
 	{
 		return &oldSps[4] + std::string(".sps");
@@ -44,6 +49,11 @@ inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 	if (strstr(oldSps, "3lyr") || strstr(oldSps, "2lyr"))
 	{
 		return "terrain_cb_4lyr_lod";
+	}
+
+	if (strstr(oldSps, "gta_wire"))
+	{
+		return "default";
 	}
 
 	if (strstr(oldSps, "gta_"))
