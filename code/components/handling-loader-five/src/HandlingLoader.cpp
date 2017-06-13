@@ -11,89 +11,7 @@
 
 #include <Hooking.h>
 
-#include <boost/type_index.hpp>
-
-namespace rage
-{
-class fwEntity
-{
-public:
-	virtual ~fwEntity() = 0;
-	
-	virtual bool IsOfType(uint32_t hash) = 0;
-
-	template<typename T>
-	bool IsOfType()
-	{
-		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
-	}
-};
-
-enum class parMemberType : uint8_t
-{
-	Int = 6,
-	Float = 7,
-	Lewca = 8,
-	String = 0xB,
-	Vector3 = 0x14,
-};
-
-struct parMember
-{
-	uint32_t hash;
-	char pad[12];
-	parMemberType type;
-	// some more
-};
-
-struct parStructure
-{
-	uint32_t hash;
-	char pad[12];
-	void* parserData;
-	parMember** members;
-	uint32_t* offsets;
-};
-}
-
-class CHandlingData
-{
-private:
-	char m_pad[8]; // do a 360 + vmt
-	uint32_t m_name;
-	char m_pad2[1000];
-
-public:
-	CHandlingData(CHandlingData* orig)
-	{
-		memcpy(this, orig, sizeof(*this));
-	}
-
-	inline uint32_t GetName()
-	{
-		return m_name;
-	}
-};
-
-class CVehicle
-{
-private:
-	char m_pad[0x828];
-	CHandlingData* m_handlingData;
-
-public:
-	virtual ~CVehicle() = 0;
-
-	inline CHandlingData* GetHandlingData()
-	{
-		return m_handlingData;
-	}
-
-	inline void SetHandlingData(CHandlingData* ptr)
-	{
-		m_handlingData = ptr;
-	}
-};
+#include <HandlingLoader.h>
 
 static hook::cdecl_stub<rage::fwEntity*(int handle)> getScriptEntity([] ()
 {
@@ -133,7 +51,7 @@ public:
 };
 
 static rage::parStructure* g_parserStructure;
-static atArray<CHandlingData*>* g_handlingData;
+atArray<CHandlingData*>* g_handlingData;
 
 static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* handlingData, const char* fromFunction)
 {
@@ -201,7 +119,7 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	}
 	else
 	{
-		trace("%s only supports HDandlingCata currently\n", fromFunction);
+		trace("%s only supports CHandlingData currently\n", fromFunction);
 
 		context.SetResult(false);
 	}
@@ -283,7 +201,7 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		}
 		else
 		{
-			trace("%s only supports HDandlingCata currently\n", fromFunction);
+			trace("%s only supports CHandlingData currently\n", fromFunction);
 
 			context.SetResult(false);
 		}
@@ -300,8 +218,6 @@ static InitFunction initFunction([] ()
 {
 	fx::ScriptEngine::RegisterNativeHandler("SET_HANDLING_FIELD", [] (fx::ScriptContext& context)
 	{
-		trace("THIS FUNCTION SPONSORED BY Lewca(TM) FAKED EXPENSIVE BRANDS\n");
-
 		const char* handlingName = context.GetArgument<const char*>(0);
 		uint32_t nameHash = HashString(handlingName);
 		
@@ -338,8 +254,6 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_HANDLING_FIELD", [] (fx::ScriptContext& context)
 	{
-		trace("THIS FUNCTION SPONSORED BY liavaIL(TM) .NET REVERSE ENGINEERING TOOLS\n");
-
 		int veh = context.GetArgument<int>(0);
 		
 		rage::fwEntity* entity = getScriptEntity(veh);
@@ -361,7 +275,7 @@ static InitFunction initFunction([] ()
 		}
 		else
 		{
-			trace("no scroipt gwid for vehicle %d in SET_VEHICLE_HANDLING_FIELD\n", veh);
+			trace("no script guid for vehicle %d in SET_VEHICLE_HANDLING_FIELD\n", veh);
 
 			context.SetResult(false);
 		}
@@ -386,26 +300,26 @@ static HookFunction hookFunction([] ()
 
 		void InternalMain() override
 		{
-			// save rdx as it's scratchy and i'm itchy
+			// save rdx, it's a scratch register
 			push(rdx);
 
 			// make scratch space for the function we call
 			sub(rsp, 32);
 
-			// rsi is first argument, like one one'd have with avail and nta
+			// rsi is first argument
 			mov(rcx, rsi);
 
-			// call the function, like you'd call out to someone
+			// call the function
 			mov(rax, (uint64_t)SetFieldOnVehicle);
 			call(rax);
 
-			// scratch got itched, add stack frame
+			// remove scratch space
 			add(rsp, 32);
 
-			// rdx goes back too
+			// restore rdx
 			pop(rdx);
 
-			// bye world
+			// return from the function
 			ret();
 		}
 	} shStub;
