@@ -35,6 +35,8 @@ private:
 
 	int m_parentAppID;
 
+	bool m_richPresenceChanged;
+
 	std::string m_richPresenceTemplate;
 
 	std::string m_richPresenceValues[8];

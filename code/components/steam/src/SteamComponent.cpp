@@ -66,7 +66,7 @@ public:
 };
 
 SteamComponent::SteamComponent()
-	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0), m_parentAppID(218)
+	: m_client(nullptr), m_clientEngine(nullptr), m_callbackIndex(0), m_parentAppID(218), m_richPresenceChanged(false)
 {
 
 }
@@ -229,13 +229,7 @@ void SteamComponent::RunThread()
 				freeLastCallback(m_steamPipe);
 			}
 
-			if ((GetTickCount() - lastRichPresence) > 5000)
-			{
-				UpdateRichPresence();
-
-				lastRichPresence = GetTickCount();
-			}
-
+			UpdateRichPresence();
 		}
 	});
 
@@ -544,7 +538,7 @@ void SteamComponent::SetConnectValue(const std::string& text)
 
 void SteamComponent::UpdateRichPresence()
 {
-	if (m_clientEngine)
+	if (m_clientEngine && m_richPresenceChanged)
 	{
 		InterfaceMapper steamFriendsInterface(m_clientEngine->GetIClientFriends(m_steamUser, m_steamPipe, "CLIENTFRIENDS_INTERFACE_VERSION001"));
 
@@ -562,6 +556,8 @@ void SteamComponent::UpdateRichPresence()
 			);
 
 			steamFriendsInterface.Invoke<bool>("SetRichPresence", 218, "status", formattedRichPresence.c_str());
+
+			m_richPresenceChanged = false;
 		}
 	}
 }
@@ -569,6 +565,8 @@ void SteamComponent::UpdateRichPresence()
 void SteamComponent::SetRichPresenceTemplate(const std::string& text)
 {
 	m_richPresenceTemplate = text;
+
+	m_richPresenceChanged = true;
 }
 
 void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
@@ -576,6 +574,8 @@ void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
 	assert(idx >= 0 && idx < _countof(m_richPresenceValues));
 
 	m_richPresenceValues[idx] = value;
+
+	m_richPresenceChanged = true;
 }
 
 static SteamComponent steamComponent;
