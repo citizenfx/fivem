@@ -1,4 +1,4 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 #include "CefOverlay.h"
 #include "NUIWindowManager.h"
 
@@ -115,7 +115,7 @@ static InitFunction initFunction([] ()
 #else
 #if defined(_HAVE_GRCORE_NEWSTATES)
 				auto oldBlendState = GetBlendState();
-				SetBlendState(GetStockStateIdentifier(BlendStatePremultiplied));
+				SetBlendState(GetStockStateIdentifier(BlendStateDefault));
 #endif
 
 				if (g_cursorTexture)
@@ -123,7 +123,7 @@ static InitFunction initFunction([] ()
 					SetTextureGtaIm(g_cursorTexture);
 
 					uint32_t color = 0xFFFFFFFF;
-					DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 40.0f, cursorPos.y + 40.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
+					DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 32.0f, cursorPos.y + 32.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 				}
 
 #if defined(_HAVE_GRCORE_NEWSTATES)
