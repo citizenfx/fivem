@@ -26,7 +26,11 @@ static InitFunction initFunction([]()
 		// TODO: make instanceable
 		static auto instanceRef = instance;
 		static auto ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
+		static auto maxClientsVar = instance->AddVariable<int>("sv_maxClients", ConVar_ServerInfo, 30);
 		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, false);
+
+		// max clients cap
+		maxClientsVar->GetHelper()->SetConstraints(1, 32);
 
 		struct InfoData
 		{
