@@ -24,6 +24,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		// TODO: make instanceable
+		static auto instanceRef = instance;
 		static auto ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
 		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, false);
 
@@ -40,6 +41,21 @@ static InitFunction initFunction([]()
 
 			void Update()
 			{
+				auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
+
+				infoJson["vars"] = json::object();
+
+				varman->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+				{
+					// don't return more variable information
+					if (name == "sv_infoVersion" || name == "sv_hostname")
+					{
+						return;
+					}
+
+					infoJson["vars"][name] = var->GetValue();
+				}, ConVar_ServerInfo);
+
 				infoJson["version"] = 0;
 
 				infoHash = static_cast<int>(std::hash<std::string>()(infoJson.dump()) & 0x7FFFFFFF);
@@ -126,6 +142,8 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			infoData->Update();
+
 			response->End(infoData->infoJson.dump());
 		});
 
