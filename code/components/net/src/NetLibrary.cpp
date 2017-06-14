@@ -13,6 +13,7 @@
 #include <mmsystem.h>
 #include <yaml-cpp/yaml.h>
 #include <SteamComponentAPI.h>
+#include <LegitimacyAPI.h>
 
 #include <Error.h>
 
@@ -703,71 +704,88 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		}
 	});
 
-	auto steamComponent = GetSteam();
-
-	if (steamComponent)
+	auto continueRequest = [=]()
 	{
-		static uint32_t ticketLength;
-		static uint8_t ticketBuffer[4096];
+		auto steamComponent = GetSteam();
 
-		static int lastCallback = -1;
-
-		IClientEngine* steamClient = steamComponent->GetPrivateClient();
-
-		InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
-		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-		if (steamUser.IsValid())
+		if (steamComponent)
 		{
-			auto removeCallback = []()
+			static uint32_t ticketLength;
+			static uint8_t ticketBuffer[4096];
+
+			static int lastCallback = -1;
+
+			IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+			InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
+			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+			if (steamUser.IsValid())
 			{
-				if (lastCallback != -1)
+				auto removeCallback = []()
 				{
-					GetSteam()->RemoveSteamCallback(lastCallback);
-					lastCallback = -1;
-				}
-			};
+					if (lastCallback != -1)
+					{
+						GetSteam()->RemoveSteamCallback(lastCallback);
+						lastCallback = -1;
+					}
+				};
 
-			removeCallback();
-
-			lastCallback = steamComponent->RegisterSteamCallback<GetAuthSessionTicketResponse_t>([=](GetAuthSessionTicketResponse_t* response)
-			{
 				removeCallback();
 
-				if (response->m_eResult != 1) // k_EResultOK
+				lastCallback = steamComponent->RegisterSteamCallback<GetAuthSessionTicketResponse_t>([=](GetAuthSessionTicketResponse_t* response)
 				{
-					OnConnectionError(va("Failed to obtain Steam ticket, EResult %d.", response->m_eResult));
-				}
-				else
-				{
-					// encode the ticket buffer
-					char outHex[16384];
-					tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
+					removeCallback();
 
-					postMap["authTicket"] = outHex;
+					if (response->m_eResult != 1) // k_EResultOK
+					{
+						OnConnectionError(va("Failed to obtain Steam ticket, EResult %d.", response->m_eResult));
+					}
+					else
+					{
+						// encode the ticket buffer
+						char outHex[16384];
+						tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
 
-					performRequest();
-				}
-			});
+						postMap["authTicket"] = outHex;
 
-			int appID = steamUtils.Invoke<int>("GetAppID");
+						performRequest();
+					}
+				});
 
-			trace("Getting auth ticket for pipe appID %d - should be 218.\n", appID);
+				int appID = steamUtils.Invoke<int>("GetAppID");
 
-			steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
+				trace("Getting auth ticket for pipe appID %d - should be 218.\n", appID);
 
-			OnConnectionProgress("Obtaining Steam ticket...", 0, 100);
+				steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
+
+				OnConnectionProgress("Obtaining Steam ticket...", 0, 100);
+			}
+			else
+			{
+				performRequest();
+			}
 		}
 		else
 		{
 			performRequest();
 		}
-	}
-	else
+	};
+
+	m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", fmt::sprintf("%s:%d", hostname, port) }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
 	{
-		performRequest();
-	}
-	
+		if (success)
+		{
+			auto node = YAML::Load(std::string(data, dataLen));
+
+			if (node["ticket"].IsDefined())
+			{
+				postMap["cfxTicket"] = node["ticket"].as<std::string>();
+			}
+		}
+
+		continueRequest();
+	});
 }
 
 void NetLibrary::CancelDeferredConnection()

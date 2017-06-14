@@ -6,7 +6,8 @@
 		"http-client",
 		"profiles",
 		"vendor:yaml-cpp",
-		"vendor:enet"
+		"vendor:enet",
+		"ros-patches"
 	],
 	"provides": []
 }
