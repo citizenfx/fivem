@@ -9,6 +9,8 @@
 
 #include <sstream>
 
+#include <LegitimacyAPI.h>
+
 #include <botan/cbc.h>
 
 #include <Error.h>
@@ -762,4 +764,12 @@ void VerifyOwnership(int parentPid)
         TerminateProcess(hProcess, 0x8000DEAD);
         TerminateProcess(GetCurrentProcess(), 0x8000DEAD);
     }
+}
+
+namespace ros
+{
+	std::string GetEntitlementSource()
+	{
+		return g_entitlementSource;
+	}
 }
