@@ -14,6 +14,14 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <botan/base64.h>
+#include <botan/sha160.h>
+#include <botan/pubkey.h>
+#include <botan/rsa.h>
+#include <botan/ber_dec.h>
+
+#include <ctime>
+
 #include <ServerIdentityProvider.h>
 
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
@@ -28,6 +36,92 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 }
 }
 
+static bool VerifyTicket(const std::string& guid, const std::string& ticket)
+{
+	auto ticketData = Botan::base64_decode(ticket);
+
+	// validate ticket length
+	if (ticketData.size() < 20 + 4 + 128)
+	{
+		return false;
+	}
+
+	uint32_t length = *(uint32_t*)&ticketData[0];
+
+	if (length != 16)
+	{
+		return false;
+	}
+
+	uint64_t ticketGuid = *(uint64_t*)&ticketData[4];
+	uint64_t ticketExpiry = *(uint64_t*)&ticketData[12];
+
+	// check expiration
+
+	// get UTC time
+	std::time_t timeVal;
+	std::time(&timeVal);
+
+	std::tm* tm = std::gmtime(&timeVal);
+
+	std::time_t utcTime = std::mktime(tm);
+
+	// verify
+	if (ticketExpiry < utcTime)
+	{
+		trace("Connecting player: ticket expired\n");
+		return false;
+	}
+
+	// check the GUID
+	uint64_t realGuid = std::stoull(guid);
+
+	if (realGuid != ticketGuid)
+	{
+		trace("Connecting player: ticket GUID not matching\n");
+		return false;
+	}
+
+	// check the RSA signature
+	uint32_t sigLength = *(uint32_t*)&ticketData[length + 4];
+
+	if (sigLength != 128)
+	{
+		return false;
+	}
+
+	Botan::SHA_160 hashFunction;
+	auto result = hashFunction.process(&ticketData[4], length);
+
+	std::vector<uint8_t> msg(result.size() + 1);
+	msg[0] = 2;
+	memcpy(&msg[1], &result[0], result.size());
+
+	auto modulus = Botan::base64_decode("1DNT1go22VUAU3BON+jCfXxs7Ow9Zxwng4ARTX/vrv6I65bsSYbdBrcc"
+										"w/50Fu7AJr8zy8+sXK8wUO4gx00frtA0adaGeZOeBqNq7/K3Gprv98wc"
+										"ftbxWjUv75pVl9Ush5yxpBPbuYUnGR/Nh2+K3GRrIrKxWYpNSF1JZYzE"
+										"+5k=");
+
+	auto exponent = Botan::base64_decode("AQAB");
+
+	Botan::BigInt n(modulus.data(), modulus.size());
+	Botan::BigInt e(exponent.data(), exponent.size());
+
+	auto pk = Botan::RSA_PublicKey(n, e);
+
+	auto signer = std::make_unique<Botan::PK_Verifier>(pk, "EMSA_PKCS1(SHA-1)");
+
+	bool valid = signer->verify_message(msg.data(), msg.size(), &ticketData[length + 4 + 4], sigLength);
+
+	if (!valid)
+	{
+		trace("Connecting player: ticket RSA signature not matching\n");
+		return false;
+	}
+
+	return true;
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -40,6 +134,8 @@ static InitFunction initFunction([]()
 
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
+
+		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
@@ -57,6 +153,23 @@ static InitFunction initFunction([]()
 			auto name = nameIt->second;
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
+
+			if (!lanVar->GetValue())
+			{
+				auto ticketIt = postMap.find("cfxTicket");
+
+				if (ticketIt == postMap.end())
+				{
+					cb(json::object({ { "error", "No FiveM ticket was specified. If this is an offline server, maybe set sv_lan?"} }));
+					return;
+				}
+
+				if (!VerifyTicket(guid, ticketIt->second))
+				{
+					cb(json::object({ { "error", "FiveM ticket authorization failed." } }));
+					return;
+				}
+			}
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 
