@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -1647,6 +1647,9 @@ static HookFunction hookFunction([] ()
 
 	// disable netrelay thread
 	//hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
+
+	// change session count
+	hook::put<uint32_t>(hook::get_pattern("C7 86 ? ? ? 00 18 00 00 00", 6), 0x40 >> 1);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()
