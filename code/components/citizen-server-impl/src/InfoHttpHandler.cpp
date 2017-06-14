@@ -5,6 +5,8 @@
 #include <ServerInstanceBase.h>
 #include <HttpServerManager.h>
 
+#include <ResourceManager.h>
+
 #include <VFSManager.h>
 
 #include <botan/base64.h>
@@ -38,7 +40,7 @@ static InitFunction initFunction([]()
 			int infoHash;
 
 			InfoData()
-				: infoHash(0), infoJson({ { "server", "FXServer-pre" }, { "enhancedHostSupport", true }, { "resources", { "hardcap" } } })
+				: infoHash(0), infoJson({ { "server", "FXServer-pre" }, { "enhancedHostSupport", true }, { "resources", { } } })
 			{
 				Update();
 			}
@@ -59,6 +61,27 @@ static InitFunction initFunction([]()
 
 					infoJson["vars"][name] = var->GetValue();
 				}, ConVar_ServerInfo);
+
+				infoJson["resources"] = json::array();
+				infoJson["resources"].push_back("hardcap");
+
+				auto resman = instanceRef->GetComponent<fx::ResourceManager>();
+				resman->ForAllResources([&](fwRefContainer<fx::Resource> resource)
+				{
+					// we've already listed hardcap, no need to actually return it again
+					if (resource->GetName() == "hardcap")
+					{
+						return;
+					}
+
+					// only output started resources
+					if (resource->GetState() != fx::ResourceState::Started)
+					{
+						return;
+					}
+
+					infoJson["resources"].push_back(resource->GetName());
+				});
 
 				infoJson["version"] = 0;
 
@@ -189,5 +212,5 @@ static InitFunction initFunction([]()
 
 			response->End(data.dump());
 		});
-	});
+	}, 1500);
 });
