@@ -166,20 +166,27 @@ static void ModifyHandlingForVehicles(const TSet& changedHandlings)
 
 		if (idx >= 0)
 		{
-			auto handlingData = g_handlingData->Get(idx);
-			auto name = handlingData->GetName();
-
-			if (changedHandlings.find(name) != changedHandlings.end())
+			if (g_handlingData->GetCount())
 			{
-				const auto& stack = g_handlingStack[name];
+				auto handlingData = g_handlingData->Get(idx);
 
-				if (stack.empty())
+				if (handlingData)
 				{
-					trace("ModifyHandlingForVehicles: %08x is without handling!\n", name);
-				}
-				else
-				{
-					modelInfo->handlingDataIndex = stack.front();
+					auto name = handlingData->GetName();
+
+					if (changedHandlings.find(name) != changedHandlings.end())
+					{
+						const auto& stack = g_handlingStack[name];
+
+						if (stack.empty())
+						{
+							trace("ModifyHandlingForVehicles: %08x is without handling!\n", name);
+						}
+						else
+						{
+							modelInfo->handlingDataIndex = stack.front();
+						}
+					}
 				}
 			}
 		}
@@ -254,20 +261,26 @@ static bool UnloadHandlingFile(const char* handlingPath)
 	// delete the handling entries
 	for (auto entry : fx::GetIteratorView(g_handlingByFile.equal_range(handlingPathStr)))
 	{
-		uint16_t idx = entry.second;
-		auto handlingData = g_handlingData->Get(idx);
-
-		g_handlingData->Set(idx, nullptr);
-
-		auto& subHandling = handlingData->GetSubHandlingData();
-
-		for (int i = 0; i < subHandling.GetCount(); i++)
+		if (g_handlingData->GetCount())
 		{
-			delete subHandling.Get(i);
-			subHandling.Set(i, nullptr);
-		}
+			uint16_t idx = entry.second;
+			auto handlingData = g_handlingData->Get(idx);
 
-		delete handlingData;
+			if (handlingData)
+			{
+				g_handlingData->Set(idx, nullptr);
+
+				auto& subHandling = handlingData->GetSubHandlingData();
+
+				for (int i = 0; i < subHandling.GetCount(); i++)
+				{
+					delete subHandling.Get(i);
+					subHandling.Set(i, nullptr);
+				}
+
+				delete handlingData;
+			}
+		}
 	}
 
 	g_handlingByFile.erase(handlingPathStr);
