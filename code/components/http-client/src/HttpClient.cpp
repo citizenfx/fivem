@@ -252,10 +252,15 @@ void HttpClient::DoGetRequest(const std::wstring& host, uint16_t port, const std
 {
 	auto urlStr = MakeURL(host, port, url);
 
+	DoGetRequest(urlStr, callback);
+}
+
+void HttpClient::DoGetRequest(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback)
+{
 	CURL* curlHandle;
 	CurlData* curlData;
 
-	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+	std::tie(curlHandle, curlData) = SetupCURLHandle(url, callback);
 
 	m_impl->AddCurlHandle(curlHandle);
 }
@@ -274,11 +279,26 @@ void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const st
 {
 	auto urlStr = MakeURL(host, port, url);
 
+	return DoPostRequest(urlStr, postData, headersMap, callback, headerCallback);
+}
+
+void HttpClient::DoPostRequest(const std::string& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoPostRequest(url, BuildPostString(fields), callback);
+}
+
+void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoPostRequest(url, postData, {}, callback);
+}
+
+void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+{
 	// make handle
 	CURL* curlHandle;
 	CurlData* curlData;
 
-	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+	std::tie(curlHandle, curlData) = SetupCURLHandle(url, callback);
 
 	// assign post data
 	curlData->postData = postData;
