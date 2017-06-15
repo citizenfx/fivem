@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -252,11 +252,8 @@ static HookFunction initFunction([] ()
 
 				CefMouseEvent mouseEvent;
 
-				mouseEvent.x = GET_X_LPARAM(lParam);
-				mouseEvent.y = GET_Y_LPARAM(lParam);
-
-				g_cursorPos.x = mouseEvent.x;
-				g_cursorPos.y = mouseEvent.y;
+				mouseEvent.x = g_cursorPos.x;
+				mouseEvent.y = g_cursorPos.y;
 
 				auto browser = nui::GetBrowser();
 
@@ -267,7 +264,12 @@ static HookFunction initFunction([] ()
 
 				pass = false;
 				lresult = TRUE;
-
+				return;
+			}
+			else if (msg == WM_INPUT)
+			{
+				pass = false;
+				lresult = TRUE;
 				return;
 			}
 		}
