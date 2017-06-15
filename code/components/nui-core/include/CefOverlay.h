@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -54,6 +54,7 @@ namespace nui
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
 	void OVERLAY_DECL GiveFocus(bool hasFocus);
+	void OVERLAY_DECL GiveFocus(bool hasFocus, bool hasCursor);
 	bool OVERLAY_DECL HasMainUI();
 	void OVERLAY_DECL SetMainUI(bool enable);
 

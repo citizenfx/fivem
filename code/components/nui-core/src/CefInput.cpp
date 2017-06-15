@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -12,6 +12,7 @@
 #include <windowsx.h>
 
 static bool g_hasFocus = false;
+bool g_hasCursor = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
 
@@ -55,6 +56,17 @@ namespace nui
 #endif
 
 		g_hasFocus = hasFocus;
+		g_hasCursor = false;
+	}
+
+	void GiveFocus(bool hasFocus, bool hasCursor)
+	{
+		GiveFocus(hasFocus);
+
+		if (hasFocus)
+		{
+			g_hasCursor = hasCursor;
+		}
 	}
 
 	void ProcessInput()
@@ -252,11 +264,8 @@ static HookFunction initFunction([] ()
 
 				CefMouseEvent mouseEvent;
 
-				mouseEvent.x = GET_X_LPARAM(lParam);
-				mouseEvent.y = GET_Y_LPARAM(lParam);
-
-				g_cursorPos.x = mouseEvent.x;
-				g_cursorPos.y = mouseEvent.y;
+				mouseEvent.x = g_cursorPos.x;
+				mouseEvent.y = g_cursorPos.y;
 
 				auto browser = nui::GetBrowser();
 
@@ -267,7 +276,12 @@ static HookFunction initFunction([] ()
 
 				pass = false;
 				lresult = TRUE;
-
+				return;
+			}
+			else if (msg == WM_INPUT)
+			{
+				pass = false;
+				lresult = TRUE;
 				return;
 			}
 		}
