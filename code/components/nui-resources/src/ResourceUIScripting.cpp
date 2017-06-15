@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -114,10 +114,11 @@ static InitFunction initFunction([] ()
 						if (resource->GetName().find('"') == std::string::npos)
 						{
 							bool hasFocus = context.GetArgument<bool>(0);
-							const char* functionName = (hasFocus) ? "focusFrame" : "blurFrame";
 
+							const char* functionName = (hasFocus) ? "focusFrame" : "blurFrame";
 							nui::ExecuteRootScript(va("%s(\"%s\");", functionName, resource->GetName().c_str()));
-							nui::GiveFocus(hasFocus);
+
+							nui::GiveFocus(hasFocus, context.GetArgument<bool>(1));
 						}
 					}
 				}

@@ -6,6 +6,7 @@
 
 #include "memdbgon.h"
 
+extern bool g_hasCursor;
 extern POINT g_cursorPos;
 
 extern rage::grcTexture* g_cursorTexture;
@@ -96,7 +97,7 @@ static InitFunction initFunction([] ()
 #endif
 			});
 
-			if (nui::HasMainUI())
+			if (nui::HasMainUI() || g_hasCursor)
 			{
 				POINT cursorPos = g_cursorPos;
 

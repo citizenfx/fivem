@@ -12,6 +12,7 @@
 #include <windowsx.h>
 
 static bool g_hasFocus = false;
+bool g_hasCursor = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
 
@@ -55,6 +56,17 @@ namespace nui
 #endif
 
 		g_hasFocus = hasFocus;
+		g_hasCursor = false;
+	}
+
+	void GiveFocus(bool hasFocus, bool hasCursor)
+	{
+		GiveFocus(hasFocus);
+
+		if (hasFocus)
+		{
+			g_hasCursor = hasCursor;
+		}
 	}
 
 	void ProcessInput()
