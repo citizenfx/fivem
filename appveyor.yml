@@ -1,0 +1,11 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+clone_depth: 1
+environment:
+  matrix:
+  - IS_FXSERVER: 0
+  - IS_FXSERVER: 1
+build_script:
+- ps: .\code\tools\ci\build.ps1 -DontUpload $true -SaveDir C:\save
+artifacts:
+- path: caches/
