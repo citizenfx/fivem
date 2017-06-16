@@ -107,7 +107,22 @@ void EnsureGamePath()
 
 			if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot, nullptr, IID_IShellItem, (void**)item.GetAddressOf())))
 			{
+				auto checkFile = [&](const std::wstring& path)
+				{
+					return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
+				};
+
 				fileDialog->SetFolder(item.Get());
+
+				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") &&
+					checkFile(L"x64g.rpf") && checkFile(L"common.rpf") &&
+					checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") &&
+					checkFile(L"GTA5.exe"))
+				{
+					WritePrivateProfileString(L"Game", pathKey, gameRoot, fpath.c_str());
+
+					return;
+				}
 			}
 		}
 	}
@@ -162,10 +177,8 @@ void EnsureGamePath()
 
 		ExitProcess(0);
 	}
-	
+
 	WritePrivateProfileString(L"Game", pathKey, resultPath, fpath.c_str());
 
 	CoTaskMemFree(resultPath);
-
-	CoUninitialize();
 }
