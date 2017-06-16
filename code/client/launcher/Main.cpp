@@ -379,14 +379,8 @@ void main()
 
 	if (!toolMode)
 	{
-		// prevent accidental duplicate instances
-		if (!initState->IsMasterProcess())
-		{
-			return;
-		}
-
 		// game launcher initialization
-		CitizenGame::Launch(gameExecutable);
+		CitizenGame::Launch(gameExecutable, true);
 	}
 	else
 	{

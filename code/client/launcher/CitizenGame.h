@@ -13,7 +13,7 @@ private:
 	static void InvokeEntryPoint(void(*)());
 
 public:
-	static void Launch(const std::wstring& gamePath);
+	static void Launch(const std::wstring& gamePath, bool isMainGame = false);
 
     static void SetCoreMapping();
 };

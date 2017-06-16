@@ -15,6 +15,9 @@
 
 #include <winternl.h>
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 #include <Error.h>
 
 static ILauncherInterface* g_launcher;
@@ -332,7 +335,7 @@ void CitizenGame::SetCoreMapping()
     }
 }
 
-void CitizenGame::Launch(const std::wstring& gamePath)
+void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
 	void* sandboxInfo = nullptr;
@@ -369,6 +372,14 @@ void CitizenGame::Launch(const std::wstring& gamePath)
 	if (!launcher->PreLoadGame(sandboxInfo))
 	{
 		ExitProcess(0);
+	}
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	// prevent accidental duplicate instances
+	if (isMainGame && !initState->IsMasterProcess())
+	{
+		return;
 	}
 
 	// load the game executable data in temporary memory
