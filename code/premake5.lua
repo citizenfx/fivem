@@ -108,7 +108,9 @@ workspace "CitizenMP"
 	configuration "windows"
 		links { "winmm" }
 
-	configuration "not windows"
+	filter { 'system:not windows', 'language:C or language:C++' }
+		architecture 'x64'
+
 		buildoptions {
 			"-fPIC", -- required to link on AMD64
 		}
@@ -150,7 +152,6 @@ if _OPTIONS['game'] ~= 'server' then
 		pchheader "StdInc.h"
 end
 
-if os.is('windows') then
 	project "CitiMono"
 		targetname "CitizenFX.Core"
 		language "C#"
@@ -164,14 +165,15 @@ if os.is('windows') then
 			files { "client/clrcore/External/*.cs" }
 		end
 
-		links { "System", "Microsoft.CSharp", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
+		links { "System.dll", "Microsoft.CSharp.dll", "System.Core.dll", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
+
+		buildoptions '/debug:portable'
 
 		configuration "Debug*"
 			targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
 
 		configuration "Release*"
 			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
-end
 
 	group ""
 
