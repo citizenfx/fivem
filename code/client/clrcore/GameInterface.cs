@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -17,6 +17,6 @@ namespace CitizenFX.Core
 
 		[SecurityCritical]
 		[DllImport("CoreRT", EntryPoint = "CoreFxCreateObjectInstance")]
-		public static extern int CreateObjectInstance(Guid clsid, Guid iid, out IntPtr objectPtr);
+		public static extern int CreateObjectInstance([MarshalAs(UnmanagedType.LPStruct)] Guid clsid, [MarshalAs(UnmanagedType.LPStruct)] Guid iid, out IntPtr objectPtr);
     }
 }
