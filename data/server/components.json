@@ -13,5 +13,7 @@
   "citizen:resources:metadata:lua",
   "vfs:core",
   "vfs:impl:server",
-  "scripting:server"
+  "scripting:server",
+  "svadhesive",
+  "citizen:scripting:mono"
 ]
