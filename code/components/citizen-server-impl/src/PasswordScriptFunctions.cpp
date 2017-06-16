@@ -9,7 +9,9 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_PASSWORD_HASH", [](fx::ScriptContext& context)
 	{
-		std::string password = context.GetArgument<const char*>(0);
+		const char* str = context.GetArgument<const char*>(0);
+
+		std::string password = (str != nullptr) ? str : "";
 
 		Botan::AutoSeeded_RNG rng;
 		static thread_local std::string hashed;

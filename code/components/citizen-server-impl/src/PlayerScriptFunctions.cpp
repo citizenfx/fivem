@@ -30,11 +30,15 @@ static InitFunction initFunction([]()
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 			// parse the client ID
-			std::string id = context.GetArgument<const char*>(0);
+			const char* id = context.GetArgument<const char*>(0);
 
-			uint32_t netId;
+			if (!id)
+			{
+				context.SetResult(nullptr);
+				return;
+			}
 
-			netId = atoi(id.c_str());
+			uint32_t netId = atoi(id);
 
 			auto client = clientRegistry->GetClientByNetID(netId);
 
