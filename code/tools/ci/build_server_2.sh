@@ -85,8 +85,8 @@ cp -a bin/server/linux/release/*.json /opt/cfx-server
 cp tools/ci/run.sh /opt/cfx-server
 chmod +x /opt/cfx-server/run.sh
 
-mkdir /opt/cfx-server/citizen/clr2/cfg/4.5/
-mkdir /opt/cfx-server/citizen/clr2/lib/mono/4.5/
+mkdir -p /opt/cfx-server/citizen/clr2/cfg/4.5/
+mkdir -p /opt/cfx-server/citizen/clr2/lib/mono/4.5/
 
 cp -a /usr/lib/mono/4.5/Facades/ /opt/cfx-server/citizen/clr2/lib/mono/4.5/Facades/
 
