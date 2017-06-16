@@ -58,6 +58,7 @@ sudo -u build ./proot-x86_64 -S $PWD/alpine/ -b $PWD/:/src/ -b $PWD/../fivem-pri
 
 # package artifacts
 cp data/server_proot/run.sh run.sh
+chmod +x run.sh
 mv proot-x86_64 proot
 
 tar cJf fx.tar.xz alpine/ proot run.sh
