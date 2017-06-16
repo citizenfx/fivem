@@ -88,6 +88,9 @@ chmod +x /opt/cfx-server/run.sh
 mkdir -p /opt/cfx-server/citizen/clr2/cfg/4.5/
 mkdir -p /opt/cfx-server/citizen/clr2/lib/mono/4.5/
 
+cp -a bin/server/linux/release/citizen/ /opt/cfx-server
+cp -a ../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll /opt/cfx-server/citizen/clr2/lib/mono/4.5/
+
 cp -a /usr/lib/mono/4.5/Facades/ /opt/cfx-server/citizen/clr2/lib/mono/4.5/Facades/
 
 for dll in Microsoft.CSharp.dll Mono.CSharp.dll Mono.Posix.dll mscorlib.dll \
