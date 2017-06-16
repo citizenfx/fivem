@@ -13,19 +13,23 @@
 #include <Error.h>
 
 #include <mono/jit/jit.h>
+#include <mono/utils/mono-logger.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/threads.h>
 #include <mono/metadata/exception.h>
 #include <mono/metadata/mono-debug.h>
 
+#ifndef IS_FXSERVER
 extern "C"
 {
 	#include <mono/metadata/security-core-clr.h>
 }
+#endif
 
 static MonoDomain* g_rootDomain;
 
+#ifndef IS_FXSERVER
 const static wchar_t* const g_platformAssemblies[] =
 {
 	L"mscorlib.dll",
@@ -82,6 +86,7 @@ static int CoreClrCallback(const char* imageName)
 
 	return FALSE;
 }
+#endif
 
 static void OutputExceptionDetails(MonoObject* exc)
 {
@@ -115,20 +120,37 @@ static void GI_PrintLogCall(MonoString* str)
 MonoMethod* g_getImplementsMethod;
 MonoMethod* g_createObjectMethod;
 
-static void InitMono()
+static inline std::string MakeRelativeNarrowPath(const std::string& path)
 {
 #ifdef _WIN32
-	mono_set_dirs("citizen/clr2/lib/", "citizen/clr2/cfg/");
+	return ToNarrow(MakeRelativeCitPath(ToWide(path)));
+#else
+	return MakeRelativeCitPath(path);
 #endif
+}
 
-	std::wstring citizenClrPath = MakeRelativeCitPath(L"citizen/clr2/lib/");
+static void InitMono()
+{
+	std::string citizenClrPath = MakeRelativeNarrowPath("citizen/clr2/lib/");
+	std::string citizenCfgPath = MakeRelativeNarrowPath("citizen/clr2/cfg/");
+
+	mono_set_dirs(citizenClrPath.c_str(), citizenCfgPath.c_str());
+
+#ifdef _WIN32
 	std::wstring citizenClrLibPath = MakeRelativeCitPath(L"citizen/clr2/lib/mono/4.5/");
 
 	SetEnvironmentVariable(L"MONO_PATH", citizenClrLibPath.c_str());
-	SetEnvironmentVariable(L"MONO_DEBUG", L"casts");
 
-	mono_assembly_setrootdir(ToNarrow(citizenClrPath).c_str());
 	mono_set_crash_chaining(true);
+#else
+	std::string citizenClrLibPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/");
+
+	putenv(const_cast<char*>(va("MONO_PATH=%s", citizenClrLibPath)));
+#endif
+
+	mono_assembly_setrootdir(citizenClrPath.c_str());
+
+	putenv("MONO_DEBUG=casts");
 
 #ifndef IS_FXSERVER
 	mono_security_enable_core_clr();
@@ -137,13 +159,22 @@ static void InitMono()
 #endif
 
 	char* args[1];
+
+#ifdef _WIN32
 	args[0] = "--soft-breakpoints";
+#else
+	args[0] = "--use-fallback-tls";
+#endif
 
 	mono_jit_parse_options(1, args);
 
 	mono_debug_init(MONO_DEBUG_FORMAT_MONO);
 
+	trace("Initializing Mono\n");
+
 	g_rootDomain = mono_jit_init_version("Citizen", "v4.0.30319");
+
+	trace("Initializing Mono completed\n");
 
 	mono_install_unhandled_exception_hook([] (MonoObject* exc, void*)
 	{
@@ -152,12 +183,12 @@ static void InitMono()
 
 	mono_set_crash_chaining(true);
 
-	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", GI_PrintLogCall);
-	mono_add_internal_call("CitizenFX.Core.GameInterface::fwFree", fwFree);
+	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", reinterpret_cast<void*>(GI_PrintLogCall));
+	mono_add_internal_call("CitizenFX.Core.GameInterface::fwFree", reinterpret_cast<void*>(fwFree));
 
-	std::wstring platformPath = MakeRelativeCitPath(L"citizen\\clr2\\lib\\mono\\4.5\\CitizenFX.Core.dll");
+	std::string platformPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/CitizenFX.Core.dll");
 
-	auto scriptManagerAssembly = mono_domain_assembly_open(g_rootDomain, ToNarrow(platformPath).c_str());
+	auto scriptManagerAssembly = mono_domain_assembly_open(g_rootDomain, platformPath.c_str());
 
 	if (!scriptManagerAssembly)
 	{
