@@ -183,7 +183,7 @@ namespace CitizenFX.Core
 
 				foreach (var script in scripts)
 				{
-					script.EventHandlers.Invoke(eventName, objArray);
+					script.EventHandlers.Invoke(eventName, sourceString, objArray);
 				}
 
 				ExportDictionary.Invoke(eventName, objArray);

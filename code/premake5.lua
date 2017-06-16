@@ -163,6 +163,8 @@ end
 
 		if _OPTIONS['game'] ~= 'server' then
 			files { "client/clrcore/External/*.cs" }
+		else
+			files { "client/clrcore/Server/*.cs" }
 		end
 
 		links { "System.dll", "Microsoft.CSharp.dll", "System.Core.dll", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
