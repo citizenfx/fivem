@@ -112,7 +112,7 @@ namespace CitizenFX.Core
             TriggerEventInternal(eventName, argsSerialized, true);
         }
 #else
-		void TriggerClientEvent(Player player, string eventName, params object[] args)
+		public static void TriggerClientEvent(Player player, string eventName, params object[] args)
 		{
 			player.TriggerEvent(eventName, args);
 		}
@@ -122,7 +122,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="eventName">The name of the event.</param>
 		/// <param name="args">Arguments to pass to the event.</param>
-		void TriggerClientEvent(string eventName, params object[] args)
+		public static void TriggerClientEvent(string eventName, params object[] args)
 		{
 			var argsSerialized = MsgPackSerializer.Serialize(args);
 
