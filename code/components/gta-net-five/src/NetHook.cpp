@@ -210,7 +210,7 @@ struct ScUnkAddr
 	uint64_t pad;
 	ScSessionAddr addr;
 	uint32_t unkVal;
-	char pad2[292]; // seriously this struct is weird
+	char pad2[284]; // seriously this struct is weird - even in 1032
 	char systemKey[16];
 };
 
@@ -264,7 +264,7 @@ static hook::cdecl_stub<void()> doPresenceStuff([] ()
 
 static hook::cdecl_stub<void(void*, ScSessionAddr*, int64_t, int)> joinGame([] ()
 {
-	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F9 45 8B E8 4C 8B").count(1).get(0).get<void>(-0x24);
+	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F1 45 8B E0 4C 8B").count(1).get(0).get<void>(-0x24);
 });
 
 static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
@@ -274,6 +274,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	//return hook::get_call(hook::pattern("48 8B 41 10 BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<void>(0x11));
 
 	// 505 has it be a xchg-type jump
+	// same for 1032
 	uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
 
 	if (*loc == 0xE9)
@@ -322,7 +323,7 @@ OnlineAddress* GetOurOnlineAddressRaw()
 
 static hook::cdecl_stub<bool()> isSessionStarted([] ()
 {
-	return hook::pattern("74 0E 83 B9 ? ? 00 00 08 75 05 B8 01").count(1).get(0).get<void>(-12);
+	return hook::pattern("74 0E 83 B9 ? ? 00 00 ? 75 05 B8 01").count(1).get(0).get<void>(-12);
 });
 
 #include <HostSystem.h>
@@ -585,7 +586,7 @@ static void SendMetric(const std::string& metric);
 
 static std::string g_globalServerAddress;
 
-static HookFunction initFunction([] ()
+static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
 
@@ -640,7 +641,7 @@ static HookFunction initFunction([] ()
 
 	static bool doTickThisFrame = false;
 
-	OnGameFrame.Connect([] ()
+	OnGameFrame.Connect([]()
 	{
 		GetOurOnlineAddressRaw();
 
@@ -698,9 +699,9 @@ static HookFunction initFunction([] ()
 		{
 			gameLoaded = false;
 			
-			if (*g_dlcMountCount != 90)
+			if (*g_dlcMountCount != 105)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 90);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 105);
 
 				return;
 			}
@@ -1141,8 +1142,8 @@ private:
 public:
 	SOCKET socket; // +8
 	netConnectionManager* secondarySocket; // +16 // or similar..
-	char m_pad[400]; // +24
-	ncm_struct unkStructs[16];
+	char m_pad[424]; // +24
+	ncm_struct unkStructs[16]; // + 448
 };
 
 struct netConnectionManagerInternal
@@ -1191,6 +1192,7 @@ void RunNetworkStuff()
 	// set timer stuff in connection manager
 	// this seems to be required to actually retain sync
 	// NOTE: 505-specific (struct offsets, ..)!!
+	// updated for 1103
 	for (auto& entry : g_netConnectionManager->unkStructs)
 	{
 		entry.SetUnkTimeValue(&g_internalNet->unk_marker);
@@ -1237,11 +1239,11 @@ static HookFunction hookFunction([] ()
 	});*/
 
 	//char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? E8").count(1).get(0).get<char>(10);
-	char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? 88 1D").count(1).get(0).get<char>(10); // 463/505
+	char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D").count(1).get(0).get<char>(10); // 463/505
 
 	g_netNewVal = (int*)(*(int32_t*)getNewNewVal + getNewNewVal + 4);
 
-	getNewNewVal -= 0x37;
+	getNewNewVal -= 0x3F;
 
 	hook::jump(getNewNewVal, GetNetNewVal);
 
@@ -1278,7 +1280,9 @@ static HookFunction hookFunction([] ()
 	// 372 change
 	//void* migrateCmd = hook::pattern("48 8B 47 70 48 81 C1 88 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	// 463/505 change
-	void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
+	//void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
+	// 1032 change
+	void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
 	hook::call(migrateCmd, MigrateSessionCopy);
 
@@ -1326,20 +1330,21 @@ static HookFunction hookFunction([] ()
 
 	// we also need some pointers from this function
 	//char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
-	char* netAddressFunc = hook::pattern("89 79 10 48 89 39 48 89 79 08 89 71 14 66").count(1).get(0).get<char>(-0x1E);
+	char* netAddressFunc = hook::pattern("89 79 10 48 89 39 48 89 79 08 89 69 14 66 89 79").count(1).get(0).get<char>(-0x23);
 	hook::jump(netAddressFunc, GetOurOnlineAddress);
 
 	// added in 393
 	//hook::jump(hook::get_call(netAddressFunc + 0x5D), HashSecKeyAddress);
-	hook::jump(hook::get_call(netAddressFunc + 0x61), HashSecKeyAddress); // 505
+	//hook::jump(hook::get_call(netAddressFunc + 0x61), HashSecKeyAddress); // 505-1032
+	hook::jump(hook::get_call(netAddressFunc + 0x66), HashSecKeyAddress); // 1103
 
 	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x75); // 350-
 	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x78); // 372
 	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x88); // 393
-	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x94); // 505
+	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x6B); // 505
 	// ^ 372 change, 393 change, 505 change
 
-	netAddressFunc += 0x1A;
+	netAddressFunc += 0x1F;
 
 	bool* didNetAddressBool = (bool*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
 
@@ -1421,7 +1426,7 @@ static HookFunction hookFunction([] ()
 
 	// temp dbg: always clone a player (to see why this CTaskMove flag is being a twat)
 	//hook::jump(hook::pattern("74 06 F6 40 2F 01 75 0E 48 8B D7").count(1).get(0).get<void>(-0x27), ReturnTrue);
-	hook::jump(hook::pattern("74 06 F6 40 2F 01 75 0E 48 8B D7").count(1).get(0).get<void>(-0x27), ReturnTrueAndKillThatTask);
+	hook::jump(hook::pattern("48 85 C0 74 13 ? ? ? ? 74 0D 48 85 DB 74 19").count(1).get(0).get<void>(-0x37), ReturnTrueAndKillThatTask);
 	
 	// other security key thing
 	//hook::jump(hook::pattern("8B C0 41 8B C9 48 69 C9 A7 FA DC 5C 48").count(1).get(0).get<void>(-0x38), GetOurSecurityKey);
@@ -1518,7 +1523,7 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::pattern("83 79 10 00 74 05 48 8D 41 08 C3 33 C0 C3").count(1).get(0).get<void>(4), 2);
 
 	// semi-related: adding to a script handler checking for the above value being 0
-	hook::nop(hook::pattern("FF 50 28 45 33 FF 48 85 C0 0F 85").count(1).get(0).get<void>(9), 6);
+	hook::nop(hook::pattern("FF 50 28 45 33 E4 48 85 C0 0F 85").count(1).get(0).get<void>(9), 6);
 
 	// really weird patch to auto-start the session (?s in short jumps are because of +0x38 differences with steam/retail)
 	//hook::put<uint8_t>(hook::pattern("84 C0 74 ? 83 BB ? ? 00 00 07 74 ? E8").count(1).get(0).get<void>(2), 0xEB);
@@ -1594,7 +1599,7 @@ static HookFunction hookFunction([] ()
 	g_isNetGame = (bool*)(location + *(int32_t*)location + 4 + 1); // 1 as end of instruction is after '00', cmp
 
 	// CMsgJoinResponse sending
-	location = hook::pattern("4C 8D 8A 24 02 00 00 48 83 C2 24 E8").count(1).get(0).get<char>(11);
+	location = hook::pattern("48 8D 4C 24 28 41 B8 00 02 00 00 E8").count(1).get(0).get<char>(11);
 
 	hook::set_call(&g_origJoinResponse, location);
 	hook::call(location, HookSendJoinResponse);
@@ -1629,7 +1634,7 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::get_pattern("41 F6 47 40 02 0F 84 ? ? ? ? 49 8B 4F 28 BA", 5), 6);
 
 	// get calls for RageNetSend function
-	hook::set_call(&g_handleQueuedSend, hook::get_pattern("48 8B CE E8 ? ? ? ? 48 8D BE A8 01 00 00 41", 3));
+	hook::set_call(&g_handleQueuedSend, hook::get_pattern("48 8B CE E8 ? ? ? ? 48 8D BE ? 01 00 00 41", 3));
 
 	// replace the call to thread init to get the internal connection manager struct address
 	{
@@ -1649,13 +1654,19 @@ static HookFunction hookFunction([] ()
 	//hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
 
 	// change session count
-	hook::put<uint32_t>(hook::get_pattern("C7 86 ? ? ? 00 18 00 00 00", 6), 0x40 >> 1);
+	hook::put<uint32_t>(hook::get_pattern("C7 87 ? ? ? 00 18 00 00 00", 6), 0x40 >> 1);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()
 	{
 		RunNetworkStuff();
 	});
+
+	// disable unknown stuff
+	{
+		// 1032/1103!
+		hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
+	}
 
 	// find autoid descriptors
 	auto matches = hook::pattern("48 89 03 8B 05 ? ? ? ? A8 01 75 21 83 C8 01 48 8D 0D");

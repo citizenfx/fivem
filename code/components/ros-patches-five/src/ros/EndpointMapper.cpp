@@ -78,6 +78,16 @@ static InitFunction initFunction([] ()
 	secureServer->AddRef();
 	secureServer->SetPort(443);
 
+	// create auth-prod TLS servers
+	fwRefContainer<LoopbackTcpServer> insecureServer2 = tcpServerManager->RegisterTcpServer("auth-prod.ros.rockstargames.com");
+	insecureServer2->AddRef();
+	insecureServer2->SetPort(80);
+
+	// create the TLS backend server
+	fwRefContainer<LoopbackTcpServer> secureServer2 = tcpServerManager->RegisterTcpServer("auth-prod.ros.rockstargames.com");
+	secureServer2->AddRef();
+	secureServer2->SetPort(443);
+
 	// create the local socket server, if enabled
 	if (wcsstr(GetCommandLine(), L"ros:legit") != nullptr)
 	{
@@ -96,7 +106,12 @@ static InitFunction initFunction([] ()
 	net::TLSServer* tlsWrapper = new net::TLSServer(secureServer, "citizen/ros/ros.crt", "citizen/ros/ros.key");
 	tlsWrapper->AddRef();
 
+	net::TLSServer* tlsWrapper2 = new net::TLSServer(secureServer2, "citizen/ros/ros.crt", "citizen/ros/ros.key");
+	tlsWrapper2->AddRef();
+
 	// attach the endpoint mappers
 	httpServer->AttachToServer(tlsWrapper);
+	httpServer->AttachToServer(tlsWrapper2);
 	httpServer->AttachToServer(insecureServer);
+	httpServer->AttachToServer(insecureServer2);
 }, -500);

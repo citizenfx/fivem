@@ -178,10 +178,16 @@ static hook::cdecl_stub<void(DataFileEntry* entry)> _removePackfile([]()
 bool CfxPackfileMounter::MountFile(DataFileEntry* entry)
 {
 	// 505 hardcoded
-	auto _initManifestChunk = (void(*)(void*))0x1408C8B94;
-	auto _loadManifestChunk = (void(*)(void*))0x1408CCA6C;
-	auto _clearManifestChunk = (void(*)(void*))0x14089AC8C;
-	auto manifestChunkPtr = (void*)0x1422F5230;
+	//auto _initManifestChunk = (void(*)(void*))0x1408C8B94;
+	//auto _loadManifestChunk = (void(*)(void*))0x1408CCA6C;
+	//auto _clearManifestChunk = (void(*)(void*))0x14089AC8C;
+	//auto manifestChunkPtr = (void*)0x1422F5230;
+
+	// 1103 hardcoded
+	auto _initManifestChunk = (void(*)(void*))0x1408FA41C;
+	auto _loadManifestChunk = (void(*)(void*))0x1408FE3D0;
+	auto _clearManifestChunk = (void(*)(void*))0x1408CC344;
+	auto manifestChunkPtr = (void*)0x142415770;
 
 	entry->disabled = true;
 	//entry->persistent = true;
@@ -327,6 +333,8 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 	std::tie(typeName, fileName) = dataFile;
 
+	trace("%s %s %s.\n", op, typeName, fileName);
+
 	CDataFileMountInterface* mounter = LookupDataFileMounter(typeName);
 
 	if (mounter == nullptr)
@@ -441,7 +449,7 @@ static void UnloadDataFiles()
 
 static hook::cdecl_stub<void()> _unloadMultiplayerContent([]()
 {
-	return hook::get_pattern("BA 79 91 C8 BC C6 05 ? ? ? ? 01 E8", -0xB);
+	return hook::get_pattern("01 E8 ? ? ? ? 48 8B 0D ? ? ? ? BA 79", -0x11);
 });
 
 #include <GameInit.h>
@@ -514,15 +522,15 @@ static HookFunction hookFunction([] ()
 	}
 
 	{
-		char* location = hook::get_pattern<char>("E2 99 8F 57 C6 05 ? ? ? ? 00 E8", -0xC);
+		char* location = hook::get_pattern<char>("79 91 C8 BC E8 ? ? ? ? 48 8D", -0x30);
 
-		location += 7;
+		location += 0x1A;
 		g_extraContentManager = (void**)(*(int32_t*)location + location + 4);
-		location -= 7;
+		location -= 0x1A;
 
-		hook::set_call(&g_disableContentGroup, location + 0x17);
-		hook::set_call(&g_enableContentGroup, location + 0x28);
-		hook::set_call(&g_clearContentCache, location + 0x33);
+		hook::set_call(&g_disableContentGroup, location + 0x23);
+		hook::set_call(&g_enableContentGroup, location + 0x34);
+		hook::set_call(&g_clearContentCache, location + 0x50);
 	}
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)

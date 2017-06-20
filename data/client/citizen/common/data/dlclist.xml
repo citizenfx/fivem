@@ -39,8 +39,14 @@
 		<Item>dlcpacks:\patchday10ng\</Item>
 		<Item>dlcpacks:\mpstunt\</Item>
 		<Item>dlcpacks:\patchday11ng\</Item>
+		<Item>dlcpacks:\mpimportexport\</Item>
 		<Item>dlcpacks:\mpbiker\</Item>
 		<Item>dlcpacks:\patchday12ng\</Item>
+		<Item>dlcpacks:\patchday13ng\</Item>
+		<Item>dlcpacks:\mpspecialraces\</Item>
+		<Item>dlcpacks:\mpgunrunning\</Item>
+		<Item>dlcpacks:\patchday14ng\</Item>
+		<Item>dlcpacks:\patchday15ng\</Item>
 	</Paths>	
 </SMandatoryPacksData>
 

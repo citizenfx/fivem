@@ -88,6 +88,15 @@ namespace
 	{
 		outValue.CopyFrom(rapidjson::Value(value, document.GetAllocator()), document.GetAllocator());
 	}
+
+	template<>
+	void GetJsonValue<std::nullptr_t>(std::nullptr_t value, rapidjson::Document& document, rapidjson::Value& outValue)
+	{
+		rapidjson::Value val;
+		val.SetNull();
+
+		outValue.CopyFrom(val, document.GetAllocator());
+	}
 }
 
 const char* GetROSVersionString()

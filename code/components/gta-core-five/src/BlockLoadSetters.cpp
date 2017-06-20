@@ -1170,6 +1170,9 @@ static HookFunction hookFunction([] ()
 	hook::nop(p, 10);
 	hook::call(p, WaitForInitLoopWrap);
 
+	// force the above hook to go to stage 6, not stage 7
+	hook::nop(p - 10, 2);
+
 	// grr, reloading stage
 	{
 		auto loc = hook::get_pattern("75 0F E8 ? ? ? ? 8B 0D ? ? ? ? 3B C8", -12);
@@ -1290,10 +1293,10 @@ static HookFunction hookFunction([] ()
 
 	// attempted 'fix' for item #2 (also: logging when the destructor gets called)
 	// 505 changed the jump address; so it's a pattern now
-	location = hook::pattern("1C F6 83 A2 00 00 00 40 74 ? 48 8D 0D").count(1).get(0).get<char>(13);
+	/*location = hook::pattern("1C F6 83 A2 00 00 00 40 74 ? 48 8D 0D").count(1).get(0).get<char>(13);
 
 	g_vehicleReflEntityArray = (decltype(g_vehicleReflEntityArray))(location + *(int32_t*)location + 4 + 800);
-	g_unsafePointerLoc = (void**)((location + *(int32_t*)location + 4) + 800);
+	g_unsafePointerLoc = (void**)((location + *(int32_t*)location + 4) + 800);*/
 
 	// dlc get
 	void* extraDataGetty = hook::pattern("45 33 F6 48 8B D8 48 85 C0 74 48").count(1).get(0).get<void>(0);
@@ -1455,5 +1458,8 @@ static HookFunction hookFunction([] ()
 		// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
 		hook::nop(hook::get_pattern("48 50 C1 E9 04 F6 C1 01 0F 84 ? ? 00 00 45", 8), 6);
 	});
+
+	// disable eventschedule.json refetching on failure
+	hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9

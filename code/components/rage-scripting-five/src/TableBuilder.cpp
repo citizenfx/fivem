@@ -328,7 +328,15 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 		int versionIdx = -1;
 
-		if (strncmp(buildString, "Oct 13", 6) == 0)
+		if (strncmp(buildString, "Jun  9 2017", 6) == 0)
+		{
+			versionIdx = 1103;
+		}
+		else if (strncmp(buildString, "Mar 31 2017", 6) == 0)
+		{
+			versionIdx = 1032;
+		}
+		else if (strncmp(buildString, "Oct 13", 6) == 0)
 		{
 			versionIdx = 505;
 		}
@@ -361,10 +369,64 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 #include "CrossMapping_463_505.h"
 		};
 
+		static const CrossMappingEntry crossMapping_505_573[] =
+		{
+#include "CrossMapping_505_573.h"
+		};
+
+		static const CrossMappingEntry crossMapping_573_617[] =
+		{
+#include "CrossMapping_573_617.h"
+		};
+
+		static const CrossMappingEntry crossMapping_617_678[] =
+		{
+#include "CrossMapping_617_678.h"
+		};
+
+		static const CrossMappingEntry crossMapping_678_757[] =
+		{
+#include "CrossMapping_678_757.h"
+		};
+
+		static const CrossMappingEntry crossMapping_757_791[] =
+		{
+#include "CrossMapping_757_791.h"
+		};
+
+		static const CrossMappingEntry crossMapping_791_877[] =
+		{
+#include "CrossMapping_791_877.h"
+		};
+
+		static const CrossMappingEntry crossMapping_877_944[] =
+		{
+#include "CrossMapping_877_944.h"
+		};
+
+		static const CrossMappingEntry crossMapping_944_1011[] =
+		{
+#include "CrossMapping_944_1011.h"
+		};
+
+		static const CrossMappingEntry crossMapping_1011_1103[] =
+		{
+#include "CrossMapping_1011_1103.h"
+		};
+
 		// turn into a std::map
 		std::map<uint64_t, uint64_t> crossMappingTable_372_393;
 		std::map<uint64_t, uint64_t> crossMappingTable_393_463;
 		std::map<uint64_t, uint64_t> crossMappingTable_463_505;
+		std::map<uint64_t, uint64_t> crossMappingTable_505_573;
+		std::map<uint64_t, uint64_t> crossMappingTable_573_617;
+		std::map<uint64_t, uint64_t> crossMappingTable_617_678;
+		std::map<uint64_t, uint64_t> crossMappingTable_678_757;
+		std::map<uint64_t, uint64_t> crossMappingTable_757_791;
+		std::map<uint64_t, uint64_t> crossMappingTable_791_877;
+		std::map<uint64_t, uint64_t> crossMappingTable_877_944;
+		std::map<uint64_t, uint64_t> crossMappingTable_944_1011;
+		std::map<uint64_t, uint64_t> crossMappingTable_1011_1103;
 
 #define DO_MAPPING(build_bit) \
 	for (auto& mapping : crossMapping_##build_bit) \
@@ -375,6 +437,15 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		DO_MAPPING(372_393);
 		DO_MAPPING(393_463);
 		DO_MAPPING(463_505);
+		DO_MAPPING(505_573);
+		DO_MAPPING(573_617);
+		DO_MAPPING(617_678);
+		DO_MAPPING(678_757);
+		DO_MAPPING(757_791);
+		DO_MAPPING(791_877);
+		DO_MAPPING(877_944);
+		DO_MAPPING(944_1011);
+		DO_MAPPING(1011_1103);
 
 		while (true)
 		{
@@ -399,6 +470,51 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 			if (versionIdx >= 505)
 			{
 				destNative = crossMappingTable_463_505[destNative];
+			}
+
+			if (versionIdx >= 573)
+			{
+				destNative = crossMappingTable_505_573[destNative];
+			}
+
+			if (versionIdx >= 617)
+			{
+				destNative = crossMappingTable_573_617[destNative];
+			}
+
+			if (versionIdx >= 678)
+			{
+				destNative = crossMappingTable_617_678[destNative];
+			}
+
+			if (versionIdx >= 757)
+			{
+				destNative = crossMappingTable_678_757[destNative];
+			}
+
+			if (versionIdx >= 791)
+			{
+				destNative = crossMappingTable_757_791[destNative];
+			}
+
+			if (versionIdx >= 877)
+			{
+				destNative = crossMappingTable_791_877[destNative];
+			}
+
+			if (versionIdx >= 944)
+			{
+				destNative = crossMappingTable_877_944[destNative];
+			}
+
+			if (versionIdx >= 1011)
+			{
+				destNative = crossMappingTable_944_1011[destNative];
+			}
+
+			if (versionIdx >= 1103)
+			{
+				destNative = crossMappingTable_1011_1103[destNative];
 			}
 
 			g_mappingTable.insert({ sourceNative, destNative });

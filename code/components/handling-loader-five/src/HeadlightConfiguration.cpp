@@ -4,6 +4,7 @@
 #include <ScriptEngine.h>
 #include <ICoreGameInit.h>
 
+#if 0
 static hook::cdecl_stub<void(void*, int, int, float, int, void*, void*)> setPartRotation([]()
 {
 	return hook::get_call(hook::get_pattern("41 83 E0 07 48 89 44 24 30 48 83", 20));
@@ -160,6 +161,7 @@ static HookFunction hookFunction([]()
 		g_headlightConfiguration.clear();
 	});
 });
+#endif
 
 static InitFunction initFunction([]()
 {
@@ -170,8 +172,10 @@ static InitFunction initFunction([]()
 		float rotation = context.GetArgument<float>(2);
 		bool inverse = context.GetArgument<bool>(3);
 
-		g_headlightConfiguration[modelHash] = { step, rotation, inverse };
+		//g_headlightConfiguration[modelHash] = { step, rotation, inverse };
 
-		trace("SET_MODEL_HEADLIGHT_CONFIGURATION: set headlight configuration for %08x to {step: %f deg, rotation: %f deg, inverse: %d}\n", modelHash, step, rotation, (inverse) ? 1 : 0);
+		//trace("SET_MODEL_HEADLIGHT_CONFIGURATION: set headlight configuration for %08x to {step: %f deg, rotation: %f deg, inverse: %d}\n", modelHash, step, rotation, (inverse) ? 1 : 0);
+
+		trace("SET_MODEL_HEADLIGHT_CONFIGURATION is currently not supported. Please use the equivalent entry in CHandlingDataMgr.\n");
 	});
 });

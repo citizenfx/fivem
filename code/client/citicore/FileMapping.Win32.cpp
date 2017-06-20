@@ -140,7 +140,7 @@ LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, RE
 
 		setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros").c_str());
 		setValue(L"InstallLang", L"1033");
-		setValue(L"Version", L"1.1.6.8");
+		setValue(L"Version", L"1.2.1.9");
 
         LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, KEY_READ, outKey);
 

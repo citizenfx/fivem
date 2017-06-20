@@ -248,7 +248,7 @@ struct NativeObfuscation
 
 static void EnsureNativeObfuscation()
 {
-	static NativeObfuscation nativeObfuscation;
+	//static NativeObfuscation nativeObfuscation;
 }
 
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
@@ -267,7 +267,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 			if (hash == table->hashes[i])
 			{
 				// temporary workaround for marking scripts as network script not storing the script handler
-				auto handler = (scrEngine::NativeHandler)DecodePointer(table->handlers[i]);
+				auto handler = (scrEngine::NativeHandler)/*DecodePointer(*/table->handlers[i]/*)*/;
 
 				if (origHash == 0xD1110739EEADB592)
 				{
@@ -352,13 +352,19 @@ static HookFunction hookFunction([] ()
 
 	activeThreadTlsOffset = *hook::pattern("48 8B 04 D0 4A 8B 14 00 48 8B 01 F3 44 0F 2C 42 20").count(1).get(0).get<uint32_t>(-4);
 
-	location = hook::pattern("FF 40 5C 8B 15 ? ? ? ? 48 8B").count(1).get(0).get<char>(5);
+	//location = hook::pattern("FF 40 5C 8B 15 ? ? ? ? 48 8B").count(1).get(0).get<char>(5);
 
-	scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
+	//scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
 
-	location -= 9;
+	static uint32_t id = 5;
+	scrThreadId = &id;
 
-	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(location + *(int32_t*)location + 4);
+	//location -= 9;
+
+	//scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(location + *(int32_t*)location + 4);
+
+	static uint32_t count;
+	scrThreadCount = &count;
 
 	location = hook::pattern("76 61 49 8B 7A 40 48 8D 0D").count(1).get(0).get<char>(9);
 

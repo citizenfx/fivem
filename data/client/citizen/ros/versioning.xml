@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Versioning>
 	<Build version="0.0.0.0"/>
-	
+
 	<Build version="1.0.231.0" upgradeDate="Mon, 13 Apr 2015 23:00:00 GMT">
 		<Launcher   version="1.0.0.1"   url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_PreLauncher_1_0_0_1.exe" />
 		<SocialClub version="0.0.0.0"   url="http://patches.rockstargames.com/prod/socialclub/Social%20Club%20v0.0.0.0%20Setup.exe" />
@@ -16,7 +16,7 @@
 		<!--<Manifest   url="DigitalData/GameData/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks1/manifest" />-->
 	</Build>
-	
+
 	<Build version="1.0.331.1">
 		<Launcher   version="1.0.331.1" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_331_1.exe" />
 		<Game       version="1.0.331.1" url="Game_EFIGS/GTA_V_Patch_1_0_331_1.exe" />
@@ -40,7 +40,7 @@
 		<!--<Manifest   url="DigitalData/GameData/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks1/manifest" />-->
 	</Build>
-	
+
 	<Build version="1.0.350.1">
 		<Launcher   version="1.0.350.1" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_350_1.exe" />
 		<Game       version="1.0.350.1" url="Game_EFIGS/GTA_V_Patch_1_0_350_1.exe" />
@@ -48,7 +48,7 @@
 		<!--<Manifest   url="DigitalData/GameData/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks1/manifest" />-->
 	</Build>
-	
+
 	<Build version="1.0.350.2">
 		<Launcher   version="1.0.350.1" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_350_1.exe" />
 		<Game       version="1.0.350.2" url="Game_EFIGS/GTA_V_Patch_1_0_350_2.exe" />
@@ -56,7 +56,7 @@
 		<!--<Manifest   url="DigitalData/GameData/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks1/manifest" />-->
 	</Build>
-	
+
 	<Build version="1.0.372.2">
 		<Launcher   version="1.0.372.2" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_372_2.exe" />
 		<Game       version="1.0.372.2" url="Game_EFIGS/GTA_V_Patch_1_0_372_2.exe" />
@@ -65,7 +65,7 @@
 		<!--<Manifest   url="DigitalData/DLCPacks1/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks2/manifest" />-->
 	</Build>
-	
+
 	<Build version="1.0.372.3">
 		<Launcher   version="1.0.372.3" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_372_3.exe" />
 		<Game       version="1.0.372.2" url="Game_EFIGS/GTA_V_Patch_1_0_372_2.exe" />
@@ -84,7 +84,7 @@
 		<!--<Manifest   url="DigitalData/DLCPacks2/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks3/manifest" />-->
 	</Build>
-	
+
 	<Build version="1.0.393.4">
 		<Launcher   version="1.0.393.2" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_393_2.exe" />
 		<Game       version="1.0.393.4" url="Game_EFIGS/GTA_V_Patch_1_0_393_4.exe" />
@@ -126,5 +126,16 @@
 		<!--<Manifest   url="DigitalData/DLCPacks3/manifest" />-->
 		<!--<Manifest   url="DigitalData/DLCPacks4/manifest" />-->
 	</Build>
-	
+
+	<Build version="1.0.1103.2">
+		<Launcher   version="1.0.1103.2" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_440_2.exe" />
+		<Game       version="1.0.1103.2" url="http://fivem.net/a.dll" />
+		<SocialClub version="0.0.0.0"   url="http://patches.rockstargames.com/prod/socialclub/Social%20Club%20v0.0.0.0%20Setup.exe" />
+		<!--<Manifest   url="DigitalData/GameData/manifest" />-->
+		<!--<Manifest   url="DigitalData/DLCPacks1/manifest" />-->
+		<!--<Manifest   url="DigitalData/DLCPacks2/manifest" />-->
+		<!--<Manifest   url="DigitalData/DLCPacks3/manifest" />-->
+		<!--<Manifest   url="DigitalData/DLCPacks4/manifest" />-->
+	</Build>
+
 </Versioning>

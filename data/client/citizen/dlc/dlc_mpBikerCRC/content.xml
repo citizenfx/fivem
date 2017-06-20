@@ -932,12 +932,9 @@
       <filesToDisable />
       <filesToEnable>
 		<Item>dlc_mpBikerCRC:/common/data/handling.meta</Item>
-		<Item>dlc_mpBikerCRC:/common/data/carcols.meta</Item>
-		<Item>dlc_mpBikerCRC:/common/data/levels/gta5/vehicles.meta</Item>
-		<Item>dlc_mpBikerCRC:/common/data/carvariations.meta</Item>
 		<Item>dlc_mpBikerCRC:/common/data/ai/loadouts.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/ai/vehiclelayouts.meta</Item>
-        <!--<Item>dlc_mpBikerCRC:/common/data/ai/weaponanimations.meta</Item>
+        <Item>dlc_mpBikerCRC:/common/data/ai/weaponanimations.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/ai/weaponAutoShotgun.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/ai/weaponBattleAxe.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/ai/weaponCompactLauncher.meta</Item>
@@ -946,19 +943,23 @@
         <Item>dlc_mpBikerCRC:/common/data/ai/weaponPipeBomb.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/ai/weaponPoolCue.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/ai/weaponWrench.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/anim/clip_sets/clip_sets.xml</Item>
+		<Item>dlc_mpBikerCRC:/common/data/effects/explosionfx.dat</Item>
+		<Item>dlc_mpBikerCRC:/common/data/carcols.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/levels/gta5/vehicles.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/carvariations.meta</Item>
+		<Item>dlc_mpBiker:/common/data/dlctext.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/explosion.meta</Item>
+		<Item>dlc_mpBiker:/common/data/interiorproxies.meta</Item>
 		<Item>dlc_mpBiker:/common/data/overlayinfo.xml</Item>
         <Item>dlc_mpBikerCRC:/common/data/mpStatsSetup.xml</Item>
         <Item>dlc_mpBiker:/common/data/mpStatsUISetup.xml</Item>
+        <Item>dlc_mpBikerCRC:/common/data/pedpersonality.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/pickups.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/shop_tattoo.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/shop_vehicle.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/shop_weapon.meta</Item>
-		<Item>dlc_mpBikerCRC:/common/data/anim/clip_sets/clip_sets.xml</Item>-->
-		<Item>dlc_mpBiker:/common/data/dlctext.meta</Item>
-		<Item>dlc_mpBikerCRC:/common/data/explosion.meta</Item>
-		<Item>dlc_mpBiker:/common/data/interiorproxies.meta</Item>
         <Item>dlc_mpBikerCRC:/common/data/weaponArchetypes.meta</Item>
-		<Item>dlc_mpBikerCRC:/common/data/effects/explosionfx.dat</Item>
 		<Item>dlc_mpBiker:/%PLATFORM%/anim/ingame/clip_anim@.rpf</Item>
 		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/Biker_DLC_Int_Props.rpf</Item>
 		<Item>dlc_mpBiker:/%PLATFORM%/levels/gta5/props/bkr_Biker_DLC_Int_Props.ityp</Item>
@@ -1027,9 +1028,12 @@
 		<Item>dlc_mpBiker:/%PLATFORM%/audio/sfx/DLC_BIKER</Item>
         <Item>dlc_mpBiker:/%PLATFORM%/data/effects/ptfx.rpf</Item>
         <Item>dlc_mpBiker:/common/data/effects/scriptfx.dat</Item>
-<!--        <Item>dlc_mpBiker:/%PLATFORM%/anim/creaturemetadata.rpf</Item>
+		<Item>dlc_mpBikerCRC:/common/data/mp_f_freemode_01_biker_shop.meta</Item>
+		<Item>dlc_mpBikerCRC:/common/data/mp_m_freemode_01_biker_shop.meta</Item>
+        <Item>dlc_mpBiker:/%PLATFORM%/anim/creaturemetadata.rpf</Item>
         <Item>dlc_mpBiker:/common/data/effects/peds/first_person.meta</Item>
         <Item>dlc_mpBiker:/common/data/effects/peds/first_person_alternates.meta</Item>
+        <Item>dlc_mpBiker:/common/data/peds.meta</Item>
 		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_female.rpf</Item>
 		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_female_p.rpf</Item>
 		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_male.rpf</Item>
@@ -1038,7 +1042,7 @@
         <Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpbiker_p.rpf</Item>
         <Item>dlc_mpBikerCRC:/common/data/pedalternatevariations.meta</Item>
 		<Item>dlc_mpBikerCRC:/common/data/effects/peds/mpBiker_overlays.xml</Item>
-		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_ped_mp_overlay_txds.rpf</Item>-->
+		<Item>dlc_mpBiker:/%PLATFORM%/models/cdimages/mpBiker_ped_mp_overlay_txds.rpf</Item>
       </filesToEnable>
       <txdToLoad />
       <txdToUnload />

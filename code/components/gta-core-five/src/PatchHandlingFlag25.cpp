@@ -3,6 +3,7 @@
 
 static HookFunction hookFunction([]()
 {
+#if 0
 	static struct : jitasm::Frontend
 	{
 		void InternalMain() override
@@ -30,4 +31,5 @@ static HookFunction hookFunction([]()
 	auto location = hook::get_pattern("73 69 3B 9F ? ? 00 00 7D 0D", 0x6B);
 	hook::nop(location, 6);
 	hook::call(location, tractionControlSkipStub.GetCode());
+#endif
 });

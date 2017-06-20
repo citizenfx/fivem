@@ -98,6 +98,34 @@ static void Legit_Run(const boost::program_options::variables_map& map)
     }
 }
 
+#include <wincrypt.h>
+
+static DWORD WINAPI CertGetNameStringStub(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags, _In_opt_ void *pvTypePara, _Out_writes_to_opt_(cchNameString, return) LPWSTR pszNameString, _In_ DWORD cchNameString)
+{
+	DWORD origSize = CertGetNameStringW(pCertContext, dwType, dwFlags, pvTypePara, nullptr, 0);
+	std::vector<wchar_t> data(origSize);
+
+	CertGetNameStringW(pCertContext, dwType, dwFlags, pvTypePara, data.data(), origSize);
+
+	// get which name to replace
+	const wchar_t* newName = nullptr;
+
+	// add any names here
+
+	// return if no such name
+	if (newName == nullptr)
+	{
+		return CertGetNameStringW(pCertContext, dwType, dwFlags, pvTypePara, pszNameString, cchNameString);
+	}
+	
+	if (pszNameString)
+	{
+		wcsncpy(pszNameString, newName, cchNameString);
+	}
+
+	return wcslen(newName) + 1;
+}
+
 #include "RSAKey.h"
 
 static void Launcher_Run(const boost::program_options::variables_map& map)
@@ -135,6 +163,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
         hook::iat("user32.dll", LoadIconStub, "LoadIconA");
         hook::iat("user32.dll", LoadIconStub, "LoadIconW");
+
+		hook::iat("crypt32.dll", CertGetNameStringStub, "CertGetNameStringW");
 	});
 
 	// delete in- files (these being present will trigger safe mode, and the function can't be hooked due to hook checks)

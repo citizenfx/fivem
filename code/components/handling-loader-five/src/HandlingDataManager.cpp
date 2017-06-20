@@ -93,8 +93,9 @@ public:
 	virtual ~CVehicleModelInfo() = default;
 
 	// NOTE: 505 SPECIFIC
-	char pad[1136]; // +8
-	int handlingDataIndex; // +1144
+	// 1103 now
+	char pad[1152]; // +8
+	int handlingDataIndex; // +1160
 
 	char pad2[212];
 };
@@ -220,7 +221,7 @@ static bool LoadHandlingFile(const char* handlingPath)
 		g_handlingByFile.insert({ handlingPath, idx });
 	}
 
-	static_assert(sizeof(CVehicleModelInfo) == 1360, "CVehicleModelInfo size");
+	static_assert(sizeof(CVehicleModelInfo) == 1376, "CVehicleModelInfo size");
 
 	// override CVehicleModelInfo entries that already have a handling assigned
 	ModifyHandlingForVehicles(changedHandlings);

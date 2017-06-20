@@ -10,11 +10,11 @@
 
 static HookFunction hookFunction([] ()
 {
-	auto matches = hook::pattern("E8 ? ? ? ? EB 17 48 8D 15").count(2);
+	auto matches = hook::pattern("04 01 00 00 E8 ? ? ? ? EB 17 48 8D 15").count(2);
 
 	for (int i = 0; i < matches.size(); i++)
 	{
-		char* location = matches.get(i).get<char>(-15);
+		char* location = matches.get(i).get<char>(-11);
 
 		strcpy((char*)(location + *(int32_t*)location + 4), "fivem_set.bin");
 	}

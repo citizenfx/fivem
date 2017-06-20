@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This file is part of the CitizenFX project - http://citizen.re/
 *
 * See LICENSE and MENTIONS in the root of the source tree for information
@@ -51,7 +51,7 @@ struct GameCacheEntry
 	{
 		std::string filenameBase = filename;
 
-		if (filenameBase.find("ros/") == 0)
+		if (filenameBase.find("ros_1219/") == 0)
 		{
 			return MakeRelativeCitPath(ToWide(va("cache\\game\\%s", filenameBase.c_str())));
 		}
@@ -88,11 +88,8 @@ struct GameCacheStorageEntry
 // global cache mapping of ROS files to disk files
 static GameCacheEntry g_requiredEntries[] =
 {
-	//{ L"GTA5.exe", "883d05ce147ec01f94f862453bb69fe96cc15539", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/GTA5.exe", 55839112, 422755424 },
-	//{ L"update/update.rpf", "d9f84cd5b8b5bafaeee92dd43568887172849d01", "Game_EFIGS/GTA_V_Patch_1_0_393_4.exe", "$/update/update.rpf", 374835200, 422755424 },
-
-	{ "GTA5.exe", "a6b255a2e2b8ea48ec5776f42770cf54522a85bf", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_505_2.exe", "$/GTA5.exe", 54920072, 505185312 },
-	{ "update/update.rpf", "64ddef8f58ad064745fb18879b309a6d8b0f346b", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_505_2.exe", "$/update/update.rpf", 457312256, 505185312 },
+	{ "GTA5.exe", "debf7c0e7e6434907f3623f4bea3c4e125734b0f", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1103_2.exe", "$/GTA5.exe", 60378008, 775766328 },
+	{ "update/update.rpf", "a568f68b14a8a9b91d5d26d1882e54c081e196ef", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1103_2.exe", "$/update/update.rpf", 723396608, 775766328 },
 	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
 	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
@@ -133,75 +130,79 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "update/x64/dlcpacks/mpbiker/dlc.rpf", "52c48252eeed97e9a30efeabbc6623c67566c237", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1794048000 },
 	{ "update/x64/dlcpacks/patchday12ng/dlc.rpf", "4f3f3e88d4f01760648057c56fb109e1fbeb116a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 155365376 },
 
-	{ "ros/cef.pak", "EC38FF4278D4E13FD8681A205F29CDA000D05759", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef.pak", 2018390, 56061688 },
-	{ "ros/cef_100_percent.pak", "6B96A6E9E418AE73B4EC7CB6CB7C10BAA2A98449", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_100_percent.pak", 444515, 56061688 },
-	{ "ros/cef_200_percent.pak", "273A18D4BBB2F2E7080A95BFC2EF2EF034AC5E2C", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/cef_200_percent.pak", 598403, 56061688 },
-	{ "ros/d3dcompiler_43.dll", "AA4E953BFE720661855FFD0F9DB72EAF4A13C1AD", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/d3dcompiler_43.dll", 2106328, 56061688 },
-	{ "ros/d3dcompiler_47.dll", "B4CF857E05BBD1F3C22BF36975C5CC7C1714719C", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/d3dcompiler_47.dll", 4164568, 56061688 },
-	{ "ros/ffmpegsumo.dll", "A1E04C46AE4773064EBD7E6F8851E171755BABC5", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/ffmpegsumo.dll", 995288, 56061688 },
-	{ "ros/icudtl.dat", "0249F28CA75B97FAFEF60A40A3A45620AB31EB52", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/icudtl.dat", 10457856, 56061688 },
-	{ "ros/libcef.dll", "EF60987C3EEC40D1F3C61D62A587D2F6809A3259", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/libcef.dll", 54800856, 56061688 },
-	{ "ros/libEGL.dll", "3FC73976A52D70E13393B2D52C73E041C9A5E77E", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/libEGL.dll", 92120, 56061688 },
-	{ "ros/libGLESv2.dll", "C13F27A8B164243D09E8F2736BECABDE0F1B8425", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/libGLESv2.dll", 1896408, 56061688 },
-	{ "ros/socialclub.dll", "8DCF23DB5B40DE6F41DC14D0B357816E90DA6C0B", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/socialclub.dll", 7685080, 56061688 },
-	{ "ros/steam_api64.dll", "2C112BF98AA0379CACDEA69EF12CB2D97AE4AAED", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/steam_api64.dll", 211368, 56061688 },
-	{ "ros/subprocess.exe", "D26B2900230859AAD73842EAAB1453F79DF8FD0B", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/subprocess.exe", 959960, 56061688 },
-	{ "ros/uninstallRGSCRedistributable.exe", "B5DD082D2286A56540E989939AAFB112ACFD173C", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/uninstallRGSCRedistributable.exe", 196800, 56061688 },
-	{ "ros/locales/am.pak", "E59863F606BD0290CD5F33AB7F5C15D359B81743", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/am.pak", 21323, 56061688 },
-	{ "ros/locales/ar.pak", "4774DD4AD8DEE8DD559A9B91461AED093B616363", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ar.pak", 23400, 56061688 },
-	{ "ros/locales/bg.pak", "4DE238F51B3A77D2E92E76DB28DE6888D151B022", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/bg.pak", 24877, 56061688 },
-	{ "ros/locales/bn.pak", "E1053547B3BAAE5763415C2ACE123C2AC0F4B5FF", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/bn.pak", 30612, 56061688 },
-	{ "ros/locales/ca.pak", "40ED169AED88D121C094EE82C097A82DACA93265", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ca.pak", 16550, 56061688 },
-	{ "ros/locales/cs.pak", "02AFD88350004FEAE261E076B53B6EFA4C6A9FE0", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/cs.pak", 15663, 56061688 },
-	{ "ros/locales/da.pak", "14AD54A6EEBEFEB8292887283050CF9E1F0CB633", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/da.pak", 14452, 56061688 },
-	{ "ros/locales/de.pak", "FDDC7378EFF93712A1B162FB40A4460A2605B9EE", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/de.pak", 15875, 56061688 },
-	{ "ros/locales/el.pak", "1640312BA5BF4F03B9ECFD80274464ABFA5B96C4", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/el.pak", 26710, 56061688 },
-	{ "ros/locales/en-GB.pak", "FB7E73ABBBCD2942C1072C08C196AA87C9D4671B", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/en-GB.pak", 13508, 56061688 },
-	{ "ros/locales/en-US.pak", "DA1E9AD60B741D51A6D6BDD4BA3091C274D3BA0A", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/en-US.pak", 13506, 56061688 },
-	{ "ros/locales/es-419.pak", "FC7D24AC42A99BFE14EED3CF6208B62D86C4CAFE", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/es-419.pak", 16099, 56061688 },
-	{ "ros/locales/es.pak", "16148B8AD9EFAC56A576E2B77BF86DB0C0A697AD", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/es.pak", 16638, 56061688 },
-	{ "ros/locales/et.pak", "472B2A5E5424B9F3744AE317628E49B616DE3D6F", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/et.pak", 14624, 56061688 },
-	{ "ros/locales/fa.pak", "9EDC860DD1EB4346CAD58FD32D7F44A27E39A232", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/fa.pak", 20712, 56061688 },
-	{ "ros/locales/fi.pak", "DB313CA2D37133603ABB1C01B9CCF172EF180C80", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/fi.pak", 15530, 56061688 },
-	{ "ros/locales/fil.pak", "C788271FF0D7027DD0C4CAF757F474BD2C25BB05", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/fil.pak", 16427, 56061688 },
-	{ "ros/locales/fr.pak", "59009507FB3E9ADEDB3D2CB694025BF9D0AC3E59", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/fr.pak", 16906, 56061688 },
-	{ "ros/locales/gu.pak", "B43AF7DC3690F3123F5D053AC91BF8C6CAF1D9CD", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/gu.pak", 28507, 56061688 },
-	{ "ros/locales/he.pak", "C3F5A837D2C6E719679F9F8EDC4CBB6F5F0ED9D0", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/he.pak", 17806, 56061688 },
-	{ "ros/locales/hi.pak", "8E3BB723F8BA1AF052077050F68923C725352EAF", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/hi.pak", 28822, 56061688 },
-	{ "ros/locales/hr.pak", "AF9AD74C4C9B38AE556E9542698DF2EB72DC8AAA", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/hr.pak", 15635, 56061688 },
-	{ "ros/locales/hu.pak", "5B3DA555EB6D9B85A58F2A3AC81177AE013F2C03", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/hu.pak", 16336, 56061688 },
-	{ "ros/locales/id.pak", "047A76C6F02C2DCA9344196B512A2B1C3E280701", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/id.pak", 14475, 56061688 },
-	{ "ros/locales/it.pak", "E85C7E6FAA52D8B4C8EAAD9B95288A148BB363A5", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/it.pak", 15426, 56061688 },
-	{ "ros/locales/ja.pak", "3BF9BC51526FDA0D6DD509AA169F991E603DDD6A", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ja.pak", 18064, 56061688 },
-	{ "ros/locales/kn.pak", "0C954833A03EF6527F11A661CB21F738820D98A8", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/kn.pak", 32623, 56061688 },
-	{ "ros/locales/ko.pak", "9A4007BA729077C14412528F1C0F0B42F8E5FEFC", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ko.pak", 15627, 56061688 },
-	{ "ros/locales/lt.pak", "C3769F6AB57A7C62FDDA92B82B2C02E1E5D7DA8B", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/lt.pak", 16185, 56061688 },
-	{ "ros/locales/lv.pak", "74F7F315ACB05B10179DD23139FDC7FBAAC3EE67", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/lv.pak", 16509, 56061688 },
-	{ "ros/locales/ml.pak", "5063DB743448A68A6D34D66409C67F79C016B20C", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ml.pak", 37175, 56061688 },
-	{ "ros/locales/mr.pak", "C976EC48B327BECB3F062AC348A9F630A4B9E913", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/mr.pak", 28811, 56061688 },
-	{ "ros/locales/ms.pak", "904D6EA2B41E3741B6A866D7E4882E12FD04075B", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ms.pak", 14607, 56061688 },
-	{ "ros/locales/nb.pak", "3DC05131B591101343C804308266B5A3FD6EEA2E", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/nb.pak", 14775, 56061688 },
-	{ "ros/locales/nl.pak", "446C47C96E7842938989CC872318320AB55F7339", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/nl.pak", 15168, 56061688 },
-	{ "ros/locales/pl.pak", "61703810054BACDC6E95D8E44DA6A2BB8E8849D8", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/pl.pak", 15824, 56061688 },
-	{ "ros/locales/pt-BR.pak", "2E5512784306CCA5B4190AC2FAAC71B1BEF29ADF", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/pt-BR.pak", 15534, 56061688 },
-	{ "ros/locales/pt-PT.pak", "1DC37B83E3DFC1933FE6BBA6D3012BC8512ED565", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/pt-PT.pak", 15661, 56061688 },
-	{ "ros/locales/ro.pak", "6C8F086BC406ADE972D742BAC4078B4714090D06", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ro.pak", 16632, 56061688 },
-	{ "ros/locales/ru.pak", "38B37D68CDC3C526BF49620FA0A56F50D12AEF2F", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ru.pak", 23341, 56061688 },
-	{ "ros/locales/sk.pak", "8F2F4C45541C8A5952E04EC69269DA8D9437CABD", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/sk.pak", 16312, 56061688 },
-	{ "ros/locales/sl.pak", "AC2C05A0CD2344CB3C92EF6E8CB24C1A02D4351C", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/sl.pak", 15044, 56061688 },
-	{ "ros/locales/sr.pak", "1549461D200F4A61F0CC9FA6026116E88FCB1AC2", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/sr.pak", 22919, 56061688 },
-	{ "ros/locales/sv.pak", "FCFCE623E26D8D483DD0FCA5BE76421657591FE2", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/sv.pak", 14471, 56061688 },
-	{ "ros/locales/sw.pak", "CEC7C53A41FB2B21ED94729AFD24936BFA186F55", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/sw.pak", 14981, 56061688 },
-	{ "ros/locales/ta.pak", "D342E36D960E4C0FBF0EA8BADA170F86BB81A73C", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/ta.pak", 35140, 56061688 },
-	{ "ros/locales/te.pak", "9959A7767C8BB28DA2EC9AA3CF035C5F5471FB8B", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/te.pak", 33022, 56061688 },
-	{ "ros/locales/th.pak", "AD6B58CB76D407806A0A5F890AFA977419E0E676", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/th.pak", 28995, 56061688 },
-	{ "ros/locales/tr.pak", "6137D2EA86BFD42A3F677FBAB872CEC671EAD714", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/tr.pak", 15033, 56061688 },
-	{ "ros/locales/uk.pak", "C8CA4AA09A22FE45CA668BB3DEC6130382D8CB85", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/uk.pak", 24616, 56061688 },
-	{ "ros/locales/vi.pak", "61F9F0B37667CFE96E33C2C196B7B4120D7906DB", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/vi.pak", 17227, 56061688 },
-	{ "ros/locales/zh-CN.pak", "B6C40BF1052C2C340A8EE24E92A8A8F7AAEA2359", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/zh-CN.pak", 13239, 56061688 },
-	{ "ros/locales/zh-TW.pak", "3D7CA4D02AF0B084996F5F94637E8299BF501366", "https://runtime.fivem.net/patches/Social%20Club%20v1.1.6.8%20Setup.exe", "$/locales/zh-TW.pak", 13450, 56061688 },
+	{ "ros_1219/cef.pak", "229DD3682DDA8258497F342319CDBEC9FF35BC33", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/cef.pak", 2749972, 73160384 },
+	{ "ros_1219/cef_100_percent.pak", "E14361DB195ACF3A6676DE3C25A2F81AC3AB67B3", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/cef_100_percent.pak", 146067, 73160384 },
+	{ "ros_1219/cef_200_percent.pak", "3EF18057982B409DB394046F7C5D37F7985DEAF7", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/cef_200_percent.pak", 235262, 73160384 },
+	{ "ros_1219/d3dcompiler_43.dll", "9A14FED3FA968BA6B928A637EAFAE7BB9DC6CC5D", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/d3dcompiler_43.dll", 2106344, 73160384 },
+	{ "ros_1219/d3dcompiler_47.dll", "B035E19061D2BEF0F7E7F13D83095A6F209F7648", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/d3dcompiler_47.dll", 4461544, 73160384 },
+	{ "ros_1219/icudtl.dat", "7C401AFE79968C4E8BA632E8B3E8D7927D9143BF", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/icudtl.dat", 10127152, 73160384 },
+	{ "ros_1219/libcef.dll", "9E36CD59AC4723038583474DC18A1BBDE2EC16B5", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/libcef.dll", 69763560, 73160384 },
+	{ "ros_1219/libEGL.dll", "680001A649925739172C7B93987315734774BA2B", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/libEGL.dll", 100328, 73160384 },
+	{ "ros_1219/libGLESv2.dll", "5FB449F0A36AC2E00D8C3989626DD45326747DB1", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/libGLESv2.dll", 2329576, 73160384 },
+	{ "ros_1219/natives_blob.bin", "E9A4573D81D20B6E19A9747499863883172179B9", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/natives_blob.bin", 415490, 73160384 },
+	{ "ros_1219/scui.pak", "D17AEA09EFB06FB7A5B54ED3D02FC52691E3CE1C", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/scui.pak", 6877765, 73160384 },
+	{ "ros_1219/snapshot_blob.bin", "C9A5515E595EC964B77F0E0702793FA5CC2AE79D", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/snapshot_blob.bin", 662124, 73160384 },
+	{ "ros_1219/socialclub.dll", "4CA7B0710E0B00C5647532374A06D6048F1ED60B", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/socialclub.dll", 8135144, 73160384 },
+	{ "ros_1219/steam_api.dll", "EF4A6BC1881ABED799A147CFC1048EE012446C96", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/steam_api.dll", 789504, 73160384 },
+	{ "ros_1219/steam_api64.dll", "2C112BF98AA0379CACDEA69EF12CB2D97AE4AAED", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/steam_api64.dll", 211368, 73160384 },
+	{ "ros_1219/subprocess.exe", "C85FDCC7C00132088150F76A70F9DB08FCAE6822", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/subprocess.exe", 1065960, 73160384 },
+	{ "ros_1219/uninstallRGSCRedistributable.exe", "FA1CC664C31BD1AB23351324426BC94FB1F7793B", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/uninstallRGSCRedistributable.exe", 196816, 73160384 },
+	{ "ros_1219/widevinecdmadapter.dll", "57C4D725296C62A5B63E85C0BBFBAB6F357FF975", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/widevinecdmadapter.dll", 285672, 73160384 },
+	{ "ros_1219/locales/am.pak", "AFDE424D27C81C1425B87B2AD904B8FB2808703F", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/am.pak", 77527, 73160384 },
+	{ "ros_1219/locales/ar.pak", "30485F99DBA6320FC4AEDF9B344601BA911CFCBA", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ar.pak", 76375, 73160384 },
+	{ "ros_1219/locales/bg.pak", "2E4F998E69A0CC3E2622036CBEDA7DD4EDC7F96F", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/bg.pak", 86110, 73160384 },
+	{ "ros_1219/locales/bn.pak", "1D669A93F832DDF27D238300C3EB70F4CA1D8AC7", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/bn.pak", 114883, 73160384 },
+	{ "ros_1219/locales/ca.pak", "5394CC7505F2637F0053526AEE7D57162E521CA5", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ca.pak", 55675, 73160384 },
+	{ "ros_1219/locales/cs.pak", "39585F7CC783C9356CC9866D5C696563F7300524", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/cs.pak", 55671, 73160384 },
+	{ "ros_1219/locales/da.pak", "5AC7EE4213F60F8B358E42ECC38C1D5E9B7DA916", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/da.pak", 51068, 73160384 },
+	{ "ros_1219/locales/de.pak", "90FDABD738A832315E8262E4F46FF341AD71DB66", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/de.pak", 55396, 73160384 },
+	{ "ros_1219/locales/el.pak", "8DE2CE464C7C4D4879B95601278E008FF0127908", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/el.pak", 96384, 73160384 },
+	{ "ros_1219/locales/en-GB.pak", "67FEE528BDF8D0FE2E4BE6185A0A864741780B82", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/en-GB.pak", 46091, 73160384 },
+	{ "ros_1219/locales/en-US.pak", "15C8070EA65FF847CE09C79434CDBC394CC73100", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/en-US.pak", 46171, 73160384 },
+	{ "ros_1219/locales/es-419.pak", "DE66F383476C9742639F88A8A28672B5CE063206", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/es-419.pak", 53969, 73160384 },
+	{ "ros_1219/locales/es.pak", "25AC0369FDC993CB6D7E5F02D3EB431E3E0648C5", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/es.pak", 55938, 73160384 },
+	{ "ros_1219/locales/et.pak", "C6BFFE782997634A8CD75969E408C5C3F981E168", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/et.pak", 48380, 73160384 },
+	{ "ros_1219/locales/fa.pak", "EFF71B01205BEEAD7976862D0A5E1046B48B2038", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/fa.pak", 75548, 73160384 },
+	{ "ros_1219/locales/fi.pak", "B8F7F2637FE84FDB16DDC425DE23CB6206B73C7C", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/fi.pak", 50631, 73160384 },
+	{ "ros_1219/locales/fil.pak", "837CB2AB7E3CC1E9A4CE353A4D4B5AE94E0EE677", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/fil.pak", 56390, 73160384 },
+	{ "ros_1219/locales/fr.pak", "621C3511A2D76C61D27E976EED942B8A5E007D85", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/fr.pak", 58923, 73160384 },
+	{ "ros_1219/locales/gu.pak", "E897ED691C4C815AD7AE551376FB4E1BBD23AF9B", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/gu.pak", 107875, 73160384 },
+	{ "ros_1219/locales/he.pak", "3A260C1A6C2F0A9C6F6D9F38F42848714FFA6829", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/he.pak", 63544, 73160384 },
+	{ "ros_1219/locales/hi.pak", "4F04A569D31D2AFE2F9B07F2775228DD6017EAA2", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/hi.pak", 111058, 73160384 },
+	{ "ros_1219/locales/hr.pak", "92693CB796F1BAEABCD6879826BE6561F95FE925", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/hr.pak", 52100, 73160384 },
+	{ "ros_1219/locales/hu.pak", "136EE789B6B33412275FCFCB9C394C9BDDEDE05B", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/hu.pak", 56162, 73160384 },
+	{ "ros_1219/locales/id.pak", "27EE2B4F010AA5794C3CF4E1702E81BF8415D1BC", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/id.pak", 48968, 73160384 },
+	{ "ros_1219/locales/it.pak", "BEBBBF56EBF136E70D415C6010539F03FD689983", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/it.pak", 53890, 73160384 },
+	{ "ros_1219/locales/ja.pak", "3FFC69BDA30A0F13252C160169573B4D921397A2", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ja.pak", 65231, 73160384 },
+	{ "ros_1219/locales/kn.pak", "7F91C7BCC2D6561587A2DB7B6C27E62285FE2C43", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/kn.pak", 123630, 73160384 },
+	{ "ros_1219/locales/ko.pak", "556D087541D11D06D9BAFB386945B6194C1393F1", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ko.pak", 55660, 73160384 },
+	{ "ros_1219/locales/lt.pak", "773A65D7A035CDC3B95EE74039F52FAED853C893", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/lt.pak", 55901, 73160384 },
+	{ "ros_1219/locales/lv.pak", "33B7C71AE290CD38D94F005B26E565F3F640881C", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/lv.pak", 56886, 73160384 },
+	{ "ros_1219/locales/ml.pak", "5E1C5A2763FA755642B3B027B939CDD22337B962", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ml.pak", 134264, 73160384 },
+	{ "ros_1219/locales/mr.pak", "1C87AB0C5B8D3B56CDF32FE3F2A78180C852918E", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/mr.pak", 110576, 73160384 },
+	{ "ros_1219/locales/ms.pak", "F471A6BFE9EFB8848C6E1D80A4300A03E612ABD4", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ms.pak", 49935, 73160384 },
+	{ "ros_1219/locales/nb.pak", "CA40B417C309130FA1FB11B6525E546ADA344453", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/nb.pak", 50043, 73160384 },
+	{ "ros_1219/locales/nl.pak", "EEB48C750AEDB8CFE38AF7513703731347A7CE1A", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/nl.pak", 52308, 73160384 },
+	{ "ros_1219/locales/pl.pak", "82FC930C37678083F8AF478817A67687B7687D41", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/pl.pak", 54721, 73160384 },
+	{ "ros_1219/locales/pt-BR.pak", "F35D32C1F476EED043986FD075CE8D1FA93D67D5", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/pt-BR.pak", 54142, 73160384 },
+	{ "ros_1219/locales/pt-PT.pak", "F7F6C445D966C7E12D08F0018B88EE94859B8306", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/pt-PT.pak", 53929, 73160384 },
+	{ "ros_1219/locales/ro.pak", "D74D0609C8BEAAF0A9B39792A5BCC2C28E4B7F43", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ro.pak", 55629, 73160384 },
+	{ "ros_1219/locales/ru.pak", "7D8F87C14D872B0CEB5AD23D1C4449AAEAFD06E9", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ru.pak", 84306, 73160384 },
+	{ "ros_1219/locales/sk.pak", "106878860F1F0459C2198A66A1E894BAE2D1470A", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/sk.pak", 56091, 73160384 },
+	{ "ros_1219/locales/sl.pak", "A867AAB5F74C83C383A253917B988788A1DE565E", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/sl.pak", 52427, 73160384 },
+	{ "ros_1219/locales/sr.pak", "9AFFEA5067DB5AC8BE0FC2E581844A5C06EEDC37", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/sr.pak", 82361, 73160384 },
+	{ "ros_1219/locales/sv.pak", "16A3656EDE64B6C658A6799B13B1C622757BCB2B", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/sv.pak", 49750, 73160384 },
+	{ "ros_1219/locales/sw.pak", "4FEFFD55300DF8EC80DD6683BA35074F199A3E28", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/sw.pak", 49884, 73160384 },
+	{ "ros_1219/locales/ta.pak", "C3B5493866F9221998EF7F0413EA42EF9BC30720", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/ta.pak", 127484, 73160384 },
+	{ "ros_1219/locales/te.pak", "16EEC51F1B9CD72276A62AFDE2DA0FB771E386E1", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/te.pak", 117722, 73160384 },
+	{ "ros_1219/locales/th.pak", "B9321567D972634C8ADE577FE1ED6C218939F2B8", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/th.pak", 104890, 73160384 },
+	{ "ros_1219/locales/tr.pak", "D4F9A4C442EC30276244299318D823FD0EB1ECD4", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/tr.pak", 52673, 73160384 },
+	{ "ros_1219/locales/uk.pak", "45CC3E0E29089395EAD9115E664A716A3CECB9C8", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/uk.pak", 87212, 73160384 },
+	{ "ros_1219/locales/vi.pak", "2A3C7EA5385230E834A92E5B2EB453CD30482A8A", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/vi.pak", 60615, 73160384 },
+	{ "ros_1219/locales/zh-CN.pak", "605387D0737CBE29E417C4909667C432608B7275", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/zh-CN.pak", 45082, 73160384 },
+	{ "ros_1219/locales/zh-TW.pak", "652C109482CC03E2A04BCF2021EC27C6CFA4D596", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/locales/zh-TW.pak", 45661, 73160384 },
 
-	{ "GTAVLauncher.exe", "4f8b3691b70deadb8b23e0916207556f0c59d0ea", "https://runtime.fivem.net/patches/GTA_V_Launcher_1_0_505_2.exe", "$/GTAVLauncher.exe", 21048712, 19489360 }
+	{ "GTAVLauncher.exe", "0b05db1cb238c239771947693e830e85f585c08c", "https://runtime.fivem.net/patches/GTA_V_Launcher_1_0_1103_2.exe", "$/GTAVLauncher.exe", 21544344, 19884016 }
 };
 
 static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, std::string& hashOut)
@@ -769,9 +770,9 @@ std::map<std::string, std::string> UpdateGameCache()
 	{
 		std::string origFileName = entry.filename;
 
-		if (origFileName.find("ros/") == 0)
+		if (origFileName.find("ros_1219/") == 0)
 		{
-			origFileName = "Social Club/" + origFileName.substr(4);
+			origFileName = "Social Club/" + origFileName.substr(9);
 		}
 
 		if (GetFileAttributes(entry.GetCacheFileName().c_str()) != INVALID_FILE_ATTRIBUTES)

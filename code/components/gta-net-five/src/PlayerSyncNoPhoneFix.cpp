@@ -44,8 +44,10 @@ static HookFunction hookFunction([] ()
 		}
 	} phoneHookRoutine;
 
+#if 0
 	// find the pattern, nop the original code and add a call
 	void* phoneHookPoint = hook::pattern("0F B6 41 2D 83 C0 FE 41 3B C6 76 0A").count(1).get(0).get<void>();
 	hook::nop(phoneHookPoint, 22);
 	hook::call(phoneHookPoint, phoneHookRoutine.GetCode());
+#endif
 });

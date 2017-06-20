@@ -105,7 +105,7 @@ public:
 class CVehicle
 {
 private:
-	char m_pad[0x828];
+	char m_pad[0x880]; // 1103
 	CHandlingData* m_handlingData;
 
 public:

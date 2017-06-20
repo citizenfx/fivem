@@ -80,7 +80,7 @@ static HookFunction hookFunction([] ()
 	}
 #else
 	{
-		char* location = hook::pattern("48 8B CF C7 45 10 EB 8F 56 B8").count(1).get(0).get<char>(-4);
+		char* location = hook::pattern("48 8B ? C7 45 10 EB 8F 56 B8").count(1).get(0).get<char>(-4);
 		char* testFunc = (char*)(location + *(int32_t*)location + 4);
 
 		// proper function starts with 'mov rcx, ...'
@@ -103,29 +103,29 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_origInputCheck, func);
 	hook::call(func, WrapInputCheck);
 
-	// some task checks that shouldn't *really* be needed... we hope.
-	char* loc = hook::pattern("44 38 60 10 75 06 44 39 60 04 74 13").count(1).get(0).get<char>(0);
+	// some task checks for text chat that shouldn't *really* be needed... we hope.
+	char* loc = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 10);
 	hook::put<uint8_t>(loc + 10, 0xEB);
 
-	loc = hook::pattern("38 59 10 75 05 39 59 04 74 13").count(1).get(0).get<char>(0);
+	loc = hook::pattern("38 59 14 75 05 39 59 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 8);
 	hook::put<uint8_t>(loc + 8, 0xEB);
 
-	loc = hook::pattern("38 58 10 75 05 39 58 04 74 25").count(1).get(0).get<char>(0);
+	loc = hook::pattern("38 58 14 75 05 39 58 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 8);
 	hook::put<uint8_t>(loc + 8, 0xEB);
 
-	loc = hook::pattern("38 58 10 75 05 39 58 04 74 13").count(1).get(0).get<char>(0);
+	/*loc = hook::pattern("38 58 14 75 05 39 58 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 8);
-	hook::put<uint8_t>(loc + 8, 0xEB);
+	hook::put<uint8_t>(loc + 8, 0xEB);*/
 
-	loc = hook::pattern("44 38 68 10 75 06 44 39 68 04 74 1A").count(1).get(0).get<char>(0);
+	/*loc = hook::pattern("44 38 60 14 75 06 44 39 68 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 10);
-	hook::put<uint8_t>(loc + 10, 0xEB);
+	hook::put<uint8_t>(loc + 10, 0xEB);*/
 });

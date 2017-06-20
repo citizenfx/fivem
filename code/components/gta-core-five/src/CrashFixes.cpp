@@ -153,6 +153,7 @@ static HookFunction hookFunction([] ()
 			jz("justReturn");
 
 			// 505-specific offset
+			// valid for 1032 as well
 			movzx(ebx, word_ptr[rcx + 0x668]);
 			ret();
 
@@ -163,7 +164,7 @@ static HookFunction hookFunction([] ()
 	} carFixStub;
 
 	{
-		auto location = hook::get_pattern("0F B7 99 ? ? 00 00 EB 35", 0);
+		auto location = hook::get_pattern("0F B7 99 ? ? 00 00 EB 38", 0);
 		hook::nop(location, 7);
 		hook::call(location, carFixStub.GetCode());
 	}
