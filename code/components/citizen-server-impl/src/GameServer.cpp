@@ -626,7 +626,9 @@ namespace fx
 					return;
 				}
 
-				server->GetInstance()->GetComponent<console::Context>()->ExecuteSingleCommand(std::string(command));
+				auto ctx = server->GetInstance()->GetComponent<console::Context>();
+				ctx->AddToBuffer(std::string(command));
+				ctx->ExecuteBuffer();
 			}
 
 			inline const char* GetName() const
