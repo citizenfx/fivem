@@ -52,6 +52,8 @@ namespace CitizenFX.Core
 
     class CitizenTaskScheduler : TaskScheduler
     {
+		private List<Task> m_inTickTasks = new List<Task>();
+
         private readonly List<Task> m_runningTasks = new List<Task>();
 
         protected CitizenTaskScheduler()
@@ -62,13 +64,18 @@ namespace CitizenFX.Core
         [SecurityCritical]
         protected override void QueueTask(Task task)
         {
-            m_runningTasks.Add(task);
+			if (m_inTickTasks != null)
+			{
+				m_inTickTasks.Add(task);
+			}
+
+			m_runningTasks.Add(task);
         }
 
         [SecurityCritical]
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
         {
-            if (!taskWasPreviouslyQueued)
+			if (!taskWasPreviouslyQueued)
             {
                 return TryExecuteTask(task);
             }
@@ -88,20 +95,30 @@ namespace CitizenFX.Core
         {
             var tasks = m_runningTasks.ToArray();
 
-            foreach (var task in tasks)
-            {
-                InvokeTryExecuteTask(task);
+			m_inTickTasks = new List<Task>();
 
-                if (task.Exception != null)
-                {
-                    Debug.WriteLine("Exception thrown by a task: {0}", task.Exception.ToString());
-                }
+			do
+			{
+				foreach (var task in tasks)
+				{
+					InvokeTryExecuteTask(task);
 
-                if (task.IsCompleted || task.IsFaulted || task.IsCanceled)
-                {
-                    m_runningTasks.Remove(task);
-                }
-            }
+					if (task.Exception != null)
+					{
+						Debug.WriteLine("Exception thrown by a task: {0}", task.Exception.ToString());
+					}
+
+					if (task.IsCompleted || task.IsFaulted || task.IsCanceled)
+					{
+						m_runningTasks.Remove(task);
+					}
+				}
+
+				tasks = m_inTickTasks.ToArray();
+				m_inTickTasks.Clear();
+			} while (tasks.Length != 0);
+
+			m_inTickTasks = null;
         }
 
         [SecuritySafeCritical]
