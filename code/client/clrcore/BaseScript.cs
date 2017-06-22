@@ -70,7 +70,7 @@ namespace CitizenFX.Core
         {
             if (!CurrentTaskList.ContainsKey(call))
             {
-                CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
+                CurrentTaskList.Add(call, Task.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
 				{
 					if (a.IsFaulted)
 					{
@@ -92,7 +92,7 @@ namespace CitizenFX.Core
         /// <returns>An awaitable task.</returns>
         public static Task Delay(int msecs)
         {
-            return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
+            return Task.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
         }
 
         [SecuritySafeCritical]

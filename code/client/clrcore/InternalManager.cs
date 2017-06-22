@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CitizenFX.Core
 {
@@ -18,6 +19,7 @@ namespace CitizenFX.Core
 
 		public static IScriptHost ScriptHost { get; private set; }
 
+		[SecuritySafeCritical]
 		public InternalManager()
 		{
 			//CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -28,6 +30,8 @@ namespace CitizenFX.Core
 
 			InitializeAssemblyResolver();
 			CitizenTaskScheduler.Create();
+
+			SynchronizationContext.SetSynchronizationContext(new CitizenSynchronizationContext());
 		}
 
 		[SecuritySafeCritical]
@@ -161,6 +165,7 @@ namespace CitizenFX.Core
 				}
 
 				CitizenTaskScheduler.Instance.Tick();
+				CitizenSynchronizationContext.Tick();
 			}
 			catch (Exception e)
 			{
@@ -183,7 +188,13 @@ namespace CitizenFX.Core
 
 				foreach (var script in scripts)
 				{
-					script.EventHandlers.Invoke(eventName, sourceString, objArray);
+					Task.Factory.StartNew(() => script.EventHandlers.Invoke(eventName, sourceString, objArray)).Unwrap().ContinueWith(a =>
+					{
+						if (a.IsFaulted)
+						{
+							Debug.WriteLine($"Error invoking event handlers for {eventName}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
+						}
+					});
 				}
 
 				ExportDictionary.Invoke(eventName, objArray);

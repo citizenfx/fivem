@@ -15,6 +15,8 @@ namespace CitizenFX.Core
         public static void Initialize()
         {
             Debug.WriteLine("Hello!");
+
+			CitizenTaskScheduler.Create();
         }
 
         public static Guid[] GetImplementedClasses(Guid ifImpl)

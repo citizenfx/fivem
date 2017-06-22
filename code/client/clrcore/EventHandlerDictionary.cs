@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core
@@ -36,14 +37,14 @@ namespace CitizenFX.Core
             this[key] += value;
         }
 
-        internal void Invoke(string eventName, string sourceString, object[] arguments)
+        internal async Task Invoke(string eventName, string sourceString, object[] arguments)
         {
             var lookupKey = eventName.ToLower();
             EventHandlerEntry entry;
             
             if (TryGetValue(lookupKey, out entry))
             {
-                entry.Invoke(sourceString, arguments);
+                await entry.Invoke(sourceString, arguments);
             }
         }
     }
@@ -72,7 +73,7 @@ namespace CitizenFX.Core
             return entry;
         }
 
-        internal void Invoke(string sourceString, params object[] args)
+        internal async Task Invoke(string sourceString, params object[] args)
         {
             var callbacks = m_callbacks.ToArray();
 
@@ -140,7 +141,12 @@ namespace CitizenFX.Core
 						}
 					}
 
-					callback.DynamicInvoke(passArgs.ToArray());
+					var rv = callback.DynamicInvoke(passArgs.ToArray());
+
+					if (rv != null && rv is Task task)
+					{
+						await task;
+					}
                 }
                 catch (Exception e)
                 {
