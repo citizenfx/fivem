@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +14,6 @@ namespace CitizenFX.Core
         public static void Write(string data)
         {
             GameInterface.PrintLog(data);
-			InternalManager.ScriptHost?.ScriptTrace(data);
         }
 
         public static void Write(string format, params object[] args)
