@@ -49,6 +49,9 @@ namespace CitizenFX.Core
 		public void Destroy()
 		{
 			AppDomain.Unload(m_appDomain);
+
+			m_appDomain = null;
+			m_intManager = null;
 		}
 
 		public IntPtr GetParentObject()
