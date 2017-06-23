@@ -130,6 +130,18 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "update/x64/dlcpacks/mpbiker/dlc.rpf", "52c48252eeed97e9a30efeabbc6623c67566c237", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1794048000 },
 	{ "update/x64/dlcpacks/patchday12ng/dlc.rpf", "4f3f3e88d4f01760648057c56fb109e1fbeb116a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 155365376 },
 
+	//DLCPacks12
+	{ "update/x64/dlcpacks/mpimportexport/dlc.rpf", "019b1b433d9734ac589520a74dd451d72cbff051", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 915310592 },
+	{ "update/x64/dlcpacks/patchday13ng/dlc.rpf", "4fe0ee843e83ef6a7a5f3352b4f6d7eb14d96e0f", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 144752640 },
+
+	//DLCPacks13
+	{ "update/x64/dlcpacks/mpspecialraces/dlc.rpf", "de1a6f688fdf8965e7b9a92691ac34f9c9881742", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 78448640 },
+	{ "update/x64/dlcpacks/patchday14ng/dlc.rpf", "078b683deb9b787e523093b9f3bc1bf5d3e7be09", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 92930048 },
+
+	//DLCPacks14
+	{ "update/x64/dlcpacks/mpgunrunning/dlc.rpf", "153bee008c16e0bcc007d76cf97999f503fc9b2a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1879756800 },
+	{ "update/x64/dlcpacks/patchday15ng/dlc.rpf", "6114122c428e901532ab6577ea7dbe2113126647", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 47478784 },
+
 	{ "ros_1219/cef.pak", "229DD3682DDA8258497F342319CDBEC9FF35BC33", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/cef.pak", 2749972, 73160384 },
 	{ "ros_1219/cef_100_percent.pak", "E14361DB195ACF3A6676DE3C25A2F81AC3AB67B3", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/cef_100_percent.pak", 146067, 73160384 },
 	{ "ros_1219/cef_200_percent.pak", "3EF18057982B409DB394046F7C5D37F7985DEAF7", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.1.9-Setup.exe", "$/cef_200_percent.pak", 235262, 73160384 },
