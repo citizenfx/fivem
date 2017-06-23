@@ -143,7 +143,7 @@
 						</Item>
 						<Item>
 							<PoolName>CScriptEntityExtension</PoolName>
-							<PoolSize value="700"/>
+							<PoolSize value="2500"/>
 						</Item>
 						<Item>
 							<PoolName>CVehicleChaseDirector</PoolName>
@@ -175,11 +175,11 @@
 						</Item>
 						<Item>
 							<PoolName>DecoratorExtension</PoolName>
-							<PoolSize value="600"/>
+							<PoolSize value="1000"/>
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="63200"/>
+							<PoolSize value="64550"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
@@ -207,7 +207,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="11800"/>
+							<PoolSize value="16000"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -311,7 +311,7 @@
 						</Item>
 						<Item>
 							<PoolName>phInstGta</PoolName>
-							<PoolSize value="9000"/>
+							<PoolSize value="16384"/>
 						</Item>
 						<Item>
 							<PoolName>PhysicsBounds</PoolName>
@@ -383,7 +383,7 @@
 						</Item>
 						<Item>
 							<PoolName>TxdStore</PoolName>
-							<PoolSize value="50100"/>
+							<PoolSize value="65100"/>
 						</Item>
 						<Item>
 							<PoolName>Vehicles</PoolName>
@@ -403,7 +403,7 @@
 						</Item>
         					<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="3500"/>
+							<PoolSize value="6000"/>
 						</Item>
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->
