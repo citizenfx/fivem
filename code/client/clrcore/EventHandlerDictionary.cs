@@ -87,7 +87,7 @@ namespace CitizenFX.Core
 
 					object ChangeType(object value, Type type)
 					{
-						if (value.GetType().IsAssignableFrom(type))
+						if (type.IsAssignableFrom(value.GetType()))
 						{
 							return value;
 						}
