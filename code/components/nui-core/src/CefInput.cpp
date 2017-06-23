@@ -23,7 +23,7 @@ bool isKeyDown(WPARAM wparam)
 
 namespace nui
 {
-	void GiveFocus(bool hasFocus)
+	void GiveFocus(bool hasFocus, bool hasCursor = false)
 	{
 #if defined(GTA_NY)
 		if (!g_hasFocus && hasFocus)
@@ -56,17 +56,7 @@ namespace nui
 #endif
 
 		g_hasFocus = hasFocus;
-		g_hasCursor = false;
-	}
-
-	void GiveFocus(bool hasFocus, bool hasCursor)
-	{
-		GiveFocus(hasFocus);
-
-		if (hasFocus)
-		{
-			g_hasCursor = hasCursor;
-		}
+		g_hasCursor = hasCursor;
 	}
 
 	void ProcessInput()
@@ -278,7 +268,7 @@ static HookFunction initFunction([] ()
 				lresult = TRUE;
 				return;
 			}
-			else if (msg == WM_INPUT)
+			else if (msg == WM_INPUT && g_hasCursor)
 			{
 				pass = false;
 				lresult = TRUE;
