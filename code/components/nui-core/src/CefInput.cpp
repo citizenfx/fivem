@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -23,7 +23,7 @@ bool isKeyDown(WPARAM wparam)
 
 namespace nui
 {
-	void GiveFocus(bool hasFocus, bool hasCursor = false)
+	void GiveFocus(bool hasFocus, bool hasCursor)
 	{
 #if defined(GTA_NY)
 		if (!g_hasFocus && hasFocus)
