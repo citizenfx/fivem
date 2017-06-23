@@ -55,6 +55,8 @@ build_proot_linux:
       - fx.tar.xz
   tags:
     - linux
+  except:
+    - master
 
 deploy_specific:
   stage: deploy
