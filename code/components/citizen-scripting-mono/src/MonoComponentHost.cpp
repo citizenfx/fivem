@@ -174,6 +174,8 @@ static void InitMono()
 
 	g_rootDomain = mono_jit_init_version("Citizen", "v4.0.30319");
 
+	mono_domain_set_config(g_rootDomain, ".", "cfx.config");
+
 	trace("Initializing Mono completed\n");
 
 	mono_install_unhandled_exception_hook([] (MonoObject* exc, void*)

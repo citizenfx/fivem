@@ -29,6 +29,7 @@ namespace CitizenFX.Core
 				m_scriptHost = host;
 
 				m_appDomain = AppDomain.CreateDomain($"ScriptDomain_{m_instanceId}");
+				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
 				m_intManager.SetScriptHost(Marshal.GetIUnknownForObject(host), m_instanceId);
