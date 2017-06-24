@@ -409,9 +409,9 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 #include "CrossMapping_944_1011.h"
 		};
 
-		static const CrossMappingEntry crossMapping_1011_1103[] =
+		static const CrossMappingEntry crossMapping_323_1103[] =
 		{
-#include "CrossMapping_1011_1103.h"
+#include "CrossMapping_323_1103.h"
 		};
 
 		// turn into a std::map
@@ -426,7 +426,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		std::map<uint64_t, uint64_t> crossMappingTable_791_877;
 		std::map<uint64_t, uint64_t> crossMappingTable_877_944;
 		std::map<uint64_t, uint64_t> crossMappingTable_944_1011;
-		std::map<uint64_t, uint64_t> crossMappingTable_1011_1103;
+		std::map<uint64_t, uint64_t> crossMappingTable_323_1103;
 
 #define DO_MAPPING(build_bit) \
 	for (auto& mapping : crossMapping_##build_bit) \
@@ -445,7 +445,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		DO_MAPPING(791_877);
 		DO_MAPPING(877_944);
 		DO_MAPPING(944_1011);
-		DO_MAPPING(1011_1103);
+		DO_MAPPING(323_1103);
 
 		while (true)
 		{
@@ -514,7 +514,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 			if (versionIdx >= 1103)
 			{
-				destNative = crossMappingTable_1011_1103[destNative];
+				destNative = crossMappingTable_323_1103[sourceNative];
 			}
 
 			g_mappingTable.insert({ sourceNative, destNative });
