@@ -200,6 +200,11 @@ static InitFunction initFunction([] ()
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" xmlns=\"CheckText\"><Status>1</Status></Response>";
 	});
 
+	mapper->AddGameService("ugc.asmx/CheckText", [](const std::string& body)
+	{
+		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" xmlns=\"CheckText\"><Status>1</Status></Response>";
+	});
+
 	/*mapper->AddGameService("Telemetry.asmx/SubmitCompressed", [](const std::string& body)
 	{
 		size_t dataStart = body.find("data=");
