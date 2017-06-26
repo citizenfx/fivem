@@ -119,6 +119,11 @@ static HookFunction hookFunction([] ()
 	hook::nop(loc, 8);
 	hook::put<uint8_t>(loc + 8, 0xEB);
 
+	loc = hook::get_pattern<char>("40 38 68 14 75 05 39 68 04 74");
+
+	hook::nop(loc, 9);
+	hook::put<uint8_t>(loc + 9, 0xEB);
+
 	/*loc = hook::pattern("38 58 14 75 05 39 58 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 8);
