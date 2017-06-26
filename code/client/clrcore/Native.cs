@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Security;
 
@@ -350,7 +350,12 @@ namespace CitizenFX.Core.Native
             return new InputArgument(value);
         }
 
-        [SecuritySafeCritical]
+		public static implicit operator InputArgument(Vector3 value)
+		{
+			return new InputArgument(value);
+		}
+
+		[SecuritySafeCritical]
         public static implicit operator InputArgument(INativeValue value)
         {
             return new InputArgument(value.NativeValue);
