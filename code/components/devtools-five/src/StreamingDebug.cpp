@@ -5,17 +5,13 @@
 
 #include <Streaming.h>
 
+#include <CoreConsole.h>
+
 static InitFunction initFunction([]()
 {
 	static bool streamingDebugEnabled;
 
-	ConHost::OnInvokeNative.Connect([](const char* native, const char* arg)
-	{
-		if (_stricmp(native, "streamingDebug") == 0)
-		{
-			streamingDebugEnabled = !streamingDebugEnabled;
-		}
-	});
+	static ConVar<bool> streamingDebugVar("strdbg", ConVar_Archive, false, &streamingDebugEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{

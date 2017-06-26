@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#include "ConsoleHost.h"
+#include <CoreConsole.h>
 #include "ICoreGameInit.h"
 #include "fiDevice.h"
 
@@ -228,12 +228,14 @@ static InitFunction initFunction([] ()
 		device->SetPath(usermapsPath.c_str(), true);
 		device->Mount("usermaps:/");
 	});
-	
-	ConHost::OnInvokeNative.Connect([] (const char* type, const char* argument)
+
+	static ConsoleCommand loadLevelCommand("loadlevel", [](const std::string& level)
 	{
-		if (strcmp(type, "loadLevel") == 0)
-		{
-			LoadLevel(argument);
-		}
+		LoadLevel(level.c_str());
+	});
+
+	static ConsoleCommand loadLevelCommand2("invoke-levelload", [](const std::string& level)
+	{
+		LoadLevel(level.c_str());
 	});
 });

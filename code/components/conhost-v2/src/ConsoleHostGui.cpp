@@ -10,6 +10,8 @@
 #include <imgui.h>
 #include <ConsoleHost.h>
 
+#include <CoreConsole.h>
+
 #include <ICoreGameInit.h>
 
 struct FiveMConsole
@@ -183,71 +185,16 @@ struct FiveMConsole
 		{
 			ClearLog();
 		}
-		else if (Stricmp(command_line, "help") == 0)
-		{
-			AddLog("Available commands:");
-			for (int i = 0; i < Commands.Size; i++)
-				AddLog("- %s", Commands[i]);
-		}
 		else if (Stricmp(command_line, "history") == 0)
 		{
 			for (int i = History.Size >= 10 ? History.Size - 10 : 0; i < History.Size; i++)
 				AddLog("%3d: %s\n", i, History[i]);
 		}
-		else if (Strnicmp(command_line, "loadlevel", 9) == 0 || Strnicmp(command_line, "invoke-levelload", 16) == 0)
-		{
-			const char* levelName = strrchr(command_line, ' ');
-
-			if (levelName)
-			{
-				ConHost::OnInvokeNative("loadLevel", levelName + 1);
-			}
-			else
-			{
-				AddLog("Usage: LoadLevel levelName");
-				AddLog("Example: LoadLevel gta5");
-			}
-		}
-		else if (Strnicmp(command_line, "netgraph", 7) == 0 || Strnicmp(command_line, "set-netgraph", 11) == 0)
-		{
-			static bool lastState = false;
-
-			lastState = !lastState;
-
-			ConHost::OnInvokeNative("netGraphEnabled", (lastState) ? "y" : "n");
-		}
-		else if (Strnicmp(command_line, "quit", 4) == 0)
-		{
-			TerminateProcess(GetCurrentProcess(), -1);
-		}
-		else if (Strnicmp(command_line, "connect", 7) == 0)
-		{
-			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
-			{
-				AddLog("You're already connected to a server.");
-				return;
-			}
-
-			const char* name = strrchr(command_line, ' ');
-
-			if (name)
-			{
-				ConHost::OnInvokeNative("connectTo", name + 1);
-			}
-			else
-			{
-				AddLog("Usage: Connect host:port");
-				AddLog("Example: Connect localhost:30120");
-			}
-
-		}
-		else if (Stricmp(command_line, "strdbg") == 0)
-		{
-			ConHost::OnInvokeNative("streamingDebug", "");
-		}
 		else
 		{
-			AddLog("Unknown command: '%s'\n", command_line);
+			console::GetDefaultContext()->AddToBuffer(command_line);
+			console::GetDefaultContext()->AddToBuffer("\n");
+			console::GetDefaultContext()->ExecuteBuffer();
 		}
 	}
 
@@ -279,9 +226,14 @@ struct FiveMConsole
 
 			// Build a list of candidates
 			ImVector<const char*> candidates;
-			for (int i = 0; i < Commands.Size; i++)
-				if (Strnicmp(Commands[i], word_start, (int)(word_end - word_start)) == 0)
-					candidates.push_back(Commands[i]);
+
+			console::GetDefaultContext()->GetCommandManager()->ForAllCommands([&](const std::string& command)
+			{
+				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0)
+				{
+					candidates.push_back(Strdup(command.c_str()));
+				}
+			});
 
 			if (candidates.Size == 0)
 			{
@@ -325,6 +277,11 @@ struct FiveMConsole
 					AddLog("- %s\n", candidates[i]);
 			}
 
+			for (auto& candidate : candidates)
+			{
+				free(const_cast<char*>(candidate));
+			}
+
 			break;
 		}
 		case ImGuiInputTextFlags_CallbackHistory:
@@ -357,26 +314,26 @@ struct FiveMConsole
 	}
 };
 
-static std::unique_ptr<FiveMConsole> console;
+static std::unique_ptr<FiveMConsole> g_console;
 
 void DrawConsole()
 {
-	if (!console)
+	if (!g_console)
 	{
-		console = std::make_unique<FiveMConsole>();
+		g_console = std::make_unique<FiveMConsole>();
 	}
 
 	static bool pOpen = true;
-	console->Draw("", &pOpen);
+	g_console->Draw("", &pOpen);
 }
 
 #include <sstream>
 
 void SendPrintMessage(const std::string& message)
 {
-	if (!console)
+	if (!g_console)
 	{
-		console = std::make_unique<FiveMConsole>();
+		g_console = std::make_unique<FiveMConsole>();
 	}
 
 	std::stringstream ss(message);
@@ -384,6 +341,6 @@ void SendPrintMessage(const std::string& message)
 
 	while (std::getline(ss, to, '\n'))
 	{
-		console->AddLog(to.c_str());
+		g_console->AddLog(to.c_str());
 	}
 }

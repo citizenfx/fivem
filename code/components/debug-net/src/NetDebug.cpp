@@ -12,7 +12,7 @@
 #include "FontRenderer.h"
 #include "DrawCommands.h"
 #include "Screen.h"
-#include "ConsoleHost.h"
+#include <CoreConsole.h>
 #include <mmsystem.h>
 
 const int g_netOverlayOffsetX = -30;
@@ -123,14 +123,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 	memset(m_inRouteDelaySamples, 0, sizeof(m_inRouteDelaySamples));
 	memset(m_inRouteDelaySamplesArchive, 0, sizeof(m_inRouteDelaySamplesArchive));
 
-	ConHost::OnInvokeNative.Connect([=] (const char* nativeName, const char* argument)
-	{
-		// enable/disable command
-		if (strcmp(nativeName, "netGraphEnabled") == 0)
-		{
-			m_enabled = argument[0] == 'y';
-		}
-	});
+	static ConVar<bool> conVar("netgraph", ConVar_Archive, false, &m_enabled);
 
 	OnPostFrontendRender.Connect([=] ()
 	{

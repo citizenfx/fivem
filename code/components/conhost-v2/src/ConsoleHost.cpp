@@ -27,6 +27,11 @@ static InitFunction initFunction([] ()
 		ConHost::Print(0, msg);
 	});
 
+	static ConsoleCommand quitCommand("quit", []()
+	{
+		TerminateProcess(GetCurrentProcess(), -1);
+	});
+
 	InputHook::OnWndProc.Connect([] (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
 		if (g_consoleFlag)

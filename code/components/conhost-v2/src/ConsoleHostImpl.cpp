@@ -293,6 +293,9 @@ static InitFunction initFunction([] ()
 				io.AddInputCharacter((unsigned short)wParam);
 			pass = false;
 			break;
+		case WM_INPUT:
+			pass = false;
+			break;
 		}
 		
 		if (!pass)
