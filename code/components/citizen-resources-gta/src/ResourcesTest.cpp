@@ -131,6 +131,8 @@ static InitFunction initFunction([] ()
 				}
 			}
 
+			streaming::AddDataFileToLoadList("CFX_PSEUDO_CACHE", resource->GetName());
+
 			{
 				auto map = metaData->GetEntries("this_is_a_map");
 

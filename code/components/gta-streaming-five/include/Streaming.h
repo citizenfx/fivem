@@ -10,21 +10,25 @@
 
 struct StreamingPackfileEntry
 {
-	FILETIME modificationTime;
-	uint8_t pad[32];
-	uint64_t packfileParentHandle;
-	uint64_t pad1;
-	rage::fiPackfile* packfile;
-	uint8_t pad2[2];
-	uint8_t loadedFlag;
-	uint8_t pad3;
-	uint8_t enabled;
-	uint8_t pad4[19];
-	uint32_t parentIdentifier;
-	uint32_t pad5;
-	uint16_t isHdd;
-	uint16_t pad6;
-	uint32_t pad7;
+	FILETIME modificationTime;       // +0
+	uint8_t pad0[8];                 // +8
+	uint32_t nameHash;               // +16
+	uint8_t pad[20];                 // +20
+	uint64_t packfileParentHandle;   // +40
+	uint64_t pad1;                   // +48
+	rage::fiPackfile* packfile;      // +56
+	uint8_t pad2[2];                 // +64
+	uint8_t loadedFlag;              // +66
+	uint8_t pad3;                    // +67
+	uint8_t enabled;                 // +68
+	uint8_t pad4[3];                 // +69
+	uint8_t cacheFlags;              // +72
+	uint8_t pad5[15];                // +73
+	uint32_t parentIdentifier;       // +88
+	uint32_t pad6;                   // +92
+	uint16_t isHdd;                  // +96
+	uint16_t pad7;                   // +98
+	uint32_t pad8;                   // +100
 };
 
 struct StreamingDataEntry

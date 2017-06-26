@@ -5,7 +5,8 @@
 		"fx[2]",
 		"rage:device:five",
 		"vendor:minhook",
-		"gta:core"
+		"gta:core",
+		"vfs:core"
 	],
 	"provides": []
 }

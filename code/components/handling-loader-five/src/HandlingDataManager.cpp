@@ -5,6 +5,8 @@
 
 #include <IteratorView.h>
 
+#include <atHashMap.h>
+
 #include <mutex>
 #include <unordered_set>
 
@@ -99,36 +101,6 @@ public:
 
 	char pad2[212];
 };
-
-template<typename TEntry>
-class atHashMap
-{
-private:
-	struct Entry
-	{
-		uint32_t hash;
-		TEntry* data;
-		Entry* next;
-	};
-
-private:
-	atArray<Entry*> m_data;
-
-public:
-	void ForAllEntries(const std::function<void(TEntry*)>& cb)
-	{
-		for (auto& entries : m_data)
-		{
-			for (auto i = entries; i; i = i->next)
-			{
-				cb(i->data);
-			}
-		}
-	}
-};
-
-template<typename TEntry>
-using atMultiHashMap = atHashMap<atArray<TEntry>>;
 
 template<typename TSubClass>
 class fwFactoryBase

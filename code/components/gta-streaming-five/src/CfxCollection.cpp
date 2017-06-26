@@ -1915,6 +1915,38 @@ void CfxCollection::PrepareStreamingListFromNetwork()
 	PrepareStreamingListFromList(g_customStreamingFiles);
 }
 
+static std::unordered_map<std::string, CfxCollection*> g_collectionsByTag;
+static std::unordered_map<std::string, uint32_t> g_packHashesByTag;
+
+int GetCollectionIndexByTag(const std::string& tag)
+{
+	auto collection = g_collectionsByTag[tag];
+
+	if (collection)
+	{
+		return collection->GetCollectionId();
+	}
+
+	return -1;
+}
+
+uint32_t GetPackHashByTag(const std::string& tag)
+{
+	return g_packHashesByTag[tag];
+}
+
+void InvalidateCacheByTag(const std::string& tag)
+{
+	auto collection = g_collectionsByTag[tag];
+
+	if (collection)
+	{
+		auto& packfileInfo = g_streamingPackfiles->Get(collection->GetCollectionId());
+
+		packfileInfo.cacheFlags |= 1;
+	}
+}
+
 void CfxCollection::PrepareStreamingListForTag(const char* tag)
 {
 	// parse \ as apparently it expects a real fs path
@@ -1925,6 +1957,29 @@ void CfxCollection::PrepareStreamingListForTag(const char* tag)
 	tagName = tagName.substr(0, tagName.find_last_of('.'));
 
 	PrepareStreamingListFromList(g_customStreamingFilesByTag[tagName]);
+
+	g_collectionsByTag[tagName] = this;
+
+	uint32_t packHash = 0;
+
+	for (auto& f : m_streamingFileList)
+	{
+		auto& resFlags = m_resourceFlags[f];
+
+		packHash += (HashString(f.c_str()));
+		packHash *= 31;
+
+		packHash += (HashString(va("%d %d", resFlags.flag1, resFlags.flag2)));
+		packHash *= 31;
+	}
+
+	auto& packfileInfo = g_streamingPackfiles->Get(GetCollectionId());
+	packfileInfo.modificationTime.dwHighDateTime = 0;
+	packfileInfo.modificationTime.dwLowDateTime = packHash;
+
+	g_packHashesByTag[tagName] = packHash;
+
+	//packfileInfo.nameHash = HashString(va("citizen:/dunno/%s.rpf", tag));
 }
 
 static void(*g_origGeomThing)(void*, void*);
@@ -2113,6 +2168,8 @@ static HookFunction hookFunction([] ()
 {
 	assert(offsetof(CollectionData, name) == 120);
 	assert(offsetof(StreamingPackfileEntry, enabled) == 68);
+
+	static_assert(sizeof(StreamingPackfileEntry) == 104, "SFPE");
 
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
 	

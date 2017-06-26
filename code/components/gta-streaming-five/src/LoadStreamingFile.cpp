@@ -219,6 +219,11 @@ void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb);
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type);
 
+static hook::cdecl_stub<bool(void* streaming, int idx)> _isResourceNotCached([]()
+{
+	return hook::get_pattern("74 07 8A 40 48 24 01 EB 02 B0 01", -0x1B);
+});
+
 class CfxPseudoMounter : public CDataFileMountInterface
 {
 private:
@@ -245,15 +250,23 @@ public:
 						}
 
 						auto mgr = streaming::Manager::GetInstance();
-						mgr->RequestObject(obj, 0);
 
-						streaming::LoadObjectsNow(0);
+						if (_isResourceNotCached(mgr, obj))
+						{
+							mgr->RequestObject(obj, 0);
 
-						mgr->ReleaseObject(obj);
+							streaming::LoadObjectsNow(0);
 
-						loadedCollisions.insert(file);
+							mgr->ReleaseObject(obj);
 
-						trace("Loaded %s (id %d)\n", file, obj);
+							loadedCollisions.insert(file);
+
+							trace("Loaded %s (id %d)\n", file, obj);
+						}
+						else
+						{
+							trace("Skipped %s - it's cached! (id %d)\n", file, obj);
+						}
 					}
 				}
 			});
@@ -300,6 +313,26 @@ public:
 
 static CfxPseudoMounter g_staticPseudoMounter;
 
+void LoadCache(const char* tagName);
+
+class CfxCacheMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool MountFile(DataFileEntry* entry) override
+	{
+		LoadCache(entry->name);
+
+		return true;
+	}
+
+	virtual bool UnmountFile(DataFileEntry* entry) override
+	{
+		return true;
+	}
+};
+
+static CfxCacheMounter g_staticCacheMounter;
+
 static CDataFileMountInterface** g_dataFileMounters;
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
@@ -307,6 +340,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	if (type == "CFX_PSEUDO_ENTRY")
 	{
 		return &g_staticPseudoMounter;
+	}
+
+	if (type == "CFX_PSEUDO_CACHE")
+	{
+		return &g_staticCacheMounter;
 	}
 
 	int fileType = LookupDataFileType(type);
