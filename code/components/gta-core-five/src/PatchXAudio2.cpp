@@ -180,6 +180,14 @@ static HookFunction hookFunction([]()
 		hook::put<IID>(hook::get_pattern("19 37 23 0A 60 39 78 45 9D 7C", 0), IID_ID3D11ShaderReflection);
 	}
 
+	HMODULE xAudioOld = LoadLibrary(L"XAudio2_7.dll");
+
+	if (xAudioOld)
+	{
+		trace("Skipping XAudio2 patches - XAudio 2.7 is present.\n");
+		return;
+	}
+
 	HMODULE xAudio2 = LoadLibrary(L"XAudio2_8.dll");
 
 	if (!xAudio2)
