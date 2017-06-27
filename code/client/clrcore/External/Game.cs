@@ -36,7 +36,15 @@ namespace CitizenFX.Core
 		v1_0_791_2_Steam,
 		v1_0_791_2_NoSteam,
 		v1_0_877_1_Steam,
-		v1_0_877_1_NoSteam
+		v1_0_877_1_NoSteam,
+		v1_0_944_2_Steam,
+		v1_0_944_2_NoSteam,
+		v1_0_1011_1_Steam,
+		v1_0_1011_1_NoSteam,
+		v1_0_1032_1_Steam,
+		v1_0_1032_1_NoSteam,
+		v1_0_1103_2_Steam,
+		v1_0_1103_2_NoSteam
 	}
 	public enum Language
 	{
@@ -117,7 +125,7 @@ namespace CitizenFX.Core
 
 		static Game()
 		{
-            Version = GameVersion.v1_0_505_2_NoSteam;
+            Version = GameVersion.v1_0_1103_2_NoSteam;
 		}
 
 		/// <summary>
