@@ -17,7 +17,7 @@
 
 			return id = this.setInterval(() =>
 			{
-				this.clearInterval(id);	
+				this.clearInterval(id);
 
 				callback();
 			}, ms);
@@ -118,5 +118,39 @@
 		timerManager.tick();
 	});
 
-	print('end Cfx init');
+	// event handling
+	const eventHandlers = {};
+
+	Citizen.setEventFunction(function(eventName, eventPayload, eventSource)
+	{
+		window.source = eventSource;
+
+		const eventHandlerEntry = eventHandlers[eventName];
+
+		if (eventHandlerEntry)
+		{
+			if (eventHandlerEntry.rawHandlers)
+			{
+				if (Array.isArray(eventHandlerEntry.rawHandlers))
+				{
+					for (const handler of eventHandlerEntry.rawHandlers)
+					{
+						handler(eventPayload);
+					}
+				}
+			}
+		}
+
+		window.source = null;
+	});
+
+	window.addRawEventHandler = function(eventName, cb)
+	{
+		if (!eventHandlers[eventName])
+		{
+			eventHandlers[eventName] = { handlers: [], rawHandlers: [] };
+		}
+
+		eventHandlers[eventName].rawHandlers.push(cb);
+	};
 })();

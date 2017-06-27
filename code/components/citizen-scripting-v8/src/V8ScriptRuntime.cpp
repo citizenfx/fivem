@@ -42,12 +42,29 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
-class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime>
+class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime>
 {
+private:
+	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
+
+	typedef std::function<void(int32_t, const char*, size_t, char**, size_t*)> TCallRefRoutine;
+
+	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
+
+	typedef std::function<void(int32_t)> TDeleteRefRoutine;
+
 private:
 	UniquePersistent<Context> m_context;
 
 	std::function<void()> m_tickRoutine;
+
+	TEventRoutine m_eventRoutine;
+
+	TCallRefRoutine m_callRefRoutine;
+
+	TDuplicateRefRoutine m_duplicateRefRoutine;
+
+	TDeleteRefRoutine m_deleteRefRoutine;
 
 	IScriptHost* m_scriptHost;
 
@@ -90,6 +107,26 @@ public:
 		m_tickRoutine = tickRoutine;
 	}
 
+	inline void SetEventRoutine(const TEventRoutine& eventRoutine)
+	{
+		m_eventRoutine = eventRoutine;
+	}
+
+	inline void SetCallRefRoutine(const TCallRefRoutine& routine)
+	{
+		m_callRefRoutine = routine;
+	}
+
+	inline void SetDuplicateRefRoutine(const TDuplicateRefRoutine& routine)
+	{
+		m_duplicateRefRoutine = routine;
+	}
+
+	inline void SetDeleteRefRoutine(const TDeleteRefRoutine& routine)
+	{
+		m_deleteRefRoutine = routine;
+	}
+
 	inline OMPtr<IScriptHost> GetScriptHost()
 	{
 		return m_scriptHost;
@@ -107,6 +144,10 @@ public:
 	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
 
 	NS_DECL_ISCRIPTTICKRUNTIME;
+
+	NS_DECL_ISCRIPTEVENTRUNTIME;
+
+	NS_DECL_ISCRIPTREFRUNTIME;
 };
 
 class V8PushEnvironment
@@ -204,6 +245,215 @@ static void V8_SetTickFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
 			}
 		}
 	}));
+}
+
+static void V8_SetEventFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	Local<Function> function = Local<Function>::Cast(args[0]);
+	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
+
+	runtime->SetEventRoutine(make_shared_function([functionRef{ std::move(functionRef) }](const char* eventName, const char* eventPayload, size_t payloadSize, const char* eventSource)
+	{
+		Local<Function> function = functionRef.Get(GetV8Isolate());
+
+		{
+			TryCatch eh;
+
+			Local<ArrayBuffer> inValueBuffer = ArrayBuffer::New(GetV8Isolate(), payloadSize);
+			memcpy(inValueBuffer->GetContents().Data(), eventPayload, payloadSize);
+
+			Local<Value> arguments[3];
+			arguments[0] = String::NewFromUtf8(GetV8Isolate(), eventName);
+			arguments[1] = Uint8Array::New(inValueBuffer, 0, payloadSize);
+			arguments[2] = String::NewFromUtf8(GetV8Isolate(), eventSource);
+
+			Local<Value> value = function->Call(Null(GetV8Isolate()), 3, arguments);
+
+			if (eh.HasCaught())
+			{
+				String::Utf8Value str(eh.Exception());
+				String::Utf8Value stack(eh.StackTrace());
+
+				trace("Error calling system event handling function in resource %s: %s\nstack:\n%s\n", "TODO", *str, *stack);
+			}
+		}
+	}));
+}
+
+static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	Local<Function> function = Local<Function>::Cast(args[0]);
+	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
+
+	runtime->SetCallRefRoutine(make_shared_function([functionRef{ std::move(functionRef) }](int32_t refId, const char* argsSerialized, size_t argsSize, char** retval, size_t* retvalLength)
+	{
+		// static array for retval output
+		static std::vector<char> retvalArray(32768);
+
+		Local<Function> function = functionRef.Get(GetV8Isolate());
+
+		{
+			TryCatch eh;
+
+			Local<ArrayBuffer> inValueBuffer = ArrayBuffer::New(GetV8Isolate(), argsSize);
+			memcpy(inValueBuffer->GetContents().Data(), argsSerialized, argsSize);
+
+			Local<Value> arguments[2];
+			arguments[0] = Int32::New(GetV8Isolate(), refId);
+			arguments[1] = Uint8Array::New(inValueBuffer, 0, argsSize);
+
+			Local<Value> value = function->Call(Null(GetV8Isolate()), 2, arguments);
+
+			if (eh.HasCaught())
+			{
+				String::Utf8Value str(eh.Exception());
+				String::Utf8Value stack(eh.StackTrace());
+
+				trace("Error calling system call ref function in resource %s: %s\nstack:\n%s\n", "TODO", *str, *stack);
+			}
+			else
+			{
+				if (!value->IsArrayBufferView())
+				{
+					return;
+				}
+
+				Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
+				*retvalLength = abv->ByteLength();
+
+				abv->CopyContents(retvalArray.data(), min(retvalArray.size(), *retvalLength));
+				*retval = retvalArray.data();
+			}
+		}
+	}));
+}
+
+static void V8_SetDeleteRefFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	Local<Function> function = Local<Function>::Cast(args[0]);
+	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
+
+	runtime->SetDeleteRefRoutine(make_shared_function([functionRef{ std::move(functionRef) }](int32_t refId)
+	{
+		Local<Function> function = functionRef.Get(GetV8Isolate());
+
+		{
+			TryCatch eh;
+
+			Local<Value> arguments[3];
+			arguments[0] = Int32::New(GetV8Isolate(), refId);
+
+			Local<Value> value = function->Call(Null(GetV8Isolate()), 1, arguments);
+
+			if (eh.HasCaught())
+			{
+				String::Utf8Value str(eh.Exception());
+				String::Utf8Value stack(eh.StackTrace());
+
+				trace("Error calling system delete ref function in resource %s: %s\nstack:\n%s\n", "TODO", *str, *stack);
+			}
+		}
+	}));
+}
+
+static void V8_SetDuplicateRefFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	Local<Function> function = Local<Function>::Cast(args[0]);
+	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
+
+	runtime->SetDuplicateRefRoutine(make_shared_function([functionRef{ std::move(functionRef) }](int32_t refId)
+	{
+		Local<Function> function = functionRef.Get(GetV8Isolate());
+
+		{
+			TryCatch eh;
+
+			Local<Value> arguments[3];
+			arguments[0] = Int32::New(GetV8Isolate(), refId);
+
+			Local<Value> value = function->Call(Null(GetV8Isolate()), 1, arguments);
+
+			if (eh.HasCaught())
+			{
+				String::Utf8Value str(eh.Exception());
+				String::Utf8Value stack(eh.StackTrace());
+
+				trace("Error calling system duplicate ref function in resource %s: %s\nstack:\n%s\n", "TODO", *str, *stack);
+			}
+			else
+			{
+				if (value->IsInt32())
+				{
+					return value->Int32Value();
+				}
+			}
+
+			return -1;
+		}
+	}));
+}
+
+static void V8_CanonicalizeRef(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	char* refString;
+	result_t hr = runtime->GetScriptHost()->CanonicalizeRef(args[0]->Int32Value(), runtime->GetInstanceId(), &refString);
+
+	args.GetReturnValue().Set(String::NewFromUtf8(GetV8Isolate(), refString));
+	fwFree(refString);
+}
+
+static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
+
+	Local<String> string = Local<String>::Cast(args[0]);
+	Local<ArrayBufferView> abv = Local<ArrayBufferView>::Cast(args[1]);
+
+	String::Utf8Value str(string);
+
+	// variables to hold state
+	fxNativeContext context = { 0 };
+
+	context.numArguments = 4;
+	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
+
+	// identifier string
+	context.arguments[0] = reinterpret_cast<uintptr_t>(*str);
+
+	// argument data
+	size_t argLength;
+	std::vector<uint8_t> argsBuffer(abv->ByteLength());
+
+	abv->CopyContents(argsBuffer.data(), argsBuffer.size());
+
+	context.arguments[1] = reinterpret_cast<uintptr_t>(argsBuffer.data());
+	context.arguments[2] = static_cast<uintptr_t>(argsBuffer.size());
+
+	// return value length
+	size_t retLength = 0;
+	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
+
+	// invoke
+	scriptHost->InvokeNative(context);
+
+	// get return values
+	Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), retLength);
+	memcpy(outValueBuffer->GetContents().Data(), (const void*)context.arguments[0], retLength);
+
+	Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, retLength);
+	args.GetReturnValue().Set(outArray);
 }
 
 static void V8_GetTickCount(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -466,6 +716,13 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 				push(ptr);
 			}
 		}
+		else if (arg->IsArrayBufferView())
+		{
+			Local<ArrayBufferView> abv = arg.As<ArrayBufferView>();
+			Local<ArrayBuffer> buffer = abv->Buffer();
+
+			push((char*)buffer->GetContents().Data() + abv->ByteOffset());
+		}
 		// this should be the last entry, I'd guess
 		else if (arg->IsObject())
 		{
@@ -707,6 +964,14 @@ static void V8_StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args)
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
 	{ "setTickFunction", V8_SetTickFunction },
+	{ "setEventFunction", V8_SetEventFunction },
+	// ref stuff
+	{ "setCallRefFunction", V8_SetCallRefFunction },
+	{ "setDeleteRefFunction", V8_SetDeleteRefFunction },
+	{ "setDuplicateRefFunction", V8_SetDuplicateRefFunction },
+	{ "canonicalizeRef", V8_CanonicalizeRef },
+	{ "invokeFunctionReference", V8_InvokeFunctionReference },
+	// internals
 	{ "getTickCount", V8_GetTickCount },
 	{ "invokeNative", V8_InvokeNative },
 	{ "startProfiling", V8_StartProfiling },
@@ -897,7 +1162,13 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 result_t V8ScriptRuntime::Destroy()
 {
-	m_tickRoutine.swap(std::function<void()>());
+	m_eventRoutine = TEventRoutine();
+	m_tickRoutine = std::function<void()>();
+	m_callRefRoutine = TCallRefRoutine();
+	m_deleteRefRoutine = TDeleteRefRoutine();
+	m_duplicateRefRoutine = TDuplicateRefRoutine();
+
+	fx::PushEnvironment pushed(this);
 	m_context.Reset();
 
 	return FX_S_OK;
@@ -1047,6 +1318,62 @@ result_t V8ScriptRuntime::Tick()
 		V8PushEnvironment pushed(this);
 
 		m_tickRoutine();
+	}
+
+	return FX_S_OK;
+}
+
+result_t V8ScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uint32_t payloadSize, char* eventSource)
+{
+	if (m_eventRoutine)
+	{
+		V8PushEnvironment pushed(this);
+
+		m_eventRoutine(eventName, eventPayload, payloadSize, eventSource);
+	}
+
+	return FX_S_OK;
+}
+
+result_t V8ScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+{
+	*retvalLength = 0;
+	*retvalSerialized = nullptr;
+
+	if (m_callRefRoutine)
+	{
+		V8PushEnvironment pushed(this);
+
+		size_t retvalLengthS;
+		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
+
+		*retvalLength = retvalLengthS;
+	}
+
+	return FX_S_OK;
+}
+
+result_t V8ScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* outRefIdx)
+{
+	*outRefIdx = -1;
+
+	if (m_duplicateRefRoutine)
+	{
+		V8PushEnvironment pushed(this);
+
+		*outRefIdx = m_duplicateRefRoutine(refIdx);
+	}
+
+	return FX_S_OK;
+}
+
+result_t V8ScriptRuntime::RemoveRef(int32_t refIdx)
+{
+	if (m_deleteRefRoutine)
+	{
+		V8PushEnvironment pushed(this);
+
+		m_deleteRefRoutine(refIdx);
 	}
 
 	return FX_S_OK;
