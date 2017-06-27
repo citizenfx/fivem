@@ -290,6 +290,37 @@ namespace CitizenFX.Core
 		VehicleWindowCollection _windows;
 		#endregion
 
+		#region MemOffsets
+		// 1103 specific
+		const int HeliMainRotorHealthOffset = 0x184C;
+		const int HeliTailRotorHealthOffset = 0x1850;
+		const int HeliEngineHealthOffset = 0x1854;
+		const int FuelLevelOffset = 0x7B8;
+		const int OilLevelOffset = 0x7BC;
+		const int GravityOffset = 0xB8C;
+		const int IsEngineStartingOffset = 0x89A;
+		const int WheelSpeedOffset = 0xA00;
+		const int HeliBladesSpeedOffset = 0x1840;
+		const int AccelerationOffset = 0x834;
+		const int CurrentRPMOffset = 0x824;
+		const int HighGearOffset = 0x7F6;
+		const int CurrentGearOffset = 0x7F0;
+		const int SteeringAngleOffset = 0x904;
+		const int SteeringScaleOffset = 0x8FC;
+		const int IsAlarmSetOffset = 0x9F4;
+		const int AlarmTimeLeftOffset = 0x9F4;
+		const int IsWantedOffset = 0x9A4;
+		const int ProvidesCoverOffset = 0x894;
+		const int PreviouslyOwnedByPlayerOffset = 0x89C;
+		const int NeedsToBeHotwiredOffset = 0x89C;
+		const int IsInteriorLightOnOffset = 0x899;
+		const int LodMultiplierOffset = 0x1274;
+		const int IsLeftHeadLightBrokenOffset = 0x7CC;
+		const int IsRightHeadLightBrokenOffset = 0x7CC;
+		const int EnginePowerMultiplierOffset = 0xA28;
+		const int CanWheelsBreakOffset = 0x893;
+		#endregion
+
 		public Vehicle(int handle) : base(handle)
 		{
 		}
@@ -404,10 +435,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x768 : 0x758;
-				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x788 : offset;
-
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + FuelLevelOffset);
 			}
 			set
 			{
@@ -416,10 +444,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x768 : 0x758;
-				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x788 : offset;
-
-				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
+				MemoryAccess.WriteFloat(MemoryAddress + FuelLevelOffset, value);
 			}
 		}
 
@@ -432,10 +457,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x76C : 0x75C;
-				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x78C : offset;
-
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + OilLevelOffset);
 			}
 			set
 			{
@@ -444,10 +466,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x76C : 0x75C;
-				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x78C : offset;
-
-				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
+				MemoryAccess.WriteFloat(MemoryAddress + OilLevelOffset, value);
 			}
 		}
 
@@ -459,11 +478,8 @@ namespace CitizenFX.Core
 				{
 					return 0.0f;
 				}
-				
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x0B2C : 0x0B1C;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x0B4C : offset;
 
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + GravityOffset);
 			}
 			set
 			{
@@ -472,10 +488,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x0B2C : 0x0B1C;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x0B4C : offset;
-
-				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
+				MemoryAccess.WriteFloat(MemoryAddress + GravityOffset, value);
 			}
 		}
 
@@ -506,15 +519,12 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr memoryAddress = MemoryAddress;
-				if (memoryAddress == IntPtr.Zero)
+				if (MemoryAddress == IntPtr.Zero)
 				{
 					return false;
 				}
-				//Unsure of the exact version this switched, but all others in the rangs are the same
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x842 : 0x832;
 
-				return MemoryAccess.IsBitSet(MemoryAddress + offset, 5);
+				return MemoryAccess.IsBitSet(MemoryAddress + IsEngineStartingOffset, 5);
 			}
 		}
 		/// <summary>
@@ -582,11 +592,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				//old game version hasnt been tested, just following the patterns above for old game ver
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x9A4 : 0x994;
-				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x9C4 : offset;
-
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + WheelSpeedOffset);
 			}
 		}
 		/// <summary>
@@ -601,10 +607,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x7E4 : 0x7D4;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x804 : offset;
-
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + AccelerationOffset);
 			}
 		}
 		/// <summary>
@@ -622,10 +625,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x7D4 : 0x7C4;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x7F4 : offset;
-
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + CurrentRPMOffset);
 			}
 			set
 			{
@@ -634,10 +634,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x7D4 : 0x7C4;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x7F4 : offset;
-
-				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
+				MemoryAccess.WriteFloat(MemoryAddress + CurrentRPMOffset, value);
 			}
 		}
 
@@ -650,10 +647,7 @@ namespace CitizenFX.Core
 					return 0;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x7A6 : 0x796;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x7C6 : offset;
-
-				return MemoryAccess.ReadByte(MemoryAddress + offset);
+				return MemoryAccess.ReadByte(MemoryAddress + HighGearOffset);
 			}
 			set
 			{
@@ -662,10 +656,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x7A6 : 0x796;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x7C6 : offset;
-
-				MemoryAccess.WriteByte(MemoryAddress + offset, value);
+				MemoryAccess.WriteByte(MemoryAddress + HighGearOffset, value);
 			}
 		}
 		/// <summary>
@@ -680,10 +671,7 @@ namespace CitizenFX.Core
 					return 0;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x7A0 : 0x790;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x7C0 : offset;
-
-				return (int)MemoryAccess.ReadByte(MemoryAddress + offset);
+				return (int)MemoryAccess.ReadByte(MemoryAddress + CurrentGearOffset);
 			}
 		}
 
@@ -702,10 +690,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x8AC : 0x89C;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x8CC : offset;
-
-				return (float)(MemoryAccess.ReadFloat(MemoryAddress + offset) * (180.0 / System.Math.PI));
+				return (float)(MemoryAccess.ReadFloat(MemoryAddress + SteeringAngleOffset) * (180.0 / System.Math.PI));
 			}
 		}
 		/// <summary>
@@ -720,10 +705,7 @@ namespace CitizenFX.Core
 					return 0.0f;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x8A4 : 0x894;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x8C4 : offset;
-
-				return MemoryAccess.ReadFloat(MemoryAddress + offset);
+				return MemoryAccess.ReadFloat(MemoryAddress + SteeringScaleOffset);
 			}
 			set
 			{
@@ -732,10 +714,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x8A4 : 0x894;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x8C4 : offset;
-
-				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
+				MemoryAccess.WriteFloat(MemoryAddress + SteeringScaleOffset, value);
 			}
 		}
 
@@ -773,9 +752,7 @@ namespace CitizenFX.Core
 					return false;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 2456 : 2440;
-
-				return (ushort)MemoryAccess.ReadShort(MemoryAddress + offset) == ushort.MaxValue; //if the value is 0xFFFF, the alarm is set
+				return (ushort)MemoryAccess.ReadShort(MemoryAddress + IsAlarmSetOffset) == ushort.MaxValue; //if the value is 0xFFFF, the alarm is set
 			}
 		}
 		/// <summary>
@@ -808,9 +785,7 @@ namespace CitizenFX.Core
 					return 0;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 2456 : 2440;
-
-				ushort alarmTime = (ushort)MemoryAccess.ReadShort(MemoryAddress + offset);
+				ushort alarmTime = (ushort)MemoryAccess.ReadShort(MemoryAddress + AlarmTimeLeftOffset);
 				if (alarmTime == ushort.MaxValue)
 				{
 					return 0;
@@ -831,9 +806,7 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 2456 : 2440;
-
-				MemoryAccess.WriteShort(MemoryAddress + offset, (short)alarmTime);
+				MemoryAccess.WriteShort(MemoryAddress + AlarmTimeLeftOffset, (short)alarmTime);
 			}
 		}
 		/// <summary>
@@ -906,16 +879,12 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr memoryAddress = MemoryAddress;
-				if (memoryAddress == IntPtr.Zero)
+				if (MemoryAddress == IntPtr.Zero)
 				{
 					return false;
 				}
-				//Unsure of the exact version this switched, but all others in the rangs are the same
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x84C : 0x83C;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x86C : offset;
 
-				return MemoryAccess.IsBitSet(MemoryAddress + offset, 3);
+				return MemoryAccess.IsBitSet(MemoryAddress + IsWantedOffset, 3);
 			}
 			set
 			{
@@ -933,8 +902,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr memoryAddress = MemoryAddress;
-				if (memoryAddress == IntPtr.Zero)
+				if (MemoryAddress == IntPtr.Zero)
 				{
 					return false;
 				}
@@ -960,8 +928,7 @@ namespace CitizenFX.Core
 		{		   
 			get
 			{
-				IntPtr memoryAddress = MemoryAddress;
-				if (memoryAddress == IntPtr.Zero)
+				if (MemoryAddress == IntPtr.Zero)
 				{
 					return false;
 				}
@@ -970,9 +937,9 @@ namespace CitizenFX.Core
 				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0xA98 : 0xA78;
 				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0xAC8 : offset; // just a guess
 
-				if (MemoryAccess.ReadInt(memoryAddress + offset) <= 8)
+				if (MemoryAccess.ReadInt(MemoryAddress + offset) <= 8)
 				{
-					return MemoryAccess.IsBitSet(memoryAddress + 0x12F9, 1);
+					return MemoryAccess.IsBitSet(MemoryAddress + 0x12F9, 1);
 				}
 				return false;
 			}
@@ -997,10 +964,7 @@ namespace CitizenFX.Core
 					return false;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x844 : 0x834;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x864 : offset;
-
-				return MemoryAccess.IsBitSet(MemoryAddress + offset, 1);
+				return MemoryAccess.IsBitSet(MemoryAddress + PreviouslyOwnedByPlayerOffset, 1);
 			}
 			set
 			{
@@ -1023,10 +987,7 @@ namespace CitizenFX.Core
 					return false;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x844 : 0x834;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x864 : offset;
-
-				return MemoryAccess.IsBitSet(MemoryAddress + offset, 2);
+				return MemoryAccess.IsBitSet(MemoryAddress + NeedsToBeHotwiredOffset, 2);
 			}
 			set
 			{
@@ -1097,10 +1058,7 @@ namespace CitizenFX.Core
 					return false;
 				}
 
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x841 : 0x831;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x861 : offset;
-
-				return MemoryAccess.IsBitSet(MemoryAddress + offset, 6);
+				return MemoryAccess.IsBitSet(MemoryAddress + IsInteriorLightOnOffset, 6);
 			}
 			set
 			{
