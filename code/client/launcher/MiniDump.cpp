@@ -252,8 +252,14 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 	if (wcsstr(crashHash.c_str(), L".asi"))
 	{
-		blame = L"a third-party game plugin";
-		blame_two = L"Please try removing the \"plugins\" folder in your" PRODUCT_NAME L" installation and restarting the game.";
+		blame = va(L"a third-party game plugin (%s)", crashHash);
+		blame_two = L"Please try removing the above file from the \"plugins\" folder in your " PRODUCT_NAME L" installation and restarting the game.";
+	}
+
+	if (wcsstr(crashHash.c_str(), L"atidxx"))
+	{
+		blame = L"AMD GPU drivers";
+		blame_two = L"Please try updating your Radeon Software, restarting your PC and then starting the game again.";
 	}
 
 	if (blame)
