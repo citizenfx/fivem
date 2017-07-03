@@ -26,6 +26,7 @@ if _OPTIONS['game'] == 'server' then
 	component 'vfs-impl-server'
 else
 	component 'tool-formats'
+	component 'tool-vehrec'
 	component 'rage-formats-x'
 	component 'conhost-v2'
 

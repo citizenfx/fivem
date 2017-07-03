@@ -49,5 +49,6 @@
 	"handling-loader:five",
 	"citizen:scripting:mono",
 	"adhesive",
-	"devtools:five"
+	"devtools:five",
+	"tool:vehrec"
 ]
