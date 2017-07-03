@@ -101,6 +101,9 @@ static InitFunction initFunction([] ()
 			{
 				POINT cursorPos = g_cursorPos;
 
+				GetCursorPos(&cursorPos);
+				ScreenToClient(FindWindow(L"grcWindow", nullptr), &cursorPos);
+
 #if defined(GTA_NY)
 				if (true)//!GameInit::GetGameLoaded())
 				{
