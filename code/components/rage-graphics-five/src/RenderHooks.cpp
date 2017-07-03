@@ -61,11 +61,55 @@ static void LoadsDoSceneWrap()
 	g_loadsDoScene();
 }
 
+#include <dxgi1_4.h>
+#include <wrl.h>
+
+namespace WRL = Microsoft::WRL;
+
 #pragma comment(lib, "d3d11.lib")
 
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+	if (!IsWindows10OrGreater())
+	{
+		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+	}
+
+	HRESULT hr = D3D11CreateDevice(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+
+	WRL::ComPtr<IDXGIFactory2> dxgiFactory;
+
+	WRL::ComPtr<IDXGIDevice> dxgiDevice;
+	WRL::ComPtr<IDXGIAdapter> dxgiAdapter;
+
+	if (SUCCEEDED(hr))
+	{
+		//hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), &factory);
+		(*ppDevice)->QueryInterface(__uuidof(IDXGIDevice), &dxgiDevice);
+		dxgiDevice->GetAdapter(&dxgiAdapter);
+		dxgiAdapter->GetParent(__uuidof(IDXGIFactory2), &dxgiFactory);
+	}
+
+	WRL::ComPtr<IDXGISwapChain1> swapChain1;
+
+	if (SUCCEEDED(hr))
+	{
+		DXGI_SWAP_CHAIN_DESC1 scDesc1 = { 0 };
+		scDesc1.Width = pSwapChainDesc->BufferDesc.Width;
+		scDesc1.Height = pSwapChainDesc->BufferDesc.Height;
+		scDesc1.Format = pSwapChainDesc->BufferDesc.Format;
+		scDesc1.BufferCount = 2;
+		scDesc1.BufferUsage = pSwapChainDesc->BufferUsage;
+		scDesc1.Flags = pSwapChainDesc->Flags;
+		scDesc1.SampleDesc = pSwapChainDesc->SampleDesc;
+		scDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+		dxgiFactory->CreateSwapChainForHwnd(*ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, nullptr, nullptr, &swapChain1);
+
+		swapChain1->QueryInterface(__uuidof(IDXGISwapChain), (void**)ppSwapChain);
+	}
+ 
+	return hr;
 }
 
 static bool(*g_origRunGame)();
