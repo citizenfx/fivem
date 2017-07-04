@@ -474,7 +474,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the change was sucessful; otherwise, <c>false</c>.</returns>
 		public async Task<bool> ChangeModel(Model model)
 		{
-			if (!model.IsInCdImage || !model.IsPed || !await model.Request(1000))
+			if (!model.IsInCdImage || !await model.Request(1000))
 			{
 				return false;
 			}
