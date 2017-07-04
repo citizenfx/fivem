@@ -45,7 +45,6 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
 	command_line->AppendSwitch("in-process-gpu");
-	command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 }
 
