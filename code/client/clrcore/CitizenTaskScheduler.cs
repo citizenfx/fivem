@@ -95,6 +95,9 @@ namespace CitizenFX.Core
         {
             var tasks = m_runningTasks.ToArray();
 
+			// ticks should be reentrant (Tick might invoke TriggerEvent, e.g.)
+			var lastInTickTasks = m_inTickTasks;
+
 			m_inTickTasks = new List<Task>();
 
 			do
@@ -118,7 +121,7 @@ namespace CitizenFX.Core
 				m_inTickTasks.Clear();
 			} while (tasks.Length != 0);
 
-			m_inTickTasks = null;
+			m_inTickTasks = lastInTickTasks;
         }
 
         [SecuritySafeCritical]
