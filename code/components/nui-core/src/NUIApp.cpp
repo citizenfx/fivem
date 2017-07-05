@@ -45,6 +45,10 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
 	command_line->AppendSwitch("in-process-gpu");
+	command_line->AppendSwitch("enable-media-stream");
+	command_line->AppendSwitch("use-fake-ui-for-media-stream");
+	command_line->AppendSwitch("enable-speech-input");
+	command_line->AppendSwitch("enable-usermedia-screen-capture");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 }
 
