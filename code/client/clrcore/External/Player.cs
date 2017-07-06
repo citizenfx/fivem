@@ -1,4 +1,4 @@
-using CitizenFX.Core.Native;
+﻿using CitizenFX.Core.Native;
 using System;
 using System.Drawing;
 using System.Security;
@@ -474,7 +474,8 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the change was sucessful; otherwise, <c>false</c>.</returns>
 		public async Task<bool> ChangeModel(Model model)
 		{
-			if (!model.IsInCdImage || !model.IsPed || !await model.Request(1000))
+			// TODO: Implement IsPed
+			if (!model.IsInCdImage /*|| !model.IsPed*/ || !await model.Request(1000))
 			{
 				return false;
 			}

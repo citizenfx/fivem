@@ -1,4 +1,4 @@
-using CitizenFX.Core.Native;
+﻿using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -1089,7 +1089,8 @@ namespace CitizenFX.Core
 		/// <remarks>returns <c>null</c> if the <see cref="Ped"/> could not be spawned</remarks>
 		public static async Task<Ped> CreatePed(Model model, Vector3 position, float heading = 0f)
 		{
-			if (!model.IsPed || !await model.Request(1000))
+			// TODO: Implement IsPed
+			if (/*!model.IsPed ||*/ !await model.Request(1000))
 			{
 				return null;
 			}
