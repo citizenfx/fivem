@@ -15,6 +15,9 @@
 #include <GameInit.h>
 #include <nutsnbolts.h>
 
+#include <CoreConsole.h>
+#include <console/OptionTokenizer.h>
+
 #include <Error.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
@@ -50,8 +53,16 @@ static hook::cdecl_stub<void()> runCriticalSystemServicing([]()
 	return hook::get_call(hook::get_pattern("48 8D 0D ? ? ? ? BA 32 00 00 00 E8", 17));
 });
 
+static std::vector<ProgramArguments> g_argumentList;
+
 static void WaitForInitLoop()
 {
+	// run command-line initialization
+	for (const auto& bit : g_argumentList)
+	{
+		console::GetDefaultContext()->ExecuteSingleCommand(bit);
+	}
+
 	// run our loop
 	g_isInInitLoop = true;
 
@@ -1115,8 +1126,52 @@ static void SafeRun(const T&& func)
 	}
 }
 
+static InitFunction initFunction([]()
+{
+	// initialize console arguments
+	std::vector<std::pair<std::string, std::string>> setList;
+
+	auto commandLine = GetCommandLineW();
+
+	{
+		wchar_t* s = commandLine;
+
+		if (*s == L'"')
+		{
+			++s;
+			while (*s)
+			{
+				if (*s++ == L'"')
+				{
+					break;
+				}
+			}
+		}
+		else
+		{
+			while (*s && *s != L' ' && *s != L'\t')
+			{
+				++s;
+			}
+		}
+		
+		while (*s == L' ' || *s == L'\t')
+		{
+			s++;
+		}
+
+		std::tie(g_argumentList, setList) = TokenizeCommandLine(ToNarrow(s));
+	}
+
+	for (const auto& set : setList)
+	{
+		console::GetDefaultContext()->ExecuteSingleCommand(ProgramArguments{ "set", set.first, set.second });
+	}
+});
+
 static HookFunction hookFunction([] ()
 {
+	// continue on
 	_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
 
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
