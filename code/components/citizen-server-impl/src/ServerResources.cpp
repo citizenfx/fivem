@@ -376,12 +376,16 @@ static InitFunction initFunction2([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
-		std::string_view eventName = context.GetArgument<const char*>(0);
+		std::string_view eventName = context.CheckArgument<const char*>(0);
 		std::optional<std::string_view> targetSrc;
 
-		if (strcmp(context.GetArgument<const char*>(1), "-1") != 0)
 		{
-			targetSrc = context.GetArgument<const char*>(1);
+			auto targetSrcIdx = context.CheckArgument<const char*>(1);
+
+			if (strcmp(targetSrcIdx, "-1") != 0)
+			{
+				targetSrc = targetSrcIdx;
+			}
 		}
 
 		const void* data = context.GetArgument<const void*>(2);
@@ -399,7 +403,7 @@ static InitFunction initFunction2([]()
 	fx::ScriptEngine::RegisterNativeHandler("START_RESOURCE", [](fx::ScriptContext& context)
 	{
 		auto resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		bool success = false;
 
@@ -414,7 +418,7 @@ static InitFunction initFunction2([]()
 	fx::ScriptEngine::RegisterNativeHandler("STOP_RESOURCE", [](fx::ScriptContext& context)
 	{
 		auto resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		bool success = false;
 
@@ -438,7 +442,7 @@ static InitFunction initFunction2([]()
 		auto consoleContext = instance->GetComponent<console::Context>();
 
 		// set gametype variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "gametype", context.GetArgument<const char*>(0) });
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "gametype", context.CheckArgument<const char*>(0) });
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_MAP_NAME", [](fx::ScriptContext& context)
@@ -453,7 +457,7 @@ static InitFunction initFunction2([]()
 		auto consoleContext = instance->GetComponent<console::Context>();
 
 		// set mapname variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "mapname", context.GetArgument<const char*>(0) });
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "mapname", context.CheckArgument<const char*>(0) });
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ENABLE_ENHANCED_HOST_SUPPORT", [](fx::ScriptContext& context)
@@ -486,11 +490,11 @@ static InitFunction initFunction2([]()
 		auto varMan = consoleContext->GetVariableManager();
 
 		// get the variable
-		auto var = varMan->FindEntryRaw(context.GetArgument<const char*>(0));
+		auto var = varMan->FindEntryRaw(context.CheckArgument<const char*>(0));
 
 		if (!var)
 		{
-			context.SetResult(context.GetArgument<const char*>(1));
+			context.SetResult(context.CheckArgument<const char*>(1));
 		}
 		else
 		{
@@ -516,7 +520,7 @@ static InitFunction initFunction2([]()
 		auto varMan = consoleContext->GetVariableManager();
 
 		// get the variable
-		auto var = varMan->FindEntryRaw(context.GetArgument<const char*>(0));
+		auto var = varMan->FindEntryRaw(context.CheckArgument<const char*>(0));
 
 		if (!var)
 		{
@@ -540,6 +544,6 @@ static InitFunction initFunction2([]()
 		auto consoleContext = instance->GetComponent<console::Context>();
 
 		// set variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", context.GetArgument<const char*>(0), context.GetArgument<const char*>(1) });
+		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
 	});
 });

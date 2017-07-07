@@ -28,7 +28,7 @@ static InitFunction initFunction([]()
 
 			if (resource)
 			{
-				auto unpacked = json::parse(std::string(context.GetArgument<const char*>(0), context.GetArgument<size_t>(1)));
+				auto unpacked = json::parse(std::string(context.CheckArgument<const char*>(0), context.GetArgument<size_t>(1)));
 
 				auto method = unpacked.value<std::string>("method", "GET");
 				auto headerArray = unpacked.value<std::map<std::string, json>>("headers", {});

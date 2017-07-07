@@ -30,7 +30,7 @@ static InitFunction initFunction([]()
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 			// parse the client ID
-			const char* id = context.GetArgument<const char*>(0);
+			const char* id = context.CheckArgument<const char*>(0);
 
 			if (!id)
 			{
@@ -115,7 +115,7 @@ static InitFunction initFunction([]()
 		// get the game server
 		auto server = instance->GetComponent<fx::GameServer>();
 
-		server->DropClient(client, context.GetArgument<const char*>(1));
+		server->DropClient(client, context.CheckArgument<const char*>(1));
 
 		return true;
 	}));

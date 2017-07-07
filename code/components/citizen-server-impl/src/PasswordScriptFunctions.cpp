@@ -9,7 +9,7 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_PASSWORD_HASH", [](fx::ScriptContext& context)
 	{
-		const char* str = context.GetArgument<const char*>(0);
+		const char* str = context.CheckArgument<const char*>(0);
 
 		std::string password = (str != nullptr) ? str : "";
 
@@ -22,8 +22,8 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("VERIFY_PASSWORD_HASH", [](fx::ScriptContext& context)
 	{
-		std::string password = context.GetArgument<const char*>(0);
-		std::string hash = context.GetArgument<const char*>(1);
+		std::string password = context.CheckArgument<const char*>(0);
+		std::string hash = context.CheckArgument<const char*>(1);
 
 		context.SetResult(Botan::check_bcrypt(password, hash));
 	});

@@ -45,6 +45,19 @@ namespace fx
 			return *reinterpret_cast<T*>(&m_functionData[index][0]);
 		}
 
+		template<typename T>
+		inline const T& CheckArgument(int index)
+		{
+			const auto& argument = GetArgument<T>(index);
+
+			if (argument == T())
+			{
+				throw std::runtime_error(va("Argument at index %d was null.", index));
+			}
+
+			return argument;
+		}
+
 		inline int GetArgumentCount()
 		{
 			return m_numArguments;
