@@ -1160,7 +1160,14 @@ static InitFunction initFunction([]()
 			s++;
 		}
 
-		std::tie(g_argumentList, setList) = TokenizeCommandLine(ToNarrow(s));
+		try
+		{
+			std::tie(g_argumentList, setList) = TokenizeCommandLine(ToNarrow(s));
+		}
+		catch (std::runtime_error& e)
+		{
+			trace("couldn't parse command line: %s\n", e.what());
+		}
 	}
 
 	for (const auto& set : setList)
