@@ -157,6 +157,22 @@ private:
 public:
 	virtual int TranslateFormatToParamFormat(int format) = 0;
 
+private:
+	virtual void v2() = 0;
+	virtual void v3() = 0;
+	virtual void v4() = 0;
+	virtual void v5() = 0;
+	virtual void v6() = 0;
+	virtual void v7() = 0;
+	virtual void v8() = 0;
+	virtual void v9() = 0;
+	virtual void v10() = 0;
+	virtual void v11() = 0;
+	virtual void v12() = 0;
+
+public:
+	virtual grcTexture* createFromNativeTexture(const char* name, ID3D11Resource* nativeResource, void* a3) = 0;
+
 public:
 	static GAMESPEC_EXPORT grcTexture* GetNoneTexture();
 

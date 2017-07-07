@@ -1,10 +1,18 @@
 #include "StdInc.h"
+
+//#include <ETWProviders/etwprof.h>
+
+#include <mutex>
+
+#include <dxgi1_4.h>
+#include <wrl.h>
+
 #include "DrawCommands.h"
 #include "Hooking.h"
 
-#include <ETWProviders/etwprof.h>
+#include <MinHook.h>
 
-#include <mutex>
+namespace WRL = Microsoft::WRL;
 
 fwEvent<> OnGrcCreateDevice;
 fwEvent<> OnPostFrontendRender;
@@ -61,12 +69,11 @@ static void LoadsDoSceneWrap()
 	g_loadsDoScene();
 }
 
-#include <dxgi1_4.h>
-#include <wrl.h>
-
-namespace WRL = Microsoft::WRL;
-
 #pragma comment(lib, "d3d11.lib")
+
+static IDXGISwapChain1* g_swapChain1;
+static DWORD g_swapChainFlags;
+static ID3D11DeviceContext* g_dc;
 
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
@@ -75,7 +82,7 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 	}
 
-	HRESULT hr = D3D11CreateDevice(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	HRESULT hr = D3D11CreateDevice(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	WRL::ComPtr<IDXGIFactory2> dxgiFactory;
 
@@ -100,25 +107,164 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		scDesc1.Format = pSwapChainDesc->BufferDesc.Format;
 		scDesc1.BufferCount = 2;
 		scDesc1.BufferUsage = pSwapChainDesc->BufferUsage;
-		scDesc1.Flags = pSwapChainDesc->Flags;
+		scDesc1.Flags = pSwapChainDesc->Flags | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		scDesc1.SampleDesc = pSwapChainDesc->SampleDesc;
 		scDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+		g_swapChainFlags = scDesc1.Flags;
 
 		dxgiFactory->CreateSwapChainForHwnd(*ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, nullptr, nullptr, &swapChain1);
 
 		swapChain1->QueryInterface(__uuidof(IDXGISwapChain), (void**)ppSwapChain);
 	}
- 
+
+	// patch stuff here as only now do we know swapchain flags
+	auto pattern = hook::pattern("C7 44 24 28 02 00 00 00 89 44 24 20 41").count(2);
+
+	hook::put<uint32_t>(pattern.get(0).get<void>(4), g_swapChainFlags | 2);
+	hook::put<uint32_t>(pattern.get(1).get<void>(4), g_swapChainFlags | 2);
+
+	// we assume all users will stop using the object by the time it is dereferenced
+	g_swapChain1 = swapChain1.Get();
+
+	g_dc = *ppImmediateContext;
+
 	return hr;
+}
+
+struct VideoModeInfo
+{
+	int width;
+	int height;
+	int refreshRateNumerator;
+	int refreshRateDenominator;
+	bool fullscreen;
+};
+
+static bool(*g_origVideoModeChange)(VideoModeInfo* info);
+
+IDXGISwapChain** g_dxgiSwapChain;
+
+#include <atArray.h>
+#include <grcTexture.h>
+
+namespace rage
+{
+	class grcRenderTargetDX11 : public grcTexture
+	{
+	public:
+		char m_pad[136 - sizeof(grcTexture)];
+		ID3D11RenderTargetView* m_rtv;
+		void* m_pad2;
+		ID3D11Resource* m_resource2;
+		atArray<ID3D11ShaderResourceView*> m_srvs;
+	};
+}
+
+static bool(*g_resetVideoMode)(VideoModeInfo*);
+
+bool WrapVideoModeChange(VideoModeInfo* info)
+{
+	trace("Changing video mode.\n");
+
+	bool success = g_origVideoModeChange(info);
+
+	trace("Changing video mode success: %d.\n", success);
+
+	if (!info->fullscreen)
+	{
+		HWND hwnd = FindWindow(L"grcWindow", nullptr);
+		SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TOPMOST);
+	}
+
+	g_resetVideoMode(info);
+
+#if 0
+	IUnknown** g_backbuffer = (IUnknown**)0x14299D640;
+	rage::grcRenderTargetDX11** g_backBufferRT = (rage::grcRenderTargetDX11**)0x14299DC50;
+
+	//delete (*g_backBufferRT);
+
+	//ULONG refCnt = (*g_backbuffer)->Release();
+
+	ULONG refCnt = (*g_backBufferRT)->m_rtv->Release();
+	(*g_backBufferRT)->m_rtv = nullptr;
+
+	trace("refcnt %d\n", refCnt);
+
+	if ((*g_backBufferRT)->m_resource2)
+	{
+		(*g_backBufferRT)->m_resource2->Release();
+		(*g_backBufferRT)->m_resource2 = nullptr;
+	}
+
+	for (auto& srv : (*g_backBufferRT)->m_srvs)
+	{
+		srv->Release();
+	}
+
+	(*g_backBufferRT)->m_srvs.Clear();
+
+	hook::put<uint8_t>(0x141299035, 0xC3);
+	hook::put<uint8_t>(0x141298F60, 0x48);
+
+	((void(*)(void*))0x141298F60)(rage::grcTextureFactory::getInstance());
+
+	hook::put<uint8_t>(0x141298F60, 0xC3);
+
+	DXGI_SWAP_CHAIN_DESC desc = {};
+	(*g_dxgiSwapChain)->GetDesc(&desc);
+
+	trace("flags now: %d\n", desc.Flags);
+
+	HRESULT hr = (*g_dxgiSwapChain)->ResizeBuffers(0, info->width, info->height, DXGI_FORMAT_UNKNOWN, desc.Flags);// | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
+
+	if (FAILED(hr))
+	{
+		TerminateProcess(GetCurrentProcess(), 1);
+	}
+
+	if (FAILED(hr))
+	{
+		trace("Changing video mode: buffers failed. HR: %08x\n", hr);
+		// TODO: fail on D3D error
+	}
+
+	trace("Changing video mode: meheeeeeh.\n");
+
+	((void(*)(void*))0x14129D1C8)(rage::grcTextureFactory::getInstance());
+
+	trace("Woo! %016x\n", (uintptr_t)*g_backBufferRT);
+#endif
+
+	return success;
 }
 
 static bool(*g_origRunGame)();
 
 static int RunGameWrap()
 {
-	ETWRenderFrameMark();
-
 	return g_origRunGame();
+}
+
+void D3DPresent(int syncInterval, int flags)
+{
+	if (syncInterval == 0)
+	{
+		BOOL fullscreen;
+
+		if (SUCCEEDED((*g_dxgiSwapChain)->GetFullscreenState(&fullscreen, nullptr)) && !fullscreen)
+		{
+			flags |= DXGI_PRESENT_ALLOW_TEARING;
+		}
+	}
+
+	HRESULT hr = (*g_dxgiSwapChain)->Present(syncInterval, flags);
+
+	if (FAILED(hr))
+	{
+		trace("IDXGISwapChain::Present failed: %08x\n", hr);
+	}
 }
 
 static HookFunction hookFunction([] ()
@@ -155,6 +301,23 @@ static HookFunction hookFunction([] ()
 	char* location = hook::pattern("57 48 83 EC 20 83 3D ? ? ? ? 00 48 8B 3D ? ? ? ?").count(1).get(0).get<char>(15);
 
 	g_curViewport = (void**)(location + *(int32_t*)location + 4);
+
+	// set the present hook
+	if (IsWindows10OrGreater())
+	{
+		// present hook function
+		hook::put(hook::get_address<void*>(hook::get_pattern("48 8B 05 ? ? ? ? 48 85 C0 74 0C 8B 4D 50 8B", 3)), D3DPresent);
+
+		// wrap video mode changing
+		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);
+
+		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);
+		MH_EnableHook(MH_ALL_HOOKS);
+
+		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
+
+		g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
+	}
 
 	// ignore frozen render device (for PIX and such)
 	//hook::put<uint32_t>(hook::pattern("8B 8E C0 0F 00 00 68 88 13 00 00 51 E8").count(2).get(0).get<void>(7), INFINITE);
