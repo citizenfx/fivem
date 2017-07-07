@@ -228,6 +228,8 @@ static InitFunction initFunction([]()
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
 				{
+					clientRegistry->RemoveClient(client);
+
 					cb({ {"error", "You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again."} });
 					return;
 				}
@@ -284,6 +286,8 @@ static InitFunction initFunction([]()
 
 					if (obj.size() == 1)
 					{
+						clientRegistry->RemoveClient(client);
+
 						(**deferDoneCb)({ { "error", obj[0].as<std::string>() } });
 					}
 					else
@@ -309,6 +313,8 @@ static InitFunction initFunction([]()
 				{
 					*returnedCb = true;
 
+					clientRegistry->RemoveClient(client);
+
 					cb({ {"error", noReason} });
 					return;
 				}
@@ -331,6 +337,8 @@ static InitFunction initFunction([]()
 						if (!*returnedCb)
 						{
 							*returnedCb = true;
+
+							clientRegistry->RemoveClient(client);
 
 							cb({ {"error", "You need to update your client to join this server."} });
 						}
