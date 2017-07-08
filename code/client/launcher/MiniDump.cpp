@@ -29,9 +29,9 @@
 
 using json = nlohmann::json;
 
-static json load_error_pickup()
+static json load_json_file(const std::wstring& path)
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(path).c_str(), L"rb");
 
 	if (f)
 	{
@@ -48,6 +48,11 @@ static json load_error_pickup()
 	}
 
 	return json(nullptr);
+}
+
+static json load_error_pickup()
+{
+	return load_json_file(L"cache\\error-pickup");
 }
 
 static std::map<std::string, std::string> load_crashometry()
@@ -458,6 +463,21 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			windowTitle = fmt::sprintf(L"Error %s", ch);
 			mainInstruction = fmt::sprintf(L"\"%s\"", ch);
 			cuz = fmt::sprintf(L"A %s", ch);
+
+			json crashData = load_json_file(L"citizen/crash-data.json");
+
+			if (crashData.is_object())
+			{
+				auto cd = crashData.value(ToNarrow(ch), "");
+
+				if (!cd.empty())
+				{
+					mainInstruction = L"FiveM crashed... but we're on it!";
+					cd += "\n\n";
+				}
+
+				cuz = ToWide(cd) + cuz;
+			}
 		}
 
 		static std::wstring content = fmt::sprintf(L"%s caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.", cuz);
@@ -502,7 +522,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				{
 					if (!crashId->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Report ID: %s (use Ctrl+C to copy)", crashId->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash signature: %s\nReport ID: %s (use Ctrl+C to copy)", crashHash.c_str(), crashId->c_str()));
 					}
 					else
 					{

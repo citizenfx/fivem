@@ -1,0 +1,14 @@
+{
+	"october-michigan-lithium": "The game memory allocator encountered fatal corruption. This reportedly often happens when a ped dies. No other correlation is known at this time.",
+	"asparagus-king-thirteen": "A crash in network object cloning occurred (missing R* null pointer check). This only seems to happen after game reloading. Please try not to reload your game until this issue is fixed.",
+	"lithium-washington-whiskey": "An unknown crash in network object cloning occurred. This only seems to happen after game reloading. Please try not to reload your game until this issue is fixed.",
+	"tennis-stairway-seven": "A crash in vehicle sound code occurred. The cause is currently unknown, but it seems to be related to car mods.",
+	"kansas-winner-double": "A crash in ped task code occurred. This seems to be caused by rage::gameScriptHandler not being uninitialized. This only seems to happen after game reloading. Please try not to reload your game until this issue is fixed.",
+	"chicken-harry-undress": "An unknown crash in vehicle gadget handling occurred. This might be related to car mods.",
+	"spring-montana-seventeen": "A crash in ped task code occurred. This seems to be caused by rage::gameScriptHandler not being uninitialized. This only seems to happen after game reloading. Please try not to reload your game until this issue is fixed.",
+	"winner-florida-minnesota": "A crash occurred while unloading addon models when disconnected from the current server.",
+	"fanta-robin-burger": "An unknown crash in object replication code occurred while disconnecting from the current server.",
+	"sweet-sad-july": "An invalid TXD reference was encountered, and the game crashed. This is a script error.",
+	"salami-emma-purple": "An unknown crash in the model info streaming module occurred. This only seems to happen after game reloading. Please try not to reload your game until this issue is fixed.",
+	"five-eight-california": "An example crash occurred. This is often caused by pineapples being put on pizza. What a shame, right? That shouldn't crash the game, but it did."
+}
