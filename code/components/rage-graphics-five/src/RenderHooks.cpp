@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include <dxgi1_4.h>
+#include <dxgi1_5.h>
 #include <wrl.h>
 
 #include "DrawCommands.h"
@@ -75,6 +76,8 @@ static IDXGISwapChain1* g_swapChain1;
 static DWORD g_swapChainFlags;
 static ID3D11DeviceContext* g_dc;
 
+static bool g_allowTearing;
+
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	if (!IsWindows10OrGreater())
@@ -107,9 +110,19 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		scDesc1.Format = pSwapChainDesc->BufferDesc.Format;
 		scDesc1.BufferCount = 2;
 		scDesc1.BufferUsage = pSwapChainDesc->BufferUsage;
-		scDesc1.Flags = pSwapChainDesc->Flags | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		scDesc1.Flags = pSwapChainDesc->Flags | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		scDesc1.SampleDesc = pSwapChainDesc->SampleDesc;
-		scDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		scDesc1.SwapEffect = pSwapChainDesc->SwapEffect;
+
+		// probe if DXGI 1.5 is available (Win10 RS1+)
+		WRL::ComPtr<IDXGIFactory5> factory5;
+
+		if (SUCCEEDED(dxgiFactory.As(&factory5)))
+		{
+			scDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+			scDesc1.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+			g_allowTearing = true;
+		}
 
 		g_swapChainFlags = scDesc1.Flags;
 
@@ -177,7 +190,10 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 		SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TOPMOST);
 	}
 
-	g_resetVideoMode(info);
+	if (success)
+	{
+		g_resetVideoMode(info);
+	}
 
 #if 0
 	IUnknown** g_backbuffer = (IUnknown**)0x14299D640;
@@ -255,7 +271,10 @@ void D3DPresent(int syncInterval, int flags)
 
 		if (SUCCEEDED((*g_dxgiSwapChain)->GetFullscreenState(&fullscreen, nullptr)) && !fullscreen)
 		{
-			flags |= DXGI_PRESENT_ALLOW_TEARING;
+			if (g_allowTearing)
+			{
+				flags |= DXGI_PRESENT_ALLOW_TEARING;
+			}
 		}
 	}
 
