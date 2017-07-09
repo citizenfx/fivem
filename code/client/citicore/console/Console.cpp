@@ -3,6 +3,8 @@
 #include "Console.Variables.h"
 #include "Console.h"
 
+#include <se/Security.h>
+
 #include <sstream>
 
 namespace console
@@ -41,6 +43,11 @@ Context::Context(Context* fallbackContext)
 
 		for (auto& commandName : commands)
 		{
+			if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
+			{
+				continue;
+			}
+
 			auto cvar = managers->variableManager->FindEntryRaw(commandName);
 
 			if (cvar)

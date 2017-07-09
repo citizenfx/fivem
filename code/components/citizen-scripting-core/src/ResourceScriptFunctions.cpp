@@ -12,6 +12,9 @@
 #include <ResourceManager.h>
 #include <fxScripting.h>
 
+#include <CoreConsole.h>
+#include <se/Security.h>
+
 static InitFunction initFunction([] ()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_CURRENT_RESOURCE_NAME", [] (fx::ScriptContext& context)
@@ -41,6 +44,25 @@ static InitFunction initFunction([] ()
 			false
 #endif
 		);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("EXECUTE_COMMAND", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				auto resourceManager = resource->GetManager();
+
+				se::ScopedPrincipal principal(se::Principal{ fmt::sprintf("resource.%s", resource->GetName()) });
+
+				resourceManager->GetComponent<console::Context>()->ExecuteSingleCommand(context.CheckArgument<const char*>(0));
+			}
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_INSTANCE_ID", [](fx::ScriptContext& context)

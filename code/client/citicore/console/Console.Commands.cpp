@@ -2,6 +2,8 @@
 #include "Console.Commands.h"
 #include "Console.h"
 
+#include <se/Security.h>
+
 #include <IteratorView.h>
 
 ConsoleCommandManager::ConsoleCommandManager(console::Context* parentContext)
@@ -86,6 +88,13 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 		{
 			functionAttempts.push_back(entry.second.function);
 		}
+	}
+
+	// check privilege
+	if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
+	{
+		console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		return;
 	}
 
 	// try executing overloads until finding one that accepts our arguments - if none is found, print the error buffer

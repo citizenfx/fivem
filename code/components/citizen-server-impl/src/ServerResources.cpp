@@ -167,6 +167,7 @@ static InitFunction initFunction([]()
 
 		fwRefContainer<fx::ResourceManager> resman = instance->GetComponent<fx::ResourceManager>();
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
+		resman->SetComponent(instance->GetComponent<console::Context>());
 
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 

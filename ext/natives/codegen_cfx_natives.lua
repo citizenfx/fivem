@@ -573,4 +573,11 @@ native 'VERIFY_PASSWORD_HASH'
 	apiset 'server'
 	returns 'BOOL'
 
+native 'EXECUTE_COMMAND'
+	arguments {
+		charPtr 'commandString'
+	}
+	apiset 'shared'
+	returns 'void'
+
 -- TODO: handling field natives
