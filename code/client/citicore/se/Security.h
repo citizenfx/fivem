@@ -17,7 +17,7 @@ public:
 
 	inline bool operator<(const Principal& right) const
 	{
-		return stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
+		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
 	}
 
 private:
@@ -39,7 +39,7 @@ public:
 
 	inline bool operator<(const Object& right) const
 	{
-		return stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
+		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
 	}
 
 private:
