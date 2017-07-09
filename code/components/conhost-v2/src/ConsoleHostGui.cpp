@@ -14,6 +14,8 @@
 
 #include <ICoreGameInit.h>
 
+#include <se/Security.h>
+
 struct FiveMConsole
 {
 	char InputBuf[1024];
@@ -192,6 +194,8 @@ struct FiveMConsole
 		}
 		else
 		{
+			se::ScopedPrincipal scope(se::Principal{ "system.console" });
+
 			console::GetDefaultContext()->AddToBuffer(command_line);
 			console::GetDefaultContext()->AddToBuffer("\n");
 			console::GetDefaultContext()->ExecuteBuffer();

@@ -185,6 +185,24 @@ void ResourceManagerImpl::MakeCurrent()
 	g_currentManager = this;
 }
 
+static std::function<std::string(const std::string&, const std::string&)> g_callRefCallback;
+
+std::string ResourceManagerImpl::CallReferenceInternal(const std::string& functionReference, const std::string& argsSerialized)
+{
+	if (g_callRefCallback)
+	{
+		MakeCurrent();
+		return g_callRefCallback(functionReference, argsSerialized);
+	}
+
+	return std::string();
+}
+
+void ResourceManager::SetCallRefCallback(const std::function<std::string(const std::string &, const std::string &)>& refCallback)
+{
+	g_callRefCallback = refCallback;
+}
+
 ResourceManager* CreateResourceManager()
 {
 	return new ResourceManagerImpl();

@@ -38,6 +38,10 @@ print("\tend\n")
 print("\treturn hash")
 print("end\n")
 
+print("local function _mfr(fn)")
+print("\treturn g.Citizen.GetFunctionReference(fn)")
+print("end\n")
+
 print("local Global = setmetatable({}, { __newindex = function(_, n, v)\n\tg[n] = v\n\n\trs(_, n, v)\nend})\n")
 
 print("_ENV = nil\n")
@@ -88,6 +92,8 @@ local function printArgument(argument, native)
 		else
 			return '_i --[[ actually ' .. argument.type.nativeType .. ' ]]'
 		end
+	elseif argument.type.name == 'func' then
+		return '_mfr(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
 		return '_ch(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'charPtr' then

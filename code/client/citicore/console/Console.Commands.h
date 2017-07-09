@@ -10,6 +10,8 @@
 
 #include <shared_mutex>
 
+#include <any>
+
 namespace console
 {
 class Context;
@@ -28,9 +30,10 @@ struct ConsoleExecutionContext
 {
 	const ProgramArguments arguments;
 	std::stringstream errorBuffer;
+	std::any contextRef;
 
-	inline ConsoleExecutionContext(const ProgramArguments&& arguments)
-	    : arguments(arguments)
+	inline ConsoleExecutionContext(const ProgramArguments&& arguments, const std::any& contextRef)
+	    : arguments(arguments), contextRef(contextRef)
 	{
 	}
 };
@@ -49,13 +52,16 @@ public:
 
 	virtual void Unregister(int token);
 
-	virtual void Invoke(const std::string& commandName, const ProgramArguments& arguments);
+	virtual void InvokeDirect(const std::string& commandName, const ProgramArguments& arguments, const std::any& executionContext = std::any());
 
-	virtual void Invoke(const std::string& commandString);
+	virtual void Invoke(const std::string& commandString, const std::any& executionContext = std::any());
 
 	virtual void ForAllCommands(const std::function<void(const std::string&)>& callback);
 
-	virtual void SetFallbackHandler(const std::function<bool(const std::string&, const ProgramArguments&)>& handler);
+	virtual const std::string& GetRawCommand();
+
+public:
+	fwEvent<const std::string&, const ProgramArguments&, const std::any&> FallbackEvent;
 
 private:
 	struct Entry
@@ -78,9 +84,9 @@ private:
 
 	std::shared_mutex m_mutex;
 
-	std::atomic<int> m_curToken;
+	std::string m_rawCommand;
 
-	std::function<bool(const std::string&, const ProgramArguments&)> m_fallbackHandler;
+	std::atomic<int> m_curToken;
 
 public:
 	inline static ConsoleCommandManager* GetDefaultInstance()
@@ -241,13 +247,42 @@ struct ConsoleArgumentType<TArgument, std::enable_if_t<std::is_floating_point<TA
 	}
 };
 
+class ExternalContext : public std::any
+{
+public:
+	ExternalContext(const std::any& any)
+		: std::any(any)
+	{
+		
+	}
+};
+
 namespace internal
 {
 template <typename TArgument>
-bool ParseArgument(const std::string& input, TArgument* out)
+inline bool ParseArgument(const std::string& input, TArgument* out)
 {
 	return ConsoleArgumentType<TArgument>::Parse(input, out);
 }
+
+template <typename TArgument>
+inline bool ParseArgument(const ConsoleExecutionContext& context, int argInput, TArgument* out)
+{
+	return ConsoleArgumentType<TArgument>::Parse(context.arguments[argInput], out);
+}
+
+template<>
+inline bool ParseArgument<ExternalContext>(const ConsoleExecutionContext& context, int argInput, ExternalContext* out)
+{
+	*out = ExternalContext{ context.contextRef };
+	return true;
+}
+
+template <typename TArgument, int Iterator>
+constexpr int AddOneArg = Iterator + 1;
+
+template <int Iterator>
+int AddOneArg<ExternalContext, Iterator> = Iterator;
 
 template <typename TArgument>
 std::string UnparseArgument(const TArgument& input)
@@ -277,20 +312,20 @@ struct ConsoleCommandFunction<std::function<void(Args...)>>
 		}
 
 		// invoke the recursive template argument tree for parsing our arguments
-		return CallInternal<0, std::tuple<>>(func, context, std::tuple<>());
+		return CallInternal<0, 0, std::tuple<>>(func, context, std::tuple<>());
 	}
 
 	// non-terminator iterator
-	template <size_t Iterator, typename TupleType>
+	template <size_t Iterator, size_t ArgIterator, typename TupleType>
 	static std::enable_if_t<(Iterator < sizeof...(Args)), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
 	{
 		// the type of the current argument
 		using ArgType = std::tuple_element_t<Iterator, ArgTuple>;
 
 		std::decay_t<ArgType> argument;
-		if (ParseArgument(context.arguments[Iterator], &argument))
+		if (ParseArgument(context, ArgIterator, &argument))
 		{
-			return CallInternal<Iterator + 1>(
+			return CallInternal<Iterator + 1, AddOneArg<ArgType, ArgIterator>>(
 			    func,
 			    context,
 			    std::tuple_cat(std::move(tuple), std::forward_as_tuple(std::forward<ArgType>(argument))));
@@ -302,7 +337,7 @@ struct ConsoleCommandFunction<std::function<void(Args...)>>
 	}
 
 	// terminator
-	template <size_t Iterator, typename TupleType>
+	template <size_t Iterator, size_t ArgIterator, typename TupleType>
 	static std::enable_if_t<(Iterator == sizeof...(Args)), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
 	{
 		apply(func, std::move(tuple));

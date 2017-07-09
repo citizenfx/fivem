@@ -580,4 +580,28 @@ native 'EXECUTE_COMMAND'
 	apiset 'shared'
 	returns 'void'
 
+native 'REGISTER_COMMAND'
+	arguments {
+		charPtr 'commandName',
+		func 'handler',
+		BOOL 'restricted'
+	}
+	apiset 'shared'
+	returns 'void'
+
+native 'IS_ACE_ALLOWED'
+	arguments {
+		charPtr 'object'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
+native 'IS_PLAYER_ACE_ALLOWED'
+	arguments {
+		charPtr 'playerSrc',
+		charPtr 'object'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
 -- TODO: handling field natives

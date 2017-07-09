@@ -19,6 +19,8 @@
 #include "KnownFolders.h"
 #include <ShlObj.h>
 
+#include <se/Security.h>
+
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
@@ -247,6 +249,7 @@ static InitFunction initFunction([] ()
 
 	OnGameFrame.Connect([]()
 	{
+		se::ScopedPrincipal scope(se::Principal{ "system.console" });
 		Instance<console::Context>::Get()->ExecuteBuffer();
 	});
 

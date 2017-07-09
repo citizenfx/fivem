@@ -20,6 +20,8 @@
 
 #include <VFSManager.h>
 
+#include <se/Security.h>
+
 namespace fx
 {
 	ServerInstance::ServerInstance()
@@ -63,12 +65,14 @@ namespace fx
 	{
 		// initialize the server configuration
 		{
+			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 			auto optionParser = GetComponent<OptionParser>();
 			auto consoleCtx = GetComponent<console::Context>();
 
 			for (const auto& set : optionParser->GetSetList())
 			{
-				consoleCtx->ExecuteSingleCommand(ProgramArguments{ "set", set.first, set.second });
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 			}
 
 			boost::filesystem::path rootPath;
@@ -88,7 +92,7 @@ namespace fx
 
 			for (const auto& bit : optionParser->GetArguments())
 			{
-				consoleCtx->ExecuteSingleCommand(bit);
+				consoleCtx->ExecuteSingleCommandDirect(bit);
 			}
 
 			OnInitialConfiguration();

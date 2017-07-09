@@ -2,6 +2,8 @@
 
 #include <CoreConsole.h>
 
+#include <se/Security.h>
+
 #include <ClientRegistry.h>
 
 #include <MapComponent.h>
@@ -115,6 +117,8 @@ namespace fx
 		std::shared_ptr<ConVar<std::string>> m_masters[3];
 
 		std::map<std::string, net::PeerAddress> m_masterCache;
+
+		fwRefContainer<se::Context> m_seContext;
 
 		int64_t m_nextHeartbeatTime;
 

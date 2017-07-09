@@ -18,6 +18,8 @@
 #include <CoreConsole.h>
 #include <console/OptionTokenizer.h>
 
+#include <se/Security.h>
+
 #include <Error.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
@@ -58,9 +60,11 @@ static std::vector<ProgramArguments> g_argumentList;
 static void WaitForInitLoop()
 {
 	// run command-line initialization
+	se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 	for (const auto& bit : g_argumentList)
 	{
-		console::GetDefaultContext()->ExecuteSingleCommand(bit);
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(bit);
 	}
 
 	// run our loop
@@ -1170,9 +1174,11 @@ static InitFunction initFunction([]()
 		}
 	}
 
+	se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 	for (const auto& set : setList)
 	{
-		console::GetDefaultContext()->ExecuteSingleCommand(ProgramArguments{ "set", set.first, set.second });
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 	}
 });
 

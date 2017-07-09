@@ -20,6 +20,11 @@ public:
 		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
 	}
 
+	inline bool operator==(const Principal& right) const
+	{
+		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) == 0;
+	}
+
 private:
 	std::string m_identifier;
 };
@@ -40,6 +45,11 @@ public:
 	inline bool operator<(const Object& right) const
 	{
 		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
+	}
+
+	inline bool operator==(const Object& right) const
+	{
+		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) == 0;
 	}
 
 private:
@@ -70,7 +80,15 @@ public:
 
 	virtual void AddPrincipalInheritance(const Principal& child, const Principal& parent);
 
+	virtual void RemovePrincipalInheritance(const Principal& child, const Principal& parent);
+
 	virtual void AddAccessControlEntry(const Principal& principal, const Object& object, AccessType type);
+
+	virtual void RemoveAccessControlEntry(const Principal& principal, const Object& object, AccessType type);
+
+	virtual void ForAllPrincipalInheritances(const std::function<void(const Principal&, const Principal&)>&);
+
+	virtual void ForAllAccessControlEntries(const std::function<void(const Principal&, const Object&, AccessType)>&);
 
 	virtual bool CheckPrivilege(const Object& object);
 
@@ -79,6 +97,10 @@ public:
 	virtual void PushPrincipal(const Principal& principal);
 
 	virtual void PopPrincipal();
+
+	virtual void PushPrincipalReset();
+
+	virtual void PopPrincipalReset();
 
 	virtual void MakeCurrent();
 
@@ -134,14 +156,39 @@ namespace se
 class ScopedPrincipal
 {
 public:
-	ScopedPrincipal(const Principal& principal)
+	inline ScopedPrincipal(const Principal& principal)
 	{
 		seGetCurrentContext()->PushPrincipal(principal);
 	}
 
-	~ScopedPrincipal()
+	inline ScopedPrincipal(const ScopedPrincipal&) = delete;
+
+	inline ScopedPrincipal(ScopedPrincipal&&)
+	{
+
+	}
+
+	inline ~ScopedPrincipal()
 	{
 		seGetCurrentContext()->PopPrincipal();
+	}
+};
+
+class ScopedPrincipalReset
+{
+public:
+	inline ScopedPrincipalReset()
+	{
+		seGetCurrentContext()->PushPrincipalReset();
+	}
+
+	inline ScopedPrincipalReset(const ScopedPrincipalReset&) = delete;
+
+	inline ScopedPrincipalReset(ScopedPrincipalReset&&) = delete;
+
+	inline ~ScopedPrincipalReset()
+	{
+		seGetCurrentContext()->PopPrincipalReset();
 	}
 };
 }

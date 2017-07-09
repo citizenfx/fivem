@@ -61,7 +61,7 @@ public:
 
 	virtual void ExecuteSingleCommand(const std::string& command);
 
-	virtual void ExecuteSingleCommand(const ProgramArguments& arguments);
+	virtual void ExecuteSingleCommandDirect(const ProgramArguments& arguments);
 
 	virtual void AddToBuffer(const std::string& text);
 
@@ -131,7 +131,7 @@ extern "C" void CreateContext(Context* parentContext, fwRefContainer<Context>* o
 
 void ExecuteSingleCommand(const std::string& command);
 
-void ExecuteSingleCommand(const ProgramArguments& arguments);
+void ExecuteSingleCommandDirect(const ProgramArguments& arguments);
 
 ProgramArguments Tokenize(const std::string& line);
 

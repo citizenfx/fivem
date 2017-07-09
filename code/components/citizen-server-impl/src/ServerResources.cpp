@@ -16,6 +16,8 @@
 
 #include <network/uri.hpp>
 
+#include <PrintListener.h>
+
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -302,8 +304,8 @@ static InitFunction initFunction([]()
 			}
 
 			auto conCtx = instance->GetComponent<console::Context>();
-			conCtx->ExecuteSingleCommand(ProgramArguments{ "stop", resourceName });
-			conCtx->ExecuteSingleCommand(ProgramArguments{ "start", resourceName });
+			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
+			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
 
 		static auto refreshCommandRef = instance->AddCommand("refresh", [=]()
@@ -311,16 +313,72 @@ static InitFunction initFunction([]()
 			ScanResources(instance);
 		});
 
-		instance->GetComponent<console::Context>()->GetCommandManager()->SetFallbackHandler([=](const std::string& commandName, const ProgramArguments& arguments)
+		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::any& context)
 		{
 			auto eventComponent = resman->GetComponent<fx::ResourceEventManagerComponent>();
 
-			// if canceled, the command was handled
-			return (!eventComponent->TriggerEvent2("rconCommand", {}, commandName, arguments.GetArguments()));
-		});
+			// assert privilege
+			if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
+			{
+				return true;
+			}
+
+			// if canceled, the command was handled, so cancel the fwEvent
+			return (eventComponent->TriggerEvent2("rconCommand", {}, commandName, arguments.GetArguments()));
+		}, -100);
+
+		static thread_local std::string rawCommand;
+
+		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::any& context)
+		{
+			if (context.has_value())
+			{
+				auto eventComponent = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+				return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + std::any_cast<std::string>(context) }, rawCommand);
+			}
+
+			return true;
+		}, 99999);
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerEvent"), std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
+
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerCommand"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		{
+			auto cmdLen = buffer.Read<uint16_t>();
+
+			std::vector<char> cmd(cmdLen);
+			buffer.Read(cmd.data(), cmdLen);
+
+			std::string printString;
+
+			fx::PrintListenerContext context([&](const std::string_view& print)
+			{
+				printString += print;
+			});
+
+			fx::ScopeDestructor destructor([&]()
+			{
+				msgpack::sbuffer sb;
+
+				msgpack::packer<msgpack::sbuffer> packer(sb);
+				packer.pack_array(1).pack(printString);
+
+				instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent("__cfx_internal:serverPrint", sb.data(), sb.size(), { std::to_string(client->GetNetId()) });
+			});
+
+			// save the raw command for fallback usage
+			rawCommand = std::string(cmd.begin(), cmd.end());
+
+			// invoke
+			auto consoleCxt = instance->GetComponent<console::Context>();
+			consoleCxt->GetCommandManager()->Invoke(rawCommand, std::any{ std::to_string(client->GetNetId()) });
+
+			// unset raw command
+			rawCommand = "";
+		});
+
 		gameServer->OnTick.Connect([=]()
 		{
 			resman->Tick();
@@ -442,8 +500,10 @@ static InitFunction initFunction2([]()
 		// get the server's console context
 		auto consoleContext = instance->GetComponent<console::Context>();
 
+		se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 		// set gametype variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "gametype", context.CheckArgument<const char*>(0) });
+		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "set", "gametype", context.CheckArgument<const char*>(0) });
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_MAP_NAME", [](fx::ScriptContext& context)
@@ -457,8 +517,10 @@ static InitFunction initFunction2([]()
 		// get the server's console context
 		auto consoleContext = instance->GetComponent<console::Context>();
 
+		se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 		// set mapname variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "mapname", context.CheckArgument<const char*>(0) });
+		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "set", "mapname", context.CheckArgument<const char*>(0) });
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ENABLE_ENHANCED_HOST_SUPPORT", [](fx::ScriptContext& context)
@@ -472,8 +534,10 @@ static InitFunction initFunction2([]()
 		// get the server's console context
 		auto consoleContext = instance->GetComponent<console::Context>();
 
+		se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 		// set mapname variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", "sv_enhancedHostSupport", context.GetArgument<bool>(0) ? "1" : "0" });
+		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "set", "sv_enhancedHostSupport", context.GetArgument<bool>(0) ? "1" : "0" });
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", [](fx::ScriptContext& context)
@@ -544,7 +608,14 @@ static InitFunction initFunction2([]()
 		// get the server's console context
 		auto consoleContext = instance->GetComponent<console::Context>();
 
+		se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
 		// set variable
-		consoleContext->ExecuteSingleCommand(ProgramArguments{ "set", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
+		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "set", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_ACE_ALLOWED", [](fx::ScriptContext& context)
+	{
+		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(0)));
 	});
 });

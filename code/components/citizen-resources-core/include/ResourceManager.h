@@ -16,6 +16,8 @@
 
 #include <ComponentHolder.h>
 
+#include <msgpack.hpp>
+
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define RESOURCES_CORE_EXPORT DLL_EXPORT
 #else
@@ -24,6 +26,35 @@
 
 namespace fx
 {
+namespace fx_internal
+{
+template<typename T>
+struct Unserializer
+{
+	static T Unserialize(const std::string& retval)
+	{
+		if (retval.empty())
+		{
+			return T();
+		}
+
+		auto unpacked = msgpack::unpack(retval.c_str(), retval.size());
+		auto objects = unpacked.get().as<std::vector<msgpack::object>>();
+
+		return objects[0].as<T>();
+	}
+};
+
+template<>
+struct Unserializer<void>
+{
+	static void Unserialize(const std::string& retval)
+	{
+
+	}
+};
+}
+
 class ResourceManager : public fwRefCountable, public ComponentHolderImpl<ResourceManager>
 {
 public:
@@ -76,6 +107,37 @@ public:
 	// Makes this resource manager the current resource manager.
 	//
 	virtual void MakeCurrent() = 0;
+
+private:
+	struct pass
+	{
+		template<typename ...T> pass(T...) {}
+	};
+
+public:
+	//
+	// Calls a formatted function reference.
+	//
+	template<typename TRet, typename... TArg>
+	inline TRet CallReference(const std::string& functionReference, const TArg&... args)
+	{
+		msgpack::sbuffer buf;
+		msgpack::packer<msgpack::sbuffer> packer(buf);
+
+		// pack the argument pack as array
+		packer.pack_array(sizeof...(args));
+		pass{ (packer.pack(args), 0)... };
+
+		std::string retval = CallReferenceInternal(functionReference, std::string(buf.data(), buf.size()));
+
+		return fx_internal::Unserializer<TRet>::Unserialize(retval);
+	}
+
+private:
+	virtual std::string CallReferenceInternal(const std::string& functionReference, const std::string& argsSerialized) = 0;
+
+public:
+	static void RESOURCES_CORE_EXPORT SetCallRefCallback(const std::function<std::string(const std::string&, const std::string&)>& refCallback);
 
 public:
 	fwEvent<> OnTick;

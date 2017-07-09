@@ -77,9 +77,55 @@ void Context::AddPrincipalInheritance(const Principal& child, const Principal& p
 	m_impl->m_principalInheritance.insert({ child, parent });
 }
 
+void Context::RemovePrincipalInheritance(const Principal& child, const Principal& parent)
+{
+	for (auto it = m_impl->m_principalInheritance.begin(); it != m_impl->m_principalInheritance.end(); )
+	{
+		if (it->first == child && it->second == parent)
+		{
+			it = m_impl->m_principalInheritance.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
 void Context::AddAccessControlEntry(const Principal& principal, const Object& object, AccessType type)
 {
 	m_impl->m_aces.insert({ object, { object, principal, type } });
+}
+
+void Context::RemoveAccessControlEntry(const Principal& principal, const Object& object, AccessType type)
+{
+	for (auto it = m_impl->m_aces.begin(); it != m_impl->m_aces.end(); )
+	{
+		if (it->first == object && it->second.principal == principal && it->second.type == type)
+		{
+			it = m_impl->m_aces.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+void Context::ForAllPrincipalInheritances(const std::function<void(const Principal &, const Principal &)>& cb)
+{
+	for (auto& pce : m_impl->m_principalInheritance)
+	{
+		cb(pce.first, pce.second);
+	}
+}
+
+void Context::ForAllAccessControlEntries(const std::function<void(const Principal &, const Object &, AccessType)>& cb)
+{
+	for (auto& ace : m_impl->m_aces)
+	{
+		cb(ace.second.principal, ace.second.object, ace.second.type);
+	}
 }
 
 bool Context::CheckPrivilege(const Object& object)
@@ -182,6 +228,20 @@ void Context::PopPrincipal()
 	g_principalStack.pop_front();
 }
 
+static std::stack<std::deque<Principal>> g_principalStackStack;
+
+void Context::PushPrincipalReset()
+{
+	g_principalStackStack.push(g_principalStack);
+	g_principalStack.clear();
+}
+
+void Context::PopPrincipalReset()
+{
+	g_principalStack = g_principalStackStack.top();
+	g_principalStackStack.pop();
+}
+
 static thread_local Context* g_currentContext;
 static Context* g_globalContext;
 
@@ -205,7 +265,8 @@ extern "C" se::Context* seGetCurrentContext()
 		{
 			static ConVar<bool> seDebugConvar(console::GetDefaultContext(), "se_debug", ConVar_None, false, &g_debugSecurity);
 
-			static ConsoleCommand addAclCmd("add_acl", [](const std::string& principal, const std::string& object, const std::string& allow)
+#ifdef IS_FXSERVER
+			static ConsoleCommand addAclCmd("add_ace", [](const std::string& principal, const std::string& object, const std::string& allow)
 			{
 				se::AccessType type;
 
@@ -225,6 +286,54 @@ extern "C" se::Context* seGetCurrentContext()
 
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ principal }, se::Object{ object }, type);
 			});
+
+			static ConsoleCommand addPrincipalCmd("add_principal", [](const std::string& principal, const std::string& parent)
+			{
+				seGetCurrentContext()->AddPrincipalInheritance(se::Principal{ principal }, se::Principal{ parent });
+			});
+
+			static ConsoleCommand removeAclCmd("remove_ace", [](const std::string& principal, const std::string& object, const std::string& allow)
+			{
+				se::AccessType type;
+
+				if (allow == "allow")
+				{
+					type = se::AccessType::Allow;
+				}
+				else if (allow == "deny")
+				{
+					type = se::AccessType::Deny;
+				}
+				else
+				{
+					console::Printf("security", "Access type needs to be 'allow' or 'deny'.");
+					return;
+				}
+
+				seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ principal }, se::Object{ object }, type);
+			});
+
+			static ConsoleCommand removePrincipalCmd("remove_principal", [](const std::string& principal, const std::string& parent)
+			{
+				seGetCurrentContext()->RemovePrincipalInheritance(se::Principal{ principal }, se::Principal{ parent });
+			});
+#endif
+
+			static ConsoleCommand listPrincipalCmd("list_principals", []()
+			{
+				seGetCurrentContext()->ForAllPrincipalInheritances([](const se::Principal& child, const se::Principal& parent)
+				{
+					console::Printf("security", "%s <- %s\n", child.GetIdentifier(), parent.GetIdentifier());
+				});
+			});
+
+			static ConsoleCommand listAceCmd("list_aces", []()
+			{
+				seGetCurrentContext()->ForAllAccessControlEntries([](const se::Principal& principal, const se::Object& object, se::AccessType accessType)
+				{
+					console::Printf("security", "%s -> %s = %s\n", principal.GetIdentifier(), object.GetIdentifier(), (accessType == se::AccessType::Allow) ? "ALLOW" : "DENY");
+				});
+			});
 		});
 	}
 
@@ -235,7 +344,7 @@ extern "C" se::Context* seGetCurrentContext()
 		std::call_once(globalContextFlag, []()
 		{
 			se::g_globalContext = new se::Context();
-			se::g_globalContext->AddAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command" }, se::AccessType::Allow);
+			se::g_globalContext->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "command" }, se::AccessType::Allow);
 		});
 
 		return se::g_globalContext;

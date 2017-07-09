@@ -9,6 +9,8 @@
 
 #include <ScriptEngine.h>
 
+#include <se/Security.h>
+
 inline static uint64_t msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -118,6 +120,22 @@ static InitFunction initFunction([]()
 		server->DropClient(client, context.CheckArgument<const char*>(1));
 
 		return true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_ACE_ALLOWED", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	{
+		const char* object = context.CheckArgument<const char*>(1);
+
+		se::ScopedPrincipalReset reset;
+
+		std::vector<std::unique_ptr<se::ScopedPrincipal>> principals;
+
+		for (auto& identifier : client->GetIdentifiers())
+		{
+			principals.emplace_back(std::make_unique<se::ScopedPrincipal>(se::Principal{ fmt::sprintf("identifier.%s", identifier) }));
+		}
+
+		return seCheckPrivilege(object);
 	}));
 
 	static thread_local std::vector<std::weak_ptr<fx::Client>> clients;

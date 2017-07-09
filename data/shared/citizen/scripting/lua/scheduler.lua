@@ -250,6 +250,16 @@ local function MakeFunctionReference(func)
 	return Citizen.CanonicalizeRef(thisIdx)
 end
 
+function Citizen.GetFunctionReference(func)
+	if type(func) == 'function' then
+		return MakeFunctionReference(func)
+	elseif type(func) == 'table' and rawget(table, '__cfx_functionReference') then
+		return DuplicateFunctionReference(rawget(table, '__cfx_functionReference'))
+	end
+
+	return nil
+end
+
 Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local ref = funcRefs[refId]
 

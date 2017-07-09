@@ -94,3 +94,6 @@ type 'charPtr'
 
 type 'Vector3'
 	nativeType 'vector3'
+
+type 'func'
+	nativeType 'func'

@@ -49,5 +49,7 @@ public:
 	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) override;
 
 	virtual void Tick() override;
+
+	virtual std::string CallReferenceInternal(const std::string& functionReference, const std::string& argsSerialized) override;
 };
 }

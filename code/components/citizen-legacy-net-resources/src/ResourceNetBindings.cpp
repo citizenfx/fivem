@@ -20,7 +20,11 @@
 
 #include <rapidjson/document.h>
 
+#include <boost/algorithm/string.hpp>
+
 #include <network/uri.hpp>
+
+#include <CoreConsole.h>
 
 #include <Error.h>
 
@@ -465,6 +469,24 @@ static InitFunction initFunction([] ()
 		{
 			Instance<fx::ResourceManager>::Get()->ResetResources();
 		});
+
+		console::GetDefaultContext()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& cmd, const ProgramArguments& args, const std::any& context)
+		{
+			if (netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
+			{
+				return true;
+			}
+
+			std::string s = console::GetDefaultContext()->GetCommandManager()->GetRawCommand();
+
+			NetBuffer buffer(131072);
+			buffer.Write<uint16_t>(s.size());
+			buffer.Write(s.c_str(), std::min(s.size(), static_cast<size_t>(INT16_MAX)));
+
+			netLibrary->SendReliableCommand("msgServerCommand", buffer.GetBuffer(), buffer.GetCurLength());
+
+			return false;
+		}, 99999);
 	});
 });
 /*

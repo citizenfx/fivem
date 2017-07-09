@@ -41,15 +41,30 @@ void ConsoleCommandManager::Unregister(int token)
 	}
 }
 
-void ConsoleCommandManager::Invoke(const std::string& commandString)
+const std::string& ConsoleCommandManager::GetRawCommand()
 {
-	ProgramArguments arguments = console::Tokenize(commandString);
-	std::string command        = arguments.Shift();
-
-	return Invoke(command, arguments);
+	return m_rawCommand;
 }
 
-void ConsoleCommandManager::Invoke(const std::string& commandName, const ProgramArguments& arguments)
+void ConsoleCommandManager::Invoke(const std::string& commandString, const std::any& executionContext)
+{
+	ProgramArguments arguments = console::Tokenize(commandString);
+
+	if (arguments.Count() == 0)
+	{
+		return;
+	}
+
+	std::string command        = arguments.Shift();
+
+	m_rawCommand = commandString;
+
+	InvokeDirect(command, arguments, executionContext);
+
+	m_rawCommand = "";
+}
+
+void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const ProgramArguments& arguments, const std::any& executionContext)
 {
 	std::vector<THandler> functionAttempts;
 
@@ -63,12 +78,9 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 		if (entryPair.first == entryPair.second)
 		{
 			// try the fallback command handler
-			if (m_fallbackHandler)
+			if (!FallbackEvent(commandName, arguments, executionContext))
 			{
-				if (m_fallbackHandler(commandName, arguments))
-				{
-					return;
-				}
+				return;
 			}
 
 			// try in the fallback context, then
@@ -76,7 +88,8 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 
 			if (fallbackContext)
 			{
-				return fallbackContext->GetCommandManager()->Invoke(commandName, arguments);
+				fallbackContext->GetCommandManager()->m_rawCommand = m_rawCommand;
+				return fallbackContext->GetCommandManager()->InvokeDirect(commandName, arguments, executionContext);
 			}
 
 			console::Printf("cmd", "No such command %s.\n", commandName.c_str());
@@ -98,7 +111,7 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 	}
 
 	// try executing overloads until finding one that accepts our arguments - if none is found, print the error buffer
-	ConsoleExecutionContext context(std::move(arguments));
+	ConsoleExecutionContext context(std::move(arguments), executionContext);
 	bool result = false;
 
 	// clear the error buffer
@@ -118,11 +131,6 @@ void ConsoleCommandManager::Invoke(const std::string& commandName, const Program
 	{
 		console::Printf("cmd", "%s", context.errorBuffer.str().c_str());
 	}
-}
-
-void ConsoleCommandManager::SetFallbackHandler(const std::function<bool(const std::string &, const ProgramArguments &)>& handler)
-{
-	m_fallbackHandler = handler;
 }
 
 void ConsoleCommandManager::ForAllCommands(const std::function<void(const std::string&)>& callback)

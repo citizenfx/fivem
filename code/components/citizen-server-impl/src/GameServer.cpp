@@ -9,6 +9,8 @@
 
 #include <NetBuffer.h>
 
+#include <PrintListener.h>
+
 inline static uint64_t msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -61,7 +63,11 @@ namespace fx
 	GameServer::GameServer()
 		: m_residualTime(0), m_serverTime(msec()), m_nextHeartbeatTime(0)
 	{
+		seCreateContext(&m_seContext);
 
+		m_seContext->MakeCurrent();
+		m_seContext->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "command" }, se::AccessType::Allow);
+		m_seContext->AddAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command.help" }, se::AccessType::Allow);
 	}
 
 	GameServer::~GameServer()
@@ -199,6 +205,13 @@ namespace fx
 			return;
 		}
 
+		std::vector<std::unique_ptr<se::ScopedPrincipal>> principals;
+
+		for (auto& identifier : client->GetIdentifiers())
+		{
+			principals.emplace_back(std::make_unique<se::ScopedPrincipal>(se::Principal{ fmt::sprintf("identifier.%s", identifier) }));
+		}
+
 		if (m_packetHandler)
 		{
 			m_packetHandler(msgType, client, msg);
@@ -217,6 +230,8 @@ namespace fx
 
 	void GameServer::ProcessHost(ENetHost* host)
 	{
+		m_seContext->MakeCurrent();
+
 		ENetEvent event;
 
 		while (enet_host_service(host, &event, 0) > 0)
@@ -250,6 +265,8 @@ namespace fx
 
 	void GameServer::ProcessServerFrame(int frameTime)
 	{
+		m_seContext->MakeCurrent();
+
 		m_serverTime += frameTime;
 
 		// check callbacks
@@ -411,63 +428,9 @@ namespace fx
 		enet_socket_send(std::get<ENetHost*>(to)->socket, &addr, &buffer, 1);
 	}
 
-	struct FxPrintListener
-	{
-		static thread_local std::function<void(const std::string_view& cb)> listener;
-
-		FxPrintListener()
-		{
-			console::CoreAddPrintListener([](ConsoleChannel channel, const char* data)
-			{
-				if (listener)
-				{
-					listener(data);
-				}
-			});
-		}
-	};
-
 	FxPrintListener printListener;
 
 	thread_local std::function<void(const std::string_view& cb)> FxPrintListener::listener;
-
-	struct PrintListenerContext
-	{
-		PrintListenerContext(const std::function<void(const std::string_view& cb)>& fn)
-		{
-			oldFn = FxPrintListener::listener;
-
-			FxPrintListener::listener = fn;
-		}
-
-		~PrintListenerContext()
-		{
-			FxPrintListener::listener = oldFn;
-		}
-
-	private:
-		std::function<void(const std::string_view& cb)> oldFn;
-	};
-
-	struct ScopeDestructor
-	{
-		ScopeDestructor(const std::function<void()>& fn)
-			: m_fn(fn)
-		{
-			
-		}
-
-		~ScopeDestructor()
-		{
-			if (m_fn)
-			{
-				m_fn();
-			}
-		}
-
-	private:
-		std::function<void()> m_fn;
-	};
 
 	namespace ServerDecorators
 	{
@@ -627,6 +590,9 @@ namespace fx
 				}
 
 				auto ctx = server->GetInstance()->GetComponent<console::Context>();
+				ctx->ExecuteBuffer();
+
+				se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
 				ctx->AddToBuffer(std::string(command));
 				ctx->ExecuteBuffer();
 			}

@@ -63,6 +63,24 @@ static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refS
 
 static InitFunction initFunction([] ()
 {
+	fx::ResourceManager::SetCallRefCallback([](const std::string& ref, const std::string& argumentData)
+	{
+		int32_t refId;
+		fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(ref, &refId);
+
+		if (refRuntime.GetRef())
+		{
+			char* retvalData;
+			uint32_t retvalSize;
+
+			refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), &retvalData, &retvalSize);
+
+			return std::string(retvalData, retvalSize);
+		}
+
+		return std::string();
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("INVOKE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)
 	{
 		int32_t refId;
