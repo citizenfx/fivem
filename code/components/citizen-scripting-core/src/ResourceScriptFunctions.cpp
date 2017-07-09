@@ -81,7 +81,7 @@ static InitFunction initFunction([] ()
 			if (resource)
 			{
 				auto resourceManager = resource->GetManager();
-				auto console = resourceManager->GetComponent<console::Context>();
+				auto consoleCxt = resourceManager->GetComponent<console::Context>();
 
 				outerRefs[commandName] = commandRef;
 
@@ -91,12 +91,12 @@ static InitFunction initFunction([] ()
 					seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command." + commandName }, se::AccessType::Allow);
 				}
 
-				console->GetCommandManager()->Register(commandName, [=](ConsoleExecutionContext& context)
+				consoleCxt->GetCommandManager()->Register(commandName, [=](ConsoleExecutionContext& context)
 				{
 					auto source = (context.contextRef.has_value()) ? std::any_cast<std::string>(context.contextRef) : "0";
 					const auto& args = context.arguments.GetArguments();
 
-					resourceManager->CallReference<void>(outerRefs[commandName], atoi(source.c_str()), args, console->GetCommandManager()->GetRawCommand());
+					resourceManager->CallReference<void>(outerRefs[commandName], atoi(source.c_str()), args, consoleCxt->GetCommandManager()->GetRawCommand());
 
 					return true;
 				});
