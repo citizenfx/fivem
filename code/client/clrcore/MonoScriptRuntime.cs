@@ -32,7 +32,7 @@ namespace CitizenFX.Core
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
-				m_intManager.SetScriptHost(Marshal.GetIUnknownForObject(host), m_instanceId);
+				m_intManager.SetScriptHost(new WrapScriptHost(host), m_instanceId);
 			}
 			catch (Exception e)
 			{
@@ -190,6 +190,43 @@ namespace CitizenFX.Core
 		public PushRuntime GetPushRuntime()
 		{
 			return new PushRuntime(this);
+		}
+
+		public class WrapScriptHost : MarshalByRefObject, IScriptHost
+		{
+			private readonly IScriptHost m_realHost;
+
+			public WrapScriptHost(IScriptHost realHost)
+			{
+				m_realHost = realHost;
+			}
+
+			public void InvokeNative([MarshalAs(UnmanagedType.Struct)] ref fxScriptContext context)
+			{
+				m_realHost.InvokeNative(ref context);
+			}
+
+			[return: MarshalAs(UnmanagedType.Interface)]
+			public fxIStream OpenSystemFile([MarshalAs(UnmanagedType.LPStr)] string fileName)
+			{
+				return m_realHost.OpenSystemFile(fileName);
+			}
+
+			[return: MarshalAs(UnmanagedType.Interface)]
+			public fxIStream OpenHostFile([MarshalAs(UnmanagedType.LPStr)] string fileName)
+			{
+				return m_realHost.OpenHostFile(fileName);
+			}
+
+			public IntPtr CanonicalizeRef(int localRef, int instanceId)
+			{
+				return m_realHost.CanonicalizeRef(localRef, instanceId);
+			}
+
+			public void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message)
+			{
+				m_realHost.ScriptTrace(message);
+			}
 		}
 	}
 }

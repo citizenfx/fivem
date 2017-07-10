@@ -35,9 +35,9 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		public void SetScriptHost(IntPtr host, int instanceId)
+		public void SetScriptHost(IScriptHost host, int instanceId)
 		{
-			ScriptHost = (IScriptHost)Marshal.GetObjectForIUnknown(host);
+			ScriptHost = host;
 			ms_instanceId = instanceId;
 		}
 
