@@ -122,9 +122,9 @@ namespace CitizenFX.Core
 
 				return CreateAssemblyInternal(assemblyBytes, symbolBytes);
 			}
-			catch
+			catch (Exception e)
 			{
-				// ignored
+				Debug.WriteLine($"Exception loading assembly {name}: {e}");
 			}
 
 			return null;
