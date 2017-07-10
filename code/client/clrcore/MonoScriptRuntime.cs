@@ -192,6 +192,36 @@ namespace CitizenFX.Core
 			return new PushRuntime(this);
 		}
 
+		public class WrapIStream : MarshalByRefObject, fxIStream
+		{
+			private readonly fxIStream m_realStream;
+
+			public WrapIStream(fxIStream realStream)
+			{
+				m_realStream = realStream;
+			}
+
+			public int Read([Out] byte[] data, int size)
+			{
+				return m_realStream.Read(data, size);
+			}
+
+			public int Write(byte[] data, int size)
+			{
+				return m_realStream.Write(data, size);
+			}
+
+			public long Seek(long offset, int origin)
+			{
+				return m_realStream.Seek(offset, origin);
+			}
+
+			public long GetLength()
+			{
+				return m_realStream.GetLength();
+			}
+		}
+
 		public class WrapScriptHost : MarshalByRefObject, IScriptHost
 		{
 			private readonly IScriptHost m_realHost;
@@ -209,13 +239,13 @@ namespace CitizenFX.Core
 			[return: MarshalAs(UnmanagedType.Interface)]
 			public fxIStream OpenSystemFile([MarshalAs(UnmanagedType.LPStr)] string fileName)
 			{
-				return m_realHost.OpenSystemFile(fileName);
+				return new WrapIStream(m_realHost.OpenSystemFile(fileName));
 			}
 
 			[return: MarshalAs(UnmanagedType.Interface)]
 			public fxIStream OpenHostFile([MarshalAs(UnmanagedType.LPStr)] string fileName)
 			{
-				return m_realHost.OpenHostFile(fileName);
+				return new WrapIStream(m_realHost.OpenHostFile(fileName));
 			}
 
 			public IntPtr CanonicalizeRef(int localRef, int instanceId)
