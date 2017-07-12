@@ -41,6 +41,13 @@ namespace CitizenFX.Core
 			ms_instanceId = instanceId;
 		}
 
+		[SecuritySafeCritical]
+		public void SetScriptHost(IntPtr hostPtr, int instanceId)
+		{
+			ScriptHost = (IScriptHost)Marshal.GetObjectForIUnknown(hostPtr);
+			ms_instanceId = instanceId;
+		}
+
 		internal static void AddScript(BaseScript script)
 		{
 			ms_definedScripts.Add(script);
