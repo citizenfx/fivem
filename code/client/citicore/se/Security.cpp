@@ -339,13 +339,11 @@ extern "C" se::Context* seGetCurrentContext()
 
 	if (!se::g_currentContext)
 	{
-		static std::once_flag globalContextFlag;
-
-		std::call_once(globalContextFlag, []()
+		if (se::g_globalContext == nullptr)
 		{
 			se::g_globalContext = new se::Context();
 			se::g_globalContext->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "command" }, se::AccessType::Allow);
-		});
+		}
 
 		return se::g_globalContext;
 	}
