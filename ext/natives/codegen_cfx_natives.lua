@@ -604,4 +604,92 @@ native 'IS_PLAYER_ACE_ALLOWED'
 	apiset 'server'
 	returns 'BOOL'
 
+native 'FIND_FIRST_PED'
+	arguments {
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'FIND_FIRST_VEHICLE'
+	arguments {
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'FIND_FIRST_OBJECT'
+	arguments {
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'FIND_FIRST_PICKUP'
+	arguments {
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'FIND_NEXT_PED'
+	arguments {
+		int 'findHandle',
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'FIND_NEXT_VEHICLE'
+	arguments {
+		int 'findHandle',
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'FIND_NEXT_OBJECT'
+	arguments {
+		int 'findHandle',
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'FIND_NEXT_PICKUP'
+	arguments {
+		int 'findHandle',
+		EntityPtr 'outEntity'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'END_FIND_PED'
+	arguments {
+		int 'findHandle'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'END_FIND_PED'
+	arguments {
+		int 'findHandle'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'END_FIND_OBJECT'
+	arguments {
+		int 'findHandle'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'END_FIND_PICKUP'
+	arguments {
+		int 'findHandle'
+	}
+	apiset 'client'
+	returns 'void'
+
 -- TODO: handling field natives
