@@ -175,7 +175,10 @@ void ResourceManagerImpl::Tick()
 
 ResourceManager* ResourceManager::GetCurrent()
 {
-	assert(g_currentManager);
+	if (!g_currentManager)
+	{
+		throw std::runtime_error("No current resource manager.");
+	}
 
 	return g_currentManager;
 }
