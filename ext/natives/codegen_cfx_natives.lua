@@ -671,7 +671,7 @@ native 'END_FIND_PED'
 	apiset 'client'
 	returns 'void'
 
-native 'END_FIND_PED'
+native 'END_FIND_VEHICLE'
 	arguments {
 		int 'findHandle'
 	}
