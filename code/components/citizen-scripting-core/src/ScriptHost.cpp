@@ -105,20 +105,6 @@ public:
 
 result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 {
-	// fail if invoked without current resource manager
-	if (fx::ResourceManager::GetCurrent() == nullptr)
-	{
-		static bool hadTraced;
-
-		if (!hadTraced)
-		{
-			trace("Attempted to call a native function without active resource manager. This message will only show once.\n");
-			hadTraced = true;
-		}
-
-		return 0x8000000E; // E_ILLEGAL_METHOD_CALL
-	}
-
 	// get a native handler for the identifier
 	auto nativeHandler = ScriptEngine::GetNativeHandler(context.nativeIdentifier);
 
