@@ -175,8 +175,6 @@ void ResourceManagerImpl::Tick()
 
 ResourceManager* ResourceManager::GetCurrent()
 {
-	assert(g_currentManager);
-
 	return g_currentManager;
 }
 
