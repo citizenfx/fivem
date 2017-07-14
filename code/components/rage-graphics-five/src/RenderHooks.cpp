@@ -13,6 +13,8 @@
 
 #include <MinHook.h>
 
+#include <CoreConsole.h>
+
 namespace WRL = Microsoft::WRL;
 
 fwEvent<> OnGrcCreateDevice;
@@ -77,12 +79,20 @@ static DWORD g_swapChainFlags;
 static ID3D11DeviceContext* g_dc;
 
 static bool g_allowTearing;
+static bool g_disableRendering;
+
+void MakeDummyDevice(ID3D11Device** device, ID3D11DeviceContext** context, const DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** swapChain);
 
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-#ifdef _DEBUG
-	Flags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
+	if (g_disableRendering)
+	{
+		*pFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+		MakeDummyDevice(ppDevice, ppImmediateContext, pSwapChainDesc, ppSwapChain);
+
+		return S_OK;
+	}
 
 	if (!IsWindows10OrGreater())
 	{
@@ -284,8 +294,15 @@ void D3DPresent(int syncInterval, int flags)
 	}
 }
 
+static int Return1()
+{
+	return 1;
+}
+
 static HookFunction hookFunction([] ()
 {
+	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
+
 	// device creation
 	void* ptrFunc = hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(33);
 
@@ -338,6 +355,11 @@ static HookFunction hookFunction([] ()
 		// remove render thread semaphore checks from buffer resizing
 		hook::nop((char*)g_resetVideoMode + 0x48, 5);
 		hook::nop((char*)g_resetVideoMode + 0x163, 5);
+	}
+
+	if (g_disableRendering)
+	{
+		hook::jump(hook::get_pattern("84 D2 0F 45 C7 8A D9 89 05", -0x1F), Return1);
 	}
 
 	// ignore frozen render device (for PIX and such)
