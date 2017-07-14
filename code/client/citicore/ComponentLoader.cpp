@@ -11,6 +11,8 @@
 #include "FxGameComponent.h"
 #include <Error.h>
 
+#include <LaunchMode.h>
+
 #ifdef _WIN32
 #define PLATFORM_LIBRARY_STRING L"%s.dll"
 #else
@@ -38,7 +40,14 @@ void ComponentLoader::Initialize()
 	AddComponent(m_rootComponent);
 
 	// parse and load additional components
-	FILE* componentCache = _pfopen(MakeRelativeCitPath(L"components.json").c_str(), _P("rb"));
+	std::wstring componentsName = L"components.json";
+
+	if (CfxIsSinglePlayer())
+	{
+		componentsName = L"components-sp.json";
+	}
+
+	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));
 
 	if (!componentCache)
 	{

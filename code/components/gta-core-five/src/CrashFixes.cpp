@@ -10,6 +10,8 @@
 
 #include <Error.h>
 
+#include <LaunchMode.h>
+
 static void* ProbePointer(char* pointer)
 {
 	__try
@@ -131,8 +133,11 @@ static HookFunction hookFunction([] ()
 	hook::nop(txdFixStubLoc, 6);
 	hook::call_rcx(txdFixStubLoc, txdFixStub.GetCode()); // call_rcx as the stub depends on rax being valid
 
-	// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
-	hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+	if (!CfxIsSinglePlayer())
+	{
+		// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
+		hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+	}
 
 	// make sure a drawfrag dc doesn't actually run if there's no frag (bypass ERR_GFX_DRAW_DATA)
 	// 505-specific, possibly

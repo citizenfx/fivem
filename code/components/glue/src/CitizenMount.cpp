@@ -106,6 +106,32 @@ static InitFunction initFunction([] ()
 		cacheDevice->Mount("rescache:/");
 
 		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"));
+
+			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
+			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDevice->Mount("common:/");
+
+			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
+			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDeviceCrc->Mount("commoncrc:/");
+		}
+
+		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform"));
+
+			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
+			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDevice->Mount("platform:/");
+
+			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
+			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDeviceCrc->Mount("platformcrc:/");
+		}
+
+		{
 			PWSTR appDataPath;
 			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
 			{
