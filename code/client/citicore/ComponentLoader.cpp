@@ -40,11 +40,11 @@ void ComponentLoader::Initialize()
 	AddComponent(m_rootComponent);
 
 	// parse and load additional components
-	std::wstring componentsName = L"components.json";
+	fwPlatformString componentsName = _P("components.json");
 
 	if (CfxIsSinglePlayer())
 	{
-		componentsName = L"components-sp.json";
+		componentsName = _P("components-sp.json");
 	}
 
 	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));
