@@ -82,6 +82,11 @@ Citizen.SetTickRoutine(function()
 	end
 end)
 
+local alwaysSafeEvents = {
+	["playerDropped"] = true,
+	["playerConnecting"] = true
+}
+
 local eventHandlers = {}
 
 Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
@@ -94,7 +99,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	if eventHandlerEntry and eventHandlerEntry.handlers then
 		-- if this is a net event and we don't allow this event to be triggered from the network, return
 		if eventSource:sub(1, 3) == 'net' then
-			if not eventHandlerEntry.safeForNet then
+			if not eventHandlerEntry.safeForNet and not alwaysSafeEvents[eventName] then
 				Citizen.Trace('event ' .. eventName .. " was not safe for net\n")
 
 				return
