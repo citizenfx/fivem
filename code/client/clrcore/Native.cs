@@ -37,6 +37,7 @@ namespace CitizenFX.Core.Native
         }
     }
 
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
     internal struct NativeVector3
     {
         public float X;
@@ -45,7 +46,7 @@ namespace CitizenFX.Core.Native
 
         public static implicit operator Vector3(NativeVector3 self)
         {
-            return Vector3.Zero;
+            return new Vector3(self.X, self.Y, self.Z);
         }
     }
 
