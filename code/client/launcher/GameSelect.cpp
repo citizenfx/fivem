@@ -96,32 +96,46 @@ void EnsureGamePath()
 
 	// set the default folder, if we can find one
 	{
-		wchar_t gameRoot[1024];
-		DWORD gameRootLength = sizeof(gameRoot);
+		wchar_t gameRootBuf[1024];
+		DWORD gameRootLength = sizeof(gameRootBuf);
 
-		if (RegGetValue(HKEY_LOCAL_MACHINE,
-			L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", L"InstallFolder",
-			RRF_RT_REG_SZ, nullptr, gameRoot, &gameRootLength) == ERROR_SUCCESS)
+		// 5 is the amount of characters to strip off the end
+		const std::tuple<std::wstring, std::wstring, int> folderAttempts[] = {
+			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
+			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 }
+		};
+
+		for (const auto& folder : folderAttempts)
 		{
-			WRL::ComPtr<IShellItem> item;
-
-			if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot, nullptr, IID_IShellItem, (void**)item.GetAddressOf())))
+			if (RegGetValue(HKEY_LOCAL_MACHINE,
+				std::get<1>(folder).c_str(), std::get<0>(folder).c_str(),
+				RRF_RT_REG_SZ, nullptr, gameRootBuf, &gameRootLength) == ERROR_SUCCESS)
 			{
-				auto checkFile = [&](const std::wstring& path)
+				WRL::ComPtr<IShellItem> item;
+
+				std::wstring gameRoot(gameRootBuf);
+
+				// strip \GTAV if needed
+				gameRoot = gameRoot.substr(0, gameRoot.length() - std::get<int>(folder));
+
+				if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_IShellItem, (void**)item.GetAddressOf())))
 				{
-					return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
-				};
+					auto checkFile = [&](const std::wstring& path)
+					{
+						return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
+					};
 
-				fileDialog->SetFolder(item.Get());
+					fileDialog->SetFolder(item.Get());
 
-				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") &&
-					checkFile(L"x64g.rpf") && checkFile(L"common.rpf") &&
-					checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") &&
-					checkFile(L"GTA5.exe"))
-				{
-					WritePrivateProfileString(L"Game", pathKey, gameRoot, fpath.c_str());
+					if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") &&
+						checkFile(L"x64g.rpf") && checkFile(L"common.rpf") &&
+						checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") &&
+						checkFile(L"GTA5.exe"))
+					{
+						WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
 
-					return;
+						return;
+					}
 				}
 			}
 		}
