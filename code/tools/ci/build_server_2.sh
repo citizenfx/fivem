@@ -55,6 +55,9 @@ cd build/server/linux
 
 export CXXFLAGS="-std=c++1z -stdlib=libc++"
 
+echo '#pragma once' > /src/code/shared/cfx_version.h
+echo '#define GIT_DESCRIPTION "'$CI_BUILD_REF_NAME' v1.0.0.'$CI_PIPELINE_ID' linux"' >> /src/code/shared/cfx_version.h
+
 make clean
 make clean config=release
 make -j4 config=release
