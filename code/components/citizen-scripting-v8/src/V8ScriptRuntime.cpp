@@ -10,8 +10,8 @@
 
 #include <include/v8.h>
 #include <include/v8-profiler.h>
+#include <include/libplatform/libplatform.h>
 
-#include <V8Platform.h>
 #include <V8Debugger.h>
 
 #include <om/OMComponent.h>
@@ -25,6 +25,8 @@ using namespace v8;
 namespace fx
 {
 static Isolate* GetV8Isolate();
+
+static Platform* GetV8Platform();
 
 struct PointerFieldEntry
 {
@@ -1317,6 +1319,8 @@ result_t V8ScriptRuntime::Tick()
 	{
 		V8PushEnvironment pushed(this);
 
+		v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
+
 		m_tickRoutine();
 	}
 
@@ -1412,6 +1416,11 @@ public:
 
 	~V8ScriptGlobals();
 
+	inline Platform* GetPlatform()
+	{
+		return m_platform.get();
+	}
+
 	inline Isolate* GetIsolate()
 	{
 		if (Isolate::GetCurrent() != m_isolate)
@@ -1428,6 +1437,11 @@ static V8ScriptGlobals g_v8;
 static Isolate* GetV8Isolate()
 {
 	return g_v8.GetIsolate();
+}
+
+static Platform* GetV8Platform()
+{
+	return g_v8.GetPlatform();
 }
 
 V8ScriptGlobals::V8ScriptGlobals()
@@ -1455,7 +1469,7 @@ V8ScriptGlobals::V8ScriptGlobals()
 	V8::SetSnapshotDataBlob(&snapshotBlob);
 
 	// initialize platform
-	m_platform = std::make_unique<V8Platform>();
+	m_platform = std::unique_ptr<v8::Platform>(v8::platform::CreateDefaultPlatform());
 	V8::InitializePlatform(m_platform.get());
 
 #if 0
