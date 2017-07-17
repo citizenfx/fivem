@@ -23,7 +23,11 @@ namespace fx
 						ENetHost* host = enet_host_create(&addr, 64, 2, 0, 0);
 
 						// ensure the host exists
-						assert(host);
+						if (!host)
+						{
+							trace("Could not bind on %s - is this address valid and not already in use?\n", endPoint);
+							return;
+						}
 
 						// register the global host
 						g_hostInstances[host] = server.GetRef();
