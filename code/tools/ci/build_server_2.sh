@@ -11,7 +11,7 @@ apk --no-cache update
 apk --no-cache upgrade
 
 # install runtime dependencies
-apk add libc++ curl libssl1.0 libunwind libstdc++
+apk add libc++ curl libssl1.0 libunwind libstdc++ zlib
 
 # install compile-time dependencies
 apk add --no-cache --virtual .dev-deps libc++-dev curl-dev clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev
@@ -82,6 +82,8 @@ cp -a ../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll /opt/cfx-server/citiz
 
 cp -a /usr/lib/mono/4.5/Facades/ /opt/cfx-server/citizen/clr2/lib/mono/4.5/Facades/
 
+cp -a /usr/lib/libMonoPosixHelper.so /tmp/libMonoPosixHelper.so
+
 for dll in Microsoft.CSharp.dll Mono.CSharp.dll Mono.Posix.dll Mono.Security.dll mscorlib.dll \
 	System.Configuration.dll System.Core.dll System.Data.dll System.dll System.EnterpriseServices.dll \
 	System.Net.dll System.Net.Http.dll System.Numerics.Vectors.dll System.Runtime.InteropServices.RuntimeInformation.dll System.Runtime.Serialization.dll \
@@ -105,3 +107,5 @@ cd /opt/cfx-server
 rm -rf /tmp/boost
 
 apk del .dev-deps
+
+mv /tmp/libMonoPosixHelper.so /usr/lib/libMonoPosixHelper.so
