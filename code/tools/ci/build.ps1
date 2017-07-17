@@ -102,6 +102,8 @@ if ($env:CI) {
     	if ($IsServer) {
             $Tag = "v1.0.0.${env:CI_PIPELINE_ID}"
 
+            git config user.name citizenfx-ci
+            git config user.email pr@fivem.net
     		git tag -a $Tag $env:CI_BUILD_REF -m "${env:CI_BUILD_REF_NAME}_$Tag"
             git remote add github_tag https://$env:GITHUB_CRED@github.com/citizenfx/fivem.git
             git push github_tag $Tag
