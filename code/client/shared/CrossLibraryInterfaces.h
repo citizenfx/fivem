@@ -25,8 +25,6 @@ public:
 
 	virtual void RunFrame() = 0;
 
-	virtual void ConnectToServer(const char* hostname, uint16_t port) = 0;
-
 	virtual void Disconnect(const char* reason) = 0;
 
 	// called from hooks for the actual disconnect event

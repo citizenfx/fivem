@@ -96,6 +96,16 @@ public:
 	socklen_t GetSocketAddressLength() const;
 
 	//
+	// Get the host name from the address.
+	//
+	std::string GetHost() const;
+
+	//
+	// Get the port from the address.
+	//
+	int GetPort() const;
+
+	//
 	// Present the address as a canonical string.
 	//
 	std::string ToString() const;

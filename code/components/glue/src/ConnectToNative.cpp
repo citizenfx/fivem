@@ -118,24 +118,18 @@ static NetLibrary* netLibrary;
 
 static void ConnectTo(const std::string& hostnameStr)
 {
-	static char hostname[256];
+	auto npa = net::PeerAddress::FromString(hostnameStr);
 
-	StringCbCopyA(hostname, sizeof(hostname), hostnameStr.c_str());
-
-	std::string port = std::string(hostname);
-	std::string ip = std::string(hostname);
-	ip = ip.substr(0, ip.find_last_of(":"));
-	port = port.substr(port.find_last_of(":") + 1);
-	const char* portnum = port.c_str();
-
-	if (port.empty())
+	if (npa)
 	{
-		portnum = "30120";
+		netLibrary->ConnectToServer(npa.get());
+
+		nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
 	}
-
-	netLibrary->ConnectToServer(ip.c_str(), atoi(portnum));
-
-	nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+	else
+	{
+		trace("Could not resolve %s.\n", hostnameStr);
+	}
 }
 
 static InitFunction initFunction([] ()

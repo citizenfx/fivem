@@ -18,6 +18,8 @@
 
 #include "NetLibraryImplBase.h"
 
+#include <NetAddress.h>
+
 #include <enet/enet.h>
 
 #include <concurrent_queue.h>
@@ -200,7 +202,7 @@ public:
 
 	virtual void RunFrame();
 
-	virtual void ConnectToServer(const char* hostname, uint16_t port);
+	virtual void ConnectToServer(const net::PeerAddress& address);
 
 	virtual void Disconnect(const char* reason);
 
