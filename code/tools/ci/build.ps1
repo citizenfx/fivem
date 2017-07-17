@@ -108,6 +108,8 @@ if ($env:CI) {
             git remote add github_tag https://$env:GITHUB_CRED@github.com/citizenfx/fivem.git
             git push github_tag $Tag
             git remote remove github_tag
+
+            $GlobalTag = $Tag
     	}
     }
 
@@ -246,7 +248,7 @@ if (!$DontBuild)
     #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
 
     "#pragma once
-    #define GIT_DESCRIPTION ""$UploadBranch $Tag win32""" | Out-File -Force shared\cfx_version.h
+    #define GIT_DESCRIPTION ""$UploadBranch $GlobalTag win32""" | Out-File -Force shared\cfx_version.h
 
     remove-item env:\platform
 
