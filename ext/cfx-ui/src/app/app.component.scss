@@ -3,10 +3,14 @@
 :host {
 	display: flex;
 	position: relative;
-	justify-content: center;
 
-	width: 100%;
+	justify-content: space-between;
+
+	width: $width;
 	height: $height;
-	overflow-y: scroll;
-	overflow-x: hidden;
+
+	transform: scale(var(--zoom));
+	transform-origin: center center;
+
+	z-index: 100;
 }

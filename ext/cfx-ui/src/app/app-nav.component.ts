@@ -12,7 +12,7 @@ import { Translation, TranslationService } from 'angular-l10n';
 export class AppNavComponent extends Translation {
 	id = 'ololo';
 
-	hasSubNav: boolean = false;
+	hasSubNav = false;
 
 	constructor(
 		private gameService: GameService,

@@ -2,16 +2,15 @@
 
 :host {
 	display: flex;
-	width: $width;
+	width: $appContentWidth;
 	height: 100%;
-	padding-top: $appNavHeight + $padding*2;
+	padding-top: $padding*2;
 
 	.servers {
 		display: flex;
-		width: $width;
+		width: $appContentWidth;
 		position: relative;
 
-		backdrop-filter: blur(25px);
 		background-color: rgba($bgColour, .1);
 
 		aside {

@@ -1,50 +1,51 @@
-import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import {NgModule} from '@angular/core';
+import {Routes, RouterModule} from '@angular/router';
 
-import { HomeComponent } from './home/home.component';
-import { SettingsComponent } from './settings/settings.component';
-import { ServerListComponent } from './servers/ui/server-list.component';
-import { ServerListUiComponent } from './servers/ui/server-list-ui.component';
-import { DirectConnectComponent } from './servers/direct/direct-connect.component';
+import {HomeComponent} from './home/home.component';
+import {SettingsComponent} from './settings/settings.component';
+import {ServerListComponent} from './servers/ui/server-list.component';
+import {ServerListUiComponent} from './servers/ui/server-list-ui.component';
+import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: HomeComponent
-  },
-  {
-    path: 'servers',
-    component: ServerListComponent,
-    children: [
-      {
-        path: '',
-        component: ServerListUiComponent,
-        data: { type: 'browse' }
-      },
-      {
-        path: 'favorites',
-        component: ServerListUiComponent,
-        data: { type: 'favorites' }
-      },
-      {
-        path: 'history',
-        component: ServerListUiComponent,
-        data: { type: 'history' }
-      },
-      {
-        path: 'direct-connect',
-        component: DirectConnectComponent
-      }
-    ]
-  },
-  {
-    path: 'settings',
-    component: SettingsComponent
-  }
+	{
+		path:      '',
+		component: HomeComponent
+	},
+	{
+		path:      'servers',
+		component: ServerListComponent,
+		children:  [
+			{
+				path:      '',
+				component: ServerListUiComponent,
+				data:      {type: 'browse'}
+			},
+			{
+				path:      'favorites',
+				component: ServerListUiComponent,
+				data:      {type: 'favorites'}
+			},
+			{
+				path:      'history',
+				component: ServerListUiComponent,
+				data:      {type: 'history'}
+			},
+			{
+				path:      'direct-connect',
+				component: DirectConnectComponent
+			}
+		]
+	},
+	{
+		path:      'settings',
+		component: SettingsComponent
+	}
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+	imports: [RouterModule.forRoot(routes, { useHash: true })],
+	exports: [RouterModule]
 })
-export class AppRoutingModule { }
+export class AppRoutingModule {
+}

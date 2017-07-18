@@ -1,18 +1,19 @@
 @import "variables";
 
 .home {
-	width: $width;
-	padding-top: $appNavHeight;
+	width: $appContentWidth;
+	height: $height;
+	padding-top: $padding*2;
+
+	overflow-y: scroll;
 
 	.feed {
-		padding-top: $padding*2;
-
 		.message {
 			//box-shadow: 0 0 30px $bgColour;
 
 			.backdroppy {
 				background-color: rgba($bgColour, .2);
-				backdrop-filter: blur(25px);
+				//backdrop-filter: blur(25px);
 				padding: $padding 50px;
 
 				border-bottom: solid .5px rgba($fgColour, .1);

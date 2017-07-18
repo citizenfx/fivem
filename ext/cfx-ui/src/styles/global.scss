@@ -19,14 +19,34 @@
 	padding: 0;
 	margin: 0;
 	font-family: $fonts;
+	user-select: none;
 }
 
 body {
-	width: 100%;
-	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 100vw;
+	height: 100vh;
+
 	overflow: hidden;
 
 	color: $fgColour;
+}
+
+$blurSize: 20px;
+
+#bg {
+	z-index: 1;
+
+	position: fixed;
+	top: -($blurSize*2);
+	left: -($blurSize*2);
+	bottom: -($blurSize*2);
+	right: -($blurSize*2);
+
+	filter: blur($blurSize);
 
 	background:
 		linear-gradient(

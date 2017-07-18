@@ -1,66 +1,76 @@
 @import 'variables';
 
 :host {
-	display: flex;
-	height: $appNavHeight;
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
+	height: $height;
+	width: $appNavWidth - $padding * 2;
 
-	backdrop-filter: blur(25px);
-	background-color: rgba($bgColour, .2);
-
-	justify-content: center;
+	padding: $padding*2 0 $padding*2 $padding*2;
 }
 
 .app-nav-container {
 	display: flex;
-	height: $appNavHeight;
+	height: $height - $padding*4;
 
-	width: $width;
+	flex-direction: column;
+	flex-grow: 0;
 
-	flex-direction: row;
 	justify-content: space-between;
-	align-items: flex-end;
+	align-content: space-between;
 
-	overflow: hidden;
+	width: 100%;
+
 	z-index: 100;
-
-	.logo,
-	.user,
-	.nav-list {
-		width: 30vw;
-	}
 
 	.logo {
 		text-align: left;
 		font-size: 30px;
 		padding-bottom: $padding/2;
+
+		color: $textColour;
+
+		svg {
+			width: 30px;
+			height: 30px;
+			fill: $textColour;
+		}
+
+		.user {
+			color: $textColour;
+			font-size: 16px;
+			margin-top: $padding/2;
+		}
 	}
 
-	.user {
+	.close-app {
+		cursor: pointer;
 		color: $textColour;
-		text-align: right;
-		padding-bottom: $padding/2;
+
+		&:hover {
+			background-color: $bgColour;
+			box-shadow: 0 0 0 $padding $bgColour;
+		}
 	}
 
 	.nav-list {
 		display: flex;
+		flex-grow: 1;
+
+		flex-direction: column;
 		justify-content: center;
 
 		transition: transform .2s ease-out;
 
 		&.has-sub-nav {
-			transform: translateY(-30px);
+			//transform: translateY(-30px);
 		}
 
 		.nav-item {
-			display: flex;
-			height: $appNavHeight;
+			//background-color: rgba(255, 255, 255, .2);
+
+			display: inline-flex;
 			position: relative;
 
-			padding: 0 $padding*$multiplier $padding/2 $padding*$multiplier;
+			margin-top: $padding;
 
 			align-items: flex-end;
 
@@ -72,33 +82,54 @@
 			color: $textColour;
 			text-shadow: 0 0 1px $bgColour;
 
+			transition: padding-left .2s ease;
+
+			&:first-child {
+				margin-top: 0;
+			}
+
+			&.subnav-item {
+				font-size: 15px;
+				margin: 0;
+				padding: $padding/2 0;
+			}
+
 			&:after {
 				display: block;
 				content: '';
 				position: absolute;
-				bottom: -4px;
-				left: 50%;
-				margin-left: -20px;
+				top: 50%;
+				left: -4px;
 				opacity: .5;
 
-				width: 40px;
-				height: 4px;
+				width: 4px;
+				height: 16px;
+				margin-top: -8px;
 
 				border-radius: 2px;
 				background-color: $greenyColour;
 
-				transition: bottom .2s ease-out;
+				transition: all .2s ease-out;
+			}
+
+			&.active,
+			&.active:hover {
+				padding-left: $padding;
+			}
+
+			&:hover {
+				padding-left: $padding/2;
 			}
 
 			&.active::after,
 			&.active:hover::after {
-				bottom: -2px;
+				left: -2px;
 				box-shadow: 0 0 10px darken($greenyColour, 5%);
 				opacity: 1;
 			}
 
 			&:hover::after {
-				bottom: -2px;
+				left: -2px;
 			}
 		}
 	}
