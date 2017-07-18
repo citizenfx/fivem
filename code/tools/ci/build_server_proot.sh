@@ -50,6 +50,9 @@ cd alpine
 tar xf ../alpine-minirootfs-3.6.1-x86_64.tar.gz
 cd ..
 
+echo '#pragma once' > code/shared/cfx_version.h
+echo '#define GIT_DESCRIPTION "'$CI_BUILD_REF_NAME' v1.0.0.'$CI_PIPELINE_ID' linux"' >> code/shared/cfx_version.h
+
 # change ownership of the build root
 chown -R build:build .
 
