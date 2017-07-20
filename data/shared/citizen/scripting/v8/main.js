@@ -17,6 +17,7 @@ const EXT_FUNCREF = 10;
 
 	/**
 	 * @param {Function} refFunction
+	 * @returns {string}
 	 */
 	Citizen.makeRefFunction = (refFunction) => {
 		const ref = nextRefIdx();
@@ -30,7 +31,7 @@ const EXT_FUNCREF = 10;
 		// Packer
 		global.makeRefFunction,
 		// Unpacker
-		() => (...args) => unpack(Citizen.invokeFunctionReference(ref, pack(args)))
+		(ref) => (...args) => unpack(Citizen.invokeFunctionReference(ref, pack(args)))
 	]);
 
 	/**
