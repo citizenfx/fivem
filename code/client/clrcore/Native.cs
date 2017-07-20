@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
 
 namespace CitizenFX.Core.Native
 {
@@ -8,12 +9,18 @@ namespace CitizenFX.Core.Native
     {
         public static T Call<T>(Hash hash, params InputArgument[] arguments)
         {
-            return (T)InvokeInternal(hash, typeof(T), arguments);
+			if (!CanInvokeOnThisThread())
+				return default(T);
+
+			return (T)InvokeInternal(hash, typeof(T), arguments);
         }
 
         public static void Call(Hash hash, params InputArgument[] arguments)
         {
-            InvokeInternal(hash, typeof(void), arguments);
+			if (!CanInvokeOnThisThread())
+				return;
+
+			InvokeInternal(hash, typeof(void), arguments);
         }
 
         private static object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
@@ -35,7 +42,16 @@ namespace CitizenFX.Core.Native
                 return null;
             }
         }
-    }
+
+		private static bool CanInvokeOnThisThread()
+		{
+#if IS_FXSERVER
+			if (Thread.CurrentThread.ManagedThreadId != InternalManager.ScriptHostThreadID)
+				return false;
+#endif
+			return true;
+		}
+	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
     internal struct NativeVector3
