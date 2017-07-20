@@ -27,12 +27,22 @@ const EXT_FUNCREF = 10;
 		return Citizen.canonicalizeRef(ref);
 	};
 
-	codec.addExtPacker(EXT_FUNCREF, Function, [
-		// Packer
-		global.makeRefFunction,
-		// Unpacker
-		(ref) => (...args) => unpack(Citizen.invokeFunctionReference(ref, pack(args)))
-	]);
+	function refFunctionPacker(refFunction) {
+		const ref = Citizen.makeRefFunction(refFunction);
+
+		return msgpack.encode(ref);
+	}
+
+	function refFunctionUnpacker(refSerialized) {
+		const ref = msgpack.decode(refSerialized);
+
+		return function (...args) {
+			return unpack(Citizen.invokeFunctionReference(ref, pack(args)));
+		};
+	}
+
+	codec.addExtPacker(EXT_FUNCREF, Function, refFunctionPacker);
+	codec.addExtUnpacker(EXT_FUNCREF, refFunctionUnpacker);
 
 	/**
 	 * Deletes ref function

@@ -64,7 +64,6 @@ interface CitizenInterface {
     resultAsVector(): ResultAsVector
 
     makeRefFunction(refFunction: Function): string
-
 }
 
 declare const console: Console;
