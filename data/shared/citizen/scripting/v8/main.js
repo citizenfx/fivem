@@ -1,156 +1,161 @@
-'use strict';
+// CFX JS runtime
 
-(function()
-{
-	let TimerManager = class
-	{
-		constructor()
-		{
-			this.timers = {};
-			this.animationFrames = [];
-			this.timerID = 1;
-		}
+const EXT_FUNCREF = 10;
 
-		setTimeout(callback, ms)
-		{
-			var id;
+(function (global) {
+	let refIndex = 0;
+	const nextRefIdx = () => refIndex++;
+	const refFunctionsMap = new Map();
 
-			return id = this.setInterval(() =>
-			{
-				this.clearInterval(id);
-
-				callback();
-			}, ms);
-		}
-
-		setInterval(callback, ms)
-		{
-			let timerID = this.timerID;
-
-			let timerData = {
-				callback: callback,
-				interval: ms,
-				lastRun: 0
-			};
-
-			this.timerID++;
-
-			this.timers[timerID] = timerData;
-
-			return timerID;
-		}
-
-		clearTimeout(id)
-		{
-			this.clearInterval(id);
-		}
-
-		clearInterval(id)
-		{
-			delete this.timers[id];
-		}
-
-		requestAnimationFrame(cb)
-		{
-			this.animationFrames.push(cb);
-		}
-
-		tick()
-		{
-			// process timers
-			let currentTime = Citizen.getTickCount();
-
-			for (let timerID in this.timers)
-			{
-				let timer = this.timers[timerID];
-
-				if (currentTime >= (timer.lastRun + timer.interval))
-				{
-					try
-					{
-						timer.callback();
-					}
-					catch (e)
-					{
-						// TODO: replace with console.log once implemented
-						print(e);
-						print(e.stack);
-					}
-
-					timer.lastRun = currentTime;
-				}
-			}
-
-			// process animation frames
-			for (let animationFrame of this.animationFrames)
-			{
-				try
-				{
-					animationFrame();
-				}
-				catch (e)
-				{
-					// TODO: replace with console.log once implemented
-					print(e);
-					print(e.stack);
-				}
-			}
-
-			this.animationFrames = [];
-		}
-	};
-
-	// instantiate the timer manager
-	let timerManager = new TimerManager();
-
-	// set global functions
-	window.setTimeout = timerManager.setTimeout.bind(timerManager);
-	window.clearTimeout = timerManager.clearTimeout.bind(timerManager);
-
-	window.setInterval = timerManager.setInterval.bind(timerManager);
-	window.clearInterval = timerManager.clearInterval.bind(timerManager);
-
-	window.requestAnimationFrame = timerManager.requestAnimationFrame.bind(timerManager);
-
-	// set the global tick function
-	Citizen.setTickFunction(function()
-	{
-		timerManager.tick();
+	const codec = msgpack.createCodec({
+		uint8array: true,
+		preset: false
 	});
 
-	// event handling
-	const eventHandlers = {};
+	const pack = data => msgpack.encode(data, { codec });
+	const unpack = data => msgpack.decode(data, { codec });
 
-	Citizen.setEventFunction(function(eventName, eventPayload, eventSource)
-	{
-		window.source = eventSource;
+	/**
+	 * @param {Function} refFunction
+	 */
+	Citizen.makeRefFunction = (refFunction) => {
+		const ref = nextRefIdx();
 
-		const eventHandlerEntry = eventHandlers[eventName];
+		refFunctionsMap.set(ref, refFunction);
 
-		if (eventHandlerEntry)
-		{
-			if (eventHandlerEntry.rawHandlers)
-			{
-				if (Array.isArray(eventHandlerEntry.rawHandlers))
-				{
-					for (const handler of eventHandlerEntry.rawHandlers)
-					{
-						handler(eventPayload);
-					}
-				}
+		return Citizen.canonicalizeRef(ref);
+	};
+
+	codec.addExtPacker(EXT_FUNCREF, Function, [
+		// Packer
+		global.makeRefFunction,
+		// Unpacker
+		() => (...args) => unpack(Citizen.invokeFunctionReference(ref, pack(args)))
+	]);
+
+	/**
+	 * Deletes ref function
+	 * 
+	 * @param {int} ref
+	 */
+	Citizen.setDeleteRefFunction(function(ref) {
+		refFunctionsMap.delete(ref);
+	});
+
+	/**
+	 * Invokes ref function
+	 * 
+	 * @param {int} ref 
+	 * @param {UInt8Array} args 
+	 */
+	Citizen.setCallRefFunction(function(ref, argsSerialized) {
+		if (!refFunctionsMap.has(ref)) {
+			console.error('Invalid ref call attempt:', ref);
+
+			return pack({});
+		}
+
+		return pack(refFunctionsMap.get(ref)(unpack(argsSerialized)));
+	});
+
+	/**
+	 * Duplicates ref function
+	 * 
+	 * @param {int} ref
+	 */
+	Citizen.setDuplicateRefFunction(function(ref) {
+		if (refFunctionsMap.has(ref)) {
+			const refFunction = refFunctionsMap.get(ref);
+			const newRef = nextRefIdx();
+
+			refFunctionsMap.set(newRef, refFunction);
+
+			return newRef;
+		}
+
+		return -1;
+	});
+
+	// Events
+	const emitter = new EventEmitter2();
+	const rawEmitter = new EventEmitter2();
+	const netSafeEventsNames = new Set(['playerDropped', 'playerConnecting']);
+
+	// Raw events
+	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
+
+	// Client events
+	global.addEventListener = (name, callback, netSafe = false) => {
+		if (netSafe) {
+			netSafeEventsNames.add(name);
+		}
+
+		emitter.on(name, callback);
+	};
+	global.on = global.addEventListener;
+
+	// Net events
+	global.addNetEventListener = (name, callback) => global.addEventListener(name, callback, true);
+	global.onNet = global.addNetEventListener;
+
+	global.removeEventListener = emitter.off.bind(emitter);
+
+	global.emit = (name, ...args) => {
+		const dataSerialized = pack(data);
+
+		//                    TRIGGER_EVENT_INTERNAL
+		Citizen.invokeNative("0x91310870", dataSerialized, dataSerialized.length);
+	};
+	global.emitNet = (name, ...args) => {
+		const dataSerialized = pack(data);
+
+		//                    TRIGGER_SERVER_EVENT_INTERNAL
+		Citizen.invokeNative("0x7fdd1128", dataSerialized, dataSerialized.length);
+	};
+
+	/**
+	 * @param {string} name
+	 * @param {UInt8Array} payloadSerialized
+	 * @param {string} source
+	 */
+	Citizen.setEventFunction(async function(name, payloadSerialized, source) {
+		global.source = source;
+
+		if (source.startsWith('net')) {
+			if (!netSafeEventsNames.has(name)) {
+				console.error(`Event ${name} was not safe for net`);
+
+				global.source = null;
+				return;
+			}
+
+			global.source = parseInt(source.substr(4));
+		}
+
+		const payload = unpack(payloadSerialized) || [];
+		const listeners = emitter.listeners(name);
+
+		if (listeners.length === 0 || !Array.isArray(payload)) {
+			global.source = null;
+			return;
+		}
+
+		// Running normal event listeners
+		for (const listener of listeners) {
+			const retval = listener.apply(null, payload);
+
+			if (retval instanceof Promise) {
+				await retval;
 			}
 		}
 
-		window.source = null;
-	});
-
-	window.addRawEventHandler = function(eventName, cb)
-	{
-		if (!eventHandlers[eventName])
-		{
-			eventHandlers[eventName] = { handlers: [], rawHandlers: [] };
+		// Running raw event listeners
+		try {
+			rawEmitter.emit(name, payloadSerialized, source);
+		} catch(e) {
+			console.error('Unhandled error during running raw event listeners', e);
 		}
 
-		eventHandlers[eventName].rawHandlers.push(cb);
-	};
-})();
+		global.source = null;
+	});
+})(this || window);
