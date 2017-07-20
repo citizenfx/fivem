@@ -18,6 +18,7 @@ namespace CitizenFX.Core
 		private static int ms_instanceId;
 
 		public static IScriptHost ScriptHost { get; private set; }
+		public static int ScriptHostThreadID { get; private set; }
 
 		[SecuritySafeCritical]
 		public InternalManager()
@@ -39,6 +40,7 @@ namespace CitizenFX.Core
 		{
 			ScriptHost = host;
 			ms_instanceId = instanceId;
+			ScriptHostThreadID = Thread.CurrentThread.ManagedThreadId;
 		}
 
 		[SecuritySafeCritical]
