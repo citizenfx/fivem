@@ -90,15 +90,16 @@ const EXT_FUNCREF = 10;
 	// Events
 	const emitter = new EventEmitter2();
 	const rawEmitter = new EventEmitter2();
-	const netSafeEventsNames = new Set(['playerDropped', 'playerConnecting']);
+	const netSafeEventNames = new Set(['playerDropped', 'playerConnecting']);
 
 	// Raw events
 	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
+	global.addRawEventHandler = global.addRawEventListener;
 
 	// Client events
 	global.addEventListener = (name, callback, netSafe = false) => {
 		if (netSafe) {
-			netSafeEventsNames.add(name);
+			netSafeEventNames.add(name);
 		}
 
 		emitter.on(name, callback);
@@ -114,14 +115,12 @@ const EXT_FUNCREF = 10;
 	global.emit = (name, ...args) => {
 		const dataSerialized = pack(data);
 
-		//                    TRIGGER_EVENT_INTERNAL
-		Citizen.invokeNative("0x91310870", dataSerialized, dataSerialized.length);
+		TriggerEventInternal(dataSerialized, dataSerialized.length);
 	};
 	global.emitNet = (name, ...args) => {
 		const dataSerialized = pack(data);
 
-		//                    TRIGGER_SERVER_EVENT_INTERNAL
-		Citizen.invokeNative("0x7fdd1128", dataSerialized, dataSerialized.length);
+		TriggerServerEventInternal(dataSerialized, dataSerialized.length)
 	};
 
 	/**
@@ -133,7 +132,7 @@ const EXT_FUNCREF = 10;
 		global.source = source;
 
 		if (source.startsWith('net')) {
-			if (!netSafeEventsNames.has(name)) {
+			if (!netSafeEventNames.has(name)) {
 				console.error(`Event ${name} was not safe for net`);
 
 				global.source = null;

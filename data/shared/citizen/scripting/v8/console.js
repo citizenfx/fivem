@@ -215,7 +215,7 @@
             this.assert = this.assert.bind(this);
             this.timeEnd = this.timeEnd.bind(this);
             this.groupEnd = this.groupEnd.bind(this);
-            this.groupCollapseed = this.groupCollapseed.bind(this);
+            this.groupCollapsed = this.groupCollapsed.bind(this);
             this.msIsIndependentlyComposed = this.msIsIndependentlyComposed.bind(this);
         }
 
@@ -235,7 +235,7 @@
             this.error('console.group is not implemented yet');
         }
 
-        groupCollapseed() {
+        groupCollapsed() {
             this.error('console.groupCollapsed is not implemented yet');
         }
 

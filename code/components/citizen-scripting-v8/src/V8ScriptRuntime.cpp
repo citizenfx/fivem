@@ -11,9 +11,7 @@
 
 #ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
-	{ "natives_21e43a33.js",  guid_t{ 0 } },
-	{ "natives_0193d0af.js",  "f15e72ec-3972-4fe4-9c7d-afc5394ae207" },
-	{ "natives_universal.js", "44febabe-d386-4d18-afbe-5e627f4af937" }
+	{ "natives_universal.js", guid_t{ 0 } }
 };
 #endif
 
@@ -28,6 +26,14 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 #include <fstream>
 
 #include <Error.h>
+
+static const char* g_platformScripts[] = {
+	"citizen:/scripting/v8/console.js",
+	"citizen:/scripting/v8/timer.js",
+	"citizen:/scripting/v8/msgpack.js",
+	"citizen:/scripting/v8/eventemitter2.js",
+	"citizen:/scripting/v8/main.js"
+};
 
 using namespace v8;
 
@@ -1184,7 +1190,7 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	// set the 'window' variable to the global itself
 	context->Global()->Set(String::NewFromUtf8(GetV8Isolate(), "window", NewStringType::kNormal).ToLocalChecked(), context->Global());
 
-	std::string nativesBuild = "natives_21e43a33.js";
+	std::string nativesBuild = "natives_universal.js";
 
 	{
 		for (const auto& versionPair : g_scriptVersionPairs)
@@ -1201,34 +1207,18 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	// run system scripts
 	result_t hr;
 
+	// Loading natives
 	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/v8/%s", nativesBuild)))))
 	{
 		return hr;
 	}
 
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/v8/console.js")))
+	for (const char* platformScript : g_platformScripts)
 	{
-		return hr;
-	}
-
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/v8/timer.js")))
-	{
-		return hr;
-	}
-
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/v8/msgpack.js")))
-	{
-		return hr;
-	}
-
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/v8/eventemitter2.js")))
-	{
-		return hr;
-	}
-
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/v8/main.js")))
-	{
-		return hr;
+		if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(platformScript))))
+		{
+			return hr;
+		}
 	}
 
 	return FX_S_OK;
