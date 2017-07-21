@@ -1,3 +1,4 @@
+///<reference path="./natives_universal.d.ts"/>
 // CFX JS RUNTIME DEFINITIONS
 
 interface Console {

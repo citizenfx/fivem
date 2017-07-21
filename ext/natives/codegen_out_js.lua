@@ -50,7 +50,15 @@ print("const _ENV = null;\n")
 
 -- functions
 local function printArgumentName(name)
+	if name == 'var' then
+		return 'var_'
+	end
+
 	return name
+end
+
+local function trimAndNormalize(str)
+	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] ')
 end
 
 local function isSinglePointerNative(native)
@@ -164,10 +172,10 @@ local function formatDocString(native)
 		return ''
 	end
 
-	local l = '/**\n * ' .. trim(firstLine) .. "\n"
+	local l = '/**\n * ' .. trimAndNormalize(firstLine) .. "\n"
 
 	for line in nextLines:gmatch("([^\n]+)") do
-		l = l .. ' * ' .. trim(line):gsub('/%*', ' -- [['):gsub('%*/', ']] ') .. "\n"
+		l = l .. ' * ' .. trimAndNormalize(line) .. "\n"
 	end
 
 	if d.hasParams then
