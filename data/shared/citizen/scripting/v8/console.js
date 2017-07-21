@@ -277,7 +277,7 @@
                 message: format(message, ...optionalParams)
             };
 
-            Error.captureStackTrace(err, trace);
+            Error.captureStackTrace(err, this.trace);
 
             this._trace(err.stack);
         }
