@@ -685,7 +685,7 @@ namespace fx
 				// check if the current host is being vouched for
 				auto currentHost = clientRegistry->GetHost();
 
-				if (currentHost || currentHost->GetNetId() == allegedNewId)
+				if (currentHost && currentHost->GetNetId() == allegedNewId)
 				{
 					trace("Got a late vouch for %s - they're the current arbitrator!\n", currentHost->GetName());
 					return;
