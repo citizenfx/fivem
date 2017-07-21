@@ -59,7 +59,7 @@ declare const Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
 
-declare function addEventListener(eventName: string, callback: Function): void
+declare function addEventListener(eventName: string, callback: Function, netSafe?: boolean): void
 declare function on(eventName: string, callback: Function): void
 
 declare function addNetEventListener(eventName: string, callback: Function): void
@@ -67,5 +67,7 @@ declare function onNet(eventName: string, callback: Function): void
 
 declare function emit(eventName: string, ...args: any[]): void
 declare function emitNet(eventName: string, ...args: any[]): void
+
+declare function removeEventListener(eventName: string, callback: Function): void
 
 declare function setTick(callback: Function): void
