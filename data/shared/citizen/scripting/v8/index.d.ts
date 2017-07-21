@@ -1,16 +1,4 @@
-///<reference path="./natives_universal.d.ts"/>
-// CFX JS RUNTIME DEFINITIONS
-
-interface Console {
-    assert(value: any, ...optionalParams: any[]): void
-    error(...optionalParams: any[]): void
-    info(...optionalParams: any[]): void
-    log(...optionalParams: any[]): void
-    time(label: string): void
-    timeEnd(label: string): void
-    trace(...optionalParams: any[]): void
-    warn(...optionalParams: any[]): void
-}
+/// <reference path="./natives_universal.d.ts"/>
 
 interface IntPtrInitialized {}
 interface FloatPtrInitialized {}
@@ -66,8 +54,6 @@ interface CitizenInterface {
 
     makeRefFunction(refFunction: Function): string
 }
-
-declare const console: Console;
 
 declare const Citizen: CitizenInterface;
 
