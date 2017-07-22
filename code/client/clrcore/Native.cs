@@ -37,12 +37,17 @@ namespace CitizenFX.Core.Native
         }
     }
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	[StructLayout(LayoutKind.Explicit)]
     internal struct NativeVector3
     {
+		[FieldOffset(0)]
         public float X;
-        public float Y;
-        public float Z;
+
+		[FieldOffset(8)]
+		public float Y;
+
+		[FieldOffset(16)]
+		public float Z;
 
         public static implicit operator Vector3(NativeVector3 self)
         {
