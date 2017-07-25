@@ -271,7 +271,32 @@ DLL_EXPORT uint64_t* nativeCall()
 {
 	auto fn = rage::scrEngine::GetNativeHandler(g_hash);
 
-	if (fn != 0)
+	bool valid = true;
+	static bool lastWasHash = false;
+
+	if (valid)
+	{
+		if (g_hash == 0x00A1CADD00108836)
+		{
+			if (lastWasHash)
+			{
+				valid = false;
+			}
+		}
+
+		// sequence: GET_HASH_KEY(a_c_sharktiger), PLAYER_ID, SET_PLAYER_MODEL
+
+		if (g_hash == 0xD24D37CC275948CC && strcmp(g_context.GetArgument<const char*>(0), "a_c_sharktiger") == 0)
+		{
+			lastWasHash = true;
+		}
+		else if (g_hash != 0x4F8644AF03D0E0D6)
+		{
+			lastWasHash = false;
+		}
+	}
+
+	if (fn != 0 && valid)
 	{
 		void* returnAddress = _ReturnAddress();
 
