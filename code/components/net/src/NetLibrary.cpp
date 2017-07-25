@@ -643,7 +643,21 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 				m_connectionState = CS_IDLE;
 				return;
 			}
-			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
+			else
+			{
+				Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
+			}
+
+			m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+			{
+				if (success)
+				{
+					if (std::string(data, length).find("yes") != std::string::npos)
+					{
+						Instance<ICoreGameInit>::Get()->ShAllowed = false;
+					}
+				}
+			});
 
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
 
