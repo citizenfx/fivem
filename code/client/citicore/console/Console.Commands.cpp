@@ -77,6 +77,9 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 
 		if (entryPair.first == entryPair.second)
 		{
+			// unlock the shared_mutex
+			lock.unlock();
+
 			// try the fallback command handler
 			if (!FallbackEvent(commandName, arguments, executionContext))
 			{
