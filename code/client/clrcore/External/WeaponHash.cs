@@ -80,18 +80,17 @@ namespace CitizenFX.Core
 		PipeBomb = 3125143736u,
 		PoolCue = 2484171525u,
 		Wrench = 419712736u,
-		PistolMk2 = 3219281620u,
-		SMGMk2 = 2024373456u,
-		CombatMGMk2 = 3686625920u,
-		AssaultRifleMk2 = 961495388u,
-		CarbineRifleMk2 = 4208062921u,
-		HeavySniperMk2 = 177293209u
-		
+		PistolMk2 = 0xBFE256D4,
+		AssaultRifleMk2 = 0x394F415C,
+		CarbineRifleMk2 = 0xFAD1F1C9,
+		CombatMGMk2 = 0xDBBD7280,
+		HeavySniperMk2 = 0xA914799,
+		SMGMk2 = 0x78A97CD0
 	}
 
 	public enum VehicleWeaponHash
 	{
-		Invalid = -1, 
+		Invalid = -1,
 		Tank = 1945616459,
 		SpaceRocket = -123497569,
 		PlaneRocket = -821520672,
