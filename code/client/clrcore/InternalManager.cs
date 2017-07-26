@@ -124,7 +124,15 @@ namespace CitizenFX.Core
 				}
 				catch
 				{
-					// nothing
+					try
+					{
+						var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".pdb")));
+						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+					}
+					catch
+					{
+						// nothing
+					}
 				}
 
 				return CreateAssemblyInternal(assemblyBytes, symbolBytes);
