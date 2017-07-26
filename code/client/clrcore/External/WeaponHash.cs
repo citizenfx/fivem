@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace CitizenFX.Core
 {
@@ -79,7 +79,14 @@ namespace CitizenFX.Core
 		MiniSMG = 3173288789u,
 		PipeBomb = 3125143736u,
 		PoolCue = 2484171525u,
-		Wrench = 419712736u
+		Wrench = 419712736u,
+		PistolMk2 = 3219281620u,
+		SMGMk2 = 2024373456u,
+		CombatMGMk2 = 3686625920u,
+		AssaultRifleMk2 = 961495388u,
+		CarbineRifleMk2 = 4208062921u,
+		HeavySniperMk2 = 177293209u
+		
 	}
 
 	public enum VehicleWeaponHash
