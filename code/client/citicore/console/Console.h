@@ -80,6 +80,11 @@ public:
 		return m_fallbackContext;
 	}
 
+	inline bool IsBufferEmpty()
+	{
+		return m_commandBuffer.empty();
+	}
+
 private:
 	Context* m_fallbackContext;
 
