@@ -32,7 +32,7 @@ Context::Context(Context* fallbackContext)
 	managers->commandManager  = std::make_unique<ConsoleCommandManager>(this);
 	managers->variableManager = std::make_unique<ConsoleVariableManager>(this);
 
-	managers->helpCommand = std::make_shared<ConsoleCommand>(managers->commandManager.get(), "help", [=]()
+	managers->helpCommand = std::make_shared<ConsoleCommand>(managers->commandManager.get(), "cmdlist", [=]()
 	{
 		std::set<std::string> commands;
 
