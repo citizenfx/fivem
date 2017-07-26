@@ -66,10 +66,16 @@ namespace CitizenFX.Core
         {
 			if (m_inTickTasks != null)
 			{
-				m_inTickTasks.Add(task);
+				lock (m_inTickTasks)
+				{
+					m_inTickTasks.Add(task);
+				}
 			}
 
-			m_runningTasks.Add(task);
+			lock (m_runningTasks)
+			{
+				m_runningTasks.Add(task);
+			}
         }
 
         [SecurityCritical]
@@ -86,19 +92,32 @@ namespace CitizenFX.Core
         [SecurityCritical]
         protected override IEnumerable<Task> GetScheduledTasks()
         {
-            return m_runningTasks;
+			lock (m_runningTasks)
+			{
+				return m_runningTasks.ToArray();
+			}
         }
 
         public override int MaximumConcurrencyLevel => 1;
 
 	    public void Tick()
         {
-            var tasks = m_runningTasks.ToArray();
+			Task[] tasks;
+
+			lock (m_runningTasks)
+			{
+				tasks = m_runningTasks.ToArray();
+			}
 
 			// ticks should be reentrant (Tick might invoke TriggerEvent, e.g.)
-			var lastInTickTasks = m_inTickTasks;
+			List<Task> lastInTickTasks;
 
-			m_inTickTasks = new List<Task>();
+			lock (m_inTickTasks)
+			{
+				lastInTickTasks = m_inTickTasks;
+
+				m_inTickTasks = new List<Task>();
+			}
 
 			do
 			{
@@ -117,11 +136,17 @@ namespace CitizenFX.Core
 					}
 				}
 
-				tasks = m_inTickTasks.ToArray();
-				m_inTickTasks.Clear();
+				lock (m_inTickTasks)
+				{
+					tasks = m_inTickTasks.ToArray();
+					m_inTickTasks.Clear();
+				}
 			} while (tasks.Length != 0);
 
-			m_inTickTasks = lastInTickTasks;
+			lock (m_inTickTasks)
+			{
+				m_inTickTasks = lastInTickTasks;
+			}
         }
 
         [SecuritySafeCritical]
