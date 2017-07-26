@@ -276,14 +276,7 @@ void TraceReal(const char* channel, const char* func, const char* file, int line
 		OutputDebugStringA(buffer.c_str());
 	}
 
-	if (!CoreIsDebuggerPresent() && !getenv("CitizenFX_ToolMode"))
-	{
-		printf("%s", buffer.c_str());
-	}
-
 	PerformFileLog(buffer.c_str());
-#else
-	printf("%s", buffer.c_str());
 #endif
 }
 
