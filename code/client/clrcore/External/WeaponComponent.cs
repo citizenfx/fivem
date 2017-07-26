@@ -20,7 +20,8 @@ namespace CitizenFX.Core
 		Grip2 = 3748215485u,
 		TorchBulb = 421673795u,
 		Rail = 2451679629u,
-		Rail2 = 497110245u
+		Rail2 = 497110245u,
+		Barrel = 2982890265u
 	}
 
 	public class WeaponComponent
@@ -160,6 +161,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.AtArSupp02:
 					case WeaponComponentHash.AtSrSupp:
 					case WeaponComponentHash.HeavySniperMk2Suppressor:
+					case WeaponComponentHash.AtPiSupp02:
 						return "WCT_SUPP";
 					case WeaponComponentHash.PistolClip01:
 					case WeaponComponentHash.CombatPistolClip01:
@@ -225,8 +227,6 @@ namespace CitizenFX.Core
 						return "WCT_CLIP2";
 					case WeaponComponentHash.AtScopeLargeFixedZoom:
 						return "WCT_SCOPE_LRG";
-					case WeaponComponentHash.AtPiSupp02:
-						return "WCT_SUPP";
 					case WeaponComponentHash.AssaultRifleVarmodLuxe:
 					case WeaponComponentHash.CarbineRifleVarmodLuxe:
 					case WeaponComponentHash.PistolVarmodLuxe:
@@ -272,6 +272,7 @@ namespace CitizenFX.Core
 						return "WCT_CLIP_BOX";
 					case WeaponComponentHash.AssaultRifleMk2ClipArmorPiercing:
 					case WeaponComponentHash.CarbineRifleMk2ClipArmorPiercing:
+					case WeaponComponentHash.CombatMGMk2ClipArmorPiercing:
 					case WeaponComponentHash.HeavySniperMk2ClipArmorPiercing:
 						return "WCT_CLIP_AP";
 					case WeaponComponentHash.PistolMk2ClipFMJ:
@@ -315,6 +316,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoDigital:
 					case WeaponComponentHash.HeavySniperMk2CamoDigital:
 					case WeaponComponentHash.SMGMk2CamoDigital:
+					case WeaponComponentHash.PistolMk2CamoSlideDigital:
 						return "WCT_CAMO_1";
 					case WeaponComponentHash.PistolMk2CamoBrushstroke:
 					case WeaponComponentHash.AssaultRifleMk2CamoBrushstroke:
@@ -322,6 +324,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoBrushstroke:
 					case WeaponComponentHash.HeavySniperMk2CamoBrushstroke:
 					case WeaponComponentHash.SMGMk2CamoBrushstroke:
+					case WeaponComponentHash.PistolMk2CamoSlideBrushstroke:
 						return "WCT_CAMO_2";
 					case WeaponComponentHash.PistolMk2CamoWoodland:
 					case WeaponComponentHash.AssaultRifleMk2CamoWoodland:
@@ -329,6 +332,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoWoodland:
 					case WeaponComponentHash.HeavySniperMk2CamoWoodland:
 					case WeaponComponentHash.SMGMk2CamoWoodland:
+					case WeaponComponentHash.PistolMk2CamoSlideWoodland:
 						return "WCT_CAMO_3";
 					case WeaponComponentHash.PistolMk2CamoSkull:
 					case WeaponComponentHash.AssaultRifleMk2CamoSkull:
@@ -336,6 +340,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoSkull:
 					case WeaponComponentHash.HeavySniperMk2CamoSkull:
 					case WeaponComponentHash.SMGMk2CamoSkull:
+					case WeaponComponentHash.PistolMk2CamoSlideSkull:
 						return "WCT_CAMO_4";
 					case WeaponComponentHash.PistolMk2CamoSessanta:
 					case WeaponComponentHash.AssaultRifleMk2CamoSessanta:
@@ -343,6 +348,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoSessanta:
 					case WeaponComponentHash.HeavySniperMk2CamoSessanta:
 					case WeaponComponentHash.SMGMk2CamoSessanta:
+					case WeaponComponentHash.PistolMk2CamoSlideSessanta:
 						return "WCT_CAMO_5";
 					case WeaponComponentHash.PistolMk2CamoPerseus:
 					case WeaponComponentHash.AssaultRifleMk2CamoPerseus:
@@ -350,6 +356,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoPerseus:
 					case WeaponComponentHash.HeavySniperMk2CamoPerseus:
 					case WeaponComponentHash.SMGMk2CamoPerseus:
+					case WeaponComponentHash.PistolMk2CamoSlidePerseus:
 						return "WCT_CAMO_6";
 					case WeaponComponentHash.PistolMk2CamoLeopard:
 					case WeaponComponentHash.AssaultRifleMk2CamoLeopard:
@@ -357,6 +364,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoLeopard:
 					case WeaponComponentHash.HeavySniperMk2CamoLeopard:
 					case WeaponComponentHash.SMGMk2CamoLeopard:
+					case WeaponComponentHash.PistolMk2CamoSlideLeopard:
 						return "WCT_CAMO_7";
 					case WeaponComponentHash.PistolMk2CamoZebra:
 					case WeaponComponentHash.AssaultRifleMk2CamoZebra:
@@ -364,6 +372,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoZebra:
 					case WeaponComponentHash.HeavySniperMk2CamoZebra:
 					case WeaponComponentHash.SMGMk2CamoZebra:
+					case WeaponComponentHash.PistolMk2CamoSlideZebra:
 						return "WCT_CAMO_8";
 					case WeaponComponentHash.PistolMk2CamoGeometric:
 					case WeaponComponentHash.AssaultRifleMk2CamoGeometric:
@@ -371,6 +380,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoGeometric:
 					case WeaponComponentHash.HeavySniperMk2CamoGeometric:
 					case WeaponComponentHash.SMGMk2CamoGeometric:
+					case WeaponComponentHash.PistolMk2CamoSlideGeometric:
 						return "WCT_CAMO_9";
 					case WeaponComponentHash.PistolMk2CamoBoom:
 					case WeaponComponentHash.AssaultRifleMk2CamoBoom:
@@ -378,6 +388,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoBoom:
 					case WeaponComponentHash.HeavySniperMk2CamoBoom:
 					case WeaponComponentHash.SMGMk2CamoBoom:
+					case WeaponComponentHash.PistolMk2CamoSlideBoom:
 						return "WCT_CAMO_10";
 					case WeaponComponentHash.PistolMk2CamoPatriotic:
 					case WeaponComponentHash.AssaultRifleMk2CamoPatriotic:
@@ -385,6 +396,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatMGMk2CamoPatriotic:
 					case WeaponComponentHash.HeavySniperMk2CamoPatriotic:
 					case WeaponComponentHash.SMGMk2CamoPatriotic:
+					case WeaponComponentHash.PistolMk2CamoSlidePatriotic:
 						return "WCT_CAMO_IND";
 					case WeaponComponentHash.AtSights:
 						return "WCT_HOLO";
@@ -407,6 +419,8 @@ namespace CitizenFX.Core
 						return "WCT_SCOPE_PI";
 					case WeaponComponentHash.PistolMk2Compensator:
 						return "WCT_COMP";
+					case WeaponComponentHash.HeavySniperMk2ScopeLarge:
+						return "WCT_SCOPE_LRG2";
 				}
 			}
 			string result = "WCT_INVALID";
@@ -830,6 +844,306 @@ namespace CitizenFX.Core
 							return ComponentAttachmentPoint.Clip;
 
 						case WeaponComponentHash.SawnoffShotgunVarmodLuxe:
+							return ComponentAttachmentPoint.GunRoot;
+
+						default:
+							return ComponentAttachmentPoint.Invalid;
+					}
+				case WeaponHash.PistolMk2:
+					switch (componentHash)
+					{
+						case WeaponComponentHash.PistolMk2ClipNormal:
+						case WeaponComponentHash.PistolMk2ClipExtended:
+						case WeaponComponentHash.PistolMk2ClipFMJ:
+						case WeaponComponentHash.PistolMk2ClipHollowpoint:
+						case WeaponComponentHash.PistolMk2ClipIncendiary:
+						case WeaponComponentHash.PistolMk2ClipTracer:
+							return ComponentAttachmentPoint.Clip;
+
+						case WeaponComponentHash.PistolMk2Scope:
+							return ComponentAttachmentPoint.Scope;
+
+						case WeaponComponentHash.PistolMk2Flash:
+							return ComponentAttachmentPoint.Scope;
+
+						case WeaponComponentHash.PistolMk2Compensator:
+						case WeaponComponentHash.AtPiSupp02:
+							return ComponentAttachmentPoint.Supp;
+
+						case WeaponComponentHash.PistolMk2CamoDigital:
+						case WeaponComponentHash.PistolMk2CamoBrushstroke:
+						case WeaponComponentHash.PistolMk2CamoWoodland:
+						case WeaponComponentHash.PistolMk2CamoSkull:
+						case WeaponComponentHash.PistolMk2CamoSessanta:
+						case WeaponComponentHash.PistolMk2CamoPerseus:
+						case WeaponComponentHash.PistolMk2CamoLeopard:
+						case WeaponComponentHash.PistolMk2CamoZebra:
+						case WeaponComponentHash.PistolMk2CamoGeometric:
+						case WeaponComponentHash.PistolMk2CamoBoom:
+						case WeaponComponentHash.PistolMk2CamoPatriotic:
+							return ComponentAttachmentPoint.GunRoot;
+
+						case WeaponComponentHash.PistolMk2CamoSlideDigital:
+						case WeaponComponentHash.PistolMk2CamoSlideBrushstroke:
+						case WeaponComponentHash.PistolMk2CamoSlideWoodland:
+						case WeaponComponentHash.PistolMk2CamoSlideSkull:
+						case WeaponComponentHash.PistolMk2CamoSlideSessanta:
+						case WeaponComponentHash.PistolMk2CamoSlidePerseus:
+						case WeaponComponentHash.PistolMk2CamoSlideLeopard:
+						case WeaponComponentHash.PistolMk2CamoSlideZebra:
+						case WeaponComponentHash.PistolMk2CamoSlideGeometric:
+						case WeaponComponentHash.PistolMk2CamoSlideBoom:
+						case WeaponComponentHash.PistolMk2CamoSlidePatriotic:
+							return ComponentAttachmentPoint.Scope2;
+
+						default:
+							return ComponentAttachmentPoint.Invalid;
+					}
+				case WeaponHash.AssaultRifleMk2:
+					switch (componentHash)
+					{
+						case WeaponComponentHash.AssaultRifleMk2ClipNormal:
+						case WeaponComponentHash.AssaultRifleMk2ClipExtended:
+						case WeaponComponentHash.AssaultRifleMk2ClipFMJ:
+						case WeaponComponentHash.AssaultRifleMk2ClipArmorPiercing:
+						case WeaponComponentHash.AssaultRifleMk2ClipIncendiary:
+						case WeaponComponentHash.AssaultRifleMk2ClipTracer:
+							return ComponentAttachmentPoint.Clip;
+
+						case WeaponComponentHash.AtArFlsh:
+							return ComponentAttachmentPoint.FlashLaser2;
+
+						case WeaponComponentHash.AtSights:
+						case WeaponComponentHash.AtScopeMacroMk2:
+						case WeaponComponentHash.AtScopeMediumMk2:
+							return ComponentAttachmentPoint.Scope2;
+
+						case WeaponComponentHash.AtArSupp02:
+						case WeaponComponentHash.AtMuzzle1:
+						case WeaponComponentHash.AtMuzzle2:
+						case WeaponComponentHash.AtMuzzle3:
+						case WeaponComponentHash.AtMuzzle4:
+						case WeaponComponentHash.AtMuzzle5:
+						case WeaponComponentHash.AtMuzzle6:
+						case WeaponComponentHash.AtMuzzle7:
+							return ComponentAttachmentPoint.Supp2;
+
+						case WeaponComponentHash.AtArAfGrip2:
+							return ComponentAttachmentPoint.Grip;
+
+						case WeaponComponentHash.AssaultRifleMk2BarrelNormal:
+						case WeaponComponentHash.AssaultRifleMk2BarrelHeavy:
+							return ComponentAttachmentPoint.Barrel;
+
+						case WeaponComponentHash.AssaultRifleMk2CamoDigital:
+						case WeaponComponentHash.AssaultRifleMk2CamoBrushstroke:
+						case WeaponComponentHash.AssaultRifleMk2CamoWoodland:
+						case WeaponComponentHash.AssaultRifleMk2CamoSkull:
+						case WeaponComponentHash.AssaultRifleMk2CamoSessanta:
+						case WeaponComponentHash.AssaultRifleMk2CamoPerseus:
+						case WeaponComponentHash.AssaultRifleMk2CamoLeopard:
+						case WeaponComponentHash.AssaultRifleMk2CamoZebra:
+						case WeaponComponentHash.AssaultRifleMk2CamoGeometric:
+						case WeaponComponentHash.AssaultRifleMk2CamoBoom:
+						case WeaponComponentHash.AssaultRifleMk2CamoPatriotic:
+							return ComponentAttachmentPoint.GunRoot;
+
+						default:
+							return ComponentAttachmentPoint.Invalid;
+					}
+
+				case WeaponHash.CarbineRifleMk2:
+					switch (componentHash)
+					{
+						case WeaponComponentHash.CarbineRifleMk2ClipNormal:
+						case WeaponComponentHash.CarbineRifleMk2ClipExtended:
+						case WeaponComponentHash.CarbineRifleMk2ClipFMJ:
+						case WeaponComponentHash.CarbineRifleMk2ClipArmorPiercing:
+						case WeaponComponentHash.CarbineRifleMk2ClipIncendiary:
+						case WeaponComponentHash.CarbineRifleMk2ClipTracer:
+							return ComponentAttachmentPoint.Clip;
+
+						case WeaponComponentHash.AtSights:
+						case WeaponComponentHash.AtScopeSmallMk2:
+						case WeaponComponentHash.AtScopeMediumMk2:
+							return ComponentAttachmentPoint.Scope2;
+
+						case WeaponComponentHash.AtMuzzle1:
+						case WeaponComponentHash.AtMuzzle2:
+						case WeaponComponentHash.AtMuzzle3:
+						case WeaponComponentHash.AtMuzzle4:
+						case WeaponComponentHash.AtMuzzle5:
+						case WeaponComponentHash.AtMuzzle6:
+						case WeaponComponentHash.AtMuzzle7:
+							return ComponentAttachmentPoint.Supp;
+
+						case WeaponComponentHash.AtArAfGrip2:
+							return ComponentAttachmentPoint.Grip2;
+
+						case WeaponComponentHash.CarbineRifleMk2BarrelNormal:
+						case WeaponComponentHash.CarbineRifleMk2BarrelHeavy:
+							return ComponentAttachmentPoint.Barrel;
+
+						case WeaponComponentHash.CarbineRifleMk2CamoDigital:
+						case WeaponComponentHash.CarbineRifleMk2CamoBrushstroke:
+						case WeaponComponentHash.CarbineRifleMk2CamoWoodland:
+						case WeaponComponentHash.CarbineRifleMk2CamoSkull:
+						case WeaponComponentHash.CarbineRifleMk2CamoSessanta:
+						case WeaponComponentHash.CarbineRifleMk2CamoPerseus:
+						case WeaponComponentHash.CarbineRifleMk2CamoLeopard:
+						case WeaponComponentHash.CarbineRifleMk2CamoZebra:
+						case WeaponComponentHash.CarbineRifleMk2CamoGeometric:
+						case WeaponComponentHash.CarbineRifleMk2CamoBoom:
+						case WeaponComponentHash.CarbineRifleMk2CamoPatriotic:
+							return ComponentAttachmentPoint.GunRoot;
+
+						default:
+							return ComponentAttachmentPoint.Invalid;
+					}
+
+				case WeaponHash.CombatMGMk2:
+					switch (componentHash)
+					{
+						case WeaponComponentHash.CombatMGMk2ClipNormal:
+						case WeaponComponentHash.CombatMGMk2ClipExtended:
+						case WeaponComponentHash.CombatMGMk2ClipFMJ:
+						case WeaponComponentHash.CombatMGMk2ClipArmorPiercing:
+						case WeaponComponentHash.CombatMGMk2ClipIncendiary:
+						case WeaponComponentHash.CombatMGMk2ClipTracer:
+							return ComponentAttachmentPoint.Clip;
+
+						case WeaponComponentHash.AtArFlsh:
+							return ComponentAttachmentPoint.FlashLaser;
+
+						case WeaponComponentHash.AtSights:
+						case WeaponComponentHash.AtScopeMacroMk2:
+						case WeaponComponentHash.AtScopeMediumMk2:
+							return ComponentAttachmentPoint.Scope2;
+
+						case WeaponComponentHash.AtArSupp:
+						case WeaponComponentHash.AtMuzzle1:
+						case WeaponComponentHash.AtMuzzle2:
+						case WeaponComponentHash.AtMuzzle3:
+						case WeaponComponentHash.AtMuzzle4:
+						case WeaponComponentHash.AtMuzzle5:
+						case WeaponComponentHash.AtMuzzle6:
+						case WeaponComponentHash.AtMuzzle7:
+							return ComponentAttachmentPoint.Supp2;
+
+						case WeaponComponentHash.AtArAfGrip2:
+							return ComponentAttachmentPoint.Grip2;
+
+						case WeaponComponentHash.CombatMGMk2BarrelNormal:
+						case WeaponComponentHash.CombatMGMk2BarrelHeavy:
+							return ComponentAttachmentPoint.Barrel;
+
+						case WeaponComponentHash.CombatMGMk2CamoDigital:
+						case WeaponComponentHash.CombatMGMk2CamoBrushstroke:
+						case WeaponComponentHash.CombatMGMk2CamoWoodland:
+						case WeaponComponentHash.CombatMGMk2CamoSkull:
+						case WeaponComponentHash.CombatMGMk2CamoSessanta:
+						case WeaponComponentHash.CombatMGMk2CamoPerseus:
+						case WeaponComponentHash.CombatMGMk2CamoLeopard:
+						case WeaponComponentHash.CombatMGMk2CamoZebra:
+						case WeaponComponentHash.CombatMGMk2CamoGeometric:
+						case WeaponComponentHash.CombatMGMk2CamoBoom:
+						case WeaponComponentHash.CombatMGMk2CamoPatriotic:
+							return ComponentAttachmentPoint.GunRoot;
+
+						default:
+							return ComponentAttachmentPoint.Invalid;
+					}
+
+				case WeaponHash.HeavySniperMk2:
+					switch (componentHash)
+					{
+						case WeaponComponentHash.HeavySniperMk2ClipNormal:
+						case WeaponComponentHash.HeavySniperMk2ClipExtended:
+						case WeaponComponentHash.HeavySniperMk2ClipFMJ:
+						case WeaponComponentHash.HeavySniperMk2ClipArmorPiercing:
+						case WeaponComponentHash.HeavySniperMk2ClipIncendiary:
+						case WeaponComponentHash.HeavySniperMk2ClipExplosive:
+							return ComponentAttachmentPoint.Clip;
+
+						case WeaponComponentHash.HeavySniperMk2ScopeLarge:
+						case WeaponComponentHash.AtScopeMax:
+						case WeaponComponentHash.HeavySniperMk2ScopeNightvision:
+						case WeaponComponentHash.HeavySniperMk2ScopeThermal:
+							return ComponentAttachmentPoint.Scope;
+
+						case WeaponComponentHash.HeavySniperMk2Suppressor:
+						case WeaponComponentHash.HeavySniperMk2Muzzle8:
+						case WeaponComponentHash.HeavySniperMk2Muzzle9:
+							return ComponentAttachmentPoint.Supp;
+
+						case WeaponComponentHash.HeavySniperMk2BarrelNormal:
+						case WeaponComponentHash.HeavySniperMk2BarrelHeavy:
+							return ComponentAttachmentPoint.Barrel;
+
+						case WeaponComponentHash.HeavySniperMk2CamoDigital:
+						case WeaponComponentHash.HeavySniperMk2CamoBrushstroke:
+						case WeaponComponentHash.HeavySniperMk2CamoWoodland:
+						case WeaponComponentHash.HeavySniperMk2CamoSkull:
+						case WeaponComponentHash.HeavySniperMk2CamoSessanta:
+						case WeaponComponentHash.HeavySniperMk2CamoPerseus:
+						case WeaponComponentHash.HeavySniperMk2CamoLeopard:
+						case WeaponComponentHash.HeavySniperMk2CamoZebra:
+						case WeaponComponentHash.HeavySniperMk2CamoGeometric:
+						case WeaponComponentHash.HeavySniperMk2CamoBoom:
+						case WeaponComponentHash.HeavySniperMk2CamoPatriotic:
+							return ComponentAttachmentPoint.GunRoot;
+
+						default:
+							return ComponentAttachmentPoint.Invalid;
+					}
+
+				case WeaponHash.SMGMk2:
+					switch (componentHash)
+					{
+						case WeaponComponentHash.SMGMk2ClipNormal:
+						case WeaponComponentHash.SMGMk2ClipExtended:
+						case WeaponComponentHash.SMGMk2ClipFMJ:
+						case WeaponComponentHash.SMGMk2ClipHollowpoint:
+						case WeaponComponentHash.SMGMk2ClipIncendiary:
+						case WeaponComponentHash.SMGMk2ClipTracer:
+							return ComponentAttachmentPoint.Clip;
+
+						case WeaponComponentHash.AtArFlsh:
+							return ComponentAttachmentPoint.FlashLaser2;
+
+						case WeaponComponentHash.SMGMk2Sights:
+						case WeaponComponentHash.SMGMk2ScopeMacro:
+						case WeaponComponentHash.SMGMk2ScopeSmall:
+							return ComponentAttachmentPoint.Scope;
+
+						case WeaponComponentHash.AtPiSupp:
+						case WeaponComponentHash.AtMuzzle1:
+						case WeaponComponentHash.AtMuzzle2:
+						case WeaponComponentHash.AtMuzzle3:
+						case WeaponComponentHash.AtMuzzle4:
+						case WeaponComponentHash.AtMuzzle5:
+						case WeaponComponentHash.AtMuzzle6:
+						case WeaponComponentHash.AtMuzzle7:
+							return ComponentAttachmentPoint.Supp2;
+
+						case WeaponComponentHash.AtArAfGrip2:
+							return ComponentAttachmentPoint.Grip2;
+
+						case WeaponComponentHash.SMGMk2BarrelNormal:
+						case WeaponComponentHash.SMGMk2BarrelHeavy:
+							return ComponentAttachmentPoint.Barrel;
+
+						case WeaponComponentHash.SMGMk2CamoDigital:
+						case WeaponComponentHash.SMGMk2CamoBrushstroke:
+						case WeaponComponentHash.SMGMk2CamoWoodland:
+						case WeaponComponentHash.SMGMk2CamoSkull:
+						case WeaponComponentHash.SMGMk2CamoSessanta:
+						case WeaponComponentHash.SMGMk2CamoPerseus:
+						case WeaponComponentHash.SMGMk2CamoLeopard:
+						case WeaponComponentHash.SMGMk2CamoZebra:
+						case WeaponComponentHash.SMGMk2CamoGeometric:
+						case WeaponComponentHash.SMGMk2CamoBoom:
+						case WeaponComponentHash.SMGMk2CamoPatriotic:
 							return ComponentAttachmentPoint.GunRoot;
 
 						default:

@@ -135,6 +135,7 @@ namespace CitizenFX.Core
 		VintagePistolClip01 = 1168357051u,
 		VintagePistolClip02 = 867832552u,
 
+		//mpgunrunning
 		#region Common
 		AtSights = 0x420FD713,
 		AtScopeSmallMk2 = 0x3F3C8181,
@@ -238,7 +239,7 @@ namespace CitizenFX.Core
 		#region CombatMGMk2
 		CombatMGMk2ClipNormal = 0x492B257C,
 		CombatMGMk2ClipExtended = 0x17DF42E9,
-		CombatMGMk2ClipAmorPiercing = 0x29882423,
+		CombatMGMk2ClipArmorPiercing = 0x29882423,
 		CombatMGMk2ClipFMJ = 0x57EF1CC8,
 		CombatMGMk2ClipIncendiary = 0xC326BDBA,
 		CombatMGMk2ClipTracer = 0xF6649745,
@@ -267,8 +268,7 @@ namespace CitizenFX.Core
 		HeavySniperMk2ClipFMJ = 0x3BE948F6,
 		HeavySniperMk2ClipIncendiary = 0xEC0F617,
 
-		HeavySniperMk2ScopeLargeMk2 = 0x82C10383,
-		HeavySniperMk2ScopeMax = 0xBC54DA77,
+		HeavySniperMk2ScopeLarge = 0x82C10383,
 		HeavySniperMk2ScopeNightvision = 0xB68010B0,
 		HeavySniperMk2ScopeThermal = 0x2E43DA41,
 
@@ -508,8 +508,37 @@ namespace CitizenFX.Core
 			}
 			return _invalidComponent;
 		}
+		public WeaponComponent GetMk2CamoComponent(int index)
+		{
+			foreach (var component in this)
+			{
+				if (component.AttachmentPoint == ComponentAttachmentPoint.GunRoot)
+				{
+					if (index-- == 0)
+					{
+						return component;
+					}
+				}
+			}
+			return _invalidComponent;
+		}
 
-        [SecuritySafeCritical]
+		public WeaponComponent GetMk2BarrelComponent(int index)
+		{
+			foreach (var component in this)
+			{
+				if (component.AttachmentPoint == ComponentAttachmentPoint.Barrel)
+				{
+					if (index-- == 0)
+					{
+						return component;
+					}
+				}
+			}
+			return _invalidComponent;
+		}
+
+		[SecuritySafeCritical]
         public static WeaponComponentHash[] GetComponentsFromHash(WeaponHash hash)
         {
             return _GetComponentsFromHash(hash);
@@ -785,7 +814,7 @@ namespace CitizenFX.Core
 						WeaponComponentHash.PistolMk2ClipTracer,
 						WeaponComponentHash.PistolMk2Scope,
 						WeaponComponentHash.PistolMk2Flash,
-						WeaponComponentHash.PistolMk2Suppressor,
+						WeaponComponentHash.AtPiSupp02,
 						WeaponComponentHash.PistolMk2Compensator,
 						WeaponComponentHash.PistolMk2CamoDigital,
 						WeaponComponentHash.PistolMk2CamoBrushstroke,
@@ -859,7 +888,7 @@ namespace CitizenFX.Core
 						WeaponComponentHash.AtScopeMacroMk2,
 						WeaponComponentHash.AtScopeMediumMk2,
 						WeaponComponentHash.AtArAfGrip2,
-						WeaponComponentHash.CarbineRifleMk2BarrelLight,
+						WeaponComponentHash.CarbineRifleMk2BarrelNormal,
 						WeaponComponentHash.CarbineRifleMk2BarrelHeavy,
 						WeaponComponentHash.AtArSupp,
 						WeaponComponentHash.AtMuzzle1,
@@ -886,7 +915,7 @@ namespace CitizenFX.Core
 					{
 						WeaponComponentHash.CombatMGMk2ClipNormal,
 						WeaponComponentHash.CombatMGMk2ClipExtended,
-						WeaponComponentHash.CombatMGMk2ClipAmorPiercing,
+						WeaponComponentHash.CombatMGMk2ClipArmorPiercing,
 						WeaponComponentHash.CombatMGMk2ClipFMJ,
 						WeaponComponentHash.CombatMGMk2ClipIncendiary,
 						WeaponComponentHash.CombatMGMk2ClipTracer,
@@ -924,8 +953,8 @@ namespace CitizenFX.Core
 						WeaponComponentHash.HeavySniperMk2ClipExplosive,
 						WeaponComponentHash.HeavySniperMk2ClipFMJ,
 						WeaponComponentHash.HeavySniperMk2ClipIncendiary,
-						WeaponComponentHash.HeavySniperMk2ScopeLargeMk2,
-						WeaponComponentHash.HeavySniperMk2ScopeMax,
+						WeaponComponentHash.HeavySniperMk2ScopeLarge,
+						WeaponComponentHash.AtScopeMax,
 						WeaponComponentHash.HeavySniperMk2ScopeNightvision,
 						WeaponComponentHash.HeavySniperMk2ScopeThermal,
 						WeaponComponentHash.HeavySniperMk2Suppressor,
