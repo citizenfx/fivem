@@ -132,7 +132,10 @@ namespace CitizenFX.Core
 
 					if (task.IsCompleted || task.IsFaulted || task.IsCanceled)
 					{
-						m_runningTasks.Remove(task);
+						lock (m_runningTasks)
+						{
+							m_runningTasks.Remove(task);
+						}
 					}
 				}
 

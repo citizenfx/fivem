@@ -11,6 +11,8 @@
 
 #include <json.hpp>
 
+#include <tbb/concurrent_vector.h>
+
 using json = nlohmann::json;
 
 static InitFunction initFunction([]()
@@ -58,6 +60,10 @@ static InitFunction initFunction([]()
 				int token = reqToken.fetch_add(1);
 
 				// callback to enqueue events
+				auto future = std::make_shared<std::unique_ptr<std::future<void>>>();
+
+				static tbb::concurrent_vector<decltype(future)> futureCleanup;
+
 				auto cb = [=](cpr::Response r)
 				{
 					if (r.error)
@@ -68,36 +74,42 @@ static InitFunction initFunction([]()
 					{
 						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, r.status_code, r.text, r.header);
 					}
+
+					futureCleanup.push_back(future);
 				};
+
+				// remove completed futures
+				// merely by the virtue of being in this list they're guaranteed-completed, so can be safely removed without blocking
+				futureCleanup.clear();
 
 				// invoke cpr::*Callback
 				if (method == "GET")
 				{
-					cpr::GetCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::GetCallback(cb, url, body, headers));
 				}
 				else if (method == "POST")
 				{
-					cpr::PostCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::PostCallback(cb, url, body, headers));
 				}
 				else if (method == "HEAD")
 				{
-					cpr::HeadCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::HeadCallback(cb, url, body, headers));
 				}
 				else if (method == "OPTIONS")
 				{
-					cpr::OptionsCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::OptionsCallback(cb, url, body, headers));
 				}
 				else if (method == "PUT")
 				{
-					cpr::PutCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::PutCallback(cb, url, body, headers));
 				}
 				else if (method == "DELETE")
 				{
-					cpr::DeleteCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::DeleteCallback(cb, url, body, headers));
 				}
 				else if (method == "PATCH")
 				{
-					cpr::PatchCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::PatchCallback(cb, url, body, headers));
 				}
 				else
 				{
