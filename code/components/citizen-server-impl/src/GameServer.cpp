@@ -361,6 +361,13 @@ namespace fx
 			m_nextHeartbeatTime = msec() + (180 * 1000);
 		}
 
+		{
+			auto ctx = GetInstance()->GetComponent<console::Context>();
+
+			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+			ctx->ExecuteBuffer();
+		}
+
 		OnTick();
 	}
 
