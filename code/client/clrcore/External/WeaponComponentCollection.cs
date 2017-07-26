@@ -161,7 +161,6 @@ namespace CitizenFX.Core
 		PistolMk2Scope = 0x8ED4BB70,
 		PistolMk2Flash = 0x43FD595B,
 
-		PistolMk2Suppressor = 0x65EA7EBB,
 		PistolMk2Compensator = 0x21E34793,
 
 		PistolMk2CamoDigital = 0x5C6C749C,
@@ -213,14 +212,14 @@ namespace CitizenFX.Core
 		#endregion
 
 		#region CarbineRifleMk2
-		CarbineRifleMk2Clip01 = 0x4C7A391E,
-		CarbineRifleMk2Clip02 = 0x5DD5DBD5,
+		CarbineRifleMk2ClipNormal = 0x4C7A391E,
+		CarbineRifleMk2ClipExtended = 0x5DD5DBD5,
 		CarbineRifleMk2ClipArmorPiercing = 0x255D5D57,
 		CarbineRifleMk2ClipFMJ = 0x44032F11,
 		CarbineRifleMk2ClipIncendiary = 0x3D25C2A7,
 		CarbineRifleMk2ClipTracer = 0x1757F566,
 
-		CarbineRifleMk2BarrelLight = 0x833637FF,
+		CarbineRifleMk2BarrelNormal = 0x833637FF,
 		CarbineRifleMk2BarrelHeavy = 0x8B3C480B,
 
 		CarbineRifleMk2CamoDigital = 0x4BDD6F16,
@@ -850,8 +849,8 @@ namespace CitizenFX.Core
 				case WeaponHash.CarbineRifleMk2:
 					return new WeaponComponentHash[]
 					{
-						WeaponComponentHash.CarbineRifleMk2Clip01,
-						WeaponComponentHash.CarbineRifleMk2Clip02,
+						WeaponComponentHash.CarbineRifleMk2ClipNormal,
+						WeaponComponentHash.CarbineRifleMk2ClipExtended,
 						WeaponComponentHash.CarbineRifleMk2ClipArmorPiercing,
 						WeaponComponentHash.CarbineRifleMk2ClipFMJ,
 						WeaponComponentHash.CarbineRifleMk2ClipIncendiary,

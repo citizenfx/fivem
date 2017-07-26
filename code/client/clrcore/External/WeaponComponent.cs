@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using CitizenFX.Core.Native;
 using System.Security;
 
@@ -135,9 +135,11 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.AtRailCover01:
 						return "WCT_RAIL";
 					case WeaponComponentHash.AtArAfGrip:
+					case WeaponComponentHash.AtArAfGrip2:
 						return "WCT_GRIP";
 					case WeaponComponentHash.AtPiFlsh:
 					case WeaponComponentHash.AtArFlsh:
+					case WeaponComponentHash.PistolMk2Flash:
 						return "WCT_FLASH";
 					case WeaponComponentHash.AtScopeMacro:
 						return "WCT_SCOPE_MAC";
@@ -157,6 +159,7 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.AtArSupp:
 					case WeaponComponentHash.AtArSupp02:
 					case WeaponComponentHash.AtSrSupp:
+					case WeaponComponentHash.HeavySniperMk2Suppressor:
 						return "WCT_SUPP";
 					case WeaponComponentHash.PistolClip01:
 					case WeaponComponentHash.CombatPistolClip01:
@@ -183,6 +186,12 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.CombatPDWClip01:
 					case WeaponComponentHash.MarksmanPistolClip01:
 					case WeaponComponentHash.MachinePistolClip01:
+					case WeaponComponentHash.PistolMk2ClipNormal:
+					case WeaponComponentHash.AssaultRifleMk2ClipNormal:
+					case WeaponComponentHash.CarbineRifleMk2ClipNormal:
+					case WeaponComponentHash.CombatMGMk2ClipNormal:
+					case WeaponComponentHash.HeavySniperMk2ClipNormal:
+					case WeaponComponentHash.SMGMk2ClipNormal:
 						return "WCT_CLIP1";
 					case WeaponComponentHash.PistolClip02:
 					case WeaponComponentHash.CombatPistolClip02:
@@ -207,6 +216,12 @@ namespace CitizenFX.Core
 					case WeaponComponentHash.MarksmanRifleClip02:
 					case WeaponComponentHash.CombatPDWClip02:
 					case WeaponComponentHash.MachinePistolClip02:
+					case WeaponComponentHash.PistolMk2ClipExtended:
+					case WeaponComponentHash.AssaultRifleMk2ClipExtended:
+					case WeaponComponentHash.CarbineRifleMk2ClipExtended:
+					case WeaponComponentHash.CombatMGMk2ClipExtended:
+					case WeaponComponentHash.HeavySniperMk2ClipExtended:
+					case WeaponComponentHash.SMGMk2ClipExtended:
 						return "WCT_CLIP2";
 					case WeaponComponentHash.AtScopeLargeFixedZoom:
 						return "WCT_SCOPE_LRG";
@@ -255,6 +270,143 @@ namespace CitizenFX.Core
 						return "WCT_CLIP_DRM";
 					case WeaponComponentHash.CarbineRifleClip03:
 						return "WCT_CLIP_BOX";
+					case WeaponComponentHash.AssaultRifleMk2ClipArmorPiercing:
+					case WeaponComponentHash.CarbineRifleMk2ClipArmorPiercing:
+					case WeaponComponentHash.HeavySniperMk2ClipArmorPiercing:
+						return "WCT_CLIP_AP";
+					case WeaponComponentHash.PistolMk2ClipFMJ:
+					case WeaponComponentHash.AssaultRifleMk2ClipFMJ:
+					case WeaponComponentHash.CarbineRifleMk2ClipFMJ:
+					case WeaponComponentHash.CombatMGMk2ClipFMJ:
+					case WeaponComponentHash.HeavySniperMk2ClipFMJ:
+					case WeaponComponentHash.SMGMk2ClipFMJ:
+						return "WCT_CLIP_FMJ";
+					case WeaponComponentHash.PistolMk2ClipIncendiary:
+					case WeaponComponentHash.AssaultRifleMk2ClipIncendiary:
+					case WeaponComponentHash.CarbineRifleMk2ClipIncendiary:
+					case WeaponComponentHash.CombatMGMk2ClipIncendiary:
+					case WeaponComponentHash.HeavySniperMk2ClipIncendiary:
+					case WeaponComponentHash.SMGMk2ClipIncendiary:
+						return "WCT_CLIP_INC";
+					case WeaponComponentHash.PistolMk2ClipTracer:
+					case WeaponComponentHash.AssaultRifleMk2ClipTracer:
+					case WeaponComponentHash.CarbineRifleMk2ClipTracer:
+					case WeaponComponentHash.CombatMGMk2ClipTracer:
+					case WeaponComponentHash.SMGMk2ClipTracer:
+						return "WCT_CLIP_TR";
+					case WeaponComponentHash.HeavySniperMk2ClipExplosive:
+						return "WCT_CLIP_EX";
+					case WeaponComponentHash.PistolMk2ClipHollowpoint:
+					case WeaponComponentHash.SMGMk2ClipHollowpoint:
+						return "WCT_CLIP_HP";
+					case WeaponComponentHash.AssaultRifleMk2BarrelNormal:
+					case WeaponComponentHash.CarbineRifleMk2BarrelNormal:
+					case WeaponComponentHash.CombatMGMk2BarrelNormal:
+					case WeaponComponentHash.SMGMk2BarrelNormal:
+						return "WCT_BARR";
+					case WeaponComponentHash.AssaultRifleMk2BarrelHeavy:
+					case WeaponComponentHash.CarbineRifleMk2BarrelHeavy:
+					case WeaponComponentHash.CombatMGMk2BarrelHeavy:
+					case WeaponComponentHash.SMGMk2BarrelHeavy:
+						return "WCT_BARR2";
+					case WeaponComponentHash.PistolMk2CamoDigital:
+					case WeaponComponentHash.AssaultRifleMk2CamoDigital:
+					case WeaponComponentHash.CarbineRifleMk2CamoDigital:
+					case WeaponComponentHash.CombatMGMk2CamoDigital:
+					case WeaponComponentHash.HeavySniperMk2CamoDigital:
+					case WeaponComponentHash.SMGMk2CamoDigital:
+						return "WCT_CAMO_1";
+					case WeaponComponentHash.PistolMk2CamoBrushstroke:
+					case WeaponComponentHash.AssaultRifleMk2CamoBrushstroke:
+					case WeaponComponentHash.CarbineRifleMk2CamoBrushstroke:
+					case WeaponComponentHash.CombatMGMk2CamoBrushstroke:
+					case WeaponComponentHash.HeavySniperMk2CamoBrushstroke:
+					case WeaponComponentHash.SMGMk2CamoBrushstroke:
+						return "WCT_CAMO_2";
+					case WeaponComponentHash.PistolMk2CamoWoodland:
+					case WeaponComponentHash.AssaultRifleMk2CamoWoodland:
+					case WeaponComponentHash.CarbineRifleMk2CamoWoodland:
+					case WeaponComponentHash.CombatMGMk2CamoWoodland:
+					case WeaponComponentHash.HeavySniperMk2CamoWoodland:
+					case WeaponComponentHash.SMGMk2CamoWoodland:
+						return "WCT_CAMO_3";
+					case WeaponComponentHash.PistolMk2CamoSkull:
+					case WeaponComponentHash.AssaultRifleMk2CamoSkull:
+					case WeaponComponentHash.CarbineRifleMk2CamoSkull:
+					case WeaponComponentHash.CombatMGMk2CamoSkull:
+					case WeaponComponentHash.HeavySniperMk2CamoSkull:
+					case WeaponComponentHash.SMGMk2CamoSkull:
+						return "WCT_CAMO_4";
+					case WeaponComponentHash.PistolMk2CamoSessanta:
+					case WeaponComponentHash.AssaultRifleMk2CamoSessanta:
+					case WeaponComponentHash.CarbineRifleMk2CamoSessanta:
+					case WeaponComponentHash.CombatMGMk2CamoSessanta:
+					case WeaponComponentHash.HeavySniperMk2CamoSessanta:
+					case WeaponComponentHash.SMGMk2CamoSessanta:
+						return "WCT_CAMO_5";
+					case WeaponComponentHash.PistolMk2CamoPerseus:
+					case WeaponComponentHash.AssaultRifleMk2CamoPerseus:
+					case WeaponComponentHash.CarbineRifleMk2CamoPerseus:
+					case WeaponComponentHash.CombatMGMk2CamoPerseus:
+					case WeaponComponentHash.HeavySniperMk2CamoPerseus:
+					case WeaponComponentHash.SMGMk2CamoPerseus:
+						return "WCT_CAMO_6";
+					case WeaponComponentHash.PistolMk2CamoLeopard:
+					case WeaponComponentHash.AssaultRifleMk2CamoLeopard:
+					case WeaponComponentHash.CarbineRifleMk2CamoLeopard:
+					case WeaponComponentHash.CombatMGMk2CamoLeopard:
+					case WeaponComponentHash.HeavySniperMk2CamoLeopard:
+					case WeaponComponentHash.SMGMk2CamoLeopard:
+						return "WCT_CAMO_7";
+					case WeaponComponentHash.PistolMk2CamoZebra:
+					case WeaponComponentHash.AssaultRifleMk2CamoZebra:
+					case WeaponComponentHash.CarbineRifleMk2CamoZebra:
+					case WeaponComponentHash.CombatMGMk2CamoZebra:
+					case WeaponComponentHash.HeavySniperMk2CamoZebra:
+					case WeaponComponentHash.SMGMk2CamoZebra:
+						return "WCT_CAMO_8";
+					case WeaponComponentHash.PistolMk2CamoGeometric:
+					case WeaponComponentHash.AssaultRifleMk2CamoGeometric:
+					case WeaponComponentHash.CarbineRifleMk2CamoGeometric:
+					case WeaponComponentHash.CombatMGMk2CamoGeometric:
+					case WeaponComponentHash.HeavySniperMk2CamoGeometric:
+					case WeaponComponentHash.SMGMk2CamoGeometric:
+						return "WCT_CAMO_9";
+					case WeaponComponentHash.PistolMk2CamoBoom:
+					case WeaponComponentHash.AssaultRifleMk2CamoBoom:
+					case WeaponComponentHash.CarbineRifleMk2CamoBoom:
+					case WeaponComponentHash.CombatMGMk2CamoBoom:
+					case WeaponComponentHash.HeavySniperMk2CamoBoom:
+					case WeaponComponentHash.SMGMk2CamoBoom:
+						return "WCT_CAMO_10";
+					case WeaponComponentHash.PistolMk2CamoPatriotic:
+					case WeaponComponentHash.AssaultRifleMk2CamoPatriotic:
+					case WeaponComponentHash.CarbineRifleMk2CamoPatriotic:
+					case WeaponComponentHash.CombatMGMk2CamoPatriotic:
+					case WeaponComponentHash.HeavySniperMk2CamoPatriotic:
+					case WeaponComponentHash.SMGMk2CamoPatriotic:
+						return "WCT_CAMO_IND";
+					case WeaponComponentHash.AtSights:
+						return "WCT_HOLO";
+					case WeaponComponentHash.AtScopeSmallMk2:
+						return "WCT_SCOPE_SML2";
+					case WeaponComponentHash.AtScopeMacroMk2:
+						return "WCT_SCOPE_MAC2";
+					case WeaponComponentHash.AtScopeMediumMk2:
+						return "WCT_SCOPE_MED2";
+					case WeaponComponentHash.AtMuzzle1:
+					case WeaponComponentHash.AtMuzzle2:
+					case WeaponComponentHash.AtMuzzle3:
+					case WeaponComponentHash.AtMuzzle4:
+					case WeaponComponentHash.AtMuzzle5:
+					case WeaponComponentHash.AtMuzzle7:
+					case WeaponComponentHash.HeavySniperMk2Muzzle8:
+					case WeaponComponentHash.HeavySniperMk2Muzzle9:
+						return "WCT_MUZZ";
+					case WeaponComponentHash.PistolMk2Scope:
+						return "WCT_SCOPE_PI";
+					case WeaponComponentHash.PistolMk2Compensator:
+						return "WCT_COMP";
 				}
 			}
 			string result = "WCT_INVALID";

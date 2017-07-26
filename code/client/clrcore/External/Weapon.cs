@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
@@ -353,6 +353,19 @@ namespace CitizenFX.Core
 					return "WT_SWBLADE";
 				case WeaponHash.Revolver:
 					return "WT_REVOLVER";
+				//mpgunrunning
+				case WeaponHash.PistolMk2:
+					return "WT_PIST2";
+				case WeaponHash.AssaultRifleMk2:
+					return "WT_RIFLE_ASL2";
+				case WeaponHash.CarbineRifleMk2:
+					return "WT_RIFLE_CBN2";
+				case WeaponHash.CombatMGMk2:
+					return "WT_MG_CBT2";
+				case WeaponHash.HeavySniperMk2:
+					return "WT_SNIP_HVY2";
+				case WeaponHash.SMGMk2:
+					return "WT_SMG2";
 			}
 			DlcWeaponData data;
 			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)

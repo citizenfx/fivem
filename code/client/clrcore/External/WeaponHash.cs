@@ -80,6 +80,7 @@ namespace CitizenFX.Core
 		PipeBomb = 3125143736u,
 		PoolCue = 2484171525u,
 		Wrench = 419712736u,
+		//mpgunrunning
 		PistolMk2 = 0xBFE256D4,
 		AssaultRifleMk2 = 0x394F415C,
 		CarbineRifleMk2 = 0xFAD1F1C9,
