@@ -45,7 +45,8 @@ static InitFunction initFunction([]()
 					// null result?
 					if (result == nullptr)
 					{
-						continue;
+						std::exit(0);
+						break;
 					}
 
 					// make a string and free
