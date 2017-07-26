@@ -34,3 +34,4 @@ if os.get() == 'windows' then
 end
 
 vendor_component 'pplx'
+vendor_component 'linenoise'
