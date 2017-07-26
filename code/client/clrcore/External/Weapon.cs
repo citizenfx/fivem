@@ -5,14 +5,46 @@ namespace CitizenFX.Core
 {
 	public enum WeaponTint
 	{
-		Normal,
-		Green,
-		Gold,
-		Pink,
-		Army,
-		LSPD,
-		Orange,
-		Platinum
+		Mk2ClassicBlack,
+		Mk2ClassicGray,
+		Mk2ClassicTwoTone,
+		Mk2ClassicWhite,
+		Mk2ClassicBeige,
+		Mk2ClassicGreen,
+		Mk2ClassicBlue,
+		Mk2ClassicEarth,
+		Mk2ClassicBrownAndBlack,
+		Mk2RedContrast,
+		Mk2BlueContrast,
+		Mk2YellowContrast,
+		Mk2OrangeContrast,
+		Mk2BoldPink,
+		Mk2BoldPurpleAndYellow,
+		Mk2BoldOrange,
+		Mk2BoldGreenAndPurple,
+		Mk2BoldRedFeatures,
+		Mk2BoldGreenFeatures,
+		Mk2BoldCyanFeatures,
+		Mk2BoldYellowFeatures,
+		Mk2BoldRedAndWhite,
+		Mk2BoldBlueAndWhite,
+		Mk2MetallicGold,
+		Mk2MetallicPlatinum,
+		Mk2MetallicGrayAndLilac,
+		Mk2MetallicPurpleAndLime,
+		Mk2MetallicRed,
+		Mk2MetallicGreen,
+		Mk2MetallicBlue,
+		Mk2MetallicWhiteAndAqua,
+		Mk2MetallicRedAndYellow,
+		Normal = 0,
+		Green = 1,
+		Gold = 2,
+		Pink = 3,
+		Army = 4,
+		LSPD = 5,
+		Orange = 6,
+		Platinum = 7,
 	}
 	public enum WeaponGroup : uint
 	{
@@ -248,6 +280,25 @@ namespace CitizenFX.Core
 			get
 			{
 				return Function.Call<bool>(Native.Hash.CAN_USE_WEAPON_ON_PARACHUTE, Hash);
+			}
+		}
+
+		public bool IsMk2
+		{
+			get
+			{
+				switch (Hash)
+				{
+					case WeaponHash.PistolMk2:
+					case WeaponHash.AssaultRifleMk2:
+					case WeaponHash.CarbineRifleMk2:
+					case WeaponHash.CombatMGMk2:
+					case WeaponHash.HeavySniperMk2:
+					case WeaponHash.SMGMk2:
+						return true;
+					default:
+						return false;
+				}
 			}
 		}
 
