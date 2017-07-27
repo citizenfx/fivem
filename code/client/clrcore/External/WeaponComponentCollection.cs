@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using CitizenFX.Core.Native;
@@ -134,7 +134,193 @@ namespace CitizenFX.Core
 		SwitchbladeVarmodVar2 = 3885209186u,
 		VintagePistolClip01 = 1168357051u,
 		VintagePistolClip02 = 867832552u,
-		Invalid = 4294967295u
+
+		//mpgunrunning
+		#region Common
+		AtSights = 0x420FD713,
+		AtScopeSmallMk2 = 0x3F3C8181,
+		AtScopeMacroMk2 = 0x49B2945,
+		AtScopeMediumMk2 = 0xC66B6542,
+		AtMuzzle1 = 0xB99402D4,
+		AtMuzzle2 = 0xC867A07B,
+		AtMuzzle3 = 0xDE11CBCF,
+		AtMuzzle4 = 0xEC9068CC,
+		AtMuzzle5 = 0x2E7957A,
+		AtMuzzle6 = 0x347EF8AC,
+		AtMuzzle7 = 0x4DB62ABE,
+		AtArAfGrip2 = 0x9D65907A,
+		#endregion
+
+		#region PistolMk2
+		PistolMk2ClipNormal = 0x94F42D62,
+		PistolMk2ClipExtended = 0x5ED6C128,
+		PistolMk2ClipFMJ = 0x4F37DF2A,
+		PistolMk2ClipHollowpoint = 0x85FEA109,
+		PistolMk2ClipIncendiary = 0x2BBD7A3A,
+		PistolMk2ClipTracer = 0x25CAAEAF,
+
+		PistolMk2Scope = 0x8ED4BB70,
+		PistolMk2Flash = 0x43FD595B,
+
+		PistolMk2Compensator = 0x21E34793,
+
+		PistolMk2CamoDigital = 0x5C6C749C,
+		PistolMk2CamoBrushstroke = 0x15F7A390,
+		PistolMk2CamoWoodland = 0x968E24DB,
+		PistolMk2CamoSkull = 0x17BFA99,
+		PistolMk2CamoSessanta = 0xF2685C72,
+		PistolMk2CamoPerseus = 0xDD2231E6,
+		PistolMk2CamoLeopard = 0xBB43EE76,
+		PistolMk2CamoZebra = 0x4D901310,
+		PistolMk2CamoGeometric = 0x5F31B653,
+		PistolMk2CamoBoom = 0x697E19A0,
+		PistolMk2CamoPatriotic = 0x930CB951,
+		PistolMk2CamoSlideDigital = 0xB4FC92B0,
+		PistolMk2CamoSlideBrushstroke = 0x1A1F1260,
+		PistolMk2CamoSlideWoodland = 0xE4E00B70,
+		PistolMk2CamoSlideSkull = 0x2C298B2B,
+		PistolMk2CamoSlideSessanta = 0xDFB79725,
+		PistolMk2CamoSlidePerseus = 0x6BD7228C,
+		PistolMk2CamoSlideLeopard = 0x9DDBCF8C,
+		PistolMk2CamoSlideZebra = 0xB319A52C,
+		PistolMk2CamoSlideGeometric = 0xC6836E12,
+		PistolMk2CamoSlideBoom = 0x43B1B173,
+		PistolMk2CamoSlidePatriotic = 0x4ABDA3FA,
+		#endregion
+
+		#region AssaultRifleMk2
+		AssaultRifleMk2ClipNormal = 0x8610343F,
+		AssaultRifleMk2ClipExtended = 0xD12ACA6F,
+		AssaultRifleMk2ClipArmorPiercing = 0xA7DD1E58,
+		AssaultRifleMk2ClipFMJ = 0x63E0A098,
+		AssaultRifleMk2ClipIncendiary = 0xFB70D853,
+		AssaultRifleMk2ClipTracer = 0xEF2C78C1,
+
+		AssaultRifleMk2BarrelNormal = 0x43A49D26,
+		AssaultRifleMk2BarrelHeavy = 0x5646C26A,
+
+		AssaultRifleMk2CamoDigital = 0x911B24AF,
+		AssaultRifleMk2CamoBrushstroke = 0x37E5444B,
+		AssaultRifleMk2CamoWoodland = 0x538B7B97,
+		AssaultRifleMk2CamoSkull = 0x25789F72,
+		AssaultRifleMk2CamoSessanta = 0xC5495F2D,
+		AssaultRifleMk2CamoPerseus = 0xCF8B73B1,
+		AssaultRifleMk2CamoLeopard = 0xA9BB2811,
+		AssaultRifleMk2CamoZebra = 0xFC674D54,
+		AssaultRifleMk2CamoGeometric = 0x7C7FCD9B,
+		AssaultRifleMk2CamoBoom = 0xA5C38392,
+		AssaultRifleMk2CamoPatriotic = 0xB9B15DB0,
+		#endregion
+
+		#region CarbineRifleMk2
+		CarbineRifleMk2ClipNormal = 0x4C7A391E,
+		CarbineRifleMk2ClipExtended = 0x5DD5DBD5,
+		CarbineRifleMk2ClipArmorPiercing = 0x255D5D57,
+		CarbineRifleMk2ClipFMJ = 0x44032F11,
+		CarbineRifleMk2ClipIncendiary = 0x3D25C2A7,
+		CarbineRifleMk2ClipTracer = 0x1757F566,
+
+		CarbineRifleMk2BarrelNormal = 0x833637FF,
+		CarbineRifleMk2BarrelHeavy = 0x8B3C480B,
+
+		CarbineRifleMk2CamoDigital = 0x4BDD6F16,
+		CarbineRifleMk2CamoBrushstroke = 0x406A7908,
+		CarbineRifleMk2CamoWoodland = 0x2F3856A4,
+		CarbineRifleMk2CamoSkull = 0xE50C424D,
+		CarbineRifleMk2CamoSessanta = 0xD37D1F2F,
+		CarbineRifleMk2CamoPerseus = 0x86268483,
+		CarbineRifleMk2CamoLeopard = 0xF420E076,
+		CarbineRifleMk2CamoZebra = 0xAAE14DF8,
+		CarbineRifleMk2CamoGeometric = 0x9893A95D,
+		CarbineRifleMk2CamoBoom = 0x6B13CD3E,
+		CarbineRifleMk2CamoPatriotic = 0xDA55CD3F,
+		#endregion
+
+		#region CombatMGMk2
+		CombatMGMk2ClipNormal = 0x492B257C,
+		CombatMGMk2ClipExtended = 0x17DF42E9,
+		CombatMGMk2ClipArmorPiercing = 0x29882423,
+		CombatMGMk2ClipFMJ = 0x57EF1CC8,
+		CombatMGMk2ClipIncendiary = 0xC326BDBA,
+		CombatMGMk2ClipTracer = 0xF6649745,
+
+		CombatMGMk2BarrelNormal = 0xC34EF234,
+		CombatMGMk2BarrelHeavy = 0xB5E2575B,
+
+		CombatMGMk2CamoDigital = 0x4A768CB5,
+		CombatMGMk2CamoBrushstroke = 0xCCE06BBD,
+		CombatMGMk2CamoWoodland = 0xBE94CF26,
+		CombatMGMk2CamoSkull = 0x7609BE11,
+		CombatMGMk2CamoSessanta = 0x48AF6351,
+		CombatMGMk2CamoPerseus = 0x9186750A,
+		CombatMGMk2CamoLeopard = 0x84555AA8,
+		CombatMGMk2CamoZebra = 0x1B4C088B,
+		CombatMGMk2CamoGeometric = 0xE046DFC,
+		CombatMGMk2CamoBoom = 0x28B536E,
+		CombatMGMk2CamoPatriotic = 0xD703C94D,
+		#endregion
+
+		#region HeavySniperMk2
+		HeavySniperMk2ClipNormal = 0xFA1E1A28,
+		HeavySniperMk2ClipExtended = 0x2CD8FF9D,
+		HeavySniperMk2ClipArmorPiercing = 0xF835D6D4,
+		HeavySniperMk2ClipExplosive = 0x89EBDAA7,
+		HeavySniperMk2ClipFMJ = 0x3BE948F6,
+		HeavySniperMk2ClipIncendiary = 0xEC0F617,
+
+		HeavySniperMk2ScopeLarge = 0x82C10383,
+		HeavySniperMk2ScopeNightvision = 0xB68010B0,
+		HeavySniperMk2ScopeThermal = 0x2E43DA41,
+
+		HeavySniperMk2Suppressor = 0xAC42DF71,
+		HeavySniperMk2Muzzle8 = 0x5F7DCE4D,
+		HeavySniperMk2Muzzle9 = 0x6927E1A1,
+
+		HeavySniperMk2BarrelNormal = 0x909630B7,
+		HeavySniperMk2BarrelHeavy = 0x108AB09E,
+
+		HeavySniperMk2CamoDigital = 0xF8337D02,
+		HeavySniperMk2CamoBrushstroke = 0xC5BEDD65,
+		HeavySniperMk2CamoWoodland = 0xE9712475,
+		HeavySniperMk2CamoSkull = 0x13AA78E7,
+		HeavySniperMk2CamoSessanta = 0x26591E50,
+		HeavySniperMk2CamoPerseus = 0x302731EC,
+		HeavySniperMk2CamoLeopard = 0xAC722A78,
+		HeavySniperMk2CamoZebra = 0xBEA4CEDD,
+		HeavySniperMk2CamoGeometric = 0xCD776C82,
+		HeavySniperMk2CamoBoom = 0xABC5ACC7,
+		HeavySniperMk2CamoPatriotic = 0x6C32D2EB,
+		#endregion
+
+		#region SMGMk2
+		SMGMk2ClipNormal = 0x4C24806E,
+		SMGMk2ClipExtended = 0xB9835B2E,
+		SMGMk2ClipFMJ = 0xB5A715F,
+		SMGMk2ClipHollowpoint = 0x3A1BD6FA,
+		SMGMk2ClipIncendiary = 0xD99222E5,
+		SMGMk2ClipTracer = 0x7FEA36EC,
+
+		SMGMk2Sights = 0x9FDB5652,
+		SMGMk2ScopeMacro = 0xE502AB6B,
+		SMGMk2ScopeSmall = 0x3DECC7DA,
+
+		SMGMk2BarrelNormal = 0xD9103EE1,
+		SMGMk2BarrelHeavy = 0xA564D78B,
+
+		SMGMk2CamoDigital = 0xC4979067,
+		SMGMk2CamoBrushstroke = 0x3815A945,
+		SMGMk2CamoWoodland = 0x4B4B4FB0,
+		SMGMk2CamoSkull = 0xEC729200,
+		SMGMk2CamoSessanta = 0x48F64B22,
+		SMGMk2CamoPerseus = 0x35992468,
+		SMGMk2CamoLeopard = 0x24B782A5,
+		SMGMk2CamoZebra = 0xA2E67F01,
+		SMGMk2CamoGeometric = 0x2218FD68,
+		SMGMk2CamoBoom = 0x45C5C3C5,
+		SMGMk2CamoPatriotic = 0x399D558F,
+		#endregion
+
+		Invalid = 4294967295u,
 	}
 
 	public class WeaponComponentCollection
@@ -322,8 +508,37 @@ namespace CitizenFX.Core
 			}
 			return _invalidComponent;
 		}
+		public WeaponComponent GetMk2CamoComponent(int index)
+		{
+			foreach (var component in this)
+			{
+				if (component.AttachmentPoint == ComponentAttachmentPoint.GunRoot)
+				{
+					if (index-- == 0)
+					{
+						return component;
+					}
+				}
+			}
+			return _invalidComponent;
+		}
 
-        [SecuritySafeCritical]
+		public WeaponComponent GetMk2BarrelComponent(int index)
+		{
+			foreach (var component in this)
+			{
+				if (component.AttachmentPoint == ComponentAttachmentPoint.Barrel)
+				{
+					if (index-- == 0)
+					{
+						return component;
+					}
+				}
+			}
+			return _invalidComponent;
+		}
+
+		[SecuritySafeCritical]
         public static WeaponComponentHash[] GetComponentsFromHash(WeaponHash hash)
         {
             return _GetComponentsFromHash(hash);
@@ -585,6 +800,214 @@ namespace CitizenFX.Core
 						WeaponComponentHash.RevolverClip01,
 						WeaponComponentHash.RevolverVarmodBoss,
 						WeaponComponentHash.RevolverVarmodGoon,
+					};
+					
+					// GUNRUNNING
+				case WeaponHash.PistolMk2:
+					return new WeaponComponentHash[]
+					{
+						WeaponComponentHash.PistolMk2ClipNormal,
+						WeaponComponentHash.PistolMk2ClipExtended,
+						WeaponComponentHash.PistolMk2ClipFMJ,
+						WeaponComponentHash.PistolMk2ClipHollowpoint,
+						WeaponComponentHash.PistolMk2ClipIncendiary,
+						WeaponComponentHash.PistolMk2ClipTracer,
+						WeaponComponentHash.PistolMk2Scope,
+						WeaponComponentHash.PistolMk2Flash,
+						WeaponComponentHash.AtPiSupp02,
+						WeaponComponentHash.PistolMk2Compensator,
+						WeaponComponentHash.PistolMk2CamoDigital,
+						WeaponComponentHash.PistolMk2CamoBrushstroke,
+						WeaponComponentHash.PistolMk2CamoWoodland,
+						WeaponComponentHash.PistolMk2CamoSkull,
+						WeaponComponentHash.PistolMk2CamoSessanta,
+						WeaponComponentHash.PistolMk2CamoPerseus,
+						WeaponComponentHash.PistolMk2CamoLeopard,
+						WeaponComponentHash.PistolMk2CamoZebra,
+						WeaponComponentHash.PistolMk2CamoGeometric,
+						WeaponComponentHash.PistolMk2CamoBoom,
+						WeaponComponentHash.PistolMk2CamoPatriotic,
+						WeaponComponentHash.PistolMk2CamoSlideDigital,
+						WeaponComponentHash.PistolMk2CamoSlideBrushstroke,
+						WeaponComponentHash.PistolMk2CamoSlideWoodland,
+						WeaponComponentHash.PistolMk2CamoSlideSkull,
+						WeaponComponentHash.PistolMk2CamoSlideSessanta,
+						WeaponComponentHash.PistolMk2CamoSlidePerseus,
+						WeaponComponentHash.PistolMk2CamoSlideLeopard,
+						WeaponComponentHash.PistolMk2CamoSlideZebra,
+						WeaponComponentHash.PistolMk2CamoSlideGeometric,
+						WeaponComponentHash.PistolMk2CamoSlideBoom,
+						WeaponComponentHash.PistolMk2CamoSlidePatriotic,
+					};
+				case WeaponHash.AssaultRifleMk2:
+					return new WeaponComponentHash[]
+					{
+						WeaponComponentHash.AssaultRifleMk2ClipNormal,
+						WeaponComponentHash.AssaultRifleMk2ClipExtended,
+						WeaponComponentHash.AssaultRifleMk2ClipArmorPiercing,
+						WeaponComponentHash.AssaultRifleMk2ClipFMJ,
+						WeaponComponentHash.AssaultRifleMk2ClipIncendiary,
+						WeaponComponentHash.AssaultRifleMk2ClipTracer,
+						WeaponComponentHash.AtArFlsh,
+						WeaponComponentHash.AtSights,
+						WeaponComponentHash.AtScopeMacroMk2,
+						WeaponComponentHash.AtScopeMediumMk2,
+						WeaponComponentHash.AtArSupp02,
+						WeaponComponentHash.AtMuzzle1,
+						WeaponComponentHash.AtMuzzle2,
+						WeaponComponentHash.AtMuzzle3,
+						WeaponComponentHash.AtMuzzle4,
+						WeaponComponentHash.AtMuzzle5,
+						WeaponComponentHash.AtMuzzle6,
+						WeaponComponentHash.AtMuzzle7,
+						WeaponComponentHash.AtArAfGrip2,
+						WeaponComponentHash.AssaultRifleMk2BarrelNormal,
+						WeaponComponentHash.AssaultRifleMk2BarrelHeavy,
+						WeaponComponentHash.AssaultRifleMk2CamoDigital,
+						WeaponComponentHash.AssaultRifleMk2CamoBrushstroke,
+						WeaponComponentHash.AssaultRifleMk2CamoWoodland,
+						WeaponComponentHash.AssaultRifleMk2CamoSkull,
+						WeaponComponentHash.AssaultRifleMk2CamoSessanta,
+						WeaponComponentHash.AssaultRifleMk2CamoPerseus,
+						WeaponComponentHash.AssaultRifleMk2CamoLeopard,
+						WeaponComponentHash.AssaultRifleMk2CamoZebra,
+						WeaponComponentHash.AssaultRifleMk2CamoGeometric,
+						WeaponComponentHash.AssaultRifleMk2CamoBoom,
+						WeaponComponentHash.AssaultRifleMk2CamoPatriotic,
+					};
+				case WeaponHash.CarbineRifleMk2:
+					return new WeaponComponentHash[]
+					{
+						WeaponComponentHash.CarbineRifleMk2ClipNormal,
+						WeaponComponentHash.CarbineRifleMk2ClipExtended,
+						WeaponComponentHash.CarbineRifleMk2ClipArmorPiercing,
+						WeaponComponentHash.CarbineRifleMk2ClipFMJ,
+						WeaponComponentHash.CarbineRifleMk2ClipIncendiary,
+						WeaponComponentHash.CarbineRifleMk2ClipTracer,
+						WeaponComponentHash.AtSights,
+						WeaponComponentHash.AtScopeMacroMk2,
+						WeaponComponentHash.AtScopeMediumMk2,
+						WeaponComponentHash.AtArAfGrip2,
+						WeaponComponentHash.CarbineRifleMk2BarrelNormal,
+						WeaponComponentHash.CarbineRifleMk2BarrelHeavy,
+						WeaponComponentHash.AtArSupp,
+						WeaponComponentHash.AtMuzzle1,
+						WeaponComponentHash.AtMuzzle2,
+						WeaponComponentHash.AtMuzzle3,
+						WeaponComponentHash.AtMuzzle4,
+						WeaponComponentHash.AtMuzzle5,
+						WeaponComponentHash.AtMuzzle6,
+						WeaponComponentHash.AtMuzzle7,
+						WeaponComponentHash.CarbineRifleMk2CamoDigital,
+						WeaponComponentHash.CarbineRifleMk2CamoBrushstroke,
+						WeaponComponentHash.CarbineRifleMk2CamoWoodland,
+						WeaponComponentHash.CarbineRifleMk2CamoSkull,
+						WeaponComponentHash.CarbineRifleMk2CamoSessanta,
+						WeaponComponentHash.CarbineRifleMk2CamoPerseus,
+						WeaponComponentHash.CarbineRifleMk2CamoLeopard,
+						WeaponComponentHash.CarbineRifleMk2CamoZebra,
+						WeaponComponentHash.CarbineRifleMk2CamoGeometric,
+						WeaponComponentHash.CarbineRifleMk2CamoBoom,
+						WeaponComponentHash.CarbineRifleMk2CamoPatriotic,
+					};
+				case WeaponHash.CombatMGMk2:
+					return new WeaponComponentHash[]
+					{
+						WeaponComponentHash.CombatMGMk2ClipNormal,
+						WeaponComponentHash.CombatMGMk2ClipExtended,
+						WeaponComponentHash.CombatMGMk2ClipArmorPiercing,
+						WeaponComponentHash.CombatMGMk2ClipFMJ,
+						WeaponComponentHash.CombatMGMk2ClipIncendiary,
+						WeaponComponentHash.CombatMGMk2ClipTracer,
+						WeaponComponentHash.AtSights,
+						WeaponComponentHash.AtScopeSmallMk2,
+						WeaponComponentHash.AtScopeMediumMk2,
+						WeaponComponentHash.AtMuzzle1,
+						WeaponComponentHash.AtMuzzle2,
+						WeaponComponentHash.AtMuzzle3,
+						WeaponComponentHash.AtMuzzle4,
+						WeaponComponentHash.AtMuzzle5,
+						WeaponComponentHash.AtMuzzle6,
+						WeaponComponentHash.AtMuzzle7,
+						WeaponComponentHash.AtArAfGrip2,
+						WeaponComponentHash.CombatMGMk2BarrelNormal,
+						WeaponComponentHash.CombatMGMk2BarrelHeavy,
+						WeaponComponentHash.CombatMGMk2CamoDigital,
+						WeaponComponentHash.CombatMGMk2CamoBrushstroke,
+						WeaponComponentHash.CombatMGMk2CamoWoodland,
+						WeaponComponentHash.CombatMGMk2CamoSkull,
+						WeaponComponentHash.CombatMGMk2CamoSessanta,
+						WeaponComponentHash.CombatMGMk2CamoPerseus,
+						WeaponComponentHash.CombatMGMk2CamoLeopard,
+						WeaponComponentHash.CombatMGMk2CamoZebra,
+						WeaponComponentHash.CombatMGMk2CamoGeometric,
+						WeaponComponentHash.CombatMGMk2CamoBoom,
+						WeaponComponentHash.CombatMGMk2CamoPatriotic,
+					};
+				case WeaponHash.HeavySniperMk2:
+					return new WeaponComponentHash[]
+					{
+						WeaponComponentHash.HeavySniperMk2ClipNormal,
+						WeaponComponentHash.HeavySniperMk2ClipExtended,
+						WeaponComponentHash.HeavySniperMk2ClipArmorPiercing,
+						WeaponComponentHash.HeavySniperMk2ClipExplosive,
+						WeaponComponentHash.HeavySniperMk2ClipFMJ,
+						WeaponComponentHash.HeavySniperMk2ClipIncendiary,
+						WeaponComponentHash.HeavySniperMk2ScopeLarge,
+						WeaponComponentHash.AtScopeMax,
+						WeaponComponentHash.HeavySniperMk2ScopeNightvision,
+						WeaponComponentHash.HeavySniperMk2ScopeThermal,
+						WeaponComponentHash.HeavySniperMk2Suppressor,
+						WeaponComponentHash.HeavySniperMk2Muzzle8,
+						WeaponComponentHash.HeavySniperMk2Muzzle9,
+						WeaponComponentHash.HeavySniperMk2BarrelNormal,
+						WeaponComponentHash.HeavySniperMk2BarrelHeavy,
+						WeaponComponentHash.HeavySniperMk2CamoDigital,
+						WeaponComponentHash.HeavySniperMk2CamoBrushstroke,
+						WeaponComponentHash.HeavySniperMk2CamoWoodland,
+						WeaponComponentHash.HeavySniperMk2CamoSkull,
+						WeaponComponentHash.HeavySniperMk2CamoSessanta,
+						WeaponComponentHash.HeavySniperMk2CamoPerseus,
+						WeaponComponentHash.HeavySniperMk2CamoLeopard,
+						WeaponComponentHash.HeavySniperMk2CamoZebra,
+						WeaponComponentHash.HeavySniperMk2CamoGeometric,
+						WeaponComponentHash.HeavySniperMk2CamoBoom,
+						WeaponComponentHash.HeavySniperMk2CamoPatriotic,
+					};
+				case WeaponHash.SMGMk2:
+					return new WeaponComponentHash[]
+					{
+						WeaponComponentHash.SMGMk2ClipNormal,
+						WeaponComponentHash.SMGMk2ClipExtended,
+						WeaponComponentHash.SMGMk2ClipFMJ,
+						WeaponComponentHash.SMGMk2ClipHollowpoint,
+						WeaponComponentHash.SMGMk2ClipIncendiary,
+						WeaponComponentHash.SMGMk2ClipTracer,
+						WeaponComponentHash.AtArFlsh,
+						WeaponComponentHash.SMGMk2Sights,
+						WeaponComponentHash.SMGMk2ScopeMacro,
+						WeaponComponentHash.SMGMk2ScopeSmall,
+						WeaponComponentHash.AtPiSupp,
+						WeaponComponentHash.SMGMk2BarrelNormal,
+						WeaponComponentHash.SMGMk2BarrelHeavy,
+						WeaponComponentHash.AtMuzzle1,
+						WeaponComponentHash.AtMuzzle2,
+						WeaponComponentHash.AtMuzzle3,
+						WeaponComponentHash.AtMuzzle4,
+						WeaponComponentHash.AtMuzzle5,
+						WeaponComponentHash.AtMuzzle6,
+						WeaponComponentHash.AtMuzzle7,
+						WeaponComponentHash.SMGMk2CamoDigital,
+						WeaponComponentHash.SMGMk2CamoBrushstroke,
+						WeaponComponentHash.SMGMk2CamoWoodland,
+						WeaponComponentHash.SMGMk2CamoSkull,
+						WeaponComponentHash.SMGMk2CamoSessanta,
+						WeaponComponentHash.SMGMk2CamoPerseus,
+						WeaponComponentHash.SMGMk2CamoLeopard,
+						WeaponComponentHash.SMGMk2CamoZebra,
+						WeaponComponentHash.SMGMk2CamoGeometric,
+						WeaponComponentHash.SMGMk2CamoBoom,
+						WeaponComponentHash.SMGMk2CamoPatriotic,
 					};
 			}
 			

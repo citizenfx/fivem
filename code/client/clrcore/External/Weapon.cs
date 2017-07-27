@@ -1,18 +1,50 @@
-using System;
+﻿using System;
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
 	public enum WeaponTint
 	{
-		Normal,
-		Green,
-		Gold,
-		Pink,
-		Army,
-		LSPD,
-		Orange,
-		Platinum
+		Mk2ClassicBlack,
+		Mk2ClassicGray,
+		Mk2ClassicTwoTone,
+		Mk2ClassicWhite,
+		Mk2ClassicBeige,
+		Mk2ClassicGreen,
+		Mk2ClassicBlue,
+		Mk2ClassicEarth,
+		Mk2ClassicBrownAndBlack,
+		Mk2RedContrast,
+		Mk2BlueContrast,
+		Mk2YellowContrast,
+		Mk2OrangeContrast,
+		Mk2BoldPink,
+		Mk2BoldPurpleAndYellow,
+		Mk2BoldOrange,
+		Mk2BoldGreenAndPurple,
+		Mk2BoldRedFeatures,
+		Mk2BoldGreenFeatures,
+		Mk2BoldCyanFeatures,
+		Mk2BoldYellowFeatures,
+		Mk2BoldRedAndWhite,
+		Mk2BoldBlueAndWhite,
+		Mk2MetallicGold,
+		Mk2MetallicPlatinum,
+		Mk2MetallicGrayAndLilac,
+		Mk2MetallicPurpleAndLime,
+		Mk2MetallicRed,
+		Mk2MetallicGreen,
+		Mk2MetallicBlue,
+		Mk2MetallicWhiteAndAqua,
+		Mk2MetallicRedAndYellow,
+		Normal = 0,
+		Green = 1,
+		Gold = 2,
+		Pink = 3,
+		Army = 4,
+		LSPD = 5,
+		Orange = 6,
+		Platinum = 7,
 	}
 	public enum WeaponGroup : uint
 	{
@@ -32,6 +64,56 @@ namespace CitizenFX.Core
 		Heavy = 2725924767u,
 		Thrown = 1548507267u,
 		PetrolCan = 1595662460u
+	}
+
+	public enum WeaponLivery
+	{
+		Digital,
+		Brushstroke,
+		Woodland,
+		Skull,
+		Sessanta,
+		Perseus,
+		Leopard,
+		Zebra,
+		Geometric,
+		Boom,
+		Patriotic,
+	}
+	public enum WeaponLiveryColor
+	{
+		Gray,
+		DarkGray,
+		Black,
+		White,
+		Blue,
+		Cyan,
+		Aqua,
+		CoolBlue,
+		DarkBlue,
+		RoyalBlue,
+		Plum,
+		DarkPurple,
+		Purple,
+		Red,
+		WineRed,
+		Magenta,
+		Pink,
+		Salmon,
+		HotPink,
+		RustOrange,
+		Brown,
+		Earth,
+		Orange,
+		LightOrange,
+		DarkYellow,
+		Yellow,
+		LightBrown,
+		LimeGreen,
+		Olive,
+		Moss,
+		Turquoise,
+		DarkGreen
 	}
 
 	public sealed class Weapon
@@ -251,6 +333,39 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public bool IsMk2
+		{
+			get
+			{
+				switch (Hash)
+				{
+					case WeaponHash.PistolMk2:
+					case WeaponHash.AssaultRifleMk2:
+					case WeaponHash.CarbineRifleMk2:
+					case WeaponHash.CombatMGMk2:
+					case WeaponHash.HeavySniperMk2:
+					case WeaponHash.SMGMk2:
+						return true;
+					default:
+						return false;
+				}
+			}
+		}
+
+		public void SetLivery(WeaponLivery liveryID, WeaponLiveryColor colorID)
+		{
+			if (IsMk2)
+			{
+				WeaponComponent comp = Components.GetMk2CamoComponent((int)liveryID);
+				comp.Active = true;
+				Function.Call((Hash)0x9FE5633880ECD8ED, Game.PlayerPed.Handle, Hash, comp.ComponentHash, (int) colorID);
+			}
+			else
+			{
+				throw new InvalidOperationException("You can't set the livery of a non-Mk2 weapon.");
+			}
+		}
+
 		public WeaponComponentCollection Components
 		{
 			get
@@ -353,6 +468,19 @@ namespace CitizenFX.Core
 					return "WT_SWBLADE";
 				case WeaponHash.Revolver:
 					return "WT_REVOLVER";
+				//mpgunrunning
+				case WeaponHash.PistolMk2:
+					return "WT_PIST2";
+				case WeaponHash.AssaultRifleMk2:
+					return "WT_RIFLE_ASL2";
+				case WeaponHash.CarbineRifleMk2:
+					return "WT_RIFLE_CBN2";
+				case WeaponHash.CombatMGMk2:
+					return "WT_MG_CBT2";
+				case WeaponHash.HeavySniperMk2:
+					return "WT_SNIP_HVY2";
+				case WeaponHash.SMGMk2:
+					return "WT_SMG2";
 			}
 			DlcWeaponData data;
 			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
