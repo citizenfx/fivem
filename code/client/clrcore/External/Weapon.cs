@@ -66,6 +66,56 @@ namespace CitizenFX.Core
 		PetrolCan = 1595662460u
 	}
 
+	public enum WeaponLivery
+	{
+		Digital,
+		Brushstroke,
+		Woodland,
+		Skull,
+		Sessanta,
+		Perseus,
+		Leopard,
+		Zebra,
+		Geometric,
+		Boom,
+		Patriotic,
+	}
+	public enum WeaponLiveryColor
+	{
+		Gray,
+		DarkGray,
+		Black,
+		White,
+		Blue,
+		Cyan,
+		Aqua,
+		CoolBlue,
+		DarkBlue,
+		RoyalBlue,
+		Plum,
+		DarkPurple,
+		Purple,
+		Red,
+		WineRed,
+		Magenta,
+		Pink,
+		Salmon,
+		HotPink,
+		RustOrange,
+		Brown,
+		Earth,
+		Orange,
+		LightOrange,
+		DarkYellow,
+		Yellow,
+		LightBrown,
+		LimeGreen,
+		Olive,
+		Moss,
+		Turquoise,
+		DarkGreen
+	}
+
 	public sealed class Weapon
 	{
 		#region Fields
@@ -299,6 +349,20 @@ namespace CitizenFX.Core
 					default:
 						return false;
 				}
+			}
+		}
+
+		public void SetLivery(WeaponLivery liveryID, WeaponLiveryColor colorID)
+		{
+			if (IsMk2)
+			{
+				WeaponComponent comp = Components.GetMk2CamoComponent((int)liveryID);
+				comp.Active = true;
+				Function.Call((Hash)0x9FE5633880ECD8ED, Game.PlayerPed.Handle, Hash, comp.ComponentHash, (int) colorID);
+			}
+			else
+			{
+				throw new InvalidOperationException("You can't set the livery of a non-Mk2 weapon.");
 			}
 		}
 
