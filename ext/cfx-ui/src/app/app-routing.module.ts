@@ -3,8 +3,8 @@ import {Routes, RouterModule} from '@angular/router';
 
 import {HomeComponent} from './home/home.component';
 import {SettingsComponent} from './settings/settings.component';
-import {ServerListComponent} from './servers/ui/server-list.component';
-import {ServerListUiComponent} from './servers/ui/server-list-ui.component';
+import {ServersComponent} from './servers/components/servers.component';
+import {ServersContainerComponent} from './servers/components/servers-container.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
 const routes: Routes = [
@@ -14,21 +14,21 @@ const routes: Routes = [
 	},
 	{
 		path:      'servers',
-		component: ServerListComponent,
+		component: ServersComponent,
 		children:  [
 			{
 				path:      '',
-				component: ServerListUiComponent,
+				component: ServersContainerComponent,
 				data:      {type: 'browse'}
 			},
 			{
 				path:      'favorites',
-				component: ServerListUiComponent,
+				component: ServersContainerComponent,
 				data:      {type: 'favorites'}
 			},
 			{
 				path:      'history',
-				component: ServerListUiComponent,
+				component: ServersContainerComponent,
 				data:      {type: 'history'}
 			},
 			{

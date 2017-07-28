@@ -1,3 +1,5 @@
+@import "variables";
+
 $columns: (
 	icon: 40px,
 	name: calc(80% - 40px),
@@ -11,7 +13,7 @@ dl, .header {
 	flex-grow: 0;
 	align-items: center;
 
-	height: 40px;
+	height: $appServersHeaderHeight;
 }
 
 dl > *, .header > *
@@ -21,7 +23,7 @@ dl > *, .header > *
 	overflow-x: hidden;
 	text-overflow: ellipsis;
 
-	color: rgba(255, 255, 255, 0.8);
+	color: $textColour;
 }
 
 .icon

@@ -1,14 +1,27 @@
-@import 'variables';
+@import "variables";
 @import "./server-listing-shared.scss";
 
+:host {
+	&.highlight {
+		dl {
+			background: rgba($secondaryColour, .05);
+
+			&:hover {
+				background-color: rgba($bgColour, .4);
+			}
+		}
+	}
+}
+
 dl {
-	transition: all .2s ease-out;
+	transition: all .2s ease;
 
 	cursor: default;
 	user-select: none;
 
-	border-bottom: solid .5px rgba($fgColour, .2);
 	font-weight: 100;
+	margin-bottom: $padding/2;
+	background-color: rgba($bgColour, .4);
 
 	dd.name {
 		padding: 0 $padding;
@@ -27,11 +40,9 @@ dl {
 	figure {
 		position: relative;
 
-		padding: 2px;
-
 		img {
-			width: 35px;
-			height: 35px;
+			width: $appServersItemHeight;
+			height: $appServersItemHeight;
 
 			transition: .2s ease-out;
 		}

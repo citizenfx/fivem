@@ -9,11 +9,11 @@ import { GameService } from '../../game.service';
 
 @Component({
     moduleId: module.id,
-    selector: 'app-server-list-ui',
-    templateUrl: 'server-list-ui.component.html',
-    styleUrls: ['server-list-ui.component.scss']
+    selector: 'servers-container',
+    templateUrl: 'servers-container.component.html',
+    styleUrls: ['servers-container.component.scss']
 })
-export class ServerListUiComponent implements OnInit {
+export class ServersContainerComponent implements OnInit {
     servers: Server[];
     localServers: Server[]; // temp value
     icons: ServerIcon[];

@@ -8,12 +8,12 @@ import {Subject} from 'rxjs/Rx';
 
 @Component({
     moduleId: module.id,
-    selector: 'app-server-listing',
-    templateUrl: 'server-listing.component.html',
-    styleUrls: ['server-listing.component.scss']
+    selector: 'servers-list',
+    templateUrl: 'servers-list.component.html',
+    styleUrls: ['servers-list.component.scss']
 })
 
-export class ServerListingComponent implements OnInit, OnChanges {
+export class ServersListComponent implements OnInit, OnChanges {
     @Input()
     private servers: Server[];
 
@@ -108,7 +108,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
                     (searchGroup.match(/^\/(.+)\/$/)) ?
                         searchGroup.replace(/^\/(.+)\/$/, '$1')
                     :
-                        ServerListingComponent.quoteRe(searchGroup);
+                        ServersListComponent.quoteRe(searchGroup);
 
                 try {
                     const re = new RegExp(reString, 'i');
@@ -116,7 +116,7 @@ export class ServerListingComponent implements OnInit, OnChanges {
                 } catch (e) {}
             } else {
                 const category = categoryMatch[1];
-                const match = new RegExp(ServerListingComponent.quoteRe(categoryMatch[2]), 'i');
+                const match = new RegExp(ServersListComponent.quoteRe(categoryMatch[2]), 'i');
 
                 filterFns.push(server =>
                 {

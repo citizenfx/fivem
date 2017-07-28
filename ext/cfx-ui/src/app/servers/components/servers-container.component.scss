@@ -11,24 +11,19 @@
 		width: $appContentWidth;
 		position: relative;
 
-		background-color: rgba($bgColour, .1);
-
 		aside {
 			position: absolute;
 			top: 0;
 			left: 0;
 			bottom: 0;
 			width: 30%;
-
-			padding: $padding;
-
-			border-right: solid .5px rgba($fgColour, .1);
 		}
 
 		article {
 			position: relative;
-			width: calc(100% - 30%);
-			margin-left: 30%;
+			width: calc(100% - 30% - 5px);
+			margin-left: calc(30% + 5px);
+			background-color: rgba($bgColour, .1);
 		}
 	}
 }

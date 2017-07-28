@@ -1,0 +1,156 @@
+@import "variables";
+
+a {
+	font-weight: 400;
+}
+
+.filters {
+	.filter {
+		margin-bottom: $padding;
+
+		&.attract-next {
+			margin-bottom: $padding/4;
+		}
+
+		input.name {
+			width: 100%;
+			height: $appServersHeaderHeight;
+			padding: $padding $padding*$multiplier;
+
+			color: $secondaryColour;
+
+			border: none;
+			
+			background: rgba($bgColour, .1);
+			backdrop-filter: blur(5px);
+
+			transition: all .2s ease;
+
+			&:focus {
+				outline: none;
+				box-shadow: 0 0 0 1px $greenyColour inset;
+			}
+			&:hover,
+			&:focus {
+				background: rgba($bgColour, .2);
+			}
+
+			&::-webkit-input-placeholder {
+				color: rgba($textColour, .6);
+			}
+		}
+
+		.checkboxes {
+			display: flex;
+			width: 100%;
+
+			.checkbox {
+				position: relative;
+				flex-grow: 1;
+
+				color: $secondaryColour;
+
+				margin-right: $padding/4;
+
+				&:last-child {
+					margin-right: 0;
+				}
+
+				input {
+					position: absolute;
+					height: 0px;
+					width: 0px;
+					transform: translateX(-9999px);
+				}
+
+				label {
+					display: block;
+					width: 100%;
+
+					font-size: 14px;
+					padding: $padding/2 $padding*$multiplier;
+
+					background-color: rgba($bgColour, .1);
+
+					transition: all .2s ease;
+				}
+
+				&:hover label {
+					background-color: rgba($bgColour, .2);
+				}
+
+				input:checked + label {
+					background: $greenyColour;
+					box-shadow: 0 0 25px darken($greenyColour, 10%);
+				}
+			}
+		}
+
+		.slider {
+			position: relative;
+			width: 100%;
+
+			.bar {
+				position: absolute;
+				top: 0;
+				left: 0;
+				height: 100%;
+				width: 76%;
+
+				background-color: rgba($bgColour, .5);
+
+				z-index: -1;
+			}
+
+			.inner {
+				pointer-events: none;
+
+				font-size: 14px;
+				color: $secondaryColour;
+				padding: $padding/2 $padding*$multiplier;
+
+				background-color: rgba($bgColour, .1);
+			}
+		}
+
+		.tags {
+			h4 {
+				font-weight: normal;
+				cursor: default;
+
+				padding: $padding $padding*$multiplier;
+				margin-bottom: $padding/2;
+
+				background-color: rgba($bgColour, .1);
+			}
+
+			.tag {
+				position: relative;
+				font-size: 12px;
+				font-weight: 100;
+				cursor: default;
+
+				overflow-x: hidden;
+
+				padding: $padding/2 $padding*$multiplier;
+				margin-bottom: $padding/4;
+
+				background-color: rgba($bgColour, .1);
+
+				&.active {
+					background-color: $greenyColour;
+					text-shadow: 0 0 1px rgba($bgColour, .4);
+					box-shadow: 0 0 25px darken($greenyColour, 10%);
+				}
+
+				&:hover {
+					background-color: rgba($bgColour, .2);
+				}
+
+				&.active:hover {
+					background-color: darken($greenyColour, 5%);
+				}
+			}
+		}
+	}
+}

@@ -8,12 +8,12 @@ import { GameService } from '../../game.service'
 
 @Component({
     moduleId: module.id,
-    selector: 'app-server-listing-item',
-    templateUrl: 'server-listing-item.component.html',
-    styleUrls: ['server-listing-item.component.scss']
+    selector: 'servers-list-item',
+    templateUrl: 'servers-list-item.component.html',
+    styleUrls: ['servers-list-item.component.scss']
 })
 
-export class ServerListingItemComponent {
+export class ServersListItemComponent {
     @Input()
     server: Server;
 

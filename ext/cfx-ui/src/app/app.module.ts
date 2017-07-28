@@ -18,12 +18,12 @@ import {ConnectingPopupComponent} from './servers/connecting-popup.component';
 import {HomeComponent} from './home/home.component';
 import {SettingsComponent} from './settings/settings.component';
 
-import {ServerListComponent} from './servers/ui/server-list.component';
-import {ServerListUiComponent} from './servers/ui/server-list-ui.component';
-import {ServerListingComponent} from './servers/ui/server-listing.component';
-import {ServerListingItemComponent} from './servers/ui/server-listing-item.component';
-import {ServersTableHeaderComponent} from './servers/ui/servers-table-header.component';
-import {ServerFilterComponent} from './servers/ui/server-filter.component';
+import {ServersComponent} from './servers/components/servers.component';
+import {ServersContainerComponent} from './servers/components/servers-container.component';
+import {ServersListComponent} from './servers/components/servers-list.component';
+import {ServersListItemComponent} from './servers/components/servers-list-item.component';
+import {ServersTableHeaderComponent} from './servers/components/servers-table-header.component';
+import {ServerFilterComponent} from './servers/components/server-filter.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
 import {ServersService} from './servers/servers.service';
@@ -41,10 +41,10 @@ import {EscapePipe} from './escape.pipe';
 		ConnectingPopupComponent,
 		HomeComponent,
 		SettingsComponent,
-		ServerListComponent,
-		ServerListUiComponent,
-		ServerListingComponent,
-		ServerListingItemComponent,
+		ServersComponent,
+		ServersContainerComponent,
+		ServersListComponent,
+		ServersListItemComponent,
 		ServersTableHeaderComponent,
 		ServerFilterComponent,
 		DirectConnectComponent,

@@ -1,3 +1,4 @@
+@import "variables";
 @import "./server-listing-shared.scss";
 
 .list {
@@ -6,12 +7,12 @@
 	overflow-y: scroll;
 
 	.dummy {
-		height: 40px;
+		height: $appServersHeaderHeight+($padding/4);
 	}
 }
 
 virtual-scroll {
 	display: block;
 	height: 100%;
-	padding-top: 40px;
+	padding-top: $appServersHeaderHeight;
 }

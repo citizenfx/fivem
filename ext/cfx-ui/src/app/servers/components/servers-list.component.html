@@ -12,9 +12,10 @@
 		childWidth="1000"
 	>
 		<div class="dummy"></div>
-		<app-server-listing-item
+		<servers-list-item
 			[pinned]="isPinned(server)" [server]="server"
-			*ngFor="let server of localServers"
-		></app-server-listing-item>
+			[class.highlight]="i%2==0"
+			*ngFor="let server of localServers; let i = index"
+		></servers-list-item>
 	</virtual-scroll>
 </div>
