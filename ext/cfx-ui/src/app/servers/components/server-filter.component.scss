@@ -15,7 +15,7 @@ a {
 		input.name {
 			width: 100%;
 			height: $appServersHeaderHeight;
-			padding: $padding $padding*$multiplier;
+			padding: $padding $padding;
 
 			color: $secondaryColour;
 
@@ -68,11 +68,23 @@ a {
 					width: 100%;
 
 					font-size: 14px;
-					padding: $padding/2 $padding*$multiplier;
+					padding: $padding/2 $padding;
 
 					background-color: rgba($bgColour, .1);
 
 					transition: all .2s ease;
+
+					&::before {
+						content: '';
+						display: inline-block;
+						font-size: 12px;
+						width: 10px;
+						height: 10px;
+						overflow: hidden;
+						line-height: 1;
+						box-shadow: 0 0 0 1px $secondaryColour;
+						margin-right: 5px;
+					}
 				}
 
 				&:hover label {
@@ -82,6 +94,10 @@ a {
 				input:checked + label {
 					background: $greenyColour;
 					box-shadow: 0 0 25px darken($greenyColour, 10%);
+
+					&::before {
+						content: '✓';
+					}
 				}
 			}
 		}
@@ -118,7 +134,7 @@ a {
 				font-weight: normal;
 				cursor: default;
 
-				padding: $padding $padding*$multiplier;
+				padding: $padding $padding;
 				margin-bottom: $padding/2;
 
 				background-color: rgba($bgColour, .1);
@@ -132,7 +148,7 @@ a {
 
 				overflow-x: hidden;
 
-				padding: $padding/2 $padding*$multiplier;
+				padding: $padding/2 $padding;
 				margin-bottom: $padding/4;
 
 				background-color: rgba($bgColour, .1);

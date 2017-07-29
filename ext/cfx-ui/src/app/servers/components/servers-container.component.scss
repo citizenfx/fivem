@@ -16,13 +16,13 @@
 			top: 0;
 			left: 0;
 			bottom: 0;
-			width: 30%;
+			width: 20%;
 		}
 
 		article {
 			position: relative;
-			width: calc(100% - 30% - 5px);
-			margin-left: calc(30% + 5px);
+			width: calc(100% - 20% - 5px);
+			margin-left: calc(20% + 5px);
 			background-color: rgba($bgColour, .1);
 		}
 	}

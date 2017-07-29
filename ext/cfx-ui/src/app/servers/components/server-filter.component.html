@@ -3,7 +3,7 @@
         <input class="name" type="search" placeholder="Search" [(ngModel)]="filters.searchText" (ngModelChange)="updateFilters()">
     </section>
 
-    <section class="filter attract-next">
+    <section class="filter">
         <div class="checkboxes">
             <div class="checkbox">
                 <input type="checkbox" id="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
@@ -12,15 +12,6 @@
             <div class="checkbox">
                 <input type="checkbox" id="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
                 <label for="hide-full" translate>#ServerList_HideFull</label>
-            </div>
-        </div>
-    </section>
-
-    <section class="filter">
-        <div class="slider">
-            <div class="bar"></div>
-            <div class="inner">
-                <span translate>#ServerList_MaxPing</span>: {{ filters.maxPing }}
             </div>
         </div>
     </section>
