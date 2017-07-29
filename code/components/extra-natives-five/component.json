@@ -5,7 +5,8 @@
 		"fx[2]",
 		"scripting",
 		"gta:core:five",
-		"gta:streaming:five"
+		"gta:streaming:five",
+		"handling-loader:five"
 	],
 	"provides": []
 }
