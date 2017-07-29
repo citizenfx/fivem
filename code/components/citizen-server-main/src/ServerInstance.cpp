@@ -90,6 +90,9 @@ namespace fx
 			// invoke target events
 			OnServerCreate(this);
 
+			// start sessionmanager
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+
 			for (const auto& bit : optionParser->GetArguments())
 			{
 				consoleCtx->ExecuteSingleCommandDirect(bit);

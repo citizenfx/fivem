@@ -148,6 +148,9 @@ static InitFunction initFunction([]()
 		// get the owning server instance
 		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
+		// clear the old list
+		clients.clear();
+
 		// get the client registry
 		auto registry = instance->GetComponent<fx::ClientRegistry>();
 

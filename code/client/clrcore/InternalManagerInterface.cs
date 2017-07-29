@@ -4,7 +4,7 @@ namespace CitizenFX.Core
 {
 	interface InternalManagerInterface
 	{
-		void SetScriptHost(IntPtr host, int instanceId);
+		void SetScriptHost(IScriptHost host, int instanceId);
 
 		void CreateAssembly(byte[] assemblyData, byte[] symbolData);
 

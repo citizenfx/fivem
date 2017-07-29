@@ -152,6 +152,14 @@ if _OPTIONS['game'] ~= 'server' then
 		pchheader "StdInc.h"
 end
 
+function premake.vstudio.cs2005.debugProps(cfg)
+	if cfg.symbols == premake.ON then
+		_p(2,'<DebugSymbols>true</DebugSymbols>')
+	end
+	_p(2,'<DebugType>portable</DebugType>')
+	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
+end
+
 	project "CitiMono"
 		targetname "CitizenFX.Core"
 		language "C#"

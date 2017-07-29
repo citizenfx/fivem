@@ -3,8 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"vendor:boost_filesystem",
-		"scripthookv"
+		"vendor:boost_filesystem"
 	],
 	"provides": []
 }

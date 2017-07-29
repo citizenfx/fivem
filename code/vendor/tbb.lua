@@ -11,7 +11,7 @@ return {
 
 		includedirs { "../vendor/tbb/src/", "../vendor/tbb/src/rml/include/", "../vendor/tbb/build/vs2012/" }
 
-		defines { '__TBB_BUILD', '__TBB_DYNAMIC_LOAD_ENABLED=0', '_TBB_USE_DEBUG=0' }
+		defines { '__TBB_BUILD', '__TBB_DYNAMIC_LOAD_ENABLED=0', '_TBB_USE_DEBUG=0', '_HAS_STD_BYTE=0' }
 
 		files_project "../vendor/tbb/" {
 			"src/tbb/concurrent_hash_map.cpp",

@@ -26,6 +26,7 @@ build_client:
       - code/build/
   except:
     - server-ci
+    - tags
 
 build_server_windows:
   <<: *build_windows
@@ -37,6 +38,8 @@ build_server_windows:
   artifacts:
     paths:
       - out/server.zip
+  except:
+    - tags
   cache:
     key: server
     untracked: true
@@ -53,6 +56,8 @@ build_proot_linux:
   artifacts:
     paths:
       - fx.tar.xz
+  except:
+    - tags
   tags:
     - linux
 
@@ -72,6 +77,7 @@ deploy_specific:
   except:
     - master
     - server-ci
+    - tags
 
 deploy_canary:
   stage: deploy

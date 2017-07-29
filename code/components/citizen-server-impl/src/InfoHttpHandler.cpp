@@ -13,6 +13,8 @@
 
 #include <json.hpp>
 
+#include <cfx_version.h>
+
 using json = nlohmann::json;
 
 inline uint32_t SwapLong(uint32_t x)
@@ -40,7 +42,7 @@ static InitFunction initFunction([]()
 			int infoHash;
 
 			InfoData()
-				: infoHash(0), infoJson({ { "server", "FXServer-pre" }, { "enhancedHostSupport", true }, { "resources", { } } })
+				: infoHash(0), infoJson({ { "server", "FXServer-" GIT_DESCRIPTION }, { "enhancedHostSupport", true }, { "resources", { } } })
 			{
 				Update();
 			}

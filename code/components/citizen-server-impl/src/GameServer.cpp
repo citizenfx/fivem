@@ -361,6 +361,13 @@ namespace fx
 			m_nextHeartbeatTime = msec() + (180 * 1000);
 		}
 
+		{
+			auto ctx = GetInstance()->GetComponent<console::Context>();
+
+			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+			ctx->ExecuteBuffer();
+		}
+
 		OnTick();
 	}
 
@@ -388,7 +395,7 @@ namespace fx
 			->GetComponent<fx::ResourceEventManagerComponent>()
 			->TriggerEvent2(
 				"playerDropped",
-				{ fmt::sprintf("%d", client->GetNetId()) },
+				{ fmt::sprintf("net:%d", client->GetNetId()) },
 				realReason
 			);
 
@@ -685,7 +692,7 @@ namespace fx
 				// check if the current host is being vouched for
 				auto currentHost = clientRegistry->GetHost();
 
-				if (currentHost || currentHost->GetNetId() == allegedNewId)
+				if (currentHost && currentHost->GetNetId() == allegedNewId)
 				{
 					trace("Got a late vouch for %s - they're the current arbitrator!\n", currentHost->GetName());
 					return;
@@ -701,7 +708,7 @@ namespace fx
 				}
 
 				// count the total amount of living (networked) clients
-				int numClients;
+				int numClients = 0;
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{

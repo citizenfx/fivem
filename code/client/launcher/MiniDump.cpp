@@ -411,6 +411,16 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 												wcscpy(filename, L"\\FiveM.exe");
 											}
 
+											// lowercase the filename
+											for (wchar_t* p = filename; *p; ++p)
+											{
+												if (*p >= 'A' && *p <= 'Z')
+												{
+													*p += 0x20;
+												}
+											}
+
+											// create the string
 											moduleBaseString = va(L"%s+%X", wcsrchr(filename, '\\') + 1, (uintptr_t)((char*)ex.ExceptionAddress - (char*)module));
 
 											crashHash = moduleBaseString;

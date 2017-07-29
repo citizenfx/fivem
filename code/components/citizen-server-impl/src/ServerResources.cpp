@@ -228,15 +228,6 @@ static InitFunction initFunction([]()
 
 		ScanResources(instance);
 
-		{
-			auto sessionmanager = resman->GetResource("sessionmanager");
-
-			if (sessionmanager.GetRef())
-			{
-				sessionmanager->Start();
-			}
-		}
-
 		static auto commandRef = instance->AddCommand("start", [=](const std::string& resourceName)
 		{
 			if (resourceName.empty())

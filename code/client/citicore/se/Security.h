@@ -125,6 +125,8 @@ inline se::Context* seGetCurrentContext()
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "seGetCurrentContext");
 	}
 
+	assert(func);
+
 	return (func) ? func() : 0;
 }
 

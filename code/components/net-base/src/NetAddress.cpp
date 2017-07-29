@@ -117,7 +117,7 @@ socklen_t PeerAddress::GetSocketAddressLength() const
 	}
 }
 
-std::string PeerAddress::ToString() const
+std::string PeerAddress::GetHost() const
 {
 	// ensure networking is initialized
 	EnsureNetInitialized();
@@ -125,39 +125,46 @@ std::string PeerAddress::ToString() const
 	// call inet_ntop on it
 	char stringBuf[256];
 	int family = m_addr.addr.ss_family;
+
+	switch (family)
+	{
+	case AF_INET:
+		inet_ntop(AF_INET, const_cast<in_addr*>(&m_addr.in4.sin_addr), stringBuf, sizeof(stringBuf));
+		break;
+
+	case AF_INET6:
+		inet_ntop(AF_INET6, const_cast<in6_addr*>(&m_addr.in6.sin6_addr), stringBuf, sizeof(stringBuf));
+		break;
+	}
+
+	return (family == AF_INET6) ? fmt::sprintf("[%s]", stringBuf) : stringBuf;
+}
+
+int PeerAddress::GetPort() const
+{
+	// ensure networking is initialized
+	EnsureNetInitialized();
+
+	// get the port
+	int family = m_addr.addr.ss_family;
 	uint16_t port;
 
 	switch (family)
 	{
-		case AF_INET:
-			inet_ntop(AF_INET, const_cast<in_addr*>(&m_addr.in4.sin_addr), stringBuf, sizeof(stringBuf));
+	case AF_INET:
+		port = m_addr.in4.sin_port;
+		break;
 
-			port = m_addr.in4.sin_port;
-			break;
-
-		case AF_INET6:
-			inet_ntop(AF_INET6, const_cast<in6_addr*>(&m_addr.in6.sin6_addr), stringBuf, sizeof(stringBuf));
-
-			port = m_addr.in6.sin6_port;
-			break;
+	case AF_INET6:
+		port = m_addr.in6.sin6_port;
+		break;
 	}
 
-	// create a string
-	std::string str;
+	return static_cast<int>(ntohs(port));
+}
 
-	// add brackets if IPv6
-	if (family == AF_INET6)
-	{
-		str = va("[%s]", stringBuf);
-	}
-	else
-	{
-		str = stringBuf;
-	}
-
-	// and add the port
-	str += ":" + std::to_string(ntohs(port));
-
-	return str;
+std::string PeerAddress::ToString() const
+{
+	return fmt::sprintf("%s:%d", GetHost(), GetPort());
 }
 }

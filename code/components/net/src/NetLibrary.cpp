@@ -516,7 +516,7 @@ struct GetAuthSessionTicketResponse_t
 	int m_eResult;
 };
 
-void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
+void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 {
 	if (m_connectionState != CS_IDLE)
 	{
@@ -558,10 +558,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		}
 	} es(this);
 
+	m_currentServer = NetAddress(address.GetSocketAddress());
 	m_connectionState = CS_INITING;
-	m_currentServer = NetAddress(hostname, port);
 
-	AddCrashometry("last_server", "%s:%d", hostname, port);
+	AddCrashometry("last_server", "%s", address.ToString());
 
 	if (m_impl)
 	{
@@ -570,21 +570,12 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	m_outSequence = 0;
 
-	wchar_t wideHostname[256];
-	mbstowcs(wideHostname, hostname, _countof(wideHostname) - 1);
-
-	wideHostname[255] = L'\0';
-
-	fwWString wideHostnameStr = wideHostname;
-
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
 	static std::function<void()> performRequest;
-
-	uint16_t capturePort = port;
 
 	postMap["guid"] = va("%lld", GetGUID());
 
@@ -629,7 +620,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				newMap["guid"] = va("%lld", GetGUID());
 				newMap["token"] = m_token;
 
-				m_httpClient->DoPostRequest(wideHostname, port, L"/client", newMap, handleAuthResult);
+				m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), newMap, handleAuthResult);
 
 				return;
 			}
@@ -652,7 +643,21 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 				m_connectionState = CS_IDLE;
 				return;
 			}
-			else Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
+			else
+			{
+				Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
+			}
+
+			m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+			{
+				if (success)
+				{
+					if (std::string(data, length).find("yes") != std::string::npos)
+					{
+						Instance<ICoreGameInit>::Get()->ShAllowed = false;
+					}
+				}
+			});
 
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
 
@@ -685,10 +690,10 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 
 	performRequest = [=]()
 	{
-		m_httpClient->DoPostRequest(wideHostname, port, L"/client", postMap, handleAuthResult);
+		m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), postMap, handleAuthResult);
 	};
 
-	m_httpClient->DoGetRequest(L"runtime.fivem.net", 80, fmt::sprintf(L"/blacklist/%s_%d", ToWide(hostname), port), [=](bool success, const char* data, size_t length)
+	m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
 	{
 		if (success)
 		{
@@ -696,7 +701,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		}
 	});
 
-	m_httpClient->DoGetRequest(L"runtime.fivem.net", 80, fmt::sprintf(L"/blacklist/%s", ToWide(hostname)), [=](bool success, const char* data, size_t length)
+	m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), [=](bool success, const char* data, size_t length)
 	{
 		if (success)
 		{
@@ -772,7 +777,7 @@ void NetLibrary::ConnectToServer(const char* hostname, uint16_t port)
 		}
 	};
 
-	m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", fmt::sprintf("%s:%d", hostname, port) }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
+	m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", address.ToString() }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
 	{
 		if (success)
 		{

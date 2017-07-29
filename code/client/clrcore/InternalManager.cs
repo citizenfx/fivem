@@ -35,9 +35,16 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		public void SetScriptHost(IntPtr host, int instanceId)
+		public void SetScriptHost(IScriptHost host, int instanceId)
 		{
-			ScriptHost = (IScriptHost)Marshal.GetObjectForIUnknown(host);
+			ScriptHost = host;
+			ms_instanceId = instanceId;
+		}
+
+		[SecuritySafeCritical]
+		public void SetScriptHost(IntPtr hostPtr, int instanceId)
+		{
+			ScriptHost = (IScriptHost)Marshal.GetObjectForIUnknown(hostPtr);
 			ms_instanceId = instanceId;
 		}
 
@@ -117,14 +124,22 @@ namespace CitizenFX.Core
 				}
 				catch
 				{
-					// nothing
+					try
+					{
+						var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".pdb")));
+						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+					}
+					catch
+					{
+						// nothing
+					}
 				}
 
 				return CreateAssemblyInternal(assemblyBytes, symbolBytes);
 			}
-			catch
+			catch (Exception e)
 			{
-				// ignored
+				Debug.WriteLine($"Exception loading assembly {name}: {e}");
 			}
 
 			return null;

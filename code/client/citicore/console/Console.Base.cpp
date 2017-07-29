@@ -7,7 +7,12 @@
 
 namespace console
 {
-static std::vector<void (*)(ConsoleChannel, const char*)> g_printListeners;
+static void PrintfTraceListener(ConsoleChannel channel, const char* out)
+{
+	printf("%s", out);
+}
+
+static std::vector<void(*)(ConsoleChannel, const char*)> g_printListeners = { PrintfTraceListener };
 static int g_useDeveloper;
 
 void Printf(ConsoleChannel channel, const char* format, const fmt::ArgList& argList)

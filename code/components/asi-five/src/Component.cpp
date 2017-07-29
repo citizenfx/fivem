@@ -11,6 +11,8 @@
 #include <boost/filesystem.hpp>
 #include <wchar.h>
 
+#include <LaunchMode.h>
+
 #include <Error.h>
 
 #pragma comment(lib, "version.lib")
@@ -121,45 +123,48 @@ bool ComponentInstance::DoGameLoad(void* module)
 				bool bad = false;
 				std::wstring badFileName;
 
-				DWORD versionInfoSize = GetFileVersionInfoSize(it->path().c_str(), nullptr);
-
-				if (versionInfoSize)
+				if (!CfxIsSinglePlayer())
 				{
-					std::vector<uint8_t> versionInfo(versionInfoSize);
+					DWORD versionInfoSize = GetFileVersionInfoSize(it->path().c_str(), nullptr);
 
-					if (GetFileVersionInfo(it->path().c_str(), 0, versionInfo.size(), &versionInfo[0]))
+					if (versionInfoSize)
 					{
-						void* fixedInfoBuffer;
-						UINT fixedInfoSize;
+						std::vector<uint8_t> versionInfo(versionInfoSize);
 
-						VerQueryValue(&versionInfo[0], L"\\StringFileInfo\\040904b0\\OriginalFilename", &fixedInfoBuffer, &fixedInfoSize);
+						if (GetFileVersionInfo(it->path().c_str(), 0, versionInfo.size(), &versionInfo[0]))
+						{
+							void* fixedInfoBuffer;
+							UINT fixedInfoSize;
 
-						badFileName = std::wstring((wchar_t*)fixedInfoBuffer, fixedInfoSize);
+							VerQueryValue(&versionInfo[0], L"\\StringFileInfo\\040904b0\\OriginalFilename", &fixedInfoBuffer, &fixedInfoSize);
+
+							badFileName = std::wstring((wchar_t*)fixedInfoBuffer, fixedInfoSize);
+						}
 					}
-				}
 
-				for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt){
-					
-					if (*itt != L"")
-					{
-						if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0) {
-							bad = true;
-							trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
-							if (*itt == L"openiv.asi")
-							{
-								FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
+					for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt) {
+
+						if (*itt != L"")
+						{
+							if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0) {
+								bad = true;
+								trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+								if (*itt == L"openiv.asi")
+								{
+									FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
+								}
 							}
 						}
 					}
-				}
 
-				if (!bad)
-				{
-					if (IsCLRAssembly(it->path()))
+					if (!bad)
 					{
-						trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+						if (IsCLRAssembly(it->path()))
+						{
+							trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
 
-						bad = true;
+							bad = true;
+						}
 					}
 				}
 

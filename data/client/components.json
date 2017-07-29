@@ -50,5 +50,6 @@
 	"citizen:scripting:mono",
 	"adhesive",
 	"devtools:five",
-	"tool:vehrec"
+	"tool:vehrec",
+	"extra-natives:five"
 ]

@@ -11,6 +11,8 @@
 
 #include <json.hpp>
 
+#include <tbb/concurrent_vector.h>
+
 using json = nlohmann::json;
 
 static InitFunction initFunction([]()
@@ -28,24 +30,39 @@ static InitFunction initFunction([]()
 
 			if (resource)
 			{
+				// parse passed argument data
 				auto unpacked = json::parse(std::string(context.CheckArgument<const char*>(0), context.GetArgument<size_t>(1)));
 
+				// get method
 				auto method = unpacked.value<std::string>("method", "GET");
-				auto headerArray = unpacked.value<std::map<std::string, json>>("headers", {});
 
+				// get headers from the passed data
 				std::map<std::string, std::string, cpr::CaseInsensitiveCompare> headerMap;
-				for (const auto& header : headerArray)
+
+				if (unpacked["headers"].is_object())
 				{
-					headerMap.insert({ header.first, header.second.get<std::string>() });
+					auto headerArray = unpacked.value<std::map<std::string, json>>("headers", {});
+
+					for (const auto& header : headerArray)
+					{
+						headerMap.insert({ header.first, header.second.get<std::string>() });
+					}
 				}
 
+				// get URL/body, make CPR structures
 				auto url = cpr::Url{ unpacked.value<std::string>("url", "") };
 				auto body = cpr::Body{ unpacked.value<std::string>("data", "") };
 				auto headers = cpr::Header{
 					headerMap
 				};
 
+				// create token
 				int token = reqToken.fetch_add(1);
+
+				// callback to enqueue events
+				auto future = std::make_shared<std::unique_ptr<std::future<void>>>();
+
+				static tbb::concurrent_vector<decltype(future)> futureCleanup;
 
 				auto cb = [=](cpr::Response r)
 				{
@@ -57,35 +74,42 @@ static InitFunction initFunction([]()
 					{
 						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, r.status_code, r.text, r.header);
 					}
+
+					futureCleanup.push_back(future);
 				};
 
+				// remove completed futures
+				// merely by the virtue of being in this list they're guaranteed-completed, so can be safely removed without blocking
+				futureCleanup.clear();
+
+				// invoke cpr::*Callback
 				if (method == "GET")
 				{
-					cpr::GetCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::GetCallback(cb, url, body, headers));
 				}
 				else if (method == "POST")
 				{
-					cpr::PostCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::PostCallback(cb, url, body, headers));
 				}
 				else if (method == "HEAD")
 				{
-					cpr::HeadCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::HeadCallback(cb, url, body, headers));
 				}
 				else if (method == "OPTIONS")
 				{
-					cpr::OptionsCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::OptionsCallback(cb, url, body, headers));
 				}
 				else if (method == "PUT")
 				{
-					cpr::PutCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::PutCallback(cb, url, body, headers));
 				}
 				else if (method == "DELETE")
 				{
-					cpr::DeleteCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::DeleteCallback(cb, url, body, headers));
 				}
 				else if (method == "PATCH")
 				{
-					cpr::PatchCallback(cb, url, body, headers);
+					*future = std::make_unique<std::future<void>>(cpr::PatchCallback(cb, url, body, headers));
 				}
 				else
 				{

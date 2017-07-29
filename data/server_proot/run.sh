@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # save the script directory
 # from https://stackoverflow.com/a/4774063/223967

@@ -299,7 +299,7 @@ static InitFunction initFunction([]()
 					*returnedCb = true;
 				});
 
-				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
+				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 

@@ -32,7 +32,13 @@ namespace CitizenFX.Core
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
+
+				// TODO: figure out a cleaner solution so server doesn't have to be slower
+#if IS_FXSERVER
+				m_intManager.SetScriptHost(new WrapScriptHost(host), m_instanceId);
+#else
 				m_intManager.SetScriptHost(Marshal.GetIUnknownForObject(host), m_instanceId);
+#endif
 			}
 			catch (Exception e)
 			{
@@ -190,6 +196,73 @@ namespace CitizenFX.Core
 		public PushRuntime GetPushRuntime()
 		{
 			return new PushRuntime(this);
+		}
+
+		public class WrapIStream : MarshalByRefObject, fxIStream
+		{
+			private readonly fxIStream m_realStream;
+
+			public WrapIStream(fxIStream realStream)
+			{
+				m_realStream = realStream;
+			}
+
+			public int Read([Out] byte[] data, int size)
+			{
+				return m_realStream.Read(data, size);
+			}
+
+			public int Write(byte[] data, int size)
+			{
+				return m_realStream.Write(data, size);
+			}
+
+			public long Seek(long offset, int origin)
+			{
+				return m_realStream.Seek(offset, origin);
+			}
+
+			public long GetLength()
+			{
+				return m_realStream.GetLength();
+			}
+		}
+
+		public class WrapScriptHost : MarshalByRefObject, IScriptHost
+		{
+			private readonly IScriptHost m_realHost;
+
+			public WrapScriptHost(IScriptHost realHost)
+			{
+				m_realHost = realHost;
+			}
+
+			public void InvokeNative([MarshalAs(UnmanagedType.Struct)] ref fxScriptContext context)
+			{
+				m_realHost.InvokeNative(ref context);
+			}
+
+			[return: MarshalAs(UnmanagedType.Interface)]
+			public fxIStream OpenSystemFile([MarshalAs(UnmanagedType.LPStr)] string fileName)
+			{
+				return new WrapIStream(m_realHost.OpenSystemFile(fileName));
+			}
+
+			[return: MarshalAs(UnmanagedType.Interface)]
+			public fxIStream OpenHostFile([MarshalAs(UnmanagedType.LPStr)] string fileName)
+			{
+				return new WrapIStream(m_realHost.OpenHostFile(fileName));
+			}
+
+			public IntPtr CanonicalizeRef(int localRef, int instanceId)
+			{
+				return m_realHost.CanonicalizeRef(localRef, instanceId);
+			}
+
+			public void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message)
+			{
+				m_realHost.ScriptTrace(message);
+			}
 		}
 	}
 }

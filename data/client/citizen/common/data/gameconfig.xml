@@ -459,6 +459,10 @@
 							<PoolSize value="37000"/>
 						</Item>
 						<Item>
+							<PoolName>fwScriptGuid</PoolName>
+							<PoolSize value="40000"/>
+						</Item>
+						<Item>
 							<PoolName>ScenarioCarGensPerRegion</PoolName>
 							<PoolSize value="80"/>
 						</Item>

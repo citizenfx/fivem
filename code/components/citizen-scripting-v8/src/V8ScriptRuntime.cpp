@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -7,11 +7,18 @@
 
 #include "StdInc.h"
 #include "fxScripting.h"
+#include <ManifestVersion.h>
+
+#ifndef IS_FXSERVER
+static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
+	{ "natives_universal.js", guid_t{ 0 } }
+};
+#endif
 
 #include <include/v8.h>
 #include <include/v8-profiler.h>
+#include <include/libplatform/libplatform.h>
 
-#include <V8Platform.h>
 #include <V8Debugger.h>
 
 #include <om/OMComponent.h>
@@ -20,11 +27,21 @@
 
 #include <Error.h>
 
+static const char* g_platformScripts[] = {
+	"citizen:/scripting/v8/console.js",
+	"citizen:/scripting/v8/timer.js",
+	"citizen:/scripting/v8/msgpack.js",
+	"citizen:/scripting/v8/eventemitter2.js",
+	"citizen:/scripting/v8/main.js"
+};
+
 using namespace v8;
 
 namespace fx
 {
 static Isolate* GetV8Isolate();
+
+static Platform* GetV8Platform();
 
 struct PointerFieldEntry
 {
@@ -67,6 +84,10 @@ private:
 	TDeleteRefRoutine m_deleteRefRoutine;
 
 	IScriptHost* m_scriptHost;
+
+	IScriptHostWithResourceData* m_resourceHost;
+
+	IScriptHostWithManifest* m_manifestHost;
 
 	int m_instanceId;
 
@@ -961,8 +982,35 @@ static void V8_StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set(JSON::Parse(String::NewFromUtf8(args.GetIsolate(), jsonString.c_str(), NewStringType::kNormal, jsonString.size()).ToLocalChecked()));
 }
 
+static void V8_Trace(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	bool first = true;
+
+	for (int i = 0; i < args.Length(); i++)
+	{
+		Locker locker(args.GetIsolate());
+		Isolate::Scope isolateScope(args.GetIsolate());
+		v8::HandleScope handle_scope(args.GetIsolate());
+
+		if (first)
+		{
+			first = false;
+		}
+		else
+		{
+			printf(" ");
+		}
+
+		v8::String::Utf8Value str(args[i]);
+		trace("%s", *str);
+	}
+
+	trace("\n");
+}
+
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
+	{ "trace", V8_Trace },
 	{ "setTickFunction", V8_SetTickFunction },
 	{ "setEventFunction", V8_SetEventFunction },
 	// ref stuff
@@ -1086,6 +1134,19 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	// assign the script host
 	m_scriptHost = scriptHost;
 
+	{
+		fx::OMPtr<IScriptHost> ptr(scriptHost);
+		fx::OMPtr<IScriptHostWithResourceData> resourcePtr;
+		ptr.As(&resourcePtr);
+
+		m_resourceHost = resourcePtr.GetRef();
+
+		fx::OMPtr<IScriptHostWithManifest> manifestPtr;
+		ptr.As(&manifestPtr);
+
+		m_manifestHost = manifestPtr.GetRef();
+	}
+
 	// create a scope to hold handles we use here
 	Locker locker(GetV8Isolate());
 	Isolate::Scope isolateScope(GetV8Isolate());
@@ -1094,29 +1155,9 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	// create global state
 	Local<ObjectTemplate> global = ObjectTemplate::New(GetV8Isolate());
 
-	// add a 'print' function for testing
+	// add a 'print' function as alias for Citizen.trace for testing
 	global->Set(String::NewFromUtf8(GetV8Isolate(), "print", NewStringType::kNormal).ToLocalChecked(),
-				FunctionTemplate::New(GetV8Isolate(), [] (const v8::FunctionCallbackInfo<v8::Value>& args)
-	{
-		bool first = true;
-		for (int i = 0; i < args.Length(); i++)
-		{
-			Locker locker(args.GetIsolate());
-			Isolate::Scope isolateScope(args.GetIsolate());
-			v8::HandleScope handle_scope(args.GetIsolate());
-			if (first)
-			{
-				first = false;
-			}
-			else
-			{
-				printf(" ");
-			}
-			v8::String::Utf8Value str(args[i]);
-			trace("%s", *str);
-		}
-		trace("\n");
-	}));
+				FunctionTemplate::New(GetV8Isolate(), V8_Trace));
 
 	// create Citizen call routines
 	Local<ObjectTemplate> citizenObject = ObjectTemplate::New(GetV8Isolate());
@@ -1149,12 +1190,35 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	// set the 'window' variable to the global itself
 	context->Global()->Set(String::NewFromUtf8(GetV8Isolate(), "window", NewStringType::kNormal).ToLocalChecked(), context->Global());
 
+	std::string nativesBuild = "natives_universal.js";
+
+	{
+		for (const auto& versionPair : g_scriptVersionPairs)
+		{
+			bool isGreater;
+
+			if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionBetween(std::get<ManifestVersion>(versionPair).guid, guid_t{ 0 }, &isGreater)) && isGreater)
+			{
+				nativesBuild = std::get<const char*>(versionPair);
+			}
+		}
+	}
+
 	// run system scripts
 	result_t hr;
 
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/v8/main.js")))
+	// Loading natives
+	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/v8/%s", nativesBuild)))))
 	{
 		return hr;
+	}
+
+	for (const char* platformScript : g_platformScripts)
+	{
+		if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(platformScript))))
+		{
+			return hr;
+		}
 	}
 
 	return FX_S_OK;
@@ -1317,6 +1381,8 @@ result_t V8ScriptRuntime::Tick()
 	{
 		V8PushEnvironment pushed(this);
 
+		v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
+
 		m_tickRoutine();
 	}
 
@@ -1412,6 +1478,11 @@ public:
 
 	~V8ScriptGlobals();
 
+	inline Platform* GetPlatform()
+	{
+		return m_platform.get();
+	}
+
 	inline Isolate* GetIsolate()
 	{
 		if (Isolate::GetCurrent() != m_isolate)
@@ -1428,6 +1499,11 @@ static V8ScriptGlobals g_v8;
 static Isolate* GetV8Isolate()
 {
 	return g_v8.GetIsolate();
+}
+
+static Platform* GetV8Platform()
+{
+	return g_v8.GetPlatform();
 }
 
 V8ScriptGlobals::V8ScriptGlobals()
@@ -1455,7 +1531,7 @@ V8ScriptGlobals::V8ScriptGlobals()
 	V8::SetSnapshotDataBlob(&snapshotBlob);
 
 	// initialize platform
-	m_platform = std::make_unique<V8Platform>();
+	m_platform = std::unique_ptr<v8::Platform>(v8::platform::CreateDefaultPlatform());
 	V8::InitializePlatform(m_platform.get());
 
 #if 0

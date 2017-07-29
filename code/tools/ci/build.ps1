@@ -89,6 +89,8 @@ if ($env:CI) {
     	$Triggerer = $env:APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL
 
     	$UploadBranch = $env:APPVEYOR_REPO_BRANCH
+
+        $Tag = "vUndefined"
     } else {
     	$Branch = $env:CI_BUILD_REF_NAME
     	$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
@@ -96,6 +98,19 @@ if ($env:CI) {
     	$Triggerer = $env:GITLAB_USER_EMAIL
 
     	$UploadBranch = $env:CI_BUILD_REF_NAME
+
+    	if ($IsServer) {
+            $Tag = "v1.0.0.${env:CI_PIPELINE_ID}"
+
+            git config user.name citizenfx-ci
+            git config user.email pr@fivem.net
+    		git tag -a $Tag $env:CI_BUILD_REF -m "${env:CI_BUILD_REF_NAME}_$Tag"
+            git remote add github_tag https://$env:GITHUB_CRED@github.com/citizenfx/fivem.git
+            git push github_tag $Tag
+            git remote remove github_tag
+
+            $GlobalTag = $Tag
+    	}
     }
 
     if ($IsServer) {
@@ -218,7 +233,7 @@ if (!$DontBuild)
 
     $GameName = "five"
     $BuildPath = "$BuildRoot\five"
-    
+
     if ($IsServer) {
         $GameName = "server"
         $BuildPath = "$BuildRoot\server\windows"
@@ -231,6 +246,9 @@ if (!$DontBuild)
 
     "#pragma once
     #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
+
+    "#pragma once
+    #define GIT_DESCRIPTION ""$UploadBranch $GlobalTag win32""" | Out-File -Force shared\cfx_version.h
 
     remove-item env:\platform
 
