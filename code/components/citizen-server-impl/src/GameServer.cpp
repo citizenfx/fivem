@@ -708,7 +708,7 @@ namespace fx
 				}
 
 				// count the total amount of living (networked) clients
-				int numClients;
+				int numClients = 0;
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
