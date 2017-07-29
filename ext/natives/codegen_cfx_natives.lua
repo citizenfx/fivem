@@ -692,4 +692,179 @@ native 'END_FIND_PICKUP'
 	apiset 'client'
 	returns 'void'
 
+native 'GET_VEHICLE_FUEL_LEVEL'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_FUEL_LEVEL'
+	arguments {
+		Vehicle 'vehicle',
+		float 'level'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_OIL_LEVEL'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_OIL_LEVEL'
+	arguments {
+		Vehicle 'vehicle',
+		float 'level'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_GRAVITY'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'IS_VEHICLE_ENGINE_STARTING'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'GET_VEHICLE_WHEEL_SPEED'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'GET_VEHICLE_ACCELERATION'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_GRAVITY'
+	arguments {
+		Vehicle 'vehicle',
+		float 'gravity'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_CURRENT_RPM'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_CURRENT_RPM'
+	arguments {
+		Vehicle 'vehicle',
+		float 'rpm'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_HIGH_GEAR'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_HIGH_GEAR'
+	arguments {
+		Vehicle 'vehicle',
+		float 'gear'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_CURRENT_GEAR'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'GET_VEHICLE_STEERING_ANGLE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'GET_VEHICLE_STEERING_SCALE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_STEERING_SCALE'
+	arguments {
+		Vehicle 'vehicle',
+		float 'scale'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'IS_VEHICLE_ALARM_SET'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'GET_VEHICLE_ALARM_TIME_LEFT'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'SET_VEHICLE_ALARM_TIME_LEFT'
+	arguments {
+		Vehicle 'vehicle',
+		int 'time'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'IS_VEHICLE_WANTED'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'IS_VEHICLE_PREVIOUSLY_OWNED_BY_PLAYER'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'IS_VEHICLE_NEEDS_TO_BE_HOTWIRED'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'IS_VEHICLE_INTERIOR_LIGHT_ON'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
 -- TODO: handling field natives

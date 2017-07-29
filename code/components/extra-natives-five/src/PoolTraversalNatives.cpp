@@ -1,10 +1,12 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 
 #include <Hooking.h>
 #include <ScriptEngine.h>
 
 #include <atPool.h>
 #include <Pool.h>
+
+#include <Local.h>
 
 template<typename TEntry>
 class RefPool
@@ -37,32 +39,6 @@ public:
 	{
 		return m_count;
 	}
-};
-
-class fwEntity
-{
-public:
-	virtual ~fwEntity() = 0;
-};
-
-class CPickup : public fwEntity
-{
-
-};
-
-class CObject : public fwEntity
-{
-
-};
-
-class CVehicle : public fwEntity
-{
-
-};
-
-class CPed : public fwEntity
-{
-
 };
 
 struct PedPoolTraits
