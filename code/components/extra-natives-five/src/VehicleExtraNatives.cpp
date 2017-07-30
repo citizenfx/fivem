@@ -27,7 +27,7 @@ inline static T readValue(fwEntity* ptr, int offset)
 }
 
 template<typename T>
-inline static T writeValue(fwEntity* ptr, int offset, T value)
+inline static void writeValue(fwEntity* ptr, int offset, T value)
 {
 	*(T*)((char*)ptr + offset) = value;
 }
