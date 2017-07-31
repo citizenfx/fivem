@@ -111,6 +111,28 @@ void main()
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 
+	// check if the master process still lives
+	{
+		HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, initState->initialPid);
+
+		if (hProcess == nullptr)
+		{
+			initState->initialPid = GetCurrentProcessId();
+		}
+		else
+		{
+			DWORD exitCode = STILL_ACTIVE;
+			GetExitCodeProcess(hProcess, &exitCode);
+
+			if (exitCode != STILL_ACTIVE)
+			{
+				initState->initialPid = GetCurrentProcessId();
+			}
+
+			CloseHandle(hProcess);
+		}
+	}
+
 	// if not the master process, force devmode
 	if (!devMode)
 	{
@@ -163,18 +185,21 @@ void main()
 		// delete crashometry
 		_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
 
-		// create job
-		HANDLE hJob = CreateJobObject(nullptr, nullptr);
-
-		if (hJob)
+		if (GetFileAttributesW(MakeRelativeCitPath(L"permalauncher").c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
-			if (AssignProcessToJobObject(hJob, GetCurrentProcess()))
+			// create job
+			HANDLE hJob = CreateJobObject(nullptr, nullptr);
+
+			if (hJob)
 			{
-				JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
-				info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-				if (SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &info, sizeof(info)))
+				if (AssignProcessToJobObject(hJob, GetCurrentProcess()))
 				{
-					initState->inJobObject = true;
+					JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
+					info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+					if (SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &info, sizeof(info)))
+					{
+						initState->inJobObject = true;
+					}
 				}
 			}
 		}

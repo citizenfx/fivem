@@ -77,4 +77,6 @@ public:
 	}
 
 	void LoadIntoModule(HMODULE module);
+
+	void LoadSnapshot(IMAGE_NT_HEADERS* ntHeader);
 };
