@@ -196,6 +196,11 @@ T iat(const char* moduleName, T function, TOrdinal ordinal)
 			continue;
 		}
 
+		if (descriptor->OriginalFirstThunk == 0)
+		{
+			return nullptr;
+		}
+
 		auto nameTableEntry = getRVA<uintptr_t>(descriptor->OriginalFirstThunk);
 		auto addressTableEntry = getRVA<uintptr_t>(descriptor->FirstThunk);
 
