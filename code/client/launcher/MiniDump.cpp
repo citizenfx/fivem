@@ -498,6 +498,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			{ 42, L"Close" }
 		};
 
+		static std::wstring tempSignature = fmt::sprintf(L"Crash signature: %s\nReport ID: ... [uploading?] (use Ctrl+C to copy)", crashHash);
+
 		static TASKDIALOGCONFIG taskDialogConfig = { 0 };
 		taskDialogConfig.cbSize = sizeof(taskDialogConfig);
 		taskDialogConfig.hInstance = GetModuleHandle(nullptr);
@@ -509,7 +511,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
 		taskDialogConfig.pszMainInstruction = mainInstruction.c_str();
 		taskDialogConfig.pszContent = content.c_str();
-		taskDialogConfig.pszExpandedInformation = L"...";
+		taskDialogConfig.pszExpandedInformation = tempSignature.c_str();
 		taskDialogConfig.pfCallback = [](HWND hWnd, UINT type, WPARAM wParam, LPARAM lParam, LONG_PTR data)
 		{
 			if (type == TDN_HYPERLINK_CLICKED)
