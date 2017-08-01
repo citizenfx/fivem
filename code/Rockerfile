@@ -1,4 +1,4 @@
-FROM alpine:edge
+FROM alpine:3.6
 MOUNT ..:/src
 RUN /bin/sh /src/code/tools/ci/build_server_2.sh
 WORKDIR /opt/cfx-server
