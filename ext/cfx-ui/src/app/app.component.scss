@@ -4,7 +4,7 @@
 	display: flex;
 	position: relative;
 
-	justify-content: space-between;
+	flex-direction: column;
 
 	width: $width;
 	height: $height;

@@ -3,12 +3,13 @@
 :host {
 	display: flex;
 	width: $appContentWidth;
-	height: 100%;
-	padding-top: $padding*2;
+	height: $appContentHeight;
+	margin-top: $appContentMargin;
+	padding-left: $appContentPadding;
 
 	.servers {
 		display: flex;
-		width: $appContentWidth;
+		width: $width;
 		position: relative;
 
 		aside {
@@ -21,9 +22,8 @@
 
 		article {
 			position: relative;
-			width: calc(100% - 20% - 5px);
-			margin-left: calc(20% + 5px);
-			background-color: rgba($bgColour, .1);
+			width: calc(100% - 20% - 10px);
+			margin-left: calc(20% + 10px);
 		}
 	}
 }

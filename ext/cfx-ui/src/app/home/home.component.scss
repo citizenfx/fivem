@@ -2,21 +2,21 @@
 
 .home {
 	width: $appContentWidth;
-	height: $height;
-	padding-top: $padding*2;
+	height: $appContentHeight;
+	margin-top: $appContentMargin;
+	padding-left: $appContentPadding;
 
 	overflow-y: scroll;
 
 	.feed {
 		.message {
-			//box-shadow: 0 0 30px $bgColour;
+			background-color: rgba($bgColour, .2);
+			border-radius: 1px;
 
 			.backdroppy {
-				background-color: rgba($bgColour, .2);
-				//backdrop-filter: blur(25px);
 				padding: $padding 50px;
 
-				border-bottom: solid .5px rgba($fgColour, .1);
+				margin-bottom: $padding/4;
 			}
 
 			.message-header {

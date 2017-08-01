@@ -19,7 +19,7 @@ dl {
 	cursor: default;
 	user-select: none;
 
-	font-weight: 100;
+	font-weight: normal;
 	margin-bottom: $padding/2;
 	background-color: rgba($bgColour, .4);
 
@@ -29,7 +29,8 @@ dl {
 	}
 
 	dd.players {
-		text-align: center;
+		text-align: right;
+		padding-right: 14px;
 	}
 
 	dd.ping {

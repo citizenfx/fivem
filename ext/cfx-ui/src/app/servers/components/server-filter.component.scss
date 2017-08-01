@@ -20,8 +20,9 @@ a {
 			color: $secondaryColour;
 
 			border: none;
+			border-radius: 1px;
 			
-			background: rgba($bgColour, .1);
+			background: rgba($bgColour, .5);
 			backdrop-filter: blur(5px);
 
 			transition: all .2s ease;
@@ -67,23 +68,34 @@ a {
 					display: block;
 					width: 100%;
 
-					font-size: 14px;
+					font-size: 12px;
+					font-weight: 100;
+					line-height: 14px;
 					padding: $padding/2 $padding;
 
-					background-color: rgba($bgColour, .1);
+					background-color: rgba($secondaryColour, .1);
+					border-radius: 1px;
 
 					transition: all .2s ease;
 
 					&::before {
 						content: '';
 						display: inline-block;
-						font-size: 12px;
-						width: 10px;
-						height: 10px;
+
+						width: 11px;
+						height: 11px;
+						margin-right: $padding/2;
+						padding-left: 1px;
+
+						border-radius: 1px;
+
+						vertical-align: middle;
 						overflow: hidden;
+
+						font-size: 12px;
 						line-height: 1;
-						box-shadow: 0 0 0 1px $secondaryColour;
-						margin-right: 5px;
+
+						background-color: rgba($bgColour, .5);
 					}
 				}
 
@@ -92,11 +104,11 @@ a {
 				}
 
 				input:checked + label {
-					background: $greenyColour;
-					box-shadow: 0 0 25px darken($greenyColour, 10%);
-
 					&::before {
 						content: '✓';
+						background: $greenyColour;
+						box-shadow: 0 0 25px darken($greenyColour, 10%);
+						text-shadow: 0 0 2px rgba($bgColour, .5);
 					}
 				}
 			}
@@ -133,17 +145,19 @@ a {
 			h4 {
 				font-weight: normal;
 				cursor: default;
+				color: $textColour;
 
 				padding: $padding $padding;
 				margin-bottom: $padding/2;
 
-				background-color: rgba($bgColour, .1);
+				background-color: rgba($bgColour, .2);
 			}
 
 			.tag {
 				position: relative;
 				font-size: 12px;
-				font-weight: 100;
+				font-weight: 300;
+				line-height: 14px;
 				cursor: default;
 
 				overflow-x: hidden;
@@ -151,20 +165,40 @@ a {
 				padding: $padding/2 $padding;
 				margin-bottom: $padding/4;
 
-				background-color: rgba($bgColour, .1);
+				border-radius: 1px;
+				background-color: rgba($secondaryColour, .1);
 
-				&.active {
+				transition: all .2s ease;
+
+				&.active::before {
+					content: '✓';
 					background-color: $greenyColour;
-					text-shadow: 0 0 1px rgba($bgColour, .4);
-					box-shadow: 0 0 25px darken($greenyColour, 10%);
+					text-shadow: 0 0 1px rgba($bgColour, .5);
+					box-shadow: 0 0 15px darken($greenyColour, 10%);
 				}
 
 				&:hover {
 					background-color: rgba($bgColour, .2);
 				}
 
-				&.active:hover {
-					background-color: darken($greenyColour, 5%);
+				&::before {
+					content: '';
+					display: inline-block;
+
+					width: 11px;
+					height: 11px;
+					margin-right: $padding/2;
+					padding-left: 1px;
+
+					border-radius: 1px;
+
+					vertical-align: middle;
+					overflow: hidden;
+
+					font-size: 12px;
+					line-height: 1;
+
+					background-color: rgba($bgColour, .8);
 				}
 			}
 		}

@@ -6,12 +6,11 @@ $height: 720px;
 $padding: 10px;
 $multiplier: 1.6813;
 
-$appNavWidth: 200px;
-
-$appContentWidth: $width - $appNavWidth - $padding*3;
-
-$appNavHeight: 70px;
-$appSidesPadding: 140px;
+$appNavHeight: 50px;
+$appContentPadding: $padding*2;
+$appContentMargin: $appNavHeight;
+$appContentHeight: $height;
+$appContentWidth: $width - $appContentPadding;
 
 $appServersItemHeight: 40px;
 $appServersHeaderHeight: 40px;

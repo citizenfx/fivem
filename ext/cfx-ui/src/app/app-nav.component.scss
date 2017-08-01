@@ -1,53 +1,65 @@
 @import 'variables';
 
 :host {
-	height: $height;
-	width: $appNavWidth - $padding * 2;
+	height: $appNavHeight;
+	width: $width;
 
 	padding: $padding*2 0 $padding*2 $padding*2;
 }
 
 .app-nav-container {
 	display: flex;
-	height: $height - $padding*4;
 
-	flex-direction: column;
-	flex-grow: 0;
+	width: $appContentWidth - $appContentPadding;
+	height: $appNavHeight;
+
+	flex-direction: row;
 
 	justify-content: space-between;
 	align-content: space-between;
-
-	width: 100%;
 
 	z-index: 100;
 
 	.logo {
 		text-align: left;
 		font-size: 30px;
+		line-height: 1;
 		padding-bottom: $padding/2;
 
 		color: $textColour;
 
 		svg {
-			width: 30px;
-			height: 30px;
+			width: 21px;
+			height: 21px;
 			fill: $textColour;
 		}
 
 		.user {
 			color: $textColour;
 			font-size: 16px;
-			margin-top: $padding/2;
 		}
 	}
 
 	.close-app {
-		cursor: pointer;
-		color: $textColour;
+		display: flex;
+		align-items: flex-start;
+		justify-content: flex-end;
 
-		&:hover {
-			background-color: $bgColour;
-			box-shadow: 0 0 0 $padding $bgColour;
+		width: $appNavHeight;
+		height: $appNavHeight;
+
+		cursor: pointer;
+
+		&:hover svg {
+			fill: rgba($secondaryColour, .8);
+		}
+
+		svg {
+			fill: rgba($secondaryColour, .5);
+			width: 20px;
+			height: 20px;
+
+			transition: all .2s ease;
 		}
 	}
 
@@ -55,8 +67,7 @@
 		display: flex;
 		flex-grow: 1;
 
-		flex-direction: column;
-		justify-content: center;
+		padding-left: $padding*4;
 
 		transition: transform .2s ease-out;
 
@@ -70,17 +81,17 @@
 			display: inline-flex;
 			position: relative;
 
-			margin-top: $padding;
-
-			align-items: flex-end;
-
 			overflow: hidden;
+			padding: 0 $padding;
+
+			height: $appNavHeight - 15px;
 
 			text-decoration: none;
 			font-size: 30px;
-			font-weight: 100;
-			color: $textColour;
-			text-shadow: 0 0 1px $bgColour;
+			font-weight: 500;
+			line-height: 1;
+			text-align: center;
+			color: $secondaryColour;
 
 			transition: padding-left .2s ease;
 
@@ -89,22 +100,30 @@
 			}
 
 			&.subnav-item {
+				display: flex;
+				align-items: flex-end;
+
 				font-size: 15px;
 				margin: 0;
-				padding: $padding/2 0;
+				padding: 0 $padding/2;
+				line-height: 30px;
+
+				&:after {
+					left: $padding/2;
+					right: $padding/2;
+				}
 			}
 
 			&:after {
 				display: block;
 				content: '';
 				position: absolute;
-				top: 50%;
-				left: -4px;
+				bottom: -4px;
+				left: $padding;
+				right: $padding;
 				opacity: .5;
 
-				width: 4px;
-				height: 16px;
-				margin-top: -8px;
+				height: 4px;
 
 				border-radius: 2px;
 				background-color: $greenyColour;
@@ -112,24 +131,20 @@
 				transition: all .2s ease-out;
 			}
 
-			&.active,
-			&.active:hover {
-				padding-left: $padding;
-			}
-
-			&:hover {
-				padding-left: $padding/2;
+			&.active {
+				color: lighten($greenyColour, 10%);
+				text-shadow: 0 0 15px darken($greenyColour, 10%);
 			}
 
 			&.active::after,
 			&.active:hover::after {
-				left: -2px;
+				bottom: -2px;
 				box-shadow: 0 0 10px darken($greenyColour, 5%);
 				opacity: 1;
 			}
 
 			&:hover::after {
-				left: -2px;
+				bottom: -2px;
 			}
 		}
 	}
