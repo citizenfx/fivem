@@ -8,7 +8,9 @@
 #include "StdInc.h"
 #include "fiDevice.h"
 #include "Hooking.h"
-#include "boost\assign.hpp"
+#include "boost/assign.hpp"
+
+#include <boost/algorithm/string.hpp>
 
 #include <Error.h>
 
@@ -92,6 +94,13 @@ static InitFunction initFunction([] ()
 		device->SetPath(citRoot.c_str(), true);
 		device->Mount("citizen:/");
 
+		// mount cfx:/ -> citizen folder
+		std::string fxRoot = converter.to_bytes(MakeRelativeCitPath(L""));
+
+		rage::fiDeviceRelative* cfxDevice = new rage::fiDeviceRelative();
+		cfxDevice->SetPath(fxRoot.c_str(), true);
+		cfxDevice->Mount("cfx:/");
+
 		std::wstring cachePath = MakeRelativeCitPath(L"cache");
 
 		if (GetFileAttributes(cachePath.c_str()) == INVALID_FILE_ATTRIBUTES)
@@ -129,6 +138,54 @@ static InitFunction initFunction([] ()
 			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
 			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
 			relativeDeviceCrc->Mount("platformcrc:/");
+		}
+
+		{
+			rage::fiFindData findData;
+			auto handle = cfxDevice->FindFirst("cfx:/addons/", &findData);
+
+			if (handle != -1)
+			{
+				do
+				{
+					if ((findData.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+					{
+						std::string fn = findData.fileName;
+
+						if (boost::algorithm::ends_with(fn, ".rpf"))
+						{
+							std::string fullFn = "cfx:/addons/" + fn;
+							std::string addonRoot = "addons:/" + fn.substr(0, fn.find_last_of('.')) + "/";
+
+							rage::fiPackfile* addonPack = new rage::fiPackfile();
+							addonPack->OpenPackfile(fullFn.c_str(), true, false, 0);
+							addonPack->Mount(addonRoot.c_str());
+
+							{
+								rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
+								relativeDevice->SetPath((addonRoot + "platform/").c_str(), nullptr, true);
+								relativeDevice->Mount("platform:/");
+
+								rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
+								relativeDeviceCrc->SetPath((addonRoot + "platform/").c_str(), nullptr, true);
+								relativeDeviceCrc->Mount("platformcrc:/");
+							}
+
+							{
+								rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
+								relativeDevice->SetPath((addonRoot + "common/").c_str(), nullptr, true);
+								relativeDevice->Mount("common:/");
+
+								rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
+								relativeDeviceCrc->SetPath((addonRoot + "common/").c_str(), nullptr, true);
+								relativeDeviceCrc->Mount("commoncrc:/");
+							}
+						}
+					}
+				} while (cfxDevice->FindNext(handle, &findData));
+
+				cfxDevice->FindClose(handle);
+			}
 		}
 
 		{
