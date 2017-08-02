@@ -754,12 +754,12 @@ namespace fx
 					newClient->SetNetBase(baseNum);
 
 					// set as host and tell everyone
-					clientRegistry->SetHost(client);
+					clientRegistry->SetHost(newClient);
 
 					net::Buffer hostBroadcast;
 					hostBroadcast.Write(0xB3EA30DE);
-					hostBroadcast.Write<uint16_t>(client->GetNetId());
-					hostBroadcast.Write(client->GetNetBase());
+					hostBroadcast.Write<uint16_t>(newClient->GetNetId());
+					hostBroadcast.Write(newClient->GetNetBase());
 
 					gameServer->Broadcast(hostBroadcast);
 				}
