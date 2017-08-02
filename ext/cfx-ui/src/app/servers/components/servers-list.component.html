@@ -13,7 +13,7 @@
 	>
 		<div class="dummy"></div>
 		<servers-list-item
-			[pinned]="isPinned(server)" [server]="server"
+			[class.pinned]="isPinned(server)" [server]="server"
 			[class.highlight]="i%2==0"
 			*ngFor="let server of localServers; let i = index"
 		></servers-list-item>

@@ -1,20 +1,31 @@
-<dl (dblclick)="attemptConnect()" [contextMenu]="menu" [class.pinned]="pinned">
-    <dt class="icon">
-        <figure class="image is-32x32" (click)="attemptConnect()">
-            <img [src]="server.sanitizedUri">
-        </figure>
-    </dt>
-    <dd class="name" [innerHTML]="server.hostname | escape | colorize">
-    </dd>
-    <dd class="players">
-        {{server.currentPlayers}}/{{server.maxPlayers}}
-    </dd>
-    <dd class="ping">
-        {{server.ping >= 1000 ? '-' : server.ping}}
-    </dd>
-</dl>
-<context-menu>
-    <ng-template contextMenuItem (execute)="attemptConnect()">{{'#ServerList_Connect'|translate}}</ng-template>
-    <ng-template contextMenuItem (execute)="addFavorite()" [visible]="!isFavorite()">{{'#ServerList_AddFavorite'|translate}}</ng-template>
-    <ng-template contextMenuItem (execute)="removeFavorite()" [visible]="isFavorite()">{{'#ServerList_RemoveFavorite'|translate}}</ng-template>
-</context-menu>
+<figure class="icon" (click)="attemptConnect()">
+    <img [src]="server.sanitizedUri">
+</figure>
+
+<div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
+
+<div class="actions">
+    <button (click)="toggleFavorite()" [class.active]="isFavorite()">
+        <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            class="feather feather-star"
+        >
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+    </button>
+</div>
+
+<div class="players">
+    {{server.currentPlayers}}/{{server.maxPlayers}}
+</div>
+
+<div class="ping">
+    {{server.ping >= 1000 ? '-' : server.ping}}
+</div>

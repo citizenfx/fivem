@@ -1,7 +1,5 @@
 import { Component, Input, ViewChild } from '@angular/core';
 
-import { ContextMenuComponent } from 'ngx-contextmenu';
-
 import { Server } from '../server';
 
 import { GameService } from '../../game.service'
@@ -20,12 +18,7 @@ export class ServersListItemComponent {
     @Input()
     pinned = false;
 
-    @ViewChild(ContextMenuComponent)
-    menu: ContextMenuComponent;
-
-    constructor(private gameService: GameService) {
-
-    }
+    constructor(private gameService: GameService) { }
 
     attemptConnect() {
         this.gameService.connectTo(this.server);
@@ -33,6 +26,14 @@ export class ServersListItemComponent {
 
     isFavorite() {
         return this.gameService.isMatchingServer('favorites', this.server);
+    }
+
+    toggleFavorite() {
+        if (this.isFavorite()) {
+            this.removeFavorite();
+        } else {
+            this.addFavorite();
+        }
     }
 
     addFavorite() {

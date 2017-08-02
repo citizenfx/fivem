@@ -2,43 +2,25 @@
 
 $columns: (
 	icon: 40px,
-	name: calc(80% - 40px),
-	players: calc(5%),
-	ping: calc(10%),
+	name: 50%,
+	actions: 50px,
+	players: 80px,
+	ping: 70px,
 );
-
-dl {
-	border-radius: 1px;
-}
-
-dl, .header {
-	display: flex;
-	flex-direction: row;
-	flex-grow: 0;
-	align-items: center;
-
-	height: $appServersHeaderHeight;
-}
-
-dl > *, .header > *
-{
-	flex-grow: 1;
-	white-space: nowrap;
-	overflow-x: hidden;
-	text-overflow: ellipsis;
-
-	color: $textColour;
-}
-
-.icon
-{
-	height: 100%;
-	border-top-left-radius: 1px;
-	border-bottom-left-radius: 1px;
-}
 
 @each $key, $width in $columns {
 	.#{$key} {
 		width: $width;
+		flex-grow: 0;
+		white-space: nowrap;
+		overflow-x: hidden;
+		text-overflow: ellipsis;
+
+		color: $textColour;
+		text-align: right;
 	}
+}
+
+.name {
+	flex-grow: 1;
 }

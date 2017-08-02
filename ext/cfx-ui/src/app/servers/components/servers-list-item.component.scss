@@ -2,39 +2,98 @@
 @import "./server-listing-shared.scss";
 
 :host {
-	&.highlight {
-		dl {
-			background: rgba($secondaryColour, .05);
+	position: relative;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
 
-			&:hover {
-				background-color: rgba($bgColour, .4);
-			}
-		}
-	}
-}
+	height: $appServersItemHeight;
 
-dl {
 	transition: all .2s ease;
 
 	cursor: default;
 	user-select: none;
 
 	font-weight: normal;
-	margin-bottom: $padding/2;
+	margin-top: $padding/2;
 	background-color: rgba($bgColour, .4);
 
-	dd.name {
+	&.pinned {
+		margin-top: 0;
+
+		box-shadow: 0 0 0 100px rgba($greenyColour, .1) inset;
+	}
+
+	&:hover {
+		background-color: rgba($bgColour, .8);
+
+		.actions button {
+			opacity: 1;
+		}
+
+		figure {
+			img {
+				opacity: .25;
+			}
+
+			&:after {
+				opacity: 1;
+				text-shadow: 0 0 2px rgba($bgColour, .5);
+			}
+		}
+	}
+
+	&.highlight {
+		background: rgba($secondaryColour, .05);
+
+		&:hover {
+			background-color: rgba($bgColour, .8);
+		}
+	}
+
+	.icon {
+		width: $appServersItemHeight;
+		height: $appServersItemHeight;
+		border-top-left-radius: 1px;
+		border-bottom-left-radius: 1px;
+	}
+
+	.name {
+		text-align: left;
 		padding: 0 $padding;
 		color: $textColour;
 	}
 
-	dd.players {
-		text-align: right;
-		padding-right: 14px;
+	.actions {
+		padding-right: $padding*$multiplier;
+
+		button {
+			background: transparent;
+			border: none;
+			outline: none;
+			color: $textColour;
+			padding-top: 3px;
+			height: $appServersItemHeight;
+			opacity: 0;
+
+			transition: all .2s ease;
+
+			&:hover {
+				transform: scale(1.1);
+			}
+
+			&.active {
+				opacity: 1;
+				color: $greenyColour;
+			}
+		}
 	}
 
-	dd.ping {
-		text-align: right;
+	.players {
+		padding-right: $padding*$multiplier;
+	}
+
+	.ping {
 		padding-right: $padding*$multiplier;
 	}
 
@@ -49,55 +108,22 @@ dl {
 		}
 
 		&:after {
-			content: '▶';
-
 			position: absolute;
-			top: 2px;
-			left: 2px;
-			right: 2px;
-			bottom: 2px;
+			display: block;
+			content: '';
 
-			text-align: center;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+
 			display: flex;
 
-			justify-content: center;
-			align-content: center;
-
-			align-items: center;
-
-			font-weight: bold;
-
-			color: $greenyColour;
-
 			opacity: 0;
+
+			background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImhzbCg3NiwgMTAwJSwgNDAlKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJmZWF0aGVyIGZlYXRoZXItcGxheSI+PHBvbHlnb24gcG9pbnRzPSI1IDMgMTkgMTIgNSAyMSA1IDMiPjwvcG9seWdvbj48L3N2Zz4=);
+			background-repeat: no-repeat;
+			background-position: center center;
 		}
-	}
-
-	&:hover {
-		background-color: rgba($bgColour, .4);
-
-		figure {
-			img {
-				opacity: .25;
-			}
-
-			&:after {
-				content: '▶';
-
-				opacity: 1;
-				text-shadow: 0 0 2px rgba($bgColour, .5);
-			}
-		}
-	}
-}
-
-dl.pinned {
-	figure:after {
-		content: '📌';
-		opacity: 1.0;
-		background-color: transparent;
-
-		left: 22px;
-		top: 22px;
 	}
 }

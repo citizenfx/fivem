@@ -38,6 +38,10 @@ export class ServersListComponent implements OnInit, OnChanges {
                 label: '#ServerList_Name'
             },
             {
+                column: 'actions',
+                label: ''
+            },
+            {
                 column: 'players',
                 label: '#ServerList_Players'
             },

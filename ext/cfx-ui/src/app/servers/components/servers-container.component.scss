@@ -22,8 +22,8 @@
 
 		article {
 			position: relative;
-			width: calc(100% - 20% - 10px);
-			margin-left: calc(20% + 10px);
+			width: calc(100% - 20% - #{$padding});
+			margin-left: calc(20% + #{$padding});
 		}
 	}
 }
