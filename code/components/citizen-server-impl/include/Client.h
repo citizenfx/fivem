@@ -14,7 +14,7 @@
 namespace {
 	using namespace std::literals::chrono_literals;
 
-	constexpr const auto CLIENT_DEAD_TIMEOUT = 15s;
+	constexpr const auto CLIENT_DEAD_TIMEOUT = 10s;
 }
 
 #ifdef COMPILING_CITIZEN_SERVER_IMPL
