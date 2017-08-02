@@ -4,7 +4,8 @@ import { GameService } from '../game.service';
 @Component({
     moduleId: module.id,
     selector: 'app-settings',
-    templateUrl: 'settings.component.html'
+    templateUrl: 'settings.component.html',
+	styleUrls:   ['settings.component.scss']
 })
 
 export class SettingsComponent implements OnInit {

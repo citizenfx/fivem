@@ -1,0 +1,35 @@
+@import 'variables';
+
+:host {
+	display: flex;
+	width: $appContentWidth/$multiplier;
+	height: $appContentHeight;
+	margin-top: $appContentMargin;
+    padding-left: $appContentPadding;
+
+    flex-direction: column;
+
+    .control {
+        width: 100%;
+
+        input {
+            width: 100%;
+            background-color: rgba($bgColour, .4);
+
+            &:hover,
+            &:focus {
+                background-color: rgba($bgColour, .2);
+            }
+
+            &.invalid {
+                background-color: red;
+            }
+        }
+    }
+
+    .server-info {
+        margin-top: $padding;
+        padding: $padding $padding*$multiplier;
+        background-color: rgba($bgColour, .2);
+    }
+}

@@ -1,21 +1,21 @@
 import { Component, Input, Output, HostListener, EventEmitter } from '@angular/core';
 import { Translation, TranslationService } from 'angular-l10n';
 
-export class ServersTableHeadingColumn {
+export class ServersListHeadingColumn {
     public column: string;
     public label: string;
 }
 
 @Component({
     moduleId: module.id,
-    selector: 'servers-table-header',
-    templateUrl: 'servers-table-header.component.html',
+    selector: 'servers-list-header',
+    templateUrl: 'servers-list-header.component.html',
 
-    styleUrls: ['./servers-table-header.component.scss']
+    styleUrls: ['./servers-list-header.component.scss']
 })
-export class ServersTableHeaderComponent extends Translation {
+export class ServersListHeaderComponent extends Translation {
     @Input()
-    columns: ServersTableHeadingColumn[];
+    columns: ServersListHeadingColumn[];
 
     @Input()
     sortOrder: string[];
@@ -38,7 +38,7 @@ export class ServersTableHeaderComponent extends Translation {
         super(translation);
     }
 
-    isSorted(column: ServersTableHeadingColumn, type: String) {
+    isSorted(column: ServersListHeadingColumn, type: String) {
         return (this.sortOrder[0] == column.column && this.sortOrder[1] == type);
     }
 }

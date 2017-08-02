@@ -1,10 +1,8 @@
 import { Component, OnInit, OnChanges, Input } from '@angular/core';
 import { Server, PinConfig } from '../server';
-
-import { ServersTableHeadingColumn } from './servers-table-header.component';
+import { ServersListHeadingColumn } from './servers-list-header.component';
 import { ServerFilters } from './server-filter.component';
-
-import {Subject} from 'rxjs/Rx';
+import { Subject } from 'rxjs/Rx';
 
 @Component({
     moduleId: module.id,
@@ -12,7 +10,6 @@ import {Subject} from 'rxjs/Rx';
     templateUrl: 'servers-list.component.html',
     styleUrls: ['servers-list.component.scss']
 })
-
 export class ServersListComponent implements OnInit, OnChanges {
     @Input()
     private servers: Server[];
@@ -27,7 +24,7 @@ export class ServersListComponent implements OnInit, OnChanges {
 
     sortOrder: string[];
 
-    get columns(): ServersTableHeadingColumn[] {
+    get columns(): ServersListHeadingColumn[] {
         return [
             {
                 column: 'icon',

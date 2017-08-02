@@ -22,7 +22,7 @@ import {ServersComponent} from './servers/components/servers.component';
 import {ServersContainerComponent} from './servers/components/servers-container.component';
 import {ServersListComponent} from './servers/components/servers-list.component';
 import {ServersListItemComponent} from './servers/components/servers-list-item.component';
-import {ServersTableHeaderComponent} from './servers/components/servers-table-header.component';
+import {ServersListHeaderComponent} from './servers/components/servers-list-header.component';
 import {ServerFilterComponent} from './servers/components/server-filter.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
@@ -45,7 +45,7 @@ import {EscapePipe} from './escape.pipe';
 		ServersContainerComponent,
 		ServersListComponent,
 		ServersListItemComponent,
-		ServersTableHeaderComponent,
+		ServersListHeaderComponent,
 		ServerFilterComponent,
 		DirectConnectComponent,
 		ColorizePipe,

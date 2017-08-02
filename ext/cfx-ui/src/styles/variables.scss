@@ -1,4 +1,4 @@
-$fonts: FiraSans;
+$fonts: 'Roboto';
 
 $width: 1280px;
 $height: 720px;
@@ -9,7 +9,7 @@ $multiplier: 1.6813;
 $appNavHeight: 50px;
 $appContentPadding: $padding*2;
 $appContentMargin: $appNavHeight;
-$appContentHeight: $height;
+$appContentHeight: $height - $appNavHeight - $appContentMargin;
 $appContentWidth: $width - $appContentPadding;
 
 $appServersItemHeight: 40px;

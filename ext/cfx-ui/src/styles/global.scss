@@ -2,16 +2,21 @@
 
 @font-face
 {
-	font-family: 'FiraSans';
-	src: url(../assets/fonts/FiraSans-Regular.otf);
-	font-weight: normal;
+	font-family: 'Roboto';
+	src: url(../assets/fonts/Roboto-Light.woff);
+	font-weight: 100;
 }
-
 @font-face
 {
-	font-family: 'FiraSans';
-	src: url(../assets/fonts/FiraSans-Light.otf);
-	font-weight: 300;
+	font-family: 'Roboto';
+	src: url(../assets/fonts/Roboto-Regular.woff);
+	font-weight: normal;
+}
+@font-face
+{
+	font-family: 'Roboto';
+	src: url(../assets/fonts/Roboto-Medium.woff);
+	font-weight: bold;
 }
 
 * {
@@ -59,3 +64,28 @@ $blurSize: 20px;
 
 /* disable chromeme scrollbar */
 ::-webkit-scrollbar { width: 0 }
+
+input[type="text"],
+input[type="search"] {
+	background-color: rgba($bgColour, .2);
+	border: none;
+	border-radius: 1px;
+	color: $fgColour;
+	font-weight: 100;
+	padding: $padding $padding*$multiplier;
+
+	transition: all .2s ease;
+
+	&:focus {
+		outline: none;
+		box-shadow: 0 0 0 2px $greenyColour inset;
+	}
+	&:hover,
+	&:focus {
+		background: rgba($bgColour, .2);
+	}
+
+	&::-webkit-input-placeholder {
+		color: rgba($textColour, .6);
+	}
+}

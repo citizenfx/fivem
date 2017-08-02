@@ -16,6 +16,8 @@ export abstract class GameService {
 	connectStatus = new EventEmitter<ConnectStatus>();
 	connecting = new EventEmitter<Server>();
 
+	nicknameChange = new EventEmitter<string>();
+
 	get nickname(): string {
 		return 'UnknownPlayer';
 	}
@@ -61,6 +63,10 @@ export abstract class GameService {
 			count:   count,
 			total:   total
 		});
+	}
+
+	protected invokeNicknameChanged(name: string) {
+		this.nicknameChange.emit(name);
 	}
 }
 
@@ -150,6 +156,7 @@ export class CfxGameService extends GameService {
 	set nickname(name: string) {
 		this.realNickname = name;
 		localStorage.setItem('nickOverride', name);
+		this.invokeNicknameChanged(name);
 
 		(<any>window).invokeNative('checkNickname', name);
 	}
@@ -307,5 +314,14 @@ export class DummyGameService extends GameService {
 
 	exitGame(): void {
 		console.log('Exiting now');
+	}
+
+	get nickname(): string {
+		return window.localStorage['nickOverride'] || 'UnknownPlayer';
+	}
+
+	set nickname(name: string) {
+		window.localStorage.setItem('nickOverride', name);
+		this.invokeNicknameChanged(name);
 	}
 }

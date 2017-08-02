@@ -1,8 +1,30 @@
-	<div class="direct-connect settings tab">
-		<p class="control has-icon">
-			<input #input class="input is-small material-1" type="text" placeholder="{{'#Settings_Nickname'|translate}}" [(ngModel)]="nickname" (ngModelChange)="nameChanged($event)">
-			<span class="icon is-small">
-				<i class="fa fa-id-badge"></i>
-			</span>
-		</p>
+<section class="setting">
+	<div class="key">
+		Nickname
 	</div>
+	<div class="value">
+		<input
+			#input
+			class="text"
+			type="text"
+			placeholder="{{'#Settings_Nickname'|translate}}"
+			spellcheck="false"
+			[(ngModel)]="nickname"
+			(ngModelChange)="nameChanged($event)"
+		>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
+		Dev mode
+	</div>
+	<div class="value">
+		<div class="checkbox">
+			<input type="checkbox" id="devmode" [(ngModel)]="devmode" (ngModelChange)="toggleDevmode()">
+			<label for="devmode">
+				Enables "connect to localhost" menu item
+			</label>
+		</div>
+	</div>
+</section>

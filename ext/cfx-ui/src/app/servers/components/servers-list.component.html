@@ -1,8 +1,8 @@
-<servers-table-header
+<servers-list-header
 	[columns]="columns"
 	[sortOrder]="sortOrder"
 	(sort)="updateSorting($event)"
-></servers-table-header>
+></servers-list-header>
 
 <div class="list">
 	<virtual-scroll
@@ -14,7 +14,7 @@
 		<div class="dummy"></div>
 		<servers-list-item
 			[class.pinned]="isPinned(server)" [server]="server"
-			[class.highlight]="i%2==0"
+			[class.highlight__]="i%2==0" 
 			*ngFor="let server of localServers; let i = index"
 		></servers-list-item>
 	</virtual-scroll>

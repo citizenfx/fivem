@@ -10,8 +10,7 @@ import { Translation, TranslationService } from 'angular-l10n';
 	styleUrls:   ['app-nav.component.scss']
 })
 export class AppNavComponent extends Translation {
-	id = 'ololo';
-
+	nickname = '';
 	hasSubNav = false;
 
 	constructor(
@@ -21,11 +20,15 @@ export class AppNavComponent extends Translation {
 	) {
 		super(translation);
 
+		this.nickname = gameService.nickname;
+
 		router.events.subscribe(event => {
 			if ((<NavigationEnd>event).urlAfterRedirects) {
 				this.hasSubNav = (<NavigationEnd>event).urlAfterRedirects.startsWith('/servers');
 			}
 		});
+
+		gameService.nicknameChange.subscribe(name => this.nickname = name);
 	}
 
 	exitGame() {

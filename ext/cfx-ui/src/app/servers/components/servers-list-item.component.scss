@@ -9,7 +9,7 @@
 
 	height: $appServersItemHeight;
 
-	transition: all .2s ease;
+	transition: all .2s ease-out;
 
 	cursor: default;
 	user-select: none;
@@ -18,14 +18,22 @@
 	margin-top: $padding/2;
 	background-color: rgba($bgColour, .4);
 
+	&:nth-child(2n) {
+		//background: rgba($secondaryColour, .05);
+
+		&:hover {
+			background-color: rgba($bgColour, .8);
+		}
+	}
+
 	&.pinned {
 		margin-top: 0;
 
-		box-shadow: 0 0 0 100px rgba($greenyColour, .1) inset;
+		box-shadow: 0 0 0 100px rgba($greenyColour, .25) inset;
 	}
 
 	&:hover {
-		background-color: rgba($bgColour, .8);
+		background-color: rgba($bgColour, 1);
 
 		.actions button {
 			opacity: 1;
@@ -44,11 +52,21 @@
 	}
 
 	&.highlight {
-		background: rgba($secondaryColour, .05);
+		//background: rgba($secondaryColour, .05);
 
 		&:hover {
 			background-color: rgba($bgColour, .8);
 		}
+	}
+
+	.bg {
+		position: absolute;
+		left: 50%;
+		z-index: -1;
+
+		transform: scale(100);
+		filter: grayscale(.5);
+		opacity: .25;
 	}
 
 	.icon {
@@ -60,7 +78,7 @@
 
 	.name {
 		text-align: left;
-		padding: 0 $padding;
+		padding: 0 $padding*$multiplier;
 		color: $textColour;
 	}
 
@@ -76,7 +94,7 @@
 			height: $appServersItemHeight;
 			opacity: 0;
 
-			transition: all .2s ease;
+			transition: all .2s ease-out;
 
 			&:hover {
 				transform: scale(1.1);
@@ -107,7 +125,11 @@
 			transition: .2s ease-out;
 		}
 
-		&:after {
+		&:hover::after {
+			transform: scale(1.1);
+		}
+
+		&::after {
 			position: absolute;
 			display: block;
 			content: '';
@@ -120,6 +142,7 @@
 			display: flex;
 
 			opacity: 0;
+			transition: transform .1s ease-out;
 
 			background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImhzbCg3NiwgMTAwJSwgNDAlKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJmZWF0aGVyIGZlYXRoZXItcGxheSI+PHBvbHlnb24gcG9pbnRzPSI1IDMgMTkgMTIgNSAyMSA1IDMiPjwvcG9seWdvbj48L3N2Zz4=);
 			background-repeat: no-repeat;

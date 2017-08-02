@@ -21,6 +21,7 @@
 	z-index: 100;
 
 	.logo {
+		position: relative;
 		text-align: left;
 		font-size: 30px;
 		line-height: 1;
@@ -35,8 +36,22 @@
 		}
 
 		.user {
+			position: absolute;
+			left: 0;
+			bottom: -$padding;
+			width: $appContentWidth;
+
 			color: $textColour;
 			font-size: 16px;
+			font-weight: 100;
+
+			svg {
+				vertical-align: middle;
+				width: 13px;
+				height: 13px;
+				stroke: rgba($fgColour, .5);
+				fill: none;
+			}
 		}
 	}
 
