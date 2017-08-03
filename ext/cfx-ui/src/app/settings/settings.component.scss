@@ -1,8 +1,9 @@
 @import 'variables';
 
 :host {
-    display: block;
-    width: $appContentWidth/$multiplier;
+	display: block;
+	
+	@include fullWidthPadded(calc(100vh / #{$multiplier}));
     height: $appContentHeight;
 	margin-top: $appContentMargin;
 	padding-left: $appContentPadding;
@@ -14,7 +15,7 @@
         width: 100%;
         margin-bottom: $padding/2;
 
-        font-size: 14px;
+        font-size: 1.5rem;
         line-height: 1;
 
         .key {
@@ -64,9 +65,9 @@
                     width: 100%;
 
                     //color: rgba($fgColour, .5);
-                    font-size: 14px;
+                    font-size: 1.4rem;
 					font-weight: 100;
-					line-height: 14px;
+					line-height: 1;
 					padding: $padding $padding*$multiplier;
 
 					transition: all .2s ease;
@@ -75,18 +76,16 @@
 						content: '';
 						display: inline-block;
 
-						width: 11px;
-						height: 11px;
+						width: 15px;
+						height: 15px;
 						margin-right: $padding/2;
-						padding-left: 1px;
 
 						border-radius: 1px;
 
 						vertical-align: -1px;
 						overflow: hidden;
 
-                        color: $fgColour;
-						font-size: 12px;
+						font-size: 1rem;
 						line-height: 1;
 
 						background-color: rgba($bgColour, .5);

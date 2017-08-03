@@ -10,6 +10,7 @@ import { GameService } from '../game.service';
 
 export class SettingsComponent implements OnInit {
     nickname = '';
+    devmode = false;
 
     constructor(private gameService: GameService) { }
 
@@ -19,5 +20,9 @@ export class SettingsComponent implements OnInit {
 
     nameChanged(newName) {
         this.gameService.nickname = newName;
+    }
+
+    toggleDevmode() {
+        this.devmode = !this.devmode;
     }
 }

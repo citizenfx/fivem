@@ -2,6 +2,7 @@
 	<div
 		*ngFor="let column of columns"
 		class="{{column.column}}"
+		[class.sortable]="isSortable(column)"
 		[attr.sortName]="column.column"
 	>
             <span

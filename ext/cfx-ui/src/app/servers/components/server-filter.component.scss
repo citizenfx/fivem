@@ -55,9 +55,9 @@ a {
 					display: block;
 					width: 100%;
 
-					font-size: 12px;
+					font-size: 1rem;
 					font-weight: 100;
-					line-height: 14px;
+					line-height: 1rem;
 					padding: $padding/2 $padding;
 
 					background-color: rgba($secondaryColour, .1);
@@ -69,17 +69,16 @@ a {
 						content: '';
 						display: inline-block;
 
-						width: 11px;
-						height: 11px;
+						width: 15px;
+						height: 15px;
 						margin-right: $padding/2;
-						padding-left: 1px;
 
 						border-radius: 1px;
 
-						vertical-align: -1px;
+						vertical-align: -3px;
 						overflow: hidden;
 
-						font-size: 12px;
+						font-size: 1rem;
 						line-height: 1;
 
 						background-color: rgba($bgColour, .5);
@@ -142,14 +141,14 @@ a {
 
 			.tag {
 				position: relative;
-				font-size: 12px;
+				font-size: 1rem;
 				font-weight: 300;
-				line-height: 14px;
+				line-height: 1;
 				cursor: default;
 
 				overflow-x: hidden;
 
-				padding: $padding/2 $padding;
+				padding: $padding $padding;
 				margin-bottom: $padding/4;
 
 				border-radius: 1px;
@@ -172,17 +171,16 @@ a {
 					content: '';
 					display: inline-block;
 
-					width: 11px;
-					height: 11px;
+					width: 15px;
+					height: 15px;
 					margin-right: $padding/2;
-					padding-left: 1px;
 
 					border-radius: 1px;
 
-					vertical-align: middle;
+					vertical-align: -3px;
 					overflow: hidden;
 
-					font-size: 12px;
+					font-size: 1rem;
 					line-height: 1;
 
 					background-color: rgba($bgColour, .8);

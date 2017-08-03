@@ -4,6 +4,7 @@ import { Translation, TranslationService } from 'angular-l10n';
 export class ServersListHeadingColumn {
     public column: string;
     public label: string;
+    public sortable?: boolean = false;
 }
 
 @Component({
@@ -40,5 +41,11 @@ export class ServersListHeaderComponent extends Translation {
 
     isSorted(column: ServersListHeadingColumn, type: String) {
         return (this.sortOrder[0] == column.column && this.sortOrder[1] == type);
+    }
+
+    isSortable(column: ServersListHeadingColumn) {
+        console.log('Uhhh...', column.column, !!column.sortable);
+
+        return !!column.sortable;
     }
 }

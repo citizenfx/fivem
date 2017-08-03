@@ -1,19 +1,20 @@
 $fonts: 'Roboto';
 
-$width: 1280px;
-$height: 720px;
+$width: 100vw;
+$height: 100vh;
 
-$padding: 10px;
+$fontSize: 24px;
+$padding: 15px;
 $multiplier: 1.6813;
 
-$appNavHeight: 50px;
+$appNavHeight: 60px;
 $appContentPadding: $padding*2;
 $appContentMargin: $appNavHeight;
-$appContentHeight: $height - $appNavHeight - $appContentMargin;
-$appContentWidth: $width - $appContentPadding;
+$appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
+$appContentWidth: calc(#{$width} - #{$appContentPadding});
 
-$appServersItemHeight: 40px;
-$appServersHeaderHeight: 40px;
+$appServersItemHeight: 50px;
+$appServersHeaderHeight: 50px;
 
 $bgColour: hsl(222, 23%, 11%);
 $fgColour: hsl(60, 93%, 94%);
@@ -21,3 +22,7 @@ $secondaryColour: rgb(250, 255, 225);
 $greenyColour: hsl(76, 100%, 40%);
 $yellowColour: hsl(53, 100%, 50%);
 $textColour: rgb(200, 205, 187);
+
+@mixin fullWidthPadded($extraPadding: $padding*4) {
+    width: calc(#{$width} - #{$extraPadding});
+}

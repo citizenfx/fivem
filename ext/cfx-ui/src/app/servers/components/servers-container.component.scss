@@ -2,10 +2,11 @@
 
 :host {
 	display: flex;
-	width: $appContentWidth;
+
+	@include fullWidthPadded;
 	height: $appContentHeight;
 	margin-top: $appContentMargin;
-	padding-left: $appContentPadding;
+	margin-left: $appContentPadding;
 
 	.servers {
 		display: flex;

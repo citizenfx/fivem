@@ -3,9 +3,9 @@
 $columns: (
 	icon: 40px,
 	name: 50%,
-	actions: 50px,
-	players: 80px,
-	ping: 70px,
+	actions: 70px,
+	players: 120px,
+	ping: 90px,
 );
 
 @each $key, $width in $columns {

@@ -1,33 +1,35 @@
-<img [src]="server.sanitizedUri" class="bg">
+<div class="server-list-item">
+    <div class="bg" [style.background-image]="'url(' + server.iconUri + ')'"></div>
 
-<figure class="icon" (click)="attemptConnect()">
-    <img [src]="server.sanitizedUri">
-</figure>
+    <figure class="icon" (click)="attemptConnect()">
+        <img [src]="server.sanitizedUri">
+    </figure>
 
-<div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
+    <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
 
-<div class="actions">
-    <button (click)="toggleFavorite()" [class.active]="isFavorite()">
-        <svg 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            stroke-width="2" 
-            stroke-linecap="round" 
-            stroke-linejoin="round" 
-            class="feather feather-star"
-        >
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-        </svg>
-    </button>
-</div>
+    <div class="actions">
+        <button (click)="toggleFavorite()" [class.active]="isFavorite()">
+            <svg 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                class="feather feather-star"
+            >
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+        </button>
+    </div>
 
-<div class="players">
-    {{server.currentPlayers}}/{{server.maxPlayers}}
-</div>
+    <div class="players">
+        {{server.currentPlayers}}/{{server.maxPlayers}}
+    </div>
 
-<div class="ping">
-    {{server.ping >= 1000 ? '-' : server.ping}}
+    <div class="ping">
+        {{server.ping >= 1000 ? '-' : server.ping}}
+    </div>
 </div>

@@ -1,8 +1,9 @@
 @import 'variables';
 
 :host {
-	display: flex;
-	width: $appContentWidth/$multiplier;
+    display: flex;
+    
+	@include fullWidthPadded($padding/$multiplier);
 	height: $appContentHeight;
 	margin-top: $appContentMargin;
     padding-left: $appContentPadding;

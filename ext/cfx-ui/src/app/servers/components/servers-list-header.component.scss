@@ -19,13 +19,20 @@
 
 	div {
 		height: $appServersItemHeight;
-		font-size: 14px;
+		font-size: 1.3rem;
+		font-weight: 100;
 		line-height: $appServersItemHeight;
 
 		color: $textColour;
 		text-transform: lowercase;
 
 		cursor: default;
+
+		pointer-events: none;
+
+		&.sortable {
+			pointer-events: all;
+		}
 
 		&:hover {
 			background-color: rgba($bgColour, .2);
@@ -51,11 +58,11 @@
 			position: absolute;
 			display: block;
 			content: '';
-			width: 10px;
-			height: 10px;
+			width: 14px;
+			height: 14px;
 
 			top: calc(50% - 5px);
-			left: -12px;
+			left: -18px;
 
 			transform: rotate(0deg);
 			transition: all .2s ease;
@@ -68,12 +75,12 @@
 
 		span.sortedAscending::after {
 			opacity: 1;
+			transform: rotate(180deg);
 		}
 
 		span.sortedDescending::after
 		{
 			opacity: 1;
-			transform: rotate(180deg);
 			transition: all .2s ease;
 		}
 	}

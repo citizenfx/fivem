@@ -32,7 +32,8 @@ export class ServersListComponent implements OnInit, OnChanges {
             },
             {
                 column: 'name',
-                label: '#ServerList_Name'
+                label: '#ServerList_Name',
+                sortable: true
             },
             {
                 column: 'actions',
@@ -40,11 +41,13 @@ export class ServersListComponent implements OnInit, OnChanges {
             },
             {
                 column: 'players',
-                label: '#ServerList_Players'
+                label: '#ServerList_Players',
+                sortable: true
             },
             {
                 column: 'ping',
-                label: '#ServerList_Ping'
+                label: '#ServerList_Ping',
+                sortable: true
             }
         ];
     }

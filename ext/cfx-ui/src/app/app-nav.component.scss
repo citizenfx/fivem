@@ -10,8 +10,8 @@
 .app-nav-container {
 	display: flex;
 
-	width: $appContentWidth - $appContentPadding;
-	height: $appNavHeight;
+	@include fullWidthPadded;
+	height: 2rem;
 
 	flex-direction: row;
 
@@ -23,32 +23,32 @@
 	.logo {
 		position: relative;
 		text-align: left;
-		font-size: 30px;
+		font-size: 2rem;
 		line-height: 1;
 		padding-bottom: $padding/2;
 
 		color: $textColour;
 
 		svg {
-			width: 21px;
-			height: 21px;
+			width: 1.5rem;
+			height: 1.5rem;
 			fill: $textColour;
 		}
 
 		.user {
 			position: absolute;
 			left: 0;
-			bottom: -$padding;
+			bottom: -$padding*2.3;
 			width: $appContentWidth;
 
 			color: $textColour;
-			font-size: 16px;
+			font-size: 1.2rem;
 			font-weight: 100;
 
 			svg {
-				vertical-align: middle;
-				width: 13px;
-				height: 13px;
+				vertical-align: -2px;
+				width: 1rem;
+				height: 1rem;
 				stroke: rgba($fgColour, .5);
 				fill: none;
 			}
@@ -102,9 +102,9 @@
 			height: $appNavHeight - 15px;
 
 			text-decoration: none;
-			font-size: 30px;
+			font-size: 2rem;
 			font-weight: 500;
-			line-height: 1;
+			line-height: 2rem;
 			text-align: center;
 			color: $secondaryColour;
 
@@ -118,10 +118,10 @@
 				display: flex;
 				align-items: flex-end;
 
-				font-size: 15px;
+				font-size: 1rem;
 				margin: 0;
 				padding: 0 $padding/2;
-				line-height: 30px;
+				line-height: 2.9rem;
 
 				&:after {
 					left: $padding/2;

@@ -38,6 +38,8 @@ body {
 	overflow: hidden;
 
 	color: $fgColour;
+
+	font-size: $fontSize;
 }
 
 $blurSize: 20px;
@@ -71,6 +73,7 @@ input[type="search"] {
 	border: none;
 	border-radius: 1px;
 	color: $fgColour;
+	font-size: 1.3rem;
 	font-weight: 100;
 	padding: $padding $padding*$multiplier;
 
@@ -78,7 +81,7 @@ input[type="search"] {
 
 	&:focus {
 		outline: none;
-		box-shadow: 0 0 0 2px $greenyColour inset;
+		box-shadow: 0 0 0 3px $greenyColour inset;
 	}
 	&:hover,
 	&:focus {
