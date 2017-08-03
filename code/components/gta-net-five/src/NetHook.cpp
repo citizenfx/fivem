@@ -1610,6 +1610,9 @@ static HookFunction hookFunction([] ()
 	// also ignore the rarer CMsgJoinRequest failure reason '13' (something related to what seems to be like stats)
 	hook::put<uint8_t>(hook::pattern("3B ? 74 0B 41 BC 0D 00 00 00").count(1).get(0).get<void>(2), 0xEB);
 
+	// ignore CMsgJoinRequest failure reason 15 ('mismatching network timeout')
+	hook::put<uint8_t>(hook::get_pattern("74 0B 41 BC 0F 00 00 00 E9", 0), 0xEB);
+
 	// don't wait for shut down of NetRelay thread
 	hook::return_function(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 3D ? ? ? ? FF 74", -16));
 
@@ -1666,6 +1669,11 @@ static HookFunction hookFunction([] ()
 	{
 		// 1032/1103!
 		hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
+	}
+
+	// network timeout
+	{
+		*hook::get_address<int*>(hook::get_pattern("BA 2B 2F A8 09 48 8B CF E8", 0x1B)) *= 2.5f;
 	}
 
 	// find autoid descriptors
