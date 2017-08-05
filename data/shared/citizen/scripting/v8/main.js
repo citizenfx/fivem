@@ -113,14 +113,14 @@ const EXT_FUNCREF = 10;
 	global.removeEventListener = emitter.off.bind(emitter);
 
 	global.emit = (name, ...args) => {
-		const dataSerialized = pack(data);
+		const dataSerialized = pack(args);
 
-		TriggerEventInternal(dataSerialized, dataSerialized.length);
+		TriggerEventInternal(name, dataSerialized, dataSerialized.length);
 	};
 	global.emitNet = (name, ...args) => {
-		const dataSerialized = pack(data);
+        	const dataSerialized = pack(args);
 
-		TriggerServerEventInternal(dataSerialized, dataSerialized.length)
+		TriggerServerEventInternal(name, dataSerialized, dataSerialized.length)
 	};
 
 	/**
