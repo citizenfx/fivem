@@ -5,6 +5,34 @@ a {
 }
 
 .filters {
+	display: flex;
+	flex-direction: column;
+
+	&.inline {
+		width: 100%;
+		flex-direction: row;
+
+		.filter {
+			display: inline-block;
+			width: auto;
+			flex-grow: 1;
+
+			margin-right: $padding/2;
+
+			&:last-child {
+				margin-right: 0;
+			}
+
+			.checkboxes {
+				.checkbox {
+					label {
+						padding: $padding+2 $padding*$multiplier;
+					}
+				}
+			}
+		}
+	}
+
 	.filter {
 		margin-bottom: $padding;
 

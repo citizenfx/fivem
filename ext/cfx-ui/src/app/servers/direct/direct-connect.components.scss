@@ -3,10 +3,10 @@
 :host {
     display: flex;
     
-	@include fullWidthPadded($padding/$multiplier);
+	@include fullWidthPadded;
 	height: $appContentHeight;
 	margin-top: $appContentMargin;
-    padding-left: $appContentPadding;
+    margin-left: $appContentPadding;
 
     flex-direction: column;
 

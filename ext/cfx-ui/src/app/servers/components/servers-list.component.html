@@ -8,14 +8,13 @@
 	<virtual-scroll
 		[items]="sortedServers"
 		(update)="localServers = $event"
-		childHeight="40"
+		childHeight="60"
 		childWidth="1000"
 	>
 		<div class="dummy"></div>
 		<servers-list-item
 			[class.pinned]="isPinned(server)" [server]="server"
-			[class.highlight__]="i%2==0" 
-			*ngFor="let server of localServers; let i = index"
+			*ngFor="let server of localServers"
 		></servers-list-item>
 	</virtual-scroll>
 </div>

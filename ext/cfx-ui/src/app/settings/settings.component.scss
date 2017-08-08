@@ -1,12 +1,13 @@
 @import 'variables';
 
 :host {
-	display: block;
+	display: flex;
+	flex-direction: column;
 	
-	@include fullWidthPadded(calc(100vh / #{$multiplier}));
+	@include fullWidthPadded;
     height: $appContentHeight;
 	margin-top: $appContentMargin;
-	padding-left: $appContentPadding;
+	margin-left: $appContentPadding;
 
     overflow-y: scroll;
 

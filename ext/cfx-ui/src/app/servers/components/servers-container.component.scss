@@ -9,22 +9,32 @@
 	margin-left: $appContentPadding;
 
 	.servers {
-		display: flex;
 		width: $width;
-		position: relative;
 
 		aside {
 			position: absolute;
-			top: 0;
-			left: 0;
-			bottom: 0;
 			width: 20%;
+			margin-right: $padding;
 		}
 
 		article {
 			position: relative;
 			width: calc(100% - 20% - #{$padding});
 			margin-left: calc(20% + #{$padding});
+		}
+
+		&.vertical {
+			aside {
+				position: relative;
+				width: 100%;
+				height: 65px;
+			}
+
+			article {
+				width: 100%;
+				height: calc(#{$appContentHeight} - 65px);
+				margin-left: 0;
+			}
 		}
 	}
 }

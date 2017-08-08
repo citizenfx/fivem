@@ -44,8 +44,6 @@ export class ServersListHeaderComponent extends Translation {
     }
 
     isSortable(column: ServersListHeadingColumn) {
-        console.log('Uhhh...', column.column, !!column.sortable);
-
         return !!column.sortable;
     }
 }

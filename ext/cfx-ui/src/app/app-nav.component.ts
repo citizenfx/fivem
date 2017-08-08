@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
 import { GameService } from './game.service';
+import { Server } from './servers/server'
 import { Translation, TranslationService } from 'angular-l10n';
 
 @Component({
@@ -16,6 +18,7 @@ export class AppNavComponent extends Translation {
 	constructor(
 		private gameService: GameService,
 		public translation: TranslationService,
+		private domSanitizer: DomSanitizer,
 		router: Router
 	) {
 		super(translation);
@@ -29,6 +32,10 @@ export class AppNavComponent extends Translation {
 		});
 
 		gameService.nicknameChange.subscribe(name => this.nickname = name);
+	}
+
+	connectToLocal() {
+		(<any>window).invokeNative('connectTo', '127.0.0.1:30120');
 	}
 
 	exitGame() {
