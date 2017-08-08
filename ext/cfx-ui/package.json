@@ -30,7 +30,6 @@
     "font-awesome": "^4.7.0",
     "idb": "^2.0.1",
     "js-md5": "0.4.2",
-    "od-virtualscroll": "^1.0.0",
     "protobufjs": "^6.7.3",
     "rxjs": "^5.3.0",
     "zone.js": "^0.8.5"
