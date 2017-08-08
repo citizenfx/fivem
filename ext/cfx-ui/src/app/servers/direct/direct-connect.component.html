@@ -22,7 +22,7 @@
 		</p>
 	</div>
 
-	<div class="info" *ngIf="!isValid()">
+	<div class="info" *ngIf="isValid()">
 		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://lorempixel.com/128/128') + ')'"></div>
 
 		<figure class="icon">

@@ -62,7 +62,7 @@ import {EscapePipe} from './escape.pipe';
 		TweetService,
 		{
 			provide:  GameService,
-			useClass: DummyGameService
+			useClass: CfxGameService
 		}
 	],
 	bootstrap:    [
