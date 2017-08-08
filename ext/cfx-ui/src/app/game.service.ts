@@ -314,7 +314,7 @@ export class CfxGameService extends GameService {
 export class DummyGameService extends GameService {
 	private _devMode = false;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
+	constructor() {
 		super();
 
 		if (localStorage.getItem('devMode')) {

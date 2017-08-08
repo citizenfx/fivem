@@ -92,3 +92,26 @@ input[type="search"] {
 		color: rgba($textColour, .6);
 	}
 }
+
+button {
+	padding: $padding/2 $padding*$multiplier;
+
+	border-radius: 2px;
+	border: none;
+
+	color: $fgColour;
+	text-shadow: 0 0 2px rgba($bgColour, .8);
+	background: darken($greenyColour, 10%);
+
+	font-size: 1.03rem;
+	font-weight: 100;
+
+	transition: all .2s ease-out;
+
+	outline: none;
+
+	&:hover {
+		background: $greenyColour;
+		box-shadow: 0 5px 25px darken($greenyColour, 10%);
+	}
+}

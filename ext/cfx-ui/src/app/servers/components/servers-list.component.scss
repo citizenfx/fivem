@@ -7,12 +7,11 @@
 	overflow-y: scroll;
 
 	.dummy {
-		height: $appServersHeaderHeight+($padding/2);
+		height: calc(#{$appServersHeaderHeight} + #{$padding/2});
 	}
 }
 
 virtual-scroll {
 	display: block;
 	height: 100%;
-	padding-top: $appServersHeaderHeight;
 }

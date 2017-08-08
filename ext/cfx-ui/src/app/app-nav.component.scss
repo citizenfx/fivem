@@ -1,5 +1,8 @@
 @import 'variables';
 
+$fontSizeMult: 1.4;
+$itemHeight: $appNavHeight*.5;
+
 :host {
 	height: $appNavHeight;
 	width: $width;
@@ -11,7 +14,7 @@
 	display: flex;
 
 	@include fullWidthPadded;
-	height: 2rem;
+	height: $appNavHeight;
 
 	flex-direction: row;
 
@@ -23,26 +26,29 @@
 	.logo {
 		position: relative;
 		text-align: left;
-		font-size: 2rem;
-		line-height: 1;
+		font-size: $fontSize*$fontSizeMult;
+		line-height: $fontSize*$fontSizeMult;
 		padding-bottom: $padding/2;
+		height: $appNavHeight;
+		
+		height: $itemHeight;
 
 		color: $textColour;
 
 		svg {
-			width: 1.5rem;
-			height: 1.5rem;
+			width: $itemHeight;
+			height: $itemHeight;
 			fill: $textColour;
 		}
 
 		.user {
 			position: absolute;
 			left: 0;
-			bottom: -$padding*2.3;
+			bottom: calc(-100% - #{$padding});
 			width: $appContentWidth;
 
 			color: $textColour;
-			font-size: 1.2rem;
+			font-size: $fontSize*$fontSizeMult*.7;
 			font-weight: 100;
 
 			svg {
@@ -86,43 +92,34 @@
 
 		transition: transform .2s ease-out;
 
-		&.has-sub-nav {
-			//transform: translateY(-30px);
-		}
-
 		.nav-item {
-			//background-color: rgba(255, 255, 255, .2);
-
-			display: inline-flex;
 			position: relative;
 			cursor: default;
 
-			overflow: hidden;
-			padding: 0 $padding;
+			height: $itemHeight+$padding*2;
 
-			height: $appNavHeight - 15px;
+			overflow: hidden;
+			padding: 0 $padding 0 $padding;
 
 			text-decoration: none;
-			font-size: 2rem;
+			font-size: $fontSize*$fontSizeMult;
 			font-weight: 500;
-			line-height: 2rem;
+			line-height: 1;
 			text-align: center;
 			color: $secondaryColour;
 
 			transition: padding-left .2s ease;
 
-			&:first-child {
-				margin-top: 0;
+			span {
+				display: block;
 			}
 
 			&.subnav-item {
 				display: flex;
 				align-items: flex-end;
 
-				font-size: 1rem;
-				margin: 0;
-				padding: 0 $padding/2;
-				line-height: 2.9rem;
+				font-size: $fontSize*($fontSizeMult*.5);
+				padding: 0 $padding/2 $padding*2 $padding/2;
 
 				&:after {
 					left: $padding/2;

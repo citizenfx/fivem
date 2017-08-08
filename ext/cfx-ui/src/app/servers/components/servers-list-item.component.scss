@@ -15,9 +15,7 @@
 	overflow: hidden;
 
 	height: $appServersItemHeight;
-
-	//transition: background-color .2s ease-out;
-	will-change: background-color;
+	will-change: transform;
 
 	cursor: default;
 	user-select: none;

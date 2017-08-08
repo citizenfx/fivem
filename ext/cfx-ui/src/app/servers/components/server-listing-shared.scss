@@ -1,7 +1,7 @@
 @import "variables";
 
 $columns: (
-	icon: 40px,
+	icon: $appServersItemHeight,
 	name: 50%,
 	actions: 70px,
 	players: 120px,

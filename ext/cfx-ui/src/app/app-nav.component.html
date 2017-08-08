@@ -14,22 +14,24 @@
 	<div class="nav-list" [class.has-sub-nav]="hasSubNav">
 		<a
 			class="nav-item"
-			translate
 			[routerLink]="['/']"
 			routerLinkActive="active"
 			[routerLinkActiveOptions]="{ exact: true }"
 		>
-			#BottomNav_Home
+			<span translate>
+				#BottomNav_Home
+			</span>
 		</a>
 
 		<a
 			class="nav-item"
-			translate
 			[routerLink]="['/servers']"
 			routerLinkActive="active"
 			[routerLinkActiveOptions]="{ exact: true }"
 		>
-			#BottomNav_Servers
+			<span translate>
+				#BottomNav_Servers
+			</span>
 		</a>
 		<a
 			[routerLink]="['/servers/history']"
@@ -70,11 +72,12 @@
 
 		<a
 			class="nav-item"
-			translate
 			[routerLink]="['/settings']"
 			routerLinkActive="active"
 		>
-			#BottomNav_Settings
+			<span translate>
+				#BottomNav_Settings
+			</span>
 		</a>
 	</div>
 

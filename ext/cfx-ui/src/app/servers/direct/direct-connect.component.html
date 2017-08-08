@@ -11,45 +11,43 @@
 </section>
 
 <section class="server-info">
-	<div class="loading" *ngIf="!isWaiting()">
-		Loading...
+	<div class="loading" *ngIf="isWaiting()">
+		Loading
 	</div>
 
 	<div class="error" *ngIf="isInvalid()">
 		<h1 class="title" translate>#DirectConnect_ServerInvalid</h1>
-		<h2 class="subtitle"><span>{{error}}</span> <span translate>#DirectConnect_ServerInvalid_SubTitle</span></h2>
+		<p>
+			<span>{{error}}</span> <span translate>#DirectConnect_ServerInvalid_SubTitle</span>
+		</p>
 	</div>
 
-	<div class="server-info" *ngIf="isValid()">
-		<nav class="level">
-			<div class="level-left">
-				<div class="level-item">
-					<figure class="image is-128x128">
-						<img [src]="server.sanitizedUri">
-					</figure>
-				</div>
-				<div class="level-item">
-					<div>
-						<p class="title" [innerHTML]="server.hostname | escape | colorize"></p>
-						<p class="heading">{{server.data.gametype}} | {{server.data.mapname}}</p>
-					</div>
-				</div>
-			</div>
-			<div class="level-right"></div>
-		</nav>
+	<div class="info" *ngIf="!isValid()">
+		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://lorempixel.com/128/128') + ')'"></div>
 
-		<nav class="level">
-			<div class="level-item has-text-centered">
-				<div>
-					<p class="heading" translate>#ServerList_Players</p>
-					<p class="title">{{server.currentPlayers}}/{{server.maxPlayers}}</p>
-				</div>
-			</div>
-			<div class="level-item has-text-centered">
-				<div>
-					<a class="button is-large" (click)="attemptConnect()" translate>#DirectConnect_Connect</a>
-				</div>
-			</div>
-		</nav>
+		<figure class="icon">
+			<img [src]="(server && server.sanitizedUri)||'http://lorempixel.com/128/128'">
+		</figure>
+
+		<h1 class="title" [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></h1>
+
+		<ul class="desc">
+			<li>
+				<span class="key">Game type:</span>
+				{{(server && server.data.gametype)||'Game type'}}
+			</li>
+			<li>
+				<span class="key">Map:</span>
+				{{(server && server.data.mapname)||'Map name'}}
+			</li>
+			<li>
+				<span class="key">Players:</span>
+				{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}
+			</li>
+		</ul>
+
+		<button class="connect" (click)="attemptConnect()" translate>
+			#DirectConnect_Connect
+		</button>
 	</div>
 </section>

@@ -3,18 +3,20 @@ $fonts: 'Roboto';
 $width: 100vw;
 $height: 100vh;
 
-$fontSize: 24px;
-$padding: 15px;
-$multiplier: 1.6813;
+$fontSize: 2vh;
+$padding: 1vh;
+$multiplier: 1.6813; 
 
-$appNavHeight: 60px;
+$appNavHeight: 5vh;
 $appContentPadding: $padding*2;
 $appContentMargin: $appNavHeight;
 $appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
 $appContentWidth: calc(#{$width} - #{$appContentPadding});
 
-$appServersItemHeight: 50px;
-$appServersHeaderHeight: 50px;
+$appServersItemHeight: 5vh;
+$appServersHeaderHeight: $appServersItemHeight;
+
+$filterHeight: 5.5vh;
 
 $bgColour: hsl(222, 23%, 11%);
 $fgColour: hsl(60, 93%, 94%);
@@ -25,4 +27,8 @@ $textColour: rgb(200, 205, 187);
 
 @mixin fullWidthPadded($extraPadding: $padding*4) {
     width: calc(#{$width} - #{$extraPadding});
+}
+
+@mixin backdropBlur($amount: 5px) {
+    backdrop-filter: blur($amount);
 }

@@ -23,10 +23,15 @@ a {
 				margin-right: 0;
 			}
 
+			input.name {
+				height: $filterHeight;
+			}
+
 			.checkboxes {
 				.checkbox {
 					label {
-						padding: $padding+2 $padding*$multiplier;
+						height: $filterHeight;
+						padding: $padding*2 $padding*$multiplier;
 					}
 				}
 			}
@@ -48,7 +53,7 @@ a {
 			color: $secondaryColour;
 			
 			background: rgba($bgColour, .5);
-			backdrop-filter: blur(5px);
+			@include backdropBlur;
 
 			&:hover,
 			&:focus {
@@ -83,10 +88,9 @@ a {
 					display: block;
 					width: 100%;
 
-					font-size: 1rem;
+					font-size: $fontSize*.8;
 					font-weight: 100;
-					line-height: 1rem;
-					padding: $padding/2 $padding;
+					line-height: 1;
 
 					background-color: rgba($secondaryColour, .1);
 					border-radius: 1px;
@@ -97,17 +101,18 @@ a {
 						content: '';
 						display: inline-block;
 
-						width: 15px;
-						height: 15px;
+						width: 1.4vh;
+						height: 1.4vh;
 						margin-right: $padding/2;
 
 						border-radius: 1px;
 
-						vertical-align: -3px;
+						vertical-align: baseline;
 						overflow: hidden;
 
 						font-size: 1rem;
 						line-height: 1;
+						text-align: center;
 
 						background-color: rgba($bgColour, .5);
 					}

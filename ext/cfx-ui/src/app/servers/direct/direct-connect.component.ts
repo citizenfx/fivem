@@ -80,8 +80,6 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
 
         const match = newValue.match(/^((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)/i);
 
-        console.log(match);
-
         if (!match)
         {
             this.inputInvalid = true;

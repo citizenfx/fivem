@@ -27,12 +27,12 @@
 			aside {
 				position: relative;
 				width: 100%;
-				height: 65px;
+				height: $filterHeight + $padding;
 			}
 
 			article {
 				width: 100%;
-				height: calc(#{$appContentHeight} - 65px);
+				height: calc(#{$appContentHeight} - #{$filterHeight});
 				margin-left: 0;
 			}
 		}

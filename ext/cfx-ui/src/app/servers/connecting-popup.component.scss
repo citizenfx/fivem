@@ -23,8 +23,9 @@
 
 	&.active {
 		opacity: 1;
+		will-change: backdrop-filter;
 		backdrop-filter: blur(5px);
-		background-color: rgba($bgColour, .25);
+		background-color: rgba($bgColour, .5);
 		pointer-events: inherit;
 	}
 
@@ -49,28 +50,7 @@
 		}
 
 		button {
-			margin-top: 30px;
-
-			padding: $padding/2 $padding*$multiplier;
-
-			border-radius: 2px;
-			border: none;
-
-			color: $fgColour;
-			text-shadow: 0 0 2px rgba($bgColour, .8);
-			background: darken($greenyColour, 10%);
-
-			font-size: 14px;
-			font-weight: 100;
-
-			transition: all .2s ease-out;
-
-			outline: none;
-
-			&:hover {
-				background: $greenyColour;
-				box-shadow: 0 5px 25px darken($greenyColour, 10%);
-			}
+			margin-top: $padding;
 		}
 	}
 }
