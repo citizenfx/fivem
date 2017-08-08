@@ -21,9 +21,15 @@
 	</div>
 	<div class="value">
 		<div class="checkbox">
-			<input type="checkbox" id="devmode" [(ngModel)]="devmode" (ngModelChange)="toggleDevmode()">
-			<label for="devmode">
-				Enables "connect to localhost" menu item
+			<input
+				type="checkbox"
+				id="dev-mode"
+				[class.wtf]="devMode"
+				[checked]="devMode"
+				(change)="toggleDevMode()"
+			>
+			<label for="dev-mode">
+				Enables "localhost" menu item
 			</label>
 		</div>
 	</div>

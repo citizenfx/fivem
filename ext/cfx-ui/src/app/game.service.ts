@@ -16,6 +16,7 @@ export abstract class GameService {
 	connectStatus = new EventEmitter<ConnectStatus>();
 	connecting = new EventEmitter<Server>();
 
+	devModeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
 
 	get nickname(): string {
@@ -23,6 +24,14 @@ export abstract class GameService {
 	}
 
 	set nickname(name: string) {
+
+	}
+
+	get devMode(): boolean {
+		return false;
+	}
+
+	set devMode(value: boolean) {
 
 	}
 
@@ -68,10 +77,16 @@ export abstract class GameService {
 	protected invokeNicknameChanged(name: string) {
 		this.nicknameChange.emit(name);
 	}
+
+	protected invokeDevModeChanged(value: boolean) {
+		this.devModeChange.emit(value);
+	}
 }
 
 @Injectable()
 export class CfxGameService extends GameService {
+	private _devMode = false;
+
 	private lastServer: Server;
 
 	private pingList: { [addr: string]: Server } = {};
@@ -144,9 +159,13 @@ export class CfxGameService extends GameService {
 			this.realNickname = localStorage.getItem('nickOverride');
 		}
 
+		if (localStorage.getItem('devMode')) {
+			this._devMode = localStorage.getItem('devMode') === 'yes';
+		}
+
 		this.connecting.subscribe(server => {
 			this.inConnecting = false;
-		})
+		});
 	}
 
 	get nickname(): string {
@@ -159,6 +178,16 @@ export class CfxGameService extends GameService {
 		this.invokeNicknameChanged(name);
 
 		(<any>window).invokeNative('checkNickname', name);
+	}
+
+	get devMode(): boolean {
+		return this._devMode;
+	}
+
+	set devMode(value: boolean) {
+		this._devMode = value;
+		localStorage.setItem('devMode', value ? 'yes' : 'no');
+		this.invokeDevModeChanged(value);
 	}
 
 	private saveHistory() {
@@ -283,6 +312,16 @@ export class CfxGameService extends GameService {
 
 @Injectable()
 export class DummyGameService extends GameService {
+	private _devMode = false;
+
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
+		super();
+
+		if (localStorage.getItem('devMode')) {
+			this._devMode = localStorage.getItem('devMode') === 'yes';
+		}
+	}
+
 	init() {
 
 	}
@@ -323,5 +362,15 @@ export class DummyGameService extends GameService {
 	set nickname(name: string) {
 		window.localStorage.setItem('nickOverride', name);
 		this.invokeNicknameChanged(name);
+	}
+
+	get devMode(): boolean {
+		return this._devMode;
+	}
+
+	set devMode(value: boolean) {
+		this._devMode = value;
+		localStorage.setItem('devMode', value ? 'yes' : 'no');
+		this.invokeDevModeChanged(value);
 	}
 }

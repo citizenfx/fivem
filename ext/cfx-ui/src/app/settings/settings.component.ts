@@ -10,19 +10,23 @@ import { GameService } from '../game.service';
 
 export class SettingsComponent implements OnInit {
     nickname = '';
-    devmode = false;
+    devMode = false;
 
-    constructor(private gameService: GameService) { }
+    constructor(private gameService: GameService) {
+        gameService.nicknameChange.subscribe(value => this.nickname = value);
+        gameService.devModeChange.subscribe(value => this.devMode = value);
+    }
 
     ngOnInit() {
         this.nickname = this.gameService.nickname;
+        this.devMode = this.gameService.devMode;
     }
 
     nameChanged(newName) {
         this.gameService.nickname = newName;
     }
 
-    toggleDevmode() {
-        this.devmode = !this.devmode;
+    toggleDevMode() {
+        this.gameService.devMode = !this.devMode;
     }
 }

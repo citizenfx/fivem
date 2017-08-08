@@ -13,6 +13,7 @@ import { Translation, TranslationService } from 'angular-l10n';
 })
 export class AppNavComponent extends Translation {
 	nickname = '';
+	devMode = false;
 	hasSubNav = false;
 
 	constructor(
@@ -24,6 +25,7 @@ export class AppNavComponent extends Translation {
 		super(translation);
 
 		this.nickname = gameService.nickname;
+		this.devMode = gameService.devMode;
 
 		router.events.subscribe(event => {
 			if ((<NavigationEnd>event).urlAfterRedirects) {
@@ -31,7 +33,8 @@ export class AppNavComponent extends Translation {
 			}
 		});
 
-		gameService.nicknameChange.subscribe(name => this.nickname = name);
+		gameService.nicknameChange.subscribe(value => this.nickname = value);
+		gameService.devModeChange.subscribe(value => this.devMode = value);
 	}
 
 	connectToLocal() {
