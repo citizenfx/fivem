@@ -54,6 +54,7 @@ $blurSize: 20px;
 	right: -($blurSize*2);
 
 	filter: blur($blurSize);
+	transform: translate3d(0, 0, 0);
 
 	background:
 		linear-gradient(
