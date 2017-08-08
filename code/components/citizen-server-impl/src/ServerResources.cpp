@@ -326,7 +326,14 @@ static InitFunction initFunction([]()
 			{
 				auto eventComponent = resman->GetComponent<fx::ResourceEventManagerComponent>();
 
-				return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + std::any_cast<std::string>(context) }, rawCommand);
+				try
+				{
+					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + std::any_cast<std::string>(context) }, rawCommand);
+				}
+				catch (std::bad_any_cast& e)
+				{
+					trace("caught bad_any_cast in FallbackEvent handler for %s\n", commandName);
+				}
 			}
 
 			return true;

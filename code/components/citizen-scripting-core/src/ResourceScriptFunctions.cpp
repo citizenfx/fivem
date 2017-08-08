@@ -93,10 +93,17 @@ static InitFunction initFunction([] ()
 
 				consoleCxt->GetCommandManager()->Register(commandName, [=](ConsoleExecutionContext& context)
 				{
-					auto source = (context.contextRef.has_value()) ? std::any_cast<std::string>(context.contextRef) : "0";
-					const auto& args = context.arguments.GetArguments();
+					try
+					{
+						auto source = (context.contextRef.has_value()) ? std::any_cast<std::string>(context.contextRef) : "0";
+						const auto& args = context.arguments.GetArguments();
 
-					resourceManager->CallReference<void>(outerRefs[commandName], atoi(source.c_str()), args, consoleCxt->GetCommandManager()->GetRawCommand());
+						resourceManager->CallReference<void>(outerRefs[commandName], atoi(source.c_str()), args, consoleCxt->GetCommandManager()->GetRawCommand());
+					}
+					catch (std::bad_any_cast& e)
+					{
+						trace("caught bad_any_cast in command handler for %s\n", commandName);
+					}
 
 					return true;
 				});
