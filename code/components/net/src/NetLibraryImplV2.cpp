@@ -137,7 +137,6 @@ void NetLibraryImplV2::Reset()
 void NetLibraryImplV2::Flush()
 {
 	enet_host_flush(m_host);
-	enet_host_flush(m_host);
 }
 
 void NetLibraryImplV2::RunFrame()
