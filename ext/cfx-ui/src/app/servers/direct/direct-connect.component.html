@@ -3,6 +3,7 @@
 		#input
 		type="text"
 		placeholder="{{'#DirectConnect_IPPort'|translate}}"
+		spellcheck="false"
 		[class.invalid]="inputInvalid"
 		[ngModel]="addr"
 		(ngModelChange)="addrChanged($event)"

@@ -3,6 +3,8 @@ import {NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {HttpModule} from '@angular/http';
 
+import { environment } from '../environments/environment'
+
 import {VirtualScrollModule} from 'angular2-virtual-scroll';
 import {TranslationModule} from 'angular-l10n';
 import {MomentModule} from 'angular2-moment';
@@ -62,7 +64,9 @@ import {EscapePipe} from './escape.pipe';
 		TweetService,
 		{
 			provide:  GameService,
-			useClass: CfxGameService
+			useClass: environment.production
+				? CfxGameService
+				: DummyGameService
 		}
 	],
 	bootstrap:    [

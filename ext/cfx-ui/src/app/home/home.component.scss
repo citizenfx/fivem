@@ -29,23 +29,23 @@
 			border-radius: 1px;
 
 			.backdroppy {
-				padding: $padding $padding $padding 50px;
+				padding: $padding $padding $padding $padding*2+4vh;
 
 				margin-bottom: $padding/4;
 			}
 
 			.message-header {
 				position: relative;
-				margin-bottom: 10px;
+				margin-bottom: $padding;
 
-				font-size: $fontSize*.6;
+				font-size: $fontSize*.7;
 				color: $textColour;
 
 				.avatar {
 					position: absolute;
-					left: -40px;
-					width: 30px;
-					height: 30px;
+					left: -4vh-$padding;
+					width: 4vh;
+					height: 4vh;
 					border-radius: 2px;
 				}
 			}

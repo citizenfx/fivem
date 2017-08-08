@@ -51,7 +51,7 @@ a {
 			padding: $padding $padding;
 
 			color: $secondaryColour;
-			
+
 			background: rgba($bgColour, .5);
 			@include backdropBlur;
 
@@ -110,7 +110,7 @@ a {
 						vertical-align: baseline;
 						overflow: hidden;
 
-						font-size: 1rem;
+						font-size: 1.7vh;
 						line-height: 1;
 						text-align: center;
 

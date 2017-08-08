@@ -3,7 +3,7 @@
 :host {
 	display: flex;
 	flex-direction: column;
-	
+
 	@include fullWidthPadded;
     height: $appContentHeight;
 	margin-top: $appContentMargin;
@@ -77,8 +77,8 @@
 						content: '';
 						display: inline-block;
 
-						width: 15px;
-						height: 15px;
+						width: 1.4vh;
+						height: 1.4vh;
 						margin-right: $padding/2;
 
 						border-radius: 1px;
@@ -86,8 +86,9 @@
 						vertical-align: -1px;
 						overflow: hidden;
 
-						font-size: 1rem;
+						font-size: 1.7vh;
 						line-height: 1;
+						text-align: center;
 
 						background-color: rgba($bgColour, .5);
 					}
