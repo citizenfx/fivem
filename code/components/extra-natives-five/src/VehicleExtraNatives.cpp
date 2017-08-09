@@ -263,7 +263,6 @@ static HookFunction initFunction([]()
 		{
 			unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
 			if (wheelIndex >= numWheels) {
-				context.SetResult<float>(0.0f);
 				return;
 			}
 			auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
