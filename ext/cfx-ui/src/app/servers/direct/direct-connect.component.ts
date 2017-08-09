@@ -68,16 +68,6 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
         this.addr = newValue;
 
         const addrBits: [string, number] = [ '', 30120 ];
-
-        let parsedAddr: URL;
-
-        try {
-            parsedAddr = new URL(newValue);
-        } catch(e) {
-            this.inputInvalid = true;
-            return;
-        }
-
         const match = newValue.match(/^((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)/i);
 
         if (!match)
