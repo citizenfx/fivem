@@ -1,0 +1,16 @@
+@import "variables";
+
+.app-root {
+	display: flex;
+	position: relative;
+
+	flex-direction: column;
+
+	width: $width;
+	height: $height;
+
+	//transform: scale(var(--zoom)) translate3d(0,0,0);
+	//transform-origin: center center;
+
+	z-index: 100;
+}

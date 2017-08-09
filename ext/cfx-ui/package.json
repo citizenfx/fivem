@@ -19,7 +19,6 @@
     "@angular/platform-browser": "^4.0.2",
     "@angular/platform-browser-dynamic": "^4.0.2",
     "@angular/router": "^4.0.2",
-    "@ngui/tab": "https://runtime.fivem.net/source/ngui-tab-0.5.0.tgz",
     "@types/color": "^1.0.1",
     "@types/js-md5": "0.4.1",
     "angular-l10n": "^3.0.3",
@@ -31,9 +30,6 @@
     "font-awesome": "^4.7.0",
     "idb": "^2.0.1",
     "js-md5": "0.4.2",
-    "ng2-nouislider": "^1.6.0",
-    "ngx-contextmenu": "^1.0.3",
-    "nouislider": "^10.0.0",
     "protobufjs": "^6.7.3",
     "rxjs": "^5.3.0",
     "zone.js": "^0.8.5"

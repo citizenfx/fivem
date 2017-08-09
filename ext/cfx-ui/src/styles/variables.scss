@@ -1,0 +1,34 @@
+$fonts: 'Roboto';
+
+$width: 100vw;
+$height: 100vh;
+
+$fontSize: 2vh;
+$padding: 1vh;
+$multiplier: 1.6813; 
+
+$appNavHeight: 5vh;
+$appContentPadding: $padding*2;
+$appContentMargin: $appNavHeight;
+$appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
+$appContentWidth: calc(#{$width} - #{$appContentPadding});
+
+$appServersItemHeight: 5vh;
+$appServersHeaderHeight: $appServersItemHeight;
+
+$filterHeight: 5.5vh;
+
+$bgColour: hsl(222, 23%, 11%);
+$fgColour: hsl(60, 93%, 94%);
+$secondaryColour: rgb(250, 255, 225);
+$greenyColour: hsl(76, 100%, 40%);
+$yellowColour: hsl(53, 100%, 50%);
+$textColour: rgb(200, 205, 187);
+
+@mixin fullWidthPadded($extraPadding: $padding*4) {
+    width: calc(#{$width} - #{$extraPadding});
+}
+
+@mixin backdropBlur($amount: 5px) {
+    backdrop-filter: blur($amount);
+}

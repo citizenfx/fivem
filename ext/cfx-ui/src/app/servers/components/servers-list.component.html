@@ -1,0 +1,20 @@
+<servers-list-header
+	[columns]="columns"
+	[sortOrder]="sortOrder"
+	(sort)="updateSorting($event)"
+></servers-list-header>
+
+<div class="list">
+	<virtual-scroll
+		[items]="sortedServers"
+		(update)="localServers = $event"
+		childHeight="60"
+		childWidth="1000"
+	>
+		<div class="dummy"></div>
+		<servers-list-item
+			[class.pinned]="isPinned(server)" [server]="server"
+			*ngFor="let server of localServers"
+		></servers-list-item>
+	</virtual-scroll>
+</div>

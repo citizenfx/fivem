@@ -1,0 +1,94 @@
+<div class="app-nav-container">
+	<div class="logo">
+		<svg>
+			<use xlink:href="#logo"></use>
+		</svg>
+		FiveM
+	</div>
+
+	<div class="nav-list" [class.has-sub-nav]="hasSubNav">
+		<a
+			class="nav-item"
+			[routerLink]="['/']"
+			routerLinkActive="active"
+			[routerLinkActiveOptions]="{ exact: true }"
+		>
+			<span translate>
+				#BottomNav_Home
+			</span>
+		</a>
+
+		<a
+			class="nav-item"
+			[routerLink]="['/servers']"
+			routerLinkActive="active"
+			[routerLinkActiveOptions]="{ exact: true }"
+		>
+			<span translate>
+				#BottomNav_Servers
+			</span>
+		</a>
+		<a
+			[routerLink]="['/servers/history']"
+			class="nav-item subnav-item"
+			routerLinkActive="active"
+		>
+			<span translate>
+				#ServerList_History
+			</span>
+		</a>
+		<a
+			[routerLink]="['/servers/favorites']"
+			class="nav-item subnav-item"
+			routerLinkActive="active"
+		>
+			<span translate>
+				#ServerList_Favorites
+			</span>
+		</a>
+		<a
+			[routerLink]="['/servers/direct-connect']"
+			class="nav-item subnav-item"
+			routerLinkActive="active"
+		>
+			<span translate>
+				#ServerList_DirectConnect
+			</span>
+		</a>
+		<a
+			class="nav-item subnav-item"
+			(click)="connectToLocal()"
+			*ngIf="devMode"
+		>
+			<span>
+				Localhost
+			</span>
+		</a>
+
+		<a
+			class="nav-item"
+			[routerLink]="['/settings']"
+			routerLinkActive="active"
+		>
+			<span translate>
+				#BottomNav_Settings
+			</span>
+		</a>
+
+		<div class="user">
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+			{{nickname}}
+		</div>
+	</div>
+
+	<div
+		class="close-app"
+		(click)="exitGame()"
+	>
+		<svg x="0px" y="0px" viewBox="0 0 10.2 10.2">
+            <polygon
+              points="10.2,0.7 9.5,0 5.1,4.4 0.7,0 0,0.7 4.4,5.1 0,9.5 0.7,10.2 5.1,5.8 9.5,10.2 10.2,9.5 5.8,5.1 "
+            />
+		</svg>
+	</div>
+</div>

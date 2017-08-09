@@ -1,0 +1,40 @@
+@import "variables";
+
+:host {
+	display: flex;
+
+	@include fullWidthPadded;
+	height: $appContentHeight;
+	margin-top: $appContentMargin;
+	margin-left: $appContentPadding;
+
+	.servers {
+		width: $width;
+
+		aside {
+			position: absolute;
+			width: 20%;
+			margin-right: $padding;
+		}
+
+		article {
+			position: relative;
+			width: calc(100% - 20% - #{$padding});
+			margin-left: calc(20% + #{$padding});
+		}
+
+		&.vertical {
+			aside {
+				position: relative;
+				width: 100%;
+				height: $filterHeight + $padding;
+			}
+
+			article {
+				width: 100%;
+				height: calc(#{$appContentHeight} - #{$filterHeight});
+				margin-left: 0;
+			}
+		}
+	}
+}

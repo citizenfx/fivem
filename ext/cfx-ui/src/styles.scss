@@ -1,29 +1,30 @@
 /* You can add global styles to this file, and also import other style files */
-@import "~bulma/css/bulma.css";
+@import "variables";
+//@import "~bulma/css/bulma.css";
 @import "~font-awesome/css/font-awesome.css";
 @import "~nouislider/distribute/nouislider.min.css";
 
 @font-face
 {
     font-family: 'FiraSans';
-    src: url(assets/fonts/firasans-regular.otf);
+    src: url(assets/fonts/FiraSans-Regular.otf);
 	font-weight: normal;
 }
 
 @font-face
 {
     font-family: 'FiraSans';
-    src: url(assets/fonts/firasans-light.otf);
+    src: url(assets/fonts/FiraSans-Light.otf);
 	font-weight: 300;
 }
-
-$fonts: FiraSans;
 
 /* disable chromeme scrollbar */
 ::-webkit-scrollbar { display: none; }
 
+
+
 html {
-	background: url(assets/images/background1.jpg) no-repeat center center fixed;
+	background: url(assets/images/pctree_full.jpg) no-repeat center center fixed;
 	background-size: cover;
 }
 
@@ -35,75 +36,73 @@ body {
 	color: #51B3EC;
 }
 
-.nav-bottom {
-	background: hsl(222, 23%, 11%);
-	border-radius: 2px;
-	display: inline-block;
-	position: absolute;
-	width: 100%;
-	bottom: 0;
+.nav-bottom-2 {
+	position: fixed;
+	top: 0;
 	left: 0;
-}
+	right: 0;
+	background: hsl(222, 23%, 11%);
 
-.nav-bottom.with-bottom {
-	height: calc(13%);
-}
+	.with-bottom {
+		height: calc(13%);
+	}
 
-.nav-bottom.with-top .nav-item {
-	padding: 0.41rem 0.75rem;
-}
+	with-top .nav-item {
+		padding: 0.41rem 0.75rem;
+	}
 
-.nav-bottom.with-top {
-	height: calc(5%);
-	bottom: calc(13%);
-}
+	with-top {
+		height: calc(5%);
+		bottom: calc(13%);
+	}
 
-.nav-bottom h1, .nav-bottom h2 {
-	color: #fff;
-	font-family: $fonts;
-	font-weight: 300;
-}
+	h1, h2 {
+		color: #fff;
+		font-family: $fonts;
+		font-weight: 300;
+	}
 
-.nav-bottom .top-portion {
-	background-color: #51B3EC;
-	width: 100%;
-	height: 100%;
-}
+	.top-portion {
+		background-color: #51B3EC;
+		width: 100%;
+		height: 100%;
+	}
 
-.nav-bottom .top-portion .nav-item {
-	border-bottom: 2px solid transparent;
-	transition: 0.2s;
-}
+	.top-portion .nav-item {
+		border-bottom: 2px solid transparent;
+		transition: 0.2s;
+	}
 
-.nav-bottom .top-portion .nav-item:hover {
-	border-bottom: 2px solid #fff;
-	transition: 0.2s;
-}
+	.top-portion .nav-item:hover {
+		border-bottom: 2px solid #fff;
+		transition: 0.2s;
+	}
 
-.nav-bottom .bottom-portion {
-	width: 100%;
-	padding: 1em;
-}
+	.bottom-portion {
+		width: 100%;
+		padding: 1em;
+	}
 
-.nav-bottom .bottom-portion .nav,
-.nav-bottom .top-portion .nav {
-	background-color: transparent;
-}
+	.bottom-portion .nav,
+	.top-portion .nav {
+		background-color: transparent;
+	}
 
-.nav-bottom .nav h1,
-.nav-bottom .nav .minimize-nav {
-	color: rgba(255, 255, 255, 0.6);
-	transition: 0.2s;
-}
+	.nav h1,
+	.nav .minimize-nav {
+		color: rgba(255, 255, 255, 0.6);
+		transition: 0.2s;
+	}
 
-.nav-bottom .nav h1:hover,
-.nav-bottom .nav .minimize-nav:hover {
-	color: #fff;
-	transition: 0.2s;
-}
+	.nav h1:hover,
+	.nav .minimize-nav:hover {
+		color: #fff;
+		transition: 0.2s;
+	}
 
-.nav-bottom .nav .is-active h1 {
-	color: #fff;
+	.nav .is-active h1 {
+		color: #fff;
+	}
 }
 
 .direct-connect .input.is-small {

@@ -1,0 +1,9 @@
+<div class="servers vertical">
+	<aside>
+		<app-server-filter [type]="type" (filtersChanged)="setFilters($event)"></app-server-filter>
+	</aside>
+
+	<article>
+		<servers-list [servers]="servers" [filters]="filters" [pinConfig]="pinConfig"></servers-list>
+	</article>
+</div>

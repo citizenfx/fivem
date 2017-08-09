@@ -1,0 +1,26 @@
+@import "variables";
+
+$columns: (
+	icon: $appServersItemHeight,
+	name: 50%,
+	actions: 70px,
+	players: 120px,
+	ping: 90px,
+);
+
+@each $key, $width in $columns {
+	.#{$key} {
+		width: $width;
+		flex-grow: 0;
+		white-space: nowrap;
+		overflow-x: hidden;
+		text-overflow: ellipsis;
+
+		color: $textColour;
+		text-align: right;
+	}
+}
+
+.name {
+	flex-grow: 1;
+}

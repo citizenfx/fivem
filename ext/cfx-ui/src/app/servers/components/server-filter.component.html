@@ -1,0 +1,18 @@
+<div class="filters inline">
+    <section class="filter attract-next" style="width: 60%">
+        <input class="name" type="search" placeholder="Search" [(ngModel)]="filters.searchText" (ngModelChange)="updateFilters()">
+    </section>
+
+    <section class="filter">
+        <div class="checkboxes">
+            <div class="checkbox">
+                <input type="checkbox" id="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
+                <label for="hide-empty" translate>#ServerList_HideEmpty</label>
+            </div>
+            <div class="checkbox">
+                <input type="checkbox" id="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
+                <label for="hide-full" translate>#ServerList_HideFull</label>
+            </div>
+        </div>
+    </section>
+</div>

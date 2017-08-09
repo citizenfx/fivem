@@ -1,76 +1,77 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { HttpModule } from '@angular/http';
+import {BrowserModule} from '@angular/platform-browser';
+import {NgModule} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {HttpModule} from '@angular/http';
 
-import { NguiTabModule } from '@ngui/tab';
-import { VirtualScrollModule } from 'angular2-virtual-scroll';
-import { TranslationModule } from 'angular-l10n';
-import { NouisliderModule } from 'ng2-nouislider';
-import { MomentModule } from 'angular2-moment';
-import { ContextMenuModule } from 'ngx-contextmenu';
+import { environment } from '../environments/environment'
 
-import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
+import {VirtualScrollModule} from 'angular2-virtual-scroll';
+import {TranslationModule} from 'angular-l10n';
+import {MomentModule} from 'angular2-moment';
 
-import { BottomNavComponent } from './bottom-nav.component';
-import { HomeComponent } from './home/home.component';
-import { SettingsComponent } from './settings/settings.component';
+import {AppRoutingModule} from './app-routing.module';
+import {AppComponent} from './app.component';
 
-import { ServerListComponent } from './servers/ui/server-list.component';
-import { ServerListUiComponent } from './servers/ui/server-list-ui.component';
-import { ServerListingComponent } from './servers/ui/server-listing.component';
-import { ServerListingItemComponent } from './servers/ui/server-listing-item.component';
-import { ServerHeadingComponent } from './servers/ui/server-heading.component';
-import { ServerFilterComponent } from './servers/ui/server-filter.component';
-import { DirectConnectComponent } from './servers/direct/direct-connect.component';
+import {AppNavComponent} from './app-nav.component';
+import {ConnectingPopupComponent} from './servers/connecting-popup.component';
+import {HomeComponent} from './home/home.component';
+import {SettingsComponent} from './settings/settings.component';
 
-import { ServersService } from './servers/servers.service';
-import { TweetService } from './home/tweet.service';
+import {ServersComponent} from './servers/components/servers.component';
+import {ServersContainerComponent} from './servers/components/servers-container.component';
+import {ServersListComponent} from './servers/components/servers-list.component';
+import {ServersListItemComponent} from './servers/components/servers-list-item.component';
+import {ServersListHeaderComponent} from './servers/components/servers-list-header.component';
+import {ServerFilterComponent} from './servers/components/server-filter.component';
+import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
-import { GameService, CfxGameService, DummyGameService } from './game.service';
+import {ServersService} from './servers/servers.service';
+import {TweetService} from './home/tweet.service';
 
-import { ColorizePipe } from './colorize.pipe';
-import { EscapePipe } from './escape.pipe';
+import {GameService, CfxGameService, DummyGameService} from './game.service';
+
+import {ColorizePipe} from './colorize.pipe';
+import {EscapePipe} from './escape.pipe';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    BottomNavComponent,
-    HomeComponent,
-    SettingsComponent,
-    ServerListComponent,
-    ServerListUiComponent,
-    ServerListingComponent,
-    ServerListingItemComponent,
-    ServerHeadingComponent,
-    ServerFilterComponent,
-    DirectConnectComponent,
-    ColorizePipe,
-    EscapePipe
-  ],
-  imports: [
-    BrowserModule,
-    FormsModule,
-    HttpModule,
-    AppRoutingModule,
-    NguiTabModule,
-    VirtualScrollModule,
-    NouisliderModule,
-    MomentModule,
-    ContextMenuModule,
-    TranslationModule.forRoot()
-  ],
-  providers: [
-    ServersService,
-    TweetService,
-    {
-      provide: GameService,
-      useClass: CfxGameService
-    }
-  ],
-  bootstrap: [
-    AppComponent
-  ]
-}) 
-export class AppModule { }
+	declarations: [
+		AppComponent,
+		AppNavComponent,
+		ConnectingPopupComponent,
+		HomeComponent,
+		SettingsComponent,
+		ServersComponent,
+		ServersContainerComponent,
+		ServersListComponent,
+		ServersListItemComponent,
+		ServersListHeaderComponent,
+		ServerFilterComponent,
+		DirectConnectComponent,
+		ColorizePipe,
+		EscapePipe
+	],
+	imports:      [
+		BrowserModule,
+		FormsModule,
+		HttpModule,
+		AppRoutingModule,
+		VirtualScrollModule,
+		MomentModule,
+		TranslationModule.forRoot()
+	],
+	providers:    [
+		ServersService,
+		TweetService,
+		{
+			provide:  GameService,
+			useClass: environment.production
+				? CfxGameService
+				: DummyGameService
+		}
+	],
+	bootstrap:    [
+		AppComponent
+	]
+})
+export class AppModule {
+}

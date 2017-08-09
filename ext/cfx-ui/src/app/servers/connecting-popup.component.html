@@ -1,0 +1,19 @@
+<div class="overlay" [class.active]="showOverlay">
+	<div class="inner">
+		<div>
+			<h1>
+				{{overlayTitle|translate}}
+			</h1>
+			<p>
+				{{overlayMessage|translate:lang:overlayMessageData }}
+			</p>
+			<button
+				*ngIf="overlayClosable"
+				(click)="closeOverlay(); false"
+			>
+				{{closeLabel|translate}}
+			</button>
+		</div>
+	</div>
+</div>
+
