@@ -738,6 +738,14 @@ native 'IS_VEHICLE_ENGINE_STARTING'
 
 native 'GET_VEHICLE_WHEEL_SPEED'
 	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex'
+	}
+	apiset 'client'
+	returns 'float'
+	
+native 'GET_VEHICLE_DASHBOARD_SPEED'
+	arguments {
 		Vehicle 'vehicle'
 	}
 	apiset 'client'
@@ -789,6 +797,13 @@ native 'SET_VEHICLE_HIGH_GEAR'
 	returns 'void'
 
 native 'GET_VEHICLE_CURRENT_GEAR'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'GET_VEHICLE_NEXT_GEAR'
 	arguments {
 		Vehicle 'vehicle'
 	}
@@ -867,4 +882,77 @@ native 'IS_VEHICLE_INTERIOR_LIGHT_ON'
 	apiset 'client'
 	returns 'BOOL'
 
+native 'GET_VEHICLE_ENGINE_TEMPERATURE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+	
+native 'SET_VEHICLE_ENGINE_TEMPERATURE'
+	arguments {
+		Vehicle 'vehicle',
+		float 'temperature'
+	}
+	apiset 'client'
+	returns 'void'
+	
+native 'GET_VEHICLE_CLUTCH'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+	
+native 'SET_VEHICLE_CLUTCH'
+	arguments {
+		Vehicle 'vehicle',
+		float 'clutch'
+	}
+	apiset 'client'
+	returns 'void'	
+	
+native 'GET_VEHICLE_TURBO_PRESSURE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_TURBO_PRESSURE'
+	arguments {
+		Vehicle 'vehicle',
+		float 'pressure'
+	}
+	apiset 'client'
+	returns 'void'
+	
+native 'GET_VEHICLE_HANDBRAKE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+	
+native 'GET_VEHICLE_NUMBER_OF_WHEELS'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'IS_VEHICLE_LEFT_BLINKER_ACTIVE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'
+	
+native 'IS_VEHICLE_RIGHT_BLINKER_ACTIVE'
+	arguments {
+		Vehicle 'vehicle'
+	}
+	apiset 'client'
+	returns 'BOOL'	
+	
 -- TODO: handling field natives
