@@ -3,19 +3,19 @@
 @font-face
 {
 	font-family: 'Roboto';
-	src: url(../assets/fonts/Roboto-Light.woff);
+	src: url(../assets/fonts/roboto_light.woff);
 	font-weight: 100;
 }
 @font-face
 {
 	font-family: 'Roboto';
-	src: url(../assets/fonts/Roboto-Regular.woff);
+	src: url(../assets/fonts/roboto_regular.woff);
 	font-weight: normal;
 }
 @font-face
 {
 	font-family: 'Roboto';
-	src: url(../assets/fonts/Roboto-Medium.woff);
+	src: url(../assets/fonts/roboto_medium.woff);
 	font-weight: bold;
 }
 
@@ -62,7 +62,7 @@ $blurSize: 20px;
 				rgba($bgColour, .55) 00%,
 				rgba($bgColour, .55) 100%
 		) center center/100%,
-		url(../assets/images/RSG_GTAV_PC_Screenshot_050.jpg) center center/cover no-repeat;
+		url(../assets/images/bg.jpg) center center/cover no-repeat;
 }
 
 /* disable chromeme scrollbar */
