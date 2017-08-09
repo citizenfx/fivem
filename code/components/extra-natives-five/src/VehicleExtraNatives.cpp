@@ -124,15 +124,15 @@ const int CurrentRPMOffset = 0x824;
 const int HighGearOffset = 0x7F6;
 const int CurrentGearOffset = 0x7F2;
 const int NextGearOffset = 0x7F0;
-const int RpmOffset				= 0x824;
-const int ClutchOffset			= 0x830;
-const int TurboBoostOffset			= 0x848;
-const int ThrottleInputOffset	= 0x90C;
-const int BrakeInputOffset		= 0x910;
-const int HandbrakeOffset	= 0x914;
-const int EngineTempOffset		= 0x9BC;
-const int NumWheelsOffset		= 0xB28;
-const int WheelsPtrOffset			= 0xB20;
+const int RpmOffset = 0x824;
+const int ClutchOffset = 0x830;
+const int TurboBoostOffset = 0x848;
+const int ThrottleInputOffset = 0x90C;
+const int BrakeInputOffset = 0x910;
+const int HandbrakeOffset = 0x914;
+const int EngineTempOffset = 0x9BC;
+const int NumWheelsOffset = 0xB28;
+const int WheelsPtrOffset = 0xB20;
 
 const int SteeringAngleOffset = 0x904;
 const int SteeringScaleOffset = 0x8FC;
@@ -155,6 +155,7 @@ const int WheelTyreRadiusOffset = 0x110;
 const int WheelRimRadiusOffset = 0x114;
 const int WheelTyreWidthOffset = 0x118;
 const int WheelRotationSpeedOffset = 0x168;
+const int WheelHealthOffset = 0x1E0;
 
 static HookFunction initFunction([]()
 {
@@ -225,6 +226,52 @@ static HookFunction initFunction([]()
 		}
 	});
 
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_HEALTH", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 2)
+		{
+			context.SetResult<float>(0.0f);
+			return;
+		}
+
+		unsigned char wheelIndex = context.GetArgument<int>(1);
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+			if (wheelIndex >= numWheels) {
+				context.SetResult<float>(0.0f);
+				return;
+			}
+			auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
+			auto wheelAddr = *reinterpret_cast<uint64_t *>(wheelsAddress + 0x008 * wheelIndex);
+			context.SetResult<float>(*reinterpret_cast<float *>(wheelAddr + WheelHealthOffset));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_HEALTH", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 3)
+		{
+			return;
+		}
+
+		unsigned char wheelIndex = context.GetArgument<int>(1);
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+			if (wheelIndex >= numWheels) {
+				context.SetResult<float>(0.0f);
+				return;
+			}
+			auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
+			auto wheelAddr = *reinterpret_cast<uint64_t *>(wheelsAddress + 0x008 * wheelIndex);
+			*reinterpret_cast<float *>(wheelAddr + WheelHealthOffset) = context.GetArgument<float>(2);;
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_STEERING_ANGLE", [](fx::ScriptContext& context)
 	{
 		if (fwEntity* vehicle = getAndCheckVehicle(context))
@@ -285,8 +332,5 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_INTERIOR_LIGHT_ON", readVehicleMemoryBit<IsInteriorLightOnOffset, 6>);
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_LEFT_BLINKER_ACTIVE", readVehicleMemoryBit<BlinkerState, 0>);
-
-	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_RIGHT_BLINKER_ACTIVE", readVehicleMemoryBit<BlinkerState, 1>);
-
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", readVehicleMemory<unsigned char, BlinkerState>);
 });
