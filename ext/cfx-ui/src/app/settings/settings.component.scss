@@ -1,0 +1,112 @@
+@import 'variables';
+
+:host {
+	display: flex;
+	flex-direction: column;
+
+	@include fullWidthPadded;
+    height: $appContentHeight;
+	margin-top: $appContentMargin;
+	margin-left: $appContentPadding;
+
+    overflow-y: scroll;
+
+    .setting {
+        display: flex;
+        width: 100%;
+        margin-bottom: $padding/2;
+
+        font-size: 1.5rem;
+        line-height: 1;
+
+        .key {
+            width: 50%/$multiplier;
+            padding: $padding $padding*$multiplier;
+            margin-right: $padding/4;
+            background-color: rgba($bgColour, .2);
+        }
+
+        .value {
+            flex-grow: 1;
+
+            background: rgba($bgColour, .2);
+
+            &>* {
+                width: 100%;
+            }
+
+            .text {
+                background-color: transparent;
+
+                &:hover,
+                &:focus {
+                    background: rgba($bgColour, .2);
+                }
+            }
+
+            .checkbox {
+				position: relative;
+				flex-grow: 1;
+
+				color: $secondaryColour;
+
+				&:last-child {
+					margin-right: 0;
+				}
+
+				input {
+					position: absolute;
+					height: 0px;
+					width: 0px;
+					transform: translateX(-9999px);
+				}
+
+				label {
+					display: block;
+                    width: 100%;
+
+                    //color: rgba($fgColour, .5);
+                    font-size: 1.4rem;
+					font-weight: 100;
+					line-height: 1;
+					padding: $padding $padding*$multiplier;
+
+					transition: all .2s ease;
+
+					&::before {
+						content: '';
+						display: inline-block;
+
+						width: 1.4vh;
+						height: 1.4vh;
+						margin-right: $padding/2;
+
+						border-radius: 1px;
+
+						vertical-align: -1px;
+						overflow: hidden;
+
+						font-size: 1.7vh;
+						line-height: 1;
+						text-align: center;
+
+						background-color: rgba($bgColour, .5);
+					}
+				}
+
+				&:hover label {
+					background-color: rgba($bgColour, .2);
+				}
+
+				input:checked + label {
+					&::before {
+						content: '✓';
+						background: $greenyColour;
+						box-shadow: 0 0 25px darken($greenyColour, 10%);
+						text-shadow: 0 0 2px rgba($bgColour, .5);
+					}
+				}
+			}
+        }
+    }
+}

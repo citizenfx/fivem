@@ -1,24 +1,74 @@
-$fonts: FiraSans;
+@import "variables";
 
-:host {
-	height: 88%;
-	width: 80%;
-	position: absolute;
-	top: 0;
-	left: 10%;
-	background-color: rgba(21, 25, 34, 0.8);
-	overflow: hidden;
+.home {
+	display: flex;
+	justify-content: flex-end;
 
-	box-sizing: border-box;
+	@include fullWidthPadded;
+	height: $appContentHeight;
+	margin-top: $appContentMargin;
+	margin-left: $appContentPadding;
+
+	iframe {
+		width: 20%;
+		height: $appContentHeight;
+		padding-bottom: $appContentPadding;
+		margin-left: $padding*$multiplier;
+	}
+
+	.feed {
+		position: relative;
+		width: 100%;
+
+		height: $appContentHeight;
+
+		overflow-y: scroll;
+
+		.message {
+			background-color: rgba($bgColour, .2);
+			border-radius: 1px;
+
+			.backdroppy {
+				padding: $padding $padding $padding $padding*2+4vh;
+
+				margin-bottom: $padding/4;
+			}
+
+			.message-header {
+				position: relative;
+				margin-bottom: $padding;
+
+				font-size: $fontSize*.7;
+				color: $textColour;
+
+				.avatar {
+					position: absolute;
+					left: -4vh-$padding;
+					width: 4vh;
+					height: 4vh;
+					border-radius: 2px;
+				}
+			}
+
+			.message-body {
+				img {
+					width: 100%;
+					height: auto;
+					border-radius: 2px;
+					margin-bottom: $padding/2;
+				}
+			}
+		}
+	}
 }
 
-:host > * {
-	height: 100%;
-}
-
-:host > * > * {
-	height: 100%;
-}
+//:host > * {
+//	height: 100%;
+//}
+//
+//:host > * > * {
+//	height: 100%;
+//}
 
 .column {
 	display: flex;
@@ -49,32 +99,4 @@ $fonts: FiraSans;
 .hero .subtitle strong {
 	color: #fff;
 	font-weight: 500;
-}
-
-.message {
-	background-color: transparent;
-}
-
-.message-header + .message-body {
-	border: 0px solid transparent;
-}
-
-.message-header .image {
-	padding-right: 3px;
-}
-
-.message-header {
-	background-color: hsl(222, 23%, 11%);
-}
-
-.message-body {
-	background-color: rgba(0, 0, 0, 0.4);
-}
-
-.media .content p {
-	color: #fff;
-}
-
-.feed {
-	overflow-y: scroll;
 }

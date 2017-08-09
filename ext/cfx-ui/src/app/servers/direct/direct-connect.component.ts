@@ -10,7 +10,8 @@ import { GameService } from '../../game.service';
 @Component({
     moduleId: module.id,
     selector: 'app-direct-connect',
-    templateUrl: 'direct-connect.component.html'
+    templateUrl: 'direct-connect.component.html',
+    styleUrls: ['direct-connect.components.scss']
 })
 
 export class DirectConnectComponent implements OnInit, AfterViewInit {
@@ -67,7 +68,6 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
         this.addr = newValue;
 
         const addrBits: [string, number] = [ '', 30120 ];
-
         const match = newValue.match(/^((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)/i);
 
         if (!match)

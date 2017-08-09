@@ -1,0 +1,149 @@
+@import "variables";
+@import "./server-listing-shared.scss";
+
+:host.pinned {
+	.server-list-item {
+		margin-top: 1px;
+		box-shadow: 0 0 0 100px rgba($greenyColour, .25) inset;
+	}
+}
+
+.server-list-item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
+
+	height: $appServersItemHeight;
+	will-change: transform;
+
+	cursor: default;
+	user-select: none;
+
+	font-weight: normal;
+	margin-top: $padding/2;
+
+	background-color: rgba($bgColour, .4);
+
+	&:hover {
+		background-color: rgba($bgColour, 1);
+
+		.actions button {
+			opacity: 1;
+		}
+
+		figure {
+			img {
+				opacity: .25;
+			}
+
+			&:after {
+				opacity: 1;
+				text-shadow: 0 0 2px rgba($bgColour, .5);
+			}
+		}
+	}
+
+	.bg {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		z-index: -1;
+
+		filter: grayscale(.5);
+		opacity: .25;
+
+		background-size: 500%;
+		background-repeat: no-repeat;
+		background-position: center center;
+	}
+
+	.icon {
+		width: $appServersItemHeight;
+		height: $appServersItemHeight;
+		border-top-left-radius: 1px;
+		border-bottom-left-radius: 1px;
+	}
+
+	.name {
+		text-align: left;
+		padding: 0 $padding*$multiplier;
+		color: $textColour;
+	}
+
+	.actions {
+		padding-right: $padding*$multiplier;
+
+		button {
+			background: transparent;
+			border: none;
+			outline: none;
+			color: $textColour;
+			padding-top: 1vh;
+			height: $appServersItemHeight;
+			opacity: 0;
+
+			transition: all .2s ease-out;
+
+			svg {
+				width: $appServersItemHeight/$multiplier;
+				height: $appServersItemHeight/$multiplier;
+			}
+
+			&:hover {
+				transform: scale(1.3);
+			}
+
+			&.active {
+				opacity: 1;
+				color: $greenyColour;
+			}
+		}
+	}
+
+	.players {
+		padding-right: $padding*$multiplier;
+	}
+
+	.ping {
+		padding-right: $padding*$multiplier;
+	}
+
+	figure {
+		position: relative;
+
+		img {
+			width: $appServersItemHeight;
+			height: $appServersItemHeight;
+
+			transition: .2s ease-out;
+		}
+
+		&:hover::after {
+			transform: scale(1.3);
+		}
+
+		&::after {
+			position: absolute;
+			display: block;
+			content: '';
+
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+
+			display: flex;
+
+			opacity: 0;
+			transition: transform .1s ease-out;
+
+			background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImhzbCg3NiwgMTAwJSwgNDAlKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJmZWF0aGVyIGZlYXRoZXItcGxheSI+PHBvbHlnb24gcG9pbnRzPSI1IDMgMTkgMTIgNSAyMSA1IDMiPjwvcG9seWdvbj48L3N2Zz4=);
+			background-repeat: no-repeat;
+			background-position: center center;
+			background-size: $appServersItemHeight/$multiplier $appServersItemHeight/$multiplier;
+		}
+	}
+}

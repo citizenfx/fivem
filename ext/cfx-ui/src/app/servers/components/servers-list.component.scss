@@ -1,0 +1,21 @@
+@import "variables";
+@import "./server-listing-shared.scss";
+
+.list {
+	height: 100%;
+	width: 100%;
+	overflow-y: scroll;
+
+	.dummy {
+		height: calc(#{$appServersHeaderHeight} + #{$padding/2});
+	}
+}
+
+virtual-scroll {
+	display: block;
+	height: 100%;
+}
+
+/deep/ .scrollable-content {
+	will-change: transform;
+}

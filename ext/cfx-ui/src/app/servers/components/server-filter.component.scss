@@ -1,0 +1,224 @@
+@import "variables";
+
+a {
+	font-weight: 400;
+}
+
+.filters {
+	display: flex;
+	flex-direction: column;
+
+	&.inline {
+		width: 100%;
+		flex-direction: row;
+
+		.filter {
+			display: inline-block;
+			width: auto;
+			flex-grow: 1;
+
+			margin-right: $padding/2;
+
+			&:last-child {
+				margin-right: 0;
+			}
+
+			input.name {
+				height: $filterHeight;
+			}
+
+			.checkboxes {
+				.checkbox {
+					label {
+						height: $filterHeight;
+						padding: $padding*2 $padding*$multiplier;
+					}
+				}
+			}
+		}
+	}
+
+	.filter {
+		margin-bottom: $padding;
+
+		&.attract-next {
+			margin-bottom: $padding/4;
+		}
+
+		input.name {
+			width: 100%;
+			height: $appServersHeaderHeight;
+			padding: $padding $padding;
+
+			color: $secondaryColour;
+
+			background: rgba($bgColour, .5);
+			@include backdropBlur;
+
+			&:hover,
+			&:focus {
+				background: rgba($bgColour, .2);
+			}
+		}
+
+		.checkboxes {
+			display: flex;
+			width: 100%;
+
+			.checkbox {
+				position: relative;
+				flex-grow: 1;
+
+				color: $secondaryColour;
+
+				margin-right: $padding/4;
+
+				&:last-child {
+					margin-right: 0;
+				}
+
+				input {
+					position: absolute;
+					height: 0px;
+					width: 0px;
+					transform: translateX(-9999px);
+				}
+
+				label {
+					display: block;
+					width: 100%;
+
+					font-size: $fontSize*.8;
+					font-weight: 100;
+					line-height: 1;
+
+					background-color: rgba($secondaryColour, .1);
+					border-radius: 1px;
+
+					transition: all .2s ease;
+
+					&::before {
+						content: '';
+						display: inline-block;
+
+						width: 1.4vh;
+						height: 1.4vh;
+						margin-right: $padding/2;
+
+						border-radius: 1px;
+
+						vertical-align: baseline;
+						overflow: hidden;
+
+						font-size: 1.7vh;
+						line-height: 1;
+						text-align: center;
+
+						background-color: rgba($bgColour, .5);
+					}
+				}
+
+				&:hover label {
+					background-color: rgba($bgColour, .2);
+				}
+
+				input:checked + label {
+					&::before {
+						content: '✓';
+						background: $greenyColour;
+						box-shadow: 0 0 25px darken($greenyColour, 10%);
+						text-shadow: 0 0 2px rgba($bgColour, .5);
+					}
+				}
+			}
+		}
+
+		.slider {
+			position: relative;
+			width: 100%;
+
+			.bar {
+				position: absolute;
+				top: 0;
+				left: 0;
+				height: 100%;
+				width: 76%;
+
+				background-color: rgba($bgColour, .5);
+
+				z-index: -1;
+			}
+
+			.inner {
+				pointer-events: none;
+
+				font-size: 14px;
+				color: $secondaryColour;
+				padding: $padding/2 $padding*$multiplier;
+
+				background-color: rgba($bgColour, .1);
+			}
+		}
+
+		.tags {
+			h4 {
+				font-weight: normal;
+				cursor: default;
+				color: $textColour;
+
+				padding: $padding $padding;
+				margin-bottom: $padding/2;
+
+				background-color: rgba($bgColour, .2);
+			}
+
+			.tag {
+				position: relative;
+				font-size: 1rem;
+				font-weight: 300;
+				line-height: 1;
+				cursor: default;
+
+				overflow-x: hidden;
+
+				padding: $padding $padding;
+				margin-bottom: $padding/4;
+
+				border-radius: 1px;
+				background-color: rgba($secondaryColour, .1);
+
+				transition: all .2s ease;
+
+				&.active::before {
+					content: '✓';
+					background-color: $greenyColour;
+					text-shadow: 0 0 1px rgba($bgColour, .5);
+					box-shadow: 0 0 15px darken($greenyColour, 10%);
+				}
+
+				&:hover {
+					background-color: rgba($bgColour, .2);
+				}
+
+				&::before {
+					content: '';
+					display: inline-block;
+
+					width: 15px;
+					height: 15px;
+					margin-right: $padding/2;
+
+					border-radius: 1px;
+
+					vertical-align: -3px;
+					overflow: hidden;
+
+					font-size: 1rem;
+					line-height: 1;
+
+					background-color: rgba($bgColour, .8);
+				}
+			}
+		}
+	}
+}
