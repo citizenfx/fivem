@@ -780,7 +780,7 @@ namespace fx
 
 				auto gameServer = instance->GetComponent<fx::GameServer>();
 
-				gameServer->DropClient(client, "Quit: %s", reason.data());
+				gameServer->DropClient(client, "%s", reason.data());
 			}
 
 			inline static constexpr const char* GetPacketId()
