@@ -743,6 +743,13 @@ native 'GET_VEHICLE_WHEEL_SPEED'
 	}
 	apiset 'client'
 	returns 'float'
+	doc [[
+	<summary>
+	Gets speed of a wheel at the tyre. 
+	Max number of wheels can be retrieved with the native GET_VEHICLE_NUMBER_OF_WHEELS.
+	</summary>
+	<returns>An integer.</returns>
+]]
 	
 native 'GET_VEHICLE_DASHBOARD_SPEED'
 	arguments {
@@ -941,18 +948,34 @@ native 'GET_VEHICLE_NUMBER_OF_WHEELS'
 	apiset 'client'
 	returns 'int'
 
-native 'IS_VEHICLE_LEFT_BLINKER_ACTIVE'
+native 'GET_VEHICLE_INDICATOR_LIGHTS'
 	arguments {
 		Vehicle 'vehicle'
 	}
 	apiset 'client'
-	returns 'BOOL'
-	
-native 'IS_VEHICLE_RIGHT_BLINKER_ACTIVE'
+	returns 'int'	
+	doc [[
+	<summary>
+	Gets the vehicle indicator light state. 0 = off, 1 = left, 2 = right, 3 = both
+	</summary>
+	<returns>An integer.</returns>
+]]
+
+native 'GET_VEHICLE_WHEEL_HEALTH'
 	arguments {
-		Vehicle 'vehicle'
+		Vehicle 'vehicle',
+		int 'wheelIndex',
 	}
 	apiset 'client'
-	returns 'BOOL'	
+	returns 'float'
 	
+native 'SET_VEHICLE_WHEEL_HEALTH'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex',
+		float 'health'
+	}
+	apiset 'client'
+	returns 'void'
+
 -- TODO: handling field natives
