@@ -331,6 +331,11 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	};
 
 	stream->SetReadCallback(readCallback);
+
+	stream->SetCloseCallback([=]()
+	{
+		reqState->ping = {};
+	});
 }
 
 HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList, const std::string& remoteAddress)
