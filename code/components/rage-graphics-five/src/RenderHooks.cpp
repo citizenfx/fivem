@@ -383,4 +383,8 @@ static HookFunction hookFunction([] ()
 	void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
 	hook::nop(createDeviceLoc, 6);
 	hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+
+	// don't crash on ID3D11DeviceContext::GetData call failures
+	// these somehow are caused by NVIDIA driver settings?
+	hook::nop(hook::get_pattern("EB 0C 8B C8 E8 ? ? ? ? B8 01", 4), 5);
 });
