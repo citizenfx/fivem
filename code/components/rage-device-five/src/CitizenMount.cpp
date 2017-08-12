@@ -16,6 +16,8 @@
 
 #include <Error.h>
 
+using namespace std::string_literals;
+
 static int(__cdecl* origSetFunc)(void* extraContentMgr, void* a2, const char* deviceName);
 int someFunc(void* a1, void* a2, const char* a3)
 {
@@ -118,7 +120,7 @@ static InitFunction initFunction([] ()
 
 		{
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common" + (CfxIsSinglePlayer()) ? "-sp" : ""));
+			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
 
 			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
 			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
@@ -131,7 +133,7 @@ static InitFunction initFunction([] ()
 
 		{
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform" + (CfxIsSinglePlayer()) ? "-sp" : ""));
+			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
 
 			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
 			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
