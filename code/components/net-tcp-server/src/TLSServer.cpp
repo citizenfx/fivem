@@ -151,8 +151,12 @@ void TLSServerStream::Initialize()
 		}
 	});
 
+	fwRefContainer<TLSServerStream> thisRef = this;
+
 	m_baseStream->SetCloseCallback([=] ()
 	{
+		fwRefContainer<TLSServerStream> scopedThisRef = thisRef;
+
 		CloseInternal();
 	});
 }
