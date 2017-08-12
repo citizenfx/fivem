@@ -1,0 +1,101 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>CitizenFX root UI</title>
+<style type="text/css">
+body
+{
+	background-color: transparent;
+	margin: 0px;
+	padding: 0px;
+}
+
+iframe
+{
+	position: absolute;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	border: 0px;
+	width: 100%;
+	height: 100%;
+}
+</style>
+<script type="text/javascript">
+// raw javascript ftfw
+window.citFrames = {};
+window.focusStack = [];
+
+registerFrameFunction(function(msg, frameName, frameUrl)
+{
+	if (msg == "createFrame")
+	{
+		var frame = document.createElement('iframe');
+	
+		frame.style.visibility = 'hidden';
+		
+		frame.src = frameUrl;
+
+		citFrames[frameName] = frame;
+		focusStack.push(frameName);
+		
+		document.body.appendChild(frame);
+
+		frame.contentWindow.addEventListener('DOMContentLoaded', function()
+		{
+			frame.style.visibility = 'visible';
+		}, true);
+	}
+	else if (msg == "destroyFrame")
+	{
+		if (!(frameName in citFrames))
+		{
+			return;
+		}
+
+		focusStack = focusStack.filter(function(val) { return val !== frameName; });
+		
+		// bye!
+		document.body.removeChild(citFrames[frameName]);
+	}
+});
+
+registerPollFunction(function(frameName)
+{
+	if (!(frameName in citFrames))
+	{
+		return;
+	}
+	
+	var frame = citFrames[frameName];
+	frame.contentWindow.postMessage({ type: 'poll' }, '*');
+});
+
+focusFrame = function(frameName)
+{
+	// rearrange the focus stack
+	focusStack = focusStack.filter(function(val) { return val !== frameName; });
+	focusStack.push(frameName);
+
+	// iterate the array
+	for (var i = 0; i < focusStack.length; i++)
+	{
+		var thisFrame = citFrames[focusStack[i]];
+		thisFrame.style.zIndex = i.toString();
+	}
+
+	// and focus the frame itself
+	citFrames[frameName].contentWindow.focus();
+};
+
+blurFrame = function(frameName)
+{
+	// remove focus
+	citFrames[frameName].contentWindow.blur();
+};
+</script>
+</head>
+<body>
+</body>
+</html>
