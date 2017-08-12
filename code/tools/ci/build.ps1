@@ -309,6 +309,15 @@ if (!$DontBuild -and !$IsServer) {
 
     Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
 
+    Push-Location $WorkDir\ext\ui-build
+    build.cmd
+    Pop-Location
+
+    if ($?) {
+        New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn\citizen\ui\ | Out-Null
+        Copy-Item -Force -Recurse $WorkDir\ext\ui-build\data\* $WorkDir\caches\fivereborn\citizen\ui\
+    }
+
     if (Test-Path C:\f\tdd2) {
     	Copy-Item -Force -Recurse C:\f\tdd2\citizen\ui.rpf $WorkDir\caches\fivereborn\citizen\
     }
