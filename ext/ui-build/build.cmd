@@ -15,7 +15,7 @@ set UIRoot=%~dp0\data
 pushd ..\cfx-ui\
 
 :: install npm stuff
-npm i
+call npm i
 
 :: ng build
 call node_modules\.bin\ng.cmd build --prod --output-hashing none
@@ -29,3 +29,5 @@ copy /y dist\*.* %UIRoot%\app\
 
 :: pop directory
 popd
+
+exit /B 0
