@@ -86,7 +86,6 @@ void NUIWindow::Initialize(CefString url)
 	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
 
 	CefBrowserSettings settings;
-	settings.javascript_open_windows = STATE_DISABLED;
 	settings.javascript_close_windows = STATE_DISABLED;
 	settings.web_security = STATE_DISABLED;
 	settings.windowless_frame_rate = 60;

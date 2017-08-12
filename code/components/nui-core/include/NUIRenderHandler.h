@@ -32,6 +32,8 @@ protected:
 
 	virtual void OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect& rect) override;
 
+	virtual void OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds) override;
+
 private:
 	void PaintView(const RectList& dirtyRects, const void* buffer, int width, int height);
 

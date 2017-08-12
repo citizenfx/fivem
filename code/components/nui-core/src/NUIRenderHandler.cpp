@@ -9,7 +9,11 @@
 #include "NUIRenderHandler.h"
 #include "GfxUtil.h"
 
+#include "CefImeHandler.h"
+
 #include "memdbgon.h"
+
+extern OsrImeHandlerWin* g_imeHandler;
 
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	: m_paintingPopup(false), m_owner(client)
@@ -23,6 +27,20 @@ bool NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 	rect.Set(0, 0, window->GetWidth(), window->GetHeight());
 
 	return true;
+}
+
+void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds)
+{
+	if (g_imeHandler) {
+		// Convert from view coordinates to device coordinates.
+		CefRenderHandler::RectList device_bounds;
+		CefRenderHandler::RectList::const_iterator it = character_bounds.begin();
+		for (; it != character_bounds.end(); ++it) {
+			device_bounds.push_back(*it);
+		}
+
+		g_imeHandler->ChangeCompositionRange(selected_range, device_bounds);
+	}
 }
 
 void NUIRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
