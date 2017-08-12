@@ -204,6 +204,7 @@ if (!$DontBuild)
 
             Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
             Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
+            Remove-Item -Recurse $WorkDir\vendor\cef\$CefName\
         } catch {
             return
         }
@@ -327,6 +328,9 @@ if (!$DontBuild -and !$IsServer) {
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $WorkDir\caches\fivereborn\bin\
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $WorkDir\caches\fivereborn\bin\cef\
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $WorkDir\caches\fivereborn\bin\cef\
+
+    # remove CEF as redownloading is broken and this slows down gitlab ci cache
+    Remove-Item -Recurse $WorkDir\vendor\cef\*
 
     # build meta/xz variants
     "<Caches>
