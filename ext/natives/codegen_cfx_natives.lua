@@ -978,4 +978,11 @@ native 'SET_VEHICLE_WHEEL_HEALTH'
 	apiset 'client'
 	returns 'void'
 
+native 'SET_HTTP_HANDLER'
+	arguments {
+		func 'handler'	
+	}
+	apiset 'server'
+	returns 'void'
+
 -- TODO: handling field natives

@@ -18,6 +18,8 @@ namespace fx
 
 		virtual void AddEndpoint(const std::string& prefix, const TEndpointHandler& handler);
 
+		virtual void RemoveEndpoint(const std::string& prefix);
+
 		virtual void AttachToObject(ServerInstanceBase* instance);
 
 	private:
@@ -34,6 +36,8 @@ namespace fx
 		fwRefContainer<Handler> m_httpHandler;
 
 		std::map<std::string, TEndpointHandler> m_handlers;
+
+		std::mutex m_handlersMutex;
 	};
 }
 

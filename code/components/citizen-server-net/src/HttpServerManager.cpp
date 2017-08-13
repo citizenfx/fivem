@@ -13,12 +13,18 @@ namespace fx
 		m_httpHandler = new Handler();
 		m_httpHandler->handler = [=] (fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
 		{
-			for (auto& prefixEntry : m_handlers)
 			{
-				if (_strnicmp(request->GetPath().c_str(), prefixEntry.first.c_str(), prefixEntry.first.length()) == 0)
+				std::unique_lock<std::mutex> lock(m_handlersMutex);
+
+				for (auto& prefixEntry : m_handlers)
 				{
-					prefixEntry.second(request, response);
-					return true;
+					if (_strnicmp(request->GetPath().c_str(), prefixEntry.first.c_str(), prefixEntry.first.length()) == 0)
+					{
+						lock.unlock();
+
+						prefixEntry.second(request, response);
+						return true;
+					}
 				}
 			}
 
@@ -39,7 +45,16 @@ namespace fx
 
 	void HttpServerManager::AddEndpoint(const std::string& prefix, const TEndpointHandler& handler)
 	{
+		std::unique_lock<std::mutex> lock(m_handlersMutex);
+
 		m_handlers.insert({ prefix, handler });
+	}
+
+	void HttpServerManager::RemoveEndpoint(const std::string& prefix)
+	{
+		std::unique_lock<std::mutex> lock(m_handlersMutex);
+
+		m_handlers.erase(prefix);
 	}
 
 	void HttpServerManager::AttachToObject(ServerInstanceBase* instance)

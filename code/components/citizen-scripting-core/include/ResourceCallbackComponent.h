@@ -54,6 +54,11 @@ namespace fx
 					.pack_ext(reference.size(), 10)
 					.pack_ext_body(reference.c_str(), reference.size());
 			}
+
+			void msgpack_unpack(msgpack::object const& o)
+			{
+
+			}
 		};
 
 	public:
