@@ -470,7 +470,11 @@ void HttpResponse::End()
 	if (m_requestState->blocked)
 	{
 		m_requestState->blocked = false;
-		m_requestState->ping();
+
+		if (m_requestState->ping)
+		{
+			m_requestState->ping();
+		}
 	}
 }
 
