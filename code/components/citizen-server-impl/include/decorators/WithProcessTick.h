@@ -9,7 +9,7 @@ namespace fx
 		{
 			server->SetRunLoop([=]()
 			{
-				auto lastTime = msec();
+				auto lastTime = msec().count();
 
 				auto waiter = TWait();
 				auto ticker = TTick();
@@ -20,11 +20,11 @@ namespace fx
 
 				while (true)
 				{
-					auto now = msec() - lastTime;
+					auto now = msec().count() - lastTime;
 
 					residualTime += now;
 
-					lastTime = msec();
+					lastTime = msec().count();
 
 					if (now >= 150)
 					{

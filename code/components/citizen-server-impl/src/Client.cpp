@@ -2,11 +2,6 @@
 #include <Client.h>
 #include <GameServer.h>
 
-inline static std::chrono::milliseconds msec()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-}
-
 namespace fx
 {
 	Client::Client(const std::string& guid)

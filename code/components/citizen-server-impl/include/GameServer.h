@@ -11,6 +11,11 @@
 
 #include <enet/enet.h>
 
+inline std::chrono::milliseconds msec()
+{
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+}
+
 namespace fx
 {
 	struct enet_host_deleter

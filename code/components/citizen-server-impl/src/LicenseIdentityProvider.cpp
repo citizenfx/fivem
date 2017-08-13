@@ -10,16 +10,16 @@
 
 static InitFunction initFunction([]()
 {
-	static struct EndPointIdProvider : public fx::ServerIdentityProviderBase
+	static struct LicenseIdProvider : public fx::ServerIdentityProviderBase
 	{
 		virtual std::string GetIdentifierPrefix() override
 		{
-			return "ip";
+			return "license";
 		}
 
 		virtual int GetVarianceLevel() override
 		{
-			return 5;
+			return 1;
 		}
 
 		virtual int GetTrustLevel() override
@@ -29,12 +29,16 @@ static InitFunction initFunction([]()
 
 		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(std::optional<std::string>)>& cb) override
 		{
-			const auto& ep = clientPtr->GetTcpEndPoint();
-			clientPtr->AddIdentifier("ip:" + ep.substr(0, ep.find_last_of(':')));
+			auto& any = clientPtr->GetData("entitlementHash");
+
+			if (any.has_value())
+			{
+				clientPtr->AddIdentifier(fmt::sprintf("license:%s", std::any_cast<std::string>(any)));
+			}
 
 			cb({});
 		}
 	} idp;
 
 	fx::RegisterServerIdentityProvider(&idp);
-}, 150);
+}, 151);

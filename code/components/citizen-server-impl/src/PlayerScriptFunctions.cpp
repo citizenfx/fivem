@@ -11,11 +11,6 @@
 
 #include <se/Security.h>
 
-inline static uint64_t msec()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-}
-
 static InitFunction initFunction([]()
 {
 	auto makeClientFunction = [](auto fn)
@@ -103,7 +98,7 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_LAST_MSG", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
-		return msec() - client->GetLastSeen().count();
+		return (msec() - client->GetLastSeen()).count();
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)

@@ -11,11 +11,6 @@
 
 #include <PrintListener.h>
 
-inline static uint64_t msec()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-}
-
 namespace fx
 {
 	ENetAddress GetENetAddress(const net::PeerAddress& peerAddress)
@@ -61,7 +56,7 @@ namespace fx
 	static std::map<ENetHost*, GameServer*> g_hostInstances;
 
 	GameServer::GameServer()
-		: m_residualTime(0), m_serverTime(msec()), m_nextHeartbeatTime(0)
+		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0)
 	{
 		seCreateContext(&m_seContext);
 
@@ -313,7 +308,7 @@ namespace fx
 		}
 
 		// if we should heartbeat
-		if ((int64_t)msec() >= m_nextHeartbeatTime)
+		if (msec().count() >= m_nextHeartbeatTime)
 		{
 			// loop through each master
 			for (auto& master : m_masters)
@@ -358,7 +353,7 @@ namespace fx
 				}
 			}
 
-			m_nextHeartbeatTime = msec() + (180 * 1000);
+			m_nextHeartbeatTime = msec().count() + (180 * 1000);
 		}
 
 		{

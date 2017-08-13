@@ -122,6 +122,87 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	return true;
 }
 
+struct TicketData
+{
+	std::optional<std::array<uint8_t, 20>> entitlementHash;
+};
+
+static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
+{
+	auto ticketData = Botan::base64_decode(ticket);
+
+	// validate ticket length
+	if (ticketData.size() < 20 + 4 + 128 + 4)
+	{
+		return {};
+	}
+
+	uint32_t length = *(uint32_t*)&ticketData[20 + 4 + 128];
+
+	// validate full length
+	if (ticketData.size() < 20 + 4 + 128 + 4 + length)
+	{
+		return {};
+	}
+
+	// copy extra data
+	std::vector<uint8_t> extraData(length);
+
+	if (!extraData.empty())
+	{
+		memcpy(&extraData[0], &ticketData[20 + 4 + 128 + 4], length);
+	}
+
+	// check the RSA signature
+	uint32_t sigLength = *(uint32_t*)&ticketData[20 + 4 + 128 + 4 + length];
+
+	if (sigLength != 128)
+	{
+		return {};
+	}
+
+	Botan::SHA_160 hashFunction;
+	auto result = hashFunction.process(&ticketData[4], ticketData.size() - 128 - 4 - 4);
+
+	std::vector<uint8_t> msg(result.size() + 1);
+	msg[0] = 2;
+	memcpy(&msg[1], &result[0], result.size());
+
+	auto modulus = Botan::base64_decode("1DNT1go22VUAU3BON+jCfXxs7Ow9Zxwng4ARTX/vrv6I65bsSYbdBrcc"
+		"w/50Fu7AJr8zy8+sXK8wUO4gx00frtA0adaGeZOeBqNq7/K3Gprv98wc"
+		"ftbxWjUv75pVl9Ush5yxpBPbuYUnGR/Nh2+K3GRrIrKxWYpNSF1JZYzE"
+		"+5k=");
+
+	auto exponent = Botan::base64_decode("AQAB");
+
+	Botan::BigInt n(modulus.data(), modulus.size());
+	Botan::BigInt e(exponent.data(), exponent.size());
+
+	auto pk = Botan::RSA_PublicKey(n, e);
+
+	auto signer = std::make_unique<Botan::PK_Verifier>(pk, "EMSA_PKCS1(SHA-1)");
+
+	bool valid = signer->verify_message(msg.data(), msg.size(), &ticketData[length + 4 + 4 + 128 + 20 + 4], sigLength);
+
+	if (!valid)
+	{
+		trace("Connecting player: ticket RSA signature not matching\n");
+		return {};
+	}
+
+	TicketData outData;
+
+	if (length >= 20)
+	{
+		std::array<uint8_t, 20> entitlementHash;
+		memcpy(entitlementHash.data(), &extraData[0], entitlementHash.size());
+
+		outData.entitlementHash = entitlementHash;
+	}
+
+	return outData;
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -154,6 +235,8 @@ static InitFunction initFunction([]()
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
 
+			TicketData ticketData;
+
 			if (!lanVar->GetValue())
 			{
 				auto ticketIt = postMap.find("cfxTicket");
@@ -169,6 +252,16 @@ static InitFunction initFunction([]()
 					cb(json::object({ { "error", "FiveM ticket authorization failed." } }));
 					return;
 				}
+
+				auto optionalTicket = VerifyTicketEx(ticketIt->second);
+
+				if (!optionalTicket)
+				{
+					cb(json::object({ { "error", "FiveM ticket authorization failed. (2)" } }));
+					return;
+				}
+
+				ticketData = *optionalTicket;
 			}
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
@@ -202,6 +295,16 @@ static InitFunction initFunction([]()
 			client->SetConnectionToken(token);
 			client->SetTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
 			client->SetNetId(0x10000 + tempId);
+
+			// add the entitlement hash if needed
+			if (ticketData.entitlementHash)
+			{
+				auto& hash = *ticketData.entitlementHash;
+				client->SetData("entitlementHash", fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+					hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+					hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]));
+			}
+
 			client->Touch();
 
 			auto it = g_serverProviders.begin();

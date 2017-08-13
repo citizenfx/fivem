@@ -85,4 +85,4 @@ static InitFunction initFunction([]()
 	} idp;
 
 	fx::RegisterServerIdentityProvider(&idp);
-});
+}, 152);
