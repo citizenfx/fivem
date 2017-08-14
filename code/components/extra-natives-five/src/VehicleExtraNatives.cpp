@@ -165,8 +165,8 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_OIL_LEVEL", readVehicleMemory<float, OilLevelOffset>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_OIL_LEVEL", writeVehicleMemory<float, OilLevelOffset>);
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_GRAVITY", readVehicleMemory<float, GravityOffset>);
-	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_GRAVITY", writeVehicleMemory<float, GravityOffset>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_GRAVITY_AMOUNT", readVehicleMemory<float, GravityOffset>);
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_GRAVITY_AMOUNT", writeVehicleMemory<float, GravityOffset>);
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_ENGINE_STARTING", readVehicleMemoryBit<IsEngineStartingOffset, 5>);
 

@@ -722,7 +722,7 @@ native 'SET_VEHICLE_OIL_LEVEL'
 	apiset 'client'
 	returns 'void'
 
-native 'GET_VEHICLE_GRAVITY'
+native 'GET_VEHICLE_GRAVITY_AMOUNT'
 	arguments {
 		Vehicle 'vehicle'
 	}
@@ -765,7 +765,7 @@ native 'GET_VEHICLE_ACCELERATION'
 	apiset 'client'
 	returns 'float'
 
-native 'SET_VEHICLE_GRAVITY'
+native 'SET_VEHICLE_GRAVITY_AMOUNT'
 	arguments {
 		Vehicle 'vehicle',
 		float 'gravity'
