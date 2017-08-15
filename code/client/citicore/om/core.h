@@ -87,6 +87,7 @@ inline bool operator<(const guid_t& left, const guid_t& right)
 #define NOINLINE __declspec(noinline)	// this is needed as the VS15.3 compiler will act weird otherwise
 #else
 #define NS_NO_VTABLE
+#define NOINLINE
 #endif
 
 #define NS_ERROR_NULL_POINTER			FX_E_INVALIDARG
