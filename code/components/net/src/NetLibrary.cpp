@@ -17,7 +17,6 @@
 
 #include <Error.h>
 
-std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV1(INetLibraryInherit* base);
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
 
 inline ISteamComponent* GetSteam()
@@ -678,7 +677,9 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			}
 			else
 			{
-				m_impl = CreateNetLibraryImplV1(this);
+				OnConnectionError("Legacy servers are incompatible with this version of FiveM. Please tell the server owner to the server to the latest FXServer build. See https://fivem.net/ for more info.");
+				m_connectionState = CS_IDLE;
+				return;
 			}
 		}
 		catch (YAML::Exception& e)
