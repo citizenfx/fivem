@@ -199,6 +199,10 @@ void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 	m_inRouteDelayMax = *std::max_element(m_inRouteDelaySamplesArchive, m_inRouteDelaySamplesArchive + _countof(m_inRouteDelaySamplesArchive));
 }
 
+
+// log data if enabled
+static ConVar<std::string> netLogFile("net_statsFile", ConVar_Archive, "");
+
 void NetOverlayMetricSink::UpdateMetrics()
 {
 	uint32_t time = timeGetTime();
@@ -239,6 +243,42 @@ void NetOverlayMetricSink::UpdateMetrics()
 
 		// update the timer
 		m_lastUpdatePerSec = time;
+
+		// log output?
+		auto netLog = netLogFile.GetValue();
+		if (!netLog.empty())
+		{
+			// check if we want a new file
+			static std::string lastNetLog;
+			static uint32_t netLogInitTime;
+
+			std::wstring netLogPath = MakeRelativeCitPath(ToWide(netLog));
+
+			auto writeToNetLog = [&](const std::string& text)
+			{
+				FILE* f = _wfopen(netLogPath.c_str(), L"a");
+
+				if (f)
+				{
+					fwrite(text.c_str(), text.size(), 1, f);
+					fclose(f);
+				}
+			};
+
+			if (lastNetLog != netLog)
+			{
+				// delete the file and write a header
+				_wunlink(netLogPath.c_str());
+				writeToNetLog("Time,Ping,InBytes,InPackets,OutBytes,OutPackets,InRoutePackets,OutRoutePackets\n");
+
+				netLogInitTime = timeGetTime();
+
+				lastNetLog = netLog;
+			}
+
+			writeToNetLog(fmt::sprintf("%d,%d,%d,%d,%d,%d,%d,%d\n",
+				timeGetTime() - netLogInitTime, m_ping, m_lastInBytes, m_lastInPackets, m_lastOutBytes, m_lastOutPackets, m_lastInRoutePackets, m_lastOutRoutePackets));
+		}
 	}
 }
 
