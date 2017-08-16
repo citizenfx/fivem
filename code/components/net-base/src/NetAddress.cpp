@@ -13,7 +13,7 @@ namespace net
 PeerAddress::PeerAddress(const sockaddr* addr, socklen_t addrlen)
 	: PeerAddress()
 {
-	assert(addrlen < sizeof(m_addr));
+	assert(addrlen <= sizeof(m_addr));
 
 	memcpy(&m_addr, addr, addrlen);
 }
