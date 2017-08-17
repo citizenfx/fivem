@@ -34,7 +34,7 @@ Context::Context(Context* fallbackContext)
 
 	managers->helpCommand = std::make_shared<ConsoleCommand>(managers->commandManager.get(), "cmdlist", [=]()
 	{
-		std::set<std::string> commands;
+		std::set<std::string, IgnoreCaseLess> commands;
 
 		managers->commandManager->ForAllCommands([&](const std::string& cmdName)
 		{
