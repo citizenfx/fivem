@@ -558,6 +558,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 	} es(this);
 
 	m_currentServer = NetAddress(address.GetSocketAddress());
+	m_currentServerPeer = address;
 	m_connectionState = CS_INITING;
 
 	AddCrashometry("last_server", "%s", address.ToString());

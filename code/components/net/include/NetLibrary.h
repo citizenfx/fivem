@@ -141,6 +141,8 @@ private:
 
 	NetAddress m_currentServer;
 
+	net::PeerAddress m_currentServerPeer;
+
 	std::string m_token;
 
 	uint32_t m_lastConnect;
@@ -257,6 +259,11 @@ public:
 	inline virtual NetAddress GetCurrentServer() override
 	{
 		return m_currentServer;
+	}
+
+	inline virtual net::PeerAddress GetCurrentPeer()
+	{
+		return m_currentServerPeer;
 	}
 
 	inline int GetServerProtocol() override
