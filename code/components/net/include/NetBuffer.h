@@ -7,7 +7,9 @@
 
 #pragma once
 
+#ifndef COMPILING_ADHESIVE
 #include <boost/type_index.hpp>
+#endif
 
 // for now!
 #include <Error.h>
@@ -43,7 +45,9 @@ public:
 		T tempValue;
 		if (!Read(&tempValue, sizeof(T)))
 		{
+#ifndef COMPILING_ADHESIVE
 			GlobalError("NetBuffer::Read<%s>() failed to read %d bytes.", boost::typeindex::type_id<T>().pretty_name().c_str(), sizeof(T));
+#endif
 		}
 
 		return tempValue;
