@@ -308,40 +308,40 @@ void ParseArchetypeFile(char* text, size_t length)
 					if (valid)
 					{
 						fwArchetypeDef* archetypeDef = new fwArchetypeDef();
-						archetypeDef->drawDistance = drawDistance;
+						archetypeDef->lodDist = drawDistance;
 
-						archetypeDef->boundingBoxMin[0] = aabbMin[0];
-						archetypeDef->boundingBoxMin[1] = aabbMin[1];
-						archetypeDef->boundingBoxMin[2] = aabbMin[2];
+						archetypeDef->bbMin[0] = aabbMin[0];
+						archetypeDef->bbMin[1] = aabbMin[1];
+						archetypeDef->bbMin[2] = aabbMin[2];
 
-						archetypeDef->boundingBoxMax[0] = aabbMax[0];
-						archetypeDef->boundingBoxMax[1] = aabbMax[1];
-						archetypeDef->boundingBoxMax[2] = aabbMax[2];
+						archetypeDef->bbMax[0] = aabbMax[0];
+						archetypeDef->bbMax[1] = aabbMax[1];
+						archetypeDef->bbMax[2] = aabbMax[2];
 
-						archetypeDef->centroid[0] = centroid[0];
-						archetypeDef->centroid[1] = centroid[1];
-						archetypeDef->centroid[2] = centroid[2];
+						archetypeDef->bsCentre[0] = centroid[0];
+						archetypeDef->bsCentre[1] = centroid[1];
+						archetypeDef->bsCentre[2] = centroid[2];
 
-						archetypeDef->radius = radius;
+						archetypeDef->bsRadius = radius;
 
-						archetypeDef->nameHash = HashString(modelName.c_str());
-						archetypeDef->txdHash = HashString(txdName.c_str());
+						archetypeDef->name = HashString(modelName.c_str());
+						archetypeDef->textureDictionary = HashString(txdName.c_str());
 
 						if (strcmp(txdName.c_str(), "null") == 0)
 						{
-							archetypeDef->txdHash = archetypeDef->nameHash;
+							archetypeDef->textureDictionary = archetypeDef->name;
 						}
 
 						if (!parentName.empty())
 						{
-							archetypeDef->dwdHash = HashString(parentName.c_str());
+							archetypeDef->drawableDictionary = HashString(parentName.c_str());
 						}
 
 						// assume this is a CBaseModelInfo
 						// TODO: get [mi] from [miPtr]
-						void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->nameHash, 1);
+						void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->name, 1);
 
-						fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->nameHash);
+						fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->name);
 
 						mi->InitializeFromArchetypeDef(1390, archetypeDef, true);
 
@@ -421,8 +421,8 @@ void ParseArchetypeFile(char* text, size_t length)
 					if (archetype)
 					{
 						fwEntityDef* entityDef = new fwEntityDef();
-						entityDef->archetypeNameHash = archetypeHash;
-						entityDef->guidHash = guidHash;
+						entityDef->archetypeName = archetypeHash;
+						entityDef->guid = guidHash;
 
 						entityDef->position[0] = position[0];
 						entityDef->position[1] = position[1];
@@ -433,8 +433,8 @@ void ParseArchetypeFile(char* text, size_t length)
 						entityDef->rotation[2] = rotation[2];
 						entityDef->rotation[3] = rotation[3];
 
-						getFloat("float1", &entityDef->unkFloat1);
-						getFloat("float2", &entityDef->unkFloat2);
+						getFloat("float1", &entityDef->lodDist);
+						getFloat("float2", &entityDef->childLodDist);
 
 						getUInt("flags", &entityDef->flags);
 

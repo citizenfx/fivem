@@ -38,43 +38,43 @@ public:
 
 	virtual int64_t GetTypeIdentifier();
 
-	float drawDistance;
+	float lodDist;
 	uint32_t flags; // 0x10000 = alphaclip
-	uint32_t unkField; // lower 5 bits == 31 -> use alpha clip, get masked to 31 in InitializeFromArchetypeDef
+	uint32_t specialAttribute; // lower 5 bits == 31 -> use alpha clip, get masked to 31 in InitializeFromArchetypeDef
 	uint32_t pad;
 	void* pad2;
-	float boundingBoxMin[4];
-	float boundingBoxMax[4];
-	float centroid[4];
-	float radius;
-	float unkDistance;
-	uint32_t nameHash;
-	uint32_t txdHash;
-	uint32_t pad3;
-	uint32_t dwdHash;
-	uint32_t pad4;
-	uint32_t unk_3;
-	uint32_t unkHash;
+	float bbMin[4];
+	float bbMax[4];
+	float bsCentre[4];
+	float bsRadius;
+	float hdTextureDist;
+	uint32_t name;
+	uint32_t textureDictionary;
+	uint32_t clipDictionary;
+	uint32_t drawableDictionary;
+	uint32_t physicsDictionary;
+	uint32_t assetType;
+	uint32_t assetName;
 	uint32_t pad5[7];
 
 public:
 	fwArchetypeDef()
 	{
 		flags = 0x10000; // was 0x2000
-		drawDistance = 299.0f;
-		unkDistance = 375.0f;
+		lodDist = 299.0f;
+		hdTextureDist = 375.0f;
 
-		dwdHash = 0;
-		unk_3 = 3;
-		unkHash = 0x12345678;
+		drawableDictionary = 0;
+		assetType = 3;
+		assetName = 0x12345678;
 
-		unkField = 31;
+		specialAttribute = 31;
 
 		pad = 0;
 		pad2 = 0;
-		pad3 = 0;
-		pad4 = 0;
-		memset(pad5, 0, sizeof(pad4));
+		clipDictionary = 0;
+		physicsDictionary = 0;
+		memset(pad5, 0, sizeof(physicsDictionary));
 	}
 };
 
@@ -113,44 +113,47 @@ public:
 	virtual int64_t GetTypeIdentifier();
 
 public:
-	uint32_t archetypeNameHash;
+	uint32_t archetypeName;
 	uint32_t flags;
-	uint32_t guidHash;
+	uint32_t guid;
 
 	uint32_t pad[3];
 
 	float position[4];
 	float rotation[4];
 
-	float float1;
-	float float2;
+	float scaleXY;
+	float scaleZ;
 
-	int32_t lodParentIdx;
+	int32_t parentIndex;
 
-	float unkFloat1;
-	float unkFloat2;
+	float lodDist;
+	float childLodDist;
 
-	int32_t unkInt1;
-	int32_t unkInt2;
+	int32_t lodLevel;
+	int32_t numChildren;
 
-	int32_t pad2[5];
-	int32_t unkFF;
-	int32_t unkFF_2;
+	int32_t priorityLevel;
+
+	int32_t pad2[4];
+	int32_t ambientOcclusionMultiplier;
+	int32_t artificialAmbientOcclusion;
 	int32_t pad3[2];
 
 public:
 	fwEntityDef()
 	{
 		flags = 0x180000; // was 0x180010
-		lodParentIdx = -1;
-		float1 = 1.0f;
-		float2 = 1.0f;
-		unkFloat1 = 4000.f;
-		unkFloat2 = 500.f;
-		unkInt1 = 2;
-		unkInt2 = 9;
-		unkFF = 0xFF;
-		unkFF_2 = 0xFF;
+		parentIndex = -1;
+		scaleXY = 1.0f;
+		scaleZ = 1.0f;
+		lodDist = 4000.f;
+		childLodDist = 500.f;
+		lodLevel = 2;
+		numChildren = 9;
+		ambientOcclusionMultiplier = 0xFF;
+		artificialAmbientOcclusion = 0xFF;
+		priorityLevel = 0;
 
 		memset(pad, 0, sizeof(pad));
 		memset(pad2, 0, sizeof(pad2));

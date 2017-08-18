@@ -33,8 +33,8 @@ static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)>
 	fwArchetype* archetype = getArchetype(HashString(name.c_str()), &index);
 
 	fwEntityDef entityDef;
-	entityDef.archetypeNameHash = HashString(name.c_str());
-	entityDef.guidHash = 121212;
+	entityDef.archetypeName = HashString(name.c_str());
+	entityDef.guid = 121212;
 
 	entityDef.position[0] = -426.858f;
 	entityDef.position[1] = -957.54f;
@@ -176,29 +176,32 @@ void RecreateModel()
 
 	// register an archetype
 	auto archetypeDef = new fwArchetypeDef();
-	archetypeDef->drawDistance = 299.0f;
+	archetypeDef->lodDist = 299.0f;
 
-	archetypeDef->boundingBoxMin[0] = -500.0f;
-	archetypeDef->boundingBoxMin[1] = -500.0f;
-	archetypeDef->boundingBoxMin[2] = -500.0f;
+	archetypeDef->bbMin[0] = -500.0f;
+	archetypeDef->bbMin[1] = -500.0f;
+	archetypeDef->bbMin[2] = -500.0f;
 
-	archetypeDef->boundingBoxMax[0] = 500.0f;
-	archetypeDef->boundingBoxMax[1] = 500.0f;
-	archetypeDef->boundingBoxMax[2] = 500.0f;
+	archetypeDef->bbMax[0] = 500.0f;
+	archetypeDef->bbMax[1] = 500.0f;
+	archetypeDef->bbMax[2] = 500.0f;
 
-	archetypeDef->centroid[0] = 0.0f;
-	archetypeDef->centroid[1] = 0.0f;
-	archetypeDef->centroid[2] = 0.0f;
+	archetypeDef->bsCentre[0] = 0.0f;
+	archetypeDef->bsCentre[1] = 0.0f;
+	archetypeDef->bsCentre[2] = 0.0f;
 
-	archetypeDef->radius = 1414.0f;
+	archetypeDef->bsRadius = 1414.0f;
 
-	archetypeDef->nameHash = currentModelHash;
-	archetypeDef->txdHash = (txdNames.empty()) ? currentModelHash : HashString(txdNames.back().c_str());
+	archetypeDef->name = currentModelHash;
+	archetypeDef->textureDictionary = (txdNames.empty()) ? currentModelHash : HashString(txdNames.back().c_str());
+
+	archetypeDef->flags = 0;
+	archetypeDef->specialAttribute = 0;
 
 	// assume this is a CBaseModelInfo
-	void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->nameHash, 1);
+	void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->name, 1);
 
-	fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->nameHash);
+	fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->name);
 
 	mi->InitializeFromArchetypeDef(1390, archetypeDef, true);
 
@@ -210,8 +213,8 @@ void RecreateModel()
 
 	// create an entity
 	fwEntityDef entityDef;
-	entityDef.archetypeNameHash = currentModelHash;
-	entityDef.guidHash = 121212;
+	entityDef.archetypeName = currentModelHash;
+	entityDef.guid = 121212;
 
 	entityDef.position[0] = newPosition.x;
 	entityDef.position[1] = newPosition.y;
@@ -222,8 +225,11 @@ void RecreateModel()
 	entityDef.rotation[2] = 0.0f;
 	entityDef.rotation[3] = 1.0f;
 
+	entityDef.flags = 0;
+	entityDef.lodLevel = 1;
+
 	uint64_t index;
-	getArchetype(archetypeDef->nameHash, &index);
+	getArchetype(archetypeDef->name, &index);
 
 	fwEntity* entity = mi->CreateEntity();
 	entity->SetModelIndex((uint32_t*)&index);
