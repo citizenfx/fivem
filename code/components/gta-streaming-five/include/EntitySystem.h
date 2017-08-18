@@ -216,7 +216,7 @@ public:
 		return m_transform;
 	}
 
-	inline const Vector3& GetPosition() const
+	inline Vector3 GetPosition() const
 	{
 		return Vector3(m_transform._41, m_transform._42, m_transform._43);
 	}
