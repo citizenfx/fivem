@@ -178,19 +178,19 @@ void RecreateModel()
 	auto archetypeDef = new fwArchetypeDef();
 	archetypeDef->lodDist = 299.0f;
 
-	archetypeDef->bbMin[0] = -500.0f;
-	archetypeDef->bbMin[1] = -500.0f;
-	archetypeDef->bbMin[2] = -500.0f;
+	archetypeDef->bbMin[0] = -1500.0f;
+	archetypeDef->bbMin[1] = -1500.0f;
+	archetypeDef->bbMin[2] = -1500.0f;
 
-	archetypeDef->bbMax[0] = 500.0f;
-	archetypeDef->bbMax[1] = 500.0f;
-	archetypeDef->bbMax[2] = 500.0f;
+	archetypeDef->bbMax[0] = 1500.0f;
+	archetypeDef->bbMax[1] = 1500.0f;
+	archetypeDef->bbMax[2] = 1500.0f;
 
 	archetypeDef->bsCentre[0] = 0.0f;
 	archetypeDef->bsCentre[1] = 0.0f;
 	archetypeDef->bsCentre[2] = 0.0f;
 
-	archetypeDef->bsRadius = 1414.0f;
+	archetypeDef->bsRadius = 4242.0f;
 
 	archetypeDef->name = currentModelHash;
 	archetypeDef->textureDictionary = (txdNames.empty()) ? currentModelHash : HashString(txdNames.back().c_str());
