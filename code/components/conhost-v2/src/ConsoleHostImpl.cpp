@@ -174,6 +174,7 @@ static InitFunction initFunction([] ()
 	io.KeyMap[ImGuiKey_Y] = 'Y';
 	io.KeyMap[ImGuiKey_Z] = 'Z';
 
+	io.IniFilename = nullptr;
 	io.RenderDrawListsFn = RenderDrawLists;  // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.
 	//io.ImeWindowHandle = g_hWnd;
 
