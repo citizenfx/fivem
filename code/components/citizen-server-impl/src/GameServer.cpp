@@ -175,6 +175,10 @@ namespace fx
 						m_clientRegistry->HandleConnectingClient(client);
 					}
 
+					// disable peer throttling
+					enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
+
+					// send a connectOK
 					net::Buffer outMsg;
 					outMsg.Write(1);
 
