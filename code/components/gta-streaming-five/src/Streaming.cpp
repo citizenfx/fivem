@@ -19,6 +19,11 @@ static hook::cdecl_stub<void(void*, uint32_t)> g_releaseObject([]()
 	return hook::get_call(hook::get_pattern("45 33 C0 03 D7 E8 ? ? ? ? 48 8B 03 48 8B CB", 5));
 });
 
+static hook::cdecl_stub<uint32_t(uint32_t*, const char*, bool, const char*, bool)> g_registerRawStreamingFile([]()
+{
+	return hook::get_pattern("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25);
+});
+
 namespace streaming
 {
 	void LoadObjectsNow(bool a1)
@@ -39,6 +44,11 @@ namespace streaming
 	Manager* Manager::GetInstance()
 	{
 		return (Manager*)g_storeMgr;
+	}
+
+	uint32_t RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
+	{
+		return g_registerRawStreamingFile(fileId, fileName, unkTrue, registerAs, errorIfFailed);
 	}
 }
 

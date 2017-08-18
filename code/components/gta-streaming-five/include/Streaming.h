@@ -79,6 +79,8 @@ namespace streaming
 	STREAMING_EXPORT const std::string& GetStreamingNameForIndex(uint32_t index);
 
 	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry);
+
+	STREAMING_EXPORT uint32_t RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed);
 }
 
 #if 0

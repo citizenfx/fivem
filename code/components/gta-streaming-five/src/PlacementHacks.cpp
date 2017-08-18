@@ -8,6 +8,8 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <EntitySystem.h>
+
 #include <atArray.h>
 #include <fiDevice.h>
 
@@ -20,71 +22,6 @@
 
 #include <gameSkeleton.h>
 #include "Streaming.h"
-
-template<typename TSubClass>
-class fwFactoryBase
-{
-public:
-	virtual ~fwFactoryBase() = 0;
-
-	virtual TSubClass* Get(uint32_t hash) = 0;
-
-	virtual void m3() = 0;
-	virtual void m4() = 0;
-
-	virtual void* GetOrCreate(uint32_t hash, uint32_t numEntries) = 0;
-
-	virtual void Remove(uint32_t hash) = 0;
-
-	virtual void ForAllOfHash(uint32_t hash, void(*cb)(TSubClass*)) = 0;
-};
-
-class fwArchetypeDef
-{
-public:
-	virtual ~fwArchetypeDef();
-
-	virtual int64_t GetTypeIdentifier();
-
-	float drawDistance;
-	uint32_t flags; // 0x10000 = alphaclip
-	uint32_t unkField; // lower 5 bits == 31 -> use alpha clip, get masked to 31 in InitializeFromArchetypeDef
-	uint32_t pad;
-	void* pad2;
-	float boundingBoxMin[4];
-	float boundingBoxMax[4];
-	float centroid[4];
-	float radius;
-	float unkDistance;
-	uint32_t nameHash;
-	uint32_t txdHash;
-	uint32_t pad3;
-	uint32_t dwdHash;
-	uint32_t pad4;
-	uint32_t unk_3;
-	uint32_t unkHash;
-	uint32_t pad5[7];
-
-public:
-	fwArchetypeDef()
-	{
-		flags = 0x10000; // was 0x2000
-		drawDistance = 299.0f;
-		unkDistance = 375.0f;
-
-		dwdHash = 0;
-		unk_3 = 3;
-		unkHash = 0x12345678;
-
-		unkField = 31;
-
-		pad = 0;
-		pad2 = 0;
-		pad3 = 0;
-		pad4 = 0;
-		memset(pad5, 0, sizeof(pad4));
-	}
-};
 
 fwArchetypeDef::~fwArchetypeDef()
 {
@@ -99,82 +36,6 @@ int64_t fwArchetypeDef::GetTypeIdentifier()
 }
 
 //static_assert(sizeof(fwArchetypeDef) == 144, "fwArchetypeDef isn't of CBaseArchetypeDef's size...");
-
-class fwArchetype
-{
-public:
-	virtual ~fwArchetype() = 0;
-
-	virtual void m_8() = 0;
-
-	virtual void InitializeFromArchetypeDef(uint32_t mapTypesStoreIdx, fwArchetypeDef* archetypeDef, bool) = 0;
-
-public:
-	char pad[36];
-	float radius;
-	float aabbMin[4];
-	float aabbMax[4];
-	uint32_t flags;
-
-	uint8_t pad2[12];
-	uint8_t assetType;
-	uint8_t pad3;
-
-	uint16_t assetIndex;
-};
-
-class fwEntityDef
-{
-public:
-	virtual ~fwEntityDef();
-
-	virtual int64_t GetTypeIdentifier();
-
-public:
-	uint32_t archetypeNameHash;
-	uint32_t flags;
-	uint32_t guidHash;
-
-	uint32_t pad[3];
-
-	float position[4];
-	float rotation[4];
-
-	float float1;
-	float float2;
-
-	int32_t lodParentIdx;
-
-	float unkFloat1;
-	float unkFloat2;
-
-	int32_t unkInt1;
-	int32_t unkInt2;
-
-	int32_t pad2[5];
-	int32_t unkFF;
-	int32_t unkFF_2;
-	int32_t pad3[2];
-
-public:
-	fwEntityDef()
-	{
-		flags = 0x180000; // was 0x180010
-		lodParentIdx = -1;
-		float1 = 1.0f;
-		float2 = 1.0f;
-		unkFloat1 = 4000.f;
-		unkFloat2 = 500.f;
-		unkInt1 = 2;
-		unkInt2 = 9;
-		unkFF = 0xFF;
-		unkFF_2 = 0xFF;
-
-		memset(pad, 0, sizeof(pad));
-		memset(pad2, 0, sizeof(pad2));
-		memset(pad3, 0, sizeof(pad3));
-	}
-};
 
 fwEntityDef::~fwEntityDef()
 {
@@ -196,7 +57,7 @@ static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)>
 	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
 });
 
-static atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
+atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
 
 struct DataFileEntry
 {
