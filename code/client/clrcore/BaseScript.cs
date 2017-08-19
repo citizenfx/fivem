@@ -139,9 +139,16 @@ namespace CitizenFX.Core
 		[SecurityCritical]
         private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
         {
-            var nativeHash = (isRemote) ? Hash.TRIGGER_SERVER_EVENT_INTERNAL : Hash.TRIGGER_EVENT_INTERNAL;
+			var nativeHash = Hash.TRIGGER_EVENT_INTERNAL;
 
-            unsafe
+#if !IS_FXSERVER
+			if (isRemote)
+			{
+				nativeHash = Hash.TRIGGER_SERVER_EVENT_INTERNAL;
+			}
+#endif
+
+			unsafe
             {
                 fixed (byte* serialized = &argsSerialized[0])
                 {
