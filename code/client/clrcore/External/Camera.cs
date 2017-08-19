@@ -138,12 +138,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr address = MatrixAddress;
-				if (address == IntPtr.Zero)
-				{
-                    return Vector3.Zero;//.RelativeTop;
-				}
-				return MemoryAccess.ReadVector3(address + 0x20);
+				return Matrix.Up;
 			}
 		}
 
@@ -154,12 +149,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr address = MatrixAddress;
-				if(address == IntPtr.Zero)
-				{
-                    return Vector3.Zero;//.RelativeFront;
-				}
-				return MemoryAccess.ReadVector3(address + 0x10);
+				return Matrix.Forward;
 			}
 		}
 
@@ -170,12 +160,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr address = MatrixAddress;
-				if(address == IntPtr.Zero)
-				{
-                    return Vector3.Zero;//.RelativeRight;
-				}
-				return MemoryAccess.ReadVector3(address);
+				return Matrix.Right;
 			}
 		}
 		/// <summary>
@@ -185,8 +170,24 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				IntPtr address = MatrixAddress;
-				return address == IntPtr.Zero ? new Matrix() : MemoryAccess.ReadMatrix(address);
+				var rightRef = new OutputArgument();
+				var forwardRef = new OutputArgument();
+				var upRef = new OutputArgument();
+				var atRef = new OutputArgument();
+
+				Function.Call(Hash.GET_CAM_MATRIX, Handle, rightRef, forwardRef, upRef, atRef);
+
+				var right = rightRef.GetResult<Vector3>();
+				var forward = forwardRef.GetResult<Vector3>();
+				var up = upRef.GetResult<Vector3>();
+				var at = atRef.GetResult<Vector3>();
+
+				return new Matrix(
+					right.X, right.Y, right.Z, 0.0f,
+					forward.X, forward.Y, forward.Z, 0.0f,
+					up.X, up.Y, up.Z, 0.0f,
+					at.X, at.Y, at.Z, 1.0f
+				);
 			}
 		}
 
