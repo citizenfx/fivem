@@ -57,14 +57,12 @@ cat > /src/code/client/clrcore/NativesServer.cs << EOF
 #if IS_FXSERVER
 namespace CitizenFX.Core.Native
 {
-    public enum Hash : ulong
-    {
 EOF
 
 lua5.3 codegen.lua natives_stash/blank.lua enum server >> /src/code/client/clrcore/NativesServer.cs
+lua5.3 codegen.lua natives_stash/blank.lua cs server >> /src/code/client/clrcore/NativesServer.cs
 
 cat >> /src/code/client/clrcore/NativesServer.cs << EOF
-	}
 }
 #endif
 EOF
