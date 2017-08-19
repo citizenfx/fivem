@@ -45,6 +45,28 @@ mv boost_* boost
 
 export BOOST_ROOT=/tmp/boost/
 
+# build natives
+cd /src/ext/natives
+gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
+
+lua5.3 codegen.lua > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
+
+cat > /src/code/client/clrcore/NativesServer.cs << EOF
+#if IS_FXSERVER
+namespace CitizenFX.Core.Native
+{
+    public enum Hash : ulong
+    {
+EOF
+
+lua5.3 codegen.lua natives_stash/blank.lua enum server >> /src/code/client/clrcore/NativesServer.cs
+
+cat >> /src/code/client/clrcore/NativesServer.cs << EOF
+	}
+}
+#endif
+EOF
+
 # build CitizenFX
 cd /src/code
 
@@ -95,11 +117,6 @@ done
 # strip output files
 strip --strip-unneeded /opt/cfx-server/*.so
 strip --strip-unneeded /opt/cfx-server/FXServer
-
-cd /src/ext/natives
-gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
-
-lua5.3 codegen.lua > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
 
 cd /opt/cfx-server
 
