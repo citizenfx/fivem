@@ -985,4 +985,20 @@ native 'SET_HTTP_HANDLER'
 	apiset 'server'
 	returns 'void'
 
+native 'GET_CAM_MATRIX'
+	arguments {
+		Cam 'camera',
+		Vector3Ptr 'rightVector',
+		Vector3Ptr 'forwardVector',
+		Vector3Ptr 'upVector',
+		Vector3Ptr 'position',
+	}
+	apiset 'client'
+	returns	'void'
+	doc [[
+	<summary>
+	Returns the world matrix of the specified camera. To turn this into a view matrix, calculate the inverse.
+	</summary>
+]]
+
 -- TODO: handling field natives
