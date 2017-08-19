@@ -9,6 +9,8 @@ local function processDoc(doc)
 	return doc
 end
 
+local hadSet = {}
+
 for _, v in pairs(_natives) do
 	if matchApiSet(v) then
 		local name = v.name
@@ -18,7 +20,11 @@ for _, v in pairs(_natives) do
 				print(processDoc(v.doc))
 			end
 
-			print(string.format("%s = %s,", name, v.hash))
+			if not hadSet[name] then
+				print(string.format("%s = %s,", name, v.hash))
+
+				hadSet[name] = true
+			end
 
 			for _, alias in pairs(v.aliases) do
 				if alias:sub(1, 2) ~= '0x' then
@@ -30,8 +36,12 @@ for _, v in pairs(_natives) do
 end
 
 for _, v in pairs(aliases) do
-	print(string.format("/// <summary>"))
-	print(string.format("/// Deprecated name, use %s instead", v.name))
-	print(string.format("/// </summary>"))
-	print(string.format("%s = %s, // %s", v.alias, v.hash, v.name))
+	if not hadSet[v.alias] then
+		print(string.format("/// <summary>"))
+		print(string.format("/// Deprecated name, use %s instead", v.name))
+		print(string.format("/// </summary>"))
+		print(string.format("%s = %s, // %s", v.alias, v.hash, v.name))
+
+		hadSet[v.alias] = true
+	end
 end
