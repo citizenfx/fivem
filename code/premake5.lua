@@ -160,10 +160,22 @@ function premake.vstudio.cs2005.debugProps(cfg)
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
 end
 
+local function WriteDocumentationFileXml(_premake, _prj, value)
+    _premake.w('<DocumentationFile>' .. string.gsub(_prj.buildtarget.relpath, "\.dll", ".xml") .. '</DocumentationFile>')
+end
+
+premake.override(premake.vstudio.cs2005, "compilerProps", function(base, prj)
+    base(prj)
+    WriteDocumentationFileXml(premake, prj, XmlDocFileName)
+end)
+
 	project "CitiMono"
 		targetname "CitizenFX.Core"
 		language "C#"
 		kind "SharedLib"
+
+		-- Missing XML comment for publicly visible type or member
+		disablewarnings 'CS1591'
 
 		flags { 'Unsafe' }
 
