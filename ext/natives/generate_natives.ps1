@@ -7,3 +7,33 @@ foreach ($file in (Get-Item natives_stash\*.lua)) {
 }
 
 .\lua53 codegen.lua | out-file -encoding ascii "out\natives_server.lua"
+
+# write NativesFive.cs
+"#if GTA_FIVE
+namespace CitizenFX.Core.Native
+{
+    public enum Hash : ulong
+    {
+" | out-file -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
+
+.\lua53 codegen.lua natives_stash\gta_universal.lua enum | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
+
+"   }
+}
+#endif
+" | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
+
+# write NativesServer.cs
+"#if IS_FXSERVER
+namespace CitizenFX.Core.Native
+{
+    public enum Hash : ulong
+    {
+" | out-file -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
+
+.\lua53 codegen.lua natives_stash\blank.lua enum server | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
+
+"   }
+}
+#endif
+" | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"

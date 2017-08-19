@@ -185,6 +185,10 @@ if #arg > 1 then
 	outputType = arg[2]
 end
 
+if #arg > 2 then
+	gApiSet = arg[3]
+end
+
 loadDefinition 'codegen_cfx_natives.lua'
 
 _natives = {}
