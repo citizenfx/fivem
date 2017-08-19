@@ -26,6 +26,20 @@ public:
 		return reinterpret_cast<T*>(m_data + (index * m_entrySize));
 	}
 
+	template<typename T>
+	T* GetAtHandle(int handle) const
+	{
+		int index = handle >> 8;
+		int8_t flag = handle & 0xFF;
+
+		if (m_flags[index] < 0 || m_flags[index] != flag)
+		{
+			return nullptr;
+		}
+
+		return reinterpret_cast<T*>(m_data + (index * m_entrySize));
+	}
+
 	size_t GetCount()
 	{
 		size_t count = std::count_if(m_flags, m_flags + m_count, [] (int8_t flag)
