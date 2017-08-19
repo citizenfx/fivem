@@ -12,14 +12,12 @@ foreach ($file in (Get-Item natives_stash\*.lua)) {
 "#if GTA_FIVE
 namespace CitizenFX.Core.Native
 {
-    public enum Hash : ulong
-    {
 " | out-file -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
 
 .\lua53 codegen.lua natives_stash\gta_universal.lua enum | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
+.\lua53 codegen.lua natives_stash\gta_universal.lua cs | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
 
-"   }
-}
+"}
 #endif
 " | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesFive.cs"
 
@@ -27,13 +25,11 @@ namespace CitizenFX.Core.Native
 "#if IS_FXSERVER
 namespace CitizenFX.Core.Native
 {
-    public enum Hash : ulong
-    {
 " | out-file -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
 
 .\lua53 codegen.lua natives_stash\blank.lua enum server | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
+.\lua53 codegen.lua natives_stash\blank.lua cs server | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
 
-"   }
-}
+"}
 #endif
 " | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
