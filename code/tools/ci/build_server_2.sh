@@ -49,6 +49,8 @@ export BOOST_ROOT=/tmp/boost/
 cd /src/ext/natives
 gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
+mkdir -p /opt/cfx-server/citizen/scripting/lua/
+
 lua5.3 codegen.lua > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
 
 cat > /src/code/client/clrcore/NativesServer.cs << EOF
