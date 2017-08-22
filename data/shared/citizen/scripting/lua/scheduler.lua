@@ -216,8 +216,9 @@ if IsDuplicityVersion() then
 	local httpDispatch = {}
 	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers)
 		if httpDispatch[token] then
-			httpDispatch[token](status, body, headers)
+			local userCallback = httpDispatch[token]
 			httpDispatch[token] = nil
+			userCallback(status, body, headers)
 		end
 	end)
 
