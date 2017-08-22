@@ -1,6 +1,11 @@
 #include <StdInc.h>
 #include <linenoise.h>
+
+#ifdef _WIN32
 #include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <CoreConsole.h>
 #include <ServerInstanceBase.h>
