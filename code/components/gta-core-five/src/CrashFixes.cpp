@@ -183,6 +183,7 @@ static HookFunction hookFunction([] ()
 			jz("justReturn");
 
 			// 505-specific offset
+			// valid for 1103 as well
 			cmp(qword_ptr[rax + 0x670], 0);
 
 			L("justReturn");
@@ -196,6 +197,31 @@ static HookFunction hookFunction([] ()
 
 		// register 2: dx
 		hook::call_reg<2>(location, carFixStub2.GetCode());
+	}
+
+	// netobj cloning: door count check
+	// signature (1103): FiveM.exe@0xefeae1
+	static struct : jitasm::Frontend
+	{
+		void InternalMain() override
+		{
+			mov(rax, qword_ptr[rax + 0xB0]);
+			test(rax, rax);
+			jz("justReturn");
+
+			add(rax, 8);
+
+			L("justReturn");
+			ret();
+		}
+	} carFixStub3;
+
+	{
+		auto location = hook::get_pattern("48 8B 80 B0 00 00 00 48 83 C0 08 74 43", 0);
+		hook::nop(location, 11);
+
+		// register 2: dx
+		hook::call_reg<2>(location, carFixStub3.GetCode());
 	}
 
 	// something related to netobjs, crash sig FiveM.exe@0x5cd7e4
