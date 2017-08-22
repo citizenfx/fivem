@@ -358,6 +358,9 @@ local function getExportEventName(resource, name)
 	return string.format('__cfx_export_%s_%s', resource, name)
 end
 
+-- callback cache to avoid extra call to serialization / deserizalition process at each time getting an export
+local exportsCallbackCache = {}
+
 local exportKey = (IsDuplicityVersion() and 'server_export' or 'export')
 
 AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
@@ -373,6 +376,9 @@ AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' o
 			end)
 		end
 	end
+		
+	-- Clear cache when resource start, so we can get the new exports for a reloaded module
+	exportsCallbackCache[resource] = {}
 end)
 
 -- invocation bit
@@ -384,18 +390,22 @@ setmetatable(exports, {
 
 		return setmetatable({}, {
 			__index = function(t, k)
-				local value
+				if not exportsCallbackCache[resource] then
+					error('No such resource ' .. resource)
+				end
 
-				TriggerEvent(getExportEventName(resource, k), function(exportData)
-					value = exportData
-				end)
+				if not exportsCallbackCache[resource][k] then
+					TriggerEvent(getExportEventName(resource, k), function(exportData)
+						exportsCallbackCache[resource][k] = exportData
+					end)
 
-				if not value then
-					error('No such export ' .. k .. ' in resource ' .. resource)
+					if not exportsCallbackCache[resource][k] then
+						error('No such export ' .. k .. ' in resource ' .. resource)
+					end
 				end
 
 				return function(self, ...)
-					return value(...)
+					return exportsCallbackCache[resource][k](...)
 				end
 			end,
 
