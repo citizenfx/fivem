@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <linenoise.h>
+#include <io.h>
 
 #include <CoreConsole.h>
 #include <ServerInstanceBase.h>
@@ -38,6 +39,11 @@ static InitFunction initFunction([]()
 
 			std::thread([=]()
 			{
+				if (!isatty(fileno(stdin)))
+				{
+					return;
+				}
+
 				while (true)
 				{
 					char* result = linenoise("cfx> ");
