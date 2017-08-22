@@ -40,6 +40,8 @@ public:
 
 	inline uv_loop_t* GetLoop()
 	{
+		m_uvLoop->AssertThread();
+
 		return m_uvLoop->GetLoop();
 	}
 };

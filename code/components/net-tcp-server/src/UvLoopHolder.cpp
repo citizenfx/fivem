@@ -23,6 +23,8 @@ UvLoopHolder::UvLoopHolder(const std::string& loopTag)
 	// start the loop's runtime thread
 	m_thread = std::thread([=] ()
 	{
+		SetThreadName(-1, const_cast<char*>(va("UV loop: %s", m_loopTag.c_str())));
+
 		// start running the loop
 		while (!m_shouldExit)
 		{
@@ -64,5 +66,12 @@ UvLoopHolder::~UvLoopHolder()
 
 	// clean up the async
 	uv_close(reinterpret_cast<uv_handle_t*>(&async), nullptr);
+}
+
+void UvLoopHolder::AssertThread()
+{
+#if _DEBUG
+	assert(std::this_thread::get_id() == m_thread.get_id());
+#endif
 }
 }

@@ -13,6 +13,8 @@
 
 #include "TcpServer.h"
 
+#include <tbb/concurrent_queue.h>
+
 namespace net
 {
 class UvTcpServer;
@@ -24,10 +26,16 @@ private:
 
 	std::unique_ptr<uv_tcp_t> m_client;
 
+	std::unique_ptr<uv_async_t> m_writeCallback;
+
+	tbb::concurrent_queue<std::function<void()>> m_pendingRequests;
+
 	std::vector<char> m_readBuffer;
 
 private:
 	void HandleRead(ssize_t nread, const uv_buf_t* buf);
+
+	void HandlePendingWrites();
 
 	void CloseClient();
 
@@ -85,6 +93,11 @@ public:
 	inline uv_tcp_t* GetServer()
 	{
 		return m_server.get();
+	}
+
+	inline TcpServerManager* GetManager()
+	{
+		return m_manager;
 	}
 
 public:

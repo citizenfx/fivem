@@ -10,6 +10,12 @@
 #include "TcpServerManager.h"
 #include "memdbgon.h"
 
+template<typename Handle, class Class, void(Class::*Callable)()>
+void UvCallback(Handle* handle)
+{
+	(reinterpret_cast<Class*>(handle->data)->*Callable)();
+}
+
 template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
 void UvCallback(Handle* handle, T1 a1)
 {
@@ -135,6 +141,7 @@ void UvTcpServerStream::CloseClient()
 		uv_read_stop(reinterpret_cast<uv_stream_t*>(m_client.get()));
 
 		UvClose(std::move(m_client));
+		UvClose(std::move(m_writeCallback));
 	}
 }
 
@@ -142,6 +149,13 @@ bool UvTcpServerStream::Accept(std::unique_ptr<uv_tcp_t>&& client)
 {
 	m_client = std::move(client);
 
+	// initialize a write callback handle
+	m_writeCallback = std::make_unique<uv_async_t>();
+	m_writeCallback->data = this;
+
+	uv_async_init(m_server->GetManager()->GetLoop(), m_writeCallback.get(), UvCallback<uv_async_t, UvTcpServerStream, &UvTcpServerStream::HandlePendingWrites>);
+
+	// accept
 	int result = uv_accept(reinterpret_cast<uv_stream_t*>(m_server->GetServer()),
 						   reinterpret_cast<uv_stream_t*>(m_client.get()));
 
@@ -219,39 +233,71 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 	
 	writeReq->write.data = writeReq;
 
-	// send the write request
-	uv_write(&writeReq->write, reinterpret_cast<uv_stream_t*>(m_client.get()), &writeReq->buffer, 1, [] (uv_write_t* write, int status)
+	// submit the write request
+	m_pendingRequests.push([=]()
 	{
-		UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
-
-		if (status < 0)
+		// send the write request
+		uv_write(&writeReq->write, reinterpret_cast<uv_stream_t*>(m_client.get()), &writeReq->buffer, 1, [](uv_write_t* write, int status)
 		{
-			//trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
-		}
+			UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
 
-		delete req;
+			if (status < 0)
+			{
+				//trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
+			}
+
+			delete req;
+		});
 	});
+
+	// wake the callback
+	uv_async_send(m_writeCallback.get());
+}
+
+void UvTcpServerStream::HandlePendingWrites()
+{
+	if (!m_client)
+	{
+		return;
+	}
+
+	// as a possible result is closing self, keep reference
+	fwRefContainer<UvTcpServerStream> selfRef = this;
+
+	// dequeue pending writes
+	std::function<void()> request;
+
+	while (m_pendingRequests.try_pop(request))
+	{
+		request();
+	}
 }
 
 void UvTcpServerStream::Close()
 {
-	// keep a reference in scope
-	fwRefContainer<UvTcpServerStream> selfRef = this;
-
-	CloseClient();
-
-	SetReadCallback(TReadCallback());
-
-	// get it locally as we may recurse
-	auto closeCallback = GetCloseCallback();
-
-	if (closeCallback)
+	m_pendingRequests.push([=]()
 	{
-		SetCloseCallback(TCloseCallback());
+		// keep a reference in scope
+		fwRefContainer<UvTcpServerStream> selfRef = this;
 
-		closeCallback();
-	}
+		CloseClient();
 
-	m_server->RemoveStream(this);
+		SetReadCallback(TReadCallback());
+
+		// get it locally as we may recurse
+		auto closeCallback = GetCloseCallback();
+
+		if (closeCallback)
+		{
+			SetCloseCallback(TCloseCallback());
+
+			closeCallback();
+		}
+
+		m_server->RemoveStream(this);
+	});
+
+	// wake the callback
+	uv_async_send(m_writeCallback.get());
 }
 }

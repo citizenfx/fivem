@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net:base",
+		"vendor:tbb",
 		"vendor:libuv",
 		"vendor:botan"
 	],

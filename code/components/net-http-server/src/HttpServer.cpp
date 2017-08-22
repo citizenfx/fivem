@@ -462,11 +462,6 @@ void HttpResponse::End(const std::string& data)
 
 void HttpResponse::End()
 {
-	if (m_closeConnection)
-	{
-		m_clientStream->Close();
-	}
-
 	if (m_requestState->blocked)
 	{
 		m_requestState->blocked = false;
@@ -475,6 +470,11 @@ void HttpResponse::End()
 		{
 			m_requestState->ping();
 		}
+	}
+
+	if (m_closeConnection)
+	{
+		m_clientStream->Close();
 	}
 }
 

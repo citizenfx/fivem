@@ -29,6 +29,8 @@ public:
 
 	virtual ~UvLoopHolder();
 
+	void AssertThread();
+
 	inline uv_loop_t* GetLoop()
 	{
 		return &m_loop;
