@@ -285,12 +285,14 @@ namespace fx
 		}
 
 		std::vector<std::shared_ptr<fx::Client>> toRemove;
+		auto roundedTime = m_serverTime - m_serverTime % frameTime;
+		auto isSecond = roundedTime % 1000 == 0;
 
 		m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
 			auto peer = client->GetPeer();
 
-			if (peer)
+			if (peer && isSecond)
 			{
 				net::Buffer outMsg;
 				outMsg.Write(0x53FFFA3F);
