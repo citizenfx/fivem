@@ -187,7 +187,7 @@ void NetLibraryImplV2::RunFrame()
 
 			msg.Write(packet.payload.c_str(), packet.payload.size());
 
-			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), (ENetPacketFlag)0));
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
 
 			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
 		}
@@ -197,7 +197,7 @@ void NetLibraryImplV2::RunFrame()
 			NetBuffer msg(1300);
 			msg.Write(0xCA569E63); // msgEnd
 
-			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), (ENetPacketFlag)0));
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
 
 			m_lastKeepaliveSent = timeGetTime();
 		}
