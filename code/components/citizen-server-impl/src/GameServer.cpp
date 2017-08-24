@@ -629,7 +629,7 @@ namespace fx
 						outPacket.Write(packetLength);
 						outPacket.Write(packetData.data(), packetLength);
 
-						targetClient->SendPacket(1, outPacket, (ENetPacketFlag)0);
+						targetClient->SendPacket(1, outPacket, ENET_PACKET_FLAG_UNSEQUENCED);
 
 						client->SetHasRouted();
 					}
