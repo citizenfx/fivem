@@ -185,7 +185,7 @@ if IsDuplicityVersion() then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
-	
+
 	RegisterServerEvent = RegisterNetEvent
 	RconPrint = Citizen.Trace
 	GetPlayerEP = GetPlayerEndpoint
@@ -358,7 +358,7 @@ local function getExportEventName(resource, name)
 	return string.format('__cfx_export_%s_%s', resource, name)
 end
 
--- callback cache to avoid extra call to serialization / deserizalition process at each time getting an export
+-- callback cache to avoid extra call to serialization / deserialization process at each time getting an export
 local exportsCallbackCache = {}
 
 local exportKey = (IsDuplicityVersion() and 'server_export' or 'export')
@@ -376,9 +376,14 @@ AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' o
 			end)
 		end
 	end
-		
-	-- Clear cache when resource start, so we can get the new exports for a reloaded module
+
+	-- Init cache on resource start (allow to detect if resource or function does not exist)
 	exportsCallbackCache[resource] = {}
+end)
+
+-- Remove cache when resource stop to avoid calling unexisting exports
+AddEventHandler(('on%sResourceStop'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
+	exportsCallbackCache[resource] = nil
 end)
 
 -- invocation bit
