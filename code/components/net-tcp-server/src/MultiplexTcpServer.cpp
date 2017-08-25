@@ -137,9 +137,11 @@ MultiplexTcpChildServerStream::MultiplexTcpChildServerStream(MultiplexTcpChildSe
 		}
 	});
 
+	fwRefContainer<MultiplexTcpChildServerStream> thisRef = this;
+
 	baseStream->SetCloseCallback([=] ()
 	{
-		CloseInternal();
+		thisRef->CloseInternal();
 	});
 }
 
