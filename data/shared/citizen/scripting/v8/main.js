@@ -115,12 +115,12 @@ const EXT_FUNCREF = 10;
 	global.emit = (name, ...args) => {
 		const dataSerialized = pack(args);
 
-		TriggerEventInternal(name, dataSerialized, dataSerialized.length);
+		Citizen.invokeNative('0x91310870', name, dataSerialized, dataSerialized.length);
 	};
 	global.emitNet = (name, ...args) => {
-        	const dataSerialized = pack(args);
+		const dataSerialized = pack(args);
 
-		TriggerServerEventInternal(name, dataSerialized, dataSerialized.length)
+		Citizen.invokeNative('0x7fdd1128', name, dataSerialized, dataSerialized.length);
 	};
 
 	/**

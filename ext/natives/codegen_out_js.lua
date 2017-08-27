@@ -28,6 +28,13 @@ print("const _in = Citizen.invokeNative;")
 print("const _ii = Citizen.pointerValueIntInitialized;")
 print("const _fi = Citizen.pointerValueFloatInitialized;")
 
+print("function _ch(hash) {")
+print("\tif (typeof hash === 'string') {")
+print("\t\treturn window.GetHashKey(hash);")
+print("\t}\n")
+print("\treturn hash;")
+print("}\n")
+
 print("function _ts(num) {")
 print("\tif (num == 0 || !num) { // workaround for users calling string parameters with '0', also nil being translated")
 print("\t\treturn null;")
@@ -35,11 +42,8 @@ print("\t}")
 print("\treturn num.toString();")
 print("}")
 
-print("function _ch(hash) {")
-print("\tif (typeof hash === 'string') {")
-print("\t\treturn window.GetHashKey(hash);")
-print("\t}\n")
-print("\treturn hash;")
+print("function _fv(flt) {")
+print("\treturn flt + 0.0000001;")
 print("}\n")
 
 print("function _mfr(fn) {")
@@ -98,6 +102,8 @@ local function printArgument(argument, native)
 		end
 	elseif argument.type.name == 'func' then
 		return '_mfr(' .. printArgumentName(argument.name) .. ')'
+	elseif argument.type.name == 'float' then
+		return '_fv(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
 		return '_ch(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'charPtr' then
