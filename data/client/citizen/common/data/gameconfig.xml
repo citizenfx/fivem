@@ -143,7 +143,7 @@
 						</Item>
 						<Item>
 							<PoolName>CScriptEntityExtension</PoolName>
-							<PoolSize value="2500"/>
+							<PoolSize value="10000"/>
 						</Item>
 						<Item>
 							<PoolName>CVehicleChaseDirector</PoolName>
@@ -432,7 +432,7 @@
 						</Item>
 						<Item>
 							<PoolName>atDScriptObjectNode</PoolName>
-							<PoolSize value="700"/>
+							<PoolSize value="10000"/>
 						</Item>
 						<Item>
 							<PoolName>fwDynamicArchetypeComponent</PoolName>
