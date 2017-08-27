@@ -414,7 +414,7 @@ setmetatable(exports, {
 					local status, result = pcall(exportsCallbackCache[resource][k], ...)
 
 					if not status then
-						error('An error happens when calling export ' .. k .. ' of resource ' .. resource .. ' "' .. result .. '", previous log should give you more information')
+						error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
 					end
 
 					return result
