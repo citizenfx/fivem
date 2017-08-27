@@ -24,6 +24,7 @@
     "angular-l10n": "^3.0.3",
     "angular2-moment": "^1.3.3",
     "angular2-virtual-scroll": "^0.1.5",
+    "angulartics2": "^2.3.0",
     "bulma": "0.4.0",
     "color": "^1.0.3",
     "core-js": "^2.4.1",

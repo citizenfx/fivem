@@ -8,6 +8,7 @@ import { environment } from '../environments/environment'
 import {VirtualScrollModule} from 'angular2-virtual-scroll';
 import {TranslationModule} from 'angular-l10n';
 import {MomentModule} from 'angular2-moment';
+import {Angulartics2Module, Angulartics2Piwik} from 'angulartics2';
 
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
@@ -27,6 +28,7 @@ import {DirectConnectComponent} from './servers/direct/direct-connect.component'
 
 import {ServersService} from './servers/servers.service';
 import {TweetService} from './home/tweet.service';
+import {TrackingService} from './tracking.service';
 
 import {GameService, CfxGameService, DummyGameService} from './game.service';
 
@@ -57,7 +59,8 @@ import {EscapePipe} from './escape.pipe';
 		AppRoutingModule,
 		VirtualScrollModule,
 		MomentModule,
-		TranslationModule.forRoot()
+		TranslationModule.forRoot(),
+		Angulartics2Module.forRoot([ Angulartics2Piwik ])
 	],
 	providers:    [
 		ServersService,
@@ -67,7 +70,8 @@ import {EscapePipe} from './escape.pipe';
 			useClass: environment.production
 				? CfxGameService
 				: DummyGameService
-		}
+		},
+		TrackingService
 	],
 	bootstrap:    [
 		AppComponent

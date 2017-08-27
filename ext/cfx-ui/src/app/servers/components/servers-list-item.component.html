@@ -1,5 +1,5 @@
 <div class="server-list-item">
-    <div class="bg" [style.background-image]="'url(' + server.iconUri + ')'"></div>
+    <div class="bg" [style.background-image]="server.sanitizedStyleUri"></div>
 
     <figure class="icon" (click)="attemptConnect()">
         <img [src]="server.sanitizedUri">

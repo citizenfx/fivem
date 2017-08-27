@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { Translation, LocaleService, TranslationService } from 'angular-l10n';
 
 import { GameService } from './game.service';
+import { TrackingService } from './tracking.service';
 
 import localeEn from './locale-en.json';
 
@@ -16,7 +17,8 @@ export class AppComponent extends Translation {
 
 	constructor(public locale: LocaleService,
 		public translation: TranslationService,
-		private gameService: GameService) {
+		private gameService: GameService,
+		private trackingService: TrackingService) {
 		super(translation);
 
 		this.locale.addConfiguration()

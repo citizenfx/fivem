@@ -37,5 +37,34 @@
 
 	window.addEventListener('resize', setZoomLevel);
 </script>
+
+<script type="text/javascript">
+const getGPU = function()
+{
+	const gl = document.createElement('canvas').getContext('webgl');
+	const debug = gl.getExtension('WEBGL_debug_renderer_info');
+
+	if (debug)
+	{
+		return gl.getParameter(debug.UNMASKED_RENDERER_WEBGL);
+	}
+	else
+	{
+		return "";
+	}
+};
+
+var _paq = _paq || [];
+_paq.push(['enableLinkTracking']);
+(function() {
+	var u="https://metrics.fivem.net/";
+	_paq.push(['setTrackerUrl', u+'piwik.php']);
+	_paq.push(['setSiteId', '3']);
+	_paq.push(['setCustomDimension', customDimensionId = 1, customDimensionValue = getGPU()]);
+	_paq.push(['setCustomDimension', customDimensionId = 2, customDimensionValue = navigator.hardwareConcurrency]);
+	var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+	g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+})();
+</script>
 </body>
 </html>

@@ -10,6 +10,20 @@ export class ConnectStatus {
 	public total: number;
 }
 
+export class Profile {
+	public name: string;
+	public tile: string;
+	public type: string;
+	public identifier: number;
+	public externalIdentifier: string;
+	public parameters: {[key: string]: string};
+	public signedIn: boolean;
+}
+
+export class Profiles {
+	public profiles: Profile[];
+}
+
 @Injectable()
 export abstract class GameService {
 	connectFailed = new EventEmitter<[Server, string]>();
@@ -18,6 +32,10 @@ export abstract class GameService {
 
 	devModeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
+
+	signinChange = new EventEmitter<Profile>();
+
+	profile: Profile = null;
 
 	get nickname(): string {
 		return 'UnknownPlayer';
@@ -44,6 +62,16 @@ export abstract class GameService {
 	abstract isMatchingServer(type: string, server: Server): boolean;
 
 	abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
+
+	getProfile(): Profile {
+		return this.profile;
+	}
+
+	handleSignin(profile: Profile): void {
+		this.profile = profile;
+
+		this.signinChange.emit(profile);
+	}
 
 	queryAddress(address: [string, number]): Promise<Server> {
 		return new Promise<Server>((resolve, reject) => setTimeout(() => reject(new Error("Querying isn't supported in GameService.")), 2500));
@@ -107,6 +135,14 @@ export class CfxGameService extends GameService {
 
 	init() {
 		(<any>window).invokeNative('getFavorites', '');
+
+		fetch('http://nui-internal/profiles/list').then(async response => {
+			const json = <Profiles>await response.json();
+
+			if (json.profiles && json.profiles.length > 0) {
+				this.handleSignin(json.profiles[0]);
+			}
+		});
 
 		this.zone.runOutsideAngular(() => {
 			window.addEventListener('message', (event) => {
@@ -323,7 +359,16 @@ export class DummyGameService extends GameService {
 	}
 
 	init() {
+		const profile = new Profile();
+		profile.name = 'dummy';
+		profile.externalIdentifier = 'dummy:1212';
+		profile.signedIn = true;
+		profile.type = 'dummy';
+		profile.tile = '';
+		profile.identifier = 0;
+		profile.parameters = {};
 
+		this.handleSignin(profile);
 	}
 
 	connectTo(server: Server) {

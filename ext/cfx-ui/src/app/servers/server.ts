@@ -25,9 +25,11 @@ export class Server {
     set iconUri(value: string) {
         this.realIconUri = value;
         this.sanitizedUri = this.sanitizer.bypassSecurityTrustUrl(value);
+        this.sanitizedStyleUri = this.sanitizer.bypassSecurityTrustStyle('url(' + value + ')');
     }
 
     sanitizedUri: any;
+    sanitizedStyleUri: any;
     currentPlayers: number;
     ping = 9999;
 
