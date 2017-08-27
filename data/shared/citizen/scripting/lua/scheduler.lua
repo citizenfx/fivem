@@ -411,7 +411,13 @@ setmetatable(exports, {
 				end
 
 				return function(self, ...)
-					return exportsCallbackCache[resource][k](...)
+					local status, result = pcall(exportsCallbackCache[resource][k], ...)
+
+					if not status then
+						error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
+					end
+
+					return result
 				end
 			end,
 
