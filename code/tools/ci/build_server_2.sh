@@ -107,7 +107,7 @@ cp -a /usr/lib/mono/4.5/Facades/ /opt/cfx-server/citizen/clr2/lib/mono/4.5/Facad
 cp -a /usr/lib/libMonoPosixHelper.so /tmp/libMonoPosixHelper.so
 
 for dll in Microsoft.CSharp.dll Mono.CSharp.dll Mono.Posix.dll Mono.Security.dll mscorlib.dll \
-	System.Configuration.dll System.Core.dll System.Data.dll System.dll System.EnterpriseServices.dll \
+	System.Configuration.dll System.Core.dll System.Data.dll System.dll System.EnterpriseServices.dll System.ServiceModel.dll System.Web.dll \
 	System.Net.dll System.Net.Http.dll System.Numerics.Vectors.dll System.Runtime.InteropServices.RuntimeInformation.dll System.Runtime.Serialization.dll \
 	System.ServiceModel.Internals.dll System.Transactions.dll System.Xml.dll System.Xml.Linq.dll System.ComponentModel.DataAnnotations.dll \
 	System.Management.dll; do
