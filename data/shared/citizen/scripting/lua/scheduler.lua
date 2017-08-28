@@ -377,14 +377,11 @@ AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' o
 			end)
 		end
 	end
-
-	-- Init cache on resource start (allow to detect if resource or function does not exist)
-	exportsCallbackCache[resource] = {}
 end)
 
 -- Remove cache when resource stop to avoid calling unexisting exports
 AddEventHandler(('on%sResourceStop'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
-	exportsCallbackCache[resource] = nil
+	exportsCallbackCache[resource] = {}
 end)
 
 -- invocation bit
@@ -397,7 +394,7 @@ setmetatable(exports, {
 		return setmetatable({}, {
 			__index = function(t, k)
 				if not exportsCallbackCache[resource] then
-					error('No such resource ' .. resource)
+					exportsCallbackCache[resource] = {}
 				end
 
 				if not exportsCallbackCache[resource][k] then
