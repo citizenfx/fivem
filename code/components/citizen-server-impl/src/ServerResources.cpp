@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#include <Resource.h>
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 #include <ResourceMetaDataComponent.h>
@@ -482,6 +483,21 @@ static InitFunction initFunction2([]()
 		if (resource.GetRef())
 		{
 			success = resource->Stop();
+		}
+
+		context.SetResult(success);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_RESOURCE_STARTED", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
+
+		bool success = false;
+
+		if (resource.GetRef())
+		{
+			success = (resource->GetState() == fx::ResourceState::Started);
 		}
 
 		context.SetResult(success);
