@@ -103,9 +103,10 @@ void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, si
 	msg.Write(type);
 	msg.Write(buffer, length);
 
-	if (!m_timedOut)
+	if (!m_timedOut && m_serverPeer)
 	{
 		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_RELIABLE);
+
 		enet_peer_send(m_serverPeer, 0, packet);
 	}
 }
