@@ -159,6 +159,7 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 	OnKillNetwork.Connect([=] (const char* message)
 	{
 		AddCrashometry("kill_network", "true");
+		AddCrashometry("kill_network_msg", message);
 
 		trace("Killing network: %s\n", message);
 
@@ -193,6 +194,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 
 void FiveGameInit::ReloadGame()
 {
+	*(int*)0 = 0;
+
 	AddCrashometry("reload_game", "true");
 
 	//g_shouldReloadGame = true;

@@ -449,6 +449,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
         parameters[L"ver"] = L"1.0";
 #endif
 
+		auto crashometry = load_crashometry();
+
 		parameters[L"ReleaseChannel"] = L"release";
 
 		parameters[L"AdditionalData"] = GetAdditionalData();
@@ -461,7 +463,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		TerminateProcess(parentProcess, -2);
 
-		static std::wstring windowTitle = PRODUCT_NAME L" Fatal Error";
+		static std::wstring windowTitle = PRODUCT_NAME L"Error";
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
 		
 		std::wstring cuz = L"An error";
@@ -470,7 +472,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		{
 			auto ch = HashCrash(crashHash);
 
-			windowTitle = fmt::sprintf(L"Error %s", ch);
+			if (crashHash.find(L".exe") != std::string::npos)
+			{
+				windowTitle = fmt::sprintf(L"Error %s", ch);
+			}
+
 			mainInstruction = fmt::sprintf(L"\"%s\"", ch);
 			cuz = fmt::sprintf(L"A %s", ch);
 
@@ -499,6 +505,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		};
 
 		static std::wstring tempSignature = fmt::sprintf(L"Crash signature: %s\nReport ID: ... [uploading?] (use Ctrl+C to copy)", crashHash);
+
+		if (crashometry.find("kill_network_msg") != crashometry.end() && crashometry.find("reload_game") == crashometry.end())
+		{
+			windowTitle = L"Disconnected";
+			mainInstruction = L"O\x448\x438\x431\x43A\x430";
+
+			content = ToWide(crashometry["kill_network_msg"]);
+		}
 
 		static TASKDIALOGCONFIG taskDialogConfig = { 0 };
 		taskDialogConfig.cbSize = sizeof(taskDialogConfig);
