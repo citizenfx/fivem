@@ -194,8 +194,6 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 
 void FiveGameInit::ReloadGame()
 {
-	*(int*)0 = 0;
-
 	AddCrashometry("reload_game", "true");
 
 	//g_shouldReloadGame = true;
