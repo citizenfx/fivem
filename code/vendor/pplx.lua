@@ -2,7 +2,7 @@ return {
 	include = function()
 		includedirs "../vendor/cpprestsdk/Release/include/"
 
-		defines { 'CPPREST_FORCE_PPLX', '_NO_PPLXIMP', '_NO_ASYNCRTIMP' }
+		defines { '_NO_PPLXIMP', '_NO_ASYNCRTIMP', '_PPLTASK_ASYNC_LOGGING=0' }
 	end,
 
 	run = function()

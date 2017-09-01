@@ -119,8 +119,11 @@ protected:
 		std::mutex lockMutex;
 		std::condition_variable lockVar;
 
+		size_t downloadProgress;
+		size_t downloadSize;
+
 		inline HandleData()
-			: status(StatusEmpty), parentHandle(vfs::Device::InvalidHandle)
+			: status(StatusEmpty), parentHandle(vfs::Device::InvalidHandle), downloadProgress(0), downloadSize(0)
 		{
 
 		}

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#define CPPREST_FORCE_PPLX 1
+//#define CPPREST_FORCE_PPLX 1
 #include <pplx/pplxtasks.h>
 
 #include <ComponentHolder.h>

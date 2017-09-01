@@ -16,6 +16,15 @@
 
 #include <unordered_set>
 
+#if __has_include("scrEngineStubs.h")
+#include <scrEngineStubs.h>
+#else
+inline void HandlerFilter(void* handler)
+{
+
+}
+#endif
+
 fwEvent<> rage::scrEngine::OnScriptInit;
 fwEvent<bool&> rage::scrEngine::CheckNativeScriptAllowed;
 
@@ -37,7 +46,7 @@ struct NativeRegistration : public rage::sysUseAllocator
 	uint64_t hashes[7];
 };
 
-static NativeRegistration** registrationTable;
+NativeRegistration** registrationTable;
 
 static std::unordered_set<GtaThread*> g_ownedThreads;
 
@@ -270,6 +279,8 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 			{
 				// temporary workaround for marking scripts as network script not storing the script handler
 				auto handler = (scrEngine::NativeHandler)/*DecodePointer(*/table->handlers[i]/*)*/;
+
+				HandlerFilter(&handler);
 
 				if (origHash == 0xD1110739EEADB592)
 				{

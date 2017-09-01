@@ -50,6 +50,7 @@ public:
 	std::function<void(bool, const char*, size_t)> callback;
 	std::function<size_t(const void*, size_t)> writeFunction;
 	std::function<void()> preCallback;
+	std::function<void(const ProgressInfo&)> progressCallback;
 	std::stringstream ss;
 	char errBuffer[CURL_ERROR_SIZE];
 
@@ -229,21 +230,49 @@ static auto CurlWrite(char* ptr, size_t size, size_t nmemb, void* userdata) -> s
 	return cd->HandleWrite(ptr, size, nmemb);
 }
 
-static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback)
+static int CurlXferInfo(void *userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+{
+	CurlData* cd = reinterpret_cast<CurlData*>(userdata);
+
+	if (cd->progressCallback)
+	{
+		ProgressInfo info;
+		info.downloadNow = dlnow;
+		info.downloadTotal = dltotal;
+
+		cd->progressCallback(info);
+	}
+
+	return 0;
+}
+
+static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	auto curlHandle = curl_easy_init();
 
 	auto curlData = new CurlData();
 	curlData->url = url;
 	curlData->callback = callback;
+	curlData->progressCallback = options.progressCallback;
 
 	curl_easy_setopt(curlHandle, CURLOPT_URL, curlData->url.c_str());
 	curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, curlData);
 	curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, curlData);
 	curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, CurlWrite);
+	curl_easy_setopt(curlHandle, CURLOPT_XFERINFODATA, curlData);
+	curl_easy_setopt(curlHandle, CURLOPT_XFERINFOFUNCTION, CurlXferInfo);
+	curl_easy_setopt(curlHandle, CURLOPT_NOPROGRESS, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
 	curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
 	curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, &curlData->errBuffer);
+
+	curl_slist* headers = nullptr;
+	for (const auto& header : options.headers)
+	{
+		headers = curl_slist_append(headers, va("%s: %s", header.first, header.second));
+	}
+
+	curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 
 	return { curlHandle, curlData };
 }
@@ -260,7 +289,7 @@ void HttpClient::DoGetRequest(const std::string& url, const std::function<void(b
 	CURL* curlHandle;
 	CurlData* curlData;
 
-	std::tie(curlHandle, curlData) = SetupCURLHandle(url, callback);
+	std::tie(curlHandle, curlData) = SetupCURLHandle(url, {}, callback);
 
 	m_impl->AddCurlHandle(curlHandle);
 }
@@ -289,29 +318,29 @@ void HttpClient::DoPostRequest(const std::string& url, const std::map<std::strin
 
 void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
 {
-	return DoPostRequest(url, postData, {}, callback);
+	return DoPostRequest(url, postData, HttpRequestOptions{}, callback);
 }
 
 void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+{
+	HttpRequestOptions options;
+	options.headers = headersMap;
+
+	return DoPostRequest(url, postData, options, callback, headerCallback);
+}
+
+void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
 {
 	// make handle
 	CURL* curlHandle;
 	CurlData* curlData;
 
-	std::tie(curlHandle, curlData) = SetupCURLHandle(url, callback);
+	std::tie(curlHandle, curlData) = SetupCURLHandle(url, options, callback);
 
 	// assign post data
 	curlData->postData = postData;
 
 	curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
-
-	curl_slist* headers = nullptr;
-	for (const auto& header : headersMap)
-	{
-		headers = curl_slist_append(headers, va("%s: %s", header.first, header.second));
-	}
-
-	curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 
 	// write out
 	m_impl->AddCurlHandle(curlHandle);
@@ -334,9 +363,14 @@ void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const
 
 void HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
 {
+	return DoFileGetRequest(urlStr, outDevice, outFilename, {}, callback);
+}
+
+void HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
+{
 	CURL* curlHandle;
 	CurlData* curlData;
-	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, callback);
+	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, options, callback);
 
 	auto handle = outDevice->Create(outFilename);
 

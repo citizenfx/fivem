@@ -28,6 +28,9 @@
 
 #include <Error.h>
 
+#include <pplawait.h>
+#include <experimental/resumable>
+
 static NetAddress g_netAddress;
 
 static std::string CrackResourceName(const std::string& uri)
@@ -45,6 +48,55 @@ static std::string CrackResourceName(const std::string& uri)
 
 	assert(!"Should not be reached.");
 	return "MISSING";
+}
+
+static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::string>>> DownloadResources(std::vector<std::string> requiredResources, NetLibrary* netLibrary)
+{
+	struct ProgressData
+	{
+		std::atomic<int> current;
+		int total;
+	};
+
+	fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
+
+	std::vector<std::tuple<fwRefContainer<fx::Resource>, std::string>> list;
+
+	auto progressCounter = std::make_shared<ProgressData>();
+	progressCounter->current = 0;
+	progressCounter->total = requiredResources.size();
+
+	for (auto& resourceUri : requiredResources)
+	{
+		auto resourceName = CrackResourceName(resourceUri);
+
+		{
+			fwRefContainer<fx::Resource> oldResource = manager->GetResource(resourceName);
+
+			if (oldResource.GetRef())
+			{
+				manager->RemoveResource(oldResource);
+			}
+		}
+
+		auto mounterRef = manager->GetMounterForUri(resourceUri);
+		static_cast<fx::CachedResourceMounter*>(mounterRef.GetRef())->AddStatusCallback(resourceName, [=](int downloadCurrent, int downloadTotal)
+		{
+			netLibrary->OnConnectionProgress(fmt::sprintf("Downloading %s (%d of %d - %.2f/%.2f MiB)", resourceName, progressCounter->current, progressCounter->total,
+				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total);
+		});
+
+		auto resource = co_await manager->AddResource(resourceUri);
+
+		// report progress
+		int currentCount = progressCounter->current.fetch_add(1) + 1;
+		netLibrary->OnConnectionProgress(fmt::sprintf("Downloaded %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total);
+
+		// return tuple
+		list.emplace_back(resource, resourceName);
+	}
+
+	return list;
 }
 
 static InitFunction initFunction([] ()
@@ -244,44 +296,8 @@ static InitFunction initFunction([] ()
 				}
 
 				using ResultTuple = std::tuple<fwRefContainer<fx::Resource>, std::string>;
-				std::vector<pplx::task<ResultTuple>> tasks;
 
-				// used for reporting progress
-				struct ProgressData
-				{
-					std::atomic<int> current;
-					int total;
-				};
-
-				auto progressCounter = std::make_shared<ProgressData>();
-				progressCounter->current = 0;
-				progressCounter->total = requiredResources.size();
-
-				for (auto& resourceUri : requiredResources)
-				{
-					auto resourceName = CrackResourceName(resourceUri);
-
-					{
-						fwRefContainer<fx::Resource> oldResource = manager->GetResource(resourceName);
-
-						if (oldResource.GetRef())
-						{
-							manager->RemoveResource(oldResource);
-						}
-					}
-
-					tasks.push_back(manager->AddResource(resourceUri).then([=](fwRefContainer<fx::Resource> resource) -> ResultTuple
-					{
-						// report progress
-						int currentCount = progressCounter->current.fetch_add(1) + 1;
-						netLibrary->OnConnectionProgress(fmt::sprintf("Downloaded %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total);
-
-						// return tuple
-						return { resource, resourceName };
-					}));
-				}
-
-				pplx::when_all(tasks.begin(), tasks.end()).then([=] (std::vector<ResultTuple> resources)
+				DownloadResources(requiredResources, netLibrary).then([=] (std::vector<ResultTuple> resources)
 				{
 					for (auto& resourceData : resources)
 					{
@@ -296,17 +312,25 @@ static InitFunction initFunction([] ()
 
 							return;
 						}
+					}
 
-						std::string resourceName = resource->GetName();
+					for (auto& resourceData : resources)
+					{
+						auto resource = std::get<fwRefContainer<fx::Resource>>(resourceData);
 
-						std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
-						executeNextGameFrame.push_back([=] ()
+						if (resource.GetRef())
 						{
-							if (!resource->Start())
+							std::string resourceName = resource->GetName();
+
+							std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+							executeNextGameFrame.push_back([=]()
 							{
-								GlobalError("Couldn't start resource %s. :(", resourceName.c_str());
-							}
-						});
+								if (!resource->Start())
+								{
+									GlobalError("Couldn't start resource %s. :(", resourceName.c_str());
+								}
+							});
+						}
 					}
 
 					// mark DownloadsComplete on the next frame so all resources will have started

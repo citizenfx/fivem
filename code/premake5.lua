@@ -63,6 +63,7 @@ workspace "CitizenMP"
 
 	if os.is('windows') then
 		buildoptions '/std:c++latest'
+		buildoptions '/await'
 
 		systemversion '10.0.15063.0'
 	end

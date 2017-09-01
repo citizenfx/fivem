@@ -12,6 +12,11 @@
 
 #include <concurrent_unordered_set.h>
 
+namespace fx
+{
+	fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
+}
+
 #pragma comment(lib, "winmm.lib")
 #include <mmsystem.h>
 
@@ -184,8 +189,20 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	std::string extension = handleData->entry.basename.substr(handleData->entry.basename.find_last_of('.') + 1);
 	std::string outFileName = m_cachePath + extension + "_" + handleData->entry.referenceHash;
 
+	HttpRequestOptions options;
+	options.progressCallback = [this, handleData](const ProgressInfo& info)
+	{
+		handleData->downloadProgress = info.downloadNow;
+		handleData->downloadSize = info.downloadTotal;
+
+		if (info.downloadTotal != 0)
+		{
+			fx::OnCacheDownloadStatus(fmt::sprintf("%s%s/%s", m_pathPrefix, handleData->entry.resourceName, handleData->entry.basename), info.downloadNow, info.downloadTotal);
+		}
+	};
+
 	// http request
-	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, m_cachePath.c_str(), outFileName, [=] (bool result, const char* errorData, size_t outSize)
+	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=] (bool result, const char* errorData, size_t outSize)
 	{
 		if (result)
 		{

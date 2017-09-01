@@ -70,6 +70,8 @@ namespace fx
 		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0);
 
 		virtual std::string FormatPath(const std::string& resourceName, const std::string& basename);
+
+		virtual void AddStatusCallback(const std::string& resourceName, const std::function<void(int, int)>& callback);
 	};
 
 
@@ -85,4 +87,6 @@ namespace fx
 	};
 
 	extern RESCLIENT_EXPORT fwEvent<const StreamingEntryData&> OnAddStreamingResource;
+
+	extern fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
 }
