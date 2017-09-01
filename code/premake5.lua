@@ -161,7 +161,7 @@ function premake.vstudio.cs2005.debugProps(cfg)
 end
 
 local function WriteDocumentationFileXml(_premake, _prj, value)
-    _premake.w('<DocumentationFile>' .. string.gsub(_prj.buildtarget.relpath, "\.dll", ".xml") .. '</DocumentationFile>')
+    _premake.w('<DocumentationFile>' .. string.gsub(_prj.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 end
 
 premake.override(premake.vstudio.cs2005, "compilerProps", function(base, prj)
