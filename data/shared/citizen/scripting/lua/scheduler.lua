@@ -1,11 +1,18 @@
 local threads = {}
 local curThread
+local curThreadIndex
 
 function Citizen.CreateThread(threadFunction)
 	table.insert(threads, {
 		coroutine = coroutine.create(threadFunction),
 		wakeTime = 0
 	})
+end
+
+function Citizen.DetachCurrentThread()
+	table.remove(threads, curThreadIndex)
+
+	return curThread
 end
 
 function Citizen.Wait(msec)
@@ -64,6 +71,7 @@ Citizen.SetTickRoutine(function()
 
 		if curTime >= thread.wakeTime then
 			curThread = thread
+			curThreadIndex = i
 
 			local status = coroutine.status(thread.coroutine)
 
