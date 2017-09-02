@@ -194,7 +194,7 @@ public:
 
 LuaScriptRuntime::~LuaScriptRuntime()
 {
-	
+
 }
 
 static int lua_error_handler(lua_State* L);
@@ -203,7 +203,7 @@ OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
 {
 	OMPtr<IScriptRuntime> runtime;
 	LuaScriptRuntime* luaRuntime;
-	
+
 	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
 
 #ifdef _DEBUG
@@ -260,7 +260,7 @@ static int Lua_SetTickRoutine(lua_State* L)
 
 	// set the tick callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent();
-	
+
 	luaRuntime->SetTickRoutine([=] ()
 	{
 		// set the error handler
@@ -491,7 +491,7 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 static int Lua_CanonicalizeRef(lua_State* L)
 {
 	auto luaRuntime = LuaScriptRuntime::GetCurrent();
-	
+
 	char* refString;
 	result_t hr = luaRuntime->GetScriptHost()->CanonicalizeRef(luaL_checkinteger(L, 1), luaRuntime->GetInstanceId(), &refString);
 
@@ -819,7 +819,7 @@ int Lua_InvokeNative(lua_State* L)
 			case LuaMetaFields::ResultAsString:
 			{
 				const char* str = *reinterpret_cast<const char**>(&context.arguments[0]);
-				
+
 				if (str)
 				{
 					lua_pushstring(L, str);
@@ -999,7 +999,7 @@ static int Lua_Print(lua_State* L)
 result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 {
 	m_scriptHost = scriptHost;
-	
+
 	{
 		fx::OMPtr<IScriptHost> ptr(scriptHost);
 		fx::OMPtr<IScriptHostWithResourceData> resourcePtr;
@@ -1052,6 +1052,11 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		return hr;
 	}
 
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/deferred.lua")))
+	{
+		return hr;
+	}
+
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/scheduler.lua")))
 	{
 		return hr;
@@ -1082,7 +1087,7 @@ result_t LuaScriptRuntime::Destroy()
 	// in addition, we can't do this in the destructor due to refcounting odditiies (PushEnvironment adds a reference, causing infinite deletion loops)
 	fx::PushEnvironment pushed(this);
 	m_state.Close();
-	
+
 	return FX_S_OK;
 }
 
