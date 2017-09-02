@@ -12,8 +12,10 @@
 
 #include <botan/auto_rng.h>
 #include <botan/credentials_manager.h>
+#include <botan/pk_algs.h>
 #include <botan/pkcs8.h>
 #include <botan/tls_policy.h>
+#include <botan/x509self.h>
 
 #include <fstream>
 
@@ -23,31 +25,58 @@ class CredentialManager : public Botan::Credentials_Manager
 {
 private:
 	std::vector<Botan::X509_Certificate> m_certificates;
-	std::shared_ptr<Botan::Private_Key> m_key;
+	std::unique_ptr<Botan::Private_Key> m_key;
 
 public:
-	CredentialManager(Botan::RandomNumberGenerator& rng, const fwPlatformString& serverCert, const fwPlatformString& serverKey)
+	CredentialManager(Botan::RandomNumberGenerator& rng, const fwPlatformString& serverCert, const fwPlatformString& serverKey, bool autoGenerate = false)
 	{
 		try
 		{
 			std::ifstream serverKeyStream(serverKey);
 			std::ifstream serverCertStream(serverCert);
-
-			Botan::DataSource_Stream ds(serverKeyStream);
-			m_key.reset(Botan::PKCS8::load_key(ds, rng));
-
-			Botan::DataSource_Stream in(serverCertStream);
-
-			while (!in.end_of_data())
+			
+			if (serverCertStream && serverKeyStream)
 			{
-				try
-				{
-					m_certificates.push_back(Botan::X509_Certificate(in));
-				}
-				catch (std::exception& e)
-				{
+				Botan::DataSource_Stream ds(serverKeyStream);
+				m_key.reset(Botan::PKCS8::load_key(ds, rng));
 
+				Botan::DataSource_Stream in(serverCertStream);
+
+				while (!in.end_of_data())
+				{
+					try
+					{
+						m_certificates.push_back(Botan::X509_Certificate(in));
+					}
+					catch (std::exception& e)
+					{
+
+					}
 				}
+			}
+			else if (autoGenerate)
+			{
+				Botan::X509_Cert_Options options;
+				options.country = "XX";
+				options.common_name = "do-not-trust.citizenfx.tls.invalid";
+				options.not_after("20250101000000Z");
+
+				m_key = Botan::create_private_key("RSA", rng, "2048");
+
+				m_certificates.push_back(Botan::X509::create_self_signed_cert(options, *(m_key.get()), "SHA-256", rng));
+
+				std::string pemKey = Botan::PKCS8::PEM_encode(*(m_key.get()));
+				std::string pemCert = m_certificates[0].PEM_encode();
+
+				std::ofstream serverKeyOutStream(serverKey);
+				serverKeyOutStream << pemKey;
+
+				std::ofstream serverCertOutStream(serverCert);
+				serverCertOutStream << pemCert;
+			}
+			else
+			{
+				FatalError("Could not open TLS certificate pair");
 			}
 		}
 		catch (std::exception& e)
@@ -198,8 +227,6 @@ void TLSServerStream::ReceivedData(const uint8_t buf[], size_t length)
 
 void TLSServerStream::ReceivedAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 {
-	trace("alert %s\n", alert.type_string().c_str());
-
 	if (alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
 	{
 		fwRefContainer<TLSServerStream> thisRef = this;
@@ -210,13 +237,35 @@ void TLSServerStream::ReceivedAlert(Botan::TLS::Alert alert, const uint8_t[], si
 			m_baseStream = nullptr;
 		}
 	}
+	else
+	{
+		trace("alert %s\n", alert.type_string().c_str());
+	}
 }
 
 bool TLSServerStream::HandshakeComplete(const Botan::TLS::Session& session)
 {
-	m_parentServer->InvokeConnectionCallback(this);
+	m_parentServer->InvokeConnectionCallback(this, m_protocol);
 
 	return true;
+}
+
+std::string TLSServerStream::tls_server_choose_app_protocol(const std::vector<std::string>& client_protos)
+{
+	auto& protocols = m_parentServer->GetProtocolList();
+
+	std::set<std::string> client_protos_set(client_protos.begin(), client_protos.end());
+
+	for (auto& protocol : protocols)
+	{
+		if (client_protos_set.find(protocol) != client_protos_set.end())
+		{
+			m_protocol = protocol;
+			return protocol;
+		}
+	}
+
+	return "";
 }
 
 void TLSServerStream::CloseInternal()
@@ -237,19 +286,58 @@ void TLSServerStream::CloseInternal()
 	m_parentServer->CloseStream(this);
 }
 
-TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath)
-	: m_baseServer(baseServer)
+TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath, bool autoGenerate)
 {
 	// initialize credentials
 	Botan::AutoSeeded_RNG rng;
-	m_credentials = std::make_shared<CredentialManager>(rng, MakeRelativeCitPath(certificatePath), MakeRelativeCitPath(keyPath));
 	
-	m_baseServer->SetConnectionCallback([=] (fwRefContainer<TcpServerStream> stream)
+	Initialize(baseServer, std::make_shared<CredentialManager>(rng, MakeRelativeCitPath(certificatePath), MakeRelativeCitPath(keyPath), autoGenerate));
+}
+
+void TLSServer::Initialize(fwRefContainer<TcpServer> baseServer, std::shared_ptr<Botan::Credentials_Manager> credentialManager)
+{
+	m_baseServer = baseServer;
+
+	m_credentials = credentialManager;
+
+	m_baseServer->SetConnectionCallback([=](fwRefContainer<TcpServerStream> stream)
 	{
 		fwRefContainer<TLSServerStream> childStream = new TLSServerStream(this, stream);
 		childStream->Initialize();
 
 		m_connections.insert(childStream);
 	});
+}
+
+class TLSProtocolFakeServer : public TcpServer
+{
+
+};
+
+fwRefContainer<TcpServer> TLSServer::GetProtocolServer(const std::string& protocol)
+{
+	auto it = m_protocolServers.find(protocol);
+	
+	if (it == m_protocolServers.end())
+	{
+		it = m_protocolServers.insert({ protocol, new TLSProtocolFakeServer() }).first;
+	}
+
+	return it->second;
+}
+
+void TLSServer::InvokeConnectionCallback(TLSServerStream* stream, const std::string& protocol)
+{
+	fwRefContainer<TcpServer> tcpServer = this;
+
+	if (auto it = m_protocolServers.find(protocol); it != m_protocolServers.end())
+	{
+		tcpServer = it->second;
+	}
+
+	if (tcpServer->GetConnectionCallback())
+	{
+		tcpServer->GetConnectionCallback()(stream);
+	}
 }
 }

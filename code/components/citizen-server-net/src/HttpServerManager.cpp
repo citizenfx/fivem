@@ -36,6 +36,9 @@ namespace fx
 
 		m_httpServer = new net::HttpServerImpl();
 		m_httpServer->RegisterHandler(m_httpHandler);
+
+		m_http2Server = new net::Http2ServerImpl();
+		m_http2Server->RegisterHandler(m_httpHandler);
 	}
 
 	HttpServerManager::~HttpServerManager()
@@ -63,7 +66,7 @@ namespace fx
 
 		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
 		{
-			m_httpServer->AttachToServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
+			auto httpPatternMatcher = [](const std::vector<uint8_t>& bytes)
 			{
 				if (bytes.size() > 10)
 				{
@@ -91,19 +94,32 @@ namespace fx
 				}
 
 				return net::MultiplexPatternMatchResult::InsufficientData;
-			}));
+			};
 
-			/*fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
+			m_httpServer->AttachToServer(server->CreateServer(httpPatternMatcher));
+
+			fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(server->CreateServer([](const std::vector<uint8_t>& bytes)
 			{
-			if (bytes.size() >= 6)
-			{
-			return (bytes[0] == 0x16 && bytes[5] == 1) ? net::MultiplexPatternMatchResult::Match : net::MultiplexPatternMatchResult::NoMatch;
-			}
+				if (bytes.size() >= 6)
+				{
+					return (bytes[0] == 0x16 && bytes[5] == 1) ? net::MultiplexPatternMatchResult::Match : net::MultiplexPatternMatchResult::NoMatch;
+				}
 
-			return net::MultiplexPatternMatchResult::InsufficientData;
-			}), "citizen/ros/ros.crt", "citizen/ros/ros.key");
+				return net::MultiplexPatternMatchResult::InsufficientData;
+			}), "server-tls.crt", "server-tls.key", true);
 
-			impl->AttachToServer(tlsServer);*/
+			tlsServer->AddRef();
+
+			tlsServer->SetProtocolList({ "h2", "http/1.1" });
+
+			m_http2Server->AttachToServer(tlsServer->GetProtocolServer("h2"));
+			m_httpServer->AttachToServer(tlsServer->GetProtocolServer("http/1.1"));
+
+			// create a TLS multiplex for the default protocol
+			fwRefContainer<net::MultiplexTcpServer> tlsMultiplex = new net::MultiplexTcpServer();
+			m_httpServer->AttachToServer(tlsMultiplex->CreateServer(httpPatternMatcher));
+
+			tlsMultiplex->AttachToServer(tlsServer);
 		});
 	}
 

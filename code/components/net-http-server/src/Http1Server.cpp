@@ -1,0 +1,417 @@
+/*
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
+
+#include "StdInc.h"
+#include "HttpServer.h"
+#include "HttpServerImpl.h"
+
+#include <picohttpparser.h>
+
+#include <ctime>
+#include <deque>
+#include <iomanip>
+#include <sstream>
+
+namespace net
+{
+class Http1Response : public HttpResponse
+{
+private:
+	fwRefContainer<TcpServerStream> m_clientStream;
+
+	std::shared_ptr<HttpState> m_requestState;
+
+public:
+	inline Http1Response(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState)
+		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream)
+	{
+		
+	}
+
+	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) override
+	{
+		if (m_sentHeaders)
+		{
+			return;
+		}
+
+		std::ostringstream outData;
+		outData.imbue(std::locale());
+
+		outData << "HTTP/1.1 " << std::to_string(statusCode) << " " << (statusMessage.empty() ? GetStatusMessage(statusCode) : statusMessage) << "\r\n";
+
+		auto& usedHeaders = (headers.size() == 0) ? m_headerList : headers;
+
+		if (usedHeaders.find("date") == usedHeaders.end())
+		{
+			std::time_t timeVal;
+			std::time(&timeVal);
+
+			std::tm time = *std::gmtime(&timeVal);
+			outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S GMT") << "\r\n";
+		}
+
+		auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("keep-alive"));
+
+		if (_stricmp(requestConnection.c_str(), "keep-alive") != 0)
+		{
+			outData << "Connection: close\r\n";
+
+			m_closeConnection = true;
+		}
+		else
+		{
+			outData << "Connection: keep-alive\r\n";
+		}
+
+		for (auto& header : usedHeaders)
+		{
+			outData << header.first << ": " << header.second << "\r\n";
+		}
+
+		outData << "\r\n";
+
+		std::string outStr = outData.str();
+
+		std::vector<uint8_t> dataBuffer(outStr.size());
+		memcpy(&dataBuffer[0], outStr.c_str(), outStr.size());
+
+		m_clientStream->Write(dataBuffer);
+
+		m_sentHeaders = true;
+	}
+
+	virtual void WriteOut(const std::vector<uint8_t>& data)
+	{
+		m_clientStream->Write(data);
+	}
+
+	virtual void End()
+	{
+		if (m_requestState->blocked)
+		{
+			m_requestState->blocked = false;
+
+			if (m_requestState->ping)
+			{
+				m_requestState->ping();
+			}
+		}
+
+		if (m_closeConnection)
+		{
+			m_clientStream->Close();
+		}
+	}
+};
+
+HttpServerImpl::HttpServerImpl()
+{
+
+}
+
+HttpServerImpl::~HttpServerImpl()
+{
+
+}
+
+void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
+{
+	enum HttpConnectionReadState
+	{
+		ReadStateRequest,
+		ReadStateBody,
+		ReadStateChunked
+	};
+
+	struct HttpConnectionData
+	{
+		HttpConnectionReadState readState;
+
+		std::deque<uint8_t> readBuffer;
+
+		std::vector<uint8_t> requestData;
+
+		size_t lastLength;
+
+		phr_header headers[50];
+
+		phr_chunked_decoder decoder;
+
+		fwRefContainer<HttpRequest> request;
+
+		fwRefContainer<HttpResponse> response;
+
+		int contentLength;
+
+		HttpConnectionData()
+			: readState(ReadStateRequest), lastLength(0), contentLength(0)
+		{
+
+		}
+	};
+
+	std::shared_ptr<HttpConnectionData> connectionData = std::make_shared<HttpConnectionData>();
+	std::shared_ptr<HttpState> reqState = std::make_shared<HttpState>();
+
+	std::function<void(const std::vector<uint8_t>&)> readCallback;
+	readCallback = [=](const std::vector<uint8_t>& data)
+	{
+		// keep a reference to the connection data locally
+		std::shared_ptr<HttpConnectionData> localConnectionData = connectionData;
+
+		// place bytes in the read buffer
+		auto& readQueue = connectionData->readBuffer;
+
+		size_t origSize = readQueue.size();
+		readQueue.resize(origSize + data.size());
+
+		// close the stream if the length is too big
+		if (readQueue.size() > (1024 * 1024 * 5))
+		{
+			stream->Close();
+			return;
+		}
+
+		// actually copy
+		std::copy(data.begin(), data.end(), readQueue.begin() + origSize);
+
+		// process request data until there's no need anymore
+		bool continueProcessing = true;
+
+		while (continueProcessing)
+		{
+			// depending on the state, perform an action
+			if (localConnectionData->readState == ReadStateRequest)
+			{
+				if (reqState->blocked)
+				{
+					break;
+				}
+
+				// copy the deque into a vector for data purposes
+				std::vector<uint8_t> requestData(readQueue.begin(), readQueue.end());
+
+				// define output variables
+				const char* requestMethod;
+				size_t requestMethodLength;
+
+				const char* path;
+				size_t pathLength;
+
+				int minorVersion;
+				size_t numHeaders = 50;
+
+				int result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
+					&path, &pathLength, &minorVersion, localConnectionData->headers, &numHeaders, localConnectionData->lastLength);
+
+				if (result > 0)
+				{
+					// prepare data for a request instance
+					std::string requestMethodStr(requestMethod, requestMethodLength);
+					std::string pathStr(path, pathLength);
+
+					HeaderMap headerList;
+
+					for (int i = 0; i < numHeaders; i++)
+					{
+						auto& header = localConnectionData->headers[i];
+
+						headerList.insert(std::make_pair(std::string(header.name, header.name_len), std::string(header.value, header.value_len)));
+					}
+
+					// remove the original bytes from the queue
+					readQueue.erase(readQueue.begin(), readQueue.begin() + result);
+					localConnectionData->lastLength = 0;
+
+					// store the request in a request instance
+					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList, stream->GetPeerAddress().ToString());
+					fwRefContainer<HttpResponse> response = new Http1Response(stream, request, reqState);
+
+					reqState->blocked = true;
+
+					for (auto& handler : m_handlers)
+					{
+						if (handler->HandleRequest(request, response) || response->HasEnded())
+						{
+							break;
+						}
+					}
+
+					continueProcessing = (readQueue.size() > 0);
+
+					if (!response->HasEnded())
+					{
+						// check to see if we'll have to read user data
+						static std::string contentLengthKey = "content-length";
+						static std::string contentLengthDefault = "0";
+
+						auto& contentLengthStr = request->GetHeader(contentLengthKey, contentLengthDefault);
+						int contentLength = atoi(contentLengthStr.c_str());
+
+						if (contentLength > 0)
+						{
+							localConnectionData->request = request;
+							localConnectionData->response = response;
+							localConnectionData->contentLength = contentLength;
+
+							localConnectionData->readState = ReadStateBody;
+						}
+						else
+						{
+							static std::string transferEncodingKey = "transfer-encoding";
+							static std::string transferEncodingDefault = "";
+							static std::string transferEncodingComparison = "chunked";
+
+							if (request->GetHeader(transferEncodingKey, transferEncodingDefault) == transferEncodingComparison)
+							{
+								localConnectionData->request = request;
+								localConnectionData->response = response;
+								localConnectionData->contentLength = -1;
+
+								localConnectionData->lastLength = 0;
+
+								localConnectionData->readState = ReadStateChunked;
+
+								memset(&localConnectionData->decoder, 0, sizeof(localConnectionData->decoder));
+								localConnectionData->decoder.consume_trailer = true;
+							}
+						}
+					}
+				}
+				else if (result == -1)
+				{
+					// should probably send 'bad request'?
+					stream->Close();
+					return;
+				}
+				else if (result == -2)
+				{
+					localConnectionData->lastLength = requestData.size();
+
+					continueProcessing = false;
+				}
+			}
+			else if (connectionData->readState == ReadStateBody)
+			{
+				// skip if this is an empty write
+				if (data.empty())
+				{
+					break;
+				}
+
+				int contentLength = localConnectionData->contentLength;
+
+				if (readQueue.size() >= contentLength)
+				{
+					// copy the deque into a vector for data purposes, again
+					std::vector<uint8_t> requestData(readQueue.begin(), readQueue.begin() + contentLength);
+
+					// remove the original bytes from the queue
+					readQueue.erase(readQueue.begin(), readQueue.begin() + contentLength);
+
+					// call the data handler
+					auto& dataHandler = localConnectionData->request->GetDataHandler();
+
+					if (dataHandler)
+					{
+						dataHandler(requestData);
+
+						localConnectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+					}
+
+					// clean up the req/res
+					localConnectionData->request = nullptr;
+					localConnectionData->response = nullptr;
+
+					localConnectionData->readState = ReadStateRequest;
+
+					continueProcessing = (readQueue.size() > 0);
+				}
+				else
+				{
+					continueProcessing = false;
+				}
+			}
+			else if (connectionData->readState == ReadStateChunked)
+			{
+				// skip if this is an empty write
+				if (data.empty())
+				{
+					break;
+				}
+
+				// append the remnant of the read queue to the vector
+				auto& requestData = localConnectionData->requestData;
+
+				size_t addedSize = readQueue.size() - requestData.size();
+				size_t oldSize = requestData.size();
+				requestData.resize(readQueue.size());
+
+				// copy the appendant
+				std::copy(readQueue.begin() + oldSize, readQueue.end(), requestData.begin() + localConnectionData->lastLength);
+
+				// decode stuff
+				size_t requestSize = addedSize;
+
+				int result = phr_decode_chunked(&localConnectionData->decoder, reinterpret_cast<char*>(&requestData[localConnectionData->lastLength]), &requestSize);
+
+				if (result == -2)
+				{
+					localConnectionData->lastLength += requestSize;
+
+					continueProcessing = false;
+				}
+				else if (result == -1)
+				{
+					stream->Close();
+					return;
+				}
+				else
+				{
+					// remove the original bytes from the queue
+					readQueue.erase(readQueue.begin(), readQueue.begin() + readQueue.size() - result);
+
+					// call the data handler
+					auto& dataHandler = localConnectionData->request->GetDataHandler();
+
+					if (dataHandler)
+					{
+						requestData.resize(localConnectionData->lastLength);
+
+						dataHandler(requestData);
+
+						localConnectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+					}
+
+					// clean up the req/res
+					localConnectionData->request = nullptr;
+					localConnectionData->response = nullptr;
+
+					localConnectionData->requestData.clear();
+
+					localConnectionData->readState = ReadStateRequest;
+
+					continueProcessing = (readQueue.size() > 0);
+				}
+			}
+		}
+	};
+
+	reqState->ping = [=]()
+	{
+		readCallback({});
+	};
+
+	stream->SetReadCallback(readCallback);
+
+	stream->SetCloseCallback([=]()
+	{
+		reqState->ping = {};
+	});
+}
+}

@@ -44,6 +44,8 @@ private:
 
 	std::unique_ptr<Botan::TLS::Policy> m_policy;
 
+	std::string m_protocol;
+
 	bool m_closing;
 
 public:
@@ -79,10 +81,7 @@ public:
 		return HandshakeComplete(session);
 	}
 
-	virtual inline std::string tls_server_choose_app_protocol(const std::vector<std::string>& client_protos) override
-	{
-		return "";
-	}
+	virtual std::string tls_server_choose_app_protocol(const std::vector<std::string>& client_protos) override;
 
 	virtual inline void tls_verify_cert_chain(
 		const std::vector<Botan::X509_Certificate>& cert_chain,
@@ -124,21 +123,35 @@ private:
 
 	std::set<fwRefContainer<TLSServerStream>> m_connections;
 
+	std::vector<std::string> m_protocols;
+
+	std::map<std::string, fwRefContainer<TcpServer>> m_protocolServers;
+
 public:
-	TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath);
+	TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath, bool autoGenerate = false);
+
+private:
+	void Initialize(fwRefContainer<TcpServer> baseServer, std::shared_ptr<Botan::Credentials_Manager> credentialManager);
+
+public:
+	fwRefContainer<TcpServer> GetProtocolServer(const std::string& protocolName);
 
 	inline std::shared_ptr<Botan::Credentials_Manager> GetCredentials()
 	{
 		return m_credentials;
 	}
 
-	inline void InvokeConnectionCallback(TLSServerStream* stream)
+	inline std::vector<std::string> GetProtocolList()
 	{
-		if (GetConnectionCallback())
-		{
-			GetConnectionCallback()(stream);
-		}
+		return m_protocols;
 	}
+
+	inline void SetProtocolList(const std::vector<std::string>& protocols)
+	{
+		m_protocols = protocols;
+	}
+
+	void InvokeConnectionCallback(TLSServerStream* stream, const std::string& protocol);
 
 	inline void CloseStream(TLSServerStream* stream)
 	{

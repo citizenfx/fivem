@@ -81,17 +81,25 @@ public:
 class TCP_SERVER_EXPORT MultiplexTcpServer : public fwRefCountable
 {
 private:
-	fwRefContainer<TcpServerFactory> m_factory;
-	fwRefContainer<TcpServer> m_rootServer;
-
-private:
 	std::vector<fwRefContainer<MultiplexTcpChildServer>> m_childServers;
 
 public:
-	MultiplexTcpServer(const fwRefContainer<TcpServerFactory>& factory);
-
-	void Bind(const PeerAddress& bindAddress);
+	MultiplexTcpServer();
 
 	fwRefContainer<TcpServer> CreateServer(const MultiplexPatternMatchFn& patternMatchFunction);
+
+	void AttachToServer(fwRefContainer<TcpServer> server);
+};
+
+class TCP_SERVER_EXPORT MultiplexTcpBindServer : public MultiplexTcpServer
+{
+private:
+	fwRefContainer<TcpServerFactory> m_factory;
+	fwRefContainer<TcpServer> m_rootServer;
+
+public:
+	MultiplexTcpBindServer(const fwRefContainer<TcpServerFactory>& factory);
+
+	void Bind(const PeerAddress& bindAddress);
 };
 }

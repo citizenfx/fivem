@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"net:tcp-server",
-		"vendor:picohttpparser"
+		"vendor:picohttpparser",
+		"vendor:nghttp2"
 	],
 	"provides": []
 }

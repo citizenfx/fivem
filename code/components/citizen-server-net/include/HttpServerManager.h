@@ -33,6 +33,8 @@ namespace fx
 	private:
 		fwRefContainer<net::HttpServer> m_httpServer;
 
+		fwRefContainer<net::HttpServer> m_http2Server;
+
 		fwRefContainer<Handler> m_httpHandler;
 
 		std::map<std::string, TEndpointHandler> m_handlers;

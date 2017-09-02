@@ -26,6 +26,11 @@ namespace fx
 
 		void AddEndpoint(const std::string& endPoint);
 
+		inline fwRefContainer<net::TcpServerManager> GetTcpStack()
+		{
+			return m_tcpStack;
+		}
+
 		virtual void AttachToObject(ServerInstanceBase* instance) override;
 
 	public:

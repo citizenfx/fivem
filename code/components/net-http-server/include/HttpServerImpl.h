@@ -20,20 +20,26 @@ class
 	HttpServerImpl : public HttpServer
 {
 private:
-	fwRefContainer<TcpServer> m_server;
-
-	std::forward_list<fwRefContainer<HttpHandler>> m_handlers;
-
-private:
-	void OnConnection(fwRefContainer<TcpServerStream> stream);
+	virtual void OnConnection(fwRefContainer<TcpServerStream> stream) override;
 
 public:
 	HttpServerImpl();
 
 	virtual ~HttpServerImpl() override;
+};
 
-	virtual void AttachToServer(fwRefContainer<TcpServer> server) override;
+class
+#ifdef COMPILING_NET_HTTP_SERVER
+	DLL_EXPORT
+#endif
+Http2ServerImpl: public HttpServer
+{
+private:
+	virtual void OnConnection(fwRefContainer<TcpServerStream> stream) override;
 
-	virtual void RegisterHandler(fwRefContainer<HttpHandler> handler) override;
+public:
+	Http2ServerImpl();
+
+	virtual ~Http2ServerImpl() override;
 };
 }

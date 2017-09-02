@@ -9,6 +9,8 @@
 
 #include "TcpServer.h"
 
+#include <forward_list>
+
 namespace net
 {
 struct HeaderComparator : std::binary_function<std::string, std::string, bool>
@@ -100,10 +102,8 @@ class
 #endif
 	HttpResponse : public fwRefCountable
 {
-private:
+protected:
 	fwRefContainer<HttpRequest> m_request;
-
-	fwRefContainer<TcpServerStream> m_clientStream;
 
 	int m_statusCode;
 
@@ -115,13 +115,11 @@ private:
 
 	HeaderMap m_headerList;
 
-	std::shared_ptr<HttpState> m_requestState;
-
-private:
+protected:
 	static std::string GetStatusMessage(int statusCode);
 
 public:
-	HttpResponse(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState);
+	HttpResponse(fwRefContainer<HttpRequest> request);
 
 	std::string GetHeader(const std::string& name);
 
@@ -135,11 +133,13 @@ public:
 
 	void WriteHead(int statusCode, const std::string& statusMessage);
 
-	void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers);
+	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) = 0;
 
 	void Write(const std::string& data);
 
-	void End();
+	virtual void End() = 0;
+
+	virtual void WriteOut(const std::vector<uint8_t>& data) = 0;
 
 	void End(const std::string& data);
 
@@ -162,11 +162,6 @@ public:
 	{
 		return m_ended;
 	}
-
-	inline std::shared_ptr<HttpState> GetState()
-	{
-		return m_requestState;
-	}
 };
 
 class HttpHandler : public fwRefCountable
@@ -175,11 +170,27 @@ public:
 	virtual bool HandleRequest(fwRefContainer<HttpRequest> request, fwRefContainer<HttpResponse> response) = 0;
 };
 
-class HttpServer : public fwRefCountable
+class HttpServerBase : public fwRefCountable
 {
 public:
 	virtual void AttachToServer(fwRefContainer<TcpServer> server) = 0;
 
 	virtual void RegisterHandler(fwRefContainer<HttpHandler> handler) = 0;
+};
+
+class HttpServer : public HttpServerBase
+{
+public:
+	virtual void AttachToServer(fwRefContainer<TcpServer> server) override;
+
+	virtual void RegisterHandler(fwRefContainer<HttpHandler> handler) override;
+
+protected:
+	virtual void OnConnection(fwRefContainer<TcpServerStream> stream) = 0;
+
+protected:
+	fwRefContainer<TcpServer> m_server;
+
+	std::forward_list<fwRefContainer<HttpHandler>> m_handlers;
 };
 };

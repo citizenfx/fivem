@@ -34,7 +34,7 @@ namespace fx
 		if (peerAddress.is_initialized())
 		{
 			// create a multiplexable TCP server and bind it
-			fwRefContainer<net::MultiplexTcpServer> server = new net::MultiplexTcpServer(m_tcpStack);
+			fwRefContainer<net::MultiplexTcpBindServer> server = new net::MultiplexTcpBindServer(m_tcpStack);
 			server->Bind(peerAddress.get());
 
 			// add the server to the list

@@ -65,7 +65,7 @@ public:
 private:
 	TConnectionCallback m_connectionCallback;
 
-protected:
+public:
 	inline const TConnectionCallback& GetConnectionCallback()
 	{
 		return m_connectionCallback;
