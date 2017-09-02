@@ -70,8 +70,6 @@ EOF
 # build CitizenFX
 cd /src/code
 
-cp -a ../vendor/curl/include/curl/curlbuild.h.dist ../vendor/curl/include/curl/curlbuild.h
-
 premake5 gmake --game=server --cc=clang --dotnet=msnet
 cd build/server/linux
 
