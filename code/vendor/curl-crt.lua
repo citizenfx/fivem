@@ -35,9 +35,7 @@ return {
 		end
 
 		-- nghttp2
-		includedirs { "../vendor/nghttp2/lib/includes/" }
-
-		defines { 'ssize_t=long', '_SSIZE_T_DEFINED=1', '_U_=', 'NGHTTP2_STATICLIB' }
+		add_dependencies 'vendor:nghttp2'
 
 		-- all the disables except http/file
 		defines { 'CURL_STATICLIB', 'BUILDING_LIBCURL', 'USE_IPV6', 'CURL_DISABLE_TFTP', 'CURL_DISABLE_FTP', 'CURL_DISABLE_LDAP', 'CURL_DISABLE_TELNET',
@@ -45,17 +43,6 @@ return {
 				  'CURL_DISABLE_RTMP', 'CURL_DISABLE_GOPHER', 'CURL_DISABLE_SMB', 'USE_IPV6', 'USE_NGHTTP2' }
 
 		if os.is('windows') then
-			prebuildcommands
-			{
-				-- sadly premake's {COPY} breaks on Windows (xcopy error 'Cannot perform a cyclic copy')
-				(
-					'copy /y "%s\\vendor\\curl\\include\\curl\\curlbuild.h.dist" "%s\\vendor\\curl\\include\\curl\\curlbuild.h"'
-				):format(
-					path.getabsolute('../'),
-					path.getabsolute('../')
-				)
-			}
-
 			defines { 'USE_WINDOWS_SSPI', 'USE_SCHANNEL' }
 		else
 			defines { 'USE_OPENSSL' }
@@ -70,11 +57,6 @@ return {
 		files_project '../vendor/curl/lib/'
 		{
 			'**.c'
-		}
-
-		files_project '../vendor/nghttp2/lib/'
-		{
-			'*.c'
 		}
 	end
 }
