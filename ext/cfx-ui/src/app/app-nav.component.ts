@@ -33,6 +33,7 @@ export class AppNavComponent extends Translation {
 			}
 		});
 
+		gameService.signinChange.subscribe(value => this.nickname = value.name);
 		gameService.nicknameChange.subscribe(value => this.nickname = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 	}
