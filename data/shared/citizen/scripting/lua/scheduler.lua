@@ -1,5 +1,6 @@
 local threads = {}
 local curThread
+local curThreadIndex
 
 function Citizen.CreateThread(threadFunction)
 	table.insert(threads, {
@@ -18,6 +19,41 @@ end
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
+-- Transform an async function with callback (last parameter) to sync api style
+function Citizen.Await(awaitFunction, ...)
+	if not curThread then
+		error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
+	end
+
+	-- Remove current thread from the pool (avoid resume from the loop)
+	if curThreadIndex then
+		table.remove(threads, curThreadIndex)
+	end
+
+	curThreadIndex = nil
+	local resumableThread = curThread
+	local args = {...}
+
+	table.insert(args, function (...)
+		-- Reattach thread
+		table.insert(threads, resumableThread)
+
+		curThread = resumableThread
+		curThreadIndex = #threads
+
+		local result, err = coroutine.resume(resumableThread.coroutine, ...)
+
+		if err then
+			error('Failed to resume thread: ' .. debug.traceback(resumableThread.coroutine, err))
+		end
+	end)
+
+	awaitFunction(table.unpack(args))
+
+	curThread = nil
+	return coroutine.yield()
+end
+
 function Citizen.CreateThreadNow(threadFunction)
 	local coro = coroutine.create(threadFunction)
 
@@ -32,6 +68,8 @@ function Citizen.CreateThreadNow(threadFunction)
 
 	local result, err = coroutine.resume(coro)
 
+	-- Get current thread, can be nil and so should not be added to the pool
+	local resumedThread = curThread
 	-- restore last thread
 	curThread = oldThread
 
@@ -39,7 +77,7 @@ function Citizen.CreateThreadNow(threadFunction)
 		error('Failed to execute thread: ' .. debug.traceback(coro, err))
 	end
 
-	if coroutine.status(coro) ~= 'dead' then
+	if resumedThread and coroutine.status(coro) ~= 'dead' then
 		table.insert(threads, t)
 	end
 end
@@ -64,6 +102,7 @@ Citizen.SetTickRoutine(function()
 
 		if curTime >= thread.wakeTime then
 			curThread = thread
+			curThreadIndex = i
 
 			local status = coroutine.status(thread.coroutine)
 
@@ -80,6 +119,9 @@ Citizen.SetTickRoutine(function()
 			end
 		end
 	end
+
+	curThread = nil
+	curThreadIndex = nil
 end)
 
 local alwaysSafeEvents = {
