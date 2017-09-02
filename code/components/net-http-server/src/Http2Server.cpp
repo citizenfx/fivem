@@ -31,6 +31,11 @@ public:
 
 	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) override
 	{
+		if (m_sentHeaders)
+		{
+			return;
+		}
+
 		m_headers = headers;
 		m_headers[":status"] = std::to_string(statusCode);
 
@@ -75,6 +80,8 @@ public:
 		}
 
 		nghttp2_submit_response(m_session, m_stream, nv.data(), nv.size(), &provider);
+
+		m_sentHeaders = true;
 	}
 
 	virtual void WriteOut(const std::vector<uint8_t>& data) override
