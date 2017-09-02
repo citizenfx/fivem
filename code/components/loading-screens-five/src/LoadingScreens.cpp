@@ -82,6 +82,8 @@ static HookFunction hookFunction([]()
 				endedLoadingScreens = true;
 
 				DestroyFrame();
+
+				nui::GiveFocus(false, false);
 			});
 		}
 
@@ -133,11 +135,23 @@ static InitFunction initFunction([] ()
 
 			if (entries.begin() != entries.end())
 			{
-				loadingScreens.push_back("nui://" + resource->GetName() + "/" + entries.begin()->second);
+				std::string path = entries.begin()->second;
+
+				if (path.find("://") != std::string::npos)
+				{
+					loadingScreens.push_back(path);
+				}
+				else
+				{
+					loadingScreens.push_back("nui://" + resource->GetName() + "/" + path);
+				}
 			}
 		});
 
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
+		nui::GiveFocus(true, false);
+
+		nui::ExecuteRootScript("focusFrame(\"loadingScreen\");");
 	}, 100);
 
 	rage::OnInitFunctionStart.Connect([] (rage::InitFunctionType type)
