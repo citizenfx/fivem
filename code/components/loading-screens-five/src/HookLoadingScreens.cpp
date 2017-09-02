@@ -5,6 +5,8 @@
 
 #include <stack>
 
+#include <LaunchMode.h>
+
 #include <mmsystem.h>
 
 #pragma comment(lib, "winmm.lib")
@@ -260,6 +262,12 @@ static HookFunction hookFunction([] ()
 	InstrumentFunction(hook::get_call(hook::get_pattern("41 B0 01 48 8B D3 E8 ? ? ? ? E8", 24)), functions);
 
 	InstrumentFunction(functions[4], functions);
+
+	// don't play game loading music
+	if (!CfxIsSinglePlayer())
+	{
+		hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
+	}
 
 	// 'should packfile meta cache be used'
 	//hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
