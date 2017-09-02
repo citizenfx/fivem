@@ -252,7 +252,7 @@ bool TLSServerStream::HandshakeComplete(const Botan::TLS::Session& session)
 
 std::string TLSServerStream::tls_server_choose_app_protocol(const std::vector<std::string>& client_protos)
 {
-	auto& protocols = m_parentServer->GetProtocolList();
+	auto protocols = m_parentServer->GetProtocolList();
 
 	std::set<std::string> client_protos_set(client_protos.begin(), client_protos.end());
 
