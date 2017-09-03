@@ -83,7 +83,7 @@ static HookFunction hookFunction([]()
 
 				DestroyFrame();
 
-				nui::GiveFocus(false, false);
+				nui::OverrideFocus(false);
 			});
 		}
 
@@ -149,7 +149,7 @@ static InitFunction initFunction([] ()
 		});
 
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
-		nui::GiveFocus(true, false);
+		nui::OverrideFocus(true);
 
 		nui::ExecuteRootScript("focusFrame(\"loadingScreen\");");
 	}, 100);

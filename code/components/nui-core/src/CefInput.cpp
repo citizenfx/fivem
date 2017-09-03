@@ -16,6 +16,7 @@
 
 static bool g_hasFocus = false;
 bool g_hasCursor = false;
+static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
 
@@ -24,42 +25,40 @@ bool isKeyDown(WPARAM wparam)
 	return (GetKeyState(wparam) & 0x8000) != 0;
 }
 
+static bool HasFocus()
+{
+	return (g_hasFocus || g_hasOverriddenFocus);
+}
+
 namespace nui
 {
 	void GiveFocus(bool hasFocus, bool hasCursor)
 	{
-#if defined(GTA_NY)
-		if (!g_hasFocus && hasFocus)
-		{
-			// TODO: move this elsewhere
-
-			// release all keys in the game
-			uint8_t* keyData = (uint8_t*)0x188B150;
-
-			memset(keyData, 0, 256);
-
-			// disable processing mouse input
-			//*(WORD*)0x6239F7 = 0x9090;
-
-			((void(*)(bool))0x623C30)(false);
-		}
-		else if (!hasFocus && g_hasFocus)
-		{
-			((void(*)(bool))0x623C30)(true);
-		}
-#else
-		if (!g_hasFocus && hasFocus)
+		if (!HasFocus() && hasFocus)
 		{
 			InputHook::SetGameMouseFocus(false);
 		}
-		else if (!hasFocus && g_hasFocus)
+		else if (!hasFocus && HasFocus())
 		{
 			InputHook::SetGameMouseFocus(true);
 		}
-#endif
 
 		g_hasFocus = hasFocus;
 		g_hasCursor = hasCursor;
+	}
+
+	void OverrideFocus(bool hasFocus)
+	{
+		if (!HasFocus() && hasFocus)
+		{
+			InputHook::SetGameMouseFocus(false);
+		}
+		else if (!hasFocus && HasFocus())
+		{
+			InputHook::SetGameMouseFocus(true);
+		}
+
+		g_hasOverriddenFocus = hasFocus;
 	}
 
 	void ProcessInput()
@@ -155,7 +154,7 @@ static HookFunction initFunction([] ()
 {
 	InputHook::QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (g_hasFocus)
+		if (HasFocus())
 		{
 			argPtr = 0;
 		}
@@ -176,15 +175,15 @@ static HookFunction initFunction([] ()
 
 		if (browser)
 		{
-			if (g_hasFocus != g_lastFocus)
+			if (HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(g_hasFocus);
+				browser->GetHost()->SendFocusEvent(HasFocus());
 			}
 
-			g_lastFocus = g_hasFocus;
+			g_lastFocus = HasFocus();
 		}
 
-		if (g_hasFocus)
+		if (HasFocus())
 		{
 			if (!g_imeHandler)
 			{
