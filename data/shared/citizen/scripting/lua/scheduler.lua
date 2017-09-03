@@ -1,5 +1,6 @@
 local threads = {}
 local curThread
+local curThreadIndex
 
 function Citizen.CreateThread(threadFunction)
 	table.insert(threads, {
@@ -32,6 +33,7 @@ function Citizen.CreateThreadNow(threadFunction)
 
 	local result, err = coroutine.resume(coro)
 
+	local resumedThread = curThread
 	-- restore last thread
 	curThread = oldThread
 
@@ -39,9 +41,42 @@ function Citizen.CreateThreadNow(threadFunction)
 		error('Failed to execute thread: ' .. debug.traceback(coro, err))
 	end
 
-	if coroutine.status(coro) ~= 'dead' then
+	if resumedThread and coroutine.status(coro) ~= 'dead' then
 		table.insert(threads, t)
 	end
+end
+
+function Citizen.Await(promise)
+	if not curThread then
+		error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
+	end
+
+	-- Remove current thread from the pool (avoid resume from the loop)
+	if curThreadIndex then
+		table.remove(threads, curThreadIndex)
+	end
+
+	curThreadIndex = nil
+	local resumableThread = curThread
+
+	promise:next(function (result)
+		-- Reattach thread
+		table.insert(threads, resumableThread)
+
+		curThread = resumableThread
+		curThreadIndex = #threads
+
+		local result, err = coroutine.resume(resumableThread.coroutine, result)
+
+		if err then
+			error('Failed to resume thread: ' .. debug.traceback(resumableThread.coroutine, err))
+		end
+
+		return result
+	end)
+
+	curThread = nil
+	return coroutine.yield()
 end
 
 -- SetTimeout
@@ -64,6 +99,7 @@ Citizen.SetTickRoutine(function()
 
 		if curTime >= thread.wakeTime then
 			curThread = thread
+			curThreadIndex = i
 
 			local status = coroutine.status(thread.coroutine)
 
@@ -80,6 +116,9 @@ Citizen.SetTickRoutine(function()
 			end
 		end
 	end
+
+	curThread = nil
+	curThreadIndex = nil
 end)
 
 local alwaysSafeEvents = {
