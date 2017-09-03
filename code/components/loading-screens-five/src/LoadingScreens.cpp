@@ -79,11 +79,14 @@ static HookFunction hookFunction([]()
 			{
 				(*handler)(ctx);
 
-				endedLoadingScreens = true;
+				if (!endedLoadingScreens)
+				{
+					endedLoadingScreens = true;
 
-				DestroyFrame();
+					DestroyFrame();
 
-				nui::OverrideFocus(false);
+					nui::OverrideFocus(false);
+				}
 			});
 		}
 
