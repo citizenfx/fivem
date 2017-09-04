@@ -119,6 +119,11 @@ namespace CitizenFX.Core
 				return Encoding.UTF8.GetString(buffer);
 			}
 
+			if (type.IsEnum)
+			{
+				return Enum.ToObject(type, (int)GetResult(typeof(int), ptr));
+			}
+
 			if (type.IsAssignableFrom(typeof(INativeValue)))
 			{
 				var a = (int)GetResultInternal(typeof(int), ptr);
