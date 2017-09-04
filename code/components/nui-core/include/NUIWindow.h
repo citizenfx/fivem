@@ -45,7 +45,7 @@ private:
 	int m_roundedHeight;
 
 	unsigned long m_dirtyFlag;
-	std::tuple<int, int, int, int> m_lastDirtyRect;
+	RECT m_lastDirtyRect;
 	CRITICAL_SECTION m_renderBufferLock;
 	char* m_renderBuffer;
 

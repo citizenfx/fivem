@@ -26,6 +26,8 @@ namespace egl
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr)
 {
+	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
+
 	Instance<NUIWindowManager>::Get()->AddWindow(this);
 }
 
@@ -151,7 +153,16 @@ void NUIWindow::UpdateSharedResource(int x, int y, int width, int height)
 		}
 	}
 
-	m_lastDirtyRect = { x, y, width, height };
+	RECT newRect;
+	newRect.left = x;
+	newRect.right = x + width;
+	newRect.top = GetHeight() - y - height;
+	newRect.bottom = GetHeight() - y;
+
+	RECT oldRect = m_lastDirtyRect;
+
+	UnionRect(&m_lastDirtyRect, &newRect, &oldRect);
+
 	MarkRenderBufferDirty();
 	WaitForSingleObject(g_resetEvent, INFINITE);
 }
@@ -209,7 +220,7 @@ void NUIWindow::UpdateFrame()
 
 		egl::SetAccelerationHandlers([](void*)
 		{
-			window->UpdateSharedResource(0, 0, window->GetWidth(), window->GetHeight());
+			window->UpdateSharedResource(0, window->GetHeight(), window->GetWidth(), window->GetHeight());
 		}, [](void*, int x, int y, int width, int height)
 		{
 			window->UpdateSharedResource(x, y, width, height);
@@ -242,15 +253,16 @@ void NUIWindow::UpdateFrame()
 					ID3D11DeviceContext* deviceContext = GetD3D11DeviceContext();
 					assert(deviceContext);
 
-					D3D11_BOX box = CD3D11_BOX(std::get<0>(m_lastDirtyRect),
-											   std::get<1>(m_lastDirtyRect),
+					D3D11_BOX box = CD3D11_BOX(m_lastDirtyRect.left,
+											   m_lastDirtyRect.top,
 											   0,
-											   std::get<0>(m_lastDirtyRect) + std::get<2>(m_lastDirtyRect),
-											   std::get<1>(m_lastDirtyRect) + std::get<3>(m_lastDirtyRect),
+											   m_lastDirtyRect.right,
+											   m_lastDirtyRect.bottom,
 											   1);
-					
 
-					deviceContext->CopySubresourceRegion(m_nuiTexture->texture, 0, std::get<0>(m_lastDirtyRect), std::get<1>(m_lastDirtyRect), 0, texture, 0, &box);
+					deviceContext->CopySubresourceRegion(m_nuiTexture->texture, 0, m_lastDirtyRect.left, m_lastDirtyRect.top, 0, texture, 0, &box);
+
+					memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 				}
 
 				keyedMutex->ReleaseSync(0);
