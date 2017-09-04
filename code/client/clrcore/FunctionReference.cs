@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -56,7 +56,7 @@ namespace CitizenFX.Core
 
             // deserialize the passed arguments
             var argList = (List<object>)MsgPackDeserializer.Deserialize(arguments);
-            var argArray = argList.ToArray();
+            var argArray = CallUtilities.GetPassArguments(method.Method, argList.ToArray(), string.Empty);
 
             // the Lua runtime expects this to be an array, so it be an array.
             return MsgPackSerializer.Serialize(new[] { method.DynamicInvoke(argArray) });

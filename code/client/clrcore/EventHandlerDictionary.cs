@@ -81,67 +81,8 @@ namespace CitizenFX.Core
             {
                 try
                 {
-					List<object> passArgs = new List<object>();
-
-					var argIdx = 0;
-
-					object ChangeType(object value, Type type)
-					{
-						if (type.IsAssignableFrom(value.GetType()))
-						{
-							return value;
-						}
-						else if (value is IConvertible)
-						{
-							return Convert.ChangeType(value, type);
-						}
-
-						throw new InvalidCastException($"Could not cast event argument for {m_eventName} from {value.GetType().Name} to {type.Name}");
-					}
-
-					object Default(Type type) => type.IsValueType ? Activator.CreateInstance(type) : null;
-
-					foreach (var info in callback.Method.GetParameters())
-					{
-						var type = info.ParameterType;
-
-						if (info.GetCustomAttribute<FromSourceAttribute>() != null)
-						{
-							// empty source -> default
-							if (string.IsNullOrWhiteSpace(sourceString))
-							{
-								passArgs.Add(Default(type));
-								
-								continue;
-							}
-
-#if IS_FXSERVER
-							if (type.IsAssignableFrom(typeof(Player)))
-							{
-								passArgs.Add(new Player(sourceString));
-
-								continue;
-							}
-#endif
-
-							passArgs.Add(ChangeType(sourceString, type));
-						}
-						else
-						{
-							if (argIdx >= args.Length)
-							{
-								passArgs.Add(Default(type));
-							}
-							else
-							{
-								passArgs.Add(ChangeType(args[argIdx], type));
-							}
-
-							argIdx++;
-						}
-					}
-
-					var rv = callback.DynamicInvoke(passArgs.ToArray());
+					var passArgs = CallUtilities.GetPassArguments(callback.Method, args, sourceString);
+					var rv = callback.DynamicInvoke(passArgs);
 
 					if (rv != null && rv is Task task)
 					{
@@ -157,4 +98,72 @@ namespace CitizenFX.Core
             }
         }
     }
+
+	static class CallUtilities
+	{
+		public static object[] GetPassArguments(MethodInfo method, object[] args, string sourceString)
+		{
+			List<object> passArgs = new List<object>();
+
+			var argIdx = 0;
+
+			object ChangeType(object value, Type type)
+			{
+				if (type.IsAssignableFrom(value.GetType()))
+				{
+					return value;
+				}
+				else if (value is IConvertible)
+				{
+					return Convert.ChangeType(value, type);
+				}
+
+				throw new InvalidCastException($"Could not cast event argument from {value.GetType().Name} to {type.Name}");
+			}
+
+			object Default(Type type) => type.IsValueType ? Activator.CreateInstance(type) : null;
+
+			foreach (var info in method.GetParameters())
+			{
+				var type = info.ParameterType;
+
+				if (info.GetCustomAttribute<FromSourceAttribute>() != null)
+				{
+					// empty source -> default
+					if (string.IsNullOrWhiteSpace(sourceString))
+					{
+						passArgs.Add(Default(type));
+
+						continue;
+					}
+
+#if IS_FXSERVER
+					if (type.IsAssignableFrom(typeof(Player)))
+					{
+						passArgs.Add(new Player(sourceString));
+
+						continue;
+					}
+#endif
+
+					passArgs.Add(ChangeType(sourceString, type));
+				}
+				else
+				{
+					if (argIdx >= args.Length)
+					{
+						passArgs.Add(Default(type));
+					}
+					else
+					{
+						passArgs.Add(ChangeType(args[argIdx], type));
+					}
+
+					argIdx++;
+				}
+			}
+
+			return passArgs.ToArray();
+		}
+	}
 }
