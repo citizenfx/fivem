@@ -741,6 +741,7 @@ int Lua_InvokeNative(lua_State* L)
 						returnResultAnyway = true;
 						break;
 					case LuaMetaFields::ResultAsInteger:
+					case LuaMetaFields::ResultAsLong:
 					case LuaMetaFields::ResultAsString:
 					case LuaMetaFields::ResultAsFloat:
 					case LuaMetaFields::ResultAsVector:
