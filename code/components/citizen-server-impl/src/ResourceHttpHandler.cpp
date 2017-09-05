@@ -32,7 +32,9 @@ private:
 		std::string address;
 		std::string path;
 
-		MSGPACK_DEFINE_MAP(headers, method, address, path);
+		fx::ResourceCallbackComponent::CallbackRef setDataHandler;
+
+		MSGPACK_DEFINE_MAP(headers, method, address, path, setDataHandler);
 	};
 
 	struct ResponseWrap
@@ -73,10 +75,23 @@ public:
 			requestWrap.address = request->GetRemoteAddress();
 			requestWrap.path = "/" + localPath;
 
-			/*requestWrap["setDataHandler"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
+			requestWrap.setDataHandler = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
 			{
-				
-			});*/
+				auto callback = unpacked.get().as<std::vector<msgpack::object>>()[0];
+
+				if (callback.type == msgpack::type::EXT)
+				{
+					if (callback.via.ext.type() == 10)
+					{
+						std::string functionRef(callback.via.ext.data(), callback.via.ext.size);
+
+						request->SetDataHandler([=](const std::vector<uint8_t>& bodyArray)
+						{
+							m_resource->GetManager()->CallReference<void>(functionRef, std::string(bodyArray.begin(), bodyArray.end()));
+						});
+					}
+				}
+			});
 
 			responseWrap.write = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
 			{
@@ -89,7 +104,7 @@ public:
 
 				if (state.size() == 1)
 				{
-					response->WriteHead(state[0].as<int>());
+					response->SetStatusCode(state[0].as<int>());
 				}
 				else
 				{
@@ -97,10 +112,10 @@ public:
 
 					for (auto& pair : state[1].as<std::map<std::string, std::string>>())
 					{
-						headers.insert(pair);
+						response->SetHeader(pair.first, pair.second);
 					}
 
-					response->WriteHead(state[0].as<int>(), headers);
+					response->SetStatusCode(state[0].as<int>());
 				}
 			});
 

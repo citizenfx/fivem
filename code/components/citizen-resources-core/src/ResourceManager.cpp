@@ -92,14 +92,25 @@ fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& ide
 
 void ResourceManagerImpl::ForAllResources(const std::function<void(fwRefContainer<Resource>)>& function)
 {
-	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+	std::vector<fwRefContainer<Resource>> currentResources;
+
+	// collect resources so the mutex doesn't have to last for the callback duration
+	// leading to potential deadlocks
+	{
+		std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+
+		for (auto& resource : m_resources)
+		{
+			currentResources.push_back(resource.second);
+		}
+	}
 
 	auto lastManager = g_currentManager;
 	g_currentManager = this;
 
-	for (auto& resource : m_resources)
+	for (auto& resource : currentResources)
 	{
-		function(resource.second);
+		function(resource);
 	}
 
 	g_currentManager = lastManager;

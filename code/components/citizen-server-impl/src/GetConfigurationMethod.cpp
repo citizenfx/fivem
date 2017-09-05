@@ -91,7 +91,7 @@ static InitFunction initFunction([]()
 			});
 
 			cb(json::object({
-				{ "fileServer", "http://%s/files" },
+				{ "fileServer", "https://%s/files" },
 				{ "resources", resources }
 			}));
 		});
