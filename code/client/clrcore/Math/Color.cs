@@ -119,9 +119,11 @@ namespace System.Drawing
 		public static Color FromArgb (int alpha, int red, int green, int blue)
 		{
 			CheckARGBValues (alpha, red, green, blue);
-			Color color = new Color ();
-			color.state = (short) ColorType.ARGB;
-			color.Value = (int)((uint) alpha << 24) + (red << 16) + (green << 8) + blue;
+			Color color = new Color
+			{
+				state = (short)ColorType.ARGB,
+				Value = (int)((uint)alpha << 24) + (red << 16) + (green << 8) + blue
+			};
 			return color;
 		}
 

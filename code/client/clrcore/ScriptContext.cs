@@ -22,8 +22,10 @@ namespace CitizenFX.Core
 		{
 			//CleanUp();
 
-			m_context = new fxScriptContext();
-			m_context.functionData = new byte[32 * 8];
+			m_context = new fxScriptContext
+			{
+				functionData = new byte[32 * 8]
+			};
 		}
 
 		[SecuritySafeCritical]

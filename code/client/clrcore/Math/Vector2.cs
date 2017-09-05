@@ -1082,13 +1082,15 @@ namespace CitizenFX.Core
         /// </remarks>
         public static void TransformCoordinate(ref Vector2 coordinate, ref Matrix transform, out Vector2 result)
         {
-            Vector4 vector = new Vector4();
-            vector.X = (coordinate.X * transform.M11) + (coordinate.Y * transform.M21) + transform.M41;
-            vector.Y = (coordinate.X * transform.M12) + (coordinate.Y * transform.M22) + transform.M42;
-            vector.Z = (coordinate.X * transform.M13) + (coordinate.Y * transform.M23) + transform.M43;
-            vector.W = 1f / ((coordinate.X * transform.M14) + (coordinate.Y * transform.M24) + transform.M44);
+			Vector4 vector = new Vector4
+			{
+				X = (coordinate.X * transform.M11) + (coordinate.Y * transform.M21) + transform.M41,
+				Y = (coordinate.X * transform.M12) + (coordinate.Y * transform.M22) + transform.M42,
+				Z = (coordinate.X * transform.M13) + (coordinate.Y * transform.M23) + transform.M43,
+				W = 1f / ((coordinate.X * transform.M14) + (coordinate.Y * transform.M24) + transform.M44)
+			};
 
-            result = new Vector2(vector.X * vector.W, vector.Y * vector.W);
+			result = new Vector2(vector.X * vector.W, vector.Y * vector.W);
         }
 
         /// <summary>
