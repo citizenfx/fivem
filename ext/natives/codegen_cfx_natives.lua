@@ -1,7 +1,7 @@
 native 'GET_GAME_TIMER'
 	arguments {}
 	apiset 'server'
-	returns 'int'
+	returns 'long'
 	doc [[
 <summary>
 Gets the current game timer in milliseconds.

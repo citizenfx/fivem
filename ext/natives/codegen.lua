@@ -47,6 +47,10 @@ function codeEnvironment.nativeType(typeName)
 	curType.nativeType = typeName
 end
 
+function codeEnvironment.subType(typeName)
+	curType.subType = typeName
+end
+
 function codeEnvironment.property(propertyName)
 	return function(data)
 

@@ -132,7 +132,11 @@ local function printReturnType(type)
 	elseif type.nativeType == 'vector3' then
 		return 'Vector3'
 	elseif type.nativeType == 'int' then
-		return 'int'
+		if type.subType == 'long' then
+			return 'long'
+		else
+			return 'int'
+		end
 	else
 		return 'int'
 	end

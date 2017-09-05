@@ -561,6 +561,7 @@ enum class LuaMetaFields
 	PointerValueVector,
 	ReturnResultAnyway,
 	ResultAsInteger,
+	ResultAsLong,
 	ResultAsFloat,
 	ResultAsString,
 	ResultAsVector,
@@ -844,6 +845,9 @@ int Lua_InvokeNative(lua_State* L)
 			case LuaMetaFields::ResultAsInteger:
 				lua_pushinteger(L, *reinterpret_cast<int32_t*>(&context.arguments[0]));
 				break;
+			case LuaMetaFields::ResultAsLong:
+				lua_pushinteger(L, *reinterpret_cast<int64_t*>(&context.arguments[0]));
+				break;
 			default:
 			{
 				int32_t integer = *reinterpret_cast<int32_t*>(&context.arguments[0]);
@@ -968,6 +972,7 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ "PointerValueVector", Lua_GetMetaField<LuaMetaFields::PointerValueVector> },
 	{ "ReturnResultAnyway", Lua_GetMetaField<LuaMetaFields::ReturnResultAnyway> },
 	{ "ResultAsInteger", Lua_GetMetaField<LuaMetaFields::ResultAsInteger> },
+	{ "ResultAsLong", Lua_GetMetaField<LuaMetaFields::ResultAsLong> },
 	{ "ResultAsFloat", Lua_GetMetaField<LuaMetaFields::ResultAsFloat> },
 	{ "ResultAsString", Lua_GetMetaField<LuaMetaFields::ResultAsString> },
 	{ "ResultAsVector", Lua_GetMetaField<LuaMetaFields::ResultAsVector> },

@@ -18,7 +18,7 @@ end)
 -- output the Lua low-level native definition file
 
 -- header bit
-print("local _i, _f, _v, _r, _ri, _rf, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
+print("local _i, _f, _v, _r, _ri, _rf, _rl, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsLong(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
 
 print("local g = _G")
 print("local rs = rawset")
@@ -127,7 +127,11 @@ local function printReturnType(type)
 	elseif type.nativeType == 'vector3' then
 		return '_rv'
 	elseif type.nativeType == 'int' then
-		return '_ri'
+		if type.subType == 'long' then
+			return '_rl'
+		else
+			return '_ri'
+		end
 	elseif type.nativeType == 'Any*' then
 		return '_ri'
 	end
