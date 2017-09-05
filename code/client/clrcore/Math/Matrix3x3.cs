@@ -396,16 +396,18 @@ namespace CitizenFX.Core
             Orthonormalize(ref temp, out Q);
             Q.Transpose();
 
-            R = new Matrix3x3();
-            R.M11 = Vector3.Dot(Q.Column1, Column1);
-            R.M12 = Vector3.Dot(Q.Column1, Column2);
-            R.M13 = Vector3.Dot(Q.Column1, Column3);
+			R = new Matrix3x3
+			{
+				M11 = Vector3.Dot(Q.Column1, Column1),
+				M12 = Vector3.Dot(Q.Column1, Column2),
+				M13 = Vector3.Dot(Q.Column1, Column3),
 
-            R.M22 = Vector3.Dot(Q.Column2, Column2);
-            R.M23 = Vector3.Dot(Q.Column2, Column3);
+				M22 = Vector3.Dot(Q.Column2, Column2),
+				M23 = Vector3.Dot(Q.Column2, Column3),
 
-            R.M33 = Vector3.Dot(Q.Column3, Column3);
-        }
+				M33 = Vector3.Dot(Q.Column3, Column3)
+			};
+		}
 
         /// <summary>
         /// Decomposes a Matrix3x3 into a lower triangular Matrix3x3 L and an orthonormalized Matrix3x3 Q.
@@ -416,16 +418,18 @@ namespace CitizenFX.Core
         {
             Orthonormalize(ref this, out Q);
 
-            L = new Matrix3x3();
-            L.M11 = Vector3.Dot(Q.Row1, Row1);
-            
-            L.M21 = Vector3.Dot(Q.Row1, Row2);
-            L.M22 = Vector3.Dot(Q.Row2, Row2);
-            
-            L.M31 = Vector3.Dot(Q.Row1, Row3);
-            L.M32 = Vector3.Dot(Q.Row2, Row3);
-            L.M33 = Vector3.Dot(Q.Row3, Row3);
-        }
+			L = new Matrix3x3
+			{
+				M11 = Vector3.Dot(Q.Row1, Row1),
+
+				M21 = Vector3.Dot(Q.Row1, Row2),
+				M22 = Vector3.Dot(Q.Row2, Row2),
+
+				M31 = Vector3.Dot(Q.Row1, Row3),
+				M32 = Vector3.Dot(Q.Row2, Row3),
+				M33 = Vector3.Dot(Q.Row3, Row3)
+			};
+		}
 
         /// <summary>
         /// Decomposes a Matrix3x3 into a scale, rotation, and translation.
@@ -454,21 +458,23 @@ namespace CitizenFX.Core
                 return false;
             }
 
-            //The rotation is the left over Matrix3x3 after dividing out the scaling.
-            Matrix3x3 rotationMatrix3x3 = new Matrix3x3();
-            rotationMatrix3x3.M11 = M11 / scale.X;
-            rotationMatrix3x3.M12 = M12 / scale.X;
-            rotationMatrix3x3.M13 = M13 / scale.X;
+			//The rotation is the left over Matrix3x3 after dividing out the scaling.
+			Matrix3x3 rotationMatrix3x3 = new Matrix3x3
+			{
+				M11 = M11 / scale.X,
+				M12 = M12 / scale.X,
+				M13 = M13 / scale.X,
 
-            rotationMatrix3x3.M21 = M21 / scale.Y;
-            rotationMatrix3x3.M22 = M22 / scale.Y;
-            rotationMatrix3x3.M23 = M23 / scale.Y;
+				M21 = M21 / scale.Y,
+				M22 = M22 / scale.Y,
+				M23 = M23 / scale.Y,
 
-            rotationMatrix3x3.M31 = M31 / scale.Z;
-            rotationMatrix3x3.M32 = M32 / scale.Z;
-            rotationMatrix3x3.M33 = M33 / scale.Z;
+				M31 = M31 / scale.Z,
+				M32 = M32 / scale.Z,
+				M33 = M33 / scale.Z
+			};
 
-            Quaternion.RotationMatrix(ref rotationMatrix3x3, out rotation);
+			Quaternion.RotationMatrix(ref rotationMatrix3x3, out rotation);
             return true;
         }
 
@@ -494,21 +500,23 @@ namespace CitizenFX.Core
                 return false;
             }
 
-            //The rotation is the left over matrix after dividing out the scaling.
-            Matrix3x3 rotationmatrix = new Matrix3x3();
-            rotationmatrix.M11 = M11 * inv_scale;
-            rotationmatrix.M12 = M12 * inv_scale;
-            rotationmatrix.M13 = M13 * inv_scale;
+			//The rotation is the left over matrix after dividing out the scaling.
+			Matrix3x3 rotationmatrix = new Matrix3x3
+			{
+				M11 = M11 * inv_scale,
+				M12 = M12 * inv_scale,
+				M13 = M13 * inv_scale,
 
-            rotationmatrix.M21 = M21 * inv_scale;
-            rotationmatrix.M22 = M22 * inv_scale;
-            rotationmatrix.M23 = M23 * inv_scale;
+				M21 = M21 * inv_scale,
+				M22 = M22 * inv_scale,
+				M23 = M23 * inv_scale,
 
-            rotationmatrix.M31 = M31 * inv_scale;
-            rotationmatrix.M32 = M32 * inv_scale;
-            rotationmatrix.M33 = M33 * inv_scale;
+				M31 = M31 * inv_scale,
+				M32 = M32 * inv_scale,
+				M33 = M33 * inv_scale
+			};
 
-            Quaternion.RotationMatrix(ref rotationmatrix, out rotation);
+			Quaternion.RotationMatrix(ref rotationmatrix, out rotation);
             return true;
         }
 
@@ -689,17 +697,19 @@ namespace CitizenFX.Core
         /// <param name="result">The product of the two matrices.</param>
         public static void Multiply(ref Matrix3x3 left, ref Matrix3x3 right, out Matrix3x3 result)
         {
-            Matrix3x3 temp = new Matrix3x3();
-            temp.M11 = (left.M11 * right.M11) + (left.M12 * right.M21) + (left.M13 * right.M31);
-            temp.M12 = (left.M11 * right.M12) + (left.M12 * right.M22) + (left.M13 * right.M32);
-            temp.M13 = (left.M11 * right.M13) + (left.M12 * right.M23) + (left.M13 * right.M33);
-            temp.M21 = (left.M21 * right.M11) + (left.M22 * right.M21) + (left.M23 * right.M31);
-            temp.M22 = (left.M21 * right.M12) + (left.M22 * right.M22) + (left.M23 * right.M32);
-            temp.M23 = (left.M21 * right.M13) + (left.M22 * right.M23) + (left.M23 * right.M33);
-            temp.M31 = (left.M31 * right.M11) + (left.M32 * right.M21) + (left.M33 * right.M31);
-            temp.M32 = (left.M31 * right.M12) + (left.M32 * right.M22) + (left.M33 * right.M32);
-            temp.M33 = (left.M31 * right.M13) + (left.M32 * right.M23) + (left.M33 * right.M33);
-            result = temp;
+			Matrix3x3 temp = new Matrix3x3
+			{
+				M11 = (left.M11 * right.M11) + (left.M12 * right.M21) + (left.M13 * right.M31),
+				M12 = (left.M11 * right.M12) + (left.M12 * right.M22) + (left.M13 * right.M32),
+				M13 = (left.M11 * right.M13) + (left.M12 * right.M23) + (left.M13 * right.M33),
+				M21 = (left.M21 * right.M11) + (left.M22 * right.M21) + (left.M23 * right.M31),
+				M22 = (left.M21 * right.M12) + (left.M22 * right.M22) + (left.M23 * right.M32),
+				M23 = (left.M21 * right.M13) + (left.M22 * right.M23) + (left.M23 * right.M33),
+				M31 = (left.M31 * right.M11) + (left.M32 * right.M21) + (left.M33 * right.M31),
+				M32 = (left.M31 * right.M12) + (left.M32 * right.M22) + (left.M33 * right.M32),
+				M33 = (left.M31 * right.M13) + (left.M32 * right.M23) + (left.M33 * right.M33)
+			};
+			result = temp;
         }
 
         /// <summary>
@@ -945,18 +955,20 @@ namespace CitizenFX.Core
         /// <param name="result">When the method completes, contains the transpose of the specified Matrix3x3.</param>
         public static void Transpose(ref Matrix3x3 value, out Matrix3x3 result)
         {
-            Matrix3x3 temp = new Matrix3x3();
-            temp.M11 = value.M11;
-            temp.M12 = value.M21;
-            temp.M13 = value.M31;
-            temp.M21 = value.M12;
-            temp.M22 = value.M22;
-            temp.M23 = value.M32;
-            temp.M31 = value.M13;
-            temp.M32 = value.M23;
-            temp.M33 = value.M33;
+			Matrix3x3 temp = new Matrix3x3
+			{
+				M11 = value.M11,
+				M12 = value.M21,
+				M13 = value.M31,
+				M21 = value.M12,
+				M22 = value.M22,
+				M23 = value.M32,
+				M31 = value.M13,
+				M32 = value.M23,
+				M33 = value.M33
+			};
 
-            result = temp;
+			result = temp;
         }
 
         /// <summary>
