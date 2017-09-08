@@ -355,7 +355,7 @@ void DL_ProcessDownload()
 			curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
 			curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 			curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
-			curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
+			curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 			if (getenv("CFX_CURL_DEBUG"))
 			{
