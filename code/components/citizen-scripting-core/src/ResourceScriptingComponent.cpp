@@ -102,13 +102,11 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnTick.Connect([=] ()
 	{
-		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
-
-		for (auto& environment : m_scriptRuntimes)
+		for (auto& environment : CollectScriptRuntimes())
 		{
 			OMPtr<IScriptTickRuntime> tickRuntime;
 
-			if (FX_SUCCEEDED(environment.second.As(&tickRuntime)))
+			if (FX_SUCCEEDED(environment.As(&tickRuntime)))
 			{
 				tickRuntime->Tick();
 			}
@@ -117,13 +115,12 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnStop.Connect([=] ()
 	{
-		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
-
-		for (auto& environment : m_scriptRuntimes)
+		for (auto& environment : CollectScriptRuntimes())
 		{
-			environment.second->Destroy();
+			environment->Destroy();
 		}
 
+		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 		m_scriptRuntimes.clear();
 	});
 }
@@ -132,13 +129,11 @@ OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
 void ResourceScriptingComponent::CreateEnvironments()
 {
-	std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
-
 	m_scriptHost = GetScriptHostForResource(m_resource);
 	
-	for (auto& environment : m_scriptRuntimes)
+	for (auto& environment : CollectScriptRuntimes())
 	{
-		auto hr = environment.second->Create(m_scriptHost.GetRef());
+		auto hr = environment->Create(m_scriptHost.GetRef());
 
 		if (FX_FAILED(hr))
 		{
@@ -147,7 +142,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 	}
 
 	// iterate over the runtimes and load scripts as requested
-	for (auto& environment : m_scriptRuntimes)
+	for (auto& environment : CollectScriptRuntimes())
 	{
 		OMPtr<IScriptFileHandlingRuntime> ptr;
 
@@ -160,7 +155,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 #endif
 		);
 		
-		if (FX_SUCCEEDED(environment.second.As(&ptr)))
+		if (FX_SUCCEEDED(environment.As(&ptr)))
 		{
 			bool environmentUsed = false;
 
@@ -189,11 +184,11 @@ void ResourceScriptingComponent::CreateEnvironments()
 		// pre-cache event-handling runtimes
 		std::vector<OMPtr<IScriptEventRuntime>> eventRuntimes;
 
-		for (auto& environment : m_scriptRuntimes)
+		for (auto& environment : CollectScriptRuntimes())
 		{
 			OMPtr<IScriptEventRuntime> ptr;
 
-			if (FX_SUCCEEDED(environment.second.As(&ptr)))
+			if (FX_SUCCEEDED(environment.As(&ptr)))
 			{
 				eventRuntimes.push_back(ptr);
 			}

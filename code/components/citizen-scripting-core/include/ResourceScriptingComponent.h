@@ -62,6 +62,20 @@ public:
 	{
 		return m_resource;
 	}
+
+	inline std::forward_list<fx::OMPtr<IScriptRuntime>> CollectScriptRuntimes()
+	{
+		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
+
+		std::forward_list<fx::OMPtr<IScriptRuntime>> runtimes;
+
+		for (auto& runtime : m_scriptRuntimes)
+		{
+			runtimes.push_front(runtime.second);
+		}
+
+		return runtimes;
+	}
 };
 }
 
