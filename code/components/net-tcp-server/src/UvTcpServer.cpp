@@ -236,6 +236,11 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 	// submit the write request
 	m_pendingRequests.push([=]()
 	{
+		if (!m_client)
+		{
+			return;
+		}
+
 		// send the write request
 		uv_write(&writeReq->write, reinterpret_cast<uv_stream_t*>(m_client.get()), &writeReq->buffer, 1, [](uv_write_t* write, int status)
 		{
