@@ -635,19 +635,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 				return;
 			}
-
-			if (!node["sH"].IsDefined())
-			{
-				// Server did not send a scripts setting: old server or rival project
-				OnConnectionError("Legacy servers are incompatible with this version of FiveM. Update the server to the latest files from fivem.net");
-				m_connectionState = CS_IDLE;
-				return;
-			}
-			else
-			{
-				Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
-			}
-
+			
 			m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
 			{
 				if (success)
