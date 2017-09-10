@@ -3,9 +3,15 @@ local curThread
 local curThreadIndex
 
 function Citizen.CreateThread(threadFunction)
+	local callerInfo = debug.getinfo(2, 'Sl')
+
 	table.insert(threads, {
 		coroutine = coroutine.create(threadFunction),
-		wakeTime = 0
+		wakeTime = 0,
+		resource = GetCurrentResourceName(),
+		file = callerInfo.short_src,
+		line = callerInfo.currentline,
+		wait = 0
 	})
 end
 
@@ -21,17 +27,32 @@ CreateThread = Citizen.CreateThread
 
 function Citizen.CreateThreadNow(threadFunction)
 	local coro = coroutine.create(threadFunction)
+	local callerInfo = debug.getinfo(3, 'Sl')
+
+	if not callerInfo then
+		callerInfo = debug.getinfo(2, 'Sl')
+	end
 
 	local t = {
 		coroutine = coro,
-		wakeTime = 0
+		wakeTime = 0,
+		resource = GetCurrentResourceName(),
+		file = callerInfo.short_src,
+		line = callerInfo.currentline,
+		wait = 0
 	}
 
 	-- add new thread and save old thread
 	local oldThread = curThread
 	curThread = t
 
+	local startAt = GetGameTimer()
 	local result, err = coroutine.resume(coro)
+	local time = GetGameTimer() - startAt
+
+	if time > 10 then
+		Citizen.Trace("Executing thread in resource " .. t.resource .. " declared at line " .. tostring(t.line) .. " of '" .. t.file .. "' was slow : " .. time .. "ms, please verifiy what your are doing\n")
+	end
 
 	local resumedThread = curThread
 	-- restore last thread
@@ -83,9 +104,15 @@ end
 local timeouts = {}
 
 function Citizen.SetTimeout(msec, callback)
+	local callerInfo = debug.getinfo(2, 'Sl')
+
 	table.insert(threads, {
 		coroutine = coroutine.create(callback),
-		wakeTime = GetGameTimer() + msec
+		wakeTime = GetGameTimer() + msec,
+		resource = GetCurrentResourceName(),
+		file = callerInfo.short_src,
+		line = callerInfo.currentline,
+		wait = 0
 	})
 end
 
@@ -106,13 +133,21 @@ Citizen.SetTickRoutine(function()
 			if status == 'dead' then
 				table.remove(threads, i)
 			else
+				local startAt = GetGameTimer()
 				local result, err = coroutine.resume(thread.coroutine)
+				local time = GetGameTimer() - startAt
+
+				if time > 10 then
+					Citizen.Trace("Executing thread in resource " .. thread.resource .. " at line " .. tostring(thread.line) .. " of file '" .. thread.file .. "' after " .. thread.wait .. " Wait was slow : " .. time .. "ms, please verifiy what your are doing\n")
+				end
 
 				if not result then
-					Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
+					Citizen.Trace("Error resuming coroutine declared in resource ".. thread.resource .." at line " .. tostring(thread.line) .. " of file '" .. thread.file .. "':\n" .. debug.traceback(thread.coroutine, err) .. "\n")
 
 					table.remove(threads, i)
 				end
+				
+				thread.wait = thread.wait + 1
 			end
 		end
 	end
