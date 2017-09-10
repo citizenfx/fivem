@@ -25,18 +25,21 @@ end
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
-function Citizen.CreateThreadNow(threadFunction)
+function Citizen.CreateThreadNow(threadFunction, callerInfo, resource)
 	local coro = coroutine.create(threadFunction)
-	local callerInfo = debug.getinfo(3, 'Sl')
 
 	if not callerInfo then
 		callerInfo = debug.getinfo(2, 'Sl')
+	end
+	
+	if not resource then
+		resource = GetCurrentResourceName()
 	end
 
 	local t = {
 		coroutine = coro,
 		wakeTime = 0,
-		resource = GetCurrentResourceName(),
+		resource = resource,
 		file = callerInfo.short_src,
 		line = callerInfo.currentline,
 		wait = 0
@@ -195,8 +198,8 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			-- loop through all the event handlers
 			for k, handler in pairs(eventHandlerEntry.handlers) do
 				Citizen.CreateThreadNow(function()
-					handler(table.unpack(data))
-				end)
+					handler.routine(table.unpack(data))
+				end, handler.callerInfo, handler.resource)
 			end
 		end
 	end
@@ -206,6 +209,7 @@ local eventKey = 10
 
 function AddEventHandler(eventName, eventRoutine)
 	local tableEntry = eventHandlers[eventName]
+	local callerInfo = debug.getinfo(2, 'Sl')
 
 	if not tableEntry then
 		tableEntry = { }
@@ -218,7 +222,11 @@ function AddEventHandler(eventName, eventRoutine)
 	end
 
 	eventKey = eventKey + 1
-	tableEntry.handlers[eventKey] = eventRoutine
+	tableEntry.handlers[eventKey] = {
+		routine = eventRoutine,
+		resource = GetCurrentResourceName(),
+		callerInfo = callerInfo
+	}
 
 	return {
 		key = eventKey,
