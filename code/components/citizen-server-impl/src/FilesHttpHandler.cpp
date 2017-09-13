@@ -9,34 +9,6 @@
 
 #include <array>
 
-template<typename Handle, typename TFn>
-auto UvCallback(Handle* handle, const TFn& fn)
-{
-	struct Request
-	{
-		TFn fn;
-
-		Request(const TFn& fn)
-			: fn(fn)
-		{
-
-		}
-
-		static void cb(Handle* handle)
-		{
-			Request* request = reinterpret_cast<Request*>(handle->data);
-
-			request->fn(handle);
-			delete request;
-		}
-	};
-
-	auto req = new Request(fn);
-	handle->data = req;
-
-	return &Request::cb;
-}
-
 /*template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
 void UvCallback(Handle* handle, T1 a1)
 {

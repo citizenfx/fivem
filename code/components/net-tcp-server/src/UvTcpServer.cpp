@@ -28,28 +28,6 @@ void UvCallback(Handle* handle, T1 a1, T2 a2)
 	(reinterpret_cast<Class*>(handle->data)->*Callable)(a1, a2);
 }
 
-// wrapper to make sure the libuv handle only gets freed after the close completes
-template<typename Handle>
-void UvClose(std::unique_ptr<Handle> handle)
-{
-	struct TempCloseData
-	{
-		std::unique_ptr<Handle> item;
-	};
-
-	// create temporary object and give it our reference
-	TempCloseData* tempCloseData = new TempCloseData;
-	tempCloseData->item = std::move(handle);
-	tempCloseData->item->data = tempCloseData;
-
-	// close the libuv handle
-	uv_close(reinterpret_cast<uv_handle_t*>(tempCloseData->item.get()), [] (uv_handle_t* handle)
-	{
-		// delete the close holder
-		delete reinterpret_cast<TempCloseData*>(handle->data);
-	});
-}
-
 namespace net
 {
 UvTcpServer::UvTcpServer(TcpServerManager* manager)

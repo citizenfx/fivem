@@ -104,3 +104,55 @@ public:
 	void RemoveStream(UvTcpServerStream* stream);
 };
 }
+
+// helpful wrappers
+template<typename Handle, typename TFn>
+auto UvCallback(Handle* handle, const TFn& fn)
+{
+	struct Request
+	{
+		TFn fn;
+
+		Request(const TFn& fn)
+			: fn(fn)
+		{
+
+		}
+
+		static void cb(Handle* handle)
+		{
+			Request* request = reinterpret_cast<Request*>(handle->data);
+
+			request->fn(handle);
+			delete request;
+		}
+	};
+
+	auto req = new Request(fn);
+	handle->data = req;
+
+	return &Request::cb;
+}
+
+// wrapper to make sure the libuv handle only gets freed after the close completes
+template<typename Handle>
+void UvClose(std::unique_ptr<Handle> handle)
+{
+	struct TempCloseData
+	{
+		std::unique_ptr<Handle> item;
+	};
+
+	// create temporary object and give it our reference
+	TempCloseData* tempCloseData = new TempCloseData;
+	tempCloseData->item = std::move(handle);
+	tempCloseData->item->data = tempCloseData;
+
+	// close the libuv handle
+	uv_close(reinterpret_cast<uv_handle_t*>(tempCloseData->item.get()), [](uv_handle_t* handle)
+	{
+		// delete the close holder
+		delete reinterpret_cast<TempCloseData*>(handle->data);
+	});
+}
+
