@@ -12,7 +12,7 @@ export class Server {
     readonly strippedname: string;
     readonly maxPlayers: number;
     readonly data: any;
-    readonly int: master.ServerData$Properties;
+    readonly int: master.IServerData;
 
     onChanged = new EventEmitter<void>();
 
@@ -52,7 +52,7 @@ export class Server {
         }
     }
 
-    public static fromObject(sanitizer: DomSanitizer, address: string, object: master.ServerData$Properties): Server {
+    public static fromObject(sanitizer: DomSanitizer, address: string, object: master.IServerData): Server {
         return new Server(sanitizer, address, object);
     }
 
@@ -75,7 +75,7 @@ export class Server {
         return server;
     }
 
-    private constructor(private sanitizer: DomSanitizer, address: string, object: master.ServerData$Properties) {
+    private constructor(private sanitizer: DomSanitizer, address: string, object: master.IServerData) {
         // temp compat behavior
         this.address = address;
         this.hostname = object.hostname;

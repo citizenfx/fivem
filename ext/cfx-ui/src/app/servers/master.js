@@ -22,20 +22,21 @@ $root.master = (function() {
 
         /**
          * Properties of a Player.
-         * @typedef master.Player$Properties
-         * @type {Object}
-         * @property {string} [name] Player name.
-         * @property {Array.<string>} [identifiers] Player identifiers.
-         * @property {string} [endpoint] Player endpoint.
-         * @property {number} [ping] Player ping.
-         * @property {number} [id] Player id.
+         * @memberof master
+         * @interface IPlayer
+         * @property {string} [name] Player name
+         * @property {Array.<string>} [identifiers] Player identifiers
+         * @property {string} [endpoint] Player endpoint
+         * @property {number} [ping] Player ping
+         * @property {number} [id] Player id
          */
 
         /**
          * Constructs a new Player.
-         * @exports master.Player
+         * @memberof master
+         * @classdesc Represents a Player.
          * @constructor
-         * @param {master.Player$Properties=} [properties] Properties to set
+         * @param {master.IPlayer=} [properties] Properties to set
          */
         function Player(properties) {
             this.identifiers = [];
@@ -47,37 +48,50 @@ $root.master = (function() {
 
         /**
          * Player name.
-         * @type {string}
+         * @member {string}name
+         * @memberof master.Player
+         * @instance
          */
         Player.prototype.name = "";
 
         /**
          * Player identifiers.
-         * @type {Array.<string>}
+         * @member {Array.<string>}identifiers
+         * @memberof master.Player
+         * @instance
          */
         Player.prototype.identifiers = $util.emptyArray;
 
         /**
          * Player endpoint.
-         * @type {string}
+         * @member {string}endpoint
+         * @memberof master.Player
+         * @instance
          */
         Player.prototype.endpoint = "";
 
         /**
          * Player ping.
-         * @type {number}
+         * @member {number}ping
+         * @memberof master.Player
+         * @instance
          */
         Player.prototype.ping = 0;
 
         /**
          * Player id.
-         * @type {number}
+         * @member {number}id
+         * @memberof master.Player
+         * @instance
          */
         Player.prototype.id = 0;
 
         /**
          * Creates a new Player instance using the specified properties.
-         * @param {master.Player$Properties=} [properties] Properties to set
+         * @function create
+         * @memberof master.Player
+         * @static
+         * @param {master.IPlayer=} [properties] Properties to set
          * @returns {master.Player} Player instance
          */
         Player.create = function create(properties) {
@@ -86,7 +100,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified Player message. Does not implicitly {@link master.Player.verify|verify} messages.
-         * @param {master.Player$Properties} message Player message or plain object to encode
+         * @function encode
+         * @memberof master.Player
+         * @static
+         * @param {master.IPlayer} message Player message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -109,7 +126,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified Player message, length delimited. Does not implicitly {@link master.Player.verify|verify} messages.
-         * @param {master.Player$Properties} message Player message or plain object to encode
+         * @function encodeDelimited
+         * @memberof master.Player
+         * @static
+         * @param {master.IPlayer} message Player message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -119,6 +139,9 @@ $root.master = (function() {
 
         /**
          * Decodes a Player message from the specified reader or buffer.
+         * @function decode
+         * @memberof master.Player
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
          * @returns {master.Player} Player
@@ -159,6 +182,9 @@ $root.master = (function() {
 
         /**
          * Decodes a Player message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof master.Player
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @returns {master.Player} Player
          * @throws {Error} If the payload is not a reader or valid buffer
@@ -166,14 +192,17 @@ $root.master = (function() {
          */
         Player.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
-                reader = $Reader(reader);
+                reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
          * Verifies a Player message.
+         * @function verify
+         * @memberof master.Player
+         * @static
          * @param {Object.<string,*>} message Plain object to verify
-         * @returns {?string} `null` if valid, otherwise the reason why it is not
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
         Player.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
@@ -202,6 +231,9 @@ $root.master = (function() {
 
         /**
          * Creates a Player message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof master.Player
+         * @static
          * @param {Object.<string,*>} object Plain object
          * @returns {master.Player} Player
          */
@@ -228,18 +260,12 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a Player message from a plain object. Also converts values to their respective internal types.
-         * This is an alias of {@link master.Player.fromObject}.
-         * @function
-         * @param {Object.<string,*>} object Plain object
-         * @returns {master.Player} Player
-         */
-        Player.from = Player.fromObject;
-
-        /**
          * Creates a plain object from a Player message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof master.Player
+         * @static
          * @param {master.Player} message Player
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
         Player.toObject = function toObject(message, options) {
@@ -271,16 +297,10 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a plain object from this Player message. Also converts values to other types if specified.
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Player.prototype.toObject = function toObject(options) {
-            return this.constructor.toObject(this, options);
-        };
-
-        /**
          * Converts this Player to JSON.
+         * @function toJSON
+         * @memberof master.Player
+         * @instance
          * @returns {Object.<string,*>} JSON object
          */
         Player.prototype.toJSON = function toJSON() {
@@ -294,30 +314,33 @@ $root.master = (function() {
 
         /**
          * Properties of a ServerData.
-         * @typedef master.ServerData$Properties
-         * @type {Object}
-         * @property {number} [svMaxclients] ServerData svMaxclients.
-         * @property {number} [clients] ServerData clients.
-         * @property {number} [protocol] ServerData protocol.
-         * @property {string} [hostname] ServerData hostname.
-         * @property {string} [gametype] ServerData gametype.
-         * @property {string} [mapname] ServerData mapname.
-         * @property {Array.<string>} [resources] ServerData resources.
-         * @property {string} [server] ServerData server.
-         * @property {Array.<master.Player$Properties>} [players] ServerData players.
-         * @property {number} [iconVersion] ServerData iconVersion.
-         * @property {boolean} [enhancedHostSupport] ServerData enhancedHostSupport.
+         * @memberof master
+         * @interface IServerData
+         * @property {number} [svMaxclients] ServerData svMaxclients
+         * @property {number} [clients] ServerData clients
+         * @property {number} [protocol] ServerData protocol
+         * @property {string} [hostname] ServerData hostname
+         * @property {string} [gametype] ServerData gametype
+         * @property {string} [mapname] ServerData mapname
+         * @property {Array.<string>} [resources] ServerData resources
+         * @property {string} [server] ServerData server
+         * @property {Array.<master.IPlayer>} [players] ServerData players
+         * @property {number} [iconVersion] ServerData iconVersion
+         * @property {Object.<string,string>} [vars] ServerData vars
+         * @property {boolean} [enhancedHostSupport] ServerData enhancedHostSupport
          */
 
         /**
          * Constructs a new ServerData.
-         * @exports master.ServerData
+         * @memberof master
+         * @classdesc Represents a ServerData.
          * @constructor
-         * @param {master.ServerData$Properties=} [properties] Properties to set
+         * @param {master.IServerData=} [properties] Properties to set
          */
         function ServerData(properties) {
             this.resources = [];
             this.players = [];
+            this.vars = {};
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -326,73 +349,106 @@ $root.master = (function() {
 
         /**
          * ServerData svMaxclients.
-         * @type {number}
+         * @member {number}svMaxclients
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.svMaxclients = 0;
 
         /**
          * ServerData clients.
-         * @type {number}
+         * @member {number}clients
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.clients = 0;
 
         /**
          * ServerData protocol.
-         * @type {number}
+         * @member {number}protocol
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.protocol = 0;
 
         /**
          * ServerData hostname.
-         * @type {string}
+         * @member {string}hostname
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.hostname = "";
 
         /**
          * ServerData gametype.
-         * @type {string}
+         * @member {string}gametype
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.gametype = "";
 
         /**
          * ServerData mapname.
-         * @type {string}
+         * @member {string}mapname
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.mapname = "";
 
         /**
          * ServerData resources.
-         * @type {Array.<string>}
+         * @member {Array.<string>}resources
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.resources = $util.emptyArray;
 
         /**
          * ServerData server.
-         * @type {string}
+         * @member {string}server
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.server = "";
 
         /**
          * ServerData players.
-         * @type {Array.<master.Player$Properties>}
+         * @member {Array.<master.IPlayer>}players
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.players = $util.emptyArray;
 
         /**
          * ServerData iconVersion.
-         * @type {number}
+         * @member {number}iconVersion
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.iconVersion = 0;
 
         /**
+         * ServerData vars.
+         * @member {Object.<string,string>}vars
+         * @memberof master.ServerData
+         * @instance
+         */
+        ServerData.prototype.vars = $util.emptyObject;
+
+        /**
          * ServerData enhancedHostSupport.
-         * @type {boolean}
+         * @member {boolean}enhancedHostSupport
+         * @memberof master.ServerData
+         * @instance
          */
         ServerData.prototype.enhancedHostSupport = false;
 
         /**
          * Creates a new ServerData instance using the specified properties.
-         * @param {master.ServerData$Properties=} [properties] Properties to set
+         * @function create
+         * @memberof master.ServerData
+         * @static
+         * @param {master.IServerData=} [properties] Properties to set
          * @returns {master.ServerData} ServerData instance
          */
         ServerData.create = function create(properties) {
@@ -401,7 +457,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified ServerData message. Does not implicitly {@link master.ServerData.verify|verify} messages.
-         * @param {master.ServerData$Properties} message ServerData message or plain object to encode
+         * @function encode
+         * @memberof master.ServerData
+         * @static
+         * @param {master.IServerData} message ServerData message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -430,6 +489,9 @@ $root.master = (function() {
                     $root.master.Player.encode(message.players[i], writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             if (message.iconVersion != null && message.hasOwnProperty("iconVersion"))
                 writer.uint32(/* id 11, wireType 0 =*/88).int32(message.iconVersion);
+            if (message.vars != null && message.hasOwnProperty("vars"))
+                for (var keys = Object.keys(message.vars), i = 0; i < keys.length; ++i)
+                    writer.uint32(/* id 12, wireType 2 =*/98).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]).uint32(/* id 2, wireType 2 =*/18).string(message.vars[keys[i]]).ldelim();
             if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
                 writer.uint32(/* id 16, wireType 0 =*/128).bool(message.enhancedHostSupport);
             return writer;
@@ -437,7 +499,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified ServerData message, length delimited. Does not implicitly {@link master.ServerData.verify|verify} messages.
-         * @param {master.ServerData$Properties} message ServerData message or plain object to encode
+         * @function encodeDelimited
+         * @memberof master.ServerData
+         * @static
+         * @param {master.IServerData} message ServerData message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -447,6 +512,9 @@ $root.master = (function() {
 
         /**
          * Decodes a ServerData message from the specified reader or buffer.
+         * @function decode
+         * @memberof master.ServerData
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
          * @returns {master.ServerData} ServerData
@@ -456,7 +524,7 @@ $root.master = (function() {
         ServerData.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.master.ServerData();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.master.ServerData(), key;
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
@@ -494,6 +562,14 @@ $root.master = (function() {
                 case 11:
                     message.iconVersion = reader.int32();
                     break;
+                case 12:
+                    reader.skip().pos++;
+                    if (message.vars === $util.emptyObject)
+                        message.vars = {};
+                    key = reader.string();
+                    reader.pos++;
+                    message.vars[key] = reader.string();
+                    break;
                 case 16:
                     message.enhancedHostSupport = reader.bool();
                     break;
@@ -507,6 +583,9 @@ $root.master = (function() {
 
         /**
          * Decodes a ServerData message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof master.ServerData
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @returns {master.ServerData} ServerData
          * @throws {Error} If the payload is not a reader or valid buffer
@@ -514,14 +593,17 @@ $root.master = (function() {
          */
         ServerData.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
-                reader = $Reader(reader);
+                reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
          * Verifies a ServerData message.
+         * @function verify
+         * @memberof master.ServerData
+         * @static
          * @param {Object.<string,*>} message Plain object to verify
-         * @returns {?string} `null` if valid, otherwise the reason why it is not
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
         ServerData.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
@@ -566,6 +648,14 @@ $root.master = (function() {
             if (message.iconVersion != null && message.hasOwnProperty("iconVersion"))
                 if (!$util.isInteger(message.iconVersion))
                     return "iconVersion: integer expected";
+            if (message.vars != null && message.hasOwnProperty("vars")) {
+                if (!$util.isObject(message.vars))
+                    return "vars: object expected";
+                var key = Object.keys(message.vars);
+                for (var i = 0; i < key.length; ++i)
+                    if (!$util.isString(message.vars[key[i]]))
+                        return "vars: string{k:string} expected";
+            }
             if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
                 if (typeof message.enhancedHostSupport !== "boolean")
                     return "enhancedHostSupport: boolean expected";
@@ -574,6 +664,9 @@ $root.master = (function() {
 
         /**
          * Creates a ServerData message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof master.ServerData
+         * @static
          * @param {Object.<string,*>} object Plain object
          * @returns {master.ServerData} ServerData
          */
@@ -614,24 +707,25 @@ $root.master = (function() {
             }
             if (object.iconVersion != null)
                 message.iconVersion = object.iconVersion | 0;
+            if (object.vars) {
+                if (typeof object.vars !== "object")
+                    throw TypeError(".master.ServerData.vars: object expected");
+                message.vars = {};
+                for (var keys = Object.keys(object.vars), i = 0; i < keys.length; ++i)
+                    message.vars[keys[i]] = String(object.vars[keys[i]]);
+            }
             if (object.enhancedHostSupport != null)
                 message.enhancedHostSupport = Boolean(object.enhancedHostSupport);
             return message;
         };
 
         /**
-         * Creates a ServerData message from a plain object. Also converts values to their respective internal types.
-         * This is an alias of {@link master.ServerData.fromObject}.
-         * @function
-         * @param {Object.<string,*>} object Plain object
-         * @returns {master.ServerData} ServerData
-         */
-        ServerData.from = ServerData.fromObject;
-
-        /**
          * Creates a plain object from a ServerData message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof master.ServerData
+         * @static
          * @param {master.ServerData} message ServerData
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
         ServerData.toObject = function toObject(message, options) {
@@ -642,6 +736,8 @@ $root.master = (function() {
                 object.resources = [];
                 object.players = [];
             }
+            if (options.objects || options.defaults)
+                object.vars = {};
             if (options.defaults) {
                 object.svMaxclients = 0;
                 object.clients = 0;
@@ -679,22 +775,22 @@ $root.master = (function() {
             }
             if (message.iconVersion != null && message.hasOwnProperty("iconVersion"))
                 object.iconVersion = message.iconVersion;
+            var keys2;
+            if (message.vars && (keys2 = Object.keys(message.vars)).length) {
+                object.vars = {};
+                for (var j = 0; j < keys2.length; ++j)
+                    object.vars[keys2[j]] = message.vars[keys2[j]];
+            }
             if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
                 object.enhancedHostSupport = message.enhancedHostSupport;
             return object;
         };
 
         /**
-         * Creates a plain object from this ServerData message. Also converts values to other types if specified.
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        ServerData.prototype.toObject = function toObject(options) {
-            return this.constructor.toObject(this, options);
-        };
-
-        /**
          * Converts this ServerData to JSON.
+         * @function toJSON
+         * @memberof master.ServerData
+         * @instance
          * @returns {Object.<string,*>} JSON object
          */
         ServerData.prototype.toJSON = function toJSON() {
@@ -708,17 +804,18 @@ $root.master = (function() {
 
         /**
          * Properties of a Server.
-         * @typedef master.Server$Properties
-         * @type {Object}
-         * @property {string} [EndPoint] Server EndPoint.
-         * @property {master.ServerData$Properties} [Data] Server Data.
+         * @memberof master
+         * @interface IServer
+         * @property {string} [EndPoint] Server EndPoint
+         * @property {master.IServerData} [Data] Server Data
          */
 
         /**
          * Constructs a new Server.
-         * @exports master.Server
+         * @memberof master
+         * @classdesc Represents a Server.
          * @constructor
-         * @param {master.Server$Properties=} [properties] Properties to set
+         * @param {master.IServer=} [properties] Properties to set
          */
         function Server(properties) {
             if (properties)
@@ -729,19 +826,26 @@ $root.master = (function() {
 
         /**
          * Server EndPoint.
-         * @type {string}
+         * @member {string}EndPoint
+         * @memberof master.Server
+         * @instance
          */
         Server.prototype.EndPoint = "";
 
         /**
          * Server Data.
-         * @type {(master.ServerData$Properties|null)}
+         * @member {(master.IServerData|null|undefined)}Data
+         * @memberof master.Server
+         * @instance
          */
         Server.prototype.Data = null;
 
         /**
          * Creates a new Server instance using the specified properties.
-         * @param {master.Server$Properties=} [properties] Properties to set
+         * @function create
+         * @memberof master.Server
+         * @static
+         * @param {master.IServer=} [properties] Properties to set
          * @returns {master.Server} Server instance
          */
         Server.create = function create(properties) {
@@ -750,7 +854,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified Server message. Does not implicitly {@link master.Server.verify|verify} messages.
-         * @param {master.Server$Properties} message Server message or plain object to encode
+         * @function encode
+         * @memberof master.Server
+         * @static
+         * @param {master.IServer} message Server message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -766,7 +873,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified Server message, length delimited. Does not implicitly {@link master.Server.verify|verify} messages.
-         * @param {master.Server$Properties} message Server message or plain object to encode
+         * @function encodeDelimited
+         * @memberof master.Server
+         * @static
+         * @param {master.IServer} message Server message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -776,6 +886,9 @@ $root.master = (function() {
 
         /**
          * Decodes a Server message from the specified reader or buffer.
+         * @function decode
+         * @memberof master.Server
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
          * @returns {master.Server} Server
@@ -805,6 +918,9 @@ $root.master = (function() {
 
         /**
          * Decodes a Server message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof master.Server
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @returns {master.Server} Server
          * @throws {Error} If the payload is not a reader or valid buffer
@@ -812,14 +928,17 @@ $root.master = (function() {
          */
         Server.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
-                reader = $Reader(reader);
+                reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
          * Verifies a Server message.
+         * @function verify
+         * @memberof master.Server
+         * @static
          * @param {Object.<string,*>} message Plain object to verify
-         * @returns {?string} `null` if valid, otherwise the reason why it is not
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
         Server.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
@@ -837,6 +956,9 @@ $root.master = (function() {
 
         /**
          * Creates a Server message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof master.Server
+         * @static
          * @param {Object.<string,*>} object Plain object
          * @returns {master.Server} Server
          */
@@ -855,18 +977,12 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a Server message from a plain object. Also converts values to their respective internal types.
-         * This is an alias of {@link master.Server.fromObject}.
-         * @function
-         * @param {Object.<string,*>} object Plain object
-         * @returns {master.Server} Server
-         */
-        Server.from = Server.fromObject;
-
-        /**
          * Creates a plain object from a Server message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof master.Server
+         * @static
          * @param {master.Server} message Server
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
         Server.toObject = function toObject(message, options) {
@@ -885,16 +1001,10 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a plain object from this Server message. Also converts values to other types if specified.
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Server.prototype.toObject = function toObject(options) {
-            return this.constructor.toObject(this, options);
-        };
-
-        /**
          * Converts this Server to JSON.
+         * @function toJSON
+         * @memberof master.Server
+         * @instance
          * @returns {Object.<string,*>} JSON object
          */
         Server.prototype.toJSON = function toJSON() {
@@ -908,16 +1018,17 @@ $root.master = (function() {
 
         /**
          * Properties of a Servers.
-         * @typedef master.Servers$Properties
-         * @type {Object}
-         * @property {Array.<master.Server$Properties>} [servers] Servers servers.
+         * @memberof master
+         * @interface IServers
+         * @property {Array.<master.IServer>} [servers] Servers servers
          */
 
         /**
          * Constructs a new Servers.
-         * @exports master.Servers
+         * @memberof master
+         * @classdesc Represents a Servers.
          * @constructor
-         * @param {master.Servers$Properties=} [properties] Properties to set
+         * @param {master.IServers=} [properties] Properties to set
          */
         function Servers(properties) {
             this.servers = [];
@@ -929,13 +1040,18 @@ $root.master = (function() {
 
         /**
          * Servers servers.
-         * @type {Array.<master.Server$Properties>}
+         * @member {Array.<master.IServer>}servers
+         * @memberof master.Servers
+         * @instance
          */
         Servers.prototype.servers = $util.emptyArray;
 
         /**
          * Creates a new Servers instance using the specified properties.
-         * @param {master.Servers$Properties=} [properties] Properties to set
+         * @function create
+         * @memberof master.Servers
+         * @static
+         * @param {master.IServers=} [properties] Properties to set
          * @returns {master.Servers} Servers instance
          */
         Servers.create = function create(properties) {
@@ -944,7 +1060,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified Servers message. Does not implicitly {@link master.Servers.verify|verify} messages.
-         * @param {master.Servers$Properties} message Servers message or plain object to encode
+         * @function encode
+         * @memberof master.Servers
+         * @static
+         * @param {master.IServers} message Servers message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -959,7 +1078,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified Servers message, length delimited. Does not implicitly {@link master.Servers.verify|verify} messages.
-         * @param {master.Servers$Properties} message Servers message or plain object to encode
+         * @function encodeDelimited
+         * @memberof master.Servers
+         * @static
+         * @param {master.IServers} message Servers message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -969,6 +1091,9 @@ $root.master = (function() {
 
         /**
          * Decodes a Servers message from the specified reader or buffer.
+         * @function decode
+         * @memberof master.Servers
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
          * @returns {master.Servers} Servers
@@ -997,6 +1122,9 @@ $root.master = (function() {
 
         /**
          * Decodes a Servers message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof master.Servers
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @returns {master.Servers} Servers
          * @throws {Error} If the payload is not a reader or valid buffer
@@ -1004,14 +1132,17 @@ $root.master = (function() {
          */
         Servers.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
-                reader = $Reader(reader);
+                reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
          * Verifies a Servers message.
+         * @function verify
+         * @memberof master.Servers
+         * @static
          * @param {Object.<string,*>} message Plain object to verify
-         * @returns {?string} `null` if valid, otherwise the reason why it is not
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
         Servers.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
@@ -1030,6 +1161,9 @@ $root.master = (function() {
 
         /**
          * Creates a Servers message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof master.Servers
+         * @static
          * @param {Object.<string,*>} object Plain object
          * @returns {master.Servers} Servers
          */
@@ -1051,18 +1185,12 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a Servers message from a plain object. Also converts values to their respective internal types.
-         * This is an alias of {@link master.Servers.fromObject}.
-         * @function
-         * @param {Object.<string,*>} object Plain object
-         * @returns {master.Servers} Servers
-         */
-        Servers.from = Servers.fromObject;
-
-        /**
          * Creates a plain object from a Servers message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof master.Servers
+         * @static
          * @param {master.Servers} message Servers
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
         Servers.toObject = function toObject(message, options) {
@@ -1080,16 +1208,10 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a plain object from this Servers message. Also converts values to other types if specified.
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Servers.prototype.toObject = function toObject(options) {
-            return this.constructor.toObject(this, options);
-        };
-
-        /**
          * Converts this Servers to JSON.
+         * @function toJSON
+         * @memberof master.Servers
+         * @instance
          * @returns {Object.<string,*>} JSON object
          */
         Servers.prototype.toJSON = function toJSON() {
@@ -1103,18 +1225,19 @@ $root.master = (function() {
 
         /**
          * Properties of a ServerIcon.
-         * @typedef master.ServerIcon$Properties
-         * @type {Object}
-         * @property {string} [endPoint] ServerIcon endPoint.
-         * @property {Uint8Array} [icon] ServerIcon icon.
-         * @property {number} [iconVersion] ServerIcon iconVersion.
+         * @memberof master
+         * @interface IServerIcon
+         * @property {string} [endPoint] ServerIcon endPoint
+         * @property {Uint8Array} [icon] ServerIcon icon
+         * @property {number} [iconVersion] ServerIcon iconVersion
          */
 
         /**
          * Constructs a new ServerIcon.
-         * @exports master.ServerIcon
+         * @memberof master
+         * @classdesc Represents a ServerIcon.
          * @constructor
-         * @param {master.ServerIcon$Properties=} [properties] Properties to set
+         * @param {master.IServerIcon=} [properties] Properties to set
          */
         function ServerIcon(properties) {
             if (properties)
@@ -1125,25 +1248,34 @@ $root.master = (function() {
 
         /**
          * ServerIcon endPoint.
-         * @type {string}
+         * @member {string}endPoint
+         * @memberof master.ServerIcon
+         * @instance
          */
         ServerIcon.prototype.endPoint = "";
 
         /**
          * ServerIcon icon.
-         * @type {Uint8Array}
+         * @member {Uint8Array}icon
+         * @memberof master.ServerIcon
+         * @instance
          */
         ServerIcon.prototype.icon = $util.newBuffer([]);
 
         /**
          * ServerIcon iconVersion.
-         * @type {number}
+         * @member {number}iconVersion
+         * @memberof master.ServerIcon
+         * @instance
          */
         ServerIcon.prototype.iconVersion = 0;
 
         /**
          * Creates a new ServerIcon instance using the specified properties.
-         * @param {master.ServerIcon$Properties=} [properties] Properties to set
+         * @function create
+         * @memberof master.ServerIcon
+         * @static
+         * @param {master.IServerIcon=} [properties] Properties to set
          * @returns {master.ServerIcon} ServerIcon instance
          */
         ServerIcon.create = function create(properties) {
@@ -1152,7 +1284,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified ServerIcon message. Does not implicitly {@link master.ServerIcon.verify|verify} messages.
-         * @param {master.ServerIcon$Properties} message ServerIcon message or plain object to encode
+         * @function encode
+         * @memberof master.ServerIcon
+         * @static
+         * @param {master.IServerIcon} message ServerIcon message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -1170,7 +1305,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified ServerIcon message, length delimited. Does not implicitly {@link master.ServerIcon.verify|verify} messages.
-         * @param {master.ServerIcon$Properties} message ServerIcon message or plain object to encode
+         * @function encodeDelimited
+         * @memberof master.ServerIcon
+         * @static
+         * @param {master.IServerIcon} message ServerIcon message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -1180,6 +1318,9 @@ $root.master = (function() {
 
         /**
          * Decodes a ServerIcon message from the specified reader or buffer.
+         * @function decode
+         * @memberof master.ServerIcon
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
          * @returns {master.ServerIcon} ServerIcon
@@ -1212,6 +1353,9 @@ $root.master = (function() {
 
         /**
          * Decodes a ServerIcon message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof master.ServerIcon
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @returns {master.ServerIcon} ServerIcon
          * @throws {Error} If the payload is not a reader or valid buffer
@@ -1219,14 +1363,17 @@ $root.master = (function() {
          */
         ServerIcon.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
-                reader = $Reader(reader);
+                reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
          * Verifies a ServerIcon message.
+         * @function verify
+         * @memberof master.ServerIcon
+         * @static
          * @param {Object.<string,*>} message Plain object to verify
-         * @returns {?string} `null` if valid, otherwise the reason why it is not
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
         ServerIcon.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
@@ -1245,6 +1392,9 @@ $root.master = (function() {
 
         /**
          * Creates a ServerIcon message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof master.ServerIcon
+         * @static
          * @param {Object.<string,*>} object Plain object
          * @returns {master.ServerIcon} ServerIcon
          */
@@ -1265,18 +1415,12 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a ServerIcon message from a plain object. Also converts values to their respective internal types.
-         * This is an alias of {@link master.ServerIcon.fromObject}.
-         * @function
-         * @param {Object.<string,*>} object Plain object
-         * @returns {master.ServerIcon} ServerIcon
-         */
-        ServerIcon.from = ServerIcon.fromObject;
-
-        /**
          * Creates a plain object from a ServerIcon message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof master.ServerIcon
+         * @static
          * @param {master.ServerIcon} message ServerIcon
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
         ServerIcon.toObject = function toObject(message, options) {
@@ -1298,16 +1442,10 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a plain object from this ServerIcon message. Also converts values to other types if specified.
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        ServerIcon.prototype.toObject = function toObject(options) {
-            return this.constructor.toObject(this, options);
-        };
-
-        /**
          * Converts this ServerIcon to JSON.
+         * @function toJSON
+         * @memberof master.ServerIcon
+         * @instance
          * @returns {Object.<string,*>} JSON object
          */
         ServerIcon.prototype.toJSON = function toJSON() {
@@ -1321,16 +1459,17 @@ $root.master = (function() {
 
         /**
          * Properties of a ServerIcons.
-         * @typedef master.ServerIcons$Properties
-         * @type {Object}
-         * @property {Array.<master.ServerIcon$Properties>} [icons] ServerIcons icons.
+         * @memberof master
+         * @interface IServerIcons
+         * @property {Array.<master.IServerIcon>} [icons] ServerIcons icons
          */
 
         /**
          * Constructs a new ServerIcons.
-         * @exports master.ServerIcons
+         * @memberof master
+         * @classdesc Represents a ServerIcons.
          * @constructor
-         * @param {master.ServerIcons$Properties=} [properties] Properties to set
+         * @param {master.IServerIcons=} [properties] Properties to set
          */
         function ServerIcons(properties) {
             this.icons = [];
@@ -1342,13 +1481,18 @@ $root.master = (function() {
 
         /**
          * ServerIcons icons.
-         * @type {Array.<master.ServerIcon$Properties>}
+         * @member {Array.<master.IServerIcon>}icons
+         * @memberof master.ServerIcons
+         * @instance
          */
         ServerIcons.prototype.icons = $util.emptyArray;
 
         /**
          * Creates a new ServerIcons instance using the specified properties.
-         * @param {master.ServerIcons$Properties=} [properties] Properties to set
+         * @function create
+         * @memberof master.ServerIcons
+         * @static
+         * @param {master.IServerIcons=} [properties] Properties to set
          * @returns {master.ServerIcons} ServerIcons instance
          */
         ServerIcons.create = function create(properties) {
@@ -1357,7 +1501,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified ServerIcons message. Does not implicitly {@link master.ServerIcons.verify|verify} messages.
-         * @param {master.ServerIcons$Properties} message ServerIcons message or plain object to encode
+         * @function encode
+         * @memberof master.ServerIcons
+         * @static
+         * @param {master.IServerIcons} message ServerIcons message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -1372,7 +1519,10 @@ $root.master = (function() {
 
         /**
          * Encodes the specified ServerIcons message, length delimited. Does not implicitly {@link master.ServerIcons.verify|verify} messages.
-         * @param {master.ServerIcons$Properties} message ServerIcons message or plain object to encode
+         * @function encodeDelimited
+         * @memberof master.ServerIcons
+         * @static
+         * @param {master.IServerIcons} message ServerIcons message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
@@ -1382,6 +1532,9 @@ $root.master = (function() {
 
         /**
          * Decodes a ServerIcons message from the specified reader or buffer.
+         * @function decode
+         * @memberof master.ServerIcons
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
          * @returns {master.ServerIcons} ServerIcons
@@ -1410,6 +1563,9 @@ $root.master = (function() {
 
         /**
          * Decodes a ServerIcons message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof master.ServerIcons
+         * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @returns {master.ServerIcons} ServerIcons
          * @throws {Error} If the payload is not a reader or valid buffer
@@ -1417,14 +1573,17 @@ $root.master = (function() {
          */
         ServerIcons.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
-                reader = $Reader(reader);
+                reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
          * Verifies a ServerIcons message.
+         * @function verify
+         * @memberof master.ServerIcons
+         * @static
          * @param {Object.<string,*>} message Plain object to verify
-         * @returns {?string} `null` if valid, otherwise the reason why it is not
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
         ServerIcons.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
@@ -1443,6 +1602,9 @@ $root.master = (function() {
 
         /**
          * Creates a ServerIcons message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof master.ServerIcons
+         * @static
          * @param {Object.<string,*>} object Plain object
          * @returns {master.ServerIcons} ServerIcons
          */
@@ -1464,18 +1626,12 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a ServerIcons message from a plain object. Also converts values to their respective internal types.
-         * This is an alias of {@link master.ServerIcons.fromObject}.
-         * @function
-         * @param {Object.<string,*>} object Plain object
-         * @returns {master.ServerIcons} ServerIcons
-         */
-        ServerIcons.from = ServerIcons.fromObject;
-
-        /**
          * Creates a plain object from a ServerIcons message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof master.ServerIcons
+         * @static
          * @param {master.ServerIcons} message ServerIcons
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
         ServerIcons.toObject = function toObject(message, options) {
@@ -1493,16 +1649,10 @@ $root.master = (function() {
         };
 
         /**
-         * Creates a plain object from this ServerIcons message. Also converts values to other types if specified.
-         * @param {$protobuf.ConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        ServerIcons.prototype.toObject = function toObject(options) {
-            return this.constructor.toObject(this, options);
-        };
-
-        /**
          * Converts this ServerIcons to JSON.
+         * @function toJSON
+         * @memberof master.ServerIcons
+         * @instance
          * @returns {Object.<string,*>} JSON object
          */
         ServerIcons.prototype.toJSON = function toJSON() {

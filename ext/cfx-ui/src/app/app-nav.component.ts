@@ -28,8 +28,8 @@ export class AppNavComponent extends Translation {
 		this.devMode = gameService.devMode;
 
 		router.events.subscribe(event => {
-			if ((<NavigationEnd>event).urlAfterRedirects) {
-				this.hasSubNav = (<NavigationEnd>event).urlAfterRedirects.startsWith('/servers');
+			if ((<NavigationEnd>event).url) {
+				this.hasSubNav = (<NavigationEnd>event).url.startsWith('/servers');
 			}
 		});
 

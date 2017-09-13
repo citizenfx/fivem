@@ -90,6 +90,8 @@ export class ServersListComponent implements OnInit, OnChanges {
         const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
         const categoryRe = /^([^:]*?):(.*)$/
 
+        const isFalse = a => !a || a === 'false' || a === '0';
+
         let match: RegExpExecArray;
 
         while (match = searchRe.exec(searchText)) {
@@ -122,8 +124,7 @@ export class ServersListComponent implements OnInit, OnChanges {
                 const category = categoryMatch[1];
                 const match = new RegExp(ServersListComponent.quoteRe(categoryMatch[2]), 'i');
 
-                filterFns.push(server =>
-                {
+                filterFns.push(server => {
                     let result = false;
 
                     if (server.data[category]) {
@@ -133,6 +134,14 @@ export class ServersListComponent implements OnInit, OnChanges {
 
                         if (Array.isArray(fields)) {
                             result = fields.filter(a => match.test(String(a))).length > 0;
+                        } else {
+                            const values = Object.keys(fields).filter(a => match.test(String(a)));
+
+                            if (values.length > 0) {
+                                if (!isFalse(fields[values[0]])) {
+                                    result = true;
+                                }
+                            }
                         }
                     }
 
@@ -145,8 +154,7 @@ export class ServersListComponent implements OnInit, OnChanges {
             }
         }
 
-        return (server: Server) =>
-        {
+        return (server: Server) => {
             for (const fn of filterFns) {
                 if (!fn(server)) {
                     return false;

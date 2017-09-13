@@ -30,6 +30,7 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
 
     constructor(private gameService: GameService) {
         this.addrEvent
+            .asObservable()
             .debounceTime(750)
             .distinctUntilChanged()
             .subscribe(addr => {
