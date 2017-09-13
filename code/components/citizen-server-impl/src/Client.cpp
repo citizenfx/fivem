@@ -51,7 +51,7 @@ namespace fx
 
 			if (!canBeDead.has_value() || !std::any_cast<bool>(canBeDead))
 			{
-				return false;
+				return (msec() - m_lastSeen) > CLIENT_VERY_DEAD_TIMEOUT;
 			}
 		}
 
