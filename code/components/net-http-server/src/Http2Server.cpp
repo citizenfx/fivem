@@ -36,6 +36,11 @@ public:
 			return;
 		}
 
+		if (!m_session)
+		{
+			return;
+		}
+
 		m_headers = headers;
 		m_headers[":status"] = std::to_string(statusCode);
 
@@ -86,21 +91,32 @@ public:
 
 	virtual void WriteOut(const std::vector<uint8_t>& data) override
 	{
-		auto origSize = m_outData.size();
+		if (m_session)
+		{
+			auto origSize = m_outData.size();
 
-		m_outData.resize(m_outData.size() + data.size());
-		std::copy(data.begin(), data.end(), m_outData.begin() + origSize);
+			m_outData.resize(m_outData.size() + data.size());
+			std::copy(data.begin(), data.end(), m_outData.begin() + origSize);
 
-		nghttp2_session_resume_data(m_session, m_stream);
-		nghttp2_session_send(m_session);
+			nghttp2_session_resume_data(m_session, m_stream);
+			nghttp2_session_send(m_session);
+		}
 	}
 
 	virtual void End() override
 	{
 		m_ended = true;
 
-		nghttp2_session_resume_data(m_session, m_stream);
-		nghttp2_session_send(m_session);
+		if (m_session)
+		{
+			nghttp2_session_resume_data(m_session, m_stream);
+			nghttp2_session_send(m_session);
+		}
+	}
+
+	void Cancel()
+	{
+		m_session = nullptr;
 	}
 
 private:
@@ -125,6 +141,8 @@ Http2ServerImpl::~Http2ServerImpl()
 
 void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 {
+	struct HttpRequestData;
+
 	struct HttpConnectionData
 	{
 		nghttp2_session* session;
@@ -132,6 +150,8 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		fwRefContainer<TcpServerStream> stream;
 
 		Http2ServerImpl* server;
+
+		std::set<HttpRequestData*> streams;
 	};
 
 	struct HttpRequestData
@@ -143,6 +163,8 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		std::vector<uint8_t> body;
 
 		fwRefContainer<HttpRequest> httpReq;
+
+		fwRefContainer<HttpResponse> httpResp;
 	};
 
 	nghttp2_session_callbacks* callbacks;
@@ -170,6 +192,9 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		auto reqData = new HttpRequestData;
 		reqData->connection = conn;
 		reqData->httpReq = nullptr;
+		reqData->httpResp = nullptr;
+
+		conn->streams.insert(reqData);
 
 		nghttp2_session_set_stream_user_data(session, frame->hd.stream_id, reqData);
 
@@ -242,6 +267,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, req->headers[":method"], req->headers[":path"], headerList, req->connection->stream->GetPeerAddress().ToString());
 					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id);
 
+					req->httpResp = response;
 					reqState->blocked = true;
 
 					for (auto& handler : req->connection->server->m_handlers)
@@ -287,6 +313,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		auto req = reinterpret_cast<HttpRequestData*>(nghttp2_session_get_stream_user_data(session, stream_id));
 
+		req->connection->streams.erase(req);
 		delete req;
 
 		return 0;
@@ -320,6 +347,20 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 	stream->SetCloseCallback([=]()
 	{
+		{
+			for (auto& stream : data->streams)
+			{
+				// cancel HTTP responses that are still running
+				// (so that we won't reference data->session)
+				auto resp = stream->httpResp.GetRef();
+
+				if (resp)
+				{
+					((net::Http2Response*)resp)->Cancel();
+				}
+			}
+		}
+
 		nghttp2_session_del(data->session);
 		delete data;
 	});
