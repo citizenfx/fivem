@@ -311,10 +311,17 @@ static InitFunction initFunction([]()
 
 			auto done = [=]()
 			{
+				std::weak_ptr<fx::Client> clientWeak(client);
+
 				auto allowClient = [=]()
 				{
-					client->SetData("passedValidation", true);
-					client->SetData("canBeDead", false);
+					if (!clientWeak.expired())
+					{
+						auto client = clientWeak.lock();
+
+						client->SetData("passedValidation", true);
+						client->SetData("canBeDead", false);
+					}
 				};
 
 				int maxTrust = INT_MIN;
@@ -389,7 +396,10 @@ static InitFunction initFunction([]()
 
 					if (obj.size() == 1)
 					{
-						clientRegistry->RemoveClient(client);
+						if (!clientWeak.expired())
+						{
+							clientRegistry->RemoveClient(clientWeak.lock());
+						}
 
 						(**deferDoneCb)({ { "error", obj[0].as<std::string>() } });
 					}
@@ -415,6 +425,7 @@ static InitFunction initFunction([]()
 				if (!shouldAllow)
 				{
 					*returnedCb = true;
+					*deferDoneCb = nullptr;
 
 					clientRegistry->RemoveClient(client);
 
@@ -426,6 +437,8 @@ static InitFunction initFunction([]()
 				{
 					allowClient();
 					cb(data);
+
+					*deferDoneCb = nullptr;
 				}
 				else
 				{
@@ -476,6 +489,9 @@ static InitFunction initFunction([]()
 				if (it == g_serverProviders.end())
 				{
 					done();
+
+					// unset the callback
+					*runOneIdentifier = nullptr;
 				}
 				else
 				{
@@ -490,6 +506,9 @@ static InitFunction initFunction([]()
 							clientRegistry->RemoveClient(client);
 
 							cb(json::object({ {"error", *err} }));
+
+							// unset the callback
+							*runOneIdentifier = nullptr;
 
 							return;
 						}

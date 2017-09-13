@@ -284,31 +284,33 @@ namespace fx
 			}
 		}
 
-		std::vector<std::shared_ptr<fx::Client>> toRemove;
-
-		m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
-			auto peer = client->GetPeer();
+			std::vector<std::shared_ptr<fx::Client>> toRemove;
 
-			if (peer)
+			m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 			{
-				net::Buffer outMsg;
-				outMsg.Write(0x53FFFA3F);
-				outMsg.Write(0);
+				auto peer = client->GetPeer();
 
-				client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
-			}
+				if (peer)
+				{
+					net::Buffer outMsg;
+					outMsg.Write(0x53FFFA3F);
+					outMsg.Write(0);
 
-			// time out the client if needed
-			if (client->IsDead())
+					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
+				}
+
+				// time out the client if needed
+				if (client->IsDead())
+				{
+					toRemove.push_back(client);
+				}
+			});
+
+			for (auto& client : toRemove)
 			{
-				toRemove.push_back(client);
+				DropClient(client, "Timed out after %d seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
 			}
-		});
-
-		for (auto& client : toRemove)
-		{
-			DropClient(client, "Timed out after %d seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
 		}
 
 		// if we should heartbeat

@@ -13,7 +13,7 @@
 
 static InitFunction initFunction([]()
 {
-	auto makeClientFunction = [](auto fn)
+	auto makeClientFunction = [](auto fn, uintptr_t defaultValue = 0)
 	{
 		return [=](fx::ScriptContext& context)
 		{
@@ -31,7 +31,7 @@ static InitFunction initFunction([]()
 
 			if (!id)
 			{
-				context.SetResult(nullptr);
+				context.SetResult(defaultValue);
 				return;
 			}
 
@@ -41,7 +41,7 @@ static InitFunction initFunction([]()
 
 			if (!client)
 			{
-				context.SetResult(nullptr);
+				context.SetResult(defaultValue);
 				return;
 			}
 
@@ -99,7 +99,7 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_LAST_MSG", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		return (msec() - client->GetLastSeen()).count();
-	}));
+	}, 0x7fffffff));
 
 	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{

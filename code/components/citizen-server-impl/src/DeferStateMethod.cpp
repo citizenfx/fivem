@@ -4,6 +4,9 @@
 #include <ClientRegistry.h>
 #include <GameServer.h>
 
+#include <UvTcpServer.h>
+#include <TcpServerManager.h>
+
 #include <ServerInstanceBase.h>
 
 static InitFunction initFunction([]()
@@ -46,6 +49,9 @@ static InitFunction initFunction([]()
 			// set a callback to return to the client
 			auto returnedCb = std::make_shared<bool>(false);
 
+			auto timer = std::make_shared<std::unique_ptr<uv_timer_t>>();
+			*timer = std::make_unique<uv_timer_t>();
+
 			auto returnCb = [=]()
 			{
 				// has already run?
@@ -55,6 +61,10 @@ static InitFunction initFunction([]()
 				}
 
 				*returnedCb = true;
+
+				// ok
+				uv_timer_stop(timer->get());
+				UvClose(std::move(*timer));
 
 				// send the state to the client, if we have any
 				auto& state = client->GetData("deferralState");
@@ -75,7 +85,15 @@ static InitFunction initFunction([]()
 			client->SetData("deferralCallback", std::function<void()>{returnCb});
 
 			// set a timer to return for sure after 2 seconds
-			gameServer->DeferCall(2000, returnCb);
+			fwRefContainer<net::TcpServerManager> tcpManager = instance->GetComponent<net::TcpServerManager>();
+			auto uvLoop = tcpManager->GetLoop();
+
+			uv_timer_init(uvLoop, timer->get());
+
+			uv_timer_start(timer->get(), UvCallback<uv_timer_t>(timer->get(), [=](uv_timer_t*)
+			{
+				returnCb();
+			}), 2000, 0);
 		});
 	}, 5000);
 });
