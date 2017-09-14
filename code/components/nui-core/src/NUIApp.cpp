@@ -54,7 +54,9 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 
 	if (IsWindows10OrGreater())
 	{
-		command_line->AppendSwitch("disable-gpu-vsync");
+		// this is broken pending https://crbug.com/480361
+		// (WasResized breaks internal ANGLE/cc state, causing Alt-Enter to 'break' NUI)
+		//command_line->AppendSwitch("disable-gpu-vsync");
 		command_line->AppendSwitch("force-gpu-rasterization");
 	}
 }
