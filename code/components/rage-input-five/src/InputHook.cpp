@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 #include "CrossLibraryInterfaces.h"
 #include "InputHook.h"
 #include "Hooking.h"
@@ -105,6 +105,16 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 	return hkl;
 }
 
+BOOL WINAPI SetCursorPosWrap(int X, int Y)
+{
+	if (!g_isFocused)
+	{
+		return SetCursorPos(X, Y);
+	}
+
+	return TRUE;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// window procedure
@@ -150,6 +160,9 @@ static HookFunction hookFunction([] ()
 	// fix repeated ClipCursor calls (causing DWM load)
 	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");
 	hook::iat("user32.dll", ActivateKeyboardLayoutWrap, "ActivateKeyboardLayout");
+
+	// don't allow SetCursorPos during focus
+	hook::iat("user32.dll", SetCursorPosWrap, "SetCursorPos");
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::OnWndProc;
