@@ -66,6 +66,18 @@ static HookFunction hookFunction([]()
 	{
 		static bool endedLoadingScreens = false;
 
+		auto endLoadingScreens = [=]()
+		{
+			if (!endedLoadingScreens)
+			{
+				endedLoadingScreens = true;
+
+				DestroyFrame();
+
+				nui::OverrideFocus(false);
+			}
+		};
+
 		{
 			// override SHUTDOWN_LOADING_SCREEN
 			auto handler = fx::ScriptEngine::GetNativeHandler(0x078EBE9809CCD637);
@@ -79,14 +91,16 @@ static HookFunction hookFunction([]()
 			{
 				(*handler)(ctx);
 
-				if (!endedLoadingScreens)
-				{
-					endedLoadingScreens = true;
+				endLoadingScreens();
+			});
+		}
 
-					DestroyFrame();
+		{
+			Instance<ICoreGameInit>::Get()->OnTriggerError.Connect([=](const std::string& errorMessage)
+			{
+				endLoadingScreens();
 
-					nui::OverrideFocus(false);
-				}
+				return true;
 			});
 		}
 
