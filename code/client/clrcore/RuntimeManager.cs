@@ -49,10 +49,9 @@ namespace CitizenFX.Core
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"Failed to get instance for guid {guid} and iid {iid}: {e}");
-
-                throw;
-            }
+				// Debug.WriteLine($"Failed to get instance for guid {guid} and iid {iid}: {e}");
+				return IntPtr.Zero;
+			}
         }
     }
 }

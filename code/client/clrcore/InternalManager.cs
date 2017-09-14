@@ -69,24 +69,21 @@ namespace CitizenFX.Core
 			var assembly = Assembly.Load(assemblyData, symbolData);
 			Debug.WriteLine("Loaded {1} into {0}", AppDomain.CurrentDomain.FriendlyName, assembly.FullName);
 
-			var definedTypes = assembly.GetTypes();
+			var definedTypes = assembly.GetTypes().Where(t => !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)));
 
 			foreach (var type in definedTypes)
 			{
-				if (type.IsSubclassOf(typeof(BaseScript)))
+				try
 				{
-					try
-					{
-						var derivedScript = Activator.CreateInstance(type) as BaseScript;
+					var derivedScript = Activator.CreateInstance(type) as BaseScript;
 
-						Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
+					Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
 
-						ms_definedScripts.Add(derivedScript);
-					}
-					catch (Exception e)
-					{
-						Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
-					}
+					ms_definedScripts.Add(derivedScript);
+				}
+				catch (Exception e)
+				{
+					Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
 				}
 			}
 
