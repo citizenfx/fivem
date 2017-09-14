@@ -463,7 +463,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		TerminateProcess(parentProcess, -2);
 
-		static std::wstring windowTitle = PRODUCT_NAME L"Error";
+		static std::wstring windowTitle = PRODUCT_NAME L" Error";
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
 		
 		std::wstring cuz = L"An error";
