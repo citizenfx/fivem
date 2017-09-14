@@ -13,6 +13,8 @@
 
 #include <MinHook.h>
 
+#include <Error.h>
+
 #include <CoreConsole.h>
 
 namespace WRL = Microsoft::WRL;
@@ -140,7 +142,13 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 		g_swapChainFlags = scDesc1.Flags;
 
-		dxgiFactory->CreateSwapChainForHwnd(*ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, nullptr, nullptr, &swapChain1);
+		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsDesc = { 0 };
+		fsDesc.RefreshRate = pSwapChainDesc->BufferDesc.RefreshRate;
+		fsDesc.Scaling = pSwapChainDesc->BufferDesc.Scaling;
+		fsDesc.ScanlineOrdering = pSwapChainDesc->BufferDesc.ScanlineOrdering;
+		fsDesc.Windowed = pSwapChainDesc->Windowed;
+
+		dxgiFactory->CreateSwapChainForHwnd(*ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, &fsDesc, nullptr, &swapChain1);
 
 		swapChain1->QueryInterface(__uuidof(IDXGISwapChain), (void**)ppSwapChain);
 	}
@@ -299,6 +307,16 @@ static int Return1()
 	return 1;
 }
 
+#include "dxerr.h"
+
+static void DisplayD3DCrashMessage(HRESULT hr)
+{
+	wchar_t errorBuffer[16384];
+	DXGetErrorDescriptionW(hr, errorBuffer, _countof(errorBuffer));
+
+	FatalError("DirectX encountered an unrecoverable error: %s - %s", ToNarrow(DXGetErrorStringW(hr)), ToNarrow(errorBuffer));
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
@@ -387,4 +405,9 @@ static HookFunction hookFunction([] ()
 	// don't crash on ID3D11DeviceContext::GetData call failures
 	// these somehow are caused by NVIDIA driver settings?
 	hook::nop(hook::get_pattern("EB 0C 8B C8 E8 ? ? ? ? B8 01", 4), 5);
+
+	// ERR_GFX_D3D_INIT: display valid reasons
+	auto loc = hook::get_pattern<char>("75 0A B9 06 BD F7 9C E8");
+	hook::nop(loc + 2, 5);
+	hook::call(loc + 7, DisplayD3DCrashMessage);
 });
