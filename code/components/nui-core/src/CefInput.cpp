@@ -150,6 +150,30 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 
 OsrImeHandlerWin* g_imeHandler;
 
+static int GetCefMouseModifiers(WPARAM wparam) {
+	int modifiers = 0;
+	if (wparam & MK_CONTROL)
+		modifiers |= EVENTFLAG_CONTROL_DOWN;
+	if (wparam & MK_SHIFT)
+		modifiers |= EVENTFLAG_SHIFT_DOWN;
+	if (isKeyDown(VK_MENU))
+		modifiers |= EVENTFLAG_ALT_DOWN;
+	if (wparam & MK_LBUTTON)
+		modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+	if (wparam & MK_MBUTTON)
+		modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
+	if (wparam & MK_RBUTTON)
+		modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
+
+	// Low bit set from GetKeyState indicates "toggled".
+	if (::GetKeyState(VK_NUMLOCK) & 1)
+		modifiers |= EVENTFLAG_NUM_LOCK_ON;
+	if (::GetKeyState(VK_CAPITAL) & 1)
+		modifiers |= EVENTFLAG_CAPS_LOCK_ON;
+	return modifiers;
+}
+
+
 static HookFunction initFunction([] ()
 {
 	InputHook::QueryMayLockCursor.Connect([](int& argPtr)
@@ -190,6 +214,188 @@ static HookFunction initFunction([] ()
 				g_imeHandler = new OsrImeHandlerWin(FindWindow(L"grcWindow", nullptr));
 			}
 
+			static int lastClickX;
+			static int lastClickY;
+			static int lastClickCount;
+			static LONG lastClickTime;
+			static CefBrowserHost::MouseButtonType lastClickButton;
+			static bool mouseTracking;
+
+			LONG currentTime = 0;
+			bool cancelPreviousClick = false;
+
+			if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN ||
+				msg == WM_MBUTTONDOWN || msg == WM_MOUSEMOVE ||
+				msg == WM_MOUSELEAVE) {
+				currentTime = GetMessageTime();
+				int x = GET_X_LPARAM(lParam);
+				int y = GET_Y_LPARAM(lParam);
+				cancelPreviousClick =
+					(abs(lastClickX - x) > (GetSystemMetrics(SM_CXDOUBLECLK) / 2))
+					|| (abs(lastClickY - y) > (GetSystemMetrics(SM_CYDOUBLECLK) / 2))
+					|| ((currentTime - lastClickTime) > GetDoubleClickTime());
+				if (cancelPreviousClick &&
+					(msg == WM_MOUSEMOVE || msg == WM_MOUSELEAVE)) {
+					lastClickCount = 0;
+					lastClickX = 0;
+					lastClickY = 0;
+					lastClickTime = 0;
+				}
+			}
+
+			switch (msg)
+			{
+			case WM_LBUTTONDOWN:
+			case WM_RBUTTONDOWN:
+			case WM_MBUTTONDOWN:
+			case WM_LBUTTONDBLCLK: 
+			case WM_RBUTTONDBLCLK: 
+			case WM_MBUTTONDBLCLK: {
+				int x = GET_X_LPARAM(lParam);
+				int y = GET_Y_LPARAM(lParam);
+				CefBrowserHost::MouseButtonType btnType =
+					((msg == WM_LBUTTONDOWN || msg == WM_LBUTTONDBLCLK) ? MBT_LEFT : (
+						(msg == WM_RBUTTONDOWN || msg == WM_RBUTTONDBLCLK) ? MBT_RIGHT : MBT_MIDDLE));
+				if (!cancelPreviousClick && (btnType == lastClickButton)) {
+					++lastClickCount;
+				}
+				else {
+					lastClickCount = 1;
+					lastClickX = x;
+					lastClickY = y;
+				}
+				lastClickTime = currentTime;
+				lastClickButton = btnType;
+
+				CefMouseEvent mouse_event;
+				mouse_event.x = x;
+				mouse_event.y = y;
+				mouse_event.modifiers = GetCefMouseModifiers(wParam);
+
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, false, lastClickCount);
+				}
+
+				pass = false;
+				lresult = FALSE;
+			} break;
+
+			case WM_LBUTTONUP:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONUP: {
+				int x = GET_X_LPARAM(lParam);
+				int y = GET_Y_LPARAM(lParam);
+				CefBrowserHost::MouseButtonType btnType =
+					(msg == WM_LBUTTONUP ? MBT_LEFT : (
+						msg == WM_RBUTTONUP ? MBT_RIGHT : MBT_MIDDLE));
+
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					CefMouseEvent mouse_event;
+					mouse_event.x = x;
+					mouse_event.y = y;
+					mouse_event.modifiers = GetCefMouseModifiers(wParam);
+					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, true,
+						lastClickCount);
+				}
+
+				pass = false;
+				lresult = FALSE;
+				break;
+			}
+			case WM_MOUSEMOVE: {
+				int x = GET_X_LPARAM(lParam);
+				int y = GET_Y_LPARAM(lParam);
+				if (!mouseTracking) {
+					// Start tracking mouse leave. Required for the WM_MOUSELEAVE event to
+					// be generated.
+					TRACKMOUSEEVENT tme;
+					tme.cbSize = sizeof(TRACKMOUSEEVENT);
+					tme.dwFlags = TME_LEAVE;
+					tme.hwndTrack = hWnd;
+					TrackMouseEvent(&tme);
+					mouseTracking = true;
+				}
+
+				auto browser = nui::GetBrowser();
+
+				if (browser)
+				{
+					CefMouseEvent mouse_event;
+					mouse_event.x = x;
+					mouse_event.y = y;
+					mouse_event.modifiers = GetCefMouseModifiers(wParam);
+					browser->GetHost()->SendMouseMoveEvent(mouse_event, false);
+				}
+
+				pass = false;
+				lresult = FALSE;
+				break;
+			}
+
+			case WM_MOUSELEAVE: {
+				if (mouseTracking) {
+					// Stop tracking mouse leave.
+					TRACKMOUSEEVENT tme;
+					tme.cbSize = sizeof(TRACKMOUSEEVENT);
+					tme.dwFlags = TME_LEAVE & TME_CANCEL;
+					tme.hwndTrack = hWnd;
+					TrackMouseEvent(&tme);
+					mouseTracking = false;
+				}
+
+				auto browser = nui::GetBrowser();
+
+				if (browser) {
+					// Determine the cursor position in screen coordinates.
+					POINT p;
+					::GetCursorPos(&p);
+					::ScreenToClient(hWnd, &p);
+
+					CefMouseEvent mouse_event;
+					mouse_event.x = p.x;
+					mouse_event.y = p.y;
+					mouse_event.modifiers = GetCefMouseModifiers(wParam);
+					browser->GetHost()->SendMouseMoveEvent(mouse_event, true);
+				}
+
+				pass = false;
+				lresult = FALSE;
+			} break;
+
+			case WM_MOUSEWHEEL: {
+				auto browser = nui::GetBrowser();
+
+				if (browser) {
+					POINT screen_point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+					HWND scrolled_wnd = ::WindowFromPoint(screen_point);
+					if (scrolled_wnd != hWnd)
+						break;
+
+					ScreenToClient(hWnd, &screen_point);
+					int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+					CefMouseEvent mouse_event;
+					mouse_event.x = screen_point.x;
+					mouse_event.y = screen_point.y;
+					mouse_event.modifiers = GetCefMouseModifiers(wParam);
+
+					browser->GetHost()->SendMouseWheelEvent(mouse_event,
+						isKeyDown(VK_SHIFT) ? delta : 0,
+						!isKeyDown(VK_SHIFT) ? delta : 0);
+				}
+
+				pass = false;
+				lresult = FALSE;
+				break;
+			}
+			}
+
 			if (msg == WM_KEYUP || msg == WM_KEYDOWN || msg == WM_CHAR)
 			{
 				CefKeyEvent keyEvent;
@@ -216,65 +422,6 @@ static HookFunction initFunction([] ()
 
 				pass = false;
 				lresult = FALSE;
-				return;
-			}
-			else if (msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP || msg == WM_RBUTTONDOWN || msg == WM_RBUTTONUP)
-			{
-				CefMouseEvent mouseEvent;
-
-				mouseEvent.x = LOWORD(lParam);
-				mouseEvent.y = HIWORD(lParam);
-
-				auto browser = nui::GetBrowser();
-
-				if (browser)
-				{
-					browser->GetHost()->SendMouseClickEvent(mouseEvent, (msg == WM_LBUTTONUP || msg == WM_LBUTTONDOWN) ? MBT_LEFT : MBT_RIGHT, (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP), 1);
-				}
-
-				pass = false;
-				lresult = FALSE;
-				return;
-			}
-			else if (msg == WM_MOUSEMOVE)
-			{
-				CefMouseEvent mouseEvent;
-
-				mouseEvent.x = LOWORD(lParam);
-				mouseEvent.y = HIWORD(lParam);
-
-				g_cursorPos.x = mouseEvent.x;
-				g_cursorPos.y = mouseEvent.y;
-
-				auto browser = nui::GetBrowser();
-
-				if (browser)
-				{
-					browser->GetHost()->SendMouseMoveEvent(mouseEvent, false);
-				}
-
-				pass = false;
-				lresult = FALSE;
-				return;
-			}
-			else if (msg == WM_MOUSEWHEEL)
-			{
-				int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-
-				CefMouseEvent mouseEvent;
-
-				mouseEvent.x = g_cursorPos.x;
-				mouseEvent.y = g_cursorPos.y;
-
-				auto browser = nui::GetBrowser();
-
-				if (browser)
-				{
-					browser->GetHost()->SendMouseWheelEvent(mouseEvent, 0, delta);
-				}
-
-				pass = false;
-				lresult = TRUE;
 				return;
 			}
 			else if (msg == WM_INPUT && g_hasCursor)
