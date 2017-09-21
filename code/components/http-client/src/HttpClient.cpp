@@ -19,13 +19,15 @@
 
 #include <VFSManager.h>
 
+#include <tbb/concurrent_queue.h>
+
 class HttpClientImpl
 {
 public:
 	CURLM* multi;
 	bool shouldRun;
 	std::thread thread;
-	std::mutex mutex;
+	tbb::concurrent_queue<CURL*> handlesToAdd;
 
 	HttpClientImpl()
 		: multi(nullptr), shouldRun(true)
@@ -38,8 +40,7 @@ public:
 
 void HttpClientImpl::AddCurlHandle(CURL* easy)
 {
-	std::unique_lock<std::mutex> lock(mutex);
-	curl_multi_add_handle(multi, easy);
+	handlesToAdd.push(easy);
 }
 
 class CurlData
@@ -123,15 +124,23 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 
 		do 
 		{
+			// add new handles
+			{
+				CURL* addHandle;
+
+				while (m_impl->handlesToAdd.try_pop(addHandle))
+				{
+					curl_multi_add_handle(m_impl->multi, addHandle);
+				}
+			}
+
+			// run iteration
 			CURLMcode mc;
 			int numfds;
 			int nowRunning;
 
 			// perform requests
-			{
-				std::unique_lock<std::mutex> lock(m_impl->mutex);
-				mc = curl_multi_perform(m_impl->multi, &nowRunning);
-			}
+			mc = curl_multi_perform(m_impl->multi, &nowRunning);
 
 			if (mc == CURLM_OK)
 			{
@@ -141,10 +150,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 				do 
 				{
 					int nq;
-					{
-						std::unique_lock<std::mutex> lock(m_impl->mutex);
-						msg = curl_multi_info_read(m_impl->multi, &nq);
-					}
+					msg = curl_multi_info_read(m_impl->multi, &nq);
 
 					// is this a completed transfer?
 					if (msg && msg->msg == CURLMSG_DONE)
@@ -161,11 +167,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 
 						delete data;
 
-						{
-							std::unique_lock<std::mutex> lock(m_impl->mutex);
-							curl_multi_remove_handle(m_impl->multi, curl);
-						}
-
+						curl_multi_remove_handle(m_impl->multi, curl);
 						curl_easy_cleanup(curl);
 					}
 				} while (msg);
@@ -174,10 +176,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 				lastRunning = nowRunning;
 			}
 
-			{
-				std::unique_lock<std::mutex> lock(m_impl->mutex);
-				mc = curl_multi_wait(m_impl->multi, nullptr, 0, 50, &numfds);
-			}
+			mc = curl_multi_wait(m_impl->multi, nullptr, 0, 50, &numfds);
 
 			if (mc != CURLM_OK)
 			{
@@ -185,7 +184,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 				return;
 			}
 
-			if (numfds == 0)
+			if (numfds == 0 && !m_impl->handlesToAdd.empty())
 			{
 				std::this_thread::sleep_for(100ms);
 			}

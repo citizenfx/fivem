@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"vfs:core",
-		"vendor:curl"
+		"vendor:curl",
+		"vendor:tbb"
 	],
 	"provides": []
 }
