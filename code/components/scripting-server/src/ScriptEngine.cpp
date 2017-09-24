@@ -1,4 +1,4 @@
-﻿#include <StdInc.h>
+#include <StdInc.h>
 #include <ScriptEngine.h>
 
 namespace fx
@@ -32,6 +32,12 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_TIMER", [](fx::ScriptContext& ctx)
 	{
-		ctx.SetResult(msec().count());
+		ctx.SetResult(msec().count() + 
+#ifdef _DEBUG
+			0x100000000
+#else
+			0
+#endif
+		);
 	});
 });
