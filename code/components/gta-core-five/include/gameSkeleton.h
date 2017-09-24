@@ -71,23 +71,57 @@ namespace rage
 		InitFunctionList* next;
 	};
 
+	struct gameSkeleton_updateBase
+	{
+		virtual ~gameSkeleton_updateBase() = 0;
+
+		virtual void Run() = 0;
+
+		void GTA_CORE_EXPORT RunGroup();
+
+		bool m_flag;
+
+		float m_unkFloat;
+
+		uint32_t m_hash;
+
+		// might be different for updateElement
+		gameSkeleton_updateBase* m_nextPtr;
+
+		gameSkeleton_updateBase* m_childPtr;
+	};
+
+	struct UpdateFunctionList
+	{
+		int type;
+		gameSkeleton_updateBase* entry;
+		UpdateFunctionList* next;
+	};
+
 	class gameSkeleton
 	{
 	public:
 		void GTA_CORE_EXPORT RunInitFunctions(InitFunctionType type);
 
+		void GTA_CORE_EXPORT RunUpdate(int type);
+
 	protected:
 		int m_functionOrder; // 8
 		InitFunctionType m_functionType; // 12
 
-		intptr_t pad; // 16
+		int32_t pad; // 16
+		int m_updateType; // 20
 
 		atArray<InitFunctionData> m_initFunctions; // 24
 		void* pad2; // 40
 
 		char pad3[256]; // 48
 
-		InitFunctionList* m_initFunctionList;
+		InitFunctionList* m_initFunctionList; // 304
+
+		void* pad4;
+
+		UpdateFunctionList* m_updateFunctionList;
 
 	private:
 		virtual ~gameSkeleton() = 0;
