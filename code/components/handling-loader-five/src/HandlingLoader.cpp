@@ -75,7 +75,7 @@ static int getIntField(char* handlingChar, uint32_t offset, const char* fieldNam
 	return *(int*)(handlingChar + offset);
 }
 
-static int getFloatField(char* handlingChar, uint32_t offset, const char* fieldName)
+static float getFloatField(char* handlingChar, uint32_t offset, const char* fieldName)
 {
 	auto hash = HashRageString(fieldName);
 
