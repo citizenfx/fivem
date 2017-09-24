@@ -4,6 +4,70 @@ local function printFunctionName(native)
 	end)
 end
 
+-- ts's reserved words
+local langWords = {
+	['break'] = '_break',
+	['as'] = '_as',
+	['any'] = '_any',
+	['case'] = '_case',
+	['implements'] = '_implements',
+	['boolean'] = '_boolean',
+	['catch'] = '_catch',
+	['interface'] = '_interface',
+	['constructor'] = '_constructor',
+	['class'] = '_class',
+	['let'] = '_let',
+	['declare'] = '_declare',
+	['const'] = '_const',
+	['package'] = '_package',
+	['get'] = '_get',
+	['continue'] = '_continue',
+	['private'] = '_private',
+	['module'] = '_module',
+	['debugger'] = '_debugger',
+	['protected'] = '_protected',
+	['require'] = '_require',
+	['default'] = '_default',
+	['public'] = '_public',
+	['number'] = '_number',
+	['delete'] = '_delete',
+	['static'] = '_static',
+	['set'] = '_set',
+	['do'] = '_do',
+	['yield'] = '_yield',
+	['string'] = '_string',
+	['else'] = '_else',
+	['symbol'] = '_symbol',
+	['enum'] = '_enum',
+	['type'] = '_type',
+	['export'] = '_export',
+	['from'] = '_from',
+	['extends'] = '_extends',
+	['of'] = '_of',
+	['false'] = '_false',
+	['finally'] = '_finally',
+	['for'] = '_for',
+	['function'] = '_function',
+	['if'] = '_if',
+	['import'] = '_import',
+	['in'] = '_in',
+	['instanceof'] = '_instanceof',
+	['new'] = '_new',
+	['null'] = '_null',
+	['return'] = '_return',
+	['super'] = '_super',
+	['switch'] = '_switch',
+	['this'] = '_this',
+	['throw'] = '_throw',
+	['true'] = '_true',
+	['try'] = '_try',
+	['typeof'] = '_typeof',
+	['var'] = '_var',
+	['void'] = '_void',
+	['while'] = '_while',
+	['with'] = '_with'
+}
+
 -- sort the natives table
 local _natives = {}
 
@@ -117,10 +181,10 @@ local function printArgument(argument, native)
 
 	local name = argument.name
 
-	-- js's reserved word
-	if name == 'var' then
-		name = 'var_'
-	end
+	-- ts's reserved word
+	if langWords[name] then
+		name = langWords[name]
+  	end
 
 	return name, argType, retType
 end
