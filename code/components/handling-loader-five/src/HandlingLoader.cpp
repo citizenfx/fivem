@@ -50,6 +50,194 @@ public:
 	}
 };
 
+// special post-processing helpers
+static int getIntField(char* handlingChar, uint32_t offset, const char* fieldName)
+{
+	auto hash = HashRageString(fieldName);
+
+	if (hash == HashRageString("strModelFlags"))
+	{
+		return *(int*)(handlingChar + 284);
+	}
+	else if (hash == HashRageString("strHandlingFlags"))
+	{
+		return *(int*)(handlingChar + 288);
+	}
+	else if (hash == HashRageString("strDamageFlags"))
+	{
+		return *(int*)(handlingChar + 292);
+	}
+	else if (hash == HashRageString("nInitialDriveGears"))
+	{
+		return *(uint8_t*)(handlingChar + offset);
+	}
+
+	return *(int*)(handlingChar + offset);
+}
+
+static int getFloatField(char* handlingChar, uint32_t offset, const char* fieldName)
+{
+	auto hash = HashRageString(fieldName);
+
+	if (hash == HashRageString("fDriveBiasFront") || hash == HashRageString("fBrakeBiasFront") || hash == HashRageString("fSuspensionBiasFront") ||
+		hash == HashRageString("fTractionBiasFront") || hash == HashRageString("fAntiRollBarBiasFront"))
+	{
+		return *(float*)(handlingChar + offset) / 2.0f;
+	}
+	else if (hash == HashRageString("fPercentSubmerged"))
+	{
+		// empty
+	}
+	else if (hash == HashRageString("fSteeringLock") || hash == HashRageString("fTractionCurveLateral"))
+	{
+		return *(float*)(handlingChar + offset) / 0.017453292f; // rad to deg
+	}
+	else if (hash == HashRageString("fInitialDriveMaxFlatVel"))
+	{
+		return *(float*)(handlingChar + offset) * 3.6f;
+	}
+	else if (hash == HashRageString("fInitialDragCoeff"))
+	{
+		return *(float*)(handlingChar + offset) / 0.0001f;
+	}
+	else if (hash == HashRageString("fSuspensionReboundDamp") || hash == HashRageString("fSuspensionCompDamp"))
+	{
+		return *(float*)(handlingChar + offset) / 0.1f;
+	}
+
+	return *(float*)(handlingChar + offset);
+}
+
+static void setIntField(char* handlingChar, uint32_t offset, int value, const char* fieldName)
+{
+	auto hash = HashRageString(fieldName);
+
+	if (hash == HashRageString("strModelFlags"))
+	{
+		*(int*)(handlingChar + 284) = value;
+		return;
+	}
+	else if (hash == HashRageString("strHandlingFlags"))
+	{
+		*(int*)(handlingChar + 288) = value;
+		return;
+	}
+	else if (hash == HashRageString("strDamageFlags"))
+	{
+		*(int*)(handlingChar + 292) = value;
+		return;
+	}
+	else if (hash == HashRageString("nInitialDriveGears"))
+	{
+		*(uint8_t*)(handlingChar + offset) = std::min(value, 7);
+		return;
+	}
+
+	*(int*)(handlingChar + offset) = value;
+}
+
+static void setFloatField(char* handlingChar, uint32_t offset, float value, const char* fieldName)
+{
+	auto hash = HashRageString(fieldName);
+
+	if (hash == HashRageString("fDriveBiasFront"))
+	{
+		if (value < 0.1f)
+		{
+			*(float*)(handlingChar + offset) = 0.0f;
+			*(float*)(handlingChar + offset + 4) = 1.0f; // rear
+		}
+		else if (value >= 0.9f)
+		{
+			*(float*)(handlingChar + offset) = 1.0f;
+			*(float*)(handlingChar + offset + 4) = 0.0f; // rear
+		}
+		else
+		{
+			*(float*)(handlingChar + offset) = value * 2.0f;
+			*(float*)(handlingChar + offset + 4) = (1.0f - value) * 2.0f;
+		}
+
+		return;
+	}
+	else if (hash == HashRageString("fBrakeBiasFront") || hash == HashRageString("fSuspensionBiasFront") ||
+		hash == HashRageString("fTractionBiasFront") || hash == HashRageString("fAntiRollBarBiasFront"))
+	{
+		*(float*)(handlingChar + offset) = value * 2.0f;
+		*(float*)(handlingChar + offset + 4) = (1.0f - value) * 2.0f; // rear
+
+		return;
+	}
+	else if (hash == HashRageString("fPercentSubmerged"))
+	{
+		*(float*)(handlingChar + 68) = 100.f / value;
+
+		// no return
+	}
+	else if (hash == HashRageString("fTractionCurveMin") || hash == HashRageString("fTractionCurveMax"))
+	{
+		// this one depends on both min and max, so set and then use value to recalculate
+		*(float*)(handlingChar + offset) = value;
+
+		float fTractionCurveMax = *(float*)(handlingChar + 136);
+		float fTractionCurveMin = *(float*)(handlingChar + 144);
+		
+		if (fTractionCurveMax == 0.0f)
+		{
+			*(float*)(handlingChar + 140) = 100000000.f;
+		}
+		else
+		{
+			*(float*)(handlingChar + 140) = 1.0 / fTractionCurveMax;
+		}
+
+		if (fTractionCurveMin > fTractionCurveMax)
+		{
+			*(float*)(handlingChar + 148) = 100000000.f;
+		}
+		else
+		{
+			*(float*)(handlingChar + 148) = 1.0 / (fTractionCurveMax - fTractionCurveMin);
+		}
+
+		return;
+	}
+	else if (hash == HashRageString("fTractionSpringDeltaMax"))
+	{
+		*(float*)(handlingChar + offset + 4) = 1.0f / value;
+
+		// no return
+	}
+	else if (hash == HashRageString("fSteeringLock") || hash == HashRageString("fTractionCurveLateral"))
+	{
+		*(float*)(handlingChar + offset) = value * 0.017453292f; // deg to rad
+		*(float*)(handlingChar + offset + 4) = 1.0f / (value * 0.017453292f);
+
+		return;
+	}
+	else if (hash == HashRageString("fInitialDriveMaxFlatVel"))
+	{
+		*(float*)(handlingChar + offset) = value / 3.6f;
+		*(float*)(handlingChar + offset - 4) = (value / 3.6f) * 1.2f;
+
+		return;
+	}
+	else if (hash == HashRageString("fInitialDragCoeff"))
+	{
+		*(float*)(handlingChar + offset) = value * 0.0001f;
+		
+		return;
+	}
+	else if (hash == HashRageString("fSuspensionReboundDamp") || hash == HashRageString("fSuspensionCompDamp"))
+	{
+		*(float*)(handlingChar + offset) = value * 0.1f;
+
+		return;
+	}
+
+	*(float*)(handlingChar + offset) = value;
+}
+
 static rage::parStructure* g_parserStructure;
 atArray<CHandlingData*>* g_handlingData;
 
@@ -74,11 +262,11 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 				switch ((*member)->type)
 				{
 					case rage::parMemberType::Float:
-						*(float*)(handlingChar + offset) = context.GetArgument<float>(3);
+						setFloatField(handlingChar, offset, context.GetArgument<float>(3), handlingField);
 						break;
 
 					case rage::parMemberType::Int:
-						*(int*)(handlingChar + offset) = context.GetArgument<int>(3);
+						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
 						break;
 
 					case rage::parMemberType::String:
@@ -165,11 +353,11 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 					switch ((*member)->type)
 					{
 						case rage::parMemberType::Float:
-							context.SetResult<T>((T)(*(float*)(handlingChar + offset)));
+							context.SetResult<T>((T)(getFloatField(handlingChar, offset, handlingField)));
 							break;
 
 						case rage::parMemberType::Int:
-							context.SetResult<T>((T)(*(int*)(handlingChar + offset)));
+							context.SetResult<T>((T)(getIntField(handlingChar, offset, handlingField)));
 							break;
 
 						case rage::parMemberType::Vector3:
@@ -216,11 +404,11 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 
 static InitFunction initFunction([] ()
 {
-	fx::ScriptEngine::RegisterNativeHandler("SET_HANDLING_FIELD", [] (fx::ScriptContext& context)
+	auto handlingFieldFunc = [](fx::ScriptContext& context)
 	{
 		const char* handlingName = context.GetArgument<const char*>(0);
 		uint32_t nameHash = HashString(handlingName);
-		
+
 		for (uint16_t i = 0; i < g_handlingData->GetCount(); i++)
 		{
 			auto handlingData = g_handlingData->Get(i);
@@ -234,7 +422,12 @@ static InitFunction initFunction([] ()
 
 		trace("No such handling name %s in SET_HANDLING_FIELD.\n", handlingName);
 		context.SetResult(false);
-	});
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_HANDLING_FIELD", handlingFieldFunc);
+	fx::ScriptEngine::RegisterNativeHandler("SET_HANDLING_FLOAT", handlingFieldFunc);
+	fx::ScriptEngine::RegisterNativeHandler("SET_HANDLING_INT", handlingFieldFunc);
+	fx::ScriptEngine::RegisterNativeHandler("SET_HANDLING_VECTOR", handlingFieldFunc);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HANDLING_FLOAT", [] (fx::ScriptContext& context)
 	{
@@ -252,10 +445,10 @@ static InitFunction initFunction([] ()
 		GetVehicleHandling<int>(context, "GET_VEHICLE_HANDLING_VECTOR");
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_HANDLING_FIELD", [] (fx::ScriptContext& context)
+	auto vehicleHandlingFieldFunc = [](fx::ScriptContext& context)
 	{
 		int veh = context.GetArgument<int>(0);
-		
+
 		rage::fwEntity* entity = getScriptEntity(veh);
 
 		if (entity)
@@ -279,7 +472,12 @@ static InitFunction initFunction([] ()
 
 			context.SetResult(false);
 		}
-	});
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_HANDLING_FIELD", vehicleHandlingFieldFunc);
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_HANDLING_FLOAT", vehicleHandlingFieldFunc);
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_HANDLING_INT", vehicleHandlingFieldFunc);
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_HANDLING_VECTOR", vehicleHandlingFieldFunc);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ADDRESS", [] (fx::ScriptContext& context)
 	{

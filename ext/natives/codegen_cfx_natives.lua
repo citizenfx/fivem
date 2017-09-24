@@ -1001,4 +1001,275 @@ native 'GET_CAM_MATRIX'
 	</summary>
 ]]
 
--- TODO: handling field natives
+native 'EXPERIMENTAL_SAVE_CLONE_CREATE'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'client'
+	returns 'charPtr'
+	doc [[
+	<summary>
+	This native is not implemented.
+	</summary>
+]]
+
+native 'EXPERIMENTAL_SAVE_CLONE_SYNC'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'client'
+	returns 'charPtr'
+	doc [[
+	<summary>
+	This native is not implemented.
+	</summary>
+]]
+
+native 'EXPERIMENTAL_LOAD_CLONE_CREATE'
+	arguments {
+		charPtr 'data',
+		int 'objectId',
+		charPtr 'tree'
+	}
+	apiset 'client'
+	returns 'Entity'
+	doc [[
+	<summary>
+	This native is not implemented.
+	</summary>
+]]
+
+native 'EXPERIMENTAL_LOAD_CLONE_SYNC'
+	arguments {
+		Entity 'entity',
+		charPtr 'data'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	This native is not implemented.
+	</summary>
+]]
+
+native 'SET_HANDLING_FIELD'
+	arguments {
+		charPtr 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		Any 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a global handling override for a specific vehicle class. The name is supposed to match the `handlingName` field from handling.meta.
+
+	Example: `SetHandlingField('AIRTUG', 'CHandlingData', 'fSteeringLock', 360.0)`
+	</summary>
+	<param name="vehicle">The vehicle class to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The value to set.</param>
+]]
+
+native 'SET_HANDLING_FLOAT'
+	arguments {
+		charPtr 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		float 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a global handling override for a specific vehicle class. The name is supposed to match the `handlingName` field from handling.meta.
+
+	Example: `SetHandlingFloat('AIRTUG', 'CHandlingData', 'fSteeringLock', 360.0)`
+	</summary>
+	<param name="vehicle">The vehicle class to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The floating-point value to set.</param>
+]]
+
+native 'SET_HANDLING_INT'
+	arguments {
+		charPtr 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		int 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a global handling override for a specific vehicle class. The name is supposed to match the `handlingName` field from handling.meta.
+	</summary>
+	<param name="vehicle">The vehicle class to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The integer value to set.</param>
+]]
+
+native 'SET_HANDLING_VECTOR'
+	arguments {
+		charPtr 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		Vector3 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a global handling override for a specific vehicle class. The name is supposed to match the `handlingName` field from handling.meta.
+
+	Example: `SetHandlingVector('AIRTUG', 'CHandlingData', 'vecCentreOfMassOffset', vector3(0.0, 0.0, -5.0))`
+	</summary>
+	<param name="vehicle">The vehicle class to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The Vector3 value to set.</param>
+]]
+
+native 'GET_VEHICLE_HANDLING_FLOAT'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName'
+	}
+	apiset 'client'
+	returns 'float'
+	doc [[
+	<summary>
+	Returns the effective handling data of a vehicle as a floating-point value.
+
+	Example: `local fSteeringLock = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fSteeringLock')`
+	</summary>
+	<param name="vehicle">The vehicle to obtain data for.</param>
+	<param name="class">The handling class to get. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to get. These match the keys in `handling.meta`.</param>
+	<returns>A floating-point value.</returns>
+]]
+
+native 'GET_VEHICLE_HANDLING_INT'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName'
+	}
+	apiset 'client'
+	returns 'int'
+	doc [[
+	<summary>
+	Returns the effective handling data of a vehicle as an integer value.
+
+	Example: `local modelFlags = GetVehicleHandlingInt(vehicle, 'CHandlingData', 'strModelFlags')`
+	</summary>
+	<param name="vehicle">The vehicle to obtain data for.</param>
+	<param name="class">The handling class to get. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to get. These match the keys in `handling.meta`.</param>
+	<returns>An integer.</returns>
+]]
+
+native 'GET_VEHICLE_HANDLING_VECTOR'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName'
+	}
+	apiset 'client'
+	returns 'Vector3'
+	doc [[
+	<summary>
+	Returns the effective handling data of a vehicle as a vector value.
+
+	Example: `local inertiaMultiplier = GetVehicleHandlingVector(vehicle, 'CHandlingData', 'vecInertiaMultiplier')`
+	</summary>
+	<param name="vehicle">The vehicle to obtain data for.</param>
+	<param name="class">The handling class to get. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to get. These match the keys in `handling.meta`.</param>
+	<returns>An integer.</returns>
+]]
+
+native 'SET_VEHICLE_HANDLING_FIELD'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		Any 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using `SET_HANDLING_FIELD`, this might require some experimentation.
+
+	Example: `SetVehicleHandlingField(vehicle, 'CHandlingData', 'fSteeringLock', 360.0)`
+	</summary>
+	<param name="vehicle">The vehicle to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The value to set.</param>
+]]
+
+native 'SET_VEHICLE_HANDLING_FLOAT'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		float 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using `SET_HANDLING_FLOAT`, this might require some experimentation.
+
+	Example: `SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fSteeringLock', 360.0)`
+	</summary>
+	<param name="vehicle">The vehicle to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The floating-point value to set.</param>
+]]
+
+native 'SET_VEHICLE_HANDLING_INT'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		int 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using `SET_HANDLING_INT`, this might require some experimentation.
+	</summary>
+	<param name="vehicle">The vehicle to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The integer value to set.</param>
+]]
+
+native 'SET_VEHICLE_HANDLING_VECTOR'
+	arguments {
+		Vehicle 'vehicle',
+		charPtr 'class',
+		charPtr 'fieldName',
+		Vector3 'value'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using `SET_HANDLING_VECTOR`, this might require some experimentation.
+	</summary>
+	<param name="vehicle">The vehicle to set data for.</param>
+	<param name="class">The handling class to set. Only "CHandlingData" is supported at this time.</param>
+	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
+	<param name="value">The Vector3 value to set.</param>
+]]
