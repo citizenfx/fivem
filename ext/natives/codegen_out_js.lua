@@ -4,6 +4,70 @@ local function printFunctionName(native)
 	end)
 end
 
+-- js's reserved words
+local langWords = {
+	['abstract'] = '_abstract',
+	['else'] = '_else',
+	['instanceof'] = '_instanceof',
+	['super'] = '_super',
+	['boolean'] = '_boolean',
+	['enum'] = '_enum',
+	['int'] = '_int',
+	['switch'] = '_switch',
+	['break'] = '_break',
+	['export'] = '_export',
+	['interface'] = '_interface',
+	['synchronized'] = '_synchronized',
+	['byte'] = '_byte',
+	['extends'] = '_extends',
+	['let'] = '_let',
+	['this'] = '_this',
+	['case'] = '_case',
+	['false'] = '_false',
+	['long'] = '_long',
+	['throw'] = '_throw',
+	['catch'] = '_catch',
+	['final'] = '_final',
+	['native'] = '_native',
+	['throws'] = '_throws',
+	['char'] = '_char',
+	['finally'] = '_finally',
+	['new'] = '_new',
+	['transient'] = '_transient',
+	['class'] = '_class',
+	['float'] = '_float',
+	['null'] = '_null',
+	['true'] = '_true',
+	['const'] = '_const',
+	['for'] = '_for',
+	['package'] = '_package',
+	['try'] = '_try',
+	['continue'] = '_continue',
+	['function'] = '_function',
+	['private'] = '_private',
+	['typeof'] = '_typeof',
+	['debugger'] = '_debugger',
+	['goto'] = '_goto',
+	['protected'] = '_protected',
+	['var'] = '_var',
+	['default'] = '_default',
+	['if'] = '_if',
+	['public'] = '_public',
+	['void'] = '_void',
+	['delete'] = '_delete',
+	['implements'] = '_implements',
+	['return'] = '_return',
+	['volatile'] = '_volatile',
+	['do'] = '_do',
+	['import'] = '_import',
+	['short'] = '_short',
+	['while'] = '_while',
+	['double'] = '_double',
+	['in'] = '_in',
+	['static'] = '_static',
+	['with'] = '_with'
+}
+
 -- sort the natives table
 local _natives = {}
 
@@ -54,8 +118,8 @@ print("const _ENV = null;\n")
 
 -- functions
 local function printArgumentName(name)
-	if name == 'var' then
-		return 'var_'
+	if langWords[name] then
+		name = langWords[name]
 	end
 
 	return name
