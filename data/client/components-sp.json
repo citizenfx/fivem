@@ -27,5 +27,6 @@
 	"net:http-server",
 	"net:tcp-server",
 	"scripting:gta",
-	"handling-loader:five"
+	"handling-loader:five",
+	"scripthookv"
 ]
