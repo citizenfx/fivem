@@ -235,7 +235,7 @@ void FontRendererImpl::DrawPerFrame()
 					auto subRun = &glyphRun->subRuns[i];
 
 					g_fontRenderer.GetGameInterface()->SetTexture(subRun->texture);
-					g_fontRenderer.GetGameInterface()->DrawIndexedVertices(subRun->numVertices, subRun->numIndices, subRun->vertices, subRun->indices);
+					g_fontRenderer.GetGameInterface()->DrawIndexedVertices(subRun->numVertices, subRun->numIndices, subRun->vertices, (uint16_t*)subRun->indices);
 					g_fontRenderer.GetGameInterface()->UnsetTexture();
 				}
 

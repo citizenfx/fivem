@@ -68,7 +68,11 @@ public:
 };
 
 typedef FontRendererVertex ResultingVertex;
-typedef uint16_t ResultingIndex;
+
+struct ResultingIndex : public FrpUseSequentialAllocator
+{
+	uint16_t index;
+};
 
 struct ResultingSubGlyphRun : public FrpUseSequentialAllocator
 {

@@ -110,13 +110,13 @@ void CachedFont::TargetGlyphRunInternal(float originX, float originY, const DWRI
 			thisRun->vertices[3].v = address.fY2;
 			thisRun->vertices[3].color = color;
 
-			thisRun->indices[0] = 0;
-			thisRun->indices[1] = 1;
-			thisRun->indices[2] = 2;
+			thisRun->indices[0].index = 0;
+			thisRun->indices[1].index = 1;
+			thisRun->indices[2].index = 2;
 
-			thisRun->indices[3] = 2;
-			thisRun->indices[4] = 3;
-			thisRun->indices[5] = 0;
+			thisRun->indices[3].index = 2;
+			thisRun->indices[4].index = 3;
+			thisRun->indices[5].index = 0;
 
 			thisRun->order = runCount;
 
@@ -233,7 +233,7 @@ ResultingGlyphRun* CachedFont::TargetGlyphRun(float originX, float originY, cons
 				{
 					for (uint32_t i = 0; i < run->numIndices; i++)
 					{
-						run->indices[i] += numVertices;
+						run->indices[i].index += numVertices;
 					}
 
 					numIndices += run->numIndices;
