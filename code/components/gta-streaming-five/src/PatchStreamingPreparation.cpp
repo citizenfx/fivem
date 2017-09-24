@@ -7,6 +7,8 @@
 #include <Error.h>
 #include <ICoreGameInit.h>
 
+#include <Brofiler.h>
+
 static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
 
 static std::map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>, std::less<>> g_handleMap;
@@ -14,6 +16,8 @@ static std::map<std::string, int> g_failures;
 
 static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, int* requests, int a5, int a6, int a7)
 {
+	PROFILE;
+
 	int remainingRequests = g_origHandleObjectLoad(streaming, a2, a3, requests, a5, a6, a7);
 
 	for (int i = remainingRequests - 1; i >= 0; i--)
@@ -55,6 +59,8 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 			if (isCache)
 			{
+				BROFILER_EVENT("isCache");
+
 				rage::fiDevice* device;
 				uint64_t handle;
 				uint64_t ptr;
@@ -72,7 +78,12 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 				if (handle != -1)
 				{
 					char readBuffer[2048];
-					uint32_t numRead = device->ReadBulk(handle, ptr, readBuffer, 2048);
+					uint32_t numRead;
+					
+					{
+						BROFILER_EVENT("readBulk");
+						numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFE);
+					}
 
 					bool killHandle = true;
 

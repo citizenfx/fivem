@@ -12,6 +12,8 @@
 
 #include <concurrent_unordered_set.h>
 
+#include <Brofiler.h>
+
 namespace fx
 {
 	fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
@@ -161,6 +163,8 @@ auto ResourceCacheDevice::AllocateHandle(THandle* idx) -> HandleData*
 
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 {
+	PROFILE;
+
 	// is it fetched already?
 	if (handleData->status == HandleData::StatusFetched)
 	{
@@ -171,12 +175,16 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	{
 		if (m_blocking)
 		{
+			BROFILER_EVENT("block on Fetching");
+
 			std::unique_lock<std::mutex> lock(handleData->lockMutex);
 			handleData->lockVar.wait(lock);
 		}
 
 		return false;
 	}
+
+	BROFILER_EVENT("set StatusFetching");
 
 	handleData->status = HandleData::StatusFetching;
 
@@ -282,6 +290,8 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	if (m_blocking)
 	{
+		BROFILER_EVENT("block on NotFetched");
+
 		std::unique_lock<std::mutex> lock(handleData->lockMutex);
 		handleData->lockVar.wait(lock);
 	}
@@ -327,6 +337,12 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 
 	// if the file isn't fetched, fetch it first
 	bool fetched = EnsureFetched(handleData);
+
+	// special sentinel for PatchStreamingPreparation to determine if file is fetched
+	if (size == 0xFFFFFFFE)
+	{
+		return (handleData->status == HandleData::StatusFetched) ? 2048 : 0;
+	}
 
 	// not fetched and non-blocking - return 0
 	if (handleData->status == HandleData::StatusNotFetched || handleData->status == HandleData::StatusFetching)

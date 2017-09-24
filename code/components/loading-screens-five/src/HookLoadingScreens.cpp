@@ -14,12 +14,15 @@
 #include <udis86.h>
 #include <jitasm.h>
 
+#include <Brofiler.h>
+
 static int g_instrumentedFuncs;
 
 struct InstrumentedFuncMeta
 {
 	uint32_t tickCount;
 	void* func;
+	void* callFunc;
 	int index;
 };
 
@@ -27,6 +30,23 @@ static std::stack<InstrumentedFuncMeta> g_lastInstrumentedFuncs;
 
 fwEvent<int, void*, void*> OnInstrumentedFunctionCall;
 
+struct LoadScreenFuncs
+{
+	static void OnBegin(const InstrumentedFuncMeta& data)
+	{
+		OnInstrumentedFunctionCall(data.index, data.callFunc, data.func);
+	}
+
+	static void OnEnd(const InstrumentedFuncMeta& data)
+	{
+		if (data.index != 67 && data.index != 68)
+		{
+			trace("instrumented function %p (%i) took %dmsec\n", data.func, data.index, (timeGetTime() - data.tickCount));
+		}
+	}
+};
+
+template<typename TFunctor>
 struct InstrumentedCallStub : public jitasm::Frontend
 {
 	InstrumentedCallStub(int idx, uintptr_t originFunc, uintptr_t targetFunc)
@@ -42,20 +62,18 @@ struct InstrumentedCallStub : public jitasm::Frontend
 			auto data = g_lastInstrumentedFuncs.top();
 			g_lastInstrumentedFuncs.pop();
 
-			if (data.index != 67 && data.index != 68)
-			{
-				trace("instrumented function %p (%i) took %dmsec\n", data.func, data.index, (timeGetTime() - data.tickCount));
-			}
+			TFunctor::OnEnd(data);
 		}
 
 		InstrumentedFuncMeta meta;
 		meta.tickCount = timeGetTime();
 		meta.func = targetFn;
+		meta.callFunc = callFn;
 		meta.index = index;
 
 		g_lastInstrumentedFuncs.push(meta);
 
-		OnInstrumentedFunctionCall(index, callFn, targetFn);
+		TFunctor::OnBegin(meta);
 	}
 
 	virtual void InternalMain() override
@@ -93,6 +111,7 @@ private:
 	int m_index;
 };
 
+template<typename TFunctor>
 int InstrumentFunction(void* fn, std::vector<void*>& outFunctions)
 {
 	ud_t ud;
@@ -120,6 +139,19 @@ int InstrumentFunction(void* fn, std::vector<void*>& outFunctions)
 			break;
 		}
 
+		// if this is a 32-bit JMP, break as well
+		if (ud_insn_mnemonic(&ud) == UD_Ijmp)
+		{
+			// get the first operand
+			auto operand = ud_insn_opr(&ud, 0);
+
+			// if the operand is immediate
+			if (operand->type == UD_OP_JIMM && operand->size == 32)
+			{
+				break;
+			}
+		}
+
 		if (ud_insn_mnemonic(&ud) == UD_Icall)
 		{
 			// get the first operand
@@ -132,7 +164,7 @@ int InstrumentFunction(void* fn, std::vector<void*>& outFunctions)
 				uintptr_t targetPtr = static_cast<uintptr_t>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
 				uintptr_t callPtr   = static_cast<uintptr_t>(ud_insn_off(&ud));
 
-				auto stub = new InstrumentedCallStub(numFuncs, callPtr, targetPtr);
+				auto stub = new InstrumentedCallStub<TFunctor>(numFuncs, callPtr, targetPtr);
 				hook::call(callPtr, stub->GetCode());
 
 				outFunctions.push_back((void*)targetPtr);
@@ -259,15 +291,69 @@ static HookFunction hookFunction([] ()
 	hook::jump(hook::get_pattern("4C 8B C9 45 85 C0 79 05 45 33 C0 EB 07 44", -0x0B), &CDataFileMgr::FindPreviousEntry);
 
 	std::vector<void*> functions;
-	InstrumentFunction(hook::get_call(hook::get_pattern("41 B0 01 48 8B D3 E8 ? ? ? ? E8", 24)), functions);
+	InstrumentFunction<LoadScreenFuncs>(hook::get_call(hook::get_pattern("41 B0 01 48 8B D3 E8 ? ? ? ? E8", 24)), functions);
 
-	InstrumentFunction(functions[4], functions);
+	InstrumentFunction<LoadScreenFuncs>(functions[4], functions);
 
 	// don't play game loading music
 	if (!CfxIsSinglePlayer())
 	{
 		hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
 	}
+
+#ifdef USE_PROFILER
+	struct ProfilerMetaData
+	{
+		Profiler::EventDescription* desc;
+		std::unique_ptr<Profiler::Event> ev;
+	};
+
+	static std::unordered_map<void*, ProfilerMetaData> g_profilerMap;
+
+	struct ProfilerFuncs
+	{
+		static void OnBegin(const InstrumentedFuncMeta& func)
+		{
+			if (func.func == (void*)0x1407A948C)
+			{
+				return;
+			}
+
+			auto it = g_profilerMap.find(func.func);
+
+			if (it == g_profilerMap.end())
+			{
+				it = g_profilerMap.emplace(func.func, ProfilerMetaData{ Profiler::EventDescription::Create(strdup(va("ProfileFunc %llx", (uintptr_t)func.func)), __FILE__, __LINE__, Profiler::Color::Red), nullptr }).first;
+			}
+
+			it->second.ev = std::make_unique<Profiler::Event>(*it->second.desc);
+		}
+
+		static void OnEnd(const InstrumentedFuncMeta& func)
+		{
+			if (func.func == (void*)0x1407A948C)
+			{
+				return;
+			}
+
+			auto it = g_profilerMap.find(func.func);
+
+			if (it != g_profilerMap.end())
+			{
+				it->second.ev = nullptr;
+			}
+		}
+	};
+
+	std::vector<void*> proFunctions;
+	InstrumentFunction<ProfilerFuncs>(hook::get_pattern("B9 05 00 00 00 E8 ? ? ? ? 48 8D 0D", -0x13), proFunctions);
+	InstrumentFunction<ProfilerFuncs>(proFunctions[2], proFunctions);
+	InstrumentFunction<ProfilerFuncs>(proFunctions[7], proFunctions);
+
+	// CStreaming::Update
+	// don't use it tends to break the profiler output
+	//InstrumentFunction<ProfilerFuncs>(hook::get_pattern("BF 01 00 00 00 84 C0 75 23 38 1D ? ? ? ? 75", -0x51), proFunctions);
+#endif
 
 	// 'should packfile meta cache be used'
 	//hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);

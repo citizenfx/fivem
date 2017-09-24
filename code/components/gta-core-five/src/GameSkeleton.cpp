@@ -3,6 +3,8 @@
 
 #include <ETWProviders/etwprof.h>
 
+#include <Brofiler.h>
+
 #include <gameSkeleton.h>
 #include <Error.h>
 
@@ -129,13 +131,80 @@ namespace rage
 
 		trace(__FUNCTION__ ": Done running %s init functions!\n", InitFunctionTypeToString(type));
 	}
+
+	static void RunEntries(gameSkeleton_updateBase* update)
+	{
+		for (auto entry = update; entry; entry = entry->m_nextPtr)
+		{
+#if USE_PROFILER
+			static std::unordered_map<uint32_t, Profiler::EventDescription*> events;
+
+			auto it = events.find(entry->m_hash);
+
+			if (it == events.end())
+			{
+				auto entryIt = g_initFunctionNames.find(entry->m_hash);
+				std::string name;
+
+				if (entryIt != g_initFunctionNames.end())
+				{
+					name = entryIt->second;
+				}
+				else
+				{
+					name = fmt::sprintf("0x%08x", entry->m_hash);
+				}
+
+				it = events.emplace(entry->m_hash, Profiler::EventDescription::Create(strdup(va("%s update", name)), __FILE__, __LINE__, Profiler::Color::Beige)).first;
+			}
+
+			Profiler::Event event(*it->second);
+#endif
+
+			entry->Run();
+		}
+	}
+
+	void gameSkeleton::RunUpdate(int type)
+	{
+#if USE_PROFILER
+		static Profiler::EventDescription* events[3];
+		if (events[type] == nullptr)
+		{
+			events[type] = Profiler::EventDescription::Create(strdup(va("gameSkeleton update %d", type)), __FILE__, __LINE__, Profiler::Color::Gold);
+		}
+
+		Profiler::Event outerEvent(*events[type]);
+#endif
+
+		for (auto list = m_updateFunctionList; list; list = list->next)
+		{
+			if (list->type == type)
+			{
+				RunEntries(list->entry);
+			}
+		}
+	}
+
+	void gameSkeleton_updateBase::RunGroup()
+	{
+		RunEntries(this->m_childPtr);
+	}
 }
 
 static HookFunction hookFunction([] ()
 {
-	void* loc = hook::pattern("BA 04 00 00 00 E8 ? ? ? ? E8 ? ? ? ? E8").count(1).get(0).get<void>(5);
+	{
+		void* loc = hook::pattern("BA 04 00 00 00 E8 ? ? ? ? E8 ? ? ? ? E8").count(1).get(0).get<void>(5);
 
-	hook::jump(hook::get_call(loc), hook::get_member(&rage::gameSkeleton::RunInitFunctions));
+		hook::jump(hook::get_call(loc), hook::get_member(&rage::gameSkeleton::RunInitFunctions));
+	}
+
+	{
+		hook::jump(hook::get_call(hook::get_pattern("48 8D 0D ? ? ? ? BA 01 00 00 00 E8 ? ? ? ? E8 ? ? ? ?", 12)), hook::get_member(&rage::gameSkeleton::RunUpdate));
+	}
+
+	hook::jump(hook::get_pattern("40 53 48 83 EC 20 48 8B 59 20 EB 0D 48 8B 03 48"), hook::get_member(&rage::gameSkeleton_updateBase::RunGroup));
 });
 
 static const char* const g_initFunctionKnown[] = {

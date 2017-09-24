@@ -10,6 +10,8 @@
 
 #include "Hooking.h"
 
+#include <Brofiler.h>
+
 #include <scrEngine.h>
 
 namespace fx
@@ -25,6 +27,19 @@ namespace fx
 
 		return boost::optional<TNativeHandler>([=] (ScriptContext& context)
 		{
+#if USE_PROFILER
+			static std::unordered_map<uint64_t, Profiler::EventDescription*> staticDescriptions;
+
+			auto it = staticDescriptions.find(nativeIdentifier);
+
+			if (it == staticDescriptions.end())
+			{
+				it = staticDescriptions.emplace(nativeIdentifier, Profiler::EventDescription::Create(va("NativeHandler %llx", nativeIdentifier), __FILE__, __LINE__, Profiler::Color::Azure)).first;
+			}
+
+			Profiler::Event ev(*it->second);
+#endif
+
 			// push arguments from the original context
 			NativeContext rageContext;
 			
