@@ -302,7 +302,7 @@ inline void CoreSetDebuggerPresent()
         func = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetDebuggerPresent");
     }
 
-    (func) ? func() : 0;
+    (func) ? func() : (void)0;
 }
 
 inline void CoreTrace(const char* channel, const char* funcName, const char* file, int line, const char* string)
@@ -316,7 +316,7 @@ inline void CoreTrace(const char* channel, const char* funcName, const char* fil
 		func = (TCoreTraceFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreTrace");
 	}
 
-	(func) ? func(channel, funcName, file, line, string) : 0;
+	(func) ? func(channel, funcName, file, line, string) : (void)0;
 }
 #else
 inline bool CoreIsDebuggerPresent()

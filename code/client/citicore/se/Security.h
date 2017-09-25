@@ -141,7 +141,7 @@ inline void seCreateContext(fwRefContainer<se::Context>* outContext)
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "seCreateContext");
 	}
 
-	return (func) ? func(outContext) : nullptr;
+	return (func) ? func(outContext) : (void)nullptr;
 }
 #else
 extern "C" se::Context* seGetCurrentContext();

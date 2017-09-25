@@ -21,7 +21,7 @@ inline void Printf(ConsoleChannel channel, const char* format, const fmt::ArgLis
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "Printf");
 	}
 
-	(func) ? func(channel, format, argumentList) : 0;
+	(func) ? func(channel, format, argumentList) : (void)0;
 }
 
 inline void DPrintf(ConsoleChannel channel, const char* format, const fmt::ArgList& argumentList)
@@ -35,7 +35,7 @@ inline void DPrintf(ConsoleChannel channel, const char* format, const fmt::ArgLi
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "DPrintf");
 	}
 
-	(func) ? func(channel, format, argumentList) : 0;
+	(func) ? func(channel, format, argumentList) : (void)0;
 }
 
 inline void PrintWarning(ConsoleChannel channel, const char* format, const fmt::ArgList& argumentList)
@@ -49,7 +49,7 @@ inline void PrintWarning(ConsoleChannel channel, const char* format, const fmt::
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "PrintWarning");
 	}
 
-	(func) ? func(channel, format, argumentList) : 0;
+	(func) ? func(channel, format, argumentList) : (void)0;
 }
 
 inline void PrintError(ConsoleChannel channel, const char* format, const fmt::ArgList& argumentList)
@@ -63,7 +63,7 @@ inline void PrintError(ConsoleChannel channel, const char* format, const fmt::Ar
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "PrintError");
 	}
 
-	(func) ? func(channel, format, argumentList) : 0;
+	(func) ? func(channel, format, argumentList) : (void)0;
 }
 
 inline void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
@@ -77,7 +77,7 @@ inline void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreAddPrintListener");
 	}
 
-	(func) ? func(function) : 0;
+	(func) ? func(function) : (void)0;
 }
 #else
 extern "C" void Printf(ConsoleChannel channel, const char* format, const fmt::ArgList& argumentList);

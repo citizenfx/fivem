@@ -28,8 +28,5 @@ project "CitiCore"
 
 	defines "COMPILING_CORE"
 
-	pchsource "../common/StdInc.cpp"
-	pchheader "StdInc.h"
-
 	configuration "not windows"
 		links { "dl" }

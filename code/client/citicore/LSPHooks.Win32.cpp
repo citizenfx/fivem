@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#ifndef IS_FXSERVER
 #include <minhook.h>
 
 static LONG(WINAPI* g_origRegOpenKeyExA)(HKEY key, const char* subKey, DWORD options, REGSAM samDesired, PHKEY outKey);
@@ -155,3 +157,4 @@ void LSP_InitializeHooks()
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
+#endif

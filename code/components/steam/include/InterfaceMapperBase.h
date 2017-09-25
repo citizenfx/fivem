@@ -38,14 +38,14 @@ protected:
 
 	inline bool IsValidCodePointer(void* ptr)
 	{
-		register uintptr_t pointer = reinterpret_cast<uintptr_t>(ptr);
+		uintptr_t pointer = reinterpret_cast<uintptr_t>(ptr);
 
 		return (pointer >= m_moduleValidStart && pointer <= m_moduleValidEnd);
 	}
 
 	inline bool IsValidDataPointer(void* ptr)
 	{
-		register uintptr_t pointer = reinterpret_cast<uintptr_t>(ptr);
+		uintptr_t pointer = reinterpret_cast<uintptr_t>(ptr);
 
 		return (pointer >= m_moduleValidDataStart && pointer <= m_moduleValidDataEnd);
 	}

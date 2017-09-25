@@ -6,6 +6,8 @@
  */
 
 #include "StdInc.h"
+
+#ifndef IS_FXSERVER
 #include <minhook.h>
 
 #ifdef _M_AMD64
@@ -369,4 +371,5 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 
 	trace("Initialized system mapping!\n");
 }
+#endif
 #endif

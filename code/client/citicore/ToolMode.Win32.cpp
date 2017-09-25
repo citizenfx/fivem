@@ -144,8 +144,10 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 			remnantOptions.erase(remnantOptions.begin());
 
 			// parse and store in a new map
+			auto parser = bpo::wcommand_line_parser(remnantOptions);
 			bpo::variables_map vm;
-			commandImpl->SetupCommandLineParser(bpo::wcommand_line_parser(remnantOptions), [&] (boost::program_options::wcommand_line_parser& parser)
+
+			commandImpl->SetupCommandLineParser(parser, [&] (boost::program_options::wcommand_line_parser& parser)
 			{
 				bpo::store(parser.run(), vm);
 			});

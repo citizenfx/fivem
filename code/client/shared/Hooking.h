@@ -8,6 +8,8 @@
 #pragma once
 
 #include <stdint.h>
+
+#ifndef IS_FXSERVER
 #include <jitasm.h>
 
 #include <memory>
@@ -694,3 +696,4 @@ struct get_func_ptr<TMember TClass::*>
 
 #include "Hooking.Invoke.h"
 #include "Hooking.Patterns.h"
+#endif

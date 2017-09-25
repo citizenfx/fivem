@@ -108,7 +108,9 @@ static void PatchSteamAMD64Bug(void* methodPtr)
 				{
 					if (immMoveCount == 2 && source->lval.sdword == 8)
 					{
+#ifndef IS_FXSERVER
 						hook::putVP<uint32_t>(ud_insn_off(&ud) + 2, 4);
+#endif
 
 						g_isOldSpawnProcess = true;
 

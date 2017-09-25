@@ -111,8 +111,8 @@ concurrency::task<ProfileIdentityResult> ROSIdentityProvider::ProcessIdentity(fw
 	std::shared_ptr<HttpClient> httpClient = std::make_shared<HttpClient>(GetROSVersionString());
 
 	// get the id/password
-	auto& usernameIt = parameters.find("username");
-	auto& passwordIt = parameters.find("password");
+	auto usernameIt = parameters.find("username");
+	auto passwordIt = parameters.find("password");
 
 	auto& username = usernameIt->second;
 	auto& password = passwordIt->second;

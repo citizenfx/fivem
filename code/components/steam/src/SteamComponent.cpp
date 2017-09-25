@@ -254,7 +254,7 @@ void SteamComponent::RemoveSteamCallback(int registeredID)
 {
 	m_callbackMutex.lock();
 
-	for (auto& it = m_userCallbacks.begin(); it != m_userCallbacks.end(); it++)
+	for (auto it = m_userCallbacks.begin(); it != m_userCallbacks.end(); it++)
 	{
 		if (it->second.first == registeredID)
 		{

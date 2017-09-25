@@ -6,6 +6,8 @@
  */
 
 #include "StdInc.h"
+
+#ifndef IS_FXSERVER
 #include <minhook.h>
 
 #ifdef _M_AMD64
@@ -215,3 +217,4 @@ struct InitMHWrapper
 };
 
 InitMHWrapper mh;
+#endif

@@ -127,7 +127,7 @@ inline void CreateContext(Context* parentContext, fwRefContainer<Context>* outCo
 		func = (TCoreFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CreateContext");
 	}
 
-	return (func) ? func(parentContext, outContext) : nullptr;
+	return (func) ? func(parentContext, outContext) : (void)nullptr;
 }
 #else
 extern "C" Context* GetDefaultContext();

@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#ifndef IS_FXSERVER
 #include <DirectXMath.h>
 
 #include <d3dcompiler.h>
@@ -67,3 +69,4 @@ extern "C"
 		return pOut;
 	}
 }
+#endif

@@ -245,7 +245,7 @@ void ProfileManagerImpl::ParseStoredProfiles(const std::string& profileList)
 
 						if (parametersMember.IsObject())
 						{
-							for (auto& it = parametersMember.MemberBegin(); it != parametersMember.MemberEnd(); it++)
+							for (auto it = parametersMember.MemberBegin(); it != parametersMember.MemberEnd(); it++)
 							{
 								auto& name = it->name;
 								auto& value = it->value;
