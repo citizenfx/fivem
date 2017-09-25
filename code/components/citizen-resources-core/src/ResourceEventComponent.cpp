@@ -110,7 +110,6 @@ void ResourceEventComponent::QueueEvent(const std::string& eventName, const std:
 }
 
 ResourceEventManagerComponent::ResourceEventManagerComponent()
-	: m_wasLastEventCanceled(false)
 {
 
 }
@@ -131,12 +130,15 @@ void ResourceEventManagerComponent::Tick()
 	}
 }
 
+static thread_local bool g_wasLastEventCanceled;
+static thread_local std::stack<bool*> g_eventCancelationStack;
+
 bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource /* = std::string() */)
 {
 	// add a value to signify event cancelation
 	bool eventCanceled = false;
 
-	m_eventCancelationStack.push(&eventCanceled);
+	g_eventCancelationStack.push(&eventCanceled);
 
 	// trigger global handlers for the event
 	OnTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
@@ -159,13 +161,26 @@ bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, c
 	});
 
 	// pop the stack entry
-	m_eventCancelationStack.pop();
+	g_eventCancelationStack.pop();
 
 	// set state
-	m_wasLastEventCanceled = eventCanceled;
+	g_wasLastEventCanceled = eventCanceled;
 
 	// return whether it was *not* canceled
 	return !eventCanceled;
+}
+
+bool ResourceEventManagerComponent::WasLastEventCanceled()
+{
+	return g_wasLastEventCanceled;
+}
+
+void ResourceEventManagerComponent::CancelEvent()
+{
+	if (!g_eventCancelationStack.empty())
+	{
+		*(g_eventCancelationStack.top()) = true;
+	}
 }
 
 void ResourceEventManagerComponent::QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource /* = std::string() */)

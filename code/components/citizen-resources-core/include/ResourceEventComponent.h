@@ -110,10 +110,6 @@ private:
 
 	tbb::concurrent_queue<EventData> m_eventQueue;
 
-	std::stack<bool*> m_eventCancelationStack;
-
-	bool m_wasLastEventCanceled;
-
 private:
 	void Tick();
 
@@ -123,21 +119,12 @@ public:
 	//
 	// Returns whether or not the last event that completed fully was canceled.
 	//
-	inline bool WasLastEventCanceled()
-	{
-		return m_wasLastEventCanceled;
-	}
+	bool WasLastEventCanceled();
 
 	//
 	// Cancel the current event.
 	//
-	inline void CancelEvent()
-	{
-		if (!m_eventCancelationStack.empty())
-		{
-			*(m_eventCancelationStack.top()) = true;
-		}
-	}
+	void CancelEvent();
 
 	//
 	// An event to handle event execution externally.
