@@ -465,7 +465,6 @@ void NetLibrary::RunFrame()
 			if (m_impl->HasTimedOut())
 			{
 				g_disconnectReason = "Connection timed out.";
-				FinalizeDisconnect();
 
 				OnConnectionTimedOut();
 
