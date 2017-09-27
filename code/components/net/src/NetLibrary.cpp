@@ -549,7 +549,11 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 					}
 
 					lib->Disconnect(errorMessage.substr(0, nlPos).c_str());
-					lib->FinalizeDisconnect();
+
+					if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+					{
+						lib->FinalizeDisconnect();
+					}
 				}
 
 				return true;
@@ -811,8 +815,12 @@ void NetLibrary::Disconnect(const char* reason)
 	//GameInit::KillNetwork((const wchar_t*)1);
 }
 
+static std::mutex g_disconnectionMutex;
+
 void NetLibrary::FinalizeDisconnect()
 {
+	std::unique_lock<std::mutex> lock(g_disconnectionMutex);
+
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE)
 	{
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);

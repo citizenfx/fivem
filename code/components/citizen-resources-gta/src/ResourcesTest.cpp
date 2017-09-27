@@ -69,6 +69,13 @@ bool RangeLengthMatches(const T&... args)
 	return SequenceEquals(std::distance(args.begin(), args.end())...);
 }
 
+struct ResourceEntryListComponent : public fwRefCountable
+{
+	std::deque<std::pair<std::string, std::string>> list;
+};
+
+DECLARE_INSTANCE_TYPE(ResourceEntryListComponent);
+
 static InitFunction initFunction([] ()
 {
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
@@ -78,7 +85,7 @@ static InitFunction initFunction([] ()
 
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
-		auto entryList = std::make_shared<std::deque<std::pair<std::string, std::string>>>();
+		resource->SetComponent(new ResourceEntryListComponent());
 
 		resource->OnStart.Connect([=] ()
 		{
@@ -116,6 +123,8 @@ static InitFunction initFunction([] ()
 			auto view1 = metaData->GetEntries("data_file");
 			auto view2 = metaData->GetEntries("data_file_extra");
 
+			auto entryListComponent = resource->GetComponent<ResourceEntryListComponent>();
+
 			for (auto it1 = view1.begin(), end1 = view1.end(), it2 = view2.begin(), end2 = view2.end(); it1 != end1 && it2 != end2; ++it1, ++it2)
 			{
 				const std::string& type = it1->second;
@@ -129,7 +138,7 @@ static InitFunction initFunction([] ()
 					auto path = resourceRoot + document.GetString();
 
 					streaming::AddDataFileToLoadList(type, path);
-					entryList->push_front({ type, path });
+					entryListComponent->list.push_front({ type, path });
 				}
 			}
 
@@ -147,12 +156,14 @@ static InitFunction initFunction([] ()
 
 		resource->OnStop.Connect([=] ()
 		{
-			for (const auto& entry : *entryList)
+			auto entryListComponent = resource->GetComponent<ResourceEntryListComponent>();
+
+			for (const auto& entry : entryListComponent->list)
 			{
 				streaming::RemoveDataFileFromLoadList(entry.first, entry.second);
 			}
 
-			entryList->clear();
+			entryListComponent->list.clear();
 		}, -500);
 	});
 

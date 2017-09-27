@@ -135,7 +135,7 @@ private:
 
 	uint32_t m_hostBase;
 
-	ConnectionState m_connectionState;
+	volatile ConnectionState m_connectionState;
 
 	ConnectionState m_lastConnectionState;
 

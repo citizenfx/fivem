@@ -491,6 +491,8 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnFinalizeDisconnect.Connect([=] (NetAddress address)
 		{
+			AddCrashometry("reset_resources", "true");
+
 			Instance<fx::ResourceManager>::Get()->ResetResources();
 		});
 

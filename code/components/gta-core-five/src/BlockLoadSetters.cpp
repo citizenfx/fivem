@@ -1102,6 +1102,8 @@ void ShutdownSessionWrap()
 	g_isNetworkKilled = true;
 	*g_initState = MapInitState(14);
 
+	AddCrashometry("kill_network_game", "true");
+
 	OnKillNetworkDone();
 	
 	g_shutdownSession();
