@@ -84,6 +84,8 @@ public:
 	fwEvent<> OnGameFinalizeLoad;
 
 	fwEvent<> OnGameRequestLoad;
+
+	fwEvent<> OnShutdownSession;
 };
 
 DECLARE_INSTANCE_TYPE(ICoreGameInit);

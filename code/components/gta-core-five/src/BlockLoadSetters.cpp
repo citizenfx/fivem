@@ -1105,8 +1105,12 @@ void ShutdownSessionWrap()
 	AddCrashometry("kill_network_game", "true");
 
 	OnKillNetworkDone();
-	
+
 	g_shutdownSession();
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession();
+
+	g_shouldKillNetwork = false;
 
 	while (g_isNetworkKilled)
 	{

@@ -28,6 +28,8 @@
 
 #include <Error.h>
 
+#include <ICoreGameInit.h>
+
 #include <pplawait.h>
 #include <experimental/resumable>
 
@@ -489,7 +491,7 @@ static InitFunction initFunction([] ()
 			netLibrary->SendReliableCommand("msgServerEvent", buffer.GetBuffer(), buffer.GetCurLength());
 		});
 
-		netLibrary->OnFinalizeDisconnect.Connect([=] (NetAddress address)
+		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([=] ()
 		{
 			AddCrashometry("reset_resources", "true");
 
