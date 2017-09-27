@@ -118,12 +118,13 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			auto entryListComponent = resource->GetComponent<ResourceEntryListComponent>();
+
 			streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
+			entryListComponent->list.push_front({ "RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf" });
 
 			auto view1 = metaData->GetEntries("data_file");
 			auto view2 = metaData->GetEntries("data_file_extra");
-
-			auto entryListComponent = resource->GetComponent<ResourceEntryListComponent>();
 
 			for (auto it1 = view1.begin(), end1 = view1.end(), it2 = view2.begin(), end2 = view2.end(); it1 != end1 && it2 != end2; ++it1, ++it2)
 			{
