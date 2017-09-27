@@ -52,6 +52,15 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 				this.closeLabel = "#Servers_CancelOverlay";
 			}
 		});
+
+		this.gameService.errorMessage.subscribe(message => {
+			this.overlayTitle = '#Servers_Error';
+			this.overlayMessage = '#Servers_Message';
+			this.overlayMessageData = {message};
+			this.showOverlay = true;
+			this.overlayClosable = true;
+			this.closeLabel = "#Servers_CloseOverlay";
+		});
 	}
 
 	closeOverlay() {

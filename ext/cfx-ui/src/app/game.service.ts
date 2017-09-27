@@ -30,6 +30,8 @@ export abstract class GameService {
 	connectStatus = new EventEmitter<ConnectStatus>();
 	connecting = new EventEmitter<Server>();
 
+	errorMessage = new EventEmitter<string>();
+
 	devModeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
 
@@ -87,6 +89,10 @@ export abstract class GameService {
 
 	protected invokeConnectFailed(server: Server, message: string) {
 		this.connectFailed.emit([server, message]);
+	}
+
+	protected invokeError(message: string) {
+		this.errorMessage.emit(message);
 	}
 
 	protected invokeConnecting(server: Server) {
@@ -150,6 +156,9 @@ export class CfxGameService extends GameService {
 					case 'connectFailed':
 						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message));
 						break;
+					case 'setWarningMessage':
+						this.zone.run(() => this.invokeError(event.data.message));
+						break;
 					case 'connecting':
 						this.zone.run(() => this.invokeConnecting(this.lastServer));
 						break;
@@ -202,6 +211,8 @@ export class CfxGameService extends GameService {
 		this.connecting.subscribe(server => {
 			this.inConnecting = false;
 		});
+
+		(<any>window).invokeNative('loadWarning', '');
 	}
 
 	get nickname(): string {
@@ -398,6 +409,8 @@ export class DummyGameService extends GameService {
 
 	exitGame(): void {
 		console.log('Exiting now');
+
+		this.invokeError('You can\'t exit in a browser!');
 	}
 
 	get nickname(): string {
