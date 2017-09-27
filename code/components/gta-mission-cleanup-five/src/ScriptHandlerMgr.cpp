@@ -68,18 +68,16 @@ void CGameScriptHandlerMgr::scriptHandlerHashMap::Set(uint32_t* hash, rage::scri
 static void(*g_origDetachScript)(void*, void*);
 void WrapDetachScript(void* a1, void* script)
 {
-#ifndef _DEBUG
+	// sometimes scripts here are on the C++ side, which use a copied scripthandler from another script
+	// these will except as they're _already_ freed, so we catch that exception here
 	__try
 	{
-#endif
 		g_origDetachScript(a1, script);
-#ifndef _DEBUG
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		trace("CGameScriptHandlerMgr::DetachScript() excepted, caught and returned.\n");
 	}
-#endif
 }
 
 #include <mutex>
