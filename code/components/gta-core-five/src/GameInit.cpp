@@ -33,6 +33,7 @@ static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
 });
 
 static bool g_showWarningMessage;
+static std::string g_warningMessage;
 
 void FiveGameInit::KillNetwork(const wchar_t* errorString)
 {
@@ -47,10 +48,10 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 
 		if (!g_showWarningMessage)
 		{
-			AddCustomText("CFX_NETERR", smallReason.c_str());
-			AddCustomText("CFX_NETERR_TITLE", "\xD0\x9E\xD0\xA8\xD0\x98\xD0\x91\xD0\x9A\xD0\x90"); // Oshibka!
-
+			g_warningMessage = smallReason;
 			g_showWarningMessage = true;
+
+			SetData("warningMessage", g_warningMessage);
 
 			OnKillNetwork(smallReason.c_str());
 		}
@@ -115,18 +116,9 @@ static InitFunction initFunction([] ()
 	{
 		if (g_showWarningMessage)
 		{
-			uint32_t titleHash = HashString("CFX_NETERR_TITLE");
-			uint32_t messageHash = HashString("CFX_NETERR");
-			uint32_t noneHash = 0;
+			g_showWarningMessage = false;
 
-			setWarningMessage(0, &titleHash, &messageHash, &noneHash, 2,  0, -1, 0, 0, 1, 0);
-
-			if (getWarningResult(0, 0) == 2)
-			{
-				g_showWarningMessage = false;
-
-				OnMsgConfirm();
-			}
+			OnMsgConfirm();
 		}
 	});
 

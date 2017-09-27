@@ -1110,8 +1110,6 @@ void ShutdownSessionWrap()
 
 	while (g_isNetworkKilled)
 	{
-		Sleep(50);
-
 		// warning screens apparently need to run on main thread
 		OnGameFrame();
 		OnMainGameFrame();
