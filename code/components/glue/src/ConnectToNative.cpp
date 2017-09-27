@@ -13,6 +13,7 @@
 #include <nutsnbolts.h>
 #include <ConsoleHost.h>
 #include <CoreConsole.h>
+#include <ICoreGameInit.h>
 //New libs needed for saveSettings
 #include <fstream>
 #include <sstream>
@@ -214,6 +215,28 @@ static InitFunction initFunction([] ()
 		{
 			saveSettings(arg);
 			trace("Settings saved!\n");
+		}
+		else if (!_wcsicmp(type, L"loadWarning"))
+		{
+			std::string warningMessage;
+
+			if (Instance<ICoreGameInit>::Get()->GetData("warningMessage", &warningMessage))
+			{
+				if (!warningMessage.empty())
+				{
+					rapidjson::Document document;
+					document.SetString(warningMessage.c_str(), document.GetAllocator());
+
+					rapidjson::StringBuffer sbuffer;
+					rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+					document.Accept(writer);
+
+					nui::ExecuteRootScript(fmt::sprintf("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setWarningMessage', message: %s }, '*');", sbuffer.GetString()));
+				}
+
+				Instance<ICoreGameInit>::Get()->SetData("warningMessage", "");
+			}
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
