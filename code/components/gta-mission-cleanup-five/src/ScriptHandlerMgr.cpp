@@ -84,19 +84,6 @@ void WrapDetachScript(void* a1, void* script)
 
 CGameScriptHandlerMgr* CGameScriptHandlerMgr::GetInstance()
 {
-	// if the vtable is set
-	if (*(uintptr_t*)g_scriptHandlerMgr)
-	{
-		static std::once_flag of;
-
-		std::call_once(of, []()
-		{
-			uintptr_t* vtable = *(uintptr_t**)g_scriptHandlerMgr;
-			g_origDetachScript = ((decltype(g_origDetachScript))vtable[11]);
-			vtable[11] = (uintptr_t)WrapDetachScript;
-		});
-	}
-
 	return g_scriptHandlerMgr;
 }
 
@@ -149,3 +136,13 @@ namespace rage
 		return false;
 	}
 }
+
+static HookFunction hookFunctionVtbl([]()
+{
+	{
+		auto vtable = hook::get_address<uintptr_t*>(hook::get_pattern("41 83 C8 FF 48 89 03 89 53 70 88 53 74 4C 89 4B", -11));
+
+		g_origDetachScript = ((decltype(g_origDetachScript))vtable[11]);
+		vtable[11] = (uintptr_t)WrapDetachScript;
+	}
+});
