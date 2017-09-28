@@ -91,11 +91,11 @@
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
-							<PoolSize value="150"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandler</PoolName>
-							<PoolSize value="150"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>ClothStore</PoolName>
@@ -183,7 +183,7 @@
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="60000"/>
 						</Item>
 						<Item>
 							<PoolName>DwdStore</PoolName>
@@ -283,7 +283,7 @@
 						</Item>
 						<Item>
 							<PoolName>Object</PoolName>
-							<PoolSize value="2300"/>
+							<PoolSize value="3300"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionInteriorInfo</PoolName>
