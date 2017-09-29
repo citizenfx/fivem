@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include <ServerIdentityProvider.h>
 
+#include <HttpClient.h>
+
 #define STEAM_API_KEY "04246554B51E8C14ED537C55A4BA4CD7"
 #define STEAM_APPID 218
 

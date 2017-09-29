@@ -302,6 +302,27 @@ static struct MhInit
 	}
 } mhInit;
 
+bool(*g_origShouldWriteToPlayer)(void* a1, void* a2, int playerIdx, int a4);
+
+static bool ShouldWriteToPlayerWrap(void* a1, void* a2, int playerIdx, int a4)
+{
+	if (playerIdx == 31)
+	{
+		return true;
+	}
+
+	return g_origShouldWriteToPlayer(a1, a2, playerIdx, a4);
+}
+
+void*(*g_origGetNetObjPosition)(void*, void*);
+
+static void* GetNetObjPositionWrap(void* a1, void* a2)
+{
+	trace("getting netobj %llx position\n", (uintptr_t)a1);
+
+	return g_origGetNetObjPosition(a1, a2);
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto registerPools = [] (hook::pattern& patternMatch, int callOffset, int hashOffset)
@@ -360,6 +381,11 @@ static HookFunction hookFunction([] ()
 
 	// in a bit of a wrong place, but OK
 	MH_CreateHook(hook::get_call(hook::get_pattern("0D ? ? ? ? B2 01 E8 ? ? ? ? B0 01 48", 7)), LoadObjectsNowWrap, (void**)&g_origLoadObjectsNow);
+
+	// eh
+	MH_CreateHook(hook::get_pattern("41 8B D9 41 8A E8 4C 8B F2 48 8B F9", -0x19), ShouldWriteToPlayerWrap, (void**)&g_origShouldWriteToPlayer);
+
+	//MH_CreateHook((void*)0x141068F3C, GetNetObjPositionWrap, (void**)&g_origGetNetObjPosition);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });
