@@ -6,6 +6,7 @@
 		"net",
 		"rage:nutsnbolts:five",
 		"citizen:resources:core",
+		"scripting",
 		"vendor:msgpack-c"
 	],
 	"provides": []
