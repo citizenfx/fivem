@@ -108,6 +108,11 @@ namespace CitizenFX.Core
 			{
 				var nativeUtf8 = new IntPtr(BitConverter.ToInt64(ptr, 0));
 
+				if (nativeUtf8 == IntPtr.Zero)
+				{
+					return null;
+				}
+
 				var len = 0;
 				while (Marshal.ReadByte(nativeUtf8, len) != 0)
 				{
