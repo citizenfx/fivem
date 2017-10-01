@@ -110,6 +110,15 @@ std::string GetType(void* d)
 	return typeName;
 }
 
+static void(*g_origUnsetGameObj)(void*, void*, bool, bool);
+
+static void UnsetGameObjAndContinue(void* netobj, void* ped, bool a3, bool a4)
+{
+	*(void**)((char*)netobj + 80) = nullptr;
+
+	g_origUnsetGameObj(netobj, ped, a3, a4);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -320,5 +329,12 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("F7 04 C2 00 00 10 00 74 5A");
 		hook::nop(location, 7);
 		hook::call_reg<1>(location, colFixStub1.GetCode());
+	}
+
+	// CPed destruction in CNetObjPlayer creation: unset netobj gameobject
+	{
+		auto location = hook::get_pattern("74 24 41 B1 01 45 33 C0 48 8B D3 48 8B CF E8", 14);
+		hook::set_call(&g_origUnsetGameObj, location);
+		hook::call(location, UnsetGameObjAndContinue);
 	}
 });
