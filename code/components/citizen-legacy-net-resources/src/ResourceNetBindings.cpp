@@ -379,6 +379,12 @@ static InitFunction initFunction([] ()
 			});
 		});
 
+		netLibrary->OnConnectionError.Connect([](const char* error)
+		{
+			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			resourceManager->ResetResources();
+		});
+
 		OnGameFrame.Connect([] ()
 		{
 			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
