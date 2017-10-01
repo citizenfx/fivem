@@ -423,6 +423,10 @@
 							<PoolSize value="900"/>
 						</Item>
 						<Item>
+							<PoolName>netGameEvent</PoolName>
+							<PoolSize value="1200"/>
+						</Item>
+						<Item>
 							<PoolName>CMoveObject</PoolName>
 							<PoolSize value="180"/>
 						</Item>
