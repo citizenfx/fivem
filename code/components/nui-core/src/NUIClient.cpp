@@ -10,6 +10,9 @@
 #include "NUIRenderHandler.h"
 #include "CefOverlay.h"
 #include "memdbgon.h"
+#include "HttpClient.h"
+
+#include <rapidjson/document.h>
 
 #include <sstream>
 
@@ -19,6 +22,30 @@ NUIClient::NUIClient(NUIWindow* window)
 	m_windowValid = true;
 
 	m_renderHandler = new NUIRenderHandler(this);
+
+	auto httpClient = Instance<HttpClient>::Get();
+	httpClient->DoGetRequest("https://runtime.fivem.net/nui-blacklist.json", [=](bool success, const char* data, size_t length)
+	{
+		if (success)
+		{
+			rapidjson::Document doc;
+			doc.Parse(data, length);
+
+			if (!doc.HasParseError())
+			{
+				if (doc.IsArray())
+				{
+					for (auto it = doc.Begin(); it != doc.End(); ++it)
+					{
+						if (it->IsString())
+						{
+							m_requestBlacklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
+						}
+					}
+				}
+			}
+		}
+	});
 }
 
 void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType)
@@ -77,8 +104,25 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString&
 	msg << sourceStr << ":" << line << ", " << messageStr << std::endl;
 
 	OutputDebugString(msg.str().c_str());
+	trace("%s\n", ToNarrow(msg.str()));
 
 	return false;
+}
+
+auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+{
+	for (auto& reg : m_requestBlacklist)
+	{
+		std::string url = request->GetURL().ToString();
+
+		if (std::regex_search(url, reg))
+		{
+			trace("Blocked a request for blacklisted URI %s\n", url);
+			return RV_CANCEL;
+		}
+	}
+
+	return RV_CONTINUE;
 }
 
 void NUIClient::AddProcessMessageHandler(std::string key, TProcessMessageHandler handler)
@@ -102,6 +146,11 @@ CefRefPtr<CefContextMenuHandler> NUIClient::GetContextMenuHandler()
 }
 
 CefRefPtr<CefLoadHandler> NUIClient::GetLoadHandler()
+{
+	return this;
+}
+
+CefRefPtr<CefRequestHandler> NUIClient::GetRequestHandler()
 {
 	return this;
 }

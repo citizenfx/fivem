@@ -12,7 +12,9 @@
 #include <NUIWindow.h>
 #include <include/cef_client.h>
 
-class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler
+#include <regex>
+
+class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRequestHandler
 {
 private:
 	fwRefContainer<NUIWindow> m_window;
@@ -21,6 +23,8 @@ private:
 	std::recursive_mutex m_windowLock;
 
 	CefRefPtr<CefBrowser> m_browser;
+
+	std::vector<std::regex> m_requestBlacklist;
 
 public:
 	NUIClient(NUIWindow* window);
@@ -46,6 +50,7 @@ protected:
 	virtual CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override;
 	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override;
+	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
 
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
@@ -76,6 +81,10 @@ protected:
 // CefDisplayHandler
 protected:
 	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString& message, const CefString& source, int line) override;
+
+// CefRequestHandler
+protected:
+	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
 
 	IMPLEMENT_REFCOUNTING(NUIClient);
 };
