@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using CitizenFX.Core.Native;
+using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -378,7 +379,14 @@ namespace CitizenFX.Core
 			}
 		}
 
+		[SecuritySafeCritical]
 		public static string GetDisplayNameFromHash(WeaponHash hash)
+		{
+			return GetDisplayNameFromHashInternal(hash);
+		}
+
+		[SecurityCritical]
+		private static string GetDisplayNameFromHashInternal(WeaponHash hash)
 		{
 			switch (hash)
 			{
