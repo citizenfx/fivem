@@ -469,6 +469,9 @@ void NetLibrary::RunFrame()
 				OnConnectionTimedOut();
 
 				GlobalError("Server connection timed out after 15 seconds.");
+
+				m_connectionState = CS_IDLE;
+				m_currentServer = NetAddress();
 			}
 
 			break;
