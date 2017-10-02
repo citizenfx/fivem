@@ -30,7 +30,7 @@
 						</Item>
 						<Item>
 							<PoolName>Building</PoolName>
-							<PoolSize value="55000"/>
+							<PoolSize value="65000"/>
 						</Item>
 						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
@@ -426,6 +426,11 @@
 							<PoolName>netGameEvent</PoolName>
 							<PoolSize value="1200"/>
 						</Item>
+						<Item>
+							<PoolName>atDNetEventNode</PoolName>
+							<PoolSize value="1400"/>
+						</Item>
+
 						<Item>
 							<PoolName>CMoveObject</PoolName>
 							<PoolSize value="180"/>
