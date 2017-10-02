@@ -12,6 +12,8 @@
 
 #include <concurrent_unordered_set.h>
 
+#include <ICoreGameInit.h>
+
 #include <Brofiler.h>
 
 namespace fx
@@ -159,8 +161,6 @@ auto ResourceCacheDevice::AllocateHandle(THandle* idx) -> HandleData*
 	return nullptr;
 }
 
-#include <ICoreGameInit.h>
-
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 {
 	PROFILE;
@@ -208,6 +208,12 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			fx::OnCacheDownloadStatus(fmt::sprintf("%s%s/%s", m_pathPrefix, handleData->entry.resourceName, handleData->entry.basename), info.downloadNow, info.downloadTotal);
 		}
 	};
+
+	std::string connectionToken;
+	if (Instance<ICoreGameInit>::Get()->GetData("connectionToken", &connectionToken))
+	{
+		options.headers["X-CitizenFX-Token"] = connectionToken;
+	}
 
 	// http request
 	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=] (bool result, const char* errorData, size_t outSize)
