@@ -36,6 +36,11 @@ namespace fx
 			m_clientsByTcpEndPoint[weakClient.lock()->GetTcpEndPoint()] = weakClient;
 		});
 
+		client->OnAssignConnectionToken.Connect([=]()
+		{
+			m_clientsByConnectionToken[weakClient.lock()->GetConnectionToken()] = weakClient;
+		});
+
 		OnClientCreated(client.get());
 
 		return client;

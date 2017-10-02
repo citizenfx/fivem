@@ -100,6 +100,8 @@ namespace fx
 		inline void SetConnectionToken(const std::string& value)
 		{
 			m_connectionToken = value;
+
+			OnAssignConnectionToken();
 		}
 
 		inline std::chrono::milliseconds GetLastSeen()
@@ -136,6 +138,7 @@ namespace fx
 		fwEvent<> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
 		fwEvent<> OnAssignTcpEndPoint;
+		fwEvent<> OnAssignConnectionToken;
 
 	private:
 		// a temporary token for tying HTTP connections to UDP connections

@@ -38,6 +38,7 @@ namespace fx
 		{
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
+			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
 			m_clients[client->GetGuid()] = nullptr;
 		}
 
@@ -118,6 +119,22 @@ namespace fx
 			return ptr;
 		}
 
+		inline std::shared_ptr<Client> GetClientByConnectionToken(const std::string& token)
+		{
+			auto ptr = std::shared_ptr<Client>();
+			auto it = m_clientsByConnectionToken.find(token);
+
+			if (it != m_clientsByConnectionToken.end())
+			{
+				if (!it->second.expired())
+				{
+					ptr = it->second.lock();
+				}
+			}
+
+			return ptr;
+		}
+
 		inline void ForAllClients(const std::function<void(const std::shared_ptr<Client>&)>& cb)
 		{
 			for (auto& client : m_clients)
@@ -146,6 +163,7 @@ namespace fx
 		tbb::concurrent_unordered_map<uint32_t, std::weak_ptr<Client>> m_clientsByNetId;
 		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
+		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByConnectionToken;
 		tbb::concurrent_unordered_map<ENetPeer*, std::weak_ptr<Client>> m_clientsByPeer;
 
 		std::atomic<uint16_t> m_curNetId;
