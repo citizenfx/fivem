@@ -331,10 +331,75 @@ static HookFunction hookFunction([] ()
 		hook::call_reg<1>(location, colFixStub1.GetCode());
 	}
 
+	// crash signature hash (1103): october-michigan-lithium (allocator corruption)
 	// CPed destruction in CNetObjPlayer creation: unset netobj gameobject
 	{
 		auto location = hook::get_pattern("74 24 41 B1 01 45 33 C0 48 8B D3 48 8B CF E8", 14);
 		hook::set_call(&g_origUnsetGameObj, location);
 		hook::call(location, UnsetGameObjAndContinue);
+	}
+
+	// crash signature hash (1103): chicken-harry-undress
+	// vehicle gadget attachment(?) used in towtrucks, CObject matrix stuff
+	static const float dummy_matrices[] = {
+		// 0
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+		// 64
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+		// 128
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+		// 192
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+		// 256
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+		// 320
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+	};
+
+	static struct : jitasm::Frontend
+	{
+		void InternalMain() override
+		{
+			sub(rsp, 8);
+
+			test(rax, rax);
+			jz("returnDummy");
+
+			mov(rax, qword_ptr[rax + 0x10]);
+			jmp("return");
+
+			L("returnDummy");
+			mov(rax, (uintptr_t)&dummy_matrices);
+
+			L("return");
+			movss(xmm0, dword_ptr[rbp + 0x60]);
+
+			add(rsp, 8);
+			ret();
+		}
+	} gadgetFixStub1;
+
+	{
+		auto location = hook::get_pattern("48 8B 40 10 F3 0F 10 45 60 F3 0F 10 8D 80 00 00");
+		hook::nop(location, 9);
+		hook::call_reg<1>(location, gadgetFixStub1.GetCode());
 	}
 });
