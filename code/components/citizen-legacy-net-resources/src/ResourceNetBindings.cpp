@@ -30,6 +30,8 @@
 
 #include <ICoreGameInit.h>
 
+#include <ResourceGameLifetimeEvents.h>
+
 #include <pplawait.h>
 #include <experimental/resumable>
 
@@ -495,6 +497,15 @@ static InitFunction initFunction([] ()
 			buffer.Write(eventPayload.c_str(), eventPayload.size());
 
 			netLibrary->SendReliableCommand("msgServerEvent", buffer.GetBuffer(), buffer.GetCurLength());
+		});
+
+
+		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
+		{
+			Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
+			{
+				resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect();
+			});
 		});
 
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([=] ()

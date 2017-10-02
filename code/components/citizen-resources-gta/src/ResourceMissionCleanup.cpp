@@ -20,6 +20,8 @@
 
 #include <Pool.h>
 
+#include <ResourceGameLifetimeEvents.h>
+
 struct DummyThread : public GtaThread
 {
 	DummyThread(fx::Resource* resource)
@@ -90,6 +92,10 @@ static InitFunction initFunction([] ()
 {
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
+		// TODO: factor this out elsewhere
+		resource->SetComponent(new fx::ResourceGameLifetimeEvents());
+
+		// continue init
 		auto data = std::make_shared<MissionCleanupData>();
 
 		resource->OnStart.Connect([=] ()
@@ -197,7 +203,7 @@ static InitFunction initFunction([] ()
 			rage::scrEngine::SetActiveThread(data->lastThread);
 		}, 10000);
 
-		resource->OnStop.Connect([=] ()
+		auto cleanupResource = [=]()
 		{
 			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
@@ -219,6 +225,16 @@ static InitFunction initFunction([] ()
 
 			// having the function content inlined causes a compiler ICE - so we do it separately
 			DeleteDummyThread(&data->dummyThread);
+		};
+
+		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect.Connect([=]()
+		{
+			cleanupResource();
+		});
+
+		resource->OnStop.Connect([=] ()
+		{
+			cleanupResource();
 		}, 10000);
 	});
 });
