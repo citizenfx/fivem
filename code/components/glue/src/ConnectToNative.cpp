@@ -165,7 +165,10 @@ static InitFunction initFunction([] ()
 
 			document.Accept(writer);
 
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectStatus', data: %s }, '*');", sbuffer.GetString()));
+			if (nui::HasMainUI())
+			{
+				nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectStatus', data: %s }, '*');", sbuffer.GetString()));
+			}
 		});
 	});
 
