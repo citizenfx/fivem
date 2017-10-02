@@ -140,7 +140,15 @@ static InitFunction initFunction([] ()
 				postMap["resources"] = updateList;
 			}
 
-			httpClient->DoPostRequest(address.GetWAddress(), address.GetPort(), L"/client", postMap, [=] (bool result, const char* data, size_t size)
+			HttpRequestOptions options;
+			
+			std::string connectionToken;
+			if (Instance<ICoreGameInit>::Get()->GetData("connectionToken", &connectionToken))
+			{
+				options.headers["X-CitizenFX-Token"] = connectionToken;
+			}
+
+			httpClient->DoPostRequest(fmt::sprintf("http://%s:%d/client", address.GetAddress(), address.GetPort()), httpClient->BuildPostString(postMap), options, [=] (bool result, const char* data, size_t size)
 			{
 				// keep a reference to the HTTP client
 				auto httpClientRef = httpClient;
