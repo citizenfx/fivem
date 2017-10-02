@@ -312,7 +312,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								MessageBox(nullptr, elevationComplaint, L"FiveM", MB_OK | MB_ICONWARNING);
 							}
 
-							return;
+							return 0;
 						}
 					}
 
