@@ -10,11 +10,12 @@
 class RageHashList
 {
 public:
-	RageHashList(std::initializer_list<std::string> list)
+	template<int Size>
+	RageHashList(const char*(&list)[Size])
 	{
-		for (auto& entry : list)
+		for (int i = 0; i < Size; i++)
 		{
-			m_lookupList.insert({ HashString(entry.c_str()), entry });
+			m_lookupList.insert({ HashString(list[i]), list[i] });
 		}
 	}
 
@@ -24,20 +25,20 @@ public:
 
 		if (it != m_lookupList.end())
 		{
-			return it->second;
+			return std::string(it->second);
 		}
 
 		return fmt::sprintf("0x%08x", hash);
 	}
 
 private:
-	std::map<uint32_t, std::string> m_lookupList;
+	std::map<uint32_t, std::string_view> m_lookupList;
 };
 
 static std::map<uint32_t, atPoolBase*> g_pools;
 static std::map<atPoolBase*, uint32_t> g_inversePools;
 
-static RageHashList poolEntries = {
+static const char* poolEntriesTable[] = {
 	"AnimatedBuilding",
 	"AttachmentExtension",
 	"AudioHeap",
@@ -189,6 +190,8 @@ static RageHashList poolEntries = {
 #include "gta_vtables.h"
 	"Decorator",
 };
+
+static RageHashList poolEntries(poolEntriesTable);
 
 GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 {
