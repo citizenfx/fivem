@@ -20,7 +20,7 @@ workflow dump_pdb {
             $basename = $pdb.BaseName
             $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
 
-            if (!($basename -eq "botan") -and !($basename -eq "gta-core-five")) {
+            if (!($basename -eq "botan")) {
                 Start-Process C:\f\dump_syms.exe -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
             }
         }
