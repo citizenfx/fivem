@@ -94,27 +94,34 @@ static InitFunction initFunction([] ()
 				// if this is the event 'we' handle...
 				if (eventName == "onPlayerJoining")
 				{
-					// deserialize the arguments
-					msgpack::unpacked msg;
-					msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
-
-					msgpack::object obj = msg.get();
-
-					// get the netid/name pair
-
-					// convert to an array
-					std::vector<msgpack::object> arguments;
-					obj.convert(arguments);
-
-					// get the fields from the dictionary, if existent
-					if (arguments.size() >= 2)
+					try
 					{
-						// convert to the concrete types
-						int netId = arguments[0].as<int>();
-						std::string name = arguments[1].as<std::string>();
+						// deserialize the arguments
+						msgpack::unpacked msg;
+						msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
 
-						// and add to the list
-						g_netIdToNames[netId] = name;
+						msgpack::object obj = msg.get();
+
+						// get the netid/name pair
+
+						// convert to an array
+						std::vector<msgpack::object> arguments;
+						obj.convert(arguments);
+
+						// get the fields from the dictionary, if existent
+						if (arguments.size() >= 2)
+						{
+							// convert to the concrete types
+							int netId = arguments[0].as<int>();
+							std::string name = arguments[1].as<std::string>();
+
+							// and add to the list
+							g_netIdToNames[netId] = name;
+						}
+					}
+					catch (std::runtime_error& e)
+					{
+						trace("Failed to unpack onPlayerJoining event: %s\n", e.what());
 					}
 				}
 			});
