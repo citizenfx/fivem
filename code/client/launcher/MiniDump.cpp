@@ -340,6 +340,8 @@ static std::wstring HashCrash(const std::wstring& key)
 	));
 }
 
+void NVSP_ShutdownSafely();
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
@@ -574,10 +576,19 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
 		});
 
+		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+		bool uploadCrashes = true;
+
+		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			uploadCrashes = (GetPrivateProfileInt(L"Game", L"DisableCrashUpload", 0, fpath.c_str()) != 1);
+		}
+
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
-		if (HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
+		if (uploadCrashes && HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
 #endif
 		{
 			crashId = responseBody;
@@ -612,6 +623,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		SetEvent(inheritedHandleBit);
 		WaitForSingleObject(parentProcess, INFINITE);
 	}
+
+	NVSP_ShutdownSafely();
 }
 
 bool InitializeExceptionHandler()

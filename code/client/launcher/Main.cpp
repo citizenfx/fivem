@@ -34,6 +34,7 @@ std::map<std::string, std::string> g_redirectionData;
 extern "C" int wmainCRTStartup();
 
 void DoPreLaunchTasks();
+void NVSP_DisableOnStartup();
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -339,6 +340,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			}
 		}
 	}
+
+	NVSP_DisableOnStartup();
 
 	// readd the game path into the PATH
 	newPath = MakeRelativeCitPath(L"bin\\crt") + L";" + MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"") + L";" + MakeRelativeGamePath(L"") + L"; " + std::wstring(pathBuf);
