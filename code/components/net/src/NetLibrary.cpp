@@ -615,6 +615,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			if (node["token"].IsDefined())
 			{
 				m_token = node["token"].as<std::string>();
+				Instance<ICoreGameInit>::Get()->SetData("connectionToken", m_token);
 			}
 
 			if (node["defer"].IsDefined())
