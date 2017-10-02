@@ -20,7 +20,7 @@ apk add --no-cache --virtual .dev-deps libc++-dev curl-dev clang clang-dev build
 pip install ply
 
 # download and build premake
-curl -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-src.zip
+curl -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-src.zip
 
 cd /tmp
 unzip -q premake.zip

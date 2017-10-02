@@ -28,8 +28,8 @@ load_privates('privates_config.lua')
 
 component
 {
-	name = 'platform:' .. os.get(),
-	rawName = os.get(),
+	name = 'platform:' .. os.target(),
+	rawName = os.target(),
 	vendor = { dummy = true }
 }
 
@@ -41,7 +41,9 @@ workspace "CitizenMP"
 
 	flags { "No64BitChecks" }
 
-	flags { "NoIncrementalLink", "NoEditAndContinue", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
+	flags { "NoIncrementalLink", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
+
+	editandcontinue 'Off'
 
 	includedirs {
 		"shared/",
@@ -61,7 +63,7 @@ workspace "CitizenMP"
 
 	location ((_OPTIONS['builddir'] or "build/") .. _OPTIONS['game'])
 
-	if os.is('windows') then
+	if os.istarget('windows') then
 		buildoptions '/std:c++latest'
 		buildoptions '/await'
 
@@ -70,7 +72,7 @@ workspace "CitizenMP"
 
 	-- special build dirs for FXServer
 	if _OPTIONS['game'] == 'server' then
-		location ((_OPTIONS['builddir'] or "build/") .. "server/" .. os.get())
+		location ((_OPTIONS['builddir'] or "build/") .. "server/" .. os.target())
 		architecture 'x64'
 		defines 'IS_FXSERVER'
 	end
@@ -78,7 +80,7 @@ workspace "CitizenMP"
 	local binroot = ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game']) .. '/'
 
 	if _OPTIONS['game'] == 'server' then
-		binroot = (_OPTIONS['bindir'] or "bin/") .. 'server/' .. os.get() .. '/'
+		binroot = (_OPTIONS['bindir'] or "bin/") .. 'server/' .. os.target() .. '/'
 	end
 
 	-- debug output
@@ -90,7 +92,7 @@ workspace "CitizenMP"
 		defines { '_ITERATOR_DEBUG_LEVEL=0' }
 
 		-- allow one level of inlining
-		if os.is('windows') then
+		if os.istarget('windows') then
 			buildoptions '/Ob1'
 		end
 
@@ -153,13 +155,15 @@ if _OPTIONS['game'] ~= 'server' then
 		pchheader "StdInc.h"
 end
 
-function premake.vstudio.cs2005.debugProps(cfg)
+require 'vstudio'
+
+premake.override(premake.vstudio.cs2005, 'debugProps', function(base, cfg)
 	if cfg.symbols == premake.ON then
 		_p(2,'<DebugSymbols>true</DebugSymbols>')
 	end
 	_p(2,'<DebugType>portable</DebugType>')
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
-end
+end)
 
 local function WriteDocumentationFileXml(_premake, _prj, value)
     _premake.w('<DocumentationFile>' .. string.gsub(_prj.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
@@ -178,7 +182,7 @@ end)
 		-- Missing XML comment for publicly visible type or member
 		disablewarnings 'CS1591'
 
-		flags { 'Unsafe' }
+		clr 'Unsafe'
 
 		files { "client/clrcore/*.cs", "client/clrcore/Math/*.cs" }
 

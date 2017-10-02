@@ -20,7 +20,7 @@ project "CitiCore"
 
 	add_dependencies { 'vendor:boost_program_options' }
 
-	if os.is('windows') then
+	if os.istarget('windows') then
 		add_dependencies { 'vendor:minhook', 'vendor:udis86' }
 	end
 

@@ -2,7 +2,7 @@ local a = ...
 
 return {
 	include = function()
-		if os.is('windows') then
+		if os.istarget('windows') then
 			includedirs { "../vendor/curl/include/" }
 
 			links { 'ws2_32', 'crypt32' }
@@ -12,7 +12,7 @@ return {
 	end,
 
 	run = function()
-		if not os.is('windows') then
+		if not os.istarget('windows') then
 			targetname 'curl_dummy'
 			language 'C'
 			kind 'StaticLib'
@@ -42,7 +42,7 @@ return {
 				  'CURL_DISABLE_DICT', 'CURL_DISABLE_RTSP', 'CURL_DISABLE_POP3', 'CURL_DISABLE_IMAP', 'CURL_DISABLE_SMTP',
 				  'CURL_DISABLE_RTMP', 'CURL_DISABLE_GOPHER', 'CURL_DISABLE_SMB', 'USE_IPV6', 'USE_NGHTTP2' }
 
-		if os.is('windows') then
+		if os.istarget('windows') then
 			defines { 'USE_WINDOWS_SSPI', 'USE_SCHANNEL' }
 		else
 			defines { 'USE_OPENSSL' }

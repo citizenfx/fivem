@@ -29,7 +29,7 @@ vendor_component 'boost_filesystem'
 vendor_component 'boost_random'
 vendor_component 'boost_system'
 
-if os.get() == 'windows' then
+if os.target() == 'windows' then
 	vendor_component 'minhook' -- r
 end
 

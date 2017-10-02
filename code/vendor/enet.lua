@@ -2,7 +2,7 @@ return {
 	include = function()
 		includedirs "../vendor/enet/include/"
 
-		if os.is('windows') then
+		if os.istarget('windows') then
 			links { 'ws2_32', 'winmm' }
 		end
 	end,
@@ -13,7 +13,7 @@ return {
 
 		defines { "HAS_INET_NTOP", "HAS_INET_PTON" }
 
-		if not os.is('windows') then
+		if not os.istarget('windows') then
 			defines { "HAS_SOCKLEN_T" }
 		end
 
