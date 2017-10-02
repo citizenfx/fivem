@@ -35,7 +35,7 @@ extern "C" int wmainCRTStartup();
 
 void DoPreLaunchTasks();
 
-void main()
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	bool toolMode = false;
 
@@ -49,7 +49,7 @@ void main()
 		// bootstrap the game
 		if (Bootstrap_RunInit())
 		{
-			return;
+			return 0;
 		}
 	}
 
@@ -106,7 +106,7 @@ void main()
 	// don't allow running a subprocess executable directly
 	if (MakeRelativeCitPath(L"").find(L"cache\\subprocess") != std::string::npos)
 	{
-		return;
+		return 0;
 	}
 
 	static HostSharedData<CfxState> initState("CfxInitState");
@@ -143,13 +143,13 @@ void main()
 	{
 		if (!Bootstrap_DoBootstrap())
 		{
-			return;
+			return 0;
 		}
 	}
 
 	if (InitializeExceptionHandler())
 	{
-		return;
+		return 0;
 	}
 
 	// load global dinput8.dll over any that might exist in the game directory
@@ -219,7 +219,7 @@ void main()
 
 			if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
 			{
-				return;
+				return 0;
 			}
 		}
 	}
@@ -329,7 +329,7 @@ void main()
 					if (GetLastError() == ERROR_ACCESS_DENIED)
 					{
 						MessageBox(nullptr, L"FiveM could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
-						return;
+						return 0;
 					}
 				}
 				else
@@ -361,7 +361,7 @@ void main()
 	if (GetFileAttributes(gameExecutable.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		MessageBox(nullptr, L"Could not find the game executable (" GAME_EXECUTABLE L") at the configured path. Please check your CitizenFX.ini file.", PRODUCT_NAME, MB_OK | MB_ICONERROR);
-		return;
+		return 0;
 	}
 
 #ifdef GTA_FIVE
@@ -397,7 +397,7 @@ void main()
 										   (fixedInfo->dwFileVersionLS >> 16),
 										   (fixedInfo->dwFileVersionLS & 0xFFFF)), PRODUCT_NAME, MB_OK | MB_ICONERROR);
 
-					return;
+					return 0;
 				}
 			}
 		}
@@ -459,6 +459,8 @@ void main()
 			printf("Could not initialize CoreRT.dll.\n");
 		}
 	}
+
+	return 0;
 }
 
 extern "C" __declspec(dllexport) DWORD NvOptimusEnablement = 1;
