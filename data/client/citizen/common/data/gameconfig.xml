@@ -424,11 +424,11 @@
 						</Item>
 						<Item>
 							<PoolName>netGameEvent</PoolName>
-							<PoolSize value="1200"/>
+							<PoolSize value="511"/>
 						</Item>
 						<Item>
 							<PoolName>atDNetEventNode</PoolName>
-							<PoolSize value="1400"/>
+							<PoolSize value="511"/>
 						</Item>
 
 						<Item>
