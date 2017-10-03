@@ -123,7 +123,7 @@ local function find_match(id)
 	return nil
 end
 
-local function process_dependencies(list, basename, hasDeps)
+local function process_dependencies(list, basename, deps, hasDeps)
 	local isFulfilled = true
 
 	if not basename then
@@ -138,10 +138,12 @@ local function process_dependencies(list, basename, hasDeps)
 			if match and not hasDeps[match.rawName] then
 				print(basename .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
 
-				hasDeps[match.rawName] = match
+				hasDeps[match.rawName] = true
+				table.insert(deps, { dep = match.rawName, data = match })
+
 				match.tagged = true
 
-				isFulfilled = isFulfilled and process_dependencies(match.dependencies, match.name, hasDeps)
+				isFulfilled = isFulfilled and process_dependencies(match.dependencies, match.name, deps, hasDeps)
 			elseif not match then
 				if not dep:match('%[') then
 					print('Dependency unresolved for ' .. dep .. ' in ' .. basename)
@@ -160,16 +162,20 @@ add_dependencies = function(list)
 		list = { list }
 	end
 
+	local deps = {}
 	local hasDeps = {}
 	local cwd = os.getcwd()
 	os.chdir(root_cwd)
 
-	if not process_dependencies(list, nil, hasDeps) then
+	if not process_dependencies(list, nil, deps, hasDeps) then
 		error('component dependency from ' .. project().name .. ' unresolved!')
 	end
 
 	-- loop over the dependency handlers
-	for dep, data in pairs(hasDeps) do
+	for k, v in ipairs(deps) do
+		local dep = v.dep
+		local data = v.data
+
 		if not data.vendor or not data.vendor.dummy then
 			links { dep }
 		end
@@ -198,9 +204,10 @@ local do_component = function(name, comp)
 		comp.dependencies = {}
 	end
 
+	local deps = {}
 	local hasDeps = {}
 
-	if not process_dependencies(comp.dependencies, comp.name, hasDeps) then
+	if not process_dependencies(comp.dependencies, comp.name, deps, hasDeps) then
 		return
 	end
 
@@ -233,7 +240,7 @@ local do_component = function(name, comp)
 		"client/common/Error.cpp"
 	}
 
-	vpaths { ["z/common/*"] = "client/common/**", ["z/*"] = relPath .. "/component.rc", ["*"] = relPath .. "/**" }
+	vpaths { ["z/common/*"] = "client/common/**", ["*"] = relPath .. "/**" }
 
 	if not comp.private then
 		for k, repo in all_private_repos() do
@@ -269,7 +276,10 @@ local do_component = function(name, comp)
 	end
 
 	-- add dependency requirements
-	for dep, data in pairs(hasDeps) do
+	for k, v in ipairs(deps) do
+		local dep = v.dep
+		local data = v.data
+
 		configuration {}
 
 		if not data.vendor or not data.vendor.dummy then
@@ -289,7 +299,10 @@ local do_component = function(name, comp)
 	dofile(comp.absPath .. '/component.lua')
 
 	-- loop again in case a previous file has set a configuration constraint
-	for dep, data in pairs(hasDeps) do
+	for k, v in ipairs(deps) do
+		local dep = v.dep
+		local data = v.data
+
 		configuration {}
 
 		if data.vendor then
@@ -323,6 +336,9 @@ local do_component = function(name, comp)
 		buildoutputs {
 			"%{cfg.targetdir}/lib" .. name .. ".json"
 		}
+
+	filter()
+		vpaths { ["z/*"] = relPath .. "/component.rc" }
 
 	if not _OPTIONS['tests'] then
 		return
