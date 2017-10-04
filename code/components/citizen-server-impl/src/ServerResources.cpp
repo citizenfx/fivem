@@ -304,7 +304,7 @@ static InitFunction initFunction([]()
 			ScanResources(instance);
 		});
 
-		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::any& context)
+		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
 		{
 			auto eventComponent = resman->GetComponent<fx::ResourceEventManagerComponent>();
 
@@ -320,15 +320,15 @@ static InitFunction initFunction([]()
 
 		static thread_local std::string rawCommand;
 
-		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::any& context)
+		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
 		{
-			if (context.has_value())
+			if (!context.empty())
 			{
 				auto eventComponent = resman->GetComponent<fx::ResourceEventManagerComponent>();
 
 				try
 				{
-					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + std::any_cast<std::string>(context) }, rawCommand);
+					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + context }, rawCommand);
 				}
 				catch (std::bad_any_cast& e)
 				{
@@ -371,7 +371,7 @@ static InitFunction initFunction([]()
 
 			// invoke
 			auto consoleCxt = instance->GetComponent<console::Context>();
-			consoleCxt->GetCommandManager()->Invoke(rawCommand, std::any{ std::to_string(client->GetNetId()) });
+			consoleCxt->GetCommandManager()->Invoke(rawCommand, std::to_string(client->GetNetId()));
 
 			// unset raw command
 			rawCommand = "";

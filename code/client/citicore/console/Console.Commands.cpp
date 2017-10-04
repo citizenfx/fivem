@@ -46,7 +46,7 @@ const std::string& ConsoleCommandManager::GetRawCommand()
 	return m_rawCommand;
 }
 
-void ConsoleCommandManager::Invoke(const std::string& commandString, const std::any& executionContext)
+void ConsoleCommandManager::Invoke(const std::string& commandString, const std::string& executionContext)
 {
 	ProgramArguments arguments = console::Tokenize(commandString);
 
@@ -64,7 +64,7 @@ void ConsoleCommandManager::Invoke(const std::string& commandString, const std::
 	m_rawCommand = "";
 }
 
-void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const ProgramArguments& arguments, const std::any& executionContext)
+void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const ProgramArguments& arguments, const std::string& executionContext)
 {
 	std::vector<THandler> functionAttempts;
 

@@ -95,7 +95,7 @@ static InitFunction initFunction([] ()
 				{
 					try
 					{
-						auto source = (context.contextRef.has_value()) ? std::any_cast<std::string>(context.contextRef) : "0";
+						auto source = (!context.contextRef.empty()) ? context.contextRef : "0";
 						const auto& args = context.arguments.GetArguments();
 
 						resourceManager->CallReference<void>(outerRefs[commandName], atoi(source.c_str()), args, consoleCxt->GetCommandManager()->GetRawCommand());

@@ -30,9 +30,9 @@ struct ConsoleExecutionContext
 {
 	const ProgramArguments arguments;
 	std::stringstream errorBuffer;
-	std::any contextRef;
+	std::string contextRef;
 
-	inline ConsoleExecutionContext(const ProgramArguments&& arguments, const std::any& contextRef)
+	inline ConsoleExecutionContext(const ProgramArguments&& arguments, const std::string& contextRef)
 	    : arguments(arguments), contextRef(contextRef)
 	{
 	}
@@ -52,16 +52,16 @@ public:
 
 	virtual void Unregister(int token);
 
-	virtual void InvokeDirect(const std::string& commandName, const ProgramArguments& arguments, const std::any& executionContext = std::any());
+	virtual void InvokeDirect(const std::string& commandName, const ProgramArguments& arguments, const std::string& executionContext = std::string());
 
-	virtual void Invoke(const std::string& commandString, const std::any& executionContext = std::any());
+	virtual void Invoke(const std::string& commandString, const std::string& executionContext = std::string());
 
 	virtual void ForAllCommands(const std::function<void(const std::string&)>& callback);
 
 	virtual const std::string& GetRawCommand();
 
 public:
-	fwEvent<const std::string&, const ProgramArguments&, const std::any&> FallbackEvent;
+	fwEvent<const std::string&, const ProgramArguments&, const std::string&> FallbackEvent;
 
 private:
 	struct Entry
