@@ -9,6 +9,32 @@
 
 #include <ServerInstanceBase.h>
 
+template<typename T>
+class UvHandleContainer
+{
+public:
+	UvHandleContainer()
+	{
+		m_handle = std::make_unique<T>();
+	}
+
+	~UvHandleContainer()
+	{
+		if (m_handle)
+		{
+			UvClose(std::move(m_handle));
+		}
+	}
+
+	inline T* get()
+	{
+		return m_handle.get();
+	}
+
+private:
+	std::unique_ptr<T> m_handle;
+};
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -49,8 +75,7 @@ static InitFunction initFunction([]()
 			// set a callback to return to the client
 			auto returnedCb = std::make_shared<bool>(false);
 
-			auto timer = std::make_shared<std::unique_ptr<uv_timer_t>>();
-			*timer = std::make_unique<uv_timer_t>();
+			auto timer = std::make_shared<UvHandleContainer<uv_timer_t>>();
 
 			auto returnCb = [=]()
 			{
@@ -64,7 +89,6 @@ static InitFunction initFunction([]()
 
 				// ok
 				uv_timer_stop(timer->get());
-				UvClose(std::move(*timer));
 
 				// send the state to the client, if we have any
 				auto& state = client->GetData("deferralState");
