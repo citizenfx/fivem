@@ -77,7 +77,7 @@ namespace fx
 			uv_fs_stat(uvLoop, req.get(), fn.c_str(), UvCallback<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
 			{
 				// failed? return failure
-				if (req->result == -1)
+				if (req->result < 0)
 				{
 					response->SetStatusCode(500);
 					response->End("Stat of file failed.");
@@ -95,7 +95,7 @@ namespace fx
 				uv_fs_open(uvLoop, req.get(), fn.c_str(), O_RDONLY, 0644, UvCallback<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
 				{
 					// handle failure and clean up
-					if (req->result == -1)
+					if (req->result < 0)
 					{
 						response->SetStatusCode(500);
 						response->End("Opening file failed.");
@@ -130,7 +130,7 @@ namespace fx
 					*readCallback = [=](uv_fs_t* fsReq)
 					{
 						// read failed? report back
-						if (fsReq->result == -1)
+						if (fsReq->result < 0)
 						{
 							trace("Catastrophic write failure!\n");
 							response->End();
