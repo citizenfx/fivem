@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
+		"gta:core:five",
 		"rage:nutsnbolts:five",
 		"citizen:resources:core",
 		"scripting",
