@@ -172,6 +172,27 @@ public:
 	virtual void m_58() = 0;
 	virtual void RegisterObject(rage::netObject* entity) = 0;
 
+private:
+	struct atDNetObjectNode
+	{
+		virtual ~atDNetObjectNode();
+
+		netObject* object;
+		atDNetObjectNode* next;
+	};
+
+private:
+	atDNetObjectNode* m_objects[32];
+
+public:
+	template<typename T>
+	inline void ForAllNetObjects(int playerId, const T& callback)
+	{
+		for (auto node = m_objects[playerId]; node; node = node->next)
+		{
+			callback(node->object);
+		}
+	}
 };
 }
 
@@ -305,7 +326,7 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		g_objectMgr = hook::get_address<rage::netObjectMgr**>(hook::get_pattern("B9 C8 7F 00 00 E8 C8 4B  04 FF 48 85 C0", 0x30));
+		g_objectMgr = hook::get_address<rage::netObjectMgr**>(hook::get_pattern("B9 C8 7F 00 00 E8 C8 4B 04 FF 48 85 C0", 0x30));
 	}
 
 	// temp dbg
@@ -326,8 +347,99 @@ static HookFunction hookFunction([]()
 	}*/
 });
 
+#include <nutsnbolts.h>
+#include <GameInit.h>
+
+static hook::cdecl_stub<int()> getPlayerId([]()
+{
+	return hook::get_pattern("0F B6 40 2D EB 02 33 C0 48", -0x19);
+});
+
+#include <boost/range/adaptor/map.hpp>
+#include <mmsystem.h>
+
+#include <NetLibrary.h>
+
+extern NetLibrary* g_netLibrary;
+
 static InitFunction initFunction([]()
 {
+	struct ObjectData
+	{
+		int lastSyncTime;
+
+		ObjectData()
+		{
+			lastSyncTime = 0;
+		}
+	};
+
+	static std::map<int, ObjectData> trackedObjects;
+
+	OnMainGameFrame.Connect([]()
+	{
+		auto objectMgr = *g_objectMgr;
+
+		if (objectMgr)
+		{
+			std::set<int> seenObjects;
+
+			objectMgr->ForAllNetObjects(getPlayerId(), [&](rage::netObject* object)
+			{
+				char* objectChar = (char*)object;
+				uint16_t objectId = *(uint16_t*)(objectChar + 78);
+
+				auto& objectData = trackedObjects[objectId];
+
+				static char blah[90000];
+
+				static char bluh[1000];
+				memset(bluh, 0, sizeof(bluh));
+				memset(blah, 0, sizeof(blah));
+
+				rage::netBuffer buffer(bluh, sizeof(bluh));
+
+				auto st = object->GetSyncTree();
+
+				if (objectData.lastSyncTime == 0)
+				{
+					// create clone
+					st->WriteTree(1, 0, object, &buffer, g_queryFunctions->GetTimestamp(), nullptr, 31, nullptr);
+				}
+				else if ((timeGetTime() - objectData.lastSyncTime) > 500)
+				{
+					st->WriteTree(2, 0, object, &buffer, g_queryFunctions->GetTimestamp(), nullptr, 31, nullptr);
+				}
+
+				if (buffer.m_curBit > 0)
+				{
+					objectData.lastSyncTime = timeGetTime();
+				}
+
+				seenObjects.insert(objectId);
+			});
+
+			// anyone gone?
+			auto iter = trackedObjects | boost::adaptors::map_keys;
+
+			std::vector<int> removedObjects;
+
+			std::set_difference(seenObjects.begin(), seenObjects.end(), iter.begin(), iter.end(), std::back_inserter(removedObjects));
+
+			for (auto obj : removedObjects)
+			{
+				trackedObjects.erase(obj);
+			}
+
+			
+		}
+	});
+
+	OnKillNetworkDone.Connect([]()
+	{
+		trackedObjects.clear();
+	});
+#if 0
 	fx::ScriptEngine::RegisterNativeHandler("EXPERIMENTAL_SAVE_CLONE_CREATE", [](fx::ScriptContext& context)
 	{
 		char* entity = (char*)getScriptEntity(context.GetArgument<int>(0));
@@ -597,4 +709,5 @@ static InitFunction initFunction([]()
 
 		trace("got game object %llx\n", (uintptr_t)obj->GetGameObject());
 	});
+#endif
 });

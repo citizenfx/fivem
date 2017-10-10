@@ -14,7 +14,7 @@
 
 #include <Error.h>
 
-static NetLibrary* g_netLibrary;
+NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
 
