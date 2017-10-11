@@ -184,9 +184,9 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 				return;
 			}
 
-			if (numfds == 0 && !m_impl->handlesToAdd.empty())
+			if (numfds == 0)
 			{
-				std::this_thread::sleep_for(100ms);
+				std::this_thread::sleep_for(50ms);
 			}
 		} while (m_impl->shouldRun);
 	}));
