@@ -82,6 +82,11 @@ bool BaseLdrCheck()
 
 bool VerifyViability()
 {
+    if (!DXGICheck())
+    {
+        return false;
+    }
+
 	if (!BaseLdrCheck())
 	{
 		return false;

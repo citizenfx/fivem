@@ -335,8 +335,6 @@ void CitizenGame::SetCoreMapping()
     }
 }
 
-bool DXGICheck();
-
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
@@ -354,11 +352,6 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	CoreSetDebuggerPresent();
 
     SetCoreMapping();
-
-	if (!DXGICheck())
-	{
-		return;
-	}
 
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
