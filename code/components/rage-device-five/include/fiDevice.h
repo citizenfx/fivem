@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "sysAllocator.h"
 
@@ -292,7 +292,7 @@ public:
 	fiPackfile();
 
 	// any RAGE path can be used; including root-relative paths
-	void OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse);
+	bool OpenPackfile(const char* archive, bool bTrue, int type, intptr_t veryFalse);
 
 	// compatibility wrappers
 	inline void OpenPackfile(const char* archive, bool bTrue, bool bFalse, int type, intptr_t veryFalse)
