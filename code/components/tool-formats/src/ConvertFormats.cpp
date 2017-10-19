@@ -80,7 +80,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 		wprintf(L"converting txd %s...\n", path.filename().c_str());
 
 		auto txd = (rage::ny::pgDictionary<rage::ny::grcTexturePC>*)bm->blocks[0].data;
-		rage::convert<rage::five::pgDictionary<rage::five::grcTexturePC>*>(txd);
+		rage::convert<rage::five::pgDictionary<rage::five::grcTexturePC>*>(txd)->SetBlockMap();
 
 		fileVersion = 13;
 	}
