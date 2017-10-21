@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -79,4 +79,114 @@ namespace CitizenFX.Core
             return retval;
         }
     }
+
+	class NetworkFunctionManager
+	{
+		private static int curTaskId;
+
+		private static Dictionary<string, TaskCompletionSource<object>> m_rpcList = new Dictionary<string, TaskCompletionSource<object>>();
+		private static Dictionary<string, HashSet<string>> m_playerPromises = new Dictionary<string, HashSet<string>>();
+
+		internal static void HandleEventTrigger(string eventName, object[] args, string sourceString)
+		{
+			try
+			{
+				if (eventName == $"__cfx_rpcRep:{Native.API.GetCurrentResourceName()}")
+				{
+					var repId = args[0].ToString();
+					var arg = args[1] as List<object>;
+					var err = args[2];
+
+					if (m_rpcList.TryGetValue(repId, out var tcs))
+					{
+						m_rpcList.Remove(repId);
+
+#if IS_FXSERVER
+						foreach (var player in m_playerPromises)
+						{
+							player.Value.Remove(repId);
+						}
+#endif
+
+						if (arg != null)
+						{
+							tcs.TrySetResult(arg[0]);
+						}
+						else if (err != null)
+						{
+							tcs.TrySetException(new Exception(err.ToString()));
+						}
+					}
+				}
+#if IS_FXSERVER
+				else if (eventName == "playerDropped")
+				{
+					if (m_playerPromises.TryGetValue(sourceString, out var set))
+					{
+						m_playerPromises.Remove(sourceString);
+
+						foreach (var entry in set)
+						{
+							if (m_rpcList.TryGetValue(entry, out var tcs))
+							{
+								tcs.TrySetException(new Exception("The target player was dropped."));
+							}
+						}
+					}
+				}
+#endif
+			}
+			catch (Exception e)
+			{
+				Debug.WriteLine("except: {0}", e.ToString());
+			}
+		}
+
+		public static object CreateReference(byte[] funcRefData, string netSource)
+		{
+			return new NetworkCallbackDelegate(async delegate (object[] args)
+			{
+#if IS_FXSERVER
+				void EventTrigger(string name, object[] arg)
+				{
+					var player = new Player(netSource);
+					player.TriggerEvent(name, arg);
+				}
+#else
+				void EventTrigger(string name, object[] arg)
+				{
+					BaseScript.TriggerEvent(name, arg);
+				}
+#endif
+
+				var tcs = new TaskCompletionSource<object>();
+
+				var taskId = curTaskId;
+				++curTaskId;
+
+				var repId = $"{Native.API.GetInstanceId()}:{taskId}";
+				m_rpcList[repId] = tcs;
+
+#if IS_FXSERVER
+				// add a player promise
+				if (!m_playerPromises.ContainsKey(netSource))
+				{
+					m_playerPromises[netSource] = new HashSet<string>();
+				}
+
+				m_playerPromises[netSource].Add(repId);
+#endif
+
+				EventTrigger("__cfx_rpcReq", new object[] {
+					$"__cfx_rpcRep:{Native.API.GetCurrentResourceName()}",
+					repId,
+					Encoding.UTF8.GetString(funcRefData),
+					args });
+
+				return await tcs.Task;
+			});
+		}
+	}
+
+	public delegate Task<object> NetworkCallbackDelegate(params object[] args);
 }

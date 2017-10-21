@@ -58,8 +58,27 @@ namespace CitizenFX.Core
             var argList = (List<object>)MsgPackDeserializer.Deserialize(arguments);
             var argArray = CallUtilities.GetPassArguments(method.Method, argList.ToArray(), string.Empty);
 
-            // the Lua runtime expects this to be an array, so it be an array.
-            return MsgPackSerializer.Serialize(new[] { method.DynamicInvoke(argArray) });
+			// the Lua runtime expects this to be an array, so it be an array.
+			var rv = method.DynamicInvoke(argArray);
+
+			// is this actually an asynchronous method?
+			if (rv is Task)
+			{
+				dynamic rt = rv;
+
+				rv = new
+				{
+					__cfx_async_retval = new Action<dynamic>(rvcb =>
+					{
+						rt.ContinueWith(new Action<Task>(t =>
+						{
+							rvcb(new object[] { rt.Result }, false);
+						}));
+					})
+				};
+			}
+
+			return MsgPackSerializer.Serialize(new[] { rv });
         }
 
         public static int Duplicate(int reference)

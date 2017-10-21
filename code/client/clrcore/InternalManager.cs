@@ -191,12 +191,13 @@ namespace CitizenFX.Core
 		{
 			try
 			{
-				var obj = MsgPackDeserializer.Deserialize(argsSerialized) as List<object> ?? (IEnumerable<object>)new object[0];
+				var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource: (sourceString.StartsWith("net") ? sourceString : null)) as List<object> ?? (IEnumerable<object>)new object[0];
 
 				var scripts = ms_definedScripts.ToArray();
 
-				// TODO: store source someplace
 				var objArray = obj.ToArray();
+
+				NetworkFunctionManager.HandleEventTrigger(eventName, objArray, sourceString);
 
 				foreach (var script in scripts)
 				{
