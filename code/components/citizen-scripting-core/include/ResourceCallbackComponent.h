@@ -51,7 +51,7 @@ namespace fx
 			void msgpack_pack(Packer& pk) const
 			{
 				pk
-					.pack_ext(reference.size(), 10)
+					.pack_ext(reference.size(), 11)
 					.pack_ext_body(reference.c_str(), reference.size());
 			}
 

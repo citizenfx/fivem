@@ -81,7 +81,7 @@ public:
 
 				if (callback.type == msgpack::type::EXT)
 				{
-					if (callback.via.ext.type() == 10)
+					if (callback.via.ext.type() == 10 || callback.via.ext.type() == 11)
 					{
 						std::string functionRef(callback.via.ext.data(), callback.via.ext.size);
 
