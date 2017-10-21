@@ -5,10 +5,9 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_RANDOM_NUMBER_GENERATOR_H__
-#define BOTAN_RANDOM_NUMBER_GENERATOR_H__
+#ifndef BOTAN_RANDOM_NUMBER_GENERATOR_H_
+#define BOTAN_RANDOM_NUMBER_GENERATOR_H_
 
-#include <botan/entropy_src.h>
 #include <botan/secmem.h>
 #include <botan/exceptn.h>
 #include <botan/mutex.h>
@@ -22,7 +21,7 @@ class Entropy_Sources;
 /**
 * An interface to a cryptographic random number generator
 */
-class BOTAN_DLL RandomNumberGenerator
+class BOTAN_PUBLIC_API(2,0) RandomNumberGenerator
    {
    public:
       virtual ~RandomNumberGenerator() = default;
@@ -174,9 +173,10 @@ class BOTAN_DLL RandomNumberGenerator
 typedef RandomNumberGenerator RNG;
 
 /**
-* Hardware RNG has no members but exists to tag hardware RNG types
+* Hardware_RNG has no members but exists to tag hardware RNG types
+* (PKCS11_RNG, TPM_RNG, RDRAND_RNG)
 */
-class BOTAN_DLL Hardware_RNG : public RandomNumberGenerator
+class BOTAN_PUBLIC_API(2,0) Hardware_RNG : public RandomNumberGenerator
    {
    };
 
@@ -184,7 +184,7 @@ class BOTAN_DLL Hardware_RNG : public RandomNumberGenerator
 * Null/stub RNG - fails if you try to use it for anything
 * This is not generally useful except for in certain tests
 */
-class BOTAN_DLL Null_RNG final : public RandomNumberGenerator
+class BOTAN_PUBLIC_API(2,0) Null_RNG final : public RandomNumberGenerator
    {
    public:
       bool is_seeded() const override { return false; }
@@ -207,7 +207,7 @@ class BOTAN_DLL Null_RNG final : public RandomNumberGenerator
 * Note that most of the time it's much better to use a RNG per thread
 * otherwise the RNG will act as an unnecessary contention point
 */
-class BOTAN_DLL Serialized_RNG final : public RandomNumberGenerator
+class BOTAN_PUBLIC_API(2,0) Serialized_RNG final : public RandomNumberGenerator
    {
    public:
       void randomize(uint8_t out[], size_t len) override

@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TWOFISH_H__
-#define BOTAN_TWOFISH_H__
+#ifndef BOTAN_TWOFISH_H_
+#define BOTAN_TWOFISH_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Twofish, an AES finalist
 */
-class BOTAN_DLL Twofish final : public Block_Cipher_Fixed_Params<16, 16, 32, 8>
+class BOTAN_PUBLIC_API(2,0) Twofish final : public Block_Cipher_Fixed_Params<16, 16, 32, 8>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

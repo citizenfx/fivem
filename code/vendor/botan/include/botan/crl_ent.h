@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CRL_ENTRY_H__
-#define BOTAN_CRL_ENTRY_H__
+#ifndef BOTAN_CRL_ENTRY_H_
+#define BOTAN_CRL_ENTRY_H_
 
 #include <botan/asn1_time.h>
 
@@ -37,7 +37,7 @@ enum CRL_Code {
 /**
 * This class represents CRL entries
 */
-class BOTAN_DLL CRL_Entry final : public ASN1_Object
+class BOTAN_PUBLIC_API(2,0) CRL_Entry final : public ASN1_Object
    {
    public:
       void encode_into(class DER_Encoder&) const override;
@@ -86,12 +86,12 @@ class BOTAN_DLL CRL_Entry final : public ASN1_Object
 /**
 * Test two CRL entries for equality in all fields.
 */
-BOTAN_DLL bool operator==(const CRL_Entry&, const CRL_Entry&);
+BOTAN_PUBLIC_API(2,0) bool operator==(const CRL_Entry&, const CRL_Entry&);
 
 /**
 * Test two CRL entries for inequality in at least one field.
 */
-BOTAN_DLL bool operator!=(const CRL_Entry&, const CRL_Entry&);
+BOTAN_PUBLIC_API(2,0) bool operator!=(const CRL_Entry&, const CRL_Entry&);
 
 }
 

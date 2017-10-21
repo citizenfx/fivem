@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SP800_56C_H__
-#define BOTAN_SP800_56C_H__
+#ifndef BOTAN_SP800_56C_H_
+#define BOTAN_SP800_56C_H_
 
 #include <botan/kdf.h>
 #include <botan/mac.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
  * NIST SP 800-56C KDF
  */
-class BOTAN_DLL SP800_56C : public KDF
+class BOTAN_PUBLIC_API(2,0) SP800_56C final : public KDF
    {
    public:
       std::string name() const override { return "SP800-56C(" + m_prf->name() + ")"; }

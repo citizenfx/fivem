@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_THREEFISH_H__
-#define BOTAN_THREEFISH_H__
+#ifndef BOTAN_THREEFISH_H_
+#define BOTAN_THREEFISH_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Threefish-512
 */
-class BOTAN_DLL Threefish_512 final : public Block_Cipher_Fixed_Params<64, 64>
+class BOTAN_PUBLIC_API(2,0) Threefish_512 final : public Block_Cipher_Fixed_Params<64, 64>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;
@@ -27,6 +27,8 @@ class BOTAN_DLL Threefish_512 final : public Block_Cipher_Fixed_Params<64, 64>
       std::string provider() const override;
       std::string name() const override { return "Threefish-512"; }
       BlockCipher* clone() const override { return new Threefish_512; }
+      size_t parallelism() const override;
+
    protected:
       const secure_vector<uint64_t>& get_T() const { return m_T; }
       const secure_vector<uint64_t>& get_K() const { return m_K; }

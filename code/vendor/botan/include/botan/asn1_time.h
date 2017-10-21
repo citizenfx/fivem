@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ASN1_TIME_H__
-#define BOTAN_ASN1_TIME_H__
+#ifndef BOTAN_ASN1_TIME_H_
+#define BOTAN_ASN1_TIME_H_
 
 #include <botan/asn1_obj.h>
 #include <chrono>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * X.509 Time
 */
-class BOTAN_DLL X509_Time final : public ASN1_Object
+class BOTAN_PUBLIC_API(2,0) X509_Time final : public ASN1_Object
    {
    public:
       /// DER encode a X509_Time
@@ -38,7 +38,7 @@ class BOTAN_DLL X509_Time final : public ASN1_Object
       int32_t cmp(const X509_Time& other) const;
 
       /// Create an invalid X509_Time
-      X509_Time() {}
+      X509_Time() = default;
 
       /// Create a X509_Time from a time point
       explicit X509_Time(const std::chrono::system_clock::time_point& time);
@@ -65,12 +65,12 @@ class BOTAN_DLL X509_Time final : public ASN1_Object
 /*
 * Comparison Operations
 */
-bool BOTAN_DLL operator==(const X509_Time&, const X509_Time&);
-bool BOTAN_DLL operator!=(const X509_Time&, const X509_Time&);
-bool BOTAN_DLL operator<=(const X509_Time&, const X509_Time&);
-bool BOTAN_DLL operator>=(const X509_Time&, const X509_Time&);
-bool BOTAN_DLL operator<(const X509_Time&, const X509_Time&);
-bool BOTAN_DLL operator>(const X509_Time&, const X509_Time&);
+bool BOTAN_PUBLIC_API(2,0) operator==(const X509_Time&, const X509_Time&);
+bool BOTAN_PUBLIC_API(2,0) operator!=(const X509_Time&, const X509_Time&);
+bool BOTAN_PUBLIC_API(2,0) operator<=(const X509_Time&, const X509_Time&);
+bool BOTAN_PUBLIC_API(2,0) operator>=(const X509_Time&, const X509_Time&);
+bool BOTAN_PUBLIC_API(2,0) operator<(const X509_Time&, const X509_Time&);
+bool BOTAN_PUBLIC_API(2,0) operator>(const X509_Time&, const X509_Time&);
 
 }
 

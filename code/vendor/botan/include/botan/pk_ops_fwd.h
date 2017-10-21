@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PK_OPERATIONS_FWD_H__
-#define BOTAN_PK_OPERATIONS_FWD_H__
+#ifndef BOTAN_PK_OPERATIONS_FWD_H_
+#define BOTAN_PK_OPERATIONS_FWD_H_
 
 namespace Botan {
 

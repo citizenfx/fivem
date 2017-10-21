@@ -5,20 +5,21 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PUBKEY_EMSA_H__
-#define BOTAN_PUBKEY_EMSA_H__
+#ifndef BOTAN_PUBKEY_EMSA_H_
+#define BOTAN_PUBKEY_EMSA_H_
 
 #include <botan/secmem.h>
-#include <botan/rng.h>
 
 namespace Botan {
+
+class RandomNumberGenerator;
 
 /**
 * EMSA, from IEEE 1363s Encoding Method for Signatures, Appendix
 *
 * Any way of encoding/padding signatures
 */
-class BOTAN_DLL EMSA
+class BOTAN_PUBLIC_API(2,0) EMSA
    {
    public:
       /**
@@ -55,7 +56,7 @@ class BOTAN_DLL EMSA
                           const secure_vector<uint8_t>& raw,
                           size_t key_bits) = 0;
 
-      virtual ~EMSA();
+      virtual ~EMSA() = default;
 
       /**
       * @return a new object representing the same encoding method as *this
@@ -69,7 +70,7 @@ class BOTAN_DLL EMSA
 * @param algo_spec the name of the EMSA to create
 * @return pointer to newly allocated object of that type
 */
-BOTAN_DLL EMSA* get_emsa(const std::string& algo_spec);
+BOTAN_PUBLIC_API(2,0) EMSA* get_emsa(const std::string& algo_spec);
 
 /**
 * Returns the hash function used in the given EMSA scheme
@@ -78,7 +79,7 @@ BOTAN_DLL EMSA* get_emsa(const std::string& algo_spec);
 * @param algo_spec the name of the EMSA
 * @return hash function used in the given EMSA scheme
 */
-BOTAN_DLL std::string hash_for_emsa(const std::string& algo_spec);
+BOTAN_PUBLIC_API(2,0) std::string hash_for_emsa(const std::string& algo_spec);
 
 }
 

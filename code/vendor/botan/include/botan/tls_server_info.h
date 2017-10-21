@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_SERVER_INFO_H__
-#define BOTAN_TLS_SERVER_INFO_H__
+#ifndef BOTAN_TLS_SERVER_INFO_H_
+#define BOTAN_TLS_SERVER_INFO_H_
 
 #include <botan/types.h>
 #include <string>
@@ -18,7 +18,7 @@ namespace TLS {
 /**
 * Represents information known about a TLS server.
 */
-class BOTAN_DLL Server_Information
+class BOTAN_PUBLIC_API(2,0) Server_Information final
    {
    public:
       /**

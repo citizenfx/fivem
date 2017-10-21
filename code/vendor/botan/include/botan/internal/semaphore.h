@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SEMAPHORE_H__
-#define BOTAN_SEMAPHORE_H__
+#ifndef BOTAN_SEMAPHORE_H_
+#define BOTAN_SEMAPHORE_H_
 
 #include <botan/mutex.h>
 
@@ -17,7 +17,7 @@
 namespace Botan {
 
 #if defined(BOTAN_TARGET_OS_HAS_THREADS)
-class Semaphore
+class Semaphore final
    {
    public:
       explicit Semaphore(int value = 0) : m_value(value), m_wakeups(0) {}

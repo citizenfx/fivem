@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CASCADE_H__
-#define BOTAN_CASCADE_H__
+#ifndef BOTAN_CASCADE_H_
+#define BOTAN_CASCADE_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Block Cipher Cascade
 */
-class BOTAN_DLL Cascade_Cipher final : public BlockCipher
+class BOTAN_PUBLIC_API(2,0) Cascade_Cipher final : public BlockCipher
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

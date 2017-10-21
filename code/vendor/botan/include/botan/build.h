@@ -1,24 +1,24 @@
-#ifndef BOTAN_BUILD_CONFIG_H__
-#define BOTAN_BUILD_CONFIG_H__
+#ifndef BOTAN_BUILD_CONFIG_H_
+#define BOTAN_BUILD_CONFIG_H_
 
 /*
 * This file was automatically generated running
-* 'configure.py --amalgamation --disable-modules=win32_stats --cc=msvc'
+* 'configure.py --amalgamation --cc=msvc --os=windows --disable-modules=win32_stats --cc-min-version=19.10'
 *
 * Target
-*  - Compiler: cl  /MD /bigobj /EHs /GR /O2
+*  - Compiler: cl /MD /bigobj /EHs /GR /O2 /Oi
 *  - Arch: x86_64/x86_64
 *  - OS: windows
 */
 
 #define BOTAN_VERSION_MAJOR 2
-#define BOTAN_VERSION_MINOR 0
-#define BOTAN_VERSION_PATCH 1
+#define BOTAN_VERSION_MINOR 3
+#define BOTAN_VERSION_PATCH 0
 #define BOTAN_VERSION_DATESTAMP 0
 
 #define BOTAN_VERSION_RELEASE_TYPE "unreleased"
 
-#define BOTAN_VERSION_VC_REVISION "git:55a1d935e736716480407378565939b9e6c829b9"
+#define BOTAN_VERSION_VC_REVISION "git:9474deacd67433908dec38a409892a334aab679d"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 
@@ -26,10 +26,12 @@
 #define BOTAN_MP_WORD_BITS 64
 
 
+
 #define BOTAN_INSTALL_PREFIX R"(c:\Botan)"
 #define BOTAN_INSTALL_HEADER_DIR "include/botan-2"
 #define BOTAN_INSTALL_LIB_DIR "lib"
-#define BOTAN_LIB_LINK "advapi32.lib"
+#define BOTAN_LIB_LINK "advapi32.lib ws2_32.lib"
+#define BOTAN_LINK_FLAGS "/MD /bigobj"
 
 #ifndef BOTAN_DLL
   #define BOTAN_DLL __declspec(dllimport)
@@ -45,6 +47,7 @@
 #define BOTAN_TARGET_OS_HAS_MKGMTIME
 #define BOTAN_TARGET_OS_HAS_QUERY_PERF_COUNTER
 #define BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY
+#define BOTAN_TARGET_OS_HAS_SOCKETS
 #define BOTAN_TARGET_OS_HAS_STL_FILESYSTEM_MSVC
 #define BOTAN_TARGET_OS_HAS_THREADS
 #define BOTAN_TARGET_OS_HAS_VIRTUAL_LOCK
@@ -53,10 +56,8 @@
 #define BOTAN_TARGET_SUPPORTS_AESNI
 #define BOTAN_TARGET_SUPPORTS_AVX2
 #define BOTAN_TARGET_SUPPORTS_BMI2
-#define BOTAN_TARGET_SUPPORTS_CLMUL
 #define BOTAN_TARGET_SUPPORTS_RDRAND
 #define BOTAN_TARGET_SUPPORTS_RDSEED
-#define BOTAN_TARGET_SUPPORTS_SHA
 #define BOTAN_TARGET_SUPPORTS_SSE2
 #define BOTAN_TARGET_SUPPORTS_SSE41
 #define BOTAN_TARGET_SUPPORTS_SSE42
@@ -84,6 +85,7 @@
 #define BOTAN_HAS_AES_NI 20131128
 #define BOTAN_HAS_AES_SSSE3 20131128
 #define BOTAN_HAS_ANSI_X919_MAC 20131128
+#define BOTAN_HAS_ARIA 20170415
 #define BOTAN_HAS_ASN1 20161102
 #define BOTAN_HAS_AUTO_RNG 20161126
 #define BOTAN_HAS_AUTO_SEEDING_RNG 20160821
@@ -101,22 +103,25 @@
 #define BOTAN_HAS_CECPQ1 20161116
 #define BOTAN_HAS_CERTSTOR_SQL 20160818
 #define BOTAN_HAS_CHACHA 20140103
+#define BOTAN_HAS_CHACHA_RNG 20170728
 #define BOTAN_HAS_CHACHA_SSE2 20160831
 #define BOTAN_HAS_CIPHER_MODE_PADDING 20131128
 #define BOTAN_HAS_CMAC 20131128
 #define BOTAN_HAS_CODEC_FILTERS 20131128
 #define BOTAN_HAS_COMB4P 20131128
+#define BOTAN_HAS_CPUID 20170917
 #define BOTAN_HAS_CRC24 20131128
 #define BOTAN_HAS_CRC32 20131128
 #define BOTAN_HAS_CRYPTO_BOX 20131128
 #define BOTAN_HAS_CTR_BE 20131128
-#define BOTAN_HAS_CURVE_25519 20141227
+#define BOTAN_HAS_CURVE_25519 20170621
 #define BOTAN_HAS_DES 20131128
 #define BOTAN_HAS_DIFFIE_HELLMAN 20131128
 #define BOTAN_HAS_DLIES 20160713
 #define BOTAN_HAS_DL_GROUP 20131128
 #define BOTAN_HAS_DL_PUBLIC_KEY_FAMILY 20131128
 #define BOTAN_HAS_DSA 20131128
+#define BOTAN_HAS_DYNAMIC_LOADER 20160310
 #define BOTAN_HAS_ECC_GROUP 20131128
 #define BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_ECDH 20131128
@@ -125,6 +130,7 @@
 #define BOTAN_HAS_ECIES 20160128
 #define BOTAN_HAS_ECKCDSA 20160413
 #define BOTAN_HAS_EC_CURVE_GFP 20131128
+#define BOTAN_HAS_ED25519 20170607
 #define BOTAN_HAS_ELGAMAL 20131128
 #define BOTAN_HAS_EME_OAEP 20140118
 #define BOTAN_HAS_EME_PKCS1v15 20131128
@@ -135,10 +141,9 @@
 #define BOTAN_HAS_EMSA_RAW 20131128
 #define BOTAN_HAS_EMSA_X931 20140118
 #define BOTAN_HAS_ENTROPY_SOURCE 20151120
-#define BOTAN_HAS_ENTROPY_SRC_CAPI 20131128
 #define BOTAN_HAS_ENTROPY_SRC_RDRAND 20131128
 #define BOTAN_HAS_ENTROPY_SRC_RDSEED 20151218
-#define BOTAN_HAS_FFI 20151015
+#define BOTAN_HAS_FFI 20170815
 #define BOTAN_HAS_FILTERS 20160415
 #define BOTAN_HAS_FPE_FE1 20131128
 #define BOTAN_HAS_GCM_CLMUL 20131227
@@ -148,9 +153,10 @@
 #define BOTAN_HAS_GOST_34_11 20131128
 #define BOTAN_HAS_HASH_ID 20131128
 #define BOTAN_HAS_HEX_CODEC 20131128
-#define BOTAN_HAS_HKDF 20131128
+#define BOTAN_HAS_HKDF 20170927
 #define BOTAN_HAS_HMAC 20131128
 #define BOTAN_HAS_HMAC_DRBG 20140319
+#define BOTAN_HAS_HOTP 20170513
 #define BOTAN_HAS_HTTP_UTIL 20131128
 #define BOTAN_HAS_IDEA 20131128
 #define BOTAN_HAS_IDEA_SSE2 20131128
@@ -189,9 +195,12 @@
 #define BOTAN_HAS_PBKDF1 20131128
 #define BOTAN_HAS_PBKDF2 20131128
 #define BOTAN_HAS_PEM_CODEC 20131128
+#define BOTAN_HAS_PGP_S2K 20170527
+#define BOTAN_HAS_PKCS11 20160219
 #define BOTAN_HAS_PKCS5_PBES2 20141119
 #define BOTAN_HAS_PK_PADDING 20131128
 #define BOTAN_HAS_POLY1305 20141227
+#define BOTAN_HAS_POLY_DBL 20170927
 #define BOTAN_HAS_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_RC4 20131128
 #define BOTAN_HAS_RDRAND_RNG 20160619
@@ -208,16 +217,23 @@
 #define BOTAN_HAS_SHA2_32 20131128
 #define BOTAN_HAS_SHA2_64 20131128
 #define BOTAN_HAS_SHA3 20161018
+#define BOTAN_HAS_SHACAL2 20170813
+#define BOTAN_HAS_SHACAL2_SIMD 20170813
 #define BOTAN_HAS_SHAKE 20161009
 #define BOTAN_HAS_SHAKE_CIPHER 20161018
 #define BOTAN_HAS_SIMD_32 20131128
 #define BOTAN_HAS_SIPHASH 20150110
 #define BOTAN_HAS_SKEIN_512 20131128
+#define BOTAN_HAS_SM2 20170907
+#define BOTAN_HAS_SM3 20170402
+#define BOTAN_HAS_SM4 20170716
 #define BOTAN_HAS_SP800_108 20160128
+#define BOTAN_HAS_SP800_56A 20170501
 #define BOTAN_HAS_SP800_56C 20160211
 #define BOTAN_HAS_SRP6 20161017
 #define BOTAN_HAS_STATEFUL_RNG 20160819
 #define BOTAN_HAS_STREAM_CIPHER 20131128
+#define BOTAN_HAS_STREEBOG 20170623
 #define BOTAN_HAS_SYSTEM_RNG 20141202
 #define BOTAN_HAS_THREEFISH_512 20131224
 #define BOTAN_HAS_THREEFISH_512_AVX2 20160903
@@ -228,6 +244,7 @@
 #define BOTAN_HAS_TLS_SESSION_MANAGER_SQL_DB 20141219
 #define BOTAN_HAS_TLS_V10_PRF 20131128
 #define BOTAN_HAS_TLS_V12_PRF 20131128
+#define BOTAN_HAS_TOTP 20170519
 #define BOTAN_HAS_TWOFISH 20131128
 #define BOTAN_HAS_UTIL_FUNCTIONS 20161127
 #define BOTAN_HAS_WHIRLPOOL 20131128
@@ -269,21 +286,14 @@
 #define BOTAN_USE_VOLATILE_MEMSET_FOR_ZERO 1
 
 /*
-* If enabled the ECC implementation will use Montgomery ladder
-* instead of a fixed window implementation.
+* If enabled the ECC implementation will use scalar blinding with order.bits()/2
+* bit long masks.
 */
-#define BOTAN_POINTGFP_BLINDED_MULTIPLY_USE_MONTGOMERY_LADDER 0
-
-/*
-* Set number of bits used to generate mask for blinding the scalar of
-* a point multiplication. Set to zero to disable this side-channel
-* countermeasure.
-*/
-#define BOTAN_POINTGFP_SCALAR_BLINDING_BITS 20
+#define BOTAN_POINTGFP_USE_SCALAR_BLINDING 1
 
 /*
 * Set number of bits used to generate mask for blinding the
-* representation of an ECC point. Set to zero to diable this
+* representation of an ECC point. Set to zero to disable this
 * side-channel countermeasure.
 */
 #define BOTAN_POINTGFP_RANDOMIZE_BLINDING_BITS 80
@@ -293,7 +303,7 @@
 * its inverse, of a form appropriate to the algorithm being blinded), and
 * then choosing new blinding operands by successive squaring of both
 * values. This is much faster than computing a new starting point but
-* introduces some possible coorelation
+* introduces some possible corelation
 *
 * To avoid possible leakage problems in long-running processes, the blinder
 * periodically reinitializes the sequence. This value specifies how often
@@ -312,15 +322,14 @@
 
 /*
 * Specifies (in order) the list of entropy sources that will be used
-* to seed an in-memory RNG. The first in the default list: "rdseed" and "rdrand"
-* do not count as contributing any entropy
-* but are included as they are fast and help protect against a
-* seriously broken system RNG.
+* to seed an in-memory RNG. The first in the default list: "rdseed"
+* and "rdrand" do not count as contributing any entropy but are
+* included as they are fast and help protect against a seriously
+* broken system RNG.
 */
 #define BOTAN_ENTROPY_DEFAULT_SOURCES \
-   { "rdseed", "rdrand", "darwin_secrandom", "dev_random", \
-    "win32_cryptoapi", "proc_walk", "system_stats" }
-
+   { "rdseed", "rdrand", "darwin_secrandom", "getentropy", \
+     "dev_random", "system_rng", "proc_walk", "system_stats" }
 
 /* Multiplier on a block cipher's native parallelism */
 #define BOTAN_BLOCK_CIPHER_PAR_MULT 4

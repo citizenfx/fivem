@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SHAKE128_CIPHER_H__
-#define BOTAN_SHAKE128_CIPHER_H__
+#ifndef BOTAN_SHAKE128_CIPHER_H_
+#define BOTAN_SHAKE128_CIPHER_H_
 
 #include <botan/stream_cipher.h>
 #include <botan/secmem.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * SHAKE-128 XOF presented as a stream cipher
 */
-class BOTAN_DLL SHAKE_128_Cipher final : public StreamCipher
+class BOTAN_PUBLIC_API(2,0) SHAKE_128_Cipher final : public StreamCipher
    {
    public:
       SHAKE_128_Cipher();

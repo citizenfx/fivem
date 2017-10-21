@@ -5,14 +5,13 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_SIGNATURE_OPERATION_H__
-#define BOTAN_XMSS_SIGNATURE_OPERATION_H__
+#ifndef BOTAN_XMSS_SIGNATURE_OPERATION_H_
+#define BOTAN_XMSS_SIGNATURE_OPERATION_H_
 
 #include <cstddef>
 #include <string>
 #include <botan/secmem.h>
 #include <botan/types.h>
-#include <botan/assert.h>
 #include <botan/xmss_parameters.h>
 #include <botan/xmss_privatekey.h>
 #include <botan/xmss_address.h>
@@ -33,12 +32,12 @@ namespace Botan {
  *     https://datatracker.ietf.org/doc/
  *     draft-irtf-cfrg-xmss-hash-based-signatures/?include_text=1
  **/
-class XMSS_Signature_Operation : public virtual PK_Ops::Signature,
+class XMSS_Signature_Operation final : public virtual PK_Ops::Signature,
                                  public XMSS_Common_Ops
    {
    public:
       XMSS_Signature_Operation(const XMSS_PrivateKey& private_key);
-      virtual ~XMSS_Signature_Operation() {}
+      virtual ~XMSS_Signature_Operation() = default;
 
       /**
        * Creates an XMSS signature for the message provided through call to

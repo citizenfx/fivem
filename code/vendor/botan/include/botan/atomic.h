@@ -5,8 +5,8 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_ATOMIC_H__
-#define BOTAN_ATOMIC_H__
+#ifndef BOTAN_ATOMIC_H_
+#define BOTAN_ATOMIC_H_
 
 #include <atomic>
 #include <memory>
@@ -23,9 +23,10 @@ template <typename T>
 class Atomic
    {
    public:
-      Atomic() : m_data() {};
+      Atomic() = default;
       Atomic(const Atomic& data) : m_data(data.m_data.load()) {}
       Atomic(const std::atomic<T>& data) : m_data(data.load()) {}
+      ~Atomic() = default;
 
       Atomic& operator=(const Atomic& a)
          {

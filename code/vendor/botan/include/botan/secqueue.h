@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SECURE_QUEUE_H__
-#define BOTAN_SECURE_QUEUE_H__
+#ifndef BOTAN_SECURE_QUEUE_H_
+#define BOTAN_SECURE_QUEUE_H_
 
 #include <botan/data_src.h>
 #include <botan/filter.h>
@@ -17,7 +17,7 @@ namespace Botan {
 /**
 * A queue that knows how to zeroize itself
 */
-class BOTAN_DLL SecureQueue : public Fanout_Filter, public DataSource
+class BOTAN_PUBLIC_API(2,0) SecureQueue final : public Fanout_Filter, public DataSource
    {
    public:
       std::string name() const override { return "Queue"; }

@@ -6,8 +6,8 @@
  **/
 
 
-#ifndef BOTAN_XMSS_WOTS_ADDRESSED_PUBLICKEY_H__
-#define BOTAN_XMSS_WOTS_ADDRESSED_PUBLICKEY_H__
+#ifndef BOTAN_XMSS_WOTS_ADDRESSED_PUBLICKEY_H_
+#define BOTAN_XMSS_WOTS_ADDRESSED_PUBLICKEY_H_
 
 #include <botan/xmss_address.h>
 #include <botan/xmss_wots_publickey.h>
@@ -44,45 +44,44 @@ class XMSS_WOTS_Addressed_PublicKey : public virtual Public_Key
       const XMSS_Address& address() const { return m_adrs; }
       XMSS_Address& address() { return m_adrs; }
 
-      virtual std::string algo_name() const override
+      std::string algo_name() const override
          {
          return m_pub_key.algo_name();
          }
 
-      virtual AlgorithmIdentifier algorithm_identifier() const override
+      AlgorithmIdentifier algorithm_identifier() const override
          {
          return m_pub_key.algorithm_identifier();
          }
 
-      virtual bool check_key(RandomNumberGenerator& rng,
-                             bool strong) const override
+      bool check_key(RandomNumberGenerator& rng, bool strong) const override
          {
          return m_pub_key.check_key(rng, strong);
          }
 
-      virtual std::unique_ptr<PK_Ops::Verification>
+      std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string& params,
                                 const std::string& provider) const override
          {
          return m_pub_key.create_verification_op(params, provider);
          }
 
-      virtual OID get_oid() const override
+      OID get_oid() const override
          {
          return m_pub_key.get_oid();
          }
 
-      virtual size_t estimated_strength() const override
+      size_t estimated_strength() const override
          {
          return m_pub_key.estimated_strength();
          }
 
-      virtual size_t key_length() const override
+      size_t key_length() const override
          {
          return m_pub_key.estimated_strength();
          }
 
-      virtual std::vector<uint8_t> public_key_bits() const override
+      std::vector<uint8_t> public_key_bits() const override
          {
          return m_pub_key.public_key_bits();
          }

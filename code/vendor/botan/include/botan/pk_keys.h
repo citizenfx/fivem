@@ -5,13 +5,12 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PK_KEYS_H__
-#define BOTAN_PK_KEYS_H__
+#ifndef BOTAN_PK_KEYS_H_
+#define BOTAN_PK_KEYS_H_
 
 #include <botan/secmem.h>
 #include <botan/asn1_oid.h>
 #include <botan/alg_id.h>
-#include <botan/rng.h>
 #include <botan/pk_ops_fwd.h>
 
 namespace Botan {
@@ -21,10 +20,13 @@ class RandomNumberGenerator;
 /**
 * Public Key Base Class.
 */
-class BOTAN_DLL Public_Key
+class BOTAN_PUBLIC_API(2,0) Public_Key
    {
    public:
-      virtual ~Public_Key() {}
+      Public_Key() =default;
+      Public_Key(const Public_Key& other) = default;
+      Public_Key& operator=(const Public_Key& other) = default;
+      virtual ~Public_Key() = default;
 
       /**
       * Get the name of the underlying public key scheme.
@@ -160,9 +162,14 @@ class BOTAN_DLL Public_Key
 /**
 * Private Key Base Class
 */
-class BOTAN_DLL Private_Key : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) Private_Key : public virtual Public_Key
    {
    public:
+      Private_Key() = default;
+      Private_Key(const Private_Key& other) = default;
+      Private_Key& operator=(const Private_Key& other) = default;
+      virtual ~Private_Key() = default;
+
       /**
       * @return BER encoded private key bits
       */
@@ -260,7 +267,7 @@ class BOTAN_DLL Private_Key : public virtual Public_Key
 /**
 * PK Secret Value Derivation Key
 */
-class BOTAN_DLL PK_Key_Agreement_Key : public virtual Private_Key
+class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement_Key : public virtual Private_Key
    {
    public:
       /*
@@ -268,7 +275,10 @@ class BOTAN_DLL PK_Key_Agreement_Key : public virtual Private_Key
       */
       virtual std::vector<uint8_t> public_value() const = 0;
 
-      virtual ~PK_Key_Agreement_Key() {}
+      PK_Key_Agreement_Key() = default;
+      PK_Key_Agreement_Key(const PK_Key_Agreement_Key&) = default;
+      PK_Key_Agreement_Key& operator=(const PK_Key_Agreement_Key&) = default;
+      virtual ~PK_Key_Agreement_Key() = default;
    };
 
 /*

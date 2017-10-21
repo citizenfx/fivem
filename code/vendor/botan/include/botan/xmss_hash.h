@@ -5,15 +5,10 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_HASH_H__
-#define BOTAN_XMSS_HASH_H__
+#ifndef BOTAN_XMSS_HASH_H_
+#define BOTAN_XMSS_HASH_H_
 
-#include <cstddef>
-#include <string>
-#include <botan/assert.h>
 #include <botan/hash.h>
-#include <botan/secmem.h>
-#include <botan/types.h>
 
 namespace Botan {
 
@@ -144,7 +139,7 @@ class XMSS_Hash
        **/
       secure_vector<uint8_t> h_msg_final();
 
-      size_t output_length() const { return m_output_length; };
+      size_t output_length() const { return m_output_length; }
 
    private:
       static const uint8_t m_id_f = 0x00;

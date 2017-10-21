@@ -5,15 +5,15 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_STREAM_MODE_H__
-#define BOTAN_STREAM_MODE_H__
+#ifndef BOTAN_STREAM_MODE_H_
+#define BOTAN_STREAM_MODE_H_
 
 #include <botan/cipher_mode.h>
 #include <botan/stream_cipher.h>
 
 namespace Botan {
 
-class BOTAN_DLL Stream_Cipher_Mode : public Cipher_Mode
+class BOTAN_PUBLIC_API(2,0) Stream_Cipher_Mode final : public Cipher_Mode
    {
    public:
       /**
@@ -56,7 +56,10 @@ class BOTAN_DLL Stream_Cipher_Mode : public Cipher_Mode
    private:
       void start_msg(const uint8_t nonce[], size_t nonce_len) override
          {
-         m_cipher->set_iv(nonce, nonce_len);
+         if(nonce_len > 0)
+            {
+            m_cipher->set_iv(nonce, nonce_len);
+            }
          }
 
       void key_schedule(const uint8_t key[], size_t length) override

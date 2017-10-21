@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BLOWFISH_H__
-#define BOTAN_BLOWFISH_H__
+#ifndef BOTAN_BLOWFISH_H_
+#define BOTAN_BLOWFISH_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Blowfish
 */
-class BOTAN_DLL Blowfish final : public Block_Cipher_Fixed_Params<8, 1, 56>
+class BOTAN_PUBLIC_API(2,0) Blowfish final : public Block_Cipher_Fixed_Params<8, 1, 56>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

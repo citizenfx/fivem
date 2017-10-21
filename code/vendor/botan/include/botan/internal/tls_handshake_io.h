@@ -5,12 +5,11 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_HANDSHAKE_IO_H__
-#define BOTAN_TLS_HANDSHAKE_IO_H__
+#ifndef BOTAN_TLS_HANDSHAKE_IO_H_
+#define BOTAN_TLS_HANDSHAKE_IO_H_
 
 #include <botan/tls_magic.h>
 #include <botan/tls_version.h>
-#include <botan/loadstor.h>
 #include <functional>
 #include <vector>
 #include <deque>
@@ -50,13 +49,13 @@ class Handshake_IO
       virtual std::pair<Handshake_Type, std::vector<uint8_t>>
          get_next_record(bool expecting_ccs) = 0;
 
-      Handshake_IO() {}
+      Handshake_IO() = default;
 
       Handshake_IO(const Handshake_IO&) = delete;
 
       Handshake_IO& operator=(const Handshake_IO&) = delete;
 
-      virtual ~Handshake_IO() {}
+      virtual ~Handshake_IO() = default;
    };
 
 /**
@@ -146,7 +145,7 @@ class Datagram_Handshake_IO final : public Handshake_IO
                                      Handshake_Type msg_type,
                                      const std::vector<uint8_t>& msg);
 
-      class Handshake_Reassembly
+      class Handshake_Reassembly final
          {
          public:
             void add_fragment(const uint8_t fragment[],
@@ -172,12 +171,10 @@ class Datagram_Handshake_IO final : public Handshake_IO
             std::vector<uint8_t> m_message;
          };
 
-      struct Message_Info
+      struct Message_Info final
          {
          Message_Info(uint16_t e, Handshake_Type mt, const std::vector<uint8_t>& msg) :
             epoch(e), msg_type(mt), msg_bits(msg) {}
-
-         Message_Info(const Message_Info& other) = default;
 
          Message_Info() : epoch(0xFFFF), msg_type(HANDSHAKE_NONE) {}
 

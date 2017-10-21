@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_AUTO_SEEDING_RNG_H__
-#define BOTAN_AUTO_SEEDING_RNG_H__
+#ifndef BOTAN_AUTO_SEEDING_RNG_H_
+#define BOTAN_AUTO_SEEDING_RNG_H_
 
 #include <botan/rng.h>
 
@@ -17,7 +17,7 @@ class Stateful_RNG;
 /**
 * A userspace PRNG
 */
-class BOTAN_DLL AutoSeeded_RNG final : public RandomNumberGenerator
+class BOTAN_PUBLIC_API(2,0) AutoSeeded_RNG final : public RandomNumberGenerator
    {
    public:
       void randomize(uint8_t out[], size_t len) override;

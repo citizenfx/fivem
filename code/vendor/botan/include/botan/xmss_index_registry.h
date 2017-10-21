@@ -5,17 +5,10 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_INDEX_REGISTRY_H__
-#define BOTAN_XMSS_INDEX_REGISTRY_H__
+#ifndef BOTAN_XMSS_INDEX_REGISTRY_H_
+#define BOTAN_XMSS_INDEX_REGISTRY_H_
 
-#include <stdint.h>
-#include <cstddef>
-#include <limits>
-#include <memory>
-#include <string>
-#include <botan/hash.h>
 #include <botan/secmem.h>
-#include <botan/types.h>
 #include <botan/atomic.h>
 #include <botan/mutex.h>
 
@@ -58,8 +51,7 @@ class XMSS_Index_Registry
                                        const secure_vector<uint8_t>& prf);
 
    private:
-      XMSS_Index_Registry()
-         : m_key_ids(), m_leaf_indices(), m_mutex() {}
+      XMSS_Index_Registry() = default;
 
       static const std::string m_index_hash_function;
 
@@ -77,7 +69,7 @@ class XMSS_Index_Registry
        * Retrieves the index position of a key within the registry or
        * max(size_t) if key has not been found.
        *
-       * @param unique id of the XMSS private key (see make_key_id()).
+       * @param id unique id of the XMSS private key (see make_key_id()).
        *
        * @return index position of key or max(size_t) if key not found.
        **/

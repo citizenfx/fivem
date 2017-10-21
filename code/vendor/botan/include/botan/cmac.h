@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CMAC_H__
-#define BOTAN_CMAC_H__
+#ifndef BOTAN_CMAC_H_
+#define BOTAN_CMAC_H_
 
 #include <botan/mac.h>
 #include <botan/block_cipher.h>
@@ -16,11 +16,11 @@ namespace Botan {
 /**
 * CMAC, also known as OMAC1
 */
-class BOTAN_DLL CMAC final : public MessageAuthenticationCode
+class BOTAN_PUBLIC_API(2,0) CMAC final : public MessageAuthenticationCode
    {
    public:
       std::string name() const override;
-      size_t output_length() const override { return m_cipher->block_size(); }
+      size_t output_length() const override { return m_block_size; }
       MessageAuthenticationCode* clone() const override;
 
       void clear() override;
@@ -50,6 +50,7 @@ class BOTAN_DLL CMAC final : public MessageAuthenticationCode
 
       std::unique_ptr<BlockCipher> m_cipher;
       secure_vector<uint8_t> m_buffer, m_state, m_B, m_P;
+      const size_t m_block_size;
       size_t m_position;
    };
 

@@ -5,18 +5,19 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PUBKEY_EME_ENCRYPTION_PAD_H__
-#define BOTAN_PUBKEY_EME_ENCRYPTION_PAD_H__
+#ifndef BOTAN_PUBKEY_EME_ENCRYPTION_PAD_H_
+#define BOTAN_PUBKEY_EME_ENCRYPTION_PAD_H_
 
 #include <botan/secmem.h>
-#include <botan/rng.h>
 
 namespace Botan {
+
+class RandomNumberGenerator;
 
 /**
 * Encoding Method for Encryption
 */
-class BOTAN_DLL EME
+class BOTAN_PUBLIC_API(2,0) EME
    {
    public:
       virtual ~EME() = default;
@@ -83,7 +84,7 @@ class BOTAN_DLL EME
 * @param algo_spec the name of the EME to create
 * @return pointer to newly allocated object of that type
 */
-BOTAN_DLL EME*  get_eme(const std::string& algo_spec);
+BOTAN_PUBLIC_API(2,0) EME*  get_eme(const std::string& algo_spec);
 
 }
 

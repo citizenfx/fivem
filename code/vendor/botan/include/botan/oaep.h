@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_OAEP_H__
-#define BOTAN_OAEP_H__
+#ifndef BOTAN_OAEP_H_
+#define BOTAN_OAEP_H_
 
 #include <botan/eme.h>
 #include <botan/hash.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * OAEP (called EME1 in IEEE 1363 and in earlier versions of the library)
 */
-class BOTAN_DLL OAEP final : public EME
+class BOTAN_PUBLIC_API(2,0) OAEP final : public EME
    {
    public:
       size_t maximum_input_size(size_t) const override;

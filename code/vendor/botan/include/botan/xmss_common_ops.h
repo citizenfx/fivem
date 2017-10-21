@@ -5,12 +5,11 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_COMMON_OPS_H__
-#define BOTAN_XMSS_COMMON_OPS_H__
+#ifndef BOTAN_XMSS_COMMON_OPS_H_
+#define BOTAN_XMSS_COMMON_OPS_H_
 
 #include <vector>
 #include <botan/secmem.h>
-#include <botan/assert.h>
 #include <botan/xmss_parameters.h>
 #include <botan/xmss_address.h>
 #include <botan/xmss_hash.h>
@@ -26,7 +25,7 @@ class XMSS_Common_Ops
    {
    public:
       XMSS_Common_Ops(XMSS_Parameters::xmss_algorithm_t oid)
-         : m_xmss_params(oid), m_hash(m_xmss_params.hash_function_name()) {};
+         : m_xmss_params(oid), m_hash(m_xmss_params.hash_function_name()) {}
 
    protected:
       /**

@@ -5,22 +5,24 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CERT_STORE_SQL_H__
-#define BOTAN_CERT_STORE_SQL_H__
+#ifndef BOTAN_CERT_STORE_SQL_H_
+#define BOTAN_CERT_STORE_SQL_H_
 
 #include <botan/certstor.h>
 #include <botan/x509cert.h>
 #include <botan/x509_crl.h>
 #include <botan/database.h>
+#include <botan/mutex.h>
 
 namespace Botan {
 
+class Private_Key;
 class RandomNumberGenerator;
 
 /**
  * Certificate and private key store backed by an SQL database.
  */
-class BOTAN_DLL Certificate_Store_In_SQL : public Certificate_Store
+class BOTAN_PUBLIC_API(2,0) Certificate_Store_In_SQL : public Certificate_Store
    {
    public:
       /**
@@ -38,16 +40,19 @@ class BOTAN_DLL Certificate_Store_In_SQL : public Certificate_Store
       /**
       * Returns the first certificate with matching subject DN and optional key ID.
       */
-      virtual std::shared_ptr<const X509_Certificate>
+      std::shared_ptr<const X509_Certificate>
          find_cert(const X509_DN& subject_dn, const std::vector<uint8_t>& key_id) const override;
 
       std::shared_ptr<const X509_Certificate>
          find_cert_by_pubkey_sha1(const std::vector<uint8_t>& key_hash) const override;
 
+      std::shared_ptr<const X509_Certificate>
+         find_cert_by_raw_subject_dn_sha256(const std::vector<uint8_t>& subject_hash) const override;
+
       /**
       * Returns all subject DNs known to the store instance.
       */
-      virtual std::vector<X509_DN> all_subjects() const override;
+      std::vector<X509_DN> all_subjects() const override;
 
       /**
       * Inserts "cert" into the store, returns false if the certificate is
@@ -92,7 +97,7 @@ class BOTAN_DLL Certificate_Store_In_SQL : public Certificate_Store
       /**
       * Generates a CRL for all certificates issued by the given issuer.
       */
-      virtual std::shared_ptr<const X509_CRL>
+      std::shared_ptr<const X509_CRL>
          find_crl_for(const X509_Certificate& issuer) const override;
 
    private:

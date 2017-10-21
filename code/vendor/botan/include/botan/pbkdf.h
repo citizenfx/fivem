@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PBKDF_H__
-#define BOTAN_PBKDF_H__
+#ifndef BOTAN_PBKDF_H_
+#define BOTAN_PBKDF_H_
 
 #include <botan/symkey.h>
 #include <botan/exceptn.h>
@@ -19,7 +19,7 @@ namespace Botan {
 * implementations. Converts a password into a key using a salt
 * and iterated hashing to make brute force attacks harder.
 */
-class BOTAN_DLL PBKDF
+class BOTAN_PUBLIC_API(2,0) PBKDF
    {
    public:
       /**
@@ -31,6 +31,15 @@ class BOTAN_DLL PBKDF
       */
       static std::unique_ptr<PBKDF> create(const std::string& algo_spec,
                                            const std::string& provider = "");
+
+      /**
+      * Create an instance based on a name, or throw if the
+      * algo/provider combination cannot be found. If provider is
+      * empty then best available is chosen.
+      */
+      static std::unique_ptr<PBKDF>
+         create_or_throw(const std::string& algo_spec,
+                         const std::string& provider = "");
 
       /**
       * @return list of available providers for this algorithm, empty if not available
@@ -47,7 +56,7 @@ class BOTAN_DLL PBKDF
       */
       virtual std::string name() const = 0;
 
-      virtual ~PBKDF();
+      virtual ~PBKDF() = default;
 
       /**
       * Derive a key from a passphrase for a number of iterations
@@ -207,6 +216,11 @@ class BOTAN_DLL PBKDF
          }
    };
 
+/*
+* Compatability typedef
+*/
+typedef PBKDF S2K;
+
 /**
 * Password based key derivation function factory method
 * @param algo_spec the name of the desired PBKDF algorithm
@@ -214,13 +228,19 @@ class BOTAN_DLL PBKDF
 * @return pointer to newly allocated object of that type
 */
 inline PBKDF* get_pbkdf(const std::string& algo_spec,
-                           const std::string& provider = "")
+                        const std::string& provider = "")
    {
    std::unique_ptr<PBKDF> p(PBKDF::create(algo_spec, provider));
    if(p)
       return p.release();
    throw Algorithm_Not_Found(algo_spec);
    }
+
+inline PBKDF* get_s2k(const std::string& algo_spec)
+   {
+   return get_pbkdf(algo_spec);
+   }
+
 
 }
 

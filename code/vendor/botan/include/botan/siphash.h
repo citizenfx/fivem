@@ -5,14 +5,14 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SIPHASH_H__
-#define BOTAN_SIPHASH_H__
+#ifndef BOTAN_SIPHASH_H_
+#define BOTAN_SIPHASH_H_
 
 #include <botan/mac.h>
 
 namespace Botan {
 
-class BOTAN_DLL SipHash final : public MessageAuthenticationCode
+class BOTAN_PUBLIC_API(2,0) SipHash final : public MessageAuthenticationCode
    {
    public:
       SipHash(size_t c = 2, size_t d = 4) : m_C(c), m_D(d) {}

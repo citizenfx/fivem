@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ASN1_OID_H__
-#define BOTAN_ASN1_OID_H__
+#ifndef BOTAN_ASN1_OID_H_
+#define BOTAN_ASN1_OID_H_
 
 #include <botan/asn1_obj.h>
 #include <string>
@@ -17,7 +17,7 @@ namespace Botan {
 /**
 * This class represents ASN.1 object identifiers.
 */
-class BOTAN_DLL OID final : public ASN1_Object
+class BOTAN_PUBLIC_API(2,0) OID final : public ASN1_Object
    {
    public:
       void encode_into(class DER_Encoder&) const override;
@@ -73,7 +73,7 @@ class BOTAN_DLL OID final : public ASN1_Object
 * @param oid the OID to add the new component to
 * @param new_comp the new component to add
 */
-OID BOTAN_DLL operator+(const OID& oid, uint32_t new_comp);
+OID BOTAN_PUBLIC_API(2,0) operator+(const OID& oid, uint32_t new_comp);
 
 /**
 * Compare two OIDs.
@@ -81,7 +81,7 @@ OID BOTAN_DLL operator+(const OID& oid, uint32_t new_comp);
 * @param b the second OID
 * @return true if a is not equal to b
 */
-bool BOTAN_DLL operator!=(const OID& a, const OID& b);
+bool BOTAN_PUBLIC_API(2,0) operator!=(const OID& a, const OID& b);
 
 /**
 * Compare two OIDs.
@@ -89,7 +89,7 @@ bool BOTAN_DLL operator!=(const OID& a, const OID& b);
 * @param b the second OID
 * @return true if a is lexicographically smaller than b
 */
-bool BOTAN_DLL operator<(const OID& a, const OID& b);
+bool BOTAN_PUBLIC_API(2,0) operator<(const OID& a, const OID& b);
 
 }
 

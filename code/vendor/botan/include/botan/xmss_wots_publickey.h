@@ -5,15 +5,15 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_WOTS_PUBLICKEY_H__
-#define BOTAN_XMSS_WOTS_PUBLICKEY_H__
+#ifndef BOTAN_XMSS_WOTS_PUBLICKEY_H_
+#define BOTAN_XMSS_WOTS_PUBLICKEY_H_
 
 #include <cstddef>
 #include <string>
 #include <vector>
 #include <botan/alg_id.h>
+#include <botan/rng.h>
 #include <botan/asn1_oid.h>
-#include <botan/assert.h>
 #include <botan/exceptn.h>
 #include <botan/pk_keys.h>
 #include <botan/types.h>
@@ -29,14 +29,13 @@ typedef std::vector<secure_vector<uint8_t>> wots_keysig_t;
  * A Winternitz One Time Signature public key for use with Extended Hash-Based
  * Signatures.
  **/
-class BOTAN_DLL XMSS_WOTS_PublicKey : virtual public Public_Key
+class BOTAN_PUBLIC_API(2,0) XMSS_WOTS_PublicKey : virtual public Public_Key
    {
    public:
       class TreeSignature
          {
          public:
-            TreeSignature()
-               : m_ots_sig(), m_auth_path() {}
+            TreeSignature() = default;
 
             TreeSignature(const wots_keysig_t& ots_sig,
                           const wots_keysig_t& auth_path)
@@ -191,7 +190,7 @@ class BOTAN_DLL XMSS_WOTS_PublicKey : virtual public Public_Key
        * Convert the key into the raw key data. The key becomes a length
        * len vector of n-byte elements.
        **/
-      operator const wots_keysig_t& () const { return m_key; };
+      operator const wots_keysig_t& () const { return m_key; }
 
       /**
        * Convert the key into the raw key data. The key becomes a length
@@ -232,36 +231,36 @@ class BOTAN_DLL XMSS_WOTS_PublicKey : virtual public Public_Key
          return m_wots_params;
          }
 
-      virtual std::string algo_name() const override
+      std::string algo_name() const override
          {
          return m_wots_params.name();
          }
 
-      virtual AlgorithmIdentifier algorithm_identifier() const override
+      AlgorithmIdentifier algorithm_identifier() const override
          {
          throw Not_Implemented("No AlgorithmIdentifier available for XMSS-WOTS.");
          }
 
-      virtual bool check_key(RandomNumberGenerator&, bool) const override
+      bool check_key(RandomNumberGenerator&, bool) const override
          {
          return true;
          }
 
-      virtual std::unique_ptr<PK_Ops::Verification>
+      std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string&,
                                 const std::string& provider) const override;
 
-      virtual size_t estimated_strength() const override
+      size_t estimated_strength() const override
          {
          return m_wots_params.estimated_strength();
          }
 
-      virtual size_t key_length() const override
+      size_t key_length() const override
          {
          return m_wots_params.estimated_strength();
          }
 
-      virtual std::vector<uint8_t> public_key_bits() const override
+      std::vector<uint8_t> public_key_bits() const override
          {
          throw Not_Implemented("No key format defined for XMSS-WOTS");
          }

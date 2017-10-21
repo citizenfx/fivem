@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_CALLBACKS_H__
-#define BOTAN_TLS_CALLBACKS_H__
+#ifndef BOTAN_TLS_CALLBACKS_H_
+#define BOTAN_TLS_CALLBACKS_H_
 
 #include <botan/tls_session.h>
 #include <botan/tls_alert.h>
@@ -32,10 +32,10 @@ class Policy;
 * Encapsulates the callbacks that a TLS channel will make which are due to
 * channel specific operations.
 */
-class BOTAN_DLL Callbacks
+class BOTAN_PUBLIC_API(2,0) Callbacks
    {
    public:
-       virtual ~Callbacks();
+       virtual ~Callbacks() = default;
 
        /**
        * Mandatory callback: output function
@@ -188,9 +188,7 @@ class BOTAN_DLL Callbacks
        */
        virtual void tls_log_debug_bin(const char* descr, const uint8_t val[], size_t val_len)
           {
-          BOTAN_UNUSED(descr);
-          BOTAN_UNUSED(val);
-          BOTAN_UNUSED(val_len);
+          BOTAN_UNUSED(descr, val, val_len);
           }
    };
 
@@ -199,7 +197,7 @@ class BOTAN_DLL Callbacks
 * This type is only provided for backward compatibility.
 * New implementations should derive from TLS::Callbacks instead.
 */
-class BOTAN_DLL Compat_Callbacks final : public Callbacks
+class BOTAN_PUBLIC_API(2,0) Compat_Callbacks final : public Callbacks
    {
    public:
       typedef std::function<void (const uint8_t[], size_t)> output_fn;

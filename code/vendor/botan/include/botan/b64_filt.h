@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BASE64_FILTER_H__
-#define BOTAN_BASE64_FILTER_H__
+#ifndef BOTAN_BASE64_FILTER_H_
+#define BOTAN_BASE64_FILTER_H_
 
 #include <botan/filter.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * This class represents a Base64 encoder.
 */
-class BOTAN_DLL Base64_Encoder final : public Filter
+class BOTAN_PUBLIC_API(2,0) Base64_Encoder final : public Filter
    {
    public:
       std::string name() const override { return "Base64_Encoder"; }
@@ -54,7 +54,7 @@ class BOTAN_DLL Base64_Encoder final : public Filter
 /**
 * This object represents a Base64 decoder.
 */
-class BOTAN_DLL Base64_Decoder final : public Filter
+class BOTAN_PUBLIC_API(2,0) Base64_Decoder final : public Filter
    {
    public:
       std::string name() const override { return "Base64_Decoder"; }

@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_AEAD_CHACHA20_POLY1305_H__
-#define BOTAN_AEAD_CHACHA20_POLY1305_H__
+#ifndef BOTAN_AEAD_CHACHA20_POLY1305_H_
+#define BOTAN_AEAD_CHACHA20_POLY1305_H_
 
 #include <botan/aead.h>
 #include <botan/stream_cipher.h>
@@ -21,7 +21,7 @@ namespace Botan {
 * If a nonce of 64 bits is used the older version described in
 * draft-agl-tls-chacha20poly1305-04 is used instead.
 */
-class BOTAN_DLL ChaCha20Poly1305_Mode : public AEAD_Mode
+class BOTAN_PUBLIC_API(2,0) ChaCha20Poly1305_Mode : public AEAD_Mode
    {
    public:
       void set_associated_data(const uint8_t ad[], size_t ad_len) override;
@@ -62,7 +62,7 @@ class BOTAN_DLL ChaCha20Poly1305_Mode : public AEAD_Mode
 /**
 * ChaCha20Poly1305 Encryption
 */
-class BOTAN_DLL ChaCha20Poly1305_Encryption final : public ChaCha20Poly1305_Mode
+class BOTAN_PUBLIC_API(2,0) ChaCha20Poly1305_Encryption final : public ChaCha20Poly1305_Mode
    {
    public:
       size_t output_length(size_t input_length) const override
@@ -78,7 +78,7 @@ class BOTAN_DLL ChaCha20Poly1305_Encryption final : public ChaCha20Poly1305_Mode
 /**
 * ChaCha20Poly1305 Decryption
 */
-class BOTAN_DLL ChaCha20Poly1305_Decryption final : public ChaCha20Poly1305_Mode
+class BOTAN_PUBLIC_API(2,0) ChaCha20Poly1305_Decryption final : public ChaCha20Poly1305_Mode
    {
    public:
       size_t output_length(size_t input_length) const override

@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DER_ENCODER_H__
-#define BOTAN_DER_ENCODER_H__
+#ifndef BOTAN_DER_ENCODER_H_
+#define BOTAN_DER_ENCODER_H_
 
 #include <botan/asn1_obj.h>
 #include <vector>
@@ -19,7 +19,7 @@ class ASN1_Object;
 /**
 * General DER Encoding Object
 */
-class BOTAN_DLL DER_Encoder
+class BOTAN_PUBLIC_API(2,0) DER_Encoder final
    {
    public:
       secure_vector<uint8_t> get_contents();

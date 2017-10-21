@@ -5,16 +5,12 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PUBKEY_H__
-#define BOTAN_PUBKEY_H__
+#ifndef BOTAN_PUBKEY_H_
+#define BOTAN_PUBKEY_H_
 
 #include <botan/pk_keys.h>
 #include <botan/pk_ops_fwd.h>
 #include <botan/symkey.h>
-#include <botan/rng.h>
-#include <botan/eme.h>
-#include <botan/emsa.h>
-#include <botan/kdf.h>
 
 #if defined(BOTAN_HAS_SYSTEM_RNG)
   #include <botan/system_rng.h>
@@ -22,6 +18,8 @@
 #endif
 
 namespace Botan {
+
+class RandomNumberGenerator;
 
 /**
 * The two types of signature format supported by Botan.
@@ -32,7 +30,7 @@ enum Signature_Format { IEEE_1363, DER_SEQUENCE };
 * Public Key Encryptor
 * This is the primary interface for public key encryption
 */
-class BOTAN_DLL PK_Encryptor
+class BOTAN_PUBLIC_API(2,0) PK_Encryptor
    {
    public:
 
@@ -68,8 +66,8 @@ class BOTAN_DLL PK_Encryptor
       */
       virtual size_t maximum_input_size() const = 0;
 
-      PK_Encryptor() {}
-      virtual ~PK_Encryptor() {}
+      PK_Encryptor() = default;
+      virtual ~PK_Encryptor() = default;
 
       PK_Encryptor(const PK_Encryptor&) = delete;
       PK_Encryptor& operator=(const PK_Encryptor&) = delete;
@@ -82,7 +80,7 @@ class BOTAN_DLL PK_Encryptor
 /**
 * Public Key Decryptor
 */
-class BOTAN_DLL PK_Decryptor
+class BOTAN_PUBLIC_API(2,0) PK_Decryptor
    {
    public:
       /**
@@ -142,7 +140,7 @@ class BOTAN_DLL PK_Decryptor
                         const uint8_t required_content_offsets[],
                         size_t required_contents) const;
 
-      PK_Decryptor() {}
+      PK_Decryptor() = default;
       virtual ~PK_Decryptor() = default;
 
       PK_Decryptor(const PK_Decryptor&) = delete;
@@ -158,7 +156,7 @@ class BOTAN_DLL PK_Decryptor
 * messages. Use multiple calls update() to process large messages and
 * generate the signature by finally calling signature().
 */
-class BOTAN_DLL PK_Signer final
+class BOTAN_PUBLIC_API(2,0) PK_Signer final
    {
    public:
 
@@ -285,7 +283,7 @@ class BOTAN_DLL PK_Signer final
 * messages. Use multiple calls update() to process large messages and
 * verify the signature by finally calling check_signature().
 */
-class BOTAN_DLL PK_Verifier final
+class BOTAN_PUBLIC_API(2,0) PK_Verifier final
    {
    public:
       /**
@@ -397,7 +395,7 @@ class BOTAN_DLL PK_Verifier final
 /**
 * Key used for key agreement
 */
-class BOTAN_DLL PK_Key_Agreement final
+class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
    {
    public:
 
@@ -507,7 +505,7 @@ class BOTAN_DLL PK_Key_Agreement final
 * Encryption using a standard message recovery algorithm like RSA or
 * ElGamal, paired with an encoding scheme like OAEP.
 */
-class BOTAN_DLL PK_Encryptor_EME final : public PK_Encryptor
+class BOTAN_PUBLIC_API(2,0) PK_Encryptor_EME final : public PK_Encryptor
    {
    public:
       size_t maximum_input_size() const override;
@@ -551,7 +549,7 @@ class BOTAN_DLL PK_Encryptor_EME final : public PK_Encryptor
 /**
 * Decryption with an MR algorithm and an EME.
 */
-class BOTAN_DLL PK_Decryptor_EME final : public PK_Decryptor
+class BOTAN_PUBLIC_API(2,0) PK_Decryptor_EME final : public PK_Decryptor
    {
    public:
      /**
@@ -571,7 +569,7 @@ class BOTAN_DLL PK_Decryptor_EME final : public PK_Decryptor
       /**
       * Construct an instance.
       * @param key the key to use inside the decryptor
-      * @param padding the message encoding scheme to use (eg "OAEP(SHA-256)")
+      * @param eme the message encoding scheme to use (eg "OAEP(SHA-256)")
       */
       BOTAN_DEPRECATED("Use constructor taking a RNG object")
       PK_Decryptor_EME(const Private_Key& key,
@@ -594,7 +592,7 @@ class BOTAN_DLL PK_Decryptor_EME final : public PK_Decryptor
 /**
 * Public Key Key Encapsulation Mechanism Encryption.
 */
-class BOTAN_DLL PK_KEM_Encryptor final
+class BOTAN_PUBLIC_API(2,0) PK_KEM_Encryptor final
    {
    public:
       /**
@@ -688,7 +686,7 @@ class BOTAN_DLL PK_KEM_Encryptor final
 /**
 * Public Key Key Encapsulation Mechanism Decryption.
 */
-class BOTAN_DLL PK_KEM_Decryptor final
+class BOTAN_PUBLIC_API(2,0) PK_KEM_Decryptor final
    {
    public:
       /**

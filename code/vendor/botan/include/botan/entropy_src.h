@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ENTROPY_H__
-#define BOTAN_ENTROPY_H__
+#ifndef BOTAN_ENTROPY_H_
+#define BOTAN_ENTROPY_H_
 
 #include <botan/secmem.h>
 #include <botan/rng.h>
@@ -22,14 +22,14 @@ class RandomNumberGenerator;
 /**
 * Abstract interface to a source of entropy
 */
-class BOTAN_DLL Entropy_Source
+class BOTAN_PUBLIC_API(2,0) Entropy_Source
    {
    public:
-      /*
+      /**
       * Return a new entropy source of a particular type, or null
       * Each entropy source may require substantial resources (eg, a file handle
       * or socket instance), so try to share them among multiple RNGs, or just
-      * use the preconfigured global list accessed by global_entropy_sources()
+      * use the preconfigured global list accessed by Entropy_Sources::global_sources()
       */
       static std::unique_ptr<Entropy_Source> create(const std::string& type);
 
@@ -41,14 +41,21 @@ class BOTAN_DLL Entropy_Source
       /**
       * Perform an entropy gathering poll
       * @param rng will be provided with entropy via calls to add_entropy
-      @ @return conservative estimate of actual entropy added to rng during poll
+      * @return conservative estimate of actual entropy added to rng during poll
       */
       virtual size_t poll(RandomNumberGenerator& rng) = 0;
 
+      Entropy_Source(const Entropy_Source& other) = delete;
+      Entropy_Source(Entropy_Source&& other) = delete;
+      Entropy_Source& operator=(const Entropy_Source& other) = delete;
+
       virtual ~Entropy_Source() {}
+
+   protected:
+      Entropy_Source() {}
    };
 
-class BOTAN_DLL Entropy_Sources final
+class BOTAN_PUBLIC_API(2,0) Entropy_Sources final
    {
    public:
       static Entropy_Sources& global_sources();
@@ -69,9 +76,12 @@ class BOTAN_DLL Entropy_Sources final
       Entropy_Sources() {}
       explicit Entropy_Sources(const std::vector<std::string>& sources);
 
-      ~Entropy_Sources();
+      Entropy_Sources(const Entropy_Sources& other) = delete;
+      Entropy_Sources(Entropy_Sources&& other) = delete;
+      Entropy_Sources& operator=(const Entropy_Sources& other) = delete;
+
    private:
-      std::vector<Entropy_Source*> m_srcs;
+      std::vector<std::unique_ptr<Entropy_Source>> m_srcs;
    };
 
 }

@@ -7,12 +7,11 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ECC_PUBLIC_KEY_BASE_H__
-#define BOTAN_ECC_PUBLIC_KEY_BASE_H__
+#ifndef BOTAN_ECC_PUBLIC_KEY_BASE_H_
+#define BOTAN_ECC_PUBLIC_KEY_BASE_H_
 
 #include <botan/ec_group.h>
 #include <botan/pk_keys.h>
-#include <botan/x509_key.h>
 
 namespace Botan {
 
@@ -26,7 +25,7 @@ namespace Botan {
 * cannot be used for verification until its domain parameters are set
 * by calling the corresponding member function.
 */
-class BOTAN_DLL EC_PublicKey : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) EC_PublicKey : public virtual Public_Key
    {
    public:
       /**
@@ -44,6 +43,10 @@ class BOTAN_DLL EC_PublicKey : public virtual Public_Key
       */
       EC_PublicKey(const AlgorithmIdentifier& alg_id,
                    const std::vector<uint8_t>& key_bits);
+
+      EC_PublicKey(const EC_PublicKey& other) = default;
+      EC_PublicKey& operator=(const EC_PublicKey& other) = default;
+      virtual ~EC_PublicKey() = default;
 
       /**
       * Get the public point of this key.
@@ -103,7 +106,7 @@ class BOTAN_DLL EC_PublicKey : public virtual Public_Key
 /**
 * This abstract class represents ECC private keys
 */
-class BOTAN_DLL EC_PrivateKey : public virtual EC_PublicKey,
+class BOTAN_PUBLIC_API(2,0) EC_PrivateKey : public virtual EC_PublicKey,
                                 public virtual Private_Key
    {
    public:
@@ -121,8 +124,9 @@ class BOTAN_DLL EC_PrivateKey : public virtual EC_PublicKey,
                     bool with_modular_inverse=false);
 
       /*
-      * Creates a new private key object from the given
-      * key_bits. If with_modular_inverse is set,
+      * Creates a new private key object from the
+      * ECPrivateKey structure given in key_bits.
+      * If with_modular_inverse is set,
       * the public key will be calculated by multiplying
       * the base point with the modular inverse of
       * x (as in ECGDSA and ECKCDSA), otherwise by
@@ -139,8 +143,12 @@ class BOTAN_DLL EC_PrivateKey : public virtual EC_PublicKey,
       * @result the private key value of this key object
       */
       const BigInt& private_value() const;
+
+      EC_PrivateKey(const EC_PrivateKey& other) = default;
+      EC_PrivateKey& operator=(const EC_PrivateKey& other) = default;
+      ~EC_PrivateKey() = default;
    protected:
-      EC_PrivateKey() {}
+      EC_PrivateKey() = default;
 
       BigInt m_private_key;
    };

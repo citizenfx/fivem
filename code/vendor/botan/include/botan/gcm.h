@@ -6,21 +6,22 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_AEAD_GCM_H__
-#define BOTAN_AEAD_GCM_H__
+#ifndef BOTAN_AEAD_GCM_H_
+#define BOTAN_AEAD_GCM_H_
 
 #include <botan/aead.h>
-#include <botan/block_cipher.h>
-#include <botan/stream_cipher.h>
+#include <botan/sym_algo.h>
 
 namespace Botan {
 
+class BlockCipher;
+class StreamCipher;
 class GHASH;
 
 /**
 * GCM Mode
 */
-class BOTAN_DLL GCM_Mode : public AEAD_Mode
+class BOTAN_PUBLIC_API(2,0) GCM_Mode : public AEAD_Mode
    {
    public:
       void set_associated_data(const uint8_t ad[], size_t ad_len) override;
@@ -44,6 +45,8 @@ class BOTAN_DLL GCM_Mode : public AEAD_Mode
    protected:
       GCM_Mode(BlockCipher* cipher, size_t tag_size);
 
+      ~GCM_Mode();
+
       const size_t m_BS = 16;
 
       const size_t m_tag_size;
@@ -60,7 +63,7 @@ class BOTAN_DLL GCM_Mode : public AEAD_Mode
 /**
 * GCM Encryption
 */
-class BOTAN_DLL GCM_Encryption final : public GCM_Mode
+class BOTAN_PUBLIC_API(2,0) GCM_Encryption final : public GCM_Mode
    {
    public:
       /**
@@ -83,7 +86,7 @@ class BOTAN_DLL GCM_Encryption final : public GCM_Mode
 /**
 * GCM Decryption
 */
-class BOTAN_DLL GCM_Decryption final : public GCM_Mode
+class BOTAN_PUBLIC_API(2,0) GCM_Decryption final : public GCM_Mode
    {
    public:
       /**
@@ -110,7 +113,7 @@ class BOTAN_DLL GCM_Decryption final : public GCM_Mode
 * GCM's GHASH
 * Maybe a Transform?
 */
-class BOTAN_DLL GHASH : public SymmetricAlgorithm
+class BOTAN_PUBLIC_API(2,0) GHASH : public SymmetricAlgorithm
    {
    public:
       void set_associated_data(const uint8_t ad[], size_t ad_len);

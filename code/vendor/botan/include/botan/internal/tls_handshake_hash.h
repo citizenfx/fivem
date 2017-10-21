@@ -5,12 +5,11 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_HANDSHAKE_HASH_H__
-#define BOTAN_TLS_HANDSHAKE_HASH_H__
+#ifndef BOTAN_TLS_HANDSHAKE_HASH_H_
+#define BOTAN_TLS_HANDSHAKE_HASH_H_
 
 #include <botan/secmem.h>
 #include <botan/tls_version.h>
-#include <botan/tls_magic.h>
 
 namespace Botan {
 
@@ -19,7 +18,7 @@ namespace TLS {
 /**
 * TLS Handshake Hash
 */
-class Handshake_Hash
+class Handshake_Hash final
    {
    public:
       void update(const uint8_t in[], size_t length)

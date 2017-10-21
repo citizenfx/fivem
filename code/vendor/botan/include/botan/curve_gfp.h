@@ -7,18 +7,18 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_GFP_CURVE_H__
-#define BOTAN_GFP_CURVE_H__
+#ifndef BOTAN_GFP_CURVE_H_
+#define BOTAN_GFP_CURVE_H_
 
-#include <botan/numthry.h>
+#include <botan/bigint.h>
 #include <memory>
 
 namespace Botan {
 
-class CurveGFp_Repr
+class BOTAN_UNSTABLE_API CurveGFp_Repr
    {
    public:
-      virtual ~CurveGFp_Repr() {}
+      virtual ~CurveGFp_Repr() = default;
 
       virtual const BigInt& get_p() const = 0;
       virtual const BigInt& get_a() const = 0;
@@ -50,14 +50,14 @@ class CurveGFp_Repr
 /**
 * This class represents an elliptic curve over GF(p)
 */
-class BOTAN_DLL CurveGFp
+class BOTAN_PUBLIC_API(2,0) CurveGFp final
    {
    public:
 
       /**
       * Create an uninitialized CurveGFp
       */
-      CurveGFp() {}
+      CurveGFp() = default;
 
       /**
       * Construct the elliptic curve E: y^2 = x^3 + ax + b over GF(p)

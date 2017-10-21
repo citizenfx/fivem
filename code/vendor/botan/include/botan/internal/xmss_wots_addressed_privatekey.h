@@ -5,8 +5,8 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_WOTS_ADDRESSED_PRIVATEKEY_H__
-#define BOTAN_XMSS_WOTS_ADDRESSED_PRIVATEKEY_H__
+#ifndef BOTAN_XMSS_WOTS_ADDRESSED_PRIVATEKEY_H_
+#define BOTAN_XMSS_WOTS_ADDRESSED_PRIVATEKEY_H_
 
 #include <botan/xmss_address.h>
 #include <botan/internal/xmss_wots_addressed_publickey.h>
@@ -22,7 +22,7 @@ namespace Botan {
  * XMSS_WOTS_Signature_Operation() on creation.
  **/
 class XMSS_WOTS_Addressed_PrivateKey
-   : public virtual XMSS_WOTS_Addressed_PublicKey,
+   final : public virtual XMSS_WOTS_Addressed_PublicKey,
      public virtual Private_Key
    {
    public:
@@ -48,13 +48,13 @@ class XMSS_WOTS_Addressed_PrivateKey
       const XMSS_WOTS_PrivateKey& private_key() const { return m_priv_key; }
       XMSS_WOTS_PrivateKey& private_key() { return m_priv_key; }
 
-      virtual AlgorithmIdentifier
+      AlgorithmIdentifier
       pkcs8_algorithm_identifier() const override
          {
          return m_priv_key.pkcs8_algorithm_identifier();
          }
 
-      virtual secure_vector<uint8_t> private_key_bits() const override
+      secure_vector<uint8_t> private_key_bits() const override
          {
          return m_priv_key.private_key_bits();
          }

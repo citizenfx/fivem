@@ -5,14 +5,13 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_VERIFICATION_OPERATION_H__
-#define BOTAN_XMSS_VERIFICATION_OPERATION_H__
+#ifndef BOTAN_XMSS_VERIFICATION_OPERATION_H_
+#define BOTAN_XMSS_VERIFICATION_OPERATION_H_
 
 #include <array>
 #include <cstddef>
 #include <iterator>
 #include <string>
-#include <botan/assert.h>
 #include <botan/types.h>
 #include <botan/xmss_publickey.h>
 #include <botan/xmss_common_ops.h>
@@ -26,17 +25,16 @@ namespace Botan {
  * Signatures (XMSS).
  **/
  class XMSS_Verification_Operation
-   : public virtual PK_Ops::Verification,
+   final : public virtual PK_Ops::Verification,
      public XMSS_Common_Ops
    {
    public:
       XMSS_Verification_Operation(
          const XMSS_PublicKey& public_key);
 
-      virtual ~XMSS_Verification_Operation() {}
+      virtual ~XMSS_Verification_Operation() = default;
 
-      virtual bool is_valid_signature(const uint8_t sig[],
-                                      size_t sig_len) override;
+      bool is_valid_signature(const uint8_t sig[], size_t sig_len) override;
 
       void update(const uint8_t msg[], size_t msg_len) override;
 
@@ -47,7 +45,7 @@ namespace Botan {
        *
        * @param msg A message.
        * @param sig The XMSS signature for msg.
-       * @param adrs A XMSS tree address.
+       * @param ards A XMSS tree address.
        * @param seed A seed.
        *
        * @return An n-byte string holding the value of the root of a tree
@@ -65,7 +63,7 @@ namespace Botan {
        *
        * @param sig A XMSS signature.
        * @param msg The message signed with sig.
-       * @paeam pub_key
+       * @param pub_key the public key
        *
        * @return true if signature sig is valid for msg, false otherwise.
        **/

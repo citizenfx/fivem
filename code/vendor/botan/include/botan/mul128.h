@@ -5,14 +5,14 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_UTIL_MUL128_H__
-#define BOTAN_UTIL_MUL128_H__
+#ifndef BOTAN_UTIL_MUL128_H_
+#define BOTAN_UTIL_MUL128_H_
 
 #include <botan/types.h>
 
 namespace Botan {
 
-#if defined(__SIZEOF_INT128__) && defined(BOTAN_TARGET_CPU_HAS_NATIVE_64BIT)
+#if defined(__SIZEOF_INT128__) && defined(BOTAN_TARGET_CPU_HAS_NATIVE_64BIT) && !defined(__xlc__)
    #define BOTAN_TARGET_HAS_NATIVE_UINT128
 
    // Prefer TI mode over __int128 as GCC rejects the latter in pendantic mode

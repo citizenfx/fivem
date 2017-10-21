@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_RIPEMD_160_H__
-#define BOTAN_RIPEMD_160_H__
+#ifndef BOTAN_RIPEMD_160_H_
+#define BOTAN_RIPEMD_160_H_
 
 #include <botan/mdx_hash.h>
 
@@ -15,12 +15,13 @@ namespace Botan {
 /**
 * RIPEMD-160
 */
-class BOTAN_DLL RIPEMD_160 final : public MDx_HashFunction
+class BOTAN_PUBLIC_API(2,0) RIPEMD_160 final : public MDx_HashFunction
    {
    public:
       std::string name() const override { return "RIPEMD-160"; }
       size_t output_length() const override { return 20; }
       HashFunction* clone() const override { return new RIPEMD_160; }
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
 

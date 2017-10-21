@@ -5,18 +5,16 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_PUBLICKEY_H__
-#define BOTAN_XMSS_PUBLICKEY_H__
+#ifndef BOTAN_XMSS_PUBLICKEY_H_
+#define BOTAN_XMSS_PUBLICKEY_H_
 
 #include <cstddef>
 #include <iterator>
-#include <limits>
 #include <memory>
 #include <string>
 #include <botan/alg_id.h>
 #include <botan/asn1_oid.h>
 #include <botan/der_enc.h>
-#include <botan/assert.h>
 #include <botan/exceptn.h>
 #include <botan/rng.h>
 #include <botan/types.h>
@@ -40,7 +38,7 @@ class XMSS_Verification_Operation;
  *       https://datatracker.ietf.org/doc/
  *       draft-irtf-cfrg-xmss-hash-based-signatures/?include_text=1
  **/
-class BOTAN_DLL XMSS_PublicKey : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) XMSS_PublicKey : public virtual Public_Key
    {
    public:
       /**
@@ -104,8 +102,6 @@ class BOTAN_DLL XMSS_PublicKey : public virtual Public_Key
 
       /**
        * Sets the chosen XMSS signature method
-       *
-       * @return XMSS signature method identifier.
        **/
       void set_xmss_oid(XMSS_Parameters::xmss_algorithm_t xmss_oid)
          {
@@ -191,26 +187,26 @@ class BOTAN_DLL XMSS_PublicKey : public virtual Public_Key
          return "XMSS";
          }
 
-      virtual AlgorithmIdentifier algorithm_identifier() const override
+      AlgorithmIdentifier algorithm_identifier() const override
          {
          return AlgorithmIdentifier(get_oid(), AlgorithmIdentifier::USE_NULL_PARAM);
          }
 
-      virtual bool check_key(RandomNumberGenerator&, bool) const override
+      bool check_key(RandomNumberGenerator&, bool) const override
          {
          return true;
          }
 
-      virtual std::unique_ptr<PK_Ops::Verification>
+      std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string&,
                                 const std::string& provider) const override;
 
-      virtual size_t estimated_strength() const override
+      size_t estimated_strength() const override
          {
          return m_xmss_params.estimated_strength();
          }
 
-      virtual size_t key_length() const override
+      size_t key_length() const override
          {
          return m_xmss_params.estimated_strength();
          }
@@ -221,7 +217,7 @@ class BOTAN_DLL XMSS_PublicKey : public virtual Public_Key
        *
        * @return raw public key bits.
        **/
-      virtual std::vector<uint8_t> public_key_bits() const override
+      std::vector<uint8_t> public_key_bits() const override
          {
          return raw_public_key();
          }

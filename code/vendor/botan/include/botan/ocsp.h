@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_OCSP_H__
-#define BOTAN_OCSP_H__
+#ifndef BOTAN_OCSP_H_
+#define BOTAN_OCSP_H_
 
 #include <botan/cert_status.h>
 #include <botan/ocsp_types.h>
@@ -20,7 +20,7 @@ namespace OCSP {
 /**
 * An OCSP request.
 */
-class BOTAN_DLL Request
+class BOTAN_PUBLIC_API(2,0) Request final
    {
    public:
       /**
@@ -30,6 +30,9 @@ class BOTAN_DLL Request
       */
       Request(const X509_Certificate& issuer_cert,
               const X509_Certificate& subject_cert);
+
+      Request(const X509_Certificate& issuer_cert,
+              const BigInt& subject_serial);
 
       /**
       * @return BER-encoded OCSP request
@@ -49,12 +52,12 @@ class BOTAN_DLL Request
       /**
       * @return subject certificate
       */
-      const X509_Certificate& subject() const { return m_subject; }
+      const X509_Certificate& subject() const { throw Not_Implemented("Method have been deprecated"); }
 
       const std::vector<uint8_t>& issuer_key_hash() const
          { return m_certid.issuer_key_hash(); }
    private:
-      X509_Certificate m_issuer, m_subject;
+      X509_Certificate m_issuer;
       CertID m_certid;
    };
 
@@ -63,13 +66,13 @@ class BOTAN_DLL Request
 *
 * Note this class is only usable as an OCSP client
 */
-class BOTAN_DLL Response
+class BOTAN_PUBLIC_API(2,0) Response final
    {
    public:
       /**
       * Creates an empty OCSP response.
       */
-      Response() {}
+      Response() = default;
 
       /**
       * Parses an OCSP response.
@@ -140,6 +143,11 @@ class BOTAN_DLL Response
                                          const X509_Certificate& subject,
                                          std::chrono::system_clock::time_point ref_time = std::chrono::system_clock::now()) const;
 
+      /**
+       * @return the certificate chain, if provided in response
+       */
+      const std::vector<X509_Certificate> &certificates() const { return  m_certs; }
+
    private:
       std::vector<uint8_t> m_response_bits;
       X509_Time m_produced_at;
@@ -155,6 +163,12 @@ class BOTAN_DLL Response
 
 #if defined(BOTAN_HAS_HTTP_UTIL)
 
+BOTAN_PUBLIC_API(2,1)
+Response online_check(const X509_Certificate& issuer,
+                      const BigInt& subject_serial,
+                      const std::string& ocsp_responder,
+                      Certificate_Store* trusted_roots);
+
 /**
 * Makes an online OCSP request via HTTP and returns the OCSP response.
 * @param issuer issuer certificate
@@ -162,9 +176,10 @@ class BOTAN_DLL Response
 * @param trusted_roots trusted roots for the OCSP response
 * @return OCSP response
 */
-BOTAN_DLL Response online_check(const X509_Certificate& issuer,
-                                const X509_Certificate& subject,
-                                Certificate_Store* trusted_roots);
+BOTAN_PUBLIC_API(2,0)
+Response online_check(const X509_Certificate& issuer,
+                      const X509_Certificate& subject,
+                      Certificate_Store* trusted_roots);
 
 #endif
 

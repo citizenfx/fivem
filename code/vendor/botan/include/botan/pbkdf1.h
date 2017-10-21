@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PBKDF1_H__
-#define BOTAN_PBKDF1_H__
+#ifndef BOTAN_PBKDF1_H_
+#define BOTAN_PBKDF1_H_
 
 #include <botan/pbkdf.h>
 #include <botan/hash.h>
@@ -18,7 +18,7 @@ namespace Botan {
 * Can only generate a key up to the size of the hash output.
 * Unless needed for backwards compatibility, use PKCS5_PBKDF2
 */
-class BOTAN_DLL PKCS5_PBKDF1 final : public PBKDF
+class BOTAN_PUBLIC_API(2,0) PKCS5_PBKDF1 final : public PBKDF
    {
    public:
       /**

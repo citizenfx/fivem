@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_EMSA1_H__
-#define BOTAN_EMSA1_H__
+#ifndef BOTAN_EMSA1_H_
+#define BOTAN_EMSA1_H_
 
 #include <botan/emsa.h>
 #include <botan/hash.h>
@@ -17,7 +17,7 @@ namespace Botan {
 * EMSA1 from IEEE 1363
 * Essentially, sign the hash directly
 */
-class BOTAN_DLL EMSA1 : public EMSA
+class BOTAN_PUBLIC_API(2,0) EMSA1 final : public EMSA
    {
    public:
       /**

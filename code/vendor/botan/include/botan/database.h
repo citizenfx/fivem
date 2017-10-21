@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SQL_DATABASE_H__
-#define BOTAN_SQL_DATABASE_H__
+#ifndef BOTAN_SQL_DATABASE_H_
+#define BOTAN_SQL_DATABASE_H_
 
 #include <botan/types.h>
 #include <botan/exceptn.h>
@@ -16,17 +16,17 @@
 
 namespace Botan {
 
-class BOTAN_DLL SQL_Database
+class BOTAN_PUBLIC_API(2,0) SQL_Database
    {
    public:
 
-      class BOTAN_DLL SQL_DB_Error : public Exception
+      class BOTAN_PUBLIC_API(2,0) SQL_DB_Error final : public Exception
          {
          public:
             explicit SQL_DB_Error(const std::string& what) : Exception("SQL database", what) {}
          };
 
-      class BOTAN_DLL Statement
+      class BOTAN_PUBLIC_API(2,0) Statement
          {
          public:
             /* Bind statement parameters */

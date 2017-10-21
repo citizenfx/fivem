@@ -5,9 +5,10 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CREDENTIALS_MANAGER_H__
-#define BOTAN_CREDENTIALS_MANAGER_H__
+#ifndef BOTAN_CREDENTIALS_MANAGER_H_
+#define BOTAN_CREDENTIALS_MANAGER_H_
 
+#include <botan/pk_keys.h>
 #include <botan/x509cert.h>
 #include <botan/certstor.h>
 #include <botan/symkey.h>
@@ -25,10 +26,10 @@ class BigInt;
 * and "tls-server". Context represents a hostname, email address,
 * username, or other identifier.
 */
-class BOTAN_DLL Credentials_Manager
+class BOTAN_PUBLIC_API(2,0) Credentials_Manager
    {
    public:
-      virtual ~Credentials_Manager() {}
+      virtual ~Credentials_Manager() = default;
 
       /**
       * Return a list of the certificates of CAs that we trust in this

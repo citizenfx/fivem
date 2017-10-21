@@ -5,14 +5,14 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CURVE25519_DONNA128_H__
-#define BOTAN_CURVE25519_DONNA128_H__
+#ifndef BOTAN_CURVE25519_DONNA128_H_
+#define BOTAN_CURVE25519_DONNA128_H_
 
 #include <botan/mul128.h>
 
 namespace Botan {
 
-class donna128
+class donna128 final
    {
    public:
       donna128(uint64_t ll = 0, uint64_t hh = 0) { l = ll; h = hh; }

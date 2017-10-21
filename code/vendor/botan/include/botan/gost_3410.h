@@ -7,8 +7,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_GOST_3410_KEY_H__
-#define BOTAN_GOST_3410_KEY_H__
+#ifndef BOTAN_GOST_3410_KEY_H_
+#define BOTAN_GOST_3410_KEY_H_
 
 #include <botan/ecc_key.h>
 
@@ -17,7 +17,7 @@ namespace Botan {
 /**
 * GOST-34.10 Public Key
 */
-class BOTAN_DLL GOST_3410_PublicKey : public virtual EC_PublicKey
+class BOTAN_PUBLIC_API(2,0) GOST_3410_PublicKey : public virtual EC_PublicKey
    {
    public:
 
@@ -58,20 +58,20 @@ class BOTAN_DLL GOST_3410_PublicKey : public virtual EC_PublicKey
                                 const std::string& provider) const override;
 
    protected:
-      GOST_3410_PublicKey() {}
+      GOST_3410_PublicKey() = default;
    };
 
 /**
 * GOST-34.10 Private Key
 */
-class BOTAN_DLL GOST_3410_PrivateKey : public GOST_3410_PublicKey,
+class BOTAN_PUBLIC_API(2,0) GOST_3410_PrivateKey final : public GOST_3410_PublicKey,
                                        public EC_PrivateKey
    {
    public:
       /**
       * Load a private key.
       * @param alg_id the X.509 algorithm identifier
-      * @param key_bits PKCS #8 structure
+      * @param key_bits ECPrivateKey bits
       */
       GOST_3410_PrivateKey(const AlgorithmIdentifier& alg_id,
                            const secure_vector<uint8_t>& key_bits) :

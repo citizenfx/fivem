@@ -9,8 +9,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BIT_OPS_H__
-#define BOTAN_BIT_OPS_H__
+#ifndef BOTAN_BIT_OPS_H_
+#define BOTAN_BIT_OPS_H_
 
 #include <botan/types.h>
 

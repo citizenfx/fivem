@@ -5,12 +5,12 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_KEYED_FILTER_H__
-#define BOTAN_KEYED_FILTER_H__
+#ifndef BOTAN_KEYED_FILTER_H_
+#define BOTAN_KEYED_FILTER_H_
 
+#include <botan/symkey.h>
 #include <botan/filter.h>
 #include <botan/cipher_mode.h>
-#include <botan/sym_algo.h>
 
 namespace Botan {
 
@@ -18,7 +18,7 @@ namespace Botan {
 * This class represents keyed filters, i.e. filters that have to be
 * fed with a key in order to function.
 */
-class BOTAN_DLL Keyed_Filter : public Filter
+class BOTAN_PUBLIC_API(2,0) Keyed_Filter : public Filter
    {
    public:
       /**
@@ -74,7 +74,7 @@ class BOTAN_DLL Keyed_Filter : public Filter
 * or decrypting filter
 * @return pointer to newly allocated encryption or decryption filter
 */
-BOTAN_DLL Keyed_Filter* get_cipher(const std::string& algo_spec,
+BOTAN_PUBLIC_API(2,0) Keyed_Filter* get_cipher(const std::string& algo_spec,
                                    const SymmetricKey& key,
                                    const InitializationVector& iv,
                                    Cipher_Dir direction);
@@ -88,7 +88,7 @@ BOTAN_DLL Keyed_Filter* get_cipher(const std::string& algo_spec,
 * or decrypting filter
 * @return pointer to the encryption or decryption filter
 */
-BOTAN_DLL Keyed_Filter* get_cipher(const std::string& algo_spec,
+BOTAN_PUBLIC_API(2,0) Keyed_Filter* get_cipher(const std::string& algo_spec,
                                    const SymmetricKey& key,
                                    Cipher_Dir direction);
 
@@ -101,7 +101,7 @@ BOTAN_DLL Keyed_Filter* get_cipher(const std::string& algo_spec,
 * decrypting filter
 * @return pointer to the encryption or decryption filter
 */
-BOTAN_DLL Keyed_Filter* get_cipher(const std::string& algo_spec,
+BOTAN_PUBLIC_API(2,0) Keyed_Filter* get_cipher(const std::string& algo_spec,
                                    Cipher_Dir direction);
 
 }

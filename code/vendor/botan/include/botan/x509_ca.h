@@ -5,13 +5,11 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_X509_CA_H__
-#define BOTAN_X509_CA_H__
+#ifndef BOTAN_X509_CA_H_
+#define BOTAN_X509_CA_H_
 
 #include <botan/x509cert.h>
 #include <botan/x509_crl.h>
-#include <botan/x509_ext.h>
-#include <botan/pkcs10.h>
 
 #if defined(BOTAN_HAS_SYSTEM_RNG)
   #include <botan/system_rng.h>
@@ -19,12 +17,14 @@
 
 namespace Botan {
 
+class Private_Key;
+class PKCS10_Request;
 class PK_Signer;
 
 /**
 * This class represents X.509 Certificate Authorities (CAs).
 */
-class BOTAN_DLL X509_CA
+class BOTAN_PUBLIC_API(2,0) X509_CA final
    {
    public:
       /**
@@ -38,7 +38,7 @@ class BOTAN_DLL X509_CA
       X509_Certificate sign_request(const PKCS10_Request& req,
                                     RandomNumberGenerator& rng,
                                     const X509_Time& not_before,
-                                    const X509_Time& not_after);
+                                    const X509_Time& not_after) const;
 
       /**
       * Get the certificate of this CA.
@@ -124,7 +124,7 @@ class BOTAN_DLL X509_CA
 
       AlgorithmIdentifier m_ca_sig_algo;
       X509_Certificate m_cert;
-      PK_Signer* m_signer;
+      std::unique_ptr<PK_Signer> m_signer;
    };
 
 /**
@@ -136,7 +136,7 @@ class BOTAN_DLL X509_CA
 * @param alg_id will be set to the chosen scheme
 * @return A PK_Signer object for generating signatures
 */
-BOTAN_DLL PK_Signer* choose_sig_format(const Private_Key& key,
+BOTAN_PUBLIC_API(2,0) PK_Signer* choose_sig_format(const Private_Key& key,
                                        RandomNumberGenerator& rng,
                                        const std::string& hash_fn,
                                        AlgorithmIdentifier& alg_id);

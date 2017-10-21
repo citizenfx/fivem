@@ -5,53 +5,28 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  */
 
-#ifndef BOTAN_GMAC_H__
-#define BOTAN_GMAC_H__
+#ifndef BOTAN_GMAC_H_
+#define BOTAN_GMAC_H_
 
-#include <botan/gcm.h>
 #include <botan/mac.h>
-#include <botan/types.h>
-#include <algorithm>
+#include <botan/gcm.h>
+#include <botan/block_cipher.h>
 
 namespace Botan {
 
 /**
 * GMAC
+*
+* GMAC requires a unique initialization vector be used for each message.
+* This must be provided via the MessageAuthenticationCode::start() API
 */
-class BOTAN_DLL GMAC : public MessageAuthenticationCode,
-                       public GHASH
-
+class BOTAN_PUBLIC_API(2,0) GMAC final : public MessageAuthenticationCode, public GHASH
    {
    public:
       void clear() override;
       std::string name() const override;
       size_t output_length() const override;
       MessageAuthenticationCode* clone() const override;
-
-      /**
-      * Must be called to set the initialization vector prior to GMAC
-      * calculation.
-      *
-      * @param nonce Initialization vector.
-      * @param nonce_len size of initialization vector.
-      */
-      void start(const uint8_t nonce[], size_t nonce_len);
-
-      /**
-      * Must be called to set the initialization vector prior to GMAC
-      * calculation.
-      *
-      * @param nonce Initialization vector.
-      */
-      void start(const secure_vector<uint8_t>& nonce);
-
-      /**
-      * Must be called to set the initialization vector prior to GMAC
-      * calculation.
-      *
-      * @param nonce Initialization vector.
-      */
-      void start(const std::vector<uint8_t>& nonce);
 
       Key_Length_Specification key_spec() const override
          {

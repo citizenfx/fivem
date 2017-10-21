@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BUFFERED_FILTER_H__
-#define BOTAN_BUFFERED_FILTER_H__
+#ifndef BOTAN_BUFFERED_FILTER_H_
+#define BOTAN_BUFFERED_FILTER_H_
 
 #include <botan/secmem.h>
 
@@ -16,7 +16,7 @@ namespace Botan {
 * Filter mixin that breaks input into blocks, useful for
 * cipher modes
 */
-class BOTAN_DLL Buffered_Filter
+class BOTAN_PUBLIC_API(2,0) Buffered_Filter
    {
    public:
       /**
@@ -49,7 +49,7 @@ class BOTAN_DLL Buffered_Filter
       */
       Buffered_Filter(size_t block_size, size_t final_minimum);
 
-      virtual ~Buffered_Filter() {}
+      virtual ~Buffered_Filter() = default;
    protected:
       /**
       * The block processor, implemented by subclasses

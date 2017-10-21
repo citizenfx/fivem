@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_ALERT_H__
-#define BOTAN_TLS_ALERT_H__
+#ifndef BOTAN_TLS_ALERT_H_
+#define BOTAN_TLS_ALERT_H_
 
 #include <botan/secmem.h>
 #include <string>
@@ -18,7 +18,7 @@ namespace TLS {
 /**
 * SSL/TLS Alert Message
 */
-class BOTAN_DLL Alert
+class BOTAN_PUBLIC_API(2,0) Alert final
    {
    public:
       /**

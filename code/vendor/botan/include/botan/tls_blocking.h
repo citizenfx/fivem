@@ -6,16 +6,12 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_BLOCKING_CHANNELS_H__
-#define BOTAN_TLS_BLOCKING_CHANNELS_H__
+#ifndef BOTAN_TLS_BLOCKING_CHANNELS_H_
+#define BOTAN_TLS_BLOCKING_CHANNELS_H_
 
 #include <botan/tls_client.h>
-#include <botan/tls_server.h>
-#include <deque>
 
 namespace Botan {
-
-//template<typename T> using secure_deque = std::vector<T, secure_allocator<T>>;
 
 namespace TLS {
 
@@ -23,7 +19,7 @@ namespace TLS {
 * Blocking TLS Client
 * Can be used directly, or subclass to get handshake and alert notifications
 */
-class BOTAN_DLL Blocking_Client
+class BOTAN_PUBLIC_API(2,0) Blocking_Client final
    {
    public:
       /*
@@ -73,7 +69,7 @@ class BOTAN_DLL Blocking_Client
       std::vector<X509_Certificate> peer_cert_chain() const
          { return m_channel.peer_cert_chain(); }
 
-      virtual ~Blocking_Client() {}
+      virtual ~Blocking_Client() = default;
 
    protected:
       /**

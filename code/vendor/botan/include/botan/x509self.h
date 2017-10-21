@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_X509_SELF_H__
-#define BOTAN_X509_SELF_H__
+#ifndef BOTAN_X509_SELF_H_
+#define BOTAN_X509_SELF_H_
 
 #include <botan/x509cert.h>
 #include <botan/x509_ext.h>
@@ -15,10 +15,13 @@
 
 namespace Botan {
 
+class RandomNumberGenerator;
+class Private_Key;
+
 /**
 * Options for X.509 certificates.
 */
-class BOTAN_DLL X509_Cert_Options
+class BOTAN_PUBLIC_API(2,0) X509_Cert_Options final
    {
    public:
       /**
@@ -177,7 +180,7 @@ namespace X509 {
 * @param rng the rng to use
 * @return newly created self-signed certificate
 */
-BOTAN_DLL X509_Certificate
+BOTAN_PUBLIC_API(2,0) X509_Certificate
 create_self_signed_cert(const X509_Cert_Options& opts,
                         const Private_Key& key,
                         const std::string& hash_fn,
@@ -191,7 +194,7 @@ create_self_signed_cert(const X509_Cert_Options& opts,
 * @param hash_fn the hash function to use
 * @return newly created PKCS#10 request
 */
-BOTAN_DLL PKCS10_Request create_cert_req(const X509_Cert_Options& opts,
+BOTAN_PUBLIC_API(2,0) PKCS10_Request create_cert_req(const X509_Cert_Options& opts,
                                          const Private_Key& key,
                                          const std::string& hash_fn,
                                          RandomNumberGenerator& rng);

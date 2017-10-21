@@ -5,16 +5,15 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PBKDF2_H__
-#define BOTAN_PBKDF2_H__
+#ifndef BOTAN_PBKDF2_H_
+#define BOTAN_PBKDF2_H_
 
 #include <botan/pbkdf.h>
 #include <botan/mac.h>
-#include <botan/hash.h>
 
 namespace Botan {
 
-BOTAN_DLL size_t pbkdf2(MessageAuthenticationCode& prf,
+BOTAN_PUBLIC_API(2,0) size_t pbkdf2(MessageAuthenticationCode& prf,
                         uint8_t out[],
                         size_t out_len,
                         const std::string& passphrase,
@@ -25,7 +24,7 @@ BOTAN_DLL size_t pbkdf2(MessageAuthenticationCode& prf,
 /**
 * PKCS #5 PBKDF2
 */
-class BOTAN_DLL PKCS5_PBKDF2 final : public PBKDF
+class BOTAN_PUBLIC_API(2,0) PKCS5_PBKDF2 final : public PBKDF
    {
    public:
       std::string name() const override

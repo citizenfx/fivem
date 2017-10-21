@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_READER_H__
-#define BOTAN_TLS_READER_H__
+#ifndef BOTAN_TLS_READER_H_
+#define BOTAN_TLS_READER_H_
 
 #include <botan/exceptn.h>
 #include <botan/secmem.h>
@@ -21,7 +21,7 @@ namespace TLS {
 /**
 * Helper class for decoding TLS protocol messages
 */
-class TLS_Data_Reader
+class TLS_Data_Reader final
    {
    public:
       TLS_Data_Reader(const char* type, const std::vector<uint8_t>& buf_in) :

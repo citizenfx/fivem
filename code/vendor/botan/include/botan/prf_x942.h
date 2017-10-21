@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ANSI_X942_PRF_H__
-#define BOTAN_ANSI_X942_PRF_H__
+#ifndef BOTAN_ANSI_X942_PRF_H_
+#define BOTAN_ANSI_X942_PRF_H_
 
 #include <botan/kdf.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * PRF from ANSI X9.42
 */
-class BOTAN_DLL X942_PRF final : public KDF
+class BOTAN_PUBLIC_API(2,0) X942_PRF final : public KDF
    {
    public:
       std::string name() const override { return "X9.42-PRF(" + m_key_wrap_oid + ")"; }

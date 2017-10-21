@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_PRF_H__
-#define BOTAN_TLS_PRF_H__
+#ifndef BOTAN_TLS_PRF_H_
+#define BOTAN_TLS_PRF_H_
 
 #include <botan/kdf.h>
 #include <botan/mac.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * PRF used in TLS 1.0/1.1
 */
-class BOTAN_DLL TLS_PRF final : public KDF
+class BOTAN_PUBLIC_API(2,0) TLS_PRF final : public KDF
    {
    public:
       std::string name() const override { return "TLS-PRF"; }
@@ -37,7 +37,7 @@ class BOTAN_DLL TLS_PRF final : public KDF
 /**
 * PRF used in TLS 1.2
 */
-class BOTAN_DLL TLS_12_PRF final : public KDF
+class BOTAN_PUBLIC_API(2,0) TLS_12_PRF final : public KDF
    {
    public:
       std::string name() const override { return "TLS-12-PRF(" + m_mac->name() + ")"; }

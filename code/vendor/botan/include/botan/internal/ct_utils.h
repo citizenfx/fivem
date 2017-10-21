@@ -11,8 +11,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TIMING_ATTACK_CM_H__
-#define BOTAN_TIMING_ATTACK_CM_H__
+#ifndef BOTAN_TIMING_ATTACK_CM_H_
+#define BOTAN_TIMING_ATTACK_CM_H_
 
 #include <botan/secmem.h>
 #include <vector>
@@ -95,6 +95,12 @@ inline T expand_mask(T x)
    }
 
 template<typename T>
+inline T expand_top_bit(T a)
+   {
+   return expand_mask<T>(a >> (sizeof(T)*8-1));
+   }
+
+template<typename T>
 inline T select(T mask, T from0, T from1)
    {
    return (from0 & mask) | (from1 & ~mask);
@@ -115,23 +121,19 @@ inline T is_zero(T x)
 template<typename T>
 inline T is_equal(T x, T y)
    {
-   return is_zero(x ^ y);
+   return is_zero<T>(x ^ y);
    }
 
 template<typename T>
-inline T is_less(T x, T y)
+inline T is_less(T a, T b)
    {
-   /*
-   This expands to a constant time sequence with GCC 5.2.0 on x86-64
-   but something more complicated may be needed for portable const time.
-   */
-   return expand_mask<T>(x < y);
+   return expand_top_bit(a ^ ((a^b) | ((a-b)^a)));
    }
 
 template<typename T>
-inline T is_lte(T x, T y)
+inline T is_lte(T a, T b)
    {
-   return expand_mask<T>(x <= y);
+   return CT::is_less(a, b) | CT::is_equal(a, b);
    }
 
 template<typename T>
@@ -161,26 +163,6 @@ inline void cond_zero_mem(T cond,
       {
       array[i] = CT::select(mask, zero, array[i]);
       }
-   }
-
-template<typename T>
-inline T expand_top_bit(T a)
-   {
-   return expand_mask<T>(a >> (sizeof(T)*8-1));
-   }
-
-template<typename T>
-inline T max(T a, T b)
-   {
-   const T a_larger = b - a; // negative if a is larger
-   return select(expand_top_bit(a), a, b);
-   }
-
-template<typename T>
-inline T min(T a, T b)
-   {
-   const T a_larger = b - a; // negative if a is larger
-   return select(expand_top_bit(b), b, a);
    }
 
 inline secure_vector<uint8_t> strip_leading_zeros(const uint8_t in[], size_t length)

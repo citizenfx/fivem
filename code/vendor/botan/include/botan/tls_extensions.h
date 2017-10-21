@@ -7,11 +7,10 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_EXTENSIONS_H__
-#define BOTAN_TLS_EXTENSIONS_H__
+#ifndef BOTAN_TLS_EXTENSIONS_H_
+#define BOTAN_TLS_EXTENSIONS_H_
 
 #include <botan/secmem.h>
-#include <botan/tls_magic.h>
 #include <botan/ocsp.h>
 #include <vector>
 #include <string>
@@ -65,7 +64,7 @@ class Extension
       */
       virtual bool empty() const = 0;
 
-      virtual ~Extension() {}
+      virtual ~Extension() = default;
    };
 
 /**
@@ -133,7 +132,7 @@ class Renegotiation_Extension final : public Extension
 
       Handshake_Extension_Type type() const override { return static_type(); }
 
-      Renegotiation_Extension() {}
+      Renegotiation_Extension() = default;
 
       explicit Renegotiation_Extension(const std::vector<uint8_t>& bits) :
          m_reneg_data(bits) {}
@@ -206,7 +205,7 @@ class Session_Ticket final : public Extension
       /**
       * Create empty extension, used by both client and server
       */
-      Session_Ticket() {}
+      Session_Ticket() = default;
 
       /**
       * Extension with ticket, used by client
@@ -369,7 +368,7 @@ class Extended_Master_Secret final : public Extension
 
       bool empty() const override { return false; }
 
-      Extended_Master_Secret() {}
+      Extended_Master_Secret() = default;
 
       Extended_Master_Secret(TLS_Data_Reader& reader, uint16_t extension_size);
    };
@@ -389,7 +388,7 @@ class Encrypt_then_MAC final : public Extension
 
       bool empty() const override { return false; }
 
-      Encrypt_then_MAC() {}
+      Encrypt_then_MAC() = default;
 
       Encrypt_then_MAC(TLS_Data_Reader& reader, uint16_t extension_size);
    };
@@ -427,7 +426,7 @@ class Certificate_Status_Request final : public Extension
 /**
 * Represents a block of extensions in a hello message
 */
-class BOTAN_DLL Extensions
+class BOTAN_UNSTABLE_API Extensions final
    {
    public:
       std::set<Handshake_Extension_Type> extension_types() const;
@@ -459,13 +458,13 @@ class BOTAN_DLL Extensions
 
       void deserialize(TLS_Data_Reader& reader);
 
-      Extensions() {}
+      Extensions() = default;
 
       explicit Extensions(TLS_Data_Reader& reader) { deserialize(reader); }
 
    private:
-      Extensions(const Extensions&) {}
-      Extensions& operator=(const Extensions&) { return (*this); }
+      Extensions(const Extensions&) = delete;
+      Extensions& operator=(const Extensions&) = delete;
 
       std::map<Handshake_Extension_Type, std::unique_ptr<Extension>> m_extensions;
    };

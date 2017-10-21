@@ -1,12 +1,13 @@
 /*
 * DataSink
 * (C) 1999-2007 Jack Lloyd
+*     2017 Philippe Lieser
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DATA_SINK_H__
-#define BOTAN_DATA_SINK_H__
+#ifndef BOTAN_DATA_SINK_H_
+#define BOTAN_DATA_SINK_H_
 
 #include <botan/filter.h>
 #include <memory>
@@ -17,12 +18,12 @@ namespace Botan {
 /**
 * This class represents abstract data sink objects.
 */
-class BOTAN_DLL DataSink : public Filter
+class BOTAN_PUBLIC_API(2,0) DataSink : public Filter
    {
    public:
       bool attachable() override { return false; }
-      DataSink() {}
-      virtual ~DataSink() {}
+      DataSink() = default;
+      virtual ~DataSink() = default;
 
       DataSink& operator=(const DataSink&) = delete;
       DataSink(const DataSink&) = delete;
@@ -31,7 +32,7 @@ class BOTAN_DLL DataSink : public Filter
 /**
 * This class represents a data sink which writes its output to a stream.
 */
-class BOTAN_DLL DataSink_Stream : public DataSink
+class BOTAN_PUBLIC_API(2,0) DataSink_Stream final : public DataSink
    {
    public:
       /**
@@ -57,6 +58,8 @@ class BOTAN_DLL DataSink_Stream : public DataSink
       std::string name() const override { return m_identifier; }
 
       void write(const uint8_t[], size_t) override;
+
+      void end_msg() override;
 
       ~DataSink_Stream();
 

@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DIVISON_ALGORITHM_H__
-#define BOTAN_DIVISON_ALGORITHM_H__
+#ifndef BOTAN_DIVISON_ALGORITHM_H_
+#define BOTAN_DIVISON_ALGORITHM_H_
 
 #include <botan/bigint.h>
 
@@ -19,7 +19,7 @@ namespace Botan {
 * @param q will be set to x / y
 * @param r will be set to x % y
 */
-void BOTAN_DLL divide(const BigInt& x,
+void BOTAN_PUBLIC_API(2,0) divide(const BigInt& x,
                       const BigInt& y,
                       BigInt& q,
                       BigInt& r);

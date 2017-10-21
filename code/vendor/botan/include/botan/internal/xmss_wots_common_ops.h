@@ -5,8 +5,8 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_WOTS_COMMON_OPS_H__
-#define BOTAN_XMSS_WOTS_COMMON_OPS_H__
+#ifndef BOTAN_XMSS_WOTS_COMMON_OPS_H_
+#define BOTAN_XMSS_WOTS_COMMON_OPS_H_
 
 #include <cstddef>
 #include <botan/types.h>

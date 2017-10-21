@@ -6,13 +6,13 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_SERVER_H__
-#define BOTAN_TLS_SERVER_H__
+#ifndef BOTAN_TLS_SERVER_H_
+#define BOTAN_TLS_SERVER_H_
 
 #include <botan/tls_channel.h>
+#include <botan/tls_policy.h>
 #include <botan/credentials_manager.h>
 #include <vector>
-
 
 namespace Botan {
 
@@ -23,7 +23,7 @@ class Server_Handshake_State;
 /**
 * TLS Server
 */
-class BOTAN_DLL Server final : public Channel
+class BOTAN_PUBLIC_API(2,0) Server final : public Channel
    {
    public:
       typedef std::function<std::string (std::vector<std::string>)> next_protocol_fn;

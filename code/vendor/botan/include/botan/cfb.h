@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_MODE_CFB_H__
-#define BOTAN_MODE_CFB_H__
+#ifndef BOTAN_MODE_CFB_H_
+#define BOTAN_MODE_CFB_H_
 
 #include <botan/cipher_mode.h>
 #include <botan/block_cipher.h>
@@ -17,7 +17,7 @@ namespace Botan {
 /**
 * CFB Mode
 */
-class BOTAN_DLL CFB_Mode : public Cipher_Mode
+class BOTAN_PUBLIC_API(2,0) CFB_Mode : public Cipher_Mode
    {
    public:
       std::string name() const override;
@@ -40,28 +40,25 @@ class BOTAN_DLL CFB_Mode : public Cipher_Mode
    protected:
       CFB_Mode(BlockCipher* cipher, size_t feedback_bits);
 
+      size_t feedback() const { return m_feedback_bytes; }
       const BlockCipher& cipher() const { return *m_cipher; }
 
-      size_t feedback() const { return m_feedback_bytes; }
-
-      secure_vector<uint8_t>& shift_register() { return m_shift_register; }
-
-      secure_vector<uint8_t>& keystream_buf() { return m_keystream_buf; }
+      secure_vector<uint8_t> m_state;
+      secure_vector<uint8_t> m_keystream;
+      size_t m_keystream_pos = 0;
 
    private:
       void start_msg(const uint8_t nonce[], size_t nonce_len) override;
       void key_schedule(const uint8_t key[], size_t length) override;
 
       std::unique_ptr<BlockCipher> m_cipher;
-      secure_vector<uint8_t> m_shift_register;
-      secure_vector<uint8_t> m_keystream_buf;
-      size_t m_feedback_bytes;
+      const size_t m_feedback_bytes;
    };
 
 /**
 * CFB Encryption
 */
-class BOTAN_DLL CFB_Encryption final : public CFB_Mode
+class BOTAN_PUBLIC_API(2,0) CFB_Encryption final : public CFB_Mode
    {
    public:
       /**
@@ -81,7 +78,7 @@ class BOTAN_DLL CFB_Encryption final : public CFB_Mode
 /**
 * CFB Decryption
 */
-class BOTAN_DLL CFB_Decryption final : public CFB_Mode
+class BOTAN_PUBLIC_API(2,0) CFB_Decryption final : public CFB_Mode
    {
    public:
       /**

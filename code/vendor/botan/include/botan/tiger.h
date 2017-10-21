@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TIGER_H__
-#define BOTAN_TIGER_H__
+#ifndef BOTAN_TIGER_H_
+#define BOTAN_TIGER_H_
 
 #include <botan/mdx_hash.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Tiger
 */
-class BOTAN_DLL Tiger final : public MDx_HashFunction
+class BOTAN_PUBLIC_API(2,0) Tiger final : public MDx_HashFunction
    {
    public:
       std::string name() const override;
@@ -25,6 +25,8 @@ class BOTAN_DLL Tiger final : public MDx_HashFunction
          {
          return new Tiger(output_length(), m_passes);
          }
+
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
 

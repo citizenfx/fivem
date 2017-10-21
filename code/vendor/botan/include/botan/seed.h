@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SEED_H__
-#define BOTAN_SEED_H__
+#ifndef BOTAN_SEED_H_
+#define BOTAN_SEED_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * SEED, a Korean block cipher
 */
-class BOTAN_DLL SEED final : public Block_Cipher_Fixed_Params<16, 16>
+class BOTAN_PUBLIC_API(2,0) SEED final : public Block_Cipher_Fixed_Params<16, 16>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

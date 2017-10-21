@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_CBC_HMAC_AEAD_H__
-#define BOTAN_TLS_CBC_HMAC_AEAD_H__
+#ifndef BOTAN_TLS_CBC_HMAC_AEAD_H_
+#define BOTAN_TLS_CBC_HMAC_AEAD_H_
 
 #include <botan/aead.h>
 #include <botan/block_cipher.h>
@@ -21,7 +21,7 @@ namespace TLS {
 * TLS CBC+HMAC AEAD base class (GenericBlockCipher in TLS spec)
 * This is the weird TLS-specific mode, not for general consumption.
 */
-class BOTAN_DLL TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
+class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
    {
    public:
       size_t process(uint8_t buf[], size_t sz) override final;
@@ -102,7 +102,7 @@ class BOTAN_DLL TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
 /**
 * TLS_CBC_HMAC_AEAD Encryption
 */
-class BOTAN_DLL TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AEAD_Mode
+class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AEAD_Mode
    {
    public:
       /**
@@ -135,7 +135,7 @@ class BOTAN_DLL TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AEAD_Mo
 /**
 * TLS_CBC_HMAC_AEAD Decryption
 */
-class BOTAN_DLL TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AEAD_Mode
+class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AEAD_Mode
    {
    public:
       /**
@@ -165,6 +165,14 @@ class BOTAN_DLL TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AEAD_Mo
       
       void perform_additional_compressions(size_t plen, size_t padlen);
    };
+
+/**
+* Check the TLS padding of a record
+* @param record the record bits
+* @param record_len length of record
+* @return 0 if padding is invalid, otherwise padding_bytes + 1
+*/
+BOTAN_TEST_API uint16_t check_tls_cbc_padding(const uint8_t record[], size_t record_len);
 
 }
 

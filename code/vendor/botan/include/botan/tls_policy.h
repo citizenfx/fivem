@@ -5,17 +5,17 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_POLICY_H__
-#define BOTAN_TLS_POLICY_H__
+#ifndef BOTAN_TLS_POLICY_H_
+#define BOTAN_TLS_POLICY_H_
 
 #include <botan/tls_version.h>
 #include <botan/tls_ciphersuite.h>
-#include <botan/x509cert.h>
-#include <botan/dl_group.h>
 #include <vector>
-#include <sstream>
+#include <map>
 
 namespace Botan {
+
+class Public_Key;
 
 namespace TLS {
 
@@ -23,7 +23,7 @@ namespace TLS {
 * TLS Policy Base Class
 * Inherit and overload as desired to suit local policy concerns
 */
-class BOTAN_DLL Policy
+class BOTAN_PUBLIC_API(2,0) Policy
    {
    public:
 
@@ -74,6 +74,7 @@ class BOTAN_DLL Policy
       virtual bool require_cert_revocation_info() const;
 
       bool allowed_signature_method(const std::string& sig_method) const;
+      bool allowed_signature_hash(const std::string& hash) const;
 
       /**
       * Return list of ECC curves we are willing to use in order of preference
@@ -119,30 +120,35 @@ class BOTAN_DLL Policy
       virtual bool include_time_in_hello_random() const;
 
       /**
-      * Allow servers to initiate a new handshake
+      * Consulted by server side. If true, allows clients to initiate a new handshake
+      */
+      virtual bool allow_client_initiated_renegotiation() const;
+
+      /**
+      * Consulted by client side. If true, allows servers to initiate a new handshake
       */
       virtual bool allow_server_initiated_renegotiation() const;
-      
+
       /**
       * Allow TLS v1.0
       */
       virtual bool allow_tls10() const;
-      
+
       /**
       * Allow TLS v1.1
       */
       virtual bool allow_tls11() const;
-      
+
       /**
       * Allow TLS v1.2
       */
       virtual bool allow_tls12() const;
-      
+
       /**
       * Allow DTLS v1.0
       */
       virtual bool allow_dtls10() const;
-      
+
       /**
       * Allow DTLS v1.2
       */
@@ -155,14 +161,14 @@ class BOTAN_DLL Policy
       * Default is currently 1024 (insecure), should be 2048
       */
       virtual size_t minimum_dh_group_size() const;
-      
+
       /**
       * For ECDSA authenticated ciphersuites, the smallest key size the
       * client will accept.
       * This policy is currently only enforced on the server by the client.
       */
       virtual size_t minimum_ecdsa_group_size() const;
-      
+
       /**
       * Return the minimum ECDH group size we're willing to use
       * for key exchange
@@ -199,7 +205,7 @@ class BOTAN_DLL Policy
       * (or logging of) the peer's keys.
       */
       virtual void check_peer_key_acceptable(const Public_Key& public_key) const;
-      
+
       /**
       * If this function returns false, unknown SRP/PSK identifiers
       * will be rejected with an unknown_psk_identifier alert as soon
@@ -297,13 +303,13 @@ class BOTAN_DLL Policy
       */
       std::string to_string() const;
 
-      virtual ~Policy() {}
+      virtual ~Policy() = default;
    };
 
 /**
 * NSA Suite B 128-bit security level (RFC 6460)
 */
-class BOTAN_DLL NSA_Suite_B_128 : public Policy
+class BOTAN_PUBLIC_API(2,0) NSA_Suite_B_128 final : public Policy
    {
    public:
       std::vector<std::string> allowed_ciphers() const override
@@ -336,7 +342,7 @@ class BOTAN_DLL NSA_Suite_B_128 : public Policy
 /**
 * BSI TR-02102-2 Policy
 */
-class BOTAN_DLL BSI_TR_02102_2 : public Policy
+class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 final : public Policy
    {
    public:
       std::vector<std::string> allowed_ciphers() const override
@@ -391,12 +397,12 @@ class BOTAN_DLL BSI_TR_02102_2 : public Policy
 /**
 * Policy for DTLS. We require DTLS v1.2 and an AEAD mode.
 */
-class BOTAN_DLL Datagram_Policy : public Policy
+class BOTAN_PUBLIC_API(2,0) Datagram_Policy final : public Policy
    {
    public:
       std::vector<std::string> allowed_macs() const override
          { return std::vector<std::string>({"AEAD"}); }
-            
+
       bool allow_tls10()  const override { return false; }
       bool allow_tls11()  const override { return false; }
       bool allow_tls12()  const override { return false; }
@@ -411,7 +417,7 @@ class BOTAN_DLL Datagram_Policy : public Policy
 * to use if you control both sides of the protocol and don't have to worry
 * about ancient and/or bizarre TLS implementations.
 */
-class BOTAN_DLL Strict_Policy : public Policy
+class BOTAN_PUBLIC_API(2,0) Strict_Policy final : public Policy
    {
    public:
       std::vector<std::string> allowed_ciphers() const override;
@@ -429,155 +435,89 @@ class BOTAN_DLL Strict_Policy : public Policy
       bool allow_dtls12() const override;
    };
 
-class BOTAN_DLL Text_Policy : public Policy
+class BOTAN_PUBLIC_API(2,0) Text_Policy : public Policy
    {
    public:
 
-      std::vector<std::string> allowed_ciphers() const override
-         { return get_list("ciphers", Policy::allowed_ciphers()); }
+      std::vector<std::string> allowed_ciphers() const override;
 
-      std::vector<std::string> allowed_signature_hashes() const override
-         { return get_list("signature_hashes", Policy::allowed_signature_hashes()); }
+      std::vector<std::string> allowed_signature_hashes() const override;
 
-      std::vector<std::string> allowed_macs() const override
-         { return get_list("macs", Policy::allowed_macs()); }
+      std::vector<std::string> allowed_macs() const override;
 
-      std::vector<std::string> allowed_key_exchange_methods() const override
-         { return get_list("key_exchange_methods", Policy::allowed_key_exchange_methods()); }
+      std::vector<std::string> allowed_key_exchange_methods() const override;
 
-      std::vector<std::string> allowed_signature_methods() const override
-         { return get_list("signature_methods", Policy::allowed_signature_methods()); }
+      std::vector<std::string> allowed_signature_methods() const override;
 
-      std::vector<std::string> allowed_ecc_curves() const override
-         { return get_list("ecc_curves", Policy::allowed_ecc_curves()); }
-      
-      bool use_ecc_point_compression() const override
-         { return get_bool("use_ecc_point_compression", Policy::use_ecc_point_compression()); }
+      std::vector<std::string> allowed_ecc_curves() const override;
 
-      bool allow_tls10() const override
-         { return get_bool("allow_tls10", Policy::allow_tls10()); }
-      
-      bool allow_tls11() const override
-         { return get_bool("allow_tls11", Policy::allow_tls11()); }
-      
-      bool allow_tls12() const override
-         { return get_bool("allow_tls12", Policy::allow_tls12()); }
-      
-      bool allow_dtls10() const override
-         { return get_bool("allow_dtls10", Policy::allow_dtls10()); }
-      
-      bool allow_dtls12() const override
-         { return get_bool("allow_dtls12", Policy::allow_dtls12()); }
+      bool use_ecc_point_compression() const override;
 
-      bool allow_insecure_renegotiation() const override
-         { return get_bool("allow_insecure_renegotiation", Policy::allow_insecure_renegotiation()); }
+      bool allow_tls10() const override;
 
-      bool include_time_in_hello_random() const override
-         { return get_bool("include_time_in_hello_random", Policy::include_time_in_hello_random()); }
+      bool allow_tls11() const override;
 
-      bool allow_server_initiated_renegotiation() const override
-         { return get_bool("allow_server_initiated_renegotiation", Policy::allow_server_initiated_renegotiation()); }
+      bool allow_tls12() const override;
 
-      bool server_uses_own_ciphersuite_preferences() const override
-         { return get_bool("server_uses_own_ciphersuite_preferences", Policy::server_uses_own_ciphersuite_preferences()); }
+      bool allow_dtls10() const override;
 
-      bool negotiate_encrypt_then_mac() const override
-         { return get_bool("negotiate_encrypt_then_mac", Policy::negotiate_encrypt_then_mac()); }
+      bool allow_dtls12() const override;
 
-      std::string dh_group() const override
-         { return get_str("dh_group", Policy::dh_group()); }
+      bool allow_insecure_renegotiation() const override;
 
-      size_t minimum_ecdh_group_size() const override
-         { return get_len("minimum_ecdh_group_size", Policy::minimum_ecdh_group_size()); }
+      bool include_time_in_hello_random() const override;
 
-      size_t minimum_ecdsa_group_size() const override
-         { return get_len("minimum_ecdsa_group_size", Policy::minimum_ecdsa_group_size()); }
+      bool allow_client_initiated_renegotiation() const override;
+      bool allow_server_initiated_renegotiation() const override;
 
-      size_t minimum_dh_group_size() const override
-         { return get_len("minimum_dh_group_size", Policy::minimum_dh_group_size()); }
+      bool server_uses_own_ciphersuite_preferences() const override;
 
-      size_t minimum_rsa_bits() const override
-         { return get_len("minimum_rsa_bits", Policy::minimum_rsa_bits()); }
+      bool negotiate_encrypt_then_mac() const override;
 
-      size_t minimum_signature_strength() const override
-         { return get_len("minimum_signature_strength", Policy::minimum_signature_strength()); }
+      std::string dh_group() const override;
 
-      bool hide_unknown_users() const override
-         { return get_bool("hide_unknown_users", Policy::hide_unknown_users()); }
+      size_t minimum_ecdh_group_size() const override;
 
-      uint32_t session_ticket_lifetime() const override
-         { return static_cast<uint32_t>(get_len("session_ticket_lifetime", Policy::session_ticket_lifetime())); }
+      size_t minimum_ecdsa_group_size() const override;
 
-      bool send_fallback_scsv(Protocol_Version version) const override
-         { return get_bool("send_fallback_scsv", false) ? Policy::send_fallback_scsv(version) : false; }
+      size_t minimum_dh_group_size() const override;
 
-      std::vector<uint16_t> srtp_profiles() const override
-         {
-         std::vector<uint16_t> r;
-         for(auto&& p : get_list("srtp_profiles", std::vector<std::string>()))
-            {
-            r.push_back(to_u32bit(p));
-            }
-         return r;
-         }
+      size_t minimum_rsa_bits() const override;
 
-      void set(const std::string& k, const std::string& v) { m_kv[k] = v; }
+      size_t minimum_signature_strength() const override;
 
-      explicit Text_Policy(const std::string& s)
-         {
-         std::istringstream iss(s);
-         m_kv = read_cfg(iss);
-         }
+      size_t dtls_default_mtu() const override;
 
-      explicit Text_Policy(std::istream& in) : m_kv(read_cfg(in))
-         {}
+      size_t dtls_initial_timeout() const override;
 
-   private:
+      size_t dtls_maximum_timeout() const override;
+
+      bool require_cert_revocation_info() const override;
+
+      bool hide_unknown_users() const override;
+
+      uint32_t session_ticket_lifetime() const override;
+
+      bool send_fallback_scsv(Protocol_Version version) const override;
+
+      std::vector<uint16_t> srtp_profiles() const override;
+
+      void set(const std::string& k, const std::string& v);
+
+      explicit Text_Policy(const std::string& s);
+
+      explicit Text_Policy(std::istream& in);
+
+   protected:
 
       std::vector<std::string> get_list(const std::string& key,
-                                        const std::vector<std::string>& def) const
-         {
-         const std::string v = get_str(key);
+                                        const std::vector<std::string>& def) const;
 
-         if(v.empty())
-            return def;
+      size_t get_len(const std::string& key, size_t def) const;
 
-         return split_on(v, ' ');
-         }
+      bool get_bool(const std::string& key, bool def) const;
 
-      size_t get_len(const std::string& key, size_t def) const
-         {
-         const std::string v = get_str(key);
-
-         if(v.empty())
-            return def;
-
-         return to_u32bit(v);
-         }
-
-      bool get_bool(const std::string& key, bool def) const
-         {
-         const std::string v = get_str(key);
-
-         if(v.empty())
-            return def;
-
-         if(v == "true" || v == "True")
-            return true;
-         else if(v == "false" || v == "False")
-            return false;
-         else
-            throw Exception("Invalid boolean '" + v + "'");
-         }
-
-      std::string get_str(const std::string& key, const std::string& def = "") const
-         {
-         auto i = m_kv.find(key);
-         if(i == m_kv.end())
-            return def;
-
-         return i->second;
-         }
+      std::string get_str(const std::string& key, const std::string& def = "") const;
 
       std::map<std::string, std::string> m_kv;
    };

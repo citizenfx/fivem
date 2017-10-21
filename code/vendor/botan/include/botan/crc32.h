@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CRC32_H__
-#define BOTAN_CRC32_H__
+#ifndef BOTAN_CRC32_H_
+#define BOTAN_CRC32_H_
 
 #include <botan/hash.h>
 
@@ -15,12 +15,13 @@ namespace Botan {
 /**
 * 32-bit cyclic redundancy check
 */
-class BOTAN_DLL CRC32 final : public HashFunction
+class BOTAN_PUBLIC_API(2,0) CRC32 final : public HashFunction
    {
    public:
       std::string name() const override { return "CRC32"; }
       size_t output_length() const override { return 4; }
       HashFunction* clone() const override { return new CRC32; }
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override { m_crc = 0xFFFFFFFF; }
 

@@ -5,8 +5,8 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  */
 
-#ifndef BOTAN_ISO9796_H__
-#define BOTAN_ISO9796_H__
+#ifndef BOTAN_ISO9796_H_
+#define BOTAN_ISO9796_H_
 
 #include <botan/emsa.h>
 #include <botan/hash.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * ISO-9796-2 - Digital signature scheme 2 (probabilistic)
 */
-class BOTAN_DLL ISO_9796_DS2 final : public EMSA
+class BOTAN_PUBLIC_API(2,0) ISO_9796_DS2 final : public EMSA
    {
    public:
       /**
@@ -58,7 +58,7 @@ class BOTAN_DLL ISO_9796_DS2 final : public EMSA
 /**
 * ISO-9796-2 - Digital signature scheme 3 (deterministic)
 */
-class BOTAN_DLL ISO_9796_DS3 final : public EMSA
+class BOTAN_PUBLIC_API(2,0) ISO_9796_DS3 final : public EMSA
    {
    public:
       /**

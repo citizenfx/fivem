@@ -6,26 +6,29 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_AEAD_OCB_H__
-#define BOTAN_AEAD_OCB_H__
+#ifndef BOTAN_AEAD_OCB_H_
+#define BOTAN_AEAD_OCB_H_
 
 #include <botan/aead.h>
-#include <botan/block_cipher.h>
 
 namespace Botan {
 
+class BlockCipher;
 class L_computer;
 
 /**
 * OCB Mode (base class for OCB_Encryption and OCB_Decryption). Note
 * that OCB is patented, but is freely licensed in some circumstances.
 *
-* @see "The OCB Authenticated-Encryption Algorithm" internet draft
-        http://tools.ietf.org/html/draft-irtf-cfrg-ocb-03
+* @see "The OCB Authenticated-Encryption Algorithm" RFC 7253
+*      https://tools.ietf.org/html/rfc7253
+* @see "OCB For Block Ciphers Without 128-Bit Blocks"
+*      (draft-krovetz-ocb-wide-d3) for the extension of OCB to
+*      block ciphers with larger block sizes.
 * @see Free Licenses http://www.cs.ucdavis.edu/~rogaway/ocb/license.htm
 * @see OCB home page http://www.cs.ucdavis.edu/~rogaway/ocb
 */
-class BOTAN_DLL OCB_Mode : public AEAD_Mode
+class BOTAN_PUBLIC_API(2,0) OCB_Mode : public AEAD_Mode
    {
    public:
       void set_associated_data(const uint8_t ad[], size_t ad_len) override;
@@ -47,7 +50,7 @@ class BOTAN_DLL OCB_Mode : public AEAD_Mode
       ~OCB_Mode();
    protected:
       /**
-      * @param cipher the 128-bit block cipher to use
+      * @param cipher the block cipher to use
       * @param tag_size is how big the auth tag will be
       */
       OCB_Mode(BlockCipher* cipher, size_t tag_size);
@@ -68,16 +71,16 @@ class BOTAN_DLL OCB_Mode : public AEAD_Mode
 
       secure_vector<uint8_t> update_nonce(const uint8_t nonce[], size_t nonce_len);
 
-      size_t m_tag_size = 0;
+      const size_t m_tag_size = 0;
       secure_vector<uint8_t> m_last_nonce;
       secure_vector<uint8_t> m_stretch;
    };
 
-class BOTAN_DLL OCB_Encryption final : public OCB_Mode
+class BOTAN_PUBLIC_API(2,0) OCB_Encryption final : public OCB_Mode
    {
    public:
       /**
-      * @param cipher the 128-bit block cipher to use
+      * @param cipher the block cipher to use
       * @param tag_size is how big the auth tag will be
       */
       OCB_Encryption(BlockCipher* cipher, size_t tag_size = 16) :
@@ -95,11 +98,11 @@ class BOTAN_DLL OCB_Encryption final : public OCB_Mode
       void encrypt(uint8_t input[], size_t blocks);
    };
 
-class BOTAN_DLL OCB_Decryption final : public OCB_Mode
+class BOTAN_PUBLIC_API(2,0) OCB_Decryption final : public OCB_Mode
    {
    public:
       /**
-      * @param cipher the 128-bit block cipher to use
+      * @param cipher the block cipher to use
       * @param tag_size is how big the auth tag will be
       */
       OCB_Decryption(BlockCipher* cipher, size_t tag_size = 16) :

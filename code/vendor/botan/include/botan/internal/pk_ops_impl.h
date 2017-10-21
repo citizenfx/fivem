@@ -5,10 +5,13 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PK_OPERATION_IMPL_H__
-#define BOTAN_PK_OPERATION_IMPL_H__
+#ifndef BOTAN_PK_OPERATION_IMPL_H_
+#define BOTAN_PK_OPERATION_IMPL_H_
 
 #include <botan/pk_ops.h>
+#include <botan/eme.h>
+#include <botan/kdf.h>
+#include <botan/emsa.h>
 
 namespace Botan {
 
@@ -22,7 +25,7 @@ class Encryption_with_EME : public Encryption
       secure_vector<uint8_t> encrypt(const uint8_t msg[], size_t msg_len,
                                   RandomNumberGenerator& rng) override;
 
-      ~Encryption_with_EME();
+      ~Encryption_with_EME() = default;
    protected:
       explicit Encryption_with_EME(const std::string& eme);
    private:
@@ -39,7 +42,7 @@ class Decryption_with_EME : public Decryption
       secure_vector<uint8_t> decrypt(uint8_t& valid_mask,
                                   const uint8_t msg[], size_t msg_len) override;
 
-      ~Decryption_with_EME();
+      ~Decryption_with_EME() = default;
    protected:
       explicit Decryption_with_EME(const std::string& eme);
    private:
@@ -51,7 +54,7 @@ class Decryption_with_EME : public Decryption
 class Verification_with_EMSA : public Verification
    {
    public:
-      ~Verification_with_EMSA();
+      ~Verification_with_EMSA() = default;
 
       void update(const uint8_t msg[], size_t msg_len) override;
       bool is_valid_signature(const uint8_t sig[], size_t sig_len) override;
@@ -129,7 +132,7 @@ class Signature_with_EMSA : public Signature
       secure_vector<uint8_t> sign(RandomNumberGenerator& rng) override;
    protected:
       explicit Signature_with_EMSA(const std::string& emsa);
-      ~Signature_with_EMSA();
+      ~Signature_with_EMSA() = default;
 
       std::string hash_for_signature() { return m_hash; }
 
@@ -173,7 +176,7 @@ class Key_Agreement_with_KDF : public Key_Agreement
 
    protected:
       explicit Key_Agreement_with_KDF(const std::string& kdf);
-      ~Key_Agreement_with_KDF();
+      ~Key_Agreement_with_KDF() = default;
    private:
       virtual secure_vector<uint8_t> raw_agree(const uint8_t w[], size_t w_len) = 0;
       std::unique_ptr<KDF> m_kdf;
@@ -195,7 +198,7 @@ class KEM_Encryption_with_KDF : public KEM_Encryption
                                    Botan::RandomNumberGenerator& rng) = 0;
 
       explicit KEM_Encryption_with_KDF(const std::string& kdf);
-      ~KEM_Encryption_with_KDF();
+      ~KEM_Encryption_with_KDF() = default;
    private:
       std::unique_ptr<KDF> m_kdf;
    };
@@ -214,7 +217,7 @@ class KEM_Decryption_with_KDF : public KEM_Decryption
       raw_kem_decrypt(const uint8_t encap_key[], size_t len) = 0;
 
       explicit KEM_Decryption_with_KDF(const std::string& kdf);
-      ~KEM_Decryption_with_KDF();
+      ~KEM_Decryption_with_KDF() = default;
    private:
       std::unique_ptr<KDF> m_kdf;
    };

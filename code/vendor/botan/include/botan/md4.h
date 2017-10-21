@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_MD4_H__
-#define BOTAN_MD4_H__
+#ifndef BOTAN_MD4_H_
+#define BOTAN_MD4_H_
 
 #include <botan/mdx_hash.h>
 
@@ -15,12 +15,13 @@ namespace Botan {
 /**
 * MD4
 */
-class BOTAN_DLL MD4 final : public MDx_HashFunction
+class BOTAN_PUBLIC_API(2,0) MD4 final : public MDx_HashFunction
    {
    public:
       std::string name() const override { return "MD4"; }
       size_t output_length() const override { return 16; }
       HashFunction* clone() const override { return new MD4; }
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
 

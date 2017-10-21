@@ -5,18 +5,18 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_RSA_H__
-#define BOTAN_RSA_H__
+#ifndef BOTAN_RSA_H_
+#define BOTAN_RSA_H_
 
+#include <botan/pk_keys.h>
 #include <botan/bigint.h>
-#include <botan/x509_key.h>
 
 namespace Botan {
 
 /**
 * RSA Public Key
 */
-class BOTAN_DLL RSA_PublicKey : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) RSA_PublicKey : public virtual Public_Key
    {
    public:
       /**
@@ -71,7 +71,7 @@ class BOTAN_DLL RSA_PublicKey : public virtual Public_Key
                                 const std::string& provider) const override;
 
    protected:
-      RSA_PublicKey() {}
+      RSA_PublicKey() = default;
 
       BigInt m_n, m_e;
    };
@@ -79,13 +79,13 @@ class BOTAN_DLL RSA_PublicKey : public virtual Public_Key
 /**
 * RSA Private Key
 */
-class BOTAN_DLL RSA_PrivateKey : public Private_Key, public RSA_PublicKey
+class BOTAN_PUBLIC_API(2,0) RSA_PrivateKey final : public Private_Key, public RSA_PublicKey
    {
    public:
       /**
       * Load a private key.
       * @param alg_id the X.509 algorithm identifier
-      * @param key_bits PKCS #8 structure
+      * @param key_bits PKCS#1 RSAPrivateKey bits
       */
       RSA_PrivateKey(const AlgorithmIdentifier& alg_id,
                      const secure_vector<uint8_t>& key_bits);

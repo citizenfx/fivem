@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SHA_64BIT_H__
-#define BOTAN_SHA_64BIT_H__
+#ifndef BOTAN_SHA_64BIT_H_
+#define BOTAN_SHA_64BIT_H_
 
 #include <botan/mdx_hash.h>
 
@@ -15,12 +15,13 @@ namespace Botan {
 /**
 * SHA-384
 */
-class BOTAN_DLL SHA_384 final : public MDx_HashFunction
+class BOTAN_PUBLIC_API(2,0) SHA_384 final : public MDx_HashFunction
    {
    public:
       std::string name() const override { return "SHA-384"; }
       size_t output_length() const override { return 48; }
       HashFunction* clone() const override { return new SHA_384; }
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
 
@@ -36,12 +37,13 @@ class BOTAN_DLL SHA_384 final : public MDx_HashFunction
 /**
 * SHA-512
 */
-class BOTAN_DLL SHA_512 final : public MDx_HashFunction
+class BOTAN_PUBLIC_API(2,0) SHA_512 final : public MDx_HashFunction
    {
    public:
       std::string name() const override { return "SHA-512"; }
       size_t output_length() const override { return 64; }
       HashFunction* clone() const override { return new SHA_512; }
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
 
@@ -57,12 +59,13 @@ class BOTAN_DLL SHA_512 final : public MDx_HashFunction
 /**
 * SHA-512/256
 */
-class BOTAN_DLL SHA_512_256 final : public MDx_HashFunction
+class BOTAN_PUBLIC_API(2,0) SHA_512_256 final : public MDx_HashFunction
    {
    public:
       std::string name() const override { return "SHA-512-256"; }
       size_t output_length() const override { return 32; }
       HashFunction* clone() const override { return new SHA_512_256; }
+      std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
 

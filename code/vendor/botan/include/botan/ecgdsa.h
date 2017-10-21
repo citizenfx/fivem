@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ECGDSA_KEY_H__
-#define BOTAN_ECGDSA_KEY_H__
+#ifndef BOTAN_ECGDSA_KEY_H_
+#define BOTAN_ECGDSA_KEY_H_
 
 #include <botan/ecc_key.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * This class represents ECGDSA public keys.
 */
-class BOTAN_DLL ECGDSA_PublicKey : public virtual EC_PublicKey
+class BOTAN_PUBLIC_API(2,0) ECGDSA_PublicKey : public virtual EC_PublicKey
    {
    public:
 
@@ -52,13 +52,13 @@ class BOTAN_DLL ECGDSA_PublicKey : public virtual EC_PublicKey
          create_verification_op(const std::string& params,
                                 const std::string& provider) const override;
    protected:
-      ECGDSA_PublicKey() {}
+      ECGDSA_PublicKey() = default;
    };
 
 /**
 * This class represents ECGDSA private keys.
 */
-class BOTAN_DLL ECGDSA_PrivateKey : public ECGDSA_PublicKey,
+class BOTAN_PUBLIC_API(2,0) ECGDSA_PrivateKey final : public ECGDSA_PublicKey,
                                     public EC_PrivateKey
    {
    public:
@@ -66,7 +66,7 @@ class BOTAN_DLL ECGDSA_PrivateKey : public ECGDSA_PublicKey,
       /**
       * Load a private key.
       * @param alg_id the X.509 algorithm identifier
-      * @param key_bits PKCS #8 structure
+      * @param key_bits ECPrivateKey bits
       */
       ECGDSA_PrivateKey(const AlgorithmIdentifier& alg_id,
                        const secure_vector<uint8_t>& key_bits) :

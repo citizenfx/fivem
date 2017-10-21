@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef BOTAN_CODE_BASED_UTIL_H__
-#define BOTAN_CODE_BASED_UTIL_H__
+#ifndef BOTAN_CODE_BASED_UTIL_H_
+#define BOTAN_CODE_BASED_UTIL_H_
 
 #include <botan/gf2m_small_m.h>
 

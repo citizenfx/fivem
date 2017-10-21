@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_LOAD_STORE_H__
-#define BOTAN_LOAD_STORE_H__
+#ifndef BOTAN_LOAD_STORE_H_
+#define BOTAN_LOAD_STORE_H_
 
 #include <botan/types.h>
 #include <botan/bswap.h>

@@ -5,11 +5,10 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DL_PARAM_H__
-#define BOTAN_DL_PARAM_H__
+#ifndef BOTAN_DL_PARAM_H_
+#define BOTAN_DL_PARAM_H_
 
 #include <botan/bigint.h>
-#include <botan/data_src.h>
 
 namespace Botan {
 
@@ -17,7 +16,7 @@ namespace Botan {
 * This class represents discrete logarithm groups. It holds a prime p,
 * a prime q = (p-1)/2 and g = x^((p-1)/q) mod p.
 */
-class BOTAN_DLL DL_Group
+class BOTAN_PUBLIC_API(2,0) DL_Group final
    {
    public:
 

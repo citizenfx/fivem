@@ -6,21 +6,23 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BIGINT_H__
-#define BOTAN_BIGINT_H__
+#ifndef BOTAN_BIGINT_H_
+#define BOTAN_BIGINT_H_
 
-#include <botan/rng.h>
 #include <botan/secmem.h>
 #include <botan/mp_types.h>
+#include <botan/exceptn.h>
 #include <botan/loadstor.h>
 #include <iosfwd>
 
 namespace Botan {
 
+class RandomNumberGenerator;
+
 /**
 * Arbitrary precision integer
 */
-class BOTAN_DLL BigInt
+class BOTAN_PUBLIC_API(2,0) BigInt final
    {
    public:
      /**
@@ -36,13 +38,13 @@ class BOTAN_DLL BigInt
      /**
      * DivideByZero Exception
      */
-     struct BOTAN_DLL DivideByZero : public Exception
+     struct BOTAN_PUBLIC_API(2,0) DivideByZero final : public Exception
         { DivideByZero() : Exception("BigInt divide by zero") {} };
 
      /**
      * Create empty BigInt
      */
-     BigInt() {}
+     BigInt() = default;
 
      /**
      * Create BigInt from 64 bit integer
@@ -63,7 +65,7 @@ class BOTAN_DLL BigInt
      *
      * @param str the string to parse for an integer value
      */
-     BigInt(const std::string& str);
+     explicit BigInt(const std::string& str);
 
      /**
      * Create a BigInt from an integer in a byte array
@@ -433,6 +435,8 @@ class BOTAN_DLL BigInt
      */
      void grow_to(size_t n);
 
+     void shrink_to_fit();
+
      /**
      * Fill BigInt with a random number with size of bitsize
      *
@@ -575,6 +579,15 @@ class BOTAN_DLL BigInt
      */
      static secure_vector<uint8_t> encode_fixed_length_int_pair(const BigInt& n1, const BigInt& n2, size_t bytes);
 
+     /**
+     * Set output = vec[idx].m_reg in constant time
+     * All words of vec must have the same size
+     */
+     static void const_time_lookup(
+        secure_vector<word>& output,
+        const std::vector<BigInt>& vec,
+        size_t idx);
+
    private:
       secure_vector<word> m_reg;
       Sign m_signedness = Positive;
@@ -583,14 +596,14 @@ class BOTAN_DLL BigInt
 /*
 * Arithmetic Operators
 */
-BigInt BOTAN_DLL operator+(const BigInt& x, const BigInt& y);
-BigInt BOTAN_DLL operator-(const BigInt& x, const BigInt& y);
-BigInt BOTAN_DLL operator*(const BigInt& x, const BigInt& y);
-BigInt BOTAN_DLL operator/(const BigInt& x, const BigInt& d);
-BigInt BOTAN_DLL operator%(const BigInt& x, const BigInt& m);
-word   BOTAN_DLL operator%(const BigInt& x, word m);
-BigInt BOTAN_DLL operator<<(const BigInt& x, size_t n);
-BigInt BOTAN_DLL operator>>(const BigInt& x, size_t n);
+BigInt BOTAN_PUBLIC_API(2,0) operator+(const BigInt& x, const BigInt& y);
+BigInt BOTAN_PUBLIC_API(2,0) operator-(const BigInt& x, const BigInt& y);
+BigInt BOTAN_PUBLIC_API(2,0) operator*(const BigInt& x, const BigInt& y);
+BigInt BOTAN_PUBLIC_API(2,0) operator/(const BigInt& x, const BigInt& d);
+BigInt BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, const BigInt& m);
+word   BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, word m);
+BigInt BOTAN_PUBLIC_API(2,0) operator<<(const BigInt& x, size_t n);
+BigInt BOTAN_PUBLIC_API(2,0) operator>>(const BigInt& x, size_t n);
 
 /*
 * Comparison Operators
@@ -611,8 +624,8 @@ inline bool operator>(const BigInt& a, const BigInt& b)
 /*
 * I/O Operators
 */
-BOTAN_DLL std::ostream& operator<<(std::ostream&, const BigInt&);
-BOTAN_DLL std::istream& operator>>(std::istream&, BigInt&);
+BOTAN_PUBLIC_API(2,0) std::ostream& operator<<(std::ostream&, const BigInt&);
+BOTAN_PUBLIC_API(2,0) std::istream& operator>>(std::istream&, BigInt&);
 
 }
 

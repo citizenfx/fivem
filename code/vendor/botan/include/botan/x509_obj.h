@@ -5,21 +5,23 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_X509_OBJECT_H__
-#define BOTAN_X509_OBJECT_H__
+#ifndef BOTAN_X509_OBJECT_H_
+#define BOTAN_X509_OBJECT_H_
 
 #include <botan/asn1_obj.h>
-#include <botan/x509_key.h>
-#include <botan/rng.h>
+#include <botan/alg_id.h>
 #include <vector>
 
 namespace Botan {
+
+class Public_Key;
+class RandomNumberGenerator;
 
 /**
 * This class represents abstract X.509 signed objects as
 * in the X.500 SIGNED macro
 */
-class BOTAN_DLL X509_Object : public ASN1_Object
+class BOTAN_PUBLIC_API(2,0) X509_Object : public ASN1_Object
    {
    public:
       /**
@@ -93,7 +95,9 @@ class BOTAN_DLL X509_Object : public ASN1_Object
       */
       std::string PEM_encode() const;
 
-      virtual ~X509_Object() {}
+      X509_Object(const X509_Object&) = default;
+      X509_Object& operator=(const X509_Object&) = default;
+      virtual ~X509_Object() = default;
    protected:
       X509_Object(DataSource& src, const std::string& pem_labels);
       X509_Object(const std::vector<uint8_t>& vec, const std::string& labels);
@@ -103,7 +107,7 @@ class BOTAN_DLL X509_Object : public ASN1_Object
 #endif
 
       void do_decode();
-      X509_Object() {}
+      X509_Object() = default;
       AlgorithmIdentifier m_sig_algo;
       std::vector<uint8_t> m_tbs_bits, m_sig;
    private:

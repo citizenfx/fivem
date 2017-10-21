@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_KDF1_H__
-#define BOTAN_KDF1_H__
+#ifndef BOTAN_KDF1_H_
+#define BOTAN_KDF1_H_
 
 #include <botan/kdf.h>
 #include <botan/hash.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * KDF1, from IEEE 1363
 */
-class BOTAN_DLL KDF1 final : public KDF
+class BOTAN_PUBLIC_API(2,0) KDF1 final : public KDF
    {
    public:
       std::string name() const override { return "KDF1(" + m_hash->name() + ")"; }

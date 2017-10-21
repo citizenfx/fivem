@@ -5,10 +5,11 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_SEQ_NUMBERS_H__
-#define BOTAN_TLS_SEQ_NUMBERS_H__
+#ifndef BOTAN_TLS_SEQ_NUMBERS_H_
+#define BOTAN_TLS_SEQ_NUMBERS_H_
 
 #include <botan/types.h>
+#include <map>
 
 namespace Botan {
 
@@ -102,7 +103,7 @@ class Datagram_Sequence_Numbers final : public Connection_Sequence_Numbers
 
          if(sequence > m_window_highest)
             {
-            const size_t offset = sequence - m_window_highest;
+            const uint64_t offset = sequence - m_window_highest;
             m_window_highest += offset;
 
             if(offset >= window_size)

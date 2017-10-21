@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_OIDS_H__
-#define BOTAN_OIDS_H__
+#ifndef BOTAN_OIDS_H_
+#define BOTAN_OIDS_H_
 
 #include <botan/asn1_oid.h>
 
@@ -19,7 +19,7 @@ namespace OIDS {
 * @param oid the OID to look up
 * @return name associated with this OID
 */
-BOTAN_DLL std::string lookup(const OID& oid);
+BOTAN_PUBLIC_API(2,0) std::string lookup(const OID& oid);
 
 /**
 * Find the OID to a name. The lookup will be performed in the
@@ -27,7 +27,7 @@ BOTAN_DLL std::string lookup(const OID& oid);
 * @param name the name to resolve
 * @return OID associated with the specified name
 */
-BOTAN_DLL OID lookup(const std::string& name);
+BOTAN_PUBLIC_API(2,0) OID lookup(const std::string& name);
 
 /**
 * See if an OID exists in the internal table.

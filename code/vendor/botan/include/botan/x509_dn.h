@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_X509_DN_H__
-#define BOTAN_X509_DN_H__
+#ifndef BOTAN_X509_DN_H_
+#define BOTAN_X509_DN_H_
 
 #include <botan/asn1_obj.h>
 #include <botan/asn1_oid.h>
@@ -19,7 +19,7 @@ namespace Botan {
 /**
 * Distinguished Name
 */
-class BOTAN_DLL X509_DN final : public ASN1_Object
+class BOTAN_PUBLIC_API(2,0) X509_DN final : public ASN1_Object
    {
    public:
       void encode_into(class DER_Encoder&) const override;
@@ -47,12 +47,12 @@ class BOTAN_DLL X509_DN final : public ASN1_Object
       std::vector<uint8_t> m_dn_bits;
    };
 
-bool BOTAN_DLL operator==(const X509_DN&, const X509_DN&);
-bool BOTAN_DLL operator!=(const X509_DN&, const X509_DN&);
-bool BOTAN_DLL operator<(const X509_DN&, const X509_DN&);
+bool BOTAN_PUBLIC_API(2,0) operator==(const X509_DN&, const X509_DN&);
+bool BOTAN_PUBLIC_API(2,0) operator!=(const X509_DN&, const X509_DN&);
+bool BOTAN_PUBLIC_API(2,0) operator<(const X509_DN&, const X509_DN&);
 
-BOTAN_DLL std::ostream& operator<<(std::ostream& out, const X509_DN& dn);
-BOTAN_DLL std::istream& operator>>(std::istream& in, X509_DN& dn);
+BOTAN_PUBLIC_API(2,0) std::ostream& operator<<(std::ostream& out, const X509_DN& dn);
+BOTAN_PUBLIC_API(2,0) std::istream& operator>>(std::istream& in, X509_DN& dn);
 
 }
 

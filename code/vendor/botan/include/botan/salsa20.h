@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SALSA20_H__
-#define BOTAN_SALSA20_H__
+#ifndef BOTAN_SALSA20_H_
+#define BOTAN_SALSA20_H_
 
 #include <botan/stream_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * DJB's Salsa20 (and XSalsa20)
 */
-class BOTAN_DLL Salsa20 final : public StreamCipher
+class BOTAN_PUBLIC_API(2,0) Salsa20 final : public StreamCipher
    {
    public:
       void cipher(const uint8_t in[], uint8_t out[], size_t length) override;

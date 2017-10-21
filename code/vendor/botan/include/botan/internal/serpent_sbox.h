@@ -8,8 +8,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SERPENT_SBOX_H__
-#define BOTAN_SERPENT_SBOX_H__
+#ifndef BOTAN_SERPENT_SBOX_H_
+#define BOTAN_SERPENT_SBOX_H_
 
 #define SBoxE1(B0, B1, B2, B3)                    \
    do {                                           \

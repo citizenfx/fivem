@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef BOTAN_MCELIECE_INTERNAL_H__
-#define BOTAN_MCELIECE_INTERNAL_H__
+#ifndef BOTAN_MCELIECE_INTERNAL_H_
+#define BOTAN_MCELIECE_INTERNAL_H_
 
 #include <botan/secmem.h>
 #include <botan/types.h>

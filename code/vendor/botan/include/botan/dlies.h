@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DLIES_H__
-#define BOTAN_DLIES_H__
+#ifndef BOTAN_DLIES_H_
+#define BOTAN_DLIES_H_
 
 #include <botan/pubkey.h>
 #include <botan/mac.h>
@@ -20,7 +20,7 @@ namespace Botan {
 /**
 * DLIES Encryption
 */
-class BOTAN_DLL DLIES_Encryptor : public PK_Encryptor
+class BOTAN_PUBLIC_API(2,0) DLIES_Encryptor final : public PK_Encryptor
    {
    public:
       /**
@@ -93,7 +93,7 @@ class BOTAN_DLL DLIES_Encryptor : public PK_Encryptor
 /**
 * DLIES Decryption
 */
-class BOTAN_DLL DLIES_Decryptor : public PK_Decryptor
+class BOTAN_PUBLIC_API(2,0) DLIES_Decryptor final : public PK_Decryptor
    {
    public:
       /**

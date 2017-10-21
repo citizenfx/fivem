@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_HMAC_H__
-#define BOTAN_HMAC_H__
+#ifndef BOTAN_HMAC_H_
+#define BOTAN_HMAC_H_
 
 #include <botan/mac.h>
 #include <botan/hash.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * HMAC
 */
-class BOTAN_DLL HMAC final : public MessageAuthenticationCode
+class BOTAN_PUBLIC_API(2,0) HMAC final : public MessageAuthenticationCode
    {
    public:
       void clear() override;

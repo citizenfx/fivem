@@ -1,5 +1,5 @@
 /*
-* Botan 2.0.1 Amalgamation
+* Botan 2.3.0 Amalgamation
 * (C) 1999-2013,2014,2015,2016 Jack Lloyd and others
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -86,6 +86,11 @@ void Adler32::final_result(uint8_t output[])
    clear();
    }
 
+std::unique_ptr<HashFunction> Adler32::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new Adler32(*this));
+   }
+
 }
 /*
 * (C) 2013,2015 Jack Lloyd
@@ -93,6 +98,7 @@ void Adler32::final_result(uint8_t output[])
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
+#include <sstream>
 
 #if defined(BOTAN_HAS_BLOCK_CIPHER)
 #endif
@@ -322,7 +328,7 @@ const uint8_t SD[256] = {
    0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63,
    0x55, 0x21, 0x0C, 0x7D };
 
-inline uint8_t xtime(uint8_t s) { return (s << 1) ^ ((s >> 7) * 0x1B); }
+inline uint8_t xtime(uint8_t s) { return static_cast<uint8_t>(s << 1) ^ ((s >> 7) * 0x1B); }
 inline uint8_t xtime4(uint8_t s) { return xtime(xtime(s)); }
 inline uint8_t xtime8(uint8_t s) { return xtime(xtime(xtime(s))); }
 
@@ -334,7 +340,7 @@ inline uint8_t xtime14(uint8_t s) { return xtime8(s) ^ xtime4(s) ^ xtime(s); }
 
 const std::vector<uint32_t>& AES_TE()
    {
-   auto compute_TE = []() {
+   auto compute_TE = []() -> std::vector<uint32_t> {
       std::vector<uint32_t> TE(1024);
       for(size_t i = 0; i != 256; ++i)
          {
@@ -355,7 +361,7 @@ const std::vector<uint32_t>& AES_TE()
 
 const std::vector<uint32_t>& AES_TD()
    {
-   auto compute_TD = []() {
+   auto compute_TD = []() -> std::vector<uint32_t> {
       std::vector<uint32_t> TD(1024);
       for(size_t i = 0; i != 256; ++i)
          {
@@ -395,7 +401,7 @@ void aes_encrypt_n(const uint8_t in[], uint8_t out[],
       }
    Z &= TE[82]; // this is zero, which hopefully the compiler cannot deduce
 
-   BOTAN_PARALLEL_FOR(size_t i = 0; i < blocks; ++i)
+   for(size_t i = 0; i < blocks; ++i)
       {
       uint32_t T0, T1, T2, T3;
       load_be(in + 16*i, T0, T1, T2, T3);
@@ -582,8 +588,9 @@ void aes_key_schedule(const uint8_t key[], size_t length,
 
    const size_t X = length / 4;
 
-   // Make clang-analyzer happy
-   BOTAN_ASSERT(X == 4 || X == 6 || X == 8, "Valid AES key size");
+   // Can't happen, but make static analyzers happy
+   if(X != 4 && X != 6 && X != 8)
+      throw Invalid_Argument("Invalid AES key size");
 
    for(size_t i = 0; i != X; ++i)
       XEK[i] = load_be<uint32_t>(key, i);
@@ -639,6 +646,31 @@ void aes_key_schedule(const uint8_t key[], size_t length,
    DK.resize(length + 24);
    copy_mem(EK.data(), XEK.data(), EK.size());
    copy_mem(DK.data(), XDK.data(), DK.size());
+
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      // ARM needs the subkeys to be byte reversed
+
+      for(size_t i = 0; i != EK.size(); ++i)
+         EK[i] = reverse_bytes(EK[i]);
+      for(size_t i = 0; i != DK.size(); ++i)
+         DK[i] = reverse_bytes(DK[i]);
+      }
+#endif
+
+   }
+
+size_t aes_parallelism()
+   {
+#if defined(BOTAN_HAS_AES_NI)
+   if(CPUID::has_aes_ni())
+      {
+      return 4;
+      }
+#endif
+
+   return 1;
    }
 
 const char* aes_provider()
@@ -657,6 +689,13 @@ const char* aes_provider()
       }
 #endif
 
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return "armv8";
+      }
+#endif
+
    return "base";
    }
 
@@ -665,6 +704,10 @@ const char* aes_provider()
 std::string AES_128::provider() const { return aes_provider(); }
 std::string AES_192::provider() const { return aes_provider(); }
 std::string AES_256::provider() const { return aes_provider(); }
+
+size_t AES_128::parallelism() const { return aes_parallelism(); }
+size_t AES_192::parallelism() const { return aes_parallelism(); }
+size_t AES_256::parallelism() const { return aes_parallelism(); }
 
 void AES_128::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
    {
@@ -679,6 +722,13 @@ void AES_128::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
    if(CPUID::has_ssse3())
       {
       return ssse3_encrypt_n(in, out, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return armv8_encrypt_n(in, out, blocks);
       }
 #endif
 
@@ -698,6 +748,13 @@ void AES_128::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
    if(CPUID::has_ssse3())
       {
       return ssse3_decrypt_n(in, out, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return armv8_decrypt_n(in, out, blocks);
       }
 #endif
 
@@ -747,6 +804,13 @@ void AES_192::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
       }
 #endif
 
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return armv8_encrypt_n(in, out, blocks);
+      }
+#endif
+
    aes_encrypt_n(in, out, blocks, m_EK, m_ME);
    }
 
@@ -763,6 +827,13 @@ void AES_192::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
    if(CPUID::has_ssse3())
       {
       return ssse3_decrypt_n(in, out, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return armv8_decrypt_n(in, out, blocks);
       }
 #endif
 
@@ -812,6 +883,13 @@ void AES_256::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
       }
 #endif
 
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return armv8_encrypt_n(in, out, blocks);
+      }
+#endif
+
    aes_encrypt_n(in, out, blocks, m_EK, m_ME);
    }
 
@@ -828,6 +906,13 @@ void AES_256::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
    if(CPUID::has_ssse3())
       {
       return ssse3_decrypt_n(in, out, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_AES_ARMV8)
+   if(CPUID::has_arm_aes())
+      {
+      return armv8_decrypt_n(in, out, blocks);
       }
 #endif
 
@@ -878,6 +963,9 @@ void aont_package(RandomNumberGenerator& rng,
                   const uint8_t input[], size_t input_len,
                   uint8_t output[])
    {
+   if(input_len <= 1)
+      throw Encoding_Error("Package transform cannot encode small inputs");
+
    const size_t BLOCK_SIZE = cipher->block_size();
 
    if(!cipher->valid_keylength(BLOCK_SIZE))
@@ -976,6 +1064,503 @@ void aont_unpackage(BlockCipher* cipher,
 
    const size_t remaining = pipe.remaining();
    BOTAN_ASSERT_EQUAL(remaining, pipe.read(output, remaining), "Expected read size");
+   }
+
+}
+/*
+* ARIA
+* Adapted for Botan by Jeffrey Walton, public domain
+*
+* Further changes
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*
+* This ARIA implementation is based on the 32-bit implementation by Aaram Yun from the
+* National Security Research Institute, KOREA. Aaram Yun's implementation is based on
+* the 8-bit implementation by Jin Hong. The source files are available in ARIA.zip from
+* the Korea Internet & Security Agency website.
+* <A HREF="http://tools.ietf.org/html/rfc5794">RFC 5794, A Description of the ARIA Encryption Algorithm</A>,
+* <A HREF="http://seed.kisa.or.kr/iwt/ko/bbs/EgovReferenceList.do?bbsId=BBSMSTR_000000000002">Korea
+* Internet & Security Agency homepage</A>
+*/
+
+
+namespace Botan {
+
+namespace {
+
+namespace ARIA_F {
+
+BOTAN_ALIGNAS(16)
+const uint32_t S1[256]={
+   0x00636363,0x007c7c7c,0x00777777,0x007b7b7b,0x00f2f2f2,0x006b6b6b,0x006f6f6f,0x00c5c5c5,
+   0x00303030,0x00010101,0x00676767,0x002b2b2b,0x00fefefe,0x00d7d7d7,0x00ababab,0x00767676,
+   0x00cacaca,0x00828282,0x00c9c9c9,0x007d7d7d,0x00fafafa,0x00595959,0x00474747,0x00f0f0f0,
+   0x00adadad,0x00d4d4d4,0x00a2a2a2,0x00afafaf,0x009c9c9c,0x00a4a4a4,0x00727272,0x00c0c0c0,
+   0x00b7b7b7,0x00fdfdfd,0x00939393,0x00262626,0x00363636,0x003f3f3f,0x00f7f7f7,0x00cccccc,
+   0x00343434,0x00a5a5a5,0x00e5e5e5,0x00f1f1f1,0x00717171,0x00d8d8d8,0x00313131,0x00151515,
+   0x00040404,0x00c7c7c7,0x00232323,0x00c3c3c3,0x00181818,0x00969696,0x00050505,0x009a9a9a,
+   0x00070707,0x00121212,0x00808080,0x00e2e2e2,0x00ebebeb,0x00272727,0x00b2b2b2,0x00757575,
+   0x00090909,0x00838383,0x002c2c2c,0x001a1a1a,0x001b1b1b,0x006e6e6e,0x005a5a5a,0x00a0a0a0,
+   0x00525252,0x003b3b3b,0x00d6d6d6,0x00b3b3b3,0x00292929,0x00e3e3e3,0x002f2f2f,0x00848484,
+   0x00535353,0x00d1d1d1,0x00000000,0x00ededed,0x00202020,0x00fcfcfc,0x00b1b1b1,0x005b5b5b,
+   0x006a6a6a,0x00cbcbcb,0x00bebebe,0x00393939,0x004a4a4a,0x004c4c4c,0x00585858,0x00cfcfcf,
+   0x00d0d0d0,0x00efefef,0x00aaaaaa,0x00fbfbfb,0x00434343,0x004d4d4d,0x00333333,0x00858585,
+   0x00454545,0x00f9f9f9,0x00020202,0x007f7f7f,0x00505050,0x003c3c3c,0x009f9f9f,0x00a8a8a8,
+   0x00515151,0x00a3a3a3,0x00404040,0x008f8f8f,0x00929292,0x009d9d9d,0x00383838,0x00f5f5f5,
+   0x00bcbcbc,0x00b6b6b6,0x00dadada,0x00212121,0x00101010,0x00ffffff,0x00f3f3f3,0x00d2d2d2,
+   0x00cdcdcd,0x000c0c0c,0x00131313,0x00ececec,0x005f5f5f,0x00979797,0x00444444,0x00171717,
+   0x00c4c4c4,0x00a7a7a7,0x007e7e7e,0x003d3d3d,0x00646464,0x005d5d5d,0x00191919,0x00737373,
+   0x00606060,0x00818181,0x004f4f4f,0x00dcdcdc,0x00222222,0x002a2a2a,0x00909090,0x00888888,
+   0x00464646,0x00eeeeee,0x00b8b8b8,0x00141414,0x00dedede,0x005e5e5e,0x000b0b0b,0x00dbdbdb,
+   0x00e0e0e0,0x00323232,0x003a3a3a,0x000a0a0a,0x00494949,0x00060606,0x00242424,0x005c5c5c,
+   0x00c2c2c2,0x00d3d3d3,0x00acacac,0x00626262,0x00919191,0x00959595,0x00e4e4e4,0x00797979,
+   0x00e7e7e7,0x00c8c8c8,0x00373737,0x006d6d6d,0x008d8d8d,0x00d5d5d5,0x004e4e4e,0x00a9a9a9,
+   0x006c6c6c,0x00565656,0x00f4f4f4,0x00eaeaea,0x00656565,0x007a7a7a,0x00aeaeae,0x00080808,
+   0x00bababa,0x00787878,0x00252525,0x002e2e2e,0x001c1c1c,0x00a6a6a6,0x00b4b4b4,0x00c6c6c6,
+   0x00e8e8e8,0x00dddddd,0x00747474,0x001f1f1f,0x004b4b4b,0x00bdbdbd,0x008b8b8b,0x008a8a8a,
+   0x00707070,0x003e3e3e,0x00b5b5b5,0x00666666,0x00484848,0x00030303,0x00f6f6f6,0x000e0e0e,
+   0x00616161,0x00353535,0x00575757,0x00b9b9b9,0x00868686,0x00c1c1c1,0x001d1d1d,0x009e9e9e,
+   0x00e1e1e1,0x00f8f8f8,0x00989898,0x00111111,0x00696969,0x00d9d9d9,0x008e8e8e,0x00949494,
+   0x009b9b9b,0x001e1e1e,0x00878787,0x00e9e9e9,0x00cecece,0x00555555,0x00282828,0x00dfdfdf,
+   0x008c8c8c,0x00a1a1a1,0x00898989,0x000d0d0d,0x00bfbfbf,0x00e6e6e6,0x00424242,0x00686868,
+   0x00414141,0x00999999,0x002d2d2d,0x000f0f0f,0x00b0b0b0,0x00545454,0x00bbbbbb,0x00161616
+};
+
+BOTAN_ALIGNAS(16)
+const uint32_t S2[256]={
+   0xe200e2e2,0x4e004e4e,0x54005454,0xfc00fcfc,0x94009494,0xc200c2c2,0x4a004a4a,0xcc00cccc,
+   0x62006262,0x0d000d0d,0x6a006a6a,0x46004646,0x3c003c3c,0x4d004d4d,0x8b008b8b,0xd100d1d1,
+   0x5e005e5e,0xfa00fafa,0x64006464,0xcb00cbcb,0xb400b4b4,0x97009797,0xbe00bebe,0x2b002b2b,
+   0xbc00bcbc,0x77007777,0x2e002e2e,0x03000303,0xd300d3d3,0x19001919,0x59005959,0xc100c1c1,
+   0x1d001d1d,0x06000606,0x41004141,0x6b006b6b,0x55005555,0xf000f0f0,0x99009999,0x69006969,
+   0xea00eaea,0x9c009c9c,0x18001818,0xae00aeae,0x63006363,0xdf00dfdf,0xe700e7e7,0xbb00bbbb,
+   0x00000000,0x73007373,0x66006666,0xfb00fbfb,0x96009696,0x4c004c4c,0x85008585,0xe400e4e4,
+   0x3a003a3a,0x09000909,0x45004545,0xaa00aaaa,0x0f000f0f,0xee00eeee,0x10001010,0xeb00ebeb,
+   0x2d002d2d,0x7f007f7f,0xf400f4f4,0x29002929,0xac00acac,0xcf00cfcf,0xad00adad,0x91009191,
+   0x8d008d8d,0x78007878,0xc800c8c8,0x95009595,0xf900f9f9,0x2f002f2f,0xce00cece,0xcd00cdcd,
+   0x08000808,0x7a007a7a,0x88008888,0x38003838,0x5c005c5c,0x83008383,0x2a002a2a,0x28002828,
+   0x47004747,0xdb00dbdb,0xb800b8b8,0xc700c7c7,0x93009393,0xa400a4a4,0x12001212,0x53005353,
+   0xff00ffff,0x87008787,0x0e000e0e,0x31003131,0x36003636,0x21002121,0x58005858,0x48004848,
+   0x01000101,0x8e008e8e,0x37003737,0x74007474,0x32003232,0xca00caca,0xe900e9e9,0xb100b1b1,
+   0xb700b7b7,0xab00abab,0x0c000c0c,0xd700d7d7,0xc400c4c4,0x56005656,0x42004242,0x26002626,
+   0x07000707,0x98009898,0x60006060,0xd900d9d9,0xb600b6b6,0xb900b9b9,0x11001111,0x40004040,
+   0xec00ecec,0x20002020,0x8c008c8c,0xbd00bdbd,0xa000a0a0,0xc900c9c9,0x84008484,0x04000404,
+   0x49004949,0x23002323,0xf100f1f1,0x4f004f4f,0x50005050,0x1f001f1f,0x13001313,0xdc00dcdc,
+   0xd800d8d8,0xc000c0c0,0x9e009e9e,0x57005757,0xe300e3e3,0xc300c3c3,0x7b007b7b,0x65006565,
+   0x3b003b3b,0x02000202,0x8f008f8f,0x3e003e3e,0xe800e8e8,0x25002525,0x92009292,0xe500e5e5,
+   0x15001515,0xdd00dddd,0xfd00fdfd,0x17001717,0xa900a9a9,0xbf00bfbf,0xd400d4d4,0x9a009a9a,
+   0x7e007e7e,0xc500c5c5,0x39003939,0x67006767,0xfe00fefe,0x76007676,0x9d009d9d,0x43004343,
+   0xa700a7a7,0xe100e1e1,0xd000d0d0,0xf500f5f5,0x68006868,0xf200f2f2,0x1b001b1b,0x34003434,
+   0x70007070,0x05000505,0xa300a3a3,0x8a008a8a,0xd500d5d5,0x79007979,0x86008686,0xa800a8a8,
+   0x30003030,0xc600c6c6,0x51005151,0x4b004b4b,0x1e001e1e,0xa600a6a6,0x27002727,0xf600f6f6,
+   0x35003535,0xd200d2d2,0x6e006e6e,0x24002424,0x16001616,0x82008282,0x5f005f5f,0xda00dada,
+   0xe600e6e6,0x75007575,0xa200a2a2,0xef00efef,0x2c002c2c,0xb200b2b2,0x1c001c1c,0x9f009f9f,
+   0x5d005d5d,0x6f006f6f,0x80008080,0x0a000a0a,0x72007272,0x44004444,0x9b009b9b,0x6c006c6c,
+   0x90009090,0x0b000b0b,0x5b005b5b,0x33003333,0x7d007d7d,0x5a005a5a,0x52005252,0xf300f3f3,
+   0x61006161,0xa100a1a1,0xf700f7f7,0xb000b0b0,0xd600d6d6,0x3f003f3f,0x7c007c7c,0x6d006d6d,
+   0xed00eded,0x14001414,0xe000e0e0,0xa500a5a5,0x3d003d3d,0x22002222,0xb300b3b3,0xf800f8f8,
+   0x89008989,0xde00dede,0x71007171,0x1a001a1a,0xaf00afaf,0xba00baba,0xb500b5b5,0x81008181
+};
+
+BOTAN_ALIGNAS(16)
+const uint32_t X1[256]={
+   0x52520052,0x09090009,0x6a6a006a,0xd5d500d5,0x30300030,0x36360036,0xa5a500a5,0x38380038,
+   0xbfbf00bf,0x40400040,0xa3a300a3,0x9e9e009e,0x81810081,0xf3f300f3,0xd7d700d7,0xfbfb00fb,
+   0x7c7c007c,0xe3e300e3,0x39390039,0x82820082,0x9b9b009b,0x2f2f002f,0xffff00ff,0x87870087,
+   0x34340034,0x8e8e008e,0x43430043,0x44440044,0xc4c400c4,0xdede00de,0xe9e900e9,0xcbcb00cb,
+   0x54540054,0x7b7b007b,0x94940094,0x32320032,0xa6a600a6,0xc2c200c2,0x23230023,0x3d3d003d,
+   0xeeee00ee,0x4c4c004c,0x95950095,0x0b0b000b,0x42420042,0xfafa00fa,0xc3c300c3,0x4e4e004e,
+   0x08080008,0x2e2e002e,0xa1a100a1,0x66660066,0x28280028,0xd9d900d9,0x24240024,0xb2b200b2,
+   0x76760076,0x5b5b005b,0xa2a200a2,0x49490049,0x6d6d006d,0x8b8b008b,0xd1d100d1,0x25250025,
+   0x72720072,0xf8f800f8,0xf6f600f6,0x64640064,0x86860086,0x68680068,0x98980098,0x16160016,
+   0xd4d400d4,0xa4a400a4,0x5c5c005c,0xcccc00cc,0x5d5d005d,0x65650065,0xb6b600b6,0x92920092,
+   0x6c6c006c,0x70700070,0x48480048,0x50500050,0xfdfd00fd,0xeded00ed,0xb9b900b9,0xdada00da,
+   0x5e5e005e,0x15150015,0x46460046,0x57570057,0xa7a700a7,0x8d8d008d,0x9d9d009d,0x84840084,
+   0x90900090,0xd8d800d8,0xabab00ab,0x00000000,0x8c8c008c,0xbcbc00bc,0xd3d300d3,0x0a0a000a,
+   0xf7f700f7,0xe4e400e4,0x58580058,0x05050005,0xb8b800b8,0xb3b300b3,0x45450045,0x06060006,
+   0xd0d000d0,0x2c2c002c,0x1e1e001e,0x8f8f008f,0xcaca00ca,0x3f3f003f,0x0f0f000f,0x02020002,
+   0xc1c100c1,0xafaf00af,0xbdbd00bd,0x03030003,0x01010001,0x13130013,0x8a8a008a,0x6b6b006b,
+   0x3a3a003a,0x91910091,0x11110011,0x41410041,0x4f4f004f,0x67670067,0xdcdc00dc,0xeaea00ea,
+   0x97970097,0xf2f200f2,0xcfcf00cf,0xcece00ce,0xf0f000f0,0xb4b400b4,0xe6e600e6,0x73730073,
+   0x96960096,0xacac00ac,0x74740074,0x22220022,0xe7e700e7,0xadad00ad,0x35350035,0x85850085,
+   0xe2e200e2,0xf9f900f9,0x37370037,0xe8e800e8,0x1c1c001c,0x75750075,0xdfdf00df,0x6e6e006e,
+   0x47470047,0xf1f100f1,0x1a1a001a,0x71710071,0x1d1d001d,0x29290029,0xc5c500c5,0x89890089,
+   0x6f6f006f,0xb7b700b7,0x62620062,0x0e0e000e,0xaaaa00aa,0x18180018,0xbebe00be,0x1b1b001b,
+   0xfcfc00fc,0x56560056,0x3e3e003e,0x4b4b004b,0xc6c600c6,0xd2d200d2,0x79790079,0x20200020,
+   0x9a9a009a,0xdbdb00db,0xc0c000c0,0xfefe00fe,0x78780078,0xcdcd00cd,0x5a5a005a,0xf4f400f4,
+   0x1f1f001f,0xdddd00dd,0xa8a800a8,0x33330033,0x88880088,0x07070007,0xc7c700c7,0x31310031,
+   0xb1b100b1,0x12120012,0x10100010,0x59590059,0x27270027,0x80800080,0xecec00ec,0x5f5f005f,
+   0x60600060,0x51510051,0x7f7f007f,0xa9a900a9,0x19190019,0xb5b500b5,0x4a4a004a,0x0d0d000d,
+   0x2d2d002d,0xe5e500e5,0x7a7a007a,0x9f9f009f,0x93930093,0xc9c900c9,0x9c9c009c,0xefef00ef,
+   0xa0a000a0,0xe0e000e0,0x3b3b003b,0x4d4d004d,0xaeae00ae,0x2a2a002a,0xf5f500f5,0xb0b000b0,
+   0xc8c800c8,0xebeb00eb,0xbbbb00bb,0x3c3c003c,0x83830083,0x53530053,0x99990099,0x61610061,
+   0x17170017,0x2b2b002b,0x04040004,0x7e7e007e,0xbaba00ba,0x77770077,0xd6d600d6,0x26260026,
+   0xe1e100e1,0x69690069,0x14140014,0x63630063,0x55550055,0x21210021,0x0c0c000c,0x7d7d007d
+};
+
+BOTAN_ALIGNAS(16)
+const uint32_t X2[256]={
+   0x30303000,0x68686800,0x99999900,0x1b1b1b00,0x87878700,0xb9b9b900,0x21212100,0x78787800,
+   0x50505000,0x39393900,0xdbdbdb00,0xe1e1e100,0x72727200,0x09090900,0x62626200,0x3c3c3c00,
+   0x3e3e3e00,0x7e7e7e00,0x5e5e5e00,0x8e8e8e00,0xf1f1f100,0xa0a0a000,0xcccccc00,0xa3a3a300,
+   0x2a2a2a00,0x1d1d1d00,0xfbfbfb00,0xb6b6b600,0xd6d6d600,0x20202000,0xc4c4c400,0x8d8d8d00,
+   0x81818100,0x65656500,0xf5f5f500,0x89898900,0xcbcbcb00,0x9d9d9d00,0x77777700,0xc6c6c600,
+   0x57575700,0x43434300,0x56565600,0x17171700,0xd4d4d400,0x40404000,0x1a1a1a00,0x4d4d4d00,
+   0xc0c0c000,0x63636300,0x6c6c6c00,0xe3e3e300,0xb7b7b700,0xc8c8c800,0x64646400,0x6a6a6a00,
+   0x53535300,0xaaaaaa00,0x38383800,0x98989800,0x0c0c0c00,0xf4f4f400,0x9b9b9b00,0xededed00,
+   0x7f7f7f00,0x22222200,0x76767600,0xafafaf00,0xdddddd00,0x3a3a3a00,0x0b0b0b00,0x58585800,
+   0x67676700,0x88888800,0x06060600,0xc3c3c300,0x35353500,0x0d0d0d00,0x01010100,0x8b8b8b00,
+   0x8c8c8c00,0xc2c2c200,0xe6e6e600,0x5f5f5f00,0x02020200,0x24242400,0x75757500,0x93939300,
+   0x66666600,0x1e1e1e00,0xe5e5e500,0xe2e2e200,0x54545400,0xd8d8d800,0x10101000,0xcecece00,
+   0x7a7a7a00,0xe8e8e800,0x08080800,0x2c2c2c00,0x12121200,0x97979700,0x32323200,0xababab00,
+   0xb4b4b400,0x27272700,0x0a0a0a00,0x23232300,0xdfdfdf00,0xefefef00,0xcacaca00,0xd9d9d900,
+   0xb8b8b800,0xfafafa00,0xdcdcdc00,0x31313100,0x6b6b6b00,0xd1d1d100,0xadadad00,0x19191900,
+   0x49494900,0xbdbdbd00,0x51515100,0x96969600,0xeeeeee00,0xe4e4e400,0xa8a8a800,0x41414100,
+   0xdadada00,0xffffff00,0xcdcdcd00,0x55555500,0x86868600,0x36363600,0xbebebe00,0x61616100,
+   0x52525200,0xf8f8f800,0xbbbbbb00,0x0e0e0e00,0x82828200,0x48484800,0x69696900,0x9a9a9a00,
+   0xe0e0e000,0x47474700,0x9e9e9e00,0x5c5c5c00,0x04040400,0x4b4b4b00,0x34343400,0x15151500,
+   0x79797900,0x26262600,0xa7a7a700,0xdedede00,0x29292900,0xaeaeae00,0x92929200,0xd7d7d700,
+   0x84848400,0xe9e9e900,0xd2d2d200,0xbababa00,0x5d5d5d00,0xf3f3f300,0xc5c5c500,0xb0b0b000,
+   0xbfbfbf00,0xa4a4a400,0x3b3b3b00,0x71717100,0x44444400,0x46464600,0x2b2b2b00,0xfcfcfc00,
+   0xebebeb00,0x6f6f6f00,0xd5d5d500,0xf6f6f600,0x14141400,0xfefefe00,0x7c7c7c00,0x70707000,
+   0x5a5a5a00,0x7d7d7d00,0xfdfdfd00,0x2f2f2f00,0x18181800,0x83838300,0x16161600,0xa5a5a500,
+   0x91919100,0x1f1f1f00,0x05050500,0x95959500,0x74747400,0xa9a9a900,0xc1c1c100,0x5b5b5b00,
+   0x4a4a4a00,0x85858500,0x6d6d6d00,0x13131300,0x07070700,0x4f4f4f00,0x4e4e4e00,0x45454500,
+   0xb2b2b200,0x0f0f0f00,0xc9c9c900,0x1c1c1c00,0xa6a6a600,0xbcbcbc00,0xececec00,0x73737300,
+   0x90909000,0x7b7b7b00,0xcfcfcf00,0x59595900,0x8f8f8f00,0xa1a1a100,0xf9f9f900,0x2d2d2d00,
+   0xf2f2f200,0xb1b1b100,0x00000000,0x94949400,0x37373700,0x9f9f9f00,0xd0d0d000,0x2e2e2e00,
+   0x9c9c9c00,0x6e6e6e00,0x28282800,0x3f3f3f00,0x80808000,0xf0f0f000,0x3d3d3d00,0xd3d3d300,
+   0x25252500,0x8a8a8a00,0xb5b5b500,0xe7e7e700,0x42424200,0xb3b3b300,0xc7c7c700,0xeaeaea00,
+   0xf7f7f700,0x4c4c4c00,0x11111100,0x33333300,0x03030300,0xa2a2a200,0xacacac00,0x60606000
+};
+
+inline void ARIA_FO(uint32_t& T0, uint32_t& T1, uint32_t& T2, uint32_t& T3)
+   {
+   T0 = S1[get_byte(0,T0)] ^ S2[get_byte(1,T0)] ^ X1[get_byte(2,T0)] ^ X2[get_byte(3,T0)];
+   T1 = S1[get_byte(0,T1)] ^ S2[get_byte(1,T1)] ^ X1[get_byte(2,T1)] ^ X2[get_byte(3,T1)];
+   T2 = S1[get_byte(0,T2)] ^ S2[get_byte(1,T2)] ^ X1[get_byte(2,T2)] ^ X2[get_byte(3,T2)];
+   T3 = S1[get_byte(0,T3)] ^ S2[get_byte(1,T3)] ^ X1[get_byte(2,T3)] ^ X2[get_byte(3,T3)];
+
+   T1 ^= T2;
+   T2 ^= T3; T0 ^= T1;
+   T3 ^= T1; T2 ^= T0;
+   T1 ^= T2;
+
+   T1 = ((T1 << 8) & 0xFF00FF00) | ((T1 >> 8) & 0x00FF00FF);
+   T2 = rotate_right(T2, 16);
+   T3 = reverse_bytes(T3);
+
+   T1 ^= T2;
+   T2 ^= T3; T0 ^= T1;
+   T3 ^= T1; T2 ^= T0;
+   T1 ^= T2;
+   }
+
+inline void ARIA_FE(uint32_t& T0, uint32_t& T1, uint32_t& T2, uint32_t& T3)
+   {
+   T0 = X1[get_byte(0,T0)] ^ X2[get_byte(1,T0)] ^ S1[get_byte(2,T0)] ^ S2[get_byte(3,T0)];
+   T1 = X1[get_byte(0,T1)] ^ X2[get_byte(1,T1)] ^ S1[get_byte(2,T1)] ^ S2[get_byte(3,T1)];
+   T2 = X1[get_byte(0,T2)] ^ X2[get_byte(1,T2)] ^ S1[get_byte(2,T2)] ^ S2[get_byte(3,T2)];
+   T3 = X1[get_byte(0,T3)] ^ X2[get_byte(1,T3)] ^ S1[get_byte(2,T3)] ^ S2[get_byte(3,T3)];
+
+   T1 ^= T2;
+   T2 ^= T3; T0 ^= T1;
+   T3 ^= T1; T2 ^= T0;
+   T1 ^= T2;
+
+   T3 = ((T3 << 8) & 0xFF00FF00) | ((T3 >> 8) & 0x00FF00FF);
+   T0 = rotate_right(T0, 16);
+   T1 = reverse_bytes(T1);
+
+   T1 ^= T2;
+   T2 ^= T3; T0 ^= T1;
+   T3 ^= T1; T2 ^= T0;
+   T1 ^= T2;
+   }
+
+/*
+* ARIA encryption and decryption
+*/
+void transform(const uint8_t in[], uint8_t out[], size_t blocks,
+               const secure_vector<uint32_t>& KS)
+   {
+   if(KS.empty())
+      throw Invalid_State("ARIA key was not set");
+
+   // Hit every cache line of S1 and S2
+   const size_t cache_line_size = CPUID::cache_line_size();
+
+   /*
+   * This initializer ensures Z == 0xFFFFFFFF for any cache line size
+   * in {32,64,128,256,512}
+   */
+   volatile uint32_t Z = 0x11101010;
+   for(size_t i = 0; i < 256; i += cache_line_size / sizeof(uint32_t))
+      {
+      Z |= S1[i] | S2[i];
+      }
+
+   const size_t ROUNDS = (KS.size() / 4) - 1;
+
+   for(size_t i = 0; i != blocks; ++i)
+      {
+      uint32_t t0, t1, t2, t3;
+      load_be(in + 16*i, t0, t1, t2, t3);
+
+      t0 &= Z;
+
+      for(size_t r = 0; r < ROUNDS; r += 2)
+         {
+         t0 ^= KS[4*r];
+         t1 ^= KS[4*r+1];
+         t2 ^= KS[4*r+2];
+         t3 ^= KS[4*r+3];
+         ARIA_FO(t0,t1,t2,t3);
+
+         t0 ^= KS[4*r+4];
+         t1 ^= KS[4*r+5];
+         t2 ^= KS[4*r+6];
+         t3 ^= KS[4*r+7];
+
+         if(r != ROUNDS-2)
+            ARIA_FE(t0,t1,t2,t3);
+         }
+
+      out[16*i+ 0] = static_cast<uint8_t>(X1[get_byte(0,t0)]   ) ^ get_byte(0, KS[4*ROUNDS]);
+      out[16*i+ 1] = static_cast<uint8_t>(X2[get_byte(1,t0)]>>8) ^ get_byte(1, KS[4*ROUNDS]);
+      out[16*i+ 2] = static_cast<uint8_t>(S1[get_byte(2,t0)]   ) ^ get_byte(2, KS[4*ROUNDS]);
+      out[16*i+ 3] = static_cast<uint8_t>(S2[get_byte(3,t0)]   ) ^ get_byte(3, KS[4*ROUNDS]);
+      out[16*i+ 4] = static_cast<uint8_t>(X1[get_byte(0,t1)]   ) ^ get_byte(0, KS[4*ROUNDS+1]);
+      out[16*i+ 5] = static_cast<uint8_t>(X2[get_byte(1,t1)]>>8) ^ get_byte(1, KS[4*ROUNDS+1]);
+      out[16*i+ 6] = static_cast<uint8_t>(S1[get_byte(2,t1)]   ) ^ get_byte(2, KS[4*ROUNDS+1]);
+      out[16*i+ 7] = static_cast<uint8_t>(S2[get_byte(3,t1)]   ) ^ get_byte(3, KS[4*ROUNDS+1]);
+      out[16*i+ 8] = static_cast<uint8_t>(X1[get_byte(0,t2)]   ) ^ get_byte(0, KS[4*ROUNDS+2]);
+      out[16*i+ 9] = static_cast<uint8_t>(X2[get_byte(1,t2)]>>8) ^ get_byte(1, KS[4*ROUNDS+2]);
+      out[16*i+10] = static_cast<uint8_t>(S1[get_byte(2,t2)]   ) ^ get_byte(2, KS[4*ROUNDS+2]);
+      out[16*i+11] = static_cast<uint8_t>(S2[get_byte(3,t2)]   ) ^ get_byte(3, KS[4*ROUNDS+2]);
+      out[16*i+12] = static_cast<uint8_t>(X1[get_byte(0,t3)]   ) ^ get_byte(0, KS[4*ROUNDS+3]);
+      out[16*i+13] = static_cast<uint8_t>(X2[get_byte(1,t3)]>>8) ^ get_byte(1, KS[4*ROUNDS+3]);
+      out[16*i+14] = static_cast<uint8_t>(S1[get_byte(2,t3)]   ) ^ get_byte(2, KS[4*ROUNDS+3]);
+      out[16*i+15] = static_cast<uint8_t>(S2[get_byte(3,t3)]   ) ^ get_byte(3, KS[4*ROUNDS+3]);
+      }
+   }
+
+// n-bit right shift of Y XORed to X
+template <unsigned int N>
+inline void ARIA_ROL128(const uint32_t X[4], const uint32_t Y[4], uint32_t KS[4])
+   {
+   // MSVC is not generating a "rotate immediate". Constify to help it along.
+   static const unsigned int Q = 4 - (N / 32);
+   static const unsigned int R = N % 32;
+   KS[0] = (X[0]) ^ ((Y[(Q  )%4])>>R) ^ ((Y[(Q+3)%4])<<(32-R));
+   KS[1] = (X[1]) ^ ((Y[(Q+1)%4])>>R) ^ ((Y[(Q  )%4])<<(32-R));
+   KS[2] = (X[2]) ^ ((Y[(Q+2)%4])>>R) ^ ((Y[(Q+1)%4])<<(32-R));
+   KS[3] = (X[3]) ^ ((Y[(Q+3)%4])>>R) ^ ((Y[(Q+2)%4])<<(32-R));
+   }
+
+/*
+* ARIA Key Schedule
+*/
+void key_schedule(secure_vector<uint32_t>& ERK,
+                  secure_vector<uint32_t>& DRK,
+                  const uint8_t key[], size_t length)
+   {
+   const uint32_t KRK[3][4] = {
+      {0x517cc1b7, 0x27220a94, 0xfe13abe8, 0xfa9a6ee0},
+      {0x6db14acc, 0x9e21c820, 0xff28b1d5, 0xef5de2b0},
+      {0xdb92371d, 0x2126e970, 0x03249775, 0x04e8c90e}
+   };
+
+   const size_t CK0 = (length / 8) - 2;
+   const size_t CK1 = (CK0 + 1) % 3;
+   const size_t CK2 = (CK1 + 1) % 3;
+
+   uint32_t w0[4];
+   uint32_t w1[4];
+   uint32_t w2[4];
+   uint32_t w3[4];
+
+   w0[0] = load_be<uint32_t>(key,0);
+   w0[1] = load_be<uint32_t>(key,1);
+   w0[2] = load_be<uint32_t>(key,2);
+   w0[3] = load_be<uint32_t>(key,3);
+
+   w1[0] = w0[0] ^ KRK[CK0][0];
+   w1[1] = w0[1] ^ KRK[CK0][1];
+   w1[2] = w0[2] ^ KRK[CK0][2];
+   w1[3] = w0[3] ^ KRK[CK0][3];
+
+   ARIA_FO(w1[0], w1[1], w1[2], w1[3]);
+
+   if(length == 24 || length == 32)
+      {
+      w1[0] ^= load_be<uint32_t>(key,4);
+      w1[1] ^= load_be<uint32_t>(key,5);
+      }
+   if(length == 32)
+      {
+      w1[2] ^= load_be<uint32_t>(key,6);
+      w1[3] ^= load_be<uint32_t>(key,7);
+      }
+
+   w2[0] = w1[0] ^ KRK[CK1][0];
+   w2[1] = w1[1] ^ KRK[CK1][1];
+   w2[2] = w1[2] ^ KRK[CK1][2];
+   w2[3] = w1[3] ^ KRK[CK1][3];
+
+   ARIA_FE(w2[0], w2[1], w2[2], w2[3]);
+
+   w2[0] ^= w0[0];
+   w2[1] ^= w0[1];
+   w2[2] ^= w0[2];
+   w2[3] ^= w0[3];
+
+   w3[0] = w2[0] ^ KRK[CK2][0];
+   w3[1] = w2[1] ^ KRK[CK2][1];
+   w3[2] = w2[2] ^ KRK[CK2][2];
+   w3[3] = w2[3] ^ KRK[CK2][3];
+
+   ARIA_FO(w3[0], w3[1], w3[2], w3[3]);
+
+   w3[0] ^= w1[0];
+   w3[1] ^= w1[1];
+   w3[2] ^= w1[2];
+   w3[3] ^= w1[3];
+
+   if(length == 16)
+      ERK.resize(4*13);
+   else if(length == 24)
+      ERK.resize(4*15);
+   else if(length == 32)
+      ERK.resize(4*17);
+
+   ARIA_ROL128<19>(w0, w1, &ERK[ 0]);
+   ARIA_ROL128<19>(w1, w2, &ERK[ 4]);
+   ARIA_ROL128<19>(w2, w3, &ERK[ 8]);
+   ARIA_ROL128<19>(w3, w0, &ERK[12]);
+   ARIA_ROL128<31>(w0, w1, &ERK[16]);
+   ARIA_ROL128<31>(w1, w2, &ERK[20]);
+   ARIA_ROL128<31>(w2, w3, &ERK[24]);
+   ARIA_ROL128<31>(w3, w0, &ERK[28]);
+   ARIA_ROL128<67>(w0, w1, &ERK[32]);
+   ARIA_ROL128<67>(w1, w2, &ERK[36]);
+   ARIA_ROL128<67>(w2, w3, &ERK[40]);
+   ARIA_ROL128<67>(w3, w0, &ERK[44]);
+   ARIA_ROL128<97>(w0, w1, &ERK[48]);
+
+   if(length == 24 || length == 32)
+      {
+      ARIA_ROL128<97>(w1, w2, &ERK[52]);
+      ARIA_ROL128<97>(w2, w3, &ERK[56]);
+
+      if(length == 32)
+         {
+         ARIA_ROL128< 97>(w3, w0, &ERK[60]);
+         ARIA_ROL128<109>(w0, w1, &ERK[64]);
+         }
+      }
+
+   // Now create the decryption key schedule
+   DRK.resize(ERK.size());
+
+   for(size_t i = 0; i != DRK.size(); i += 4)
+      {
+      DRK[i  ] = ERK[ERK.size()-4-i];
+      DRK[i+1] = ERK[ERK.size()-3-i];
+      DRK[i+2] = ERK[ERK.size()-2-i];
+      DRK[i+3] = ERK[ERK.size()-1-i];
+      }
+
+   for(size_t i = 4; i != DRK.size() - 4; i += 4)
+      {
+      for(size_t j = 0; j != 4; ++j)
+         {
+         DRK[i+j] = rotate_right(DRK[i+j], 8) ^
+                    rotate_right(DRK[i+j], 16) ^
+                    rotate_right(DRK[i+j], 24);
+         }
+
+      DRK[i+1] ^= DRK[i+2]; DRK[i+2] ^= DRK[i+3];
+      DRK[i+0] ^= DRK[i+1]; DRK[i+3] ^= DRK[i+1];
+      DRK[i+2] ^= DRK[i+0]; DRK[i+1] ^= DRK[i+2];
+
+      DRK[i+1] = ((DRK[i+1] << 8) & 0xFF00FF00) | ((DRK[i+1] >> 8) & 0x00FF00FF);
+      DRK[i+2] = rotate_right(DRK[i+2], 16);
+      DRK[i+3] = reverse_bytes(DRK[i+3]);
+
+      DRK[i+1] ^= DRK[i+2]; DRK[i+2] ^= DRK[i+3];
+      DRK[i+0] ^= DRK[i+1]; DRK[i+3] ^= DRK[i+1];
+      DRK[i+2] ^= DRK[i+0]; DRK[i+1] ^= DRK[i+2];
+      }
+   }
+
+}
+
+}
+
+void ARIA_128::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   ARIA_F::transform(in, out, blocks, m_ERK);
+   }
+
+void ARIA_192::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   ARIA_F::transform(in, out, blocks, m_ERK);
+   }
+
+void ARIA_256::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   ARIA_F::transform(in, out, blocks, m_ERK);
+   }
+
+void ARIA_128::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   ARIA_F::transform(in, out, blocks, m_DRK);
+   }
+
+void ARIA_192::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   ARIA_F::transform(in, out, blocks, m_DRK);
+   }
+
+void ARIA_256::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   ARIA_F::transform(in, out, blocks, m_DRK);
+   }
+
+void ARIA_128::key_schedule(const uint8_t key[], size_t length)
+   {
+   ARIA_F::key_schedule(m_ERK, m_DRK, key, length);
+   }
+
+void ARIA_192::key_schedule(const uint8_t key[], size_t length)
+   {
+   ARIA_F::key_schedule(m_ERK, m_DRK, key, length);
+   }
+
+void ARIA_256::key_schedule(const uint8_t key[], size_t length)
+   {
+   ARIA_F::key_schedule(m_ERK, m_DRK, key, length);
+   }
+
+void ARIA_128::clear()
+   {
+   zap(m_ERK);
+   zap(m_DRK);
+   }
+
+void ARIA_192::clear()
+   {
+   zap(m_ERK);
+   zap(m_DRK);
+   }
+
+void ARIA_256::clear()
+   {
+   zap(m_ERK);
+   zap(m_DRK);
    }
 
 }
@@ -1559,7 +2144,11 @@ void OID::encode_into(DER_Encoder& der) const
       throw Invalid_Argument("OID::encode_into: OID is invalid");
 
    std::vector<uint8_t> encoding;
-   encoding.push_back(40 * m_id[0] + m_id[1]);
+
+   if(m_id[0] > 2 || m_id[1] >= 40)
+      throw Encoding_Error("Invalid OID prefix, cannot encode");
+
+   encoding.push_back(static_cast<uint8_t>(40 * m_id[0] + m_id[1]));
 
    for(size_t i = 2; i != m_id.size(); ++i)
       {
@@ -1922,12 +2511,12 @@ void X509_Time::set_to(const std::string& t_spec, ASN1_Tag spec_tag)
 
    if(spec_tag == GENERALIZED_TIME)
       {
-      if(t_spec.size() != 13 && t_spec.size() != 15)
+      if(t_spec.size() != 15)
          throw Invalid_Argument("Invalid GeneralizedTime string: '" + t_spec + "'");
       }
    else if(spec_tag == UTC_TIME)
       {
-      if(t_spec.size() != 11 && t_spec.size() != 13)
+      if(t_spec.size() != 13)
          throw Invalid_Argument("Invalid UTCTime string: '" + t_spec + "'");
       }
 
@@ -2241,20 +2830,25 @@ BER_Object BER_Decoder::get_next_object()
       return next;
       }
 
-   decode_tag(m_source, next.type_tag, next.class_tag);
-   if(next.type_tag == NO_OBJECT)
-      return next;
+   for(;;)
+      {
+      decode_tag(m_source, next.type_tag, next.class_tag);
+      if(next.type_tag == NO_OBJECT)
+         return next;
 
-   const size_t length = decode_length(m_source);
-   if(!m_source->check_available(length))
-      throw BER_Decoding_Error("Value truncated");
+      const size_t length = decode_length(m_source);
+      if(!m_source->check_available(length))
+         throw BER_Decoding_Error("Value truncated");
 
-   next.value.resize(length);
-   if(m_source->read(next.value.data(), length) != length)
-      throw BER_Decoding_Error("Value truncated");
+      next.value.resize(length);
+      if(m_source->read(next.value.data(), length) != length)
+         throw BER_Decoding_Error("Value truncated");
 
-   if(next.type_tag == EOC && next.class_tag == UNIVERSAL)
-      return get_next_object();
+      if(next.type_tag == EOC && next.class_tag == UNIVERSAL)
+         continue;
+      else
+         break;
+      }
 
    return next;
    }
@@ -2307,7 +2901,6 @@ BER_Decoder& BER_Decoder::end_cons()
 BER_Decoder::BER_Decoder(DataSource& src)
    {
    m_source = &src;
-   m_owns = false;
    m_pushed.type_tag = m_pushed.class_tag = NO_OBJECT;
    m_parent = nullptr;
    }
@@ -2317,8 +2910,8 @@ BER_Decoder::BER_Decoder(DataSource& src)
  */
 BER_Decoder::BER_Decoder(const uint8_t data[], size_t length)
    {
-   m_source = new DataSource_Memory(data, length);
-   m_owns = true;
+   m_data_src.reset(new DataSource_Memory(data, length));
+   m_source = m_data_src.get();
    m_pushed.type_tag = m_pushed.class_tag = NO_OBJECT;
    m_parent = nullptr;
    }
@@ -2328,8 +2921,8 @@ BER_Decoder::BER_Decoder(const uint8_t data[], size_t length)
 */
 BER_Decoder::BER_Decoder(const secure_vector<uint8_t>& data)
    {
-   m_source = new DataSource_Memory(data);
-   m_owns = true;
+   m_data_src.reset(new DataSource_Memory(data));
+   m_source = m_data_src.get();
    m_pushed.type_tag = m_pushed.class_tag = NO_OBJECT;
    m_parent = nullptr;
    }
@@ -2339,8 +2932,8 @@ BER_Decoder::BER_Decoder(const secure_vector<uint8_t>& data)
 */
 BER_Decoder::BER_Decoder(const std::vector<uint8_t>& data)
    {
-   m_source = new DataSource_Memory(data.data(), data.size());
-   m_owns = true;
+   m_data_src.reset(new DataSource_Memory(data.data(), data.size()));
+   m_source = m_data_src.get();
    m_pushed.type_tag = m_pushed.class_tag = NO_OBJECT;
    m_parent = nullptr;
    }
@@ -2351,24 +2944,11 @@ BER_Decoder::BER_Decoder(const std::vector<uint8_t>& data)
 BER_Decoder::BER_Decoder(const BER_Decoder& other)
    {
    m_source = other.m_source;
-   m_owns = false;
-   if(other.m_owns)
-      {
-      other.m_owns = false;
-      m_owns = true;
-      }
+
+   // take ownership
+   std::swap(m_data_src, other.m_data_src);
    m_pushed.type_tag = m_pushed.class_tag = NO_OBJECT;
    m_parent = other.m_parent;
-   }
-
-/*
-* BER_Decoder Destructor
-*/
-BER_Decoder::~BER_Decoder()
-   {
-   if(m_owns)
-      delete m_source;
-   m_source = nullptr;
    }
 
 /*
@@ -2562,7 +3142,9 @@ BER_Decoder& BER_Decoder::decode(secure_vector<uint8_t>& buffer,
          throw BER_Decoding_Error("Bad number of unused bits in BIT STRING");
 
       buffer.resize(obj.value.size() - 1);
-      copy_mem(buffer.data(), &obj.value[1], obj.value.size() - 1);
+
+      if(obj.value.size() > 1)
+         copy_mem(buffer.data(), &obj.value[1], obj.value.size() - 1);
       }
    return (*this);
    }
@@ -2587,7 +3169,9 @@ BER_Decoder& BER_Decoder::decode(std::vector<uint8_t>& buffer,
          throw BER_Decoding_Error("Bad number of unused bits in BIT STRING");
 
       buffer.resize(obj.value.size() - 1);
-      copy_mem(buffer.data(), &obj.value[1], obj.value.size() - 1);
+
+      if(obj.value.size() > 1)
+         copy_mem(buffer.data(), &obj.value[1], obj.value.size() - 1);
       }
    return (*this);
    }
@@ -2624,7 +3208,7 @@ secure_vector<uint8_t> encode_tag(ASN1_Tag type_tag, ASN1_Tag class_tag)
 
       BOTAN_ASSERT(blocks > 0, "Math works");
 
-      encoded_tag.push_back(class_tag | 0x1F);
+      encoded_tag.push_back(static_cast<uint8_t>(class_tag | 0x1F));
       for(size_t i = 0; i != blocks - 1; ++i)
          encoded_tag.push_back(0x80 | ((type_tag >> 7*(blocks-i-1)) & 0x7F));
       encoded_tag.push_back(type_tag & 0x7F);
@@ -3001,7 +3585,7 @@ DER_Encoder& DER_Encoder::add_object(ASN1_Tag type_tag,
 /*
 * OID maps
 *
-* This file was automatically generated by ./src/scripts/oids.py on 2016-11-21
+* This file was automatically generated by ./src/scripts/oids.py on 2017-07-05
 *
 * All manual edits to this file will be lost. Edit the script
 * then regenerate this source file.
@@ -3018,6 +3602,12 @@ std::string lookup(const OID& oid)
    {
    const std::string oid_str = oid.as_string();
    if(oid_str == "1.0.14888.3.0.5") return "ECKCDSA";
+   if(oid_str == "1.2.156.10197.1.301") return "sm2p256v1";
+   if(oid_str == "1.2.156.10197.1.301.1") return "SM2_Sig";
+   if(oid_str == "1.2.156.10197.1.301.2") return "SM2_Kex";
+   if(oid_str == "1.2.156.10197.1.301.3") return "SM2_Enc";
+   if(oid_str == "1.2.156.10197.1.401") return "SM3";
+   if(oid_str == "1.2.156.10197.1.504") return "RSA/EMSA3(SM3)";
    if(oid_str == "1.2.250.1.223.101.256.1") return "frp256v1";
    if(oid_str == "1.2.410.200004.1.100.4.3") return "ECKCDSA/EMSA1(SHA-1)";
    if(oid_str == "1.2.410.200004.1.100.4.4") return "ECKCDSA/EMSA1(SHA-224)";
@@ -3027,6 +3617,8 @@ std::string lookup(const OID& oid)
    if(oid_str == "1.2.643.2.2.3") return "GOST-34.10/EMSA1(GOST-R-34.11-94)";
    if(oid_str == "1.2.643.2.2.35.1") return "gost_256A";
    if(oid_str == "1.2.643.2.2.36.0") return "gost_256A";
+   if(oid_str == "1.2.643.7.1.1.2.2") return "Streebog-256";
+   if(oid_str == "1.2.643.7.1.1.2.3") return "Streebog-512";
    if(oid_str == "1.2.840.10040.4.1") return "DSA";
    if(oid_str == "1.2.840.10040.4.3") return "DSA/EMSA1(SHA-160)";
    if(oid_str == "1.2.840.10045.2.1") return "ECDSA";
@@ -3070,6 +3662,8 @@ std::string lookup(const OID& oid)
    if(oid_str == "1.2.840.113549.2.9") return "HMAC(SHA-256)";
    if(oid_str == "1.2.840.113549.3.2") return "RC2/CBC";
    if(oid_str == "1.2.840.113549.3.7") return "TripleDES/CBC";
+   if(oid_str == "1.3.101.110") return "Curve25519";
+   if(oid_str == "1.3.101.112") return "Ed25519";
    if(oid_str == "1.3.132.0.10") return "secp256k1";
    if(oid_str == "1.3.132.0.30") return "secp160r2";
    if(oid_str == "1.3.132.0.31") return "secp192k1";
@@ -3099,7 +3693,6 @@ std::string lookup(const OID& oid)
    if(oid_str == "1.3.36.3.3.2.8.1.1.9") return "brainpool320r1";
    if(oid_str == "1.3.6.1.4.1.11591.12.2") return "Tiger(24,3)";
    if(oid_str == "1.3.6.1.4.1.25258.1.3") return "McEliece";
-   if(oid_str == "1.3.6.1.4.1.25258.1.4") return "Curve25519";
    if(oid_str == "1.3.6.1.4.1.25258.1.5") return "XMSS";
    if(oid_str == "1.3.6.1.4.1.25258.1.6.1") return "GOST-34.10/EMSA1(SHA-256)";
    if(oid_str == "1.3.6.1.4.1.25258.3.1") return "Serpent/CBC";
@@ -3222,7 +3815,7 @@ OID lookup(const std::string& name)
    if(name == "AES-256/OCB") return OID("1.3.6.1.4.1.25258.3.2.3");
    if(name == "CAST-128/CBC") return OID("1.2.840.113533.7.66.10");
    if(name == "Compression.Zlib") return OID("1.2.840.113549.1.9.16.3.8");
-   if(name == "Curve25519") return OID("1.3.6.1.4.1.25258.1.4");
+   if(name == "Curve25519") return OID("1.3.101.110");
    if(name == "DES/CBC") return OID("1.3.14.3.2.7");
    if(name == "DH") return OID("1.2.840.10046.2.1");
    if(name == "DSA") return OID("1.2.840.10040.4.1");
@@ -3257,6 +3850,7 @@ OID lookup(const std::string& name)
    if(name == "ECKCDSA/EMSA1(SHA-1)") return OID("1.2.410.200004.1.100.4.3");
    if(name == "ECKCDSA/EMSA1(SHA-224)") return OID("1.2.410.200004.1.100.4.4");
    if(name == "ECKCDSA/EMSA1(SHA-256)") return OID("1.2.410.200004.1.100.4.5");
+   if(name == "Ed25519") return OID("1.3.101.112");
    if(name == "ElGamal") return OID("1.3.6.1.4.1.3029.1.2.1");
    if(name == "GOST-34.10") return OID("1.2.643.2.2.19");
    if(name == "GOST-34.10/EMSA1(GOST-R-34.11-94)") return OID("1.2.643.2.2.3");
@@ -3308,6 +3902,7 @@ OID lookup(const std::string& name)
    if(name == "RSA/EMSA3(SHA-3(512))") return OID("2.16.840.1.101.3.4.3.16");
    if(name == "RSA/EMSA3(SHA-384)") return OID("1.2.840.113549.1.1.12");
    if(name == "RSA/EMSA3(SHA-512)") return OID("1.2.840.113549.1.1.13");
+   if(name == "RSA/EMSA3(SM3)") return OID("1.2.156.10197.1.504");
    if(name == "SEED/CBC") return OID("1.2.410.200004.1.4");
    if(name == "SHA-160") return OID("1.3.14.3.2.26");
    if(name == "SHA-224") return OID("2.16.840.1.101.3.4.2.4");
@@ -3321,9 +3916,15 @@ OID lookup(const std::string& name)
    if(name == "SHA-512-256") return OID("2.16.840.1.101.3.4.2.6");
    if(name == "SHAKE-128") return OID("2.16.840.1.101.3.4.2.11");
    if(name == "SHAKE-256") return OID("2.16.840.1.101.3.4.2.12");
+   if(name == "SM2_Enc") return OID("1.2.156.10197.1.301.3");
+   if(name == "SM2_Kex") return OID("1.2.156.10197.1.301.2");
+   if(name == "SM2_Sig") return OID("1.2.156.10197.1.301.1");
+   if(name == "SM3") return OID("1.2.156.10197.1.401");
    if(name == "Serpent/CBC") return OID("1.3.6.1.4.1.25258.3.1");
    if(name == "Serpent/GCM") return OID("1.3.6.1.4.1.25258.3.101");
    if(name == "Serpent/OCB") return OID("1.3.6.1.4.1.25258.3.2.4");
+   if(name == "Streebog-256") return OID("1.2.643.7.1.1.2.2");
+   if(name == "Streebog-512") return OID("1.2.643.7.1.1.2.3");
    if(name == "Threefish-512/CBC") return OID("1.3.6.1.4.1.25258.3.2");
    if(name == "Tiger(24,3)") return OID("1.3.6.1.4.1.11591.12.2");
    if(name == "TripleDES/CBC") return OID("1.2.840.113549.3.7");
@@ -3381,6 +3982,7 @@ OID lookup(const std::string& name)
    if(name == "secp256r1") return OID("1.2.840.10045.3.1.7");
    if(name == "secp384r1") return OID("1.3.132.0.34");
    if(name == "secp521r1") return OID("1.3.132.0.35");
+   if(name == "sm2p256v1") return OID("1.2.156.10197.1.301");
    if(name == "x962_p192v2") return OID("1.2.840.10045.3.1.2");
    if(name == "x962_p192v3") return OID("1.2.840.10045.3.1.3");
    if(name == "x962_p239v1") return OID("1.2.840.10045.3.1.4");
@@ -3662,7 +4264,6 @@ void X509_DN::decode_from(BER_Decoder& source)
          rdn.start_cons(SEQUENCE)
             .decode(oid)
             .decode(str)
-            .verify_end()
         .end_cons();
 
          add_attribute(oid, str.value());
@@ -4239,7 +4840,7 @@ size_t base64_encode(char out[],
 std::string base64_encode(const uint8_t input[],
                           size_t input_length)
    {
-   const size_t output_length = (round_up(input_length, 3) / 3) * 4;
+   const size_t output_length = base64_encode_max_output(input_length);
    std::string output(output_length, 0);
 
    size_t consumed = 0;
@@ -4391,7 +4992,7 @@ secure_vector<uint8_t> base64_decode(const char input[],
                                  size_t input_length,
                                  bool ignore_ws)
    {
-   const size_t output_length = (round_up(input_length, 4) * 3) / 4;
+   const size_t output_length = base64_decode_max_output(input_length);
    secure_vector<uint8_t> bin(output_length);
 
    size_t written = base64_decode(bin.data(),
@@ -4409,6 +5010,15 @@ secure_vector<uint8_t> base64_decode(const std::string& input,
    return base64_decode(input.data(), input.size(), ignore_ws);
    }
 
+size_t base64_encode_max_output(size_t input_length)
+   {
+   return (round_up(input_length, 3) / 3) * 4;
+   }
+
+size_t base64_decode_max_output(size_t input_length)
+   {
+   return (round_up(input_length, 4) * 3) / 4;
+   }
 
 }
 /*
@@ -4499,13 +5109,11 @@ std::string make_bcrypt(const std::string& pass,
                         const std::vector<uint8_t>& salt,
                         uint16_t work_factor)
    {
-   auto magic = std::vector<uint8_t>{
+   static const uint8_t BCRYPT_MAGIC[8*3] = {
       0x4F, 0x72, 0x70, 0x68, 0x65, 0x61, 0x6E, 0x42,
       0x65, 0x68, 0x6F, 0x6C, 0x64, 0x65, 0x72, 0x53,
       0x63, 0x72, 0x79, 0x44, 0x6F, 0x75, 0x62, 0x74
    };
-
-   std::vector<uint8_t> ctext = magic;
 
    Blowfish blowfish;
 
@@ -4514,6 +5122,8 @@ std::string make_bcrypt(const std::string& pass,
                              pass.length() + 1,
                              salt.data(),
                              work_factor);
+
+   std::vector<uint8_t> ctext(BCRYPT_MAGIC, BCRYPT_MAGIC + 8*3);
 
    for(size_t i = 0; i != 64; ++i)
       blowfish.encrypt_n(ctext.data(), ctext.data(), 3);
@@ -4547,7 +5157,7 @@ bool check_bcrypt(const std::string& pass, const std::string& hash)
       return false;
       }
 
-   const uint16_t workfactor = to_u32bit(hash.substr(4, 2));
+   const uint16_t workfactor = to_uint16(hash.substr(4, 2));
 
    const std::vector<uint8_t> salt = bcrypt_base64_decode(hash.substr(7, 22));
    if(salt.size() != 16)
@@ -4728,7 +5338,6 @@ BigInt BigInt::decode(const uint8_t buf[], size_t length, Base base)
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#include <iostream>
 
 namespace Botan {
 
@@ -5524,6 +6133,34 @@ void BigInt::binary_decode(const uint8_t buf[], size_t length)
       m_reg[length / WORD_BYTES] = (m_reg[length / WORD_BYTES] << 8) | buf[i];
    }
 
+void BigInt::shrink_to_fit()
+   {
+   m_reg.resize(sig_words());
+   }
+
+void BigInt::const_time_lookup(secure_vector<word>& output,
+                               const std::vector<BigInt>& vec,
+                               size_t idx)
+   {
+   const size_t words = output.size();
+
+   clear_mem(output.data(), output.size());
+
+   CT::poison(&idx, sizeof(idx));
+
+   for(size_t i = 0; i != vec.size(); ++i)
+      {
+      BOTAN_ASSERT(vec[i].size() >= words,
+                   "Word size as expected in const_time_lookup");
+
+      for(size_t w = 0; w != words; ++w)
+         output[w] |= CT::select<word>(CT::is_equal(i, idx), vec[i].word_at(w), 0);
+      }
+
+   CT::unpoison(idx);
+   CT::unpoison(output.data(), output.size());
+   }
+
 }
 /*
 * Division Algorithm
@@ -5866,6 +6503,11 @@ HashFunction* Blake2b::clone() const
    return new Blake2b(m_output_bits);
    }
 
+std::unique_ptr<HashFunction> Blake2b::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new Blake2b(*this));
+   }
+
 void Blake2b::clear()
    {
    zeroise(m_H);
@@ -5884,6 +6526,9 @@ void Blake2b::clear()
 
 
 #if defined(BOTAN_HAS_AES)
+#endif
+
+#if defined(BOTAN_HAS_ARIA)
 #endif
 
 #if defined(BOTAN_HAS_BLOWFISH)
@@ -5923,6 +6568,12 @@ void Blake2b::clear()
 #endif
 
 #if defined(BOTAN_HAS_SERPENT)
+#endif
+
+#if defined(BOTAN_HAS_SHACAL2)
+#endif
+
+#if defined(BOTAN_HAS_SM4)
 #endif
 
 #if defined(BOTAN_HAS_TWOFISH)
@@ -5979,10 +6630,34 @@ BlockCipher::create(const std::string& algo,
       }
 #endif
 
+#if defined(BOTAN_HAS_ARIA)
+   if(algo == "ARIA-128")
+      {
+      return std::unique_ptr<BlockCipher>(new ARIA_128);
+      }
+
+   if(algo == "ARIA-192")
+      {
+      return std::unique_ptr<BlockCipher>(new ARIA_192);
+      }
+
+   if(algo == "ARIA-256")
+      {
+      return std::unique_ptr<BlockCipher>(new ARIA_256);
+      }
+#endif
+
 #if defined(BOTAN_HAS_SERPENT)
    if(algo == "Serpent")
       {
       return std::unique_ptr<BlockCipher>(new Serpent);
+      }
+#endif
+
+#if defined(BOTAN_HAS_SHACAL2)
+   if(algo == "SHACAL2")
+      {
+      return std::unique_ptr<BlockCipher>(new SHACAL2);
       }
 #endif
 
@@ -6088,6 +6763,13 @@ BlockCipher::create(const std::string& algo,
       }
 #endif
 
+#if defined(BOTAN_HAS_SM4)
+   if(algo == "SM4")
+      {
+      return std::unique_ptr<BlockCipher>(new SM4);
+      }
+#endif
+
 #if defined(BOTAN_HAS_XTEA)
    if(algo == "XTEA")
       {
@@ -6128,6 +6810,9 @@ BlockCipher::create(const std::string& algo,
          }
       }
 #endif
+
+   BOTAN_UNUSED(req);
+   BOTAN_UNUSED(provider);
 
    return nullptr;
    }
@@ -6441,27 +7126,31 @@ void Blowfish::key_expansion(const uint8_t key[],
 void Blowfish::eks_key_schedule(const uint8_t key[], size_t length,
                                 const uint8_t salt[16], size_t workfactor)
    {
-   // Truncate longer passwords to the 56 byte limit Blowfish enforces
-   length = std::min<size_t>(length, 55);
-
-   if(workfactor == 0)
-      throw Invalid_Argument("Bcrypt work factor must be at least 1");
 
    /*
    * On a 2.8 GHz Core-i7, workfactor == 18 takes about 25 seconds to
    * hash a password. This seems like a reasonable upper bound for the
    * time being.
+   * Bcrypt allows up to work factor 31 (2^31 iterations)
    */
    if(workfactor > 18)
       throw Invalid_Argument("Requested Bcrypt work factor " +
-                                  std::to_string(workfactor) + " too large");
+                             std::to_string(workfactor) + " too large");
+
+   if(workfactor < 4)
+      throw Invalid_Argument("Bcrypt requires work factor at least 4");
+
+   if(length > 72)
+      {
+      // Truncate longer passwords to the 72 char bcrypt limit
+      length = 72;
+      }
 
    m_P.resize(18);
    copy_mem(m_P.data(), P_INIT, 18);
 
    m_S.resize(1024);
    copy_mem(m_S.data(), S_INIT, 1024);
-
    key_expansion(key, length, salt);
 
    const uint8_t null_salt[16] = { 0 };
@@ -7538,31 +8227,31 @@ namespace {
 /*
 * CAST-128 Round Type 1
 */
-inline void R1(uint32_t& L, uint32_t R, uint32_t MK, uint8_t RK)
+inline uint32_t R1(uint32_t R, uint32_t MK, uint8_t RK)
    {
    uint32_t T = rotate_left(MK + R, RK);
-   L ^= (CAST_SBOX1[get_byte(0, T)] ^ CAST_SBOX2[get_byte(1, T)]) -
-         CAST_SBOX3[get_byte(2, T)] + CAST_SBOX4[get_byte(3, T)];
+   return (CAST_SBOX1[get_byte(0, T)] ^ CAST_SBOX2[get_byte(1, T)]) -
+           CAST_SBOX3[get_byte(2, T)] + CAST_SBOX4[get_byte(3, T)];
    }
 
 /*
 * CAST-128 Round Type 2
 */
-inline void R2(uint32_t& L, uint32_t R, uint32_t MK, uint8_t RK)
+inline uint32_t R2(uint32_t R, uint32_t MK, uint8_t RK)
    {
    uint32_t T = rotate_left(MK ^ R, RK);
-   L ^= (CAST_SBOX1[get_byte(0, T)]  - CAST_SBOX2[get_byte(1, T)] +
-         CAST_SBOX3[get_byte(2, T)]) ^ CAST_SBOX4[get_byte(3, T)];
+   return (CAST_SBOX1[get_byte(0, T)]  - CAST_SBOX2[get_byte(1, T)] +
+           CAST_SBOX3[get_byte(2, T)]) ^ CAST_SBOX4[get_byte(3, T)];
    }
 
 /*
 * CAST-128 Round Type 3
 */
-inline void R3(uint32_t& L, uint32_t R, uint32_t MK, uint8_t RK)
+inline uint32_t R3(uint32_t R, uint32_t MK, uint8_t RK)
    {
    uint32_t T = rotate_left(MK - R, RK);
-   L ^= ((CAST_SBOX1[get_byte(0, T)]  + CAST_SBOX2[get_byte(1, T)]) ^
-          CAST_SBOX3[get_byte(2, T)]) - CAST_SBOX4[get_byte(3, T)];
+   return ((CAST_SBOX1[get_byte(0, T)]  + CAST_SBOX2[get_byte(1, T)]) ^
+            CAST_SBOX3[get_byte(2, T)]) - CAST_SBOX4[get_byte(3, T)];
    }
 
 }
@@ -7577,22 +8266,22 @@ void CAST_128::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
       uint32_t L, R;
       load_be(in + BLOCK_SIZE*i, L, R);
 
-      R1(L, R, m_MK[ 0], m_RK[ 0]);
-      R2(R, L, m_MK[ 1], m_RK[ 1]);
-      R3(L, R, m_MK[ 2], m_RK[ 2]);
-      R1(R, L, m_MK[ 3], m_RK[ 3]);
-      R2(L, R, m_MK[ 4], m_RK[ 4]);
-      R3(R, L, m_MK[ 5], m_RK[ 5]);
-      R1(L, R, m_MK[ 6], m_RK[ 6]);
-      R2(R, L, m_MK[ 7], m_RK[ 7]);
-      R3(L, R, m_MK[ 8], m_RK[ 8]);
-      R1(R, L, m_MK[ 9], m_RK[ 9]);
-      R2(L, R, m_MK[10], m_RK[10]);
-      R3(R, L, m_MK[11], m_RK[11]);
-      R1(L, R, m_MK[12], m_RK[12]);
-      R2(R, L, m_MK[13], m_RK[13]);
-      R3(L, R, m_MK[14], m_RK[14]);
-      R1(R, L, m_MK[15], m_RK[15]);
+      L ^= R1(R, m_MK[ 0], m_RK[ 0]);
+      R ^= R2(L, m_MK[ 1], m_RK[ 1]);
+      L ^= R3(R, m_MK[ 2], m_RK[ 2]);
+      R ^= R1(L, m_MK[ 3], m_RK[ 3]);
+      L ^= R2(R, m_MK[ 4], m_RK[ 4]);
+      R ^= R3(L, m_MK[ 5], m_RK[ 5]);
+      L ^= R1(R, m_MK[ 6], m_RK[ 6]);
+      R ^= R2(L, m_MK[ 7], m_RK[ 7]);
+      L ^= R3(R, m_MK[ 8], m_RK[ 8]);
+      R ^= R1(L, m_MK[ 9], m_RK[ 9]);
+      L ^= R2(R, m_MK[10], m_RK[10]);
+      R ^= R3(L, m_MK[11], m_RK[11]);
+      L ^= R1(R, m_MK[12], m_RK[12]);
+      R ^= R2(L, m_MK[13], m_RK[13]);
+      L ^= R3(R, m_MK[14], m_RK[14]);
+      R ^= R1(L, m_MK[15], m_RK[15]);
 
       store_be(out + BLOCK_SIZE*i, R, L);
       }
@@ -7608,22 +8297,22 @@ void CAST_128::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
       uint32_t L, R;
       load_be(in + BLOCK_SIZE*i, L, R);
 
-      R1(L, R, m_MK[15], m_RK[15]);
-      R3(R, L, m_MK[14], m_RK[14]);
-      R2(L, R, m_MK[13], m_RK[13]);
-      R1(R, L, m_MK[12], m_RK[12]);
-      R3(L, R, m_MK[11], m_RK[11]);
-      R2(R, L, m_MK[10], m_RK[10]);
-      R1(L, R, m_MK[ 9], m_RK[ 9]);
-      R3(R, L, m_MK[ 8], m_RK[ 8]);
-      R2(L, R, m_MK[ 7], m_RK[ 7]);
-      R1(R, L, m_MK[ 6], m_RK[ 6]);
-      R3(L, R, m_MK[ 5], m_RK[ 5]);
-      R2(R, L, m_MK[ 4], m_RK[ 4]);
-      R1(L, R, m_MK[ 3], m_RK[ 3]);
-      R3(R, L, m_MK[ 2], m_RK[ 2]);
-      R2(L, R, m_MK[ 1], m_RK[ 1]);
-      R1(R, L, m_MK[ 0], m_RK[ 0]);
+      L ^= R1(R, m_MK[15], m_RK[15]);
+      R ^= R3(L, m_MK[14], m_RK[14]);
+      L ^= R2(R, m_MK[13], m_RK[13]);
+      R ^= R1(L, m_MK[12], m_RK[12]);
+      L ^= R3(R, m_MK[11], m_RK[11]);
+      R ^= R2(L, m_MK[10], m_RK[10]);
+      L ^= R1(R, m_MK[ 9], m_RK[ 9]);
+      R ^= R3(L, m_MK[ 8], m_RK[ 8]);
+      L ^= R2(R, m_MK[ 7], m_RK[ 7]);
+      R ^= R1(L, m_MK[ 6], m_RK[ 6]);
+      L ^= R3(R, m_MK[ 5], m_RK[ 5]);
+      R ^= R2(L, m_MK[ 4], m_RK[ 4]);
+      L ^= R1(R, m_MK[ 3], m_RK[ 3]);
+      R ^= R3(L, m_MK[ 2], m_RK[ 2]);
+      L ^= R2(R, m_MK[ 1], m_RK[ 1]);
+      R ^= R1(L, m_MK[ 0], m_RK[ 0]);
 
       store_be(out + BLOCK_SIZE*i, R, L);
       }
@@ -7845,7 +8534,11 @@ void CAST_128::cast_ks(secure_vector<uint32_t>& K,
    class ByteReader
       {
       public:
-         uint8_t operator()(size_t i) { return (m_X[i/4] >> (8*(3 - (i%4)))); }
+         uint8_t operator()(size_t i) const
+            {
+            return static_cast<uint8_t>(m_X[i/4] >> (8*(3 - (i%4))));
+            }
+
          explicit ByteReader(const uint32_t* x) : m_X(x) {}
       private:
          const uint32_t* m_X;
@@ -8115,7 +8808,7 @@ void CAST_256::clear()
 }
 /*
 * CBC Mode
-* (C) 1999-2007,2013 Jack Lloyd
+* (C) 1999-2007,2013,2017 Jack Lloyd
 * (C) 2016 Daniel Neus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -8166,12 +8859,12 @@ Key_Length_Specification CBC_Mode::key_spec() const
 
 size_t CBC_Mode::default_nonce_length() const
    {
-   return cipher().block_size();
+   return block_size();
    }
 
 bool CBC_Mode::valid_nonce_length(size_t n) const
    {
-   return (n == 0 || n == cipher().block_size());
+   return (n == 0 || n == block_size());
    }
 
 void CBC_Mode::key_schedule(const uint8_t key[], size_t length)
@@ -8201,27 +8894,27 @@ size_t CBC_Encryption::minimum_final_size() const
 size_t CBC_Encryption::output_length(size_t input_length) const
    {
    if(input_length == 0)
-      return cipher().block_size();
+      return block_size();
    else
-      return round_up(input_length, cipher().block_size());
+      return round_up(input_length, block_size());
    }
 
 size_t CBC_Encryption::process(uint8_t buf[], size_t sz)
    {
-   const size_t BS = cipher().block_size();
+   const size_t BS = block_size();
 
    BOTAN_ASSERT(sz % BS == 0, "CBC input is full blocks");
    const size_t blocks = sz / BS;
 
-   const uint8_t* prev_block = state_ptr();
-
-   if(blocks)
+   if(blocks > 0)
       {
-      for(size_t i = 0; i != blocks; ++i)
+      xor_buf(&buf[0], state_ptr(), BS);
+      cipher().encrypt(&buf[0]);
+
+      for(size_t i = 1; i != blocks; ++i)
          {
-         xor_buf(&buf[BS*i], prev_block, BS);
+         xor_buf(&buf[BS*i], &buf[BS*(i-1)], BS);
          cipher().encrypt(&buf[BS*i]);
-         prev_block = &buf[BS*i];
          }
 
       state().assign(&buf[BS*(blocks-1)], &buf[BS*blocks]);
@@ -8234,7 +8927,7 @@ void CBC_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    {
    BOTAN_ASSERT(buffer.size() >= offset, "Offset is sane");
 
-   const size_t BS = cipher().block_size();
+   const size_t BS = block_size();
 
    const size_t bytes_in_final_block = (buffer.size()-offset) % BS;
 
@@ -8248,12 +8941,12 @@ void CBC_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
 bool CTS_Encryption::valid_nonce_length(size_t n) const
    {
-   return (n == cipher().block_size());
+   return (n == block_size());
    }
 
 size_t CTS_Encryption::minimum_final_size() const
    {
-   return cipher().block_size() + 1;
+   return block_size() + 1;
    }
 
 size_t CTS_Encryption::output_length(size_t input_length) const
@@ -8267,7 +8960,7 @@ void CTS_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    uint8_t* buf = buffer.data() + offset;
    const size_t sz = buffer.size() - offset;
 
-   const size_t BS = cipher().block_size();
+   const size_t BS = block_size();
 
    if(sz < BS + 1)
       throw Encoding_Error(name() + ": insufficient data to encrypt");
@@ -8312,12 +9005,12 @@ size_t CBC_Decryption::output_length(size_t input_length) const
 
 size_t CBC_Decryption::minimum_final_size() const
    {
-   return cipher().block_size();
+   return block_size();
    }
 
 size_t CBC_Decryption::process(uint8_t buf[], size_t sz)
    {
-   const size_t BS = cipher().block_size();
+   const size_t BS = block_size();
 
    BOTAN_ASSERT(sz % BS == 0, "Input is full blocks");
    size_t blocks = sz / BS;
@@ -8346,7 +9039,7 @@ void CBC_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    BOTAN_ASSERT(buffer.size() >= offset, "Offset is sane");
    const size_t sz = buffer.size() - offset;
 
-   const size_t BS = cipher().block_size();
+   const size_t BS = block_size();
 
    if(sz == 0 || sz % BS)
       throw Decoding_Error(name() + ": Ciphertext not a multiple of block size");
@@ -8369,12 +9062,12 @@ void CBC_Decryption::reset()
 
 bool CTS_Decryption::valid_nonce_length(size_t n) const
    {
-   return (n == cipher().block_size());
+   return (n == block_size());
    }
 
 size_t CTS_Decryption::minimum_final_size() const
    {
-   return cipher().block_size() + 1;
+   return block_size() + 1;
    }
 
 void CTS_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
@@ -8383,7 +9076,7 @@ void CTS_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    const size_t sz = buffer.size() - offset;
    uint8_t* buf = buffer.data() + offset;
 
-   const size_t BS = cipher().block_size();
+   const size_t BS = block_size();
 
    if(sz < BS + 1)
       throw Encoding_Error(name() + ": insufficient data to decrypt");
@@ -8651,7 +9344,8 @@ secure_vector<uint8_t> CCM_Mode::format_b0(size_t sz)
    {
    secure_vector<uint8_t> B0(CCM_BS);
 
-   const uint8_t b_flags = (m_ad_buf.size() ? 64 : 0) + (((tag_size()/2)-1) << 3) + (L()-1);
+   const uint8_t b_flags =
+      static_cast<uint8_t>((m_ad_buf.size() ? 64 : 0) + (((tag_size()/2)-1) << 3) + (L()-1));
 
    B0[0] = b_flags;
    copy_mem(&B0[1], m_nonce.data(), m_nonce.size());
@@ -8664,7 +9358,7 @@ secure_vector<uint8_t> CCM_Mode::format_c0()
    {
    secure_vector<uint8_t> C(CCM_BS);
 
-   const uint8_t a_flags = L()-1;
+   const uint8_t a_flags = static_cast<uint8_t>(L() - 1);
 
    C[0] = a_flags;
    copy_mem(&C[1], m_nonce.data(), m_nonce.size());
@@ -8774,7 +9468,7 @@ void CCM_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
    T ^= S0;
 
-   if(!same_mem(T.data(), buf_end, tag_size()))
+   if(!constant_time_compare(T.data(), buf_end, tag_size()))
       throw Integrity_Failure("CCM tag check failed");
 
    buffer.resize(buffer.size() - tag_size());
@@ -8903,8 +9597,13 @@ Certificate_Store_In_SQL::find_cert(const X509_DN& subject_dn, const std::vector
 std::shared_ptr<const X509_Certificate>
 Certificate_Store_In_SQL::find_cert_by_pubkey_sha1(const std::vector<uint8_t>& /*key_hash*/) const
    {
-   // TODO!
-   return nullptr;
+   throw Not_Implemented("TODO!");
+   }
+
+std::shared_ptr<const X509_Certificate>
+Certificate_Store_In_SQL::find_cert_by_raw_subject_dn_sha256(const std::vector<uint8_t>& /*subject_hash*/) const
+   {
+   throw Not_Implemented("TODO!");
    }
 
 std::shared_ptr<const X509_CRL>
@@ -9130,7 +9829,7 @@ std::vector<X509_CRL> Certificate_Store_In_SQL::generate_crls() const
 }
 /*
 * CFB Mode
-* (C) 1999-2007,2013 Jack Lloyd
+* (C) 1999-2007,2013,2017 Jack Lloyd
 * (C) 2016 Daniel Neus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -9156,8 +9855,8 @@ void CFB_Mode::clear()
 
 void CFB_Mode::reset()
    {
-   m_shift_register.clear();
-   m_keystream_buf.clear();
+   m_state.clear();
+   m_keystream.clear();
    }
 
 std::string CFB_Mode::name() const
@@ -9195,7 +9894,7 @@ size_t CFB_Mode::default_nonce_length() const
 
 bool CFB_Mode::valid_nonce_length(size_t n) const
    {
-   return (n == cipher().block_size());
+   return (n == 0 || n == cipher().block_size());
    }
 
 void CFB_Mode::key_schedule(const uint8_t key[], size_t length)
@@ -9208,35 +9907,48 @@ void CFB_Mode::start_msg(const uint8_t nonce[], size_t nonce_len)
    if(!valid_nonce_length(nonce_len))
       throw Invalid_IV_Length(name(), nonce_len);
 
-   m_shift_register.assign(nonce, nonce + nonce_len);
-   m_keystream_buf.resize(m_shift_register.size());
-   cipher().encrypt(m_shift_register, m_keystream_buf);
+   if(nonce_len == 0)
+      {
+      if(m_state.empty())
+         {
+         throw Invalid_State("CFB requires a non-empty initial nonce");
+         }
+      // No reason to encrypt state->keystream_buf, because no change
+      }
+   else
+      {
+      m_state.assign(nonce, nonce + nonce_len);
+      m_keystream.resize(m_state.size());
+      cipher().encrypt(m_state, m_keystream);
+      m_keystream_pos = 0;
+      }
    }
 
 size_t CFB_Encryption::process(uint8_t buf[], size_t sz)
    {
    const size_t BS = cipher().block_size();
 
-   secure_vector<uint8_t>& state = shift_register();
    const size_t shift = feedback();
-   size_t left = sz;
+   const size_t carryover = BS - shift;
 
-   while(left)
+   for(size_t i = 0; i != sz; ++i)
       {
-      const size_t took = std::min(shift, left);
-      xor_buf(buf, &keystream_buf()[0], took);
+      buf[i] = (m_keystream[m_keystream_pos] ^= buf[i]);
 
-      // Assumes feedback-sized block except for last input
-      if (BS - shift > 0)
+      m_keystream_pos++;
+
+      if(m_keystream_pos == shift)
          {
-         copy_mem(state.data(), &state[shift], BS - shift);
+         if(carryover > 0)
+            {
+            copy_mem(m_state.data(), &m_state[shift], carryover);
+            }
+         copy_mem(&m_state[carryover], m_keystream.data(), shift);
+         cipher().encrypt(m_state, m_keystream);
+         m_keystream_pos = 0;
          }
-      copy_mem(&state[BS-shift], buf, took);
-      cipher().encrypt(state, keystream_buf());
-
-      buf += took;
-      left -= took;
       }
+
    return sz;
    }
 
@@ -9248,31 +9960,29 @@ void CFB_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 size_t CFB_Decryption::process(uint8_t buf[], size_t sz)
    {
    const size_t BS = cipher().block_size();
-
-   secure_vector<uint8_t>& state = shift_register();
    const size_t shift = feedback();
-   size_t left = sz;
+   const size_t carryover = BS - shift;
 
-   while(left)
+   for(size_t i = 0; i != sz; ++i)
       {
-      const size_t took = std::min(shift, left);
+      uint8_t k = m_keystream[m_keystream_pos];
+      m_keystream[m_keystream_pos] = buf[i];
+      buf[i] ^= k;
 
-      // first update shift register with ciphertext
-      if (BS - shift > 0)
+      m_keystream_pos++;
+
+      if(m_keystream_pos == shift)
          {
-         copy_mem(state.data(), &state[shift], BS - shift);
+         if(carryover > 0)
+            {
+            copy_mem(m_state.data(), &m_state[shift], carryover);
+            }
+         copy_mem(&m_state[carryover], m_keystream.data(), shift);
+         cipher().encrypt(m_state, m_keystream);
+         m_keystream_pos = 0;
          }
-      copy_mem(&state[BS-shift], buf, took);
-
-      // then decrypt
-      xor_buf(buf, &keystream_buf()[0], took);
-
-      // then update keystream
-      cipher().encrypt(state, keystream_buf());
-
-      buf += took;
-      left -= took;
       }
+
    return sz;
    }
 
@@ -9452,6 +10162,11 @@ void ChaCha::key_schedule(const uint8_t key[], size_t length)
    set_iv(ZERO, sizeof(ZERO));
    }
 
+bool ChaCha::valid_iv_length(size_t iv_len) const
+   {
+   return (iv_len == 0 || iv_len == 8 || iv_len == 12);
+   }
+
 void ChaCha::set_iv(const uint8_t iv[], size_t length)
    {
    if(!valid_iv_length(length))
@@ -9460,7 +10175,13 @@ void ChaCha::set_iv(const uint8_t iv[], size_t length)
    m_state[12] = 0;
    m_state[13] = 0;
 
-   if(length == 8)
+   if(length == 0)
+      {
+      // Treat zero length IV same as an all-zero IV
+      m_state[14] = 0;
+      m_state[15] = 0;
+      }
+   else if(length == 8)
       {
       m_state[14] = load_le<uint32_t>(iv, 0);
       m_state[15] = load_le<uint32_t>(iv, 1);
@@ -9667,9 +10388,115 @@ void ChaCha20Poly1305_Decryption::finish(secure_vector<uint8_t>& buffer, size_t 
 
    m_ctext_len = 0;
 
-   if(!same_mem(mac.data(), included_tag, tag_size()))
+   if(!constant_time_compare(mac.data(), included_tag, tag_size()))
       throw Integrity_Failure("ChaCha20Poly1305 tag check failed");
    buffer.resize(offset + remaining);
+   }
+
+}
+/*
+* ChaCha_RNG
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+ChaCha_RNG::ChaCha_RNG() : Stateful_RNG()
+   {
+   m_hmac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
+   m_chacha = StreamCipher::create_or_throw("ChaCha(20)");
+   clear();
+   }
+
+ChaCha_RNG::ChaCha_RNG(const secure_vector<uint8_t>& seed) : Stateful_RNG()
+   {
+   m_hmac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
+   m_chacha = StreamCipher::create_or_throw("ChaCha(20)");
+   clear();
+   add_entropy(seed.data(), seed.size());
+   }
+
+ChaCha_RNG::ChaCha_RNG(RandomNumberGenerator& underlying_rng,
+                       size_t reseed_interval) :
+   Stateful_RNG(underlying_rng, reseed_interval)
+   {
+   m_hmac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
+   m_chacha = StreamCipher::create_or_throw("ChaCha(20)");
+   clear();
+   }
+
+ChaCha_RNG::ChaCha_RNG(RandomNumberGenerator& underlying_rng,
+                       Entropy_Sources& entropy_sources,
+                       size_t reseed_interval) :
+   Stateful_RNG(underlying_rng, entropy_sources, reseed_interval)
+   {
+   m_hmac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
+   m_chacha = StreamCipher::create_or_throw("ChaCha(20)");
+   clear();
+   }
+
+ChaCha_RNG::ChaCha_RNG(Entropy_Sources& entropy_sources,
+                       size_t reseed_interval) :
+   Stateful_RNG(entropy_sources, reseed_interval)
+   {
+   m_hmac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
+   m_chacha = StreamCipher::create_or_throw("ChaCha(20)");
+   clear();
+   }
+
+void ChaCha_RNG::clear()
+   {
+   Stateful_RNG::clear();
+
+   m_hmac->set_key(std::vector<uint8_t>(m_hmac->output_length(), 0x00));
+   m_chacha->set_key(m_hmac->final());
+   }
+
+void ChaCha_RNG::randomize(uint8_t output[], size_t output_len)
+   {
+   randomize_with_input(output, output_len, nullptr, 0);
+   }
+
+void ChaCha_RNG::randomize_with_input(uint8_t output[], size_t output_len,
+                                      const uint8_t input[], size_t input_len)
+   {
+   reseed_check();
+
+   if(input_len > 0)
+      {
+      update(input, input_len);
+      }
+
+   clear_mem(output, output_len);
+   m_chacha->cipher1(output, output_len);
+   }
+
+void ChaCha_RNG::update(const uint8_t input[], size_t input_len)
+   {
+   m_hmac->update(input, input_len);
+   m_chacha->set_key(m_hmac->final());
+
+   secure_vector<uint8_t> mac_key(m_hmac->output_length());
+   m_chacha->cipher1(mac_key.data(), mac_key.size());
+   m_hmac->set_key(mac_key);
+   }
+
+void ChaCha_RNG::add_entropy(const uint8_t input[], size_t input_len)
+   {
+   update(input, input_len);
+
+   if(8*input_len >= security_level())
+      {
+      reset_reseed_counter();
+      }
+   }
+
+size_t ChaCha_RNG::security_level() const
+   {
+   return 256;
    }
 
 }
@@ -9944,41 +10771,8 @@ namespace Botan {
 */
 secure_vector<uint8_t> CMAC::poly_double(const secure_vector<uint8_t>& in)
    {
-   const bool top_carry = static_cast<bool>((in[0] & 0x80) != 0);
-
-   secure_vector<uint8_t> out = in;
-
-   uint8_t carry = 0;
-   for(size_t i = out.size(); i != 0; --i)
-      {
-      uint8_t temp = out[i-1];
-      out[i-1] = (temp << 1) | carry;
-      carry = (temp >> 7);
-      }
-
-   if(top_carry)
-      {
-      switch(in.size())
-         {
-         case 8:
-            out[out.size()-1] ^= 0x1B;
-            break;
-         case 16:
-            out[out.size()-1] ^= 0x87;
-            break;
-         case 32:
-            out[out.size()-2] ^= 0x4;
-            out[out.size()-1] ^= 0x25;
-            break;
-         case 64:
-            out[out.size()-2] ^= 0x1;
-            out[out.size()-1] ^= 0x25;
-            break;
-         default:
-            throw Exception("Unsupported CMAC size " + std::to_string(in.size()));
-         }
-      }
-
+   secure_vector<uint8_t> out(in.size());
+   poly_double_n(out.data(), in.data(), out.size());
    return out;
    }
 
@@ -10042,8 +10836,8 @@ void CMAC::key_schedule(const uint8_t key[], size_t length)
    clear();
    m_cipher->set_key(key, length);
    m_cipher->encrypt(m_B);
-   m_B = poly_double(m_B);
-   m_P = poly_double(m_B);
+   poly_double_n(m_B.data(), m_B.size());
+   poly_double_n(m_P.data(), m_B.data(), m_P.size());
    }
 
 /*
@@ -10078,13 +10872,15 @@ MessageAuthenticationCode* CMAC::clone() const
 /*
 * CMAC Constructor
 */
-CMAC::CMAC(BlockCipher* cipher) : m_cipher(cipher)
+CMAC::CMAC(BlockCipher* cipher) :
+   m_cipher(cipher),
+   m_block_size(m_cipher->block_size())
    {
-   if(m_cipher->block_size() !=  8 && m_cipher->block_size() != 16 &&
-      m_cipher->block_size() != 32 && m_cipher->block_size() != 64)
+   if(m_block_size !=  8 && m_block_size != 16 &&
+      m_block_size != 32 && m_block_size != 64)
       {
       throw Invalid_Argument("CMAC cannot use the " +
-                             std::to_string(m_cipher->block_size() * 8) +
+                             std::to_string(m_block_size * 8) +
                              " bit cipher " + m_cipher->name());
       }
 
@@ -10509,6 +11305,14 @@ void Comb4P::clear()
    m_hash2->update(0);
    }
 
+std::unique_ptr<HashFunction> Comb4P::copy_state() const
+   {
+   std::unique_ptr<Comb4P> copy(new Comb4P);
+   copy->m_hash1 = m_hash1->copy_state();
+   copy->m_hash2 = m_hash2->copy_state();
+   return std::move(copy);
+   }
+
 void Comb4P::add_data(const uint8_t input[], size_t length)
    {
    m_hash1->update(input, length);
@@ -10540,6 +11344,646 @@ void Comb4P::final_result(uint8_t out[])
 }
 
 /*
+* Runtime CPU detection
+* (C) 2009,2010,2013,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+uint64_t CPUID::g_processor_features = 0;
+size_t CPUID::g_cache_line_size = BOTAN_TARGET_CPU_DEFAULT_CACHE_LINE_SIZE;
+CPUID::Endian_status CPUID::g_endian_status = ENDIAN_UNKNOWN;
+
+bool CPUID::has_simd_32()
+   {
+#if defined(BOTAN_TARGET_SUPPORTS_SSE2)
+   return CPUID::has_sse2();
+#elif defined(BOTAN_TARGET_SUPPORTS_ALTIVEC)
+   return CPUID::has_altivec();
+#elif defined(BOTAN_TARGET_SUPPORTS_NEON)
+   return CPUID::has_neon();
+#else
+   return true;
+#endif
+   }
+
+//static
+std::string CPUID::to_string()
+   {
+   std::vector<std::string> flags;
+
+#define CPUID_PRINT(flag) do { if(has_##flag()) { flags.push_back(#flag); } } while(0)
+
+#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+   CPUID_PRINT(sse2);
+   CPUID_PRINT(ssse3);
+   CPUID_PRINT(sse41);
+   CPUID_PRINT(sse42);
+   CPUID_PRINT(avx2);
+   CPUID_PRINT(avx512f);
+
+   CPUID_PRINT(rdtsc);
+   CPUID_PRINT(bmi2);
+   CPUID_PRINT(adx);
+
+   CPUID_PRINT(aes_ni);
+   CPUID_PRINT(clmul);
+   CPUID_PRINT(rdrand);
+   CPUID_PRINT(rdseed);
+   CPUID_PRINT(intel_sha);
+#endif
+
+#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
+   CPUID_PRINT(altivec);
+#endif
+
+#if defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY)
+   CPUID_PRINT(neon);
+   CPUID_PRINT(arm_sha1);
+   CPUID_PRINT(arm_sha2);
+   CPUID_PRINT(arm_aes);
+   CPUID_PRINT(arm_pmull);
+#endif
+
+#undef CPUID_PRINT
+
+   return string_join(flags, ' ');
+   }
+
+//static
+void CPUID::print(std::ostream& o)
+   {
+   o << "CPUID flags: " << CPUID::to_string() << "\n";
+   }
+
+//static
+void CPUID::initialize()
+   {
+   g_processor_features = 0;
+
+#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY) || \
+    defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY) || \
+    defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+
+   g_processor_features = CPUID::detect_cpu_features(&g_cache_line_size);
+
+#endif
+
+   g_processor_features |= CPUID::CPUID_INITIALIZED_BIT;
+   }
+
+//static
+CPUID::Endian_status CPUID::runtime_check_endian()
+   {
+   // Check runtime endian
+   const uint32_t endian32 = 0x01234567;
+   const uint8_t* e8 = reinterpret_cast<const uint8_t*>(&endian32);
+
+   Endian_status endian = ENDIAN_UNKNOWN;
+
+   if(e8[0] == 0x01 && e8[1] == 0x23 && e8[2] == 0x45 && e8[3] == 0x67)
+      {
+      endian = ENDIAN_BIG;
+      }
+   else if(e8[0] == 0x67 && e8[1] == 0x45 && e8[2] == 0x23 && e8[3] == 0x01)
+      {
+      endian = ENDIAN_LITTLE;
+      }
+   else
+      {
+      throw Internal_Error("Unexpected endian at runtime, neither big nor little");
+      }
+
+   // If we were compiled with a known endian, verify it matches at runtime
+#if defined(BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN)
+   BOTAN_ASSERT(endian == ENDIAN_LITTLE, "Build and runtime endian match");
+#elif defined(BOTAN_TARGET_CPU_IS_BIG_ENDIAN)
+   BOTAN_ASSERT(endian == ENDIAN_BIG, "Build and runtime endian match");
+#endif
+
+   return endian;
+   }
+
+std::vector<Botan::CPUID::CPUID_bits>
+CPUID::bit_from_string(const std::string& tok)
+   {
+#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+   if(tok == "sse2" || tok == "simd")
+      return {Botan::CPUID::CPUID_SSE2_BIT};
+   if(tok == "ssse3")
+      return {Botan::CPUID::CPUID_SSSE3_BIT};
+   if(tok == "aesni")
+      return {Botan::CPUID::CPUID_AESNI_BIT};
+   if(tok == "clmul")
+      return {Botan::CPUID::CPUID_CLMUL_BIT};
+   if(tok == "avx2")
+      return {Botan::CPUID::CPUID_AVX2_BIT};
+   if(tok == "sha")
+      return {Botan::CPUID::CPUID_SHA_BIT};
+
+#elif defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
+   if(tok == "altivec" || tok == "simd")
+      return {Botan::CPUID::CPUID_ALTIVEC_BIT};
+
+#elif defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY)
+   if(tok == "neon" || tok == "simd")
+      return {Botan::CPUID::CPUID_ARM_NEON_BIT};
+   if(tok == "armv8sha1")
+      return {Botan::CPUID::CPUID_ARM_SHA1_BIT};
+   if(tok == "armv8sha2")
+      return {Botan::CPUID::CPUID_ARM_SHA2_BIT};
+   if(tok == "armv8aes")
+      return {Botan::CPUID::CPUID_ARM_AES_BIT};
+   if(tok == "armv8pmull")
+      return {Botan::CPUID::CPUID_ARM_PMULL_BIT};
+
+#else
+   BOTAN_UNUSED(tok);
+#endif
+
+   return {};
+   }
+
+}
+/*
+* Runtime CPU detection for ARM
+* (C) 2009,2010,2013,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY)
+
+#if defined(BOTAN_TARGET_OS_HAS_GETAUXVAL)
+  #include <sys/auxv.h>
+
+#elif defined(BOTAN_TARGET_OS_IS_IOS)
+  #include <sys/types.h>
+  #include <sys/sysctl.h>
+
+#else
+
+#endif
+
+#endif
+
+namespace Botan {
+
+#if defined(BOTAN_TARGET_CPU_IS_ARM_FAMILY)
+
+#if defined(BOTAN_TARGET_OS_IS_IOS)
+
+namespace {
+
+uint64_t flags_by_ios_machine_type(const std::string& machine)
+   {
+   /*
+   * This relies on a map of known machine names to features. This
+   * will quickly grow out of date as new products are introduced, but
+   * is apparently the best we can do for iOS.
+   */
+
+   struct version_info {
+      std::string name;
+      size_t min_version_neon;
+      size_t min_version_armv8;
+      };
+
+   static const version_info min_versions[] = {
+      { "iPhone", 2, 6 },
+      { "iPad", 1, 4 },
+      { "iPod", 4, 7 },
+      { "AppleTV", 2, 5 },
+   };
+
+   if(machine.size() < 3)
+      return 0;
+
+   auto comma = machine.find(',');
+
+   // Simulator, or something we don't know about
+   if(comma == std::string::npos)
+      return 0;
+
+   std::string product = machine.substr(0, comma);
+
+   size_t version = 0;
+   size_t place = 1;
+   while(product.size() > 1 && ::isdigit(product.back()))
+      {
+      const size_t digit = product.back() - '0';
+      version += digit * place;
+      place *= 10;
+      product.pop_back();
+      }
+
+   if(version == 0)
+      return 0;
+
+   for(const version_info& info : min_versions)
+      {
+      if(info.name != product)
+         continue;
+
+      if(version >= info.min_version_armv8)
+         {
+         return CPUID::CPUID_ARM_AES_BIT |
+                CPUID::CPUID_ARM_PMULL_BIT |
+                CPUID::CPUID_ARM_SHA1_BIT |
+                CPUID::CPUID_ARM_SHA2_BIT |
+                CPUID::CPUID_ARM_NEON_BIT;
+         }
+
+      if(version >= info.min_version_neon)
+         return CPUID::CPUID_ARM_NEON_BIT;
+      }
+
+   // Some other product we don't know about
+   return 0;
+   }
+
+}
+
+#endif
+
+uint64_t CPUID::detect_cpu_features(size_t* cache_line_size)
+   {
+   uint64_t detected_features = 0;
+
+#if defined(BOTAN_TARGET_OS_HAS_GETAUXVAL)
+   /*
+   * On systems with getauxval these bits should normally be defined
+   * in bits/auxv.h but some buggy? glibc installs seem to miss them.
+   * These following values are all fixed, for the Linux ELF format,
+   * so we just hardcode them in ARM_hwcap_bit enum.
+   */
+
+   enum ARM_hwcap_bit {
+#if defined(BOTAN_TARGET_ARCH_IS_ARM32)
+      NEON_bit  = (1 << 12),
+      AES_bit   = (1 << 0),
+      PMULL_bit = (1 << 1),
+      SHA1_bit  = (1 << 2),
+      SHA2_bit  = (1 << 3),
+
+      ARCH_hwcap_neon   = 16, // AT_HWCAP
+      ARCH_hwcap_crypto = 26, // AT_HWCAP2
+#elif defined(BOTAN_TARGET_ARCH_IS_ARM64)
+      NEON_bit  = (1 << 1),
+      AES_bit   = (1 << 3),
+      PMULL_bit = (1 << 4),
+      SHA1_bit  = (1 << 5),
+      SHA2_bit  = (1 << 6),
+
+      ARCH_hwcap_neon   = 16, // AT_HWCAP
+      ARCH_hwcap_crypto = 16, // AT_HWCAP
+#endif
+   };
+
+#if defined(AT_DCACHEBSIZE)
+   const unsigned long dcache_line = ::getauxval(AT_DCACHEBSIZE);
+
+   // plausibility check
+   if(dcache_line == 32 || dcache_line == 64 || dcache_line == 128)
+      *cache_line_size = static_cast<size_t>(dcache_line);
+#endif
+
+   const unsigned long hwcap_neon = ::getauxval(ARM_hwcap_bit::ARCH_hwcap_neon);
+   if(hwcap_neon & ARM_hwcap_bit::NEON_bit)
+      detected_features |= CPUID::CPUID_ARM_NEON_BIT;
+
+   /*
+   On aarch64 this ends up calling getauxval twice with AT_HWCAP
+   It doesn't seem worth optimizing this out, since getauxval is
+   just reading a field in the ELF header.
+   */
+   const unsigned long hwcap_crypto = ::getauxval(ARM_hwcap_bit::ARCH_hwcap_crypto);
+   if(hwcap_crypto & ARM_hwcap_bit::AES_bit)
+      detected_features |= CPUID::CPUID_ARM_AES_BIT;
+   if(hwcap_crypto & ARM_hwcap_bit::PMULL_bit)
+      detected_features |= CPUID::CPUID_ARM_PMULL_BIT;
+   if(hwcap_crypto & ARM_hwcap_bit::SHA1_bit)
+      detected_features |= CPUID::CPUID_ARM_SHA1_BIT;
+   if(hwcap_crypto & ARM_hwcap_bit::SHA2_bit)
+      detected_features |= CPUID::CPUID_ARM_SHA2_BIT;
+
+#elif defined(BOTAN_TARGET_OS_IS_IOS)
+
+   char machine[64] = { 0 };
+   size_t size = sizeof(machine) - 1;
+   ::sysctlbyname("hw.machine", machine, &size, nullptr, 0);
+
+   detected_features = flags_by_ios_machine_type(machine);
+
+#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_ARM64)
+
+   /*
+   No getauxval API available, fall back on probe functions. We only
+   bother with Aarch64 here to simplify the code and because going to
+   extreme contortions to support detect NEON on devices that probably
+   don't support it doesn't seem worthwhile.
+
+   NEON registers v0-v7 are caller saved in Aarch64
+   */
+
+   auto neon_probe  = []() -> int { asm("and v0.16b, v0.16b, v0.16b"); return 1; };
+   auto aes_probe   = []() -> int { asm(".word 0x4e284800"); return 1; };
+   auto pmull_probe = []() -> int { asm(".word 0x0ee0e000"); return 1; };
+   auto sha1_probe  = []() -> int { asm(".word 0x5e280800"); return 1; };
+   auto sha2_probe  = []() -> int { asm(".word 0x5e282800"); return 1; };
+
+   // Only bother running the crypto detection if we found NEON
+
+   if(OS::run_cpu_instruction_probe(neon_probe) == 1)
+      {
+      detected_features |= CPUID::CPUID_ARM_NEON_BIT;
+
+      if(OS::run_cpu_instruction_probe(aes_probe) == 1)
+         detected_features |= CPUID::CPUID_ARM_AES_BIT;
+      if(OS::run_cpu_instruction_probe(pmull_probe) == 1)
+         detected_features |= CPUID::CPUID_ARM_PMULL_BIT;
+      if(OS::run_cpu_instruction_probe(sha1_probe) == 1)
+         detected_features |= CPUID::CPUID_ARM_SHA1_BIT;
+      if(OS::run_cpu_instruction_probe(sha2_probe) == 1)
+         detected_features |= CPUID::CPUID_ARM_SHA2_BIT;
+      }
+
+#endif
+
+   return detected_features;
+   }
+
+#endif
+
+}
+/*
+* Runtime CPU detection for POWER/PowerPC
+* (C) 2009,2010,2013,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
+
+/*
+* On Darwin and OpenBSD ppc, use sysctl to detect AltiVec
+*/
+#if defined(BOTAN_TARGET_OS_IS_DARWIN)
+#elif defined(BOTAN_TARGET_OS_IS_OPENBSD)
+  #include <sys/param.h>
+  #include <machine/cpu.h>
+#endif
+
+#endif
+
+namespace Botan {
+
+#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
+
+/*
+* PowerPC specific block: check for AltiVec using either
+* sysctl or by reading processor version number register.
+*/
+uint64_t CPUID::detect_cpu_features(size_t* cache_line_size)
+   {
+#if defined(BOTAN_TARGET_OS_IS_DARWIN) || defined(BOTAN_TARGET_OS_IS_OPENBSD)
+   // On Darwin/OS X and OpenBSD, use sysctl
+
+   int sels[2] = {
+#if defined(BOTAN_TARGET_OS_IS_OPENBSD)
+      CTL_MACHDEP, CPU_ALTIVEC
+#else
+      CTL_HW, HW_VECTORUNIT
+#endif
+   };
+
+   int vector_type = 0;
+   size_t length = sizeof(vector_type);
+   int error = ::sysctl(sels, 2, &vector_type, &length, NULL, 0);
+
+   if(error == 0 && vector_type > 0)
+      return CPUID::CPUID_ALTIVEC_BIT;
+
+#else
+
+   /*
+   On PowerPC, MSR 287 is PVR, the Processor Version Number
+   Normally it is only accessible to ring 0, but Linux and NetBSD
+   (others, too, maybe?) will trap and emulate it for us.
+   */
+
+   int pvr = OS::run_cpu_instruction_probe([]() -> int {
+      uint32_t pvr = 0;
+      asm volatile("mfspr %0, 287" : "=r" (pvr));
+      // Top 16 bits suffice to identify the model
+      return static_cast<int>(pvr >> 16);
+      });
+
+   if(pvr > 0)
+      {
+      const uint16_t ALTIVEC_PVR[] = {
+         0x003E, // IBM POWER6
+         0x003F, // IBM POWER7
+         0x004A, // IBM POWER7p
+         0x004D, // IBM POWER8
+         0x004B, // IBM POWER8E
+         0x000C, // G4-7400
+         0x0039, // G5 970
+         0x003C, // G5 970FX
+         0x0044, // G5 970MP
+         0x0070, // Cell PPU
+         0, // end
+      };
+
+      for(size_t i = 0; ALTIVEC_PVR[i]; ++i)
+         {
+         if(pvr == ALTIVEC_PVR[i])
+            return CPUID::CPUID_ALTIVEC_BIT;
+         }
+
+      return 0;
+      }
+
+   // TODO try direct instruction probing
+
+#endif
+
+   return 0;
+   }
+
+#endif
+
+}
+/*
+* Runtime CPU detection for x86
+* (C) 2009,2010,2013,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+
+#if defined(BOTAN_BUILD_COMPILER_IS_MSVC)
+  #include <intrin.h>
+#elif defined(BOTAN_BUILD_COMPILER_IS_INTEL)
+  #include <ia32intrin.h>
+#elif defined(BOTAN_BUILD_COMPILER_IS_GCC) || defined(BOTAN_BUILD_COMPILER_IS_CLANG)
+  #include <cpuid.h>
+#endif
+
+#endif
+
+namespace Botan {
+
+#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+
+uint64_t CPUID::detect_cpu_features(size_t* cache_line_size)
+   {
+#if defined(BOTAN_BUILD_COMPILER_IS_MSVC)
+  #define X86_CPUID(type, out) do { __cpuid((int*)out, type); } while(0)
+  #define X86_CPUID_SUBLEVEL(type, level, out) do { __cpuidex((int*)out, type, level); } while(0)
+
+#elif defined(BOTAN_BUILD_COMPILER_IS_INTEL)
+  #define X86_CPUID(type, out) do { __cpuid(out, type); } while(0)
+  #define X86_CPUID_SUBLEVEL(type, level, out) do { __cpuidex((int*)out, type, level); } while(0)
+
+#elif defined(BOTAN_TARGET_ARCH_IS_X86_64) && defined(BOTAN_USE_GCC_INLINE_ASM)
+  #define X86_CPUID(type, out)                                                    \
+     asm("cpuid\n\t" : "=a" (out[0]), "=b" (out[1]), "=c" (out[2]), "=d" (out[3]) \
+         : "0" (type))
+
+  #define X86_CPUID_SUBLEVEL(type, level, out)                                    \
+     asm("cpuid\n\t" : "=a" (out[0]), "=b" (out[1]), "=c" (out[2]), "=d" (out[3]) \
+         : "0" (type), "2" (level))
+
+#elif defined(BOTAN_BUILD_COMPILER_IS_GCC) || defined(BOTAN_BUILD_COMPILER_IS_CLANG)
+  #define X86_CPUID(type, out) do { __get_cpuid(type, out, out+1, out+2, out+3); } while(0)
+
+  #define X86_CPUID_SUBLEVEL(type, level, out) \
+     do { __cpuid_count(type, level, out[0], out[1], out[2], out[3]); } while(0)
+#else
+  #warning "No way of calling x86 cpuid instruction for this compiler"
+  #define X86_CPUID(type, out) do { clear_mem(out, 4); } while(0)
+  #define X86_CPUID_SUBLEVEL(type, level, out) do { clear_mem(out, 4); } while(0)
+#endif
+
+   uint64_t features_detected = 0;
+   uint32_t cpuid[4] = { 0 };
+
+   // CPUID 0: vendor identification, max sublevel
+   X86_CPUID(0, cpuid);
+
+   const uint32_t max_supported_sublevel = cpuid[0];
+
+   const uint32_t INTEL_CPUID[3] = { 0x756E6547, 0x6C65746E, 0x49656E69 };
+   const uint32_t AMD_CPUID[3] = { 0x68747541, 0x444D4163, 0x69746E65 };
+   const bool is_intel = same_mem(cpuid + 1, INTEL_CPUID, 3);
+   const bool is_amd = same_mem(cpuid + 1, AMD_CPUID, 3);
+
+   if(max_supported_sublevel >= 1)
+      {
+      // CPUID 1: feature bits
+      X86_CPUID(1, cpuid);
+      const uint64_t flags0 = (static_cast<uint64_t>(cpuid[2]) << 32) | cpuid[3];
+
+      enum x86_CPUID_1_bits : uint64_t {
+         RDTSC = (1ULL << 4),
+         SSE2 = (1ULL << 26),
+         CLMUL = (1ULL << 33),
+         SSSE3 = (1ULL << 41),
+         SSE41 = (1ULL << 51),
+         SSE42 = (1ULL << 52),
+         AESNI = (1ULL << 57),
+         RDRAND = (1ULL << 62)
+      };
+
+      if(flags0 & x86_CPUID_1_bits::RDTSC)
+         features_detected |= CPUID::CPUID_RDTSC_BIT;
+      if(flags0 & x86_CPUID_1_bits::SSE2)
+         features_detected |= CPUID::CPUID_SSE2_BIT;
+      if(flags0 & x86_CPUID_1_bits::CLMUL)
+         features_detected |= CPUID::CPUID_CLMUL_BIT;
+      if(flags0 & x86_CPUID_1_bits::SSSE3)
+         features_detected |= CPUID::CPUID_SSSE3_BIT;
+      if(flags0 & x86_CPUID_1_bits::SSE41)
+         features_detected |= CPUID::CPUID_SSE41_BIT;
+      if(flags0 & x86_CPUID_1_bits::SSE42)
+         features_detected |= CPUID::CPUID_SSE42_BIT;
+      if(flags0 & x86_CPUID_1_bits::AESNI)
+         features_detected |= CPUID::CPUID_AESNI_BIT;
+      if(flags0 & x86_CPUID_1_bits::RDRAND)
+         features_detected |= CPUID::CPUID_RDRAND_BIT;
+      }
+
+   if(is_intel)
+      {
+      // Intel cache line size is in cpuid(1) output
+      *cache_line_size = 8 * get_byte(2, cpuid[1]);
+      }
+   else if(is_amd)
+      {
+      // AMD puts it in vendor zone
+      X86_CPUID(0x80000005, cpuid);
+      *cache_line_size = get_byte(3, cpuid[2]);
+      }
+
+   if(max_supported_sublevel >= 7)
+      {
+      clear_mem(cpuid, 4);
+      X86_CPUID_SUBLEVEL(7, 0, cpuid);
+
+      enum x86_CPUID_7_bits : uint64_t {
+         AVX2 = (1ULL << 5),
+         BMI2 = (1ULL << 8),
+         AVX512F = (1ULL << 16),
+         RDSEED = (1ULL << 18),
+         ADX = (1ULL << 19),
+         SHA = (1ULL << 29),
+      };
+      uint64_t flags7 = (static_cast<uint64_t>(cpuid[2]) << 32) | cpuid[1];
+
+      if(flags7 & x86_CPUID_7_bits::AVX2)
+         features_detected |= CPUID::CPUID_AVX2_BIT;
+      if(flags7 & x86_CPUID_7_bits::BMI2)
+         features_detected |= CPUID::CPUID_BMI2_BIT;
+      if(flags7 & x86_CPUID_7_bits::AVX512F)
+         features_detected |= CPUID::CPUID_AVX512F_BIT;
+      if(flags7 & x86_CPUID_7_bits::RDSEED)
+         features_detected |= CPUID::CPUID_RDSEED_BIT;
+      if(flags7 & x86_CPUID_7_bits::ADX)
+         features_detected |= CPUID::CPUID_ADX_BIT;
+      if(flags7 & x86_CPUID_7_bits::SHA)
+         features_detected |= CPUID::CPUID_SHA_BIT;
+      }
+
+#undef X86_CPUID
+#undef X86_CPUID_SUBLEVEL
+
+   /*
+   * If we don't have access to CPUID, we can still safely assume that
+   * any x86-64 processor has SSE2 and RDTSC
+   */
+#if defined(BOTAN_TARGET_ARCH_IS_X86_64)
+   if(features_detected == 0)
+      {
+      features_detected |= CPUID::CPUID_SSE2_BIT;
+      features_detected |= CPUID::CPUID_RDTSC_BIT;
+      }
+#endif
+
+   return features_detected;
+   }
+
+#endif
+
+}
+/*
 * CRC24
 * (C) 1999-2007 Jack Lloyd
 *
@@ -10548,6 +11992,11 @@ void Comb4P::final_result(uint8_t out[])
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> CRC24::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new CRC24(*this));
+   }
 
 /*
 * Update a CRC24 Checksum
@@ -10648,6 +12097,11 @@ void CRC24::final_result(uint8_t output[])
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> CRC32::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new CRC32(*this));
+   }
 
 /*
 * Update a CRC32 Checksum
@@ -10767,7 +12221,8 @@ const size_t MAC_OUTPUT_LEN = 20;
 const size_t PBKDF_SALT_LEN = 10;
 const size_t PBKDF_ITERATIONS = 8 * 1024;
 
-const size_t PBKDF_OUTPUT_LEN = CIPHER_KEY_LEN + CIPHER_IV_LEN + MAC_KEY_LEN;
+const size_t PBKDF_OUTPUT_LEN = CIPHER_KEY_LEN + MAC_KEY_LEN + CIPHER_IV_LEN;
+const size_t CRYPTOBOX_HEADER_LEN = VERSION_CODE_LEN + PBKDF_SALT_LEN + MAC_OUTPUT_LEN;
 
 }
 
@@ -10775,32 +12230,6 @@ std::string encrypt(const uint8_t input[], size_t input_len,
                     const std::string& passphrase,
                     RandomNumberGenerator& rng)
    {
-   secure_vector<uint8_t> pbkdf_salt(PBKDF_SALT_LEN);
-   rng.randomize(pbkdf_salt.data(), pbkdf_salt.size());
-
-   PKCS5_PBKDF2 pbkdf(new HMAC(new SHA_512));
-
-   OctetString master_key = pbkdf.derive_key(
-      PBKDF_OUTPUT_LEN,
-      passphrase,
-      pbkdf_salt.data(),
-      pbkdf_salt.size(),
-      PBKDF_ITERATIONS);
-
-   const uint8_t* mk = master_key.begin();
-
-   SymmetricKey cipher_key(mk, CIPHER_KEY_LEN);
-   SymmetricKey mac_key(&mk[CIPHER_KEY_LEN], MAC_KEY_LEN);
-   InitializationVector iv(&mk[CIPHER_KEY_LEN + MAC_KEY_LEN], CIPHER_IV_LEN);
-
-   Pipe pipe(get_cipher("Serpent/CTR-BE", cipher_key, iv, ENCRYPTION),
-             new Fork(
-                nullptr,
-                new MAC_Filter(new HMAC(new SHA_512),
-                               mac_key, MAC_OUTPUT_LEN)));
-
-   pipe.process_msg(input, input_len);
-
    /*
    Output format is:
       version # (4 bytes)
@@ -10808,38 +12237,59 @@ std::string encrypt(const uint8_t input[], size_t input_len,
       mac (20 bytes)
       ciphertext
    */
-   const size_t ciphertext_len = pipe.remaining(0);
-
-   std::vector<uint8_t> out_buf(VERSION_CODE_LEN +
-                             PBKDF_SALT_LEN +
-                             MAC_OUTPUT_LEN +
-                             ciphertext_len);
-
+   secure_vector<uint8_t> out_buf(CRYPTOBOX_HEADER_LEN + input_len);
    for(size_t i = 0; i != VERSION_CODE_LEN; ++i)
      out_buf[i] = get_byte(i, CRYPTOBOX_VERSION_CODE);
+   rng.randomize(&out_buf[VERSION_CODE_LEN], PBKDF_SALT_LEN);
+   // space left for MAC here
+   if(input_len > 0)
+      copy_mem(&out_buf[CRYPTOBOX_HEADER_LEN], input, input_len);
 
-   copy_mem(&out_buf[VERSION_CODE_LEN], pbkdf_salt.data(), PBKDF_SALT_LEN);
+   // Generate the keys and IV
 
-   BOTAN_ASSERT_EQUAL(
-      pipe.read(&out_buf[VERSION_CODE_LEN + PBKDF_SALT_LEN], MAC_OUTPUT_LEN, 1),
-      MAC_OUTPUT_LEN, "MAC output");
-   BOTAN_ASSERT_EQUAL(
-      pipe.read(&out_buf[VERSION_CODE_LEN + PBKDF_SALT_LEN + MAC_OUTPUT_LEN],
-                ciphertext_len, 0),
-      ciphertext_len, "Ciphertext size");
+   std::unique_ptr<PBKDF> pbkdf(PBKDF::create_or_throw("PBKDF2(HMAC(SHA-512))"));
+
+   OctetString master_key = pbkdf->derive_key(
+      CIPHER_KEY_LEN + MAC_KEY_LEN + CIPHER_IV_LEN,
+      passphrase,
+      &out_buf[VERSION_CODE_LEN],
+      PBKDF_SALT_LEN,
+      PBKDF_ITERATIONS);
+
+   const uint8_t* mk = master_key.begin();
+   const uint8_t* cipher_key = mk;
+   const uint8_t* mac_key = mk + CIPHER_KEY_LEN;
+   const uint8_t* iv = mk + CIPHER_KEY_LEN + MAC_KEY_LEN;
+
+   // Now encrypt and authenticate
+   std::unique_ptr<Cipher_Mode> ctr(get_cipher_mode("Serpent/CTR-BE", ENCRYPTION));
+   ctr->set_key(cipher_key, CIPHER_KEY_LEN);
+   ctr->start(iv, CIPHER_IV_LEN);
+   ctr->finish(out_buf, CRYPTOBOX_HEADER_LEN);
+
+   std::unique_ptr<MessageAuthenticationCode> hmac =
+      MessageAuthenticationCode::create_or_throw("HMAC(SHA-512)");
+   hmac->set_key(mac_key, MAC_KEY_LEN);
+   if(input_len > 0)
+      hmac->update(&out_buf[CRYPTOBOX_HEADER_LEN], input_len);
+
+   // Can't write directly because of MAC truncation
+   secure_vector<uint8_t> mac = hmac->final();
+   copy_mem(&out_buf[VERSION_CODE_LEN + PBKDF_SALT_LEN], mac.data(), MAC_OUTPUT_LEN);
 
    return PEM_Code::encode(out_buf, "BOTAN CRYPTOBOX MESSAGE");
    }
 
-std::string decrypt(const uint8_t input[], size_t input_len,
-                    const std::string& passphrase)
+secure_vector<uint8_t>
+decrypt_bin(const uint8_t input[], size_t input_len,
+            const std::string& passphrase)
    {
    DataSource_Memory input_src(input, input_len);
    secure_vector<uint8_t> ciphertext =
       PEM_Code::decode_check_label(input_src,
                                    "BOTAN CRYPTOBOX MESSAGE");
 
-   if(ciphertext.size() < (VERSION_CODE_LEN + PBKDF_SALT_LEN + MAC_OUTPUT_LEN))
+   if(ciphertext.size() < CRYPTOBOX_HEADER_LEN)
       throw Decoding_Error("Invalid CryptoBox input");
 
    for(size_t i = 0; i != VERSION_CODE_LEN; ++i)
@@ -10847,10 +12297,11 @@ std::string decrypt(const uint8_t input[], size_t input_len,
          throw Decoding_Error("Bad CryptoBox version");
 
    const uint8_t* pbkdf_salt = &ciphertext[VERSION_CODE_LEN];
+   const uint8_t* box_mac = &ciphertext[VERSION_CODE_LEN + PBKDF_SALT_LEN];
 
-   PKCS5_PBKDF2 pbkdf(new HMAC(new SHA_512));
+   std::unique_ptr<PBKDF> pbkdf(PBKDF::create_or_throw("PBKDF2(HMAC(SHA-512))"));
 
-   OctetString master_key = pbkdf.derive_key(
+   OctetString master_key = pbkdf->derive_key(
       PBKDF_OUTPUT_LEN,
       passphrase,
       pbkdf_salt,
@@ -10858,39 +12309,56 @@ std::string decrypt(const uint8_t input[], size_t input_len,
       PBKDF_ITERATIONS);
 
    const uint8_t* mk = master_key.begin();
+   const uint8_t* cipher_key = mk;
+   const uint8_t* mac_key = mk + CIPHER_KEY_LEN;
+   const uint8_t* iv = mk + CIPHER_KEY_LEN + MAC_KEY_LEN;
 
-   SymmetricKey cipher_key(mk, CIPHER_KEY_LEN);
-   SymmetricKey mac_key(&mk[CIPHER_KEY_LEN], MAC_KEY_LEN);
-   InitializationVector iv(&mk[CIPHER_KEY_LEN + MAC_KEY_LEN], CIPHER_IV_LEN);
+   // Now authenticate and decrypt
+   std::unique_ptr<MessageAuthenticationCode> hmac =
+      MessageAuthenticationCode::create_or_throw("HMAC(SHA-512)");
+   hmac->set_key(mac_key, MAC_KEY_LEN);
 
-   Pipe pipe(new Fork(
-                get_cipher("Serpent/CTR-BE", cipher_key, iv, DECRYPTION),
-                new MAC_Filter(new HMAC(new SHA_512),
-                               mac_key, MAC_OUTPUT_LEN)));
+   if(ciphertext.size() > CRYPTOBOX_HEADER_LEN)
+      {
+      hmac->update(&ciphertext[CRYPTOBOX_HEADER_LEN],
+                   ciphertext.size() - CRYPTOBOX_HEADER_LEN);
+      }
+   secure_vector<uint8_t> computed_mac = hmac->final();
 
-   const size_t ciphertext_offset =
-      VERSION_CODE_LEN + PBKDF_SALT_LEN + MAC_OUTPUT_LEN;
-
-   pipe.process_msg(&ciphertext[ciphertext_offset],
-                    ciphertext.size() - ciphertext_offset);
-
-   uint8_t computed_mac[MAC_OUTPUT_LEN];
-   BOTAN_ASSERT_EQUAL(MAC_OUTPUT_LEN, pipe.read(computed_mac, MAC_OUTPUT_LEN, 1), "MAC size");
-
-   if(!same_mem(computed_mac,
-                &ciphertext[VERSION_CODE_LEN + PBKDF_SALT_LEN],
-                MAC_OUTPUT_LEN))
+   if(!constant_time_compare(computed_mac.data(), box_mac, MAC_OUTPUT_LEN))
       throw Decoding_Error("CryptoBox integrity failure");
 
-   return pipe.read_all_as_string(0);
+   std::unique_ptr<Cipher_Mode> ctr(get_cipher_mode("Serpent/CTR-BE", DECRYPTION));
+   ctr->set_key(cipher_key, CIPHER_KEY_LEN);
+   ctr->start(iv, CIPHER_IV_LEN);
+   ctr->finish(ciphertext, CRYPTOBOX_HEADER_LEN);
+
+   ciphertext.erase(ciphertext.begin(), ciphertext.begin() + CRYPTOBOX_HEADER_LEN);
+   return ciphertext;
+   }
+
+secure_vector<uint8_t> decrypt_bin(const std::string& input,
+                                   const std::string& passphrase)
+   {
+   return decrypt_bin(reinterpret_cast<const uint8_t*>(input.data()),
+                      input.size(),
+                      passphrase);
+   }
+
+std::string decrypt(const uint8_t input[], size_t input_len,
+                    const std::string& passphrase)
+   {
+   const secure_vector<uint8_t> bin = decrypt_bin(input, input_len, passphrase);
+
+   return std::string(reinterpret_cast<const char*>(&bin[0]),
+                      bin.size());
    }
 
 std::string decrypt(const std::string& input,
                     const std::string& passphrase)
    {
    return decrypt(reinterpret_cast<const uint8_t*>(input.data()),
-                  input.size(),
-                  passphrase);
+                  input.size(), passphrase);
    }
 
 }
@@ -10910,7 +12378,9 @@ CTR_BE::CTR_BE(BlockCipher* ciph) :
    m_cipher(ciph),
    m_counter(m_cipher->parallel_bytes()),
    m_pad(m_counter.size()),
-   m_ctr_size(m_cipher->block_size()),
+   m_iv(m_cipher->block_size()),
+   m_block_size(m_cipher->block_size()),
+   m_ctr_size(m_block_size),
    m_pad_pos(0)
    {
    }
@@ -10919,11 +12389,12 @@ CTR_BE::CTR_BE(BlockCipher* cipher, size_t ctr_size) :
    m_cipher(cipher),
    m_counter(m_cipher->parallel_bytes()),
    m_pad(m_counter.size()),
+   m_iv(m_cipher->block_size()),
+   m_block_size(m_cipher->block_size()),
    m_ctr_size(ctr_size),
    m_pad_pos(0)
    {
-   //BOTAN_CHECK_ARG(m_ctr_size > 0 && m_ctr_size <= cipher->block_size(), "Invalid CTR size");
-   if(m_ctr_size == 0 || m_ctr_size > m_cipher->block_size())
+   if(m_ctr_size == 0 || m_ctr_size > m_block_size)
       throw Invalid_Argument("Invalid CTR-BE counter size");
    }
 
@@ -10932,6 +12403,7 @@ void CTR_BE::clear()
    m_cipher->clear();
    zeroise(m_pad);
    zeroise(m_counter);
+   zeroise(m_iv);
    m_pad_pos = 0;
    }
 
@@ -10967,25 +12439,10 @@ void CTR_BE::set_iv(const uint8_t iv[], size_t iv_len)
    if(!valid_iv_length(iv_len))
       throw Invalid_IV_Length(name(), iv_len);
 
-   const size_t bs = m_cipher->block_size();
+   zeroise(m_iv);
+   buffer_insert(m_iv, 0, iv, iv_len);
 
-   zeroise(m_counter);
-
-   const size_t n_wide = m_counter.size() / m_cipher->block_size();
-   buffer_insert(m_counter, 0, iv, iv_len);
-
-   // Set m_counter blocks to IV, IV + 1, ... IV + n
-   for(size_t i = 1; i != n_wide; ++i)
-      {
-      buffer_insert(m_counter, i*bs, &m_counter[(i-1)*bs], bs);
-
-      for(size_t j = 0; j != m_ctr_size; ++j)
-         if(++m_counter[i*bs + (bs - 1 - j)])
-            break;
-      }
-
-   m_cipher->encrypt_n(m_counter.data(), m_pad.data(), n_wide);
-   m_pad_pos = 0;
+   seek(0);
    }
 
 /*
@@ -10993,28 +12450,59 @@ void CTR_BE::set_iv(const uint8_t iv[], size_t iv_len)
 */
 void CTR_BE::increment_counter()
    {
-   const size_t bs = m_cipher->block_size();
-   const size_t n_wide = m_counter.size() / bs;
+   const size_t n_wide = m_counter.size() / m_block_size;
 
-   for(size_t i = 0; i != n_wide; ++i)
-      {
-      uint16_t carry = static_cast<uint16_t>(n_wide);
-      for(size_t j = 0; carry && j != m_ctr_size; ++j)
-         {
-         const size_t off = i*bs + (bs-1-j);
-         const uint16_t cnt = static_cast<uint16_t>(m_counter[off]) + carry;
-         m_counter[off] = static_cast<uint8_t>(cnt);
-         carry = (cnt >> 8);
-         }
-      }
+   add_counter(n_wide);
 
    m_cipher->encrypt_n(m_counter.data(), m_pad.data(), n_wide);
    m_pad_pos = 0;
    }
 
-void CTR_BE::seek(uint64_t)
+void CTR_BE::add_counter(const uint64_t counter)
    {
-   throw Not_Implemented("CTR_BE::seek");
+   const size_t n_wide = m_counter.size() / m_block_size;
+
+   for(size_t i = 0; i != n_wide; ++i)
+      {
+      uint64_t local_counter = counter;
+      uint16_t carry = static_cast<uint8_t>(local_counter);
+      for(size_t j = 0; (carry || local_counter) && j != m_ctr_size; ++j)
+         {
+         const size_t off = i*m_block_size + (m_block_size-1-j);
+         const uint16_t cnt = static_cast<uint16_t>(m_counter[off]) + carry;
+         m_counter[off] = static_cast<uint8_t>(cnt);
+         local_counter = (local_counter >> 8);
+         carry = (cnt >> 8) + static_cast<uint8_t>(local_counter);
+         }
+      }
+   }
+
+void CTR_BE::seek(uint64_t offset)
+   {
+   const size_t n_wide = m_counter.size() / m_block_size;
+   const uint64_t base_counter = n_wide * (offset / m_counter.size());
+
+   zeroise(m_counter);
+   buffer_insert(m_counter, 0, m_iv);
+
+   // Set m_counter blocks to IV, IV + 1, ... IV + n
+   for(size_t i = 1; i != n_wide; ++i)
+      {
+      buffer_insert(m_counter,
+                    i*m_block_size,
+                    &m_counter[(i-1)*m_block_size],
+                    m_block_size);
+
+      for(size_t j = 0; j != m_ctr_size; ++j)
+         if(++m_counter[i*m_block_size + (m_block_size - 1 - j)])
+            break;
+      }
+
+   if (base_counter > 0)
+      add_counter(base_counter);
+
+   m_cipher->encrypt_n(m_counter.data(), m_pad.data(), n_wide);
+   m_pad_pos = offset % m_counter.size();
    }
 }
 /*
@@ -11053,7 +12541,10 @@ secure_vector<uint8_t> curve25519(const secure_vector<uint8_t>& secret,
 
 AlgorithmIdentifier Curve25519_PublicKey::algorithm_identifier() const
    {
-   return AlgorithmIdentifier(get_oid(), AlgorithmIdentifier::USE_NULL_PARAM);
+   // AlgorithmIdentifier::USE_NULL_PARAM puts 0x05 0x00 in parameters
+   // We want nothing
+   std::vector<uint8_t> empty;
+   return AlgorithmIdentifier(get_oid(), empty);
    }
 
 bool Curve25519_PublicKey::check_key(RandomNumberGenerator&, bool) const
@@ -11064,22 +12555,24 @@ bool Curve25519_PublicKey::check_key(RandomNumberGenerator&, bool) const
 Curve25519_PublicKey::Curve25519_PublicKey(const AlgorithmIdentifier&,
                                            const std::vector<uint8_t>& key_bits)
    {
-   BER_Decoder(key_bits)
-      .start_cons(SEQUENCE)
-      .decode(m_public, OCTET_STRING)
-      .verify_end()
-   .end_cons();
+   m_public = key_bits;
 
    size_check(m_public.size(), "public key");
    }
 
 std::vector<uint8_t> Curve25519_PublicKey::public_key_bits() const
    {
-   return DER_Encoder()
-      .start_cons(SEQUENCE)
-        .encode(m_public, OCTET_STRING)
-      .end_cons()
-      .get_contents_unlocked();
+   return m_public;
+   }
+
+Curve25519_PrivateKey::Curve25519_PrivateKey(const secure_vector<uint8_t>& secret_key)
+   {
+   if(secret_key.size() != 32)
+     throw Decoding_Error("Invalid size for Curve25519 private key");
+
+   m_public.resize(32);
+   m_private = secret_key;
+   curve25519_basepoint(m_public.data(), m_private.data());
    }
 
 Curve25519_PrivateKey::Curve25519_PrivateKey(RandomNumberGenerator& rng)
@@ -11092,25 +12585,16 @@ Curve25519_PrivateKey::Curve25519_PrivateKey(RandomNumberGenerator& rng)
 Curve25519_PrivateKey::Curve25519_PrivateKey(const AlgorithmIdentifier&,
                                              const secure_vector<uint8_t>& key_bits)
    {
-   BER_Decoder(key_bits)
-      .start_cons(SEQUENCE)
-      .decode(m_public, OCTET_STRING)
-      .decode(m_private, OCTET_STRING)
-      .verify_end()
-   .end_cons();
+   BER_Decoder(key_bits).decode(m_private, OCTET_STRING).discard_remaining();
 
-   size_check(m_public.size(), "public key");
    size_check(m_private.size(), "private key");
+   m_public.resize(32);
+   curve25519_basepoint(m_public.data(), m_private.data());
    }
 
 secure_vector<uint8_t> Curve25519_PrivateKey::private_key_bits() const
    {
-   return DER_Encoder()
-      .start_cons(SEQUENCE)
-        .encode(m_public, OCTET_STRING)
-        .encode(m_private, OCTET_STRING)
-      .end_cons()
-      .get_contents();
+   return DER_Encoder().encode(m_private, OCTET_STRING).get_contents();
    }
 
 bool Curve25519_PrivateKey::check_key(RandomNumberGenerator&, bool) const
@@ -11131,7 +12615,7 @@ namespace {
 /**
 * Curve25519 operation
 */
-class Curve25519_KA_Operation : public PK_Ops::Key_Agreement_with_KDF
+class Curve25519_KA_Operation final : public PK_Ops::Key_Agreement_with_KDF
    {
    public:
 
@@ -12615,7 +14099,6 @@ void DESX::clear()
 */
 
 
-#include <sys/types.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -12803,7 +14286,7 @@ namespace {
 /**
 * DH operation
 */
-class DH_KA_Operation : public PK_Ops::Key_Agreement_with_KDF
+class DH_KA_Operation final : public PK_Ops::Key_Agreement_with_KDF
    {
    public:
 
@@ -12923,7 +14406,7 @@ bool DL_Scheme_PublicKey::check_key(RandomNumberGenerator& rng,
       if(power_mod(m_y, q, p) != 1)
          return false;
       }
-   catch(const Invalid_State& e)
+   catch(const Invalid_State&)
       {
       return true;
       }
@@ -13838,7 +15321,7 @@ secure_vector<uint8_t> DLIES_Decryptor::do_decrypt(uint8_t& valid_mask,
    secure_vector<uint8_t> tag(msg + m_pub_key_size + ciphertext_len,
                            msg + m_pub_key_size + ciphertext_len + m_mac->output_length());
 
-   valid_mask = CT::expand_mask<uint8_t>(same_mem(tag.data(), calculated_tag.data(), tag.size()));
+   valid_mask = CT::expand_mask<uint8_t>(constant_time_compare(tag.data(), calculated_tag.data(), tag.size()));
 
    // decrypt
    if(m_cipher)
@@ -13950,7 +15433,7 @@ namespace {
 /**
 * Object that can create a DSA signature
 */
-class DSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
+class DSA_Signature_Operation final : public PK_Ops::Signature_with_EMSA
    {
    public:
       DSA_Signature_Operation(const DSA_PrivateKey& dsa, const std::string& emsa) :
@@ -13958,9 +15441,11 @@ class DSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
          m_q(dsa.group_q()),
          m_x(dsa.get_x()),
          m_powermod_g_p(dsa.group_g(), dsa.group_p()),
-         m_mod_q(dsa.group_q()),
-         m_emsa(emsa)
+         m_mod_q(dsa.group_q())
          {
+#if defined(BOTAN_HAS_RFC6979_GENERATOR)
+         m_rfc6979_hash = hash_for_emsa(emsa);
+#endif
          }
 
       size_t max_input_bits() const override { return m_q.bits(); }
@@ -13972,7 +15457,9 @@ class DSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
       const BigInt& m_x;
       Fixed_Base_Power_Mod m_powermod_g_p;
       Modular_Reducer m_mod_q;
-      std::string m_emsa;
+#if defined(BOTAN_HAS_RFC6979_GENERATOR)
+      std::string m_rfc6979_hash;
+#endif
    };
 
 secure_vector<uint8_t>
@@ -13986,7 +15473,7 @@ DSA_Signature_Operation::raw_sign(const uint8_t msg[], size_t msg_len,
 
 #if defined(BOTAN_HAS_RFC6979_GENERATOR)
    BOTAN_UNUSED(rng);
-   const BigInt k = generate_rfc6979_nonce(m_x, m_q, i, hash_for_emsa(m_emsa));
+   const BigInt k = generate_rfc6979_nonce(m_x, m_q, i, m_rfc6979_hash);
 #else
    const BigInt k = BigInt::random_integer(rng, 1, m_q);
 #endif
@@ -14014,7 +15501,7 @@ DSA_Signature_Operation::raw_sign(const uint8_t msg[], size_t msg_len,
 /**
 * Object that can verify a DSA signature
 */
-class DSA_Verification_Operation : public PK_Ops::Verification_with_EMSA
+class DSA_Verification_Operation final : public PK_Ops::Verification_with_EMSA
    {
    public:
       DSA_Verification_Operation(const DSA_PublicKey& dsa,
@@ -14259,7 +15746,7 @@ void EAX_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
    mac ^= m_ad_mac;
 
-   if(!same_mem(mac.data(), included_tag, tag_size()))
+   if(!constant_time_compare(mac.data(), included_tag, tag_size()))
       throw Integrity_Failure("EAX tag check failed");
 
    buffer.resize(offset + remaining);
@@ -15437,8 +16924,6 @@ Blinded_Point_Multiply::Blinded_Point_Multiply(const PointGFp& base, const BigIn
 
    const CurveGFp& curve = base.get_curve();
 
-#if BOTAN_POINTGFP_BLINDED_MULTIPLY_USE_MONTGOMERY_LADDER
-
    const PointGFp inv = -base;
 
    m_U.resize(6*m_h + 3);
@@ -15455,17 +16940,6 @@ Blinded_Point_Multiply::Blinded_Point_Multiply(const PointGFp& base, const BigIn
       m_U[3*m_h+1-i] = m_U[3*m_h+2-i];
       m_U[3*m_h+1-i].add(inv, m_ws);
       }
-#else
-   m_U.resize(1 << m_h);
-   m_U[0] = PointGFp::zero_of(curve);
-   m_U[1] = base;
-
-   for(size_t i = 2; i < m_U.size(); ++i)
-      {
-      m_U[i] = m_U[i-1];
-      m_U[i].add(base, m_ws);
-      }
-#endif
    }
 
 PointGFp Blinded_Point_Multiply::blinded_multiply(const BigInt& scalar_in,
@@ -15474,9 +16948,9 @@ PointGFp Blinded_Point_Multiply::blinded_multiply(const BigInt& scalar_in,
    if(scalar_in.is_negative())
       throw Invalid_Argument("Blinded_Point_Multiply scalar must be positive");
 
-#if BOTAN_POINTGFP_SCALAR_BLINDING_BITS > 0
+#if BOTAN_POINTGFP_USE_SCALAR_BLINDING
    // Choose a small mask m and use k' = k + m*order (Coron's 1st countermeasure)
-   const BigInt mask(rng, BOTAN_POINTGFP_SCALAR_BLINDING_BITS, false);
+   const BigInt mask(rng, (m_order.bits()+1)/2, false);
    const BigInt scalar = scalar_in + m_order * mask;
 #else
    const BigInt& scalar = scalar_in;
@@ -15488,7 +16962,6 @@ PointGFp Blinded_Point_Multiply::blinded_multiply(const BigInt& scalar_in,
    for(size_t i = 0; i != m_U.size(); ++i)
       m_U[i].randomize_repr(rng);
 
-#if BOTAN_POINTGFP_BLINDED_MULTIPLY_USE_MONTGOMERY_LADDER
    PointGFp R = m_U.at(3*m_h + 2); // base point
    int32_t alpha = 0;
 
@@ -15518,38 +16991,6 @@ PointGFp Blinded_Point_Multiply::blinded_multiply(const BigInt& scalar_in,
    const int32_t k0 = scalar.get_bit(0);
    R.add(m_U[3*m_h + 1 - alpha - (k0 ^ 1)], m_ws);
 
-#else
-
-   // N-bit windowing exponentiation:
-
-   size_t windows = round_up(scalar_bits, m_h) / m_h;
-
-   PointGFp R = m_U[0];
-
-   if(windows > 0)
-      {
-      windows--;
-      const uint32_t nibble = scalar.get_substring(windows*m_h, m_h);
-      R.add(m_U[nibble], m_ws);
-
-      /*
-      Randomize after adding the first nibble as before the addition R
-      is zero, and we cannot effectively randomize the point
-      representation of the zero point.
-      */
-      R.randomize_repr(rng);
-
-      while(windows)
-         {
-         for(size_t i = 0; i != m_h; ++i)
-            R.mult2(m_ws);
-
-         const uint32_t inner_nibble = scalar.get_substring((windows-1)*m_h, m_h);
-         R.add(m_U[inner_nibble], m_ws);
-         windows--;
-         }
-      }
-#endif
 
    //BOTAN_ASSERT(R.on_the_curve(), "Output is on the curve");
 
@@ -15778,7 +17219,9 @@ EC_Group::EC_Group(const OID& domain_oid)
    const std::string pem = PEM_for_named_group(OIDS::lookup(domain_oid));
 
    if(pem == "")
-      throw Lookup_Error("No ECC domain data for " + domain_oid.as_string());
+      {
+      throw Lookup_Error("No ECC domain data for '" + domain_oid.as_string() + "'");
+      }
 
    *this = EC_Group(pem);
    m_oid = domain_oid.as_string();
@@ -15875,7 +17318,13 @@ EC_Group::DER_encode(EC_Group_Encoding form) const
          .get_contents_unlocked();
       }
    else if(form == EC_DOMPAR_ENC_OID)
+      {
+      if(get_oid().empty())
+         {
+         throw Encoding_Error("Cannot encode EC_Group as OID because OID not set");
+         }
       return DER_Encoder().encode(OID(get_oid())).get_contents_unlocked();
+      }
    else if(form == EC_DOMPAR_ENC_IMPLICITCA)
       return DER_Encoder().encode_null().get_contents_unlocked();
    else
@@ -15886,6 +17335,46 @@ std::string EC_Group::PEM_encode() const
    {
    const std::vector<uint8_t> der = DER_encode(EC_DOMPAR_ENC_EXPLICIT);
    return PEM_Code::encode(der, "EC PARAMETERS");
+   }
+
+bool EC_Group::verify_group(RandomNumberGenerator& rng,
+                            bool) const
+   {
+   //compute the discriminant
+   Modular_Reducer p(m_curve.get_p());
+   BigInt discriminant = p.multiply(4, m_curve.get_a());
+   discriminant += p.multiply(27, m_curve.get_b());
+   discriminant = p.reduce(discriminant);
+   //check the discriminant
+   if(discriminant == 0)
+      {
+      return false;
+      }
+   //check for valid cofactor
+   if(m_cofactor < 1)
+      {
+      return false;
+      }
+   //check if the base point is on the curve
+   if(!m_base_point.on_the_curve())
+      {
+      return false;
+      }
+   if((m_base_point * m_cofactor).is_zero())
+      {
+      return false;
+      }
+   //check if order is prime
+   if(!is_prime(m_order, rng, 128))
+      {
+      return false;
+      }
+   //check if order of the base point is correct
+   if(!(m_base_point * m_order).is_zero())
+      {
+      return false;
+      }
+   return true;
    }
 
 }
@@ -16156,6 +17645,16 @@ std::string EC_Group::PEM_for_named_group(const std::string& name)
          "8f0XjAs61Y8QEm3ozkJDW1PcZ+FA0r+UH/3UWcbWVeECAQE="
          "-----END EC PARAMETERS-----";
 
+   if(name == "sm2p256v1")
+      return
+         "-----BEGIN EC PARAMETERS-----"
+         "MIHgAgEBMCwGByqGSM49AQECIQD////+/////////////////////wAAAAD/////"
+         "/////zBEBCD////+/////////////////////wAAAAD//////////AQgKOn6np2f"
+         "XjRNWp5Lz2UJp/OXifUVq4+S3by9QU2UDpMEQQQyxK4sHxmBGV+ZBEZqOcmUj+ML"
+         "v/JmC+FxWkWJM0x0x7w3NqL09necWb3O42tpIVPQqYd8xipHQALfMuUhOfCgAiEA"
+         "/////v///////////////3ID32shxgUrU7v0CTnVQSMCAQE="
+         "-----END EC PARAMETERS-----";
+
 #if defined(BOTAN_HOUSE_ECC_CURVE_NAME)
    if(name == BOTAN_HOUSE_ECC_CURVE_NAME)
       return BOTAN_HOUSE_ECC_CURVE_PEM;
@@ -16189,9 +17688,12 @@ size_t EC_PublicKey::estimated_strength() const
 
 EC_PublicKey::EC_PublicKey(const EC_Group& dom_par,
                            const PointGFp& pub_point) :
-   m_domain_params(dom_par), m_public_key(pub_point),
-   m_domain_encoding(EC_DOMPAR_ENC_EXPLICIT)
+   m_domain_params(dom_par), m_public_key(pub_point)
    {
+   if (!dom_par.get_oid().empty())
+      m_domain_encoding = EC_DOMPAR_ENC_OID;
+   else
+      m_domain_encoding = EC_DOMPAR_ENC_EXPLICIT;
    if(domain().get_curve() != public_point().get_curve())
       throw Invalid_Argument("EC_PublicKey: curve mismatch in constructor");
    }
@@ -16199,15 +17701,47 @@ EC_PublicKey::EC_PublicKey(const EC_Group& dom_par,
 EC_PublicKey::EC_PublicKey(const AlgorithmIdentifier& alg_id,
                            const std::vector<uint8_t>& key_bits) :
    m_domain_params{EC_Group(alg_id.parameters)},
-   m_public_key{OS2ECP(key_bits, domain().get_curve())},
-   m_domain_encoding{EC_DOMPAR_ENC_EXPLICIT}
-   {}
+   m_public_key{OS2ECP(key_bits, domain().get_curve())}
+   {
+   if (!domain().get_oid().empty())
+      m_domain_encoding = EC_DOMPAR_ENC_OID;
+   else
+      m_domain_encoding = EC_DOMPAR_ENC_EXPLICIT;
+   }
 
-bool EC_PublicKey::check_key(RandomNumberGenerator&,
+bool EC_PublicKey::check_key(RandomNumberGenerator& rng,
                              bool) const
    {
-   return public_point().on_the_curve();
+   //verify domain parameters
+   if(!m_domain_params.verify_group(rng))
+      {
+      return false;
+      }
+   //check that public point is not at infinity
+   if(public_point().is_zero())
+      {
+      return false;
+      }
+   //check that public point is on the curve
+   if(!public_point().on_the_curve())
+      {
+      return false;
+      }
+   if(m_domain_params.get_cofactor() > 1)
+      {
+      if((public_point() * m_domain_params.get_cofactor()).is_zero())
+         {
+         return false;
+         }
+      //check that public point has order q
+      if(!(public_point() * m_domain_params.get_order()).is_zero())
+         {
+         return false;
+         }
+      }
+   return true;
    }
+
 
 AlgorithmIdentifier EC_PublicKey::algorithm_identifier() const
    {
@@ -16251,7 +17785,10 @@ EC_PrivateKey::EC_PrivateKey(RandomNumberGenerator& rng,
                              bool with_modular_inverse)
    {
    m_domain_params = ec_group;
-   m_domain_encoding = EC_DOMPAR_ENC_EXPLICIT;
+   if (!ec_group.get_oid().empty())
+      m_domain_encoding = EC_DOMPAR_ENC_OID;
+   else
+      m_domain_encoding = EC_DOMPAR_ENC_EXPLICIT;
 
    if(x == 0)
       {
@@ -16298,9 +17835,6 @@ EC_PrivateKey::EC_PrivateKey(const AlgorithmIdentifier& alg_id,
          .decode_optional_string(public_key_bits, BIT_STRING, 1, PRIVATE)
       .end_cons();
 
-   if(!key_parameters.empty() && key_parameters != alg_id.oid)
-      throw Decoding_Error("EC_PrivateKey - inner and outer OIDs did not match");
-
    if(public_key_bits.empty())
       {
       m_public_key = domain().get_base_point() *
@@ -16332,14 +17866,12 @@ EC_PrivateKey::EC_PrivateKey(const AlgorithmIdentifier& alg_id,
 
 namespace Botan {
 
-ECDH_PublicKey::ECDH_PublicKey() {}
-
 namespace {
 
 /**
 * ECDH operation
 */
-class ECDH_KA_Operation : public PK_Ops::Key_Agreement_with_KDF
+class ECDH_KA_Operation final : public PK_Ops::Key_Agreement_with_KDF
    {
    public:
 
@@ -16415,6 +17947,9 @@ ECDH_PrivateKey::create_key_agreement_op(RandomNumberGenerator& rng,
 #if defined(BOTAN_HAS_RFC6979_GENERATOR)
 #endif
 
+#if defined(BOTAN_HAS_BEARSSL)
+#endif
+
 #if defined(BOTAN_HAS_OPENSSL)
 #endif
 
@@ -16437,7 +17972,7 @@ namespace {
 /**
 * ECDSA signature operation
 */
-class ECDSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
+class ECDSA_Signature_Operation final : public PK_Ops::Signature_with_EMSA
    {
    public:
 
@@ -16447,9 +17982,11 @@ class ECDSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
          m_order(ecdsa.domain().get_order()),
          m_base_point(ecdsa.domain().get_base_point(), m_order),
          m_x(ecdsa.private_value()),
-         m_mod_order(m_order),
-         m_emsa(emsa)
+         m_mod_order(m_order)
          {
+#if defined(BOTAN_HAS_RFC6979_GENERATOR)
+         m_rfc6979_hash = hash_for_emsa(emsa);
+#endif
          }
 
       size_t max_input_bits() const override { return m_order.bits(); }
@@ -16462,7 +17999,9 @@ class ECDSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
       Blinded_Point_Multiply m_base_point;
       const BigInt& m_x;
       Modular_Reducer m_mod_order;
-      std::string m_emsa;
+#if defined(BOTAN_HAS_RFC6979_GENERATOR)
+      std::string m_rfc6979_hash;
+#endif
    };
 
 secure_vector<uint8_t>
@@ -16472,7 +18011,7 @@ ECDSA_Signature_Operation::raw_sign(const uint8_t msg[], size_t msg_len,
    const BigInt m(msg, msg_len);
 
 #if defined(BOTAN_HAS_RFC6979_GENERATOR)
-   const BigInt k = generate_rfc6979_nonce(m_x, m_order, m, hash_for_emsa(m_emsa));
+   const BigInt k = generate_rfc6979_nonce(m_x, m_order, m, m_rfc6979_hash);
 #else
    const BigInt k = BigInt::random_integer(rng, 1, m_order);
 #endif
@@ -16491,7 +18030,7 @@ ECDSA_Signature_Operation::raw_sign(const uint8_t msg[], size_t msg_len,
 /**
 * ECDSA verification operation
 */
-class ECDSA_Verification_Operation : public PK_Ops::Verification_with_EMSA
+class ECDSA_Verification_Operation final : public PK_Ops::Verification_with_EMSA
    {
    public:
       ECDSA_Verification_Operation(const ECDSA_PublicKey& ecdsa,
@@ -16552,6 +18091,21 @@ std::unique_ptr<PK_Ops::Verification>
 ECDSA_PublicKey::create_verification_op(const std::string& params,
                                         const std::string& provider) const
    {
+#if defined(BOTAN_HAS_BEARSSL)
+   if(provider == "bearssl" || provider.empty())
+      {
+      try
+         {
+         return make_bearssl_ecdsa_ver_op(*this, params);
+         }
+      catch(Lookup_Error& e)
+         {
+         if(provider == "bearssl")
+            throw;
+         }
+      }
+#endif
+
 #if defined(BOTAN_HAS_OPENSSL)
    if(provider == "openssl" || provider.empty())
       {
@@ -16578,6 +18132,21 @@ ECDSA_PrivateKey::create_signature_op(RandomNumberGenerator& /*rng*/,
                                       const std::string& params,
                                       const std::string& provider) const
    {
+#if defined(BOTAN_HAS_BEARSSL)
+   if(provider == "bearssl" || provider.empty())
+      {
+      try
+         {
+         return make_bearssl_ecdsa_sig_op(*this, params);
+         }
+      catch(Lookup_Error& e)
+         {
+         if(provider == "bearssl")
+            throw;
+         }
+      }
+#endif
+
 #if defined(BOTAN_HAS_OPENSSL)
    if(provider == "openssl" || provider.empty())
       {
@@ -16627,7 +18196,7 @@ namespace {
 /**
 * ECGDSA signature operation
 */
-class ECGDSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
+class ECGDSA_Signature_Operation final : public PK_Ops::Signature_with_EMSA
    {
    public:
 
@@ -16675,7 +18244,7 @@ ECGDSA_Signature_Operation::raw_sign(const uint8_t msg[], size_t msg_len,
 /**
 * ECGDSA verification operation
 */
-class ECGDSA_Verification_Operation : public PK_Ops::Verification_with_EMSA
+class ECGDSA_Verification_Operation final : public PK_Ops::Verification_with_EMSA
    {
    public:
 
@@ -16769,7 +18338,7 @@ namespace {
 /**
 * Private key type for ECIES_ECDH_KA_Operation
 */
-class ECIES_PrivateKey : public EC_PrivateKey, public PK_Key_Agreement_Key
+class ECIES_PrivateKey final : public EC_PrivateKey, public PK_Key_Agreement_Key
    {
    public:
       explicit ECIES_PrivateKey(const ECDH_PrivateKey& private_key) :
@@ -16802,7 +18371,7 @@ class ECIES_PrivateKey : public EC_PrivateKey, public PK_Key_Agreement_Key
 /**
 * Implements ECDH key agreement without using the cofactor mode
 */
-class ECIES_ECDH_KA_Operation : public PK_Ops::Key_Agreement_with_KDF
+class ECIES_ECDH_KA_Operation final : public PK_Ops::Key_Agreement_with_KDF
    {
    public:
       ECIES_ECDH_KA_Operation(const ECIES_PrivateKey& private_key, RandomNumberGenerator& rng) :
@@ -17113,7 +18682,7 @@ secure_vector<uint8_t> ECIES_Decryptor::do_decrypt(uint8_t& valid_mask, const ui
       mac->update(m_label);
       }
    const secure_vector<uint8_t> calculated_mac = mac->final();
-   valid_mask = CT::expand_mask<uint8_t>(same_mem(mac_data.data(), calculated_mac.data(), mac_data.size()));
+   valid_mask = CT::expand_mask<uint8_t>(constant_time_compare(mac_data.data(), calculated_mac.data(), mac_data.size()));
 
    if(valid_mask)
       {
@@ -17175,7 +18744,7 @@ namespace {
 /**
 * ECKCDSA signature operation
 */
-class ECKCDSA_Signature_Operation : public PK_Ops::Signature_with_EMSA
+class ECKCDSA_Signature_Operation final : public PK_Ops::Signature_with_EMSA
    {
    public:
 
@@ -17246,7 +18815,7 @@ ECKCDSA_Signature_Operation::raw_sign(const uint8_t msg[], size_t,
 /**
 * ECKCDSA verification operation
 */
-class ECKCDSA_Verification_Operation : public PK_Ops::Verification_with_EMSA
+class ECKCDSA_Verification_Operation final : public PK_Ops::Verification_with_EMSA
    {
    public:
 
@@ -17348,6 +18917,4269 @@ ECKCDSA_PrivateKey::create_signature_op(RandomNumberGenerator& /*rng*/,
 
 }
 /*
+* Ed25519
+* (C) 2017 Ribose Inc
+*
+* Based on the public domain code from SUPERCOP ref10 by
+* Peter Schwabe, Daniel J. Bernstein, Niels Duif, Tanja Lange, Bo-Yin Yang
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+void ed25519_gen_keypair(uint8_t* pk, uint8_t* sk, const uint8_t seed[32])
+   {
+   uint8_t az[64];
+
+   SHA_512 sha;
+   sha.update(seed, 32);
+   sha.final(az);
+   az[0] &= 248;
+   az[31] &= 63;
+   az[31] |= 64;
+
+   ge_scalarmult_base(pk, az);
+
+   // todo copy_mem
+   memmove(sk, seed, 32);
+   memmove(sk + 32, pk, 32);
+   }
+
+void ed25519_sign(uint8_t sig[64],
+                  const uint8_t* m, size_t mlen,
+                  const uint8_t* sk)
+   {
+   uint8_t az[64];
+   uint8_t nonce[64];
+   uint8_t hram[64];
+
+   SHA_512 sha;
+
+   sha.update(sk, 32);
+   sha.final(az);
+   az[0] &= 248;
+   az[31] &= 63;
+   az[31] |= 64;
+
+   sha.update(az + 32, 32);
+   sha.update(m, mlen);
+   sha.final(nonce);
+
+   sc_reduce(nonce);
+   ge_scalarmult_base(sig, nonce);
+
+   sha.update(sig, 32);
+   sha.update(sk + 32, 32);
+   sha.update(m, mlen);
+   sha.final(hram);
+
+   sc_reduce(hram);
+   sc_muladd(sig + 32, hram, az, nonce);
+   }
+
+bool ed25519_verify(const uint8_t* m, size_t mlen,
+                    const uint8_t sig[64],
+                    const uint8_t* pk)
+   {
+   uint8_t h[64];
+   uint8_t rcheck[32];
+   ge_p3 A;
+   SHA_512 sha;
+
+   if(sig[63] & 224)
+      {
+      return false;
+      }
+   if(ge_frombytes_negate_vartime(&A, pk) != 0)
+      {
+      return false;
+      }
+
+   sha.update(sig, 32);
+   sha.update(pk, 32);
+   sha.update(m, mlen);
+   sha.final(h);
+   sc_reduce(h);
+
+   ge_double_scalarmult_vartime(rcheck, h, &A, sig + 32);
+
+   return constant_time_compare(rcheck, sig, 32);
+   }
+
+}
+/*
+* Ed25519 field element
+* (C) 2017 Ribose Inc
+*
+* Based on the public domain code from SUPERCOP ref10 by
+* Peter Schwabe, Daniel J. Bernstein, Niels Duif, Tanja Lange, Bo-Yin Yang
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+//static
+FE_25519 FE_25519::invert(const FE_25519& z)
+   {
+   fe t0;
+   fe t1;
+   fe t2;
+   fe t3;
+
+   fe_sq(t0, z);
+   fe_sq_iter(t1, t0, 2);
+   fe_mul(t1, z, t1);
+   fe_mul(t0, t0, t1);
+   fe_sq(t2, t0);
+   fe_mul(t1, t1, t2);
+   fe_sq_iter(t2, t1, 5);
+   fe_mul(t1, t2, t1);
+   fe_sq_iter(t2, t1, 10);
+   fe_mul(t2, t2, t1);
+   fe_sq_iter(t3, t2, 20);
+   fe_mul(t2, t3, t2);
+   fe_sq_iter(t2, t2, 10);
+   fe_mul(t1, t2, t1);
+   fe_sq_iter(t2, t1, 50);
+   fe_mul(t2, t2, t1);
+   fe_sq_iter(t3, t2, 100);
+   fe_mul(t2, t3, t2);
+   fe_sq_iter(t2, t2, 50);
+   fe_mul(t1, t2, t1);
+   fe_sq_iter(t1, t1, 5);
+
+   fe_mul(t0, t1, t0);
+   return t0;
+   }
+
+FE_25519 FE_25519::pow_22523(const fe& z)
+   {
+   fe t0;
+   fe t1;
+   fe t2;
+
+   fe_sq(t0, z);
+   fe_sq_iter(t1, t0, 2);
+   fe_mul(t1, z, t1);
+   fe_mul(t0, t0, t1);
+   fe_sq(t0, t0);
+   fe_mul(t0, t1, t0);
+   fe_sq_iter(t1, t0, 5);
+   fe_mul(t0, t1, t0);
+   fe_sq_iter(t1, t0, 10);
+   fe_mul(t1, t1, t0);
+   fe_sq_iter(t2, t1, 20);
+   fe_mul(t1, t2, t1);
+   fe_sq_iter(t1, t1, 10);
+   fe_mul(t0, t1, t0);
+   fe_sq_iter(t1, t0, 50);
+   fe_mul(t1, t1, t0);
+   fe_sq_iter(t2, t1, 100);
+   fe_mul(t1, t2, t1);
+   fe_sq_iter(t1, t1, 50);
+   fe_mul(t0, t1, t0);
+   fe_sq_iter(t0, t0, 2);
+
+   fe_mul(t0, t0, z);
+   return t0;
+   }
+
+/*
+h = f * g
+Can overlap h with f or g.
+
+Preconditions:
+|f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
+|g| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
+
+Postconditions:
+|h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
+*/
+
+/*
+Notes on implementation strategy:
+
+Using schoolbook multiplication.
+Karatsuba would save a little in some cost models.
+
+Most multiplications by 2 and 19 are 32-bit precomputations;
+cheaper than 64-bit postcomputations.
+
+There is one remaining multiplication by 19 in the carry chain;
+one *19 precomputation can be merged into this,
+but the resulting data flow is considerably less clean.
+
+There are 12 carries below.
+10 of them are 2-way parallelizable and vectorizable.
+Can get away with 11 carries, but then data flow is much deeper.
+
+With tighter constraints on inputs can squeeze carries into int32.
+*/
+
+//static
+FE_25519 FE_25519::mul(const FE_25519& f, const FE_25519& g)
+   {
+   int32_t f0 = f[0];
+   int32_t f1 = f[1];
+   int32_t f2 = f[2];
+   int32_t f3 = f[3];
+   int32_t f4 = f[4];
+   int32_t f5 = f[5];
+   int32_t f6 = f[6];
+   int32_t f7 = f[7];
+   int32_t f8 = f[8];
+   int32_t f9 = f[9];
+
+   int32_t g0 = g[0];
+   int32_t g1 = g[1];
+   int32_t g2 = g[2];
+   int32_t g3 = g[3];
+   int32_t g4 = g[4];
+   int32_t g5 = g[5];
+   int32_t g6 = g[6];
+   int32_t g7 = g[7];
+   int32_t g8 = g[8];
+   int32_t g9 = g[9];
+
+   int32_t g1_19 = 19 * g1; /* 1.959375*2^29 */
+   int32_t g2_19 = 19 * g2; /* 1.959375*2^30; still ok */
+   int32_t g3_19 = 19 * g3;
+   int32_t g4_19 = 19 * g4;
+   int32_t g5_19 = 19 * g5;
+   int32_t g6_19 = 19 * g6;
+   int32_t g7_19 = 19 * g7;
+   int32_t g8_19 = 19 * g8;
+   int32_t g9_19 = 19 * g9;
+   int32_t f1_2 = 2 * f1;
+   int32_t f3_2 = 2 * f3;
+   int32_t f5_2 = 2 * f5;
+   int32_t f7_2 = 2 * f7;
+   int32_t f9_2 = 2 * f9;
+   int64_t f0g0    = f0   * static_cast<int64_t>(g0);
+   int64_t f0g1    = f0   * static_cast<int64_t>(g1);
+   int64_t f0g2    = f0   * static_cast<int64_t>(g2);
+   int64_t f0g3    = f0   * static_cast<int64_t>(g3);
+   int64_t f0g4    = f0   * static_cast<int64_t>(g4);
+   int64_t f0g5    = f0   * static_cast<int64_t>(g5);
+   int64_t f0g6    = f0   * static_cast<int64_t>(g6);
+   int64_t f0g7    = f0   * static_cast<int64_t>(g7);
+   int64_t f0g8    = f0   * static_cast<int64_t>(g8);
+   int64_t f0g9    = f0   * static_cast<int64_t>(g9);
+   int64_t f1g0    = f1   * static_cast<int64_t>(g0);
+   int64_t f1g1_2  = f1_2 * static_cast<int64_t>(g1);
+   int64_t f1g2    = f1   * static_cast<int64_t>(g2);
+   int64_t f1g3_2  = f1_2 * static_cast<int64_t>(g3);
+   int64_t f1g4    = f1   * static_cast<int64_t>(g4);
+   int64_t f1g5_2  = f1_2 * static_cast<int64_t>(g5);
+   int64_t f1g6    = f1   * static_cast<int64_t>(g6);
+   int64_t f1g7_2  = f1_2 * static_cast<int64_t>(g7);
+   int64_t f1g8    = f1   * static_cast<int64_t>(g8);
+   int64_t f1g9_38 = f1_2 * static_cast<int64_t>(g9_19);
+   int64_t f2g0    = f2   * static_cast<int64_t>(g0);
+   int64_t f2g1    = f2   * static_cast<int64_t>(g1);
+   int64_t f2g2    = f2   * static_cast<int64_t>(g2);
+   int64_t f2g3    = f2   * static_cast<int64_t>(g3);
+   int64_t f2g4    = f2   * static_cast<int64_t>(g4);
+   int64_t f2g5    = f2   * static_cast<int64_t>(g5);
+   int64_t f2g6    = f2   * static_cast<int64_t>(g6);
+   int64_t f2g7    = f2   * static_cast<int64_t>(g7);
+   int64_t f2g8_19 = f2   * static_cast<int64_t>(g8_19);
+   int64_t f2g9_19 = f2   * static_cast<int64_t>(g9_19);
+   int64_t f3g0    = f3   * static_cast<int64_t>(g0);
+   int64_t f3g1_2  = f3_2 * static_cast<int64_t>(g1);
+   int64_t f3g2    = f3   * static_cast<int64_t>(g2);
+   int64_t f3g3_2  = f3_2 * static_cast<int64_t>(g3);
+   int64_t f3g4    = f3   * static_cast<int64_t>(g4);
+   int64_t f3g5_2  = f3_2 * static_cast<int64_t>(g5);
+   int64_t f3g6    = f3   * static_cast<int64_t>(g6);
+   int64_t f3g7_38 = f3_2 * static_cast<int64_t>(g7_19);
+   int64_t f3g8_19 = f3   * static_cast<int64_t>(g8_19);
+   int64_t f3g9_38 = f3_2 * static_cast<int64_t>(g9_19);
+   int64_t f4g0    = f4   * static_cast<int64_t>(g0);
+   int64_t f4g1    = f4   * static_cast<int64_t>(g1);
+   int64_t f4g2    = f4   * static_cast<int64_t>(g2);
+   int64_t f4g3    = f4   * static_cast<int64_t>(g3);
+   int64_t f4g4    = f4   * static_cast<int64_t>(g4);
+   int64_t f4g5    = f4   * static_cast<int64_t>(g5);
+   int64_t f4g6_19 = f4   * static_cast<int64_t>(g6_19);
+   int64_t f4g7_19 = f4   * static_cast<int64_t>(g7_19);
+   int64_t f4g8_19 = f4   * static_cast<int64_t>(g8_19);
+   int64_t f4g9_19 = f4   * static_cast<int64_t>(g9_19);
+   int64_t f5g0    = f5   * static_cast<int64_t>(g0);
+   int64_t f5g1_2  = f5_2 * static_cast<int64_t>(g1);
+   int64_t f5g2    = f5   * static_cast<int64_t>(g2);
+   int64_t f5g3_2  = f5_2 * static_cast<int64_t>(g3);
+   int64_t f5g4    = f5   * static_cast<int64_t>(g4);
+   int64_t f5g5_38 = f5_2 * static_cast<int64_t>(g5_19);
+   int64_t f5g6_19 = f5   * static_cast<int64_t>(g6_19);
+   int64_t f5g7_38 = f5_2 * static_cast<int64_t>(g7_19);
+   int64_t f5g8_19 = f5   * static_cast<int64_t>(g8_19);
+   int64_t f5g9_38 = f5_2 * static_cast<int64_t>(g9_19);
+   int64_t f6g0    = f6   * static_cast<int64_t>(g0);
+   int64_t f6g1    = f6   * static_cast<int64_t>(g1);
+   int64_t f6g2    = f6   * static_cast<int64_t>(g2);
+   int64_t f6g3    = f6   * static_cast<int64_t>(g3);
+   int64_t f6g4_19 = f6   * static_cast<int64_t>(g4_19);
+   int64_t f6g5_19 = f6   * static_cast<int64_t>(g5_19);
+   int64_t f6g6_19 = f6   * static_cast<int64_t>(g6_19);
+   int64_t f6g7_19 = f6   * static_cast<int64_t>(g7_19);
+   int64_t f6g8_19 = f6   * static_cast<int64_t>(g8_19);
+   int64_t f6g9_19 = f6   * static_cast<int64_t>(g9_19);
+   int64_t f7g0    = f7   * static_cast<int64_t>(g0);
+   int64_t f7g1_2  = f7_2 * static_cast<int64_t>(g1);
+   int64_t f7g2    = f7   * static_cast<int64_t>(g2);
+   int64_t f7g3_38 = f7_2 * static_cast<int64_t>(g3_19);
+   int64_t f7g4_19 = f7   * static_cast<int64_t>(g4_19);
+   int64_t f7g5_38 = f7_2 * static_cast<int64_t>(g5_19);
+   int64_t f7g6_19 = f7   * static_cast<int64_t>(g6_19);
+   int64_t f7g7_38 = f7_2 * static_cast<int64_t>(g7_19);
+   int64_t f7g8_19 = f7   * static_cast<int64_t>(g8_19);
+   int64_t f7g9_38 = f7_2 * static_cast<int64_t>(g9_19);
+   int64_t f8g0    = f8   * static_cast<int64_t>(g0);
+   int64_t f8g1    = f8   * static_cast<int64_t>(g1);
+   int64_t f8g2_19 = f8   * static_cast<int64_t>(g2_19);
+   int64_t f8g3_19 = f8   * static_cast<int64_t>(g3_19);
+   int64_t f8g4_19 = f8   * static_cast<int64_t>(g4_19);
+   int64_t f8g5_19 = f8   * static_cast<int64_t>(g5_19);
+   int64_t f8g6_19 = f8   * static_cast<int64_t>(g6_19);
+   int64_t f8g7_19 = f8   * static_cast<int64_t>(g7_19);
+   int64_t f8g8_19 = f8   * static_cast<int64_t>(g8_19);
+   int64_t f8g9_19 = f8   * static_cast<int64_t>(g9_19);
+   int64_t f9g0    = f9   * static_cast<int64_t>(g0);
+   int64_t f9g1_38 = f9_2 * static_cast<int64_t>(g1_19);
+   int64_t f9g2_19 = f9   * static_cast<int64_t>(g2_19);
+   int64_t f9g3_38 = f9_2 * static_cast<int64_t>(g3_19);
+   int64_t f9g4_19 = f9   * static_cast<int64_t>(g4_19);
+   int64_t f9g5_38 = f9_2 * static_cast<int64_t>(g5_19);
+   int64_t f9g6_19 = f9   * static_cast<int64_t>(g6_19);
+   int64_t f9g7_38 = f9_2 * static_cast<int64_t>(g7_19);
+   int64_t f9g8_19 = f9   * static_cast<int64_t>(g8_19);
+   int64_t f9g9_38 = f9_2 * static_cast<int64_t>(g9_19);
+   int64_t h0 = f0g0+f1g9_38+f2g8_19+f3g7_38+f4g6_19+f5g5_38+f6g4_19+f7g3_38+f8g2_19+f9g1_38;
+   int64_t h1 = f0g1+f1g0   +f2g9_19+f3g8_19+f4g7_19+f5g6_19+f6g5_19+f7g4_19+f8g3_19+f9g2_19;
+   int64_t h2 = f0g2+f1g1_2 +f2g0   +f3g9_38+f4g8_19+f5g7_38+f6g6_19+f7g5_38+f8g4_19+f9g3_38;
+   int64_t h3 = f0g3+f1g2   +f2g1   +f3g0   +f4g9_19+f5g8_19+f6g7_19+f7g6_19+f8g5_19+f9g4_19;
+   int64_t h4 = f0g4+f1g3_2 +f2g2   +f3g1_2 +f4g0   +f5g9_38+f6g8_19+f7g7_38+f8g6_19+f9g5_38;
+   int64_t h5 = f0g5+f1g4   +f2g3   +f3g2   +f4g1   +f5g0   +f6g9_19+f7g8_19+f8g7_19+f9g6_19;
+   int64_t h6 = f0g6+f1g5_2 +f2g4   +f3g3_2 +f4g2   +f5g1_2 +f6g0   +f7g9_38+f8g8_19+f9g7_38;
+   int64_t h7 = f0g7+f1g6   +f2g5   +f3g4   +f4g3   +f5g2   +f6g1   +f7g0   +f8g9_19+f9g8_19;
+   int64_t h8 = f0g8+f1g7_2 +f2g6   +f3g5_2 +f4g4   +f5g3_2 +f6g2   +f7g1_2 +f8g0   +f9g9_38;
+   int64_t h9 = f0g9+f1g8   +f2g7   +f3g6   +f4g5   +f5g4   +f6g3   +f7g2   +f8g1   +f9g0   ;
+   int64_t carry0;
+   int64_t carry1;
+   int64_t carry2;
+   int64_t carry3;
+   int64_t carry4;
+   int64_t carry5;
+   int64_t carry6;
+   int64_t carry7;
+   int64_t carry8;
+   int64_t carry9;
+
+   /*
+   |h0| <= (1.65*1.65*2^52*(1+19+19+19+19)+1.65*1.65*2^50*(38+38+38+38+38))
+   i.e. |h0| <= 1.4*2^60; narrower ranges for h2, h4, h6, h8
+   |h1| <= (1.65*1.65*2^51*(1+1+19+19+19+19+19+19+19+19))
+   i.e. |h1| <= 1.7*2^59; narrower ranges for h3, h5, h7, h9
+   */
+
+   carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h1 += carry0;
+   h0 -= carry0 << 26;
+   carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h5 += carry4;
+   h4 -= carry4 << 26;
+   /* |h0| <= 2^25 */
+   /* |h4| <= 2^25 */
+   /* |h1| <= 1.71*2^59 */
+   /* |h5| <= 1.71*2^59 */
+
+   carry1 = (h1 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h2 += carry1;
+   h1 -= carry1 << 25;
+   carry5 = (h5 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h6 += carry5;
+   h5 -= carry5 << 25;
+   /* |h1| <= 2^24; from now on fits into int32 */
+   /* |h5| <= 2^24; from now on fits into int32 */
+   /* |h2| <= 1.41*2^60 */
+   /* |h6| <= 1.41*2^60 */
+
+   carry2 = (h2 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h3 += carry2;
+   h2 -= carry2 << 26;
+   carry6 = (h6 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h7 += carry6;
+   h6 -= carry6 << 26;
+   /* |h2| <= 2^25; from now on fits into int32 unchanged */
+   /* |h6| <= 2^25; from now on fits into int32 unchanged */
+   /* |h3| <= 1.71*2^59 */
+   /* |h7| <= 1.71*2^59 */
+
+   carry3 = (h3 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h4 += carry3;
+   h3 -= carry3 << 25;
+   carry7 = (h7 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h8 += carry7;
+   h7 -= carry7 << 25;
+   /* |h3| <= 2^24; from now on fits into int32 unchanged */
+   /* |h7| <= 2^24; from now on fits into int32 unchanged */
+   /* |h4| <= 1.72*2^34 */
+   /* |h8| <= 1.41*2^60 */
+
+   carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h5 += carry4;
+   h4 -= carry4 << 26;
+   carry8 = (h8 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h9 += carry8;
+   h8 -= carry8 << 26;
+   /* |h4| <= 2^25; from now on fits into int32 unchanged */
+   /* |h8| <= 2^25; from now on fits into int32 unchanged */
+   /* |h5| <= 1.01*2^24 */
+   /* |h9| <= 1.71*2^59 */
+
+   carry9 = (h9 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h0 += carry9 * 19;
+   h9 -= carry9 << 25;
+   /* |h9| <= 2^24; from now on fits into int32 unchanged */
+   /* |h0| <= 1.1*2^39 */
+
+   carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h1 += carry0;
+   h0 -= carry0 << 26;
+   /* |h0| <= 2^25; from now on fits into int32 unchanged */
+   /* |h1| <= 1.01*2^24 */
+
+   return FE_25519(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
+   }
+
+/*
+h = f * f
+Can overlap h with f.
+
+Preconditions:
+|f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
+
+Postconditions:
+|h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
+*/
+
+/*
+See fe_mul.c for discussion of implementation strategy.
+*/
+
+//static
+FE_25519 FE_25519::sqr_iter(const FE_25519& f, size_t iter)
+   {
+   int32_t f0 = f[0];
+   int32_t f1 = f[1];
+   int32_t f2 = f[2];
+   int32_t f3 = f[3];
+   int32_t f4 = f[4];
+   int32_t f5 = f[5];
+   int32_t f6 = f[6];
+   int32_t f7 = f[7];
+   int32_t f8 = f[8];
+   int32_t f9 = f[9];
+
+   for(size_t i = 0; i != iter; ++i)
+      {
+      const int32_t f0_2 = 2 * f0;
+      const int32_t f1_2 = 2 * f1;
+      const int32_t f2_2 = 2 * f2;
+      const int32_t f3_2 = 2 * f3;
+      const int32_t f4_2 = 2 * f4;
+      const int32_t f5_2 = 2 * f5;
+      const int32_t f6_2 = 2 * f6;
+      const int32_t f7_2 = 2 * f7;
+      const int32_t f5_38 = 38 * f5; /* 1.959375*2^30 */
+      const int32_t f6_19 = 19 * f6; /* 1.959375*2^30 */
+      const int32_t f7_38 = 38 * f7; /* 1.959375*2^30 */
+      const int32_t f8_19 = 19 * f8; /* 1.959375*2^30 */
+      const int32_t f9_38 = 38 * f9; /* 1.959375*2^30 */
+
+      const int64_t f0f0    = f0   * static_cast<int64_t>(f0);
+      const int64_t f0f1_2  = f0_2 * static_cast<int64_t>(f1);
+      const int64_t f0f2_2  = f0_2 * static_cast<int64_t>(f2);
+      const int64_t f0f3_2  = f0_2 * static_cast<int64_t>(f3);
+      const int64_t f0f4_2  = f0_2 * static_cast<int64_t>(f4);
+      const int64_t f0f5_2  = f0_2 * static_cast<int64_t>(f5);
+      const int64_t f0f6_2  = f0_2 * static_cast<int64_t>(f6);
+      const int64_t f0f7_2  = f0_2 * static_cast<int64_t>(f7);
+      const int64_t f0f8_2  = f0_2 * static_cast<int64_t>(f8);
+      const int64_t f0f9_2  = f0_2 * static_cast<int64_t>(f9);
+      const int64_t f1f1_2  = f1_2 * static_cast<int64_t>(f1);
+      const int64_t f1f2_2  = f1_2 * static_cast<int64_t>(f2);
+      const int64_t f1f3_4  = f1_2 * static_cast<int64_t>(f3_2);
+      const int64_t f1f4_2  = f1_2 * static_cast<int64_t>(f4);
+      const int64_t f1f5_4  = f1_2 * static_cast<int64_t>(f5_2);
+      const int64_t f1f6_2  = f1_2 * static_cast<int64_t>(f6);
+      const int64_t f1f7_4  = f1_2 * static_cast<int64_t>(f7_2);
+      const int64_t f1f8_2  = f1_2 * static_cast<int64_t>(f8);
+      const int64_t f1f9_76 = f1_2 * static_cast<int64_t>(f9_38);
+      const int64_t f2f2    = f2   * static_cast<int64_t>(f2);
+      const int64_t f2f3_2  = f2_2 * static_cast<int64_t>(f3);
+      const int64_t f2f4_2  = f2_2 * static_cast<int64_t>(f4);
+      const int64_t f2f5_2  = f2_2 * static_cast<int64_t>(f5);
+      const int64_t f2f6_2  = f2_2 * static_cast<int64_t>(f6);
+      const int64_t f2f7_2  = f2_2 * static_cast<int64_t>(f7);
+      const int64_t f2f8_38 = f2_2 * static_cast<int64_t>(f8_19);
+      const int64_t f2f9_38 = f2   * static_cast<int64_t>(f9_38);
+      const int64_t f3f3_2  = f3_2 * static_cast<int64_t>(f3);
+      const int64_t f3f4_2  = f3_2 * static_cast<int64_t>(f4);
+      const int64_t f3f5_4  = f3_2 * static_cast<int64_t>(f5_2);
+      const int64_t f3f6_2  = f3_2 * static_cast<int64_t>(f6);
+      const int64_t f3f7_76 = f3_2 * static_cast<int64_t>(f7_38);
+      const int64_t f3f8_38 = f3_2 * static_cast<int64_t>(f8_19);
+      const int64_t f3f9_76 = f3_2 * static_cast<int64_t>(f9_38);
+      const int64_t f4f4    = f4   * static_cast<int64_t>(f4);
+      const int64_t f4f5_2  = f4_2 * static_cast<int64_t>(f5);
+      const int64_t f4f6_38 = f4_2 * static_cast<int64_t>(f6_19);
+      const int64_t f4f7_38 = f4   * static_cast<int64_t>(f7_38);
+      const int64_t f4f8_38 = f4_2 * static_cast<int64_t>(f8_19);
+      const int64_t f4f9_38 = f4   * static_cast<int64_t>(f9_38);
+      const int64_t f5f5_38 = f5   * static_cast<int64_t>(f5_38);
+      const int64_t f5f6_38 = f5_2 * static_cast<int64_t>(f6_19);
+      const int64_t f5f7_76 = f5_2 * static_cast<int64_t>(f7_38);
+      const int64_t f5f8_38 = f5_2 * static_cast<int64_t>(f8_19);
+      const int64_t f5f9_76 = f5_2 * static_cast<int64_t>(f9_38);
+      const int64_t f6f6_19 = f6   * static_cast<int64_t>(f6_19);
+      const int64_t f6f7_38 = f6   * static_cast<int64_t>(f7_38);
+      const int64_t f6f8_38 = f6_2 * static_cast<int64_t>(f8_19);
+      const int64_t f6f9_38 = f6   * static_cast<int64_t>(f9_38);
+      const int64_t f7f7_38 = f7   * static_cast<int64_t>(f7_38);
+      const int64_t f7f8_38 = f7_2 * static_cast<int64_t>(f8_19);
+      const int64_t f7f9_76 = f7_2 * static_cast<int64_t>(f9_38);
+      const int64_t f8f8_19 = f8   * static_cast<int64_t>(f8_19);
+      const int64_t f8f9_38 = f8   * static_cast<int64_t>(f9_38);
+      const int64_t f9f9_38 = f9   * static_cast<int64_t>(f9_38);
+
+      int64_t h0 = f0f0  +f1f9_76+f2f8_38+f3f7_76+f4f6_38+f5f5_38;
+      int64_t h1 = f0f1_2+f2f9_38+f3f8_38+f4f7_38+f5f6_38;
+      int64_t h2 = f0f2_2+f1f1_2 +f3f9_76+f4f8_38+f5f7_76+f6f6_19;
+      int64_t h3 = f0f3_2+f1f2_2 +f4f9_38+f5f8_38+f6f7_38;
+      int64_t h4 = f0f4_2+f1f3_4 +f2f2   +f5f9_76+f6f8_38+f7f7_38;
+      int64_t h5 = f0f5_2+f1f4_2 +f2f3_2 +f6f9_38+f7f8_38;
+      int64_t h6 = f0f6_2+f1f5_4 +f2f4_2 +f3f3_2 +f7f9_76+f8f8_19;
+      int64_t h7 = f0f7_2+f1f6_2 +f2f5_2 +f3f4_2 +f8f9_38;
+      int64_t h8 = f0f8_2+f1f7_4 +f2f6_2 +f3f5_4 +f4f4   +f9f9_38;
+      int64_t h9 = f0f9_2+f1f8_2 +f2f7_2 +f3f6_2 +f4f5_2;
+
+      int64_t carry0;
+      int64_t carry1;
+      int64_t carry2;
+      int64_t carry3;
+      int64_t carry4;
+      int64_t carry5;
+      int64_t carry6;
+      int64_t carry7;
+      int64_t carry8;
+      int64_t carry9;
+
+      carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h1 += carry0;
+      h0 -= carry0 << 26;
+      carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h5 += carry4;
+      h4 -= carry4 << 26;
+
+      carry1 = (h1 + (static_cast<int64_t>(1) << 24)) >> 25;
+      h2 += carry1;
+      h1 -= carry1 << 25;
+      carry5 = (h5 + (static_cast<int64_t>(1) << 24)) >> 25;
+      h6 += carry5;
+      h5 -= carry5 << 25;
+
+      carry2 = (h2 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h3 += carry2;
+      h2 -= carry2 << 26;
+      carry6 = (h6 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h7 += carry6;
+      h6 -= carry6 << 26;
+
+      carry3 = (h3 + (static_cast<int64_t>(1) << 24)) >> 25;
+      h4 += carry3;
+      h3 -= carry3 << 25;
+      carry7 = (h7 + (static_cast<int64_t>(1) << 24)) >> 25;
+      h8 += carry7;
+      h7 -= carry7 << 25;
+
+      carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h5 += carry4;
+      h4 -= carry4 << 26;
+      carry8 = (h8 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h9 += carry8;
+      h8 -= carry8 << 26;
+
+      carry9 = (h9 + (static_cast<int64_t>(1) << 24)) >> 25;
+      h0 += carry9 * 19;
+      h9 -= carry9 << 25;
+      carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+      h1 += carry0;
+      h0 -= carry0 << 26;
+
+      f0 = h0;
+      f1 = h1;
+      f2 = h2;
+      f3 = h3;
+      f4 = h4;
+      f5 = h5;
+      f6 = h6;
+      f7 = h7;
+      f8 = h8;
+      f9 = h9;
+      }
+
+   return FE_25519(f0, f1, f2, f3, f4, f5, f6, f7, f8, f9);
+   }
+
+/*
+h = 2 * f * f
+Can overlap h with f.
+
+Preconditions:
+|f| bounded by 1.65*2^26,1.65*2^25,1.65*2^26,1.65*2^25,etc.
+
+Postconditions:
+|h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
+*/
+
+/*
+See fe_mul.c for discussion of implementation strategy.
+*/
+
+//static
+FE_25519 FE_25519::sqr2(const FE_25519& f)
+   {
+   int32_t f0 = f[0];
+   int32_t f1 = f[1];
+   int32_t f2 = f[2];
+   int32_t f3 = f[3];
+   int32_t f4 = f[4];
+   int32_t f5 = f[5];
+   int32_t f6 = f[6];
+   int32_t f7 = f[7];
+   int32_t f8 = f[8];
+   int32_t f9 = f[9];
+   int32_t f0_2 = 2 * f0;
+   int32_t f1_2 = 2 * f1;
+   int32_t f2_2 = 2 * f2;
+   int32_t f3_2 = 2 * f3;
+   int32_t f4_2 = 2 * f4;
+   int32_t f5_2 = 2 * f5;
+   int32_t f6_2 = 2 * f6;
+   int32_t f7_2 = 2 * f7;
+   int32_t f5_38 = 38 * f5; /* 1.959375*2^30 */
+   int32_t f6_19 = 19 * f6; /* 1.959375*2^30 */
+   int32_t f7_38 = 38 * f7; /* 1.959375*2^30 */
+   int32_t f8_19 = 19 * f8; /* 1.959375*2^30 */
+   int32_t f9_38 = 38 * f9; /* 1.959375*2^30 */
+   int64_t f0f0    = f0   * static_cast<int64_t>(f0);
+   int64_t f0f1_2  = f0_2 * static_cast<int64_t>(f1);
+   int64_t f0f2_2  = f0_2 * static_cast<int64_t>(f2);
+   int64_t f0f3_2  = f0_2 * static_cast<int64_t>(f3);
+   int64_t f0f4_2  = f0_2 * static_cast<int64_t>(f4);
+   int64_t f0f5_2  = f0_2 * static_cast<int64_t>(f5);
+   int64_t f0f6_2  = f0_2 * static_cast<int64_t>(f6);
+   int64_t f0f7_2  = f0_2 * static_cast<int64_t>(f7);
+   int64_t f0f8_2  = f0_2 * static_cast<int64_t>(f8);
+   int64_t f0f9_2  = f0_2 * static_cast<int64_t>(f9);
+   int64_t f1f1_2  = f1_2 * static_cast<int64_t>(f1);
+   int64_t f1f2_2  = f1_2 * static_cast<int64_t>(f2);
+   int64_t f1f3_4  = f1_2 * static_cast<int64_t>(f3_2);
+   int64_t f1f4_2  = f1_2 * static_cast<int64_t>(f4);
+   int64_t f1f5_4  = f1_2 * static_cast<int64_t>(f5_2);
+   int64_t f1f6_2  = f1_2 * static_cast<int64_t>(f6);
+   int64_t f1f7_4  = f1_2 * static_cast<int64_t>(f7_2);
+   int64_t f1f8_2  = f1_2 * static_cast<int64_t>(f8);
+   int64_t f1f9_76 = f1_2 * static_cast<int64_t>(f9_38);
+   int64_t f2f2    = f2   * static_cast<int64_t>(f2);
+   int64_t f2f3_2  = f2_2 * static_cast<int64_t>(f3);
+   int64_t f2f4_2  = f2_2 * static_cast<int64_t>(f4);
+   int64_t f2f5_2  = f2_2 * static_cast<int64_t>(f5);
+   int64_t f2f6_2  = f2_2 * static_cast<int64_t>(f6);
+   int64_t f2f7_2  = f2_2 * static_cast<int64_t>(f7);
+   int64_t f2f8_38 = f2_2 * static_cast<int64_t>(f8_19);
+   int64_t f2f9_38 = f2   * static_cast<int64_t>(f9_38);
+   int64_t f3f3_2  = f3_2 * static_cast<int64_t>(f3);
+   int64_t f3f4_2  = f3_2 * static_cast<int64_t>(f4);
+   int64_t f3f5_4  = f3_2 * static_cast<int64_t>(f5_2);
+   int64_t f3f6_2  = f3_2 * static_cast<int64_t>(f6);
+   int64_t f3f7_76 = f3_2 * static_cast<int64_t>(f7_38);
+   int64_t f3f8_38 = f3_2 * static_cast<int64_t>(f8_19);
+   int64_t f3f9_76 = f3_2 * static_cast<int64_t>(f9_38);
+   int64_t f4f4    = f4   * static_cast<int64_t>(f4);
+   int64_t f4f5_2  = f4_2 * static_cast<int64_t>(f5);
+   int64_t f4f6_38 = f4_2 * static_cast<int64_t>(f6_19);
+   int64_t f4f7_38 = f4   * static_cast<int64_t>(f7_38);
+   int64_t f4f8_38 = f4_2 * static_cast<int64_t>(f8_19);
+   int64_t f4f9_38 = f4   * static_cast<int64_t>(f9_38);
+   int64_t f5f5_38 = f5   * static_cast<int64_t>(f5_38);
+   int64_t f5f6_38 = f5_2 * static_cast<int64_t>(f6_19);
+   int64_t f5f7_76 = f5_2 * static_cast<int64_t>(f7_38);
+   int64_t f5f8_38 = f5_2 * static_cast<int64_t>(f8_19);
+   int64_t f5f9_76 = f5_2 * static_cast<int64_t>(f9_38);
+   int64_t f6f6_19 = f6   * static_cast<int64_t>(f6_19);
+   int64_t f6f7_38 = f6   * static_cast<int64_t>(f7_38);
+   int64_t f6f8_38 = f6_2 * static_cast<int64_t>(f8_19);
+   int64_t f6f9_38 = f6   * static_cast<int64_t>(f9_38);
+   int64_t f7f7_38 = f7   * static_cast<int64_t>(f7_38);
+   int64_t f7f8_38 = f7_2 * static_cast<int64_t>(f8_19);
+   int64_t f7f9_76 = f7_2 * static_cast<int64_t>(f9_38);
+   int64_t f8f8_19 = f8   * static_cast<int64_t>(f8_19);
+   int64_t f8f9_38 = f8   * static_cast<int64_t>(f9_38);
+   int64_t f9f9_38 = f9   * static_cast<int64_t>(f9_38);
+   int64_t h0 = f0f0  +f1f9_76+f2f8_38+f3f7_76+f4f6_38+f5f5_38;
+   int64_t h1 = f0f1_2+f2f9_38+f3f8_38+f4f7_38+f5f6_38;
+   int64_t h2 = f0f2_2+f1f1_2 +f3f9_76+f4f8_38+f5f7_76+f6f6_19;
+   int64_t h3 = f0f3_2+f1f2_2 +f4f9_38+f5f8_38+f6f7_38;
+   int64_t h4 = f0f4_2+f1f3_4 +f2f2   +f5f9_76+f6f8_38+f7f7_38;
+   int64_t h5 = f0f5_2+f1f4_2 +f2f3_2 +f6f9_38+f7f8_38;
+   int64_t h6 = f0f6_2+f1f5_4 +f2f4_2 +f3f3_2 +f7f9_76+f8f8_19;
+   int64_t h7 = f0f7_2+f1f6_2 +f2f5_2 +f3f4_2 +f8f9_38;
+   int64_t h8 = f0f8_2+f1f7_4 +f2f6_2 +f3f5_4 +f4f4   +f9f9_38;
+   int64_t h9 = f0f9_2+f1f8_2 +f2f7_2 +f3f6_2 +f4f5_2;
+   int64_t carry0;
+   int64_t carry1;
+   int64_t carry2;
+   int64_t carry3;
+   int64_t carry4;
+   int64_t carry5;
+   int64_t carry6;
+   int64_t carry7;
+   int64_t carry8;
+   int64_t carry9;
+
+   h0 += h0;
+   h1 += h1;
+   h2 += h2;
+   h3 += h3;
+   h4 += h4;
+   h5 += h5;
+   h6 += h6;
+   h7 += h7;
+   h8 += h8;
+   h9 += h9;
+
+   carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h1 += carry0;
+   h0 -= carry0 << 26;
+   carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h5 += carry4;
+   h4 -= carry4 << 26;
+
+   carry1 = (h1 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h2 += carry1;
+   h1 -= carry1 << 25;
+   carry5 = (h5 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h6 += carry5;
+   h5 -= carry5 << 25;
+
+   carry2 = (h2 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h3 += carry2;
+   h2 -= carry2 << 26;
+   carry6 = (h6 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h7 += carry6;
+   h6 -= carry6 << 26;
+
+   carry3 = (h3 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h4 += carry3;
+   h3 -= carry3 << 25;
+   carry7 = (h7 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h8 += carry7;
+   h7 -= carry7 << 25;
+
+   carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h5 += carry4;
+   h4 -= carry4 << 26;
+   carry8 = (h8 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h9 += carry8;
+   h8 -= carry8 << 26;
+
+   carry9 = (h9 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h0 += carry9 * 19;
+   h9 -= carry9 << 25;
+
+   carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h1 += carry0;
+   h0 -= carry0 << 26;
+
+   return FE_25519(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
+   }
+
+/*
+Ignores top bit of h.
+*/
+
+void FE_25519::from_bytes(const uint8_t s[32])
+   {
+   int64_t h0 = load_4(s);
+   int64_t h1 = load_3(s + 4) << 6;
+   int64_t h2 = load_3(s + 7) << 5;
+   int64_t h3 = load_3(s + 10) << 3;
+   int64_t h4 = load_3(s + 13) << 2;
+   int64_t h5 = load_4(s + 16);
+   int64_t h6 = load_3(s + 20) << 7;
+   int64_t h7 = load_3(s + 23) << 5;
+   int64_t h8 = load_3(s + 26) << 4;
+   int64_t h9 = (load_3(s + 29) & 0x7fffff) << 2;
+
+   const int64_t carry9 = (h9 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h0 += carry9 * 19;
+   h9 -= carry9 << 25;
+   const int64_t carry1 = (h1 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h2 += carry1;
+   h1 -= carry1 << 25;
+   const int64_t carry3 = (h3 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h4 += carry3;
+   h3 -= carry3 << 25;
+   const int64_t carry5 = (h5 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h6 += carry5;
+   h5 -= carry5 << 25;
+   const int64_t carry7 = (h7 + (static_cast<int64_t>(1) << 24)) >> 25;
+   h8 += carry7;
+   h7 -= carry7 << 25;
+
+   const int64_t carry0 = (h0 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h1 += carry0;
+   h0 -= carry0 << 26;
+   const int64_t carry2 = (h2 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h3 += carry2;
+   h2 -= carry2 << 26;
+   const int64_t carry4 = (h4 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h5 += carry4;
+   h4 -= carry4 << 26;
+   const int64_t carry6 = (h6 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h7 += carry6;
+   h6 -= carry6 << 26;
+   const int64_t carry8 = (h8 + (static_cast<int64_t>(1) << 25)) >> 26;
+   h9 += carry8;
+   h8 -= carry8 << 26;
+
+   m_fe[0] = h0;
+   m_fe[1] = h1;
+   m_fe[2] = h2;
+   m_fe[3] = h3;
+   m_fe[4] = h4;
+   m_fe[5] = h5;
+   m_fe[6] = h6;
+   m_fe[7] = h7;
+   m_fe[8] = h8;
+   m_fe[9] = h9;
+   }
+
+/*
+Preconditions:
+|h| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
+
+Write p=2^255-19; q=floor(h/p).
+Basic claim: q = floor(2^(-255)(h + 19 2^(-25)h9 + 2^(-1))).
+
+Proof:
+Have |h|<=p so |q|<=1 so |19^2 2^(-255) q|<1/4.
+Also have |h-2^230 h9|<2^231 so |19 2^(-255)(h-2^230 h9)|<1/4.
+
+Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
+Then 0<y<1.
+
+Write r=h-pq.
+Have 0<=r<=p-1=2^255-20.
+Thus 0<=r+19(2^-255)r<r+19(2^-255)2^255<=2^255-1.
+
+Write x=r+19(2^-255)r+y.
+Then 0<x<2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
+
+Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
+so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
+*/
+
+void FE_25519::to_bytes(uint8_t s[32]) const
+   {
+   int32_t h0 = m_fe[0];
+   int32_t h1 = m_fe[1];
+   int32_t h2 = m_fe[2];
+   int32_t h3 = m_fe[3];
+   int32_t h4 = m_fe[4];
+   int32_t h5 = m_fe[5];
+   int32_t h6 = m_fe[6];
+   int32_t h7 = m_fe[7];
+   int32_t h8 = m_fe[8];
+   int32_t h9 = m_fe[9];
+   int32_t q;
+   int32_t carry0;
+   int32_t carry1;
+   int32_t carry2;
+   int32_t carry3;
+   int32_t carry4;
+   int32_t carry5;
+   int32_t carry6;
+   int32_t carry7;
+   int32_t carry8;
+   int32_t carry9;
+
+   q = (19 * h9 + ((static_cast<int32_t>(1) << 24))) >> 25;
+   q = (h0 + q) >> 26;
+   q = (h1 + q) >> 25;
+   q = (h2 + q) >> 26;
+   q = (h3 + q) >> 25;
+   q = (h4 + q) >> 26;
+   q = (h5 + q) >> 25;
+   q = (h6 + q) >> 26;
+   q = (h7 + q) >> 25;
+   q = (h8 + q) >> 26;
+   q = (h9 + q) >> 25;
+
+   /* Goal: Output h-(2^255-19)q, which is between 0 and 2^255-20. */
+   h0 += 19 * q;
+   /* Goal: Output h-2^255 q, which is between 0 and 2^255-20. */
+
+   carry0 = h0 >> 26;
+   h1 += carry0;
+   h0 -= carry0 << 26;
+   carry1 = h1 >> 25;
+   h2 += carry1;
+   h1 -= carry1 << 25;
+   carry2 = h2 >> 26;
+   h3 += carry2;
+   h2 -= carry2 << 26;
+   carry3 = h3 >> 25;
+   h4 += carry3;
+   h3 -= carry3 << 25;
+   carry4 = h4 >> 26;
+   h5 += carry4;
+   h4 -= carry4 << 26;
+   carry5 = h5 >> 25;
+   h6 += carry5;
+   h5 -= carry5 << 25;
+   carry6 = h6 >> 26;
+   h7 += carry6;
+   h6 -= carry6 << 26;
+   carry7 = h7 >> 25;
+   h8 += carry7;
+   h7 -= carry7 << 25;
+   carry8 = h8 >> 26;
+   h9 += carry8;
+   h8 -= carry8 << 26;
+   carry9 = h9 >> 25;
+   h9 -= carry9 << 25;
+   /* h10 = carry9 */
+
+   /*
+   Goal: Output h0+...+2^255 h10-2^255 q, which is between 0 and 2^255-20.
+   Have h0+...+2^230 h9 between 0 and 2^255-1;
+   evidently 2^255 h10-2^255 q = 0.
+   Goal: Output h0+...+2^230 h9.
+   */
+
+   s[0] = h0 >> 0;
+   s[1] = h0 >> 8;
+   s[2] = h0 >> 16;
+   s[3] = (h0 >> 24) | (h1 << 2);
+   s[4] = h1 >> 6;
+   s[5] = h1 >> 14;
+   s[6] = (h1 >> 22) | (h2 << 3);
+   s[7] = h2 >> 5;
+   s[8] = h2 >> 13;
+   s[9] = (h2 >> 21) | (h3 << 5);
+   s[10] = h3 >> 3;
+   s[11] = h3 >> 11;
+   s[12] = (h3 >> 19) | (h4 << 6);
+   s[13] = h4 >> 2;
+   s[14] = h4 >> 10;
+   s[15] = h4 >> 18;
+   s[16] = h5 >> 0;
+   s[17] = h5 >> 8;
+   s[18] = h5 >> 16;
+   s[19] = (h5 >> 24) | (h6 << 1);
+   s[20] = h6 >> 7;
+   s[21] = h6 >> 15;
+   s[22] = (h6 >> 23) | (h7 << 3);
+   s[23] = h7 >> 5;
+   s[24] = h7 >> 13;
+   s[25] = (h7 >> 21) | (h8 << 4);
+   s[26] = h8 >> 4;
+   s[27] = h8 >> 12;
+   s[28] = (h8 >> 20) | (h9 << 6);
+   s[29] = h9 >> 2;
+   s[30] = h9 >> 10;
+   s[31] = h9 >> 18;
+   }
+
+}
+/*
+* Ed25519
+* (C) 2017 Ribose Inc
+*
+* Based on the public domain code from SUPERCOP ref10 by
+* Peter Schwabe, Daniel J. Bernstein, Niels Duif, Tanja Lange, Bo-Yin Yang
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+AlgorithmIdentifier Ed25519_PublicKey::algorithm_identifier() const
+   {
+   // AlgorithmIdentifier::USE_NULL_PARAM puts 0x05 0x00 in parameters
+   // We want nothing
+   std::vector<uint8_t> empty;
+   return AlgorithmIdentifier(get_oid(), empty);
+   }
+
+bool Ed25519_PublicKey::check_key(RandomNumberGenerator&, bool) const
+   {
+   return true; // no tests possible?
+   // TODO could check cofactor
+   }
+
+Ed25519_PublicKey::Ed25519_PublicKey(const AlgorithmIdentifier&,
+                                           const std::vector<uint8_t>& key_bits)
+   {
+   m_public = key_bits;
+
+   if(m_public.size() != 32)
+      throw Decoding_Error("Invalid size for Ed25519 public key");
+   }
+
+std::vector<uint8_t> Ed25519_PublicKey::public_key_bits() const
+   {
+   return m_public;
+   }
+
+Ed25519_PrivateKey::Ed25519_PrivateKey(const secure_vector<uint8_t>& secret_key)
+   {
+   if(secret_key.size() == 64)
+      {
+      m_private = secret_key;
+      m_public.assign(&m_private[32], &m_private[64]);
+      }
+   else if(secret_key.size() == 32)
+      {
+      m_public.resize(32);
+      m_private.resize(64);
+      ed25519_gen_keypair(m_public.data(), m_private.data(), secret_key.data());
+      }
+   else
+      throw Decoding_Error("Invalid size for Ed25519 private key");
+   }
+
+Ed25519_PrivateKey::Ed25519_PrivateKey(RandomNumberGenerator& rng)
+   {
+   const secure_vector<uint8_t> seed = rng.random_vec(32);
+   m_public.resize(32);
+   m_private.resize(64);
+   ed25519_gen_keypair(m_public.data(), m_private.data(), seed.data());
+   }
+
+Ed25519_PrivateKey::Ed25519_PrivateKey(const AlgorithmIdentifier&,
+                                       const secure_vector<uint8_t>& key_bits)
+   {
+   secure_vector<uint8_t> bits;
+   BER_Decoder(key_bits).decode(bits, OCTET_STRING).discard_remaining();
+
+   if(bits.size() != 32)
+      throw Decoding_Error("Invalid size for Ed25519 private key");
+   m_public.resize(32);
+   m_private.resize(64);
+   ed25519_gen_keypair(m_public.data(), m_private.data(), bits.data());
+   }
+
+secure_vector<uint8_t> Ed25519_PrivateKey::private_key_bits() const
+   {
+   secure_vector<uint8_t> bits(&m_private[0], &m_private[32]);
+   return DER_Encoder().encode(bits, OCTET_STRING).get_contents();
+   }
+
+bool Ed25519_PrivateKey::check_key(RandomNumberGenerator&, bool) const
+   {
+   return true; // ???
+   }
+
+namespace {
+
+/**
+* Ed25519 verifying operation
+*/
+class Ed25519_Pure_Verify_Operation final : public PK_Ops::Verification
+   {
+   public:
+      Ed25519_Pure_Verify_Operation(const Ed25519_PublicKey& key) : m_key(key)
+         {
+         }
+
+      void update(const uint8_t msg[], size_t msg_len) override
+         {
+         m_msg.insert(m_msg.end(), msg, msg + msg_len);
+         }
+
+      bool is_valid_signature(const uint8_t sig[], size_t sig_len) override
+         {
+         if(sig_len != 64)
+            return false;
+         const bool ok = ed25519_verify(m_msg.data(), m_msg.size(), sig, m_key.get_public_key().data());
+         m_msg.clear();
+         return ok;
+         }
+
+   private:
+      std::vector<uint8_t> m_msg;
+      const Ed25519_PublicKey& m_key;
+   };
+
+/**
+* Ed25519 verifying operation with pre-hash
+*/
+class Ed25519_Hashed_Verify_Operation final : public PK_Ops::Verification
+   {
+   public:
+      Ed25519_Hashed_Verify_Operation(const Ed25519_PublicKey& key, const std::string& hash) : m_key(key)
+         {
+         m_hash = HashFunction::create_or_throw(hash);
+         }
+
+      void update(const uint8_t msg[], size_t msg_len) override
+         {
+         m_hash->update(msg, msg_len);
+         }
+
+      bool is_valid_signature(const uint8_t sig[], size_t sig_len) override
+         {
+         if(sig_len != 64)
+            return false;
+         std::vector<uint8_t> msg_hash(m_hash->output_length());
+         m_hash->final(msg_hash.data());
+         return ed25519_verify(msg_hash.data(), msg_hash.size(), sig, m_key.get_public_key().data());
+         }
+
+   private:
+      std::unique_ptr<HashFunction> m_hash;
+      const Ed25519_PublicKey& m_key;
+   };
+
+/**
+* Ed25519 signing operation ('pure' - signs message directly)
+*/
+class Ed25519_Pure_Sign_Operation final : public PK_Ops::Signature
+   {
+   public:
+      Ed25519_Pure_Sign_Operation(const Ed25519_PrivateKey& key) : m_key(key)
+         {
+         }
+
+      void update(const uint8_t msg[], size_t msg_len) override
+         {
+         m_msg.insert(m_msg.end(), msg, msg + msg_len);
+         }
+
+      secure_vector<uint8_t> sign(RandomNumberGenerator&) override
+         {
+         secure_vector<uint8_t> sig(64);
+         ed25519_sign(sig.data(), m_msg.data(), m_msg.size(), m_key.get_private_key().data());
+         m_msg.clear();
+         return sig;
+         }
+
+   private:
+      std::vector<uint8_t> m_msg;
+      const Ed25519_PrivateKey& m_key;
+   };
+
+/**
+* Ed25519 signing operation with pre-hash
+*/
+class Ed25519_Hashed_Sign_Operation final : public PK_Ops::Signature
+   {
+   public:
+      Ed25519_Hashed_Sign_Operation(const Ed25519_PrivateKey& key, const std::string& hash) : m_key(key)
+         {
+         m_hash = HashFunction::create_or_throw(hash);
+         }
+
+      void update(const uint8_t msg[], size_t msg_len) override
+         {
+         m_hash->update(msg, msg_len);
+         }
+
+      secure_vector<uint8_t> sign(RandomNumberGenerator&) override
+         {
+         secure_vector<uint8_t> sig(64);
+         std::vector<uint8_t> msg_hash(m_hash->output_length());
+         m_hash->final(msg_hash.data());
+         ed25519_sign(sig.data(), msg_hash.data(), msg_hash.size(), m_key.get_private_key().data());
+         return sig;
+         }
+
+   private:
+      std::unique_ptr<HashFunction> m_hash;
+      const Ed25519_PrivateKey& m_key;
+   };
+
+}
+
+std::unique_ptr<PK_Ops::Verification>
+Ed25519_PublicKey::create_verification_op(const std::string& params,
+                                          const std::string& provider) const
+   {
+   if(provider == "base" || provider.empty())
+      {
+      if(params == "" || params == "Identity" || params == "Pure")
+         return std::unique_ptr<PK_Ops::Verification>(new Ed25519_Pure_Verify_Operation(*this));
+      else
+         return std::unique_ptr<PK_Ops::Verification>(new Ed25519_Hashed_Verify_Operation(*this, params));
+      }
+   throw Provider_Not_Found(algo_name(), provider);
+   }
+
+std::unique_ptr<PK_Ops::Signature>
+Ed25519_PrivateKey::create_signature_op(RandomNumberGenerator&,
+                                        const std::string& params,
+                                        const std::string& provider) const
+   {
+   if(provider == "base" || provider.empty())
+      {
+      if(params == "" || params == "Identity" || params == "Pure")
+         return std::unique_ptr<PK_Ops::Signature>(new Ed25519_Pure_Sign_Operation(*this));
+      else
+         return std::unique_ptr<PK_Ops::Signature>(new Ed25519_Hashed_Sign_Operation(*this, params));
+      }
+   throw Provider_Not_Found(algo_name(), provider);
+   }
+
+}
+/*
+* Ed25519 group operations
+* (C) 2017 Ribose Inc
+*
+* Based on the public domain code from SUPERCOP ref10 by
+* Peter Schwabe, Daniel J. Bernstein, Niels Duif, Tanja Lange, Bo-Yin Yang
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace {
+
+/*
+Representations:
+  ge_p2 (projective): (X:Y:Z) satisfying x=X/Z, y=Y/Z
+  ge_p3 (extended): (X:Y:Z:T) satisfying x=X/Z, y=Y/Z, XY=ZT
+  ge_p1p1 (completed): ((X:Z),(Y:T)) satisfying x=X/Z, y=Y/T
+  ge_precomp (Duif): (y+x,y-x,2dxy)
+*/
+typedef struct
+   {
+   fe X;
+   fe Y;
+   fe Z;
+   } ge_p2;
+
+typedef struct
+   {
+   fe X;
+   fe Y;
+   fe Z;
+   fe T;
+   } ge_p1p1;
+
+typedef struct
+   {
+   fe yplusx;
+   fe yminusx;
+   fe xy2d;
+   } ge_precomp;
+
+typedef struct
+   {
+   fe YplusX;
+   fe YminusX;
+   fe Z;
+   fe T2d;
+   } ge_cached;
+
+/*
+r = p + q
+*/
+
+void ge_add(ge_p1p1* r, const ge_p3* p, const ge_cached* q)
+   {
+   fe t0;
+   /* qhasm: YpX1 = Y1+X1 */
+   /* asm 1: fe_add(>YpX1=fe#1,<Y1=fe#12,<X1=fe#11); */
+   /* asm 2: fe_add(>YpX1=r->X,<Y1=p->Y,<X1=p->X); */
+   fe_add(r->X, p->Y, p->X);
+
+   /* qhasm: YmX1 = Y1-X1 */
+   /* asm 1: fe_sub(>YmX1=fe#2,<Y1=fe#12,<X1=fe#11); */
+   /* asm 2: fe_sub(>YmX1=r->Y,<Y1=p->Y,<X1=p->X); */
+   fe_sub(r->Y, p->Y, p->X);
+
+   /* qhasm: A = YpX1*YpX2 */
+   /* asm 1: fe_mul(>A=fe#3,<YpX1=fe#1,<YpX2=fe#15); */
+   /* asm 2: fe_mul(>A=r->Z,<YpX1=r->X,<YpX2=q->YplusX); */
+   fe_mul(r->Z, r->X, q->YplusX);
+
+   /* qhasm: B = YmX1*YmX2 */
+   /* asm 1: fe_mul(>B=fe#2,<YmX1=fe#2,<YmX2=fe#16); */
+   /* asm 2: fe_mul(>B=r->Y,<YmX1=r->Y,<YmX2=q->YminusX); */
+   fe_mul(r->Y, r->Y, q->YminusX);
+
+   /* qhasm: C = T2d2*T1 */
+   /* asm 1: fe_mul(>C=fe#4,<T2d2=fe#18,<T1=fe#14); */
+   /* asm 2: fe_mul(>C=r->T,<T2d2=q->T2d,<T1=p->T); */
+   fe_mul(r->T, q->T2d, p->T);
+
+   /* qhasm: ZZ = Z1*Z2 */
+   /* asm 1: fe_mul(>ZZ=fe#1,<Z1=fe#13,<Z2=fe#17); */
+   /* asm 2: fe_mul(>ZZ=r->X,<Z1=p->Z,<Z2=q->Z); */
+   fe_mul(r->X, p->Z, q->Z);
+
+   /* qhasm: D = 2*ZZ */
+   /* asm 1: fe_add(>D=fe#5,<ZZ=fe#1,<ZZ=fe#1); */
+   /* asm 2: fe_add(>D=t0,<ZZ=r->X,<ZZ=r->X); */
+   fe_add(t0, r->X, r->X);
+
+   /* qhasm: X3 = A-B */
+   /* asm 1: fe_sub(>X3=fe#1,<A=fe#3,<B=fe#2); */
+   /* asm 2: fe_sub(>X3=r->X,<A=r->Z,<B=r->Y); */
+   fe_sub(r->X, r->Z, r->Y);
+
+   /* qhasm: Y3 = A+B */
+   /* asm 1: fe_add(>Y3=fe#2,<A=fe#3,<B=fe#2); */
+   /* asm 2: fe_add(>Y3=r->Y,<A=r->Z,<B=r->Y); */
+   fe_add(r->Y, r->Z, r->Y);
+
+   /* qhasm: Z3 = D+C */
+   /* asm 1: fe_add(>Z3=fe#3,<D=fe#5,<C=fe#4); */
+   /* asm 2: fe_add(>Z3=r->Z,<D=t0,<C=r->T); */
+   fe_add(r->Z, t0, r->T);
+
+   /* qhasm: T3 = D-C */
+   /* asm 1: fe_sub(>T3=fe#4,<D=fe#5,<C=fe#4); */
+   /* asm 2: fe_sub(>T3=r->T,<D=t0,<C=r->T); */
+   fe_sub(r->T, t0, r->T);
+   }
+
+/*
+r = p + q
+*/
+
+void ge_madd(ge_p1p1* r, const ge_p3* p, const ge_precomp* q)
+   {
+   fe t0;
+   /* qhasm: YpX1 = Y1+X1 */
+   fe_add(r->X, p->Y, p->X);
+
+   /* qhasm: YmX1 = Y1-X1 */
+   fe_sub(r->Y, p->Y, p->X);
+
+   /* qhasm: A = YpX1*ypx2 */
+   fe_mul(r->Z, r->X, q->yplusx);
+
+   /* qhasm: B = YmX1*ymx2 */
+   fe_mul(r->Y, r->Y, q->yminusx);
+
+   /* qhasm: C = xy2d2*T1 */
+   fe_mul(r->T, q->xy2d, p->T);
+
+   /* qhasm: D = 2*Z1 */
+   fe_add(t0, p->Z, p->Z);
+
+   /* qhasm: X3 = A-B */
+   fe_sub(r->X, r->Z, r->Y);
+
+   /* qhasm: Y3 = A+B */
+   fe_add(r->Y, r->Z, r->Y);
+
+   /* qhasm: Z3 = D+C */
+   fe_add(r->Z, t0, r->T);
+
+   /* qhasm: T3 = D-C */
+   fe_sub(r->T, t0, r->T);
+   }
+
+/*
+r = p - q
+*/
+
+void ge_msub(ge_p1p1* r, const ge_p3* p, const ge_precomp* q)
+   {
+   fe t0;
+
+   /* qhasm: YpX1 = Y1+X1 */
+   /* asm 1: fe_add(>YpX1=fe#1,<Y1=fe#12,<X1=fe#11); */
+   /* asm 2: fe_add(>YpX1=r->X,<Y1=p->Y,<X1=p->X); */
+   fe_add(r->X, p->Y, p->X);
+
+   /* qhasm: YmX1 = Y1-X1 */
+   /* asm 1: fe_sub(>YmX1=fe#2,<Y1=fe#12,<X1=fe#11); */
+   /* asm 2: fe_sub(>YmX1=r->Y,<Y1=p->Y,<X1=p->X); */
+   fe_sub(r->Y, p->Y, p->X);
+
+   /* qhasm: A = YpX1*ymx2 */
+   /* asm 1: fe_mul(>A=fe#3,<YpX1=fe#1,<ymx2=fe#16); */
+   /* asm 2: fe_mul(>A=r->Z,<YpX1=r->X,<ymx2=q->yminusx); */
+   fe_mul(r->Z, r->X, q->yminusx);
+
+   /* qhasm: B = YmX1*ypx2 */
+   /* asm 1: fe_mul(>B=fe#2,<YmX1=fe#2,<ypx2=fe#15); */
+   /* asm 2: fe_mul(>B=r->Y,<YmX1=r->Y,<ypx2=q->yplusx); */
+   fe_mul(r->Y, r->Y, q->yplusx);
+
+   /* qhasm: C = xy2d2*T1 */
+   /* asm 1: fe_mul(>C=fe#4,<xy2d2=fe#17,<T1=fe#14); */
+   /* asm 2: fe_mul(>C=r->T,<xy2d2=q->xy2d,<T1=p->T); */
+   fe_mul(r->T, q->xy2d, p->T);
+
+   /* qhasm: D = 2*Z1 */
+   /* asm 1: fe_add(>D=fe#5,<Z1=fe#13,<Z1=fe#13); */
+   /* asm 2: fe_add(>D=t0,<Z1=p->Z,<Z1=p->Z); */
+   fe_add(t0, p->Z, p->Z);
+
+   /* qhasm: X3 = A-B */
+   /* asm 1: fe_sub(>X3=fe#1,<A=fe#3,<B=fe#2); */
+   /* asm 2: fe_sub(>X3=r->X,<A=r->Z,<B=r->Y); */
+   fe_sub(r->X, r->Z, r->Y);
+
+   /* qhasm: Y3 = A+B */
+   /* asm 1: fe_add(>Y3=fe#2,<A=fe#3,<B=fe#2); */
+   /* asm 2: fe_add(>Y3=r->Y,<A=r->Z,<B=r->Y); */
+   fe_add(r->Y, r->Z, r->Y);
+
+   /* qhasm: Z3 = D-C */
+   /* asm 1: fe_sub(>Z3=fe#3,<D=fe#5,<C=fe#4); */
+   /* asm 2: fe_sub(>Z3=r->Z,<D=t0,<C=r->T); */
+   fe_sub(r->Z, t0, r->T);
+
+   /* qhasm: T3 = D+C */
+   /* asm 1: fe_add(>T3=fe#4,<D=fe#5,<C=fe#4); */
+   /* asm 2: fe_add(>T3=r->T,<D=t0,<C=r->T); */
+   fe_add(r->T, t0, r->T);
+
+   }
+
+/*
+r = p
+*/
+
+void ge_p1p1_to_p2(ge_p2* r, const ge_p1p1* p)
+   {
+   fe_mul(r->X, p->X, p->T);
+   fe_mul(r->Y, p->Y, p->Z);
+   fe_mul(r->Z, p->Z, p->T);
+   }
+
+/*
+r = p
+*/
+
+void ge_p1p1_to_p3(ge_p3* r, const ge_p1p1* p)
+   {
+   fe_mul(r->X, p->X, p->T);
+   fe_mul(r->Y, p->Y, p->Z);
+   fe_mul(r->Z, p->Z, p->T);
+   fe_mul(r->T, p->X, p->Y);
+   }
+
+/*
+r = 2 * p
+*/
+
+void ge_p2_dbl(ge_p1p1* r, const ge_p2* p)
+   {
+   fe t0;
+   /* qhasm: XX=X1^2 */
+   /* asm 1: fe_sq(>XX=fe#1,<X1=fe#11); */
+   /* asm 2: fe_sq(>XX=r->X,<X1=p->X); */
+   fe_sq(r->X, p->X);
+
+   /* qhasm: YY=Y1^2 */
+   /* asm 1: fe_sq(>YY=fe#3,<Y1=fe#12); */
+   /* asm 2: fe_sq(>YY=r->Z,<Y1=p->Y); */
+   fe_sq(r->Z, p->Y);
+
+   /* qhasm: B=2*Z1^2 */
+   /* asm 1: fe_sq2(>B=fe#4,<Z1=fe#13); */
+   /* asm 2: fe_sq2(>B=r->T,<Z1=p->Z); */
+   fe_sq2(r->T, p->Z);
+
+   /* qhasm: A=X1+Y1 */
+   /* asm 1: fe_add(>A=fe#2,<X1=fe#11,<Y1=fe#12); */
+   /* asm 2: fe_add(>A=r->Y,<X1=p->X,<Y1=p->Y); */
+   fe_add(r->Y, p->X, p->Y);
+
+   /* qhasm: AA=A^2 */
+   /* asm 1: fe_sq(>AA=fe#5,<A=fe#2); */
+   /* asm 2: fe_sq(>AA=t0,<A=r->Y); */
+   fe_sq(t0, r->Y);
+
+   /* qhasm: Y3=YY+XX */
+   /* asm 1: fe_add(>Y3=fe#2,<YY=fe#3,<XX=fe#1); */
+   /* asm 2: fe_add(>Y3=r->Y,<YY=r->Z,<XX=r->X); */
+   fe_add(r->Y, r->Z, r->X);
+
+   /* qhasm: Z3=YY-XX */
+   /* asm 1: fe_sub(>Z3=fe#3,<YY=fe#3,<XX=fe#1); */
+   /* asm 2: fe_sub(>Z3=r->Z,<YY=r->Z,<XX=r->X); */
+   fe_sub(r->Z, r->Z, r->X);
+
+   /* qhasm: X3=AA-Y3 */
+   /* asm 1: fe_sub(>X3=fe#1,<AA=fe#5,<Y3=fe#2); */
+   /* asm 2: fe_sub(>X3=r->X,<AA=t0,<Y3=r->Y); */
+   fe_sub(r->X, t0, r->Y);
+
+   /* qhasm: T3=B-Z3 */
+   /* asm 1: fe_sub(>T3=fe#4,<B=fe#4,<Z3=fe#3); */
+   /* asm 2: fe_sub(>T3=r->T,<B=r->T,<Z3=r->Z); */
+   fe_sub(r->T, r->T, r->Z);
+   }
+
+void ge_p3_0(ge_p3* h)
+   {
+   fe_0(h->X);
+   fe_1(h->Y);
+   fe_1(h->Z);
+   fe_0(h->T);
+   }
+
+/*
+r = 2 * p
+*/
+
+void ge_p3_dbl(ge_p1p1* r, const ge_p3* p)
+   {
+   ge_p2 q;
+   // Convert to p2 rep
+   q.X = p->X;
+   q.Y = p->Y;
+   q.Z = p->Z;
+   ge_p2_dbl(r, &q);
+   }
+
+/*
+r = p
+*/
+
+
+void ge_p3_to_cached(ge_cached* r, const ge_p3* p)
+   {
+   static const fe d2 =
+      {
+      -21827239, -5839606, -30745221, 13898782, 229458, 15978800, -12551817, -6495438, 29715968, 9444199
+      } ;
+   fe_add(r->YplusX, p->Y, p->X);
+   fe_sub(r->YminusX, p->Y, p->X);
+   fe_copy(r->Z, p->Z);
+   fe_mul(r->T2d, p->T, d2);
+   }
+
+/*
+r = p - q
+*/
+
+void ge_sub(ge_p1p1* r, const ge_p3* p, const ge_cached* q)
+   {
+   fe t0;
+   /* qhasm: YpX1 = Y1+X1 */
+   /* asm 1: fe_add(>YpX1=fe#1,<Y1=fe#12,<X1=fe#11); */
+   /* asm 2: fe_add(>YpX1=r->X,<Y1=p->Y,<X1=p->X); */
+   fe_add(r->X, p->Y, p->X);
+
+   /* qhasm: YmX1 = Y1-X1 */
+   /* asm 1: fe_sub(>YmX1=fe#2,<Y1=fe#12,<X1=fe#11); */
+   /* asm 2: fe_sub(>YmX1=r->Y,<Y1=p->Y,<X1=p->X); */
+   fe_sub(r->Y, p->Y, p->X);
+
+   /* qhasm: A = YpX1*YmX2 */
+   /* asm 1: fe_mul(>A=fe#3,<YpX1=fe#1,<YmX2=fe#16); */
+   /* asm 2: fe_mul(>A=r->Z,<YpX1=r->X,<YmX2=q->YminusX); */
+   fe_mul(r->Z, r->X, q->YminusX);
+
+   /* qhasm: B = YmX1*YpX2 */
+   /* asm 1: fe_mul(>B=fe#2,<YmX1=fe#2,<YpX2=fe#15); */
+   /* asm 2: fe_mul(>B=r->Y,<YmX1=r->Y,<YpX2=q->YplusX); */
+   fe_mul(r->Y, r->Y, q->YplusX);
+
+   /* qhasm: C = T2d2*T1 */
+   /* asm 1: fe_mul(>C=fe#4,<T2d2=fe#18,<T1=fe#14); */
+   /* asm 2: fe_mul(>C=r->T,<T2d2=q->T2d,<T1=p->T); */
+   fe_mul(r->T, q->T2d, p->T);
+
+   /* qhasm: ZZ = Z1*Z2 */
+   /* asm 1: fe_mul(>ZZ=fe#1,<Z1=fe#13,<Z2=fe#17); */
+   /* asm 2: fe_mul(>ZZ=r->X,<Z1=p->Z,<Z2=q->Z); */
+   fe_mul(r->X, p->Z, q->Z);
+
+   /* qhasm: D = 2*ZZ */
+   /* asm 1: fe_add(>D=fe#5,<ZZ=fe#1,<ZZ=fe#1); */
+   /* asm 2: fe_add(>D=t0,<ZZ=r->X,<ZZ=r->X); */
+   fe_add(t0, r->X, r->X);
+
+   /* qhasm: X3 = A-B */
+   /* asm 1: fe_sub(>X3=fe#1,<A=fe#3,<B=fe#2); */
+   /* asm 2: fe_sub(>X3=r->X,<A=r->Z,<B=r->Y); */
+   fe_sub(r->X, r->Z, r->Y);
+
+   /* qhasm: Y3 = A+B */
+   /* asm 1: fe_add(>Y3=fe#2,<A=fe#3,<B=fe#2); */
+   /* asm 2: fe_add(>Y3=r->Y,<A=r->Z,<B=r->Y); */
+   fe_add(r->Y, r->Z, r->Y);
+
+   /* qhasm: Z3 = D-C */
+   /* asm 1: fe_sub(>Z3=fe#3,<D=fe#5,<C=fe#4); */
+   /* asm 2: fe_sub(>Z3=r->Z,<D=t0,<C=r->T); */
+   fe_sub(r->Z, t0, r->T);
+
+   /* qhasm: T3 = D+C */
+   /* asm 1: fe_add(>T3=fe#4,<D=fe#5,<C=fe#4); */
+   /* asm 2: fe_add(>T3=r->T,<D=t0,<C=r->T); */
+   fe_add(r->T, t0, r->T);
+
+   }
+
+void slide(int8_t* r, const uint8_t* a)
+   {
+   for(size_t i = 0; i < 256; ++i)
+      {
+      r[i] = 1 & (a[i >> 3] >> (i & 7));
+      }
+
+   for(size_t i = 0; i < 256; ++i)
+      {
+      if(r[i])
+         {
+         for(size_t b = 1; b <= 6 && i + b < 256; ++b)
+            {
+            if(r[i + b])
+               {
+               if(r[i] + (r[i + b] << b) <= 15)
+                  {
+                  r[i] += r[i + b] << b;
+                  r[i + b] = 0;
+                  }
+               else if(r[i] - (r[i + b] << b) >= -15)
+                  {
+                  r[i] -= r[i + b] << b;
+                  for(size_t k = i + b; k < 256; ++k)
+                     {
+                     if(!r[k])
+                        {
+                        r[k] = 1;
+                        break;
+                        }
+                     r[k] = 0;
+                     }
+                  }
+               else
+                  { break; }
+               }
+            }
+         }
+      }
+   }
+
+void ge_tobytes(uint8_t* s, const ge_p2* h)
+   {
+   fe recip;
+   fe x;
+   fe y;
+
+   fe_invert(recip, h->Z);
+   fe_mul(x, h->X, recip);
+   fe_mul(y, h->Y, recip);
+   fe_tobytes(s, y);
+   s[31] ^= fe_isnegative(x) << 7;
+   }
+
+void ge_p2_0(ge_p2* h)
+   {
+   fe_0(h->X);
+   fe_1(h->Y);
+   fe_1(h->Z);
+   }
+
+}
+
+int ge_frombytes_negate_vartime(ge_p3* h, const uint8_t* s)
+   {
+   static const fe d =
+      {
+      -10913610, 13857413, -15372611, 6949391, 114729, -8787816, -6275908, -3247719, -18696448, -12055116
+      } ;
+   static const fe sqrtm1 =
+      {
+      -32595792, -7943725, 9377950, 3500415, 12389472, -272473, -25146209, -2005654, 326686, 11406482
+      } ;
+
+   fe u;
+   fe v;
+   fe v3;
+   fe vxx;
+   fe check;
+
+   fe_frombytes(h->Y, s);
+   fe_1(h->Z);
+   fe_sq(u, h->Y);
+   fe_mul(v, u, d);
+   fe_sub(u, u, h->Z);     /* u = y^2-1 */
+   fe_add(v, v, h->Z);     /* v = dy^2+1 */
+
+   fe_sq(v3, v);
+   fe_mul(v3, v3, v);      /* v3 = v^3 */
+   fe_sq(h->X, v3);
+   fe_mul(h->X, h->X, v);
+   fe_mul(h->X, h->X, u);  /* x = uv^7 */
+
+   fe_pow22523(h->X, h->X); /* x = (uv^7)^((q-5)/8) */
+   fe_mul(h->X, h->X, v3);
+   fe_mul(h->X, h->X, u);  /* x = uv^3(uv^7)^((q-5)/8) */
+
+   fe_sq(vxx, h->X);
+   fe_mul(vxx, vxx, v);
+   fe_sub(check, vxx, u);  /* vx^2-u */
+   if(fe_isnonzero(check))
+      {
+      fe_add(check, vxx, u); /* vx^2+u */
+      if(fe_isnonzero(check))
+         {
+         return -1;
+         }
+      fe_mul(h->X, h->X, sqrtm1);
+      }
+
+   if(fe_isnegative(h->X) == (s[31] >> 7))
+      { fe_neg(h->X, h->X); }
+
+   fe_mul(h->T, h->X, h->Y);
+   return 0;
+   }
+
+/*
+r = a * A + b * B
+where a = a[0]+256*a[1]+...+256^31 a[31].
+and b = b[0]+256*b[1]+...+256^31 b[31].
+B is the Ed25519 base point (x,4/5) with x positive.
+*/
+
+void ge_double_scalarmult_vartime(
+   uint8_t out[32],
+   const uint8_t* a, const ge_p3* A, const uint8_t* b)
+   {
+   static const ge_precomp Bi[8] =
+      {
+         {
+            { 25967493, -14356035, 29566456, 3660896, -12694345, 4014787, 27544626, -11754271, -6079156, 2047605 },
+            { -12545711, 934262, -2722910, 3049990, -727428, 9406986, 12720692, 5043384, 19500929, -15469378 },
+            { -8738181, 4489570, 9688441, -14785194, 10184609, -12363380, 29287919, 11864899, -24514362, -4438546 },
+         },
+         {
+            { 15636291, -9688557, 24204773, -7912398, 616977, -16685262, 27787600, -14772189, 28944400, -1550024 },
+            { 16568933, 4717097, -11556148, -1102322, 15682896, -11807043, 16354577, -11775962, 7689662, 11199574 },
+            { 30464156, -5976125, -11779434, -15670865, 23220365, 15915852, 7512774, 10017326, -17749093, -9920357 },
+         },
+         {
+            { 10861363, 11473154, 27284546, 1981175, -30064349, 12577861, 32867885, 14515107, -15438304, 10819380 },
+            { 4708026, 6336745, 20377586, 9066809, -11272109, 6594696, -25653668, 12483688, -12668491, 5581306 },
+            { 19563160, 16186464, -29386857, 4097519, 10237984, -4348115, 28542350, 13850243, -23678021, -15815942 },
+         },
+         {
+            { 5153746, 9909285, 1723747, -2777874, 30523605, 5516873, 19480852, 5230134, -23952439, -15175766 },
+            { -30269007, -3463509, 7665486, 10083793, 28475525, 1649722, 20654025, 16520125, 30598449, 7715701 },
+            { 28881845, 14381568, 9657904, 3680757, -20181635, 7843316, -31400660, 1370708, 29794553, -1409300 },
+         },
+         {
+            { -22518993, -6692182, 14201702, -8745502, -23510406, 8844726, 18474211, -1361450, -13062696, 13821877 },
+            { -6455177, -7839871, 3374702, -4740862, -27098617, -10571707, 31655028, -7212327, 18853322, -14220951 },
+            { 4566830, -12963868, -28974889, -12240689, -7602672, -2830569, -8514358, -10431137, 2207753, -3209784 },
+         },
+         {
+            { -25154831, -4185821, 29681144, 7868801, -6854661, -9423865, -12437364, -663000, -31111463, -16132436 },
+            { 25576264, -2703214, 7349804, -11814844, 16472782, 9300885, 3844789, 15725684, 171356, 6466918 },
+            { 23103977, 13316479, 9739013, -16149481, 817875, -15038942, 8965339, -14088058, -30714912, 16193877 },
+         },
+         {
+            { -33521811, 3180713, -2394130, 14003687, -16903474, -16270840, 17238398, 4729455, -18074513, 9256800 },
+            { -25182317, -4174131, 32336398, 5036987, -21236817, 11360617, 22616405, 9761698, -19827198, 630305 },
+            { -13720693, 2639453, -24237460, -7406481, 9494427, -5774029, -6554551, -15960994, -2449256, -14291300 },
+         },
+         {
+            { -3151181, -5046075, 9282714, 6866145, -31907062, -863023, -18940575, 15033784, 25105118, -7894876 },
+            { -24326370, 15950226, -31801215, -14592823, -11662737, -5090925, 1573892, -2625887, 2198790, -15804619 },
+            { -3099351, 10324967, -2241613, 7453183, -5446979, -2735503, -13812022, -16236442, -32461234, -12290683 },
+         },
+      } ;
+
+   int8_t aslide[256];
+   int8_t bslide[256];
+   ge_cached Ai[8]; /* A,3A,5A,7A,9A,11A,13A,15A */
+   ge_p1p1 t;
+   ge_p3 u;
+   ge_p3 A2;
+   ge_p2 r;
+   int i;
+
+   slide(aslide, a);
+   slide(bslide, b);
+
+   ge_p3_to_cached(&Ai[0], A);
+   ge_p3_dbl(&t, A);
+   ge_p1p1_to_p3(&A2, &t);
+   ge_add(&t, &A2, &Ai[0]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[1], &u);
+   ge_add(&t, &A2, &Ai[1]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[2], &u);
+   ge_add(&t, &A2, &Ai[2]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[3], &u);
+   ge_add(&t, &A2, &Ai[3]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[4], &u);
+   ge_add(&t, &A2, &Ai[4]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[5], &u);
+   ge_add(&t, &A2, &Ai[5]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[6], &u);
+   ge_add(&t, &A2, &Ai[6]);
+   ge_p1p1_to_p3(&u, &t);
+   ge_p3_to_cached(&Ai[7], &u);
+
+   ge_p2_0(&r);
+
+   for(i = 255; i >= 0; --i)
+      {
+      if(aslide[i] || bslide[i])
+         {
+         break;
+         }
+      }
+
+   for(; i >= 0; --i)
+      {
+      ge_p2_dbl(&t, &r);
+
+      if(aslide[i] > 0)
+         {
+         ge_p1p1_to_p3(&u, &t);
+         ge_add(&t, &u, &Ai[aslide[i] >> 1]);
+         }
+      else if(aslide[i] < 0)
+         {
+         ge_p1p1_to_p3(&u, &t);
+         ge_sub(&t, &u, &Ai[(-aslide[i]) >> 1]);
+         }
+
+      if(bslide[i] > 0)
+         {
+         ge_p1p1_to_p3(&u, &t);
+         ge_madd(&t, &u, &Bi[bslide[i] >> 1]);
+         }
+      else if(bslide[i] < 0)
+         {
+         ge_p1p1_to_p3(&u, &t);
+         ge_msub(&t, &u, &Bi[(-bslide[i]) >> 1]);
+         }
+
+      ge_p1p1_to_p2(&r, &t);
+      }
+
+   ge_tobytes(out, &r);
+   }
+
+/* base[i][j] = (j+1)*256^i*B */
+static const ge_precomp B_precomp[32][8] =
+   {
+      {
+         {
+            { 25967493, -14356035, 29566456, 3660896, -12694345, 4014787, 27544626, -11754271, -6079156, 2047605 },
+            { -12545711, 934262, -2722910, 3049990, -727428, 9406986, 12720692, 5043384, 19500929, -15469378 },
+            { -8738181, 4489570, 9688441, -14785194, 10184609, -12363380, 29287919, 11864899, -24514362, -4438546 },
+         },
+         {
+            { -12815894, -12976347, -21581243, 11784320, -25355658, -2750717, -11717903, -3814571, -358445, -10211303 },
+            { -21703237, 6903825, 27185491, 6451973, -29577724, -9554005, -15616551, 11189268, -26829678, -5319081 },
+            { 26966642, 11152617, 32442495, 15396054, 14353839, -12752335, -3128826, -9541118, -15472047, -4166697 },
+         },
+         {
+            { 15636291, -9688557, 24204773, -7912398, 616977, -16685262, 27787600, -14772189, 28944400, -1550024 },
+            { 16568933, 4717097, -11556148, -1102322, 15682896, -11807043, 16354577, -11775962, 7689662, 11199574 },
+            { 30464156, -5976125, -11779434, -15670865, 23220365, 15915852, 7512774, 10017326, -17749093, -9920357 },
+         },
+         {
+            { -17036878, 13921892, 10945806, -6033431, 27105052, -16084379, -28926210, 15006023, 3284568, -6276540 },
+            { 23599295, -8306047, -11193664, -7687416, 13236774, 10506355, 7464579, 9656445, 13059162, 10374397 },
+            { 7798556, 16710257, 3033922, 2874086, 28997861, 2835604, 32406664, -3839045, -641708, -101325 },
+         },
+         {
+            { 10861363, 11473154, 27284546, 1981175, -30064349, 12577861, 32867885, 14515107, -15438304, 10819380 },
+            { 4708026, 6336745, 20377586, 9066809, -11272109, 6594696, -25653668, 12483688, -12668491, 5581306 },
+            { 19563160, 16186464, -29386857, 4097519, 10237984, -4348115, 28542350, 13850243, -23678021, -15815942 },
+         },
+         {
+            { -15371964, -12862754, 32573250, 4720197, -26436522, 5875511, -19188627, -15224819, -9818940, -12085777 },
+            { -8549212, 109983, 15149363, 2178705, 22900618, 4543417, 3044240, -15689887, 1762328, 14866737 },
+            { -18199695, -15951423, -10473290, 1707278, -17185920, 3916101, -28236412, 3959421, 27914454, 4383652 },
+         },
+         {
+            { 5153746, 9909285, 1723747, -2777874, 30523605, 5516873, 19480852, 5230134, -23952439, -15175766 },
+            { -30269007, -3463509, 7665486, 10083793, 28475525, 1649722, 20654025, 16520125, 30598449, 7715701 },
+            { 28881845, 14381568, 9657904, 3680757, -20181635, 7843316, -31400660, 1370708, 29794553, -1409300 },
+         },
+         {
+            { 14499471, -2729599, -33191113, -4254652, 28494862, 14271267, 30290735, 10876454, -33154098, 2381726 },
+            { -7195431, -2655363, -14730155, 462251, -27724326, 3941372, -6236617, 3696005, -32300832, 15351955 },
+            { 27431194, 8222322, 16448760, -3907995, -18707002, 11938355, -32961401, -2970515, 29551813, 10109425 },
+         },
+      },
+      {
+         {
+            { -13657040, -13155431, -31283750, 11777098, 21447386, 6519384, -2378284, -1627556, 10092783, -4764171 },
+            { 27939166, 14210322, 4677035, 16277044, -22964462, -12398139, -32508754, 12005538, -17810127, 12803510 },
+            { 17228999, -15661624, -1233527, 300140, -1224870, -11714777, 30364213, -9038194, 18016357, 4397660 },
+         },
+         {
+            { -10958843, -7690207, 4776341, -14954238, 27850028, -15602212, -26619106, 14544525, -17477504, 982639 },
+            { 29253598, 15796703, -2863982, -9908884, 10057023, 3163536, 7332899, -4120128, -21047696, 9934963 },
+            { 5793303, 16271923, -24131614, -10116404, 29188560, 1206517, -14747930, 4559895, -30123922, -10897950 },
+         },
+         {
+            { -27643952, -11493006, 16282657, -11036493, 28414021, -15012264, 24191034, 4541697, -13338309, 5500568 },
+            { 12650548, -1497113, 9052871, 11355358, -17680037, -8400164, -17430592, 12264343, 10874051, 13524335 },
+            { 25556948, -3045990, 714651, 2510400, 23394682, -10415330, 33119038, 5080568, -22528059, 5376628 },
+         },
+         {
+            { -26088264, -4011052, -17013699, -3537628, -6726793, 1920897, -22321305, -9447443, 4535768, 1569007 },
+            { -2255422, 14606630, -21692440, -8039818, 28430649, 8775819, -30494562, 3044290, 31848280, 12543772 },
+            { -22028579, 2943893, -31857513, 6777306, 13784462, -4292203, -27377195, -2062731, 7718482, 14474653 },
+         },
+         {
+            { 2385315, 2454213, -22631320, 46603, -4437935, -15680415, 656965, -7236665, 24316168, -5253567 },
+            { 13741529, 10911568, -33233417, -8603737, -20177830, -1033297, 33040651, -13424532, -20729456, 8321686 },
+            { 21060490, -2212744, 15712757, -4336099, 1639040, 10656336, 23845965, -11874838, -9984458, 608372 },
+         },
+         {
+            { -13672732, -15087586, -10889693, -7557059, -6036909, 11305547, 1123968, -6780577, 27229399, 23887 },
+            { -23244140, -294205, -11744728, 14712571, -29465699, -2029617, 12797024, -6440308, -1633405, 16678954 },
+            { -29500620, 4770662, -16054387, 14001338, 7830047, 9564805, -1508144, -4795045, -17169265, 4904953 },
+         },
+         {
+            { 24059557, 14617003, 19037157, -15039908, 19766093, -14906429, 5169211, 16191880, 2128236, -4326833 },
+            { -16981152, 4124966, -8540610, -10653797, 30336522, -14105247, -29806336, 916033, -6882542, -2986532 },
+            { -22630907, 12419372, -7134229, -7473371, -16478904, 16739175, 285431, 2763829, 15736322, 4143876 },
+         },
+         {
+            { 2379352, 11839345, -4110402, -5988665, 11274298, 794957, 212801, -14594663, 23527084, -16458268 },
+            { 33431127, -11130478, -17838966, -15626900, 8909499, 8376530, -32625340, 4087881, -15188911, -14416214 },
+            { 1767683, 7197987, -13205226, -2022635, -13091350, 448826, 5799055, 4357868, -4774191, -16323038 },
+         },
+      },
+      {
+         {
+            { 6721966, 13833823, -23523388, -1551314, 26354293, -11863321, 23365147, -3949732, 7390890, 2759800 },
+            { 4409041, 2052381, 23373853, 10530217, 7676779, -12885954, 21302353, -4264057, 1244380, -12919645 },
+            { -4421239, 7169619, 4982368, -2957590, 30256825, -2777540, 14086413, 9208236, 15886429, 16489664 },
+         },
+         {
+            { 1996075, 10375649, 14346367, 13311202, -6874135, -16438411, -13693198, 398369, -30606455, -712933 },
+            { -25307465, 9795880, -2777414, 14878809, -33531835, 14780363, 13348553, 12076947, -30836462, 5113182 },
+            { -17770784, 11797796, 31950843, 13929123, -25888302, 12288344, -30341101, -7336386, 13847711, 5387222 },
+         },
+         {
+            { -18582163, -3416217, 17824843, -2340966, 22744343, -10442611, 8763061, 3617786, -19600662, 10370991 },
+            { 20246567, -14369378, 22358229, -543712, 18507283, -10413996, 14554437, -8746092, 32232924, 16763880 },
+            { 9648505, 10094563, 26416693, 14745928, -30374318, -6472621, 11094161, 15689506, 3140038, -16510092 },
+         },
+         {
+            { -16160072, 5472695, 31895588, 4744994, 8823515, 10365685, -27224800, 9448613, -28774454, 366295 },
+            { 19153450, 11523972, -11096490, -6503142, -24647631, 5420647, 28344573, 8041113, 719605, 11671788 },
+            { 8678025, 2694440, -6808014, 2517372, 4964326, 11152271, -15432916, -15266516, 27000813, -10195553 },
+         },
+         {
+            { -15157904, 7134312, 8639287, -2814877, -7235688, 10421742, 564065, 5336097, 6750977, -14521026 },
+            { 11836410, -3979488, 26297894, 16080799, 23455045, 15735944, 1695823, -8819122, 8169720, 16220347 },
+            { -18115838, 8653647, 17578566, -6092619, -8025777, -16012763, -11144307, -2627664, -5990708, -14166033 },
+         },
+         {
+            { -23308498, -10968312, 15213228, -10081214, -30853605, -11050004, 27884329, 2847284, 2655861, 1738395 },
+            { -27537433, -14253021, -25336301, -8002780, -9370762, 8129821, 21651608, -3239336, -19087449, -11005278 },
+            { 1533110, 3437855, 23735889, 459276, 29970501, 11335377, 26030092, 5821408, 10478196, 8544890 },
+         },
+         {
+            { 32173121, -16129311, 24896207, 3921497, 22579056, -3410854, 19270449, 12217473, 17789017, -3395995 },
+            { -30552961, -2228401, -15578829, -10147201, 13243889, 517024, 15479401, -3853233, 30460520, 1052596 },
+            { -11614875, 13323618, 32618793, 8175907, -15230173, 12596687, 27491595, -4612359, 3179268, -9478891 },
+         },
+         {
+            { 31947069, -14366651, -4640583, -15339921, -15125977, -6039709, -14756777, -16411740, 19072640, -9511060 },
+            { 11685058, 11822410, 3158003, -13952594, 33402194, -4165066, 5977896, -5215017, 473099, 5040608 },
+            { -20290863, 8198642, -27410132, 11602123, 1290375, -2799760, 28326862, 1721092, -19558642, -3131606 },
+         },
+      },
+      {
+         {
+            { 7881532, 10687937, 7578723, 7738378, -18951012, -2553952, 21820786, 8076149, -27868496, 11538389 },
+            { -19935666, 3899861, 18283497, -6801568, -15728660, -11249211, 8754525, 7446702, -5676054, 5797016 },
+            { -11295600, -3793569, -15782110, -7964573, 12708869, -8456199, 2014099, -9050574, -2369172, -5877341 },
+         },
+         {
+            { -22472376, -11568741, -27682020, 1146375, 18956691, 16640559, 1192730, -3714199, 15123619, 10811505 },
+            { 14352098, -3419715, -18942044, 10822655, 32750596, 4699007, -70363, 15776356, -28886779, -11974553 },
+            { -28241164, -8072475, -4978962, -5315317, 29416931, 1847569, -20654173, -16484855, 4714547, -9600655 },
+         },
+         {
+            { 15200332, 8368572, 19679101, 15970074, -31872674, 1959451, 24611599, -4543832, -11745876, 12340220 },
+            { 12876937, -10480056, 33134381, 6590940, -6307776, 14872440, 9613953, 8241152, 15370987, 9608631 },
+            { -4143277, -12014408, 8446281, -391603, 4407738, 13629032, -7724868, 15866074, -28210621, -8814099 },
+         },
+         {
+            { 26660628, -15677655, 8393734, 358047, -7401291, 992988, -23904233, 858697, 20571223, 8420556 },
+            { 14620715, 13067227, -15447274, 8264467, 14106269, 15080814, 33531827, 12516406, -21574435, -12476749 },
+            { 236881, 10476226, 57258, -14677024, 6472998, 2466984, 17258519, 7256740, 8791136, 15069930 },
+         },
+         {
+            { 1276410, -9371918, 22949635, -16322807, -23493039, -5702186, 14711875, 4874229, -30663140, -2331391 },
+            { 5855666, 4990204, -13711848, 7294284, -7804282, 1924647, -1423175, -7912378, -33069337, 9234253 },
+            { 20590503, -9018988, 31529744, -7352666, -2706834, 10650548, 31559055, -11609587, 18979186, 13396066 },
+         },
+         {
+            { 24474287, 4968103, 22267082, 4407354, 24063882, -8325180, -18816887, 13594782, 33514650, 7021958 },
+            { -11566906, -6565505, -21365085, 15928892, -26158305, 4315421, -25948728, -3916677, -21480480, 12868082 },
+            { -28635013, 13504661, 19988037, -2132761, 21078225, 6443208, -21446107, 2244500, -12455797, -8089383 },
+         },
+         {
+            { -30595528, 13793479, -5852820, 319136, -25723172, -6263899, 33086546, 8957937, -15233648, 5540521 },
+            { -11630176, -11503902, -8119500, -7643073, 2620056, 1022908, -23710744, -1568984, -16128528, -14962807 },
+            { 23152971, 775386, 27395463, 14006635, -9701118, 4649512, 1689819, 892185, -11513277, -15205948 },
+         },
+         {
+            { 9770129, 9586738, 26496094, 4324120, 1556511, -3550024, 27453819, 4763127, -19179614, 5867134 },
+            { -32765025, 1927590, 31726409, -4753295, 23962434, -16019500, 27846559, 5931263, -29749703, -16108455 },
+            { 27461885, -2977536, 22380810, 1815854, -23033753, -3031938, 7283490, -15148073, -19526700, 7734629 },
+         },
+      },
+      {
+         {
+            { -8010264, -9590817, -11120403, 6196038, 29344158, -13430885, 7585295, -3176626, 18549497, 15302069 },
+            { -32658337, -6171222, -7672793, -11051681, 6258878, 13504381, 10458790, -6418461, -8872242, 8424746 },
+            { 24687205, 8613276, -30667046, -3233545, 1863892, -1830544, 19206234, 7134917, -11284482, -828919 },
+         },
+         {
+            { 11334899, -9218022, 8025293, 12707519, 17523892, -10476071, 10243738, -14685461, -5066034, 16498837 },
+            { 8911542, 6887158, -9584260, -6958590, 11145641, -9543680, 17303925, -14124238, 6536641, 10543906 },
+            { -28946384, 15479763, -17466835, 568876, -1497683, 11223454, -2669190, -16625574, -27235709, 8876771 },
+         },
+         {
+            { -25742899, -12566864, -15649966, -846607, -33026686, -796288, -33481822, 15824474, -604426, -9039817 },
+            { 10330056, 70051, 7957388, -9002667, 9764902, 15609756, 27698697, -4890037, 1657394, 3084098 },
+            { 10477963, -7470260, 12119566, -13250805, 29016247, -5365589, 31280319, 14396151, -30233575, 15272409 },
+         },
+         {
+            { -12288309, 3169463, 28813183, 16658753, 25116432, -5630466, -25173957, -12636138, -25014757, 1950504 },
+            { -26180358, 9489187, 11053416, -14746161, -31053720, 5825630, -8384306, -8767532, 15341279, 8373727 },
+            { 28685821, 7759505, -14378516, -12002860, -31971820, 4079242, 298136, -10232602, -2878207, 15190420 },
+         },
+         {
+            { -32932876, 13806336, -14337485, -15794431, -24004620, 10940928, 8669718, 2742393, -26033313, -6875003 },
+            { -1580388, -11729417, -25979658, -11445023, -17411874, -10912854, 9291594, -16247779, -12154742, 6048605 },
+            { -30305315, 14843444, 1539301, 11864366, 20201677, 1900163, 13934231, 5128323, 11213262, 9168384 },
+         },
+         {
+            { -26280513, 11007847, 19408960, -940758, -18592965, -4328580, -5088060, -11105150, 20470157, -16398701 },
+            { -23136053, 9282192, 14855179, -15390078, -7362815, -14408560, -22783952, 14461608, 14042978, 5230683 },
+            { 29969567, -2741594, -16711867, -8552442, 9175486, -2468974, 21556951, 3506042, -5933891, -12449708 },
+         },
+         {
+            { -3144746, 8744661, 19704003, 4581278, -20430686, 6830683, -21284170, 8971513, -28539189, 15326563 },
+            { -19464629, 10110288, -17262528, -3503892, -23500387, 1355669, -15523050, 15300988, -20514118, 9168260 },
+            { -5353335, 4488613, -23803248, 16314347, 7780487, -15638939, -28948358, 9601605, 33087103, -9011387 },
+         },
+         {
+            { -19443170, -15512900, -20797467, -12445323, -29824447, 10229461, -27444329, -15000531, -5996870, 15664672 },
+            { 23294591, -16632613, -22650781, -8470978, 27844204, 11461195, 13099750, -2460356, 18151676, 13417686 },
+            { -24722913, -4176517, -31150679, 5988919, -26858785, 6685065, 1661597, -12551441, 15271676, -15452665 },
+         },
+      },
+      {
+         {
+            { 11433042, -13228665, 8239631, -5279517, -1985436, -725718, -18698764, 2167544, -6921301, -13440182 },
+            { -31436171, 15575146, 30436815, 12192228, -22463353, 9395379, -9917708, -8638997, 12215110, 12028277 },
+            { 14098400, 6555944, 23007258, 5757252, -15427832, -12950502, 30123440, 4617780, -16900089, -655628 },
+         },
+         {
+            { -4026201, -15240835, 11893168, 13718664, -14809462, 1847385, -15819999, 10154009, 23973261, -12684474 },
+            { -26531820, -3695990, -1908898, 2534301, -31870557, -16550355, 18341390, -11419951, 32013174, -10103539 },
+            { -25479301, 10876443, -11771086, -14625140, -12369567, 1838104, 21911214, 6354752, 4425632, -837822 },
+         },
+         {
+            { -10433389, -14612966, 22229858, -3091047, -13191166, 776729, -17415375, -12020462, 4725005, 14044970 },
+            { 19268650, -7304421, 1555349, 8692754, -21474059, -9910664, 6347390, -1411784, -19522291, -16109756 },
+            { -24864089, 12986008, -10898878, -5558584, -11312371, -148526, 19541418, 8180106, 9282262, 10282508 },
+         },
+         {
+            { -26205082, 4428547, -8661196, -13194263, 4098402, -14165257, 15522535, 8372215, 5542595, -10702683 },
+            { -10562541, 14895633, 26814552, -16673850, -17480754, -2489360, -2781891, 6993761, -18093885, 10114655 },
+            { -20107055, -929418, 31422704, 10427861, -7110749, 6150669, -29091755, -11529146, 25953725, -106158 },
+         },
+         {
+            { -4234397, -8039292, -9119125, 3046000, 2101609, -12607294, 19390020, 6094296, -3315279, 12831125 },
+            { -15998678, 7578152, 5310217, 14408357, -33548620, -224739, 31575954, 6326196, 7381791, -2421839 },
+            { -20902779, 3296811, 24736065, -16328389, 18374254, 7318640, 6295303, 8082724, -15362489, 12339664 },
+         },
+         {
+            { 27724736, 2291157, 6088201, -14184798, 1792727, 5857634, 13848414, 15768922, 25091167, 14856294 },
+            { -18866652, 8331043, 24373479, 8541013, -701998, -9269457, 12927300, -12695493, -22182473, -9012899 },
+            { -11423429, -5421590, 11632845, 3405020, 30536730, -11674039, -27260765, 13866390, 30146206, 9142070 },
+         },
+         {
+            { 3924129, -15307516, -13817122, -10054960, 12291820, -668366, -27702774, 9326384, -8237858, 4171294 },
+            { -15921940, 16037937, 6713787, 16606682, -21612135, 2790944, 26396185, 3731949, 345228, -5462949 },
+            { -21327538, 13448259, 25284571, 1143661, 20614966, -8849387, 2031539, -12391231, -16253183, -13582083 },
+         },
+         {
+            { 31016211, -16722429, 26371392, -14451233, -5027349, 14854137, 17477601, 3842657, 28012650, -16405420 },
+            { -5075835, 9368966, -8562079, -4600902, -15249953, 6970560, -9189873, 16292057, -8867157, 3507940 },
+            { 29439664, 3537914, 23333589, 6997794, -17555561, -11018068, -15209202, -15051267, -9164929, 6580396 },
+         },
+      },
+      {
+         {
+            { -12185861, -7679788, 16438269, 10826160, -8696817, -6235611, 17860444, -9273846, -2095802, 9304567 },
+            { 20714564, -4336911, 29088195, 7406487, 11426967, -5095705, 14792667, -14608617, 5289421, -477127 },
+            { -16665533, -10650790, -6160345, -13305760, 9192020, -1802462, 17271490, 12349094, 26939669, -3752294 },
+         },
+         {
+            { -12889898, 9373458, 31595848, 16374215, 21471720, 13221525, -27283495, -12348559, -3698806, 117887 },
+            { 22263325, -6560050, 3984570, -11174646, -15114008, -566785, 28311253, 5358056, -23319780, 541964 },
+            { 16259219, 3261970, 2309254, -15534474, -16885711, -4581916, 24134070, -16705829, -13337066, -13552195 },
+         },
+         {
+            { 9378160, -13140186, -22845982, -12745264, 28198281, -7244098, -2399684, -717351, 690426, 14876244 },
+            { 24977353, -314384, -8223969, -13465086, 28432343, -1176353, -13068804, -12297348, -22380984, 6618999 },
+            { -1538174, 11685646, 12944378, 13682314, -24389511, -14413193, 8044829, -13817328, 32239829, -5652762 },
+         },
+         {
+            { -18603066, 4762990, -926250, 8885304, -28412480, -3187315, 9781647, -10350059, 32779359, 5095274 },
+            { -33008130, -5214506, -32264887, -3685216, 9460461, -9327423, -24601656, 14506724, 21639561, -2630236 },
+            { -16400943, -13112215, 25239338, 15531969, 3987758, -4499318, -1289502, -6863535, 17874574, 558605 },
+         },
+         {
+            { -13600129, 10240081, 9171883, 16131053, -20869254, 9599700, 33499487, 5080151, 2085892, 5119761 },
+            { -22205145, -2519528, -16381601, 414691, -25019550, 2170430, 30634760, -8363614, -31999993, -5759884 },
+            { -6845704, 15791202, 8550074, -1312654, 29928809, -12092256, 27534430, -7192145, -22351378, 12961482 },
+         },
+         {
+            { -24492060, -9570771, 10368194, 11582341, -23397293, -2245287, 16533930, 8206996, -30194652, -5159638 },
+            { -11121496, -3382234, 2307366, 6362031, -135455, 8868177, -16835630, 7031275, 7589640, 8945490 },
+            { -32152748, 8917967, 6661220, -11677616, -1192060, -15793393, 7251489, -11182180, 24099109, -14456170 },
+         },
+         {
+            { 5019558, -7907470, 4244127, -14714356, -26933272, 6453165, -19118182, -13289025, -6231896, -10280736 },
+            { 10853594, 10721687, 26480089, 5861829, -22995819, 1972175, -1866647, -10557898, -3363451, -6441124 },
+            { -17002408, 5906790, 221599, -6563147, 7828208, -13248918, 24362661, -2008168, -13866408, 7421392 },
+         },
+         {
+            { 8139927, -6546497, 32257646, -5890546, 30375719, 1886181, -21175108, 15441252, 28826358, -4123029 },
+            { 6267086, 9695052, 7709135, -16603597, -32869068, -1886135, 14795160, -7840124, 13746021, -1742048 },
+            { 28584902, 7787108, -6732942, -15050729, 22846041, -7571236, -3181936, -363524, 4771362, -8419958 },
+         },
+      },
+      {
+         {
+            { 24949256, 6376279, -27466481, -8174608, -18646154, -9930606, 33543569, -12141695, 3569627, 11342593 },
+            { 26514989, 4740088, 27912651, 3697550, 19331575, -11472339, 6809886, 4608608, 7325975, -14801071 },
+            { -11618399, -14554430, -24321212, 7655128, -1369274, 5214312, -27400540, 10258390, -17646694, -8186692 },
+         },
+         {
+            { 11431204, 15823007, 26570245, 14329124, 18029990, 4796082, -31446179, 15580664, 9280358, -3973687 },
+            { -160783, -10326257, -22855316, -4304997, -20861367, -13621002, -32810901, -11181622, -15545091, 4387441 },
+            { -20799378, 12194512, 3937617, -5805892, -27154820, 9340370, -24513992, 8548137, 20617071, -7482001 },
+         },
+         {
+            { -938825, -3930586, -8714311, 16124718, 24603125, -6225393, -13775352, -11875822, 24345683, 10325460 },
+            { -19855277, -1568885, -22202708, 8714034, 14007766, 6928528, 16318175, -1010689, 4766743, 3552007 },
+            { -21751364, -16730916, 1351763, -803421, -4009670, 3950935, 3217514, 14481909, 10988822, -3994762 },
+         },
+         {
+            { 15564307, -14311570, 3101243, 5684148, 30446780, -8051356, 12677127, -6505343, -8295852, 13296005 },
+            { -9442290, 6624296, -30298964, -11913677, -4670981, -2057379, 31521204, 9614054, -30000824, 12074674 },
+            { 4771191, -135239, 14290749, -13089852, 27992298, 14998318, -1413936, -1556716, 29832613, -16391035 },
+         },
+         {
+            { 7064884, -7541174, -19161962, -5067537, -18891269, -2912736, 25825242, 5293297, -27122660, 13101590 },
+            { -2298563, 2439670, -7466610, 1719965, -27267541, -16328445, 32512469, -5317593, -30356070, -4190957 },
+            { -30006540, 10162316, -33180176, 3981723, -16482138, -13070044, 14413974, 9515896, 19568978, 9628812 },
+         },
+         {
+            { 33053803, 199357, 15894591, 1583059, 27380243, -4580435, -17838894, -6106839, -6291786, 3437740 },
+            { -18978877, 3884493, 19469877, 12726490, 15913552, 13614290, -22961733, 70104, 7463304, 4176122 },
+            { -27124001, 10659917, 11482427, -16070381, 12771467, -6635117, -32719404, -5322751, 24216882, 5944158 },
+         },
+         {
+            { 8894125, 7450974, -2664149, -9765752, -28080517, -12389115, 19345746, 14680796, 11632993, 5847885 },
+            { 26942781, -2315317, 9129564, -4906607, 26024105, 11769399, -11518837, 6367194, -9727230, 4782140 },
+            { 19916461, -4828410, -22910704, -11414391, 25606324, -5972441, 33253853, 8220911, 6358847, -1873857 },
+         },
+         {
+            { 801428, -2081702, 16569428, 11065167, 29875704, 96627, 7908388, -4480480, -13538503, 1387155 },
+            { 19646058, 5720633, -11416706, 12814209, 11607948, 12749789, 14147075, 15156355, -21866831, 11835260 },
+            { 19299512, 1155910, 28703737, 14890794, 2925026, 7269399, 26121523, 15467869, -26560550, 5052483 },
+         },
+      },
+      {
+         {
+            { -3017432, 10058206, 1980837, 3964243, 22160966, 12322533, -6431123, -12618185, 12228557, -7003677 },
+            { 32944382, 14922211, -22844894, 5188528, 21913450, -8719943, 4001465, 13238564, -6114803, 8653815 },
+            { 22865569, -4652735, 27603668, -12545395, 14348958, 8234005, 24808405, 5719875, 28483275, 2841751 },
+         },
+         {
+            { -16420968, -1113305, -327719, -12107856, 21886282, -15552774, -1887966, -315658, 19932058, -12739203 },
+            { -11656086, 10087521, -8864888, -5536143, -19278573, -3055912, 3999228, 13239134, -4777469, -13910208 },
+            { 1382174, -11694719, 17266790, 9194690, -13324356, 9720081, 20403944, 11284705, -14013818, 3093230 },
+         },
+         {
+            { 16650921, -11037932, -1064178, 1570629, -8329746, 7352753, -302424, 16271225, -24049421, -6691850 },
+            { -21911077, -5927941, -4611316, -5560156, -31744103, -10785293, 24123614, 15193618, -21652117, -16739389 },
+            { -9935934, -4289447, -25279823, 4372842, 2087473, 10399484, 31870908, 14690798, 17361620, 11864968 },
+         },
+         {
+            { -11307610, 6210372, 13206574, 5806320, -29017692, -13967200, -12331205, -7486601, -25578460, -16240689 },
+            { 14668462, -12270235, 26039039, 15305210, 25515617, 4542480, 10453892, 6577524, 9145645, -6443880 },
+            { 5974874, 3053895, -9433049, -10385191, -31865124, 3225009, -7972642, 3936128, -5652273, -3050304 },
+         },
+         {
+            { 30625386, -4729400, -25555961, -12792866, -20484575, 7695099, 17097188, -16303496, -27999779, 1803632 },
+            { -3553091, 9865099, -5228566, 4272701, -5673832, -16689700, 14911344, 12196514, -21405489, 7047412 },
+            { 20093277, 9920966, -11138194, -5343857, 13161587, 12044805, -32856851, 4124601, -32343828, -10257566 },
+         },
+         {
+            { -20788824, 14084654, -13531713, 7842147, 19119038, -13822605, 4752377, -8714640, -21679658, 2288038 },
+            { -26819236, -3283715, 29965059, 3039786, -14473765, 2540457, 29457502, 14625692, -24819617, 12570232 },
+            { -1063558, -11551823, 16920318, 12494842, 1278292, -5869109, -21159943, -3498680, -11974704, 4724943 },
+         },
+         {
+            { 17960970, -11775534, -4140968, -9702530, -8876562, -1410617, -12907383, -8659932, -29576300, 1903856 },
+            { 23134274, -14279132, -10681997, -1611936, 20684485, 15770816, -12989750, 3190296, 26955097, 14109738 },
+            { 15308788, 5320727, -30113809, -14318877, 22902008, 7767164, 29425325, -11277562, 31960942, 11934971 },
+         },
+         {
+            { -27395711, 8435796, 4109644, 12222639, -24627868, 14818669, 20638173, 4875028, 10491392, 1379718 },
+            { -13159415, 9197841, 3875503, -8936108, -1383712, -5879801, 33518459, 16176658, 21432314, 12180697 },
+            { -11787308, 11500838, 13787581, -13832590, -22430679, 10140205, 1465425, 12689540, -10301319, -13872883 },
+         },
+      },
+      {
+         {
+            { 5414091, -15386041, -21007664, 9643570, 12834970, 1186149, -2622916, -1342231, 26128231, 6032912 },
+            { -26337395, -13766162, 32496025, -13653919, 17847801, -12669156, 3604025, 8316894, -25875034, -10437358 },
+            { 3296484, 6223048, 24680646, -12246460, -23052020, 5903205, -8862297, -4639164, 12376617, 3188849 },
+         },
+         {
+            { 29190488, -14659046, 27549113, -1183516, 3520066, -10697301, 32049515, -7309113, -16109234, -9852307 },
+            { -14744486, -9309156, 735818, -598978, -20407687, -5057904, 25246078, -15795669, 18640741, -960977 },
+            { -6928835, -16430795, 10361374, 5642961, 4910474, 12345252, -31638386, -494430, 10530747, 1053335 },
+         },
+         {
+            { -29265967, -14186805, -13538216, -12117373, -19457059, -10655384, -31462369, -2948985, 24018831, 15026644 },
+            { -22592535, -3145277, -2289276, 5953843, -13440189, 9425631, 25310643, 13003497, -2314791, -15145616 },
+            { -27419985, -603321, -8043984, -1669117, -26092265, 13987819, -27297622, 187899, -23166419, -2531735 },
+         },
+         {
+            { -21744398, -13810475, 1844840, 5021428, -10434399, -15911473, 9716667, 16266922, -5070217, 726099 },
+            { 29370922, -6053998, 7334071, -15342259, 9385287, 2247707, -13661962, -4839461, 30007388, -15823341 },
+            { -936379, 16086691, 23751945, -543318, -1167538, -5189036, 9137109, 730663, 9835848, 4555336 },
+         },
+         {
+            { -23376435, 1410446, -22253753, -12899614, 30867635, 15826977, 17693930, 544696, -11985298, 12422646 },
+            { 31117226, -12215734, -13502838, 6561947, -9876867, -12757670, -5118685, -4096706, 29120153, 13924425 },
+            { -17400879, -14233209, 19675799, -2734756, -11006962, -5858820, -9383939, -11317700, 7240931, -237388 },
+         },
+         {
+            { -31361739, -11346780, -15007447, -5856218, -22453340, -12152771, 1222336, 4389483, 3293637, -15551743 },
+            { -16684801, -14444245, 11038544, 11054958, -13801175, -3338533, -24319580, 7733547, 12796905, -6335822 },
+            { -8759414, -10817836, -25418864, 10783769, -30615557, -9746811, -28253339, 3647836, 3222231, -11160462 },
+         },
+         {
+            { 18606113, 1693100, -25448386, -15170272, 4112353, 10045021, 23603893, -2048234, -7550776, 2484985 },
+            { 9255317, -3131197, -12156162, -1004256, 13098013, -9214866, 16377220, -2102812, -19802075, -3034702 },
+            { -22729289, 7496160, -5742199, 11329249, 19991973, -3347502, -31718148, 9936966, -30097688, -10618797 },
+         },
+         {
+            { 21878590, -5001297, 4338336, 13643897, -3036865, 13160960, 19708896, 5415497, -7360503, -4109293 },
+            { 27736861, 10103576, 12500508, 8502413, -3413016, -9633558, 10436918, -1550276, -23659143, -8132100 },
+            { 19492550, -12104365, -29681976, -852630, -3208171, 12403437, 30066266, 8367329, 13243957, 8709688 },
+         },
+      },
+      {
+         {
+            { 12015105, 2801261, 28198131, 10151021, 24818120, -4743133, -11194191, -5645734, 5150968, 7274186 },
+            { 2831366, -12492146, 1478975, 6122054, 23825128, -12733586, 31097299, 6083058, 31021603, -9793610 },
+            { -2529932, -2229646, 445613, 10720828, -13849527, -11505937, -23507731, 16354465, 15067285, -14147707 },
+         },
+         {
+            { 7840942, 14037873, -33364863, 15934016, -728213, -3642706, 21403988, 1057586, -19379462, -12403220 },
+            { 915865, -16469274, 15608285, -8789130, -24357026, 6060030, -17371319, 8410997, -7220461, 16527025 },
+            { 32922597, -556987, 20336074, -16184568, 10903705, -5384487, 16957574, 52992, 23834301, 6588044 },
+         },
+         {
+            { 32752030, 11232950, 3381995, -8714866, 22652988, -10744103, 17159699, 16689107, -20314580, -1305992 },
+            { -4689649, 9166776, -25710296, -10847306, 11576752, 12733943, 7924251, -2752281, 1976123, -7249027 },
+            { 21251222, 16309901, -2983015, -6783122, 30810597, 12967303, 156041, -3371252, 12331345, -8237197 },
+         },
+         {
+            { 8651614, -4477032, -16085636, -4996994, 13002507, 2950805, 29054427, -5106970, 10008136, -4667901 },
+            { 31486080, 15114593, -14261250, 12951354, 14369431, -7387845, 16347321, -13662089, 8684155, -10532952 },
+            { 19443825, 11385320, 24468943, -9659068, -23919258, 2187569, -26263207, -6086921, 31316348, 14219878 },
+         },
+         {
+            { -28594490, 1193785, 32245219, 11392485, 31092169, 15722801, 27146014, 6992409, 29126555, 9207390 },
+            { 32382935, 1110093, 18477781, 11028262, -27411763, -7548111, -4980517, 10843782, -7957600, -14435730 },
+            { 2814918, 7836403, 27519878, -7868156, -20894015, -11553689, -21494559, 8550130, 28346258, 1994730 },
+         },
+         {
+            { -19578299, 8085545, -14000519, -3948622, 2785838, -16231307, -19516951, 7174894, 22628102, 8115180 },
+            { -30405132, 955511, -11133838, -15078069, -32447087, -13278079, -25651578, 3317160, -9943017, 930272 },
+            { -15303681, -6833769, 28856490, 1357446, 23421993, 1057177, 24091212, -1388970, -22765376, -10650715 },
+         },
+         {
+            { -22751231, -5303997, -12907607, -12768866, -15811511, -7797053, -14839018, -16554220, -1867018, 8398970 },
+            { -31969310, 2106403, -4736360, 1362501, 12813763, 16200670, 22981545, -6291273, 18009408, -15772772 },
+            { -17220923, -9545221, -27784654, 14166835, 29815394, 7444469, 29551787, -3727419, 19288549, 1325865 },
+         },
+         {
+            { 15100157, -15835752, -23923978, -1005098, -26450192, 15509408, 12376730, -3479146, 33166107, -8042750 },
+            { 20909231, 13023121, -9209752, 16251778, -5778415, -8094914, 12412151, 10018715, 2213263, -13878373 },
+            { 32529814, -11074689, 30361439, -16689753, -9135940, 1513226, 22922121, 6382134, -5766928, 8371348 },
+         },
+      },
+      {
+         {
+            { 9923462, 11271500, 12616794, 3544722, -29998368, -1721626, 12891687, -8193132, -26442943, 10486144 },
+            { -22597207, -7012665, 8587003, -8257861, 4084309, -12970062, 361726, 2610596, -23921530, -11455195 },
+            { 5408411, -1136691, -4969122, 10561668, 24145918, 14240566, 31319731, -4235541, 19985175, -3436086 },
+         },
+         {
+            { -13994457, 16616821, 14549246, 3341099, 32155958, 13648976, -17577068, 8849297, 65030, 8370684 },
+            { -8320926, -12049626, 31204563, 5839400, -20627288, -1057277, -19442942, 6922164, 12743482, -9800518 },
+            { -2361371, 12678785, 28815050, 4759974, -23893047, 4884717, 23783145, 11038569, 18800704, 255233 },
+         },
+         {
+            { -5269658, -1773886, 13957886, 7990715, 23132995, 728773, 13393847, 9066957, 19258688, -14753793 },
+            { -2936654, -10827535, -10432089, 14516793, -3640786, 4372541, -31934921, 2209390, -1524053, 2055794 },
+            { 580882, 16705327, 5468415, -2683018, -30926419, -14696000, -7203346, -8994389, -30021019, 7394435 },
+         },
+         {
+            { 23838809, 1822728, -15738443, 15242727, 8318092, -3733104, -21672180, -3492205, -4821741, 14799921 },
+            { 13345610, 9759151, 3371034, -16137791, 16353039, 8577942, 31129804, 13496856, -9056018, 7402518 },
+            { 2286874, -4435931, -20042458, -2008336, -13696227, 5038122, 11006906, -15760352, 8205061, 1607563 },
+         },
+         {
+            { 14414086, -8002132, 3331830, -3208217, 22249151, -5594188, 18364661, -2906958, 30019587, -9029278 },
+            { -27688051, 1585953, -10775053, 931069, -29120221, -11002319, -14410829, 12029093, 9944378, 8024 },
+            { 4368715, -3709630, 29874200, -15022983, -20230386, -11410704, -16114594, -999085, -8142388, 5640030 },
+         },
+         {
+            { 10299610, 13746483, 11661824, 16234854, 7630238, 5998374, 9809887, -16694564, 15219798, -14327783 },
+            { 27425505, -5719081, 3055006, 10660664, 23458024, 595578, -15398605, -1173195, -18342183, 9742717 },
+            { 6744077, 2427284, 26042789, 2720740, -847906, 1118974, 32324614, 7406442, 12420155, 1994844 },
+         },
+         {
+            { 14012521, -5024720, -18384453, -9578469, -26485342, -3936439, -13033478, -10909803, 24319929, -6446333 },
+            { 16412690, -4507367, 10772641, 15929391, -17068788, -4658621, 10555945, -10484049, -30102368, -4739048 },
+            { 22397382, -7767684, -9293161, -12792868, 17166287, -9755136, -27333065, 6199366, 21880021, -12250760 },
+         },
+         {
+            { -4283307, 5368523, -31117018, 8163389, -30323063, 3209128, 16557151, 8890729, 8840445, 4957760 },
+            { -15447727, 709327, -6919446, -10870178, -29777922, 6522332, -21720181, 12130072, -14796503, 5005757 },
+            { -2114751, -14308128, 23019042, 15765735, -25269683, 6002752, 10183197, -13239326, -16395286, -2176112 },
+         },
+      },
+      {
+         {
+            { -19025756, 1632005, 13466291, -7995100, -23640451, 16573537, -32013908, -3057104, 22208662, 2000468 },
+            { 3065073, -1412761, -25598674, -361432, -17683065, -5703415, -8164212, 11248527, -3691214, -7414184 },
+            { 10379208, -6045554, 8877319, 1473647, -29291284, -12507580, 16690915, 2553332, -3132688, 16400289 },
+         },
+         {
+            { 15716668, 1254266, -18472690, 7446274, -8448918, 6344164, -22097271, -7285580, 26894937, 9132066 },
+            { 24158887, 12938817, 11085297, -8177598, -28063478, -4457083, -30576463, 64452, -6817084, -2692882 },
+            { 13488534, 7794716, 22236231, 5989356, 25426474, -12578208, 2350710, -3418511, -4688006, 2364226 },
+         },
+         {
+            { 16335052, 9132434, 25640582, 6678888, 1725628, 8517937, -11807024, -11697457, 15445875, -7798101 },
+            { 29004207, -7867081, 28661402, -640412, -12794003, -7943086, 31863255, -4135540, -278050, -15759279 },
+            { -6122061, -14866665, -28614905, 14569919, -10857999, -3591829, 10343412, -6976290, -29828287, -10815811 },
+         },
+         {
+            { 27081650, 3463984, 14099042, -4517604, 1616303, -6205604, 29542636, 15372179, 17293797, 960709 },
+            { 20263915, 11434237, -5765435, 11236810, 13505955, -10857102, -16111345, 6493122, -19384511, 7639714 },
+            { -2830798, -14839232, 25403038, -8215196, -8317012, -16173699, 18006287, -16043750, 29994677, -15808121 },
+         },
+         {
+            { 9769828, 5202651, -24157398, -13631392, -28051003, -11561624, -24613141, -13860782, -31184575, 709464 },
+            { 12286395, 13076066, -21775189, -1176622, -25003198, 4057652, -32018128, -8890874, 16102007, 13205847 },
+            { 13733362, 5599946, 10557076, 3195751, -5557991, 8536970, -25540170, 8525972, 10151379, 10394400 },
+         },
+         {
+            { 4024660, -16137551, 22436262, 12276534, -9099015, -2686099, 19698229, 11743039, -33302334, 8934414 },
+            { -15879800, -4525240, -8580747, -2934061, 14634845, -698278, -9449077, 3137094, -11536886, 11721158 },
+            { 17555939, -5013938, 8268606, 2331751, -22738815, 9761013, 9319229, 8835153, -9205489, -1280045 },
+         },
+         {
+            { -461409, -7830014, 20614118, 16688288, -7514766, -4807119, 22300304, 505429, 6108462, -6183415 },
+            { -5070281, 12367917, -30663534, 3234473, 32617080, -8422642, 29880583, -13483331, -26898490, -7867459 },
+            { -31975283, 5726539, 26934134, 10237677, -3173717, -605053, 24199304, 3795095, 7592688, -14992079 },
+         },
+         {
+            { 21594432, -14964228, 17466408, -4077222, 32537084, 2739898, 6407723, 12018833, -28256052, 4298412 },
+            { -20650503, -11961496, -27236275, 570498, 3767144, -1717540, 13891942, -1569194, 13717174, 10805743 },
+            { -14676630, -15644296, 15287174, 11927123, 24177847, -8175568, -796431, 14860609, -26938930, -5863836 },
+         },
+      },
+      {
+         {
+            { 12962541, 5311799, -10060768, 11658280, 18855286, -7954201, 13286263, -12808704, -4381056, 9882022 },
+            { 18512079, 11319350, -20123124, 15090309, 18818594, 5271736, -22727904, 3666879, -23967430, -3299429 },
+            { -6789020, -3146043, 16192429, 13241070, 15898607, -14206114, -10084880, -6661110, -2403099, 5276065 },
+         },
+         {
+            { 30169808, -5317648, 26306206, -11750859, 27814964, 7069267, 7152851, 3684982, 1449224, 13082861 },
+            { 10342826, 3098505, 2119311, 193222, 25702612, 12233820, 23697382, 15056736, -21016438, -8202000 },
+            { -33150110, 3261608, 22745853, 7948688, 19370557, -15177665, -26171976, 6482814, -10300080, -11060101 },
+         },
+         {
+            { 32869458, -5408545, 25609743, 15678670, -10687769, -15471071, 26112421, 2521008, -22664288, 6904815 },
+            { 29506923, 4457497, 3377935, -9796444, -30510046, 12935080, 1561737, 3841096, -29003639, -6657642 },
+            { 10340844, -6630377, -18656632, -2278430, 12621151, -13339055, 30878497, -11824370, -25584551, 5181966 },
+         },
+         {
+            { 25940115, -12658025, 17324188, -10307374, -8671468, 15029094, 24396252, -16450922, -2322852, -12388574 },
+            { -21765684, 9916823, -1300409, 4079498, -1028346, 11909559, 1782390, 12641087, 20603771, -6561742 },
+            { -18882287, -11673380, 24849422, 11501709, 13161720, -4768874, 1925523, 11914390, 4662781, 7820689 },
+         },
+         {
+            { 12241050, -425982, 8132691, 9393934, 32846760, -1599620, 29749456, 12172924, 16136752, 15264020 },
+            { -10349955, -14680563, -8211979, 2330220, -17662549, -14545780, 10658213, 6671822, 19012087, 3772772 },
+            { 3753511, -3421066, 10617074, 2028709, 14841030, -6721664, 28718732, -15762884, 20527771, 12988982 },
+         },
+         {
+            { -14822485, -5797269, -3707987, 12689773, -898983, -10914866, -24183046, -10564943, 3299665, -12424953 },
+            { -16777703, -15253301, -9642417, 4978983, 3308785, 8755439, 6943197, 6461331, -25583147, 8991218 },
+            { -17226263, 1816362, -1673288, -6086439, 31783888, -8175991, -32948145, 7417950, -30242287, 1507265 },
+         },
+         {
+            { 29692663, 6829891, -10498800, 4334896, 20945975, -11906496, -28887608, 8209391, 14606362, -10647073 },
+            { -3481570, 8707081, 32188102, 5672294, 22096700, 1711240, -33020695, 9761487, 4170404, -2085325 },
+            { -11587470, 14855945, -4127778, -1531857, -26649089, 15084046, 22186522, 16002000, -14276837, -8400798 },
+         },
+         {
+            { -4811456, 13761029, -31703877, -2483919, -3312471, 7869047, -7113572, -9620092, 13240845, 10965870 },
+            { -7742563, -8256762, -14768334, -13656260, -23232383, 12387166, 4498947, 14147411, 29514390, 4302863 },
+            { -13413405, -12407859, 20757302, -13801832, 14785143, 8976368, -5061276, -2144373, 17846988, -13971927 },
+         },
+      },
+      {
+         {
+            { -2244452, -754728, -4597030, -1066309, -6247172, 1455299, -21647728, -9214789, -5222701, 12650267 },
+            { -9906797, -16070310, 21134160, 12198166, -27064575, 708126, 387813, 13770293, -19134326, 10958663 },
+            { 22470984, 12369526, 23446014, -5441109, -21520802, -9698723, -11772496, -11574455, -25083830, 4271862 },
+         },
+         {
+            { -25169565, -10053642, -19909332, 15361595, -5984358, 2159192, 75375, -4278529, -32526221, 8469673 },
+            { 15854970, 4148314, -8893890, 7259002, 11666551, 13824734, -30531198, 2697372, 24154791, -9460943 },
+            { 15446137, -15806644, 29759747, 14019369, 30811221, -9610191, -31582008, 12840104, 24913809, 9815020 },
+         },
+         {
+            { -4709286, -5614269, -31841498, -12288893, -14443537, 10799414, -9103676, 13438769, 18735128, 9466238 },
+            { 11933045, 9281483, 5081055, -5183824, -2628162, -4905629, -7727821, -10896103, -22728655, 16199064 },
+            { 14576810, 379472, -26786533, -8317236, -29426508, -10812974, -102766, 1876699, 30801119, 2164795 },
+         },
+         {
+            { 15995086, 3199873, 13672555, 13712240, -19378835, -4647646, -13081610, -15496269, -13492807, 1268052 },
+            { -10290614, -3659039, -3286592, 10948818, 23037027, 3794475, -3470338, -12600221, -17055369, 3565904 },
+            { 29210088, -9419337, -5919792, -4952785, 10834811, -13327726, -16512102, -10820713, -27162222, -14030531 },
+         },
+         {
+            { -13161890, 15508588, 16663704, -8156150, -28349942, 9019123, -29183421, -3769423, 2244111, -14001979 },
+            { -5152875, -3800936, -9306475, -6071583, 16243069, 14684434, -25673088, -16180800, 13491506, 4641841 },
+            { 10813417, 643330, -19188515, -728916, 30292062, -16600078, 27548447, -7721242, 14476989, -12767431 },
+         },
+         {
+            { 10292079, 9984945, 6481436, 8279905, -7251514, 7032743, 27282937, -1644259, -27912810, 12651324 },
+            { -31185513, -813383, 22271204, 11835308, 10201545, 15351028, 17099662, 3988035, 21721536, -3148940 },
+            { 10202177, -6545839, -31373232, -9574638, -32150642, -8119683, -12906320, 3852694, 13216206, 14842320 },
+         },
+         {
+            { -15815640, -10601066, -6538952, -7258995, -6984659, -6581778, -31500847, 13765824, -27434397, 9900184 },
+            { 14465505, -13833331, -32133984, -14738873, -27443187, 12990492, 33046193, 15796406, -7051866, -8040114 },
+            { 30924417, -8279620, 6359016, -12816335, 16508377, 9071735, -25488601, 15413635, 9524356, -7018878 },
+         },
+         {
+            { 12274201, -13175547, 32627641, -1785326, 6736625, 13267305, 5237659, -5109483, 15663516, 4035784 },
+            { -2951309, 8903985, 17349946, 601635, -16432815, -4612556, -13732739, -15889334, -22258478, 4659091 },
+            { -16916263, -4952973, -30393711, -15158821, 20774812, 15897498, 5736189, 15026997, -2178256, -13455585 },
+         },
+      },
+      {
+         {
+            { -8858980, -2219056, 28571666, -10155518, -474467, -10105698, -3801496, 278095, 23440562, -290208 },
+            { 10226241, -5928702, 15139956, 120818, -14867693, 5218603, 32937275, 11551483, -16571960, -7442864 },
+            { 17932739, -12437276, -24039557, 10749060, 11316803, 7535897, 22503767, 5561594, -3646624, 3898661 },
+         },
+         {
+            { 7749907, -969567, -16339731, -16464, -25018111, 15122143, -1573531, 7152530, 21831162, 1245233 },
+            { 26958459, -14658026, 4314586, 8346991, -5677764, 11960072, -32589295, -620035, -30402091, -16716212 },
+            { -12165896, 9166947, 33491384, 13673479, 29787085, 13096535, 6280834, 14587357, -22338025, 13987525 },
+         },
+         {
+            { -24349909, 7778775, 21116000, 15572597, -4833266, -5357778, -4300898, -5124639, -7469781, -2858068 },
+            { 9681908, -6737123, -31951644, 13591838, -6883821, 386950, 31622781, 6439245, -14581012, 4091397 },
+            { -8426427, 1470727, -28109679, -1596990, 3978627, -5123623, -19622683, 12092163, 29077877, -14741988 },
+         },
+         {
+            { 5269168, -6859726, -13230211, -8020715, 25932563, 1763552, -5606110, -5505881, -20017847, 2357889 },
+            { 32264008, -15407652, -5387735, -1160093, -2091322, -3946900, 23104804, -12869908, 5727338, 189038 },
+            { 14609123, -8954470, -6000566, -16622781, -14577387, -7743898, -26745169, 10942115, -25888931, -14884697 },
+         },
+         {
+            { 20513500, 5557931, -15604613, 7829531, 26413943, -2019404, -21378968, 7471781, 13913677, -5137875 },
+            { -25574376, 11967826, 29233242, 12948236, -6754465, 4713227, -8940970, 14059180, 12878652, 8511905 },
+            { -25656801, 3393631, -2955415, -7075526, -2250709, 9366908, -30223418, 6812974, 5568676, -3127656 },
+         },
+         {
+            { 11630004, 12144454, 2116339, 13606037, 27378885, 15676917, -17408753, -13504373, -14395196, 8070818 },
+            { 27117696, -10007378, -31282771, -5570088, 1127282, 12772488, -29845906, 10483306, -11552749, -1028714 },
+            { 10637467, -5688064, 5674781, 1072708, -26343588, -6982302, -1683975, 9177853, -27493162, 15431203 },
+         },
+         {
+            { 20525145, 10892566, -12742472, 12779443, -29493034, 16150075, -28240519, 14943142, -15056790, -7935931 },
+            { -30024462, 5626926, -551567, -9981087, 753598, 11981191, 25244767, -3239766, -3356550, 9594024 },
+            { -23752644, 2636870, -5163910, -10103818, 585134, 7877383, 11345683, -6492290, 13352335, -10977084 },
+         },
+         {
+            { -1931799, -5407458, 3304649, -12884869, 17015806, -4877091, -29783850, -7752482, -13215537, -319204 },
+            { 20239939, 6607058, 6203985, 3483793, -18386976, -779229, -20723742, 15077870, -22750759, 14523817 },
+            { 27406042, -6041657, 27423596, -4497394, 4996214, 10002360, -28842031, -4545494, -30172742, -4805667 },
+         },
+      },
+      {
+         {
+            { 11374242, 12660715, 17861383, -12540833, 10935568, 1099227, -13886076, -9091740, -27727044, 11358504 },
+            { -12730809, 10311867, 1510375, 10778093, -2119455, -9145702, 32676003, 11149336, -26123651, 4985768 },
+            { -19096303, 341147, -6197485, -239033, 15756973, -8796662, -983043, 13794114, -19414307, -15621255 },
+         },
+         {
+            { 6490081, 11940286, 25495923, -7726360, 8668373, -8751316, 3367603, 6970005, -1691065, -9004790 },
+            { 1656497, 13457317, 15370807, 6364910, 13605745, 8362338, -19174622, -5475723, -16796596, -5031438 },
+            { -22273315, -13524424, -64685, -4334223, -18605636, -10921968, -20571065, -7007978, -99853, -10237333 },
+         },
+         {
+            { 17747465, 10039260, 19368299, -4050591, -20630635, -16041286, 31992683, -15857976, -29260363, -5511971 },
+            { 31932027, -4986141, -19612382, 16366580, 22023614, 88450, 11371999, -3744247, 4882242, -10626905 },
+            { 29796507, 37186, 19818052, 10115756, -11829032, 3352736, 18551198, 3272828, -5190932, -4162409 },
+         },
+         {
+            { 12501286, 4044383, -8612957, -13392385, -32430052, 5136599, -19230378, -3529697, 330070, -3659409 },
+            { 6384877, 2899513, 17807477, 7663917, -2358888, 12363165, 25366522, -8573892, -271295, 12071499 },
+            { -8365515, -4042521, 25133448, -4517355, -6211027, 2265927, -32769618, 1936675, -5159697, 3829363 },
+         },
+         {
+            { 28425966, -5835433, -577090, -4697198, -14217555, 6870930, 7921550, -6567787, 26333140, 14267664 },
+            { -11067219, 11871231, 27385719, -10559544, -4585914, -11189312, 10004786, -8709488, -21761224, 8930324 },
+            { -21197785, -16396035, 25654216, -1725397, 12282012, 11008919, 1541940, 4757911, -26491501, -16408940 },
+         },
+         {
+            { 13537262, -7759490, -20604840, 10961927, -5922820, -13218065, -13156584, 6217254, -15943699, 13814990 },
+            { -17422573, 15157790, 18705543, 29619, 24409717, -260476, 27361681, 9257833, -1956526, -1776914 },
+            { -25045300, -10191966, 15366585, 15166509, -13105086, 8423556, -29171540, 12361135, -18685978, 4578290 },
+         },
+         {
+            { 24579768, 3711570, 1342322, -11180126, -27005135, 14124956, -22544529, 14074919, 21964432, 8235257 },
+            { -6528613, -2411497, 9442966, -5925588, 12025640, -1487420, -2981514, -1669206, 13006806, 2355433 },
+            { -16304899, -13605259, -6632427, -5142349, 16974359, -10911083, 27202044, 1719366, 1141648, -12796236 },
+         },
+         {
+            { -12863944, -13219986, -8318266, -11018091, -6810145, -4843894, 13475066, -3133972, 32674895, 13715045 },
+            { 11423335, -5468059, 32344216, 8962751, 24989809, 9241752, -13265253, 16086212, -28740881, -15642093 },
+            { -1409668, 12530728, -6368726, 10847387, 19531186, -14132160, -11709148, 7791794, -27245943, 4383347 },
+         },
+      },
+      {
+         {
+            { -28970898, 5271447, -1266009, -9736989, -12455236, 16732599, -4862407, -4906449, 27193557, 6245191 },
+            { -15193956, 5362278, -1783893, 2695834, 4960227, 12840725, 23061898, 3260492, 22510453, 8577507 },
+            { -12632451, 11257346, -32692994, 13548177, -721004, 10879011, 31168030, 13952092, -29571492, -3635906 },
+         },
+         {
+            { 3877321, -9572739, 32416692, 5405324, -11004407, -13656635, 3759769, 11935320, 5611860, 8164018 },
+            { -16275802, 14667797, 15906460, 12155291, -22111149, -9039718, 32003002, -8832289, 5773085, -8422109 },
+            { -23788118, -8254300, 1950875, 8937633, 18686727, 16459170, -905725, 12376320, 31632953, 190926 },
+         },
+         {
+            { -24593607, -16138885, -8423991, 13378746, 14162407, 6901328, -8288749, 4508564, -25341555, -3627528 },
+            { 8884438, -5884009, 6023974, 10104341, -6881569, -4941533, 18722941, -14786005, -1672488, 827625 },
+            { -32720583, -16289296, -32503547, 7101210, 13354605, 2659080, -1800575, -14108036, -24878478, 1541286 },
+         },
+         {
+            { 2901347, -1117687, 3880376, -10059388, -17620940, -3612781, -21802117, -3567481, 20456845, -1885033 },
+            { 27019610, 12299467, -13658288, -1603234, -12861660, -4861471, -19540150, -5016058, 29439641, 15138866 },
+            { 21536104, -6626420, -32447818, -10690208, -22408077, 5175814, -5420040, -16361163, 7779328, 109896 },
+         },
+         {
+            { 30279744, 14648750, -8044871, 6425558, 13639621, -743509, 28698390, 12180118, 23177719, -554075 },
+            { 26572847, 3405927, -31701700, 12890905, -19265668, 5335866, -6493768, 2378492, 4439158, -13279347 },
+            { -22716706, 3489070, -9225266, -332753, 18875722, -1140095, 14819434, -12731527, -17717757, -5461437 },
+         },
+         {
+            { -5056483, 16566551, 15953661, 3767752, -10436499, 15627060, -820954, 2177225, 8550082, -15114165 },
+            { -18473302, 16596775, -381660, 15663611, 22860960, 15585581, -27844109, -3582739, -23260460, -8428588 },
+            { -32480551, 15707275, -8205912, -5652081, 29464558, 2713815, -22725137, 15860482, -21902570, 1494193 },
+         },
+         {
+            { -19562091, -14087393, -25583872, -9299552, 13127842, 759709, 21923482, 16529112, 8742704, 12967017 },
+            { -28464899, 1553205, 32536856, -10473729, -24691605, -406174, -8914625, -2933896, -29903758, 15553883 },
+            { 21877909, 3230008, 9881174, 10539357, -4797115, 2841332, 11543572, 14513274, 19375923, -12647961 },
+         },
+         {
+            { 8832269, -14495485, 13253511, 5137575, 5037871, 4078777, 24880818, -6222716, 2862653, 9455043 },
+            { 29306751, 5123106, 20245049, -14149889, 9592566, 8447059, -2077124, -2990080, 15511449, 4789663 },
+            { -20679756, 7004547, 8824831, -9434977, -4045704, -3750736, -5754762, 108893, 23513200, 16652362 },
+         },
+      },
+      {
+         {
+            { -33256173, 4144782, -4476029, -6579123, 10770039, -7155542, -6650416, -12936300, -18319198, 10212860 },
+            { 2756081, 8598110, 7383731, -6859892, 22312759, -1105012, 21179801, 2600940, -9988298, -12506466 },
+            { -24645692, 13317462, -30449259, -15653928, 21365574, -10869657, 11344424, 864440, -2499677, -16710063 },
+         },
+         {
+            { -26432803, 6148329, -17184412, -14474154, 18782929, -275997, -22561534, 211300, 2719757, 4940997 },
+            { -1323882, 3911313, -6948744, 14759765, -30027150, 7851207, 21690126, 8518463, 26699843, 5276295 },
+            { -13149873, -6429067, 9396249, 365013, 24703301, -10488939, 1321586, 149635, -15452774, 7159369 },
+         },
+         {
+            { 9987780, -3404759, 17507962, 9505530, 9731535, -2165514, 22356009, 8312176, 22477218, -8403385 },
+            { 18155857, -16504990, 19744716, 9006923, 15154154, -10538976, 24256460, -4864995, -22548173, 9334109 },
+            { 2986088, -4911893, 10776628, -3473844, 10620590, -7083203, -21413845, 14253545, -22587149, 536906 },
+         },
+         {
+            { 4377756, 8115836, 24567078, 15495314, 11625074, 13064599, 7390551, 10589625, 10838060, -15420424 },
+            { -19342404, 867880, 9277171, -3218459, -14431572, -1986443, 19295826, -15796950, 6378260, 699185 },
+            { 7895026, 4057113, -7081772, -13077756, -17886831, -323126, -716039, 15693155, -5045064, -13373962 },
+         },
+         {
+            { -7737563, -5869402, -14566319, -7406919, 11385654, 13201616, 31730678, -10962840, -3918636, -9669325 },
+            { 10188286, -15770834, -7336361, 13427543, 22223443, 14896287, 30743455, 7116568, -21786507, 5427593 },
+            { 696102, 13206899, 27047647, -10632082, 15285305, -9853179, 10798490, -4578720, 19236243, 12477404 },
+         },
+         {
+            { -11229439, 11243796, -17054270, -8040865, -788228, -8167967, -3897669, 11180504, -23169516, 7733644 },
+            { 17800790, -14036179, -27000429, -11766671, 23887827, 3149671, 23466177, -10538171, 10322027, 15313801 },
+            { 26246234, 11968874, 32263343, -5468728, 6830755, -13323031, -15794704, -101982, -24449242, 10890804 },
+         },
+         {
+            { -31365647, 10271363, -12660625, -6267268, 16690207, -13062544, -14982212, 16484931, 25180797, -5334884 },
+            { -586574, 10376444, -32586414, -11286356, 19801893, 10997610, 2276632, 9482883, 316878, 13820577 },
+            { -9882808, -4510367, -2115506, 16457136, -11100081, 11674996, 30756178, -7515054, 30696930, -3712849 },
+         },
+         {
+            { 32988917, -9603412, 12499366, 7910787, -10617257, -11931514, -7342816, -9985397, -32349517, 7392473 },
+            { -8855661, 15927861, 9866406, -3649411, -2396914, -16655781, -30409476, -9134995, 25112947, -2926644 },
+            { -2504044, -436966, 25621774, -5678772, 15085042, -5479877, -24884878, -13526194, 5537438, -13914319 },
+         },
+      },
+      {
+         {
+            { -11225584, 2320285, -9584280, 10149187, -33444663, 5808648, -14876251, -1729667, 31234590, 6090599 },
+            { -9633316, 116426, 26083934, 2897444, -6364437, -2688086, 609721, 15878753, -6970405, -9034768 },
+            { -27757857, 247744, -15194774, -9002551, 23288161, -10011936, -23869595, 6503646, 20650474, 1804084 },
+         },
+         {
+            { -27589786, 15456424, 8972517, 8469608, 15640622, 4439847, 3121995, -10329713, 27842616, -202328 },
+            { -15306973, 2839644, 22530074, 10026331, 4602058, 5048462, 28248656, 5031932, -11375082, 12714369 },
+            { 20807691, -7270825, 29286141, 11421711, -27876523, -13868230, -21227475, 1035546, -19733229, 12796920 },
+         },
+         {
+            { 12076899, -14301286, -8785001, -11848922, -25012791, 16400684, -17591495, -12899438, 3480665, -15182815 },
+            { -32361549, 5457597, 28548107, 7833186, 7303070, -11953545, -24363064, -15921875, -33374054, 2771025 },
+            { -21389266, 421932, 26597266, 6860826, 22486084, -6737172, -17137485, -4210226, -24552282, 15673397 },
+         },
+         {
+            { -20184622, 2338216, 19788685, -9620956, -4001265, -8740893, -20271184, 4733254, 3727144, -12934448 },
+            { 6120119, 814863, -11794402, -622716, 6812205, -15747771, 2019594, 7975683, 31123697, -10958981 },
+            { 30069250, -11435332, 30434654, 2958439, 18399564, -976289, 12296869, 9204260, -16432438, 9648165 },
+         },
+         {
+            { 32705432, -1550977, 30705658, 7451065, -11805606, 9631813, 3305266, 5248604, -26008332, -11377501 },
+            { 17219865, 2375039, -31570947, -5575615, -19459679, 9219903, 294711, 15298639, 2662509, -16297073 },
+            { -1172927, -7558695, -4366770, -4287744, -21346413, -8434326, 32087529, -1222777, 32247248, -14389861 },
+         },
+         {
+            { 14312628, 1221556, 17395390, -8700143, -4945741, -8684635, -28197744, -9637817, -16027623, -13378845 },
+            { -1428825, -9678990, -9235681, 6549687, -7383069, -468664, 23046502, 9803137, 17597934, 2346211 },
+            { 18510800, 15337574, 26171504, 981392, -22241552, 7827556, -23491134, -11323352, 3059833, -11782870 },
+         },
+         {
+            { 10141598, 6082907, 17829293, -1947643, 9830092, 13613136, -25556636, -5544586, -33502212, 3592096 },
+            { 33114168, -15889352, -26525686, -13343397, 33076705, 8716171, 1151462, 1521897, -982665, -6837803 },
+            { -32939165, -4255815, 23947181, -324178, -33072974, -12305637, -16637686, 3891704, 26353178, 693168 },
+         },
+         {
+            { 30374239, 1595580, -16884039, 13186931, 4600344, 406904, 9585294, -400668, 31375464, 14369965 },
+            { -14370654, -7772529, 1510301, 6434173, -18784789, -6262728, 32732230, -13108839, 17901441, 16011505 },
+            { 18171223, -11934626, -12500402, 15197122, -11038147, -15230035, -19172240, -16046376, 8764035, 12309598 },
+         },
+      },
+      {
+         {
+            { 5975908, -5243188, -19459362, -9681747, -11541277, 14015782, -23665757, 1228319, 17544096, -10593782 },
+            { 5811932, -1715293, 3442887, -2269310, -18367348, -8359541, -18044043, -15410127, -5565381, 12348900 },
+            { -31399660, 11407555, 25755363, 6891399, -3256938, 14872274, -24849353, 8141295, -10632534, -585479 },
+         },
+         {
+            { -12675304, 694026, -5076145, 13300344, 14015258, -14451394, -9698672, -11329050, 30944593, 1130208 },
+            { 8247766, -6710942, -26562381, -7709309, -14401939, -14648910, 4652152, 2488540, 23550156, -271232 },
+            { 17294316, -3788438, 7026748, 15626851, 22990044, 113481, 2267737, -5908146, -408818, -137719 },
+         },
+         {
+            { 16091085, -16253926, 18599252, 7340678, 2137637, -1221657, -3364161, 14550936, 3260525, -7166271 },
+            { -4910104, -13332887, 18550887, 10864893, -16459325, -7291596, -23028869, -13204905, -12748722, 2701326 },
+            { -8574695, 16099415, 4629974, -16340524, -20786213, -6005432, -10018363, 9276971, 11329923, 1862132 },
+         },
+         {
+            { 14763076, -15903608, -30918270, 3689867, 3511892, 10313526, -21951088, 12219231, -9037963, -940300 },
+            { 8894987, -3446094, 6150753, 3013931, 301220, 15693451, -31981216, -2909717, -15438168, 11595570 },
+            { 15214962, 3537601, -26238722, -14058872, 4418657, -15230761, 13947276, 10730794, -13489462, -4363670 },
+         },
+         {
+            { -2538306, 7682793, 32759013, 263109, -29984731, -7955452, -22332124, -10188635, 977108, 699994 },
+            { -12466472, 4195084, -9211532, 550904, -15565337, 12917920, 19118110, -439841, -30534533, -14337913 },
+            { 31788461, -14507657, 4799989, 7372237, 8808585, -14747943, 9408237, -10051775, 12493932, -5409317 },
+         },
+         {
+            { -25680606, 5260744, -19235809, -6284470, -3695942, 16566087, 27218280, 2607121, 29375955, 6024730 },
+            { 842132, -2794693, -4763381, -8722815, 26332018, -12405641, 11831880, 6985184, -9940361, 2854096 },
+            { -4847262, -7969331, 2516242, -5847713, 9695691, -7221186, 16512645, 960770, 12121869, 16648078 },
+         },
+         {
+            { -15218652, 14667096, -13336229, 2013717, 30598287, -464137, -31504922, -7882064, 20237806, 2838411 },
+            { -19288047, 4453152, 15298546, -16178388, 22115043, -15972604, 12544294, -13470457, 1068881, -12499905 },
+            { -9558883, -16518835, 33238498, 13506958, 30505848, -1114596, -8486907, -2630053, 12521378, 4845654 },
+         },
+         {
+            { -28198521, 10744108, -2958380, 10199664, 7759311, -13088600, 3409348, -873400, -6482306, -12885870 },
+            { -23561822, 6230156, -20382013, 10655314, -24040585, -11621172, 10477734, -1240216, -3113227, 13974498 },
+            { 12966261, 15550616, -32038948, -1615346, 21025980, -629444, 5642325, 7188737, 18895762, 12629579 },
+         },
+      },
+      {
+         {
+            { 14741879, -14946887, 22177208, -11721237, 1279741, 8058600, 11758140, 789443, 32195181, 3895677 },
+            { 10758205, 15755439, -4509950, 9243698, -4879422, 6879879, -2204575, -3566119, -8982069, 4429647 },
+            { -2453894, 15725973, -20436342, -10410672, -5803908, -11040220, -7135870, -11642895, 18047436, -15281743 },
+         },
+         {
+            { -25173001, -11307165, 29759956, 11776784, -22262383, -15820455, 10993114, -12850837, -17620701, -9408468 },
+            { 21987233, 700364, -24505048, 14972008, -7774265, -5718395, 32155026, 2581431, -29958985, 8773375 },
+            { -25568350, 454463, -13211935, 16126715, 25240068, 8594567, 20656846, 12017935, -7874389, -13920155 },
+         },
+         {
+            { 6028182, 6263078, -31011806, -11301710, -818919, 2461772, -31841174, -5468042, -1721788, -2776725 },
+            { -12278994, 16624277, 987579, -5922598, 32908203, 1248608, 7719845, -4166698, 28408820, 6816612 },
+            { -10358094, -8237829, 19549651, -12169222, 22082623, 16147817, 20613181, 13982702, -10339570, 5067943 },
+         },
+         {
+            { -30505967, -3821767, 12074681, 13582412, -19877972, 2443951, -19719286, 12746132, 5331210, -10105944 },
+            { 30528811, 3601899, -1957090, 4619785, -27361822, -15436388, 24180793, -12570394, 27679908, -1648928 },
+            { 9402404, -13957065, 32834043, 10838634, -26580150, -13237195, 26653274, -8685565, 22611444, -12715406 },
+         },
+         {
+            { 22190590, 1118029, 22736441, 15130463, -30460692, -5991321, 19189625, -4648942, 4854859, 6622139 },
+            { -8310738, -2953450, -8262579, -3388049, -10401731, -271929, 13424426, -3567227, 26404409, 13001963 },
+            { -31241838, -15415700, -2994250, 8939346, 11562230, -12840670, -26064365, -11621720, -15405155, 11020693 },
+         },
+         {
+            { 1866042, -7949489, -7898649, -10301010, 12483315, 13477547, 3175636, -12424163, 28761762, 1406734 },
+            { -448555, -1777666, 13018551, 3194501, -9580420, -11161737, 24760585, -4347088, 25577411, -13378680 },
+            { -24290378, 4759345, -690653, -1852816, 2066747, 10693769, -29595790, 9884936, -9368926, 4745410 },
+         },
+         {
+            { -9141284, 6049714, -19531061, -4341411, -31260798, 9944276, -15462008, -11311852, 10931924, -11931931 },
+            { -16561513, 14112680, -8012645, 4817318, -8040464, -11414606, -22853429, 10856641, -20470770, 13434654 },
+            { 22759489, -10073434, -16766264, -1871422, 13637442, -10168091, 1765144, -12654326, 28445307, -5364710 },
+         },
+         {
+            { 29875063, 12493613, 2795536, -3786330, 1710620, 15181182, -10195717, -8788675, 9074234, 1167180 },
+            { -26205683, 11014233, -9842651, -2635485, -26908120, 7532294, -18716888, -9535498, 3843903, 9367684 },
+            { -10969595, -6403711, 9591134, 9582310, 11349256, 108879, 16235123, 8601684, -139197, 4242895 },
+         },
+      },
+      {
+         {
+            { 22092954, -13191123, -2042793, -11968512, 32186753, -11517388, -6574341, 2470660, -27417366, 16625501 },
+            { -11057722, 3042016, 13770083, -9257922, 584236, -544855, -7770857, 2602725, -27351616, 14247413 },
+            { 6314175, -10264892, -32772502, 15957557, -10157730, 168750, -8618807, 14290061, 27108877, -1180880 },
+         },
+         {
+            { -8586597, -7170966, 13241782, 10960156, -32991015, -13794596, 33547976, -11058889, -27148451, 981874 },
+            { 22833440, 9293594, -32649448, -13618667, -9136966, 14756819, -22928859, -13970780, -10479804, -16197962 },
+            { -7768587, 3326786, -28111797, 10783824, 19178761, 14905060, 22680049, 13906969, -15933690, 3797899 },
+         },
+         {
+            { 21721356, -4212746, -12206123, 9310182, -3882239, -13653110, 23740224, -2709232, 20491983, -8042152 },
+            { 9209270, -15135055, -13256557, -6167798, -731016, 15289673, 25947805, 15286587, 30997318, -6703063 },
+            { 7392032, 16618386, 23946583, -8039892, -13265164, -1533858, -14197445, -2321576, 17649998, -250080 },
+         },
+         {
+            { -9301088, -14193827, 30609526, -3049543, -25175069, -1283752, -15241566, -9525724, -2233253, 7662146 },
+            { -17558673, 1763594, -33114336, 15908610, -30040870, -12174295, 7335080, -8472199, -3174674, 3440183 },
+            { -19889700, -5977008, -24111293, -9688870, 10799743, -16571957, 40450, -4431835, 4862400, 1133 },
+         },
+         {
+            { -32856209, -7873957, -5422389, 14860950, -16319031, 7956142, 7258061, 311861, -30594991, -7379421 },
+            { -3773428, -1565936, 28985340, 7499440, 24445838, 9325937, 29727763, 16527196, 18278453, 15405622 },
+            { -4381906, 8508652, -19898366, -3674424, -5984453, 15149970, -13313598, 843523, -21875062, 13626197 },
+         },
+         {
+            { 2281448, -13487055, -10915418, -2609910, 1879358, 16164207, -10783882, 3953792, 13340839, 15928663 },
+            { 31727126, -7179855, -18437503, -8283652, 2875793, -16390330, -25269894, -7014826, -23452306, 5964753 },
+            { 4100420, -5959452, -17179337, 6017714, -18705837, 12227141, -26684835, 11344144, 2538215, -7570755 },
+         },
+         {
+            { -9433605, 6123113, 11159803, -2156608, 30016280, 14966241, -20474983, 1485421, -629256, -15958862 },
+            { -26804558, 4260919, 11851389, 9658551, -32017107, 16367492, -20205425, -13191288, 11659922, -11115118 },
+            { 26180396, 10015009, -30844224, -8581293, 5418197, 9480663, 2231568, -10170080, 33100372, -1306171 },
+         },
+         {
+            { 15121113, -5201871, -10389905, 15427821, -27509937, -15992507, 21670947, 4486675, -5931810, -14466380 },
+            { 16166486, -9483733, -11104130, 6023908, -31926798, -1364923, 2340060, -16254968, -10735770, -10039824 },
+            { 28042865, -3557089, -12126526, 12259706, -3717498, -6945899, 6766453, -8689599, 18036436, 5803270 },
+         },
+      },
+      {
+         {
+            { -817581, 6763912, 11803561, 1585585, 10958447, -2671165, 23855391, 4598332, -6159431, -14117438 },
+            { -31031306, -14256194, 17332029, -2383520, 31312682, -5967183, 696309, 50292, -20095739, 11763584 },
+            { -594563, -2514283, -32234153, 12643980, 12650761, 14811489, 665117, -12613632, -19773211, -10713562 },
+         },
+         {
+            { 30464590, -11262872, -4127476, -12734478, 19835327, -7105613, -24396175, 2075773, -17020157, 992471 },
+            { 18357185, -6994433, 7766382, 16342475, -29324918, 411174, 14578841, 8080033, -11574335, -10601610 },
+            { 19598397, 10334610, 12555054, 2555664, 18821899, -10339780, 21873263, 16014234, 26224780, 16452269 },
+         },
+         {
+            { -30223925, 5145196, 5944548, 16385966, 3976735, 2009897, -11377804, -7618186, -20533829, 3698650 },
+            { 14187449, 3448569, -10636236, -10810935, -22663880, -3433596, 7268410, -10890444, 27394301, 12015369 },
+            { 19695761, 16087646, 28032085, 12999827, 6817792, 11427614, 20244189, -1312777, -13259127, -3402461 },
+         },
+         {
+            { 30860103, 12735208, -1888245, -4699734, -16974906, 2256940, -8166013, 12298312, -8550524, -10393462 },
+            { -5719826, -11245325, -1910649, 15569035, 26642876, -7587760, -5789354, -15118654, -4976164, 12651793 },
+            { -2848395, 9953421, 11531313, -5282879, 26895123, -12697089, -13118820, -16517902, 9768698, -2533218 },
+         },
+         {
+            { -24719459, 1894651, -287698, -4704085, 15348719, -8156530, 32767513, 12765450, 4940095, 10678226 },
+            { 18860224, 15980149, -18987240, -1562570, -26233012, -11071856, -7843882, 13944024, -24372348, 16582019 },
+            { -15504260, 4970268, -29893044, 4175593, -20993212, -2199756, -11704054, 15444560, -11003761, 7989037 },
+         },
+         {
+            { 31490452, 5568061, -2412803, 2182383, -32336847, 4531686, -32078269, 6200206, -19686113, -14800171 },
+            { -17308668, -15879940, -31522777, -2831, -32887382, 16375549, 8680158, -16371713, 28550068, -6857132 },
+            { -28126887, -5688091, 16837845, -1820458, -6850681, 12700016, -30039981, 4364038, 1155602, 5988841 },
+         },
+         {
+            { 21890435, -13272907, -12624011, 12154349, -7831873, 15300496, 23148983, -4470481, 24618407, 8283181 },
+            { -33136107, -10512751, 9975416, 6841041, -31559793, 16356536, 3070187, -7025928, 1466169, 10740210 },
+            { -1509399, -15488185, -13503385, -10655916, 32799044, 909394, -13938903, -5779719, -32164649, -15327040 },
+         },
+         {
+            { 3960823, -14267803, -28026090, -15918051, -19404858, 13146868, 15567327, 951507, -3260321, -573935 },
+            { 24740841, 5052253, -30094131, 8961361, 25877428, 6165135, -24368180, 14397372, -7380369, -6144105 },
+            { -28888365, 3510803, -28103278, -1158478, -11238128, -10631454, -15441463, -14453128, -1625486, -6494814 },
+         },
+      },
+      {
+         {
+            { 793299, -9230478, 8836302, -6235707, -27360908, -2369593, 33152843, -4885251, -9906200, -621852 },
+            { 5666233, 525582, 20782575, -8038419, -24538499, 14657740, 16099374, 1468826, -6171428, -15186581 },
+            { -4859255, -3779343, -2917758, -6748019, 7778750, 11688288, -30404353, -9871238, -1558923, -9863646 },
+         },
+         {
+            { 10896332, -7719704, 824275, 472601, -19460308, 3009587, 25248958, 14783338, -30581476, -15757844 },
+            { 10566929, 12612572, -31944212, 11118703, -12633376, 12362879, 21752402, 8822496, 24003793, 14264025 },
+            { 27713862, -7355973, -11008240, 9227530, 27050101, 2504721, 23886875, -13117525, 13958495, -5732453 },
+         },
+         {
+            { -23481610, 4867226, -27247128, 3900521, 29838369, -8212291, -31889399, -10041781, 7340521, -15410068 },
+            { 4646514, -8011124, -22766023, -11532654, 23184553, 8566613, 31366726, -1381061, -15066784, -10375192 },
+            { -17270517, 12723032, -16993061, 14878794, 21619651, -6197576, 27584817, 3093888, -8843694, 3849921 },
+         },
+         {
+            { -9064912, 2103172, 25561640, -15125738, -5239824, 9582958, 32477045, -9017955, 5002294, -15550259 },
+            { -12057553, -11177906, 21115585, -13365155, 8808712, -12030708, 16489530, 13378448, -25845716, 12741426 },
+            { -5946367, 10645103, -30911586, 15390284, -3286982, -7118677, 24306472, 15852464, 28834118, -7646072 },
+         },
+         {
+            { -17335748, -9107057, -24531279, 9434953, -8472084, -583362, -13090771, 455841, 20461858, 5491305 },
+            { 13669248, -16095482, -12481974, -10203039, -14569770, -11893198, -24995986, 11293807, -28588204, -9421832 },
+            { 28497928, 6272777, -33022994, 14470570, 8906179, -1225630, 18504674, -14165166, 29867745, -8795943 },
+         },
+         {
+            { -16207023, 13517196, -27799630, -13697798, 24009064, -6373891, -6367600, -13175392, 22853429, -4012011 },
+            { 24191378, 16712145, -13931797, 15217831, 14542237, 1646131, 18603514, -11037887, 12876623, -2112447 },
+            { 17902668, 4518229, -411702, -2829247, 26878217, 5258055, -12860753, 608397, 16031844, 3723494 },
+         },
+         {
+            { -28632773, 12763728, -20446446, 7577504, 33001348, -13017745, 17558842, -7872890, 23896954, -4314245 },
+            { -20005381, -12011952, 31520464, 605201, 2543521, 5991821, -2945064, 7229064, -9919646, -8826859 },
+            { 28816045, 298879, -28165016, -15920938, 19000928, -1665890, -12680833, -2949325, -18051778, -2082915 },
+         },
+         {
+            { 16000882, -344896, 3493092, -11447198, -29504595, -13159789, 12577740, 16041268, -19715240, 7847707 },
+            { 10151868, 10572098, 27312476, 7922682, 14825339, 4723128, -32855931, -6519018, -10020567, 3852848 },
+            { -11430470, 15697596, -21121557, -4420647, 5386314, 15063598, 16514493, -15932110, 29330899, -15076224 },
+         },
+      },
+      {
+         {
+            { -25499735, -4378794, -15222908, -6901211, 16615731, 2051784, 3303702, 15490, -27548796, 12314391 },
+            { 15683520, -6003043, 18109120, -9980648, 15337968, -5997823, -16717435, 15921866, 16103996, -3731215 },
+            { -23169824, -10781249, 13588192, -1628807, -3798557, -1074929, -19273607, 5402699, -29815713, -9841101 },
+         },
+         {
+            { 23190676, 2384583, -32714340, 3462154, -29903655, -1529132, -11266856, 8911517, -25205859, 2739713 },
+            { 21374101, -3554250, -33524649, 9874411, 15377179, 11831242, -33529904, 6134907, 4931255, 11987849 },
+            { -7732, -2978858, -16223486, 7277597, 105524, -322051, -31480539, 13861388, -30076310, 10117930 },
+         },
+         {
+            { -29501170, -10744872, -26163768, 13051539, -25625564, 5089643, -6325503, 6704079, 12890019, 15728940 },
+            { -21972360, -11771379, -951059, -4418840, 14704840, 2695116, 903376, -10428139, 12885167, 8311031 },
+            { -17516482, 5352194, 10384213, -13811658, 7506451, 13453191, 26423267, 4384730, 1888765, -5435404 },
+         },
+         {
+            { -25817338, -3107312, -13494599, -3182506, 30896459, -13921729, -32251644, -12707869, -19464434, -3340243 },
+            { -23607977, -2665774, -526091, 4651136, 5765089, 4618330, 6092245, 14845197, 17151279, -9854116 },
+            { -24830458, -12733720, -15165978, 10367250, -29530908, -265356, 22825805, -7087279, -16866484, 16176525 },
+         },
+         {
+            { -23583256, 6564961, 20063689, 3798228, -4740178, 7359225, 2006182, -10363426, -28746253, -10197509 },
+            { -10626600, -4486402, -13320562, -5125317, 3432136, -6393229, 23632037, -1940610, 32808310, 1099883 },
+            { 15030977, 5768825, -27451236, -2887299, -6427378, -15361371, -15277896, -6809350, 2051441, -15225865 },
+         },
+         {
+            { -3362323, -7239372, 7517890, 9824992, 23555850, 295369, 5148398, -14154188, -22686354, 16633660 },
+            { 4577086, -16752288, 13249841, -15304328, 19958763, -14537274, 18559670, -10759549, 8402478, -9864273 },
+            { -28406330, -1051581, -26790155, -907698, -17212414, -11030789, 9453451, -14980072, 17983010, 9967138 },
+         },
+         {
+            { -25762494, 6524722, 26585488, 9969270, 24709298, 1220360, -1677990, 7806337, 17507396, 3651560 },
+            { -10420457, -4118111, 14584639, 15971087, -15768321, 8861010, 26556809, -5574557, -18553322, -11357135 },
+            { 2839101, 14284142, 4029895, 3472686, 14402957, 12689363, -26642121, 8459447, -5605463, -7621941 },
+         },
+         {
+            { -4839289, -3535444, 9744961, 2871048, 25113978, 3187018, -25110813, -849066, 17258084, -7977739 },
+            { 18164541, -10595176, -17154882, -1542417, 19237078, -9745295, 23357533, -15217008, 26908270, 12150756 },
+            { -30264870, -7647865, 5112249, -7036672, -1499807, -6974257, 43168, -5537701, -32302074, 16215819 },
+         },
+      },
+      {
+         {
+            { -6898905, 9824394, -12304779, -4401089, -31397141, -6276835, 32574489, 12532905, -7503072, -8675347 },
+            { -27343522, -16515468, -27151524, -10722951, 946346, 16291093, 254968, 7168080, 21676107, -1943028 },
+            { 21260961, -8424752, -16831886, -11920822, -23677961, 3968121, -3651949, -6215466, -3556191, -7913075 },
+         },
+         {
+            { 16544754, 13250366, -16804428, 15546242, -4583003, 12757258, -2462308, -8680336, -18907032, -9662799 },
+            { -2415239, -15577728, 18312303, 4964443, -15272530, -12653564, 26820651, 16690659, 25459437, -4564609 },
+            { -25144690, 11425020, 28423002, -11020557, -6144921, -15826224, 9142795, -2391602, -6432418, -1644817 },
+         },
+         {
+            { -23104652, 6253476, 16964147, -3768872, -25113972, -12296437, -27457225, -16344658, 6335692, 7249989 },
+            { -30333227, 13979675, 7503222, -12368314, -11956721, -4621693, -30272269, 2682242, 25993170, -12478523 },
+            { 4364628, 5930691, 32304656, -10044554, -8054781, 15091131, 22857016, -10598955, 31820368, 15075278 },
+         },
+         {
+            { 31879134, -8918693, 17258761, 90626, -8041836, -4917709, 24162788, -9650886, -17970238, 12833045 },
+            { 19073683, 14851414, -24403169, -11860168, 7625278, 11091125, -19619190, 2074449, -9413939, 14905377 },
+            { 24483667, -11935567, -2518866, -11547418, -1553130, 15355506, -25282080, 9253129, 27628530, -7555480 },
+         },
+         {
+            { 17597607, 8340603, 19355617, 552187, 26198470, -3176583, 4593324, -9157582, -14110875, 15297016 },
+            { 510886, 14337390, -31785257, 16638632, 6328095, 2713355, -20217417, -11864220, 8683221, 2921426 },
+            { 18606791, 11874196, 27155355, -5281482, -24031742, 6265446, -25178240, -1278924, 4674690, 13890525 },
+         },
+         {
+            { 13609624, 13069022, -27372361, -13055908, 24360586, 9592974, 14977157, 9835105, 4389687, 288396 },
+            { 9922506, -519394, 13613107, 5883594, -18758345, -434263, -12304062, 8317628, 23388070, 16052080 },
+            { 12720016, 11937594, -31970060, -5028689, 26900120, 8561328, -20155687, -11632979, -14754271, -10812892 },
+         },
+         {
+            { 15961858, 14150409, 26716931, -665832, -22794328, 13603569, 11829573, 7467844, -28822128, 929275 },
+            { 11038231, -11582396, -27310482, -7316562, -10498527, -16307831, -23479533, -9371869, -21393143, 2465074 },
+            { 20017163, -4323226, 27915242, 1529148, 12396362, 15675764, 13817261, -9658066, 2463391, -4622140 },
+         },
+         {
+            { -16358878, -12663911, -12065183, 4996454, -1256422, 1073572, 9583558, 12851107, 4003896, 12673717 },
+            { -1731589, -15155870, -3262930, 16143082, 19294135, 13385325, 14741514, -9103726, 7903886, 2348101 },
+            { 24536016, -16515207, 12715592, -3862155, 1511293, 10047386, -3842346, -7129159, -28377538, 10048127 },
+         },
+      },
+      {
+         {
+            { -12622226, -6204820, 30718825, 2591312, -10617028, 12192840, 18873298, -7297090, -32297756, 15221632 },
+            { -26478122, -11103864, 11546244, -1852483, 9180880, 7656409, -21343950, 2095755, 29769758, 6593415 },
+            { -31994208, -2907461, 4176912, 3264766, 12538965, -868111, 26312345, -6118678, 30958054, 8292160 },
+         },
+         {
+            { 31429822, -13959116, 29173532, 15632448, 12174511, -2760094, 32808831, 3977186, 26143136, -3148876 },
+            { 22648901, 1402143, -22799984, 13746059, 7936347, 365344, -8668633, -1674433, -3758243, -2304625 },
+            { -15491917, 8012313, -2514730, -12702462, -23965846, -10254029, -1612713, -1535569, -16664475, 8194478 },
+         },
+         {
+            { 27338066, -7507420, -7414224, 10140405, -19026427, -6589889, 27277191, 8855376, 28572286, 3005164 },
+            { 26287124, 4821776, 25476601, -4145903, -3764513, -15788984, -18008582, 1182479, -26094821, -13079595 },
+            { -7171154, 3178080, 23970071, 6201893, -17195577, -4489192, -21876275, -13982627, 32208683, -1198248 },
+         },
+         {
+            { -16657702, 2817643, -10286362, 14811298, 6024667, 13349505, -27315504, -10497842, -27672585, -11539858 },
+            { 15941029, -9405932, -21367050, 8062055, 31876073, -238629, -15278393, -1444429, 15397331, -4130193 },
+            { 8934485, -13485467, -23286397, -13423241, -32446090, 14047986, 31170398, -1441021, -27505566, 15087184 },
+         },
+         {
+            { -18357243, -2156491, 24524913, -16677868, 15520427, -6360776, -15502406, 11461896, 16788528, -5868942 },
+            { -1947386, 16013773, 21750665, 3714552, -17401782, -16055433, -3770287, -10323320, 31322514, -11615635 },
+            { 21426655, -5650218, -13648287, -5347537, -28812189, -4920970, -18275391, -14621414, 13040862, -12112948 },
+         },
+         {
+            { 11293895, 12478086, -27136401, 15083750, -29307421, 14748872, 14555558, -13417103, 1613711, 4896935 },
+            { -25894883, 15323294, -8489791, -8057900, 25967126, -13425460, 2825960, -4897045, -23971776, -11267415 },
+            { -15924766, -5229880, -17443532, 6410664, 3622847, 10243618, 20615400, 12405433, -23753030, -8436416 },
+         },
+         {
+            { -7091295, 12556208, -20191352, 9025187, -17072479, 4333801, 4378436, 2432030, 23097949, -566018 },
+            { 4565804, -16025654, 20084412, -7842817, 1724999, 189254, 24767264, 10103221, -18512313, 2424778 },
+            { 366633, -11976806, 8173090, -6890119, 30788634, 5745705, -7168678, 1344109, -3642553, 12412659 },
+         },
+         {
+            { -24001791, 7690286, 14929416, -168257, -32210835, -13412986, 24162697, -15326504, -3141501, 11179385 },
+            { 18289522, -14724954, 8056945, 16430056, -21729724, 7842514, -6001441, -1486897, -18684645, -11443503 },
+            { 476239, 6601091, -6152790, -9723375, 17503545, -4863900, 27672959, 13403813, 11052904, 5219329 },
+         },
+      },
+      {
+         {
+            { 20678546, -8375738, -32671898, 8849123, -5009758, 14574752, 31186971, -3973730, 9014762, -8579056 },
+            { -13644050, -10350239, -15962508, 5075808, -1514661, -11534600, -33102500, 9160280, 8473550, -3256838 },
+            { 24900749, 14435722, 17209120, -15292541, -22592275, 9878983, -7689309, -16335821, -24568481, 11788948 },
+         },
+         {
+            { -3118155, -11395194, -13802089, 14797441, 9652448, -6845904, -20037437, 10410733, -24568470, -1458691 },
+            { -15659161, 16736706, -22467150, 10215878, -9097177, 7563911, 11871841, -12505194, -18513325, 8464118 },
+            { -23400612, 8348507, -14585951, -861714, -3950205, -6373419, 14325289, 8628612, 33313881, -8370517 },
+         },
+         {
+            { -20186973, -4967935, 22367356, 5271547, -1097117, -4788838, -24805667, -10236854, -8940735, -5818269 },
+            { -6948785, -1795212, -32625683, -16021179, 32635414, -7374245, 15989197, -12838188, 28358192, -4253904 },
+            { -23561781, -2799059, -32351682, -1661963, -9147719, 10429267, -16637684, 4072016, -5351664, 5596589 },
+         },
+         {
+            { -28236598, -3390048, 12312896, 6213178, 3117142, 16078565, 29266239, 2557221, 1768301, 15373193 },
+            { -7243358, -3246960, -4593467, -7553353, -127927, -912245, -1090902, -4504991, -24660491, 3442910 },
+            { -30210571, 5124043, 14181784, 8197961, 18964734, -11939093, 22597931, 7176455, -18585478, 13365930 },
+         },
+         {
+            { -7877390, -1499958, 8324673, 4690079, 6261860, 890446, 24538107, -8570186, -9689599, -3031667 },
+            { 25008904, -10771599, -4305031, -9638010, 16265036, 15721635, 683793, -11823784, 15723479, -15163481 },
+            { -9660625, 12374379, -27006999, -7026148, -7724114, -12314514, 11879682, 5400171, 519526, -1235876 },
+         },
+         {
+            { 22258397, -16332233, -7869817, 14613016, -22520255, -2950923, -20353881, 7315967, 16648397, 7605640 },
+            { -8081308, -8464597, -8223311, 9719710, 19259459, -15348212, 23994942, -5281555, -9468848, 4763278 },
+            { -21699244, 9220969, -15730624, 1084137, -25476107, -2852390, 31088447, -7764523, -11356529, 728112 },
+         },
+         {
+            { 26047220, -11751471, -6900323, -16521798, 24092068, 9158119, -4273545, -12555558, -29365436, -5498272 },
+            { 17510331, -322857, 5854289, 8403524, 17133918, -3112612, -28111007, 12327945, 10750447, 10014012 },
+            { -10312768, 3936952, 9156313, -8897683, 16498692, -994647, -27481051, -666732, 3424691, 7540221 },
+         },
+         {
+            { 30322361, -6964110, 11361005, -4143317, 7433304, 4989748, -7071422, -16317219, -9244265, 15258046 },
+            { 13054562, -2779497, 19155474, 469045, -12482797, 4566042, 5631406, 2711395, 1062915, -5136345 },
+            { -19240248, -11254599, -29509029, -7499965, -5835763, 13005411, -6066489, 12194497, 32960380, 1459310 },
+         },
+      },
+      {
+         {
+            { 19852034, 7027924, 23669353, 10020366, 8586503, -6657907, 394197, -6101885, 18638003, -11174937 },
+            { 31395534, 15098109, 26581030, 8030562, -16527914, -5007134, 9012486, -7584354, -6643087, -5442636 },
+            { -9192165, -2347377, -1997099, 4529534, 25766844, 607986, -13222, 9677543, -32294889, -6456008 },
+         },
+         {
+            { -2444496, -149937, 29348902, 8186665, 1873760, 12489863, -30934579, -7839692, -7852844, -8138429 },
+            { -15236356, -15433509, 7766470, 746860, 26346930, -10221762, -27333451, 10754588, -9431476, 5203576 },
+            { 31834314, 14135496, -770007, 5159118, 20917671, -16768096, -7467973, -7337524, 31809243, 7347066 },
+         },
+         {
+            { -9606723, -11874240, 20414459, 13033986, 13716524, -11691881, 19797970, -12211255, 15192876, -2087490 },
+            { -12663563, -2181719, 1168162, -3804809, 26747877, -14138091, 10609330, 12694420, 33473243, -13382104 },
+            { 33184999, 11180355, 15832085, -11385430, -1633671, 225884, 15089336, -11023903, -6135662, 14480053 },
+         },
+         {
+            { 31308717, -5619998, 31030840, -1897099, 15674547, -6582883, 5496208, 13685227, 27595050, 8737275 },
+            { -20318852, -15150239, 10933843, -16178022, 8335352, -7546022, -31008351, -12610604, 26498114, 66511 },
+            { 22644454, -8761729, -16671776, 4884562, -3105614, -13559366, 30540766, -4286747, -13327787, -7515095 },
+         },
+         {
+            { -28017847, 9834845, 18617207, -2681312, -3401956, -13307506, 8205540, 13585437, -17127465, 15115439 },
+            { 23711543, -672915, 31206561, -8362711, 6164647, -9709987, -33535882, -1426096, 8236921, 16492939 },
+            { -23910559, -13515526, -26299483, -4503841, 25005590, -7687270, 19574902, 10071562, 6708380, -6222424 },
+         },
+         {
+            { 2101391, -4930054, 19702731, 2367575, -15427167, 1047675, 5301017, 9328700, 29955601, -11678310 },
+            { 3096359, 9271816, -21620864, -15521844, -14847996, -7592937, -25892142, -12635595, -9917575, 6216608 },
+            { -32615849, 338663, -25195611, 2510422, -29213566, -13820213, 24822830, -6146567, -26767480, 7525079 },
+         },
+         {
+            { -23066649, -13985623, 16133487, -7896178, -3389565, 778788, -910336, -2782495, -19386633, 11994101 },
+            { 21691500, -13624626, -641331, -14367021, 3285881, -3483596, -25064666, 9718258, -7477437, 13381418 },
+            { 18445390, -4202236, 14979846, 11622458, -1727110, -3582980, 23111648, -6375247, 28535282, 15779576 },
+         },
+         {
+            { 30098053, 3089662, -9234387, 16662135, -21306940, 11308411, -14068454, 12021730, 9955285, -16303356 },
+            { 9734894, -14576830, -7473633, -9138735, 2060392, 11313496, -18426029, 9924399, 20194861, 13380996 },
+            { -26378102, -7965207, -22167821, 15789297, -18055342, -6168792, -1984914, 15707771, 26342023, 10146099 },
+         },
+      },
+      {
+         {
+            { -26016874, -219943, 21339191, -41388, 19745256, -2878700, -29637280, 2227040, 21612326, -545728 },
+            { -13077387, 1184228, 23562814, -5970442, -20351244, -6348714, 25764461, 12243797, -20856566, 11649658 },
+            { -10031494, 11262626, 27384172, 2271902, 26947504, -15997771, 39944, 6114064, 33514190, 2333242 },
+         },
+         {
+            { -21433588, -12421821, 8119782, 7219913, -21830522, -9016134, -6679750, -12670638, 24350578, -13450001 },
+            { -4116307, -11271533, -23886186, 4843615, -30088339, 690623, -31536088, -10406836, 8317860, 12352766 },
+            { 18200138, -14475911, -33087759, -2696619, -23702521, -9102511, -23552096, -2287550, 20712163, 6719373 },
+         },
+         {
+            { 26656208, 6075253, -7858556, 1886072, -28344043, 4262326, 11117530, -3763210, 26224235, -3297458 },
+            { -17168938, -14854097, -3395676, -16369877, -19954045, 14050420, 21728352, 9493610, 18620611, -16428628 },
+            { -13323321, 13325349, 11432106, 5964811, 18609221, 6062965, -5269471, -9725556, -30701573, -16479657 },
+         },
+         {
+            { -23860538, -11233159, 26961357, 1640861, -32413112, -16737940, 12248509, -5240639, 13735342, 1934062 },
+            { 25089769, 6742589, 17081145, -13406266, 21909293, -16067981, -15136294, -3765346, -21277997, 5473616 },
+            { 31883677, -7961101, 1083432, -11572403, 22828471, 13290673, -7125085, 12469656, 29111212, -5451014 },
+         },
+         {
+            { 24244947, -15050407, -26262976, 2791540, -14997599, 16666678, 24367466, 6388839, -10295587, 452383 },
+            { -25640782, -3417841, 5217916, 16224624, 19987036, -4082269, -24236251, -5915248, 15766062, 8407814 },
+            { -20406999, 13990231, 15495425, 16395525, 5377168, 15166495, -8917023, -4388953, -8067909, 2276718 },
+         },
+         {
+            { 30157918, 12924066, -17712050, 9245753, 19895028, 3368142, -23827587, 5096219, 22740376, -7303417 },
+            { 2041139, -14256350, 7783687, 13876377, -25946985, -13352459, 24051124, 13742383, -15637599, 13295222 },
+            { 33338237, -8505733, 12532113, 7977527, 9106186, -1715251, -17720195, -4612972, -4451357, -14669444 },
+         },
+         {
+            { -20045281, 5454097, -14346548, 6447146, 28862071, 1883651, -2469266, -4141880, 7770569, 9620597 },
+            { 23208068, 7979712, 33071466, 8149229, 1758231, -10834995, 30945528, -1694323, -33502340, -14767970 },
+            { 1439958, -16270480, -1079989, -793782, 4625402, 10647766, -5043801, 1220118, 30494170, -11440799 },
+         },
+         {
+            { -5037580, -13028295, -2970559, -3061767, 15640974, -6701666, -26739026, 926050, -1684339, -13333647 },
+            { 13908495, -3549272, 30919928, -6273825, -21521863, 7989039, 9021034, 9078865, 3353509, 4033511 },
+            { -29663431, -15113610, 32259991, -344482, 24295849, -12912123, 23161163, 8839127, 27485041, 7356032 },
+         },
+      },
+      {
+         {
+            { 9661027, 705443, 11980065, -5370154, -1628543, 14661173, -6346142, 2625015, 28431036, -16771834 },
+            { -23839233, -8311415, -25945511, 7480958, -17681669, -8354183, -22545972, 14150565, 15970762, 4099461 },
+            { 29262576, 16756590, 26350592, -8793563, 8529671, -11208050, 13617293, -9937143, 11465739, 8317062 },
+         },
+         {
+            { -25493081, -6962928, 32500200, -9419051, -23038724, -2302222, 14898637, 3848455, 20969334, -5157516 },
+            { -20384450, -14347713, -18336405, 13884722, -33039454, 2842114, -21610826, -3649888, 11177095, 14989547 },
+            { -24496721, -11716016, 16959896, 2278463, 12066309, 10137771, 13515641, 2581286, -28487508, 9930240 },
+         },
+         {
+            { -17751622, -2097826, 16544300, -13009300, -15914807, -14949081, 18345767, -13403753, 16291481, -5314038 },
+            { -33229194, 2553288, 32678213, 9875984, 8534129, 6889387, -9676774, 6957617, 4368891, 9788741 },
+            { 16660756, 7281060, -10830758, 12911820, 20108584, -8101676, -21722536, -8613148, 16250552, -11111103 },
+         },
+         {
+            { -19765507, 2390526, -16551031, 14161980, 1905286, 6414907, 4689584, 10604807, -30190403, 4782747 },
+            { -1354539, 14736941, -7367442, -13292886, 7710542, -14155590, -9981571, 4383045, 22546403, 437323 },
+            { 31665577, -12180464, -16186830, 1491339, -18368625, 3294682, 27343084, 2786261, -30633590, -14097016 },
+         },
+         {
+            { -14467279, -683715, -33374107, 7448552, 19294360, 14334329, -19690631, 2355319, -19284671, -6114373 },
+            { 15121312, -15796162, 6377020, -6031361, -10798111, -12957845, 18952177, 15496498, -29380133, 11754228 },
+            { -2637277, -13483075, 8488727, -14303896, 12728761, -1622493, 7141596, 11724556, 22761615, -10134141 },
+         },
+         {
+            { 16918416, 11729663, -18083579, 3022987, -31015732, -13339659, -28741185, -12227393, 32851222, 11717399 },
+            { 11166634, 7338049, -6722523, 4531520, -29468672, -7302055, 31474879, 3483633, -1193175, -4030831 },
+            { -185635, 9921305, 31456609, -13536438, -12013818, 13348923, 33142652, 6546660, -19985279, -3948376 },
+         },
+         {
+            { -32460596, 11266712, -11197107, -7899103, 31703694, 3855903, -8537131, -12833048, -30772034, -15486313 },
+            { -18006477, 12709068, 3991746, -6479188, -21491523, -10550425, -31135347, -16049879, 10928917, 3011958 },
+            { -6957757, -15594337, 31696059, 334240, 29576716, 14796075, -30831056, -12805180, 18008031, 10258577 },
+         },
+         {
+            { -22448644, 15655569, 7018479, -4410003, -30314266, -1201591, -1853465, 1367120, 25127874, 6671743 },
+            { 29701166, -14373934, -10878120, 9279288, -17568, 13127210, 21382910, 11042292, 25838796, 4642684 },
+            { -20430234, 14955537, -24126347, 8124619, -5369288, -5990470, 30468147, -13900640, 18423289, 4177476 },
+         },
+      },
+   } ;
+
+namespace {
+
+inline uint8_t equal(int8_t b, int8_t c)
+   {
+   uint8_t ub = b;
+   uint8_t uc = c;
+   uint8_t x = ub ^ uc; /* 0: yes; 1..255: no */
+   uint32_t y = x; /* 0: yes; 1..255: no */
+   y -= 1; /* 4294967295: yes; 0..254: no */
+   y >>= 31; /* 1: yes; 0: no */
+   return y;
+   }
+
+inline int32_t equal32(int8_t b, int8_t c)
+   {
+   return -static_cast<int32_t>(equal(b, c));
+   }
+
+inline uint8_t negative(int8_t b)
+   {
+   uint64_t x = b; /* 18446744073709551361..18446744073709551615: yes; 0..255: no */
+   x >>= 63; /* 1: yes; 0: no */
+   return x;
+   }
+
+inline void ge_precomp_0(ge_precomp* h)
+   {
+   fe_1(h->yplusx);
+   fe_1(h->yminusx);
+   fe_0(h->xy2d);
+   }
+
+inline void select(ge_precomp* t,
+                   const ge_precomp* base,
+                   int8_t b)
+   {
+   uint8_t bnegative = negative(b);
+   uint8_t babs = b - (((-bnegative) & b) << 1);
+
+   ge_precomp_0(t);
+
+   const int32_t mask1 = equal32(babs, 1);
+   const int32_t mask2 = equal32(babs, 2);
+   const int32_t mask3 = equal32(babs, 3);
+   const int32_t mask4 = equal32(babs, 4);
+   const int32_t mask5 = equal32(babs, 5);
+   const int32_t mask6 = equal32(babs, 6);
+   const int32_t mask7 = equal32(babs, 7);
+   const int32_t mask8 = equal32(babs, 8);
+
+   for(size_t i = 0; i != 10; ++i)
+      {
+      t->yplusx[i] = t->yplusx[i] ^
+                     ((t->yplusx[i] ^ base[0].yplusx[i]) & mask1) ^
+                     ((t->yplusx[i] ^ base[1].yplusx[i]) & mask2) ^
+                     ((t->yplusx[i] ^ base[2].yplusx[i]) & mask3) ^
+                     ((t->yplusx[i] ^ base[3].yplusx[i]) & mask4) ^
+                     ((t->yplusx[i] ^ base[4].yplusx[i]) & mask5) ^
+                     ((t->yplusx[i] ^ base[5].yplusx[i]) & mask6) ^
+                     ((t->yplusx[i] ^ base[6].yplusx[i]) & mask7) ^
+                     ((t->yplusx[i] ^ base[7].yplusx[i]) & mask8);
+
+      t->yminusx[i] = t->yminusx[i] ^
+                      ((t->yminusx[i] ^ base[0].yminusx[i]) & mask1) ^
+                      ((t->yminusx[i] ^ base[1].yminusx[i]) & mask2) ^
+                      ((t->yminusx[i] ^ base[2].yminusx[i]) & mask3) ^
+                      ((t->yminusx[i] ^ base[3].yminusx[i]) & mask4) ^
+                      ((t->yminusx[i] ^ base[4].yminusx[i]) & mask5) ^
+                      ((t->yminusx[i] ^ base[5].yminusx[i]) & mask6) ^
+                      ((t->yminusx[i] ^ base[6].yminusx[i]) & mask7) ^
+                      ((t->yminusx[i] ^ base[7].yminusx[i]) & mask8);
+
+      t->xy2d[i] = t->xy2d[i] ^
+                   ((t->xy2d[i] ^ base[0].xy2d[i]) & mask1) ^
+                   ((t->xy2d[i] ^ base[1].xy2d[i]) & mask2) ^
+                   ((t->xy2d[i] ^ base[2].xy2d[i]) & mask3) ^
+                   ((t->xy2d[i] ^ base[3].xy2d[i]) & mask4) ^
+                   ((t->xy2d[i] ^ base[4].xy2d[i]) & mask5) ^
+                   ((t->xy2d[i] ^ base[5].xy2d[i]) & mask6) ^
+                   ((t->xy2d[i] ^ base[6].xy2d[i]) & mask7) ^
+                   ((t->xy2d[i] ^ base[7].xy2d[i]) & mask8);
+      }
+
+   const int32_t neg_mask = equal32(bnegative, 1);
+
+   fe minus_xy2d;
+   fe_neg(minus_xy2d, t->xy2d);
+
+   // If negative have to swap yminusx and yplusx
+   for(size_t i = 0; i != 10; ++i)
+      {
+      int32_t t_yplusx = t->yplusx[i] ^ ((t->yplusx[i] ^ t->yminusx[i]) & neg_mask);
+      int32_t t_yminusx = t->yminusx[i] ^ ((t->yminusx[i] ^ t->yplusx[i]) & neg_mask);
+
+      t->yplusx[i] = t_yplusx;
+      t->yminusx[i] = t_yminusx;
+      t->xy2d[i] = t->xy2d[i] ^ ((t->xy2d[i] ^ minus_xy2d[i]) & neg_mask);
+      }
+   }
+
+void ge_p3_tobytes(uint8_t* s, const ge_p3* h)
+   {
+   fe recip;
+   fe x;
+   fe y;
+
+   fe_invert(recip, h->Z);
+   fe_mul(x, h->X, recip);
+   fe_mul(y, h->Y, recip);
+   fe_tobytes(s, y);
+   s[31] ^= fe_isnegative(x) << 7;
+   }
+
+}
+
+/*
+h = a * B
+where a = a[0]+256*a[1]+...+256^31 a[31]
+B is the Ed25519 base point (x,4/5) with x positive.
+
+Preconditions:
+  a[31] <= 127
+*/
+
+void ge_scalarmult_base(uint8_t out[32], const uint8_t a[32])
+   {
+   int8_t e[64];
+   int8_t carry;
+   ge_p1p1 r;
+   ge_p2 s;
+   ge_p3 h;
+   ge_precomp t;
+   int i;
+
+   for(i = 0; i < 32; ++i)
+      {
+      e[2 * i + 0] = (a[i] >> 0) & 15;
+      e[2 * i + 1] = (a[i] >> 4) & 15;
+      }
+   /* each e[i] is between 0 and 15 */
+   /* e[63] is between 0 and 7 */
+
+   carry = 0;
+   for(i = 0; i < 63; ++i)
+      {
+      e[i] += carry;
+      carry = e[i] + 8;
+      carry >>= 4;
+      e[i] -= carry << 4;
+      }
+   e[63] += carry;
+   /* each e[i] is between -8 and 8 */
+
+   ge_p3_0(&h);
+   for(i = 1; i < 64; i += 2)
+      {
+      select(&t, B_precomp[i / 2], e[i]);
+      ge_madd(&r, &h, &t);
+      ge_p1p1_to_p3(&h, &r);
+      }
+
+   ge_p3_dbl(&r, &h);
+   ge_p1p1_to_p2(&s, &r);
+   ge_p2_dbl(&r, &s);
+   ge_p1p1_to_p2(&s, &r);
+   ge_p2_dbl(&r, &s);
+   ge_p1p1_to_p2(&s, &r);
+   ge_p2_dbl(&r, &s);
+   ge_p1p1_to_p3(&h, &r);
+
+   for(i = 0; i < 64; i += 2)
+      {
+      select(&t, B_precomp[i / 2], e[i]);
+      ge_madd(&r, &h, &t);
+      ge_p1p1_to_p3(&h, &r);
+      }
+
+   ge_p3_tobytes(out, &h);
+   }
+
+}
+/*
+* Ed25519
+* (C) 2017 Ribose Inc
+*
+* Based on the public domain code from SUPERCOP ref10 by
+* Peter Schwabe, Daniel J. Bernstein, Niels Duif, Tanja Lange, Bo-Yin Yang
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+/*
+Input:
+  a[0]+256*a[1]+...+256^31*a[31] = a
+  b[0]+256*b[1]+...+256^31*b[31] = b
+  c[0]+256*c[1]+...+256^31*c[31] = c
+
+Output:
+  s[0]+256*s[1]+...+256^31*s[31] = (ab+c) mod l
+  where l = 2^252 + 27742317777372353535851937790883648493.
+*/
+
+void sc_muladd(uint8_t* s, const uint8_t* a, const uint8_t* b, const uint8_t* c)
+   {
+   int64_t a0 = 2097151 & load_3(a);
+   int64_t a1 = 2097151 & (load_4(a + 2) >> 5);
+   int64_t a2 = 2097151 & (load_3(a + 5) >> 2);
+   int64_t a3 = 2097151 & (load_4(a + 7) >> 7);
+   int64_t a4 = 2097151 & (load_4(a + 10) >> 4);
+   int64_t a5 = 2097151 & (load_3(a + 13) >> 1);
+   int64_t a6 = 2097151 & (load_4(a + 15) >> 6);
+   int64_t a7 = 2097151 & (load_3(a + 18) >> 3);
+   int64_t a8 = 2097151 & load_3(a + 21);
+   int64_t a9 = 2097151 & (load_4(a + 23) >> 5);
+   int64_t a10 = 2097151 & (load_3(a + 26) >> 2);
+   int64_t a11 = (load_4(a + 28) >> 7);
+   int64_t b0 = 2097151 & load_3(b);
+   int64_t b1 = 2097151 & (load_4(b + 2) >> 5);
+   int64_t b2 = 2097151 & (load_3(b + 5) >> 2);
+   int64_t b3 = 2097151 & (load_4(b + 7) >> 7);
+   int64_t b4 = 2097151 & (load_4(b + 10) >> 4);
+   int64_t b5 = 2097151 & (load_3(b + 13) >> 1);
+   int64_t b6 = 2097151 & (load_4(b + 15) >> 6);
+   int64_t b7 = 2097151 & (load_3(b + 18) >> 3);
+   int64_t b8 = 2097151 & load_3(b + 21);
+   int64_t b9 = 2097151 & (load_4(b + 23) >> 5);
+   int64_t b10 = 2097151 & (load_3(b + 26) >> 2);
+   int64_t b11 = (load_4(b + 28) >> 7);
+   int64_t c0 = 2097151 & load_3(c);
+   int64_t c1 = 2097151 & (load_4(c + 2) >> 5);
+   int64_t c2 = 2097151 & (load_3(c + 5) >> 2);
+   int64_t c3 = 2097151 & (load_4(c + 7) >> 7);
+   int64_t c4 = 2097151 & (load_4(c + 10) >> 4);
+   int64_t c5 = 2097151 & (load_3(c + 13) >> 1);
+   int64_t c6 = 2097151 & (load_4(c + 15) >> 6);
+   int64_t c7 = 2097151 & (load_3(c + 18) >> 3);
+   int64_t c8 = 2097151 & load_3(c + 21);
+   int64_t c9 = 2097151 & (load_4(c + 23) >> 5);
+   int64_t c10 = 2097151 & (load_3(c + 26) >> 2);
+   int64_t c11 = (load_4(c + 28) >> 7);
+   int64_t s0;
+   int64_t s1;
+   int64_t s2;
+   int64_t s3;
+   int64_t s4;
+   int64_t s5;
+   int64_t s6;
+   int64_t s7;
+   int64_t s8;
+   int64_t s9;
+   int64_t s10;
+   int64_t s11;
+   int64_t s12;
+   int64_t s13;
+   int64_t s14;
+   int64_t s15;
+   int64_t s16;
+   int64_t s17;
+   int64_t s18;
+   int64_t s19;
+   int64_t s20;
+   int64_t s21;
+   int64_t s22;
+   int64_t s23;
+   int64_t carry0;
+   int64_t carry1;
+   int64_t carry2;
+   int64_t carry3;
+   int64_t carry4;
+   int64_t carry5;
+   int64_t carry6;
+   int64_t carry7;
+   int64_t carry8;
+   int64_t carry9;
+   int64_t carry10;
+   int64_t carry11;
+   int64_t carry12;
+   int64_t carry13;
+   int64_t carry14;
+   int64_t carry15;
+   int64_t carry16;
+   int64_t carry17;
+   int64_t carry18;
+   int64_t carry19;
+   int64_t carry20;
+   int64_t carry21;
+   int64_t carry22;
+
+   s0 = c0 + a0*b0;
+   s1 = c1 + a0*b1 + a1*b0;
+   s2 = c2 + a0*b2 + a1*b1 + a2*b0;
+   s3 = c3 + a0*b3 + a1*b2 + a2*b1 + a3*b0;
+   s4 = c4 + a0*b4 + a1*b3 + a2*b2 + a3*b1 + a4*b0;
+   s5 = c5 + a0*b5 + a1*b4 + a2*b3 + a3*b2 + a4*b1 + a5*b0;
+   s6 = c6 + a0*b6 + a1*b5 + a2*b4 + a3*b3 + a4*b2 + a5*b1 + a6*b0;
+   s7 = c7 + a0*b7 + a1*b6 + a2*b5 + a3*b4 + a4*b3 + a5*b2 + a6*b1 + a7*b0;
+   s8 = c8 + a0*b8 + a1*b7 + a2*b6 + a3*b5 + a4*b4 + a5*b3 + a6*b2 + a7*b1 + a8*b0;
+   s9 = c9 + a0*b9 + a1*b8 + a2*b7 + a3*b6 + a4*b5 + a5*b4 + a6*b3 + a7*b2 + a8*b1 + a9*b0;
+   s10 = c10 + a0*b10 + a1*b9 + a2*b8 + a3*b7 + a4*b6 + a5*b5 + a6*b4 + a7*b3 + a8*b2 + a9*b1 + a10*b0;
+   s11 = c11 + a0*b11 + a1*b10 + a2*b9 + a3*b8 + a4*b7 + a5*b6 + a6*b5 + a7*b4 + a8*b3 + a9*b2 + a10*b1 + a11*b0;
+   s12 = a1*b11 + a2*b10 + a3*b9 + a4*b8 + a5*b7 + a6*b6 + a7*b5 + a8*b4 + a9*b3 + a10*b2 + a11*b1;
+   s13 = a2*b11 + a3*b10 + a4*b9 + a5*b8 + a6*b7 + a7*b6 + a8*b5 + a9*b4 + a10*b3 + a11*b2;
+   s14 = a3*b11 + a4*b10 + a5*b9 + a6*b8 + a7*b7 + a8*b6 + a9*b5 + a10*b4 + a11*b3;
+   s15 = a4*b11 + a5*b10 + a6*b9 + a7*b8 + a8*b7 + a9*b6 + a10*b5 + a11*b4;
+   s16 = a5*b11 + a6*b10 + a7*b9 + a8*b8 + a9*b7 + a10*b6 + a11*b5;
+   s17 = a6*b11 + a7*b10 + a8*b9 + a9*b8 + a10*b7 + a11*b6;
+   s18 = a7*b11 + a8*b10 + a9*b9 + a10*b8 + a11*b7;
+   s19 = a8*b11 + a9*b10 + a10*b9 + a11*b8;
+   s20 = a9*b11 + a10*b10 + a11*b9;
+   s21 = a10*b11 + a11*b10;
+   s22 = a11*b11;
+   s23 = 0;
+
+   carry0 = (s0 + (1<<20)) >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry2 = (s2 + (1<<20)) >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry4 = (s4 + (1<<20)) >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry6 = (s6 + (1<<20)) >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry8 = (s8 + (1<<20)) >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry10 = (s10 + (1<<20)) >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+   carry12 = (s12 + (1<<20)) >> 21;
+   s13 += carry12;
+   s12 -= carry12 << 21;
+   carry14 = (s14 + (1<<20)) >> 21;
+   s15 += carry14;
+   s14 -= carry14 << 21;
+   carry16 = (s16 + (1<<20)) >> 21;
+   s17 += carry16;
+   s16 -= carry16 << 21;
+   carry18 = (s18 + (1<<20)) >> 21;
+   s19 += carry18;
+   s18 -= carry18 << 21;
+   carry20 = (s20 + (1<<20)) >> 21;
+   s21 += carry20;
+   s20 -= carry20 << 21;
+   carry22 = (s22 + (1<<20)) >> 21;
+   s23 += carry22;
+   s22 -= carry22 << 21;
+
+   carry1 = (s1 + (1<<20)) >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry3 = (s3 + (1<<20)) >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry5 = (s5 + (1<<20)) >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry7 = (s7 + (1<<20)) >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry9 = (s9 + (1<<20)) >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry11 = (s11 + (1<<20)) >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+   carry13 = (s13 + (1<<20)) >> 21;
+   s14 += carry13;
+   s13 -= carry13 << 21;
+   carry15 = (s15 + (1<<20)) >> 21;
+   s16 += carry15;
+   s15 -= carry15 << 21;
+   carry17 = (s17 + (1<<20)) >> 21;
+   s18 += carry17;
+   s17 -= carry17 << 21;
+   carry19 = (s19 + (1<<20)) >> 21;
+   s20 += carry19;
+   s19 -= carry19 << 21;
+   carry21 = (s21 + (1<<20)) >> 21;
+   s22 += carry21;
+   s21 -= carry21 << 21;
+
+   s11 += s23 * 666643;
+   s12 += s23 * 470296;
+   s13 += s23 * 654183;
+   s14 -= s23 * 997805;
+   s15 += s23 * 136657;
+   s16 -= s23 * 683901;
+   s23 = 0;
+
+   s10 += s22 * 666643;
+   s11 += s22 * 470296;
+   s12 += s22 * 654183;
+   s13 -= s22 * 997805;
+   s14 += s22 * 136657;
+   s15 -= s22 * 683901;
+   s22 = 0;
+
+   s9 += s21 * 666643;
+   s10 += s21 * 470296;
+   s11 += s21 * 654183;
+   s12 -= s21 * 997805;
+   s13 += s21 * 136657;
+   s14 -= s21 * 683901;
+   s21 = 0;
+
+   s8 += s20 * 666643;
+   s9 += s20 * 470296;
+   s10 += s20 * 654183;
+   s11 -= s20 * 997805;
+   s12 += s20 * 136657;
+   s13 -= s20 * 683901;
+   s20 = 0;
+
+   s7 += s19 * 666643;
+   s8 += s19 * 470296;
+   s9 += s19 * 654183;
+   s10 -= s19 * 997805;
+   s11 += s19 * 136657;
+   s12 -= s19 * 683901;
+   s19 = 0;
+
+   s6 += s18 * 666643;
+   s7 += s18 * 470296;
+   s8 += s18 * 654183;
+   s9 -= s18 * 997805;
+   s10 += s18 * 136657;
+   s11 -= s18 * 683901;
+   s18 = 0;
+
+   carry6 = (s6 + (1<<20)) >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry8 = (s8 + (1<<20)) >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry10 = (s10 + (1<<20)) >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+   carry12 = (s12 + (1<<20)) >> 21;
+   s13 += carry12;
+   s12 -= carry12 << 21;
+   carry14 = (s14 + (1<<20)) >> 21;
+   s15 += carry14;
+   s14 -= carry14 << 21;
+   carry16 = (s16 + (1<<20)) >> 21;
+   s17 += carry16;
+   s16 -= carry16 << 21;
+
+   carry7 = (s7 + (1<<20)) >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry9 = (s9 + (1<<20)) >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry11 = (s11 + (1<<20)) >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+   carry13 = (s13 + (1<<20)) >> 21;
+   s14 += carry13;
+   s13 -= carry13 << 21;
+   carry15 = (s15 + (1<<20)) >> 21;
+   s16 += carry15;
+   s15 -= carry15 << 21;
+
+   s5 += s17 * 666643;
+   s6 += s17 * 470296;
+   s7 += s17 * 654183;
+   s8 -= s17 * 997805;
+   s9 += s17 * 136657;
+   s10 -= s17 * 683901;
+   s17 = 0;
+
+   s4 += s16 * 666643;
+   s5 += s16 * 470296;
+   s6 += s16 * 654183;
+   s7 -= s16 * 997805;
+   s8 += s16 * 136657;
+   s9 -= s16 * 683901;
+   s16 = 0;
+
+   s3 += s15 * 666643;
+   s4 += s15 * 470296;
+   s5 += s15 * 654183;
+   s6 -= s15 * 997805;
+   s7 += s15 * 136657;
+   s8 -= s15 * 683901;
+   s15 = 0;
+
+   s2 += s14 * 666643;
+   s3 += s14 * 470296;
+   s4 += s14 * 654183;
+   s5 -= s14 * 997805;
+   s6 += s14 * 136657;
+   s7 -= s14 * 683901;
+   s14 = 0;
+
+   s1 += s13 * 666643;
+   s2 += s13 * 470296;
+   s3 += s13 * 654183;
+   s4 -= s13 * 997805;
+   s5 += s13 * 136657;
+   s6 -= s13 * 683901;
+   s13 = 0;
+
+   s0 += s12 * 666643;
+   s1 += s12 * 470296;
+   s2 += s12 * 654183;
+   s3 -= s12 * 997805;
+   s4 += s12 * 136657;
+   s5 -= s12 * 683901;
+   s12 = 0;
+
+   carry0 = (s0 + (1<<20)) >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry2 = (s2 + (1<<20)) >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry4 = (s4 + (1<<20)) >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry6 = (s6 + (1<<20)) >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry8 = (s8 + (1<<20)) >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry10 = (s10 + (1<<20)) >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+
+   carry1 = (s1 + (1<<20)) >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry3 = (s3 + (1<<20)) >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry5 = (s5 + (1<<20)) >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry7 = (s7 + (1<<20)) >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry9 = (s9 + (1<<20)) >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry11 = (s11 + (1<<20)) >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+
+   s0 += s12 * 666643;
+   s1 += s12 * 470296;
+   s2 += s12 * 654183;
+   s3 -= s12 * 997805;
+   s4 += s12 * 136657;
+   s5 -= s12 * 683901;
+   s12 = 0;
+
+   carry0 = s0 >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry1 = s1 >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry2 = s2 >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry3 = s3 >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry4 = s4 >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry5 = s5 >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry6 = s6 >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry7 = s7 >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry8 = s8 >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry9 = s9 >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry10 = s10 >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+   carry11 = s11 >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+
+   s0 += s12 * 666643;
+   s1 += s12 * 470296;
+   s2 += s12 * 654183;
+   s3 -= s12 * 997805;
+   s4 += s12 * 136657;
+   s5 -= s12 * 683901;
+   s12 = 0;
+
+   carry0 = s0 >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry1 = s1 >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry2 = s2 >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry3 = s3 >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry4 = s4 >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry5 = s5 >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry6 = s6 >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry7 = s7 >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry8 = s8 >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry9 = s9 >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry10 = s10 >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+
+   s[0] = s0 >> 0;
+   s[1] = s0 >> 8;
+   s[2] = (s0 >> 16) | (s1 << 5);
+   s[3] = s1 >> 3;
+   s[4] = s1 >> 11;
+   s[5] = (s1 >> 19) | (s2 << 2);
+   s[6] = s2 >> 6;
+   s[7] = (s2 >> 14) | (s3 << 7);
+   s[8] = s3 >> 1;
+   s[9] = s3 >> 9;
+   s[10] = (s3 >> 17) | (s4 << 4);
+   s[11] = s4 >> 4;
+   s[12] = s4 >> 12;
+   s[13] = (s4 >> 20) | (s5 << 1);
+   s[14] = s5 >> 7;
+   s[15] = (s5 >> 15) | (s6 << 6);
+   s[16] = s6 >> 2;
+   s[17] = s6 >> 10;
+   s[18] = (s6 >> 18) | (s7 << 3);
+   s[19] = s7 >> 5;
+   s[20] = s7 >> 13;
+   s[21] = s8 >> 0;
+   s[22] = s8 >> 8;
+   s[23] = (s8 >> 16) | (s9 << 5);
+   s[24] = s9 >> 3;
+   s[25] = s9 >> 11;
+   s[26] = (s9 >> 19) | (s10 << 2);
+   s[27] = s10 >> 6;
+   s[28] = (s10 >> 14) | (s11 << 7);
+   s[29] = s11 >> 1;
+   s[30] = s11 >> 9;
+   s[31] = s11 >> 17;
+   }
+
+}
+/*
+* Ed25519
+* (C) 2017 Ribose Inc
+*
+* Based on the public domain code from SUPERCOP ref10 by
+* Peter Schwabe, Daniel J. Bernstein, Niels Duif, Tanja Lange, Bo-Yin Yang
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+/*
+Input:
+  s[0]+256*s[1]+...+256^63*s[63] = s
+
+Output:
+  s[0]+256*s[1]+...+256^31*s[31] = s mod l
+  where l = 2^252 + 27742317777372353535851937790883648493.
+  Overwrites s in place.
+*/
+
+void sc_reduce(uint8_t* s)
+   {
+   int64_t s0 = 2097151 & load_3(s);
+   int64_t s1 = 2097151 & (load_4(s + 2) >> 5);
+   int64_t s2 = 2097151 & (load_3(s + 5) >> 2);
+   int64_t s3 = 2097151 & (load_4(s + 7) >> 7);
+   int64_t s4 = 2097151 & (load_4(s + 10) >> 4);
+   int64_t s5 = 2097151 & (load_3(s + 13) >> 1);
+   int64_t s6 = 2097151 & (load_4(s + 15) >> 6);
+   int64_t s7 = 2097151 & (load_3(s + 18) >> 3);
+   int64_t s8 = 2097151 & load_3(s + 21);
+   int64_t s9 = 2097151 & (load_4(s + 23) >> 5);
+   int64_t s10 = 2097151 & (load_3(s + 26) >> 2);
+   int64_t s11 = 2097151 & (load_4(s + 28) >> 7);
+   int64_t s12 = 2097151 & (load_4(s + 31) >> 4);
+   int64_t s13 = 2097151 & (load_3(s + 34) >> 1);
+   int64_t s14 = 2097151 & (load_4(s + 36) >> 6);
+   int64_t s15 = 2097151 & (load_3(s + 39) >> 3);
+   int64_t s16 = 2097151 & load_3(s + 42);
+   int64_t s17 = 2097151 & (load_4(s + 44) >> 5);
+   int64_t s18 = 2097151 & (load_3(s + 47) >> 2);
+   int64_t s19 = 2097151 & (load_4(s + 49) >> 7);
+   int64_t s20 = 2097151 & (load_4(s + 52) >> 4);
+   int64_t s21 = 2097151 & (load_3(s + 55) >> 1);
+   int64_t s22 = 2097151 & (load_4(s + 57) >> 6);
+   int64_t s23 = (load_4(s + 60) >> 3);
+   int64_t carry0;
+   int64_t carry1;
+   int64_t carry2;
+   int64_t carry3;
+   int64_t carry4;
+   int64_t carry5;
+   int64_t carry6;
+   int64_t carry7;
+   int64_t carry8;
+   int64_t carry9;
+   int64_t carry10;
+   int64_t carry11;
+   int64_t carry12;
+   int64_t carry13;
+   int64_t carry14;
+   int64_t carry15;
+   int64_t carry16;
+
+   s11 += s23 * 666643;
+   s12 += s23 * 470296;
+   s13 += s23 * 654183;
+   s14 -= s23 * 997805;
+   s15 += s23 * 136657;
+   s16 -= s23 * 683901;
+   s23 = 0;
+
+   s10 += s22 * 666643;
+   s11 += s22 * 470296;
+   s12 += s22 * 654183;
+   s13 -= s22 * 997805;
+   s14 += s22 * 136657;
+   s15 -= s22 * 683901;
+   s22 = 0;
+
+   s9 += s21 * 666643;
+   s10 += s21 * 470296;
+   s11 += s21 * 654183;
+   s12 -= s21 * 997805;
+   s13 += s21 * 136657;
+   s14 -= s21 * 683901;
+   s21 = 0;
+
+   s8 += s20 * 666643;
+   s9 += s20 * 470296;
+   s10 += s20 * 654183;
+   s11 -= s20 * 997805;
+   s12 += s20 * 136657;
+   s13 -= s20 * 683901;
+   s20 = 0;
+
+   s7 += s19 * 666643;
+   s8 += s19 * 470296;
+   s9 += s19 * 654183;
+   s10 -= s19 * 997805;
+   s11 += s19 * 136657;
+   s12 -= s19 * 683901;
+   s19 = 0;
+
+   s6 += s18 * 666643;
+   s7 += s18 * 470296;
+   s8 += s18 * 654183;
+   s9 -= s18 * 997805;
+   s10 += s18 * 136657;
+   s11 -= s18 * 683901;
+   s18 = 0;
+
+   carry6 = (s6 + (1<<20)) >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry8 = (s8 + (1<<20)) >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry10 = (s10 + (1<<20)) >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+   carry12 = (s12 + (1<<20)) >> 21;
+   s13 += carry12;
+   s12 -= carry12 << 21;
+   carry14 = (s14 + (1<<20)) >> 21;
+   s15 += carry14;
+   s14 -= carry14 << 21;
+   carry16 = (s16 + (1<<20)) >> 21;
+   s17 += carry16;
+   s16 -= carry16 << 21;
+
+   carry7 = (s7 + (1<<20)) >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry9 = (s9 + (1<<20)) >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry11 = (s11 + (1<<20)) >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+   carry13 = (s13 + (1<<20)) >> 21;
+   s14 += carry13;
+   s13 -= carry13 << 21;
+   carry15 = (s15 + (1<<20)) >> 21;
+   s16 += carry15;
+   s15 -= carry15 << 21;
+
+   s5 += s17 * 666643;
+   s6 += s17 * 470296;
+   s7 += s17 * 654183;
+   s8 -= s17 * 997805;
+   s9 += s17 * 136657;
+   s10 -= s17 * 683901;
+   s17 = 0;
+
+   s4 += s16 * 666643;
+   s5 += s16 * 470296;
+   s6 += s16 * 654183;
+   s7 -= s16 * 997805;
+   s8 += s16 * 136657;
+   s9 -= s16 * 683901;
+   s16 = 0;
+
+   s3 += s15 * 666643;
+   s4 += s15 * 470296;
+   s5 += s15 * 654183;
+   s6 -= s15 * 997805;
+   s7 += s15 * 136657;
+   s8 -= s15 * 683901;
+   s15 = 0;
+
+   s2 += s14 * 666643;
+   s3 += s14 * 470296;
+   s4 += s14 * 654183;
+   s5 -= s14 * 997805;
+   s6 += s14 * 136657;
+   s7 -= s14 * 683901;
+   s14 = 0;
+
+   s1 += s13 * 666643;
+   s2 += s13 * 470296;
+   s3 += s13 * 654183;
+   s4 -= s13 * 997805;
+   s5 += s13 * 136657;
+   s6 -= s13 * 683901;
+   s13 = 0;
+
+   s0 += s12 * 666643;
+   s1 += s12 * 470296;
+   s2 += s12 * 654183;
+   s3 -= s12 * 997805;
+   s4 += s12 * 136657;
+   s5 -= s12 * 683901;
+   s12 = 0;
+
+   carry0 = (s0 + (1<<20)) >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry2 = (s2 + (1<<20)) >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry4 = (s4 + (1<<20)) >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry6 = (s6 + (1<<20)) >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry8 = (s8 + (1<<20)) >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry10 = (s10 + (1<<20)) >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+
+   carry1 = (s1 + (1<<20)) >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry3 = (s3 + (1<<20)) >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry5 = (s5 + (1<<20)) >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry7 = (s7 + (1<<20)) >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry9 = (s9 + (1<<20)) >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry11 = (s11 + (1<<20)) >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+
+   s0 += s12 * 666643;
+   s1 += s12 * 470296;
+   s2 += s12 * 654183;
+   s3 -= s12 * 997805;
+   s4 += s12 * 136657;
+   s5 -= s12 * 683901;
+   s12 = 0;
+
+   carry0 = s0 >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry1 = s1 >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry2 = s2 >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry3 = s3 >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry4 = s4 >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry5 = s5 >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry6 = s6 >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry7 = s7 >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry8 = s8 >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry9 = s9 >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry10 = s10 >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+   carry11 = s11 >> 21;
+   s12 += carry11;
+   s11 -= carry11 << 21;
+
+   s0 += s12 * 666643;
+   s1 += s12 * 470296;
+   s2 += s12 * 654183;
+   s3 -= s12 * 997805;
+   s4 += s12 * 136657;
+   s5 -= s12 * 683901;
+   s12 = 0;
+
+   carry0 = s0 >> 21;
+   s1 += carry0;
+   s0 -= carry0 << 21;
+   carry1 = s1 >> 21;
+   s2 += carry1;
+   s1 -= carry1 << 21;
+   carry2 = s2 >> 21;
+   s3 += carry2;
+   s2 -= carry2 << 21;
+   carry3 = s3 >> 21;
+   s4 += carry3;
+   s3 -= carry3 << 21;
+   carry4 = s4 >> 21;
+   s5 += carry4;
+   s4 -= carry4 << 21;
+   carry5 = s5 >> 21;
+   s6 += carry5;
+   s5 -= carry5 << 21;
+   carry6 = s6 >> 21;
+   s7 += carry6;
+   s6 -= carry6 << 21;
+   carry7 = s7 >> 21;
+   s8 += carry7;
+   s7 -= carry7 << 21;
+   carry8 = s8 >> 21;
+   s9 += carry8;
+   s8 -= carry8 << 21;
+   carry9 = s9 >> 21;
+   s10 += carry9;
+   s9 -= carry9 << 21;
+   carry10 = s10 >> 21;
+   s11 += carry10;
+   s10 -= carry10 << 21;
+
+   s[0] = s0 >> 0;
+   s[1] = s0 >> 8;
+   s[2] = (s0 >> 16) | (s1 << 5);
+   s[3] = s1 >> 3;
+   s[4] = s1 >> 11;
+   s[5] = (s1 >> 19) | (s2 << 2);
+   s[6] = s2 >> 6;
+   s[7] = (s2 >> 14) | (s3 << 7);
+   s[8] = s3 >> 1;
+   s[9] = s3 >> 9;
+   s[10] = (s3 >> 17) | (s4 << 4);
+   s[11] = s4 >> 4;
+   s[12] = s4 >> 12;
+   s[13] = (s4 >> 20) | (s5 << 1);
+   s[14] = s5 >> 7;
+   s[15] = (s5 >> 15) | (s6 << 6);
+   s[16] = s6 >> 2;
+   s[17] = s6 >> 10;
+   s[18] = (s6 >> 18) | (s7 << 3);
+   s[19] = s7 >> 5;
+   s[20] = s7 >> 13;
+   s[21] = s8 >> 0;
+   s[22] = s8 >> 8;
+   s[23] = (s8 >> 16) | (s9 << 5);
+   s[24] = s9 >> 3;
+   s[25] = s9 >> 11;
+   s[26] = (s9 >> 19) | (s10 << 2);
+   s[27] = s10 >> 6;
+   s[28] = (s10 >> 14) | (s11 << 7);
+   s[29] = s11 >> 1;
+   s[30] = s11 >> 9;
+   s[31] = s11 >> 17;
+   }
+
+}
+/*
 * ElGamal
 * (C) 1999-2007 Jack Lloyd
 *
@@ -17409,7 +23241,7 @@ namespace {
 /**
 * ElGamal encryption operation
 */
-class ElGamal_Encryption_Operation : public PK_Ops::Encryption_with_EME
+class ElGamal_Encryption_Operation final : public PK_Ops::Encryption_with_EME
    {
    public:
 
@@ -17461,7 +23293,7 @@ ElGamal_Encryption_Operation::raw_encrypt(const uint8_t msg[], size_t msg_len,
 /**
 * ElGamal decryption operation
 */
-class ElGamal_Decryption_Operation : public PK_Ops::Decryption_with_EME
+class ElGamal_Decryption_Operation final : public PK_Ops::Decryption_with_EME
    {
    public:
 
@@ -17643,7 +23475,7 @@ secure_vector<uint8_t> OAEP::unpad(uint8_t& valid_mask,
 
    // If we never saw any non-zero byte, then it's not valid input
    bad_input |= waiting_for_delim;
-   bad_input |= CT::is_equal<uint8_t>(same_mem(&input[hlen], m_Phash.data(), hlen), false);
+   bad_input |= CT::is_equal<uint8_t>(constant_time_compare(&input[hlen], m_Phash.data(), hlen), false);
 
    CT::unpoison(input.data(), input.size());
    CT::unpoison(&bad_input, 1);
@@ -17889,7 +23721,7 @@ bool EMSA1::verify(const secure_vector<uint8_t>& input,
          if(our_coding[i] != 0)
             return false;
 
-      return same_mem(input.data(), &our_coding[offset], input.size());
+      return constant_time_compare(input.data(), &our_coding[offset], input.size());
       }
    catch(Invalid_Argument)
       {
@@ -17925,7 +23757,13 @@ secure_vector<uint8_t> emsa3_encoding(const secure_vector<uint8_t>& msg,
    T[0] = 0x01;
    set_mem(&T[1], P_LENGTH, 0xFF);
    T[P_LENGTH+1] = 0x00;
-   buffer_insert(T, P_LENGTH+2, hash_id, hash_id_length);
+
+   if(hash_id_length > 0)
+      {
+      BOTAN_ASSERT_NONNULL(hash_id);
+      buffer_insert(T, P_LENGTH+2, hash_id, hash_id_length);
+      }
+
    buffer_insert(T, output_length-msg.size(), msg.data(), msg.size());
    return T;
    }
@@ -17977,6 +23815,20 @@ EMSA_PKCS1v15::EMSA_PKCS1v15(HashFunction* hash) : m_hash(hash)
    m_hash_id = pkcs_hash_id(m_hash->name());
    }
 
+EMSA_PKCS1v15_Raw::EMSA_PKCS1v15_Raw(const std::string& hash_algo)
+   {
+   if(!hash_algo.empty())
+      {
+      m_hash_id = pkcs_hash_id(hash_algo);
+      std::unique_ptr<HashFunction> hash(HashFunction::create(hash_algo));
+      m_hash_output_len = hash->output_length();
+      }
+   else
+      {
+      m_hash_output_len = 0;
+      }
+   }
+
 void EMSA_PKCS1v15_Raw::update(const uint8_t input[], size_t length)
    {
    m_message += std::make_pair(input, length);
@@ -17986,6 +23838,10 @@ secure_vector<uint8_t> EMSA_PKCS1v15_Raw::raw_data()
    {
    secure_vector<uint8_t> ret;
    std::swap(ret, m_message);
+
+   if(m_hash_output_len > 0 && ret.size() != m_hash_output_len)
+      throw Encoding_Error("EMSA_PKCS1v15_Raw::encoding_of: Bad input length");
+
    return ret;
    }
 
@@ -17994,16 +23850,19 @@ EMSA_PKCS1v15_Raw::encoding_of(const secure_vector<uint8_t>& msg,
                                size_t output_bits,
                                RandomNumberGenerator&)
    {
-   return emsa3_encoding(msg, output_bits, nullptr, 0);
+   return emsa3_encoding(msg, output_bits, m_hash_id.data(), m_hash_id.size());
    }
 
 bool EMSA_PKCS1v15_Raw::verify(const secure_vector<uint8_t>& coded,
                                const secure_vector<uint8_t>& raw,
                                size_t key_bits)
    {
+   if(m_hash_output_len > 0 && raw.size() != m_hash_output_len)
+      return false;
+
    try
       {
-      return (coded == emsa3_encoding(raw, key_bits, nullptr, 0));
+      return (coded == emsa3_encoding(raw, key_bits, m_hash_id.data(), m_hash_id.size()));
       }
    catch(...)
       {
@@ -18014,7 +23873,7 @@ bool EMSA_PKCS1v15_Raw::verify(const secure_vector<uint8_t>& coded,
 }
 /*
 * PSSR
-* (C) 1999-2007 Jack Lloyd
+* (C) 1999-2007,2017 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -18022,65 +23881,49 @@ bool EMSA_PKCS1v15_Raw::verify(const secure_vector<uint8_t>& coded,
 
 namespace Botan {
 
-/*
-* PSSR Update Operation
-*/
-void PSSR::update(const uint8_t input[], size_t length)
-   {
-   m_hash->update(input, length);
-   }
-
-/*
-* Return the raw (unencoded) data
-*/
-secure_vector<uint8_t> PSSR::raw_data()
-   {
-   return m_hash->final();
-   }
+namespace {
 
 /*
 * PSSR Encode Operation
 */
-secure_vector<uint8_t> PSSR::encoding_of(const secure_vector<uint8_t>& msg,
-                                      size_t output_bits,
-                                      RandomNumberGenerator& rng)
+secure_vector<uint8_t> pss_encode(HashFunction& hash,
+                                  const secure_vector<uint8_t>& msg,
+                                  const secure_vector<uint8_t>& salt,
+                                  size_t output_bits)
    {
-   const size_t HASH_SIZE = m_hash->output_length();
+   const size_t HASH_SIZE = hash.output_length();
+   const size_t SALT_SIZE = salt.size();
 
    if(msg.size() != HASH_SIZE)
-      throw Encoding_Error("PSSR::encoding_of: Bad input length");
-   if(output_bits < 8*HASH_SIZE + 8*m_SALT_SIZE + 9)
-      throw Encoding_Error("PSSR::encoding_of: Output length is too small");
+      throw Encoding_Error("Cannot encode PSS string, input length invalid for hash");
+   if(output_bits < 8*HASH_SIZE + 8*SALT_SIZE + 9)
+      throw Encoding_Error("Cannot encode PSS string, output length too small");
 
    const size_t output_length = (output_bits + 7) / 8;
 
-   secure_vector<uint8_t> salt = rng.random_vec(m_SALT_SIZE);
-
-   for(size_t j = 0; j != 8; ++j)
-      m_hash->update(0);
-   m_hash->update(msg);
-   m_hash->update(salt);
-   secure_vector<uint8_t> H = m_hash->final();
+   for(size_t i = 0; i != 8; ++i)
+      hash.update(0);
+   hash.update(msg);
+   hash.update(salt);
+   secure_vector<uint8_t> H = hash.final();
 
    secure_vector<uint8_t> EM(output_length);
 
-   EM[output_length - HASH_SIZE - m_SALT_SIZE - 2] = 0x01;
-   buffer_insert(EM, output_length - 1 - HASH_SIZE - m_SALT_SIZE, salt);
-   mgf1_mask(*m_hash, H.data(), HASH_SIZE, EM.data(), output_length - HASH_SIZE - 1);
+   EM[output_length - HASH_SIZE - SALT_SIZE - 2] = 0x01;
+   buffer_insert(EM, output_length - 1 - HASH_SIZE - SALT_SIZE, salt);
+   mgf1_mask(hash, H.data(), HASH_SIZE, EM.data(), output_length - HASH_SIZE - 1);
    EM[0] &= 0xFF >> (8 * ((output_bits + 7) / 8) - output_bits);
    buffer_insert(EM, output_length - 1 - HASH_SIZE, H);
    EM[output_length-1] = 0xBC;
-
    return EM;
    }
 
-/*
-* PSSR Decode/Verify Operation
-*/
-bool PSSR::verify(const secure_vector<uint8_t>& const_coded,
-                   const secure_vector<uint8_t>& raw, size_t key_bits)
+bool pss_verify(HashFunction& hash,
+                const secure_vector<uint8_t>& const_coded,
+                const secure_vector<uint8_t>& raw,
+                size_t key_bits)
    {
-   const size_t HASH_SIZE = m_hash->output_length();
+   const size_t HASH_SIZE = hash.output_length();
    const size_t KEY_BYTES = (key_bits + 7) / 8;
 
    if(key_bits < 8*HASH_SIZE + 9)
@@ -18113,7 +23956,7 @@ bool PSSR::verify(const secure_vector<uint8_t>& const_coded,
    const uint8_t* H = &coded[DB_size];
    const size_t H_size = HASH_SIZE;
 
-   mgf1_mask(*m_hash, H, H_size, DB, DB_size);
+   mgf1_mask(hash, H, H_size, DB, DB_size);
    DB[0] &= 0xFF >> TOP_BITS;
 
    size_t salt_offset = 0;
@@ -18127,23 +23970,112 @@ bool PSSR::verify(const secure_vector<uint8_t>& const_coded,
    if(salt_offset == 0)
       return false;
 
-   for(size_t j = 0; j != 8; ++j)
-      m_hash->update(0);
-   m_hash->update(raw);
-   m_hash->update(&DB[salt_offset], DB_size - salt_offset);
-   secure_vector<uint8_t> H2 = m_hash->final();
+   const size_t salt_size = DB_size - salt_offset;
 
-   return same_mem(H, H2.data(), HASH_SIZE);
+   for(size_t j = 0; j != 8; ++j)
+      hash.update(0);
+   hash.update(raw);
+   hash.update(&DB[salt_offset], salt_size);
+
+   secure_vector<uint8_t> H2 = hash.final();
+
+   return constant_time_compare(H, H2.data(), HASH_SIZE);
    }
 
+}
+
 PSSR::PSSR(HashFunction* h) :
-   m_SALT_SIZE(h->output_length()), m_hash(h)
+   m_hash(h), m_SALT_SIZE(m_hash->output_length())
    {
    }
 
 PSSR::PSSR(HashFunction* h, size_t salt_size) :
-   m_SALT_SIZE(salt_size), m_hash(h)
+   m_hash(h), m_SALT_SIZE(salt_size)
    {
+   }
+
+/*
+* PSSR Update Operation
+*/
+void PSSR::update(const uint8_t input[], size_t length)
+   {
+   m_hash->update(input, length);
+   }
+
+/*
+* Return the raw (unencoded) data
+*/
+secure_vector<uint8_t> PSSR::raw_data()
+   {
+   return m_hash->final();
+   }
+
+secure_vector<uint8_t> PSSR::encoding_of(const secure_vector<uint8_t>& msg,
+                                         size_t output_bits,
+                                         RandomNumberGenerator& rng)
+   {
+   secure_vector<uint8_t> salt = rng.random_vec(m_SALT_SIZE);
+   return pss_encode(*m_hash, msg, salt, output_bits);
+   }
+
+/*
+* PSSR Decode/Verify Operation
+*/
+bool PSSR::verify(const secure_vector<uint8_t>& coded,
+                  const secure_vector<uint8_t>& raw,
+                  size_t key_bits)
+   {
+   return pss_verify(*m_hash, coded, raw, key_bits);
+   }
+
+PSSR_Raw::PSSR_Raw(HashFunction* h) :
+   m_hash(h), m_SALT_SIZE(m_hash->output_length())
+   {
+   }
+
+PSSR_Raw::PSSR_Raw(HashFunction* h, size_t salt_size) :
+   m_hash(h), m_SALT_SIZE(salt_size)
+   {
+   }
+
+/*
+* PSSR_Raw Update Operation
+*/
+void PSSR_Raw::update(const uint8_t input[], size_t length)
+   {
+   m_msg.insert(m_msg.end(), input, input + length);
+   }
+
+/*
+* Return the raw (unencoded) data
+*/
+secure_vector<uint8_t> PSSR_Raw::raw_data()
+   {
+   secure_vector<uint8_t> ret;
+   std::swap(ret, m_msg);
+
+   if(ret.size() != m_hash->output_length())
+      throw Encoding_Error("PSSR_Raw Bad input length, did not match hash");
+
+   return ret;
+   }
+
+secure_vector<uint8_t> PSSR_Raw::encoding_of(const secure_vector<uint8_t>& msg,
+                                             size_t output_bits,
+                                             RandomNumberGenerator& rng)
+   {
+   secure_vector<uint8_t> salt = rng.random_vec(m_SALT_SIZE);
+   return pss_encode(*m_hash, msg, salt, output_bits);
+   }
+
+/*
+* PSSR_Raw Decode/Verify Operation
+*/
+bool PSSR_Raw::verify(const secure_vector<uint8_t>& coded,
+                      const secure_vector<uint8_t>& raw,
+                      size_t key_bits)
+   {
+   return pss_verify(*m_hash, coded, raw, key_bits);
    }
 
 }
@@ -18170,6 +24102,12 @@ void EMSA_Raw::update(const uint8_t input[], size_t length)
 */
 secure_vector<uint8_t> EMSA_Raw::raw_data()
    {
+   if(m_expected_size && m_message.size() != m_expected_size)
+      throw Invalid_Argument("EMSA_Raw was configured to use a " +
+                             std::to_string(m_expected_size) +
+                             " byte hash but instead was used for a " +
+                             std::to_string(m_message.size()) + " hash");
+
    secure_vector<uint8_t> output;
    std::swap(m_message, output);
    return output;
@@ -18178,10 +24116,17 @@ secure_vector<uint8_t> EMSA_Raw::raw_data()
 /*
 * EMSA-Raw Encode Operation
 */
-secure_vector<uint8_t> EMSA_Raw::encoding_of(const secure_vector<uint8_t>& msg,
-                                         size_t,
-                                         RandomNumberGenerator&)
+secure_vector<uint8_t>
+EMSA_Raw::encoding_of(const secure_vector<uint8_t>& msg,
+                      size_t,
+                      RandomNumberGenerator&)
    {
+   if(m_expected_size && msg.size() != m_expected_size)
+      throw Invalid_Argument("EMSA_Raw was configured to use a " +
+                             std::to_string(m_expected_size) +
+                             " byte hash but instead was used for a " +
+                             std::to_string(msg.size()) + " hash");
+
    return msg;
    }
 
@@ -18192,6 +24137,9 @@ bool EMSA_Raw::verify(const secure_vector<uint8_t>& coded,
                       const secure_vector<uint8_t>& raw,
                       size_t)
    {
+   if(m_expected_size && raw.size() != m_expected_size)
+      return false;
+
    if(coded.size() == raw.size())
       return (coded == raw);
 
@@ -18207,7 +24155,7 @@ bool EMSA_Raw::verify(const secure_vector<uint8_t>& coded,
       if(raw[i])
          same_modulo_leading_zeros = false;
 
-   if(!same_mem(coded.data(), raw.data() + leading_zeros_expected, coded.size()))
+   if(!constant_time_compare(coded.data(), raw.data() + leading_zeros_expected, coded.size()))
       same_modulo_leading_zeros = false;
 
    return same_modulo_leading_zeros;
@@ -18316,6 +24264,9 @@ EMSA_X931::EMSA_X931(HashFunction* hash) : m_hash(hash)
 */
 
 
+#if defined(BOTAN_HAS_SYSTEM_RNG)
+#endif
+
 #if defined(BOTAN_HAS_ENTROPY_SRC_RDRAND)
 #endif
 
@@ -18325,9 +24276,6 @@ EMSA_X931::EMSA_X931(HashFunction* hash) : m_hash(hash)
 #if defined(BOTAN_HAS_ENTROPY_SRC_DEV_RANDOM)
 #endif
 
-#if defined(BOTAN_HAS_ENTROPY_SRC_CAPI)
-#endif
-
 #if defined(BOTAN_HAS_ENTROPY_SRC_WIN32)
 #endif
 
@@ -18335,62 +24283,93 @@ EMSA_X931::EMSA_X931(HashFunction* hash) : m_hash(hash)
 #endif
 
 #if defined(BOTAN_HAS_ENTROPY_SRC_DARWIN_SECRANDOM)
+#endif
+
+#if defined(BOTAN_HAS_ENTROPY_SRC_GETENTROPY)
 #endif
 
 namespace Botan {
 
+#if defined(BOTAN_HAS_SYSTEM_RNG)
+
+namespace {
+
+class System_RNG_EntropySource final : public Entropy_Source
+   {
+   public:
+      size_t poll(RandomNumberGenerator& rng) override
+         {
+         const size_t poll_bits = BOTAN_RNG_RESEED_POLL_BITS;
+         rng.reseed_from_rng(system_rng(), poll_bits);
+         return poll_bits;
+         }
+
+      std::string name() const override { return system_rng().name(); }
+   };
+
+}
+
+#endif
+
 std::unique_ptr<Entropy_Source> Entropy_Source::create(const std::string& name)
    {
+#if defined(BOTAN_HAS_SYSTEM_RNG)
+   if(name == "system_rng" || name == "win32_cryptoapi")
+      {
+      return std::unique_ptr<Entropy_Source>(new System_RNG_EntropySource);
+      }
+#endif
+
+#if defined(BOTAN_HAS_ENTROPY_SRC_RDRAND)
    if(name == "rdrand")
       {
-#if defined(BOTAN_HAS_ENTROPY_SRC_RDRAND)
       return std::unique_ptr<Entropy_Source>(new Intel_Rdrand);
-#endif
       }
+#endif
 
+#if defined(BOTAN_HAS_ENTROPY_SRC_RDSEED)
    if(name == "rdseed")
       {
-#if defined(BOTAN_HAS_ENTROPY_SRC_RDSEED)
       return std::unique_ptr<Entropy_Source>(new Intel_Rdseed);
-#endif
       }
+#endif
 
+#if defined(BOTAN_HAS_ENTROPY_SRC_DARWIN_SECRANDOM)
    if(name == "darwin_secrandom")
       {
-#if defined(BOTAN_HAS_ENTROPY_SRC_DARWIN_SECRANDOM)
       return std::unique_ptr<Entropy_Source>(new Darwin_SecRandom);
-#endif
       }
+#endif
 
+#if defined(BOTAN_HAS_ENTROPY_SRC_GETENTROPY)
+   if(name == "getentropy")
+      {
+      return std::unique_ptr<Entropy_Source>(new Getentropy);
+      }
+#endif
+
+#if defined(BOTAN_HAS_ENTROPY_SRC_DEV_RANDOM)
    if(name == "dev_random")
       {
-#if defined(BOTAN_HAS_ENTROPY_SRC_DEV_RANDOM)
       return std::unique_ptr<Entropy_Source>(new Device_EntropySource(BOTAN_SYSTEM_RNG_POLL_DEVICES));
-#endif
       }
-
-   if(name == "win32_cryptoapi")
-      {
-#if defined(BOTAN_HAS_ENTROPY_SRC_CAPI)
-      return std::unique_ptr<Entropy_Source>(new Win32_CAPI_EntropySource("RSA_FULL"));
 #endif
-      }
 
+#if defined(BOTAN_HAS_ENTROPY_SRC_PROC_WALKER)
    if(name == "proc_walk")
       {
-#if defined(BOTAN_HAS_ENTROPY_SRC_PROC_WALKER)
       const std::string root_dir = BOTAN_ENTROPY_PROC_FS_PATH;
       if(!root_dir.empty())
          return std::unique_ptr<Entropy_Source>(new ProcWalking_EntropySource(root_dir));
-#endif
       }
+#endif
 
+#if defined(BOTAN_HAS_ENTROPY_SRC_WIN32)
    if(name == "system_stats")
       {
-#if defined(BOTAN_HAS_ENTROPY_SRC_WIN32)
       return std::unique_ptr<Entropy_Source>(new Win32_EntropySource);
-#endif
       }
+#endif
 
    return std::unique_ptr<Entropy_Source>();
    }
@@ -18399,7 +24378,7 @@ void Entropy_Sources::add_source(std::unique_ptr<Entropy_Source> src)
    {
    if(src.get())
       {
-      m_srcs.push_back(src.release());
+      m_srcs.push_back(std::move(src));
       }
    }
 
@@ -18423,9 +24402,9 @@ size_t Entropy_Sources::poll(RandomNumberGenerator& rng,
 
    size_t bits_collected = 0;
 
-   for(Entropy_Source* src : m_srcs)
+   for(size_t i = 0; i != m_srcs.size(); ++i)
       {
-      bits_collected += src->poll(rng);
+      bits_collected += m_srcs[i]->poll(rng);
 
       if (bits_collected >= poll_bits || clock::now() > deadline)
          break;
@@ -18453,16 +24432,6 @@ Entropy_Sources::Entropy_Sources(const std::vector<std::string>& sources)
       {
       add_source(Entropy_Source::create(src_name));
       }
-   }
-
-Entropy_Sources::~Entropy_Sources()
-   {
-   for(size_t i = 0; i != m_srcs.size(); ++i)
-      {
-      delete m_srcs[i];
-      m_srcs[i] = nullptr;
-      }
-   m_srcs.clear();
    }
 
 Entropy_Sources& Entropy_Sources::global_sources()
@@ -18496,11 +24465,12 @@ int operator<<(int fd, Pipe& pipe)
       size_t position = 0;
       while(got)
          {
-         ssize_t ret = write(fd, &buffer[position], got);
-         if(ret == -1)
+         ssize_t ret = ::write(fd, &buffer[position], got);
+         if(ret < 0)
             throw Stream_IO_Error("Pipe output operator (unixfd) has failed");
-         position += ret;
-         got -= ret;
+
+         position += static_cast<size_t>(ret);
+         got -= static_cast<size_t>(ret);
          }
       }
    return fd;
@@ -18514,188 +24484,38 @@ int operator>>(int fd, Pipe& pipe)
    secure_vector<uint8_t> buffer(DEFAULT_BUFFERSIZE);
    while(true)
       {
-      ssize_t ret = read(fd, buffer.data(), buffer.size());
-      if(ret == 0) break;
-      if(ret == -1)
+      ssize_t ret = ::read(fd, buffer.data(), buffer.size());
+      if(ret < 0)
          throw Stream_IO_Error("Pipe input operator (unixfd) has failed");
-      pipe.write(buffer.data(), ret);
+      else if(ret == 0)
+         break;
+      pipe.write(buffer.data(), static_cast<size_t>(ret));
       }
    return fd;
    }
 
 }
 /*
-* (C) 2015 Jack Lloyd
+* (C) 2015,2017 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
+#include <cstdio>
 
-#if defined(BOTAN_HAS_RSA)
-#endif
+namespace Botan_FFI {
 
-#if defined(BOTAN_HAS_ECDSA)
-#endif
-
-#if defined(BOTAN_HAS_ECDH)
-#endif
-
-#if defined(BOTAN_HAS_CURVE_25519)
-#endif
-
-#if defined(BOTAN_HAS_MCELIECE)
-#endif
-
-#if defined(BOTAN_HAS_MCEIES)
-#endif
-
-#if defined(BOTAN_HAS_BCRYPT)
-#endif
-
-#if defined(BOTAN_HAS_TLS)
-#endif
-
-namespace {
-
-#define BOTAN_ASSERT_ARG_NON_NULL(p) \
-   do { if(!p) throw Botan::Invalid_Argument("Argument " #p " is null"); } while(0)
-
-class FFI_Error : public Botan::Exception
+int ffi_error_exception_thrown(const char* func_name, const char* exn)
    {
-   public:
-      explicit FFI_Error(const std::string& what) : Exception("FFI error", what) {}
-   };
-
-template<typename T, uint32_t MAGIC>
-struct botan_struct
-   {
-   public:
-      botan_struct(T* obj) : m_magic(MAGIC), m_obj(obj) {}
-      ~botan_struct() { m_magic = 0; m_obj.reset(); }
-
-      T* get() const
-         {
-         if(m_magic != MAGIC)
-            throw FFI_Error("Bad magic " + std::to_string(m_magic) +
-                            " in ffi object expected " + std::to_string(MAGIC));
-         return m_obj.get();
-         }
-   private:
-      uint32_t m_magic = 0;
-      std::unique_ptr<T> m_obj;
-   };
-
-void log_exception(const char* func_name, const char* what)
-   {
-   fprintf(stderr, "%s: %s\n", func_name, what);
-   }
-
-int ffi_error_exception_thrown(const char* exn)
-   {
-   printf("exception %s\n", exn);
+   fprintf(stderr, "in %s exception %s\n", func_name, exn);
    return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
    }
-
-template<typename T, uint32_t M>
-T& safe_get(botan_struct<T,M>* p)
-   {
-   if(!p)
-      throw FFI_Error("Null pointer argument");
-   if(T* t = p->get())
-      return *t;
-   throw FFI_Error("Invalid object pointer");
-   }
-
-template<typename T, uint32_t M, typename F>
-int apply_fn(botan_struct<T, M>* o, const char* func_name, F func)
-   {
-   try
-      {
-      if(!o)
-         throw FFI_Error("Null object to " + std::string(func_name));
-      if(T* t = o->get())
-         return func(*t);
-      }
-   catch(std::exception& e)
-      {
-      log_exception(func_name, e.what());
-      return -1;
-      }
-   catch(...)
-      {
-      log_exception(func_name, "unknown exception type");
-      return -2;
-      }
-
-   return -1;
-   }
-
-inline int write_output(uint8_t out[], size_t* out_len, const uint8_t buf[], size_t buf_len)
-   {
-   const size_t avail = *out_len;
-   *out_len = buf_len;
-
-   if(avail >= buf_len)
-      {
-      Botan::copy_mem(out, buf, buf_len);
-      return 0;
-      }
-   else
-      {
-      Botan::clear_mem(out, avail);
-      return BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE;
-      }
-   }
-
-template<typename Alloc>
-int write_vec_output(uint8_t out[], size_t* out_len, const std::vector<uint8_t, Alloc>& buf)
-   {
-   return write_output(out, out_len, buf.data(), buf.size());
-   }
-
-inline int write_str_output(uint8_t out[], size_t* out_len, const std::string& str)
-   {
-   return write_output(out, out_len,
-                       reinterpret_cast<const uint8_t*>(str.c_str()),
-                       str.size() + 1);
-   }
-
-inline int write_str_output(char out[], size_t* out_len, const std::string& str)
-   {
-   return write_str_output(reinterpret_cast<uint8_t*>(out), out_len, str);
-   }
-
-#define BOTAN_FFI_DO(T, obj, param, block) apply_fn(obj, BOTAN_CURRENT_FUNCTION, [=](T& param) { do { block } while(0); return 0; })
 
 }
 
 extern "C" {
 
-#define BOTAN_FFI_DECLARE_STRUCT(NAME, TYPE, MAGIC) \
-   struct NAME : public botan_struct<TYPE, MAGIC> { explicit NAME(TYPE* x) : botan_struct(x) {} }
-
-struct botan_cipher_struct : public botan_struct<Botan::Cipher_Mode, 0xB4A2BF9C>
-   {
-   explicit botan_cipher_struct(Botan::Cipher_Mode* x) : botan_struct(x) {}
-   Botan::secure_vector<uint8_t> m_buf;
-   };
-
-BOTAN_FFI_DECLARE_STRUCT(botan_rng_struct, Botan::RandomNumberGenerator, 0x4901F9C1);
-BOTAN_FFI_DECLARE_STRUCT(botan_hash_struct, Botan::HashFunction, 0x1F0A4F84);
-BOTAN_FFI_DECLARE_STRUCT(botan_mac_struct, Botan::MessageAuthenticationCode, 0xA06E8FC1);
-BOTAN_FFI_DECLARE_STRUCT(botan_pubkey_struct, Botan::Public_Key, 0x2C286519);
-BOTAN_FFI_DECLARE_STRUCT(botan_privkey_struct, Botan::Private_Key, 0x7F96385E);
-BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_encrypt_struct, Botan::PK_Encryptor, 0x891F3FC3);
-BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_decrypt_struct, Botan::PK_Decryptor, 0x912F3C37);
-BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_sign_struct, Botan::PK_Signer, 0x1AF0C39F);
-BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_verify_struct, Botan::PK_Verifier, 0x2B91F936);
-BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_ka_struct, Botan::PK_Key_Agreement, 0x2939CAB1);
-
-BOTAN_FFI_DECLARE_STRUCT(botan_x509_cert_struct, Botan::X509_Certificate, 0x8F628937);
-
-#if defined(BOTAN_HAS_TLS)
-BOTAN_FFI_DECLARE_STRUCT(botan_tls_channel_struct, Botan::TLS::Channel, 0x0212FE99);
-#endif
+using namespace Botan_FFI;
 
 /*
 * Versioning
@@ -18707,12 +24527,20 @@ uint32_t botan_ffi_api_version()
 
 int botan_ffi_supports_api(uint32_t api_version)
    {
-   /*
-   * In the future if multiple versions are supported, this
-   * function would accept any of them.
-   */
+   // Current API version
    if(api_version == BOTAN_HAS_FFI)
-      return 0;
+      return BOTAN_FFI_SUCCESS;
+
+   // Older versions that are still supported
+
+   // This is the 2.1/2.2 API
+   if(api_version == 20170327)
+      return BOTAN_FFI_SUCCESS;
+
+   // This is the 2.0 API
+   if(api_version == 20150515)
+      return BOTAN_FFI_SUCCESS;
+
    return -1;
    }
 
@@ -18726,1088 +24554,235 @@ uint32_t botan_version_minor() { return Botan::version_minor(); }
 uint32_t botan_version_patch() { return Botan::version_patch(); }
 uint32_t botan_version_datestamp()  { return Botan::version_datestamp(); }
 
+int botan_constant_time_compare(const uint8_t* x, const uint8_t* y, size_t len)
+   {
+   return Botan::constant_time_compare(x, y, len) ? 0 : -1;
+   }
+
 int botan_same_mem(const uint8_t* x, const uint8_t* y, size_t len)
    {
-   return Botan::same_mem(x, y, len) ? 0 : -1;
+   return botan_constant_time_compare(x, y, len);
+   }
+
+int botan_scrub_mem(void* mem, size_t bytes)
+   {
+   Botan::secure_scrub_memory(mem, bytes);
+   return BOTAN_FFI_SUCCESS;
    }
 
 int botan_hex_encode(const uint8_t* in, size_t len, char* out, uint32_t flags)
    {
-   try
-      {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
       const bool uppercase = (flags & BOTAN_FFI_HEX_LOWER_CASE) == 0;
       Botan::hex_encode(out, in, len, uppercase);
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return 1;
+      return BOTAN_FFI_SUCCESS;
+      });
    }
 
-int botan_rng_init(botan_rng_t* rng_out, const char* rng_type)
+int botan_hex_decode(const char* hex_str, size_t in_len, uint8_t* out, size_t* out_len)
    {
-   try
-      {
-      BOTAN_ASSERT_ARG_NON_NULL(rng_out);
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const std::vector<uint8_t> bin = Botan::hex_decode(hex_str, in_len);
+      return Botan_FFI::write_vec_output(out, out_len, bin);
+      });
+   }
 
-      if(rng_type == nullptr || *rng_type == 0)
-         rng_type = "system";
+int botan_base64_encode(const uint8_t* in, size_t len, char* out, size_t* out_len)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const std::string base64 = Botan::base64_encode(in, len);
+      return Botan_FFI::write_str_output(out, out_len, base64);
+      });
+   }
 
-      const std::string rng_type_s(rng_type);
-
-      std::unique_ptr<Botan::RandomNumberGenerator> rng;
-
-      if(rng_type_s == "system")
-         rng.reset(new Botan::System_RNG);
-      else if(rng_type_s == "user")
-         rng.reset(new Botan::AutoSeeded_RNG);
-
-      if(rng)
+int botan_base64_decode(const char* base64_str, size_t in_len,
+                        uint8_t* out, size_t* out_len)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      if(*out_len < Botan::base64_decode_max_output(in_len))
          {
-         *rng_out = new botan_rng_struct(rng.release());
-         return 0;
+         *out_len = Botan::base64_decode_max_output(in_len);
+         return BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE;
          }
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
 
-   return -1;
+      *out_len = Botan::base64_decode(out, std::string(base64_str, in_len));
+      return BOTAN_FFI_SUCCESS;
+      });
    }
 
-int botan_rng_destroy(botan_rng_t rng)
-   {
-   delete rng;
-   return 0;
-   }
+}
 
-int botan_rng_get(botan_rng_t rng, uint8_t* out, size_t out_len)
-   {
-   return BOTAN_FFI_DO(Botan::RandomNumberGenerator, rng, r, { r.randomize(out, out_len); });
-   }
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
 
-int botan_rng_reseed(botan_rng_t rng, size_t bits)
-   {
-   return BOTAN_FFI_DO(Botan::RandomNumberGenerator, rng, r, { r.reseed_from_rng(Botan::system_rng(), bits); });
-   }
 
-int botan_hash_init(botan_hash_t* hash, const char* hash_name, uint32_t flags)
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_block_cipher_struct, Botan::BlockCipher, 0x64C29716);
+
+int botan_block_cipher_init(botan_block_cipher_t* bc, const char* bc_name)
    {
-   try
-      {
-      if(hash == nullptr || hash_name == nullptr || *hash_name == 0)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      if(bc == nullptr || bc_name == nullptr || *bc_name == 0)
          return BOTAN_FFI_ERROR_NULL_POINTER;
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
 
-      auto h = Botan::HashFunction::create(hash_name);
-      if(h)
-         {
-         *hash = new botan_hash_struct(h.release());
-         return 0;
-         }
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
+      *bc = nullptr;
 
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
+      std::unique_ptr<Botan::BlockCipher> cipher(Botan::BlockCipher::create(bc_name));
+      if(cipher == nullptr)
+         return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
 
-int botan_hash_destroy(botan_hash_t hash)
-   {
-   delete hash;
-   return 0;
-   }
-
-int botan_hash_output_length(botan_hash_t hash, size_t* out)
-   {
-   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { *out = h.output_length(); });
-   }
-
-int botan_hash_clear(botan_hash_t hash)
-   {
-   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { h.clear(); });
-   }
-
-int botan_hash_update(botan_hash_t hash, const uint8_t* buf, size_t len)
-   {
-   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { h.update(buf, len); });
-   }
-
-int botan_hash_final(botan_hash_t hash, uint8_t out[])
-   {
-   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { h.final(out); });
-   }
-
-int botan_mac_init(botan_mac_t* mac, const char* mac_name, uint32_t flags)
-   {
-   try
-      {
-      if(!mac || !mac_name || flags != 0)
-         return -1;
-
-      auto m = Botan::MessageAuthenticationCode::create(mac_name);
-      if(m)
-         {
-         *mac = new botan_mac_struct(m.release());
-         return 0;
-         }
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
-
-   return -2;
-   }
-
-int botan_mac_destroy(botan_mac_t mac)
-   {
-   delete mac;
-   return 0;
-   }
-
-int botan_mac_set_key(botan_mac_t mac, const uint8_t* key, size_t key_len)
-   {
-   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.set_key(key, key_len); });
-   }
-
-int botan_mac_output_length(botan_mac_t mac, size_t* out)
-   {
-   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { *out = m.output_length(); });
-   }
-
-int botan_mac_clear(botan_mac_t mac)
-   {
-   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.clear(); });
-   }
-
-int botan_mac_update(botan_mac_t mac, const uint8_t* buf, size_t len)
-   {
-   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.update(buf, len); });
-   }
-
-int botan_mac_final(botan_mac_t mac, uint8_t out[])
-   {
-   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.final(out); });
-   }
-
-int botan_cipher_init(botan_cipher_t* cipher, const char* cipher_name, uint32_t flags)
-   {
-   try
-      {
-      const bool encrypt_p = ((flags & BOTAN_CIPHER_INIT_FLAG_MASK_DIRECTION) == BOTAN_CIPHER_INIT_FLAG_ENCRYPT);
-      const Botan::Cipher_Dir dir = encrypt_p ? Botan::ENCRYPTION : Botan::DECRYPTION;
-      std::unique_ptr<Botan::Cipher_Mode> mode(Botan::get_cipher_mode(cipher_name, dir));
-      if(!mode)
-         return -1;
-      *cipher = new botan_cipher_struct(mode.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
-
-   return -1;
-   }
-
-int botan_cipher_destroy(botan_cipher_t cipher)
-   {
-   delete cipher;
-   return 0;
-   }
-
-int botan_cipher_clear(botan_cipher_t cipher)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { c.clear(); });
-   }
-
-int botan_cipher_query_keylen(botan_cipher_t cipher,
-                              size_t* out_minimum_keylength,
-                              size_t* out_maximum_keylength)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, {
-      *out_minimum_keylength = c.key_spec().minimum_keylength();
-      *out_maximum_keylength = c.key_spec().maximum_keylength();
+      *bc = new botan_block_cipher_struct(cipher.release());
+      return BOTAN_FFI_SUCCESS;
       });
    }
 
-int botan_cipher_set_key(botan_cipher_t cipher,
-                         const uint8_t* key, size_t key_len)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { c.set_key(key, key_len); });
-   }
-
-int botan_cipher_start(botan_cipher_t cipher_obj,
-                       const uint8_t* nonce, size_t nonce_len)
-   {
-   try
-      {
-      Botan::Cipher_Mode& cipher = safe_get(cipher_obj);
-      cipher.start(nonce, nonce_len);
-      cipher_obj->m_buf.reserve(cipher.update_granularity());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_cipher_update(botan_cipher_t cipher_obj,
-                        uint32_t flags,
-                        uint8_t output[],
-                        size_t output_size,
-                        size_t* output_written,
-                        const uint8_t input[],
-                        size_t input_size,
-                        size_t* input_consumed)
-   {
-   using namespace Botan;
-
-   try
-      {
-      Cipher_Mode& cipher = safe_get(cipher_obj);
-      secure_vector<uint8_t>& mbuf = cipher_obj->m_buf;
-
-      const bool final_input = (flags & BOTAN_CIPHER_UPDATE_FLAG_FINAL);
-
-      if(final_input)
-         {
-         mbuf.assign(input, input + input_size);
-         *input_consumed = input_size;
-         *output_written = 0;
-
-         try
-            {
-            cipher.finish(mbuf);
-            }
-         catch(Integrity_Failure& e)
-            {
-            log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-            return -2;
-            }
-
-         *output_written = mbuf.size();
-
-         if(mbuf.size() <= output_size)
-            {
-            copy_mem(output, mbuf.data(), mbuf.size());
-            mbuf.clear();
-            return 0;
-            }
-
-         return -1;
-         }
-
-      if(input_size == 0)
-         {
-         // Currently must take entire buffer in this case
-         *output_written = mbuf.size();
-         if(output_size >= mbuf.size())
-            {
-            copy_mem(output, mbuf.data(), mbuf.size());
-            mbuf.clear();
-            return 0;
-            }
-
-         return -1;
-         }
-
-      const size_t ud = cipher.update_granularity();
-      BOTAN_ASSERT(cipher.update_granularity() > cipher.minimum_final_size(), "logic error");
-
-#if 0
-      // Avoiding double copy:
-      if(Online_Cipher_Mode* ocm = dynamic_cast<Online_Cipher_Mode*>(&cipher))
-         {
-         const size_t taken = round_down(input_size, ud);
-         *input_consumed = taken;
-         *output_size = taken;
-         copy_mem(output, input, taken);
-         ocm->update_in_place(output, taken);
-         return 0;
-         }
-#endif
-
-      mbuf.resize(ud);
-      size_t taken = 0, written = 0;
-
-      while(input_size >= ud && output_size >= ud)
-         {
-         copy_mem(mbuf.data(), input, ud);
-         cipher.update(mbuf);
-
-         input_size -= ud;
-         input += ud;
-         taken += ud;
-
-         output_size -= ud;
-         output += ud;
-         written += ud;
-         }
-
-      *output_written = written;
-      *input_consumed = taken;
-
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_cipher_set_associated_data(botan_cipher_t cipher,
-                                     const uint8_t* ad,
-                                     size_t ad_len)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, {
-      if(Botan::AEAD_Mode* aead = dynamic_cast<Botan::AEAD_Mode*>(&c))
-         {
-         aead->set_associated_data(ad, ad_len);
-         return 0;
-         }
-      return -1;
-      });
-   }
-
-int botan_cipher_valid_nonce_length(botan_cipher_t cipher, size_t nl)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { return c.valid_nonce_length(nl) ? 1 : 0; });
-   }
-
-int botan_cipher_get_default_nonce_length(botan_cipher_t cipher, size_t* nl)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { *nl = c.default_nonce_length(); });
-   }
-
-int botan_cipher_get_update_granularity(botan_cipher_t cipher, size_t* ug)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { *ug = c.update_granularity(); });
-   }
-
-int botan_cipher_get_tag_length(botan_cipher_t cipher, size_t* tl)
-   {
-   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { *tl = c.tag_size(); });
-   }
-
-int botan_pbkdf(const char* pbkdf_algo, uint8_t out[], size_t out_len,
-                const char* pass, const uint8_t salt[], size_t salt_len,
-                size_t iterations)
-   {
-   try
-      {
-      std::unique_ptr<Botan::PBKDF> pbkdf(Botan::get_pbkdf(pbkdf_algo));
-      pbkdf->pbkdf_iterations(out, out_len, pass, salt, salt_len, iterations);
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_pbkdf_timed(const char* pbkdf_algo,
-                      uint8_t out[], size_t out_len,
-                      const char* password,
-                      const uint8_t salt[], size_t salt_len,
-                      size_t ms_to_run,
-                      size_t* iterations_used)
-   {
-   try
-      {
-      std::unique_ptr<Botan::PBKDF> pbkdf(Botan::get_pbkdf(pbkdf_algo));
-      pbkdf->pbkdf_timed(out, out_len, password, salt, salt_len,
-                         std::chrono::milliseconds(ms_to_run),
-                         *iterations_used);
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_kdf(const char* kdf_algo,
-              uint8_t out[], size_t out_len,
-              const uint8_t secret[], size_t secret_len,
-              const uint8_t salt[], size_t salt_len,
-              const uint8_t label[], size_t label_len)
-   {
-   try
-      {
-      std::unique_ptr<Botan::KDF> kdf(Botan::get_kdf(kdf_algo));
-      kdf->kdf(out, out_len, secret, secret_len, salt, salt_len, label, label_len);
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_bcrypt_generate(uint8_t* out, size_t* out_len,
-                          const char* pass,
-                          botan_rng_t rng_obj, size_t wf,
-                          uint32_t flags)
-   {
-   try
-      {
-      BOTAN_ASSERT_ARG_NON_NULL(out);
-      BOTAN_ASSERT_ARG_NON_NULL(out_len);
-      BOTAN_ASSERT_ARG_NON_NULL(pass);
-
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
-
-      if(wf < 2 || wf > 30)
-         throw FFI_Error("Bad bcrypt work factor " + std::to_string(wf));
-
-#if defined(BOTAN_HAS_BCRYPT)
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-      const std::string bcrypt = Botan::generate_bcrypt(pass, rng, wf);
-      return write_str_output(out, out_len, bcrypt);
-#else
-      return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
-#endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-int botan_bcrypt_is_valid(const char* pass, const char* hash)
-   {
-   try
-      {
-#if defined(BOTAN_HAS_BCRYPT)
-      if(Botan::check_bcrypt(pass, hash))
-         return 0; // success
-#else
-   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
-#endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-int botan_privkey_create(botan_privkey_t* key_obj,
-                         const char* algo_name,
-                         const char* algo_params,
-                         botan_rng_t rng_obj)
-   {
-   try
-      {
-      if(key_obj == nullptr || rng_obj == nullptr)
-         return -1;
-      if(algo_name == nullptr)
-         algo_name = "RSA";
-      if(algo_params == nullptr)
-         algo_params = "";
-
-      *key_obj = nullptr;
-
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-      std::unique_ptr<Botan::Private_Key> key(
-         Botan::create_private_key(algo_name, rng, algo_params));
-      *key_obj = new botan_privkey_struct(key.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-int botan_privkey_create_rsa(botan_privkey_t* key_obj, botan_rng_t rng_obj, size_t n_bits)
-   {
-   try
-      {
-      if(key_obj == nullptr || rng_obj == nullptr)
-         return -1;
-      if(n_bits < 1024 || n_bits > 16*1024)
-         return -2;
-
-      *key_obj = nullptr;
-
-#if defined(BOTAN_HAS_RSA)
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-      std::unique_ptr<Botan::Private_Key> key(new Botan::RSA_PrivateKey(rng, n_bits));
-      *key_obj = new botan_privkey_struct(key.release());
-      return 0;
-#else
-   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
-#endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-
-int botan_privkey_create_ecdsa(botan_privkey_t* key_obj, botan_rng_t rng_obj, const char* param_str)
-   {
-   try
-      {
-      if(key_obj == nullptr || rng_obj == nullptr || param_str == nullptr || *param_str == 0)
-         return -1;
-
-      *key_obj = nullptr;
-
-#if defined(BOTAN_HAS_ECDSA)
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-      Botan::EC_Group grp(param_str);
-      std::unique_ptr<Botan::Private_Key> key(new Botan::ECDSA_PrivateKey(rng, grp));
-      *key_obj = new botan_privkey_struct(key.release());
-      return 0;
-#else
-   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
-#endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-int botan_privkey_create_mceliece(botan_privkey_t* key_obj, botan_rng_t rng_obj, size_t n, size_t t)
-   {
-   try
-      {
-      if(key_obj == nullptr || rng_obj == nullptr || n == 0 || t == 0)
-         return -1;
-
-      *key_obj = nullptr;
-
-#if defined(BOTAN_HAS_MCELIECE)
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-      std::unique_ptr<Botan::Private_Key> key(new Botan::McEliece_PrivateKey(rng, n, t));
-      *key_obj = new botan_privkey_struct(key.release());
-      return 0;
-#else
-   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
-#endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-      }
-   }
-
-int botan_privkey_create_ecdh(botan_privkey_t* key_obj, botan_rng_t rng_obj, const char* param_str)
-   {
-   try
-      {
-      if(key_obj == nullptr || rng_obj == nullptr || param_str == nullptr || *param_str == 0)
-         return -1;
-
-      *key_obj = nullptr;
-
-      const std::string params(param_str);
-
-#if defined(BOTAN_HAS_CURVE_25519)
-      if(params == "curve25519")
-         {
-         std::unique_ptr<Botan::Private_Key> key(new Botan::Curve25519_PrivateKey(safe_get(rng_obj)));
-         *key_obj = new botan_privkey_struct(key.release());
-         return 0;
-         }
-#endif
-
-#if defined(BOTAN_HAS_ECDH)
-      Botan::EC_Group grp(params);
-      std::unique_ptr<Botan::Private_Key> key(new Botan::ECDH_PrivateKey(safe_get(rng_obj), grp));
-      *key_obj = new botan_privkey_struct(key.release());
-      return 0;
-#endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-int botan_privkey_load(botan_privkey_t* key, botan_rng_t rng_obj,
-                       const uint8_t bits[], size_t len,
-                       const char* password)
-   {
-   *key = nullptr;
-
-   try
-      {
-      Botan::DataSource_Memory src(bits, len);
-
-      if(password == nullptr)
-         password = "";
-
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-
-      std::unique_ptr<Botan::PKCS8_PrivateKey> pkcs8;
-      pkcs8.reset(Botan::PKCS8::load_key(src, rng, static_cast<std::string>(password)));
-
-      if(pkcs8)
-         {
-         *key = new botan_privkey_struct(pkcs8.release());
-         return 0;
-         }
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_privkey_destroy(botan_privkey_t key)
-   {
-   delete key;
-   return 0;
-   }
-
-int botan_pubkey_destroy(botan_pubkey_t key)
-   {
-   delete key;
-   return 0;
-   }
-
-int botan_privkey_export_pubkey(botan_pubkey_t* pubout, botan_privkey_t key_obj)
-   {
-   try
-      {
-      std::unique_ptr<Botan::Public_Key> pubkey(
-         Botan::X509::load_key(
-            Botan::X509::BER_encode(safe_get(key_obj))));
-      *pubout = new botan_pubkey_struct(pubkey.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
-   }
-
-int botan_pubkey_algo_name(botan_pubkey_t key, char out[], size_t* out_len)
-   {
-   return BOTAN_FFI_DO(Botan::Public_Key, key, k, { return write_str_output(out, out_len, k.algo_name()); });
-   }
-
-int botan_pubkey_export(botan_pubkey_t key, uint8_t out[], size_t* out_len, uint32_t flags)
-   {
-   return BOTAN_FFI_DO(Botan::Public_Key, key, k, {
-      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
-         return write_vec_output(out, out_len, Botan::X509::BER_encode(k));
-      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
-         return write_str_output(out, out_len, Botan::X509::PEM_encode(k));
-      else
-         return -2;
-      });
-   }
-
-int botan_privkey_export(botan_privkey_t key, uint8_t out[], size_t* out_len, uint32_t flags)
-   {
-   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
-      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
-         return write_vec_output(out, out_len, Botan::PKCS8::BER_encode(k));
-      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
-         return write_str_output(out, out_len, Botan::PKCS8::PEM_encode(k));
-      else
-         return -2;
-      });
-   }
-
-int botan_privkey_export_encrypted(botan_privkey_t key,
-                                   uint8_t out[], size_t* out_len,
-                                   botan_rng_t rng_obj,
-                                   const char* pass,
-                                   const char* pbe,
-                                   uint32_t flags)
-   {
-   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
-      auto pbkdf_time = std::chrono::milliseconds(300);
-      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
-
-      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
-         return write_vec_output(out, out_len, Botan::PKCS8::BER_encode(k, rng, pass, pbkdf_time, pbe));
-      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
-         return write_str_output(out, out_len, Botan::PKCS8::PEM_encode(k, rng, pass, pbkdf_time, pbe));
-      else
-         return -2;
-      });
-   }
-
-int botan_pubkey_estimated_strength(botan_pubkey_t key, size_t* estimate)
-   {
-   return BOTAN_FFI_DO(Botan::Public_Key, key, k, { *estimate = k.estimated_strength(); });
-   }
-
-int botan_pubkey_fingerprint(botan_pubkey_t key, const char* hash_fn,
-                             uint8_t out[], size_t* out_len)
-   {
-   return BOTAN_FFI_DO(Botan::Public_Key, key, k, {
-      std::unique_ptr<Botan::HashFunction> h(Botan::HashFunction::create(hash_fn));
-      return write_vec_output(out, out_len, h->process(k.public_key_bits()));
-      });
-   }
-
-int botan_pk_op_encrypt_create(botan_pk_op_encrypt_t* op,
-                               botan_pubkey_t key_obj,
-                               const char* padding,
-                               uint32_t flags)
-   {
-   try
-      {
-      BOTAN_ASSERT_NONNULL(op);
-
-      *op = nullptr;
-
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
-
-      std::unique_ptr<Botan::PK_Encryptor> pk(new Botan::PK_Encryptor_EME(safe_get(key_obj), Botan::system_rng(), padding));
-      *op = new botan_pk_op_encrypt_struct(pk.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_pk_op_encrypt_destroy(botan_pk_op_encrypt_t op)
-   {
-   delete op;
-   return 0;
-   }
-
-int botan_pk_op_encrypt(botan_pk_op_encrypt_t op,
-                        botan_rng_t rng_obj,
-                        uint8_t out[], size_t* out_len,
-                        const uint8_t plaintext[], size_t plaintext_len)
-   {
-   return BOTAN_FFI_DO(Botan::PK_Encryptor, op, o, {
-      return write_vec_output(out, out_len, o.encrypt(plaintext, plaintext_len, safe_get(rng_obj)));
-      });
-   }
-
-/*
-* Public Key Decryption
+/**
+* Destroy a block cipher object
 */
-int botan_pk_op_decrypt_create(botan_pk_op_decrypt_t* op,
-                               botan_privkey_t key_obj,
-                               const char* padding,
-                               uint32_t flags)
+int botan_block_cipher_destroy(botan_block_cipher_t bc)
    {
-   try
-      {
-      BOTAN_ASSERT_NONNULL(op);
-
-      *op = nullptr;
-
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
-
-      std::unique_ptr<Botan::PK_Decryptor> pk(new Botan::PK_Decryptor_EME(safe_get(key_obj), Botan::system_rng(), padding));
-      *op = new botan_pk_op_decrypt_struct(pk.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
+   return BOTAN_FFI_CHECKED_DELETE(bc);
    }
 
-int botan_pk_op_decrypt_destroy(botan_pk_op_decrypt_t op)
+int botan_block_cipher_clear(botan_block_cipher_t bc)
    {
-   delete op;
-   return 0;
+   return BOTAN_FFI_DO(Botan::BlockCipher, bc, b, { b.clear(); });
    }
 
-int botan_pk_op_decrypt(botan_pk_op_decrypt_t op,
-                        uint8_t out[], size_t* out_len,
-                        uint8_t ciphertext[], size_t ciphertext_len)
-   {
-   return BOTAN_FFI_DO(Botan::PK_Decryptor, op, o, {
-      return write_vec_output(out, out_len, o.decrypt(ciphertext, ciphertext_len));
-      });
-   }
-
-/*
-* Signature Generation
+/**
+* Set the key for a block cipher instance
 */
-int botan_pk_op_sign_create(botan_pk_op_sign_t* op,
-                            botan_privkey_t key_obj,
-                            const char* hash,
-                            uint32_t flags)
+int botan_block_cipher_set_key(botan_block_cipher_t bc,
+                               const uint8_t key[], size_t len)
    {
-   try
-      {
-      BOTAN_ASSERT_NONNULL(op);
-
-      *op = nullptr;
-
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
-
-      std::unique_ptr<Botan::PK_Signer> pk(new Botan::PK_Signer(safe_get(key_obj),Botan::system_rng(),  hash));
-      *op = new botan_pk_op_sign_struct(pk.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
+   return BOTAN_FFI_DO(Botan::BlockCipher, bc, b, { b.set_key(key, len); });
    }
 
-int botan_pk_op_sign_destroy(botan_pk_op_sign_t op)
+/**
+* Return the positive block size of this block cipher, or negative to
+* indicate an error
+*/
+int botan_block_cipher_block_size(botan_block_cipher_t bc)
    {
-   delete op;
-   return 0;
+   return BOTAN_FFI_DO(Botan::BlockCipher, bc, b, { return b.block_size(); });
    }
 
-int botan_pk_op_sign_update(botan_pk_op_sign_t op, const uint8_t in[], size_t in_len)
+int botan_block_cipher_encrypt_blocks(botan_block_cipher_t bc,
+                                      const uint8_t in[],
+                                      uint8_t out[],
+                                      size_t blocks)
    {
-   return BOTAN_FFI_DO(Botan::PK_Signer, op, o, { o.update(in, in_len); });
+   return BOTAN_FFI_DO(Botan::BlockCipher, bc, b, { b.encrypt_n(in, out, blocks); });
    }
 
-int botan_pk_op_sign_finish(botan_pk_op_sign_t op, botan_rng_t rng_obj, uint8_t out[], size_t* out_len)
+int botan_block_cipher_decrypt_blocks(botan_block_cipher_t bc,
+                                      const uint8_t in[],
+                                      uint8_t out[],
+                                      size_t blocks)
    {
-   return BOTAN_FFI_DO(Botan::PK_Signer, op, o, {
-      return write_vec_output(out, out_len, o.signature(safe_get(rng_obj)));
-      });
+   return BOTAN_FFI_DO(Botan::BlockCipher, bc, b, { b.decrypt_n(in, out, blocks); });
    }
 
-int botan_pk_op_verify_create(botan_pk_op_verify_t* op,
-                              botan_pubkey_t key_obj,
-                              const char* hash,
-                              uint32_t flags)
-   {
-   try
-      {
-      BOTAN_ASSERT_NONNULL(op);
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
 
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
 
-      std::unique_ptr<Botan::PK_Verifier> pk(new Botan::PK_Verifier(safe_get(key_obj), hash));
-      *op = new botan_pk_op_verify_struct(pk.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
+extern "C" {
 
-   return -1;
-   }
+using namespace Botan_FFI;
 
-int botan_pk_op_verify_destroy(botan_pk_op_verify_t op)
-   {
-   delete op;
-   return 0;
-   }
-
-int botan_pk_op_verify_update(botan_pk_op_verify_t op, const uint8_t in[], size_t in_len)
-   {
-   return BOTAN_FFI_DO(Botan::PK_Verifier, op, o, { o.update(in, in_len); });
-   }
-
-int botan_pk_op_verify_finish(botan_pk_op_verify_t op, const uint8_t sig[], size_t sig_len)
-   {
-   return BOTAN_FFI_DO(Botan::PK_Verifier, op, o, {
-      const bool legit = o.check_signature(sig, sig_len);
-
-      if(legit)
-         return 0;
-      else
-         return 1;
-      });
-   }
-
-int botan_pk_op_key_agreement_create(botan_pk_op_ka_t* op,
-                                     botan_privkey_t key_obj,
-                                     const char* kdf,
-                                     uint32_t flags)
-   {
-   try
-      {
-      BOTAN_ASSERT_NONNULL(op);
-
-      *op = nullptr;
-
-      if(flags != 0)
-         return BOTAN_FFI_ERROR_BAD_FLAG;
-
-      std::unique_ptr<Botan::PK_Key_Agreement> pk(new Botan::PK_Key_Agreement(safe_get(key_obj), Botan::system_rng(), kdf));
-      *op = new botan_pk_op_ka_struct(pk.release());
-      return 0;
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return -1;
-   }
-
-int botan_pk_op_key_agreement_destroy(botan_pk_op_ka_t op)
-   {
-   delete op;
-   return 0;
-   }
-
-int botan_pk_op_key_agreement_export_public(botan_privkey_t key,
-                                            uint8_t out[], size_t* out_len)
-   {
-   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
-      if(auto kak = dynamic_cast<const Botan::PK_Key_Agreement_Key*>(&k))
-         return write_vec_output(out, out_len, kak->public_value());
-      return -2;
-      });
-   }
-
-int botan_pk_op_key_agreement(botan_pk_op_ka_t op,
-                              uint8_t out[], size_t* out_len,
-                              const uint8_t other_key[], size_t other_key_len,
-                              const uint8_t salt[], size_t salt_len)
-   {
-   return BOTAN_FFI_DO(Botan::PK_Key_Agreement, op, o, {
-      auto k = o.derive_key(*out_len, other_key, other_key_len, salt, salt_len).bits_of();
-      return write_vec_output(out, out_len, k);
-      });
-   }
+BOTAN_FFI_DECLARE_STRUCT(botan_x509_cert_struct, Botan::X509_Certificate, 0x8F628937);
 
 int botan_x509_cert_load_file(botan_x509_cert_t* cert_obj, const char* cert_path)
    {
-   try
-      {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
       if(!cert_obj || !cert_path)
-         return -1;
+         return BOTAN_FFI_ERROR_NULL_POINTER;
 
 #if defined(BOTAN_TARGET_OS_HAS_FILESYSTEM)
       std::unique_ptr<Botan::X509_Certificate> c(new Botan::X509_Certificate(cert_path));
-
-      if(c)
-         {
-         *cert_obj = new botan_x509_cert_struct(c.release());
-         return 0;
-         }
+      *cert_obj = new botan_x509_cert_struct(c.release());
+      return BOTAN_FFI_SUCCESS;
 #else
       return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
 #endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
-
-   return -2;
+      });
    }
 
 int botan_x509_cert_load(botan_x509_cert_t* cert_obj, const uint8_t cert_bits[], size_t cert_bits_len)
    {
-   try
-      {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
       if(!cert_obj || !cert_bits)
-         return -1;
+         return BOTAN_FFI_ERROR_NULL_POINTER;
 
       Botan::DataSource_Memory bits(cert_bits, cert_bits_len);
 
       std::unique_ptr<Botan::X509_Certificate> c(new Botan::X509_Certificate(bits));
+      *cert_obj = new botan_x509_cert_struct(c.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
 
-      if(c)
-         {
-         *cert_obj = new botan_x509_cert_struct(c.release());
-         return 0;
-         }
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-   catch(...)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, "unknown");
-      }
+int botan_x509_cert_get_public_key(botan_x509_cert_t cert, botan_pubkey_t* key)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      if(key == nullptr)
+         return BOTAN_FFI_ERROR_NULL_POINTER;
 
-   return -2;
+      *key = nullptr;
 
+#if defined(BOTAN_HAS_RSA)
+      std::unique_ptr<Botan::Public_Key> publicKey(safe_get(cert).subject_public_key());
+      *key = new botan_pubkey_struct(publicKey.release());
+      return BOTAN_FFI_SUCCESS;
+#else
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+      });
+   }
+
+int botan_x509_cert_get_issuer_dn(botan_x509_cert_t cert,
+                                  const char* key, size_t index,
+                                  uint8_t out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_str_output(out, out_len, c.issuer_info(key).at(index)); });
+   }
+
+int botan_x509_cert_get_subject_dn(botan_x509_cert_t cert,
+                                   const char* key, size_t index,
+                                   uint8_t out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_str_output(out, out_len, c.subject_info(key).at(index)); });
+   }
+
+int botan_x509_cert_to_string(botan_x509_cert_t cert, char out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_str_output(out, out_len, c.to_string()); });
+   }
+
+int botan_x509_cert_allowed_usage(botan_x509_cert_t cert, unsigned int key_usage)
+   {
+   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, {
+      const Botan::Key_Constraints k = static_cast<Botan::Key_Constraints>(key_usage);
+      if(c.allowed_usage(k))
+         return BOTAN_FFI_SUCCESS;
+      return 1;
+      });
    }
 
 int botan_x509_cert_destroy(botan_x509_cert_t cert)
    {
-   delete cert;
-   return 0;
+   return BOTAN_FFI_CHECKED_DELETE(cert);
    }
 
 int botan_x509_cert_get_time_starts(botan_x509_cert_t cert, char out[], size_t* out_len)
@@ -19845,65 +24820,1965 @@ int botan_x509_cert_get_public_key_bits(botan_x509_cert_t cert, uint8_t out[], s
    return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_vec_output(out, out_len, c.subject_public_key_bits()); });
    }
 
-
-/*
-int botan_x509_cert_path_verify(botan_x509_cert_t cert, const char* dir)
-{
 }
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
 */
 
-int botan_x509_cert_get_public_key(botan_x509_cert_t cert, botan_pubkey_t* key)
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+struct botan_cipher_struct final : public botan_struct<Botan::Cipher_Mode, 0xB4A2BF9C>
    {
-   try
-      {
-      if(key == nullptr)
+   explicit botan_cipher_struct(Botan::Cipher_Mode* x) : botan_struct(x) {}
+   Botan::secure_vector<uint8_t> m_buf;
+   };
+
+int botan_cipher_init(botan_cipher_t* cipher, const char* cipher_name, uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const bool encrypt_p = ((flags & BOTAN_CIPHER_INIT_FLAG_MASK_DIRECTION) == BOTAN_CIPHER_INIT_FLAG_ENCRYPT);
+      const Botan::Cipher_Dir dir = encrypt_p ? Botan::ENCRYPTION : Botan::DECRYPTION;
+      std::unique_ptr<Botan::Cipher_Mode> mode(Botan::get_cipher_mode(cipher_name, dir));
+      if(!mode)
+         return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+      *cipher = new botan_cipher_struct(mode.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_cipher_destroy(botan_cipher_t cipher)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(cipher);
+   }
+
+int botan_cipher_clear(botan_cipher_t cipher)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { c.clear(); });
+   }
+
+int botan_cipher_query_keylen(botan_cipher_t cipher,
+                              size_t* out_minimum_keylength,
+                              size_t* out_maximum_keylength)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, {
+      *out_minimum_keylength = c.key_spec().minimum_keylength();
+      *out_maximum_keylength = c.key_spec().maximum_keylength();
+      });
+   }
+
+int botan_cipher_set_key(botan_cipher_t cipher,
+                         const uint8_t* key, size_t key_len)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { c.set_key(key, key_len); });
+   }
+
+int botan_cipher_start(botan_cipher_t cipher_obj,
+                       const uint8_t* nonce, size_t nonce_len)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::Cipher_Mode& cipher = safe_get(cipher_obj);
+      cipher.start(nonce, nonce_len);
+      cipher_obj->m_buf.reserve(cipher.update_granularity());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_cipher_update(botan_cipher_t cipher_obj,
+                        uint32_t flags,
+                        uint8_t output_ptr[],
+                        size_t orig_output_size,
+                        size_t* output_written,
+                        const uint8_t input_ptr[],
+                        size_t orig_input_size,
+                        size_t* input_consumed)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+
+      size_t input_size = orig_input_size;
+      size_t output_size = orig_output_size;
+      const uint8_t* input = input_ptr;
+      uint8_t* output = output_ptr;
+
+      using namespace Botan;
+      Cipher_Mode& cipher = safe_get(cipher_obj);
+      secure_vector<uint8_t>& mbuf = cipher_obj->m_buf;
+
+      const bool final_input = (flags & BOTAN_CIPHER_UPDATE_FLAG_FINAL);
+
+      if(final_input)
+         {
+         mbuf.assign(input, input + input_size);
+         *input_consumed = input_size;
+         *output_written = 0;
+
+         try
+            {
+            cipher.finish(mbuf);
+            }
+         catch(Integrity_Failure&)
+            {
+            return BOTAN_FFI_ERROR_BAD_MAC;
+            }
+
+         *output_written = mbuf.size();
+
+         if(mbuf.size() <= output_size)
+            {
+            copy_mem(output, mbuf.data(), mbuf.size());
+            mbuf.clear();
+            return BOTAN_FFI_SUCCESS;
+            }
+
          return -1;
+         }
 
-      *key = nullptr;
+      if(input_size == 0)
+         {
+         // Currently must take entire buffer in this case
+         *output_written = mbuf.size();
+         if(output_size >= mbuf.size())
+            {
+            copy_mem(output, mbuf.data(), mbuf.size());
+            mbuf.clear();
+            return BOTAN_FFI_SUCCESS;
+            }
 
-#if defined(BOTAN_HAS_RSA)
-      std::unique_ptr<Botan::Public_Key> publicKey(safe_get(cert).subject_public_key());
-      *key = new botan_pubkey_struct(publicKey.release());
-      return 0;
+         return -1;
+         }
+
+      const size_t ud = cipher.update_granularity();
+      BOTAN_ASSERT(cipher.update_granularity() > cipher.minimum_final_size(), "logic error");
+
+      mbuf.resize(ud);
+      size_t taken = 0, written = 0;
+
+      while(input_size >= ud && output_size >= ud)
+         {
+         copy_mem(mbuf.data(), input, ud);
+         cipher.update(mbuf);
+
+         input_size -= ud;
+         copy_mem(output, mbuf.data(), ud);
+         input += ud;
+         taken += ud;
+
+         output_size -= ud;
+         output += ud;
+         written += ud;
+         }
+
+      *output_written = written;
+      *input_consumed = taken;
+
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_cipher_set_associated_data(botan_cipher_t cipher,
+                                     const uint8_t* ad,
+                                     size_t ad_len)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, {
+      if(Botan::AEAD_Mode* aead = dynamic_cast<Botan::AEAD_Mode*>(&c))
+         {
+         aead->set_associated_data(ad, ad_len);
+         return BOTAN_FFI_SUCCESS;
+         }
+      return BOTAN_FFI_ERROR_BAD_PARAMETER;
+      });
+   }
+
+int botan_cipher_valid_nonce_length(botan_cipher_t cipher, size_t nl)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { return c.valid_nonce_length(nl) ? 1 : 0; });
+   }
+
+int botan_cipher_get_default_nonce_length(botan_cipher_t cipher, size_t* nl)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { *nl = c.default_nonce_length(); });
+   }
+
+int botan_cipher_get_update_granularity(botan_cipher_t cipher, size_t* ug)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { *ug = c.update_granularity(); });
+   }
+
+int botan_cipher_get_tag_length(botan_cipher_t cipher, size_t* tl)
+   {
+   return BOTAN_FFI_DO(Botan::Cipher_Mode, cipher, c, { *tl = c.tag_size(); });
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_hash_struct, Botan::HashFunction, 0x1F0A4F84);
+
+int botan_hash_init(botan_hash_t* hash, const char* hash_name, uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      if(hash == nullptr || hash_name == nullptr || *hash_name == 0)
+         return BOTAN_FFI_ERROR_NULL_POINTER;
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      std::unique_ptr<Botan::HashFunction> h = Botan::HashFunction::create(hash_name);
+      if(h == nullptr)
+         return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+
+      *hash = new botan_hash_struct(h.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_hash_destroy(botan_hash_t hash)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(hash);
+   }
+
+int botan_hash_output_length(botan_hash_t hash, size_t* out)
+   {
+   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { *out = h.output_length(); });
+   }
+
+int botan_hash_block_size(botan_hash_t hash, size_t* out)
+   {
+   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { *out = h.hash_block_size(); });
+   }
+
+int botan_hash_clear(botan_hash_t hash)
+   {
+   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { h.clear(); });
+   }
+
+int botan_hash_update(botan_hash_t hash, const uint8_t* buf, size_t len)
+   {
+   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { h.update(buf, len); });
+   }
+
+int botan_hash_final(botan_hash_t hash, uint8_t out[])
+   {
+   return BOTAN_FFI_DO(Botan::HashFunction, hash, h, { h.final(out); });
+   }
+
+int botan_hash_copy_state(botan_hash_t* dest, const botan_hash_t source)
+   {
+   return BOTAN_FFI_DO(Botan::HashFunction, source, src, {
+      *dest = new botan_hash_struct(src.copy_state().release()); });
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_HAS_BCRYPT)
+#endif
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+int botan_pbkdf(const char* pbkdf_algo, uint8_t out[], size_t out_len,
+                const char* pass, const uint8_t salt[], size_t salt_len,
+                size_t iterations)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::PBKDF> pbkdf(Botan::get_pbkdf(pbkdf_algo));
+      pbkdf->pbkdf_iterations(out, out_len, pass, salt, salt_len, iterations);
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pbkdf_timed(const char* pbkdf_algo,
+                      uint8_t out[], size_t out_len,
+                      const char* password,
+                      const uint8_t salt[], size_t salt_len,
+                      size_t ms_to_run,
+                      size_t* iterations_used)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::PBKDF> pbkdf(Botan::get_pbkdf(pbkdf_algo));
+      pbkdf->pbkdf_timed(out, out_len, password, salt, salt_len,
+                         std::chrono::milliseconds(ms_to_run),
+                         *iterations_used);
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_kdf(const char* kdf_algo,
+              uint8_t out[], size_t out_len,
+              const uint8_t secret[], size_t secret_len,
+              const uint8_t salt[], size_t salt_len,
+              const uint8_t label[], size_t label_len)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::KDF> kdf(Botan::get_kdf(kdf_algo));
+      kdf->kdf(out, out_len, secret, secret_len, salt, salt_len, label, label_len);
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_bcrypt_generate(uint8_t* out, size_t* out_len,
+                          const char* pass,
+                          botan_rng_t rng_obj, size_t wf,
+                          uint32_t flags)
+   {
+#if defined(BOTAN_HAS_BCRYPT)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_ARG_NON_NULL(out);
+      BOTAN_ASSERT_ARG_NON_NULL(out_len);
+      BOTAN_ASSERT_ARG_NON_NULL(pass);
+
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      if(wf < 4 || wf > 18)
+         throw FFI_Error("Bad bcrypt work factor " + std::to_string(wf));
+
+      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
+      const std::string bcrypt = Botan::generate_bcrypt(pass, rng, static_cast<uint16_t>(wf));
+      return write_str_output(out, out_len, bcrypt);
+      });
 #else
    return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
 #endif
-      }
-   catch(std::exception& e)
-      {
-      log_exception(BOTAN_CURRENT_FUNCTION, e.what());
-      }
-
-   return BOTAN_FFI_ERROR_EXCEPTION_THROWN;
    }
 
-int botan_x509_cert_get_issuer_dn(botan_x509_cert_t cert,
-                                  const char* key, size_t index,
-                                  uint8_t out[], size_t* out_len)
+int botan_bcrypt_is_valid(const char* pass, const char* hash)
    {
-   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_str_output(out, out_len, c.issuer_info(key).at(index)); });
-   }
-
-int botan_x509_cert_get_subject_dn(botan_x509_cert_t cert,
-                                   const char* key, size_t index,
-                                   uint8_t out[], size_t* out_len)
-   {
-   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_str_output(out, out_len, c.subject_info(key).at(index)); });
-   }
-
-int botan_x509_cert_to_string(botan_x509_cert_t cert, char out[], size_t* out_len)
-   {
-   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, { return write_str_output(out, out_len, c.to_string()); });
-   }
-
-int botan_x509_cert_allowed_usage(botan_x509_cert_t cert, unsigned int key_usage)
-   {
-   return BOTAN_FFI_DO(Botan::X509_Certificate, cert, c, {
-      const Botan::Key_Constraints k = static_cast<Botan::Key_Constraints>(key_usage);
-      if(c.allowed_usage(k))
-         return 0;
-      return 1;
+#if defined(BOTAN_HAS_BCRYPT)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      return Botan::check_bcrypt(pass, hash) ? BOTAN_FFI_SUCCESS : BOTAN_FFI_INVALID_VERIFIER;
       });
+#else
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+}
+/*
+* (C) 2017 Ribose Inc
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_HAS_RFC3394_KEYWRAP)
+#endif
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+int botan_key_wrap3394(const uint8_t key[], size_t key_len,
+                       const uint8_t kek[], size_t kek_len,
+                       uint8_t wrapped_key[], size_t* wrapped_key_len)
+   {
+#if defined(BOTAN_HAS_RFC3394_KEYWRAP)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const Botan::SymmetricKey kek_sym(kek, kek_len);
+      const Botan::secure_vector<uint8_t> key_pt(key, key + key_len);
+      const Botan::secure_vector<uint8_t> key_ct = Botan::rfc3394_keywrap(key_pt, kek_sym);
+      return write_vec_output(wrapped_key, wrapped_key_len, key_ct);
+      });
+#else
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_key_unwrap3394(const uint8_t wrapped_key[], size_t wrapped_key_len,
+                         const uint8_t kek[], size_t kek_len,
+                         uint8_t key[], size_t* key_len)
+   {
+#if defined(BOTAN_HAS_RFC3394_KEYWRAP)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const Botan::SymmetricKey kek_sym(kek, kek_len);
+      const Botan::secure_vector<uint8_t> key_ct(wrapped_key, wrapped_key + wrapped_key_len);
+      const Botan::secure_vector<uint8_t> key_pt = Botan::rfc3394_keyunwrap(key_ct, kek_sym);
+      return write_vec_output(key, key_len, key_pt);
+      });
+#else
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_mac_struct, Botan::MessageAuthenticationCode, 0xA06E8FC1);
+
+int botan_mac_init(botan_mac_t* mac, const char* mac_name, uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      if(!mac || !mac_name || flags != 0)
+         return BOTAN_FFI_ERROR_NULL_POINTER;
+
+      std::unique_ptr<Botan::MessageAuthenticationCode> m =
+         Botan::MessageAuthenticationCode::create(mac_name);
+
+      if(m == nullptr)
+         return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+
+      *mac = new botan_mac_struct(m.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_mac_destroy(botan_mac_t mac)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(mac);
+   }
+
+int botan_mac_set_key(botan_mac_t mac, const uint8_t* key, size_t key_len)
+   {
+   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.set_key(key, key_len); });
+   }
+
+int botan_mac_output_length(botan_mac_t mac, size_t* out)
+   {
+   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { *out = m.output_length(); });
+   }
+
+int botan_mac_clear(botan_mac_t mac)
+   {
+   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.clear(); });
+   }
+
+int botan_mac_update(botan_mac_t mac, const uint8_t* buf, size_t len)
+   {
+   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.update(buf, len); });
+   }
+
+int botan_mac_final(botan_mac_t mac, uint8_t out[])
+   {
+   return BOTAN_FFI_DO(Botan::MessageAuthenticationCode, mac, m, { m.final(out); });
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+* (C) 2017 Ribose Inc
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+int botan_mp_init(botan_mp_t* mp_out)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_ARG_NON_NULL(mp_out);
+
+      *mp_out = new botan_mp_struct(new Botan::BigInt);
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_mp_clear(botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { bn.clear(); });
+   }
+
+int botan_mp_set_from_int(botan_mp_t mp, int initial_value)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, {
+      if(initial_value >= 0)
+         {
+         bn = Botan::BigInt(static_cast<uint64_t>(initial_value));
+         }
+      else
+         {
+         bn = Botan::BigInt(static_cast<uint64_t>(-initial_value));
+         bn.flip_sign();
+         }
+      });
+   }
+
+int botan_mp_set_from_str(botan_mp_t mp, const char* str)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { bn = Botan::BigInt(str); });
+   }
+
+int botan_mp_set_from_radix_str(botan_mp_t mp, const char* str, size_t radix)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, {
+      Botan::BigInt::Base base;
+      if(radix == 10)
+         base = Botan::BigInt::Decimal;
+      else if(radix == 16)
+         base = Botan::BigInt::Hexadecimal;
+      else
+         return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+
+      const uint8_t* bytes = reinterpret_cast<const uint8_t*>(str);
+      const size_t len = strlen(str);
+
+      bn = Botan::BigInt::decode(bytes, len, base);
+      });
+   }
+
+int botan_mp_set_from_mp(botan_mp_t dest, const botan_mp_t source)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, dest, bn, { bn = safe_get(source); });
+   }
+
+int botan_mp_is_negative(const botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { return bn.is_negative() ? 1 : 0; });
+   }
+
+int botan_mp_is_positive(const botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { return bn.is_positive() ? 1 : 0; });
+   }
+
+int botan_mp_flip_sign(botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { bn.flip_sign(); });
+   }
+
+int botan_mp_from_bin(botan_mp_t mp, const uint8_t bin[], size_t bin_len)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { bn.binary_decode(bin, bin_len); });
+   }
+
+int botan_mp_to_hex(const botan_mp_t mp, char* out)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, {
+      std::vector<uint8_t> hex = Botan::BigInt::encode(bn, Botan::BigInt::Hexadecimal);
+      std::memcpy(out, hex.data(), hex.size());
+      out[hex.size()] = 0; // null terminate
+      });
+   }
+
+int botan_mp_to_str(const botan_mp_t mp, uint8_t digit_base, char* out, size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, {
+      Botan::BigInt::Base base;
+      if(digit_base == 0 || digit_base == 10)
+         base = Botan::BigInt::Decimal;
+      else if(digit_base == 16)
+         base = Botan::BigInt::Hexadecimal;
+      else
+         throw FFI_Error("botan_mp_to_str invalid digit base");
+
+      std::vector<uint8_t> hex = Botan::BigInt::encode(bn, base);
+      hex.push_back(0); // null terminator
+      return write_str_output(out, out_len, hex);
+      });
+   }
+
+int botan_mp_to_bin(const botan_mp_t mp, uint8_t vec[])
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { bn.binary_encode(vec); });
+   }
+
+int botan_mp_to_uint32(const botan_mp_t mp, uint32_t* val)
+   {
+   if(val == nullptr) {
+   return BOTAN_FFI_ERROR_NULL_POINTER;
+   }
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { *val = bn.to_u32bit(); });
+   }
+
+int botan_mp_destroy(botan_mp_t mp)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(mp);
+   }
+
+int botan_mp_add(botan_mp_t result, const botan_mp_t x, const botan_mp_t y)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, result, res, { res = safe_get(x) + safe_get(y); });
+   }
+
+int botan_mp_sub(botan_mp_t result, const botan_mp_t x, const botan_mp_t y)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, result, res, { res = safe_get(x) - safe_get(y); });
+   }
+
+int botan_mp_mul(botan_mp_t result, const botan_mp_t x, const botan_mp_t y)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, result, res, { res = safe_get(x) * safe_get(y); });
+   }
+
+int botan_mp_div(botan_mp_t quotient,
+                 botan_mp_t remainder,
+                 const botan_mp_t x, const botan_mp_t y)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, quotient, q, {
+      Botan::BigInt r;
+      Botan::divide(safe_get(x), safe_get(y), q, r);
+      safe_get(remainder) = r;
+      });
+   }
+
+int botan_mp_equal(const botan_mp_t x_w, const botan_mp_t y_w)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, x_w, x, { return x == safe_get(y_w); });
+   }
+
+int botan_mp_is_zero(const botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { return bn.is_zero(); });
+   }
+
+int botan_mp_is_odd(const botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { return bn.is_odd(); });
+   }
+
+int botan_mp_is_even(const botan_mp_t mp)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, bn, { return bn.is_even(); });
+   }
+
+int botan_mp_cmp(int* result, const botan_mp_t x_w, const botan_mp_t y_w)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, x_w, x, { *result = x.cmp(safe_get(y_w)); });
+   }
+
+int botan_mp_swap(botan_mp_t x_w, botan_mp_t y_w)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, x_w, x, { x.swap(safe_get(y_w)); });
+   }
+
+// Return (base^exponent) % modulus
+int botan_mp_powmod(botan_mp_t out, const botan_mp_t base, const botan_mp_t exponent, const botan_mp_t modulus)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, out, o,
+                       { o = Botan::power_mod(safe_get(base), safe_get(exponent), safe_get(modulus)); });
+   }
+
+int botan_mp_lshift(botan_mp_t out, const botan_mp_t in, size_t shift)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, out, o, { o = safe_get(in) << shift; });
+   }
+
+int botan_mp_rshift(botan_mp_t out, const botan_mp_t in, size_t shift)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, out, o, { o = safe_get(in) >> shift; });
+   }
+
+int botan_mp_mod_inverse(botan_mp_t out, const botan_mp_t in, const botan_mp_t modulus)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, out, o, { o = Botan::inverse_mod(safe_get(in), safe_get(modulus)); });
+   }
+
+int botan_mp_mod_mul(botan_mp_t out, const botan_mp_t x, const botan_mp_t y, const botan_mp_t modulus)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, out, o, {
+      Botan::Modular_Reducer reducer(safe_get(modulus));
+      o = reducer.multiply(safe_get(x), safe_get(y));
+      });
+   }
+
+int botan_mp_rand_bits(botan_mp_t rand_out, botan_rng_t rng, size_t bits)
+   {
+   return BOTAN_FFI_DO(Botan::RandomNumberGenerator, rng, r, {
+      safe_get(rand_out).randomize(r, bits); });
+   }
+
+int botan_mp_rand_range(botan_mp_t rand_out,
+                        botan_rng_t rng,
+                        const botan_mp_t lower,
+                        const botan_mp_t upper)
+   {
+   return BOTAN_FFI_DO(Botan::RandomNumberGenerator, rng, r, {
+      safe_get(rand_out) = Botan::BigInt::random_integer(r, safe_get(lower), safe_get(upper)); });
+   }
+
+int botan_mp_gcd(botan_mp_t out, const botan_mp_t x, const botan_mp_t y)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, out, o, {
+      o = Botan::gcd(safe_get(x), safe_get(y)); });
+   }
+
+int botan_mp_is_prime(const botan_mp_t mp, botan_rng_t rng, size_t test_prob)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, n,
+                       { return (Botan::is_prime(n, safe_get(rng), test_prob)) ? 1 : 0; });
+   }
+
+int botan_mp_get_bit(const botan_mp_t mp, size_t bit)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, n, { return (n.get_bit(bit)); });
+   }
+
+int botan_mp_set_bit(botan_mp_t mp, size_t bit)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, n, { n.set_bit(bit); });
+   }
+
+int botan_mp_clear_bit(botan_mp_t mp, size_t bit)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, n, { n.clear_bit(bit); });
+   }
+
+int botan_mp_num_bits(const botan_mp_t mp, size_t* bits)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, n, { *bits = n.bits(); });
+   }
+
+int botan_mp_num_bytes(const botan_mp_t mp, size_t* bytes)
+   {
+   return BOTAN_FFI_DO(Botan::BigInt, mp, n, { *bytes = n.bytes(); });
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_encrypt_struct, Botan::PK_Encryptor, 0x891F3FC3);
+BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_decrypt_struct, Botan::PK_Decryptor, 0x912F3C37);
+BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_sign_struct, Botan::PK_Signer, 0x1AF0C39F);
+BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_verify_struct, Botan::PK_Verifier, 0x2B91F936);
+BOTAN_FFI_DECLARE_STRUCT(botan_pk_op_ka_struct, Botan::PK_Key_Agreement, 0x2939CAB1);
+
+int botan_pk_op_encrypt_create(botan_pk_op_encrypt_t* op,
+                               botan_pubkey_t key_obj,
+                               const char* padding,
+                               uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_NONNULL(op);
+
+      *op = nullptr;
+
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      std::unique_ptr<Botan::PK_Encryptor> pk(new Botan::PK_Encryptor_EME(safe_get(key_obj), Botan::system_rng(), padding));
+      *op = new botan_pk_op_encrypt_struct(pk.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pk_op_encrypt_destroy(botan_pk_op_encrypt_t op)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(op);
+   }
+
+int botan_pk_op_encrypt(botan_pk_op_encrypt_t op,
+                        botan_rng_t rng_obj,
+                        uint8_t out[], size_t* out_len,
+                        const uint8_t plaintext[], size_t plaintext_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Encryptor, op, o, {
+      return write_vec_output(out, out_len, o.encrypt(plaintext, plaintext_len, safe_get(rng_obj)));
+      });
+   }
+
+/*
+* Public Key Decryption
+*/
+int botan_pk_op_decrypt_create(botan_pk_op_decrypt_t* op,
+                               botan_privkey_t key_obj,
+                               const char* padding,
+                               uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_NONNULL(op);
+
+      *op = nullptr;
+
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      std::unique_ptr<Botan::PK_Decryptor> pk(new Botan::PK_Decryptor_EME(safe_get(key_obj), Botan::system_rng(), padding));
+      *op = new botan_pk_op_decrypt_struct(pk.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pk_op_decrypt_destroy(botan_pk_op_decrypt_t op)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(op);
+   }
+
+int botan_pk_op_decrypt(botan_pk_op_decrypt_t op,
+                        uint8_t out[], size_t* out_len,
+                        const uint8_t ciphertext[], size_t ciphertext_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Decryptor, op, o, {
+      return write_vec_output(out, out_len, o.decrypt(ciphertext, ciphertext_len));
+      });
+   }
+
+/*
+* Signature Generation
+*/
+int botan_pk_op_sign_create(botan_pk_op_sign_t* op,
+                            botan_privkey_t key_obj,
+                            const char* hash,
+                            uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_NONNULL(op);
+
+      *op = nullptr;
+
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      std::unique_ptr<Botan::PK_Signer> pk(new Botan::PK_Signer(safe_get(key_obj),Botan::system_rng(),  hash));
+      *op = new botan_pk_op_sign_struct(pk.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pk_op_sign_destroy(botan_pk_op_sign_t op)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(op);
+   }
+
+int botan_pk_op_sign_update(botan_pk_op_sign_t op, const uint8_t in[], size_t in_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Signer, op, o, { o.update(in, in_len); });
+   }
+
+int botan_pk_op_sign_finish(botan_pk_op_sign_t op, botan_rng_t rng_obj, uint8_t out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Signer, op, o, {
+      return write_vec_output(out, out_len, o.signature(safe_get(rng_obj)));
+      });
+   }
+
+int botan_pk_op_verify_create(botan_pk_op_verify_t* op,
+                              botan_pubkey_t key_obj,
+                              const char* hash,
+                              uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_NONNULL(op);
+
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      std::unique_ptr<Botan::PK_Verifier> pk(new Botan::PK_Verifier(safe_get(key_obj), hash));
+      *op = new botan_pk_op_verify_struct(pk.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pk_op_verify_destroy(botan_pk_op_verify_t op)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(op);
+   }
+
+int botan_pk_op_verify_update(botan_pk_op_verify_t op, const uint8_t in[], size_t in_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Verifier, op, o, { o.update(in, in_len); });
+   }
+
+int botan_pk_op_verify_finish(botan_pk_op_verify_t op, const uint8_t sig[], size_t sig_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Verifier, op, o, {
+      const bool legit = o.check_signature(sig, sig_len);
+
+      if(legit)
+         return BOTAN_FFI_SUCCESS;
+      else
+         return BOTAN_FFI_INVALID_VERIFIER;
+      });
+   }
+
+int botan_pk_op_key_agreement_create(botan_pk_op_ka_t* op,
+                                     botan_privkey_t key_obj,
+                                     const char* kdf,
+                                     uint32_t flags)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_NONNULL(op);
+
+      *op = nullptr;
+
+      if(flags != 0)
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+
+      std::unique_ptr<Botan::PK_Key_Agreement> pk(new Botan::PK_Key_Agreement(safe_get(key_obj), Botan::system_rng(), kdf));
+      *op = new botan_pk_op_ka_struct(pk.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pk_op_key_agreement_destroy(botan_pk_op_ka_t op)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(op);
+   }
+
+int botan_pk_op_key_agreement_export_public(botan_privkey_t key,
+                                            uint8_t out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
+      if(auto kak = dynamic_cast<const Botan::PK_Key_Agreement_Key*>(&k))
+         return write_vec_output(out, out_len, kak->public_value());
+      return BOTAN_FFI_ERROR_BAD_FLAG;
+      });
+   }
+
+int botan_pk_op_key_agreement(botan_pk_op_ka_t op,
+                              uint8_t out[], size_t* out_len,
+                              const uint8_t other_key[], size_t other_key_len,
+                              const uint8_t salt[], size_t salt_len)
+   {
+   return BOTAN_FFI_DO(Botan::PK_Key_Agreement, op, o, {
+      auto k = o.derive_key(*out_len, other_key, other_key_len, salt, salt_len).bits_of();
+      return write_vec_output(out, out_len, k);
+      });
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_HAS_HASH_ID)
+#endif
+
+extern "C" {
+
+int botan_privkey_create(botan_privkey_t* key_obj,
+                         const char* algo_name,
+                         const char* algo_params,
+                         botan_rng_t rng_obj)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      if(key_obj == nullptr)
+         return BOTAN_FFI_ERROR_NULL_POINTER;
+
+      *key_obj = nullptr;
+      if(rng_obj == nullptr)
+         return BOTAN_FFI_ERROR_NULL_POINTER;
+
+      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
+      std::unique_ptr<Botan::Private_Key> key(
+         Botan::create_private_key(algo_name ? algo_name : "RSA",
+                                   rng,
+                                   algo_params ? algo_params : ""));
+
+      if(key)
+         {
+         *key_obj = new botan_privkey_struct(key.release());
+         return BOTAN_FFI_SUCCESS;
+         }
+      else
+         {
+         return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+         }
+      });
+   }
+
+int botan_privkey_load(botan_privkey_t* key, botan_rng_t rng_obj,
+                       const uint8_t bits[], size_t len,
+                       const char* password)
+   {
+   *key = nullptr;
+
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::DataSource_Memory src(bits, len);
+
+      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
+
+      std::unique_ptr<Botan::Private_Key> pkcs8;
+
+      if(password == nullptr)
+         {
+         pkcs8.reset(Botan::PKCS8::load_key(src, rng));
+         }
+      else
+         {
+         pkcs8.reset(Botan::PKCS8::load_key(src, rng, static_cast<std::string>(password)));
+         }
+
+      if(pkcs8)
+         {
+         *key = new botan_privkey_struct(pkcs8.release());
+         return BOTAN_FFI_SUCCESS;
+         }
+      return BOTAN_FFI_ERROR_UNKNOWN_ERROR;
+      });
+   }
+
+int botan_privkey_destroy(botan_privkey_t key)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(key);
+   }
+
+int botan_pubkey_load(botan_pubkey_t* key,
+                      const uint8_t bits[], size_t bits_len)
+   {
+   *key = nullptr;
+
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::DataSource_Memory src(bits, bits_len);
+      std::unique_ptr<Botan::Public_Key> pubkey(Botan::X509::load_key(src));
+
+      if(pubkey == nullptr)
+         return BOTAN_FFI_ERROR_UNKNOWN_ERROR;
+
+      *key = new botan_pubkey_struct(pubkey.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pubkey_destroy(botan_pubkey_t key)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(key);
+   }
+
+int botan_privkey_export_pubkey(botan_pubkey_t* pubout, botan_privkey_t key_obj)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::Public_Key>
+         pubkey(Botan::X509::load_key(Botan::X509::BER_encode(safe_get(key_obj))));
+
+      *pubout = new botan_pubkey_struct(pubkey.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_pubkey_algo_name(botan_pubkey_t key, char out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k, { return write_str_output(out, out_len, k.algo_name()); });
+   }
+
+int botan_pubkey_check_key(botan_pubkey_t key, botan_rng_t rng, uint32_t flags)
+   {
+   const bool strong = (flags & BOTAN_CHECK_KEY_EXPENSIVE_TESTS);
+
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k,
+                       { return (k.check_key(safe_get(rng), strong) == true) ? 0 : -1; });
+   }
+
+int botan_privkey_check_key(botan_privkey_t key, botan_rng_t rng, uint32_t flags)
+   {
+   const bool strong = (flags & BOTAN_CHECK_KEY_EXPENSIVE_TESTS);
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k,
+                       { return (k.check_key(safe_get(rng), strong) == true) ? 0 : -1; });
+   }
+
+int botan_pubkey_export(botan_pubkey_t key, uint8_t out[], size_t* out_len, uint32_t flags)
+   {
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k, {
+      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
+         return write_vec_output(out, out_len, Botan::X509::BER_encode(k));
+      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
+         return write_str_output(out, out_len, Botan::X509::PEM_encode(k));
+      else
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+      });
+   }
+
+int botan_privkey_export(botan_privkey_t key, uint8_t out[], size_t* out_len, uint32_t flags)
+   {
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
+      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
+         return write_vec_output(out, out_len, Botan::PKCS8::BER_encode(k));
+      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
+         return write_str_output(out, out_len, Botan::PKCS8::PEM_encode(k));
+      else
+         return BOTAN_FFI_ERROR_BAD_FLAG;
+      });
+   }
+
+int botan_privkey_export_encrypted(botan_privkey_t key,
+                                   uint8_t out[], size_t* out_len,
+                                   botan_rng_t rng_obj,
+                                   const char* pass,
+                                   const char* /*ignored - pbe*/,
+                                   uint32_t flags)
+   {
+   return botan_privkey_export_encrypted_pbkdf_iter(key, out, out_len, rng_obj, pass, 100000, nullptr, nullptr, flags);
+   }
+
+int botan_privkey_export_encrypted_pbkdf_msec(botan_privkey_t key,
+                                              uint8_t out[], size_t* out_len,
+                                              botan_rng_t rng_obj,
+                                              const char* pass,
+                                              uint32_t pbkdf_msec,
+                                              size_t* pbkdf_iters_out,
+                                              const char* maybe_cipher,
+                                              const char* maybe_pbkdf_hash,
+                                              uint32_t flags)
+   {
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
+      const std::chrono::milliseconds pbkdf_time(pbkdf_msec);
+      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
+
+      const std::string cipher = (maybe_cipher ? maybe_cipher : "");
+      const std::string pbkdf_hash = (maybe_pbkdf_hash ? maybe_pbkdf_hash : "");
+
+      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
+         {
+         return write_vec_output(out, out_len,
+                                 Botan::PKCS8::BER_encode_encrypted_pbkdf_msec(k, rng, pass, pbkdf_time, pbkdf_iters_out, cipher, pbkdf_hash));
+         }
+      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
+         {
+         return write_str_output(out, out_len,
+                                 Botan::PKCS8::PEM_encode_encrypted_pbkdf_msec(k, rng, pass, pbkdf_time, pbkdf_iters_out, cipher, pbkdf_hash));
+         }
+      else
+         {
+         return -2;
+         }
+      });
+   }
+
+int botan_privkey_export_encrypted_pbkdf_iter(botan_privkey_t key,
+                                              uint8_t out[], size_t* out_len,
+                                              botan_rng_t rng_obj,
+                                              const char* pass,
+                                              size_t pbkdf_iter,
+                                              const char* maybe_cipher,
+                                              const char* maybe_pbkdf_hash,
+                                              uint32_t flags)
+   {
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
+      Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
+
+      const std::string cipher = (maybe_cipher ? maybe_cipher : "");
+      const std::string pbkdf_hash = (maybe_pbkdf_hash ? maybe_pbkdf_hash : "");
+
+      if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_DER)
+         {
+         return write_vec_output(out, out_len,
+                                 Botan::PKCS8::BER_encode_encrypted_pbkdf_iter(k, rng, pass, pbkdf_iter, cipher, pbkdf_hash));
+         }
+      else if(flags == BOTAN_PRIVKEY_EXPORT_FLAG_PEM)
+         {
+         return write_str_output(out, out_len,
+                                 Botan::PKCS8::PEM_encode_encrypted_pbkdf_iter(k, rng, pass, pbkdf_iter, cipher, pbkdf_hash));
+         }
+      else
+         {
+         return -2;
+         }
+      });
+   }
+
+int botan_pubkey_estimated_strength(botan_pubkey_t key, size_t* estimate)
+   {
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k, { *estimate = k.estimated_strength(); });
+   }
+
+int botan_pubkey_fingerprint(botan_pubkey_t key, const char* hash_fn,
+                             uint8_t out[], size_t* out_len)
+   {
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k, {
+      std::unique_ptr<Botan::HashFunction> h(Botan::HashFunction::create(hash_fn));
+      return write_vec_output(out, out_len, h->process(k.public_key_bits()));
+      });
+   }
+
+int botan_pkcs_hash_id(const char* hash_name, uint8_t pkcs_id[], size_t* pkcs_id_len)
+   {
+#if defined(BOTAN_HAS_HASH_ID)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const std::vector<uint8_t> hash_id = Botan::pkcs_hash_id(hash_name);
+      return write_output(pkcs_id, pkcs_id_len, hash_id.data(), hash_id.size());
+      });
+#else
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+}
+/*
+* (C) 2015,2017 Jack Lloyd
+* (C) 2017 Ribose Inc
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
+#endif
+
+#if defined(BOTAN_HAS_DL_PUBLIC_KEY_FAMILY)
+#endif
+
+#if defined(BOTAN_HAS_RSA)
+#endif
+
+#if defined(BOTAN_HAS_ELGAMAL)
+#endif
+
+#if defined(BOTAN_HAS_DSA)
+#endif
+
+#if defined(BOTAN_HAS_ECDSA)
+#endif
+
+#if defined(BOTAN_HAS_SM2)
+#endif
+
+#if defined(BOTAN_HAS_ECDH)
+#endif
+
+#if defined(BOTAN_HAS_CURVE_25519)
+#endif
+
+#if defined(BOTAN_HAS_ED25519)
+#endif
+
+#if defined(BOTAN_HAS_MCELIECE)
+#endif
+
+#if defined(BOTAN_HAS_MCEIES)
+#endif
+
+#if defined(BOTAN_HAS_DIFFIE_HELLMAN)
+#endif
+
+
+namespace {
+
+#if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
+
+// These are always called within an existing try/catch block
+
+template<class ECPrivateKey_t>
+int privkey_load_ec(std::unique_ptr<ECPrivateKey_t>& key,
+                    const Botan::BigInt& scalar,
+                    const char* curve_name)
+   {
+   if(curve_name == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+
+   Botan::Null_RNG null_rng;
+   Botan::EC_Group grp(curve_name);
+   key.reset(new ECPrivateKey_t(null_rng, grp, scalar));
+   return BOTAN_FFI_SUCCESS;
+   }
+
+template<class ECPublicKey_t>
+int pubkey_load_ec(std::unique_ptr<ECPublicKey_t>& key,
+                   const Botan::BigInt& public_x,
+                   const Botan::BigInt& public_y,
+                   const char* curve_name)
+   {
+   if(curve_name == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+
+   Botan::Null_RNG null_rng;
+   Botan::EC_Group grp(curve_name);
+   Botan::PointGFp uncompressed_point(grp.get_curve(), public_x, public_y);
+   key.reset(new ECPublicKey_t(grp, uncompressed_point));
+   return BOTAN_FFI_SUCCESS;
+   }
+
+#endif
+
+Botan::BigInt pubkey_get_field(const Botan::Public_Key& key,
+                               const std::string& field)
+   {
+   // Maybe this should be `return key.get_integer_field(field_name)`?
+
+#if defined(BOTAN_HAS_RSA)
+   if(const Botan::RSA_PublicKey* rsa = dynamic_cast<const Botan::RSA_PublicKey*>(&key))
+      {
+      if(field == "n")
+         return rsa->get_n();
+      else if(field == "e")
+         return rsa->get_e();
+      else
+         throw Botan::Exception("Field not supported");
+      }
+#endif
+
+#if defined(BOTAN_HAS_DL_PUBLIC_KEY_FAMILY)
+   // Handles DSA, ElGamal, etc
+   if(const Botan::DL_Scheme_PublicKey* dl = dynamic_cast<const Botan::DL_Scheme_PublicKey*>(&key))
+      {
+      if(field == "p")
+         return dl->group_p();
+      else if(field == "q")
+         return dl->group_q();
+      else if(field == "g")
+         return dl->group_g();
+      else if(field == "y")
+         return dl->get_y();
+      else
+         throw Botan::Exception("Field not supported");
+      }
+#endif
+
+#if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
+   if(const Botan::EC_PublicKey* ecc = dynamic_cast<const Botan::EC_PublicKey*>(&key))
+      {
+      if(field == "public_x")
+         return ecc->public_point().get_affine_x();
+      else if(field == "public_y")
+         return ecc->public_point().get_affine_y();
+      else if(field == "base_x")
+         return ecc->domain().get_base_point().get_affine_x();
+      else if(field == "base_y")
+         return ecc->domain().get_base_point().get_affine_y();
+      else if(field == "p")
+         return ecc->domain().get_curve().get_p();
+      else if(field == "a")
+         return ecc->domain().get_curve().get_a();
+      else if(field == "b")
+         return ecc->domain().get_curve().get_b();
+      else if(field == "cofactor")
+         return ecc->domain().get_cofactor();
+      else if(field == "order")
+         return ecc->domain().get_order();
+      else
+         throw Botan::Exception("Field not supported");
+      }
+#endif
+
+   // Some other algorithm type not supported by this function
+   throw Botan::Exception("Unsupported algorithm type for botan_pubkey_get_field");
+   }
+
+Botan::BigInt privkey_get_field(const Botan::Private_Key& key,
+                                const std::string& field)
+   {
+   //return key.get_integer_field(field);
+
+#if defined(BOTAN_HAS_RSA)
+
+   if(const Botan::RSA_PrivateKey* rsa = dynamic_cast<const Botan::RSA_PrivateKey*>(&key))
+      {
+      if(field == "p")
+         return rsa->get_p();
+      else if(field == "q")
+         return rsa->get_q();
+      else if(field == "d")
+         return rsa->get_d();
+      else if(field == "c")
+         return rsa->get_c();
+      else if(field == "d1")
+         return rsa->get_d1();
+      else if(field == "d2")
+         return rsa->get_d2();
+      else
+         return pubkey_get_field(key, field);
+      }
+#endif
+
+#if defined(BOTAN_HAS_DL_PUBLIC_KEY_FAMILY)
+   // Handles DSA, ElGamal, etc
+   if(const Botan::DL_Scheme_PrivateKey* dl = dynamic_cast<const Botan::DL_Scheme_PrivateKey*>(&key))
+      {
+      if(field == "x")
+         return dl->get_x();
+      else
+         return pubkey_get_field(key, field);
+      }
+#endif
+
+#if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
+   if(const Botan::EC_PrivateKey* ecc = dynamic_cast<const Botan::EC_PrivateKey*>(&key))
+      {
+      if(field == "x")
+         return ecc->private_value();
+      else
+         return pubkey_get_field(key, field);
+      }
+#endif
+
+   // Some other algorithm type not supported by this function
+   throw Botan::Exception("Unsupported algorithm type for botan_privkey_get_field");
+   }
+
+}
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+int botan_pubkey_get_field(botan_mp_t output,
+                           botan_pubkey_t key,
+                           const char* field_name_cstr)
+   {
+   if(field_name_cstr == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+
+   const std::string field_name(field_name_cstr);
+
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k, {
+      safe_get(output) = pubkey_get_field(k, field_name);
+      });
+   }
+
+int botan_privkey_get_field(botan_mp_t output,
+                                      botan_privkey_t key,
+                                      const char* field_name_cstr)
+   {
+   if(field_name_cstr == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+
+   const std::string field_name(field_name_cstr);
+
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
+      safe_get(output) = privkey_get_field(k, field_name);
+      });
+   }
+
+/* RSA specific operations */
+
+int botan_privkey_create_rsa(botan_privkey_t* key_obj, botan_rng_t rng_obj, size_t n_bits)
+   {
+   if(n_bits < 1024 || n_bits > 16*1024)
+      return BOTAN_FFI_ERROR_BAD_PARAMETER;
+
+   std::string n_str = std::to_string(n_bits);
+
+   return botan_privkey_create(key_obj, "RSA", n_str.c_str(), rng_obj);
+   }
+
+int botan_privkey_load_rsa(botan_privkey_t* key,
+                           botan_mp_t rsa_p, botan_mp_t rsa_q, botan_mp_t rsa_e)
+   {
+#if defined(BOTAN_HAS_RSA)
+   *key = nullptr;
+
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      *key = new botan_privkey_struct(new Botan::RSA_PrivateKey(safe_get(rsa_p),
+                                                                safe_get(rsa_q),
+                                                                safe_get(rsa_e)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, rsa_p, rsa_q, rsa_e);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_load_rsa(botan_pubkey_t* key,
+                          botan_mp_t n, botan_mp_t e)
+   {
+#if defined(BOTAN_HAS_RSA)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      *key = new botan_pubkey_struct(new Botan::RSA_PublicKey(safe_get(n), safe_get(e)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, n, e);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_rsa_get_p(botan_mp_t p, botan_privkey_t key)
+   {
+   return botan_privkey_get_field(p, key, "p");
+   }
+
+int botan_privkey_rsa_get_q(botan_mp_t q, botan_privkey_t key)
+   {
+   return botan_privkey_get_field(q, key, "q");
+   }
+
+int botan_privkey_rsa_get_n(botan_mp_t n, botan_privkey_t key)
+   {
+   return botan_privkey_get_field(n, key, "n");
+   }
+
+int botan_privkey_rsa_get_e(botan_mp_t e, botan_privkey_t key)
+   {
+   return botan_privkey_get_field(e, key, "e");
+   }
+
+int botan_privkey_rsa_get_d(botan_mp_t d, botan_privkey_t key)
+   {
+   return botan_privkey_get_field(d, key, "d");
+   }
+
+int botan_pubkey_rsa_get_e(botan_mp_t e, botan_pubkey_t key)
+   {
+   return botan_pubkey_get_field(e, key, "e");
+   }
+
+int botan_pubkey_rsa_get_n(botan_mp_t n, botan_pubkey_t key)
+   {
+   return botan_pubkey_get_field(n, key, "n");
+   }
+
+/* DSA specific operations */
+
+int botan_privkey_load_dsa(botan_privkey_t* key,
+                           botan_mp_t p, botan_mp_t q, botan_mp_t g, botan_mp_t x)
+   {
+#if defined(BOTAN_HAS_DSA)
+   *key = nullptr;
+
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::Null_RNG null_rng;
+      Botan::DL_Group group(safe_get(p), safe_get(q), safe_get(g));
+      *key = new botan_privkey_struct(new Botan::DSA_PrivateKey(null_rng, group, safe_get(x)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, p, q, g, x);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_load_dsa(botan_pubkey_t* key,
+                          botan_mp_t p, botan_mp_t q, botan_mp_t g, botan_mp_t y)
+   {
+#if defined(BOTAN_HAS_DSA)
+   *key = nullptr;
+
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::DL_Group group(safe_get(p), safe_get(q), safe_get(g));
+      *key = new botan_pubkey_struct(new Botan::DSA_PublicKey(group, safe_get(y)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, p, q, g, y);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_dsa_get_x(botan_mp_t x, botan_privkey_t key)
+   {
+   return botan_privkey_get_field(x, key, "x");
+   }
+
+int botan_pubkey_dsa_get_p(botan_mp_t p, botan_pubkey_t key)
+   {
+   return botan_pubkey_get_field(p, key, "p");
+   }
+
+int botan_pubkey_dsa_get_q(botan_mp_t q, botan_pubkey_t key)
+   {
+   return botan_pubkey_get_field(q, key, "q");
+   }
+
+int botan_pubkey_dsa_get_g(botan_mp_t g, botan_pubkey_t key)
+   {
+   return botan_pubkey_get_field(g, key, "g");
+   }
+
+int botan_pubkey_dsa_get_y(botan_mp_t y, botan_pubkey_t key)
+   {
+   return botan_pubkey_get_field(y, key, "y");
+   }
+
+int botan_privkey_create_ecdsa(botan_privkey_t* key_obj, botan_rng_t rng_obj, const char* param_str)
+   {
+   return botan_privkey_create(key_obj, "ECDSA", param_str, rng_obj);
+   }
+
+/* ECDSA specific operations */
+
+int botan_pubkey_load_ecdsa(botan_pubkey_t* key,
+                            const botan_mp_t public_x,
+                            const botan_mp_t public_y,
+                            const char* curve_name)
+   {
+#if defined(BOTAN_HAS_ECDSA)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::ECDSA_PublicKey> p_key;
+
+      int rc = pubkey_load_ec(p_key, safe_get(public_x), safe_get(public_y), curve_name);
+      if(rc == BOTAN_FFI_SUCCESS)
+         *key = new botan_pubkey_struct(p_key.release());
+
+      return rc;
+      });
+#else
+   BOTAN_UNUSED(key, public_x, public_y, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_load_ecdsa(botan_privkey_t* key,
+                             const botan_mp_t scalar,
+                             const char* curve_name)
+   {
+#if defined(BOTAN_HAS_ECDSA)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::ECDSA_PrivateKey> p_key;
+      int rc = privkey_load_ec(p_key, safe_get(scalar), curve_name);
+      if(rc == BOTAN_FFI_SUCCESS)
+         *key = new botan_privkey_struct(p_key.release());
+      return rc;
+      });
+#else
+   BOTAN_UNUSED(key, scalar, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+/* ElGamal specific operations */
+
+int botan_pubkey_load_elgamal(botan_pubkey_t* key,
+                              botan_mp_t p, botan_mp_t g, botan_mp_t y)
+   {
+#if defined(BOTAN_HAS_ELGAMAL)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::DL_Group group(safe_get(p), safe_get(g));
+      *key = new botan_pubkey_struct(new Botan::ElGamal_PublicKey(group, safe_get(y)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, p, g, y);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_load_elgamal(botan_privkey_t* key,
+                               botan_mp_t p, botan_mp_t g, botan_mp_t x)
+   {
+#if defined(BOTAN_HAS_ELGAMAL)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::Null_RNG null_rng;
+      Botan::DL_Group group(safe_get(p), safe_get(g));
+      *key = new botan_privkey_struct(new Botan::ElGamal_PrivateKey(null_rng, group, safe_get(x)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, p, g, x);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+/* Diffie Hellman specific operations */
+
+int botan_privkey_create_dh(botan_privkey_t* key_obj, botan_rng_t rng_obj, const char* param_str)
+   {
+   return botan_privkey_create(key_obj, "DH", param_str, rng_obj);
+   }
+
+int botan_privkey_load_dh(botan_privkey_t* key,
+                          botan_mp_t p, botan_mp_t g, botan_mp_t x)
+   {
+#if defined(BOTAN_HAS_DIFFIE_HELLMAN)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::Null_RNG null_rng;
+      Botan::DL_Group group(safe_get(p), safe_get(g));
+      *key = new botan_privkey_struct(new Botan::DH_PrivateKey(null_rng, group, safe_get(x)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, p, g, x);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_load_dh(botan_pubkey_t* key,
+                         botan_mp_t p, botan_mp_t g, botan_mp_t y)
+   {
+#if defined(BOTAN_HAS_DIFFIE_HELLMAN)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      Botan::DL_Group group(safe_get(p), safe_get(g));
+      *key = new botan_pubkey_struct(new Botan::DH_PublicKey(group, safe_get(y)));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, p, g, y);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+/* ECDH + x25519 specific operations */
+
+int botan_privkey_create_ecdh(botan_privkey_t* key_obj, botan_rng_t rng_obj, const char* param_str)
+   {
+   if(param_str == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+
+   const std::string params(param_str);
+
+   if(params == "curve25519")
+      return botan_privkey_create(key_obj, "Curve25519", "", rng_obj);
+
+   return botan_privkey_create(key_obj, "ECDH", param_str, rng_obj);
+   }
+
+int botan_pubkey_load_ecdh(botan_pubkey_t* key,
+                           const botan_mp_t public_x,
+                           const botan_mp_t public_y,
+                           const char* curve_name)
+   {
+#if defined(BOTAN_HAS_ECDH)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::ECDH_PublicKey> p_key;
+      int rc = pubkey_load_ec(p_key, safe_get(public_x), safe_get(public_y), curve_name);
+
+      if(rc == BOTAN_FFI_SUCCESS)
+         *key = new botan_pubkey_struct(p_key.release());
+      return rc;
+      });
+#else
+   BOTAN_UNUSED(key, public_x, public_y, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_load_ecdh(botan_privkey_t* key,
+                            const botan_mp_t scalar,
+                            const char* curve_name)
+   {
+#if defined(BOTAN_HAS_ECDH)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::ECDH_PrivateKey> p_key;
+      int rc = privkey_load_ec(p_key, safe_get(scalar), curve_name);
+      if(rc == BOTAN_FFI_SUCCESS)
+         *key = new botan_privkey_struct(p_key.release());
+      return rc;
+      });
+#else
+   BOTAN_UNUSED(key, scalar, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+/* SM2 specific operations */
+
+int botan_pubkey_sm2_compute_za(uint8_t out[],
+                                size_t* out_len,
+                                const char* ident,
+                                const char* hash_algo,
+                                const botan_pubkey_t key)
+   {
+   if(out == nullptr || out_len == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+   if(ident == nullptr || hash_algo == nullptr || key == nullptr)
+      return BOTAN_FFI_ERROR_NULL_POINTER;
+
+#if defined(BOTAN_HAS_SM2)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const Botan::Public_Key& pub_key = safe_get(key);
+      const Botan::EC_PublicKey* ec_key = dynamic_cast<const Botan::EC_PublicKey*>(&pub_key);
+
+      if(ec_key == nullptr)
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
+
+      if(ec_key->algo_name() != "SM2_Sig" && ec_key->algo_name() != "SM2_Enc")
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
+
+      const std::string ident_str(ident);
+      std::unique_ptr<Botan::HashFunction> hash =
+         Botan::HashFunction::create_or_throw(hash_algo);
+
+      const std::vector<uint8_t> za =
+         Botan::sm2_compute_za(*hash, ident_str, ec_key->domain(), ec_key->public_point());
+
+      return write_vec_output(out, out_len, za);
+      });
+#else
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_load_sm2(botan_pubkey_t* key,
+                          const botan_mp_t public_x,
+                          const botan_mp_t public_y,
+                          const char* curve_name)
+   {
+#if defined(BOTAN_HAS_SM2)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::SM2_Signature_PublicKey> p_key;
+      if(!pubkey_load_ec(p_key, safe_get(public_x), safe_get(public_y), curve_name))
+         {
+         *key = new botan_pubkey_struct(p_key.release());
+         return BOTAN_FFI_SUCCESS;
+         }
+      return BOTAN_FFI_ERROR_UNKNOWN_ERROR;
+      });
+#else
+   BOTAN_UNUSED(key, public_x, public_y, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_load_sm2(botan_privkey_t* key,
+                           const botan_mp_t scalar,
+                           const char* curve_name)
+   {
+#if defined(BOTAN_HAS_SM2)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::SM2_Signature_PrivateKey> p_key;
+      int rc = privkey_load_ec(p_key, safe_get(scalar), curve_name);
+
+      if(rc == BOTAN_FFI_SUCCESS)
+         *key = new botan_privkey_struct(p_key.release());
+      return rc;
+      });
+#else
+   BOTAN_UNUSED(key, scalar, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_load_sm2_enc(botan_pubkey_t* key,
+                              const botan_mp_t public_x,
+                              const botan_mp_t public_y,
+                              const char* curve_name)
+   {
+#if defined(BOTAN_HAS_SM2)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::SM2_Encryption_PublicKey> p_key;
+      if(!pubkey_load_ec(p_key, safe_get(public_x), safe_get(public_y), curve_name))
+         {
+         *key = new botan_pubkey_struct(p_key.release());
+         return BOTAN_FFI_SUCCESS;
+         }
+      return BOTAN_FFI_ERROR_UNKNOWN_ERROR;
+      });
+#else
+   BOTAN_UNUSED(key, public_x, public_y, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_load_sm2_enc(botan_privkey_t* key,
+                               const botan_mp_t scalar,
+                               const char* curve_name)
+   {
+#if defined(BOTAN_HAS_SM2)
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      std::unique_ptr<Botan::SM2_Encryption_PrivateKey> p_key;
+      int rc = privkey_load_ec(p_key, safe_get(scalar), curve_name);
+
+      if(rc == BOTAN_FFI_SUCCESS)
+         *key = new botan_privkey_struct(p_key.release());
+      return rc;
+      });
+#else
+   BOTAN_UNUSED(key, scalar, curve_name);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+/* Ed25519 specific operations */
+
+int botan_privkey_load_ed25519(botan_privkey_t* key,
+                               const uint8_t privkey[32])
+   {
+#if defined(BOTAN_HAS_ED25519)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const Botan::secure_vector<uint8_t> privkey_vec(privkey, privkey + 32);
+      *key = new botan_privkey_struct(new Botan::Ed25519_PrivateKey(privkey_vec));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, privkey);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_load_ed25519(botan_pubkey_t* key,
+                              const uint8_t pubkey[32])
+   {
+#if defined(BOTAN_HAS_ED25519)
+   *key = nullptr;
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      const std::vector<uint8_t> pubkey_vec(pubkey, pubkey + 32);
+      *key = new botan_pubkey_struct(new Botan::Ed25519_PublicKey(pubkey_vec));
+      return BOTAN_FFI_SUCCESS;
+      });
+#else
+   BOTAN_UNUSED(key, pubkey);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_ed25519_get_privkey(botan_privkey_t key,
+                                      uint8_t output[64])
+   {
+#if defined(BOTAN_HAS_ED25519)
+   return BOTAN_FFI_DO(Botan::Private_Key, key, k, {
+      if(Botan::Ed25519_PrivateKey* ed = dynamic_cast<Botan::Ed25519_PrivateKey*>(&k))
+         {
+         const Botan::secure_vector<uint8_t>& ed_key = ed->get_private_key();
+         if(ed_key.size() != 64)
+            return BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE;
+         Botan::copy_mem(output, ed_key.data(), ed_key.size());
+         return BOTAN_FFI_SUCCESS;
+         }
+      else
+         {
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
+         }
+      });
+#else
+   BOTAN_UNUSED(key, output);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_pubkey_ed25519_get_pubkey(botan_pubkey_t key,
+                                    uint8_t output[32])
+   {
+#if defined(BOTAN_HAS_ED25519)
+   return BOTAN_FFI_DO(Botan::Public_Key, key, k, {
+      if(Botan::Ed25519_PublicKey* ed = dynamic_cast<Botan::Ed25519_PublicKey*>(&k))
+         {
+         const std::vector<uint8_t>& ed_key = ed->get_public_key();
+         if(ed_key.size() != 32)
+            return BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE;
+         Botan::copy_mem(output, ed_key.data(), ed_key.size());
+         return BOTAN_FFI_SUCCESS;
+         }
+      else
+         {
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
+         }
+      });
+#else
+   BOTAN_UNUSED(key, output);
+   return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
+#endif
+   }
+
+int botan_privkey_create_mceliece(botan_privkey_t* key_obj, botan_rng_t rng_obj, size_t n, size_t t)
+   {
+   const std::string mce_params = std::to_string(n) + "," + std::to_string(t);
+   return botan_privkey_create(key_obj, "McEliece", mce_params.c_str(), rng_obj);
    }
 
 int botan_mceies_decrypt(botan_privkey_t mce_key_obj,
@@ -19912,25 +26787,20 @@ int botan_mceies_decrypt(botan_privkey_t mce_key_obj,
                          const uint8_t ad[], size_t ad_len,
                          uint8_t out[], size_t* out_len)
    {
-   try
-      {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
       Botan::Private_Key& key = safe_get(mce_key_obj);
 
 #if defined(BOTAN_HAS_MCELIECE) && defined(BOTAN_HAS_MCEIES)
       Botan::McEliece_PrivateKey* mce = dynamic_cast<Botan::McEliece_PrivateKey*>(&key);
       if(!mce)
-         return -2;
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
 
       const Botan::secure_vector<uint8_t> pt = mceies_decrypt(*mce, ct, ct_len, ad, ad_len, aead);
       return write_vec_output(out, out_len, pt);
 #else
       return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
 #endif
-      }
-   catch(std::exception& e)
-      {
-      return ffi_error_exception_thrown(e.what());
-      }
+      });
    }
 
 int botan_mceies_encrypt(botan_pubkey_t mce_key_obj,
@@ -19940,42 +26810,72 @@ int botan_mceies_encrypt(botan_pubkey_t mce_key_obj,
                          const uint8_t ad[], size_t ad_len,
                          uint8_t out[], size_t* out_len)
    {
-   try
-      {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
       Botan::Public_Key& key = safe_get(mce_key_obj);
       Botan::RandomNumberGenerator& rng = safe_get(rng_obj);
 
 #if defined(BOTAN_HAS_MCELIECE) && defined(BOTAN_HAS_MCEIES)
       Botan::McEliece_PublicKey* mce = dynamic_cast<Botan::McEliece_PublicKey*>(&key);
       if(!mce)
-         return -2;
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
 
       Botan::secure_vector<uint8_t> ct = mceies_encrypt(*mce, pt, pt_len, ad, ad_len, rng, aead);
       return write_vec_output(out, out_len, ct);
 #else
       return BOTAN_FFI_ERROR_NOT_IMPLEMENTED;
 #endif
-      }
-   catch(std::exception& e)
-      {
-      return ffi_error_exception_thrown(e.what());
-      }
+      });
    }
-
-/*
-int botan_tls_channel_init_client(botan_tls_channel_t* channel,
-                                  botan_tls_channel_output_fn output_fn,
-                                  botan_tls_channel_data_cb data_cb,
-                                  botan_tls_channel_alert_cb alert_cb,
-                                  botan_tls_channel_session_established session_cb,
-                                  const char* server_name)
-   {
-
-   }
-*/
 
 }
+/*
+* (C) 2015,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
 
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+int botan_rng_init(botan_rng_t* rng_out, const char* rng_type)
+   {
+   return ffi_guard_thunk(BOTAN_CURRENT_FUNCTION, [=]() {
+      BOTAN_ASSERT_ARG_NON_NULL(rng_out);
+
+      const std::string rng_type_s(rng_type ? rng_type : "system");
+
+      std::unique_ptr<Botan::RandomNumberGenerator> rng;
+
+      if(rng_type_s == "system")
+         rng.reset(new Botan::System_RNG);
+      else if(rng_type_s == "user")
+         rng.reset(new Botan::AutoSeeded_RNG);
+      else
+         return BOTAN_FFI_ERROR_BAD_PARAMETER;
+
+      *rng_out = new botan_rng_struct(rng.release());
+      return BOTAN_FFI_SUCCESS;
+      });
+   }
+
+int botan_rng_destroy(botan_rng_t rng)
+   {
+   return BOTAN_FFI_CHECKED_DELETE(rng);
+   }
+
+int botan_rng_get(botan_rng_t rng, uint8_t* out, size_t out_len)
+   {
+   return BOTAN_FFI_DO(Botan::RandomNumberGenerator, rng, r, { r.randomize(out, out_len); });
+   }
+
+int botan_rng_reseed(botan_rng_t rng, size_t bits)
+   {
+   return BOTAN_FFI_DO(Botan::RandomNumberGenerator, rng, r, { r.reseed_from_rng(Botan::system_rng(), bits); });
+   }
+
+}
 /*
 * Filters
 * (C) 1999-2007,2015 Jack Lloyd
@@ -20231,7 +27131,7 @@ void Buffered_Filter::end_msg()
 }
 /*
 * Filter interface for Cipher_Modes
-* (C) 2013,2014 Jack Lloyd
+* (C) 2013,2014,2017 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -20256,8 +27156,8 @@ size_t choose_update_size(size_t update_granularity)
 Cipher_Mode_Filter::Cipher_Mode_Filter(Cipher_Mode* mode) :
    Buffered_Filter(choose_update_size(mode->update_granularity()),
                    mode->minimum_final_size()),
-   m_nonce(mode->default_nonce_length() == 0),
    m_mode(mode),
+   m_nonce(mode->default_nonce_length()),
    m_buffer(m_mode->update_granularity())
    {
    }
@@ -20267,24 +27167,9 @@ std::string Cipher_Mode_Filter::name() const
    return m_mode->name();
    }
 
-void Cipher_Mode_Filter::Nonce_State::update(const InitializationVector& iv)
-   {
-   m_nonce = unlock(iv.bits_of());
-   m_fresh_nonce = true;
-   }
-
-std::vector<uint8_t> Cipher_Mode_Filter::Nonce_State::get()
-   {
-   BOTAN_ASSERT(m_fresh_nonce, "The nonce is fresh for this message");
-
-   if(!m_nonce.empty())
-      m_fresh_nonce = false;
-   return m_nonce;
-   }
-
 void Cipher_Mode_Filter::set_iv(const InitializationVector& iv)
    {
-   m_nonce.update(iv);
+   m_nonce = unlock(iv.bits_of());
    }
 
 void Cipher_Mode_Filter::set_key(const SymmetricKey& key)
@@ -20314,7 +27199,11 @@ void Cipher_Mode_Filter::end_msg()
 
 void Cipher_Mode_Filter::start_msg()
    {
-   m_mode->start(m_nonce.get());
+   if(m_nonce.empty() && !m_mode->valid_nonce_length(0))
+      throw Invalid_State("Cipher " + m_mode->name() + " requires a fresh nonce for each message");
+
+   m_mode->start(m_nonce);
+   m_nonce.clear();
    }
 
 void Cipher_Mode_Filter::buffered_block(const uint8_t input[], size_t input_length)
@@ -20464,6 +27353,7 @@ void Decompression_Filter::end_msg()
 * DataSink
 * (C) 1999-2007 Jack Lloyd
 *     2005 Matthew Gregan
+*     2017 Philippe Lieser
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -20484,6 +27374,14 @@ void DataSink_Stream::write(const uint8_t out[], size_t length)
    if(!m_sink.good())
       throw Stream_IO_Error("DataSink_Stream: Failure writing to " +
                             m_identifier);
+   }
+
+/*
+* Flush the stream
+*/
+void DataSink_Stream::end_msg()
+   {
+   m_sink.flush();
    }
 
 /*
@@ -20757,7 +27655,7 @@ void Output_Buffers::add(SecureQueue* queue)
    BOTAN_ASSERT(m_buffers.size() < m_buffers.max_size(),
                 "Room was available in container");
 
-   m_buffers.push_back(queue);
+   m_buffers.push_back(std::unique_ptr<SecureQueue>(queue));
    }
 
 /*
@@ -20768,8 +27666,7 @@ void Output_Buffers::retire()
    for(size_t i = 0; i != m_buffers.size(); ++i)
       if(m_buffers[i] && m_buffers[i]->size() == 0)
          {
-         delete m_buffers[i];
-         m_buffers[i] = nullptr;
+         m_buffers[i].reset();
          }
 
    while(m_buffers.size() && !m_buffers[0])
@@ -20789,7 +27686,7 @@ SecureQueue* Output_Buffers::get(Pipe::message_id msg) const
 
    BOTAN_ASSERT(msg < message_count(), "Message number is in range");
 
-   return m_buffers[msg-m_offset];
+   return m_buffers[msg-m_offset].get();
    }
 
 /*
@@ -20808,15 +27705,6 @@ Output_Buffers::Output_Buffers()
    m_offset = 0;
    }
 
-/*
-* Output_Buffers Destructor
-*/
-Output_Buffers::~Output_Buffers()
-   {
-   for(size_t j = 0; j != m_buffers.size(); ++j)
-      delete m_buffers[j];
-   }
-
 }
 /*
 * Pipe
@@ -20833,7 +27721,7 @@ namespace {
 /*
 * A Filter that does nothing
 */
-class Null_Filter : public Filter
+class Null_Filter final : public Filter
    {
    public:
       void write(const uint8_t input[], size_t length) override
@@ -20847,13 +27735,9 @@ class Null_Filter : public Filter
 /*
 * Pipe Constructor
 */
-Pipe::Pipe(Filter* f1, Filter* f2, Filter* f3, Filter* f4)
+Pipe::Pipe(Filter* f1, Filter* f2, Filter* f3, Filter* f4) :
+   Pipe({f1,f2,f3,f4})
    {
-   init();
-   append(f1);
-   append(f2);
-   append(f3);
-   append(f4);
    }
 
 /*
@@ -20864,7 +27748,7 @@ Pipe::Pipe(std::initializer_list<Filter*> args)
    init();
 
    for(auto i = args.begin(); i != args.end(); ++i)
-      append(*i);
+      do_append(*i);
    }
 
 /*
@@ -20873,7 +27757,6 @@ Pipe::Pipe(std::initializer_list<Filter*> args)
 Pipe::~Pipe()
    {
    destruct(m_pipe);
-   delete m_outputs;
    }
 
 /*
@@ -20881,7 +27764,7 @@ Pipe::~Pipe()
 */
 void Pipe::init()
    {
-   m_outputs = new Output_Buffers;
+   m_outputs.reset(new Output_Buffers);
    m_pipe = nullptr;
    m_default_read = 0;
    m_inside_msg = false;
@@ -21031,19 +27914,25 @@ void Pipe::clear_endpoints(Filter* f)
       }
    }
 
+void Pipe::append(Filter* filter)
+   {
+   do_append(filter);
+   }
+
 /*
 * Append a Filter to the Pipe
 */
-void Pipe::append(Filter* filter)
+void Pipe::do_append(Filter* filter)
    {
-   if(m_inside_msg)
-      throw Invalid_State("Cannot append to a Pipe while it is processing");
    if(!filter)
       return;
    if(dynamic_cast<SecureQueue*>(filter))
       throw Invalid_Argument("Pipe::append: SecureQueue cannot be used");
    if(filter->m_owned)
       throw Invalid_Argument("Filters cannot be shared among multiple Pipes");
+
+   if(m_inside_msg)
+      throw Invalid_State("Cannot append to a Pipe while it is processing");
 
    filter->m_owned = true;
 
@@ -21085,16 +27974,12 @@ void Pipe::pop()
    if(m_pipe->total_ports() > 1)
       throw Invalid_State("Cannot pop off a Filter with multiple ports");
 
-   Filter* f = m_pipe;
-   size_t owns = f->owns();
-   m_pipe = m_pipe->m_next[0];
-   delete f;
+   size_t to_remove = m_pipe->owns() + 1;
 
-   while(owns--)
+   while(to_remove--)
       {
-      f = m_pipe;
+      std::unique_ptr<Filter> to_destroy(m_pipe);
       m_pipe = m_pipe->m_next[0];
-      delete f;
       }
    }
 
@@ -21134,7 +28019,7 @@ std::ostream& operator<<(std::ostream& stream, Pipe& pipe)
    secure_vector<uint8_t> buffer(DEFAULT_BUFFERSIZE);
    while(stream.good() && pipe.remaining())
       {
-      size_t got = pipe.read(buffer.data(), buffer.size());
+      const size_t got = pipe.read(buffer.data(), buffer.size());
       stream.write(reinterpret_cast<const char*>(buffer.data()), got);
       }
    if(!stream.good())
@@ -21151,7 +28036,8 @@ std::istream& operator>>(std::istream& stream, Pipe& pipe)
    while(stream.good())
       {
       stream.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-      pipe.write(buffer.data(), stream.gcount());
+      const size_t got = static_cast<size_t>(stream.gcount());
+      pipe.write(buffer.data(), got);
       }
    if(stream.bad() || (stream.fail() && !stream.eof()))
       throw Stream_IO_Error("Pipe input operator (iostream) has failed");
@@ -21351,7 +28237,7 @@ namespace Botan {
 /**
 * A node in a SecureQueue
 */
-class SecureQueueNode
+class SecureQueueNode final
    {
    public:
       SecureQueueNode() : m_buffer(DEFAULT_BUFFERSIZE)
@@ -21440,6 +28326,9 @@ void SecureQueue::destroy()
 */
 SecureQueue& SecureQueue::operator=(const SecureQueue& input)
    {
+   if(this == &input)
+      return *this;
+
    destroy();
    m_bytes_read = input.get_bytes_read();
    m_head = m_tail = new SecureQueueNode;
@@ -21786,7 +28675,7 @@ size_t rounds(const BigInt& a, const BigInt& b)
 /*
 * A simple round function based on HMAC(SHA-256)
 */
-class FPE_Encryptor
+class FPE_Encryptor final
    {
    public:
       FPE_Encryptor(const SymmetricKey& key,
@@ -21804,7 +28693,7 @@ FPE_Encryptor::FPE_Encryptor(const SymmetricKey& key,
                              const BigInt& n,
                              const std::vector<uint8_t>& tweak)
    {
-   m_mac.reset(new HMAC(new SHA_256));
+   m_mac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
    m_mac->set_key(key);
 
    std::vector<uint8_t> n_bin = BigInt::encode(n);
@@ -21906,6 +28795,7 @@ BigInt fe1_decrypt(const BigInt& n, const BigInt& X0,
 
 
 #if defined(BOTAN_HAS_GCM_CLMUL)
+#elif defined(BOTAN_HAS_GCM_PMULL)
 #endif
 
 namespace Botan {
@@ -21917,6 +28807,9 @@ void GHASH::gcm_multiply(secure_vector<uint8_t>& x) const
 #if defined(BOTAN_HAS_GCM_CLMUL)
    if(CPUID::has_clmul())
       return gcm_multiply_clmul(x.data(), m_H.data());
+#elif defined(BOTAN_HAS_GCM_PMULL)
+   if(CPUID::has_arm_pmull())
+      return gcm_multiply_pmull(x.data(), m_H.data());
 #endif
 
    static const uint64_t R = 0xE100000000000000;
@@ -22068,9 +28961,13 @@ GCM_Mode::GCM_Mode(BlockCipher* cipher, size_t tag_size) :
 
    m_ctr.reset(new CTR_BE(cipher, 4)); // CTR_BE takes ownership of cipher
 
-   if(m_tag_size != 8 && m_tag_size != GCM_BS)
+   /* We allow any of the values 128, 120, 112, 104, or 96 bits as a tag size */
+   /* 64 bit tag is still supported but deprecated and will be removed in the future */
+   if(m_tag_size != 8 && (m_tag_size < 12 || m_tag_size > 16))
       throw Invalid_Argument(name() + ": Bad tag size " + std::to_string(m_tag_size));
    }
+
+GCM_Mode::~GCM_Mode() { /* for unique_ptr */ }
 
 void GCM_Mode::clear()
    {
@@ -22201,7 +29098,7 @@ void GCM_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
    const uint8_t* included_tag = &buffer[remaining+offset];
 
-   if(!same_mem(mac.data(), included_tag, tag_size()))
+   if(!constant_time_compare(mac.data(), included_tag, tag_size()))
       throw Integrity_Failure("GCM tag check failed");
 
    buffer.resize(offset + remaining);
@@ -22299,9 +29196,8 @@ void GMAC::final_result(uint8_t mac[])
    // This ensures the GMAC computation has been initialized with a fresh
    // nonce. The aim of this check is to prevent developers from re-using
    // nonces (and potential nonce-reuse attacks).
-   BOTAN_ASSERT(m_initialized,
-                "The GMAC computation has not been initialized with a fresh "
-                "nonce.");
+   BOTAN_ASSERT(m_initialized, "GMAC was used with a fresh nonce");
+
    // process the rest of the aad buffer. Even if it is a partial block only
    // ghash_update will process it properly.
    if(m_aad_buf.size() > 0)
@@ -22311,7 +29207,7 @@ void GMAC::final_result(uint8_t mac[])
                     m_aad_buf.size());
        }
    secure_vector<uint8_t> result = GHASH::final();
-   std::copy(result.begin(), result.end(), mac);
+   copy_mem(mac, result.data(), result.size());
    clear();
    }
 
@@ -22585,7 +29481,7 @@ BigInt decode_le(const uint8_t msg[], size_t msg_len)
 /**
 * GOST-34.10 signature operation
 */
-class GOST_3410_Signature_Operation : public PK_Ops::Signature_with_EMSA
+class GOST_3410_Signature_Operation final : public PK_Ops::Signature_with_EMSA
    {
    public:
       GOST_3410_Signature_Operation(const GOST_3410_PrivateKey& gost_3410,
@@ -22641,7 +29537,7 @@ GOST_3410_Signature_Operation::raw_sign(const uint8_t msg[], size_t msg_len,
 /**
 * GOST-34.10 verification operation
 */
-class GOST_3410_Verification_Operation : public PK_Ops::Verification_with_EMSA
+class GOST_3410_Verification_Operation final : public PK_Ops::Verification_with_EMSA
    {
    public:
 
@@ -22750,6 +29646,11 @@ void GOST_34_11::clear()
    m_position = 0;
    }
 
+std::unique_ptr<HashFunction> GOST_34_11::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new GOST_34_11(*this));
+   }
+
 /**
 * Hash additional inputs
 */
@@ -22806,8 +29707,11 @@ void GOST_34_11::compress_n(const uint8_t input[], size_t blocks)
 
          // P transformation
          for(size_t k = 0; k != 4; ++k)
+            {
+            const uint64_t UVk = U[k] ^ V[k];
             for(size_t l = 0; l != 8; ++l)
-               key[4*l+k] = get_byte(l, U[k]) ^ get_byte(l, V[k]);
+               key[4*l+k] = get_byte(l, UVk);
+            }
 
          m_cipher.set_key(key, 32);
          m_cipher.encrypt(&m_hash[8*j], S + 8*j);
@@ -23006,6 +29910,12 @@ void GOST_34_11::final_result(uint8_t out[])
 #if defined(BOTAN_HAS_SKEIN_512)
 #endif
 
+#if defined(BOTAN_HAS_STREEBOG)
+#endif
+
+#if defined(BOTAN_HAS_SM3)
+#endif
+
 #if defined(BOTAN_HAS_TIGER)
 #endif
 
@@ -23021,6 +29931,9 @@ void GOST_34_11::final_result(uint8_t out[])
 #if defined(BOTAN_HAS_BLAKE2B)
 #endif
 
+#if defined(BOTAN_HAS_BEARSSL)
+#endif
+
 #if defined(BOTAN_HAS_OPENSSL)
 #endif
 
@@ -23033,6 +29946,17 @@ std::unique_ptr<HashFunction> HashFunction::create(const std::string& algo_spec,
    if(provider.empty() || provider == "openssl")
       {
       if(auto hash = make_openssl_hash(algo_spec))
+         return hash;
+
+      if(!provider.empty())
+         return nullptr;
+      }
+#endif
+
+#if defined(BOTAN_HAS_BEARSSL)
+   if(provider.empty() || provider == "bearssl")
+      {
+      if(auto hash = make_bearssl_hash(algo_spec))
          return hash;
 
       if(!provider.empty())
@@ -23193,6 +30117,24 @@ std::unique_ptr<HashFunction> HashFunction::create(const std::string& algo_spec,
       }
 #endif
 
+#if defined(BOTAN_HAS_STREEBOG)
+   if(algo_spec == "Streebog-256")
+      {
+      return std::unique_ptr<HashFunction>(new Streebog_256);
+      }
+   if(algo_spec == "Streebog-512")
+      {
+      return std::unique_ptr<HashFunction>(new Streebog_512);
+      }
+#endif
+
+#if defined(BOTAN_HAS_SM3)
+   if(algo_spec == "SM3")
+      {
+      return std::unique_ptr<HashFunction>(new SM3);
+      }
+#endif
+
 #if defined(BOTAN_HAS_WHIRLPOOL)
    if(req.algo_name() == "Whirlpool")
       {
@@ -23248,7 +30190,7 @@ HashFunction::create_or_throw(const std::string& algo,
 
 std::vector<std::string> HashFunction::providers(const std::string& algo_spec)
    {
-   return probe_providers_of<HashFunction>(algo_spec, {"base", "openssl"});
+   return probe_providers_of<HashFunction>(algo_spec, {"base", "bearssl", "openssl"});
    }
 
 }
@@ -23297,6 +30239,23 @@ const uint8_t SHA_512_256_PKCS_ID[] = {
 0x30, 0x31, 0x30, 0x0D, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
 0x65, 0x03, 0x04, 0x02, 0x06, 0x05, 0x00, 0x04, 0x20 };
 
+const uint8_t SHA3_224_PKCS_ID[] = {
+0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x0D };
+
+const uint8_t SHA3_256_PKCS_ID[] = {
+0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x0E };
+
+const uint8_t SHA3_384_PKCS_ID[] = {
+0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x0F };
+
+const uint8_t SHA3_512_PKCS_ID[] = {
+0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x10 };
+
+const uint8_t SM3_PKCS_ID[] = {
+0x30, 0x30, 0x30, 0x0C, 0x06, 0x08, 0x2A, 0x81, 0x1C, 0xCF,
+0x55, 0x01, 0x83, 0x11, 0x05, 0x00, 0x04, 0x20,
+};
+
 const uint8_t TIGER_PKCS_ID[] = {
 0x30, 0x29, 0x30, 0x0D, 0x06, 0x09, 0x2B, 0x06, 0x01, 0x04,
 0x01, 0xDA, 0x47, 0x0C, 0x02, 0x05, 0x00, 0x04, 0x18 };
@@ -23320,7 +30279,7 @@ std::vector<uint8_t> pkcs_hash_id(const std::string& name)
       return std::vector<uint8_t>(RIPEMD_160_PKCS_ID,
                                RIPEMD_160_PKCS_ID + sizeof(RIPEMD_160_PKCS_ID));
 
-   if(name == "SHA-160")
+   if(name == "SHA-160" || name == "SHA-1" || name == "SHA1")
       return std::vector<uint8_t>(SHA_160_PKCS_ID,
                                SHA_160_PKCS_ID + sizeof(SHA_160_PKCS_ID));
 
@@ -23344,6 +30303,25 @@ std::vector<uint8_t> pkcs_hash_id(const std::string& name)
       return std::vector<uint8_t>(SHA_512_256_PKCS_ID,
                                SHA_512_256_PKCS_ID + sizeof(SHA_512_256_PKCS_ID));
 
+   if(name == "SHA-3(224)")
+      return std::vector<uint8_t>(SHA3_224_PKCS_ID,
+                                SHA3_224_PKCS_ID + sizeof(SHA3_224_PKCS_ID));
+
+   if(name == "SHA-3(256)")
+      return std::vector<uint8_t>(SHA3_256_PKCS_ID,
+                                SHA3_256_PKCS_ID + sizeof(SHA3_256_PKCS_ID));
+
+   if(name == "SHA-3(384)")
+      return std::vector<uint8_t>(SHA3_384_PKCS_ID,
+                                SHA3_384_PKCS_ID + sizeof(SHA3_384_PKCS_ID));
+
+   if(name == "SHA-3(512)")
+      return std::vector<uint8_t>(SHA3_512_PKCS_ID,
+                                SHA3_512_PKCS_ID + sizeof(SHA3_512_PKCS_ID));
+
+   if(name == "SM3")
+      return std::vector<uint8_t>(SM3_PKCS_ID, SM3_PKCS_ID + sizeof(SM3_PKCS_ID));
+
    if(name == "Tiger(24,3)")
       return std::vector<uint8_t>(TIGER_PKCS_ID,
                                TIGER_PKCS_ID + sizeof(TIGER_PKCS_ID));
@@ -23356,7 +30334,8 @@ std::vector<uint8_t> pkcs_hash_id(const std::string& name)
 */
 uint8_t ieee1363_hash_id(const std::string& name)
    {
-   if(name == "SHA-160")    return 0x33;
+   if(name == "SHA-160" || name == "SHA-1" || name == "SHA1")
+      return 0x33;
 
    if(name == "SHA-224")    return 0x38;
    if(name == "SHA-256")    return 0x34;
@@ -23574,7 +30553,7 @@ std::vector<uint8_t> hex_decode(const std::string& input,
 }
 /*
 * HKDF
-* (C) 2013,2015 Jack Lloyd
+* (C) 2013,2015,2017 Jack Lloyd
 * (C) 2016 René Korthaus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -23646,6 +30625,54 @@ size_t HKDF_Expand::kdf(uint8_t key[], size_t key_len,
    return offset;
    }
 
+secure_vector<uint8_t>
+hkdf_expand_label(const std::string& hash_fn,
+                  const uint8_t secret[], size_t secret_len,
+                  const std::string& label,
+                  const uint8_t hash_val[], size_t hash_val_len,
+                  size_t length)
+   {
+   if(length > 0xFFFF)
+      throw Invalid_Argument("HKDF-Expand-Label requested output too large");
+   if(label.size() > 0xFF)
+      throw Invalid_Argument("HKDF-Expand-Label label too long");
+   if(hash_val_len > 0xFF)
+      throw Invalid_Argument("HKDF-Expand-Label hash too long");
+
+   const uint16_t length16 = static_cast<uint16_t>(length);
+
+   auto mac = MessageAuthenticationCode::create("HMAC(" + hash_fn + ")");
+   if(!mac)
+      throw Invalid_Argument("HKDF-Expand-Label with HMAC(" + hash_fn + ") not available");
+
+   HKDF_Expand hkdf(mac.release());
+
+   secure_vector<uint8_t> output(length16);
+   std::vector<uint8_t> prefix(3 + label.size() + 1);
+
+   prefix[0] = get_byte(0, length16);
+   prefix[1] = get_byte(1, length16);
+   prefix[2] = static_cast<uint8_t>(label.size());
+
+   copy_mem(prefix.data() + 3,
+            reinterpret_cast<const uint8_t*>(label.data()),
+            label.size());
+
+   prefix[3 + label.size()] = static_cast<uint8_t>(hash_val_len);
+
+   /*
+   * We do something a little dirty here to avoid copying the hash_val,
+   * making use of the fact that Botan's KDF interface supports label+salt,
+   * and knowing that our HKDF hashes first param label then param salt.
+   */
+   hkdf.kdf(output.data(), output.size(),
+            secret, secret_len,
+            hash_val, hash_val_len,
+            prefix.data(), prefix.size());
+
+   return output;
+   }
+
 }
 /*
 * HMAC
@@ -23688,8 +30715,11 @@ void HMAC::key_schedule(const uint8_t key[], size_t length)
    m_ikey.resize(m_hash->hash_block_size());
    m_okey.resize(m_hash->hash_block_size());
 
-   std::fill(m_ikey.begin(), m_ikey.end(), 0x36);
-   std::fill(m_okey.begin(), m_okey.end(), 0x5C);
+   const uint8_t ipad = 0x36;
+   const uint8_t opad = 0x5C;
+
+   std::fill(m_ikey.begin(), m_ikey.end(), ipad);
+   std::fill(m_okey.begin(), m_okey.end(), opad);
 
    if(length > m_hash->hash_block_size())
       {
@@ -23900,40 +30930,160 @@ void HMAC_DRBG::update(const uint8_t input[], size_t input_len)
 void HMAC_DRBG::add_entropy(const uint8_t input[], size_t input_len)
    {
    update(input, input_len);
+
+   if(8*input_len >= security_level())
+      {
+      reset_reseed_counter();
+      }
    }
 
 size_t HMAC_DRBG::security_level() const
    {
-   // sqrt of hash size
-   return m_mac->output_length() * 8 / 2;
+   // security strength of the hash function
+   // for pre-image resistance (see NIST SP 800-57)
+   // SHA-160: 128 bits, SHA-224, SHA-512/224: 192 bits,
+   // SHA-256, SHA-512/256, SHA-384, SHA-512: >= 256 bits
+   // NIST SP 800-90A only supports up to 256 bits though
+   if(m_mac->output_length() < 32)
+      {
+      return (m_mac->output_length() - 4) * 8;
+      }
+   else
+      {
+      return 32 * 8;
+      }
+   }
+}
+/*
+* HOTP
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+HOTP::HOTP(const SymmetricKey& key, const std::string& hash_algo, size_t digits)
+   {
+   if(digits == 6)
+      m_digit_mod = 1000000;
+   else if(digits == 7)
+      m_digit_mod = 10000000;
+   else if(digits == 8)
+      m_digit_mod = 100000000;
+   else
+      throw Invalid_Argument("Invalid HOTP digits");
+
+   /*
+   RFC 4228 only supports SHA-1 but TOTP allows SHA-256 and SHA-512
+   and some HOTP libs support one or both as extensions
+   */
+   if(hash_algo == "SHA-1")
+      m_mac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-1)");
+   else if(hash_algo == "SHA-256")
+      m_mac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-256)");
+   else if(hash_algo == "SHA-512")
+      m_mac = MessageAuthenticationCode::create_or_throw("HMAC(SHA-512)");
+   else
+      throw Invalid_Argument("Unsupported HOTP hash function");
+
+   m_mac->set_key(key);
+   }
+
+uint32_t HOTP::generate_hotp(uint64_t counter)
+   {
+   uint8_t counter8[8] = { 0 };
+   store_be(counter, counter8);
+   m_mac->update(counter8, sizeof(counter8));
+   const secure_vector<uint8_t> mac = m_mac->final();
+
+   const size_t offset = mac[mac.size()-1] & 0x0F;
+   const uint32_t code = load_be<uint32_t>(mac.data() + offset, 0) & 0x7FFFFFFF;
+   return code % m_digit_mod;
+   }
+
+std::pair<bool,uint64_t> HOTP::verify_hotp(uint32_t otp, uint64_t starting_counter, size_t resync_range)
+   {
+   for(size_t i = 0; i <= resync_range; ++i)
+      {
+      if(generate_hotp(starting_counter + i) == otp)
+         return std::make_pair(true, starting_counter + i + 1);
+      }
+   return std::make_pair(false, starting_counter);
+   }
+
+}
+
+/*
+* TOTP
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+TOTP::TOTP(const SymmetricKey& key, const std::string& hash_algo,
+           size_t digits, size_t time_step)
+   : m_hotp(key, hash_algo, digits)
+   , m_time_step(time_step)
+   , m_unix_epoch(calendar_point(1970, 1, 1, 0, 0, 0).to_std_timepoint())
+   {
+   /*
+   * Technically any time step except 0 is valid, but 30 is typical
+   * and over 5 minutes seems unlikely.
+   */
+   if(m_time_step == 0 || m_time_step > 300)
+      throw Invalid_Argument("Invalid TOTP time step");
+   }
+
+uint32_t TOTP::generate_totp(std::chrono::system_clock::time_point current_time)
+   {
+   const uint64_t unix_time =
+      std::chrono::duration_cast<std::chrono::seconds>(current_time - m_unix_epoch).count();
+   return this->generate_totp(unix_time);
+   }
+
+uint32_t TOTP::generate_totp(uint64_t unix_time)
+   {
+   return m_hotp.generate_hotp(unix_time / m_time_step);
+   }
+
+bool TOTP::verify_totp(uint32_t otp, std::chrono::system_clock::time_point current_time,
+                       size_t clock_drift_accepted)
+   {
+   const uint64_t unix_time =
+      std::chrono::duration_cast<std::chrono::seconds>(current_time - m_unix_epoch).count();
+   return verify_totp(otp, unix_time, clock_drift_accepted);
+   }
+
+bool TOTP::verify_totp(uint32_t otp, uint64_t unix_time,
+                       size_t clock_drift_accepted)
+   {
+   uint64_t t = unix_time / m_time_step;
+
+   for(size_t i = 0; i <= clock_drift_accepted; ++i)
+      {
+      if(m_hotp.generate_hotp(t-i) == otp)
+         {
+         return true;
+         }
+      }
+
+   return false;
    }
 
 }
 /*
 * Sketchy HTTP client
 * (C) 2013,2016 Jack Lloyd
+*     2017 René Korthaus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-
-#if defined(BOTAN_HAS_BOOST_ASIO)
-
-  /*
-  * We don't need serial port support anyway, and asking for it
-  * causes macro conflicts with Darwin's termios.h when this
-  * file is included in the amalgamation. GH #350
-  */
-  #define BOOST_ASIO_DISABLE_SERIAL_PORT
-  #include <boost/asio.hpp>
-
-#elif defined(BOTAN_TARGET_OS_HAS_SOCKETS)
-  #include <sys/socket.h>
-  #include <netdb.h>
-  #include <netinet/in.h>
-#else
-  //#warning "No network support enabled in http_util"
-#endif
 
 namespace Botan {
 
@@ -23948,89 +31098,36 @@ namespace {
 std::string http_transact(const std::string& hostname,
                           const std::string& message)
    {
-#if defined(BOTAN_HAS_BOOST_ASIO)
-   using namespace boost::asio::ip;
+   std::unique_ptr<OS::Socket> socket;
 
-   boost::asio::ip::tcp::iostream tcp;
-
-   tcp.connect(hostname, "http");
-
-   if(!tcp)
-      throw HTTP_Error("HTTP connection to " + hostname + " failed");
-
-   tcp << message;
-   tcp.flush();
-
-   std::ostringstream oss;
-   oss << tcp.rdbuf();
-
-   return oss.str();
-#elif defined(BOTAN_TARGET_OS_HAS_SOCKETS)
-
-   hostent* host_addr = ::gethostbyname(hostname.c_str());
-   uint16_t port = 80;
-
-   if(!host_addr)
-      throw HTTP_Error("Name resolution failed for " + hostname);
-
-   if(host_addr->h_addrtype != AF_INET) // FIXME
-      throw HTTP_Error("Hostname " + hostname + " resolved to non-IPv4 address");
-
-   struct socket_raii {
-      socket_raii(int fd) : m_fd(fd) {}
-      ~socket_raii() { ::close(m_fd); }
-      int m_fd;
-      };
-
-   int fd = ::socket(PF_INET, SOCK_STREAM, 0);
-   if(fd == -1)
-      throw HTTP_Error("Unable to create TCP socket");
-   socket_raii raii(fd);
-
-   sockaddr_in socket_info;
-   ::memset(&socket_info, 0, sizeof(socket_info));
-   socket_info.sin_family = AF_INET;
-   socket_info.sin_port = htons(port);
-
-   ::memcpy(&socket_info.sin_addr,
-            host_addr->h_addr,
-            host_addr->h_length);
-
-   socket_info.sin_addr = *reinterpret_cast<struct in_addr*>(host_addr->h_addr); // FIXME
-
-   if(::connect(fd, reinterpret_cast<sockaddr*>(&socket_info), sizeof(struct sockaddr)) != 0)
-      throw HTTP_Error("HTTP connection to " + hostname + " failed");
-
-   size_t sent_so_far = 0;
-   while(sent_so_far != message.size())
+   try
       {
-      size_t left = message.size() - sent_so_far;
-      ssize_t sent = ::write(fd, &message[sent_so_far], left);
-
-      if(sent < 0)
-         throw HTTP_Error("write to HTTP server failed, error '" + std::string(::strerror(errno)) + "'");
-      else
-         sent_so_far += static_cast<size_t>(sent);
+      socket = OS::open_socket(hostname, "http");
+      if(!socket)
+         throw Exception("No socket support enabled in build");
+      }
+   catch(std::exception& e)
+      {
+      throw HTTP_Error("HTTP connection to " + hostname + " failed: " + e.what());
       }
 
+   // Blocks until entire message has been written
+   socket->write(reinterpret_cast<const uint8_t*>(message.data()),
+                 message.size());
+
    std::ostringstream oss;
-   std::vector<char> buf(1024); // arbitrary size
+   std::vector<uint8_t> buf(BOTAN_DEFAULT_BUFFER_SIZE);
    while(true)
       {
-      ssize_t got = ::read(fd, buf.data(), buf.size());
+      const size_t got = socket->read(buf.data(), buf.size());
+      if(got == 0) // EOF
+         break;
 
-      if(got < 0)
-         throw HTTP_Error("read from HTTP server failed, error '" + std::string(::strerror(errno)) + "'");
-      else if(got > 0)
-         oss.write(buf.data(), static_cast<std::streamsize>(got));
-      else
-         break; // EOF
+      oss.write(reinterpret_cast<const char*>(buf.data()),
+                static_cast<std::streamsize>(got));
       }
-   return oss.str();
 
-#else
-   throw HTTP_Error("Cannot connect to " + hostname + ": network code disabled in build");
-#endif
+   return oss.str();
    }
 
 }
@@ -24230,7 +31327,7 @@ inline uint16_t mul(uint16_t x, uint16_t y)
    const uint32_t P_hi = P >> 16;
    const uint32_t P_lo = P & 0xFFFF;
 
-   const uint16_t r_1 = (P_lo - P_hi) + (P_lo < P_hi);
+   const uint16_t r_1 = static_cast<uint16_t>((P_lo - P_hi) + (P_lo < P_hi));
    const uint16_t r_2 = 1 - x - y;
 
    return CT::select(Z_mask, r_1, r_2);
@@ -24310,6 +31407,18 @@ void idea_op(const uint8_t in[], uint8_t out[], size_t blocks, const uint16_t K[
    }
 
 }
+
+size_t IDEA::parallelism() const
+   {
+#if defined(BOTAN_HAS_IDEA_SSE2)
+   if(CPUID::has_sse2())
+      {
+      return 8;
+      }
+#endif
+
+   return 1;
+   }
 
 std::string IDEA::provider() const
    {
@@ -24749,7 +31858,8 @@ bool iso9796_verification(const secure_vector<uint8_t>& const_coded,
       }
 
    secure_vector<uint8_t> coded = const_coded;
-
+   
+   CT::poison(coded.data(), coded.size());
    //remove mask
    uint8_t* DB = coded.data();
    const size_t DB_size = coded.size() - HASH_SIZE - tLength;
@@ -24761,19 +31871,31 @@ bool iso9796_verification(const secure_vector<uint8_t>& const_coded,
    DB[0] &= 0x7F;
 
    //recover msg1 and salt
-   size_t msg1_offset = 0;
-   for(size_t j = 0; j != DB_size; ++j)
+   size_t msg1_offset = 1;
+   uint8_t waiting_for_delim = 0xFF;
+   uint8_t bad_input = 0;
+   for(size_t j = 0; j < DB_size; ++j)
       {
-      if(DB[j] == 0x01)
-         {
-         msg1_offset = j + 1;
-         break;
-         }
+      const uint8_t one_m = CT::is_equal<uint8_t>(DB[j], 0x01);
+      const uint8_t zero_m = CT::is_zero(DB[j]);
+      const uint8_t add_m = waiting_for_delim & zero_m;
+      
+      bad_input |= waiting_for_delim & ~(zero_m | one_m);
+      msg1_offset += CT::select<uint8_t>(add_m, 1, 0);
+      
+      waiting_for_delim &= zero_m;
       }
-   if(msg1_offset == 0)
-      {
-      return false;
-      }
+   
+   //invalid, if delimiter 0x01 was not found or msg1_offset is too big
+   bad_input |= waiting_for_delim;
+   bad_input |= CT::is_less(coded.size(), tLength + HASH_SIZE + msg1_offset + SALT_SIZE);
+
+   //in case that msg1_offset is too big, just continue with offset = 0. 
+   msg1_offset = CT::select<size_t>(bad_input, 0, msg1_offset);
+
+   CT::unpoison(coded.data(), coded.size());
+   CT::unpoison(msg1_offset);
+
    secure_vector<uint8_t> msg1(coded.begin() + msg1_offset,
                             coded.end() - tLength - HASH_SIZE - SALT_SIZE);
    secure_vector<uint8_t> salt(coded.begin() + msg1_offset + msg1.size(),
@@ -24810,9 +31932,12 @@ bool iso9796_verification(const secure_vector<uint8_t>& const_coded,
    hash->update(msg2);
    hash->update(salt);
    secure_vector<uint8_t> H2 = hash->final();
-
+   
    //check if H3 == H2
-   return same_mem(H3.data(), H2.data(), HASH_SIZE);
+   bad_input |= CT::is_equal<uint8_t>(constant_time_compare(H3.data(), H2.data(), HASH_SIZE), false);
+   
+   CT::unpoison(bad_input);
+   return (bad_input == 0);
    }
 
 }
@@ -24891,7 +32016,8 @@ bool ISO_9796_DS3::verify(const secure_vector<uint8_t>& const_coded,
    {
    return iso9796_verification(const_coded, raw, key_bits, m_hash, 0);
    }
-}/*
+}
+/*
 * KASUMI
 * (C) 1999-2007 Jack Lloyd
 *
@@ -24991,7 +32117,7 @@ uint16_t FI(uint16_t I, uint16_t K)
    D7 ^= (K >> 9);
    D9 = KASUMI_SBOX_S9[D9 ^ (K & 0x1FF)] ^ D7;
    D7 = KASUMI_SBOX_S7[D7] ^ (D9 & 0x7F);
-   return (D7 << 9) | D9;
+   return static_cast<uint16_t>(D7 << 9) | D9;
    }
 
 }
@@ -25142,16 +32268,16 @@ void KASUMI::clear()
 #if defined(BOTAN_HAS_KDF1_18033)
 #endif
 
-#if defined(BOTAN_HAS_TLS_V10_PRF)
-#endif
-
-#if defined(BOTAN_HAS_TLS_V12_PRF)
+#if defined(BOTAN_HAS_TLS_V10_PRF) || defined(BOTAN_HAS_TLS_V12_PRF)
 #endif
 
 #if defined(BOTAN_HAS_X942_PRF)
 #endif
 
 #if defined(BOTAN_HAS_SP800_108)
+#endif
+
+#if defined(BOTAN_HAS_SP800_56A)
 #endif
 
 #if defined(BOTAN_HAS_SP800_56C)
@@ -25296,6 +32422,16 @@ std::unique_ptr<KDF> KDF::create(const std::string& algo_spec,
       }
 #endif
 
+#if defined(BOTAN_HAS_SP800_56A)
+   if(req.algo_name() == "SP800-56A" && req.arg_count() == 1)
+      {
+      if(auto hash = HashFunction::create(req.arg(0)))
+         return std::unique_ptr<KDF>(new SP800_56A_Hash(hash.release()));
+      if(auto mac = MessageAuthenticationCode::create(req.arg(0)))
+         return std::unique_ptr<KDF>(new SP800_56A_HMAC(mac.release()));
+      }
+#endif
+
 #if defined(BOTAN_HAS_SP800_56C)
    if(req.algo_name() == "SP800-56C" && req.arg_count() == 1)
       {
@@ -25311,6 +32447,9 @@ std::unique_ptr<KDF> KDF::create(const std::string& algo_spec,
       }
 #endif
 
+   BOTAN_UNUSED(req);
+   BOTAN_UNUSED(provider);
+
    return nullptr;
    }
 
@@ -25319,9 +32458,9 @@ std::unique_ptr<KDF>
 KDF::create_or_throw(const std::string& algo,
                              const std::string& provider)
    {
-   if(auto bc = KDF::create(algo, provider))
+   if(auto kdf = KDF::create(algo, provider))
       {
-      return bc;
+      return kdf;
       }
    throw Lookup_Error("KDF", algo, provider);
    }
@@ -25458,6 +32597,11 @@ size_t KDF2::kdf(uint8_t key[], size_t key_len,
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> Keccak_1600::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new Keccak_1600(*this));
+   }
 
 Keccak_1600::Keccak_1600(size_t output_bits) :
    m_output_bits(output_bits),
@@ -25744,14 +32888,7 @@ bool ptr_in_pool(const void* pool_ptr, size_t poolsize,
    {
    const uintptr_t pool = reinterpret_cast<uintptr_t>(pool_ptr);
    const uintptr_t buf = reinterpret_cast<uintptr_t>(buf_ptr);
-
-   if(buf < pool || buf >= pool + poolsize)
-      return false;
-
-   BOTAN_ASSERT(buf + bufsize <= pool + poolsize,
-                "Pointer does not partially overlap pool");
-
-   return true;
+   return (buf >= pool) && (buf + bufsize <= pool + poolsize);
    }
 
 size_t padding_for_alignment(size_t offset, size_t desired_alignment)
@@ -25845,7 +32982,7 @@ void* mlock_allocator::allocate(size_t num_elems, size_t elem_size)
    return nullptr;
    }
 
-bool mlock_allocator::deallocate(void* p, size_t num_elems, size_t elem_size)
+bool mlock_allocator::deallocate(void* p, size_t num_elems, size_t elem_size) BOTAN_NOEXCEPT
    {
    if(!m_pool)
       return false;
@@ -25853,11 +32990,11 @@ bool mlock_allocator::deallocate(void* p, size_t num_elems, size_t elem_size)
    size_t n = num_elems * elem_size;
 
    /*
-   We return nullptr in allocate if there was an overflow, so we
-   should never ever see an overflow in a deallocation.
+   We return nullptr in allocate if there was an overflow, so if an
+   overflow occurs here we know the pointer was not allocated by this pool.
    */
-   BOTAN_ASSERT(n / elem_size == num_elems,
-                "No overflow in deallocation");
+   if(n / elem_size != num_elems)
+      return false;
 
    if(!ptr_in_pool(m_pool, m_poolsize, p, n))
       return false;
@@ -26060,6 +33197,9 @@ MessageAuthenticationCode::create(const std::string& algo_spec,
       }
 #endif
 
+   BOTAN_UNUSED(req);
+   BOTAN_UNUSED(provider);
+
    return nullptr;
    }
 
@@ -26091,7 +33231,7 @@ bool MessageAuthenticationCode::verify_mac(const uint8_t mac[], size_t length)
    if(our_mac.size() != length)
       return false;
 
-   return same_mem(our_mac.data(), mac, length);
+   return constant_time_compare(our_mac.data(), mac, length);
    }
 
 }
@@ -26112,7 +33252,7 @@ namespace Botan {
 
 namespace {
 
-struct binary_matrix
+class binary_matrix
    {
    public:
       binary_matrix(uint32_t m_rown, uint32_t m_coln);
@@ -26126,21 +33266,16 @@ struct binary_matrix
       uint32_t coef(uint32_t i, uint32_t j)
          {
          return (m_elem[(i) * m_rwdcnt + (j) / 32] >> (j % 32)) & 1;
-         };
+         }
 
       void set_coef_to_one(uint32_t i, uint32_t j)
          {
          m_elem[(i) * m_rwdcnt + (j) / 32] |= (static_cast<uint32_t>(1) << ((j) % 32)) ;
-         };
+         }
 
       void toggle_coeff(uint32_t i, uint32_t j)
          {
          m_elem[(i) * m_rwdcnt + (j) / 32] ^= (static_cast<uint32_t>(1) << ((j) % 32)) ;
-         }
-
-      void set_to_zero()
-         {
-         zeroise(m_elem);
          }
 
       //private:
@@ -26426,7 +33561,7 @@ class gf2m_decomp_rootfind_state
       void calc_next_Aij();
       void calc_Ai_zero(const polyn_gf2m & sigma);
       secure_vector<gf2m> find_roots(const polyn_gf2m & sigma);
-      uint32_t get_code_length() const { return code_length; };
+      uint32_t get_code_length() const { return code_length; }
       uint32_t code_length;
       secure_vector<gf2m> m_Lik; // size is outer_summands * m
       secure_vector<gf2m> m_Aij; // ...
@@ -26441,7 +33576,7 @@ class gf2m_decomp_rootfind_state
 * !! Attention: assumes gf2m is 16bit !!
 */
 #if 0
-gf2m brootf_decomp__gray_to_lex(gf2m gray)
+gf2m brootf_decomp_gray_to_lex(gf2m gray)
    {
    static_assert(sizeof(gf2m) == 2, "Expected size");
    gf2m result = gray ^ (gray>>8);
@@ -26455,7 +33590,7 @@ gf2m brootf_decomp__gray_to_lex(gf2m gray)
 /**
 * calculates ceil((t-4)/5) = outer_summands - 1
 */
-uint32_t brootf_decomp__calc_sum_limit(uint32_t t)
+uint32_t brootf_decomp_calc_sum_limit(uint32_t t)
    {
    uint32_t result;
    if(t < 4)
@@ -26494,7 +33629,7 @@ gf2m_decomp_rootfind_state::gf2m_decomp_rootfind_state(const polyn_gf2m & polyn,
       this->m_sigma_3_neq_0_mask = 0 ;
       }
 
-   this->m_outer_summands =  1 + brootf_decomp__calc_sum_limit(deg_sigma);
+   this->m_outer_summands =  1 + brootf_decomp_calc_sum_limit(deg_sigma);
    this->m_Lik.resize(this->m_outer_summands * sp_field->get_extension_degree());
    this->m_Aij.resize(this->m_outer_summands);
    }
@@ -26888,9 +34023,9 @@ secure_vector<gf2m> goppa_decode(const polyn_gf2m & syndrom_polyn,
 
    std::shared_ptr<GF2m_Field> sp_field = g.get_sp_field();
 
-   std::pair<polyn_gf2m, polyn_gf2m> h__aux = polyn_gf2m::eea_with_coefficients( syndrom_polyn, g, 1);
-   polyn_gf2m & h = h__aux.first;
-   polyn_gf2m & aux = h__aux.second;
+   std::pair<polyn_gf2m, polyn_gf2m> h_aux = polyn_gf2m::eea_with_coefficients( syndrom_polyn, g, 1);
+   polyn_gf2m & h = h_aux.first;
+   polyn_gf2m & aux = h_aux.second;
    a = sp_field->gf_inv(aux.get_coef(0));
    gf2m log_a = sp_field->gf_log(a);
    for(int i = 0; i <= h.get_degree(); ++i)
@@ -26923,9 +34058,9 @@ secure_vector<gf2m> goppa_decode(const polyn_gf2m & syndrom_polyn,
 
    S.get_degree();
 
-   std::pair<polyn_gf2m, polyn_gf2m> v__u = polyn_gf2m::eea_with_coefficients(S, g, t/2+1);
-   polyn_gf2m & u = v__u.second;
-   polyn_gf2m & v = v__u.first;
+   std::pair<polyn_gf2m, polyn_gf2m> v_u = polyn_gf2m::eea_with_coefficients(S, g, t/2+1);
+   polyn_gf2m & u = v_u.second;
+   polyn_gf2m & v = v_u.first;
 
    // sigma = u^2+z*v^2
    polyn_gf2m sigma ( t , g.get_sp_field());
@@ -27122,7 +34257,7 @@ double cout_iter(size_t n, size_t k, size_t p, size_t l)
    {
    double x = binomial(k / 2, p);
    const size_t i = static_cast<size_t>(std::log(x) / std::log(2));
-   double res = 2 * p * (n - k - l) * ldexp(x * x, -l);
+   double res = 2 * p * (n - k - l) * std::ldexp(x * x, -static_cast<int>(l));
 
    // x <- binomial(k/2,p)*2*(2*l+log[2](binomial(k/2,p)))
    x *= 2 * (2 * l + i);
@@ -27175,7 +34310,7 @@ size_t mceliece_work_factor(size_t n, size_t t)
       min = std::min(min, lwf);
       }
 
-   return min;
+   return static_cast<size_t>(min);
    }
 
 }
@@ -27386,13 +34521,6 @@ std::vector<uint8_t> McEliece_PublicKey::public_key_bits() const
       .get_contents_unlocked();
    }
 
-McEliece_PublicKey::McEliece_PublicKey(const McEliece_PublicKey & other) :
-   m_public_matrix(other.m_public_matrix),
-   m_t(other.m_t),
-   m_code_length(other.m_code_length)
-   {
-   }
-
 size_t McEliece_PublicKey::key_length() const
    {
    return m_code_length;
@@ -27476,7 +34604,7 @@ bool McEliece_PrivateKey::check_key(RandomNumberGenerator& rng, bool) const
 McEliece_PrivateKey::McEliece_PrivateKey(const secure_vector<uint8_t>& key_bits)
    {
    size_t n, t;
-   secure_vector<uint8_t> g_enc;
+   secure_vector<uint8_t> enc_g;
    BER_Decoder dec_base(key_bits);
    BER_Decoder dec = dec_base.start_cons(SEQUENCE)
       .start_cons(SEQUENCE)
@@ -27484,7 +34612,7 @@ McEliece_PrivateKey::McEliece_PrivateKey(const secure_vector<uint8_t>& key_bits)
       .decode(t)
       .end_cons()
       .decode(m_public_matrix, OCTET_STRING)
-      .decode(g_enc, OCTET_STRING);
+      .decode(enc_g, OCTET_STRING);
 
    if(t == 0 || n == 0)
       throw Decoding_Error("invalid McEliece parameters");
@@ -27496,7 +34624,7 @@ McEliece_PrivateKey::McEliece_PrivateKey(const secure_vector<uint8_t>& key_bits)
    m_dimension = (n - m_codimension);
 
    std::shared_ptr<GF2m_Field> sp_field(new GF2m_Field(ext_deg));
-   m_g = polyn_gf2m(g_enc, sp_field);
+   m_g = polyn_gf2m(enc_g, sp_field);
    if(m_g.get_degree() != static_cast<int>(t))
       {
       throw Decoding_Error("degree of decoded Goppa polynomial is incorrect");
@@ -27605,7 +34733,7 @@ bool McEliece_PublicKey::operator==(const McEliece_PublicKey& other) const
 
 namespace {
 
-class MCE_KEM_Encryptor : public PK_Ops::KEM_Encryption_with_KDF
+class MCE_KEM_Encryptor final : public PK_Ops::KEM_Encryption_with_KDF
    {
    public:
 
@@ -27633,7 +34761,7 @@ class MCE_KEM_Encryptor : public PK_Ops::KEM_Encryption_with_KDF
       const McEliece_PublicKey& m_key;
    };
 
-class MCE_KEM_Decryptor : public PK_Ops::KEM_Decryption_with_KDF
+class MCE_KEM_Decryptor final : public PK_Ops::KEM_Decryption_with_KDF
    {
    public:
 
@@ -27807,7 +34935,7 @@ polyn_gf2m::polyn_gf2m(const uint8_t* mem, uint32_t mem_len, std::shared_ptr<GF2
    {
    if(mem_len % sizeof(gf2m))
       {
-      throw new Botan::Decoding_Error("illegal length of memory to decode ");
+      throw Botan::Decoding_Error("illegal length of memory to decode ");
       }
 
    uint32_t size = (mem_len / sizeof(this->coeff[0])) ;
@@ -28000,7 +35128,7 @@ std::vector<polyn_gf2m> polyn_gf2m::sqmod_init(const polyn_gf2m & g)
 
 /*Modulo p square of a certain polynomial g, sq[] contains the square
 Modulo g of the base canonical polynomials of degree < d, where d is
-the degree of G. The table sq[] will be calculated by polyn_gf2m__sqmod_init*/
+the degree of G. The table sq[] will be calculated by polyn_gf2m_sqmod_init*/
 polyn_gf2m polyn_gf2m::sqmod( const std::vector<polyn_gf2m> & sq, int d)
    {
    int i, j;
@@ -28210,7 +35338,6 @@ std::pair<polyn_gf2m, polyn_gf2m> polyn_gf2m::eea_with_coefficients( const polyn
             cond1 &= cond2;
             }
          /* expand cond1 to a full mask */
-         //CSEC_MASK__GEN_MASK_16B(cond1, mask);
          gf2m mask = generate_gf2m_mask(cond1);
          fake_elem &= mask;
          r0.patchup_deg_secure(trgt_deg, fake_elem);
@@ -28603,6 +35730,11 @@ mceies_decrypt(const McEliece_PrivateKey& privkey,
 
 namespace Botan {
 
+std::unique_ptr<HashFunction> MD4::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new MD4(*this));
+   }
+
 namespace {
 
 /*
@@ -28712,6 +35844,11 @@ void MD4::clear()
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> MD5::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new MD5(*this));
+   }
 
 namespace {
 
@@ -29065,7 +36202,7 @@ uint16_t FI(uint16_t input, uint16_t key7, uint16_t key9)
    D9 = MISTY1_SBOX_S9[D9] ^ D7;
    D7 = (MISTY1_SBOX_S7[D7] ^ key7 ^ D9) & 0x7F;
    D9 = MISTY1_SBOX_S9[D9 ^ key9] ^ D7;
-   return static_cast<uint16_t>((D7 << 9) | D9);
+   return static_cast<uint16_t>(D7 << 9) | D9;
    }
 
 }
@@ -29091,7 +36228,7 @@ void MISTY1::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
          B3 ^= B2 & RK[2];
          B2 ^= B3 | RK[3];
 
-         uint32_t T0, T1;
+         uint16_t T0, T1;
 
          T0  = FI(B0 ^ RK[ 4], RK[ 5], RK[ 6]) ^ B1;
          T1  = FI(B1 ^ RK[ 7], RK[ 8], RK[ 9]) ^ T0;
@@ -29141,7 +36278,7 @@ void MISTY1::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
          B0 ^= B1 | RK[2];
          B1 ^= B0 & RK[3];
 
-         uint32_t T0, T1;
+         uint16_t T0, T1;
 
          T0  = FI(B2 ^ RK[ 4], RK[ 5], RK[ 6]) ^ B3;
          T1  = FI(B3 ^ RK[ 7], RK[ 8], RK[ 9]) ^ T0;
@@ -29285,13 +36422,13 @@ size_t PKCS7_Padding::unpad(const uint8_t block[], size_t size) const
    size_t bad_input = 0;
    const uint8_t last_byte = block[size-1];
 
-   bad_input |= CT::expand_mask(last_byte > size);
+   bad_input |= CT::expand_mask<size_t>(last_byte > size);
 
    size_t pad_pos = size - last_byte;
    size_t i = size - 2;
    while(i)
       {
-      bad_input |= ~CT::is_equal(block[i],last_byte) & CT::expand_mask(i >= pad_pos);
+      bad_input |= (~CT::is_equal(block[i],last_byte)) & CT::expand_mask<uint8_t>(i >= pad_pos);
       --i;
       }
 
@@ -29326,13 +36463,13 @@ size_t ANSI_X923_Padding::unpad(const uint8_t block[], size_t size) const
    size_t bad_input = 0;
    const size_t last_byte = block[size-1];
 
-   bad_input |= CT::expand_mask(last_byte > size);
+   bad_input |= CT::expand_mask<size_t>(last_byte > size);
 
    size_t pad_pos = size - last_byte;
    size_t i = size - 2;
    while(i)
       {
-      bad_input |= ~CT::is_zero(block[i]) & CT::expand_mask(i >= pad_pos);
+      bad_input |= (~CT::is_zero(block[i])) & CT::expand_mask<uint8_t>(i >= pad_pos);
       --i;
       }
    CT::conditional_copy_mem(bad_input,&pad_pos,&size,&pad_pos,1);
@@ -29405,13 +36542,13 @@ size_t ESP_Padding::unpad(const uint8_t block[], size_t size) const
 
    const size_t last_byte = block[size-1];
    size_t bad_input = 0;
-   bad_input |= CT::expand_mask(last_byte > size);
+   bad_input |= CT::expand_mask<size_t>(last_byte > size);
 
    size_t pad_pos = size - last_byte;
    size_t i = size - 1;
    while(i)
       {
-      bad_input |= ~CT::is_equal<size_t>(size_t(block[i-1]),size_t(block[i])-1) & CT::expand_mask(i > pad_pos);
+      bad_input |= ~CT::is_equal<uint8_t>(size_t(block[i-1]),size_t(block[i])-1) & CT::expand_mask<uint8_t>(i > pad_pos);
       --i;
       }
    CT::conditional_copy_mem(bad_input,&pad_pos,&size,&pad_pos,1);
@@ -29445,13 +36582,25 @@ size_t ESP_Padding::unpad(const uint8_t block[], size_t size) const
 #if defined(BOTAN_HAS_MODE_XTS)
 #endif
 
-#if defined(BOTAN_HAS_MODE_XTS)
+#if defined(BOTAN_HAS_OPENSSL)
 #endif
 
 namespace Botan {
 
-Cipher_Mode* get_cipher_mode(const std::string& algo, Cipher_Dir direction)
+Cipher_Mode* get_cipher_mode(const std::string& algo, Cipher_Dir direction,
+                             const std::string& provider)
    {
+#if defined(BOTAN_HAS_OPENSSL)
+   if(provider.empty() || provider == "openssl")
+      {
+      if(Cipher_Mode* bc = make_openssl_cipher_mode(algo, direction))
+         return bc;
+
+      if(!provider.empty())
+         return nullptr;
+      }
+#endif
+
    if(auto sc = StreamCipher::create(algo))
       {
       return new Stream_Cipher_Mode(sc.release());
@@ -29483,7 +36632,7 @@ Cipher_Mode* get_cipher_mode(const std::string& algo, Cipher_Dir direction)
       alg_args << ')';
 
       const std::string mode_name = mode_info[0] + alg_args.str();
-      return get_cipher_mode(mode_name, direction);
+      return get_cipher_mode(mode_name, direction, provider);
       }
 
 #if defined(BOTAN_HAS_BLOCK_CIPHER)
@@ -29495,7 +36644,7 @@ Cipher_Mode* get_cipher_mode(const std::string& algo, Cipher_Dir direction)
       return nullptr;
       }
 
-   std::unique_ptr<BlockCipher> bc(BlockCipher::create(spec.arg(0)));
+   std::unique_ptr<BlockCipher> bc(BlockCipher::create(spec.arg(0), provider));
 
    if(!bc)
       {
@@ -29553,6 +36702,22 @@ Cipher_Mode* get_cipher_mode(const std::string& algo, Cipher_Dir direction)
 #endif
 
    return nullptr;
+   }
+
+//static
+std::vector<std::string> Cipher_Mode::providers(const std::string& algo_spec)
+   {
+   const std::vector<std::string>& possible = { "base", "openssl" };
+   std::vector<std::string> providers;
+   for(auto&& prov : possible)
+      {
+      std::unique_ptr<Cipher_Mode> mode(get_cipher_mode(algo_spec, ENCRYPTION, prov));
+      if(mode)
+         {
+         providers.push_back(prov); // available
+         }
+      }
+   return providers;
    }
 
 }
@@ -31086,6 +38251,10 @@ word bigint_divop(word n1, word n0, word d)
    if(d == 0)
       throw Invalid_Argument("bigint_divop divide by zero");
 
+#if defined(BOTAN_HAS_MP_DWORD)
+   return ((static_cast<dword>(n1) << MP_WORD_BITS) | n0) / d;
+#else
+
    word high = n1 % d, quotient = 0;
 
    for(size_t i = 0; i != MP_WORD_BITS; ++i)
@@ -31104,6 +38273,7 @@ word bigint_divop(word n1, word n0, word d)
       }
 
    return quotient;
+#endif
    }
 
 /*
@@ -31368,58 +38538,66 @@ size_t karatsuba_size(size_t z_size, size_t x_size, size_t x_sw)
 */
 void bigint_mul(BigInt& z, const BigInt& x, const BigInt& y, word workspace[])
    {
-   const size_t x_sig_words = x.sig_words();
-   const size_t y_sig_words = y.sig_words();
+   return bigint_mul(z.mutable_data(), z.size(),
+                     x.data(), x.size(), x.sig_words(),
+                     y.data(), y.size(), y.sig_words(),
+                     workspace);
+   }
 
-   clear_mem(z.mutable_data(), z.size());
+void bigint_mul(word z[], size_t z_size,
+                const word x[], size_t x_size, size_t x_sw,
+                const word y[], size_t y_size, size_t y_sw,
+                word workspace[])
+   {
+   clear_mem(z, z_size);
 
-   if(x_sig_words == 1)
+   if(x_sw == 1)
       {
-      bigint_linmul3(z.mutable_data(), y.data(), y_sig_words, x.data()[0]);
+      bigint_linmul3(z, y, y_sw, x[0]);
       }
-   else if(y_sig_words == 1)
+   else if(y_sw == 1)
       {
-      bigint_linmul3(z.mutable_data(), x.data(), x_sig_words, y.data()[0]);
+      bigint_linmul3(z, x, x_sw, y[0]);
       }
-   else if(x_sig_words <= 4 && x.size() >= 4 &&
-           y_sig_words <= 4 && y.size() >= 4 && z.size() >= 8)
+   else if(x_sw <= 4 && x_size >= 4 &&
+           y_sw <= 4 && y_size >= 4 && z_size >= 8)
       {
-      bigint_comba_mul4(z.mutable_data(), x.data(), y.data());
+      bigint_comba_mul4(z, x, y);
       }
-   else if(x_sig_words <= 6 && x.size() >= 6 &&
-           y_sig_words <= 6 && y.size() >= 6 && z.size() >= 12)
+   else if(x_sw <= 6 && x_size >= 6 &&
+           y_sw <= 6 && y_size >= 6 && z_size >= 12)
       {
-      bigint_comba_mul6(z.mutable_data(), x.data(), y.data());
+      bigint_comba_mul6(z, x, y);
       }
-   else if(x_sig_words <= 8 && x.size() >= 8 &&
-           y_sig_words <= 8 && y.size() >= 8 && z.size() >= 16)
+   else if(x_sw <= 8 && x_size >= 8 &&
+           y_sw <= 8 && y_size >= 8 && z_size >= 16)
       {
-      bigint_comba_mul8(z.mutable_data(), x.data(), y.data());
+      bigint_comba_mul8(z, x, y);
       }
-   else if(x_sig_words <= 9 && x.size() >= 9 &&
-           y_sig_words <= 9 && y.size() >= 9 && z.size() >= 18)
+   else if(x_sw <= 9 && x_size >= 9 &&
+           y_sw <= 9 && y_size >= 9 && z_size >= 18)
       {
-      bigint_comba_mul9(z.mutable_data(), x.data(), y.data());
+      bigint_comba_mul9(z, x, y);
       }
-   else if(x_sig_words <= 16 && x.size() >= 16 &&
-           y_sig_words <= 16 && y.size() >= 16 && z.size() >= 32)
+   else if(x_sw <= 16 && x_size >= 16 &&
+           y_sw <= 16 && y_size >= 16 && z_size >= 32)
       {
-      bigint_comba_mul16(z.mutable_data(), x.data(), y.data());
+      bigint_comba_mul16(z, x, y);
       }
-   else if(x_sig_words < KARATSUBA_MULTIPLY_THRESHOLD ||
-           y_sig_words < KARATSUBA_MULTIPLY_THRESHOLD ||
+   else if(x_sw < KARATSUBA_MULTIPLY_THRESHOLD ||
+           y_sw < KARATSUBA_MULTIPLY_THRESHOLD ||
            !workspace)
       {
-      basecase_mul(z.mutable_data(), x.data(), x_sig_words, y.data(), y_sig_words);
+      basecase_mul(z, x, x_sw, y, y_sw);
       }
    else
       {
-      const size_t N = karatsuba_size(z.size(), x.size(), x_sig_words, y.size(), y_sig_words);
+      const size_t N = karatsuba_size(z_size, x_size, x_sw, y_size, y_sw);
 
       if(N)
-         karatsuba_mul(z.mutable_data(), x.data(), y.data(), N, workspace);
+         karatsuba_mul(z, x, y, N, workspace);
       else
-         basecase_mul(z.mutable_data(), x.data(), x_sig_words, y.data(), y_sig_words);
+         basecase_mul(z, x, x_sw, y, y_sw);
       }
    }
 
@@ -31568,9 +38746,8 @@ void bigint_monty_mul(BigInt& z, const BigInt& x, const BigInt& y,
    bigint_mul(z, x, y, &ws[0]);
 
    bigint_monty_redc(z.mutable_data(),
-                     &p[0], p_size, p_dash,
-                     &ws[0]);
-
+                     p, p_size, p_dash,
+                     ws);
    }
 
 void bigint_monty_sqr(BigInt& z, const BigInt& x, const word p[],
@@ -31580,8 +38757,8 @@ void bigint_monty_sqr(BigInt& z, const BigInt& x, const word p[],
               x.data(), x.size(), x.sig_words());
 
    bigint_monty_redc(z.mutable_data(),
-                     &p[0], p_size, p_dash,
-                     &ws[0]);
+                     p, p_size, p_dash,
+                     ws);
    }
 
 }
@@ -31601,647 +38778,651 @@ namespace Botan {
 
 typedef newhope_poly poly;
 
-// Don't change this :)
-#define PARAM_Q 12289
-#define PARAM_N 1024
-
-#define NEWHOPE_POLY_BYTES 1792
-#define NEWHOPE_SEED_BYTES 32
-
 namespace {
+
+static const uint16_t PARAM_Q = 12289;
+static const size_t PARAM_N = 1024;
 
 /* Incomplete-reduction routines; for details on allowed input ranges
  * and produced output ranges, see the description in the paper:
  * https://cryptojedi.org/papers/#newhope */
 
 inline uint16_t montgomery_reduce(uint32_t a)
-{
-  const uint32_t qinv = 12287; // -inverse_mod(p,2^18)
-  const uint32_t rlog = 18;
+   {
+   const uint32_t qinv = 12287; // -inverse_mod(p,2^18)
+   const uint32_t rlog = 18;
+   const uint32_t rlog_mask = ((1 << rlog) - 1);
 
-  uint32_t u;
-
-  u = (a * qinv);
-  u &= ((1<<rlog)-1);
-  u *= PARAM_Q;
-  a = a + u;
-  return a >> 18;
-}
+   uint32_t u = (a * qinv);
+   u &= rlog_mask;
+   u *= PARAM_Q;
+   u += a;
+   return (u >> rlog);
+   }
 
 inline uint16_t barrett_reduce(uint16_t a)
-{
-  uint32_t u = (static_cast<uint32_t>(a) * 5) >> 16;
-  u *= PARAM_Q;
-  a -= u;
-  return a;
-}
+   {
+   uint32_t u = (static_cast<uint32_t>(a) * 5) >> 16;
+   u *= PARAM_Q;
+   a -= u;
+   return a;
+   }
 
 inline void mul_coefficients(uint16_t* poly, const uint16_t* factors)
-{
-    for(size_t i = 0; i < PARAM_N; i++)
-      poly[i] = montgomery_reduce((poly[i] * factors[i]));
-}
+   {
+   for(size_t i = 0; i < PARAM_N; i++)
+      {
+      poly[i] = montgomery_reduce(poly[i] * factors[i]);
+      }
+   }
 
 /* GS_bo_to_no; omegas need to be in Montgomery domain */
-inline void ntt(uint16_t * a, const uint16_t* omega)
-{
-  for(size_t i=0;i<10;i+=2)
-  {
-    // Even level
-    size_t distance = (1<<i);
-    for(size_t start = 0; start < distance;start++)
-    {
-      size_t jTwiddle = 0;
-      for(size_t j=start;j<PARAM_N-1;j+=2*distance)
+inline void ntt(uint16_t* a, const uint16_t* omega)
+   {
+   for(size_t i = 0; i < 10; i+=2)
       {
-        uint16_t W = omega[jTwiddle++];
-        uint16_t temp = a[j];
-        a[j] = (temp + a[j + distance]); // Omit reduction (be lazy)
-        a[j + distance] = montgomery_reduce((W * (static_cast<uint32_t>(temp) + 3*PARAM_Q - a[j + distance])));
-      }
-    }
+      // Even level
+      size_t distance = (1<<i);
+      for(size_t start = 0; start < distance; start++)
+         {
+         size_t jTwiddle = 0;
+         for(size_t j = start; j < PARAM_N-1; j += 2*distance)
+            {
+            uint16_t W = omega[jTwiddle++];
+            uint16_t temp = a[j];
+            a[j] = (temp + a[j + distance]); // Omit reduction (be lazy)
+            a[j + distance] = montgomery_reduce((W * (static_cast<uint32_t>(temp) + 3*PARAM_Q - a[j + distance])));
+            }
+         }
 
-    // Odd level
-    distance <<= 1;
-    for(size_t start = 0; start < distance;start++)
-    {
-      size_t jTwiddle = 0;
-      for(size_t j=start;j<PARAM_N-1;j+=2*distance)
+      // Odd level
+      distance <<= 1;
+      for(size_t start = 0; start < distance; start++)
+         {
+         size_t jTwiddle = 0;
+         for(size_t j = start; j < PARAM_N-1; j += 2*distance)
+            {
+            uint16_t W = omega[jTwiddle++];
+            uint16_t temp = a[j];
+            a[j] = barrett_reduce((temp + a[j + distance]));
+            a[j + distance] = montgomery_reduce((W * (static_cast<uint32_t>(temp) + 3*PARAM_Q - a[j + distance])));
+            }
+         }
+      }
+   }
+
+inline void poly_frombytes(poly* r, const uint8_t* a)
+   {
+   for(size_t i = 0; i < PARAM_N/4; i++)
       {
-        uint16_t W = omega[jTwiddle++];
-        uint16_t temp = a[j];
-        a[j] = barrett_reduce((temp + a[j + distance]));
-        a[j + distance] = montgomery_reduce((W * (static_cast<uint32_t>(temp) + 3*PARAM_Q - a[j + distance])));
+      r->coeffs[4*i+0] =  a[7*i+0]       | ((static_cast<uint16_t>(a[7*i+1]) & 0x3f) << 8);
+      r->coeffs[4*i+1] = (a[7*i+1] >> 6) | (static_cast<uint16_t>(a[7*i+2]) << 2) | (static_cast<uint16_t>
+                         (a[7*i+3] & 0x0f) << 10);
+      r->coeffs[4*i+2] = (a[7*i+3] >> 4) | (static_cast<uint16_t>(a[7*i+4]) << 4) | (static_cast<uint16_t>
+                         (a[7*i+5] & 0x03) << 12);
+      r->coeffs[4*i+3] = (a[7*i+5] >> 2) | (static_cast<uint16_t>(a[7*i+6]) << 6);
       }
-    }
-  }
-}
+   }
 
-inline void poly_frombytes(poly *r, const uint8_t *a)
-{
-  for(size_t i=0;i<PARAM_N/4;i++)
-  {
-  r->coeffs[4*i+0] =  a[7*i+0]       | ((static_cast<uint16_t>(a[7*i+1]) & 0x3f) << 8);
-  r->coeffs[4*i+1] = (a[7*i+1] >> 6) | (static_cast<uint16_t>(a[7*i+2]) << 2) | (static_cast<uint16_t>(a[7*i+3] & 0x0f) << 10);
-    r->coeffs[4*i+2] = (a[7*i+3] >> 4) | (static_cast<uint16_t>(a[7*i+4]) << 4) | (static_cast<uint16_t>(a[7*i+5] & 0x03) << 12);
-    r->coeffs[4*i+3] = (a[7*i+5] >> 2) | (static_cast<uint16_t>(a[7*i+6]) << 6);
-  }
-}
+inline void poly_tobytes(uint8_t* r, const poly* p)
+   {
+   for(size_t i = 0; i < PARAM_N/4; i++)
+      {
+      uint16_t t0 = barrett_reduce(p->coeffs[4*i+0]); //Make sure that coefficients have only 14 bits
+      uint16_t t1 = barrett_reduce(p->coeffs[4*i+1]);
+      uint16_t t2 = barrett_reduce(p->coeffs[4*i+2]);
+      uint16_t t3 = barrett_reduce(p->coeffs[4*i+3]);
 
-inline void poly_tobytes(uint8_t *r, const poly *p)
-{
-  for(size_t i=0;i<PARAM_N/4;i++)
-  {
-    uint16_t t0 = barrett_reduce(p->coeffs[4*i+0]); //Make sure that coefficients have only 14 bits
-    uint16_t t1 = barrett_reduce(p->coeffs[4*i+1]);
-    uint16_t t2 = barrett_reduce(p->coeffs[4*i+2]);
-    uint16_t t3 = barrett_reduce(p->coeffs[4*i+3]);
+      uint16_t m;
+      int16_t c;
 
-    uint16_t m;
-    int16_t c;
+      m = t0 - PARAM_Q;
+      c = m;
+      c >>= 15;
+      t0 = m ^ ((t0^m)&c); // <Make sure that coefficients are in [0,q]
 
-    m = t0 - PARAM_Q;
-    c = m;
-    c >>= 15;
-    t0 = m ^ ((t0^m)&c); // <Make sure that coefficients are in [0,q]
+      m = t1 - PARAM_Q;
+      c = m;
+      c >>= 15;
+      t1 = m ^ ((t1^m)&c); // <Make sure that coefficients are in [0,q]
 
-    m = t1 - PARAM_Q;
-    c = m;
-    c >>= 15;
-    t1 = m ^ ((t1^m)&c); // <Make sure that coefficients are in [0,q]
+      m = t2 - PARAM_Q;
+      c = m;
+      c >>= 15;
+      t2 = m ^ ((t2^m)&c); // <Make sure that coefficients are in [0,q]
 
-    m = t2 - PARAM_Q;
-    c = m;
-    c >>= 15;
-    t2 = m ^ ((t2^m)&c); // <Make sure that coefficients are in [0,q]
+      m = t3 - PARAM_Q;
+      c = m;
+      c >>= 15;
+      t3 = m ^ ((t3^m)&c); // <Make sure that coefficients are in [0,q]
 
-    m = t3 - PARAM_Q;
-    c = m;
-    c >>= 15;
-    t3 = m ^ ((t3^m)&c); // <Make sure that coefficients are in [0,q]
+      r[7*i+0] =  t0 & 0xff;
+      r[7*i+1] = (t0 >> 8) | (t1 << 6);
+      r[7*i+2] = (t1 >> 2);
+      r[7*i+3] = (t1 >> 10) | (t2 << 4);
+      r[7*i+4] = (t2 >> 4);
+      r[7*i+5] = (t2 >> 12) | (t3 << 2);
+      r[7*i+6] = (t3 >> 6);
+      }
+   }
 
-    r[7*i+0] =  t0 & 0xff;
-    r[7*i+1] = (t0 >> 8) | (t1 << 6);
-    r[7*i+2] = (t1 >> 2);
-    r[7*i+3] = (t1 >> 10) | (t2 << 4);
-    r[7*i+4] = (t2 >> 4);
-    r[7*i+5] = (t2 >> 12) | (t3 << 2);
-    r[7*i+6] = (t3 >> 6);
-  }
-}
+inline void poly_getnoise(Botan::RandomNumberGenerator& rng, poly* r)
+   {
+   uint8_t buf[4*PARAM_N];
 
-inline void poly_getnoise(Botan::RandomNumberGenerator& rng, poly *r)
-{
-  uint8_t buf[4*PARAM_N];
+   rng.randomize(buf, 4*PARAM_N);
 
-  rng.randomize(buf, 4*PARAM_N);
+   for(size_t i = 0; i < PARAM_N; i++)
+      {
+      const uint32_t t = load_le<uint32_t>(buf, i);
+      uint32_t d = 0;
+      for(size_t j = 0; j < 8; j++)
+         {
+         d += (t >> j) & 0x01010101;
+         }
+      const uint32_t a = ((d >> 8) & 0xff) + (d & 0xff);
+      const uint32_t b = (d >> 24) + ((d >> 16) & 0xff);
+      r->coeffs[i] = a + PARAM_Q - b;
+      }
+   }
 
-  for(size_t i=0;i<PARAM_N;i++)
-  {
-    uint32_t t = load_le<uint32_t>(buf, i);
-    uint32_t d = 0;
-    for(int j=0;j<8;j++)
-      d += (t >> j) & 0x01010101;
-    uint32_t a = ((d >> 8) & 0xff) + (d & 0xff);
-    uint32_t b = (d >> 24) + ((d >> 16) & 0xff);
-    r->coeffs[i] = a + PARAM_Q - b;
-  }
-}
+inline void poly_pointwise(poly* r, const poly* a, const poly* b)
+   {
+   for(size_t i = 0; i < PARAM_N; i++)
+      {
+      const uint16_t t = montgomery_reduce(3186*b->coeffs[i]); /* t is now in Montgomery domain */
+      r->coeffs[i] = montgomery_reduce(a->coeffs[i] * t); /* r->coeffs[i] is back in normal domain */
+      }
+   }
 
-inline void poly_pointwise(poly *r, const poly *a, const poly *b)
-{
-  for(size_t i=0;i<PARAM_N;i++)
-    {
-    uint16_t t = montgomery_reduce(3186*b->coeffs[i]); /* t is now in Montgomery domain */
-    r->coeffs[i] = montgomery_reduce(a->coeffs[i] * t); /* r->coeffs[i] is back in normal domain */
-    }
-}
+inline void poly_add(poly* r, const poly* a, const poly* b)
+   {
+   for(size_t i = 0; i < PARAM_N; i++)
+      {
+      r->coeffs[i] = barrett_reduce(a->coeffs[i] + b->coeffs[i]);
+      }
+   }
 
-inline void poly_add(poly *r, const poly *a, const poly *b)
-{
-  for(size_t i=0;i<PARAM_N;i++)
-    r->coeffs[i] = barrett_reduce(a->coeffs[i] + b->coeffs[i]);
-}
+inline void poly_ntt(poly* r)
+   {
+   static const uint16_t omegas_montgomery[PARAM_N/2] =
+      {
+      4075, 6974, 7373, 7965, 3262, 5079, 522, 2169, 6364, 1018, 1041, 8775, 2344,
+      11011, 5574, 1973, 4536, 1050, 6844, 3860, 3818, 6118, 2683, 1190, 4789,
+      7822, 7540, 6752, 5456, 4449, 3789, 12142, 11973, 382, 3988, 468, 6843, 5339,
+      6196, 3710, 11316, 1254, 5435, 10930, 3998, 10256, 10367, 3879, 11889, 1728,
+      6137, 4948, 5862, 6136, 3643, 6874, 8724, 654, 10302, 1702, 7083, 6760, 56,
+      3199, 9987, 605, 11785, 8076, 5594, 9260, 6403, 4782, 6212, 4624, 9026, 8689,
+      4080, 11868, 6221, 3602, 975, 8077, 8851, 9445, 5681, 3477, 1105, 142, 241,
+      12231, 1003, 3532, 5009, 1956, 6008, 11404, 7377, 2049, 10968, 12097, 7591,
+      5057, 3445, 4780, 2920, 7048, 3127, 8120, 11279, 6821, 11502, 8807, 12138,
+      2127, 2839, 3957, 431, 1579, 6383, 9784, 5874, 677, 3336, 6234, 2766, 1323,
+      9115, 12237, 2031, 6956, 6413, 2281, 3969, 3991, 12133, 9522, 4737, 10996,
+      4774, 5429, 11871, 3772, 453, 5908, 2882, 1805, 2051, 1954, 11713, 3963,
+      2447, 6142, 8174, 3030, 1843, 2361, 12071, 2908, 3529, 3434, 3202, 7796,
+      2057, 5369, 11939, 1512, 6906, 10474, 11026, 49, 10806, 5915, 1489, 9789,
+      5942, 10706, 10431, 7535, 426, 8974, 3757, 10314, 9364, 347, 5868, 9551,
+      9634, 6554, 10596, 9280, 11566, 174, 2948, 2503, 6507, 10723, 11606, 2459,
+      64, 3656, 8455, 5257, 5919, 7856, 1747, 9166, 5486, 9235, 6065, 835, 3570,
+      4240, 11580, 4046, 10970, 9139, 1058, 8210, 11848, 922, 7967, 1958, 10211,
+      1112, 3728, 4049, 11130, 5990, 1404, 325, 948, 11143, 6190, 295, 11637, 5766,
+      8212, 8273, 2919, 8527, 6119, 6992, 8333, 1360, 2555, 6167, 1200, 7105, 7991,
+      3329, 9597, 12121, 5106, 5961, 10695, 10327, 3051, 9923, 4896, 9326, 81,
+      3091, 1000, 7969, 4611, 726, 1853, 12149, 4255, 11112, 2768, 10654, 1062,
+      2294, 3553, 4805, 2747, 4846, 8577, 9154, 1170, 2319, 790, 11334, 9275, 9088,
+      1326, 5086, 9094, 6429, 11077, 10643, 3504, 3542, 8668, 9744, 1479, 1, 8246,
+      7143, 11567, 10984, 4134, 5736, 4978, 10938, 5777, 8961, 4591, 5728, 6461,
+      5023, 9650, 7468, 949, 9664, 2975, 11726, 2744, 9283, 10092, 5067, 12171,
+      2476, 3748, 11336, 6522, 827, 9452, 5374, 12159, 7935, 3296, 3949, 9893,
+      4452, 10908, 2525, 3584, 8112, 8011, 10616, 4989, 6958, 11809, 9447, 12280,
+      1022, 11950, 9821, 11745, 5791, 5092, 2089, 9005, 2881, 3289, 2013, 9048,
+      729, 7901, 1260, 5755, 4632, 11955, 2426, 10593, 1428, 4890, 5911, 3932,
+      9558, 8830, 3637, 5542, 145, 5179, 8595, 3707, 10530, 355, 3382, 4231, 9741,
+      1207, 9041, 7012, 1168, 10146, 11224, 4645, 11885, 10911, 10377, 435, 7952,
+      4096, 493, 9908, 6845, 6039, 2422, 2187, 9723, 8643, 9852, 9302, 6022, 7278,
+      1002, 4284, 5088, 1607, 7313, 875, 8509, 9430, 1045, 2481, 5012, 7428, 354,
+      6591, 9377, 11847, 2401, 1067, 7188, 11516, 390, 8511, 8456, 7270, 545, 8585,
+      9611, 12047, 1537, 4143, 4714, 4885, 1017, 5084, 1632, 3066, 27, 1440, 8526,
+      9273, 12046, 11618, 9289, 3400, 9890, 3136, 7098, 8758, 11813, 7384, 3985,
+      11869, 6730, 10745, 10111, 2249, 4048, 2884, 11136, 2126, 1630, 9103, 5407,
+      2686, 9042, 2969, 8311, 9424, 9919, 8779, 5332, 10626, 1777, 4654, 10863,
+      7351, 3636, 9585, 5291, 8374, 2166, 4919, 12176, 9140, 12129, 7852, 12286,
+      4895, 10805, 2780, 5195, 2305, 7247, 9644, 4053, 10600, 3364, 3271, 4057,
+      4414, 9442, 7917, 2174
+      };
 
-inline void poly_ntt(poly *r)
-{
+   static const uint16_t psis_bitrev_montgomery[PARAM_N] =
+      {
+      4075, 6974, 7373, 7965, 3262, 5079, 522, 2169, 6364, 1018, 1041, 8775, 2344,
+      11011, 5574, 1973, 4536, 1050, 6844, 3860, 3818, 6118, 2683, 1190, 4789,
+      7822, 7540, 6752, 5456, 4449, 3789, 12142, 11973, 382, 3988, 468, 6843, 5339,
+      6196, 3710, 11316, 1254, 5435, 10930, 3998, 10256, 10367, 3879, 11889, 1728,
+      6137, 4948, 5862, 6136, 3643, 6874, 8724, 654, 10302, 1702, 7083, 6760, 56,
+      3199, 9987, 605, 11785, 8076, 5594, 9260, 6403, 4782, 6212, 4624, 9026, 8689,
+      4080, 11868, 6221, 3602, 975, 8077, 8851, 9445, 5681, 3477, 1105, 142, 241,
+      12231, 1003, 3532, 5009, 1956, 6008, 11404, 7377, 2049, 10968, 12097, 7591,
+      5057, 3445, 4780, 2920, 7048, 3127, 8120, 11279, 6821, 11502, 8807, 12138,
+      2127, 2839, 3957, 431, 1579, 6383, 9784, 5874, 677, 3336, 6234, 2766, 1323,
+      9115, 12237, 2031, 6956, 6413, 2281, 3969, 3991, 12133, 9522, 4737, 10996,
+      4774, 5429, 11871, 3772, 453, 5908, 2882, 1805, 2051, 1954, 11713, 3963,
+      2447, 6142, 8174, 3030, 1843, 2361, 12071, 2908, 3529, 3434, 3202, 7796,
+      2057, 5369, 11939, 1512, 6906, 10474, 11026, 49, 10806, 5915, 1489, 9789,
+      5942, 10706, 10431, 7535, 426, 8974, 3757, 10314, 9364, 347, 5868, 9551,
+      9634, 6554, 10596, 9280, 11566, 174, 2948, 2503, 6507, 10723, 11606, 2459,
+      64, 3656, 8455, 5257, 5919, 7856, 1747, 9166, 5486, 9235, 6065, 835, 3570,
+      4240, 11580, 4046, 10970, 9139, 1058, 8210, 11848, 922, 7967, 1958, 10211,
+      1112, 3728, 4049, 11130, 5990, 1404, 325, 948, 11143, 6190, 295, 11637, 5766,
+      8212, 8273, 2919, 8527, 6119, 6992, 8333, 1360, 2555, 6167, 1200, 7105, 7991,
+      3329, 9597, 12121, 5106, 5961, 10695, 10327, 3051, 9923, 4896, 9326, 81,
+      3091, 1000, 7969, 4611, 726, 1853, 12149, 4255, 11112, 2768, 10654, 1062,
+      2294, 3553, 4805, 2747, 4846, 8577, 9154, 1170, 2319, 790, 11334, 9275, 9088,
+      1326, 5086, 9094, 6429, 11077, 10643, 3504, 3542, 8668, 9744, 1479, 1, 8246,
+      7143, 11567, 10984, 4134, 5736, 4978, 10938, 5777, 8961, 4591, 5728, 6461,
+      5023, 9650, 7468, 949, 9664, 2975, 11726, 2744, 9283, 10092, 5067, 12171,
+      2476, 3748, 11336, 6522, 827, 9452, 5374, 12159, 7935, 3296, 3949, 9893,
+      4452, 10908, 2525, 3584, 8112, 8011, 10616, 4989, 6958, 11809, 9447, 12280,
+      1022, 11950, 9821, 11745, 5791, 5092, 2089, 9005, 2881, 3289, 2013, 9048,
+      729, 7901, 1260, 5755, 4632, 11955, 2426, 10593, 1428, 4890, 5911, 3932,
+      9558, 8830, 3637, 5542, 145, 5179, 8595, 3707, 10530, 355, 3382, 4231, 9741,
+      1207, 9041, 7012, 1168, 10146, 11224, 4645, 11885, 10911, 10377, 435, 7952,
+      4096, 493, 9908, 6845, 6039, 2422, 2187, 9723, 8643, 9852, 9302, 6022, 7278,
+      1002, 4284, 5088, 1607, 7313, 875, 8509, 9430, 1045, 2481, 5012, 7428, 354,
+      6591, 9377, 11847, 2401, 1067, 7188, 11516, 390, 8511, 8456, 7270, 545, 8585,
+      9611, 12047, 1537, 4143, 4714, 4885, 1017, 5084, 1632, 3066, 27, 1440, 8526,
+      9273, 12046, 11618, 9289, 3400, 9890, 3136, 7098, 8758, 11813, 7384, 3985,
+      11869, 6730, 10745, 10111, 2249, 4048, 2884, 11136, 2126, 1630, 9103, 5407,
+      2686, 9042, 2969, 8311, 9424, 9919, 8779, 5332, 10626, 1777, 4654, 10863,
+      7351, 3636, 9585, 5291, 8374, 2166, 4919, 12176, 9140, 12129, 7852, 12286,
+      4895, 10805, 2780, 5195, 2305, 7247, 9644, 4053, 10600, 3364, 3271, 4057,
+      4414, 9442, 7917, 2174, 3947, 11951, 2455, 6599, 10545, 10975, 3654, 2894,
+      7681, 7126, 7287, 12269, 4119, 3343, 2151, 1522, 7174, 7350, 11041, 2442,
+      2148, 5959, 6492, 8330, 8945, 5598, 3624, 10397, 1325, 6565, 1945, 11260,
+      10077, 2674, 3338, 3276, 11034, 506, 6505, 1392, 5478, 8778, 1178, 2776,
+      3408, 10347, 11124, 2575, 9489, 12096, 6092, 10058, 4167, 6085, 923, 11251,
+      11912, 4578, 10669, 11914, 425, 10453, 392, 10104, 8464, 4235, 8761, 7376,
+      2291, 3375, 7954, 8896, 6617, 7790, 1737, 11667, 3982, 9342, 6680, 636, 6825,
+      7383, 512, 4670, 2900, 12050, 7735, 994, 1687, 11883, 7021, 146, 10485, 1403,
+      5189, 6094, 2483, 2054, 3042, 10945, 3981, 10821, 11826, 8882, 8151, 180,
+      9600, 7684, 5219, 10880, 6780, 204, 11232, 2600, 7584, 3121, 3017, 11053,
+      7814, 7043, 4251, 4739, 11063, 6771, 7073, 9261, 2360, 11925, 1928, 11825,
+      8024, 3678, 3205, 3359, 11197, 5209, 8581, 3238, 8840, 1136, 9363, 1826,
+      3171, 4489, 7885, 346, 2068, 1389, 8257, 3163, 4840, 6127, 8062, 8921, 612,
+      4238, 10763, 8067, 125, 11749, 10125, 5416, 2110, 716, 9839, 10584, 11475,
+      11873, 3448, 343, 1908, 4538, 10423, 7078, 4727, 1208, 11572, 3589, 2982,
+      1373, 1721, 10753, 4103, 2429, 4209, 5412, 5993, 9011, 438, 3515, 7228, 1218,
+      8347, 5232, 8682, 1327, 7508, 4924, 448, 1014, 10029, 12221, 4566, 5836,
+      12229, 2717, 1535, 3200, 5588, 5845, 412, 5102, 7326, 3744, 3056, 2528, 7406,
+      8314, 9202, 6454, 6613, 1417, 10032, 7784, 1518, 3765, 4176, 5063, 9828,
+      2275, 6636, 4267, 6463, 2065, 7725, 3495, 8328, 8755, 8144, 10533, 5966,
+      12077, 9175, 9520, 5596, 6302, 8400, 579, 6781, 11014, 5734, 11113, 11164,
+      4860, 1131, 10844, 9068, 8016, 9694, 3837, 567, 9348, 7000, 6627, 7699, 5082,
+      682, 11309, 5207, 4050, 7087, 844, 7434, 3769, 293, 9057, 6940, 9344, 10883,
+      2633, 8190, 3944, 5530, 5604, 3480, 2171, 9282, 11024, 2213, 8136, 3805, 767,
+      12239, 216, 11520, 6763, 10353, 7, 8566, 845, 7235, 3154, 4360, 3285, 10268,
+      2832, 3572, 1282, 7559, 3229, 8360, 10583, 6105, 3120, 6643, 6203, 8536,
+      8348, 6919, 3536, 9199, 10891, 11463, 5043, 1658, 5618, 8787, 5789, 4719,
+      751, 11379, 6389, 10783, 3065, 7806, 6586, 2622, 5386, 510, 7628, 6921, 578,
+      10345, 11839, 8929, 4684, 12226, 7154, 9916, 7302, 8481, 3670, 11066, 2334,
+      1590, 7878, 10734, 1802, 1891, 5103, 6151, 8820, 3418, 7846, 9951, 4693, 417,
+      9996, 9652, 4510, 2946, 5461, 365, 881, 1927, 1015, 11675, 11009, 1371,
+      12265, 2485, 11385, 5039, 6742, 8449, 1842, 12217, 8176, 9577, 4834, 7937,
+      9461, 2643, 11194, 3045, 6508, 4094, 3451, 7911, 11048, 5406, 4665, 3020,
+      6616, 11345, 7519, 3669, 5287, 1790, 7014, 5410, 11038, 11249, 2035, 6125,
+      10407, 4565, 7315, 5078, 10506, 2840, 2478, 9270, 4194, 9195, 4518, 7469,
+      1160, 6878, 2730, 10421, 10036, 1734, 3815, 10939, 5832, 10595, 10759, 4423,
+      8420, 9617, 7119, 11010, 11424, 9173, 189, 10080, 10526, 3466, 10588, 7592,
+      3578, 11511, 7785, 9663, 530, 12150, 8957, 2532, 3317, 9349, 10243, 1481,
+      9332, 3454, 3758, 7899, 4218, 2593, 11410, 2276, 982, 6513, 1849, 8494, 9021,
+      4523, 7988, 8, 457, 648, 150, 8000, 2307, 2301, 874, 5650, 170, 9462, 2873,
+      9855, 11498, 2535, 11169, 5808, 12268, 9687, 1901, 7171, 11787, 3846, 1573,
+      6063, 3793, 466, 11259, 10608, 3821, 6320, 4649, 6263, 2929
+      };
 
-static const uint16_t omegas_montgomery[PARAM_N/2] = {
-   4075, 6974, 7373, 7965, 3262, 5079, 522, 2169, 6364, 1018, 1041, 8775, 2344,
-   11011, 5574, 1973, 4536, 1050, 6844, 3860, 3818, 6118, 2683, 1190, 4789,
-   7822, 7540, 6752, 5456, 4449, 3789, 12142, 11973, 382, 3988, 468, 6843, 5339,
-   6196, 3710, 11316, 1254, 5435, 10930, 3998, 10256, 10367, 3879, 11889, 1728,
-   6137, 4948, 5862, 6136, 3643, 6874, 8724, 654, 10302, 1702, 7083, 6760, 56,
-   3199, 9987, 605, 11785, 8076, 5594, 9260, 6403, 4782, 6212, 4624, 9026, 8689,
-   4080, 11868, 6221, 3602, 975, 8077, 8851, 9445, 5681, 3477, 1105, 142, 241,
-   12231, 1003, 3532, 5009, 1956, 6008, 11404, 7377, 2049, 10968, 12097, 7591,
-   5057, 3445, 4780, 2920, 7048, 3127, 8120, 11279, 6821, 11502, 8807, 12138,
-   2127, 2839, 3957, 431, 1579, 6383, 9784, 5874, 677, 3336, 6234, 2766, 1323,
-   9115, 12237, 2031, 6956, 6413, 2281, 3969, 3991, 12133, 9522, 4737, 10996,
-   4774, 5429, 11871, 3772, 453, 5908, 2882, 1805, 2051, 1954, 11713, 3963,
-   2447, 6142, 8174, 3030, 1843, 2361, 12071, 2908, 3529, 3434, 3202, 7796,
-   2057, 5369, 11939, 1512, 6906, 10474, 11026, 49, 10806, 5915, 1489, 9789,
-   5942, 10706, 10431, 7535, 426, 8974, 3757, 10314, 9364, 347, 5868, 9551,
-   9634, 6554, 10596, 9280, 11566, 174, 2948, 2503, 6507, 10723, 11606, 2459,
-   64, 3656, 8455, 5257, 5919, 7856, 1747, 9166, 5486, 9235, 6065, 835, 3570,
-   4240, 11580, 4046, 10970, 9139, 1058, 8210, 11848, 922, 7967, 1958, 10211,
-   1112, 3728, 4049, 11130, 5990, 1404, 325, 948, 11143, 6190, 295, 11637, 5766,
-   8212, 8273, 2919, 8527, 6119, 6992, 8333, 1360, 2555, 6167, 1200, 7105, 7991,
-   3329, 9597, 12121, 5106, 5961, 10695, 10327, 3051, 9923, 4896, 9326, 81,
-   3091, 1000, 7969, 4611, 726, 1853, 12149, 4255, 11112, 2768, 10654, 1062,
-   2294, 3553, 4805, 2747, 4846, 8577, 9154, 1170, 2319, 790, 11334, 9275, 9088,
-   1326, 5086, 9094, 6429, 11077, 10643, 3504, 3542, 8668, 9744, 1479, 1, 8246,
-   7143, 11567, 10984, 4134, 5736, 4978, 10938, 5777, 8961, 4591, 5728, 6461,
-   5023, 9650, 7468, 949, 9664, 2975, 11726, 2744, 9283, 10092, 5067, 12171,
-   2476, 3748, 11336, 6522, 827, 9452, 5374, 12159, 7935, 3296, 3949, 9893,
-   4452, 10908, 2525, 3584, 8112, 8011, 10616, 4989, 6958, 11809, 9447, 12280,
-   1022, 11950, 9821, 11745, 5791, 5092, 2089, 9005, 2881, 3289, 2013, 9048,
-   729, 7901, 1260, 5755, 4632, 11955, 2426, 10593, 1428, 4890, 5911, 3932,
-   9558, 8830, 3637, 5542, 145, 5179, 8595, 3707, 10530, 355, 3382, 4231, 9741,
-   1207, 9041, 7012, 1168, 10146, 11224, 4645, 11885, 10911, 10377, 435, 7952,
-   4096, 493, 9908, 6845, 6039, 2422, 2187, 9723, 8643, 9852, 9302, 6022, 7278,
-   1002, 4284, 5088, 1607, 7313, 875, 8509, 9430, 1045, 2481, 5012, 7428, 354,
-   6591, 9377, 11847, 2401, 1067, 7188, 11516, 390, 8511, 8456, 7270, 545, 8585,
-   9611, 12047, 1537, 4143, 4714, 4885, 1017, 5084, 1632, 3066, 27, 1440, 8526,
-   9273, 12046, 11618, 9289, 3400, 9890, 3136, 7098, 8758, 11813, 7384, 3985,
-   11869, 6730, 10745, 10111, 2249, 4048, 2884, 11136, 2126, 1630, 9103, 5407,
-   2686, 9042, 2969, 8311, 9424, 9919, 8779, 5332, 10626, 1777, 4654, 10863,
-   7351, 3636, 9585, 5291, 8374, 2166, 4919, 12176, 9140, 12129, 7852, 12286,
-   4895, 10805, 2780, 5195, 2305, 7247, 9644, 4053, 10600, 3364, 3271, 4057,
-   4414, 9442, 7917, 2174};
-
-static const uint16_t psis_bitrev_montgomery[PARAM_N] = {
-   4075, 6974, 7373, 7965, 3262, 5079, 522, 2169, 6364, 1018, 1041, 8775, 2344,
-   11011, 5574, 1973, 4536, 1050, 6844, 3860, 3818, 6118, 2683, 1190, 4789,
-   7822, 7540, 6752, 5456, 4449, 3789, 12142, 11973, 382, 3988, 468, 6843, 5339,
-   6196, 3710, 11316, 1254, 5435, 10930, 3998, 10256, 10367, 3879, 11889, 1728,
-   6137, 4948, 5862, 6136, 3643, 6874, 8724, 654, 10302, 1702, 7083, 6760, 56,
-   3199, 9987, 605, 11785, 8076, 5594, 9260, 6403, 4782, 6212, 4624, 9026, 8689,
-   4080, 11868, 6221, 3602, 975, 8077, 8851, 9445, 5681, 3477, 1105, 142, 241,
-   12231, 1003, 3532, 5009, 1956, 6008, 11404, 7377, 2049, 10968, 12097, 7591,
-   5057, 3445, 4780, 2920, 7048, 3127, 8120, 11279, 6821, 11502, 8807, 12138,
-   2127, 2839, 3957, 431, 1579, 6383, 9784, 5874, 677, 3336, 6234, 2766, 1323,
-   9115, 12237, 2031, 6956, 6413, 2281, 3969, 3991, 12133, 9522, 4737, 10996,
-   4774, 5429, 11871, 3772, 453, 5908, 2882, 1805, 2051, 1954, 11713, 3963,
-   2447, 6142, 8174, 3030, 1843, 2361, 12071, 2908, 3529, 3434, 3202, 7796,
-   2057, 5369, 11939, 1512, 6906, 10474, 11026, 49, 10806, 5915, 1489, 9789,
-   5942, 10706, 10431, 7535, 426, 8974, 3757, 10314, 9364, 347, 5868, 9551,
-   9634, 6554, 10596, 9280, 11566, 174, 2948, 2503, 6507, 10723, 11606, 2459,
-   64, 3656, 8455, 5257, 5919, 7856, 1747, 9166, 5486, 9235, 6065, 835, 3570,
-   4240, 11580, 4046, 10970, 9139, 1058, 8210, 11848, 922, 7967, 1958, 10211,
-   1112, 3728, 4049, 11130, 5990, 1404, 325, 948, 11143, 6190, 295, 11637, 5766,
-   8212, 8273, 2919, 8527, 6119, 6992, 8333, 1360, 2555, 6167, 1200, 7105, 7991,
-   3329, 9597, 12121, 5106, 5961, 10695, 10327, 3051, 9923, 4896, 9326, 81,
-   3091, 1000, 7969, 4611, 726, 1853, 12149, 4255, 11112, 2768, 10654, 1062,
-   2294, 3553, 4805, 2747, 4846, 8577, 9154, 1170, 2319, 790, 11334, 9275, 9088,
-   1326, 5086, 9094, 6429, 11077, 10643, 3504, 3542, 8668, 9744, 1479, 1, 8246,
-   7143, 11567, 10984, 4134, 5736, 4978, 10938, 5777, 8961, 4591, 5728, 6461,
-   5023, 9650, 7468, 949, 9664, 2975, 11726, 2744, 9283, 10092, 5067, 12171,
-   2476, 3748, 11336, 6522, 827, 9452, 5374, 12159, 7935, 3296, 3949, 9893,
-   4452, 10908, 2525, 3584, 8112, 8011, 10616, 4989, 6958, 11809, 9447, 12280,
-   1022, 11950, 9821, 11745, 5791, 5092, 2089, 9005, 2881, 3289, 2013, 9048,
-   729, 7901, 1260, 5755, 4632, 11955, 2426, 10593, 1428, 4890, 5911, 3932,
-   9558, 8830, 3637, 5542, 145, 5179, 8595, 3707, 10530, 355, 3382, 4231, 9741,
-   1207, 9041, 7012, 1168, 10146, 11224, 4645, 11885, 10911, 10377, 435, 7952,
-   4096, 493, 9908, 6845, 6039, 2422, 2187, 9723, 8643, 9852, 9302, 6022, 7278,
-   1002, 4284, 5088, 1607, 7313, 875, 8509, 9430, 1045, 2481, 5012, 7428, 354,
-   6591, 9377, 11847, 2401, 1067, 7188, 11516, 390, 8511, 8456, 7270, 545, 8585,
-   9611, 12047, 1537, 4143, 4714, 4885, 1017, 5084, 1632, 3066, 27, 1440, 8526,
-   9273, 12046, 11618, 9289, 3400, 9890, 3136, 7098, 8758, 11813, 7384, 3985,
-   11869, 6730, 10745, 10111, 2249, 4048, 2884, 11136, 2126, 1630, 9103, 5407,
-   2686, 9042, 2969, 8311, 9424, 9919, 8779, 5332, 10626, 1777, 4654, 10863,
-   7351, 3636, 9585, 5291, 8374, 2166, 4919, 12176, 9140, 12129, 7852, 12286,
-   4895, 10805, 2780, 5195, 2305, 7247, 9644, 4053, 10600, 3364, 3271, 4057,
-   4414, 9442, 7917, 2174, 3947, 11951, 2455, 6599, 10545, 10975, 3654, 2894,
-   7681, 7126, 7287, 12269, 4119, 3343, 2151, 1522, 7174, 7350, 11041, 2442,
-   2148, 5959, 6492, 8330, 8945, 5598, 3624, 10397, 1325, 6565, 1945, 11260,
-   10077, 2674, 3338, 3276, 11034, 506, 6505, 1392, 5478, 8778, 1178, 2776,
-   3408, 10347, 11124, 2575, 9489, 12096, 6092, 10058, 4167, 6085, 923, 11251,
-   11912, 4578, 10669, 11914, 425, 10453, 392, 10104, 8464, 4235, 8761, 7376,
-   2291, 3375, 7954, 8896, 6617, 7790, 1737, 11667, 3982, 9342, 6680, 636, 6825,
-   7383, 512, 4670, 2900, 12050, 7735, 994, 1687, 11883, 7021, 146, 10485, 1403,
-   5189, 6094, 2483, 2054, 3042, 10945, 3981, 10821, 11826, 8882, 8151, 180,
-   9600, 7684, 5219, 10880, 6780, 204, 11232, 2600, 7584, 3121, 3017, 11053,
-   7814, 7043, 4251, 4739, 11063, 6771, 7073, 9261, 2360, 11925, 1928, 11825,
-   8024, 3678, 3205, 3359, 11197, 5209, 8581, 3238, 8840, 1136, 9363, 1826,
-   3171, 4489, 7885, 346, 2068, 1389, 8257, 3163, 4840, 6127, 8062, 8921, 612,
-   4238, 10763, 8067, 125, 11749, 10125, 5416, 2110, 716, 9839, 10584, 11475,
-   11873, 3448, 343, 1908, 4538, 10423, 7078, 4727, 1208, 11572, 3589, 2982,
-   1373, 1721, 10753, 4103, 2429, 4209, 5412, 5993, 9011, 438, 3515, 7228, 1218,
-   8347, 5232, 8682, 1327, 7508, 4924, 448, 1014, 10029, 12221, 4566, 5836,
-   12229, 2717, 1535, 3200, 5588, 5845, 412, 5102, 7326, 3744, 3056, 2528, 7406,
-   8314, 9202, 6454, 6613, 1417, 10032, 7784, 1518, 3765, 4176, 5063, 9828,
-   2275, 6636, 4267, 6463, 2065, 7725, 3495, 8328, 8755, 8144, 10533, 5966,
-   12077, 9175, 9520, 5596, 6302, 8400, 579, 6781, 11014, 5734, 11113, 11164,
-   4860, 1131, 10844, 9068, 8016, 9694, 3837, 567, 9348, 7000, 6627, 7699, 5082,
-   682, 11309, 5207, 4050, 7087, 844, 7434, 3769, 293, 9057, 6940, 9344, 10883,
-   2633, 8190, 3944, 5530, 5604, 3480, 2171, 9282, 11024, 2213, 8136, 3805, 767,
-   12239, 216, 11520, 6763, 10353, 7, 8566, 845, 7235, 3154, 4360, 3285, 10268,
-   2832, 3572, 1282, 7559, 3229, 8360, 10583, 6105, 3120, 6643, 6203, 8536,
-   8348, 6919, 3536, 9199, 10891, 11463, 5043, 1658, 5618, 8787, 5789, 4719,
-   751, 11379, 6389, 10783, 3065, 7806, 6586, 2622, 5386, 510, 7628, 6921, 578,
-   10345, 11839, 8929, 4684, 12226, 7154, 9916, 7302, 8481, 3670, 11066, 2334,
-   1590, 7878, 10734, 1802, 1891, 5103, 6151, 8820, 3418, 7846, 9951, 4693, 417,
-   9996, 9652, 4510, 2946, 5461, 365, 881, 1927, 1015, 11675, 11009, 1371,
-   12265, 2485, 11385, 5039, 6742, 8449, 1842, 12217, 8176, 9577, 4834, 7937,
-   9461, 2643, 11194, 3045, 6508, 4094, 3451, 7911, 11048, 5406, 4665, 3020,
-   6616, 11345, 7519, 3669, 5287, 1790, 7014, 5410, 11038, 11249, 2035, 6125,
-   10407, 4565, 7315, 5078, 10506, 2840, 2478, 9270, 4194, 9195, 4518, 7469,
-   1160, 6878, 2730, 10421, 10036, 1734, 3815, 10939, 5832, 10595, 10759, 4423,
-   8420, 9617, 7119, 11010, 11424, 9173, 189, 10080, 10526, 3466, 10588, 7592,
-   3578, 11511, 7785, 9663, 530, 12150, 8957, 2532, 3317, 9349, 10243, 1481,
-   9332, 3454, 3758, 7899, 4218, 2593, 11410, 2276, 982, 6513, 1849, 8494, 9021,
-   4523, 7988, 8, 457, 648, 150, 8000, 2307, 2301, 874, 5650, 170, 9462, 2873,
-   9855, 11498, 2535, 11169, 5808, 12268, 9687, 1901, 7171, 11787, 3846, 1573,
-   6063, 3793, 466, 11259, 10608, 3821, 6320, 4649, 6263, 2929};
-
-  mul_coefficients(r->coeffs, psis_bitrev_montgomery);
-  ntt(r->coeffs, omegas_montgomery);
-}
+   mul_coefficients(r->coeffs, psis_bitrev_montgomery);
+   ntt(r->coeffs, omegas_montgomery);
+   }
 
 inline void bitrev_vector(uint16_t* poly)
-{
-static const uint16_t bitrev_table[1024] = {
-  0,512,256,768,128,640,384,896,64,576,320,832,192,704,448,960,32,544,288,800,160,672,416,928,96,608,352,864,224,736,480,992,
-  16,528,272,784,144,656,400,912,80,592,336,848,208,720,464,976,48,560,304,816,176,688,432,944,112,624,368,880,240,752,496,1008,
-  8,520,264,776,136,648,392,904,72,584,328,840,200,712,456,968,40,552,296,808,168,680,424,936,104,616,360,872,232,744,488,1000,
-  24,536,280,792,152,664,408,920,88,600,344,856,216,728,472,984,56,568,312,824,184,696,440,952,120,632,376,888,248,760,504,1016,
-  4,516,260,772,132,644,388,900,68,580,324,836,196,708,452,964,36,548,292,804,164,676,420,932,100,612,356,868,228,740,484,996,
-  20,532,276,788,148,660,404,916,84,596,340,852,212,724,468,980,52,564,308,820,180,692,436,948,116,628,372,884,244,756,500,1012,
-  12,524,268,780,140,652,396,908,76,588,332,844,204,716,460,972,44,556,300,812,172,684,428,940,108,620,364,876,236,748,492,1004,
-  28,540,284,796,156,668,412,924,92,604,348,860,220,732,476,988,60,572,316,828,188,700,444,956,124,636,380,892,252,764,508,1020,
-  2,514,258,770,130,642,386,898,66,578,322,834,194,706,450,962,34,546,290,802,162,674,418,930,98,610,354,866,226,738,482,994,
-  18,530,274,786,146,658,402,914,82,594,338,850,210,722,466,978,50,562,306,818,178,690,434,946,114,626,370,882,242,754,498,1010,
-  10,522,266,778,138,650,394,906,74,586,330,842,202,714,458,970,42,554,298,810,170,682,426,938,106,618,362,874,234,746,490,1002,
-  26,538,282,794,154,666,410,922,90,602,346,858,218,730,474,986,58,570,314,826,186,698,442,954,122,634,378,890,250,762,506,1018,
-  6,518,262,774,134,646,390,902,70,582,326,838,198,710,454,966,38,550,294,806,166,678,422,934,102,614,358,870,230,742,486,998,
-  22,534,278,790,150,662,406,918,86,598,342,854,214,726,470,982,54,566,310,822,182,694,438,950,118,630,374,886,246,758,502,1014,
-  14,526,270,782,142,654,398,910,78,590,334,846,206,718,462,974,46,558,302,814,174,686,430,942,110,622,366,878,238,750,494,1006,
-  30,542,286,798,158,670,414,926,94,606,350,862,222,734,478,990,62,574,318,830,190,702,446,958,126,638,382,894,254,766,510,1022,
-  1,513,257,769,129,641,385,897,65,577,321,833,193,705,449,961,33,545,289,801,161,673,417,929,97,609,353,865,225,737,481,993,
-  17,529,273,785,145,657,401,913,81,593,337,849,209,721,465,977,49,561,305,817,177,689,433,945,113,625,369,881,241,753,497,1009,
-  9,521,265,777,137,649,393,905,73,585,329,841,201,713,457,969,41,553,297,809,169,681,425,937,105,617,361,873,233,745,489,1001,
-  25,537,281,793,153,665,409,921,89,601,345,857,217,729,473,985,57,569,313,825,185,697,441,953,121,633,377,889,249,761,505,1017,
-  5,517,261,773,133,645,389,901,69,581,325,837,197,709,453,965,37,549,293,805,165,677,421,933,101,613,357,869,229,741,485,997,
-  21,533,277,789,149,661,405,917,85,597,341,853,213,725,469,981,53,565,309,821,181,693,437,949,117,629,373,885,245,757,501,1013,
-  13,525,269,781,141,653,397,909,77,589,333,845,205,717,461,973,45,557,301,813,173,685,429,941,109,621,365,877,237,749,493,1005,
-  29,541,285,797,157,669,413,925,93,605,349,861,221,733,477,989,61,573,317,829,189,701,445,957,125,637,381,893,253,765,509,1021,
-  3,515,259,771,131,643,387,899,67,579,323,835,195,707,451,963,35,547,291,803,163,675,419,931,99,611,355,867,227,739,483,995,
-  19,531,275,787,147,659,403,915,83,595,339,851,211,723,467,979,51,563,307,819,179,691,435,947,115,627,371,883,243,755,499,1011,
-  11,523,267,779,139,651,395,907,75,587,331,843,203,715,459,971,43,555,299,811,171,683,427,939,107,619,363,875,235,747,491,1003,
-  27,539,283,795,155,667,411,923,91,603,347,859,219,731,475,987,59,571,315,827,187,699,443,955,123,635,379,891,251,763,507,1019,
-  7,519,263,775,135,647,391,903,71,583,327,839,199,711,455,967,39,551,295,807,167,679,423,935,103,615,359,871,231,743,487,999,
-  23,535,279,791,151,663,407,919,87,599,343,855,215,727,471,983,55,567,311,823,183,695,439,951,119,631,375,887,247,759,503,1015,
-  15,527,271,783,143,655,399,911,79,591,335,847,207,719,463,975,47,559,303,815,175,687,431,943,111,623,367,879,239,751,495,1007,
-  31,543,287,799,159,671,415,927,95,607,351,863,223,735,479,991,63,575,319,831,191,703,447,959,127,639,383,895,255,767,511,1023
-};
+   {
+   static const uint16_t bitrev_table[1024] =
+      {
+      0, 512, 256, 768, 128, 640, 384, 896, 64, 576, 320, 832, 192, 704, 448, 960, 32, 544, 288, 800, 160, 672, 416, 928, 96, 608, 352, 864, 224, 736, 480, 992,
+      16, 528, 272, 784, 144, 656, 400, 912, 80, 592, 336, 848, 208, 720, 464, 976, 48, 560, 304, 816, 176, 688, 432, 944, 112, 624, 368, 880, 240, 752, 496, 1008,
+      8, 520, 264, 776, 136, 648, 392, 904, 72, 584, 328, 840, 200, 712, 456, 968, 40, 552, 296, 808, 168, 680, 424, 936, 104, 616, 360, 872, 232, 744, 488, 1000,
+      24, 536, 280, 792, 152, 664, 408, 920, 88, 600, 344, 856, 216, 728, 472, 984, 56, 568, 312, 824, 184, 696, 440, 952, 120, 632, 376, 888, 248, 760, 504, 1016,
+      4, 516, 260, 772, 132, 644, 388, 900, 68, 580, 324, 836, 196, 708, 452, 964, 36, 548, 292, 804, 164, 676, 420, 932, 100, 612, 356, 868, 228, 740, 484, 996,
+      20, 532, 276, 788, 148, 660, 404, 916, 84, 596, 340, 852, 212, 724, 468, 980, 52, 564, 308, 820, 180, 692, 436, 948, 116, 628, 372, 884, 244, 756, 500, 1012,
+      12, 524, 268, 780, 140, 652, 396, 908, 76, 588, 332, 844, 204, 716, 460, 972, 44, 556, 300, 812, 172, 684, 428, 940, 108, 620, 364, 876, 236, 748, 492, 1004,
+      28, 540, 284, 796, 156, 668, 412, 924, 92, 604, 348, 860, 220, 732, 476, 988, 60, 572, 316, 828, 188, 700, 444, 956, 124, 636, 380, 892, 252, 764, 508, 1020,
+      2, 514, 258, 770, 130, 642, 386, 898, 66, 578, 322, 834, 194, 706, 450, 962, 34, 546, 290, 802, 162, 674, 418, 930, 98, 610, 354, 866, 226, 738, 482, 994,
+      18, 530, 274, 786, 146, 658, 402, 914, 82, 594, 338, 850, 210, 722, 466, 978, 50, 562, 306, 818, 178, 690, 434, 946, 114, 626, 370, 882, 242, 754, 498, 1010,
+      10, 522, 266, 778, 138, 650, 394, 906, 74, 586, 330, 842, 202, 714, 458, 970, 42, 554, 298, 810, 170, 682, 426, 938, 106, 618, 362, 874, 234, 746, 490, 1002,
+      26, 538, 282, 794, 154, 666, 410, 922, 90, 602, 346, 858, 218, 730, 474, 986, 58, 570, 314, 826, 186, 698, 442, 954, 122, 634, 378, 890, 250, 762, 506, 1018,
+      6, 518, 262, 774, 134, 646, 390, 902, 70, 582, 326, 838, 198, 710, 454, 966, 38, 550, 294, 806, 166, 678, 422, 934, 102, 614, 358, 870, 230, 742, 486, 998,
+      22, 534, 278, 790, 150, 662, 406, 918, 86, 598, 342, 854, 214, 726, 470, 982, 54, 566, 310, 822, 182, 694, 438, 950, 118, 630, 374, 886, 246, 758, 502, 1014,
+      14, 526, 270, 782, 142, 654, 398, 910, 78, 590, 334, 846, 206, 718, 462, 974, 46, 558, 302, 814, 174, 686, 430, 942, 110, 622, 366, 878, 238, 750, 494, 1006,
+      30, 542, 286, 798, 158, 670, 414, 926, 94, 606, 350, 862, 222, 734, 478, 990, 62, 574, 318, 830, 190, 702, 446, 958, 126, 638, 382, 894, 254, 766, 510, 1022,
+      1, 513, 257, 769, 129, 641, 385, 897, 65, 577, 321, 833, 193, 705, 449, 961, 33, 545, 289, 801, 161, 673, 417, 929, 97, 609, 353, 865, 225, 737, 481, 993,
+      17, 529, 273, 785, 145, 657, 401, 913, 81, 593, 337, 849, 209, 721, 465, 977, 49, 561, 305, 817, 177, 689, 433, 945, 113, 625, 369, 881, 241, 753, 497, 1009,
+      9, 521, 265, 777, 137, 649, 393, 905, 73, 585, 329, 841, 201, 713, 457, 969, 41, 553, 297, 809, 169, 681, 425, 937, 105, 617, 361, 873, 233, 745, 489, 1001,
+      25, 537, 281, 793, 153, 665, 409, 921, 89, 601, 345, 857, 217, 729, 473, 985, 57, 569, 313, 825, 185, 697, 441, 953, 121, 633, 377, 889, 249, 761, 505, 1017,
+      5, 517, 261, 773, 133, 645, 389, 901, 69, 581, 325, 837, 197, 709, 453, 965, 37, 549, 293, 805, 165, 677, 421, 933, 101, 613, 357, 869, 229, 741, 485, 997,
+      21, 533, 277, 789, 149, 661, 405, 917, 85, 597, 341, 853, 213, 725, 469, 981, 53, 565, 309, 821, 181, 693, 437, 949, 117, 629, 373, 885, 245, 757, 501, 1013,
+      13, 525, 269, 781, 141, 653, 397, 909, 77, 589, 333, 845, 205, 717, 461, 973, 45, 557, 301, 813, 173, 685, 429, 941, 109, 621, 365, 877, 237, 749, 493, 1005,
+      29, 541, 285, 797, 157, 669, 413, 925, 93, 605, 349, 861, 221, 733, 477, 989, 61, 573, 317, 829, 189, 701, 445, 957, 125, 637, 381, 893, 253, 765, 509, 1021,
+      3, 515, 259, 771, 131, 643, 387, 899, 67, 579, 323, 835, 195, 707, 451, 963, 35, 547, 291, 803, 163, 675, 419, 931, 99, 611, 355, 867, 227, 739, 483, 995,
+      19, 531, 275, 787, 147, 659, 403, 915, 83, 595, 339, 851, 211, 723, 467, 979, 51, 563, 307, 819, 179, 691, 435, 947, 115, 627, 371, 883, 243, 755, 499, 1011,
+      11, 523, 267, 779, 139, 651, 395, 907, 75, 587, 331, 843, 203, 715, 459, 971, 43, 555, 299, 811, 171, 683, 427, 939, 107, 619, 363, 875, 235, 747, 491, 1003,
+      27, 539, 283, 795, 155, 667, 411, 923, 91, 603, 347, 859, 219, 731, 475, 987, 59, 571, 315, 827, 187, 699, 443, 955, 123, 635, 379, 891, 251, 763, 507, 1019,
+      7, 519, 263, 775, 135, 647, 391, 903, 71, 583, 327, 839, 199, 711, 455, 967, 39, 551, 295, 807, 167, 679, 423, 935, 103, 615, 359, 871, 231, 743, 487, 999,
+      23, 535, 279, 791, 151, 663, 407, 919, 87, 599, 343, 855, 215, 727, 471, 983, 55, 567, 311, 823, 183, 695, 439, 951, 119, 631, 375, 887, 247, 759, 503, 1015,
+      15, 527, 271, 783, 143, 655, 399, 911, 79, 591, 335, 847, 207, 719, 463, 975, 47, 559, 303, 815, 175, 687, 431, 943, 111, 623, 367, 879, 239, 751, 495, 1007,
+      31, 543, 287, 799, 159, 671, 415, 927, 95, 607, 351, 863, 223, 735, 479, 991, 63, 575, 319, 831, 191, 703, 447, 959, 127, 639, 383, 895, 255, 767, 511, 1023
+      };
 
-    unsigned int i,r;
-    uint16_t tmp;
+   for(size_t i = 0; i < PARAM_N; i++)
+      {
+      const uint16_t r = bitrev_table[i];
+      if(i < r)
+         {
+         const uint16_t tmp = poly[i];
+         poly[i] = poly[r];
+         poly[r] = tmp;
+         }
+      }
+   }
 
-    for(i = 0; i < PARAM_N; i++)
-    {
-        r = bitrev_table[i];
-        if (i < r)
-        {
-          tmp = poly[i];
-          poly[i] = poly[r];
-          poly[r] = tmp;
-        }
-    }
-}
+inline void poly_invntt(poly* r)
+   {
+   static const uint16_t omegas_inv_montgomery[PARAM_N/2] =
+      {
+      4075, 5315, 4324, 4916, 10120, 11767, 7210, 9027, 10316, 6715, 1278, 9945,
+      3514, 11248, 11271, 5925, 147, 8500, 7840, 6833, 5537, 4749, 4467, 7500,
+      11099, 9606, 6171, 8471, 8429, 5445, 11239, 7753, 9090, 12233, 5529, 5206,
+      10587, 1987, 11635, 3565, 5415, 8646, 6153, 6427, 7341, 6152, 10561, 400,
+      8410, 1922, 2033, 8291, 1359, 6854, 11035, 973, 8579, 6093, 6950, 5446,
+      11821, 8301, 11907, 316, 52, 3174, 10966, 9523, 6055, 8953, 11612, 6415,
+      2505, 5906, 10710, 11858, 8332, 9450, 10162, 151, 3482, 787, 5468, 1010,
+      4169, 9162, 5241, 9369, 7509, 8844, 7232, 4698, 192, 1321, 10240, 4912, 885,
+      6281, 10333, 7280, 8757, 11286, 58, 12048, 12147, 11184, 8812, 6608, 2844,
+      3438, 4212, 11314, 8687, 6068, 421, 8209, 3600, 3263, 7665, 6077, 7507, 5886,
+      3029, 6695, 4213, 504, 11684, 2302, 1962, 1594, 6328, 7183, 168, 2692, 8960,
+      4298, 5184, 11089, 6122, 9734, 10929, 3956, 5297, 6170, 3762, 9370, 4016,
+      4077, 6523, 652, 11994, 6099, 1146, 11341, 11964, 10885, 6299, 1159, 8240,
+      8561, 11177, 2078, 10331, 4322, 11367, 441, 4079, 11231, 3150, 1319, 8243,
+      709, 8049, 8719, 11454, 6224, 3054, 6803, 3123, 10542, 4433, 6370, 7032,
+      3834, 8633, 12225, 9830, 683, 1566, 5782, 9786, 9341, 12115, 723, 3009, 1693,
+      5735, 2655, 2738, 6421, 11942, 2925, 1975, 8532, 3315, 11863, 4754, 1858,
+      1583, 6347, 2500, 10800, 6374, 1483, 12240, 1263, 1815, 5383, 10777, 350,
+      6920, 10232, 4493, 9087, 8855, 8760, 9381, 218, 9928, 10446, 9259, 4115,
+      6147, 9842, 8326, 576, 10335, 10238, 10484, 9407, 6381, 11836, 8517, 418,
+      6860, 7515, 1293, 7552, 2767, 156, 8298, 8320, 10008, 5876, 5333, 10258,
+      10115, 4372, 2847, 7875, 8232, 9018, 8925, 1689, 8236, 2645, 5042, 9984,
+      7094, 9509, 1484, 7394, 3, 4437, 160, 3149, 113, 7370, 10123, 3915, 6998,
+      2704, 8653, 4938, 1426, 7635, 10512, 1663, 6957, 3510, 2370, 2865, 3978,
+      9320, 3247, 9603, 6882, 3186, 10659, 10163, 1153, 9405, 8241, 10040, 2178,
+      1544, 5559, 420, 8304, 4905, 476, 3531, 5191, 9153, 2399, 8889, 3000, 671,
+      243, 3016, 3763, 10849, 12262, 9223, 10657, 7205, 11272, 7404, 7575, 8146,
+      10752, 242, 2678, 3704, 11744, 5019, 3833, 3778, 11899, 773, 5101, 11222,
+      9888, 442, 2912, 5698, 11935, 4861, 7277, 9808, 11244, 2859, 3780, 11414,
+      4976, 10682, 7201, 8005, 11287, 5011, 6267, 2987, 2437, 3646, 2566, 10102,
+      9867, 6250, 5444, 2381, 11796, 8193, 4337, 11854, 1912, 1378, 404, 7644,
+      1065, 2143, 11121, 5277, 3248, 11082, 2548, 8058, 8907, 11934, 1759, 8582,
+      3694, 7110, 12144, 6747, 8652, 3459, 2731, 8357, 6378, 7399, 10861, 1696,
+      9863, 334, 7657, 6534, 11029, 4388, 11560, 3241, 10276, 9000, 9408, 3284,
+      10200, 7197, 6498, 544, 2468, 339, 11267, 9, 2842, 480, 5331, 7300, 1673,
+      4278, 4177, 8705, 9764, 1381, 7837, 2396, 8340, 8993, 4354, 130, 6915, 2837,
+      11462, 5767, 953, 8541, 9813, 118, 7222, 2197, 3006, 9545, 563, 9314, 2625,
+      11340, 4821, 2639, 7266, 5828, 6561, 7698, 3328, 6512, 1351, 7311, 6553,
+      8155, 1305, 722, 5146, 4043, 12288, 10810, 2545, 3621, 8747, 8785, 1646,
+      1212, 5860, 3195, 7203, 10963, 3201, 3014, 955, 11499, 9970, 11119, 3135,
+      3712, 7443, 9542, 7484, 8736, 9995, 11227, 1635, 9521, 1177, 8034, 140,
+      10436, 11563, 7678, 4320, 11289, 9198, 12208, 2963, 7393, 2366, 9238
+      };
 
-inline void poly_invntt(poly *r)
-{
-static const uint16_t omegas_inv_montgomery[PARAM_N/2] = {
-   4075, 5315, 4324, 4916, 10120, 11767, 7210, 9027, 10316, 6715, 1278, 9945,
-   3514, 11248, 11271, 5925, 147, 8500, 7840, 6833, 5537, 4749, 4467, 7500,
-   11099, 9606, 6171, 8471, 8429, 5445, 11239, 7753, 9090, 12233, 5529, 5206,
-   10587, 1987, 11635, 3565, 5415, 8646, 6153, 6427, 7341, 6152, 10561, 400,
-   8410, 1922, 2033, 8291, 1359, 6854, 11035, 973, 8579, 6093, 6950, 5446,
-   11821, 8301, 11907, 316, 52, 3174, 10966, 9523, 6055, 8953, 11612, 6415,
-   2505, 5906, 10710, 11858, 8332, 9450, 10162, 151, 3482, 787, 5468, 1010,
-   4169, 9162, 5241, 9369, 7509, 8844, 7232, 4698, 192, 1321, 10240, 4912, 885,
-   6281, 10333, 7280, 8757, 11286, 58, 12048, 12147, 11184, 8812, 6608, 2844,
-   3438, 4212, 11314, 8687, 6068, 421, 8209, 3600, 3263, 7665, 6077, 7507, 5886,
-   3029, 6695, 4213, 504, 11684, 2302, 1962, 1594, 6328, 7183, 168, 2692, 8960,
-   4298, 5184, 11089, 6122, 9734, 10929, 3956, 5297, 6170, 3762, 9370, 4016,
-   4077, 6523, 652, 11994, 6099, 1146, 11341, 11964, 10885, 6299, 1159, 8240,
-   8561, 11177, 2078, 10331, 4322, 11367, 441, 4079, 11231, 3150, 1319, 8243,
-   709, 8049, 8719, 11454, 6224, 3054, 6803, 3123, 10542, 4433, 6370, 7032,
-   3834, 8633, 12225, 9830, 683, 1566, 5782, 9786, 9341, 12115, 723, 3009, 1693,
-   5735, 2655, 2738, 6421, 11942, 2925, 1975, 8532, 3315, 11863, 4754, 1858,
-   1583, 6347, 2500, 10800, 6374, 1483, 12240, 1263, 1815, 5383, 10777, 350,
-   6920, 10232, 4493, 9087, 8855, 8760, 9381, 218, 9928, 10446, 9259, 4115,
-   6147, 9842, 8326, 576, 10335, 10238, 10484, 9407, 6381, 11836, 8517, 418,
-   6860, 7515, 1293, 7552, 2767, 156, 8298, 8320, 10008, 5876, 5333, 10258,
-   10115, 4372, 2847, 7875, 8232, 9018, 8925, 1689, 8236, 2645, 5042, 9984,
-   7094, 9509, 1484, 7394, 3, 4437, 160, 3149, 113, 7370, 10123, 3915, 6998,
-   2704, 8653, 4938, 1426, 7635, 10512, 1663, 6957, 3510, 2370, 2865, 3978,
-   9320, 3247, 9603, 6882, 3186, 10659, 10163, 1153, 9405, 8241, 10040, 2178,
-   1544, 5559, 420, 8304, 4905, 476, 3531, 5191, 9153, 2399, 8889, 3000, 671,
-   243, 3016, 3763, 10849, 12262, 9223, 10657, 7205, 11272, 7404, 7575, 8146,
-   10752, 242, 2678, 3704, 11744, 5019, 3833, 3778, 11899, 773, 5101, 11222,
-   9888, 442, 2912, 5698, 11935, 4861, 7277, 9808, 11244, 2859, 3780, 11414,
-   4976, 10682, 7201, 8005, 11287, 5011, 6267, 2987, 2437, 3646, 2566, 10102,
-   9867, 6250, 5444, 2381, 11796, 8193, 4337, 11854, 1912, 1378, 404, 7644,
-   1065, 2143, 11121, 5277, 3248, 11082, 2548, 8058, 8907, 11934, 1759, 8582,
-   3694, 7110, 12144, 6747, 8652, 3459, 2731, 8357, 6378, 7399, 10861, 1696,
-   9863, 334, 7657, 6534, 11029, 4388, 11560, 3241, 10276, 9000, 9408, 3284,
-   10200, 7197, 6498, 544, 2468, 339, 11267, 9, 2842, 480, 5331, 7300, 1673,
-   4278, 4177, 8705, 9764, 1381, 7837, 2396, 8340, 8993, 4354, 130, 6915, 2837,
-   11462, 5767, 953, 8541, 9813, 118, 7222, 2197, 3006, 9545, 563, 9314, 2625,
-   11340, 4821, 2639, 7266, 5828, 6561, 7698, 3328, 6512, 1351, 7311, 6553,
-   8155, 1305, 722, 5146, 4043, 12288, 10810, 2545, 3621, 8747, 8785, 1646,
-   1212, 5860, 3195, 7203, 10963, 3201, 3014, 955, 11499, 9970, 11119, 3135,
-   3712, 7443, 9542, 7484, 8736, 9995, 11227, 1635, 9521, 1177, 8034, 140,
-   10436, 11563, 7678, 4320, 11289, 9198, 12208, 2963, 7393, 2366, 9238 };
+   static const uint16_t psis_inv_montgomery[PARAM_N] =
+      {
+      256, 10570, 1510, 7238, 1034, 7170, 6291, 7921, 11665, 3422, 4000, 2327,
+      2088, 5565, 795, 10647, 1521, 5484, 2539, 7385, 1055, 7173, 8047, 11683,
+      1669, 1994, 3796, 5809, 4341, 9398, 11876, 12230, 10525, 12037, 12253, 3506,
+      4012, 9351, 4847, 2448, 7372, 9831, 3160, 2207, 5582, 2553, 7387, 6322, 9681,
+      1383, 10731, 1533, 219, 5298, 4268, 7632, 6357, 9686, 8406, 4712, 9451,
+      10128, 4958, 5975, 11387, 8649, 11769, 6948, 11526, 12180, 1740, 10782, 6807,
+      2728, 7412, 4570, 4164, 4106, 11120, 12122, 8754, 11784, 3439, 5758, 11356,
+      6889, 9762, 11928, 1704, 1999, 10819, 12079, 12259, 7018, 11536, 1648, 1991,
+      2040, 2047, 2048, 10826, 12080, 8748, 8272, 8204, 1172, 1923, 7297, 2798,
+      7422, 6327, 4415, 7653, 6360, 11442, 12168, 7005, 8023, 9924, 8440, 8228,
+      2931, 7441, 1063, 3663, 5790, 9605, 10150, 1450, 8985, 11817, 10466, 10273,
+      12001, 3470, 7518, 1074, 1909, 7295, 9820, 4914, 702, 5367, 7789, 8135, 9940,
+      1420, 3714, 11064, 12114, 12264, 1752, 5517, 9566, 11900, 1700, 3754, 5803,
+      829, 1874, 7290, 2797, 10933, 5073, 7747, 8129, 6428, 6185, 11417, 1631, 233,
+      5300, 9535, 10140, 11982, 8734, 8270, 2937, 10953, 8587, 8249, 2934, 9197,
+      4825, 5956, 4362, 9401, 1343, 3703, 529, 10609, 12049, 6988, 6265, 895, 3639,
+      4031, 4087, 4095, 585, 10617, 8539, 4731, 4187, 9376, 3095, 9220, 10095,
+      10220, 1460, 10742, 12068, 1724, 5513, 11321, 6884, 2739, 5658, 6075, 4379,
+      11159, 10372, 8504, 4726, 9453, 3106, 7466, 11600, 10435, 8513, 9994, 8450,
+      9985, 3182, 10988, 8592, 2983, 9204, 4826, 2445, 5616, 6069, 867, 3635, 5786,
+      11360, 5134, 2489, 10889, 12089, 1727, 7269, 2794, 9177, 1311, 5454, 9557,
+      6632, 2703, 9164, 10087, 1441, 3717, 531, 3587, 2268, 324, 5313, 759, 1864,
+      5533, 2546, 7386, 9833, 8427, 4715, 11207, 1601, 7251, 4547, 11183, 12131,
+      1733, 10781, 10318, 1474, 10744, 5046, 4232, 11138, 10369, 6748, 964, 7160,
+      4534, 7670, 8118, 8182, 4680, 11202, 6867, 981, 8918, 1274, 182, 26, 7026,
+      8026, 11680, 12202, 10521, 1503, 7237, 4545, 5916, 9623, 8397, 11733, 10454,
+      3249, 9242, 6587, 941, 1890, 270, 10572, 6777, 9746, 6659, 6218, 6155, 6146,
+      878, 1881, 7291, 11575, 12187, 1741, 7271, 8061, 11685, 6936, 4502, 9421,
+      4857, 4205, 7623, 1089, 10689, 1527, 8996, 10063, 11971, 10488, 6765, 2722,
+      3900, 9335, 11867, 6962, 11528, 5158, 4248, 4118, 5855, 2592, 5637, 6072,
+      2623, 7397, 8079, 9932, 4930, 5971, 853, 3633, 519, 8852, 11798, 3441, 11025,
+      1575, 225, 8810, 11792, 12218, 3501, 9278, 3081, 9218, 4828, 7712, 8124,
+      11694, 12204, 3499, 4011, 573, 3593, 5780, 7848, 9899, 10192, 1456, 208,
+      7052, 2763, 7417, 11593, 10434, 12024, 8740, 11782, 10461, 3250, 5731, 7841,
+      9898, 1414, 202, 3540, 7528, 2831, 2160, 10842, 5060, 4234, 4116, 588, 84,
+      12, 7024, 2759, 9172, 6577, 11473, 1639, 9012, 3043, 7457, 6332, 11438, 1634,
+      1989, 9062, 11828, 8712, 11778, 12216, 10523, 6770, 9745, 10170, 4964, 9487,
+      6622, 946, 8913, 6540, 6201, 4397, 9406, 8366, 9973, 8447, 8229, 11709, 8695,
+      10020, 3187, 5722, 2573, 10901, 6824, 4486, 4152, 9371, 8361, 2950, 2177,
+      311, 1800, 9035, 8313, 11721, 3430, 490, 70, 10, 1757, 251, 3547, 7529,
+      11609, 3414, 7510, 4584, 4166, 9373, 1339, 5458, 7802, 11648, 1664, 7260,
+      9815, 10180, 6721, 9738, 10169, 8475, 8233, 9954, 1422, 8981, 1283, 5450,
+      11312, 1616, 3742, 11068, 10359, 4991, 713, 3613, 9294, 8350, 4704, 672, 96,
+      7036, 9783, 11931, 3460, 5761, 823, 10651, 12055, 10500, 1500, 5481, 783,
+      3623, 11051, 8601, 8251, 8201, 11705, 10450, 5004, 4226, 7626, 2845, 2162,
+      3820, 7568, 9859, 3164, 452, 10598, 1514, 5483, 6050, 6131, 4387, 7649, 8115,
+      6426, 918, 8909, 8295, 1185, 5436, 11310, 8638, 1234, 5443, 11311, 5127,
+      2488, 2111, 10835, 5059, 7745, 2862, 3920, 560, 80, 1767, 2008, 3798, 11076,
+      6849, 2734, 10924, 12094, 8750, 1250, 10712, 6797, 971, 7161, 1023, 8924,
+      4786, 7706, 4612, 4170, 7618, 6355, 4419, 5898, 11376, 10403, 10264, 6733,
+      4473, 639, 5358, 2521, 9138, 3061, 5704, 4326, 618, 5355, 765, 5376, 768,
+      7132, 4530, 9425, 3102, 9221, 6584, 11474, 10417, 10266, 12000, 6981, 6264,
+      4406, 2385, 7363, 4563, 4163, 7617, 9866, 3165, 9230, 11852, 10471, 5007,
+      5982, 11388, 5138, 734, 3616, 11050, 12112, 6997, 11533, 12181, 10518, 12036,
+      3475, 2252, 7344, 9827, 4915, 9480, 6621, 4457, 7659, 9872, 6677, 4465, 4149,
+      7615, 4599, 657, 3605, 515, 10607, 6782, 4480, 640, 1847, 3775, 5806, 2585,
+      5636, 9583, 1369, 10729, 8555, 10000, 11962, 5220, 7768, 8132, 8184, 9947,
+      1421, 203, 29, 8782, 11788, 1684, 10774, 10317, 4985, 9490, 8378, 4708,
+      11206, 5112, 5997, 7879, 11659, 12199, 8765, 10030, 4944, 5973, 6120, 6141,
+      6144, 7900, 11662, 1666, 238, 34, 3516, 5769, 9602, 8394, 9977, 6692, 956,
+      10670, 6791, 9748, 11926, 8726, 11780, 5194, 742, 106, 8793, 10034, 3189,
+      10989, 5081, 4237, 5872, 4350, 2377, 10873, 6820, 6241, 11425, 10410, 10265,
+      3222, 5727, 9596, 4882, 2453, 2106, 3812, 11078, 12116, 5242, 4260, 11142,
+      8614, 11764, 12214, 5256, 4262, 4120, 11122, 5100, 11262, 5120, 2487, 5622,
+      9581, 8391, 8221, 2930, 10952, 12098, 6995, 6266, 9673, 4893, 699, 3611,
+      4027, 5842, 11368, 1624, 232, 8811, 8281, 1183, 169, 8802, 3013, 2186, 5579,
+      797, 3625, 4029, 11109, 1587, 7249, 11569, 8675, 6506, 2685, 10917, 12093,
+      12261, 12285, 1755, 7273, 1039, 1904, 272, 3550, 9285, 3082, 5707, 6082,
+      4380, 7648, 11626, 5172, 4250, 9385, 8363, 8217, 4685, 5936, 848, 8899, 6538,
+      934, 1889, 3781, 9318, 10109, 10222, 6727, 961, 5404, 772, 5377, 9546, 8386,
+      1198, 8949, 3034, 2189, 7335, 4559, 5918, 2601, 10905, 5069, 9502, 3113,
+      7467, 8089, 11689, 5181, 9518, 8382, 2953, 3933, 4073, 4093, 7607, 8109,
+      2914, 5683, 4323, 11151, 1593, 10761, 6804, 972, 3650, 2277, 5592, 4310,
+      7638, 9869, 4921, 703, 1856, 9043, 4803, 9464, 1352, 8971, 11815, 5199, 7765,
+      6376, 4422, 7654, 2849, 407, 8836, 6529, 7955, 2892, 9191, 1313, 10721,
+      12065, 12257, 1751, 9028, 8312, 2943, 2176, 3822, 546, 78, 8789, 11789,
+      10462, 12028, 6985, 4509, 9422, 1346, 5459, 4291, 613, 10621, 6784, 9747,
+      3148, 7472, 2823, 5670, 810, 7138, 8042, 4660, 7688, 6365, 6176, 6149, 2634,
+      5643, 9584, 10147, 11983, 5223, 9524, 11894, 10477, 8519, 1217, 3685, 2282,
+      326, 10580, 3267, 7489, 4581, 2410, 5611, 11335, 6886, 8006, 8166, 11700,
+      3427, 11023, 8597, 10006, 3185, 455, 65, 5276, 7776, 4622, 5927, 7869, 9902,
+      11948, 5218, 2501, 5624, 2559, 10899, 1557, 1978, 10816, 10323, 8497, 4725,
+      675, 1852, 10798, 12076, 10503, 3256, 9243, 3076, 2195, 10847, 12083, 10504,
+      12034, 10497
+      };
 
-static const uint16_t psis_inv_montgomery[PARAM_N] = {
-   256, 10570, 1510, 7238, 1034, 7170, 6291, 7921, 11665, 3422, 4000, 2327,
-   2088, 5565, 795, 10647, 1521, 5484, 2539, 7385, 1055, 7173, 8047, 11683,
-   1669, 1994, 3796, 5809, 4341, 9398, 11876, 12230, 10525, 12037, 12253, 3506,
-   4012, 9351, 4847, 2448, 7372, 9831, 3160, 2207, 5582, 2553, 7387, 6322, 9681,
-   1383, 10731, 1533, 219, 5298, 4268, 7632, 6357, 9686, 8406, 4712, 9451,
-   10128, 4958, 5975, 11387, 8649, 11769, 6948, 11526, 12180, 1740, 10782, 6807,
-   2728, 7412, 4570, 4164, 4106, 11120, 12122, 8754, 11784, 3439, 5758, 11356,
-   6889, 9762, 11928, 1704, 1999, 10819, 12079, 12259, 7018, 11536, 1648, 1991,
-   2040, 2047, 2048, 10826, 12080, 8748, 8272, 8204, 1172, 1923, 7297, 2798,
-   7422, 6327, 4415, 7653, 6360, 11442, 12168, 7005, 8023, 9924, 8440, 8228,
-   2931, 7441, 1063, 3663, 5790, 9605, 10150, 1450, 8985, 11817, 10466, 10273,
-   12001, 3470, 7518, 1074, 1909, 7295, 9820, 4914, 702, 5367, 7789, 8135, 9940,
-   1420, 3714, 11064, 12114, 12264, 1752, 5517, 9566, 11900, 1700, 3754, 5803,
-   829, 1874, 7290, 2797, 10933, 5073, 7747, 8129, 6428, 6185, 11417, 1631, 233,
-   5300, 9535, 10140, 11982, 8734, 8270, 2937, 10953, 8587, 8249, 2934, 9197,
-   4825, 5956, 4362, 9401, 1343, 3703, 529, 10609, 12049, 6988, 6265, 895, 3639,
-   4031, 4087, 4095, 585, 10617, 8539, 4731, 4187, 9376, 3095, 9220, 10095,
-   10220, 1460, 10742, 12068, 1724, 5513, 11321, 6884, 2739, 5658, 6075, 4379,
-   11159, 10372, 8504, 4726, 9453, 3106, 7466, 11600, 10435, 8513, 9994, 8450,
-   9985, 3182, 10988, 8592, 2983, 9204, 4826, 2445, 5616, 6069, 867, 3635, 5786,
-   11360, 5134, 2489, 10889, 12089, 1727, 7269, 2794, 9177, 1311, 5454, 9557,
-   6632, 2703, 9164, 10087, 1441, 3717, 531, 3587, 2268, 324, 5313, 759, 1864,
-   5533, 2546, 7386, 9833, 8427, 4715, 11207, 1601, 7251, 4547, 11183, 12131,
-   1733, 10781, 10318, 1474, 10744, 5046, 4232, 11138, 10369, 6748, 964, 7160,
-   4534, 7670, 8118, 8182, 4680, 11202, 6867, 981, 8918, 1274, 182, 26, 7026,
-   8026, 11680, 12202, 10521, 1503, 7237, 4545, 5916, 9623, 8397, 11733, 10454,
-   3249, 9242, 6587, 941, 1890, 270, 10572, 6777, 9746, 6659, 6218, 6155, 6146,
-   878, 1881, 7291, 11575, 12187, 1741, 7271, 8061, 11685, 6936, 4502, 9421,
-   4857, 4205, 7623, 1089, 10689, 1527, 8996, 10063, 11971, 10488, 6765, 2722,
-   3900, 9335, 11867, 6962, 11528, 5158, 4248, 4118, 5855, 2592, 5637, 6072,
-   2623, 7397, 8079, 9932, 4930, 5971, 853, 3633, 519, 8852, 11798, 3441, 11025,
-   1575, 225, 8810, 11792, 12218, 3501, 9278, 3081, 9218, 4828, 7712, 8124,
-   11694, 12204, 3499, 4011, 573, 3593, 5780, 7848, 9899, 10192, 1456, 208,
-   7052, 2763, 7417, 11593, 10434, 12024, 8740, 11782, 10461, 3250, 5731, 7841,
-   9898, 1414, 202, 3540, 7528, 2831, 2160, 10842, 5060, 4234, 4116, 588, 84,
-   12, 7024, 2759, 9172, 6577, 11473, 1639, 9012, 3043, 7457, 6332, 11438, 1634,
-   1989, 9062, 11828, 8712, 11778, 12216, 10523, 6770, 9745, 10170, 4964, 9487,
-   6622, 946, 8913, 6540, 6201, 4397, 9406, 8366, 9973, 8447, 8229, 11709, 8695,
-   10020, 3187, 5722, 2573, 10901, 6824, 4486, 4152, 9371, 8361, 2950, 2177,
-   311, 1800, 9035, 8313, 11721, 3430, 490, 70, 10, 1757, 251, 3547, 7529,
-   11609, 3414, 7510, 4584, 4166, 9373, 1339, 5458, 7802, 11648, 1664, 7260,
-   9815, 10180, 6721, 9738, 10169, 8475, 8233, 9954, 1422, 8981, 1283, 5450,
-   11312, 1616, 3742, 11068, 10359, 4991, 713, 3613, 9294, 8350, 4704, 672, 96,
-   7036, 9783, 11931, 3460, 5761, 823, 10651, 12055, 10500, 1500, 5481, 783,
-   3623, 11051, 8601, 8251, 8201, 11705, 10450, 5004, 4226, 7626, 2845, 2162,
-   3820, 7568, 9859, 3164, 452, 10598, 1514, 5483, 6050, 6131, 4387, 7649, 8115,
-   6426, 918, 8909, 8295, 1185, 5436, 11310, 8638, 1234, 5443, 11311, 5127,
-   2488, 2111, 10835, 5059, 7745, 2862, 3920, 560, 80, 1767, 2008, 3798, 11076,
-   6849, 2734, 10924, 12094, 8750, 1250, 10712, 6797, 971, 7161, 1023, 8924,
-   4786, 7706, 4612, 4170, 7618, 6355, 4419, 5898, 11376, 10403, 10264, 6733,
-   4473, 639, 5358, 2521, 9138, 3061, 5704, 4326, 618, 5355, 765, 5376, 768,
-   7132, 4530, 9425, 3102, 9221, 6584, 11474, 10417, 10266, 12000, 6981, 6264,
-   4406, 2385, 7363, 4563, 4163, 7617, 9866, 3165, 9230, 11852, 10471, 5007,
-   5982, 11388, 5138, 734, 3616, 11050, 12112, 6997, 11533, 12181, 10518, 12036,
-   3475, 2252, 7344, 9827, 4915, 9480, 6621, 4457, 7659, 9872, 6677, 4465, 4149,
-   7615, 4599, 657, 3605, 515, 10607, 6782, 4480, 640, 1847, 3775, 5806, 2585,
-   5636, 9583, 1369, 10729, 8555, 10000, 11962, 5220, 7768, 8132, 8184, 9947,
-   1421, 203, 29, 8782, 11788, 1684, 10774, 10317, 4985, 9490, 8378, 4708,
-   11206, 5112, 5997, 7879, 11659, 12199, 8765, 10030, 4944, 5973, 6120, 6141,
-   6144, 7900, 11662, 1666, 238, 34, 3516, 5769, 9602, 8394, 9977, 6692, 956,
-   10670, 6791, 9748, 11926, 8726, 11780, 5194, 742, 106, 8793, 10034, 3189,
-   10989, 5081, 4237, 5872, 4350, 2377, 10873, 6820, 6241, 11425, 10410, 10265,
-   3222, 5727, 9596, 4882, 2453, 2106, 3812, 11078, 12116, 5242, 4260, 11142,
-   8614, 11764, 12214, 5256, 4262, 4120, 11122, 5100, 11262, 5120, 2487, 5622,
-   9581, 8391, 8221, 2930, 10952, 12098, 6995, 6266, 9673, 4893, 699, 3611,
-   4027, 5842, 11368, 1624, 232, 8811, 8281, 1183, 169, 8802, 3013, 2186, 5579,
-   797, 3625, 4029, 11109, 1587, 7249, 11569, 8675, 6506, 2685, 10917, 12093,
-   12261, 12285, 1755, 7273, 1039, 1904, 272, 3550, 9285, 3082, 5707, 6082,
-   4380, 7648, 11626, 5172, 4250, 9385, 8363, 8217, 4685, 5936, 848, 8899, 6538,
-   934, 1889, 3781, 9318, 10109, 10222, 6727, 961, 5404, 772, 5377, 9546, 8386,
-   1198, 8949, 3034, 2189, 7335, 4559, 5918, 2601, 10905, 5069, 9502, 3113,
-   7467, 8089, 11689, 5181, 9518, 8382, 2953, 3933, 4073, 4093, 7607, 8109,
-   2914, 5683, 4323, 11151, 1593, 10761, 6804, 972, 3650, 2277, 5592, 4310,
-   7638, 9869, 4921, 703, 1856, 9043, 4803, 9464, 1352, 8971, 11815, 5199, 7765,
-   6376, 4422, 7654, 2849, 407, 8836, 6529, 7955, 2892, 9191, 1313, 10721,
-   12065, 12257, 1751, 9028, 8312, 2943, 2176, 3822, 546, 78, 8789, 11789,
-   10462, 12028, 6985, 4509, 9422, 1346, 5459, 4291, 613, 10621, 6784, 9747,
-   3148, 7472, 2823, 5670, 810, 7138, 8042, 4660, 7688, 6365, 6176, 6149, 2634,
-   5643, 9584, 10147, 11983, 5223, 9524, 11894, 10477, 8519, 1217, 3685, 2282,
-   326, 10580, 3267, 7489, 4581, 2410, 5611, 11335, 6886, 8006, 8166, 11700,
-   3427, 11023, 8597, 10006, 3185, 455, 65, 5276, 7776, 4622, 5927, 7869, 9902,
-   11948, 5218, 2501, 5624, 2559, 10899, 1557, 1978, 10816, 10323, 8497, 4725,
-   675, 1852, 10798, 12076, 10503, 3256, 9243, 3076, 2195, 10847, 12083, 10504,
-   12034, 10497 };
+   bitrev_vector(r->coeffs);
+   ntt(r->coeffs, omegas_inv_montgomery);
+   mul_coefficients(r->coeffs, psis_inv_montgomery);
+   }
 
-  bitrev_vector(r->coeffs);
-  ntt(r->coeffs, omegas_inv_montgomery);
-  mul_coefficients(r->coeffs, psis_inv_montgomery);
-}
+inline void encode_a(uint8_t* r, const poly* pk, const uint8_t* seed)
+   {
+   poly_tobytes(r, pk);
+   for(size_t i = 0; i < NEWHOPE_SEED_BYTES; i++)
+      {
+      r[NEWHOPE_POLY_BYTES+i] = seed[i];
+      }
+   }
 
+inline void decode_a(poly* pk, uint8_t* seed, const uint8_t* r)
+   {
+   poly_frombytes(pk, r);
+   for(size_t i = 0; i < NEWHOPE_SEED_BYTES; i++)
+      {
+      seed[i] = r[NEWHOPE_POLY_BYTES+i];
+      }
+   }
 
-inline void encode_a(uint8_t *r, const poly *pk, const uint8_t *seed)
-{
-  int i;
-  poly_tobytes(r, pk);
-  for(i=0;i<NEWHOPE_SEED_BYTES;i++)
-    r[NEWHOPE_POLY_BYTES+i] = seed[i];
-}
+inline void encode_b(uint8_t* r, const poly* b, const poly* c)
+   {
+   poly_tobytes(r, b);
+   for(size_t i = 0; i < PARAM_N/4; i++)
+      {
+      r[NEWHOPE_POLY_BYTES+i] = c->coeffs[4*i] | (c->coeffs[4*i+1] << 2) | (c->coeffs[4*i+2] << 4) | (c->coeffs[4*i+3] << 6);
+      }
+   }
 
-inline void decode_a(poly *pk, uint8_t *seed, const uint8_t *r)
-{
-  int i;
-  poly_frombytes(pk, r);
-  for(i=0;i<NEWHOPE_SEED_BYTES;i++)
-    seed[i] = r[NEWHOPE_POLY_BYTES+i];
-}
-
-inline void encode_b(uint8_t *r, const poly *b, const poly *c)
-{
-  poly_tobytes(r,b);
-  for(size_t i=0;i<PARAM_N/4;i++)
-    r[NEWHOPE_POLY_BYTES+i] = c->coeffs[4*i] | (c->coeffs[4*i+1] << 2) | (c->coeffs[4*i+2] << 4) | (c->coeffs[4*i+3] << 6);
-}
-
-inline void decode_b(poly *b, poly *c, const uint8_t *r)
-{
-  poly_frombytes(b, r);
-  for(size_t i=0;i<PARAM_N/4;i++)
-  {
-    c->coeffs[4*i+0] =  r[NEWHOPE_POLY_BYTES+i]       & 0x03;
-    c->coeffs[4*i+1] = (r[NEWHOPE_POLY_BYTES+i] >> 2) & 0x03;
-    c->coeffs[4*i+2] = (r[NEWHOPE_POLY_BYTES+i] >> 4) & 0x03;
-    c->coeffs[4*i+3] = (r[NEWHOPE_POLY_BYTES+i] >> 6);
-  }
-}
+inline void decode_b(poly* b, poly* c, const uint8_t* r)
+   {
+   poly_frombytes(b, r);
+   for(size_t i = 0; i < PARAM_N/4; i++)
+      {
+      c->coeffs[4*i+0] =  r[NEWHOPE_POLY_BYTES+i]       & 0x03;
+      c->coeffs[4*i+1] = (r[NEWHOPE_POLY_BYTES+i] >> 2) & 0x03;
+      c->coeffs[4*i+2] = (r[NEWHOPE_POLY_BYTES+i] >> 4) & 0x03;
+      c->coeffs[4*i+3] = (r[NEWHOPE_POLY_BYTES+i] >> 6);
+      }
+   }
 
 inline int32_t ct_abs(int32_t v)
-{
-  int32_t mask = v >> 31;
-  return (v ^ mask) - mask;
-}
+   {
+   int32_t mask = v >> 31;
+   return (v ^ mask) - mask;
+   }
 
+inline int32_t f(int32_t* v0, int32_t* v1, int32_t x)
+   {
+   int32_t xit, t, r, b;
 
-inline int32_t f(int32_t *v0, int32_t *v1, int32_t x)
-{
-  int32_t xit, t, r, b;
+   // Next 6 lines compute t = x/PARAM_Q;
+   b = x*2730;
+   t = b >> 25;
+   b = x - t*12289;
+   b = 12288 - b;
+   b >>= 31;
+   t -= b;
 
-  // Next 6 lines compute t = x/PARAM_Q;
-  b = x*2730;
-  t = b >> 25;
-  b = x - t*12289;
-  b = 12288 - b;
-  b >>= 31;
-  t -= b;
+   r = t & 1;
+   xit = (t>>1);
+   *v0 = xit+r; // v0 = round(x/(2*PARAM_Q))
 
-  r = t & 1;
-  xit = (t>>1);
-  *v0 = xit+r; // v0 = round(x/(2*PARAM_Q))
+   t -= 1;
+   r = t & 1;
+   *v1 = (t>>1)+r;
 
-  t -= 1;
-  r = t & 1;
-  *v1 = (t>>1)+r;
+   return ct_abs(x-((*v0)*2*PARAM_Q));
+   }
 
-  return ct_abs(x-((*v0)*2*PARAM_Q));
-}
+inline void helprec(poly* c, const poly* v, RandomNumberGenerator& rng)
+   {
+   uint8_t rand[32];
+
+   rng.randomize(rand, 32);
+
+   for(size_t i = 0; i < 256; i++)
+      {
+      int32_t v0[4], v1[4];
+      uint8_t rbit = (rand[i>>3] >> (i&7)) & 1;
+      int32_t k;
+
+      k  = f(v0+0, v1+0, 8*v->coeffs[  0+i] + 4*rbit);
+      k += f(v0+1, v1+1, 8*v->coeffs[256+i] + 4*rbit);
+      k += f(v0+2, v1+2, 8*v->coeffs[512+i] + 4*rbit);
+      k += f(v0+3, v1+3, 8*v->coeffs[768+i] + 4*rbit);
+
+      k = (2*PARAM_Q-1-k) >> 31;
+
+      int32_t v_tmp[4];
+      v_tmp[0] = ((~k) & v0[0]) ^ (k & v1[0]);
+      v_tmp[1] = ((~k) & v0[1]) ^ (k & v1[1]);
+      v_tmp[2] = ((~k) & v0[2]) ^ (k & v1[2]);
+      v_tmp[3] = ((~k) & v0[3]) ^ (k & v1[3]);
+
+      c->coeffs[  0+i] = (v_tmp[0] -   v_tmp[3]) & 3;
+      c->coeffs[256+i] = (v_tmp[1] -   v_tmp[3]) & 3;
+      c->coeffs[512+i] = (v_tmp[2] -   v_tmp[3]) & 3;
+      c->coeffs[768+i] = (-   k    + 2*v_tmp[3]) & 3;
+      }
+   }
 
 inline int32_t g(int32_t x)
-{
-  int32_t t,c,b;
+   {
+   int32_t t, c, b;
 
-  // Next 6 lines compute t = x/(4*PARAM_Q);
-  b = x*2730;
-  t = b >> 27;
-  b = x - t*49156;
-  b = 49155 - b;
-  b >>= 31;
-  t -= b;
+   // Next 6 lines compute t = x/(4*PARAM_Q);
+   b = x*2730;
+   t = b >> 27;
+   b = x - t*49156;
+   b = 49155 - b;
+   b >>= 31;
+   t -= b;
 
-  c = t & 1;
-  t = (t >> 1) + c; // t = round(x/(8*PARAM_Q))
+   c = t & 1;
+   t = (t >> 1) + c; // t = round(x/(8*PARAM_Q))
 
-  t *= 8*PARAM_Q;
+   t *= 8*PARAM_Q;
 
-  return ct_abs(t - x);
-}
-
+   return ct_abs(t - x);
+   }
 
 inline int16_t LDDecode(int32_t xi0, int32_t xi1, int32_t xi2, int32_t xi3)
-{
-  int32_t t;
+   {
+   int32_t t;
 
-  t  = g(xi0);
-  t += g(xi1);
-  t += g(xi2);
-  t += g(xi3);
+   t  = g(xi0);
+   t += g(xi1);
+   t += g(xi2);
+   t += g(xi3);
 
-  t -= 8*PARAM_Q;
-  t >>= 31;
-  return t&1;
-}
+   t -= 8*PARAM_Q;
+   t >>= 31;
+   return t&1;
+   }
 
-inline void helprec(poly *c, const poly *v, RandomNumberGenerator& rng)
-{
-  int32_t v0[4], v1[4];
-  uint8_t rand[32];
-  int i;
+inline void rec(uint8_t* key, const poly* v, const poly* c)
+   {
+   clear_mem(key, 32);
 
-  rng.randomize(rand, 32);
+   for(size_t i = 0; i < 256; i++)
+      {
+      const int32_t tmp0 = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[  0+i]) - PARAM_Q * (2*c->coeffs[  0+i]+c->coeffs[768+i]);
+      const int32_t tmp1 = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[256+i]) - PARAM_Q * (2*c->coeffs[256+i]+c->coeffs[768+i]);
+      const int32_t tmp2 = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[512+i]) - PARAM_Q * (2*c->coeffs[512+i]+c->coeffs[768+i]);
+      const int32_t tmp3 = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[768+i]) - PARAM_Q * (c->coeffs[768+i]);
 
-  for(i=0; i<256; i++)
-  {
-    uint8_t rbit = (rand[i>>3] >> (i&7)) & 1;
-    int32_t k;
+      key[i>>3] |= LDDecode(tmp0, tmp1, tmp2, tmp3) << (i & 7);
+      }
+   }
 
-    k  = f(v0+0, v1+0, 8*v->coeffs[  0+i] + 4*rbit);
-    k += f(v0+1, v1+1, 8*v->coeffs[256+i] + 4*rbit);
-    k += f(v0+2, v1+2, 8*v->coeffs[512+i] + 4*rbit);
-    k += f(v0+3, v1+3, 8*v->coeffs[768+i] + 4*rbit);
-
-    k = (2*PARAM_Q-1-k) >> 31;
-
-    int32_t v_tmp[4];
-    v_tmp[0] = ((~k) & v0[0]) ^ (k & v1[0]);
-    v_tmp[1] = ((~k) & v0[1]) ^ (k & v1[1]);
-    v_tmp[2] = ((~k) & v0[2]) ^ (k & v1[2]);
-    v_tmp[3] = ((~k) & v0[3]) ^ (k & v1[3]);
-
-    c->coeffs[  0+i] = (v_tmp[0] -   v_tmp[3]) & 3;
-    c->coeffs[256+i] = (v_tmp[1] -   v_tmp[3]) & 3;
-    c->coeffs[512+i] = (v_tmp[2] -   v_tmp[3]) & 3;
-    c->coeffs[768+i] = (   -k    + 2*v_tmp[3]) & 3;
-  }
-}
-
-inline void rec(uint8_t *key, const poly *v, const poly *c)
-{
-  int i;
-  int32_t tmp[4];
-
-  for(i=0;i<32;i++)
-    key[i] = 0;
-
-  for(i=0; i<256; i++)
-  {
-    tmp[0] = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[  0+i]) - PARAM_Q * (2*c->coeffs[  0+i]+c->coeffs[768+i]);
-    tmp[1] = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[256+i]) - PARAM_Q * (2*c->coeffs[256+i]+c->coeffs[768+i]);
-    tmp[2] = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[512+i]) - PARAM_Q * (2*c->coeffs[512+i]+c->coeffs[768+i]);
-    tmp[3] = 16*PARAM_Q + 8*static_cast<int32_t>(v->coeffs[768+i]) - PARAM_Q * (              c->coeffs[768+i]);
-
-    key[i>>3] |= LDDecode(tmp[0], tmp[1], tmp[2], tmp[3]) << (i & 7);
-  }
-}
-
-void gen_a(poly *a, const uint8_t *seed, Newhope_Mode mode)
+void gen_a(poly* a, const uint8_t* seed, Newhope_Mode mode)
    {
    std::vector<uint8_t> buf(168*16);
 
@@ -32262,13 +39443,17 @@ void gen_a(poly *a, const uint8_t *seed, Newhope_Mode mode)
    zeroise(buf);
    xof->encrypt(buf);
 
-   unsigned int pos=0, ctr=0;
+   size_t pos = 0, ctr = 0;
 
    while(ctr < PARAM_N)
       {
-      uint16_t val = (buf[pos] | (static_cast<uint16_t>(buf[pos+1]) << 8)) & 0x3fff; // Specialized for q = 12889
+      // Specialized for q = 12889
+      const uint16_t val = (buf[pos] | (static_cast<uint16_t>(buf[pos+1]) << 8)) & 0x3fff;
+
       if(val < PARAM_Q)
+         {
          a->coeffs[ctr++] = val;
+         }
       pos += 2;
       if(pos >= buf.size())
          {
@@ -32283,95 +39468,87 @@ void gen_a(poly *a, const uint8_t *seed, Newhope_Mode mode)
 
 // API FUNCTIONS
 
-void newhope_keygen(uint8_t *send, poly *sk, RandomNumberGenerator& rng,
+void newhope_keygen(uint8_t* send, poly* sk, RandomNumberGenerator& rng,
                     Newhope_Mode mode)
-{
-  poly a, e, r, pk;
-  uint8_t seed[NEWHOPE_SEED_BYTES];
+   {
+   poly a, e, r, pk;
+   uint8_t seed[NEWHOPE_SEED_BYTES];
 
-  rng.randomize(seed, NEWHOPE_SEED_BYTES);
+   rng.randomize(seed, NEWHOPE_SEED_BYTES);
 
-  gen_a(&a, seed, mode);
+   gen_a(&a, seed, mode);
 
-  poly_getnoise(rng, sk);
-  poly_ntt(sk);
+   poly_getnoise(rng, sk);
+   poly_ntt(sk);
 
-  poly_getnoise(rng, &e);
-  poly_ntt(&e);
+   poly_getnoise(rng, &e);
+   poly_ntt(&e);
 
-  poly_pointwise(&r,sk,&a);
-  poly_add(&pk,&e,&r);
+   poly_pointwise(&r, sk, &a);
+   poly_add(&pk, &e, &r);
 
-  encode_a(send, &pk, seed);
-}
+   encode_a(send, &pk, seed);
+   }
 
-void newhope_sharedb(uint8_t *sharedkey, uint8_t *send, const uint8_t *received,
+void newhope_sharedb(uint8_t* sharedkey, uint8_t* send, const uint8_t* received,
                      RandomNumberGenerator& rng,
                      Newhope_Mode mode)
-{
-  poly sp, ep, v, a, pka, c, epp, bp;
-  uint8_t seed[NEWHOPE_SEED_BYTES];
+   {
+   poly sp, ep, v, a, pka, c, epp, bp;
+   uint8_t seed[NEWHOPE_SEED_BYTES];
 
-  decode_a(&pka, seed, received);
-  gen_a(&a, seed, mode);
+   decode_a(&pka, seed, received);
+   gen_a(&a, seed, mode);
 
-  poly_getnoise(rng, &sp);
-  poly_ntt(&sp);
-  poly_getnoise(rng, &ep);
-  poly_ntt(&ep);
+   poly_getnoise(rng, &sp);
+   poly_ntt(&sp);
+   poly_getnoise(rng, &ep);
+   poly_ntt(&ep);
 
-  poly_pointwise(&bp, &a, &sp);
-  poly_add(&bp, &bp, &ep);
+   poly_pointwise(&bp, &a, &sp);
+   poly_add(&bp, &bp, &ep);
 
-  poly_pointwise(&v, &pka, &sp);
-  poly_invntt(&v);
+   poly_pointwise(&v, &pka, &sp);
+   poly_invntt(&v);
 
-  poly_getnoise(rng, &epp);
-  poly_add(&v, &v, &epp);
+   poly_getnoise(rng, &epp);
+   poly_add(&v, &v, &epp);
 
-  helprec(&c, &v, rng);
+   helprec(&c, &v, rng);
 
-  encode_b(send, &bp, &c);
+   encode_b(send, &bp, &c);
 
-  rec(sharedkey, &v, &c);
+   rec(sharedkey, &v, &c);
 
-  std::unique_ptr<HashFunction> hash(HashFunction::create(
-     (mode == Newhope_Mode::SHA3) ? "SHA-3(256)" : "SHA-256"));
+   const std::string kdf_hash = (mode == Newhope_Mode::SHA3) ? "SHA-3(256)" : "SHA-256";
+   std::unique_ptr<HashFunction> hash = HashFunction::create_or_throw(kdf_hash);
 
-  if(!hash)
-     throw Exception("NewHope hash function not available");
+   hash->update(sharedkey, 32);
+   hash->final(sharedkey);
+   }
 
-  hash->update(sharedkey, 32);
-  hash->final(sharedkey);
-}
-
-
-void newhope_shareda(uint8_t *sharedkey, const poly *sk, const uint8_t *received,
+void newhope_shareda(uint8_t sharedkey[],
+                     const poly* sk,
+                     const uint8_t received[],
                      Newhope_Mode mode)
-{
-  poly v,bp, c;
+   {
+   poly v, bp, c;
 
-  decode_b(&bp, &c, received);
+   decode_b(&bp, &c, received);
 
-  poly_pointwise(&v,sk,&bp);
-  poly_invntt(&v);
+   poly_pointwise(&v, sk, &bp);
+   poly_invntt(&v);
 
-  rec(sharedkey, &v, &c);
+   rec(sharedkey, &v, &c);
 
-  std::unique_ptr<HashFunction> hash(HashFunction::create(
-     (mode == Newhope_Mode::SHA3) ? "SHA-3(256)" : "SHA-256"));
+   const std::string kdf_hash = (mode == Newhope_Mode::SHA3) ? "SHA-3(256)" : "SHA-256";
+   std::unique_ptr<HashFunction> hash = HashFunction::create_or_throw(kdf_hash);
 
-  if(!hash)
-     throw Exception("NewHope hash function not available");
-
-  hash->update(sharedkey, 32);
-  hash->final(sharedkey);
-}
+   hash->update(sharedkey, 32);
+   hash->final(sharedkey);
+   }
 
 }
-
-#undef PARAM_N
-#undef PARAM_Q
 /*
 * Noekeon
 * (C) 1999-2008 Jack Lloyd
@@ -32443,6 +39620,18 @@ inline void gamma(uint32_t& A0, uint32_t& A1, uint32_t& A2, uint32_t& A3)
    }
 
 }
+
+size_t Noekeon::parallelism() const
+   {
+#if defined(BOTAN_HAS_NOEKEON_SIMD)
+   if(CPUID::has_simd_32())
+      {
+      return 4;
+      }
+#endif
+
+   return 1;
+   }
 
 std::string Noekeon::provider() const
    {
@@ -32523,19 +39712,6 @@ void Noekeon::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
 #if defined(BOTAN_HAS_NOEKEON_SIMD)
    if(CPUID::has_simd_32())
       {
-      /*
-      const size_t blocks4 = blocks / 4;
-      const size_t blocks_left = blocks % 4;
-
-      in += blocks4 * BLOCK_SIZE;
-      out += blocks4 * BLOCK_SIZE;
-      blocks = blocks % 4;
-
-      BOTAN_PARALLEL_FOR(size_t i = 0; i < blocks4; ++i)
-         {
-         simd_encrypt_4(in + i*4*BLOCK_SIZE, out + i*4*BLOCK_SIZE);
-         }
-      */
       while(blocks >= 4)
          {
          simd_decrypt_4(in, out);
@@ -32697,10 +39873,10 @@ namespace Botan {
 */
 void Noekeon::simd_encrypt_4(const uint8_t in[], uint8_t out[]) const
    {
-   const SIMD_32 K0 = SIMD_32(m_EK[0]);
-   const SIMD_32 K1 = SIMD_32(m_EK[1]);
-   const SIMD_32 K2 = SIMD_32(m_EK[2]);
-   const SIMD_32 K3 = SIMD_32(m_EK[3]);
+   const SIMD_32 K0 = SIMD_32::splat(m_EK[0]);
+   const SIMD_32 K1 = SIMD_32::splat(m_EK[1]);
+   const SIMD_32 K2 = SIMD_32::splat(m_EK[2]);
+   const SIMD_32 K3 = SIMD_32::splat(m_EK[3]);
 
    SIMD_32 A0 = SIMD_32::load_be(in     );
    SIMD_32 A1 = SIMD_32::load_be(in + 16);
@@ -32711,7 +39887,7 @@ void Noekeon::simd_encrypt_4(const uint8_t in[], uint8_t out[]) const
 
    for(size_t i = 0; i != 16; ++i)
       {
-      A0 ^= SIMD_32(RC[i]);
+      A0 ^= SIMD_32::splat(RC[i]);
 
       NOK_SIMD_THETA(A0, A1, A2, A3, K0, K1, K2, K3);
 
@@ -32726,7 +39902,7 @@ void Noekeon::simd_encrypt_4(const uint8_t in[], uint8_t out[]) const
       A3.rotate_right(2);
       }
 
-   A0 ^= SIMD_32(RC[16]);
+   A0 ^= SIMD_32::splat(RC[16]);
    NOK_SIMD_THETA(A0, A1, A2, A3, K0, K1, K2, K3);
 
    SIMD_32::transpose(A0, A1, A2, A3);
@@ -32742,10 +39918,10 @@ void Noekeon::simd_encrypt_4(const uint8_t in[], uint8_t out[]) const
 */
 void Noekeon::simd_decrypt_4(const uint8_t in[], uint8_t out[]) const
    {
-   const SIMD_32 K0 = SIMD_32(m_DK[0]);
-   const SIMD_32 K1 = SIMD_32(m_DK[1]);
-   const SIMD_32 K2 = SIMD_32(m_DK[2]);
-   const SIMD_32 K3 = SIMD_32(m_DK[3]);
+   const SIMD_32 K0 = SIMD_32::splat(m_DK[0]);
+   const SIMD_32 K1 = SIMD_32::splat(m_DK[1]);
+   const SIMD_32 K2 = SIMD_32::splat(m_DK[2]);
+   const SIMD_32 K3 = SIMD_32::splat(m_DK[3]);
 
    SIMD_32 A0 = SIMD_32::load_be(in     );
    SIMD_32 A1 = SIMD_32::load_be(in + 16);
@@ -32758,7 +39934,7 @@ void Noekeon::simd_decrypt_4(const uint8_t in[], uint8_t out[]) const
       {
       NOK_SIMD_THETA(A0, A1, A2, A3, K0, K1, K2, K3);
 
-      A0 ^= SIMD_32(RC[16-i]);
+      A0 ^= SIMD_32::splat(RC[16-i]);
 
       A1.rotate_left(1);
       A2.rotate_left(5);
@@ -32772,7 +39948,7 @@ void Noekeon::simd_decrypt_4(const uint8_t in[], uint8_t out[]) const
       }
 
    NOK_SIMD_THETA(A0, A1, A2, A3, K0, K1, K2, K3);
-   A0 ^= SIMD_32(RC[0]);
+   A0 ^= SIMD_32::splat(RC[0]);
 
    SIMD_32::transpose(A0, A1, A2, A3);
 
@@ -32843,7 +40019,7 @@ bool generate_dsa_primes(RandomNumberGenerator& rng,
       public:
          explicit Seed(const std::vector<uint8_t>& s) : m_seed(s) {}
 
-         operator std::vector<uint8_t>& () { return m_seed; }
+         const std::vector<uint8_t>& value() const { return m_seed; }
 
          Seed& operator++()
             {
@@ -32858,11 +40034,11 @@ bool generate_dsa_primes(RandomNumberGenerator& rng,
 
    Seed seed(seed_c);
 
-   q.binary_decode(hash->process(seed));
+   q.binary_decode(hash->process(seed.value()));
    q.set_bit(qbits-1);
    q.set_bit(0);
 
-   if(!is_prime(q, rng))
+   if(!is_prime(q, rng, 126))
       return false;
 
    const size_t n = (pbits-1) / (HASH_SIZE * 8),
@@ -32876,7 +40052,7 @@ bool generate_dsa_primes(RandomNumberGenerator& rng,
       for(size_t k = 0; k <= n; ++k)
          {
          ++seed;
-         hash->update(seed);
+         hash->update(seed.value());
          hash->final(&V[HASH_SIZE * (n-k)]);
          }
 
@@ -32888,7 +40064,7 @@ bool generate_dsa_primes(RandomNumberGenerator& rng,
 
          p = X - (X % (2*q) - 1);
 
-         if(p.bits() == pbits && is_prime(p, rng))
+         if(p.bits() == pbits && is_prime(p, rng, 126))
             return true;
          }
       }
@@ -33122,7 +40298,7 @@ BigInt square(const BigInt& x)
 */
 BigInt mul_add(const BigInt& a, const BigInt& b, const BigInt& c)
    {
-   if(c.is_negative() || c.is_zero())
+   if(c.is_negative())
       throw Invalid_Argument("mul_add: Third argument must be > 0");
 
    BigInt::Sign sign = BigInt::Positive;
@@ -33543,9 +40719,22 @@ BigInt power_mod(const BigInt& base, const BigInt& exp, const BigInt& mod)
    * minimal window. This makes sense given that here we know that any
    * precomputation is wasted.
    */
-   pow_mod.set_base(base);
-   pow_mod.set_exponent(exp);
-   return pow_mod.execute();
+
+   if(base.is_negative())
+      {
+      pow_mod.set_base(-base);
+      pow_mod.set_exponent(exp);
+      if(exp.is_even())
+         return pow_mod.execute();
+      else
+         return (mod - pow_mod.execute());
+      }
+   else
+      {
+      pow_mod.set_base(base);
+      pow_mod.set_exponent(exp);
+      return pow_mod.execute();
+      }
    }
 
 namespace {
@@ -33654,7 +40843,6 @@ namespace Botan {
 */
 Power_Mod::Power_Mod(const BigInt& n, Usage_Hints hints, bool disable_monty)
    {
-   m_core = nullptr;
    set_modulus(n, hints, disable_monty);
    }
 
@@ -33663,9 +40851,8 @@ Power_Mod::Power_Mod(const BigInt& n, Usage_Hints hints, bool disable_monty)
 */
 Power_Mod::Power_Mod(const Power_Mod& other)
    {
-   m_core = nullptr;
-   if(other.m_core)
-      m_core = other.m_core->copy();
+   if(other.m_core.get())
+      m_core.reset(other.m_core->copy());
    }
 
 /*
@@ -33675,23 +40862,12 @@ Power_Mod& Power_Mod::operator=(const Power_Mod& other)
    {
    if(this != &other)
       {
-      delete m_core;
-      m_core = nullptr;
       if(other.m_core)
-         {
-         m_core = other.m_core->copy();
-         }
+         m_core.reset(other.m_core->copy());
+      else
+         m_core.reset();
       }
    return (*this);
-   }
-
-/*
-* Power_Mod Destructor
-*/
-Power_Mod::~Power_Mod()
-   {
-   delete m_core;
-   m_core = nullptr;
    }
 
 /*
@@ -33701,16 +40877,14 @@ void Power_Mod::set_modulus(const BigInt& n, Usage_Hints hints, bool disable_mon
    {
    // Allow set_modulus(0) to mean "drop old state"
 
-   delete m_core;
-   m_core = nullptr;
+   m_core.reset();
 
    if(n != 0)
       {
       if(n.is_odd() && disable_monty == false)
-         m_core = new Montgomery_Exponentiator(n, hints);
-
-      if(!m_core)
-         m_core = new Fixed_Window_Exponentiator(n, hints);
+         m_core.reset(new Montgomery_Exponentiator(n, hints));
+      else
+         m_core.reset(new Fixed_Window_Exponentiator(n, hints));
       }
    }
 
@@ -33873,7 +41047,7 @@ void Fixed_Window_Exponentiator::set_base(const BigInt& base)
    {
    m_window_bits = Power_Mod::window_bits(m_exp.bits(), base.bits(), m_hints);
 
-   m_g.resize((1 << m_window_bits));
+   m_g.resize((1U << m_window_bits));
    m_g[0] = 1;
    m_g[1] = base;
 
@@ -33938,7 +41112,7 @@ void Montgomery_Exponentiator::set_base(const BigInt& base)
    {
    m_window_bits = Power_Mod::window_bits(m_exp.bits(), base.bits(), m_hints);
 
-   m_g.resize((1 << m_window_bits));
+   m_g.resize((1U << m_window_bits));
 
    BigInt z(BigInt::Positive, 2 * (m_mod_words + 1));
    secure_vector<word> workspace(z.size());
@@ -33968,6 +41142,8 @@ void Montgomery_Exponentiator::set_base(const BigInt& base)
                        workspace.data());
 
       m_g[i] = z;
+      m_g[i].shrink_to_fit();
+      m_g[i].grow_to(m_mod_words);
       }
    }
 
@@ -33984,6 +41160,7 @@ BigInt Montgomery_Exponentiator::execute() const
 
    BigInt z(BigInt::Positive, z_size);
    secure_vector<word> workspace(z.size());
+   secure_vector<word> e(m_mod_words);
 
    for(size_t i = exp_nibbles; i > 0; --i)
       {
@@ -33997,9 +41174,16 @@ BigInt Montgomery_Exponentiator::execute() const
 
       const uint32_t nibble = m_exp.get_substring(m_window_bits*(i-1), m_window_bits);
 
-      bigint_monty_mul(z, x, m_g[nibble],
-                       m_modulus.data(), m_mod_words, m_mod_prime,
-                       workspace.data());
+      BigInt::const_time_lookup(e, m_g, nibble);
+
+      bigint_mul(z.mutable_data(), z.size(),
+                 x.data(), x.size(), x.sig_words(),
+                 e.data(), m_mod_words, m_mod_words,
+                 workspace.data());
+
+      bigint_monty_redc(z.mutable_data(),
+                        m_modulus.data(), m_mod_words, m_mod_prime,
+                        workspace.data());
 
       x = z;
       }
@@ -34811,7 +41995,7 @@ BigInt ressol(const BigInt& a, const BigInt& p)
 }
 /*
 * OCB Mode
-* (C) 2013 Jack Lloyd
+* (C) 2013,2017 Jack Lloyd
 * (C) 2016 Daniel Neus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -34821,7 +42005,7 @@ BigInt ressol(const BigInt& a, const BigInt& p)
 namespace Botan {
 
 // Has to be in Botan namespace so unique_ptr can reference it
-class L_computer
+class L_computer final
    {
    public:
       explicit L_computer(const BlockCipher& cipher)
@@ -34838,16 +42022,18 @@ class L_computer
 
       const secure_vector<uint8_t>& operator()(size_t i) const { return get(i); }
 
-      const secure_vector<uint8_t>& compute_offsets(secure_vector<uint8_t>& offset,
-                                                 size_t block_index,
-                                                 size_t blocks) const
+      const secure_vector<uint8_t>&
+      compute_offsets(secure_vector<uint8_t>& offset,
+                      size_t block_index,
+                      size_t blocks,
+                      size_t BS) const
          {
-         m_offset_buf.resize(blocks * 16);
+         m_offset_buf.resize(blocks * BS);
 
          for(size_t i = 0; i != blocks; ++i)
             { // could be done in parallel
             offset ^= get(ctz(block_index + 1 + i));
-            copy_mem(&m_offset_buf[16*i], offset.data(), 16);
+            copy_mem(&m_offset_buf[BS*i], offset.data(), BS);
             }
 
          return m_offset_buf;
@@ -34864,7 +42050,9 @@ class L_computer
 
       secure_vector<uint8_t> poly_double(const secure_vector<uint8_t>& in) const
          {
-         return CMAC::poly_double(in);
+         secure_vector<uint8_t> out(in.size());
+         poly_double_n(out.data(), in.data(), out.size());
+         return out;
          }
 
       secure_vector<uint8_t> m_L_dollar, m_L_star;
@@ -34878,16 +42066,17 @@ namespace {
 * OCB's HASH
 */
 secure_vector<uint8_t> ocb_hash(const L_computer& L,
-                             const BlockCipher& cipher,
-                             const uint8_t ad[], size_t ad_len)
+                                const BlockCipher& cipher,
+                                const uint8_t ad[], size_t ad_len)
    {
-   secure_vector<uint8_t> sum(16);
-   secure_vector<uint8_t> offset(16);
+   const size_t BS = cipher.block_size();
+   secure_vector<uint8_t> sum(BS);
+   secure_vector<uint8_t> offset(BS);
 
-   secure_vector<uint8_t> buf(16);
+   secure_vector<uint8_t> buf(BS);
 
-   const size_t ad_blocks = (ad_len / 16);
-   const size_t ad_remainder = (ad_len % 16);
+   const size_t ad_blocks = (ad_len / BS);
+   const size_t ad_remainder = (ad_len % BS);
 
    for(size_t i = 0; i != ad_blocks; ++i)
       {
@@ -34895,7 +42084,7 @@ secure_vector<uint8_t> ocb_hash(const L_computer& L,
       offset ^= L(ctz(i+1));
 
       buf = offset;
-      xor_buf(buf.data(), &ad[16*i], 16);
+      xor_buf(buf.data(), &ad[BS*i], BS);
 
       cipher.encrypt(buf);
 
@@ -34907,8 +42096,8 @@ secure_vector<uint8_t> ocb_hash(const L_computer& L,
       offset ^= L.star();
 
       buf = offset;
-      xor_buf(buf.data(), &ad[16*ad_blocks], ad_remainder);
-      buf[ad_len % 16] ^= 0x80;
+      xor_buf(buf.data(), &ad[BS*ad_blocks], ad_remainder);
+      buf[ad_len % BS] ^= 0x80;
 
       cipher.encrypt(buf);
 
@@ -34923,14 +42112,21 @@ secure_vector<uint8_t> ocb_hash(const L_computer& L,
 OCB_Mode::OCB_Mode(BlockCipher* cipher, size_t tag_size) :
    m_cipher(cipher),
    m_checksum(m_cipher->parallel_bytes()),
-   m_offset(16),
-   m_ad_hash(16),
+   m_offset(m_cipher->block_size()),
+   m_ad_hash(m_cipher->block_size()),
    m_tag_size(tag_size)
    {
-   if(m_cipher->block_size() != 16)
-      throw Invalid_Argument("OCB requires 128 bit cipher");
+   const size_t BS = m_cipher->block_size();
 
-   if(m_tag_size % 4 != 0 || m_tag_size < 8 || m_tag_size > 16)
+   /*
+   * draft-krovetz-ocb-wide-d1 specifies OCB for several other block
+   * sizes but only 128, 192, 256 and 512 bit are currently supported
+   * by this implementation.
+   */
+   if(BS != 16 && BS != 24 && BS != 32 && BS != 64)
+      throw Invalid_Argument("OCB does not support cipher " + m_cipher->name());
+
+   if(m_tag_size % 4 != 0 || m_tag_size < 8 || m_tag_size > BS || m_tag_size > 32)
       throw Invalid_Argument("Invalid OCB tag length");
    }
 
@@ -34955,12 +42151,17 @@ void OCB_Mode::reset()
 
 bool OCB_Mode::valid_nonce_length(size_t length) const
    {
-   return (length > 0 && length < m_cipher->block_size());
+   if(length == 0)
+      return false;
+   if(m_cipher->block_size() == 16)
+      return length < 16;
+   else
+      return length < (m_cipher->block_size() - 1);
    }
 
 std::string OCB_Mode::name() const
    {
-   return m_cipher->name() + "/OCB"; // include tag size
+   return m_cipher->name() + "/OCB"; // include tag size?
    }
 
 size_t OCB_Mode::update_granularity() const
@@ -34988,16 +42189,25 @@ void OCB_Mode::set_associated_data(const uint8_t ad[], size_t ad_len)
 secure_vector<uint8_t>
 OCB_Mode::update_nonce(const uint8_t nonce[], size_t nonce_len)
    {
-   BOTAN_ASSERT(nonce_len < 16, "OCB nonce is less than cipher block size");
+   const size_t BS = m_cipher->block_size();
 
-   secure_vector<uint8_t> nonce_buf(16);
+   BOTAN_ASSERT(BS == 16 || BS == 24 || BS == 32 || BS == 64,
+                "OCB block size is supported");
 
-   copy_mem(&nonce_buf[16 - nonce_len], nonce, nonce_len);
-   nonce_buf[0] = ((tag_size() * 8) % 128) << 1;
-   nonce_buf[16 - nonce_len - 1] = 1;
+   const size_t MASKLEN = (BS == 16 ? 6 : ((BS == 24) ? 7 : 8));
 
-   const uint8_t bottom = nonce_buf[16-1] & 0x3F;
-   nonce_buf[16-1] &= 0xC0;
+   const uint8_t BOTTOM_MASK =
+      static_cast<uint8_t>((static_cast<uint16_t>(1) << MASKLEN) - 1);
+
+   secure_vector<uint8_t> nonce_buf(BS);
+
+   copy_mem(&nonce_buf[BS - nonce_len], nonce, nonce_len);
+   nonce_buf[0] = static_cast<uint8_t>(((tag_size()*8) % (BS*8)) << (BS <= 16 ? 1 : 0));
+
+   nonce_buf[BS - nonce_len - 1] ^= 1;
+
+   const uint8_t bottom = nonce_buf[BS-1] & BOTTOM_MASK;
+   nonce_buf[BS-1] &= ~BOTTOM_MASK;
 
    const bool need_new_stretch = (m_last_nonce != nonce_buf);
 
@@ -35007,19 +42217,58 @@ OCB_Mode::update_nonce(const uint8_t nonce[], size_t nonce_len)
 
       m_cipher->encrypt(nonce_buf);
 
-      for(size_t i = 0; i != 16 / 2; ++i)
-         nonce_buf.push_back(nonce_buf[i] ^ nonce_buf[i+1]);
+      /*
+      The loop bounds (BS vs BS/2) are derived from the relation
+      between the block size and the MASKLEN. Using the terminology
+      of draft-krovetz-ocb-wide, we have to derive enough bits in
+      ShiftedKtop to read up to BLOCKLEN+bottom bits from Stretch.
+
+                 +----------+---------+-------+---------+
+                 | BLOCKLEN | RESIDUE | SHIFT | MASKLEN |
+                 +----------+---------+-------+---------+
+                 |       32 |     141 |    17 |    4    |
+                 |       64 |      27 |    25 |    5    |
+                 |       96 |    1601 |    33 |    6    |
+                 |      128 |     135 |     8 |    6    |
+                 |      192 |     135 |    40 |    7    |
+                 |      256 |    1061 |     1 |    8    |
+                 |      384 |    4109 |    80 |    8    |
+                 |      512 |     293 |   176 |    8    |
+                 |     1024 |  524355 |   352 |    9    |
+                 +----------+---------+-------+---------+
+      */
+      if(BS == 16)
+         {
+         for(size_t i = 0; i != BS / 2; ++i)
+            nonce_buf.push_back(nonce_buf[i] ^ nonce_buf[i+1]);
+         }
+      else if(BS == 24)
+         {
+         for(size_t i = 0; i != 16; ++i)
+            nonce_buf.push_back(nonce_buf[i] ^ nonce_buf[i+5]);
+         }
+      else if(BS == 32)
+         {
+         for(size_t i = 0; i != BS; ++i)
+            nonce_buf.push_back(nonce_buf[i] ^ (nonce_buf[i] << 1) ^ (nonce_buf[i+1] >> 7));
+         }
+      else if(BS == 64)
+         {
+         for(size_t i = 0; i != BS / 2; ++i)
+            nonce_buf.push_back(nonce_buf[i] ^ nonce_buf[i+22]);
+         }
 
       m_stretch = nonce_buf;
       }
 
    // now set the offset from stretch and bottom
-
    const size_t shift_bytes = bottom / 8;
    const size_t shift_bits  = bottom % 8;
 
-   secure_vector<uint8_t> offset(16);
-   for(size_t i = 0; i != 16; ++i)
+   BOTAN_ASSERT(m_stretch.size() >= BS + shift_bytes + 1, "Size ok");
+
+   secure_vector<uint8_t> offset(BS);
+   for(size_t i = 0; i != BS; ++i)
       {
       offset[i]  = (m_stretch[i+shift_bytes] << shift_bits);
       offset[i] |= (m_stretch[i+shift_bytes+1] >> (8-shift_bits));
@@ -35042,14 +42291,17 @@ void OCB_Mode::start_msg(const uint8_t nonce[], size_t nonce_len)
 
 void OCB_Encryption::encrypt(uint8_t buffer[], size_t blocks)
    {
-   const size_t par_blocks = m_checksum.size() / 16;
+   const size_t BS = m_cipher->block_size();
+   const size_t par_blocks = m_checksum.size() / BS;
 
    while(blocks)
       {
       const size_t proc_blocks = std::min(blocks, par_blocks);
-      const size_t proc_bytes = proc_blocks * 16;
+      const size_t proc_bytes = proc_blocks * BS;
 
-      const auto& offsets = m_L->compute_offsets(m_offset, m_block_index, proc_blocks);
+      BOTAN_ASSERT(m_L, "A key was set");
+
+      const auto& offsets = m_L->compute_offsets(m_offset, m_block_index, proc_blocks, BS);
 
       xor_buf(m_checksum.data(), buffer, proc_bytes);
 
@@ -35065,27 +42317,30 @@ void OCB_Encryption::encrypt(uint8_t buffer[], size_t blocks)
 
 size_t OCB_Encryption::process(uint8_t buf[], size_t sz)
    {
-   BOTAN_ASSERT(sz % 16 == 0, "Invalid OCB input size");
-   encrypt(buf, sz / 16);
+   const size_t BS = m_cipher->block_size();
+   BOTAN_ASSERT(sz % BS == 0, "Invalid OCB input size");
+   encrypt(buf, sz / BS);
    return sz;
    }
 
 void OCB_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    {
+   const size_t BS = m_cipher->block_size();
+
    BOTAN_ASSERT(buffer.size() >= offset, "Offset is sane");
    const size_t sz = buffer.size() - offset;
    uint8_t* buf = buffer.data() + offset;
 
    if(sz)
       {
-      const size_t final_full_blocks = sz / 16;
-      const size_t remainder_bytes = sz - (final_full_blocks * 16);
+      const size_t final_full_blocks = sz / BS;
+      const size_t remainder_bytes = sz - (final_full_blocks * BS);
 
       encrypt(buf, final_full_blocks);
 
       if(remainder_bytes)
          {
-         BOTAN_ASSERT(remainder_bytes < 16, "Only a partial block left");
+         BOTAN_ASSERT(remainder_bytes < BS, "Only a partial block left");
          uint8_t* remainder = &buf[sz - remainder_bytes];
 
          xor_buf(m_checksum.data(), remainder, remainder_bytes);
@@ -35093,13 +42348,13 @@ void OCB_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
          m_offset ^= m_L->star(); // Offset_*
 
-         secure_vector<uint8_t> zeros(16);
+         secure_vector<uint8_t> zeros(BS);
          m_cipher->encrypt(m_offset, zeros);
          xor_buf(remainder, zeros.data(), remainder_bytes);
          }
       }
 
-   secure_vector<uint8_t> checksum(16);
+   secure_vector<uint8_t> checksum(BS);
 
    // fold checksum
    for(size_t i = 0; i != m_checksum.size(); ++i)
@@ -35109,9 +42364,7 @@ void OCB_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    secure_vector<uint8_t> mac = m_offset;
    mac ^= checksum;
    mac ^= m_L->dollar();
-
    m_cipher->encrypt(mac);
-
    mac ^= m_ad_hash;
 
    buffer += std::make_pair(mac.data(), tag_size());
@@ -35123,18 +42376,19 @@ void OCB_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
 void OCB_Decryption::decrypt(uint8_t buffer[], size_t blocks)
    {
+   const size_t BS = m_cipher->block_size();
    const size_t par_bytes = m_cipher->parallel_bytes();
 
-   BOTAN_ASSERT(par_bytes % 16 == 0, "Cipher is parallel in full blocks");
+   BOTAN_ASSERT(par_bytes % BS == 0, "Cipher is parallel in full blocks");
 
-   const size_t par_blocks = par_bytes / 16;
+   const size_t par_blocks = par_bytes / BS;
 
    while(blocks)
       {
       const size_t proc_blocks = std::min(blocks, par_blocks);
-      const size_t proc_bytes = proc_blocks * 16;
+      const size_t proc_bytes = proc_blocks * BS;
 
-      const auto& offsets = m_L->compute_offsets(m_offset, m_block_index, proc_blocks);
+      const auto& offsets = m_L->compute_offsets(m_offset, m_block_index, proc_blocks, BS);
 
       xor_buf(buffer, offsets.data(), proc_bytes);
       m_cipher->decrypt_n(buffer, buffer, proc_blocks);
@@ -35150,13 +42404,16 @@ void OCB_Decryption::decrypt(uint8_t buffer[], size_t blocks)
 
 size_t OCB_Decryption::process(uint8_t buf[], size_t sz)
    {
-   BOTAN_ASSERT(sz % 16 == 0, "Invalid OCB input size");
-   decrypt(buf, sz / 16);
+   const size_t BS = m_cipher->block_size();
+   BOTAN_ASSERT(sz % BS == 0, "Invalid OCB input size");
+   decrypt(buf, sz / BS);
    return sz;
    }
 
 void OCB_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    {
+   const size_t BS = m_cipher->block_size();
+
    BOTAN_ASSERT(buffer.size() >= offset, "Offset is sane");
    const size_t sz = buffer.size() - offset;
    uint8_t* buf = buffer.data() + offset;
@@ -35167,20 +42424,20 @@ void OCB_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
    if(remaining)
       {
-      const size_t final_full_blocks = remaining / 16;
-      const size_t final_bytes = remaining - (final_full_blocks * 16);
+      const size_t final_full_blocks = remaining / BS;
+      const size_t final_bytes = remaining - (final_full_blocks * BS);
 
       decrypt(buf, final_full_blocks);
 
       if(final_bytes)
          {
-         BOTAN_ASSERT(final_bytes < 16, "Only a partial block left");
+         BOTAN_ASSERT(final_bytes < BS, "Only a partial block left");
 
          uint8_t* remainder = &buf[remaining - final_bytes];
 
          m_offset ^= m_L->star(); // Offset_*
 
-         secure_vector<uint8_t> pad(16);
+         secure_vector<uint8_t> pad(BS);
          m_cipher->encrypt(m_offset, pad); // P_*
 
          xor_buf(remainder, pad.data(), final_bytes);
@@ -35190,7 +42447,7 @@ void OCB_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
          }
       }
 
-   secure_vector<uint8_t> checksum(16);
+   secure_vector<uint8_t> checksum(BS);
 
    // fold checksum
    for(size_t i = 0; i != m_checksum.size(); ++i)
@@ -35213,7 +42470,7 @@ void OCB_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    // compare mac
    const uint8_t* included_tag = &buf[remaining];
 
-   if(!same_mem(mac.data(), included_tag, tag_size()))
+   if(!constant_time_compare(mac.data(), included_tag, tag_size()))
       throw Integrity_Failure("OCB tag check failed");
 
    // remove tag from end of message
@@ -35309,7 +42566,7 @@ void Parallel::add_data(const uint8_t input[], size_t length)
 
 void Parallel::final_result(uint8_t out[])
    {
-   uint32_t offset = 0;
+   size_t offset = 0;
 
    for(auto&& hash : m_hashes)
       {
@@ -35345,6 +42602,18 @@ HashFunction* Parallel::clone() const
       hash_copies.push_back(std::unique_ptr<HashFunction>(hash->clone()));
 
    return new Parallel(hash_copies);
+   }
+
+std::unique_ptr<HashFunction> Parallel::copy_state() const
+   {
+   std::vector<std::unique_ptr<HashFunction>> hash_clones;
+
+   for(const std::unique_ptr<HashFunction>& hash : m_hashes)
+      {
+      hash_clones.push_back(hash->copy_state());
+      }
+
+   return std::unique_ptr<HashFunction>(new Parallel(hash_clones));
    }
 
 void Parallel::clear()
@@ -35483,9 +42752,18 @@ bool check_passhash9(const std::string& pass, const std::string& hash)
       &bin[ALGID_BYTES + WORKFACTOR_BYTES], SALT_BYTES,
       kdf_iterations).bits_of();
 
-   return same_mem(cmp.data(),
+   return constant_time_compare(cmp.data(),
                    &bin[ALGID_BYTES + WORKFACTOR_BYTES + SALT_BYTES],
                    PASSHASH9_PBKDF_OUTPUT_LEN);
+   }
+
+bool is_passhash9_alg_supported(uint8_t alg_id)
+   {
+   if (get_pbkdf_prf(alg_id))
+      {
+      return true;
+      }
+   return false;
    }
 
 }
@@ -35536,18 +42814,17 @@ std::vector<uint8_t> encode_pbes2_params(const std::string& cipher,
       .get_contents_unlocked();
    }
 
-}
-
 /*
-* PKCS#5 v2.0 PBE Constructor
+* PKCS#5 v2.0 PBE Encryption
 */
 std::pair<AlgorithmIdentifier, std::vector<uint8_t>>
-pbes2_encrypt(const secure_vector<uint8_t>& key_bits,
-              const std::string& passphrase,
-              std::chrono::milliseconds msec,
-              const std::string& cipher,
-              const std::string& digest,
-              RandomNumberGenerator& rng)
+pbes2_encrypt_shared(const secure_vector<uint8_t>& key_bits,
+                     const std::string& passphrase,
+                     size_t* msec_in_iterations_out,
+                     size_t iterations_if_msec_null,
+                     const std::string& cipher,
+                     const std::string& digest,
+                     RandomNumberGenerator& rng)
    {
    const std::string prf = "HMAC(" + digest + ")";
 
@@ -35568,12 +42845,22 @@ pbes2_encrypt(const secure_vector<uint8_t>& key_bits,
    std::unique_ptr<PBKDF> pbkdf(get_pbkdf("PBKDF2(" + prf + ")"));
 
    const size_t key_length = enc->key_spec().maximum_keylength();
-   size_t iterations = 0;
+
 
    secure_vector<uint8_t> iv = rng.random_vec(enc->default_nonce_length());
 
-   enc->set_key(pbkdf->derive_key(key_length, passphrase, salt.data(), salt.size(),
-                                  msec, iterations).bits_of());
+   size_t iterations = iterations_if_msec_null;
+
+   if(msec_in_iterations_out)
+      {
+      std::chrono::milliseconds msec(*msec_in_iterations_out);
+      enc->set_key(pbkdf->derive_key(key_length, passphrase, salt.data(), salt.size(), msec, iterations).bits_of());
+      *msec_in_iterations_out = iterations;
+      }
+   else
+      {
+      enc->set_key(pbkdf->pbkdf_iterations(key_length, passphrase, salt.data(), salt.size(), iterations));
+      }
 
    enc->start(iv);
    secure_vector<uint8_t> buf = key_bits;
@@ -35584,6 +42871,52 @@ pbes2_encrypt(const secure_vector<uint8_t>& key_bits,
       encode_pbes2_params(cipher, prf, salt, iv, iterations, key_length));
 
    return std::make_pair(id, unlock(buf));
+   }
+
+
+}
+
+std::pair<AlgorithmIdentifier, std::vector<uint8_t>>
+pbes2_encrypt(const secure_vector<uint8_t>& key_bits,
+              const std::string& passphrase,
+              std::chrono::milliseconds msec,
+              const std::string& cipher,
+              const std::string& digest,
+              RandomNumberGenerator& rng)
+   {
+   size_t msec_in_iterations_out = static_cast<size_t>(msec.count());
+   return pbes2_encrypt_shared(key_bits, passphrase, &msec_in_iterations_out, 0, cipher, digest, rng);
+   // return value msec_in_iterations_out discarded
+   }
+
+std::pair<AlgorithmIdentifier, std::vector<uint8_t>>
+pbes2_encrypt_msec(const secure_vector<uint8_t>& key_bits,
+                   const std::string& passphrase,
+                   std::chrono::milliseconds msec,
+                   size_t* out_iterations_if_nonnull,
+                   const std::string& cipher,
+                   const std::string& digest,
+                   RandomNumberGenerator& rng)
+   {
+   size_t msec_in_iterations_out = static_cast<size_t>(msec.count());
+
+   auto ret = pbes2_encrypt_shared(key_bits, passphrase, &msec_in_iterations_out, 0, cipher, digest, rng);
+
+   if(out_iterations_if_nonnull)
+      *out_iterations_if_nonnull = msec_in_iterations_out;
+
+   return ret;
+   }
+
+std::pair<AlgorithmIdentifier, std::vector<uint8_t>>
+pbes2_encrypt_iter(const secure_vector<uint8_t>& key_bits,
+                   const std::string& passphrase,
+                   size_t pbkdf_iter,
+                   const std::string& cipher,
+                   const std::string& digest,
+                   RandomNumberGenerator& rng)
+   {
+   return pbes2_encrypt_shared(key_bits, passphrase, nullptr, pbkdf_iter, cipher, digest, rng);
    }
 
 secure_vector<uint8_t>
@@ -35597,7 +42930,6 @@ pbes2_decrypt(const secure_vector<uint8_t>& key_bits,
       .start_cons(SEQUENCE)
          .decode(kdf_algo)
          .decode(enc_algo)
-         .verify_end()
       .end_cons();
 
    AlgorithmIdentifier prf_algo;
@@ -35617,7 +42949,6 @@ pbes2_decrypt(const secure_vector<uint8_t>& key_bits,
          .decode_optional(prf_algo, SEQUENCE, CONSTRUCTED,
                           AlgorithmIdentifier("HMAC(SHA-160)",
                                               AlgorithmIdentifier::USE_NULL_PARAM))
-      .verify_end()
       .end_cons();
 
    const std::string cipher = OIDS::lookup(enc_algo.oid);
@@ -35669,9 +43000,10 @@ pbes2_decrypt(const secure_vector<uint8_t>& key_bits,
 #if defined(BOTAN_HAS_PBKDF2)
 #endif
 
-namespace Botan {
+#if defined(BOTAN_HAS_PGP_S2K)
+#endif
 
-PBKDF::~PBKDF() {}
+namespace Botan {
 
 std::unique_ptr<PBKDF> PBKDF::create(const std::string& algo_spec,
                                      const std::string& provider)
@@ -35705,7 +43037,30 @@ std::unique_ptr<PBKDF> PBKDF::create(const std::string& algo_spec,
       }
 #endif
 
+#if defined(BOTAN_HAS_PGP_S2K)
+   if(req.algo_name() == "OpenPGP-S2K" && req.arg_count() == 1)
+      {
+      if(auto hash = HashFunction::create(req.arg(0)))
+         return std::unique_ptr<PBKDF>(new OpenPGP_S2K(hash.release()));
+      }
+#endif
+
+   BOTAN_UNUSED(req);
+   BOTAN_UNUSED(provider);
+
    return nullptr;
+   }
+
+//static
+std::unique_ptr<PBKDF>
+PBKDF::create_or_throw(const std::string& algo,
+                             const std::string& provider)
+   {
+   if(auto pbkdf = PBKDF::create(algo, provider))
+      {
+      return pbkdf;
+      }
+   throw Lookup_Error("PBKDF", algo, provider);
    }
 
 std::vector<std::string> PBKDF::providers(const std::string& algo_spec)
@@ -36089,6 +43444,138 @@ bool matches(DataSource& source, const std::string& extra,
 
 }
 /*
+* OpenPGP S2K
+* (C) 1999-2007,2017 Jack Lloyd
+*
+* Distributed under the terms of the Botan license
+*/
+
+
+namespace Botan {
+
+/*
+PGP stores the iteration count as a single byte
+Thus it can only actually take on one of 256 values, based on the
+formula in RFC 4880 section 3.6.1.3
+*/
+static const uint32_t OPENPGP_S2K_ITERS[256] = {
+   1024, 1088, 1152, 1216, 1280, 1344, 1408, 1472, 1536, 1600,
+   1664, 1728, 1792, 1856, 1920, 1984, 2048, 2176, 2304, 2432,
+   2560, 2688, 2816, 2944, 3072, 3200, 3328, 3456, 3584, 3712,
+   3840, 3968, 4096, 4352, 4608, 4864, 5120, 5376, 5632, 5888,
+   6144, 6400, 6656, 6912, 7168, 7424, 7680, 7936, 8192, 8704,
+   9216, 9728, 10240, 10752, 11264, 11776, 12288, 12800, 13312,
+   13824, 14336, 14848, 15360, 15872, 16384, 17408, 18432, 19456,
+   20480, 21504, 22528, 23552, 24576, 25600, 26624, 27648, 28672,
+   29696, 30720, 31744, 32768, 34816, 36864, 38912, 40960, 43008,
+   45056, 47104, 49152, 51200, 53248, 55296, 57344, 59392, 61440,
+   63488, 65536, 69632, 73728, 77824, 81920, 86016, 90112, 94208,
+   98304, 102400, 106496, 110592, 114688, 118784, 122880, 126976,
+   131072, 139264, 147456, 155648, 163840, 172032, 180224, 188416,
+   196608, 204800, 212992, 221184, 229376, 237568, 245760, 253952,
+   262144, 278528, 294912, 311296, 327680, 344064, 360448, 376832,
+   393216, 409600, 425984, 442368, 458752, 475136, 491520, 507904,
+   524288, 557056, 589824, 622592, 655360, 688128, 720896, 753664,
+   786432, 819200, 851968, 884736, 917504, 950272, 983040, 1015808,
+   1048576, 1114112, 1179648, 1245184, 1310720, 1376256, 1441792,
+   1507328, 1572864, 1638400, 1703936, 1769472, 1835008, 1900544,
+   1966080, 2031616, 2097152, 2228224, 2359296, 2490368, 2621440,
+   2752512, 2883584, 3014656, 3145728, 3276800, 3407872, 3538944,
+   3670016, 3801088, 3932160, 4063232, 4194304, 4456448, 4718592,
+   4980736, 5242880, 5505024, 5767168, 6029312, 6291456, 6553600,
+   6815744, 7077888, 7340032, 7602176, 7864320, 8126464, 8388608,
+   8912896, 9437184, 9961472, 10485760, 11010048, 11534336,
+   12058624, 12582912, 13107200, 13631488, 14155776, 14680064,
+   15204352, 15728640, 16252928, 16777216, 17825792, 18874368,
+   19922944, 20971520, 22020096, 23068672, 24117248, 25165824,
+   26214400, 27262976, 28311552, 29360128, 30408704, 31457280,
+   32505856, 33554432, 35651584, 37748736, 39845888, 41943040,
+   44040192, 46137344, 48234496, 50331648, 52428800, 54525952,
+   56623104, 58720256, 60817408, 62914560, 65011712 };
+
+//static
+uint8_t OpenPGP_S2K::encode_count(size_t desired_iterations)
+   {
+   /*
+   Only 256 different iterations are actually representable in OpenPGP format ...
+   */
+   for(size_t c = 0; c < 256; ++c)
+      {
+      const uint32_t decoded_iter = OPENPGP_S2K_ITERS[c];
+      if(decoded_iter >= desired_iterations)
+         return static_cast<uint8_t>(c);
+      }
+
+   return 255;
+   }
+
+//static
+size_t OpenPGP_S2K::decode_count(uint8_t iter)
+   {
+   return OPENPGP_S2K_ITERS[iter];
+   }
+
+size_t OpenPGP_S2K::pbkdf(uint8_t output_buf[], size_t output_len,
+                          const std::string& passphrase,
+                          const uint8_t salt[], size_t salt_len,
+                          size_t iterations,
+                          std::chrono::milliseconds msec) const
+   {
+   if(iterations == 0 && msec.count() > 0) // FIXME
+      throw Not_Implemented("OpenPGP_S2K does not implemented timed KDF");
+
+   if(iterations > 1 && salt_len == 0)
+      throw Invalid_Argument("OpenPGP_S2K requires a salt in iterated mode");
+
+   secure_vector<uint8_t> input_buf(salt_len + passphrase.size());
+   if(salt_len > 0)
+      {
+      copy_mem(&input_buf[0], salt, salt_len);
+      }
+   if(passphrase.empty() == false)
+      {
+      copy_mem(&input_buf[salt_len],
+               reinterpret_cast<const uint8_t*>(passphrase.data()),
+               passphrase.size());
+      }
+
+   secure_vector<uint8_t> hash_buf(m_hash->output_length());
+
+   size_t pass = 0;
+   size_t generated = 0;
+
+   while(generated != output_len)
+      {
+      const size_t output_this_pass =
+         std::min(hash_buf.size(), output_len - generated);
+
+      // Preload some number of zero bytes (empty first iteration)
+      std::vector<uint8_t> zero_padding(pass);
+      m_hash->update(zero_padding);
+
+      // The input is always fully processed even if iterations is very small
+      if(input_buf.empty() == false)
+         {
+         size_t left = std::max(iterations, input_buf.size());
+         while(left > 0)
+            {
+            const size_t input_to_take = std::min(left, input_buf.size());
+            m_hash->update(input_buf.data(), input_to_take);
+            left -= input_to_take;
+            }
+         }
+
+      m_hash->final(hash_buf.data());
+      copy_mem(output_buf + generated, hash_buf.data(), output_this_pass);
+      generated += output_this_pass;
+      ++pass;
+      }
+
+   return iterations;
+   }
+
+}
+/*
 * EME Base Class
 * (C) 1999-2008 Jack Lloyd
 *
@@ -36187,8 +43674,6 @@ secure_vector<uint8_t> EME::encode(const secure_vector<uint8_t>& msg,
 
 namespace Botan {
 
-EMSA::~EMSA() {}
-
 EMSA* get_emsa(const std::string& algo_spec)
    {
    SCAN_Name req(algo_spec);
@@ -36206,7 +43691,11 @@ EMSA* get_emsa(const std::string& algo_spec)
          req.algo_name() == "EMSA-PKCS1-v1_5" ||
          req.algo_name() == "EMSA3")
       {
-      if(req.arg_count() == 1)
+      if(req.arg_count() == 2 && req.arg(0) == "Raw")
+         {
+         return new EMSA_PKCS1v15_Raw(req.arg(1));
+         }
+      else if(req.arg_count() == 1)
          {
          if(req.arg(0) == "Raw")
             {
@@ -36225,9 +43714,10 @@ EMSA* get_emsa(const std::string& algo_spec)
 
 #if defined(BOTAN_HAS_EMSA_PSSR)
    if(req.algo_name() == "PSSR" ||
-         req.algo_name() == "EMSA-PSS" ||
-         req.algo_name() == "PSS-MGF1" ||
-         req.algo_name() == "EMSA4")
+      req.algo_name() == "EMSA-PSS" ||
+      req.algo_name() == "PSS-MGF1" ||
+      req.algo_name() == "EMSA4" ||
+      req.algo_name() == "PSSR_Raw")
       {
       if(req.arg_count_between(1, 3))
          {
@@ -36237,7 +43727,11 @@ EMSA* get_emsa(const std::string& algo_spec)
          if(auto h = HashFunction::create(req.arg(0)))
             {
             const size_t salt_size = req.arg_as_integer(2, h->output_length());
-            return new PSSR(h.release(), salt_size);
+
+            if(req.algo_name() == "PSSR_Raw")
+               return new PSSR_Raw(h.release(), salt_size);
+            else
+               return new PSSR(h.release(), salt_size);
             }
          }
       }
@@ -36286,9 +43780,18 @@ EMSA* get_emsa(const std::string& algo_spec)
 #endif
 
 #if defined(BOTAN_HAS_EMSA_RAW)
-   if(req.algo_name() == "Raw" && req.arg_count() == 0)
+   if(req.algo_name() == "Raw")
       {
-      return new EMSA_Raw;
+      if(req.arg_count() == 0)
+         {
+         return new EMSA_Raw;
+         }
+      else
+         {
+         auto hash = HashFunction::create(req.arg(0));
+         if(hash)
+            return new EMSA_Raw(hash->output_length());
+         }
       }
 #endif
 
@@ -36512,6 +44015,86 @@ void Poly1305::final_result(uint8_t out[])
 
 }
 /*
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace {
+
+template<size_t LIMBS, uint64_t POLY>
+void poly_double(uint8_t out[], const uint8_t in[])
+   {
+   uint64_t W[LIMBS];
+   load_be(W, in, LIMBS);
+
+   const uint64_t carry = POLY * (W[0] >> 63);
+   for(size_t i = 0; i != LIMBS - 1; ++i)
+      W[i] = (W[i] << 1) ^ (W[i+1] >> 63);
+   W[LIMBS-1] = (W[LIMBS-1] << 1) ^ carry;
+
+   copy_out_be(out, LIMBS*8, W);
+   }
+
+template<size_t LIMBS, uint64_t POLY>
+void poly_double_le(uint8_t out[], const uint8_t in[])
+   {
+   uint64_t W[LIMBS];
+   load_le(W, in, LIMBS);
+
+   const uint64_t carry = POLY * (W[LIMBS-1] >> 63);
+   for(size_t i = 0; i != LIMBS - 1; ++i)
+      W[LIMBS-1-i] = (W[LIMBS-1-i] << 1) ^ (W[LIMBS-2-i] >> 63);
+   W[0] = (W[0] << 1) ^ carry;
+
+   copy_out_le(out, LIMBS*8, W);
+   }
+
+}
+
+void poly_double_n(uint8_t out[], const uint8_t in[], size_t n)
+   {
+   switch(n)
+      {
+      case 8:
+         return poly_double<1, 0x1B>(out, in);
+      case 16:
+         return poly_double<2, 0x87>(out, in);
+      case 24:
+         return poly_double<3, 0x87>(out, in);
+      case 32:
+         return poly_double<4, 0x425>(out, in);
+      case 64:
+         return poly_double<8, 0x125>(out, in);
+      default:
+         throw Invalid_Argument("Unsupported size for poly_double_n");
+      }
+   }
+
+void poly_double_n_le(uint8_t out[], const uint8_t in[], size_t n)
+   {
+   switch(n)
+      {
+      case 8:
+         return poly_double_le<1, 0x1B>(out, in);
+      case 16:
+         return poly_double_le<2, 0x87>(out, in);
+      case 24:
+         return poly_double_le<3, 0x87>(out, in);
+      case 32:
+         return poly_double_le<4, 0x425>(out, in);
+      case 64:
+         return poly_double_le<8, 0x125>(out, in);
+      default:
+         throw Invalid_Argument("Unsupported size for poly_double_n_le");
+      }
+   }
+
+}
+/*
 * TLS v1.0 and v1.2 PRFs
 * (C) 2004-2010 Jack Lloyd
 *
@@ -36715,7 +44298,7 @@ namespace Botan {
 
 namespace {
 
-class Directory_Walker : public File_Descriptor_Source
+class Directory_Walker final : public File_Descriptor_Source
    {
    public:
       explicit Directory_Walker(const std::string& root) :
@@ -36922,7 +44505,13 @@ BigInt Blinder::unblind(const BigInt& i) const
 #if defined(BOTAN_HAS_DSA)
 #endif
 
+#if defined(BOTAN_HAS_DL_GROUP)
+#endif
+
 #if defined(BOTAN_HAS_DIFFIE_HELLMAN)
+#endif
+
+#if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
 #endif
 
 #if defined(BOTAN_HAS_ECDSA)
@@ -36932,6 +44521,9 @@ BigInt Blinder::unblind(const BigInt& i) const
 #endif
 
 #if defined(BOTAN_HAS_ECKCDSA)
+#endif
+
+#if defined(BOTAN_HAS_ED25519)
 #endif
 
 #if defined(BOTAN_HAS_GOST_34_10_2001)
@@ -36950,6 +44542,12 @@ BigInt Blinder::unblind(const BigInt& i) const
 #endif
 
 #if defined(BOTAN_HAS_XMSS)
+#endif
+
+#if defined(BOTAN_HAS_SM2)
+#endif
+
+#if defined(BOTAN_HAS_OPENSSL)
 #endif
 
 namespace Botan {
@@ -37012,9 +44610,21 @@ load_public_key(const AlgorithmIdentifier& alg_id,
       return std::unique_ptr<Public_Key>(new ECKCDSA_PublicKey(alg_id, key_bits));
 #endif
 
+#if defined(BOTAN_HAS_ED25519)
+   if(alg_name == "Ed25519")
+      return std::unique_ptr<Public_Key>(new Ed25519_PublicKey(alg_id, key_bits));
+#endif
+
 #if defined(BOTAN_HAS_GOST_34_10_2001)
    if(alg_name == "GOST-34.10")
       return std::unique_ptr<Public_Key>(new GOST_3410_PublicKey(alg_id, key_bits));
+#endif
+
+#if defined(BOTAN_HAS_SM2)
+   if(alg_name == "SM2_Sig")
+      return std::unique_ptr<Public_Key>(new SM2_Signature_PublicKey(alg_id, key_bits));
+   if(alg_name == "SM2_Enc")
+      return std::unique_ptr<Public_Key>(new SM2_Encryption_PublicKey(alg_id, key_bits));
 #endif
 
 #if defined(BOTAN_HAS_XMSS)
@@ -37078,9 +44688,21 @@ load_private_key(const AlgorithmIdentifier& alg_id,
       return std::unique_ptr<Private_Key>(new ECKCDSA_PrivateKey(alg_id, key_bits));
 #endif
 
+#if defined(BOTAN_HAS_ED25519)
+   if(alg_name == "Ed25519")
+      return std::unique_ptr<Private_Key>(new Ed25519_PrivateKey(alg_id, key_bits));
+#endif
+
 #if defined(BOTAN_HAS_GOST_34_10_2001)
    if(alg_name == "GOST-34.10")
       return std::unique_ptr<Private_Key>(new GOST_3410_PrivateKey(alg_id, key_bits));
+#endif
+
+#if defined(BOTAN_HAS_SM2)
+   if(alg_name == "SM2_Sig")
+      return std::unique_ptr<Private_Key>(new SM2_Signature_PrivateKey(alg_id, key_bits));
+   if(alg_name == "SM2_Enc")
+      return std::unique_ptr<Private_Key>(new SM2_Encryption_PrivateKey(alg_id, key_bits));
 #endif
 
 #if defined(BOTAN_HAS_ELGAMAL)
@@ -37096,10 +44718,27 @@ load_private_key(const AlgorithmIdentifier& alg_id,
    throw Decoding_Error("Unhandled PK algorithm " + alg_name);
    }
 
+namespace {
+
+std::string default_ec_group_for(const std::string& alg_name)
+   {
+   if(alg_name == "SM2_Enc" || alg_name == "SM2_Sig")
+      return "sm2p256v1";
+   if(alg_name == "GOST-34.10")
+      return "gost_256A";
+   if(alg_name == "ECGDSA")
+      return "brainpool256r1";
+   return "secp256r1";
+
+   }
+
+}
+
 std::unique_ptr<Private_Key>
 create_private_key(const std::string& alg_name,
                    RandomNumberGenerator& rng,
-                   const std::string& params)
+                   const std::string& params,
+                   const std::string& provider)
    {
    /*
    * Default paramaters are chosen for work factor > 2**128 where possible
@@ -37114,6 +44753,17 @@ create_private_key(const std::string& alg_name,
    if(alg_name == "RSA")
       {
       const size_t rsa_bits = (params.empty() ? 3072 : to_u32bit(params));
+#if defined(BOTAN_HAS_OPENSSL)
+      if(provider.empty() || provider == "openssl")
+         {
+         std::unique_ptr<Botan::Private_Key> pk;
+         if((pk = make_openssl_rsa_private_key(rng, rsa_bits)))
+            return pk;
+
+         if(!provider.empty())
+            return nullptr;
+         }
+#endif
       return std::unique_ptr<Private_Key>(new RSA_PrivateKey(rng, rsa_bits));
       }
 #endif
@@ -37142,6 +44792,13 @@ create_private_key(const std::string& alg_name,
       }
 #endif
 
+#if defined(BOTAN_HAS_ED25519)
+   if(alg_name == "Ed25519")
+      {
+      return std::unique_ptr<Private_Key>(new Ed25519_PrivateKey(rng));
+      }
+#endif
+
    // ECC crypto
 #if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
 
@@ -37149,9 +44806,11 @@ create_private_key(const std::string& alg_name,
       alg_name == "ECDH" ||
       alg_name == "ECKCDSA" ||
       alg_name == "ECGDSA" ||
+      alg_name == "SM2_Sig" ||
+      alg_name == "SM2_Enc" ||
       alg_name == "GOST-34.10")
       {
-      const EC_Group ec_group(params.empty() ? "secp256r1" : params);
+      const EC_Group ec_group(params.empty() ? default_ec_group_for(alg_name) : params);
 
 #if defined(BOTAN_HAS_ECDSA)
       if(alg_name == "ECDSA")
@@ -37171,6 +44830,13 @@ create_private_key(const std::string& alg_name,
 #if defined(BOTAN_HAS_GOST_34_10_2001)
       if(alg_name == "GOST-34.10")
          return std::unique_ptr<Private_Key>(new GOST_3410_PrivateKey(rng, ec_group));
+#endif
+
+#if defined(BOTAN_HAS_SM2)
+      if(alg_name == "SM2_Sig")
+         return std::unique_ptr<Private_Key>(new SM2_Signature_PrivateKey(rng, ec_group));
+      if(alg_name == "SM2_Enc")
+         return std::unique_ptr<Private_Key>(new SM2_Encryption_PrivateKey(rng, ec_group));
 #endif
 
 #if defined(BOTAN_HAS_ECGDSA)
@@ -37204,9 +44870,32 @@ create_private_key(const std::string& alg_name,
       }
 #endif
 
+   BOTAN_UNUSED(alg_name, rng, provider);
+
    return std::unique_ptr<Private_Key>();
    }
 
+std::vector<std::string>
+probe_provider_private_key(const std::string& alg_name,
+                           const std::vector<std::string> possible)
+   {
+   std::vector<std::string> providers;
+   for(auto&& prov : possible)
+      {
+      if(prov == "base" ||
+#if defined(BOTAN_HAS_OPENSSL)
+         (prov == "openssl" && alg_name == "RSA") ||
+#endif
+         0)
+         {
+         providers.push_back(prov); // available
+         }
+      }
+
+   BOTAN_UNUSED(alg_name);
+
+   return providers;
+   }
 }
 /*
 * PK Key Types
@@ -37352,8 +45041,6 @@ PK_Ops::Encryption_with_EME::Encryption_with_EME(const std::string& eme)
       throw Algorithm_Not_Found(eme);
    }
 
-PK_Ops::Encryption_with_EME::~Encryption_with_EME() {}
-
 size_t PK_Ops::Encryption_with_EME::max_input_bits() const
    {
    return m_eme->maximum_input_size(max_raw_input_bits());
@@ -37374,8 +45061,6 @@ PK_Ops::Decryption_with_EME::Decryption_with_EME(const std::string& eme)
       throw Algorithm_Not_Found(eme);
    }
 
-PK_Ops::Decryption_with_EME::~Decryption_with_EME() {}
-
 secure_vector<uint8_t>
 PK_Ops::Decryption_with_EME::decrypt(uint8_t& valid_mask,
                                      const uint8_t ciphertext[],
@@ -37390,8 +45075,6 @@ PK_Ops::Key_Agreement_with_KDF::Key_Agreement_with_KDF(const std::string& kdf)
    if(kdf != "Raw")
       m_kdf.reset(get_kdf(kdf));
    }
-
-PK_Ops::Key_Agreement_with_KDF::~Key_Agreement_with_KDF() {}
 
 secure_vector<uint8_t> PK_Ops::Key_Agreement_with_KDF::agree(size_t key_len,
                                                           const uint8_t w[], size_t w_len,
@@ -37412,8 +45095,6 @@ PK_Ops::Signature_with_EMSA::Signature_with_EMSA(const std::string& emsa) :
    if(!m_emsa)
       throw Algorithm_Not_Found(emsa);
    }
-
-PK_Ops::Signature_with_EMSA::~Signature_with_EMSA() {}
 
 void PK_Ops::Signature_with_EMSA::update(const uint8_t msg[], size_t msg_len)
    {
@@ -37443,8 +45124,6 @@ PK_Ops::Verification_with_EMSA::Verification_with_EMSA(const std::string& emsa) 
    if(!m_emsa)
       throw Algorithm_Not_Found(emsa);
    }
-
-PK_Ops::Verification_with_EMSA::~Verification_with_EMSA() {}
 
 void PK_Ops::Verification_with_EMSA::update(const uint8_t msg[], size_t msg_len)
    {
@@ -37495,8 +45174,6 @@ PK_Ops::KEM_Encryption_with_KDF::KEM_Encryption_with_KDF(const std::string& kdf)
    m_kdf.reset(get_kdf(kdf));
    }
 
-PK_Ops::KEM_Encryption_with_KDF::~KEM_Encryption_with_KDF() {}
-
 secure_vector<uint8_t>
 PK_Ops::KEM_Decryption_with_KDF::kem_decrypt(const uint8_t encap_key[],
                                              size_t len,
@@ -37515,8 +45192,6 @@ PK_Ops::KEM_Decryption_with_KDF::KEM_Decryption_with_KDF(const std::string& kdf)
    {
    m_kdf.reset(get_kdf(kdf));
    }
-
-PK_Ops::KEM_Decryption_with_KDF::~KEM_Decryption_with_KDF() {}
 
 }
 /*
@@ -37687,8 +45362,8 @@ std::vector<uint8_t> BER_encode(const Private_Key& key,
    const auto pbe_params = choose_pbe_params(pbe_algo, key.algo_name());
 
    const std::pair<AlgorithmIdentifier, std::vector<uint8_t>> pbe_info =
-      pbes2_encrypt(PKCS8::BER_encode(key), pass, msec,
-                    pbe_params.first, pbe_params.second, rng);
+      pbes2_encrypt_msec(PKCS8::BER_encode(key), pass, msec, nullptr,
+                         pbe_params.first, pbe_params.second, rng);
 
    return DER_Encoder()
          .start_cons(SEQUENCE)
@@ -37714,15 +45389,97 @@ std::string PEM_encode(const Private_Key& key,
                            "ENCRYPTED PRIVATE KEY");
    }
 
+/*
+* BER encode a PKCS #8 private key, encrypted
+*/
+std::vector<uint8_t> BER_encode_encrypted_pbkdf_iter(const Private_Key& key,
+                                                     RandomNumberGenerator& rng,
+                                                     const std::string& pass,
+                                                     size_t pbkdf_iterations,
+                                                     const std::string& cipher,
+                                                     const std::string& pbkdf_hash)
+   {
+   const std::pair<AlgorithmIdentifier, std::vector<uint8_t>> pbe_info =
+      pbes2_encrypt_iter(key.private_key_info(),
+                         pass, pbkdf_iterations,
+                         cipher.empty() ? "AES-256/CBC" : cipher,
+                         pbkdf_hash.empty() ? "SHA-256" : pbkdf_hash,
+                         rng);
+
+   return DER_Encoder()
+         .start_cons(SEQUENCE)
+            .encode(pbe_info.first)
+            .encode(pbe_info.second, OCTET_STRING)
+         .end_cons()
+      .get_contents_unlocked();
+   }
+
+/*
+* PEM encode a PKCS #8 private key, encrypted
+*/
+std::string PEM_encode_encrypted_pbkdf_iter(const Private_Key& key,
+                                            RandomNumberGenerator& rng,
+                                            const std::string& pass,
+                                            size_t pbkdf_iterations,
+                                            const std::string& cipher,
+                                            const std::string& pbkdf_hash)
+   {
+   return PEM_Code::encode(
+      PKCS8::BER_encode_encrypted_pbkdf_iter(key, rng, pass, pbkdf_iterations, cipher, pbkdf_hash),
+      "ENCRYPTED PRIVATE KEY");
+   }
+
+/*
+* BER encode a PKCS #8 private key, encrypted
+*/
+std::vector<uint8_t> BER_encode_encrypted_pbkdf_msec(const Private_Key& key,
+                                                     RandomNumberGenerator& rng,
+                                                     const std::string& pass,
+                                                     std::chrono::milliseconds pbkdf_msec,
+                                                     size_t* pbkdf_iterations,
+                                                     const std::string& cipher,
+                                                     const std::string& pbkdf_hash)
+   {
+   const std::pair<AlgorithmIdentifier, std::vector<uint8_t>> pbe_info =
+      pbes2_encrypt_msec(key.private_key_info(), pass,
+                         pbkdf_msec, pbkdf_iterations,
+                         cipher.empty() ? "AES-256/CBC" : cipher,
+                         pbkdf_hash.empty() ? "SHA-256" : pbkdf_hash,
+                         rng);
+
+   return DER_Encoder()
+         .start_cons(SEQUENCE)
+            .encode(pbe_info.first)
+            .encode(pbe_info.second, OCTET_STRING)
+         .end_cons()
+      .get_contents_unlocked();
+   }
+
+/*
+* PEM encode a PKCS #8 private key, encrypted
+*/
+std::string PEM_encode_encrypted_pbkdf_msec(const Private_Key& key,
+                                            RandomNumberGenerator& rng,
+                                            const std::string& pass,
+                                            std::chrono::milliseconds pbkdf_msec,
+                                            size_t* pbkdf_iterations,
+                                            const std::string& cipher,
+                                            const std::string& pbkdf_hash)
+   {
+   return PEM_Code::encode(
+      PKCS8::BER_encode_encrypted_pbkdf_msec(key, rng, pass, pbkdf_msec, pbkdf_iterations, cipher, pbkdf_hash),
+      "ENCRYPTED PRIVATE KEY");
+   }
+
 namespace {
 
 /*
 * Extract a private key (encrypted/unencrypted) and return it
 */
-Private_Key* load_key(DataSource& source,
-                      RandomNumberGenerator& /*rng*/,
-                      std::function<std::string ()> get_pass,
-                      bool is_encrypted)
+std::unique_ptr<Private_Key>
+load_key(DataSource& source,
+         std::function<std::string ()> get_pass,
+         bool is_encrypted)
    {
    AlgorithmIdentifier alg_id;
    secure_vector<uint8_t> pkcs8_key = PKCS8_decode(source, get_pass, alg_id, is_encrypted);
@@ -37732,10 +45489,49 @@ Private_Key* load_key(DataSource& source,
       throw PKCS8_Exception("Unknown algorithm OID: " +
                             alg_id.oid.as_string());
 
-   return load_private_key(alg_id, pkcs8_key).release();
+   return std::unique_ptr<Private_Key>(load_private_key(alg_id, pkcs8_key));
    }
 
 }
+
+/*
+* Extract an encrypted private key and return it
+*/
+std::unique_ptr<Private_Key> load_key(DataSource& source,
+                      std::function<std::string ()> get_pass)
+   {
+   return load_key(source, get_pass, true);
+   }
+
+/*
+* Extract an encrypted private key and return it
+*/
+std::unique_ptr<Private_Key> load_key(DataSource& source,
+                      const std::string& pass)
+   {
+   return load_key(source, [pass]() { return pass; }, true);
+   }
+
+/*
+* Extract an unencrypted private key and return it
+*/
+std::unique_ptr<Private_Key> load_key(DataSource& source)
+   {
+   auto fail_fn = []() -> std::string {
+      throw PKCS8_Exception("Internal error: Attempt to read password for unencrypted key");
+   };
+
+   return load_key(source, fail_fn, false);
+   }
+
+/*
+* Make a copy of this private key
+*/
+std::unique_ptr<Private_Key> copy_key(const Private_Key& key)
+   {
+   DataSource_Memory source(PEM_encode(key));
+   return PKCS8::load_key(source);
+   }
 
 /*
 * Extract an encrypted private key and return it
@@ -37744,7 +45540,8 @@ Private_Key* load_key(DataSource& source,
                       RandomNumberGenerator& rng,
                       std::function<std::string ()> get_pass)
    {
-   return load_key(source, rng, get_pass, true);
+   BOTAN_UNUSED(rng);
+   return PKCS8::load_key(source, get_pass).release();
    }
 
 /*
@@ -37754,7 +45551,8 @@ Private_Key* load_key(DataSource& source,
                       RandomNumberGenerator& rng,
                       const std::string& pass)
    {
-   return load_key(source, rng, [pass]() { return pass; }, true);
+   BOTAN_UNUSED(rng);
+   return PKCS8::load_key(source, pass).release();
    }
 
 /*
@@ -37763,8 +45561,8 @@ Private_Key* load_key(DataSource& source,
 Private_Key* load_key(DataSource& source,
                       RandomNumberGenerator& rng)
    {
-   return load_key(source, rng, []() -> std::string {
-      throw PKCS8_Exception( "Internal error: Attempt to read password for unencrypted key" );}, false);
+   BOTAN_UNUSED(rng);
+   return PKCS8::load_key(source).release();
    }
 
 #if defined(BOTAN_TARGET_OS_HAS_FILESYSTEM)
@@ -37776,8 +45574,9 @@ Private_Key* load_key(const std::string& fsname,
                       RandomNumberGenerator& rng,
                       std::function<std::string ()> get_pass)
    {
-   DataSource_Stream source(fsname, true);
-   return load_key(source, rng, get_pass, true);
+   BOTAN_UNUSED(rng);
+   DataSource_Stream in(fsname);
+   return PKCS8::load_key(in, get_pass).release();
    }
 
 /*
@@ -37787,7 +45586,9 @@ Private_Key* load_key(const std::string& fsname,
                       RandomNumberGenerator& rng,
                       const std::string& pass)
    {
-   return PKCS8::load_key(fsname, rng, [pass]() { return pass; });
+   BOTAN_UNUSED(rng);
+   DataSource_Stream in(fsname);
+   return PKCS8::load_key(in, [pass]() { return pass; }).release();
    }
 
 /*
@@ -37796,9 +45597,9 @@ Private_Key* load_key(const std::string& fsname,
 Private_Key* load_key(const std::string& fsname,
                       RandomNumberGenerator& rng)
    {
-   DataSource_Stream source(fsname, true);
-   return load_key(source, rng, []() -> std::string {
-      throw PKCS8_Exception( "Internal error: Attempt to read password for unencrypted key" );}, false);
+   BOTAN_UNUSED(rng);
+   DataSource_Stream in(fsname);
+   return PKCS8::load_key(in).release();
    }
 #endif
 
@@ -37808,9 +45609,11 @@ Private_Key* load_key(const std::string& fsname,
 Private_Key* copy_key(const Private_Key& key,
                       RandomNumberGenerator& rng)
    {
-   DataSource_Memory source(PEM_encode(key));
-   return PKCS8::load_key(source, rng);
+   BOTAN_UNUSED(rng);
+   return PKCS8::copy_key(key).release();
    }
+
+
 
 }
 
@@ -38230,7 +46033,6 @@ Public_Key* load_key(DataSource& source)
             .start_cons(SEQUENCE)
             .decode(alg_id)
             .decode(key_bits, BIT_STRING)
-            .verify_end()
          .end_cons();
          }
       else
@@ -38243,7 +46045,6 @@ Public_Key* load_key(DataSource& source)
             .start_cons(SEQUENCE)
             .decode(alg_id)
             .decode(key_bits, BIT_STRING)
-            .verify_end()
          .end_cons();
          }
 
@@ -38469,7 +46270,7 @@ secure_vector<uint8_t> rfc3394_keywrap(const secure_vector<uint8_t>& key,
       {
       for(size_t i = 1; i <= n; ++i)
          {
-         const uint32_t t = (n * j) + i;
+         const uint32_t t = static_cast<uint32_t>((n * j) + i);
 
          copy_mem(&A[8], &R[8*i], 8);
 
@@ -38514,7 +46315,7 @@ secure_vector<uint8_t> rfc3394_keyunwrap(const secure_vector<uint8_t>& key,
       {
       for(size_t i = n; i != 0; --i)
          {
-         const uint32_t t = (5 - j) * n + i;
+         const uint32_t t = static_cast<uint32_t>((5 - j) * n + i);
 
          uint8_t t_buf[4] = { 0 };
          store_be(t, t_buf);
@@ -38601,6 +46402,11 @@ BigInt generate_rfc6979_nonce(const BigInt& x,
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> RIPEMD_160::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new RIPEMD_160(*this));
+   }
 
 namespace {
 
@@ -38818,7 +46624,7 @@ void RandomNumberGenerator::randomize_with_ts_input(uint8_t output[], size_t out
    */
    uint8_t additional_input[16] = { 0 };
    store_le(OS::get_system_timestamp_ns(), additional_input);
-   store_le(OS::get_processor_timestamp(), additional_input + 8);
+   store_le(OS::get_high_resolution_clock(), additional_input + 8);
 
    randomize_with_input(output, output_len, additional_input, sizeof(additional_input));
    }
@@ -38854,7 +46660,16 @@ RandomNumberGenerator* RandomNumberGenerator::make_rng()
    }
 
 #if defined(BOTAN_TARGET_OS_HAS_THREADS)
-Serialized_RNG::Serialized_RNG() : m_rng(RandomNumberGenerator::make_rng()) {}
+
+#if defined(BOTAN_HAS_AUTO_SEEDING_RNG)
+Serialized_RNG::Serialized_RNG() : m_rng(new AutoSeeded_RNG) {}
+#else
+Serialized_RNG::Serialized_RNG()
+   {
+   throw Exception("Serialized_RNG default constructor failed: AutoSeeded_RNG disabled in build");
+   }
+#endif
+
 #endif
 
 }
@@ -38907,7 +46722,6 @@ RSA_PublicKey::RSA_PublicKey(const AlgorithmIdentifier&,
       .start_cons(SEQUENCE)
         .decode(m_n)
         .decode(m_e)
-      .verify_end()
       .end_cons();
    }
 
@@ -39016,7 +46830,7 @@ bool RSA_PrivateKey::check_key(RandomNumberGenerator& rng, bool strong) const
    if(m_d1 != m_d % (m_p - 1) || m_d2 != m_d % (m_q - 1) || m_c != inverse_mod(m_q, m_p))
       return false;
 
-   const size_t prob = (strong) ? 56 : 12;
+   const size_t prob = (strong) ? 128 : 12;
 
    if(!is_prime(m_p, rng, prob) || !is_prime(m_q, rng, prob))
       return false;
@@ -39089,12 +46903,12 @@ class RSA_Private_Operation
       Blinder m_blinder;
    };
 
-class RSA_Signature_Operation : public PK_Ops::Signature_with_EMSA,
+class RSA_Signature_Operation final : public PK_Ops::Signature_with_EMSA,
                                 private RSA_Private_Operation
    {
    public:
 
-      size_t max_input_bits() const override { return get_max_input_bits(); };
+      size_t max_input_bits() const override { return get_max_input_bits(); }
 
       RSA_Signature_Operation(const RSA_PrivateKey& rsa, const std::string& emsa, RandomNumberGenerator& rng) :
          PK_Ops::Signature_with_EMSA(emsa),
@@ -39113,12 +46927,12 @@ class RSA_Signature_Operation : public PK_Ops::Signature_with_EMSA,
          }
    };
 
-class RSA_Decryption_Operation : public PK_Ops::Decryption_with_EME,
+class RSA_Decryption_Operation final : public PK_Ops::Decryption_with_EME,
                                  private RSA_Private_Operation
    {
    public:
 
-      size_t max_raw_input_bits() const override { return get_max_input_bits(); };
+      size_t max_raw_input_bits() const override { return get_max_input_bits(); }
 
       RSA_Decryption_Operation(const RSA_PrivateKey& rsa, const std::string& eme, RandomNumberGenerator& rng) :
          PK_Ops::Decryption_with_EME(eme),
@@ -39136,7 +46950,7 @@ class RSA_Decryption_Operation : public PK_Ops::Decryption_with_EME,
          }
    };
 
-class RSA_KEM_Decryption_Operation : public PK_Ops::KEM_Decryption_with_KDF,
+class RSA_KEM_Decryption_Operation final : public PK_Ops::KEM_Decryption_with_KDF,
                                      private RSA_Private_Operation
    {
    public:
@@ -39185,7 +46999,7 @@ class RSA_Public_Operation
       Fixed_Exponent_Power_Mod m_powermod_e_n;
    };
 
-class RSA_Encryption_Operation : public PK_Ops::Encryption_with_EME,
+class RSA_Encryption_Operation final : public PK_Ops::Encryption_with_EME,
                                  private RSA_Public_Operation
    {
    public:
@@ -39196,7 +47010,7 @@ class RSA_Encryption_Operation : public PK_Ops::Encryption_with_EME,
          {
          }
 
-      size_t max_raw_input_bits() const override { return get_max_input_bits(); };
+      size_t max_raw_input_bits() const override { return get_max_input_bits(); }
 
       secure_vector<uint8_t> raw_encrypt(const uint8_t msg[], size_t msg_len,
                                       RandomNumberGenerator&) override
@@ -39206,12 +47020,12 @@ class RSA_Encryption_Operation : public PK_Ops::Encryption_with_EME,
          }
    };
 
-class RSA_Verify_Operation : public PK_Ops::Verification_with_EMSA,
+class RSA_Verify_Operation final : public PK_Ops::Verification_with_EMSA,
                              private RSA_Public_Operation
    {
    public:
 
-      size_t max_input_bits() const override { return get_max_input_bits(); };
+      size_t max_input_bits() const override { return get_max_input_bits(); }
 
       RSA_Verify_Operation(const RSA_PublicKey& rsa, const std::string& emsa) :
          PK_Ops::Verification_with_EMSA(emsa),
@@ -39228,7 +47042,7 @@ class RSA_Verify_Operation : public PK_Ops::Verification_with_EMSA,
          }
    };
 
-class RSA_KEM_Encryption_Operation : public PK_Ops::KEM_Encryption_with_KDF,
+class RSA_KEM_Encryption_Operation final : public PK_Ops::KEM_Encryption_with_KDF,
                                      private RSA_Public_Operation
    {
    public:
@@ -39910,9 +47724,9 @@ void SEED::key_schedule(const uint8_t key[], size_t)
       m_K[2*i  ] = SEED_G(WK[0] + WK[2] - RC[i]);
       m_K[2*i+1] = SEED_G(WK[1] - WK[3] + RC[i]) ^ m_K[2*i];
 
-      uint8_t T = get_byte(3, WK[0]);
+      uint32_t T = (WK[0] & 0xFF) << 24;
       WK[0] = (WK[0] >> 8) | (get_byte(3, WK[1]) << 24);
-      WK[1] = (WK[1] >> 8) | (T << 24);
+      WK[1] = (WK[1] >> 8) | T;
 
       m_K[2*i+2] = SEED_G(WK[0] + WK[2] - RC[i+1]);
       m_K[2*i+3] = SEED_G(WK[1] - WK[3] + RC[i+1]) ^ m_K[2*i+2];
@@ -40194,14 +48008,12 @@ std::string Serpent::provider() const
 
 namespace Botan {
 
-namespace {
-
 #define key_xor(round, B0, B1, B2, B3)                             \
    do {                                                            \
-      B0 ^= SIMD_32(m_round_key[4*round  ]);                       \
-      B1 ^= SIMD_32(m_round_key[4*round+1]);                       \
-      B2 ^= SIMD_32(m_round_key[4*round+2]);                       \
-      B3 ^= SIMD_32(m_round_key[4*round+3]);                       \
+      B0 ^= SIMD_32::splat(m_round_key[4*round  ]);                \
+      B1 ^= SIMD_32::splat(m_round_key[4*round+1]);                \
+      B2 ^= SIMD_32::splat(m_round_key[4*round+2]);                \
+      B3 ^= SIMD_32::splat(m_round_key[4*round+3]);                \
    } while(0);
 
 /*
@@ -40234,8 +48046,6 @@ namespace {
       B2.rotate_right(3);                                          \
       B0.rotate_right(13);                                         \
    } while(0);
-
-}
 
 /*
 * SIMD Serpent Encryption of 4 blocks in parallel
@@ -40566,6 +48376,11 @@ void Session_Manager_SQL::prune_session_cache()
 
 namespace Botan {
 
+std::unique_ptr<HashFunction> SHA_160::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHA_160(*this));
+   }
+
 namespace SHA1_F {
 
 namespace {
@@ -40616,6 +48431,20 @@ inline void F4(uint32_t A, uint32_t& B, uint32_t C, uint32_t D, uint32_t& E, uin
 void SHA_160::compress_n(const uint8_t input[], size_t blocks)
    {
    using namespace SHA1_F;
+
+#if defined(BOTAN_HAS_SHA1_X86_SHA_NI)
+   if(CPUID::has_intel_sha())
+      {
+      return sha1_compress_x86(m_digest, input, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_SHA1_ARMV8)
+   if(CPUID::has_arm_sha1())
+      {
+      return sha1_armv8_compress_n(m_digest, input, blocks);
+      }
+#endif
 
 #if defined(BOTAN_HAS_SHA1_SSE2)
    if(CPUID::has_sse2())
@@ -41058,7 +48887,7 @@ void SHA_160::sse2_compress_n(secure_vector<uint32_t>& digest, const uint8_t inp
 }
 /*
 * SHA-{224,256}
-* (C) 1999-2010 Jack Lloyd
+* (C) 1999-2010,2017 Jack Lloyd
 *     2007 FlexSecure GmbH
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -41067,25 +48896,14 @@ void SHA_160::sse2_compress_n(secure_vector<uint32_t>& digest, const uint8_t inp
 
 namespace Botan {
 
-namespace {
-
-namespace SHA2_32 {
-
-/*
-* SHA-256 Rho Function
-*/
-inline uint32_t rho(uint32_t X, uint32_t rot1, uint32_t rot2, uint32_t rot3)
+std::unique_ptr<HashFunction> SHA_224::copy_state() const
    {
-   return (rotate_right(X, rot1) ^ rotate_right(X, rot2) ^
-           rotate_right(X, rot3));
+   return std::unique_ptr<HashFunction>(new SHA_224(*this));
    }
 
-/*
-* SHA-256 Sigma Function
-*/
-inline uint32_t sigma(uint32_t X, uint32_t rot1, uint32_t rot2, uint32_t shift)
+std::unique_ptr<HashFunction> SHA_256::copy_state() const
    {
-   return (rotate_right(X, rot1) ^ rotate_right(X, rot2) ^ (X >> shift));
+   return std::unique_ptr<HashFunction>(new SHA_256(*this));
    }
 
 /*
@@ -41094,20 +48912,37 @@ inline uint32_t sigma(uint32_t X, uint32_t rot1, uint32_t rot2, uint32_t shift)
 * Use a macro as many compilers won't inline a function this big,
 * even though it is much faster if inlined.
 */
-#define SHA2_32_F(A, B, C, D, E, F, G, H, M1, M2, M3, M4, magic)   \
-   do {                                                            \
-      H += magic + rho(E, 6, 11, 25) + ((E & F) ^ (~E & G)) + M1;  \
-      D += H;                                                      \
-      H += rho(A, 2, 13, 22) + ((A & B) | ((A | B) & C));          \
-      M1 += sigma(M2, 17, 19, 10) + M3 + sigma(M4, 7, 18, 3);      \
+#define SHA2_32_F(A, B, C, D, E, F, G, H, M1, M2, M3, M4, magic) do {               \
+   uint32_t A_rho = rotate_right(A, 2) ^ rotate_right(A, 13) ^ rotate_right(A, 22); \
+   uint32_t E_rho = rotate_right(E, 6) ^ rotate_right(E, 11) ^ rotate_right(E, 25); \
+   uint32_t M2_sigma = rotate_right(M2, 17) ^ rotate_right(M2, 19) ^ (M2 >> 10);    \
+   uint32_t M4_sigma = rotate_right(M4, 7) ^ rotate_right(M4, 18) ^ (M4 >> 3);      \
+   H += magic + E_rho + ((E & F) ^ (~E & G)) + M1;                                  \
+   D += H;                                                                          \
+   H += A_rho + ((A & B) | ((A | B) & C));                                          \
+   M1 += M2_sigma + M3 + M4_sigma;                                                  \
    } while(0);
 
 /*
 * SHA-224 / SHA-256 compression function
 */
-void compress(secure_vector<uint32_t>& digest,
-              const uint8_t input[], size_t blocks)
+void SHA_256::compress_digest(secure_vector<uint32_t>& digest,
+                              const uint8_t input[], size_t blocks)
    {
+#if defined(BOTAN_HAS_SHA2_32_X86)
+   if(CPUID::has_intel_sha())
+      {
+      return SHA_256::compress_digest_x86(digest, input, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_SHA2_32_ARMV8)
+   if(CPUID::has_arm_sha2())
+      {
+      return SHA_256::compress_digest_armv8(digest, input, blocks);
+      }
+#endif
+
    uint32_t A = digest[0], B = digest[1], C = digest[2],
           D = digest[3], E = digest[4], F = digest[5],
           G = digest[6], H = digest[7];
@@ -41209,16 +49044,12 @@ void compress(secure_vector<uint32_t>& digest,
       }
    }
 
-}
-
-}
-
 /*
 * SHA-224 compression function
 */
 void SHA_224::compress_n(const uint8_t input[], size_t blocks)
    {
-   SHA2_32::compress(m_digest, input, blocks);
+   SHA_256::compress_digest(m_digest, input, blocks);
    }
 
 /*
@@ -41250,7 +49081,7 @@ void SHA_224::clear()
 */
 void SHA_256::compress_n(const uint8_t input[], size_t blocks)
    {
-   SHA2_32::compress(m_digest, input, blocks);
+   SHA_256::compress_digest(m_digest, input, blocks);
    }
 
 /*
@@ -41287,6 +49118,21 @@ void SHA_256::clear()
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> SHA_384::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHA_384(*this));
+   }
+
+std::unique_ptr<HashFunction> SHA_512::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHA_512(*this));
+   }
+
+std::unique_ptr<HashFunction> SHA_512_256::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHA_512_256(*this));
+   }
 
 namespace {
 
@@ -41530,6 +49376,11 @@ void SHA_512::clear()
 
 namespace Botan {
 
+std::unique_ptr<HashFunction> SHA_3::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHA_3(*this));
+   }
+
 //static
 void SHA_3::permute(uint64_t A[25])
    {
@@ -41745,6 +49596,355 @@ void SHA_3::final_result(uint8_t output[])
 
 }
 /*
+* SHACAL-2
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace {
+
+inline void SHACAL2_Fwd(uint32_t A, uint32_t B, uint32_t C, uint32_t& D,
+                        uint32_t E, uint32_t F, uint32_t G, uint32_t& H,
+                        uint32_t RK)
+   {
+   const uint32_t A_rho = rotate_right(A, 2) ^ rotate_right(A, 13) ^ rotate_right(A, 22);
+   const uint32_t E_rho = rotate_right(E, 6) ^ rotate_right(E, 11) ^ rotate_right(E, 25);
+
+   H += E_rho + ((E & F) ^ (~E & G)) + RK;
+   D += H;
+   H += A_rho + ((A & B) | ((A | B) & C));
+   }
+
+inline void SHACAL2_Rev(uint32_t A, uint32_t B, uint32_t C, uint32_t& D,
+                        uint32_t E, uint32_t F, uint32_t G, uint32_t& H,
+                        uint32_t RK)
+   {
+   const uint32_t A_rho = rotate_right(A, 2) ^ rotate_right(A, 13) ^ rotate_right(A, 22);
+   const uint32_t E_rho = rotate_right(E, 6) ^ rotate_right(E, 11) ^ rotate_right(E, 25);
+
+   H -= A_rho + ((A & B) | ((A | B) & C));
+   D -= H;
+   H -= E_rho + ((E & F) ^ (~E & G)) + RK;
+   }
+
+}
+
+/*
+* SHACAL2 Encryption
+*/
+void SHACAL2::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+#if defined(BOTAN_HAS_SHACAL2_X86)
+   if(CPUID::has_intel_sha())
+      {
+      return x86_encrypt_blocks(in, out, blocks);
+      }
+#endif
+
+#if defined(BOTAN_HAS_SHACAL2_SIMD)
+   if(CPUID::has_simd_32())
+      {
+      while(blocks >= 4)
+         {
+         simd_encrypt_4(in, out);
+         in += 4*BLOCK_SIZE;
+         out += 4*BLOCK_SIZE;
+         blocks -= 4;
+         }
+      }
+#endif
+
+   for(size_t i = 0; i != blocks; ++i)
+      {
+      uint32_t A = load_be<uint32_t>(in, 0);
+      uint32_t B = load_be<uint32_t>(in, 1);
+      uint32_t C = load_be<uint32_t>(in, 2);
+      uint32_t D = load_be<uint32_t>(in, 3);
+      uint32_t E = load_be<uint32_t>(in, 4);
+      uint32_t F = load_be<uint32_t>(in, 5);
+      uint32_t G = load_be<uint32_t>(in, 6);
+      uint32_t H = load_be<uint32_t>(in, 7);
+
+      for(size_t r = 0; r != 64; r += 8)
+         {
+         SHACAL2_Fwd(A, B, C, D, E, F, G, H, m_RK[r+0]);
+         SHACAL2_Fwd(H, A, B, C, D, E, F, G, m_RK[r+1]);
+         SHACAL2_Fwd(G, H, A, B, C, D, E, F, m_RK[r+2]);
+         SHACAL2_Fwd(F, G, H, A, B, C, D, E, m_RK[r+3]);
+         SHACAL2_Fwd(E, F, G, H, A, B, C, D, m_RK[r+4]);
+         SHACAL2_Fwd(D, E, F, G, H, A, B, C, m_RK[r+5]);
+         SHACAL2_Fwd(C, D, E, F, G, H, A, B, m_RK[r+6]);
+         SHACAL2_Fwd(B, C, D, E, F, G, H, A, m_RK[r+7]);
+         }
+
+      store_be(out, A, B, C, D, E, F, G, H);
+
+      in += BLOCK_SIZE;
+      out += BLOCK_SIZE;
+      }
+   }
+
+/*
+* SHACAL2 Encryption
+*/
+void SHACAL2::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+#if defined(BOTAN_HAS_SHACAL2_SIMD)
+   if(CPUID::has_simd_32())
+      {
+      while(blocks >= 4)
+         {
+         simd_decrypt_4(in, out);
+         in += 4*BLOCK_SIZE;
+         out += 4*BLOCK_SIZE;
+         blocks -= 4;
+         }
+      }
+#endif
+
+   for(size_t i = 0; i != blocks; ++i)
+      {
+      uint32_t A = load_be<uint32_t>(in, 0);
+      uint32_t B = load_be<uint32_t>(in, 1);
+      uint32_t C = load_be<uint32_t>(in, 2);
+      uint32_t D = load_be<uint32_t>(in, 3);
+      uint32_t E = load_be<uint32_t>(in, 4);
+      uint32_t F = load_be<uint32_t>(in, 5);
+      uint32_t G = load_be<uint32_t>(in, 6);
+      uint32_t H = load_be<uint32_t>(in, 7);
+
+      for(size_t r = 0; r != 64; r += 8)
+         {
+         SHACAL2_Rev(B, C, D, E, F, G, H, A, m_RK[63-r]);
+         SHACAL2_Rev(C, D, E, F, G, H, A, B, m_RK[62-r]);
+         SHACAL2_Rev(D, E, F, G, H, A, B, C, m_RK[61-r]);
+         SHACAL2_Rev(E, F, G, H, A, B, C, D, m_RK[60-r]);
+         SHACAL2_Rev(F, G, H, A, B, C, D, E, m_RK[59-r]);
+         SHACAL2_Rev(G, H, A, B, C, D, E, F, m_RK[58-r]);
+         SHACAL2_Rev(H, A, B, C, D, E, F, G, m_RK[57-r]);
+         SHACAL2_Rev(A, B, C, D, E, F, G, H, m_RK[56-r]);
+         }
+
+      store_be(out, A, B, C, D, E, F, G, H);
+
+      in += BLOCK_SIZE;
+      out += BLOCK_SIZE;
+      }
+   }
+
+/*
+* SHACAL2 Key Schedule
+*/
+void SHACAL2::key_schedule(const uint8_t key[], size_t len)
+   {
+   const uint32_t RC[64] = {
+      0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
+      0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
+      0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3,
+      0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
+      0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC,
+      0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
+      0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7,
+      0xC6E00BF3, 0xD5A79147, 0x06CA6351, 0x14292967,
+      0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13,
+      0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85,
+      0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3,
+      0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
+      0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5,
+      0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
+      0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208,
+      0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2
+   };
+
+   if(m_RK.empty())
+      m_RK.resize(64);
+   else
+      clear_mem(m_RK.data(), m_RK.size());
+
+   load_be(m_RK.data(), key, len/4);
+
+   for(size_t i = 16; i != 64; ++i)
+      {
+      const uint32_t sigma0_15 = rotate_right(m_RK[i-15], 7) ^ rotate_right(m_RK[i-15], 18) ^ (m_RK[i-15] >> 3);
+      const uint32_t sigma1_2  = rotate_right(m_RK[i-2], 17) ^ rotate_right(m_RK[i-2], 19)  ^ (m_RK[i-2] >> 10);
+      m_RK[i] = m_RK[i-16] + sigma0_15 + m_RK[i-7] + sigma1_2;
+      }
+
+   for(size_t i = 0; i != 64; ++i)
+      {
+      m_RK[i] += RC[i];
+      }
+   }
+
+size_t SHACAL2::parallelism() const
+   {
+#if defined(BOTAN_HAS_SHACAL2_X86)
+   if(CPUID::has_intel_sha())
+      {
+      return 4;
+      }
+#endif
+
+#if defined(BOTAN_HAS_SHACAL2_SIMD)
+   if(CPUID::has_simd_32())
+      {
+      return 4;
+      }
+#endif
+
+   return 1;
+   }
+
+std::string SHACAL2::provider() const
+   {
+#if defined(BOTAN_HAS_SHACAL2_X86)
+   if(CPUID::has_intel_sha())
+      {
+      return "intel_sha";
+      }
+#endif
+
+#if defined(BOTAN_HAS_SHACAL2_SIMD)
+   if(CPUID::has_simd_32())
+      {
+      return "simd";
+      }
+#endif
+
+   return "base";
+   }
+
+/*
+* Clear memory of sensitive data
+*/
+void SHACAL2::clear()
+   {
+   zap(m_RK);
+   }
+
+}
+/*
+* SHACAL-2 using SIMD
+* (C) 2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace {
+
+inline
+void SHACAL2_Fwd(const SIMD_32& A, const SIMD_32& B, const SIMD_32& C, SIMD_32& D,
+                 const SIMD_32& E, const SIMD_32& F, const SIMD_32& G, SIMD_32& H,
+                 uint32_t RK)
+   {
+   H += E.rho(6,11,25) + ((E & F) ^ (~E & G)) + SIMD_32::splat(RK);
+   D += H;
+   H += A.rho(2,13,22) + ((A & B) | ((A | B) & C));
+   }
+
+inline
+void SHACAL2_Rev(const SIMD_32& A, const SIMD_32& B, const SIMD_32& C, SIMD_32& D,
+                 const SIMD_32& E, const SIMD_32& F, const SIMD_32& G, SIMD_32& H,
+                 uint32_t RK)
+   {
+   H -= A.rho(2,13,22) + ((A & B) | ((A | B) & C));
+   D -= H;
+   H -= E.rho(6,11,25) + ((E & F) ^ (~E & G)) + SIMD_32::splat(RK);
+   }
+
+}
+
+void SHACAL2::simd_encrypt_4(const uint8_t in[], uint8_t out[]) const
+   {
+   SIMD_4x32 A = SIMD_4x32::load_be(in);
+   SIMD_4x32 E = SIMD_4x32::load_be(in+16);
+   SIMD_4x32 B = SIMD_4x32::load_be(in+32);
+   SIMD_4x32 F = SIMD_4x32::load_be(in+48);
+
+   SIMD_4x32 C = SIMD_4x32::load_be(in+64);
+   SIMD_4x32 G = SIMD_4x32::load_be(in+80);
+   SIMD_4x32 D = SIMD_4x32::load_be(in+96);
+   SIMD_4x32 H = SIMD_4x32::load_be(in+112);
+
+   SIMD_4x32::transpose(A, B, C, D);
+   SIMD_4x32::transpose(E, F, G, H);
+
+   for(size_t r = 0; r != 64; r += 8)
+      {
+      SHACAL2_Fwd(A, B, C, D, E, F, G, H, m_RK[r+0]);
+      SHACAL2_Fwd(H, A, B, C, D, E, F, G, m_RK[r+1]);
+      SHACAL2_Fwd(G, H, A, B, C, D, E, F, m_RK[r+2]);
+      SHACAL2_Fwd(F, G, H, A, B, C, D, E, m_RK[r+3]);
+      SHACAL2_Fwd(E, F, G, H, A, B, C, D, m_RK[r+4]);
+      SHACAL2_Fwd(D, E, F, G, H, A, B, C, m_RK[r+5]);
+      SHACAL2_Fwd(C, D, E, F, G, H, A, B, m_RK[r+6]);
+      SHACAL2_Fwd(B, C, D, E, F, G, H, A, m_RK[r+7]);
+      }
+
+   SIMD_4x32::transpose(A, B, C, D);
+   SIMD_4x32::transpose(E, F, G, H);
+
+   A.store_be(out);
+   E.store_be(out+16);
+   B.store_be(out+32);
+   F.store_be(out+48);
+
+   C.store_be(out+64);
+   G.store_be(out+80);
+   D.store_be(out+96);
+   H.store_be(out+112);
+   }
+
+void SHACAL2::simd_decrypt_4(const uint8_t in[], uint8_t out[]) const
+   {
+   SIMD_4x32 A = SIMD_4x32::load_be(in);
+   SIMD_4x32 E = SIMD_4x32::load_be(in+16);
+   SIMD_4x32 B = SIMD_4x32::load_be(in+32);
+   SIMD_4x32 F = SIMD_4x32::load_be(in+48);
+
+   SIMD_4x32 C = SIMD_4x32::load_be(in+64);
+   SIMD_4x32 G = SIMD_4x32::load_be(in+80);
+   SIMD_4x32 D = SIMD_4x32::load_be(in+96);
+   SIMD_4x32 H = SIMD_4x32::load_be(in+112);
+
+   SIMD_4x32::transpose(A, B, C, D);
+   SIMD_4x32::transpose(E, F, G, H);
+
+   for(size_t r = 0; r != 64; r += 8)
+      {
+      SHACAL2_Rev(B, C, D, E, F, G, H, A, m_RK[63-r]);
+      SHACAL2_Rev(C, D, E, F, G, H, A, B, m_RK[62-r]);
+      SHACAL2_Rev(D, E, F, G, H, A, B, C, m_RK[61-r]);
+      SHACAL2_Rev(E, F, G, H, A, B, C, D, m_RK[60-r]);
+      SHACAL2_Rev(F, G, H, A, B, C, D, E, m_RK[59-r]);
+      SHACAL2_Rev(G, H, A, B, C, D, E, F, m_RK[58-r]);
+      SHACAL2_Rev(H, A, B, C, D, E, F, G, m_RK[57-r]);
+      SHACAL2_Rev(A, B, C, D, E, F, G, H, m_RK[56-r]);
+      }
+
+   SIMD_4x32::transpose(A, B, C, D);
+   SIMD_4x32::transpose(E, F, G, H);
+
+   A.store_be(out);
+   E.store_be(out+16);
+   B.store_be(out+32);
+   F.store_be(out+48);
+
+   C.store_be(out+64);
+   G.store_be(out+80);
+   D.store_be(out+96);
+   H.store_be(out+112);
+   }
+
+}
+/*
 * SHAKE-128/256 as a hash
 * (C) 2016 Jack Lloyd
 *
@@ -41770,6 +49970,11 @@ std::string SHAKE_128::name() const
 HashFunction* SHAKE_128::clone() const
    {
    return new SHAKE_128(m_output_bits);
+   }
+
+std::unique_ptr<HashFunction> SHAKE_128::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHAKE_128(*this));
    }
 
 void SHAKE_128::clear()
@@ -41813,6 +50018,11 @@ std::string SHAKE_256::name() const
 HashFunction* SHAKE_256::clone() const
    {
    return new SHAKE_256(m_output_bits);
+   }
+
+std::unique_ptr<HashFunction> SHAKE_256::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SHAKE_256(*this));
    }
 
 void SHAKE_256::clear()
@@ -41953,7 +50163,8 @@ void SipRounds(uint64_t M, secure_vector<uint64_t>& V, size_t r)
 
 void SipHash::add_data(const uint8_t input[], size_t length)
    {
-   m_words += length;
+   // SipHash counts the message length mod 256
+   m_words += static_cast<uint8_t>(length);
 
    if(m_mbuf_pos)
       {
@@ -42035,7 +50246,7 @@ MessageAuthenticationCode* SipHash::clone() const
 }
 /*
 * SIV Mode Encryption
-* (C) 2013 Jack Lloyd
+* (C) 2013,2017 Jack Lloyd
 * (C) 2016 Daniel Neus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -42047,16 +50258,22 @@ namespace Botan {
 SIV_Mode::SIV_Mode(BlockCipher* cipher) :
    m_name(cipher->name() + "/SIV"),
    m_ctr(new CTR_BE(cipher->clone())),
-   m_cmac(new CMAC(cipher))
+   m_mac(new CMAC(cipher)),
+   m_bs(cipher->block_size())
    {
    if(cipher->block_size() != 16)
       throw Invalid_Argument("SIV requires a 128 bit block cipher");
    }
 
+SIV_Mode::~SIV_Mode()
+   {
+   // for ~unique_ptr
+   }
+
 void SIV_Mode::clear()
    {
    m_ctr->clear();
-   m_cmac->clear();
+   m_mac->clear();
    reset();
    }
 
@@ -42090,23 +50307,27 @@ size_t SIV_Mode::update_granularity() const
 
 Key_Length_Specification SIV_Mode::key_spec() const
    {
-   return m_cmac->key_spec().multiple(2);
+   return m_mac->key_spec().multiple(2);
    }
 
 void SIV_Mode::key_schedule(const uint8_t key[], size_t length)
    {
    const size_t keylen = length / 2;
-   m_cmac->set_key(key, keylen);
+   m_mac->set_key(key, keylen);
    m_ctr->set_key(key + keylen, keylen);
    m_ad_macs.clear();
    }
 
 void SIV_Mode::set_associated_data_n(size_t n, const uint8_t ad[], size_t length)
    {
+   const size_t max_ads = block_size() * 8 - 2;
+   if(n > max_ads)
+      throw Invalid_Argument(name() + " allows no more than " + std::to_string(max_ads) + " ADs");
+
    if(n >= m_ad_macs.size())
       m_ad_macs.resize(n+1);
 
-   m_ad_macs[n] = m_cmac->process(ad, length);
+   m_ad_macs[n] = m_mac->process(ad, length);
    }
 
 void SIV_Mode::start_msg(const uint8_t nonce[], size_t nonce_len)
@@ -42115,7 +50336,7 @@ void SIV_Mode::start_msg(const uint8_t nonce[], size_t nonce_len)
       throw Invalid_IV_Length(name(), nonce_len);
 
    if(nonce_len)
-      m_nonce = m_cmac->process(nonce, nonce_len);
+      m_nonce = m_mac->process(nonce, nonce_len);
    else
       m_nonce.clear();
 
@@ -42131,41 +50352,41 @@ size_t SIV_Mode::process(uint8_t buf[], size_t sz)
 
 secure_vector<uint8_t> SIV_Mode::S2V(const uint8_t* text, size_t text_len)
    {
-   const uint8_t zero[16] = { 0 };
+   const std::vector<uint8_t> zeros(block_size());
 
-   secure_vector<uint8_t> V = m_cmac->process(zero, 16);
+   secure_vector<uint8_t> V = m_mac->process(zeros.data(), zeros.size());
 
    for(size_t i = 0; i != m_ad_macs.size(); ++i)
       {
-      V = CMAC::poly_double(V);
+      poly_double_n(V.data(), V.size());
       V ^= m_ad_macs[i];
       }
 
    if(m_nonce.size())
       {
-      V = CMAC::poly_double(V);
+      poly_double_n(V.data(), V.size());
       V ^= m_nonce;
       }
 
-   if(text_len < 16)
+   if(text_len < block_size())
       {
-      V = CMAC::poly_double(V);
+      poly_double_n(V.data(), V.size());
       xor_buf(V.data(), text, text_len);
       V[text_len] ^= 0x80;
-      return m_cmac->process(V);
+      return m_mac->process(V);
       }
 
-   m_cmac->update(text, text_len - 16);
-   xor_buf(V.data(), &text[text_len - 16], 16);
-   m_cmac->update(V);
+   m_mac->update(text, text_len - block_size());
+   xor_buf(V.data(), &text[text_len - block_size()], block_size());
+   m_mac->update(V);
 
-   return m_cmac->final();
+   return m_mac->final();
    }
 
 void SIV_Mode::set_ctr_iv(secure_vector<uint8_t> V)
    {
-   V[8] &= 0x7F;
-   V[12] &= 0x7F;
+   V[m_bs-8] &= 0x7F;
+   V[m_bs-4] &= 0x7F;
 
    ctr().set_iv(V.data(), V.size());
    }
@@ -42175,13 +50396,17 @@ void SIV_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    BOTAN_ASSERT(buffer.size() >= offset, "Offset is sane");
 
    buffer.insert(buffer.begin() + offset, msg_buf().begin(), msg_buf().end());
+   msg_buf().clear();
 
-   secure_vector<uint8_t> V = S2V(buffer.data() + offset, buffer.size() - offset);
+   const secure_vector<uint8_t> V = S2V(buffer.data() + offset, buffer.size() - offset);
 
    buffer.insert(buffer.begin() + offset, V.begin(), V.end());
 
-   set_ctr_iv(V);
-   ctr().cipher1(&buffer[offset + V.size()], buffer.size() - offset - V.size());
+   if(buffer.size() != offset + V.size())
+      {
+      set_ctr_iv(V);
+      ctr().cipher1(&buffer[offset + V.size()], buffer.size() - offset - V.size());
+      }
    }
 
 void SIV_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
@@ -42189,22 +50414,27 @@ void SIV_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    BOTAN_ASSERT(buffer.size() >= offset, "Offset is sane");
 
    buffer.insert(buffer.begin() + offset, msg_buf().begin(), msg_buf().end());
+   msg_buf().clear();
 
    const size_t sz = buffer.size() - offset;
 
    BOTAN_ASSERT(sz >= tag_size(), "We have the tag");
 
-   secure_vector<uint8_t> V(buffer.data() + offset, buffer.data() + offset + 16);
+   secure_vector<uint8_t> V(buffer.data() + offset,
+                            buffer.data() + offset + block_size());
 
-   set_ctr_iv(V);
+   if(buffer.size() != offset + V.size())
+      {
+      set_ctr_iv(V);
 
-   ctr().cipher(buffer.data() + offset + V.size(),
-                buffer.data() + offset,
-                buffer.size() - offset - V.size());
+      ctr().cipher(buffer.data() + offset + V.size(),
+                   buffer.data() + offset,
+                   buffer.size() - offset - V.size());
+      }
 
-   secure_vector<uint8_t> T = S2V(buffer.data() + offset, buffer.size() - offset - V.size());
+   const secure_vector<uint8_t> T = S2V(buffer.data() + offset, buffer.size() - offset - V.size());
 
-   if(T != V)
+   if(!constant_time_compare(T.data(), V.data(), T.size()))
       throw Integrity_Failure("SIV tag check failed");
 
    buffer.resize(buffer.size() - tag_size());
@@ -42245,6 +50475,18 @@ std::string Skein_512::name() const
 HashFunction* Skein_512::clone() const
    {
    return new Skein_512(m_output_bits, m_personalization);
+   }
+
+std::unique_ptr<HashFunction> Skein_512::copy_state() const
+   {
+   std::unique_ptr<Skein_512> copy(new Skein_512(m_output_bits, m_personalization));
+
+   copy->m_threefish->m_K = this->m_threefish->m_K;
+   copy->m_T = this->m_T;
+   copy->m_buffer = this->m_buffer;
+   copy->m_buf_pos = this->m_buf_pos;
+
+   return std::move(copy);
    }
 
 void Skein_512::clear()
@@ -42373,6 +50615,856 @@ void Skein_512::final_result(uint8_t out[])
 
 }
 /*
+* SM2 Signatures
+* (C) 2017 Ribose Inc
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+bool SM2_Signature_PrivateKey::check_key(RandomNumberGenerator& rng,
+                                         bool strong) const
+   {
+   if(!public_point().on_the_curve())
+      return false;
+
+   if(!strong)
+      return true;
+
+   return KeyPair::signature_consistency_check(rng, *this, "SM3");
+   }
+
+SM2_Signature_PrivateKey::SM2_Signature_PrivateKey(const AlgorithmIdentifier& alg_id,
+                                                   const secure_vector<uint8_t>& key_bits) :
+   EC_PrivateKey(alg_id, key_bits)
+   {
+   m_da_inv = inverse_mod(m_private_key + 1, domain().get_order());
+   }
+
+SM2_Signature_PrivateKey::SM2_Signature_PrivateKey(RandomNumberGenerator& rng,
+                                                   const EC_Group& domain,
+                                                   const BigInt& x) :
+   EC_PrivateKey(rng, domain, x)
+   {
+   m_da_inv = inverse_mod(m_private_key + 1, domain.get_order());
+   }
+
+std::vector<uint8_t> sm2_compute_za(HashFunction& hash,
+                                    const std::string& user_id,
+                                    const EC_Group& domain,
+                                    const PointGFp& pubkey)
+   {
+   if(user_id.size() >= 8192)
+      throw Invalid_Argument("SM2 user id too long to represent");
+
+   const uint16_t uid_len = static_cast<uint16_t>(8 * user_id.size());
+
+   hash.update(get_byte(0, uid_len));
+   hash.update(get_byte(1, uid_len));
+   hash.update(user_id);
+
+   const size_t p_bytes = domain.get_curve().get_p().bytes();
+
+   hash.update(BigInt::encode_1363(domain.get_curve().get_a(), p_bytes));
+   hash.update(BigInt::encode_1363(domain.get_curve().get_b(), p_bytes));
+   hash.update(BigInt::encode_1363(domain.get_base_point().get_affine_x(), p_bytes));
+   hash.update(BigInt::encode_1363(domain.get_base_point().get_affine_y(), p_bytes));
+   hash.update(BigInt::encode_1363(pubkey.get_affine_x(), p_bytes));
+   hash.update(BigInt::encode_1363(pubkey.get_affine_y(), p_bytes));
+
+   std::vector<uint8_t> za(hash.output_length());
+   hash.final(za.data());
+
+   return za;
+   }
+
+namespace {
+
+/**
+* SM2 signature operation
+*/
+class SM2_Signature_Operation final : public PK_Ops::Signature
+   {
+   public:
+
+      SM2_Signature_Operation(const SM2_Signature_PrivateKey& sm2,
+                              const std::string& ident,
+                              const std::string& hash) :
+         m_order(sm2.domain().get_order()),
+         m_base_point(sm2.domain().get_base_point(), m_order),
+         m_x(sm2.private_value()),
+         m_da_inv(sm2.get_da_inv()),
+         m_mod_order(m_order),
+         m_hash(HashFunction::create_or_throw(hash))
+         {
+         // ZA=H256(ENTLA || IDA || a || b || xG || yG || xA || yA)
+         m_za = sm2_compute_za(*m_hash, ident, sm2.domain(), sm2.public_point());
+         m_hash->update(m_za);
+         }
+
+      void update(const uint8_t msg[], size_t msg_len) override
+         {
+         m_hash->update(msg, msg_len);
+         }
+
+      secure_vector<uint8_t> sign(RandomNumberGenerator& rng) override;
+
+   private:
+      const BigInt& m_order;
+      Blinded_Point_Multiply m_base_point;
+      const BigInt& m_x;
+      const BigInt& m_da_inv;
+      Modular_Reducer m_mod_order;
+
+      std::vector<uint8_t> m_za;
+      std::unique_ptr<HashFunction> m_hash;
+   };
+
+secure_vector<uint8_t>
+SM2_Signature_Operation::sign(RandomNumberGenerator& rng)
+   {
+   const BigInt k = BigInt::random_integer(rng, 1, m_order);
+
+   const PointGFp k_times_P = m_base_point.blinded_multiply(k, rng);
+
+   const BigInt e = BigInt::decode(m_hash->final());
+   const BigInt r = m_mod_order.reduce(k_times_P.get_affine_x() + e);
+   const BigInt s = m_mod_order.multiply(m_da_inv, (k - r*m_x));
+
+   // prepend ZA for next signature if any
+   m_hash->update(m_za);
+
+   return BigInt::encode_fixed_length_int_pair(r, s, m_order.bytes());
+   }
+
+/**
+* SM2 verification operation
+*/
+class SM2_Verification_Operation final : public PK_Ops::Verification
+   {
+   public:
+      SM2_Verification_Operation(const SM2_Signature_PublicKey& sm2,
+                                 const std::string& ident,
+                                 const std::string& hash) :
+         m_base_point(sm2.domain().get_base_point()),
+         m_public_point(sm2.public_point()),
+         m_order(sm2.domain().get_order()),
+         m_mod_order(m_order),
+         m_hash(HashFunction::create_or_throw(hash))
+         {
+         // ZA=H256(ENTLA || IDA || a || b || xG || yG || xA || yA)
+         m_za = sm2_compute_za(*m_hash, ident, sm2.domain(), sm2.public_point());
+         m_hash->update(m_za);
+         }
+
+      void update(const uint8_t msg[], size_t msg_len) override
+         {
+         m_hash->update(msg, msg_len);
+         }
+
+      bool is_valid_signature(const uint8_t sig[], size_t sig_len) override;
+   private:
+      const PointGFp& m_base_point;
+      const PointGFp& m_public_point;
+      const BigInt& m_order;
+      // FIXME: should be offered by curve
+      Modular_Reducer m_mod_order;
+      std::vector<uint8_t> m_za;
+      std::unique_ptr<HashFunction> m_hash;
+   };
+
+bool SM2_Verification_Operation::is_valid_signature(const uint8_t sig[], size_t sig_len)
+   {
+   const BigInt e = BigInt::decode(m_hash->final());
+
+   // Update for next verification
+   m_hash->update(m_za);
+
+   if(sig_len != m_order.bytes()*2)
+      return false;
+
+   const BigInt r(sig, sig_len / 2);
+   const BigInt s(sig + sig_len / 2, sig_len / 2);
+
+   if(r <= 0 || r >= m_order || s <= 0 || s >= m_order)
+      return false;
+
+   const BigInt t = m_mod_order.reduce(r + s);
+
+   if(t == 0)
+      return false;
+
+   const PointGFp R = multi_exponentiate(m_base_point, s, m_public_point, t);
+
+   // ???
+   if(R.is_zero())
+      return false;
+
+   return (m_mod_order.reduce(R.get_affine_x() + e) == r);
+   }
+
+}
+
+std::unique_ptr<PK_Ops::Verification>
+SM2_Signature_PublicKey::create_verification_op(const std::string& params,
+                                                const std::string& provider) const
+   {
+   if(provider == "base" || provider.empty())
+      {
+      std::string userid = "";
+      std::string hash = "SM3";
+
+      auto comma = params.find(',');
+      if(comma == std::string::npos)
+         userid = params;
+      else
+         {
+         userid = params.substr(0, comma);
+         hash = params.substr(comma+1, std::string::npos);
+         }
+
+      return std::unique_ptr<PK_Ops::Verification>(new SM2_Verification_Operation(*this, userid, hash));
+      }
+
+   throw Provider_Not_Found(algo_name(), provider);
+   }
+
+std::unique_ptr<PK_Ops::Signature>
+SM2_Signature_PrivateKey::create_signature_op(RandomNumberGenerator& /*rng*/,
+                                              const std::string& params,
+                                              const std::string& provider) const
+   {
+   if(provider == "base" || provider.empty())
+      {
+      std::string userid = "";
+      std::string hash = "SM3";
+
+      auto comma = params.find(',');
+      if(comma == std::string::npos)
+         userid = params;
+      else
+         {
+         userid = params.substr(0, comma);
+         hash = params.substr(comma+1, std::string::npos);
+         }
+
+      return std::unique_ptr<PK_Ops::Signature>(new SM2_Signature_Operation(*this, userid, hash));
+      }
+
+   throw Provider_Not_Found(algo_name(), provider);
+   }
+
+}
+/*
+* SM2 Encryption
+* (C) 2017 Ribose Inc
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+bool SM2_Encryption_PrivateKey::check_key(RandomNumberGenerator& rng,
+                                          bool strong) const
+   {
+   if(!public_point().on_the_curve())
+      return false;
+
+   if(!strong)
+      return true;
+
+   return KeyPair::encryption_consistency_check(rng, *this, "SM3");
+   }
+
+SM2_Encryption_PrivateKey::SM2_Encryption_PrivateKey(const AlgorithmIdentifier& alg_id,
+                                                     const secure_vector<uint8_t>& key_bits) :
+   EC_PrivateKey(alg_id, key_bits)
+   {
+   }
+
+SM2_Encryption_PrivateKey::SM2_Encryption_PrivateKey(RandomNumberGenerator& rng,
+                                                     const EC_Group& domain,
+                                                     const BigInt& x) :
+   EC_PrivateKey(rng, domain, x)
+   {
+   }
+
+namespace {
+
+class SM2_Encryption_Operation final : public PK_Ops::Encryption
+   {
+   public:
+      SM2_Encryption_Operation(const SM2_Encryption_PublicKey& key, const std::string& kdf_hash) :
+         m_p_bytes(key.domain().get_curve().get_p().bytes()),
+         m_order(key.domain().get_order()),
+         m_base_point(key.domain().get_base_point(), m_order),
+         m_public_point(key.public_point(), m_order),
+         m_kdf_hash(kdf_hash)
+         {}
+
+      size_t max_input_bits() const override
+         {
+         // This is arbitrary, but assumes SM2 is used for key encapsulation
+         return 512;
+         }
+
+      secure_vector<uint8_t> encrypt(const uint8_t msg[],
+                                     size_t msg_len,
+                                     RandomNumberGenerator& rng) override
+         {
+         std::unique_ptr<HashFunction> hash = HashFunction::create_or_throw(m_kdf_hash);
+         std::unique_ptr<KDF> kdf = KDF::create_or_throw("KDF2(" + m_kdf_hash + ")");
+
+         const BigInt k = BigInt::random_integer(rng, 1, m_order);
+
+         const PointGFp C1 = m_base_point.blinded_multiply(k, rng);
+         const BigInt x1 = C1.get_affine_x();
+         const BigInt y1 = C1.get_affine_y();
+         std::vector<uint8_t> x1_bytes(m_p_bytes);
+         std::vector<uint8_t> y1_bytes(m_p_bytes);
+         BigInt::encode_1363(x1_bytes.data(), x1_bytes.size(), x1);
+         BigInt::encode_1363(y1_bytes.data(), y1_bytes.size(), y1);
+
+         const PointGFp kPB = m_public_point.blinded_multiply(k, rng);
+
+         const BigInt x2 = kPB.get_affine_x();
+         const BigInt y2 = kPB.get_affine_y();
+         std::vector<uint8_t> x2_bytes(m_p_bytes);
+         std::vector<uint8_t> y2_bytes(m_p_bytes);
+         BigInt::encode_1363(x2_bytes.data(), x2_bytes.size(), x2);
+         BigInt::encode_1363(y2_bytes.data(), y2_bytes.size(), y2);
+
+         secure_vector<uint8_t> kdf_input;
+         kdf_input += x2_bytes;
+         kdf_input += y2_bytes;
+
+         const secure_vector<uint8_t> kdf_output =
+            kdf->derive_key(msg_len, kdf_input.data(), kdf_input.size());
+
+         secure_vector<uint8_t> masked_msg(msg_len);
+         xor_buf(masked_msg.data(), msg, kdf_output.data(), msg_len);
+
+         hash->update(x2_bytes);
+         hash->update(msg, msg_len);
+         hash->update(y2_bytes);
+         std::vector<uint8_t> C3(hash->output_length());
+         hash->final(C3.data());
+
+         return DER_Encoder()
+            .start_cons(SEQUENCE)
+            .encode(x1)
+            .encode(y1)
+            .encode(C3, OCTET_STRING)
+            .encode(masked_msg, OCTET_STRING)
+            .end_cons()
+            .get_contents();
+         }
+
+   private:
+      size_t m_p_bytes;
+      const BigInt& m_order;
+      Blinded_Point_Multiply m_base_point;
+      Blinded_Point_Multiply m_public_point;
+      const std::string m_kdf_hash;
+   };
+
+class SM2_Decryption_Operation final : public PK_Ops::Decryption
+   {
+   public:
+      SM2_Decryption_Operation(const SM2_Encryption_PrivateKey& key,
+                               RandomNumberGenerator& rng,
+                               const std::string& kdf_hash) :
+         m_key(key),
+         m_rng(rng),
+         m_kdf_hash(kdf_hash)
+         {}
+
+      secure_vector<uint8_t> decrypt(uint8_t& valid_mask,
+                                     const uint8_t ciphertext[],
+                                     size_t ciphertext_len) override
+         {
+         const BigInt& cofactor = m_key.domain().get_cofactor();
+         const size_t p_bytes = m_key.domain().get_curve().get_p().bytes();
+
+         valid_mask = 0x00;
+
+         std::unique_ptr<HashFunction> hash = HashFunction::create_or_throw(m_kdf_hash);
+         std::unique_ptr<KDF> kdf = KDF::create_or_throw("KDF2(" + m_kdf_hash + ")");
+
+         // Too short to be valid - no timing problem from early return
+         if(ciphertext_len < 1 + p_bytes*2 + hash->output_length())
+            {
+            return secure_vector<uint8_t>();
+            }
+
+         BigInt x1, y1;
+         secure_vector<uint8_t> C3, masked_msg;
+
+         BER_Decoder(ciphertext, ciphertext_len)
+            .start_cons(SEQUENCE)
+            .decode(x1)
+            .decode(y1)
+            .decode(C3, OCTET_STRING)
+            .decode(masked_msg, OCTET_STRING)
+            .end_cons()
+            .verify_end();
+
+         const PointGFp C1(m_key.domain().get_curve(), x1, y1);
+         if(!C1.on_the_curve())
+            return secure_vector<uint8_t>();
+
+         Blinded_Point_Multiply C1_mul(C1, m_key.domain().get_order());
+
+         if(cofactor > 1 && C1_mul.blinded_multiply(cofactor, m_rng).is_zero())
+            {
+            return secure_vector<uint8_t>();
+            }
+
+         const PointGFp dbC1 = C1_mul.blinded_multiply(m_key.private_value(), m_rng);
+
+         const BigInt x2 = dbC1.get_affine_x();
+         const BigInt y2 = dbC1.get_affine_y();
+
+         std::vector<uint8_t> x2_bytes(p_bytes);
+         std::vector<uint8_t> y2_bytes(p_bytes);
+         BigInt::encode_1363(x2_bytes.data(), x2_bytes.size(), x2);
+         BigInt::encode_1363(y2_bytes.data(), y2_bytes.size(), y2);
+
+         secure_vector<uint8_t> kdf_input;
+         kdf_input += x2_bytes;
+         kdf_input += y2_bytes;
+
+         const secure_vector<uint8_t> kdf_output =
+            kdf->derive_key(masked_msg.size(), kdf_input.data(), kdf_input.size());
+
+         xor_buf(masked_msg.data(), kdf_output.data(), kdf_output.size());
+
+         hash->update(x2_bytes);
+         hash->update(masked_msg);
+         hash->update(y2_bytes);
+         secure_vector<uint8_t> u = hash->final();
+
+         if(constant_time_compare(u.data(), C3.data(), hash->output_length()) == false)
+            return secure_vector<uint8_t>();
+
+         valid_mask = 0xFF;
+         return masked_msg;
+         }
+   private:
+      const SM2_Encryption_PrivateKey& m_key;
+      RandomNumberGenerator& m_rng;
+      const std::string m_kdf_hash;
+   };
+
+}
+
+std::unique_ptr<PK_Ops::Encryption>
+SM2_Encryption_PublicKey::create_encryption_op(RandomNumberGenerator& /*rng*/,
+                                               const std::string& params,
+                                               const std::string& provider) const
+   {
+   if(provider == "base" || provider.empty())
+      {
+      const std::string kdf_hash = (params.empty() ? "SM3" : params);
+      return std::unique_ptr<PK_Ops::Encryption>(new SM2_Encryption_Operation(*this, kdf_hash));
+      }
+
+   throw Provider_Not_Found(algo_name(), provider);
+   }
+
+std::unique_ptr<PK_Ops::Decryption>
+SM2_Encryption_PrivateKey::create_decryption_op(RandomNumberGenerator& rng,
+                                                const std::string& params,
+                                                const std::string& provider) const
+   {
+   if(provider == "base" || provider.empty())
+      {
+      const std::string kdf_hash = (params.empty() ? "SM3" : params);
+      return std::unique_ptr<PK_Ops::Decryption>(new SM2_Decryption_Operation(*this, rng, kdf_hash));
+      }
+
+   throw Provider_Not_Found(algo_name(), provider);
+   }
+
+}
+/*
+* SM3
+* (C) 2017 Ribose Inc.
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+std::unique_ptr<HashFunction> SM3::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new SM3(*this));
+   }
+
+namespace {
+
+const uint32_t SM3_IV[] = {
+   0x7380166fUL, 0x4914b2b9UL, 0x172442d7UL, 0xda8a0600UL,
+   0xa96f30bcUL, 0x163138aaUL, 0xe38dee4dUL, 0xb0fb0e4eUL
+};
+
+const uint32_t SM3_TJ[64] = {
+   0x79CC4519, 0xF3988A32, 0xE7311465, 0xCE6228CB, 0x9CC45197,
+   0x3988A32F, 0x7311465E, 0xE6228CBC, 0xCC451979, 0x988A32F3,
+   0x311465E7, 0x6228CBCE, 0xC451979C, 0x88A32F39, 0x11465E73,
+   0x228CBCE6, 0x9D8A7A87, 0x3B14F50F, 0x7629EA1E, 0xEC53D43C,
+   0xD8A7A879, 0xB14F50F3, 0x629EA1E7, 0xC53D43CE, 0x8A7A879D,
+   0x14F50F3B, 0x29EA1E76, 0x53D43CEC, 0xA7A879D8, 0x4F50F3B1,
+   0x9EA1E762, 0x3D43CEC5, 0x7A879D8A, 0xF50F3B14, 0xEA1E7629,
+   0xD43CEC53, 0xA879D8A7, 0x50F3B14F, 0xA1E7629E, 0x43CEC53D,
+   0x879D8A7A, 0x0F3B14F5, 0x1E7629EA, 0x3CEC53D4, 0x79D8A7A8,
+   0xF3B14F50, 0xE7629EA1, 0xCEC53D43, 0x9D8A7A87, 0x3B14F50F,
+   0x7629EA1E, 0xEC53D43C, 0xD8A7A879, 0xB14F50F3, 0x629EA1E7,
+   0xC53D43CE, 0x8A7A879D, 0x14F50F3B, 0x29EA1E76, 0x53D43CEC,
+   0xA7A879D8, 0x4F50F3B1, 0x9EA1E762, 0x3D43CEC5 };
+
+inline uint32_t P0(uint32_t X)
+   {
+   return X ^ rotate_left(X, 9) ^ rotate_left(X, 17);
+   }
+
+inline uint32_t P1(uint32_t X)
+   {
+   return X ^ rotate_left(X, 15) ^ rotate_left(X, 23);
+   }
+
+inline uint32_t FF0(uint32_t X, uint32_t Y, uint32_t Z)
+   {
+   return X ^ Y ^ Z;
+   }
+
+inline uint32_t FF1(uint32_t X, uint32_t Y, uint32_t Z)
+   {
+   return (X & Y) | (X & Z) | (Y & Z);
+   }
+
+inline uint32_t GG0(uint32_t X, uint32_t Y, uint32_t Z)
+   {
+   return X ^ Y ^ Z;
+   }
+
+inline uint32_t GG1(uint32_t X, uint32_t Y, uint32_t Z)
+   {
+   return (X & Y) | (~X & Z);
+   }
+
+}
+
+/*
+* SM3 Compression Function
+*/
+void SM3::compress_n(const uint8_t input[], size_t blocks)
+   {
+   uint32_t A = m_digest[0], B = m_digest[1], C = m_digest[2], D = m_digest[3],
+            E = m_digest[4], F = m_digest[5], G = m_digest[6], H = m_digest[7];
+   uint32_t W[68];
+
+   for(size_t i = 0; i != blocks; ++i)
+      {
+      // Message Extension (a)
+      W[ 0] = load_be<uint32_t>(input, 0);
+      W[ 1] = load_be<uint32_t>(input, 1);
+      W[ 2] = load_be<uint32_t>(input, 2);
+      W[ 3] = load_be<uint32_t>(input, 3);
+      W[ 4] = load_be<uint32_t>(input, 4);
+      W[ 5] = load_be<uint32_t>(input, 5);
+      W[ 6] = load_be<uint32_t>(input, 6);
+      W[ 7] = load_be<uint32_t>(input, 7);
+      W[ 8] = load_be<uint32_t>(input, 8);
+      W[ 9] = load_be<uint32_t>(input, 9);
+      W[10] = load_be<uint32_t>(input, 10);
+      W[11] = load_be<uint32_t>(input, 11);
+      W[12] = load_be<uint32_t>(input, 12);
+      W[13] = load_be<uint32_t>(input, 13);
+      W[14] = load_be<uint32_t>(input, 14);
+      W[15] = load_be<uint32_t>(input, 15);
+
+      // Message Extension (b)
+      W[16] = P1(W[ 0] ^ W[ 7] ^ rotate_left(W[13], 15)) ^ rotate_left(W[ 3], 7) ^ W[10];
+      W[17] = P1(W[ 1] ^ W[ 8] ^ rotate_left(W[14], 15)) ^ rotate_left(W[ 4], 7) ^ W[11];
+      W[18] = P1(W[ 2] ^ W[ 9] ^ rotate_left(W[15], 15)) ^ rotate_left(W[ 5], 7) ^ W[12];
+      W[19] = P1(W[ 3] ^ W[10] ^ rotate_left(W[16], 15)) ^ rotate_left(W[ 6], 7) ^ W[13];
+      W[20] = P1(W[ 4] ^ W[11] ^ rotate_left(W[17], 15)) ^ rotate_left(W[ 7], 7) ^ W[14];
+      W[21] = P1(W[ 5] ^ W[12] ^ rotate_left(W[18], 15)) ^ rotate_left(W[ 8], 7) ^ W[15];
+      W[22] = P1(W[ 6] ^ W[13] ^ rotate_left(W[19], 15)) ^ rotate_left(W[ 9], 7) ^ W[16];
+      W[23] = P1(W[ 7] ^ W[14] ^ rotate_left(W[20], 15)) ^ rotate_left(W[10], 7) ^ W[17];
+      W[24] = P1(W[ 8] ^ W[15] ^ rotate_left(W[21], 15)) ^ rotate_left(W[11], 7) ^ W[18];
+      W[25] = P1(W[ 9] ^ W[16] ^ rotate_left(W[22], 15)) ^ rotate_left(W[12], 7) ^ W[19];
+      W[26] = P1(W[10] ^ W[17] ^ rotate_left(W[23], 15)) ^ rotate_left(W[13], 7) ^ W[20];
+      W[27] = P1(W[11] ^ W[18] ^ rotate_left(W[24], 15)) ^ rotate_left(W[14], 7) ^ W[21];
+      W[28] = P1(W[12] ^ W[19] ^ rotate_left(W[25], 15)) ^ rotate_left(W[15], 7) ^ W[22];
+      W[29] = P1(W[13] ^ W[20] ^ rotate_left(W[26], 15)) ^ rotate_left(W[16], 7) ^ W[23];
+      W[30] = P1(W[14] ^ W[21] ^ rotate_left(W[27], 15)) ^ rotate_left(W[17], 7) ^ W[24];
+      W[31] = P1(W[15] ^ W[22] ^ rotate_left(W[28], 15)) ^ rotate_left(W[18], 7) ^ W[25];
+      W[32] = P1(W[16] ^ W[23] ^ rotate_left(W[29], 15)) ^ rotate_left(W[19], 7) ^ W[26];
+      W[33] = P1(W[17] ^ W[24] ^ rotate_left(W[30], 15)) ^ rotate_left(W[20], 7) ^ W[27];
+      W[34] = P1(W[18] ^ W[25] ^ rotate_left(W[31], 15)) ^ rotate_left(W[21], 7) ^ W[28];
+      W[35] = P1(W[19] ^ W[26] ^ rotate_left(W[32], 15)) ^ rotate_left(W[22], 7) ^ W[29];
+      W[36] = P1(W[20] ^ W[27] ^ rotate_left(W[33], 15)) ^ rotate_left(W[23], 7) ^ W[30];
+      W[37] = P1(W[21] ^ W[28] ^ rotate_left(W[34], 15)) ^ rotate_left(W[24], 7) ^ W[31];
+      W[38] = P1(W[22] ^ W[29] ^ rotate_left(W[35], 15)) ^ rotate_left(W[25], 7) ^ W[32];
+      W[39] = P1(W[23] ^ W[30] ^ rotate_left(W[36], 15)) ^ rotate_left(W[26], 7) ^ W[33];
+      W[40] = P1(W[24] ^ W[31] ^ rotate_left(W[37], 15)) ^ rotate_left(W[27], 7) ^ W[34];
+      W[41] = P1(W[25] ^ W[32] ^ rotate_left(W[38], 15)) ^ rotate_left(W[28], 7) ^ W[35];
+      W[42] = P1(W[26] ^ W[33] ^ rotate_left(W[39], 15)) ^ rotate_left(W[29], 7) ^ W[36];
+      W[43] = P1(W[27] ^ W[34] ^ rotate_left(W[40], 15)) ^ rotate_left(W[30], 7) ^ W[37];
+      W[44] = P1(W[28] ^ W[35] ^ rotate_left(W[41], 15)) ^ rotate_left(W[31], 7) ^ W[38];
+      W[45] = P1(W[29] ^ W[36] ^ rotate_left(W[42], 15)) ^ rotate_left(W[32], 7) ^ W[39];
+      W[46] = P1(W[30] ^ W[37] ^ rotate_left(W[43], 15)) ^ rotate_left(W[33], 7) ^ W[40];
+      W[47] = P1(W[31] ^ W[38] ^ rotate_left(W[44], 15)) ^ rotate_left(W[34], 7) ^ W[41];
+      W[48] = P1(W[32] ^ W[39] ^ rotate_left(W[45], 15)) ^ rotate_left(W[35], 7) ^ W[42];
+      W[49] = P1(W[33] ^ W[40] ^ rotate_left(W[46], 15)) ^ rotate_left(W[36], 7) ^ W[43];
+      W[50] = P1(W[34] ^ W[41] ^ rotate_left(W[47], 15)) ^ rotate_left(W[37], 7) ^ W[44];
+      W[51] = P1(W[35] ^ W[42] ^ rotate_left(W[48], 15)) ^ rotate_left(W[38], 7) ^ W[45];
+      W[52] = P1(W[36] ^ W[43] ^ rotate_left(W[49], 15)) ^ rotate_left(W[39], 7) ^ W[46];
+      W[53] = P1(W[37] ^ W[44] ^ rotate_left(W[50], 15)) ^ rotate_left(W[40], 7) ^ W[47];
+      W[54] = P1(W[38] ^ W[45] ^ rotate_left(W[51], 15)) ^ rotate_left(W[41], 7) ^ W[48];
+      W[55] = P1(W[39] ^ W[46] ^ rotate_left(W[52], 15)) ^ rotate_left(W[42], 7) ^ W[49];
+      W[56] = P1(W[40] ^ W[47] ^ rotate_left(W[53], 15)) ^ rotate_left(W[43], 7) ^ W[50];
+      W[57] = P1(W[41] ^ W[48] ^ rotate_left(W[54], 15)) ^ rotate_left(W[44], 7) ^ W[51];
+      W[58] = P1(W[42] ^ W[49] ^ rotate_left(W[55], 15)) ^ rotate_left(W[45], 7) ^ W[52];
+      W[59] = P1(W[43] ^ W[50] ^ rotate_left(W[56], 15)) ^ rotate_left(W[46], 7) ^ W[53];
+      W[60] = P1(W[44] ^ W[51] ^ rotate_left(W[57], 15)) ^ rotate_left(W[47], 7) ^ W[54];
+      W[61] = P1(W[45] ^ W[52] ^ rotate_left(W[58], 15)) ^ rotate_left(W[48], 7) ^ W[55];
+      W[62] = P1(W[46] ^ W[53] ^ rotate_left(W[59], 15)) ^ rotate_left(W[49], 7) ^ W[56];
+      W[63] = P1(W[47] ^ W[54] ^ rotate_left(W[60], 15)) ^ rotate_left(W[50], 7) ^ W[57];
+      W[64] = P1(W[48] ^ W[55] ^ rotate_left(W[61], 15)) ^ rotate_left(W[51], 7) ^ W[58];
+      W[65] = P1(W[49] ^ W[56] ^ rotate_left(W[62], 15)) ^ rotate_left(W[52], 7) ^ W[59];
+      W[66] = P1(W[50] ^ W[57] ^ rotate_left(W[63], 15)) ^ rotate_left(W[53], 7) ^ W[60];
+      W[67] = P1(W[51] ^ W[58] ^ rotate_left(W[64], 15)) ^ rotate_left(W[54], 7) ^ W[61];
+
+      for (size_t j = 0; j < 16; j++)
+         {
+         const uint32_t A12 = rotate_left(A, 12);
+         const uint32_t SS1 = rotate_left(A12 + E + SM3_TJ[j], 7);
+         const uint32_t SS2 = SS1 ^ A12;
+         const uint32_t TT1 = FF0(A, B, C) + D + SS2 + (W[j] ^ W[j+4]);
+         const uint32_t TT2 = GG0(E, F, G) + H + SS1 + W[j];
+         D = C;
+         C = rotate_left(B, 9);
+         B = A;
+         A = TT1;
+         H = G;
+         G = rotate_left(F, 19);
+         F = E;
+         E = P0(TT2);
+         }
+
+      for (size_t j = 16; j < 64; j++)
+         {
+         const uint32_t A12 = rotate_left(A, 12);
+         const uint32_t SS1 = rotate_left(A12 + E + SM3_TJ[j], 7);
+         const uint32_t SS2 = SS1 ^ A12;
+         const uint32_t TT1 = FF1(A, B, C) + D + SS2 + (W[j] ^ W[j+4]);
+         const uint32_t TT2 = GG1(E, F, G) + H + SS1 + W[j];
+         D = C;
+         C = rotate_left(B, 9);
+         B = A;
+         A = TT1;
+         H = G;
+         G = rotate_left(F, 19);
+         F = E;
+         E = P0(TT2);
+         }
+
+      A = (m_digest[0] ^= A);
+      B = (m_digest[1] ^= B);
+      C = (m_digest[2] ^= C);
+      D = (m_digest[3] ^= D);
+      E = (m_digest[4] ^= E);
+      F = (m_digest[5] ^= F);
+      G = (m_digest[6] ^= G);
+      H = (m_digest[7] ^= H);
+
+      input += hash_block_size();
+      }
+   }
+
+/*
+* Copy out the digest
+*/
+void SM3::copy_out(uint8_t output[])
+   {
+   copy_out_vec_be(output, output_length(), m_digest);
+   }
+
+/*
+* Clear memory of sensitive data
+*/
+void SM3::clear()
+   {
+   MDx_HashFunction::clear();
+   std::copy(std::begin(SM3_IV), std::end(SM3_IV), m_digest.begin());
+   }
+
+}
+/*
+* SM4
+* (C) 2017 Ribose Inc
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace SM4_F {
+
+const uint8_t SBOX[256] = {
+0xD6, 0x90, 0xE9, 0xFE, 0xCC, 0xE1, 0x3D, 0xB7, 0x16, 0xB6, 0x14, 0xC2, 0x28, 0xFB, 0x2C, 0x05,
+0x2B, 0x67, 0x9A, 0x76, 0x2A, 0xBE, 0x04, 0xC3, 0xAA, 0x44, 0x13, 0x26, 0x49, 0x86, 0x06, 0x99,
+0x9C, 0x42, 0x50, 0xF4, 0x91, 0xEF, 0x98, 0x7A, 0x33, 0x54, 0x0B, 0x43, 0xED, 0xCF, 0xAC, 0x62,
+0xE4, 0xB3, 0x1C, 0xA9, 0xC9, 0x08, 0xE8, 0x95, 0x80, 0xDF, 0x94, 0xFA, 0x75, 0x8F, 0x3F, 0xA6,
+0x47, 0x07, 0xA7, 0xFC, 0xF3, 0x73, 0x17, 0xBA, 0x83, 0x59, 0x3C, 0x19, 0xE6, 0x85, 0x4F, 0xA8,
+0x68, 0x6B, 0x81, 0xB2, 0x71, 0x64, 0xDA, 0x8B, 0xF8, 0xEB, 0x0F, 0x4B, 0x70, 0x56, 0x9D, 0x35,
+0x1E, 0x24, 0x0E, 0x5E, 0x63, 0x58, 0xD1, 0xA2, 0x25, 0x22, 0x7C, 0x3B, 0x01, 0x21, 0x78, 0x87,
+0xD4, 0x00, 0x46, 0x57, 0x9F, 0xD3, 0x27, 0x52, 0x4C, 0x36, 0x02, 0xE7, 0xA0, 0xC4, 0xC8, 0x9E,
+0xEA, 0xBF, 0x8A, 0xD2, 0x40, 0xC7, 0x38, 0xB5, 0xA3, 0xF7, 0xF2, 0xCE, 0xF9, 0x61, 0x15, 0xA1,
+0xE0, 0xAE, 0x5D, 0xA4, 0x9B, 0x34, 0x1A, 0x55, 0xAD, 0x93, 0x32, 0x30, 0xF5, 0x8C, 0xB1, 0xE3,
+0x1D, 0xF6, 0xE2, 0x2E, 0x82, 0x66, 0xCA, 0x60, 0xC0, 0x29, 0x23, 0xAB, 0x0D, 0x53, 0x4E, 0x6F,
+0xD5, 0xDB, 0x37, 0x45, 0xDE, 0xFD, 0x8E, 0x2F, 0x03, 0xFF, 0x6A, 0x72, 0x6D, 0x6C, 0x5B, 0x51,
+0x8D, 0x1B, 0xAF, 0x92, 0xBB, 0xDD, 0xBC, 0x7F, 0x11, 0xD9, 0x5C, 0x41, 0x1F, 0x10, 0x5A, 0xD8,
+0x0A, 0xC1, 0x31, 0x88, 0xA5, 0xCD, 0x7B, 0xBD, 0x2D, 0x74, 0xD0, 0x12, 0xB8, 0xE5, 0xB4, 0xB0,
+0x89, 0x69, 0x97, 0x4A, 0x0C, 0x96, 0x77, 0x7E, 0x65, 0xB9, 0xF1, 0x09, 0xC5, 0x6E, 0xC6, 0x84,
+0x18, 0xF0, 0x7D, 0xEC, 0x3A, 0xDC, 0x4D, 0x20, 0x79, 0xEE, 0x5F, 0x3E, 0xD7, 0xCB, 0x39, 0x48
+};
+
+inline uint32_t T(uint32_t b)
+   {
+   /*
+   TODO: could convert this to 4 8->32 bit tables combined with xor.
+   It was about 66% faster (110 MiB->181 MiB) on an i7-6700k, but the
+   large tables will be likely vulnerable to AES style cache attacks.
+   */
+
+   const uint8_t b0 = get_byte(0, b);
+   const uint8_t b1 = get_byte(1, b);
+   const uint8_t b2 = get_byte(2, b);
+   const uint8_t b3 = get_byte(3, b);
+   const uint32_t t = make_uint32(SBOX[b0], SBOX[b1], SBOX[b2], SBOX[b3]);
+
+   // L linear transform
+   return t ^ rotate_left(t, 2) ^ rotate_left(t, 10) ^ rotate_left(t, 18) ^ rotate_left(t, 24);
+   }
+
+// Variant of T for key schedule
+inline uint32_t Tp(uint32_t b)
+   {
+   const uint8_t b0 = get_byte(0, b);
+   const uint8_t b1 = get_byte(1, b);
+   const uint8_t b2 = get_byte(2, b);
+   const uint8_t b3 = get_byte(3, b);
+   const uint32_t t = make_uint32(SBOX[b0], SBOX[b1], SBOX[b2], SBOX[b3]);
+
+   // L' linear transform
+   return t ^ rotate_left(t, 13) ^ rotate_left(t, 23);
+   }
+
+}
+
+/*
+* SM4 Encryption
+*/
+void SM4::encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   for(size_t i = 0; i != blocks; ++i)
+      {
+      uint32_t B0 = load_be<uint32_t>(in, 0);
+      uint32_t B1 = load_be<uint32_t>(in, 1);
+      uint32_t B2 = load_be<uint32_t>(in, 2);
+      uint32_t B3 = load_be<uint32_t>(in, 3);
+
+      for(size_t r = 0; r != 32; r += 4)
+         {
+         B0 ^= SM4_F::T(B1 ^ B2 ^ B3 ^ m_RK[r + 0]);
+         B1 ^= SM4_F::T(B0 ^ B2 ^ B3 ^ m_RK[r + 1]);
+         B2 ^= SM4_F::T(B0 ^ B1 ^ B3 ^ m_RK[r + 2]);
+         B3 ^= SM4_F::T(B0 ^ B1 ^ B2 ^ m_RK[r + 3]);
+         }
+
+      store_be(out, B3, B2, B1, B0);
+
+      in += BLOCK_SIZE;
+      out += BLOCK_SIZE;
+      }
+   }
+
+/*
+* SM4 Decryption
+*/
+void SM4::decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+   {
+   for(size_t i = 0; i != blocks; ++i)
+      {
+      uint32_t B0 = load_be<uint32_t>(in, 0);
+      uint32_t B1 = load_be<uint32_t>(in, 1);
+      uint32_t B2 = load_be<uint32_t>(in, 2);
+      uint32_t B3 = load_be<uint32_t>(in, 3);
+
+      for(size_t r = 0; r != 32; r += 4)
+         {
+         B0 ^= SM4_F::T(B1 ^ B2 ^ B3 ^ m_RK[31 - (r + 0)]);
+         B1 ^= SM4_F::T(B0 ^ B2 ^ B3 ^ m_RK[31 - (r + 1)]);
+         B2 ^= SM4_F::T(B0 ^ B1 ^ B3 ^ m_RK[31 - (r + 2)]);
+         B3 ^= SM4_F::T(B0 ^ B1 ^ B2 ^ m_RK[31 - (r + 3)]);
+         }
+
+      store_be(out, B3, B2, B1, B0);
+
+      in += BLOCK_SIZE;
+      out += BLOCK_SIZE;
+      }
+   }
+
+/*
+* SM4 Key Schedule
+*/
+void SM4::key_schedule(const uint8_t key[], size_t)
+   {
+   // System parameter or family key
+   const uint32_t FK[4] = { 0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc };
+
+   const uint32_t CK[32] = {
+      0x00070E15, 0x1C232A31, 0x383F464D, 0x545B6269,
+      0x70777E85, 0x8C939AA1, 0xA8AFB6BD, 0xC4CBD2D9,
+      0xE0E7EEF5, 0xFC030A11, 0x181F262D, 0x343B4249,
+      0x50575E65, 0x6C737A81, 0x888F969D, 0xA4ABB2B9,
+      0xC0C7CED5, 0xDCE3EAF1, 0xF8FF060D, 0x141B2229,
+      0x30373E45, 0x4C535A61, 0x686F767D, 0x848B9299,
+      0xA0A7AEB5, 0xBCC3CAD1, 0xD8DFE6ED, 0xF4FB0209,
+      0x10171E25, 0x2C333A41, 0x484F565D, 0x646B7279
+   };
+
+   secure_vector<uint32_t> K(4);
+   K[0] = load_be<uint32_t>(key, 0) ^ FK[0];
+   K[1] = load_be<uint32_t>(key, 1) ^ FK[1];
+   K[2] = load_be<uint32_t>(key, 2) ^ FK[2];
+   K[3] = load_be<uint32_t>(key, 3) ^ FK[3];
+
+   m_RK.resize(32);
+   for(size_t i = 0; i != 32; ++i)
+      {
+      K[i % 4] ^= SM4_F::Tp(K[(i+1)%4] ^ K[(i+2)%4] ^ K[(i+3)%4] ^ CK[i]);
+      m_RK[i] = K[i % 4];
+      }
+   }
+
+void SM4::clear()
+   {
+   zap(m_RK);
+   }
+
+}
+/*
 * KDFs defined in NIST SP 800-108
 * (C) 2016 Kai Michaelis
 *
@@ -42388,39 +51480,39 @@ size_t SP800_108_Counter::kdf(uint8_t key[], size_t key_len,
                               const uint8_t salt[], size_t salt_len,
                               const uint8_t label[], size_t label_len) const
    {
-      const std::size_t prf_len =  m_prf->output_length();
-      const uint8_t delim = 0;
-      uint8_t *p = key;
-      uint32_t counter = 1;
-      uint32_t length = key_len * 8;
-      uint8_t be_len[4] = { 0 };
-      secure_vector<uint8_t> tmp;
+   const std::size_t prf_len =  m_prf->output_length();
+   const uint8_t delim = 0;
+   const uint32_t length = static_cast<uint32_t>(key_len * 8);
 
-      store_be(length, be_len);
-      m_prf->set_key(secret, secret_len);
+   uint8_t *p = key;
+   uint32_t counter = 1;
+   uint8_t be_len[4] = { 0 };
+   secure_vector<uint8_t> tmp;
 
-      while(p < key + key_len && counter != 0)
-         {
-         const std::size_t to_copy = std::min< std::size_t >(key + key_len - p, prf_len);
-         uint8_t be_cnt[4] = { 0 };
+   store_be(length, be_len);
+   m_prf->set_key(secret, secret_len);
 
-         store_be(counter, be_cnt);
+   while(p < key + key_len && counter != 0)
+      {
+      const std::size_t to_copy = std::min< std::size_t >(key + key_len - p, prf_len);
+      uint8_t be_cnt[4] = { 0 };
 
-         m_prf->update(be_cnt,4);
-         m_prf->update(label,label_len);
-         m_prf->update(delim);
-         m_prf->update(salt,salt_len);
-         m_prf->update(be_len,4);
-         m_prf->final(tmp);
+      store_be(counter, be_cnt);
 
-         std::move(tmp.begin(), tmp.begin() + to_copy, p);
-         ++counter;
+      m_prf->update(be_cnt,4);
+      m_prf->update(label,label_len);
+      m_prf->update(delim);
+      m_prf->update(salt,salt_len);
+      m_prf->update(be_len,4);
+      m_prf->final(tmp);
 
-         if (counter == 0)
-            throw Invalid_Argument("Can't process more than 4GB");
+      copy_mem(p, tmp.data(), to_copy);
+      p += to_copy;
 
-         p += to_copy;
-         }
+      ++counter;
+      if(counter == 0)
+         throw Invalid_Argument("Can't process more than 4GB");
+      }
 
    return key_len;
    }
@@ -42430,101 +51522,196 @@ size_t SP800_108_Feedback::kdf(uint8_t key[], size_t key_len,
                                const uint8_t salt[], size_t salt_len,
                                const uint8_t label[], size_t label_len) const
    {
-      const std::size_t prf_len =  m_prf->output_length();
-      const std::size_t iv_len = (salt_len >= prf_len ? prf_len : 0);
-      const uint8_t delim = 0;
+   const uint32_t length = static_cast<uint32_t>(key_len * 8);
+   const std::size_t prf_len =  m_prf->output_length();
+   const std::size_t iv_len = (salt_len >= prf_len ? prf_len : 0);
+   const uint8_t delim = 0;
 
-      uint8_t *p = key;
-      uint32_t counter = 1;
-      uint32_t length = key_len * 8;
-      uint8_t be_len[4] = { 0 };
-      secure_vector< uint8_t > prev(salt, salt + iv_len);
-      secure_vector< uint8_t > ctx(salt + iv_len, salt + salt_len);
+   uint8_t *p = key;
+   uint32_t counter = 1;
+   uint8_t be_len[4] = { 0 };
+   secure_vector< uint8_t > prev(salt, salt + iv_len);
+   secure_vector< uint8_t > ctx(salt + iv_len, salt + salt_len);
 
-      store_be(length, be_len);
-      m_prf->set_key(secret, secret_len);
+   store_be(length, be_len);
+   m_prf->set_key(secret, secret_len);
 
-      while(p < key + key_len && counter != 0)
-         {
-         const std::size_t to_copy = std::min< std::size_t >(key + key_len - p, prf_len);
-         uint8_t be_cnt[4] = { 0 };
+   while(p < key + key_len && counter != 0)
+      {
+      const std::size_t to_copy = std::min< std::size_t >(key + key_len - p, prf_len);
+      uint8_t be_cnt[4] = { 0 };
 
-         store_be(counter, be_cnt);
+      store_be(counter, be_cnt);
 
-         m_prf->update(prev);
-         m_prf->update(be_cnt,4);
-         m_prf->update(label,label_len);
-         m_prf->update(delim);
-         m_prf->update(ctx);
-         m_prf->update(be_len,4);
-         m_prf->final(prev);
+      m_prf->update(prev);
+      m_prf->update(be_cnt,4);
+      m_prf->update(label,label_len);
+      m_prf->update(delim);
+      m_prf->update(ctx);
+      m_prf->update(be_len,4);
+      m_prf->final(prev);
 
-         std::copy(prev.begin(), prev.begin() + to_copy, p);
-         ++counter;
+      copy_mem(p, prev.data(), to_copy);
+      p += to_copy;
 
-         if (counter == 0)
-            throw Invalid_Argument("Can't process more than 4GB");
+      ++counter;
 
-         p += to_copy;
-         }
+      if(counter == 0)
+         throw Invalid_Argument("Can't process more than 4GB");
+      }
 
    return key_len;
    }
 
 size_t SP800_108_Pipeline::kdf(uint8_t key[], size_t key_len,
-                    const uint8_t secret[], size_t secret_len,
-                    const uint8_t salt[], size_t salt_len,
-                    const uint8_t label[], size_t label_len) const
+                               const uint8_t secret[], size_t secret_len,
+                               const uint8_t salt[], size_t salt_len,
+                               const uint8_t label[], size_t label_len) const
    {
-      const std::size_t prf_len =  m_prf->output_length();
-      const uint8_t delim = 0;
+   const uint32_t length = static_cast<uint32_t>(key_len * 8);
+   const std::size_t prf_len =  m_prf->output_length();
+   const uint8_t delim = 0;
 
-      uint8_t *p = key;
-      uint32_t counter = 1;
-      uint32_t length = key_len * 8;
-      uint8_t be_len[4] = { 0 };
-      secure_vector<uint8_t> ai, ki;
+   uint8_t *p = key;
+   uint32_t counter = 1;
+   uint8_t be_len[4] = { 0 };
+   secure_vector<uint8_t> ai, ki;
 
-      store_be(length, be_len);
-      m_prf->set_key(secret,secret_len);
+   store_be(length, be_len);
+   m_prf->set_key(secret,secret_len);
 
-      // A(0)
-      std::copy(label,label + label_len,std::back_inserter(ai));
-      ai.emplace_back(delim);
-      std::copy(salt,salt + salt_len,std::back_inserter(ai));
-      std::copy(be_len,be_len + 4,std::back_inserter(ai));
+   // A(0)
+   std::copy(label,label + label_len,std::back_inserter(ai));
+   ai.emplace_back(delim);
+   std::copy(salt,salt + salt_len,std::back_inserter(ai));
+   std::copy(be_len,be_len + 4,std::back_inserter(ai));
 
-      while(p < key + key_len && counter != 0)
-         {
-         // A(i)
-         m_prf->update(ai);
-         m_prf->final(ai);
+   while(p < key + key_len && counter != 0)
+      {
+      // A(i)
+      m_prf->update(ai);
+      m_prf->final(ai);
 
-         // K(i)
-         const std::size_t to_copy = std::min< std::size_t >(key + key_len - p, prf_len);
-         uint8_t be_cnt[4] = { 0 };
+      // K(i)
+      const std::size_t to_copy = std::min< std::size_t >(key + key_len - p, prf_len);
+      uint8_t be_cnt[4] = { 0 };
 
-         store_be(counter, be_cnt);
+      store_be(counter, be_cnt);
 
-         m_prf->update(ai);
-         m_prf->update(be_cnt,4);
-         m_prf->update(label, label_len);
-         m_prf->update(delim);
-         m_prf->update(salt, salt_len);
-         m_prf->update(be_len,4);
-         m_prf->final(ki);
+      m_prf->update(ai);
+      m_prf->update(be_cnt,4);
+      m_prf->update(label, label_len);
+      m_prf->update(delim);
+      m_prf->update(salt, salt_len);
+      m_prf->update(be_len,4);
+      m_prf->final(ki);
 
-         std::copy(ki.begin(), ki.begin() + to_copy, p);
-         ++counter;
+      copy_mem(p, ki.data(), to_copy);
+      p += to_copy;
 
-         if (counter == 0)
-            throw Invalid_Argument("Can't process more than 4GB");
+      ++counter;
 
-         p += to_copy;
-         }
+      if(counter == 0)
+         throw Invalid_Argument("Can't process more than 4GB");
+      }
 
    return key_len;
    }
+}
+/*
+* KDF defined in NIST SP 800-56a (Approved Alternative 1)
+*
+* (C) 2017 Ribose Inc. Written by Krzysztof Kwiatkowski.
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace {
+
+template<class AuxiliaryFunction_t>
+size_t SP800_56A_kdf(
+   AuxiliaryFunction_t& auxfunc,
+   uint8_t key[], size_t key_len,
+   const uint8_t secret[], size_t secret_len,
+   const uint8_t label[], size_t label_len)
+   {
+   const uint64_t kRepsUpperBound = (1ULL << 32);
+
+   const size_t digest_len = auxfunc.output_length();
+
+   const size_t reps = key_len / digest_len + ((key_len % digest_len) ? 1 : 0);
+
+   if (reps >= kRepsUpperBound)
+      {
+      // See SP-800-56A, point 5.8.1
+      throw Invalid_Argument("SP800-56A KDF requested output too large");
+      }
+
+   uint32_t counter = 1;
+   secure_vector<uint8_t> result;
+   for(size_t i = 0; i < reps; i++)
+      {
+      auxfunc.update_be(counter++);
+      auxfunc.update(secret, secret_len);
+      auxfunc.update(label, label_len);
+      auxfunc.final(result);
+
+      const size_t offset = digest_len * i;
+      const size_t len = std::min(result.size(), key_len - offset);
+      copy_mem(&key[offset], result.data(), len);
+      }
+
+   return key_len;
+   }
+
+}
+
+size_t SP800_56A_Hash::kdf(uint8_t key[], size_t key_len,
+                           const uint8_t secret[], size_t secret_len,
+                           const uint8_t salt[], size_t salt_len,
+                           const uint8_t label[], size_t label_len) const
+   {
+   /*
+   * TODO: should we reject a non-empty salt with an exception?
+   * Ignoring the salt seems quite dangerous to applications which
+   * don't expect it.
+   */
+   BOTAN_UNUSED(salt, salt_len);
+
+   return SP800_56A_kdf(*m_hash, key, key_len, secret, secret_len, label, label_len);
+   }
+
+SP800_56A_HMAC::SP800_56A_HMAC(MessageAuthenticationCode* mac) : m_mac(mac)
+   {
+   // TODO: we need a MessageAuthenticationCode::is_hmac
+   const SCAN_Name req(m_mac->name());
+   if(req.algo_name() != "HMAC")
+      {
+      throw Algorithm_Not_Found("Only HMAC can be used with KDF SP800-56A");
+      }
+   }
+
+size_t SP800_56A_HMAC::kdf(uint8_t key[], size_t key_len,
+                           const uint8_t secret[], size_t secret_len,
+                           const uint8_t salt[], size_t salt_len,
+                           const uint8_t label[], size_t label_len) const
+   {
+   /*
+   * SP 800-56A specifies if the salt is empty then a block of zeros
+   * equal to the hash's underlying block size are used. However this
+   * is equivalent to setting a zero-length key, so the same call
+   * works for either case.
+   */
+   m_mac->set_key(salt, salt_len);
+
+   return SP800_56A_kdf(*m_mac, key, key_len, secret, secret_len, label, label_len);
+   }
+
+
+
 }
 /*
 * KDF defined in NIST SP 800-56c
@@ -42739,7 +51926,7 @@ void Stateful_RNG::initialize_with(const uint8_t input[], size_t len)
 
    if(8*len >= security_level())
       {
-      m_reseed_counter = 1;
+      reset_reseed_counter();
       }
    }
 
@@ -42747,7 +51934,7 @@ void Stateful_RNG::randomize_with_ts_input(uint8_t output[], size_t output_len)
    {
    uint8_t additional_input[24] = { 0 };
    store_le(OS::get_system_timestamp_ns(), additional_input);
-   store_le(OS::get_processor_timestamp(), additional_input + 8);
+   store_le(OS::get_high_resolution_clock(), additional_input + 8);
    store_le(m_last_pid, additional_input + 16);
    store_le(static_cast<uint32_t>(m_reseed_counter), additional_input + 20);
 
@@ -42762,7 +51949,7 @@ size_t Stateful_RNG::reseed(Entropy_Sources& srcs,
 
    if(bits_collected >= security_level())
       {
-      m_reseed_counter = 1;
+      reset_reseed_counter();
       }
 
    return bits_collected;
@@ -42774,7 +51961,7 @@ void Stateful_RNG::reseed_from_rng(RandomNumberGenerator& rng, size_t poll_bits)
 
    if(poll_bits >= security_level())
       {
-      m_reseed_counter = 1;
+      reset_reseed_counter();
       }
    }
 
@@ -42922,6 +52109,9 @@ std::unique_ptr<StreamCipher> StreamCipher::create(const std::string& algo_spec,
 
 #endif
 
+   BOTAN_UNUSED(req);
+   BOTAN_UNUSED(provider);
+
    return nullptr;
    }
 
@@ -42944,120 +52134,1240 @@ std::vector<std::string> StreamCipher::providers(const std::string& algo_spec)
 
 }
 /*
+* Streebog
+* (C) 2017 Ribose Inc.
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+extern const uint64_t STREEBOG_Ax[8][256];
+extern const uint64_t STREEBOG_C[12][8];
+
+std::unique_ptr<HashFunction> Streebog::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new Streebog(*this));
+   }
+
+namespace {
+
+static inline void addm(const uint8_t* m, uint64_t* h)
+   {
+   uint64_t carry = false;
+   for(int i = 0; i < 8; i++)
+      {
+      const uint64_t m64 = load_le<uint64_t>(m, i);
+      const uint64_t hi = load_le<uint64_t>(reinterpret_cast<uint8_t*>(h), i);
+      const uint64_t t = hi + m64;
+
+      const uint64_t overflow = (t < hi ? 1 : 0) | (t < m64 ? 1 : 0);
+      store_le(t + carry, reinterpret_cast<uint8_t*>(&h[i]));
+      carry = overflow;
+      }
+   }
+
+inline void lps(uint64_t* block)
+   {
+   uint8_t r[64];
+   std::memcpy(r, block, 64);
+
+   for(int i = 0; i < 8; ++i)
+      {
+      block[i] =  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[0][r[i]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[1][r[i + 8]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[2][r[i + 16]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[3][r[i + 24]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[4][r[i + 32]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[5][r[i + 40]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[6][r[i + 48]]), 0) ^
+                  load_le<uint64_t>(reinterpret_cast<const uint8_t*>(&STREEBOG_Ax[7][r[i + 56]]), 0);
+      }
+   }
+
+inline void e(uint64_t* K, const uint64_t* m)
+   {
+   uint64_t A[8];
+   uint64_t C[8];
+
+   copy_mem(A, K, 8);
+
+   for(size_t i = 0; i != 8; ++i)
+      {
+      K[i] ^= m[i];
+      }
+
+   for(size_t i = 0; i < 12; ++i)
+      {
+      lps(K);
+      load_le(C, reinterpret_cast<const uint8_t*>(&STREEBOG_C[i][0]), 8);
+
+      for(size_t j = 0; j != 8; ++j)
+         A[j] ^= C[j];
+      lps(A);
+      for(size_t j = 0; j != 8; ++j)
+         K[j] ^= A[j];
+      }
+   }
+
+inline void g(uint64_t* h, const uint8_t* m, uint64_t N)
+   {
+   uint64_t hN[8];
+
+   // force N to little-endian
+   store_le(N, reinterpret_cast<uint8_t*>(&N));
+
+   copy_mem(hN, h, 8);
+   hN[0] ^= N;
+   lps(hN);
+   const uint64_t* m64 = reinterpret_cast<const uint64_t*>(m);
+
+   e(hN, m64);
+
+   for(size_t i = 0; i != 8; ++i)
+      {
+      h[i] ^= hN[i] ^ m64[i];
+      }
+   }
+
+} //namespace
+
+Streebog::Streebog(size_t output_bits) :
+   m_output_bits(output_bits),
+   m_count(0),
+   m_position(0),
+   m_buffer(64),
+   m_h(8),
+   m_S(8)
+   {
+   if(output_bits != 256 && output_bits != 512)
+      throw Invalid_Argument("Streebog: Invalid output length " +
+                             std::to_string(output_bits));
+
+   clear();
+   }
+
+std::string Streebog::name() const
+   {
+   return "Streebog-" + std::to_string(m_output_bits);
+   }
+
+/*
+* Clear memory of sensitive data
+*/
+void Streebog::clear()
+   {
+   m_count = 0;
+   m_position = 0;
+   zeroise(m_buffer);
+   zeroise(m_S);
+
+   const uint64_t fill = (m_output_bits == 512) ? 0 : 0x0101010101010101;
+   std::fill(m_h.begin(), m_h.end(), fill);
+   }
+
+/*
+* Update the hash
+*/
+void Streebog::add_data(const uint8_t input[], size_t length)
+   {
+   while(m_position + length >= 64)
+      {
+      buffer_insert(m_buffer, m_position, input, 64 - m_position);
+      compress(m_buffer.data());
+      m_count += 512;
+      input += (64 - m_position);
+      length -= (64 - m_position);
+      m_position = 0;
+      }
+
+   buffer_insert(m_buffer, m_position, input, length);
+   m_position += length;
+   }
+
+/*
+* Finalize a hash
+*/
+void Streebog::final_result(uint8_t output[])
+   {
+   m_buffer[m_position++] = 0x01;
+
+   if(m_position != m_buffer.size())
+      clear_mem(&m_buffer[m_position], m_buffer.size() - m_position);
+
+   compress(m_buffer.data());
+   m_count += (m_position - 1) * 8;
+
+   zeroise(m_buffer);
+   store_le(m_count, m_buffer.data());
+   compress(m_buffer.data(), true);
+
+   compress(reinterpret_cast<const uint8_t*>(m_S.data()), true);
+   std::memcpy(output, &m_h[8 - output_length() / 8], output_length());
+   clear();
+   }
+
+void Streebog::compress(const uint8_t input[], bool last_block)
+   {
+   g(m_h.data(), input, last_block ? 0ULL : m_count);
+   if(!last_block)
+      { addm(input, m_S.data()); }
+   }
+
+}
+/*
+ * Derived from:
+ * https://github.com/degtyarevalexey/streebog
+ *
+ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
+namespace Botan {
+
+extern const uint64_t STREEBOG_Ax[8][256] =
+   {
+      {
+      0xd01f715b5c7ef8e6ULL, 0x16fa240980778325ULL, 0xa8a42e857ee049c8ULL,
+      0x6ac1068fa186465bULL, 0x6e417bd7a2e9320bULL, 0x665c8167a437daabULL,
+      0x7666681aa89617f6ULL, 0x4b959163700bdcf5ULL, 0xf14be6b78df36248ULL,
+      0xc585bd689a625cffULL, 0x9557d7fca67d82cbULL, 0x89f0b969af6dd366ULL,
+      0xb0833d48749f6c35ULL, 0xa1998c23b1ecbc7cULL, 0x8d70c431ac02a736ULL,
+      0xd6dfbc2fd0a8b69eULL, 0x37aeb3e551fa198bULL, 0x0b7d128a40b5cf9cULL,
+      0x5a8f2008b5780cbcULL, 0xedec882284e333e5ULL, 0xd25fc177d3c7c2ceULL,
+      0x5e0f5d50b61778ecULL, 0x1d873683c0c24cb9ULL, 0xad040bcbb45d208cULL,
+      0x2f89a0285b853c76ULL, 0x5732fff6791b8d58ULL, 0x3e9311439ef6ec3fULL,
+      0xc9183a809fd3c00fULL, 0x83adf3f5260a01eeULL, 0xa6791941f4e8ef10ULL,
+      0x103ae97d0ca1cd5dULL, 0x2ce948121dee1b4aULL, 0x39738421dbf2bf53ULL,
+      0x093da2a6cf0cf5b4ULL, 0xcd9847d89cbcb45fULL, 0xf9561c078b2d8ae8ULL,
+      0x9c6a755a6971777fULL, 0xbc1ebaa0712ef0c5ULL, 0x72e61542abf963a6ULL,
+      0x78bb5fde229eb12eULL, 0x14ba94250fceb90dULL, 0x844d6697630e5282ULL,
+      0x98ea08026a1e032fULL, 0xf06bbea144217f5cULL, 0xdb6263d11ccb377aULL,
+      0x641c314b2b8ee083ULL, 0x320e96ab9b4770cfULL, 0x1ee7deb986a96b85ULL,
+      0xe96cf57a878c47b5ULL, 0xfdd6615f8842feb8ULL, 0xc83862965601dd1bULL,
+      0x2ea9f83e92572162ULL, 0xf876441142ff97fcULL, 0xeb2c455608357d9dULL,
+      0x5612a7e0b0c9904cULL, 0x6c01cbfb2d500823ULL, 0x4548a6a7fa037a2dULL,
+      0xabc4c6bf388b6ef4ULL, 0xbade77d4fdf8bebdULL, 0x799b07c8eb4cac3aULL,
+      0x0c9d87e805b19cf0ULL, 0xcb588aac106afa27ULL, 0xea0c1d40c1e76089ULL,
+      0x2869354a1e816f1aULL, 0xff96d17307fbc490ULL, 0x9f0a9d602f1a5043ULL,
+      0x96373fc6e016a5f7ULL, 0x5292dab8b3a6e41cULL, 0x9b8ae0382c752413ULL,
+      0x4f15ec3b7364a8a5ULL, 0x3fb349555724f12bULL, 0xc7c50d4415db66d7ULL,
+      0x92b7429ee379d1a7ULL, 0xd37f99611a15dfdaULL, 0x231427c05e34a086ULL,
+      0xa439a96d7b51d538ULL, 0xb403401077f01865ULL, 0xdda2aea5901d7902ULL,
+      0x0a5d4a9c8967d288ULL, 0xc265280adf660f93ULL, 0x8bb0094520d4e94eULL,
+      0x2a29856691385532ULL, 0x42a833c5bf072941ULL, 0x73c64d54622b7eb2ULL,
+      0x07e095624504536cULL, 0x8a905153e906f45aULL, 0x6f6123c16b3b2f1fULL,
+      0xc6e55552dc097bc3ULL, 0x4468feb133d16739ULL, 0xe211e7f0c7398829ULL,
+      0xa2f96419f7879b40ULL, 0x19074bdbc3ad38e9ULL, 0xf4ebc3f9474e0b0cULL,
+      0x43886bd376d53455ULL, 0xd8028beb5aa01046ULL, 0x51f23282f5cdc320ULL,
+      0xe7b1c2be0d84e16dULL, 0x081dfab006dee8a0ULL, 0x3b33340d544b857bULL,
+      0x7f5bcabc679ae242ULL, 0x0edd37c48a08a6d8ULL, 0x81ed43d9a9b33bc6ULL,
+      0xb1a3655ebd4d7121ULL, 0x69a1eeb5e7ed6167ULL, 0xf6ab73d5c8f73124ULL,
+      0x1a67a3e185c61fd5ULL, 0x2dc91004d43c065eULL, 0x0240b02c8fb93a28ULL,
+      0x90f7f2b26cc0eb8fULL, 0x3cd3a16f114fd617ULL, 0xaae49ea9f15973e0ULL,
+      0x06c0cd748cd64e78ULL, 0xda423bc7d5192a6eULL, 0xc345701c16b41287ULL,
+      0x6d2193ede4821537ULL, 0xfcf639494190e3acULL, 0x7c3b228621f1c57eULL,
+      0xfb16ac2b0494b0c0ULL, 0xbf7e529a3745d7f9ULL, 0x6881b6a32e3f7c73ULL,
+      0xca78d2bad9b8e733ULL, 0xbbfe2fc2342aa3a9ULL, 0x0dbddffecc6381e4ULL,
+      0x70a6a56e2440598eULL, 0xe4d12a844befc651ULL, 0x8c509c2765d0ba22ULL,
+      0xee8c6018c28814d9ULL, 0x17da7c1f49a59e31ULL, 0x609c4c1328e194d3ULL,
+      0xb3e3d57232f44b09ULL, 0x91d7aaa4a512f69bULL, 0x0ffd6fd243dabbccULL,
+      0x50d26a943c1fde34ULL, 0x6be15e9968545b4fULL, 0x94778fea6faf9fdfULL,
+      0x2b09dd7058ea4826ULL, 0x677cd9716de5c7bfULL, 0x49d5214fffb2e6ddULL,
+      0x0360e83a466b273cULL, 0x1fc786af4f7b7691ULL, 0xa0b9d435783ea168ULL,
+      0xd49f0c035f118cb6ULL, 0x01205816c9d21d14ULL, 0xac2453dd7d8f3d98ULL,
+      0x545217cc3f70aa64ULL, 0x26b4028e9489c9c2ULL, 0xdec2469fd6765e3eULL,
+      0x04807d58036f7450ULL, 0xe5f17292823ddb45ULL, 0xf30b569b024a5860ULL,
+      0x62dcfc3fa758aefbULL, 0xe84cad6c4e5e5aa1ULL, 0xccb81fce556ea94bULL,
+      0x53b282ae7a74f908ULL, 0x1b47fbf74c1402c1ULL, 0x368eebf39828049fULL,
+      0x7afbeff2ad278b06ULL, 0xbe5e0a8cfe97caedULL, 0xcfd8f7f413058e77ULL,
+      0xf78b2bc301252c30ULL, 0x4d555c17fcdd928dULL, 0x5f2f05467fc565f8ULL,
+      0x24f4b2a21b30f3eaULL, 0x860dd6bbecb768aaULL, 0x4c750401350f8f99ULL,
+      0x0000000000000000ULL, 0xecccd0344d312ef1ULL, 0xb5231806be220571ULL,
+      0xc105c030990d28afULL, 0x653c695de25cfd97ULL, 0x159acc33c61ca419ULL,
+      0xb89ec7f872418495ULL, 0xa9847693b73254dcULL, 0x58cf90243ac13694ULL,
+      0x59efc832f3132b80ULL, 0x5c4fed7c39ae42c4ULL, 0x828dabe3efd81cfaULL,
+      0xd13f294d95ace5f2ULL, 0x7d1b7a90e823d86aULL, 0xb643f03cf849224dULL,
+      0x3df3f979d89dcb03ULL, 0x7426d836272f2ddeULL, 0xdfe21e891fa4432aULL,
+      0x3a136c1b9d99986fULL, 0xfa36f43dcd46add4ULL, 0xc025982650df35bbULL,
+      0x856d3e81aadc4f96ULL, 0xc4a5e57e53b041ebULL, 0x4708168b75ba4005ULL,
+      0xaf44bbe73be41aa4ULL, 0x971767d029c4b8e3ULL, 0xb9be9feebb939981ULL,
+      0x215497ecd18d9aaeULL, 0x316e7e91dd2c57f3ULL, 0xcef8afe2dad79363ULL,
+      0x3853dc371220a247ULL, 0x35ee03c9de4323a3ULL, 0xe6919aa8c456fc79ULL,
+      0xe05157dc4880b201ULL, 0x7bdbb7e464f59612ULL, 0x127a59518318f775ULL,
+      0x332ecebd52956ddbULL, 0x8f30741d23bb9d1eULL, 0xd922d3fd93720d52ULL,
+      0x7746300c61440ae2ULL, 0x25d4eab4d2e2eefeULL, 0x75068020eefd30caULL,
+      0x135a01474acaea61ULL, 0x304e268714fe4ae7ULL, 0xa519f17bb283c82cULL,
+      0xdc82f6b359cf6416ULL, 0x5baf781e7caa11a8ULL, 0xb2c38d64fb26561dULL,
+      0x34ce5bdf17913eb7ULL, 0x5d6fb56af07c5fd0ULL, 0x182713cd0a7f25fdULL,
+      0x9e2ac576e6c84d57ULL, 0x9aaab82ee5a73907ULL, 0xa3d93c0f3e558654ULL,
+      0x7e7b92aaae48ff56ULL, 0x872d8ead256575beULL, 0x41c8dbfff96c0e7dULL,
+      0x99ca5014a3cc1e3bULL, 0x40e883e930be1369ULL, 0x1ca76e95091051adULL,
+      0x4e35b42dbab6b5b1ULL, 0x05a0254ecabd6944ULL, 0xe1710fca8152af15ULL,
+      0xf22b0e8dcb984574ULL, 0xb763a82a319b3f59ULL, 0x63fca4296e8ab3efULL,
+      0x9d4a2d4ca0a36a6bULL, 0xe331bfe60eeb953dULL, 0xd5bf541596c391a2ULL,
+      0xf5cb9bef8e9c1618ULL, 0x46284e9dbc685d11ULL, 0x2074cffa185f87baULL,
+      0xbd3ee2b6b8fcedd1ULL, 0xae64e3f1f23607b0ULL, 0xfeb68965ce29d984ULL,
+      0x55724fdaf6a2b770ULL, 0x29496d5cd753720eULL, 0xa75941573d3af204ULL,
+      0x8e102c0bea69800aULL, 0x111ab16bc573d049ULL, 0xd7ffe439197aab8aULL,
+      0xefac380e0b5a09cdULL, 0x48f579593660fbc9ULL, 0x22347fd697e6bd92ULL,
+      0x61bc1405e13389c7ULL, 0x4ab5c975b9d9c1e1ULL, 0x80cd1bcf606126d2ULL,
+      0x7186fd78ed92449aULL, 0x93971a882aabccb3ULL, 0x88d0e17f66bfce72ULL,
+      0x27945a985d5bd4d6ULL
+      },
+      {
+      0xde553f8c05a811c8ULL, 0x1906b59631b4f565ULL, 0x436e70d6b1964ff7ULL,
+      0x36d343cb8b1e9d85ULL, 0x843dfacc858aab5aULL, 0xfdfc95c299bfc7f9ULL,
+      0x0f634bdea1d51fa2ULL, 0x6d458b3b76efb3cdULL, 0x85c3f77cf8593f80ULL,
+      0x3c91315fbe737cb2ULL, 0x2148b03366ace398ULL, 0x18f8b8264c6761bfULL,
+      0xc830c1c495c9fb0fULL, 0x981a76102086a0aaULL, 0xaa16012142f35760ULL,
+      0x35cc54060c763cf6ULL, 0x42907d66cc45db2dULL, 0x8203d44b965af4bcULL,
+      0x3d6f3cefc3a0e868ULL, 0xbc73ff69d292bda7ULL, 0x8722ed0102e20a29ULL,
+      0x8f8185e8cd34deb7ULL, 0x9b0561dda7ee01d9ULL, 0x5335a0193227fad6ULL,
+      0xc9cecc74e81a6fd5ULL, 0x54f5832e5c2431eaULL, 0x99e47ba05d553470ULL,
+      0xf7bee756acd226ceULL, 0x384e05a5571816fdULL, 0xd1367452a47d0e6aULL,
+      0xf29fde1c386ad85bULL, 0x320c77316275f7caULL, 0xd0c879e2d9ae9ab0ULL,
+      0xdb7406c69110ef5dULL, 0x45505e51a2461011ULL, 0xfc029872e46c5323ULL,
+      0xfa3cb6f5f7bc0cc5ULL, 0x031f17cd8768a173ULL, 0xbd8df2d9af41297dULL,
+      0x9d3b4f5ab43e5e3fULL, 0x4071671b36feee84ULL, 0x716207e7d3e3b83dULL,
+      0x48d20ff2f9283a1aULL, 0x27769eb4757cbc7eULL, 0x5c56ebc793f2e574ULL,
+      0xa48b474f9ef5dc18ULL, 0x52cbada94ff46e0cULL, 0x60c7da982d8199c6ULL,
+      0x0e9d466edc068b78ULL, 0x4eec2175eaf865fcULL, 0x550b8e9e21f7a530ULL,
+      0x6b7ba5bc653fec2bULL, 0x5eb7f1ba6949d0ddULL, 0x57ea94e3db4c9099ULL,
+      0xf640eae6d101b214ULL, 0xdd4a284182c0b0bbULL, 0xff1d8fbf6304f250ULL,
+      0xb8accb933bf9d7e8ULL, 0xe8867c478eb68c4dULL, 0x3f8e2692391bddc1ULL,
+      0xcb2fd60912a15a7cULL, 0xaec935dbab983d2fULL, 0xf55ffd2b56691367ULL,
+      0x80e2ce366ce1c115ULL, 0x179bf3f8edb27e1dULL, 0x01fe0db07dd394daULL,
+      0xda8a0b76ecc37b87ULL, 0x44ae53e1df9584cbULL, 0xb310b4b77347a205ULL,
+      0xdfab323c787b8512ULL, 0x3b511268d070b78eULL, 0x65e6e3d2b9396753ULL,
+      0x6864b271e2574d58ULL, 0x259784c98fc789d7ULL, 0x02e11a7dfabb35a9ULL,
+      0x8841a6dfa337158bULL, 0x7ade78c39b5dcdd0ULL, 0xb7cf804d9a2cc84aULL,
+      0x20b6bd831b7f7742ULL, 0x75bd331d3a88d272ULL, 0x418f6aab4b2d7a5eULL,
+      0xd9951cbb6babdaf4ULL, 0xb6318dfde7ff5c90ULL, 0x1f389b112264aa83ULL,
+      0x492c024284fbaec0ULL, 0xe33a0363c608f9a0ULL, 0x2688930408af28a4ULL,
+      0xc7538a1a341ce4adULL, 0x5da8e677ee2171aeULL, 0x8c9e92254a5c7fc4ULL,
+      0x63d8cd55aae938b5ULL, 0x29ebd8daa97a3706ULL, 0x959827b37be88aa1ULL,
+      0x1484e4356adadf6eULL, 0xa7945082199d7d6bULL, 0xbf6ce8a455fa1cd4ULL,
+      0x9cc542eac9edcae5ULL, 0x79c16f0e1c356ca3ULL, 0x89bfab6fdee48151ULL,
+      0xd4174d1830c5f0ffULL, 0x9258048415eb419dULL, 0x6139d72850520d1cULL,
+      0x6a85a80c18ec78f1ULL, 0xcd11f88e0171059aULL, 0xcceff53e7ca29140ULL,
+      0xd229639f2315af19ULL, 0x90b91ef9ef507434ULL, 0x5977d28d074a1be1ULL,
+      0x311360fce51d56b9ULL, 0xc093a92d5a1f2f91ULL, 0x1a19a25bb6dc5416ULL,
+      0xeb996b8a09de2d3eULL, 0xfee3820f1ed7668aULL, 0xd7085ad5b7ad518cULL,
+      0x7fff41890fe53345ULL, 0xec5948bd67dde602ULL, 0x2fd5f65dbaaa68e0ULL,
+      0xa5754affe32648c2ULL, 0xf8ddac880d07396cULL, 0x6fa491468c548664ULL,
+      0x0c7c5c1326bdbed1ULL, 0x4a33158f03930fb3ULL, 0x699abfc19f84d982ULL,
+      0xe4fa2054a80b329cULL, 0x6707f9af438252faULL, 0x08a368e9cfd6d49eULL,
+      0x47b1442c58fd25b8ULL, 0xbbb3dc5ebc91769bULL, 0x1665fe489061eac7ULL,
+      0x33f27a811fa66310ULL, 0x93a609346838d547ULL, 0x30ed6d4c98cec263ULL,
+      0x1dd9816cd8df9f2aULL, 0x94662a03063b1e7bULL, 0x83fdd9fbeb896066ULL,
+      0x7b207573e68e590aULL, 0x5f49fc0a149a4407ULL, 0x343259b671a5a82cULL,
+      0xfbc2bb458a6f981fULL, 0xc272b350a0a41a38ULL, 0x3aaf1fd8ada32354ULL,
+      0x6cbb868b0b3c2717ULL, 0xa2b569c88d2583feULL, 0xf180c9d1bf027928ULL,
+      0xaf37386bd64ba9f5ULL, 0x12bacab2790a8088ULL, 0x4c0d3b0810435055ULL,
+      0xb2eeb9070e9436dfULL, 0xc5b29067cea7d104ULL, 0xdcb425f1ff132461ULL,
+      0x4f122cc5972bf126ULL, 0xac282fa651230886ULL, 0xe7e537992f6393efULL,
+      0xe61b3a2952b00735ULL, 0x709c0a57ae302ce7ULL, 0xe02514ae416058d3ULL,
+      0xc44c9dd7b37445deULL, 0x5a68c5408022ba92ULL, 0x1c278cdca50c0bf0ULL,
+      0x6e5a9cf6f18712beULL, 0x86dce0b17f319ef3ULL, 0x2d34ec2040115d49ULL,
+      0x4bcd183f7e409b69ULL, 0x2815d56ad4a9a3dcULL, 0x24698979f2141d0dULL,
+      0x0000000000000000ULL, 0x1ec696a15fb73e59ULL, 0xd86b110b16784e2eULL,
+      0x8e7f8858b0e74a6dULL, 0x063e2e8713d05fe6ULL, 0xe2c40ed3bbdb6d7aULL,
+      0xb1f1aeca89fc97acULL, 0xe1db191e3cb3cc09ULL, 0x6418ee62c4eaf389ULL,
+      0xc6ad87aa49cf7077ULL, 0xd6f65765ca7ec556ULL, 0x9afb6c6dda3d9503ULL,
+      0x7ce05644888d9236ULL, 0x8d609f95378feb1eULL, 0x23a9aa4e9c17d631ULL,
+      0x6226c0e5d73aac6fULL, 0x56149953a69f0443ULL, 0xeeb852c09d66d3abULL,
+      0x2b0ac2a753c102afULL, 0x07c023376e03cb3cULL, 0x2ccae1903dc2c993ULL,
+      0xd3d76e2f5ec63bc3ULL, 0x9e2458973356ff4cULL, 0xa66a5d32644ee9b1ULL,
+      0x0a427294356de137ULL, 0x783f62be61e6f879ULL, 0x1344c70204d91452ULL,
+      0x5b96c8f0fdf12e48ULL, 0xa90916ecc59bf613ULL, 0xbe92e5142829880eULL,
+      0x727d102a548b194eULL, 0x1be7afebcb0fc0ccULL, 0x3e702b2244c8491bULL,
+      0xd5e940a84d166425ULL, 0x66f9f41f3e51c620ULL, 0xabe80c913f20c3baULL,
+      0xf07ec461c2d1edf2ULL, 0xf361d3ac45b94c81ULL, 0x0521394a94b8fe95ULL,
+      0xadd622162cf09c5cULL, 0xe97871f7f3651897ULL, 0xf4a1f09b2bba87bdULL,
+      0x095d6559b2054044ULL, 0x0bbc7f2448be75edULL, 0x2af4cf172e129675ULL,
+      0x157ae98517094bb4ULL, 0x9fda55274e856b96ULL, 0x914713499283e0eeULL,
+      0xb952c623462a4332ULL, 0x74433ead475b46a8ULL, 0x8b5eb112245fb4f8ULL,
+      0xa34b6478f0f61724ULL, 0x11a5dd7ffe6221fbULL, 0xc16da49d27ccbb4bULL,
+      0x76a224d0bde07301ULL, 0x8aa0bca2598c2022ULL, 0x4df336b86d90c48fULL,
+      0xea67663a740db9e4ULL, 0xef465f70e0b54771ULL, 0x39b008152acb8227ULL,
+      0x7d1e5bf4f55e06ecULL, 0x105bd0cf83b1b521ULL, 0x775c2960c033e7dbULL,
+      0x7e014c397236a79fULL, 0x811cc386113255cfULL, 0xeda7450d1a0e72d8ULL,
+      0x5889df3d7a998f3bULL, 0x2e2bfbedc779fc3aULL, 0xce0eef438619a4e9ULL,
+      0x372d4e7bf6cd095fULL, 0x04df34fae96b6a4fULL, 0xf923a13870d4adb6ULL,
+      0xa1aa7e050a4d228dULL, 0xa8f71b5cb84862c9ULL, 0xb52e9a306097fde3ULL,
+      0x0d8251a35b6e2a0bULL, 0x2257a7fee1c442ebULL, 0x73831d9a29588d94ULL,
+      0x51d4ba64c89ccf7fULL, 0x502ab7d4b54f5ba5ULL, 0x97793dce8153bf08ULL,
+      0xe5042de4d5d8a646ULL, 0x9687307efc802bd2ULL, 0xa05473b5779eb657ULL,
+      0xb4d097801d446939ULL, 0xcff0e2f3fbca3033ULL, 0xc38cbee0dd778ee2ULL,
+      0x464f499c252eb162ULL, 0xcad1dbb96f72cea6ULL, 0xba4dd1eec142e241ULL,
+      0xb00fa37af42f0376ULL
+      },
+      {
+      0xcce4cd3aa968b245ULL, 0x089d5484e80b7fafULL, 0x638246c1b3548304ULL,
+      0xd2fe0ec8c2355492ULL, 0xa7fbdf7ff2374eeeULL, 0x4df1600c92337a16ULL,
+      0x84e503ea523b12fbULL, 0x0790bbfd53ab0c4aULL, 0x198a780f38f6ea9dULL,
+      0x2ab30c8f55ec48cbULL, 0xe0f7fed6b2c49db5ULL, 0xb6ecf3f422cadbdcULL,
+      0x409c9a541358df11ULL, 0xd3ce8a56dfde3fe3ULL, 0xc3e9224312c8c1a0ULL,
+      0x0d6dfa58816ba507ULL, 0xddf3e1b179952777ULL, 0x04c02a42748bb1d9ULL,
+      0x94c2abff9f2decb8ULL, 0x4f91752da8f8acf4ULL, 0x78682befb169bf7bULL,
+      0xe1c77a48af2ff6c4ULL, 0x0c5d7ec69c80ce76ULL, 0x4cc1e4928fd81167ULL,
+      0xfeed3d24d9997b62ULL, 0x518bb6dfc3a54a23ULL, 0x6dbf2d26151f9b90ULL,
+      0xb5bc624b05ea664fULL, 0xe86aaa525acfe21aULL, 0x4801ced0fb53a0beULL,
+      0xc91463e6c00868edULL, 0x1027a815cd16fe43ULL, 0xf67069a0319204cdULL,
+      0xb04ccc976c8abce7ULL, 0xc0b9b3fc35e87c33ULL, 0xf380c77c58f2de65ULL,
+      0x50bb3241de4e2152ULL, 0xdf93f490435ef195ULL, 0xf1e0d25d62390887ULL,
+      0xaf668bfb1a3c3141ULL, 0xbc11b251f00a7291ULL, 0x73a5eed47e427d47ULL,
+      0x25bee3f6ee4c3b2eULL, 0x43cc0beb34786282ULL, 0xc824e778dde3039cULL,
+      0xf97d86d98a327728ULL, 0xf2b043e24519b514ULL, 0xe297ebf7880f4b57ULL,
+      0x3a94a49a98fab688ULL, 0x868516cb68f0c419ULL, 0xeffa11af0964ee50ULL,
+      0xa4ab4ec0d517f37dULL, 0xa9c6b498547c567aULL, 0x8e18424f80fbbbb6ULL,
+      0x0bcdc53bcf2bc23cULL, 0x137739aaea3643d0ULL, 0x2c1333ec1bac2ff0ULL,
+      0x8d48d3f0a7db0625ULL, 0x1e1ac3f26b5de6d7ULL, 0xf520f81f16b2b95eULL,
+      0x9f0f6ec450062e84ULL, 0x0130849e1deb6b71ULL, 0xd45e31ab8c7533a9ULL,
+      0x652279a2fd14e43fULL, 0x3209f01e70f1c927ULL, 0xbe71a770cac1a473ULL,
+      0x0e3d6be7a64b1894ULL, 0x7ec8148cff29d840ULL, 0xcb7476c7fac3be0fULL,
+      0x72956a4a63a91636ULL, 0x37f95ec21991138fULL, 0x9e3fea5a4ded45f5ULL,
+      0x7b38ba50964902e8ULL, 0x222e580bbde73764ULL, 0x61e253e0899f55e6ULL,
+      0xfc8d2805e352ad80ULL, 0x35994be3235ac56dULL, 0x09add01af5e014deULL,
+      0x5e8659a6780539c6ULL, 0xb17c48097161d796ULL, 0x026015213acbd6e2ULL,
+      0xd1ae9f77e515e901ULL, 0xb7dc776a3f21b0adULL, 0xaba6a1b96eb78098ULL,
+      0x9bcf4486248d9f5dULL, 0x582666c536455efdULL, 0xfdbdac9bfeb9c6f1ULL,
+      0xc47999be4163cdeaULL, 0x765540081722a7efULL, 0x3e548ed8ec710751ULL,
+      0x3d041f67cb51bac2ULL, 0x7958af71ac82d40aULL, 0x36c9da5c047a78feULL,
+      0xed9a048e33af38b2ULL, 0x26ee7249c96c86bdULL, 0x900281bdeba65d61ULL,
+      0x11172c8bd0fd9532ULL, 0xea0abf73600434f8ULL, 0x42fc8f75299309f3ULL,
+      0x34a9cf7d3eb1ae1cULL, 0x2b838811480723baULL, 0x5ce64c8742ceef24ULL,
+      0x1adae9b01fd6570eULL, 0x3c349bf9d6bad1b3ULL, 0x82453c891c7b75c0ULL,
+      0x97923a40b80d512bULL, 0x4a61dbf1c198765cULL, 0xb48ce6d518010d3eULL,
+      0xcfb45c858e480fd6ULL, 0xd933cbf30d1e96aeULL, 0xd70ea014ab558e3aULL,
+      0xc189376228031742ULL, 0x9262949cd16d8b83ULL, 0xeb3a3bed7def5f89ULL,
+      0x49314a4ee6b8cbcfULL, 0xdcc3652f647e4c06ULL, 0xda635a4c2a3e2b3dULL,
+      0x470c21a940f3d35bULL, 0x315961a157d174b4ULL, 0x6672e81dda3459acULL,
+      0x5b76f77a1165e36eULL, 0x445cb01667d36ec8ULL, 0xc5491d205c88a69bULL,
+      0x456c34887a3805b9ULL, 0xffddb9bac4721013ULL, 0x99af51a71e4649bfULL,
+      0xa15be01cbc7729d5ULL, 0x52db2760e485f7b0ULL, 0x8c78576eba306d54ULL,
+      0xae560f6507d75a30ULL, 0x95f22f6182c687c9ULL, 0x71c5fbf54489aba5ULL,
+      0xca44f259e728d57eULL, 0x88b87d2ccebbdc8dULL, 0xbab18d32be4a15aaULL,
+      0x8be8ec93e99b611eULL, 0x17b713e89ebdf209ULL, 0xb31c5d284baa0174ULL,
+      0xeeca9531148f8521ULL, 0xb8d198138481c348ULL, 0x8988f9b2d350b7fcULL,
+      0xb9e11c8d996aa839ULL, 0x5a4673e40c8e881fULL, 0x1687977683569978ULL,
+      0xbf4123eed72acf02ULL, 0x4ea1f1b3b513c785ULL, 0xe767452be16f91ffULL,
+      0x7505d1b730021a7cULL, 0xa59bca5ec8fc980cULL, 0xad069eda20f7e7a3ULL,
+      0x38f4b1bba231606aULL, 0x60d2d77e94743e97ULL, 0x9affc0183966f42cULL,
+      0x248e6768f3a7505fULL, 0xcdd449a4b483d934ULL, 0x87b59255751baf68ULL,
+      0x1bea6d2e023d3c7fULL, 0x6b1f12455b5ffcabULL, 0x743555292de9710dULL,
+      0xd8034f6d10f5fddfULL, 0xc6198c9f7ba81b08ULL, 0xbb8109aca3a17edbULL,
+      0xfa2d1766ad12cabbULL, 0xc729080166437079ULL, 0x9c5fff7b77269317ULL,
+      0x0000000000000000ULL, 0x15d706c9a47624ebULL, 0x6fdf38072fd44d72ULL,
+      0x5fb6dd3865ee52b7ULL, 0xa33bf53d86bcff37ULL, 0xe657c1b5fc84fa8eULL,
+      0xaa962527735cebe9ULL, 0x39c43525bfda0b1bULL, 0x204e4d2a872ce186ULL,
+      0x7a083ece8ba26999ULL, 0x554b9c9db72efbfaULL, 0xb22cd9b656416a05ULL,
+      0x96a2bedea5e63a5aULL, 0x802529a826b0a322ULL, 0x8115ad363b5bc853ULL,
+      0x8375b81701901eb1ULL, 0x3069e53f4a3a1fc5ULL, 0xbd2136cfede119e0ULL,
+      0x18bafc91251d81ecULL, 0x1d4a524d4c7d5b44ULL, 0x05f0aedc6960daa8ULL,
+      0x29e39d3072ccf558ULL, 0x70f57f6b5962c0d4ULL, 0x989fd53903ad22ceULL,
+      0xf84d024797d91c59ULL, 0x547b1803aac5908bULL, 0xf0d056c37fd263f6ULL,
+      0xd56eb535919e58d8ULL, 0x1c7ad6d351963035ULL, 0x2e7326cd2167f912ULL,
+      0xac361a443d1c8cd2ULL, 0x697f076461942a49ULL, 0x4b515f6fdc731d2dULL,
+      0x8ad8680df4700a6fULL, 0x41ac1eca0eb3b460ULL, 0x7d988533d80965d3ULL,
+      0xa8f6300649973d0bULL, 0x7765c4960ac9cc9eULL, 0x7ca801adc5e20ea2ULL,
+      0xdea3700e5eb59ae4ULL, 0xa06b6482a19c42a4ULL, 0x6a2f96db46b497daULL,
+      0x27def6d7d487edccULL, 0x463ca5375d18b82aULL, 0xa6cb5be1efdc259fULL,
+      0x53eba3fef96e9cc1ULL, 0xce84d81b93a364a7ULL, 0xf4107c810b59d22fULL,
+      0x333974806d1aa256ULL, 0x0f0def79bba073e5ULL, 0x231edc95a00c5c15ULL,
+      0xe437d494c64f2c6cULL, 0x91320523f64d3610ULL, 0x67426c83c7df32ddULL,
+      0x6eefbc99323f2603ULL, 0x9d6f7be56acdf866ULL, 0x5916e25b2bae358cULL,
+      0x7ff89012e2c2b331ULL, 0x035091bf2720bd93ULL, 0x561b0d22900e4669ULL,
+      0x28d319ae6f279e29ULL, 0x2f43a2533c8c9263ULL, 0xd09e1be9f8fe8270ULL,
+      0xf740ed3e2c796fbcULL, 0xdb53ded237d5404cULL, 0x62b2c25faebfe875ULL,
+      0x0afd41a5d2c0a94dULL, 0x6412fd3ce0ff8f4eULL, 0xe3a76f6995e42026ULL,
+      0x6c8fa9b808f4f0e1ULL, 0xc2d9a6dd0f23aad1ULL, 0x8f28c6d19d10d0c7ULL,
+      0x85d587744fd0798aULL, 0xa20b71a39b579446ULL, 0x684f83fa7c7f4138ULL,
+      0xe507500adba4471dULL, 0x3f640a46f19a6c20ULL, 0x1247bd34f7dd28a1ULL,
+      0x2d23b77206474481ULL, 0x93521002cc86e0f2ULL, 0x572b89bc8de52d18ULL,
+      0xfb1d93f8b0f9a1caULL, 0xe95a2ecc4724896bULL, 0x3ba420048511ddf9ULL,
+      0xd63e248ab6bee54bULL, 0x5dd6c8195f258455ULL, 0x06a03f634e40673bULL,
+      0x1f2a476c76b68da6ULL, 0x217ec9b49ac78af7ULL, 0xecaa80102e4453c3ULL,
+      0x14e78257b99d4f9aULL
+      },
+      {
+      0x20329b2cc87bba05ULL, 0x4f5eb6f86546a531ULL, 0xd4f44775f751b6b1ULL,
+      0x8266a47b850dfa8bULL, 0xbb986aa15a6ca985ULL, 0xc979eb08f9ae0f99ULL,
+      0x2da6f447a2375ea1ULL, 0x1e74275dcd7d8576ULL, 0xbc20180a800bc5f8ULL,
+      0xb4a2f701b2dc65beULL, 0xe726946f981b6d66ULL, 0x48e6c453bf21c94cULL,
+      0x42cad9930f0a4195ULL, 0xefa47b64aacccd20ULL, 0x71180a8960409a42ULL,
+      0x8bb3329bf6a44e0cULL, 0xd34c35de2d36daccULL, 0xa92f5b7cbc23dc96ULL,
+      0xb31a85aa68bb09c3ULL, 0x13e04836a73161d2ULL, 0xb24dfc4129c51d02ULL,
+      0x8ae44b70b7da5acdULL, 0xe671ed84d96579a7ULL, 0xa4bb3417d66f3832ULL,
+      0x4572ab38d56d2de8ULL, 0xb1b47761ea47215cULL, 0xe81c09cf70aba15dULL,
+      0xffbdb872ce7f90acULL, 0xa8782297fd5dc857ULL, 0x0d946f6b6a4ce4a4ULL,
+      0xe4df1f4f5b995138ULL, 0x9ebc71edca8c5762ULL, 0x0a2c1dc0b02b88d9ULL,
+      0x3b503c115d9d7b91ULL, 0xc64376a8111ec3a2ULL, 0xcec199a323c963e4ULL,
+      0xdc76a87ec58616f7ULL, 0x09d596e073a9b487ULL, 0x14583a9d7d560dafULL,
+      0xf4c6dc593f2a0cb4ULL, 0xdd21d19584f80236ULL, 0x4a4836983ddde1d3ULL,
+      0xe58866a41ae745f9ULL, 0xf591a5b27e541875ULL, 0x891dc05074586693ULL,
+      0x5b068c651810a89eULL, 0xa30346bc0c08544fULL, 0x3dbf3751c684032dULL,
+      0x2a1e86ec785032dcULL, 0xf73f5779fca830eaULL, 0xb60c05ca30204d21ULL,
+      0x0cc316802b32f065ULL, 0x8770241bdd96be69ULL, 0xb861e18199ee95dbULL,
+      0xf805cad91418fcd1ULL, 0x29e70dccbbd20e82ULL, 0xc7140f435060d763ULL,
+      0x0f3a9da0e8b0cc3bULL, 0xa2543f574d76408eULL, 0xbd7761e1c175d139ULL,
+      0x4b1f4f737ca3f512ULL, 0x6dc2df1f2fc137abULL, 0xf1d05c3967b14856ULL,
+      0xa742bf3715ed046cULL, 0x654030141d1697edULL, 0x07b872abda676c7dULL,
+      0x3ce84eba87fa17ecULL, 0xc1fb0403cb79afdfULL, 0x3e46bc7105063f73ULL,
+      0x278ae987121cd678ULL, 0xa1adb4778ef47cd0ULL, 0x26dd906c5362c2b9ULL,
+      0x05168060589b44e2ULL, 0xfbfc41f9d79ac08fULL, 0x0e6de44ba9ced8faULL,
+      0x9feb08068bf243a3ULL, 0x7b341749d06b129bULL, 0x229c69e74a87929aULL,
+      0xe09ee6c4427c011bULL, 0x5692e30e725c4c3aULL, 0xda99a33e5e9f6e4bULL,
+      0x353dd85af453a36bULL, 0x25241b4c90e0fee7ULL, 0x5de987258309d022ULL,
+      0xe230140fc0802984ULL, 0x93281e86a0c0b3c6ULL, 0xf229d719a4337408ULL,
+      0x6f6c2dd4ad3d1f34ULL, 0x8ea5b2fbae3f0aeeULL, 0x8331dd90c473ee4aULL,
+      0x346aa1b1b52db7aaULL, 0xdf8f235e06042aa9ULL, 0xcc6f6b68a1354b7bULL,
+      0x6c95a6f46ebf236aULL, 0x52d31a856bb91c19ULL, 0x1a35ded6d498d555ULL,
+      0xf37eaef2e54d60c9ULL, 0x72e181a9a3c2a61cULL, 0x98537aad51952fdeULL,
+      0x16f6c856ffaa2530ULL, 0xd960281e9d1d5215ULL, 0x3a0745fa1ce36f50ULL,
+      0x0b7b642bf1559c18ULL, 0x59a87eae9aec8001ULL, 0x5e100c05408bec7cULL,
+      0x0441f98b19e55023ULL, 0xd70dcc5534d38aefULL, 0x927f676de1bea707ULL,
+      0x9769e70db925e3e5ULL, 0x7a636ea29115065aULL, 0x468b201816ef11b6ULL,
+      0xab81a9b73edff409ULL, 0xc0ac7de88a07bb1eULL, 0x1f235eb68c0391b7ULL,
+      0x6056b074458dd30fULL, 0xbe8eeac102f7ed67ULL, 0xcd381283e04b5fbaULL,
+      0x5cbefecec277c4e3ULL, 0xd21b4c356c48ce0dULL, 0x1019c31664b35d8cULL,
+      0x247362a7d19eea26ULL, 0xebe582efb3299d03ULL, 0x02aef2cb82fc289fULL,
+      0x86275df09ce8aaa8ULL, 0x28b07427faac1a43ULL, 0x38a9b7319e1f47cfULL,
+      0xc82e92e3b8d01b58ULL, 0x06ef0b409b1978bcULL, 0x62f842bfc771fb90ULL,
+      0x9904034610eb3b1fULL, 0xded85ab5477a3e68ULL, 0x90d195a663428f98ULL,
+      0x5384636e2ac708d8ULL, 0xcbd719c37b522706ULL, 0xae9729d76644b0ebULL,
+      0x7c8c65e20a0c7ee6ULL, 0x80c856b007f1d214ULL, 0x8c0b40302cc32271ULL,
+      0xdbcedad51fe17a8aULL, 0x740e8ae938dbdea0ULL, 0xa615c6dc549310adULL,
+      0x19cc55f6171ae90bULL, 0x49b1bdb8fe5fdd8dULL, 0xed0a89af2830e5bfULL,
+      0x6a7aadb4f5a65bd6ULL, 0x7e22972988f05679ULL, 0xf952b3325566e810ULL,
+      0x39fecedadf61530eULL, 0x6101c99f04f3c7ceULL, 0x2e5f7f6761b562ffULL,
+      0xf08725d226cf5c97ULL, 0x63af3b54860fef51ULL, 0x8ff2cb10ef411e2fULL,
+      0x884ab9bb35267252ULL, 0x4df04433e7ba8daeULL, 0x9afd8866d3690741ULL,
+      0x66b9bb34de94abb3ULL, 0x9baaf18d92171380ULL, 0x543c11c5f0a064a5ULL,
+      0x17a1b1bdbed431f1ULL, 0xb5f58eeaf3a2717fULL, 0xc355f6c849858740ULL,
+      0xec5df044694ef17eULL, 0xd83751f5dc6346d4ULL, 0xfc4433520dfdacf2ULL,
+      0x0000000000000000ULL, 0x5a51f58e596ebc5fULL, 0x3285aaf12e34cf16ULL,
+      0x8d5c39db6dbd36b0ULL, 0x12b731dde64f7513ULL, 0x94906c2d7aa7dfbbULL,
+      0x302b583aacc8e789ULL, 0x9d45facd090e6b3cULL, 0x2165e2c78905aec4ULL,
+      0x68d45f7f775a7349ULL, 0x189b2c1d5664fdcaULL, 0xe1c99f2f030215daULL,
+      0x6983269436246788ULL, 0x8489af3b1e148237ULL, 0xe94b702431d5b59cULL,
+      0x33d2d31a6f4adbd7ULL, 0xbfd9932a4389f9a6ULL, 0xb0e30e8aab39359dULL,
+      0xd1e2c715afcaf253ULL, 0x150f43763c28196eULL, 0xc4ed846393e2eb3dULL,
+      0x03f98b20c3823c5eULL, 0xfd134ab94c83b833ULL, 0x556b682eb1de7064ULL,
+      0x36c4537a37d19f35ULL, 0x7559f30279a5ca61ULL, 0x799ae58252973a04ULL,
+      0x9c12832648707ffdULL, 0x78cd9c6913e92ec5ULL, 0x1d8dac7d0effb928ULL,
+      0x439da0784e745554ULL, 0x413352b3cc887dcbULL, 0xbacf134a1b12bd44ULL,
+      0x114ebafd25cd494dULL, 0x2f08068c20cb763eULL, 0x76a07822ba27f63fULL,
+      0xeab2fb04f25789c2ULL, 0xe3676de481fe3d45ULL, 0x1b62a73d95e6c194ULL,
+      0x641749ff5c68832cULL, 0xa5ec4dfc97112cf3ULL, 0xf6682e92bdd6242bULL,
+      0x3f11c59a44782bb2ULL, 0x317c21d1edb6f348ULL, 0xd65ab5be75ad9e2eULL,
+      0x6b2dd45fb4d84f17ULL, 0xfaab381296e4d44eULL, 0xd0b5befeeeb4e692ULL,
+      0x0882ef0b32d7a046ULL, 0x512a91a5a83b2047ULL, 0x963e9ee6f85bf724ULL,
+      0x4e09cf132438b1f0ULL, 0x77f701c9fb59e2feULL, 0x7ddb1c094b726a27ULL,
+      0x5f4775ee01f5f8bdULL, 0x9186ec4d223c9b59ULL, 0xfeeac1998f01846dULL,
+      0xac39db1ce4b89874ULL, 0xb75b7c21715e59e0ULL, 0xafc0503c273aa42aULL,
+      0x6e3b543fec430bf5ULL, 0x704f7362213e8e83ULL, 0x58ff0745db9294c0ULL,
+      0x67eec2df9feabf72ULL, 0xa0facd9ccf8a6811ULL, 0xb936986ad890811aULL,
+      0x95c715c63bd9cb7aULL, 0xca8060283a2c33c7ULL, 0x507de84ee9453486ULL,
+      0x85ded6d05f6a96f6ULL, 0x1cdad5964f81ade9ULL, 0xd5a33e9eb62fa270ULL,
+      0x40642b588df6690aULL, 0x7f75eec2c98e42b8ULL, 0x2cf18dace3494a60ULL,
+      0x23cb100c0bf9865bULL, 0xeef3028febb2d9e1ULL, 0x4425d2d394133929ULL,
+      0xaad6d05c7fa1e0c8ULL, 0xad6ea2f7a5c68cb5ULL, 0xc2028f2308fb9381ULL,
+      0x819f2f5b468fc6d5ULL, 0xc5bafd88d29cfffcULL, 0x47dc59f357910577ULL,
+      0x2b49ff07392e261dULL, 0x57c59ae5332258fbULL, 0x73b6f842e2bcb2ddULL,
+      0xcf96e04862b77725ULL, 0x4ca73dd8a6c4996fULL, 0x015779eb417e14c1ULL,
+      0x37932a9176af8bf4ULL
+      },
+      {
+      0x190a2c9b249df23eULL, 0x2f62f8b62263e1e9ULL, 0x7a7f754740993655ULL,
+      0x330b7ba4d5564d9fULL, 0x4c17a16a46672582ULL, 0xb22f08eb7d05f5b8ULL,
+      0x535f47f40bc148ccULL, 0x3aec5d27d4883037ULL, 0x10ed0a1825438f96ULL,
+      0x516101f72c233d17ULL, 0x13cc6f949fd04eaeULL, 0x739853c441474bfdULL,
+      0x653793d90d3f5b1bULL, 0x5240647b96b0fc2fULL, 0x0c84890ad27623e0ULL,
+      0xd7189b32703aaea3ULL, 0x2685de3523bd9c41ULL, 0x99317c5b11bffefaULL,
+      0x0d9baa854f079703ULL, 0x70b93648fbd48ac5ULL, 0xa80441fce30bc6beULL,
+      0x7287704bdc36ff1eULL, 0xb65384ed33dc1f13ULL, 0xd36417343ee34408ULL,
+      0x39cd38ab6e1bf10fULL, 0x5ab861770a1f3564ULL, 0x0ebacf09f594563bULL,
+      0xd04572b884708530ULL, 0x3cae9722bdb3af47ULL, 0x4a556b6f2f5cbaf2ULL,
+      0xe1704f1f76c4bd74ULL, 0x5ec4ed7144c6dfcfULL, 0x16afc01d4c7810e6ULL,
+      0x283f113cd629ca7aULL, 0xaf59a8761741ed2dULL, 0xeed5a3991e215facULL,
+      0x3bf37ea849f984d4ULL, 0xe413e096a56ce33cULL, 0x2c439d3a98f020d1ULL,
+      0x637559dc6404c46bULL, 0x9e6c95d1e5f5d569ULL, 0x24bb9836045fe99aULL,
+      0x44efa466dac8ecc9ULL, 0xc6eab2a5c80895d6ULL, 0x803b50c035220cc4ULL,
+      0x0321658cba93c138ULL, 0x8f9ebc465dc7ee1cULL, 0xd15a5137190131d3ULL,
+      0x0fa5ec8668e5e2d8ULL, 0x91c979578d1037b1ULL, 0x0642ca05693b9f70ULL,
+      0xefca80168350eb4fULL, 0x38d21b24f36a45ecULL, 0xbeab81e1af73d658ULL,
+      0x8cbfd9cae7542f24ULL, 0xfd19cc0d81f11102ULL, 0x0ac6430fbb4dbc90ULL,
+      0x1d76a09d6a441895ULL, 0x2a01573ff1cbbfa1ULL, 0xb572e161894fde2bULL,
+      0x8124734fa853b827ULL, 0x614b1fdf43e6b1b0ULL, 0x68ac395c4238cc18ULL,
+      0x21d837bfd7f7b7d2ULL, 0x20c714304a860331ULL, 0x5cfaab726324aa14ULL,
+      0x74c5ba4eb50d606eULL, 0xf3a3030474654739ULL, 0x23e671bcf015c209ULL,
+      0x45f087e947b9582aULL, 0xd8bd77b418df4c7bULL, 0xe06f6c90ebb50997ULL,
+      0x0bd96080263c0873ULL, 0x7e03f9410e40dcfeULL, 0xb8e94be4c6484928ULL,
+      0xfb5b0608e8ca8e72ULL, 0x1a2b49179e0e3306ULL, 0x4e29e76961855059ULL,
+      0x4f36c4e6fcf4e4baULL, 0x49740ee395cf7bcaULL, 0xc2963ea386d17f7dULL,
+      0x90d65ad810618352ULL, 0x12d34c1b02a1fa4dULL, 0xfa44258775bb3a91ULL,
+      0x18150f14b9ec46ddULL, 0x1491861e6b9a653dULL, 0x9a1019d7ab2c3fc2ULL,
+      0x3668d42d06fe13d7ULL, 0xdcc1fbb25606a6d0ULL, 0x969490dd795a1c22ULL,
+      0x3549b1a1bc6dd2efULL, 0xc94f5e23a0ed770eULL, 0xb9f6686b5b39fdcbULL,
+      0xc4d4f4a6efeae00dULL, 0xe732851a1fff2204ULL, 0x94aad6de5eb869f9ULL,
+      0x3f8ff2ae07206e7fULL, 0xfe38a9813b62d03aULL, 0xa7a1ad7a8bee2466ULL,
+      0x7b6056c8dde882b6ULL, 0x302a1e286fc58ca7ULL, 0x8da0fa457a259bc7ULL,
+      0xb3302b64e074415bULL, 0x5402ae7eff8b635fULL, 0x08f8050c9cafc94bULL,
+      0xae468bf98a3059ceULL, 0x88c355cca98dc58fULL, 0xb10e6d67c7963480ULL,
+      0xbad70de7e1aa3cf3ULL, 0xbfb4a26e320262bbULL, 0xcb711820870f02d5ULL,
+      0xce12b7a954a75c9dULL, 0x563ce87dd8691684ULL, 0x9f73b65e7884618aULL,
+      0x2b1e74b06cba0b42ULL, 0x47cec1ea605b2df1ULL, 0x1c698312f735ac76ULL,
+      0x5fdbcefed9b76b2cULL, 0x831a354c8fb1cdfcULL, 0x820516c312c0791fULL,
+      0xb74ca762aeadabf0ULL, 0xfc06ef821c80a5e1ULL, 0x5723cbf24518a267ULL,
+      0x9d4df05d5f661451ULL, 0x588627742dfd40bfULL, 0xda8331b73f3d39a0ULL,
+      0x17b0e392d109a405ULL, 0xf965400bcf28fba9ULL, 0x7c3dbf4229a2a925ULL,
+      0x023e460327e275dbULL, 0x6cd0b55a0ce126b3ULL, 0xe62da695828e96e7ULL,
+      0x42ad6e63b3f373b9ULL, 0xe50cc319381d57dfULL, 0xc5cbd729729b54eeULL,
+      0x46d1e265fd2a9912ULL, 0x6428b056904eeff8ULL, 0x8be23040131e04b7ULL,
+      0x6709d5da2add2ec0ULL, 0x075de98af44a2b93ULL, 0x8447dcc67bfbe66fULL,
+      0x6616f655b7ac9a23ULL, 0xd607b8bded4b1a40ULL, 0x0563af89d3a85e48ULL,
+      0x3db1b4ad20c21ba4ULL, 0x11f22997b8323b75ULL, 0x292032b34b587e99ULL,
+      0x7f1cdace9331681dULL, 0x8e819fc9c0b65affULL, 0xa1e3677fe2d5bb16ULL,
+      0xcd33d225ee349da5ULL, 0xd9a2543b85aef898ULL, 0x795e10cbfa0af76dULL,
+      0x25a4bbb9992e5d79ULL, 0x78413344677b438eULL, 0xf0826688cef68601ULL,
+      0xd27b34bba392f0ebULL, 0x551d8df162fad7bcULL, 0x1e57c511d0d7d9adULL,
+      0xdeffbdb171e4d30bULL, 0xf4feea8e802f6caaULL, 0xa480c8f6317de55eULL,
+      0xa0fc44f07fa40ff5ULL, 0x95b5f551c3c9dd1aULL, 0x22f952336d6476eaULL,
+      0x0000000000000000ULL, 0xa6be8ef5169f9085ULL, 0xcc2cf1aa73452946ULL,
+      0x2e7ddb39bf12550aULL, 0xd526dd3157d8db78ULL, 0x486b2d6c08becf29ULL,
+      0x9b0f3a58365d8b21ULL, 0xac78cdfaadd22c15ULL, 0xbc95c7e28891a383ULL,
+      0x6a927f5f65dab9c3ULL, 0xc3891d2c1ba0cb9eULL, 0xeaa92f9f50f8b507ULL,
+      0xcf0d9426c9d6e87eULL, 0xca6e3baf1a7eb636ULL, 0xab25247059980786ULL,
+      0x69b31ad3df4978fbULL, 0xe2512a93cc577c4cULL, 0xff278a0ea61364d9ULL,
+      0x71a615c766a53e26ULL, 0x89dc764334fc716cULL, 0xf87a638452594f4aULL,
+      0xf2bc208be914f3daULL, 0x8766b94ac1682757ULL, 0xbbc82e687cdb8810ULL,
+      0x626a7a53f9757088ULL, 0xa2c202f358467a2eULL, 0x4d0882e5db169161ULL,
+      0x09e7268301de7da8ULL, 0xe897699c771ac0dcULL, 0xc8507dac3d9cc3edULL,
+      0xc0a878a0a1330aa6ULL, 0x978bb352e42ba8c1ULL, 0xe9884a13ea6b743fULL,
+      0x279afdbabecc28a2ULL, 0x047c8c064ed9eaabULL, 0x507e2278b15289f4ULL,
+      0x599904fbb08cf45cULL, 0xbd8ae46d15e01760ULL, 0x31353da7f2b43844ULL,
+      0x8558ff49e68a528cULL, 0x76fbfc4d92ef15b5ULL, 0x3456922e211c660cULL,
+      0x86799ac55c1993b4ULL, 0x3e90d1219a51da9cULL, 0x2d5cbeb505819432ULL,
+      0x982e5fd48cce4a19ULL, 0xdb9c1238a24c8d43ULL, 0xd439febecaa96f9bULL,
+      0x418c0bef0960b281ULL, 0x158ea591f6ebd1deULL, 0x1f48e69e4da66d4eULL,
+      0x8afd13cf8e6fb054ULL, 0xf5e1c9011d5ed849ULL, 0xe34e091c5126c8afULL,
+      0xad67ee7530a398f6ULL, 0x43b24dec2e82c75aULL, 0x75da99c1287cd48dULL,
+      0x92e81cdb3783f689ULL, 0xa3dd217cc537cecdULL, 0x60543c50de970553ULL,
+      0x93f73f54aaf2426aULL, 0xa91b62737e7a725dULL, 0xf19d4507538732e2ULL,
+      0x77e4dfc20f9ea156ULL, 0x7d229ccdb4d31dc6ULL, 0x1b346a98037f87e5ULL,
+      0xedf4c615a4b29e94ULL, 0x4093286094110662ULL, 0xb0114ee85ae78063ULL,
+      0x6ff1d0d6b672e78bULL, 0x6dcf96d591909250ULL, 0xdfe09e3eec9567e8ULL,
+      0x3214582b4827f97cULL, 0xb46dc2ee143e6ac8ULL, 0xf6c0ac8da7cd1971ULL,
+      0xebb60c10cd8901e4ULL, 0xf7df8f023abcad92ULL, 0x9c52d3d2c217a0b2ULL,
+      0x6b8d5cd0f8ab0d20ULL, 0x3777f7a29b8fa734ULL, 0x011f238f9d71b4e3ULL,
+      0xc1b75b2f3c42be45ULL, 0x5de588fdfe551ef7ULL, 0x6eeef3592b035368ULL,
+      0xaa3a07ffc4e9b365ULL, 0xecebe59a39c32a77ULL, 0x5ba742f8976e8187ULL,
+      0x4b4a48e0b22d0e11ULL, 0xddded83dcb771233ULL, 0xa59feb79ac0c51bdULL,
+      0xc7f5912a55792135ULL
+      },
+      {
+      0x6d6ae04668a9b08aULL, 0x3ab3f04b0be8c743ULL, 0xe51e166b54b3c908ULL,
+      0xbe90a9eb35c2f139ULL, 0xb2c7066637f2bec1ULL, 0xaa6945613392202cULL,
+      0x9a28c36f3b5201ebULL, 0xddce5a93ab536994ULL, 0x0e34133ef6382827ULL,
+      0x52a02ba1ec55048bULL, 0xa2f88f97c4b2a177ULL, 0x8640e513ca2251a5ULL,
+      0xcdf1d36258137622ULL, 0xfe6cb708dedf8ddbULL, 0x8a174a9ec8121e5dULL,
+      0x679896036b81560eULL, 0x59ed033395795feeULL, 0x1dd778ab8b74edafULL,
+      0xee533ef92d9f926dULL, 0x2a8c79baf8a8d8f5ULL, 0x6bcf398e69b119f6ULL,
+      0xe20491742fafdd95ULL, 0x276488e0809c2aecULL, 0xea955b82d88f5cceULL,
+      0x7102c63a99d9e0c4ULL, 0xf9763017a5c39946ULL, 0x429fa2501f151b3dULL,
+      0x4659c72bea05d59eULL, 0x984b7fdccf5a6634ULL, 0xf742232953fbb161ULL,
+      0x3041860e08c021c7ULL, 0x747bfd9616cd9386ULL, 0x4bb1367192312787ULL,
+      0x1b72a1638a6c44d3ULL, 0x4a0e68a6e8359a66ULL, 0x169a5039f258b6caULL,
+      0xb98a2ef44edee5a4ULL, 0xd9083fe85e43a737ULL, 0x967f6ce239624e13ULL,
+      0x8874f62d3c1a7982ULL, 0x3c1629830af06e3fULL, 0x9165ebfd427e5a8eULL,
+      0xb5dd81794ceeaa5cULL, 0x0de8f15a7834f219ULL, 0x70bd98ede3dd5d25ULL,
+      0xaccc9ca9328a8950ULL, 0x56664eda1945ca28ULL, 0x221db34c0f8859aeULL,
+      0x26dbd637fa98970dULL, 0x1acdffb4f068f932ULL, 0x4585254f64090fa0ULL,
+      0x72de245e17d53afaULL, 0x1546b25d7c546cf4ULL, 0x207e0ffffb803e71ULL,
+      0xfaaad2732bcf4378ULL, 0xb462dfae36ea17bdULL, 0xcf926fd1ac1b11fdULL,
+      0xe0672dc7dba7ba4aULL, 0xd3fa49ad5d6b41b3ULL, 0x8ba81449b216a3bcULL,
+      0x14f9ec8a0650d115ULL, 0x40fc1ee3eb1d7ce2ULL, 0x23a2ed9b758ce44fULL,
+      0x782c521b14fddc7eULL, 0x1c68267cf170504eULL, 0xbcf31558c1ca96e6ULL,
+      0xa781b43b4ba6d235ULL, 0xf6fd7dfe29ff0c80ULL, 0xb0a4bad5c3fad91eULL,
+      0xd199f51ea963266cULL, 0x414340349119c103ULL, 0x5405f269ed4dadf7ULL,
+      0xabd61bb649969dcdULL, 0x6813dbeae7bdc3c8ULL, 0x65fb2ab09f8931d1ULL,
+      0xf1e7fae152e3181dULL, 0xc1a67cef5a2339daULL, 0x7a4feea8e0f5bba1ULL,
+      0x1e0b9acf05783791ULL, 0x5b8ebf8061713831ULL, 0x80e53cdbcb3af8d9ULL,
+      0x7e898bd315e57502ULL, 0xc6bcfbf0213f2d47ULL, 0x95a38e86b76e942dULL,
+      0x092e94218d243cbaULL, 0x8339debf453622e7ULL, 0xb11be402b9fe64ffULL,
+      0x57d9100d634177c9ULL, 0xcc4e8db52217cbc3ULL, 0x3b0cae9c71ec7aa2ULL,
+      0xfb158ca451cbfe99ULL, 0x2b33276d82ac6514ULL, 0x01bf5ed77a04bde1ULL,
+      0xc5601994af33f779ULL, 0x75c4a3416cc92e67ULL, 0xf3844652a6eb7fc2ULL,
+      0x3487e375fdd0ef64ULL, 0x18ae430704609eedULL, 0x4d14efb993298efbULL,
+      0x815a620cb13e4538ULL, 0x125c354207487869ULL, 0x9eeea614ce42cf48ULL,
+      0xce2d3106d61fac1cULL, 0xbbe99247bad6827bULL, 0x071a871f7b1c149dULL,
+      0x2e4a1cc10db81656ULL, 0x77a71ff298c149b8ULL, 0x06a5d9c80118a97cULL,
+      0xad73c27e488e34b1ULL, 0x443a7b981e0db241ULL, 0xe3bbcfa355ab6074ULL,
+      0x0af276450328e684ULL, 0x73617a896dd1871bULL, 0x58525de4ef7de20fULL,
+      0xb7be3dcab8e6cd83ULL, 0x19111dd07e64230cULL, 0x842359a03e2a367aULL,
+      0x103f89f1f3401fb6ULL, 0xdc710444d157d475ULL, 0xb835702334da5845ULL,
+      0x4320fc876511a6dcULL, 0xd026abc9d3679b8dULL, 0x17250eee885c0b2bULL,
+      0x90dab52a387ae76fULL, 0x31fed8d972c49c26ULL, 0x89cba8fa461ec463ULL,
+      0x2ff5421677bcabb7ULL, 0x396f122f85e41d7dULL, 0xa09b332430bac6a8ULL,
+      0xc888e8ced7070560ULL, 0xaeaf201ac682ee8fULL, 0x1180d7268944a257ULL,
+      0xf058a43628e7a5fcULL, 0xbd4c4b8fbbce2b07ULL, 0xa1246df34abe7b49ULL,
+      0x7d5569b79be9af3cULL, 0xa9b5a705bd9efa12ULL, 0xdb6b835baa4bc0e8ULL,
+      0x05793bac8f147342ULL, 0x21c1512881848390ULL, 0xfdb0556c50d357e5ULL,
+      0x613d4fcb6a99ff72ULL, 0x03dce2648e0cda3eULL, 0xe949b9e6568386f0ULL,
+      0xfc0f0bbb2ad7ea04ULL, 0x6a70675913b5a417ULL, 0x7f36d5046fe1c8e3ULL,
+      0x0c57af8d02304ff8ULL, 0x32223abdfcc84618ULL, 0x0891caf6f720815bULL,
+      0xa63eeaec31a26fd4ULL, 0x2507345374944d33ULL, 0x49d28ac266394058ULL,
+      0xf5219f9aa7f3d6beULL, 0x2d96fea583b4cc68ULL, 0x5a31e1571b7585d0ULL,
+      0x8ed12fe53d02d0feULL, 0xdfade6205f5b0e4bULL, 0x4cabb16ee92d331aULL,
+      0x04c6657bf510cea3ULL, 0xd73c2cd6a87b8f10ULL, 0xe1d87310a1a307abULL,
+      0x6cd5be9112ad0d6bULL, 0x97c032354366f3f2ULL, 0xd4e0ceb22677552eULL,
+      0x0000000000000000ULL, 0x29509bde76a402cbULL, 0xc27a9e8bd42fe3e4ULL,
+      0x5ef7842cee654b73ULL, 0xaf107ecdbc86536eULL, 0x3fcacbe784fcb401ULL,
+      0xd55f90655c73e8cfULL, 0xe6c2f40fdabf1336ULL, 0xe8f6e7312c873b11ULL,
+      0xeb2a0555a28be12fULL, 0xe4a148bc2eb774e9ULL, 0x9b979db84156bc0aULL,
+      0x6eb60222e6a56ab4ULL, 0x87ffbbc4b026ec44ULL, 0xc703a5275b3b90a6ULL,
+      0x47e699fc9001687fULL, 0x9c8d1aa73a4aa897ULL, 0x7cea3760e1ed12ddULL,
+      0x4ec80ddd1d2554c5ULL, 0x13e36b957d4cc588ULL, 0x5d2b66486069914dULL,
+      0x92b90999cc7280b0ULL, 0x517cc9c56259deb5ULL, 0xc937b619ad03b881ULL,
+      0xec30824ad997f5b2ULL, 0xa45d565fc5aa080bULL, 0xd6837201d27f32f1ULL,
+      0x635ef3789e9198adULL, 0x531f75769651b96aULL, 0x4f77530a6721e924ULL,
+      0x486dd4151c3dfdb9ULL, 0x5f48dafb9461f692ULL, 0x375b011173dc355aULL,
+      0x3da9775470f4d3deULL, 0x8d0dcd81b30e0ac0ULL, 0x36e45fc609d888bbULL,
+      0x55baacbe97491016ULL, 0x8cb29356c90ab721ULL, 0x76184125e2c5f459ULL,
+      0x99f4210bb55edbd5ULL, 0x6f095cf59ca1d755ULL, 0x9f51f8c3b44672a9ULL,
+      0x3538bda287d45285ULL, 0x50c39712185d6354ULL, 0xf23b1885dcefc223ULL,
+      0x79930ccc6ef9619fULL, 0xed8fdc9da3934853ULL, 0xcb540aaa590bdf5eULL,
+      0x5c94389f1a6d2cacULL, 0xe77daad8a0bbaed7ULL, 0x28efc5090ca0bf2aULL,
+      0xbf2ff73c4fc64cd8ULL, 0xb37858b14df60320ULL, 0xf8c96ec0dfc724a7ULL,
+      0x828680683f329f06ULL, 0x941cd051cd6a29ccULL, 0xc3c5c05cae2b5e05ULL,
+      0xb601631dc2e27062ULL, 0xc01922382027843bULL, 0x24b86a840e90f0d2ULL,
+      0xd245177a276ffc52ULL, 0x0f8b4de98c3c95c6ULL, 0x3e759530fef809e0ULL,
+      0x0b4d2892792c5b65ULL, 0xc4df4743d5374a98ULL, 0xa5e20888bfaeb5eaULL,
+      0xba56cc90c0d23f9aULL, 0x38d04cf8ffe0a09cULL, 0x62e1adafe495254cULL,
+      0x0263bcb3f40867dfULL, 0xcaeb547d230f62bfULL, 0x6082111c109d4293ULL,
+      0xdad4dd8cd04f7d09ULL, 0xefec602e579b2f8cULL, 0x1fb4c4187f7c8a70ULL,
+      0xffd3e9dfa4db303aULL, 0x7bf0b07f9af10640ULL, 0xf49ec14dddf76b5fULL,
+      0x8f6e713247066d1fULL, 0x339d646a86ccfbf9ULL, 0x64447467e58d8c30ULL,
+      0x2c29a072f9b07189ULL, 0xd8b7613f24471ad6ULL, 0x6627c8d41185ebefULL,
+      0xa347d140beb61c96ULL, 0xde12b8f7255fb3aaULL, 0x9d324470404e1576ULL,
+      0x9306574eb6763d51ULL, 0xa80af9d2c79a47f3ULL, 0x859c0777442e8b9bULL,
+      0x69ac853d9db97e29ULL
+      },
+      {
+      0xc3407dfc2de6377eULL, 0x5b9e93eea4256f77ULL, 0xadb58fdd50c845e0ULL,
+      0x5219ff11a75bed86ULL, 0x356b61cfd90b1de9ULL, 0xfb8f406e25abe037ULL,
+      0x7a5a0231c0f60796ULL, 0x9d3cd216e1f5020bULL, 0x0c6550fb6b48d8f3ULL,
+      0xf57508c427ff1c62ULL, 0x4ad35ffa71cb407dULL, 0x6290a2da1666aa6dULL,
+      0xe284ec2349355f9fULL, 0xb3c307c53d7c84ecULL, 0x05e23c0468365a02ULL,
+      0x190bac4d6c9ebfa8ULL, 0x94bbbee9e28b80faULL, 0xa34fc777529cb9b5ULL,
+      0xcc7b39f095bcd978ULL, 0x2426addb0ce532e3ULL, 0x7e79329312ce4fc7ULL,
+      0xab09a72eebec2917ULL, 0xf8d15499f6b9d6c2ULL, 0x1a55b8babf8c895dULL,
+      0xdb8add17fb769a85ULL, 0xb57f2f368658e81bULL, 0x8acd36f18f3f41f6ULL,
+      0x5ce3b7bba50f11d3ULL, 0x114dcc14d5ee2f0aULL, 0xb91a7fcded1030e8ULL,
+      0x81d5425fe55de7a1ULL, 0xb6213bc1554adeeeULL, 0x80144ef95f53f5f2ULL,
+      0x1e7688186db4c10cULL, 0x3b912965db5fe1bcULL, 0xc281715a97e8252dULL,
+      0x54a5d7e21c7f8171ULL, 0x4b12535ccbc5522eULL, 0x1d289cefbea6f7f9ULL,
+      0x6ef5f2217d2e729eULL, 0xe6a7dc819b0d17ceULL, 0x1b94b41c05829b0eULL,
+      0x33d7493c622f711eULL, 0xdcf7f942fa5ce421ULL, 0x600fba8b7f7a8ecbULL,
+      0x46b60f011a83988eULL, 0x235b898e0dcf4c47ULL, 0x957ab24f588592a9ULL,
+      0x4354330572b5c28cULL, 0xa5f3ef84e9b8d542ULL, 0x8c711e02341b2d01ULL,
+      0x0b1874ae6a62a657ULL, 0x1213d8e306fc19ffULL, 0xfe6d7c6a4d9dba35ULL,
+      0x65ed868f174cd4c9ULL, 0x88522ea0e6236550ULL, 0x899322065c2d7703ULL,
+      0xc01e690bfef4018bULL, 0x915982ed8abddaf8ULL, 0xbe675b98ec3a4e4cULL,
+      0xa996bf7f82f00db1ULL, 0xe1daf8d49a27696aULL, 0x2effd5d3dc8986e7ULL,
+      0xd153a51f2b1a2e81ULL, 0x18caa0ebd690adfbULL, 0x390e3134b243c51aULL,
+      0x2778b92cdff70416ULL, 0x029f1851691c24a6ULL, 0x5e7cafeacc133575ULL,
+      0xfa4e4cc89fa5f264ULL, 0x5a5f9f481e2b7d24ULL, 0x484c47ab18d764dbULL,
+      0x400a27f2a1a7f479ULL, 0xaeeb9b2a83da7315ULL, 0x721c626879869734ULL,
+      0x042330a2d2384851ULL, 0x85f672fd3765aff0ULL, 0xba446b3a3e02061dULL,
+      0x73dd6ecec3888567ULL, 0xffac70ccf793a866ULL, 0xdfa9edb5294ed2d4ULL,
+      0x6c6aea7014325638ULL, 0x834a5a0e8c41c307ULL, 0xcdba35562fb2cb2bULL,
+      0x0ad97808d06cb404ULL, 0x0f3b440cb85aee06ULL, 0xe5f9c876481f213bULL,
+      0x98deee1289c35809ULL, 0x59018bbfcd394bd1ULL, 0xe01bf47220297b39ULL,
+      0xde68e1139340c087ULL, 0x9fa3ca4788e926adULL, 0xbb85679c840c144eULL,
+      0x53d8f3b71d55ffd5ULL, 0x0da45c5dd146caa0ULL, 0x6f34fe87c72060cdULL,
+      0x57fbc315cf6db784ULL, 0xcee421a1fca0fddeULL, 0x3d2d0196607b8d4bULL,
+      0x642c8a29ad42c69aULL, 0x14aff010bdd87508ULL, 0xac74837beac657b3ULL,
+      0x3216459ad821634dULL, 0x3fb219c70967a9edULL, 0x06bc28f3bb246cf7ULL,
+      0xf2082c9126d562c6ULL, 0x66b39278c45ee23cULL, 0xbd394f6f3f2878b9ULL,
+      0xfd33689d9e8f8cc0ULL, 0x37f4799eb017394fULL, 0x108cc0b26fe03d59ULL,
+      0xda4bd1b1417888d6ULL, 0xb09d1332ee6eb219ULL, 0x2f3ed975668794b4ULL,
+      0x58c0871977375982ULL, 0x7561463d78ace990ULL, 0x09876cff037e82f1ULL,
+      0x7fb83e35a8c05d94ULL, 0x26b9b58a65f91645ULL, 0xef20b07e9873953fULL,
+      0x3148516d0b3355b8ULL, 0x41cb2b541ba9e62aULL, 0x790416c613e43163ULL,
+      0xa011d380818e8f40ULL, 0x3a5025c36151f3efULL, 0xd57095bdf92266d0ULL,
+      0x498d4b0da2d97688ULL, 0x8b0c3a57353153a5ULL, 0x21c491df64d368e1ULL,
+      0x8f2f0af5e7091bf4ULL, 0x2da1c1240f9bb012ULL, 0xc43d59a92ccc49daULL,
+      0xbfa6573e56345c1fULL, 0x828b56a8364fd154ULL, 0x9a41f643e0df7cafULL,
+      0xbcf843c985266aeaULL, 0x2b1de9d7b4bfdce5ULL, 0x20059d79dedd7ab2ULL,
+      0x6dabe6d6ae3c446bULL, 0x45e81bf6c991ae7bULL, 0x6351ae7cac68b83eULL,
+      0xa432e32253b6c711ULL, 0xd092a9b991143cd2ULL, 0xcac711032e98b58fULL,
+      0xd8d4c9e02864ac70ULL, 0xc5fc550f96c25b89ULL, 0xd7ef8dec903e4276ULL,
+      0x67729ede7e50f06fULL, 0xeac28c7af045cf3dULL, 0xb15c1f945460a04aULL,
+      0x9cfddeb05bfb1058ULL, 0x93c69abce3a1fe5eULL, 0xeb0380dc4a4bdd6eULL,
+      0xd20db1e8f8081874ULL, 0x229a8528b7c15e14ULL, 0x44291750739fbc28ULL,
+      0xd3ccbd4e42060a27ULL, 0xf62b1c33f4ed2a97ULL, 0x86a8660ae4779905ULL,
+      0xd62e814a2a305025ULL, 0x477703a7a08d8addULL, 0x7b9b0e977af815c5ULL,
+      0x78c51a60a9ea2330ULL, 0xa6adfb733aaae3b7ULL, 0x97e5aa1e3199b60fULL,
+      0x0000000000000000ULL, 0xf4b404629df10e31ULL, 0x5564db44a6719322ULL,
+      0x9207961a59afec0dULL, 0x9624a6b88b97a45cULL, 0x363575380a192b1cULL,
+      0x2c60cd82b595a241ULL, 0x7d272664c1dc7932ULL, 0x7142769faa94a1c1ULL,
+      0xa1d0df263b809d13ULL, 0x1630e841d4c451aeULL, 0xc1df65ad44fa13d8ULL,
+      0x13d2d445bcf20bacULL, 0xd915c546926abe23ULL, 0x38cf3d92084dd749ULL,
+      0xe766d0272103059dULL, 0xc7634d5effde7f2fULL, 0x077d2455012a7ea4ULL,
+      0xedbfa82ff16fb199ULL, 0xaf2a978c39d46146ULL, 0x42953fa3c8bbd0dfULL,
+      0xcb061da59496a7dcULL, 0x25e7a17db6eb20b0ULL, 0x34aa6d6963050fbaULL,
+      0xa76cf7d580a4f1e4ULL, 0xf7ea10954ee338c4ULL, 0xfcf2643b24819e93ULL,
+      0xcf252d0746aeef8dULL, 0x4ef06f58a3f3082cULL, 0x563acfb37563a5d7ULL,
+      0x5086e740ce47c920ULL, 0x2982f186dda3f843ULL, 0x87696aac5e798b56ULL,
+      0x5d22bb1d1f010380ULL, 0x035e14f7d31236f5ULL, 0x3cec0d30da759f18ULL,
+      0xf3c920379cdb7095ULL, 0xb8db736b571e22bbULL, 0xdd36f5e44052f672ULL,
+      0xaac8ab8851e23b44ULL, 0xa857b3d938fe1fe2ULL, 0x17f1e4e76eca43fdULL,
+      0xec7ea4894b61a3caULL, 0x9e62c6e132e734feULL, 0xd4b1991b432c7483ULL,
+      0x6ad6c283af163acfULL, 0x1ce9904904a8e5aaULL, 0x5fbda34c761d2726ULL,
+      0xf910583f4cb7c491ULL, 0xc6a241f845d06d7cULL, 0x4f3163fe19fd1a7fULL,
+      0xe99c988d2357f9c8ULL, 0x8eee06535d0709a7ULL, 0x0efa48aa0254fc55ULL,
+      0xb4be23903c56fa48ULL, 0x763f52caabbedf65ULL, 0xeee1bcd8227d876cULL,
+      0xe345e085f33b4dccULL, 0x3e731561b369bbbeULL, 0x2843fd2067adea10ULL,
+      0x2adce5710eb1ceb6ULL, 0xb7e03767ef44ccbdULL, 0x8db012a48e153f52ULL,
+      0x61ceb62dc5749c98ULL, 0xe85d942b9959eb9bULL, 0x4c6f7709caef2c8aULL,
+      0x84377e5b8d6bbda3ULL, 0x30895dcbb13d47ebULL, 0x74a04a9bc2a2fbc3ULL,
+      0x6b17ce251518289cULL, 0xe438c4d0f2113368ULL, 0x1fb784bed7bad35fULL,
+      0x9b80fae55ad16efcULL, 0x77fe5e6c11b0cd36ULL, 0xc858095247849129ULL,
+      0x08466059b97090a2ULL, 0x01c10ca6ba0e1253ULL, 0x6988d6747c040c3aULL,
+      0x6849dad2c60a1e69ULL, 0x5147ebe67449db73ULL, 0xc99905f4fd8a837aULL,
+      0x991fe2b433cd4a5aULL, 0xf09734c04fc94660ULL, 0xa28ecbd1e892abe6ULL,
+      0xf1563866f5c75433ULL, 0x4dae7baf70e13ed9ULL, 0x7ce62ac27bd26b61ULL,
+      0x70837a39109ab392ULL, 0x90988e4b30b3c8abULL, 0xb2020b63877296bfULL,
+      0x156efcb607d6675bULL
+      },
+      {
+      0xe63f55ce97c331d0ULL, 0x25b506b0015bba16ULL, 0xc8706e29e6ad9ba8ULL,
+      0x5b43d3775d521f6aULL, 0x0bfa3d577035106eULL, 0xab95fc172afb0e66ULL,
+      0xf64b63979e7a3276ULL, 0xf58b4562649dad4bULL, 0x48f7c3dbae0c83f1ULL,
+      0xff31916642f5c8c5ULL, 0xcbb048dc1c4a0495ULL, 0x66b8f83cdf622989ULL,
+      0x35c130e908e2b9b0ULL, 0x7c761a61f0b34fa1ULL, 0x3601161cf205268dULL,
+      0x9e54ccfe2219b7d6ULL, 0x8b7d90a538940837ULL, 0x9cd403588ea35d0bULL,
+      0xbc3c6fea9ccc5b5aULL, 0xe5ff733b6d24aeedULL, 0xceed22de0f7eb8d2ULL,
+      0xec8581cab1ab545eULL, 0xb96105e88ff8e71dULL, 0x8ca03501871a5eadULL,
+      0x76ccce65d6db2a2fULL, 0x5883f582a7b58057ULL, 0x3f7be4ed2e8adc3eULL,
+      0x0fe7be06355cd9c9ULL, 0xee054e6c1d11be83ULL, 0x1074365909b903a6ULL,
+      0x5dde9f80b4813c10ULL, 0x4a770c7d02b6692cULL, 0x5379c8d5d7809039ULL,
+      0xb4067448161ed409ULL, 0x5f5e5026183bd6cdULL, 0xe898029bf4c29df9ULL,
+      0x7fb63c940a54d09cULL, 0xc5171f897f4ba8bcULL, 0xa6f28db7b31d3d72ULL,
+      0x2e4f3be7716eaa78ULL, 0x0d6771a099e63314ULL, 0x82076254e41bf284ULL,
+      0x2f0fd2b42733df98ULL, 0x5c9e76d3e2dc49f0ULL, 0x7aeb569619606cdbULL,
+      0x83478b07b2468764ULL, 0xcfadcb8d5923cd32ULL, 0x85dac7f05b95a41eULL,
+      0xb5469d1b4043a1e9ULL, 0xb821ecbbd9a592fdULL, 0x1b8e0b0e798c13c8ULL,
+      0x62a57b6d9a0be02eULL, 0xfcf1b793b81257f8ULL, 0x9d94ea0bd8fe28ebULL,
+      0x4cea408aeb654a56ULL, 0x23284a47e888996cULL, 0x2d8f1d128b893545ULL,
+      0xf4cbac3132c0d8abULL, 0xbd7c86b9ca912ebaULL, 0x3a268eef3dbe6079ULL,
+      0xf0d62f6077a9110cULL, 0x2735c916ade150cbULL, 0x89fd5f03942ee2eaULL,
+      0x1acee25d2fd16628ULL, 0x90f39bab41181bffULL, 0x430dfe8cde39939fULL,
+      0xf70b8ac4c8274796ULL, 0x1c53aeaac6024552ULL, 0x13b410acf35e9c9bULL,
+      0xa532ab4249faa24fULL, 0x2b1251e5625a163fULL, 0xd7e3e676da4841c7ULL,
+      0xa7b264e4e5404892ULL, 0xda8497d643ae72d3ULL, 0x861ae105a1723b23ULL,
+      0x38a6414991048aa4ULL, 0x6578dec92585b6b4ULL, 0x0280cfa6acbaeaddULL,
+      0x88bdb650c273970aULL, 0x9333bd5ebbff84c2ULL, 0x4e6a8f2c47dfa08bULL,
+      0x321c954db76cef2aULL, 0x418d312a72837942ULL, 0xb29b38bfffcdf773ULL,
+      0x6c022c38f90a4c07ULL, 0x5a033a240b0f6a8aULL, 0x1f93885f3ce5da6fULL,
+      0xc38a537e96988bc6ULL, 0x39e6a81ac759ff44ULL, 0x29929e43cee0fce2ULL,
+      0x40cdd87924de0ca2ULL, 0xe9d8ebc8a29fe819ULL, 0x0c2798f3cfbb46f4ULL,
+      0x55e484223e53b343ULL, 0x4650948ecd0d2fd8ULL, 0x20e86cb2126f0651ULL,
+      0x6d42c56baf5739e7ULL, 0xa06fc1405ace1e08ULL, 0x7babbfc54f3d193bULL,
+      0x424d17df8864e67fULL, 0xd8045870ef14980eULL, 0xc6d7397c85ac3781ULL,
+      0x21a885e1443273b1ULL, 0x67f8116f893f5c69ULL, 0x24f5efe35706cff6ULL,
+      0xd56329d076f2ab1aULL, 0x5e1eb9754e66a32dULL, 0x28d2771098bd8902ULL,
+      0x8f6013f47dfdc190ULL, 0x17a993fdb637553cULL, 0xe0a219397e1012aaULL,
+      0x786b9930b5da8606ULL, 0x6e82e39e55b0a6daULL, 0x875a0856f72f4ec3ULL,
+      0x3741ff4fa458536dULL, 0xac4859b3957558fcULL, 0x7ef6d5c75c09a57cULL,
+      0xc04a758b6c7f14fbULL, 0xf9acdd91ab26ebbfULL, 0x7391a467c5ef9668ULL,
+      0x335c7c1ee1319acaULL, 0xa91533b18641e4bbULL, 0xe4bf9a683b79db0dULL,
+      0x8e20faa72ba0b470ULL, 0x51f907737b3a7ae4ULL, 0x2268a314bed5ec8cULL,
+      0xd944b123b949edeeULL, 0x31dcb3b84d8b7017ULL, 0xd3fe65279f218860ULL,
+      0x097af2f1dc8ffab3ULL, 0x9b09a6fc312d0b91ULL, 0xcc6ded78a3c4520fULL,
+      0x3481d9ba5ebfcc50ULL, 0x4f2a667f1182d56bULL, 0xdfd9fdd4509ace94ULL,
+      0x26752045fbbc252bULL, 0xbffc491f662bc467ULL, 0xdd593272fc202449ULL,
+      0x3cbbc218d46d4303ULL, 0x91b372f817456e1fULL, 0x681faf69bc6385a0ULL,
+      0xb686bbeebaa43ed4ULL, 0x1469b5084cd0ca01ULL, 0x98c98009cbca94acULL,
+      0x6438379a73d8c354ULL, 0xc2caba2dc0c5fe26ULL, 0x3e3b0dbe78d7a9deULL,
+      0x50b9ee202d670f04ULL, 0x4590b27b37eab0e5ULL, 0x6025b4cb36b10af3ULL,
+      0xfb2c1237079c0162ULL, 0xa12f28130c936be8ULL, 0x4b37e52e54eb1cccULL,
+      0x083a1ba28ad28f53ULL, 0xc10a9cd83a22611bULL, 0x9f1425ad7444c236ULL,
+      0x069d4cf7e9d3237aULL, 0xedc56899e7f621beULL, 0x778c273680865fcfULL,
+      0x309c5aeb1bd605f7ULL, 0x8de0dc52d1472b4dULL, 0xf8ec34c2fd7b9e5fULL,
+      0xea18cd3d58787724ULL, 0xaad515447ca67b86ULL, 0x9989695a9d97e14cULL,
+      0x0000000000000000ULL, 0xf196c63321f464ecULL, 0x71116bc169557cb5ULL,
+      0xaf887f466f92c7c1ULL, 0x972e3e0ffe964d65ULL, 0x190ec4a8d536f915ULL,
+      0x95aef1a9522ca7b8ULL, 0xdc19db21aa7d51a9ULL, 0x94ee18fa0471d258ULL,
+      0x8087adf248a11859ULL, 0xc457f6da2916dd5cULL, 0xfa6cfb6451c17482ULL,
+      0xf256e0c6db13fbd1ULL, 0x6a9f60cf10d96f7dULL, 0x4daaa9d9bd383fb6ULL,
+      0x03c026f5fae79f3dULL, 0xde99148706c7bb74ULL, 0x2a52b8b6340763dfULL,
+      0x6fc20acd03edd33aULL, 0xd423c08320afdefaULL, 0xbbe1ca4e23420dc0ULL,
+      0x966ed75ca8cb3885ULL, 0xeb58246e0e2502c4ULL, 0x055d6a021334bc47ULL,
+      0xa47242111fa7d7afULL, 0xe3623fcc84f78d97ULL, 0x81c744a11efc6db9ULL,
+      0xaec8961539cfb221ULL, 0xf31609958d4e8e31ULL, 0x63e5923ecc5695ceULL,
+      0x47107ddd9b505a38ULL, 0xa3afe7b5a0298135ULL, 0x792b7063e387f3e6ULL,
+      0x0140e953565d75e0ULL, 0x12f4f9ffa503e97bULL, 0x750ce8902c3cb512ULL,
+      0xdbc47e8515f30733ULL, 0x1ed3610c6ab8af8fULL, 0x5239218681dde5d9ULL,
+      0xe222d69fd2aaf877ULL, 0xfe71783514a8bd25ULL, 0xcaf0a18f4a177175ULL,
+      0x61655d9860ec7f13ULL, 0xe77fbc9dc19e4430ULL, 0x2ccff441ddd440a5ULL,
+      0x16e97aaee06a20dcULL, 0xa855dae2d01c915bULL, 0x1d1347f9905f30b2ULL,
+      0xb7c652bdecf94b34ULL, 0xd03e43d265c6175dULL, 0xfdb15ec0ee4f2218ULL,
+      0x57644b8492e9599eULL, 0x07dda5a4bf8e569aULL, 0x54a46d71680ec6a3ULL,
+      0x5624a2d7c4b42c7eULL, 0xbebca04c3076b187ULL, 0x7d36f332a6ee3a41ULL,
+      0x3b6667bc6be31599ULL, 0x695f463aea3ef040ULL, 0xad08b0e0c3282d1cULL,
+      0xb15b1e4a052a684eULL, 0x44d05b2861b7c505ULL, 0x15295c5b1a8dbfe1ULL,
+      0x744c01c37a61c0f2ULL, 0x59c31cd1f1e8f5b7ULL, 0xef45a73f4b4ccb63ULL,
+      0x6bdf899c46841a9dULL, 0x3dfb2b4b823036e3ULL, 0xa2ef0ee6f674f4d5ULL,
+      0x184e2dfb836b8cf5ULL, 0x1134df0a5fe47646ULL, 0xbaa1231d751f7820ULL,
+      0xd17eaa81339b62bdULL, 0xb01bf71953771daeULL, 0x849a2ea30dc8d1feULL,
+      0x705182923f080955ULL, 0x0ea757556301ac29ULL, 0x041d83514569c9a7ULL,
+      0x0abad4042668658eULL, 0x49b72a88f851f611ULL, 0x8a3d79f66ec97dd7ULL,
+      0xcd2d042bf59927efULL, 0xc930877ab0f0ee48ULL, 0x9273540deda2f122ULL,
+      0xc797d02fd3f14261ULL, 0xe1e2f06a284d674aULL, 0xd2be8c74c97cfd80ULL,
+      0x9a494faf67707e71ULL, 0xb3dbd1eca9908293ULL, 0x72d14d3493b2e388ULL,
+      0xd6a30f258c153427ULL
+      }
+   };
+
+extern const uint64_t STREEBOG_C[12][8] =
+   {
+      {
+      0xdd806559f2a64507ULL,
+      0x05767436cc744d23ULL,
+      0xa2422a08a460d315ULL,
+      0x4b7ce09192676901ULL,
+      0x714eb88d7585c4fcULL,
+      0x2f6a76432e45d016ULL,
+      0xebcb2f81c0657c1fULL,
+      0xb1085bda1ecadae9ULL
+      },
+      {
+      0xe679047021b19bb7ULL,
+      0x55dda21bd7cbcd56ULL,
+      0x5cb561c2db0aa7caULL,
+      0x9ab5176b12d69958ULL,
+      0x61d55e0f16b50131ULL,
+      0xf3feea720a232b98ULL,
+      0x4fe39d460f70b5d7ULL,
+      0x6fa3b58aa99d2f1aULL
+      },
+      {
+      0x991e96f50aba0ab2ULL,
+      0xc2b6f443867adb31ULL,
+      0xc1c93a376062db09ULL,
+      0xd3e20fe490359eb1ULL,
+      0xf2ea7514b1297b7bULL,
+      0x06f15e5f529c1f8bULL,
+      0x0a39fc286a3d8435ULL,
+      0xf574dcac2bce2fc7ULL
+      },
+      {
+      0x220cbebc84e3d12eULL,
+      0x3453eaa193e837f1ULL,
+      0xd8b71333935203beULL,
+      0xa9d72c82ed03d675ULL,
+      0x9d721cad685e353fULL,
+      0x488e857e335c3c7dULL,
+      0xf948e1a05d71e4ddULL,
+      0xef1fdfb3e81566d2ULL
+      },
+      {
+      0x601758fd7c6cfe57ULL,
+      0x7a56a27ea9ea63f5ULL,
+      0xdfff00b723271a16ULL,
+      0xbfcd1747253af5a3ULL,
+      0x359e35d7800fffbdULL,
+      0x7f151c1f1686104aULL,
+      0x9a3f410c6ca92363ULL,
+      0x4bea6bacad474799ULL
+      },
+      {
+      0xfa68407a46647d6eULL,
+      0xbf71c57236904f35ULL,
+      0x0af21f66c2bec6b6ULL,
+      0xcffaa6b71c9ab7b4ULL,
+      0x187f9ab49af08ec6ULL,
+      0x2d66c4f95142a46cULL,
+      0x6fa4c33b7a3039c0ULL,
+      0xae4faeae1d3ad3d9ULL
+      },
+      {
+      0x8886564d3a14d493ULL,
+      0x3517454ca23c4af3ULL,
+      0x06476983284a0504ULL,
+      0x0992abc52d822c37ULL,
+      0xd3473e33197a93c9ULL,
+      0x399ec6c7e6bf87c9ULL,
+      0x51ac86febf240954ULL,
+      0xf4c70e16eeaac5ecULL
+      },
+      {
+      0xa47f0dd4bf02e71eULL,
+      0x36acc2355951a8d9ULL,
+      0x69d18d2bd1a5c42fULL,
+      0xf4892bcb929b0690ULL,
+      0x89b4443b4ddbc49aULL,
+      0x4eb7f8719c36de1eULL,
+      0x03e7aa020c6e4141ULL,
+      0x9b1f5b424d93c9a7ULL
+      },
+      {
+      0x7261445183235adbULL,
+      0x0e38dc92cb1f2a60ULL,
+      0x7b2b8a9aa6079c54ULL,
+      0x800a440bdbb2ceb1ULL,
+      0x3cd955b7e00d0984ULL,
+      0x3a7d3a1b25894224ULL,
+      0x944c9ad8ec165fdeULL,
+      0x378f5a541631229bULL
+      },
+      {
+      0x74b4c7fb98459cedULL,
+      0x3698fad1153bb6c3ULL,
+      0x7a1e6c303b7652f4ULL,
+      0x9fe76702af69334bULL,
+      0x1fffe18a1b336103ULL,
+      0x8941e71cff8a78dbULL,
+      0x382ae548b2e4f3f3ULL,
+      0xabbedea680056f52ULL
+      },
+      {
+      0x6bcaa4cd81f32d1bULL,
+      0xdea2594ac06fd85dULL,
+      0xefbacd1d7d476e98ULL,
+      0x8a1d71efea48b9caULL,
+      0x2001802114846679ULL,
+      0xd8fa6bbbebab0761ULL,
+      0x3002c6cd635afe94ULL,
+      0x7bcd9ed0efc889fbULL
+      },
+      {
+      0x48bc924af11bd720ULL,
+      0xfaf417d5d9b21b99ULL,
+      0xe71da4aa88e12852ULL,
+      0x5d80ef9d1891cc86ULL,
+      0xf82012d430219f9bULL,
+      0xcda43c32bcdf1d77ULL,
+      0xd21380b00449b17aULL,
+      0x378ee767f11631baULL
+      }
+   };
+
+}
+/*
 * System RNG
-* (C) 2014,2015 Jack Lloyd
+* (C) 2014,2015,2017 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
 
 #if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
+   #define NOMINMAX 1
+   #define _WINSOCKAPI_ // stop windows.h including winsock.h
+   #include <windows.h>
+   #include <wincrypt.h>
 
-#include <windows.h>
-#define NOMINMAX 1
-#include <wincrypt.h>
+#elif defined(BOTAN_TARGET_OS_HAS_CRYPTO_NG)
+   #include <bcrypt.h>
+
+#elif defined(BOTAN_TARGET_OS_HAS_ARC4RANDOM)
+   #include <stdlib.h>
 
 #else
-
-#include <errno.h>
-
+   #include <errno.h>
 #endif
 
 namespace Botan {
 
 namespace {
 
+#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
+
 class System_RNG_Impl final : public RandomNumberGenerator
    {
    public:
-      System_RNG_Impl();
-      ~System_RNG_Impl();
+      System_RNG_Impl()
+         {
+         if(!CryptAcquireContext(&m_prov, nullptr, nullptr,
+                                 BOTAN_SYSTEM_RNG_CRYPTOAPI_PROV_TYPE, CRYPT_VERIFYCONTEXT))
+            throw Exception("System_RNG failed to acquire crypto provider");
+         }
+
+      ~System_RNG_Impl()
+         {
+         ::CryptReleaseContext(m_prov, 0);
+         }
+
+      void randomize(uint8_t buf[], size_t len) override
+         {
+         ::CryptGenRandom(m_prov, static_cast<DWORD>(len), buf);
+         }
+
+      void add_entropy(const uint8_t in[], size_t length) override
+         {
+         /*
+         There is no explicit ConsumeRandom, but all values provided in
+         the call are incorporated into the state.
+         */
+         std::vector<uint8_t> buf(in, in + length);
+         ::CryptGenRandom(m_prov, static_cast<DWORD>(buf.size()), buf.data());
+         }
 
       bool is_seeded() const override { return true; }
-
       void clear() override {}
-
-      void randomize(uint8_t out[], size_t len) override;
-
-      void add_entropy(const uint8_t in[], size_t length) override;
-
-      std::string name() const override;
-
+      std::string name() const override { return "cryptoapi"; }
    private:
-#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
       HCRYPTPROV m_prov;
-#else
-      int m_fd;
-#endif
    };
 
-std::string System_RNG_Impl::name() const
+#elif defined(BOTAN_TARGET_OS_HAS_CRYPTO_NG)
+
+class System_RNG_Impl final : public RandomNumberGenerator
    {
-#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
-   return "cryptoapi";
-#else
-   return BOTAN_SYSTEM_RNG_DEVICE;
-#endif
-   }
+   public:
+      System_RNG_Impl()
+         {
+         NTSTATUS ret = ::BCryptOpenAlgorithmProvider(&m_prov,
+                                                      BCRYPT_RNG_ALGORITHM,
+                                                      MS_PRIMITIVE_PROVIDER, 0);
+         if(ret != STATUS_SUCCESS)
+            throw Exception("System_RNG failed to acquire crypto provider");
+         }
 
-System_RNG_Impl::System_RNG_Impl()
+      ~System_RNG_Impl()
+         {
+         ::BCryptCloseAlgorithmProvider(m_prov, 0);
+         }
+
+      void randomize(uint8_t buf[], size_t len) override
+         {
+         ::BCryptGenRandom(m_prov, static_cast<PUCHAR>(buf), static_cast<ULONG>(len), 0);
+         }
+
+      void add_entropy(const uint8_t in[], size_t length) override
+         {
+         /*
+         There is a flag BCRYPT_RNG_USE_ENTROPY_IN_BUFFER to provide
+         entropy inputs, but it is ignored in Windows 8 and later.
+         */
+         }
+
+      bool is_seeded() const override { return true; }
+      void clear() override {}
+      std::string name() const override { return "crypto_ng"; }
+   private:
+      BCRYPT_ALG_HANDLE m_handle;
+   };
+
+#elif defined(BOTAN_TARGET_OS_HAS_ARC4RANDOM)
+
+class System_RNG_Impl final : public RandomNumberGenerator
    {
-#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
+   public:
+      // No constructor or destructor needed as no userland state maintained
 
-   if(!CryptAcquireContext(&m_prov, 0, 0, BOTAN_SYSTEM_RNG_CRYPTOAPI_PROV_TYPE, CRYPT_VERIFYCONTEXT))
-      throw Exception("System_RNG failed to acquire crypto provider");
+      void randomize(uint8_t buf[], size_t len) override
+         {
+         ::arc4random_buf(buf, len);
+         }
+
+      void add_entropy(const uint8_t[], size_t) override { /* ignored */ }
+      bool is_seeded() const override { return true; }
+      void clear() override {}
+      std::string name() const override { return "arc4random"; }
+   };
 
 #else
 
-#ifndef O_NOCTTY
-  #define O_NOCTTY 0
-#endif
+// Read a random device
 
-   m_fd = ::open(BOTAN_SYSTEM_RNG_DEVICE, O_RDWR | O_NOCTTY);
-   
-   // Cannot open in read-write mode. Fall back to read-only
-   // Calls to add_entropy will fail, but randomize will work
-   if(m_fd < 0)
-      m_fd = ::open(BOTAN_SYSTEM_RNG_DEVICE, O_RDONLY | O_NOCTTY);
-
-   if(m_fd < 0)
-      throw Exception("System_RNG failed to open RNG device");
-#endif
-   }
-
-System_RNG_Impl::~System_RNG_Impl()
+class System_RNG_Impl final : public RandomNumberGenerator
    {
-#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
-   ::CryptReleaseContext(m_prov, 0);
-#else
-   ::close(m_fd);
-   m_fd = -1;
-#endif
+   public:
+      System_RNG_Impl()
+         {
+         #ifndef O_NOCTTY
+            #define O_NOCTTY 0
+         #endif
+
+         m_fd = ::open(BOTAN_SYSTEM_RNG_DEVICE, O_RDWR | O_NOCTTY);
+
+         /*
+         Cannot open in read-write mode. Fall back to read-only,
+         calls to add_entropy will fail, but randomize will work
+         */
+         if(m_fd < 0)
+            m_fd = ::open(BOTAN_SYSTEM_RNG_DEVICE, O_RDONLY | O_NOCTTY);
+
+         if(m_fd < 0)
+            throw Exception("System_RNG failed to open RNG device");
+         }
+
+      ~System_RNG_Impl()
+         {
+         ::close(m_fd);
+         m_fd = -1;
+         }
+
+      void randomize(uint8_t buf[], size_t len) override;
+      void add_entropy(const uint8_t in[], size_t length) override;
+      bool is_seeded() const override { return true; }
+      void clear() override {}
+      std::string name() const override { return BOTAN_SYSTEM_RNG_DEVICE; }
+   private:
+      int m_fd;
+   };
+
+void System_RNG_Impl::randomize(uint8_t buf[], size_t len)
+   {
+   while(len)
+      {
+      ssize_t got = ::read(m_fd, buf, len);
+
+      if(got < 0)
+         {
+         if(errno == EINTR)
+            continue;
+         throw Exception("System_RNG read failed error " + std::to_string(errno));
+         }
+      if(got == 0)
+         throw Exception("System_RNG EOF on device"); // ?!?
+
+      buf += got;
+      len -= got;
+      }
    }
 
 void System_RNG_Impl::add_entropy(const uint8_t input[], size_t len)
    {
-#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
-   /*
-   There is no explicit ConsumeRandom, but all values provided in
-   the call are incorporated into the state.
-
-   TODO: figure out a way to avoid this copy. Byte at a time updating
-   seems worse than the allocation.
-
-   for(size_t i = 0; i != len; ++i)
-      {
-      uint8_t b = input[i];
-      ::CryptGenRandom(m_prov, 1, &b);
-      }
-   */
-
-   if(len > 0)
-      {
-      secure_vector<uint8_t> buf(input, input + len);
-      ::CryptGenRandom(m_prov, static_cast<DWORD>(buf.size()), buf.data());
-      }
-#else
    while(len)
       {
       ssize_t got = ::write(m_fd, input, len);
@@ -43089,32 +53399,9 @@ void System_RNG_Impl::add_entropy(const uint8_t input[], size_t len)
       input += got;
       len -= got;
       }
-#endif
    }
 
-void System_RNG_Impl::randomize(uint8_t buf[], size_t len)
-   {
-#if defined(BOTAN_TARGET_OS_HAS_CRYPTGENRANDOM)
-   ::CryptGenRandom(m_prov, static_cast<DWORD>(len), buf);
-#else
-   while(len)
-      {
-      ssize_t got = ::read(m_fd, buf, len);
-
-      if(got < 0)
-         {
-         if(errno == EINTR)
-            continue;
-         throw Exception("System_RNG read failed error " + std::to_string(errno));
-         }
-      if(got == 0)
-         throw Exception("System_RNG EOF on device"); // ?!?
-
-      buf += got;
-      len -= got;
-      }
 #endif
-   }
 
 }
 
@@ -43220,6 +53507,18 @@ void Threefish_512::skein_feedfwd(const secure_vector<uint64_t>& M,
 
    m_K[8] = m_K[0] ^ m_K[1] ^ m_K[2] ^ m_K[3] ^
             m_K[4] ^ m_K[5] ^ m_K[6] ^ m_K[7] ^ 0x1BD11BDAA9FC1A22;
+   }
+
+size_t Threefish_512::parallelism() const
+   {
+#if defined(BOTAN_HAS_THREEFISH_512_AVX2)
+   if(CPUID::has_avx2())
+      {
+      return 2;
+      }
+#endif
+
+   return 1;
    }
 
 std::string Threefish_512::provider() const
@@ -43756,6 +54055,11 @@ const uint64_t Tiger::SBOX4[256] = {
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> Tiger::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new Tiger(*this));
+   }
 
 namespace {
 
@@ -44721,6 +55025,117 @@ bool Client_Hello::offered_suite(uint16_t ciphersuite) const
    return false;
    }
 
+std::vector<std::pair<std::string, std::string>> Client_Hello::supported_algos() const
+   {
+   if(Signature_Algorithms* sigs = m_extensions.get<Signature_Algorithms>())
+      return sigs->supported_signature_algorthms();
+   return std::vector<std::pair<std::string, std::string>>();
+   }
+
+std::set<std::string> Client_Hello::supported_sig_algos() const
+   {
+   std::set<std::string> sig;
+   for(auto&& hash_and_sig : supported_algos())
+      sig.insert(hash_and_sig.second);
+   return sig;
+   }
+
+std::vector<std::string> Client_Hello::supported_ecc_curves() const
+   {
+   if(Supported_Elliptic_Curves* ecc = m_extensions.get<Supported_Elliptic_Curves>())
+      return ecc->curves();
+   return std::vector<std::string>();
+   }
+
+bool Client_Hello::prefers_compressed_ec_points() const
+   {
+   if(Supported_Point_Formats* ecc_formats = m_extensions.get<Supported_Point_Formats>())
+      {
+      return ecc_formats->prefers_compressed();
+      }
+   return false;
+   }
+
+std::string Client_Hello::sni_hostname() const
+   {
+   if(Server_Name_Indicator* sni = m_extensions.get<Server_Name_Indicator>())
+      return sni->host_name();
+   return "";
+   }
+
+#if defined(BOTAN_HAS_SRP6)
+std::string Client_Hello::srp_identifier() const
+   {
+   if(SRP_Identifier* srp = m_extensions.get<SRP_Identifier>())
+      return srp->identifier();
+   return "";
+   }
+#endif
+
+bool Client_Hello::secure_renegotiation() const
+   {
+   return m_extensions.has<Renegotiation_Extension>();
+   }
+
+std::vector<uint8_t> Client_Hello::renegotiation_info() const
+   {
+   if(Renegotiation_Extension* reneg = m_extensions.get<Renegotiation_Extension>())
+      return reneg->renegotiation_info();
+   return std::vector<uint8_t>();
+   }
+
+bool Client_Hello::supports_session_ticket() const
+   {
+   return m_extensions.has<Session_Ticket>();
+   }
+
+std::vector<uint8_t> Client_Hello::session_ticket() const
+   {
+   if(Session_Ticket* ticket = m_extensions.get<Session_Ticket>())
+      return ticket->contents();
+   return std::vector<uint8_t>();
+   }
+
+bool Client_Hello::supports_alpn() const
+   {
+   return m_extensions.has<Application_Layer_Protocol_Notification>();
+   }
+
+bool Client_Hello::supports_extended_master_secret() const
+   {
+   return m_extensions.has<Extended_Master_Secret>();
+   }
+
+bool Client_Hello::supports_cert_status_message() const
+   {
+   return m_extensions.has<Certificate_Status_Request>();
+   }
+
+bool Client_Hello::supports_encrypt_then_mac() const
+   {
+   return m_extensions.has<Encrypt_then_MAC>();
+   }
+
+bool Client_Hello::sent_signature_algorithms() const
+   {
+   return m_extensions.has<Signature_Algorithms>();
+   }
+
+std::vector<std::string> Client_Hello::next_protocols() const
+   {
+   if(auto alpn = m_extensions.get<Application_Layer_Protocol_Notification>())
+      return alpn->protocols();
+   return std::vector<std::string>();
+   }
+
+std::vector<uint16_t> Client_Hello::srtp_profiles() const
+   {
+   if(SRTP_Protection_Profiles* srtp = m_extensions.get<SRTP_Protection_Profiles>())
+      return srtp->profiles();
+   return std::vector<uint16_t>();
+   }
+
+
 }
 
 }
@@ -44730,6 +55145,7 @@ bool Client_Hello::offered_suite(uint16_t ciphersuite) const
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
+
 
 
 
@@ -45234,7 +55650,7 @@ bool Finished::verify(const Handshake_State& state,
    return true;
 #else
    return (m_verification_data.size() == computed_verify.size()) &&
-      same_mem(m_verification_data.data(), computed_verify.data(), computed_verify.size());
+      constant_time_compare(m_verification_data.data(), computed_verify.data(), computed_verify.size());
 #endif
    }
 
@@ -45750,8 +56166,6 @@ Server_Key_Exchange::Server_Key_Exchange(const std::vector<uint8_t>& buf,
    reader.assert_done();
    }
 
-Server_Key_Exchange::~Server_Key_Exchange() {}
-
 /**
 * Serialize a Server Key Exchange message
 */
@@ -45991,6 +56405,12 @@ std::string Alert::type_string() const
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
+/*
+This API is itself deprecated, so we don't care that it relies on
+other deprecated things
+*/
+#define BOTAN_NO_DEPRECATED_WARNINGS
+
 
 namespace Botan {
 
@@ -46085,8 +56505,6 @@ size_t Blocking_Client::read(uint8_t buf[], size_t buf_len)
 
 
 namespace Botan {
-
-TLS::Callbacks::~Callbacks() {}
 
 void TLS::Callbacks::tls_inspect_handshake_msg(const Handshake_Message&)
    {
@@ -46721,7 +57139,7 @@ void Channel::secure_renegotiation_check(const Server_Hello* server_hello)
 
    if(auto active = active_state())
       {
-      const bool active_sr = active->client_hello()->secure_renegotiation();
+      const bool active_sr = active->server_hello()->secure_renegotiation();
 
       if(active_sr != secure_renegotiation)
          throw TLS_Exception(Alert::HANDSHAKE_FAILURE,
@@ -46981,14 +57399,13 @@ bool Ciphersuite::is_usable() const
 */
 
 
-
 namespace Botan {
 
 namespace TLS {
 
 namespace {
 
-class Client_Handshake_State : public Handshake_State
+class Client_Handshake_State final : public Handshake_State
    {
    public:
       // using Handshake_State::Handshake_State;
@@ -47976,13 +58393,13 @@ Supported_Point_Formats::Supported_Point_Formats(TLS_Data_Reader& reader,
       {
       uint8_t format = reader.get_byte();
 
-      if(format == UNCOMPRESSED)
+      if(static_cast<ECPointFormat>(format) == UNCOMPRESSED)
          {
          m_prefers_compressed = false;
          reader.discard_next(len-i-1);
          return;
          }
-      else if(format == ANSIX962_COMPRESSED_PRIME)
+      else if(static_cast<ECPointFormat>(format) == ANSIX962_COMPRESSED_PRIME)
          {
          m_prefers_compressed = true;
          reader.discard_next(len-i-1);
@@ -48213,7 +58630,8 @@ std::vector<uint8_t> Certificate_Status_Request::serialize() const
    }
 
 Certificate_Status_Request::Certificate_Status_Request(TLS_Data_Reader& reader,
-                                                       uint16_t extension_size)
+                                                       uint16_t extension_size) :
+   m_server_side(false)
    {
    if(extension_size > 0)
       {
@@ -48909,8 +59327,6 @@ Handshake_State::Handshake_State(Handshake_IO* io, Callbacks& cb) :
    {
    }
 
-Handshake_State::~Handshake_State() {}
-
 void Handshake_State::note_message(const Handshake_Message& msg)
    {
    m_callbacks.tls_inspect_handshake_msg(msg);
@@ -49101,11 +59517,9 @@ KDF* Handshake_State::protocol_specific_prf() const
 namespace {
 
 std::string choose_hash(const std::string& sig_algo,
+                        std::vector<std::pair<std::string, std::string>>& supported_algos,
                         Protocol_Version negotiated_version,
-                        const Policy& policy,
-                        bool for_client_auth,
-                        const Client_Hello* client_hello,
-                        const Certificate_Req* cert_req)
+                        const Policy& policy)
    {
    if(!negotiated_version.supports_negotiable_signature_algorithms())
       {
@@ -49121,19 +59535,15 @@ std::string choose_hash(const std::string& sig_algo,
       throw Internal_Error("Unknown TLS signature algo " + sig_algo);
       }
 
-   const auto supported_algos = for_client_auth ?
-      cert_req->supported_algos() :
-      client_hello->supported_algos();
-
    if(!supported_algos.empty())
       {
-      const auto hashes = policy.allowed_signature_hashes();
+      const std::vector<std::string> hashes = policy.allowed_signature_hashes();
 
       /*
       * Choose our most preferred hash that the counterparty supports
       * in pairing with the signature algorithm we want to use.
       */
-      for(auto hash : hashes)
+      for(std::string hash : hashes)
          {
          for(auto algo : supported_algos)
             {
@@ -49158,16 +59568,26 @@ Handshake_State::choose_sig_format(const Private_Key& key,
    {
    const std::string sig_algo = key.algo_name();
 
-   const std::string hash_algo =
-      choose_hash(sig_algo,
-                  this->version(),
-                  policy,
-                  for_client_auth,
-                  client_hello(),
-                  cert_req());
+   std::vector<std::pair<std::string, std::string>> supported_algos =
+      (for_client_auth) ? cert_req()->supported_algos() : client_hello()->supported_algos();
+
+   const std::string hash_algo = choose_hash(sig_algo,
+                                             supported_algos,
+                                             this->version(),
+                                             policy);
 
    if(this->version().supports_negotiable_signature_algorithms())
       {
+      // We skip this check for v1.0 since you're stuck with SHA-1 regardless
+
+      std::vector<std::string> allowed_hashes = policy.allowed_signature_hashes();
+
+      if(!policy.allowed_signature_hash(hash_algo))
+         {
+         throw TLS_Exception(Alert::HANDSHAKE_FAILURE,
+                             "Policy refuses to accept signing with any hash supported by peer");
+         }
+
       hash_algo_out = hash_algo;
       sig_algo_out = sig_algo;
       }
@@ -49388,6 +59808,11 @@ bool Policy::allowed_signature_method(const std::string& sig_method) const
    return value_exists(allowed_signature_methods(), sig_method);
    }
 
+bool Policy::allowed_signature_hash(const std::string& sig_hash) const
+   {
+   return value_exists(allowed_signature_hashes(), sig_hash);
+   }
+
 std::vector<std::string> Policy::allowed_ecc_curves() const
    {
    // Default list is ordered by performance
@@ -49551,9 +59976,23 @@ bool Policy::acceptable_protocol_version(Protocol_Version version) const
 Protocol_Version Policy::latest_supported_version(bool datagram) const
    {
    if(datagram)
-      return Protocol_Version::latest_dtls_version();
+      {
+      if(allow_dtls12())
+         return Protocol_Version::DTLS_V12;
+      if(allow_dtls10())
+         return Protocol_Version::DTLS_V10;
+      throw Invalid_State("Policy forbids all available DTLS version");
+      }
    else
-      return Protocol_Version::latest_tls_version();
+      {
+      if(allow_tls12())
+         return Protocol_Version::TLS_V12;
+      if(allow_tls11())
+         return Protocol_Version::TLS_V11;
+      if(allow_tls10())
+         return Protocol_Version::TLS_V10;
+      throw Invalid_State("Policy forbids all available TLS version");
+      }
    }
 
 bool Policy::acceptable_ciphersuite(const Ciphersuite&) const
@@ -49561,6 +60000,7 @@ bool Policy::acceptable_ciphersuite(const Ciphersuite&) const
    return true;
    }
 
+bool Policy::allow_client_initiated_renegotiation() const { return false; }
 bool Policy::allow_server_initiated_renegotiation() const { return false; }
 bool Policy::allow_insecure_renegotiation() const { return false; }
 bool Policy::allow_tls10()  const { return true; }
@@ -49590,7 +60030,7 @@ std::vector<uint16_t> Policy::srtp_profiles() const
 
 namespace {
 
-class Ciphersuite_Preference_Ordering
+class Ciphersuite_Preference_Ordering final
    {
    public:
       Ciphersuite_Preference_Ordering(const std::vector<std::string>& ciphers,
@@ -50020,7 +60460,7 @@ namespace {
 
 inline void append_u16_len(secure_vector<uint8_t>& output, size_t len_field)
    {
-   const uint16_t len16 = len_field;
+   const uint16_t len16 = static_cast<uint16_t>(len_field);
    BOTAN_ASSERT_EQUAL(len_field, len16, "No truncation");
    output.push_back(get_byte(0, len16));
    output.push_back(get_byte(1, len16));
@@ -50123,7 +60563,10 @@ void decrypt_record(secure_vector<uint8_t>& output,
    const size_t ptext_size = aead->output_length(msg_length);
 
    aead->set_associated_data_vec(
-      cs.format_ad(record_sequence, record_type, record_version, static_cast<uint16_t>(ptext_size))
+      cs.format_ad(record_sequence,
+                   static_cast<uint8_t>(record_type),
+                   record_version,
+                   static_cast<uint16_t>(ptext_size))
       );
 
    aead->start(nonce);
@@ -50339,7 +60782,7 @@ namespace Botan {
 
 namespace TLS {
 
-class Server_Handshake_State : public Handshake_State
+class Server_Handshake_State final : public Handshake_State
    {
    public:
       Server_Handshake_State(Handshake_IO* io, Callbacks& cb)
@@ -50528,6 +60971,40 @@ uint16_t choose_ciphersuite(
             continue;
          }
 
+      if(version.supports_negotiable_signature_algorithms() && suite.sig_algo() != "")
+         {
+         const std::vector<std::pair<std::string, std::string>> client_sig_hash_pairs =
+            client_hello.supported_algos();
+
+         if(client_hello.supported_algos().empty() == false)
+            {
+            bool we_support_some_hash_by_client = false;
+
+            for(auto&& hash_and_sig : client_hello.supported_algos())
+               {
+               if(hash_and_sig.second == suite.sig_algo() &&
+                  policy.allowed_signature_hash(hash_and_sig.first))
+                  {
+                  we_support_some_hash_by_client = true;
+                  break;
+                  }
+               }
+
+            if(we_support_some_hash_by_client == false)
+               {
+               throw TLS_Exception(Alert::HANDSHAKE_FAILURE,
+                                   "Policy does not accept any hash function supported by client");
+               }
+            }
+         else
+            {
+            if(policy.allowed_signature_hash("SHA-1") == false)
+               throw TLS_Exception(Alert::HANDSHAKE_FAILURE,
+                                   "Client did not send signature_algorithms extension "
+                                   "and policy prohibits SHA-1 fallback");
+            }
+         }
+
 #if defined(BOTAN_HAS_SRP6)
       /*
       The client may offer SRP cipher suites in the hello message but
@@ -50676,8 +61153,14 @@ void Server::initiate_handshake(Handshake_State& state,
 void Server::process_client_hello_msg(const Handshake_State* active_state,
                                       Server_Handshake_State& pending_state,
                                       const std::vector<uint8_t>& contents)
-{
+   {
    const bool initial_handshake = !active_state;
+
+   if(initial_handshake == false && policy().allow_client_initiated_renegotiation() == false)
+      {
+      send_warning_alert(Alert::NO_RENEGOTIATION);
+      return;
+      }
 
    if(!policy().allow_insecure_renegotiation() &&
       !(initial_handshake || secure_renegotiation_supported()))
@@ -51624,8 +62107,8 @@ void Session_Manager_In_Memory::save(const Session& session)
 * TLS cipher suite information
 *
 * This file was automatically generated from the IANA assignments
-* (tls-parameters.txt hash 67a567fcf1ac67cb8cfc4af96c20c3efb05c1fc1)
-* by ./src/scripts/tls_suite_info.py on 2016-12-30
+* (tls-parameters.txt hash ac96406c0080f669ca9442b0f5efcb31549ecb2e)
+* by ./src/scripts/tls_suite_info.py on 2017-08-22
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -51792,6 +62275,10 @@ const std::vector<Ciphersuite>& Ciphersuite::all_known_ciphersuites()
       Ciphersuite(0xCCAB, "PSK_WITH_CHACHA20_POLY1305_SHA256", "", "PSK", "ChaCha20Poly1305", 32, 12, 0, "AEAD", 0, "SHA-256"),
       Ciphersuite(0xCCAC, "ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256", "", "ECDHE_PSK", "ChaCha20Poly1305", 32, 12, 0, "AEAD", 0, "SHA-256"),
       Ciphersuite(0xCCAD, "DHE_PSK_WITH_CHACHA20_POLY1305_SHA256", "", "DHE_PSK", "ChaCha20Poly1305", 32, 12, 0, "AEAD", 0, "SHA-256"),
+      Ciphersuite(0xD001, "ECDHE_PSK_WITH_AES_128_GCM_SHA256", "", "ECDHE_PSK", "AES-128/GCM", 16, 4, 8, "AEAD", 0, "SHA-256"),
+      Ciphersuite(0xD002, "ECDHE_PSK_WITH_AES_256_GCM_SHA384", "", "ECDHE_PSK", "AES-256/GCM", 32, 4, 8, "AEAD", 0, "SHA-384"),
+      Ciphersuite(0xD003, "ECDHE_PSK_WITH_AES_128_CCM_8_SHA256", "", "ECDHE_PSK", "AES-128/CCM(8)", 16, 4, 8, "AEAD", 0, "SHA-256"),
+      Ciphersuite(0xD005, "ECDHE_PSK_WITH_AES_128_CCM_SHA256", "", "ECDHE_PSK", "AES-128/CCM", 16, 4, 8, "AEAD", 0, "SHA-256"),
       Ciphersuite(0xFFC0, "DHE_RSA_WITH_AES_128_OCB_SHA256", "RSA", "DH", "AES-128/OCB(12)", 16, 12, 0, "AEAD", 0, "SHA-256"),
       Ciphersuite(0xFFC1, "DHE_RSA_WITH_AES_256_OCB_SHA256", "RSA", "DH", "AES-256/OCB(12)", 32, 12, 0, "AEAD", 0, "SHA-256"),
       Ciphersuite(0xFFC2, "ECDHE_RSA_WITH_AES_128_OCB_SHA256", "RSA", "ECDH", "AES-128/OCB(12)", 16, 12, 0, "AEAD", 0, "SHA-256"),
@@ -51809,6 +62296,259 @@ const std::vector<Ciphersuite>& Ciphersuite::all_known_ciphersuites()
       };
 
    return g_ciphersuite_list;
+   }
+
+}
+
+}
+/*
+* Text-Based TLS Policy
+* (C) 2016,2017 Jack Lloyd
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+namespace Botan {
+
+namespace TLS {
+
+std::vector<std::string> Text_Policy::allowed_ciphers() const
+   {
+   return get_list("ciphers", Policy::allowed_ciphers());
+   }
+
+std::vector<std::string> Text_Policy::allowed_signature_hashes() const
+   {
+   return get_list("signature_hashes", Policy::allowed_signature_hashes());
+   }
+
+std::vector<std::string> Text_Policy::allowed_macs() const
+   {
+   return get_list("macs", Policy::allowed_macs());
+   }
+
+std::vector<std::string> Text_Policy::allowed_key_exchange_methods() const
+   {
+   return get_list("key_exchange_methods", Policy::allowed_key_exchange_methods());
+   }
+
+std::vector<std::string> Text_Policy::allowed_signature_methods() const
+   {
+   return get_list("signature_methods", Policy::allowed_signature_methods());
+   }
+
+std::vector<std::string> Text_Policy::allowed_ecc_curves() const
+   {
+   return get_list("ecc_curves", Policy::allowed_ecc_curves());
+   }
+
+bool Text_Policy::use_ecc_point_compression() const
+   {
+   return get_bool("use_ecc_point_compression", Policy::use_ecc_point_compression());
+   }
+
+bool Text_Policy::allow_tls10() const
+   {
+   return get_bool("allow_tls10", Policy::allow_tls10());
+   }
+
+bool Text_Policy::allow_tls11() const
+   {
+   return get_bool("allow_tls11", Policy::allow_tls11());
+   }
+
+bool Text_Policy::allow_tls12() const
+   {
+   return get_bool("allow_tls12", Policy::allow_tls12());
+   }
+
+bool Text_Policy::allow_dtls10() const
+   {
+   return get_bool("allow_dtls10", Policy::allow_dtls10());
+   }
+
+bool Text_Policy::allow_dtls12() const
+   {
+   return get_bool("allow_dtls12", Policy::allow_dtls12());
+   }
+
+bool Text_Policy::allow_insecure_renegotiation() const
+   {
+   return get_bool("allow_insecure_renegotiation", Policy::allow_insecure_renegotiation());
+   }
+
+bool Text_Policy::include_time_in_hello_random() const
+   {
+   return get_bool("include_time_in_hello_random", Policy::include_time_in_hello_random());
+   }
+
+bool Text_Policy::allow_client_initiated_renegotiation() const
+   {
+   return get_bool("allow_client_initiated_renegotiation", Policy::allow_client_initiated_renegotiation());
+   }
+bool Text_Policy::allow_server_initiated_renegotiation() const
+   {
+   return get_bool("allow_server_initiated_renegotiation", Policy::allow_server_initiated_renegotiation());
+   }
+
+bool Text_Policy::server_uses_own_ciphersuite_preferences() const
+   {
+   return get_bool("server_uses_own_ciphersuite_preferences", Policy::server_uses_own_ciphersuite_preferences());
+   }
+
+bool Text_Policy::negotiate_encrypt_then_mac() const
+   {
+   return get_bool("negotiate_encrypt_then_mac", Policy::negotiate_encrypt_then_mac());
+   }
+
+std::string Text_Policy::dh_group() const
+   {
+   return get_str("dh_group", Policy::dh_group());
+   }
+
+size_t Text_Policy::minimum_ecdh_group_size() const
+   {
+   return get_len("minimum_ecdh_group_size", Policy::minimum_ecdh_group_size());
+   }
+
+size_t Text_Policy::minimum_ecdsa_group_size() const
+   {
+   return get_len("minimum_ecdsa_group_size", Policy::minimum_ecdsa_group_size());
+   }
+
+size_t Text_Policy::minimum_dh_group_size() const
+   {
+   return get_len("minimum_dh_group_size", Policy::minimum_dh_group_size());
+   }
+
+size_t Text_Policy::minimum_rsa_bits() const
+   {
+   return get_len("minimum_rsa_bits", Policy::minimum_rsa_bits());
+   }
+
+size_t Text_Policy::minimum_signature_strength() const
+   {
+   return get_len("minimum_signature_strength", Policy::minimum_signature_strength());
+   }
+
+size_t Text_Policy::dtls_default_mtu() const
+   {
+   return get_len("dtls_default_mtu", Policy::dtls_default_mtu());
+   }
+
+size_t Text_Policy::dtls_initial_timeout() const
+   {
+   return get_len("dtls_initial_timeout", Policy::dtls_initial_timeout());
+   }
+
+size_t Text_Policy::dtls_maximum_timeout() const
+   {
+   return get_len("dtls_maximum_timeout", Policy::dtls_maximum_timeout());
+   }
+
+bool Text_Policy::require_cert_revocation_info() const
+   {
+   return get_bool("require_cert_revocation_info", Policy::require_cert_revocation_info());
+   }
+
+bool Text_Policy::hide_unknown_users() const
+   {
+   return get_bool("hide_unknown_users", Policy::hide_unknown_users());
+   }
+
+uint32_t Text_Policy::session_ticket_lifetime() const
+   {
+   return static_cast<uint32_t>(get_len("session_ticket_lifetime", Policy::session_ticket_lifetime()));
+   }
+
+bool Text_Policy::send_fallback_scsv(Protocol_Version version) const
+   {
+   return get_bool("send_fallback_scsv", false) ? Policy::send_fallback_scsv(version) : false;
+   }
+
+std::vector<uint16_t> Text_Policy::srtp_profiles() const
+   {
+   std::vector<uint16_t> r;
+   for(std::string p : get_list("srtp_profiles", std::vector<std::string>()))
+      {
+      r.push_back(to_uint16(p));
+      }
+   return r;
+   }
+
+void Text_Policy::set(const std::string& k, const std::string& v)
+   {
+   m_kv[k] = v;
+   }
+
+Text_Policy::Text_Policy(const std::string& s)
+   {
+   std::istringstream iss(s);
+   m_kv = read_cfg(iss);
+   }
+
+Text_Policy::Text_Policy(std::istream& in) : m_kv(read_cfg(in))
+   {}
+
+std::vector<std::string>
+Text_Policy::get_list(const std::string& key,
+                      const std::vector<std::string>& def) const
+   {
+   const std::string v = get_str(key);
+
+   if(v.empty())
+      {
+      return def;
+      }
+
+   return split_on(v, ' ');
+   }
+
+size_t Text_Policy::get_len(const std::string& key, size_t def) const
+   {
+   const std::string v = get_str(key);
+
+   if(v.empty())
+      {
+      return def;
+      }
+
+   return to_u32bit(v);
+   }
+
+bool Text_Policy::get_bool(const std::string& key, bool def) const
+   {
+   const std::string v = get_str(key);
+
+   if(v.empty())
+      {
+      return def;
+      }
+
+   if(v == "true" || v == "True")
+      {
+      return true;
+      }
+   else if(v == "false" || v == "False")
+      {
+      return false;
+      }
+   else
+      {
+      throw Exception("Invalid boolean '" + v + "'");
+      }
+   }
+
+std::string Text_Policy::get_str(const std::string& key, const std::string& def) const
+   {
+   auto i = m_kv.find(key);
+   if(i == m_kv.end())
+      {
+      return def;
+      }
+
+   return i->second;
    }
 
 }
@@ -52030,8 +62770,8 @@ void TLS_CBC_HMAC_AEAD_Encryption::set_associated_data(const uint8_t ad[], size_
    if(use_encrypt_then_mac())
       {
       // AAD hack for EtM
-      size_t pt_size = make_uint16(assoc_data()[11], assoc_data()[12]);
-      size_t enc_size = round_up(iv_size() + pt_size + 1, block_size());
+      const uint16_t pt_size = make_uint16(assoc_data()[11], assoc_data()[12]);
+      const uint16_t enc_size = round_up(iv_size() + pt_size + 1, block_size());
       assoc_data()[11] = get_byte<uint16_t>(0, enc_size);
       assoc_data()[12] = get_byte<uint16_t>(1, enc_size);
       }
@@ -52108,9 +62848,6 @@ void TLS_CBC_HMAC_AEAD_Encryption::finish(secure_vector<uint8_t>& buffer, size_t
       }
    }
 
-namespace {
-
-
 /*
 * Checks the TLS padding. Returns 0 if the padding is invalid (we
 * count the padding_length field as part of the padding size so a
@@ -52122,33 +62859,39 @@ namespace {
 * Returning 0 in the error case should ensure the MAC check will fail.
 * This approach is suggested in section 6.2.3.2 of RFC 5246.
 */
-uint16_t check_tls_padding(const uint8_t record[], size_t record_len)
+uint16_t check_tls_cbc_padding(const uint8_t record[], size_t record_len)
    {
+   if(record_len == 0 || record_len > 0xFFFF)
+      return 0;
+
+   const uint16_t rec16 = static_cast<uint16_t>(record_len);
+
    /*
    * TLS v1.0 and up require all the padding bytes be the same value
    * and allows up to 255 bytes.
    */
 
+   const uint16_t to_check = std::min<uint16_t>(256, record_len);
    const uint8_t pad_byte = record[(record_len-1)];
+   const uint16_t pad_bytes = 1 + pad_byte;
 
-   uint8_t pad_invalid = 0;
-   for(size_t i = 0; i != record_len; ++i)
+   uint16_t pad_invalid = CT::is_less<uint16_t>(rec16, pad_bytes);
+
+   for(uint16_t i = rec16 - to_check; i != rec16; ++i)
       {
-      const size_t left = record_len - i - 2;
-      const uint8_t delim_mask = CT::is_less<uint16_t>(static_cast<uint16_t>(left), pad_byte) & 0xFF;
-      pad_invalid |= (delim_mask & (record[i] ^ pad_byte));
+      const uint16_t offset = rec16 - i;
+      const uint16_t in_pad_range = CT::is_lte<uint16_t>(offset, pad_bytes);
+      pad_invalid |= (in_pad_range & (record[i] ^ pad_byte));
       }
 
-   uint16_t pad_invalid_mask = CT::expand_mask<uint16_t>(pad_invalid);
+   const uint16_t pad_invalid_mask = CT::expand_mask<uint16_t>(pad_invalid);
    return CT::select<uint16_t>(pad_invalid_mask, 0, pad_byte + 1);
    }
 
-}
-
 void TLS_CBC_HMAC_AEAD_Decryption::cbc_decrypt_record(uint8_t record_contents[], size_t record_len)
    {
-   BOTAN_ASSERT(record_len % block_size() == 0,
-                "Buffer is an even multiple of block size");
+   if(record_len % block_size() != 0)
+      throw Decoding_Error("Input CBC ciphertext is not a multiple of block size");
 
    const size_t blocks = record_len / block_size();
 
@@ -52212,7 +62955,7 @@ size_t TLS_CBC_HMAC_AEAD_Decryption::output_length(size_t) const
 *    no compressions are performed.
 * 
 * Note that the padding validation in Botan is always performed over
-* min(plen,256) bytes, see the function check_tls_padding. This differs
+* min(plen,256) bytes, see the function check_tls_cbc_padding. This differs
 * from the countermeasure described in the paper.
 * 
 * Note that the padding length padlen does also count the last byte
@@ -52240,11 +62983,11 @@ void TLS_CBC_HMAC_AEAD_Decryption::perform_additional_compressions(size_t plen, 
       max_bytes_in_first_block = 55;
       }
    // number of maximum MACed bytes
-   const uint16_t L1 = 13 + plen - tag_size();
+   const uint16_t L1 = static_cast<uint16_t>(13 + plen - tag_size());
    // number of current MACed bytes (L1 - padlen)
    // Here the Lucky 13 paper is different because the padlen length in the paper 
    // does not count the last message byte.
-   const uint16_t L2 = 13 + plen - padlen - tag_size();
+   const uint16_t L2 = static_cast<uint16_t>(13 + plen - padlen - tag_size());
    // From the paper, for SHA-256/SHA-1 compute: ceil((L1-55)/64) and ceil((L2-55)/64)
    // ceil((L1-55)/64) = floor((L1+64-1-55)/64)
    // Here we compute number of compressions for SHA-* in general
@@ -52293,7 +63036,7 @@ void TLS_CBC_HMAC_AEAD_Decryption::finish(secure_vector<uint8_t>& buffer, size_t
 
       const size_t mac_offset = enc_size;
 
-      const bool mac_ok = same_mem(&record_contents[mac_offset], mac_buf.data(), tag_size());
+      const bool mac_ok = constant_time_compare(&record_contents[mac_offset], mac_buf.data(), tag_size());
 
       if(!mac_ok)
          {
@@ -52303,7 +63046,7 @@ void TLS_CBC_HMAC_AEAD_Decryption::finish(secure_vector<uint8_t>& buffer, size_t
       cbc_decrypt_record(record_contents, enc_size);
 
       // 0 if padding was invalid, otherwise 1 + padding_bytes
-      uint16_t pad_size = check_tls_padding(record_contents, enc_size);
+      uint16_t pad_size = check_tls_cbc_padding(record_contents, enc_size);
 
       // No oracle here, whoever sent us this had the key since MAC check passed
       if(pad_size == 0)
@@ -52312,18 +63055,18 @@ void TLS_CBC_HMAC_AEAD_Decryption::finish(secure_vector<uint8_t>& buffer, size_t
          }
 
       const uint8_t* plaintext_block = &record_contents[0];
-      const uint16_t plaintext_length = enc_size - pad_size;
+      const size_t plaintext_length = enc_size - pad_size;
 
       buffer.insert(buffer.end(), plaintext_block, plaintext_block + plaintext_length);
       }
    else
       {
-      CT::poison(record_contents, record_len);
-
       cbc_decrypt_record(record_contents, record_len);
 
+      CT::poison(record_contents, record_len);
+
       // 0 if padding was invalid, otherwise 1 + padding_bytes
-      uint16_t pad_size = check_tls_padding(record_contents, record_len);
+      uint16_t pad_size = check_tls_cbc_padding(record_contents, record_len);
 
       /*
       This mask is zero if there is not enough room in the packet to get a valid MAC.
@@ -52355,7 +63098,7 @@ void TLS_CBC_HMAC_AEAD_Decryption::finish(secure_vector<uint8_t>& buffer, size_t
 
       const size_t mac_offset = record_len - (tag_size() + pad_size);
 
-      const bool mac_ok = same_mem(&record_contents[mac_offset], mac_buf.data(), tag_size());
+      const bool mac_ok = constant_time_compare(&record_contents[mac_offset], mac_buf.data(), tag_size());
 
       const uint16_t ok_mask = size_ok_mask & CT::expand_mask<uint16_t>(mac_ok) & CT::expand_mask<uint16_t>(pad_size);
 
@@ -52463,12 +63206,12 @@ uint8_t rtss_hash_id(const std::string& hash_name)
       throw Invalid_Argument("RTSS only supports SHA-1 and SHA-256");
    }
 
-HashFunction* get_rtss_hash_by_id(uint8_t id)
+std::unique_ptr<HashFunction> get_rtss_hash_by_id(uint8_t id)
    {
    if(id == 1)
-      return new SHA_160;
+      return HashFunction::create_or_throw("SHA-1");
    else if(id == 2)
-      return new SHA_256;
+      return HashFunction::create_or_throw("SHA-256");
    else
       throw Decoding_Error("Bad RTSS hash identifier");
    }
@@ -52502,7 +63245,8 @@ RTSS_Share::split(uint8_t M, uint8_t N,
    if(M == 0 || N == 0 || M > N)
       throw Encoding_Error("RTSS_Share::split: M == 0 or N == 0 or M > N");
 
-   SHA_256 hash; // always use SHA-256 when generating shares
+   // always use SHA-256 when generating shares
+   std::unique_ptr<HashFunction> hash = HashFunction::create_or_throw("SHA-256");
 
    std::vector<RTSS_Share> shares(N);
 
@@ -52510,7 +63254,7 @@ RTSS_Share::split(uint8_t M, uint8_t N,
    for(uint8_t i = 0; i != N; ++i)
       {
       shares[i].m_contents += std::make_pair(identifier, 16);
-      shares[i].m_contents += rtss_hash_id(hash.name());
+      shares[i].m_contents += rtss_hash_id(hash->name());
       shares[i].m_contents += M;
       shares[i].m_contents += get_byte(0, S_len);
       shares[i].m_contents += get_byte(1, S_len);
@@ -52522,7 +63266,7 @@ RTSS_Share::split(uint8_t M, uint8_t N,
 
    // secret = S || H(S)
    secure_vector<uint8_t> secret(S, S + S_len);
-   secret += hash.process(S, S_len);
+   secret += hash->process(S, S_len);
 
    for(size_t i = 0; i != secret.size(); ++i)
       {
@@ -52623,9 +63367,12 @@ RTSS_Share::reconstruct(const std::vector<RTSS_Share>& shares)
    hash->update(secret.data(), secret_len);
    secure_vector<uint8_t> hash_check = hash->final();
 
-   if(!same_mem(hash_check.data(),
-                &secret[secret_len], hash->output_length()))
+   if(!constant_time_compare(hash_check.data(),
+                             &secret[secret_len],
+                             hash->output_length()))
+      {
       throw Decoding_Error("RTSS hash check failed");
+      }
 
    return secure_vector<uint8_t>(secret.cbegin(), secret.cbegin() + secret_len);
    }
@@ -53208,7 +63955,7 @@ void assertion_failure(const char* expr_str,
 
 namespace Botan {
 
-void Barrier::wait(unsigned delta)
+void Barrier::wait(size_t delta)
     {
     lock_guard_type<mutex_type> lock(m_mutex);
     m_value += delta;
@@ -53220,7 +63967,7 @@ void Barrier::sync()
     --m_value;
     if(m_value > 0)
         {
-        unsigned current_syncs = m_syncs;
+        const size_t current_syncs = m_syncs;
         m_cond.wait(lock, [this, &current_syncs] { return m_syncs != current_syncs; });
         }
     else
@@ -53243,7 +63990,6 @@ void Barrier::sync()
 */
 
 #include <ctime>
-#include <stdlib.h>
 
 #if defined(BOTAN_HAS_BOOST_DATETIME)
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -53352,10 +64098,11 @@ std::chrono::system_clock::time_point calendar_point::to_std_timepoint() const
 
    // 32 bit time_t ends at January 19, 2038
    // https://msdn.microsoft.com/en-us/library/2093ets1.aspx
-   // For consistency reasons, throw after 2037 as long as
-   // no other implementation is available.
-   if (year > 2037)
+   // Throw after 2037 if 32 bit time_t is used
+   if (year > 2037 && sizeof(std::time_t) == 4)
+      {
       throw Invalid_Argument("calendar_point::to_std_timepoint() does not support years after 2037.");
+      }
 
    // std::tm: struct without any timezone information
    std::tm tm;
@@ -53616,286 +64363,6 @@ bool caseless_cmp(char a, char b)
 
 }
 /*
-* Runtime CPU detection
-* (C) 2009-2010,2013 Jack Lloyd
-*
-* Botan is released under the Simplified BSD License (see license.txt)
-*/
-
-
-#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
-
-#if defined(BOTAN_TARGET_OS_IS_DARWIN)
-  #include <sys/sysctl.h>
-#endif
-
-#if defined(BOTAN_TARGET_OS_IS_OPENBSD)
-  #include <sys/param.h>
-  #include <machine/cpu.h>
-#endif
-
-#endif
-
-#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
-
-#if defined(BOTAN_BUILD_COMPILER_IS_MSVC)
-
-#include <intrin.h>
-
-#define X86_CPUID(type, out) do { __cpuid((int*)out, type); } while(0)
-#define X86_CPUID_SUBLEVEL(type, level, out) do { __cpuidex((int*)out, type, level); } while(0)
-
-#elif defined(BOTAN_BUILD_COMPILER_IS_INTEL)
-
-#include <ia32intrin.h>
-
-#define X86_CPUID(type, out) do { __cpuid(out, type); } while(0)
-#define X86_CPUID_SUBLEVEL(type, level, out) do { __cpuidex((int*)out, type, level); } while(0)
-
-#elif defined(BOTAN_TARGET_ARCH_IS_X86_64) && defined(BOTAN_USE_GCC_INLINE_ASM)
-
-#define X86_CPUID(type, out)                                                    \
-   asm("cpuid\n\t" : "=a" (out[0]), "=b" (out[1]), "=c" (out[2]), "=d" (out[3]) \
-       : "0" (type))
-
-#define X86_CPUID_SUBLEVEL(type, level, out)                                    \
-   asm("cpuid\n\t" : "=a" (out[0]), "=b" (out[1]), "=c" (out[2]), "=d" (out[3]) \
-       : "0" (type), "2" (level))
-
-#elif defined(BOTAN_BUILD_COMPILER_IS_GCC) || defined(BOTAN_BUILD_COMPILER_IS_CLANG)
-
-#include <cpuid.h>
-
-#define X86_CPUID(type, out) do { __get_cpuid(type, out, out+1, out+2, out+3); } while(0)
-
-#define X86_CPUID_SUBLEVEL(type, level, out) \
-   do { __cpuid_count(type, level, out[0], out[1], out[2], out[3]); } while(0)
-
-#else
-
-#warning "No way of calling cpuid for this compiler"
-
-#define X86_CPUID(type, out) do { clear_mem(out, 4); } while(0)
-#define X86_CPUID_SUBLEVEL(type, level, out) do { clear_mem(out, 4); } while(0)
-
-#endif
-
-#endif
-
-namespace Botan {
-
-uint64_t CPUID::g_processor_flags[2] = { 0, 0 };
-size_t CPUID::g_cache_line_size = BOTAN_TARGET_CPU_DEFAULT_CACHE_LINE_SIZE;
-bool CPUID::g_initialized = false;
-bool CPUID::g_little_endian = false;
-
-namespace {
-
-#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
-
-bool altivec_check_sysctl()
-   {
-#if defined(BOTAN_TARGET_OS_IS_DARWIN) || defined(BOTAN_TARGET_OS_IS_OPENBSD)
-
-#if defined(BOTAN_TARGET_OS_IS_OPENBSD)
-   int sels[2] = { CTL_MACHDEP, CPU_ALTIVEC };
-#else
-   // From Apple's docs
-   int sels[2] = { CTL_HW, HW_VECTORUNIT };
-#endif
-   int vector_type = 0;
-   size_t length = sizeof(vector_type);
-   int error = sysctl(sels, 2, &vector_type, &length, NULL, 0);
-
-   if(error == 0 && vector_type > 0)
-      return true;
-#endif
-
-   return false;
-   }
-
-bool altivec_check_pvr_emul()
-   {
-   bool altivec_capable = false;
-
-#if defined(BOTAN_TARGET_OS_IS_LINUX) || defined(BOTAN_TARGET_OS_IS_NETBSD)
-
-   /*
-   On PowerPC, MSR 287 is PVR, the Processor Version Number
-   Normally it is only accessible to ring 0, but Linux and NetBSD
-   (others, too, maybe?) will trap and emulate it for us.
-
-   PVR identifiers for various AltiVec enabled CPUs. Taken from
-   PearPC and Linux sources, mostly.
-   */
-
-   const uint16_t PVR_G4_7400  = 0x000C;
-   const uint16_t PVR_G5_970   = 0x0039;
-   const uint16_t PVR_G5_970FX = 0x003C;
-   const uint16_t PVR_G5_970MP = 0x0044;
-   const uint16_t PVR_G5_970GX = 0x0045;
-   const uint16_t PVR_POWER6   = 0x003E;
-   const uint16_t PVR_POWER7   = 0x003F;
-   const uint16_t PVR_POWER8   = 0x004B;
-   const uint16_t PVR_CELL_PPU = 0x0070;
-
-   // Motorola produced G4s with PVR 0x800[0123C] (at least)
-   const uint16_t PVR_G4_74xx_24  = 0x800;
-
-   uint32_t pvr = 0;
-
-   asm volatile("mfspr %0, 287" : "=r" (pvr));
-
-   // Top 16 bit suffice to identify model
-   pvr >>= 16;
-
-   altivec_capable |= (pvr == PVR_G4_7400);
-   altivec_capable |= ((pvr >> 4) == PVR_G4_74xx_24);
-   altivec_capable |= (pvr == PVR_G5_970);
-   altivec_capable |= (pvr == PVR_G5_970FX);
-   altivec_capable |= (pvr == PVR_G5_970MP);
-   altivec_capable |= (pvr == PVR_G5_970GX);
-   altivec_capable |= (pvr == PVR_POWER6);
-   altivec_capable |= (pvr == PVR_POWER7);
-   altivec_capable |= (pvr == PVR_POWER8);
-   altivec_capable |= (pvr == PVR_CELL_PPU);
-#endif
-
-   return altivec_capable;
-   }
-
-#endif
-
-}
-
-bool CPUID::has_simd_32()
-   {
-#if defined(BOTAN_TARGET_SUPPORTS_SSE2)
-   return CPUID::has_sse2();
-#elif defined(BOTAN_TARGET_SUPPORTS_ALTIVEC)
-   return CPUID::has_altivec();
-#else
-   return true;
-#endif
-   }
-
-void CPUID::print(std::ostream& o)
-   {
-   o << "CPUID flags: ";
-
-#define CPUID_PRINT(flag) do { if(has_##flag()) o << #flag << " "; } while(0)
-
-#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
-   CPUID_PRINT(sse2);
-   CPUID_PRINT(ssse3);
-   CPUID_PRINT(sse41);
-   CPUID_PRINT(sse42);
-   CPUID_PRINT(avx2);
-   CPUID_PRINT(avx512f);
-
-   CPUID_PRINT(rdtsc);
-   CPUID_PRINT(bmi2);
-   CPUID_PRINT(clmul);
-   CPUID_PRINT(aes_ni);
-   CPUID_PRINT(rdrand);
-   CPUID_PRINT(rdseed);
-   CPUID_PRINT(intel_sha);
-   CPUID_PRINT(adx);
-#endif
-
-#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
-   CPUID_PRINT(altivec);
-#endif
-
-#undef CPUID_PRINT
-   o << "\n";
-   }
-
-void CPUID::initialize()
-   {
-   clear_mem(g_processor_flags, 2);
-
-#if defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
-   if(altivec_check_sysctl() || altivec_check_pvr_emul())
-      {
-      g_processor_flags[0] |= CPUID_ALTIVEC_BIT;
-      }
-#endif
-
-#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
-   const uint32_t INTEL_CPUID[3] = { 0x756E6547, 0x6C65746E, 0x49656E69 };
-   const uint32_t AMD_CPUID[3] = { 0x68747541, 0x444D4163, 0x69746E65 };
-
-   uint32_t cpuid[4] = { 0 };
-   X86_CPUID(0, cpuid);
-
-   const uint32_t max_supported_sublevel = cpuid[0];
-
-   if(max_supported_sublevel == 0)
-      return;
-
-   const bool is_intel = same_mem(cpuid + 1, INTEL_CPUID, 3);
-   const bool is_amd = same_mem(cpuid + 1, AMD_CPUID, 3);
-
-   X86_CPUID(1, cpuid);
-
-   g_processor_flags[0] = (static_cast<uint64_t>(cpuid[2]) << 32) | cpuid[3];
-
-   if(is_intel)
-      g_cache_line_size = 8 * get_byte(2, cpuid[1]);
-
-   if(max_supported_sublevel >= 7)
-      {
-      clear_mem(cpuid, 4);
-      X86_CPUID_SUBLEVEL(7, 0, cpuid);
-      g_processor_flags[1] = (static_cast<uint64_t>(cpuid[2]) << 32) | cpuid[1];
-      }
-
-   if(is_amd)
-      {
-      X86_CPUID(0x80000005, cpuid);
-      g_cache_line_size = get_byte(3, cpuid[2]);
-      }
-
-#endif
-
-#if defined(BOTAN_TARGET_ARCH_IS_X86_64)
-   /*
-   * If we don't have access to CPUID, we can still safely assume that
-   * any x86-64 processor has SSE2 and RDTSC
-   */
-   if(g_processor_flags[0] == 0)
-      g_processor_flags[0] = (1 << CPUID_SSE2_BIT) | (1 << CPUID_RDTSC_BIT);
-#endif
-
-   const uint32_t endian32 = 0x01234567;
-   const uint8_t* e8 = reinterpret_cast<const uint8_t*>(&endian32);
-
-   if(e8[0] == 0x01 && e8[1] == 0x23 && e8[2] == 0x45 && e8[3] == 0x67)
-      {
-      g_little_endian = false;
-      }
-   else if(e8[0] == 0x67 && e8[1] == 0x45 && e8[2] == 0x23 && e8[3] == 0x01)
-      {
-      g_little_endian = true;
-      }
-   else
-      {
-      throw Internal_Error("Unexpected endian at runtime, neither big nor little");
-      }
-
-   // If we were compiled with a known endian, verify if matches at runtime
-#if defined(BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN)
-   BOTAN_ASSERT(g_little_endian, "Little-endian build but big-endian at runtime");
-#elif defined(BOTAN_TARGET_CPU_IS_BIG_ENDIAN)
-   BOTAN_ASSERT(!g_little_endian, "Big-endian build but little-endian at runtime");
-#endif
-
-   g_initialized = true;
-   }
-
-}
-/*
 * DataSource
 * (C) 1999-2007 Jack Lloyd
 *     2005 Matthew Gregan
@@ -54003,7 +64470,7 @@ size_t DataSource_Stream::read(uint8_t out[], size_t length)
    if(m_source.bad())
       throw Stream_IO_Error("DataSource_Stream::read: Source failure");
 
-   size_t got = m_source.gcount();
+   const size_t got = static_cast<size_t>(m_source.gcount());
    m_total_read += got;
    return got;
    }
@@ -54012,7 +64479,7 @@ bool DataSource_Stream::check_available(size_t n)
    {
    const std::streampos orig_pos = m_source.tellg();
    m_source.seekg(0, std::ios::end);
-   const size_t avail = m_source.tellg() - orig_pos;
+   const size_t avail = static_cast<size_t>(m_source.tellg() - orig_pos);
    m_source.seekg(orig_pos);
    return (avail >= n);
    }
@@ -54033,7 +64500,7 @@ size_t DataSource_Stream::peek(uint8_t out[], size_t length, size_t offset) cons
       m_source.read(reinterpret_cast<char*>(buf.data()), buf.size());
       if(m_source.bad())
          throw Stream_IO_Error("DataSource_Stream::peek: Source failure");
-      got = m_source.gcount();
+      got = static_cast<size_t>(m_source.gcount());
       }
 
    if(got == offset)
@@ -54041,7 +64508,7 @@ size_t DataSource_Stream::peek(uint8_t out[], size_t length, size_t offset) cons
       m_source.read(reinterpret_cast<char*>(out), length);
       if(m_source.bad())
          throw Stream_IO_Error("DataSource_Stream::peek: Source failure");
-      got = m_source.gcount();
+      got = static_cast<size_t>(m_source.gcount());
       }
 
    if(m_source.eof())
@@ -54105,7 +64572,7 @@ DataSource_Stream::~DataSource_Stream()
 
 }
 /*
-* (C) 2015 Jack Lloyd
+* (C) 2015,2017 Jack Lloyd
 * (C) 2015 Simon Warta (Kullo GmbH)
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -54117,6 +64584,9 @@ DataSource_Stream::~DataSource_Stream()
 #elif defined(BOTAN_HAS_BOOST_FILESYSTEM)
   #include <boost/filesystem.hpp>
 #elif defined(BOTAN_TARGET_OS_HAS_READDIR)
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_WINDOWS)
+  #define NOMINMAX 1
+  #define _WINSOCKAPI_ // stop windows.h including winsock.h
 #endif
 
 namespace Botan {
@@ -54145,7 +64615,9 @@ std::vector<std::string> impl_stl_filesystem(const std::string& dir)
 
    return out;
    }
+
 #elif defined(BOTAN_HAS_BOOST_FILESYSTEM)
+
 std::vector<std::string> impl_boost_filesystem(const std::string& dir_path)
 {
    namespace fs = boost::filesystem;
@@ -54162,6 +64634,7 @@ std::vector<std::string> impl_boost_filesystem(const std::string& dir_path)
 
    return out;
 }
+
 #elif defined(BOTAN_TARGET_OS_HAS_READDIR)
 std::vector<std::string> impl_readdir(const std::string& dir_path)
    {
@@ -54200,6 +64673,49 @@ std::vector<std::string> impl_readdir(const std::string& dir_path)
 
    return out;
    }
+
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_WINDOWS)
+
+std::vector<std::string> impl_win32(const std::string& dir_path)
+   {
+   std::vector<std::string> out;
+   std::deque<std::string> dir_list;
+   dir_list.push_back(dir_path);
+
+   while(!dir_list.empty())
+      {
+      const std::string cur_path = dir_list[0];
+      dir_list.pop_front();
+
+      WIN32_FIND_DATA find_data;
+      HANDLE dir = ::FindFirstFile((cur_path + "/*").c_str(), &find_data);
+
+      if(dir != INVALID_HANDLE_VALUE)
+         {
+         do
+            {
+            const std::string filename = find_data.cFileName;
+            if(filename == "." || filename == "..")
+               continue;
+            const std::string full_path = cur_path + "/" + filename;
+
+            if(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+               {
+               dir_list.push_back(full_path);
+               }
+            else
+               {
+               out.push_back(full_path);
+               }
+            }
+         while(::FindNextFile(dir, &find_data));
+         }
+
+      ::FindClose(dir);
+      }
+
+   return out;
+}
 #endif
 
 }
@@ -54214,6 +64730,8 @@ std::vector<std::string> get_files_recursive(const std::string& dir)
    files = impl_boost_filesystem(dir);
 #elif defined(BOTAN_TARGET_OS_HAS_READDIR)
    files = impl_readdir(dir);
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_WINDOWS)
+   files = impl_win32(dir);
 #else
    BOTAN_UNUSED(dir);
    throw No_Filesystem_Access();
@@ -54226,23 +64744,416 @@ std::vector<std::string> get_files_recursive(const std::string& dir)
 
 }
 /*
-* Memory Scrubbing
-* (C) 2012,2015,2016 Jack Lloyd
+* (C) 2017 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
 
-#if defined(BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY)
-  #define NOMINMAX 1
+#if defined(BOTAN_HAS_LOCKING_ALLOCATOR)
 #endif
 
 namespace Botan {
 
+void* allocate_memory(size_t elems, size_t elem_size)
+   {
+#if defined(BOTAN_HAS_LOCKING_ALLOCATOR)
+   if(void* p = mlock_allocator::instance().allocate(elems, elem_size))
+      return p;
+#endif
+
+   void* ptr = std::calloc(elems, elem_size);
+   if(!ptr)
+      throw std::bad_alloc();
+   return ptr;
+   }
+
+void deallocate_memory(void* p, size_t elems, size_t elem_size)
+   {
+   if(p == nullptr)
+      return;
+
+   secure_scrub_memory(p, elems * elem_size);
+
+#if defined(BOTAN_HAS_LOCKING_ALLOCATOR)
+   if(mlock_allocator::instance().deallocate(p, elems, elem_size))
+      return;
+#endif
+
+   std::free(p);
+   }
+
+bool constant_time_compare(const uint8_t x[],
+                           const uint8_t y[],
+                           size_t len)
+   {
+   volatile uint8_t difference = 0;
+
+   for(size_t i = 0; i != len; ++i)
+      difference |= (x[i] ^ y[i]);
+
+   return difference == 0;
+   }
+
+void xor_buf(uint8_t x[],
+             const uint8_t y[],
+             size_t len)
+   {
+   while(len >= 16)
+      {
+      x[0] ^= y[0];
+      x[1] ^= y[1];
+      x[2] ^= y[2];
+      x[3] ^= y[3];
+      x[4] ^= y[4];
+      x[5] ^= y[5];
+      x[6] ^= y[6];
+      x[7] ^= y[7];
+      x[8] ^= y[8];
+      x[9] ^= y[9];
+      x[10] ^= y[10];
+      x[11] ^= y[11];
+      x[12] ^= y[12];
+      x[13] ^= y[13];
+      x[14] ^= y[14];
+      x[15] ^= y[15];
+      x += 16; y += 16; len -= 16;
+      }
+
+   for(size_t i = 0; i != len; ++i)
+      {
+      x[i] ^= y[i];
+      }
+   }
+
+void xor_buf(uint8_t out[],
+             const uint8_t in[],
+             const uint8_t in2[],
+             size_t length)
+   {
+   while(length >= 16)
+      {
+      out[0] = in[0] ^ in2[0];
+      out[1] = in[1] ^ in2[1];
+      out[2] = in[2] ^ in2[2];
+      out[3] = in[3] ^ in2[3];
+      out[4] = in[4] ^ in2[4];
+      out[5] = in[5] ^ in2[5];
+      out[6] = in[6] ^ in2[6];
+      out[7] = in[7] ^ in2[7];
+      out[8] = in[8] ^ in2[8];
+      out[9] = in[9] ^ in2[9];
+      out[10] = in[10] ^ in2[10];
+      out[11] = in[11] ^ in2[11];
+      out[12] = in[12] ^ in2[12];
+      out[13] = in[13] ^ in2[13];
+      out[14] = in[14] ^ in2[14];
+      out[15] = in[15] ^ in2[15];
+      in += 16; in2 += 16; out += 16; length -= 16;
+      }
+
+   for(size_t i = 0; i != length; ++i)
+      out[i] = in[i] ^ in2[i];
+   }
+
+}
+/*
+* OS and machine specific utility functions
+* (C) 2015,2016,2017 Jack Lloyd
+* (C) 2016 Daniel Neus
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
+
+
+#if defined(BOTAN_HAS_BOOST_ASIO)
+  /*
+  * We don't need serial port support anyway, and asking for it
+  * causes macro conflicts with Darwin's termios.h when this
+  * file is included in the amalgamation. GH #350
+  */
+  #define BOOST_ASIO_DISABLE_SERIAL_PORT
+  #include <boost/asio.hpp>
+#endif
+
+#if defined(BOTAN_TARGET_OS_HAS_EXPLICIT_BZERO)
+  #include <string.h>
+#endif
+
+#if defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
+  #include <sys/resource.h>
+  #include <sys/mman.h>
+  #include <signal.h>
+  #include <setjmp.h>
+
+#if !defined(BOTAN_HAS_BOOST_ASIO)
+  #include <sys/socket.h>
+  #include <netinet/in.h>
+  #include <netdb.h>
+#endif
+
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_WINDOWS)
+  #define NOMINMAX 1
+#if !defined(BOTAN_HAS_BOOST_ASIO)
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#endif
+#endif
+
+namespace Botan {
+
+namespace {
+
+#if defined(BOTAN_HAS_BOOST_ASIO)
+
+class Asio_Socket final : public OS::Socket
+   {
+   public:
+      Asio_Socket(const std::string& hostname, const std::string& service) :
+         m_tcp(m_io)
+         {
+         boost::asio::ip::tcp::resolver resolver(m_io);
+         boost::asio::ip::tcp::resolver::query query(hostname, service);
+         boost::asio::connect(m_tcp, resolver.resolve(query));
+         }
+
+      void write(const uint8_t buf[], size_t len) override
+         {
+         boost::asio::write(m_tcp, boost::asio::buffer(buf, len));
+         }
+
+      size_t read(uint8_t buf[], size_t len) override
+         {
+         boost::system::error_code error;
+         size_t got = m_tcp.read_some(boost::asio::buffer(buf, len), error);
+
+         if(error)
+            {
+            if(error == boost::asio::error::eof)
+               return 0;
+            throw boost::system::system_error(error); // Some other error.
+            }
+
+         return got;
+         }
+
+   private:
+      boost::asio::io_service m_io;
+      boost::asio::ip::tcp::socket m_tcp;
+   };
+
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_WINDOWS)
+
+class Winsock_Socket final : public OS::Socket
+   {
+   public:
+      Winsock_Socket(const std::string& hostname, const std::string& service)
+         {
+         WSAData wsa_data;
+         WORD wsa_version = MAKEWORD(2, 2);
+
+         if (::WSAStartup(wsa_version, &wsa_data) != 0)
+            {
+            throw Exception("WSAStartup() failed: " + std::to_string(WSAGetLastError()));
+            }
+
+         if (LOBYTE(wsa_data.wVersion) != 2 || HIBYTE(wsa_data.wVersion) != 2)
+            {
+            ::WSACleanup();
+            throw Exception("Could not find a usable version of Winsock.dll");
+            }
+
+         addrinfo hints;
+         ::memset(&hints, 0, sizeof(addrinfo));
+         hints.ai_family = AF_UNSPEC;
+         hints.ai_socktype = SOCK_STREAM;
+         addrinfo* res;
+
+         if(::getaddrinfo(hostname.c_str(), service.c_str(), &hints, &res) != 0)
+            {
+            throw Exception("Name resolution failed for " + hostname);
+            }
+
+         for(addrinfo* rp = res; (m_socket == INVALID_SOCKET) && (rp != nullptr); rp = rp->ai_next)
+            {
+            m_socket = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+
+            // unsupported socket type?
+            if(m_socket == INVALID_SOCKET)
+               continue;
+
+            if(::connect(m_socket, rp->ai_addr, rp->ai_addrlen) != 0)
+               {
+               ::closesocket(m_socket);
+               m_socket = INVALID_SOCKET;
+               continue;
+               }
+            }
+
+         ::freeaddrinfo(res);
+
+         if(m_socket == INVALID_SOCKET)
+            {
+            throw Exception("Connecting to " + hostname +
+                            " for service " + service + " failed");
+            }
+         }
+
+      ~Winsock_Socket()
+         {
+         ::closesocket(m_socket);
+         m_socket = INVALID_SOCKET;
+         ::WSACleanup();
+         }
+
+      void write(const uint8_t buf[], size_t len) override
+         {
+         size_t sent_so_far = 0;
+         while(sent_so_far != len)
+            {
+            const size_t left = len - sent_so_far;
+            int sent = ::send(m_socket,
+                              reinterpret_cast<const char*>(buf + sent_so_far),
+                              static_cast<int>(left),
+                              0);
+
+            if(sent == SOCKET_ERROR)
+               throw Exception("Socket write failed with error " +
+                               std::to_string(::WSAGetLastError()));
+            else
+               sent_so_far += static_cast<size_t>(sent);
+            }
+         }
+
+      size_t read(uint8_t buf[], size_t len) override
+         {
+         int got = ::recv(m_socket,
+                          reinterpret_cast<char*>(buf),
+                          static_cast<int>(len), 0);
+
+         if(got == SOCKET_ERROR)
+            throw Exception("Socket read failed with error " +
+                            std::to_string(::WSAGetLastError()));
+         return static_cast<size_t>(got);
+         }
+
+   private:
+      SOCKET m_socket = INVALID_SOCKET;
+   };
+
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
+class BSD_Socket final : public OS::Socket
+   {
+   public:
+      BSD_Socket(const std::string& hostname, const std::string& service)
+         {
+         addrinfo hints;
+         ::memset(&hints, 0, sizeof(addrinfo));
+         hints.ai_family = AF_UNSPEC;
+         hints.ai_socktype = SOCK_STREAM;
+         addrinfo* res;
+
+         if(::getaddrinfo(hostname.c_str(), service.c_str(), &hints, &res) != 0)
+            {
+            throw Exception("Name resolution failed for " + hostname);
+            }
+
+         m_fd = -1;
+
+         for(addrinfo* rp = res; (m_fd < 0) && (rp != nullptr); rp = rp->ai_next)
+            {
+            m_fd = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+
+            if(m_fd < 0)
+               {
+               // unsupported socket type?
+               continue;
+               }
+
+            if(::connect(m_fd, rp->ai_addr, rp->ai_addrlen) != 0)
+               {
+               ::close(m_fd);
+               m_fd = -1;
+               continue;
+               }
+            }
+
+         ::freeaddrinfo(res);
+
+         if(m_fd < 0)
+            {
+            throw Exception("Connecting to " + hostname +
+                            " for service " + service + " failed");
+            }
+         }
+
+      ~BSD_Socket()
+         {
+         ::close(m_fd);
+         m_fd = -1;
+         }
+
+      void write(const uint8_t buf[], size_t len) override
+         {
+         size_t sent_so_far = 0;
+         while(sent_so_far != len)
+            {
+            const size_t left = len - sent_so_far;
+            ssize_t sent = ::write(m_fd, &buf[sent_so_far], left);
+            if(sent < 0)
+               throw Exception("Socket write failed with error '" +
+                               std::string(::strerror(errno)) + "'");
+            else
+               sent_so_far += static_cast<size_t>(sent);
+            }
+         }
+
+      size_t read(uint8_t buf[], size_t len) override
+         {
+         ssize_t got = ::read(m_fd, buf, len);
+
+         if(got < 0)
+            throw Exception("Socket read failed with error '" +
+                            std::string(::strerror(errno)) + "'");
+         return static_cast<size_t>(got);
+         }
+
+   private:
+      int m_fd;
+   };
+
+#endif
+
+}
+
+std::unique_ptr<OS::Socket>
+OS::open_socket(const std::string& hostname,
+                const std::string& service)
+   {
+#if defined(BOTAN_HAS_BOOST_ASIO)
+   return std::unique_ptr<OS::Socket>(new Asio_Socket(hostname, service));
+
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_WINDOWS)
+   return std::unique_ptr<OS::Socket>(new Winsock_Socket(hostname, service));
+
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
+   return std::unique_ptr<OS::Socket>(new BSD_Socket(hostname, service));
+
+#else
+   // No sockets for you
+   return std::unique_ptr<Socket>();
+#endif
+   }
+
+// Not defined in OS namespace for historical reasons
 void secure_scrub_memory(void* ptr, size_t n)
    {
 #if defined(BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY)
    ::RtlSecureZeroMemory(ptr, n);
+
+#elif defined(BOTAN_TARGET_OS_HAS_EXPLICIT_BZERO)
+   ::explicit_bzero(ptr, n);
+
 #elif defined(BOTAN_USE_VOLATILE_MEMSET_FOR_ZERO) && (BOTAN_USE_VOLATILE_MEMSET_FOR_ZERO == 1)
    /*
    Call memset through a static volatile pointer, which the compiler
@@ -54254,6 +65165,7 @@ void secure_scrub_memory(void* ptr, size_t n)
    static void* (*const volatile memset_ptr)(void*, int, size_t) = std::memset;
    (memset_ptr)(ptr, 0, n);
 #else
+
    volatile uint8_t* p = reinterpret_cast<volatile uint8_t*>(ptr);
 
    for(size_t i = 0; i != n; ++i)
@@ -54261,88 +65173,81 @@ void secure_scrub_memory(void* ptr, size_t n)
 #endif
    }
 
-}
-/*
-* OS and machine specific utility functions
-* (C) 2015,2016 Jack Lloyd
-* (C) 2016 Daniel Neus
-*
-* Botan is released under the Simplified BSD License (see license.txt)
-*/
-
-
-#if defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
-  #include <sys/mman.h>
-  #include <sys/resource.h>
-#endif
-
-#if defined(BOTAN_TARGET_OS_IS_WINDOWS) || defined(BOTAN_TARGET_OS_IS_MINGW)
-  #define NOMINMAX 1
-#endif
-
-namespace Botan {
-
-namespace OS {
-
-uint32_t get_process_id()
+uint32_t OS::get_process_id()
    {
 #if defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
    return ::getpid();
 #elif defined(BOTAN_TARGET_OS_IS_WINDOWS) || defined(BOTAN_TARGET_OS_IS_MINGW)
    return ::GetCurrentProcessId();
-#elif defined(BOTAN_TARGET_OS_TYPE_IS_UNIKERNEL)
+#elif defined(BOTAN_TARGET_OS_TYPE_IS_UNIKERNEL) || defined(BOTAN_TARGET_OS_IS_LLVM)
    return 0; // truly no meaningful value
 #else
    #error "Missing get_process_id"
 #endif
    }
 
-uint64_t get_processor_timestamp()
+uint64_t OS::get_processor_timestamp()
    {
+   uint64_t rtc = 0;
+
 #if defined(BOTAN_TARGET_OS_HAS_QUERY_PERF_COUNTER)
    LARGE_INTEGER tv;
    ::QueryPerformanceCounter(&tv);
-   return tv.QuadPart;
+   rtc = tv.QuadPart;
 
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
-   if(CPUID::has_rdtsc()) // not available on all x86 CPUs
+#elif defined(BOTAN_USE_GCC_INLINE_ASM)
+
+#if defined(BOTAN_TARGET_CPU_IS_X86_FAMILY)
+
+   if(CPUID::has_rdtsc())
       {
       uint32_t rtc_low = 0, rtc_high = 0;
       asm volatile("rdtsc" : "=d" (rtc_high), "=a" (rtc_low));
-      return (static_cast<uint64_t>(rtc_high) << 32) | rtc_low;
+      rtc = (static_cast<uint64_t>(rtc_high) << 32) | rtc_low;
       }
 
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_CPU_IS_PPC_FAMILY)
+#elif defined(BOTAN_TARGET_ARCH_IS_PPC64)
    uint32_t rtc_low = 0, rtc_high = 0;
    asm volatile("mftbu %0; mftb %1" : "=r" (rtc_high), "=r" (rtc_low));
-   return (static_cast<uint64_t>(rtc_high) << 32) | rtc_low;
 
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_ALPHA)
-   uint64_t rtc = 0;
+   /*
+   qemu-ppc seems to not support mftb instr, it always returns zero.
+   If both time bases are 0, assume broken and return another clock.
+   */
+   if(rtc_high > 0 || rtc_low > 0)
+      {
+      rtc = (static_cast<uint64_t>(rtc_high) << 32) | rtc_low;
+      }
+
+#elif defined(BOTAN_TARGET_ARCH_IS_ALPHA)
    asm volatile("rpcc %0" : "=r" (rtc));
-   return rtc;
 
    // OpenBSD does not trap access to the %tick register
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_SPARC64) && !defined(BOTAN_TARGET_OS_IS_OPENBSD)
-   uint64_t rtc = 0;
+#elif defined(BOTAN_TARGET_ARCH_IS_SPARC64) && !defined(BOTAN_TARGET_OS_IS_OPENBSD)
    asm volatile("rd %%tick, %0" : "=r" (rtc));
-   return rtc;
 
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_IA64)
-   uint64_t rtc = 0;
+#elif defined(BOTAN_TARGET_ARCH_IS_IA64)
    asm volatile("mov %0=ar.itc" : "=r" (rtc));
-   return rtc;
 
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_S390X)
-   uint64_t rtc = 0;
+#elif defined(BOTAN_TARGET_ARCH_IS_S390X)
    asm volatile("stck 0(%0)" : : "a" (&rtc) : "memory", "cc");
-   return rtc;
 
-#elif defined(BOTAN_USE_GCC_INLINE_ASM) && defined(BOTAN_TARGET_ARCH_IS_HPPA)
-   uint64_t rtc = 0;
+#elif defined(BOTAN_TARGET_ARCH_IS_HPPA)
    asm volatile("mfctl 16,%0" : "=r" (rtc)); // 64-bit only?
-   return rtc;
+
+#else
+   //#warning "OS::get_processor_timestamp not implemented"
 #endif
+
+#endif
+
+   return rtc;
+   }
+
+uint64_t OS::get_high_resolution_clock()
+   {
+   if(uint64_t cpu_clock = OS::get_processor_timestamp())
+      return cpu_clock;
 
    /*
    If we got here either we either don't have an asm instruction
@@ -54387,7 +65292,7 @@ uint64_t get_processor_timestamp()
    return std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
    }
 
-uint64_t get_system_timestamp_ns()
+uint64_t OS::get_system_timestamp_ns()
    {
 #if defined(BOTAN_TARGET_OS_HAS_CLOCK_GETTIME)
    struct timespec ts;
@@ -54401,7 +65306,7 @@ uint64_t get_system_timestamp_ns()
    return std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
    }
 
-size_t get_memory_locking_limit()
+size_t OS::get_memory_locking_limit()
    {
 #if defined(BOTAN_TARGET_OS_HAS_POSIX_MLOCK)
    /*
@@ -54428,6 +65333,7 @@ size_t get_memory_locking_limit()
       catch(std::exception&) { /* ignore it */ }
       }
 
+#if defined(RLIMIT_MEMLOCK)
    if(mlock_requested > 0)
       {
       struct ::rlimit limits;
@@ -54443,6 +65349,14 @@ size_t get_memory_locking_limit()
 
       return std::min<size_t>(limits.rlim_cur, mlock_requested * 1024);
       }
+#else
+   /*
+   * If RLIMIT_MEMLOCK is not defined, likely the OS does not support
+   * unprivileged mlock calls.
+   */
+   return 0;
+#endif
+
 #elif defined(BOTAN_TARGET_OS_HAS_VIRTUAL_LOCK) && defined(BOTAN_BUILD_COMPILER_IS_MSVC)
    SIZE_T working_min = 0, working_max = 0;
    DWORD working_flags = 0;
@@ -54478,7 +65392,7 @@ size_t get_memory_locking_limit()
    return 0;
    }
 
-void* allocate_locked_pages(size_t length)
+void* OS::allocate_locked_pages(size_t length)
    {
 #if defined(BOTAN_TARGET_OS_HAS_POSIX_MLOCK)
 
@@ -54535,7 +65449,7 @@ void* allocate_locked_pages(size_t length)
 #endif
    }
 
-void free_locked_pages(void* ptr, size_t length)
+void OS::free_locked_pages(void* ptr, size_t length)
    {
    if(ptr == nullptr || length == 0)
       return;
@@ -54554,13 +65468,78 @@ void free_locked_pages(void* ptr, size_t length)
 #endif
    }
 
+#if defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
+namespace {
+
+static ::sigjmp_buf g_sigill_jmp_buf;
+
+void botan_sigill_handler(int)
+   {
+   ::siglongjmp(g_sigill_jmp_buf, /*non-zero return value*/1);
+   }
+
 }
+#endif
+
+int OS::run_cpu_instruction_probe(std::function<int ()> probe_fn)
+   {
+   volatile int probe_result = -3;
+
+#if defined(BOTAN_TARGET_OS_TYPE_IS_UNIX)
+   struct sigaction old_sigaction;
+   struct sigaction sigaction;
+
+   sigaction.sa_handler = botan_sigill_handler;
+   sigemptyset(&sigaction.sa_mask);
+   sigaction.sa_flags = 0;
+
+   int rc = ::sigaction(SIGILL, &sigaction, &old_sigaction);
+
+   if(rc != 0)
+      throw Exception("run_cpu_instruction_probe sigaction failed");
+
+   rc = ::sigsetjmp(g_sigill_jmp_buf, /*save sigs*/1);
+
+   if(rc == 0)
+      {
+      // first call to sigsetjmp
+      probe_result = probe_fn();
+      }
+   else if(rc == 1)
+      {
+      // non-local return from siglongjmp in signal handler: return error
+      probe_result = -1;
+      }
+
+   // Restore old SIGILL handler, if any
+   rc = ::sigaction(SIGILL, &old_sigaction, nullptr);
+   if(rc != 0)
+      throw Exception("run_cpu_instruction_probe sigaction restore failed");
+
+#elif defined(BOTAN_TARGET_OS_IS_WINDOWS) && defined(BOTAN_TARGET_COMPILER_IS_MSVC)
+
+   // Windows SEH
+   __try
+      {
+      probe_result = probe_fn();
+      }
+   __except(::GetExceptionCode() == EXCEPTION_ILLEGAL_INSTRUCTION ?
+            EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+      {
+      probe_result = -1;
+      }
+
+#endif
+
+   return probe_result;
+   }
 
 }
 /*
 * Various string utils and parsing functions
 * (C) 1999-2007,2013,2014,2015 Jack Lloyd
 * (C) 2015 Simon Warta (Kullo GmbH)
+* (C) 2017 René Korthaus, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -54568,37 +65547,40 @@ void free_locked_pages(void* ptr, size_t length)
 
 namespace Botan {
 
+uint16_t to_uint16(const std::string& str)
+   {
+   const uint32_t x = to_u32bit(str);
+
+   if(x >> 16)
+      throw Invalid_Argument("Integer value exceeds 16 bit range");
+
+   return static_cast<uint16_t>(x);
+   }
+
 uint32_t to_u32bit(const std::string& str)
    {
-   try
+   // std::stoul is not strict enough. Ensure that str is digit only [0-9]*
+   for(const char chr : str)
       {
-      // std::stoul is not strict enough. Ensure that str is digit only [0-9]*
-      for (const char chr : str)
+      if(chr < '0' || chr > '9')
          {
-         if (chr < '0' || chr > '9')
-            {
-            auto chrAsString = std::string(1, chr);
-            throw Invalid_Argument("String contains non-digit char: " + chrAsString);
-            }
+         std::string chrAsString(1, chr);
+         throw Invalid_Argument("String contains non-digit char: " + chrAsString);
          }
-
-      const auto integerValue = std::stoul(str);
-
-      // integerValue might be uint64
-      if (integerValue > std::numeric_limits<uint32_t>::max())
-         {
-         throw Invalid_Argument("Integer value exceeds 32 bit range: " + std::to_string(integerValue));
-         }
-
-      return integerValue;
       }
-   catch(std::exception& e)
+
+   const unsigned long int x = std::stoul(str);
+
+   if(sizeof(unsigned long int) > 4)
       {
-      auto message = std::string("Could not read '" + str + "' as decimal string");
-      auto exceptionMessage = std::string(e.what());
-      if (!exceptionMessage.empty()) message += ": " + exceptionMessage;
-      throw Exception(message);
+      // x might be uint64
+      if (x > std::numeric_limits<uint32_t>::max())
+         {
+         throw Invalid_Argument("Integer value of " + str + " exceeds 32 bit range");
+         }
       }
+
+   return static_cast<uint32_t>(x);
    }
 
 /*
@@ -54792,6 +65774,8 @@ bool x500_name_cmp(const std::string& name1, const std::string& name2)
 
          if(p1 == name1.end() && p2 == name2.end())
             return true;
+         if(p1 == name1.end() || p2 == name2.end())
+            return false;
          }
 
       if(!Charset::caseless_cmp(*p1, *p2))
@@ -54888,24 +65872,102 @@ std::string replace_char(const std::string& str, char from_char, char to_char)
 bool host_wildcard_match(const std::string& issued, const std::string& host)
    {
    if(issued == host)
+      {
       return true;
+      }
 
-   if(issued.size() > 2 && issued[0] == '*' && issued[1] == '.')
+   if(std::count(issued.begin(), issued.end(), '*') > 1)
+      {
+      return false;
+      }
+
+   // first try to match the base, then the left-most label
+   // which can contain exactly one wildcard at any position
+   if(issued.size() > 2)
       {
       size_t host_i = host.find('.');
       if(host_i == std::string::npos || host_i == host.size() - 1)
+         {
          return false;
+         }
+
+      size_t issued_i = issued.find('.');
+      if(issued_i == std::string::npos || issued_i == issued.size() - 1)
+         {
+         return false;
+         }
 
       const std::string host_base = host.substr(host_i + 1);
-      const std::string issued_base = issued.substr(2);
+      const std::string issued_base = issued.substr(issued_i + 1);
 
-      if(host_base == issued_base)
+      // if anything but the left-most label doesn't equal,
+      // we are already out here
+      if(host_base != issued_base)
+         {
+         return false;
+         }
+
+      // compare the left-most labels
+      std::string host_prefix = host.substr(0, host_i);
+
+      if(host_prefix.empty())
+         {
+         return false;
+         }
+
+      const std::string issued_prefix = issued.substr(0, issued_i);
+
+      // if split_on would work on strings with less than 2 items,
+      // the if/else block would not be necessary
+      if(issued_prefix == "*")
+         {
          return true;
          }
 
+      std::vector<std::string> p;
+
+      if(issued_prefix[0] == '*')
+         {
+         p = std::vector<std::string>{"", issued_prefix.substr(1, issued_prefix.size())};
+         }
+      else if(issued_prefix[issued_prefix.size()-1] == '*')
+         {
+         p = std::vector<std::string>{issued_prefix.substr(0, issued_prefix.size() - 1), ""};
+         }
+      else
+         {
+         p = split_on(issued_prefix, '*');
+         }
+
+      if(p.size() != 2)
+         {
+         return false;
+         }
+
+      // match anything before and after the wildcard character
+      const std::string first = p[0];
+      const std::string last = p[1];
+
+      if(host_prefix.substr(0, first.size()) == first)
+         {
+         host_prefix.erase(0, first.size());
+         }
+
+      // nothing to match anymore
+      if(last.empty())
+         {
+         return true;
+         }
+
+      if(host_prefix.size() >= last.size() &&
+            host_prefix.substr(host_prefix.size() - last.size(), last.size()) == last)
+         {
+         return true;
+         }
+      }
+
    return false;
    }
-
 }
 /*
 * Simple config/test file reader
@@ -55103,6 +66165,11 @@ std::string runtime_version_check(uint32_t major,
 
 
 namespace Botan {
+
+std::unique_ptr<HashFunction> Whirlpool::copy_state() const
+   {
+   return std::unique_ptr<HashFunction>(new Whirlpool(*this));
+   }
 
 /*
 * Whirlpool Compression Function
@@ -55887,27 +66954,23 @@ namespace Botan {
 
 std::shared_ptr<const X509_CRL> Certificate_Store::find_crl_for(const X509_Certificate&) const
    {
-   return std::shared_ptr<const X509_CRL>();
+   return {};
    }
 
 void Certificate_Store_In_Memory::add_certificate(const X509_Certificate& cert)
    {
-   for(size_t i = 0; i != m_certs.size(); ++i)
-      {
-      if(*m_certs[i] == cert)
+   for(const auto& c : m_certs)
+      if(*c == cert)
          return;
-      }
 
    m_certs.push_back(std::make_shared<const X509_Certificate>(cert));
    }
 
 void Certificate_Store_In_Memory::add_certificate(std::shared_ptr<const X509_Certificate> cert)
    {
-   for(size_t i = 0; i != m_certs.size(); ++i)
-      {
-      if(*m_certs[i] == *cert)
+   for(const auto& c : m_certs)
+      if(*c == *cert)
          return;
-      }
 
    m_certs.push_back(cert);
    }
@@ -55915,8 +66978,8 @@ void Certificate_Store_In_Memory::add_certificate(std::shared_ptr<const X509_Cer
 std::vector<X509_DN> Certificate_Store_In_Memory::all_subjects() const
    {
    std::vector<X509_DN> subjects;
-   for(size_t i = 0; i != m_certs.size(); ++i)
-      subjects.push_back(m_certs[i]->subject_dn());
+   for(const auto& cert : m_certs)
+      subjects.push_back(cert->subject_dn());
    return subjects;
    }
 
@@ -55924,22 +66987,22 @@ std::shared_ptr<const X509_Certificate>
 Certificate_Store_In_Memory::find_cert(const X509_DN& subject_dn,
                                        const std::vector<uint8_t>& key_id) const
    {
-   for(size_t i = 0; i != m_certs.size(); ++i)
+   for(const auto& cert : m_certs)
       {
       // Only compare key ids if set in both call and in the cert
       if(key_id.size())
          {
-         std::vector<uint8_t> skid = m_certs[i]->subject_key_id();
+         std::vector<uint8_t> skid = cert->subject_key_id();
 
          if(skid.size() && skid != key_id) // no match
             continue;
          }
 
-      if(m_certs[i]->subject_dn() == subject_dn)
-         return m_certs[i];
+      if(cert->subject_dn() == subject_dn)
+         return cert;
       }
 
-   return std::shared_ptr<const X509_Certificate>();
+   return nullptr;
    }
 
 
@@ -55949,14 +67012,30 @@ Certificate_Store_In_Memory::find_cert_by_pubkey_sha1(const std::vector<uint8_t>
    if(key_hash.size() != 20)
       throw Invalid_Argument("Certificate_Store_In_Memory::find_cert_by_pubkey_sha1 invalid hash");
 
-   for(size_t i = 0; i != m_certs.size(); ++i)
-      {
-      const std::vector<uint8_t> hash_i = m_certs[i]->subject_public_key_bitstring_sha1();
-      if(key_hash == hash_i)
-         {
-         return m_certs[i];
-         }
-      }
+   std::unique_ptr<HashFunction> hash(HashFunction::create("SHA-1"));
+
+   for(const auto& cert : m_certs){
+      hash->update(cert->subject_public_key_bitstring());
+      if(key_hash == hash->final_stdvec()) //final_stdvec also clears the hash to initial state
+         return cert;
+   }
+
+   return nullptr;
+   }
+
+std::shared_ptr<const X509_Certificate>
+Certificate_Store_In_Memory::find_cert_by_raw_subject_dn_sha256(const std::vector<uint8_t>& subject_hash) const
+   {
+   if(subject_hash.size() != 32)
+      throw Invalid_Argument("Certificate_Store_In_Memory::find_cert_by_raw_subject_dn_sha256 invalid hash");
+
+   std::unique_ptr<HashFunction> hash(HashFunction::create("SHA-256"));
+
+   for(const auto& cert : m_certs){
+      hash->update(cert->raw_subject_dn());
+      if(subject_hash == hash->final_stdvec()) //final_stdvec also clears the hash to initial state
+         return cert;
+   }
 
    return nullptr;
    }
@@ -55971,13 +67050,13 @@ void Certificate_Store_In_Memory::add_crl(std::shared_ptr<const X509_CRL> crl)
    {
    X509_DN crl_issuer = crl->issuer_dn();
 
-   for(size_t i = 0; i != m_crls.size(); ++i)
+   for(auto& c : m_crls)
       {
       // Found an update of a previously existing one; replace it
-      if(m_crls[i]->issuer_dn() == crl_issuer)
+      if(c->issuer_dn() == crl_issuer)
          {
-         if(m_crls[i]->this_update() <= crl->this_update())
-            m_crls[i] = crl;
+         if(c->this_update() <= crl->this_update())
+            c = crl;
          return;
          }
       }
@@ -55990,22 +67069,22 @@ std::shared_ptr<const X509_CRL> Certificate_Store_In_Memory::find_crl_for(const 
    {
    const std::vector<uint8_t>& key_id = subject.authority_key_id();
 
-   for(size_t i = 0; i != m_crls.size(); ++i)
+   for(const auto& c : m_crls)
       {
       // Only compare key ids if set in both call and in the CRL
       if(key_id.size())
          {
-         std::vector<uint8_t> akid = m_crls[i]->authority_key_id();
+         std::vector<uint8_t> akid = c->authority_key_id();
 
          if(akid.size() && akid != key_id) // no match
             continue;
          }
 
-      if(m_crls[i]->issuer_dn() == subject.issuer_dn())
-         return m_crls[i];
+      if(c->issuer_dn() == subject.issuer_dn())
+         return c;
       }
 
-   return std::shared_ptr<const X509_CRL>();
+   return {};
    }
 
 Certificate_Store_In_Memory::Certificate_Store_In_Memory(const X509_Certificate& cert)
@@ -56395,6 +67474,8 @@ void verify_cert_constraints_valid_for_key_type(const Public_Key& pub_key,
 
 namespace Botan {
 
+class DER_Encoder;
+
 GeneralName::GeneralName(const std::string& str) : GeneralName()
    {
    size_t p = str.find(':');
@@ -56410,7 +67491,7 @@ GeneralName::GeneralName(const std::string& str) : GeneralName()
       }
    }
 
-void GeneralName::encode_into(class DER_Encoder&) const
+void GeneralName::encode_into(DER_Encoder&) const
    {
    throw Not_Implemented("GeneralName encoding");
    }
@@ -56571,7 +67652,7 @@ bool GeneralName::matches_dn(const std::string& nam) const
 
    auto attr = nam_dn.get_attributes();
    bool ret = true;
-   int trys = 0;
+   size_t trys = 0;
 
    for(const std::pair<OID,std::string>& c: my_dn.get_attributes())
       {
@@ -56580,7 +67661,7 @@ bool GeneralName::matches_dn(const std::string& nam) const
       if(i.first != i.second)
          {
          trys += 1;
-         ret &= i.first->second == c.second;
+         ret = ret && (i.first->second == c.second);
          }
       }
 
@@ -56626,7 +67707,7 @@ GeneralSubtree::GeneralSubtree(const std::string& str) : GeneralSubtree()
       }
    }
 
-void GeneralSubtree::encode_into(class DER_Encoder&) const
+void GeneralSubtree::encode_into(DER_Encoder&) const
    {
    throw Not_Implemented("General Subtree encoding");
    }
@@ -56695,11 +67776,17 @@ void decode_optional_list(BER_Decoder& ber,
 Request::Request(const X509_Certificate& issuer_cert,
                  const X509_Certificate& subject_cert) :
    m_issuer(issuer_cert),
-   m_subject(subject_cert),
-   m_certid(m_issuer, m_subject)
+   m_certid(m_issuer, BigInt::decode(subject_cert.serial_number()))
    {
    if(subject_cert.issuer_dn() != issuer_cert.subject_dn())
       throw Invalid_Argument("Invalid cert pair to OCSP::Request (mismatched issuer,subject args?)");
+   }
+
+Request::Request(const X509_Certificate& issuer_cert,
+                 const BigInt& subject_serial) :
+   m_issuer(issuer_cert),
+   m_certid(m_issuer, subject_serial)
+   {
    }
 
 std::vector<uint8_t> Request::BER_encode() const
@@ -56917,17 +68004,16 @@ Certificate_Status_Code Response::status_for(const X509_Certificate& issuer,
 #if defined(BOTAN_HAS_HTTP_UTIL)
 
 Response online_check(const X509_Certificate& issuer,
-                      const X509_Certificate& subject,
+                      const BigInt& subject_serial,
+                      const std::string& ocsp_responder,
                       Certificate_Store* trusted_roots)
    {
-   const std::string responder_url = subject.ocsp_responder();
+   if(ocsp_responder.empty())
+      throw Invalid_Argument("No OCSP responder specified");
 
-   if(responder_url.empty())
-      throw Exception("No OCSP responder specified");
+   OCSP::Request req(issuer, subject_serial);
 
-   OCSP::Request req(issuer, subject);
-
-   auto http = HTTP::POST_sync(responder_url,
+   auto http = HTTP::POST_sync(ocsp_responder,
                                "application/ocsp-request",
                                req.BER_encode());
 
@@ -56944,6 +68030,20 @@ Response online_check(const X509_Certificate& issuer,
       response.check_signature(trusted_roots_vec);
 
    return response;
+   }
+
+
+Response online_check(const X509_Certificate& issuer,
+                      const X509_Certificate& subject,
+                      Certificate_Store* trusted_roots)
+   {
+   if(subject.issuer_dn() != issuer.subject_dn())
+      throw Invalid_Argument("Invalid cert pair to OCSP::online_check (mismatched issuer,subject args?)");
+
+   return online_check(issuer,
+                       BigInt::decode(subject.serial_number()),
+                       subject.ocsp_responder(),
+                       trusted_roots);
    }
 
 #endif
@@ -56964,18 +68064,18 @@ namespace Botan {
 namespace OCSP {
 
 CertID::CertID(const X509_Certificate& issuer,
-               const X509_Certificate& subject)
+               const BigInt& subject_serial)
    {
    /*
    In practice it seems some responders, including, notably,
    ocsp.verisign.com, will reject anything but SHA-1 here
    */
-   std::unique_ptr<HashFunction> hash(HashFunction::create("SHA-160"));
+   std::unique_ptr<HashFunction> hash(HashFunction::create_or_throw("SHA-160"));
 
    m_hash_id = AlgorithmIdentifier(hash->name(), AlgorithmIdentifier::USE_NULL_PARAM);
    m_issuer_key_hash = unlock(hash->process(issuer.subject_public_key_bitstring()));
-   m_issuer_dn_hash = unlock(hash->process(subject.raw_issuer_dn()));
-   m_subject_serial = BigInt::decode(subject.serial_number());
+   m_issuer_dn_hash = unlock(hash->process(issuer.raw_subject_dn()));
+   m_subject_serial = subject_serial;
    }
 
 bool CertID::is_id_for(const X509_Certificate& issuer,
@@ -57282,7 +68382,6 @@ Extensions PKCS10_Request::extensions() const
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#include <typeinfo>
 
 namespace Botan {
 
@@ -57297,7 +68396,7 @@ X509_CA::X509_CA(const X509_Certificate& c,
    if(!m_cert.is_CA_cert())
       throw Invalid_Argument("X509_CA: This certificate is not for a CA");
 
-   m_signer = choose_sig_format(key, rng, hash_fn, m_ca_sig_algo);
+   m_signer.reset(choose_sig_format(key, rng, hash_fn, m_ca_sig_algo));
    }
 
 /*
@@ -57305,7 +68404,7 @@ X509_CA::X509_CA(const X509_Certificate& c,
 */
 X509_CA::~X509_CA()
    {
-   delete m_signer;
+   /* for unique_ptr */
    }
 
 /*
@@ -57314,7 +68413,7 @@ X509_CA::~X509_CA()
 X509_Certificate X509_CA::sign_request(const PKCS10_Request& req,
                                        RandomNumberGenerator& rng,
                                        const X509_Time& not_before,
-                                       const X509_Time& not_after)
+                                       const X509_Time& not_after) const
    {
    Key_Constraints constraints;
    if(req.is_CA())
@@ -57348,7 +68447,7 @@ X509_Certificate X509_CA::sign_request(const PKCS10_Request& req,
    extensions.replace(
       new Cert_Extension::Extended_Key_Usage(req.ex_constraints()));
 
-   return make_cert(m_signer, rng, m_ca_sig_algo,
+   return make_cert(m_signer.get(), rng, m_ca_sig_algo,
                     req.raw_public_key(),
                     not_before, not_after,
                     m_cert.subject_dn(), req.subject_dn(),
@@ -57454,7 +68553,7 @@ X509_CRL X509_CA::make_crl(const std::vector<CRL_Entry>& revoked,
 
    // clang-format off
    const std::vector<uint8_t> crl = X509_Object::make_signed(
-      m_signer, rng, m_ca_sig_algo,
+      m_signer.get(), rng, m_ca_sig_algo,
       DER_Encoder().start_cons(SEQUENCE)
          .encode(X509_CRL_VERSION-1)
          .encode(m_ca_sig_algo)
@@ -57772,6 +68871,9 @@ Extensions::Extensions(const Extensions& extensions) : ASN1_Object()
 */
 Extensions& Extensions::operator=(const Extensions& other)
    {
+   if(this == &other)
+      return *this;
+
    m_extensions.clear();
 
    for(size_t i = 0; i != other.m_extensions.size(); ++i)
@@ -57934,7 +69036,6 @@ void Extensions::decode_from(BER_Decoder& from_source)
             .decode(oid)
             .decode_optional(critical, BOOLEAN, UNIVERSAL, false)
             .decode(value, OCTET_STRING)
-            .verify_end()
          .end_cons();
 
       m_extensions_raw.emplace(oid, std::make_pair(value, critical));
@@ -58015,7 +69116,6 @@ void Basic_Constraints::decode_inner(const std::vector<uint8_t>& in)
       .start_cons(SEQUENCE)
          .decode_optional(m_is_ca, BOOLEAN, UNIVERSAL, false)
          .decode_optional(m_path_limit, INTEGER, UNIVERSAL, NO_CERT_PATH_LIMIT)
-         .verify_end()
       .end_cons();
 
    if(m_is_ca == false)
@@ -58372,10 +69472,10 @@ namespace {
 /*
 * A policy specifier
 */
-class Policy_Information : public ASN1_Object
+class Policy_Information final : public ASN1_Object
    {
    public:
-      Policy_Information() {}
+      Policy_Information() = default;
       explicit Policy_Information(const OID& oid) : m_oid(oid) {}
 
       const OID& oid() const { return m_oid; }
@@ -58711,7 +69811,6 @@ void X509_Object::decode_from(BER_Decoder& from)
          .end_cons()
          .decode(m_sig_algo)
          .decode(m_sig, BIT_STRING)
-         .verify_end()
       .end_cons();
    }
 
@@ -58936,7 +70035,6 @@ void X509_Certificate::force_decode()
       .start_cons(SEQUENCE)
          .decode(start)
          .decode(end)
-         .verify_end()
       .end_cons()
       .decode(dn_subject);
 
@@ -59176,7 +70274,7 @@ bool X509_Certificate::has_ex_constraint(const std::string& ex_constraint) const
 */
 uint32_t X509_Certificate::path_limit() const
    {
-   return m_subject.get1_uint32("X509v3.BasicConstraints.path_constraint", 0);
+   return m_subject.get1_uint32("X509v3.BasicConstraints.path_constraint", Cert_Extension::NO_CERT_PATH_LIMIT);
    }
 
 /*
@@ -59281,6 +70379,13 @@ std::vector<uint8_t> X509_Certificate::raw_issuer_dn() const
    return m_issuer.get1_memvec("X509.Certificate.dn_bits");
    }
 
+std::vector<uint8_t> X509_Certificate::raw_issuer_dn_sha256() const
+   {
+   std::unique_ptr<HashFunction> hash(HashFunction::create("SHA-256"));
+   hash->update(raw_issuer_dn());
+   return hash->final_stdvec();
+   }
+
 X509_DN X509_Certificate::subject_dn() const
    {
    return create_dn(m_subject);
@@ -59289,6 +70394,13 @@ X509_DN X509_Certificate::subject_dn() const
 std::vector<uint8_t> X509_Certificate::raw_subject_dn() const
    {
    return m_subject.get1_memvec("X509.Certificate.dn_bits");
+   }
+
+std::vector<uint8_t> X509_Certificate::raw_subject_dn_sha256() const
+   {
+   std::unique_ptr<HashFunction> hash(HashFunction::create("SHA-256"));
+   hash->update(raw_subject_dn());
+   return hash->final_stdvec();
    }
 
 std::string X509_Certificate::fingerprint(const std::string& hash_name) const
@@ -59489,7 +70601,7 @@ std::string X509_Certificate::to_string() const
    if(this->subject_key_id().size())
      out << "Subject keyid: " << hex_encode(this->subject_key_id()) << "\n";
 
-   std::unique_ptr<X509_PublicKey> pubkey(this->subject_public_key());
+   std::unique_ptr<Public_Key> pubkey(this->subject_public_key());
    out << "Public Key:\n" << X509::PEM_encode(*pubkey);
 
    return out.str();
@@ -59694,12 +70806,8 @@ PKIX::check_chain(const std::vector<std::shared_ptr<const X509_Certificate>>& ce
          status.insert(Certificate_Status_Code::CERT_HAS_EXPIRED);
 
       // Check issuer constraints
-
       if(!issuer->is_CA_cert() && !self_signed_ee_cert)
          status.insert(Certificate_Status_Code::CA_CERT_NOT_FOR_CERT_ISSUER);
-
-      if(issuer->path_limit() < i)
-         status.insert(Certificate_Status_Code::CERT_CHAIN_TOO_LONG);
 
       std::unique_ptr<Public_Key> issuer_key(issuer->subject_public_key());
 
@@ -59730,6 +70838,39 @@ PKIX::check_chain(const std::vector<std::shared_ptr<const X509_Certificate>>& ce
       for(auto& extension : extensions.extensions())
          {
          extension.first->validate(*subject, *issuer, cert_path, cert_status, i);
+         }
+      }
+
+   // path len check
+   size_t max_path_length = cert_path.size();
+   for(size_t i = cert_path.size() - 1; i > 0 ; --i)
+      {
+      std::set<Certificate_Status_Code>& status = cert_status.at(i);
+      const std::shared_ptr<const X509_Certificate>& subject = cert_path[i];
+
+      /*
+      * If the certificate was not self-issued, verify that max_path_length is
+      * greater than zero and decrement max_path_length by 1.
+      */
+      if(subject->subject_dn() != subject->issuer_dn())
+         {
+         if(max_path_length > 0)
+            {
+            --max_path_length;
+            }
+         else
+            {
+            status.insert(Certificate_Status_Code::CERT_CHAIN_TOO_LONG);
+            }
+         }
+
+      /*
+      * If pathLenConstraint is present in the certificate and is less than max_path_length,
+      * set max_path_length to the value of pathLenConstraint.
+      */
+      if(subject->path_limit() != Cert_Extension::NO_CERT_PATH_LIMIT && subject->path_limit() < max_path_length)
+         {
+         max_path_length = subject->path_limit();
          }
       }
 
@@ -59772,7 +70913,7 @@ PKIX::check_ocsp(const std::vector<std::shared_ptr<const X509_Certificate>>& cer
                status.insert(ocsp_signature_status);
                }
             }
-         catch(Exception& e)
+         catch(Exception&)
             {
             status.insert(Certificate_Status_Code::OCSP_RESPONSE_INVALID);
             }
@@ -59885,15 +71026,14 @@ PKIX::check_ocsp_online(const std::vector<std::shared_ptr<const X509_Certificate
 
       if(subject->ocsp_responder() == "")
          {
-         ocsp_response_futures.emplace_back(std::async(std::launch::deferred, [&]{
+         ocsp_response_futures.emplace_back(std::async(std::launch::deferred, [&]() -> std::shared_ptr<const OCSP::Response> {
                   throw Exception("No OCSP responder URL set for this certificate");
-                  return std::shared_ptr<const OCSP::Response>();
                   }));
             }
          else
             {
-            ocsp_response_futures.emplace_back(std::async(std::launch::async, [&]{
-                  OCSP::Request req(*issuer, *subject);
+            ocsp_response_futures.emplace_back(std::async(std::launch::async, [&]() -> std::shared_ptr<const OCSP::Response> {
+                  OCSP::Request req(*issuer, BigInt::decode(subject->serial_number()));
 
                   auto http = HTTP::POST_sync(subject->ocsp_responder(),
                                               "application/ocsp-request",
@@ -59974,14 +71114,13 @@ PKIX::check_crl_online(const std::vector<std::shared_ptr<const X509_Certificate>
       else if(cert_path[i]->crl_distribution_point() == "")
          {
          // Avoid creating a thread for this case
-         future_crls.emplace_back(std::async(std::launch::deferred, [&]{
+         future_crls.emplace_back(std::async(std::launch::deferred, [&]() -> std::shared_ptr<const X509_CRL> {
                throw Exception("No CRL distribution point for this certificate");
-               return std::shared_ptr<const X509_CRL>();
                }));
          }
       else
          {
-         future_crls.emplace_back(std::async(std::launch::async, [&]() {
+         future_crls.emplace_back(std::async(std::launch::async, [&]() -> std::shared_ptr<const X509_CRL> {
                auto http = HTTP::GET_sync(cert_path[i]->crl_distribution_point());
                http.throw_unless_ok();
                // check the mime type?
@@ -60003,7 +71142,7 @@ PKIX::check_crl_online(const std::vector<std::shared_ptr<const X509_Certificate>
                crls[i] = future_crls[i].get();
                }
             }
-         catch(std::exception& e)
+         catch(std::exception&)
             {
             // crls[i] left null
             }
@@ -61066,7 +72205,7 @@ XMSS_PrivateKey::XMSS_PrivateKey(const secure_vector<uint8_t>& raw_key)
      m_wots_priv_key(m_wots_params.oid(), m_public_seed),
      m_index_reg(XMSS_Index_Registry::get_instance())
    {
-   BOTAN_ASSERT(sizeof(size_t) >= ceil(
+   BOTAN_ASSERT(sizeof(size_t) >= std::ceil(
       static_cast<float>(XMSS_PublicKey::m_xmss_params.tree_height()) / 8.f),
       "System type \"size_t\" not big enough to support"
       " leaf index.");
@@ -61331,7 +72470,7 @@ XMSS_Signature::XMSS_Signature(XMSS_Parameters::xmss_algorithm_t oid,
                                const secure_vector<uint8_t>& raw_sig)
    : m_leaf_idx(0), m_randomness(0, 0x00), m_tree_sig()
    {
-   BOTAN_ASSERT(sizeof(size_t) >= ceil(static_cast<float>(
+   BOTAN_ASSERT(sizeof(size_t) >= std::ceil(static_cast<float>(
                    (XMSS_Parameters(oid)).tree_height()) / 8.f),
                    "System type \"size_t\" not big enough to support"
                    " leaf index.");
@@ -61641,7 +72780,7 @@ bool XMSS_Verification_Operation::is_valid_signature(const uint8_t sig[],
       m_msg_buf.clear();
       return result;
       }
-   catch(Integrity_Failure& e)
+   catch(Integrity_Failure&)
       {
       m_msg_buf.clear();
       return false;
@@ -61770,7 +72909,7 @@ XMSS_WOTS_Parameters::XMSS_WOTS_Parameters(ots_algorithm_t oid)
       }
 
    m_w == 16 ? m_lg_w = 4 : m_lg_w = 2;
-   m_len_1 = static_cast<size_t>(ceil((8 * element_size()) / m_lg_w));
+   m_len_1 = static_cast<size_t>(std::ceil((8 * element_size()) / m_lg_w));
    m_len_2 = static_cast<size_t>(
       floor(log2(m_len_1 * (wots_parameter() - 1)) / m_lg_w) + 1);
    BOTAN_ASSERT(m_len == m_len_1 + m_len_2, "Invalid XMSS WOTS parameter "
@@ -61804,7 +72943,7 @@ XMSS_WOTS_Parameters::base_w(size_t value) const
    {
    value <<= (8 - ((m_len_2 * m_lg_w) % 8));
    size_t len_2_bytes = static_cast<size_t>(
-      ceil(static_cast<float>(m_len_2 * m_lg_w) / 8.f));
+      std::ceil(static_cast<float>(m_len_2 * m_lg_w) / 8.f));
    secure_vector<uint8_t> result;
    XMSS_Tools::concat(result, value, len_2_bytes);
    return base_w(result, m_len_2);
@@ -62256,48 +73395,15 @@ void XTEA::clear()
 
 namespace Botan {
 
-namespace {
-
-void poly_double_128(uint8_t out[], const uint8_t in[])
-   {
-   uint64_t X0 = load_le<uint64_t>(in, 0);
-   uint64_t X1 = load_le<uint64_t>(in, 1);
-
-   const bool carry = static_cast<bool>((X1 >> 63) != 0);
-
-   X1 = (X1 << 1) | (X0 >> 63);
-   X0 = (X0 << 1);
-
-   if(carry)
-      X0 ^= 0x87;
-
-   store_le(out, X0, X1);
-   }
-
-void poly_double_64(uint8_t out[], const uint8_t in[])
-   {
-   uint64_t X = load_le<uint64_t>(in, 0);
-   const bool carry = static_cast<bool>((X >> 63) != 0);
-   X <<= 1;
-   if(carry)
-      X ^= 0x1B;
-   store_le(X, out);
-   }
-
-inline void poly_double(uint8_t out[], const uint8_t in[], size_t size)
-   {
-   if(size == 8)
-      poly_double_64(out, in);
-   else
-      poly_double_128(out, in);
-   }
-
-}
-
 XTS_Mode::XTS_Mode(BlockCipher* cipher) : m_cipher(cipher)
    {
-   if(m_cipher->block_size() != 8 && m_cipher->block_size() != 16)
-      throw Invalid_Argument("Bad cipher for XTS: " + cipher->name());
+   if(m_cipher->block_size() != 8 &&
+      m_cipher->block_size() != 16 &&
+      m_cipher->block_size() != 32 &&
+      m_cipher->block_size() != 64)
+      {
+      throw Invalid_Argument("Cannot use " + cipher->name() + " with XTS");
+      }
 
    m_tweak_cipher.reset(m_cipher->clone());
    m_tweak.resize(update_granularity());
@@ -62372,12 +73478,12 @@ void XTS_Mode::update_tweak(size_t which)
    const size_t BS = m_tweak_cipher->block_size();
 
    if(which > 0)
-      poly_double(m_tweak.data(), &m_tweak[(which-1)*BS], BS);
+      poly_double_n_le(m_tweak.data(), &m_tweak[(which-1)*BS], BS);
 
    const size_t blocks_in_tweak = update_granularity() / BS;
 
    for(size_t i = 1; i < blocks_in_tweak; ++i)
-      poly_double(&m_tweak[i*BS], &m_tweak[(i-1)*BS], BS);
+      poly_double_n_le(&m_tweak[i*BS], &m_tweak[(i-1)*BS], BS);
    }
 
 size_t XTS_Encryption::output_length(size_t input_length) const
@@ -62418,7 +73524,7 @@ void XTS_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    const size_t sz = buffer.size() - offset;
    uint8_t* buf = buffer.data() + offset;
 
-   BOTAN_ASSERT(sz >= minimum_final_size(), "Have sufficient final input");
+   BOTAN_ASSERT(sz >= minimum_final_size(), "Have sufficient final input in XTS encrypt");
 
    const size_t BS = cipher().block_size();
 
@@ -62494,7 +73600,7 @@ void XTS_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    const size_t sz = buffer.size() - offset;
    uint8_t* buf = buffer.data() + offset;
 
-   BOTAN_ASSERT(sz >= minimum_final_size(), "Have sufficient final input");
+   BOTAN_ASSERT(sz >= minimum_final_size(), "Have sufficient final input in XTS decrypt");
 
    const size_t BS = cipher().block_size();
 

@@ -5,12 +5,14 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_MGF1_H__
-#define BOTAN_MGF1_H__
+#ifndef BOTAN_MGF1_H_
+#define BOTAN_MGF1_H_
 
-#include <botan/hash.h>
+#include <botan/types.h>
 
 namespace Botan {
+
+class HashFunction;
 
 /**
 * MGF1 from PKCS #1 v2.0
@@ -20,7 +22,7 @@ namespace Botan {
 * @param out output buffer
 * @param out_len size of the output buffer in bytes
 */
-void BOTAN_DLL mgf1_mask(HashFunction& hash,
+void BOTAN_PUBLIC_API(2,0) mgf1_mask(HashFunction& hash,
                          const uint8_t in[], size_t in_len,
                          uint8_t out[], size_t out_len);
 

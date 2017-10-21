@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_MAC_POLY1305_H__
-#define BOTAN_MAC_POLY1305_H__
+#ifndef BOTAN_MAC_POLY1305_H_
+#define BOTAN_MAC_POLY1305_H_
 
 #include <botan/mac.h>
 #include <memory>
@@ -17,7 +17,7 @@ namespace Botan {
 * DJB's Poly1305
 * Important note: each key can only be used once
 */
-class BOTAN_DLL Poly1305 final : public MessageAuthenticationCode
+class BOTAN_PUBLIC_API(2,0) Poly1305 final : public MessageAuthenticationCode
    {
    public:
       std::string name() const override { return "Poly1305"; }

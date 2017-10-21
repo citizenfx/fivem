@@ -5,18 +5,18 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DL_ALGO_H__
-#define BOTAN_DL_ALGO_H__
+#ifndef BOTAN_DL_ALGO_H_
+#define BOTAN_DL_ALGO_H_
 
 #include <botan/dl_group.h>
-#include <botan/x509_key.h>
+#include <botan/pk_keys.h>
 
 namespace Botan {
 
 /**
 * This class represents discrete logarithm (DL) public keys.
 */
-class BOTAN_DLL DL_Scheme_PublicKey : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) DL_Scheme_PublicKey : public virtual Public_Key
    {
    public:
       bool check_key(RandomNumberGenerator& rng, bool) const override;
@@ -73,8 +73,10 @@ class BOTAN_DLL DL_Scheme_PublicKey : public virtual Public_Key
                           const std::vector<uint8_t>& key_bits,
                           DL_Group::Format group_format);
 
+      DL_Scheme_PublicKey& operator=(const DL_Scheme_PublicKey& other) = default;
+
    protected:
-      DL_Scheme_PublicKey() {}
+      DL_Scheme_PublicKey() = default;
 
       /**
       * The DL public key
@@ -90,7 +92,7 @@ class BOTAN_DLL DL_Scheme_PublicKey : public virtual Public_Key
 /**
 * This class represents discrete logarithm (DL) private keys.
 */
-class BOTAN_DLL DL_Scheme_PrivateKey : public virtual DL_Scheme_PublicKey,
+class BOTAN_PUBLIC_API(2,0) DL_Scheme_PrivateKey : public virtual DL_Scheme_PublicKey,
                                        public virtual Private_Key
    {
    public:
@@ -114,8 +116,10 @@ class BOTAN_DLL DL_Scheme_PrivateKey : public virtual DL_Scheme_PublicKey,
                            const secure_vector<uint8_t>& key_bits,
                            DL_Group::Format group_format);
 
+      DL_Scheme_PrivateKey& operator=(const DL_Scheme_PrivateKey& other) = default;
+
    protected:
-      DL_Scheme_PrivateKey() {}
+      DL_Scheme_PrivateKey() = default;
 
       /**
       * The DL private key

@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_GCM_CLMUL_H__
-#define BOTAN_GCM_CLMUL_H__
+#ifndef BOTAN_GCM_CLMUL_H_
+#define BOTAN_GCM_CLMUL_H_
 
 #include <botan/types.h>
 

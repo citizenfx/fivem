@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BLOCK_CIPHER_H__
-#define BOTAN_BLOCK_CIPHER_H__
+#ifndef BOTAN_BLOCK_CIPHER_H_
+#define BOTAN_BLOCK_CIPHER_H_
 
 #include <botan/sym_algo.h>
 #include <string>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * This class represents a block cipher object.
 */
-class BOTAN_DLL BlockCipher : public SymmetricAlgorithm
+class BOTAN_PUBLIC_API(2,0) BlockCipher : public SymmetricAlgorithm
    {
    public:
 
@@ -173,7 +173,7 @@ class BOTAN_DLL BlockCipher : public SymmetricAlgorithm
       */
       virtual BlockCipher* clone() const = 0;
 
-      virtual ~BlockCipher() {}
+      virtual ~BlockCipher() = default;
    };
 
 /**

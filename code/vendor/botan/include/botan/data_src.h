@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DATA_SRC_H__
-#define BOTAN_DATA_SRC_H__
+#ifndef BOTAN_DATA_SRC_H_
+#define BOTAN_DATA_SRC_H_
 
 #include <botan/secmem.h>
 #include <string>
@@ -18,7 +18,7 @@ namespace Botan {
 /**
 * This class represents an abstract data source object.
 */
-class BOTAN_DLL DataSource
+class BOTAN_PUBLIC_API(2,0) DataSource
    {
    public:
       /**
@@ -86,8 +86,8 @@ class BOTAN_DLL DataSource
       */
       virtual size_t get_bytes_read() const = 0;
 
-      DataSource() {}
-      virtual ~DataSource() {}
+      DataSource() = default;
+      virtual ~DataSource() = default;
       DataSource& operator=(const DataSource&) = delete;
       DataSource(const DataSource&) = delete;
    };
@@ -95,7 +95,7 @@ class BOTAN_DLL DataSource
 /**
 * This class represents a Memory-Based DataSource
 */
-class BOTAN_DLL DataSource_Memory : public DataSource
+class BOTAN_PUBLIC_API(2,0) DataSource_Memory final : public DataSource
    {
    public:
       size_t read(uint8_t[], size_t) override;
@@ -140,7 +140,7 @@ class BOTAN_DLL DataSource_Memory : public DataSource
 /**
 * This class represents a Stream-Based DataSource.
 */
-class BOTAN_DLL DataSource_Stream : public DataSource
+class BOTAN_PUBLIC_API(2,0) DataSource_Stream final : public DataSource
    {
    public:
       size_t read(uint8_t[], size_t) override;

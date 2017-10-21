@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_X509_CERTS_H__
-#define BOTAN_X509_CERTS_H__
+#ifndef BOTAN_X509_CERTS_H_
+#define BOTAN_X509_CERTS_H_
 
 #include <botan/x509_obj.h>
 #include <botan/x509_dn.h>
@@ -16,7 +16,6 @@
 #include <botan/datastor.h>
 #include <botan/key_constraint.h>
 #include <botan/name_constraint.h>
-#include <map>
 #include <memory>
 
 namespace Botan {
@@ -33,7 +32,7 @@ enum class Usage_Type
 /**
 * This class represents X.509 Certificate
 */
-class BOTAN_DLL X509_Certificate : public X509_Object
+class BOTAN_PUBLIC_API(2,0) X509_Certificate : public X509_Object
    {
    public:
       /**
@@ -75,14 +74,16 @@ class BOTAN_DLL X509_Certificate : public X509_Object
 
       /**
       * Get a value for a specific subject_info parameter name.
-      * @param name the name of the parameter to look up. Possible names are
+      * @param name the name of the parameter to look up. Possible names include
       * "X509.Certificate.version", "X509.Certificate.serial",
       * "X509.Certificate.start", "X509.Certificate.end",
       * "X509.Certificate.v2.key_id", "X509.Certificate.public_key",
       * "X509v3.BasicConstraints.path_constraint",
       * "X509v3.BasicConstraints.is_ca", "X509v3.NameConstraints",
       * "X509v3.ExtendedKeyUsage", "X509v3.CertificatePolicies",
-      * "X509v3.SubjectKeyIdentifier" or "X509.Certificate.serial".
+      * "X509v3.SubjectKeyIdentifier", "X509.Certificate.serial",
+      * "X520.CommonName", "X520.Organization", "X520.Country",
+      * "RFC822" (Email in SAN) or "PKCS9.EmailAddress" (Email in DN).
       * @return value(s) of the specified parameter
       */
       std::vector<std::string> subject_info(const std::string& name) const;
@@ -96,14 +97,24 @@ class BOTAN_DLL X509_Certificate : public X509_Object
       std::vector<std::string> issuer_info(const std::string& name) const;
 
       /**
-      * Raw subject DN
+      * Raw issuer DN
       */
       std::vector<uint8_t> raw_issuer_dn() const;
 
       /**
-      * Raw issuer DN
+      * SHA-256 of Raw issuer DN
+      */
+      std::vector<uint8_t> raw_issuer_dn_sha256() const;
+
+      /**
+      * Raw subject DN
       */
       std::vector<uint8_t> raw_subject_dn() const;
+
+      /**
+      * SHA-256 of Raw subject DN
+      */
+      std::vector<uint8_t> raw_subject_dn_sha256() const;
 
       /**
       * Get the notBefore of the certificate.
@@ -154,9 +165,9 @@ class BOTAN_DLL X509_Certificate : public X509_Object
       bool is_CA_cert() const;
 
       /**
-      * Returns true if the specified @param usage is set in the key usage extension 
+      * Returns true if the specified @param usage is set in the key usage extension
       * or if no key usage constraints are set at all.
-      * To check if a certain key constraint is set in the certificate 
+      * To check if a certain key constraint is set in the certificate
       * use @see X509_Certificate#has_constraints.
       */
       bool allowed_usage(Key_Constraints usage) const;
@@ -178,7 +189,7 @@ class BOTAN_DLL X509_Certificate : public X509_Object
 
       /// Returns true if the specified @param constraints are included in the key usage extension.
       bool has_constraints(Key_Constraints constraints) const;
-      
+
       /**
       * Returns true if and only if @param ex_constraint (referring to an extended key
       * constraint, eg "PKIX.ServerAuth") is included in the extended
@@ -304,7 +315,7 @@ class BOTAN_DLL X509_Certificate : public X509_Object
       friend class X509_CA;
       friend class BER_Decoder;
 
-      X509_Certificate() {}
+      X509_Certificate() = default;
 
       Data_Store m_subject, m_issuer;
       bool m_self_signed;
@@ -318,7 +329,7 @@ class BOTAN_DLL X509_Certificate : public X509_Object
 * @return true if the arguments represent different certificates,
 * false if they are binary identical
 */
-BOTAN_DLL bool operator!=(const X509_Certificate& cert1, const X509_Certificate& cert2);
+BOTAN_PUBLIC_API(2,0) bool operator!=(const X509_Certificate& cert1, const X509_Certificate& cert2);
 
 /*
 * Data Store Extraction Operations
@@ -329,14 +340,14 @@ BOTAN_DLL bool operator!=(const X509_Certificate& cert1, const X509_Certificate&
 * @param info data store containing DN information
 * @return DN containing attributes from data store
 */
-BOTAN_DLL X509_DN create_dn(const Data_Store& info);
+BOTAN_PUBLIC_API(2,0) X509_DN create_dn(const Data_Store& info);
 
 /*
 * Create and populate an AlternativeName
 * @param info data store containing AlternativeName information
 * @return AlternativeName containing attributes from data store
 */
-BOTAN_DLL AlternativeName create_alt_name(const Data_Store& info);
+BOTAN_PUBLIC_API(2,0) AlternativeName create_alt_name(const Data_Store& info);
 
 }
 

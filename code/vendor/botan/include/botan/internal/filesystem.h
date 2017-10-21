@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_UTIL_FILESYSTEM_H__
-#define BOTAN_UTIL_FILESYSTEM_H__
+#ifndef BOTAN_UTIL_FILESYSTEM_H_
+#define BOTAN_UTIL_FILESYSTEM_H_
 
 #include <botan/types.h>
 #include <vector>
@@ -14,7 +14,7 @@
 
 namespace Botan {
 
-BOTAN_DLL std::vector<std::string> get_files_recursive(const std::string& dir);
+BOTAN_TEST_API std::vector<std::string> get_files_recursive(const std::string& dir);
 
 }
 

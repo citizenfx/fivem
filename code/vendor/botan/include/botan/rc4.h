@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_RC4_H__
-#define BOTAN_RC4_H__
+#ifndef BOTAN_RC4_H_
+#define BOTAN_RC4_H_
 
 #include <botan/stream_cipher.h>
 #include <botan/types.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * RC4 stream cipher
 */
-class BOTAN_DLL RC4 final : public StreamCipher
+class BOTAN_PUBLIC_API(2,0) RC4 final : public StreamCipher
    {
    public:
       void cipher(const uint8_t in[], uint8_t out[], size_t length) override;

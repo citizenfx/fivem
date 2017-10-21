@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_AEAD_EAX_H__
-#define BOTAN_AEAD_EAX_H__
+#ifndef BOTAN_AEAD_EAX_H_
+#define BOTAN_AEAD_EAX_H_
 
 #include <botan/aead.h>
 #include <botan/block_cipher.h>
@@ -19,7 +19,7 @@ namespace Botan {
 /**
 * EAX base class
 */
-class BOTAN_DLL EAX_Mode : public AEAD_Mode
+class BOTAN_PUBLIC_API(2,0) EAX_Mode : public AEAD_Mode
    {
    public:
       void set_associated_data(const uint8_t ad[], size_t ad_len) override;
@@ -66,7 +66,7 @@ class BOTAN_DLL EAX_Mode : public AEAD_Mode
 /**
 * EAX Encryption
 */
-class BOTAN_DLL EAX_Encryption final : public EAX_Mode
+class BOTAN_PUBLIC_API(2,0) EAX_Encryption final : public EAX_Mode
    {
    public:
       /**
@@ -89,7 +89,7 @@ class BOTAN_DLL EAX_Encryption final : public EAX_Mode
 /**
 * EAX Decryption
 */
-class BOTAN_DLL EAX_Decryption final : public EAX_Mode
+class BOTAN_PUBLIC_API(2,0) EAX_Decryption final : public EAX_Mode
    {
    public:
       /**

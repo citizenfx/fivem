@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_MESSAGE_AUTH_CODE_BASE_H__
-#define BOTAN_MESSAGE_AUTH_CODE_BASE_H__
+#ifndef BOTAN_MESSAGE_AUTH_CODE_BASE_H_
+#define BOTAN_MESSAGE_AUTH_CODE_BASE_H_
 
 #include <botan/buf_comp.h>
 #include <botan/sym_algo.h>
@@ -17,7 +17,7 @@ namespace Botan {
 /**
 * This class represents Message Authentication Code (MAC) objects.
 */
-class BOTAN_DLL MessageAuthenticationCode : public Buffered_Computation,
+class BOTAN_PUBLIC_API(2,0) MessageAuthenticationCode : public Buffered_Computation,
                                             public SymmetricAlgorithm
    {
    public:
@@ -48,7 +48,7 @@ class BOTAN_DLL MessageAuthenticationCode : public Buffered_Computation,
       */
       static std::vector<std::string> providers(const std::string& algo_spec);
 
-      virtual ~MessageAuthenticationCode() {}
+      virtual ~MessageAuthenticationCode() = default;
 
       /**
       * Prepare for processing a message under the specified nonce

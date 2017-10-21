@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef BOTAN_MCELIECE_KEY_H__
-#define BOTAN_MCELIECE_KEY_H__
+#ifndef BOTAN_MCELIECE_KEY_H_
+#define BOTAN_MCELIECE_KEY_H_
 
 #include <botan/pk_keys.h>
 #include <botan/polyn_gf2m.h>
@@ -18,18 +18,19 @@
 
 namespace Botan {
 
-class BOTAN_DLL McEliece_PublicKey : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) McEliece_PublicKey : public virtual Public_Key
    {
    public:
       explicit McEliece_PublicKey(const std::vector<uint8_t>& key_bits);
 
-      McEliece_PublicKey(std::vector<uint8_t> const& pub_matrix, uint32_t the_t, uint32_t the_code_length) :
+      McEliece_PublicKey(const std::vector<uint8_t>& pub_matrix, uint32_t the_t, uint32_t the_code_length) :
          m_public_matrix(pub_matrix),
          m_t(the_t),
-         m_code_length(the_code_length)
-            {}
+         m_code_length(the_code_length){}
 
-      McEliece_PublicKey(const McEliece_PublicKey& other);
+      McEliece_PublicKey(const McEliece_PublicKey& other) = default;
+      McEliece_PublicKey& operator=(const McEliece_PublicKey& other) = default;
+      virtual ~McEliece_PublicKey()= default;
 
       secure_vector<uint8_t> random_plaintext_element(RandomNumberGenerator& rng) const;
 
@@ -66,7 +67,7 @@ class BOTAN_DLL McEliece_PublicKey : public virtual Public_Key
       uint32_t m_code_length;
    };
 
-class BOTAN_DLL McEliece_PrivateKey : public virtual McEliece_PublicKey,
+class BOTAN_PUBLIC_API(2,0) McEliece_PrivateKey final : public virtual McEliece_PublicKey,
                                       public virtual Private_Key
    {
    public:
@@ -128,7 +129,7 @@ class BOTAN_DLL McEliece_PrivateKey : public virtual McEliece_PublicKey,
 * Estimate work factor for McEliece
 * @return estimated security level for these key parameters
 */
-BOTAN_DLL size_t mceliece_work_factor(size_t code_size, size_t t);
+BOTAN_PUBLIC_API(2,0) size_t mceliece_work_factor(size_t code_size, size_t t);
 
 }
 

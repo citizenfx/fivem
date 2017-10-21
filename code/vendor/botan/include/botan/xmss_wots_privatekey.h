@@ -5,16 +5,15 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_WOTS_PRIVATEKEY_H__
-#define BOTAN_XMSS_WOTS_PRIVATEKEY_H__
+#ifndef BOTAN_XMSS_WOTS_PRIVATEKEY_H_
+#define BOTAN_XMSS_WOTS_PRIVATEKEY_H_
 
 #include <cstddef>
 #include <memory>
 #include <botan/alg_id.h>
-#include <botan/assert.h>
 #include <botan/exceptn.h>
 #include <botan/pk_keys.h>
-#include <botan/types.h>
+#include <botan/rng.h>
 #include <botan/xmss_wots_parameters.h>
 #include <botan/xmss_address.h>
 #include <botan/xmss_wots_publickey.h>
@@ -24,7 +23,7 @@ namespace Botan {
 /** A Winternitz One Time Signature private key for use with Extended Hash-Based
  * Signatures.
  **/
-class BOTAN_DLL XMSS_WOTS_PrivateKey : public virtual XMSS_WOTS_PublicKey,
+class BOTAN_PUBLIC_API(2,0) XMSS_WOTS_PrivateKey final : public virtual XMSS_WOTS_PublicKey,
                                        public virtual Private_Key
    {
    public:
@@ -226,7 +225,7 @@ class BOTAN_DLL XMSS_WOTS_PrivateKey : public virtual XMSS_WOTS_PublicKey,
                              const std::string&,
                              const std::string& provider) const override;
 
-      virtual secure_vector<uint8_t> private_key_bits() const override
+      secure_vector<uint8_t> private_key_bits() const override
          {
          throw Not_Implemented("No PKCS8 key format defined for XMSS-WOTS.");
          }

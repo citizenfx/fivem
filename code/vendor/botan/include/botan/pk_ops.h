@@ -4,8 +4,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PK_OPERATIONS_H__
-#define BOTAN_PK_OPERATIONS_H__
+#ifndef BOTAN_PK_OPERATIONS_H_
+#define BOTAN_PK_OPERATIONS_H_
 
 /**
 * Ordinary applications should never need to include or use this
@@ -20,10 +20,10 @@
 
 #include <botan/pk_keys.h>
 #include <botan/secmem.h>
-#include <botan/rng.h>
 
 namespace Botan {
 
+class RandomNumberGenerator;
 class EME;
 class KDF;
 class EMSA;
@@ -33,7 +33,7 @@ namespace PK_Ops {
 /**
 * Public key encryption interface
 */
-class BOTAN_DLL Encryption
+class BOTAN_PUBLIC_API(2,0) Encryption
    {
    public:
       virtual secure_vector<uint8_t> encrypt(const uint8_t msg[],
@@ -42,26 +42,26 @@ class BOTAN_DLL Encryption
 
       virtual size_t max_input_bits() const = 0;
 
-      virtual ~Encryption() {}
+      virtual ~Encryption() = default;
    };
 
 /**
 * Public key decryption interface
 */
-class BOTAN_DLL Decryption
+class BOTAN_PUBLIC_API(2,0) Decryption
    {
    public:
       virtual secure_vector<uint8_t> decrypt(uint8_t& valid_mask,
                                           const uint8_t ciphertext[],
                                           size_t ciphertext_len) = 0;
 
-      virtual ~Decryption() {}
+      virtual ~Decryption() = default;
    };
 
 /**
 * Public key signature verification interface
 */
-class BOTAN_DLL Verification
+class BOTAN_PUBLIC_API(2,0) Verification
    {
    public:
       /*
@@ -77,13 +77,13 @@ class BOTAN_DLL Verification
       */
       virtual bool is_valid_signature(const uint8_t sig[], size_t sig_len) = 0;
 
-      virtual ~Verification() {}
+      virtual ~Verification() = default;
    };
 
 /**
 * Public key signature creation interface
 */
-class BOTAN_DLL Signature
+class BOTAN_PUBLIC_API(2,0) Signature
    {
    public:
       /*
@@ -99,26 +99,26 @@ class BOTAN_DLL Signature
       */
       virtual secure_vector<uint8_t> sign(RandomNumberGenerator& rng) = 0;
 
-      virtual ~Signature() {}
+      virtual ~Signature() = default;
    };
 
 /**
 * A generic key agreement operation (eg DH or ECDH)
 */
-class BOTAN_DLL Key_Agreement
+class BOTAN_PUBLIC_API(2,0) Key_Agreement
    {
    public:
       virtual secure_vector<uint8_t> agree(size_t key_len,
                                         const uint8_t other_key[], size_t other_key_len,
                                         const uint8_t salt[], size_t salt_len) = 0;
 
-      virtual ~Key_Agreement() {}
+      virtual ~Key_Agreement() = default;
    };
 
 /**
 * KEM (key encapsulation)
 */
-class BOTAN_DLL KEM_Encryption
+class BOTAN_PUBLIC_API(2,0) KEM_Encryption
    {
    public:
       virtual void kem_encrypt(secure_vector<uint8_t>& out_encapsulated_key,
@@ -128,10 +128,10 @@ class BOTAN_DLL KEM_Encryption
                                const uint8_t salt[],
                                size_t salt_len) = 0;
 
-      virtual ~KEM_Encryption() {}
+      virtual ~KEM_Encryption() = default;
    };
 
-class BOTAN_DLL KEM_Decryption
+class BOTAN_PUBLIC_API(2,0) KEM_Decryption
    {
    public:
       virtual secure_vector<uint8_t> kem_decrypt(const uint8_t encap_key[],
@@ -140,7 +140,7 @@ class BOTAN_DLL KEM_Decryption
                                               const uint8_t salt[],
                                               size_t salt_len) = 0;
 
-      virtual ~KEM_Decryption() {}
+      virtual ~KEM_Decryption() = default;
    };
 
 }

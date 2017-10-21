@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_KEY_LEN_SPECIFICATION_H__
-#define BOTAN_KEY_LEN_SPECIFICATION_H__
+#ifndef BOTAN_KEY_LEN_SPECIFICATION_H_
+#define BOTAN_KEY_LEN_SPECIFICATION_H_
 
 #include <botan/types.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Represents the length requirements on an algorithm key
 */
-class BOTAN_DLL Key_Length_Specification
+class BOTAN_PUBLIC_API(2,0) Key_Length_Specification final
    {
    public:
       /**

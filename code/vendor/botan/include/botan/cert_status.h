@@ -5,10 +5,10 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_X509_PATH_RESULT_H__
-#define BOTAN_X509_PATH_RESULT_H__
+#ifndef BOTAN_X509_PATH_RESULT_H_
+#define BOTAN_X509_PATH_RESULT_H_
 
-#include <botan/build.h>
+#include <botan/types.h>
 
 namespace Botan {
 
@@ -79,7 +79,7 @@ enum class Certificate_Status_Code {
 * @param code the certifcate status
 * @return string literal constant, or nullptr if code unknown
 */
-BOTAN_DLL const char* to_string(Certificate_Status_Code code);
+BOTAN_PUBLIC_API(2,0) const char* to_string(Certificate_Status_Code code);
 
 }
 

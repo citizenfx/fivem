@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CIPHER_MODE_H__
-#define BOTAN_CIPHER_MODE_H__
+#ifndef BOTAN_CIPHER_MODE_H_
+#define BOTAN_CIPHER_MODE_H_
 
 #include <botan/secmem.h>
 #include <botan/key_spec.h>
@@ -20,10 +20,16 @@ namespace Botan {
 /**
 * Interface for cipher modes
 */
-class BOTAN_DLL Cipher_Mode
+class BOTAN_PUBLIC_API(2,0) Cipher_Mode
    {
    public:
-      virtual ~Cipher_Mode() {}
+      virtual ~Cipher_Mode() = default;
+
+      /**
+      * @return list of available providers for this algorithm, empty if not available
+      * @param algo_spec algorithm name
+      */
+      static std::vector<std::string> providers(const std::string& algo_spec);
 
       /*
       * Prepare for processing a message under the specified nonce
@@ -209,14 +215,18 @@ class BOTAN_DLL Cipher_Mode
 * The two possible directions for cipher filters, determining whether they
 * actually perform encryption or decryption.
 */
-enum Cipher_Dir { ENCRYPTION, DECRYPTION };
+enum Cipher_Dir : int { ENCRYPTION, DECRYPTION };
 
 /**
 * Get a cipher mode by name (eg "AES-128/CBC" or "Serpent/XTS")
 * @param algo_spec cipher name
 * @param direction ENCRYPTION or DECRYPTION
+* @param provider provider implementation to choose
 */
-BOTAN_DLL Cipher_Mode* get_cipher_mode(const std::string& algo_spec, Cipher_Dir direction);
+BOTAN_PUBLIC_API(2,2)
+Cipher_Mode* get_cipher_mode(const std::string& algo_spec,
+                             Cipher_Dir direction,
+                             const std::string& provider = "");
 
 }
 

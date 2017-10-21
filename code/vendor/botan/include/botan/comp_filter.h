@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_COMPRESSION_FILTER_H__
-#define BOTAN_COMPRESSION_FILTER_H__
+#ifndef BOTAN_COMPRESSION_FILTER_H_
+#define BOTAN_COMPRESSION_FILTER_H_
 
 #include <botan/filter.h>
 
@@ -20,7 +20,7 @@ class Decompression_Algorithm;
 /**
 * Filter interface for compression
 */
-class BOTAN_DLL Compression_Filter : public Filter
+class BOTAN_PUBLIC_API(2,0) Compression_Filter final : public Filter
    {
    public:
       void start_msg() override;
@@ -45,7 +45,7 @@ class BOTAN_DLL Compression_Filter : public Filter
 /**
 * Filter interface for decompression
 */
-class BOTAN_DLL Decompression_Filter : public Filter
+class BOTAN_PUBLIC_API(2,0) Decompression_Filter final : public Filter
    {
    public:
       void start_msg() override;

@@ -5,14 +5,14 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CURVE_25519_H__
-#define BOTAN_CURVE_25519_H__
+#ifndef BOTAN_CURVE_25519_H_
+#define BOTAN_CURVE_25519_H_
 
 #include <botan/pk_keys.h>
 
 namespace Botan {
 
-class BOTAN_DLL Curve25519_PublicKey : public virtual Public_Key
+class BOTAN_PUBLIC_API(2,0) Curve25519_PublicKey : public virtual Public_Key
    {
    public:
       std::string algo_name() const override { return "Curve25519"; }
@@ -51,11 +51,11 @@ class BOTAN_DLL Curve25519_PublicKey : public virtual Public_Key
          m_public(pub.begin(), pub.end()) {}
 
    protected:
-      Curve25519_PublicKey() {}
+      Curve25519_PublicKey() = default;
       std::vector<uint8_t> m_public;
    };
 
-class BOTAN_DLL Curve25519_PrivateKey : public Curve25519_PublicKey,
+class BOTAN_PUBLIC_API(2,0) Curve25519_PrivateKey final : public Curve25519_PublicKey,
                                         public virtual Private_Key,
                                         public virtual PK_Key_Agreement_Key
    {
@@ -76,7 +76,7 @@ class BOTAN_DLL Curve25519_PrivateKey : public Curve25519_PublicKey,
 
       /**
       * Construct a private key from the specified parameters.
-      * @param secret_key DER encoded private key bits
+      * @param secret_key the private key
       */
       explicit Curve25519_PrivateKey(const secure_vector<uint8_t>& secret_key);
 
@@ -103,7 +103,7 @@ class BOTAN_DLL Curve25519_PrivateKey : public Curve25519_PublicKey,
 * The types above are just wrappers for curve25519_donna, plus defining
 * encodings for public and private keys.
 */
-void BOTAN_DLL curve25519_donna(uint8_t mypublic[32],
+void BOTAN_PUBLIC_API(2,0) curve25519_donna(uint8_t mypublic[32],
                                 const uint8_t secret[32],
                                 const uint8_t basepoint[32]);
 
@@ -112,7 +112,7 @@ void BOTAN_DLL curve25519_donna(uint8_t mypublic[32],
 * @param mypublic output value
 * @param secret random scalar
 */
-void BOTAN_DLL curve25519_basepoint(uint8_t mypublic[32],
+void BOTAN_PUBLIC_API(2,0) curve25519_basepoint(uint8_t mypublic[32],
                                     const uint8_t secret[32]);
 
 }

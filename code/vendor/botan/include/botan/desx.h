@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DESX_H__
-#define BOTAN_DESX_H__
+#ifndef BOTAN_DESX_H_
+#define BOTAN_DESX_H_
 
 #include <botan/des.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * DESX
 */
-class BOTAN_DLL DESX final : public Block_Cipher_Fixed_Params<8, 24>
+class BOTAN_PUBLIC_API(2,0) DESX final : public Block_Cipher_Fixed_Params<8, 24>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

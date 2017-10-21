@@ -5,12 +5,11 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_WOTS_SIGNATURE_OPERATION_H__
-#define BOTAN_XMSS_WOTS_SIGNATURE_OPERATION_H__
+#ifndef BOTAN_XMSS_WOTS_SIGNATURE_OPERATION_H_
+#define BOTAN_XMSS_WOTS_SIGNATURE_OPERATION_H_
 
 #include <cstddef>
 #include <iterator>
-#include <botan/assert.h>
 #include <botan/types.h>
 #include <botan/pk_ops.h>
 #include <botan/internal/xmss_wots_addressed_privatekey.h>
@@ -25,14 +24,14 @@ namespace Botan {
  * This operation is not intended for stand-alone use and thus not registered
  * in the Botan algorithm registry.
  ***/
-class XMSS_WOTS_Signature_Operation : public virtual PK_Ops::Signature,
+class XMSS_WOTS_Signature_Operation final : public virtual PK_Ops::Signature,
                                       public XMSS_WOTS_Common_Ops
    {
    public:
       XMSS_WOTS_Signature_Operation(
          const XMSS_WOTS_Addressed_PrivateKey& private_key);
 
-      virtual ~XMSS_WOTS_Signature_Operation() {}
+      virtual ~XMSS_WOTS_Signature_Operation() = default;
 
       /**
        * Creates a XMSS WOTS signature for the message provided through call

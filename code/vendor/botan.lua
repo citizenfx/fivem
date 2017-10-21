@@ -25,6 +25,8 @@ return {
 		end
 
 		if os.istarget('windows') then
+			links 'ws2_32'
+
 			files {
 				"vendor/botan/src/*.cpp",
 				"vendor/botan/src/*.h"

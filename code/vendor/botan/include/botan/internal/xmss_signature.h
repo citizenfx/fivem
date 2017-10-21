@@ -5,11 +5,10 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_SIGNATURE_H__
-#define BOTAN_XMSS_SIGNATURE_H__
+#ifndef BOTAN_XMSS_SIGNATURE_H_
+#define BOTAN_XMSS_SIGNATURE_H_
 
 #include <cstddef>
-#include <iterator>
 #include <botan/exceptn.h>
 #include <botan/types.h>
 #include <botan/secmem.h>
@@ -44,7 +43,7 @@ class XMSS_Signature
                      const secure_vector<uint8_t>& randomness,
                      const XMSS_WOTS_PublicKey::TreeSignature& tree_sig)
          : m_leaf_idx(leaf_idx), m_randomness(randomness),
-           m_tree_sig(tree_sig) {};
+           m_tree_sig(tree_sig) {}
 
       /**
        * Creates an XMSS Signature from a leaf index used for signature
@@ -58,7 +57,7 @@ class XMSS_Signature
                      secure_vector<uint8_t>&& randomness,
                      XMSS_WOTS_PublicKey::TreeSignature&& tree_sig)
          : m_leaf_idx(leaf_idx), m_randomness(std::move(randomness)),
-           m_tree_sig(std::move(tree_sig)) {};
+           m_tree_sig(std::move(tree_sig)) {}
 
       size_t unused_leaf_index() const { return m_leaf_idx; }
       void set_unused_leaf_idx(size_t idx) { m_leaf_idx = idx; }

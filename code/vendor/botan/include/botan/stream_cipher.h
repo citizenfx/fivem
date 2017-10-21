@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_STREAM_CIPHER_H__
-#define BOTAN_STREAM_CIPHER_H__
+#ifndef BOTAN_STREAM_CIPHER_H_
+#define BOTAN_STREAM_CIPHER_H_
 
 #include <botan/sym_algo.h>
 #include <string>
@@ -16,10 +16,10 @@ namespace Botan {
 /**
 * Base class for all stream ciphers
 */
-class BOTAN_DLL StreamCipher : public SymmetricAlgorithm
+class BOTAN_PUBLIC_API(2,0) StreamCipher : public SymmetricAlgorithm
    {
    public:
-      virtual ~StreamCipher() {}
+      virtual ~StreamCipher() = default;
 
       /**
       * Create an instance based on a name

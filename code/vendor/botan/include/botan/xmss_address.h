@@ -5,11 +5,9 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_ADDRESS_H__
-#define BOTAN_XMSS_ADDRESS_H__
+#ifndef BOTAN_XMSS_ADDRESS_H_
+#define BOTAN_XMSS_ADDRESS_H_
 
-#include <cstdint>
-#include <limits>
 #include <botan/xmss_tools.h>
 
 namespace Botan {
@@ -113,7 +111,7 @@ class XMSS_Address
       void set_type(Type type)
          {
          m_data[15] = static_cast<uint8_t>(type);
-         std::fill(m_data.begin() + 16, m_data.end(), 0);
+         std::fill(m_data.begin() + 16, m_data.end(), static_cast<uint8_t>(0));
          }
 
       /**
@@ -218,8 +216,6 @@ class XMSS_Address
       /**
        * Set the chain address. A call to this method is only valid, if
        * the address type is set to Type::OTS_Hash_Address.
-       *
-       * @return chain address.
        **/
       void set_chain_address(uint32_t value)
          {

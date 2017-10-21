@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CHARSET_H__
-#define BOTAN_CHARSET_H__
+#ifndef BOTAN_CHARSET_H_
+#define BOTAN_CHARSET_H_
 
 #include <botan/types.h>
 #include <string>
@@ -28,16 +28,16 @@ namespace Charset {
 /*
 * Character Set Handling
 */
-std::string BOTAN_DLL transcode(const std::string& str,
+std::string BOTAN_PUBLIC_API(2,0) transcode(const std::string& str,
                                 Character_Set to,
                                 Character_Set from);
 
-bool BOTAN_DLL is_digit(char c);
-bool BOTAN_DLL is_space(char c);
-bool BOTAN_DLL caseless_cmp(char x, char y);
+bool BOTAN_PUBLIC_API(2,0) is_digit(char c);
+bool BOTAN_PUBLIC_API(2,0) is_space(char c);
+bool BOTAN_PUBLIC_API(2,0) caseless_cmp(char x, char y);
 
-uint8_t BOTAN_DLL char2digit(char c);
-char BOTAN_DLL digit2char(uint8_t b);
+uint8_t BOTAN_PUBLIC_API(2,0) char2digit(char c);
+char BOTAN_PUBLIC_API(2,0) digit2char(uint8_t b);
 
 }
 

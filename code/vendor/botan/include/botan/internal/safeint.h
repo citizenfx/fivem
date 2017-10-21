@@ -5,15 +5,15 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_UTILS_SAFE_INT_H__
-#define BOTAN_UTILS_SAFE_INT_H__
+#ifndef BOTAN_UTILS_SAFE_INT_H_
+#define BOTAN_UTILS_SAFE_INT_H_
 
 #include <botan/exceptn.h>
 #include <string>
 
 namespace Botan {
 
-class Integer_Overflow_Detected : public Exception
+class Integer_Overflow_Detected final : public Exception
    {
    public:
       Integer_Overflow_Detected(const std::string& file, int line) :

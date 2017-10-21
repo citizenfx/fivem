@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_EXCEPTION_H__
-#define BOTAN_TLS_EXCEPTION_H__
+#ifndef BOTAN_TLS_EXCEPTION_H_
+#define BOTAN_TLS_EXCEPTION_H_
 
 #include <botan/exceptn.h>
 #include <botan/tls_alert.h>
@@ -18,7 +18,7 @@ namespace TLS {
 /**
 * Exception Base Class
 */
-class BOTAN_DLL TLS_Exception : public Exception
+class BOTAN_PUBLIC_API(2,0) TLS_Exception : public Exception
    {
    public:
       Alert::Type type() const { return m_alert_type; }
@@ -34,10 +34,11 @@ class BOTAN_DLL TLS_Exception : public Exception
 /**
 * Unexpected_Message Exception
 */
-struct BOTAN_DLL Unexpected_Message : public TLS_Exception
+class BOTAN_PUBLIC_API(2,0) Unexpected_Message final : public TLS_Exception
    {
-   explicit Unexpected_Message(const std::string& err) :
-      TLS_Exception(Alert::UNEXPECTED_MESSAGE, err) {}
+   public:
+      explicit Unexpected_Message(const std::string& err) :
+         TLS_Exception(Alert::UNEXPECTED_MESSAGE, err) {}
    };
 
 }

@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CBC_MAC_H__
-#define BOTAN_CBC_MAC_H__
+#ifndef BOTAN_CBC_MAC_H_
+#define BOTAN_CBC_MAC_H_
 
 #include <botan/mac.h>
 #include <botan/block_cipher.h>
@@ -16,7 +16,7 @@ namespace Botan {
 /**
 * CBC-MAC
 */
-class BOTAN_DLL CBC_MAC final : public MessageAuthenticationCode
+class BOTAN_PUBLIC_API(2,0) CBC_MAC final : public MessageAuthenticationCode
    {
    public:
       std::string name() const override;

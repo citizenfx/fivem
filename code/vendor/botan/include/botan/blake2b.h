@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BLAKE2B_H__
-#define BOTAN_BLAKE2B_H__
+#ifndef BOTAN_BLAKE2B_H_
+#define BOTAN_BLAKE2B_H_
 
 #include <botan/hash.h>
 #include <string>
@@ -23,7 +23,7 @@ enum blake2b_constant {
 /**
 * BLAKE2B
 */
-class BOTAN_DLL Blake2b final : public HashFunction
+class BOTAN_PUBLIC_API(2,0) Blake2b final : public HashFunction
    {
    public:
       /**
@@ -37,6 +37,8 @@ class BOTAN_DLL Blake2b final : public HashFunction
       HashFunction* clone() const override;
       std::string name() const override;
       void clear() override;
+
+      std::unique_ptr<HashFunction> copy_state() const override;
 
    private:
       void add_data(const uint8_t input[], size_t length) override;

@@ -6,16 +6,18 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PIPE_H__
-#define BOTAN_PIPE_H__
+#ifndef BOTAN_PIPE_H_
+#define BOTAN_PIPE_H_
 
 #include <botan/data_src.h>
-#include <botan/filter.h>
 #include <botan/exceptn.h>
 #include <initializer_list>
 #include <iosfwd>
 
 namespace Botan {
+
+class Filter;
+class Output_Buffers;
 
 /**
 * This class represents pipe objects.
@@ -24,7 +26,7 @@ namespace Botan {
 * collected for retrieval.  If you're familiar with the Unix shell
 * environment, this design will sound quite familiar.
 */
-class BOTAN_DLL Pipe final : public DataSource
+class BOTAN_PUBLIC_API(2,0) Pipe final : public DataSource
    {
    public:
       /**
@@ -36,16 +38,17 @@ class BOTAN_DLL Pipe final : public DataSource
       * Exception if you use an invalid message as an argument to
       * read, remaining, etc
       */
-      struct BOTAN_DLL Invalid_Message_Number : public Invalid_Argument
+      class BOTAN_PUBLIC_API(2,0) Invalid_Message_Number final : public Invalid_Argument
          {
-         /**
-         * @param where the error occurred
-         * @param msg the invalid message id that was used
-         */
-         Invalid_Message_Number(const std::string& where, message_id msg) :
-            Invalid_Argument("Pipe::" + where + ": Invalid message number " +
-                             std::to_string(msg))
-            {}
+         public:
+            /**
+            * @param where the error occurred
+            * @param msg the invalid message id that was used
+            */
+            Invalid_Message_Number(const std::string& where, message_id msg) :
+               Invalid_Argument("Pipe::" + where + ": Invalid message number " +
+                                std::to_string(msg))
+               {}
          };
 
       /**
@@ -181,7 +184,7 @@ class BOTAN_DLL Pipe final : public DataSource
       * @param msg the number identifying the message to read from
       * @return string holding the contents of the pipe
       */
-      std::string read_all_as_string(message_id = DEFAULT_MESSAGE) BOTAN_WARN_UNUSED_RESULT;
+      std::string read_all_as_string(message_id msg = DEFAULT_MESSAGE) BOTAN_WARN_UNUSED_RESULT;
 
       /**
       * Read from the default message but do not modify the internal
@@ -269,22 +272,26 @@ class BOTAN_DLL Pipe final : public DataSource
       * Insert a new filter at the front of the pipe
       * @param filt the new filter to insert
       */
+      BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
       void prepend(Filter* filt);
 
       /**
       * Insert a new filter at the back of the pipe
       * @param filt the new filter to insert
       */
+      BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
       void append(Filter* filt);
 
       /**
       * Remove the first filter at the front of the pipe.
       */
+      BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
       void pop();
 
       /**
       * Reset this pipe to an empty pipe.
       */
+      BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
       void reset();
 
       /**
@@ -307,13 +314,14 @@ class BOTAN_DLL Pipe final : public DataSource
    private:
       void init();
       void destruct(Filter*);
+      void do_append(Filter* filt);
       void find_endpoints(Filter*);
       void clear_endpoints(Filter*);
 
       message_id get_message_no(const std::string&, message_id) const;
 
       Filter* m_pipe;
-      class Output_Buffers* m_outputs;
+      std::unique_ptr<Output_Buffers> m_outputs;
       message_id m_default_read;
       bool m_inside_msg;
    };
@@ -324,7 +332,7 @@ class BOTAN_DLL Pipe final : public DataSource
 * @param out an output stream
 * @param pipe the pipe
 */
-BOTAN_DLL std::ostream& operator<<(std::ostream& out, Pipe& pipe);
+BOTAN_PUBLIC_API(2,0) std::ostream& operator<<(std::ostream& out, Pipe& pipe);
 
 /**
 * Stream input operator; dumps the remaining bytes of input
@@ -332,7 +340,7 @@ BOTAN_DLL std::ostream& operator<<(std::ostream& out, Pipe& pipe);
 * @param in the input stream
 * @param pipe the pipe
 */
-BOTAN_DLL std::istream& operator>>(std::istream& in, Pipe& pipe);
+BOTAN_PUBLIC_API(2,0) std::istream& operator>>(std::istream& in, Pipe& pipe);
 
 }
 

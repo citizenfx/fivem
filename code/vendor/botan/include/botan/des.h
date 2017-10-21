@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_DES_H__
-#define BOTAN_DES_H__
+#ifndef BOTAN_DES_H_
+#define BOTAN_DES_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * DES
 */
-class BOTAN_DLL DES final : public Block_Cipher_Fixed_Params<8, 8>
+class BOTAN_PUBLIC_API(2,0) DES final : public Block_Cipher_Fixed_Params<8, 8>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;
@@ -33,7 +33,7 @@ class BOTAN_DLL DES final : public Block_Cipher_Fixed_Params<8, 8>
 /**
 * Triple DES
 */
-class BOTAN_DLL TripleDES final : public Block_Cipher_Fixed_Params<8, 16, 24, 8>
+class BOTAN_PUBLIC_API(2,0) TripleDES final : public Block_Cipher_Fixed_Params<8, 16, 24, 8>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

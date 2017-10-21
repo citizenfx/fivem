@@ -6,8 +6,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_STL_UTIL_H__
-#define BOTAN_STL_UTIL_H__
+#ifndef BOTAN_STL_UTIL_H_
+#define BOTAN_STL_UTIL_H_
 
 #include <vector>
 #include <string>
@@ -76,12 +76,7 @@ template<typename K, typename V>
 void multimap_insert(std::multimap<K, V>& multimap,
                      const K& key, const V& value)
    {
-#if defined(BOTAN_BUILD_COMPILER_IS_SUN_STUDIO)
-   // Work around a strange bug in Sun Studio
-   multimap.insert(std::make_pair<const K, V>(key, value));
-#else
    multimap.insert(std::make_pair(key, value));
-#endif
    }
 
 /**

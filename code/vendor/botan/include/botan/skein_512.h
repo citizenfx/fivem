@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_SKEIN_512_H__
-#define BOTAN_SKEIN_512_H__
+#ifndef BOTAN_SKEIN_512_H_
+#define BOTAN_SKEIN_512_H_
 
 #include <botan/hash.h>
 #include <botan/threefish.h>
@@ -18,7 +18,7 @@ namespace Botan {
 /**
 * Skein-512, a SHA-3 candidate
 */
-class BOTAN_DLL Skein_512 final : public HashFunction
+class BOTAN_PUBLIC_API(2,0) Skein_512 final : public HashFunction
    {
    public:
       /**
@@ -33,6 +33,7 @@ class BOTAN_DLL Skein_512 final : public HashFunction
       size_t output_length() const override { return m_output_bits / 8; }
 
       HashFunction* clone() const override;
+      std::unique_ptr<HashFunction> copy_state() const override;
       std::string name() const override;
       void clear() override;
    private:

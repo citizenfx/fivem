@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_TLS_SESSION_KEYS_H__
-#define BOTAN_TLS_SESSION_KEYS_H__
+#ifndef BOTAN_TLS_SESSION_KEYS_H_
+#define BOTAN_TLS_SESSION_KEYS_H_
 
 #include <botan/symkey.h>
 
@@ -19,7 +19,7 @@ class Handshake_State;
 /**
 * TLS Session Keys
 */
-class Session_Keys
+class Session_Keys final
    {
    public:
       /**
@@ -57,7 +57,7 @@ class Session_Keys
       */
       const secure_vector<uint8_t>& master_secret() const { return m_master_sec; }
 
-      Session_Keys() {}
+      Session_Keys() = default;
 
       /**
       * @param state state the handshake state

@@ -5,20 +5,13 @@
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
 
-#ifndef BOTAN_XMSS_WOTS_PARAMETERS_H__
-#define BOTAN_XMSS_WOTS_PARAMETERS_H__
+#ifndef BOTAN_XMSS_WOTS_PARAMETERS_H_
+#define BOTAN_XMSS_WOTS_PARAMETERS_H_
 
-#include <cstddef>
-#include <cstdint>
-#include <iterator>
+#include <botan/xmss_tools.h>
+#include <botan/secmem.h>
 #include <map>
 #include <string>
-#include <math.h>
-#include <botan/assert.h>
-#include <botan/types.h>
-#include <botan/secmem.h>
-#include <botan/exceptn.h>
-#include <botan/xmss_tools.h>
 
 namespace Botan {
 

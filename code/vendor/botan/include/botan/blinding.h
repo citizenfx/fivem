@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_BLINDER_H__
-#define BOTAN_BLINDER_H__
+#ifndef BOTAN_BLINDER_H_
+#define BOTAN_BLINDER_H_
 
 #include <botan/bigint.h>
 #include <botan/reducer.h>
@@ -19,7 +19,7 @@ class RandomNumberGenerator;
 /**
 * Blinding Function Object.
 */
-class BOTAN_DLL Blinder
+class BOTAN_PUBLIC_API(2,0) Blinder final
    {
    public:
       /**

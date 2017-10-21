@@ -5,14 +5,12 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ECIES_H__
-#define BOTAN_ECIES_H__
+#ifndef BOTAN_ECIES_H_
+#define BOTAN_ECIES_H_
 
 #include <botan/ecdh.h>
 #include <botan/ec_group.h>
-#include <botan/kdf.h>
 #include <botan/cipher_mode.h>
-#include <botan/mac.h>
 #include <botan/point_gfp.h>
 #include <botan/pubkey.h>
 #include <botan/secmem.h>
@@ -20,9 +18,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <limits>
 
 namespace Botan {
 
+class MessageAuthenticationCode;
 class RandomNumberGenerator;
 
 enum class ECIES_Flags : uint32_t
@@ -55,7 +55,7 @@ inline ECIES_Flags operator &(ECIES_Flags a, ECIES_Flags b)
 /**
 * Parameters for ECIES secret derivation
 */
-class BOTAN_DLL ECIES_KA_Params
+class BOTAN_PUBLIC_API(2,0) ECIES_KA_Params
    {
    public:
       /**
@@ -68,6 +68,8 @@ class BOTAN_DLL ECIES_KA_Params
       ECIES_KA_Params(const EC_Group& domain, const std::string& kdf_spec, size_t length,
                       PointGFp::Compression_Type compression_type, ECIES_Flags flags);
 
+      ECIES_KA_Params(const ECIES_KA_Params&) = default;
+      ECIES_KA_Params& operator=(const ECIES_KA_Params&) = default;
       virtual ~ECIES_KA_Params() = default;
 
       inline const EC_Group& domain() const
@@ -119,7 +121,7 @@ class BOTAN_DLL ECIES_KA_Params
    };
 
 
-class BOTAN_DLL ECIES_System_Params : public ECIES_KA_Params
+class BOTAN_PUBLIC_API(2,0) ECIES_System_Params final : public ECIES_KA_Params
    {
    public:
       /**
@@ -147,6 +149,8 @@ class BOTAN_DLL ECIES_System_Params : public ECIES_KA_Params
                           size_t dem_key_len, const std::string& mac_spec, size_t mac_key_len,
                           PointGFp::Compression_Type compression_type, ECIES_Flags flags);
 
+      ECIES_System_Params(const ECIES_System_Params&) = default;
+      ECIES_System_Params& operator=(const ECIES_System_Params&) = default;
       virtual ~ECIES_System_Params() = default;
 
       /// creates an instance of the message authentication code
@@ -178,7 +182,7 @@ class BOTAN_DLL ECIES_System_Params : public ECIES_KA_Params
 /**
 * ECIES secret derivation according to ISO 18033-2
 */
-class BOTAN_DLL ECIES_KA_Operation
+class BOTAN_PUBLIC_API(2,0) ECIES_KA_Operation
    {
    public:
       /**
@@ -210,7 +214,7 @@ class BOTAN_DLL ECIES_KA_Operation
 /**
 * ECIES Encryption according to ISO 18033-2
 */
-class BOTAN_DLL ECIES_Encryptor : public PK_Encryptor
+class BOTAN_PUBLIC_API(2,0) ECIES_Encryptor final : public PK_Encryptor
    {
    public:
       /**
@@ -267,7 +271,7 @@ class BOTAN_DLL ECIES_Encryptor : public PK_Encryptor
 /**
 * ECIES Decryption according to ISO 18033-2
 */
-class BOTAN_DLL ECIES_Decryptor : public PK_Decryptor
+class BOTAN_PUBLIC_API(2,0) ECIES_Decryptor final : public PK_Decryptor
    {
    public:
       /**

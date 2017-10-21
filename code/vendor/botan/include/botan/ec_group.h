@@ -7,8 +7,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ECC_DOMAIN_PARAMETERS_H__
-#define BOTAN_ECC_DOMAIN_PARAMETERS_H__
+#ifndef BOTAN_ECC_DOMAIN_PARAMETERS_H_
+#define BOTAN_ECC_DOMAIN_PARAMETERS_H_
 
 #include <botan/point_gfp.h>
 #include <botan/curve_gfp.h>
@@ -28,7 +28,7 @@ enum EC_Group_Encoding {
 /**
 * Class representing an elliptic curve
 */
-class BOTAN_DLL EC_Group
+class BOTAN_PUBLIC_API(2,0) EC_Group final
    {
    public:
 
@@ -113,7 +113,14 @@ class BOTAN_DLL EC_Group
       * @result the OID
       */
       std::string get_oid() const { return m_oid; }
-
+      
+      /**
+       * Verify EC_Group domain
+       * @returns true if group is valid. false otherwise
+       */
+      bool verify_group(RandomNumberGenerator& rng,
+                            bool strong = false) const;
+      
       bool operator==(const EC_Group& other) const
          {
          return ((get_curve() == other.get_curve()) &&

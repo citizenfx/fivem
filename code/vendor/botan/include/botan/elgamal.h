@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_ELGAMAL_H__
-#define BOTAN_ELGAMAL_H__
+#ifndef BOTAN_ELGAMAL_H_
+#define BOTAN_ELGAMAL_H_
 
 #include <botan/dl_algo.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * ElGamal Public Key
 */
-class BOTAN_DLL ElGamal_PublicKey : public virtual DL_Scheme_PublicKey
+class BOTAN_PUBLIC_API(2,0) ElGamal_PublicKey : public virtual DL_Scheme_PublicKey
    {
    public:
       std::string algo_name() const override { return "ElGamal"; }
@@ -44,13 +44,13 @@ class BOTAN_DLL ElGamal_PublicKey : public virtual DL_Scheme_PublicKey
                               const std::string& provider) const override;
 
    protected:
-      ElGamal_PublicKey() {}
+      ElGamal_PublicKey() = default;
    };
 
 /**
 * ElGamal Private Key
 */
-class BOTAN_DLL ElGamal_PrivateKey : public ElGamal_PublicKey,
+class BOTAN_PUBLIC_API(2,0) ElGamal_PrivateKey final : public ElGamal_PublicKey,
                                      public virtual DL_Scheme_PrivateKey
    {
    public:
@@ -59,7 +59,7 @@ class BOTAN_DLL ElGamal_PrivateKey : public ElGamal_PublicKey,
       /**
       * Load a private key.
       * @param alg_id the X.509 algorithm identifier
-      * @param key_bits PKCS #8 structure
+      * @param key_bits DER encoded key bits in ANSI X9.42 format
       */
       ElGamal_PrivateKey(const AlgorithmIdentifier& alg_id,
                          const secure_vector<uint8_t>& key_bits);

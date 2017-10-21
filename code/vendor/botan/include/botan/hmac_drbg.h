@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_HMAC_DRBG_H__
-#define BOTAN_HMAC_DRBG_H__
+#ifndef BOTAN_HMAC_DRBG_H_
+#define BOTAN_HMAC_DRBG_H_
 
 #include <botan/stateful_rng.h>
 #include <botan/mac.h>
@@ -18,7 +18,7 @@ class Entropy_Sources;
 /**
 * HMAC_DRBG from NIST SP800-90A
 */
-class BOTAN_DLL HMAC_DRBG final : public Stateful_RNG
+class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
    {
    public:
       /**
@@ -31,7 +31,7 @@ class BOTAN_DLL HMAC_DRBG final : public Stateful_RNG
       * in response. In this case, an exception will be thrown rather
       * than generating duplicated output.
       */
-      HMAC_DRBG(std::unique_ptr<MessageAuthenticationCode> prf);
+      explicit HMAC_DRBG(std::unique_ptr<MessageAuthenticationCode> prf);
 
       /**
       * Initialize an HMAC_DRBG instance with the given MAC as PRF (normally HMAC)
@@ -122,7 +122,7 @@ class BOTAN_DLL HMAC_DRBG final : public Stateful_RNG
       /**
       * Constructor taking a string for the hash
       */
-      HMAC_DRBG(const std::string& hmac_hash) :
+      explicit HMAC_DRBG(const std::string& hmac_hash) :
          Stateful_RNG(),
          m_mac(MessageAuthenticationCode::create_or_throw("HMAC(" + hmac_hash + ")")),
          m_max_number_of_bytes_per_request(64 * 1024)
@@ -142,6 +142,9 @@ class BOTAN_DLL HMAC_DRBG final : public Stateful_RNG
       void add_entropy(const uint8_t input[], size_t input_len) override;
 
       size_t security_level() const override;
+
+      size_t max_number_of_bytes_per_request() const override
+         { return m_max_number_of_bytes_per_request; }
 
    private:
       void update(const uint8_t input[], size_t input_len);

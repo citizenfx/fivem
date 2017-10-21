@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_RFC6979_GENERATOR_H__
-#define BOTAN_RFC6979_GENERATOR_H__
+#ifndef BOTAN_RFC6979_GENERATOR_H_
+#define BOTAN_RFC6979_GENERATOR_H_
 
 #include <botan/bigint.h>
 #include <string>
@@ -16,7 +16,7 @@ namespace Botan {
 
 class HMAC_DRBG;
 
-class BOTAN_DLL RFC6979_Nonce_Generator
+class BOTAN_PUBLIC_API(2,0) RFC6979_Nonce_Generator final
    {
    public:
       /**
@@ -43,7 +43,7 @@ class BOTAN_DLL RFC6979_Nonce_Generator
 * @param h the message hash already reduced mod q
 * @param hash the hash function used to generate h
 */
-BigInt BOTAN_DLL generate_rfc6979_nonce(const BigInt& x,
+BigInt BOTAN_PUBLIC_API(2,0) generate_rfc6979_nonce(const BigInt& x,
                                         const BigInt& q,
                                         const BigInt& h,
                                         const std::string& hash);

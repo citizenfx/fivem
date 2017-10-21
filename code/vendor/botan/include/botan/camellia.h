@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_CAMELLIA_H__
-#define BOTAN_CAMELLIA_H__
+#ifndef BOTAN_CAMELLIA_H_
+#define BOTAN_CAMELLIA_H_
 
 #include <botan/block_cipher.h>
 
@@ -15,7 +15,7 @@ namespace Botan {
 /**
 * Camellia-128
 */
-class BOTAN_DLL Camellia_128 final : public Block_Cipher_Fixed_Params<16, 16>
+class BOTAN_PUBLIC_API(2,0) Camellia_128 final : public Block_Cipher_Fixed_Params<16, 16>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;
@@ -33,7 +33,7 @@ class BOTAN_DLL Camellia_128 final : public Block_Cipher_Fixed_Params<16, 16>
 /**
 * Camellia-192
 */
-class BOTAN_DLL Camellia_192 final : public Block_Cipher_Fixed_Params<16, 24>
+class BOTAN_PUBLIC_API(2,0) Camellia_192 final : public Block_Cipher_Fixed_Params<16, 24>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;
@@ -51,7 +51,7 @@ class BOTAN_DLL Camellia_192 final : public Block_Cipher_Fixed_Params<16, 24>
 /**
 * Camellia-256
 */
-class BOTAN_DLL Camellia_256 final : public Block_Cipher_Fixed_Params<16, 32>
+class BOTAN_PUBLIC_API(2,0) Camellia_256 final : public Block_Cipher_Fixed_Params<16, 32>
    {
    public:
       void encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const override;

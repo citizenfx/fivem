@@ -1,52 +1,65 @@
+/*
+* Botan 2.3.0 Amalgamation
+* (C) 1999-2013,2014,2015,2016 Jack Lloyd and others
+*
+* Botan is released under the Simplified BSD License (see license.txt)
+*/
 
-#ifndef BOTAN_AMALGAMATION_INTERNAL_H__
-#define BOTAN_AMALGAMATION_INTERNAL_H__
+#ifndef BOTAN_AMALGAMATION_INTERNAL_H_
+#define BOTAN_AMALGAMATION_INTERNAL_H_
 
 #include <array>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 
 #if defined(BOTAN_TARGET_OS_HAS_THREADS)
+   #include <condition_variable>
 #endif
 
 namespace Botan {
 
 #if defined(BOTAN_TARGET_OS_HAS_THREADS)
-// Barrier implements a barrier synchronization primitive. wait() will indicate
-// how many threads to synchronize; each thread needing synchronization should
-// call sync(). When sync() returns, the barrier is reset to zero, and the
-// m_syncs counter is incremented. m_syncs is a counter to ensure that wait()
-// can be called after a sync() even if the previously sleeping threads have
-// not awoken.)
-class Barrier
-    {
-    public:
-        explicit Barrier(int value = 0) : m_value(value), m_syncs(0) {}
 
-        void wait(unsigned delta);
+/**
+Barrier implements a barrier synchronization primitive. wait() will
+indicate how many threads to synchronize; each thread needing
+synchronization should call sync(). When sync() returns, the barrier
+is reset to zero, and the m_syncs counter is incremented. m_syncs is a
+counter to ensure that wait() can be called after a sync() even if the
+previously sleeping threads have not awoken.)
+*/
+class Barrier final
+   {
+   public:
+      explicit Barrier(int value = 0) : m_value(value), m_syncs(0) {}
 
-        void sync();
+      void wait(size_t delta);
 
-    private:
-        int m_value;
-        unsigned m_syncs;
-        mutex_type m_mutex;
-        std::condition_variable m_cond;
-    };
+      void sync();
+
+   private:
+      int m_value;
+      size_t m_syncs;
+      mutex_type m_mutex;
+      std::condition_variable m_cond;
+   };
+
 #endif
 
 }
-
 
 namespace Botan {
 
@@ -155,7 +168,6 @@ size_t ceil_log2(T x)
    }
 
 }
-
 
 namespace Botan {
 
@@ -341,13 +353,11 @@ const uint32_t CAST_SBOX4[256] = {
 
 }
 
-
 namespace Botan {
 
 void gcm_multiply_clmul(uint8_t x[16], const uint8_t H[16]);
 
 }
-
 
 namespace Botan {
 
@@ -388,7 +398,6 @@ inline uint32_t bit_size_to_32bit_size(uint32_t bit_size)
    }
 
 }
-
 
 #if defined(BOTAN_HAS_VALGRIND)
   #include <valgrind/memcheck.h>
@@ -468,6 +477,12 @@ inline T expand_mask(T x)
    }
 
 template<typename T>
+inline T expand_top_bit(T a)
+   {
+   return expand_mask<T>(a >> (sizeof(T)*8-1));
+   }
+
+template<typename T>
 inline T select(T mask, T from0, T from1)
    {
    return (from0 & mask) | (from1 & ~mask);
@@ -488,23 +503,19 @@ inline T is_zero(T x)
 template<typename T>
 inline T is_equal(T x, T y)
    {
-   return is_zero(x ^ y);
+   return is_zero<T>(x ^ y);
    }
 
 template<typename T>
-inline T is_less(T x, T y)
+inline T is_less(T a, T b)
    {
-   /*
-   This expands to a constant time sequence with GCC 5.2.0 on x86-64
-   but something more complicated may be needed for portable const time.
-   */
-   return expand_mask<T>(x < y);
+   return expand_top_bit(a ^ ((a^b) | ((a-b)^a)));
    }
 
 template<typename T>
-inline T is_lte(T x, T y)
+inline T is_lte(T a, T b)
    {
-   return expand_mask<T>(x <= y);
+   return CT::is_less(a, b) | CT::is_equal(a, b);
    }
 
 template<typename T>
@@ -536,26 +547,6 @@ inline void cond_zero_mem(T cond,
       }
    }
 
-template<typename T>
-inline T expand_top_bit(T a)
-   {
-   return expand_mask<T>(a >> (sizeof(T)*8-1));
-   }
-
-template<typename T>
-inline T max(T a, T b)
-   {
-   const T a_larger = b - a; // negative if a is larger
-   return select(expand_top_bit(a), a, b);
-   }
-
-template<typename T>
-inline T min(T a, T b)
-   {
-   const T a_larger = b - a; // negative if a is larger
-   return select(expand_top_bit(b), b, a);
-   }
-
 inline secure_vector<uint8_t> strip_leading_zeros(const uint8_t in[], size_t length)
    {
    size_t leading_zeros = 0;
@@ -580,13 +571,12 @@ inline secure_vector<uint8_t> strip_leading_zeros(const secure_vector<uint8_t>& 
 
 }
 
-
 namespace Botan {
 
 /**
 * Fixed Window Exponentiator
 */
-class Fixed_Window_Exponentiator : public Modular_Exponentiator
+class Fixed_Window_Exponentiator final : public Modular_Exponentiator
    {
    public:
       void set_exponent(const BigInt&) override;
@@ -608,7 +598,7 @@ class Fixed_Window_Exponentiator : public Modular_Exponentiator
 /**
 * Montgomery Exponentiator
 */
-class Montgomery_Exponentiator : public Modular_Exponentiator
+class Montgomery_Exponentiator final : public Modular_Exponentiator
    {
    public:
       void set_exponent(const BigInt&) override;
@@ -630,10 +620,9 @@ class Montgomery_Exponentiator : public Modular_Exponentiator
 
 }
 
-
 namespace Botan {
 
-class donna128
+class donna128 final
    {
    public:
       donna128(uint64_t ll = 0, uint64_t hh = 0) { l = ll; h = hh; }
@@ -753,43 +742,480 @@ inline uint64_t combine_lower(const uint128_t a, size_t s1,
 
 }
 
-
 namespace Botan {
 
 /**
-* Win32 CAPI Entropy Source
+* An element of the field \\Z/(2^255-19)
 */
-class Win32_CAPI_EntropySource final : public Entropy_Source
+class FE_25519
    {
    public:
-      std::string name() const override { return "win32_cryptoapi"; }
-
-      size_t poll(RandomNumberGenerator& rng) override;
+      ~FE_25519() { secure_scrub_memory(m_fe, sizeof(m_fe)); }
 
       /**
-      * Win32_Capi_Entropysource Constructor
-      * @param provs list of providers, separated by ':'
+      * Zero element
       */
-      explicit Win32_CAPI_EntropySource(const std::string& provs = "");
-
-      class CSP_Handle
+      FE_25519(int init = 0)
          {
-         public:
-            virtual size_t gen_random(uint8_t out[], size_t n) const = 0;
-         };
+         if(init != 0 && init != 1)
+            { throw std::invalid_argument("Invalid FE_25519 initial value"); }
+         memset(m_fe, 0, 10 * sizeof(int32_t));
+         m_fe[0] = init;
+         }
+
+      FE_25519(std::initializer_list<int32_t> x)
+         {
+         if(x.size() != 10)
+            { throw std::invalid_argument("Invalid FE_25519 initializer list"); }
+         memcpy(m_fe, x.begin(), 10 * sizeof(int32_t));
+         }
+
+      FE_25519(int64_t h0, int64_t h1, int64_t h2, int64_t h3, int64_t h4,
+               int64_t h5, int64_t h6, int64_t h7, int64_t h8, int64_t h9)
+         {
+         m_fe[0] = static_cast<int32_t>(h0);
+         m_fe[1] = static_cast<int32_t>(h1);
+         m_fe[2] = static_cast<int32_t>(h2);
+         m_fe[3] = static_cast<int32_t>(h3);
+         m_fe[4] = static_cast<int32_t>(h4);
+         m_fe[5] = static_cast<int32_t>(h5);
+         m_fe[6] = static_cast<int32_t>(h6);
+         m_fe[7] = static_cast<int32_t>(h7);
+         m_fe[8] = static_cast<int32_t>(h8);
+         m_fe[9] = static_cast<int32_t>(h9);
+         }
+
+      FE_25519(const FE_25519& other) = default;
+      FE_25519& operator=(const FE_25519& other) = default;
+
+#if !defined(BOTAN_BUILD_COMPILER_IS_MSVC_2013)
+      FE_25519(FE_25519&& other) = default;
+      FE_25519& operator=(FE_25519&& other) = default;
+#endif
+
+      void from_bytes(const uint8_t b[32]);
+      void to_bytes(uint8_t b[32]) const;
+
+      bool is_zero() const
+         {
+         uint8_t s[32];
+         to_bytes(s);
+
+         uint8_t sum = 0;
+         for(size_t i = 0; i != 32; ++i)
+            { sum |= s[i]; }
+
+         // TODO avoid ternary here
+         return (sum == 0) ? 1 : 0;
+         }
+
+      /*
+      return 1 if f is in {1,3,5,...,q-2}
+      return 0 if f is in {0,2,4,...,q-1}
+      */
+      bool is_negative() const
+         {
+         // TODO could avoid most of the to_bytes computation here
+         uint8_t s[32];
+         to_bytes(s);
+         return s[0] & 1;
+         }
+
+      static FE_25519 add(const FE_25519& a, const FE_25519& b)
+         {
+         FE_25519 z;
+         for(size_t i = 0; i != 10; ++i)
+            { z[i] = a[i] + b[i]; }
+         return z;
+         }
+
+      static FE_25519 sub(const FE_25519& a, const FE_25519& b)
+         {
+         FE_25519 z;
+         for(size_t i = 0; i != 10; ++i)
+            { z[i] = a[i] - b[i]; }
+         return z;
+         }
+
+      static FE_25519 negate(const FE_25519& a)
+         {
+         FE_25519 z;
+         for(size_t i = 0; i != 10; ++i)
+            { z[i] = -a[i]; }
+         return z;
+         }
+
+      static FE_25519 mul(const FE_25519& a, const FE_25519& b);
+      static FE_25519 sqr_iter(const FE_25519& a, size_t iter);
+      static FE_25519 sqr(const FE_25519& a) { return sqr_iter(a, 1); }
+      static FE_25519 sqr2(const FE_25519& a);
+      static FE_25519 pow_22523(const FE_25519& a);
+      static FE_25519 invert(const FE_25519& a);
+
+      // TODO remove
+      int32_t operator[](size_t i) const { return m_fe[i]; }
+      int32_t& operator[](size_t i) { return m_fe[i]; }
+
    private:
-      std::vector<std::unique_ptr<CSP_Handle>> m_csp_provs;
+
+      int32_t m_fe[10];
    };
 
-}
+typedef FE_25519 fe;
 
+/*
+fe means field element.
+Here the field is
+An element t, entries t[0]...t[9], represents the integer
+t[0]+2^26 t[1]+2^51 t[2]+2^77 t[3]+2^102 t[4]+...+2^230 t[9].
+Bounds on each t[i] vary depending on context.
+*/
+
+inline void fe_frombytes(fe& x, const uint8_t* b)
+   {
+   x.from_bytes(b);
+   }
+
+inline void fe_tobytes(uint8_t* b, const fe& x)
+   {
+   x.to_bytes(b);
+   }
+
+inline void fe_copy(fe& a, const fe& b)
+   {
+   a = b;
+   }
+
+inline int fe_isnonzero(const fe& x)
+   {
+   return x.is_zero() ? 0 : 1;
+   }
+
+inline int fe_isnegative(const fe& x)
+   {
+   return x.is_negative();
+   }
+
+
+inline void fe_0(fe& x)
+   {
+   x = FE_25519();
+   }
+
+inline void fe_1(fe& x)
+   {
+   x = FE_25519(1);
+   }
+
+inline void fe_add(fe& x, const fe& a, const fe& b)
+   {
+   x = FE_25519::add(a, b);
+   }
+
+inline void fe_sub(fe& x, const fe& a, const fe& b)
+   {
+   x = FE_25519::sub(a, b);
+   }
+
+inline void fe_neg(fe& x, const fe& z)
+   {
+   x = FE_25519::negate(z);
+   }
+
+inline void fe_mul(fe& x, const fe& a, const fe& b)
+   {
+   x = FE_25519::mul(a, b);
+   }
+
+inline void fe_sq(fe& x, const fe& z)
+   {
+   x = FE_25519::sqr(z);
+   }
+
+inline void fe_sq_iter(fe& x, const fe& z, size_t iter)
+   {
+   x = FE_25519::sqr_iter(z, iter);
+   }
+
+inline void fe_sq2(fe& x, const fe& z)
+   {
+   x = FE_25519::sqr2(z);
+   }
+
+inline void fe_invert(fe& x, const fe& z)
+   {
+   x = FE_25519::invert(z);
+   }
+
+inline void fe_pow22523(fe& x, const fe& y)
+   {
+   x = FE_25519::pow_22523(y);
+   }
+
+}
 
 namespace Botan {
 
-BOTAN_DLL std::vector<std::string> get_files_recursive(const std::string& dir);
+inline uint64_t load_3(const uint8_t in[3])
+   {
+   return static_cast<uint64_t>(in[0]) |
+      (static_cast<uint64_t>(in[1]) << 8) |
+      (static_cast<uint64_t>(in[2]) << 16);
+   }
+
+inline uint64_t load_4(const uint8_t* in)
+   {
+   return load_le<uint32_t>(in, 0);
+   }
+
+/*
+ge means group element.
+
+Here the group is the set of pairs (x,y) of field elements (see fe.h)
+satisfying -x^2 + y^2 = 1 + d x^2y^2
+where d = -121665/121666.
+
+Representations:
+  ge_p3 (extended): (X:Y:Z:T) satisfying x=X/Z, y=Y/Z, XY=ZT
+*/
+
+typedef struct
+   {
+   fe X;
+   fe Y;
+   fe Z;
+   fe T;
+   } ge_p3;
+
+int ge_frombytes_negate_vartime(ge_p3*, const uint8_t*);
+void ge_scalarmult_base(uint8_t out[32], const uint8_t in[32]);
+
+void ge_double_scalarmult_vartime(uint8_t out[32],
+                                  const uint8_t a[],
+                                  const ge_p3* A,
+                                  const uint8_t b[]);
+
+/*
+The set of scalars is \Z/l
+where l = 2^252 + 27742317777372353535851937790883648493.
+*/
+
+void sc_reduce(uint8_t*);
+void sc_muladd(uint8_t*, const uint8_t*, const uint8_t*, const uint8_t*);
 
 }
 
+namespace Botan_FFI {
+
+#define BOTAN_ASSERT_ARG_NON_NULL(p) \
+   do { if(!p) throw Botan::Invalid_Argument("Argument " #p " is null"); } while(0)
+
+class FFI_Error final : public Botan::Exception
+   {
+   public:
+      explicit FFI_Error(const std::string& what) : Exception("FFI error", what) {}
+   };
+
+template<typename T, uint32_t MAGIC>
+struct botan_struct
+   {
+   public:
+      botan_struct(T* obj) : m_magic(MAGIC), m_obj(obj) {}
+      virtual ~botan_struct() { m_magic = 0; m_obj.reset(); }
+
+      bool magic_ok() const { return (m_magic == MAGIC); }
+
+      T* get() const
+         {
+         if(magic_ok() == false)
+            throw FFI_Error("Bad magic " + std::to_string(m_magic) +
+                            " in ffi object expected " + std::to_string(MAGIC));
+         return m_obj.get();
+         }
+   private:
+      uint32_t m_magic = 0;
+      std::unique_ptr<T> m_obj;
+   };
+
+#define BOTAN_FFI_DECLARE_STRUCT(NAME, TYPE, MAGIC) \
+   struct NAME final : public botan_struct<TYPE, MAGIC> { explicit NAME(TYPE* x) : botan_struct(x) {} }
+
+// Declared in ffi.cpp
+int ffi_error_exception_thrown(const char* func_name, const char* exn);
+
+template<typename T, uint32_t M>
+T& safe_get(botan_struct<T,M>* p)
+   {
+   if(!p)
+      throw FFI_Error("Null pointer argument");
+   if(T* t = p->get())
+      return *t;
+   throw FFI_Error("Invalid object pointer");
+   }
+
+template<typename T, uint32_t M>
+const T& safe_get(const botan_struct<T,M>* p)
+   {
+   if(!p)
+      throw FFI_Error("Null pointer argument");
+   if(const T* t = p->get())
+      return *t;
+   throw FFI_Error("Invalid object pointer");
+   }
+
+template<typename Thunk>
+int ffi_guard_thunk(const char* func_name, Thunk thunk)
+   {
+   try
+      {
+      return thunk();
+      }
+   catch(std::bad_alloc)
+      {
+      return ffi_error_exception_thrown(func_name, "bad_alloc");
+      }
+   catch(std::exception& e)
+      {
+      return ffi_error_exception_thrown(func_name, e.what());
+      }
+   catch(...)
+      {
+      return ffi_error_exception_thrown(func_name, "unknown exception");
+      }
+
+   return BOTAN_FFI_ERROR_UNKNOWN_ERROR;
+   }
+
+template<typename T, uint32_t M, typename F>
+int apply_fn(botan_struct<T, M>* o, const char* func_name, F func)
+   {
+   try
+      {
+      if(!o)
+         throw FFI_Error("Null object to " + std::string(func_name));
+      if(T* t = o->get())
+         return func(*t);
+      }
+   catch(std::bad_alloc)
+      {
+      return ffi_error_exception_thrown(func_name, "bad_alloc");
+      }
+   catch(std::exception& e)
+      {
+      return ffi_error_exception_thrown(func_name, e.what());
+      }
+   catch(...)
+      {
+      return ffi_error_exception_thrown(func_name, "unknown exception");
+      }
+
+   return BOTAN_FFI_ERROR_UNKNOWN_ERROR;
+   }
+
+#define BOTAN_FFI_DO(T, obj, param, block)                              \
+   apply_fn(obj, BOTAN_CURRENT_FUNCTION,                                \
+            [=](T& param) -> int { do { block } while(0); return BOTAN_FFI_SUCCESS; })
+
+template<typename T, uint32_t M>
+int ffi_delete_object(botan_struct<T, M>* obj, const char* func_name)
+   {
+   try
+      {
+      if(obj == nullptr)
+         return BOTAN_FFI_SUCCESS; // ignore delete of null objects
+
+      if(obj->magic_ok() == false)
+         return BOTAN_FFI_ERROR_INVALID_INPUT;
+
+      delete obj;
+      return BOTAN_FFI_SUCCESS;
+      }
+   catch(std::exception& e)
+      {
+      return ffi_error_exception_thrown(func_name, e.what());
+      }
+   catch(...)
+      {
+      return ffi_error_exception_thrown(func_name, "unknown exception");
+      }
+   }
+
+#define BOTAN_FFI_CHECKED_DELETE(o) ffi_delete_object(o, BOTAN_CURRENT_FUNCTION)
+
+inline int write_output(uint8_t out[], size_t* out_len, const uint8_t buf[], size_t buf_len)
+   {
+   const size_t avail = *out_len;
+   *out_len = buf_len;
+
+   if(avail >= buf_len)
+      {
+      Botan::copy_mem(out, buf, buf_len);
+      return BOTAN_FFI_SUCCESS;
+      }
+   else
+      {
+      Botan::clear_mem(out, avail);
+      return BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE;
+      }
+   }
+
+template<typename Alloc>
+int write_vec_output(uint8_t out[], size_t* out_len, const std::vector<uint8_t, Alloc>& buf)
+   {
+   return write_output(out, out_len, buf.data(), buf.size());
+   }
+
+inline int write_str_output(uint8_t out[], size_t* out_len, const std::string& str)
+   {
+   return write_output(out, out_len,
+                       reinterpret_cast<const uint8_t*>(str.c_str()),
+                       str.size() + 1);
+   }
+
+inline int write_str_output(char out[], size_t* out_len, const std::string& str)
+   {
+   return write_str_output(reinterpret_cast<uint8_t*>(out), out_len, str);
+   }
+
+inline int write_str_output(char out[], size_t* out_len, const std::vector<uint8_t>& str_vec)
+   {
+   return write_output(reinterpret_cast<uint8_t*>(out), out_len,
+                       reinterpret_cast<const uint8_t*>(str_vec.data()),
+                       str_vec.size());
+   }
+
+}
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_mp_struct, Botan::BigInt, 0xC828B9D2);
+
+}
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_pubkey_struct, Botan::Public_Key, 0x2C286519);
+BOTAN_FFI_DECLARE_STRUCT(botan_privkey_struct, Botan::Private_Key, 0x7F96385E);
+
+}
+
+extern "C" {
+
+using namespace Botan_FFI;
+
+BOTAN_FFI_DECLARE_STRUCT(botan_rng_struct, Botan::RandomNumberGenerator, 0x4901F9C1);
+
+}
+
+namespace Botan {
+
+BOTAN_TEST_API std::vector<std::string> get_files_recursive(const std::string& dir);
+
+}
 
 namespace Botan {
 
@@ -822,8 +1248,6 @@ McEliece_PrivateKey generate_mceliece_key(RandomNumberGenerator &rng,
 
 }
 
-
-
 namespace Botan {
 
 #if (BOTAN_MP_WORD_BITS == 8)
@@ -852,7 +1276,7 @@ namespace Botan {
   #if defined(BOTAN_USE_GCC_INLINE_ASM)
     #define BOTAN_MP_USE_X86_32_ASM
     #define ASM(x) x "\n\t"
-  #elif defined(BOTAN_TARGET_COMPILER_IS_MSVC)
+  #elif defined(BOTAN_BUILD_COMPILER_IS_MSVC)
     #define BOTAN_MP_USE_X86_32_MSVC_ASM
   #endif
 
@@ -973,7 +1397,6 @@ inline word word_madd3(word a, word b, word c, word* d)
 #endif
 
 }
-
 
 namespace Botan {
 
@@ -1781,7 +2204,6 @@ inline void word3_muladd_2(word* w2, word* w1, word* w0, word x, word y)
 
 }
 
-
 namespace Botan {
 
 /*
@@ -1794,21 +2216,21 @@ const size_t MP_WORD_BITS = BOTAN_MP_WORD_BITS;
 * If cond > 0, swaps x[0:size] with y[0:size]
 * Runs in constant time
 */
-BOTAN_DLL
+BOTAN_TEST_API
 void bigint_cnd_swap(word cnd, word x[], word y[], size_t size);
 
 /*
 * If cond > 0 adds x[0:size] to y[0:size] and returns carry
 * Runs in constant time
 */
-BOTAN_DLL
+BOTAN_TEST_API
 word bigint_cnd_add(word cnd, word x[], const word y[], size_t size);
 
 /*
 * If cond > 0 subs x[0:size] to y[0:size] and returns borrow
 * Runs in constant time
 */
-BOTAN_DLL
+BOTAN_TEST_API
 word bigint_cnd_sub(word cnd, word x[], const word y[], size_t size);
 
 /*
@@ -1816,7 +2238,7 @@ word bigint_cnd_sub(word cnd, word x[], const word y[], size_t size);
 * If cond > 0 sets x to ~x + 1
 * Runs in constant time
 */
-BOTAN_DLL
+BOTAN_TEST_API
 void bigint_cnd_abs(word cnd, word x[], size_t size);
 
 /**
@@ -1952,72 +2374,153 @@ void bigint_comba_sqr16(word out[32], const word in[16]);
 */
 void bigint_mul(BigInt& z, const BigInt& x, const BigInt& y, word workspace[]);
 
+void bigint_mul(word z[], size_t z_size,
+                const word x[], size_t x_size, size_t x_sw,
+                const word y[], size_t y_size, size_t y_sw,
+                word workspace[]);
+
 void bigint_sqr(word z[], size_t z_size, word workspace[],
                 const word x[], size_t x_size, size_t x_sw);
 
 }
 
-
 namespace Botan {
 
 namespace OS {
 
-/**
-* Returns the OS assigned process ID, if available. Otherwise throws.
+/*
+* This header is internal (not installed) and these functions are not
+* intended to be called by applications. However they are given public
+* visibility (using BOTAN_TEST_API macro) for the tests. This also probably
+* allows them to be overridden by the application on ELF systems, but
+* this hasn't been tested.
 */
-uint32_t get_process_id();
+
 
 /**
-* Return the highest resolution clock available on the system.
+* A wrapper around a simple blocking TCP socket
+*/
+class BOTAN_TEST_API Socket
+   {
+   public:
+      /**
+      * The socket will be closed upon destruction
+      */
+      virtual ~Socket() {};
+
+      /**
+      * Write to the socket. Blocks until all bytes sent.
+      * Throws on error.
+      */
+      virtual void write(const uint8_t buf[], size_t len) = 0;
+
+      /**
+      * Reads up to len bytes, returns bytes written to buf.
+      * Returns 0 on EOF. Throws on error.
+      */
+      virtual size_t read(uint8_t buf[], size_t len) = 0;
+   };
+
+/**
+* Open up a socket. Will throw on error. Returns null if sockets are
+* not available on this platform.
+*/
+std::unique_ptr<Socket>
+BOTAN_TEST_API open_socket(const std::string& hostname,
+                      const std::string& service);
+
+/**
+* @return process ID assigned by the operating system.
+* On Unix and Windows systems, this always returns a result
+* On IncludeOS it returns 0 since there is no process ID to speak of
+* in a unikernel.
+*/
+uint32_t BOTAN_TEST_API get_process_id();
+
+/**
+* @return CPU processor clock, if available
+*
+* On Windows, calls QueryPerformanceCounter.
+*
+* Under GCC or Clang on supported platforms the hardware cycle counter is queried.
+* Currently supported processors are x86, PPC, Alpha, SPARC, IA-64, S/390x, and HP-PA.
+* If no CPU cycle counter is available on this system, returns zero.
+*/
+uint64_t BOTAN_TEST_API get_processor_timestamp();
+
+/*
+* @return best resolution timestamp available
 *
 * The epoch and update rate of this clock is arbitrary and depending
 * on the hardware it may not tick at a constant rate.
 *
-* Returns the value of the hardware cycle counter, if available.
-* On Windows calls QueryPerformanceCounter.
-* Under GCC or Clang on supported platforms the hardware cycle counter is queried:
-*  x86, PPC, Alpha, SPARC, IA-64, S/390x, and HP-PA
-* On other platforms clock_gettime is used with some monotonic timer, if available.
+* Uses hardware cycle counter, if available.
+* On POSIX platforms clock_gettime is used with a monotonic timer
 * As a final fallback std::chrono::high_resolution_clock is used.
 */
-uint64_t get_processor_timestamp();
+uint64_t BOTAN_TEST_API get_high_resolution_clock();
 
 /**
-* Returns the value of the system clock with best resolution available,
-* normalized to nanoseconds resolution.
+* @return system clock (reflecting wall clock) with best resolution
+* available, normalized to nanoseconds resolution.
 */
-uint64_t get_system_timestamp_ns();
+uint64_t BOTAN_TEST_API get_system_timestamp_ns();
 
-/*
-* Returns the maximum amount of memory (in bytes) we could/should
-* hyptothetically allocate. Reads "BOTAN_MLOCK_POOL_SIZE" from
-* environment which can be set to zero.
+/**
+* @return maximum amount of memory (in bytes) Botan could/should
+* hyptothetically allocate for the memory poool. Reads environment
+* variable "BOTAN_MLOCK_POOL_SIZE", set to "0" to disable pool.
 */
 size_t get_memory_locking_limit();
 
-/*
+/**
 * Request so many bytes of page-aligned RAM locked into memory using
 * mlock, VirtualLock, or similar. Returns null on failure. The memory
 * returned is zeroed. Free it with free_locked_pages.
+* @param length requested allocation in bytes
 */
 void* allocate_locked_pages(size_t length);
 
-/*
+/**
 * Free memory allocated by allocate_locked_pages
+* @param ptr a pointer returned by allocate_locked_pages
+* @param length length passed to allocate_locked_pages
 */
 void free_locked_pages(void* ptr, size_t length);
 
-}
+/**
+* Run a probe instruction to test for support for a CPU instruction.
+* Runs in system-specific env that catches illegal instructions; this
+* function always fails if the OS doesn't provide this.
+* Returns value of probe_fn, if it could run.
+* If error occurs, returns negative number.
+* This allows probe_fn to indicate errors of its own, if it wants.
+* For example the instruction might not only be only available on some
+* CPUs, but also buggy on some subset of these - the probe function
+* can test to make sure the instruction works properly before
+* indicating that the instruction is available.
+*
+* @warning on Unix systems uses signal handling in a way that is not
+* thread safe. It should only be called in a single-threaded context
+* (ie, at static init time).
+*
+* If probe_fn throws an exception the result is undefined.
+*
+* Return codes:
+* -1 illegal instruction detected
+*/
+int BOTAN_TEST_API run_cpu_instruction_probe(std::function<int ()> probe_fn);
 
 }
 
+}
 
 namespace Botan {
 
 /**
 * Container of output buffers for Pipe
 */
-class Output_Buffers
+class Output_Buffers final
    {
    public:
       size_t read(uint8_t[], size_t, Pipe::message_id);
@@ -2031,16 +2534,14 @@ class Output_Buffers
       Pipe::message_id message_count() const;
 
       Output_Buffers();
-      ~Output_Buffers();
    private:
       class SecureQueue* get(Pipe::message_id) const;
 
-      std::deque<SecureQueue*> m_buffers;
+      std::deque<std::unique_ptr<SecureQueue>> m_buffers;
       Pipe::message_id m_offset;
    };
 
 }
-
 
 namespace Botan {
 
@@ -2054,7 +2555,7 @@ class Encryption_with_EME : public Encryption
       secure_vector<uint8_t> encrypt(const uint8_t msg[], size_t msg_len,
                                   RandomNumberGenerator& rng) override;
 
-      ~Encryption_with_EME();
+      ~Encryption_with_EME() = default;
    protected:
       explicit Encryption_with_EME(const std::string& eme);
    private:
@@ -2071,7 +2572,7 @@ class Decryption_with_EME : public Decryption
       secure_vector<uint8_t> decrypt(uint8_t& valid_mask,
                                   const uint8_t msg[], size_t msg_len) override;
 
-      ~Decryption_with_EME();
+      ~Decryption_with_EME() = default;
    protected:
       explicit Decryption_with_EME(const std::string& eme);
    private:
@@ -2083,7 +2584,7 @@ class Decryption_with_EME : public Decryption
 class Verification_with_EMSA : public Verification
    {
    public:
-      ~Verification_with_EMSA();
+      ~Verification_with_EMSA() = default;
 
       void update(const uint8_t msg[], size_t msg_len) override;
       bool is_valid_signature(const uint8_t sig[], size_t sig_len) override;
@@ -2161,7 +2662,7 @@ class Signature_with_EMSA : public Signature
       secure_vector<uint8_t> sign(RandomNumberGenerator& rng) override;
    protected:
       explicit Signature_with_EMSA(const std::string& emsa);
-      ~Signature_with_EMSA();
+      ~Signature_with_EMSA() = default;
 
       std::string hash_for_signature() { return m_hash; }
 
@@ -2205,7 +2706,7 @@ class Key_Agreement_with_KDF : public Key_Agreement
 
    protected:
       explicit Key_Agreement_with_KDF(const std::string& kdf);
-      ~Key_Agreement_with_KDF();
+      ~Key_Agreement_with_KDF() = default;
    private:
       virtual secure_vector<uint8_t> raw_agree(const uint8_t w[], size_t w_len) = 0;
       std::unique_ptr<KDF> m_kdf;
@@ -2227,7 +2728,7 @@ class KEM_Encryption_with_KDF : public KEM_Encryption
                                    Botan::RandomNumberGenerator& rng) = 0;
 
       explicit KEM_Encryption_with_KDF(const std::string& kdf);
-      ~KEM_Encryption_with_KDF();
+      ~KEM_Encryption_with_KDF() = default;
    private:
       std::unique_ptr<KDF> m_kdf;
    };
@@ -2246,7 +2747,7 @@ class KEM_Decryption_with_KDF : public KEM_Decryption
       raw_kem_decrypt(const uint8_t encap_key[], size_t len) = 0;
 
       explicit KEM_Decryption_with_KDF(const std::string& kdf);
-      ~KEM_Decryption_with_KDF();
+      ~KEM_Decryption_with_KDF() = default;
    private:
       std::unique_ptr<KDF> m_kdf;
    };
@@ -2255,6 +2756,24 @@ class KEM_Decryption_with_KDF : public KEM_Decryption
 
 }
 
+namespace Botan {
+
+/**
+* Polynomial doubling in GF(2^n)
+*/
+void BOTAN_PUBLIC_API(2,3) poly_double_n(uint8_t out[], const uint8_t in[], size_t n);
+
+inline void poly_double_n(uint8_t buf[], size_t n)
+   {
+   return poly_double_n(buf, buf, n);
+   }
+
+/*
+* Little endian convention - used for XTS
+*/
+void poly_double_n_le(uint8_t out[], const uint8_t in[], size_t n);
+
+}
 
 namespace Botan {
 
@@ -2282,7 +2801,6 @@ inline void prefetch_readwrite(const T* addr, size_t length)
 
 }
 
-
 namespace Botan {
 
 /**
@@ -2298,7 +2816,6 @@ class Intel_Rdrand final : public Entropy_Source
 
 }
 
-
 namespace Botan {
 
 /**
@@ -2313,7 +2830,6 @@ class Intel_Rdseed final : public Entropy_Source
    };
 
 }
-
 
 namespace Botan {
 
@@ -2361,10 +2877,9 @@ inline size_t clamp(size_t n, size_t lower_bound, size_t upper_bound)
 
 }
 
-
 namespace Botan {
 
-class Integer_Overflow_Detected : public Exception
+class Integer_Overflow_Detected final : public Exception
    {
    public:
       Integer_Overflow_Detected(const std::string& file, int line) :
@@ -2387,14 +2902,13 @@ inline size_t checked_add(size_t x, size_t y, const char* file, int line)
 
 }
 
-
 #if defined(BOTAN_TARGET_OS_HAS_THREADS)
 #endif
 
 namespace Botan {
 
 #if defined(BOTAN_TARGET_OS_HAS_THREADS)
-class Semaphore
+class Semaphore final
    {
    public:
       explicit Semaphore(int value = 0) : m_value(value), m_wakeups(0) {}
@@ -2412,7 +2926,6 @@ class Semaphore
 #endif
 
 }
-
 #define SBoxE1(B0, B1, B2, B3)                    \
    do {                                           \
       B3 ^= B0;                                   \
@@ -2827,7 +3340,6 @@ class Semaphore
       B3 = B4;                                    \
       } while(0);
 
-
 #if defined(BOTAN_TARGET_SUPPORTS_SSE2)
   #include <emmintrin.h>
   #define BOTAN_SIMD_USE_SSE2
@@ -2837,73 +3349,112 @@ class Semaphore
   #undef vector
   #undef bool
   #define BOTAN_SIMD_USE_ALTIVEC
-#endif
 
-// TODO: NEON support
+#elif defined(BOTAN_TARGET_SUPPORTS_NEON)
+  #include <arm_neon.h>
+  #define BOTAN_SIMD_USE_NEON
+#endif
 
 namespace Botan {
 
 /**
+* 4x32 bit SIMD register
+*
 * This class is not a general purpose SIMD type, and only offers
 * instructions needed for evaluation of specific crypto primitives.
 * For example it does not currently have equality operators of any
 * kind.
+*
+* Implemented for SSE2, VMX (Altivec), and NEON.
 */
-class SIMD_4x32
+class SIMD_4x32 final
    {
    public:
 
+      SIMD_4x32& operator=(const SIMD_4x32& other) = default;
+      SIMD_4x32(const SIMD_4x32& other) = default;
+
+#if !defined(BOTAN_BUILD_COMPILER_IS_MSVC_2013)
+      SIMD_4x32& operator=(SIMD_4x32&& other) = default;
+      SIMD_4x32(SIMD_4x32&& other) = default;
+#endif
+
+      /**
+      * Zero initialize SIMD register with 4 32-bit elements
+      */
       SIMD_4x32() // zero initialized
          {
-#if defined(BOTAN_SIMD_USE_SSE2) || defined(BOTAN_SIMD_USE_ALTIVEC)
-         ::memset(&m_reg, 0, sizeof(m_reg));
+#if defined(BOTAN_SIMD_USE_SSE2)
+         m_sse = _mm_setzero_si128();
+#elif defined(BOTAN_SIMD_USE_ALTIVEC)
+         m_vmx = vec_splat_u32(0);
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vdupq_n_u32(0);
 #else
-         ::memset(m_reg, 0, sizeof(m_reg));
+         m_scalar[0] = 0;
+         m_scalar[1] = 0;
+         m_scalar[2] = 0;
+         m_scalar[3] = 0;
 #endif
          }
 
+      /**
+      * Load SIMD register with 4 32-bit elements
+      */
       explicit SIMD_4x32(const uint32_t B[4])
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_loadu_si128(reinterpret_cast<const __m128i*>(B));
+         m_sse = _mm_loadu_si128(reinterpret_cast<const __m128i*>(B));
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = (__vector unsigned int){B[0], B[1], B[2], B[3]};
+         m_vmx = (__vector unsigned int){B[0], B[1], B[2], B[3]};
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vld1q_u32(B);
 #else
-         m_reg[0] = B[0];
-         m_reg[1] = B[1];
-         m_reg[2] = B[2];
-         m_reg[3] = B[3];
+         m_scalar[0] = B[0];
+         m_scalar[1] = B[1];
+         m_scalar[2] = B[2];
+         m_scalar[3] = B[3];
 #endif
          }
 
+      /**
+      * Load SIMD register with 4 32-bit elements
+      */
       SIMD_4x32(uint32_t B0, uint32_t B1, uint32_t B2, uint32_t B3)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_set_epi32(B0, B1, B2, B3);
+         m_sse = _mm_set_epi32(B3, B2, B1, B0);
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = (__vector unsigned int){B0, B1, B2, B3};
+         m_vmx = (__vector unsigned int){B0, B1, B2, B3};
+#elif defined(BOTAN_SIMD_USE_NEON)
+         // Better way to do this?
+         const uint32_t B[4] = { B0, B1, B2, B3 };
+         m_neon = vld1q_u32(B);
 #else
-         m_reg[0] = B0;
-         m_reg[1] = B1;
-         m_reg[2] = B2;
-         m_reg[3] = B3;
+         m_scalar[0] = B0;
+         m_scalar[1] = B1;
+         m_scalar[2] = B2;
+         m_scalar[3] = B3;
 #endif
          }
 
-      explicit SIMD_4x32(uint32_t B)
+      /**
+      * Load SIMD register with one 32-bit element repeated
+      */
+      static SIMD_4x32 splat(uint32_t B)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_set1_epi32(B);
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = (__vector unsigned int){B, B, B, B};
+         return SIMD_4x32(_mm_set1_epi32(B));
+#elif defined(BOTAN_SIMD_USE_ARM)
+         return SIMD_4x32(vdupq_n_u32(B));
 #else
-         m_reg[0] = B;
-         m_reg[1] = B;
-         m_reg[2] = B;
-         m_reg[3] = B;
+         return SIMD_4x32(B, B, B, B);
 #endif
          }
 
+      /**
+      * Load a SIMD register with little-endian convention
+      */
       static SIMD_4x32 load_le(const void* in)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
@@ -2916,74 +3467,115 @@ class SIMD_4x32
 
          __vector unsigned char perm = vec_lvsl(0, in_32);
 
-#if defined(BOTAN_TARGET_CPU_IS_BIG_ENDIAN)
-         perm = vec_xor(perm, vec_splat_u8(3)); // bswap vector
-#endif
+         if(CPUID::is_big_endian())
+            {
+            perm = vec_xor(perm, vec_splat_u8(3)); // bswap vector
+            }
 
          R0 = vec_perm(R0, R1, perm);
 
          return SIMD_4x32(R0);
+#elif defined(BOTAN_SIMD_USE_NEON)
+
+         uint32_t in32[4];
+         std::memcpy(in32, in, 16);
+         if(CPUID::is_big_endian())
+            {
+            bswap_4(in32);
+            }
+         return SIMD_4x32(vld1q_u32(in32));
+
 #else
          SIMD_4x32 out;
-         Botan::load_le(out.m_reg, static_cast<const uint8_t*>(in), 4);
+         Botan::load_le(out.m_scalar, static_cast<const uint8_t*>(in), 4);
          return out;
 #endif
          }
 
+      /**
+      * Load a SIMD register with big-endian convention
+      */
       static SIMD_4x32 load_be(const void* in)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         return load_le(in).bswap();
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         const uint32_t* in_32 = static_cast<const uint32_t*>(in);
 
+         return load_le(in).bswap();
+
+#elif defined(BOTAN_SIMD_USE_ALTIVEC)
+
+         const uint32_t* in_32 = static_cast<const uint32_t*>(in);
          __vector unsigned int R0 = vec_ld(0, in_32);
          __vector unsigned int R1 = vec_ld(12, in_32);
-
          __vector unsigned char perm = vec_lvsl(0, in_32);
 
-#if defined(BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN)
-         perm = vec_xor(perm, vec_splat_u8(3)); // bswap vector
-#endif
+         if(CPUID::is_little_endian())
+            {
+            perm = vec_xor(perm, vec_splat_u8(3)); // bswap vector
+            }
 
          R0 = vec_perm(R0, R1, perm);
-
          return SIMD_4x32(R0);
+
+#elif defined(BOTAN_SIMD_USE_NEON)
+
+         uint32_t in32[4];
+         std::memcpy(in32, in, 16);
+         if(CPUID::is_little_endian())
+            {
+            bswap_4(in32);
+            }
+         return SIMD_4x32(vld1q_u32(in32));
 
 #else
          SIMD_4x32 out;
-         Botan::load_be(out.m_reg, static_cast<const uint8_t*>(in), 4);
+         Botan::load_be(out.m_scalar, static_cast<const uint8_t*>(in), 4);
          return out;
 #endif
          }
 
+      /**
+      * Load a SIMD register with little-endian convention
+      */
       void store_le(uint8_t out[]) const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         _mm_storeu_si128(reinterpret_cast<__m128i*>(out), m_reg);
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         __vector unsigned char perm = vec_lvsl(0, static_cast<uint32_t*>(nullptr));
 
-#if defined(BOTAN_TARGET_CPU_IS_BIG_ENDIAN)
-         perm = vec_xor(perm, vec_splat_u8(3)); // bswap vector
-#endif
+         _mm_storeu_si128(reinterpret_cast<__m128i*>(out), m_sse);
+
+#elif defined(BOTAN_SIMD_USE_ALTIVEC)
 
          union {
             __vector unsigned int V;
             uint32_t R[4];
             } vec;
+         vec.V = m_vmx;
+         Botan::store_le(out, vec.R[0], vec.R[1], vec.R[2], vec.R[3]);
 
-         vec.V = vec_perm(m_reg, m_reg, perm);
+#elif defined(BOTAN_SIMD_USE_NEON)
 
-         Botan::store_be(out, vec.R[0], vec.R[1], vec.R[2], vec.R[3]);
+         if(CPUID::is_big_endian())
+            {
+            SIMD_4x32 swap = bswap();
+            swap.store_be(out);
+            }
+         else
+            {
+            uint32_t out32[4] = { 0 };
+            vst1q_u32(out32, m_neon);
+            copy_out_le(out, 16, out32);
+            }
 #else
-         Botan::store_le(out, m_reg[0], m_reg[1], m_reg[2], m_reg[3]);
+         Botan::store_le(out, m_scalar[0], m_scalar[1], m_scalar[2], m_scalar[3]);
 #endif
          }
 
+      /**
+      * Load a SIMD register with big-endian convention
+      */
       void store_be(uint8_t out[]) const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
+
          bswap().store_le(out);
 
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
@@ -2992,195 +3584,283 @@ class SIMD_4x32
             __vector unsigned int V;
             uint32_t R[4];
             } vec;
-
-         vec.V = m_reg;
-
+         vec.V = m_vmx;
          Botan::store_be(out, vec.R[0], vec.R[1], vec.R[2], vec.R[3]);
+
+#elif defined(BOTAN_SIMD_USE_NEON)
+
+         if(CPUID::is_little_endian())
+            {
+            SIMD_4x32 swap = bswap();
+            swap.store_le(out);
+            }
+         else
+            {
+            uint32_t out32[4] = { 0 };
+            vst1q_u32(out32, m_neon);
+            copy_out_be(out, 16, out32);
+            }
+
 #else
-         Botan::store_be(out, m_reg[0], m_reg[1], m_reg[2], m_reg[3]);
+         Botan::store_be(out, m_scalar[0], m_scalar[1], m_scalar[2], m_scalar[3]);
 #endif
          }
 
+
+      /*
+      Return rotate_right(x, rot1) ^ rotate_right(x, rot2) ^ rotate_right(x, rot3)
+      */
+      SIMD_4x32 rho(size_t rot1, size_t rot2, size_t rot3) const
+         {
+         SIMD_4x32 res;
+
+#if defined(BOTAN_SIMD_USE_SSE2)
+
+         res.m_sse = _mm_or_si128(_mm_slli_epi32(m_sse, static_cast<int>(32-rot1)),
+                                  _mm_srli_epi32(m_sse, static_cast<int>(rot1)));
+         res.m_sse = _mm_xor_si128(
+            res.m_sse,
+            _mm_or_si128(_mm_slli_epi32(m_sse, static_cast<int>(32-rot2)),
+                         _mm_srli_epi32(m_sse, static_cast<int>(rot2))));
+         res.m_sse = _mm_xor_si128(
+            res.m_sse,
+            _mm_or_si128(_mm_slli_epi32(m_sse, static_cast<int>(32-rot3)),
+                         _mm_srli_epi32(m_sse, static_cast<int>(rot3))));
+
+#elif defined(BOTAN_SIMD_USE_ALTIVEC)
+
+         const unsigned int r1 = static_cast<unsigned int>(32-rot1);
+         const unsigned int r2 = static_cast<unsigned int>(32-rot2);
+         const unsigned int r3 = static_cast<unsigned int>(32-rot3);
+         res.m_vmx = vec_rl(m_vmx, (__vector unsigned int){r1, r1, r1, r1});
+         res.m_vmx = vec_xor(res.m_vmx, vec_rl(m_vmx, (__vector unsigned int){r2, r2, r2, r2}));
+         res.m_vmx = vec_xor(res.m_vmx, vec_rl(m_vmx, (__vector unsigned int){r3, r3, r3, r3}));
+
+#elif defined(BOTAN_SIMD_USE_NEON)
+         res.m_neon = vorrq_u32(vshlq_n_u32(m_neon, static_cast<int>(32-rot1)),
+                                vshrq_n_u32(m_neon, static_cast<int>(rot1)));
+
+         res.m_neon = veorq_u32(
+            res.m_neon,
+            vorrq_u32(vshlq_n_u32(m_neon, static_cast<int>(32-rot2)),
+                      vshrq_n_u32(m_neon, static_cast<int>(rot2))));
+
+         res.m_neon = veorq_u32(
+            res.m_neon,
+            vorrq_u32(vshlq_n_u32(m_neon, static_cast<int>(32-rot3)),
+                      vshrq_n_u32(m_neon, static_cast<int>(rot3))));
+
+#else
+
+         for(size_t i = 0; i != 4; ++i)
+            {
+            res.m_scalar[i] =
+               Botan::rotate_right(m_scalar[i], rot1) ^
+               Botan::rotate_right(m_scalar[i], rot2) ^
+               Botan::rotate_right(m_scalar[i], rot3);
+            }
+#endif
+
+         return res;
+         }
+
+      /**
+      * Rotate each element of SIMD register n bits left
+      */
       void rotate_left(size_t rot)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_or_si128(_mm_slli_epi32(m_reg, static_cast<int>(rot)),
-                              _mm_srli_epi32(m_reg, static_cast<int>(32-rot)));
+
+         m_sse = _mm_or_si128(_mm_slli_epi32(m_sse, static_cast<int>(rot)),
+                              _mm_srli_epi32(m_sse, static_cast<int>(32-rot)));
 
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
+
          const unsigned int r = static_cast<unsigned int>(rot);
-         m_reg = vec_rl(m_reg, (__vector unsigned int){r, r, r, r});
+         m_vmx = vec_rl(m_vmx, (__vector unsigned int){r, r, r, r});
+
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vorrq_u32(vshlq_n_u32(m_neon, static_cast<int>(rot)),
+                            vshrq_n_u32(m_neon, static_cast<int>(32-rot)));
 
 #else
-         m_reg[0] = Botan::rotate_left(m_reg[0], rot);
-         m_reg[1] = Botan::rotate_left(m_reg[1], rot);
-         m_reg[2] = Botan::rotate_left(m_reg[2], rot);
-         m_reg[3] = Botan::rotate_left(m_reg[3], rot);
+         m_scalar[0] = Botan::rotate_left(m_scalar[0], rot);
+         m_scalar[1] = Botan::rotate_left(m_scalar[1], rot);
+         m_scalar[2] = Botan::rotate_left(m_scalar[2], rot);
+         m_scalar[3] = Botan::rotate_left(m_scalar[3], rot);
 #endif
          }
 
+      /**
+      * Rotate each element of SIMD register n bits right
+      */
       void rotate_right(size_t rot)
          {
          rotate_left(32 - rot);
          }
 
+      /**
+      * Add elements of a SIMD vector
+      */
+      SIMD_4x32 operator+(const SIMD_4x32& other) const
+         {
+         SIMD_4x32 retval(*this);
+         retval += other;
+         return retval;
+         }
+
+      /**
+      * Subtract elements of a SIMD vector
+      */
+      SIMD_4x32 operator-(const SIMD_4x32& other) const
+         {
+         SIMD_4x32 retval(*this);
+         retval -= other;
+         return retval;
+         }
+
+      /**
+      * XOR elements of a SIMD vector
+      */
+      SIMD_4x32 operator^(const SIMD_4x32& other) const
+         {
+         SIMD_4x32 retval(*this);
+         retval ^= other;
+         return retval;
+         }
+
+      /**
+      * Binary OR elements of a SIMD vector
+      */
+      SIMD_4x32 operator|(const SIMD_4x32& other) const
+         {
+         SIMD_4x32 retval(*this);
+         retval |= other;
+         return retval;
+         }
+
+      /**
+      * Binary AND elements of a SIMD vector
+      */
+      SIMD_4x32 operator&(const SIMD_4x32& other) const
+         {
+         SIMD_4x32 retval(*this);
+         retval &= other;
+         return retval;
+         }
+
       void operator+=(const SIMD_4x32& other)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_add_epi32(m_reg, other.m_reg);
+         m_sse = _mm_add_epi32(m_sse, other.m_sse);
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = vec_add(m_reg, other.m_reg);
+         m_vmx = vec_add(m_vmx, other.m_vmx);
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vaddq_u32(m_neon, other.m_neon);
 #else
-         m_reg[0] += other.m_reg[0];
-         m_reg[1] += other.m_reg[1];
-         m_reg[2] += other.m_reg[2];
-         m_reg[3] += other.m_reg[3];
-#endif
-         }
-
-      SIMD_4x32 operator+(const SIMD_4x32& other) const
-         {
-#if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_add_epi32(m_reg, other.m_reg));
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         return SIMD_4x32(vec_add(m_reg, other.m_reg));
-#else
-         return SIMD_4x32(m_reg[0] + other.m_reg[0],
-                          m_reg[1] + other.m_reg[1],
-                          m_reg[2] + other.m_reg[2],
-                          m_reg[3] + other.m_reg[3]);
+         m_scalar[0] += other.m_scalar[0];
+         m_scalar[1] += other.m_scalar[1];
+         m_scalar[2] += other.m_scalar[2];
+         m_scalar[3] += other.m_scalar[3];
 #endif
          }
 
       void operator-=(const SIMD_4x32& other)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_sub_epi32(m_reg, other.m_reg);
+         m_sse = _mm_sub_epi32(m_sse, other.m_sse);
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = vec_sub(m_reg, other.m_reg);
+         m_vmx = vec_sub(m_vmx, other.m_vmx);
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vsubq_u32(m_neon, other.m_neon);
 #else
-         m_reg[0] -= other.m_reg[0];
-         m_reg[1] -= other.m_reg[1];
-         m_reg[2] -= other.m_reg[2];
-         m_reg[3] -= other.m_reg[3];
-#endif
-         }
-
-      SIMD_4x32 operator-(const SIMD_4x32& other) const
-         {
-#if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_sub_epi32(m_reg, other.m_reg));
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         return SIMD_4x32(vec_sub(m_reg, other.m_reg));
-#else
-         return SIMD_4x32(m_reg[0] - other.m_reg[0],
-                          m_reg[1] - other.m_reg[1],
-                          m_reg[2] - other.m_reg[2],
-                          m_reg[3] - other.m_reg[3]);
+         m_scalar[0] -= other.m_scalar[0];
+         m_scalar[1] -= other.m_scalar[1];
+         m_scalar[2] -= other.m_scalar[2];
+         m_scalar[3] -= other.m_scalar[3];
 #endif
          }
 
       void operator^=(const SIMD_4x32& other)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_xor_si128(m_reg, other.m_reg);
+         m_sse = _mm_xor_si128(m_sse, other.m_sse);
 
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = vec_xor(m_reg, other.m_reg);
+         m_vmx = vec_xor(m_vmx, other.m_vmx);
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = veorq_u32(m_neon, other.m_neon);
 #else
-         m_reg[0] ^= other.m_reg[0];
-         m_reg[1] ^= other.m_reg[1];
-         m_reg[2] ^= other.m_reg[2];
-         m_reg[3] ^= other.m_reg[3];
-#endif
-         }
-
-      SIMD_4x32 operator^(const SIMD_4x32& other) const
-         {
-#if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_xor_si128(m_reg, other.m_reg));
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         return SIMD_4x32(vec_xor(m_reg, other.m_reg));
-#else
-         return SIMD_4x32(m_reg[0] ^ other.m_reg[0],
-                          m_reg[1] ^ other.m_reg[1],
-                          m_reg[2] ^ other.m_reg[2],
-                          m_reg[3] ^ other.m_reg[3]);
+         m_scalar[0] ^= other.m_scalar[0];
+         m_scalar[1] ^= other.m_scalar[1];
+         m_scalar[2] ^= other.m_scalar[2];
+         m_scalar[3] ^= other.m_scalar[3];
 #endif
          }
 
       void operator|=(const SIMD_4x32& other)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_or_si128(m_reg, other.m_reg);
+         m_sse = _mm_or_si128(m_sse, other.m_sse);
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = vec_or(m_reg, other.m_reg);
+         m_vmx = vec_or(m_vmx, other.m_vmx);
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vorrq_u32(m_neon, other.m_neon);
 #else
-         m_reg[0] |= other.m_reg[0];
-         m_reg[1] |= other.m_reg[1];
-         m_reg[2] |= other.m_reg[2];
-         m_reg[3] |= other.m_reg[3];
-#endif
-         }
-
-      SIMD_4x32 operator&(const SIMD_4x32& other)
-         {
-#if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_and_si128(m_reg, other.m_reg));
-
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         return SIMD_4x32(vec_and(m_reg, other.m_reg));
-#else
-         return SIMD_4x32(m_reg[0] & other.m_reg[0],
-                          m_reg[1] & other.m_reg[1],
-                          m_reg[2] & other.m_reg[2],
-                          m_reg[3] & other.m_reg[3]);
+         m_scalar[0] |= other.m_scalar[0];
+         m_scalar[1] |= other.m_scalar[1];
+         m_scalar[2] |= other.m_scalar[2];
+         m_scalar[3] |= other.m_scalar[3];
 #endif
          }
 
       void operator&=(const SIMD_4x32& other)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         m_reg = _mm_and_si128(m_reg, other.m_reg);
+         m_sse = _mm_and_si128(m_sse, other.m_sse);
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         m_reg = vec_and(m_reg, other.m_reg);
+         m_vmx = vec_and(m_vmx, other.m_vmx);
+#elif defined(BOTAN_SIMD_USE_NEON)
+         m_neon = vandq_u32(m_neon, other.m_neon);
 #else
-         m_reg[0] &= other.m_reg[0];
-         m_reg[1] &= other.m_reg[1];
-         m_reg[2] &= other.m_reg[2];
-         m_reg[3] &= other.m_reg[3];
+         m_scalar[0] &= other.m_scalar[0];
+         m_scalar[1] &= other.m_scalar[1];
+         m_scalar[2] &= other.m_scalar[2];
+         m_scalar[3] &= other.m_scalar[3];
 #endif
          }
 
       SIMD_4x32 operator<<(size_t shift) const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_slli_epi32(m_reg, static_cast<int>(shift)));
+         return SIMD_4x32(_mm_slli_epi32(m_sse, static_cast<int>(shift)));
 
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
          const unsigned int s = static_cast<unsigned int>(shift);
-         return SIMD_4x32(vec_sl(m_reg, (__vector unsigned int){s, s, s, s}));
+         return SIMD_4x32(vec_sl(m_vmx, (__vector unsigned int){s, s, s, s}));
+#elif defined(BOTAN_SIMD_USE_NEON)
+         return SIMD_4x32(vshlq_n_u32(m_neon, static_cast<int>(shift)));
 #else
-         return SIMD_4x32(m_reg[0] << shift,
-                          m_reg[1] << shift,
-                          m_reg[2] << shift,
-                          m_reg[3] << shift);
+         return SIMD_4x32(m_scalar[0] << shift,
+                          m_scalar[1] << shift,
+                          m_scalar[2] << shift,
+                          m_scalar[3] << shift);
 #endif
          }
 
       SIMD_4x32 operator>>(size_t shift) const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_srli_epi32(m_reg, static_cast<int>(shift)));
+         return SIMD_4x32(_mm_srli_epi32(m_sse, static_cast<int>(shift)));
 
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
          const unsigned int s = static_cast<unsigned int>(shift);
-         return SIMD_4x32(vec_sr(m_reg, (__vector unsigned int){s, s, s, s}));
+         return SIMD_4x32(vec_sr(m_vmx, (__vector unsigned int){s, s, s, s}));
+#elif defined(BOTAN_SIMD_USE_NEON)
+         return SIMD_4x32(vshrq_n_u32(m_neon, static_cast<int>(shift)));
 #else
-         return SIMD_4x32(m_reg[0] >> shift,
-                          m_reg[1] >> shift,
-                          m_reg[2] >> shift,
-                          m_reg[3] >> shift);
+         return SIMD_4x32(m_scalar[0] >> shift, m_scalar[1] >> shift,
+                          m_scalar[2] >> shift, m_scalar[3] >> shift);
 
 #endif
          }
@@ -3188,89 +3868,138 @@ class SIMD_4x32
       SIMD_4x32 operator~() const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_xor_si128(m_reg, _mm_set1_epi32(0xFFFFFFFF)));
+         return SIMD_4x32(_mm_xor_si128(m_sse, _mm_set1_epi32(0xFFFFFFFF)));
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         return SIMD_4x32(vec_nor(m_reg, m_reg));
+         return SIMD_4x32(vec_nor(m_vmx, m_vmx));
+#elif defined(BOTAN_SIMD_USE_NEON)
+         return SIMD_4x32(vmvnq_u32(m_neon));
 #else
-         return SIMD_4x32(~m_reg[0],
-                          ~m_reg[1],
-                          ~m_reg[2],
-                          ~m_reg[3]);
+         return SIMD_4x32(~m_scalar[0], ~m_scalar[1], ~m_scalar[2], ~m_scalar[3]);
 #endif
          }
 
       // (~reg) & other
-      SIMD_4x32 andc(const SIMD_4x32& other)
+      SIMD_4x32 andc(const SIMD_4x32& other) const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         return SIMD_4x32(_mm_andnot_si128(m_reg, other.m_reg));
+         return SIMD_4x32(_mm_andnot_si128(m_sse, other.m_sse));
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
          /*
          AltiVec does arg1 & ~arg2 rather than SSE's ~arg1 & arg2
          so swap the arguments
          */
-         return SIMD_4x32(vec_andc(other.m_reg, m_reg));
+         return SIMD_4x32(vec_andc(other.m_vmx, m_vmx));
+#elif defined(BOTAN_SIMD_USE_NEON)
+         // NEON is also a & ~b
+         return SIMD_4x32(vbicq_u32(other.m_neon, m_neon));
 #else
-         return SIMD_4x32((~m_reg[0]) & other.m_reg[0],
-                          (~m_reg[1]) & other.m_reg[1],
-                          (~m_reg[2]) & other.m_reg[2],
-                          (~m_reg[3]) & other.m_reg[3]);
+         return SIMD_4x32((~m_scalar[0]) & other.m_scalar[0],
+                          (~m_scalar[1]) & other.m_scalar[1],
+                          (~m_scalar[2]) & other.m_scalar[2],
+                          (~m_scalar[3]) & other.m_scalar[3]);
 #endif
          }
 
+      /**
+      * Return copy *this with each word byte swapped
+      */
       SIMD_4x32 bswap() const
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         __m128i T = m_reg;
 
+         __m128i T = m_sse;
          T = _mm_shufflehi_epi16(T, _MM_SHUFFLE(2, 3, 0, 1));
          T = _mm_shufflelo_epi16(T, _MM_SHUFFLE(2, 3, 0, 1));
-
-         return SIMD_4x32(_mm_or_si128(_mm_srli_epi16(T, 8),
-                                       _mm_slli_epi16(T, 8)));
+         return SIMD_4x32(_mm_or_si128(_mm_srli_epi16(T, 8), _mm_slli_epi16(T, 8)));
 
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
 
          __vector unsigned char perm = vec_lvsl(0, static_cast<uint32_t*>(nullptr));
-
          perm = vec_xor(perm, vec_splat_u8(3));
+         return SIMD_4x32(vec_perm(m_vmx, m_vmx, perm));
 
-         return SIMD_4x32(vec_perm(m_reg, m_reg, perm));
+#elif defined(BOTAN_SIMD_USE_NEON)
+
+         //return SIMD_4x32(vrev64q_u32(m_neon));
+
+         // FIXME this is really slow
+         SIMD_4x32 ror8(m_neon);
+         ror8.rotate_right(8);
+         SIMD_4x32 rol8(m_neon);
+         rol8.rotate_left(8);
+
+         SIMD_4x32 mask1 = SIMD_4x32::splat(0xFF00FF00);
+         SIMD_4x32 mask2 = SIMD_4x32::splat(0x00FF00FF);
+         return (ror8 & mask1) | (rol8 & mask2);
 #else
-         return SIMD_4x32(reverse_bytes(m_reg[0]),
-                          reverse_bytes(m_reg[1]),
-                          reverse_bytes(m_reg[2]),
-                          reverse_bytes(m_reg[3]));
+         // scalar
+         return SIMD_4x32(reverse_bytes(m_scalar[0]),
+                          reverse_bytes(m_scalar[1]),
+                          reverse_bytes(m_scalar[2]),
+                          reverse_bytes(m_scalar[3]));
 #endif
          }
 
+      /**
+      * 4x4 Transposition on SIMD registers
+      */
       static void transpose(SIMD_4x32& B0, SIMD_4x32& B1,
                             SIMD_4x32& B2, SIMD_4x32& B3)
          {
 #if defined(BOTAN_SIMD_USE_SSE2)
-         __m128i T0 = _mm_unpacklo_epi32(B0.m_reg, B1.m_reg);
-         __m128i T1 = _mm_unpacklo_epi32(B2.m_reg, B3.m_reg);
-         __m128i T2 = _mm_unpackhi_epi32(B0.m_reg, B1.m_reg);
-         __m128i T3 = _mm_unpackhi_epi32(B2.m_reg, B3.m_reg);
-         B0.m_reg = _mm_unpacklo_epi64(T0, T1);
-         B1.m_reg = _mm_unpackhi_epi64(T0, T1);
-         B2.m_reg = _mm_unpacklo_epi64(T2, T3);
-         B3.m_reg = _mm_unpackhi_epi64(T2, T3);
-#elif defined(BOTAN_SIMD_USE_ALTIVEC)
-         __vector unsigned int T0 = vec_mergeh(B0.m_reg, B2.m_reg);
-         __vector unsigned int T1 = vec_mergel(B0.m_reg, B2.m_reg);
-         __vector unsigned int T2 = vec_mergeh(B1.m_reg, B3.m_reg);
-         __vector unsigned int T3 = vec_mergel(B1.m_reg, B3.m_reg);
+         const __m128i T0 = _mm_unpacklo_epi32(B0.m_sse, B1.m_sse);
+         const __m128i T1 = _mm_unpacklo_epi32(B2.m_sse, B3.m_sse);
+         const __m128i T2 = _mm_unpackhi_epi32(B0.m_sse, B1.m_sse);
+         const __m128i T3 = _mm_unpackhi_epi32(B2.m_sse, B3.m_sse);
 
-         B0.m_reg = vec_mergeh(T0, T2);
-         B1.m_reg = vec_mergel(T0, T2);
-         B2.m_reg = vec_mergeh(T1, T3);
-         B3.m_reg = vec_mergel(T1, T3);
+         B0.m_sse = _mm_unpacklo_epi64(T0, T1);
+         B1.m_sse = _mm_unpackhi_epi64(T0, T1);
+         B2.m_sse = _mm_unpacklo_epi64(T2, T3);
+         B3.m_sse = _mm_unpackhi_epi64(T2, T3);
+#elif defined(BOTAN_SIMD_USE_ALTIVEC)
+         const __vector unsigned int T0 = vec_mergeh(B0.m_vmx, B2.m_vmx);
+         const __vector unsigned int T1 = vec_mergeh(B1.m_vmx, B3.m_vmx);
+         const __vector unsigned int T2 = vec_mergel(B0.m_vmx, B2.m_vmx);
+         const __vector unsigned int T3 = vec_mergel(B1.m_vmx, B3.m_vmx);
+
+         B0.m_vmx = vec_mergeh(T0, T1);
+         B1.m_vmx = vec_mergel(T0, T1);
+         B2.m_vmx = vec_mergeh(T2, T3);
+         B3.m_vmx = vec_mergel(T2, T3);
+#elif defined(BOTAN_SIMD_USE_NEON)
+
+#if defined(BOTAN_TARGET_ARCH_IS_ARM32)
+
+         const uint32x4x2_t T0 = vzipq_u32(B0.m_neon, B2.m_neon);
+         const uint32x4x2_t T1 = vzipq_u32(B1.m_neon, B3.m_neon);
+         const uint32x4x2_t O0 = vzipq_u32(T0.val[0], T1.val[0]);
+         const uint32x4x2_t O1 = vzipq_u32(T0.val[1], T1.val[1]);
+
+         B0.m_neon = O0.val[0];
+         B1.m_neon = O0.val[1];
+         B2.m_neon = O1.val[0];
+         B3.m_neon = O1.val[1];
+
+#elif defined(BOTAN_TARGET_ARCH_IS_ARM64)
+         const uint32x4_t T0 = vzip1q_u32(B0.m_neon, B2.m_neon);
+         const uint32x4_t T2 = vzip2q_u32(B0.m_neon, B2.m_neon);
+
+         const uint32x4_t T1 = vzip1q_u32(B1.m_neon, B3.m_neon);
+         const uint32x4_t T3 = vzip2q_u32(B1.m_neon, B3.m_neon);
+
+         B0.m_neon = vzip1q_u32(T0, T1);
+         B1.m_neon = vzip2q_u32(T0, T1);
+
+         B2.m_neon = vzip1q_u32(T2, T3);
+         B3.m_neon = vzip2q_u32(T2, T3);
+#endif
+
 #else
-         SIMD_4x32 T0(B0.m_reg[0], B1.m_reg[0], B2.m_reg[0], B3.m_reg[0]);
-         SIMD_4x32 T1(B0.m_reg[1], B1.m_reg[1], B2.m_reg[1], B3.m_reg[1]);
-         SIMD_4x32 T2(B0.m_reg[2], B1.m_reg[2], B2.m_reg[2], B3.m_reg[2]);
-         SIMD_4x32 T3(B0.m_reg[3], B1.m_reg[3], B2.m_reg[3], B3.m_reg[3]);
+         // scalar
+         SIMD_4x32 T0(B0.m_scalar[0], B1.m_scalar[0], B2.m_scalar[0], B3.m_scalar[0]);
+         SIMD_4x32 T1(B0.m_scalar[1], B1.m_scalar[1], B2.m_scalar[1], B3.m_scalar[1]);
+         SIMD_4x32 T2(B0.m_scalar[2], B1.m_scalar[2], B2.m_scalar[2], B3.m_scalar[2]);
+         SIMD_4x32 T3(B0.m_scalar[3], B1.m_scalar[3], B2.m_scalar[3], B3.m_scalar[3]);
 
          B0 = T0;
          B1 = T1;
@@ -3280,25 +4009,29 @@ class SIMD_4x32
          }
 
    private:
+
 #if defined(BOTAN_SIMD_USE_SSE2)
-      explicit SIMD_4x32(__m128i in) { m_reg = in; }
+      explicit SIMD_4x32(__m128i in) : m_sse(in) {}
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-      explicit SIMD_4x32(__vector unsigned int input) { m_reg = input; }
+      explicit SIMD_4x32(__vector unsigned int in) : m_vmx(in) {}
+#elif defined(BOTAN_SIMD_USE_NEON)
+      explicit SIMD_4x32(uint32x4_t in) : m_neon(in) {}
 #endif
 
 #if defined(BOTAN_SIMD_USE_SSE2)
-      __m128i m_reg;
+      __m128i m_sse;
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
-      __vector unsigned int m_reg;
+      __vector unsigned int m_vmx;
+#elif defined(BOTAN_SIMD_USE_NEON)
+      uint32x4_t m_neon;
 #else
-      uint32_t m_reg[4];
+      uint32_t m_scalar[4];
 #endif
    };
 
 typedef SIMD_4x32 SIMD_32;
 
 }
-
 
 namespace Botan {
 
@@ -3361,12 +4094,7 @@ template<typename K, typename V>
 void multimap_insert(std::multimap<K, V>& multimap,
                      const K& key, const V& value)
    {
-#if defined(BOTAN_BUILD_COMPILER_IS_SUN_STUDIO)
-   // Work around a strange bug in Sun Studio
-   multimap.insert(std::make_pair<const K, V>(key, value));
-#else
    multimap.insert(std::make_pair(key, value));
-#endif
    }
 
 /**
@@ -3397,7 +4125,6 @@ void map_remove_if(Pred pred, T& assoc)
 
 }
 
-
 namespace Botan {
 
 namespace TLS {
@@ -3406,7 +4133,7 @@ namespace TLS {
 * TLS CBC+HMAC AEAD base class (GenericBlockCipher in TLS spec)
 * This is the weird TLS-specific mode, not for general consumption.
 */
-class BOTAN_DLL TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
+class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
    {
    public:
       size_t process(uint8_t buf[], size_t sz) override final;
@@ -3487,7 +4214,7 @@ class BOTAN_DLL TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
 /**
 * TLS_CBC_HMAC_AEAD Encryption
 */
-class BOTAN_DLL TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AEAD_Mode
+class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AEAD_Mode
    {
    public:
       /**
@@ -3520,7 +4247,7 @@ class BOTAN_DLL TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AEAD_Mo
 /**
 * TLS_CBC_HMAC_AEAD Decryption
 */
-class BOTAN_DLL TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AEAD_Mode
+class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AEAD_Mode
    {
    public:
       /**
@@ -3551,10 +4278,17 @@ class BOTAN_DLL TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AEAD_Mo
       void perform_additional_compressions(size_t plen, size_t padlen);
    };
 
-}
+/**
+* Check the TLS padding of a record
+* @param record the record bits
+* @param record_len length of record
+* @return 0 if padding is invalid, otherwise padding_bytes + 1
+*/
+BOTAN_TEST_API uint16_t check_tls_cbc_padding(const uint8_t record[], size_t record_len);
 
 }
 
+}
 
 namespace Botan {
 
@@ -3563,7 +4297,7 @@ namespace TLS {
 /**
 * TLS Handshake Hash
 */
-class Handshake_Hash
+class Handshake_Hash final
    {
    public:
       void update(const uint8_t in[], size_t length)
@@ -3585,7 +4319,6 @@ class Handshake_Hash
 }
 
 }
-
 
 namespace Botan {
 
@@ -3619,13 +4352,13 @@ class Handshake_IO
       virtual std::pair<Handshake_Type, std::vector<uint8_t>>
          get_next_record(bool expecting_ccs) = 0;
 
-      Handshake_IO() {}
+      Handshake_IO() = default;
 
       Handshake_IO(const Handshake_IO&) = delete;
 
       Handshake_IO& operator=(const Handshake_IO&) = delete;
 
-      virtual ~Handshake_IO() {}
+      virtual ~Handshake_IO() = default;
    };
 
 /**
@@ -3715,7 +4448,7 @@ class Datagram_Handshake_IO final : public Handshake_IO
                                      Handshake_Type msg_type,
                                      const std::vector<uint8_t>& msg);
 
-      class Handshake_Reassembly
+      class Handshake_Reassembly final
          {
          public:
             void add_fragment(const uint8_t fragment[],
@@ -3741,12 +4474,10 @@ class Datagram_Handshake_IO final : public Handshake_IO
             std::vector<uint8_t> m_message;
          };
 
-      struct Message_Info
+      struct Message_Info final
          {
          Message_Info(uint16_t e, Handshake_Type mt, const std::vector<uint8_t>& msg) :
             epoch(e), msg_type(mt), msg_bits(msg) {}
-
-         Message_Info(const Message_Info& other) = default;
 
          Message_Info() : epoch(0xFFFF), msg_type(HANDSHAKE_NONE) {}
 
@@ -3778,7 +4509,6 @@ class Datagram_Handshake_IO final : public Handshake_IO
 
 }
 
-
 namespace Botan {
 
 namespace TLS {
@@ -3788,7 +4518,7 @@ class Handshake_State;
 /**
 * TLS Session Keys
 */
-class Session_Keys
+class Session_Keys final
    {
    public:
       /**
@@ -3826,7 +4556,7 @@ class Session_Keys
       */
       const secure_vector<uint8_t>& master_secret() const { return m_master_sec; }
 
-      Session_Keys() {}
+      Session_Keys() = default;
 
       /**
       * @param state state the handshake state
@@ -3846,7 +4576,6 @@ class Session_Keys
 }
 
 }
-
 
 namespace Botan {
 
@@ -3879,7 +4608,7 @@ class Handshake_State
    public:
       Handshake_State(Handshake_IO* io, Callbacks& callbacks);
 
-      virtual ~Handshake_State();
+      virtual ~Handshake_State() = default;
 
       Handshake_State(const Handshake_State&) = delete;
       Handshake_State& operator=(const Handshake_State&) = delete;
@@ -4031,7 +4760,6 @@ class Handshake_State
 
 }
 
-
 namespace Botan {
 
 namespace TLS {
@@ -4039,7 +4767,7 @@ namespace TLS {
 /**
 * Helper class for decoding TLS protocol messages
 */
-class TLS_Data_Reader
+class TLS_Data_Reader final
    {
    public:
       TLS_Data_Reader(const char* type, const std::vector<uint8_t>& buf_in) :
@@ -4246,7 +4974,6 @@ void append_tls_length_value(std::vector<uint8_t, Alloc>& buf,
 
 }
 
-
 namespace Botan {
 
 namespace TLS {
@@ -4259,7 +4986,7 @@ class Connection_Sequence_Numbers;
 /**
 * TLS Cipher State
 */
-class Connection_Cipher_State
+class Connection_Cipher_State final
    {
    public:
       /**
@@ -4302,7 +5029,7 @@ class Connection_Cipher_State
       bool m_cbc_nonce;
    };
 
-class Record
+class Record final
    {
    public:
       Record(secure_vector<uint8_t>& data,
@@ -4310,7 +5037,7 @@ class Record
              Protocol_Version* protocol_version,
              Record_Type* type)
          : m_data(data), m_sequence(sequence), m_protocol_version(protocol_version),
-           m_type(type), m_size(data.size()) {};
+           m_type(type), m_size(data.size()) {}
 
       secure_vector<uint8_t>& get_data() { return m_data; }
 
@@ -4330,19 +5057,19 @@ class Record
       size_t m_size;
    };
 
-class Record_Message
+class Record_Message final
    {
    public:
       Record_Message(const uint8_t* data, size_t size)
-         : m_type(0), m_sequence(0), m_data(data), m_size(size) {};
+         : m_type(0), m_sequence(0), m_data(data), m_size(size) {}
       Record_Message(uint8_t type, uint64_t sequence, const uint8_t* data, size_t size)
          : m_type(type), m_sequence(sequence), m_data(data),
-           m_size(size) {};
+           m_size(size) {}
 
-      uint8_t& get_type() { return m_type; };
-      uint64_t& get_sequence() { return m_sequence; };
-      const uint8_t* get_data() { return m_data; };
-      size_t& get_size() { return m_size; };
+      uint8_t& get_type() { return m_type; }
+      uint64_t& get_sequence() { return m_sequence; }
+      const uint8_t* get_data() { return m_data; }
+      size_t& get_size() { return m_size; }
 
    private:
       uint8_t m_type;
@@ -4351,22 +5078,22 @@ class Record_Message
       size_t m_size;
 };
 
-class Record_Raw_Input
+class Record_Raw_Input final
    {
    public:
       Record_Raw_Input(const uint8_t* data, size_t size, size_t& consumed,
                        bool is_datagram)
          : m_data(data), m_size(size), m_consumed(consumed),
-           m_is_datagram(is_datagram) {};
+           m_is_datagram(is_datagram) {}
 
-      const uint8_t*& get_data() { return m_data; };
+      const uint8_t*& get_data() { return m_data; }
 
-      size_t& get_size() { return m_size; };
+      size_t& get_size() { return m_size; }
 
-      size_t& get_consumed() { return m_consumed; };
+      size_t& get_consumed() { return m_consumed; }
       void set_consumed(size_t consumed) { m_consumed = consumed; }
 
-      bool is_datagram() { return m_is_datagram; };
+      bool is_datagram() { return m_is_datagram; }
 
    private:
       const uint8_t* m_data;
@@ -4408,7 +5135,6 @@ size_t read_record(secure_vector<uint8_t>& read_buffer,
 }
 
 }
-
 
 namespace Botan {
 
@@ -4502,7 +5228,7 @@ class Datagram_Sequence_Numbers final : public Connection_Sequence_Numbers
 
          if(sequence > m_window_highest)
             {
-            const size_t offset = sequence - m_window_highest;
+            const uint64_t offset = sequence - m_window_highest;
             m_window_highest += offset;
 
             if(offset >= window_size)
@@ -4530,7 +5256,6 @@ class Datagram_Sequence_Numbers final : public Connection_Sequence_Numbers
 }
 
 }
-
 
 namespace Botan {
 
@@ -4560,7 +5285,7 @@ class XMSS_Signature
                      const secure_vector<uint8_t>& randomness,
                      const XMSS_WOTS_PublicKey::TreeSignature& tree_sig)
          : m_leaf_idx(leaf_idx), m_randomness(randomness),
-           m_tree_sig(tree_sig) {};
+           m_tree_sig(tree_sig) {}
 
       /**
        * Creates an XMSS Signature from a leaf index used for signature
@@ -4574,7 +5299,7 @@ class XMSS_Signature
                      secure_vector<uint8_t>&& randomness,
                      XMSS_WOTS_PublicKey::TreeSignature&& tree_sig)
          : m_leaf_idx(leaf_idx), m_randomness(std::move(randomness)),
-           m_tree_sig(std::move(tree_sig)) {};
+           m_tree_sig(std::move(tree_sig)) {}
 
       size_t unused_leaf_index() const { return m_leaf_idx; }
       void set_unused_leaf_idx(size_t idx) { m_leaf_idx = idx; }
@@ -4641,7 +5366,6 @@ class XMSS_Signature
 
 }
 
-
 namespace Botan {
 
 /**
@@ -4654,12 +5378,12 @@ namespace Botan {
  *     https://datatracker.ietf.org/doc/
  *     draft-irtf-cfrg-xmss-hash-based-signatures/?include_text=1
  **/
-class XMSS_Signature_Operation : public virtual PK_Ops::Signature,
+class XMSS_Signature_Operation final : public virtual PK_Ops::Signature,
                                  public XMSS_Common_Ops
    {
    public:
       XMSS_Signature_Operation(const XMSS_PrivateKey& private_key);
-      virtual ~XMSS_Signature_Operation() {}
+      virtual ~XMSS_Signature_Operation() = default;
 
       /**
        * Creates an XMSS signature for the message provided through call to
@@ -4712,7 +5436,6 @@ class XMSS_Signature_Operation : public virtual PK_Ops::Signature,
 
 }
 
-
 namespace Botan {
 
 /**
@@ -4720,17 +5443,16 @@ namespace Botan {
  * Signatures (XMSS).
  **/
  class XMSS_Verification_Operation
-   : public virtual PK_Ops::Verification,
+   final : public virtual PK_Ops::Verification,
      public XMSS_Common_Ops
    {
    public:
       XMSS_Verification_Operation(
          const XMSS_PublicKey& public_key);
 
-      virtual ~XMSS_Verification_Operation() {}
+      virtual ~XMSS_Verification_Operation() = default;
 
-      virtual bool is_valid_signature(const uint8_t sig[],
-                                      size_t sig_len) override;
+      bool is_valid_signature(const uint8_t sig[], size_t sig_len) override;
 
       void update(const uint8_t msg[], size_t msg_len) override;
 
@@ -4741,7 +5463,7 @@ namespace Botan {
        *
        * @param msg A message.
        * @param sig The XMSS signature for msg.
-       * @param adrs A XMSS tree address.
+       * @param ards A XMSS tree address.
        * @param seed A seed.
        *
        * @return An n-byte string holding the value of the root of a tree
@@ -4759,7 +5481,7 @@ namespace Botan {
        *
        * @param sig A XMSS signature.
        * @param msg The message signed with sig.
-       * @paeam pub_key
+       * @param pub_key the public key
        *
        * @return true if signature sig is valid for msg, false otherwise.
        **/
@@ -4772,7 +5494,6 @@ namespace Botan {
    };
 
 }
-
 
 namespace Botan {
 
@@ -4806,45 +5527,44 @@ class XMSS_WOTS_Addressed_PublicKey : public virtual Public_Key
       const XMSS_Address& address() const { return m_adrs; }
       XMSS_Address& address() { return m_adrs; }
 
-      virtual std::string algo_name() const override
+      std::string algo_name() const override
          {
          return m_pub_key.algo_name();
          }
 
-      virtual AlgorithmIdentifier algorithm_identifier() const override
+      AlgorithmIdentifier algorithm_identifier() const override
          {
          return m_pub_key.algorithm_identifier();
          }
 
-      virtual bool check_key(RandomNumberGenerator& rng,
-                             bool strong) const override
+      bool check_key(RandomNumberGenerator& rng, bool strong) const override
          {
          return m_pub_key.check_key(rng, strong);
          }
 
-      virtual std::unique_ptr<PK_Ops::Verification>
+      std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string& params,
                                 const std::string& provider) const override
          {
          return m_pub_key.create_verification_op(params, provider);
          }
 
-      virtual OID get_oid() const override
+      OID get_oid() const override
          {
          return m_pub_key.get_oid();
          }
 
-      virtual size_t estimated_strength() const override
+      size_t estimated_strength() const override
          {
          return m_pub_key.estimated_strength();
          }
 
-      virtual size_t key_length() const override
+      size_t key_length() const override
          {
          return m_pub_key.estimated_strength();
          }
 
-      virtual std::vector<uint8_t> public_key_bits() const override
+      std::vector<uint8_t> public_key_bits() const override
          {
          return m_pub_key.public_key_bits();
          }
@@ -4856,7 +5576,6 @@ class XMSS_WOTS_Addressed_PublicKey : public virtual Public_Key
 
 }
 
-
 namespace Botan {
 
 /**
@@ -4867,7 +5586,7 @@ namespace Botan {
  * XMSS_WOTS_Signature_Operation() on creation.
  **/
 class XMSS_WOTS_Addressed_PrivateKey
-   : public virtual XMSS_WOTS_Addressed_PublicKey,
+   final : public virtual XMSS_WOTS_Addressed_PublicKey,
      public virtual Private_Key
    {
    public:
@@ -4893,13 +5612,13 @@ class XMSS_WOTS_Addressed_PrivateKey
       const XMSS_WOTS_PrivateKey& private_key() const { return m_priv_key; }
       XMSS_WOTS_PrivateKey& private_key() { return m_priv_key; }
 
-      virtual AlgorithmIdentifier
+      AlgorithmIdentifier
       pkcs8_algorithm_identifier() const override
          {
          return m_priv_key.pkcs8_algorithm_identifier();
          }
 
-      virtual secure_vector<uint8_t> private_key_bits() const override
+      secure_vector<uint8_t> private_key_bits() const override
          {
          return m_priv_key.private_key_bits();
          }
@@ -4909,7 +5628,6 @@ class XMSS_WOTS_Addressed_PrivateKey
    };
 
 }
-
 
 namespace Botan {
 
@@ -4949,7 +5667,6 @@ class XMSS_WOTS_Common_Ops
 
 }
 
-
 namespace Botan {
 
 /**
@@ -4959,14 +5676,14 @@ namespace Botan {
  * This operation is not intended for stand-alone use and thus not registered
  * in the Botan algorithm registry.
  ***/
-class XMSS_WOTS_Signature_Operation : public virtual PK_Ops::Signature,
+class XMSS_WOTS_Signature_Operation final : public virtual PK_Ops::Signature,
                                       public XMSS_WOTS_Common_Ops
    {
    public:
       XMSS_WOTS_Signature_Operation(
          const XMSS_WOTS_Addressed_PrivateKey& private_key);
 
-      virtual ~XMSS_WOTS_Signature_Operation() {}
+      virtual ~XMSS_WOTS_Signature_Operation() = default;
 
       /**
        * Creates a XMSS WOTS signature for the message provided through call
@@ -4992,7 +5709,6 @@ class XMSS_WOTS_Signature_Operation : public virtual PK_Ops::Signature,
 
 }
 
-
 namespace Botan {
 
 /**
@@ -5003,14 +5719,14 @@ namespace Botan {
  * in the Botan algorithm registry.
  **/
 class XMSS_WOTS_Verification_Operation
-   : public virtual PK_Ops::Verification,
+   final : public virtual PK_Ops::Verification,
      public XMSS_WOTS_Common_Ops
    {
    public:
       XMSS_WOTS_Verification_Operation(
          const XMSS_WOTS_Addressed_PublicKey& public_key);
 
-      virtual ~XMSS_WOTS_Verification_Operation() {}
+      virtual ~XMSS_WOTS_Verification_Operation() = default;
 
       virtual bool is_valid_signature(const uint8_t sig[],
                                       size_t sig_len) override;
@@ -5024,5 +5740,4 @@ class XMSS_WOTS_Verification_Operation
 
 }
 
-
-#endif
+#endif // BOTAN_AMALGAMATION_INTERNAL_H_

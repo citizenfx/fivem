@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_HEX_CODEC_H__
-#define BOTAN_HEX_CODEC_H__
+#ifndef BOTAN_HEX_CODEC_H_
+#define BOTAN_HEX_CODEC_H_
 
 #include <botan/secmem.h>
 #include <string>
@@ -20,7 +20,7 @@ namespace Botan {
 * @param input_length length of input in bytes
 * @param uppercase should output be upper or lower case?
 */
-void BOTAN_DLL hex_encode(char output[],
+void BOTAN_PUBLIC_API(2,0) hex_encode(char output[],
                           const uint8_t input[],
                           size_t input_length,
                           bool uppercase = true);
@@ -32,7 +32,7 @@ void BOTAN_DLL hex_encode(char output[],
 * @param uppercase should output be upper or lower case?
 * @return hexadecimal representation of input
 */
-std::string BOTAN_DLL hex_encode(const uint8_t input[],
+std::string BOTAN_PUBLIC_API(2,0) hex_encode(const uint8_t input[],
                                  size_t input_length,
                                  bool uppercase = true);
 
@@ -62,7 +62,7 @@ std::string hex_encode(const std::vector<uint8_t, Alloc>& input,
                    exception if whitespace is encountered
 * @return number of bytes written to output
 */
-size_t BOTAN_DLL hex_decode(uint8_t output[],
+size_t BOTAN_PUBLIC_API(2,0) hex_decode(uint8_t output[],
                             const char input[],
                             size_t input_length,
                             size_t& input_consumed,
@@ -77,7 +77,7 @@ size_t BOTAN_DLL hex_decode(uint8_t output[],
                    exception if whitespace is encountered
 * @return number of bytes written to output
 */
-size_t BOTAN_DLL hex_decode(uint8_t output[],
+size_t BOTAN_PUBLIC_API(2,0) hex_decode(uint8_t output[],
                             const char input[],
                             size_t input_length,
                             bool ignore_ws = true);
@@ -90,7 +90,7 @@ size_t BOTAN_DLL hex_decode(uint8_t output[],
                    exception if whitespace is encountered
 * @return number of bytes written to output
 */
-size_t BOTAN_DLL hex_decode(uint8_t output[],
+size_t BOTAN_PUBLIC_API(2,0) hex_decode(uint8_t output[],
                             const std::string& input,
                             bool ignore_ws = true);
 
@@ -102,7 +102,7 @@ size_t BOTAN_DLL hex_decode(uint8_t output[],
                    exception if whitespace is encountered
 * @return decoded hex output
 */
-std::vector<uint8_t> BOTAN_DLL
+std::vector<uint8_t> BOTAN_PUBLIC_API(2,0)
 hex_decode(const char input[],
            size_t input_length,
            bool ignore_ws = true);
@@ -114,7 +114,7 @@ hex_decode(const char input[],
                    exception if whitespace is encountered
 * @return decoded hex output
 */
-std::vector<uint8_t> BOTAN_DLL
+std::vector<uint8_t> BOTAN_PUBLIC_API(2,0)
 hex_decode(const std::string& input,
            bool ignore_ws = true);
 
@@ -127,7 +127,7 @@ hex_decode(const std::string& input,
                    exception if whitespace is encountered
 * @return decoded hex output
 */
-secure_vector<uint8_t> BOTAN_DLL
+secure_vector<uint8_t> BOTAN_PUBLIC_API(2,0)
 hex_decode_locked(const char input[],
                   size_t input_length,
                   bool ignore_ws = true);
@@ -139,7 +139,7 @@ hex_decode_locked(const char input[],
                    exception if whitespace is encountered
 * @return decoded hex output
 */
-secure_vector<uint8_t> BOTAN_DLL
+secure_vector<uint8_t> BOTAN_PUBLIC_API(2,0)
 hex_decode_locked(const std::string& input,
                   bool ignore_ws = true);
 

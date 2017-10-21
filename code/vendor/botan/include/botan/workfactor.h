@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_WORKFACTOR_H__
-#define BOTAN_WORKFACTOR_H__
+#ifndef BOTAN_WORKFACTOR_H_
+#define BOTAN_WORKFACTOR_H_
 
 #include <botan/types.h>
 
@@ -17,7 +17,7 @@ namespace Botan {
 * @param prime_group_size size of the group in bits
 * @return estimated security level for this group
 */
-BOTAN_DLL size_t dl_work_factor(size_t prime_group_size);
+BOTAN_PUBLIC_API(2,0) size_t dl_work_factor(size_t prime_group_size);
 
 /**
 * Return the appropriate exponent size to use for a particular prime
@@ -29,21 +29,21 @@ BOTAN_DLL size_t dl_work_factor(size_t prime_group_size);
 * algorithm can compute the DL in sqrt(x) operations) while minimizing
 * the exponent size for performance reasons.
 */
-BOTAN_DLL size_t dl_exponent_size(size_t prime_group_size);
+BOTAN_PUBLIC_API(2,0) size_t dl_exponent_size(size_t prime_group_size);
 
 /**
 * Estimate work factor for integer factorization
 * @param n_bits size of modulus in bits
 * @return estimated security level for this modulus
 */
-BOTAN_DLL size_t if_work_factor(size_t n_bits);
+BOTAN_PUBLIC_API(2,0) size_t if_work_factor(size_t n_bits);
 
 /**
 * Estimate work factor for EC discrete logarithm
 * @param prime_group_size size of the group in bits
 * @return estimated security level for this group
 */
-BOTAN_DLL size_t ecp_work_factor(size_t prime_group_size);
+BOTAN_PUBLIC_API(2,0) size_t ecp_work_factor(size_t prime_group_size);
 
 }
 
