@@ -16,6 +16,7 @@
 #include <botan/pkcs8.h>
 #include <botan/tls_policy.h>
 #include <botan/x509self.h>
+#include <botan/data_src.h>
 
 #include <fstream>
 

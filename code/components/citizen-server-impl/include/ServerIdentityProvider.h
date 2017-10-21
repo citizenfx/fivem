@@ -23,7 +23,7 @@ public:
 	// Attempts authentication on the current identifier type for the specified client.
 	// Should call `cb` on completion.
 	//
-	virtual void RunAuthentication(const std::shared_ptr<Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(std::optional<std::string>)>& cb) = 0;
+	virtual void RunAuthentication(const std::shared_ptr<Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) = 0;
 
 	//
 	// Gets the variance level of the identity provider.

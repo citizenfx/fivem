@@ -499,13 +499,13 @@ static InitFunction initFunction([]()
 
 					auto thisIt = ++it;
 
-					auth->RunAuthentication(client, postMap, [=](std::optional<std::string> err)
+					auth->RunAuthentication(client, postMap, [=](boost::optional<std::string> err)
 					{
 						if (err)
 						{
 							clientRegistry->RemoveClient(client);
 
-							cb(json::object({ {"error", *err} }));
+							cb(json::object({ { "error", *err } }));
 
 							// unset the callback
 							*runOneIdentifier = nullptr;
