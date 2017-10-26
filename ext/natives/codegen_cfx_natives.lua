@@ -824,6 +824,14 @@ native 'GET_VEHICLE_STEERING_ANGLE'
 	apiset 'client'
 	returns 'float'
 
+native 'SET_VEHICLE_STEERING_ANGLE'
+	arguments {
+		Vehicle 'vehicle',
+		float 'angle'
+	}
+	apiset 'client'
+	returns 'void'
+
 native 'GET_VEHICLE_STEERING_SCALE'
 	arguments {
 		Vehicle 'vehicle'

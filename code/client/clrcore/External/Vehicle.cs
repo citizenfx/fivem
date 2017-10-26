@@ -685,12 +685,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return (float)(MemoryAccess.ReadFloat(MemoryAddress + SteeringAngleOffset) * (180.0 / System.Math.PI));
+				return API.GetVehicleSteeringAngle(Handle);
+			}
+			set
+			{
+				API.SetVehicleSteeringAngle(Handle, value);
 			}
 		}
 		/// <summary>

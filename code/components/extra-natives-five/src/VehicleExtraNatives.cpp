@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This file is part of the CitizenFX project - http://citizen.re/
 *
 * See LICENSE and MENTIONS in the root of the source tree for information
@@ -278,6 +278,16 @@ static HookFunction initFunction([]()
 			float angle = readValue<float>(vehicle, SteeringAngleOffset);
 
 			context.SetResult<float>(angle * (180.0f / 3.14159265358979323846));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_STEERING_ANGLE", [](fx::ScriptContext& context)
+	{
+		float angle = context.GetArgument<float>(1);
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			writeValue<float>(vehicle, SteeringAngleOffset, angle / (180.0f / 3.14159265358979323846));
 		}
 	});
 
