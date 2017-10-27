@@ -335,6 +335,33 @@ void CitizenGame::SetCoreMapping()
     }
 }
 
+void AAD_Initialize()
+{
+#if defined(GTA_FIVE)
+	// set BeingDebugged
+	PPEB peb = (PPEB)__readgsqword(0x60);
+	peb->BeingDebugged = false;
+
+	// set GlobalFlags
+	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
+
+	if (CoreIsDebuggerPresent())
+	{
+		// NOP OutputDebugStringA; the debugger doesn't like multiple async exceptions
+		uint8_t* func = (uint8_t*)OutputDebugStringA;
+
+		DWORD oldProtect;
+		VirtualProtect(func, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		//*func = 0xC3;
+
+		VirtualProtect(func, 1, oldProtect, &oldProtect);
+	}
+#endif
+
+	AddVectoredExceptionHandler(0, HandleVariant);
+}
+
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
@@ -560,35 +587,12 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	PPEB peb = (PPEB)__readfsdword(0x30);
 	peb->BeingDebugged = false;
 
+#endif
+
 	// store the launcher interface
 	g_launcher = launcher;
-#endif
 
-#if defined(GTA_FIVE)
-	// set BeingDebugged
-	PPEB peb = (PPEB)__readgsqword(0x60);
-	peb->BeingDebugged = false;
-
-	// set GlobalFlags
-	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
-
-	if (CoreIsDebuggerPresent())
-	{
-		// NOP OutputDebugStringA; the debugger doesn't like multiple async exceptions
-		uint8_t* func = (uint8_t*)OutputDebugStringA;
-
-		DWORD oldProtect;
-		VirtualProtect(func, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-		//*func = 0xC3;
-
-		VirtualProtect(func, 1, oldProtect, &oldProtect);
-	}
-
-	g_launcher = launcher;
-#endif
-
-	AddVectoredExceptionHandler(0, HandleVariant);
+	AAD_Initialize();
 
 #ifndef _M_AMD64
 	return InvokeEntryPoint(entryPoint);
