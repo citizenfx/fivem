@@ -35,6 +35,7 @@ extern "C" int wmainCRTStartup();
 
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
+bool ExecutablePreload_Init();
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -368,6 +369,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 #ifdef GTA_FIVE
+	if (!ExecutablePreload_Init())
+	{
+		return 0;
+	}
+
 	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	auto redirectionData = UpdateGameCache();
