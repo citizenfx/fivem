@@ -154,6 +154,7 @@ static void FindFirstHandler(fx::ScriptContext& context)
 			context.SetResult(handle - g_handles);
 			return;
 		}
+		handle->pool = nullptr;
 	}
 
 	context.SetResult(-1);
