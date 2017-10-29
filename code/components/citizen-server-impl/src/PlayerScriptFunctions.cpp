@@ -209,4 +209,16 @@ static InitFunction initFunction([]()
 			context.SetResult(id.c_str());
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PED", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	{
+		try
+		{
+			return std::any_cast<uint32_t>(client->GetData("playerEntity"));
+		}
+		catch (std::bad_any_cast&)
+		{
+			return 0;
+		}
+	}));
 });

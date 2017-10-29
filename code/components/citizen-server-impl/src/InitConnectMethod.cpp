@@ -267,7 +267,7 @@ static InitFunction initFunction([]()
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 
 			json data = json::object();
-			data["protocol"] = 4;
+			data["protocol"] = 5;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue();
 			data["token"] = token;

@@ -1281,3 +1281,17 @@ native 'SET_VEHICLE_HANDLING_VECTOR'
 	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
 	<param name="value">The Vector3 value to set.</param>
 ]]
+
+native 'GET_PLAYER_PED'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'Entity'
+
+native 'GET_ENTITY_COORDS'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'

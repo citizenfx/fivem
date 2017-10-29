@@ -308,10 +308,28 @@ static bool ShouldWriteToPlayerWrap(void* a1, void* a2, int playerIdx, int a4)
 {
 	if (playerIdx == 31)
 	{
-		return true;
+		//return true;
 	}
 
 	return g_origShouldWriteToPlayer(a1, a2, playerIdx, a4);
+}
+
+uint32_t(*g_origGetRelevantSectorPosPlayers)(void* a1, void* a2, uint8_t a3);
+
+uint32_t GetRelevantSectorPosPlayersWrap(void* a1, void* a2, uint8_t a3)
+{
+	auto val = g_origGetRelevantSectorPosPlayers(a1, a2, a3);
+
+	/*if (val & (1 << 31))
+	{
+		val &= ~(1 << 31);
+	}
+	else
+	{
+		val |= (1 << 31);
+	}*/
+
+	return val;
 }
 
 void*(*g_origGetNetObjPosition)(void*, void*);
@@ -384,6 +402,8 @@ static HookFunction hookFunction([] ()
 
 	// eh
 	MH_CreateHook(hook::get_pattern("41 8B D9 41 8A E8 4C 8B F2 48 8B F9", -0x19), ShouldWriteToPlayerWrap, (void**)&g_origShouldWriteToPlayer);
+
+	MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
 
 	//MH_CreateHook((void*)0x141068F3C, GetNetObjPositionWrap, (void**)&g_origGetNetObjPosition);
 
