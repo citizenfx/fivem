@@ -4,7 +4,7 @@
 
 #include <variant>
 
-namespace sync
+namespace fx::sync
 {
 enum class NetObjEntityType
 {
@@ -33,17 +33,17 @@ struct SyncEntityState
 	NetObjEntityType type;
 
 	template<typename T>
-	inline T GetData(std::string_view key, T default)
+	inline T GetData(std::string_view key, T defaultVal)
 	{
 		auto it = data.find(std::string(key));
 
 		try
 		{
-			return (it != data.end()) ? std::get<T>(it->second) : default;
+			return (it != data.end()) ? std::get<T>(it->second) : defaultVal;
 		}
 		catch (std::bad_variant_access&)
 		{
-			return default;
+			return defaultVal;
 		}
 	}
 
@@ -61,7 +61,7 @@ struct SyncEntityState
 		data["posY"] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
 		data["posZ"] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
 
-		if (type == sync::NetObjEntityType::Player)
+		if (type == fx::sync::NetObjEntityType::Player)
 		{
 			trace("calc'd pos! %.2f %.2f %.2f\n", GetData<float>("posX", 0.0f), GetData<float>("posY", 0.0f), GetData<float>("posZ", 0.0f));
 		}
