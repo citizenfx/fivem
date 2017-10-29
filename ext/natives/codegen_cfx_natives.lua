@@ -1336,3 +1336,17 @@ native 'SHUTDOWN_LOADING_SCREEN_NUI'
 	Shuts down the `loadingScreen` NUI frame, similarly to `SHUTDOWN_LOADING_SCREEN`.
 	</summary>
 ]]
+
+native 'GET_PLAYER_PED'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'Entity'
+
+native 'GET_ENTITY_COORDS'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'

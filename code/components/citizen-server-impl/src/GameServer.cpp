@@ -9,6 +9,8 @@
 
 #include <NetBuffer.h>
 
+#include <state/ServerGameState.h>
+
 #include <PrintListener.h>
 
 namespace fx
@@ -621,6 +623,12 @@ namespace fx
 				std::vector<uint8_t> packetData(packetLength);
 				if (packet.Read(packetData.data(), packetData.size()))
 				{
+					if (targetNetId == 0xFFFF)
+					{
+						instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
+						return;
+					}
+
 					auto targetClient = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(targetNetId);
 
 					if (targetClient)
