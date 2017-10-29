@@ -3,7 +3,7 @@
 #include <state/RlMessageBuffer.h>
 #include <state/ServerGameState.h>
 
-namespace sync
+namespace fx::sync
 {
 struct SyncParseState
 {
