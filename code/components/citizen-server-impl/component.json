@@ -13,7 +13,8 @@
 		"vendor:enet",
 		"vendor:tbb",
 		"vendor:boost_random",
-		"vendor:linenoise"
+		"vendor:linenoise",
+		"vendor:lz4"
 	],
 	"provides": []
 }

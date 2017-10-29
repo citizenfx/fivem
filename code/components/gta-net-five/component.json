@@ -3,12 +3,14 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
+		"net:base",
 		"net",
 		"gta:core:five",
 		"rage:nutsnbolts:five",
 		"citizen:resources:core",
 		"scripting",
-		"vendor:msgpack-c"
+		"vendor:msgpack-c",
+		"vendor:lz4"
 	],
 	"provides": []
 }

@@ -5,6 +5,11 @@
 
 #include <base64.h>
 
+static hook::cdecl_stub<bool(void*, uint32_t, int)> _netBuffer_WriteInteger([]()
+{
+	return hook::get_pattern("48 8B D9 40 84 79 1C 75 6F 8B 49 10", -0x29);
+});
+
 namespace rage
 {
 class netObject;
@@ -21,6 +26,31 @@ public:
 		m_curBit = 0;
 		m_unk2Bit = 0;
 		m_f1C = 0;
+	}
+
+	inline uint32_t GetPosition()
+	{
+		return m_unkBit;
+	}
+
+	inline bool Seek(int bits)
+	{
+		if (bits >= 0)
+		{
+			uint32_t length = (m_f1C & 1) ? m_maxBit : m_curBit;
+
+			if (bits <= length)
+			{
+				m_unkBit = bits;
+			}
+		}
+
+		return false;
+	}
+
+	inline bool WriteInteger(uint32_t integer, int bits)
+	{
+		return _netBuffer_WriteInteger(this, integer, bits);
 	}
 
 public:
@@ -84,7 +114,7 @@ public:
 	virtual void m_8() = 0;
 	virtual void m_10() = 0;
 	virtual void m_18() = 0;
-	virtual void m_20() = 0;
+	virtual void* m_20() = 0;
 	virtual void m_28() = 0;
 	virtual netSyncTree* GetSyncTree() = 0;
 	virtual void m_38() = 0;
@@ -355,30 +385,90 @@ static hook::cdecl_stub<int()> getPlayerId([]()
 	return hook::get_pattern("0F B6 40 2D EB 02 33 C0 48", -0x19);
 });
 
+static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk);
+
+static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
+{
+	if (playerId != 31)
+	{
+		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
+	}
+	else
+	{
+		// save position and write a placeholder length frame
+		uint32_t position = buffer->GetPosition();
+		buffer->WriteInteger(0, 11);
+
+		bool rv = g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
+
+		// write the actual length on top of the position
+		uint32_t endPosition = buffer->GetPosition();
+		buffer->Seek(position);
+		buffer->WriteInteger(endPosition - position - 11, 11);
+		buffer->Seek(endPosition);
+
+		return rv;
+	}
+}
+
+static HookFunction hookFunction2([]()
+{
+	// 2 matches, 1st is data, 2nd is parent
+	{
+		auto location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
+		hook::set_call(&g_origWriteDataNode, location + 0x41);
+		hook::jump(location, WriteDataNodeStub);
+	}
+});
+
 #include <boost/range/adaptor/map.hpp>
 #include <mmsystem.h>
 
 #include <NetLibrary.h>
+#include <NetBuffer.h>
 
 extern NetLibrary* g_netLibrary;
 
+struct ObjectData
+{
+	uint32_t lastSyncTime;
+	uint32_t lastSyncAck;
+
+	ObjectData()
+	{
+		lastSyncTime = 0;
+		lastSyncAck = 0;
+	}
+};
+
+static std::map<int, ObjectData> trackedObjects;
+
+#include <lz4.h>
+
 static InitFunction initFunction([]()
 {
-	struct ObjectData
-	{
-		int lastSyncTime;
-
-		ObjectData()
-		{
-			lastSyncTime = 0;
-		}
-	};
-
-	static std::map<int, ObjectData> trackedObjects;
-
 	OnMainGameFrame.Connect([]()
 	{
+		if (g_netLibrary == nullptr)
+		{
+			return;
+		}
+
+		if (g_netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
+		{
+			return;
+		}
+
+		// protocol 5 or higher are aware of this state
+		if (g_netLibrary->GetServerProtocol() <= 4)
+		{
+			return;
+		}
+
 		auto objectMgr = *g_objectMgr;
+
+		static uint32_t lastSend;
+		static net::Buffer netBuffer;
 
 		if (objectMgr)
 		{
@@ -387,7 +477,8 @@ static InitFunction initFunction([]()
 			objectMgr->ForAllNetObjects(getPlayerId(), [&](rage::netObject* object)
 			{
 				char* objectChar = (char*)object;
-				uint16_t objectId = *(uint16_t*)(objectChar + 78);
+				uint16_t objectType = *(uint16_t*)(objectChar + 8);
+				uint16_t objectId = *(uint16_t*)(objectChar + 10);
 
 				auto& objectData = trackedObjects[objectId];
 
@@ -400,19 +491,55 @@ static InitFunction initFunction([]()
 				rage::netBuffer buffer(bluh, sizeof(bluh));
 
 				auto st = object->GetSyncTree();
+				int syncType = 0;
 
 				if (objectData.lastSyncTime == 0)
 				{
-					// create clone
-					st->WriteTree(1, 0, object, &buffer, g_queryFunctions->GetTimestamp(), nullptr, 31, nullptr);
+					// clone create
+					syncType = 1;
 				}
 				else if ((timeGetTime() - objectData.lastSyncTime) > 500)
 				{
-					st->WriteTree(2, 0, object, &buffer, g_queryFunctions->GetTimestamp(), nullptr, 31, nullptr);
+					if (objectData.lastSyncAck == 0)
+					{
+						// create resend
+						syncType = 1;
+					}
+					else
+					{
+						// ack'd create on player 31
+						*(uint32_t*)(objectChar + 112) |= (1 << 31);
+
+						// clone sync
+						syncType = 2;
+					}
 				}
 
-				if (buffer.m_curBit > 0)
+				if (syncType != 0)
 				{
+					// write header
+					netBuffer.Write<uint8_t>(syncType);
+
+					// write tree
+					st->WriteTree(syncType, 0, object, &buffer, g_queryFunctions->GetTimestamp(), nullptr, 31, nullptr);
+
+					// instantly mark player 31 as acked
+					if (object->m_20())
+					{
+						((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415A60C4)(st, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
+					}
+
+					// write data
+					char leftoverBit = (buffer.m_curBit % 8) ? 0 : 1;
+
+					netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
+					netBuffer.Write<uint16_t>(objectId); // object ID (short)
+					netBuffer.Write<uint8_t>(objectType);
+
+					uint32_t len = (buffer.m_curBit / 8) + leftoverBit;
+					netBuffer.Write<uint16_t>(len); // length (short)
+					netBuffer.Write(buffer.m_data, len); // data
+
 					objectData.lastSyncTime = timeGetTime();
 				}
 
@@ -423,15 +550,90 @@ static InitFunction initFunction([]()
 			auto iter = trackedObjects | boost::adaptors::map_keys;
 
 			std::vector<int> removedObjects;
-
-			std::set_difference(seenObjects.begin(), seenObjects.end(), iter.begin(), iter.end(), std::back_inserter(removedObjects));
+			std::set_difference(iter.begin(), iter.end(), seenObjects.begin(), seenObjects.end(), std::back_inserter(removedObjects));
 
 			for (auto obj : removedObjects)
 			{
-				trackedObjects.erase(obj);
+				auto& syncData = trackedObjects[obj];
+
+				if ((timeGetTime() - syncData.lastSyncTime) > 100)
+				{
+					// write clone remove header
+					netBuffer.Write<uint8_t>(3);
+					netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
+					netBuffer.Write<uint16_t>(obj); // object ID (short)
+
+					syncData.lastSyncTime = timeGetTime();
+				}
+			}
+		}
+
+		if ((timeGetTime() - lastSend) > 500 || netBuffer.GetCurOffset() >= 1200)
+		{
+			if (netBuffer.GetCurOffset() > 0)
+			{
+				// compress and send data
+				std::vector<char> outData(LZ4_compressBound(netBuffer.GetCurOffset()) + 4);
+				int len = LZ4_compress_default(reinterpret_cast<const char*>(netBuffer.GetData().data()), outData.data() + 4, netBuffer.GetCurOffset(), outData.size() - 4);
+
+				*(uint32_t*)(outData.data()) = HashString("netClones");
+				g_netLibrary->RoutePacket(outData.data(), len + 4, 0xFFFF);
+
+#if _DEBUG
+				static int byteHunkId;
+
+				FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"cache/byteHunk/bytehunk-%d.bin", byteHunkId++)).c_str(), L"wb");
+
+				if (f)
+				{
+					fwrite(outData.data(), 1, len + 4, f);
+					fclose(f);
+				}
+#endif
 			}
 
-			
+			netBuffer.Reset();
+			lastSend = timeGetTime();
+		}
+
+		if (g_netLibrary)
+		{
+			static bool g_netlibHookInited;
+
+			if (!g_netlibHookInited)
+			{
+				g_netLibrary->AddReliableHandler("msgCloneAcks", [](const char* data, size_t len)
+				{
+					net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
+					
+					while (!buf.IsAtEnd())
+					{
+						auto type = buf.Read<uint8_t>();
+
+						switch (type)
+						{
+						case 1:
+						{
+							auto objId = buf.Read<uint16_t>();
+							trackedObjects[objId].lastSyncAck = timeGetTime();
+
+							break;
+						}
+						case 3:
+						{
+							auto objId = buf.Read<uint16_t>();
+							trackedObjects.erase(objId);
+
+							break;
+						}
+						default:
+							return;
+						}
+					}
+				});
+
+				g_netlibHookInited = true;
+			}
 		}
 	});
 
