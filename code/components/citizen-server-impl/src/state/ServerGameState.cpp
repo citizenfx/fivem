@@ -252,7 +252,7 @@ static InitFunction initFunction([]()
 		};
 	};
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<sync::SyncEntityState>& entity)
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		struct scrVector
 		{
