@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -13,15 +13,24 @@
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_universal.js", guid_t{ 0 } }
 };
+#else
+static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
+	{ "natives_blank.js", guid_t{ 0 } }
+};
 #endif
 
 #include <include/v8.h>
 #include <include/v8-profiler.h>
 #include <include/libplatform/libplatform.h>
 
+#include <node.h>
+#include "UvLoopManager.h"
+
 #include <V8Debugger.h>
 
 #include <om/OMComponent.h>
+
+#include <Resource.h>
 
 #include <fstream>
 
@@ -42,6 +51,10 @@ namespace fx
 static Isolate* GetV8Isolate();
 
 static Platform* GetV8Platform();
+
+#ifdef IS_FXSERVER
+static node::IsolateData* GetNodeIsolate();
+#endif
 
 struct PointerFieldEntry
 {
@@ -1008,6 +1021,14 @@ static void V8_Trace(const v8::FunctionCallbackInfo<v8::Value>& args)
 	trace("\n");
 }
 
+static void V8_GetResourcePath(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+	auto path = ((fx::Resource*)runtime->GetParentObject())->GetPath();
+
+	args.GetReturnValue().Set(String::NewFromUtf8(args.GetIsolate(), path.c_str(), NewStringType::kNormal, path.size()).ToLocalChecked());
+}
+
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
 	{ "trace", V8_Trace },
@@ -1035,6 +1056,9 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "resultAsFloat", V8_GetMetaField<V8MetaFields::ResultAsFloat> },
 	{ "resultAsString", V8_GetMetaField<V8MetaFields::ResultAsString> },
 	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
+#ifdef IS_FXSERVER
+	{ "getResourcePath", V8_GetResourcePath },
+#endif
 };
 
 static v8::Handle<v8::Value> Throw(v8::Isolate* isolate, const char* message) {
@@ -1178,6 +1202,11 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	// run the following entries in the context scope
 	Context::Scope scope(context);
+
+#ifdef IS_FXSERVER
+	auto env = node::CreateEnvironment(GetNodeIsolate(), context, 0, nullptr, 0, nullptr);
+	node::LoadEnvironment(env);
+#endif
 
 	// set global IO functions
 	for (auto& routine : g_globalFunctions)
@@ -1410,7 +1439,7 @@ result_t V8ScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t
 	{
 		V8PushEnvironment pushed(this);
 
-		size_t retvalLengthS;
+		size_t retvalLengthS = 0;
 		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
 
 		*retvalLength = retvalLengthS;
@@ -1463,6 +1492,10 @@ class V8ScriptGlobals
 private:
 	Isolate* m_isolate;
 
+#ifdef IS_FXSERVER
+	node::IsolateData* m_nodeData;
+#endif
+
 	std::vector<char> m_nativesBlob;
 
 	std::vector<char> m_snapshotBlob;
@@ -1478,6 +1511,8 @@ public:
 
 	~V8ScriptGlobals();
 
+	void Initialize();
+
 	inline Platform* GetPlatform()
 	{
 		return m_platform.get();
@@ -1492,6 +1527,13 @@ public:
 
 		return m_isolate;
 	}
+
+#ifdef IS_FXSERVER
+	inline node::IsolateData* GetNodeIsolate()
+	{
+		return m_nodeData;
+	}
+#endif
 };
 
 static V8ScriptGlobals g_v8;
@@ -1506,7 +1548,18 @@ static Platform* GetV8Platform()
 	return g_v8.GetPlatform();
 }
 
+#ifdef IS_FXSERVER
+static node::IsolateData* GetNodeIsolate()
+{
+	return g_v8.GetNodeIsolate();
+}
+#endif
+
 V8ScriptGlobals::V8ScriptGlobals()
+{
+}
+
+void V8ScriptGlobals::Initialize()
 {
 	// initialize startup data
 	auto readBlob = [=] (const std::wstring& name, std::vector<char>& outBlob)
@@ -1566,7 +1619,21 @@ V8ScriptGlobals::V8ScriptGlobals()
 
 	// initialize the debugger
 	m_debugger = std::unique_ptr<V8Debugger>(CreateDebugger(m_isolate));
+
+#ifdef IS_FXSERVER
+	// initialize Node.js
+	Locker locker(m_isolate);
+	Isolate::Scope isolateScope(m_isolate);
+	v8::HandleScope handle_scope(m_isolate);
+
+	m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("default"))->GetLoop());
+#endif
 }
+
+static InitFunction initFunction([]()
+{
+	g_v8.Initialize();
+});
 
 V8ScriptGlobals::~V8ScriptGlobals()
 {

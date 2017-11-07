@@ -11,9 +11,15 @@
 
 #include <unordered_map>
 
+#ifdef COMPILING_NET_TCP_SERVER
+#define TCP_SERVER_EXPORT DLL_EXPORT
+#else
+#define TCP_SERVER_EXPORT DLL_IMPORT
+#endif
+
 namespace net
 {
-class UvLoopManager
+class TCP_SERVER_EXPORT UvLoopManager
 {
 private:
 	std::unordered_map<std::string, fwRefContainer<UvLoopHolder>> m_uvLoops;

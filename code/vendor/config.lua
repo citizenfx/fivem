@@ -37,3 +37,4 @@ end
 vendor_component 'pplx'
 vendor_component 'linenoise'
 vendor_component 'nghttp2'
+vendor_component 'node'

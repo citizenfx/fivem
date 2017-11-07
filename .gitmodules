@@ -76,3 +76,6 @@
 [submodule "vendor/linenoise-ng"]
 	path = vendor/linenoise-ng
 	url = https://github.com/arangodb/linenoise-ng.git
+[submodule "vendor/node"]
+	path = vendor/node
+	url = https://github.com/nodejs/node.git
