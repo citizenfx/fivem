@@ -156,6 +156,8 @@ const int WheelRimRadiusOffset = 0x114;
 const int WheelTyreWidthOffset = 0x118;
 const int WheelRotationSpeedOffset = 0x168;
 const int WheelHealthOffset = 0x1E0;
+const int WheelXRotOffset = 0x008;
+const int WheelInvXRotOffset = 0x010;
 
 static HookFunction initFunction([]()
 {
@@ -194,7 +196,7 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TURBO_PRESSURE", readVehicleMemory<float, TurboBoostOffset>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_TURBO_PRESSURE", writeVehicleMemory<float, TurboBoostOffset>);
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HANDBRAKE",	readVehicleMemory<bool, HandbrakeOffset>); // just a getter
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HANDBRAKE", readVehicleMemory<bool, HandbrakeOffset>); // just a getter
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ENGINE_TEMPERATURE", readVehicleMemory<float, EngineTempOffset>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_ENGINE_TEMPERATURE", writeVehicleMemory<float, EngineTempOffset>);
@@ -227,49 +229,57 @@ static HookFunction initFunction([]()
 	});
 
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_HEALTH", [](fx::ScriptContext& context)
+	auto makeWheelFunction = [](auto cb)
 	{
-		if (context.GetArgumentCount() < 2)
+		return [=](fx::ScriptContext& context)
 		{
-			context.SetResult<float>(0.0f);
-			return;
-		}
-
-		unsigned char wheelIndex = context.GetArgument<int>(1);
-
-		if (fwEntity* vehicle = getAndCheckVehicle(context))
-		{
-			unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
-			if (wheelIndex >= numWheels) {
+			if (context.GetArgumentCount() < 2)
+			{
 				context.SetResult<float>(0.0f);
 				return;
 			}
-			auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
-			auto wheelAddr = *reinterpret_cast<uint64_t *>(wheelsAddress + 0x008 * wheelIndex);
-			context.SetResult<float>(*reinterpret_cast<float *>(wheelAddr + WheelHealthOffset));
-		}
-	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_HEALTH", [](fx::ScriptContext& context)
+			unsigned char wheelIndex = context.GetArgument<int>(1);
+
+			if (fwEntity* vehicle = getAndCheckVehicle(context))
+			{
+				unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+				if (wheelIndex >= numWheels) {
+					return;
+				}
+				auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
+				auto wheelAddr = *reinterpret_cast<uint64_t *>(wheelsAddress + 0x008 * wheelIndex);
+
+				cb(context, vehicle, wheelAddr);
+			}
+		};
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_HEALTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float *>(wheelAddr + WheelHealthOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_HEALTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
 		if (context.GetArgumentCount() < 3)
 		{
 			return;
 		}
 
-		unsigned char wheelIndex = context.GetArgument<int>(1);
+		*reinterpret_cast<float *>(wheelAddr + WheelHealthOffset) = context.GetArgument<float>(2);
+	}));
 
-		if (fwEntity* vehicle = getAndCheckVehicle(context))
-		{
-			unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
-			if (wheelIndex >= numWheels) {
-				return;
-			}
-			auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
-			auto wheelAddr = *reinterpret_cast<uint64_t *>(wheelsAddress + 0x008 * wheelIndex);
-			*reinterpret_cast<float *>(wheelAddr + WheelHealthOffset) = context.GetArgument<float>(2);;
-		}
-	});
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_XROT", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float *>(wheelAddr + WheelXRotOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_XROT", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		*reinterpret_cast<float *>(wheelAddr + WheelXRotOffset) = context.GetArgument<float>(2);
+		*reinterpret_cast<float *>(wheelAddr + WheelInvXRotOffset) = -(context.GetArgument<float>(2));
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_STEERING_ANGLE", [](fx::ScriptContext& context)
 	{

@@ -1281,3 +1281,20 @@ native 'SET_VEHICLE_HANDLING_VECTOR'
 	<param name="fieldName">The field name to set. These match the keys in `handling.meta`.</param>
 	<param name="value">The Vector3 value to set.</param>
 ]]
+
+native 'GET_VEHICLE_WHEEL_XROT'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_WHEEL_XROT'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex',
+		float 'value'
+	}
+	apiset 'client'
+	returns 'void'
