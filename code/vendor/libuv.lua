@@ -73,7 +73,7 @@ return {
 			}
 
 		filter "system:windows"
-			defines { "_GNU_SOURCE" }
+			defines { "_GNU_SOURCE", "_WIN32_WINNT=0x0600" }
 
 			links { 'advapi32', 'iphlpapi', 'psapi', 'shell32', 'ws2_32', 'userenv' }
 
