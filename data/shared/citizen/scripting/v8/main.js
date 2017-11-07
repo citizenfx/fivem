@@ -30,7 +30,7 @@ const EXT_FUNCREF = 10;
 	function refFunctionPacker(refFunction) {
 		const ref = Citizen.makeRefFunction(refFunction);
 
-		return msgpack.encode(ref);
+		return ref;
 	}
 
 	function refFunctionUnpacker(refSerialized) {
@@ -66,7 +66,7 @@ const EXT_FUNCREF = 10;
 			return pack({});
 		}
 
-		return pack(refFunctionsMap.get(ref)(unpack(argsSerialized)));
+		return pack(refFunctionsMap.get(ref)(...unpack(argsSerialized)));
 	});
 
 	/**
