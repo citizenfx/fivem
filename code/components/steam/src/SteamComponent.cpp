@@ -166,13 +166,17 @@ void SteamComponent::InitializeClientAPI()
 
 	// get a IClientEngine pointer
 	int returnCode;
-	IClientEngine* clientEngine = reinterpret_cast<IClientEngine*>(createInterface("CLIENTENGINE_INTERFACE_VERSION003", &returnCode));
-
-	// if not existent, try ClientEngine004 - these coexisted for a while
-	if (!clientEngine)
+	IClientEngine* clientEngine = nullptr;
+	
+	for (int i = 3; i < 16; i++)
 	{
-		clientEngine = reinterpret_cast<IClientEngine*>(createInterface("CLIENTENGINE_INTERFACE_VERSION004", &returnCode));
-	}
+		clientEngine = reinterpret_cast<IClientEngine*>(createInterface(va("CLIENTENGINE_INTERFACE_VERSION%03d", i), &returnCode));
+
+		if (clientEngine)
+		{
+			break;
+		}
+	}	
 
 	if (clientEngine)
 	{
@@ -306,6 +310,11 @@ static auto SafeCall(const T& fn)
 void SteamComponent::InitializePresence()
 {
 	trace("Initializing Steam parent: Initializing presence.\n");
+
+	if (!m_clientEngine)
+	{
+		return;
+	}
 
 	// get a local-only app ID to register our app at
 	InterfaceMapper steamShortcutsInterface(m_clientEngine->GetIClientShortcuts(m_steamUser, m_steamPipe, "CLIENTSHORTCUTS_INTERFACE_VERSION001"));
