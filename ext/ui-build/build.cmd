@@ -27,6 +27,9 @@ rmdir /s /q %UIRoot%\app\
 mkdir %UIRoot%\app\
 copy /y dist\*.* %UIRoot%\app\
 
+mkdir %UIRoot%\app\assets\
+copy /y dist\assets\*.json %UIRoot%\app\assets\
+
 :: pop directory
 popd
 
