@@ -14,3 +14,26 @@
 
 	z-index: 100;
 }
+
+.webapp ::ng-deep .ping, .webapp ::ng-deep .actions {
+	display: none !important;
+}
+
+.webapp ::ng-deep app-nav {
+	display: none !important;
+}
+
+.webapp ::ng-deep servers-container {
+	height: calc(100vh - 4vh);
+	margin-top: 2vh;
+}
+
+.webapp ::ng-deep servers-container article {
+	height: calc(100vh - 4vh - 5.5vh) !important;
+}
+
+@media only screen and (min-width: 700px) {
+	.webapp ::ng-deep servers-container article {
+		height: calc(100vh - 4vh - 5.5vh - 120px) !important;
+	}
+}

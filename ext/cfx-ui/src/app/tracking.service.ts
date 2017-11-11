@@ -3,7 +3,8 @@ import {Injectable} from '@angular/core';
 import {GameService, Profile} from './game.service';
 import {Server} from './servers/server'
 
-import {Angulartics2, Angulartics2Piwik} from 'angulartics2';
+import {Angulartics2} from 'angulartics2';
+import {Angulartics2Piwik} from 'angulartics2/piwik';
 
 @Injectable()
 export class TrackingService {

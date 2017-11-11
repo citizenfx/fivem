@@ -2,13 +2,15 @@ import {BrowserModule} from '@angular/platform-browser';
 import {NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {HttpModule} from '@angular/http';
+import {HttpClientModule} from '@angular/common/http';
 
 import { environment } from '../environments/environment'
 
 import {VirtualScrollModule} from 'angular2-virtual-scroll';
-import {TranslationModule} from 'angular-l10n';
+import {TranslationModule, L10nConfig, L10nLoader, ProviderType} from 'angular-l10n';
 import {MomentModule} from 'angular2-moment';
-import {Angulartics2Module, Angulartics2Piwik} from 'angulartics2';
+import {Angulartics2Module} from 'angulartics2';
+import {Angulartics2Piwik} from 'angulartics2/piwik';
 
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
@@ -35,6 +37,20 @@ import {GameService, CfxGameService, DummyGameService} from './game.service';
 import {ColorizePipe} from './colorize.pipe';
 import {EscapePipe} from './escape.pipe';
 
+const l10nConfig: L10nConfig = {
+	locale: {
+		languages: [
+			{ code: 'en', dir: 'ltr' }
+		],
+		language: 'en'
+	},
+	translation: {
+		providers: [
+			{ type: ProviderType.Static, prefix: './assets/locale-' }
+		]
+	}
+};
+
 @NgModule({
 	declarations: [
 		AppComponent,
@@ -59,7 +75,8 @@ import {EscapePipe} from './escape.pipe';
 		AppRoutingModule,
 		VirtualScrollModule,
 		MomentModule,
-		TranslationModule.forRoot(),
+		HttpClientModule,
+		TranslationModule.forRoot(l10nConfig),
 		Angulartics2Module.forRoot([ Angulartics2Piwik ])
 	],
 	providers:    [
@@ -67,7 +84,7 @@ import {EscapePipe} from './escape.pipe';
 		TweetService,
 		{
 			provide:  GameService,
-			useClass: environment.production
+			useClass: (environment.production && !environment.web)
 				? CfxGameService
 				: DummyGameService
 		},
@@ -78,4 +95,7 @@ import {EscapePipe} from './escape.pipe';
 	]
 })
 export class AppModule {
+	constructor(public l10nLoader: L10nLoader) {
+		this.l10nLoader.load();
+	}
 }

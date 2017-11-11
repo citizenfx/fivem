@@ -5,7 +5,7 @@ import { Translation, LocaleService, TranslationService } from 'angular-l10n';
 import { GameService } from './game.service';
 import { TrackingService } from './tracking.service';
 
-import localeEn from './locale-en.json';
+import { environment } from '../environments/environment';
 
 @Component({
 	selector: 'app-root',
@@ -19,16 +19,9 @@ export class AppComponent extends Translation {
 		public translation: TranslationService,
 		private gameService: GameService,
 		private trackingService: TrackingService) {
-		super(translation);
-
-		this.locale.addConfiguration()
-			.addLanguages(['en'])
-			.defineLanguage('en');
+		super();
 
 		this.locale.init();
-
-		this.translation.addConfiguration()
-			.addTranslation('en', localeEn);
 
 		this.translation.init();
 
@@ -36,6 +29,10 @@ export class AppComponent extends Translation {
 	}
 
 	ngOnInit() {
-
+		this.classes = [
+			environment.web ? 'webapp' : 'gameapp'
+		];
 	}
+
+	classes: string[];
 }

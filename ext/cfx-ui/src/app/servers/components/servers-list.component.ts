@@ -2,7 +2,10 @@ import { Component, OnInit, OnChanges, Input } from '@angular/core';
 import { Server, PinConfig } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
 import { ServerFilters } from './server-filter.component';
-import { Subject } from 'rxjs/Rx';
+import { Subject } from 'rxjs/Subject';
+import { environment } from '../../../environments/environment';
+
+import 'rxjs/add/operator/throttleTime';
 
 @Component({
     moduleId: module.id,
@@ -63,7 +66,7 @@ export class ServersListComponent implements OnInit, OnChanges {
         if (storedOrder) {
             this.sortOrder = JSON.parse(storedOrder);
         } else {
-            this.sortOrder = ['ping', '+'];
+            this.sortOrder = environment.web ? ['players', '-'] : ['ping', '+'];
         }
 
         this.changeObservable.throttleTime(1000).subscribe(() => {

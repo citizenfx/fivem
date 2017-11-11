@@ -30,7 +30,9 @@
 			"environmentSource": "environments/environment.ts",
 			"environments": {
 				"dev": "environments/environment.ts",
-				"prod": "environments/environment.prod.ts"
+				"prod": "environments/environment.prod.ts",
+				"web": "environments/environment.web.ts",
+				"webprod": "environments/environment.webprod.ts"
 			}
 		}
 	],

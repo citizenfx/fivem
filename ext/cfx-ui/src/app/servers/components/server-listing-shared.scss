@@ -13,7 +13,7 @@ $columns: (
 		width: $width;
 		flex-grow: 0;
 		white-space: nowrap;
-		overflow-x: hidden;
+		overflow: hidden;
 		text-overflow: ellipsis;
 
 		color: $textColour;

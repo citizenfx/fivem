@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, ViewChild, ViewChildren } from '@angu
 import { Subject } from 'rxjs/Subject';
 
 import 'rxjs/add/operator/debounceTime';
+import 'rxjs/add/operator/distinctUntilChanged';
 
 import { Server } from '../server';
 

@@ -20,7 +20,7 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 		private gameService: GameService,
 		public translation: TranslationService
 	) {
-		super(translation);
+		super();
 	}
 
 	ngOnInit() {

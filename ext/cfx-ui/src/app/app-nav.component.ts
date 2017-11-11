@@ -22,7 +22,7 @@ export class AppNavComponent extends Translation {
 		private domSanitizer: DomSanitizer,
 		router: Router
 	) {
-		super(translation);
+		super();
 
 		this.nickname = gameService.nickname;
 		this.devMode = gameService.devMode;

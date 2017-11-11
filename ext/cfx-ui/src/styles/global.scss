@@ -66,7 +66,7 @@ $blurSize: 20px;
 }
 
 /* disable chromeme scrollbar */
-::-webkit-scrollbar { width: 0 }
+.gameapp ::-webkit-scrollbar { width: 0 }
 
 input[type="text"],
 input[type="search"] {
@@ -114,5 +114,24 @@ button {
 	&:hover {
 		background: $greenyColour;
 		box-shadow: 0 5px 25px darken($greenyColour, 10%);
+	}
+}
+
+.ad {
+	display: none;
+}
+
+@media only screen and (min-width: 700px) {
+	.webapp .ad {
+		display: block;
+
+		font-size: 14px;
+		color: white;
+
+		a {
+			color: white;
+		}
+
+		margin-top: 3px;
 	}
 }

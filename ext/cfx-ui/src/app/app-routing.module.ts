@@ -7,10 +7,13 @@ import {ServersComponent} from './servers/components/servers.component';
 import {ServersContainerComponent} from './servers/components/servers-container.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
+import { environment } from '../environments/environment';
+
 const routes: Routes = [
 	{
 		path:      '',
-		component: HomeComponent
+		component: (environment.web) ? ServersContainerComponent : HomeComponent,
+		data: 	   { type: 'browse' }
 	},
 	{
 		path:      'servers',

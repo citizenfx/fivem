@@ -3,6 +3,8 @@ import {DomSanitizer} from '@angular/platform-browser';
 
 import {Server} from './servers/server';
 
+import { environment } from '../environments/environment';
+
 export class ConnectStatus {
 	public server: Server;
 	public message: string;
@@ -383,6 +385,12 @@ export class DummyGameService extends GameService {
 	}
 
 	connectTo(server: Server) {
+		if (environment.web) {
+			this.invokeConnectFailed(server, 'Connecting from the web is currently '
+				+ 'not supported. If you wish to connect, please join the following IP: ' + server.address);
+			return;
+		}
+
 		console.log('faking connection to ' + server.address);
 
 		this.invokeConnecting(server);

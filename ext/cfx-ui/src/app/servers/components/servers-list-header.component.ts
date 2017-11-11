@@ -36,7 +36,7 @@ export class ServersListHeaderComponent extends Translation {
     }
 
     constructor(public translation: TranslationService) {
-        super(translation);
+        super();
     }
 
     isSorted(column: ServersListHeadingColumn, type: String) {
