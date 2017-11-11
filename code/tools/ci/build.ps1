@@ -302,11 +302,6 @@ if (!$DontBuild -and !$IsServer) {
     # create cache folders
 
     # copy output files
-    Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
-
-    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
-
     Push-Location $WorkDir\ext\ui-build
     .\build.cmd
 
@@ -331,6 +326,11 @@ if (!$DontBuild -and !$IsServer) {
 
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\caches\fivereborn\
     Copy-Item -Force -Recurse $WorkDir\data\client\* $WorkDir\caches\fivereborn\
+
+    Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
+
+    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
 
     # build meta/xz variants
     "<Caches>
