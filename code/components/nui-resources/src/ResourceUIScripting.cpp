@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -15,10 +15,54 @@
 #include <rapidjson/writer.h>
 
 #include <sstream>
+#include <string_view>
 
 static InitFunction initFunction([] ()
 {
-	fx::ScriptEngine::RegisterNativeHandler("SEND_NUI_MESSAGE", [] (fx::ScriptContext& context)
+	auto sendMessageToFrame = [](fx::ScriptContext& context, const std::string& frameName, const char* native)
+	{
+		// get the message as JSON and validate it by parsing/recreating (so we won't end up injecting malicious JS into the browser root)
+		const char* messageJson = context.GetArgument<const char*>(0);
+
+		rapidjson::Document document;
+		document.Parse(messageJson);
+
+		if (!document.HasParseError())
+		{
+			rapidjson::StringBuffer sb;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+			if (document.Accept(writer))
+			{
+				// somewhat insane sanity check at the last minute
+				if (frameName.find('"') == std::string::npos)
+				{
+					// send to NUI as a formatted root script (std::string constructor is used to prevent having to count bytes)
+					std::stringstream stream;
+					stream << "citFrames[\"" << frameName << "\"].contentWindow.postMessage(" << std::string_view(sb.GetString(), sb.GetSize()) << ", '*');";
+
+					// execute in NUI
+					nui::ExecuteRootScript(stream.str());
+
+					// and return 'true' to indicate to the script that we succeeded
+					context.SetResult(true);
+					return;
+				}
+			}
+			else
+			{
+				trace("%s: writing to JSON writer failed\n", native);
+			}
+		}
+		else
+		{
+			trace("%s: invalid JSON passed in frame %s (rapidjson error code %d)\n", native, frameName, document.GetParseError());
+		}
+
+		context.SetResult(false);
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("SEND_NUI_MESSAGE", [=] (fx::ScriptContext& context)
 	{
 		fx::OMPtr<IScriptRuntime> runtime;
 
@@ -34,52 +78,17 @@ static InitFunction initFunction([] ()
 				{
 					if (resourceUI->HasFrame())
 					{
-						// get the message as JSON and validate it by parsing/recreating (so we won't end up injecting malicious JS into the browser root)
-						const char* messageJson = context.GetArgument<const char*>(0);
-
-						rapidjson::Document document;
-						document.Parse(messageJson);
-
-						if (!document.HasParseError())
-						{
-							rapidjson::StringBuffer sb;
-							rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-
-							if (document.Accept(writer))
-							{
-								// somewhat insane sanity check at the last minute
-								if (resource->GetName().find('"') == std::string::npos)
-								{
-									// send to NUI as a formatted root script (std::string constructor is used to prevent having to count bytes)
-									std::stringstream stream;
-									stream << "citFrames[\"" << resource->GetName() << "\"].contentWindow.postMessage(" << std::string(sb.GetString(), sb.GetSize()) << ", '*');";
-
-									// execute in NUI
-									nui::ExecuteRootScript(stream.str());
-
-									// and return 'true' to indicate to the script that we succeeded
-									context.SetResult(true);
-									return;
-								}
-							}
-							else
-							{
-								trace("SEND_NUI_MESSAGE: writing to JSON writer failed\n");
-							}
-						}
-						else
-						{
-							trace("SEND_NUI_MESSAGE: invalid JSON passed in resource %s (rapidjson error code %d)\n", resource->GetName().c_str(), document.GetParseError());
-						}
+						sendMessageToFrame(context, resource->GetName(), "SEND_NUI_MESSAGE");
+						return;
 					}
 					else
 					{
-						trace("SEND_NUI_MESSAGE: resource %s has no UI frame\n", resource->GetName().c_str());
+						trace("SEND_NUI_MESSAGE: resource %s has no UI frame\n", resource->GetName());
 					}
 				}
 				else
 				{
-					trace("SEND_NUI_MESSAGE: resource %s has no UI\n", resource->GetName().c_str());
+					trace("SEND_NUI_MESSAGE: resource %s has no UI\n", resource->GetName());
 				}
 			}
 			else
@@ -90,6 +99,20 @@ static InitFunction initFunction([] ()
 		else
 		{
 			trace("SEND_NUI_MESSAGE called from outside a scripting runtime\n");
+		}
+
+		context.SetResult(false);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SEND_LOADING_SCREEN_MESSAGE", [=](fx::ScriptContext& context)
+	{
+		if (nui::HasFrame("loadingScreen"))
+		{
+			return sendMessageToFrame(context, "loadingScreen", "SEND_LOADING_SCREEN_MESSAGE");
+		}
+		else
+		{
+			trace("SEND_LOADING_SCREEN_MESSAGE called while the loading screen was shut down\n");
 		}
 
 		context.SetResult(false);

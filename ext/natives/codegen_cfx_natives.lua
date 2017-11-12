@@ -1298,3 +1298,41 @@ native 'SET_VEHICLE_WHEEL_XROT'
 	}
 	apiset 'client'
 	returns 'void'
+
+native 'SEND_LOADING_SCREEN_MESSAGE'
+	arguments {
+		charPtr 'jsonString'
+	}
+	apiset 'client'
+	returns 'BOOL'
+	doc [[
+	<summary>
+	Sends a message to the `loadingScreen` NUI frame, which contains the HTML page referenced in `loadscreen` resources.
+	</summary>
+	<param name="jsonString">The JSON-encoded message.</param>
+	<returns>A success value.</returns>
+]]
+
+native 'SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI'
+	arguments {
+		BOOL 'manualShutdown'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets whether or not SHUTDOWN_LOADING_SCREEN automatically shuts down the NUI frame for the loading screen. If this is enabled,
+	you will have to manually invoke SHUTDOWN_LOADING_SCREEN_NUI whenever you want to hide the NUI loading screen.
+	</summary>
+	<param name="manualShutdown">TRUE to manually shut down the loading screen NUI.</param>
+]]
+
+native 'SHUTDOWN_LOADING_SCREEN_NUI'
+	arguments {}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Shuts down the `loadingScreen` NUI frame, similarly to SHUTDOWN_LOADING_SCREEN.
+	</summary>
+]]

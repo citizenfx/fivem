@@ -65,6 +65,7 @@ static HookFunction hookFunction([]()
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		static bool endedLoadingScreens = false;
+		static bool autoShutdownNui = true;
 
 		auto endLoadingScreens = [=]()
 		{
@@ -87,11 +88,24 @@ static HookFunction hookFunction([]()
 				FatalError("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!");
 			}
 
+			fx::ScriptEngine::RegisterNativeHandler("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI", [](fx::ScriptContext& ctx)
+			{
+				autoShutdownNui = !ctx.GetArgument<bool>(0);
+			});
+
+			fx::ScriptEngine::RegisterNativeHandler("SHUTDOWN_LOADING_SCREEN_NUI", [=](fx::ScriptContext& ctx)
+			{
+				endLoadingScreens();
+			});
+
 			fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
 			{
 				(*handler)(ctx);
 
-				endLoadingScreens();
+				if (autoShutdownNui)
+				{
+					endLoadingScreens();
+				}
 			});
 		}
 
@@ -104,9 +118,15 @@ static HookFunction hookFunction([]()
 			});
 		}
 
+		OnKillNetworkDone.Connect([=]()
+		{
+			nui::DestroyFrame("loadingScreen");
+		});
+
 		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 		{
 			endedLoadingScreens = false;
+			autoShutdownNui = true;
 		});
 
 		{

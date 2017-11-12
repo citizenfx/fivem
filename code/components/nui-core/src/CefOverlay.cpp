@@ -12,6 +12,9 @@
 #include "NUIClient.h"
 #include "NUIWindowManager.h"
 
+#include <shared_mutex>
+#include <unordered_set>
+
 #include "memdbgon.h"
 
 bool g_mainUIFlag = true;
@@ -61,6 +64,9 @@ namespace nui
 		nui::GiveFocus(enable);
 	}
 
+	static std::unordered_set<std::string> frameList;
+	static std::shared_mutex frameListMutex;
+
 	__declspec(dllexport) void CreateFrame(fwString frameName, fwString frameURL)
 	{
 		auto procMessage = CefProcessMessage::Create("createFrame");
@@ -73,6 +79,9 @@ namespace nui
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 		auto browser = rootWindow->GetBrowser();
 		browser->SendProcessMessage(PID_RENDERER, procMessage);
+
+		std::unique_lock<std::shared_mutex> lock(frameListMutex);
+		frameList.insert(frameName);
 	}
 
 	__declspec(dllexport) void DestroyFrame(fwString frameName)
@@ -86,6 +95,15 @@ namespace nui
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 		auto browser = rootWindow->GetBrowser();
 		browser->SendProcessMessage(PID_RENDERER, procMessage);
+
+		std::unique_lock<std::shared_mutex> lock(frameListMutex);
+		frameList.erase(frameName);
+	}
+
+	bool HasFrame(const std::string& frameName)
+	{
+		std::shared_lock<std::shared_mutex> lock(frameListMutex);
+		return frameList.find(frameName) != frameList.end();
 	}
 
 	__declspec(dllexport) void SignalPoll(fwString frameName)

@@ -51,6 +51,7 @@ namespace nui
 
 	void OVERLAY_DECL CreateFrame(fwString frameName, fwString frameURL);
 	void OVERLAY_DECL DestroyFrame(fwString frameName);
+	bool OVERLAY_DECL HasFrame(const std::string& frameName);
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
 	void OVERLAY_DECL GiveFocus(bool hasFocus, bool hasCursor = false);
