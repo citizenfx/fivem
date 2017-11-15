@@ -22,6 +22,8 @@
 
 #include <ResourceGameLifetimeEvents.h>
 
+#include <stack>
+
 struct DummyThread : public GtaThread
 {
 	DummyThread(fx::Resource* resource)
@@ -53,18 +55,19 @@ struct DummyThread : public GtaThread
 	}
 };
 
+static std::stack<rage::scrThread*> g_lastThreads;
+
 struct MissionCleanupData
 {
 	rage::scriptHandler* scriptHandler;
-	rage::scriptHandler* lastScriptHandler;
+	std::stack<rage::scriptHandler*> lastScriptHandlers;
 
 	DummyThread* dummyThread;
-	rage::scrThread* lastThread;
 
 	int behaviorVersion;
 
 	MissionCleanupData()
-		: scriptHandler(nullptr), lastScriptHandler(nullptr), dummyThread(nullptr), lastThread(nullptr)
+		: scriptHandler(nullptr), dummyThread(nullptr)
 	{
 
 	}
@@ -150,10 +153,10 @@ static InitFunction initFunction([] ()
 			// set the current script handler
 			GtaThread* gtaThread = data->dummyThread;
 
-			data->lastThread = rage::scrEngine::GetActiveThread();
+			g_lastThreads.push(rage::scrEngine::GetActiveThread());
 			rage::scrEngine::SetActiveThread(gtaThread);
 
-			data->lastScriptHandler = gtaThread->GetScriptHandler();
+			data->lastScriptHandlers.push(gtaThread->GetScriptHandler());
 			gtaThread->SetScriptHandler(data->scriptHandler);
 
 			if (setScriptNow)
@@ -197,10 +200,30 @@ static InitFunction initFunction([] ()
 				}
 			}
 
-			gtaThread->SetScriptHandler(data->lastScriptHandler);
+			{
+				rage::scriptHandler* lastScriptHandler = nullptr;
 
-			// restore the last thread
-			rage::scrEngine::SetActiveThread(data->lastThread);
+				if (!data->lastScriptHandlers.empty())
+				{
+					lastScriptHandler = data->lastScriptHandlers.top();
+					data->lastScriptHandlers.pop();
+				}
+
+				gtaThread->SetScriptHandler(lastScriptHandler);
+			}
+
+			{
+				rage::scrThread* lastThread = nullptr;
+
+				if (!g_lastThreads.empty())
+				{
+					lastThread = g_lastThreads.top();
+					g_lastThreads.pop();
+				}
+
+				// restore the last thread
+				rage::scrEngine::SetActiveThread(lastThread);
+			}
 		}, 10000);
 
 		auto cleanupResource = [=]()
