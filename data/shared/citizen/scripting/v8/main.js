@@ -132,7 +132,7 @@ const EXT_FUNCREF = 10;
 		global.source = source;
 
 		if (source.startsWith('net')) {
-			if (!netSafeEventNames.has(name)) {
+			if (emitter.listeners(name).length > 0 && !netSafeEventNames.has(name)) {
 				console.error(`Event ${name} was not safe for net`);
 
 				global.source = null;
