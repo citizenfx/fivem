@@ -1321,8 +1321,8 @@ native 'SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI'
 	returns 'void'
 	doc [[
 	<summary>
-	Sets whether or not SHUTDOWN_LOADING_SCREEN automatically shuts down the NUI frame for the loading screen. If this is enabled,
-	you will have to manually invoke SHUTDOWN_LOADING_SCREEN_NUI whenever you want to hide the NUI loading screen.
+	Sets whether or not `SHUTDOWN_LOADING_SCREEN` automatically shuts down the NUI frame for the loading screen. If this is enabled,
+	you will have to manually invoke `SHUTDOWN_LOADING_SCREEN_NUI` whenever you want to hide the NUI loading screen.
 	</summary>
 	<param name="manualShutdown">TRUE to manually shut down the loading screen NUI.</param>
 ]]
@@ -1333,6 +1333,6 @@ native 'SHUTDOWN_LOADING_SCREEN_NUI'
 	returns 'void'
 	doc [[
 	<summary>
-	Shuts down the `loadingScreen` NUI frame, similarly to SHUTDOWN_LOADING_SCREEN.
+	Shuts down the `loadingScreen` NUI frame, similarly to `SHUTDOWN_LOADING_SCREEN`.
 	</summary>
 ]]
