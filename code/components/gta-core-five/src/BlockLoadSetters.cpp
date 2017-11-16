@@ -1137,6 +1137,30 @@ static void SafeRun(const T&& func)
 	}
 }
 
+static void OverrideArguments()
+{
+	// unless specified in INI, force windowed-borderless
+	{
+		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+		bool forceWindowed = true;
+
+		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			forceWindowed = (GetPrivateProfileInt(L"Game", L"ForceWindowingMode", 1, fpath.c_str()) == 1);
+		}
+
+		if (forceWindowed)
+		{
+			// -windowed
+			hook::put<int>(hook::get_address<int*>(hook::get_pattern("41 3B CE 0F 85 FC 00 00 00 48 39 1D", 12)), 1);
+
+			// -borderless
+			hook::put<int>(hook::get_address<int*>(hook::get_pattern("48 1B DB 4C 39 3D ? ? ? ? 41", 6)), 1);
+		}
+	}
+}
+
 static InitFunction initFunction([]()
 {
 	// initialize console arguments
@@ -1552,5 +1576,16 @@ static HookFunction hookFunction([] ()
 
 	// disable eventschedule.json refetching on failure
 	hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
+
+	// don't set pause on focus loss, force it to 0
+	{
+		auto location = hook::get_pattern<char>("0F 95 05 ? ? ? ? E8 ? ? ? ? 48 85 C0");
+		auto addy = hook::get_address<char*>(location + 3);
+		hook::put<char>(addy, 0);
+		hook::nop(location, 7);
+	}
+
+	// commandline overriding stuff (replace a nullsub near sysParam_init)
+	hook::call(hook::get_pattern("48 8B 54 24 48 8B 4C 24 40 E8", 25), OverrideArguments);
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9
