@@ -119,6 +119,32 @@ static void UnsetGameObjAndContinue(void* netobj, void* ped, bool a3, bool a4)
 	g_origUnsetGameObj(netobj, ped, a3, a4);
 }
 
+struct EntryPointInfo
+{
+	void* info;
+	void* animInfo;
+};
+
+struct VehicleLayoutInfo
+{
+	char pad[24];
+	EntryPointInfo* EntryPoints_data;
+	uint16_t EntryPoints_size;
+};
+
+static bool VehicleEntryPointValidate(VehicleLayoutInfo* info)
+{
+	for (size_t i = 0; i < info->EntryPoints_size; ++i)
+	{
+		if (info->EntryPoints_data[i].info == nullptr)
+		{
+			info->EntryPoints_size = 0;
+		}
+	}
+
+	return true;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -401,5 +427,99 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("48 8B 40 10 F3 0F 10 45 60 F3 0F 10 8D 80 00 00");
 		hook::nop(location, 9);
 		hook::call_reg<1>(location, gadgetFixStub1.GetCode());
+	}
+
+	// initialization of vehiclelayouts.meta, VehicleLayoutInfos->EntryPoints validation
+	// causes ErrorDo signature because of null pointers - we'll just replace validation and force the array to be size 0
+	hook::jump(hook::get_pattern("44 0F B7 41 20 33 D2 45"), VehicleEntryPointValidate);
+
+	static uint64_t lastClothValue;
+	static char* lastClothPtr;
+
+	// cloth data in vehicle audio, validity check
+	// for crash sig @4316ee
+	static struct : jitasm::Frontend
+	{
+		static void ReportCrash()
+		{
+			static bool hasCrashedBefore = false;
+
+			if (!hasCrashedBefore)
+			{
+				hasCrashedBefore = true;
+
+				trace("WARNING: cloth data crash triggered (invalid pointer: %016llx, dummy: %016llx)\n", (uintptr_t)lastClothPtr, (uintptr_t)lastClothValue);
+
+				AddCrashometry("cloth_data_crash", "true");
+			}
+		}
+
+		static bool VerifyClothDataInst(char* pointer)
+		{
+			__try
+			{
+				lastClothValue = *(uint64_t*)(pointer + 0x1E0);
+
+				return true;
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				lastClothPtr = pointer;
+				ReportCrash();
+
+				return false;
+			}
+		}
+
+		void InternalMain() override
+		{
+			// save rcx and rax as these are our instruction operands
+			push(rcx);
+			push(rax);
+
+			// set up a stack frame for function calling
+			push(rbp);
+			mov(rbp, rsp);
+			sub(rsp, 32);
+
+			// call VerifyClothDataInst with rax (the pointer to probe)
+			mov(rcx, rax);
+			mov(rax, (uintptr_t)&VerifyClothDataInst);
+			call(rax);
+
+			// if 0, it's invalid
+			test(al, al);
+			jz("otherReturn");
+
+			// pop stack frame and execute original cmp instruction
+			add(rsp, 32);
+			pop(rbp);
+
+			pop(rax);
+			pop(rcx);
+
+			cmp(qword_ptr[rax + 0x1E0], rcx);
+
+			ret();
+
+			// pop stack frame and set ZF
+			L("otherReturn");
+
+			add(rsp, 32);
+			pop(rbp);
+
+			pop(rax);
+			pop(rcx);
+
+			xor(rdx, rdx);
+
+			ret();
+		}
+	} clothFixStub1;
+
+	{
+		auto location = hook::get_pattern("74 66 48 39 88 E0 01 00 00 74 5D", 2);
+		hook::nop(location, 7);
+		hook::call_reg<2>(location, clothFixStub1.GetCode());
 	}
 });
