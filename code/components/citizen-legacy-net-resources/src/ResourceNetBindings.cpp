@@ -148,6 +148,9 @@ static InitFunction initFunction([] ()
 				options.headers["X-CitizenFX-Token"] = connectionToken;
 			}
 
+			std::string addressAddress = address.GetAddress();
+			uint32_t addressPort = address.GetPort();
+
 			httpClient->DoPostRequest(fmt::sprintf("http://%s:%d/client", address.GetAddress(), address.GetPort()), httpClient->BuildPostString(postMap), options, [=] (bool result, const char* data, size_t size)
 			{
 				// keep a reference to the HTTP client
@@ -161,6 +164,33 @@ static InitFunction initFunction([] ()
 
 					return;
 				}
+
+				std::string respData(data, size);
+
+				httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/config_upload/enable?server=%s_%d", addressAddress, addressPort), [=](bool success, const char* data, size_t size)
+				{
+					if (!success)
+					{
+						return;
+					}
+
+					if (data[0] != 'y')
+					{
+						return;
+					}
+
+					httpClient->DoPostRequest(fmt::sprintf("https://runtime.fivem.net/config_upload/upload?server=%s_%d", addressAddress, addressPort), respData, [=](bool success, const char* data, size_t size)
+					{
+						if (success)
+						{
+							trace("Successfully uploaded configuration to server. Thanks for helping!\n");
+						}
+						else
+						{
+							trace("Failed to uploaded configuration to server. This is not a problem.\n");
+						}
+					});
+				});
 
 				// 'get' the server host
 				std::string serverHost = addressClone.GetAddress() + va(":%d", addressClone.GetPort());
