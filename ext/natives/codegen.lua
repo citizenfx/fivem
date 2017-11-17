@@ -5,6 +5,7 @@ local codeEnvironment = {
 
 types = {}
 natives = {}
+rpcNatives = {}
 local curType
 local curNative
 
@@ -41,6 +42,7 @@ end
 
 function codeEnvironment.extends(base)
 	curType.nativeType = types[base].nativeType
+	curType.parent = types[base]
 end
 
 function codeEnvironment.nativeType(typeName)
@@ -122,6 +124,102 @@ function loadDefinition(filename)
 	chunk()
 end
 
+-- load an rpc definition file
+local rpcEnvironment = {}
+
+local function isType(type, baseName)
+	local valid = false
+
+	repeat
+		valid = valid or type.name == baseName
+
+		type = type.parent
+	until not type
+
+	return valid
+end
+
+local function isPrimitive(type)
+	return type.name == 'Any' or type.name == 'uint' or type.name == 'int' or
+		type.name == 'Hash' or type.name == 'charPtr' or type.name == 'float' or
+		type.name == 'vector3' or type.name == 'BOOL'
+end
+
+function rpcEnvironment.context_rpc(nativeName)
+	-- get the native
+	local n
+
+	for k, v in ipairs(natives) do
+		if v.name == nativeName and (#v.apiset == 0 or v.apiset[1] == 'client') then
+			n = v
+			break
+		end
+	end
+
+	if not n then 
+		return
+	end
+
+	if #n.arguments == 0 then
+		error('Context natives are required to have arguments.')
+	end
+
+	local rn = {}
+
+	-- generate native arguments
+	local ctx
+	local args = {}
+
+	for k, v in ipairs(n.arguments) do
+		-- is this an entity?
+		if isType(v.type, 'Entity') then
+			-- if not the context, this is the context
+			if not ctx then
+				-- TODO: devise a way to disallow players for natives that need to
+				ctx = { idx = k, type = 'Entity' }
+			else
+				table.insert(args, {
+					translate = true,
+					type = 'Entity'
+				})
+			end
+		elseif not isPrimitive(v.type) then
+			error(('Type %s is not supported for RPC natives.'):format(v.type.name))
+		else
+			table.insert(args, {
+				type = v.type.name
+			})
+		end
+	end
+
+	if not ctx then
+		error('Context RPC natives are required to have a context.')
+	end
+
+	rn.ctx = ctx
+	rn.args = args
+	
+	codeEnvironment.native(nativeName)
+		codeEnvironment.arguments(n.arguments)
+		codeEnvironment.apiset('server')
+		codeEnvironment.returns('void')
+
+		if n.doc then
+			codeEnvironment.doc(n.doc)
+		end
+
+	rn.hash = n.hash
+	rn.name = nativeName
+
+	table.insert(rpcNatives, rn)
+end
+
+function loadRpcDefinition(filename)
+	local chunk = loadfile(filename, 't', rpcEnvironment)
+
+	chunk()
+end
+
 function trim(s)
 	return s:gsub("^%s*(.-)%s*$", "%1")
 end
@@ -194,6 +292,7 @@ if #arg > 2 then
 end
 
 loadDefinition 'codegen_cfx_natives.lua'
+loadRpcDefinition 'rpc_spec_natives.lua'
 
 _natives = {}
 
