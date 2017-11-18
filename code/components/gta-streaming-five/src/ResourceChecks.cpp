@@ -130,6 +130,16 @@ FMT_VARIADIC(void, PolyError, const std::string&);
 
 static void ValidateGeometry(void* geomPtr)
 {
+	// only validate #ft files for the time being.
+	// #bn/#dr files tend to be exported with GIMS Evo, which inherently exports broken data
+	// (edges point to vertices, not polygons; this is *plain wrong*)
+
+	// also, slow PCs don't like validating collisions, that makes people fall through the ground
+	if (g_currentStreamingName.find(".yft") == std::string::npos)
+	{
+		return;
+	}
+
 	auto geom = (rage::five::phBoundGeometry*)geomPtr;
 	auto polys = geom->GetPolygons();
 	auto numPolys = geom->GetNumPolygons();
@@ -151,15 +161,14 @@ static void ValidateGeometry(void* geomPtr)
 		\
 		{ \
 			auto& p = polys[poly->poly.e]; \
-			if (p.type != 0) \
+			if (p.type == 0) \
 			{ \
-				PolyError("Poly %d edge reference is invalid. It leads to a non-triangle!", i); \
-			} \
-			uint16_t v = (p.poly.v1 & 0x7FFF) + (p.poly.v2 & 0x7FFF) + (p.poly.v3 & 0x7FFF) - (poly->poly.a & 0x7FFF) - (poly->poly.b & 0x7FFF); \
-			\
-			if (v >= numVerts) \
-			{ \
-				PolyError("Poly %d edge reference is invalid. It leads to vertex %d, when there are only %d vertices.", i, v, numVerts); \
+				uint16_t v = (p.poly.v1 & 0x7FFF) + (p.poly.v2 & 0x7FFF) + (p.poly.v3 & 0x7FFF) - (poly->poly.a & 0x7FFF) - (poly->poly.b & 0x7FFF); \
+				\
+				if (v >= numVerts) \
+				{ \
+					PolyError("Poly %d edge reference is invalid. It leads to vertex %d, when there are only %d vertices.", i, v, numVerts); \
+				} \
 			} \
 		} \
 	}
