@@ -1264,6 +1264,8 @@ void DoCloseCollection(rage::fiCollection* collection)
 	}
 }
 
+std::string GetCurrentStreamingName();
+
 static void PtrError()
 {
 	if (CoreIsDebuggerPresent())
@@ -1271,7 +1273,7 @@ static void PtrError()
 		__debugbreak();
 	}
 
-	FatalError("Invalid fixup, address is neither virtual nor physical (rage::pg*)");
+	FatalError("Invalid fixup, address is neither virtual nor physical (in %s)", GetCurrentStreamingName());
 }
 
 // this should be moved to another component eventually...

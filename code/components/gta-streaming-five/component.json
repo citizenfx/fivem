@@ -6,7 +6,8 @@
 		"rage:device:five",
 		"vendor:minhook",
 		"gta:core",
-		"vfs:core"
+		"vfs:core",
+		"rage:formats"
 	],
 	"provides": []
 }
