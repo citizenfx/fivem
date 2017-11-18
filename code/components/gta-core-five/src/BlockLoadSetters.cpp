@@ -1140,6 +1140,7 @@ static void SafeRun(const T&& func)
 static void OverrideArguments()
 {
 	// unless specified in INI, force windowed-borderless
+#ifdef EXPERIMENT_FLAG_DISABLE_FULLSCREEN
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
@@ -1159,6 +1160,7 @@ static void OverrideArguments()
 			hook::put<int>(hook::get_address<int*>(hook::get_pattern("48 1B DB 4C 39 3D ? ? ? ? 41", 6)), 1);
 		}
 	}
+#endif
 }
 
 static InitFunction initFunction([]()
