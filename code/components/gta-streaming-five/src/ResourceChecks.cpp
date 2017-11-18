@@ -114,8 +114,16 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 
 static void PolyError(const std::string& str, fmt::ArgList args)
 {
-	FatalError("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
-		g_currentStreamingName, fmt::sprintf(str, args));
+	if (g_currentStreamingName.find(".yft") != std::string::npos)
+	{
+		FatalError("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
+			g_currentStreamingName, fmt::sprintf(str, args));
+	}
+	else
+	{
+		trace("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
+			g_currentStreamingName, fmt::sprintf(str, args));
+	}
 }
 
 FMT_VARIADIC(void, PolyError, const std::string&);
