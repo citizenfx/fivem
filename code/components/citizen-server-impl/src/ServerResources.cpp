@@ -122,7 +122,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 				// TODO(fxserver): non-win32
 				if (findData.attributes & FILE_ATTRIBUTE_DIRECTORY)
 				{
-					std::string resPath(thisPath + "/" + findData.name);
+					std::string resPath(thisPath + findData.name);
 
 					// is this a category?
 					if (findData.name[0] == '[' && findData.name[findData.name.size() - 1] == ']')
