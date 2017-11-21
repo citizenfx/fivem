@@ -33,3 +33,20 @@
 		</div>
 	</div>
 </section>
+
+<section class="setting" *ngIf="devMode">
+	<div class="key">
+		Localhost port
+	</div>
+	<div class="value">
+		<input
+			#input
+			class="text"
+			type="text"
+			placeholder="{{'#Settings_LocalhostPort'|translate}}"
+			spellcheck="false"
+			[(ngModel)]="localhostPort"
+			(ngModelChange)="localhostPortChanged($event)"		
+		>
+	</div>
+</section>
