@@ -290,5 +290,11 @@ namespace CitizenFX.Core
 
 			return obj;
 		}
+
+		[SecurityCritical]
+		public override object InitializeLifetimeService()
+		{
+			return null;
+		}
 	}
 }

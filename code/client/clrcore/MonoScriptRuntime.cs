@@ -263,6 +263,12 @@ namespace CitizenFX.Core
 			{
 				m_realHost.ScriptTrace(message);
 			}
+
+			[SecurityCritical]
+			public override object InitializeLifetimeService()
+			{
+				return null;
+			}
 		}
 	}
 }

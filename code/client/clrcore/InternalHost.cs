@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.Remoting;
+using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -14,6 +16,12 @@ namespace CitizenFX.Core
 		public void InvokeNative(ref fxScriptContext context)
 		{
 			m_host.InvokeNative(context);
+		}
+
+		[SecurityCritical]
+		public override object InitializeLifetimeService()
+		{
+			return null;
 		}
 	}
 }
