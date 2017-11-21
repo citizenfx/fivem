@@ -10,16 +10,19 @@ import { GameService } from '../game.service';
 
 export class SettingsComponent implements OnInit {
     nickname = '';
+    localhostPort = '30120';
     devMode = false;
 
     constructor(private gameService: GameService) {
         gameService.nicknameChange.subscribe(value => this.nickname = value);
         gameService.devModeChange.subscribe(value => this.devMode = value);
+        gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
     }
 
     ngOnInit() {
         this.nickname = this.gameService.nickname;
         this.devMode = this.gameService.devMode;
+        this.localhostPort = this.gameService.localhostPort;
     }
 
     nameChanged(newName) {
@@ -28,5 +31,9 @@ export class SettingsComponent implements OnInit {
 
     toggleDevMode() {
         this.gameService.devMode = !this.devMode;
+    }
+	
+    localhostPortChanged(newPort) {
+        this.gameService.localhostPort = newPort;
     }
 }

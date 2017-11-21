@@ -36,6 +36,7 @@ export abstract class GameService {
 
 	devModeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
+	localhostPortChange = new EventEmitter<string>();
 
 	signinChange = new EventEmitter<Profile>();
 
@@ -57,6 +58,14 @@ export abstract class GameService {
 
 	}
 
+	get localhostPort(): string {
+		return '30120';
+	}
+
+	set localhostPort(name: string) {
+
+	}	
+	
 	abstract init(): void;
 
 	abstract connectTo(server: Server): void;
@@ -117,6 +126,10 @@ export abstract class GameService {
 	protected invokeDevModeChanged(value: boolean) {
 		this.devModeChange.emit(value);
 	}
+	
+	protected invokeLocalhostPortChanged(port: string) {
+		this.localhostPortChange.emit(port);
+	}	
 }
 
 @Injectable()
@@ -134,7 +147,9 @@ export class CfxGameService extends GameService {
 	private history: string[] = [];
 
 	private realNickname: string;
-
+	
+	private _localhostPort: string;
+	
 	private inConnecting = false;
 
 	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
@@ -210,6 +225,10 @@ export class CfxGameService extends GameService {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
+		if (localStorage.getItem('localhostPort')) {
+			this._localhostPort = localStorage.getItem('localhostPort');
+		}		
+		
 		this.connecting.subscribe(server => {
 			this.inConnecting = false;
 		});
@@ -239,6 +258,16 @@ export class CfxGameService extends GameService {
 		this.invokeDevModeChanged(value);
 	}
 
+	get localhostPort(): string {
+		return this._localhostPort;
+	}
+
+	set localhostPort(port: string) {
+		this._localhostPort = port;
+		localStorage.setItem('localhostPort', port);
+		this.invokeLocalhostPortChanged(port);
+	}
+	
 	private saveHistory() {
 		localStorage.setItem('history', JSON.stringify(this.history));
 	}
@@ -362,6 +391,7 @@ export class CfxGameService extends GameService {
 @Injectable()
 export class DummyGameService extends GameService {
 	private _devMode = false;
+	private _localhostPort = '';
 
 	constructor() {
 		super();
@@ -430,6 +460,15 @@ export class DummyGameService extends GameService {
 		this.invokeNicknameChanged(name);
 	}
 
+	get localhostPort(): string {
+		return this._localhostPort;
+	}
+
+	set localhostPort(port: string) {
+		localStorage.setItem('localhostPort', port);
+		this.invokeLocalhostPortChanged(port);
+	}	
+	
 	get devMode(): boolean {
 		return this._devMode;
 	}

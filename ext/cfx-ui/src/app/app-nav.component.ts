@@ -14,6 +14,7 @@ import { Translation, TranslationService } from 'angular-l10n';
 export class AppNavComponent extends Translation {
 	nickname = '';
 	devMode = false;
+	localhostPort = '';
 	hasSubNav = false;
 
 	constructor(
@@ -26,6 +27,8 @@ export class AppNavComponent extends Translation {
 
 		this.nickname = gameService.nickname;
 		this.devMode = gameService.devMode;
+		this.localhostPort = gameService.localhostPort;
+		
 
 		router.events.subscribe(event => {
 			if ((<NavigationEnd>event).url) {
@@ -36,10 +39,12 @@ export class AppNavComponent extends Translation {
 		gameService.signinChange.subscribe(value => this.nickname = value.name);
 		gameService.nicknameChange.subscribe(value => this.nickname = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
+		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
 	}
 
 	connectToLocal() {
-		(<any>window).invokeNative('connectTo', '127.0.0.1:30120');
+		console.log(this.localhostPort);
+		(<any>window).invokeNative('connectTo', (typeof this.localhostPort === 'undefined') ? '127.0.0.1:30120' : '127.0.0.1:' + this.localhostPort );
 	}
 
 	exitGame() {

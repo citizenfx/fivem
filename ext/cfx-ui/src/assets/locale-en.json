@@ -25,6 +25,7 @@
     "#ServerList_AddFavorite": "Add Favorite",
     "#ServerList_RemoveFavorite": "Remove Favorite",
     "#Settings_Nickname": "Player name",
+    "#Settings_LocalhostPort": "Custom port",
     "#DirectConnect_ServerInvalid": "Server could not be found",
     "#DirectConnect_ServerInvalid_SubTitle": "Make sure you've entered the correct address.",
     "#DirectConnect_IPPort": "IP:Port",
