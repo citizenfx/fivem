@@ -43,7 +43,6 @@ export class AppNavComponent extends Translation {
 	}
 
 	connectToLocal() {
-		console.log(this.localhostPort);
 		(<any>window).invokeNative('connectTo', (typeof this.localhostPort === 'undefined') ? '127.0.0.1:30120' : '127.0.0.1:' + this.localhostPort );
 	}
 
