@@ -14,7 +14,7 @@
 				add_dependencies { 'vendor:fmtlib' }
 			end
 
-			if os.is('windows') then
+			if os.istarget('windows') then
 				links { libc and 'fmtlib-crt' or 'fmtlib' }
 			end
 
