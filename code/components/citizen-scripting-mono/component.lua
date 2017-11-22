@@ -1,4 +1,4 @@
-if os.is('windows') then
+if os.istarget('windows') then
 	filter 'architecture:x64'
 		links { "mono-2.0-sgen" }
 
