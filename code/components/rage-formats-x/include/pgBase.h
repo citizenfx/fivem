@@ -1,8 +1,8 @@
 /*
- * This file is part of the CitizenFX project - http://citizen.re/
+ * This file is part of FiveM (https://fivem.net), created by CitizenFX (https://github.com/citizenfx)
  *
- * See LICENSE and MENTIONS in the root of the source tree for information
- * regarding licensing.
+ * See root directory for information regarding LICENSE and other instruction.
+ * 
  */
 
 #include <stdint.h>
