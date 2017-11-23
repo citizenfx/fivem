@@ -177,12 +177,22 @@ function rpcEnvironment.context_rpc(nativeName)
 			if not ctx then
 				-- TODO: devise a way to disallow players for natives that need to
 				ctx = { idx = k, type = 'Entity' }
-			else
-				table.insert(args, {
-					translate = true,
-					type = 'Entity'
-				})
 			end
+
+			table.insert(args, {
+				translate = true,
+				type = 'Entity'
+			})
+		elseif v.type.name == 'Player' then
+			-- if not the context, this is the context
+			if not ctx then
+				ctx = { idx = k, type = 'Player' }
+			end
+
+			table.insert(args, {
+				translate = true,
+				type = 'Player'
+			})
 		elseif not isPrimitive(v.type) then
 			error(('Type %s is not supported for RPC natives.'):format(v.type.name))
 		else

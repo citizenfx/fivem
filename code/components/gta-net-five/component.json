@@ -6,8 +6,10 @@
 		"net:base",
 		"net",
 		"gta:core:five",
+		"gta:game:five",
 		"rage:nutsnbolts:five",
 		"citizen:resources:core",
+		"citizen:scripting:core",
 		"scripting",
 		"vendor:msgpack-c",
 		"vendor:lz4"

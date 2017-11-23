@@ -13,7 +13,7 @@ namespace fx
 {
 inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
 {
-	return (playerId << 16) | objectId;
+	return ((playerId + 1) << 16) | objectId;
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
