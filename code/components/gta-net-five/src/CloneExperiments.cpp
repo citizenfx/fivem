@@ -220,7 +220,10 @@ public:
 	{
 		for (auto node = m_objects[playerId]; node; node = node->next)
 		{
-			callback(node->object);
+			if (node->object)
+			{
+				callback(node->object);
+			}
 		}
 	}
 };
@@ -420,6 +423,27 @@ static HookFunction hookFunction2([]()
 		hook::jump(location, WriteDataNodeStub);
 	}
 });
+
+int ObjectToEntity(int objectId)
+{
+	int playerIdx = (objectId >> 16) - 1;
+	int objectIdx = (objectId & 0xFFFF);
+
+	int entityIdx = -1;
+
+	(*g_objectMgr)->ForAllNetObjects(playerIdx, [&](rage::netObject* obj)
+	{
+		char* objectChar = (char*)obj;
+		uint16_t thisObjectId = *(uint16_t*)(objectChar + 10);
+
+		if (objectIdx == thisObjectId)
+		{
+			entityIdx = getScriptGuidForEntity(obj->GetGameObject());
+		}
+	});
+
+	return entityIdx;
+}
 
 #include <boost/range/adaptor/map.hpp>
 #include <mmsystem.h>
