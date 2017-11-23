@@ -500,7 +500,7 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 		tempServer->m_Address = net::PeerAddress();
 	};
 
-	if (infoBlobVersionString && infoBlobVersionString[0])
+	if (g_cls.isOneQuery && infoBlobVersionString && infoBlobVersionString[0])
 	{
 		std::string serverId = fmt::sprintf("%s", addressStr);
 		int infoBlobVersion = atoi(infoBlobVersionString);
