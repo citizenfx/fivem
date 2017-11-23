@@ -94,6 +94,7 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
 
     ngOnInit() {
 		this.addr = localStorage.getItem('directLast');
+		this.addrChanged(localStorage.getItem('directLast'));
 	}
 
     ngAfterViewInit() {
