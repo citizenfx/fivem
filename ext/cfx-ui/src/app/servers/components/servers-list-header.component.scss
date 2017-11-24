@@ -47,7 +47,7 @@
 		&.name,
 		&.players,
 		&.actions {
-			padding-right: $padding*$multiplier;
+			padding-right: $padding*$multiplier+2;
 		}
 
 		span {
