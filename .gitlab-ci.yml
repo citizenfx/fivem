@@ -59,7 +59,6 @@ build_proot_linux:
   except:
     - tags
     - master
-    - feature/cloning-stuff
   tags:
     - linux
 
