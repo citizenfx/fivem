@@ -320,14 +320,14 @@ uint32_t GetRelevantSectorPosPlayersWrap(void* a1, void* a2, uint8_t a3)
 {
 	auto val = g_origGetRelevantSectorPosPlayers(a1, a2, a3);
 
-	/*if (val & (1 << 31))
+	if (val & (1 << 31))
 	{
 		val &= ~(1 << 31);
 	}
 	else
 	{
-		val |= (1 << 31);
-	}*/
+		//val |= (1 << 31);
+	}
 
 	return val;
 }

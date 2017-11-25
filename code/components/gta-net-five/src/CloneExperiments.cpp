@@ -514,6 +514,22 @@ static InitFunction initFunction([]()
 
 				rage::netBuffer buffer(bluh, sizeof(bluh));
 
+				// if we want to delete this object
+				if (*(char*)(objectChar + 76) & 1)
+				{
+					if (*(uint32_t*)(objectChar + 112) & (1 << 31))
+					{
+						// unack the create to unburden the game
+						*(uint32_t*)(objectChar + 112) &= ~(1 << 31);
+
+						// pretend to ack the remove to process removal
+						// 1103
+						((void(*)(rage::netObjectMgr*, rage::netObject*))0x141595A30)(objectMgr, object);
+					}
+
+					return;
+				}
+
 				auto st = object->GetSyncTree();
 				int syncType = 0;
 
@@ -522,7 +538,7 @@ static InitFunction initFunction([]()
 					// clone create
 					syncType = 1;
 				}
-				else if ((timeGetTime() - objectData.lastSyncTime) > 500)
+				else if ((timeGetTime() - objectData.lastSyncTime) > 250)
 				{
 					if (objectData.lastSyncAck == 0)
 					{
@@ -533,6 +549,14 @@ static InitFunction initFunction([]()
 					{
 						// ack'd create on player 31
 						*(uint32_t*)(objectChar + 112) |= (1 << 31);
+
+						char* syncData = (char*)object->m_20();
+
+						if (syncData)
+						{
+							*(uint32_t*)(syncData + 8) |= (1 << 31);
+							*(uint32_t*)(syncData + 176 + 8) |= (1 << 31);
+						}
 
 						// clone sync
 						syncType = 2;
@@ -592,7 +616,7 @@ static InitFunction initFunction([]()
 			}
 		}
 
-		if ((timeGetTime() - lastSend) > 500 || netBuffer.GetCurOffset() >= 1200)
+		if ((timeGetTime() - lastSend) > 250 || netBuffer.GetCurOffset() >= 1200)
 		{
 			if (netBuffer.GetCurOffset() > 0)
 			{

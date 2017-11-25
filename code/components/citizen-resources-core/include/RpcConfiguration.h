@@ -18,7 +18,14 @@ public:
 		Int,
 		Bool,
 		String,
-		Player
+		Player,
+		Hash
+	};
+
+	enum class RpcType
+	{
+		EntityContext,
+		EntityCreate
 	};
 
 	class Argument
@@ -70,6 +77,11 @@ public:
 			return m_contextType;
 		}
 
+		inline RpcType GetRpcType() const
+		{
+			return m_rpcType;
+		}
+
 		inline const std::vector<Argument>& GetArguments() const
 		{
 			return m_arguments;
@@ -81,6 +93,8 @@ public:
 
 		int m_contextArgument;
 		ArgumentType m_contextType;
+
+		RpcType m_rpcType;
 
 		std::vector<Argument> m_arguments;
 	};

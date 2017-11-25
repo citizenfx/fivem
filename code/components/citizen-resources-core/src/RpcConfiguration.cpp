@@ -15,6 +15,22 @@ RpcConfiguration::~RpcConfiguration()
 
 }
 
+inline RpcConfiguration::RpcType ParseRpcType(std::string_view str)
+{
+	if (str == "entity")
+	{
+		return RpcConfiguration::RpcType::EntityCreate;
+	}
+	else if (str == "ctx")
+	{
+		return RpcConfiguration::RpcType::EntityContext;
+	}
+	else
+	{
+		FatalError("Unknown RPC type %s", std::string(str));
+	}
+}
+
 inline RpcConfiguration::ArgumentType ParseContextType(std::string_view str)
 {
 	if (str == "BOOL")
@@ -24,6 +40,10 @@ inline RpcConfiguration::ArgumentType ParseContextType(std::string_view str)
 	else if (str == "Entity")
 	{
 		return RpcConfiguration::ArgumentType::Entity;
+	}
+	else if (str == "Hash")
+	{
+		return RpcConfiguration::ArgumentType::Hash;
 	}
 	else if (str == "Player")
 	{
@@ -73,8 +93,13 @@ void RpcConfiguration::Native::Initialize(rapidjson::Value& value)
 	m_name = value["name"].GetString();
 	m_gameHash = strtoull(value["hash"].GetString() + 2, nullptr, 16);
 
-	m_contextType = ParseContextType(value["ctx"]["type"].GetString());
-	m_contextArgument = value["ctx"]["idx"].GetInt();
+	m_rpcType = ParseRpcType(value["type"].GetString());
+
+	if (m_rpcType == RpcType::EntityContext)
+	{
+		m_contextType = ParseContextType(value["ctx"]["type"].GetString());
+		m_contextArgument = value["ctx"]["idx"].GetInt();
+	}
 
 	auto& args = value["args"];
 

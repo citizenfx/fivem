@@ -15,6 +15,22 @@
 
 #include <RpcConfiguration.h>
 
+struct EntityCreationState
+{
+	// TODO: allow resending in case the target client disappears
+	uint16_t creationToken;
+	uint32_t clientIdx;
+	fx::ScriptGuid* scriptGuid;
+};
+
+static tbb::concurrent_unordered_map<uint16_t, EntityCreationState> g_entityCreationList;
+static std::atomic<uint16_t> g_creationToken;
+
+inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
+{
+	return ((playerId + 1) << 16) | objectId;
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* ref)
@@ -25,46 +41,89 @@ static InitFunction initFunction([]()
 		auto gameState = ref->GetComponent<fx::ServerGameState>();
 		auto gameServer = ref->GetComponent<fx::GameServer>();
 
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgEntityCreate"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		{
+			auto creationToken = buffer.Read<uint16_t>();
+			auto playerId = buffer.Read<uint8_t>();
+			auto objectId = buffer.Read<uint16_t>();
+
+			auto it = g_entityCreationList.find(creationToken);
+
+			if (it != g_entityCreationList.end())
+			{
+				auto guid = it->second.scriptGuid;
+				guid->type = fx::ScriptGuid::Type::Entity;
+				guid->entity.handle = MakeEntityHandle(playerId, objectId);
+
+				g_entityCreationList[creationToken] = {};
+			}
+		});
+
 		for (auto& native : rpcConfiguration->GetNatives())
 		{
 			fx::ScriptEngine::RegisterNativeHandler(native->GetName(), [=](fx::ScriptContext& ctx)
 			{
-				// ascertain the client that is the context
-				int ctxIdx = native->GetContextIndex();
-
 				int clientIdx = -1;
 
-				switch (native->GetContextType())
+				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityContext)
 				{
-				case RpcConfiguration::ArgumentType::Player:
-				{
-					clientIdx = ctx.GetArgument<int>(0);
-					break;
-				}
-				case RpcConfiguration::ArgumentType::Entity:
-				{
-					int cxtEntity = ctx.GetArgument<int>(0);
+					// ascertain the client that is the context
+					int ctxIdx = native->GetContextIndex();
 
-					int playerIdx = cxtEntity >> 16;
-
-					// it's a player, not an entity
-					if (playerIdx == 0)
+					switch (native->GetContextType())
 					{
-						clientIdx = cxtEntity;
+					case RpcConfiguration::ArgumentType::Player:
+					{
+						clientIdx = ctx.GetArgument<int>(ctxIdx);
+						break;
 					}
-					else
+					case RpcConfiguration::ArgumentType::Entity:
 					{
-						// look up the entity owner
-						auto entity = gameState->GetEntity(cxtEntity);
+						int cxtEntity = ctx.GetArgument<int>(ctxIdx);
 
-						if (entity)
+						if (cxtEntity < 0x20000)
 						{
-							clientIdx = entity->client.lock()->GetNetId();
-						}
-					}
+							auto client = clientRegistry->GetClientByNetID(cxtEntity);
 
-					break;
+							if (client)
+							{
+								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+							}
+						}
+
+						fx::ScriptGuid* scriptGuid = g_scriptHandlePool->AtHandle(cxtEntity - 0x20000);
+
+						if (scriptGuid)
+						{
+							if (scriptGuid->type == fx::ScriptGuid::Type::Entity)
+							{
+								// look up the entity owner
+								auto entity = gameState->GetEntity(cxtEntity);
+
+								if (entity)
+								{
+									clientIdx = entity->client.lock()->GetNetId();
+								}
+							}
+							else if (scriptGuid->type == fx::ScriptGuid::Type::TempEntity)
+							{
+								auto it = g_entityCreationList.find(scriptGuid->tempEntity.creationToken);
+
+								if (it != g_entityCreationList.end())
+								{
+									clientIdx = it->second.clientIdx;
+								}
+							}
+						}
+
+						break;
+					}
+					}
 				}
+				else if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
+				{
+					// TODO: intercept coordinates and get a client near there
+					clientIdx = clientRegistry->GetHost()->GetNetId();
 				}
 
 				uint32_t resourceHash = -1;
@@ -87,6 +146,15 @@ static InitFunction initFunction([]()
 				buffer.Write<uint64_t>(native->GetGameHash());
 				buffer.Write<uint32_t>(resourceHash);
 
+				uint16_t creationToken;
+
+				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
+				{
+					creationToken = ++g_creationToken;
+
+					buffer.Write<uint16_t>(creationToken);
+				}
+
 				int i = 0;
 				
 				for (auto& argument : native->GetArguments())
@@ -97,20 +165,61 @@ static InitFunction initFunction([]()
 					{
 						int cxtEntity = ctx.GetArgument<int>(i);
 
-						int playerIdx = cxtEntity >> 16;
+						int entityHandle;
 
-						// it's a player, not an entity
-						if (playerIdx == 0)
+						if (cxtEntity < 0x20000)
 						{
-							cxtEntity = std::any_cast<uint32_t>(clientRegistry->GetClientByNetID(cxtEntity)->GetData("playerEntity"));
-						}
+							auto client = clientRegistry->GetClientByNetID(cxtEntity);
 
-						buffer.Write<int>(cxtEntity);
+							if (client)
+							{
+								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+							}
+						}
+						
+						fx::ScriptGuid* scriptGuid = g_scriptHandlePool->AtHandle(cxtEntity - 0x20000);
+
+						if (scriptGuid)
+						{
+							if (scriptGuid->type == fx::ScriptGuid::Type::Entity)
+							{
+								auto entity = gameState->GetEntity(cxtEntity);
+
+								if (entity)
+								{
+									entityHandle = entity->handle;
+
+									buffer.Write<int>(entityHandle);
+								}
+								else
+								{
+									return;
+								}
+							}
+							else if (scriptGuid->type == fx::ScriptGuid::Type::TempEntity)
+							{
+								auto it = g_entityCreationList.find(scriptGuid->tempEntity.creationToken);
+
+								if (it != g_entityCreationList.end())
+								{
+									buffer.Write<uint32_t>(scriptGuid->tempEntity.creationToken | 0x80000000);
+								}
+								else
+								{
+									return;
+								}
+							}
+						}
+						else
+						{
+							return;
+						}
 
 						break;
 					}
 					case RpcConfiguration::ArgumentType::Player:
 					case RpcConfiguration::ArgumentType::Int:
+					case RpcConfiguration::ArgumentType::Hash:
 						buffer.Write<int>(ctx.GetArgument<int>(i));
 						break;
 					case RpcConfiguration::ArgumentType::Float:
@@ -143,6 +252,24 @@ static InitFunction initFunction([]()
 				else
 				{
 					sendToClient(clientRegistry->GetClientByNetID(clientIdx));
+				}
+
+				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
+				{
+					EntityCreationState state;
+					state.creationToken = creationToken;
+
+					auto guid = g_scriptHandlePool->New();
+					guid->type = fx::ScriptGuid::Type::TempEntity;
+					guid->tempEntity.creationToken = creationToken;
+
+					state.clientIdx = clientIdx;
+					state.scriptGuid = guid;
+
+					auto scrHdl = g_scriptHandlePool->GetIndex(guid) + 0x20000;
+					g_entityCreationList.insert({ creationToken, state });
+
+					ctx.SetResult(scrHdl);
 				}
 			});
 		}

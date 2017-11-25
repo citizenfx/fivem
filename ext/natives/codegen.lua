@@ -145,10 +145,10 @@ local function isPrimitive(type)
 		type.name == 'vector3' or type.name == 'BOOL'
 end
 
-function rpcEnvironment.context_rpc(nativeName)
+local function getNative(nativeName)
 	-- get the native
 	local n
-
+	
 	for k, v in ipairs(natives) do
 		if v.name == nativeName and (#v.apiset == 0 or v.apiset[1] == 'client') then
 			n = v
@@ -156,7 +156,13 @@ function rpcEnvironment.context_rpc(nativeName)
 		end
 	end
 
-	if not n then 
+	return n
+end
+
+function rpcEnvironment.context_rpc(nativeName)
+	local n = getNative(nativeName)
+
+	if not n then
 		return
 	end
 
@@ -220,6 +226,68 @@ function rpcEnvironment.context_rpc(nativeName)
 
 	rn.hash = n.hash
 	rn.name = nativeName
+
+	rn.type = 'ctx'
+
+	table.insert(rpcNatives, rn)
+end
+
+function rpcEnvironment.entity_rpc(nativeName)
+	local n = getNative(nativeName)
+
+	if not n then
+		return
+	end
+
+	if not n.returns then
+		error('Entity natives are required to return an entity.')
+	end
+
+	if not isType(n.returns, 'Entity') then
+		error('Entity natives are required to return an entity.')
+	end
+
+	local rn = {}
+
+	-- generate native arguments
+	local args = {}
+
+	for k, v in ipairs(n.arguments) do
+		-- is this an entity?
+		if isType(v.type, 'Entity') then
+			table.insert(args, {
+				translate = true,
+				type = 'Entity'
+			})
+		elseif v.type.name == 'Player' then
+			table.insert(args, {
+				translate = true,
+				type = 'Player'
+			})
+		elseif not isPrimitive(v.type) then
+			error(('Type %s is not supported for RPC natives.'):format(v.type.name))
+		else
+			table.insert(args, {
+				type = v.type.name
+			})
+		end
+	end
+
+	rn.args = args
+	
+	codeEnvironment.native(nativeName)
+		codeEnvironment.arguments(n.arguments)
+		codeEnvironment.apiset('server')
+		codeEnvironment.returns('void')
+
+		if n.doc then
+			codeEnvironment.doc(n.doc)
+		end
+
+	rn.hash = n.hash
+	rn.name = nativeName
+
+	rn.type = 'entity'
 
 	table.insert(rpcNatives, rn)
 end
