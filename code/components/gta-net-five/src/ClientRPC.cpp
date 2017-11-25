@@ -12,6 +12,8 @@
 
 #include <NetworkPlayerMgr.h>
 
+#include <Hooking.h>
+
 static inline int GetServerId(const ScPlayerData* platformData)
 {
 	return (platformData->addr.ipLan & 0xFFFF) ^ 0xFEED;
@@ -27,27 +29,49 @@ static std::shared_ptr<RpcConfiguration> g_rpcConfiguration;
 
 class RpcNextTickQueue : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
+private:
+	struct QueuedEvent
+	{
+		std::function<void()> fn;
+		std::function<bool()> cond;
+	};
+
 public:
 	virtual void AttachToObject(fx::Resource* resource) override
 	{
 		resource->OnTick.Connect([=]()
 		{
-			std::function<void()> fn;
+			QueuedEvent entry;
+			std::queue<QueuedEvent> pushQueue;
 
-			while (m_queue.try_pop(fn))
+			while (m_queue.try_pop(entry))
 			{
-				fn();
+				if (entry.cond && !entry.cond())
+				{
+					pushQueue.push(std::move(entry));
+					continue;
+				}
+
+				entry.fn();
+			}
+
+			while (!pushQueue.empty())
+			{
+				auto& entry = pushQueue.front();
+				m_queue.push(std::move(entry));
+
+				pushQueue.pop();
 			}
 		});
 	}
 
-	void Enqueue(const std::function<void()>& fn)
+	void Enqueue(const std::function<void()>& fn, const std::function<bool()>& condition = {})
 	{
-		m_queue.push(fn);
+		m_queue.push({ fn, condition });
 	}
 
 private:
-	concurrency::concurrent_queue<std::function<void()>> m_queue;
+	concurrency::concurrent_queue<QueuedEvent> m_queue;
 };
 
 class DummyScriptEnvironment : public fx::OMClass<DummyScriptEnvironment, IScriptRuntime>
@@ -90,6 +114,18 @@ DECLARE_INSTANCE_TYPE(RpcNextTickQueue);
 
 int ObjectToEntity(int objectId);
 
+static std::map<int, int> g_creationTokenToObjectId;
+
+static hook::cdecl_stub<void*(int handle)> getScriptEntity([]()
+{
+	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
+});
+
+static hook::cdecl_stub<int()> getPlayerId([]()
+{
+	return hook::get_pattern("0F B6 40 2D EB 02 33 C0 48", -0x19);
+});
+
 static InitFunction initFunction([]()
 {
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
@@ -116,10 +152,10 @@ static InitFunction initFunction([]()
 
 				g_netLibrary->AddReliableHandler("msgRpcNative", [](const char* data, size_t len)
 				{
-					net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
+					std::shared_ptr<net::Buffer> buf = std::make_shared<net::Buffer>(reinterpret_cast<const uint8_t*>(data), len);
 
-					auto nativeHash = buf.Read<uint64_t>();
-					auto resourceHash = buf.Read<uint32_t>();
+					auto nativeHash = buf->Read<uint64_t>();
+					auto resourceHash = buf->Read<uint32_t>();
 
 					// TODO: FIXME: optimize this, it's O(n)
 					fx::Resource* resource = nullptr;
@@ -149,70 +185,195 @@ static InitFunction initFunction([]()
 						return;
 					}
 
-					auto executionCtx = std::make_shared<fx::ScriptContext>();
+					uint16_t creationToken;
 
-					int i = 0;
-
-					for (auto& argument : native->GetArguments())
+					if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 					{
-						switch (argument.GetType())
-						{
-						case RpcConfiguration::ArgumentType::Player:
-						{
-							int id = buf.Read<int>();
-
-							for (int i = 0; i < 32; i++)
-							{
-								CNetGamePlayer* player = CNetworkPlayerMgr::GetPlayer(i);
-
-								if (player)
-								{
-									auto platformData = player->GetPlatformPlayerData();
-
-									if (GetServerId(platformData) == id)
-									{
-										executionCtx->Push(i);
-										break;
-									}
-								}
-							}
-
-							break;
-						}
-						case RpcConfiguration::ArgumentType::Entity:
-						{
-							int entity = buf.Read<int>();
-
-							executionCtx->Push(ObjectToEntity(entity));
-
-							break;
-						}
-						case RpcConfiguration::ArgumentType::Int:
-							executionCtx->Push(buf.Read<int>());
-							break;
-						case RpcConfiguration::ArgumentType::Float:
-							executionCtx->Push(buf.Read<float>());
-							break;
-						case RpcConfiguration::ArgumentType::Bool:
-							executionCtx->Push(buf.Read<uint8_t>());
-							break;
-						case RpcConfiguration::ArgumentType::String:
-						{
-							// TODO: actually store a string
-							executionCtx->Push((const char*)"");
-							break;
-						}
-						}
-
-						++i;
+						creationToken = buf->Read<uint16_t>();
 					}
+
+					auto startPosition = buf->GetCurOffset();
 
 					if (resource)
 					{
+						// gather conditions
 						auto ntq = resource->GetComponent<RpcNextTickQueue>();
 
+						int i = 0;
+
+						std::vector<std::function<void()>> afterCallbacks;
+						std::vector<std::function<bool()>> conditions;
+
+						for (auto& argument : native->GetArguments())
+						{
+							switch (argument.GetType())
+							{
+							case RpcConfiguration::ArgumentType::Player:
+							{
+								buf->Read<int>();
+								break;
+							}
+							case RpcConfiguration::ArgumentType::Entity:
+							{
+								uint32_t entity = buf->Read<uint32_t>();
+
+								if (entity & 0x80000000)
+								{
+									conditions.push_back([=]()
+									{
+										return g_creationTokenToObjectId.find(entity & 0x7FFFFFFF) != g_creationTokenToObjectId.end();
+									});
+								}
+
+								break;
+							}
+							case RpcConfiguration::ArgumentType::Int:
+								buf->Read<int>();
+								break;
+							case RpcConfiguration::ArgumentType::Hash:
+							{
+								uint32_t hash = buf->Read<int>();
+
+								if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
+								{
+									ntq->Enqueue([=]()
+									{
+										const uint64_t REQUEST_MODEL_GTA5 = 0x963D27A58DF860AC;
+
+										fx::ScriptContext reqCtx;
+										reqCtx.Push(hash);
+
+										(*fx::ScriptEngine::GetNativeHandler(REQUEST_MODEL_GTA5))(reqCtx);
+									});
+
+									conditions.push_back([=]()
+									{
+										const uint64_t HAS_MODEL_LOADED_GTA5 = 0x98A4EB5D89A0C952;
+
+										fx::ScriptContext loadedCtx;
+										loadedCtx.Push(hash);
+
+										(*fx::ScriptEngine::GetNativeHandler(HAS_MODEL_LOADED_GTA5))(loadedCtx);
+
+										return loadedCtx.GetResult<bool>();
+									});
+
+									afterCallbacks.push_back([=]()
+									{
+										const uint64_t SET_MODEL_AS_NO_LONGER_NEEDED_GTA5 = 0xE532F5D78798DAAB;
+
+										fx::ScriptContext releaseCtx;
+										releaseCtx.Push(hash);
+
+										(*fx::ScriptEngine::GetNativeHandler(SET_MODEL_AS_NO_LONGER_NEEDED_GTA5))(releaseCtx);
+									});
+								}
+
+								break;
+							}
+							case RpcConfiguration::ArgumentType::Float:
+								buf->Read<float>();
+								break;
+							case RpcConfiguration::ArgumentType::Bool:
+								buf->Read<uint8_t>();
+								break;
+							case RpcConfiguration::ArgumentType::String:
+							{
+								// TODO: actually store a string
+								break;
+							}
+							}
+
+							++i;
+						}
+
+						std::function<bool()> conditionFunc;
+							
+						if (!conditions.empty())
+						{
+							conditionFunc = [=]()
+							{
+								for (auto& condition : conditions)
+								{
+									if (!condition())
+									{
+										return false;
+									}
+								}
+
+								return true;
+							};
+						}
+
+						// execute native
 						ntq->Enqueue([=]()
 						{
+							buf->Seek(startPosition);
+
+							auto executionCtx = std::make_shared<fx::ScriptContext>();
+
+							int i = 0;
+
+							for (auto& argument : native->GetArguments())
+							{
+								switch (argument.GetType())
+								{
+								case RpcConfiguration::ArgumentType::Player:
+								{
+									int id = buf->Read<int>();
+
+									for (int i = 0; i < 32; i++)
+									{
+										CNetGamePlayer* player = CNetworkPlayerMgr::GetPlayer(i);
+
+										if (player)
+										{
+											auto platformData = player->GetPlatformPlayerData();
+
+											if (GetServerId(platformData) == id)
+											{
+												executionCtx->Push(i);
+												break;
+											}
+										}
+									}
+
+									break;
+								}
+								case RpcConfiguration::ArgumentType::Entity:
+								{
+									uint32_t entity = buf->Read<uint32_t>();
+
+									if (entity & 0x80000000)
+									{
+										entity = g_creationTokenToObjectId[entity & 0x7FFFFFFF];
+									}
+
+									executionCtx->Push(ObjectToEntity(entity));
+
+									break;
+								}
+								case RpcConfiguration::ArgumentType::Int:
+								case RpcConfiguration::ArgumentType::Hash:
+									executionCtx->Push(buf->Read<int>());
+									break;
+								case RpcConfiguration::ArgumentType::Float:
+									executionCtx->Push(buf->Read<float>());
+									break;
+								case RpcConfiguration::ArgumentType::Bool:
+									executionCtx->Push(buf->Read<uint8_t>());
+									break;
+								case RpcConfiguration::ArgumentType::String:
+								{
+									// TODO: actually store a string
+									executionCtx->Push((const char*)"");
+									break;
+								}
+								}
+
+								++i;
+							}
+
 							g_se.SetParentObject(resource);
 
 							fx::PushEnvironment pushed(&g_se);
@@ -221,8 +382,40 @@ static InitFunction initFunction([]()
 							if (n)
 							{
 								(*n)(*executionCtx);
+
+								if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
+								{
+									int entityIdx = executionCtx->GetResult<int>();
+
+									auto entity = (char*)getScriptEntity(entityIdx);
+
+									if (entity)
+									{
+										auto object = *(char**)(entity + 208);
+
+										if (object)
+										{
+											net::Buffer netBuffer;
+
+											auto obj = *(uint16_t*)(object + 10);
+
+											netBuffer.Write<uint16_t>(creationToken);
+											netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
+											netBuffer.Write<uint16_t>(obj); // object ID (short)
+
+											g_creationTokenToObjectId[creationToken] = ((getPlayerId() + 1) << 16) | obj;
+
+											g_netLibrary->SendReliableCommand("msgEntityCreate", (const char*)netBuffer.GetData().data(), netBuffer.GetCurOffset());
+										}
+									}
+								}
+
+								for (auto& cb : afterCallbacks)
+								{
+									cb();
+								}
 							}
-						});
+						}, conditionFunc);
 					}
 				});
 

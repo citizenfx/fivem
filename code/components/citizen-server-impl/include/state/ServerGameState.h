@@ -2,7 +2,14 @@
 
 #include <Client.h>
 
+#include <state/Pool.h>
+
 #include <variant>
+
+namespace fx
+{
+struct ScriptGuid;
+}
 
 namespace fx::sync
 {
@@ -66,11 +73,39 @@ struct SyncEntityState
 			trace("calc'd pos! %.2f %.2f %.2f\n", GetData<float>("posX", 0.0f), GetData<float>("posY", 0.0f), GetData<float>("posZ", 0.0f));
 		}
 	}
+
+	ScriptGuid* guid;
+	uint32_t handle;
+
+	~SyncEntityState();
 };
 }
 
 namespace fx
 {
+struct ScriptGuid
+{
+	enum class Type
+	{
+		Entity,
+		TempEntity
+	};
+
+	Type type;
+	union
+	{
+		struct
+		{
+			uint32_t handle;
+		} entity;
+
+		struct
+		{
+			uint32_t creationToken;
+		} tempEntity;
+	};
+};
+
 class ServerGameState : public fwRefCountable
 {
 public:
@@ -97,3 +132,5 @@ private:
 }
 
 DECLARE_INSTANCE_TYPE(fx::ServerGameState);
+
+extern CPool<fx::ScriptGuid>* g_scriptHandlePool;

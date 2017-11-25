@@ -9,6 +9,10 @@
 
 #include <lz4.h>
 
+#include <state/Pool.h>
+
+CPool<fx::ScriptGuid>* g_scriptHandlePool;
+
 namespace fx
 {
 inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
@@ -16,13 +20,38 @@ inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
 	return ((playerId + 1) << 16) | objectId;
 }
 
-std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
+static uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr)
 {
-	return GetEntity(MakeEntityHandle(playerId, objectId));
+	if (!ptr->guid)
+	{
+		// find an existing handle (transformed TempEntity?)
+		for (int i = 0; i < g_scriptHandlePool->m_Size; i++)
+		{
+			auto hdl = g_scriptHandlePool->GetAt(i);
+
+			if (hdl && hdl->type == ScriptGuid::Type::Entity && hdl->entity.handle == ptr->handle)
+			{
+				ptr->guid = hdl;
+			}
+		}
+
+		if (!ptr->guid)
+		{
+			auto guid = g_scriptHandlePool->New();
+			guid->type = ScriptGuid::Type::Entity;
+			guid->entity.handle = ptr->handle;
+
+			ptr->guid = guid;
+		}
+	}
+
+	return g_scriptHandlePool->GetIndex(ptr->guid) + 0x20000;
 }
 
-std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t handle)
+std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
+	auto handle = MakeEntityHandle(playerId, objectId);
+
 	auto it = m_entities.find(handle);
 
 	if (it != m_entities.end())
@@ -31,6 +60,41 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t handl
 	}
 
 	return {};
+}
+
+std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
+{
+	// subtract the minimum index GUID
+	guid -= 0x20000;
+
+	// get the pool entry
+	auto guidData = g_scriptHandlePool->AtHandle(guid);
+
+	if (guidData)
+	{
+		if (guidData->type == ScriptGuid::Type::Entity)
+		{
+			auto it = m_entities.find(guidData->entity.handle);
+
+			if (it != m_entities.end())
+			{
+				return it->second;
+			}
+		}
+	}
+
+	return {};
+}
+
+namespace sync
+{
+	SyncEntityState::~SyncEntityState()
+	{
+		if (guid)
+		{
+			g_scriptHandlePool->Delete(guid);
+		}
+	}
 }
 
 void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, net::Buffer& inPacket, net::Buffer& ackPacket)
@@ -76,6 +140,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		entity = std::make_shared<sync::SyncEntityState>();
 		entity->client = client;
 		entity->type = objectType;
+		entity->guid = nullptr;
+		entity->handle = MakeEntityHandle(playerId, objectId);
 
 		m_entities[MakeEntityHandle(playerId, objectId)] = entity;
 	}
@@ -122,7 +188,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 			if (parsingType == 1)
 			{
-				client->SetData("playerEntity", MakeEntityHandle(playerId, objectId));
+				client->SetData("playerEntity", MakeScriptHandle(entity));
 				client->SetData("playerId", playerId);
 			}
 			break;
@@ -216,6 +282,8 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 
 static InitFunction initFunction([]()
 {
+	g_scriptHandlePool = new CPool<fx::ScriptGuid>(1500, "fx::ScriptGuid");
+
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
 	{
 		return [=](fx::ScriptContext& context)
@@ -271,6 +339,11 @@ static InitFunction initFunction([]()
 
 		return resultVec;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HASH_KEY", [](fx::ScriptContext& context)
+	{
+		context.SetResult(HashString(context.GetArgument<const char*>(0)));
+	});
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{

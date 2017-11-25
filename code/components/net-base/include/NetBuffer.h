@@ -80,6 +80,7 @@ public:
 	inline size_t GetLength() const { return m_bytes->size(); }
 	inline size_t GetCurOffset() const { return m_curOff; }
 	inline size_t GetRemainingBytes() const { return GetLength() - GetCurOffset(); }
+	inline void Seek(size_t position) { if (position <= GetLength()) { m_curOff = position; } }
 
 	inline const std::vector<uint8_t>& GetData() const { return *m_bytes; }
 };
