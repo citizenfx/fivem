@@ -58,7 +58,6 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    - feature/cloning-stuff
   tags:
     - linux
 
