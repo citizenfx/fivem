@@ -75,12 +75,12 @@
 
 		span.sortedAscending::after {
 			opacity: 1;
-			transform: rotate(180deg);
 		}
 
 		span.sortedDescending::after
 		{
 			opacity: 1;
+			transform: rotate(180deg);
 			transition: all .2s ease;
 		}
 	}
