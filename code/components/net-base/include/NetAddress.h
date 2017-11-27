@@ -122,5 +122,10 @@ public:
 	{
 		return !(*this == right);
 	}
+
+	inline bool operator<(const PeerAddress& right) const
+	{
+		return memcmp(&this->m_addr, &right.m_addr, GetSocketAddressLength()) < 0;
+	}
 };
 }
