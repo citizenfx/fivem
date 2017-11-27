@@ -49,6 +49,12 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
                     .then(() => this.lastAddr = this.addr)
                     .then(() => this.onFetchCB = null);
             });
+
+        const lastServer = localStorage.getItem('lastServer');
+
+        if (lastServer) {
+            this.addrChanged(lastServer);
+        }
     }
 
     tryConnect() {

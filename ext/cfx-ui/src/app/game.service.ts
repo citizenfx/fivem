@@ -279,6 +279,7 @@ export class CfxGameService extends GameService {
 
 		this.inConnecting = true;
 
+		localStorage.setItem('lastServer', server.address);
 		this.lastServer = server;
 
 		(<any>window).invokeNative('connectTo', server.address);
