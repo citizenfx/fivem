@@ -278,8 +278,6 @@ void GSClient_QueryStep()
 		{
 			if (count < 100)
 			{
-				trace("querying %s (%d prio)\n", serverPair.second->m_Address.ToString(), std::get<0>(serverPair.first));
-
 				GSClient_QueryServer(*serverPair.second);
 				count++;
 			}
