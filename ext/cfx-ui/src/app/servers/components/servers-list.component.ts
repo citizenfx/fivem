@@ -27,8 +27,15 @@ export class ServersListComponent implements OnInit, OnChanges {
 
     sortOrder: string[];
 
-    get columns(): ServersListHeadingColumn[] {
-        return [
+    columns: ServersListHeadingColumn[];
+
+    localServers: Server[];
+    sortedServers: Server[];
+
+    constructor() {
+        this.servers = [];
+
+        this.columns = [
             {
                 column: 'icon',
                 label: ''
@@ -53,13 +60,6 @@ export class ServersListComponent implements OnInit, OnChanges {
                 sortable: true
             }
         ];
-    }
-
-    localServers: Server[];
-    sortedServers: Server[];
-
-    constructor() {
-        this.servers = [];
 
         const storedOrder = localStorage.getItem('sortOrder');
 
@@ -69,9 +69,18 @@ export class ServersListComponent implements OnInit, OnChanges {
             this.sortOrder = environment.web ? ['players', '-'] : ['ping', '+'];
         }
 
-        this.changeObservable.throttleTime(1000).subscribe(() => {
-            this.sortAndFilterServers();
+        let changed = false;
+
+        this.changeObservable.subscribe(() => {
+            changed = true;
         });
+
+        setInterval(() => {
+            if (changed) {
+                changed = false;
+                this.sortAndFilterServers();
+            }
+        }, 250);
     }
 
     isPinned(server: Server) {
@@ -197,46 +206,48 @@ export class ServersListComponent implements OnInit, OnChanges {
     sortAndFilterServers() {
         const servers = (this.servers || []).concat().filter(this.getFilter(this.filters));
 
-        servers.sort((a, b) => {
-            const sortChain = (...stack: ((a: Server, b: Server) => number)[]) => {
-                for (const entry of stack) {
-                    const retval = entry(a, b);
+        const sortChain = (a: Server, b: Server, ...stack: ((a: Server, b: Server) => number)[]) => {
+            for (const entry of stack) {
+                const retval = entry(a, b);
 
-                    if (retval != 0) {
-                        return retval;
-                    }
+                if (retval !== 0) {
+                    return retval;
+                }
+            }
+
+            return 0;
+        };
+
+        const sortSortable = (sortable: string[]) => {
+            const name = sortable[0];
+            const invert = (sortable[1] === '-');
+
+            const sort = (a: Server, b: Server) => {
+                const val1 = a.getSortable(name);
+                const val2 = b.getSortable(name);
+
+                if (val1 > val2) {
+                    return 1;
+                }
+
+                if (val1 < val2) {
+                    return -1;
                 }
 
                 return 0;
             };
 
-            const sortSortable = (sortable: string[]) => {
-                const name = sortable[0];
-                const invert = (sortable[1] == '-');
+            if (invert) {
+                return (a: Server, b: Server) => -(sort(a, b));
+            } else {
+                return sort;
+            }
+        };
 
-                const sort = (a: Server, b: Server) => {
-                    const val1 = a.getSortable(name);
-                    const val2 = b.getSortable(name);
-
-                    if (val1 > val2) {
-                        return 1;
-                    }
-
-                    if (val1 < val2) {
-                        return -1;
-                    }
-
-                    return 0;
-                };
-
-                if (invert) {
-                    return (a: Server, b: Server) => -(sort(a, b));
-                } else {
-                    return sort;
-                }
-            };
-
+        servers.sort((a, b) => {
             return sortChain(
+                a,
+                b,
                 (a: Server, b: Server) => {
                     const aPinned = this.isPinned(a);
                     const bPinned = this.isPinned(b);
@@ -285,7 +296,7 @@ export class ServersListComponent implements OnInit, OnChanges {
             }
         }
 
-        this.sortAndFilterServers();
+        //this.sortAndFilterServers();
         this.changeSubject.next();
     }
 }

@@ -38,13 +38,19 @@ export class ServersContainerComponent implements OnInit {
             .filter(a => this.gameService.isMatchingServer(this.type, a));
 
         // add each new server to our server list
-        typedServers.subscribe(server => this.servers[server.address] = server);
+        typedServers.subscribe(server => {
+            if (!this.servers[server.address]) {
+                this.serversArray.push(server);
+                this.serversArray = this.serversArray.slice();
+            }
 
-        typedServers.subscribe(() => this.serversArray = Object.entries(this.servers).map(([addr, server]) => server));
+            this.servers[server.address] = server;
+        });
 
         // ping new servers after a while
         typedServers
-            .subscribe(server => this.gameService.pingServers([server]));
+            .bufferTime(100, null, 250)
+            .subscribe(servers => (servers.length > 0) ? this.gameService.pingServers(servers) : null);
     }
 
     serversArray: Server[] = [];

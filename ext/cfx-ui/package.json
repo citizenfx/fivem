@@ -33,6 +33,7 @@
     "js-md5": "0.7.2",
     "protobufjs": "^6.8.0",
     "rxjs": "^5.5.2",
+    "ts-loader": "^3.1.1",
     "zone.js": "^0.8.18"
   },
   "devDependencies": {

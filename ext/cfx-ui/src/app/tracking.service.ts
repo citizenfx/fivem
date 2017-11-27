@@ -10,6 +10,10 @@ import {Angulartics2Piwik} from 'angulartics2/piwik';
 export class TrackingService {
 	constructor(private gameService: GameService, private angulartics: Angulartics2, private piwik: Angulartics2Piwik) {
 		this.gameService.connecting.subscribe((event: Server) => {
+			if (!event) {
+				return;
+			}
+
 			this.angulartics.eventTrack.next({
 				action: 'Connecting',
 				properties: {
@@ -28,6 +32,10 @@ export class TrackingService {
 		});
 
 		this.gameService.connectFailed.subscribe(([server, message]) => {
+			if (!server) {
+				return;
+			}
+
 			this.angulartics.eventTrack.next({
 				action: 'ConnectFail',
 				properties: {
