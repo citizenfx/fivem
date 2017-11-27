@@ -211,7 +211,7 @@ export class CfxGameService extends GameService {
 				}
 
 				this.pingListEvents = [];
-			}, 1500);
+			}, 250);
 		});
 
 		this.history = JSON.parse(localStorage.getItem('history')) || [];
@@ -294,7 +294,7 @@ export class CfxGameService extends GameService {
 		}
 
 		(<any>window).invokeNative('pingServers', JSON.stringify(
-			servers.map(a => [a.address.split(':')[0], parseInt(a.address.split(':')[1])])
+			servers.map(a => [a.address.split(':')[0], parseInt(a.address.split(':')[1]), a.currentPlayers])
 		));
 
 		return servers;

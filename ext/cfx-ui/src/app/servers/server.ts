@@ -88,9 +88,13 @@ export class Server {
         this.data = object;
         this.int = object;
 
-        const svg = Avatar.getFor(this.address);
+        if (!object.iconVersion) {
+            const svg = Avatar.getFor(this.address);
 
-        this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+            this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+        } else {
+            this.iconUri = `https://runtime.fivem.net/servers/icon/${address}/${object.iconVersion}.png`;
+        }
     }
 }
 

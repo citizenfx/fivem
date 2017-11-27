@@ -7,6 +7,10 @@ import { ServerFilters } from './server-filter.component';
 
 import { GameService } from '../../game.service';
 
+import { Observable } from 'rxjs/observable';
+
+import 'rxjs/add/operator/bufferTime';
+
 @Component({
     moduleId: module.id,
     selector: 'servers-container',
@@ -14,7 +18,8 @@ import { GameService } from '../../game.service';
     styleUrls: ['servers-container.component.scss']
 })
 export class ServersContainerComponent implements OnInit {
-    servers: Server[];
+    servers: { [addr: string]: Server } = {};
+    
     localServers: Server[]; // temp value
     icons: ServerIcon[];
 
@@ -27,7 +32,22 @@ export class ServersContainerComponent implements OnInit {
     constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute) {
         this.filters = new ServerFilters();
         this.pinConfig = new PinConfig();
+
+        const typedServers = this.serverService
+            .getServers()
+            .filter(a => this.gameService.isMatchingServer(this.type, a));
+
+        // add each new server to our server list
+        typedServers.subscribe(server => this.servers[server.address] = server);
+
+        typedServers.subscribe(() => this.serversArray = Object.entries(this.servers).map(([addr, server]) => server));
+
+        // ping new servers after a while
+        typedServers
+            .subscribe(server => this.gameService.pingServers([server]));
     }
+
+    serversArray: Server[] = [];
 
     ngOnInit() {
         this.type = this.route.snapshot.data.type;
@@ -39,28 +59,10 @@ export class ServersContainerComponent implements OnInit {
         this.filters = {...filters};
     }
 
-    filterType(list: Server[]) {
-        return list.filter(a => this.gameService.isMatchingServer(this.type, a));
-    }
-
     loadServers() {
-        this.serverService
-            .getServers()
-            .then(list => this.filterType(list))
-            .then(list => this.servers = list)
-            .then(list => this.gameService.pingServers(list))
-            .then(list => this.serverService.getIcons(list))
-            .then(list => this.icons = list)
-            .then(list => {
-                for (const entry of list) {
-                    const server = this.servers.find(a => a.address == entry.addr)
-                    
-                    if (server) {
-                        server.iconUri = entry.icon;
-                    }
-                }
-            })
-            .then(() => this.serverService.loadPinConfig())
+        this.serverService.loadPinConfig()
             .then(pinConfig => this.pinConfig = pinConfig);
+
+        this.serverService.refreshServers();
     }
 }
