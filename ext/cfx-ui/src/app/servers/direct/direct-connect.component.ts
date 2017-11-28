@@ -90,6 +90,7 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
             addrBits[1] = parseInt(match[2], 10);
         }
 
+		localStorage.setItem('directLast', this.addr);
         this.addrEvent.next(addrBits);
     }
 
@@ -97,7 +98,10 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
         this.gameService.connectTo(this.server);
     }
 
-    ngOnInit() { }
+    ngOnInit() {
+		this.addr = localStorage.getItem('directLast');
+		this.addrChanged(localStorage.getItem('directLast'));
+	}
 
     ngAfterViewInit() {
         this.inputBox.first.nativeElement.focus();
