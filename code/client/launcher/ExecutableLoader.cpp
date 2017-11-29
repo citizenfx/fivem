@@ -183,8 +183,16 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 			{
 				trace("Replacing function table list entry %p with %p\n", (void*)functionTable->FunctionTable, (void*)functionList);
 
-				functionTable->EntryCount = entryCount;
-				functionTable->FunctionTable = functionList;
+				if (functionTable->FunctionTable != functionList)
+				{
+					DWORD oldProtect;
+					VirtualProtect(functionTable, sizeof(DYNAMIC_FUNCTION_TABLE), PAGE_READWRITE, &oldProtect);
+
+					functionTable->EntryCount = entryCount;
+					functionTable->FunctionTable = functionList;
+
+					VirtualProtect(functionTable, sizeof(DYNAMIC_FUNCTION_TABLE), oldProtect, &oldProtect);
+				}
 			}
 
 			tableListEntry = functionTable->Links.Flink;
