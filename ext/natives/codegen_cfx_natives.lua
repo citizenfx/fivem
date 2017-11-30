@@ -1336,3 +1336,25 @@ native 'SHUTDOWN_LOADING_SCREEN_NUI'
 	Shuts down the `loadingScreen` NUI frame, similarly to `SHUTDOWN_LOADING_SCREEN`.
 	</summary>
 ]]
+
+native 'ADD_MINIMAP_OVERLAY'
+	arguments {
+		charPtr 'name'
+	}
+	apiset 'client'
+	returns 'int'
+
+native 'HAS_MINIMAP_OVERLAY_LOADED'
+	arguments {
+		int 'id'
+	}
+	apiset 'client'
+	returns 'BOOL'
+
+native 'CALL_MINIMAP_SCALEFORM_FUNCTION'
+	arguments {
+		int 'miniMap',
+		charPtr 'fnName'
+	}
+	apiset 'client'
+	returns 'BOOL'
