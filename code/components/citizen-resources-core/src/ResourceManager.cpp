@@ -121,15 +121,22 @@ void ResourceManagerImpl::ResetResources()
 	auto lastManager = g_currentManager;
 	g_currentManager = this;
 
+	auto cfxInternal = m_resources["_cfx_internal"];
+
 	ForAllResources([] (fwRefContainer<Resource> resource)
 	{
 		fwRefContainer<ResourceImpl> impl = resource;
 
-		impl->Stop();
-		impl->Destroy();
+		if (impl->GetName() != "_cfx_internal")
+		{
+			impl->Stop();
+			impl->Destroy();
+		}
 	});
 
 	m_resources.clear();
+
+	m_resources["_cfx_internal"] = cfxInternal;
 
 	g_currentManager = lastManager;
 }

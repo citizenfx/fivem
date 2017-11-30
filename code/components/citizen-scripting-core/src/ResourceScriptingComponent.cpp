@@ -115,6 +115,11 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnStop.Connect([=] ()
 	{
+		if (m_resource->GetName() == "_cfx_internal")
+		{
+			return;
+		}
+
 		for (auto& environment : CollectScriptRuntimes())
 		{
 			environment->Destroy();
