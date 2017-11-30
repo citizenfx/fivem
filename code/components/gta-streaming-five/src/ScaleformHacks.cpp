@@ -300,7 +300,7 @@ public:
 static GFxValue overlayRootClip;
 static void(*g_origSetupTerritories)();
 
-static GFxValue** g_foregroundOverlay3D;
+static GFxValue* g_foregroundOverlay3D;
 static uint32_t* g_gfxId;
 
 static void SetupTerritories()
@@ -309,7 +309,7 @@ static void SetupTerritories()
 
 	// 1103
 	//GFxValue* foregroundOverlay3D = (GFxValue*)0x141F93070;
-	(*g_foregroundOverlay3D)->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D");
+	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D");
 
 	//uint32_t gfxId = *(uint32_t*)0x141F8809C;
 	auto movie = _getScaleformMovie(*g_gfxId);
@@ -423,7 +423,7 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("74 3B E8 ? ? ? ? 33 C9 E8", 0x31);
 
-		g_foregroundOverlay3D = hook::get_address<decltype(g_foregroundOverlay3D)>(hook::get_call(location) + 0x1D);
+		g_foregroundOverlay3D = hook::get_address<decltype(g_foregroundOverlay3D)>(hook::get_call(location) + 0x1C);
 
 		hook::set_call(&g_origSetupTerritories, location);
 		hook::call(location, SetupTerritories);
