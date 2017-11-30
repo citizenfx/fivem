@@ -167,22 +167,12 @@ void TableGenerator::GenerateForComponent(void* regFunc, FunctionTable& table)
 }
 
 static bool g_needsMapping;
-static std::map<uint64_t, uint64_t> g_mappingTable;
+static std::unordered_map<uint64_t, uint64_t> g_mappingTable;
 
 namespace rage
 {
 	uint64_t MapNative(uint64_t inNative)
 	{
-		if (!g_needsMapping)
-		{
-			return inNative;
-		}
-
-		if (g_mappingTable.size() == 0)
-		{
-			FatalError("Attempted to call a game native function, but no mapping tables were generated and this game executable needs mapping!");
-		}
-
 		// find the native, and return the original if not mapped (for custom natives and 'new' natives)
 		auto it = g_mappingTable.find(inNative);
 
