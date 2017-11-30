@@ -21,4 +21,6 @@ namespace sf
 	bool GTA_STREAMING_EXPORT HasMinimapLoaded(int swfId);
 
 	bool GTA_STREAMING_EXPORT CallMinimapOverlay(int minimap, const std::string& functionName);
+
+	void GTA_STREAMING_EXPORT SetMinimapOverlayDisplay(int minimap, float x, float y, float xScale, float yScale, float alpha);
 }

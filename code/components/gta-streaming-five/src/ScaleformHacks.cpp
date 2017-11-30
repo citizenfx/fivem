@@ -377,6 +377,24 @@ namespace sf
 
 		return false;
 	}
+
+	void SetMinimapOverlayDisplay(int minimap, float x, float y, float xScale, float yScale, float alpha)
+	{
+		auto& clip = g_overlayClips[minimap];
+
+		if (clip)
+		{
+			GFxDisplayInfo dispInfo;
+			dispInfo.VarsSet = 0x1 | 0x2 | 0x8 | 0x10 | 0x20; // x, y, xscale, yscale, alpha
+			dispInfo.X = x;
+			dispInfo.Y = y;
+			dispInfo.XScale = xScale;
+			dispInfo.YScale = yScale;
+			dispInfo.Alpha = alpha;
+
+			clip->SetDisplayInfo(dispInfo);
+		}
+	}
 }
 
 static HookFunction hookFunction([]()

@@ -1343,6 +1343,13 @@ native 'ADD_MINIMAP_OVERLAY'
 	}
 	apiset 'client'
 	returns 'int'
+	doc [[
+	<summary>
+	Loads a minimap overlay from a GFx file in the current resource.
+	</summary>
+	<param name="name">The path to a `.gfx` file in the current resource. It has to be specified as a `file`.</param>
+	<returns>A minimap overlay ID.</returns>
+]]
 
 native 'HAS_MINIMAP_OVERLAY_LOADED'
 	arguments {
@@ -1350,6 +1357,13 @@ native 'HAS_MINIMAP_OVERLAY_LOADED'
 	}
 	apiset 'client'
 	returns 'BOOL'
+	doc [[
+	<summary>
+	Returns whether or not the specific minimap overlay has loaded.
+	</summary>
+	<param name="id">A minimap overlay ID.</param>
+	<returns>A boolean indicating load status.</returns>
+]]
 
 native 'CALL_MINIMAP_SCALEFORM_FUNCTION'
 	arguments {
@@ -1358,3 +1372,33 @@ native 'CALL_MINIMAP_SCALEFORM_FUNCTION'
 	}
 	apiset 'client'
 	returns 'BOOL'
+	doc [[
+	<summary>
+	This is similar to the PushScaleformMovieFunction natives, except it calls in the `TIMELINE` of a minimap overlay.
+	</summary>
+	<param name="miniMap">The minimap overlay ID.</param>
+	<param name="fnName">A function in the overlay's TIMELINE.</param>
+]]
+
+native 'SET_MINIMAP_OVERLAY_DISPLAY'
+	arguments {
+		int 'miniMap',
+		float 'x',
+		float 'y',
+		float 'xScale',
+		float 'yScale',
+		float 'alpha'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Sets the display info for a minimap overlay.
+	</summary>
+	<param name="miniMap">The minimap overlay ID.</param>
+	<param name="x">The X position for the overlay. This is equivalent to a game coordinate X.</param>
+	<param name="y">The Y position for the overlay. This is equivalent to a game coordinate Y, except that it's inverted (gfxY = -gameY).</param>
+	<param name="xScale">The X scale for the overlay. This is equivalent to the Flash _xscale property, therefore 100 = 100%.</param>
+	<param name="yScale">The Y scale for the overlay. This is equivalent to the Flash _yscale property.</param>
+	<param name="alpha">The alpha value for the overlay. This is equivalent to the Flash _alpha property, therefore 100 = 100%.</param>
+]]
