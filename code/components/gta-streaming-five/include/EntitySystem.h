@@ -92,15 +92,17 @@ public:
 	virtual fwEntity* CreateEntity() = 0;
 
 public:
-	char pad[36];
+	char pad[16];
+	uint32_t hash;
+	char pad2[16];
 	float radius;
 	float aabbMin[4];
 	float aabbMax[4];
 	uint32_t flags;
 
-	uint8_t pad2[12];
+	uint8_t pad3[12];
 	uint8_t assetType;
-	uint8_t pad3;
+	uint8_t pad4;
 
 	uint16_t assetIndex;
 };
@@ -228,3 +230,12 @@ private:
 	char m_pad[96 - 8];
 	Matrix4x4 m_transform;
 };
+
+struct PopulationCreationState
+{
+	float position[3];
+	uint32_t model;
+	bool allowed;
+};
+
+STREAMING_EXPORT extern fwEvent<PopulationCreationState*> OnCreatePopulationPed;

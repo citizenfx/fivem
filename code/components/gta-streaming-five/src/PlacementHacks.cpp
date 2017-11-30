@@ -122,7 +122,7 @@ static hook::cdecl_stub<void(fwArchetype*)> registerArchetype([]()
 	return hook::get_pattern("44 0F B7 41 66 48 8B D9 8A 49 60 80 F9", -6);
 });
 
-static fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
+fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
 {
 	__try
 	{
