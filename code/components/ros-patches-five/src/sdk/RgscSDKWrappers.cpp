@@ -111,7 +111,16 @@ public:
 	{
 		//LOG_CALL();
 
-		return m_baseRgsc->m_03();
+		static uint32_t lastAllowedScUpdate;
+
+		if ((GetTickCount() - lastAllowedScUpdate > 250))
+		{
+			lastAllowedScUpdate = GetTickCount();
+
+			return m_baseRgsc->m_03();
+		}
+
+		return nullptr;
 	}
 
 	virtual void* m_04() override
