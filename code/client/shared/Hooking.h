@@ -211,7 +211,13 @@ T iat(const char* moduleName, T function, TOrdinal ordinal)
 			if (iat_matches_ordinal(nameTableEntry, ordinal))
 			{
 				T origEntry = (T)*addressTableEntry;
+
+				DWORD oldProtect;
+				VirtualProtect(addressTableEntry, sizeof(T), PAGE_READWRITE, &oldProtect);
+
 				*addressTableEntry = (uintptr_t)function;
+
+				VirtualProtect(addressTableEntry, sizeof(T), oldProtect, &oldProtect);
 
 				return origEntry;
 			}

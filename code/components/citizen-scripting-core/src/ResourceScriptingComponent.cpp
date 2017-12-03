@@ -11,10 +11,18 @@
 #include "ResourceMetaDataComponent.h"
 #include "ResourceScriptingComponent.h"
 
+#ifndef IS_FXSERVER
+#include <ICoreGameInit.h>
+#endif
+
 #include <Error.h>
 
 namespace fx
 {
+static std::vector<std::function<void()>> g_onNetInitCbs;
+
+OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
+
 ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 	: m_resource(resource)
 {
@@ -96,7 +104,25 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
 		{
-			CreateEnvironments();
+			m_scriptHost = GetScriptHostForResource(m_resource);
+
+			auto loadScripts = [this]()
+			{
+				CreateEnvironments();
+			};
+
+#ifdef IS_FXSERVER
+			loadScripts();
+#else
+			if (Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+			{
+				loadScripts();
+			}
+			else
+			{
+				g_onNetInitCbs.push_back(loadScripts);
+			}
+#endif
 		}
 	});
 
@@ -130,12 +156,9 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 	});
 }
 
-OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
-
 void ResourceScriptingComponent::CreateEnvironments()
 {
-	m_scriptHost = GetScriptHostForResource(m_resource);
-	
+
 	for (auto& environment : CollectScriptRuntimes())
 	{
 		auto hr = environment->Create(m_scriptHost.GetRef());
@@ -159,7 +182,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 			"client_script"
 #endif
 		);
-		
+
 		if (FX_SUCCEEDED(environment.As(&ptr)))
 		{
 			bool environmentUsed = false;
@@ -217,10 +240,31 @@ void ResourceScriptingComponent::CreateEnvironments()
 }
 }
 
-static InitFunction initFunction([] ()
+static InitFunction initFunction([]()
 {
-	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 	{
 		resource->SetComponent<fx::ResourceScriptingComponent>(new fx::ResourceScriptingComponent(resource));
 	});
+});
+
+#ifndef IS_FXSERVER
+// HORRIBLE HACK
+
+#include <Hooking.h>
+static HookFunction hookFunction([] ()
+{
+	Instance<ICoreGameInit>::Get()->OnSetVariable.Connect([=](const std::string& variable, bool result)
+	{
+		if (result && variable == "networkInited")
+		{
+			for (auto& cb : fx::g_onNetInitCbs)
+			{
+				cb();
+			}
+
+			fx::g_onNetInitCbs.clear();
+		}
+	});
+#endif
 });
