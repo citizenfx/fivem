@@ -1465,6 +1465,29 @@ static BOOL __stdcall EP_HttpQueryInfoW(HANDLE internet, DWORD infoLevel, LPVOID
 	return g_oldHttpQueryInfoW(internet, infoLevel, buffer, bufferLength, index);
 }
 
+static HANDLE __stdcall CreateFileAStub(
+	_In_     LPCSTR               lpFileName,
+	_In_     DWORD                 dwDesiredAccess,
+	_In_     DWORD                 dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_     DWORD                 dwCreationDisposition,
+	_In_     DWORD                 dwFlagsAndAttributes,
+	_In_opt_ HANDLE                hTemplateFile)
+{
+	if (strcmp(lpFileName, "\\\\.\\pipe\\GTAVLauncher_Pipe") == 0)
+	{
+		trace("Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
+
+		WaitNamedPipe(L"\\\\.\\pipe\\GTAVLauncher_Pipe", INFINITE);
+
+		WaitForLauncher();
+
+		trace("Launcher is fine, continuing!\n");
+	}
+
+	return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
 static InitFunction initFunction([] ()
 {
 	g_manager = new LoopbackTcpServerManager();
@@ -1533,6 +1556,8 @@ static InitFunction hookFunction([] ()
 
 	DO_HOOK(L"wininet.dll", "HttpQueryInfoW", EP_HttpQueryInfoW, g_oldHttpQueryInfoW);
 	DO_HOOK(L"wininet.dll", "InternetOpenW", EP_InternetOpenW, g_oldInternetOpenW);
+
+	hook::iat("kernel32.dll", CreateFileAStub, "CreateFileA");
 
 	trace("hello from %s\n", GetCommandLineA());
 

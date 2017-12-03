@@ -22,6 +22,37 @@
 
 #include "Hooking.h"
 
+bool CanSafelySkipLauncher()
+{
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip").c_str(), L"rb");
+
+	if (f)
+	{
+		fclose(f);
+
+		return true;
+	}
+
+	return false;
+}
+
+bool SetCanSafelySkipLauncher(bool value)
+{
+	if (value)
+	{
+		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip").c_str(), L"wb");
+
+		if (f)
+		{
+			fclose(f);
+		}
+	}
+	else
+	{
+		_wunlink(MakeRelativeCitPath(L"cache\\launcher_skip").c_str());
+	}
+}
+
 static void Launcher_HandleArguments(boost::program_options::wcommand_line_parser& parser, std::function<void()> cb)
 {
 	boost::program_options::options_description desc;
@@ -126,6 +157,45 @@ static DWORD WINAPI CertGetNameStringStub(_In_ PCCERT_CONTEXT pCertContext, _In_
 	return wcslen(newName) + 1;
 }
 
+static HWND g_launcherWindow;
+
+static HWND WINAPI CreateWindowExWStub(_In_     DWORD     dwExStyle,
+	_In_opt_ LPCWSTR   lpClassName,
+	_In_opt_ LPCWSTR   lpWindowName,
+	_In_     DWORD     dwStyle,
+	_In_     int       x,
+	_In_     int       y,
+	_In_     int       nWidth,
+	_In_     int       nHeight,
+	_In_opt_ HWND      hWndParent,
+	_In_opt_ HMENU     hMenu,
+	_In_opt_ HINSTANCE hInstance,
+	_In_opt_ LPVOID    lpParam)
+{
+	auto hWnd = CreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+
+	if (lpClassName && wcscmp(lpClassName, L"LauncherWindowClass") == 0)
+	{
+		g_launcherWindow = hWnd;
+	}
+
+	return hWnd;
+}
+
+BOOL WINAPI AnimateWindowStub(
+	_In_ HWND  hwnd,
+	_In_ DWORD dwTime,
+	_In_ DWORD dwFlags
+)
+{
+	if (hwnd == g_launcherWindow)
+	{
+		return TRUE;
+	}
+
+	return AnimateWindow(hwnd, dwTime, dwFlags);
+}
+
 #include "RSAKey.h"
 
 static void Launcher_Run(const boost::program_options::variables_map& map)
@@ -163,6 +233,12 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
         hook::iat("user32.dll", LoadIconStub, "LoadIconA");
         hook::iat("user32.dll", LoadIconStub, "LoadIconW");
+
+		if (CanSafelySkipLauncher())
+		{
+			hook::iat("user32.dll", CreateWindowExWStub, "CreateWindowExW");
+			hook::iat("user32.dll", AnimateWindowStub, "AnimateWindow");
+		}
 
 		hook::iat("crypt32.dll", CertGetNameStringStub, "CertGetNameStringW");
 	});
@@ -237,7 +313,12 @@ static InitFunction initFunction([] ()
 
 		OnResumeGame.Connect([] ()
 		{
-			WaitForLauncher();
+			if (!CanSafelySkipLauncher())
+			{
+				WaitForLauncher();
+
+				SetCanSafelySkipLauncher(true);
+			}
 		});
 	}
 });
