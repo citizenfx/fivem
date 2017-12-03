@@ -192,6 +192,29 @@ public:
 	NS_DECL_ISCRIPTREFRUNTIME;
 };
 
+static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
+
+class LuaPushEnvironment
+{
+private:
+	fx::PushEnvironment m_pushEnvironment;
+
+	OMPtr<LuaScriptRuntime> m_lastLuaRuntime;
+
+public:
+	inline LuaPushEnvironment(LuaScriptRuntime* runtime)
+		: m_pushEnvironment(runtime)
+	{
+		m_lastLuaRuntime = g_currentLuaRuntime;
+		g_currentLuaRuntime = runtime;
+	}
+
+	inline ~LuaPushEnvironment()
+	{
+		g_currentLuaRuntime = m_lastLuaRuntime;
+	}
+};
+
 LuaScriptRuntime::~LuaScriptRuntime()
 {
 	
@@ -201,18 +224,17 @@ static int lua_error_handler(lua_State* L);
 
 OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
 {
-	OMPtr<IScriptRuntime> runtime;
+#if _DEBUG
 	LuaScriptRuntime* luaRuntime;
-	
-	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
+	OMPtr<IScriptRuntime> runtime;
 
-#ifdef _DEBUG
+	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
 	assert(luaRuntime = dynamic_cast<LuaScriptRuntime*>(runtime.GetRef()));
-#else
-	luaRuntime = static_cast<LuaScriptRuntime*>(runtime.GetRef());
+
+	assert(luaRuntime == g_currentLuaRuntime);
 #endif
 
-	return OMPtr<LuaScriptRuntime>(luaRuntime);
+	return g_currentLuaRuntime;
 }
 
 void ScriptTrace(const char* string, const fmt::ArgList& formatList)
@@ -1091,7 +1113,7 @@ result_t LuaScriptRuntime::Destroy()
 
 	// we need to push the environment before closing as items may have __gc callbacks requiring a current runtime to be set
 	// in addition, we can't do this in the destructor due to refcounting odditiies (PushEnvironment adds a reference, causing infinite deletion loops)
-	fx::PushEnvironment pushed(this);
+	LuaPushEnvironment pushed(this);
 	m_state.Close();
 	
 	return FX_S_OK;
@@ -1191,7 +1213,7 @@ static int lua_error_handler(lua_State* L)
 
 result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<result_t(char*)> loadFunction)
 {
-	fx::PushEnvironment pushed(this);
+	LuaPushEnvironment pushed(this);
 
 	//lua_pushcfunction(m_state, lua_error_handler);
 
@@ -1242,7 +1264,7 @@ result_t LuaScriptRuntime::Tick()
 {
 	if (m_tickRoutine)
 	{
-		fx::PushEnvironment pushed(this);
+		LuaPushEnvironment pushed(this);
 
 		m_tickRoutine();
 	}
@@ -1254,7 +1276,7 @@ result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uin
 {
 	if (m_eventRoutine)
 	{
-		fx::PushEnvironment pushed(this);
+		LuaPushEnvironment pushed(this);
 
 		m_eventRoutine(eventName, eventPayload, payloadSize, eventSource);
 	}
@@ -1269,7 +1291,7 @@ result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_
 
 	if (m_callRefRoutine)
 	{
-		fx::PushEnvironment pushed(this);
+		LuaPushEnvironment pushed(this);
 
 		size_t retvalLengthS;
 		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
@@ -1286,7 +1308,7 @@ result_t LuaScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* outRefIdx)
 
 	if (m_duplicateRefRoutine)
 	{
-		fx::PushEnvironment pushed(this);
+		LuaPushEnvironment pushed(this);
 
 		*outRefIdx = m_duplicateRefRoutine(refIdx);
 	}
@@ -1298,7 +1320,7 @@ result_t LuaScriptRuntime::RemoveRef(int32_t refIdx)
 {
 	if (m_deleteRefRoutine)
 	{
-		fx::PushEnvironment pushed(this);
+		LuaPushEnvironment pushed(this);
 
 		m_deleteRefRoutine(refIdx);
 	}

@@ -14,6 +14,26 @@
 
 #include <scrEngine.h>
 
+template<typename THandler>
+static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, NativeContext& rageContext)
+{
+	// call the original function
+	static void* exceptionAddress;
+
+#ifndef _DEBUG
+	__try
+	{
+#endif
+		rageHandler(&rageContext);
+#ifndef _DEBUG
+	}
+	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
+	{
+		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
+	}
+#endif
+}
+
 namespace fx
 {
 	boost::optional<TNativeHandler> ScriptEngine::GetNativeHandler(uint64_t nativeIdentifier)
@@ -27,7 +47,7 @@ namespace fx
 
 		return boost::optional<TNativeHandler>([=] (ScriptContext& context)
 		{
-#if USE_PROFILER
+/*#if USE_PROFILER
 			static std::unordered_map<uint64_t, Profiler::EventDescription*> staticDescriptions;
 
 			auto it = staticDescriptions.find(nativeIdentifier);
@@ -38,7 +58,7 @@ namespace fx
 			}
 
 			Profiler::Event ev(*it->second);
-#endif
+#endif*/
 
 			// push arguments from the original context
 			NativeContext rageContext;
@@ -48,21 +68,7 @@ namespace fx
 				rageContext.Push(context.GetArgument<uintptr_t>(i));
 			}
 
-			// call the original function
-			static void* exceptionAddress;
-
-#ifndef _DEBUG
-			__try
-			{
-#endif
-				rageHandler(&rageContext);
-#ifndef _DEBUG
-			}
-			__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
-			{
-				throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
-			}
-#endif
+			CallHandler(rageHandler, nativeIdentifier, rageContext);
 
 			// append vector3 result components
 			rageContext.SetVectorResults();

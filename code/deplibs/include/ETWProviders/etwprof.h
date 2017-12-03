@@ -30,8 +30,6 @@ limitations under the License.
 
 typedef long long int64;
 
-#define DISABLE_ETW_MARKS
-
 #ifdef	_WIN32
 // ETW support should be compiled in for all Windows PC platforms. It isn't
 // supported on Windows XP but that is determined at run-time. This #define
