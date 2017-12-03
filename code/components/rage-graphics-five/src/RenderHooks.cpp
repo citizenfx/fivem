@@ -130,6 +130,7 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		scDesc1.SampleDesc = pSwapChainDesc->SampleDesc;
 		scDesc1.SwapEffect = pSwapChainDesc->SwapEffect;
 
+		/*
 		// probe if DXGI 1.5 is available (Win10 RS1+)
 		WRL::ComPtr<IDXGIFactory5> factory5;
 
@@ -139,6 +140,7 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 			scDesc1.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 			g_allowTearing = true;
 		}
+		*/
 
 		g_swapChainFlags = scDesc1.Flags;
 
@@ -317,6 +319,13 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 	FatalError("DirectX encountered an unrecoverable error: %s - %s", ToNarrow(DXGetErrorStringW(hr)), ToNarrow(errorBuffer));
 }
 
+static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)
+{
+	*(int*)data = 1;
+
+	return S_OK;
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
@@ -410,4 +419,11 @@ static HookFunction hookFunction([] ()
 	auto loc = hook::get_pattern<char>("75 0A B9 06 BD F7 9C E8");
 	hook::nop(loc + 2, 5);
 	hook::call(loc + 7, DisplayD3DCrashMessage);
+
+	// query GetData, always return 1 (why even wait for presentation with a really weird Sleep loop?)
+	{
+		auto location = hook::get_pattern("48 8B 01 8B FE FF 90 E8 00 00 00", 5);
+		hook::nop(location, 6);
+		hook::call(location, D3DGetData);
+	}
 });
