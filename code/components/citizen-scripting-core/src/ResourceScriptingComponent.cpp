@@ -266,5 +266,5 @@ static HookFunction hookFunction([] ()
 			fx::g_onNetInitCbs.clear();
 		}
 	});
-#endif
 });
+#endif
