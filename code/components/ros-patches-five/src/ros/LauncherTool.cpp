@@ -36,7 +36,7 @@ bool CanSafelySkipLauncher()
 	return false;
 }
 
-bool SetCanSafelySkipLauncher(bool value)
+void SetCanSafelySkipLauncher(bool value)
 {
 	if (value)
 	{

@@ -231,7 +231,7 @@ OMPtr<LuaScriptRuntime> LuaScriptRuntime::GetCurrent()
 	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
 	assert(luaRuntime = dynamic_cast<LuaScriptRuntime*>(runtime.GetRef()));
 
-	assert(luaRuntime == g_currentLuaRuntime);
+	assert(luaRuntime == g_currentLuaRuntime.GetRef());
 #endif
 
 	return g_currentLuaRuntime;

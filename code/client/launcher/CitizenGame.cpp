@@ -455,7 +455,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
 		if (!_stricmp(libName, "d3d9.dll"))
 		{
-			std::wstring gameDll = MakeRelativeGamePath(L"d3d9.dll");
+			std::wstring gameDll = MakeRelativeCitPath(L"bin\\SwiftShaderD3D9_64.dll");
 
 			if (GetFileAttributes(gameDll.c_str()) != INVALID_FILE_ATTRIBUTES)
 			{
