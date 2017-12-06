@@ -422,8 +422,8 @@ static HookFunction hookFunction([] ()
 
 	// query GetData, always return 1 (why even wait for presentation with a really weird Sleep loop?)
 	{
-		auto location = hook::get_pattern("48 8B 01 8B FE FF 90 E8 00 00 00", 5);
-		hook::nop(location, 6);
-		hook::call(location, D3DGetData);
+		//auto location = hook::get_pattern("48 8B 01 8B FE FF 90 E8 00 00 00", 5);
+		//hook::nop(location, 6);
+		//hook::call(location, D3DGetData);
 	}
 });
