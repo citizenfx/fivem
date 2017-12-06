@@ -150,6 +150,17 @@ static InitFunction initFunction([]()
 
 				g_rpcConfiguration = RpcConfiguration::Load("citizen:/scripting/rpc_natives.json");
 
+				g_netLibrary->AddReliableHandler("msgRpcEntityCreation", [](const char* data, size_t len)
+				{
+					net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
+
+					uint16_t creationToken = buffer.Read<uint16_t>();
+					uint8_t playerId = buffer.Read<uint8_t>();
+					uint16_t objectId = buffer.Read<uint16_t>();
+
+					g_creationTokenToObjectId[creationToken] = ((playerId + 1) << 16) | objectId;
+				});
+
 				g_netLibrary->AddReliableHandler("msgRpcNative", [](const char* data, size_t len)
 				{
 					std::shared_ptr<net::Buffer> buf = std::make_shared<net::Buffer>(reinterpret_cast<const uint8_t*>(data), len);
@@ -221,7 +232,17 @@ static InitFunction initFunction([]()
 								{
 									conditions.push_back([=]()
 									{
-										return g_creationTokenToObjectId.find(entity & 0x7FFFFFFF) != g_creationTokenToObjectId.end();
+										auto it = g_creationTokenToObjectId.find(entity & 0x7FFFFFFF);
+
+										if (it != g_creationTokenToObjectId.end())
+										{
+											if (ObjectToEntity(it->second) != -1)
+											{
+												return true;
+											}
+										}
+
+										return false;
 									});
 								}
 

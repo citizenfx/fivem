@@ -182,7 +182,7 @@ function rpcEnvironment.context_rpc(nativeName)
 			-- if not the context, this is the context
 			if not ctx then
 				-- TODO: devise a way to disallow players for natives that need to
-				ctx = { idx = k, type = 'Entity' }
+				ctx = { idx = k - 1, type = 'Entity' }
 			end
 
 			table.insert(args, {
@@ -192,7 +192,7 @@ function rpcEnvironment.context_rpc(nativeName)
 		elseif v.type.name == 'Player' then
 			-- if not the context, this is the context
 			if not ctx then
-				ctx = { idx = k, type = 'Player' }
+				ctx = { idx = k - 1, type = 'Player' }
 			end
 
 			table.insert(args, {

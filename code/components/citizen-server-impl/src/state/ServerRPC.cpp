@@ -55,6 +55,18 @@ static InitFunction initFunction([]()
 				guid->type = fx::ScriptGuid::Type::Entity;
 				guid->entity.handle = MakeEntityHandle(playerId, objectId);
 
+				// broadcast entity creation
+				net::Buffer outBuffer;
+				outBuffer.Write<uint32_t>(HashRageString("msgRpcEntityCreation"));
+				outBuffer.Write<uint16_t>(creationToken);
+				outBuffer.Write<uint8_t>(playerId);
+				outBuffer.Write<uint16_t>(objectId);
+
+				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& cl)
+				{
+					cl->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+				});
+
 				g_entityCreationList[creationToken] = {};
 			}
 		});
@@ -123,7 +135,27 @@ static InitFunction initFunction([]()
 				else if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 				{
 					// TODO: intercept coordinates and get a client near there
-					clientIdx = clientRegistry->GetHost()->GetNetId();
+					auto host = clientRegistry->GetHost();
+
+					if (host)
+					{
+						clientIdx = host->GetNetId();
+					}
+					else
+					{
+						clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+						{
+							if (clientIdx != -1)
+							{
+								return;
+							}
+
+							if (client->GetData("playerEntity").has_value())
+							{
+								clientIdx = client->GetNetId();
+							}
+						});
+					}
 				}
 
 				uint32_t resourceHash = -1;

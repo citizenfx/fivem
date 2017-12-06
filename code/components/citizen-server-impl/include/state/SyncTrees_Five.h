@@ -142,7 +142,7 @@ struct CVehicleCreationDataNode
 {
 	static bool Parse(SyncParseState& state)
 	{
-		trace("model: %08x\n", state.buffer.Read<uint32_t>(32));
+		uint32_t model = state.buffer.Read<uint32_t>(32);
 		return true;
 	}
 };

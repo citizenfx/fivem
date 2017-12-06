@@ -93,6 +93,8 @@ namespace sync
 		if (guid)
 		{
 			g_scriptHandlePool->Delete(guid);
+
+			guid = nullptr;
 		}
 	}
 }
@@ -135,7 +137,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	auto entity = GetEntity(playerId, objectId);
 
-	if (!entity || entity->client.expired() || entity->client.lock()->GetNetId() != client->GetNetId())
+	if (!entity || entity->client.expired())
 	{
 		entity = std::make_shared<sync::SyncEntityState>();
 		entity->client = client;
@@ -144,6 +146,16 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		entity->handle = MakeEntityHandle(playerId, objectId);
 
 		m_entities[MakeEntityHandle(playerId, objectId)] = entity;
+
+		if (parsingType == 2)
+		{
+			trace("creating object id %d (on %s) from sync, not create. weird!\n", objectId, client->GetName());
+		}
+	}
+
+	if (entity->client.lock()->GetNetId() != client->GetNetId())
+	{
+		return;
 	}
 
 	auto state = sync::SyncParseState{ { bitBytes }, parsingType, entity };
@@ -186,11 +198,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		case sync::NetObjEntityType::Player:
 			sync::CPlayerSyncTree::Parse(state);
 
-			if (parsingType == 1)
-			{
-				client->SetData("playerEntity", MakeScriptHandle(entity));
-				client->SetData("playerId", playerId);
-			}
+			client->SetData("playerEntity", MakeScriptHandle(entity));
+			client->SetData("playerId", playerId);
 			break;
 		case sync::NetObjEntityType::Trailer:
 			sync::CAutomobileSyncTree::Parse(state);
@@ -264,8 +273,6 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 			return;
 		}
 	}
-
-	trace("clone creates/syncs/removes: %d/%d/%d\n", numCreates, numSyncs, numRemoves);
 
 	// any ACKs to send?
 	if (ackPacket.GetCurOffset() > 4 && client)

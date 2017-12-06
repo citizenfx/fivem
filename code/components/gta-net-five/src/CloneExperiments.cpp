@@ -211,14 +211,20 @@ private:
 		atDNetObjectNode* next;
 	};
 
+	struct ObjectHolder
+	{
+		atDNetObjectNode* objects;
+		netObject** unk; // might not just be a netObject**
+	};
+
 private:
-	atDNetObjectNode* m_objects[32];
+	ObjectHolder m_objects[32];
 
 public:
 	template<typename T>
 	inline void ForAllNetObjects(int playerId, const T& callback)
 	{
-		for (auto node = m_objects[playerId]; node; node = node->next)
+		for (auto node = m_objects[playerId].objects; node; node = node->next)
 		{
 			if (node->object)
 			{

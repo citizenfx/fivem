@@ -67,17 +67,12 @@ struct SyncEntityState
 		data["posX"] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
 		data["posY"] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
 		data["posZ"] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
-
-		if (type == fx::sync::NetObjEntityType::Player)
-		{
-			trace("calc'd pos! %.2f %.2f %.2f\n", GetData<float>("posX", 0.0f), GetData<float>("posY", 0.0f), GetData<float>("posZ", 0.0f));
-		}
 	}
 
 	ScriptGuid* guid;
 	uint32_t handle;
 
-	~SyncEntityState();
+	virtual ~SyncEntityState();
 };
 }
 
