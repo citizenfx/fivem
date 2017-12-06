@@ -17,7 +17,7 @@ curl -s -d "$json" "$TG_WEBHOOK" || true
 curl -s -d "$json" "$DISCORD_WEBHOOK" || true
 
 # get an alpine rootfs
-curl -sLo alpine-minirootfs-3.6.1-x86_64.tar.gz http://mirrors.gigenet.com/alpinelinux/latest-stable/releases/x86_64/alpine-minirootfs-3.6.1-x86_64.tar.gz
+curl -sLo alpine-minirootfs-3.6.2-x86_64.tar.gz http://mirrors.gigenet.com/alpinelinux/v3.6/releases/x86_64/alpine-minirootfs-3.6.2-x86_64.tar.gz
 
 # get our patched proot build
 # source code: https://runtime.fivem.net/build/proot-v5.1.1.tar.gz
