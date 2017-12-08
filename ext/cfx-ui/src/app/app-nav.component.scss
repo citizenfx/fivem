@@ -94,6 +94,10 @@ $itemHeight: $appNavHeight*.5;
 				stroke: rgba($fgColour, .5);
 				fill: none;
 			}
+			
+			.steam {
+				stroke: rgba($greenyColour, .9);
+			}	
 		}
 
 		.nav-item {
