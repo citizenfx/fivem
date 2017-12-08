@@ -6,7 +6,10 @@
 					<img class="avatar" src="{{tweet.avatar}}">
 					<strong>{{tweet.user_displayname}}</strong>
 					<small>@{{tweet.user_screenname}}</small>
-					<small>{{tweet.date | amTimeAgo}}</small>
+					<small>
+						{{tweet.date | amTimeAgo}}
+						<span class="additional">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
+					</small>	
 				</div>
 				<div class="message-body">
 					<article class="media">
