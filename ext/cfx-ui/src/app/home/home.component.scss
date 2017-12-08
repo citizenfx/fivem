@@ -27,7 +27,23 @@
 		.message {
 			background-color: rgba($bgColour, .2);
 			border-radius: 1px;
-
+			transition: all .2s ease;
+			
+			.additional {
+				opacity: 0;
+				padding-left: 0;
+				transition: all .2s ease;
+			}
+			
+			&:hover {
+				background-color: rgba($bgColour, .4);
+			
+				.additional {
+					opacity: 1;
+					padding-left: 5px;
+				}
+			}
+			
 			.backdroppy {
 				padding: $padding $padding $padding $padding*2+4vh;
 
@@ -52,7 +68,7 @@
 
 			.message-body {
 				img {
-					width: 100%;
+					width: 40%;
 					height: auto;
 					border-radius: 2px;
 					margin-bottom: $padding/2;
