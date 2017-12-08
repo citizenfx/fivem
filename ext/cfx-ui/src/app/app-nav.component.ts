@@ -16,6 +16,7 @@ export class AppNavComponent extends Translation {
 	devMode = false;
 	localhostPort = '';
 	hasSubNav = false;
+	isInSteam = false;
 
 	constructor(
 		private gameService: GameService,
@@ -36,7 +37,10 @@ export class AppNavComponent extends Translation {
 			}
 		});
 
-		gameService.signinChange.subscribe(value => this.nickname = value.name);
+		gameService.signinChange.subscribe(value => {
+			this.nickname = value.name;
+			this.isInSteam = (value.type == "steam") ? true : false;
+		});
 		gameService.nicknameChange.subscribe(value => this.nickname = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
