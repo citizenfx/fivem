@@ -133,6 +133,50 @@ a {
 					}
 				}
 			}
+			
+			.max-ping {
+				label {
+					padding-top: 1.8vh !important;
+				}
+				
+				#progress {
+					opacity: 0;
+					transition: all .2s ease;
+					height: 0vh; 
+					width: 100%; 
+					top: 0px; 
+					position: absolute; 
+					background-color: rgba($bgColour, .5);
+					
+					font-size: 0.5vh;
+					line-height: 1.5;
+					text-align: center;
+
+					.bar {
+						position: absolute; 
+						width: 0px;
+						height: 0vh;
+						top: 0px; 
+						background-color: rgba($greenyColour, .5)
+					}
+				}
+				
+				&.enabled {
+					label {
+						padding-top: 2.8vh !important;
+					}
+					
+					#progress {
+						font-size: 1.5vh;
+						height: 2vh;
+						opacity: 1;	
+
+						.bar {
+							height: 2vh;
+						}
+					}
+				}
+			}
 		}
 
 		.slider {
