@@ -27,6 +27,39 @@ namespace fx
 		}
 	};
 
+	struct UvFileHandle
+	{
+		inline UvFileHandle(uv_loop_t* loop, uv_file handle)
+			: loop(loop), handle(handle)
+		{
+			req = std::make_unique<uv_fs_t>();
+		}
+
+		inline UvFileHandle(const UvFileHandle&) = delete;
+
+		inline ~UvFileHandle()
+		{
+			uv_loop_t* localLoop = loop;
+			uv_file localHandle = handle;
+
+			UvCloseHelper(std::move(req), [=](auto req, auto cb)
+			{
+				uv_fs_close(localLoop, req, localHandle, cb);
+			});
+		}
+
+		inline long get()
+		{
+			return handle;
+		}
+
+	private:
+		uv_loop_t* loop;
+		uv_file handle;
+
+		std::unique_ptr<uv_fs_t> req;
+	};
+
 	static auto GetFilesEndpointHandler(fx::ServerInstanceBase* instance)
 	{
 		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName)
@@ -104,6 +137,8 @@ namespace fx
 
 					uv_fs_req_cleanup(fsReq);
 
+					auto file = std::make_shared<UvFileHandle>(uvLoop, req->result);
+
 					auto filter = filesComponent->CreateFilesFilter(fileName, request);
 
 					if (filter && filter->ShouldTerminate())
@@ -118,7 +153,6 @@ namespace fx
 
 					// read buffer and file handle
 					auto buffer = std::make_shared<std::array<char, 16384>>();
-					auto file = req->result;
 
 					auto uvBuf = uv_buf_init(buffer->data(), buffer->size());
 
@@ -160,12 +194,11 @@ namespace fx
 						// if not, call another read
 						if (*readOffset != size)
 						{
-							uv_fs_read(uvLoop, req.get(), file, &uvBuf, 1, *readOffset, UvCallback<uv_fs_t>(req.get(), *readCallback));
+							uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallback<uv_fs_t>(req.get(), *readCallback));
 						}
 						else
 						{
-							// if so, close and end response
-							uv_fs_close(uvLoop, req.get(), file, nullptr);
+							// if so, end response (closing should be done automatically)
 							response->End();
 
 							// reset the function reference to break the reference cycle
@@ -174,7 +207,7 @@ namespace fx
 					};
 
 					// trigger the first read
-					uv_fs_read(uvLoop, req.get(), file, &uvBuf, 1, *readOffset, UvCallback<uv_fs_t>(req.get(), *readCallback));
+					uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallback<uv_fs_t>(req.get(), *readCallback));
 				}));
 			}));
 		};

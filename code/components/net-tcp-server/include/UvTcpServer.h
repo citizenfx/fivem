@@ -134,9 +134,9 @@ auto UvCallback(Handle* handle, const TFn& fn)
 	return &Request::cb;
 }
 
-// wrapper to make sure the libuv handle only gets freed after the close completes
-template<typename Handle>
-void UvClose(std::unique_ptr<Handle> handle)
+// generic wrapper for libuv closing
+template<typename Handle, typename TFn>
+void UvCloseHelper(std::unique_ptr<Handle> handle, const TFn& fn)
 {
 	struct TempCloseData
 	{
@@ -148,11 +148,19 @@ void UvClose(std::unique_ptr<Handle> handle)
 	tempCloseData->item = std::move(handle);
 	tempCloseData->item->data = tempCloseData;
 
-	// close the libuv handle
-	uv_close(reinterpret_cast<uv_handle_t*>(tempCloseData->item.get()), [](uv_handle_t* handle)
+	fn(tempCloseData->item.get(), [](auto* handle)
 	{
 		// delete the close holder
 		delete reinterpret_cast<TempCloseData*>(handle->data);
 	});
 }
 
+// wrapper to make sure the libuv handle only gets freed after the close completes
+template<typename Handle>
+void UvClose(std::unique_ptr<Handle> handle)
+{
+	return UvCloseHelper(std::move(handle), [](auto handle, auto cb)
+	{
+		uv_close((uv_handle_t*)handle, cb);
+	});
+}
