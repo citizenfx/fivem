@@ -58,7 +58,6 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    - master
   tags:
     - linux
 
