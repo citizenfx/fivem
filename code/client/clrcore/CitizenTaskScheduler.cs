@@ -52,7 +52,8 @@ namespace CitizenFX.Core
 
     class CitizenTaskScheduler : TaskScheduler
     {
-		private List<Task> m_inTickTasks = new List<Task>();
+		private static readonly object m_inTickTasksLock = new object();
+		private List<Task> m_inTickTasks;
 
         private readonly List<Task> m_runningTasks = new List<Task>();
 
@@ -66,9 +67,10 @@ namespace CitizenFX.Core
         {
 			if (m_inTickTasks != null)
 			{
-				lock (m_inTickTasks)
+				lock (m_inTickTasksLock)
 				{
-					m_inTickTasks.Add(task);
+					if (m_inTickTasks != null)
+						m_inTickTasks.Add(task);
 				}
 			}
 
@@ -112,7 +114,7 @@ namespace CitizenFX.Core
 			// ticks should be reentrant (Tick might invoke TriggerEvent, e.g.)
 			List<Task> lastInTickTasks;
 
-			lock (m_inTickTasks)
+			lock (m_inTickTasksLock)
 			{
 				lastInTickTasks = m_inTickTasks;
 
@@ -139,14 +141,14 @@ namespace CitizenFX.Core
 					}
 				}
 
-				lock (m_inTickTasks)
+				lock (m_inTickTasksLock)
 				{
 					tasks = m_inTickTasks.ToArray();
 					m_inTickTasks.Clear();
 				}
 			} while (tasks.Length != 0);
 
-			lock (m_inTickTasks)
+			lock (m_inTickTasksLock)
 			{
 				m_inTickTasks = lastInTickTasks;
 			}
