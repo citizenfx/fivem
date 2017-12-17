@@ -10,7 +10,7 @@
 #include <functional>
 #include <include/cef_app.h>
 
-class NUIApp : public CefApp, public CefRenderProcessHandler, public CefResourceBundleHandler, public CefV8Handler
+class NUIApp : public CefApp, public CefRenderProcessHandler, public CefResourceBundleHandler, public CefV8Handler, public CefBrowserProcessHandler
 {
 public:
 	typedef std::function<bool(CefRefPtr<CefBrowser>, CefRefPtr<CefProcessMessage>)> TProcessMessageHandler;
@@ -34,6 +34,14 @@ protected:
 	virtual void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
 
 	virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override;
+
+	virtual inline CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override
+	{
+		return this;
+	}
+
+	// CefBrowserProcessHandler overrides
+	virtual void OnContextInitialized() override;
 
 private:
 	std::map<std::string, TProcessMessageHandler> m_processMessageHandlers;
