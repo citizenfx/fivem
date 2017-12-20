@@ -745,12 +745,12 @@ native 'GET_VEHICLE_WHEEL_SPEED'
 	returns 'float'
 	doc [[
 	<summary>
-	Gets speed of a wheel at the tyre. 
+	Gets speed of a wheel at the tyre.
 	Max number of wheels can be retrieved with the native GET_VEHICLE_NUMBER_OF_WHEELS.
 	</summary>
 	<returns>An integer.</returns>
 ]]
-	
+
 native 'GET_VEHICLE_DASHBOARD_SPEED'
 	arguments {
 		Vehicle 'vehicle'
@@ -903,7 +903,7 @@ native 'GET_VEHICLE_ENGINE_TEMPERATURE'
 	}
 	apiset 'client'
 	returns 'float'
-	
+
 native 'SET_VEHICLE_ENGINE_TEMPERATURE'
 	arguments {
 		Vehicle 'vehicle',
@@ -911,22 +911,22 @@ native 'SET_VEHICLE_ENGINE_TEMPERATURE'
 	}
 	apiset 'client'
 	returns 'void'
-	
+
 native 'GET_VEHICLE_CLUTCH'
 	arguments {
 		Vehicle 'vehicle'
 	}
 	apiset 'client'
 	returns 'float'
-	
+
 native 'SET_VEHICLE_CLUTCH'
 	arguments {
 		Vehicle 'vehicle',
 		float 'clutch'
 	}
 	apiset 'client'
-	returns 'void'	
-	
+	returns 'void'
+
 native 'GET_VEHICLE_TURBO_PRESSURE'
 	arguments {
 		Vehicle 'vehicle'
@@ -941,14 +941,14 @@ native 'SET_VEHICLE_TURBO_PRESSURE'
 	}
 	apiset 'client'
 	returns 'void'
-	
+
 native 'GET_VEHICLE_HANDBRAKE'
 	arguments {
 		Vehicle 'vehicle'
 	}
 	apiset 'client'
 	returns 'BOOL'
-	
+
 native 'GET_VEHICLE_NUMBER_OF_WHEELS'
 	arguments {
 		Vehicle 'vehicle'
@@ -961,7 +961,7 @@ native 'GET_VEHICLE_INDICATOR_LIGHTS'
 		Vehicle 'vehicle'
 	}
 	apiset 'client'
-	returns 'int'	
+	returns 'int'
 	doc [[
 	<summary>
 	Gets the vehicle indicator light state. 0 = off, 1 = left, 2 = right, 3 = both
@@ -976,7 +976,7 @@ native 'GET_VEHICLE_WHEEL_HEALTH'
 	}
 	apiset 'client'
 	returns 'float'
-	
+
 native 'SET_VEHICLE_WHEEL_HEALTH'
 	arguments {
 		Vehicle 'vehicle',
@@ -988,7 +988,7 @@ native 'SET_VEHICLE_WHEEL_HEALTH'
 
 native 'SET_HTTP_HANDLER'
 	arguments {
-		func 'handler'	
+		func 'handler'
 	}
 	apiset 'server'
 	returns 'void'
@@ -1291,6 +1291,40 @@ native 'GET_VEHICLE_WHEEL_XROT'
 	returns 'float'
 
 native 'SET_VEHICLE_WHEEL_XROT'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex',
+		float 'value'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_WHEEL_TRACK_WIDTH'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_WHEEL_TRACK_WIDTH'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex',
+		float 'value'
+	}
+	apiset 'client'
+	returns 'void'
+
+native 'GET_VEHICLE_WHEEL_CAMBER'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex'
+	}
+	apiset 'client'
+	returns 'float'
+
+native 'SET_VEHICLE_WHEEL_CAMBER'
 	arguments {
 		Vehicle 'vehicle',
 		int 'wheelIndex',

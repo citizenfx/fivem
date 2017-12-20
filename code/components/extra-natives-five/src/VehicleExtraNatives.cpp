@@ -151,6 +151,9 @@ const int CanWheelsBreakOffset = 0x893;
 const int BlinkerState = 0x899;
 
 // Wheel class
+const int WheelCamberOffset = 0x008;
+const int WheelCamberInvertedOffset = 0x010;
+const int WheelTrackWidthOffset = 0x030;
 const int WheelTyreRadiusOffset = 0x110;
 const int WheelRimRadiusOffset = 0x114;
 const int WheelTyreWidthOffset = 0x118;
@@ -352,4 +355,25 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_INTERIOR_LIGHT_ON", readVehicleMemoryBit<IsInteriorLightOnOffset, 6>);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", readVehicleMemory<unsigned char, BlinkerState>);
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_TRACK_WIDTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float *>(wheelAddr + WheelTrackWidthOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_TRACK_WIDTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		*reinterpret_cast<float *>(wheelAddr + WheelTrackWidthOffset) = context.GetArgument<float>(2);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_CAMBER", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float *>(wheelAddr + WheelCamberOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_CAMBER", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		*reinterpret_cast<float *>(wheelAddr + WheelCamberOffset) = context.GetArgument<float>(2);
+		*reinterpret_cast<float *>(wheelAddr + WheelCamberInvertedOffset) = -context.GetArgument<float>(2);
+	}));
 });
