@@ -30,7 +30,7 @@
 						</Item>
 						<Item>
 							<PoolName>Building</PoolName>
-							<PoolSize value="65000"/>
+							<PoolSize value="75000"/>
 						</Item>
 						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
