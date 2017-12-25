@@ -1299,6 +1299,34 @@ native 'SET_VEHICLE_WHEEL_XROT'
 	apiset 'client'
 	returns 'void'
 
+native 'GET_VEHICLE_WHEEL_TRACK_WIDTH'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex'
+	}
+	apiset 'client'
+	returns 'float'
+	doc [[
+	<summary>
+	Returns the offset of the specified wheel relative to the wheel's axle center.
+	</summary>
+]]
+
+native 'SET_VEHICLE_WHEEL_TRACK_WIDTH'
+	arguments {
+		Vehicle 'vehicle',
+		int 'wheelIndex',
+		float 'offset'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	Adjusts the offset of the specified wheel relative to the wheel's axle center.
+	Needs to be called every frame in order to function properly, as GTA will reset the track width otherwise.
+	</summary>
+]]
+
 native 'SEND_LOADING_SCREEN_MESSAGE'
 	arguments {
 		charPtr 'jsonString'
