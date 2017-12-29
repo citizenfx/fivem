@@ -3,8 +3,18 @@
 
 :host.pinned {
 	.server-list-item {
-		margin-top: 1px;
+		margin-top: $padding/3;
 		box-shadow: 0 0 0 100px rgba($greenyColour, .25) inset;
+	}
+}
+
+:host:nth-child(odd) {
+	.server-list-item {
+		background-color: rgba(darken($bgColour, 10%), .4);
+
+		&:hover {
+			background-color: rgba(darken($bgColour, 10%), 1);
+		}
 	}
 }
 
@@ -14,6 +24,8 @@
 	align-items: center;
 	overflow: hidden;
 
+	font-size: $fontSize * 0.9;
+
 	height: $appServersItemHeight;
 	will-change: transform;
 
@@ -21,9 +33,14 @@
 	user-select: none;
 
 	font-weight: normal;
-	margin-top: $padding/2;
+	margin-top: $padding/3;
 
 	background-color: rgba($bgColour, .4);
+
+	img {
+		filter: blur(0);
+		will-change: opacity;
+	}
 
 	&:hover {
 		background-color: rgba($bgColour, 1);
@@ -58,18 +75,18 @@
 		background-size: 500%;
 		background-repeat: no-repeat;
 		background-position: center center;
+
+		display: none;
 	}
 
 	.icon {
 		width: $appServersItemHeight;
 		height: $appServersItemHeight;
-		border-top-left-radius: 1px;
-		border-bottom-left-radius: 1px;
 	}
 
 	.name {
 		text-align: left;
-		padding: 0 $padding*$multiplier;
+		padding: 0 $padding*$multiplier*0.5;
 		color: $textColour;
 	}
 
@@ -81,7 +98,7 @@
 			border: none;
 			outline: none;
 			color: $textColour;
-			padding-top: 1vh;
+			padding-top: 0.5vh;
 			height: $appServersItemHeight;
 			opacity: 0;
 

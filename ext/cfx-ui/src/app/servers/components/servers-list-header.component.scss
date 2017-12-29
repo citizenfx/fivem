@@ -9,7 +9,7 @@
 	top: 0;
 	left: 0;
 	right: 0;
-    height: $appServersItemHeight;
+    height: $appServersItemHeight * 1.2;
 
 	background: rgba($bgColour, .5);
 	backdrop-filter: blur(5px);
@@ -18,10 +18,10 @@
 	z-index: 20;
 
 	div {
-		height: $appServersItemHeight;
+		height: $appServersItemHeight * 1.2;
 		font-size: 1.3rem;
 		font-weight: 100;
-		line-height: $appServersItemHeight;
+		line-height: $appServersItemHeight * 1.2;
 
 		color: $textColour;
 		text-transform: lowercase;
@@ -39,7 +39,7 @@
 		}
 
 		&.name {
-			padding-left: $padding*$multiplier;
+			padding-left: $padding*$multiplier*0.5;
 			text-align: left;
 		}
 
