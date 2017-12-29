@@ -62,7 +62,7 @@
 			height: 14px;
 
 			top: calc(50% - 5px);
-			left: -18px;
+			left: calc(100% + 5px);
 
 			transform: rotate(0deg);
 			transition: all .2s ease;
