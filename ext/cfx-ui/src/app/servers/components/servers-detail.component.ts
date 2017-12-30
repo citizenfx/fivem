@@ -113,7 +113,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     }
 
     ngOnInit() {
-        this.interval = window.setInterval(() => this.updateServer(), 2500);
+        this.interval = window.setInterval(() => this.updateServer(), 45000);
     }
 
     ngOnDestroy() {
