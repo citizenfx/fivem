@@ -4,6 +4,7 @@ import {Routes, RouterModule} from '@angular/router';
 import {HomeComponent} from './home/home.component';
 import {SettingsComponent} from './settings/settings.component';
 import {ServersComponent} from './servers/components/servers.component';
+import {ServersDetailComponent} from './servers/components/servers-detail.component';
 import {ServersContainerComponent} from './servers/components/servers-container.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
@@ -37,6 +38,10 @@ const routes: Routes = [
 			{
 				path:      'direct-connect',
 				component: DirectConnectComponent
+			},
+			{
+				path:	   'detail/:addr',
+				component: ServersDetailComponent
 			}
 		]
 	},

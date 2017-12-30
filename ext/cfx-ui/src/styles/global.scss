@@ -115,6 +115,15 @@ button {
 		background: $greenyColour;
 		box-shadow: 0 5px 25px darken($greenyColour, 10%);
 	}
+
+	&.unimportant {
+		background: $bgColour;
+
+		&:hover {
+			background: lighten($bgColour, 10%);
+			box-shadow: 0 5px 25px lighten($bgColour, 10%);
+		}
+	}
 }
 
 .ad {

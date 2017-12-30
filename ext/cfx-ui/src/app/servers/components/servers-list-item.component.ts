@@ -1,4 +1,5 @@
 import { Component, Input, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { Server } from '../server';
 
@@ -18,22 +19,30 @@ export class ServersListItemComponent {
     @Input()
     pinned = false;
 
-    constructor(private gameService: GameService) { }
+    constructor(private gameService: GameService, private router: Router) { }
 
-    attemptConnect() {
+    attemptConnect(event: Event) {
         this.gameService.connectTo(this.server);
+
+        event.stopPropagation();
+    }
+
+    showServerDetail() {
+        this.router.navigate(['/', 'servers', 'detail', this.server.address]);
     }
 
     isFavorite() {
         return this.gameService.isMatchingServer('favorites', this.server);
     }
 
-    toggleFavorite() {
+    toggleFavorite(event: Event) {
         if (this.isFavorite()) {
             this.removeFavorite();
         } else {
             this.addFavorite();
         }
+
+        event.stopPropagation();
     }
 
     addFavorite() {

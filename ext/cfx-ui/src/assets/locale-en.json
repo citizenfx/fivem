@@ -29,5 +29,12 @@
     "#DirectConnect_ServerInvalid": "Server could not be found",
     "#DirectConnect_ServerInvalid_SubTitle": "Make sure you've entered the correct address.",
     "#DirectConnect_IPPort": "IP:Port",
-    "#DirectConnect_Connect": "Connect"
+    "#DirectConnect_Connect": "Connect",
+    "#ServerDetail_Players": "Players",
+    "#ServerDetail_Back": "Back",
+    "#ServerDetail_AddFavorite": "Favorite",
+    "#ServerDetail_DelFavorite": "Unfavorite",
+    "#ServerDetail_ScriptHook": "Client scripts allowed",
+    "#Yes": "Yes",
+    "#No": "No"
 }

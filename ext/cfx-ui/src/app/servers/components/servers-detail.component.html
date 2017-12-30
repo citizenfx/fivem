@@ -1,0 +1,73 @@
+	<div class="loading" *ngIf="!this.server">
+		Loading
+	</div>
+
+	<div class="error" *ngIf="false">
+		<h1 class="title" translate>#ServerDetail_ServerInvalid</h1>
+		<p>
+			<span>{{error}}</span> <span translate>#ServerDetail_ServerInvalid_SubTitle</span>
+		</p>
+	</div>
+
+	<div class="info one-info" *ngIf="this.server">
+		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://lorempixel.com/128/128') + ')'"></div>
+
+		<figure class="icon">
+			<img [src]="(server && server.sanitizedUri)||'http://lorempixel.com/128/128'">
+		</figure>
+
+		<h1 class="title" [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></h1>
+
+		<ul class="desc">
+			<li *ngIf="server && server.data.gametype">
+				<span class="key">Game type:</span>
+				{{(server && server.data.gametype)||'Game type'}}
+			</li>
+			<li *ngIf="server && server.data.mapname">
+				<span class="key">Map:</span>
+				{{(server && server.data.mapname)||'Map name'}}
+			</li>
+			<li class="address">
+				<span class="key">Address:</span>
+				<span class="select">{{(server && server.address)||'undefined'}}</span>
+			</li>
+			<li>
+				<span class="key">Players:</span>
+				{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}
+			</li>
+			<li *ngFor="let svVar of serverVariables">
+				<span class="key">{{svVar.key|translate:lang}}:</span>
+				{{svVar.value|translate:lang}}
+			</li>
+		</ul>
+
+		<div class="server-buttons">
+			<button class="connect" (click)="attemptConnect()" translate>
+				#DirectConnect_Connect
+			</button>
+			<button class="unimportant favorite" (click)="addFavorite()" *ngIf="!isFavorite()" translate>
+				#ServerDetail_AddFavorite
+			</button>
+			<button class="unimportant favorite" (click)="removeFavorite()" *ngIf="isFavorite()" translate>
+				#ServerDetail_DelFavorite
+			</button>
+			<button class="unimportant back" (click)="goBack()" translate>
+				#ServerDetail_Back
+			</button>
+		</div>
+	</div>
+
+	<div class="info player-list" *ngIf="this.server">
+		<h1 translate>#ServerDetail_Players</h1>
+
+		<ul>
+			<li *ngFor="let player of server.data.players"><figure><img [src]="getPlayerUrl(player)"></figure>
+				<span>
+					{{player.name}}
+				</span></li>
+		</ul>
+	</div>
+
+	<div class="info resource-list" *ngIf="this.server">
+		{{ resourceString }}
+	</div>

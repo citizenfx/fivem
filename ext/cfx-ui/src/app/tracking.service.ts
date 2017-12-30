@@ -54,6 +54,10 @@ export class TrackingService {
 		});
 
 		this.gameService.signinChange.subscribe((profile: Profile) => {
+			if (profile.externalIdentifier.startsWith('dummy:')) {
+				return;
+			}
+			
 			this.angulartics.setUsername.next(profile.externalIdentifier);
 		});
 	}

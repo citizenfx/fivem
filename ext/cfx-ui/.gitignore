@@ -60,3 +60,4 @@ typings/
 .idea
 
 dist/
+src/worker/index.js

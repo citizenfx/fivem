@@ -29,9 +29,13 @@ a {
 
 			.checkboxes {
 				.checkbox {
-					label {
+					label, button {
 						height: $filterHeight;
 						padding: $padding*2 $padding*$multiplier;
+					}
+
+					button {
+						width: $filterHeight;
 					}
 				}
 			}
@@ -73,6 +77,10 @@ a {
 
 				margin-right: $padding/4;
 
+				&.button {
+					flex-grow: 0;
+				}
+
 				&:last-child {
 					margin-right: 0;
 				}
@@ -84,7 +92,7 @@ a {
 					transform: translateX(-9999px);
 				}
 
-				label {
+				label, button {
 					display: block;
 					width: 100%;
 
@@ -96,7 +104,9 @@ a {
 					border-radius: 1px;
 
 					transition: all .2s ease;
+				}
 
+				label {
 					&::before {
 						content: '';
 						display: inline-block;
@@ -120,8 +130,10 @@ a {
 					}
 				}
 
-				&:hover label {
+				&:hover label, &:hover button {
 					background-color: rgba($bgColour, .2);
+
+					box-shadow: none;
 				}
 
 				input:checked + label {

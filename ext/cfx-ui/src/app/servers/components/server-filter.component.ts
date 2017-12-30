@@ -2,6 +2,8 @@ import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angu
 
 import { Server } from '../server';
 
+import { ServersService } from '../servers.service';
+
 export class ServerFilters {
     public searchText: string;
     public hideEmpty = false;
@@ -36,7 +38,7 @@ export class ServerFilterComponent implements OnInit, OnChanges {
 	private minPingLimit = 30;
 	private maxPingLimit = 200;
 	
-    constructor() {
+    constructor(private serversService: ServersService) {
 
     }
 
@@ -84,5 +86,9 @@ export class ServerFilterComponent implements OnInit, OnChanges {
 			this.filters.maxPing = Math.floor(ping);
 			this.filtersChanged.emit(this.filters);
 		}
-	}
+    }
+    
+    refresh() {
+        this.serversService.refreshServers();
+    }
 }

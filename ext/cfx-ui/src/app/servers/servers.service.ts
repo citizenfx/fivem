@@ -8,6 +8,7 @@ import { Subject } from 'rxjs/Subject';
 
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/bufferTime';
+import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/filter';
@@ -28,30 +29,40 @@ export class ServersService {
 
     private worker: Worker;
 
+    private servers: {[ addr: string ]: Server} = {};
+
     constructor(private http: Http, private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone) {
         this.requestEvent = new Subject<string>();
 
         this.serversEvent = new Subject<Server>();
         this.internalServerEvent = new Subject<master.IServer>();
 
-        this.worker = new Worker(serverWorker);
-        zone.runOutsideAngular(() => {
-            this.worker.addEventListener('message', (event) => {
-                if (event.data.type === 'addServers') {
-                    for (const server of event.data.servers) {
-                        this.internalServerEvent.next(server);
+        // only enable the worker if streams are supported
+        if (Response !== undefined && Response.prototype.hasOwnProperty('body')) {
+            this.worker = new Worker(serverWorker);
+            zone.runOutsideAngular(() => {
+                this.worker.addEventListener('message', (event) => {
+                    if (event.data.type === 'addServers') {
+                        for (const server of event.data.servers) {
+                            this.internalServerEvent.next(server);
+                        }
                     }
-                }
+                });
             });
-        });
-        this.requestEvent.subscribe(url => {
-            this.worker.postMessage({ type: 'queryServers', url });
-        })
+
+            this.requestEvent
+                .subscribe(url => {
+                    this.worker.postMessage({ type: 'queryServers', url: url + 'stream/' });
+                });
+        }
 
         this.serversSource
             .filter(a => a.Data != null)
             .map(value => Server.fromObject(this.domSanitizer, value.EndPoint, value.Data))
-            .subscribe(server => this.serversEvent.next(server));
+            .subscribe(server => {
+                this.servers[server.address] = server;
+                this.serversEvent.next(server);
+            });
     }
 
     private get serversSource(): Observable<master.IServer> {
@@ -69,12 +80,18 @@ export class ServersService {
     private get httpSource() {
         return this.requestEvent
             .asObservable()
-            .mergeMap(url => this.httpClient.get(url, { responseType: 'arraybuffer' }))
+            .mergeMap(url => this.httpClient.get(url + 'proto/', { responseType: 'arraybuffer' }))
             .mergeMap(result => master.Servers.decode(new Uint8Array(result)).servers);
     }
 
     public refreshServers() {
-        this.requestEvent.next('https://runtime.fivem.net/api/servers/stream/');
+        this.requestEvent.next('https://runtime.fivem.net/api/servers/');
+    }
+
+    public getServer(address: string): Promise<Server> {
+        return fetch('https://runtime.fivem.net/api/servers/single/' + address)
+            .then(resp => resp.json())
+            .then(data => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
     }
 
     public getServers(): Observable<Server> {

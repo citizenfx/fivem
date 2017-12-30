@@ -1,14 +1,14 @@
-<div class="server-list-item">
+<div class="server-list-item" (click)="showServerDetail()">
     <div class="bg" [style.background-image]="server.sanitizedStyleUri"></div>
 
-    <figure class="icon" (click)="attemptConnect()">
+    <figure class="icon" (click)="attemptConnect($event)">
         <img [src]="server.sanitizedUri">
     </figure>
 
     <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
 
     <div class="actions">
-        <button (click)="toggleFavorite()" [class.active]="isFavorite()">
+        <button (click)="toggleFavorite($event)" [class.active]="isFavorite()">
             <svg 
                 viewBox="0 0 24 24" 
                 fill="none" 

@@ -41,8 +41,14 @@ export class ServersContainerComponent implements OnInit {
         typedServers.subscribe(server => {
             if (!this.servers[server.address]) {
                 this.serversArray.push(server);
-                this.serversArray = this.serversArray.slice();
+            } else {
+                this.serversArray.splice(
+                    this.serversArray.findIndex(a => a.address === server.address),
+                    1,
+                    server);
             }
+
+            this.serversArray = this.serversArray.slice();
 
             this.servers[server.address] = server;
         });

@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>CfxUi</title>
+	<title>FiveM server list™</title>
 	<base href=".">
 
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,22 +21,6 @@
 <div id="bg"></div>
 
 <app-root>Loading...</app-root>
-
-<!-- yeah, legacy JS -->
-<script type="text/javascript">
-	function setZoomLevel() {
-		const zoomLevel = Math.min(
-			window.innerWidth / 1280,
-			window.innerHeight / 720
-		);
-
-		document.querySelector('app-root').style.setProperty('--zoom', zoomLevel);
-	}
-
-	setZoomLevel();
-
-	window.addEventListener('resize', setZoomLevel);
-</script>
 
 <script type="text/javascript">
 const getGPU = function()
@@ -59,7 +43,7 @@ _paq.push(['enableLinkTracking']);
 (function() {
 	var u="https://metrics.fivem.net/";
 	_paq.push(['setTrackerUrl', u+'piwik.php']);
-	_paq.push(['setSiteId', '3']);
+	_paq.push(['setSiteId', (window.invokeNative) ? '3' : '4']);
 	_paq.push(['setCustomDimension', customDimensionId = 1, customDimensionValue = getGPU()]);
 	_paq.push(['setCustomDimension', customDimensionId = 2, customDimensionValue = navigator.hardwareConcurrency]);
 	var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];

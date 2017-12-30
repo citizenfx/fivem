@@ -444,6 +444,7 @@ export class DummyGameService extends GameService {
 	}
 
 	toggleListEntry(list: string, server: Server, isInList: boolean) {
+		console.log(`toggling ${list} entry ${server.address} (${isInList})`);
 	}
 
 	exitGame(): void {
