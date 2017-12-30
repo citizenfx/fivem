@@ -312,6 +312,34 @@ namespace CitizenFX.Core
 		object UnpackExt8(byte a, BinaryReader reader)
 		{
 			var length = reader.ReadByte();
+
+			return UnpackExt(reader, length);
+		}
+
+		object UnpackExt16(byte a, BinaryReader reader)
+		{
+			var lenBytes = reader.ReadBytes(2);
+			var length = BitConverter.ToUInt16(new[] { lenBytes[1], lenBytes[0] }, 0);
+
+			return UnpackExt(reader, length);
+		}
+
+		object UnpackExt32(byte a, BinaryReader reader)
+		{
+			var lenBytes = reader.ReadBytes(4);
+			var length = BitConverter.ToInt32(new[] { lenBytes[3], lenBytes[2], lenBytes[1], lenBytes[0] }, 0);
+
+			return UnpackExt(reader, length);
+		}
+
+		object UnpackFixExt1(byte a, BinaryReader reader) => UnpackExt(reader, 1);
+		object UnpackFixExt2(byte a, BinaryReader reader) => UnpackExt(reader, 2);
+		object UnpackFixExt4(byte a, BinaryReader reader) => UnpackExt(reader, 4);
+		object UnpackFixExt8(byte a, BinaryReader reader) => UnpackExt(reader, 8);
+		object UnpackFixExt16(byte a, BinaryReader reader) => UnpackExt(reader, 16);
+
+		private object UnpackExt(BinaryReader reader, int length)
+		{
 			var extType = reader.ReadByte();
 
 			if (extType != 10 && extType != 11)
@@ -365,6 +393,8 @@ namespace CitizenFX.Core
 				case 0xC5: return UnpackBin16;
 				case 0xC6: return UnpackBin32;
 				case 0xC7: return UnpackExt8;
+				case 0xC8: return UnpackExt16;
+				case 0xC9: return UnpackExt32;
 				case 0xCA: return UnpackSingle;
 				case 0xCB: return UnpackDouble;
 				case 0xCC: return UnpackUInt8;
@@ -375,6 +405,11 @@ namespace CitizenFX.Core
 				case 0xD1: return UnpackInt16;
 				case 0xD2: return UnpackInt32;
 				case 0xD3: return UnpackInt64;
+				case 0xD4: return UnpackFixExt1;
+				case 0xD5: return UnpackFixExt2;
+				case 0xD6: return UnpackFixExt4;
+				case 0xD7: return UnpackFixExt8;
+				case 0xD8: return UnpackFixExt16;
 				case 0xD9: return UnpackString8;
 				case 0xDA: return UnpackString16;
 				case 0xDB: return UnpackString32;
