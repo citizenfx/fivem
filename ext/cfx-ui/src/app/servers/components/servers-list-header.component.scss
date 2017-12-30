@@ -19,7 +19,7 @@
 
 	div {
 		height: $appServersItemHeight * 1.2;
-		font-size: 1.3rem;
+		font-size: $fontSize*0.8;
 		font-weight: 100;
 		line-height: $appServersItemHeight * 1.2;
 
@@ -50,6 +50,10 @@
 			padding-right: $padding*$multiplier;
 		}
 
+		&.name span::after {
+			left: calc(100% + 5px);
+		}
+
 		span {
 			position: relative;
 		}
@@ -62,7 +66,7 @@
 			height: 14px;
 
 			top: calc(50% - 5px);
-			left: calc(100% + 5px);
+			left: -15px;
 
 			transform: rotate(0deg);
 			transition: all .2s ease;
