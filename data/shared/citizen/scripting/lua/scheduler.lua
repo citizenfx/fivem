@@ -137,6 +137,7 @@ local deserializingNetEvent = false
 
 Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	-- set the event source
+	local lastSource = _G.source
 	_G.source = eventSource
 
 	-- try finding an event handler for the event
@@ -176,6 +177,8 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			end
 		end
 	end
+
+	_G.source = lastSource
 end)
 
 local eventKey = 10
