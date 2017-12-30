@@ -6,6 +6,7 @@ import 'rxjs/add/operator/bufferTime';
 import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/finally';
 import 'rxjs/add/operator/map';
 
 import { Server, ServerIcon, PinConfig } from '../app/servers/server';
@@ -114,6 +115,7 @@ onmessage = (e: MessageEvent) => {
                     return subject;
                 })
                 .bufferTime(250, null, 50)
+                .finally(() => (<any>postMessage)({ type: 'serversDone' }))
                 .subscribe(servers => {
                     if (servers.length) {
                         (<any>postMessage)({ type: 'addServers', servers })

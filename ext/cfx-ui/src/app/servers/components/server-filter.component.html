@@ -29,7 +29,7 @@
                 <label for="hide-full" translate>#ServerList_HideFull</label>
             </div>
             <div class="checkbox button">
-                <button class="refresh" (click)="refresh()">&#x21bb;</button>
+                <button class="refresh" (click)="refresh()"><span [class.refreshing]="isRefreshing || wantsToBeRefreshing">&#x21bb;</span></button>
             </div>
         </div>
     </section>

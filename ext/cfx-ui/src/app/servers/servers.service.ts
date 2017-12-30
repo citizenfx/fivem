@@ -46,6 +46,8 @@ export class ServersService {
                         for (const server of event.data.servers) {
                             this.internalServerEvent.next(server);
                         }
+                    } else if (event.data.type === 'serversDone') {
+                        this.internalServerEvent.next(null);
                     }
                 });
             });
@@ -57,9 +59,14 @@ export class ServersService {
         }
 
         this.serversSource
-            .filter(a => a.Data != null)
-            .map(value => Server.fromObject(this.domSanitizer, value.EndPoint, value.Data))
+            .filter(a => !a || a.Data != null)
+            .map(value => value ? Server.fromObject(this.domSanitizer, value.EndPoint, value.Data) : null)
             .subscribe(server => {
+                if (!server) {
+                    this.serversEvent.next(null);
+                    return;
+                }
+
                 this.servers[server.address] = server;
                 this.serversEvent.next(server);
             });

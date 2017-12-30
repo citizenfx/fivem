@@ -4,6 +4,10 @@ import { Server } from '../server';
 
 import { ServersService } from '../servers.service';
 
+import { Subject } from 'rxjs/Subject';
+
+import 'rxjs/add/operator/throttleTime';
+
 export class ServerFilters {
     public searchText: string;
     public hideEmpty = false;
@@ -33,13 +37,25 @@ export class ServerFilterComponent implements OnInit, OnChanges {
     @Output()
     public filtersChanged = new EventEmitter<ServerFilters>();
 
+    isRefreshing = false;
+    wantsToBeRefreshing = false;
+
+    refreshEvent = new Subject<void>();
+
 	public mouseState = false;
 	public maxPingPercent = 0;
 	private minPingLimit = 30;
-	private maxPingLimit = 200;
-	
+    private maxPingLimit = 200;
+    
     constructor(private serversService: ServersService) {
+        this.serversService
+            .getServers()
+            .filter(server => !server)
+            .subscribe(server => this.isRefreshing = false);
 
+        this.refreshEvent
+            .throttleTime(10000)
+            .subscribe(() => { this.wantsToBeRefreshing = false; this.isRefreshing = true; this.serversService.refreshServers() });
     }
 
     ngOnInit() {
@@ -89,6 +105,15 @@ export class ServerFilterComponent implements OnInit, OnChanges {
     }
     
     refresh() {
-        this.serversService.refreshServers();
+        if (!this.wantsToBeRefreshing) {
+            // comforting timeout for spam clicks, no debouncing though
+            window.setTimeout(() => {
+                this.wantsToBeRefreshing = false;
+            }, 1000);
+
+            this.wantsToBeRefreshing = true;
+        }
+
+        this.refreshEvent.next();
     }
 }

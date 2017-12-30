@@ -35,7 +35,7 @@ export class ServersContainerComponent implements OnInit {
 
         const typedServers = this.serverService
             .getServers()
-            .filter(a => this.gameService.isMatchingServer(this.type, a));
+            .filter(a => a && this.gameService.isMatchingServer(this.type, a));
 
         // add each new server to our server list
         typedServers.subscribe(server => {

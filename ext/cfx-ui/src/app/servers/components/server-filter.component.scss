@@ -104,6 +104,10 @@ a {
 					border-radius: 1px;
 
 					transition: all .2s ease;
+
+					span {
+						display: inline-block;
+					}
 				}
 
 				label {
@@ -279,4 +283,13 @@ a {
 			}
 		}
 	}
+}
+
+@keyframes spin {
+    from {transform:rotate(0deg);}
+    to {transform:rotate(360deg);}
+}
+
+.refreshing {
+	animation: spin 1000ms infinite linear;
 }
