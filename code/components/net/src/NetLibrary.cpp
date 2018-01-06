@@ -645,8 +645,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			if (!node["sH"].IsDefined())
 			{
-				// Server did not send a scripts setting: old server or rival project
-				OnConnectionError("Legacy servers are incompatible with this version of FiveM. Update the server to the latest files from fivem.net");
+				OnConnectionError("Invalid server response from initConnect (missing JSON data), is this server running a broken resource?");
 				m_connectionState = CS_IDLE;
 				return;
 			}
