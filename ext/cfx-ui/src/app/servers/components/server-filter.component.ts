@@ -4,6 +4,8 @@ import { Server } from '../server';
 
 import { ServersService } from '../servers.service';
 
+import { GameService } from '../../game.service';
+
 import { Subject } from 'rxjs/Subject';
 
 import 'rxjs/add/operator/throttleTime';
@@ -47,7 +49,7 @@ export class ServerFilterComponent implements OnInit, OnChanges {
 	private minPingLimit = 30;
     private maxPingLimit = 200;
     
-    constructor(private serversService: ServersService) {
+    constructor(private serversService: ServersService, private gameService: GameService) {
         this.serversService
             .getServers()
             .filter(server => !server)
@@ -115,5 +117,9 @@ export class ServerFilterComponent implements OnInit, OnChanges {
         }
 
         this.refreshEvent.next();
+    }
+
+    rentServer() {
+        this.gameService.openUrl('https://zap-hosting.com/fivem4');
     }
 }

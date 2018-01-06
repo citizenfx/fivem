@@ -11,6 +11,8 @@
 #include "CefOverlay.h"
 #include "memdbgon.h"
 
+#include <shellapi.h>
+
 static InitFunction initFunction([] ()
 {
 	auto nuiApp = Instance<NUIApp>::Get();
@@ -47,6 +49,15 @@ static InitFunction initFunction([] ()
 			{
 				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
 				ExitProcess(0);
+			}
+			else if (nativeType == "openUrl")
+			{
+				std::string arg = args->GetString(1).ToString();
+
+				if (arg.find("http://") == 0 || arg.find("https://") == 0)
+				{
+					ShellExecute(nullptr, L"open", ToWide(arg).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+				}
 			}
 
 			return true;

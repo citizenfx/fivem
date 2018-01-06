@@ -98,6 +98,11 @@ export abstract class GameService {
 
 	}
 
+	openUrl(url: string): void {
+		const win = window.open(url, '_blank');
+		win.focus();
+	}
+
 	protected invokeConnectFailed(server: Server, message: string) {
 		this.connectFailed.emit([server, message]);
 	}
@@ -386,6 +391,10 @@ export class CfxGameService extends GameService {
 
 	exitGame(): void {
 		(<any>window).invokeNative('exit', '');
+	}
+
+	openUrl(url: string): void {
+		(<any>window).invokeNative('openUrl', url);
 	}
 }
 
