@@ -158,7 +158,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	if (result != 0)
 	{
-		MessageBox(NULL, va(L"An error (%i) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+		MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
 		return false;
 	}
 

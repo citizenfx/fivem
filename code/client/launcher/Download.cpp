@@ -54,6 +54,8 @@ typedef struct download_s
 
 	lzma_stream strm;
 	uint8_t strmOut[65535];
+
+	char curlError[CURL_ERROR_SIZE];
 } download_t;
 
 struct dlState
@@ -349,6 +351,7 @@ void DL_ProcessDownload()
 			download->curlHandles[0] = curlHandle;
 
 			curl_easy_setopt(curlHandle, CURLOPT_URL, download->url);
+			curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, download->curlError);
 			curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, download.get());
 			curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, download.get());
 			curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, DL_WriteToFile);
@@ -424,7 +427,7 @@ void DL_ProcessDownload()
 					{
 						if (GetLastError() != ERROR_FILE_NOT_FOUND)
 						{
-							MessageBoxA(NULL, va("Deleting old %s failed (err = %d)", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
+							MessageBoxA(NULL, va("Deleting old %s failed (err = %d) - make sure you don't have any existing FiveM processes running", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
 
 							ExitProcess(1);
 						}
@@ -432,7 +435,7 @@ void DL_ProcessDownload()
 
 					if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)//rename(tmpPath, opath) != 0)
 					{
-						MessageBoxA(NULL, va("Moving of %s failed (err = %d)", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
+						MessageBoxA(NULL, va("Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
 						DeleteFile(tmpPathWide.c_str());
 
 						ExitProcess(1);
@@ -445,7 +448,7 @@ void DL_ProcessDownload()
 				else
 				{
 					_wunlink(tmpPathWide.c_str());
-					MessageBoxA(NULL, va("Downloading of %s failed with CURLcode 0x%x", download->url, (int)code), "Error", MB_OK | MB_ICONSTOP);
+					MessageBoxA(NULL, va("Downloading of %s failed with CURLcode %d - %s", download->url, (int)code, download->curlError), "Error", MB_OK | MB_ICONSTOP);
 
 					ExitProcess(1);
 				}
@@ -515,6 +518,13 @@ static size_t RequestDataReceived(void *ptr, size_t size, size_t nmemb, void *da
 	return (size * nmemb);
 }
 
+static char g_curlError[CURL_ERROR_SIZE];
+
+const char* DL_RequestURLError()
+{
+	return g_curlError;
+}
+
 int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 {
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -534,6 +544,7 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "CitizenIV");
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, g_curlError);
 
 		CURLcode code = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
