@@ -85,7 +85,8 @@ void NUIWindow::Initialize(CefString url)
 	m_client = new NUIClient(this);
 
 	CefWindowInfo info;
-	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
+	//info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
+	info.SetAsWindowless(nullptr);
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
