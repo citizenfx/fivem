@@ -19,7 +19,8 @@
 
 namespace fx
 {
-static std::vector<std::function<void()>> g_onNetInitCbs;
+static tbb::concurrent_unordered_map<int, std::function<void()>> g_onNetInitCbs;
+static std::atomic<int> g_onNetInitCbCtr;
 
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
@@ -118,7 +119,13 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 			else
 			{
-				g_onNetInitCbs.emplace_back(loadScripts);
+				int ctr = g_onNetInitCbCtr.fetch_add(1);
+				g_onNetInitCbs.emplace(ctr, loadScripts);
+
+				resource->OnStop.Connect([ctr]()
+				{
+					g_onNetInitCbs[ctr] = {};
+				});
 			}
 #endif
 		}
@@ -257,7 +264,10 @@ static HookFunction hookFunction([] ()
 		{
 			for (auto& cb : fx::g_onNetInitCbs)
 			{
-				cb();
+				if (cb.second)
+				{
+					cb.second();
+				}
 			}
 
 			fx::g_onNetInitCbs.clear();
