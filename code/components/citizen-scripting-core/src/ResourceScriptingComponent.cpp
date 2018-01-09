@@ -28,7 +28,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 {
 	resource->OnStart.Connect([=] ()
 	{
-		// pre-emptively instantiate all scripting environments
+		// preemptively instantiate all scripting environments
 		std::vector<OMPtr<IScriptFileHandlingRuntime>> environments;
 
 		{
@@ -94,8 +94,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			OMPtr<IScriptRuntime> ptr;
 			if (FX_SUCCEEDED(environment.As(&ptr)))
 			{
-				std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
-
 				ptr->SetParentObject(resource);
 
 				m_scriptRuntimes[ptr->GetInstanceId()] = ptr;
@@ -120,7 +118,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 			else
 			{
-				g_onNetInitCbs.push_back(loadScripts);
+				g_onNetInitCbs.emplace_back(loadScripts);
 			}
 #endif
 		}
@@ -128,11 +126,11 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnTick.Connect([=] ()
 	{
-		for (auto& environment : CollectScriptRuntimes())
+		for (auto& environmentPair : m_scriptRuntimes)
 		{
 			OMPtr<IScriptTickRuntime> tickRuntime;
 
-			if (FX_SUCCEEDED(environment.As(&tickRuntime)))
+			if (FX_SUCCEEDED(environmentPair.second.As(&tickRuntime)))
 			{
 				tickRuntime->Tick();
 			}
@@ -146,12 +144,11 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			return;
 		}
 
-		for (auto& environment : CollectScriptRuntimes())
+		for (auto& environmentPair : m_scriptRuntimes)
 		{
-			environment->Destroy();
+			environmentPair.second->Destroy();
 		}
 
-		std::unique_lock<std::recursive_mutex> lock(m_scriptRuntimesLock);
 		m_scriptRuntimes.clear();
 	});
 }
@@ -159,9 +156,9 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 void ResourceScriptingComponent::CreateEnvironments()
 {
 
-	for (auto& environment : CollectScriptRuntimes())
+	for (auto& environmentPair : m_scriptRuntimes)
 	{
-		auto hr = environment->Create(m_scriptHost.GetRef());
+		auto hr = environmentPair.second->Create(m_scriptHost.GetRef());
 
 		if (FX_FAILED(hr))
 		{
@@ -170,7 +167,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 	}
 
 	// iterate over the runtimes and load scripts as requested
-	for (auto& environment : CollectScriptRuntimes())
+	for (auto& environmentPair : m_scriptRuntimes)
 	{
 		OMPtr<IScriptFileHandlingRuntime> ptr;
 
@@ -183,7 +180,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 #endif
 		);
 
-		if (FX_SUCCEEDED(environment.As(&ptr)))
+		if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 		{
 			bool environmentUsed = false;
 
@@ -212,11 +209,11 @@ void ResourceScriptingComponent::CreateEnvironments()
 		// pre-cache event-handling runtimes
 		std::vector<OMPtr<IScriptEventRuntime>> eventRuntimes;
 
-		for (auto& environment : CollectScriptRuntimes())
+		for (auto& environmentPair : m_scriptRuntimes)
 		{
 			OMPtr<IScriptEventRuntime> ptr;
 
-			if (FX_SUCCEEDED(environment.As(&ptr)))
+			if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 			{
 				eventRuntimes.push_back(ptr);
 			}
