@@ -8,7 +8,7 @@
 					<small>@{{tweet.user_screenname}}</small>
 					<small>
 						{{tweet.date | amTimeAgo}}
-						<span class="additional">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
+						<span class="additional" data-balloon="Open tweet in browser." data-balloon-pos="right" (click)="openTweet(tweet.id)">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
 					</small>	
 				</div>
 				<div class="message-body">

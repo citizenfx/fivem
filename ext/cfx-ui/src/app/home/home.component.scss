@@ -33,6 +33,10 @@
 				opacity: 0;
 				padding-left: 0;
 				transition: all .2s ease;
+
+				&:hover {
+					color: #fff;
+				}				
 			}
 			
 			&:hover {

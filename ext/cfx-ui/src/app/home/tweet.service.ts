@@ -10,6 +10,7 @@ export class Tweet {
     readonly content: string;
     readonly date: Date;
     readonly avatar: string;
+    readonly id: string;
 
     image: string;
 
@@ -21,6 +22,7 @@ export class Tweet {
 
         this.date = new Date(json.created_at);
         this.avatar = json.user.profile_image_url_https;
+        this.id = json.id_str;
     }
 
     // based on https://gist.github.com/darul75/88fc42a21f6113708a0b
