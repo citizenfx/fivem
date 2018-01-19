@@ -79,7 +79,7 @@
             }
 
             .title {
-                font-size: 2.5rem;
+                font-size: 4vh;
                 line-height: 1;
             }
 
@@ -98,6 +98,11 @@
 
             .connect {
                 margin-top: $padding;
+            }
+
+            .disabled {
+                opacity: .5;
+                transition: opacity .4s;
             }
 
             &.player-list {

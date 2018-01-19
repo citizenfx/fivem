@@ -51,6 +51,9 @@
 			<button class="unimportant favorite" (click)="removeFavorite()" *ngIf="isFavorite()" translate>
 				#ServerDetail_DelFavorite
 			</button>
+			<button class="unimportant refresh" (click)="refreshServer()" [class.disabled]="!canRefresh" translate>
+				#ServerDetail_Refresh
+			</button>
 			<button class="unimportant back" (click)="goBack()" translate>
 				#ServerDetail_Back
 			</button>
@@ -59,7 +62,7 @@
 
 	<div class="info player-list" *ngIf="this.server">
 		<h1 translate>#ServerDetail_Players</h1>
-
+		<span *ngIf="server.data.players.length == 0" translate>#ServerDetail_PlayersEmpty</span>
 		<ul>
 			<li *ngFor="let player of server.data.players"><figure><img [src]="getPlayerUrl(player)"></figure>
 				<span>
