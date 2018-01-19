@@ -35,6 +35,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     filterFuncs: {[key: string]: (pair: VariablePair) => VariablePair} = {};
     resourceString = '';
     error = '';
+    canRefresh = true;
 
     interval: number;
 
@@ -45,7 +46,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     addrEvent = new Subject<[string, number]>();
 
     disallowedVars = ['sv_enhancedHostSupport', 'sv_licenseKeyToken', 'sv_lan', 'sv_maxClients'];
-
+    
     @Language()
     lang: string;
 
@@ -84,6 +85,17 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
                     .filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
                     .map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
             });
+    }
+
+    refreshServer() {
+        if (this.canRefresh) {
+            this.updateServer();
+
+            this.canRefresh = false;
+            window.setTimeout(() => {
+                this.canRefresh = true;
+            }, 2000);
+        }
     }
 
     getPlayerUrl(player: any) {

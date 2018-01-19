@@ -31,9 +31,11 @@
     "#DirectConnect_IPPort": "IP:Port",
     "#DirectConnect_Connect": "Connect",
     "#ServerDetail_Players": "Players",
+    "#ServerDetail_PlayersEmpty": "No online players on this server.",
     "#ServerDetail_Back": "Back",
     "#ServerDetail_AddFavorite": "Favorite",
     "#ServerDetail_DelFavorite": "Unfavorite",
+    "#ServerDetail_Refresh": "Refresh",
     "#ServerDetail_ScriptHook": "Client scripts allowed",
     "#Yes": "Yes",
     "#No": "No"
