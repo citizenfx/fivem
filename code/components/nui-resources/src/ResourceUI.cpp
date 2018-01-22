@@ -55,7 +55,9 @@ bool ResourceUI::Create()
 	std::string pageName = uiPageData.begin()->second;
 
 	// initialize the page
-	CefRegisterSchemeHandlerFactory("http", m_resource->GetName(), Instance<NUISchemeHandlerFactory>::Get());
+	auto resourceName = m_resource->GetName();
+	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
+	CefRegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
 	std::string path = "nui://" + m_resource->GetName() + "/" + pageName;
