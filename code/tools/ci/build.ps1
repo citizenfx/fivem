@@ -214,7 +214,7 @@ if (!$DontBuild)
 
 	if (!($env:APPVEYOR)) {
 	    Push-Location $WorkDir\..\
-        if(Test-Path $env:FIVEM_PRIVATE_URI){
+        if($env:FIVEM_PRIVATE_URI){
 
             # cloned, building
             if (!(Test-Path fivem-private)) {
