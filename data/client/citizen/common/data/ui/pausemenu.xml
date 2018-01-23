@@ -974,9 +974,9 @@
 			<MenuScreen>MENU_UNIQUE_ID_HEADER</MenuScreen>
 			<depth>0</depth>
 			<MenuItems>
-				<Item> <cTextId>PM_SCR_MAP</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MAP</MenuUniqueId> </Item>	
-				<!--<Item> <cTextId>PM_SCR_BRF</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_INFO</MenuUniqueId> </Item>
-				<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>-->
+				<Item> <cTextId>PM_SCR_MAP</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MAP</MenuUniqueId> </Item>
+				<Item> <cTextId>PM_SCR_BRF</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_INFO</MenuUniqueId> </Item>
+				<!--<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_SCR_GAM</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GAME</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_SET</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS</MenuUniqueId> </Item>
 				<!--<Item> <cTextId>PM_SCR_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MISSION_CREATOR</MenuUniqueId> </Item>
@@ -1005,9 +1005,9 @@
 				<Item> <cTextId>PM_SCR_MAP</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MAP</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_GAM</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GAME</MenuUniqueId> </Item>
 				<!--<Item> <cTextId>PM_SCR_PLA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_PLAYERS</MenuUniqueId> </Item>-->
-				<!--<Item> <cTextId>PM_SCR_FRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_FRIENDS_MP</MenuUniqueId> </Item>
+				<!--<Item> <cTextId>PM_SCR_FRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_FRIENDS_MP</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_SCR_INF</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_INFO</MenuUniqueId> </Item>
-				<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>-->
+				<!--<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_SCR_SET</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS</MenuUniqueId> </Item>
 				<!-- MOVED INTO THE MP MENU
 				<Item> <cTextId>PM_SCR_CRW</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREWS</MenuUniqueId> </Item>
@@ -1252,13 +1252,14 @@
 			<depth>1</depth>
 			<Flags>EnterMenuOnMouseClick</Flags>
 			<MenuItems>
-				<Item> <cTextId>PM_PANE_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
-				<Item> <cTextId>PM_PANE_MPJ</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InMP</Contexts> </Item>
+				<!-- <Item> <cTextId>PM_PANE_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item> -->
+				<Item> <cTextId>PM_PANE_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InMP</Contexts> </Item>
+				<!-- <Item> <cTextId>PM_PANE_MPJ</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InMP</Contexts> </Item> -->
 				<Item> <cTextId>PM_PANE_HLP</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_HELP</MenuUniqueId> </Item>
-				<Item> <cTextId>PM_PANE_BRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_BRIEF</MenuUniqueId> </Item>
+				<!-- <Item> <cTextId>PM_PANE_BRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_BRIEF</MenuUniqueId> </Item> -->
 				<Item> <cTextId>PM_PANE_FEE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_FEED</MenuUniqueId>	</Item>
-				<Item> <cTextId>PM_PANE_NEWS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_NEWSWIRE</MenuUniqueId>	</Item>
-				<Item> <cTextId>PM_PANE_XBHELP</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HELP</MenuUniqueId> <Contexts>*ALL*, DURANGO</Contexts></Item>
+				<!-- <Item> <cTextId>PM_PANE_NEWS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_NEWSWIRE</MenuUniqueId>	</Item> -->
+				<!-- <Item> <cTextId>PM_PANE_XBHELP</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HELP</MenuUniqueId> <Contexts>*ALL*, DURANGO</Contexts></Item> -->
 			</MenuItems>
 			
 			<ButtonList>
