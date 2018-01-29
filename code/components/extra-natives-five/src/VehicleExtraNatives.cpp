@@ -11,9 +11,13 @@
 
 #include <Local.h>
 #include <Hooking.h>
+#include <GameInit.h>
 
 #include <limits>
 #include <bitset>
+#include <unordered_set>
+
+static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
 {
@@ -363,4 +367,104 @@ static HookFunction initFunction([]()
 	{
 		*reinterpret_cast<float *>(wheelAddr + WheelXOffsetOffset) = context.GetArgument<float>(2);
 	}));
+
+	static struct : jitasm::Frontend
+	{
+		static bool ShouldSkipRepairFunc(fwEntity* VehPointer)
+		{
+			return g_skipRepairVehicles.find(VehPointer) != g_skipRepairVehicles.end();
+		}
+		virtual void InternalMain() override
+		{
+			//restore dl after asm call
+			mov(dl, 1);
+
+			//save parameter registers
+			push(rax);
+			push(rcx);
+			push(rdx);
+			push(r8);
+			
+			sub(rsp, 0x28);
+			mov(rax, (uintptr_t)ShouldSkipRepairFunc);
+			call(rax);
+			add(rsp, 0x28);
+
+			//restore parameter registers
+			pop(r8);
+			pop(rdx);
+			pop(rcx);
+
+			test(al, al);
+			jne("skiprepair");
+			pop(rax);
+			sub(rsp, 0x28);
+			AppendInstr(jitasm::InstrID::I_CALL, 0xFF, 0, jitasm::Imm8(2), qword_ptr[rax + 0x5D0]);
+			add(rsp, 0x28);
+			ret();
+			L("skiprepair");
+			pop(rax);
+			ret();
+		}
+	} asmfunc;
+
+	auto repairFunc = hook::get_pattern("48 8B 03 45 33 C0 B2 01 48 8B CB FF 90 D0 05 00 00 48 8B 4B 20",11);
+	hook::nop(repairFunc, 6);
+	hook::call_reg<2>(repairFunc, asmfunc.GetCode());
+
+	static struct : jitasm::Frontend
+	{
+		static void CleanupVehicle(fwEntity* VehPointer)
+		{
+			g_skipRepairVehicles.erase(VehPointer);
+		}
+		virtual void InternalMain() override
+		{
+			//overwritten assembly code
+			mov(rbx, rcx);
+			mov(qword_ptr[rcx], rax);
+
+			//save registers
+			push(rax);
+			push(rcx);
+			sub(rsp, 0x8);
+
+			//actual cleanup function call
+			mov(rax, (uintptr_t)CleanupVehicle);
+			sub(rsp, 0x20);
+			call(rax);
+			add(rsp, 0x20);
+
+			//restore registers
+			add(rsp, 0x8);
+			pop(rcx);
+			pop(rax);
+			ret();
+		}
+	} vehicleDeconstructorHook;
+	auto vehicleDeconstructor = hook::get_pattern("48 8B 43 20 48 8B 88 B0 00 00 00 75 09 66 FF 89",-0x1D);
+	hook::nop(vehicleDeconstructor, 0x6);
+	hook::call_reg<2>(vehicleDeconstructor, vehicleDeconstructorHook.GetCode());
+
+	OnKillNetworkDone.Connect([]() {
+		g_skipRepairVehicles.clear();
+	});
+
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context) {
+		auto vehHandle = context.GetArgument<int>(0);
+		auto shouldDisable = context.GetArgument<bool>(1);
+		fwEntity *entity = getScriptEntity(vehHandle);
+		if (shouldDisable) {
+			g_skipRepairVehicles.insert(entity);
+		}
+		else
+		{
+			auto k = g_skipRepairVehicles.find(entity);
+			if (k != g_skipRepairVehicles.end()) {
+				g_skipRepairVehicles.erase(k);
+				return;
+			}
+		}
+	});
 });

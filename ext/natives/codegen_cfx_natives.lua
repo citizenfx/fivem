@@ -692,6 +692,18 @@ native 'END_FIND_PICKUP'
 	apiset 'client'
 	returns 'void'
 
+native 'SET_VEHICLE_AUTO_REPAIR_DISABLED'
+	arguments{
+		Vehicle 'vehicle',
+		BOOL 'value'
+	}
+	doc [[
+	<summary>
+	Disables the vehicle from being repaired when a vehicle extra is enabled.
+	</summary>
+	<param name="vehicle">The vehicle to set disable auto vehicle repair.</param>
+	<param name="value">Setting the value to  true prevents the vehicle from being repaired when a extra is enabled. Setting the value to false allows the vehicle from being repaired when a extra is enabled.</param>
+	]]
 native 'GET_VEHICLE_FUEL_LEVEL'
 	arguments {
 		Vehicle 'vehicle'
