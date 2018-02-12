@@ -5,7 +5,8 @@
 		"fx[2]",
 		"rage:scripting:five",
 		"rage:input:five",
-		"rage:graphics:five"
+		"rage:graphics:five",
+		"citizen:resources:core"
 	],
 	"provides": []
 }

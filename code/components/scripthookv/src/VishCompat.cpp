@@ -13,6 +13,8 @@
 
 #include <LaunchMode.h>
 
+#include <ResourceManager.h>
+
 #include <memory>
 
 #include <Error.h>
@@ -272,6 +274,20 @@ void DLL_EXPORT nativePush64(uint64_t value)
 	g_context.Push(value);
 }
 
+bool MpGamerTagCheck()
+{
+	// create MP gamer tag
+	if (g_hash == 0xBFEFE3321A3F5015 || g_hash == 0x6DD05E9D83EFA4C9)
+	{
+		if (Instance<fx::ResourceManager>::Get()->GetResource("playernames").GetRef())
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 DLL_EXPORT uint64_t* nativeCall()
 {
 	auto fn = rage::scrEngine::GetNativeHandler(g_hash);
@@ -299,6 +315,12 @@ DLL_EXPORT uint64_t* nativeCall()
 		{
 			lastWasHash = false;
 		}
+	}
+
+	// workaround `playernames` resource conflicting with local SH addons
+	if (valid)
+	{
+		valid = MpGamerTagCheck();
 	}
 
 	if (fn != 0 && valid)
