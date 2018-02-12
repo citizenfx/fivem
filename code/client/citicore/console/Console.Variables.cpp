@@ -5,7 +5,7 @@
 ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
     : m_parentContext(parentContext), m_curToken(0)
 {
-	auto setCommand = [=](bool archive, const std::string& variable, const std::string& value) {
+	auto setCommand = [=](ConsoleVariableFlags addFlags, const std::string& variable, const std::string& value) {
 		// weird order is to prevent recursive locking
 		{
 			Entry* entry = nullptr;
@@ -25,21 +25,14 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 			{
 				entry->variable->SetValue(value);
 
-				if (archive)
-				{
-					entry->flags |= ConVar_Archive;
-				}
+				entry->flags |= addFlags;
 
 				return;
 			}
 		}
 
 		int flags = ConVar_Modified;
-
-		if (archive)
-		{
-			flags |= ConVar_Archive;
-		}
+		flags |= addFlags;
 
 		auto entry = CreateVariableEntry<std::string>(this, variable, "");
 		entry->SetValue(value);
@@ -48,13 +41,20 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 	};
 
 	m_setCommand = std::make_unique<ConsoleCommand>(m_parentContext, "set", [=](const std::string& variable, const std::string& value) {
-		setCommand(false, variable, value);
+		setCommand(ConVar_None, variable, value);
 	});
 
 	// set archived
 	m_setaCommand = std::make_unique<ConsoleCommand>(m_parentContext, "seta", [=](const std::string& variable, const std::string& value) {
-		setCommand(true, variable, value);
+		setCommand(ConVar_Archive, variable, value);
 	});
+
+#if IS_FXSERVER
+	// set server
+	m_setsCommand = std::make_unique<ConsoleCommand>(m_parentContext, "sets", [=](const std::string& variable, const std::string& value) {
+		setCommand(ConVar_ServerInfo, variable, value);
+	});
+#endif
 }
 
 ConsoleVariableManager::~ConsoleVariableManager()

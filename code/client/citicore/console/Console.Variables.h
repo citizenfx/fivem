@@ -115,6 +115,7 @@ private:
 
 	std::unique_ptr<ConsoleCommand> m_setCommand;
 	std::unique_ptr<ConsoleCommand> m_setaCommand;
+	std::unique_ptr<ConsoleCommand> m_setsCommand;
 
 	std::unique_ptr<ConsoleCommand> m_toggleCommand;
 	std::unique_ptr<ConsoleCommand> m_vstrCommand;
