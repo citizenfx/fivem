@@ -407,10 +407,13 @@ static HookFunction initFunction([]()
 			ret();
 		}
 	} asmfunc;
-
-	auto repairFunc = hook::get_pattern("48 8B 03 45 33 C0 B2 01 48 8B CB FF 90 D0 05 00 00 48 8B 4B 20",11);
-	hook::nop(repairFunc, 6);
-	hook::call_reg<2>(repairFunc, asmfunc.GetCode());
+	
+	if (GetModuleHandle(L"AdvancedHookV.dll") == nullptr)
+	{
+		auto repairFunc = hook::get_pattern("48 8B 03 45 33 C0 B2 01 48 8B CB FF 90 D0 05 00 00 48 8B 4B 20", 11);
+		hook::nop(repairFunc, 6);
+		hook::call_reg<2>(repairFunc, asmfunc.GetCode());
+	}
 
 	static struct : jitasm::Frontend
 	{
@@ -460,11 +463,7 @@ static HookFunction initFunction([]()
 		}
 		else
 		{
-			auto k = g_skipRepairVehicles.find(entity);
-			if (k != g_skipRepairVehicles.end()) {
-				g_skipRepairVehicles.erase(k);
-				return;
-			}
+			g_skipRepairVehicles.erase(entity);
 		}
 	});
 });
