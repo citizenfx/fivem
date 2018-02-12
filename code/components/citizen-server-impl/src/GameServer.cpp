@@ -96,6 +96,36 @@ namespace fx
 
 		m_clientRegistry = instance->GetComponent<ClientRegistry>().GetRef();
 		m_instance = instance;
+
+		std::thread([=]()
+		{
+			while (true)
+			{
+				for (auto& master : m_masters)
+				{
+					// if the master is set
+					std::string masterName = master->GetValue();
+
+					if (!masterName.empty())
+					{
+						// look up if not cached
+						auto address = net::PeerAddress::FromString(masterName, 30110, net::PeerAddress::LookupType::ResolveName);
+
+						if (address)
+						{
+							if (m_masterCache[masterName] != *address)
+							{
+								trace("Resolved %s to %s\n", masterName, address->ToString());
+
+								m_masterCache[masterName] = *address;
+							}
+						}
+					}
+				}
+
+				std::this_thread::sleep_for(60s);
+			}
+		}).detach();
 	}
 
 	void GameServer::Run()
@@ -326,24 +356,6 @@ namespace fx
 				{
 					// find a cached address
 					auto it = m_masterCache.find(masterName);
-
-					if (it == m_masterCache.end())
-					{
-						// look up if not cached
-						auto address = net::PeerAddress::FromString(masterName, 30110, net::PeerAddress::LookupType::ResolveName);
-
-						if (address)
-						{
-							trace("Resolved %s to %s\n", masterName, address->ToString());
-
-							it = m_masterCache.insert({ masterName, *address }).first;
-						}
-						else
-						{
-							// can't look up? unset master
-							master->GetHelper()->SetValue("");
-						}
-					}
 
 					if (it != m_masterCache.end())
 					{

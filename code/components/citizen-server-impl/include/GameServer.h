@@ -11,6 +11,8 @@
 
 #include <enet/enet.h>
 
+#include <tbb/concurrent_unordered_map.h>
+
 inline std::chrono::milliseconds msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
@@ -121,7 +123,7 @@ namespace fx
 
 		std::shared_ptr<ConVar<std::string>> m_masters[3];
 
-		std::map<std::string, net::PeerAddress> m_masterCache;
+		tbb::concurrent_unordered_map<std::string, net::PeerAddress> m_masterCache;
 
 		fwRefContainer<se::Context> m_seContext;
 
