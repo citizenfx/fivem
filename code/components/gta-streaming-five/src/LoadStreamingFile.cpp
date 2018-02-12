@@ -245,7 +245,6 @@ public:
 
 						if (obj == 0)
 						{
-							trace("waaaa?\n");
 							return;
 						}
 
