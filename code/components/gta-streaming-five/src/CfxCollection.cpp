@@ -14,6 +14,8 @@
 
 #include <Error.h>
 
+#include <ICoreGameInit.h>
+
 //#define CFX_COLLECTION_DISABLE 1
 
 // unset _DEBUG so that there will be no range checking
@@ -771,7 +773,12 @@ public:
 
 		if (size != toRead)
 		{
-			FatalError("CfxCollection::ReadBulk of streaming file %s failed to read %d bytes (got %d).", m_handles[GET_HANDLE(handle)].name, toRead, size);
+			std::string error;
+
+			ICoreGameInit* init = Instance<ICoreGameInit>::Get();
+			init->GetData("rcd:error", &error);
+
+			FatalError("CfxCollection::ReadBulk of streaming file %s failed to read %d bytes (got %d).\n%s", m_handles[GET_HANDLE(handle)].name, toRead, size, error);
 		}
 
 		return size;
