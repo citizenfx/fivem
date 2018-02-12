@@ -235,6 +235,13 @@ static InitFunction initFunction([]()
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
 
+			// limit name length
+			if (name.length() >= 200)
+			{
+				// TODO: cut this off at a sane UTF-8 position
+				name = name.substr(0, 200);
+			}
+
 			TicketData ticketData;
 
 			if (!lanVar->GetValue())
