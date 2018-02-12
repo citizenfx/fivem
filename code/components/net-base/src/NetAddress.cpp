@@ -105,6 +105,9 @@ socklen_t PeerAddress::GetSocketAddressLength() const
 {
 	switch (m_addr.addr.ss_family)
 	{
+		case 0:
+			return sizeof(m_addr.addr.ss_family);
+
 		case AF_INET:
 			return sizeof(sockaddr_in);
 
