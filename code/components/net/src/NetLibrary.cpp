@@ -791,7 +791,15 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		{
 			auto node = YAML::Load(std::string(data, dataLen));
 
-			if (node["ticket"].IsDefined())
+			if (node["error"].IsDefined())
+			{
+				OnConnectionError(va("%s", node["error"].as<std::string>()));
+
+				m_connectionState = CS_IDLE;
+
+				return;
+			}
+			else if (node["ticket"].IsDefined())
 			{
 				postMap["cfxTicket"] = node["ticket"].as<std::string>();
 			}
