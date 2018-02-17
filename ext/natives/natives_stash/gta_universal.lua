@@ -54,13 +54,13 @@ native "GET_PLAYER_PED"
 	hash "0x43A66C31C68491C0"
 	jhash (0x6E31E993)
 	arguments {
-		Player "player",
+		Player "playerId",
 	}
 	ns "PLAYER"
 	returns	"Ped"
 	doc [[!
 <summary>
-		Gets the local player ped
+		returns the players ped used in many functions
 </summary>
 	]]
 
@@ -68,13 +68,13 @@ native "GET_PLAYER_PED_SCRIPT_INDEX"
 	hash "0x50FAC3A3E030A6E1"
 	jhash (0x6AC64990)
 	arguments {
-		Player "player",
+		Player "Player",
 	}
 	ns "PLAYER"
-	returns	"Entity"
+	returns	"Ped"
 	doc [[!
 <summary>
-		Same as GET_PLAYER_PED.
+		Does the same like PLAYER::GET_PLAYER_PED<br/>
 </summary>
 	]]
 
@@ -98,7 +98,7 @@ native "CHANGE_PLAYER_PED"
 	hash "0x048189FAC643DEEE"
 	jhash (0xBE515485)
 	arguments {
-		Player "player",
+		Player "Player",
 
 		Ped "ped",
 
@@ -118,7 +118,7 @@ native "GET_PLAYER_RGB_COLOUR"
 	hash "0xE902EF951DCE178F"
 	jhash (0x6EF43BBB)
 	arguments {
-		Player "player",
+		Player "Player",
 
 		intPtr "r",
 
@@ -130,7 +130,7 @@ native "GET_PLAYER_RGB_COLOUR"
 	returns	"void"
 	doc [[!
 <summary>
-		Returns RGB color of the player (duh)
+		Returns RGB color of the player
 </summary>
 	]]
 
@@ -139,11 +139,6 @@ native "GET_NUMBER_OF_PLAYERS"
 	jhash (0x4C1B8867)
 	ns "PLAYER"
 	returns	"int"
-	doc [[!
-<summary>
-		Gets the number of players in the current session.<br/>If not multiplayer, always returns 1.
-</summary>
-	]]
 
 native "GET_PLAYER_TEAM"
 	hash "0x37039302F4E0A008"
@@ -155,7 +150,8 @@ native "GET_PLAYER_TEAM"
 	returns	"int"
 	doc [[!
 <summary>
-		Gets the player's team.<br/>Does nothing in singleplayer.
+		Gets the player's team.
+		Does nothing in singleplayer.
 </summary>
 	]]
 
@@ -183,6 +179,11 @@ native "GET_PLAYER_NAME"
 	}
 	ns "PLAYER"
 	returns	"charPtr"
+	doc [[!
+<summary>
+		Returns the players name
+</summary>
+	]]
 
 native "GET_WANTED_LEVEL_RADIUS"
 	hash "0x085DEB493BE80812"
@@ -191,7 +192,7 @@ native "GET_WANTED_LEVEL_RADIUS"
 		Player "player",
 	}
 	ns "PLAYER"
-	returns	"float"
+	returns	"Any"
 	doc [[!
 <summary>
 		Remnant from GTA IV. Does nothing in GTA V.
@@ -213,11 +214,11 @@ native "SET_PLAYER_WANTED_CENTRE_POSITION"
 	arguments {
 		Player "player",
 
-		Vector3Ptr "position",
+		float "x",
 
-		BOOL "p2",
+		float "y",
 
-		BOOL "p3",
+		float "z",
 	}
 	ns "PLAYER"
 	returns	"void"
@@ -390,7 +391,7 @@ native "SET_PLAYER_CONTROL"
 
 		BOOL "toggle",
 
-		int "possiblyFlags",
+		int "flags",
 	}
 	ns "PLAYER"
 	returns	"void"
@@ -402,6 +403,8 @@ native "SET_PLAYER_CONTROL"
 		Flags(0, 4, 16, 24, 32, 56, 60, 64, 128, 134, 512, 640, 1024, 2048, 2560)
 		- Disables camera rotation as well.
 		Flags(256, 260, 384, 768, 896, 900, 952, 1280)
+
+		[ translation: cameraRotation = flags &amp; (1 &lt;&lt; 8) - sfink]
 </summary>
 	]]
 
@@ -431,6 +434,15 @@ native "SET_POLICE_RADAR_BLIPS"
 	}
 	ns "PLAYER"
 	returns	"void"
+	doc [[!
+<summary>
+		If toggle is set to false:
+		 The police won't be shown on the (mini)map
+
+		If toggle is set to true:
+		 The police will be shown on the (mini)map
+</summary>
+	]]
 
 native "SET_POLICE_IGNORE_PLAYER"
 	hash "0x32C62AA929C2DA6A"
@@ -442,6 +454,11 @@ native "SET_POLICE_IGNORE_PLAYER"
 	}
 	ns "PLAYER"
 	returns	"void"
+	doc [[!
+<summary>
+		The player will be ignored by the police if toggle is set to true
+</summary>
+	]]
 
 native "IS_PLAYER_PLAYING"
 	hash "0x5E9564D8246B909A"
@@ -501,7 +518,8 @@ native "0xDE45D1A1EF45EE61"
 	returns	"void"
 	doc [[!
 <summary>
-		No use in scripts.
+
+
 </summary>
 	]]
 
@@ -518,6 +536,7 @@ native "0xC3376F42B1FACCC6"
 <summary>
 		- This is called after SET_ALL_RANDOM_PEDS_FLEE_THIS_FRAME
 		hash collision
+		0xc3376f42b1faccc6, 0xd5d0d2853191399c, // set_areas_generator_orientation
 </summary>
 	]]
 
@@ -968,6 +987,11 @@ native "SET_PLAYER_SPRINT"
 	}
 	ns "PLAYER"
 	returns	"void"
+	doc [[!
+<summary>
+		77
+</summary>
+	]]
 
 native "RESET_PLAYER_STAMINA"
 	hash "0xA6F312FCCE9C1DFE"
@@ -1335,10 +1359,10 @@ native "GIVE_ACHIEVEMENT_TO_PLAYER"
 	hash "0xBEC7076D64130195"
 	jhash (0x822BC992)
 	arguments {
-		int "achievement",
+		int "achId",
 	}
 	ns "PLAYER"
-	returns	"BOOL"
+	returns	"Any"
 	doc [[!
 <summary>
 		Achievements from 0-57
@@ -1348,13 +1372,14 @@ native "GIVE_ACHIEVEMENT_TO_PLAYER"
 </summary>
 	]]
 
-native "0xC2AFFFDABBDC2C5C"
+native "_SET_ACHIEVEMENT_PROGRESSION"
 	hash "0xC2AFFFDABBDC2C5C"
 	arguments {
-		Any "p0",
+		int "achId",
 
-		Any "p1",
+		int "progression",
 	}
+	alias "0xC2AFFFDABBDC2C5C"
 	ns "PLAYER"
 	returns	"BOOL"
 	doc [[!
@@ -1365,20 +1390,30 @@ native "0xC2AFFFDABBDC2C5C"
 
 		------
 
-		Can't say anything about the Steam version but it is hardcoded to always return false int the retail version.
+		Can't say anything about the Steam version but it is hardcoded to always return false in the retail version.
+
+		Dr. Underscore (1/6/18):
+		This has to do with achievement progression. If this achievement has progression, it will set the progression of it to this value.
+		Only tested on un-achieved achievements, Steamworks probably just rejects it if it has already been achieved.
+		Steamworks also seems to not like reversing achievement progression.
 </summary>
 	]]
 
-native "0x1C186837D0619335"
+native "_GET_ACHIEVEMENT_PROGRESSION"
 	hash "0x1C186837D0619335"
 	arguments {
-		Any "p0",
+		int "achId",
 	}
+	alias "0x1C186837D0619335"
 	ns "PLAYER"
-	returns	"Cam"
+	returns	"int"
 	doc [[!
 <summary>
 		p0 = int (?)
+
+		Dr. Underscore (1/6/18):
+		This gets the progression of an achievement. Returns 0 if the achievement cannot be progressed.
+
 </summary>
 	]]
 
@@ -1482,7 +1517,8 @@ native "GET_PLAYER_INVINCIBLE"
 				return false;
 			}
 
-
+		============================================================
+		This has bothered me for too long, whoever may come across this, where did anyone ever come up with this made up hash? 0x733A643B5B0C53C1 I've looked all over old hash list, and this nativedb I can not find that PC hash anywhere. What native name is it now or was it?
 </summary>
 	]]
 
@@ -1568,7 +1604,7 @@ native "SET_PLAYER_TARGETING_MODE"
 native "0x5702B917B99DB1CD"
 	hash "0x5702B917B99DB1CD"
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "PLAYER"
 	returns	"void"
@@ -1577,16 +1613,24 @@ native "0x5702B917B99DB1CD"
 		Jenkins hash: 0x772DA539
 
 		p0 looks like Player or int (found in "am_pi_menu")
+
+		Dr. Underscore (1/6/18):
+		It isn't Player, it is an int.
+		Only two references anywhere, both in am_pi_menu.
+		One uses globals, the other one uses a helper function that is passing in the outValue of "STATS::STAT_GET_INT"; I have no clue what is being passed in for the stat hash.
 </summary>
 	]]
 
 native "0xB9CF1F793A9F1BF1"
 	hash "0xB9CF1F793A9F1BF1"
 	ns "PLAYER"
-	returns	"Any"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		Seem to return bool
+
+		Dr. Underscore (1/6/18):
+		It does return bool.
 </summary>
 	]]
 
@@ -1642,6 +1686,8 @@ native "SET_AIR_DRAG_MULTIPLIER_FOR_PLAYERS_VEHICLE"
 
 		You can change the max in IDA from 15.0. I say 15.0 as the function blrs if what you input is greater than or equal to 15.0 hence why it's 14.9 max default.
 
+		On PC the multiplier can be between 0.0f and 50.0f (inclusive).
+
 
 </summary>
 	]]
@@ -1684,6 +1730,8 @@ native "SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER"
 		Just call it one time, it is not required to be called once every tick.
 
 		Note: At least the IDA method if you change the max float multiplier from 1.5 it will change it for both this and SWIM above. I say 1.5 as the function blrs if what you input is greater than or equal to 1.5 hence why it's 1.49 max default.
+
+		It is not possible to "decrease" speed. Anything below 1 will be ignored.
 </summary>
 	]]
 
@@ -1862,13 +1910,6 @@ native "0xC9A763D8FE87436A"
 	}
 	ns "PLAYER"
 	returns	"void"
-	doc [[!
-<summary>
-		Seems to be called before SPECIAL_ABILITY_DEACTIVATE. Needs more research.
-
-		SPECIAL_ABILITY_CHARGE_*
-</summary>
-	]]
 
 native "SPECIAL_ABILITY_CHARGE_SMALL"
 	hash "0x2E7B9B683481687D"
@@ -2233,7 +2274,7 @@ native "SET_PLAYER_WEAPON_DEFENSE_MODIFIER"
 	arguments {
 		Player "player",
 
-		float "modifier",
+		ScrHandle "modifier",
 	}
 	ns "PLAYER"
 	returns	"void"
@@ -2562,7 +2603,7 @@ native "SIMULATE_PLAYER_INPUT_GAIT"
 	hash "0x477D5D63E63ECA5D"
 	jhash (0x0D77CC34)
 	arguments {
-		Player "player",
+		Player "control",
 
 		float "amount",
 
@@ -2641,13 +2682,16 @@ native "0x690A61A6D13583F6"
 	hash "0x690A61A6D13583F6"
 	jhash (0x1D371529)
 	arguments {
-		Any "p0",
+		Ped "p0",
 	}
 	ns "PLAYER"
 	returns	"BOOL"
 	doc [[!
 <summary>
 		p0 seems to be Ped
+
+		Dr. Underscore (1/6/18):
+		Has to do something with vehicles and teams. (same teams don't jack each other out of vehicles?)
 </summary>
 	]]
 
@@ -2831,9 +2875,20 @@ native "_EXPAND_WORLD_LIMITS"
 	returns	"void"
 	doc [[!
 <summary>
+		Will change world AABB so that given point will be inside of the world limits.
+
+		Example:
+		You want world limits to be -9000&lt;X&lt;10000 -11000&lt;Y&lt;12000 and leave Z limits as is.
+		You should call this function two times:
+		_EXPAND_WORLD_LIMITS(-9000.0,-11000.0,30.0)
+		_EXPAND_WORLD_LIMITS(10000.0,12000.0,30.0)
+
 		Appears only 3 times in the scripts, more specifically in michael1.ysc
 
 		Console hash: 0x64ddb07d
+
+		-
+		This can be used to prevent dying if you are "out of the world"
 </summary>
 	]]
 
@@ -3039,7 +3094,7 @@ native "0x65FAEE425DE637B0"
 native "0x5501B7A5CDB79D37"
 	hash "0x5501B7A5CDB79D37"
 	arguments {
-		Any "p0",
+		Player "p0",
 	}
 	ns "PLAYER"
 	returns	"void"
@@ -3048,6 +3103,11 @@ native "0x5501B7A5CDB79D37"
 		DISABLE_*
 
 		p0 seems to be Player or int
+
+		Dr. Underscore (1/6/18):
+		p0 is Player.
+		Called after/near _DISABLE_FIRST_PERSON_CAMERA_THIS_FRAME quite often, but not always.
+		Also called near DISABLE_CONTROL_ACTION.
 </summary>
 	]]
 
@@ -3071,15 +3131,10 @@ native "DOES_ENTITY_EXIST"
 	hash "0x7239B21A38F536BA"
 	jhash (0x3AC90869)
 	arguments {
-		Entity "entity",
+		Object "entity",
 	}
 	ns "ENTITY"
 	returns	"BOOL"
-	doc [[!
-<summary>
-		Checks if the Entity exists
-</summary>
-	]]
 
 native "DOES_ENTITY_BELONG_TO_THIS_SCRIPT"
 	hash "0xDDE6DF5AE89981D2"
@@ -3087,7 +3142,7 @@ native "DOES_ENTITY_BELONG_TO_THIS_SCRIPT"
 	arguments {
 		Entity "entity",
 
-		BOOL "p1",
+		BOOL "p2",
 	}
 	ns "ENTITY"
 	returns	"BOOL"
@@ -3128,7 +3183,7 @@ native "HAS_ENTITY_ANIM_FINISHED"
 <summary>
 		P3 is always 3 as far as i cant tell
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations List : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -3290,7 +3345,7 @@ native "GET_ENTITY_ANIM_CURRENT_TIME"
 		0.500000 - mark the midpoint of the animation.
 		1.000000 - mark the end of animation.
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -3314,7 +3369,7 @@ native "GET_ENTITY_ANIM_TOTAL_TIME"
 		GET_ENTITY_ANIM_TOTAL_TIME(PLAYER_ID(),"amb@world_human_yoga@female@base","base_b") 
 		return 20800.000000
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -3331,7 +3386,7 @@ native "_GET_ANIM_DURATION"
 <summary>
 		Console Hash: 0x8B5E3E3D = GET_ANIM_DURATION
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -3556,6 +3611,8 @@ native "GET_ENTITY_MODEL"
 	doc [[!
 <summary>
 		Returns the model hash from the entity
+
+		Sometimes throws an exception, idk what causes it though.
 </summary>
 	]]
 
@@ -3578,9 +3635,11 @@ native "GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS"
 		Converts world coords (posX - Z) to coords relative to the entity
 
 		Example:
-		posX is given as 50
-		entity's x coord is 40
-		the returned x coord will then be 10 or -10, not sure haven't used this in a while (think it is 10 though).
+		posX = 50
+		posY = 1000
+		posZ = 60
+		Entity's coords are: x=30, y=1000, z=60.
+		All three returned coords will then be in range of [-20,20] depending on rotation of the entity.
 </summary>
 	]]
 
@@ -3696,6 +3755,11 @@ native "GET_ENTITY_ROTATION_VELOCITY"
 	}
 	ns "ENTITY"
 	returns	"Vector3"
+	doc [[!
+<summary>
+		ANGULAR_VELOCITY*
+</summary>
+	]]
 
 native "GET_ENTITY_SCRIPT"
 	hash "0xA6E9C38DB51D7748"
@@ -3767,6 +3831,12 @@ native "GET_ENTITY_VELOCITY"
 	}
 	ns "ENTITY"
 	returns	"Vector3"
+	doc [[!
+<summary>
+		the unit is m/s along each axis
+		GET_ENTITY_VELOCITY(aEntity) is the same as GET_ENTITY_SPEED_VECTOR(aEntity,false) 
+</summary>
+	]]
 
 native "GET_OBJECT_INDEX_FROM_ENTITY_INDEX"
 	hash "0xD7E3B9735C0F89D6"
@@ -3861,6 +3931,12 @@ native "GET_ENTITY_TYPE"
 		1 = ped
 		2 = vehicle
 		3 = object
+
+		This is weird, because in memory atleast on xbox360 it stores it from testing with a variety of (ped, vehicle, and objects).
+		03 
+		04 
+		05 
+		The above is more then likely true for the native's return, but if you were to skip using the native it's a bit weird it returns different results.
 </summary>
 	]]
 
@@ -4203,7 +4279,7 @@ native "IS_ENTITY_PLAYING_ANIM"
 
 		charPtr "animName",
 
-		int "p4",
+		int "taskFlag",
 	}
 	ns "ENTITY"
 	returns	"BOOL"
@@ -4215,7 +4291,11 @@ native "IS_ENTITY_PLAYING_ANIM"
 
 		p4 is always 3 in the scripts.
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
+
+		taskFlag:
+
+		2 - Check synchronized scene
 </summary>
 	]]
 
@@ -4229,9 +4309,9 @@ native "IS_ENTITY_STATIC"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		a static ped will not react to natives like "APPLY_FORCE_TO_ENTITY" or "SET_ENTITY_VELOCITY" and oftentimes will not react to task-natives like "AI::TASK_COMBAT_PED". The only way I know of to make one of these peds react is to ragdoll them (or sometimes to use CLEAR_PED_TASKS_IMMEDIATELY(). Static peds include almost all far-away peds, beach-combers, peds in certain scenarios, peds crossing a crosswalk, peds walking to get back into their cars, and others. If anyone knows how to make a ped non-static without ragdolling them, please edit this with the solution.
+		A static ped will not react to natives like "APPLY_FORCE_TO_ENTITY" or "SET_ENTITY_VELOCITY" and oftentimes will not react to task-natives like "AI::TASK_COMBAT_PED". The only way I know of to make one of these peds react is to ragdoll them (or sometimes to use CLEAR_PED_TASKS_IMMEDIATELY(). Static peds include almost all far-away peds, beach-combers, peds in certain scenarios, peds crossing a crosswalk, peds walking to get back into their cars, and others. If anyone knows how to make a ped non-static without ragdolling them, please edit this with the solution.
 
-		how can I make an entity static???
+		^ Attach a phCollider to the ped.
 </summary>
 	]]
 
@@ -4267,6 +4347,26 @@ native "IS_ENTITY_UPRIGHT"
 	}
 	ns "ENTITY"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		// add this to your CSS to view code with formatting intact.
+		// pre + hr + p { white-space: pre; } // -
+
+		bool isEntityUpright(Entity e, float angle) {
+		    bool bIsUpright; // bl@1
+		    CDynamicEntity* pEntity; // rdi@1
+
+		    bIsUpright = 0;
+		    pEntity = getEntityAddressIfPhysical(e);
+		    if (pEntity) {
+		        bIsUpright = 0;
+		        if (pEntity-&gt;Matrix.up.z &gt;= cosf(angle * 0.017453292)) // radians(angle)
+		            bIsUpright = 1;
+		    }
+		    return bIsUpright;
+		}
+</summary>
+	]]
 
 native "IS_ENTITY_UPSIDEDOWN"
 	hash "0x1DBD58820FA61D71"
@@ -4351,20 +4451,14 @@ native "APPLY_FORCE_TO_ENTITY_CENTER_OF_MASS"
 
 		BOOL "p5",
 
-		BOOL "isRel",
+		BOOL "isDirectionRel",
 
-		BOOL "highForce",
+		BOOL "isForceRel",
 
 		BOOL "p8",
 	}
 	ns "ENTITY"
 	returns	"void"
-	doc [[!
-<summary>
-		p6/relative - makes the xyz force not relative to world coords, but to something else
-		p7/highForce - setting false will make the force really low
-</summary>
-	]]
 
 native "APPLY_FORCE_TO_ENTITY"
 	hash "0xC5F68BE9613E2D18"
@@ -4372,7 +4466,7 @@ native "APPLY_FORCE_TO_ENTITY"
 	arguments {
 		Entity "entity",
 
-		int "forceType",
+		int "forceFlags",
 
 		float "x",
 
@@ -4380,19 +4474,19 @@ native "APPLY_FORCE_TO_ENTITY"
 
 		float "z",
 
-		float "xRot",
+		float "offX",
 
-		float "yRot",
+		float "offY",
 
-		float "zRot",
+		float "offZ",
 
-		int "p8",
+		int "boneIndex",
 
-		BOOL "isRel",
+		BOOL "isDirectionRel",
 
-		BOOL "p10",
+		BOOL "ignoreUpVec",
 
-		BOOL "highForce",
+		BOOL "isForceRel",
 
 		BOOL "p12",
 
@@ -4402,24 +4496,28 @@ native "APPLY_FORCE_TO_ENTITY"
 	returns	"void"
 	doc [[!
 <summary>
-		forceType - 0 to 5 (any number greater then 5 force does nothing)
-		p8 - no effect (a quick disassembly will tell us what it does)
-		isRel - specifies if the force direction is relative to direction entity is facing (true), or static world direction (false).
-		p11/highForce - setting false will make the force really low
-
-		enum ForceTypes
-		{
-			MIN_FORCE = 0,
-			MAX_FORCE_ROT = 1,
-			MIN_FORCE_2 = 2,
-			MAX_FORCE_ROT_2 = 3, //stable, good for custom handling
-			FORCE_NO_ROT = 4,
-			FORCE_ROT_PLUS_FORCE = 5
-		};
-
+		Documented here:
 		gtaforums.com/topic/885669-precisely-define-object-physics/
 		gtaforums.com/topic/887362-apply-forces-and-momentums-to-entityobject/
 
+		forceFlags:
+		First bit (lowest): Strong force flag, factor 100
+		Second bit: Unkown flag
+		Third bit: Momentum flag=1 (vector (x,y,z) is a momentum, more research needed)
+		If higher bits are unequal 0 the function doesn't applay any forces at all.
+		(As integer possible values are 0-7)
+
+		0: weak force
+		1: strong force
+		2: same as 0 (2nd bit?)
+		3: same as 1
+		4: weak momentum
+		5: strong momentum
+		6: same as 4
+		7: same as 5
+
+		isDirectionRel: vector defined in local (body-fixed) coordinate frame
+		isForceRel: if true the force gets multiplied with the objects mass (this is why it was known as highForce) and different objects will have the same acceleration.
 </summary>
 	]]
 
@@ -4465,7 +4563,7 @@ native "ATTACH_ENTITY_TO_ENTITY"
 
 		boneIndex - this is different to boneID, use GET_PED_BONE_INDEX to get the index from the ID. use the index for attaching to specific bones. entity1 will be attached to entity2's centre if bone index given doesn't correspond to bone indexes for that entity type.
 
-		useSoftPinning - if set to false attached entity will not detach when fixed
+		useSoftPinning - when 2 entities with collision collide and form into a ball they will break the attachment of the entity that they were attached to. Or when an entity is attached far away and then the resets.
 		collision - controls collision between the two entities (FALSE disables collision).
 		isPed - pitch doesnt work when false and roll will only work on negative numbers (only peds)
 		vertexIndex - position of vertex
@@ -4512,7 +4610,7 @@ native "ATTACH_ENTITY_TO_ENTITY_PHYSICALLY"
 
 		BOOL "collision",
 
-		BOOL "p17",
+		BOOL "teleport",
 
 		int "p18",
 	}
@@ -4521,13 +4619,19 @@ native "ATTACH_ENTITY_TO_ENTITY_PHYSICALLY"
 	doc [[!
 <summary>
 		breakForce is the amount of force required to break the bond.
-		p14 - is always 1 in scripts
+		fixedRot - if false it ignores entity vector
 		p15 - is 1 or 0 in scripts - unknoun what it does
-		p16 - controls collision between the two entities (FALSE disables collision).
-		p17 - do not teleport entity to be attached to the position of the bone Index of the target entity (if 1, entity will not be teleported to target bone)
+		collision - controls collision between the two entities (FALSE disables collision).
+		teleport - do not teleport entity to be attached to the position of the bone Index of the target entity (if 1, entity will not be teleported to target bone)
 		p18 - is always 2 in scripts.
 
+		-------------------------
+		teleport is not exactly "doNotTeleport". What it actually does is the following:
+		if true, entities will be attached as if loosely tethered, up to the maximum offset position specified. Almost as if attached by an invisible rope.
+		if false, entities will be attached in a fixed position as specified in the offset position.
 
+		When p15 = true, it seems to force teleport to false.
+		It also lets the Rotation params actually work.
 </summary>
 	]]
 
@@ -4542,6 +4646,8 @@ native "PROCESS_ENTITY_ATTACHMENTS"
 	doc [[!
 <summary>
 		Called to update entity attachments.
+
+		When using ATTACH_ENTITY_TO_ENTITY and using bone '0' then you set the first entity invisible. The attachments will mess up, use bone '-1' to fix that issue
 </summary>
 	]]
 
@@ -4650,10 +4756,10 @@ native "DETACH_ENTITY"
 		p1 and p2 have no effect 
 		maybe a quick disassembly will tell us what they do
 
+
+		the statement below seems to be false. when I tried it with 2 vehicles:
+
 		if p2 is set to true, the both entities won't collide with the other until the distance between them is above 4 meters.
-
-
-		p1?
 </summary>
 	]]
 
@@ -4667,6 +4773,13 @@ native "FREEZE_ENTITY_POSITION"
 	}
 	ns "ENTITY"
 	returns	"void"
+	doc [[!
+<summary>
+		No, this should be called SET_ENTITY_KINEMATIC. It does more than just "freeze" it's position.
+
+		^Rockstar Devs named it like that, Now cry about it.
+</summary>
+	]]
 
 native "_SET_ENTITY_SOMETHING"
 	hash "0x3910051CCECDB00C"
@@ -4734,7 +4847,7 @@ native "PLAY_ENTITY_ANIM"
 
 		The only time bitset has a value is 0x4000 and the only time delta has a value is during stealth with usually &lt;1.0f values.
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -4764,7 +4877,7 @@ native "PLAY_SYNCHRONIZED_ENTITY_ANIM"
 <summary>
 		p4 and p7 are usually 1000.0f.
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -4800,7 +4913,7 @@ native "PLAY_SYNCHRONIZED_MAP_ENTITY_ANIM"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -4839,7 +4952,7 @@ native "STOP_ENTITY_ANIM"
 	returns	"Any"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 
 		RAGEPluginHook list: docs.ragepluginhook.net/html/62951c37-a440-478c-b389-c471230ddfc5.htm
 </summary>
@@ -4907,7 +5020,7 @@ native "FIND_ANIM_EVENT_PHASE"
 		Both v_A and v_B are seemingly used to contain both Vector3's and floats, so I can't say what either really is other than that they are both output parameters. p4 looks more like a *Vector3 though
 		-alphazolam
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -4927,7 +5040,7 @@ native "SET_ENTITY_ANIM_CURRENT_TIME"
 	returns	"void"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -4947,7 +5060,7 @@ native "SET_ENTITY_ANIM_SPEED"
 	returns	"void"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -5099,7 +5212,7 @@ native "_GET_ENTITY_COLLISON_DISABLED"
 </summary>
 	]]
 
-native "0x9EBC85ED0FFFE51C"
+native "_SET_ENTITY_COLLISION_2"
 	hash "0x9EBC85ED0FFFE51C"
 	arguments {
 		Entity "entity",
@@ -5108,11 +5221,30 @@ native "0x9EBC85ED0FFFE51C"
 
 		BOOL "p2",
 	}
+	alias "0x9EBC85ED0FFFE51C"
 	ns "ENTITY"
 	returns	"void"
 	doc [[!
 <summary>
-		p2 - mainly set as false in scripts
+		console hash: 0xBD0D4831
+
+		internally it calls the same function as 'SET_ENTITY_COLLISION'. but uses a hard coded parameter that only activates when p1 is set to true 
+		=============================
+		Weirdly enough in the 3 scripts it's used in on PC,
+		- director_mode (2 hits)
+		- re_duel (2 hits)
+		- re_seaplane (1 hit)
+
+		Most of the time in the hits its actually used after the normal SET_ENTITY_COLLISION. Example from re_seaplane,
+
+		Local_49[iParam0 /*6*/] = create_ped(26, iVar4, vVar0, fVar3, 1, true);
+		set_entity_collision(Local_49[iParam0 /*6*/], iVar42, 0);
+		_0x9EBC85ED0FFFE51C(Local_49[iParam0 /*6*/], !iVar66, 0); (_SET_ENTITY_COLLISION_2)
+
+		iVar42 being true so the normal collision native is true, 0
+		iVar66 being false so !false so it's true, 0
+
+		Gonna ignore the 'vars' for the create_ped no point in defining them.
 </summary>
 	]]
 
@@ -5308,6 +5440,11 @@ native "SET_ENTITY_LOAD_COLLISION_FLAG"
 	}
 	ns "ENTITY"
 	returns	"void"
+	doc [[!
+<summary>
+		Certainly not the main usage of this native but when set to true for a Vehicle, it will prevent the vehicle to explode if it is spawned far away from the player.
+</summary>
+	]]
 
 native "HAS_COLLISION_LOADED_AROUND_ENTITY"
 	hash "0xE9676F61BC0B3321"
@@ -5348,7 +5485,7 @@ native "SET_ENTITY_ONLY_DAMAGED_BY_RELATIONSHIP_GROUP"
 
 		BOOL "p1",
 
-		Any "p2",
+		Hash "relationshipHash",
 	}
 	ns "ENTITY"
 	returns	"void"
@@ -5373,7 +5510,7 @@ native "SET_ENTITY_PROOFS"
 
 		BOOL "p7",
 
-		BOOL "drownProof",
+		BOOL "p8",
 	}
 	ns "ENTITY"
 	returns	"void"
@@ -5381,7 +5518,6 @@ native "SET_ENTITY_PROOFS"
 <summary>
 		Enable / disable each type of damage.
 
-		Can't get drownProof to work.
 		--------------
 		p7 is to to '1' in am_mp_property_ext/int: entity::set_entity_proofs(uParam0-&gt;f_19, true, true, true, true, true, true, 1, true);
 
@@ -5484,7 +5620,7 @@ native "SET_ENTITY_VELOCITY"
 	returns	"void"
 	doc [[!
 <summary>
-		Note that the third parameter(denoted as z) is "up and down" with positive numbers encouraging upwards movement.
+		Note that the third parameter(denoted as z) is "up and down" with positive ment.
 </summary>
 	]]
 
@@ -5537,7 +5673,7 @@ native "SET_ENTITY_ALPHA"
 
 		int "alphaLevel",
 
-		BOOL "skin",
+		int "skin",
 	}
 	ns "ENTITY"
 	returns	"void"
@@ -5923,12 +6059,14 @@ native "CREATE_PED"
 
 		BOOL "isNetwork",
 
-		BOOL "p7",
+		BOOL "thisScriptCheck",
 	}
 	ns "PED"
 	returns	"Ped"
 	doc [[!
 <summary>
+		thisScriptCheck - can be destroyed if it belongs to the calling script.
+
 		p7 - last parameter does not mean ped handle is returned
 		maybe a quick view in disassembly will tell us what is actually does
 
@@ -5937,8 +6075,40 @@ native "CREATE_PED"
 		*Heading* is the Z axis spawn rotation of the ped 0-&gt;5th parameter.
 
 		Ped Types:
-		[Player,1|Male,4|Female,5|Cop,6|Human,26|SWAT,27|Animal,28|Army,29]
-		You can also use GET_PED_TYPE
+
+		enum PedTypes
+		{
+			PED_TYPE_PLAYER_0,				// michael
+			PED_TYPE_PLAYER_1,				// franklin
+			PED_TYPE_NETWORK_PLAYER,			// mp character
+			PED_TYPE_PLAYER_2,				// trevor
+			PED_TYPE_CIVMALE,
+			PED_TYPE_CIVFEMALE,
+			PED_TYPE_COP,
+			PED_TYPE_GANG_ALBANIAN,
+			PED_TYPE_GANG_BIKER_1,
+			PED_TYPE_GANG_BIKER_2,
+			PED_TYPE_GANG_ITALIAN,
+			PED_TYPE_GANG_RUSSIAN,
+			PED_TYPE_GANG_RUSSIAN_2,
+			PED_TYPE_GANG_IRISH,
+			PED_TYPE_GANG_JAMAICAN,
+			PED_TYPE_GANG_AFRICAN_AMERICAN,
+			PED_TYPE_GANG_KOREAN,
+			PED_TYPE_GANG_CHINESE_JAPANESE,
+			PED_TYPE_GANG_PUERTO_RICAN,
+			PED_TYPE_DEALER,
+			PED_TYPE_MEDIC,
+			PED_TYPE_FIREMAN,
+			PED_TYPE_CRIMINAL,
+			PED_TYPE_BUM,
+			PED_TYPE_PROSTITUTE,
+			PED_TYPE_SPECIAL,
+			PED_TYPE_MISSION,
+			PED_TYPE_SWAT,
+			PED_TYPE_ANIMAL,
+			PED_TYPE_ARMY
+		};
 </summary>
 	]]
 
@@ -5966,15 +6136,13 @@ native "CLONE_PED"
 
 		BOOL "isNetwork",
 
-		BOOL "p3",
+		BOOL "thisScriptCheck",
 	}
 	ns "PED"
 	returns	"Ped"
 	doc [[!
 <summary>
-		p3 - last parameter does not mean ped handle is returned
-		maybe a quick view in disassembly will tell us what is actually does
-
+		thisScriptCheck - can be destroyed if it belongs to the calling script.
 
 		Example of Cloning Your Player:
 		CLONE_PED(PLAYER_PED_ID(), GET_ENTITY_HEADING(PLAYER_PED_ID()), 0, 1);
@@ -5995,6 +6163,11 @@ native "CLONE_PED_TO_TARGET"
 	doc [[!
 <summary>
 		What exactly is the difference? What does this exactly do by chance?
+
+		^ Copies ped's components and props to targetPed.
+
+		---------------------------------------------------------------------------------
+		| Internally has a 3rd param (bool) which is set to true by default |
 </summary>
 	]]
 
@@ -6137,6 +6310,8 @@ native "IS_PED_DEAD_OR_DYING"
 		That's what the devs call it, cry about it.
 
 		lol
+
+		that's a good meme right there.
 </summary>
 	]]
 
@@ -6182,7 +6357,7 @@ native "IS_PED_A_PLAYER"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Returns true if the given ped has a valid pointer to CPlayerInfo in its CPed class. That's all.
+		Returns true if the given ped has a valid pointer to CPlayerInfo in its CPed class. That's it.
 </summary>
 	]]
 
@@ -6200,26 +6375,40 @@ native "CREATE_PED_INSIDE_VEHICLE"
 
 		BOOL "isNetwork",
 
-		BOOL "p5",
+		BOOL "thisScriptCheck",
 	}
 	ns "PED"
 	returns	"Ped"
 	doc [[!
 <summary>
+		thisScriptCheck - can be destroyed if it belongs to the calling script.
+
 		p5 - last parameter does not mean ped handle is returned
 		maybe a quick view in disassembly will tell us what is actually does
 
 
 		Ped Types:
-		Player = 1
-		Male = 4 
-		Female = 5 
-		Cop = 6
-		Taxi Driver = 25 (sfink)
-		Human = 26
-		SWAT = 27 
-		Animal = 28
-		Army = 29
+
+		enum ePedType
+		{
+			PED_TYPE_PLAYER_0 = 0,
+			PED_TYPE_PLAYER_1 = 1,
+			PED_TYPE_PLAYER_2 = 3,
+			PED_TYPE_CIVMALE = 4,
+			PED_TYPE_CIVFEMALE = 5,
+			PED_TYPE_COP = 6,
+			PED_TYPE_UNKNOWN_7 = 7,
+			PED_TYPE_UNKNOWN_12 = 12, // gang member?
+			PED_TYPE_UNKNOWN_19 = 19,
+			PED_TYPE_MEDIC = 20,
+			PED_TYPE_FIREMAN = 21,
+			PED_TYPE_UNKNOWN_22 = 22,
+			PED_TYPE_UNKNOWN_25 = 25,
+			PED_TYPE_UNKNOWN_26 = 26,
+			PED_TYPE_SWAT = 27,
+			PED_TYPE_ANIMAL = 28,
+			PED_TYPE_ARMY = 29
+		};
 </summary>
 	]]
 
@@ -6408,6 +6597,8 @@ native "EXPLODE_PED_HEAD"
 	doc [[!
 <summary>
 		Forces the ped to fall back and kills it.
+
+		It doesn't really explode the ped's head but it kills the ped
 </summary>
 	]]
 
@@ -6421,7 +6612,7 @@ native "REMOVE_PED_ELEGANTLY"
 	returns	"void"
 	doc [[!
 <summary>
-		Judging purely from a quick disassembly, if the ped is in a vehicle, the ped will be deleted immediately. If not, it'll be marked as no longer needed.
+		Judging purely from a quick disassembly, if the ped is in a vehicle, the ped will be deleted immediately. If not, it'll be marked as no longer needed. - very elegant..
 </summary>
 	]]
 
@@ -6681,6 +6872,11 @@ native "SET_SCENARIO_PED_DENSITY_MULTIPLIER_THIS_FRAME"
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+		p0 and p1 are always the same
+</summary>
+	]]
 
 native "0x5A7F62FDA59759BD"
 	hash "0x5A7F62FDA59759BD"
@@ -7068,6 +7264,11 @@ native "GET_PED_LAST_DAMAGE_BONE"
 	}
 	ns "PED"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Pretty sure outBone is an int.
+</summary>
+	]]
 
 native "CLEAR_PED_LAST_DAMAGE_BONE"
 	hash "0x8EF6B7AC68E2F01B"
@@ -7245,6 +7446,11 @@ native "IS_PED_VAULTING"
 	}
 	ns "PED"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Definition of vaulting?
+</summary>
+	]]
 
 native "IS_PED_DIVING"
 	hash "0x5527B8246FEF9B11"
@@ -7815,7 +8021,7 @@ native "IS_PED_IN_COVER"
 	arguments {
 		Ped "ped",
 
-		BOOL "p1",
+		BOOL "exceptUseWeapon",
 	}
 	ns "PED"
 	returns	"BOOL"
@@ -7865,13 +8071,13 @@ native "SET_PED_PINNED_DOWN"
 
 		BOOL "pinned",
 
-		int "i",
+		int "p2",
 	}
 	ns "PED"
 	returns	"Any"
 	doc [[!
 <summary>
-		i could be time. Only example in the decompiled scripts uses it as -1.
+		p2 could be time. Only example in the decompiled scripts uses it as -1.
 </summary>
 	]]
 
@@ -7892,6 +8098,17 @@ native "GET_VEHICLE_PED_IS_TRYING_TO_ENTER"
 	}
 	ns "PED"
 	returns	"Vehicle"
+	doc [[!
+<summary>
+		Should be renamed GET_CAR_PED_IS_TRYING_TO_ENTER...
+
+		Because this works only for cars, not for helis, planes,motorcycles or bicycles...
+
+		From Calderon
+
+		This is what R* named it, deal with it.
+</summary>
+	]]
 
 native "GET_PED_SOURCE_OF_DEATH"
 	hash "0x93C8B64DEB84728C"
@@ -7924,17 +8141,21 @@ native "GET_PED_CAUSE_OF_DEATH"
 </summary>
 	]]
 
-native "_GET_PED_TIME_OF_DEATH"
+native "0x1E98817B311AE98A"
 	hash "0x1E98817B311AE98A"
 	arguments {
 		Ped "ped",
 	}
+	alias "_GET_PED_TIME_OF_DEATH"
 	ns "PED"
 	returns	"int"
 	doc [[!
 <summary>
 		Console Hash: 0xDF6D5D54
 
+
+		Name was _GET_PED_TIME_OF_DEATH
+		-----------------------------------------------------------------
 		There is no way this is the correct name. The only time this is called it's compared with the game timer and I used this to test something and noticed when I was killed by no matter what it was my 'Time Of Death' via this native was always 0, but my friends was some random big number like so, 147591.
 
 		Retreives [CPed + 15CC] (as of 944)
@@ -8449,6 +8670,15 @@ native "SET_PED_GRAVITY"
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+		enable or disable the gravity of a ped
+
+		Examples:
+		PED::SET_PED_GRAVITY(PLAYER::PLAYER_PED_ID(), 0x00000001);
+		PED::SET_PED_GRAVITY(Local_289[iVar0 /*20*/], 0x00000001);
+</summary>
+	]]
 
 native "APPLY_DAMAGE_TO_PED"
 	hash "0x697157CED63F18D4"
@@ -8458,10 +8688,21 @@ native "APPLY_DAMAGE_TO_PED"
 
 		int "damageAmount",
 
-		BOOL "p2",
+		BOOL "armorFirst",
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+		damages a ped with the given amount
+
+		----
+
+		armorFirst means it will damage/lower the armor first before damaging the player.
+
+		setting damageAmount to a negative amount will cause the player or the armor (depending on armorFirst) to be healed by damageAmount instead.
+</summary>
+	]]
 
 native "0x36B77BB84687C318"
 	hash "0x36B77BB84687C318"
@@ -8565,6 +8806,13 @@ native "SET_PED_MAX_HEALTH"
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+		sets the maximum health of a ped
+
+		I think it's never been used in any script
+</summary>
+	]]
 
 native "GET_PED_MAX_HEALTH"
 	hash "0x4700A416E8324EF3"
@@ -9003,6 +9251,9 @@ native "SET_PED_MOVEMENT_CLIPSET"
 		EDIT 12/24/16: 
 		p2 does absolutely nothing no matter what the value is. 
 
+		EDIT 08/16/17:
+		p2 is the time for a smooth changing to the new clipset.
+
 		List of movement clipsets:
 		Thanks to elsewhat for list.
 
@@ -9214,7 +9465,7 @@ native "IS_SCRIPTED_SCENARIO_PED_USING_CONDITIONAL_ANIM"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -9234,6 +9485,13 @@ native "SET_PED_ALTERNATE_WALK_ANIM"
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
+</summary>
+	]]
 
 native "CLEAR_PED_ALTERNATE_WALK_ANIM"
 	hash "0x8844BBFCE30AA9E9"
@@ -9273,7 +9531,7 @@ native "SET_PED_ALTERNATE_MOVEMENT_ANIM"
 
 		p5 = usually set to true
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -9336,6 +9594,13 @@ native "GET_ANIM_INITIAL_OFFSET_POSITION"
 	}
 	ns "PED"
 	returns	"Vector3"
+	doc [[!
+<summary>
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
+</summary>
+	]]
 
 native "GET_ANIM_INITIAL_OFFSET_ROTATION"
 	hash "0x4B805E6046EE9E47"
@@ -9363,6 +9628,13 @@ native "GET_ANIM_INITIAL_OFFSET_ROTATION"
 	}
 	ns "PED"
 	returns	"Vector3"
+	doc [[!
+<summary>
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
+</summary>
+	]]
 
 native "GET_PED_DRAWABLE_VARIATION"
 	hash "0x67F3780DD425D4FC"
@@ -9593,6 +9865,7 @@ native "SET_PED_COMPONENT_VARIATION"
 		Usage: 
 		SET_PED_COMPONENT_VARIATION(playerPed, PED_VARIATION_FACE, GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(playerPed, PED_VARIATION_FACE), GET_NUMBER_OF_PED_TEXTURE_VARIATIONS(playerPed, PED_VARIATION_FACE, 0), 2);
 
+
 		List of component/props ID
 		gtaxscripting.blogspot.com/2016/04/gta-v-peds-component-and-props.html
 </summary>
@@ -9654,13 +9927,13 @@ native "SET_PED_BLEND_FROM_PARENTS"
 	arguments {
 		Ped "ped",
 
-		Any "p1",
+		Ped "father",
 
-		Any "p2",
+		Ped "mother",
 
-		float "p3",
+		float "fathersSide",
 
-		float "p4",
+		float "mothersSide",
 	}
 	ns "PED"
 	returns	"void"
@@ -9997,7 +10270,7 @@ native "_IS_PED_BLUSH_COLOR_VALID"
 native "0xC56FBF2F228E1DAC"
 	hash "0xC56FBF2F228E1DAC"
 	arguments {
-		Any "p0",
+		Hash "modelHash",
 
 		Any "p1",
 
@@ -10022,6 +10295,38 @@ native "_SET_PED_FACE_FEATURE"
 		Sets the various freemode face features, e.g. nose length, chin shape. Scale ranges from -1.0 to 1.0.
 
 		Index can be 0 
+
+		Edit:----&gt;Thanks to the first user.
+
+		    Enum Face_Feature
+		        Nose_Width
+		        Nose_Peak_Hight
+		        Nose_Peak_Lenght
+		        Nose_Bone_High
+		        Nose_Peak_Lowering
+		        Nose_Bone_Twist
+		        EyeBrown_High
+		        EyeBrown_Forward
+		        Cheeks_Bone_High
+		        Cheeks_Bone_Width
+		        Cheeks_Width
+		        Eyes_Openning
+		        Lips_Thickness
+		        Jaw_Bone_Width 'Bone size to sides
+		        Jaw_Bone_Back_Lenght 'Bone size to back
+		        Chimp_Bone_Lowering 'Go Down
+		        Chimp_Bone_Lenght 'Go forward
+		        Chimp_Bone_Width
+		        Chimp_Hole
+		        Neck_Thikness
+		    End Enum
+
+		Example in VB.Net
+
+		Public Shared Sub SET_PED_FACE_FEATURE(FreemodePed As Ped, Index As Face_Feature, Scale As Single)
+
+		Native.Function.Call(Native.Hash._SET_PED_FACE_FEATURE, FreemodePed, Index, Scale)
+		End Sub
 </summary>
 	]]
 
@@ -10069,7 +10374,7 @@ native "0xA21C118553BBDF02"
 	hash "0xA21C118553BBDF02"
 	jhash (0xC6F36292)
 	arguments {
-		Any "p0",
+		Ped "ped",
 	}
 	ns "PED"
 	returns	"void"
@@ -10110,7 +10415,7 @@ native "0x39D55A620FCB6A3A"
 	arguments {
 		Ped "ped",
 
-		int "p1",
+		int "slot",
 
 		int "drawableId",
 
@@ -11194,6 +11499,8 @@ native "0xF9ACF4A08098EA25"
 		p1 was always 1 (true).
 
 		Kicks the ped from the current vehicle and keeps the rendering-focus on this ped (also disables its collision). If doing this for your player ped, you'll still be able to drive the vehicle.
+
+		Actual name begins with 'S'
 </summary>
 	]]
 
@@ -11739,17 +12046,17 @@ native "ADD_SCENARIO_BLOCKING_AREA"
 	hash "0x1B5C85C612E5256E"
 	jhash (0xA38C0234)
 	arguments {
-		float "p0",
+		float "x1",
 
-		float "p1",
+		float "y1",
 
-		float "p2",
+		float "z1",
 
-		float "p3",
+		float "x2",
 
-		float "p4",
+		float "y2",
 
-		float "p5",
+		float "z2",
 
 		BOOL "p6",
 
@@ -11760,7 +12067,7 @@ native "ADD_SCENARIO_BLOCKING_AREA"
 		BOOL "p9",
 	}
 	ns "PED"
-	returns	"Any"
+	returns	"int"
 
 native "REMOVE_SCENARIO_BLOCKING_AREAS"
 	hash "0xD37401D78A929A49"
@@ -11783,15 +12090,15 @@ native "SET_SCENARIO_PEDS_SPAWN_IN_SPHERE_AREA"
 	hash "0x28157D43CF600981"
 	jhash (0x80EAD297)
 	arguments {
-		Any "p0",
+		float "x",
 
-		Any "p1",
+		float "y",
 
-		Any "p2",
+		float "z",
 
-		Any "p3",
+		float "range",
 
-		Any "p4",
+		int "p4",
 	}
 	ns "PED"
 	returns	"void"
@@ -11948,6 +12255,17 @@ native "PLAY_FACIAL_ANIM"
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+		Look at facials@gen_male@base and facials@gen_female@base for some common facial animations. 
+
+		!!!NOTE!!!
+
+		Unlike most animation natives, the animation comes BEFORE the animation dictionary here. So you could call e.g. 
+
+		PLAY_FACIAL_ANIM(ped, "dead_1", "facials@gen_male@base")
+</summary>
+	]]
 
 native "SET_FACIAL_IDLE_ANIM_OVERRIDE"
 	hash "0xFFC24B988B938B38"
@@ -12000,7 +12318,7 @@ native "SET_PED_CAN_PLAY_VISEME_ANIMS"
 </summary>
 	]]
 
-native "0x33A60D8BDD6E508C"
+native "_SET_PED_CAN_PLAY_INJURED_ANIMS"
 	hash "0x33A60D8BDD6E508C"
 	jhash (0xADB2511A)
 	arguments {
@@ -12008,6 +12326,7 @@ native "0x33A60D8BDD6E508C"
 
 		BOOL "p1",
 	}
+	alias "0x33A60D8BDD6E508C"
 	ns "PED"
 	returns	"void"
 
@@ -12553,10 +12872,21 @@ native "0x451294E859ECC018"
 	hash "0x451294E859ECC018"
 	jhash (0x8A3A3116)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "PED"
-	returns	"Any"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		yoga.ysc
+		if (PED::IS_PED_WEARING_HELMET(iParam0) &amp;&amp; PED::_0x451294E859ECC018(iParam0) != -1)
+		{
+			*uParam2 = PED::_0x451294E859ECC018(iParam0);
+			*uParam3 = PED::_0x9D728C1E12BF5518(iParam0);
+		}
+
+</summary>
+	]]
 
 native "0x9D728C1E12BF5518"
 	hash "0x9D728C1E12BF5518"
@@ -12941,6 +13271,8 @@ native "SET_PED_FLEE_ATTRIBUTES"
 		Bool probably has something to do with vehicles, maybe if the ped can use vehicle to flee?
 
 		Values used as attributes are those in sequence of powers of two, 1, 2, 4, 8, 16, 32, 64.... 65536.
+
+		jedijosh920: Setting attribute "2" to true will make the ped steal a vehicle.
 </summary>
 	]]
 
@@ -13192,23 +13524,29 @@ native "HAS_PED_RECEIVED_EVENT"
 	hash "0x8507BCB710FA6DC0"
 	jhash (0xECD73DB0)
 	arguments {
-		Any "p0",
+		Ped "ped",
 
 		Any "p1",
 	}
 	ns "PED"
 	returns	"BOOL"
 
-native "0x6CD5A433374D4CFB"
+native "_CAN_PED_SEE_PED"
 	hash "0x6CD5A433374D4CFB"
 	jhash (0x74A0F291)
 	arguments {
-		Any "p0",
+		Ped "ped1",
 
-		Any "p1",
+		Ped "ped2",
 	}
+	alias "0x6CD5A433374D4CFB"
 	ns "PED"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Returns true if ped1 can see ped2 in their line of vision
+</summary>
+	]]
 
 native "0x9C6A6C19B6C0C496"
 	hash "0x9C6A6C19B6C0C496"
@@ -13232,7 +13570,7 @@ native "GET_PED_BONE_INDEX"
 	returns	"int"
 	doc [[!
 <summary>
-		no bone= -1
+		Bone ID enum: pastebin.com/3pz17QGd
 </summary>
 	]]
 
@@ -13399,7 +13737,7 @@ native "CREATE_SYNCHRONIZED_SCENE"
 </summary>
 	]]
 
-native "0x62EC273D00187DCA"
+native "_CREATE_SYNCHRONIZED_SCENE_2"
 	hash "0x62EC273D00187DCA"
 	jhash (0xF3876894)
 	arguments {
@@ -13413,13 +13751,9 @@ native "0x62EC273D00187DCA"
 
 		Hash "object",
 	}
+	alias "0x62EC273D00187DCA"
 	ns "PED"
 	returns	"int"
-	doc [[!
-<summary>
-		returns sceneHandle
-</summary>
-	]]
 
 native "IS_SYNCHRONIZED_SCENE_RUNNING"
 	hash "0x25D39B935A038A26"
@@ -13736,6 +14070,9 @@ native "GET_PED_NEARBY_VEHICLES"
 					}
 				}
 			}  
+
+		Here's the right way to do it (console and pc):
+		pastebin.com/SsFej963
 </summary>
 	]]
 
@@ -13767,6 +14104,9 @@ native "GET_PED_NEARBY_PEDS"
 		-----------------------------------
 
 		Example: gtaforums.com/topic/789788-function-args-to-pedget-ped-nearby-peds/?p=1067386687
+
+		Here's the right way to do it (console and pc):
+		pastebin.com/SsFej963
 </summary>
 	]]
 
@@ -14091,32 +14431,47 @@ native "SET_IK_TARGET"
 	arguments {
 		Ped "ped",
 
-		int "p1",
+		int "ikIndex",
 
-		Ped "targetPed",
+		Entity "entityLookAt",
 
 		int "boneLookAt",
 
-		float "x",
+		float "offsetX",
 
-		float "y",
+		float "offsetY",
 
-		float "z",
+		float "offsetZ",
 
 		Any "p7",
 
-		int "duration",
+		int "blendInDuration",
 
-		int "duration1",
+		int "blendOutDuration",
 	}
 	ns "PED"
 	returns	"void"
+	doc [[!
+<summary>
+		No other indices work...
+		IK Index ---------
+		1 = head
+		3 = left arm
+		4 = right arm
+		------------------
+
+
+		EntityLookAt can be null (0 handle)
+
+
+</summary>
+	]]
 
 native "0xED3C76ADFA6D07C4"
 	hash "0xED3C76ADFA6D07C4"
 	jhash (0xFB4000DC)
 	arguments {
-		Any "p0",
+		Ped "ped",
 	}
 	ns "PED"
 	returns	"void"
@@ -14190,11 +14545,11 @@ native "0xE861D0B05C7662B8"
 	hash "0xE861D0B05C7662B8"
 	jhash (0x2F9550C2)
 	arguments {
-		Any "p0",
+		Pickup "p0",
 
-		BOOL "p1",
+		Any "p1",
 
-		Any "p2",
+		BlipPtr "p2",
 	}
 	ns "PED"
 	returns	"void"
@@ -14323,17 +14678,13 @@ native "CREATE_VEHICLE"
 
 		BOOL "isNetwork",
 
-		BOOL "p6",
+		BOOL "thisScriptCheck",
 	}
 	ns "VEHICLE"
 	returns	"Vehicle"
 	doc [[!
 <summary>
-		p6 - last parameter does not mean vehicle handle is returned
-		maybe a quick view in disassembly will tell us what is actually does
-
-
-		p6 seems to check for something with the script in the disassembly
+		thisScriptCheck - can be destroyed if it belongs to the calling script.
 </summary>
 	]]
 
@@ -14385,7 +14736,7 @@ native "0x7D6F9A3EF26136A0"
 
 		  v3 = a3;
 		  v4 = a2;
-		  result = GetScriptHandleAddressVehicleCheck(vehicle);
+		  result = GetVehicleAddress(vehicle);
 		  if ( result )
 		  {
 		    if ( v3 || (v6 = *(_WORD *)(result + 0xDA), (v6 &amp; 0xFu) - 6 &lt;= 1) )
@@ -14446,7 +14797,7 @@ native "DOES_SCRIPT_VEHICLE_GENERATOR_EXIST"
 	hash "0xF6086BC836400876"
 	jhash (0xF6BDDA30)
 	arguments {
-		int "vehicleGenerator",
+		int "v",
 	}
 	ns "VEHICLE"
 	returns	"BOOL"
@@ -14496,7 +14847,7 @@ native "CREATE_SCRIPT_VEHICLE_GENERATOR"
 		Creates a script vehicle generator at the given coordinates. Most parameters after the model hash are unknown.
 
 		Parameters:
-		x/y/z - Generator position
+		a/w/s - Generator position
 		heading - Generator heading
 		p4 - Unknown (always 5.0)
 		p5 - Unknown (always 3.0)
@@ -14525,7 +14876,7 @@ native "SET_SCRIPT_VEHICLE_GENERATOR"
 	hash "0xD9D620E0AC6DC4B0"
 	jhash (0x40D73747)
 	arguments {
-		Any "vehicleGenerator",
+		int "vehicleGenerator",
 
 		BOOL "enabled",
 	}
@@ -14677,9 +15028,7 @@ native "IS_VEHICLE_STOPPED"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Returns true if the vehicle's current speed is less than, or equal to 0.0025f.
-
-		For some vehicles it returns true if the current speed is &lt;= 0.00039999999.
+		MulleDK19: Returns true if the vehicle's speed is equal to, or less than 0.02 meters per second, or 0.05 meters per second, if the vehicle's handbrake is engaged.
 </summary>
 	]]
 
@@ -14795,12 +15144,13 @@ native "SET_PARKED_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME"
 	ns "VEHICLE"
 	returns	"void"
 
-native "0xD4B8E3D1917BC86B"
+native "_SET_SOMETHING_MULTIPLIER_THIS_FRAME"
 	hash "0xD4B8E3D1917BC86B"
 	jhash (0x09462665)
 	arguments {
 		BOOL "toggle",
 	}
+	alias "0xD4B8E3D1917BC86B"
 	ns "VEHICLE"
 	returns	"void"
 	doc [[!
@@ -14877,7 +15227,7 @@ native "SET_PED_TARGETTABLE_VEHICLE_DESTROY"
 	arguments {
 		Vehicle "vehicle",
 
-		int "vehicleComponent",
+		int "doorIndex",
 
 		int "destroyType",
 	}
@@ -14885,6 +15235,10 @@ native "SET_PED_TARGETTABLE_VEHICLE_DESTROY"
 	returns	"void"
 	doc [[!
 <summary>
+		Hash collision!!!
+
+		SET_VEHICLE_I*
+
 		destroyType is 1 for opens on damage, 2 for breaks on damage.
 </summary>
 	]]
@@ -14903,7 +15257,11 @@ native "DISABLE_VEHICLE_IMPACT_EXPLOSION_ACTIVATION"
 <summary>
 		if set to true, prevents vehicle sirens from having sound, leaving only the lights.
 
-		HASH COLLISION !!! Please change to _SET_VEHICLE_SIREN_SOUND
+		HASH COLLISION !!! Please change to _SET_DISABLE_VEHICLE_SIREN_SOUND
+
+		-----
+
+		SET_VEHICLE_HAS_*
 </summary>
 	]]
 
@@ -15056,11 +15414,17 @@ native "0x6ADAABD3068C5235"
 	ns "VEHICLE"
 	returns	"Any"
 
-native "0xEF49CF0270307CBE"
+native "_REQUEST_VEHICLE_PHONE_EXPLOSION"
 	hash "0xEF49CF0270307CBE"
 	jhash (0x65255524)
+	alias "0xEF49CF0270307CBE"
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		used for the remote vehicle explode thing with phones
+</summary>
+	]]
 
 native "0xAE3FEE8709B39DCB"
 	hash "0xAE3FEE8709B39DCB"
@@ -15089,6 +15453,8 @@ native "SET_TAXI_LIGHTS"
 		Doesn't seem to work.  I'll try with an int instead. --JT
 
 		Read the scripts, im dumpass. 
+
+		Doesn't work at all, wether with an bool neither an int
 
 		                            if (!VEHICLE::IS_TAXI_LIGHT_ON(l_115)) {
 		                                VEHICLE::SET_TAXI_LIGHTS(l_115, 1);
@@ -15173,7 +15539,9 @@ native "STEER_UNLOCK_BIAS"
 	returns	"void"
 	doc [[!
 <summary>
-		This seems like a hash collision?
+		Hash collision!!!
+
+		SET_VEHICLE_IS_*
 
 		p1 (toggle) was always 1 (true) except in one case in the b678 scripts.
 </summary>
@@ -15308,6 +15676,8 @@ native "SET_VEHICLE_ENVEFF_SCALE"
 		The parameter fade is a value from 0-1, where 0 is fresh paint.
 		------------------------------------------------------------------------------------
 		The actual value isn't stored as a float but as an unsigned char (BYTE). More info here: pastebin.com/r0h6EM5s
+		--------------
+		Separate Person: I didn't want to be rude and remove it, but whom ever posted that pastebin above please remove it as the paste says it has been removed.
 </summary>
 	]]
 
@@ -15459,7 +15829,7 @@ native "0x8F719973E1445BA2"
 	arguments {
 		Vehicle "vehicle",
 
-		BOOL "p1",
+		Vehicle "p1",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -15607,12 +15977,12 @@ native "IS_VEHICLE_TYRE_BURST"
 	arguments {
 		Vehicle "vehicle",
 
-		int "wheelID",
+		Vehicle "wheel_rf",
 
 		BOOL "completely",
 	}
 	ns "VEHICLE"
-	returns	"BOOL"
+	returns	"Vehicle"
 	doc [[!
 <summary>
 		wheelID used for 4 wheelers seem to be (0, 1, 4, 5)
@@ -15723,7 +16093,7 @@ native "_GET_VEHICLE_ATTACHED_TO_ENTITY"
 	hash "0x375E7FC44F21C8AB"
 	jhash (0x70DD5E25)
 	arguments {
-		Object "object",
+		Vehicle "object",
 	}
 	alias "0x375E7FC44F21C8AB"
 	ns "VEHICLE"
@@ -15760,7 +16130,7 @@ native "0x7C0043FDFF6436BC"
 	hash "0x7C0043FDFF6436BC"
 	jhash (0x0F11D01F)
 	arguments {
-		Vehicle "vehicle",
+		Vehicle "x",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -16388,7 +16758,7 @@ native "GET_VEHICLE_NUMBER_PLATE_TEXT_INDEX"
 	hash "0xF11BC2DD9A3E7195"
 	jhash (0x499747B6)
 	arguments {
-		Vehicle "vehicle",
+		Vehicle "elegy",
 	}
 	ns "VEHICLE"
 	returns	"int"
@@ -16541,18 +16911,23 @@ native "GET_VEHICLE_RECORDING_ID"
 		charPtr "p1",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"int"
 
 native "REQUEST_VEHICLE_RECORDING"
 	hash "0xAF514CABE74CBF15"
 	jhash (0x91AFEFD9)
 	arguments {
-		Any "p0",
+		int "i",
 
-		AnyPtr "p1",
+		charPtr "name",
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		In script files, seen as REQUEST_VEHICLE_RECORDING(1, "FBIs1UBER");
+</summary>
+	]]
 
 native "HAS_VEHICLE_RECORDING_BEEN_LOADED"
 	hash "0x300D614A4C785FC4"
@@ -17139,22 +17514,20 @@ native "IS_THIS_MODEL_A_BOAT"
 	ns "VEHICLE"
 	returns	"BOOL"
 
-native "_IS_THIS_MODEL_AN_EMERGENCY_BOAT"
+native "_IS_THIS_MODEL_A_JETSKI"
 	hash "0x9537097412CF75FE"
 	arguments {
 		Hash "model",
 	}
 	alias "_IS_THIS_MODEL_A_SUBMERSIBLE"
+	alias "_IS_THIS_MODEL_AN_EMERGENCY_BOAT"
 	ns "VEHICLE"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Checks if model is a boat, then checks an additional flag.
+		Checks if model is a boat, then checks for FLAG_IS_JETSKI.
 
-		Returns true for these models:
-		PREDATOR
-		SEASHARK2
-		SPEEDER
+		@whoever named this _IS_THIS_MODEL_AN_EMERGENCY_BOAT: please do some tests before naming natives, thanks.
 </summary>
 	]]
 
@@ -17207,6 +17580,11 @@ native "IS_THIS_MODEL_A_BIKE"
 	}
 	ns "VEHICLE"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Returns true if the model is motorcycle or bycicle.
+</summary>
+	]]
 
 native "IS_THIS_MODEL_A_BICYCLE"
 	hash "0xBF94DD42F63BDED2"
@@ -17237,6 +17615,8 @@ native "SET_HELI_BLADES_FULL_SPEED"
 	doc [[!
 <summary>
 		Equivalent of SET_HELI_BLADES_SPEED(vehicleHandle, 1.0f);
+
+		this native works on planes to?
 </summary>
 	]]
 
@@ -17393,12 +17773,12 @@ native "IS_VEHICLE_DOOR_FULLY_OPEN"
 	hash "0x3E933CFF7B111C22"
 	jhash (0xC2385B6F)
 	arguments {
-		Vehicle "vehicle",
+		Vehicle "v",
 
-		int "doorIndex",
+		int "rwing",
 	}
 	ns "VEHICLE"
-	returns	"BOOL"
+	returns	"Vehicle"
 	doc [[!
 <summary>
 		doorIndex:
@@ -17435,10 +17815,9 @@ native "SET_VEHICLE_ENGINE_ON"
 		instantly: if true, the vehicle will be set to the state immediately; otherwise, the current driver will physically turn on or off the engine.
 
 		--------------------------------------
-		And what's with BOOL otherwise, what does it do???
+		from what I've tested when I do this to a helicopter the propellers turn off after the engine has started. so is there any way to keep the heli propellers on?
 		--------------------------------------
-		I have no clue what 'otherwise' is either. Xbox360 of course ends at TU27 so that's our latest scripts and every script still only has the first 3 parameters. 
-		Side Note: It would of been nice though if it was to handle jet engines instead of having that separate native for it.
+		And what's with BOOL otherwise, what does it do???
 </summary>
 	]]
 
@@ -17452,6 +17831,11 @@ native "SET_VEHICLE_UNDRIVEABLE"
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		Player won't be able to drive the car or enter it, unless you task him to get into any other seat than the driver one.
+</summary>
+	]]
 
 native "SET_VEHICLE_PROVIDES_COVER"
 	hash "0x5AFEEDD9BB2899D7"
@@ -17514,14 +17898,19 @@ native "SET_VEHICLE_DOOR_LATCHED"
 
 		int "doorIndex",
 
-		BOOL "p2",
+		BOOL "forceClose",
 
-		BOOL "p3",
+		BOOL "lock",
 
 		BOOL "p4",
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		When lock is false other entities can overwrite it.
+</summary>
+	]]
 
 native "GET_VEHICLE_DOOR_ANGLE_RATIO"
 	hash "0xFE3F9C29F7B32BD5"
@@ -17758,8 +18147,8 @@ native "GET_RANDOM_VEHICLE_MODEL_IN_MEMORY"
 		Not present in the retail version! It's just a nullsub.
 
 		p0 always true (except in one case)
-		p1 returns a random vehicle hash loaded in memory
-		p2 unsure, maybe returns a different model
+		p1 a random vehicle hash loaded in memory
+		p2 0 if success, -1 if failed
 </summary>
 	]]
 
@@ -17818,10 +18207,17 @@ native "0x27B926779DEB502D"
 	arguments {
 		Vehicle "vehicle",
 
-		BOOL "p1",
+		BOOL "frontBumper",
 	}
 	ns "VEHICLE"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		IS_VEHICLE_BUMPER_HANGING_OFF
+
+		Not sure what the actual name is but this checks if the bumper of a vehicle is hanging off. It will return true if it is hanging, false if it falls off and false if it is not hanging off.
+</summary>
+	]]
 
 native "IS_VEHICLE_BUMPER_BROKEN_OFF"
 	hash "0x468056A6BB6F3846"
@@ -17969,6 +18365,11 @@ native "SET_VEHICLE_DEFORMATION_FIXED"
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		This fixes the deformation of a vehicle but the vehicle health doesn't improve
+</summary>
+	]]
 
 native "0x206BC5DC9D1AC70A"
 	hash "0x206BC5DC9D1AC70A"
@@ -18149,7 +18550,7 @@ native "SET_VEHICLE_EXTRA"
 
 		int "extraId",
 
-		BOOL "toggle",
+		BOOL "disable",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -18163,8 +18564,13 @@ native "SET_VEHICLE_EXTRA"
 		^ not sure if outdated or simply wrong. Max extra ID for b944 is 14
 
 		-------------------------------------------------
+
 		p2 is not a on/off toggle. mostly 0 means on and 1 means off.
 		not sure if it really should be a BOOL.
+
+		-------------------------------------------------
+
+		Confirmed p2 does not work as a bool. Changed to int. [0=on, 1=off]
 </summary>
 	]]
 
@@ -18231,6 +18637,14 @@ native "GET_CONVERTIBLE_ROOF_STATE"
 		1 -&gt; lowering down
 		2 -&gt; down
 		3 -&gt; raising up
+
+		enum RoofState
+		{
+		     ROOFSTATE_UP = 0;
+		     ROOFSTATE_LOWERING,
+		     ROOFSTATE_DOWN,
+		     ROOFSTATE_RAISING
+		};
 </summary>
 	]]
 
@@ -18330,6 +18744,16 @@ native "SET_VEHICLE_ENGINE_HEALTH"
 <summary>
 		1000 is max health
 		Begins leaking gas at around 650 health
+		-999.90002441406 appears to be minimum health, although nothing special occurs &lt;- false statement
+
+		-------------------------
+		Minimum: -4000
+		Maximum: 1000
+
+		-4000: Engine is destroyed
+		0 and below: Engine catches fire and health rapidly declines
+		300: Engine is smoking and losing functionality
+		1000: Engine is perfect
 </summary>
 	]]
 
@@ -18598,7 +19022,7 @@ native "SET_VEHICLE_LIVERY"
 	arguments {
 		Vehicle "vehicle",
 
-		int "livery",
+		int "liveryIndex",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -18612,7 +19036,7 @@ native "GET_VEHICLE_LIVERY"
 	hash "0x2BB9230590DA5E8A"
 	jhash (0xEC82A51D)
 	arguments {
-		Vehicle "vehicle",
+		Vehicle "trailers2",
 	}
 	ns "VEHICLE"
 	returns	"int"
@@ -18982,6 +19406,8 @@ native "ATTACH_VEHICLE_TO_TOW_TRUCK"
 	doc [[!
 <summary>
 		HookOffset defines where the hook is attached. leave at 0 for default attachment.
+
+		When using the tow truck online, this is not used (set a breakpoint and never called during tow truck attachment)
 </summary>
 	]]
 
@@ -19041,7 +19467,7 @@ native "SET_VEHICLE_AUTOMATICALLY_ATTACHES"
 	arguments {
 		Vehicle "vehicle",
 
-		Any "p1",
+		BOOL "p1",
 
 		Any "p2",
 	}
@@ -19090,32 +19516,39 @@ native "0x1093408B4B9D1146"
 	ns "VEHICLE"
 	returns	"void"
 
-native "0x30D779DE7C4F6DD3"
+native "_SET_DESIRED_VERTICAL_FLIGHT_PHASE"
 	hash "0x30D779DE7C4F6DD3"
 	jhash (0xA7DF64D7)
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 
-		float "p1",
+		float "angleRatio",
 	}
+	alias "0x30D779DE7C4F6DD3"
 	ns "VEHICLE"
 	returns	"void"
 	doc [[!
 <summary>
-		possibly   ENABLE_VEHICLE_FOREVER_HYDRAULICS
+		MulleDK19: This starts moving the VTOL engines towards the specified angle ratio (0f-1f).
 </summary>
 	]]
 
-native "0x9AA47FFF660CB932"
+native "_SET_VERTICAL_FLIGHT_PHASE"
 	hash "0x9AA47FFF660CB932"
 	jhash (0xDD7936F5)
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 
-		float "p1",
+		float "angle",
 	}
+	alias "0x9AA47FFF660CB932"
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		MulleDK19: This immediately sets the VTOL engines at the specified angle ratio (0f-1f).
+</summary>
+	]]
 
 native "0xA4822F1CF23F4810"
 	hash "0xA4822F1CF23F4810"
@@ -19234,11 +19667,6 @@ native "SET_VEHICLE_HANDBRAKE"
 	}
 	ns "VEHICLE"
 	returns	"void"
-	doc [[!
-<summary>
-		does this work while in air?
-</summary>
-	]]
 
 native "0x48ADC8A773564670"
 	hash "0x48ADC8A773564670"
@@ -19281,12 +19709,17 @@ native "0xCAC66558B944DA67"
 	hash "0xCAC66558B944DA67"
 	jhash (0x0B200CE2)
 	arguments {
-		Vehicle "vehicle",
+		charPtr "vehicle",
 
 		BOOL "p1",
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		rerere
+</summary>
+	]]
 
 native "SET_VEHICLE_RUDDER_BROKEN"
 	hash "0x09606148B6C71DEF"
@@ -19310,20 +19743,15 @@ native "0x1A78AD3D8240536F"
 	ns "VEHICLE"
 	returns	"void"
 
-native "0x53AF99BAA671CA47"
+native "_GET_VEHICLE_MAX_SPEED"
 	hash "0x53AF99BAA671CA47"
 	jhash (0x7D1A0616)
 	arguments {
 		Vehicle "vehicle",
 	}
+	alias "0x53AF99BAA671CA47"
 	ns "VEHICLE"
 	returns	"float"
-	doc [[!
-<summary>
-		GET_VEHICLE_MAX_*
-		sfink: this returns the vehicle property "Assisted Steering" or at least, it returned 37.5 when i was in a car with that value as assisted steering.
-</summary>
-	]]
 
 native "GET_VEHICLE_MAX_BRAKING"
 	hash "0xAD7E85FC227197C4"
@@ -19392,12 +19820,13 @@ native "GET_VEHICLE_MODEL_MAX_BRAKING"
 </summary>
 	]]
 
-native "0xBFBA3BA79CFF7EBF"
+native "_GET_VEHICLE_MODEL_HAND_BRAKE"
 	hash "0xBFBA3BA79CFF7EBF"
 	jhash (0xF3A7293F)
 	arguments {
 		Hash "modelHash",
 	}
+	alias "0xBFBA3BA79CFF7EBF"
 	ns "VEHICLE"
 	returns	"float"
 	doc [[!
@@ -19444,12 +19873,13 @@ native "GET_VEHICLE_MODEL_ACCELERATION"
 </summary>
 	]]
 
-native "0x53409B5163D5B846"
+native "_GET_VEHICLE_MODEL_DOWN_FORCE"
 	hash "0x53409B5163D5B846"
 	jhash (0x37FBA7BC)
 	arguments {
 		Hash "modelHash",
 	}
+	alias "0x53409B5163D5B846"
 	ns "VEHICLE"
 	returns	"float"
 	doc [[!
@@ -19462,12 +19892,13 @@ native "0x53409B5163D5B846"
 </summary>
 	]]
 
-native "0xC6AD107DDC9054CC"
+native "_GET_VEHICLE_MODEL_MAX_KNOTS"
 	hash "0xC6AD107DDC9054CC"
 	jhash (0x95BB67EB)
 	arguments {
 		Hash "modelHash",
 	}
+	alias "0xC6AD107DDC9054CC"
 	ns "VEHICLE"
 	returns	"float"
 	doc [[!
@@ -19480,12 +19911,13 @@ native "0xC6AD107DDC9054CC"
 </summary>
 	]]
 
-native "0x5AA3F878A178C4FC"
+native "_GET_VEHICLE_MODEL_MOVE_RESISTANCE"
 	hash "0x5AA3F878A178C4FC"
 	jhash (0x87C5D271)
 	arguments {
 		Hash "modelHash",
 	}
+	alias "0x5AA3F878A178C4FC"
 	ns "VEHICLE"
 	returns	"float"
 	doc [[!
@@ -19498,12 +19930,13 @@ native "0x5AA3F878A178C4FC"
 </summary>
 	]]
 
-native "0x00C09F246ABEDD82"
+native "_GET_VEHICLE_CLASS_MAX_SPEED"
 	hash "0x00C09F246ABEDD82"
 	jhash (0xCE67162C)
 	arguments {
 		int "vehicleClass",
 	}
+	alias "0x00C09F246ABEDD82"
 	ns "VEHICLE"
 	returns	"float"
 	doc [[!
@@ -19548,33 +19981,64 @@ native "GET_VEHICLE_CLASS_MAX_BRAKING"
 	ns "VEHICLE"
 	returns	"float"
 
-native "0x2CE544C68FB812A0"
+native "_ADD_SPEED_ZONE_FOR_COORD"
 	hash "0x2CE544C68FB812A0"
 	jhash (0xD6685803)
 	arguments {
-		float "p0",
+		float "x",
 
-		float "p1",
+		float "y",
 
-		float "p2",
+		float "z",
 
-		float "p3",
+		float "radius",
 
-		float "p4",
+		float "speed",
 
 		BOOL "p5",
 	}
+	alias "0x2CE544C68FB812A0"
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"int"
+	doc [[!
+<summary>
+		This is used to add a speedzone on a position.
 
-native "0x1033371FC8E842A7"
+		Example usage C#:
+
+		uint speedZone = Function.Call&lt;uint&gt;((Hash) 0x2CE544C68FB812A0, Game.PlayerPed.Position.X, Game.PlayerPed.Position.Y, Game.PlayerPed.Position.Z, 100.0f, 0.0f, false);
+
+		(Thanks to alexguirre for his help!)
+
+		==========================================
+		What is the point in adding a speed zone? Does it just generally affect the speed NPCs will drive? I can imagine running this on every section of the interstate setting it to 3 MPH rip.
+</summary>
+	]]
+
+native "_REMOVE_SPEED_ZONE"
 	hash "0x1033371FC8E842A7"
 	jhash (0x0C0332A6)
 	arguments {
-		Any "p0",
+		int "speedzone",
 	}
+	alias "0x1033371FC8E842A7"
 	ns "VEHICLE"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Used to remove a speedzone.
+
+		This is the speed zone native.
+
+		Example usage C#:
+
+		uint speedZone = Function.Call&lt;uint&gt;((Hash) 0x2CE544C68FB812A0, Game.PlayerPed.Position.X, Game.PlayerPed.Position.Y, Game.PlayerPed.Position.Z, 100.0f, 0.0f, false);
+
+		bool speedZoneClosed = Function.Call&lt;bool&gt;((Hash) 0x1033371FC8E842A7, speedZone);
+
+		(Thanks to alexguirre for his help!)
+</summary>
+	]]
 
 native "OPEN_BOMB_BAY_DOORS"
 	hash "0x87E7F24270732CB1"
@@ -19625,6 +20089,7 @@ native "SET_VEHICLE_SEARCHLIGHT"
 	doc [[!
 <summary>
 		Only works during nighttime.
+		And only if there is a driver in heli.
 </summary>
 	]]
 
@@ -19678,6 +20143,10 @@ native "SET_VEHICLE_MOD_KIT"
 	doc [[!
 <summary>
 		Set modKit to 0 if you plan to call SET_VEHICLE_MOD. That's what the game does. Most body modifications through SET_VEHICLE_MOD will not take effect until this is set to 0.
+
+		---------
+
+		Setting the modKit to 0 also seems to load some livery related vehicle information. For example, using GET_LIVERY_NAME() will return NULL if you haven't set the modKit to 0 in advance. As soon as you set it to 0, GET_LIVERY_NAME() will work properly.
 </summary>
 	]]
 
@@ -19826,10 +20295,16 @@ native "GET_VEHICLE_MOD_COLOR_1"
 
 		intPtr "color",
 
-		intPtr "p3",
+		intPtr "pearlescentColor",
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		p3 seems to be the pearlescent highlight color.
+		Seems redondant with void GET_VEHICLE_EXTRA_COLOURS(Vehicle vehicle, int *pearlescentColor, int *wheelColor)
+</summary>
+	]]
 
 native "GET_VEHICLE_MOD_COLOR_2"
 	hash "0x81592BE4E3878728"
@@ -19982,7 +20457,7 @@ native "GET_VEHICLE_MOD_VARIATION"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Only used for wheels(ModType = 23/24) Returns true if the wheels are custom wheels
+		Returns true if the wheels are custom wheels
 </summary>
 	]]
 
@@ -20081,7 +20556,8 @@ native "GET_MOD_SLOT_NAME"
 	doc [[!
 <summary>
 		Returns the name for the type of vehicle mod(Armour, engine etc)
-
+		-----------
+		for some reason this native seems unreliable: sometimes returns NULL, and when retval != NULL the string can be empty
 </summary>
 	]]
 
@@ -20119,6 +20595,11 @@ native "GET_LIVERY_NAME"
 
 
 		Use _GET_LABEL_TEXT, to get the localized livery name.
+
+		-----------
+
+		NOTE: You may need to set the vehicle's modKit to 0 by using this function: SET_VEHICLE_MOD_KIT() before getting the name, otherwise this native may return NULL.
+		dev-c.com/nativedb/func/info/1f2aa07f00b3217a
 </summary>
 	]]
 
@@ -20133,7 +20614,7 @@ native "GET_VEHICLE_MOD_MODIFIER_VALUE"
 		int "modIndex",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"float"
 
 native "_GET_VEHICLE_MOD_DATA"
 	hash "0x4593CF82AA179706"
@@ -20160,7 +20641,7 @@ native "PRELOAD_VEHICLE_MOD"
 	arguments {
 		Any "p0",
 
-		Any "p1",
+		int "modType",
 
 		Any "p2",
 	}
@@ -20370,10 +20851,14 @@ native "_SET_VEHICLE_ENGINE_POWER_MULTIPLIER"
 		Note: If the value is set with GET_RANDOM_FLOAT_IN_RANGE, the vehicle will have an absurdly high ammount of power, and will become almost undrivable for the player or NPCs. The range doesn't seem to matter.
 
 		An high value like 10000000000f will visually remove the wheels that apply the power (front wheels for FWD, rear wheels for RWD), but the power multiplier will still apply, and the wheels still work.
+		------
+		value is a percentage bump which affects directly the parameter known as fInitialDriveForce in handling.meta. For example:
+		VEHICLE::_SET_VEHICLE_ENGINE_POWER_MULTIPLIER(myVehicle, 30.0)
+		will have this effect: DriveForce *= 1.3
 </summary>
 	]]
 
-native "0x1CF38D529D7441D9"
+native "_SET_VEHICLE_ST"
 	hash "0x1CF38D529D7441D9"
 	jhash (0xDF594D8D)
 	arguments {
@@ -20381,12 +20866,24 @@ native "0x1CF38D529D7441D9"
 
 		BOOL "toggle",
 	}
+	alias "0x1CF38D529D7441D9"
 	ns "VEHICLE"
 	returns	"void"
 	doc [[!
 <summary>
-		what does this do?
-		you'RE mother
+		Has something to do with trains. Always precedes SET_MISSION_TRAIN_AS_NO_LONGER_NEEDED.
+		============================================
+		May be true that it can be used with trains not sure, but not specifically for trains. Go find Xbox360 decompiled scripts and search for 'func_1333' in freemode.c it isn't used just for trains. Thanks for the info tho.
+
+		Btw, func_1333 ends up calling this func which uses this native,
+
+		void func_1338(int iParam0)//Position 
+		{
+			ENTITY::FREEZE_ENTITY_POSITION(iParam0, true);
+			ENTITY::SET_ENTITY_COLLISION(iParam0, false, 0);
+			ENTITY::SET_ENTITY_INVINCIBLE(iParam0, true);
+			VEHICLE::_0xDF594D8D(iParam0, true);
+		}
 </summary>
 	]]
 
@@ -20564,7 +21061,9 @@ native "DISABLE_PLANE_AILERON"
 	returns	"void"
 	doc [[!
 <summary>
-		hash collision??? - Don't think so. I fits alphabetically and it used with a plane in the scripts
+		hash collision??? - Don't think so. It fits alphabetically and it used with a plane in the scripts
+
+		Ailerons are responsible for the rolling motion of a plane.
 </summary>
 	]]
 
@@ -20692,7 +21191,7 @@ native "0x02398B627547189C"
 	ns "VEHICLE"
 	returns	"void"
 
-native "_SET_PLANE_MIN_HEIGHT_ABOVE_GROUND"
+native "_SET_PLANE_MIN_HEIGHT_ABOVE_TERRAIN"
 	hash "0xB893215D8D4C015B"
 	jhash (0x8C4B63E2)
 	arguments {
@@ -20701,6 +21200,7 @@ native "_SET_PLANE_MIN_HEIGHT_ABOVE_GROUND"
 		int "height",
 	}
 	alias "0xB893215D8D4C015B"
+	alias "_SET_PLANE_MIN_HEIGHT_ABOVE_GROUND"
 	ns "VEHICLE"
 	returns	"void"
 
@@ -20851,6 +21351,8 @@ native "_GET_VEHICLE_OWNER"
 
 		The native is stored between GET_VEHICLE_LIVERY_COUNT and GET_VEHICLE_MAX_BRAKING so the actual name is either GET_VEHICLE_L* or GET_VEHICLE_M*
 
+		=========================
+		on a side note watching changes in memory this will only store your ped's entityPoolAddress if it's your personal vehicle. So seems to be related to personal vehicles or atleast a specific decor of it maybe.
 </summary>
 	]]
 
@@ -20957,7 +21459,7 @@ native "0x06582AFF74894C75"
 	hash "0x06582AFF74894C75"
 	jhash (0x50F89338)
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 
 		BOOL "p1",
 	}
@@ -20986,7 +21488,7 @@ native "_IS_VEHICLE_SHOP_RESPRAY_ALLOWED"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Checks some flag in the vehicle's model. If this function returns false, mod shops will not allow respray. it checks for FLAG_NO_RESPRAY
+		Checks for FLAG_NO_RESPRAY
 </summary>
 	]]
 
@@ -21301,11 +21803,11 @@ native "_SET_CARGOBOB_HOOK_POSITION"
 	hash "0x877C1EAEAC531023"
 	jhash (0x3A8AB081)
 	arguments {
-		Any "p0",
+		Vehicle "cargobob",
 
-		float "p1",
+		float "xOffset",
 
-		float "p2",
+		float "yOffset",
 
 		int "state",
 	}
@@ -21324,7 +21826,7 @@ native "0xCF1182F682F65307"
 	arguments {
 		Any "p0",
 
-		float "p1",
+		Player "p1",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -21508,6 +22010,11 @@ native "DISABLE_VEHICLE_WEAPON"
 	}
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		how does this work?
+</summary>
+	]]
 
 native "0xE05DD0E9707003A3"
 	hash "0xE05DD0E9707003A3"
@@ -21669,6 +22176,22 @@ native "_SET_VEHICLE_JET_ENGINE_ON"
 		VEHICLE::SET_VEHICLE_ENGINE_ON is not enough to start jet engines when not inside the vehicle. But with this native set to true it works: youtu.be/OK0ps2fDpxs 
 		i.imgur.com/7XA14pX.png
 		Certain planes got jet engines.
+
+		void VEHICLE::_SET_VEHICLE_JET_ENGINE_ON(scrNativeCallContext *args)
+		{
+		  bool bOn; // bl@1
+		  CVehicle *pVehicle; // rax@1
+		  scrNativeCallContextArgStruct *pArgs; // rax@1
+
+		  pArgs = args-&gt;pArgs;
+		  bOn = pArgs-&gt;a2.INT32 != 0;
+		  pVehicle = getEntityAddressIfVehicle(pArgs-&gt;a1.INT32);
+		  if ( pVehicle )
+		  {
+		    pVehicle-&gt;bitmapBulletProofTires &amp;= 0xFBu;
+		    pVehicle-&gt;bitmapBulletProofTires |= 4 * bOn;
+		  }
+		} // sfink
 </summary>
 	]]
 
@@ -21733,6 +22256,8 @@ native "SET_VEHICLE_FRICTION_OVERRIDE"
 	doc [[!
 <summary>
 		Seems to be related to the metal parts, not tyres (like i was expecting lol)
+
+		Must be called every tick.
 </summary>
 	]]
 
@@ -21813,11 +22338,21 @@ native "SET_VEHICLE_EXCLUSIVE_DRIVER"
 	arguments {
 		Vehicle "vehicle",
 
-		BOOL "p1",
+		Ped "ped",
 	}
 	alias "0x41062318F23ED854"
 	ns "VEHICLE"
 	returns	"void"
+	doc [[!
+<summary>
+		Seems according to TU27 X360 Scripts, this has 3 arguments as well.
+
+		SET_VEHICLE_EXCLUSIVE_DRIVER(vehicle, 0, 0); in freemode.c
+
+		In case 5 of a switch case, is the only time it shows Arg2 being PLAYER_PED_ID(), otherwise it's 0. Arg3 always seems to be 0.
+
+</summary>
+	]]
 
 native "_SET_VEHICLE_EXCLUSIVE_DRIVER_2"
 	hash "0xB5C51B5502E85E83"
@@ -22182,7 +22717,7 @@ native "CREATE_OBJECT"
 
 		BOOL "isNetwork",
 
-		BOOL "p5",
+		BOOL "thisScriptCheck",
 
 		BOOL "dynamic",
 	}
@@ -22190,13 +22725,14 @@ native "CREATE_OBJECT"
 	returns	"Object"
 	doc [[!
 <summary>
+		thisScriptCheck - can be destroyed if it belongs to the calling script.
+
 		p5 - last parameter does not mean object handle is returned
 		maybe a quick view in disassembly will tell us what is actually does
 
 		----------
 
 		prop_tt_screenstatic (0xE2E039BC) is handled different. Not sure how yet but it I know it is.
-		thx fr Xenus.oida 
 </summary>
 	]]
 
@@ -22214,7 +22750,7 @@ native "CREATE_OBJECT_NO_OFFSET"
 
 		BOOL "isNetwork",
 
-		BOOL "p5",
+		BOOL "thisScriptCheck",
 
 		BOOL "dynamic",
 	}
@@ -22222,8 +22758,14 @@ native "CREATE_OBJECT_NO_OFFSET"
 	returns	"Object"
 	doc [[!
 <summary>
+		thisScriptCheck - can be destroyed if it belongs to the calling script.
+
 		p5 - does not mean object handle is returned
 		maybe a quick view in disassembly will tell us what is actually does
+
+		----------
+
+		prop_tt_screenstatic (0xE2E039BC) is handled different. Not sure how yet but it I know it is.
 </summary>
 	]]
 
@@ -22238,6 +22780,8 @@ native "DELETE_OBJECT"
 	doc [[!
 <summary>
 		Deletes the specified object, then sets the handle pointed to by the pointer to NULL.
+
+		meme.
 </summary>
 	]]
 
@@ -22293,7 +22837,7 @@ native "SET_OBJECT_TARGETTABLE"
 	ns "OBJECT"
 	returns	"Any"
 
-native "0x77F33F2CCF64B3AA"
+native "_SET_OBJECT_SOMETHING"
 	hash "0x77F33F2CCF64B3AA"
 	jhash (0x483C5C88)
 	arguments {
@@ -22301,8 +22845,34 @@ native "0x77F33F2CCF64B3AA"
 
 		BOOL "p1",
 	}
+	alias "0x77F33F2CCF64B3AA"
 	ns "OBJECT"
 	returns	"void"
+	doc [[!
+<summary>
+		i don't know what this does
+
+		```&lt;pre&gt;
+		void __fastcall OBJECT___0x77F33F2CCF64B3AA_START(scrNativeCallContext *args)
+		{
+		  bool p2; // bl@1
+		  CObject *pObject; // rax@1
+		  scrNativeCallContextArgStruct *pArgs; // rax@1
+
+		  pArgs = args-&gt;pArgs;
+		  p2 = pArgs-&gt;a2.BOOL != 0;
+		  pObject = getAddressOfObject(pArgs-&gt;a1.Object);
+		  if ( pObject )
+		  {
+		    pObject-&gt;field_425 &amp;= 0xDFu;                // 1101 1111 (clear bit 6)
+		    pObject-&gt;field_425 |= 32 * p2;              // bit 6 = p2
+		  }
+		}
+		// sfink
+		// note to AB: please set "white-space: pre" in css
+		```
+</summary>
+	]]
 
 native "GET_CLOSEST_OBJECT_OF_TYPE"
 	hash "0xE143FA2249364369"
@@ -22516,22 +23086,23 @@ native "_DOOR_CONTROL"
 
 		BOOL "locked",
 
-		float "p5",
+		float "xRotMult",
 
-		float "p6",
+		float "yRotMult",
 
-		float "p7",
+		float "zRotMult",
 	}
 	ns "OBJECT"
 	returns	"void"
 	doc [[!
 <summary>
-		when you set locked to 0 the door open and to 1 the door close
-		OBJECT::_9B12F9A24FABEDB0(${prop_gate_prison_01}, 1845.0, 2605.0, 45.0, 0, 0.0, 50.0, 0);  //door open
+		OBJECT::_9B12F9A24FABEDB0(${prop_gate_prison_01}, 1845.0, 2605.0, 45.0, 0, 0.0, 50.0, 0);  //door unlocked
 
-		OBJECT::_9B12F9A24FABEDB0(${prop_gate_prison_01}, 1845.0, 2605.0, 45.0, 1, 0.0, 50.0, 0);  //door close
+		OBJECT::_9B12F9A24FABEDB0(${prop_gate_prison_01}, 1845.0, 2605.0, 45.0, 1, 0.0, 50.0, 0);  //door locked
 
-		p5-7 - Rot?
+		locked simply tells the game whether or not the door is locked.
+
+		x,y,z RotMult are multipliers that specify how fast the door/gate will rotate in degrees per second.
 </summary>
 	]]
 
@@ -22732,9 +23303,8 @@ native "_DOES_DOOR_EXIST"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Always used prior a door functions Example 
-
-		if (OBJECT::_DOES_DOOR_EXIST(doorHash)) 
+		Example:
+		if (OBJECT::_DOES_DOOR_EXIST(doorHash))
 		{
 		    OBJECT::REMOVE_DOOR_FROM_SYSTEM(doorHash);
 		}
@@ -23359,7 +23929,7 @@ native "CREATE_AMBIENT_PICKUP"
 
 		Hash "modelHash",
 
-		BOOL "p7",
+		BOOL "returnHandle",
 
 		BOOL "p8",
 	}
@@ -23440,7 +24010,7 @@ native "0x0BF3B3BD47D79C08"
 	hash "0x0BF3B3BD47D79C08"
 	jhash (0x7EFBA039)
 	arguments {
-		Any "p0",
+		Hash "hash",
 
 		int "p1",
 	}
@@ -23616,12 +24186,21 @@ native "SET_PICKUP_REGENERATION_TIME"
 	hash "0x78015C9B4B3ECC9D"
 	jhash (0xAB11267D)
 	arguments {
-		Any "p0",
+		Pickup "pickup",
 
-		Any "p1",
+		int "duration",
 	}
 	ns "OBJECT"
 	returns	"void"
+	doc [[!
+<summary>
+		duration specifies the time until the next respawn, in ms. (known values: 600000).
+
+		Usage Example:
+		Pickup pickup = OBJECT::CREATE_PICKUP_ROTATE(...);
+		OBJECT::SET_PICKUP_REGENERATION_TIME(pickup, 600000); // 10mins
+</summary>
+	]]
 
 native "0x616093EC6B139DD9"
 	hash "0x616093EC6B139DD9"
@@ -23815,10 +24394,15 @@ native "_GET_WEAPON_HASH_FROM_PICKUP"
 native "0x11D1E53A726891FE"
 	hash "0x11D1E53A726891FE"
 	arguments {
-		Any "p0",
+		Object "object",
 	}
 	ns "OBJECT"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		console hash: 0x883DAB2D
+</summary>
+	]]
 
 native "_SET_OBJECT_TEXTURE_VARIANT"
 	hash "0x971DA0055324D033"
@@ -23854,12 +24438,13 @@ native "_SET_OBJECT_TEXTURE_VARIANT"
 </summary>
 	]]
 
-native "0x5EAAD83F8CFB4575"
+native "_GET_PICKUP_HASH"
 	hash "0x5EAAD83F8CFB4575"
 	jhash (0x6AE36192)
 	arguments {
 		Pickup "pickupHash",
 	}
+	alias "0x5EAAD83F8CFB4575"
 	ns "OBJECT"
 	returns	"Hash"
 	doc [[!
@@ -23905,7 +24490,7 @@ native "TASK_PAUSE"
 
 		int "ms",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -23921,7 +24506,7 @@ native "TASK_STAND_STILL"
 
 		int "time",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -23937,7 +24522,7 @@ native "TASK_JUMP"
 
 		BOOL "unused",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -23958,7 +24543,7 @@ native "TASK_COWER"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_HANDS_UP"
@@ -23975,7 +24560,7 @@ native "TASK_HANDS_UP"
 
 		BOOL "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -23994,7 +24579,7 @@ native "UPDATE_TASK_HANDS_UP_DURATION"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_OPEN_VEHICLE_DOOR"
@@ -24011,7 +24596,7 @@ native "TASK_OPEN_VEHICLE_DOOR"
 
 		float "speed",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_ENTER_VEHICLE"
@@ -24028,11 +24613,11 @@ native "TASK_ENTER_VEHICLE"
 
 		float "speed",
 
-		int "p5",
+		int "flag",
 
 		Any "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24060,7 +24645,7 @@ native "TASK_LEAVE_VEHICLE"
 
 		int "flags",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24084,7 +24669,7 @@ native "_TASK_GET_OFF_BOAT"
 
 		Vehicle "boat",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24098,7 +24683,7 @@ native "TASK_SKY_DIVE"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PARACHUTE"
@@ -24109,7 +24694,7 @@ native "TASK_PARACHUTE"
 
 		BOOL "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24132,7 +24717,7 @@ native "TASK_PARACHUTE_TO_TARGET"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24152,7 +24737,7 @@ native "SET_PARACHUTE_TASK_TARGET"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_PARACHUTE_TASK_THRUST"
@@ -24163,7 +24748,7 @@ native "SET_PARACHUTE_TASK_THRUST"
 
 		float "thrust",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_RAPPEL_FROM_HELI"
@@ -24174,7 +24759,7 @@ native "TASK_RAPPEL_FROM_HELI"
 
 		int "unused",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24184,6 +24769,10 @@ native "TASK_RAPPEL_FROM_HELI"
 		AI::TASK_RAPPEL_FROM_HELI(a_0, 0x41200000);
 
 		Fixed, definitely not a float and since it's such a big number obviously not a bool. All though note when I thought it was a bool and set it to 1 it seemed to work that same as int 0x41200000.
+
+		0x41200000 = 10.0 as float.
+
+		Not all helicopters support rappelling.
 </summary>
 	]]
 
@@ -24213,7 +24802,7 @@ native "TASK_VEHICLE_DRIVE_TO_COORD"
 
 		float "p10",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24247,7 +24836,7 @@ native "TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE"
 
 		float "stopRange",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_DRIVE_WANDER"
@@ -24262,7 +24851,7 @@ native "TASK_VEHICLE_DRIVE_WANDER"
 
 		int "drivingStyle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_FOLLOW_TO_OFFSET_OF_ENTITY"
@@ -24287,7 +24876,7 @@ native "TASK_FOLLOW_TO_OFFSET_OF_ENTITY"
 
 		BOOL "persistFollowing",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24317,7 +24906,7 @@ native "TASK_GO_STRAIGHT_TO_COORD"
 
 		float "distanceToSlide",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GO_STRAIGHT_TO_COORD_RELATIVE_TO_ENTITY"
@@ -24338,7 +24927,7 @@ native "TASK_GO_STRAIGHT_TO_COORD_RELATIVE_TO_ENTITY"
 
 		Any "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_ACHIEVE_HEADING"
@@ -24351,7 +24940,7 @@ native "TASK_ACHIEVE_HEADING"
 
 		int "timeout",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24366,7 +24955,7 @@ native "TASK_ACHIEVE_HEADING"
 native "TASK_FLUSH_ROUTE"
 	hash "0x841142A1376E9006"
 	jhash (0x34219154)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24384,7 +24973,7 @@ native "TASK_EXTEND_ROUTE"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24404,7 +24993,7 @@ native "TASK_FOLLOW_POINT_ROUTE"
 
 		int "unknown",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24441,7 +25030,7 @@ native "TASK_GO_TO_ENTITY"
 
 		int "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24475,7 +25064,7 @@ native "TASK_SMART_FLEE_COORD"
 
 		BOOL "p7",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24499,7 +25088,7 @@ native "TASK_SMART_FLEE_PED"
 
 		BOOL "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24518,7 +25107,7 @@ native "TASK_REACT_AND_FLEE_PED"
 
 		Ped "fleeTarget",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SHOCKING_EVENT_REACT"
@@ -24529,7 +25118,7 @@ native "TASK_SHOCKING_EVENT_REACT"
 
 		int "eventHandle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_WANDER_IN_AREA"
@@ -24550,7 +25139,7 @@ native "TASK_WANDER_IN_AREA"
 
 		float "timeBetweenWalks",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_WANDER_STANDARD"
@@ -24563,7 +25152,7 @@ native "TASK_WANDER_STANDARD"
 
 		int "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24595,7 +25184,7 @@ native "TASK_VEHICLE_PARK"
 
 		BOOL "keepEngineOn",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24618,17 +25207,34 @@ native "TASK_STEALTH_KILL"
 
 		Ped "target",
 
-		Hash "killType",
+		Hash "actionType",
 
 		float "p3",
 
-		BOOL "p4",
+		Any "p4",
 	}
-	ns "AI"
-	returns	"Any"
+	ns "BRAIN"
+	returns	"void"
 	doc [[!
 <summary>
-		known "killTypes" are: "AR_stealth_kill_knife" and "AR_stealth_kill_a".
+		Stealth kill action name hashes:
+
+		stealth kills can be found here: Grand Theft Auto V\common.rpf\data\action\stealth_kills.meta
+		...
+		{
+		    "ACT_stealth_kill_a",
+		    "ACT_stealth_kill_weapon",
+		    "ACT_stealth_kill_b",
+		    "ACT_stealth_kill_c",
+		    "ACT_stealth_kill_d",
+		    "ACT_stealth_kill_a_gardener"
+		}
+
+		Only known script using this native: fbi4_prep2
+		EXAMPLE:
+		ai::task_stealth_kill(iParam1, Local_252, gameplay::get_hash_key("AR_stealth_kill_a"), 1f, 0);				ai::task_stealth_kill(iParam1, Local_252, gameplay::get_hash_key("AR_stealth_kill_knife"), 1f, 0);
+
+		Also it may be important to note, that each time this task is called, it's followed by AI::CLEAR_PED_TASKS on the target
 </summary>
 	]]
 
@@ -24646,7 +25252,7 @@ native "TASK_PLANT_BOMB"
 
 		float "heading",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_FOLLOW_NAV_MESH_TO_COORD"
@@ -24671,7 +25277,7 @@ native "TASK_FOLLOW_NAV_MESH_TO_COORD"
 
 		float "unk",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24707,7 +25313,7 @@ native "TASK_FOLLOW_NAV_MESH_TO_COORD_ADVANCED"
 
 		float "unk_40000f",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_PED_PATH_CAN_USE_CLIMBOVERS"
@@ -24718,7 +25324,7 @@ native "SET_PED_PATH_CAN_USE_CLIMBOVERS"
 
 		BOOL "Toggle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "SET_PED_PATH_CAN_USE_LADDERS"
@@ -24729,7 +25335,7 @@ native "SET_PED_PATH_CAN_USE_LADDERS"
 
 		BOOL "Toggle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "SET_PED_PATH_CAN_DROP_FROM_HEIGHT"
@@ -24740,7 +25346,7 @@ native "SET_PED_PATH_CAN_DROP_FROM_HEIGHT"
 
 		BOOL "Toggle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "0x88E32DB8C1A4AA4B"
@@ -24751,7 +25357,7 @@ native "0x88E32DB8C1A4AA4B"
 
 		float "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24771,7 +25377,7 @@ native "SET_PED_PATHS_WIDTH_PLANT"
 
 		BOOL "mayEnterWater",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24787,7 +25393,7 @@ native "SET_PED_PATH_PREFER_TO_AVOID_WATER"
 
 		BOOL "avoidWater",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_PED_PATH_AVOID_FIRE"
@@ -24798,7 +25404,7 @@ native "SET_PED_PATH_AVOID_FIRE"
 
 		BOOL "avoidFire",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_GLOBAL_MIN_BIRD_FLIGHT_HEIGHT"
@@ -24807,7 +25413,7 @@ native "SET_GLOBAL_MIN_BIRD_FLIGHT_HEIGHT"
 	arguments {
 		float "height",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24822,12 +25428,25 @@ native "GET_NAVMESH_ROUTE_DISTANCE_REMAINING"
 	arguments {
 		Ped "ped",
 
-		AnyPtr "p1",
+		floatPtr "distRemaining",
 
-		AnyPtr "p2",
+		BOOLPtr "isPathReady",
 	}
-	ns "AI"
-	returns	"Any"
+	ns "BRAIN"
+	returns	"int"
+	doc [[!
+<summary>
+		Looks like the last parameter returns true if the path has been calculated, while the first returns the remaining distance to the end of the path.
+
+
+		Return value of native is the same as GET_NAVMESH_ROUTE_RESULT
+		Looks like the native returns an int for the path's state:
+
+		1 - ???
+		2 
+		3 - Finished Generating
+</summary>
+	]]
 
 native "GET_NAVMESH_ROUTE_RESULT"
 	hash "0x632E831F382A0FA8"
@@ -24835,15 +25454,20 @@ native "GET_NAVMESH_ROUTE_RESULT"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"int"
+	doc [[!
+<summary>
+		See GET_NAVMESH_ROUTE_DISTANCE_REMAINING for more details.
+</summary>
+	]]
 
 native "0x3E38E28A1D80DDF6"
 	hash "0x3E38E28A1D80DDF6"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "TASK_GO_TO_COORD_ANY_MEANS"
@@ -24868,7 +25492,7 @@ native "TASK_GO_TO_COORD_ANY_MEANS"
 
 		float "p8",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -24907,7 +25531,7 @@ native "TASK_GO_TO_COORD_ANY_MEANS_EXTRA_PARAMS"
 
 		Any "p11",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GO_TO_COORD_ANY_MEANS_EXTRA_PARAMS_WITH_CRUISE_SPEED"
@@ -24940,7 +25564,7 @@ native "TASK_GO_TO_COORD_ANY_MEANS_EXTRA_PARAMS_WITH_CRUISE_SPEED"
 
 		Any "p12",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PLAY_ANIM"
@@ -24969,11 +25593,11 @@ native "TASK_PLAY_ANIM"
 
 		BOOL "lockZ",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 
 		float speed &gt; normal speed is 8.0f
 		----------------------
@@ -25074,7 +25698,7 @@ native "TASK_PLAY_ANIM_ADVANCED"
 
 		Any "p15",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25082,7 +25706,7 @@ native "TASK_PLAY_ANIM_ADVANCED"
 
 		Rotation information : rotX and rotY don't seem to have any effect, only rotZ works.
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -25098,8 +25722,15 @@ native "STOP_ANIM_TASK"
 
 		float "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
+	doc [[!
+<summary>
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
+</summary>
+	]]
 
 native "TASK_SCRIPTED_ANIMATION"
 	hash "0x126EF75F1E17ABE5"
@@ -25117,7 +25748,7 @@ native "TASK_SCRIPTED_ANIMATION"
 
 		float "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25174,7 +25805,7 @@ native "PLAY_ENTITY_SCRIPTED_ANIM"
 
 		float "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "STOP_ANIM_PLAYBACK"
@@ -25183,12 +25814,20 @@ native "STOP_ANIM_PLAYBACK"
 	arguments {
 		Ped "ped",
 
-		Any "p1",
+		int "p1",
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
+	doc [[!
+<summary>
+		From re_drunkdriver:
+		• AI::STOP_ANIM_PLAYBACK(l_5B[0/*1*/], 0, 0);
+
+		Looks like p1 may be a flag, still need to do some research, though.
+</summary>
+	]]
 
 native "SET_ANIM_WEIGHT"
 	hash "0x207F1A47C0342F48"
@@ -25204,7 +25843,7 @@ native "SET_ANIM_WEIGHT"
 
 		BOOL "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_ANIM_RATE"
@@ -25219,7 +25858,7 @@ native "SET_ANIM_RATE"
 
 		BOOL "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_ANIM_LOOPED"
@@ -25234,7 +25873,7 @@ native "SET_ANIM_LOOPED"
 
 		BOOL "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PLAY_PHONE_GESTURE_ANIMATION"
@@ -25257,7 +25896,7 @@ native "TASK_PLAY_PHONE_GESTURE_ANIMATION"
 
 		BOOL "p7",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25290,7 +25929,7 @@ native "_TASK_STOP_PHONE_GESTURE_ANIMATION"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25309,7 +25948,7 @@ native "IS_PLAYING_PHONE_GESTURE_ANIM"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "GET_PHONE_GESTURE_ANIM_CURRENT_TIME"
@@ -25318,7 +25957,7 @@ native "GET_PHONE_GESTURE_ANIM_CURRENT_TIME"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"float"
 
 native "GET_PHONE_GESTURE_ANIM_TOTAL_TIME"
@@ -25327,7 +25966,7 @@ native "GET_PHONE_GESTURE_ANIM_TOTAL_TIME"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"float"
 
 native "TASK_VEHICLE_PLAY_ANIM"
@@ -25340,7 +25979,7 @@ native "TASK_VEHICLE_PLAY_ANIM"
 
 		charPtr "animation_name",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25353,6 +25992,9 @@ native "TASK_VEHICLE_PLAY_ANIM"
 		AI::TASK_VEHICLE_PLAY_ANIM(l_556[0/*1*/], "missfra0_chop_drhome", "InCar_GetOutofBack_Speedo");
 
 		FYI : Speedo is the name of van in which chop was put in the mission.
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -25374,7 +26016,7 @@ native "TASK_LOOK_AT_COORD"
 
 		Any "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25396,7 +26038,7 @@ native "TASK_LOOK_AT_ENTITY"
 
 		int "unknown2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25412,7 +26054,7 @@ native "TASK_CLEAR_LOOK_AT"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25441,7 +26083,7 @@ native "OPEN_SEQUENCE_TASK"
 	arguments {
 		ObjectPtr "taskSequence",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "CLOSE_SEQUENCE_TASK"
@@ -25450,7 +26092,7 @@ native "CLOSE_SEQUENCE_TASK"
 	arguments {
 		Object "taskSequence",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "TASK_PERFORM_SEQUENCE"
@@ -25461,7 +26103,7 @@ native "TASK_PERFORM_SEQUENCE"
 
 		Object "taskSequence",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "CLEAR_SEQUENCE_TASK"
@@ -25470,7 +26112,7 @@ native "CLEAR_SEQUENCE_TASK"
 	arguments {
 		ObjectPtr "taskSequence",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "SET_SEQUENCE_TO_REPEAT"
@@ -25481,7 +26123,7 @@ native "SET_SEQUENCE_TO_REPEAT"
 
 		BOOL "repeat",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "GET_SEQUENCE_PROGRESS"
@@ -25490,7 +26132,7 @@ native "GET_SEQUENCE_PROGRESS"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"int"
 	doc [[!
 <summary>
@@ -25507,7 +26149,7 @@ native "GET_IS_TASK_ACTIVE"
 
 		int "taskNumber",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -25526,7 +26168,7 @@ native "GET_SCRIPT_TASK_STATUS"
 
 		Hash "taskHash",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"int"
 	doc [[!
 <summary>
@@ -25544,7 +26186,7 @@ native "GET_ACTIVE_VEHICLE_MISSION_TYPE"
 	arguments {
 		Vehicle "veh",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"int"
 
 native "TASK_LEAVE_ANY_VEHICLE"
@@ -25557,7 +26199,7 @@ native "TASK_LEAVE_ANY_VEHICLE"
 
 		int "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_AIM_GUN_SCRIPTED"
@@ -25572,7 +26214,7 @@ native "TASK_AIM_GUN_SCRIPTED"
 
 		BOOL "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_AIM_GUN_SCRIPTED_WITH_TARGET"
@@ -25595,7 +26237,7 @@ native "TASK_AIM_GUN_SCRIPTED_WITH_TARGET"
 
 		BOOL "p7",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "UPDATE_TASK_AIM_GUN_SCRIPTED_TARGET"
@@ -25614,7 +26256,7 @@ native "UPDATE_TASK_AIM_GUN_SCRIPTED_TARGET"
 
 		BOOL "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "GET_CLIP_SET_FOR_SCRIPTED_GUN_TASK"
@@ -25623,7 +26265,7 @@ native "GET_CLIP_SET_FOR_SCRIPTED_GUN_TASK"
 	arguments {
 		int "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"charPtr"
 
 native "TASK_AIM_GUN_AT_ENTITY"
@@ -25638,7 +26280,7 @@ native "TASK_AIM_GUN_AT_ENTITY"
 
 		BOOL "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25656,7 +26298,7 @@ native "TASK_TURN_PED_TO_FACE_ENTITY"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25682,7 +26324,7 @@ native "TASK_AIM_GUN_AT_COORD"
 
 		BOOL "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25707,7 +26349,7 @@ native "TASK_SHOOT_AT_COORD"
 
 		Hash "firingPattern",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SHUFFLE_TO_NEXT_VEHICLE_SEAT"
@@ -25718,7 +26360,7 @@ native "TASK_SHUFFLE_TO_NEXT_VEHICLE_SEAT"
 
 		Vehicle "vehicle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25733,7 +26375,7 @@ native "CLEAR_PED_TASKS"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "CLEAR_PED_SECONDARY_TASK"
@@ -25742,7 +26384,7 @@ native "CLEAR_PED_SECONDARY_TASK"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_EVERYONE_LEAVE_VEHICLE"
@@ -25751,7 +26393,7 @@ native "TASK_EVERYONE_LEAVE_VEHICLE"
 	arguments {
 		Vehicle "vehicle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GOTO_ENTITY_OFFSET"
@@ -25772,30 +26414,30 @@ native "TASK_GOTO_ENTITY_OFFSET"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GOTO_ENTITY_OFFSET_XY"
 	hash "0x338E7EF52B6095A9"
 	jhash (0xBC1E3D0A)
 	arguments {
-		Any "p0",
+		Ped "ped",
 
-		Any "p1",
+		Entity "entity",
 
-		Any "p2",
+		int "duration",
 
-		float "p3",
+		float "xOffset",
 
-		float "p4",
+		float "yOffset",
 
-		float "p5",
+		float "zOffset",
 
-		float "p6",
+		float "moveBlendRatio",
 
-		Any "p7",
+		BOOL "useNavmesh",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_TURN_PED_TO_FACE_COORD"
@@ -25812,7 +26454,7 @@ native "TASK_TURN_PED_TO_FACE_COORD"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25832,7 +26474,7 @@ native "TASK_VEHICLE_TEMP_ACTION"
 
 		int "time",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25874,11 +26516,11 @@ native "TASK_VEHICLE_MISSION"
 	hash "0x659427E0EF36BCDE"
 	jhash (0x20609E56)
 	arguments {
-		Any "p0",
+		int "p0",
 
-		Any "p1",
+		int "p1",
 
-		Any "p2",
+		Vehicle "veh",
 
 		Any "p3",
 
@@ -25892,7 +26534,7 @@ native "TASK_VEHICLE_MISSION"
 
 		BOOL "p8",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_MISSION_PED_TARGET"
@@ -25917,7 +26559,7 @@ native "TASK_VEHICLE_MISSION_PED_TARGET"
 
 		BOOL "p8",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25960,7 +26602,7 @@ native "TASK_VEHICLE_MISSION_COORS_TARGET"
 
 		BOOL "p10",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -25992,7 +26634,7 @@ native "TASK_VEHICLE_ESCORT"
 
 		float "noRoadsDistance",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26023,26 +26665,19 @@ native "_TASK_VEHICLE_FOLLOW"
 
 		Entity "targetEntity",
 
-		int "drivingStyle",
-
 		float "speed",
+
+		int "drivingStyle",
 
 		int "minDistance",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
 		Makes a ped in a vehicle follow an entity (ped, vehicle, etc.)
 
-		drivingStyle:
-		0 = Rushed
-		1 = Ignore Traffic Lights
-		2 = Fast
-		3 = Normal (Stop in Traffic)
-		4 = Fast avoid traffic
-		5 = Fast, stops in traffic but overtakes sometimes
-		6 = Fast avoids traffic extremely
+		Driving Styles guide: gtaforums.com/topic/822314-guide-driving-styles/
 
 		Console Hash: 0xA8B917D7
 
@@ -26061,7 +26696,7 @@ native "TASK_VEHICLE_CHASE"
 
 		Entity "targetEnt",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26091,7 +26726,7 @@ native "TASK_VEHICLE_HELI_PROTECT"
 
 		int "p7",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26121,7 +26756,7 @@ native "SET_TASK_VEHICLE_CHASE_BEHAVIOR_FLAG"
 
 		BOOL "set",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_TASK_VEHICLE_CHASE_IDEAL_PURSUIT_DISTANCE"
@@ -26132,7 +26767,7 @@ native "SET_TASK_VEHICLE_CHASE_IDEAL_PURSUIT_DISTANCE"
 
 		float "distance",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_HELI_CHASE"
@@ -26149,7 +26784,7 @@ native "TASK_HELI_CHASE"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26177,7 +26812,7 @@ native "TASK_PLANE_CHASE"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PLANE_LAND"
@@ -26200,7 +26835,7 @@ native "TASK_PLANE_LAND"
 
 		float "runwayEndZ",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26214,70 +26849,7 @@ native "TASK_HELI_MISSION"
 	arguments {
 		Ped "pilot",
 
-		Vehicle "vehicle",
-
-		Vehicle "vehicleToFollow",
-
-		Ped "pedToFollow",
-
-		float "posX",
-
-		float "posY",
-
-		float "posZ",
-
-		int "mode",
-
-		float "speed",
-
-		float "radius",
-
-		float "angle",
-
-		int "p11",
-
-		int "height",
-
-		float "p13",
-
-		int "p14",
-	}
-	ns "AI"
-	returns	"void"
-	doc [[!
-<summary>
-		Needs more research.
-
-		Default value of p13 is -1.0 or 0xBF800000.
-		Default value of p14 is 0.
-
-		Modified examples from "fm_mission_controller.ysc", line ~203551:
-		AI::TASK_HELI_MISSION(ped, vehicle, 0, 0, posX, posY, posZ, 4, 1.0, -1.0, -1.0, 10, 10, 5.0, 0);
-		AI::TASK_HELI_MISSION(ped, vehicle, 0, 0, posX, posY, posZ, 4, 1.0, -1.0, -1.0, 0, ?, 5.0, 4096);
-
-		int mode seams to set mission type 4 = coords target, 23 = ped target.
-		int 14 set to 32 = ped will land at destination.
-
-		My findings:
-		mode 4 or 7 forces heli to snap to the heading set
-		8 makes the heli flee from the ped.
-		9 circles around ped with angle set
-		10, 11 normal + imitate ped heading
-		20 makes the heli land when he's near the ped. It won't resume chasing.
-		21 emulates an helicopter crash
-		23 makes the heli circle erratically around ped
-
-		I change p2 to 'vehicleToFollow' as it seems to work like the task natives to set targets. In the heli_taxi script where as the merryweather heli takes you to your waypoint it has no need to follow a vehicle or a ped, so of course both have 0 set.
-</summary>
-	]]
-
-native "TASK_PLANE_MISSION"
-	hash "0x23703CD154E83B88"
-	jhash (0x1D007E65)
-	arguments {
-		Ped "pilot",
-
-		Vehicle "plane",
+		Vehicle "aircraft",
 
 		Vehicle "targetVehicle",
 
@@ -26289,55 +26861,132 @@ native "TASK_PLANE_MISSION"
 
 		float "destinationZ",
 
-		int "missionType",
+		int "missionFlag",
 
-		float "vehicleSpeed",
+		float "maxSpeed",
 
-		float "p9",
+		float "landingRadius",
 
-		float "heading",
+		float "targetHeading",
 
-		float "maxAltitude",
+		int "unk1",
 
-		float "minAltitude",
+		int "unk2",
+
+		Hash "unk3",
+
+		int "landingFlags",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
-		EXAMPLE USAGE:
+		EDITED (8/16/2017)
 
-		Fly around target (Precautiously, keeps high altitude):
-		Function.Call(Hash.TASK_PLANE_MISSION, pilot, selectedAirplane, 0, 0, Target.X, Target.Y, Target.Z, 4, 100f, 0f, 90f, 0, 200f);
+		DESCRIPTION:
+		Allow a ped to fly to a specific destination.
 
-		Fly around target (Dangerously, keeps VERY low altitude):
-		Function.Call(Hash.TASK_PLANE_MISSION, pilot, selectedAirplane, 0, 0, Target.X, Target.Y, Target.Z, 4, 100f, 0f, 90f, 0, -500f);
+		USAGE:
+		-- REQUIRED --
+		• pilot = The ped flying the aircraft.
+		• aircraft = The aircraft the pilot is flying.
 
-		Fly directly into target:
-		Function.Call(Hash.TASK_PLANE_MISSION, pilot, selectedAirplane, 0, 0, Target.X, Target.Y, Target.Z, 4, 100f, 0f, 90f, 0, -5000f);
+		-- OPTIONAL -- [atleast 1 must be assigned]
+		• targetVehicle = The vehicle the pilot will target.
+		• targetPed = The ped the pilot will target.
+		• destinationX, destinationY, destinationZ = The location the pilot will target.
 
-		EXPANDED INFORMATION FOR ADVANCED USAGE (custom pilot)
+		-- LOGIC --
+		• missionFlag = The type of mission.
+		• maxSpeed = The speed in mph that the pilot will limit his/her self to while flying.
+		• landingRadius = The distance from the destination that the pilot must be to land.
+		• targetHeading = The heading that the pilot will try to achieve while flying.
+		• unk1, unk2 = Set to -1 and it will be okay.
+		• unk3 = I'm almost sure this is a vehicle record/waypoint recording hash. A value of -1 is for none. Maybe it's a float? Idk.
+		• landingFlags = Bit flags used for landing. All I know is:
+		0 = Hover over the destination.
+		32 = Land on destination.
+		1024 = Erratic, crash into nearby obstacles.
+		4096 = Rushed movement + Hover over destination
 
-		'physicsSpeed': (THIS IS NOT YOUR ORDINARY SPEED PARAMETER: READ!!)
-		Think of this -first- as a radius value, not a true speed value.  The ACTUAL effective speed of the plane will be that of the maximum speed permissible to successfully fly in a -circle- with a radius of 'physicsSpeed'.  This also means that the plane must complete a circle before it can begin its "bombing run", its straight line pass towards the target.  p9 appears to influence the angle at which a "bombing run" begins, although I can't confirm yet.
+		Known Mission Types:
+		4 = FlyToCoord
+		8 = FleeFromPed
+		9 = CircleAroundTarget
+		10 = CopyTargetHeading
+		20 = LandNearPed
+		21 = Crash
 
-		VERY IMPORTANT: A "bombing run" will only occur if a plane can successfully determine a possible navigable route (the slower the value of 'physicsSpeed', the more precise the pilot can be due to less influence of physics on flightpath).  Otherwise, the pilot will continue to patrol around Destination (be it a dynamic Entity position vector or a fixed world coordinate vector.)
+		Example C#:
+		Function.Call(Hash.TASK_HELI_MISSION, driver, heli, 0, 0, position.X, position.Y, position.Z, 4, 50.0, 10.0, (position - heli.Position).ToHeading(), -1, -1, -1, 32);
 
-		0 = Plane's physics are almost entirely frozen, plane appears to "orbit" around precise destination point
-		1-299 = Blend of "frozen, small radius" vs. normal vs. "accelerated, hyperfast, large radius"
-		300+ =  Vehicle behaves entirely like a normal gameplay plane.
+		OLD USAGE: pastebin.com/ndkSjaaW
+</summary>
+	]]
 
-		'patrolBlend' (The lower the value, the more the Destination is treated as a "fly AT" rather than a "fly AROUND point".)
+native "TASK_PLANE_MISSION"
+	hash "0x23703CD154E83B88"
+	jhash (0x1D007E65)
+	arguments {
+		Ped "pilot",
 
-		Scenario: Destination is an Entity on ground level, wide open field
-		-5000 = Pilot kamikazes directly into Entity
-		-1000 = Pilot flies extremely low -around- Entity, very prone to crashing
-		-200 = Pilot flies lower than average around Entity.
-		0 = Pilot flies around Entity, normal altitude
-		200 = Pilot flies an extra eighty units or so higher than 0 while flying around Destination (this doesn't seem to correlate directly into distance units.)
+		Vehicle "aircraft",
 
-		-- Valid mission types found in the exe: --
+		Vehicle "targetVehicle",
 
+		Ped "targetPed",
+
+		float "destinationX",
+
+		float "destinationY",
+
+		float "destinationZ",
+
+		int "missionFlag",
+
+		float "angularDrag",
+
+		float "unk",
+
+		float "targetHeading",
+
+		float "maxZ",
+
+		float "minZ",
+	}
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		EDITED (7/13/2017)
+
+		NOTE: If you want air combat, AI::TASK_COMBAT_PED (while your pilot is in an aircraft) also does the same thing as this native.
+
+		DESCRIPTION:
+		Ever wish your buddy could shoot down one of your enemies for you? Ever wanted an auto-pilot? Well look no further! This is the native for you! (Ped intelligence may vary)
+
+		USAGE:
+		-- REQUIRED --
+		• pilot = The ped flying the aircraft.
+		• aircraft = The aircraft the pilot is flying
+
+		-- OPTIONAL -- [atleast 1 must be assigned]
+		• targetVehicle = The vehicle the pilot will target.
+		• targetPed = The ped the pilot will target.
+		• destinationX, destinationY, destinationZ = The location the pilot will target.
+
+		-- LOGIC --
+		• missionFlag = The type of mission. pastebin.com/R8x73dbv
+		• angularDrag = The higher the value, the slower the plane will rotate. Value ranges from 0 - Infinity.
+		• unk = Set to 0, and you'll be fine.
+		• targetHeading = The target angle (from world space north) that the pilot will try to acheive before executing an attack/landing.
+		• maxZ = Maximum Z coordinate height for flying.
+		• minZ = Minimum Z coordinate height for flying.
+
+		Z: 2,700 is the default max height a pilot will be able to fly. Anything greater and he will fly downward until reaching 2,700 again.
+
+
+		Mission Types (incase you don't like links..):
 		0 = None
 		1 = Unk
 		2 = CTaskVehicleRam
@@ -26347,11 +26996,21 @@ native "TASK_PLANE_MISSION"
 		6 = CTaskVehicleAttack
 		7 = CTaskVehicleFollow
 		8 = CTaskVehicleFleeAirborne
-		9= CTaskVehicleCircle
+		9 = CTaskVehicleCircle
 		10 = CTaskVehicleEscort
 		15 = CTaskVehicleFollowRecording
 		16 = CTaskVehiclePoliceBehaviour
 		17 = CTaskVehicleCrash
+
+		Example C#:
+		Function.Call(Hash.TASK_PLANE_MISSION, pilot, vehicle, 0, Game.Player.Character, 0, 0, 0, 6, 0f, 0f, 0f, 2500.0f, -1500f);
+
+		Example C++
+		AI::TASK_PLANE_MISSION(pilot, vehicle, 0, PLAYER::GET_PLAYER_PED(PLAYER::GET_PLAYER_INDEX()), 0, 0, 0, 6, 0.0, 0.0, 0.0, 2500.0, -1500.0);
+
+
+		[DEPRECATED] EXAMPLE USAGE:
+		pastebin.com/gx7Finsk
 </summary>
 	]]
 
@@ -26383,7 +27042,7 @@ native "TASK_BOAT_MISSION"
 
 		Any "p11",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26422,7 +27081,7 @@ native "TASK_DRIVE_BY"
 
 		Hash "firingPattern",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26457,7 +27116,7 @@ native "SET_DRIVEBY_TASK_TARGET"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26471,7 +27130,7 @@ native "CLEAR_DRIVEBY_TASK_UNDERNEATH_DRIVING_TASK"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "IS_DRIVEBY_TASK_UNDERNEATH_DRIVING_TASK"
@@ -26480,7 +27139,7 @@ native "IS_DRIVEBY_TASK_UNDERNEATH_DRIVING_TASK"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "CONTROL_MOUNTED_WEAPON"
@@ -26489,7 +27148,7 @@ native "CONTROL_MOUNTED_WEAPON"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -26514,7 +27173,7 @@ native "SET_MOUNTED_WEAPON_TARGET"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26528,7 +27187,7 @@ native "IS_MOUNTED_WEAPON_TASK_UNDERNEATH_DRIVING_TASK"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "TASK_USE_MOBILE_PHONE"
@@ -26539,7 +27198,7 @@ native "TASK_USE_MOBILE_PHONE"
 
 		int "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26559,7 +27218,7 @@ native "TASK_USE_MOBILE_PHONE_TIMED"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_CHAT_TO_PED"
@@ -26582,7 +27241,7 @@ native "TASK_CHAT_TO_PED"
 
 		float "p7",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26601,7 +27260,7 @@ native "TASK_WARP_PED_INTO_VEHICLE"
 
 		int "seat",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26628,7 +27287,7 @@ native "TASK_SHOOT_AT_ENTITY"
 
 		Hash "firingPattern",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26652,7 +27311,7 @@ native "TASK_CLIMB"
 
 		BOOL "unused",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26668,7 +27327,7 @@ native "TASK_CLIMB_LADDER"
 
 		int "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "CLEAR_PED_TASKS_IMMEDIATELY"
@@ -26677,7 +27336,7 @@ native "CLEAR_PED_TASKS_IMMEDIATELY"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26697,7 +27356,7 @@ native "TASK_PERFORM_SEQUENCE_FROM_PROGRESS"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_NEXT_DESIRED_MOVE_STATE"
@@ -26706,7 +27365,7 @@ native "SET_NEXT_DESIRED_MOVE_STATE"
 	arguments {
 		float "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26724,7 +27383,7 @@ native "SET_PED_DESIRED_MOVE_BLEND_RATIO"
 
 		float "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "GET_PED_DESIRED_MOVE_BLEND_RATIO"
@@ -26733,7 +27392,7 @@ native "GET_PED_DESIRED_MOVE_BLEND_RATIO"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"float"
 
 native "TASK_GOTO_ENTITY_AIMING"
@@ -26748,7 +27407,7 @@ native "TASK_GOTO_ENTITY_AIMING"
 
 		float "StartAimingDist",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26771,7 +27430,7 @@ native "TASK_SET_DECISION_MAKER"
 
 		Hash "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26793,7 +27452,7 @@ native "TASK_SET_SPHERE_DEFENSIVE_AREA"
 
 		float "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_CLEAR_DEFENSIVE_AREA"
@@ -26802,7 +27461,7 @@ native "TASK_CLEAR_DEFENSIVE_AREA"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PED_SLIDE_TO_COORD"
@@ -26819,9 +27478,9 @@ native "TASK_PED_SLIDE_TO_COORD"
 
 		float "heading",
 
-		float "p5",
+		float "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PED_SLIDE_TO_COORD_HDG_RATE"
@@ -26842,7 +27501,7 @@ native "TASK_PED_SLIDE_TO_COORD_HDG_RATE"
 
 		float "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "ADD_COVER_POINT"
@@ -26865,7 +27524,7 @@ native "ADD_COVER_POINT"
 
 		BOOL "p7",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"ScrHandle"
 
 native "REMOVE_COVER_POINT"
@@ -26874,7 +27533,7 @@ native "REMOVE_COVER_POINT"
 	arguments {
 		ScrHandle "coverpoint",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "DOES_SCRIPTED_COVER_POINT_EXIST_AT_COORDS"
@@ -26887,7 +27546,7 @@ native "DOES_SCRIPTED_COVER_POINT_EXIST_AT_COORDS"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -26901,7 +27560,7 @@ native "GET_SCRIPTED_COVER_POINT_COORDS"
 	arguments {
 		ScrHandle "coverpoint",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Vector3"
 
 native "TASK_COMBAT_PED"
@@ -26916,7 +27575,7 @@ native "TASK_COMBAT_PED"
 
 		int "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -26938,7 +27597,7 @@ native "TASK_COMBAT_PED_TIMED"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SEEK_COVER_FROM_POS"
@@ -26957,7 +27616,7 @@ native "TASK_SEEK_COVER_FROM_POS"
 
 		BOOL "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SEEK_COVER_FROM_PED"
@@ -26972,7 +27631,7 @@ native "TASK_SEEK_COVER_FROM_PED"
 
 		BOOL "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SEEK_COVER_TO_COVER_POINT"
@@ -26993,7 +27652,7 @@ native "TASK_SEEK_COVER_TO_COVER_POINT"
 
 		BOOL "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SEEK_COVER_TO_COORDS"
@@ -27018,7 +27677,7 @@ native "TASK_SEEK_COVER_TO_COORDS"
 
 		BOOL "p8",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27058,7 +27717,7 @@ native "TASK_PUT_PED_DIRECTLY_INTO_COVER"
 
 		BOOL "p10",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_EXIT_COVER"
@@ -27075,7 +27734,7 @@ native "TASK_EXIT_COVER"
 
 		float "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_PUT_PED_DIRECTLY_INTO_MELEE"
@@ -27094,7 +27753,7 @@ native "TASK_PUT_PED_DIRECTLY_INTO_MELEE"
 
 		BOOL "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27113,7 +27772,7 @@ native "TASK_TOGGLE_DUCK"
 
 		BOOL "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27135,7 +27794,7 @@ native "TASK_GUARD_CURRENT_POSITION"
 
 		BOOL "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27163,7 +27822,7 @@ native "TASK_GUARD_ASSIGNED_DEFENSIVE_AREA"
 
 		Any "p6",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GUARD_SPHERE_DEFENSIVE_AREA"
@@ -27192,7 +27851,7 @@ native "TASK_GUARD_SPHERE_DEFENSIVE_AREA"
 
 		float "p10",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27222,7 +27881,7 @@ native "TASK_STAND_GUARD"
 
 		charPtr "scenarioName",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27238,7 +27897,7 @@ native "SET_DRIVE_TASK_CRUISE_SPEED"
 
 		float "cruiseSpeed",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_DRIVE_TASK_MAX_CRUISE_SPEED"
@@ -27249,7 +27908,7 @@ native "SET_DRIVE_TASK_MAX_CRUISE_SPEED"
 
 		float "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_DRIVE_TASK_DRIVING_STYLE"
@@ -27260,7 +27919,7 @@ native "SET_DRIVE_TASK_DRIVING_STYLE"
 
 		int "drivingStyle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27299,13 +27958,13 @@ native "ADD_COVER_BLOCKING_AREA"
 
 		BOOL "p9",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "REMOVE_ALL_COVER_BLOCKING_AREAS"
 	hash "0xDB6708C0B46F56D8"
 	jhash (0xCF9221A7)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_START_SCENARIO_IN_PLACE"
@@ -27320,7 +27979,7 @@ native "TASK_START_SCENARIO_IN_PLACE"
 
 		BOOL "playEnterAnim",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27390,7 +28049,7 @@ native "TASK_START_SCENARIO_AT_POSITION"
 
 		BOOL "teleport",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27432,7 +28091,7 @@ native "TASK_USE_NEAREST_SCENARIO_TO_COORD"
 
 		int "duration",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27458,7 +28117,7 @@ native "TASK_USE_NEAREST_SCENARIO_TO_COORD_WARP"
 
 		Any "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_USE_NEAREST_SCENARIO_CHAIN_TO_COORD"
@@ -27477,7 +28136,7 @@ native "TASK_USE_NEAREST_SCENARIO_CHAIN_TO_COORD"
 
 		Any "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_USE_NEAREST_SCENARIO_CHAIN_TO_COORD_WARP"
@@ -27496,7 +28155,7 @@ native "TASK_USE_NEAREST_SCENARIO_CHAIN_TO_COORD_WARP"
 
 		Any "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "DOES_SCENARIO_EXIST_IN_AREA"
@@ -27513,7 +28172,7 @@ native "DOES_SCENARIO_EXIST_IN_AREA"
 
 		BOOL "b",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "DOES_SCENARIO_OF_TYPE_EXIST_IN_AREA"
@@ -27532,7 +28191,7 @@ native "DOES_SCENARIO_OF_TYPE_EXIST_IN_AREA"
 
 		BOOL "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_SCENARIO_OCCUPIED"
@@ -27549,7 +28208,7 @@ native "IS_SCENARIO_OCCUPIED"
 
 		BOOL "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "PED_HAS_USE_SCENARIO_TASK"
@@ -27558,7 +28217,7 @@ native "PED_HAS_USE_SCENARIO_TASK"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "PLAY_ANIM_ON_RUNNING_SCENARIO"
@@ -27571,11 +28230,13 @@ native "PLAY_ANIM_ON_RUNNING_SCENARIO"
 
 		charPtr "animName",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -27585,7 +28246,7 @@ native "DOES_SCENARIO_GROUP_EXIST"
 	arguments {
 		charPtr "scenarioGroup",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -27633,7 +28294,7 @@ native "IS_SCENARIO_GROUP_ENABLED"
 	arguments {
 		charPtr "scenarioGroup",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -27677,7 +28338,7 @@ native "SET_SCENARIO_GROUP_ENABLED"
 
 		BOOL "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27688,7 +28349,7 @@ native "SET_SCENARIO_GROUP_ENABLED"
 native "RESET_SCENARIO_GROUPS_ENABLED"
 	hash "0xDD902D0349AFAD3A"
 	jhash (0xBF55025D)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "SET_EXCLUSIVE_SCENARIO_GROUP"
@@ -27697,7 +28358,7 @@ native "SET_EXCLUSIVE_SCENARIO_GROUP"
 	arguments {
 		charPtr "scenarioGroup",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27714,7 +28375,7 @@ native "SET_EXCLUSIVE_SCENARIO_GROUP"
 native "RESET_EXCLUSIVE_SCENARIO_GROUP"
 	hash "0x4202BBCB8684563D"
 	jhash (0x17F9DFE8)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "IS_SCENARIO_TYPE_ENABLED"
@@ -27723,7 +28384,7 @@ native "IS_SCENARIO_TYPE_ENABLED"
 	arguments {
 		charPtr "scenarioType",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -27750,7 +28411,7 @@ native "SET_SCENARIO_TYPE_ENABLED"
 
 		BOOL "toggle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27794,7 +28455,7 @@ native "SET_SCENARIO_TYPE_ENABLED"
 native "RESET_SCENARIO_TYPES_ENABLED"
 	hash "0x0D40EE2A7F2B2D6D"
 	jhash (0xF58FDEB4)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "IS_PED_ACTIVE_IN_SCENARIO"
@@ -27803,7 +28464,7 @@ native "IS_PED_ACTIVE_IN_SCENARIO"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "0x621C6E4729388E41"
@@ -27811,7 +28472,7 @@ native "0x621C6E4729388E41"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -27830,7 +28491,7 @@ native "0x8FD89A6240813FD0"
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27858,7 +28519,7 @@ native "TASK_COMBAT_HATED_TARGETS_IN_AREA"
 
 		Any "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27876,7 +28537,7 @@ native "TASK_COMBAT_HATED_TARGETS_AROUND_PED"
 
 		int "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27898,7 +28559,7 @@ native "TASK_COMBAT_HATED_TARGETS_AROUND_PED_TIMED"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_THROW_PROJECTILE"
@@ -27913,7 +28574,7 @@ native "TASK_THROW_PROJECTILE"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27936,7 +28597,7 @@ native "TASK_SWAP_WEAPON"
 
 		BOOL "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_RELOAD_WEAPON"
@@ -27947,7 +28608,7 @@ native "TASK_RELOAD_WEAPON"
 
 		BOOL "unused",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -27969,7 +28630,7 @@ native "IS_PED_GETTING_UP"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "TASK_WRITHE"
@@ -27984,7 +28645,7 @@ native "TASK_WRITHE"
 
 		int "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28004,7 +28665,7 @@ native "IS_PED_IN_WRITHE"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -28018,7 +28679,7 @@ native "OPEN_PATROL_ROUTE"
 	arguments {
 		charPtr "patrolRoute",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28049,7 +28710,7 @@ native "OPEN_PATROL_ROUTE"
 native "CLOSE_PATROL_ROUTE"
 	hash "0xB043ECA801B8CBC1"
 	jhash (0x67305E59)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "ADD_PATROL_ROUTE_NODE"
@@ -28074,7 +28735,7 @@ native "ADD_PATROL_ROUTE_NODE"
 
 		int "p8",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28105,13 +28766,13 @@ native "ADD_PATROL_ROUTE_LINK"
 
 		Any "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "CREATE_PATROL_ROUTE"
 	hash "0xAF8A443CCC8018DC"
 	jhash (0x0A6C7864)
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "DELETE_PATROL_ROUTE"
@@ -28120,7 +28781,7 @@ native "DELETE_PATROL_ROUTE"
 	arguments {
 		charPtr "patrolRoute",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28147,7 +28808,7 @@ native "TASK_PATROL"
 
 		BOOL "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28183,7 +28844,7 @@ native "TASK_STAY_IN_COVER"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28203,7 +28864,7 @@ native "ADD_VEHICLE_SUBTASK_ATTACK_COORD"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28219,7 +28880,7 @@ native "ADD_VEHICLE_SUBTASK_ATTACK_PED"
 
 		Ped "ped2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_SHOOT_AT_PED"
@@ -28232,7 +28893,7 @@ native "TASK_VEHICLE_SHOOT_AT_PED"
 
 		float "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_AIM_AT_PED"
@@ -28243,7 +28904,7 @@ native "TASK_VEHICLE_AIM_AT_PED"
 
 		Ped "target",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_SHOOT_AT_COORD"
@@ -28260,7 +28921,7 @@ native "TASK_VEHICLE_SHOOT_AT_COORD"
 
 		float "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_AIM_AT_COORD"
@@ -28275,7 +28936,7 @@ native "TASK_VEHICLE_AIM_AT_COORD"
 
 		float "z",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_GOTO_NAVMESH"
@@ -28298,7 +28959,7 @@ native "TASK_VEHICLE_GOTO_NAVMESH"
 
 		float "stoppingRange",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28354,7 +29015,7 @@ native "TASK_GO_TO_COORD_WHILE_AIMING_AT_COORD"
 
 		Hash "firingPattern",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28401,7 +29062,7 @@ native "TASK_GO_TO_COORD_WHILE_AIMING_AT_ENTITY"
 
 		Any "p13",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GO_TO_COORD_AND_AIM_AT_HATED_ENTITIES_NEAR_COORD"
@@ -28438,7 +29099,7 @@ native "TASK_GO_TO_COORD_AND_AIM_AT_HATED_ENTITIES_NEAR_COORD"
 
 		Hash "firingPattern",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28513,7 +29174,7 @@ native "TASK_GO_TO_ENTITY_WHILE_AIMING_AT_COORD"
 
 		Any "p11",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_GO_TO_ENTITY_WHILE_AIMING_AT_ENTITY"
@@ -28540,7 +29201,7 @@ native "TASK_GO_TO_ENTITY_WHILE_AIMING_AT_ENTITY"
 
 		Hash "firingPattern",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28562,7 +29223,7 @@ native "SET_HIGH_FALL_TASK"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28576,7 +29237,7 @@ native "REQUEST_WAYPOINT_RECORDING"
 	arguments {
 		charPtr "name",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28593,7 +29254,7 @@ native "GET_IS_WAYPOINT_RECORDING_LOADED"
 	arguments {
 		charPtr "name",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -28607,7 +29268,7 @@ native "REMOVE_WAYPOINT_RECORDING"
 	arguments {
 		charPtr "name",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28623,7 +29284,7 @@ native "WAYPOINT_RECORDING_GET_NUM_POINTS"
 
 		intPtr "points",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -28642,7 +29303,7 @@ native "WAYPOINT_RECORDING_GET_COORD"
 
 		Vector3Ptr "coord",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -28659,7 +29320,7 @@ native "WAYPOINT_RECORDING_GET_SPEED_AT_POINT"
 
 		int "point",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"float"
 
 native "WAYPOINT_RECORDING_GET_CLOSEST_WAYPOINT"
@@ -28676,7 +29337,7 @@ native "WAYPOINT_RECORDING_GET_CLOSEST_WAYPOINT"
 
 		intPtr "point",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -28699,7 +29360,7 @@ native "TASK_FOLLOW_WAYPOINT_RECORDING"
 
 		Any "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "IS_WAYPOINT_PLAYBACK_GOING_ON_FOR_PED"
@@ -28708,17 +29369,22 @@ native "IS_WAYPOINT_PLAYBACK_GOING_ON_FOR_PED"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "GET_PED_WAYPOINT_PROGRESS"
 	hash "0x2720AAA75001E094"
 	jhash (0x3595B104)
 	arguments {
-		Any "p0",
+		Ped "ped",
 	}
-	ns "AI"
-	returns	"Any"
+	ns "BRAIN"
+	returns	"int"
+	doc [[!
+<summary>
+		Returns the progress percent to current waypoint.
+</summary>
+	]]
 
 native "GET_PED_WAYPOINT_DISTANCE"
 	hash "0xE6A877C64CAF1BC5"
@@ -28726,7 +29392,7 @@ native "GET_PED_WAYPOINT_DISTANCE"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"float"
 
 native "SET_PED_WAYPOINT_ROUTE_OFFSET"
@@ -28741,7 +29407,7 @@ native "SET_PED_WAYPOINT_ROUTE_OFFSET"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "GET_WAYPOINT_DISTANCE_ALONG_ROUTE"
@@ -28752,7 +29418,7 @@ native "GET_WAYPOINT_DISTANCE_ALONG_ROUTE"
 
 		int "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"float"
 
 native "WAYPOINT_PLAYBACK_GET_IS_PAUSED"
@@ -28761,7 +29427,7 @@ native "WAYPOINT_PLAYBACK_GET_IS_PAUSED"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "WAYPOINT_PLAYBACK_PAUSE"
@@ -28774,7 +29440,7 @@ native "WAYPOINT_PLAYBACK_PAUSE"
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_RESUME"
@@ -28789,7 +29455,7 @@ native "WAYPOINT_PLAYBACK_RESUME"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_OVERRIDE_SPEED"
@@ -28802,7 +29468,7 @@ native "WAYPOINT_PLAYBACK_OVERRIDE_SPEED"
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_USE_DEFAULT_SPEED"
@@ -28811,7 +29477,7 @@ native "WAYPOINT_PLAYBACK_USE_DEFAULT_SPEED"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "USE_WAYPOINT_RECORDING_AS_ASSISTED_MOVEMENT_ROUTE"
@@ -28826,7 +29492,7 @@ native "USE_WAYPOINT_RECORDING_AS_ASSISTED_MOVEMENT_ROUTE"
 
 		float "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_START_AIMING_AT_PED"
@@ -28839,7 +29505,7 @@ native "WAYPOINT_PLAYBACK_START_AIMING_AT_PED"
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_START_AIMING_AT_COORD"
@@ -28856,7 +29522,7 @@ native "WAYPOINT_PLAYBACK_START_AIMING_AT_COORD"
 
 		BOOL "p4",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "0xE70BA7B90F8390DC"
@@ -28870,7 +29536,7 @@ native "0xE70BA7B90F8390DC"
 
 		Any "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_START_SHOOTING_AT_COORD"
@@ -28889,7 +29555,7 @@ native "WAYPOINT_PLAYBACK_START_SHOOTING_AT_COORD"
 
 		Any "p5",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "WAYPOINT_PLAYBACK_STOP_AIMING_OR_SHOOTING"
@@ -28898,7 +29564,7 @@ native "WAYPOINT_PLAYBACK_STOP_AIMING_OR_SHOOTING"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "ASSISTED_MOVEMENT_REQUEST_ROUTE"
@@ -28907,7 +29573,7 @@ native "ASSISTED_MOVEMENT_REQUEST_ROUTE"
 	arguments {
 		charPtr "route",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -28921,7 +29587,7 @@ native "ASSISTED_MOVEMENT_REMOVE_ROUTE"
 	arguments {
 		charPtr "route",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "ASSISTED_MOVEMENT_IS_ROUTE_LOADED"
@@ -28930,7 +29596,7 @@ native "ASSISTED_MOVEMENT_IS_ROUTE_LOADED"
 	arguments {
 		charPtr "route",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "ASSISTED_MOVEMENT_SET_ROUTE_PROPERTIES"
@@ -28941,7 +29607,7 @@ native "ASSISTED_MOVEMENT_SET_ROUTE_PROPERTIES"
 
 		int "props",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "ASSISTED_MOVEMENT_OVERRIDE_LOAD_DISTANCE_THIS_FRAME"
@@ -28950,7 +29616,7 @@ native "ASSISTED_MOVEMENT_OVERRIDE_LOAD_DISTANCE_THIS_FRAME"
 	arguments {
 		float "dist",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_VEHICLE_FOLLOW_WAYPOINT_RECORDING"
@@ -28977,7 +29643,7 @@ native "TASK_VEHICLE_FOLLOW_WAYPOINT_RECORDING"
 
 		float "p9",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29000,17 +29666,17 @@ native "IS_WAYPOINT_PLAYBACK_GOING_ON_FOR_VEHICLE"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "GET_VEHICLE_WAYPOINT_PROGRESS"
 	hash "0x9824CFF8FC66E159"
 	jhash (0xD3CCF64E)
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 	}
-	ns "AI"
-	returns	"Any"
+	ns "BRAIN"
+	returns	"int"
 
 native "GET_VEHICLE_WAYPOINT_TARGET_POINT"
 	hash "0x416B62AC8B9E5BBD"
@@ -29018,7 +29684,7 @@ native "GET_VEHICLE_WAYPOINT_TARGET_POINT"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "VEHICLE_WAYPOINT_PLAYBACK_PAUSE"
@@ -29027,7 +29693,7 @@ native "VEHICLE_WAYPOINT_PLAYBACK_PAUSE"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "VEHICLE_WAYPOINT_PLAYBACK_RESUME"
@@ -29036,7 +29702,7 @@ native "VEHICLE_WAYPOINT_PLAYBACK_RESUME"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "VEHICLE_WAYPOINT_PLAYBACK_USE_DEFAULT_SPEED"
@@ -29045,7 +29711,7 @@ native "VEHICLE_WAYPOINT_PLAYBACK_USE_DEFAULT_SPEED"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "VEHICLE_WAYPOINT_PLAYBACK_OVERRIDE_SPEED"
@@ -29056,7 +29722,7 @@ native "VEHICLE_WAYPOINT_PLAYBACK_OVERRIDE_SPEED"
 
 		float "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS"
@@ -29067,7 +29733,7 @@ native "TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS"
 
 		BOOL "toggle",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29089,7 +29755,7 @@ native "TASK_FORCE_MOTION_STATE"
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29120,7 +29786,7 @@ native "_TASK_MOVE_NETWORK"
 		int "flags",
 	}
 	alias "0x2D537BA194896636"
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29160,7 +29826,7 @@ native "_TASK_MOVE_NETWORK_ADVANCED"
 		int "flags",
 	}
 	alias "0xD5B35BEA41919ACB"
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29175,7 +29841,7 @@ native "0x921CE12C489C4C41"
 	arguments {
 		int "PlayerID",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "0x30ED88D5E0C56A37"
@@ -29184,7 +29850,7 @@ native "0x30ED88D5E0C56A37"
 	arguments {
 		Any "p0",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "0xD01015C7316AE176"
@@ -29195,7 +29861,7 @@ native "0xD01015C7316AE176"
 
 		charPtr "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "0xAB13A5565480B6D9"
@@ -29205,7 +29871,7 @@ native "0xAB13A5565480B6D9"
 
 		Any "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"Any"
 
 native "0x717E4D1F2048376D"
@@ -29214,7 +29880,7 @@ native "0x717E4D1F2048376D"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -29228,13 +29894,13 @@ native "0xD5BB4025AE449A4E"
 	hash "0xD5BB4025AE449A4E"
 	jhash (0xA79BE783)
 	arguments {
-		Ped "p0",
+		Ped "ped",
 
 		charPtr "p1",
 
 		float "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29252,13 +29918,13 @@ native "0xB0A6CFD2C69C1088"
 	hash "0xB0A6CFD2C69C1088"
 	jhash (0xF3538041)
 	arguments {
-		Ped "p0",
+		Ped "ped",
 
-		AnyPtr "p1",
+		charPtr "p1",
 
 		BOOL "p2",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29273,11 +29939,11 @@ native "0xA7FFBA498E4AAF67"
 	hash "0xA7FFBA498E4AAF67"
 	jhash (0x1EBB6F3D)
 	arguments {
-		Any "p0",
+		Ped "ped",
 
 		charPtr "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -29285,8 +29951,6 @@ native "0xA7FFBA498E4AAF67"
 
 		if (AI::_A7FFBA498E4AAF67(l_9BC, "Run")) {
 		if (AI::_A7FFBA498E4AAF67(l_9BC, "Escape")) {
-
-		p0 is probably Ped and this native checks if the ped is doing the AI task in p1. Just a guess though. 
 </summary>
 	]]
 
@@ -29294,11 +29958,11 @@ native "0xB4F47213DF45A64C"
 	hash "0xB4F47213DF45A64C"
 	jhash (0x72FA5EF2)
 	arguments {
-		Any "p0",
+		Ped "ped",
 
-		AnyPtr "p1",
+		charPtr "p1",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_MOVE_BLEND_RATIO_STILL"
@@ -29307,7 +29971,7 @@ native "IS_MOVE_BLEND_RATIO_STILL"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_MOVE_BLEND_RATIO_WALKING"
@@ -29316,7 +29980,7 @@ native "IS_MOVE_BLEND_RATIO_WALKING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_MOVE_BLEND_RATIO_RUNNING"
@@ -29325,7 +29989,7 @@ native "IS_MOVE_BLEND_RATIO_RUNNING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_MOVE_BLEND_RATIO_SPRINTING"
@@ -29334,7 +29998,7 @@ native "IS_MOVE_BLEND_RATIO_SPRINTING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_PED_STILL"
@@ -29343,7 +30007,7 @@ native "IS_PED_STILL"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_PED_WALKING"
@@ -29352,7 +30016,7 @@ native "IS_PED_WALKING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_PED_RUNNING"
@@ -29361,7 +30025,7 @@ native "IS_PED_RUNNING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_PED_SPRINTING"
@@ -29370,7 +30034,7 @@ native "IS_PED_SPRINTING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_PED_STRAFING"
@@ -29379,7 +30043,7 @@ native "IS_PED_STRAFING"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -29411,7 +30075,7 @@ native "TASK_SYNCHRONIZED_SCENE"
 
 		Any "p9",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29443,7 +30107,7 @@ native "TASK_SWEEP_AIM_ENTITY"
 
 		float "p8",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29463,7 +30127,7 @@ native "UPDATE_TASK_SWEEP_AIM_ENTITY"
 
 		Entity "entity",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_SWEEP_AIM_POSITION"
@@ -29492,7 +30156,7 @@ native "TASK_SWEEP_AIM_POSITION"
 
 		float "p10",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "UPDATE_TASK_SWEEP_AIM_POSITION"
@@ -29507,7 +30171,7 @@ native "UPDATE_TASK_SWEEP_AIM_POSITION"
 
 		float "p3",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "TASK_ARREST_PED"
@@ -29518,7 +30182,7 @@ native "TASK_ARREST_PED"
 
 		Ped "target",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29543,7 +30207,7 @@ native "IS_PED_RUNNING_ARREST_TASK"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 
 native "IS_PED_BEING_ARRESTED"
@@ -29552,7 +30216,7 @@ native "IS_PED_BEING_ARRESTED"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -29566,7 +30230,7 @@ native "UNCUFF_PED"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"void"
 
 native "IS_PED_CUFFED"
@@ -29575,7 +30239,7 @@ native "IS_PED_CUFFED"
 	arguments {
 		Ped "ped",
 	}
-	ns "AI"
+	ns "BRAIN"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -29583,19 +30247,210 @@ native "IS_PED_CUFFED"
 </summary>
 	]]
 
+native "ADD_SCRIPT_TO_RANDOM_PED"
+	hash "0x4EE5367468A65CCC"
+	jhash (0xECC76C3D)
+	arguments {
+		charPtr "name",
+
+		Hash "model",
+
+		float "p2",
+
+		float "p3",
+	}
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		BRAIN::ADD_SCRIPT_TO_RANDOM_PED("pb_prostitute", ${s_f_y_hooker_01}, 100, 0);
+
+
+
+		-----
+
+		Hardcoded to not work in Multiplayer.
+		------
+		Which I'm sure can easily be bypassed by nop'ing the branch preventing it from working if you are in multiplayer lol. Which would still be pointless since you don't need this to make peds do what you wish.
+</summary>
+	]]
+
+native "REGISTER_OBJECT_SCRIPT_BRAIN"
+	hash "0x0BE84C318BA6EC22"
+	jhash (0xB6BCC608)
+	arguments {
+		charPtr "scriptName",
+
+		Hash "objectName",
+
+		int "p2",
+
+		float "p3",
+
+		int "p4",
+
+		int "p5",
+	}
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		Registers a script for any object with a specific model hash.
+
+		BRAIN::REGISTER_OBJECT_SCRIPT_BRAIN("ob_telescope", ${prop_telescope_01}, 100, 4.0, -1, 9);
+
+
+</summary>
+	]]
+
+native "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE"
+	hash "0xCCBA154209823057"
+	jhash (0xBA4CAA56)
+	arguments {
+		Object "object",
+	}
+	ns "BRAIN"
+	returns	"BOOL"
+
+native "REGISTER_WORLD_POINT_SCRIPT_BRAIN"
+	hash "0x3CDC7136613284BD"
+	jhash (0x725D91F7)
+	arguments {
+		AnyPtr "p0",
+
+		float "p1",
+
+		Any "p2",
+	}
+	ns "BRAIN"
+	returns	"void"
+
+native "IS_WORLD_POINT_WITHIN_BRAIN_ACTIVATION_RANGE"
+	hash "0xC5042CC6F5E3D450"
+	jhash (0x2CF305A0)
+	ns "BRAIN"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		Gets whether the world point the calling script is registered to is within desired range of the player.
+</summary>
+	]]
+
+native "ENABLE_SCRIPT_BRAIN_SET"
+	hash "0x67AA4D73F0CFA86B"
+	jhash (0x2765919F)
+	arguments {
+		int "brainSet",
+	}
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		#4
+</summary>
+	]]
+
+native "DISABLE_SCRIPT_BRAIN_SET"
+	hash "0x14D8518E9760F08F"
+	jhash (0xFBD13FAD)
+	arguments {
+		int "brainSet",
+	}
+	ns "BRAIN"
+	returns	"void"
+
+native "0x0B40ED49D7D6FF84"
+	hash "0x0B40ED49D7D6FF84"
+	jhash (0x19B27825)
+	ns "BRAIN"
+	returns	"void"
+
+native "0x4D953DF78EBF8158"
+	hash "0x4D953DF78EBF8158"
+	jhash (0xF3A3AB08)
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		Something like flush_all_scripts 
+
+		Most of time comes after NETWORK_END_TUTORIAL_SESSION() or before TERMINATE_THIS_THREAD()
+</summary>
+	]]
+
+native "0x6D6840CEE8845831"
+	hash "0x6D6840CEE8845831"
+	jhash (0x949FE53E)
+	arguments {
+		charPtr "action",
+	}
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		Possible values:
+
+		act_cinema
+		am_mp_carwash_launch
+		am_mp_carwash_control
+		am_mp_property_ext
+		chop
+		fairgroundHub
+		launcher_BasejumpHeli
+		launcher_BasejumpPack
+		launcher_CarWash
+		launcher_golf
+		launcher_Hunting_Ambient
+		launcher_MrsPhilips
+		launcher_OffroadRacing
+		launcher_pilotschool
+		launcher_Racing
+		launcher_rampage
+		launcher_rampage
+		launcher_range
+		launcher_stunts
+		launcher_stunts
+		launcher_tennis
+		launcher_Tonya
+		launcher_Triathlon
+		launcher_Yoga
+		ob_mp_bed_low
+		ob_mp_bed_med
+</summary>
+	]]
+
+native "0x6E91B04E08773030"
+	hash "0x6E91B04E08773030"
+	jhash (0x29CE8BAA)
+	arguments {
+		charPtr "action",
+	}
+	ns "BRAIN"
+	returns	"void"
+	doc [[!
+<summary>
+		Looks like a cousin of above function _6D6840CEE8845831 as it was found among them. Must be similar
+
+		Here are possible values of argument - 
+
+		"ob_tv"
+		"launcher_Darts"
+</summary>
+	]]
+
 native "GET_ALLOCATED_STACK_SIZE"
 	hash "0x8B3CA62B1EF19B62"
 	jhash (0x4E9CA30A)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "_GET_FREE_STACK_SLOTS_COUNT"
 	hash "0xFEAD16FC8F9DFC0F"
 	jhash (0x11A178B8)
 	arguments {
-		int "stackSize",
+		int "threadId",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "SET_RANDOM_SEED"
@@ -29604,7 +30459,7 @@ native "SET_RANDOM_SEED"
 	arguments {
 		int "time",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_TIME_SCALE"
@@ -29613,7 +30468,7 @@ native "SET_TIME_SCALE"
 	arguments {
 		float "time",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29632,7 +30487,7 @@ native "SET_MISSION_FLAG"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29648,16 +30503,16 @@ native "SET_MISSION_FLAG"
 native "GET_MISSION_FLAG"
 	hash "0xA33CDCCDA663159E"
 	jhash (0x95115F97)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "SET_RANDOM_EVENT_FLAG"
 	hash "0x971927086CFD2158"
 	jhash (0xA77F31E8)
 	arguments {
-		BOOL "p0",
+		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29669,46 +30524,44 @@ native "SET_RANDOM_EVENT_FLAG"
 native "GET_RANDOM_EVENT_FLAG"
 	hash "0xD2D57F1D764117B1"
 	jhash (0x794CC92C)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "_GET_GLOBAL_CHAR_BUFFER"
 	hash "0x24DA7D7667FD7B09"
 	alias "0x24DA7D7667FD7B09"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"charPtr"
 	doc [[!
 <summary>
-		Returns a global c-style string buffer that is used internally by the game 
-
-		nope, it returns a reference to an empty string, the same empty string that's used by 1687 internal gta functions.   if it was used in a script (and i cannot find an instance of it being used), it would be as the source for a StringCopy or somesuch.
+		it returns a reference to an empty string, the same empty string that's used by 1687 internal gta functions.   if it was used in a script (and i cannot find an instance of it being used), it would be as the source for a StringCopy or somesuch.
 </summary>
 	]]
 
 native "0x4DCDF92BF64236CD"
 	hash "0x4DCDF92BF64236CD"
 	arguments {
-		Any "p0",
+		charPtr "p0",
 
-		Any "p1",
+		charPtr "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x31125FD509D9043F"
 	hash "0x31125FD509D9043F"
 	arguments {
-		Any "p0",
+		AnyPtr "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xEBD3205A207939ED"
 	hash "0xEBD3205A207939ED"
 	arguments {
-		Any "p0",
+		AnyPtr "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x97E7E2C04245115B"
@@ -29716,7 +30569,7 @@ native "0x97E7E2C04245115B"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xEB078CA2B5E82ADD"
@@ -29726,7 +30579,7 @@ native "0xEB078CA2B5E82ADD"
 
 		Any "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x703CC7F60CBB2B57"
@@ -29734,12 +30587,12 @@ native "0x703CC7F60CBB2B57"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x8951EB9C6906D3C8"
 	hash "0x8951EB9C6906D3C8"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xBA4B8D83BDC75551"
@@ -29747,20 +30600,20 @@ native "0xBA4B8D83BDC75551"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xE8B9C0EC9E183F35"
 	hash "0xE8B9C0EC9E183F35"
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"BOOL"
 
 native "0x65D2EBB47E1CEC21"
 	hash "0x65D2EBB47E1CEC21"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x6F2135B6129620C1"
@@ -29769,7 +30622,7 @@ native "0x6F2135B6129620C1"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x8D74E26F54B4E5C3"
@@ -29778,7 +30631,7 @@ native "0x8D74E26F54B4E5C3"
 	arguments {
 		charPtr "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29789,15 +30642,15 @@ native "0x8D74E26F54B4E5C3"
 native "0xB335F761606DB47C"
 	hash "0xB335F761606DB47C"
 	arguments {
-		AnyPtr "p0",
-
 		AnyPtr "p1",
 
-		Any "p2",
+		AnyPtr "p2",
 
-		BOOL "p3",
+		Any "p3",
+
+		BOOL "p4",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -29811,7 +30664,7 @@ native "GET_PREV_WEATHER_TYPE_HASH_NAME"
 	hash "0x564B884A05EC45A3"
 	jhash (0xA8171E9E)
 	alias "_GET_PREV_WEATHER_TYPE"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Hash"
 	doc [[!
 <summary>
@@ -29823,7 +30676,7 @@ native "GET_NEXT_WEATHER_TYPE_HASH_NAME"
 	hash "0x711327CD09C8F162"
 	jhash (0x353E8056)
 	alias "_GET_NEXT_WEATHER_TYPE"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Hash"
 	doc [[!
 <summary>
@@ -29837,7 +30690,7 @@ native "IS_PREV_WEATHER_TYPE"
 	arguments {
 		charPtr "weatherType",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_NEXT_WEATHER_TYPE"
@@ -29846,7 +30699,7 @@ native "IS_NEXT_WEATHER_TYPE"
 	arguments {
 		charPtr "weatherType",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "SET_WEATHER_TYPE_PERSIST"
@@ -29855,7 +30708,7 @@ native "SET_WEATHER_TYPE_PERSIST"
 	arguments {
 		charPtr "weatherType",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29881,7 +30734,7 @@ native "SET_WEATHER_TYPE_NOW_PERSIST"
 	arguments {
 		charPtr "weatherType",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29907,7 +30760,7 @@ native "SET_WEATHER_TYPE_NOW"
 	arguments {
 		charPtr "weatherType",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -29935,33 +30788,44 @@ native "_SET_WEATHER_TYPE_OVER_TIME"
 
 		float "time",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_RANDOM_WEATHER_TYPE"
 	hash "0x8B05F884CF7E8020"
 	jhash (0xE7AA1BC9)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "CLEAR_WEATHER_TYPE_PERSIST"
 	hash "0xCCC39339BEF76CF5"
 	jhash (0x6AB757D8)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_GET_WEATHER_TYPE_TRANSITION"
 	hash "0xF3BBE884A14BB413"
 	jhash (0x9A5C1D56)
 	arguments {
-		AnyPtr "p0",
+		HashPtr "weatherType1",
 
-		AnyPtr "p1",
+		HashPtr "weatherType2",
 
-		floatPtr "progress_or_time",
+		floatPtr "percentWeather2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
+	doc [[!
+<summary>
+		changed any --&gt; hash
+		progress_or_time --&gt; percentWeather2, is not time but percent of the 2nd weather (0-1).
+		weatherType1 is same as GAMEPLAY::GET_PREV_WEATHER_TYPE_HASH_NAME()
+		and weatherType 2 GAMEPLAY::GET_NEXT_WEATHER_TYPE_HASH_NAME()
+		-QuantFC
+
+
+</summary>
+	]]
 
 native "_SET_WEATHER_TYPE_TRANSITION"
 	hash "0x578C752848ECFA0C"
@@ -29973,7 +30837,7 @@ native "_SET_WEATHER_TYPE_TRANSITION"
 
 		float "percentWeather2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30015,7 +30879,7 @@ native "SET_OVERRIDE_WEATHER"
 	arguments {
 		charPtr "weatherType",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30028,7 +30892,7 @@ native "SET_OVERRIDE_WEATHER"
 native "CLEAR_OVERRIDE_WEATHER"
 	hash "0x338D2E3477711050"
 	jhash (0x7740EA4E)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xB8F87EAD7533B176"
@@ -30037,7 +30901,7 @@ native "0xB8F87EAD7533B176"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xC3EAD29AB273ECE8"
@@ -30046,7 +30910,7 @@ native "0xC3EAD29AB273ECE8"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xA7A1127490312C36"
@@ -30055,7 +30919,7 @@ native "0xA7A1127490312C36"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x31727907B2C43C55"
@@ -30064,7 +30928,7 @@ native "0x31727907B2C43C55"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x405591EC8FD9096D"
@@ -30073,7 +30937,7 @@ native "0x405591EC8FD9096D"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xF751B16FB32ABC1D"
@@ -30082,7 +30946,7 @@ native "0xF751B16FB32ABC1D"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xB3E6360DDE733E82"
@@ -30091,7 +30955,7 @@ native "0xB3E6360DDE733E82"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x7C9C0B1EEB1F9072"
@@ -30100,7 +30964,7 @@ native "0x7C9C0B1EEB1F9072"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x6216B116083A7CB4"
@@ -30109,7 +30973,7 @@ native "0x6216B116083A7CB4"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x9F5E6BB6B34540DA"
@@ -30118,7 +30982,7 @@ native "0x9F5E6BB6B34540DA"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xB9854DFDE0D833D6"
@@ -30127,7 +30991,7 @@ native "0xB9854DFDE0D833D6"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xC54A08C85AE4D410"
@@ -30136,7 +31000,7 @@ native "0xC54A08C85AE4D410"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30154,7 +31018,7 @@ native "0xA8434F1DFF41D6E7"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xC3C221ADDDE31A11"
@@ -30163,7 +31027,7 @@ native "0xC3C221ADDDE31A11"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_WIND"
@@ -30172,7 +31036,7 @@ native "SET_WIND"
 	arguments {
 		float "speed",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30186,7 +31050,7 @@ native "SET_WIND_SPEED"
 	arguments {
 		float "speed",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30197,7 +31061,7 @@ native "SET_WIND_SPEED"
 native "GET_WIND_SPEED"
 	hash "0xA8CF1CC0AFCD3F12"
 	jhash (0x098F0F3C)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
 native "SET_WIND_DIRECTION"
@@ -30206,13 +31070,25 @@ native "SET_WIND_DIRECTION"
 	arguments {
 		float "direction",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
+	doc [[!
+<summary>
+		This is NOT a heading. It's a FLOAT value from 0.0-7.0. Look at this image:
+		i.imgur.com/FwVpGS6.png
+
+
+
+		----------------------------
+
+		This appears to be a heading, in radians (0-2*pi) -PNWParksFan
+</summary>
+	]]
 
 native "GET_WIND_DIRECTION"
 	hash "0x1F400FEF721170DA"
 	jhash (0x89499A0D)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Vector3"
 
 native "_SET_RAIN_FX_INTENSITY"
@@ -30220,30 +31096,25 @@ native "_SET_RAIN_FX_INTENSITY"
 	arguments {
 		float "intensity",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
-	doc [[!
-<summary>
-		puddles, rain fx on ground/buildings/puddles, rain sound
-</summary>
-	]]
 
 native "GET_RAIN_LEVEL"
 	hash "0x96695E368AD855F3"
 	jhash (0xC9F67F28)
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"AnyPtr"
 
 native "GET_SNOW_LEVEL"
 	hash "0xC5868A966E5BE3AE"
 	jhash (0x1B09184F)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "_CREATE_LIGHTNING_THUNDER"
 	hash "0xF6062E089251C898"
 	jhash (0xDF38165E)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30256,7 +31127,7 @@ native "0x02DEAAC8F8EA7FE7"
 	arguments {
 		charPtr "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30272,7 +31143,7 @@ native "0x11B56FBBF7224868"
 	arguments {
 		charPtr "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30290,7 +31161,7 @@ native "_SET_CLOUD_HAT_TRANSITION"
 
 		float "transitionTime",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xA74802FB8D0B7814"
@@ -30301,7 +31172,7 @@ native "0xA74802FB8D0B7814"
 
 		float "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30313,7 +31184,7 @@ native "0xA74802FB8D0B7814"
 native "_CLEAR_CLOUD_HAT"
 	hash "0x957E790EA1727B64"
 	jhash (0x2D7787BC)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_SET_CLOUD_HAT_OPACITY"
@@ -30322,36 +31193,37 @@ native "_SET_CLOUD_HAT_OPACITY"
 		float "opacity",
 	}
 	alias "0xF36199225D6D8C86"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_GET_CLOUD_HAT_OPACITY"
 	hash "0x20AC25E781AE4A84"
 	alias "0x20AC25E781AE4A84"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
 native "GET_GAME_TIMER"
 	hash "0x9CD27B0045628463"
 	jhash (0xA4EA0691)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "GET_FRAME_TIME"
 	hash "0x15C40837039FFAF7"
 	jhash (0x96374262)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
-native "0xE599A503B3837E1B"
+native "_GET_BENCHMARK_TIME"
 	hash "0xE599A503B3837E1B"
-	ns "GAMEPLAY"
+	alias "0xE599A503B3837E1B"
+	ns "MISC"
 	returns	"float"
 
 native "GET_FRAME_COUNT"
 	hash "0xFC8202EFC642E6F2"
 	jhash (0xB477A015)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "GET_RANDOM_FLOAT_IN_RANGE"
@@ -30362,7 +31234,7 @@ native "GET_RANDOM_FLOAT_IN_RANGE"
 
 		float "endRange",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
 native "GET_RANDOM_INT_IN_RANGE"
@@ -30373,7 +31245,7 @@ native "GET_RANDOM_INT_IN_RANGE"
 
 		int "endRange",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 	doc [[!
 <summary>
@@ -30382,7 +31254,7 @@ native "GET_RANDOM_INT_IN_RANGE"
 		You can use it simply like:
 		if (GAMEPLAY::GET_RANDOM_INT_IN_RANGE(0, 2))
 
-		and the if-statement will count it as false only if the random int is 0. That means there is a one in three chance of it being false. Put a "!" in front and it means there is a one in three chance of it being true.
+
 </summary>
 	]]
 
@@ -30400,7 +31272,7 @@ native "GET_GROUND_Z_FOR_3D_COORD"
 
 		BOOL "unk",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -30414,7 +31286,7 @@ native "GET_GROUND_Z_FOR_3D_COORD"
 </summary>
 	]]
 
-native "0x8BDC7BFC57A81E76"
+native "_GET_GROUND_Z_COORD_WITH_OFFSETS"
 	hash "0x8BDC7BFC57A81E76"
 	jhash (0x64D91CED)
 	arguments {
@@ -30424,26 +31296,16 @@ native "0x8BDC7BFC57A81E76"
 
 		float "z",
 
-		floatPtr "p3",
+		floatPtr "groundZ",
 
-		Vector3Ptr "p4",
+		Vector3Ptr "offsets",
 	}
-	ns "GAMEPLAY"
+	alias "0x8BDC7BFC57A81E76"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
 		only documented to be continued...
-
-		Vector3 func_164(Vector3 vParam0, Vector3 vParam1)
-		{
-			return vParam0.y * vParam1.z - vParam0.z * vParam1.y, vParam0.z * vParam1.x - vParam0.x * vParam1.z, vParam0.x * vParam1.y - vParam0.y * vParam1.x;
-		}
-		float func_67(vector3 vParam0, vector3 vParam1)
-		{
-			return vParam0.x * vParam1.x + vParam0.y * vParam1.y + vParam0.z * vParam1.z;
-		}
-		float p3; Vector3 p4;
-		_0x64D91CED(coords0to.x, coords0to.y, coords0to.z, &amp;p3, &amp;p4);
 </summary>
 	]]
 
@@ -30453,8 +31315,13 @@ native "ASIN"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
+	doc [[!
+<summary>
+		Returns arcsin value of p0.
+</summary>
+	]]
 
 native "ACOS"
 	hash "0x1D08B970013C34B6"
@@ -30462,8 +31329,13 @@ native "ACOS"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
+	doc [[!
+<summary>
+		Returns arccos value of p0.
+</summary>
+	]]
 
 native "TAN"
 	hash "0x632106CC96E82E91"
@@ -30471,8 +31343,13 @@ native "TAN"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
+	doc [[!
+<summary>
+		Returns tangent value of p0.
+</summary>
+	]]
 
 native "ATAN"
 	hash "0xA9D1795CD5043663"
@@ -30480,8 +31357,13 @@ native "ATAN"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
+	doc [[!
+<summary>
+		Returns arctan value of p0.
+</summary>
+	]]
 
 native "ATAN2"
 	hash "0x8927CBF9D22261A4"
@@ -30491,7 +31373,7 @@ native "ATAN2"
 
 		float "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
 native "GET_DISTANCE_BETWEEN_COORDS"
@@ -30512,7 +31394,7 @@ native "GET_DISTANCE_BETWEEN_COORDS"
 
 		BOOL "useZ",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 	doc [[!
 <summary>
@@ -30534,8 +31416,13 @@ native "GET_ANGLE_BETWEEN_2D_VECTORS"
 
 		float "y2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
+	doc [[!
+<summary>
+		Returns the degree of angle between (x1, y1) and (x2, y2) lines in 2D coordinate system.
+</summary>
+	]]
 
 native "GET_HEADING_FROM_VECTOR_2D"
 	hash "0x2FFB6B224F4B2926"
@@ -30545,7 +31432,7 @@ native "GET_HEADING_FROM_VECTOR_2D"
 
 		float "dy",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 	doc [[!
 <summary>
@@ -30578,7 +31465,7 @@ native "0x7F8F6405F4777AF6"
 
 		BOOL "p9",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
 native "0x21C235BC64831E5A"
@@ -30605,7 +31492,7 @@ native "0x21C235BC64831E5A"
 
 		BOOL "p9",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Vector3"
 
 native "0xF56DFB7B61BE7276"
@@ -30638,7 +31525,7 @@ native "0xF56DFB7B61BE7276"
 
 		AnyPtr "p12",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "SET_BIT"
@@ -30649,7 +31536,7 @@ native "SET_BIT"
 
 		int "offset",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30675,7 +31562,7 @@ native "CLEAR_BIT"
 
 		int "offset",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30693,13 +31580,17 @@ native "GET_HASH_KEY"
 	hash "0xD24D37CC275948CC"
 	jhash (0x98EFF6F1)
 	arguments {
-		charPtr "model",
+		charPtr "string",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Hash"
 	doc [[!
 <summary>
 		This native converts its past string to hash. It is hashed using jenkins one at a time method.
+		----------
+		The string is first converted to lowercase before feeding it to joaat.
+		As a result, it makes this native case-insensitive.
+		For example: "zentorno", "ZENTORNO" and "Zentorno" produce the same hash.
 </summary>
 	]]
 
@@ -30733,7 +31624,7 @@ native "0xF2F6A2FA49278625"
 
 		AnyPtr "p12",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "IS_AREA_OCCUPIED"
@@ -30766,7 +31657,7 @@ native "IS_AREA_OCCUPIED"
 
 		BOOL "p12",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_POSITION_OCCUPIED"
@@ -30795,7 +31686,7 @@ native "IS_POSITION_OCCUPIED"
 
 		BOOL "p10",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_POINT_OBSCURED_BY_A_MISSION_ENTITY"
@@ -30816,7 +31707,7 @@ native "IS_POINT_OBSCURED_BY_A_MISSION_ENTITY"
 
 		Any "p6",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "CLEAR_AREA"
@@ -30839,7 +31730,7 @@ native "CLEAR_AREA"
 
 		BOOL "p7",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30868,7 +31759,7 @@ native "_CLEAR_AREA_OF_EVERYTHING"
 		BOOL "p7",
 	}
 	alias "0x957838AAF91BD12D"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30898,7 +31789,7 @@ native "CLEAR_AREA_OF_VEHICLES"
 
 		BOOL "p8",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30934,7 +31825,7 @@ native "CLEAR_ANGLED_AREA_OF_VEHICLES"
 
 		BOOL "p11",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "CLEAR_AREA_OF_OBJECTS"
@@ -30951,7 +31842,7 @@ native "CLEAR_AREA_OF_OBJECTS"
 
 		int "flags",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30973,7 +31864,7 @@ native "CLEAR_AREA_OF_PEDS"
 
 		int "flags",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -30995,13 +31886,8 @@ native "CLEAR_AREA_OF_COPS"
 
 		int "flags",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
-	doc [[!
-<summary>
-		flags appears to always be 0
-</summary>
-	]]
 
 native "CLEAR_AREA_OF_PROJECTILES"
 	hash "0x0A1CB9094635D1A6"
@@ -31015,19 +31901,14 @@ native "CLEAR_AREA_OF_PROJECTILES"
 
 		float "radius",
 
-		int "flags",
+		BOOL "isNetworkGame",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
-	doc [[!
-<summary>
-		flags is usually 0 in the scripts.
-</summary>
-	]]
 
 native "0x7EC6F9A478A6A512"
 	hash "0x7EC6F9A478A6A512"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_SAVE_MENU_ACTIVE"
@@ -31036,7 +31917,7 @@ native "SET_SAVE_MENU_ACTIVE"
 	arguments {
 		BOOL "unk",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31047,7 +31928,7 @@ native "SET_SAVE_MENU_ACTIVE"
 native "0x397BAA01068BAA96"
 	hash "0x397BAA01068BAA96"
 	jhash (0x39771F21)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "SET_CREDITS_ACTIVE"
@@ -31056,7 +31937,7 @@ native "SET_CREDITS_ACTIVE"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xB51B9AB9EF81868C"
@@ -31065,13 +31946,13 @@ native "0xB51B9AB9EF81868C"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x075F1D57402C93BA"
 	hash "0x075F1D57402C93BA"
 	jhash (0x2569C9A7)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME"
@@ -31080,7 +31961,7 @@ native "TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME"
 	arguments {
 		charPtr "scriptName",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31091,7 +31972,7 @@ native "TERMINATE_ALL_SCRIPTS_WITH_THIS_NAME"
 native "NETWORK_SET_SCRIPT_IS_SAFE_FOR_NETWORK_GAME"
 	hash "0x9243BAC96D64C050"
 	jhash (0x878486CE)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "ADD_HOSPITAL_RESTART"
@@ -31108,7 +31989,7 @@ native "ADD_HOSPITAL_RESTART"
 
 		Any "p4",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 	doc [[!
 <summary>
@@ -31126,7 +32007,7 @@ native "DISABLE_HOSPITAL_RESTART"
 
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31151,7 +32032,7 @@ native "ADD_POLICE_RESTART"
 
 		Any "p4",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "DISABLE_POLICE_RESTART"
@@ -31162,7 +32043,7 @@ native "DISABLE_POLICE_RESTART"
 
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31187,7 +32068,7 @@ native "_SET_CUSTOM_RESPAWN_POSITION"
 		float "heading",
 	}
 	alias "0x706B5EDCAA7FA663"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31198,7 +32079,7 @@ native "_SET_CUSTOM_RESPAWN_POSITION"
 native "_SET_NEXT_RESPAWN_TO_CUSTOM"
 	hash "0xA2716D40842EAF79"
 	alias "0xA2716D40842EAF79"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31212,7 +32093,7 @@ native "_DISABLE_AUTOMATIC_RESPAWN"
 	arguments {
 		BOOL "disableRespawn",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "IGNORE_NEXT_RESTART"
@@ -31221,7 +32102,7 @@ native "IGNORE_NEXT_RESTART"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_FADE_OUT_AFTER_DEATH"
@@ -31230,7 +32111,7 @@ native "SET_FADE_OUT_AFTER_DEATH"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31244,7 +32125,7 @@ native "SET_FADE_OUT_AFTER_ARREST"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31258,7 +32139,7 @@ native "SET_FADE_IN_AFTER_DEATH_ARREST"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31272,7 +32153,7 @@ native "SET_FADE_IN_AFTER_LOAD"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "REGISTER_SAVE_HOUSE"
@@ -31293,7 +32174,7 @@ native "REGISTER_SAVE_HOUSE"
 
 		Any "p6",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "SET_SAVE_HOUSE"
@@ -31306,7 +32187,7 @@ native "SET_SAVE_HOUSE"
 
 		BOOL "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "OVERRIDE_SAVE_HOUSE"
@@ -31329,7 +32210,7 @@ native "OVERRIDE_SAVE_HOUSE"
 
 		float "p7",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0xA4A0065E39C9F25C"
@@ -31344,37 +32225,37 @@ native "0xA4A0065E39C9F25C"
 
 		Any "p3",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "DO_AUTO_SAVE"
 	hash "0x50EEAAD86232EE55"
 	jhash (0x54C44B1A)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x6E04F06094C87047"
 	hash "0x6E04F06094C87047"
 	jhash (0xA8546914)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "IS_AUTO_SAVE_IN_PROGRESS"
 	hash "0x69240733738C19A0"
 	jhash (0x36F75399)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0x2107A3773771186D"
 	hash "0x2107A3773771186D"
 	jhash (0x78350773)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x06462A961E94B67C"
 	hash "0x06462A961E94B67C"
 	jhash (0x5A45B11A)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "BEGIN_REPLAY_STATS"
@@ -31385,7 +32266,7 @@ native "BEGIN_REPLAY_STATS"
 
 		Any "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x69FE6DC87BD2A5E9"
@@ -31394,37 +32275,37 @@ native "0x69FE6DC87BD2A5E9"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "END_REPLAY_STATS"
 	hash "0xA23E821FBDF8A5F2"
 	jhash (0xCB570185)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xD642319C54AADEB6"
 	hash "0xD642319C54AADEB6"
 	jhash (0xC58250F1)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x5B1F2E327B6B6FE1"
 	hash "0x5B1F2E327B6B6FE1"
 	jhash (0x50C39926)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x2B626A0150E4D449"
 	hash "0x2B626A0150E4D449"
 	jhash (0x710E5D1E)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0xDC9274A7EF6B2867"
 	hash "0xDC9274A7EF6B2867"
 	jhash (0xC7BD1AF0)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x8098C8D6597AAE18"
@@ -31433,42 +32314,42 @@ native "0x8098C8D6597AAE18"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "CLEAR_REPLAY_STATS"
 	hash "0x1B1AB132A16FDA55"
 	jhash (0xC47DFF02)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x72DE52178C291CB5"
 	hash "0x72DE52178C291CB5"
 	jhash (0xF62B3C48)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x44A0BDC559B35F6E"
 	hash "0x44A0BDC559B35F6E"
 	jhash (0x3589452B)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0xEB2104E905C6F2E9"
 	hash "0xEB2104E905C6F2E9"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x2B5E102E4A42F2BF"
 	hash "0x2B5E102E4A42F2BF"
 	jhash (0x144AAF22)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "IS_MEMORY_CARD_IN_USE"
 	hash "0x8A75CE2956274ADD"
 	jhash (0x40CE4DFD)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "SHOOT_SINGLE_BULLET_BETWEEN_COORDS"
@@ -31501,10 +32382,22 @@ native "SHOOT_SINGLE_BULLET_BETWEEN_COORDS"
 
 		float "speed",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
+	doc [[!
+<summary>
+		this is what p7 does in disassembly
 
-native "0xE3A7742E0B7A2F8B"
+		__int8 var = 32;
+		if (isInvisible)
+		{
+		   var = 16;
+		}
+		int v110 = var | 2 * p7;
+</summary>
+	]]
+
+native "_SHOOT_SINGLE_BULLET_BETWEEN_COORDS_PRESET_PARAMS"
 	hash "0xE3A7742E0B7A2F8B"
 	jhash (0x52ACCB7B)
 	arguments {
@@ -31536,15 +32429,16 @@ native "0xE3A7742E0B7A2F8B"
 
 		Entity "entity",
 	}
-	ns "GAMEPLAY"
+	alias "0xE3A7742E0B7A2F8B"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
-		only documented to be continued...
+		entity - entity to ignore
 </summary>
 	]]
 
-native "0xBFE5756E7407064A"
+native "_SHOOT_SINGLE_BULLET_BETWEEN_COORDS_WITH_EXTRA_PARAMS"
 	hash "0xBFE5756E7407064A"
 	arguments {
 		float "x1",
@@ -31583,7 +32477,8 @@ native "0xBFE5756E7407064A"
 
 		BOOL "p17",
 	}
-	ns "GAMEPLAY"
+	alias "0xBFE5756E7407064A"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -31591,7 +32486,7 @@ native "0xBFE5756E7407064A"
 
 		Console Hash: 0xCCDC33CC
 
-		only documented to be continued...
+		entity - entity to ignore
 </summary>
 	]]
 
@@ -31605,13 +32500,21 @@ native "GET_MODEL_DIMENSIONS"
 
 		Vector3Ptr "maximum",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
 		Gets the dimensions of a model.
 
 		Calculate (maximum - minimum) to get the size, in which case, Y will be how long the model is.
+
+		Vector3 GetDimensions(Hash model)
+		{
+			Vector3 right, left;
+			GET_MODEL_DIMENSIONS(model, &amp;right, &amp;left);
+			return Vector3::Subtract(left, right);
+		}
+
 
 		Example from the scripts: GAMEPLAY::GET_MODEL_DIMENSIONS(ENTITY::GET_ENTITY_MODEL(PLAYER::PLAYER_PED_ID()), &amp;v_1A, &amp;v_17);
 </summary>
@@ -31623,13 +32526,13 @@ native "SET_FAKE_WANTED_LEVEL"
 	arguments {
 		int "fakeWantedLevel",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
 		Sets a visually fake wanted level on the user interface. Used by Rockstar's scripts to "override" regular wanted levels and make custom ones while the real wanted level and multipliers are ignored.
 
-		Max is 5, anything above this makes it just 5. Also the mini-map gets the red &amp; blue flashing effect. I wish I could use this to fake I had 6 stars like a few of the old GTAs'
+		Max is 6. Also the mini-map gets the red &amp; blue flashing effect.
 </summary>
 	]]
 
@@ -31637,7 +32540,7 @@ native "GET_FAKE_WANTED_LEVEL"
 	hash "0x4C9296CBCD1B971E"
 	jhash (0x0022A430)
 	alias "0x4C9296CBCD1B971E"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "IS_BIT_SET"
@@ -31648,7 +32551,7 @@ native "IS_BIT_SET"
 
 		int "offset",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -31669,11 +32572,13 @@ native "USING_MISSION_CREATOR"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
 		Hash collision
+
+		If this is a hash collision, it's a very lucky one. It does seem strangely named but it is used to toggle the mission creator mode.
 </summary>
 	]]
 
@@ -31683,8 +32588,15 @@ native "0xDEA36202FC3382DF"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Most references of this native come from the creator scripts. (creator, fm_capture_creator, fm_deathmatch_creator, fm_lts_creator, fm_race_creator).
+		Seems to have something to do with initializing/destroying creator shit.
+</summary>
+	]]
 
 native "SET_MINIGAME_IN_PROGRESS"
 	hash "0x19E00D7322C6F85B"
@@ -31692,25 +32604,25 @@ native "SET_MINIGAME_IN_PROGRESS"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "IS_MINIGAME_IN_PROGRESS"
 	hash "0x2B4A15E44DE0F478"
 	jhash (0x53A95E13)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_THIS_A_MINIGAME_SCRIPT"
 	hash "0x7B30F65D7B710098"
 	jhash (0x7605EF6F)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_SNIPER_INVERTED"
 	hash "0x61A23B7EDA9BDA24"
 	jhash (0x5C3BF51B)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -31721,8 +32633,8 @@ native "IS_SNIPER_INVERTED"
 native "0xD3D15555431AB793"
 	hash "0xD3D15555431AB793"
 	jhash (0xBAF17315)
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"BOOL"
 
 native "GET_PROFILE_SETTING"
 	hash "0xC488FF2356EA7791"
@@ -31730,11 +32642,11 @@ native "GET_PROFILE_SETTING"
 	arguments {
 		int "profileSetting",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 	doc [[!
 <summary>
-		anyone have a settingid dump?
+		gtaforums.com/topic/799843-stats-profile-settings/
 </summary>
 	]]
 
@@ -31746,7 +32658,7 @@ native "ARE_STRINGS_EQUAL"
 
 		charPtr "string2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -31766,7 +32678,7 @@ native "COMPARE_STRINGS"
 
 		int "maxLength",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 	doc [[!
 <summary>
@@ -31803,7 +32715,7 @@ native "ABSI"
 	arguments {
 		int "value",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "ABSF"
@@ -31812,7 +32724,7 @@ native "ABSF"
 	arguments {
 		float "value",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"float"
 
 native "IS_SNIPER_BULLET_IN_AREA"
@@ -31831,7 +32743,7 @@ native "IS_SNIPER_BULLET_IN_AREA"
 
 		float "z2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -31859,7 +32771,7 @@ native "IS_PROJECTILE_IN_AREA"
 
 		BOOL "ownedByPlayer",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -31892,7 +32804,7 @@ native "IS_PROJECTILE_TYPE_IN_AREA"
 
 		BOOL "p7",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -31926,98 +32838,134 @@ native "IS_PROJECTILE_TYPE_IN_ANGLED_AREA"
 
 		BOOL "p8",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
-native "0x34318593248C8FB2"
+native "_IS_PROJECTILE_TYPE_IN_RADIUS"
 	hash "0x34318593248C8FB2"
 	jhash (0xBE81F1E2)
 	arguments {
-		float "p0",
+		float "x",
 
-		float "p1",
+		float "y",
 
-		float "p2",
+		float "z",
 
-		Any "p3",
+		Hash "projHash",
 
-		float "p4",
+		float "radius",
 
-		BOOL "p5",
+		BOOL "ownedByPlayer",
 	}
-	ns "GAMEPLAY"
+	alias "0x34318593248C8FB2"
+	ns "MISC"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Checks if the projectile is in the radius around that point.
 
-native "0x8D7A43EC6A5FEA45"
+		p6 is (most likely) ownedByPlayer. (see IS_PROJECTILE_IN_AREA for info)
+</summary>
+	]]
+
+native "_GET_IS_PROJECTILE_TYPE_IN_AREA"
 	hash "0x8D7A43EC6A5FEA45"
 	jhash (0x1A40454B)
 	arguments {
-		Any "p0",
+		float "x1",
 
-		Any "p1",
+		float "y1",
 
-		Any "p2",
+		float "z1",
 
-		Any "p3",
+		float "x2",
 
-		Any "p4",
+		float "y2",
 
-		Any "p5",
+		float "z2",
 
-		Any "p6",
+		Hash "projHash",
 
-		Any "p7",
+		Vector3Ptr "projPos",
 
-		Any "p8",
+		BOOL "ownedByPlayer",
 	}
-	ns "GAMEPLAY"
-	returns	"Any"
+	alias "0x8D7A43EC6A5FEA45"
+	ns "MISC"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Works exactly like IS_PROJECTILE_TYPE_IN_AREA, but it puts the position of the projectile in the vector.
 
-native "0xDFB4138EEFED7B81"
+		p8 is probably ownedByPlayer, but not known for sure. (see IS_PROJECTILE_IN_AREA for info)
+
+		Unsure of the hash name, could someone confirm this?
+</summary>
+	]]
+
+native "_GET_PROJECTILE_NEAR_PED_COORDS"
 	hash "0xDFB4138EEFED7B81"
 	jhash (0x6BDE5CE4)
 	arguments {
 		Ped "ped",
 
-		Hash "weaponHash",
+		Hash "projHash",
 
 		float "radius",
 
-		EntityPtr "entity",
+		Vector3Ptr "projPos",
 
-		BOOL "p4",
+		BOOL "ownedByPlayer",
 	}
-	ns "GAMEPLAY"
+	alias "0xDFB4138EEFED7B81"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
 		From a quick disassembly I can say that this has something to do with weapons.
 
 		Added params according to what I could see in IDA.
+
+		Dr. Underscore (1/6/18):
+		Returns if any projectiles of projHash type are in a radius around this ped. If true, projPos is filled with the position of that entity.
+
+		This native was only ever used with projectiles, but may not be limited to.
+
+		p4 isn't an Entity*, it's actually a Vector3*, which outputs the position of the found entity.
+
+		p5 is (most likely) ownedByPlayer. (see IS_PROJECTILE_IN_AREA for info)
 </summary>
 	]]
 
-native "0x82FDE6A57EE4EE44"
+native "_GET_PROJECTILE_NEAR_PED"
 	hash "0x82FDE6A57EE4EE44"
 	jhash (0x507BC6F7)
 	arguments {
 		Ped "ped",
 
-		Hash "weaponhash",
+		Hash "projHash",
 
-		float "p2",
+		float "radius",
 
-		float "p3",
+		Vector3Ptr "projPos",
 
-		float "p4",
+		EntityPtr "projEnt",
 
-		BOOL "p5",
+		BOOL "ownedByPlayer",
 	}
-	ns "GAMEPLAY"
-	returns	"Any"
+	alias "0x82FDE6A57EE4EE44"
+	ns "MISC"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		only documented to be continued...
+
+		Dr. Underscore (1/6/18):
+		Exactly like _GET_PROJECTILE_NEAR_PED_COORDS (_0xDFB4138EEFED7B81), but it gives us the Entity that was found aswell.
+
+		p6 is (most likely) ownedByPlayer. (see IS_PROJECTILE_IN_AREA for info)
 </summary>
 	]]
 
@@ -32041,7 +32989,7 @@ native "IS_BULLET_IN_ANGLED_AREA"
 
 		BOOL "p7",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_BULLET_IN_AREA"
@@ -32058,7 +33006,7 @@ native "IS_BULLET_IN_AREA"
 
 		BOOL "p4",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_BULLET_IN_BOX"
@@ -32079,7 +33027,7 @@ native "IS_BULLET_IN_BOX"
 
 		BOOL "p6",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "HAS_BULLET_IMPACTED_IN_AREA"
@@ -32098,7 +33046,7 @@ native "HAS_BULLET_IMPACTED_IN_AREA"
 
 		BOOL "p5",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32126,13 +33074,13 @@ native "HAS_BULLET_IMPACTED_IN_BOX"
 
 		BOOL "p7",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_ORBIS_VERSION"
 	hash "0xA72BC0B675B1519E"
 	jhash (0x40282018)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32149,7 +33097,7 @@ native "IS_ORBIS_VERSION"
 native "IS_DURANGO_VERSION"
 	hash "0x4D982ADB1978442D"
 	jhash (0x46FB06A5)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32162,12 +33110,10 @@ native "IS_DURANGO_VERSION"
 native "IS_XBOX360_VERSION"
 	hash "0xF6201B4DAF662A9D"
 	jhash (0x24005CC8)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		XBOX 360
-
 		MulleDK19: This function is hard-coded to always return 0.
 </summary>
 	]]
@@ -32175,12 +33121,10 @@ native "IS_XBOX360_VERSION"
 native "IS_PS3_VERSION"
 	hash "0xCCA1072C29D096C2"
 	jhash (0x4C0D5303)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		PS3
-
 		MulleDK19: This function is hard-coded to always return 0.
 </summary>
 	]]
@@ -32188,12 +33132,10 @@ native "IS_PS3_VERSION"
 native "IS_PC_VERSION"
 	hash "0x48AF36444B965238"
 	jhash (0x4D5D9EE3)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		PC
-
 		MulleDK19: This function is hard-coded to always return 1.
 </summary>
 	]]
@@ -32201,7 +33143,7 @@ native "IS_PC_VERSION"
 native "IS_AUSSIE_VERSION"
 	hash "0x9F1935CA1F724008"
 	jhash (0x944BA1DC)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32221,7 +33163,7 @@ native "IS_STRING_NULL"
 	arguments {
 		charPtr "string",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_STRING_NULL_OR_EMPTY"
@@ -32230,7 +33172,7 @@ native "IS_STRING_NULL_OR_EMPTY"
 	arguments {
 		charPtr "string",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "STRING_TO_INT"
@@ -32241,7 +33183,7 @@ native "STRING_TO_INT"
 
 		intPtr "outInteger",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32263,7 +33205,7 @@ native "SET_BITS_IN_RANGE"
 
 		int "p3",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "GET_BITS_IN_RANGE"
@@ -32276,7 +33218,7 @@ native "GET_BITS_IN_RANGE"
 
 		int "rangeEnd",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "ADD_STUNT_JUMP"
@@ -32317,7 +33259,7 @@ native "ADD_STUNT_JUMP"
 
 		Any "p16",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "ADD_STUNT_JUMP_ANGLED"
@@ -32362,7 +33304,7 @@ native "ADD_STUNT_JUMP_ANGLED"
 
 		Any "p18",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "DELETE_STUNT_JUMP"
@@ -32371,7 +33313,7 @@ native "DELETE_STUNT_JUMP"
 	arguments {
 		int "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "ENABLE_STUNT_JUMP_SET"
@@ -32380,7 +33322,7 @@ native "ENABLE_STUNT_JUMP_SET"
 	arguments {
 		int "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "DISABLE_STUNT_JUMP_SET"
@@ -32389,7 +33331,7 @@ native "DISABLE_STUNT_JUMP_SET"
 	arguments {
 		int "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xD79185689F8FD5DF"
@@ -32398,37 +33340,37 @@ native "0xD79185689F8FD5DF"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "IS_STUNT_JUMP_IN_PROGRESS"
 	hash "0x7A3F19700A4D0525"
 	jhash (0xF477D0B1)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "IS_STUNT_JUMP_MESSAGE_SHOWING"
 	hash "0x2272B0A1343129F4"
 	jhash (0x021636EE)
 	alias "0x2272B0A1343129F4"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0x996DD1E1E02F1008"
 	hash "0x996DD1E1E02F1008"
 	jhash (0x006F9BA2)
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"int"
 
 native "0x6856EC3D35C81EA4"
 	hash "0x6856EC3D35C81EA4"
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"int"
 
 native "CANCEL_STUNT_JUMP"
 	hash "0xE6B7B0ACD4E4B75E"
 	jhash (0xF43D9821)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_GAME_PAUSED"
@@ -32437,7 +33379,7 @@ native "SET_GAME_PAUSED"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32451,7 +33393,7 @@ native "SET_THIS_SCRIPT_CAN_BE_PAUSED"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_THIS_SCRIPT_CAN_REMOVE_BLIPS_CREATED_BY_ANY_SCRIPT"
@@ -32460,7 +33402,7 @@ native "SET_THIS_SCRIPT_CAN_REMOVE_BLIPS_CREATED_BY_ANY_SCRIPT"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_HAS_BUTTON_COMBINATION_JUST_BEEN_ENTERED"
@@ -32472,7 +33414,7 @@ native "_HAS_BUTTON_COMBINATION_JUST_BEEN_ENTERED"
 		int "amount",
 	}
 	alias "0x071E2A839DE82D90"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32488,7 +33430,7 @@ native "_HAS_CHEAT_STRING_JUST_BEEN_ENTERED"
 		Hash "hash",
 	}
 	alias "0x557E43C447E700A8"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32515,7 +33457,7 @@ native "_USE_FREEMODE_MAP_BEHAVIOR"
 		BOOL "toggle",
 	}
 	alias "_ENABLE_MP_DLC_MAPS"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32523,6 +33465,10 @@ native "_USE_FREEMODE_MAP_BEHAVIOR"
 		Sets the maximum prop density and changes a loading screen flag from 'loading story mode' to 'loading GTA Online'. Does not touch DLC map data at all.
 
 		In fact, I doubt this changes the flag whatsoever, that's the OTHER native idiots use together with this that does so, this one only causes a loading screen to show as it reloads map data.
+
+
+		------------------------
+		While you're going on your rant about other "idiots" can you please supply the name of the "other native" for us "idiots" who'd like to actually learn about loading IPL's? Thank, you.
 </summary>
 	]]
 
@@ -32532,7 +33478,7 @@ native "_SET_UNK_MAP_FLAG"
 	arguments {
 		int "flag",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32545,7 +33491,7 @@ native "_SET_UNK_MAP_FLAG"
 native "IS_FRONTEND_FADING"
 	hash "0x7EA2B6AF97ECA6ED"
 	jhash (0x8FF6232C)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32556,7 +33502,7 @@ native "IS_FRONTEND_FADING"
 native "POPULATE_NOW"
 	hash "0x7472BB270D7B4F3E"
 	jhash (0x72C20700)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32567,7 +33513,7 @@ native "POPULATE_NOW"
 native "GET_INDEX_OF_CURRENT_LEVEL"
 	hash "0xCBAD6729F7B1F4FC"
 	jhash (0x6F203C6E)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "SET_GRAVITY_LEVEL"
@@ -32576,7 +33522,7 @@ native "SET_GRAVITY_LEVEL"
 	arguments {
 		int "level",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32585,8 +33531,6 @@ native "SET_GRAVITY_LEVEL"
 		1: 2.4 
 		2: 0.1 - very low
 		3: 0.0 
-
-		//SuckMyCoke
 </summary>
 	]]
 
@@ -32600,13 +33544,13 @@ native "START_SAVE_DATA"
 
 		BOOL "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "STOP_SAVE_DATA"
 	hash "0x74E20C9145FB66FD"
 	jhash (0x3B1C07C8)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xA09F896CE912481F"
@@ -32615,8 +33559,8 @@ native "0xA09F896CE912481F"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"int"
 
 native "REGISTER_INT_TO_SAVE"
 	hash "0x34C9EE5986258415"
@@ -32626,7 +33570,7 @@ native "REGISTER_INT_TO_SAVE"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xA735353C77334EA0"
@@ -32636,7 +33580,7 @@ native "0xA735353C77334EA0"
 
 		AnyPtr "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "REGISTER_ENUM_TO_SAVE"
@@ -32647,7 +33591,7 @@ native "REGISTER_ENUM_TO_SAVE"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "REGISTER_FLOAT_TO_SAVE"
@@ -32658,7 +33602,7 @@ native "REGISTER_FLOAT_TO_SAVE"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "REGISTER_BOOL_TO_SAVE"
@@ -32669,7 +33613,7 @@ native "REGISTER_BOOL_TO_SAVE"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "REGISTER_TEXT_LABEL_TO_SAVE"
@@ -32680,7 +33624,7 @@ native "REGISTER_TEXT_LABEL_TO_SAVE"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x6F7794F28C6B2535"
@@ -32691,7 +33635,7 @@ native "0x6F7794F28C6B2535"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32713,7 +33657,7 @@ native "0x48F069265A0E4BEC"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32733,7 +33677,7 @@ native "0x8269816F6CFD40F8"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32752,7 +33696,7 @@ native "0xFAA457EF263E8763"
 
 		charPtr "name",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32781,7 +33725,7 @@ native "_START_SAVE_STRUCT"
 
 		charPtr "structName",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32792,7 +33736,7 @@ native "_START_SAVE_STRUCT"
 native "STOP_SAVE_STRUCT"
 	hash "0xEB1774DF12BB9F12"
 	jhash (0xC2624A28)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_START_SAVE_ARRAY"
@@ -32805,7 +33749,7 @@ native "_START_SAVE_ARRAY"
 
 		charPtr "arrayName",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32816,7 +33760,7 @@ native "_START_SAVE_ARRAY"
 native "STOP_SAVE_ARRAY"
 	hash "0x04456F95153C6BE4"
 	jhash (0x0CAD8217)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "ENABLE_DISPATCH_SERVICE"
@@ -32828,26 +33772,28 @@ native "ENABLE_DISPATCH_SERVICE"
 		BOOL "toggle",
 	}
 	alias "0xDC0F817884CDD856"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
-		Found dispatch service types in the exe:
-		enum eDispatchServiceType
+		Directly from R*:
+		enum eDispatchType : UINT16
 		{
-			PoliceAutomobileDispatch = 1,
-			PoliceHelicopterDispatch = 2,
-			FireDepartmentDispatch = 3,
-			SwatAutomobileDispatch = 4,
-			AmbulanceDepartmentDispatch = 5,
-			PoliceRidersDispatch = 6,
-			PoliceVehicleRequest = 7,
-			PoliceRoadBlockDispatch = 8,
-			GangDispatch = 11,
-			SwatHelicopterDispatch = 12,
-			PoliceBoatDispatch = 13,
-			ArmyVehicleDispatch = 14,
-			BikerBackupDispatch = 15
+		    DT_PoliceAutomobile = 1,
+		    DT_PoliceHelicopter = 2,
+		    DT_FireDepartment = 3,
+		    DT_SwatAutomobile = 4,
+		    DT_AmbulanceDepartment = 5,
+		    DT_PoliceRiders = 6,
+		    DT_PoliceVehicleRequest = 7,
+		    DT_PoliceRoadBlock = 8,
+		    DT_PoliceAutomobileWaitPulledOver = 9,
+		    DT_PoliceAutomobileWaitCruising = 10,
+		    DT_Gangs = 11,
+		    DT_SwatHelicopter = 12,
+		    DT_PoliceBoat = 13,
+		    DT_ArmyVehicle = 14,
+		    DT_BikerBackup = 15
 		};
 
 		By making toggle false it disables the dispatch.
@@ -32865,7 +33811,7 @@ native "0x9B2BD3773123EA2F"
 
 		BOOL "toggle",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_GET_NUMBER_OF_DISPATCHED_UNITS_FOR_PLAYER"
@@ -32875,7 +33821,7 @@ native "_GET_NUMBER_OF_DISPATCHED_UNITS_FOR_PLAYER"
 		int "dispatchService",
 	}
 	alias "0xEB4A0C2D56441717"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 
 native "CREATE_INCIDENT"
@@ -32896,14 +33842,12 @@ native "CREATE_INCIDENT"
 
 		intPtr "outIncidentID",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		p0 could be type
-
-		=====================================================
-		enum IncidentTypes{
+		enum IncidentTypes
+		{
 		    FireDepartment = 3,
 		    Paramedics = 5,
 		    Police = 7,
@@ -32935,7 +33879,7 @@ native "CREATE_INCIDENT_WITH_ENTITY"
 
 		intPtr "outIncidentID",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -32944,7 +33888,8 @@ native "CREATE_INCIDENT_WITH_ENTITY"
 		p3 is usually 0f or 3f
 
 		=====================================================
-		enum IncidentTypes{
+		enum IncidentTypes
+		{
 		    FireDepartment = 3,
 		    Paramedics = 5,
 		    Police = 7,
@@ -32968,7 +33913,7 @@ native "DELETE_INCIDENT"
 	arguments {
 		int "incidentId",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -32988,7 +33933,7 @@ native "IS_INCIDENT_VALID"
 	arguments {
 		int "incidentId",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -33010,7 +33955,7 @@ native "0xB08B85D860E7BA3C"
 
 		Any "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xD261BA3E7E998072"
@@ -33021,7 +33966,7 @@ native "0xD261BA3E7E998072"
 
 		float "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "FIND_SPAWN_POINT_IN_DIRECTION"
@@ -33044,7 +33989,7 @@ native "FIND_SPAWN_POINT_IN_DIRECTION"
 
 		Vector3Ptr "spawnPoint",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -33084,7 +34029,7 @@ native "0x67F6413D3220E18D"
 
 		Any "p8",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x1327E2FE9746BAEE"
@@ -33092,7 +34037,7 @@ native "0x1327E2FE9746BAEE"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0xB129E447A2EDA4BF"
@@ -33103,7 +34048,7 @@ native "0xB129E447A2EDA4BF"
 
 		BOOL "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x32C7A7E8C43A1F80"
@@ -33125,7 +34070,7 @@ native "0x32C7A7E8C43A1F80"
 
 		BOOL "p7",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0xE6869BECDD8F2403"
@@ -33135,7 +34080,7 @@ native "0xE6869BECDD8F2403"
 
 		BOOL "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "ENABLE_TENNIS_MODE"
@@ -33148,7 +34093,7 @@ native "ENABLE_TENNIS_MODE"
 
 		BOOL "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33162,7 +34107,7 @@ native "IS_TENNIS_MODE"
 	arguments {
 		Ped "ped",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -33186,7 +34131,7 @@ native "0xE266ED23311F24D4"
 
 		BOOL "p5",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x17DF68D720AA77F8"
@@ -33195,7 +34140,7 @@ native "0x17DF68D720AA77F8"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0x19BFED045C647C49"
@@ -33204,7 +34149,7 @@ native "0x19BFED045C647C49"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0xE95B0C7D5BA3B96B"
@@ -33212,7 +34157,7 @@ native "0xE95B0C7D5BA3B96B"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0x8FA9C42FC5D7C64B"
@@ -33231,7 +34176,7 @@ native "0x8FA9C42FC5D7C64B"
 
 		BOOL "p5",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x54F157E0336A3822"
@@ -33244,7 +34189,7 @@ native "0x54F157E0336A3822"
 
 		float "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33264,13 +34209,13 @@ native "0xD10F442036302D50"
 
 		Any "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "RESET_DISPATCH_IDEAL_SPAWN_DISTANCE"
 	hash "0x77A84429DD9F0A15"
 	jhash (0xDA65ECAA)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_DISPATCH_IDEAL_SPAWN_DISTANCE"
@@ -33279,7 +34224,7 @@ native "SET_DISPATCH_IDEAL_SPAWN_DISTANCE"
 	arguments {
 		float "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_DISPATCH_TIME_BETWEEN_SPAWN_ATTEMPTS"
@@ -33290,7 +34235,7 @@ native "SET_DISPATCH_TIME_BETWEEN_SPAWN_ATTEMPTS"
 
 		float "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "SET_DISPATCH_TIME_BETWEEN_SPAWN_ATTEMPTS_MULTIPLIER"
@@ -33301,7 +34246,7 @@ native "SET_DISPATCH_TIME_BETWEEN_SPAWN_ATTEMPTS_MULTIPLIER"
 
 		float "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x918C7B2D2FF3928B"
@@ -33322,7 +34267,7 @@ native "0x918C7B2D2FF3928B"
 
 		float "p6",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x2D4259F1FEB81DA9"
@@ -33336,7 +34281,7 @@ native "0x2D4259F1FEB81DA9"
 
 		float "p3",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "REMOVE_DISPATCH_SPAWN_BLOCKING_AREA"
@@ -33345,19 +34290,19 @@ native "REMOVE_DISPATCH_SPAWN_BLOCKING_AREA"
 	arguments {
 		Any "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "RESET_DISPATCH_SPAWN_BLOCKING_AREAS"
 	hash "0xAC7BFD5C1D83EA75"
 	jhash (0x9A17F835)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xD9F692D349249528"
 	hash "0xD9F692D349249528"
 	jhash (0xE0C9307E)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xE532EC1A63231B4F"
@@ -33368,7 +34313,7 @@ native "0xE532EC1A63231B4F"
 
 		Any "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xB8721407EE9C3FF6"
@@ -33381,13 +34326,13 @@ native "0xB8721407EE9C3FF6"
 
 		Any "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xB3CD58CCA6CDA852"
 	hash "0xB3CD58CCA6CDA852"
 	jhash (0x66C3C59C)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x2587A48BC88DFADF"
@@ -33396,7 +34341,7 @@ native "0x2587A48BC88DFADF"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "_DISPLAY_ONSCREEN_KEYBOARD_2"
@@ -33428,7 +34373,7 @@ native "_DISPLAY_ONSCREEN_KEYBOARD_2"
 		int "maxInputLength",
 	}
 	alias "0xCA78CFA0366592FE"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33456,13 +34401,15 @@ native "DISPLAY_ONSCREEN_KEYBOARD"
 
 		int "maxInputLength",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
-		sfink: note, p0 is set to 6 for PC platform in at least 1 script, or to `unk::_get_ui_language_id() == 0` otherwise.
+		note, p0 is set to 6 for PC platform in at least 1 script, or to `unk::_get_ui_language_id() == 0` otherwise.
 
 		NOTE: windowTitle uses text labels, and an invalid value will display nothing.
+
+		Dr. Underscore: `UNK::_GET_UI_LANGUAGE_ID()` is now `UNK::_GET_CURRENT_LANGUAGE_ID()`
 
 		www.gtaforums.com/topic/788343-vrel-script-hook-v/?p=1067380474
 
@@ -33498,7 +34445,7 @@ native "DISPLAY_ONSCREEN_KEYBOARD"
 native "UPDATE_ONSCREEN_KEYBOARD"
 	hash "0x0CF2B696BBF945AE"
 	jhash (0x23D0A1CE)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"int"
 	doc [[!
 <summary>
@@ -33516,7 +34463,7 @@ native "UPDATE_ONSCREEN_KEYBOARD"
 native "GET_ONSCREEN_KEYBOARD_RESULT"
 	hash "0x8362B09B91893647"
 	jhash (0x44828FB3)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -33530,7 +34477,7 @@ native "0x3ED1438C1F5C6612"
 	arguments {
 		int "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33539,7 +34486,7 @@ native "0x3ED1438C1F5C6612"
 </summary>
 	]]
 
-native "0xA6A12939F16D85BE"
+native "_REMOVE_STEALTH_KILL"
 	hash "0xA6A12939F16D85BE"
 	jhash (0x42B484ED)
 	arguments {
@@ -33547,11 +34494,16 @@ native "0xA6A12939F16D85BE"
 
 		BOOL "p1",
 	}
-	ns "GAMEPLAY"
+	alias "0xA6A12939F16D85BE"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
-		Appears to remove stealth kill action from memory
+		Appears to remove stealth kill action from memory.
+		------------------------------------
+		I agree with the above statement.
+		p1 is unknown, my best guess would be if false it marks the stealth kill for immediate deletion, or if true marks it for deletion later.
+
 </summary>
 	]]
 
@@ -33563,7 +34515,7 @@ native "0x1EAE0A6E978894A2"
 
 		BOOL "p1",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33593,8 +34545,8 @@ native "SET_EXPLOSIVE_AMMO_THIS_FRAME"
 	arguments {
 		Player "player",
 	}
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"void"
 
 native "SET_FIRE_AMMO_THIS_FRAME"
 	hash "0x11879CDD803D30F4"
@@ -33602,7 +34554,7 @@ native "SET_FIRE_AMMO_THIS_FRAME"
 	arguments {
 		Player "player",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "SET_EXPLOSIVE_MELEE_THIS_FRAME"
@@ -33611,7 +34563,7 @@ native "SET_EXPLOSIVE_MELEE_THIS_FRAME"
 	arguments {
 		Player "player",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "SET_SUPER_JUMP_THIS_FRAME"
@@ -33620,13 +34572,13 @@ native "SET_SUPER_JUMP_THIS_FRAME"
 	arguments {
 		Player "player",
 	}
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"void"
 
 native "0x6FDDF453C0C756EC"
 	hash "0x6FDDF453C0C756EC"
 	jhash (0xC3C10FCC)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -33638,18 +34590,18 @@ native "0x6FDDF453C0C756EC"
 native "0xFB00CA71DA386228"
 	hash "0xFB00CA71DA386228"
 	jhash (0x054EC103)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x5AA3BEFA29F03AD4"
 	hash "0x5AA3BEFA29F03AD4"
 	jhash (0x46B5A15C)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0xE3D969D2785FFB5E"
 	hash "0xE3D969D2785FFB5E"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33660,7 +34612,7 @@ native "0xE3D969D2785FFB5E"
 native "_RESET_LOCALPLAYER_STATE"
 	hash "0xC0AA53F866B3134D"
 	jhash (0x5D209F25)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33690,13 +34642,13 @@ native "0x0A60017F841A54F2"
 
 		Any "p3",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x1FF6BF9A63E5757F"
 	hash "0x1FF6BF9A63E5757F"
 	jhash (0xDF99925C)
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x1BB299305C3E8C13"
@@ -33711,7 +34663,7 @@ native "0x1BB299305C3E8C13"
 
 		Any "p3",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x8EF5573A1F801A5C"
@@ -33724,12 +34676,12 @@ native "0x8EF5573A1F801A5C"
 
 		AnyPtr "p2",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0x92790862E36C2ADA"
 	hash "0x92790862E36C2ADA"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33743,47 +34695,47 @@ native "0x92790862E36C2ADA"
 
 native "0xC7DB36C24634F52B"
 	hash "0xC7DB36C24634F52B"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x437138B6A830166A"
 	hash "0x437138B6A830166A"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x37DEB0AA183FB6D8"
 	hash "0x37DEB0AA183FB6D8"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xEA2F2061875EED90"
 	hash "0xEA2F2061875EED90"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x3BBBD13E5041A79E"
 	hash "0x3BBBD13E5041A79E"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0xA049A5BE0F04F2F8"
 	hash "0xA049A5BE0F04F2F8"
-	ns "GAMEPLAY"
-	returns	"Any"
+	ns "MISC"
+	returns	"BOOL"
 
 native "0x4750FC27570311EC"
 	hash "0x4750FC27570311EC"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0x1B2366C3F2A5C8DF"
 	hash "0x1B2366C3F2A5C8DF"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "_FORCE_SOCIAL_CLUB_UPDATE"
 	hash "0xEB6891F03362FB12"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33793,17 +34745,17 @@ native "_FORCE_SOCIAL_CLUB_UPDATE"
 
 native "0x14832BF2ABA53FC5"
 	hash "0x14832BF2ABA53FC5"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "0xC79AE21974B01FB2"
 	hash "0xC79AE21974B01FB2"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x684A41975F077262"
 	hash "0x684A41975F077262"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -33819,7 +34771,7 @@ native "0x684A41975F077262"
 
 native "0xABB2FA71C83A1B72"
 	hash "0xABB2FA71C83A1B72"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "_SHOW_PED_IN_PAUSE_MENU"
@@ -33828,7 +34780,7 @@ native "_SHOW_PED_IN_PAUSE_MENU"
 		BOOL "toggle",
 	}
 	alias "0x4EBB7E87AA0DBED4"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -33839,7 +34791,7 @@ native "_SHOW_PED_IN_PAUSE_MENU"
 
 native "0x9689123E3F213AA5"
 	hash "0x9689123E3F213AA5"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"BOOL"
 
 native "0x9D8D44ADBBA61EF2"
@@ -33847,17 +34799,17 @@ native "0x9D8D44ADBBA61EF2"
 	arguments {
 		BOOL "p0",
 	}
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0x23227DF0B2115469"
 	hash "0x23227DF0B2115469"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"void"
 
 native "0xD10282B6E3751BA0"
 	hash "0xD10282B6E3751BA0"
-	ns "GAMEPLAY"
+	ns "MISC"
 	returns	"Any"
 
 native "PLAY_PED_RINGTONE"
@@ -34236,7 +35188,7 @@ native "REGISTER_SCRIPT_WITH_AUDIO"
 	hash "0xC6ED9D5092438D91"
 	jhash (0xA6203643)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "AUDIO"
 	returns	"void"
@@ -34246,6 +35198,11 @@ native "UNREGISTER_SCRIPT_WITH_AUDIO"
 	jhash (0x66728EFE)
 	ns "AUDIO"
 	returns	"void"
+	doc [[!
+<summary>
+		On last-gen this just runs blr and this func is called by several other functions other then the native's table.
+</summary>
+	]]
 
 native "REQUEST_MISSION_AUDIO_BANK"
 	hash "0x7345BDD95E62E0F2"
@@ -34350,11 +35307,39 @@ native "0x19AF7ED9B9D23058"
 	jhash (0xA58BBF4F)
 	ns "AUDIO"
 	returns	"void"
+	doc [[!
+<summary>
+		RELEASE_???
+
+		I say RELEASE_???, as in IDA this native calls the same function as 
+
+		-'RELEASE_MISSION_AUDIO_BANK()'.
+		-'RELEASE_AMBIENT_AUDIO_BANK()'.
+		-'RELEASE_SCRIPT_AUDIO_BANK()'.
+
+		However 'RELEASE_NAMED_SCRIPT_AUDIO_BANK' does not use the same function. So may be, 'RELEASE_???_AUDIO_BANK()'? Doubt it.
+</summary>
+	]]
 
 native "0x9AC92EED5E4793AB"
 	hash "0x9AC92EED5E4793AB"
 	ns "AUDIO"
 	returns	"void"
+	doc [[!
+<summary>
+		RELEASE_???
+
+		I say RELEASE_???, as in IDA this native calls the same function as 
+
+		-'RELEASE_MISSION_AUDIO_BANK()'.
+		-'RELEASE_AMBIENT_AUDIO_BANK()'.
+		-'RELEASE_SCRIPT_AUDIO_BANK()'.
+
+		However 'RELEASE_NAMED_SCRIPT_AUDIO_BANK' does not use the same function. So may be, 'RELEASE_???_AUDIO_BANK()'? Doubt it.
+
+		Console Hash: 0xE67446E9
+</summary>
+	]]
 
 native "GET_SOUND_ID"
 	hash "0x430386FE9BF80B45"
@@ -34535,9 +35520,9 @@ native "SET_VARIABLE_ON_SOUND"
 	arguments {
 		int "soundId",
 
-		AnyPtr "p1",
+		charPtr "variableName",
 
-		float "p2",
+		float "value",
 	}
 	ns "AUDIO"
 	returns	"void"
@@ -34661,7 +35646,7 @@ native "_PLAY_AMBIENT_SPEECH1"
 
 		Note: A list of Name and Parameters can be found here pastebin.com/1GZS5dCL
 
-		Full list of speeches and voices names by alexguirre: gist.github.com/alexguirre/0af600eb3d4c91ad4f900120a63b8992
+		Full list of speeches and voices names by some spanish shitbag: gist.github.com/alexguirre/0af600eb3d4c91ad4f900120a63b8992
 </summary>
 	]]
 
@@ -34683,7 +35668,7 @@ native "_PLAY_AMBIENT_SPEECH2"
 
 		See _PLAY_AMBIENT_SPEECH1 for parameter specifications.
 
-		Full list of speeches and voices names by alexguirre: gist.github.com/alexguirre/0af600eb3d4c91ad4f900120a63b8992
+		Full list of speeches and voices names: gist.github.com/alexguirre/0af600eb3d4c91ad4f900120a63b8992
 </summary>
 	]]
 
@@ -34712,7 +35697,7 @@ native "_PLAY_AMBIENT_SPEECH_WITH_VOICE"
 
 		The first param is the ped you want to play it on, the second is the speech name, the third is the voice name, the fourth is the speech param, and the last param is usually always 0.
 
-		Full list of speeches and voices names by alexguirre: gist.github.com/alexguirre/0af600eb3d4c91ad4f900120a63b8992
+		Full list of speeches and voices names: gist.github.com/alexguirre/0af600eb3d4c91ad4f900120a63b8992
 </summary>
 	]]
 
@@ -34802,19 +35787,29 @@ native "0xD01005D2BA2EB778"
 	hash "0xD01005D2BA2EB778"
 	jhash (0x59A3A17D)
 	arguments {
-		AnyPtr "p0",
+		charPtr "p0",
 	}
 	ns "AUDIO"
 	returns	"void"
+	doc [[!
+<summary>
+		Similar to 0xDDC635D5B3262C56. Enable?
+</summary>
+	]]
 
 native "0xDDC635D5B3262C56"
 	hash "0xDDC635D5B3262C56"
 	jhash (0x0E387BFE)
 	arguments {
-		AnyPtr "p0",
+		charPtr "p0",
 	}
 	ns "AUDIO"
 	returns	"void"
+	doc [[!
+<summary>
+		Similar to 0xD01005D2BA2EB778. Disable?
+</summary>
+	]]
 
 native "SET_AMBIENT_VOICE_NAME"
 	hash "0x6C8065A3B780185B"
@@ -35546,6 +36541,8 @@ native "CLEAR_AMBIENT_ZONE_STATE"
 		Still needs more research. 
 
 		Here are the names I've found: pastebin.com/AfA0Qjyv
+
+		New Ambient Zone List (Combind with old): pastebin.com/h8BsKgUD -DasChaos
 </summary>
 	]]
 
@@ -35553,7 +36550,7 @@ native "SET_AMBIENT_ZONE_LIST_STATE"
 	hash "0x9748FA4DE50CCE3E"
 	jhash (0xBF80B412)
 	arguments {
-		AnyPtr "p0",
+		charPtr "p0",
 
 		BOOL "p1",
 
@@ -35588,6 +36585,8 @@ native "SET_AMBIENT_ZONE_STATE_PERSISTENT"
 	doc [[!
 <summary>
 		 All occurrences found in b617d, sorted alphabetically and identical lines removed: pastebin.com/jYvw7N1S
+
+		New Ambient Zone List (Combind with old): pastebin.com/h8BsKgUD -DasChaos
 </summary>
 	]]
 
@@ -35606,6 +36605,8 @@ native "SET_AMBIENT_ZONE_LIST_STATE_PERSISTENT"
 	doc [[!
 <summary>
 		All occurrences found in b617d, sorted alphabetically and identical lines removed: pastebin.com/WkXDGgQL
+
+		New Ambient Zone List (Combind with old): pastebin.com/h8BsKgUD -DasChaos
 </summary>
 	]]
 
@@ -35934,9 +36935,9 @@ native "SET_SIREN_WITH_NO_DRIVER"
 	hash "0x1FEF0683B96EBCF2"
 	jhash (0x77182D58)
 	arguments {
-		Vehicle "vehicle",
+		ObjectPtr "vehicle",
 
-		BOOL "toggle",
+		ScrHandlePtr "toggle",
 	}
 	ns "AUDIO"
 	returns	"void"
@@ -35995,7 +36996,7 @@ native "USE_SIREN_AS_HORN"
 	ns "AUDIO"
 	returns	"void"
 
-native "_SET_VEHICLE_AUDIO"
+native "_FORCE_VEHICLE_ENGINE_AUDIO"
 	hash "0x4F0C413926060B38"
 	jhash (0x33B0B007)
 	arguments {
@@ -36004,16 +37005,17 @@ native "_SET_VEHICLE_AUDIO"
 		charPtr "audioName",
 	}
 	alias "0x4F0C413926060B38"
+	alias "_SET_VEHICLE_AUDIO"
 	ns "AUDIO"
 	returns	"void"
 	doc [[!
 <summary>
-		This native sets the audio of the specified vehicle to the audioName (p1).
+		This native sets the audio of the specified vehicle to audioName (p1).
 
 		Use the audioNameHash found in vehicles.meta
 
 		Example:
-		_SET_VEHICLE_AUDIO(veh, "ADDER");
+		_FORCE_VEHICLE_ENGINE_SOUND(veh, "ADDER");
 		The selected vehicle will now have the audio of the Adder.
 
 		FORCE_VEHICLE_???
@@ -36329,6 +37331,8 @@ native "_DYNAMIC_MIXER_RELATED_FN"
 	returns	"void"
 	doc [[!
 <summary>
+		ADD_E* (most likely ADD_ENTITY_*)
+
 		All found occurrences in b678d:
 		pastebin.com/ceu67jz8
 
@@ -36428,7 +37432,12 @@ native "CLEAR_ALL_BROKEN_GLASS"
 	hash "0xB32209EFFDC04913"
 	jhash (0xE6B033BF)
 	ns "AUDIO"
-	returns	"Any"
+	returns	"void"
+	doc [[!
+<summary>
+		Removes broken glass particles.
+</summary>
+	]]
 
 native "0x70B8EC8FC108A634"
 	hash "0x70B8EC8FC108A634"
@@ -36612,7 +37621,7 @@ native "RESET_PED_AUDIO_FLAGS"
 	hash "0xF54BB7B61036F335"
 	jhash (0xDF720C86)
 	arguments {
-		Any "p0",
+		Ped "ped",
 	}
 	ns "AUDIO"
 	returns	"void"
@@ -37037,6 +38046,8 @@ native "REQUEST_CUTSCENE"
 	doc [[!
 <summary>
 		p1: usually 8
+
+		Cutscene list: pastebin.com/Bbj7ANpQ
 </summary>
 	]]
 
@@ -37057,6 +38068,8 @@ native "_REQUEST_CUTSCENE_EX"
 <summary>
 		Example:
 		CUTSCENE::_0xC23DE0E91C30B58C("JOSH_1_INT_CONCAT", 13, 8);
+
+		Cutscene list: pastebin.com/Bbj7ANpQ
 </summary>
 	]]
 
@@ -37505,7 +38518,7 @@ native "0x5EDEF0CF8C1DAB3C"
 	hash "0x5EDEF0CF8C1DAB3C"
 	jhash (0xDBD88708)
 	ns "CUTSCENE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0x41FAA8FB2ECE8720"
 	hash "0x41FAA8FB2ECE8720"
@@ -37595,7 +38608,7 @@ native "0x708BDD8CD795B043"
 	hash "0x708BDD8CD795B043"
 	jhash (0x4315A7C5)
 	ns "CUTSCENE"
-	returns	"BOOL"
+	returns	"HashPtr"
 
 native "GET_INTERIOR_GROUP_ID"
 	hash "0xE4A84ABF135EF91A"
@@ -38116,9 +39129,9 @@ native "_RENDER_FIRST_PERSON_CAM"
 	arguments {
 		BOOL "render",
 
-		Any "p1",
+		float "p1",
 
-		Any "p2",
+		int "p2",
 	}
 	alias "0xC819F3CBB62BF692"
 	ns "CAM"
@@ -38147,7 +39160,7 @@ native "CREATE_CAM"
 	hash "0xC3981DCE61D9E13F"
 	jhash (0xE9BF2A7D)
 	arguments {
-		charPtr "camName",
+		charPtr "Gippo",
 
 		BOOL "p1",
 	}
@@ -38915,7 +39928,7 @@ native "ADD_CAM_SPLINE_NODE"
 
 		int "p8",
 
-		int "p9",
+		int "transitionType",
 	}
 	ns "CAM"
 	returns	"void"
@@ -39049,10 +40062,12 @@ native "GET_CAM_SPLINE_NODE_INDEX"
 		Cam "cam",
 	}
 	ns "CAM"
-	returns	"BOOL"
+	returns	"int"
 	doc [[!
 <summary>
 		I named the beginning from Any to BOOL as this native is used in an if statement as well. 
+
+		Big surprise it returns an int.
 </summary>
 	]]
 
@@ -39365,7 +40380,7 @@ native "PLAY_CAM_ANIM"
 		p9 is unknown at this time.
 		p10 throughout all the X360 Scripts is always 2.
 
-		Animations List : www.ls-multiplayer.com/dev/index.php?section=3
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -39381,6 +40396,13 @@ native "IS_CAM_PLAYING_ANIM"
 	}
 	ns "CAM"
 	returns	"BOOL"
+	doc [[!
+<summary>
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
+</summary>
+	]]
 
 native "SET_CAM_ANIM_CURRENT_PHASE"
 	hash "0x4145A4C44FF3B5A6"
@@ -39423,6 +40445,9 @@ native "PLAY_SYNCHRONIZED_CAM_ANIM"
 		CAM::PLAY_SYNCHRONIZED_CAM_ANIM(l_2734, NETWORK::_02C40BF885C567B6(l_2739), "PLAYER_EXIT_L_CAM", "mp_doorbell");
 
 		CAM::PLAY_SYNCHRONIZED_CAM_ANIM(l_F0D[7/*1*/], l_F4D[15/*1*/], "ah3b_attackheli_cam2", "missheistfbi3b_helicrash");
+
+
+		Animations list : www.los-santos-multiplayer.com/dev.airdancer?cxt=anim
 </summary>
 	]]
 
@@ -39654,7 +40679,7 @@ native "SET_GAMEPLAY_CAM_RELATIVE_PITCH"
 		float "Value2",
 	}
 	ns "CAM"
-	returns	"Any"
+	returns	"void"
 	doc [[!
 <summary>
 		Sets the camera pitch.
@@ -40246,39 +41271,52 @@ native "0x2F7F2B26DD3F18EE"
 	ns "CAM"
 	returns	"void"
 
-native "0xBCFC632DB7673BF0"
+native "_SET_FIRST_PERSON_CAM_PITCH_RANGE"
 	hash "0xBCFC632DB7673BF0"
 	jhash (0x76DAC96C)
 	arguments {
-		float "p0",
+		float "minAngle",
 
-		float "p1",
+		float "maxAngle",
 	}
-	ns "CAM"
-	returns	"void"
-
-native "0x0AF7B437918103B3"
-	hash "0x0AF7B437918103B3"
-	jhash (0x0E21069D)
-	arguments {
-		float "p0",
-	}
+	alias "0xBCFC632DB7673BF0"
 	ns "CAM"
 	returns	"void"
 	doc [[!
 <summary>
-		Appear to have something to do with the clipping at close range.
+		Similar to _CLAMP_GAMEPLAY_CAM_PITCH except this is specifically for the FP camera, and it only lets you clamp the pitch within the normal range.
 </summary>
 	]]
 
-native "0x42156508606DE65E"
+native "_SET_FIRST_PERSON_CAM_NEAR_CLIP"
+	hash "0x0AF7B437918103B3"
+	jhash (0x0E21069D)
+	arguments {
+		float "distance",
+	}
+	alias "0x0AF7B437918103B3"
+	ns "CAM"
+	returns	"void"
+	doc [[!
+<summary>
+		Sets the near clipping plane of the first person camera.
+</summary>
+	]]
+
+native "_SET_THIRD_PERSON_AIM_CAM_NEAR_CLIP"
 	hash "0x42156508606DE65E"
 	jhash (0x71E9C63E)
 	arguments {
-		float "p0",
+		float "distance",
 	}
+	alias "0x42156508606DE65E"
 	ns "CAM"
 	returns	"void"
+	doc [[!
+<summary>
+		Sets the near clipping plane of the third person aim camera.
+</summary>
+	]]
 
 native "0x4008EDF7D6E48175"
 	hash "0x4008EDF7D6E48175"
@@ -40349,40 +41387,43 @@ native "0xD0082607100D7193"
 	returns	"float"
 	doc [[!
 <summary>
-		gets some camera near clip
+		Maybe gets gameplay cam near clip?
 </summary>
 	]]
 
-native "0xDFC8CBC606FDB0FC"
+native "_GET_GAMEPLAY_CAM_FAR_CLIP"
 	hash "0xDFC8CBC606FDB0FC"
 	jhash (0x46CB3A49)
+	alias "0xDFC8CBC606FDB0FC"
 	ns "CAM"
 	returns	"float"
 	doc [[!
 <summary>
-		gets some camera far clip
+		Gets the gameplay camera's far clipping plane.
 </summary>
 	]]
 
-native "0xA03502FC581F7D9B"
+native "_GET_GAMEPLAY_CAM_NEAR_DOF"
 	hash "0xA03502FC581F7D9B"
 	jhash (0x19297A7A)
+	alias "0xA03502FC581F7D9B"
 	ns "CAM"
 	returns	"float"
 	doc [[!
 <summary>
-		gets some camera near depth of field
+		Gets the gameplay camera's near depth of field distance.
 </summary>
 	]]
 
-native "0x9780F32BCAF72431"
+native "_GET_GAMEPLAY_CAM_FAR_DOF"
 	hash "0x9780F32BCAF72431"
 	jhash (0xF24777CA)
+	alias "0x9780F32BCAF72431"
 	ns "CAM"
 	returns	"float"
 	doc [[!
 <summary>
-		gets some camera far depth of field
+		Gets the gameplay camera's far depth of field distance.
 </summary>
 	]]
 
@@ -40401,22 +41442,30 @@ native "SET_GAMEPLAY_COORD_HINT"
 	hash "0xD51ADCD2D8BC0FB3"
 	jhash (0xF27483C9)
 	arguments {
-		float "p0",
+		float "x",
 
-		float "p1",
+		float "y",
 
-		float "p2",
+		float "z",
 
-		Any "p3",
+		int "duration",
 
-		Any "p4",
+		int "blendOutDuration",
 
-		Any "p5",
+		int "blendInDuration",
 
-		Any "p6",
+		int "unk",
 	}
 	ns "CAM"
 	returns	"void"
+	doc [[!
+<summary>
+		Example C#:
+		Function.Call(Hash.SET_GAMEPLAY_COORD_HINT, position.X, position.Y, position.Z, hintDuration, 1500, 1000, 0);
+
+		The camera look-at is canceled if the user is already panning the camera around.
+</summary>
+	]]
 
 native "SET_GAMEPLAY_PED_HINT"
 	hash "0x2B486269ACD548D3"
@@ -40989,6 +42038,14 @@ native "GET_CURRENT_PED_WEAPON"
 
 		disassembly said that?
 
+		------
+
+		yes on disassembly p2 it seems not implemented i just have:
+
+		bool __fastcall sub_7FF6C56CE684(__int64 a1, _DWORD *a2)
+
+		Found At: 7ff6c56ce684
+
 </summary>
 	]]
 
@@ -41119,6 +42176,11 @@ native "IS_PED_WEAPON_READY_TO_SHOOT"
 	}
 	ns "WEAPON"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Probably checks whether the ped has finished reloading or not and if the current weapon is not being switched to another.
+</summary>
+	]]
 
 native "GET_PED_WEAPONTYPE_IN_SLOT"
 	hash "0xEFFED78E9011134D"
@@ -41256,7 +42318,7 @@ native "GIVE_DELAYED_WEAPON_TO_PED"
 
 		Hash "weaponHash",
 
-		int "time",
+		int "ammoCount",
 
 		BOOL "equipNow",
 	}
@@ -41270,7 +42332,6 @@ native "GIVE_DELAYED_WEAPON_TO_PED"
 		----------------------------------------------------------------------------------------------------------------------------------------
 		Translation table:
 		pastebin.com/a39K8Nz8
-
 
 </summary>
 	]]
@@ -41451,10 +42512,36 @@ native "SET_PED_DROPS_INVENTORY_WEAPON"
 
 		float "zOffset",
 
-		Any "p5",
+		int "ammoCount",
 	}
 	ns "WEAPON"
 	returns	"void"
+	doc [[!
+<summary>
+		[16/06/2017 by ins1de] :
+		Drops the weapon object from selected peds and turns it into a pickup.
+		Offset defines the next position of the weapon, ammo count is the stored ammo in the pickup (if ammoCount == 0, pickup won't be created)
+
+		Default offset values (freemode.c):
+
+		if (is_ped_walking(player_ped_id()))
+		        {
+		            vVar1 = {0.6f, 4.7f, -0.1f};
+		        }
+		        else if (is_ped_sprinting(player_ped_id()))
+		        {
+		            vVar1 = {0.6f, 5.7f, -0.1f};
+		        }
+		        else if (is_ped_running(player_ped_id()))
+		        {
+		            vVar1 = {0.6f, 4.7f, -0.1f};
+		        }
+		        else
+		        {
+		            vVar1 = {0.4f, 4.7f, -0.1f};
+		        }
+</summary>
+	]]
 
 native "GET_MAX_AMMO_IN_CLIP"
 	hash "0xA38DCFFCEA8962FA"
@@ -41541,9 +42628,9 @@ native "SET_PED_AMMO_TO_DROP"
 	hash "0xA4EFEF9440A5B0EF"
 	jhash (0x2386A307)
 	arguments {
-		Any "p0",
+		Any "ammoType",
 
-		Any "p1",
+		int "ammo",
 	}
 	ns "WEAPON"
 	returns	"void"
@@ -41568,6 +42655,11 @@ native "GET_PED_AMMO_TYPE_FROM_WEAPON"
 	alias "_GET_PED_AMMO_TYPE"
 	ns "WEAPON"
 	returns	"Hash"
+	doc [[!
+<summary>
+		Returns an ammo type hash, which is defined in AmmoInfo.
+</summary>
+	]]
 
 native "GET_PED_LAST_WEAPON_IMPACT_COORD"
 	hash "0x6C4D0409BA1A2BC2"
@@ -41660,6 +42752,11 @@ native "EXPLODE_PROJECTILES"
 	}
 	ns "WEAPON"
 	returns	"void"
+	doc [[!
+<summary>
+						WEAPON::EXPLODE_PROJECTILES(PLAYER::PLAYER_PED_ID(), func_221(0x00000003), 0x00000001);
+</summary>
+	]]
 
 native "REMOVE_ALL_PROJECTILES_OF_TYPE"
 	hash "0xFC52E0F37E446528"
@@ -41879,6 +42976,9 @@ native "GIVE_WEAPON_COMPONENT_TO_WEAPON_OBJECT"
 <summary>
 		addonHash:
 		(use WEAPON::GET_WEAPON_COMPONENT_TYPE_MODEL() to get hash value)
+		^ Wrong.
+		AddonHash is NOT a model hash, it's the weapon component hash.
+
 		${component_at_ar_flsh}, ${component_at_ar_supp}, ${component_at_pi_flsh}, ${component_at_scope_large}, ${component_at_ar_supp_02}
 </summary>
 	]]
@@ -42018,31 +43118,28 @@ native "GET_WEAPON_HUD_STATS"
 	arguments {
 		Hash "weaponHash",
 
-		intPtr "outData",
+		AnyPtr "outData",
 	}
 	ns "WEAPON"
 	returns	"BOOL"
 	doc [[!
 <summary>
+		// members should be aligned to 8 bytes by default but it's best to use alignas here, just to be sure
 		struct WeaponHudStatsData
 		{
-		    BYTE hudDamage; // 0x0000
-		    char _0x0001[0x7]; // 0x0001
-		    BYTE hudSpeed; // 0x0008
-		    char _0x0009[0x7]; // 0x0009
-		    BYTE hudCapacity; // 0x0010
-		    char _0x0011[0x7]; // 0x0011
-		    BYTE hudAccuracy; // 0x0018
-		    char _0x0019[0x7]; // 0x0019
-		    BYTE hudRange; // 0x0020
+			alignas(8) uint8_t hudDamage; // 0x0000
+			alignas(8) uint8_t hudSpeed; // 0x0008
+			alignas(8) uint8_t hudCapacity; // 0x0010
+			alignas(8) uint8_t hudAccuracy; // 0x0018
+			alignas(8) uint8_t hudRange; // 0x0020
 		};
 
 		Usage:
 
 		WeaponHudStatsData data;
-		if (GET_WEAPON_HUD_STATS(weaponHash, (int *)&amp;data))
+		if (GET_WEAPON_HUD_STATS(weaponHash, (Any*)&amp;data))
 		{
-		    // BYTE damagePercentage = data.hudDamage and so on
+		    // uint8_t damagePercentage = data.hudDamage etc...
 		}
 </summary>
 	]]
@@ -42122,7 +43219,10 @@ native "0xB4C8D77C80C0421E"
 	returns	"Entity"
 	doc [[!
 <summary>
-		This does not take a weapon hash...
+		Only used once in the scripts
+		weapon::_0xB4C8D77C80C0421E(Local_888[3 /*33*/], -1082130432);
+
+		The code following this relates to manually triggering an RPG rocket (creating the object, the particle fx and sound)
 </summary>
 	]]
 
@@ -42161,7 +43261,7 @@ native "SET_WEAPON_SMOKEGRENADE_ASSIGNED"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		Hash collision real name is: IS_FLASH_LIGHT_ON
+		Hash collision, real name is: IS_FLASH_LIGHT_ON
 </summary>
 	]]
 
@@ -42267,15 +43367,20 @@ native "CAN_USE_WEAPON_ON_PARACHUTE"
 	}
 	ns "WEAPON"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		this returns if you can use the weapon while using a parachute
+</summary>
+	]]
 
 native "CREATE_ITEMSET"
 	hash "0x35AD299F50D91B24"
 	jhash (0x0A113B2C)
 	arguments {
-		Vector3Ptr "distri",
+		Vehicle "distri",
 	}
 	ns "ITEMSET"
-	returns	"Any"
+	returns	"Vehicle"
 
 native "DESTROY_ITEMSET"
 	hash "0xDE18220B1C183EDA"
@@ -42321,7 +43426,7 @@ native "GET_ITEMSET_SIZE"
 	hash "0xD9127E83ABF7C631"
 	jhash (0x2B31F41A)
 	arguments {
-		Any "p0",
+		ScrHandle "x",
 	}
 	ns "ITEMSET"
 	returns	"Any"
@@ -42362,6 +43467,11 @@ native "LOAD_ALL_OBJECTS_NOW"
 	jhash (0xC9DBDA90)
 	ns "STREAMING"
 	returns	"void"
+	doc [[!
+<summary>
+		1
+</summary>
+	]]
 
 native "LOAD_SCENE"
 	hash "0x4448EB75B4904BDB"
@@ -42380,7 +43490,7 @@ native "NETWORK_UPDATE_LOAD_SCENE"
 	hash "0xC4582015556D1C46"
 	jhash (0xC76E023C)
 	ns "STREAMING"
-	returns	"Any"
+	returns	"Vector3Ptr"
 
 native "NETWORK_STOP_LOAD_SCENE"
 	hash "0x64E630FAF5F60F44"
@@ -42431,6 +43541,17 @@ native "REQUEST_MENU_PED_MODEL"
 	alias "0xA0261AEF7ACFC51E"
 	ns "STREAMING"
 	returns	"void"
+	doc [[!
+<summary>
+		streaming::request_menu_ped_model(joaat("player_zero"));
+
+		iVar0 = ped::create_ped(25, joaat("player_zero"), cam::_get_gameplay_cam_coords(), 0f, 0, false);
+
+		entity::freeze_entity_position(iVar0, true);
+		ped::_0x4668d80430d6c299(iVar0);
+		ui::give_ped_to_pause_menu(iVar0, 1);
+</summary>
+	]]
 
 native "HAS_MODEL_LOADED"
 	hash "0x98A4EB5D89A0C952"
@@ -42446,7 +43567,7 @@ native "HAS_MODEL_LOADED"
 </summary>
 	]]
 
-native "0x8A7A40100EDFEC58"
+native "_REQUEST_INTERIOR_ROOM_BY_NAME"
 	hash "0x8A7A40100EDFEC58"
 	jhash (0x939243FB)
 	arguments {
@@ -42454,6 +43575,7 @@ native "0x8A7A40100EDFEC58"
 
 		charPtr "roomName",
 	}
+	alias "0x8A7A40100EDFEC58"
 	ns "STREAMING"
 	returns	"void"
 	doc [[!
@@ -42562,11 +43684,11 @@ native "REQUEST_ADDITIONAL_COLLISION_AT_COORD"
 	hash "0xC9156DC11411A9EA"
 	jhash (0xC2CC1DF2)
 	arguments {
-		float "p0",
+		float "x",
 
-		float "p1",
+		float "y",
 
-		float "p2",
+		float "z",
 	}
 	ns "STREAMING"
 	returns	"void"
@@ -42705,9 +43827,7 @@ native "REQUEST_IPL"
 	returns	"void"
 	doc [[!
 <summary>
-		Exemple: REQUEST_IPL("TrevorsTrailerTrash");
-
-		IPL + Coords: http://pastebin.com/FyV5mMma
+		IPL list: pastebin.com/iNGLY32D
 </summary>
 	]]
 
@@ -42721,17 +43841,7 @@ native "REMOVE_IPL"
 	returns	"void"
 	doc [[!
 <summary>
-		Removes an IPL from the map.
-		IPL List: pastebin.com/pwkh0uRP 
-
-		Example:
-		C#:
-		Function.Call(Hash.REMOVE_IPL, "trevorstrailertidy");
-
-		C++:
-		STREAMING::REMOVE_IPL("trevorstrailertidy");
-
-		iplName = Name of IPL you want to remove.
+		IPL list: pastebin.com/iNGLY32D
 </summary>
 	]]
 
@@ -42743,6 +43853,11 @@ native "IS_IPL_ACTIVE"
 	}
 	ns "STREAMING"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		List of all IPLs: pastebin.com/iNGLY32D
+</summary>
+	]]
 
 native "SET_STREAMING"
 	hash "0x6E0C692677008888"
@@ -42827,13 +43942,15 @@ native "REQUEST_NAMED_PTFX_ASSET"
 	hash "0xB80D8756B4668AB6"
 	jhash (0xCFEA19A9)
 	arguments {
-		charPtr "fxName",
+		charPtr "assetName",
 	}
 	ns "STREAMING"
 	returns	"void"
 	doc [[!
 <summary>
-		 From the b678d decompiled scripts:
+		assetName = For example "core" 
+
+		From the b678d decompiled scripts:
 
 		 STREAMING::REQUEST_NAMED_PTFX_ASSET("core_snow");
 		 STREAMING::REQUEST_NAMED_PTFX_ASSET("fm_mission_controler");
@@ -42855,20 +43972,27 @@ native "HAS_NAMED_PTFX_ASSET_LOADED"
 	hash "0x8702416E512EC454"
 	jhash (0x9ACC6446)
 	arguments {
-		charPtr "fxName",
+		charPtr "assetName",
 	}
 	ns "STREAMING"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		assetName = For example "core"
+</summary>
+	]]
 
 native "_REMOVE_NAMED_PTFX_ASSET"
 	hash "0x5F61EBBE1A00F96D"
 	arguments {
-		charPtr "fxName",
+		charPtr "assetName",
 	}
 	ns "STREAMING"
 	returns	"void"
 	doc [[!
 <summary>
+		assetName = For example "core"
+
 		console hash: 0xC44762A1
 </summary>
 	]]
@@ -43175,7 +44299,7 @@ native "START_PLAYER_SWITCH"
 	doc [[!
 <summary>
 		// this enum comes directly from R* so don't edit this
-		enum ePlayerSwitchTypes
+		enum ePlayerSwitchType
 		{
 			SWITCH_TYPE_AUTO,
 			SWITCH_TYPE_LONG,
@@ -43183,7 +44307,7 @@ native "START_PLAYER_SWITCH"
 			SWITCH_TYPE_SHORT
 		};
 
-		Use GET_IDEAL_PLAYER_SWITCH_TYPE for the best switch type.
+		Use GET_IDEAL_PLAYER_SWITCH_TYPE for the best switch type. Or just auto, because it calls the same function in executable.
 
 		----------------------------------------------------
 
@@ -43613,10 +44737,15 @@ native "SET_HD_AREA"
 
 		float "z",
 
-		float "ground",
+		float "radius",
 	}
 	ns "STREAMING"
 	returns	"void"
+	doc [[!
+<summary>
+		Harcoded limit for radius is 30.0f
+</summary>
+	]]
 
 native "CLEAR_HD_AREA"
 	hash "0xCE58B1CFB9290813"
@@ -43624,11 +44753,17 @@ native "CLEAR_HD_AREA"
 	ns "STREAMING"
 	returns	"void"
 
-native "0xB5A4DB34FE89B88A"
+native "_LOAD_MISSION_CREATOR_DATA"
 	hash "0xB5A4DB34FE89B88A"
 	jhash (0xE243B2AF)
+	alias "0xB5A4DB34FE89B88A"
 	ns "STREAMING"
 	returns	"void"
+	doc [[!
+<summary>
+		Loads "common:/data/missioncreatordata" data and sets some values.
+</summary>
+	]]
 
 native "SHUTDOWN_CREATOR_BUDGET"
 	hash "0xCCE26000E9A6FAD7"
@@ -43836,8 +44971,8 @@ native "_BEGIN_ENUMERATING_THREADS"
 		MulleDK19: Starts a new enumeration of the current threads.
 		Call this first, then _GET_ID_OF_NEXT_THREAD_IN_ENUMERATION (0x30B4FA1C82DD4B9F)
 
-		-----------------------------------------------------------------------
-		Some other guy: See _GET_ID_OF_NEXT_THREAD_IN_ENUMERATION (0x30B4FA1C82DD4B9F) for an example
+
+		see _GET_ID_OF_NEXT_THREAD_IN_ENUMERATION (0x30B4FA1C82DD4B9F) for an example
 </summary>
 	]]
 
@@ -43856,7 +44991,7 @@ native "_GET_ID_OF_NEXT_THREAD_IN_ENUMERATION"
 		If the function returns 0, the end of the enumeration has been reached.
 
 		-----------------------------------------------------------------------
-		Some other guy: Here's an example:
+		Here's an example:
 
 			std::vector&lt;int&gt; vecCurrentThreads;
 			void update_current_threads_list()
@@ -43924,40 +45059,55 @@ native "GET_NUMBER_OF_EVENTS"
 	hash "0x5F92A689A06620AA"
 	jhash (0xA3525D60)
 	arguments {
-		BOOL "p0",
+		int "eventGroup",
 	}
 	ns "SCRIPT"
 	returns	"int"
+	doc [[!
+<summary>
+		eventGroup: 0 = CEventGroupScriptAI, 1 = CEventGroupScriptNetwork
+</summary>
+	]]
 
 native "GET_EVENT_EXISTS"
 	hash "0x936E6168A9BCEDB5"
 	jhash (0xA1B447B5)
 	arguments {
-		BOOL "p0",
+		int "eventGroup",
 
-		int "p1",
+		int "eventIndex",
 	}
 	ns "SCRIPT"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		eventGroup: 0 = CEventGroupScriptAI, 1 = CEventGroupScriptNetwork
+</summary>
+	]]
 
 native "GET_EVENT_AT_INDEX"
 	hash "0xD8F66A3A60C62153"
 	jhash (0xB49C1442)
 	arguments {
-		BOOL "p0",
+		int "eventGroup",
 
-		int "eventNum",
+		int "eventIndex",
 	}
 	ns "SCRIPT"
 	returns	"int"
+	doc [[!
+<summary>
+		eventGroup: 0 = CEventGroupScriptAI, 1 = CEventGroupScriptNetwork
+</summary>
+	]]
 
 native "GET_EVENT_DATA"
 	hash "0x2902843FCD2B2D79"
 	jhash (0x4280F92F)
 	arguments {
-		BOOL "p0",
+		int "eventGroup",
 
-		int "eventNum",
+		int "eventIndex",
 
 		intPtr "argStruct",
 
@@ -43965,31 +45115,32 @@ native "GET_EVENT_DATA"
 	}
 	ns "SCRIPT"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		eventGroup: 0 = CEventGroupScriptAI, 1 = CEventGroupScriptNetwork
+</summary>
+	]]
 
 native "TRIGGER_SCRIPT_EVENT"
 	hash "0x5AE99C571D5BBE5D"
 	jhash (0x54763B35)
 	arguments {
-		BOOL "p0",
+		int "eventGroup",
 
 		intPtr "args",
 
 		int "argCount",
 
-		int "bitset",
+		int "bit",
 	}
 	ns "SCRIPT"
 	returns	"void"
 	doc [[!
 <summary>
-		from scripts: 
-		int bitFlag = 0;
-		int vVar0[3]; 
-		vVar0[0] = 2; //p0 
-		vVar0[1] = PLAYER_ID(); //p1 0 player
-		vVar0[2] = 53; //p2 
-		SET_BIT(&amp;bitFlag, selectedPlayer);
-		TRIGGER_SCRIPT_EVENT(1, vVar0, 3, bitFlag);
+		yis
+
+		eventGroup: 0 = CEventGroupScriptAI, 1 = CEventGroupScriptNetwork
+		^^ I'm assuming it's like the rest with this parameter.
 </summary>
 	]]
 
@@ -44019,19 +45170,21 @@ native "0xB1577667C3708F9B"
 	ns "SCRIPT"
 	returns	"void"
 
-native "_SET_LOADING_PROMPT_TEXT_ENTRY"
+native "_BEGIN_TEXT_COMMAND_BUSY_STRING"
 	hash "0xABA17D7CE615ADBF"
 	jhash (0xCB7C8994)
 	arguments {
 		charPtr "string",
 	}
 	alias "0xABA17D7CE615ADBF"
-	ns "UI"
+	alias "_SET_LOADING_PROMPT_TEXT_ENTRY"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		Initializes the text entry for the the text next to a loading prompt. All natives for for building UI texts can be used here
 
+		BEGIN_TEXT_COMMAND_PRINT
 
 		e.g
 		void StartLoadingMessage(char *text, int spinnerType = 3)
@@ -44069,14 +45222,15 @@ native "_SET_LOADING_PROMPT_TEXT_ENTRY"
 </summary>
 	]]
 
-native "_SHOW_LOADING_PROMPT"
+native "_END_TEXT_COMMAND_BUSY_STRING"
 	hash "0xBD12F8228410D9B4"
 	jhash (0x903F5EE4)
 	arguments {
 		int "busySpinnerType",
 	}
 	alias "0xBD12F8228410D9B4"
-	ns "UI"
+	alias "_SHOW_LOADING_PROMPT"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44100,7 +45254,7 @@ native "_REMOVE_LOADING_PROMPT"
 	hash "0x10D373323E5B9C0D"
 	jhash (0x94119534)
 	alias "0x10D373323E5B9C0D"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44111,7 +45265,7 @@ native "_REMOVE_LOADING_PROMPT"
 native "0xC65AB383CD91DF98"
 	hash "0xC65AB383CD91DF98"
 	jhash (0x71077FBD)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44123,25 +45277,25 @@ native "_IS_LOADING_PROMPT_BEING_DISPLAYED"
 	hash "0xD422FCC5F239A915"
 	jhash (0xB8B3A5D0)
 	alias "0xD422FCC5F239A915"
-	ns "UI"
-	returns	"BOOL"
+	ns "HUD"
+	returns	"charPtr"
 
 native "0xB2A592B04648A9CB"
 	hash "0xB2A592B04648A9CB"
-	ns "UI"
-	returns	"Any"
+	ns "HUD"
+	returns	"Pickup"
 
 native "0x9245E81072704B8A"
 	hash "0x9245E81072704B8A"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SHOW_CURSOR_THIS_FRAME"
 	hash "0xAAE7CE1D63167423"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44155,14 +45309,27 @@ native "_SET_CURSOR_SPRITE"
 		int "spriteId",
 	}
 	alias "0x8DB8CFFD58B62552"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		Changes the mouse cursor's sprite. 
-		1 = Normal
-		6 = Left Arrow
-		7 = Right Arrow
+		public enum CursorType
+		{
+		    None = 0,
+		    Normal = 1,
+		    TransparentNormal = 2,
+		    PreGrab = 3,
+		    Grab = 4,
+		    MiddleFinger = 5,
+		    LeftArrow = 6,
+		    RightArrow = 7,
+		    UpArrow = 8,
+		    DownArrow = 9,
+		    HorizontalExpand = 10,
+		    Add = 11,
+		    Remove = 12,
+		}
 </summary>
 	]]
 
@@ -44171,12 +45338,12 @@ native "0x98215325A695E78A"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x3D9ACB1EB139E702"
 	hash "0x3D9ACB1EB139E702"
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x632B2940C67F4EA9"
@@ -44190,7 +45357,7 @@ native "0x632B2940C67F4EA9"
 
 		AnyPtr "p3",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x6F1554B0CC2089FA"
@@ -44199,7 +45366,7 @@ native "0x6F1554B0CC2089FA"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_CLEAR_NOTIFICATIONS_POS"
@@ -44209,7 +45376,7 @@ native "_CLEAR_NOTIFICATIONS_POS"
 		float "pos",
 	}
 	alias "0x55598D21339CB998"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44220,13 +45387,13 @@ native "_CLEAR_NOTIFICATIONS_POS"
 native "0x25F87B30C382FCA7"
 	hash "0x25F87B30C382FCA7"
 	jhash (0x1E63088A)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xA8FDB297A8D25FBA"
 	hash "0xA8FDB297A8D25FBA"
 	jhash (0x5205C6F5)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_REMOVE_NOTIFICATION"
@@ -44235,7 +45402,7 @@ native "_REMOVE_NOTIFICATION"
 	arguments {
 		int "notificationId",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44246,50 +45413,50 @@ native "_REMOVE_NOTIFICATION"
 native "0xA13C11E1B5C06BFC"
 	hash "0xA13C11E1B5C06BFC"
 	jhash (0x520FCB6D)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x583049884A2EEE3C"
 	hash "0x583049884A2EEE3C"
 	jhash (0xC8BAB2F2)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xFDB423997FA30340"
 	hash "0xFDB423997FA30340"
 	jhash (0x4D0449C6)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xE1CD1E48E025E661"
 	hash "0xE1CD1E48E025E661"
 	jhash (0xD3F40140)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xA9CBFD40B3FA3010"
 	hash "0xA9CBFD40B3FA3010"
 	jhash (0xC5223796)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xD4438C0564490E63"
 	hash "0xD4438C0564490E63"
 	jhash (0x709B4BCB)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xB695E2CD0A2DA9EE"
 	hash "0xB695E2CD0A2DA9EE"
 	jhash (0x4A4A40A4)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_GET_CURRENT_NOTIFICATION"
 	hash "0x82352748437638CA"
 	jhash (0x294405D4)
 	alias "0x82352748437638CA"
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44300,13 +45467,13 @@ native "_GET_CURRENT_NOTIFICATION"
 native "0x56C8B608CFD49854"
 	hash "0x56C8B608CFD49854"
 	jhash (0xF881AB87)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xADED7F5748ACAFE6"
 	hash "0xADED7F5748ACAFE6"
 	jhash (0x1D6859CA)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_NOTIFICATION_BACKGROUND_COLOR"
@@ -44315,7 +45482,7 @@ native "_SET_NOTIFICATION_BACKGROUND_COLOR"
 		int "hudIndex",
 	}
 	alias "0x92F0DA1E27DB96DC"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44328,6 +45495,8 @@ native "_SET_NOTIFICATION_BACKGROUND_COLOR"
 		6 = red
 		184 = green
 		190 = yellow
+
+		Here is a list of some colors that can be used: gyazo.com/68bd384455fceb0a85a8729e48216e15
 
 		this seems to set the alpha to 255 automatically, if you have a work around let me know 
 </summary>
@@ -44346,7 +45515,7 @@ native "_SET_NOTIFICATION_FLASH_COLOR"
 		int "alpha",
 	}
 	alias "0x17430B918701C342"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44360,7 +45529,7 @@ native "0x17AD8C9706BDD88A"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x4A0C7C9BB10ABB36"
@@ -44369,25 +45538,25 @@ native "0x4A0C7C9BB10ABB36"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xFDD85225B2DEA55E"
 	hash "0xFDD85225B2DEA55E"
 	jhash (0xA4524B23)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xFDEC055AB549E328"
 	hash "0xFDEC055AB549E328"
 	jhash (0xAFA1148B)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x80FE4F3AB4E1B62A"
 	hash "0x80FE4F3AB4E1B62A"
 	jhash (0x3CD4307C)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xBAE4F9B97CD43B30"
@@ -44395,7 +45564,7 @@ native "0xBAE4F9B97CD43B30"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x317EBA71D7543F52"
@@ -44409,7 +45578,7 @@ native "0x317EBA71D7543F52"
 
 		AnyPtr "p3",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44422,9 +45591,9 @@ native "_SET_NOTIFICATION_TEXT_ENTRY"
 	hash "0x202709F4C58A0424"
 	jhash (0x574EE85C)
 	arguments {
-		charPtr "type",
+		charPtr "text",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -44439,26 +45608,27 @@ native "_SET_NOTIFICATION_TEXT_ENTRY"
 </summary>
 	]]
 
-native "_SET_NOTIFICATION_MESSAGE_2"
+native "_SET_NOTIFICATION_MESSAGE"
 	hash "0x2B7E9A4EAAA93C89"
 	jhash (0xED130FA1)
 	arguments {
-		charPtr "p0",
+		charPtr "picName1",
 
-		int "p1",
+		int "picName2",
 
-		int "p2",
+		BOOL "flash",
 
-		int "p3",
+		int "iconType",
 
 		BOOL "p4",
 
-		charPtr "picName1",
+		charPtr "sender",
 
-		charPtr "picName2",
+		charPtr "subject",
 	}
 	alias "0x2B7E9A4EAAA93C89"
-	ns "UI"
+	alias "_SET_NOTIFICATION_MESSAGE_2"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44466,7 +45636,7 @@ native "_SET_NOTIFICATION_MESSAGE_2"
 </summary>
 	]]
 
-native "_SET_NOTIFICATION_MESSAGE"
+native "_SET_NOTIFICATION_MESSAGE_2"
 	hash "0x1CCD9A37359072CF"
 	jhash (0xE7E3C98B)
 	arguments {
@@ -44482,7 +45652,8 @@ native "_SET_NOTIFICATION_MESSAGE"
 
 		charPtr "subject",
 	}
-	ns "UI"
+	alias "_SET_NOTIFICATION_MESSAGE"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44522,7 +45693,7 @@ native "_SET_NOTIFICATION_MESSAGE_3"
 		charPtr "p5",
 	}
 	alias "0xC6F580E4C94926AC"
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44553,7 +45724,7 @@ native "_SET_NOTIFICATION_MESSAGE_4"
 		float "duration",
 	}
 	alias "0x1E6611149DB3DB6B"
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44584,7 +45755,7 @@ native "_SET_NOTIFICATION_MESSAGE_CLAN_TAG"
 
 		charPtr "clanTag",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44633,7 +45804,7 @@ native "_SET_NOTIFICATION_MESSAGE_CLAN_TAG_2"
 
 		int "p9",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44674,9 +45845,9 @@ native "_DRAW_NOTIFICATION"
 	arguments {
 		BOOL "blink",
 
-		BOOL "p1",
+		BOOL "showInBrief",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44705,6 +45876,11 @@ native "_DRAW_NOTIFICATION"
 
 		Example C#:
 		            Function.Call(Hash._ADD_TEXT_COMPONENT_STRING3, "Now I need you to bring the ~b~vehicle~w~ back to me!");
+
+		----
+
+		showInBrief==true: the notification will appear in the "Brief/Info" -&gt; "Notifications" tab in the pause menu.
+		showInBrief==false: the notification will NOT appear in the pause menu.
 </summary>
 	]]
 
@@ -44716,7 +45892,7 @@ native "_DRAW_NOTIFICATION_2"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "_DRAW_NOTIFICATION_3"
@@ -44727,10 +45903,10 @@ native "_DRAW_NOTIFICATION_3"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
-native "_DRAW_NOTIFICATION_ICON"
+native "_DRAW_NOTIFICATION_AWARD"
 	hash "0xAA295B6F28BD587D"
 	jhash (0x02DED2B8)
 	arguments {
@@ -44745,7 +45921,8 @@ native "_DRAW_NOTIFICATION_ICON"
 		charPtr "p4",
 	}
 	alias "0xAA295B6F28BD587D"
-	ns "UI"
+	alias "_DRAW_NOTIFICATION_ICON"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44756,7 +45933,7 @@ native "_DRAW_NOTIFICATION_ICON"
 </summary>
 	]]
 
-native "_NOTIFICATION_SEND_APARTMENT_INVITE"
+native "_DRAW_NOTIFICATION_APARTMENT_INVITE"
 	hash "0x97C9E4E7024A8F2C"
 	jhash (0xA9CCEF66)
 	arguments {
@@ -44781,7 +45958,8 @@ native "_NOTIFICATION_SEND_APARTMENT_INVITE"
 		int "B",
 	}
 	alias "0x97C9E4E7024A8F2C"
-	ns "UI"
+	alias "_NOTIFICATION_SEND_APARTMENT_INVITE"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44817,13 +45995,13 @@ native "_NOTIFICATION_SEND_APARTMENT_INVITE"
 						iVar3 = 1;
 					}
 					BOOL unused = _0x54E79E9C(&amp;clan.clanHandle, 35);
-					return _NOTIFICATION_SEND_APARTMENT_INVITE(iVar3, 0 /*unused*/, &amp;clan.unk17, clan.unk30, iVar2, 0, clan.clanHandle, 0, 0, 0);
+					return _DRAW_NOTIFICATION_APARTMENT_INVITE(iVar3, 0 /*unused*/, &amp;clan.unk17, clan.unk30, iVar2, 0, clan.clanHandle, 0, 0, 0);
 				}
 			}
 </summary>
 	]]
 
-native "_NOTIFICATION_SEND_CLAN_INVITE"
+native "_DRAW_NOTIFICATION_CLAN_INVITE"
 	hash "0x137BC35589E34E1E"
 	jhash (0x88B9B909)
 	arguments {
@@ -44850,7 +46028,8 @@ native "_NOTIFICATION_SEND_CLAN_INVITE"
 		int "B",
 	}
 	alias "0x137BC35589E34E1E"
-	ns "UI"
+	alias "_NOTIFICATION_SEND_CLAN_INVITE"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -44872,7 +46051,7 @@ native "_NOTIFICATION_SEND_CLAN_INVITE"
 				if (NETWORK_CLAN_PLAYER_IS_ACTIVE(&amp;netHandle.netHandle))
 				{
 					NETWORK_CLAN_PLAYER_GET_DESC(&amp;clan.clanHandle, 35, &amp;netHandle.netHandle);
-					_NOTIFICATION_SEND_CLAN_INVITE(0, _0x54E79E9C(&amp;clan.clanHandle, 35), &amp;clan.unk17, clan.isLeader, 0, 0, clan.clanHandle, playerName, 0, 0, 0);
+					_DRAW_NOTIFICATION_CLAN_INVITE(0, _0x54E79E9C(&amp;clan.clanHandle, 35), &amp;clan.unk17, clan.isLeader, 0, 0, clan.clanHandle, playerName, 0, 0, 0);
 				}
 			}
 </summary>
@@ -44888,7 +46067,7 @@ native "0x33EE12743CCD6343"
 
 		Any "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xC8F3AAF93D0600BF"
@@ -44903,7 +46082,7 @@ native "0xC8F3AAF93D0600BF"
 
 		Any "p3",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x7AE0589093A2E088"
@@ -44922,7 +46101,7 @@ native "0x7AE0589093A2E088"
 
 		Any "p5",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "_DRAW_NOTIFICATION_4"
@@ -44933,7 +46112,7 @@ native "_DRAW_NOTIFICATION_4"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "0x8EFCCF6EC66D85E4"
@@ -44949,7 +46128,7 @@ native "0x8EFCCF6EC66D85E4"
 
 		BOOL "p4",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -44974,10 +46153,10 @@ native "0xB6871B0555B02996"
 
 		Any "p5",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
-native "0xD202B92CBF1D816F"
+native "_DRAW_NOTIFICATION_WITH_ICON"
 	hash "0xD202B92CBF1D816F"
 	arguments {
 		int "type",
@@ -44986,8 +46165,9 @@ native "0xD202B92CBF1D816F"
 
 		charPtr "text",
 	}
-	ns "UI"
-	returns	"Any"
+	alias "0xD202B92CBF1D816F"
+	ns "HUD"
+	returns	"int"
 	doc [[!
 <summary>
 		returns a notification handle, prints out a notification like below:
@@ -44999,7 +46179,7 @@ native "0xD202B92CBF1D816F"
 </summary>
 	]]
 
-native "0xDD6CB2CCE7C2735C"
+native "_DRAW_NOTIFICATION_WITH_BUTTON"
 	hash "0xDD6CB2CCE7C2735C"
 	arguments {
 		int "type",
@@ -45008,8 +46188,9 @@ native "0xDD6CB2CCE7C2735C"
 
 		charPtr "text",
 	}
-	ns "UI"
-	returns	"Any"
+	alias "0xDD6CB2CCE7C2735C"
+	ns "HUD"
+	returns	"int"
 	doc [[!
 <summary>
 		returns a notification handle, prints out a notification like below:
@@ -45037,7 +46218,7 @@ native "BEGIN_TEXT_COMMAND_PRINT"
 		charPtr "GxtEntry",
 	}
 	alias "_SET_TEXT_ENTRY_2"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45061,7 +46242,7 @@ native "END_TEXT_COMMAND_PRINT"
 		BOOL "drawImmediately",
 	}
 	alias "_DRAW_SUBTITLE_TIMED"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45082,7 +46263,7 @@ native "BEGIN_TEXT_COMMAND_IS_MESSAGE_DISPLAYED"
 		charPtr "text",
 	}
 	alias "0x853648FD1063A213"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45101,7 +46282,7 @@ native "END_TEXT_COMMAND_IS_MESSAGE_DISPLAYED"
 	hash "0x8A9BA1AB3E237613"
 	jhash (0x672EFB45)
 	alias "0x8A9BA1AB3E237613"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "BEGIN_TEXT_COMMAND_DISPLAY_TEXT"
@@ -45111,7 +46292,7 @@ native "BEGIN_TEXT_COMMAND_DISPLAY_TEXT"
 		charPtr "text",
 	}
 	alias "_SET_TEXT_ENTRY"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45134,7 +46315,7 @@ native "END_TEXT_COMMAND_DISPLAY_TEXT"
 		float "y",
 	}
 	alias "_DRAW_TEXT"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45151,14 +46332,14 @@ native "_BEGIN_TEXT_COMMAND_WIDTH"
 		charPtr "text",
 	}
 	alias "_SET_TEXT_ENTRY_FOR_WIDTH"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		Example:
 		_BEGIN_TEXT_COMMAND_WIDTH("NUMBER");
 		ADD_TEXT_COMPONENT_FLOAT(69.420f, 2);
-		float width = _END_TEXT_COMMAND_GET_WIDTH(1);
+		float width = _END_TEXT_COMMAND_GET_WIDTH(true);
 </summary>
 	]]
 
@@ -45166,17 +46347,18 @@ native "_END_TEXT_COMMAND_GET_WIDTH"
 	hash "0x85F061DA64ED2F67"
 	jhash (0xD12A643A)
 	arguments {
-		int "font",
+		BOOL "p0",
 	}
 	alias "_GET_TEXT_SCREEN_WIDTH"
-	ns "UI"
+	ns "HUD"
 	returns	"float"
 	doc [[!
 <summary>
-		In scripts font most of the time is passed as 1.
-		Use _BEGIN_TEXT_COMMAND_WIDTH
+		Used with _BEGIN_TEXT_COMMAND_WIDTH.
 
-		param is not font from what i've tested
+		In scripts, p0 is false when used in combination with "ESMINDOLLA" or "ESDOLLA", otherwise it's true.
+
+		Returns from range 0 to 1.
 </summary>
 	]]
 
@@ -45187,7 +46369,7 @@ native "_BEGIN_TEXT_COMMAND_LINE_COUNT"
 		charPtr "entry",
 	}
 	alias "_SET_TEXT_GXT_ENTRY"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45203,7 +46385,7 @@ native "_BEGIN_TEXT_COMMAND_LINE_COUNT"
 </summary>
 	]]
 
-native "_END_TEXT_COMMAND_GET_LINE_COUNT"
+native "_GET_TEXT_SCREEN_LINE_COUNT"
 	hash "0x9040DFB09BE75706"
 	jhash (0xAA318785)
 	arguments {
@@ -45212,12 +46394,13 @@ native "_END_TEXT_COMMAND_GET_LINE_COUNT"
 		float "y",
 	}
 	alias "0x9040DFB09BE75706"
-	ns "UI"
+	alias "_END_TEXT_COMMAND_GET_LINE_COUNT"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
 		Determines how many lines the text string will use when drawn on screen. 
-		Must use 0x521FB041D93DD0E4 for setting up
+		Must use _BEGIN_TEXT_COMMAND_LINE_COUNT for setting up
 </summary>
 	]]
 
@@ -45228,7 +46411,7 @@ native "BEGIN_TEXT_COMMAND_DISPLAY_HELP"
 		charPtr "inputType",
 	}
 	alias "_SET_TEXT_COMPONENT_FORMAT"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45246,14 +46429,20 @@ native "END_TEXT_COMMAND_DISPLAY_HELP"
 
 		BOOL "beep",
 
-		int "shape",
+		int "duration",
 	}
 	alias "_DISPLAY_HELP_TEXT_FROM_STRING_LABEL"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
-		shape goes from -1 to 50 (may be more).
+		-----------
+		p3 (duration in MS) was previously mentioned as "shape", but with some more testing it seems that it's more likely to be a duration in MS. (Tested this when not calling it every tick, but instead only once and let it display for the specified duration). 
+		-1 seems to be default delay (around 3 seconds), 5000 (ms) seems to be the max. Anything &gt; 5000 will still result in 5 seconds of display time.
+
+		Old p3 (shape) description: "shape goes from -1 to 50 (may be more)."
+		--------------
+
 		p0 is always 0.
 
 		Example:
@@ -45281,7 +46470,7 @@ native "BEGIN_TEXT_COMMAND_IS_THIS_HELP_MESSAGE_BEING_DISPLAYED"
 		charPtr "labelName",
 	}
 	alias "0x0A24DA3A41B718F5"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45300,7 +46489,7 @@ native "END_TEXT_COMMAND_IS_THIS_HELP_MESSAGE_BEING_DISPLAYED"
 		int "p0",
 	}
 	alias "0x10BDDBFC529428DD"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "BEGIN_TEXT_COMMAND_SET_BLIP_NAME"
@@ -45309,7 +46498,7 @@ native "BEGIN_TEXT_COMMAND_SET_BLIP_NAME"
 	arguments {
 		charPtr "gxtentry",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45327,7 +46516,7 @@ native "END_TEXT_COMMAND_SET_BLIP_NAME"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_BEGIN_TEXT_COMMAND_OBJECTIVE"
@@ -45337,7 +46526,7 @@ native "_BEGIN_TEXT_COMMAND_OBJECTIVE"
 		charPtr "p0",
 	}
 	alias "0x23D69E0465570028"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45358,8 +46547,13 @@ native "_END_TEXT_COMMAND_OBJECTIVE"
 		BOOL "p0",
 	}
 	alias "0xCFDBDF5AE59BA0F4"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		p0 is always false in scripts.
+</summary>
+	]]
 
 native "BEGIN_TEXT_COMMAND_CLEAR_PRINT"
 	hash "0xE124FA80A759019C"
@@ -45368,7 +46562,7 @@ native "BEGIN_TEXT_COMMAND_CLEAR_PRINT"
 		charPtr "text",
 	}
 	alias "0xE124FA80A759019C"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45380,7 +46574,7 @@ native "END_TEXT_COMMAND_CLEAR_PRINT"
 	hash "0xFCC75460ABA29378"
 	jhash (0x67785AF2)
 	alias "0xFCC75460ABA29378"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_BEGIN_TEXT_COMMAND_TIMER"
@@ -45390,7 +46584,7 @@ native "_BEGIN_TEXT_COMMAND_TIMER"
 		charPtr "p0",
 	}
 	alias "0x8F9EE5687F8EECCD"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45410,7 +46604,7 @@ native "_END_TEXT_COMMAND_TIMER"
 		BOOL "p0",
 	}
 	alias "0xA86911979638106F"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ADD_TEXT_COMPONENT_INTEGER"
@@ -45419,7 +46613,7 @@ native "ADD_TEXT_COMPONENT_INTEGER"
 	arguments {
 		int "value",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ADD_TEXT_COMPONENT_FLOAT"
@@ -45430,7 +46624,7 @@ native "ADD_TEXT_COMPONENT_FLOAT"
 
 		int "decimalPlaces",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ADD_TEXT_COMPONENT_SUBSTRING_TEXT_LABEL"
@@ -45440,7 +46634,7 @@ native "ADD_TEXT_COMPONENT_SUBSTRING_TEXT_LABEL"
 		charPtr "labelName",
 	}
 	alias "_ADD_TEXT_COMPONENT_ITEM_STRING"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ADD_TEXT_COMPONENT_SUBSTRING_TEXT_LABEL_HASH_KEY"
@@ -45450,7 +46644,7 @@ native "ADD_TEXT_COMPONENT_SUBSTRING_TEXT_LABEL_HASH_KEY"
 		Hash "gxtEntryHash",
 	}
 	alias "0x17299B63C7683A2B"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45465,7 +46659,7 @@ native "ADD_TEXT_COMPONENT_SUBSTRING_BLIP_NAME"
 		Blip "blip",
 	}
 	alias "0x80EAD8E2E1D5D52E"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME"
@@ -45475,7 +46669,7 @@ native "ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME"
 		charPtr "text",
 	}
 	alias "_ADD_TEXT_COMPONENT_STRING"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45530,7 +46724,7 @@ native "ADD_TEXT_COMPONENT_SUBSTRING_TIME"
 
 		int "flags",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45547,7 +46741,7 @@ native "ADD_TEXT_COMPONENT_FORMATTED_INTEGER"
 		BOOL "commaSeparated",
 	}
 	alias "0x0E4C749FF9DE9CC4"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_ADD_TEXT_COMPONENT_APP_TITLE"
@@ -45559,7 +46753,7 @@ native "_ADD_TEXT_COMPONENT_APP_TITLE"
 		int "p1",
 	}
 	alias "0x761B77454205A61D"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45575,7 +46769,7 @@ native "ADD_TEXT_COMPONENT_SUBSTRING_WEBSITE"
 		charPtr "website",
 	}
 	alias "_ADD_TEXT_COMPONENT_STRING2"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45590,13 +46784,15 @@ native "_ADD_TEXT_COMPONENT_SCALEFORM"
 		charPtr "p0",
 	}
 	alias "_ADD_TEXT_COMPONENT_STRING3"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		This native (along with 0x6C188BE134E074AA and 0x94CF4AC034C9C986) do not actually filter anything. They simply add the provided text (as of 944)
 
 		did you even check the disassembly?
+
+		&gt; Do you even lift bro? The PLAYER_NAME and WEBSITE natives are the correct names, it doesn't matter if they're filtered or not. Blame R* for that matter. Hashes don't lie, and it's extremely unlikely the validated names are collisions (what are the odds??)
 </summary>
 	]]
 
@@ -45604,10 +46800,10 @@ native "_SET_NOTIFICATION_COLOR_NEXT"
 	hash "0x39BBF623FC803EAC"
 	jhash (0x6F1A1901)
 	arguments {
-		int "p0",
+		int "hudIndex",
 	}
 	alias "0x39BBF623FC803EAC"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45625,7 +46821,7 @@ native "_GET_TEXT_SUBSTRING"
 
 		int "length",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -45649,7 +46845,7 @@ native "_GET_TEXT_SUBSTRING_SAFE"
 
 		int "maxLength",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -45687,7 +46883,7 @@ native "_GET_TEXT_SUBSTRING_SLICE"
 
 		int "endPosition",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -45707,7 +46903,7 @@ native "_GET_LABEL_TEXT"
 	arguments {
 		charPtr "labelName",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -45718,19 +46914,19 @@ native "_GET_LABEL_TEXT"
 native "CLEAR_PRINTS"
 	hash "0xCC33FA791322B9D9"
 	jhash (0x216CB1C5)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "CLEAR_BRIEF"
 	hash "0x9D292F73ADBD9313"
 	jhash (0x9F75A929)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "CLEAR_ALL_HELP_MESSAGES"
 	hash "0x6178F68A87A4D3A0"
 	jhash (0x9E5D9198)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "CLEAR_THIS_PRINT"
@@ -45739,7 +46935,7 @@ native "CLEAR_THIS_PRINT"
 	arguments {
 		charPtr "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45750,7 +46946,7 @@ native "CLEAR_THIS_PRINT"
 native "CLEAR_SMALL_PRINTS"
 	hash "0x2CEA2839313C09AC"
 	jhash (0xA869A238)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DOES_TEXT_BLOCK_EXIST"
@@ -45759,7 +46955,7 @@ native "DOES_TEXT_BLOCK_EXIST"
 	arguments {
 		charPtr "gxt",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "REQUEST_ADDITIONAL_TEXT"
@@ -45770,7 +46966,7 @@ native "REQUEST_ADDITIONAL_TEXT"
 
 		int "slot",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45786,7 +46982,7 @@ native "_REQUEST_ADDITIONAL_TEXT_2"
 
 		int "slot",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "HAS_ADDITIONAL_TEXT_LOADED"
@@ -45795,7 +46991,7 @@ native "HAS_ADDITIONAL_TEXT_LOADED"
 	arguments {
 		int "slot",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "CLEAR_ADDITIONAL_TEXT"
@@ -45806,7 +47002,7 @@ native "CLEAR_ADDITIONAL_TEXT"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_STREAMING_ADDITIONAL_TEXT"
@@ -45815,7 +47011,7 @@ native "IS_STREAMING_ADDITIONAL_TEXT"
 	arguments {
 		int "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "HAS_THIS_ADDITIONAL_TEXT_LOADED"
@@ -45826,7 +47022,7 @@ native "HAS_THIS_ADDITIONAL_TEXT_LOADED"
 
 		int "slot",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -45837,7 +47033,7 @@ native "HAS_THIS_ADDITIONAL_TEXT_LOADED"
 native "IS_MESSAGE_BEING_DISPLAYED"
 	hash "0x7984C03AA5CC2F41"
 	jhash (0x6A77FE8D)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "DOES_TEXT_LABEL_EXIST"
@@ -45846,7 +47042,7 @@ native "DOES_TEXT_LABEL_EXIST"
 	arguments {
 		charPtr "gxt",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -45860,7 +47056,7 @@ native "GET_LENGTH_OF_STRING_WITH_THIS_TEXT_LABEL"
 	arguments {
 		charPtr "gxt",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -45874,7 +47070,7 @@ native "GET_LENGTH_OF_LITERAL_STRING"
 	arguments {
 		charPtr "string",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -45886,10 +47082,10 @@ native "_GET_LENGTH_OF_STRING"
 	hash "0x43E4111189E54F0E"
 	jhash (0x7DBC0764)
 	arguments {
-		charPtr "p0",
+		charPtr "STRING",
 	}
 	alias "0x43E4111189E54F0E"
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -45903,7 +47099,7 @@ native "GET_STREET_NAME_FROM_HASH_KEY"
 	arguments {
 		Hash "hash",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -45916,19 +47112,19 @@ native "GET_STREET_NAME_FROM_HASH_KEY"
 native "IS_HUD_PREFERENCE_SWITCHED_ON"
 	hash "0x1930DFA731813EC4"
 	jhash (0xC3BC1B4F)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "IS_RADAR_PREFERENCE_SWITCHED_ON"
 	hash "0x9EB6522EA68F22FE"
 	jhash (0x14AEAA28)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "IS_SUBTITLE_PREFERENCE_SWITCHED_ON"
 	hash "0xAD6DACA4BA53E0A4"
 	jhash (0x63BA19F5)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "DISPLAY_HUD"
@@ -45937,7 +47133,7 @@ native "DISPLAY_HUD"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -45948,13 +47144,13 @@ native "DISPLAY_HUD"
 native "0x7669F9E39DC17063"
 	hash "0x7669F9E39DC17063"
 	jhash (0xC380AC85)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x402F9ED62087E898"
 	hash "0x402F9ED62087E898"
 	jhash (0xC47AB1B0)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DISPLAY_RADAR"
@@ -45963,7 +47159,7 @@ native "DISPLAY_RADAR"
 	arguments {
 		BOOL "Toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -45974,19 +47170,19 @@ native "DISPLAY_RADAR"
 native "IS_HUD_HIDDEN"
 	hash "0xA86478C6958735C5"
 	jhash (0x40BADA1D)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "IS_RADAR_HIDDEN"
 	hash "0x157F93B036700462"
 	jhash (0x1AB3B954)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "_IS_RADAR_ENABLED"
 	hash "0xAF754F20EB5CD51A"
 	alias "0xAF754F20EB5CD51A"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "SET_BLIP_ROUTE"
@@ -45997,7 +47193,7 @@ native "SET_BLIP_ROUTE"
 
 		BOOL "enabled",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46013,7 +47209,7 @@ native "SET_BLIP_ROUTE_COLOUR"
 
 		int "colour",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ADD_NEXT_MESSAGE_TO_PREVIOUS_BRIEFS"
@@ -46022,7 +47218,7 @@ native "ADD_NEXT_MESSAGE_TO_PREVIOUS_BRIEFS"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46036,7 +47232,7 @@ native "0x57D760D55F54E071"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "RESPONDING_AS_TEMP"
@@ -46045,7 +47241,7 @@ native "RESPONDING_AS_TEMP"
 	arguments {
 		float "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46060,7 +47256,7 @@ native "SET_RADAR_ZOOM"
 	arguments {
 		int "zoomLevel",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46076,7 +47272,7 @@ native "0xF98E4B3E56AFC7B1"
 
 		float "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_RADAR_ZOOM_LEVEL_THIS_FRAME"
@@ -46085,13 +47281,13 @@ native "_SET_RADAR_ZOOM_LEVEL_THIS_FRAME"
 	arguments {
 		float "zoomLevel",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xD2049635DEB9C375"
 	hash "0xD2049635DEB9C375"
 	jhash (0xE8D3A910)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GET_HUD_COLOUR"
@@ -46108,7 +47304,7 @@ native "GET_HUD_COLOUR"
 
 		intPtr "a",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46128,7 +47324,7 @@ native "0xD68A5FF8A3A89874"
 
 		int "a",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x16A304E6CB2BFAB9"
@@ -46143,7 +47339,7 @@ native "0x16A304E6CB2BFAB9"
 
 		int "a",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_HUD_COLOURS_SWITCH"
@@ -46155,7 +47351,7 @@ native "_SET_HUD_COLOURS_SWITCH"
 		int "hudColorIndex2",
 	}
 	alias "0x1CCC708F0F850613"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46180,7 +47376,7 @@ native "_SET_HUD_COLOUR"
 		int "a",
 	}
 	alias "0xF314CF4F0211894E"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46194,7 +47390,7 @@ native "FLASH_ABILITY_BAR"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46206,12 +47402,18 @@ native "SET_ABILITY_BAR_VALUE"
 	hash "0x9969599CCFF5D85E"
 	jhash (0x24E53FD8)
 	arguments {
-		float "p0",
+		float "value",
 
-		float "p1",
+		float "maxValue",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		If 'value' is 50 and 'maxValue' is 100, the bar is halfway filled.
+		Same with 5/10, 2/4, etc.
+</summary>
+	]]
 
 native "FLASH_WANTED_DISPLAY"
 	hash "0xA18AFB39081B6A1F"
@@ -46219,7 +47421,7 @@ native "FLASH_WANTED_DISPLAY"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xBA8D65C1C65702E5"
@@ -46227,7 +47429,7 @@ native "0xBA8D65C1C65702E5"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_GET_TEXT_SCALE_HEIGHT"
@@ -46239,7 +47441,7 @@ native "_GET_TEXT_SCALE_HEIGHT"
 		int "font",
 	}
 	alias "0xDB88A37483346780"
-	ns "UI"
+	ns "HUD"
 	returns	"float"
 	doc [[!
 <summary>
@@ -46251,16 +47453,15 @@ native "SET_TEXT_SCALE"
 	hash "0x07C837F9A01C34C9"
 	jhash (0xB6E15B23)
 	arguments {
-		float "p0",
+		float "scale",
 
 		float "size",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
-		Size range : 0F to 1.0F
-		p0 is unknown and doesn't seem to have an effect, yet in the game scripts it changes to 1.0F sometimes.
+		Size range : 0f to 1.0f
 </summary>
 	]]
 
@@ -46276,14 +47477,8 @@ native "SET_TEXT_COLOUR"
 
 		int "alpha",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
-	doc [[!
-<summary>
-		colors you input not same as you think?
-		A: for some reason its R B G A
-</summary>
-	]]
 
 native "SET_TEXT_CENTRE"
 	hash "0xC02F4DBFB51D988B"
@@ -46291,7 +47486,7 @@ native "SET_TEXT_CENTRE"
 	arguments {
 		BOOL "align",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_TEXT_RIGHT_JUSTIFY"
@@ -46300,7 +47495,7 @@ native "SET_TEXT_RIGHT_JUSTIFY"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_TEXT_JUSTIFICATION"
@@ -46310,7 +47505,7 @@ native "SET_TEXT_JUSTIFICATION"
 		int "justifyType",
 	}
 	alias "0x4E096588B13FFECA"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46331,7 +47526,7 @@ native "SET_TEXT_WRAP"
 
 		float "end",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46348,7 +47543,7 @@ native "SET_TEXT_LEADING"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46363,7 +47558,7 @@ native "SET_TEXT_PROPORTIONAL"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_TEXT_FONT"
@@ -46372,7 +47567,7 @@ native "SET_TEXT_FONT"
 	arguments {
 		int "fontType",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46383,7 +47578,7 @@ native "SET_TEXT_FONT"
 native "SET_TEXT_DROP_SHADOW"
 	hash "0x1CA3E9EAC9D93E5E"
 	jhash (0xE2A11511)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_TEXT_DROPSHADOW"
@@ -46400,7 +47595,7 @@ native "SET_TEXT_DROPSHADOW"
 
 		int "a",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46412,7 +47607,7 @@ native "SET_TEXT_DROPSHADOW"
 native "SET_TEXT_OUTLINE"
 	hash "0x2513DFB0FB8400FE"
 	jhash (0xC753412F)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_TEXT_EDGE"
@@ -46429,7 +47624,7 @@ native "SET_TEXT_EDGE"
 
 		int "a",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_TEXT_RENDER_ID"
@@ -46438,13 +47633,13 @@ native "SET_TEXT_RENDER_ID"
 	arguments {
 		int "renderId",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GET_DEFAULT_SCRIPT_RENDERTARGET_RENDER_ID"
 	hash "0x52F0982D7FD156B6"
 	jhash (0x8188935F)
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -46460,7 +47655,7 @@ native "REGISTER_NAMED_RENDERTARGET"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "IS_NAMED_RENDERTARGET_REGISTERED"
@@ -46469,7 +47664,7 @@ native "IS_NAMED_RENDERTARGET_REGISTERED"
 	arguments {
 		charPtr "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "RELEASE_NAMED_RENDERTARGET"
@@ -46478,7 +47673,7 @@ native "RELEASE_NAMED_RENDERTARGET"
 	arguments {
 		AnyPtr "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "LINK_NAMED_RENDERTARGET"
@@ -46487,7 +47682,7 @@ native "LINK_NAMED_RENDERTARGET"
 	arguments {
 		Hash "hash",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GET_NAMED_RENDERTARGET_RENDER_ID"
@@ -46496,7 +47691,7 @@ native "GET_NAMED_RENDERTARGET_RENDER_ID"
 	arguments {
 		charPtr "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "IS_NAMED_RENDERTARGET_LINKED"
@@ -46505,7 +47700,7 @@ native "IS_NAMED_RENDERTARGET_LINKED"
 	arguments {
 		Hash "hash",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "CLEAR_HELP"
@@ -46514,19 +47709,24 @@ native "CLEAR_HELP"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_HELP_MESSAGE_ON_SCREEN"
 	hash "0xDAD37F45428801AE"
 	jhash (0x4B3C9CA9)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Doesn't appear to work, use IS_HELP_MESSAGE_BEING_DISPLAYED instead
+</summary>
+	]]
 
 native "0x214CD562A939246A"
 	hash "0x214CD562A939246A"
 	jhash (0x812CBE0E)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -46541,19 +47741,19 @@ native "0x214CD562A939246A"
 native "IS_HELP_MESSAGE_BEING_DISPLAYED"
 	hash "0x4D79439A6B55AC67"
 	jhash (0xA65F262A)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "IS_HELP_MESSAGE_FADING_OUT"
 	hash "0x327EDEEEAC55C369"
 	jhash (0x3E50AE92)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x4A9923385BDB9DAD"
 	hash "0x4A9923385BDB9DAD"
 	jhash (0x87871CE0)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -46571,13 +47771,13 @@ native "0x4A9923385BDB9DAD"
 native "_GET_BLIP_INFO_ID_ITERATOR"
 	hash "0x186E5D252FA50E7D"
 	jhash (0xB9827942)
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "GET_NUMBER_OF_ACTIVE_BLIPS"
 	hash "0x9A3FF3DE163034E8"
 	jhash (0x144020FA)
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "GET_NEXT_BLIP_INFO_ID"
@@ -46586,7 +47786,7 @@ native "GET_NEXT_BLIP_INFO_ID"
 	arguments {
 		int "blipSprite",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 
 native "GET_FIRST_BLIP_INFO_ID"
@@ -46595,8 +47795,13 @@ native "GET_FIRST_BLIP_INFO_ID"
 	arguments {
 		int "blipSprite",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
+	doc [[!
+<summary>
+		8 = waypoint
+</summary>
+	]]
 
 native "GET_BLIP_INFO_ID_COORD"
 	hash "0xFA7C7F0AADF25D09"
@@ -46604,7 +47809,7 @@ native "GET_BLIP_INFO_ID_COORD"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Vector3"
 
 native "GET_BLIP_INFO_ID_DISPLAY"
@@ -46613,7 +47818,7 @@ native "GET_BLIP_INFO_ID_DISPLAY"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "GET_BLIP_INFO_ID_TYPE"
@@ -46622,7 +47827,7 @@ native "GET_BLIP_INFO_ID_TYPE"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -46643,7 +47848,7 @@ native "GET_BLIP_INFO_ID_ENTITY_INDEX"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Entity"
 	doc [[!
 <summary>
@@ -46657,7 +47862,7 @@ native "GET_BLIP_INFO_ID_PICKUP_INDEX"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Pickup"
 	doc [[!
 <summary>
@@ -46671,7 +47876,7 @@ native "GET_BLIP_FROM_ENTITY"
 	arguments {
 		Entity "entity",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 	doc [[!
 <summary>
@@ -46691,7 +47896,7 @@ native "ADD_BLIP_FOR_RADIUS"
 
 		float "radius",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 
 native "ADD_BLIP_FOR_ENTITY"
@@ -46700,7 +47905,7 @@ native "ADD_BLIP_FOR_ENTITY"
 	arguments {
 		Entity "entity",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 	doc [[!
 <summary>
@@ -46719,7 +47924,7 @@ native "ADD_BLIP_FOR_PICKUP"
 	arguments {
 		Pickup "pickup",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 
 native "ADD_BLIP_FOR_COORD"
@@ -46732,7 +47937,7 @@ native "ADD_BLIP_FOR_COORD"
 
 		float "z",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 	doc [[!
 <summary>
@@ -46754,7 +47959,7 @@ native "0x72DD432F3CDFC0EE"
 
 		int "p4",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x60734CC207C9833C"
@@ -46763,7 +47968,7 @@ native "0x60734CC207C9833C"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_COORDS"
@@ -46778,7 +47983,7 @@ native "SET_BLIP_COORDS"
 
 		float "posZ",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GET_BLIP_COORDS"
@@ -46787,7 +47992,7 @@ native "GET_BLIP_COORDS"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Vector3"
 
 native "SET_BLIP_SPRITE"
@@ -46798,7 +48003,7 @@ native "SET_BLIP_SPRITE"
 
 		int "spriteId",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46818,7 +48023,7 @@ native "GET_BLIP_SPRITE"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -46835,7 +48040,7 @@ native "SET_BLIP_NAME_FROM_TEXT_FILE"
 
 		charPtr "gxtEntry",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46851,7 +48056,7 @@ native "SET_BLIP_NAME_TO_PLAYER_NAME"
 
 		Player "player",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_ALPHA"
@@ -46862,7 +48067,7 @@ native "SET_BLIP_ALPHA"
 
 		int "alpha",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46883,7 +48088,7 @@ native "GET_BLIP_ALPHA"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "SET_BLIP_FADE"
@@ -46896,7 +48101,7 @@ native "SET_BLIP_FADE"
 
 		int "duration",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_ROTATION"
@@ -46907,7 +48112,7 @@ native "SET_BLIP_ROTATION"
 
 		int "rotation",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46923,7 +48128,7 @@ native "SET_BLIP_FLASH_TIMER"
 
 		int "duration",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -46939,7 +48144,7 @@ native "SET_BLIP_FLASH_INTERVAL"
 
 		Any "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_COLOUR"
@@ -46950,27 +48155,54 @@ native "SET_BLIP_COLOUR"
 
 		int "color",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
-		Color:
+		(Hex code are approximate)
+		0: White (#fefefe)
+		1: Red (#e03232)
+		2: Green (#71cb71)
+		3: Blue (#5db6e5)
+		4: White (#fefefe)
+		5: Taxi Yellow (#eec64e)
+		6: Light Red (#c25050)
+		7: Violet (#9c6eaf)
+		8: Pink (#fe7ac3)
+		9: Light Orange (#f59d79)
+		10: Light Brown (#b18f83)
+		11: Light Green (#8dcea7)
+		12: Light Blue (Teal) (#70a8ae)
+		13: Very Light Purple (#d3d1e7)
+		14: Dark Purple (#8f7e98)
+		15: Cyan (#6ac4bf)
+		16: Light Yellow (#d5c398)
+		17: Orange (#ea8e50)
+		18: Light Blue (#97cae9)
+		19: Dark Pink (#b26287)
+		20: Dark Yellow (#8f8d79)
+		21: Dark Orange (#a6755e)
+		22: Light Gray (#afa8a8)
+		23: Light Pink (#e78d9a)
+		24: Lemon Green (#bbd65b)
+		25: Forest Green (#0c7b56)
+		26: Electric Blue (#7ac3fe)
+		27: Bright Purple (#ab3ce6)
+		28: Dark Taxi Yellow (#cda80c)
+		29: Dark Blue (#4561ab)
+		30: Dark Cyan (#29a5b8)
+		31: Light Brown (#b89b7b)
+		32: Very Light Blue (#c8e0fe)
+		33: Light Yellow (#f0f096)
+		34: Light Pink (#ed8ca1)
+		35: Light Red (#f98a8a)
+		36: Light Yellow (#fbeea5)
+		37: White (#fefefe)
+		38: Blue (#2c6db8)
+		39: Light Gray (#9a9a9a)
+		40: Dark Gray (#4c4c4c)
 
-		0: white
-		1: red
-		2: green
-		3: blue
-		17: orange
-		19: purple
-		20: grey
-		21: brown
-		23: pink
-		25: dark green
-		27: dark purple
-		29: dark blue
-		Default (Function not used): yellow
-
-		Those are not the only ones. i.e: 17 is Trevor's orange.
+		Certainly a lot more remaining.
 </summary>
 	]]
 
@@ -46986,7 +48218,7 @@ native "SET_BLIP_SECONDARY_COLOUR"
 
 		float "b",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GET_BLIP_COLOUR"
@@ -46995,7 +48227,7 @@ native "GET_BLIP_COLOUR"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "GET_BLIP_HUD_COLOUR"
@@ -47004,7 +48236,7 @@ native "GET_BLIP_HUD_COLOUR"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "IS_BLIP_SHORT_RANGE"
@@ -47013,7 +48245,7 @@ native "IS_BLIP_SHORT_RANGE"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "IS_BLIP_ON_MINIMAP"
@@ -47022,7 +48254,7 @@ native "IS_BLIP_ON_MINIMAP"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0xDD2238F57B977751"
@@ -47031,7 +48263,7 @@ native "0xDD2238F57B977751"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x54318C915D27E4CE"
@@ -47042,7 +48274,7 @@ native "0x54318C915D27E4CE"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_HIGH_DETAIL"
@@ -47053,7 +48285,7 @@ native "SET_BLIP_HIGH_DETAIL"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_AS_MISSION_CREATOR_BLIP"
@@ -47064,7 +48296,7 @@ native "SET_BLIP_AS_MISSION_CREATOR_BLIP"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_MISSION_CREATOR_BLIP"
@@ -47073,13 +48305,13 @@ native "IS_MISSION_CREATOR_BLIP"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "DISABLE_BLIP_NAME_FOR_VAR"
 	hash "0x5C90988E7C8E1AF4"
 	jhash (0xFFD7476C)
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 	doc [[!
 <summary>
@@ -47092,7 +48324,7 @@ native "DISABLE_BLIP_NAME_FOR_VAR"
 native "0x4167EFE0527D706E"
 	hash "0x4167EFE0527D706E"
 	jhash (0xC5EB849A)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0xF1A6C18B35BCADE6"
@@ -47101,7 +48333,7 @@ native "0xF1A6C18B35BCADE6"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_FLASHES"
@@ -47112,7 +48344,7 @@ native "SET_BLIP_FLASHES"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_FLASHES_ALTERNATE"
@@ -47123,7 +48355,7 @@ native "SET_BLIP_FLASHES_ALTERNATE"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_BLIP_FLASHING"
@@ -47132,7 +48364,7 @@ native "IS_BLIP_FLASHING"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "SET_BLIP_AS_SHORT_RANGE"
@@ -47143,7 +48375,7 @@ native "SET_BLIP_AS_SHORT_RANGE"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_SCALE"
@@ -47154,7 +48386,7 @@ native "SET_BLIP_SCALE"
 
 		float "scale",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_PRIORITY"
@@ -47165,7 +48397,7 @@ native "SET_BLIP_PRIORITY"
 
 		int "priority",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47181,7 +48413,7 @@ native "SET_BLIP_DISPLAY"
 
 		int "displayId",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47202,7 +48434,7 @@ native "SET_BLIP_CATEGORY"
 
 		int "index",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47221,7 +48453,7 @@ native "REMOVE_BLIP"
 	arguments {
 		BlipPtr "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47265,7 +48497,7 @@ native "SET_BLIP_AS_FRIENDLY"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47280,7 +48512,7 @@ native "PULSE_BLIP"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SHOW_NUMBER_ON_BLIP"
@@ -47291,7 +48523,7 @@ native "SHOW_NUMBER_ON_BLIP"
 
 		int "number",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "HIDE_NUMBER_ON_BLIP"
@@ -47300,21 +48532,21 @@ native "HIDE_NUMBER_ON_BLIP"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x75A16C3DA34F1245"
 	hash "0x75A16C3DA34F1245"
 	jhash (0x1D99F676)
 	arguments {
-		Any "p0",
+		Blip "blip",
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
-native "_SET_BLIP_CHECKED"
+native "SHOW_TICK_ON_BLIP"
 	hash "0x74513EA3E505181E"
 	jhash (0x3DCF0092)
 	arguments {
@@ -47323,7 +48555,8 @@ native "_SET_BLIP_CHECKED"
 		BOOL "toggle",
 	}
 	alias "0x74513EA3E505181E"
-	ns "UI"
+	alias "_SET_BLIP_CHECKED"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47340,7 +48573,7 @@ native "SHOW_HEADING_INDICATOR_ON_BLIP"
 		BOOL "toggle",
 	}
 	alias "0x5FBCA48327B914DF"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47357,7 +48590,7 @@ native "_SET_BLIP_FRIENDLY"
 		BOOL "toggle",
 	}
 	alias "0xB81656BC81FE24D1"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47378,7 +48611,7 @@ native "_SET_BLIP_FRIEND"
 		BOOL "toggle",
 	}
 	alias "0x23C3EB807312F01A"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47394,7 +48627,7 @@ native "0xDCFB5D4DB8BF367E"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xC4278F70131BAA6D"
@@ -47405,7 +48638,7 @@ native "0xC4278F70131BAA6D"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_BLIP_SHRINK"
@@ -47417,7 +48650,7 @@ native "_SET_BLIP_SHRINK"
 		BOOL "toggle",
 	}
 	alias "0x2B6D467DAB714E8D"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47433,7 +48666,7 @@ native "0x25615540D894B814"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DOES_BLIP_EXIST"
@@ -47442,13 +48675,13 @@ native "DOES_BLIP_EXIST"
 	arguments {
 		Blip "blip",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "SET_WAYPOINT_OFF"
 	hash "0xA7E4E2D361C2627F"
 	jhash (0xB3496E1B)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47466,19 +48699,19 @@ native "SET_WAYPOINT_OFF"
 native "0xD8E694757BCEA8E9"
 	hash "0xD8E694757BCEA8E9"
 	jhash (0x62BABF2C)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "REFRESH_WAYPOINT"
 	hash "0x81FA173F170560D1"
 	jhash (0xB395D753)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_WAYPOINT_ACTIVE"
 	hash "0x1DD1F58F493F1DA5"
 	jhash (0x5E4DF47B)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "SET_NEW_WAYPOINT"
@@ -47489,7 +48722,7 @@ native "SET_NEW_WAYPOINT"
 
 		float "y",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_BRIGHT"
@@ -47500,7 +48733,7 @@ native "SET_BLIP_BRIGHT"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_BLIP_SHOW_CONE"
@@ -47511,7 +48744,7 @@ native "SET_BLIP_SHOW_CONE"
 
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xC594B315EDF2D4AF"
@@ -47520,7 +48753,7 @@ native "0xC594B315EDF2D4AF"
 	arguments {
 		Ped "ped",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47538,7 +48771,7 @@ native "SET_MINIMAP_COMPONENT"
 
 		int "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -47550,7 +48783,7 @@ native "SET_MINIMAP_COMPONENT"
 
 native "0x60E892BA4F5BDCA4"
 	hash "0x60E892BA4F5BDCA4"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47561,7 +48794,7 @@ native "0x60E892BA4F5BDCA4"
 native "GET_MAIN_PLAYER_BLIP_ID"
 	hash "0xDCD4EC3F419D02FA"
 	jhash (0xAB93F020)
-	ns "UI"
+	ns "HUD"
 	returns	"Blip"
 
 native "0x41350B4FC28E3941"
@@ -47569,13 +48802,13 @@ native "0x41350B4FC28E3941"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "HIDE_LOADING_ON_FADE_THIS_FRAME"
 	hash "0x4B0311D3CDC4648F"
 	jhash (0x35087963)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_RADAR_AS_INTERIOR_THIS_FRAME"
@@ -47588,11 +48821,11 @@ native "SET_RADAR_AS_INTERIOR_THIS_FRAME"
 
 		float "y",
 
-		int "z",
+		int "heading",
 
 		int "zoom",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47604,7 +48837,7 @@ native "SET_RADAR_AS_INTERIOR_THIS_FRAME"
 native "SET_RADAR_AS_EXTERIOR_THIS_FRAME"
 	hash "0xE81B7D2A3DAB2D81"
 	jhash (0x39ABB10E)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_PLAYER_BLIP_POSITION_THIS_FRAME"
@@ -47615,7 +48848,7 @@ native "_SET_PLAYER_BLIP_POSITION_THIS_FRAME"
 
 		float "y",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47628,13 +48861,13 @@ native "_SET_PLAYER_BLIP_POSITION_THIS_FRAME"
 native "0x9049FE339D5F6F6F"
 	hash "0x9049FE339D5F6F6F"
 	jhash (0x199DED14)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "_DISABLE_RADAR_THIS_FRAME"
 	hash "0x5FBAE526203990C9"
 	jhash (0x1A4318F7)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47645,13 +48878,13 @@ native "_DISABLE_RADAR_THIS_FRAME"
 native "0x20FE7FDFEEAD38C0"
 	hash "0x20FE7FDFEEAD38C0"
 	jhash (0xCE36E3FE)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_CENTER_PLAYER_ON_RADAR_THIS_FRAME"
 	hash "0x6D14BFDC33B34F55"
 	jhash (0x334EFD46)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47665,7 +48898,7 @@ native "SET_WIDESCREEN_FORMAT"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DISPLAY_AREA_NAME"
@@ -47674,7 +48907,7 @@ native "DISPLAY_AREA_NAME"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DISPLAY_CASH"
@@ -47683,7 +48916,7 @@ native "DISPLAY_CASH"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47697,7 +48930,7 @@ native "0x170F541E1CADD1DE"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47714,7 +48947,7 @@ native "_SET_PLAYER_CASH_CHANGE"
 		int "bank",
 	}
 	alias "_SET_SINGLEPLAYER_HUD_CASH"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47728,13 +48961,13 @@ native "DISPLAY_AMMO_THIS_FRAME"
 	arguments {
 		BOOL "display",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DISPLAY_SNIPER_SCOPE_THIS_FRAME"
 	hash "0x73115226F4814E62"
 	jhash (0xBC6C73CB)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47745,7 +48978,7 @@ native "DISPLAY_SNIPER_SCOPE_THIS_FRAME"
 native "HIDE_HUD_AND_RADAR_THIS_FRAME"
 	hash "0x719FF505F097FD20"
 	jhash (0xB75D4AD2)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47759,31 +48992,31 @@ native "0xE67C6DFD386EA5E7"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xC2D15BEF167E27BC"
 	hash "0xC2D15BEF167E27BC"
 	jhash (0xF4F3C796)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x95CF81BD06EE1887"
 	hash "0x95CF81BD06EE1887"
 	jhash (0x7BFFE82F)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_MULTIPLAYER_BANK_CASH"
 	hash "0xDD21B55DF695CD0A"
 	jhash (0x2C842D03)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "REMOVE_MULTIPLAYER_BANK_CASH"
 	hash "0xC7C6789AA1CFEDD0"
 	jhash (0x728B4EF4)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_MULTIPLAYER_HUD_CASH"
@@ -47794,13 +49027,13 @@ native "SET_MULTIPLAYER_HUD_CASH"
 
 		int "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "REMOVE_MULTIPLAYER_HUD_CASH"
 	hash "0x968F270E39141ECA"
 	jhash (0x07BF4A7D)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47811,7 +49044,7 @@ native "REMOVE_MULTIPLAYER_HUD_CASH"
 native "HIDE_HELP_TEXT_THIS_FRAME"
 	hash "0xD46923FC481CA285"
 	jhash (0xF3807BED)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DISPLAY_HELP_TEXT_THIS_FRAME"
@@ -47822,7 +49055,7 @@ native "DISPLAY_HELP_TEXT_THIS_FRAME"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47839,7 +49072,7 @@ native "DISPLAY_HELP_TEXT_THIS_FRAME"
 		p1 doesn't seem to make a difference, regardless of the state it's in. 
 
 
-		picture of where this is displayed? 
+		picture of where on the screen this is displayed? 
 </summary>
 	]]
 
@@ -47850,7 +49083,7 @@ native "_SHOW_WEAPON_WHEEL"
 		BOOL "forcedShow",
 	}
 	alias "0xEB354E5376BC81A7"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47858,10 +49091,11 @@ native "_SHOW_WEAPON_WHEEL"
 </summary>
 	]]
 
-native "0x0AFC4AF510774B47"
+native "_BLOCK_WEAPON_WHEEL_THIS_FRAME"
 	hash "0x0AFC4AF510774B47"
 	jhash (0xB26FED2B)
-	ns "UI"
+	alias "0x0AFC4AF510774B47"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47872,7 +49106,7 @@ native "0x0AFC4AF510774B47"
 native "0xA48931185F0536FE"
 	hash "0xA48931185F0536FE"
 	jhash (0x22E9F555)
-	ns "UI"
+	ns "HUD"
 	returns	"Hash"
 
 native "0x72C1056D678BB7D8"
@@ -47881,7 +49115,7 @@ native "0x72C1056D678BB7D8"
 	arguments {
 		Hash "weaponHash",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47894,7 +49128,7 @@ native "0xA13E93403F26C812"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x14C9FDCC41F81F63"
@@ -47903,7 +49137,7 @@ native "0x14C9FDCC41F81F63"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_GPS_FLAGS"
@@ -47914,20 +49148,23 @@ native "SET_GPS_FLAGS"
 
 		float "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		Only the script that originally called SET_GPS_FLAGS can set them again. Another script cannot set the flags, until the first script that called it has called CLEAR_GPS_FLAGS.
 
 		Doesn't seem like the flags are actually read by the game at all.
+
+		---------------
+		Might be left-over from GTA IV. I kind of miss the *ding-dong* turn left in 2 meters lady lol.
 </summary>
 	]]
 
 native "CLEAR_GPS_FLAGS"
 	hash "0x21986729D6A3A830"
 	jhash (0x056AFCE6)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47943,13 +49180,13 @@ native "0x1EAC5F91BCBC5073"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "CLEAR_GPS_RACE_TRACK"
 	hash "0x7AA5B4CE533C858B"
 	jhash (0x40C59829)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xDB34E8D56FC13B08"
@@ -47962,7 +49199,7 @@ native "0xDB34E8D56FC13B08"
 
 		BOOL "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x311438A071DD9B1A"
@@ -47975,7 +49212,7 @@ native "0x311438A071DD9B1A"
 
 		Any "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x900086F371220B6F"
@@ -47988,7 +49225,7 @@ native "0x900086F371220B6F"
 
 		Any "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -47999,7 +49236,7 @@ native "0x900086F371220B6F"
 native "0xE6DE0561D9232A64"
 	hash "0xE6DE0561D9232A64"
 	jhash (0xCF2E3E24)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x3D3D15AF7BCAAF83"
@@ -48012,7 +49249,7 @@ native "0x3D3D15AF7BCAAF83"
 
 		BOOL "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xA905192A6781C41B"
@@ -48025,7 +49262,7 @@ native "0xA905192A6781C41B"
 
 		float "z",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x3DDA37128DD1ACA8"
@@ -48034,19 +49271,19 @@ native "0x3DDA37128DD1ACA8"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x67EEDEA1B9BAFD94"
 	hash "0x67EEDEA1B9BAFD94"
 	jhash (0x0D9969E4)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "CLEAR_GPS_PLAYER_WAYPOINT"
 	hash "0xFF4FB7C8CDFA3DA7"
 	jhash (0x0B9C7FC2)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_GPS_FLASHES"
@@ -48055,7 +49292,7 @@ native "SET_GPS_FLASHES"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x7B21E0BB01E8224A"
@@ -48063,13 +49300,13 @@ native "0x7B21E0BB01E8224A"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "FLASH_MINIMAP_DISPLAY"
 	hash "0xF2DD778C22B15BDA"
 	jhash (0xB8359952)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48084,7 +49321,7 @@ native "0x6B1DE27EE78E6A19"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "TOGGLE_STEALTH_RADAR"
@@ -48093,7 +49330,7 @@ native "TOGGLE_STEALTH_RADAR"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "KEY_HUD_COLOUR"
@@ -48104,7 +49341,7 @@ native "KEY_HUD_COLOUR"
 
 		Any "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48120,19 +49357,32 @@ native "SET_MISSION_NAME"
 
 		charPtr "name",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		Takes a text label, gets the string (must not be longer than 600 chars, should not exceed 64 chars) and sets the name to that string.
+		p0 must be true.
+</summary>
+	]]
 
-native "0xE45087D85F468BC2"
+native "_SET_MISSION_NAME_2"
 	hash "0xE45087D85F468BC2"
 	jhash (0x8D9A1734)
 	arguments {
 		BOOL "p0",
 
-		AnyPtr "p1",
+		charPtr "name",
 	}
-	ns "UI"
+	alias "0xE45087D85F468BC2"
+	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		Similar to SET_MISSION_NAME but this one can take any string (must not be greater than 600 chars, should not exceed 64 chars), not just text labels.
+		p0 must be true.
+</summary>
+	]]
 
 native "0x817B86108EB94E51"
 	hash "0x817B86108EB94E51"
@@ -48156,7 +49406,7 @@ native "0x817B86108EB94E51"
 
 		AnyPtr "p8",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48170,7 +49420,7 @@ native "SET_MINIMAP_BLOCK_WAYPOINT"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_NORTH_YANKTON_MAP"
@@ -48180,7 +49430,7 @@ native "_SET_NORTH_YANKTON_MAP"
 		BOOL "toggle",
 	}
 	alias "_SET_DRAW_MAP_VISIBLE"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48195,7 +49445,7 @@ native "_SET_MINIMAP_REVEALED"
 		BOOL "toggle",
 	}
 	alias "0xF8DEE0A5600CBB93"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48206,7 +49456,7 @@ native "_SET_MINIMAP_REVEALED"
 native "0xE0130B41D3CF4574"
 	hash "0xE0130B41D3CF4574"
 	jhash (0xA4098ACC)
-	ns "UI"
+	ns "HUD"
 	returns	"float"
 
 native "_IS_MINIMAP_AREA_REVEALED"
@@ -48220,7 +49470,7 @@ native "_IS_MINIMAP_AREA_REVEALED"
 		float "radius",
 	}
 	alias "0x6E31B91145873922"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x62E849B7EB28E770"
@@ -48228,7 +49478,7 @@ native "0x62E849B7EB28E770"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x0923DBF87DFF735E"
@@ -48241,7 +49491,7 @@ native "0x0923DBF87DFF735E"
 
 		float "z",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x71BDB63DBAF8DA59"
@@ -48250,13 +49500,13 @@ native "0x71BDB63DBAF8DA59"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x35EDD5B2E3FF01C0"
 	hash "0x35EDD5B2E3FF01C0"
 	jhash (0x20FD3E87)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "LOCK_MINIMAP_ANGLE"
@@ -48265,7 +49515,7 @@ native "LOCK_MINIMAP_ANGLE"
 	arguments {
 		int "angle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48278,7 +49528,7 @@ native "LOCK_MINIMAP_ANGLE"
 native "UNLOCK_MINIMAP_ANGLE"
 	hash "0x8183455E16C42E3A"
 	jhash (0x742043F9)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "LOCK_MINIMAP_POSITION"
@@ -48289,7 +49539,7 @@ native "LOCK_MINIMAP_POSITION"
 
 		float "y",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48300,7 +49550,7 @@ native "LOCK_MINIMAP_POSITION"
 native "UNLOCK_MINIMAP_POSITION"
 	hash "0x3E93E06DB8EF1F30"
 	jhash (0x5E8E6F54)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_MINIMAP_ATTITUDE_INDICATOR_LEVEL"
@@ -48311,7 +49561,7 @@ native "_SET_MINIMAP_ATTITUDE_INDICATOR_LEVEL"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48329,7 +49579,7 @@ native "0x3F5CC444DCAAA8F2"
 
 		BOOL "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x975D66A0BC17064C"
@@ -48338,7 +49588,7 @@ native "0x975D66A0BC17064C"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x06A320535F5F0248"
@@ -48347,7 +49597,7 @@ native "0x06A320535F5F0248"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_RADAR_BIGMAP_ENABLED"
@@ -48358,7 +49608,7 @@ native "_SET_RADAR_BIGMAP_ENABLED"
 
 		BOOL "showFullMap",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48372,7 +49622,7 @@ native "IS_HUD_COMPONENT_ACTIVE"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -48411,7 +49661,7 @@ native "IS_SCRIPTED_HUD_COMPONENT_ACTIVE"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "HIDE_SCRIPTED_HUD_COMPONENT_THIS_FRAME"
@@ -48420,7 +49670,7 @@ native "HIDE_SCRIPTED_HUD_COMPONENT_THIS_FRAME"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x09C0403ED9A751C2"
@@ -48429,7 +49679,7 @@ native "0x09C0403ED9A751C2"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "HIDE_HUD_COMPONENT_THIS_FRAME"
@@ -48438,7 +49688,7 @@ native "HIDE_HUD_COMPONENT_THIS_FRAME"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SHOW_HUD_COMPONENT_THIS_FRAME"
@@ -48447,19 +49697,19 @@ native "SHOW_HUD_COMPONENT_THIS_FRAME"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xA4DEDE28B1814289"
 	hash "0xA4DEDE28B1814289"
 	jhash (0x52746FE1)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "RESET_RETICULE_VALUES"
 	hash "0x12782CE0A636E9F0"
 	jhash (0xBE27AA3F)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "RESET_HUD_COMPONENT_VALUES"
@@ -48468,7 +49718,7 @@ native "RESET_HUD_COMPONENT_VALUES"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_HUD_COMPONENT_POSITION"
@@ -48481,7 +49731,7 @@ native "SET_HUD_COMPONENT_POSITION"
 
 		float "y",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GET_HUD_COMPONENT_POSITION"
@@ -48490,14 +49740,14 @@ native "GET_HUD_COMPONENT_POSITION"
 	arguments {
 		int "id",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Vector3"
 
 native "CLEAR_REMINDER_MESSAGE"
 	hash "0xB57D8DD645CFA2CF"
 	jhash (0x5BBCC934)
 	alias "0xB57D8DD645CFA2CF"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_GET_SCREEN_COORD_FROM_WORLD_COORD"
@@ -48515,20 +49765,21 @@ native "_GET_SCREEN_COORD_FROM_WORLD_COORD"
 		floatPtr "screenY",
 	}
 	alias "0xF9904D11F1ACBEC3"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
 		World to relative screen coords
 
-		this world to screen will keep the text on screen. it will keep it in the screen pos
+		this world to screen will keep the text on screen. it will keep it in the screen pos. good for a deer hunting mod
 </summary>
 	]]
 
-native "0x523A590C1A3CC0D3"
+native "_DISPLAY_JOB_REPORT"
 	hash "0x523A590C1A3CC0D3"
 	jhash (0x10DE5150)
-	ns "UI"
+	alias "0x523A590C1A3CC0D3"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48539,7 +49790,7 @@ native "0x523A590C1A3CC0D3"
 native "0xEE4C0E6DBC6F2C6F"
 	hash "0xEE4C0E6DBC6F2C6F"
 	jhash (0x67649EE0)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48550,7 +49801,7 @@ native "0xEE4C0E6DBC6F2C6F"
 native "0x9135584D09A3437E"
 	hash "0x9135584D09A3437E"
 	jhash (0x9D2C94FA)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -48564,7 +49815,7 @@ native "0x2432784ACA090DA4"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -48582,7 +49833,7 @@ native "0x7679CC1BCEBE3D4C"
 
 		float "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x784BA7E0ECEB4178"
@@ -48597,7 +49848,7 @@ native "0x784BA7E0ECEB4178"
 
 		float "z",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xB094BC1DB4018240"
@@ -48612,7 +49863,7 @@ native "0xB094BC1DB4018240"
 
 		float "p3",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x788E7FD431BD67F1"
@@ -48631,7 +49882,7 @@ native "0x788E7FD431BD67F1"
 
 		Any "p5",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "CLEAR_FLOATING_HELP"
@@ -48642,7 +49893,7 @@ native "CLEAR_FLOATING_HELP"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48650,7 +49901,7 @@ native "CLEAR_FLOATING_HELP"
 </summary>
 	]]
 
-native "_CREATE_MP_GAMER_TAG_COLOR"
+native "_SET_MP_GAMER_TAG_COLOR"
 	hash "0x6DD05E9D83EFA4C9"
 	jhash (0xC969F2D0)
 	arguments {
@@ -48673,18 +49924,15 @@ native "_CREATE_MP_GAMER_TAG_COLOR"
 		int "b",
 	}
 	alias "0x6DD05E9D83EFA4C9"
-	ns "UI"
+	alias "_CREATE_MP_GAMER_TAG_COLOR"
+	ns "HUD"
 	returns	"void"
-	doc [[!
-<summary>
-		shouldn't this return an int?
-</summary>
-	]]
 
-native "0x6E0EB3EB47C8D7AA"
+native "_HAS_MP_GAMER_TAG"
 	hash "0x6E0EB3EB47C8D7AA"
 	jhash (0xEFD2564A)
-	ns "UI"
+	alias "0x6E0EB3EB47C8D7AA"
+	ns "HUD"
 	returns	"BOOL"
 
 native "_CREATE_MP_GAMER_TAG"
@@ -48704,7 +49952,7 @@ native "_CREATE_MP_GAMER_TAG"
 		Any "p5",
 	}
 	alias "0xBFEFE3321A3F5015"
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -48721,7 +49969,7 @@ native "REMOVE_MP_GAMER_TAG"
 		int "gamerTagId",
 	}
 	alias "0x31698AA80E0223F8"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_MP_GAMER_TAG_ACTIVE"
@@ -48731,7 +49979,7 @@ native "IS_MP_GAMER_TAG_ACTIVE"
 		int "gamerTagId",
 	}
 	alias "0x4E929E7A5796FD26"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "ADD_TREVOR_RANDOM_MODIFIER"
@@ -48740,7 +49988,7 @@ native "ADD_TREVOR_RANDOM_MODIFIER"
 	arguments {
 		int "gamerTagId",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -48760,7 +50008,7 @@ native "SET_MP_GAMER_TAG_VISIBILITY"
 		BOOL "toggle",
 	}
 	alias "0x63BB75ABEDC1F6A0"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48787,7 +50035,7 @@ native "SET_MP_GAMER_TAG_VISIBILITY"
 </summary>
 	]]
 
-native "0xEE76FF7E6A0166B0"
+native "_SET_MP_GAMER_TAG_"
 	hash "0xEE76FF7E6A0166B0"
 	jhash (0x767DED29)
 	arguments {
@@ -48795,10 +50043,11 @@ native "0xEE76FF7E6A0166B0"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	alias "0xEE76FF7E6A0166B0"
+	ns "HUD"
 	returns	"void"
 
-native "0xA67F9C46D612B6F1"
+native "_SET_MP_GAMER_TAG_ICONS"
 	hash "0xA67F9C46D612B6F1"
 	jhash (0xB01A5434)
 	arguments {
@@ -48806,7 +50055,8 @@ native "0xA67F9C46D612B6F1"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	alias "0xA67F9C46D612B6F1"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48825,7 +50075,7 @@ native "SET_MP_GAMER_TAG_COLOUR"
 		int "color",
 	}
 	alias "0x613ED644950626AE"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48843,7 +50093,7 @@ native "SET_MP_GAMER_TAG_HEALTH_BAR_COLOUR"
 	}
 	alias "0x3158C77A7E888AB4"
 	alias "_SET_MP_GAMER_TAG_HEALTH_BAR_COLOR"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48865,7 +50115,7 @@ native "SET_MP_GAMER_TAG_ALPHA"
 		int "alpha",
 	}
 	alias "0xD48FE545CD46F857"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48882,7 +50132,7 @@ native "SET_MP_GAMER_TAG_WANTED_LEVEL"
 		int "wantedlvl",
 	}
 	alias "0xCF228E2AA03099C3"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48899,19 +50149,20 @@ native "SET_MP_GAMER_TAG_NAME"
 		charPtr "string",
 	}
 	alias "0xDEA2B8283BAA3944"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
-native "0xEB709A36958ABE0D"
+native "_HAS_MP_GAMER_TAG_2"
 	hash "0xEB709A36958ABE0D"
 	jhash (0xF11414C4)
 	arguments {
 		int "gamerTagId",
 	}
-	ns "UI"
+	alias "0xEB709A36958ABE0D"
+	ns "HUD"
 	returns	"BOOL"
 
-native "0x7B7723747CCB55B6"
+native "_SET_MP_GAMER_TAG_CHATTING"
 	hash "0x7B7723747CCB55B6"
 	jhash (0x939218AB)
 	arguments {
@@ -48919,7 +50170,8 @@ native "0x7B7723747CCB55B6"
 
 		charPtr "string",
 	}
-	ns "UI"
+	alias "0x7B7723747CCB55B6"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48927,21 +50179,27 @@ native "0x7B7723747CCB55B6"
 </summary>
 	]]
 
-native "0x01A358D9128B7A86"
+native "_GET_ACTIVE_WEBSITE_ID"
 	hash "0x01A358D9128B7A86"
 	jhash (0xAB5B7C18)
-	ns "UI"
-	returns	"Any"
+	alias "0x01A358D9128B7A86"
+	ns "HUD"
+	returns	"int"
 	doc [[!
 <summary>
 		native only found once in appinternet.c4
+
+		same thing as this but does not need websiteID
+		Any _0xE3B05614DCE1D014(Any p0) // 0xE3B05614DCE1D014 0xD217EE7E
+
+		returns current websitePageID
 </summary>
 	]]
 
 native "GET_CURRENT_WEBSITE_ID"
 	hash "0x97D47996FC48CBAD"
 	jhash (0x42A55B14)
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "0xE3B05614DCE1D014"
@@ -48950,20 +50208,27 @@ native "0xE3B05614DCE1D014"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
+	doc [[!
+<summary>
+		 UI::GET_CURRENT_WEBSITE_PAGE_ID(int websiteID)
+
+		returns the current website page sometimes returns false
+</summary>
+	]]
 
 native "0xB99C4E4D9499DF29"
 	hash "0xB99C4E4D9499DF29"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xAF42195A42C63BBA"
 	hash "0xAF42195A42C63BBA"
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "SET_WARNING_MESSAGE"
@@ -48986,7 +50251,7 @@ native "SET_WARNING_MESSAGE"
 
 		BOOL "background",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -48996,7 +50261,7 @@ native "SET_WARNING_MESSAGE"
 </summary>
 	]]
 
-native "_SET_WARNING_MESSAGE_2"
+native "SET_WARNING_MESSAGE_WITH_HEADER"
 	hash "0xDC38CC1E35B6A5D7"
 	jhash (0x2DB9EAB5)
 	arguments {
@@ -49018,18 +50283,21 @@ native "_SET_WARNING_MESSAGE_2"
 
 		BOOL "background",
 	}
-	ns "UI"
+	alias "_SET_WARNING_MESSAGE_2"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		You can only use text entries. No custom text.
 
-		[24/03/2017] by ins1de :
 
 		C# Example :
 		Function.Call(Hash._SET_WARNING_MESSAGE_2, "HUD_QUIT", "HUD_CGIGNORE", 2, "HUD_CGINVITE", 0, -1, 0, 0, 1);
 
-		@unknown, you can recreate this easily with scaleforms
+		you can recreate this easily with scaleforms
+
+		---------------
+		Fixed native name, from before nativedb restoration.
 </summary>
 	]]
 
@@ -49057,7 +50325,7 @@ native "_SET_WARNING_MESSAGE_3"
 
 		BOOL "p9",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49080,7 +50348,7 @@ native "0x0C5A80A9E096D529"
 
 		Any "p5",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0xDAF87174BE7454FF"
@@ -49088,25 +50356,25 @@ native "0xDAF87174BE7454FF"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x6EF54AB721DC6242"
 	hash "0x6EF54AB721DC6242"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_WARNING_MESSAGE_ACTIVE"
 	hash "0xE18B138FABC53103"
 	jhash (0x94C834AD)
 	alias "IS_MEDICAL_DISABLED"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x7792424AA0EAC32E"
 	hash "0x7792424AA0EAC32E"
 	jhash (0x2F9A309C)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_MAP_FULL_SCREEN"
@@ -49116,7 +50384,7 @@ native "_SET_MAP_FULL_SCREEN"
 		BOOL "toggle",
 	}
 	alias "0x5354C5BA2EA868A4"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49131,7 +50399,7 @@ native "0x1EAE6DD17B7A5EFA"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x551DF99658DB6EE8"
@@ -49144,19 +50412,19 @@ native "0x551DF99658DB6EE8"
 
 		float "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x2708FC083123F9FF"
 	hash "0x2708FC083123F9FF"
 	jhash (0xCBEC9369)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x1121BFA1A1A522A8"
 	hash "0x1121BFA1A1A522A8"
 	jhash (0x3F4AFB13)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x82CEDC33687E1F50"
@@ -49165,19 +50433,19 @@ native "0x82CEDC33687E1F50"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x211C4EF450086857"
 	hash "0x211C4EF450086857"
 	jhash (0x801D0D86)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xBF4F34A85CA2970C"
 	hash "0xBF4F34A85CA2970C"
 	jhash (0x317775DF)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "ACTIVATE_FRONTEND_MENU"
@@ -49190,7 +50458,7 @@ native "ACTIVATE_FRONTEND_MENU"
 
 		int "component",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49221,7 +50489,7 @@ native "RESTART_FRONTEND_MENU"
 
 		int "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49243,7 +50511,7 @@ native "_GET_CURRENT_FRONTEND_MENU"
 	hash "0x2309595AD6145265"
 	jhash (0x33D6868F)
 	alias "0x2309595AD6145265"
-	ns "UI"
+	ns "HUD"
 	returns	"Hash"
 	doc [[!
 <summary>
@@ -49259,25 +50527,25 @@ native "SET_PAUSE_MENU_ACTIVE"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "DISABLE_FRONTEND_THIS_FRAME"
 	hash "0x6D3465A73092F0E6"
 	jhash (0xD86A029E)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xBA751764F0821256"
 	hash "0xBA751764F0821256"
 	jhash (0x7F349900)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xCC3FDDED67BCFC63"
 	hash "0xCC3FDDED67BCFC63"
 	jhash (0x630CD8EE)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_FRONTEND_ACTIVE"
@@ -49286,19 +50554,19 @@ native "SET_FRONTEND_ACTIVE"
 	arguments {
 		BOOL "active",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "IS_PAUSE_MENU_ACTIVE"
 	hash "0xB0034A223497FFCB"
 	jhash (0xD3600591)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x2F057596F2BD0061"
 	hash "0x2F057596F2BD0061"
 	jhash (0xC85C4487)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -49309,7 +50577,7 @@ native "0x2F057596F2BD0061"
 native "GET_PAUSE_MENU_STATE"
 	hash "0x272ACD84970869C5"
 	jhash (0x92F50134)
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -49329,13 +50597,13 @@ native "GET_PAUSE_MENU_STATE"
 
 native "0x5BFF36D6ED83E0AE"
 	hash "0x5BFF36D6ED83E0AE"
-	ns "UI"
+	ns "HUD"
 	returns	"Vector3"
 
 native "IS_PAUSE_MENU_RESTARTING"
 	hash "0x1C491717107431C7"
 	jhash (0x3C4CF4D9)
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "_LOG_DEBUG_INFO"
@@ -49345,7 +50613,7 @@ native "_LOG_DEBUG_INFO"
 		charPtr "p0",
 	}
 	alias "0x2162C446DFDF38FD"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49360,13 +50628,13 @@ native "0x77F16B447824DA6C"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xCDCA26E80FAECB8F"
 	hash "0xCDCA26E80FAECB8F"
 	jhash (0xC84BE309)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_ADD_FRONTEND_MENU_CONTEXT"
@@ -49376,7 +50644,7 @@ native "_ADD_FRONTEND_MENU_CONTEXT"
 		Hash "hash",
 	}
 	alias "0xDD564BDD0472C936"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49408,7 +50676,7 @@ native "OBJECT_DECAL_TOGGLE"
 	arguments {
 		Hash "hash",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49422,28 +50690,28 @@ native "0x84698AB38D0C6636"
 	arguments {
 		Hash "hash",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x2A25ADC48F87841F"
 	hash "0x2A25ADC48F87841F"
 	jhash (0x016D7AF9)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xDE03620F8703A9DF"
 	hash "0xDE03620F8703A9DF"
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x359AF31A4B52F5ED"
 	hash "0x359AF31A4B52F5ED"
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x13C4B962653A5280"
 	hash "0x13C4B962653A5280"
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xC8E1071177A23BE5"
@@ -49455,7 +50723,7 @@ native "0xC8E1071177A23BE5"
 
 		AnyPtr "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "ENABLE_DEATHBLOOD_SEETHROUGH"
@@ -49464,7 +50732,7 @@ native "ENABLE_DEATHBLOOD_SEETHROUGH"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49482,7 +50750,7 @@ native "0xC78E239AC5B2DDB9"
 
 		Any "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xF06EBB91A81E09E3"
@@ -49491,55 +50759,55 @@ native "0xF06EBB91A81E09E3"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x3BAB9A4E4F2FF5C7"
 	hash "0x3BAB9A4E4F2FF5C7"
 	jhash (0xD3BF3ABD)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xEC9264727EEC0F28"
 	hash "0xEC9264727EEC0F28"
 	jhash (0xC06B763D)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x14621BB1DF14E2B2"
 	hash "0x14621BB1DF14E2B2"
 	jhash (0xB9392CE7)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x66E7CB63C97B7D20"
 	hash "0x66E7CB63C97B7D20"
 	jhash (0x92DAFA78)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x593FEAE1F73392D4"
 	hash "0x593FEAE1F73392D4"
 	jhash (0x22CA9F2A)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x4E3CD0EF8A489541"
 	hash "0x4E3CD0EF8A489541"
 	jhash (0xDA7951A2)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0xF284AC67940C6812"
 	hash "0xF284AC67940C6812"
 	jhash (0x7D95AFFF)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x2E22FEFA0100275E"
 	hash "0x2E22FEFA0100275E"
 	jhash (0x96863460)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x0CF54F20DE43879C"
@@ -49547,7 +50815,7 @@ native "0x0CF54F20DE43879C"
 	arguments {
 		Any "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x36C1451A88A09630"
@@ -49558,20 +50826,20 @@ native "0x36C1451A88A09630"
 
 		AnyPtr "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x7E17BE53E1AAABAF"
 	hash "0x7E17BE53E1AAABAF"
 	jhash (0x6025AA2F)
 	arguments {
-		AnyPtr "p0",
+		intPtr "p0",
 
-		AnyPtr "p1",
+		intPtr "p1",
 
-		AnyPtr "p2",
+		intPtr "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xA238192F33110615"
@@ -49584,7 +50852,7 @@ native "0xA238192F33110615"
 
 		intPtr "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "SET_USERIDS_UIHIDDEN"
@@ -49595,7 +50863,7 @@ native "SET_USERIDS_UIHIDDEN"
 
 		AnyPtr "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -49612,7 +50880,7 @@ native "0xCA6B2F7CE32AB653"
 
 		Any "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x90A6526CF0381030"
@@ -49627,7 +50895,7 @@ native "0x90A6526CF0381030"
 
 		Any "p3",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x24A49BEAF468DC90"
@@ -49643,7 +50911,7 @@ native "0x24A49BEAF468DC90"
 
 		Any "p4",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x5FBD7095FE7AE57F"
@@ -49654,7 +50922,7 @@ native "0x5FBD7095FE7AE57F"
 
 		floatPtr "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x8F08017F9D7C47BD"
@@ -49666,7 +50934,7 @@ native "0x8F08017F9D7C47BD"
 
 		Any "p2",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x052991E59076E4E4"
@@ -49677,7 +50945,7 @@ native "0x052991E59076E4E4"
 
 		AnyPtr "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -49688,7 +50956,7 @@ native "0x052991E59076E4E4"
 native "CLEAR_PED_IN_PAUSE_MENU"
 	hash "0x5E62BE5DC58E9E06"
 	jhash (0x28058ACF)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "GIVE_PED_TO_PAUSE_MENU"
@@ -49699,7 +50967,7 @@ native "GIVE_PED_TO_PAUSE_MENU"
 
 		int "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49713,7 +50981,7 @@ native "0x3CA6050692BC61B0"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xECF128344E9FF9F1"
@@ -49722,13 +50990,13 @@ native "0xECF128344E9FF9F1"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SHOW_SOCIAL_CLUB_LEGAL_SCREEN"
 	hash "0x805D7CBB36FD6C4C"
 	jhash (0x19FCBBB2)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49739,25 +51007,25 @@ native "_SHOW_SOCIAL_CLUB_LEGAL_SCREEN"
 native "0xF13FE2A80C05C561"
 	hash "0xF13FE2A80C05C561"
 	jhash (0x850690FF)
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x6F72CD94F7B5B68C"
 	hash "0x6F72CD94F7B5B68C"
 	jhash (0x9D4934F4)
-	ns "UI"
+	ns "HUD"
 	returns	"int"
 
 native "0x75D3691713C3B05A"
 	hash "0x75D3691713C3B05A"
 	jhash (0x57218529)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0xD2B32BE3FC1626C6"
 	hash "0xD2B32BE3FC1626C6"
 	jhash (0x5F86AA39)
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "0x9E778248D6685FE0"
@@ -49766,7 +51034,7 @@ native "0x9E778248D6685FE0"
 	arguments {
 		charPtr "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49781,7 +51049,7 @@ native "IS_SOCIAL_CLUB_ACTIVE"
 	hash "0xC406BE343FC4B9AF"
 	jhash (0xD4DA14EF)
 	alias "0xC406BE343FC4B9AF"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 
 native "0x1185A8087587322C"
@@ -49789,7 +51057,7 @@ native "0x1185A8087587322C"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49799,12 +51067,12 @@ native "0x1185A8087587322C"
 
 native "0x8817605C2BA76200"
 	hash "0x8817605C2BA76200"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_IS_TEXT_CHAT_ACTIVE"
 	hash "0xB118AF58B5F332A1"
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -49814,7 +51082,7 @@ native "_IS_TEXT_CHAT_ACTIVE"
 
 native "_ABORT_TEXT_CHAT"
 	hash "0x1AC8F4AD40E22127"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49827,7 +51095,7 @@ native "_SET_TEXT_CHAT_UNK"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49841,10 +51109,10 @@ native "0xCEF214315D276FD1"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
-native "_SET_PED_ENEMY_AI_BLIP"
+native "_SET_PED_AI_BLIP"
 	hash "0xD30C50DF888D58B5"
 	jhash (0x96C4C4DD)
 	arguments {
@@ -49853,13 +51121,33 @@ native "_SET_PED_ENEMY_AI_BLIP"
 		BOOL "showViewCones",
 	}
 	alias "0xD30C50DF888D58B5"
-	ns "UI"
+	alias "_SET_PED_ENEMY_AI_BLIP"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		Previously named _0xD30C50DF888D58B5, this native turns on the AI blip on the specified ped. It also disappears automatically when the ped is too far or if the ped is dead. You don't need to control it with other natives. 
 
 		See gtaforums.com/topic/884370-native-research-ai-blips for further information.
+
+		Note: Everything said at the bottom is only valid for persistant peds, as AI blips seem to behave differently for non-persistant peds.
+
+		• To create an AI blip, you must use UI::0xD30C50DF888D58B5() (_SET_PED_ENEMY_AI_BLIP). It has two arguments: "ped" which is the ped you want to AI blip to be linked to, and "showViewCones" which needs to be true for AI blips to appear.
+
+		• To check if a ped has an AI blip, you can use UI::DOES_PED_HAVE_AI_BLIP(Ped ped), which returns a simple bool.
+
+		• By default, AI blips never disappear. If you want them to disappear when you're at a certain distance from a ped, you can use UI::0x97C65887D4B37FA9(Ped ped, float distance) (_SET_AI_BLIP_MAX_DISTANCE)
+
+		• By default, the blip only appears when you're in combat with the specified ped. If you want it to be always displayed, you can use UI::x0C4BBF625CA98C4E() (_IS_AI_BLIP_ALWAYS_SHOWN). It also has two arguments: "ped", and a flag. If the flag is set to true, the blip will always be displayed. If it's set to false, the AI blip will have its default behaviour.
+
+		• By default, a view cone is displayed with the blip (basically a blue surface that represents the field of view of the ped, like in vanilla stealth missions). If you don't want it, you can disable it with UI::HIDE_SPECIAL_ABILITY_LOCKON_OPERATION(Ped ped, bool flag). If the flag is set to true, the view cone is displayed. If the flag is set to false, it is not.
+
+		• Finally, there's actually 3 types of AI blips:
+		0 - the default, red, "enemy" blip
+		1 - a weird, semi-transparent, nameless, yellow blip
+		2 - the blue "friend" blip
+		You can change an AI blip's type with UI::0xE52B8E7F85D39A08(Ped ped, int type) (_SET_AI_BLIP_TYPE).
+
 </summary>
 	]]
 
@@ -49869,7 +51157,7 @@ native "DOES_PED_HAVE_AI_BLIP"
 	arguments {
 		Ped "ped",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -49878,16 +51166,26 @@ native "DOES_PED_HAVE_AI_BLIP"
 </summary>
 	]]
 
-native "0xE52B8E7F85D39A08"
+native "_SET_AI_BLIP_TYPE"
 	hash "0xE52B8E7F85D39A08"
 	jhash (0xD8E31B1A)
 	arguments {
 		Ped "ped",
 
-		int "unk",
+		int "type",
 	}
-	ns "UI"
+	alias "0xE52B8E7F85D39A08"
+	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		Set a ped's AI blip type:
+
+
+		1 - Yellow blip with no name
+		2 
+</summary>
+	]]
 
 native "HIDE_SPECIAL_ABILITY_LOCKON_OPERATION"
 	hash "0x3EED80DFF7325CAA"
@@ -49897,24 +51195,35 @@ native "HIDE_SPECIAL_ABILITY_LOCKON_OPERATION"
 
 		BOOL "p1",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
 		Hash collision
+
+		If used with a Ped that has an AI blip as the first argument:
+		- if p1 is true, a view cone is displayed with the AI blip
 </summary>
 	]]
 
-native "0x0C4BBF625CA98C4E"
+native "_IS_AI_BLIP_ALWAYS_SHOWN"
 	hash "0x0C4BBF625CA98C4E"
 	jhash (0xFFDF46F0)
 	arguments {
 		Ped "ped",
 
-		BOOL "p1",
+		BOOL "flag",
 	}
-	ns "UI"
+	alias "0x0C4BBF625CA98C4E"
+	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		if "flag" is true, the AI blip will always be displayed for the specified ped, if it has an AI blip
+
+		If "flag" is false, the AI blip will only be displayed when the player is in combat with the specified ped, if it has an AI blip
+</summary>
+	]]
 
 native "_SET_AI_BLIP_MAX_DISTANCE"
 	hash "0x97C65887D4B37FA9"
@@ -49925,7 +51234,7 @@ native "_SET_AI_BLIP_MAX_DISTANCE"
 		float "distance",
 	}
 	alias "0x97C65887D4B37FA9"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49940,16 +51249,17 @@ native "0x7CD934010E115C2C"
 	arguments {
 		Ped "ped",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"BlipPtr"
 
-native "0x56176892826A4FE8"
+native "_GET_AI_BLIP"
 	hash "0x56176892826A4FE8"
 	jhash (0xCA52CF43)
 	arguments {
 		Ped "ped",
 	}
-	ns "UI"
+	alias "0x56176892826A4FE8"
+	ns "HUD"
 	returns	"Blip"
 	doc [[!
 <summary>
@@ -49959,12 +51269,12 @@ native "0x56176892826A4FE8"
 
 native "0xA277800A9EAE340E"
 	hash "0xA277800A9EAE340E"
-	ns "UI"
+	ns "HUD"
 	returns	"Any"
 
 native "0x2632482FD6B9AB87"
 	hash "0x2632482FD6B9AB87"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "_SET_DIRECTOR_MODE"
@@ -49973,7 +51283,7 @@ native "_SET_DIRECTOR_MODE"
 		BOOL "toggle",
 	}
 	alias "0x808519373FD336A3"
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -49987,7 +51297,7 @@ native "0x04655F9D075D0AE5"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UI"
+	ns "HUD"
 	returns	"void"
 
 native "SET_DEBUG_LINES_AND_SPHERES_DRAWING_ACTIVE"
@@ -50377,22 +51687,37 @@ native "0x23BA6B0C2AD7B0D3"
 	hash "0x23BA6B0C2AD7B0D3"
 	jhash (0xC44C2F44)
 	arguments {
-		BOOL "p0",
+		BOOL "toggle",
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Found only in all creator scripts. (fm_capture_creator, fm_deathmatch_creator, fm_lts_creator, fm_mission_controller, fm_race_creator)
+
+		Used in-between DRAW_* calls (DRAW_POLY specifically).
+
+</summary>
+	]]
 
 native "0x1DD2139A9A20DCE8"
 	hash "0x1DD2139A9A20DCE8"
 	jhash (0xBA9AD458)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0x90A78ECAA4E78453"
 	hash "0x90A78ECAA4E78453"
 	jhash (0xADBBA287)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"int"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Seems to return a value 0-2.
+</summary>
+	]]
 
 native "0x0A46AF8A78DC5E0A"
 	hash "0x0A46AF8A78DC5E0A"
@@ -50404,37 +51729,55 @@ native "0x4862437A486F91B0"
 	hash "0x4862437A486F91B0"
 	jhash (0x56C1E488)
 	arguments {
-		AnyPtr "p0",
+		charPtr "p0",
 
-		Any "p1",
+		AnyPtr "p1",
 
-		Any "p2",
+		AnyPtr "p2",
 
-		Any "p3",
+		BOOL "p3",
 	}
 	ns "GRAPHICS"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Possibly some unknown structures.
+</summary>
+	]]
 
 native "0x1670F8D05056F257"
 	hash "0x1670F8D05056F257"
 	jhash (0x226B08EA)
 	arguments {
-		AnyPtr "p0",
+		Any "p0",
 	}
 	ns "GRAPHICS"
 	returns	"int"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Seems to return a value 0-2.
+</summary>
+	]]
 
 native "0x7FA5D82B8F58EC06"
 	hash "0x7FA5D82B8F58EC06"
 	jhash (0x1F3CADB0)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0x5B0316762AFD4A64"
 	hash "0x5B0316762AFD4A64"
 	jhash (0xA9DC8558)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"int"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Seems to return a value 0-2.
+</summary>
+	]]
 
 native "0x346EF3ECAAAB149E"
 	hash "0x346EF3ECAAAB149E"
@@ -50446,13 +51789,25 @@ native "0xA67C35C56EB1BD9D"
 	hash "0xA67C35C56EB1BD9D"
 	jhash (0x47B0C137)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Only one instances in two scripts. (cellphone_controller, maintransition)
+</summary>
+	]]
 
 native "0x0D6CA79EEEBD8CA3"
 	hash "0x0D6CA79EEEBD8CA3"
 	jhash (0x65376C9B)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"int"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Seems to return a value 0-2.
+</summary>
+	]]
 
 native "0xD801CC02177FA3F1"
 	hash "0xD801CC02177FA3F1"
@@ -50478,6 +51833,13 @@ native "0x1BBC135A4D25EDDE"
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Only one instance across all scripts. (maintransition)
+		May not be a bool, it could be one of these 0-2 values that are returned just about 500 god damn times.
+</summary>
+	]]
 
 native "0x3DEC726C25A11BAC"
 	hash "0x3DEC726C25A11BAC"
@@ -50486,11 +51848,15 @@ native "0x3DEC726C25A11BAC"
 		int "p0",
 	}
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		1 match in 1 script. cellphone_controller.
 		p0 is -1 in scripts.
+
+		Dr. Underscore (1/6/18):
+		I have two uses in two scripts; and it's called with -1 in maintransition, not cellphone_controller. Are you using x360 scripts, or an older version of PC scripts?
+		Also returns bool.
 </summary>
 	]]
 
@@ -50498,13 +51864,19 @@ native "0x0C0C4E81E1AC60A0"
 	hash "0x0C0C4E81E1AC60A0"
 	jhash (0xEC5D0317)
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"int"
+	doc [[!
+<summary>
+		Dr. Underscore (1/6/18):
+		Seems to return a value 0-2.
+</summary>
+	]]
 
 native "0x759650634F07B6B4"
 	hash "0x759650634F07B6B4"
 	jhash (0x25D569EB)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "GRAPHICS"
 	returns	"BOOL"
@@ -50513,10 +51885,10 @@ native "0xCB82A0BF0E3E3265"
 	hash "0xCB82A0BF0E3E3265"
 	jhash (0xCFCDC518)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"int"
 
 native "0x6A12D88881435DCA"
 	hash "0x6A12D88881435DCA"
@@ -50543,38 +51915,45 @@ native "GET_MAXIMUM_NUMBER_OF_PHOTOS"
 	doc [[!
 <summary>
 		This function is hard-coded to always return 0.
+
+		Limit is 96, see _GET_MAXIMUM_NUMBER_OF_PHOTOS_2 (0xDC54A7AF8B3A14EF).
 </summary>
 	]]
 
-native "0xDC54A7AF8B3A14EF"
+native "_GET_MAXIMUM_NUMBER_OF_PHOTOS_2"
 	hash "0xDC54A7AF8B3A14EF"
 	jhash (0x239272BD)
-	ns "GRAPHICS"
-	returns	"Any"
-
-native "0x473151EBC762C6DA"
-	hash "0x473151EBC762C6DA"
-	jhash (0x21DBF0C9)
+	alias "0xDC54A7AF8B3A14EF"
 	ns "GRAPHICS"
 	returns	"int"
 	doc [[!
 <summary>
-		Returns an unknown value (dword_142317A08 in b944).
-		Used in appcamera.ysc and maintransition.ysc
+		This is the "actual" GET_MAXIMUM_NUMBER_OF_PHOTOS native. Always returns 96.
 </summary>
 	]]
+
+native "_GET_NUMBER_OF_PHOTOS"
+	hash "0x473151EBC762C6DA"
+	jhash (0x21DBF0C9)
+	alias "0x473151EBC762C6DA"
+	ns "GRAPHICS"
+	returns	"int"
 
 native "0x2A893980E96B659A"
 	hash "0x2A893980E96B659A"
 	jhash (0x199FABF0)
 	arguments {
-		Any "p0",
+		BOOL "p0",
 	}
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		2 matches across 2 scripts. Only showed in appcamera &amp; appmedia. Both were 0.
+
+		Dr. Underscore (1/6/18):
+		I've found a reference in maintransition with 1, plus in appcamera and appmedia.
+		Takes and returns a bool.
 </summary>
 	]]
 
@@ -50582,10 +51961,10 @@ native "0xF5BED327CEA362B1"
 	hash "0xF5BED327CEA362B1"
 	jhash (0x596B900D)
 	arguments {
-		Any "p0",
+		BOOL "p0",
 	}
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"int"
 	doc [[!
 <summary>
 		3 matches across 3 scripts. First 2 were 0, 3rd was 1. Possibly a bool.
@@ -50646,6 +52025,8 @@ native "_RETURN_TWO"
 		thats all it does.
 
 		mov dword ptr [rax], 2
+
+		Заебись функционал
 </summary>
 	]]
 
@@ -50723,7 +52104,7 @@ native "DRAW_SPOT_LIGHT"
 
 		float "brightness",
 
-		float "roundness",
+		float "hardness",
 
 		float "radius",
 
@@ -50785,10 +52166,15 @@ native "_DRAW_SPOT_LIGHT_WITH_SHADOW"
 
 		float "falloff",
 
-		float "shadow",
+		int "shadowId",
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		shadowId: each call to this native in the same tick should have a different value passed to this parameter, if two or more calls have the same values, only the first one will render its shadow properly
+</summary>
+	]]
 
 native "0xC9B18B4619F48F7B"
 	hash "0xC9B18B4619F48F7B"
@@ -50799,11 +52185,12 @@ native "0xC9B18B4619F48F7B"
 	ns "GRAPHICS"
 	returns	"void"
 
-native "0xDEADC0DEDEADC0DE"
+native "_ENTITY_DESCRIPTION_TEXT"
 	hash "0xDEADC0DEDEADC0DE"
 	arguments {
-		Object "object",
+		Entity "entity",
 	}
+	alias "0xDEADC0DEDEADC0DE"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -51030,7 +52417,7 @@ native "CREATE_CHECKPOINT"
 </summary>
 	]]
 
-native "0x4B5B4DA5D79F1943"
+native "_SET_CHECKPOINT_SCALE"
 	hash "0x4B5B4DA5D79F1943"
 	jhash (0x80151CCF)
 	arguments {
@@ -51038,6 +52425,7 @@ native "0x4B5B4DA5D79F1943"
 
 		float "p0",
 	}
+	alias "0x4B5B4DA5D79F1943"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -51202,7 +52590,7 @@ native "REQUEST_STREAMED_TEXTURE_DICT"
 	returns	"void"
 	doc [[!
 <summary>
-		last param isnt a toggle
+		last param seems to be unused in disassembly
 </summary>
 	]]
 
@@ -51280,13 +52668,14 @@ native "0xC6372ECD45D73BCD"
 	ns "GRAPHICS"
 	returns	"void"
 
-native "_SET_2D_LAYER"
+native "_SET_UI_LAYER"
 	hash "0x61BB1D9B3A95D802"
 	jhash (0xADF81D24)
 	arguments {
 		int "layer",
 	}
 	alias "0x61BB1D9B3A95D802"
+	alias "_SET_2D_LAYER"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -51321,6 +52710,11 @@ native "_SCREEN_DRAW_POSITION_BEGIN"
 		Seems to move all the drawn text on the screen to given coordinates.
 		It also removed all the drawn sprites of my screen so not to sure what the exact function is.
 
+
+		edit:
+		this is to make drawn text, scaleforms and sprites be isolated from the "main screen" used when you change the RenderTarget id so you to draw on phone do this before you "draw" things and then do "SCREEN_DRAW_POSITION_END()"
+
+
 </summary>
 	]]
 
@@ -51354,9 +52748,9 @@ native "0x6DD8F5AA635EB4B2"
 
 		float "p1",
 
-		AnyPtr "p2",
+		floatPtr "p2",
 
-		AnyPtr "p3",
+		floatPtr "p3",
 	}
 	ns "GRAPHICS"
 	returns	"void"
@@ -51416,9 +52810,7 @@ native "DRAW_SPRITE"
 
 		red,green,blue - Sprite color (default = 255/255/255)
 
-		alpha - if set to '2' it will grab all entitys in the game on call
-
-		alpha - why would it do that and where would it output the entites. And shouldn't it the alpha color for this param?
+		alpha - opacity level
 </summary>
 	]]
 
@@ -51591,6 +52983,8 @@ native "GET_SCREEN_RESOLUTION"
 <summary>
 		int screenresx,screenresy;
 		GET_SCREEN_RESOLUTION(&amp;screenresx,&amp;screenresy);
+
+		Hardcoded to always return 1280 x 720
 </summary>
 	]]
 
@@ -51857,7 +53251,7 @@ native "CREATE_TRACKED_POINT"
 	hash "0xE2C9439ED45DEA60"
 	jhash (0x3129C31A)
 	ns "GRAPHICS"
-	returns	"Object"
+	returns	"int"
 	doc [[!
 <summary>
 		Creates a tracked point, useful for checking the visibility of a 3D point on screen.
@@ -51868,7 +53262,7 @@ native "SET_TRACKED_POINT_INFO"
 	hash "0x164ECBB3CF750CB0"
 	jhash (0x28689AA4)
 	arguments {
-		Object "point",
+		int "point",
 
 		float "x",
 
@@ -51879,13 +53273,13 @@ native "SET_TRACKED_POINT_INFO"
 		float "radius",
 	}
 	ns "GRAPHICS"
-	returns	"Any"
+	returns	"void"
 
 native "IS_TRACKED_POINT_VISIBLE"
 	hash "0xC45CCDAAC9221CA8"
 	jhash (0x0BFC4F64)
 	arguments {
-		Object "point",
+		int "point",
 	}
 	ns "GRAPHICS"
 	returns	"BOOL"
@@ -51894,7 +53288,7 @@ native "DESTROY_TRACKED_POINT"
 	hash "0xB25DC90BAD56CA42"
 	jhash (0x14AC675F)
 	arguments {
-		Object "point",
+		int "point",
 	}
 	ns "GRAPHICS"
 	returns	"void"
@@ -52070,7 +53464,7 @@ native "_SET_FAR_SHADOWS_SUPPRESSED"
 <summary>
 		When this is set to ON, shadows only draw as you get nearer.
 
-		When OFF, they draw from a further distance.
+		When OFF, they draw from a further distance. (((BUT))) f*ck up nearer shadows quality.
 </summary>
 	]]
 
@@ -52394,10 +53788,15 @@ native "0xE3E2C1B4C59DBC77"
 	hash "0xE3E2C1B4C59DBC77"
 	jhash (0xD8CC7221)
 	arguments {
-		Any "p0",
+		int "unk",
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		Sets an unknown value related to timecycles.
+</summary>
+	]]
 
 native "_TRANSITION_TO_BLURRED"
 	hash "0xA328A24AAA6B7FDC"
@@ -52858,6 +54257,7 @@ native "START_PARTICLE_FX_LOOPED_AT_COORD"
 		GRAPHICS::START_PARTICLE_FX_LOOPED_AT_COORD("scr_fbi_falling_debris", 93.7743f, -749.4572f, 70.86904f, 0f, 0f, 0f, 0x3F800000, 0, 0, 0, 0)
 
 
+		p11 seems to be always 0
 </summary>
 	]]
 
@@ -53139,6 +54539,21 @@ native "SET_PARTICLE_FX_LOOPED_EVOLUTION"
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		Should be named SET_PARTICLE_FX_LOOPED_PROPERTY. "Evolution" doesn't make much sense...
+		--------
+		p4 seems to be always 0.
+
+		Usage:
+
+		if (!GRAPHICS::DOES_PARTICLE_FX_LOOPED_EXIST(l_25C7)) {
+		      l_25C7 = GRAPHICS::_DDE23F30CC5A0F03("scr_veh_plane_gen_damage", l_8B9, l_25C4, 0.0, 0.0, 0.0, ENTITY::_GET_ENTITY_BONE_INDEX(l_8B9, "exhaust"), 1.0, 0, 0, 0);
+		      GRAPHICS::SET_PARTICLE_FX_LOOPED_EVOLUTION(l_25C7, "damage_smoke", 0.5, 0);
+		      GRAPHICS::SET_PARTICLE_FX_LOOPED_EVOLUTION(l_25C7, "damage_fire", 0.2, 0);
+		      }
+</summary>
+	]]
 
 native "SET_PARTICLE_FX_LOOPED_COLOUR"
 	hash "0x7F8F65877F88783B"
@@ -53531,7 +54946,7 @@ native "ADD_DECAL"
 		BOOL "p19",
 	}
 	ns "GRAPHICS"
-	returns	"int"
+	returns	"Object"
 	doc [[!
 <summary>
 		decal types:
@@ -53647,7 +55062,7 @@ native "REMOVE_DECAL"
 	hash "0xED3F346429CCD659"
 	jhash (0xA4363188)
 	arguments {
-		int "decal",
+		Object "decal",
 	}
 	ns "GRAPHICS"
 	returns	"void"
@@ -53656,7 +55071,7 @@ native "IS_DECAL_ALIVE"
 	hash "0xC694D74949CAFD0C"
 	jhash (0xCDD4A61A)
 	arguments {
-		int "decal",
+		Object "decal",
 	}
 	ns "GRAPHICS"
 	returns	"BOOL"
@@ -53708,27 +55123,41 @@ native "0x2F09F7976C512404"
 </summary>
 	]]
 
-native "0x8A35C742130C6080"
+native "_ADD_DECAL_TO_MARKER"
 	hash "0x8A35C742130C6080"
 	jhash (0x335695CF)
 	arguments {
-		Any "p0",
+		int "decalType",
 
-		AnyPtr "p1",
+		charPtr "textureDict",
 
-		AnyPtr "p2",
+		charPtr "textureName",
 	}
+	alias "0x8A35C742130C6080"
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		REQUEST_STREAMED_TEXTURE_DICT("MPOnMissMarkers", false);
+		*uParam0.f_809 = add_decal(9120, vParam1, vVar4, vVar7, 2f, 2f, to_float(iVar0) / 255f, to_float(iVar1) / 255f, to_float(iVar2) / 255f, 1f, -1f, 1, 0, 0);
+		_0x8A35C742130C6080(9120, "MPOnMissMarkers", "Capture_The_Flag_Base_Icon");
+</summary>
+	]]
 
 native "0xB7ED70C49521A61D"
 	hash "0xB7ED70C49521A61D"
 	jhash (0x7B786555)
 	arguments {
-		Any "p0",
+		int "decalType",
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		GRAPHICS::_0xB7ED70C49521A61D(9123);
+		GRAPHICS::SET_STREAMED_TEXTURE_DICT_AS_NO_LONGER_NEEDED("MPMissMarkers256");
+</summary>
+	]]
 
 native "MOVE_VEHICLE_DECALS"
 	hash "0x84C8D7C2D30D3280"
@@ -54022,6 +55451,8 @@ native "GET_TIMECYCLE_MODIFIER_INDEX"
 		if (GRAPHICS::GET_TIMECYCLE_MODIFIER_INDEX() != -1)
 
 		For a full list, see here: pastebin.com/cnk7FTF2
+
+		can someone update this pastebin???
 </summary>
 	]]
 
@@ -54138,6 +55569,10 @@ native "REQUEST_SCALEFORM_MOVIE"
 	returns	"int"
 	doc [[!
 <summary>
+		GTA V Scaleforms Decompiled
+		pastebin.com/mmNdjX2k
+
+
 		Gets a new native after almost every update.
 
 		Update 1.0.393.2
@@ -54281,6 +55716,13 @@ native "DRAW_SCALEFORM_MOVIE"
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		GTA V Scaleforms Decompiled
+		pastebin.com/mmNdjX2k
+
+</summary>
+	]]
 
 native "DRAW_SCALEFORM_MOVIE_FULLSCREEN"
 	hash "0x0DF606929C105BE1"
@@ -54345,7 +55787,7 @@ native "DRAW_SCALEFORM_MOVIE_3D"
 
 		float "p7",
 
-		float "p8",
+		float "sharpness",
 
 		float "p9",
 
@@ -54360,6 +55802,11 @@ native "DRAW_SCALEFORM_MOVIE_3D"
 	alias "0x87D51D72255D4E78"
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		sharpness goes from 0.0 to 1.0
+</summary>
+	]]
 
 native "_DRAW_SCALEFORM_MOVIE_3D_NON_ADDITIVE"
 	hash "0x1CE592FDC749D6F5"
@@ -54399,6 +55846,7 @@ native "_DRAW_SCALEFORM_MOVIE_3D_NON_ADDITIVE"
 	doc [[!
 <summary>
 		what the heck does this one do differently from the one above?
+
 </summary>
 	]]
 
@@ -54522,7 +55970,7 @@ native "_CALL_SCALEFORM_MOVIE_FUNCTION_MIXED_PARAMS"
 </summary>
 	]]
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION_FROM_HUD_COMPONENT"
+native "_BEGIN_SCALEFORM_MOVIE_METHOD_HUD_COMPONENT"
 	hash "0x98C494FD5BDFBFD5"
 	jhash (0x5D66CE1E)
 	arguments {
@@ -54530,6 +55978,7 @@ native "_PUSH_SCALEFORM_MOVIE_FUNCTION_FROM_HUD_COMPONENT"
 
 		charPtr "functionName",
 	}
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION_FROM_HUD_COMPONENT"
 	ns "GRAPHICS"
 	returns	"BOOL"
 	doc [[!
@@ -54544,7 +55993,7 @@ native "_PUSH_SCALEFORM_MOVIE_FUNCTION_FROM_HUD_COMPONENT"
 </summary>
 	]]
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION"
+native "BEGIN_SCALEFORM_MOVIE_METHOD"
 	hash "0xF6E48914C7A8694E"
 	jhash (0x215ABBE8)
 	arguments {
@@ -54552,22 +56001,25 @@ native "_PUSH_SCALEFORM_MOVIE_FUNCTION"
 
 		charPtr "functionName",
 	}
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION"
 	ns "GRAPHICS"
 	returns	"BOOL"
 	doc [[!
 <summary>
 		Push a function from the Scaleform onto the stack
 
+		Old Name: _PUSH_SCALEFORM_MOVIE_FUNCTION
 </summary>
 	]]
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION_N"
+native "_BEGIN_SCALEFORM_MOVIE_METHOD_N"
 	hash "0xAB58C27C2E6123C6"
 	jhash (0xF6015178)
 	arguments {
 		charPtr "functionName",
 	}
 	alias "0xAB58C27C2E6123C6"
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION_N"
 	ns "GRAPHICS"
 	returns	"BOOL"
 	doc [[!
@@ -54576,29 +56028,34 @@ native "_PUSH_SCALEFORM_MOVIE_FUNCTION_N"
 </summary>
 	]]
 
-native "0xB9449845F73F5E9C"
+native "_BEGIN_SCALEFORM_MOVIE_METHOD_V"
 	hash "0xB9449845F73F5E9C"
 	jhash (0x5E219B67)
 	arguments {
 		charPtr "functionName",
 	}
+	alias "0xB9449845F73F5E9C"
 	ns "GRAPHICS"
 	returns	"BOOL"
 
-native "_POP_SCALEFORM_MOVIE_FUNCTION_VOID"
+native "END_SCALEFORM_MOVIE_METHOD"
 	hash "0xC6796A8FFA375E53"
 	jhash (0x02DBF2D7)
+	alias "_POP_SCALEFORM_MOVIE_FUNCTION_VOID"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
 <summary>
 		Pops and calls the Scaleform function on the stack
+
+		Old Name: _POP_SCALEFORM_MOVIE_FUNCTION_VOID
 </summary>
 	]]
 
-native "_POP_SCALEFORM_MOVIE_FUNCTION"
+native "_END_SCALEFORM_MOVIE_METHOD_RETURN"
 	hash "0xC50AA39A577AF886"
 	jhash (0x2F38B526)
+	alias "_POP_SCALEFORM_MOVIE_FUNCTION"
 	ns "GRAPHICS"
 	returns	"int"
 	doc [[!
@@ -54607,12 +56064,13 @@ native "_POP_SCALEFORM_MOVIE_FUNCTION"
 </summary>
 	]]
 
-native "0x768FF8961BA904D6"
+native "_GET_SCALEFORM_MOVIE_FUNCTION_RETURN_BOOL"
 	hash "0x768FF8961BA904D6"
 	jhash (0x5CD7C3C0)
 	arguments {
-		Any "funcData",
+		int "method_return",
 	}
+	alias "0x768FF8961BA904D6"
 	ns "GRAPHICS"
 	returns	"BOOL"
 	doc [[!
@@ -54634,17 +56092,20 @@ native "0x768FF8961BA904D6"
 </summary>
 	]]
 
-native "0x2DE7EFA66B906036"
+native "_GET_SCALEFORM_MOVIE_FUNCTION_RETURN_INT"
 	hash "0x2DE7EFA66B906036"
 	jhash (0x2CFB0E6D)
 	arguments {
-		Any "funcData",
+		int "method_return",
 	}
+	alias "0x2DE7EFA66B906036"
 	ns "GRAPHICS"
 	returns	"int"
 	doc [[!
 <summary>
 		Needs a bit more research, but it seems to return an int.
+
+		Testing with the scaleform "HACKING_PC" it seems to return an int depending on the clicked App/Program ID
 
 		"agency_heist3b.ysc", line 71836:
 		if (CONTROLS::IS_CONTROL_JUST_PRESSED(2, 201) || CONTROLS::IS_CONTROL_JUST_PRESSED(2, 237)) {
@@ -54664,7 +56125,7 @@ native "SITTING_TV"
 	hash "0xE1E258829A885245"
 	jhash (0x516862EB)
 	arguments {
-		int "scaleform",
+		int "method_return",
 	}
 	ns "GRAPHICS"
 	returns	"charPtr"
@@ -54673,15 +56134,18 @@ native "SITTING_TV"
 		Unsurprisingly, this native is incorrectly named. Instead, this returns the name of the scaleform movie.
 
 		HASH COLLISION. PLEASE REMOVE NATIVE NAME.
+
+		Name to: _GET_SCALEFORM_MOVIE_FUNCTION_RETURN_STRING
 </summary>
 	]]
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_INT"
+native "_PUSH_SCALEFORM_MOVIE_METHOD_PARAMETER_INT"
 	hash "0xC3D0841A0CC546A6"
 	jhash (0x716777CB)
 	arguments {
 		int "value",
 	}
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_INT"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -54690,12 +56154,13 @@ native "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_INT"
 </summary>
 	]]
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_FLOAT"
+native "_PUSH_SCALEFORM_MOVIE_METHOD_PARAMETER_FLOAT"
 	hash "0xD69736AAE04DB51A"
 	jhash (0x9A01FFDA)
 	arguments {
 		float "value",
 	}
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_FLOAT"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -54704,12 +56169,13 @@ native "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_FLOAT"
 </summary>
 	]]
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_BOOL"
+native "_PUSH_SCALEFORM_MOVIE_METHOD_PARAMETER_BOOL"
 	hash "0xC58424BA936EB458"
 	jhash (0x0D4AE8CB)
 	arguments {
 		BOOL "value",
 	}
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_BOOL"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -54729,6 +56195,8 @@ native "BEGIN_TEXT_COMMAND_SCALEFORM_STRING"
 	returns	"void"
 	doc [[!
 <summary>
+		Previously called _BEGIN_TEXT_COMPONENT
+
 		Called prior to adding a text component to the UI. After doing so, GRAPHICS::END_TEXT_COMMAND_SCALEFORM_STRING is called.
 
 		Examples:
@@ -54757,6 +56225,11 @@ native "END_TEXT_COMMAND_SCALEFORM_STRING"
 	alias "_END_TEXT_COMPONENT"
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		Previously called _END_TEXT_COMPONENT
+</summary>
+	]]
 
 native "_END_TEXT_COMMAND_SCALEFORM_STRING_2"
 	hash "0xAE4E8157D9ECF087"
@@ -54765,21 +56238,23 @@ native "_END_TEXT_COMMAND_SCALEFORM_STRING_2"
 	ns "GRAPHICS"
 	returns	"void"
 
-native "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_STRING"
+native "_PUSH_SCALEFORM_MOVIE_METHOD_PARAMETER_STRING"
 	hash "0xBA7148484BD90365"
 	jhash (0x4DAAD55B)
 	arguments {
 		charPtr "value",
 	}
+	alias "_PUSH_SCALEFORM_MOVIE_FUNCTION_PARAMETER_STRING"
 	ns "GRAPHICS"
 	returns	"void"
 
-native "0xE83A3E3557A56640"
+native "_PUSH_SCALEFORM_MOVIE_METHOD_PARAMETER_BUTTON_NAME"
 	hash "0xE83A3E3557A56640"
 	jhash (0xCCBF0334)
 	arguments {
 		charPtr "button",
 	}
+	alias "0xE83A3E3557A56640"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
@@ -54794,7 +56269,7 @@ native "0x5E657EF1099EDD65"
 	hash "0x5E657EF1099EDD65"
 	jhash (0x91A081A1)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "GRAPHICS"
 	returns	"BOOL"
@@ -54803,10 +56278,24 @@ native "0xEC52C631A1831C03"
 	hash "0xEC52C631A1831C03"
 	jhash (0x83A9811D)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		_push_scaleform_movie_function(iLocal_117, "SET_TEXT");
+				if (bParam0)
+				{
+					_0xEC52C631A1831C03(2);
+				}
+				else
+				{
+					_0xEC52C631A1831C03(1);
+				}
+				_pop_scaleform_movie_function_void();
+</summary>
+	]]
 
 native "_REQUEST_HUD_SCALEFORM"
 	hash "0x9304881D6F6537EA"
@@ -54949,21 +56438,46 @@ native "DRAW_TV_CHANNEL"
 </summary>
 	]]
 
-native "0xF7B38B8305F1FE8B"
+native "_LOAD_TV_CHANNEL_SEQUENCE"
 	hash "0xF7B38B8305F1FE8B"
 	jhash (0xB262DE67)
 	arguments {
-		int "p0",
+		int "TV_Channel",
 
-		charPtr "p1",
+		charPtr "VideoSequence",
 
-		BOOL "p2",
+		BOOL "Restart",
 	}
+	alias "0xF7B38B8305F1FE8B"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
 <summary>
-		SET_TV_???
+		Loads specified video sequence into the TV Channel
+
+		TV_Channel ranges from 0-2
+
+		VideoSequence can be any of the following:
+		"PL_STD_CNT" CNT Standard Channel
+		"PL_STD_WZL" Weazel Standard Channel
+		"PL_LO_CNT" 
+		"PL_LO_WZL" 
+		"PL_SP_WORKOUT"
+		"PL_SP_INV" - Jay Norris Assassination Mission Fail 
+		"PL_SP_INV_EXP" - Jay Norris Assassination Mission Success
+		"PL_LO_RS" - Righteous Slaughter Ad
+		"PL_LO_RS_CUTSCENE" - Righteous Slaughter Cut-scene
+		"PL_SP_PLSH1_INTRO" 
+		"PL_LES1_FAME_OR_SHAME"
+		"PL_STD_WZL_FOS_EP2"
+		"PL_MP_WEAZEL" - Weazel Logo on loop
+		"PL_MP_CCTV" - Generic CCTV loop
+
+		Restart 
+		0=video sequence continues as normal
+		1=sequence restarts from beginning every time that channel is selected
+
+
 </summary>
 	]]
 
@@ -55051,7 +56565,7 @@ native "0xF1CEA8A4198D8E9A"
 	ns "GRAPHICS"
 	returns	"BOOL"
 
-native "0x98C4FE6EC34154CA"
+native "_DRAW_SHOWROOM"
 	hash "0x98C4FE6EC34154CA"
 	jhash (0x9A0E3BFE)
 	arguments {
@@ -55067,6 +56581,7 @@ native "0x98C4FE6EC34154CA"
 
 		float "posZ",
 	}
+	alias "0x98C4FE6EC34154CA"
 	ns "GRAPHICS"
 	returns	"BOOL"
 	doc [[!
@@ -55203,12 +56718,17 @@ native "_STOP_SCREEN_EFFECT"
 	}
 	ns "GRAPHICS"
 	returns	"void"
+	doc [[!
+<summary>
+		Example and list of screen FX: www.pastebin.com/dafBAjs0
+</summary>
+	]]
 
 native "_GET_SCREEN_EFFECT_IS_ACTIVE"
 	hash "0x36AD3E690DA5ACEB"
 	jhash (0x089D5921)
 	arguments {
-		charPtr "effectName",
+		BOOL "effectName",
 	}
 	ns "GRAPHICS"
 	returns	"BOOL"
@@ -55216,6 +56736,8 @@ native "_GET_SCREEN_EFFECT_IS_ACTIVE"
 <summary>
 		Returns whether the specified screen effect is active.
 		See the effects list in _START_SCREEN_EFFECT
+
+		Example and list of screen FX: www.pastebin.com/dafBAjs0
 </summary>
 	]]
 
@@ -55919,6 +57441,8 @@ native "_STAT_SET_PROFILE_SETTING"
 		Does not take effect immediately, unfortunately.
 
 		profileSetting seems to only be 936, 937 and 938 in scripts
+
+		gtaforums.com/topic/799843-stats-profile-settings/
 </summary>
 	]]
 
@@ -57014,7 +58538,7 @@ native "0x11FF1C80276097ED"
 	hash "0x11FF1C80276097ED"
 	jhash (0x4AC39C6C)
 	arguments {
-		Any "p0",
+		charPtr "p0",
 
 		Any "p1",
 
@@ -57143,14 +58667,15 @@ native "0x0D01D20616FC73FB"
 	ns "STATS"
 	returns	"void"
 
-native "0x428EAF89E24F6C36"
+native "_LEADERBOARDS_DEATHS"
 	hash "0x428EAF89E24F6C36"
 	jhash (0xEE292B91)
 	arguments {
-		Any "p0",
+		Hash "statName",
 
-		float "p1",
+		float "value",
 	}
+	alias "0x428EAF89E24F6C36"
 	ns "STATS"
 	returns	"void"
 
@@ -57314,195 +58839,11 @@ native "0xF6792800AC95350D"
 </summary>
 	]]
 
-native "ADD_SCRIPT_TO_RANDOM_PED"
-	hash "0x4EE5367468A65CCC"
-	jhash (0xECC76C3D)
-	arguments {
-		charPtr "name",
-
-		Hash "model",
-
-		float "p2",
-
-		float "p3",
-	}
-	ns "BRAIN"
-	returns	"void"
-	doc [[!
-<summary>
-		BRAIN::ADD_SCRIPT_TO_RANDOM_PED("pb_prostitute", ${s_f_y_hooker_01}, 100, 0);
-
-
-
-		-----
-
-		Hardcoded to not work in Multiplayer.
-</summary>
-	]]
-
-native "REGISTER_OBJECT_SCRIPT_BRAIN"
-	hash "0x0BE84C318BA6EC22"
-	jhash (0xB6BCC608)
-	arguments {
-		charPtr "scriptName",
-
-		Hash "objectName",
-
-		int "p2",
-
-		float "p3",
-
-		int "p4",
-
-		int "p5",
-	}
-	ns "BRAIN"
-	returns	"void"
-	doc [[!
-<summary>
-		Registers a script for any object with a specific model hash.
-
-		BRAIN::REGISTER_OBJECT_SCRIPT_BRAIN("ob_telescope", ${prop_telescope_01}, 100, 4.0, -1, 9);
-
-
-</summary>
-	]]
-
-native "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE"
-	hash "0xCCBA154209823057"
-	jhash (0xBA4CAA56)
-	arguments {
-		Object "object",
-	}
-	ns "BRAIN"
-	returns	"BOOL"
-
-native "REGISTER_WORLD_POINT_SCRIPT_BRAIN"
-	hash "0x3CDC7136613284BD"
-	jhash (0x725D91F7)
-	arguments {
-		AnyPtr "p0",
-
-		float "p1",
-
-		Any "p2",
-	}
-	ns "BRAIN"
-	returns	"void"
-
-native "IS_WORLD_POINT_WITHIN_BRAIN_ACTIVATION_RANGE"
-	hash "0xC5042CC6F5E3D450"
-	jhash (0x2CF305A0)
-	ns "BRAIN"
-	returns	"BOOL"
-	doc [[!
-<summary>
-		Gets whether the world point the calling script is registered to is within desired range of the player.
-</summary>
-	]]
-
-native "ENABLE_SCRIPT_BRAIN_SET"
-	hash "0x67AA4D73F0CFA86B"
-	jhash (0x2765919F)
-	arguments {
-		int "brainSet",
-	}
-	ns "BRAIN"
-	returns	"void"
-
-native "DISABLE_SCRIPT_BRAIN_SET"
-	hash "0x14D8518E9760F08F"
-	jhash (0xFBD13FAD)
-	arguments {
-		int "brainSet",
-	}
-	ns "BRAIN"
-	returns	"void"
-
-native "0x0B40ED49D7D6FF84"
-	hash "0x0B40ED49D7D6FF84"
-	jhash (0x19B27825)
-	ns "BRAIN"
-	returns	"void"
-
-native "0x4D953DF78EBF8158"
-	hash "0x4D953DF78EBF8158"
-	jhash (0xF3A3AB08)
-	ns "BRAIN"
-	returns	"void"
-	doc [[!
-<summary>
-		Something like flush_all_scripts 
-
-		Most of time comes after NETWORK_END_TUTORIAL_SESSION() or before TERMINATE_THIS_THREAD()
-</summary>
-	]]
-
-native "0x6D6840CEE8845831"
-	hash "0x6D6840CEE8845831"
-	jhash (0x949FE53E)
-	arguments {
-		charPtr "action",
-	}
-	ns "BRAIN"
-	returns	"void"
-	doc [[!
-<summary>
-		Possible values:
-
-		act_cinema
-		am_mp_carwash_launch
-		am_mp_carwash_control
-		am_mp_property_ext
-		chop
-		fairgroundHub
-		launcher_BasejumpHeli
-		launcher_BasejumpPack
-		launcher_CarWash
-		launcher_golf
-		launcher_Hunting_Ambient
-		launcher_MrsPhilips
-		launcher_OffroadRacing
-		launcher_pilotschool
-		launcher_Racing
-		launcher_rampage
-		launcher_rampage
-		launcher_range
-		launcher_stunts
-		launcher_stunts
-		launcher_tennis
-		launcher_Tonya
-		launcher_Triathlon
-		launcher_Yoga
-		ob_mp_bed_low
-		ob_mp_bed_med
-</summary>
-	]]
-
-native "0x6E91B04E08773030"
-	hash "0x6E91B04E08773030"
-	jhash (0x29CE8BAA)
-	arguments {
-		charPtr "action",
-	}
-	ns "BRAIN"
-	returns	"void"
-	doc [[!
-<summary>
-		Looks like a cousin of above function _6D6840CEE8845831 as it was found among them. Must be similar
-
-		Here are possible values of argument - 
-
-		"ob_tv"
-		"launcher_Darts"
-</summary>
-	]]
-
 native "CREATE_MOBILE_PHONE"
 	hash "0xA4E8E696C532FBC7"
 	jhash (0x5BBC5E23)
 	arguments {
-		int "phoneType",
+		int "p3",
 	}
 	ns "MOBILE"
 	returns	"void"
@@ -57572,7 +58913,7 @@ native "GET_MOBILE_PHONE_ROTATION"
 	arguments {
 		Vector3Ptr "rotation",
 
-		Any "p1",
+		Vehicle "p1",
 	}
 	ns "MOBILE"
 	returns	"void"
@@ -57787,6 +59128,11 @@ native "CELL_CAM_IS_CHAR_VISIBLE_NO_FACE_CHECK"
 	}
 	ns "MOBILE"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		hash collision???
+</summary>
+	]]
 
 native "GET_MOBILE_PHONE_RENDER_ID"
 	hash "0xB4A53E05F68B6FA1"
@@ -57838,16 +59184,16 @@ native "APP_DATA_VALID"
 	hash "0x846AA8E7D55EE5B6"
 	jhash (0x72BDE002)
 	ns "APP"
-	returns	"BOOL"
+	returns	"int"
 
 native "APP_GET_INT"
 	hash "0xD3A58A12C77D9D4B"
 	jhash (0x2942AAD2)
 	arguments {
-		charPtr "property",
+		ScrHandle "property",
 	}
 	ns "APP"
-	returns	"int"
+	returns	"intPtr"
 
 native "APP_GET_FLOAT"
 	hash "0x1514FB24C02C2322"
@@ -57989,7 +59335,7 @@ native "SET_CLOCK_TIME"
 
 		int "second",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 	doc [[!
 <summary>
@@ -58003,7 +59349,7 @@ native "PAUSE_CLOCK"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 
 native "ADVANCE_CLOCK_TIME_TO"
@@ -58016,7 +59362,7 @@ native "ADVANCE_CLOCK_TIME_TO"
 
 		int "second",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 
 native "ADD_TO_CLOCK_TIME"
@@ -58029,13 +59375,13 @@ native "ADD_TO_CLOCK_TIME"
 
 		int "seconds",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 
 native "GET_CLOCK_HOURS"
 	hash "0x25223CA6B4D20B7F"
 	jhash (0x7EF8316F)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 	doc [[!
 <summary>
@@ -58046,7 +59392,7 @@ native "GET_CLOCK_HOURS"
 native "GET_CLOCK_MINUTES"
 	hash "0x13D2B8ADD79640F2"
 	jhash (0x94AAC486)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 	doc [[!
 <summary>
@@ -58057,7 +59403,7 @@ native "GET_CLOCK_MINUTES"
 native "GET_CLOCK_SECONDS"
 	hash "0x494E97C2EF27C470"
 	jhash (0x099C927E)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 	doc [[!
 <summary>
@@ -58075,13 +59421,13 @@ native "SET_CLOCK_DATE"
 
 		int "year",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 
 native "GET_CLOCK_DAY_OF_WEEK"
 	hash "0xD972E4BD7AEB235F"
 	jhash (0x84E4A289)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 	doc [[!
 <summary>
@@ -58100,25 +59446,25 @@ native "GET_CLOCK_DAY_OF_WEEK"
 native "GET_CLOCK_DAY_OF_MONTH"
 	hash "0x3D10BC92A4DB1D35"
 	jhash (0xC7A5ACB7)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 
 native "GET_CLOCK_MONTH"
 	hash "0xBBC72712E80257A1"
 	jhash (0x3C48A3D5)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 
 native "GET_CLOCK_YEAR"
 	hash "0x961777E64BDAF717"
 	jhash (0xB8BECF15)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 
 native "GET_MILLISECONDS_PER_GAME_MINUTE"
 	hash "0x2F8B4D1C595B11DB"
 	jhash (0x3B74095C)
-	ns "TIME"
+	ns "CLOCK"
 	returns	"int"
 
 native "GET_POSIX_TIME"
@@ -58137,7 +59483,7 @@ native "GET_POSIX_TIME"
 
 		intPtr "second",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 	doc [[!
 <summary>
@@ -58173,7 +59519,7 @@ native "_GET_UTC_TIME"
 		intPtr "second",
 	}
 	alias "_GET_LOCAL_TIME"
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 	doc [[!
 <summary>
@@ -58198,7 +59544,7 @@ native "GET_LOCAL_TIME"
 
 		intPtr "second",
 	}
-	ns "TIME"
+	ns "CLOCK"
 	returns	"void"
 	doc [[!
 <summary>
@@ -58773,6 +60119,11 @@ native "LOAD_ALL_PATH_NODES"
 		Loads all path nodes.
 
 		If keepInMemory is true, all path nodes will be loaded and be kept in memory; otherwise, all path nodes will be loaded, but unloaded as the game sees fit.
+
+		- MulleDK19.
+
+		August 29, 2017: This native has been removed in v1180.
+
 </summary>
 	]]
 
@@ -58991,7 +60342,7 @@ native "GENERATE_DIRECTIONS_TO_COORD"
 
 		floatPtr "direction",
 
-		floatPtr "p5",
+		floatPtr "vehicle",
 
 		floatPtr "distToNxJunction",
 	}
@@ -59396,7 +60747,7 @@ native "IS_CONTROL_ENABLED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59451,7 +60802,7 @@ native "IS_CONTROL_PRESSED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59469,7 +60820,7 @@ native "IS_CONTROL_RELEASED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59485,7 +60836,7 @@ native "IS_CONTROL_JUST_PRESSED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "IS_CONTROL_JUST_RELEASED"
@@ -59496,7 +60847,7 @@ native "IS_CONTROL_JUST_RELEASED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "GET_CONTROL_VALUE"
@@ -59507,7 +60858,7 @@ native "GET_CONTROL_VALUE"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"int"
 	doc [[!
 <summary>
@@ -59525,7 +60876,7 @@ native "GET_CONTROL_NORMAL"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"float"
 	doc [[!
 <summary>
@@ -59540,7 +60891,7 @@ native "0x5B73C77D9EB66E24"
 	arguments {
 		BOOL "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "0x5B84D09CEC5209C5"
@@ -59551,7 +60902,7 @@ native "0x5B84D09CEC5209C5"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"float"
 	doc [[!
 <summary>
@@ -59571,7 +60922,7 @@ native "_SET_CONTROL_NORMAL"
 		float "amount",
 	}
 	alias "0xE8A25867FBA3B05E"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59590,7 +60941,7 @@ native "IS_DISABLED_CONTROL_PRESSED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59606,7 +60957,7 @@ native "IS_DISABLED_CONTROL_JUST_PRESSED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59622,7 +60973,7 @@ native "IS_DISABLED_CONTROL_JUST_RELEASED"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59638,7 +60989,7 @@ native "GET_DISABLED_CONTROL_NORMAL"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"float"
 	doc [[!
 <summary>
@@ -59657,7 +61008,7 @@ native "0x4F8A26A890FD62FB"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"float"
 	doc [[!
 <summary>
@@ -59673,7 +61024,7 @@ native "0xD7D22F5592AED8BA"
 	arguments {
 		int "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"int"
 
 native "_IS_INPUT_DISABLED"
@@ -59682,7 +61033,7 @@ native "_IS_INPUT_DISABLED"
 		int "inputGroup",
 	}
 	alias "_GET_LAST_INPUT_METHOD"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59704,7 +61055,7 @@ native "_IS_INPUT_JUST_DISABLED"
 		int "inputGroup",
 	}
 	alias "0x13337B38DB572509"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59722,7 +61073,7 @@ native "_SET_CURSOR_LOCATION"
 		float "y",
 	}
 	alias "0xFC695459D4D0E219"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59735,7 +61086,7 @@ native "0x23F09EADC01449D6"
 	arguments {
 		BOOL "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "0x6CD79468A1E595C6"
@@ -59743,7 +61094,7 @@ native "0x6CD79468A1E595C6"
 	arguments {
 		int "inputGroup",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "GET_CONTROL_INSTRUCTIONAL_BUTTON"
@@ -59754,10 +61105,10 @@ native "GET_CONTROL_INSTRUCTIONAL_BUTTON"
 
 		int "control",
 
-		BOOL "p2",
+		Player "p2",
 	}
 	alias "0x0499D7B09FC9B407"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -59788,7 +61139,7 @@ native "0x80C2FD58D720C801"
 
 		BOOL "p2",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -59807,7 +61158,7 @@ native "0x8290252FFF36ACB5"
 
 		int "blue",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -59823,7 +61174,7 @@ native "0xCB0360EFEFB2580D"
 	arguments {
 		Any "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "SET_PAD_SHAKE"
@@ -59836,7 +61187,7 @@ native "SET_PAD_SHAKE"
 
 		int "frequency",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -59863,7 +61214,7 @@ native "0x14D29BB12D47F68C"
 
 		Any "p4",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "STOP_PAD_SHAKE"
@@ -59872,7 +61223,7 @@ native "STOP_PAD_SHAKE"
 	arguments {
 		Any "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "0xF239400E16C23E08"
@@ -59883,7 +61234,7 @@ native "0xF239400E16C23E08"
 
 		Any "p1",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "0xA0CEFCEA390AAB9B"
@@ -59891,18 +61242,18 @@ native "0xA0CEFCEA390AAB9B"
 	arguments {
 		Any "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "IS_LOOK_INVERTED"
 	hash "0x77B612531280010D"
 	jhash (0x313434B2)
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "0xE1615EC03B3BB4FD"
 	hash "0xE1615EC03B3BB4FD"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -59928,12 +61279,12 @@ native "0xE1615EC03B3BB4FD"
 native "GET_LOCAL_PLAYER_AIM_STATE"
 	hash "0xBB41AFBBBC0A0287"
 	jhash (0x81802053)
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"int"
 
 native "0x59B9A7AF4C95133C"
 	hash "0x59B9A7AF4C95133C"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -59943,12 +61294,12 @@ native "0x59B9A7AF4C95133C"
 
 native "0x0F70731BACCFBB96"
 	hash "0x0F70731BACCFBB96"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "0xFC859E2374407556"
 	hash "0xFC859E2374407556"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "SET_PLAYERPAD_SHAKES_WHEN_CONTROLLER_DISABLED"
@@ -59957,7 +61308,7 @@ native "SET_PLAYERPAD_SHAKES_WHEN_CONTROLLER_DISABLED"
 	arguments {
 		BOOL "toggle",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "SET_INPUT_EXCLUSIVE"
@@ -59968,7 +61319,7 @@ native "SET_INPUT_EXCLUSIVE"
 
 		int "control",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "DISABLE_CONTROL_ACTION"
@@ -59981,7 +61332,7 @@ native "DISABLE_CONTROL_ACTION"
 
 		BOOL "disable",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 	doc [[!
 <summary>
@@ -60016,11 +61367,13 @@ native "ENABLE_CONTROL_ACTION"
 
 		BOOL "enable",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 	doc [[!
 <summary>
-		control values and meaning: github.com/crosire/scripthookvdotnet/blob/dev/source/scripting/Controls.hpp
+		control values and meaning: github.com/crosire/scripthookvdotnet/blob/dev_v3/source/scripting/Control.cs
+		and
+		wiki.fivem.net/wiki/Controls
 
 		0, 1 and 2 used in the scripts.
 
@@ -60076,7 +61429,7 @@ native "DISABLE_ALL_CONTROL_ACTIONS"
 	arguments {
 		int "inputGroup",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "ENABLE_ALL_CONTROL_ACTIONS"
@@ -60085,7 +61438,7 @@ native "ENABLE_ALL_CONTROL_ACTIONS"
 	arguments {
 		int "inputGroup",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "0x3D42B92563939375"
@@ -60094,7 +61447,7 @@ native "0x3D42B92563939375"
 	arguments {
 		charPtr "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -60108,13 +61461,13 @@ native "0x4683149ED1DDE7A1"
 	arguments {
 		charPtr "p0",
 	}
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"BOOL"
 
 native "0x643ED62D5EA3BEBD"
 	hash "0x643ED62D5EA3BEBD"
 	jhash (0x42140FF9)
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "_DISABLE_INPUT_GROUP"
@@ -60124,14 +61477,14 @@ native "_DISABLE_INPUT_GROUP"
 		int "inputGroup",
 	}
 	alias "0x7F4724035FDCA1DD"
-	ns "CONTROLS"
+	ns "PAD"
 	returns	"void"
 
 native "0xAD6875BBC0FC899C"
 	hash "0xAD6875BBC0FC899C"
 	jhash (0x621388FF)
 	arguments {
-		Any "p0",
+		Blip "x",
 	}
 	ns "DATAFILE"
 	returns	"void"
@@ -60905,6 +62258,11 @@ native "STOP_FIRE_IN_RANGE"
 	}
 	ns "FIRE"
 	returns	"void"
+	doc [[!
+<summary>
+		This doesn't stop fire nor the fire propagation in a loop... for some reasons.
+</summary>
+	]]
 
 native "GET_CLOSEST_FIRE_POS"
 	hash "0x352A9F6BCF90081F"
@@ -61224,7 +62582,7 @@ native "SET_DECISION_MAKER"
 
 		Hash "name",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "CLEAR_DECISION_MAKER_EVENT_RESPONSE"
@@ -61235,7 +62593,7 @@ native "CLEAR_DECISION_MAKER_EVENT_RESPONSE"
 
 		int "type",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "BLOCK_DECISION_MAKER_EVENT"
@@ -61246,7 +62604,7 @@ native "BLOCK_DECISION_MAKER_EVENT"
 
 		int "type",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "UNBLOCK_DECISION_MAKER_EVENT"
@@ -61257,7 +62615,7 @@ native "UNBLOCK_DECISION_MAKER_EVENT"
 
 		int "type",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "ADD_SHOCKING_EVENT_AT_POSITION"
@@ -61274,7 +62632,7 @@ native "ADD_SHOCKING_EVENT_AT_POSITION"
 
 		float "duration",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"ScrHandle"
 	doc [[!
 <summary>
@@ -61294,7 +62652,7 @@ native "ADD_SHOCKING_EVENT_FOR_ENTITY"
 
 		float "duration",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"ScrHandle"
 	doc [[!
 <summary>
@@ -61318,7 +62676,7 @@ native "IS_SHOCKING_EVENT_IN_SPHERE"
 
 		float "radius",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -61353,7 +62711,7 @@ native "REMOVE_SHOCKING_EVENT"
 	arguments {
 		ScrHandle "event",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"BOOL"
 
 native "REMOVE_ALL_SHOCKING_EVENTS"
@@ -61362,19 +62720,19 @@ native "REMOVE_ALL_SHOCKING_EVENTS"
 	arguments {
 		BOOL "p0",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "REMOVE_SHOCKING_EVENT_SPAWN_BLOCKING_AREAS"
 	hash "0x340F1415B68AEADE"
 	jhash (0xA0CE89C8)
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "SUPPRESS_SHOCKING_EVENTS_NEXT_FRAME"
 	hash "0x2F9A292AD0A3BD89"
 	jhash (0x4CC674B5)
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "SUPPRESS_SHOCKING_EVENT_TYPE_NEXT_FRAME"
@@ -61383,13 +62741,13 @@ native "SUPPRESS_SHOCKING_EVENT_TYPE_NEXT_FRAME"
 	arguments {
 		int "type",
 	}
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "SUPPRESS_AGITATION_EVENTS_NEXT_FRAME"
 	hash "0x5F3B7749C112D552"
 	jhash (0x80340396)
-	ns "DECISIONEVENT"
+	ns "EVENT"
 	returns	"void"
 
 native "GET_ZONE_AT_COORDS"
@@ -61760,7 +63118,7 @@ native "ADD_ROPE"
 
 		AnyPtr "unkPtr",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Object"
 	doc [[!
 <summary>
@@ -61805,7 +63163,7 @@ native "DELETE_ROPE"
 	arguments {
 		ObjectPtr "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "DELETE_CHILD_ROPE"
@@ -61814,7 +63172,7 @@ native "DELETE_CHILD_ROPE"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 
 native "DOES_ROPE_EXIST"
@@ -61823,7 +63181,7 @@ native "DOES_ROPE_EXIST"
 	arguments {
 		ObjectPtr "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -61839,7 +63197,7 @@ native "ROPE_DRAW_SHADOW_ENABLED"
 
 		BOOL "toggle",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "LOAD_ROPE_DATA"
@@ -61850,7 +63208,7 @@ native "LOAD_ROPE_DATA"
 
 		charPtr "rope_preset",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -61872,7 +63230,7 @@ native "PIN_ROPE_VERTEX"
 
 		float "z",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "UNPIN_ROPE_VERTEX"
@@ -61883,7 +63241,7 @@ native "UNPIN_ROPE_VERTEX"
 
 		int "vertex",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 
 native "GET_ROPE_VERTEX_COUNT"
@@ -61892,7 +63250,7 @@ native "GET_ROPE_VERTEX_COUNT"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"int"
 
 native "ATTACH_ENTITIES_TO_ROPE"
@@ -61923,11 +63281,11 @@ native "ATTACH_ENTITIES_TO_ROPE"
 
 		BOOL "p11",
 
-		AnyPtr "p12",
+		charPtr "boneName1",
 
-		AnyPtr "p13",
+		charPtr "boneName2",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 	doc [[!
 <summary>
@@ -61951,7 +63309,7 @@ native "ATTACH_ROPE_TO_ENTITY"
 
 		BOOL "p5",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 	doc [[!
 <summary>
@@ -61967,7 +63325,7 @@ native "DETACH_ROPE_FROM_ENTITY"
 
 		Entity "entity",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "ROPE_SET_UPDATE_PINVERTS"
@@ -61976,7 +63334,7 @@ native "ROPE_SET_UPDATE_PINVERTS"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "0xDC57A637A20006ED"
@@ -61987,7 +63345,7 @@ native "0xDC57A637A20006ED"
 
 		Any "p1",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "0x36CCB9BE67B970FD"
@@ -61998,7 +63356,7 @@ native "0x36CCB9BE67B970FD"
 
 		BOOL "p1",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "0x84DE3B5FB3E666F0"
@@ -62007,7 +63365,7 @@ native "0x84DE3B5FB3E666F0"
 	arguments {
 		AnyPtr "p0",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"BOOL"
 
 native "GET_ROPE_LAST_VERTEX_COORD"
@@ -62016,7 +63374,7 @@ native "GET_ROPE_LAST_VERTEX_COORD"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 
 native "GET_ROPE_VERTEX_COORD"
@@ -62027,7 +63385,7 @@ native "GET_ROPE_VERTEX_COORD"
 
 		int "vertex",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 
 native "START_ROPE_WINDING"
@@ -62036,7 +63394,7 @@ native "START_ROPE_WINDING"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "STOP_ROPE_WINDING"
@@ -62045,7 +63403,7 @@ native "STOP_ROPE_WINDING"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "START_ROPE_UNWINDING_FRONT"
@@ -62054,7 +63412,7 @@ native "START_ROPE_UNWINDING_FRONT"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "STOP_ROPE_UNWINDING_FRONT"
@@ -62063,7 +63421,7 @@ native "STOP_ROPE_UNWINDING_FRONT"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "ROPE_CONVERT_TO_SIMPLE"
@@ -62072,13 +63430,13 @@ native "ROPE_CONVERT_TO_SIMPLE"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "ROPE_LOAD_TEXTURES"
 	hash "0x9B9039DBF2D258C1"
 	jhash (0xBA97CE91)
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -62089,13 +63447,13 @@ native "ROPE_LOAD_TEXTURES"
 native "ROPE_ARE_TEXTURES_LOADED"
 	hash "0xF2D0E6A75CC05597"
 	jhash (0x5FDC1047)
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"BOOL"
 
 native "ROPE_UNLOAD_TEXTURES"
 	hash "0x6CE36C35C1AC8163"
 	jhash (0x584463E0)
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -62108,7 +63466,7 @@ native "0x271C9D3ACA5D6409"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"BOOL"
 
 native "0xBC0CE682D4D05650"
@@ -62143,7 +63501,7 @@ native "0xBC0CE682D4D05650"
 
 		Any "p13",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 	doc [[!
 <summary>
@@ -62161,7 +63519,7 @@ native "0xB1B6216CA2E7B55E"
 
 		BOOL "p2",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "0xB743F735C03D7810"
@@ -62172,7 +63530,7 @@ native "0xB743F735C03D7810"
 
 		Any "p1",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "_GET_ROPE_LENGTH"
@@ -62181,7 +63539,7 @@ native "_GET_ROPE_LENGTH"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"float"
 	doc [[!
 <summary>
@@ -62197,7 +63555,7 @@ native "ROPE_FORCE_LENGTH"
 
 		float "length",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -62211,10 +63569,10 @@ native "ROPE_RESET_LENGTH"
 	arguments {
 		Object "rope",
 
-		BOOL "length",
+		float "length",
 	}
-	ns "ROPE"
-	returns	"Any"
+	ns "PHYSICS"
+	returns	"void"
 	doc [[!
 <summary>
 		Reset a rope to a certain length.
@@ -62239,7 +63597,7 @@ native "APPLY_IMPULSE_TO_CLOTH"
 
 		float "impulse",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "SET_DAMPING"
@@ -62252,7 +63610,7 @@ native "SET_DAMPING"
 
 		float "value",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "ACTIVATE_PHYSICS"
@@ -62261,7 +63619,7 @@ native "ACTIVATE_PHYSICS"
 	arguments {
 		Entity "entity",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 	doc [[!
 <summary>
@@ -62281,7 +63639,7 @@ native "SET_CGOFFSET"
 
 		float "z",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "GET_CGOFFSET"
@@ -62290,7 +63648,7 @@ native "GET_CGOFFSET"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Vector3"
 
 native "SET_CG_AT_BOUNDCENTER"
@@ -62299,7 +63657,7 @@ native "SET_CG_AT_BOUNDCENTER"
 	arguments {
 		Object "rope",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "BREAK_ENTITY_GLASS"
@@ -62328,7 +63686,7 @@ native "BREAK_ENTITY_GLASS"
 
 		BOOL "p10",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 
 native "SET_DISABLE_BREAKING"
@@ -62339,7 +63697,7 @@ native "SET_DISABLE_BREAKING"
 
 		BOOL "enabled",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"Any"
 
 native "0xCC6E963682533882"
@@ -62347,7 +63705,7 @@ native "0xCC6E963682533882"
 	arguments {
 		Any "p0",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 	doc [[!
 <summary>
@@ -62363,7 +63721,7 @@ native "SET_DISABLE_FRAG_DAMAGE"
 
 		BOOL "toggle",
 	}
-	ns "ROPE"
+	ns "PHYSICS"
 	returns	"void"
 	doc [[!
 <summary>
@@ -62467,10 +63825,15 @@ native "TEST_VERTICAL_PROBE_AGAINST_ALL_WATER"
 
 		Any "p3",
 
-		AnyPtr "p4",
+		floatPtr "height",
 	}
 	ns "WATER"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		I guess p3 is shape test flags?
+</summary>
+	]]
 
 native "MODIFY_WATER"
 	hash "0xC443FD757C3BA637"
@@ -62493,34 +63856,34 @@ native "MODIFY_WATER"
 </summary>
 	]]
 
-native "0xFDBF4CDBC07E1706"
+native "_ADD_CURRENT_RISE"
 	hash "0xFDBF4CDBC07E1706"
 	arguments {
-		float "x",
+		float "xLow",
 
-		float "y",
+		float "yLow",
 
-		float "z",
+		float "xHigh",
 
-		float "radius",
+		float "yHigh",
 
-		float "unk",
+		float "height",
 	}
+	alias "0xFDBF4CDBC07E1706"
 	ns "WATER"
 	returns	"int"
 	doc [[!
 <summary>
 		console hash: 0x45268B6F
-
-		Most likely ADD_CURRENT_*
 </summary>
 	]]
 
-native "0xB1252E3E59A82AAF"
+native "_REMOVE_CURRENT_RISE"
 	hash "0xB1252E3E59A82AAF"
 	arguments {
 		int "p0",
 	}
+	alias "0xB1252E3E59A82AAF"
 	ns "WATER"
 	returns	"void"
 	doc [[!
@@ -62528,17 +63891,16 @@ native "0xB1252E3E59A82AAF"
 		p0 is the handle returned from _0xFDBF4CDBC07E1706
 
 		console hash: 0x7DBCEF6F
-
-		Most likely REMOVE_CURRENT_*
 </summary>
 	]]
 
-native "_SET_WAVES_INTENSITY"
+native "_SET_CURRENT_INTENSITY"
 	hash "0xB96B00E976BE977F"
 	arguments {
 		float "intensity",
 	}
 	alias "0xB96B00E976BE977F"
+	alias "_SET_WAVES_INTENSITY"
 	ns "WATER"
 	returns	"void"
 	doc [[!
@@ -62548,14 +63910,13 @@ native "_SET_WAVES_INTENSITY"
 		Works only ~200 meters around the player.
 
 		console hash: 0x53B694B1
-
-		Most likely SET_CURRENT_*
 </summary>
 	]]
 
-native "_GET_WAVES_INTENSITY"
+native "_GET_CURRENT_INTENSITY"
 	hash "0x2B2A2CC86778B619"
 	alias "0x2B2A2CC86778B619"
+	alias "_GET_WAVES_INTENSITY"
 	ns "WATER"
 	returns	"float"
 	doc [[!
@@ -62563,14 +63924,13 @@ native "_GET_WAVES_INTENSITY"
 		Gets the aggressiveness factor of the ocean waves.
 
 		console hash: 0xBD0A67FB
-
-		Most likely GET_CURRENT_*
 </summary>
 	]]
 
-native "_RESET_WAVES_INTENSITY"
+native "_RESET_CURRENT_INTENSITY"
 	hash "0x5E5E99285AE812DB"
 	alias "0x5E5E99285AE812DB"
+	alias "_RESET_WAVES_INTENSITY"
 	ns "WATER"
 	returns	"void"
 	doc [[!
@@ -62578,8 +63938,6 @@ native "_RESET_WAVES_INTENSITY"
 		Sets the waves intensity back to original (1.0 in most cases).
 
 		console hash: 0x4AD23212
-
-		Most likely RESET_CURRENT_*
 </summary>
 	]]
 
@@ -62601,12 +63959,12 @@ native "START_SHAPE_TEST_LOS_PROBE"
 
 		int "flags",
 
-		Entity "entity",
+		Entity "ent",
 
 		int "p8",
 	}
 	alias "0x7EE9F5D83DD4F90E"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
@@ -62641,7 +63999,7 @@ native "_START_SHAPE_TEST_RAY"
 		int "p8",
 	}
 	alias "_CAST_RAY_POINT_TO_POINT"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
@@ -62661,7 +64019,7 @@ native "_START_SHAPE_TEST_RAY"
 		4: Intersect with peds? (same as 8)
 		8: Intersect with peds? (same as 4)
 		16: Intersect with objects
-		32: Unknown
+		32: Water?
 		64: Unknown
 		128: Unknown
 		256: Intersect with vegetation (plants, coral. trees not included)
@@ -62681,7 +64039,7 @@ native "START_SHAPE_TEST_BOUNDING_BOX"
 		int "flags2",
 	}
 	alias "0x052837721A854EC7"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 
 native "START_SHAPE_TEST_BOX"
@@ -62715,7 +64073,7 @@ native "START_SHAPE_TEST_BOX"
 		Any "p12",
 	}
 	alias "0xFE466162C4401D18"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 
 native "START_SHAPE_TEST_BOUND"
@@ -62729,7 +64087,7 @@ native "START_SHAPE_TEST_BOUND"
 		int "flags2",
 	}
 	alias "0x37181417CE7C8900"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 
 native "START_SHAPE_TEST_CAPSULE"
@@ -62757,7 +64115,7 @@ native "START_SHAPE_TEST_CAPSULE"
 		int "p9",
 	}
 	alias "_CAST_3D_RAY_POINT_TO_POINT"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
@@ -62775,7 +64133,7 @@ native "START_SHAPE_TEST_CAPSULE"
 </summary>
 	]]
 
-native "0xE6AC6C45FBE83004"
+native "_START_SHAPE_TEST_CAPSULE_2"
 	hash "0xE6AC6C45FBE83004"
 	jhash (0x4559460A)
 	arguments {
@@ -62799,7 +64157,8 @@ native "0xE6AC6C45FBE83004"
 
 		Any "p9",
 	}
-	ns "WORLDPROBE"
+	alias "0xE6AC6C45FBE83004"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
@@ -62807,7 +64166,7 @@ native "0xE6AC6C45FBE83004"
 </summary>
 	]]
 
-native "0xFF6BE494C7987F34"
+native "_START_SHAPE_TEST_SURROUNDING_COORDS"
 	hash "0xFF6BE494C7987F34"
 	arguments {
 		Vector3Ptr "pVec1",
@@ -62820,11 +64179,12 @@ native "0xFF6BE494C7987F34"
 
 		int "flag2",
 	}
-	ns "WORLDPROBE"
+	alias "0xFF6BE494C7987F34"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
-		Actual name starts with START_SHAPE_TEST_??? and it returns a ShapeTest handle that can be used with GET_SHAPE_TEST_RESULT.
+		it returns a ShapeTest handle that can be used with GET_SHAPE_TEST_RESULT.
 
 		In its only usage in game scripts its called with flag set to 511, entity to player_ped_id and flag2 set to 7
 </summary>
@@ -62845,7 +64205,7 @@ native "GET_SHAPE_TEST_RESULT"
 		EntityPtr "entityHit",
 	}
 	alias "_GET_RAYCAST_RESULT"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
@@ -62884,7 +64244,7 @@ native "_GET_SHAPE_TEST_RESULT_EX"
 		EntityPtr "entityHit",
 	}
 	alias "0x65287525D951F6BE"
-	ns "WORLDPROBE"
+	ns "SHAPETEST"
 	returns	"int"
 	doc [[!
 <summary>
@@ -62893,16 +64253,20 @@ native "_GET_SHAPE_TEST_RESULT_EX"
 		Quick disassembly seems to indicate that the unknown is a hash. EDIT: Seems to be the hash of the hit material or surface type.
 
 		found a materialFX.dat list of them but not sure if it has to do with this native yet.
+
+		materials (full list): pastebin.com/gyHjsYBK
+
 </summary>
 	]]
 
-native "0x2B3334BCA57CD799"
+native "_SHAPE_TEST_RESULT_ENTITY"
 	hash "0x2B3334BCA57CD799"
 	jhash (0xEC2AAF06)
 	arguments {
-		Entity "p0",
+		Entity "entityHit",
 	}
-	ns "WORLDPROBE"
+	alias "0x2B3334BCA57CD799"
+	ns "SHAPETEST"
 	returns	"void"
 
 native "NETWORK_IS_SIGNED_IN"
@@ -62991,21 +64355,15 @@ native "_NETWORK_ARE_ROS_AVAILABLE"
 
 		SCLB_NO_ROS = The Rockstar game services are unavailable right now. Please try again later.
 
-		prod.ros.rockstargames.com
-		prod.telemetry.ros.rockstargames.com
-		conductor-prod.ros.rockstargames.com
+		ros.rockstargames.com
 </summary>
 	]]
 
-native "0x8D11E61A4ABF49CC"
+native "_NETWORK_IS_PSN_AVAILABLE"
 	hash "0x8D11E61A4ABF49CC"
+	alias "0x8D11E61A4ABF49CC"
 	ns "NETWORK"
 	returns	"BOOL"
-	doc [[!
-<summary>
-		Maybe NETWORK_IS_PSN_AVAILABLE as it only applies to the PS4 version.
-</summary>
-	]]
 
 native "NETWORK_IS_CLOUD_AVAILABLE"
 	hash "0x9A4CF4F48AD77302"
@@ -63035,6 +64393,8 @@ native "NETWORK_IS_HOST"
 		If you are host, returns true else returns false.
 
 		anyone know how to use this to find correct host? is possible?
+
+		go to a mission and it will set a host then search the host name using a program then find the pointer to the host name
 </summary>
 	]]
 
@@ -63122,7 +64482,7 @@ native "0x83F28CE49FBBFFBA"
 native "0x76BF03FADBF154F5"
 	hash "0x76BF03FADBF154F5"
 	ns "NETWORK"
-	returns	"Any"
+	returns	"AnyPtr"
 
 native "0x9614B71F8ADB982B"
 	hash "0x9614B71F8ADB982B"
@@ -63155,6 +64515,11 @@ native "NETWORK_BAIL"
 	jhash (0x87D79A04)
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		This has arguments.. in PC scripts.
+</summary>
+	]]
 
 native "0x283B6062A2C01E9B"
 	hash "0x283B6062A2C01E9B"
@@ -63185,7 +64550,7 @@ native "NETWORK_IS_MULTIPLAYER_DISABLED"
 	jhash (0x05518C0F)
 	alias "0x9747292807126EDA"
 	ns "NETWORK"
-	returns	"BOOL"
+	returns	"ScrHandle"
 
 native "NETWORK_CAN_ENTER_MULTIPLAYER"
 	hash "0x7E782A910C362C25"
@@ -63435,14 +64800,20 @@ native "0xFFE1E5B792D92B34"
 </summary>
 	]]
 
-native "0x49EC8030F5015F8B"
+native "_NETWORK_SCTV_SLOTS"
 	hash "0x49EC8030F5015F8B"
 	jhash (0x3C3E2AB6)
 	arguments {
 		int "p0",
 	}
+	alias "0x49EC8030F5015F8B"
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		p0 = 0 or 4
+</summary>
+	]]
 
 native "_NETWORK_SESSION_SET_MAX_PLAYERS"
 	hash "0x8B6A4DD0AF9CE215"
@@ -63457,10 +64828,7 @@ native "_NETWORK_SESSION_SET_MAX_PLAYERS"
 	returns	"void"
 	doc [[!
 <summary>
-		playerTypes:
-		0 = regular joiner
-		4 = spectator
-		8 = unknown
+		BLR the shit.
 </summary>
 	]]
 
@@ -63928,7 +65296,7 @@ native "NETWORK_SESSION_IS_VISIBLE"
 	jhash (0x4977AC28)
 	alias "0xBA416D68C631496A"
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
 
 native "NETWORK_SESSION_BLOCK_JOIN_REQUESTS"
 	hash "0xA73667484D7037C3"
@@ -63969,12 +65337,13 @@ native "NETWORK_SESSION_VOICE_LEAVE"
 	ns "NETWORK"
 	returns	"void"
 
-native "0xABD5E88B8A2D3DB2"
+native "_NETWORK_VOICE_CONNECT_TO_PLAYER"
 	hash "0xABD5E88B8A2D3DB2"
 	jhash (0x9DFD89E6)
 	arguments {
 		AnyPtr "globalPtr",
 	}
+	alias "0xABD5E88B8A2D3DB2"
 	ns "NETWORK"
 	returns	"void"
 	doc [[!
@@ -64663,12 +66032,13 @@ native "NETWORK_IS_ACTIVITY_SESSION"
 	ns "NETWORK"
 	returns	"BOOL"
 
-native "0x4A9FDE3A5A6D0437"
+native "_NETWORK_BLOCK_INVITES_2"
 	hash "0x4A9FDE3A5A6D0437"
 	jhash (0x18F03AFD)
 	arguments {
-		Any "p0",
+		BOOL "p0",
 	}
+	alias "0x4A9FDE3A5A6D0437"
 	ns "NETWORK"
 	returns	"void"
 
@@ -64907,6 +66277,14 @@ native "NETWORK_INVITE_GAMERS"
 	}
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		//nothing doin
+		int Global_1837683 = GlobalVariable::Get(1837683);
+		int Global_1837683_f_404 = GlobalVariable::Get(1837683 + 404);
+		NETWORK_INVITE_GAMERS(&amp;Global_1837683, Global_1837683_f_404, 0, 0);
+</summary>
+	]]
 
 native "NETWORK_HAS_INVITED_GAMER"
 	hash "0x4D86CD31E8976ECE"
@@ -65006,13 +66384,19 @@ native "USING_NETWORK_WEAPONTYPE"
 </summary>
 	]]
 
-native "0x796A87B3B68D1F3D"
+native "_NETWORK_CHECK_DATA_MANAGER_FOR_HANDLE"
 	hash "0x796A87B3B68D1F3D"
 	arguments {
 		AnyPtr "p0",
 	}
+	alias "0x796A87B3B68D1F3D"
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		console hash: 0x3624F054
+</summary>
+	]]
 
 native "0x2FC5650B0271CB57"
 	hash "0x2FC5650B0271CB57"
@@ -65174,11 +66558,19 @@ native "NETWORK_PLAYER_IS_CHEATER"
 	ns "NETWORK"
 	returns	"BOOL"
 
-native "0x172F75B6EE2233BA"
+native "_NETWORK_PLAYER_IS_UNK"
 	hash "0x172F75B6EE2233BA"
 	jhash (0x1720ABA6)
+	alias "0x172F75B6EE2233BA"
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		fuck this function in particular.
+		It's similar to unk_0x9A176B6E but this ones got a different stat hash:
+		0xBC707798
+</summary>
+	]]
 
 native "NETWORK_PLAYER_IS_BADSPORT"
 	hash "0x19D8DA0E5A68045A"
@@ -65192,18 +66584,25 @@ native "NETWORK_PLAYER_IS_BADSPORT"
 </summary>
 	]]
 
-native "0x46FB3ED415C7641C"
+native "_NETWORK_IS_PLAYER_IN_SCRIPT"
 	hash "0x46FB3ED415C7641C"
 	jhash (0xF9A51B92)
 	arguments {
-		Any "p0",
+		Player "player",
 
-		Any "p1",
+		int "p1",
 
-		Any "p2",
+		Hash "scriptHash",
 	}
+	alias "0x46FB3ED415C7641C"
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		p1 = 6
+		NETWORK_CRC_HASH_CHECK?
+</summary>
+	]]
 
 native "BAD_SPORT_PLAYER_LEFT_DETECTED"
 	hash "0xEC5E3AF5289DCA81"
@@ -65248,7 +66647,7 @@ native "NETWORK_SET_THIS_SCRIPT_IS_NETWORK_SCRIPT"
 </summary>
 	]]
 
-native "_NETWORK_SET_THIS_SCRIPT_MARKED"
+native "_NETWORK_IS_THIS_SCRIPT_MARKED"
 	hash "0xD1110739EEADB592"
 	arguments {
 		Any "p0",
@@ -65258,6 +66657,7 @@ native "_NETWORK_SET_THIS_SCRIPT_MARKED"
 		Any "p2",
 	}
 	alias "0xD1110739EEADB592"
+	alias "_NETWORK_SET_THIS_SCRIPT_MARKED"
 	ns "NETWORK"
 	returns	"BOOL"
 
@@ -65302,10 +66702,15 @@ native "NETWORK_REGISTER_HOST_BROADCAST_VARIABLES"
 	arguments {
 		intPtr "vars",
 
-		int "numVars",
+		int "sizeofVars",
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		sizeofVars is in bytes
+</summary>
+	]]
 
 native "NETWORK_REGISTER_PLAYER_BROADCAST_VARIABLES"
 	hash "0x3364AA97340CA215"
@@ -65323,6 +66728,11 @@ native "0x64F62AFB081E260D"
 	jhash (0xA71A1D2A)
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		this is lightly associated with the 2 above meaning it accesses a variable that them 2 access also
+</summary>
+	]]
 
 native "0x5D10B3795F3FC886"
 	hash "0x5D10B3795F3FC886"
@@ -65393,7 +66803,7 @@ native "NETWORK_IS_PARTICIPANT_ACTIVE"
 	hash "0x6FF8FF40B6357D45"
 	jhash (0x4E2C348B)
 	arguments {
-		Any "p0",
+		int "p0",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -65463,7 +66873,7 @@ native "NETWORK_IS_SCRIPT_ACTIVE"
 	arguments {
 		charPtr "scriptName",
 
-		Any "p1",
+		Player "player",
 
 		BOOL "p2",
 
@@ -65490,7 +66900,7 @@ native "0x638A3A81733086DB"
 	hash "0x638A3A81733086DB"
 	jhash (0xDB8B5D71)
 	ns "NETWORK"
-	returns	"Any"
+	returns	"int"
 
 native "0x1AD5B71586B94820"
 	hash "0x1AD5B71586B94820"
@@ -65567,7 +66977,7 @@ native "_NETWORK_GET_DESROYER_OF_ENTITY"
 
 		Any "p1",
 
-		HashPtr "p2",
+		HashPtr "weaponHash",
 	}
 	alias "0x4CACA84440FA26F6"
 	ns "NETWORK"
@@ -65632,6 +67042,17 @@ native "NETWORK_DISABLE_INVINCIBLE_FLASHING"
 	doc [[!
 <summary>
 		hash collision???
+
+		I did this and I didn't see anything happening
+		int pindex;
+				for (int i = 0; i &lt; 32; i++)
+				{
+					if (NETWORK_IS_PARTICIPANT_ACTIVE(INT_TO_PARTICIPANTINDEX(i)))
+					{
+						pindex = NETWORK_GET_PLAYER_INDEX(INT_TO_PARTICIPANTINDEX(i));
+						NETWORK_DISABLE_INVINCIBLE_FLASHING(pindex, 1);
+					}
+				}
 </summary>
 	]]
 
@@ -65786,7 +67207,7 @@ native "NETWORK_HAS_CONTROL_OF_DOOR"
 	hash "0xCB3C68ADB06195DF"
 	jhash (0x136326EC)
 	arguments {
-		int "doorID",
+		Hash "doorHash",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -65794,11 +67215,16 @@ native "NETWORK_HAS_CONTROL_OF_DOOR"
 native "_NETWORK_HAS_CONTROL_OF_PAVEMENT_STATS"
 	hash "0xC01E93FAC20C3346"
 	arguments {
-		Hash "hash",
+		Hash "doorHash",
 	}
 	alias "0xC01E93FAC20C3346"
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		console hash: 0xD14D9C07
+</summary>
+	]]
 
 native "VEH_TO_NET"
 	hash "0xB4C94523F023419C"
@@ -65823,6 +67249,11 @@ native "PED_TO_NET"
 	}
 	ns "NETWORK"
 	returns	"int"
+	doc [[!
+<summary>
+		gets the network id of a ped
+</summary>
+	]]
 
 native "OBJ_TO_NET"
 	hash "0x99BFDC94A603E541"
@@ -65857,6 +67288,11 @@ native "NET_TO_PED"
 	}
 	ns "NETWORK"
 	returns	"Ped"
+	doc [[!
+<summary>
+		gets the ped id of a network id
+</summary>
+	]]
 
 native "NET_TO_OBJ"
 	hash "0xD8515F5FEA14CB3F"
@@ -65866,6 +67302,11 @@ native "NET_TO_OBJ"
 	}
 	ns "NETWORK"
 	returns	"Object"
+	doc [[!
+<summary>
+		gets the object id of a network id
+</summary>
+	]]
 
 native "NET_TO_ENT"
 	hash "0xBFFEAB45A9A9094A"
@@ -65875,6 +67316,11 @@ native "NET_TO_ENT"
 	}
 	ns "NETWORK"
 	returns	"Entity"
+	doc [[!
+<summary>
+		gets the entity id of a network id
+</summary>
+	]]
 
 native "NETWORK_GET_LOCAL_HANDLE"
 	hash "0xE86051786B66CD8E"
@@ -66142,6 +67588,8 @@ native "NETWORK_PLAYER_GET_NAME"
 	doc [[!
 <summary>
 		Returns the name of a given player. Returns "**Invalid**" if CPlayerInfo of the given player cannot be retrieved or the player doesn't exist.
+
+		Does exactly the same as GET_PLAYER_NAME.
 </summary>
 	]]
 
@@ -66151,14 +67599,14 @@ native "NETWORK_PLAYER_GET_USERID"
 	arguments {
 		Player "player",
 
-		intPtr "userID",
+		charPtr "userID",
 	}
 	alias "_NETWORK_PLAYER_GET_USER_ID"
 	ns "NETWORK"
 	returns	"charPtr"
 	doc [[!
 <summary>
-		Returns the user id of a given player. Returns "**Invalid**" if CPlayerInfo of the given player cannot be retrieved or the player doesn't exist.
+		Sets [userID] to the user id of the given player. Returns "**Invalid**" if CPlayerInfo of the given player cannot be retrieved or the player doesn't exist.
 </summary>
 	]]
 
@@ -66181,12 +67629,13 @@ native "NETWORK_PLAYER_IS_ROCKSTAR_DEV"
 </summary>
 	]]
 
-native "0x565E430DB3B05BEC"
+native "_NETWORK_PLAYER_SOMETHING"
 	hash "0x565E430DB3B05BEC"
 	jhash (0xD265B049)
 	arguments {
-		Any "p0",
+		Player "player",
 	}
+	alias "0x565E430DB3B05BEC"
 	ns "NETWORK"
 	returns	"BOOL"
 	doc [[!
@@ -66209,6 +67658,11 @@ native "NETWORK_GET_MAX_FRIENDS"
 	jhash (0x048171BC)
 	ns "NETWORK"
 	returns	"int"
+	doc [[!
+<summary>
+		On PC this is hardcoded to 250.
+</summary>
+	]]
 
 native "NETWORK_GET_FRIEND_COUNT"
 	hash "0x203F1CFD823B27A4"
@@ -66220,7 +67674,7 @@ native "NETWORK_GET_FRIEND_NAME"
 	hash "0xE11EBBB2A783FE8B"
 	jhash (0x97420B6D)
 	arguments {
-		Player "player",
+		int "friendIndex",
 	}
 	ns "NETWORK"
 	returns	"charPtr"
@@ -66291,7 +67745,7 @@ native "NETWORK_IS_PENDING_FRIEND"
 		Any "p0",
 	}
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		This function is hard-coded to always return 0.
@@ -66302,15 +67756,15 @@ native "NETWORK_IS_ADDING_FRIEND"
 	hash "0x6EA101606F6E4D81"
 	jhash (0xBB7EC8C4)
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
 
 native "NETWORK_ADD_FRIEND"
 	hash "0x8E02D73914064223"
 	jhash (0x20E5B3EE)
 	arguments {
-		AnyPtr "p0",
+		intPtr "networkHandle",
 
-		charPtr "p1",
+		charPtr "message",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -66372,6 +67826,13 @@ native "0x26F07DD83A5F7F98"
 	jhash (0x9A176B6E)
 	ns "NETWORK"
 	returns	"Any"
+	doc [[!
+<summary>
+		spook.
+		This function calls a function that gets another player stat, although implementation wasn't finished so it can only get your own stat.
+		Stat value it calls: 0xFC58E972
+</summary>
+	]]
 
 native "NETWORK_HAS_HEADSET"
 	hash "0xE870F9F1F7B4F1FA"
@@ -66496,6 +67957,11 @@ native "NETWORK_IS_PLAYER_TALKING"
 	}
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		returns true if someone is screaming or talking in a microphone
+</summary>
+	]]
 
 native "NETWORK_PLAYER_HAS_HEADSET"
 	hash "0x3FB99A8B08D18FD6"
@@ -66676,7 +68142,7 @@ native "NETWORK_OVERRIDE_CHAT_RESTRICTIONS"
 	returns	"void"
 	doc [[!
 <summary>
-		Could possibly bypass being muted or automatically muted? Who knows.
+		Could possibly bypass being muted or automatically muted
 </summary>
 	]]
 
@@ -66700,17 +68166,18 @@ native "_NETWORK_OVERRIDE_SEND_RESTRICTIONS"
 </summary>
 	]]
 
-native "0x57B192B4D4AD23D5"
+native "_NETWORK_CHAT_MUTE"
 	hash "0x57B192B4D4AD23D5"
 	jhash (0x2F98B405)
 	arguments {
 		BOOL "p0",
 	}
+	alias "0x57B192B4D4AD23D5"
 	ns "NETWORK"
 	returns	"void"
 	doc [[!
 <summary>
-		Not sure what it does but it's in a function called in the main of appbroadcast and is also called in freemode. Likely chat related.
+		this function is toggle when people report you and you get the auto mute message 
 </summary>
 	]]
 
@@ -66818,6 +68285,12 @@ native "0xADB57E5B663CCA8B"
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		gets 2 floats from the CNetGamePlayer of p0 and stores them in p1 and p2.
+		Possibly waypoint?
+</summary>
+	]]
 
 native "_NETWORK_IS_TEXT_CHAT_ACTIVE"
 	hash "0x5FCF4D7069B09026"
@@ -66858,7 +68331,7 @@ native "NETWORK_SET_RICH_PRESENCE"
 	hash "0x1DCCACDCFC569362"
 	jhash (0x932A6CED)
 	arguments {
-		Any "p0",
+		int "p0",
 
 		Any "p1",
 
@@ -66868,17 +68341,30 @@ native "NETWORK_SET_RICH_PRESENCE"
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		On PC it's a nullsub which means it does absolutely nothing.
 
-native "0x3E200C2BCF4164EB"
+		Now that Discord supports Rich Presence, R* might finally implement this for PC. Or maybe in future games like RDR2, GTA VI...
+</summary>
+	]]
+
+native "_NETWORK_SET_RICH_PRESENCE_2"
 	hash "0x3E200C2BCF4164EB"
 	jhash (0x017E6777)
 	arguments {
-		Any "p0",
+		int "p0",
 
-		Any "p1",
+		charPtr "gxtLabel",
 	}
+	alias "0x3E200C2BCF4164EB"
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		NETWORK_SET_RICH_PRESENCE but for PlayStation? (On PC it's a nullsub)
+</summary>
+	]]
 
 native "NETWORK_GET_TIMEOUT_TIME"
 	hash "0x5ED0356A0CE3A34F"
@@ -66886,8 +68372,13 @@ native "NETWORK_GET_TIMEOUT_TIME"
 	alias "0x5ED0356A0CE3A34F"
 	ns "NETWORK"
 	returns	"int"
+	doc [[!
+<summary>
+		Returns the value of the tunable 0x9A82F2B. Usually 8000 iirc.
+</summary>
+	]]
 
-native "0x9769F811D1785B03"
+native "_NETWORK_RESPAWN_COORDS"
 	hash "0x9769F811D1785B03"
 	jhash (0xBE6A30C3)
 	arguments {
@@ -66903,6 +68394,7 @@ native "0x9769F811D1785B03"
 
 		BOOL "p5",
 	}
+	alias "0x9769F811D1785B03"
 	ns "NETWORK"
 	returns	"void"
 	doc [[!
@@ -66921,6 +68413,11 @@ native "0xBF22E0F32968E967"
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		respawn player
+</summary>
+	]]
 
 native "0x715135F4B82AC90D"
 	hash "0x715135F4B82AC90D"
@@ -67178,14 +68675,15 @@ native "0xC32EA7A2F6CA7557"
 	ns "NETWORK"
 	returns	"Any"
 
-native "0x5835D9CD92E83184"
+native "_NETWORK_GET_PLAYER_CREW_EMBLEM_TXD_NAME"
 	hash "0x5835D9CD92E83184"
 	jhash (0xBA672146)
 	arguments {
-		AnyPtr "p0",
+		PlayerPtr "player",
 
 		AnyPtr "p1",
 	}
+	alias "0x5835D9CD92E83184"
 	ns "NETWORK"
 	returns	"BOOL"
 
@@ -67325,7 +68823,7 @@ native "NETWORK_SET_ENTITY_CAN_BLEND"
 	ns "NETWORK"
 	returns	"void"
 
-native "_NETWORK_SET_ENTITY_VISIBLE_TO_NETWORK"
+native "_NETWORK_SET_ENTITY_INVISIBLE_TO_NETWORK"
 	hash "0xF1CA12B18AEF5298"
 	jhash (0x09CBC4B0)
 	arguments {
@@ -67334,6 +68832,7 @@ native "_NETWORK_SET_ENTITY_VISIBLE_TO_NETWORK"
 		BOOL "toggle",
 	}
 	alias "0xF1CA12B18AEF5298"
+	alias "_NETWORK_SET_ENTITY_VISIBLE_TO_NETWORK"
 	ns "NETWORK"
 	returns	"void"
 	doc [[!
@@ -67386,12 +68885,13 @@ native "0x3FA36981311FA4FF"
 	ns "NETWORK"
 	returns	"void"
 
-native "0xA1607996431332DF"
+native "_NETWORK_CAN_NETWORK_ID_BE_SEEN"
 	hash "0xA1607996431332DF"
 	jhash (0xEA5176C0)
 	arguments {
 		int "netId",
 	}
+	alias "0xA1607996431332DF"
 	ns "NETWORK"
 	returns	"BOOL"
 
@@ -67545,6 +69045,11 @@ native "SET_ENTITY_LOCALLY_INVISIBLE"
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		I tried using this and I see nothing happening, what is this suppose to do?
+</summary>
+	]]
 
 native "SET_ENTITY_LOCALLY_VISIBLE"
 	hash "0x241E289B5C059EDC"
@@ -67554,6 +69059,11 @@ native "SET_ENTITY_LOCALLY_VISIBLE"
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		I tried using this and I see nothing happening, what is this suppose to do?
+</summary>
+	]]
 
 native "IS_DAMAGE_TRACKER_ACTIVE_ON_NETWORK_ID"
 	hash "0x6E192E33AD436366"
@@ -67611,7 +69121,7 @@ native "RESERVE_NETWORK_MISSION_OBJECTS"
 	hash "0x4E5C93BD0C32FBF8"
 	jhash (0x391DF4F3)
 	arguments {
-		int "p0",
+		int "amount",
 	}
 	ns "NETWORK"
 	returns	"void"
@@ -67620,7 +69130,7 @@ native "RESERVE_NETWORK_MISSION_PEDS"
 	hash "0xB60FEBA45333D36F"
 	jhash (0x54998C37)
 	arguments {
-		int "p0",
+		int "amount",
 	}
 	ns "NETWORK"
 	returns	"void"
@@ -67629,7 +69139,7 @@ native "RESERVE_NETWORK_MISSION_VEHICLES"
 	hash "0x76B02E21ED27A469"
 	jhash (0x5062875E)
 	arguments {
-		int "p0",
+		int "amount",
 	}
 	ns "NETWORK"
 	returns	"void"
@@ -67638,7 +69148,7 @@ native "CAN_REGISTER_MISSION_OBJECTS"
 	hash "0x800DD4721A8B008B"
 	jhash (0x7F85DFDE)
 	arguments {
-		int "p0",
+		int "amount",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -67647,7 +69157,7 @@ native "CAN_REGISTER_MISSION_PEDS"
 	hash "0xBCBF4FEF9FA5D781"
 	jhash (0xCCAA5CE9)
 	arguments {
-		int "p0",
+		int "amount",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -67656,7 +69166,7 @@ native "CAN_REGISTER_MISSION_VEHICLES"
 	hash "0x7277F1F2E085EE74"
 	jhash (0x818B6830)
 	arguments {
-		int "p0",
+		int "amount",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -67665,16 +69175,24 @@ native "CAN_REGISTER_MISSION_ENTITIES"
 	hash "0x69778E7564BADE6D"
 	jhash (0x83794008)
 	arguments {
-		int "p0",
+		int "ped_amt",
 
-		Any "p1",
+		int "vehicle_amt",
 
-		Any "p2",
+		int "object_amt",
 
-		Any "p3",
+		int "pickup_amt",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		if (CAN_REGISTER_MISSION_ENTITIES(20, 20, 20, 10))
+		{
+
+		}
+</summary>
+	]]
 
 native "GET_NUM_RESERVED_MISSION_OBJECTS"
 	hash "0xAA81B5F10BC43AC2"
@@ -67888,6 +69406,11 @@ native "GET_TIME_AS_STRING"
 	alias "_FORMAT_TIME"
 	ns "NETWORK"
 	returns	"charPtr"
+	doc [[!
+<summary>
+		Previously named, '_FORMAT_TIME' for people who can't find it's uses in decompiled scripts.
+</summary>
+	]]
 
 native "_GET_POSIX_TIME"
 	hash "0x9A73240B49945C76"
@@ -67917,18 +69440,12 @@ native "_GET_DATE_AND_TIME_FROM_UNIX_EPOCH"
 
 		struct date_time
 		{
-		    int year;
-		    int PADDING1;
-		    int month;
-		    int PADDING2;
-		    int day;
-		    int PADDING3;
-		    int hour;
-		    int PADDING4;
-		    int minute;
-		    int PADDING5;
-		    int second;
-		    int PADDING6;
+		    alignas(8) int year;
+		    alignas(8) int month;
+		    alignas(8) int day;
+		    alignas(8) int hour;
+		    alignas(8) int minute;
+		    alignas(8) int second;
 		};
 </summary>
 	]]
@@ -68015,21 +69532,32 @@ native "SET_NETWORK_VEHICLE_RESPOT_TIMER"
 	arguments {
 		int "netId",
 
-		Any "p1",
+		int "time",
 	}
 	ns "NETWORK"
 	returns	"void"
 
-native "0x6274C4712850841E"
+native "_SET_NETWORK_OBJECT_NON_CONTACT"
 	hash "0x6274C4712850841E"
 	jhash (0xEA235081)
 	arguments {
-		Entity "entity",
+		Object "object",
 
-		BOOL "p1",
+		BOOL "toggle",
 	}
+	alias "0x6274C4712850841E"
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		Original put name,
+		_SET_NETWORK_VEHICLE_NON_CONTACT
+
+		However changed to 'object' as the instances where this is called in scripts both freemode and golf it's only used on objects after the objects are called OBJ_TO_NET p_parachute_s (freemode) prop_golf_ball (golf). Tho the script search was done via TU27 Xbox360 ones.
+
+		Got my hopes up whoever put this as vehicle. I was hoping it was what R* used in non-contact races.
+</summary>
+	]]
 
 native "USE_PLAYER_COLOUR_INSTEAD_OF_TEAM_COLOUR"
 	hash "0x5FFE9B4144F9712F"
@@ -68188,13 +69716,14 @@ native "NETWORK_STOP_SYNCHRONISED_SCENE"
 	ns "NETWORK"
 	returns	"void"
 
-native "_NETWORK_UNLINK_NETWORKED_SYNCHRONISED_SCENE"
+native "_NETWORK_CONVERT_SYNCHRONISED_SCENE_TO_SYNCHRONIZED_SCENE"
 	hash "0x02C40BF885C567B6"
 	jhash (0x16AED87B)
 	arguments {
 		int "netScene",
 	}
 	alias "0x02C40BF885C567B6"
+	alias "_NETWORK_UNLINK_NETWORKED_SYNCHRONISED_SCENE"
 	ns "NETWORK"
 	returns	"int"
 	doc [[!
@@ -68217,7 +69746,7 @@ native "0xFB1F9381E80FA13F"
 	arguments {
 		int "p0",
 
-		Any "p1",
+		AnyPtr "p1",
 	}
 	ns "NETWORK"
 	returns	"Any"
@@ -68251,6 +69780,12 @@ native "0x5A6FFA2433E2F14C"
 	}
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		One of the first things it does is get the players ped.
+		Then it calls a function that is used in some tasks and ped based functions.
+</summary>
+	]]
 
 native "0x4BA92A18502BCA61"
 	hash "0x4BA92A18502BCA61"
@@ -68463,9 +69998,10 @@ native "NETWORK_OVERRIDE_CLOCK_TIME"
 </summary>
 	]]
 
-native "0xD972DF67326F966E"
+native "NETWORK_CLEAR_CLOCK_TIME_OVERRIDE"
 	hash "0xD972DF67326F966E"
 	jhash (0xC4AEAF49)
+	alias "0xD972DF67326F966E"
 	ns "NETWORK"
 	returns	"void"
 
@@ -68587,6 +70123,17 @@ native "_NETWORK_SET_NETWORK_ID_DYNAMIC"
 	alias "0x2B1813ABA29016C5"
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		This is called shortly after setting Network ID Migration off it seems. Does anyone know the point of this? 
+
+		Example scenario, 
+		If I were to request and gain control of an online players vehicle then their vehicle's Network ID and turn migration off. I wouldn't need to ever request control again as they wouldn't gain control back. 
+		- scenario over -
+
+		So what would be the point hereafter of setting it 'dynamic'?
+</summary>
+	]]
 
 native "_NETWORK_REQUEST_CLOUD_BACKGROUND_SCRIPTS"
 	hash "0x924426BFFD82E915"
@@ -68606,6 +70153,16 @@ native "_NETWORK_REQUEST_CLOUD_BACKGROUND_SCRIPTS"
 		puu.sh/nhdQI/e0ca5567b4.png
 
 		0x98EFB921 is the correct console hash for "_DOWNLOAD_BG_SCRIPT_RPF". 0x29532731 is "_HAS_BG_SCRIPT_BEEN_DOWNLOADED"
+
+
+		The code:
+		seg001:00000000003EFF4C uunk_0x29532731:                        # CODE XREF: sub_158C8AC+14p
+		seg001:00000000003EFF4C                 lis       r3, dword_1CFB100@ha
+		seg001:00000000003EFF50                 lwz       r3, dword_1CFB100@l(r3)
+		seg001:00000000003EFF54                 ld        r3, 0x1020(r3)
+		seg001:00000000003EFF58                 extsw     r3, r3
+		seg001:00000000003EFF5C                 blr
+		seg001:00000000003EFF5C # End of function uunk_0x29532731
 </summary>
 	]]
 
@@ -68663,24 +70220,24 @@ native "NETWORK_DOES_TUNABLE_EXIST"
 <summary>
 		Some of the tunable contexts used in the PC scripts:
 
-		- "CONTENT_MODIFIER_MP_FM_RACES"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_SEA"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_AIR"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CYCLE"
-		- "CONTENT_MODIFIER_MP_FM_RACES_BIKE"
-		- "CONTENT_MODIFIER_MP_FM_MISSIONS"
-		- "CONTENT_MODIFIER_MP_FM_CONTACT"
-		- "CONTENT_MODIFIER_MP_FM_RANDOM"
-		- "CONTENT_MODIFIER_MP_FM_VERSUS"
-		- "CONTENT_MODIFIER_MP_FM_LTS"
-		- "CONTENT_MODIFIER_MP_FM_CAPTURE"
-		- "CONTENT_MODIFIER_MP_FM_DM"
-		- "CONTENT_MODIFIER_MP_FM_SURVIVAL"
-		- "CONTENT_MODIFIER_MP_FM_GANG_ATTACK"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
+		- "MP_FM_RACES"
+		- "MP_FM_RACES_CAR"
+		- "MP_FM_RACES_SEA"
+		- "MP_FM_RACES_CAR"
+		- "MP_FM_RACES_AIR"
+		- "MP_FM_BASEJUMP"
+		- "MP_FM_RACES_CYCLE"
+		- "MP_FM_RACES_BIKE"
+		- "MP_FM_MISSIONS"
+		- "MP_FM_CONTACT"
+		- "MP_FM_RANDOM"
+		- "MP_FM_VERSUS"
+		- "MP_FM_LTS"
+		- "MP_FM_CAPTURE"
+		- "MP_FM_DM"
+		- "MP_FM_SURVIVAL"
+		- "MP_FM_GANG_ATTACK"
+		- "MP_FM_BASEJUMP"
 		- "BASE_GLOBALS"
 		- "MP_GLOBAL"
 
@@ -68710,24 +70267,24 @@ native "NETWORK_ACCESS_TUNABLE_INT"
 <summary>
 		Some of the tunable contexts used in the PC scripts:
 
-		- "CONTENT_MODIFIER_MP_FM_RACES"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_SEA"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_AIR"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CYCLE"
-		- "CONTENT_MODIFIER_MP_FM_RACES_BIKE"
-		- "CONTENT_MODIFIER_MP_FM_MISSIONS"
-		- "CONTENT_MODIFIER_MP_FM_CONTACT"
-		- "CONTENT_MODIFIER_MP_FM_RANDOM"
-		- "CONTENT_MODIFIER_MP_FM_VERSUS"
-		- "CONTENT_MODIFIER_MP_FM_LTS"
-		- "CONTENT_MODIFIER_MP_FM_CAPTURE"
-		- "CONTENT_MODIFIER_MP_FM_DM"
-		- "CONTENT_MODIFIER_MP_FM_SURVIVAL"
-		- "CONTENT_MODIFIER_MP_FM_GANG_ATTACK"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
+		- "MP_FM_RACES"
+		- "MP_FM_RACES_CAR"
+		- "MP_FM_RACES_SEA"
+		- "MP_FM_RACES_CAR"
+		- "MP_FM_RACES_AIR"
+		- "MP_FM_BASEJUMP"
+		- "MP_FM_RACES_CYCLE"
+		- "MP_FM_RACES_BIKE"
+		- "MP_FM_MISSIONS"
+		- "MP_FM_CONTACT"
+		- "MP_FM_RANDOM"
+		- "MP_FM_VERSUS"
+		- "MP_FM_LTS"
+		- "MP_FM_CAPTURE"
+		- "MP_FM_DM"
+		- "MP_FM_SURVIVAL"
+		- "MP_FM_GANG_ATTACK"
+		- "MP_FM_BASEJUMP"
 		- "BASE_GLOBALS"
 		- "MP_GLOBAL"
 
@@ -68757,42 +70314,29 @@ native "NETWORK_ACCESS_TUNABLE_FLOAT"
 <summary>
 		Some of the tunable contexts used in the PC scripts:
 
-		- "CONTENT_MODIFIER_MP_FM_RACES"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_SEA"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_AIR"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CYCLE"
-		- "CONTENT_MODIFIER_MP_FM_RACES_BIKE"
-		- "CONTENT_MODIFIER_MP_FM_MISSIONS"
-		- "CONTENT_MODIFIER_MP_FM_CONTACT"
-		- "CONTENT_MODIFIER_MP_FM_RANDOM"
-		- "CONTENT_MODIFIER_MP_FM_VERSUS"
-		- "CONTENT_MODIFIER_MP_FM_LTS"
-		- "CONTENT_MODIFIER_MP_FM_CAPTURE"
-		- "CONTENT_MODIFIER_MP_FM_DM"
-		- "CONTENT_MODIFIER_MP_FM_SURVIVAL"
-		- "CONTENT_MODIFIER_MP_FM_GANG_ATTACK"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
 		- "BASE_GLOBALS"
 		- "MP_GLOBAL"
+		- "MP_FM_RACES"
+		- "MP_FM_RACES_CAR"
+		- "MP_FM_RACES_SEA"
+		- "MP_FM_RACES_CAR"
+		- "MP_FM_RACES_AIR"
+		- "MP_FM_BASEJUMP"
+		- "MP_FM_RACES_CYCLE"
+		- "MP_FM_RACES_BIKE"
+		- "MP_FM_MISSIONS"
+		- "MP_FM_CONTACT"
+		- "MP_FM_RANDOM"
+		- "MP_FM_VERSUS"
+		- "MP_FM_LTS"
+		- "MP_FM_CAPTURE"
+		- "MP_FM_DM"
+		- "MP_FM_SURVIVAL"
+		- "MP_FM_GANG_ATTACK"
+		- "MP_FM_BASEJUMP"
 		- "MP_CNC_TEAM_COP"
 		- "MP_CNC_TEAM_VAGOS"
 		- "MP_CNC_TEAM_LOST"
-		- "MP_FM_DM"
-		- "MP_FM_RACES"
-		- "MP_FM_RACES_CAR"
-		- "MP_FM_RACES_BIKE"
-		- "MP_FM_RACES_CYCLE"
-		- "MP_FM_RACES_AIR"
-		- "MP_FM_RACES_SEA"
-		- "MP_FM_MISSIONS"
-		- "MP_FM_SURVIVAL
-		- "MP_FM_BASEJUMP"
-		- "MP_FM_CAPTURE"
-		- "MP_FM_LTS"
-		-"MP_FM_GANG_ATTACK"
 
 
 		and some of the tunable names used in the PC scripts:
@@ -68819,24 +70363,6 @@ native "NETWORK_ACCESS_TUNABLE_BOOL"
 <summary>
 		Some of the tunable contexts used in the PC scripts:
 
-		- "CONTENT_MODIFIER_MP_FM_RACES"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_SEA"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CAR"
-		- "CONTENT_MODIFIER_MP_FM_RACES_AIR"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
-		- "CONTENT_MODIFIER_MP_FM_RACES_CYCLE"
-		- "CONTENT_MODIFIER_MP_FM_RACES_BIKE"
-		- "CONTENT_MODIFIER_MP_FM_MISSIONS"
-		- "CONTENT_MODIFIER_MP_FM_CONTACT"
-		- "CONTENT_MODIFIER_MP_FM_RANDOM"
-		- "CONTENT_MODIFIER_MP_FM_VERSUS"
-		- "CONTENT_MODIFIER_MP_FM_LTS"
-		- "CONTENT_MODIFIER_MP_FM_CAPTURE"
-		- "CONTENT_MODIFIER_MP_FM_DM"
-		- "CONTENT_MODIFIER_MP_FM_SURVIVAL"
-		- "CONTENT_MODIFIER_MP_FM_GANG_ATTACK"
-		- "CONTENT_MODIFIER_MP_FM_BASEJUMP"
 		- "BASE_GLOBALS"
 		- "MP_GLOBAL"
 
@@ -68853,7 +70379,7 @@ native "NETWORK_ACCESS_TUNABLE_BOOL"
 native "_NETWORK_DOES_TUNABLE_EXIST_HASH"
 	hash "0xE4E53E1419D81127"
 	arguments {
-		Hash "tunbaleContext",
+		Hash "tunableContext",
 
 		Hash "tunableName",
 	}
@@ -69134,18 +70660,21 @@ native "0x237D5336A9A54108"
 	ns "NETWORK"
 	returns	"BOOL"
 
-native "0x99B72C7ABDE5C910"
+native "_NETWORK_COPY_PED_BLEND_DATA"
 	hash "0x99B72C7ABDE5C910"
 	arguments {
 		Ped "ped",
 
 		Player "player",
 	}
+	alias "0x99B72C7ABDE5C910"
 	ns "NETWORK"
 	returns	"BOOL"
 	doc [[!
 <summary>
 		console hash: 0x99F58A07
+
+		Sadly I thought this copied their tattoos, but it just seems to copy their 'blend data'. E.G. skin tone/color, fat/skinny face, etc.
 </summary>
 	]]
 
@@ -69227,12 +70756,17 @@ native "0x58C21165F6545892"
 	hash "0x58C21165F6545892"
 	jhash (0x365C50EE)
 	arguments {
-		Any "p0",
+		charPtr "p0",
 
-		Any "p1",
+		charPtr "p1",
 	}
 	ns "NETWORK"
 	returns	"void"
+	doc [[!
+<summary>
+		Has a 3rd param (int) since patch [???].
+</summary>
+	]]
 
 native "0x2EAC52B4019E2782"
 	hash "0x2EAC52B4019E2782"
@@ -69250,7 +70784,7 @@ native "SET_STORE_ENABLED"
 	returns	"void"
 	doc [[!
 <summary>
-		hash collision...
+		Access to the store for shark cards etc...
 </summary>
 	]]
 
@@ -69363,7 +70897,7 @@ native "_DOWNLOAD_CHECK"
 	returns	"void"
 	doc [[!
 <summary>
-		Downloads prod.cloud.rockstargames.com/titles/gta5/&lt;platform&gt;/check.json in the same manner that NETWORK_REQUEST_CLOUD_TUNABLES downloads the tunables.
+		Downloads prod.cloud.rockstargames.com/titles/gta5/&lt;platform&gt;/check.json
 </summary>
 	]]
 
@@ -69513,11 +71047,11 @@ native "0x158EC424F35EC469"
 	hash "0x158EC424F35EC469"
 	jhash (0xDED82A6E)
 	arguments {
-		AnyPtr "p0",
+		charPtr "p0",
 
 		BOOL "p1",
 
-		AnyPtr "p2",
+		charPtr "contentType",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
@@ -69760,13 +71294,14 @@ native "0xBA96394A0EECFA65"
 	ns "NETWORK"
 	returns	"void"
 
-native "_GET_CONTENT_USER_ID"
+native "GET_PLAYER_ADVANCED_MODIFIER_PRIVILEGES"
 	hash "0xCD67AD041A394C9C"
 	jhash (0x8F3137E6)
 	arguments {
 		int "p0",
 	}
 	alias "0xCD67AD041A394C9C"
+	alias "_GET_CONTENT_USER_ID"
 	ns "NETWORK"
 	returns	"charPtr"
 
@@ -69869,9 +71404,9 @@ native "0xBAF6BABF9E7CCC13"
 	hash "0xBAF6BABF9E7CCC13"
 	jhash (0x744A9EA5)
 	arguments {
-		Any "p0",
+		int "p0",
 
-		Any "p1",
+		AnyPtr "p1",
 	}
 	ns "NETWORK"
 	returns	"Any"
@@ -70234,51 +71769,75 @@ native "0xF53E48461B71EECB"
 	ns "NETWORK"
 	returns	"BOOL"
 
-native "0x098AB65B9ED9A9EC"
+native "_FACEBOOK_SET_HEIST_COMPLETE"
 	hash "0x098AB65B9ED9A9EC"
 	jhash (0x30B51753)
 	arguments {
-		AnyPtr "p0",
+		charPtr "heistName",
 
-		Any "p1",
+		int "cashEarned",
 
-		Any "p2",
+		int "xpEarned",
 	}
+	alias "0x098AB65B9ED9A9EC"
 	ns "NETWORK"
 	returns	"BOOL"
 
-native "0xDC48473142545431"
+native "_FACEBOOK_SET_CREATE_CHARACTER_COMPLETE"
 	hash "0xDC48473142545431"
 	jhash (0x02DAD93F)
+	alias "0xDC48473142545431"
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		GTA Online character creation
+</summary>
+	]]
 
-native "0x0AE1F1653B554AB9"
+native "_FACEBOOK_SET_MILESTONE_COMPLETE"
 	hash "0x0AE1F1653B554AB9"
 	jhash (0x2D947814)
 	arguments {
-		Any "p0",
+		int "milestoneId",
 	}
+	alias "0x0AE1F1653B554AB9"
+	ns "NETWORK"
+	returns	"BOOL"
+	doc [[!
+<summary>
+		milestoneId:
+
+		0 = "percentcomplete"
+		1 = "storycomplete"
+		2 = "vehicles"
+		3 = "properties"
+		4 = "psych"
+		5 = "mapreveal"
+		6 = "prologue"
+</summary>
+	]]
+
+native "_FACEBOOK_IS_SENDING_DATA"
+	hash "0x62B9FEC9A11F10EF"
+	jhash (0x37A28C26)
+	alias "0x62B9FEC9A11F10EF"
 	ns "NETWORK"
 	returns	"BOOL"
 
-native "0x62B9FEC9A11F10EF"
-	hash "0x62B9FEC9A11F10EF"
-	jhash (0x37A28C26)
-	ns "NETWORK"
-	returns	"Any"
-
-native "0xA75E2B6733DA5142"
+native "_FACEBOOK_DO_UNK_CHECK"
 	hash "0xA75E2B6733DA5142"
 	jhash (0x11E8B5CD)
+	alias "0xA75E2B6733DA5142"
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
 
-native "0x43865688AE10F0D7"
+native "_FACEBOOK_IS_AVAILABLE"
 	hash "0x43865688AE10F0D7"
 	jhash (0x429AEAB3)
+	alias "0x43865688AE10F0D7"
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
 
 native "TEXTURE_DOWNLOAD_REQUEST"
 	hash "0x16160DA74A8E74A2"
@@ -70427,7 +71986,7 @@ native "0x422D396F80A96547"
 	hash "0x422D396F80A96547"
 	jhash (0xC6EA802E)
 	ns "NETWORK"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0xA699957E60D80214"
 	hash "0xA699957E60D80214"
@@ -70442,14 +72001,19 @@ native "0xC22912B1D85F26B1"
 	hash "0xC22912B1D85F26B1"
 	jhash (0x8570DD34)
 	arguments {
-		Any "p0",
+		int "p0",
 
-		AnyPtr "p1",
+		intPtr "p1",
 
-		AnyPtr "p2",
+		Vector3Ptr "p2",
 	}
 	ns "NETWORK"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Seems to return time in vector3
+</summary>
+	]]
 
 native "0x593570C289A77688"
 	hash "0x593570C289A77688"
@@ -70720,6 +72284,11 @@ native "_NETWORK_EARN_FROM_GANG_PICKUP"
 	alias "0xA03D4ACE0A3284CE"
 	ns "NETWORKCASH"
 	returns	"void"
+	doc [[!
+<summary>
+		MONEY_EARN_PICKED_UP
+</summary>
+	]]
 
 native "_NETWORK_EARN_FROM_ARMOUR_TRUCK"
 	hash "0xF514621E8EA463D0"
@@ -70735,6 +72304,8 @@ native "_NETWORK_EARN_FROM_ARMOUR_TRUCK"
 		For the money bags that drop a max of $40,000. Often called 40k bags.
 
 		Most likely NETWORK_EARN_FROM_ROB***
+
+		MONEY_EARN_JOBS
 </summary>
 	]]
 
@@ -70877,6 +72448,13 @@ native "NETWORK_EARN_FROM_NOT_BADSPORT"
 	alias "0x4337511FA8221D36"
 	ns "NETWORKCASH"
 	returns	"void"
+	doc [[!
+<summary>
+		Enough007: Adds an entry in the Network Transaction Log.
+
+		Max value for amount 2000
+</summary>
+	]]
 
 native "NETWORK_EARN_FROM_ROCKSTAR"
 	hash "0x02CE1D6AC0FC73EA"
@@ -71795,7 +73373,7 @@ native "0xE154B48B68EF72BC"
 		Any "p0",
 	}
 	ns "NETWORKCASH"
-	returns	"Any"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		This function is hard-coded to always return 1.
@@ -71809,10 +73387,10 @@ native "0x6FCF8DDEA146C45B"
 		Any "p0",
 	}
 	ns "NETWORKCASH"
-	returns	"Any"
+	returns	"floatPtr"
 	doc [[!
 <summary>
-		This function is hard-coded to always return 1.
+		This function is hard-coded to always return 1. Крч какая-то хуйня.
 </summary>
 	]]
 
@@ -71823,11 +73401,10 @@ native "_GET_NUM_DECORATIONS"
 		int "character",
 	}
 	alias "0x278F76C3B0A8F109"
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
-		_GET_NUM_DECORATIONS
 		only documented to be continued...
 </summary>
 	]]
@@ -71842,7 +73419,7 @@ native "0xFF56381874F82086"
 
 		intPtr "outComponent",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 
 native "INIT_SHOP_PED_COMPONENT"
@@ -71851,7 +73428,7 @@ native "INIT_SHOP_PED_COMPONENT"
 	arguments {
 		intPtr "outComponent",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "INIT_SHOP_PED_PROP"
@@ -71860,7 +73437,7 @@ native "INIT_SHOP_PED_PROP"
 	arguments {
 		intPtr "outProp",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "0x50F457823CE6EB5F"
@@ -71875,7 +73452,7 @@ native "0x50F457823CE6EB5F"
 
 		int "p3",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 
 native "_GET_NUM_PROPS_FROM_OUTFIT"
@@ -71894,7 +73471,7 @@ native "_GET_NUM_PROPS_FROM_OUTFIT"
 
 		int "componentId",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
@@ -71920,7 +73497,7 @@ native "GET_SHOP_PED_QUERY_COMPONENT"
 
 		intPtr "outComponent",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "GET_SHOP_PED_COMPONENT"
@@ -71931,7 +73508,7 @@ native "GET_SHOP_PED_COMPONENT"
 
 		AnyPtr "p1",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "GET_SHOP_PED_QUERY_PROP"
@@ -71942,7 +73519,7 @@ native "GET_SHOP_PED_QUERY_PROP"
 
 		AnyPtr "p1",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "0x5D5CAFF661DDF6FC"
@@ -71952,7 +73529,7 @@ native "0x5D5CAFF661DDF6FC"
 
 		AnyPtr "p1",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "GET_HASH_NAME_FOR_COMPONENT"
@@ -71967,7 +73544,7 @@ native "GET_HASH_NAME_FOR_COMPONENT"
 
 		int "textureVariant",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"Hash"
 
 native "GET_HASH_NAME_FOR_PROP"
@@ -71982,7 +73559,7 @@ native "GET_HASH_NAME_FOR_PROP"
 
 		int "propTextureIndex",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"Hash"
 
 native "0xC17AD0E5752BECDA"
@@ -71991,7 +73568,7 @@ native "0xC17AD0E5752BECDA"
 	arguments {
 		Hash "componentHash",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 
 native "GET_VARIANT_COMPONENT"
@@ -72008,7 +73585,7 @@ native "GET_VARIANT_COMPONENT"
 
 		AnyPtr "p4",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "_GET_NUM_FORCED_COMPONENTS"
@@ -72017,7 +73594,7 @@ native "_GET_NUM_FORCED_COMPONENTS"
 	arguments {
 		Hash "componentHash",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
@@ -72030,7 +73607,7 @@ native "0x017568A8182D98A6"
 	arguments {
 		Any "p0",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"Any"
 
 native "GET_FORCED_COMPONENT"
@@ -72047,7 +73624,7 @@ native "GET_FORCED_COMPONENT"
 
 		AnyPtr "p4",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "0xE1CA84EBF72E691D"
@@ -72063,7 +73640,7 @@ native "0xE1CA84EBF72E691D"
 
 		AnyPtr "p4",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "0x341DE7ED1D2A1BFD"
@@ -72076,7 +73653,7 @@ native "0x341DE7ED1D2A1BFD"
 
 		int "componentId",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72097,7 +73674,7 @@ native "0xF3FBE2D50A6A8C28"
 
 		BOOL "p1",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
@@ -72119,7 +73696,7 @@ native "GET_SHOP_PED_QUERY_OUTFIT"
 
 		AnyPtr "outfit",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 	doc [[!
 <summary>
@@ -72140,7 +73717,7 @@ native "GET_SHOP_PED_OUTFIT"
 
 		AnyPtr "p1",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"void"
 
 native "GET_SHOP_PED_OUTFIT_LOCATE"
@@ -72150,7 +73727,7 @@ native "GET_SHOP_PED_OUTFIT_LOCATE"
 		Any "p0",
 	}
 	alias "0x073CA26B079F956E"
-	ns "DLC1"
+	ns "FILE"
 	returns	"Any"
 
 native "0xA9F9C2E0FDE11CBB"
@@ -72163,7 +73740,7 @@ native "0xA9F9C2E0FDE11CBB"
 
 		AnyPtr "p2",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 
 native "_GET_PROP_FROM_OUTFIT"
@@ -72176,7 +73753,7 @@ native "_GET_PROP_FROM_OUTFIT"
 
 		AnyPtr "item",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72191,7 +73768,7 @@ native "_GET_PROP_FROM_OUTFIT"
 native "GET_NUM_DLC_VEHICLES"
 	hash "0xA7A866D21CD2329B"
 	jhash (0x8EAF9CF6)
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 
 native "GET_DLC_VEHICLE_MODEL"
@@ -72200,7 +73777,7 @@ native "GET_DLC_VEHICLE_MODEL"
 	arguments {
 		int "dlcVehicleIndex",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"Hash"
 	doc [[!
 <summary>
@@ -72216,7 +73793,7 @@ native "GET_DLC_VEHICLE_DATA"
 
 		intPtr "outData",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72232,13 +73809,13 @@ native "GET_DLC_VEHICLE_FLAGS"
 	arguments {
 		int "dlcVehicleIndex",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 
 native "GET_NUM_DLC_WEAPONS"
 	hash "0xEE47635F352DA367"
 	jhash (0x2B757E6C)
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
@@ -72254,7 +73831,7 @@ native "GET_DLC_WEAPON_DATA"
 
 		intPtr "outData",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72290,7 +73867,7 @@ native "GET_NUM_DLC_WEAPON_COMPONENTS"
 	arguments {
 		int "dlcWeaponIndex",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
@@ -72306,9 +73883,9 @@ native "GET_DLC_WEAPON_COMPONENT_DATA"
 
 		int "dlcWeapCompIndex",
 
-		intPtr "ComponentDataPtr",
+		AnyPtr "ComponentDataPtr",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72338,20 +73915,20 @@ native "_IS_DLC_DATA_EMPTY"
 	hash "0xD4D7B033C3AA243C"
 	jhash (0x06396058)
 	arguments {
-		int "dlcData",
+		AnyPtr "dlcData",
 	}
 	alias "_IS_OUTFIT_EMPTY"
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 
 native "IS_DLC_VEHICLE_MOD"
 	hash "0x0564B9FF9631B82C"
 	jhash (0x35BCA844)
 	arguments {
-		int "modData",
+		Any "modData",
 	}
 	alias "0x0564B9FF9631B82C"
-	ns "DLC1"
+	ns "FILE"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72365,7 +73942,7 @@ native "0xC098810437312FFF"
 	arguments {
 		int "modData",
 	}
-	ns "DLC1"
+	ns "FILE"
 	returns	"int"
 	doc [[!
 <summary>
@@ -72381,7 +73958,7 @@ native "IS_DLC_PRESENT"
 	arguments {
 		Hash "dlcHash",
 	}
-	ns "DLC2"
+	ns "DLC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72392,13 +73969,14 @@ native "IS_DLC_PRESENT"
 		bruteforce these:
 		0xB119F6D
 		0x96F02EE6
+
 </summary>
 	]]
 
 native "0xF2E07819EF1A5289"
 	hash "0xF2E07819EF1A5289"
 	jhash (0x881B1FDB)
-	ns "DLC2"
+	ns "DLC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72409,7 +73987,7 @@ native "0xF2E07819EF1A5289"
 native "0x9489659372A81585"
 	hash "0x9489659372A81585"
 	jhash (0xC2169164)
-	ns "DLC2"
+	ns "DLC"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -72420,7 +73998,7 @@ native "0x9489659372A81585"
 native "0xA213B11DFF526300"
 	hash "0xA213B11DFF526300"
 	jhash (0xF79A97F5)
-	ns "DLC2"
+	ns "DLC"
 	returns	"Any"
 	doc [[!
 <summary>
@@ -72431,13 +74009,13 @@ native "0xA213B11DFF526300"
 native "0x8D30F648014A92B5"
 	hash "0x8D30F648014A92B5"
 	jhash (0xF69B729C)
-	ns "DLC2"
-	returns	"Any"
+	ns "DLC"
+	returns	"BOOL"
 
 native "GET_IS_LOADING_SCREEN_ACTIVE"
 	hash "0x10D0A8F259E93EC9"
 	jhash (0x517B601B)
-	ns "DLC2"
+	ns "DLC"
 	returns	"BOOL"
 
 native "_NULLIFY"
@@ -72448,7 +74026,7 @@ native "_NULLIFY"
 
 		Any "unused",
 	}
-	ns "DLC2"
+	ns "DLC"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -72463,9 +74041,10 @@ native "_NULLIFY"
 </summary>
 	]]
 
-native "_LOAD_SP_DLC_MAPS"
+native "0xD7C10C4A637992C9"
 	hash "0xD7C10C4A637992C9"
-	ns "DLC2"
+	alias "_LOAD_SP_DLC_MAPS"
+	ns "DLC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -72482,7 +74061,7 @@ native "_LOAD_SP_DLC_MAPS"
 
 native "_LOAD_MP_DLC_MAPS"
 	hash "0x0888C3502DBBEEF5"
-	ns "DLC2"
+	ns "DLC"
 	returns	"void"
 	doc [[!
 <summary>
@@ -72498,7 +74077,7 @@ native "WAIT"
 	hash "0x4EDE34FBADD967A6"
 	jhash (0x7715C03B)
 	arguments {
-		int "ms",
+		intPtr "ms",
 	}
 	ns "SYSTEM"
 	returns	"void"
@@ -73036,10 +74615,14 @@ native "DECOR_REGISTER"
 		-----------------------------------------------------------------------
 		Defines type of property for property name.
 
-		1 - float,
-		2 - bool,
-		3 
-		5 
+		enum eDecorType
+		{
+			DECOR_TYPE_FLOAT = 1,
+			DECOR_TYPE_BOOL,
+			DECOR_TYPE_INT,
+			DECOR_TYPE_UNK,
+			DECOR_TYPE_TIME
+		};
 
 </summary>
 	]]
@@ -73058,10 +74641,14 @@ native "DECOR_IS_REGISTERED_AS_TYPE"
 <summary>
 		Is property of that type.
 
-		1 
-		2 
-		3 
-		5 
+		enum eDecorType
+		{
+			DECOR_TYPE_FLOAT = 1,
+			DECOR_TYPE_BOOL,
+			DECOR_TYPE_INT,
+			DECOR_TYPE_UNK,
+			DECOR_TYPE_TIME
+		};
 
 </summary>
 	]]
@@ -73083,6 +74670,10 @@ native "0x241FCA5B1AA14F75"
 	returns	"BOOL"
 	doc [[!
 <summary>
+		------------------------
+		| Belongs in DLC2 |
+		------------------------
+
 		Console Hash: 0x0AF83036
 		Only used once in scripts, in maintransition.
 
@@ -73194,10 +74785,15 @@ native "0xDA024BDBD600F44A"
 	hash "0xDA024BDBD600F44A"
 	jhash (0x0B9A3512)
 	arguments {
-		intPtr "p0",
+		intPtr "networkHandle",
 	}
 	ns "SOCIALCLUB"
 	returns	"void"
+	doc [[!
+<summary>
+		In scripts it's used with a var, that is used elsewhere in a check regarding if the given networkHandle is valid.
+</summary>
+	]]
 
 native "0xA68D3D229F4F3B06"
 	hash "0xA68D3D229F4F3B06"
@@ -73223,10 +74819,15 @@ native "0x6AFD2CD753FEEF83"
 	hash "0x6AFD2CD753FEEF83"
 	jhash (0x628F489B)
 	arguments {
-		charPtr "p0",
+		charPtr "playerName",
 	}
 	ns "SOCIALCLUB"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		I put the argument as 'playerName' as when it's called in freemode.c TU27 X360 scripts. It's given a var that has GET_PLAYER_NAME stored in it via StringCopy.
+</summary>
+	]]
 
 native "0x87E0052F08BD64E6"
 	hash "0x87E0052F08BD64E6"
@@ -73678,7 +75279,7 @@ native "0x675721C9F644D161"
 native "_SC_GET_NICKNAME"
 	hash "0x198D161F458ECC7F"
 	ns "SOCIALCLUB"
-	returns	"charPtr"
+	returns	"Entity"
 	doc [[!
 <summary>
 		Returns the nickname of the logged-in Rockstar Social Club account.
@@ -73822,17 +75423,17 @@ native "0x48621C9FCA3EBD28"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0x81CBAE94390F9F89"
 	hash "0x81CBAE94390F9F89"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0x13B350B8AD0EEE10"
 	hash "0x13B350B8AD0EEE10"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0x293220DA1B46CEBC"
@@ -73844,7 +75445,7 @@ native "0x293220DA1B46CEBC"
 
 		BOOL "p2",
 	}
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0x208784099002BC30"
@@ -73854,7 +75455,7 @@ native "0x208784099002BC30"
 
 		Any "p1",
 	}
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -73869,17 +75470,17 @@ native "0x208784099002BC30"
 
 native "0xEB2D525B57F42B40"
 	hash "0xEB2D525B57F42B40"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0xF854439EFBB3B583"
 	hash "0xF854439EFBB3B583"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0xAF66DCEE6609B148"
 	hash "0xAF66DCEE6609B148"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "0x66972397E0757E7A"
@@ -73891,7 +75492,7 @@ native "0x66972397E0757E7A"
 
 		Any "p2",
 	}
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 
 native "_START_RECORDING"
@@ -73900,7 +75501,7 @@ native "_START_RECORDING"
 		int "mode",
 	}
 	alias "0xC3AC2FFF9612AC81"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -73914,7 +75515,7 @@ native "_START_RECORDING"
 native "_STOP_RECORDING_AND_SAVE_CLIP"
 	hash "0x071A5197D6AFC8B3"
 	alias "_STOP_RECORDING"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -73925,7 +75526,7 @@ native "_STOP_RECORDING_AND_SAVE_CLIP"
 native "_STOP_RECORDING_AND_DISCARD_CLIP"
 	hash "0x88BB3507ED41A240"
 	alias "0x88BB3507ED41A240"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -73935,12 +75536,12 @@ native "_STOP_RECORDING_AND_DISCARD_CLIP"
 
 native "0x644546EC5287471B"
 	hash "0x644546EC5287471B"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"BOOL"
 
 native "_IS_RECORDING"
 	hash "0x1897CA71995A90B4"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -73953,35 +75554,53 @@ native "_IS_RECORDING"
 
 native "0xDF4B952F7D381B95"
 	hash "0xDF4B952F7D381B95"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"Any"
 
 native "0x4282E08174868BE3"
 	hash "0x4282E08174868BE3"
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"Any"
 
 native "0x33D47E85B476ABCD"
 	hash "0x33D47E85B476ABCD"
 	arguments {
-		BOOL "p0",
+		BOOLPtr "p0",
 	}
-	ns "UNK1"
+	ns "RECORDING"
 	returns	"BOOL"
 
 native "0x7E2BD3EF6C205F09"
 	hash "0x7E2BD3EF6C205F09"
 	arguments {
-		Any "p0",
+		charPtr "p0",
 
-		Any "p1",
+		BOOL "p1",
 	}
-	ns "UNK2"
+	ns "RENDERING"
 	returns	"void"
+	doc [[!
+<summary>
+		Something to do with phone cameras.
+		startup.c4:
+		void sub_2a3d() {
+		    UNK2::_7E2BD3EF6C205F09("No_Filter", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam1", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam2", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam3", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam4", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam5", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam6", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam7", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam9", 1);
+		    UNK2::_7E2BD3EF6C205F09("phone_cam12", 0);
+		}
+</summary>
+	]]
 
 native "_IS_INTERIOR_RENDERING_DISABLED"
 	hash "0x95AB8B5C992C7B58"
-	ns "UNK2"
+	ns "RENDERING"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -73991,7 +75610,7 @@ native "_IS_INTERIOR_RENDERING_DISABLED"
 
 native "0x5AD3932DAEB1E5D3"
 	hash "0x5AD3932DAEB1E5D3"
-	ns "UNK2"
+	ns "RENDERING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -74004,13 +75623,13 @@ native "0xE058175F8EAFE79A"
 	arguments {
 		BOOL "p0",
 	}
-	ns "UNK2"
+	ns "RENDERING"
 	returns	"void"
 
 native "_RESET_EDITOR_VALUES"
 	hash "0x3353D13F09307691"
 	alias "0x3353D13F09307691"
-	ns "UNK2"
+	ns "RENDERING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -74021,7 +75640,7 @@ native "_RESET_EDITOR_VALUES"
 native "_ACTIVATE_ROCKSTAR_EDITOR"
 	hash "0x49DA8145672B2725"
 	alias "0x49DA8145672B2725"
-	ns "UNK2"
+	ns "RENDERING"
 	returns	"void"
 	doc [[!
 <summary>
@@ -74038,13 +75657,13 @@ native "_ACTIVATE_ROCKSTAR_EDITOR"
 native "_NETWORK_SHOP_GET_PRICE"
 	hash "0xC27009422FCCA88D"
 	arguments {
-		Hash "hash",
+		Hash "itemHash",
 
 		Hash "hash2",
 
 		BOOL "p2",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"int"
 	doc [[!
 <summary>
@@ -74054,22 +75673,22 @@ native "_NETWORK_SHOP_GET_PRICE"
 
 native "0x3C4487461E9B0DCB"
 	hash "0x3C4487461E9B0DCB"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "0x2B949A1E6AEC8F6A"
 	hash "0x2B949A1E6AEC8F6A"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "0x85F6C9ABA1DE2BCF"
 	hash "0x85F6C9ABA1DE2BCF"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "0x357B152EF96C30B6"
 	hash "0x357B152EF96C30B6"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "0xCF38DAFBB49EDE5E"
@@ -74077,12 +75696,12 @@ native "0xCF38DAFBB49EDE5E"
 	arguments {
 		AnyPtr "p0",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0xE3E5A7C64CA2C6ED"
 	hash "0xE3E5A7C64CA2C6ED"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "0x0395CB47B022E62C"
@@ -74090,7 +75709,7 @@ native "0x0395CB47B022E62C"
 	arguments {
 		AnyPtr "p0",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_NETWORK_SHOP_START_SESSION"
@@ -74099,20 +75718,20 @@ native "_NETWORK_SHOP_START_SESSION"
 		Any "p0",
 	}
 	alias "0xA135AC892A58FC07"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0x72EB7BA9B69BF6AB"
 	hash "0x72EB7BA9B69BF6AB"
-	ns "UNK3"
-	returns	"Any"
+	ns "NETSHOP"
+	returns	"BOOL"
 
 native "0x170910093218C8B9"
 	hash "0x170910093218C8B9"
 	arguments {
 		AnyPtr "p0",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0xC13C38E47EA5DF31"
@@ -74120,7 +75739,7 @@ native "0xC13C38E47EA5DF31"
 	arguments {
 		AnyPtr "p0",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_NETWORK_SHOP_GET_TRANSACTIONS_ENABLED_FOR_CHARACTER"
@@ -74129,16 +75748,16 @@ native "_NETWORK_SHOP_GET_TRANSACTIONS_ENABLED_FOR_CHARACTER"
 		int "mpChar",
 	}
 	alias "0xB24F0944DA203D9E"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0x74A0FD0688F1EE45"
 	hash "0x74A0FD0688F1EE45"
 	arguments {
-		Any "p0",
+		int "p0",
 	}
-	ns "UNK3"
-	returns	"BOOL"
+	ns "NETSHOP"
+	returns	"int"
 
 native "_NETWORK_SHOP_SESSION_APPLY_RECEIVED_DATA"
 	hash "0x2F41D51BA3BCD1F1"
@@ -74146,13 +75765,13 @@ native "_NETWORK_SHOP_SESSION_APPLY_RECEIVED_DATA"
 		Any "p0",
 	}
 	alias "0x2F41D51BA3BCD1F1"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_NETWORK_SHOP_GET_TRANSACTIONS_DISABLED"
 	hash "0x810E8431C0614BF9"
 	alias "0x810E8431C0614BF9"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0x35A1B3E1D1315CFA"
@@ -74162,7 +75781,7 @@ native "0x35A1B3E1D1315CFA"
 
 		BOOL "p1",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0x897433D292B44130"
@@ -74172,7 +75791,7 @@ native "0x897433D292B44130"
 
 		AnyPtr "p1",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_NETWORK_SHOP_BASKET_START"
@@ -74180,20 +75799,20 @@ native "_NETWORK_SHOP_BASKET_START"
 	arguments {
 		AnyPtr "p0",
 
-		Any "p1",
+		int "p1",
 
-		Any "p2",
+		int "p2",
 
-		Any "p3",
+		int "p3",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_NETWORK_SHOP_BASKET_END"
 	hash "0xA65568121DF2EA26"
 	alias "0xA65568121DF2EA26"
-	ns "UNK3"
-	returns	"Any"
+	ns "NETSHOP"
+	returns	"BOOL"
 
 native "_NETWORK_SHOP_BASKET_ADD_ITEM"
 	hash "0xF30980718C8ED876"
@@ -74203,8 +75822,8 @@ native "_NETWORK_SHOP_BASKET_ADD_ITEM"
 		Any "p1",
 	}
 	alias "0xF30980718C8ED876"
-	ns "UNK3"
-	returns	"Any"
+	ns "NETSHOP"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		p0 is pointer to a script array
@@ -74214,7 +75833,7 @@ native "_NETWORK_SHOP_BASKET_ADD_ITEM"
 native "_NETWORK_SHOP_BASKET_IS_FULL"
 	hash "0x27F76CC6C55AD30E"
 	alias "0x27F76CC6C55AD30E"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "_NETWORK_SHOP_BASKET_APPLY_SERVER_DATA"
@@ -74225,7 +75844,7 @@ native "_NETWORK_SHOP_BASKET_APPLY_SERVER_DATA"
 		AnyPtr "p1",
 	}
 	alias "0xE1A0450ED46A7812"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -74236,48 +75855,58 @@ native "_NETWORK_SHOP_BASKET_APPLY_SERVER_DATA"
 native "_NETWORK_SHOP_CHECKOUT_START"
 	hash "0x39BE7CEA8D9CC8E6"
 	arguments {
-		Any "p0",
+		int "transactionID",
 	}
 	alias "0x39BE7CEA8D9CC8E6"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_NETWORK_SHOP_BEGIN_SERVICE"
 	hash "0x3C5FD37B5499582E"
 	arguments {
-		intPtr "value",
+		intPtr "transactionID",
 
-		Any "p1",
+		Hash "p1",
 
-		Any "p2",
+		Hash "transactionHash",
 
-		Any "p3",
+		int "amount",
 
-		Any "p4",
+		Hash "p4",
 
-		int "p5",
+		int "mode",
 	}
 	alias "0x3C5FD37B5499582E"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 	doc [[!
 <summary>
-		int netShop = 2147483647;
-		UNK3::_NETWORK_SHOP_BEGIN_SERVICE(&amp;netShop, 1474183246, 1982688246, 1445302971, 90000000, 4);
-		if (!UNK3::_NETWORK_SHOP_CHECKOUT_START(netShop)) {
-		showNotification("Transaction failed!");
-		}
+		No longer works if you hook it as a stealth money method
+
+		Modes------------------
+		1: Wallet
+		2: Bank
+		4: Bank
+		8: Wallet
+
+		Only difference I noticed.
 </summary>
 	]]
 
-native "_NETWORK_SHOP_END_SERVICE"
+native "_NETWORK_SHOP_TERMINATE_SERVICE"
 	hash "0xE2A99A9B524BEFFF"
 	arguments {
-		Any "p0",
+		int "transactionID",
 	}
 	alias "0xE2A99A9B524BEFFF"
-	ns "UNK3"
+	alias "_NETWORK_SHOP_END_SERVICE"
+	ns "NETSHOP"
 	returns	"BOOL"
+	doc [[!
+<summary>
+		Will cancel the transaction
+</summary>
+	]]
 
 native "0x51F1A8E48C3D2F6D"
 	hash "0x51F1A8E48C3D2F6D"
@@ -74288,18 +75917,18 @@ native "0x51F1A8E48C3D2F6D"
 
 		Any "p2",
 	}
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "0x0A6D923DFFC9BD89"
 	hash "0x0A6D923DFFC9BD89"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "_NETWORK_SHOP_DELETE_SET_TELEMETRY_NONCE_SEED"
 	hash "0x112CEF1615A1139F"
 	alias "0x112CEF1615A1139F"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "_NETWORK_TRANSFER_BANK_TO_WALLET"
@@ -74310,7 +75939,7 @@ native "_NETWORK_TRANSFER_BANK_TO_WALLET"
 		int "amount",
 	}
 	alias "0xD47A2C1BA117471D"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -74333,7 +75962,7 @@ native "_NETWORK_TRANSFER_WALLET_TO_BANK"
 		int "amount",
 	}
 	alias "0xC2F7FE5309181C7D"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 	doc [[!
 <summary>
@@ -74350,19 +75979,19 @@ native "_NETWORK_TRANSFER_WALLET_TO_BANK"
 
 native "0x23789E777D14CE44"
 	hash "0x23789E777D14CE44"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "0x350AA5EBC03D3BD2"
 	hash "0x350AA5EBC03D3BD2"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"Any"
 
 native "_NETWORK_SHOP_CASH_TRANSFER_SET_TELEMETRY_NONCE_SEED"
 	hash "0x498C1E05CE5F7877"
 	alias "0x498C1E05CE5F7877"
-	ns "UNK3"
-	returns	"Any"
+	ns "NETSHOP"
+	returns	"BOOL"
 
 native "_NETWORK_SHOP_SET_TELEMETRY_NONCE_SEED"
 	hash "0x9507D4271988E1AE"
@@ -74370,13 +75999,13 @@ native "_NETWORK_SHOP_SET_TELEMETRY_NONCE_SEED"
 		Any "p0",
 	}
 	alias "0x9507D4271988E1AE"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"BOOL"
 
 native "_GET_ONLINE_VERSION"
 	hash "0xFCA9373EF340AC0A"
 	alias "_GET_GAME_VERSION"
-	ns "UNK3"
+	ns "NETSHOP"
 	returns	"charPtr"
 	doc [[!
 <summary>
@@ -74392,3 +76021,1590 @@ native "_GET_ONLINE_VERSION"
 		Belongs in NETWORK
 </summary>
 	]]
+
+native "SET_VEHICLE_HANDLING_FIELD"
+	hash "0x2ba40795"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		Any "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using <code>SET_HANDLING_FIELD</code>, this might require some experimentation.
+		Example: <code>SetVehicleHandlingField(vehicle, 'CHandlingData', 'fSteeringLock', 360.0)</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle to set data for.</li><li><strong>value</strong>: The value to set.</li></ul>
+</summary>
+	]]
+
+native "SET_HTTP_HANDLER"
+	hash "0xf5c6330c"
+	arguments {
+		func "handler",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_WHEEL_SPEED"
+	hash "0x149c9da0"
+	arguments {
+		Vehicle "vehicle",
+
+		int "wheelIndex",
+	}
+	ns "CFX"
+	returns	"float"
+	doc [[!
+<summary>
+
+		Gets speed of a wheel at the tyre.
+		Max number of wheels can be retrieved with the native GET<em>VEHICLE</em>NUMBER<em>OF</em>WHEELS.
+
+		<br><strong>Returns:</strong> An integer.
+</summary>
+	]]
+
+native "GET_VEHICLE_ENGINE_TEMPERATURE"
+	hash "0xf4f495cb"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "SET_MAP_NAME"
+	hash "0xb7ba82dc"
+	arguments {
+		charPtr "mapName",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_CLUTCH"
+	hash "0x1dad4583"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "EXPERIMENTAL_LOAD_CLONE_SYNC"
+	hash "0x6bc189ac"
+	arguments {
+		Entity "entity",
+
+		charPtr "data",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		This native is not implemented.
+
+
+</summary>
+	]]
+
+native "GET_CONVAR"
+	hash "0x6ccd2564"
+	arguments {
+		charPtr "varName",
+
+		charPtr "default",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "SET_VEHICLE_STEERING_SCALE"
+	hash "0xeb46596f"
+	arguments {
+		Vehicle "vehicle",
+
+		float "scale",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_TEXT_CHAT_ENABLED"
+	hash "0x97b2f9f8"
+	arguments {
+		BOOL "enabled",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "END_FIND_KVP"
+	hash "0xb3210203"
+	arguments {
+		int "handle",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_PLAYER_PING"
+	hash "0xff1290d4"
+	arguments {
+		charPtr "playerSrc",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "TEMP_BAN_PLAYER"
+	hash "0x1e35dbba"
+	arguments {
+		charPtr "playerSrc",
+
+		charPtr "reason",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "IS_VEHICLE_NEEDS_TO_BE_HOTWIRED"
+	hash "0xf9933bf4"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "LOAD_RESOURCE_FILE"
+	hash "0x76a9ee1f"
+	arguments {
+		charPtr "resourceName",
+
+		charPtr "fileName",
+	}
+	ns "CFX"
+	returns	"charPtr"
+	doc [[!
+<summary>
+
+		Reads the contents of a text file in a specified resource.
+		If executed on the client, this file has to be included in <code>files</code> in the resource manifest.
+		Example: <code>local data = LoadResourceFile("devtools", "data.json")</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>resourceName</strong>: The resource name.</li><li><strong>fileName</strong>: The file in the resource.</li></ul><br><strong>Returns:</strong> The file contents
+</summary>
+	]]
+
+native "SET_HANDLING_FLOAT"
+	hash "0x90dd01c"
+	arguments {
+		charPtr "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		float "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a global handling override for a specific vehicle class. The name is supposed to match the <code>handlingName</code> field from handling.meta.
+		Example: <code>SetHandlingFloat('AIRTUG', 'CHandlingData', 'fSteeringLock', 360.0)</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle class to set data for.</li><li><strong>value</strong>: The floating-point value to set.</li></ul>
+</summary>
+	]]
+
+native "GET_VEHICLE_ACCELERATION"
+	hash "0x478321"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "GET_VEHICLE_STEERING_ANGLE"
+	hash "0x1382fcea"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "GET_CURRENT_RESOURCE_NAME"
+	hash "0xe5e9ebbb"
+	ns "CFX"
+	returns	"charPtr"
+	doc [[!
+<summary>
+
+		Returns the name of the currently executing resource.
+
+		<br><strong>Returns:</strong> The name of the resource.
+</summary>
+	]]
+
+native "GET_INVOKING_RESOURCE"
+	hash "0x4d52fe5b"
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_NUM_RESOURCES"
+	hash "0x863f27b"
+	ns "CFX"
+	returns	"int"
+
+native "REGISTER_FONT_ID"
+	hash "0xacf6d8ee"
+	arguments {
+		charPtr "fontName",
+	}
+	ns "CFX"
+	returns	"int"
+	doc [[!
+<summary>
+
+		Registers a specified font name for use with text draw commands.
+
+		<strong>Parameters:</strong><br><ul><li><strong>fontName</strong>: The name of the font in the GFx font library.</li></ul><br><strong>Returns:</strong> An index to use with <a href="#_0x66E0276CC5F6B9DA">SET_TEXT_FONT</a> and similar natives.
+</summary>
+	]]
+
+native "GET_VEHICLE_HANDLING_FLOAT"
+	hash "0x642fc12f"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+	}
+	ns "CFX"
+	returns	"float"
+	doc [[!
+<summary>
+
+		Returns the effective handling data of a vehicle as a floating-point value.
+		Example: <code>local fSteeringLock = GetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fSteeringLock')</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to get. Only "CHandlingData" is supported at this time.</li><li><strong>vehicle</strong>: The vehicle to obtain data for.</li><li><strong>fieldName</strong>: The field name to get. These match the keys in <code>handling.meta</code>.</li></ul><br><strong>Returns:</strong> A floating-point value.
+</summary>
+	]]
+
+native "GET_RESOURCE_KVP_FLOAT"
+	hash "0x35bdceea"
+	arguments {
+		charPtr "key",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "FIND_FIRST_PED"
+	hash "0xfb012961"
+	arguments {
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "DROP_PLAYER"
+	hash "0xba0613e1"
+	arguments {
+		charPtr "playerSrc",
+
+		charPtr "reason",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "FIND_NEXT_PICKUP"
+	hash "0x4107ef0f"
+	arguments {
+		int "findHandle",
+
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "IS_DUPLICITY_VERSION"
+	hash "0xcf24c52e"
+	ns "CFX"
+	returns	"BOOL"
+	doc [[!
+<summary>
+
+		Gets whether or not this is the CitizenFX server.
+
+		<br><strong>Returns:</strong> A boolean value.
+</summary>
+	]]
+
+native "IS_VEHICLE_ALARM_SET"
+	hash "0xdc921211"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_VEHICLE_WHEEL_HEALTH"
+	hash "0xb22ecefd"
+	arguments {
+		Vehicle "vehicle",
+
+		int "wheelIndex",
+
+		float "health",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_HOST_ID"
+	hash "0x5f70f5a3"
+	ns "CFX"
+	returns	"charPtr"
+
+native "IS_ACE_ALLOWED"
+	hash "0x7ebb9929"
+	arguments {
+		charPtr "object",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SAVE_RESOURCE_FILE"
+	hash "0xa09e7e7b"
+	arguments {
+		charPtr "resourceName",
+
+		charPtr "fileName",
+
+		charPtr "data",
+
+		int "dataLength",
+	}
+	ns "CFX"
+	returns	"BOOL"
+	doc [[!
+<summary>
+
+		Writes the specified data to a file in the specified resource.
+		Using a length of <code>-1</code> will automatically detect the length assuming the data is a C string.
+
+		<strong>Parameters:</strong><br><ul><li><strong>dataLength</strong>: The length of the written data.</li><li><strong>fileName</strong>: The name of the file.</li><li><strong>resourceName</strong>: The name of the resource.</li><li><strong>data</strong>: The data to write to the file.</li></ul><br><strong>Returns:</strong> A value indicating if the write succeeded.
+</summary>
+	]]
+
+native "GET_VEHICLE_CURRENT_RPM"
+	hash "0xe7b12b54"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "ENABLE_ENHANCED_HOST_SUPPORT"
+	hash "0xf97b1c93"
+	arguments {
+		BOOL "enabled",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SEND_LOADING_SCREEN_MESSAGE"
+	hash "0x8bbe6cc0"
+	arguments {
+		charPtr "jsonString",
+	}
+	ns "CFX"
+	returns	"BOOL"
+	doc [[!
+<summary>
+
+		Sends a message to the <code>loadingScreen</code> NUI frame, which contains the HTML page referenced in <code>loadscreen</code> resources.
+
+		<strong>Parameters:</strong><br><ul><li><strong>jsonString</strong>: The JSON-encoded message.</li></ul><br><strong>Returns:</strong> A success value.
+</summary>
+	]]
+
+native "SEND_NUI_MESSAGE"
+	hash "0x78608acb"
+	arguments {
+		charPtr "jsonString",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "REGISTER_COMMAND"
+	hash "0x5fa79b0f"
+	arguments {
+		charPtr "commandName",
+
+		func "handler",
+
+		BOOL "restricted",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "ADD_TEXT_ENTRY_BY_HASH"
+	hash "0x289da860"
+	arguments {
+		Hash "entryKey",
+
+		charPtr "entryText",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_ALARM_TIME_LEFT"
+	hash "0xc62aac98"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "SET_RESOURCE_KVP_FLOAT"
+	hash "0x9add2938"
+	arguments {
+		charPtr "key",
+
+		float "value",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_INSTANCE_ID"
+	hash "0x9f1c4383"
+	ns "CFX"
+	returns	"int"
+
+native "END_FIND_OBJECT"
+	hash "0xdeda4e50"
+	arguments {
+		int "findHandle",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "END_FIND_PICKUP"
+	hash "0x3c407d53"
+	arguments {
+		int "findHandle",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "CANCEL_EVENT"
+	hash "0xfa29d35d"
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Cancels the currently executing event. See https://wiki.fivem.net/wiki/CancelEvent
+
+
+</summary>
+	]]
+
+native "EXPERIMENTAL_LOAD_CLONE_CREATE"
+	hash "0xd2cb95a3"
+	arguments {
+		charPtr "data",
+
+		int "objectId",
+
+		charPtr "tree",
+	}
+	ns "CFX"
+	returns	"Entity"
+	doc [[!
+<summary>
+
+		This native is not implemented.
+
+
+</summary>
+	]]
+
+native "GET_CONVAR_INT"
+	hash "0x935c0ab2"
+	arguments {
+		charPtr "varName",
+
+		int "default",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "GET_PLAYER_LAST_MSG"
+	hash "0x427e8e6a"
+	arguments {
+		charPtr "playerSrc",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "VERIFY_PASSWORD_HASH"
+	hash "0x2e310acd"
+	arguments {
+		charPtr "password",
+
+		charPtr "hash",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "GET_VEHICLE_STEERING_SCALE"
+	hash "0x954465de"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "GET_PLAYER_IDENTIFIER"
+	hash "0x7302dbcf"
+	arguments {
+		charPtr "playerSrc",
+
+		int "identifier",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_PLAYER_FROM_SERVER_ID"
+	hash "0x344ea166"
+	arguments {
+		int "serverId",
+	}
+	ns "CFX"
+	returns	"Player"
+
+native "GET_PLAYER_GUID"
+	hash "0xe52d9680"
+	arguments {
+		charPtr "playerSrc",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_PASSWORD_HASH"
+	hash "0x23473ea4"
+	arguments {
+		charPtr "password",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_RESOURCE_KVP_STRING"
+	hash "0x5240da5a"
+	arguments {
+		charPtr "key",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_VEHICLE_HANDLING_INT"
+	hash "0x27396c75"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+	}
+	ns "CFX"
+	returns	"int"
+	doc [[!
+<summary>
+
+		Returns the effective handling data of a vehicle as an integer value.
+		Example: <code>local modelFlags = GetVehicleHandlingInt(vehicle, 'CHandlingData', 'strModelFlags')</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to get. Only "CHandlingData" is supported at this time.</li><li><strong>vehicle</strong>: The vehicle to obtain data for.</li><li><strong>fieldName</strong>: The field name to get. These match the keys in <code>handling.meta</code>.</li></ul><br><strong>Returns:</strong> An integer.
+</summary>
+	]]
+
+native "GET_NUM_RESOURCE_METADATA"
+	hash "0x776e864"
+	arguments {
+		charPtr "resourceName",
+
+		charPtr "metadataKey",
+	}
+	ns "CFX"
+	returns	"int"
+	doc [[!
+<summary>
+
+		Gets the amount of metadata values with the specified key existing in the specified resource's manifest.
+		See also: <a href="https://wiki.fivem.net/wiki/Resource_manifest">Resource manifest</a>
+
+		<strong>Parameters:</strong><br><ul><li><strong>resourceName</strong>: The resource name.</li><li><strong>metadataKey</strong>: The key to look up in the resource manifest.</li></ul>
+</summary>
+	]]
+
+native "GET_VEHICLE_FUEL_LEVEL"
+	hash "0x5f739bb8"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "DUPLICATE_FUNCTION_REFERENCE"
+	hash "0xf4e2079d"
+	arguments {
+		charPtr "referenceIdentity",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "FIND_FIRST_VEHICLE"
+	hash "0x15e55694"
+	arguments {
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "GET_RESOURCE_METADATA"
+	hash "0x964bab1d"
+	arguments {
+		charPtr "resourceName",
+
+		charPtr "metadataKey",
+
+		int "index",
+	}
+	ns "CFX"
+	returns	"charPtr"
+	doc [[!
+<summary>
+
+		Gets the metadata value at a specified key/index from a resource's manifest.
+		See also: <a href="https://wiki.fivem.net/wiki/Resource_manifest">Resource manifest</a>
+
+		<strong>Parameters:</strong><br><ul><li><strong>metadataKey</strong>: The key in the resource manifest.</li><li><strong>resourceName</strong>: The resource name.</li><li><strong>index</strong>: The value index, in a range from [0..GET<em>NUM</em>RESOURCE_METDATA-1].</li></ul>
+</summary>
+	]]
+
+native "SET_VEHICLE_ALARM_TIME_LEFT"
+	hash "0xc108ee6f"
+	arguments {
+		Vehicle "vehicle",
+
+		int "time",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_PLAYER_ENDPOINT"
+	hash "0xfee404f9"
+	arguments {
+		charPtr "playerSrc",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_RESOURCE_BY_FIND_INDEX"
+	hash "0x387246b7"
+	arguments {
+		int "findIndex",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_VEHICLE_WHEEL_HEALTH"
+	hash "0x54a677f5"
+	arguments {
+		Vehicle "vehicle",
+
+		int "wheelIndex",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "IS_VEHICLE_ENGINE_STARTING"
+	hash "0xbb340d04"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_HANDLING_INT"
+	hash "0x8ab3f46c"
+	arguments {
+		charPtr "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		int "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a global handling override for a specific vehicle class. The name is supposed to match the <code>handlingName</code> field from handling.meta.
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle class to set data for.</li><li><strong>value</strong>: The integer value to set.</li></ul>
+</summary>
+	]]
+
+native "IS_VEHICLE_WANTED"
+	hash "0xa7daf7c"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "INVOKE_FUNCTION_REFERENCE"
+	hash "0xe3551879"
+	arguments {
+		charPtr "referenceIdentity",
+
+		charPtr "argsSerialized",
+
+		int "argsLength",
+
+		intPtr "retvalLength",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "GET_VEHICLE_WHEEL_XROT"
+	hash "0x15ecc0ab"
+	arguments {
+		Vehicle "vehicle",
+
+		int "wheelIndex",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "START_RESOURCE"
+	hash "0x29b440dc"
+	arguments {
+		charPtr "resourceName",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_GAME_TYPE"
+	hash "0xf90b7469"
+	arguments {
+		charPtr "gametypeName",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "REGISTER_FONT_FILE"
+	hash "0x1b3a363"
+	arguments {
+		charPtr "fileName",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Registers a specified .gfx file as GFx font library.
+		The .gfx file has to be registered with the streamer already.
+
+		<strong>Parameters:</strong><br><ul><li><strong>fileName</strong>: The name of the .gfx file, without extension.</li></ul>
+</summary>
+	]]
+
+native "SET_RESOURCE_KVP_INT"
+	hash "0x6a2b1e8"
+	arguments {
+		charPtr "key",
+
+		int "value",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_INDICATOR_LIGHTS"
+	hash "0x83070354"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"int"
+	doc [[!
+<summary>
+
+		Gets the vehicle indicator light state. 0 = off, 1 = left, 2 = right, 3 = both
+
+		<br><strong>Returns:</strong> An integer.
+</summary>
+	]]
+
+native "SET_VEHICLE_CLUTCH"
+	hash "0x2f70aced"
+	arguments {
+		Vehicle "vehicle",
+
+		float "clutch",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_HANDLING_VECTOR"
+	hash "0xfb341304"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+	}
+	ns "CFX"
+	returns	"Vector3"
+	doc [[!
+<summary>
+
+		Returns the effective handling data of a vehicle as a vector value.
+		Example: <code>local inertiaMultiplier = GetVehicleHandlingVector(vehicle, 'CHandlingData', 'vecInertiaMultiplier')</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to get. Only "CHandlingData" is supported at this time.</li><li><strong>vehicle</strong>: The vehicle to obtain data for.</li><li><strong>fieldName</strong>: The field name to get. These match the keys in <code>handling.meta</code>.</li></ul><br><strong>Returns:</strong> An integer.
+</summary>
+	]]
+
+native "FIND_NEXT_PED"
+	hash "0xab09b548"
+	arguments {
+		int "findHandle",
+
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "ADD_TEXT_ENTRY"
+	hash "0x32ca01c3"
+	arguments {
+		charPtr "entryKey",
+
+		charPtr "entryText",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_VEHICLE_CURRENT_RPM"
+	hash "0x2a01a8fc"
+	arguments {
+		Vehicle "vehicle",
+
+		float "rpm",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_NUMBER_OF_WHEELS"
+	hash "0xedf4b0fc"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "GET_NUM_PLAYER_IDENTIFIERS"
+	hash "0xff7f66ab"
+	arguments {
+		charPtr "playerSrc",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "WAS_EVENT_CANCELED"
+	hash "0x58382a19"
+	ns "CFX"
+	returns	"BOOL"
+	doc [[!
+<summary>
+
+		Returns whether or not the currently executing event was canceled. See https://wiki.fivem.net/wiki/WasEventCanceled
+
+		<br><strong>Returns:</strong> A boolean.
+</summary>
+	]]
+
+native "REGISTER_NUI_CALLBACK_TYPE"
+	hash "0xcd03cda9"
+	arguments {
+		charPtr "callbackType",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI"
+	hash "0x1722c938"
+	arguments {
+		BOOL "manualShutdown",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets whether or not <code>SHUTDOWN_LOADING_SCREEN</code> automatically shuts down the NUI frame for the loading screen. If this is enabled,
+		you will have to manually invoke <code>SHUTDOWN_LOADING_SCREEN_NUI</code> whenever you want to hide the NUI loading screen.
+
+		<strong>Parameters:</strong><br><ul><li><strong>manualShutdown</strong>: TRUE to manually shut down the loading screen NUI.</li></ul>
+</summary>
+	]]
+
+native "FLAG_SERVER_AS_PRIVATE"
+	hash "0x13b6855d"
+	arguments {
+		BOOL "private",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "EXECUTE_COMMAND"
+	hash "0x561c060b"
+	arguments {
+		charPtr "commandString",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "DELETE_FUNCTION_REFERENCE"
+	hash "0x1e86f206"
+	arguments {
+		charPtr "referenceIdentity",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_PLAYER_FROM_INDEX"
+	hash "0xc8a9ce08"
+	arguments {
+		int "index",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "TRIGGER_EVENT_INTERNAL"
+	hash "0x91310870"
+	arguments {
+		charPtr "eventName",
+
+		charPtr "eventPayload",
+
+		int "payloadLength",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		The backing function for TriggerEvent.
+
+
+</summary>
+	]]
+
+native "GET_GAME_TIMER"
+	hash "0xa4ea0691"
+	ns "CFX"
+	returns	"long"
+	doc [[!
+<summary>
+
+		Gets the current game timer in milliseconds.
+
+		<br><strong>Returns:</strong> The game time.
+</summary>
+	]]
+
+native "TRIGGER_CLIENT_EVENT_INTERNAL"
+	hash "0x2f7a49e6"
+	arguments {
+		charPtr "eventName",
+
+		charPtr "eventTarget",
+
+		charPtr "eventPayload",
+
+		int "payloadLength",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		The backing function for TriggerClientEvent.
+
+
+</summary>
+	]]
+
+native "STOP_RESOURCE"
+	hash "0x21783161"
+	arguments {
+		charPtr "resourceName",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_CONVAR"
+	hash "0x341b16d2"
+	arguments {
+		charPtr "varName",
+
+		charPtr "value",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_CURRENT_GEAR"
+	hash "0xb4f4e566"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "START_FIND_KVP"
+	hash "0xdd379006"
+	arguments {
+		charPtr "prefix",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "SHUTDOWN_LOADING_SCREEN_NUI"
+	hash "0xb9234afb"
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Shuts down the <code>loadingScreen</code> NUI frame, similarly to <code>SHUTDOWN_LOADING_SCREEN</code>.
+
+
+</summary>
+	]]
+
+native "SET_VEHICLE_WHEEL_XROT"
+	hash "0xec75d517"
+	arguments {
+		Vehicle "vehicle",
+
+		int "wheelIndex",
+
+		float "value",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "TRIGGER_SERVER_EVENT_INTERNAL"
+	hash "0x7fdd1128"
+	arguments {
+		charPtr "eventName",
+
+		charPtr "eventPayload",
+
+		int "payloadLength",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		The backing function for TriggerServerEvent.
+
+
+</summary>
+	]]
+
+native "GET_VEHICLE_DASHBOARD_SPEED"
+	hash "0x9aad420e"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "IS_VEHICLE_INTERIOR_LIGHT_ON"
+	hash "0xa411f72c"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_VEHICLE_STEERING_ANGLE"
+	hash "0xffccc2ea"
+	arguments {
+		Vehicle "vehicle",
+
+		float "angle",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_VEHICLE_OIL_LEVEL"
+	hash "0x90d1cad1"
+	arguments {
+		Vehicle "vehicle",
+
+		float "level",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_RESOURCE_KVP_INT"
+	hash "0x557b586a"
+	arguments {
+		charPtr "key",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "GET_VEHICLE_NEXT_GEAR"
+	hash "0xddb298ae"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "SET_VEHICLE_FUEL_LEVEL"
+	hash "0xba970511"
+	arguments {
+		Vehicle "vehicle",
+
+		float "level",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_VEHICLE_HIGH_GEAR"
+	hash "0x20b1b3e6"
+	arguments {
+		Vehicle "vehicle",
+
+		float "gear",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_VEHICLE_HANDLING_VECTOR"
+	hash "0x12497890"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		Vector3 "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using <code>SET_HANDLING_VECTOR</code>, this might require some experimentation.
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle to set data for.</li><li><strong>value</strong>: The Vector3 value to set.</li></ul>
+</summary>
+	]]
+
+native "GET_NUM_PLAYER_INDICES"
+	hash "0x63d13184"
+	ns "CFX"
+	returns	"int"
+
+native "FIND_NEXT_VEHICLE"
+	hash "0x8839120d"
+	arguments {
+		int "findHandle",
+
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_VEHICLE_HANDLING_INT"
+	hash "0xc37f4cf9"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		int "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using <code>SET_HANDLING_INT</code>, this might require some experimentation.
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle to set data for.</li><li><strong>value</strong>: The integer value to set.</li></ul>
+</summary>
+	]]
+
+native "FIND_KVP"
+	hash "0xbd7bebc5"
+	arguments {
+		int "handle",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "FIND_NEXT_OBJECT"
+	hash "0x4e129dbf"
+	arguments {
+		int "findHandle",
+
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "IS_PLAYER_ACE_ALLOWED"
+	hash "0xdedae23d"
+	arguments {
+		charPtr "playerSrc",
+
+		charPtr "object",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "SET_VEHICLE_HANDLING_FLOAT"
+	hash "0x488c86d2"
+	arguments {
+		Vehicle "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		float "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a handling override for a specific vehicle. Certain handling flags can only be set globally using <code>SET_HANDLING_FLOAT</code>, this might require some experimentation.
+		Example: <code>SetVehicleHandlingFloat(vehicle, 'CHandlingData', 'fSteeringLock', 360.0)</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle to set data for.</li><li><strong>value</strong>: The floating-point value to set.</li></ul>
+</summary>
+	]]
+
+native "SET_VEHICLE_GRAVITY_AMOUNT"
+	hash "0x1a963e58"
+	arguments {
+		Vehicle "vehicle",
+
+		float "gravity",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_OIL_LEVEL"
+	hash "0xfc7f8ef4"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "DELETE_RESOURCE_KVP"
+	hash "0x7389b5df"
+	arguments {
+		charPtr "key",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_VEHICLE_ENGINE_TEMPERATURE"
+	hash "0x6c93c4a9"
+	arguments {
+		Vehicle "vehicle",
+
+		float "temperature",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_MODEL_HEADLIGHT_CONFIGURATION"
+	hash "0x7f6b8d75"
+	arguments {
+		Hash "modelHash",
+
+		float "ratePerSecond",
+
+		float "headlightRotation",
+
+		BOOL "invertRotation",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "END_FIND_VEHICLE"
+	hash "0x9227415a"
+	arguments {
+		int "findHandle",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "PERFORM_HTTP_REQUEST_INTERNAL"
+	hash "0x8e8cc653"
+	arguments {
+		charPtr "requestData",
+
+		int "requestDataLength",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "SET_SNAKEOIL_FOR_ENTRY"
+	hash "0xa7dd3209"
+	arguments {
+		charPtr "name",
+
+		charPtr "path",
+
+		charPtr "data",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_RESOURCE_KVP"
+	hash "0x21c7a35b"
+	arguments {
+		charPtr "key",
+
+		charPtr "value",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "SET_NUI_FOCUS"
+	hash "0x5b98ae30"
+	arguments {
+		BOOL "hasFocus",
+
+		BOOL "hasCursor",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "FIND_FIRST_PICKUP"
+	hash "0x3ff9d340"
+	arguments {
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "SET_VEHICLE_TURBO_PRESSURE"
+	hash "0x6485615e"
+	arguments {
+		Vehicle "vehicle",
+
+		float "pressure",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "END_FIND_PED"
+	hash "0x9615c2ad"
+	arguments {
+		int "findHandle",
+	}
+	ns "CFX"
+	returns	"void"
+
+native "GET_VEHICLE_HIGH_GEAR"
+	hash "0xf1d1d689"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "SET_HANDLING_VECTOR"
+	hash "0x7f9d543"
+	arguments {
+		charPtr "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		Vector3 "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a global handling override for a specific vehicle class. The name is supposed to match the <code>handlingName</code> field from handling.meta.
+		Example: <code>SetHandlingVector('AIRTUG', 'CHandlingData', 'vecCentreOfMassOffset', vector3(0.0, 0.0, -5.0))</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle class to set data for.</li><li><strong>value</strong>: The Vector3 value to set.</li></ul>
+</summary>
+	]]
+
+native "GET_CAM_MATRIX"
+	hash "0x8f57a89d"
+	arguments {
+		Cam "camera",
+
+		Vector3Ptr "rightVector",
+
+		Vector3Ptr "forwardVector",
+
+		Vector3Ptr "upVector",
+
+		Vector3Ptr "position",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Returns the world matrix of the specified camera. To turn this into a view matrix, calculate the inverse.
+
+
+</summary>
+	]]
+
+native "GET_PLAYER_NAME"
+	hash "0x406b4b20"
+	arguments {
+		charPtr "playerSrc",
+	}
+	ns "CFX"
+	returns	"charPtr"
+
+native "EXPERIMENTAL_SAVE_CLONE_SYNC"
+	hash "0x38d19210"
+	arguments {
+		Entity "entity",
+	}
+	ns "CFX"
+	returns	"charPtr"
+	doc [[!
+<summary>
+
+		This native is not implemented.
+
+
+</summary>
+	]]
+
+native "SET_HANDLING_FIELD"
+	hash "0xfe8064e3"
+	arguments {
+		charPtr "vehicle",
+
+		charPtr "class",
+
+		charPtr "fieldName",
+
+		Any "value",
+	}
+	ns "CFX"
+	returns	"void"
+	doc [[!
+<summary>
+
+		Sets a global handling override for a specific vehicle class. The name is supposed to match the <code>handlingName</code> field from handling.meta.
+		Example: <code>SetHandlingField('AIRTUG', 'CHandlingData', 'fSteeringLock', 360.0)</code>
+
+		<strong>Parameters:</strong><br><ul><li><strong>class</strong>: The handling class to set. Only "CHandlingData" is supported at this time.</li><li><strong>fieldName</strong>: The field name to set. These match the keys in <code>handling.meta</code>.</li><li><strong>vehicle</strong>: The vehicle class to set data for.</li><li><strong>value</strong>: The value to set.</li></ul>
+</summary>
+	]]
+
+native "IS_VEHICLE_PREVIOUSLY_OWNED_BY_PLAYER"
+	hash "0xf849ed67"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "GET_VEHICLE_TURBO_PRESSURE"
+	hash "0xe02b51d7"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "EXPERIMENTAL_SAVE_CLONE_CREATE"
+	hash "0x9d65cad2"
+	arguments {
+		Entity "entity",
+	}
+	ns "CFX"
+	returns	"charPtr"
+	doc [[!
+<summary>
+
+		This native is not implemented.
+
+
+</summary>
+	]]
+
+native "GET_VEHICLE_GRAVITY_AMOUNT"
+	hash "0xb48a1292"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"float"
+
+native "GET_VEHICLE_HANDBRAKE"
+	hash "0x483b013c"
+	arguments {
+		Vehicle "vehicle",
+	}
+	ns "CFX"
+	returns	"BOOL"
+
+native "GET_PLAYER_SERVER_ID"
+	hash "0x4d97bcc7"
+	arguments {
+		Player "player",
+	}
+	ns "CFX"
+	returns	"int"
+
+native "FIND_FIRST_OBJECT"
+	hash "0xfaa6cb5d"
+	arguments {
+		EntityPtr "outEntity",
+	}
+	ns "CFX"
+	returns	"int"
