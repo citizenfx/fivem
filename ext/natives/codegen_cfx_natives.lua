@@ -1450,3 +1450,29 @@ native 'SET_MINIMAP_OVERLAY_DISPLAY'
 	<param name="yScale">The Y scale for the overlay. This is equivalent to the Flash _yscale property.</param>
 	<param name="alpha">The alpha value for the overlay. This is equivalent to the Flash _alpha property, therefore 100 = 100%.</param>
 ]]
+
+native 'GET_PLAYER_PED'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'Entity'
+
+native 'GET_ENTITY_COORDS'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'
+
+native "GET_HASH_KEY"
+	arguments {
+		charPtr "model",
+	}
+	apiset 'server'
+	returns	"Hash"
+	doc [[!
+<summary>
+		This native converts the passed string to a hash.
+</summary>
+	]]

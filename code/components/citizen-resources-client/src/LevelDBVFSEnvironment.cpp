@@ -483,6 +483,8 @@ namespace leveldb
 
 	Status VFSEnvironment::LockFile(const std::string& fname, FileLock** lock)
 	{
+		return Status();
+
 		auto vfsLock = new VFSFileLock(fname);
 		*lock = vfsLock;
 
@@ -491,6 +493,8 @@ namespace leveldb
 
 	Status VFSEnvironment::UnlockFile(FileLock* lock)
 	{
+		return Status();
+
 		delete lock;
 
 		return Status();

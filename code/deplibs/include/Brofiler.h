@@ -1,7 +1,7 @@
 #pragma once
 
 #if (!defined(USE_PROFILER) && (defined(_DEBUG) && _DEBUG) && defined(WIN32))
-	#define USE_PROFILER 1
+	//#define USE_PROFILER 1
 #endif
 
 #if USE_PROFILER

@@ -44,18 +44,24 @@ uint16_t NetLibrary::GetServerNetID()
 	return m_serverNetID;
 }
 
+uint16_t NetLibrary::GetServerSlotID()
+{
+	return m_serverSlotID;
+}
+
 uint16_t NetLibrary::GetHostNetID()
 {
 	return m_hostNetID;
 }
 
-void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase)
+void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID)
 {
 	m_serverNetID = serverNetID;
 	m_hostNetID = hostNetID;
 	m_hostBase = hostBase;
+	m_serverSlotID = slotID;
 
-	trace("connectOK, our id %d, host id %d\n", m_serverNetID, m_hostNetID);
+	trace("connectOK, our id %d (slot %d), host id %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
 
 	OnConnectOKReceived(m_currentServer);
 

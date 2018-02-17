@@ -9,7 +9,7 @@
 namespace fx
 {
 	ClientRegistry::ClientRegistry()
-		: m_hostNetId(-1), m_curNetId(1)
+		: m_hostNetId(-1), m_curNetId(1), m_clientsBySlotId(MAX_CLIENTS)
 	{
 
 	}
@@ -29,6 +29,19 @@ namespace fx
 		client->OnAssignPeer.Connect([=]()
 		{
 			m_clientsByPeer[weakClient.lock()->GetPeer()] = weakClient;
+
+			//for (size_t slot = 0; slot < m_clientsBySlotId.size(); slot++)
+			for (int slot = m_clientsBySlotId.size() - 1; slot >= 0; slot--)
+			{
+				if (m_clientsBySlotId[slot].expired())
+				{
+					client->SetSlotId(slot);
+
+					m_clientsBySlotId[slot] = weakClient;
+
+					break;
+				}
+			}
 		});
 
 		client->OnAssignTcpEndPoint.Connect([=]()
@@ -57,14 +70,14 @@ namespace fx
 		fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
 		// send every player information about the joining client
-		events->TriggerClientEvent("onPlayerJoining", std::optional<std::string_view>(), client->GetNetId(), client->GetName());
+		events->TriggerClientEvent("onPlayerJoining", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
 
 		// send the JOINING CLIENT information about EVERY OTHER CLIENT
 		std::string target = fmt::sprintf("%d", client->GetNetId());
 
 		ForAllClients([&](const std::shared_ptr<fx::Client>& otherClient)
 		{
-			events->TriggerClientEvent("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName());
+			events->TriggerClientEvent("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName(), otherClient->GetSlotId());
 		});
 	}
 
@@ -86,7 +99,7 @@ namespace fx
 		}
 		else
 		{
-			m_hostNetId = client->GetNetId();
+			//m_hostNetId = client->GetNetId();
 		}
 	}
 

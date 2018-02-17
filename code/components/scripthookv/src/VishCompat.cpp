@@ -327,9 +327,12 @@ DLL_EXPORT uint64_t* nativeCall()
 	{
 		void* returnAddress = _ReturnAddress();
 
+#ifndef _DEBUG
 		__try
 		{
+#endif
 			fn(&g_context);
+#ifndef _DEBUG
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
@@ -346,6 +349,7 @@ DLL_EXPORT uint64_t* nativeCall()
 
 			FatalError("An exception occurred executing native 0x%llx in a ViSH plugin (%p%s). The game has been terminated.", g_hash, returnAddress, moduleBaseString);
 		}
+#endif
 
 		g_context.SetVectorResults();
 	}

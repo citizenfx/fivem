@@ -156,7 +156,7 @@ if (!$DontBuild)
 
     #cmd /c mklink /d citizenmp cfx-client
 
-    $VCDir = (Get-ItemProperty HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7)."15.0"
+    $VCDir = (& "$WorkDir\code\tools\ci\vswhere.exe" -latest -prerelease -property installationPath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
 
     if (!(Test-Path Env:\DevEnvDir)) {
         Invoke-BatchFile "$VCDir\VC\Auxiliary\Build\vcvars64.bat"

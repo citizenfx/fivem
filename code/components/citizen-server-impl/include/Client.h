@@ -11,6 +11,8 @@
 
 #include <any>
 
+#define MAX_CLIENTS 64 // don't change this past 256 ever, also needs to be synced with client code
+
 namespace {
 	using namespace std::literals::chrono_literals;
 
@@ -53,6 +55,16 @@ namespace fx
 		inline uint32_t GetNetId()
 		{
 			return m_netId;
+		}
+
+		inline uint32_t GetSlotId()
+		{
+			return m_slotId;
+		}
+
+		inline void SetSlotId(uint32_t slotId)
+		{
+			m_slotId = slotId;
 		}
 
 		inline uint32_t GetNetBase()
@@ -140,6 +152,8 @@ namespace fx
 		fwEvent<> OnAssignTcpEndPoint;
 		fwEvent<> OnAssignConnectionToken;
 
+		fwEvent<> OnDrop;
+
 	private:
 		// a temporary token for tying HTTP connections to UDP connections
 		std::string m_connectionToken;
@@ -158,6 +172,9 @@ namespace fx
 
 		// the client's netid
 		uint32_t m_netId;
+
+		// the client's slot ID
+		uint32_t m_slotId;
 
 		// the client's netbase
 		uint32_t m_netBase;

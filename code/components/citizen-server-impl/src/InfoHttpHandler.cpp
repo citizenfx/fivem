@@ -34,7 +34,7 @@ static InitFunction initFunction([]()
 		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, false);
 
 		// max clients cap
-		maxClientsVar->GetHelper()->SetConstraints(1, 32);
+		maxClientsVar->GetHelper()->SetConstraints(1, MAX_CLIENTS);
 
 		struct InfoData
 		{
