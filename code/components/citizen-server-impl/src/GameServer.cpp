@@ -221,6 +221,10 @@ namespace fx
 					// disable peer throttling
 					enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
 
+#ifdef _DEBUG
+					enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
+#endif
+
 					// send a connectOK
 					net::Buffer outMsg;
 					outMsg.Write(1);

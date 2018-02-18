@@ -18,7 +18,7 @@ namespace fx
 struct GameStateClientData
 {
 	net::Buffer ackBuffer;
-	std::vector<int> objectIds;
+	std::set<int> objectIds;
 };
 
 inline std::shared_ptr<GameStateClientData> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
@@ -232,12 +232,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					int slotId = client->GetSlotId();
 
-					entity->syncTree->Visit([slotId](sync::NodeBase& node)
+					if (syncType == 2)
 					{
-						node.ackedPlayers.set(slotId);
+						entity->syncTree->Visit([slotId](sync::NodeBase& node)
+						{
+							node.ackedPlayers.set(slotId);
 
-						return true;
-					});
+							return true;
+						});
+					}
 
 					((syncType == 1) ? numCreates : numSyncs)++;
 				}
@@ -417,7 +420,22 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 
 		trace("migrating entity %d from %s to %s\n", objectId, it->second->client.lock()->GetName(), tgtCl->GetName());
 
-		it->second->client = tgtCl;
+		auto entity = it->second;
+
+		entity->client = tgtCl;
+
+		auto sourceData = GetClientData(this, client);
+		auto targetData = GetClientData(this, tgtCl);
+
+		sourceData->objectIds.erase(objectId);
+		targetData->objectIds.insert(objectId);
+
+		entity->syncTree->Visit([](sync::NodeBase& node)
+		{
+			node.ackedPlayers.reset();
+
+			return true;
+		});
 	}
 }
 
@@ -660,7 +678,7 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 			{
 				hadId = true;
 
-				data->objectIds.push_back(id);
+				data->objectIds.insert(id);
 
 				ids.push_back(id);
 				m_objectIdsSent.set(id);
@@ -875,6 +893,13 @@ static InitFunction initFunction([]()
 
 			if (entity)
 			{
+				entity->syncTree->Visit([client](fx::sync::NodeBase& node)
+				{
+					node.ackedPlayers.set(client->GetSlotId());
+
+					return true;
+				});
+
 				entity->ackedCreation.set(client->GetSlotId());
 			}
 		});

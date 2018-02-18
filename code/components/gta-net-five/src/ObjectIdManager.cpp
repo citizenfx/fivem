@@ -7,7 +7,7 @@
 #include <GameInit.h>
 #include <nutsnbolts.h>
 
-static std::set<int> g_objectIds;
+static std::list<int> g_objectIds;
 static std::set<int> g_usedObjectIds;
 
 static uint32_t AssignObjectId(void* objectIds)
@@ -36,7 +36,7 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 		trace("returned object id %d\n", objectId);
 
 		g_usedObjectIds.erase(objectId);
-		g_objectIds.insert(objectId);
+		g_objectIds.push_back(objectId);
 
 		return true;
 	}
@@ -47,6 +47,18 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 static bool HasSpaceForObjectId(void* objectIds, int num, bool unkScript)
 {
 	return (g_objectIds.size() >= num);
+}
+
+void ObjectIds_AddObjectId(int objectId)
+{
+	// this is ours now
+	g_usedObjectIds.insert(objectId);
+}
+
+void ObjectIds_RemoveObjectId(int objectId)
+{
+	// this is no longer ours
+	g_usedObjectIds.erase(objectId);
 }
 
 static NetLibrary* g_netLibrary;
@@ -78,7 +90,7 @@ void ObjectIds_BindNetLibrary(NetLibrary* netLibrary)
 
 				trace("got object id %d\n", objectId);
 
-				g_objectIds.insert(objectId);
+				g_objectIds.push_back(objectId);
 			}
 		}
 

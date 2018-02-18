@@ -326,9 +326,13 @@ static CNetGamePlayer* AllocateNetPlayer()
 
 static void(*g_origPassObjectControl)(CNetGamePlayer* player, rage::netObject* netObject, int a3);
 
+void ObjectIds_RemoveObjectId(int objectId);
+
 static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netObject, int a3)
 {
 	trace("passing object %016llx control from %d to %d\n", (uintptr_t)netObject, netObject->syncData.ownerId, player->physicalPlayerIndex);
+
+	ObjectIds_RemoveObjectId(netObject->objectId);
 
 	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[player]);
 

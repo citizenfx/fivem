@@ -21,6 +21,8 @@
 
 #include <chrono>
 
+void ObjectIds_AddObjectId(int objectId);
+
 using namespace std::chrono_literals;
 
 inline std::chrono::milliseconds msec()
@@ -472,13 +474,20 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	{
 		trace("reassigning!\n");
 
-		extData.clientId = msg.GetClientId();
+		auto clientId = msg.GetClientId();
 
-		if (extData.clientId == m_netLibrary->GetServerNetID())
+		if (clientId == m_netLibrary->GetServerNetID())
 		{
-			rage::netObjectMgr::GetInstance()->AddObjectForPlayer(obj, GetLocalPlayer(), 0);
+			auto player = GetLocalPlayer();
 
+			// add the object
+			rage::netObjectMgr::GetInstance()->AddObjectForPlayer(obj, player, 0);
+
+			// this isn't remote anymore
 			obj->syncData.isRemote = false;
+
+			// give us the object ID
+			ObjectIds_AddObjectId(msg.GetObjectId());
 		}
 		else
 		{
@@ -496,6 +505,9 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 				obj->syncData.isRemote = true;
 			}
 		}
+
+		// this should happen AFTER AddObjectForPlayer, it verifies the object owner
+		extData.clientId = clientId;
 	}
 
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
@@ -676,9 +688,15 @@ void CloneManagerLocal::WriteUpdates()
 	// collect object IDs that we have seen this time
 	std::set<int> seenObjects;
 
-	// on each object owned by the local player...
-	objectMgr->ForAllNetObjects(getPlayerId(), [&](rage::netObject* object)
+	// on each object...
+	auto objectCb = [&](rage::netObject* object)
 	{
+		// skip remote objects
+		if (object->syncData.isRemote)
+		{
+			return;
+		}
+
 		// get basic object data
 		auto objectType = object->objectType;
 		auto objectId = object->objectId;
@@ -840,7 +858,12 @@ void CloneManagerLocal::WriteUpdates()
 		seenObjects.insert(objectId);
 		m_savedEntities[objectId] = object;
 		m_extendedData[objectId].clientId = m_netLibrary->GetServerNetID();
-	});
+	};
+
+	for (int i = 0; i < 64; i++)
+	{
+		objectMgr->ForAllNetObjects(i, objectCb);
+	}
 
 	// process removals
 	/*{

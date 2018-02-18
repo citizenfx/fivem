@@ -252,6 +252,10 @@ void NetLibraryImplV2::SendConnect(const std::string& connectData)
 
 	auto addr = m_base->GetCurrentServer().GetENetAddress();
 	m_serverPeer = enet_host_connect(m_host, &addr, 2, 0);
+
+#ifdef _DEBUG
+	enet_peer_timeout(m_serverPeer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
+#endif
 }
 
 void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)

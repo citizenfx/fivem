@@ -33,6 +33,12 @@ namespace fx
 			//for (size_t slot = 0; slot < m_clientsBySlotId.size(); slot++)
 			for (int slot = m_clientsBySlotId.size() - 1; slot >= 0; slot--)
 			{
+				// 31 is a special case
+				if (slot == 31)
+				{
+					continue;
+				}
+
 				if (m_clientsBySlotId[slot].expired())
 				{
 					client->SetSlotId(slot);
