@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -330,8 +330,9 @@ fwRefContainer<TcpServer> TLSServer::GetProtocolServer(const std::string& protoc
 void TLSServer::InvokeConnectionCallback(TLSServerStream* stream, const std::string& protocol)
 {
 	fwRefContainer<TcpServer> tcpServer = this;
+	auto it = m_protocolServers.find(protocol);
 
-	if (auto it = m_protocolServers.find(protocol); it != m_protocolServers.end())
+	if (it != m_protocolServers.end())
 	{
 		tcpServer = it->second;
 	}
