@@ -17,6 +17,19 @@
 #include <CoreConsole.h>
 #include <se/Security.h>
 
+struct CommandObject
+{
+	std::string name;
+
+	CommandObject(const std::string& name)
+		: name(name)
+	{
+
+	}
+
+	MSGPACK_DEFINE_MAP(name);
+};
+
 static InitFunction initFunction([] ()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_CURRENT_RESOURCE_NAME", [] (fx::ScriptContext& context)
@@ -115,19 +128,6 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_REGISTERED_COMMANDS", [](fx::ScriptContext& context)
 	{
-		struct CommandObject
-		{
-			std::string name;
-
-			CommandObject(const std::string& name)
-				: name(name)
-			{
-
-			}
-
-			MSGPACK_DEFINE_MAP(name);
-		};
-
 		std::vector<CommandObject> commandList;
 
 		fx::OMPtr<IScriptRuntime> runtime;
