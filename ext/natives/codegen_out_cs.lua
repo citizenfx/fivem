@@ -137,6 +137,8 @@ local function printReturnType(type)
 		else
 			return 'int'
 		end
+	elseif type.nativeType == 'object' then
+		return 'dynamic'
 	else
 		return 'int'
 	end

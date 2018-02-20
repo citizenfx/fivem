@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -236,6 +236,7 @@ enum class V8MetaFields
 	ResultAsFloat,
 	ResultAsString,
 	ResultAsVector,
+	ResultAsObject,
 	Max
 };
 
@@ -708,6 +709,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 					case V8MetaFields::ResultAsString:
 					case V8MetaFields::ResultAsFloat:
 					case V8MetaFields::ResultAsVector:
+					case V8MetaFields::ResultAsObject:
 						returnValueCoercion = metaField;
 						break;
 				}
@@ -794,6 +796,12 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		uint32_t pad2;
 	};
 
+	struct scrObject
+	{
+		const char* data;
+		uintptr_t length;
+	};
+
 	// number of Lua results
 	Local<Array> returnValueArray = Array::New(args.GetIsolate());
 	int numResults = 0;
@@ -835,6 +843,19 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 				vectorArray->Set(2, Number::New(args.GetIsolate(), vector.z));
 				
 				returnValueArray->Set(0, vectorArray);
+
+				break;
+			}
+			case V8MetaFields::ResultAsObject:
+			{
+				scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
+				
+				Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), object.length);
+				memcpy(outValueBuffer->GetContents().Data(), object.data, object.length);
+
+				Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, object.length);
+
+				returnValueArray->Set(0, outArray);
 
 				break;
 			}
@@ -1035,6 +1056,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "resultAsFloat", V8_GetMetaField<V8MetaFields::ResultAsFloat> },
 	{ "resultAsString", V8_GetMetaField<V8MetaFields::ResultAsString> },
 	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
+	{ "resultAsObject", V8_GetMetaField<V8MetaFields::ResultAsObject> },
 };
 
 static v8::Handle<v8::Value> Throw(v8::Isolate* isolate, const char* message) {

@@ -587,6 +587,7 @@ enum class LuaMetaFields
 	ResultAsFloat,
 	ResultAsString,
 	ResultAsVector,
+	ResultAsObject,
 	Max
 };
 
@@ -767,6 +768,7 @@ int Lua_InvokeNative(lua_State* L)
 					case LuaMetaFields::ResultAsString:
 					case LuaMetaFields::ResultAsFloat:
 					case LuaMetaFields::ResultAsVector:
+					case LuaMetaFields::ResultAsObject:
 						returnValueCoercion = metaField;
 						break;
 				}
@@ -828,6 +830,12 @@ int Lua_InvokeNative(lua_State* L)
 		uint32_t pad2;
 	};
 
+	struct scrObject
+	{
+		const char* data;
+		uintptr_t length;
+	};
+
 	// number of Lua results
 	int numResults = 0;
 
@@ -862,6 +870,13 @@ int Lua_InvokeNative(lua_State* L)
 			{
 				scrVector vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
 				lua_pushvector3(L, vector.x, vector.y, vector.z);
+
+				break;
+			}
+			case LuaMetaFields::ResultAsObject:
+			{
+				scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
+				lua_pushlstring(L, object.data, object.length);
 
 				break;
 			}
@@ -999,6 +1014,7 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ "ResultAsFloat", Lua_GetMetaField<LuaMetaFields::ResultAsFloat> },
 	{ "ResultAsString", Lua_GetMetaField<LuaMetaFields::ResultAsString> },
 	{ "ResultAsVector", Lua_GetMetaField<LuaMetaFields::ResultAsVector> },
+	{ "ResultAsObject", Lua_GetMetaField<LuaMetaFields::ResultAsObject> },
 	{ nullptr, nullptr }
 };
 
@@ -1065,17 +1081,17 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 	// load the system scheduler script
 	result_t hr;
 
-	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/%s", nativesBuild)))))
-	{
-		return hr;
-	}
-
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/json.lua")))
 	{
 		return hr;
 	}
 
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/MessagePack.lua")))
+	{
+		return hr;
+	}
+
+	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/%s", nativesBuild)))))
 	{
 		return hr;
 	}

@@ -18,10 +18,11 @@ end)
 -- output the Lua low-level native definition file
 
 -- header bit
-print("local _i, _f, _v, _r, _ri, _rf, _rl, _s, _rv, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsLong(), Citizen.ResultAsString(), Citizen.ResultAsVector(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
+print("local _i, _f, _v, _r, _ri, _rf, _rl, _s, _rv, _ro, _in, _ii, _fi =\n\tCitizen.PointerValueInt(), Citizen.PointerValueFloat(), Citizen.PointerValueVector(),\n\tCitizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsLong(), Citizen.ResultAsString(), Citizen.ResultAsVector(), Citizen.ResultAsObject(),\n\tCitizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized\n")
 
 print("local g = _G")
 print("local rs = rawset")
+print("local msgpack = msgpack")
 
 print("local _tostring = tostring")
 print("local function _ts(num)")
@@ -134,6 +135,8 @@ local function printReturnType(type)
 		end
 	elseif type.nativeType == 'Any*' then
 		return '_ri'
+	elseif type.nativeType == 'object' then
+		return '_ro'
 	end
 end
 
@@ -194,7 +197,15 @@ end
 local function printNative(native)
 	local str = string.format("%sfunction Global.%s(%s)\n", formatDocString(native), printFunctionName(native), printArgumentList(native))
 
-	str = str .. string.format("\treturn _in(%s)\n", printInvocationArguments(native))
+	local preCall = ''
+	local postCall = ''
+
+	if native.returns and native.returns.nativeType == 'object' then
+		preCall = 'msgpack.unpack('
+		postCall = ')'
+	end
+
+	str = str .. string.format("\treturn %s_in(%s)%s\n", preCall, printInvocationArguments(native), postCall)
 
 	str = str .. "end\n"
 

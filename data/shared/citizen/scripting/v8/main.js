@@ -14,6 +14,9 @@ const EXT_FUNCREF = 10;
 
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
+	
+	// store for use by natives.js
+	global.msgpack_unpack = unpack;
 
 	/**
 	 * @param {Function} refFunction

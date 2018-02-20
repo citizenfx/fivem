@@ -101,3 +101,6 @@ type 'Vector3'
 
 type 'func'
 	nativeType 'func'
+
+type 'object'
+	nativeType 'object'

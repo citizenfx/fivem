@@ -593,7 +593,7 @@ native 'IS_ACE_ALLOWED'
 	arguments {
 		charPtr 'object'
 	}
-	apiset 'server'
+	apiset 'shared'
 	returns 'BOOL'
 
 native 'IS_PLAYER_ACE_ALLOWED'
@@ -1453,3 +1453,26 @@ native 'SET_MINIMAP_OVERLAY_DISPLAY'
 	<param name="yScale">The Y scale for the overlay. This is equivalent to the Flash _yscale property.</param>
 	<param name="alpha">The alpha value for the overlay. This is equivalent to the Flash _alpha property, therefore 100 = 100%.</param>
 ]]
+
+native 'GET_REGISTERED_COMMANDS'
+	arguments {
+	}
+	returns 'object'
+	doc [[
+	<summary>
+	Returns all commands that are registered in the command system.
+	The data returned adheres to the following layout:
+	```
+	[
+		{
+			"name": "cmdlist"
+		},
+		{
+			"name": "command1"
+		}
+	]
+	```
+	</summary>
+	<returns>An object containing registered commands.</returns>
+]]
+	apiset 'shared'

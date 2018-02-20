@@ -88,6 +88,7 @@ print("const _ri = Citizen.resultAsInteger();")
 print("const _rf = Citizen.resultAsFloat();")
 print("const _s = Citizen.resultAsString();")
 print("const _rv = Citizen.resultAsVector();")
+print("const _ro = Citizen.resultAsObject();")
 print("const _in = Citizen.invokeNative;")
 print("const _ii = Citizen.pointerValueIntInitialized;")
 print("const _fi = Citizen.pointerValueFloatInitialized;")
@@ -204,6 +205,8 @@ local function printReturnType(type)
 		return '_ri'
 	elseif type.nativeType == 'Any*' then
 		return '_ri'
+	elseif type.nativeType == 'object' then
+		return '_ro'
 	end
 end
 
@@ -266,7 +269,15 @@ end
 local function printNative(native)
 	local str = string.format("%swindow.%s = function (%s) {\n", formatDocString(native), printFunctionName(native), printArgumentList(native))
 
-	str = str .. string.format("\treturn _in(%s);\n", printInvocationArguments(native))
+	local preCall = ''
+	local postCall = ''
+
+	if native.returns and native.returns.nativeType == 'object' then
+		preCall = 'window.msgpack_unpack('
+		postCall = ')'
+	end
+
+	str = str .. string.format("\treturn %s_in(%s)%s;\n", preCall, printInvocationArguments(native), postCall)
 
 	str = str .. "};\n"
 

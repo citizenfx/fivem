@@ -124,6 +124,17 @@ namespace CitizenFX.Core
 				return Encoding.UTF8.GetString(buffer);
 			}
 
+			if (type == typeof(object))
+			{
+				var dataPtr = new IntPtr(BitConverter.ToInt64(ptr, 0));
+				var dataLength = BitConverter.ToInt64(ptr, 8);
+
+				byte[] data = new byte[dataLength];
+				Marshal.Copy(dataPtr, data, 0, (int)dataLength);
+
+				return MsgPackDeserializer.Deserialize(data);
+			}
+
 			if (type.IsEnum)
 			{
 				return Enum.ToObject(type, (int)GetResult(typeof(int), ptr));
