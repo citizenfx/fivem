@@ -611,9 +611,4 @@ static InitFunction initFunction2([]()
 		// set variable
 		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "set", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
 	});
-
-	fx::ScriptEngine::RegisterNativeHandler("IS_ACE_ALLOWED", [](fx::ScriptContext& context)
-	{
-		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(0)));
-	});
 });

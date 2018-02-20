@@ -12,6 +12,8 @@
 #include <ResourceManager.h>
 #include <fxScripting.h>
 
+#include <ScriptSerialization.h>
+
 #include <CoreConsole.h>
 #include <se/Security.h>
 
@@ -111,6 +113,44 @@ static InitFunction initFunction([] ()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_REGISTERED_COMMANDS", [](fx::ScriptContext& context)
+	{
+		struct CommandObject
+		{
+			std::string name;
+
+			CommandObject(const std::string& name)
+				: name(name)
+			{
+
+			}
+
+			MSGPACK_DEFINE_MAP(name);
+		};
+
+		std::vector<CommandObject> commandList;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				auto resourceManager = resource->GetManager();
+				auto consoleCxt = resourceManager->GetComponent<console::Context>();
+
+				consoleCxt->GetCommandManager()->ForAllCommands([&](const std::string& commandName)
+				{
+					commandList.emplace_back(commandName);
+				});
+
+				context.SetResult(fx::SerializeObject(commandList));
+			}
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_INSTANCE_ID", [](fx::ScriptContext& context)
 	{
 		fx::OMPtr<IScriptRuntime> runtime;
@@ -150,5 +190,10 @@ static InitFunction initFunction([] ()
 		}
 
 		context.SetResult(resources[i]->GetName().c_str());
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_ACE_ALLOWED", [](fx::ScriptContext& context)
+	{
+		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(0)));
 	});
 });
