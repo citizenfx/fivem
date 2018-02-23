@@ -51,5 +51,6 @@
 	"adhesive",
 	"devtools:five",
 	"tool:vehrec",
-	"extra-natives:five"
+	"extra-natives:five",
+	"discord"
 ]
