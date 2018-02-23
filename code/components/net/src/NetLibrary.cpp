@@ -17,6 +17,9 @@
 
 #include <Error.h>
 
+fwEvent<const std::string&> OnRichPresenceSetTemplate;
+fwEvent<int, const std::string&> OnRichPresenceSetValue;
+
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
 
 inline ISteamComponent* GetSteam()
@@ -251,11 +254,21 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 
 					StripColors(hostname, cleaned, 256);
 
-					steam->SetRichPresenceTemplate("{0}\n\n{2} on {3} with {1}");
-					steam->SetRichPresenceValue(0, std::string(cleaned).substr(0, 64) + "...");
-					steam->SetRichPresenceValue(1, "Connecting...");
-					steam->SetRichPresenceValue(2, Info_ValueForKey(infoString, "gametype"));
-					steam->SetRichPresenceValue(3, Info_ValueForKey(infoString, "mapname"));
+					auto richPresenceSetTemplate = [&](const auto& tpl)
+					{
+						OnRichPresenceSetTemplate(tpl);
+						steam->SetRichPresenceTemplate(tpl);
+					};
+
+					auto richPresenceSetValue = [&](int idx, const std::string& val)
+					{
+						OnRichPresenceSetValue(idx, val);
+						steam->SetRichPresenceValue(idx, val);
+					};
+
+					richPresenceSetTemplate("{0}\n{1}");
+					richPresenceSetValue(0, std::string(cleaned).substr(0, 64) + "...");
+					richPresenceSetValue(1, "Connecting...");
 				}
 			}
 

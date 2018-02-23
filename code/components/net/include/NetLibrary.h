@@ -324,3 +324,6 @@ public:
 	fwEvent<ConnectionState, ConnectionState> OnStateChanged;
 };
 //extern NetLibrary* g_netLibrary;
+
+extern DLL_IMPORT fwEvent<const std::string&> OnRichPresenceSetTemplate;
+extern DLL_IMPORT fwEvent<int, const std::string&> OnRichPresenceSetValue;
