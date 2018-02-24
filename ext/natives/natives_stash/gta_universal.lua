@@ -1,20 +1,6 @@
--- Lua design suggestion
--- Suggestion from NTAuthority from #fourdeltaone
-
---[[
-Remarks about this design:
-- Based on Lua
-- Drops namespaces completely to allow direct natives access
-- All natives are expected to have respectively friendlier names
-- Native names are pascal-case
-- Custom native names don't have _ prefix but would need to maintain name history for compatibility
-- This design aims to allow for friendly wrappers which open up easier possibilities for usage in (for example) object-oriented programming languages
-	o includes "property" and "method" definitions that directly call natives
-- type will be redefined for the runtime of this script
-]]
-
--- Type definitions
--- !! THIS IS NOT IMPLEMENTED YET AND BELOW CODE IS JUST AN EXAMPLE OF HOW IT COULD LOOK LIKE. NOTHING OF THIS SECTION IS GENERATED. !!
+--- NOTE: WHEN UPDATING THIS FILE, TAKE THE FOLLOWING MODIFICATIONS INTO ACCOUNT:
+-- - _SET_NOTIFICATION_MESSAGE_2
+-- - _GET_GAMEPLAY_CAM_ROT -> _GET_GAMEPLAY_CAM_ROT_2
 
 type "Entity"
 	nativeType "int"
@@ -41333,7 +41319,7 @@ native "_GET_GAMEPLAY_CAM_COORDS"
 	ns "CAM"
 	returns	"Vector3"
 
-native "_GET_GAMEPLAY_CAM_ROT"
+native "_GET_GAMEPLAY_CAM_ROT_2"
 	hash "0x5B4E4C817FCC2DFB"
 	jhash (0x1FFBEFC5)
 	arguments {
@@ -45608,7 +45594,7 @@ native "_SET_NOTIFICATION_TEXT_ENTRY"
 </summary>
 	]]
 
-native "_SET_NOTIFICATION_MESSAGE"
+native "_SET_NOTIFICATION_MESSAGE_2"
 	hash "0x2B7E9A4EAAA93C89"
 	jhash (0xED130FA1)
 	arguments {
@@ -45627,7 +45613,6 @@ native "_SET_NOTIFICATION_MESSAGE"
 		charPtr "subject",
 	}
 	alias "0x2B7E9A4EAAA93C89"
-	alias "_SET_NOTIFICATION_MESSAGE_2"
 	ns "HUD"
 	returns	"int"
 	doc [[!
@@ -45636,7 +45621,7 @@ native "_SET_NOTIFICATION_MESSAGE"
 </summary>
 	]]
 
-native "_SET_NOTIFICATION_MESSAGE_2"
+native "_SET_NOTIFICATION_MESSAGE"
 	hash "0x1CCD9A37359072CF"
 	jhash (0xE7E3C98B)
 	arguments {
@@ -45652,7 +45637,6 @@ native "_SET_NOTIFICATION_MESSAGE_2"
 
 		charPtr "subject",
 	}
-	alias "_SET_NOTIFICATION_MESSAGE"
 	ns "HUD"
 	returns	"int"
 	doc [[!
