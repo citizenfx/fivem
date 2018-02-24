@@ -157,8 +157,8 @@ public:
 
 						if (playerCount != lastPlayerCount)
 						{
-							steam->SetRichPresenceValue(1, fmt::sprintf("%d players", playerCount));
-							OnRichPresenceSetValue(1, fmt::sprintf("%d players", playerCount));
+							steam->SetRichPresenceValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
+							OnRichPresenceSetValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
 							lastPlayerCount = playerCount;
 						}
 					}

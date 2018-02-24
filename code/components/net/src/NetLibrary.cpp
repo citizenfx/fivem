@@ -267,7 +267,13 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 					};
 
 					richPresenceSetTemplate("{0}\n{1}");
-					richPresenceSetValue(0, std::string(cleaned).substr(0, 64) + "...");
+
+					richPresenceSetValue(0, fmt::sprintf(
+						"%s%s",
+						std::string(cleaned).substr(0, 110),
+						(strlen(cleaned) > 110) ? "..." : ""
+					));
+
 					richPresenceSetValue(1, "Connecting...");
 				}
 			}

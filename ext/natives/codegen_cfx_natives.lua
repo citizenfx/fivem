@@ -1476,3 +1476,16 @@ native 'GET_REGISTERED_COMMANDS'
 	<returns>An object containing registered commands.</returns>
 ]]
 	apiset 'shared'
+
+native 'SET_RICH_PRESENCE'
+	arguments {
+		charPtr 'presenceState'
+	}
+	returns 'void'
+	apiset 'client'
+	doc [[
+	<summary>
+	Sets the player's rich presence detail state for social platform providers to a specified string.
+	</summary>
+	<param name="presenceState">The rich presence string to set.</param>
+]]

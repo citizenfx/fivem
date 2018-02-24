@@ -5,7 +5,9 @@
 		"fx[2]",
 		"vendor:discord-rpc",
 		"net",
-		"rage:nutsnbolts"
+		"rage:nutsnbolts",
+		"gta:core",
+		"scripting"
 	],
 	"provides": []
 }
