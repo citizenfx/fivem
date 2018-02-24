@@ -48,9 +48,10 @@ namespace fx
 			std::string referenceHash;
 			std::string remoteUrl;
 			size_t size;
+			std::map<std::string, std::string> extData;
 
-			inline ResourceFileEntry(const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0)
-				: basename(basename), referenceHash(referenceHash), remoteUrl(remoteUrl), size(size)
+			inline ResourceFileEntry(const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0, const std::map<std::string, std::string>& extData = {})
+				: basename(basename), referenceHash(referenceHash), remoteUrl(remoteUrl), size(size), extData(extData)
 			{
 
 			}
@@ -67,7 +68,7 @@ namespace fx
 	public:
 		virtual void RemoveResourceEntries(const std::string& resourceName);
 
-		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0);
+		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0, const std::map<std::string, std::string>& extData = {});
 
 		virtual std::string FormatPath(const std::string& resourceName, const std::string& basename);
 

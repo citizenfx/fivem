@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -72,15 +72,15 @@ public:
 
 	virtual int FindClose(uint64_t handle) override;
 
-	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override
-	{
+	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override;
+	/*{
 		version->flag1 = 0;
 		version->flag2 = 0;
 
 		trace(__FUNCTION__ " not implemented");
 
 		return 0;
-	}
+	}*/
 
 	virtual int m_yx() override
 	{
@@ -192,6 +192,34 @@ uint64_t RageVFSDeviceAdapter::GetFileTime(const char* file)
 	// we return the modification time of README.txt on the GTA1 EU release:
 	// 1997-10-15T08:31:50Z
 	return 125213779100000000;
+}
+
+#define VFS_GET_RAGE_PAGE_FLAGS 0x20001
+
+struct GetRagePageFlagsExtension
+{
+	const char* fileName; // in
+	int version;
+	rage::ResourceFlags flags; // out
+};
+
+int RageVFSDeviceAdapter::GetResourceVersion(const char* file, rage::ResourceFlags* version)
+{
+	GetRagePageFlagsExtension ext;
+	ext.fileName = file;
+
+	if (m_cfxDevice->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &ext, sizeof(ext)))
+	{
+		*version = ext.flags;
+		return ext.version;
+	}
+
+	version->flag1 = 0;
+	version->flag2 = 0;
+
+	trace(__FUNCTION__ " not implemented");
+
+	return 0;
 }
 
 bool RageVFSDeviceAdapter::SetFileTime(const char* file, FILETIME fileTime)

@@ -28,8 +28,8 @@
 
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
-void CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags);
 void CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+void CfxCollection_RemoveStreamingTag(const std::string& tag);
 
 namespace streaming
 {
@@ -170,6 +170,8 @@ static InitFunction initFunction([] ()
 			}
 
 			entryListComponent->list.clear();
+
+			CfxCollection_RemoveStreamingTag(resource->GetName());
 		}, -500);
 	});
 

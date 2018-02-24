@@ -95,7 +95,7 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 				// and add the entries from the list to the resource
 				for (auto& entry : GetIteratorView(m_resourceEntries.equal_range(host)))
 				{
-					entryList->AddEntry(ResourceCacheEntryList::Entry{ entry.first, entry.second.basename, entry.second.remoteUrl, entry.second.referenceHash, entry.second.size });
+					entryList->AddEntry(ResourceCacheEntryList::Entry{ entry.first, entry.second.basename, entry.second.remoteUrl, entry.second.referenceHash, entry.second.size, entry.second.extData });
 				}
 
 				return resource;
@@ -198,9 +198,9 @@ pplx::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(con
 	return pplx::task_from_result(fwRefContainer<fx::Resource>());
 }
 
-void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size)
+void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size, const std::map<std::string, std::string>& extData)
 {
-	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl, size} });
+	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl, size, extData} });
 }
 
 void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)

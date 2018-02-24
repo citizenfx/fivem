@@ -1163,7 +1163,7 @@ private:
 				FILETIME fileTime;
 				SystemTimeToFileTime(&systemTime, &fileTime);
 
-				g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
+				//g_streamingPackfiles->Get(GetCollectionId()).modificationTime = fileTime;
 
 				m_streamingFileList = fileList;
 
@@ -1798,7 +1798,7 @@ void CfxCollection::InitializePseudoPack(const char* path)
 
 		entryCount = i;
 
-		if (entryCount > 1)
+		//if (entryCount > 1)
 		{
 			trace("Scanned packfile: %d entries.\n", entryCount);
 		}
@@ -1840,35 +1840,30 @@ void CfxCollection::InitializePseudoPack(const char* path)
 static std::vector<std::pair<std::string, rage::ResourceFlags>> g_customStreamingFiles;
 static std::map<std::string, std::vector<std::pair<std::string, rage::ResourceFlags>>, std::less<>> g_customStreamingFilesByTag;
 
-void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags)
+/*void DLL_EXPORT CfxCollection_AddStreamingFile(const std::string& fileName, rage::ResourceFlags flags)
 {
 #ifndef CFX_COLLECTION_DISABLE
 	g_customStreamingFileSet.insert(StringRef(std::string(strrchr(fileName.c_str(), '/') + 1)));
 	g_customStreamingFiles.push_back({ fileName, flags });
 #endif
-}
+}*/
 
-void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
+void origCfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
 {
 #ifndef CFX_COLLECTION_DISABLE
 	auto baseName = std::string(strrchr(fileName.c_str(), '/') + 1);
 
 	g_customStreamingFilesByTag[tag].push_back({ fileName, flags });
-
-	if (baseName != "_manifest.ymf")
-	{
-		g_customStreamingFileRefs.insert({ baseName, { fileName, flags } });
-	}
 #endif
 }
 
-void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
+/*void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
 {
 	for (auto& entry : g_customStreamingFileRefs)
 	{
 		cb(entry.first);
 	}
-}
+}*/
 
 void CfxCollection::PrepareStreamingListFromList(const std::vector<std::pair<std::string, rage::ResourceFlags>>& entries)
 {
@@ -1939,6 +1934,18 @@ int GetCollectionIndexByTag(const std::string& tag)
 	return -1;
 }
 
+StreamingPackfileEntry* GetStreamingPackfileByTag(const std::string& tag)
+{
+	auto collection = g_collectionsByTag[tag];
+
+	if (collection)
+	{
+		return &g_streamingPackfiles->Get(collection->GetCollectionId());
+	}
+
+	return nullptr;
+}
+
 uint32_t GetPackHashByTag(const std::string& tag)
 {
 	return g_packHashesByTag[tag];
@@ -1987,6 +1994,10 @@ void CfxCollection::PrepareStreamingListForTag(const char* tag)
 	packfileInfo.modificationTime.dwLowDateTime = packHash;
 
 	g_packHashesByTag[tagName] = packHash;
+
+	// reset as we don't _actually_ want to use these
+	m_streamingFileList = {};
+	m_resourceFlags = {};
 
 	//packfileInfo.nameHash = HashString(va("citizen:/dunno/%s.rpf", tag));
 }
@@ -2154,6 +2165,11 @@ rage::fiFile* rage__fiFile__OpenWrap(const char* fileName, rage::fiDevice* devic
 
 namespace streaming
 {
+	StreamingPackfileEntry* GetStreamingPackfileByIndex(int index)
+	{
+		return &g_streamingPackfiles->Get(index);
+	}
+
 	StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry)
 	{
 		auto handle = entry->handle;

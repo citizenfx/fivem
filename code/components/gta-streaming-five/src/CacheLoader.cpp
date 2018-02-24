@@ -5,9 +5,12 @@
 
 #include <atHashMap.h>
 
+#include <Streaming.h>
+
 #include <VFSManager.h>
 
 int GetCollectionIndexByTag(const std::string& tag);
+StreamingPackfileEntry* GetStreamingPackfileByTag(const std::string& tag);
 void InvalidateCacheByTag(const std::string& tag);
 
 static hook::cdecl_stub<void(atHashMap<bool>*, const uint32_t&, const bool&)> atHashMap_bool_insert([]()
@@ -48,6 +51,40 @@ static void AppendToCacheWrap(const void* data, int length)
 	}
 }
 
+static int*(*g_origGetCacheIndex)(int*, int);
+
+extern std::unordered_map<int, std::string> g_handlesToTag;
+
+static int* GetCacheIndex(int* outPtr, int handle)
+{
+	int* origRet = g_origGetCacheIndex(outPtr, handle);
+
+	auto it = g_handlesToTag.find(handle);
+
+	if (it != g_handlesToTag.end())
+	{
+		*outPtr = GetCollectionIndexByTag(it->second);
+	}
+
+	return outPtr;
+}
+
+static StreamingPackfileEntry*(*g_origGetPackIndex)(int);
+
+static StreamingPackfileEntry* GetPackIndex(int handle)
+{
+	auto origRet = g_origGetPackIndex(handle);
+
+	auto it = g_handlesToTag.find(handle);
+
+	if (it != g_handlesToTag.end())
+	{
+		return GetStreamingPackfileByTag(it->second);
+	}
+
+	return origRet;
+}
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -62,6 +99,21 @@ static HookFunction hookFunction([]()
 	// given how collision files won't change at runtime (or at least, not without calling fwBoxStreamer::m_10 first)
 	// this should be safe. unless, of course, fwBoxStreamer reorders this array.
 	hook::nop(hook::get_pattern("80 B9 FF 00 00 00 00 75 40 4C 8B", 7), 2);
+
+	{
+		hook::set_call(&g_origGetCacheIndex, hook::get_pattern("48 8D 4D 20 8B D0 E8 ? ? ? ? 44 8B 00 0F", 6));
+		hook::call(hook::get_pattern("48 8D 4D 30 8B D0 E8 ? ? ? ? 44 8B 00 0F", 6), GetCacheIndex);
+		hook::call(hook::get_pattern("48 8D 4D 20 8B D0 E8 ? ? ? ? 44 8B 00 0F", 6), GetCacheIndex);
+		hook::call(hook::get_pattern("48 8D 4D 10 8B D0 E8 ? ? ? ? 45", 6), GetCacheIndex);
+		hook::call(hook::get_pattern("48 8D 8C 24 90 00 00 00 8B D0 E8", 10), GetCacheIndex);
+	}
+	
+	{
+		hook::set_call(&g_origGetPackIndex, hook::get_pattern("E8 ? ? ? ? 45 33 FF 40 8A 78 48 40 F6", 0));
+		hook::call(hook::get_pattern("E8 ? ? ? ? 45 33 FF 40 8A 78 48 40 F6", 0), GetPackIndex);
+		hook::call(hook::get_pattern("E8 ? ? ? ? 8B C8 E8 ? ? ? ? 83 3D ? ? ? ? 01 75", 7), GetPackIndex);
+		hook::call(hook::get_pattern("E8 ? ? ? ? 48 85 C0 74 07 8A 40 48", 0), GetPackIndex);
+	}
 });
 
 void LoadCache(const char* tagName)
@@ -104,7 +156,7 @@ static InitFunction initFunction([]()
 		atHashMap<bool> packfileMap;
 		atHashMap_bool_insert(&packfileMap, index, true);
 
-		_loadCacheFile(resourceName.c_str(), va("cache:/%s/", resourceName), false, packfileMap);
+		_loadCacheFile(resourceName.c_str(), va("cache:/%s/", resourceName), true, packfileMap);
 
 		// save the cache
 		std::string outFileName = fmt::sprintf("fxd:/%s_cache_y.dat", resourceName);

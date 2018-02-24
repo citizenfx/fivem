@@ -455,6 +455,41 @@ size_t ResourceCacheDevice::GetLength(const std::string& fileName)
 	return -1;
 }
 
+#define VFS_GET_RAGE_PAGE_FLAGS 0x20001
+
+struct ResourceFlags
+{
+	uint32_t flag1;
+	uint32_t flag2;
+};
+
+struct GetRagePageFlagsExtension
+{
+	const char* fileName; // in
+	int version;
+	ResourceFlags flags; // out
+};
+
+bool ResourceCacheDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
+{
+	if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
+	{
+		GetRagePageFlagsExtension* data = (GetRagePageFlagsExtension*)controlData;
+
+		auto entry = GetEntryForFileName(data->fileName);
+
+		if (entry)
+		{
+			data->version = atoi(entry->extData["rscVersion"].c_str());
+			data->flags.flag1 = strtoul(entry->extData["rscPagesVirtual"].c_str(), nullptr, 10);
+			data->flags.flag2 = strtoul(entry->extData["rscPagesPhysical"].c_str(), nullptr, 10);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void ResourceCacheDevice::SetPathPrefix(const std::string& pathPrefix)
 {
 	m_pathPrefix = pathPrefix;

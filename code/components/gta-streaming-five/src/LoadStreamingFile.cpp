@@ -313,12 +313,14 @@ public:
 static CfxPseudoMounter g_staticPseudoMounter;
 
 void LoadCache(const char* tagName);
+void LoadManifest(const char* tagName);
 
 class CfxCacheMounter : public CDataFileMountInterface
 {
 public:
 	virtual bool MountFile(DataFileEntry* entry) override
 	{
+		LoadManifest(entry->name);
 		LoadCache(entry->name);
 
 		return true;
@@ -414,6 +416,8 @@ inline void HandleDataFileList(const TList& list, const TFn& fn, const char* op 
 	}
 }
 
+void LoadStreamingFiles();
+
 namespace streaming
 {
 	void DLL_EXPORT AddMetaToLoadList(bool before, const std::string& meta)
@@ -438,6 +442,7 @@ namespace streaming
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !Instance<ICoreGameInit>::Get()->HasVariable("gameKilled"))
 		{
+			LoadStreamingFiles();
 			LoadDataFiles();
 		}
 	}
@@ -456,6 +461,302 @@ namespace streaming
 	}
 }
 
+static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 A0 01 00 00", -5));
+});
+
+static std::vector<std::tuple<std::string, std::string>> g_customStreamingFiles;
+static std::set<std::string> g_customStreamingFileRefs;
+static std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
+static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
+std::unordered_map<int, std::string> g_handlesToTag;
+
+static void LoadStreamingFiles()
+{
+	// register any custom streaming assets
+	for (auto& fileInfo : g_customStreamingFiles)
+	{
+		auto[file, tag] = fileInfo;
+
+		// get basename ('thing.ytd') and asset name ('thing')
+		auto baseName = std::string(strrchr(file.c_str(), '/') + 1);
+		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
+
+		// get CStreaming instance and associated streaming module
+		auto cstreaming = streaming::Manager::GetInstance();
+		auto strModule = cstreaming->moduleMgr.GetStreamingModule(strrchr(baseName.c_str(), '.') + 1);
+
+		if (strModule)
+		{
+			// try to create/get an asset in the streaming module
+			// RegisterStreamingFile will still work if one exists as long as the handle remains 0
+			uint32_t strId;
+			strModule->GetOrCreate(&strId, nameWithoutExt.c_str());
+
+			// if the asset is already registered...
+			if (cstreaming->Entries[strId + strModule->baseIdx].handle != 0)
+			{
+				// get the raw streamer and make an entry in there
+				auto rawStreamer = getRawStreamer();
+				uint32_t idx = rawStreamer->GetEntryByName(file.c_str());
+
+				if (strId != -1)
+				{
+					auto& entry = cstreaming->Entries[strId + strModule->baseIdx];
+
+					trace("overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
+
+					// if no old handle was saved, save the old handle
+					auto& hs = g_handleStack[strId + strModule->baseIdx];
+
+					if (hs.empty())
+					{
+						hs.push_front(entry.handle);
+					}
+
+					entry.handle = (rawStreamer->GetCollectionId() << 16) | idx;
+					g_handlesToTag[entry.handle] = tag;
+
+					// save the new handle
+					hs.push_front(entry.handle);
+				}
+			}
+			else
+			{
+				uint32_t fileId;
+				streaming::RegisterRawStreamingFile(&fileId, file.c_str(), true, baseName.c_str(), false);
+
+				if (fileId != -1)
+				{
+					auto& entry = cstreaming->Entries[fileId];
+					g_handleStack[fileId].push_front(entry.handle);
+
+					g_handlesToTag[entry.handle] = tag;
+				}
+				else
+				{
+					trace("failed to reg %s? %d\n", baseName, fileId);
+				}
+			}
+		}
+		else
+		{
+			trace("can't register %s: no streaming module (does this file even belong in stream?)\n", file);
+		}
+	}
+
+	g_customStreamingFiles.clear();
+}
+
+static std::map<std::string, std::string, std::less<>> g_manifestNames;
+
+#include <fiCustomDevice.h>
+
+class ForcedDevice : public rage::fiCustomDevice
+{
+private:
+	rage::fiDevice* m_device;
+	std::string m_fileName;
+
+public:
+	ForcedDevice(rage::fiDevice* parent, const std::string& fileName)
+		: m_device(parent), m_fileName(fileName)
+	{
+	}
+
+	virtual uint64_t Open(const char* fileName, bool readOnly) override
+	{
+		return m_device->Open(m_fileName.c_str(), readOnly);
+	}
+
+	virtual uint64_t OpenBulk(const char* fileName, uint64_t* ptr) override
+	{
+		return m_device->OpenBulk(m_fileName.c_str(), ptr);
+	}
+
+	virtual uint64_t OpenBulkWrap(const char* fileName, uint64_t* ptr, void*) override
+	{
+		return OpenBulk(fileName, ptr);
+	}
+
+	virtual uint64_t Create(const char* fileName) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t Read(uint64_t handle, void* buffer, uint32_t toRead) override
+	{
+		return m_device->Read(handle, buffer, toRead);
+	}
+
+	virtual uint32_t ReadBulk(uint64_t handle, uint64_t ptr, void* buffer, uint32_t toRead) override
+	{
+		return m_device->ReadBulk(handle, ptr, buffer, toRead);
+	}
+
+	virtual int m_40(int a) override
+	{
+		return m_device->m_40(a);
+	}
+
+	virtual rage::fiDevice* GetUnkDevice() override
+	{
+		return m_device->GetUnkDevice();
+	}
+
+	virtual void m_xx() override
+	{
+		return m_device->m_xx();
+	}
+
+	virtual int32_t GetCollectionId() override
+	{
+		return m_device->GetCollectionId();
+	}
+
+	virtual bool m_ax() override
+	{
+		return m_device->m_ax();
+	}
+
+	virtual uint32_t Write(uint64_t, void*, int) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t WriteBulk(uint64_t, int, int, int, int) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t Seek(uint64_t handle, int32_t distance, uint32_t method) override
+	{
+		return m_device->Seek(handle, distance, method);
+	}
+
+	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method) override
+	{
+		return m_device->SeekLong(handle, distance, method);
+	}
+
+	virtual int32_t Close(uint64_t handle) override
+	{
+		return m_device->Close(handle);
+	}
+
+	virtual int32_t CloseBulk(uint64_t handle) override
+	{
+		return m_device->CloseBulk(handle);
+	}
+
+	virtual int GetFileLength(uint64_t handle) override
+	{
+		return m_device->GetFileLength(handle);
+	}
+
+	virtual uint64_t GetFileLengthLong(const char* fileName) override
+	{
+		return m_device->GetFileLengthLong(m_fileName.c_str());
+	}
+
+	virtual uint64_t GetFileLengthUInt64(uint64_t handle) override
+	{
+		return m_device->GetFileLengthUInt64(handle);
+	}
+
+	virtual bool RemoveFile(const char* file) override
+	{
+		return false;
+	}
+
+	virtual int RenameFile(const char* from, const char* to) override
+	{
+		return false;
+	}
+
+	virtual int CreateDirectory(const char* dir) override
+	{
+		return false;
+	}
+
+	virtual int RemoveDirectory(const char* dir) override
+	{
+		return false;
+	}
+
+	virtual uint64_t GetFileTime(const char* file) override
+	{
+		return m_device->GetFileTime(m_fileName.c_str());
+	}
+
+	virtual bool SetFileTime(const char* file, FILETIME fileTime) override
+	{
+		return false;
+	}
+
+	virtual uint32_t GetFileAttributes(const char* path) override
+	{
+		return m_device->GetFileAttributes(m_fileName.c_str());
+	}
+
+	virtual int m_yx() override
+	{
+		return m_device->m_yx();
+	}
+
+	virtual bool IsCollection() override
+	{
+		return m_device->IsCollection();
+	}
+
+	virtual const char* GetName() override
+	{
+		return "RageVFSDeviceAdapter";
+	}
+
+	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override
+	{
+		return m_device->GetResourceVersion(m_fileName.c_str(), version);
+	}
+
+	virtual uint64_t CreateLocal(const char* fileName) override
+	{
+		return m_device->CreateLocal(m_fileName.c_str());
+	}
+
+	virtual void* m_xy(void* a, int len, void* c) override
+	{
+		return m_device->m_xy(a, len, (void*)m_fileName.c_str());
+	}
+};
+
+void LoadManifest(const char* tagName)
+{
+	auto _initManifestChunk = (void(*)(void*))0x1408FA41C;
+	auto _loadManifestChunk = (void(*)(void*))0x1408FE3D0;
+	auto _clearManifestChunk = (void(*)(void*))0x1408CC344;
+	auto loadManifest = (void(*)(void*, void* packfile, uint32_t))0x1408EA3C8;
+	auto manifestChunkPtr = (void*)0x142415770;
+
+	std::string name = g_manifestNames[tagName];
+
+	if (!name.empty())
+	{
+		_initManifestChunk(manifestChunkPtr);
+
+		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
+		rage::fiDevice::MountGlobal("localPack:/", rel, true);
+
+		loadManifest(manifestChunkPtr, (void*)1, HashString(tagName));
+
+		rage::fiDevice::Unmount("localPack:/");
+
+		_loadManifestChunk(manifestChunkPtr);
+		_clearManifestChunk(manifestChunkPtr);
+	}
+}
+
 static void LoadDataFiles()
 {
 	trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
@@ -467,6 +768,94 @@ static void LoadDataFiles()
 	
 	g_loadedDataFiles.insert(g_loadedDataFiles.end(), g_dataFiles.begin(), g_dataFiles.end());
 	g_dataFiles.clear();
+}
+
+void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
+{
+	for (auto& entry : g_customStreamingFileRefs)
+	{
+		cb(entry);
+	}
+}
+
+#include <nutsnbolts.h>
+
+static bool g_reloadStreamingFiles;
+
+void origCfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+
+void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
+{
+	auto baseName = std::string(strrchr(fileName.c_str(), '/') + 1);
+
+	if (baseName == "_manifest.ymf")
+	{
+		g_manifestNames[tag] = fileName;
+	}
+
+	g_customStreamingFilesByTag[tag].push_back(fileName);
+	g_customStreamingFiles.push_back({ fileName, tag });
+	g_customStreamingFileRefs.insert(baseName);
+
+	origCfxCollection_AddStreamingFileByTag(tag, fileName, flags);
+}
+
+void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
+{
+	for (auto& file : g_customStreamingFilesByTag[tag])
+	{
+		// get basename ('thing.ytd') and asset name ('thing')
+		auto baseName = std::string(strrchr(file.c_str(), '/') + 1);
+		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
+
+		// get CStreaming instance and associated streaming module
+		auto cstreaming = streaming::Manager::GetInstance();
+		auto strModule = cstreaming->moduleMgr.GetStreamingModule(strrchr(baseName.c_str(), '.') + 1);
+
+		if (strModule)
+		{
+			uint32_t strId;
+			strModule->GetIndexByName(&strId, nameWithoutExt.c_str());
+
+			auto rawStreamer = getRawStreamer();
+			uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
+
+			if (strId != -1)
+			{
+				// erase existing stack entry
+				auto& handleData = g_handleStack[strId + strModule->baseIdx];
+
+				for (auto it = handleData.begin(); it != handleData.end(); ++it)
+				{
+					if (*it == idx)
+					{
+						it = handleData.erase(it);
+					}
+				}
+
+				// if not empty, set the handle to the current stack entry
+				auto& entry = cstreaming->Entries[strId + strModule->baseIdx];
+
+				if (!handleData.empty())
+				{
+					entry.handle = handleData.front();
+				}
+				else
+				{
+					// TODO: fully delete the streaming object from the module/streamer
+					g_customStreamingFileRefs.erase(baseName);
+					entry.handle = 0;
+				}
+			}
+		}
+	}
+
+	for (auto& file : g_customStreamingFilesByTag[tag])
+	{
+		std::remove(g_customStreamingFiles.begin(), g_customStreamingFiles.end(), std::tuple<std::string, std::string>{ file, tag });
+	}
+
+	g_customStreamingFilesByTag.erase(tag);
 }
 
 static void UnloadDataFiles()
@@ -542,6 +931,11 @@ static HookFunction hookFunction([] ()
 	{
 		UnloadDataFiles();
 
+		for (auto& tag : g_customStreamingFilesByTag)
+		{
+			CfxCollection_RemoveStreamingTag(tag.first);
+		}
+
 		/*if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
 			// toggle map group again?
@@ -551,6 +945,16 @@ static HookFunction hookFunction([] ()
 			g_clearContentCache(0);
 		}*/
 	}, 99900);
+
+	OnMainGameFrame.Connect([=]()
+	{
+		if (g_reloadStreamingFiles)
+		{
+			LoadStreamingFiles();
+
+			g_reloadStreamingFiles = false;
+		}
+	});
 
 	{
 		char* location = hook::get_pattern<char>("48 63 82 90 00 00 00 49 8B 8C C0 ? ? ? ? 48", 11);
@@ -574,6 +978,7 @@ static HookFunction hookFunction([] ()
 	{
 		if (type == rage::INIT_SESSION)
 		{
+			LoadStreamingFiles();
 			LoadDataFiles();
 		}
 	});

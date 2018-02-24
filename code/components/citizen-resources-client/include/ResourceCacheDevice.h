@@ -37,14 +37,15 @@ public:
 		std::string remoteUrl;
 		std::string referenceHash;
 		size_t size;
+		std::map<std::string, std::string> extData;
 
 		inline Entry()
 		{
 
 		}
 
-		inline Entry(const std::string& resourceName, const std::string& basename, const std::string& remoteUrl, const std::string& referenceHash, size_t size)
-			: resourceName(resourceName), basename(basename), remoteUrl(remoteUrl), referenceHash(referenceHash), size(size)
+		inline Entry(const std::string& resourceName, const std::string& basename, const std::string& remoteUrl, const std::string& referenceHash, size_t size, const std::map<std::string, std::string>& extData = {})
+			: resourceName(resourceName), basename(basename), remoteUrl(remoteUrl), referenceHash(referenceHash), size(size), extData(extData)
 		{
 
 		}
@@ -193,4 +194,6 @@ public:
 	virtual size_t GetLength(THandle handle) override;
 
 	virtual size_t GetLength(const std::string& fileName) override;
+
+	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 };

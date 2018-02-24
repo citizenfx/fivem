@@ -322,7 +322,11 @@ static InitFunction initFunction([] ()
 									continue;
 								}
 
-								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size);
+								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size, {
+									{ "rscVersion", std::to_string(entry.rscVersion) },
+									{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
+									{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
+								});
 
 								entry.filePath = mounter->FormatPath(resourceName, filename);
 								entry.resourceName = resourceName;

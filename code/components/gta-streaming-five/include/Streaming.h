@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atArray.h>
+
 #ifdef COMPILING_GTA_STREAMING_FIVE
 #define STREAMING_EXPORT DLL_EXPORT
 #else
@@ -46,6 +48,64 @@ namespace streaming
 		uint32_t Index;
 	};
 
+	class strStreamingModule
+	{
+	public:
+		virtual ~strStreamingModule() = 0;
+
+		virtual uint32_t* GetOrCreate(uint32_t* id, const char* name) = 0;
+
+		virtual uint32_t* GetIndexByName(uint32_t* id, const char* name) = 0;
+
+		virtual void m_18() = 0; // unload entry
+
+		virtual void DeleteEntry(int object) = 0; // remove entry
+
+		virtual void m_28() = 0;
+
+		virtual void m_30() = 0;
+
+		virtual void m_38() = 0;
+
+		virtual void m_40() = 0;
+
+		virtual void m_48() = 0;
+
+		virtual void m_50() = 0;
+
+		virtual void m_58() = 0;
+
+		virtual void m_60() = 0;
+
+		virtual void m_68() = 0;
+
+		virtual void m_70() = 0;
+
+		virtual void m_78() = 0;
+
+		virtual void AddRef(uint32_t id) = 0;
+
+		virtual void Release(uint32_t id) = 0;
+
+		virtual void m_90() = 0; // resetrefcount
+
+		virtual int GetRefCount(uint32_t id) = 0;
+
+		// ...
+
+		uint32_t baseIdx;
+	};
+
+	class STREAMING_EXPORT strStreamingModuleMgr
+	{
+	public:
+		virtual ~strStreamingModuleMgr() = default;
+
+		strStreamingModule* GetStreamingModule(int index);
+
+		strStreamingModule* GetStreamingModule(const char* extension);
+	};
+
 	// actually CStreaming
 	class STREAMING_EXPORT Manager
 	{
@@ -55,17 +115,26 @@ namespace streaming
 	public:
 		void RequestObject(uint32_t objectId, int flags);
 
-		void ReleaseObject(uint32_t objectId);
+		bool ReleaseObject(uint32_t objectId);
+
+		bool ReleaseObject(uint32_t objectId, int flags);
 
 		static Manager* GetInstance();
 
 	public:
 		StreamingDataEntry* Entries;
-		char pad[88];
+		char pad3[16];
+		int numEntries;
+		int f;
+		char pad[88 - 16 - 8];
 		StreamingListEntry* RequestListHead;
 		StreamingListEntry* RequestListTail;
 
-		char pad2[368];
+		char pad2[368 - 40];
+
+		strStreamingModuleMgr moduleMgr;
+
+		char pad4[32];
 
 		int NumPendingRequests;
 		int NumPendingRequests3;
@@ -78,9 +147,13 @@ namespace streaming
 
 	STREAMING_EXPORT const std::string& GetStreamingNameForIndex(uint32_t index);
 
-	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry);
+	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileByIndex(int index);
 
 	STREAMING_EXPORT uint32_t RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed);
+
+	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry);
+
+	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
 }
 
 #if 0
