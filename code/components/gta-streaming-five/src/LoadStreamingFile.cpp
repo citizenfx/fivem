@@ -484,8 +484,16 @@ static void LoadStreamingFiles()
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 		// get CStreaming instance and associated streaming module
+		std::string ext = strrchr(baseName.c_str(), '.') + 1;
+
+		if (ext == "rpf")
+		{
+			trace("can't register %s: it's an RPF, these don't belong in stream/ without extracting them first\n", file);
+			continue;
+		}
+
 		auto cstreaming = streaming::Manager::GetInstance();
-		auto strModule = cstreaming->moduleMgr.GetStreamingModule(strrchr(baseName.c_str(), '.') + 1);
+		auto strModule = cstreaming->moduleMgr.GetStreamingModule(ext.c_str());
 
 		if (strModule)
 		{
