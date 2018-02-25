@@ -179,7 +179,7 @@
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="64550"/>
+							<PoolSize value="234900"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
@@ -187,7 +187,7 @@
 						</Item>
 						<Item>
 							<PoolName>DwdStore</PoolName>
-							<PoolSize value="40000"/>
+							<PoolSize value="200000"/>
 						</Item>
 						<Item>
 							<PoolName>EntityBatch</PoolName>
