@@ -224,72 +224,85 @@ static hook::cdecl_stub<bool(void* streaming, int idx)> _isResourceNotCached([](
 	return hook::get_pattern("74 07 8A 40 48 24 01 EB 02 B0 01", -0x1B);
 });
 
+static bool g_reloadMapStore = false;
+
+static std::set<std::string> loadedCollisions;
+
+static void ReloadMapStore()
+{
+	if (!g_reloadMapStore)
+	{
+		return;
+	}
+
+	// preload collisions for the world
+	ForAllStreamingFiles([&](const std::string& file)
+	{
+		if (file.find(".ybn") != std::string::npos)
+		{
+			if (loadedCollisions.find(file) == loadedCollisions.end())
+			{
+				auto obj = streaming::GetStreamingIndexForName(file);
+
+				if (obj == 0)
+				{
+					return;
+				}
+
+				auto mgr = streaming::Manager::GetInstance();
+
+				if (_isResourceNotCached(mgr, obj))
+				{
+					mgr->RequestObject(obj, 0);
+
+					streaming::LoadObjectsNow(0);
+
+					mgr->ReleaseObject(obj);
+
+					loadedCollisions.insert(file);
+
+					trace("Loaded %s (id %d)\n", file, obj);
+				}
+				else
+				{
+					trace("Skipped %s - it's cached! (id %d)\n", file, obj);
+				}
+			}
+		}
+	});
+
+	// workaround by unloading/reloading MP map group
+	g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+	g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+
+	g_clearContentCache(0);
+
+	// load gtxd files
+	for (auto& file : g_gtxdFiles)
+	{
+		auto mounter = LookupDataFileMounter("GTXD_PARENTING_DATA");
+
+		DataFileEntry ventry;
+		memset(&ventry, 0, sizeof(ventry));
+		strcpy(ventry.name, file.c_str()); // muahaha
+		ventry.type = LookupDataFileType("GTXD_PARENTING_DATA");
+
+		mounter->MountFile(&ventry);
+
+		trace("Mounted gtxd parenting data %s\n", file);
+	}
+
+	g_reloadMapStore = true;
+}
+
 class CfxPseudoMounter : public CDataFileMountInterface
 {
-private:
-	std::set<std::string> loadedCollisions;
-
 public:
 	virtual bool MountFile(DataFileEntry* entry) override
 	{
 		if (strcmp(entry->name, "RELOAD_MAP_STORE") == 0)
 		{
-			// preload collisions for the world
-			ForAllStreamingFiles([&](const std::string& file)
-			{
-				if (file.find(".ybn") != std::string::npos)
-				{
-					if (loadedCollisions.find(file) == loadedCollisions.end())
-					{
-						auto obj = streaming::GetStreamingIndexForName(file);
-
-						if (obj == 0)
-						{
-							return;
-						}
-
-						auto mgr = streaming::Manager::GetInstance();
-
-						if (_isResourceNotCached(mgr, obj))
-						{
-							mgr->RequestObject(obj, 0);
-
-							streaming::LoadObjectsNow(0);
-
-							mgr->ReleaseObject(obj);
-
-							loadedCollisions.insert(file);
-
-							trace("Loaded %s (id %d)\n", file, obj);
-						}
-						else
-						{
-							trace("Skipped %s - it's cached! (id %d)\n", file, obj);
-						}
-					}
-				}
-			});
-
-			// workaround by unloading/reloading MP map group
-			g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
-			g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
-
-			g_clearContentCache(0);
-
-			// load gtxd files
-			for (auto& file : g_gtxdFiles)
-			{
-				auto mounter = LookupDataFileMounter("GTXD_PARENTING_DATA");
-
-				DataFileEntry ventry;
-				memset(&ventry, 0, sizeof(ventry));
-				strcpy(ventry.name, file.c_str()); // muahaha
-				ventry.type = LookupDataFileType("GTXD_PARENTING_DATA");
-
-				mounter->MountFile(&ventry);
-
-				trace("Mounted gtxd parenting data %s\n", file);
-			}
+			g_reloadMapStore = true;
 
 			return true;
 		}
@@ -744,7 +757,7 @@ void LoadManifest(const char* tagName)
 	auto _initManifestChunk = (void(*)(void*))0x1408FA41C;
 	auto _loadManifestChunk = (void(*)(void*))0x1408FE3D0;
 	auto _clearManifestChunk = (void(*)(void*))0x1408CC344;
-	auto loadManifest = (void(*)(void*, void* packfile, uint32_t))0x1408EA3C8;
+	auto loadManifest = (void(*)(void*, void* packfile, const char*))0x1408EA3C8;
 	auto manifestChunkPtr = (void*)0x142415770;
 
 	std::string name = g_manifestNames[tagName];
@@ -756,7 +769,7 @@ void LoadManifest(const char* tagName)
 		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
 		rage::fiDevice::MountGlobal("localPack:/", rel, true);
 
-		loadManifest(manifestChunkPtr, (void*)1, HashString(tagName));
+		loadManifest(manifestChunkPtr, (void*)1, tagName);
 
 		rage::fiDevice::Unmount("localPack:/");
 
@@ -776,6 +789,13 @@ static void LoadDataFiles()
 	
 	g_loadedDataFiles.insert(g_loadedDataFiles.end(), g_dataFiles.begin(), g_dataFiles.end());
 	g_dataFiles.clear();
+
+	trace("Performing deferred RELOAD_MAP_STORE.\n");
+
+	if (g_reloadMapStore)
+	{
+		ReloadMapStore();
+	}
 }
 
 void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
