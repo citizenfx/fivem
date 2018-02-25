@@ -2,6 +2,7 @@
 -- - _SET_NOTIFICATION_MESSAGE_2
 -- - _GET_GAMEPLAY_CAM_ROT -> _GET_GAMEPLAY_CAM_ROT_2
 -- - _IS_LOADING_PROMPT_BEING_DISPLAYED return type -> BOOL
+-- - SET_SUPER_JUMP_THIS_FRAME return type -> int
 
 type "Entity"
 	nativeType "int"
@@ -34560,7 +34561,7 @@ native "SET_SUPER_JUMP_THIS_FRAME"
 		Player "player",
 	}
 	ns "MISC"
-	returns	"void"
+	returns	"int"
 
 native "0x6FDDF453C0C756EC"
 	hash "0x6FDDF453C0C756EC"
