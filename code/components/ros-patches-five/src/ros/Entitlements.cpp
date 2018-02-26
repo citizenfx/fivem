@@ -145,7 +145,7 @@ static InitFunction initFunction([] ()
 
 			if (r.status_code != 200)
 			{
-				FatalError("RS20");
+				FatalError("Could not contact entitlement service. Status code: %d, error message: %d/%s, response body: %s", r.status_code, (int)r.error.code, r.error.message, r.text);
 			}
 
 			f = _wfopen(ToWide(filePath).c_str(), L"wb");
