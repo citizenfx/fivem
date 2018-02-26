@@ -292,7 +292,7 @@ static void ReloadMapStore()
 		trace("Mounted gtxd parenting data %s\n", file);
 	}
 
-	g_reloadMapStore = true;
+	g_reloadMapStore = false;
 }
 
 class CfxPseudoMounter : public CDataFileMountInterface
