@@ -28,6 +28,10 @@
 			background-color: rgba($bgColour, .2);
 			border-radius: 1px;
 			transition: all .2s ease;
+
+			.rt {
+				float: right;
+			}
 			
 			.additional {
 				opacity: 0;

@@ -7,6 +7,8 @@ import 'rxjs/add/operator/toPromise';
 export class Tweet {
     readonly user_displayname: string;
     readonly user_screenname: string;
+    readonly rt_displayname: string;
+    readonly rt_screenname: string;
     readonly content: string;
     readonly date: Date;
     readonly avatar: string;
@@ -15,6 +17,13 @@ export class Tweet {
     image: string;
 
     constructor(json: any) {
+        if (json.retweeted_status) {
+            this.rt_displayname = json.user.name;
+            this.rt_screenname = json.user.screen_name;
+
+            json = json.retweeted_status;
+        }
+
         this.user_displayname = json.user.name;
         this.user_screenname = json.user.screen_name;
 
