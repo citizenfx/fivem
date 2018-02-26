@@ -254,7 +254,7 @@ static bool ArchetypeSetDrawable(char* archetype, uint32_t* hash, int txd, char 
 		}
 	}
 
-	return false;
+	return g_origSetDrawable(archetype, hash, txd, true);
 }
 
 static void*(*g_origGetDrawable)(void* archetype);
