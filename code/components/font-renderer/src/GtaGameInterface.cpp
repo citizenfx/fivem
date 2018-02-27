@@ -9,6 +9,7 @@
 #include "FontRendererImpl.h"
 #include <DrawCommands.h>
 #include <grcTexture.h>
+#include <ICoreGameInit.h>
 
 #include "memdbgon.h"
 
@@ -287,6 +288,17 @@ static InitFunction initFunction([] ()
 	static std::random_device random_core;
 	static std::mt19937 random(random_core());
 
+	static bool shouldDraw = false;
+
+	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+	{
+		shouldDraw = true;
+	});
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		shouldDraw = false;
+	});
+
 #ifdef _HAVE_GRCORE_NEWSTATES
 	OnGrcCreateDevice.Connect([] ()
 	{
@@ -304,45 +316,47 @@ static InitFunction initFunction([] ()
 		int x, y;
 		GetGameResolution(x, y);
 
-		SYSTEMTIME systemTime;
-		GetLocalTime(&systemTime);
-
 		const wchar_t* brandingString = L"";
 
-		switch (systemTime.wHour)
-		{
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			case 6:
-				brandingString = L"FiveM \xD83C\xDF19";
-				break;
-			case 7:
-			case 8:
-			case 9:
-			case 10:
-			case 11:
-			case 12:
-				brandingString = L"FiveM \xD83C\xDF42";
-				break;
-			case 13:
-			case 14:
-			case 15:
-			case 16:
-			case 17:
-			case 18:
-				brandingString = L"FiveM \xD83D\xDD25";
-				break;
-			case 19:
-			case 20:
-			case 21:
-			case 22:
-			case 23:
-			case 0:
-				brandingString = L"FiveM \xD83C\xDF59";
-				break;
+		if (shouldDraw) {
+			SYSTEMTIME systemTime;
+			GetLocalTime(&systemTime);
+
+			switch (systemTime.wHour)
+			{
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+					brandingString = L"FiveM \xD83C\xDF19";
+					break;
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+				case 11:
+				case 12:
+					brandingString = L"FiveM \xD83C\xDF42";
+					break;
+				case 13:
+				case 14:
+				case 15:
+				case 16:
+				case 17:
+				case 18:
+					brandingString = L"FiveM \xD83D\xDD25";
+					break;
+				case 19:
+				case 20:
+				case 21:
+				case 22:
+				case 23:
+				case 0:
+					brandingString = L"FiveM \xD83C\xDF59";
+					break;
+			}
 		}
 
 		static CRect metrics;
