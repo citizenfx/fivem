@@ -496,8 +496,16 @@ static void LoadStreamingFiles()
 		auto baseName = std::string(strrchr(file.c_str(), '/') + 1);
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
+		const char* extPos = strrchr(baseName.c_str(), '.');
+
+		if (extPos == nullptr)
+		{
+			trace("can't register %s: it doesn't have an extension, why is this in stream/?\n", file);
+			continue;
+		}
+
 		// get CStreaming instance and associated streaming module
-		std::string ext = strrchr(baseName.c_str(), '.') + 1;
+		std::string ext = extPos + 1;
 
 		if (ext == "rpf")
 		{
@@ -1022,11 +1030,18 @@ static HookFunction hookFunction([] ()
 		hook::set_call(&g_clearContentCache, location + 0x50);
 	}
 
-	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 	{
 		if (type == rage::INIT_SESSION)
 		{
 			LoadStreamingFiles();
+		}
+	});
+
+	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_SESSION)
+		{
 			LoadDataFiles();
 		}
 	});
