@@ -906,6 +906,23 @@ static hook::cdecl_stub<void()> _unloadMultiplayerContent([]()
 	return hook::get_pattern("01 E8 ? ? ? ? 48 8B 0D ? ? ? ? BA 79", -0x11);
 });
 
+static const char* NormalizePath(char* out, const char* in, size_t length)
+{
+	strncpy(out, in, length);
+
+	int l = strlen(out);
+
+	for (int i = 0; i < l; i++)
+	{
+		if (out[i] == '\\')
+		{
+			out[i] = '/';
+		}
+	}
+
+	return out;
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -919,6 +936,9 @@ static HookFunction hookFunction([] ()
 	hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 1D ? ? ? ? 41 8B F7").count(1).get(0).get<void>(0);
 	hook::set_call(&dataFileMgr__loadDefDat, hookPoint);
 	hook::call(hookPoint, LoadDefDats); //Call the new function to load the handling files
+
+	// don't normalize paths in pgRawStreamer
+	hook::call(hook::get_pattern("48 8B D6 E8 ? ? ? ? B2 01 48", 3), NormalizePath);
 
 	g_dataFileTypes = hook::get_pattern<EnumEntry>("61 44 DF 04 00 00 00 00");
 
