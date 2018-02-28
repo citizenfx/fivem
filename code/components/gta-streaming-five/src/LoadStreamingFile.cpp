@@ -790,10 +790,10 @@ static void LoadDataFiles()
 	g_loadedDataFiles.insert(g_loadedDataFiles.end(), g_dataFiles.begin(), g_dataFiles.end());
 	g_dataFiles.clear();
 
-	trace("Performing deferred RELOAD_MAP_STORE.\n");
-
 	if (g_reloadMapStore)
 	{
+		trace("Performing deferred RELOAD_MAP_STORE.\n");
+
 		ReloadMapStore();
 	}
 }
