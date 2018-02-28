@@ -73,16 +73,24 @@ static StreamingPackfileEntry*(*g_origGetPackIndex)(int);
 
 static StreamingPackfileEntry* GetPackIndex(int handle)
 {
-	auto origRet = g_origGetPackIndex(handle);
+	auto retval = g_origGetPackIndex(handle);
 
 	auto it = g_handlesToTag.find(handle);
 
 	if (it != g_handlesToTag.end())
 	{
-		return GetStreamingPackfileByTag(it->second);
+		retval = GetStreamingPackfileByTag(it->second);
 	}
 
-	return origRet;
+	if (retval == nullptr)
+	{
+		static StreamingPackfileEntry fakePfe;
+		fakePfe.cacheFlags = 0;
+
+		retval = &fakePfe;
+	}
+
+	return retval;
 }
 
 static HookFunction hookFunction([]()
