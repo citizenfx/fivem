@@ -487,6 +487,15 @@ bool RageVFSDevice::ExtensionCtl(int controlIdx, void* controlData, size_t contr
 
 		return FlushFileBuffers(reinterpret_cast<HANDLE>(data->handle));
 	}
+	else if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
+	{
+		auto data = (GetRagePageFlagsExtension*)controlData;
+
+		std::string fileName = data->fileName;
+		data->version = m_device->GetResourceVersion(fileName.substr(m_pathPrefixLength).c_str(), &data->flags);
+
+		return true;
+	}
 
 	return false;
 }
