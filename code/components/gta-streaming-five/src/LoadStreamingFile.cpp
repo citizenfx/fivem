@@ -429,7 +429,7 @@ inline void HandleDataFileList(const TList& list, const TFn& fn, const char* op 
 	}
 }
 
-void LoadStreamingFiles();
+void LoadStreamingFiles(bool earlyLoad = false);
 
 namespace streaming
 {
@@ -479,21 +479,29 @@ static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 A0 01 00 00", -5));
 });
 
-static std::vector<std::tuple<std::string, std::string>> g_customStreamingFiles;
+static std::set<std::tuple<std::string, std::string>> g_customStreamingFiles;
 static std::set<std::string> g_customStreamingFileRefs;
 static std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
 std::unordered_map<int, std::string> g_handlesToTag;
 
-static void LoadStreamingFiles()
+static void LoadStreamingFiles(bool earlyLoad)
 {
 	// register any custom streaming assets
-	for (auto& fileInfo : g_customStreamingFiles)
+	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
 	{
-		auto[file, tag] = fileInfo;
+		auto[file, tag] = *it;
 
 		// get basename ('thing.ytd') and asset name ('thing')
-		auto baseName = std::string(strrchr(file.c_str(), '/') + 1);
+		const char* slashPos = strrchr(file.c_str(), '/');
+
+		if (slashPos == nullptr)
+		{
+			it = g_customStreamingFiles.erase(it);
+			continue;
+		}
+
+		auto baseName = std::string(slashPos + 1);
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 		const char* extPos = strrchr(baseName.c_str(), '.');
@@ -501,6 +509,7 @@ static void LoadStreamingFiles()
 		if (extPos == nullptr)
 		{
 			trace("can't register %s: it doesn't have an extension, why is this in stream/?\n", file);
+			it = g_customStreamingFiles.erase(it);
 			continue;
 		}
 
@@ -510,8 +519,20 @@ static void LoadStreamingFiles()
 		if (ext == "rpf")
 		{
 			trace("can't register %s: it's an RPF, these don't belong in stream/ without extracting them first\n", file);
+			it = g_customStreamingFiles.erase(it);
 			continue;
 		}
+
+		if (earlyLoad)
+		{
+			if (ext == "ymap" || ext == "ytyp")
+			{
+				++it;
+				continue;
+			}
+		}
+
+		it = g_customStreamingFiles.erase(it);
 
 		auto cstreaming = streaming::Manager::GetInstance();
 		auto strModule = cstreaming->moduleMgr.GetStreamingModule(ext.c_str());
@@ -574,8 +595,6 @@ static void LoadStreamingFiles()
 			trace("can't register %s: no streaming module (does this file even belong in stream?)\n", file);
 		}
 	}
-
-	g_customStreamingFiles.clear();
 }
 
 static std::map<std::string, std::string, std::less<>> g_manifestNames;
@@ -830,7 +849,7 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 	}
 
 	g_customStreamingFilesByTag[tag].push_back(fileName);
-	g_customStreamingFiles.push_back({ fileName, tag });
+	g_customStreamingFiles.insert({ fileName, tag });
 	g_customStreamingFileRefs.insert(baseName);
 
 	origCfxCollection_AddStreamingFileByTag(tag, fileName, flags);
@@ -888,7 +907,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 
 	for (auto& file : g_customStreamingFilesByTag[tag])
 	{
-		std::remove(g_customStreamingFiles.begin(), g_customStreamingFiles.end(), std::tuple<std::string, std::string>{ file, tag });
+		g_customStreamingFiles.erase(std::tuple<std::string, std::string>{ file, tag });
 	}
 
 	g_customStreamingFilesByTag.erase(tag);
@@ -1034,7 +1053,7 @@ static HookFunction hookFunction([] ()
 	{
 		if (type == rage::INIT_SESSION)
 		{
-			LoadStreamingFiles();
+			LoadStreamingFiles(true);
 		}
 	});
 
@@ -1042,6 +1061,7 @@ static HookFunction hookFunction([] ()
 	{
 		if (type == rage::INIT_SESSION)
 		{
+			LoadStreamingFiles();
 			LoadDataFiles();
 		}
 	});
