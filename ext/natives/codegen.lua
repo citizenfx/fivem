@@ -194,6 +194,7 @@ if #arg > 2 then
 end
 
 loadDefinition 'codegen_cfx_natives.lua'
+loadDefinition 'codegen_dlc_natives.lua'
 
 _natives = {}
 
