@@ -200,317 +200,74 @@ static struct
 
 struct CrossMappingEntry
 {
-	uint64_t first;
-	uint64_t second;
+	uint64_t entries[17];
 };
 
 static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTables)
 {
 	// do mapping things
+	g_needsMapping = true;
 
-	// if this is the old style, generate a mapping file
-	if (!functionTables.empty() && functionTables[0]->GetAt(0) == 0x846AA8E7D55EE5B6)
+	// find the game build version
+	char* location = hook::pattern("48 8D 8E 09 02 00 00 44 8B C5 33 D2").count(1).get(0).get<char>(20);
+	char* buildString = (char*)(location + *(int32_t*)location + 4);
+
+	int versionIdx = -1;
+
+	if (strncmp(buildString, "Jun  9 2017", 6) == 0)
 	{
-		g_needsMapping = false;
-
-		FILE* file = _wfopen(MakeRelativeCitPath(L"citizen\\natives_blob.dat").c_str(), L"wb");
-
-		if (!file)
-		{
-			return;
-		}
-
-		auto writer = [=] (const void* data, size_t size)
-		{
-			fwrite(data, 1, size, file);
-		};
-
-		int numTables = functionTables.size();
-		writer(&numTables, sizeof(numTables));
-
-		for (auto pair : functionTables)
-		{
-			pair.second->Serialize(writer);
-		}
-
-		fclose(file);
+		versionIdx = 1103;
 	}
-	else if (!functionTables.empty() && functionTables[0]->GetAt(0) == 0xCA73A01756217EC9) // 350
+	else if (strncmp(buildString, "Mar 31 2017", 6) == 0)
 	{
-		g_needsMapping = true;
-
-		FILE* file = _wfopen(MakeRelativeCitPath(L"citizen\\natives_blob.dat").c_str(), L"rb");
-
-		if (!file)
-		{
-			return;
-		}
-
-		auto reader = [=] (void* data, size_t size)
-		{
-			fread(data, 1, size, file);
-		};
-
-		int numTables;
-		reader(&numTables, sizeof(numTables));
-
-		for (int i = 0; i < numTables; i++)
-		{
-			auto functionTable = std::make_shared<FunctionTable>(reader);
-			auto newTable = functionTables.find(functionTable->GetComponentId());
-
-			if (newTable != functionTables.end())
-			{
-				FunctionTable::CrossReference(*functionTable, *(newTable->second), g_mappingTable);
-			}
-		}
-
-		fclose(file);
-
-		// dump 350 cross-mapped natives
-		static const CrossMappingEntry crossMapping[] =
-		{
-#include "CrossMapping_350_372.h"
-		};
-
-		// turn into a std::map
-		std::map<uint64_t, uint64_t> crossMappingTable;
-
-		for (auto& mapping : crossMapping)
-		{
-			crossMappingTable.insert({ mapping.first, mapping.second });
-		}
-
-		// write PC/REL to 372 table (natives_blob_372.dat)
-		file = _wfopen(MakeRelativeCitPath(L"citizen\\natives_blob_372.dat").c_str(), L"wb");
-
-		for (auto& native : g_mappingTable)
-		{
-			uint64_t sourceNative = native.first;
-			uint64_t destNative = crossMappingTable[native.second];
-
-			if (destNative == 0)
-			{
-				destNative = sourceNative;
-			}
-
-			fwrite(&sourceNative, sizeof(sourceNative), 1, file);
-			fwrite(&destNative, sizeof(destNative), 1, file);
-		}
-
-		fclose(file);
+		versionIdx = 1032;
 	}
-	else // 372?
+	else if (strncmp(buildString, "Oct 13", 6) == 0)
 	{
-		g_needsMapping = true;
-
-		// read the REL->372 mapping table
-		FILE* file = _wfopen(MakeRelativeCitPath(L"citizen\\natives_blob_372.dat").c_str(), L"rb");
-
-		if (!file)
-		{
-			return;
-		}
-
-		// find the game build version
-		char* location = hook::pattern("48 8D 8E 09 02 00 00 44 8B C5 33 D2").count(1).get(0).get<char>(20);
-		char* buildString = (char*)(location + *(int32_t*)location + 4);
-
-		int versionIdx = -1;
-
-		if (strncmp(buildString, "Jun  9 2017", 6) == 0)
-		{
-			versionIdx = 1103;
-		}
-		else if (strncmp(buildString, "Mar 31 2017", 6) == 0)
-		{
-			versionIdx = 1032;
-		}
-		else if (strncmp(buildString, "Oct 13", 6) == 0)
-		{
-			versionIdx = 505;
-		}
-		else if (strncmp(buildString, "Jun 30", 6) == 0)
-		{
-			versionIdx = 393;
-		}
-
-		// early out if no version index matched
-		if (versionIdx < 0)
-		{
-			FatalError("No native mapping information found for game executable built on %s.", buildString);
-		}
-
-		// if 393, this will likely be true
-		bool isPostNativeVersion = (functionTables.size() == 0);
-
-		static const CrossMappingEntry crossMapping_372_393[] =
-		{
-#include "CrossMapping_372_393.h"
-		};
-
-		static const CrossMappingEntry crossMapping_393_463[] =
-		{
-#include "CrossMapping_393_463.h"
-		};
-
-		static const CrossMappingEntry crossMapping_463_505[] =
-		{
-#include "CrossMapping_463_505.h"
-		};
-
-		static const CrossMappingEntry crossMapping_505_573[] =
-		{
-#include "CrossMapping_505_573.h"
-		};
-
-		static const CrossMappingEntry crossMapping_573_617[] =
-		{
-#include "CrossMapping_573_617.h"
-		};
-
-		static const CrossMappingEntry crossMapping_617_678[] =
-		{
-#include "CrossMapping_617_678.h"
-		};
-
-		static const CrossMappingEntry crossMapping_678_757[] =
-		{
-#include "CrossMapping_678_757.h"
-		};
-
-		static const CrossMappingEntry crossMapping_757_791[] =
-		{
-#include "CrossMapping_757_791.h"
-		};
-
-		static const CrossMappingEntry crossMapping_791_877[] =
-		{
-#include "CrossMapping_791_877.h"
-		};
-
-		static const CrossMappingEntry crossMapping_877_944[] =
-		{
-#include "CrossMapping_877_944.h"
-		};
-
-		static const CrossMappingEntry crossMapping_944_1011[] =
-		{
-#include "CrossMapping_944_1011.h"
-		};
-
-		static const CrossMappingEntry crossMapping_1011_1103[] =
-		{
-#include "CrossMapping_1011_1103.h"
-		};
-
-		// turn into a std::map
-		std::map<uint64_t, uint64_t> crossMappingTable_372_393;
-		std::map<uint64_t, uint64_t> crossMappingTable_393_463;
-		std::map<uint64_t, uint64_t> crossMappingTable_463_505;
-		std::map<uint64_t, uint64_t> crossMappingTable_505_573;
-		std::map<uint64_t, uint64_t> crossMappingTable_573_617;
-		std::map<uint64_t, uint64_t> crossMappingTable_617_678;
-		std::map<uint64_t, uint64_t> crossMappingTable_678_757;
-		std::map<uint64_t, uint64_t> crossMappingTable_757_791;
-		std::map<uint64_t, uint64_t> crossMappingTable_791_877;
-		std::map<uint64_t, uint64_t> crossMappingTable_877_944;
-		std::map<uint64_t, uint64_t> crossMappingTable_944_1011;
-		std::map<uint64_t, uint64_t> crossMappingTable_1011_1103;
-
-#define DO_MAPPING(build_bit) \
-	for (auto& mapping : crossMapping_##build_bit) \
-	{ \
-		crossMappingTable_##build_bit.insert({ mapping.first, mapping.second }); \
+		versionIdx = 505;
+	}
+	else if (strncmp(buildString, "Jun 30", 6) == 0)
+	{
+		versionIdx = 393;
 	}
 
-		DO_MAPPING(372_393);
-		DO_MAPPING(393_463);
-		DO_MAPPING(463_505);
-		DO_MAPPING(505_573);
-		DO_MAPPING(573_617);
-		DO_MAPPING(617_678);
-		DO_MAPPING(678_757);
-		DO_MAPPING(757_791);
-		DO_MAPPING(791_877);
-		DO_MAPPING(877_944);
-		DO_MAPPING(944_1011);
-		DO_MAPPING(1011_1103);
+	// early out if no version index matched
+	if (versionIdx < 0)
+	{
+		FatalError("No native mapping information found for game executable built on %s.", buildString);
+	}
 
-		while (true)
+	// if 393, this will likely be true
+	bool isPostNativeVersion = true;
+
+	static const CrossMappingEntry crossMapping_universal[] =
+	{
+#include "CrossMapping_Universal.h"
+	};
+
+	int maxVersion = 0;
+	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290 };
+
+	for (auto version : newVersions)
+	{
+		if (versionIdx >= version)
 		{
-			uint64_t sourceNative, destNative;
-
-			if (fread(&sourceNative, sizeof(sourceNative), 1, file) != 1 ||
-				fread(&destNative, sizeof(destNative), 1, file) != 1)
-			{
-				break;
-			}
-
-			if (isPostNativeVersion)
-			{
-				destNative = crossMappingTable_372_393[destNative];
-			}
-
-			if (versionIdx >= 463)
-			{
-				destNative = crossMappingTable_393_463[destNative];
-			}
-
-			if (versionIdx >= 505)
-			{
-				destNative = crossMappingTable_463_505[destNative];
-			}
-
-			if (versionIdx >= 573)
-			{
-				destNative = crossMappingTable_505_573[destNative];
-			}
-
-			if (versionIdx >= 617)
-			{
-				destNative = crossMappingTable_573_617[destNative];
-			}
-
-			if (versionIdx >= 678)
-			{
-				destNative = crossMappingTable_617_678[destNative];
-			}
-
-			if (versionIdx >= 757)
-			{
-				destNative = crossMappingTable_678_757[destNative];
-			}
-
-			if (versionIdx >= 791)
-			{
-				destNative = crossMappingTable_757_791[destNative];
-			}
-
-			if (versionIdx >= 877)
-			{
-				destNative = crossMappingTable_791_877[destNative];
-			}
-
-			if (versionIdx >= 944)
-			{
-				destNative = crossMappingTable_877_944[destNative];
-			}
-
-			if (versionIdx >= 1011)
-			{
-				destNative = crossMappingTable_944_1011[destNative];
-			}
-
-			if (versionIdx >= 1103)
-			{
-				destNative = crossMappingTable_1011_1103[destNative];
-			}
-
-			g_mappingTable.insert({ sourceNative, destNative });
+			++maxVersion;
 		}
+	}
 
-		fclose(file);
+	// 1103
+	assert(maxVersion == 14);
+
+	for (auto& nativeEntry : crossMapping_universal)
+	{
+		for (int i = 0; i < (maxVersion - 1); i++)
+		{
+			if (nativeEntry.entries[i] != 0 && nativeEntry.entries[maxVersion] != 0)
+			{
+				g_mappingTable.insert({ nativeEntry.entries[i], nativeEntry.entries[maxVersion] });
+			}
+		}
 	}
 }
 
