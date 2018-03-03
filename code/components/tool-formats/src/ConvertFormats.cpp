@@ -26,7 +26,86 @@
 #include <convert/gtaDrawable_ny_five.h>
 #include <convert/phBound_ny_five.h>
 
+#include <optional>
+
+static std::optional<boost::filesystem::path> g_wbnFile;
+
 rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName);
+
+template<typename T>
+static bool OutputFile(const T&& callback, int fileVersion, const std::wstring& fileName)
+{
+	auto bm = rage::five::pgStreamManager::BeginPacking();
+
+	callback();
+
+	rage::five::pgStreamManager::EndPacking();
+
+	FILE* f = _wfopen(fileName.c_str(), L"wb");
+
+	if (!f)
+	{
+		printf("... couldn't open output file for writing.\n");
+		return false;
+	}
+
+	size_t outputSize = 0;
+
+	bm->Save(fileVersion, [&](const void* d, size_t s)
+	{
+		fwrite(d, 1, s, f);
+
+		outputSize += s;
+	});
+
+	wprintf(L"written %s successfully - compressed size %d\n", boost::filesystem::path(fileName).filename().c_str(), outputSize);
+
+	fclose(f);
+
+	return true;
+}
+
+template<typename TOutput, typename TInput, typename TBlockMap>
+static bool AutoConvert(TBlockMap blockMap, const std::wstring& fileName, int fileVersion, const wchar_t* fileExtOverride = nullptr, const std::function<void(TOutput*)>& postCb = {})
+{
+	std::wstring fileExt = std::wstring(wcsrchr(fileName.c_str(), L'.'));
+
+	if (fileExtOverride)
+	{
+		fileExt = fileExtOverride;
+	}
+
+	std::wstring outFileName(fileName);
+	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + L".y" + fileExt.substr(2);
+
+	return OutputFile([&]()
+	{
+		auto tgt = rage::convert<TOutput*>((TInput*)blockMap->blocks[0].data);
+
+		if (postCb)
+		{
+			postCb(tgt);
+		}
+	}, fileVersion, outFileName);
+}
+
+static void ConvertBoundDict(rage::ny::pgDictionary<rage::ny::phBound>* dictionary, const std::wstring& fileName)
+{
+	std::wstring dirName = boost::filesystem::path(fileName).parent_path().wstring();
+
+	if (dictionary->GetCount())
+	{
+		for (auto& bound : *dictionary)
+		{
+			uint32_t hash = bound.first;
+			
+			OutputFile([&]()
+			{
+				rage::convert<rage::five::phBound*>(bound.second);
+			}, 43, fmt::sprintf(L"%s\\0x%08x.ybn", dirName, hash));
+		}
+	}
+}
 
 static void ConvertFile(const boost::filesystem::path& path)
 {
@@ -44,7 +123,6 @@ static void ConvertFile(const boost::filesystem::path& path)
 	std::wstring fileExt = std::wstring(wcsrchr(fileName, L'.'));
 
 	rage::ny::pgStreamManager::SetBlockInfo(bm);
-	auto bm2 = rage::five::pgStreamManager::BeginPacking();
 
 	int fileVersion = 0;
 
@@ -52,37 +130,64 @@ static void ConvertFile(const boost::filesystem::path& path)
 	{
 		wprintf(L"converting bound %s...\n", path.filename().c_str());
 
-		auto bound = (rage::ny::datOwner<rage::ny::phBound>*)bm->blocks[0].data;
-		rage::convert<rage::five::phBound*>(bound->GetChild());
+		AutoConvert<rage::five::phBound, rage::ny::datOwner<rage::ny::phBound>>(bm, fileName, 43);
+	}
+	else if (fileExt == L".wbd")
+	{
+		wprintf(L"converting bound dictionary %s...\n", path.filename().c_str());
 
-		fileVersion = 43;
+		ConvertBoundDict((rage::ny::pgDictionary<rage::ny::phBound>*)bm->blocks[0].data, fileName);
+		//AutoConvert<rage::five::pgDictionary<rage::five::phBound>, rage::ny::pgDictionary<rage::ny::phBound>>(bm, fileName, 43);
 	}
 	else if (fileExt == L".wdr")
 	{
 		wprintf(L"converting drawable %s...\n", path.filename().c_str());
 
-		auto drawable = (rage::ny::gtaDrawable*)bm->blocks[0].data;
-		rage::convert<rage::five::gtaDrawable*>(drawable);
+		if (g_wbnFile)
+		{
+			AutoConvert<rage::five::gtaDrawable, rage::ny::gtaDrawable>(bm, fileName, 165, nullptr, [&](rage::five::gtaDrawable* dr)
+			{
+				rage::ny::BlockMap* wbd = UnwrapRSC5((*g_wbnFile).wstring().c_str());
+				auto bd = (rage::ny::pgDictionary<rage::ny::phBound>*)wbd->blocks[0].data;
 
-		fileVersion = 165;
+				rage::ny::pgStreamManager::SetBlockInfo(wbd);
+
+				std::string baseName = boost::filesystem::path(fileName).filename().string();
+				baseName = baseName.substr(0, baseName.find_last_of('.'));
+
+				auto ivb = bd->Get(baseName.c_str());
+
+				if (ivb)
+				{
+					auto bound = rage::convert<rage::five::phBound*>(ivb);
+
+					dr->SetBound(bound);
+				}
+
+				for (int i = 0; i < wbd->physicalLen + wbd->virtualLen; i++)
+				{
+					delete wbd->blocks[i].data;
+				}
+
+				delete wbd;
+			});
+		}
+		else
+		{
+			AutoConvert<rage::five::gtaDrawable, rage::ny::gtaDrawable>(bm, fileName, 165);
+		}
 	}
 	else if (fileExt == L".wdd")
 	{
 		wprintf(L"converting drawable dictionary %s...\n", path.filename().c_str());
 
-		auto drawable = (rage::ny::pgDictionary<rage::ny::gtaDrawable>*)bm->blocks[0].data;
-		rage::convert<rage::five::pgDictionary<rage::five::gtaDrawable>*>(drawable);
-
-		fileVersion = 165;
+		AutoConvert<rage::five::pgDictionary<rage::five::gtaDrawable>, rage::ny::pgDictionary<rage::ny::gtaDrawable>>(bm, fileName, 165);
 	}
 	else if (fileExt == L".wtd")
 	{
 		wprintf(L"converting txd %s...\n", path.filename().c_str());
 
-		auto txd = (rage::ny::pgDictionary<rage::ny::grcTexturePC>*)bm->blocks[0].data;
-		rage::convert<rage::five::pgDictionary<rage::five::grcTexturePC>*>(txd)->SetBlockMap();
-
-		fileVersion = 13;
+		AutoConvert<rage::five::pgDictionary<rage::five::grcTexturePC>, rage::ny::pgDictionary<rage::ny::grcTexturePC>>(bm, fileName, 13);
 	}
 	else
 	{
@@ -90,32 +195,6 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		return;
 	}
-
-	rage::five::pgStreamManager::EndPacking();
-
-	std::wstring outFileName(fileName);
-	outFileName = outFileName.substr(0, outFileName.length() - 3) + L"y" + fileExt.substr(2);
-
-	FILE* f = _wfopen(outFileName.c_str(), L"wb");
-
-	if (!f)
-	{
-		printf("... couldn't open output file for writing.\n");
-		return;
-	}
-
-	size_t outputSize = 0;
-
-	bm2->Save(fileVersion, [&] (const void* d, size_t s)
-	{
-		fwrite(d, 1, s, f);
-
-		outputSize += s;
-	});
-
-	printf("written successfully - compressed size %d\n", outputSize);
-
-	fclose(f);
 
 	for (int i = 0; i < bm->physicalLen + bm->virtualLen; i++)
 	{
@@ -131,7 +210,8 @@ static void FormatsConvert_HandleArguments(boost::program_options::wcommand_line
 	boost::program_options::options_description desc;
 
 	desc.add_options()
-		("filename", boost::program_options::value<std::vector<boost::filesystem::path>>()->required(), "The path of the file to convert.");
+		("filename", boost::program_options::wvalue<std::vector<boost::filesystem::path>>()->required(), "The path of the file to convert.")
+		("wbd_file", boost::program_options::wvalue<boost::filesystem::path>(), "A .wbn file to use for drawable bounds.");
 
 	boost::program_options::positional_options_description positional;
 	positional.add("filename", -1);
@@ -258,6 +338,15 @@ static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 	{
 		printf("Usage:\n\n   fivem formats:convert filename<1-n>...\n\nCurrently, GTA:NY static bounds (wbn), drawables (wdr) and texture dictionaries (wtd) are supported.\nSee your vendor for details.\n");
 		return;
+	}
+
+	{
+		auto it = map.find("wbd_file");
+
+		if (it != map.end())
+		{
+			g_wbnFile = it->second.as<boost::filesystem::path>();
+		}
 	}
 
 	auto& entries = map["filename"].as<std::vector<boost::filesystem::path>>();

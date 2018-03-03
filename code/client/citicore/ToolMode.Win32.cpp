@@ -59,7 +59,7 @@ extern "C" DLL_EXPORT void ToolMode_Init()
 
 		options.add_options()
 			("command", bpo::value<std::string>(), "The command to run.")
-			("args", bpo::value<std::vector<std::string>>(), "Arguments.");
+			("args", bpo::wvalue<std::vector<std::wstring>>(), "Arguments.");
 
 		bpo::positional_options_description positional;
 		positional.add("command", 1).add("args", -1);

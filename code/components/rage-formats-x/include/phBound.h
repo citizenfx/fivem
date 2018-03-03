@@ -31,10 +31,16 @@ inline void ValidateSizePh()
 enum class phBoundType : uint8_t
 {
 #ifdef RAGE_FORMATS_GAME_FIVE
+	Sphere = 0,
+	Capsule = 1,
+	Box = 3,
 	Geometry = 4,
 	BVH = 8,
 	Composite = 10
 #elif defined(RAGE_FORMATS_GAME_NY)
+	Sphere = 0,
+	Capsule = 1,
+	Box = 3,
 	Geometry = 4,
 	BVH = 10,
 	Composite = 12
@@ -73,6 +79,40 @@ public:
 	}
 };
 
+struct phBoundMaterial1
+{
+	uint8_t materialIdx;
+#ifdef RAGE_FORMATS_GAME_NY
+	uint8_t pad[3];
+#elif defined(RAGE_FORMATS_GAME_FIVE)
+	uint8_t proceduralId;
+
+	// TODO: double-check order
+	uint8_t roomId : 5;
+	uint8_t pedDensity : 3;
+
+	uint8_t unk4F;
+#endif
+};
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+struct phBoundMaterial2
+{
+	uint8_t polyFlags;
+	uint8_t materialColorIdx;
+	uint16_t unknown;
+};
+#endif
+
+struct phBoundMaterial
+{
+	phBoundMaterial1 mat1;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	phBoundMaterial2 mat2;
+#endif
+};
+
 class phBound
 #ifdef RAGE_FORMATS_GAME_FIVE
 	: public pgBase
@@ -107,7 +147,7 @@ private:
 	phVector3 m_centroid;
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-	uint32_t m_unkInt;
+	phBoundMaterial1 m_material;
 #elif defined(RAGE_FORMATS_GAME_NY)
 	phVector3 m_unkVector;
 #endif
@@ -115,7 +155,7 @@ private:
 	phVector3 m_cg; // center of gravity
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-	uint32_t m_unkInt2;
+	phBoundMaterial2 m_material2;
 #endif
 
 	phVector3 m_unkVector2;
@@ -138,8 +178,15 @@ public:
 		m_unkCount = 1;
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-		m_unkInt = 0;
-		m_unkInt2 = 0;
+		m_material.materialIdx = 0;
+		m_material.pedDensity = 0;
+		m_material.proceduralId = 0;
+		m_material.roomId = 0;
+		m_material.unk4F = 0;
+
+		m_material2.materialColorIdx = 0;
+		m_material2.polyFlags = 0;
+		m_material2.unknown = 0;
 
 		m_pad = 0;
 
@@ -205,6 +252,21 @@ public:
 	{
 		m_unkFloat = value;
 	}
+
+	inline phBoundMaterial GetMaterial()
+	{
+		phBoundMaterial mat;
+		mat.mat1 = m_material;
+		mat.mat2 = m_material2;
+
+		return mat;
+	}
+
+	inline void SetMaterial(const phBoundMaterial& material)
+	{
+		m_material = material.mat1;
+		m_material2 = material.mat2;
+	}
 #endif
 
 	inline const phVector3& GetCG() const
@@ -261,6 +323,120 @@ public:
 	{
 		
 	}
+};
+
+class phBoundCapsule : public phBound
+{
+public:
+	inline phBoundCapsule()
+		: phBound()
+	{
+		SetType(phBoundType::Capsule);
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_halfHeight = 0;
+		memset(m_capsulePad, 0, sizeof(m_capsulePad));
+#endif
+	}
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+public:
+	inline float GetHalfHeight()
+	{
+		return m_halfHeight;
+	}
+
+	inline void SetHalfHeight(float halfHeight)
+	{
+		m_halfHeight = halfHeight;
+	}
+
+private:
+	float m_halfHeight;
+	uint32_t m_capsulePad[3];
+#endif
+
+#ifdef RAGE_FORMATS_GAME_NY
+public:
+	inline phBoundMaterial GetMaterial()
+	{
+		phBoundMaterial mat;
+		mat.mat1 = m_material;
+		return mat;
+	}
+
+	inline float GetHeight()
+	{
+		return m_height.x;
+	}
+
+	inline float GetCapsuleRadius()
+	{
+		return m_capsuleRadius.x;
+	}
+
+private:
+	Vector3 m_capsuleRadius;
+	Vector3 m_height;
+	uint8_t m_capsulePad2[48];
+	phBoundMaterial1 m_material;
+	uint8_t m_capsulePad3[12];
+#endif
+};
+
+class phBoundSphere : public phBound
+{
+public:
+	inline phBoundSphere()
+		: phBound()
+	{
+		SetType(phBoundType::Sphere);
+	}
+
+	// no extra members in V
+
+#ifdef RAGE_FORMATS_GAME_NY
+public:
+	inline phBoundMaterial GetMaterial()
+	{
+		phBoundMaterial mat;
+		mat.mat1 = m_material;
+		return mat;
+	}
+
+private:
+	Vector3 m_radius;
+	uint32_t m_spherePad;
+	phBoundMaterial1 m_material;
+	uint32_t m_spherePad2[2];
+#endif
+};
+
+class phBoundBox : public phBound
+{
+public:
+	inline phBoundBox()
+		: phBound()
+	{
+		SetType(phBoundType::Box);
+	}
+
+	// no extra members in V
+
+#ifdef RAGE_FORMATS_GAME_NY
+public:
+	inline phBoundMaterial GetMaterial()
+	{
+		phBoundMaterial mat;
+		mat.mat1 = m_material;
+		return mat;
+	}
+
+private:
+	uint8_t m_boxPad[0x1A0];
+	phBoundMaterial1 m_material;
+	uint8_t m_boxPad2[28];
+#endif
 };
 
 struct phBoundFlagEntry
@@ -698,16 +874,6 @@ public:
 	{
 		return *m_polyEntries;
 	}
-};
-
-struct phBoundMaterial
-{
-	uint8_t materialIdx;
-	uint8_t pad[3];
-
-#ifdef RAGE_FORMATS_GAME_FIVE
-	uint32_t pad2;
-#endif
 };
 
 class phBoundGeometry : public phBoundPolyhedron

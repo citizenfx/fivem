@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include <rmcDrawable.h>
+#include <phBound.h>
 //#include <grcTexture.h>
 
 #define RAGE_FORMATS_FILE gtaDrawable
@@ -46,7 +47,7 @@ private:
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	pgPtr<void> m_unk1;
-	pgPtr<void> m_unk2;
+	pgPtr<phBound> m_bound;
 #endif
 
 public:
@@ -60,7 +61,12 @@ public:
 		m_name.Resolve(blockMap);
 
 		m_unk1.Resolve(blockMap);
-		m_unk2.Resolve(blockMap);
+		m_bound.Resolve(blockMap);
+
+		if (!m_bound.IsNull())
+		{
+			m_bound->Resolve(blockMap);
+		}
 #endif
 	}
 
@@ -68,6 +74,11 @@ public:
 	inline void SetName(const char* name)
 	{
 		m_name = pgStreamManager::StringDup(name);
+	}
+
+	inline void SetBound(phBound* bound)
+	{
+		m_bound = bound;
 	}
 #endif
 };

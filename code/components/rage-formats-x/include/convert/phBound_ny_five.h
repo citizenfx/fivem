@@ -279,7 +279,7 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 	}
 }
 
-static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeometry* in)
+static inline uint8_t ConvertMaterialIndex(uint8_t index)
 {
 	static std::map<int, int> conversionMap;
 
@@ -445,6 +445,11 @@ static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeom
 	}
 #pragma endregion
 
+	return conversionMap[index];
+}
+
+static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeometry* in)
+{
 	uint32_t materialColors[] = { 0x208DFFFF };
 
 	out->SetMaterialColors(1, materialColors);
@@ -454,8 +459,8 @@ static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeom
 	
 	for (int i = 0; i < materials.size(); i++)
 	{
-		materials[i].materialIdx = conversionMap[inMaterials[i].materialIdx];
-		materials[i].pad2 = 0x100;
+		materials[i].mat1.materialIdx = ConvertMaterialIndex(inMaterials[i].mat1.materialIdx);
+		materials[i].mat2.materialColorIdx = 0x1;
 	}
 
 	out->SetMaterials(materials.size(), &materials[0]);
@@ -485,12 +490,62 @@ five::phBoundBVH* convert(ny::phBoundBVH* bound)
 	return out;
 }
 
+template<>
+five::phBoundSphere* convert(ny::phBoundSphere* bound)
+{
+	auto out = new(false) five::phBoundSphere;
+
+	fillBaseBound(out, bound);
+	
+	rage::five::phBoundMaterial material = { 0 };
+	material.mat1.materialIdx = ConvertMaterialIndex(bound->GetMaterial().mat1.materialIdx);
+	out->SetMaterial(material);
+
+	return out;
+}
+
+template<>
+five::phBoundBox* convert(ny::phBoundBox* bound)
+{
+	auto out = new(false) five::phBoundBox;
+
+	fillBaseBound(out, bound);
+
+	rage::five::phBoundMaterial material = { 0 };
+	material.mat1.materialIdx = ConvertMaterialIndex(bound->GetMaterial().mat1.materialIdx);
+	out->SetMaterial(material);
+
+	return out;
+}
+
+template<>
+five::phBoundCapsule* convert(ny::phBoundCapsule* bound)
+{
+	auto out = new(false) five::phBoundCapsule;
+
+	fillBaseBound(out, bound);
+
+	rage::five::phBoundMaterial material = { 0 };
+	material.mat1.materialIdx = ConvertMaterialIndex(bound->GetMaterial().mat1.materialIdx);
+	out->SetMaterial(material);
+
+	out->SetHalfHeight(bound->GetHeight() / 2.0f);
+
+	// V stores capsule radius in margin
+	out->SetMargin(bound->GetCapsuleRadius());
+
+	return out;
+}
+
 static five::phBound* convertBoundToFive(ny::phBound* bound)
 {
 	switch (bound->GetType())
 	{
 		//case ny::phBoundType::BVH:
 		//	return convert<five::phBoundBVH*>(static_cast<ny::phBoundBVH*>(bound));
+
+		case ny::phBoundType::Sphere:
+			return convert<five::phBoundSphere*>(static_cast<ny::phBoundSphere*>(bound));
 
 		case ny::phBoundType::Composite:
 			return convert<five::phBoundComposite*>(static_cast<ny::phBoundComposite*>(bound));
@@ -500,6 +555,12 @@ static five::phBound* convertBoundToFive(ny::phBound* bound)
 
 		case ny::phBoundType::BVH:
 			return convert<five::phBoundBVH*>(static_cast<ny::phBoundBVH*>(bound));
+
+		case ny::phBoundType::Box:
+			return convert<five::phBoundBox*>(static_cast<ny::phBoundBox*>(bound));
+
+		case ny::phBoundType::Capsule:
+			return convert<five::phBoundCapsule*>(static_cast<ny::phBoundCapsule*>(bound));
 	}
 
 	return nullptr;
@@ -509,5 +570,26 @@ template<>
 five::phBound* convert(ny::phBound* bound)
 {
 	return convertBoundToFive(bound);
+}
+
+template<>
+five::pgDictionary<five::phBound>* convert(ny::pgDictionary<ny::phBound>* phd)
+{
+	five::pgDictionary<five::phBound>* out = new(false) five::pgDictionary<five::phBound>();
+	out->SetBlockMap();
+
+	five::pgDictionary<five::phBound> newDrawables;
+
+	if (phd->GetCount())
+	{
+		for (auto& bound : *phd)
+		{
+			newDrawables.Add(bound.first, convert<five::phBound*>(bound.second));
+		}
+	}
+
+	out->SetFrom(&newDrawables);
+
+	return out;
 }
 }
