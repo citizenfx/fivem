@@ -1,7 +1,7 @@
 .buildscript: &build_windows
   stage: build
   script:
-    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontUpload $true"
+    - ".\\code\\tools\\ci\\build.ps1 -DontUpload $true"
 
 build_client:
   <<: *build_windows
