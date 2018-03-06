@@ -68,7 +68,7 @@ deploy_specific:
   dependencies:
     - build_client
   script:
-    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: specific/$CI_BUILD_REF_NAME
   only:
@@ -86,7 +86,7 @@ deploy_canary:
   dependencies:
     - build_client
   script:
-    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: canary
   tags:
@@ -100,7 +100,7 @@ deploy_prod:
   dependencies:
     - build_client
   script:
-    - "powershell -ExecutionPolicy Unrestricted code\\tools\\ci\\build.ps1 -DontBuild $true"
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: production
   when: manual
