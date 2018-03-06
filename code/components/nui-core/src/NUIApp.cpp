@@ -58,6 +58,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("disable-direct-composition");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	command_line->AppendSwitch("disable-gpu-vsync");
+	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 
 	if (IsWindows10OrGreater())
 	{
