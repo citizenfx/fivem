@@ -17,12 +17,6 @@
 
 #include "memdbgon.h"
 
-namespace egl
-{
-	unsigned int DLL_IMPORT SetAccelerationHandlers(void(*swap_handler)(void*), void(*post_handler)(void*, int, int, int, int), void* data);
-	unsigned int DLL_IMPORT GetMainWindowSharedHandle(HANDLE* shared_handle);
-}
-
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr)
 {
@@ -112,14 +106,17 @@ CefBrowser* NUIWindow::GetBrowser()
 
 static HANDLE g_resetEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
-void NUIWindow::UpdateSharedResource(int x, int y, int width, int height)
+void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects)
 {
+	WaitForSingleObject(g_resetEvent, INFINITE);
+
 	static bool createdClient;
 
 	static HANDLE lastParentHandle;
 
-	HANDLE parentHandle;
-	if (egl::GetMainWindowSharedHandle(&parentHandle))
+	HANDLE parentHandle = (void*)sharedHandle;
+	m_syncKey = syncKey;
+	
 	{
 		if (lastParentHandle != parentHandle)
 		{
@@ -154,18 +151,27 @@ void NUIWindow::UpdateSharedResource(int x, int y, int width, int height)
 		}
 	}
 
-	RECT newRect;
-	newRect.left = x;
-	newRect.right = x + width;
-	newRect.top = GetHeight() - y - height;
-	newRect.bottom = GetHeight() - y;
+	for (auto& rect : rects)
+	{
+		int x = rect.x;
+		int y = rect.y;
+		int width = rect.width;
+		int height = rect.height;
 
-	RECT oldRect = m_lastDirtyRect;
+		RECT newRect;
+		newRect.left = x;
+		newRect.right = x + width;
+		newRect.top = GetHeight() - y - height;
+		newRect.bottom = GetHeight() - y;
+		//newRect.top = y;
+		//newRect.bottom = y + height;
+		
+		RECT oldRect = m_lastDirtyRect;
 
-	UnionRect(&m_lastDirtyRect, &newRect, &oldRect);
+		UnionRect(&m_lastDirtyRect, &newRect, &oldRect);
+	}
 
 	MarkRenderBufferDirty();
-	WaitForSingleObject(g_resetEvent, INFINITE);
 }
 
 void NUIWindow::UpdateFrame()
@@ -219,13 +225,7 @@ void NUIWindow::UpdateFrame()
 	{
 		static NUIWindow* window = this;
 
-		egl::SetAccelerationHandlers([](void*)
-		{
-			window->UpdateSharedResource(0, window->GetHeight(), window->GetWidth(), window->GetHeight());
-		}, [](void*, int x, int y, int width, int height)
-		{
-			window->UpdateSharedResource(x, y, width, height);
-		}, nullptr);
+		SetEvent(g_resetEvent);
 	});
 
 	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
@@ -241,9 +241,16 @@ void NUIWindow::UpdateFrame()
 			FatalError(__FUNCTION__ ": ID3D11Texture2D::QueryInterface(IDXGIKeyedMutex) failed - your GPU driver likely does not support Direct3D shared resources correctly. Please update to the latest version of Windows and your GPU driver to resolve this problem.");
 		}
 
-		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
+		//
+		// dirty flag checking and CopySubresourceRegion are disabled here due to some issue
+		// with scheduling frame copies from the OnAcceleratedPaint handler.
+		//
+		// this'll use a bunch of additional GPU memory bandwidth, but this should not be an
+		// issue on any modern GPU.
+		//
+		//if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		{
-			HRESULT hr = keyedMutex->AcquireSync(1, 0);
+			HRESULT hr = keyedMutex->AcquireSync(m_syncKey, 0);
 
 			if (hr == S_OK)
 			{
@@ -261,19 +268,20 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					deviceContext->CopySubresourceRegion(m_nuiTexture->texture, 0, m_lastDirtyRect.left, m_lastDirtyRect.top, 0, texture, 0, &box);
+					//deviceContext->CopySubresourceRegion(m_nuiTexture->texture, 0, m_lastDirtyRect.left, m_lastDirtyRect.top, 0, texture, 0, &box);
+					deviceContext->CopyResource(m_nuiTexture->texture, texture);
 
 					memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 				}
 
-				keyedMutex->ReleaseSync(0);
+				SetEvent(g_resetEvent);
+
+				keyedMutex->ReleaseSync(m_syncKey);
 			}
 			else
 			{
 				MarkRenderBufferDirty();
 			}
-
-			SetEvent(g_resetEvent);
 		}
 		
 		keyedMutex->Release();

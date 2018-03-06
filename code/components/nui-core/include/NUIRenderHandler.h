@@ -34,6 +34,10 @@ protected:
 
 	virtual void OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds) override;
 
+	virtual bool CanUseAcceleratedPaint(CefRefPtr<CefBrowser> browser) override;
+
+	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, uint64 sync_key) override;
+
 private:
 	void PaintView(const RectList& dirtyRects, const void* buffer, int width, int height);
 

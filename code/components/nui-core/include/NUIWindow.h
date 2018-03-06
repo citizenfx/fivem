@@ -57,6 +57,8 @@ private:
 
 	NUIPaintType m_paintType;
 
+	uint64_t m_syncKey;
+
 public:
 	inline int		GetWidth() { return m_width; }
 	inline int		GetHeight() { return m_height; }
@@ -85,7 +87,7 @@ public:
 
 	void SignalPoll(std::string& argument);
 
-	void UpdateSharedResource(int x, int y, int width, int height);
+	void UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects);
 
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{

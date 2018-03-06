@@ -50,19 +50,17 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
-	command_line->AppendSwitch("in-process-gpu");
 	command_line->AppendSwitch("enable-media-stream");
 	command_line->AppendSwitch("use-fake-ui-for-media-stream");
 	command_line->AppendSwitch("enable-speech-input");
 	command_line->AppendSwitch("ignore-gpu-blacklist");
 	command_line->AppendSwitch("enable-usermedia-screen-capture");
+	command_line->AppendSwitch("disable-direct-composition");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
+	command_line->AppendSwitch("disable-gpu-vsync");
 
 	if (IsWindows10OrGreater())
 	{
-		// this is broken pending https://crbug.com/480361
-		// (WasResized breaks internal ANGLE/cc state, causing Alt-Enter to 'break' NUI)
-		//command_line->AppendSwitch("disable-gpu-vsync");
 		command_line->AppendSwitch("force-gpu-rasterization");
 	}
 }

@@ -80,7 +80,7 @@ protected:
 
 // CefDisplayHandler
 protected:
-	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString& message, const CefString& source, int line) override;
+	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
 
 // CefRequestHandler
 protected:

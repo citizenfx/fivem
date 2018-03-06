@@ -95,7 +95,7 @@ void NUIClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<Cef
 	model->Clear();
 }
 
-bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString& message, const CefString& source, int line)
+bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line)
 {
 	std::wstring sourceStr = source.ToWString();
 	std::wstring messageStr = message.ToWString();
