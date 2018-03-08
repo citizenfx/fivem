@@ -52,8 +52,8 @@ FORMATS_EXPORT rage::ny::BlockMap* UnwrapRSC5(const wchar_t* fileName)
 	{
 		printf("not actually a supported file...\n");
 
-		fclose(f);
-		return nullptr;
+		//fclose(f);
+		//return nullptr;
 	}
 
 	uint32_t flags;

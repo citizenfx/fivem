@@ -16,12 +16,14 @@
 #define RAGE_FORMATS_GAME_NY
 #include <gtaDrawable.h>
 #include <phBound.h>
+#include <fragType.h>
 
 #undef RAGE_FORMATS_GAME_NY
 #define RAGE_FORMATS_GAME five
 #define RAGE_FORMATS_GAME_FIVE
 #include <gtaDrawable.h>
 #include <phBound.h>
+#include <fragType.h>
 
 #include <convert/gtaDrawable_ny_five.h>
 #include <convert/phBound_ny_five.h>
@@ -93,6 +95,11 @@ static void ConvertBoundDict(rage::ny::pgDictionary<rage::ny::phBound>* dictiona
 {
 	std::wstring dirName = boost::filesystem::path(fileName).parent_path().wstring();
 
+	if (!dirName.empty())
+	{
+		dirName += L"\\";
+	}
+
 	if (dictionary->GetCount())
 	{
 		for (auto& bound : *dictionary)
@@ -102,7 +109,7 @@ static void ConvertBoundDict(rage::ny::pgDictionary<rage::ny::phBound>* dictiona
 			OutputFile([&]()
 			{
 				rage::convert<rage::five::phBoundComposite*>(bound.second);
-			}, 43, fmt::sprintf(L"%s\\0x%08x.ybn", dirName, hash));
+			}, 43, fmt::sprintf(L"%s0x%08x.ybn", dirName, hash));
 		}
 	}
 }
@@ -138,6 +145,12 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		ConvertBoundDict((rage::ny::pgDictionary<rage::ny::phBound>*)bm->blocks[0].data, fileName);
 		//AutoConvert<rage::five::pgDictionary<rage::five::phBound>, rage::ny::pgDictionary<rage::ny::phBound>>(bm, fileName, 43);
+	}
+	else if (fileExt == L".wft")
+	{
+		wprintf(L"converting fragment type %s...\n", path.filename().c_str());
+
+		AutoConvert<rage::five::fragType, rage::ny::fragType>(bm, fileName, 162);
 	}
 	else if (fileExt == L".wdr")
 	{
@@ -339,6 +352,8 @@ static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 		printf("Usage:\n\n   fivem formats:convert filename<1-n>...\n\nCurrently, GTA:NY static bounds (wbn), drawables (wdr) and texture dictionaries (wtd) are supported.\nSee your vendor for details.\n");
 		return;
 	}
+
+	static_assert(sizeof(rage::five::CLightAttr) == 0xA8, "lightattr size");
 
 	{
 		auto it = map.find("wbd_file");

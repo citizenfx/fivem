@@ -11,6 +11,8 @@
 
 #include <Error.h>
 
+#include <ShaderInfo.h>
+
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
 #include <gtaDrawable.h>
@@ -33,7 +35,7 @@ inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 
 	if (strstr(oldSps, "gta_wire"))
 	{
-		return "default.sps";
+		return "cable.sps";
 	}
 
 	if (strstr(oldSps, "gta_"))
@@ -53,7 +55,7 @@ inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 
 	if (strstr(oldSps, "gta_wire"))
 	{
-		return "default";
+		return "cable";
 	}
 
 	if (strstr(oldSps, "gta_"))
@@ -129,6 +131,8 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 		int rescount = 0;
 
+		auto shaderFile = fxc::ShaderFile::Load(MakeRelativeCitPath(va(L"citizen\\shaders\\win32_40_final\\%s.fxc", ToWide(newShaderName))));
+
 		for (int j = 0; j < oldEffect.GetParameterCount(); j++)
 		{
 			auto hash = oldEffect.GetParameterNameHash(j);
@@ -140,11 +144,11 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			if (hash == 0x2B5170FD) // TextureSampler
 			{
 				newSamplerName = HashString("DiffuseSampler");
-			}
-			else if (hash == 0xF6712B81)
-			{
-				newValueName = HashString("bumpiness"); // as, well, it's bumpiness?
-				newValueSize = 4 * sizeof(float);
+
+				if (newSpsName.find("cable") != std::string::npos)
+				{
+					newSamplerName = HashString("TextureSamp");
+				}
 			}
 
 			if (!newSamplerName)
@@ -156,6 +160,25 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 					if (newParam->IsSampler())
 					{
 						newSamplerName = hash;
+					}
+				}
+			}
+
+			if (!newSamplerName && !newValueName)
+			{
+				auto newParam = newShader->GetParameter(hash);
+
+				if (newParam && !newParam->IsSampler())
+				{
+					for (auto& parameter : shaderFile->GetLocalParameters())
+					{
+						if (HashString(parameter.first.c_str()) == hash)
+						{
+							newValueName = hash;
+							newValueSize = parameter.second->GetDefaultValue().size();
+
+							break;
+						}
 					}
 				}
 			}
@@ -194,6 +217,15 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			else if (newValueName)
 			{
 				newShader->SetParameter(newValueName, oldEffect.GetParameterValue(j), newValueSize);
+			}
+			else if (hash == HashString("specularFactor"))
+			{
+				float multiplier[4];
+				memcpy(multiplier, oldEffect.GetParameterValue(j), sizeof(multiplier));
+
+				multiplier[0] /= 100.0f;
+
+				newShader->SetParameter("specularIntensityMult", &multiplier, sizeof(multiplier));
 			}
 		}
 
@@ -338,7 +370,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 	lodGroup.SetBounds(
 		minBounds,
 		maxBounds,
-		oldLodGroup.GetCenter(), oldLodGroup.GetRadius() * 2
+		oldLodGroup.GetCenter(), oldLodGroup.GetRadius()// * 2
 	);
 	//lodGroup.SetBounds(Vector3(-66.6f, -66.6f, -10.0f), Vector3(66.6f, 66.6f, 10.0f), Vector3(0.0f, 0.0f, 0.0f), 94.8f);
 
@@ -362,7 +394,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 					for (int i = 0; i < geometryBounds.size(); i++)
 					{
-						oldBounds[i].w *= 2;
+						//oldBounds[i].w *= 2;
 
 						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
 						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
@@ -376,6 +408,69 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 	out->SetPrimaryModel();
 	out->SetName("lovely.#dr");
+
+	if (drawable->GetNumLightAttrs())
+	{
+		std::vector<five::CLightAttr> lightAttrs(drawable->GetNumLightAttrs());
+
+		for (int i = 0; i < lightAttrs.size(); i++)
+		{
+			ny::CLightAttr& inAttr = *drawable->GetLightAttr(i);
+			five::CLightAttr& outAttr = lightAttrs[i];
+
+			outAttr.position[0] = inAttr.position[0];
+			outAttr.position[1] = inAttr.position[1];
+			outAttr.position[2] = inAttr.position[2];
+			outAttr.color[0] = inAttr.color[0];
+			outAttr.color[1] = inAttr.color[1];
+			outAttr.color[2] = inAttr.color[2];
+			outAttr.flashiness = inAttr.flashiness;
+			outAttr.intensity = inAttr.lightIntensity;
+			outAttr.flags = inAttr.flags;
+			outAttr.boneID = inAttr.boneID;
+			outAttr.lightType = inAttr.lightType;
+			outAttr.groupID = 0;
+			outAttr.timeFlags = 0;
+			outAttr.falloff = inAttr.lightFalloff;
+			outAttr.falloffExponent = 64.f;
+			outAttr.cullingPlane = { 0.0f, 0.0f, 1.0f, 200.0f };
+			outAttr.shadowBlur = 0;
+			outAttr.unk1 = 0;
+			outAttr.unk2 = 0;
+			outAttr.unk3 = 0;
+			outAttr.volumeIntensity = inAttr.volumeIntensity;
+			outAttr.volumeSizeScale = inAttr.volumeSize;
+			outAttr.volumeOuterColor[0] = inAttr.color[0];
+			outAttr.volumeOuterColor[1] = inAttr.color[1];
+			outAttr.volumeOuterColor[2] = inAttr.color[2];
+			outAttr.lightHash = inAttr.lumHash & 0xFF; // ?
+			outAttr.volumeOuterIntensity = inAttr.volumeIntensity;
+			outAttr.coronaSize = inAttr.coronaSize;
+			outAttr.volumeOuterExponent = 64.f;
+			outAttr.lightFadeDistance = inAttr.lightFadeDistance;
+			outAttr.shadowFadeDistance = inAttr.shadowFadeDistance;
+			outAttr.specularFadeDistance = 0.0f;
+			outAttr.volumetricFadeDistance = 0.0f;
+			outAttr.shadowNearClip = 0.01f;
+			outAttr.coronaIntensity = 0.2f;
+			outAttr.coronaZBias = 0.1f;
+			outAttr.direction[0] = inAttr.direction[0];
+			outAttr.direction[1] = inAttr.direction[1];
+			outAttr.direction[2] = inAttr.direction[2];
+			outAttr.tangent[0] = inAttr.tangent[0];
+			outAttr.tangent[1] = inAttr.tangent[1];
+			outAttr.tangent[2] = inAttr.tangent[2];
+			outAttr.coneInnerAngle = 5.f;
+			outAttr.coneOuterAngle = 60.f;
+			outAttr.extents[0] = 1.f;
+			outAttr.extents[1] = 1.f;
+			outAttr.extents[2] = 1.f;
+			outAttr.projectedTextureHash = 0;
+			outAttr.unk4 = 0;
+		}
+
+		out->SetLightAttrs(&lightAttrs[0], lightAttrs.size());
+	}
 
 	return out;
 }
@@ -399,5 +494,13 @@ five::pgDictionary<five::gtaDrawable>* convert(ny::pgDictionary<ny::gtaDrawable>
 	out->SetFrom(&newDrawables);
 
 	return out;
+}
+
+template<>
+five::fragType* convert(ny::fragType* frag)
+{
+	__debugbreak();
+
+	return nullptr;
 }
 }
