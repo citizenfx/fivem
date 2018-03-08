@@ -6,6 +6,7 @@
  */
 
 #include <stdint.h>
+#include <vector>
 
 #include <pgBase.h>
 #include <pgContainers.h>
@@ -83,7 +84,9 @@ struct phBoundMaterial1
 {
 	uint8_t materialIdx;
 #ifdef RAGE_FORMATS_GAME_NY
-	uint8_t pad[3];
+	uint8_t pad;
+	uint16_t roomId : 5;
+	uint16_t unk : 11;
 #elif defined(RAGE_FORMATS_GAME_FIVE)
 	uint8_t proceduralId;
 
@@ -445,12 +448,12 @@ struct phBoundFlagEntry
 	uint32_t m_4; // defaults to -1 during import, though other values are also seen
 };
 
-struct phBVHNode
+struct phBVHNode : public pgStreamableBase
 {
-	uint16_t m_quantizedAabbMin[3];
-	uint16_t m_quantizedAabbMax[3];
+	int16_t m_quantizedAabbMin[3];
+	int16_t m_quantizedAabbMax[3];
 
-	uint16_t m_start; // if leaf, the start in phBoundPolyhedron poly array; if node, the amount of child nodes, including this node
+	uint16_t m_escapeIndexOrTriangleIndex; // if leaf, the start in phBoundPolyhedron poly array; if node, the amount of child nodes, including this node
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	uint16_t m_count; // 0 if node, >=1 if leaf
@@ -460,24 +463,38 @@ struct phBVHNode
 #endif
 };
 
-struct phBVHSubTree
+struct phBVHSubTree : public pgStreamableBase
 {
-	uint16_t m_quantizedAabbMin[3];
-	uint16_t m_quantizedAabbMax[3];
+	int16_t m_quantizedAabbMin[3];
+	int16_t m_quantizedAabbMax[3];
 
 	uint16_t m_firstNode;
 	uint16_t m_lastNode;
 };
 
-class phBVH
+inline float fclamp(float val, float min, float max)
+{
+	if (val < min)
+	{
+		val = min;
+	}
+	else if (val > max)
+	{
+		val = max;
+	}
+
+	return val;
+}
+
+class phBVH : public pgStreamableBase
 {
 private:
 	pgArray<phBVHNode, uint32_t> m_nodes;
 
+	uint32_t m_depth;
+
 #ifdef RAGE_FORMATS_GAME_FIVE
-	uint32_t m_pad[4];
-#elif defined(RAGE_FORMATS_GAME_NY)
-	uint32_t m_pad;
+	uint32_t m_pad[3];
 #endif
 
 	Vector3 m_aabbMin;
@@ -493,6 +510,76 @@ private:
 	pgArray<phBVHSubTree> m_subTrees;
 
 public:
+	inline phBVH()
+	{
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_depth = 0;
+		m_pad[0] = 0;
+
+		m_aabbMin = { FLT_MIN, FLT_MIN, FLT_MIN };
+		m_aabbMax = { FLT_MAX, FLT_MAX, FLT_MAX };
+		m_center = { 0.0f, 0.0f, 0.0f };
+#endif
+	}
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline void SetBVH(uint32_t numNodes, phBVHNode* nodes, uint32_t numSubTrees, phBVHSubTree* subTrees)
+	{
+		m_nodes.SetFrom(nodes, numNodes);
+		m_subTrees.SetFrom(subTrees, numSubTrees);
+	}
+#endif
+
+	inline void SetAABB(const Vector3& aabbMin, const Vector3& aabbMax)
+	{
+		m_aabbMin = aabbMin;
+		m_aabbMax = aabbMax;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+		m_center = { (aabbMax.x + aabbMin.x) / 2.0f, (aabbMax.y + aabbMin.y) / 2.0f, (aabbMax.z + aabbMin.z) / 2.0f };
+#endif
+
+		Vector3 size = { aabbMax.x - aabbMin.x, aabbMax.y - aabbMin.y, aabbMax.z - aabbMin.z };
+		m_divisor = { 65534.0f / size.x, 65534.0f / size.y, 65534.0f / size.z };
+		m_scale = { 1.0f / m_divisor.x, 1.0f / m_divisor.y, 1.0f / m_divisor.z };
+	}
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+	inline Vector3 Quantize(const Vector3& pos)
+	{
+		return
+		{
+			fclamp((pos.x - m_center.x) * m_divisor.x, -32768.0f, 32767.0f),
+			fclamp((pos.y - m_center.y) * m_divisor.y, -32768.0f, 32767.0f),
+			fclamp((pos.z - m_center.z) * m_divisor.z, -32768.0f, 32767.0f)
+		};
+	}
+
+	inline void QuantizePolyMin(const Vector3& aabbMin, int16_t* outQuantized)
+	{
+		auto quantized = Quantize(aabbMin);
+		outQuantized[0] = static_cast<int16_t>(floorf(quantized.x));
+		outQuantized[1] = static_cast<int16_t>(floorf(quantized.y));
+		outQuantized[2] = static_cast<int16_t>(floorf(quantized.z));
+	}
+
+	inline void QuantizePolyMax(const Vector3& aabbMax, int16_t* outQuantized)
+	{
+		auto quantized = Quantize(aabbMax);
+		outQuantized[0] = static_cast<int16_t>(ceilf(quantized.x));
+		outQuantized[1] = static_cast<int16_t>(ceilf(quantized.y));
+		outQuantized[2] = static_cast<int16_t>(ceilf(quantized.z));
+	}
+
+	inline void QuantizePolyCenter(const Vector3& center, int16_t* outQuantized)
+	{
+		auto quantized = Quantize(center);
+		outQuantized[0] = static_cast<int16_t>(quantized.x + ((quantized.x < 0.0f) ? -0.5f : 0.5f));
+		outQuantized[1] = static_cast<int16_t>(quantized.y + ((quantized.y < 0.0f) ? -0.5f : 0.5f));
+		outQuantized[2] = static_cast<int16_t>(quantized.z + ((quantized.z < 0.0f) ? -0.5f : 0.5f));
+	}
+#endif
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_nodes.Resolve(blockMap);
@@ -1027,7 +1114,360 @@ public:
 	{
 		return *m_bvh;
 	}
+
+	inline void SetBVH(phBVH* bvh)
+	{
+		m_bvh = bvh;
+	}
 };
+
+// not a game struct
+struct phBVHPolyBounds
+{
+	int16_t min[3];
+	int16_t center[3];
+	int16_t max[3];
+	uint16_t idx;
+};
+
+#ifdef RAGE_FORMATS_GAME_FIVE
+struct phBVHBuildState
+{
+	std::vector<phBVHNode> nodes;
+	std::vector<phBVHSubTree> subTrees;
+
+	int curNodeIndex;
+	int subTreeCount;
+};
+
+inline void ComputeBVHInternal(phBVHBuildState& state, std::vector<phBVHPolyBounds>& polys, size_t start, size_t count, int maxPerNode, int axis)
+{
+	size_t end = start + count;
+
+	auto swapLeafNodes = [&](int i, int splitIndex)
+	{
+		std::swap(polys[i], polys[splitIndex]);
+	};
+
+	auto getAabbMin = [&](int p)
+	{
+		return Vector3{ polys[p].min[0] / 256.0f, polys[p].min[1] / 256.0f,polys[p].min[2] / 256.0f };
+	};
+
+	auto getAabbMax = [&](int p)
+	{
+		return Vector3{ polys[p].max[0] / 256.0f, polys[p].max[1] / 256.0f,polys[p].max[2] / 256.0f };
+	};
+
+	auto mergeInternalNodeAabb = [&](int n, const Vector3& min, const Vector3& max)
+	{
+		state.nodes[n].m_quantizedAabbMin[0] = std::min(state.nodes[n].m_quantizedAabbMin[0], static_cast<int16_t>(min.x * 256.0f));
+		state.nodes[n].m_quantizedAabbMin[1] = std::min(state.nodes[n].m_quantizedAabbMin[1], static_cast<int16_t>(min.y * 256.0f));
+		state.nodes[n].m_quantizedAabbMin[2] = std::min(state.nodes[n].m_quantizedAabbMin[2], static_cast<int16_t>(min.z * 256.0f));
+
+		state.nodes[n].m_quantizedAabbMax[0] = std::max(state.nodes[n].m_quantizedAabbMax[0], static_cast<int16_t>(max.x * 256.0f));
+		state.nodes[n].m_quantizedAabbMax[1] = std::max(state.nodes[n].m_quantizedAabbMax[1], static_cast<int16_t>(max.y * 256.0f));
+		state.nodes[n].m_quantizedAabbMax[2] = std::max(state.nodes[n].m_quantizedAabbMax[2], static_cast<int16_t>(max.z * 256.0f));
+	};
+
+	// deeper
+	if (count > 1) // other values not supported yet!
+	{
+		// calculate the splitting axis
+		int axis;
+
+		{
+			int i;
+
+			Vector3 means(0., 0., 0.);
+			Vector3 variance(0., 0., 0.);
+			
+			auto startIndex = start;
+			auto endIndex = start + count;
+
+			for (i = startIndex; i < endIndex; i++)
+			{
+				Vector3 center{polys[i].center[0] / 256.0f, polys[i].center[1] / 256.0f, polys[i].center[2] / 256.0f };
+				means += center;
+			}
+			means *= (1. / count);
+
+			for (i = startIndex; i < endIndex; i++)
+			{
+				Vector3 center{ polys[i].center[0] / 256.0f, polys[i].center[1] / 256.0f, polys[i].center[2] / 256.0f };
+				Vector3 diff2 = center - means;
+				diff2 = diff2 * diff2;
+				variance += diff2;
+			}
+			variance *= (1.f / (count - 1));
+
+			axis = variance.MaxAxis();
+		}
+
+		// calculate the split index
+		int splitIndex;
+
+		{
+			int i;
+			splitIndex = start;
+			int numIndices = count;
+			float splitValue;
+
+			Vector3 means(0.0f, 0.0f, 0.0f);
+			for (i = start; i < start + count; i++)
+			{
+				Vector3 center{ polys[i].center[0] / 256.0f, polys[i].center[1] / 256.0f, polys[i].center[2] / 256.0f };
+				means += center;
+			}
+			means *= (1.f / numIndices);
+
+			splitValue = means[axis];
+
+			//sort leafNodes so all values larger then splitValue comes first, and smaller values start from 'splitIndex'.
+			for (i = start; i < start + count; i++)
+			{
+				Vector3 center{ polys[i].center[0] / 256.0f, polys[i].center[1] / 256.0f, polys[i].center[2] / 256.0f };
+				if (center[axis] > splitValue)
+				{
+					//swap
+					swapLeafNodes(i, splitIndex);
+					splitIndex++;
+				}
+			}
+
+			//if the splitIndex causes unbalanced trees, fix this by using the center in between startIndex and endIndex
+			//otherwise the tree-building might fail due to stack-overflows in certain cases.
+			//unbalanced1 is unsafe: it can cause stack overflows
+			//bool unbalanced1 = ((splitIndex==startIndex) || (splitIndex == (endIndex-1)));
+
+			//unbalanced2 should work too: always use center (perfect balanced trees)	
+			//bool unbalanced2 = true;
+
+			//this should be safe too:
+			int rangeBalancedIndices = numIndices / 3;
+			bool unbalanced = ((splitIndex <= (start + rangeBalancedIndices)) || (splitIndex >= ((start + count) - 1 - rangeBalancedIndices)));
+
+			if (unbalanced)
+			{
+				splitIndex = start + (numIndices >> 1);
+			}
+
+			bool unbal = (splitIndex == start) || (splitIndex == (start + count));
+			(void)unbal;
+			assert(!unbal);
+
+		}
+
+		int internalNodeIndex = state.curNodeIndex;
+
+		for (int i = start; i < start + count; i++)
+		{
+			mergeInternalNodeAabb(internalNodeIndex, getAabbMin(i), getAabbMax(i));
+		}
+
+		state.curNodeIndex++;
+
+		int leftChildNodeIndex = state.curNodeIndex;
+		ComputeBVHInternal(state, polys, start, splitIndex - start, maxPerNode, axis);
+
+		int rightChildNodeIndex = state.curNodeIndex;
+		ComputeBVHInternal(state, polys, splitIndex, end - splitIndex, maxPerNode, axis);
+
+		int escapeIndex = state.curNodeIndex - internalNodeIndex;
+
+		if ((sizeof(phBVHNode) * escapeIndex) > 2048)
+		{
+			phBVHNode& leftChildNode = state.nodes[leftChildNodeIndex];
+			int leftSubTreeSize = leftChildNode.m_count > 0 ? 1 : leftChildNode.m_escapeIndexOrTriangleIndex;
+			int leftSubTreeSizeInBytes = leftSubTreeSize * static_cast<int>(sizeof(phBVHNode));
+
+			phBVHNode& rightChildNode = state.nodes[rightChildNodeIndex];
+			int rightSubTreeSize = rightChildNode.m_count > 0 ? 1 : rightChildNode.m_escapeIndexOrTriangleIndex;
+			int rightSubTreeSizeInBytes = rightSubTreeSize * static_cast<int>(sizeof(phBVHNode));
+
+			if (leftSubTreeSizeInBytes <= 2048)
+			{
+				auto& subtree = state.subTrees[state.subTreeCount];
+				subtree.m_quantizedAabbMin[0] = leftChildNode.m_quantizedAabbMin[0];
+				subtree.m_quantizedAabbMin[1] = leftChildNode.m_quantizedAabbMin[1];
+				subtree.m_quantizedAabbMin[2] = leftChildNode.m_quantizedAabbMin[2];
+
+				subtree.m_quantizedAabbMax[0] = leftChildNode.m_quantizedAabbMax[0];
+				subtree.m_quantizedAabbMax[1] = leftChildNode.m_quantizedAabbMax[1];
+				subtree.m_quantizedAabbMax[2] = leftChildNode.m_quantizedAabbMax[2];
+				subtree.m_firstNode = leftChildNodeIndex;
+				subtree.m_lastNode = leftChildNodeIndex + leftSubTreeSize;
+
+				state.subTreeCount++;
+			}
+
+			if (rightSubTreeSizeInBytes <= 2048)
+			{
+				auto& subtree = state.subTrees[state.subTreeCount];
+				subtree.m_quantizedAabbMin[0] = rightChildNode.m_quantizedAabbMin[0];
+				subtree.m_quantizedAabbMin[1] = rightChildNode.m_quantizedAabbMin[1];
+				subtree.m_quantizedAabbMin[2] = rightChildNode.m_quantizedAabbMin[2];
+
+				subtree.m_quantizedAabbMax[0] = rightChildNode.m_quantizedAabbMax[0];
+				subtree.m_quantizedAabbMax[1] = rightChildNode.m_quantizedAabbMax[1];
+				subtree.m_quantizedAabbMax[2] = rightChildNode.m_quantizedAabbMax[2];
+				subtree.m_firstNode = rightChildNodeIndex;
+				subtree.m_lastNode = rightChildNodeIndex + rightSubTreeSize;
+
+				state.subTreeCount++;
+			}
+		}
+
+		state.nodes[internalNodeIndex].m_count = 0;
+		state.nodes[internalNodeIndex].m_escapeIndexOrTriangleIndex = escapeIndex;
+	}
+	else
+	{
+		// assign a leaf node
+		auto i = state.curNodeIndex;
+		state.nodes[i].m_count = count;
+		state.nodes[i].m_escapeIndexOrTriangleIndex = polys[start].idx;
+
+		for (int p = start; p < start + count; p++)
+		{
+			mergeInternalNodeAabb(i, getAabbMin(p), getAabbMax(p));
+		}
+
+		state.curNodeIndex++;
+	}
+}
+
+inline void ComputeBVH(phBVH* bvh, std::vector<phBVHPolyBounds>& polys, int maxPerNode)
+{
+	uint32_t numNodes = (2 * polys.size()) + 1;
+	std::vector<phBVHNode> nodes(numNodes);
+
+	for (auto& node : nodes)
+	{
+		node.m_escapeIndexOrTriangleIndex = 1;
+		node.m_count = 0;
+
+		node.m_quantizedAabbMax[0] = -32768;
+		node.m_quantizedAabbMax[1] = -32768;
+		node.m_quantizedAabbMax[2] = -32768;
+
+		node.m_quantizedAabbMin[0] = 32767;
+		node.m_quantizedAabbMin[1] = 32767;
+		node.m_quantizedAabbMin[2] = 32767;
+	}
+
+	std::vector<phBVHSubTree> subTrees(std::max(numNodes >> 1, uint32_t(1)));
+
+	phBVHBuildState state;
+	state.curNodeIndex = 0;
+	state.subTreeCount = 0;
+	state.nodes = std::move(nodes);
+	state.subTrees = std::move(subTrees);
+
+	// build BVH
+	if (numNodes > 0)
+	{
+		ComputeBVHInternal(state, polys, 0, polys.size(), maxPerNode, -1);
+	}
+
+	if (state.subTreeCount == 0)
+	{
+		state.subTrees[0].m_firstNode = 0;
+		state.subTrees[0].m_lastNode = state.nodes[0].m_escapeIndexOrTriangleIndex;
+
+		for (int i = 0; i < 3; i++)
+		{
+			state.subTrees[0].m_quantizedAabbMin[i] = state.nodes[0].m_quantizedAabbMin[i];
+			state.subTrees[0].m_quantizedAabbMax[i] = state.nodes[0].m_quantizedAabbMax[i];
+		}
+
+		state.subTreeCount = 1;
+	}
+
+	bvh->SetBVH(state.curNodeIndex, state.nodes.data(), state.subTreeCount, state.subTrees.data());
+}
+
+inline void CalculateBVH(phBoundBVH* bound, int maxPerNode = 4)
+{
+	auto bvh = new(false) phBVH();
+
+	auto aabbMin = bound->GetAABBMin();
+	auto aabbMax = bound->GetAABBMax();
+
+	bvh->SetAABB(
+		{ aabbMin.x, aabbMin.y, aabbMin.z },
+		{ aabbMax.x, aabbMax.y, aabbMax.z }
+	);
+	
+	std::vector<phBVHPolyBounds> polyBounds(bound->GetNumPolygons());
+
+	auto polygons = bound->GetPolygons();
+	auto vertices = bound->GetVertices();
+
+	auto boundScale = bound->GetQuantum();
+	auto boundOffset = bound->GetVertexOffset();
+
+	auto margin = bound->GetMargin();
+
+	auto getVert = [&](int16_t vertIdx)
+	{
+		vertIdx = vertIdx & 0x7FFF;
+
+		return Vector3{
+			(vertices[vertIdx].x * boundScale.x) + boundOffset.x,
+			(vertices[vertIdx].y * boundScale.y) + boundOffset.y,
+			(vertices[vertIdx].z * boundScale.z) + boundOffset.z
+		};
+	};
+
+	for (int polyIdx = 0; polyIdx < bound->GetNumPolygons(); polyIdx++)
+	{
+		Vector3 min;
+		Vector3 max;
+		Vector3 center;
+
+		rage::five::phBoundPoly& poly = polygons[polyIdx];
+		switch (poly.type)
+		{
+		case 0:
+		{
+			Vector3 polyMin = { FLT_MAX, FLT_MAX, FLT_MAX };
+			Vector3 polyMax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+			Vector3 polyAvg = { 0.0f, 0.0f, 0.0f };
+
+			for (int16_t* vert : { &poly.poly.v1, &poly.poly.v2, &poly.poly.v3 })
+			{
+				auto& v = getVert(*vert);
+
+				polyMin = { std::min(polyMin.x, v.x), std::min(polyMin.y, v.y), std::min(polyMin.z, v.z) };
+				polyMax = { std::max(polyMax.x, v.x), std::max(polyMax.y, v.y), std::max(polyMax.z, v.z) };
+				polyAvg = { polyAvg.x + v.x, polyAvg.y + v.y, polyAvg.z + v.z };
+			}
+
+			min = { polyMin.x - margin, polyMin.y - margin, polyMin.z - margin };
+			max = { polyMax.x + margin, polyMax.y + margin, polyMax.z + margin };
+			center = { polyAvg.x / 3.0f, polyAvg.y / 3.0f, polyAvg.z / 3.0f };
+
+			break;
+		}
+		default:
+		{
+			printf("warning: unsupported collision poly type for BVH\n");
+			break;
+		}
+		}
+
+		polyBounds[polyIdx].idx = polyIdx;
+		bvh->QuantizePolyMin(min, polyBounds[polyIdx].min);
+		bvh->QuantizePolyMax(max, polyBounds[polyIdx].max);
+		bvh->QuantizePolyCenter(center, polyBounds[polyIdx].center);
+	}
+
+	ComputeBVH(bvh, polyBounds, maxPerNode);
+
+	bound->SetBVH(bvh);
+}
+#endif
 
 #endif
 

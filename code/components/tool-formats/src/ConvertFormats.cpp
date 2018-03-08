@@ -101,7 +101,7 @@ static void ConvertBoundDict(rage::ny::pgDictionary<rage::ny::phBound>* dictiona
 			
 			OutputFile([&]()
 			{
-				rage::convert<rage::five::phBound*>(bound.second);
+				rage::convert<rage::five::phBoundComposite*>(bound.second);
 			}, 43, fmt::sprintf(L"%s\\0x%08x.ybn", dirName, hash));
 		}
 	}
@@ -130,7 +130,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 	{
 		wprintf(L"converting bound %s...\n", path.filename().c_str());
 
-		AutoConvert<rage::five::phBound, rage::ny::datOwner<rage::ny::phBound>>(bm, fileName, 43);
+		AutoConvert<rage::five::phBoundComposite, rage::ny::datOwner<rage::ny::phBound>>(bm, fileName, 43);
 	}
 	else if (fileExt == L".wbd")
 	{
@@ -159,7 +159,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 				if (ivb)
 				{
-					auto bound = rage::convert<rage::five::phBound*>(ivb);
+					auto bound = rage::convert<rage::five::phBoundComposite*>(ivb);
 
 					dr->SetBound(bound);
 				}

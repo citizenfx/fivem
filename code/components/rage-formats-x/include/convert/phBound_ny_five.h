@@ -460,6 +460,7 @@ static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeom
 	for (int i = 0; i < materials.size(); i++)
 	{
 		materials[i].mat1.materialIdx = ConvertMaterialIndex(inMaterials[i].mat1.materialIdx);
+		materials[i].mat1.roomId = inMaterials[i].mat1.roomId;
 		materials[i].mat2.materialColorIdx = 0x1;
 	}
 
@@ -486,6 +487,8 @@ five::phBoundBVH* convert(ny::phBoundBVH* bound)
 	fillBaseBound(out, bound);
 	fillPolyhedronBound(out, bound);
 	fillGeometryBound(out, bound);
+
+	five::CalculateBVH(out);
 
 	return out;
 }
@@ -564,6 +567,53 @@ static five::phBound* convertBoundToFive(ny::phBound* bound)
 	}
 
 	return nullptr;
+}
+
+template<>
+five::phBoundComposite* convert(ny::phBound* bound)
+{
+	if (bound->GetType() == ny::phBoundType::Composite)
+	{
+		return (five::phBoundComposite*)convertBoundToFive(bound);
+	}
+
+	auto out = new(false) five::phBoundComposite;
+	out->SetBlockMap();
+
+	auto originalBound = convertBoundToFive(bound);
+
+	fillBaseBound(out, bound);
+
+	out->SetUnkFloat(5.0f);
+
+	// convert child bounds
+	out->SetChildBounds(1, &originalBound);
+
+	// convert aux data
+	five::phBoundAABB aabb;
+	aabb.min = five::phVector3(bound->GetAABBMin().x, bound->GetAABBMin().y, bound->GetAABBMin().z);
+	aabb.max = five::phVector3(bound->GetAABBMax().x, bound->GetAABBMax().y, bound->GetAABBMax().z);
+	aabb.intUnk = 1;
+	aabb.floatUnk = 0.005f;
+	out->SetChildAABBs(1, &aabb);
+
+	// convert matrices
+	five::Matrix3x4 childMatrix;
+	childMatrix._1 = { 1.f, 0.f, 0.f };
+	childMatrix._2 = { 0.f, 1.f, 0.f };
+	childMatrix._3 = { 0.f, 0.f, 1.f };
+	childMatrix._4 = { 0.f, 0.f, 0.f };
+
+	out->SetChildMatrices(1, &childMatrix);
+
+	// add bound flags
+	five::phBoundFlagEntry boundFlag;
+	boundFlag.m_0 = 0x3E;
+	boundFlag.m_4 = 0x7F3BEC0;
+
+	out->SetBoundFlags(1, &boundFlag);
+
+	return out;
 }
 
 template<>

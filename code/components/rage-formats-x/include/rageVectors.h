@@ -29,9 +29,65 @@ namespace rage
 
 		}
 
+		inline Vector3 operator*(const float value) const
+		{
+			return Vector3(x * value, y * value, z * value);
+		}
+
+		inline Vector3 operator*(const Vector3& value) const
+		{
+			return Vector3(x * value.x, y * value.y, z * value.z);
+		}
+
+		inline Vector3 operator+(const Vector3& right) const
+		{
+			return Vector3(x + right.x, y + right.y, z + right.z);
+		}
+
 		inline Vector3 operator-(const Vector3& right) const
 		{
 			return Vector3(x - right.x, y - right.y, z - right.z);
+		}
+
+		inline void operator*=(const float value)
+		{
+			x *= value;
+			y *= value;
+			z *= value;
+		}
+
+		inline void operator+=(const Vector3& right)
+		{
+			x += right.x;
+			y += right.y;
+			z += right.z;
+		}
+
+		inline void operator-=(const Vector3& right)
+		{
+			x -= right.x;
+			y -= right.y;
+			z -= right.z;
+		}
+
+		inline int MaxAxis() const
+		{
+			return x < y ? (y < z ? 2 : 1) : (x < z ? 2 : 0);
+		}
+
+		inline float operator[](int idx) const
+		{
+			switch (idx)
+			{
+			case 0:
+				return x;
+			case 1:
+				return y;
+			case 2:
+				return z;
+			default:
+				return NAN;
+			}
 		}
 
 		inline static Vector3 CrossProduct(const Vector3& v1, const Vector3& v2)

@@ -360,16 +360,13 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 				{
 					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount() + 1);
 
-					for (int i = 1; i < geometryBounds.size(); i++)
+					for (int i = 0; i < geometryBounds.size(); i++)
 					{
-						oldBounds[i - 1].w *= 2;
+						oldBounds[i].w *= 2;
 
-						geometryBounds[i].aabbMin = Vector4(oldBounds[i - 1].x - oldBounds[i - 1].w, oldBounds[i - 1].y - oldBounds[i - 1].w, oldBounds[i - 1].z - oldBounds[i - 1].w, -oldBounds[i - 1].w);
-						geometryBounds[i].aabbMax = Vector4(oldBounds[i - 1].x + oldBounds[i - 1].w, oldBounds[i - 1].y + oldBounds[i - 1].w, oldBounds[i - 1].z + oldBounds[i - 1].w, oldBounds[i - 1].w);
+						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
+						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
 					}
-
-					geometryBounds[0].aabbMin = Vector4(minBounds.x, minBounds.y, minBounds.z, oldLodGroup.GetRadius() * -2.0f);
-					geometryBounds[0].aabbMax = Vector4(maxBounds.x, maxBounds.y, maxBounds.z, oldLodGroup.GetRadius() * 2.0f);
 
 					newModel->SetGeometryBounds(geometryBounds.size(), &geometryBounds[0]);
 				}
