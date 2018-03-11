@@ -14,6 +14,7 @@
 #endif
 
 #include <memory>
+#include <variant>
 
 #include <boost/optional.hpp>
 
@@ -235,5 +236,95 @@ namespace fxc
 
 			return (inReg - minReg) + 0xA0;
 		}
+	};
+
+	enum class SpsParameterType
+	{
+		Int,
+		Float,
+		String
+	};
+
+	class SpsParameter
+	{
+	private:
+		SpsParameterType m_type;
+		std::variant<int, float, std::string> m_value;
+
+	public:
+		inline SpsParameter()
+		{
+			m_value = "";
+			m_type = SpsParameterType::String;
+		}
+
+		inline SpsParameter(int value)
+		{
+			m_value = value;
+			m_type = SpsParameterType::Int;
+		}
+
+		inline SpsParameter(float value)
+		{
+			m_value = value;
+			m_type = SpsParameterType::Float;
+		}
+
+		inline SpsParameter(const std::string& value)
+		{
+			m_value = value;
+			m_type = SpsParameterType::String;
+		}
+
+		inline float GetFloat()
+		{
+			assert(m_type == SpsParameterType::Float);
+
+			return std::get<float>(m_value);
+		}
+
+		inline int GetInt()
+		{
+			assert(m_type == SpsParameterType::Int);
+
+			return std::get<int>(m_value);
+		}
+
+		inline std::string GetString()
+		{
+			assert(m_type == SpsParameterType::String);
+
+			return std::get<std::string>(m_value);
+		}
+	};
+
+	class FORMATS_EXPORT SpsFile
+	{
+	private:
+		std::map<std::string, SpsParameter> m_parameters;
+
+	public:
+		SpsFile(const TReader& reader);
+
+		inline ~SpsFile() {}
+
+		inline boost::optional<SpsParameter> GetParameter(const std::string& name)
+		{
+			auto it = m_parameters.find(name);
+
+			if (it == m_parameters.end())
+			{
+				return {};
+			}
+
+			return it->second;
+		}
+
+		inline std::string GetShader()
+		{
+			return m_parameters["shader"].GetString();
+		}
+
+		static std::shared_ptr<SpsFile> Load(const std::wstring& filename);
 	};
 }

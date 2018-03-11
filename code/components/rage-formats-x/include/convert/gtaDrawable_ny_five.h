@@ -28,7 +28,17 @@ namespace rage
 {
 inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 {
+	if (!oldSps)
+	{
+		return "default.sps";
+	}
+
 	if (strstr(oldSps, "3lyr") || strstr(oldSps, "2lyr"))
+	{
+		return "terrain_cb_4lyr_lod.sps"; // regular 4lyr has bump mapping/normals
+	}
+
+	if (strstr(oldSps, "va_4lyr"))
 	{
 		return "terrain_cb_4lyr_lod.sps"; // regular 4lyr has bump mapping/normals
 	}
@@ -40,7 +50,9 @@ inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 
 	if (strstr(oldSps, "gta_"))
 	{
-		return &oldSps[4] + std::string(".sps");
+		std::string name = &oldSps[4];
+
+		return name.substr(0, name.find_last_of('.')) + ".sps";
 	}
 
 	return "default.sps";
@@ -115,17 +127,40 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 		out->SetTextures(convert<five::pgDictionary<five::grcTexturePC>*>(texDict));
 	}
 
-	five::pgPtr<five::grmShaderFx> newShaders[128];
+	five::pgPtr<five::grmShaderFx> newShaders[512];
 	
 	for (int i = 0; i < shaderGroup->GetNumShaders(); i++)
 	{
 		auto oldShader = shaderGroup->GetShader(i);
-		auto newSpsName = ConvertSpsName_NY_Five(oldShader->GetSpsName());
-		auto newShaderName = ConvertShaderName_NY_Five(oldShader->GetShaderName());
+		auto oldSpsName = oldShader->GetSpsName();
+		auto oldShaderName = oldShader->GetShaderName();
+		auto newSpsName = ConvertSpsName_NY_Five(oldSpsName);
+		auto newShaderName = ConvertShaderName_NY_Five(oldShaderName);
+
+		auto spsFile = fxc::SpsFile::Load(MakeRelativeCitPath(fmt::sprintf(L"citizen\\shaders\\db\\%s", ToWide(newSpsName))));
+
+		if (spsFile)
+		{
+			newShaderName = spsFile->GetShader();
+		}
 
 		auto newShader = new(false) five::grmShaderFx();
 		newShader->DoPreset(newShaderName.c_str(), newSpsName.c_str());
-		newShader->SetDrawBucket(oldShader->GetDrawBucket()); // in case the lack of .sps reading doesn't override it, yet
+
+		if (spsFile)
+		{
+			auto db = spsFile->GetParameter("__rage_drawbucket");
+
+			if (db)
+			{
+				newShader->SetDrawBucket(db->GetInt());
+			}
+		}
+		else
+		{
+			// no known sps drawbucket, set the original one
+			newShader->SetDrawBucket(oldShader->GetDrawBucket());
+		}
 
 		auto& oldEffect = oldShader->GetEffect();
 
@@ -225,8 +260,29 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 				multiplier[0] /= 100.0f;
 
-				newShader->SetParameter("specularIntensityMult", &multiplier, sizeof(multiplier));
+				if (newShader->GetParameter("specularIntensityMult"))
+				{
+					newShader->SetParameter("specularIntensityMult", &multiplier, sizeof(multiplier));
+				}
 			}
+		}
+
+		if (auto falloffMult = newShader->GetParameter("SpecularFalloffMult"); falloffMult != nullptr)
+		{
+			float falloffMultValue[] = { *(float*)falloffMult->GetValue() * 4.0f, 0.0f, 0.0f, 0.0f };
+
+			if (newShaderName.find("decal") == 0)
+			{
+				falloffMultValue[0] = 100.f;
+			}
+
+			memcpy(falloffMult->GetValue(), falloffMultValue, sizeof(falloffMultValue));
+		}
+
+		if (auto emissiveMult = newShader->GetParameter("EmissiveMultiplier"); emissiveMult != nullptr)
+		{
+			float emissiveMultValue[] = { *(float*)emissiveMult->GetValue() / 4.0f, 0.0f, 0.0f, 0.0f };
+			memcpy(emissiveMult->GetValue(), emissiveMultValue, sizeof(emissiveMultValue));
 		}
 
 		if (newShaderName == "trees")
@@ -283,6 +339,21 @@ five::grcVertexFormat* convert(ny::grcVertexFormat* format)
 	return new(false) five::grcVertexFormat(format->GetMask(), format->GetVertexSize(), format->GetFieldCount(), format->GetFVF());
 }
 
+enum class FVFType
+{
+	Nothing = 0,
+	Float16_2,
+	Float,
+	Float16_4,
+	Float_unk,
+	Float2,
+	Float3,
+	Float4,
+	UByte4,
+	Color,
+	Dec3N
+};
+
 template<>
 five::grcVertexBufferD3D* convert(ny::grcVertexBufferD3D* buffer)
 {
@@ -294,6 +365,62 @@ five::grcVertexBufferD3D* convert(ny::grcVertexBufferD3D* buffer)
 	if (g_vertexBufferMatches.find(oldBuffer) != g_vertexBufferMatches.end())
 	{
 		oldBuffer = g_vertexBufferMatches[oldBuffer];
+	}
+	else
+	{
+		auto vertexFormat = buffer->GetVertexFormat();
+		
+		auto mask = vertexFormat->GetMask();
+
+		for (int i = 0; i < buffer->GetCount(); i++)
+		{
+			char* thisBit = (char*)oldBuffer + (buffer->GetStride() * i);
+			size_t off = 0;
+
+			for (int j = 0; j < 32; j++)
+			{
+				if (vertexFormat->GetMask() & (1 << j))
+				{
+					uint64_t fvf = vertexFormat->GetFVF();
+					auto type = (FVFType)((fvf >> (j * 4)) & 0xF);
+
+					switch (type)
+					{
+					case FVFType::Float4:
+						off += 4;
+					case FVFType::Float3:
+						off += 4;
+					case FVFType::Float2:
+						off += 4;
+					case FVFType::Nothing:
+					case FVFType::Float:
+					case FVFType::Float_unk:
+						off += 4;
+						break;
+					case FVFType::Dec3N:
+						off += 4;
+						break;
+					case FVFType::Color:
+					case FVFType::UByte4:
+						if (j == 4)
+						{
+							uint8_t* rgba = (uint8_t*)(thisBit + off);
+
+							rgba[1] = uint8_t(rgba[1] * 0.5f); // 50% of original green
+						}
+
+						off += 4;
+						break;
+					case FVFType::Float16_2:
+						off += 4;
+						break;
+					default:
+						trace("unknown vertex type?\n");
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	auto out = new(false) five::grcVertexBufferD3D;
@@ -370,7 +497,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 	lodGroup.SetBounds(
 		minBounds,
 		maxBounds,
-		oldLodGroup.GetCenter(), oldLodGroup.GetRadius()// * 2
+		oldLodGroup.GetCenter(), oldLodGroup.GetRadius()
 	);
 	//lodGroup.SetBounds(Vector3(-66.6f, -66.6f, -10.0f), Vector3(66.6f, 66.6f, 10.0f), Vector3(0.0f, 0.0f, 0.0f), 94.8f);
 
@@ -390,12 +517,17 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 				if (oldBounds)
 				{
-					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount() + 1);
+					int extraSize = 0;
+
+					if (newModel->GetGeometries().GetCount() > 1)
+					{
+						extraSize = 1;
+					}
+
+					std::vector<five::GeometryBound> geometryBounds(newModel->GetGeometries().GetCount() + extraSize);
 
 					for (int i = 0; i < geometryBounds.size(); i++)
 					{
-						//oldBounds[i].w *= 2;
-
 						geometryBounds[i].aabbMin = Vector4(oldBounds[i].x - oldBounds[i].w, oldBounds[i].y - oldBounds[i].w, oldBounds[i].z - oldBounds[i].w, -oldBounds[i].w);
 						geometryBounds[i].aabbMax = Vector4(oldBounds[i].x + oldBounds[i].w, oldBounds[i].y + oldBounds[i].w, oldBounds[i].z + oldBounds[i].w, oldBounds[i].w);
 					}

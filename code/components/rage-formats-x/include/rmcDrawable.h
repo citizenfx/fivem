@@ -692,7 +692,7 @@ public:
 
 	inline const char* GetShaderName() { return *(m_shaderName); }
 
-	inline const char* GetSpsName() { return *(m_shaderName); }
+	inline const char* GetSpsName() { return *(m_spsName); }
 
 	inline void SetShaderName(char* value) { m_shaderName = pgStreamManager::StringDup(value); }
 
@@ -1255,7 +1255,7 @@ public:
 
 	inline void SetGeometries(int count, grmGeometryQB** geometries)
 	{
-		static pgPtr<grmGeometryQB> geometriesInd[64];
+		static pgPtr<grmGeometryQB> geometriesInd[512];
 
 		for (int i = 0; i < count; i++)
 		{

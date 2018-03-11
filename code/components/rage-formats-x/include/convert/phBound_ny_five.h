@@ -9,6 +9,8 @@
 
 #include <string>
 
+inline float g_boundOffset[2];
+
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
 #include <phBound.h>
@@ -27,17 +29,19 @@ namespace rage
 {
 static inline void fillBaseBound(five::phBound* out, ny::phBound* in)
 {
+	out->SetBlockMap();
+
 	auto& centroid = in->GetCentroid();
-	out->SetCentroid(five::phVector3(centroid.x, centroid.y, centroid.z));
+	out->SetCentroid(five::phVector3(centroid.x + g_boundOffset[0], centroid.y + g_boundOffset[1], centroid.z));
 
 	auto& cg = in->GetCG();
-	out->SetCG(five::phVector3(cg.x, cg.y, cg.z));
+	out->SetCG(five::phVector3(cg.x + g_boundOffset[0], cg.y + g_boundOffset[1], cg.z));
 
 	auto& aabbMin = in->GetAABBMin();
-	out->SetAABBMin(five::phVector3(aabbMin.x, aabbMin.y, aabbMin.z));
+	out->SetAABBMin(five::phVector3(aabbMin.x + g_boundOffset[0], aabbMin.y + g_boundOffset[1], aabbMin.z));
 
 	auto& aabbMax = in->GetAABBMax();
-	out->SetAABBMax(five::phVector3(aabbMax.x, aabbMax.y, aabbMax.z));
+	out->SetAABBMax(five::phVector3(aabbMax.x + g_boundOffset[0], aabbMax.y + g_boundOffset[1], aabbMax.z));
 
 	out->SetRadius(in->GetRadius());
 	out->SetMargin(in->GetMargin());
@@ -74,9 +78,9 @@ five::phBoundComposite* convert(ny::phBoundComposite* bound)
 
 	for (uint16_t i = 0; i < childCount; i++)
 	{
-		childAABBs[i].min = five::phVector3(inAABBs[i].min.x, inAABBs[i].min.y, inAABBs[i].min.z);
+		childAABBs[i].min = five::phVector3(inAABBs[i].min.x + g_boundOffset[0], inAABBs[i].min.y + g_boundOffset[1], inAABBs[i].min.z);
 		childAABBs[i].intUnk = 1;
-		childAABBs[i].max = five::phVector3(inAABBs[i].max.x, inAABBs[i].max.y, inAABBs[i].max.z);
+		childAABBs[i].max = five::phVector3(inAABBs[i].max.x + g_boundOffset[0], inAABBs[i].max.y + g_boundOffset[1], inAABBs[i].max.z);
 		childAABBs[i].floatUnk = 0.005f;
 	}
 
@@ -110,7 +114,7 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 	out->SetQuantum(five::Vector4(quantum.x, quantum.y, quantum.z, /*quantum.w*/7.62962742e-008));
 
 	auto& offset = in->GetVertexOffset();
-	out->SetVertexOffset(five::Vector4(offset.x, offset.y, offset.z, /*offset.w*/0.0025f));
+	out->SetVertexOffset(five::Vector4(offset.x + g_boundOffset[0], offset.y + g_boundOffset[1], offset.z, /*offset.w*/0.0025f));
 
 	// vertices
 	ny::phBoundVertex* vertices = in->GetVertices();
@@ -591,8 +595,8 @@ five::phBoundComposite* convert(ny::phBound* bound)
 
 	// convert aux data
 	five::phBoundAABB aabb;
-	aabb.min = five::phVector3(bound->GetAABBMin().x, bound->GetAABBMin().y, bound->GetAABBMin().z);
-	aabb.max = five::phVector3(bound->GetAABBMax().x, bound->GetAABBMax().y, bound->GetAABBMax().z);
+	aabb.min = five::phVector3(bound->GetAABBMin().x + g_boundOffset[0], bound->GetAABBMin().y + g_boundOffset[1], bound->GetAABBMin().z);
+	aabb.max = five::phVector3(bound->GetAABBMax().x + g_boundOffset[0], bound->GetAABBMax().y + g_boundOffset[1], bound->GetAABBMax().z);
 	aabb.intUnk = 1;
 	aabb.floatUnk = 0.005f;
 	out->SetChildAABBs(1, &aabb);
@@ -614,6 +618,12 @@ five::phBoundComposite* convert(ny::phBound* bound)
 	out->SetBoundFlags(1, &boundFlag);
 
 	return out;
+}
+
+template<>
+five::phBoundComposite* convert(ny::datOwner<ny::phBound>* bound)
+{
+	return convert<five::phBoundComposite*>(bound->GetChild());
 }
 
 template<>

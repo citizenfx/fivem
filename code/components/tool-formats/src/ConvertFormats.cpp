@@ -224,7 +224,9 @@ static void FormatsConvert_HandleArguments(boost::program_options::wcommand_line
 
 	desc.add_options()
 		("filename", boost::program_options::wvalue<std::vector<boost::filesystem::path>>()->required(), "The path of the file to convert.")
-		("wbd_file", boost::program_options::wvalue<boost::filesystem::path>(), "A .wbn file to use for drawable bounds.");
+		("wbd_file", boost::program_options::wvalue<boost::filesystem::path>(), "A .wbn file to use for drawable bounds.")
+		("bound_x", boost::program_options::wvalue<float>(), "The X offset to use for converting static bounds.")
+		("bound_y", boost::program_options::wvalue<float>(), "The Y offset to use for converting static bounds.");
 
 	boost::program_options::positional_options_description positional;
 	positional.add("filename", -1);
@@ -361,6 +363,22 @@ static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 		if (it != map.end())
 		{
 			g_wbnFile = it->second.as<boost::filesystem::path>();
+		}
+	}
+
+	{
+		auto it = map.find("bound_x");
+
+		if (it != map.end())
+		{
+			g_boundOffset[0] = it->second.as<float>();
+		}
+
+		it = map.find("bound_y");
+
+		if (it != map.end())
+		{
+			g_boundOffset[1] = it->second.as<float>();
 		}
 	}
 

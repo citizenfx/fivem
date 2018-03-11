@@ -244,13 +244,191 @@ namespace fxc
 
 		auto shaderFile = std::make_shared<ShaderFile>([=] (void* data, size_t size)
 		{
-			int a = ftell(f);
-
 			return fread(data, 1, size, f);
 		});
 
 		fclose(f);
 
 		return shaderFile;
+	}
+
+	SpsFile::SpsFile(const TReader& reader)
+	{
+		char c;
+
+		enum
+		{
+			// whitespace before a key
+			PsInitial,
+			// a key
+			PsKey,
+			// whitespace before a value
+			PsPreValue,
+			// a plain value
+			PsValue,
+			// whitespace before a type
+			PsPreType,
+			// a type
+			PsType,
+			// whitespace after a type
+			PsPreTypeValue,
+			// a typed value
+			PsTypeValue,
+			// whitespace after a type value
+			PsPostTypeValue,
+			// a closing brace
+			PsCloseBrace
+
+		} parsingState = PsInitial;
+
+		std::string curKey;
+		std::string curValue;
+		std::string curType;
+
+		bool eof = false;
+
+		do
+		{
+			eof = (reader(&c, 1) == 0);
+
+			if (eof)
+			{
+				c = '\n';
+			}
+
+			switch (parsingState)
+			{
+			case PsInitial:
+				if (!isspace(c))
+				{
+					parsingState = PsKey;
+					curKey = "";
+				}
+				else
+				{
+					break;
+				}
+			case PsKey:
+				if (isspace(c))
+				{
+					parsingState = PsPreValue;
+				}
+				else
+				{
+					curKey += c;
+				}
+				break;
+			case PsPreValue:
+				if (!isspace(c))
+				{
+					if (c == '{')
+					{
+						parsingState = PsPreType;
+						break;
+					}
+					else
+					{
+						parsingState = PsValue;
+						curValue = "";
+					}
+				}
+				else
+				{
+					// next char
+					break;
+				}
+			case PsValue:
+				if (isspace(c))
+				{
+					m_parameters[curKey] = curValue;
+
+					parsingState = PsInitial;
+				}
+				else
+				{
+					curValue += c;
+				}
+				break;
+			case PsPreType:
+				if (!isspace(c))
+				{
+					parsingState = PsType;
+					curType = "";
+				}
+				else
+				{
+					// next char
+					break;
+				}
+			case PsType:
+				if (isspace(c))
+				{
+					parsingState = PsPreTypeValue;
+				}
+				else
+				{
+					curType += c;
+				}
+
+				break;
+			case PsPreTypeValue:
+				if (!isspace(c))
+				{
+					parsingState = PsTypeValue;
+					curValue = "";
+				}
+				else
+				{
+					// next char
+					break;
+				}
+			case PsTypeValue:
+				if (isspace(c))
+				{
+					parsingState = PsPostTypeValue;
+				}
+				else
+				{
+					curValue += c;
+				}
+
+				break;
+			case PsPostTypeValue:
+				if (c == '}')
+				{
+					if (curType == "int")
+					{
+						m_parameters[curKey] = atoi(curValue.c_str());
+					}
+					else if (curType == "float")
+					{
+						m_parameters[curKey] = float(atof(curValue.c_str()));
+					}
+
+					parsingState = PsInitial;
+				}
+
+				break;
+			}
+		} while (!eof);
+	}
+
+	std::shared_ptr<SpsFile> SpsFile::Load(const std::wstring& filename)
+	{
+		FILE* f = _wfopen(filename.c_str(), L"rb");
+
+		if (!f)
+		{
+			return nullptr;
+		}
+
+		auto spsFile = std::make_shared<SpsFile>([=](void* data, size_t size)
+		{
+			return fread(data, 1, size, f);
+		});
+
+		fclose(f);
+
+		return spsFile;
 	}
 }
