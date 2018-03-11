@@ -80,6 +80,7 @@ void NUIWindow::Initialize(CefString url)
 
 	CefWindowInfo info;
 	//info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
+	info.shared_textures_enabled = true;
 	info.SetAsWindowless(nullptr);
 
 	CefBrowserSettings settings;
@@ -108,8 +109,6 @@ static HANDLE g_resetEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects)
 {
-	WaitForSingleObject(g_resetEvent, INFINITE);
-
 	static bool createdClient;
 
 	static HANDLE lastParentHandle;
@@ -120,6 +119,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 	{
 		if (lastParentHandle != parentHandle)
 		{
+			trace("Changing NUI shared resource...\n");
+
 			lastParentHandle = parentHandle;
 
 			ID3D11Device* device = GetD3D11Device();
@@ -172,6 +173,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 	}
 
 	MarkRenderBufferDirty();
+
+	WaitForSingleObject(g_resetEvent, INFINITE);
 }
 
 void NUIWindow::UpdateFrame()
@@ -248,7 +251,7 @@ void NUIWindow::UpdateFrame()
 		// this'll use a bunch of additional GPU memory bandwidth, but this should not be an
 		// issue on any modern GPU.
 		//
-		//if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
+		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		{
 			HRESULT hr = keyedMutex->AcquireSync(m_syncKey, 0);
 

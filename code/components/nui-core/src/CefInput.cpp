@@ -150,7 +150,7 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 
 OsrImeHandlerWin* g_imeHandler;
 
-static int GetCefMouseModifiers(WPARAM wparam) {
+int GetCefMouseModifiers(WPARAM wparam) {
 	int modifiers = 0;
 	if (wparam & MK_CONTROL)
 		modifiers |= EVENTFLAG_CONTROL_DOWN;

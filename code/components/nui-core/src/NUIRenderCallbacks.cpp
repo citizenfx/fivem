@@ -9,6 +9,8 @@
 extern bool g_hasCursor;
 extern POINT g_cursorPos;
 
+extern bool g_isDragging;
+
 extern rage::grcTexture* g_cursorTexture;
 
 static InitFunction initFunction([] ()
@@ -127,6 +129,12 @@ static InitFunction initFunction([] ()
 					SetTextureGtaIm(g_cursorTexture);
 
 					uint32_t color = 0xFFFFFFFF;
+
+					if (g_isDragging)
+					{
+						color = 0xFFAAAAAA;
+					}
+
 					DrawImSprite(cursorPos.x, cursorPos.y, cursorPos.x + 32.0f, cursorPos.y + 32.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
 				}
 

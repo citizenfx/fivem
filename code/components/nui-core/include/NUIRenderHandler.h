@@ -9,8 +9,9 @@
 
 #include "NUIClient.h"
 #include <include/cef_render_handler.h>
+#include "CefDragDropHandler.h"
 
-class NUIRenderHandler : public CefRenderHandler
+class NUIRenderHandler : public CefRenderHandler, public OsrDragEvents
 {
 public:
 	NUIRenderHandler(NUIClient* client);
@@ -34,7 +35,13 @@ protected:
 
 	virtual void OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds) override;
 
-	virtual bool CanUseAcceleratedPaint(CefRefPtr<CefBrowser> browser) override;
+	bool StartDragging(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefDragData> drag_data,
+		CefRenderHandler::DragOperationsMask allowed_ops,
+		int x,
+		int y) override;
+	void UpdateDragCursor(CefRefPtr<CefBrowser> browser,
+		CefRenderHandler::DragOperation operation) override;
 
 	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, uint64 sync_key) override;
 
@@ -46,4 +53,22 @@ private:
 	void UpdatePopup();
 
 	IMPLEMENT_REFCOUNTING(NUIRenderHandler);
+
+private:
+	CefBrowserHost::DragOperationsMask OnDragEnter(
+		CefRefPtr<CefDragData> drag_data,
+		CefMouseEvent ev,
+		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+	CefBrowserHost::DragOperationsMask OnDragOver(
+		CefMouseEvent ev,
+		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+	void OnDragLeave() OVERRIDE;
+	CefBrowserHost::DragOperationsMask OnDrop(
+		CefMouseEvent ev,
+		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+
+private:
+	CComPtr<DropTargetWin> m_dropTarget;
+
+	DragOperation m_currentDragOp;
 };

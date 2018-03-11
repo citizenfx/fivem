@@ -16,9 +16,16 @@
 extern OsrImeHandlerWin* g_imeHandler;
 
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
-	: m_paintingPopup(false), m_owner(client)
+	: m_paintingPopup(false), m_owner(client), m_currentDragOp(DRAG_OPERATION_NONE)
 {
+	auto hWnd = FindWindow(L"grcWindow", nullptr);
+	m_dropTarget = DropTargetWin::Create(this, hWnd);
 
+	HRESULT hr = RegisterDragDrop(hWnd, m_dropTarget);
+	if (FAILED(hr))
+	{
+		trace("registering drag/drop failed. hr: %08x\n", hr);
+	}
 }
 
 bool NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
@@ -43,20 +50,11 @@ void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browse
 	}
 }
 
-bool NUIRenderHandler::CanUseAcceleratedPaint(CefRefPtr<CefBrowser> browser)
-{
-	return true;
-}
-
 void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, uint64 sync_key)
 {
 	if (type == PET_VIEW)
 	{
 		m_owner->GetWindow()->UpdateSharedResource(shared_handle, sync_key, dirtyRects);
-	}
-	else
-	{
-		trace(":o\n");
 	}
 }
 
@@ -248,4 +246,70 @@ void NUIRenderHandler::PaintPopup(const void* buffer, int width, int height)
 
 	// add dirty rect
 	window->AddDirtyRect(m_popupRect);
+}
+
+bool g_isDragging;
+
+bool NUIRenderHandler::StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> drag_data, CefRenderHandler::DragOperationsMask allowed_ops, int x, int y)
+{
+	if (!m_dropTarget)
+	{
+		return false;
+	}
+
+	m_currentDragOp = DRAG_OPERATION_NONE;
+	g_isDragging = true;
+	CefBrowserHost::DragOperationsMask result =
+		m_dropTarget->StartDragging(browser, drag_data, allowed_ops, x, y);
+	g_isDragging = false;
+	m_currentDragOp = DRAG_OPERATION_NONE;
+	POINT pt = {};
+	GetCursorPos(&pt);
+	ScreenToClient(FindWindow(L"grcWindow", nullptr), &pt);
+
+	browser->GetHost()->DragSourceEndedAt(
+		pt.x,
+		pt.y, result);
+	browser->GetHost()->DragSourceSystemDragEnded();
+	return true;
+}
+
+void NUIRenderHandler::UpdateDragCursor(CefRefPtr<CefBrowser> browser,
+	CefRenderHandler::DragOperation operation) {
+	m_currentDragOp = operation;
+}
+
+CefBrowserHost::DragOperationsMask NUIRenderHandler::OnDragEnter(
+	CefRefPtr<CefDragData> drag_data,
+	CefMouseEvent ev,
+	CefBrowserHost::DragOperationsMask effect) {
+	if (m_owner->GetBrowser()) {
+		m_owner->GetBrowser()->GetHost()->DragTargetDragEnter(drag_data, ev, effect);
+		m_owner->GetBrowser()->GetHost()->DragTargetDragOver(ev, effect);
+	}
+	return m_currentDragOp;
+}
+
+CefBrowserHost::DragOperationsMask NUIRenderHandler::OnDragOver(
+	CefMouseEvent ev,
+	CefBrowserHost::DragOperationsMask effect) {
+	if (m_owner->GetBrowser()) {
+		m_owner->GetBrowser()->GetHost()->DragTargetDragOver(ev, effect);
+	}
+	return m_currentDragOp;
+}
+
+void NUIRenderHandler::OnDragLeave() {
+	if (m_owner->GetBrowser())
+		m_owner->GetBrowser()->GetHost()->DragTargetDragLeave();
+}
+
+CefBrowserHost::DragOperationsMask NUIRenderHandler::OnDrop(
+	CefMouseEvent ev,
+	CefBrowserHost::DragOperationsMask effect) {
+	if (m_owner->GetBrowser()) {
+		m_owner->GetBrowser()->GetHost()->DragTargetDragOver(ev, effect);
+		m_owner->GetBrowser()->GetHost()->DragTargetDrop(ev);
+	}
+	return m_currentDragOp;
 }
