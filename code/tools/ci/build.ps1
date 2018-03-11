@@ -23,7 +23,7 @@ param (
     $Identity = "C:\guava_deploy.ppk"
 )
 
-$CefName = "cef_binary_3.3325.1745.g0492438_windows64_minimal"
+$CefName = "cef_binary_3.3325.1750.g45dd47e_windows64_minimal"
 
 # from http://stackoverflow.com/questions/2124753/how-i-can-use-powershell-with-the-visual-studio-command-prompt
 function Invoke-BatchFile
