@@ -346,7 +346,7 @@ static InitFunction initFunction([] ()
 				case 16:
 				case 17:
 				case 18:
-					brandingString = L"FiveM \xD83D\xDD25";
+					brandingString = L"FiveM \xD83C\xDF50";
 					break;
 				case 19:
 				case 20:
