@@ -108,6 +108,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			auto loadScripts = [this]()
 			{
 				CreateEnvironments();
+
+				m_resource->OnCreate();
 			};
 
 #ifdef IS_FXSERVER

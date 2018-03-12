@@ -113,7 +113,7 @@ static InitFunction initFunction([] ()
 		fwRefContainer<ResourceUI> resourceUI(new ResourceUI(resource));
 
 		// start event
-		resource->OnStart.Connect([=] ()
+		resource->OnCreate.Connect([=] ()
 		{
 			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
 

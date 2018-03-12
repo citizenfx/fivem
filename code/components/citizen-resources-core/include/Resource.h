@@ -103,6 +103,11 @@ public:
 	fwEvent<> OnTick;
 
 	//
+	// An event to handle tasks to be performed when a resource is created, after the game loads.
+	//
+	fwEvent<> OnCreate;
+
+	//
 	// An event to handle tasks to be performed when the resource becomes active.
 	//
 	fwEvent<> OnActivate;
