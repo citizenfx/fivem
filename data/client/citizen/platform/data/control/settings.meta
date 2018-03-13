@@ -151,7 +151,6 @@
 				<Item>INPUT_VEH_DUCK</Item>
 				<Item>INPUT_VEH_SLOWMO_UP_ONLY</Item>
 				<Item>INPUT_VEH_SLOWMO_DOWN_ONLY</Item>
-				<Item>INPUT_VEH_BIKE_WINGS</Item>
 			</Inputs>
 		</Item>
 
@@ -171,9 +170,9 @@
 				<Item>INPUT_VEH_PUSHBIKE_SPRINT</Item>
 				<Item>INPUT_VEH_PUSHBIKE_FRONT_BRAKE</Item>
 				<Item>INPUT_VEH_MOUSE_CONTROL_OVERRIDE</Item>
-				<Item>INPUT_VEH_HYDRAULICS_CONTROL_TOGGLE</Item>
 			</Inputs>
 		</Item>
+		
 
 		<Item key="VEHICLE_FLY">
 			<Inputs>
@@ -194,7 +193,29 @@
 				<Item>INPUT_VEH_FLY_MOUSE_CONTROL_OVERRIDE</Item>
 			</Inputs>
 		</Item>
-
+		
+		<Item key="VEHICLE_GROUND_ONLINE">
+			<Inputs>
+				<Item>INPUT_VEH_HYDRAULICS_CONTROL_TOGGLE</Item>
+				<Item>INPUT_VEH_MELEE_HOLD</Item>
+				<Item>INPUT_VEH_MELEE_LEFT</Item>
+				<Item>INPUT_VEH_MELEE_RIGHT</Item>
+				<Item>INPUT_VEH_BIKE_WINGS</Item>
+				<Item>INPUT_VEH_TRANSFORM</Item>
+				<Item>INPUT_VEH_PARACHUTE</Item>
+				<Item>INPUT_VEH_CAR_JUMP</Item>
+				<Item>INPUT_VEH_ROCKET_BOOST</Item>
+			</Inputs>
+		</Item>
+		
+		<Item key="VEHICLE_FLY_ONLINE">
+			<Inputs>
+				<Item>INPUT_VEH_FLY_BOOST</Item>
+				<Item>INPUT_VEH_FLY_BOMB_BAY</Item>
+				<Item>INPUT_VEH_FLY_COUNTER</Item>
+			</Inputs>
+		</Item>
+		
 		<Item key="VEHICLE_SUB">
 			<Inputs>
 				<Item>INPUT_VEH_SUB_THROTTLE_UP</Item>
@@ -423,9 +444,7 @@
 				<Item>INPUT_VEH_FLY_SELECT_PREV_WEAPON</Item>
 				<Item>INPUT_MULTIPLAYER_INFO</Item>
 				<Item>INPUT_CONTEXT_SECONDARY</Item>
-				<Item>INPUT_VEH_MELEE_HOLD</Item>
-				<Item>INPUT_VEH_MELEE_LEFT</Item>
-				<Item>INPUT_VEH_MELEE_RIGHT</Item>
+	
 				
 			<!-- Axis where individual directions are mapped, but not the axis directly -->
 				<Item>INPUT_SNIPER_ZOOM</Item>
@@ -497,9 +516,6 @@
 				<Item>INPUT_VEH_HYDRAULICS_CONTROL_DOWN</Item>
 				<Item>INPUT_VEH_HYDRAULICS_CONTROL_LR</Item>
 				<Item>INPUT_VEH_HYDRAULICS_CONTROL_UD</Item>
-        <Item>INPUT_VEH_CAR_JUMP</Item>
-        <Item>INPUT_VEH_ROCKET_BOOST</Item>
-        <Item>INPUT_VEH_PARACHUTE</Item>
 			</Inputs>
 		</Item>
 
@@ -524,6 +540,23 @@
 			<Categories>
 				<Item>VEHICLE_GROUND</Item>
 				<Item>VEHICLE_GENERAL</Item>
+				<Item>VEHICLE_GROUND_ONLINE</Item>
+				<Item>GENERAL</Item>
+				<Item>RESERVED</Item>
+				<Item>PAUSE</Item>
+				<Item>MULTIPLAYER_CHAT</Item>
+				<Item>CELLPHONE_MOVE</Item>
+				<Item>CELLPHONE_TAKEOUT</Item>
+				<Item>CONTEXT</Item>
+			</Categories>
+		</Item>
+		
+		<!-- Driving Online -->
+		<Item>
+			<Categories>
+				<Item>VEHICLE_GROUND_ONLINE</Item>
+				<Item>VEHICLE_GROUND</Item>
+				<Item>VEHICLE_GENERAL</Item>
 				<Item>GENERAL</Item>
 				<Item>RESERVED</Item>
 				<Item>PAUSE</Item>
@@ -537,6 +570,22 @@
 		<!-- Flying -->
 		<Item>
 			<Categories>
+				<Item>VEHICLE_FLY</Item>
+				<Item>VEHICLE_FLY_ONLINE</Item>
+				<Item>VEHICLE_GENERAL</Item>
+				<Item>GENERAL</Item>
+				<Item>RESERVED</Item>
+				<Item>PAUSE</Item>
+				<Item>MULTIPLAYER_CHAT</Item>
+				<Item>CELLPHONE_MOVE</Item>
+				<Item>CELLPHONE_TAKEOUT</Item>
+			</Categories>
+		</Item>
+		
+		<!-- Flying Online -->
+		<Item>
+			<Categories>
+				<Item>VEHICLE_FLY_ONLINE</Item>
 				<Item>VEHICLE_FLY</Item>
 				<Item>VEHICLE_GENERAL</Item>
 				<Item>GENERAL</Item>
@@ -870,6 +919,7 @@
 				<Item>INPUT_VEH_FLY_ATTACK</Item>
 				<Item>INPUT_MELEE_BLOCK</Item>
 				<Item>INPUT_VEH_DRIVE_LOOK</Item>
+				<Item>INPUT_VEH_PARACHUTE</Item>
 			</Inputs>
 		</Item>
 
@@ -1030,8 +1080,60 @@
 				<Item>INPUT_VEH_DUCK</Item>
 				<Item>INPUT_VEH_HYDRAULICS_CONTROL_TOGGLE</Item>
 				<Item>INPUT_VEH_BIKE_WINGS</Item>
+				<Item>INPUT_VEH_TRANSFORM</Item>
+				<Item>INPUT_VEH_MELEE_HOLD</Item>
+				<Item>INPUT_CONTEXT</Item>
 			</Inputs>
 		</Item>
+		
+		<Item>
+			<Inputs>
+				<Item>INPUT_VEH_HORN</Item>
+				<Item>INPUT_VEH_CAR_JUMP</Item>
+				<Item>INPUT_VEH_ROCKET_BOOST</Item>
+				<Item>INPUT_VEH_FLY_BOMB_BAY</Item>
+				<Item>INPUT_VEH_FLY_COUNTER</Item>
+				<Item>INPUT_VEH_GRAPPLING_HOOK</Item>
+				<Item>INPUT_CONTEXT</Item>
+			</Inputs>
+		</Item>
+		
+		<Item>
+			<Inputs>
+				<Item>INPUT_VEH_MELEE_RIGHT</Item>
+				<Item>INPUT_VEH_AIM</Item>
+				<Item>INPUT_VEH_MOUSE_CONTROL_OVERRIDE</Item>
+			</Inputs>
+		</Item>
+		<Item>
+			<Inputs>
+				<Item>INPUT_VEH_MELEE_LEFT</Item>
+				<Item>INPUT_VEH_ATTACK</Item>
+				<Item>INPUT_VEH_MOUSE_CONTROL_OVERRIDE</Item>
+				</Inputs>
+		</Item>
+		
+		<Item>
+			<Inputs>
+				<Item>INPUT_VEH_MELEE_RIGHT</Item>
+				<Item>INPUT_VEH_ATTACK</Item>
+			</Inputs>
+		</Item>
+		<Item>
+			<Inputs>
+				<Item>INPUT_VEH_MELEE_LEFT</Item>
+				<Item>INPUT_VEH_AIM</Item>
+			</Inputs>
+		</Item>
+		
+		<Item>
+			<Inputs>
+				<Item>INPUT_VEH_PARACHUTE</Item>
+				<Item>INPUT_CONTEXT</Item>
+			</Inputs>
+		</Item>
+		
+		
 		
 	</ConflictExceptions>
 
@@ -1056,7 +1158,7 @@
 				<Item>PM_PANE_FOOT</Item>
 			</Categories>
 		</Item>
-					
+
 		<Item>
 			<Name>PM_PANE_FOOT_COMBAT</Name>
 			<Categories>
@@ -1080,7 +1182,7 @@
 				<Item>VEHICLE_GENERAL</Item>
 			</Categories>
 		</Item>
-
+		
 		<Item>
 			<Name>PM_PANE_VEH</Name>
 			<Categories>
@@ -1126,6 +1228,14 @@
 				<Item>MULTIPLAYER_MISC</Item>
 			</Categories>
 		</Item>
+		
+		<Item>
+			<Name>PM_PANE_VEH_ONLINE</Name>
+			<Categories>
+				<Item>VEHICLE_GROUND_ONLINE</Item>
+				<Item>VEHICLE_FLY_ONLINE</Item>
+			</Categories>
+		</Item>
 
 	</MappingList>
 
@@ -1165,14 +1275,12 @@
 			<Inputs>
 				<Item>INPUT_VEH_AIM</Item>
 				<Item>INPUT_VEH_PASSENGER_AIM</Item>
-				<Item>INPUT_VEH_MELEE_RIGHT</Item>
-			</Inputs>
+				</Inputs>
 		</Item>
 		<Item>
 			<Inputs>
 				<Item>INPUT_VEH_ATTACK</Item>
 				<Item>INPUT_VEH_PASSENGER_ATTACK</Item>
-				<Item>INPUT_VEH_MELEE_LEFT</Item>
 			</Inputs>
 		</Item>
 		<Item>
@@ -1192,7 +1300,6 @@
 			<Inputs>
 				<Item>INPUT_VEH_HANDBRAKE</Item>
 				<Item>INPUT_VEH_JUMP</Item>
-				<Item>INPUT_VEH_PARACHUTE</Item>
 			</Inputs>
 		</Item>
 
@@ -1215,10 +1322,8 @@
 				<Item>INPUT_VEH_DUCK</Item>
 				<Item>INPUT_VEH_FLY_DUCK</Item>
 				<Item>INPUT_VEH_DROP_PROJECTILE</Item>
-				<Item>INPUT_VEH_MELEE_HOLD</Item>
 			</Inputs>
 		</Item>
-
 
 		<Item>
 			<Inputs>
@@ -1326,15 +1431,6 @@
 				<Item>INPUT_VEH_HYDRAULICS_CONTROL_LR</Item>
 			</Inputs>
 		</Item>
-		<Item>
-			<Inputs>
-				<Item>INPUT_VEH_HORN</Item>
-				<Item>INPUT_VEH_CAR_JUMP</Item>
-				<Item>INPUT_VEH_ROCKET_BOOST</Item>
-			</Inputs>
-		</Item>
-		
-		
 		
 	</IdenticalMappingLists>
 
