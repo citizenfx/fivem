@@ -41,7 +41,7 @@ static hook::cdecl_stub<bool(Parser*, const char*, const char*, void*, void*, bo
 
 static hook::cdecl_stub<void(CHandlingData*)> _processHandlingDataEntry([]()
 {
-	return hook::get_pattern("48 8B F9 8B 89 34 01 00 00 0F", -10);
+	return hook::get_pattern("48 8B F9 8B 89 ? 01 00 00 0F", -10);
 });
 
 class Parser
@@ -96,10 +96,11 @@ public:
 
 	// NOTE: 505 SPECIFIC
 	// 1103 now
-	char pad[1152]; // +8
-	int handlingDataIndex; // +1160
+	// 1290 now
+	char pad[1200]; // +8
+	int handlingDataIndex; // +1208
 
-	char pad2[212];
+	char pad2[228];
 };
 
 template<typename TSubClass>
@@ -193,7 +194,7 @@ static bool LoadHandlingFile(const char* handlingPath)
 		g_handlingByFile.insert({ handlingPath, idx });
 	}
 
-	static_assert(sizeof(CVehicleModelInfo) == 1376, "CVehicleModelInfo size");
+	static_assert(sizeof(CVehicleModelInfo) == 1440, "CVehicleModelInfo size");
 
 	// override CVehicleModelInfo entries that already have a handling assigned
 	ModifyHandlingForVehicles(changedHandlings);

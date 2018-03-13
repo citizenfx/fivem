@@ -999,6 +999,11 @@ public:
 		return PseudoCallContext(this)->m_zx(a1);
 	}
 
+	virtual bool m_addedIn1290()
+	{
+		return PseudoCallContext(this)->m_addedIn1290();
+	}
+
 	virtual bool IsCollection()
 	{
 		return PseudoCallContext(this)->IsCollection();
@@ -2233,7 +2238,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	// packfile create
-	hook::call(hook::pattern("4C 8B F0 49 8B 06 49 8B CE FF 90 60 01 00 00 48").count(1).get(0).get<void>(-5), ConstructPackfile);
+	hook::call(hook::pattern("4C 8B F0 49 8B 06 49 8B CE FF 90 68 01 00 00 48").count(1).get(0).get<void>(-5), ConstructPackfile);
 
 	// dlc packfile create
 	hook::call(hook::pattern("48 8B C8 E8 ? ? ? ? 48 8B E8 EB 03 49 8B EF 48 89").count(1).get(0).get<void>(3), ConstructPackfile);

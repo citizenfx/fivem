@@ -88,8 +88,8 @@ struct GameCacheStorageEntry
 // global cache mapping of ROS files to disk files
 static GameCacheEntry g_requiredEntries[] =
 {
-	{ "GTA5.exe", "debf7c0e7e6434907f3623f4bea3c4e125734b0f", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1103_2.exe", "$/GTA5.exe", 60378008, 775766328 },
-	{ "update/update.rpf", "a568f68b14a8a9b91d5d26d1882e54c081e196ef", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1103_2.exe", "$/update/update.rpf", 723396608, 775766328 },
+	{ "GTA5.exe", "9242ac4e38b626f2c8784451aa02976111d5265f", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1290_1.exe", "$/GTA5.exe", 63111600, 934129320 },
+	{ "update/update.rpf", "d6e32cbcfc40575e1e3e5f70bdd9052e10b67b27", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1290_1.exe", "$/update/update.rpf", 879337472, 934129320 },
 	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
 	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
@@ -211,7 +211,7 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "ros_1231/locales/zh-CN.pak", "605387D0737CBE29E417C4909667C432608B7275", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/locales/zh-CN.pak", 45082, 72795808 },
 	{ "ros_1231/locales/zh-TW.pak", "652C109482CC03E2A04BCF2021EC27C6CFA4D596", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/locales/zh-TW.pak", 45661, 72795808 },
 
-	{ "GTAVLauncher.exe", "0b05db1cb238c239771947693e830e85f585c08c", "https://runtime.fivem.net/patches/GTA_V_Launcher_1_0_1103_2.exe", "$/GTAVLauncher.exe", 21544344, 19884016 }
+	{ "GTAVLauncher.exe", "28916b79d44ced3d22fa8ad087e3949749779850", "https://runtime.fivem.net/patches/GTA_V_Launcher_1_0_1290_2.exe", "$/GTAVLauncher.exe", 21434808, 19981008 }
 };
 
 static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, std::string& hashOut)

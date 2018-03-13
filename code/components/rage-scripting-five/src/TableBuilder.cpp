@@ -214,7 +214,11 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Jun  9 2017", 6) == 0)
+	if (strncmp(buildString, "Dec  6 2017", 11) == 0)
+	{
+		versionIdx = 1290;
+	}
+	else if (strncmp(buildString, "Jun  9 2017", 6) == 0)
 	{
 		versionIdx = 1103;
 	}
@@ -257,7 +261,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	}
 
 	// 1103
-	assert(maxVersion == 14);
+	assert(maxVersion == 16);
 
 	for (auto& nativeEntry : crossMapping_universal)
 	{

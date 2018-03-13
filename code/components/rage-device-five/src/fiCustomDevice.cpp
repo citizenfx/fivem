@@ -158,6 +158,11 @@ bool WRAPPER fiCustomDevice::IsCollection()
 	return m_parentDeviceRef->IsCollection();
 }
 
+bool WRAPPER fiCustomDevice::m_addedIn1290()
+{
+	return m_parentDeviceRef->m_addedIn1290();
+}
+
 fiDevice* WRAPPER fiCustomDevice::GetCollection()
 {
 	return m_parentDeviceRef->GetCollection();

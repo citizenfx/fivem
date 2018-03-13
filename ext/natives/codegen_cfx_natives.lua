@@ -808,12 +808,12 @@ native 'GET_VEHICLE_HIGH_GEAR'
 		Vehicle 'vehicle'
 	}
 	apiset 'client'
-	returns 'float'
+	returns 'int'
 
 native 'SET_VEHICLE_HIGH_GEAR'
 	arguments {
 		Vehicle 'vehicle',
-		float 'gear'
+		int 'gear'
 	}
 	apiset 'client'
 	returns 'void'

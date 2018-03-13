@@ -1,7 +1,9 @@
 #include <StdInc.h>
 #include "ExecutableLoader.h"
 
-#define TRIGGER_EP 0x1416EFFC0
+// 1103!!!
+// 1290 now
+#define TRIGGER_EP 0x1417233F8
 
 // on NT pre-6.3 (or 6.2, even), VEHs can't modify debug registers
 // making a new thread for every single block is a bad idea as well, but perf isn't _that_ bad
@@ -95,7 +97,6 @@ void DoCreateSnapshot()
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		// 1103!!
 		context->Dr3 = (DWORD64)TRIGGER_EP;
 	}, nullptr);
 }
@@ -190,7 +191,6 @@ void DoCreateDump(void* ep, const wchar_t* fileName)
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		// 1103!!
 		context->Dr3 = (DWORD64)ep;
 	}, nullptr);
 }

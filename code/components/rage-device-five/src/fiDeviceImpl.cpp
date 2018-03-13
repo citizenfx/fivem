@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 #include "fiDevice.h"
 
 #include <Error.h>
@@ -184,6 +184,11 @@ int WRAPPER fiDeviceImplemented::m_zx(void*)
 }
 
 bool WRAPPER fiDeviceImplemented::IsCollection()
+{
+	PURECALL();
+}
+
+bool WRAPPER fiDeviceImplemented::m_addedIn1290()
 {
 	PURECALL();
 }

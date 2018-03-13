@@ -524,7 +524,8 @@ static HookFunction hookFunction([] ()
 
 	// 505 SPECIFIC
 	// 1103 now
-	auto pMatch = hook::pattern("48 89 96 88 08 00 00").count(1).get(0);
+	// 1290 now
+	auto pMatch = hook::pattern("48 89 96 ? 08 00 00").count(1).get(0);
 
 	char* location = pMatch.get<char>(-11);
 	g_handlingData = (atArray<CHandlingData*>*)(location + *(int32_t*)location + 4);

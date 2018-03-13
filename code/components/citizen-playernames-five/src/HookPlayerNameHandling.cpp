@@ -72,7 +72,7 @@ static HookFunction hookFunction([] ()
 
 		uintptr_t packfileVT = endOffset + *result;
 
-		hook::put(packfileVT + 360, _getPackfileName);
+		hook::put(packfileVT + 368, _getPackfileName);
 	}
 });
 

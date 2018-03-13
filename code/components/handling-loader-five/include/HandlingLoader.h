@@ -66,7 +66,7 @@ class CHandlingData
 {
 private:
 	uint32_t m_name;
-	char m_pad[324];
+	char m_pad[332]; // 1290
 	atArray<CBaseSubHandlingData*> m_subHandlingData;
 	char m_pad2[1000];
 
@@ -112,7 +112,7 @@ public:
 class CVehicle
 {
 private:
-	char m_pad[0x880]; // 1103
+	char m_pad[0x8C0]; // 1290
 	CHandlingData* m_handlingData;
 
 public:

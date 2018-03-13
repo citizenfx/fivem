@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -93,6 +93,8 @@ public:
 	virtual int32_t m_zx(void*); // return 0x40000000
 
 	virtual bool IsCollection();
+
+	virtual bool m_addedIn1290();
 
 	virtual fiDevice* GetCollection(); // return this
 

@@ -121,9 +121,9 @@ static HookFunction hookFunction([]()
 {
 	// get font by id, hook
 	{
-		auto location = hook::get_pattern<char>("85 D2 74 5B FF CA 74 4E FF CA 74 41 FF CA 74");
+		auto location = hook::get_pattern<char>("85 D2 74 68 FF CA 74 5B FF CA 74 4E");
 		hook::jump(location, GetFontById);
-		hook::set_call(&gfxStringAssign, location + 102);
+		hook::set_call(&gfxStringAssign, location + 115);
 	}
 
 	// init font things

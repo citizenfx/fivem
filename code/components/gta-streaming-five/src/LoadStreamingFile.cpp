@@ -175,20 +175,25 @@ static hook::cdecl_stub<void(DataFileEntry* entry)> _removePackfile([]()
 	return hook::get_call(hook::get_pattern("EB 15 48 8B 0B 40 38 7B 0C 74 07 E8", 18));
 });
 
+static hook::cdecl_stub<void(void*)> _initManifestChunk([]()
+{
+	return hook::get_pattern("48 8D 4F 10 B2 01 48 89 2F", -0x2E);
+});
+
+static hook::cdecl_stub<void(void*)> _loadManifestChunk([]()
+{
+	return hook::get_pattern("33 FF 4C 8B E9 BB FF FF 00 00", -0x2D);
+});
+
+static hook::cdecl_stub<void(void*)> _clearManifestChunk([]()
+{
+	return hook::get_pattern("33 FF 48 8D 4B 10 B2 01", -0x15);
+});
+
+static void* manifestChunkPtr;
+
 bool CfxPackfileMounter::MountFile(DataFileEntry* entry)
 {
-	// 505 hardcoded
-	//auto _initManifestChunk = (void(*)(void*))0x1408C8B94;
-	//auto _loadManifestChunk = (void(*)(void*))0x1408CCA6C;
-	//auto _clearManifestChunk = (void(*)(void*))0x14089AC8C;
-	//auto manifestChunkPtr = (void*)0x1422F5230;
-
-	// 1103 hardcoded
-	auto _initManifestChunk = (void(*)(void*))0x1408FA41C;
-	auto _loadManifestChunk = (void(*)(void*))0x1408FE3D0;
-	auto _clearManifestChunk = (void(*)(void*))0x1408CC344;
-	auto manifestChunkPtr = (void*)0x142415770;
-
 	entry->disabled = true;
 	//entry->persistent = true;
 	//entry->locked = true;
@@ -476,7 +481,7 @@ namespace streaming
 
 static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 A0 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
 });
 
 static std::set<std::tuple<std::string, std::string>> g_customStreamingFiles;
@@ -779,14 +784,13 @@ public:
 	}
 };
 
+static hook::cdecl_stub<void(void*, void* packfile, const char*)> loadManifest([]()
+{
+	return hook::get_pattern("49 8B F0 4C 8B F1 48 85 D2 0F 84", -0x23);
+});
+
 void LoadManifest(const char* tagName)
 {
-	auto _initManifestChunk = (void(*)(void*))0x1408FA41C;
-	auto _loadManifestChunk = (void(*)(void*))0x1408FE3D0;
-	auto _clearManifestChunk = (void(*)(void*))0x1408CC344;
-	auto loadManifest = (void(*)(void*, void* packfile, const char*))0x1408EA3C8;
-	auto manifestChunkPtr = (void*)0x142415770;
-
 	std::string name = g_manifestNames[tagName];
 
 	if (!name.empty())
@@ -954,6 +958,8 @@ static const char* NormalizePath(char* out, const char* in, size_t length)
 
 static HookFunction hookFunction([] ()
 {
+	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("83 F9 08 75 43 48 8D 0D", 8));
+
 	// level load
 	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3").count(1).get(0).get<void>(18);
 	hook::set_call(&dataFileMgr__loadDat, hookPoint);

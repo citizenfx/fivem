@@ -26,7 +26,7 @@
 
 static hook::cdecl_stub<void()> lookAlive([] ()
 {
-	return hook::pattern("48 8D 6C 24 A0 48 81 EC 60 01 00 00 E8").count(1).get(0).get<void>(-0xC);
+	return hook::pattern("48 8D 6C 24 ? 48 81 EC ? 01 00 00 E8").count(1).get(0).get<void>(-0xC);
 });
 
 // map init states to cater for additional '7' in one particular digital distribution version

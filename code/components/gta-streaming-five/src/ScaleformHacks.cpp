@@ -15,8 +15,6 @@ struct GFxValue;
 
 static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue*, const char*)> __GFxObjectInterface_CreateEmptyMovieClip([]()
 {
-	// 1103
-	//return (void*)0x14162AD8C;
 	return hook::get_pattern("4D 8B E0 4C 8B F9 48 85 DB 75 18 48", -0x25);
 });
 
@@ -41,27 +39,21 @@ struct GFxDisplayInfo
 
 static hook::cdecl_stub<bool(GFxObjectInterface*, void*, const GFxDisplayInfo&)> __GFxObjectInterface_SetDisplayInfo([]()
 {
-	// 1103
-	//return (void*)0x14167AD6C;
 	return hook::get_pattern("48 8B 5A 08 0F 29 70 B8 0F 29 78 A8", -0x1D);
 });
 
 static hook::cdecl_stub<void(GFxObjectInterface*, GFxValue*, void*)> __GFxObjectInterface_ObjectRelease([]()
 {
-	// 1103
-	//return (void*)0x14165E748;
 	return hook::get_pattern("83 F8 04 74 6B 83 F8 05 74 58", -0x11);
 });
 
 static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue*, const char*, GFxValue*, int, bool)> __GFxObjectInterface_Invoke([]()
 {
-	//return (void*)0x141659e48;
 	return hook::get_pattern("33 DB 49 8B F1 48 8B FA 4C 8B E1 38 5D 7F 74 32", -0x21);
 });
 
 static hook::cdecl_stub<bool(GFxObjectInterface*, void*, const char*, GFxValue*, bool)> __GFxObjectInterface_GetMember([]()
 {
-	//return (void*)0x14164E844;
 	return hook::get_pattern("38 9C 24 80 00 00 00 74 56 48 8B 42 08", -0x26);
 });
 
@@ -185,7 +177,6 @@ public:
 	virtual void Free(void* memory) = 0;
 };
 
-// 1103
 static GFxMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
 
 class GFxRefCountBase
@@ -255,15 +246,11 @@ public:
 
 static hook::cdecl_stub<void(GFxValue* value, uint32_t movie)> _getScaleformASRoot([]()
 {
-	// 1103
-	//return (void*)0x140196B10;
 	return hook::get_pattern("48 8B D9 83 FA FF 74 23 8B CA", -0xE);
 });
 
 static hook::cdecl_stub<GFxMovieRoot*(uint32_t movie)> _getScaleformMovie([]()
 {
-	// 1103
-	//return (void*)0x14019DA0C;
 	return hook::get_call(hook::get_pattern("48 8B D9 83 FA FF 74 23 8B CA", 10));
 });
 
@@ -307,11 +294,8 @@ static void SetupTerritories()
 {
 	g_origSetupTerritories();
 
-	// 1103
-	//GFxValue* foregroundOverlay3D = (GFxValue*)0x141F93070;
 	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D");
 
-	//uint32_t gfxId = *(uint32_t*)0x141F8809C;
 	auto movie = _getScaleformMovie(*g_gfxId);
 
 	auto fh = new OverlayMethodFunctionHandler();
@@ -333,7 +317,7 @@ static hook::cdecl_stub<void(const char*, bool)> _gfxPushString([]()
 
 static hook::cdecl_stub<void(int)> _gfxPushInt([]()
 {
-	return hook::get_pattern("48 63 D0 48 69 D2 88 01 00 00 80 3C 0A FF 74 41", -0x14);
+	return hook::get_pattern("48 63 D0 48 69 D2 ? 01 00 00 80 3C 0A FF 74 41", -0x14);
 });
 
 static hook::cdecl_stub<bool(uint32_t, int, const char*, int, int)> _setupGfxCall([]()
@@ -363,11 +347,6 @@ namespace sf
 
 	bool CallMinimapOverlay(int minimap, const std::string& functionName)
 	{
-		// 1103
-		//auto setupGfxCall = (bool(*)(uint32_t, int, const char*, int, int))0x14016D038;
-		//auto gfxPushInt = (void(*)(int))0x1401679CC;
-		//auto gfxPushString = (void(*)(const char*, bool))0x140167C24;
-
 		if (_setupGfxCall(*g_gfxId, 1, "OVERLAY_METHOD", -1, -1))
 		{
 			_gfxPushInt(minimap);

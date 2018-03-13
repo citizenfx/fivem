@@ -104,12 +104,17 @@ static HookFunction hookFunction([] ()
 	hook::call(func, WrapInputCheck);
 
 	// some task checks for text chat that shouldn't *really* be needed... we hope.
-	char* loc = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(1).get(0).get<char>(0);
+	auto p = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(2);
 
-	hook::nop(loc, 10);
-	hook::put<uint8_t>(loc + 10, 0xEB);
+	for (int i = 0; i < p.size(); i++)
+	{
+		auto loc = p.get(i).get<char>(0);
 
-	loc = hook::pattern("38 59 14 75 05 39 59 04 74").count(1).get(0).get<char>(0);
+		hook::nop(loc, 10);
+		hook::put<uint8_t>(loc + 10, 0xEB);
+	}
+
+	auto loc = hook::pattern("38 59 14 75 05 39 59 04 74").count(1).get(0).get<char>(0);
 
 	hook::nop(loc, 8);
 	hook::put<uint8_t>(loc + 8, 0xEB);
@@ -118,11 +123,6 @@ static HookFunction hookFunction([] ()
 
 	hook::nop(loc, 8);
 	hook::put<uint8_t>(loc + 8, 0xEB);
-
-	loc = hook::get_pattern<char>("40 38 68 14 75 05 39 68 04 74");
-
-	hook::nop(loc, 9);
-	hook::put<uint8_t>(loc + 9, 0xEB);
 
 	/*loc = hook::pattern("38 58 14 75 05 39 58 04 74").count(1).get(0).get<char>(0);
 

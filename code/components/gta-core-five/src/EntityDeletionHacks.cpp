@@ -3,6 +3,103 @@
 
 #include "scrEngine.h"
 
+#include <boost/type_index.hpp>
+
+struct netObject
+{
+	char pad[75];
+	bool isRemote;
+};
+
+class fwEntity
+{
+public:
+	virtual ~fwEntity() = 0;
+
+	virtual bool IsOfType(uint32_t hash) = 0;
+
+	template<typename T>
+	bool IsOfType()
+	{
+		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
+	}
+
+public:
+	char m_pad[32];
+	uint8_t entityType;
+	char m_pad2[3];
+	char m_pad3[164];
+	netObject* netObject;
+};
+
+class CPickup : public fwEntity
+{
+
+};
+
+class CObject : public fwEntity
+{
+
+};
+
+class CVehicle : public fwEntity
+{
+
+};
+
+class CPed : public fwEntity
+{
+
+};
+
+template<typename T>
+static T* getTypedEntity(int guid)
+{
+	fwEntity* entity = getScriptEntity(guid);
+
+	if (!entity)
+	{
+		return nullptr;
+	}
+
+	if (!entity->IsOfType<T>())
+	{
+		return nullptr;
+	}
+
+	return static_cast<T*>(entity);
+}
+
+static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
+{
+	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
+});
+
+static hook::cdecl_stub<void(fwEntity*)> deletePed([]()
+{
+	return hook::get_pattern("48 83 EC 28 48 85 C9 74 12 48 8B D1");
+});
+
+static hook::cdecl_stub<void(fwEntity*)> deleteVehicle([]()
+{
+	return hook::get_pattern("48 8B D9 48 8B 89 D0 00 00 00 48 85 C9 74 05 E8", -17);
+});
+
+static hook::cdecl_stub<void(fwEntity*)> deleteObject([]()
+{
+	return hook::get_pattern("F6 40 70 80 75 0A", -33);
+});
+
+static hook::cdecl_stub<void(netObject*)> sendMarkAsNoLongerNeededEvent([]()
+{
+	return hook::get_pattern("48 8B F9 40 8A EB", -34);
+});
+
+static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()
+{
+	return hook::get_pattern("48 8D 48 08 4C 8B 01 41 FF 50 38", -0x2C);
+});
+
 static HookFunction hookFunction([] ()
 {
 	// CGameScriptHandlerObject::GetOwner vs. GetCurrentScriptHandler checks
@@ -26,19 +123,108 @@ static HookFunction hookFunction([] ()
 	// - DELETE_OBJECT
 	// - DELETE_PED
 	// - REMOVE_PED_ELEGANTLY
-	{
-		auto pattern = hook::pattern("38 48 8B D8 E8 ? ? ? ? 48 3B D8").count(7);
 
-		for (int i = 0; i < 7; i++)
+	// in 1290 this is reduced to only two (DELETE_VEHICLE and a leftover of DOES_ENTITY_BELONG_TO_THIS_SCRIPT) - obfuscation at work?
+	{
+		auto pattern = hook::pattern("38 48 8B D8 E8 ? ? ? ? 48 3B D8").count(2);
+
+		for (int i = 0; i < 2; i++)
 		{
 			// is this DOES_ENTITY_BELONG_TO_THIS_SCRIPT?
 			if (*pattern.get(i).get<uint16_t>(13) == 0xB004) // jnz $+4 (the 04 byte); mov al, 1 (the B0 byte)
 			{
-				// if so, then ship
+				// if so, then skip
 				continue;
 			}
 
 			hook::nop(pattern.get(i).get<void>(0xC), 2);
 		}
 	}
+
+	// reimplement the other natives ourselves
+	rage::scrEngine::NativeHandler setAsNoLongerNeeded = [](rage::scrNativeCallContext* context)
+	{
+		auto entityRef = context->GetArgument<int*>(0);
+		auto entity = getScriptEntity(*entityRef);
+
+		if (entity)
+		{
+			if (entity->netObject && entity->netObject->isRemote)
+			{
+				sendMarkAsNoLongerNeededEvent(entity->netObject);
+			}
+			else
+			{
+				markAsNoLongerNeeded(entity, true);
+			}
+		}
+
+		*entityRef = 0;
+	};
+
+	// SET_ENTITY_AS_NO_LONGER_NEEDED
+	rage::scrEngine::RegisterNativeHandler(0xB736A491E64A32CF, setAsNoLongerNeeded);
+
+	// SET_OBJECT_AS_NO_LONGER_NEEDED
+	rage::scrEngine::RegisterNativeHandler(0x3AE22DEB5BA5A3E6, setAsNoLongerNeeded);
+
+	// SET_PED_AS_NO_LONGER_NEEDED
+	rage::scrEngine::RegisterNativeHandler(0x2595DD4236549CE3, setAsNoLongerNeeded);
+
+	// SET_VEHICLE_AS_NO_LONGER_NEEDED
+	rage::scrEngine::RegisterNativeHandler(0x629BFA74418D6239, setAsNoLongerNeeded);
+
+	// DELETE_PED
+	rage::scrEngine::RegisterNativeHandler(0x9614299DCB53E54B, [](rage::scrNativeCallContext* context)
+	{
+		auto entityRef = context->GetArgument<int*>(0);
+		auto entity = getTypedEntity<CPed>(*entityRef);
+
+		if (entity)
+		{
+			deletePed(entity);
+		}
+
+		*entityRef = 0;
+	});
+
+	// DELETE_OBJECT
+	rage::scrEngine::RegisterNativeHandler(0x539E0AE3E6634B9F, [](rage::scrNativeCallContext* context)
+	{
+		auto entityRef = context->GetArgument<int*>(0);
+		auto entity = getTypedEntity<CObject>(*entityRef);
+
+		if (entity)
+		{
+			// TODO: needs some network checks to verify if local
+			deleteObject(entity);
+		}
+
+		*entityRef = 0;
+	});
+
+	// DELETE_ENTITY
+	rage::scrEngine::RegisterNativeHandler(0xAE3CBE5BF394C9C9, [](rage::scrNativeCallContext* context)
+	{
+		auto entityRef = context->GetArgument<int*>(0);
+		auto entity = getScriptEntity(*entityRef);
+
+		if (entity)
+		{
+			switch (entity->entityType)
+			{
+			case 3:
+				deleteVehicle(entity);
+				break;
+			case 4:
+				deletePed(entity);
+				break;
+			case 5:
+				deleteObject(entity);
+				break;
+			}
+		}
+
+		*entityRef = 0;
+	});
 });

@@ -290,37 +290,6 @@ namespace CitizenFX.Core
 		VehicleWindowCollection _windows;
 		#endregion
 
-		#region MemOffsets
-		// 1103 specific
-		const int HeliMainRotorHealthOffset = 0x184C;
-		const int HeliTailRotorHealthOffset = 0x1850;
-		const int HeliEngineHealthOffset = 0x1854;
-		const int FuelLevelOffset = 0x7B8;
-		const int OilLevelOffset = 0x7BC;
-		const int GravityOffset = 0xB8C;
-		const int IsEngineStartingOffset = 0x89A;
-		const int WheelSpeedOffset = 0xA00;
-		const int HeliBladesSpeedOffset = 0x1840;
-		const int AccelerationOffset = 0x834;
-		const int CurrentRPMOffset = 0x824;
-		const int HighGearOffset = 0x7F6;
-		const int CurrentGearOffset = 0x7F0;
-		const int SteeringAngleOffset = 0x904;
-		const int SteeringScaleOffset = 0x8FC;
-		const int IsAlarmSetOffset = 0x9F4;
-		const int AlarmTimeLeftOffset = 0x9F4;
-		const int IsWantedOffset = 0x9A4;
-		const int ProvidesCoverOffset = 0x894;
-		const int PreviouslyOwnedByPlayerOffset = 0x89C;
-		const int NeedsToBeHotwiredOffset = 0x89C;
-		const int IsInteriorLightOnOffset = 0x899;
-		const int LodMultiplierOffset = 0x1274;
-		const int IsLeftHeadLightBrokenOffset = 0x7CC;
-		const int IsRightHeadLightBrokenOffset = 0x7CC;
-		const int EnginePowerMultiplierOffset = 0xA28;
-		const int CanWheelsBreakOffset = 0x893;
-		#endregion
-
 		public Vehicle(int handle) : base(handle)
 		{
 		}
@@ -430,21 +399,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + FuelLevelOffset);
+				return API.GetVehicleFuelLevel(Handle);
 			}
 			set
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteFloat(MemoryAddress + FuelLevelOffset, value);
+				API.SetVehicleFuelLevel(Handle, value);
 			}
 		}
 
@@ -452,21 +411,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + OilLevelOffset);
+				return API.GetVehicleOilLevel(Handle);
 			}
 			set
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteFloat(MemoryAddress + OilLevelOffset, value);
+				API.SetVehicleOilLevel(Handle, value);
 			}
 		}
 
@@ -474,21 +423,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + GravityOffset);
+				return API.GetVehicleGravityAmount(Handle);
 			}
 			set
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteFloat(MemoryAddress + GravityOffset, value);
+				API.SetVehicleGravityAmount(Handle, value);
 			}
 		}
 
@@ -524,7 +463,7 @@ namespace CitizenFX.Core
 					return false;
 				}
 
-				return MemoryAccess.IsBitSet(MemoryAddress + IsEngineStartingOffset, 5);
+				return API.IsVehicleEngineStarting(Handle);
 			}
 		}
 		/// <summary>
@@ -585,30 +524,14 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float WheelSpeed
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + WheelSpeedOffset);
-			}
+			get => API.GetVehicleDashboardSpeed(Handle);
 		}
 		/// <summary>
 		/// Gets the acceleration of this <see cref="Vehicle"/>.
 		/// </summary>
 		public float Acceleration
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + AccelerationOffset);
-			}
+			get => API.GetVehicleAcceleration2(Handle);
 		}
 		/// <summary>
 		/// Gets or sets the current RPM of this <see cref="Vehicle"/>.
@@ -618,62 +541,22 @@ namespace CitizenFX.Core
 		/// </value>
 		public float CurrentRPM
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + CurrentRPMOffset);
-			}
+			get => API.GetVehicleCurrentRpm(Handle);
 			set
 			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteFloat(MemoryAddress + CurrentRPMOffset, value);
+				API.SetVehicleCurrentRpm(Handle, value);
 			}
 		}
 
 		public byte HighGear
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0;
-				}
-
-				return MemoryAccess.ReadByte(MemoryAddress + HighGearOffset);
-			}
-			set
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteByte(MemoryAddress + HighGearOffset, value);
-			}
+			get => (byte)API.GetVehicleHighGear(Handle);
+			set => API.SetVehicleHighGear(Handle, value);
 		}
 		/// <summary>
 		/// Gets the current gear this <see cref="Vehicle"/> is using.
 		/// </summary>
-		public int CurrentGear
-		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0;
-				}
-
-				return (int)MemoryAccess.ReadByte(MemoryAddress + CurrentGearOffset);
-			}
-		}
+		public int CurrentGear => API.GetVehicleCurrentGear(Handle);
 
 		/// <summary>
 		/// Gets the steering angle of this <see cref="Vehicle"/>.
@@ -697,24 +580,8 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float SteeringScale
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0.0f;
-				}
-
-				return MemoryAccess.ReadFloat(MemoryAddress + SteeringScaleOffset);
-			}
-			set
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteFloat(MemoryAddress + SteeringScaleOffset, value);
-			}
+			get => API.GetVehicleSteeringScale(Handle);
+			set => API.SetVehicleSteeringScale(Handle, value);
 		}
 
 		/// <summary>
@@ -744,15 +611,7 @@ namespace CitizenFX.Core
 				Function.Call(Hash.SET_VEHICLE_ALARM, Handle, value);
 			}
 
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return false;
-				}
-
-				return (ushort)MemoryAccess.ReadShort(MemoryAddress + IsAlarmSetOffset) == ushort.MaxValue; //if the value is 0xFFFF, the alarm is set
-			}
+			get => API.IsVehicleAlarmSet(Handle);
 		}
 		/// <summary>
 		/// Gets a value indicating whether this <see cref="Vehicle"/> is sounding its alarm.
@@ -777,36 +636,8 @@ namespace CitizenFX.Core
 		/// </value>
 		public int AlarmTimeLeft
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return 0;
-				}
-
-				ushort alarmTime = (ushort)MemoryAccess.ReadShort(MemoryAddress + AlarmTimeLeftOffset);
-				if (alarmTime == ushort.MaxValue)
-				{
-					return 0;
-				}
-
-				return (int) alarmTime;
-			}
-			set
-			{
-				ushort alarmTime = (ushort)value;
-				if (alarmTime == ushort.MaxValue)
-				{
-					return;
-				}
-
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return;
-				}
-
-				MemoryAccess.WriteShort(MemoryAddress + AlarmTimeLeftOffset, (short)alarmTime);
-			}
+			get => API.GetVehicleAlarmTimeLeft(Handle);
+			set => API.SetVehicleAlarmTimeLeft(Handle, value);
 		}
 		/// <summary>
 		/// Starts sounding the alarm on this <see cref="Vehicle"/>.
@@ -876,15 +707,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsWanted
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return false;
-				}
-
-				return MemoryAccess.IsBitSet(MemoryAddress + IsWantedOffset, 3);
-			}
+			get => API.IsVehicleWanted(Handle);
 			set
 			{
 				Function.Call(Hash.SET_VEHICLE_IS_WANTED, Handle, value);
@@ -905,9 +728,9 @@ namespace CitizenFX.Core
 				{
 					return false;
 				}
-				//Unsure of the exact version this switched, but all others in the rangs are the same
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x83C : 0x82C;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0x85C : offset;
+
+				// 1290
+				int offset = 0x8D4;
 
 				return MemoryAccess.IsBitSet(MemoryAddress + offset, 2);
 			}
@@ -931,14 +754,11 @@ namespace CitizenFX.Core
 				{
 					return false;
 				}
-				//Unsure of the exact version this switched or if it switched over a few title updates
-				//as its shifted by 0x20 bytes where as rest are only 0x10 bytes
-				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0xA98 : 0xA78;
-				offset = Game.Version > GameVersion.v1_0_877_1_Steam ? 0xAC8 : offset; // just a guess
+				int offset = 0xB58;
 
 				if (MemoryAccess.ReadInt(MemoryAddress + offset) <= 8)
 				{
-					return MemoryAccess.IsBitSet(MemoryAddress + 0x12F9, 1);
+					return MemoryAccess.IsBitSet(MemoryAddress + 0x1409, 1);
 				}
 				return false;
 			}
@@ -956,15 +776,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool PreviouslyOwnedByPlayer
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return false;
-				}
-
-				return MemoryAccess.IsBitSet(MemoryAddress + PreviouslyOwnedByPlayerOffset, 1);
-			}
+			get => API.IsVehiclePreviouslyOwnedByPlayer(Handle);
 			set
 			{
 				Function.Call(Hash.SET_VEHICLE_HAS_BEEN_OWNED_BY_PLAYER, Handle, value);
@@ -979,15 +791,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool NeedsToBeHotwired
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return false;
-				}
-
-				return MemoryAccess.IsBitSet(MemoryAddress + NeedsToBeHotwiredOffset, 2);
-			}
+			get => API.IsVehicleNeedsToBeHotwired(Handle);
 			set
 			{
 				Function.Call(Hash.SET_VEHICLE_NEEDS_TO_BE_HOTWIRED, Handle, value);
@@ -1050,15 +854,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsInteriorLightOn
 		{
-			get
-			{
-				if (MemoryAddress == IntPtr.Zero)
-				{
-					return false;
-				}
-
-				return MemoryAccess.IsBitSet(MemoryAddress + IsInteriorLightOnOffset, 6);
-			}
+			get => API.IsVehicleInteriorLightOn(Handle);
 			set
 			{
 				Function.Call(Hash.SET_VEHICLE_INTERIORLIGHT, Handle, value);

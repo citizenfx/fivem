@@ -38,13 +38,81 @@ static rage::scriptHandlerMgr* g_scriptHandlerMgr;
 
 static bool g_hasObfuscated;
 
+// see https://github.com/ivanmeler/OpenVHook/blob/b5b4d84e76feb05a988e9d69b6b5c164458341cb/OpenVHook/Scripting/ScriptEngine.cpp#L22
+#pragma pack(push, 1)
 struct NativeRegistration : public rage::sysUseAllocator
 {
-	NativeRegistration* nextRegistration;
+private:
+	uint64_t nextRegistration1;
+	uint64_t nextRegistration2;
+public:
 	rage::scrEngine::NativeHandler handlers[7];
-	uint32_t numEntries;
-	uint64_t hashes[7];
+private:
+	uint32_t numEntries1;
+	uint32_t numEntries2;
+	uint32_t pad;
+	uint64_t hashes[7 * 2];
+
+public:
+	inline NativeRegistration* getNextRegistration()
+	{
+		uintptr_t result;
+		auto v5 = reinterpret_cast<uintptr_t>(&nextRegistration1);
+		auto v12 = 2i64;
+		auto v13 = v5 ^ nextRegistration2;
+		auto v14 = (char *)&result - v5;
+		do
+		{
+			*(DWORD*)&v14[v5] = v13 ^ *(DWORD*)v5;
+			v5 += 4i64;
+			--v12;
+		} while (v12);
+
+		return reinterpret_cast<NativeRegistration*>(result);
+	}
+
+	inline void setNextRegistration(NativeRegistration* registration)
+	{
+		nextRegistration1 = ((uint64_t)&nextRegistration1 << 32) ^ ((uint32_t)&nextRegistration1 << 0) ^ (uint64_t)registration;
+		nextRegistration2 = 0;
+	}
+
+	inline uint32_t getNumEntries()
+	{
+		return ((uintptr_t)&numEntries1) ^ numEntries1 ^ numEntries2;
+	}
+
+	inline void setNumEntries(uint32_t entries)
+	{
+		numEntries1 = (uint32_t)&numEntries1 ^ entries;
+		numEntries2 = 0;
+	}
+
+	inline uint64_t getHash(uint32_t index)
+	{
+		auto naddr = 16 * index + reinterpret_cast<uintptr_t>(&nextRegistration1) + 0x54;
+		auto v8 = 2i64;
+		uint64_t nResult;
+		auto v11 = (char *)&nResult - naddr;
+		auto v10 = naddr ^ *(DWORD*)(naddr + 8);
+		do
+		{
+			*(DWORD *)&v11[naddr] = v10 ^ *(DWORD*)(naddr);
+			naddr += 4i64;
+			--v8;
+		} while (v8);
+
+		return nResult;
+	}
+
+	inline void setHash(uint32_t index, uint64_t newHash)
+	{
+		auto hash = &hashes[index * 2];
+		hash[0] = ((uint64_t)hash << 32) ^ ((uint32_t)hash << 0) ^ (uint64_t)newHash;
+		hash[1] = 0;
+	}
 };
+#pragma pack(pop)
 
 NativeRegistration** registrationTable;
 
@@ -156,11 +224,11 @@ bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 
 	NativeRegistration* table = registrationTable[hash & 0xFF];
 
-	for (; table; table = table->nextRegistration)
+	for (; table; table = table->getNextRegistration())
 	{
-		for (int i = 0; i < table->numEntries; i++)
+		for (int i = 0; i < table->getNumEntries(); i++)
 		{
-			if (hash == table->hashes[i])
+			if (hash == table->getHash(i))
 			{
 				if (g_hasObfuscated)
 				{
@@ -188,11 +256,11 @@ void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 		return;
 	}
 
-	if (registration->numEntries == 7)
+	if (registration->getNumEntries() == 7)
 	{
 		NativeRegistration* newRegistration = new NativeRegistration();
-		newRegistration->nextRegistration = registration;
-		newRegistration->numEntries = 0;
+		newRegistration->setNextRegistration(registration);
+		newRegistration->setNumEntries(0);
 
 		// should also set the entry in the registration table
 		registration = newRegistration;
@@ -204,11 +272,11 @@ void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 		handler = (scrEngine::NativeHandler)EncodePointer(handler);
 	}
 
-	uint32_t index = registration->numEntries;
-	registration->hashes[index] = hash;
+	uint32_t index = registration->getNumEntries();
+	registration->setHash(index, hash);
 	registration->handlers[index] = handler;
 
-	registration->numEntries++;
+	registration->setNumEntries(index + 1);
 }
 
 static std::vector<std::pair<uint64_t, scrEngine::NativeHandler>> g_nativeHandlers;
@@ -245,9 +313,9 @@ struct NativeObfuscation
 		{
 			NativeRegistration* table = registrationTable[i];
 
-			for (; table; table = table->nextRegistration)
+			for (; table; table = table->getNextRegistration())
 			{
-				for (size_t j = 0; j < table->numEntries; j++)
+				for (size_t j = 0; j < table->getNumEntries(); j++)
 				{
 					table->handlers[j] = (scrEngine::NativeHandler)EncodePointer(table->handlers[j]);
 				}
@@ -289,11 +357,11 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 
 		NativeRegistration* table = registrationTable[hash & 0xFF];
 
-		for (; table; table = table->nextRegistration)
+		for (; table; table = table->getNextRegistration())
 		{
-			for (int i = 0; i < table->numEntries; i++)
+			for (int i = 0; i < table->getNumEntries(); i++)
 			{
-				if (hash == table->hashes[i])
+				if (hash == table->getHash(i))
 				{
 					handler = (scrEngine::NativeHandler)/*DecodePointer(*/table->handlers[i]/*)*/;
 					HandlerFilter(&handler);
@@ -390,7 +458,7 @@ static HookFunction hookFunction([] ()
 
 	activeThreadTlsOffset = *hook::pattern("48 8B 04 D0 4A 8B 14 00 48 8B 01 F3 44 0F 2C 42 20").count(1).get(0).get<uint32_t>(-4);
 
-	location = hook::pattern("89 15 ? ? ? ? 48 8B 0C D8").count(1).get(0).get<char>(2);
+	location = hook::pattern("8B 15 ? ? ? ? 48 8B 05 ? ? ? ? FF C2").count(1).get(0).get<char>(2);
 
 	scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
 
@@ -398,7 +466,7 @@ static HookFunction hookFunction([] ()
 
 	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(location + *(int32_t*)location + 4);
 
-	location = hook::pattern("76 61 49 8B 7A 40 48 8D 0D").count(1).get(0).get<char>(9);
+	location = hook::pattern("76 32 48 8B 53 40").count(1).get(0).get<char>(9);
 
 	registrationTable = reinterpret_cast<decltype(registrationTable)>(location + *(int32_t*)location + 4);
 

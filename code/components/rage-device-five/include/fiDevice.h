@@ -124,6 +124,8 @@ public:
 
 	virtual bool IsCollection() = 0;
 
+	virtual bool m_addedIn1290() = 0;
+
 	virtual fiDevice* GetCollection() = 0; // return this
 
 	virtual bool m_ax() = 0;
@@ -236,6 +238,8 @@ public:
 	virtual int32_t m_zx(void*); // return 0x40000000
 
 	virtual bool IsCollection();
+
+	virtual bool m_addedIn1290();
 
 	virtual fiDevice* GetCollection(); // return this
 
