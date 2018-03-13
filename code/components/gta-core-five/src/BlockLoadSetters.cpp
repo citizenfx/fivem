@@ -824,8 +824,6 @@ static int ReturnInt()
 	return Value;
 }
 
-static void(*g_origError)(uint32_t, void*);
-
 static void ErrorDo(uint32_t error)
 {
 	if (error == 0xbe0e0aea) // ERR_GEN_INVALID
@@ -834,8 +832,6 @@ static void ErrorDo(uint32_t error)
 	}
 
 	trace("error function called from %p for code 0x%08x\n", _ReturnAddress(), error);
-
-	//g_origError(error, 0);
 
 	// provide pickup file for minidump handler to use
 	FILE* dbgFile = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"wb");
@@ -1333,8 +1329,7 @@ static HookFunction hookFunction([] ()
 	//hook::jump(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)), DebugBreakDo);
 
 	char* errorFunc = reinterpret_cast<char*>(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)));
-	hook::set_call(&g_origError, errorFunc + 6);
-	hook::jump(errorFunc, ErrorDo);
+	hook::jump(hook::get_call(errorFunc + 6), ErrorDo);
 
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(0x14), 5);
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), 5);
