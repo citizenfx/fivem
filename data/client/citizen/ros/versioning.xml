@@ -138,4 +138,16 @@
 		<!--<Manifest   url="DigitalData/DLCPacks4/manifest" />-->
 	</Build>
 
+	<Build version="1.0.1180.2">
+		<Launcher   version="1.0.1180.2" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_440_2.exe" />
+		<Game       version="1.0.1180.2" url="http://fivem.net/a.dll" />
+		<SocialClub version="0.0.0.0"   url="http://patches.rockstargames.com/prod/socialclub/Social%20Club%20v0.0.0.0%20Setup.exe" />
+	</Build>
+	
+	<Build version="1.0.1290.1">
+		<Launcher   version="1.0.1290.2" url="http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_440_2.exe" />
+		<Game       version="1.0.1290.1" url="http://fivem.net/a.dll" />
+		<SocialClub version="0.0.0.0"   url="http://patches.rockstargames.com/prod/socialclub/Social%20Club%20v0.0.0.0%20Setup.exe" />
+	</Build>
+
 </Versioning>

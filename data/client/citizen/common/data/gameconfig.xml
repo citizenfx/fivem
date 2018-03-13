@@ -131,11 +131,11 @@
 						</Item>
 						<Item>
 							<PoolName>CScenarioInfo</PoolName>
-							<PoolSize value="220"/>
+							<PoolSize value="420"/>
 						</Item>
 						<Item>
 							<PoolName>CScenarioPointExtraData</PoolName>
-							<PoolSize value="220"/>
+							<PoolSize value="420"/>
 						</Item>
 						<Item>
 							<PoolName>CutsceneStore</PoolName>
@@ -187,7 +187,7 @@
 						</Item>
 						<Item>
 							<PoolName>DwdStore</PoolName>
-							<PoolSize value="200000"/>
+							<PoolSize value="240000"/>
 						</Item>
 						<Item>
 							<PoolName>EntityBatch</PoolName>
@@ -199,7 +199,7 @@
 						</Item>
 						<Item>
 							<PoolName>ExprDictStore</PoolName>
-							<PoolSize value="190"/>
+							<PoolSize value="290"/>
 						</Item>
 						<Item>
 							<PoolName>FrameFilterStore</PoolName>
@@ -351,7 +351,7 @@
 						</Item>
 						<Item>
 							<PoolName>PtFxAssetStore</PoolName>
-							<PoolSize value="250"/>
+							<PoolSize value="350"/>
 						</Item>
 						<Item>
 							<PoolName>QuadTreeNodes</PoolName>
@@ -359,7 +359,7 @@
 						</Item>
 						<Item>
 							<PoolName>ScaleformStore</PoolName>
-							<PoolSize value="642"/>
+							<PoolSize value="742"/>
 						</Item>
 						<Item>
 							<PoolName>ScaleformMgrArray</PoolName>
