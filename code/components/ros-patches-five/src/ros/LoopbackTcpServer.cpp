@@ -1364,7 +1364,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 	const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\"", fxApplicationName, toolName, GetCurrentProcessId(), MakeRelativeGamePath(L"GTAVLauncher.exe").c_str());
 
 	// create a waiting event
-	HANDLE hEvent = CreateEvent(nullptr, FALSE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
+	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
 
 	// and go create the new fake process
 	PROCESS_INFORMATION pi;
