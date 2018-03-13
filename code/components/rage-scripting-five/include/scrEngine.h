@@ -127,6 +127,8 @@ public:
 										// the same pointer. The game should handle this.
 		m_nArgCount = 0;
 		m_nDataCount = 0;
+
+		memset(m_TempStack, 0, sizeof(m_TempStack));
 	}
 
 	template <typename T>
