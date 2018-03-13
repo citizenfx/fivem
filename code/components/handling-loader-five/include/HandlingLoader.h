@@ -75,7 +75,7 @@ public:
 	{
 		memcpy(this, orig, sizeof(*this));
 
-		CBaseSubHandlingData* shds[3] = { 0 };
+		CBaseSubHandlingData* shds[6] = { 0 };
 
 		for (int i = 0; i < m_subHandlingData.GetCount(); i++)
 		{
@@ -92,6 +92,9 @@ public:
 		m_subHandlingData.Set(0, shds[0]);
 		m_subHandlingData.Set(1, shds[1]);
 		m_subHandlingData.Set(2, shds[2]);
+		m_subHandlingData.Set(3, shds[3]);
+		m_subHandlingData.Set(4, shds[4]);
+		m_subHandlingData.Set(5, shds[5]);
 	}
 
 	virtual ~CHandlingData() = default;
