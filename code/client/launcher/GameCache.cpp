@@ -142,6 +142,14 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "update/x64/dlcpacks/mpgunrunning/dlc.rpf", "153bee008c16e0bcc007d76cf97999f503fc9b2a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1879756800 },
 	{ "update/x64/dlcpacks/patchday15ng/dlc.rpf", "6114122c428e901532ab6577ea7dbe2113126647", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 47478784 },
 
+	//DLCPacks15
+	{ "update/x64/dlcpacks/mpsmuggler/dlc.rpf", "ac6a3501c6e5fc2ac06a60d1bc1bd3eb8683643b", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 973670400 },
+	{ "update/x64/dlcpacks/patchday16ng/dlc.rpf", "37fae29af765ff0f2d7a5abd3d40d3a9ea7f357a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 12083200 },
+
+	//DLCPacks16
+	{ "update/x64/dlcpacks/mpchristmas2017/dlc.rpf", "16f8c031aa79f1e83b7f5ab883df3dbfcda8dddf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 2406123520 },
+	{ "update/x64/dlcpacks/patchday17ng/dlc.rpf", "7dc8639f1ffa25b3237d01aea1e9975238628952", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 59975680 },
+
 	{ "ros_1231/cef.pak", "229DD3682DDA8258497F342319CDBEC9FF35BC33", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/cef.pak", 2749972, 72795808 },
 	{ "ros_1231/cef_100_percent.pak", "E14361DB195ACF3A6676DE3C25A2F81AC3AB67B3", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/cef_100_percent.pak", 146067, 72795808 },
 	{ "ros_1231/cef_200_percent.pak", "3EF18057982B409DB394046F7C5D37F7985DEAF7", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/cef_200_percent.pak", 235262, 72795808 },
@@ -450,7 +458,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 	if (shouldAllow)
 	{
-		taskDialogConfig.pszContent = va(L"The local \x039B game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+		taskDialogConfig.pszContent = va(L"The local FiveM game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
 	}
 	else
 	{
