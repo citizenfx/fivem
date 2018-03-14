@@ -5,10 +5,16 @@
 
 #include <boost/type_index.hpp>
 
+class fwEntity;
+
 struct netObject
 {
-	char pad[75];
+	char pad[10];
+	uint16_t objectId;
+	char pad2[63];
 	bool isRemote;
+	char pad3[4];
+	fwEntity* gameObject;
 };
 
 class fwEntity
@@ -100,8 +106,73 @@ static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()
 	return hook::get_pattern("48 8D 48 08 4C 8B 01 41 FF 50 38", -0x2C);
 });
 
+static hook::cdecl_stub<netObject*(uint16_t id)> getNetObjById([]()
+{
+	return hook::get_call(hook::get_pattern("14 41 0F B7 0E E8 ? ? ? ? 48 8B C8", 5));
+});
+
+static fwEntity* GetNetworkObject(void* scriptHandler, int objectId)
+{
+	auto object = getNetObjById(objectId);
+
+	if (!object)
+	{
+		trace(__FUNCTION__ ": no object by ID %d\n", objectId);
+		return nullptr;
+	}
+
+	auto gameObject = object->gameObject;
+
+	if (!gameObject)
+	{
+		trace(__FUNCTION__ ": no game object for ID %d\n", objectId);
+		return nullptr;
+	}
+
+	return gameObject;
+}
+
 static HookFunction hookFunction([] ()
 {
+	// netObject getters
+
+	// get entity by network ID
+	hook::jump(hook::get_pattern("48 FF 62 70 48 83 C4 28", -0x18), GetNetworkObject);
+
+	// get network ID by entity
+	rage::scrEngine::NativeHandler getNetID = [](rage::scrNativeCallContext* context)
+	{
+		auto entity = getScriptEntity(context->GetArgument<int>(0));
+
+		if (!entity)
+		{
+			trace("NETWORK_GET_NETWORK_ID_FROM_ENTITY: no such entity\n");
+			return;
+		}
+
+		auto netObject = entity->netObject;
+
+		if (!netObject)
+		{
+			trace("NETWORK_GET_NETWORK_ID_FROM_ENTITY: no net object for entity\n");
+			return;
+		}
+
+		context->SetResult(0, uint64_t(netObject->objectId));
+	};
+
+	// NETWORK_GET_NETWORK_ID_FROM_ENTITY
+	rage::scrEngine::RegisterNativeHandler(0xA11700682F3AD45C, getNetID);
+
+	// VEH_TO_NET
+	rage::scrEngine::RegisterNativeHandler(0xB4C94523F023419C, getNetID);
+
+	// PED_TO_NET
+	rage::scrEngine::RegisterNativeHandler(0x0EDEC3C276198689, getNetID);
+
+	// OBJ_TO_NET
+	rage::scrEngine::RegisterNativeHandler(0x99BFDC94A603E541, getNetID);
+
 	// CGameScriptHandlerObject::GetOwner vs. GetCurrentScriptHandler checks
 
 	// common pattern:
