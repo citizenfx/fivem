@@ -130,7 +130,6 @@ void LoadCache(const char* tagName)
 
 	if (index < 0)
 	{
-		console::PrintError("cacheloader", "No such collection tag %s\n", tagName);
 		return;
 	}
 

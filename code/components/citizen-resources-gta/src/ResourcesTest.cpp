@@ -125,9 +125,6 @@ static InitFunction initFunction([] ()
 
 			auto entryListComponent = resource->GetComponent<ResourceEntryListComponent>();
 
-			streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
-			entryListComponent->list.push_front({ "RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf" });
-
 			auto view1 = metaData->GetEntries("data_file");
 			auto view2 = metaData->GetEntries("data_file_extra");
 
@@ -155,6 +152,10 @@ static InitFunction initFunction([] ()
 
 				if (map.begin() != map.end())
 				{
+					// only load resource surrogates for this_is_a_map resources (as they might involve gta_cache files)
+					streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
+					entryListComponent->list.push_front({ "RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf" });
+
 					streaming::AddDataFileToLoadList("CFX_PSEUDO_ENTRY", "RELOAD_MAP_STORE");
 				}
 			}
