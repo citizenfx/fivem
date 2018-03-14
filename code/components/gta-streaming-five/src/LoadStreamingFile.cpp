@@ -1012,9 +1012,16 @@ static HookFunction hookFunction([] ()
 	{
 		UnloadDataFiles();
 
+		std::set<std::string> tags;
+
 		for (auto& tag : g_customStreamingFilesByTag)
 		{
-			CfxCollection_RemoveStreamingTag(tag.first);
+			tags.insert(tag.first);
+		}
+
+		for (auto& tag : tags)
+		{
+			CfxCollection_RemoveStreamingTag(tag);
 		}
 
 		/*if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
