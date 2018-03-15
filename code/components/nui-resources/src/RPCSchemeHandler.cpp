@@ -88,14 +88,36 @@ public:
 				CefPostData::ElementVector elements;
 				postData->GetElements(elements);
 
-				auto element = elements[0];
+				// count the amount of bytes
+				size_t size = 0;
 
-				char* bytes = new char[element->GetBytesCount()];
-				element->GetBytes(element->GetBytesCount(), bytes);
+				for (auto& element : elements)
+				{
+					if (element->GetType() == PDE_TYPE_BYTES)
+					{
+						size += element->GetBytesCount();
+					}
+				}
 
-				postDataString = std::string(bytes, element->GetBytesCount());
+				// allocate a temporary buffer
+				std::vector<char> tempBytes(size);
 
-				delete[] bytes;
+				// get data for each element
+				size_t curPos = 0;
+
+				for (auto& element : elements)
+				{
+					if (element->GetType() == PDE_TYPE_BYTES)
+					{
+						size_t thisSize = element->GetBytesCount();
+						element->GetBytes(thisSize, &tempBytes[curPos]);
+
+						curPos += thisSize;
+					}
+				}
+				
+				// assign post data string
+				postDataString = std::string(tempBytes.data(), tempBytes.size());
 			}
 		}
 
