@@ -233,6 +233,9 @@ static bool g_reloadMapStore = false;
 
 static std::set<std::string> loadedCollisions;
 
+int GetCollectionIndexByTag(const std::string& tag);
+extern std::unordered_map<int, std::string> g_handlesToTag;
+
 static void ReloadMapStore()
 {
 	if (!g_reloadMapStore)
@@ -256,7 +259,7 @@ static void ReloadMapStore()
 
 				auto mgr = streaming::Manager::GetInstance();
 
-				if (_isResourceNotCached(mgr, obj))
+				if (_isResourceNotCached(mgr, obj) || GetCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1)
 				{
 					mgr->RequestObject(obj, 0);
 
