@@ -86,6 +86,8 @@ template<>
 five::pgDictionary<five::grcTexturePC>* convert(ny::pgDictionary<ny::grcTexturePC>* txd)
 {
 	five::pgDictionary<five::grcTexturePC>* out = new(false) five::pgDictionary<five::grcTexturePC>();
+	out->SetBlockMap();
+
 	five::pgDictionary<five::grcTexturePC> newTextures;
 
 	if (txd->GetCount()) // amazingly there's 0-sized TXDs?
