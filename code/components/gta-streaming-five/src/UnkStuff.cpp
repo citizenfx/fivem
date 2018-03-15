@@ -426,6 +426,9 @@ static HookFunction hookFunction([]()
 	// don't pass flag 4 for streaming requests of netobjs
 	hook::put<int>(hook::get_pattern("BA 06 00 00 00 41 23 CE 44 33 C1 44 23 C6 41 33", 1), 2);
 
+	// allow all procedural objects in network games
+	hook::put<uint8_t>(hook::get_pattern("F6 42 30 20 75 09", 4), 0xEB);
+
 	// limit adjuster!
 	AdjustLimits();
 });
