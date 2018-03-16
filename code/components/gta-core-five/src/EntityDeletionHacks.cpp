@@ -98,7 +98,7 @@ static hook::cdecl_stub<void(fwEntity*)> deleteObject([]()
 
 static hook::cdecl_stub<void(netObject*, bool)> sendMarkAsNoLongerNeededEvent([]()
 {
-	return hook::get_pattern("48 8B F9 40 8A EB", -34);
+	return hook::get_pattern("48 8B F9 40 8A EB FF 90 ? ? 00 00 44 8D 7B 01", -34);
 });
 
 static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()
