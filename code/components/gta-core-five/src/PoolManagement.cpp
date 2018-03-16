@@ -235,7 +235,7 @@ static void* PoolAllocateWrap(atPoolBase* pool)
 			? fmt::sprintf(" (you need to raise %s PoolSize in common/data/gameconfig.xml)", poolName)
 			: "";
 
-		FatalError("%s Pool Full, Size == %d%s", poolName, pool->GetSize(), extraWarning);
+		FatalErrorNoExcept("%s Pool Full, Size == %d%s", poolName, pool->GetSize(), extraWarning);
 	}
 
 	return value;
