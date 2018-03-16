@@ -439,6 +439,18 @@ inline void HandleDataFileList(const TList& list, const TFn& fn, const char* op 
 
 void LoadStreamingFiles(bool earlyLoad = false);
 
+static LONG FilterUnmountOperation(DataFileEntry& entry)
+{
+	if (entry.type == 174) // DLC_ITYP_REQUEST
+	{
+		trace("failed to unload DLC_ITYP_REQUEST %s\n", entry.name);
+
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 namespace streaming
 {
 	void DLL_EXPORT AddMetaToLoadList(bool before, const std::string& meta)
@@ -477,7 +489,14 @@ namespace streaming
 
 		HandleDataFileList(singlePair, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
 		{
-			return mounter->UnmountFile(&entry);
+			__try
+			{
+				return mounter->UnmountFile(&entry);
+			}
+			__except (FilterUnmountOperation(entry))
+			{
+				
+			}
 		}, "removing");
 	}
 }
