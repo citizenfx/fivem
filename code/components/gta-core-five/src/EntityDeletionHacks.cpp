@@ -96,7 +96,7 @@ static hook::cdecl_stub<void(fwEntity*)> deleteObject([]()
 	return hook::get_pattern("F6 40 70 80 75 0A", -33);
 });
 
-static hook::cdecl_stub<void(netObject*)> sendMarkAsNoLongerNeededEvent([]()
+static hook::cdecl_stub<void(netObject*, bool)> sendMarkAsNoLongerNeededEvent([]()
 {
 	return hook::get_pattern("48 8B F9 40 8A EB", -34);
 });
@@ -222,7 +222,7 @@ static HookFunction hookFunction([] ()
 		{
 			if (entity->netObject && entity->netObject->isRemote)
 			{
-				sendMarkAsNoLongerNeededEvent(entity->netObject);
+				sendMarkAsNoLongerNeededEvent(entity->netObject, false);
 			}
 			else
 			{
