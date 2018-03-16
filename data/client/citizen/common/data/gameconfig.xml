@@ -445,11 +445,11 @@
 						</Item>
 						<Item>
 							<PoolName>fwDynamicArchetypeComponent</PoolName>
-							<PoolSize value="9500"/>
+							<PoolSize value="10500"/>
 						</Item>
 						<Item>
 							<PoolName>fwDynamicEntityComponent</PoolName>
-							<PoolSize value="8192"/>
+							<PoolSize value="10500"/>
 						</Item>
 						<Item>
 							<PoolName>fwEntityContainer</PoolName>
