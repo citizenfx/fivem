@@ -83,7 +83,7 @@
 						</Item>
 						<Item>
 							<PoolName>AnimStore</PoolName>
-							<PoolSize value="13500"/>
+							<PoolSize value="13900"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
@@ -104,6 +104,10 @@
 						<Item>
 							<PoolName>CombatMeleeManager_Groups</PoolName>
 							<PoolSize value="3"/>
+						</Item>
+						<Item>
+							<PoolName>CombatMeleeManager_GroupsMP</PoolName>
+							<PoolSize value="10"/>
 						</Item>
 						<Item>
 							<PoolName>CombatMountedManager_Attacks</PoolName>
@@ -223,7 +227,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
-							<PoolSize value="1040"/>
+							<PoolSize value="1060"/>
 						</Item>
 						<Item>
 							<PoolName>IplStore</PoolName>
@@ -251,7 +255,7 @@
 						</Item>
 						<Item>
 							<PoolName>LightEntity</PoolName>
-							<PoolSize value="4000"/>
+							<PoolSize value="4200"/>
 						</Item>
 						<Item>
 							<PoolName>MapDataLoadedNode</PoolName>
@@ -420,7 +424,7 @@
 						</Item>
 						<Item>
 							<PoolName>CEvent</PoolName>
-							<PoolSize value="900"/>
+							<PoolSize value="1000"/>
 						</Item>
 						<Item>
 							<PoolName>netGameEvent</PoolName>
