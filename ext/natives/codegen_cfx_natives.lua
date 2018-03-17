@@ -421,6 +421,13 @@ native 'STOP_RESOURCE'
 	apiset 'server'
 	returns 'BOOL'
 
+native 'IS_RESOURCE_STARTED'
+	arguments {
+		charPtr 'resourceName'
+	}
+	apiset 'server'
+	returns 'BOOL'
+
 native 'GET_CONVAR'
 	arguments {
 		charPtr 'varName',
