@@ -3,9 +3,15 @@ local curThread
 local curThreadIndex
 
 function Citizen.CreateThread(threadFunction)
+	local callerInfo = debug.getinfo(2, 'Sl')
+
 	table.insert(threads, {
 		coroutine = coroutine.create(threadFunction),
-		wakeTime = 0
+		wakeTime = 0,
+		resource = GetCurrentResourceName(),
+		file = callerInfo.short_src,
+		line = callerInfo.currentline,
+		wait = 0
 	})
 end
 
@@ -19,19 +25,37 @@ end
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
-function Citizen.CreateThreadNow(threadFunction)
+function Citizen.CreateThreadNow(threadFunction, callerInfo, resource)
 	local coro = coroutine.create(threadFunction)
+
+	if not callerInfo then
+		callerInfo = debug.getinfo(2, 'Sl')
+	end
+	
+	if not resource then
+		resource = GetCurrentResourceName()
+	end
 
 	local t = {
 		coroutine = coro,
-		wakeTime = 0
+		wakeTime = 0,
+		resource = resource,
+		file = callerInfo.short_src,
+		line = callerInfo.currentline,
+		wait = 0
 	}
 
 	-- add new thread and save old thread
 	local oldThread = curThread
 	curThread = t
 
+	local startAt = GetGameTimer()
 	local result, err = coroutine.resume(coro)
+	local time = GetGameTimer() - startAt
+
+	if time > 10 then
+		Citizen.Trace("Executing thread in resource " .. t.resource .. " declared at line " .. tostring(t.line) .. " of '" .. t.file .. "' was slow : " .. time .. "ms, please verifiy what your are doing\n")
+	end
 
 	local resumedThread = curThread
 	-- restore last thread
@@ -89,9 +113,15 @@ end
 local timeouts = {}
 
 function Citizen.SetTimeout(msec, callback)
+	local callerInfo = debug.getinfo(2, 'Sl')
+
 	table.insert(threads, {
 		coroutine = coroutine.create(callback),
-		wakeTime = GetGameTimer() + msec
+		wakeTime = GetGameTimer() + msec,
+		resource = GetCurrentResourceName(),
+		file = callerInfo.short_src,
+		line = callerInfo.currentline,
+		wait = 0
 	})
 end
 
@@ -112,13 +142,21 @@ Citizen.SetTickRoutine(function()
 			if status == 'dead' then
 				table.remove(threads, i)
 			else
+				local startAt = GetGameTimer()
 				local result, err = coroutine.resume(thread.coroutine)
+				local time = GetGameTimer() - startAt
+
+				if time > 10 then
+					Citizen.Trace("Executing thread in resource " .. thread.resource .. " at line " .. tostring(thread.line) .. " of file '" .. thread.file .. "' after " .. thread.wait .. " Wait was slow : " .. time .. "ms, please verifiy what your are doing\n")
+				end
 
 				if not result then
-					Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
+					Citizen.Trace("Error resuming coroutine declared in resource ".. thread.resource .." at line " .. tostring(thread.line) .. " of file '" .. thread.file .. "':\n" .. debug.traceback(thread.coroutine, err) .. "\n")
 
 					table.remove(threads, i)
 				end
+				
+				thread.wait = thread.wait + 1
 			end
 		end
 	end
@@ -172,8 +210,8 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			-- loop through all the event handlers
 			for k, handler in pairs(eventHandlerEntry.handlers) do
 				Citizen.CreateThreadNow(function()
-					handler(table.unpack(data))
-				end)
+					handler.routine(table.unpack(data))
+				end, handler.callerInfo, handler.resource)
 			end
 		end
 	end
@@ -185,6 +223,7 @@ local eventKey = 10
 
 function AddEventHandler(eventName, eventRoutine)
 	local tableEntry = eventHandlers[eventName]
+	local callerInfo = debug.getinfo(2, 'Sl')
 
 	if not tableEntry then
 		tableEntry = { }
@@ -197,7 +236,11 @@ function AddEventHandler(eventName, eventRoutine)
 	end
 
 	eventKey = eventKey + 1
-	tableEntry.handlers[eventKey] = eventRoutine
+	tableEntry.handlers[eventKey] = {
+		routine = eventRoutine,
+		resource = GetCurrentResourceName(),
+		callerInfo = callerInfo
+	}
 
 	return {
 		key = eventKey,
