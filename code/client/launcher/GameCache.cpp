@@ -19,7 +19,7 @@ struct GameCacheEntry
 	const char* filename;
 
 	// checksum (SHA1, typically) to validate as
-	const char* checksum;
+	std::vector<const char*> checksums;
 
 	// remote path on ROS service to use
 	const char* remotePath;
@@ -35,13 +35,25 @@ struct GameCacheEntry
 
 	// constructor
 	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize)
-		: filename(filename), checksum(checksum), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
+		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
 	{
 
 	}
 
 	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize)
-		: filename(filename), checksum(checksum), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
+		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
+	{
+
+	}
+
+	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, size_t localSize)
+		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
+	{
+
+	}
+
+	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize)
+		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
 	{
 
 	}
@@ -58,7 +70,7 @@ struct GameCacheEntry
 
 		std::replace(filenameBase.begin(), filenameBase.end(), '/', '+');
 
-		return MakeRelativeCitPath(ToWide(va("cache\\game\\%s_%s", filenameBase.c_str(), checksum)));
+		return MakeRelativeCitPath(ToWide(va("cache\\game\\%s_%s", filenameBase.c_str(), checksums[0])));
 	}
 
 	std::wstring GetRemoteBaseName() const
@@ -148,7 +160,7 @@ static GameCacheEntry g_requiredEntries[] =
 
 	//DLCPacks16
 	{ "update/x64/dlcpacks/mpchristmas2017/dlc.rpf", "16f8c031aa79f1e83b7f5ab883df3dbfcda8dddf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 2406123520 },
-	{ "update/x64/dlcpacks/patchday17ng/dlc.rpf", "7dc8639f1ffa25b3237d01aea1e9975238628952", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 59975680 },
+	{ "update/x64/dlcpacks/patchday17ng/dlc.rpf", { "7dc8639f1ffa25b3237d01aea1e9975238628952", "c7163e1d8105c87b867b09928ea8346e26b27565" }, "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 59975680 },
 
 	{ "ros_1231/cef.pak", "229DD3682DDA8258497F342319CDBEC9FF35BC33", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/cef.pak", 2749972, 72795808 },
 	{ "ros_1231/cef_100_percent.pak", "E14361DB195ACF3A6676DE3C25A2F81AC3AB67B3", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.1-Setup.exe", "$/cef_100_percent.pak", 146067, 72795808 },
@@ -364,24 +376,33 @@ static std::vector<GameCacheEntry> CompareCacheDifferences()
 	for (auto& entry : g_requiredEntries)
 	{
 		// find the storage entry associated with the file and check it for validity
-		auto requiredHash = ParseHexString<20>(entry.checksum);
 		bool found = false;
 
-		for (auto& storageEntry : storageEntries)
+		for (auto& checksum : entry.checksums)
 		{
-			if (std::equal(requiredHash.begin(), requiredHash.end(), storageEntry.checksum))
+			auto requiredHash = ParseHexString<20>(checksum);
+
+			for (auto& storageEntry : storageEntries)
 			{
-				// check if the file exists
-				std::wstring cacheFileName = entry.GetCacheFileName();
-
-				if (GetFileAttributes(cacheFileName.c_str()) == INVALID_FILE_ATTRIBUTES && (GetFileAttributes(entry.GetLocalFileName().c_str()) == INVALID_FILE_ATTRIBUTES || strncmp(entry.remotePath, "nope:", 5) != 0))
+				if (std::equal(requiredHash.begin(), requiredHash.end(), storageEntry.checksum))
 				{
-					// as it doesn't add to the list
-					retval.push_back(entry);
+					// check if the file exists
+					std::wstring cacheFileName = entry.GetCacheFileName();
+
+					if (GetFileAttributes(cacheFileName.c_str()) == INVALID_FILE_ATTRIBUTES && (GetFileAttributes(entry.GetLocalFileName().c_str()) == INVALID_FILE_ATTRIBUTES || strncmp(entry.remotePath, "nope:", 5) != 0))
+					{
+						// as it doesn't add to the list
+						retval.push_back(entry);
+					}
+
+					found = true;
+
+					break;
 				}
+			}
 
-				found = true;
-
+			if (found)
+			{
 				break;
 			}
 		}
@@ -508,9 +529,15 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	for (auto& entry : entries)
 	{
 		// check if the file is outdated
-		auto hash = ParseHexString<20>(entry.checksum);
+		std::vector<std::array<uint8_t, 20>> hashes;
 
-		bool fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hash.data());
+		for (auto& checksum : entry.checksums)
+		{
+			hashes.push_back(ParseHexString<20>(checksum));
+		}
+
+		std::array<uint8_t, 20> outHash;
+		bool fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &outHash);
 
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
@@ -522,7 +549,7 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			{
 				if (FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\cache.dat").c_str(), L"ab"))
 				{
-					auto hash = ParseHexString<20>(entry.checksum);
+					auto hash = outHash;
 
 					GameCacheStorageEntry storageEntry;
 					memcpy(storageEntry.checksum, &hash[0], sizeof(storageEntry.checksum));
@@ -669,7 +696,7 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 							{
 								if (_wcsicmp(converter.from_bytes(dlEntry.archivedFile).c_str(), fileName.c_str()) == 0)
 								{
-									if (foundHashes.find(dlEntry.checksum) == foundHashes.end())
+									if (foundHashes.find(dlEntry.checksums[0]) == foundHashes.end())
 									{
 										std::wstring cacheName = dlEntry.GetCacheFileName();
 
@@ -682,7 +709,7 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 										interface.addFile(entry, cacheName);
 
-										foundHashes.insert(dlEntry.checksum);
+										foundHashes.insert(dlEntry.checksums[0]);
 									}
 								}
 							}
@@ -732,7 +759,7 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 						{
 							for (auto& entry : lastEntries)
 							{
-								auto hash = ParseHexString<20>(entry.checksum);
+								auto hash = ParseHexString<20>(entry.checksums[0]);
 
 								GameCacheStorageEntry storageEntry;
 								memcpy(storageEntry.checksum, &hash[0], sizeof(storageEntry.checksum));

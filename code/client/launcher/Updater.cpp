@@ -255,7 +255,10 @@ bool Updater_RunUpdate(int numCaches, ...)
 		manifestFile_t& file = filePair.second;
 
 		// check file hash first
-		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), file.hash);
+		std::array<uint8_t, 20> hashEntry;
+		memcpy(hashEntry.data(), file.hash, hashEntry.size());
+
+		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry });
 
 		if (fileOutdated)
 		{
@@ -303,7 +306,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 	return retval;
 }
 
-bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20])
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, std::array<uint8_t, 20>* foundHash)
 {
 	bool fileOutdated = true;
 
@@ -407,9 +410,17 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const uint8_t hash[20])
 		uint8_t outHash[20];
 		SHA1Result(&ctx, outHash);
 
-		if (!memcmp(hash, outHash, 20))
+		if (foundHash)
 		{
-			fileOutdated = false;
+			memcpy(foundHash->data(), outHash, foundHash->size());
+		}
+
+		for (auto& hash : validHashes)
+		{
+			if (memcmp(hash.data(), outHash, 20) == 0)
+			{
+				fileOutdated = false;
+			}
 		}
 	}
 
