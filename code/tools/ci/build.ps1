@@ -56,7 +56,7 @@ function Invoke-WebHook
 	    "text" = $Text;
     }
 
-    if (!$env:TG_WEBHOOK)
+    if (!($env:TG_WEBHOOK))
     {
         return
     }
@@ -204,7 +204,7 @@ if (!$DontBuild)
 
             Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
             Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
-            Remove-Item -Recurse $WorkDir\vendor\cef\$CefName\
+            Remove-Item -Recurse -Force $WorkDir\vendor\cef\$CefName\
         } catch {
             return
         }
@@ -214,21 +214,22 @@ if (!$DontBuild)
 
 	if (!($env:APPVEYOR)) {
 	    Push-Location $WorkDir\..\
+        if($env:FIVEM_PRIVATE_URI){
 
-	    # cloned, building
-	    if (!(Test-Path fivem-private)) {
-	        git clone $env:FIVEM_PRIVATE_URI
-	    } else {
-	        cd fivem-private
+            # cloned, building
+            if (!(Test-Path fivem-private)) {
+                git clone $env:FIVEM_PRIVATE_URI
+            } else {
+                cd fivem-private
 
-	        git fetch origin | Out-Null
-	        git reset --hard origin/master | Out-Null
+                git fetch origin | Out-Null
+                git reset --hard origin/master | Out-Null
 
-	        cd ..
-	    }
+                cd ..
+            }
 
-	    echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
-
+            echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
+        }
 	    Pop-Location
 	}
 
