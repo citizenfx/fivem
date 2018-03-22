@@ -266,6 +266,7 @@ static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, cons
 	curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, &curlData->errBuffer);
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYHOST, 0);
+	curl_easy_setopt(curlHandle, CURLOPT_STREAM_WEIGHT, long(options.weight));
 
 	curl_slist* headers = nullptr;
 	for (const auto& header : options.headers)

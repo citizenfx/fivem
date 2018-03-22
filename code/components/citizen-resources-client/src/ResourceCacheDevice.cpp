@@ -161,6 +161,30 @@ auto ResourceCacheDevice::AllocateHandle(THandle* idx) -> HandleData*
 	return nullptr;
 }
 
+static int GetWeightForFileName(const std::string& fileName)
+{
+	auto ext = fileName.substr(fileName.find_last_of('.'));
+
+	if (ext == ".ybn" || ext == ".ymap" || ext == ".ytyp")
+	{
+		return 128;
+	}
+	else if (ext == ".ydd")
+	{
+		return 64;
+	}
+	else if (ext == ".ydr" || ext == ".rpf" || ext == ".gfx")
+	{
+		return 32;
+	}
+	else if (fileName.find("+hi") != std::string::npos || fileName.find("_hi") != std::string::npos)
+	{
+		return 8;
+	}
+
+	return 16;
+}
+
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 {
 	PROFILE;
@@ -214,6 +238,8 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	{
 		options.headers["X-CitizenFX-Token"] = connectionToken;
 	}
+
+	options.weight = GetWeightForFileName(handleData->entry.basename);
 
 	// http request
 	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=] (bool result, const char* errorData, size_t outSize)

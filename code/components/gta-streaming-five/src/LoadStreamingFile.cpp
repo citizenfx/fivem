@@ -976,6 +976,26 @@ static const char* NormalizePath(char* out, const char* in, size_t length)
 	return out;
 }
 
+struct pgRawStreamer
+{
+	struct Entry
+	{
+		char m_pad[24];
+		const char* fileName;
+	};
+
+	char m_pad[1456];
+	Entry* m_entries[64];
+};
+
+static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, uint16_t index, char* buffer, int len)
+{
+	strncpy(buffer, streamer->m_entries[index >> 10][index & 0x3FF].fileName, len - 1);
+	buffer[len - 1] = '\0';
+
+	return buffer;
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1100,4 +1120,7 @@ static HookFunction hookFunction([] ()
 			LoadDataFiles();
 		}
 	});
+
+	// support CfxRequest for pgRawStreamer
+	hook::jump(hook::get_pattern("4D 63 C1 41 8B C2 41 81 E2 FF 03 00 00", -0xD), pgRawStreamer__GetEntryNameToBuffer);
 });

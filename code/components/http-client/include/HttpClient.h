@@ -36,6 +36,12 @@ struct HttpRequestOptions
 {
 	std::map<std::string, std::string> headers;
 	std::function<void(const ProgressInfo&)> progressCallback;
+	int weight;
+
+	inline HttpRequestOptions()
+	{
+		weight = 16;
+	}
 };
 
 class HTTP_EXPORT HttpClient

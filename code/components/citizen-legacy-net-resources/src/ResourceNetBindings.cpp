@@ -316,12 +316,6 @@ static InitFunction initFunction([] ()
 
 								uint32_t size = i->value["size"].GetUint();
 
-								// skip >16 MiB resources
-								if (size >= (16 * 1024 * 1024))
-								{
-									continue;
-								}
-
 								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size, {
 									{ "rscVersion", std::to_string(entry.rscVersion) },
 									{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
