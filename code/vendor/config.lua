@@ -24,6 +24,8 @@ vendor_component 'cpr-crt'
 vendor_component 'imgui'
 vendor_component 'enet'
 vendor_component 'tbb'
+vendor_component 'nanomsg'
+vendor_component 'nanomsgxx'
 
 vendor_component 'boost_program_options'
 vendor_component 'boost_filesystem'
