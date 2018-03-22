@@ -10,15 +10,6 @@ return {
 		language 'C'
 		kind 'StaticLib'
 		
-		if os.istarget('windows') then
-			prebuildcommands {
-				"{MKDIR} $(SolutionDir)/../../../vendor/nanomsg/include/nanomsg/",
-				"{COPY} $(SolutionDir)/../../../../vendor/nanomsg/src/ $(SolutionDir)/../../../vendor/nanomsg/include/nanomsg"
-			}
-		else
-			-- go fuck yourself for the time being
-		end
-		
 		includedirs '../vendor/nanomsg/src/'
 		
 		if os.istarget('windows') then
