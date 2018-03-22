@@ -3,13 +3,17 @@
 #include <NetAddress.h>
 #include <NetBuffer.h>
 
-#include <enet/enet.h>
+#include <GameServerComms.h>
 
 #include <ComponentHolder.h>
 
 #include <tbb/concurrent_unordered_map.h>
 
 #include <any>
+
+#include <se/Security.h>
+
+#include <enet/enet.h>
 
 namespace {
 	using namespace std::literals::chrono_literals;
@@ -26,11 +30,15 @@ namespace {
 
 namespace fx
 {
-	struct enet_peer_deleter
+	struct gs_peer_deleter
 	{
-		inline void operator()(ENetPeer* data)
+		inline void operator()(int* data)
 		{
-			enet_peer_reset(data);
+			gscomms_execute_callback_on_net_thread([=]()
+			{
+				gscomms_reset_peer(*data);
+				delete data;
+			});
 		}
 	};
 
@@ -39,7 +47,7 @@ namespace fx
 	public:
 		Client(const std::string& guid);
 
-		void SetPeer(ENetPeer* peer);
+		void SetPeer(int peer, const net::PeerAddress& peerAddress);
 
 		void SetNetId(uint32_t netId);
 
@@ -70,9 +78,9 @@ namespace fx
 			return m_peerAddress;
 		}
 
-		inline ENetPeer* GetPeer()
+		inline int GetPeer()
 		{
-			return (m_peer) ? m_peer.get() : nullptr;
+			return (m_peer) ? *m_peer.get() : 0;
 		}
 
 		inline const std::string& GetName()
@@ -129,6 +137,18 @@ namespace fx
 			m_identifiers.emplace_back(identifier);
 		}
 
+		inline auto EnterPrincipalScope()
+		{
+			std::vector<std::unique_ptr<se::ScopedPrincipal>> principals;
+
+			for (auto& identifier : this->GetIdentifiers())
+			{
+				principals.emplace_back(std::make_unique<se::ScopedPrincipal>(se::Principal{ fmt::sprintf("identifier.%s", identifier) }));
+			}
+
+			return std::move(principals);
+		}
+
 		const std::any& GetData(const std::string& key);
 
 		void SetData(const std::string& key, const std::any& data);
@@ -169,7 +189,7 @@ namespace fx
 		std::string m_tcpEndPoint;
 
 		// the client's ENet peer
-		std::unique_ptr<ENetPeer, enet_peer_deleter> m_peer;
+		std::unique_ptr<int, gs_peer_deleter> m_peer;
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;

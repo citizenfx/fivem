@@ -13,7 +13,9 @@
 		"vendor:enet",
 		"vendor:tbb",
 		"vendor:boost_random",
-		"vendor:linenoise"
+		"vendor:linenoise",
+		"vendor:nanomsg",
+		"vendor:nanomsgxx"
 	],
 	"provides": []
 }

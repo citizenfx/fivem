@@ -35,12 +35,17 @@ namespace fx
 				// regular handler map
 				if (!handled)
 				{
-					auto entry = map->Get(packetId);
-					
-					if (entry)
+					gscomms_execute_callback_on_main_thread([=]() mutable
 					{
-						(*entry)(client, packet);
-					}
+						auto scope = client->EnterPrincipalScope();
+
+						auto entry = map->Get(packetId);
+
+						if (entry)
+						{
+							(*entry)(client, packet);
+						}
+					});
 				}
 			});
 

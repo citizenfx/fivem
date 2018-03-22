@@ -9,6 +9,12 @@
 #include <MapComponent.h>
 #include <NetAddress.h>
 
+#include <nnxx/message.h>
+#include <nnxx/pipeline.h>
+#include <nnxx/socket.h>
+
+#include <boost/bimap.hpp>
+
 #include <enet/enet.h>
 
 #include <tbb/concurrent_unordered_map.h>
@@ -76,6 +82,47 @@ namespace fx
 			return m_rconPassword->GetValue();
 		}
 
+	public:
+		struct CallbackList
+		{
+			inline CallbackList(const std::string& socketName, int socketIdx)
+				: m_socketName(socketName), m_socketIdx(socketIdx)
+			{
+
+			}
+
+			void Add(const std::function<void()>& fn);
+
+			void Run(uint32_t id);
+
+		private:
+			tbb::concurrent_unordered_map<uint32_t, std::function<void()>> callbacks;
+
+			std::atomic<uint32_t> cbIdx{ 0 };
+
+			std::string m_socketName;
+
+			int m_socketIdx;
+		};
+
+		inline void InternalAddMainThreadCb(const std::function<void()>& fn)
+		{
+			m_mainThreadCallbacks.Add(fn);
+		}
+
+		inline void InternalAddNetThreadCb(const std::function<void()>& fn)
+		{
+			m_netThreadCallbacks.Add(fn);
+		}
+
+		const ENetPeer* InternalGetPeer(int peerId);
+
+		void InternalResetPeer(int peerId);
+
+		void InternalSendPacket(int peer, int channel, const net::Buffer& buffer, ENetPacketFlag flags);
+
+		void InternalRunMainThreadCbs(nnxx::socket& socket);
+
 	private:
 		void Run();
 
@@ -111,6 +158,8 @@ namespace fx
 
 		uint64_t m_serverTime;
 
+		int m_basePeerId;
+
 		ClientRegistry* m_clientRegistry;
 
 		ServerInstanceBase* m_instance;
@@ -130,6 +179,12 @@ namespace fx
 		int64_t m_nextHeartbeatTime;
 
 		tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
+
+		boost::bimap<int, ENetPeer*> m_peerHandles;
+
+		CallbackList m_mainThreadCallbacks{ "inproc://main_client", 0 };
+
+		CallbackList m_netThreadCallbacks{ "inproc://netlib_client", 1 };
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;

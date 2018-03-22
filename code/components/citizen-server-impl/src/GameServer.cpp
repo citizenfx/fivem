@@ -11,6 +11,10 @@
 
 #include <PrintListener.h>
 
+#include <msgpack.hpp>
+
+static fx::GameServer* g_gameServer;
+
 namespace fx
 {
 	ENetAddress GetENetAddress(const net::PeerAddress& peerAddress)
@@ -56,8 +60,10 @@ namespace fx
 	static std::map<ENetHost*, GameServer*> g_hostInstances;
 
 	GameServer::GameServer()
-		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0)
+		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0), m_basePeerId(0)
 	{
+		g_gameServer = this;
+
 		seCreateContext(&m_seContext);
 
 		m_seContext->MakeCurrent();
@@ -90,6 +96,8 @@ namespace fx
 		{
 			m_thread = std::thread([=]()
 			{
+				SetThreadName(-1, "[Cfx] Server Thread");
+
 				Run();
 			});
 		}, 100);
@@ -126,6 +134,88 @@ namespace fx
 				std::this_thread::sleep_for(60s);
 			}
 		}).detach();
+
+		std::thread([this]()
+		{
+			SetThreadName(-1, "[Cfx] Network Thread");
+
+			nnxx::socket netSocket{ nnxx::SP, nnxx::PULL };
+			netSocket.bind("inproc://netlib_client");
+
+			while (true)
+			{
+				// service enet with our remaining waits
+				ENetSocketSet readfds;
+				ENET_SOCKETSET_EMPTY(readfds);
+
+				for (auto& host : this->hosts)
+				{
+					ENET_SOCKETSET_ADD(readfds, host->socket);
+				}
+
+				ENET_SOCKETSET_ADD(readfds, netSocket.getopt<ENetSocket>(NN_SOL_SOCKET, NN_RCVFD));
+				enet_socketset_select(this->hosts.size(), &readfds, nullptr, 20);
+
+				for (auto& host : this->hosts)
+				{
+					this->ProcessHost(host.get());
+				}
+
+				{
+					nnxx::message message;
+
+					do 
+					{
+						message = netSocket.recv(NN_DONTWAIT);
+
+						if (!message.empty())
+						{
+							auto cbIdx = *(uint32_t*)message.data();
+
+							m_netThreadCallbacks.Run(cbIdx);
+						}
+					} while (!message.empty());
+				}
+			}
+		}).detach();
+	}
+
+	void GameServer::InternalRunMainThreadCbs(nnxx::socket& socket)
+	{
+		nnxx::message message;
+
+		do
+		{
+			message = socket.recv(NN_DONTWAIT);
+
+			if (!message.empty())
+			{
+				auto cbIdx = *(uint32_t*)message.data();
+
+				m_mainThreadCallbacks.Run(cbIdx);
+			}
+		} while (!message.empty());
+	}
+
+	const ENetPeer* GameServer::InternalGetPeer(int peerId)
+	{
+		if (peerId == 0)
+		{
+			return nullptr;
+		}
+
+		return m_peerHandles.left.find(peerId)->get_right();
+	}
+
+	void GameServer::InternalResetPeer(int peerId)
+	{
+		enet_peer_reset(m_peerHandles.left.find(peerId)->get_right());
+	}
+
+	void GameServer::InternalSendPacket(int peer, int channel, const net::Buffer& buffer, ENetPacketFlag flags)
+	{
+		auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetLength(), flags);
+		enet_peer_send(m_peerHandles.left.find(peer)->get_right(), channel, packet);
 	}
 
 	void GameServer::Run()
@@ -160,7 +250,15 @@ namespace fx
 		uint32_t msgType = msg.Read<uint32_t>();
 
 		// get the client
-		auto client = m_clientRegistry->GetClientByPeer(peer);
+		auto peerIdIt = m_peerHandles.right.find(peer);
+		int peerId = -1;
+
+		if (peerIdIt != m_peerHandles.right.end())
+		{
+			peerId = peerIdIt->get_left();
+		}
+
+		auto client = m_clientRegistry->GetClientByPeer(peerId);
 
 		// handle connection handshake message
 		if (msgType == 1)
@@ -198,7 +296,7 @@ namespace fx
 
 					client->Touch();
 
-					client->SetPeer(peer);
+					client->SetPeer(peerId, GetPeerAddress(peer->address));
 
 					if (client->GetNetId() >= 0xFFFF)
 					{
@@ -219,7 +317,10 @@ namespace fx
 
 					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
 
-					m_clientRegistry->HandleConnectedClient(client);
+					gscomms_execute_callback_on_main_thread([=]()
+					{
+						m_clientRegistry->HandleConnectedClient(client);
+					});
 
 					ForceHeartbeat();
 				}
@@ -234,12 +335,7 @@ namespace fx
 			return;
 		}
 
-		std::vector<std::unique_ptr<se::ScopedPrincipal>> principals;
-
-		for (auto& identifier : client->GetIdentifiers())
-		{
-			principals.emplace_back(std::make_unique<se::ScopedPrincipal>(se::Principal{ fmt::sprintf("identifier.%s", identifier) }));
-		}
+		auto principalScope = client->EnterPrincipalScope();
 
 		if (m_packetHandler)
 		{
@@ -267,6 +363,9 @@ namespace fx
 		{
 			switch (event.type)
 			{
+			case ENET_EVENT_TYPE_CONNECT:
+				m_peerHandles.left.insert({ ++m_basePeerId, event.peer });
+				break;
 			case ENET_EVENT_TYPE_RECEIVE:
 				ProcessPacket(event.peer, event.packet->data, event.packet->dataLength);
 				enet_packet_destroy(event.packet);
@@ -290,6 +389,55 @@ namespace fx
 		}
 
 		m_deferCallbacks.insert({ cbIdx.fetch_add(1), { m_serverTime + inMsec, fn } });
+	}
+
+	void GameServer::CallbackList::Add(const std::function<void()>& fn)
+	{
+		// find an empty slot first
+		uint32_t idx = UINT32_MAX;
+
+		for (auto& pair : callbacks)
+		{
+			if (!pair.second)
+			{
+				idx = pair.first;
+
+				pair.second = fn;
+				break;
+			}
+		}
+
+		if (idx == UINT32_MAX)
+		{
+			idx = cbIdx.fetch_add(1);
+			callbacks.insert({ idx, fn });
+		}
+
+		static thread_local nnxx::socket sockets[2];
+
+		int i = m_socketIdx;
+
+		if (!sockets[i])
+		{
+			sockets[i] = nnxx::socket{ nnxx::SP, nnxx::PUSH };
+			sockets[i].connect(m_socketName);
+		}
+
+		std::vector<int> idxList(1);
+		idxList[0] = idx;
+
+		sockets[i].send(idxList, NN_DONTWAIT);
+	}
+
+	void GameServer::CallbackList::Run(uint32_t id)
+	{
+		auto it = callbacks.find(id);
+
+		if (it != callbacks.end())
+		{
+			it->second();
+			it->second = {};
+		}
 	}
 
 	void GameServer::ProcessServerFrame(int frameTime)
@@ -396,7 +544,7 @@ namespace fx
 		// send an out-of-band error to the client
 		if (client->GetPeer())
 		{
-			SendOutOfBand({ client->GetPeer()->host, client->GetAddress() }, fmt::sprintf("error %s", realReason));
+			SendOutOfBand({ m_peerHandles.left.find(client->GetPeer())->get_right()->host, client->GetAddress() }, fmt::sprintf("error %s", realReason));
 		}
 
 		// force a hearbeat
@@ -463,6 +611,29 @@ namespace fx
 		{
 			return new fx::GameServer();
 		}
+
+		struct ThreadWait
+		{
+			ThreadWait()
+				: m_socket( nnxx::SP, nnxx::PULL )
+			{
+				m_socket.bind("inproc://main_client");
+			}
+
+			inline void operator()(const fwRefContainer<fx::GameServer>& server, int maxTime)
+			{
+				nnxx::pollfd pfds = {0};
+				pfds.fd = m_socket.fd();
+				pfds.events = NN_POLLIN;
+
+				if (nnxx::poll(&pfds, 1, maxTime) > 0)
+				{
+					server->InternalRunMainThreadCbs(m_socket);
+				}
+			}
+
+			nnxx::socket m_socket;
+		};
 
 		struct ENetWait
 		{
@@ -576,45 +747,50 @@ namespace fx
 
 		struct RconOOB
 		{
-			void Process(const fwRefContainer<fx::GameServer>& server, const AddressPair& from, const std::string_view& data) const
+			void Process(const fwRefContainer<fx::GameServer>& server, const AddressPair& from, const std::string_view& dataView) const
 			{
-				int spacePos = data.find_first_of(" \n");
+				std::string data(dataView);
 
-				auto password = data.substr(0, spacePos);
-				auto command = data.substr(spacePos);
-
-				auto serverPassword = server->GetRconPassword();
-
-				std::string printString;
-
-				PrintListenerContext context([&](const std::string_view& print)
+				gscomms_execute_callback_on_main_thread([=]()
 				{
-					printString += print;
+					int spacePos = data.find_first_of(" \n");
+
+					auto password = data.substr(0, spacePos);
+					auto command = data.substr(spacePos);
+
+					auto serverPassword = server->GetRconPassword();
+
+					std::string printString;
+
+					PrintListenerContext context([&](const std::string_view& print)
+					{
+						printString += print;
+					});
+
+					ScopeDestructor destructor([&]()
+					{
+						server->SendOutOfBand(from, "print " + printString);
+					});
+
+					if (serverPassword.empty())
+					{
+						trace("The server must set rcon_password to be able to use this command.\n");
+						return;
+					}
+
+					if (password != serverPassword)
+					{
+						trace("Invalid password.\n");
+						return;
+					}
+
+					auto ctx = server->GetInstance()->GetComponent<console::Context>();
+					ctx->ExecuteBuffer();
+
+					se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+					ctx->AddToBuffer(std::string(command));
+					ctx->ExecuteBuffer();
 				});
-
-				ScopeDestructor destructor([&]()
-				{
-					server->SendOutOfBand(from, "print " + printString);
-				});
-
-				if (serverPassword.empty())
-				{
-					trace("The server must set rcon_password to be able to use this command.\n");
-					return;
-				}
-
-				if (password != serverPassword)
-				{
-					trace("Invalid password.\n");
-					return;
-				}
-
-				auto ctx = server->GetInstance()->GetComponent<console::Context>();
-				ctx->ExecuteBuffer();
-
-				se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-				ctx->AddToBuffer(std::string(command));
-				ctx->ExecuteBuffer();
 			}
 
 			inline const char* GetName() const
@@ -788,12 +964,15 @@ namespace fx
 		{
 			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
 			{
-				std::vector<char> reason(packet.GetRemainingBytes());
-				packet.Read(reason.data(), reason.size());
+				gscomms_execute_callback_on_main_thread([=]() mutable
+				{
+					std::vector<char> reason(packet.GetRemainingBytes());
+					packet.Read(reason.data(), reason.size());
 
-				auto gameServer = instance->GetComponent<fx::GameServer>();
+					auto gameServer = instance->GetComponent<fx::GameServer>();
 
-				gameServer->DropClient(client, "%s", reason.data());
+					gameServer->DropClient(client, "%s", reason.data());
+				});
 			}
 
 			inline static constexpr const char* GetPacketId()
@@ -811,6 +990,37 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithProcessTick.h>
 #include <decorators/WithPacketHandler.h>
 
+void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn)
+{
+	g_gameServer->InternalAddMainThreadCb(fn);
+}
+
+void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn)
+{
+	g_gameServer->InternalAddNetThreadCb(fn);
+}
+
+void gscomms_reset_peer(int peer)
+{
+	gscomms_execute_callback_on_net_thread([=]()
+	{
+		g_gameServer->InternalResetPeer(peer);
+	});
+}
+
+void gscomms_send_packet(int peer, int channel, const net::Buffer& buffer, ENetPacketFlag flags)
+{
+	gscomms_execute_callback_on_net_thread([=]()
+	{
+		g_gameServer->InternalSendPacket(peer, channel, buffer, flags);
+	});
+}
+
+const ENetPeer* gscomms_get_peer(int peer)
+{
+	return g_gameServer->InternalGetPeer(peer);
+}
+
 static InitFunction initFunction([]()
 {
 	enet_initialize();
@@ -821,7 +1031,7 @@ static InitFunction initFunction([]()
 
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler>(
-				WithProcessTick<ENetWait, GameServerTick>(
+				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOOB, GetStatusOOB, RconOOB>(
 						WithEndPoints(
 							NewGameServer()

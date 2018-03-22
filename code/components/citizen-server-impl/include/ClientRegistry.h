@@ -55,7 +55,7 @@ namespace fx
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientByPeer(ENetPeer* peer)
+		inline std::shared_ptr<Client> GetClientByPeer(int peer)
 		{
 			auto ptr = std::shared_ptr<Client>();
 			auto it = m_clientsByPeer.find(peer);
@@ -164,7 +164,7 @@ namespace fx
 		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByConnectionToken;
-		tbb::concurrent_unordered_map<ENetPeer*, std::weak_ptr<Client>> m_clientsByPeer;
+		tbb::concurrent_unordered_map<int, std::weak_ptr<Client>> m_clientsByPeer;
 
 		std::atomic<uint16_t> m_curNetId;
 

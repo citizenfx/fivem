@@ -42,8 +42,8 @@ Buffer::Buffer(size_t length)
 
 Buffer::Buffer(const Buffer& other)
 {
-	m_curOff = 0;
-	m_end = false;
+	m_curOff = other.m_curOff;
+	m_end = other.m_end;
 
 	m_bytes = other.GetBytes();
 }
