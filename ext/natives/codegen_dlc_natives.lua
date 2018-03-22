@@ -4321,7 +4321,7 @@ native "_HAS_VEHICLE_JUMPING_ABILITY"
 		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0x99093F60746708CA"
 	hash "0x99093F60746708CA"
@@ -4347,7 +4347,7 @@ native "_GET_HAS_LOWERABLE_WHEELS"
 		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "_HAS_VEHICLE_ROCKET_BOOST"
 	hash "0x36D782F68B309BDA"
@@ -4355,7 +4355,7 @@ native "_HAS_VEHICLE_ROCKET_BOOST"
 		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0xBA91D045575699AD"
 	hash "0xBA91D045575699AD"
@@ -4373,7 +4373,7 @@ native "_DOES_VEHICLE_HAVE_DOOR"
 		int "doorIndex",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0x1DA0DA9CB3F0C8BF"
 	hash "0x1DA0DA9CB3F0C8BF"
@@ -4397,7 +4397,7 @@ native "_CAN_VEHICLE_PARACHUTE_BE_ACTIVATED"
 		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "_GET_VEHICLE_INTERIOR_COLOUR"
 	hash "0x7D1464D472D32136"
@@ -4433,7 +4433,7 @@ native "_HAS_VEHICLE_PARACHUTE"
 		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0x6EAAEFC76ACC311F"
 	hash "0x6EAAEFC76ACC311F"
@@ -4531,7 +4531,7 @@ native "_IS_VEHICLE_ROCKET_BOOST_ACTIVE"
 		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "_IS_THIS_MODEL_AN_AMPHIBIOUS_CAR"
 	hash "0x633F6F44A537EBB6"
@@ -4539,7 +4539,7 @@ native "_IS_THIS_MODEL_AN_AMPHIBIOUS_CAR"
 		Hash "model",
 	}
 	ns "VEHICLE"
-	returns	"Any"
+	returns	"BOOL"
 
 native "0xA1A9FC1C76A6730D"
 	hash "0xA1A9FC1C76A6730D"
