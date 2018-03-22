@@ -78,6 +78,8 @@ std::string GetFilePath(const std::string& str)
 
 #include <cpr/cpr.h>
 
+std::string GetOwnershipPath();
+
 static InitFunction initFunction([] ()
 {
 	EndpointMapper* mapper = Instance<EndpointMapper>::Get();
@@ -145,6 +147,8 @@ static InitFunction initFunction([] ()
 
 			if (r.status_code != 200)
 			{
+				DeleteFileW(ToWide(GetOwnershipPath()).c_str());
+
 				FatalError("Could not contact entitlement service. Status code: %d, error message: %d/%s, response body: %s", r.status_code, (int)r.error.code, r.error.message, r.text);
 			}
 
