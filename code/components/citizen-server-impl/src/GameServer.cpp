@@ -435,7 +435,11 @@ namespace fx
 
 		if (it != callbacks.end())
 		{
-			it->second();
+			if (it->second)
+			{
+				it->second();
+			}
+
 			it->second = {};
 		}
 	}
