@@ -1,21 +1,21 @@
 return {
 	include = function()
 		includedirs 'vendor/nanomsg/include/'
-		
-		defines { 'NN_STATIC_LIB' }
 	end,
 	
 	run = function()
 		targetname 'nanomsg'
 		language 'C'
-		kind 'StaticLib'
+		kind 'SharedLib'
 		
 		includedirs '../vendor/nanomsg/src/'
 		
 		if os.istarget('windows') then
+			links { 'ws2_32', 'mswsock' }
+		
 			defines { 'NN_HAVE_WINDOWS', 'NN_USE_WINSOCK' }
 		else
-			defines { 'NN_HAVE_LINUX', 'NN_USE_EVENTFD' }
+			defines { 'NN_HAVE_LINUX', 'NN_USE_EVENTFD', 'NN_USE_EPOLL', 'NN_HAVE_POLL', 'NN_HAVE_SEMAPHORE', 'NN_HAVE_MSG_CONTROL' }
 		end
 		
 		files_project '../vendor/nanomsg/src/' {
@@ -229,5 +229,12 @@ return {
 			'transports/ws/sha1.h',
 			'transports/ws/sha1.c',
 		}
+		
+		if not os.istarget('windows') then
+			files_project '../vendor/nanomsg/src/' {
+				'aio/poller.c',
+				'aio/poller.h'
+			}
+		end
 	end
 }
