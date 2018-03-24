@@ -66,6 +66,8 @@ public:
 
 	virtual bool RemoveDirectory(const std::string& name);
 
+	virtual uint32_t GetAttributes(const std::string& filename);
+
 	virtual size_t GetLength(THandle handle);
 
 	virtual size_t GetLength(const std::string& fileName);

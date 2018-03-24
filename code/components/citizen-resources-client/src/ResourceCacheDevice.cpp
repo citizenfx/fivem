@@ -481,6 +481,18 @@ size_t ResourceCacheDevice::GetLength(const std::string& fileName)
 	return -1;
 }
 
+uint32_t ResourceCacheDevice::GetAttributes(const std::string& fileName)
+{
+	auto entry = GetEntryForFileName(fileName);
+
+	if (entry)
+	{
+		return 0;
+	}
+
+	return -1;
+}
+
 #define VFS_GET_RAGE_PAGE_FLAGS 0x20001
 
 struct ResourceFlags

@@ -195,5 +195,7 @@ public:
 
 	virtual size_t GetLength(const std::string& fileName) override;
 
+	virtual uint32_t GetAttributes(const std::string& filename) override;
+
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 };

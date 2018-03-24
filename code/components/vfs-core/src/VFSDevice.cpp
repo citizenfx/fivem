@@ -89,6 +89,22 @@ size_t Device::GetLength(THandle handle)
 	return retval;
 }
 
+uint32_t Device::GetAttributes(const std::string& filename)
+{
+	uint32_t attributes = INVALID_FILE_ATTRIBUTES;
+
+	uint64_t handle = Open(filename, true);
+
+	if (handle != -1)
+	{
+		attributes = 0;
+
+		Close(handle);
+	}
+
+	return attributes;
+}
+
 void Device::SetPathPrefix(const std::string& pathPrefix)
 {
 

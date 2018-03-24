@@ -18,10 +18,14 @@
 
 #include <Error.h>
 
+#include <optional>
+
 class RageVFSDeviceAdapter : public rage::fiCustomDevice
 {
 private:
 	fwRefContainer<vfs::Device> m_cfxDevice;
+
+	std::optional<bool> m_collectionCache;
 
 public:
 	RageVFSDeviceAdapter(fwRefContainer<vfs::Device> device);
@@ -229,18 +233,7 @@ bool RageVFSDeviceAdapter::SetFileTime(const char* file, FILETIME fileTime)
 
 uint32_t RageVFSDeviceAdapter::GetFileAttributes(const char* path)
 {
-	uint32_t attributes = INVALID_FILE_ATTRIBUTES;
-
-	uint64_t handle = Open(path, true);
-
-	if (handle != -1)
-	{
-		attributes = 0;
-		
-		Close(handle);
-	}
-
-	return attributes;
+	return m_cfxDevice->GetAttributes(path);
 }
 
 uint64_t RageVFSDeviceAdapter::FindFirst(const char* folder, rage::fiFindData* findData)
@@ -326,6 +319,8 @@ public:
 	virtual bool FindNext(THandle handle, vfs::FindData* findData) override;
 
 	virtual void FindClose(THandle handle) override;
+
+	virtual uint32_t GetAttributes(const std::string& filename) override;
 
 	virtual void SetPathPrefix(const std::string& pathPrefix) override;
 
@@ -434,6 +429,11 @@ size_t RageVFSDevice::GetLength(const std::string& fileName)
 	return m_device->GetFileLengthLong(fileName.substr(m_pathPrefixLength).c_str());
 }
 
+uint32_t RageVFSDevice::GetAttributes(const std::string& fileName)
+{
+	return m_device->GetFileAttributes(fileName.substr(m_pathPrefixLength).c_str());
+}
+
 THandle RageVFSDevice::FindFirst(const std::string& folder, vfs::FindData* findData)
 {
 	rage::fiFindData findDataOrig;
@@ -502,19 +502,29 @@ bool RageVFSDevice::ExtensionCtl(int controlIdx, void* controlData, size_t contr
 
 bool RageVFSDeviceAdapter::IsCollection()
 {
+	if (m_collectionCache)
+	{
+		return *m_collectionCache;
+	}
+
 	try
 	{
 		auto rageDevice = dynamic_cast<RageVFSDevice*>(m_cfxDevice.GetRef());
 
 		if (rageDevice != nullptr)
 		{
-			return rageDevice->IsCollection();
+			bool isCollection = rageDevice->IsCollection();
+			m_collectionCache = isCollection;
+			
+			return isCollection;
 		}
 	}
 	catch (std::bad_typeid)
 	{
 
 	}
+
+	m_collectionCache = false;
 
 	return false;
 }
