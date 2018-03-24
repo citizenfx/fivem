@@ -60,7 +60,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    #- master
+    - master
     - feature/update-to-1290
   tags:
     - linux
