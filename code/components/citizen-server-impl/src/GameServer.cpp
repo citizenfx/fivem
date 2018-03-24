@@ -13,6 +13,8 @@
 
 #include <msgpack.hpp>
 
+#include <nnxx/poll.h>
+
 static fx::GameServer* g_gameServer;
 
 namespace fx
@@ -626,11 +628,13 @@ namespace fx
 
 			inline void operator()(const fwRefContainer<fx::GameServer>& server, int maxTime)
 			{
-				nnxx::pollfd pfds = {0};
-				pfds.fd = m_socket.fd();
-				pfds.events = NN_POLLIN;
+				nn_pollfd pfd = { 0 };
+				pfd.fd = m_socket.fd();
+				pfd.events = NN_POLLIN;
 
-				if (nnxx::poll(&pfds, 1, maxTime) > 0)
+				int res = nn_poll(&pfd, 1, maxTime);
+
+				if (res >= 0 && pfd.revents & NN_POLLIN)
 				{
 					server->InternalRunMainThreadCbs(m_socket);
 				}
