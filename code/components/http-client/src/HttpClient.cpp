@@ -28,6 +28,7 @@ public:
 	bool shouldRun;
 	std::thread thread;
 	tbb::concurrent_queue<CURL*> handlesToAdd;
+	tbb::concurrent_queue<std::function<void()>> cbsToRun;
 
 	HttpClientImpl()
 		: multi(nullptr), shouldRun(true)
@@ -54,6 +55,10 @@ public:
 	std::function<void(const ProgressInfo&)> progressCallback;
 	std::stringstream ss;
 	char errBuffer[CURL_ERROR_SIZE];
+	CURL* curlHandle;
+	HttpClientImpl* impl;
+	int defaultWeight;
+	int weight;
 
 	CurlData();
 
@@ -134,6 +139,16 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 				}
 			}
 
+			// run callback queue
+			{
+				std::function<void()> runCb;
+
+				while (m_impl->cbsToRun.try_pop(runCb))
+				{
+					runCb();
+				}
+			}
+
 			// run iteration
 			CURLMcode mc;
 			int numfds;
@@ -162,8 +177,9 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 						char* dataPtr;
 						curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
 
-						CurlData* data = reinterpret_cast<CurlData*>(dataPtr);
-						data->HandleResult(curl, result);
+						auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
+						(*data)->HandleResult(curl, result);
+						(*data)->curlHandle = nullptr;
 
 						delete data;
 
@@ -176,7 +192,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 				lastRunning = nowRunning;
 			}
 
-			mc = curl_multi_wait(m_impl->multi, nullptr, 0, 50, &numfds);
+			mc = curl_multi_wait(m_impl->multi, nullptr, 0, 20, &numfds);
 
 			if (mc != CURLM_OK)
 			{
@@ -186,7 +202,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 
 			if (numfds == 0)
 			{
-				std::this_thread::sleep_for(50ms);
+				std::this_thread::sleep_for(20ms);
 			}
 		} while (m_impl->shouldRun);
 	}));
@@ -224,14 +240,15 @@ static std::string MakeURL(const std::wstring& host, uint16_t port, const std::w
 
 static auto CurlWrite(char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t
 {
-	CurlData* cd = reinterpret_cast<CurlData*>(userdata);
+	auto cd = reinterpret_cast<std::shared_ptr<CurlData>*>(userdata);
 
-	return cd->HandleWrite(ptr, size, nmemb);
+	return (*cd)->HandleWrite(ptr, size, nmemb);
 }
 
 static int CurlXferInfo(void *userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
-	CurlData* cd = reinterpret_cast<CurlData*>(userdata);
+	auto cdPtr = reinterpret_cast<std::shared_ptr<CurlData>*>(userdata);
+	CurlData* cd = cdPtr->get();
 
 	if (cd->progressCallback)
 	{
@@ -245,20 +262,25 @@ static int CurlXferInfo(void *userdata, curl_off_t dltotal, curl_off_t dlnow, cu
 	return 0;
 }
 
-static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
+static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientImpl* impl, const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	auto curlHandle = curl_easy_init();
 
-	auto curlData = new CurlData();
+	auto curlData = std::make_shared<CurlData>();
 	curlData->url = url;
 	curlData->callback = callback;
 	curlData->progressCallback = options.progressCallback;
+	curlData->curlHandle = curlHandle;
+	curlData->impl = impl;
+	curlData->defaultWeight = curlData->weight = options.weight;
+
+	auto curlDataPtr = new std::shared_ptr<CurlData>(curlData);
 
 	curl_easy_setopt(curlHandle, CURLOPT_URL, curlData->url.c_str());
-	curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, curlData);
-	curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, curlData);
+	curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, curlDataPtr);
+	curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, curlDataPtr);
 	curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, CurlWrite);
-	curl_easy_setopt(curlHandle, CURLOPT_XFERINFODATA, curlData);
+	curl_easy_setopt(curlHandle, CURLOPT_XFERINFODATA, curlDataPtr);
 	curl_easy_setopt(curlHandle, CURLOPT_XFERINFOFUNCTION, CurlXferInfo);
 	curl_easy_setopt(curlHandle, CURLOPT_NOPROGRESS, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
@@ -279,51 +301,99 @@ static std::tuple<CURL*, CurlData*> SetupCURLHandle(const std::string& url, cons
 	return { curlHandle, curlData };
 }
 
-void HttpClient::DoGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::function<void(bool, const char*, size_t)>& callback)
+class HttpRequestHandleImpl : public HttpRequestHandle
+{
+private:
+	std::shared_ptr<CurlData> m_request;
+
+public:
+	HttpRequestHandleImpl(const std::shared_ptr<CurlData>& reqData)
+		: m_request(reqData)
+	{
+
+	}
+
+	virtual bool HasCompleted() override
+	{
+		return m_request->curlHandle == nullptr;
+	}
+
+	virtual void SetRequestWeight(int weight) override
+	{
+		int newWeight = weight;
+
+		if (newWeight == -1)
+		{
+			newWeight = m_request->defaultWeight;
+		}
+
+		if (m_request->weight == newWeight)
+		{
+			return;
+		}
+
+		auto request = m_request;
+		request->weight = newWeight;
+
+		request->impl->cbsToRun.push([request, newWeight]()
+		{
+			if (request->curlHandle)
+			{
+				curl_easy_setopt(request->curlHandle, CURLOPT_STREAM_WEIGHT, long(newWeight));
+			}
+		});
+	}
+};
+
+static HttpRequestPtr SetupRequestHandle(const std::shared_ptr<CurlData>& data)
+{
+	return std::make_shared<HttpRequestHandleImpl>(data);
+}
+
+HttpRequestPtr HttpClient::DoGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	auto urlStr = MakeURL(host, port, url);
 
-	DoGetRequest(urlStr, callback);
+	return DoGetRequest(urlStr, callback);
 }
 
-void HttpClient::DoGetRequest(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoGetRequest(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback)
 {
-	CURL* curlHandle;
-	CurlData* curlData;
-
-	std::tie(curlHandle, curlData) = SetupCURLHandle(url, {}, callback);
+	auto [curlHandle, curlData] = SetupCURLHandle(m_impl, url, {}, callback);
 
 	m_impl->AddCurlHandle(curlHandle);
+
+	return SetupRequestHandle(curlData);
 }
 
-void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoPostRequest(host, port, url, BuildPostString(fields), callback);
 }
 
-void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoPostRequest(host, port, url, postData, {}, callback);
 }
 
-void HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+HttpRequestPtr HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
 {
 	auto urlStr = MakeURL(host, port, url);
 
 	return DoPostRequest(urlStr, postData, headersMap, callback, headerCallback);
 }
 
-void HttpClient::DoPostRequest(const std::string& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoPostRequest(url, BuildPostString(fields), callback);
 }
 
-void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoPostRequest(url, postData, HttpRequestOptions{}, callback);
 }
 
-void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const fwMap<fwString, fwString>& headersMap, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
 {
 	HttpRequestOptions options;
 	options.headers = headersMap;
@@ -331,13 +401,10 @@ void HttpClient::DoPostRequest(const std::string& url, const std::string& postDa
 	return DoPostRequest(url, postData, options, callback, headerCallback);
 }
 
-void HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
 {
 	// make handle
-	CURL* curlHandle;
-	CurlData* curlData;
-
-	std::tie(curlHandle, curlData) = SetupCURLHandle(url, options, callback);
+	auto [curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
 
 	// assign post data
 	curlData->postData = postData;
@@ -346,33 +413,33 @@ void HttpClient::DoPostRequest(const std::string& url, const std::string& postDa
 
 	// write out
 	m_impl->AddCurlHandle(curlHandle);
+
+	return SetupRequestHandle(curlData);
 }
 
-void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoFileGetRequest(host, port, url, vfs::GetDevice(outDeviceBase), outFilename, callback);
 }
 
-void HttpClient::DoFileGetRequest(const std::string& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoFileGetRequest(url, vfs::GetDevice(outDeviceBase), outFilename, callback);
 }
 
-void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoFileGetRequest(MakeURL(host, port, url), outDevice, outFilename, callback);
 }
 
-void HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoFileGetRequest(urlStr, outDevice, outFilename, {}, callback);
 }
 
-void HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
 {
-	CURL* curlHandle;
-	CurlData* curlData;
-	std::tie(curlHandle, curlData) = SetupCURLHandle(urlStr, options, callback);
+	auto [curlHandle, curlData] = SetupCURLHandle(m_impl, urlStr, options, callback);
 
 	auto handle = outDevice->Create(outFilename);
 
@@ -389,9 +456,11 @@ void HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs:
 	};
 
 	m_impl->AddCurlHandle(curlHandle);
+
+	return SetupRequestHandle(curlData);
 }
 
-void HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, rage::fiDevice* outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
+HttpRequestPtr HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, rage::fiDevice* outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoFileGetRequest(host, port, url, vfs::GetNativeDevice(outDevice), outFilename, callback);
 }
