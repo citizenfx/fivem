@@ -1005,7 +1005,7 @@ static HookFunction hookFunction([] ()
 	// level load
 	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3").count(1).get(0).get<void>(18);
 	hook::set_call(&dataFileMgr__loadDat, hookPoint);
-	//hook::call(hookPoint, LoadLevelDatHook);
+	hook::call(hookPoint, LoadDats);
 
 	//hookPoint = hook::pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 41 8B CE E8 ? ? ? ?").count(1).get(0).get<void>(0); //Jayceon - If I understood right, is this what we were supposed to do? It seems wrong to me
 	hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 1D ? ? ? ? 41 8B F7").count(1).get(0).get<void>(0);
