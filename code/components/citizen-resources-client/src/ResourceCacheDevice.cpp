@@ -167,22 +167,22 @@ static int GetWeightForFileName(const std::string& fileName)
 
 	if (ext == ".ybn" || ext == ".ymap" || ext == ".ytyp")
 	{
+		return 255;
+	}
+	else if (ext == ".ydd" || ext == ".ydr")
+	{
 		return 128;
 	}
-	else if (ext == ".ydd")
+	else if (ext == ".ytd" || ext == ".rpf" || ext == ".gfx")
 	{
 		return 64;
 	}
-	else if (ext == ".ydr" || ext == ".rpf" || ext == ".gfx")
-	{
-		return 32;
-	}
 	else if (fileName.find("+hi") != std::string::npos || fileName.find("_hi") != std::string::npos)
 	{
-		return 8;
+		return 16;
 	}
 
-	return 16;
+	return 32;
 }
 
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
@@ -242,7 +242,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	options.weight = GetWeightForFileName(handleData->entry.basename);
 
 	// http request
-	m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=] (bool result, const char* errorData, size_t outSize)
+	handleData->getRequest = m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=] (bool result, const char* errorData, size_t outSize)
 	{
 		if (result)
 		{
@@ -253,6 +253,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		if (!result || outSize == 0)
 		{
 			handleData->status = HandleData::StatusError;
+			handleData->getRequest = {};
 
 			ICoreGameInit* init = Instance<ICoreGameInit>::Get();
 			std::string reason;
@@ -314,6 +315,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			MarkFetched(handleData);
 
 			handleData->status = HandleData::StatusFetched;
+			handleData->getRequest = {};
 		}
 
 		// unblock the mutex
@@ -371,8 +373,19 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 	bool fetched = EnsureFetched(handleData);
 
 	// special sentinel for PatchStreamingPreparation to determine if file is fetched
-	if (size == 0xFFFFFFFE)
+	if (size == 0xFFFFFFFE || size == 0xFFFFFFFD)
 	{
+		auto getRequest = handleData->getRequest;
+
+		if (getRequest)
+		{
+			// if FFFFFFFE, this is an active request; if FFFFFFFD, this isn't
+			// no ExtensionCtl support exists for RageVFSDeviceAdapter yet, so we do it this way
+			int newWeight = (size == 0xFFFFFFFE) ? -1 : 1;
+
+			getRequest->SetRequestWeight(newWeight);
+		}
+
 		return (handleData->status == HandleData::StatusFetched) ? 2048 : 0;
 	}
 

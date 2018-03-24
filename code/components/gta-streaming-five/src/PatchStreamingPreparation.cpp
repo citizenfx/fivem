@@ -7,6 +7,8 @@
 #include <Error.h>
 #include <ICoreGameInit.h>
 
+#include <nutsnbolts.h>
+
 #include <Brofiler.h>
 
 static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
@@ -19,16 +21,87 @@ static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
 });
 
-static std::set<std::string> g_lastSeenRequests;
+static std::unordered_map<std::string, uint32_t> g_thisSeenRequests;
 static std::set<std::string> g_erasureQueue;
+
+#include <mmsystem.h>
+
+static void ProcessErasure()
+{
+	// this test isn't too accurate but it should at least erase abandoned handles from RCD
+	{
+		for (auto& request : g_thisSeenRequests)
+		{
+			if ((timeGetTime() - request.second) > 500)
+			{
+				auto it = g_handleMap.find(request.first);
+
+				if (it != g_handleMap.end())
+				{
+					g_erasureQueue.insert(request.first);
+				}
+			}
+			else
+			{
+				g_erasureQueue.erase(request.first);
+			}
+		}
+	}
+
+	// erasing these entries is deferred since closing an in-transit entry in ResourceCacheDevice will cause download corruption of sorts
+	{
+		for (auto it = g_erasureQueue.begin(); it != g_erasureQueue.end(); )
+		{
+			auto entry = *it;
+
+			// should be removed from the erasure queue?
+			bool erased = false;
+
+			// get the handle data
+			auto hIt = g_handleMap.find(entry);
+
+			if (hIt != g_handleMap.end())
+			{
+				auto[device, handle, ptr] = hIt->second;
+
+				// perform a status bulk read
+				char readBuffer[2048];
+				uint32_t numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFD);
+
+				// download completed?
+				if (numRead != 0)
+				{
+					// erase the entry
+					device->CloseBulk(handle);
+					g_handleMap.erase(hIt);
+
+					erased = true;
+				}
+			}
+			else
+			{
+				// no longer relevant to us, remove from erasure queue
+				erased = true;
+			}
+
+			// increase iterator if needed
+			if (!erased)
+			{
+				it++;
+			}
+			else
+			{
+				it = g_erasureQueue.erase(it);
+			}
+		}
+	}
+}
 
 static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, int* requests, int a5, int a6, int a7)
 {
 	PROFILE;
 
 	int remainingRequests = g_origHandleObjectLoad(streaming, a2, a3, requests, a5, a6, a7);
-
-	std::set<std::string> seenRequests;
 
 	for (int i = remainingRequests - 1; i >= 0; i--)
 	{
@@ -76,7 +149,7 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 			{
 				BROFILER_EVENT("isCache");
 
-				seenRequests.insert(fileName);
+				g_thisSeenRequests[fileName] = timeGetTime();
 
 				rage::fiDevice* device;
 				uint64_t handle;
@@ -148,80 +221,6 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 		}
 	}
 
-	// this test isn't too accurate but it should at least erase abandoned handles from RCD
-	{
-		std::vector<std::string> missingFileNames;
-		std::set_difference(g_lastSeenRequests.begin(), g_lastSeenRequests.end(), seenRequests.begin(), seenRequests.end(), std::back_inserter(missingFileNames));
-
-		for (auto& entry : missingFileNames)
-		{
-			auto it = g_handleMap.find(entry);
-
-			if (it != g_handleMap.end())
-			{
-				g_erasureQueue.insert(entry);
-			}
-		}
-
-		static int counter;
-
-		if ((counter % 2) == 0)
-		{
-			g_lastSeenRequests = std::move(seenRequests);
-			counter = 0;
-		}
-
-		++counter;
-	}
-
-	// erasing these entries is deferred since closing an in-transit entry in ResourceCacheDevice will cause download corruption of sorts
-	{
-		for (auto it = g_erasureQueue.begin(); it != g_erasureQueue.end(); )
-		{
-			auto entry = *it;
-
-			// should be removed from the erasure queue?
-			bool erased = false;
-
-			// get the handle data
-			auto hIt = g_handleMap.find(entry);
-
-			if (hIt != g_handleMap.end())
-			{
-				auto[device, handle, ptr] = hIt->second;
-
-				// perform a status bulk read
-				char readBuffer[2048];
-				uint32_t numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFE);
-
-				// download completed?
-				if (numRead != 0)
-				{
-					// erase the entry
-					device->CloseBulk(handle);
-					g_handleMap.erase(hIt);
-
-					erased = true;
-				}
-			}
-			else
-			{
-				// no longer relevant to us, remove from erasure queue
-				erased = true;
-			}
-
-			// increase iterator if needed
-			if (!erased)
-			{
-				it++;
-			}
-			else
-			{
-				it = g_erasureQueue.erase(it);
-			}
-		}
-	}
-
 	return remainingRequests;
 }
 
@@ -231,6 +230,11 @@ static HookFunction hookFunction([] ()
 	auto location = hook::get_pattern("89 7C 24 28 4C 8D 7C 24 40 89 44 24 20 E8", 13);
 	hook::set_call(&g_origHandleObjectLoad, location);
 	hook::call(location, HandleObjectLoadWrap);
+
+	OnMainGameFrame.Connect([]()
+	{
+		ProcessErasure();
+	});
 
 	// parallelize streaming (force 'disable parallel streaming' flag off)
 	hook::put<uint8_t>(hook::get_pattern("C0 C6 05 ? ? ? ? 01 44 88 35", 7), 0);

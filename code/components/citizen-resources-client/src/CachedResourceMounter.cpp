@@ -137,11 +137,6 @@ pplx::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(con
 		// verify if we even had an entry called 'resource.rpf'
 		if (entryList->GetEntry("resource.rpf"))
 		{
-			/*if ((entryList->GetEntry("resource.rpf")->referenceHash == "D5541B91516FE7C823B99E261BD8C64D04B24F83" && resource->GetName().find("_new") != std::string::npos))
-			{
-				FatalError("This server has been blacklisted for violating the FiveM Terms of Service. If you manage this server and feel this is not justified, please contact your Technical Account Manager.");
-			}*/
-
 			// follow up by mounting resource.rpf (using the legacy mounter) from the resource on a background thread
 			return pplx::create_task([=]()
 			{

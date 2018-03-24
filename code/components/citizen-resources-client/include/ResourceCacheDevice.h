@@ -123,6 +123,8 @@ protected:
 		size_t downloadProgress;
 		size_t downloadSize;
 
+		HttpRequestPtr getRequest;
+
 		inline HandleData()
 			: status(StatusEmpty), parentHandle(vfs::Device::InvalidHandle), downloadProgress(0), downloadSize(0)
 		{
