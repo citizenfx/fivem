@@ -91,7 +91,7 @@ size_t Device::GetLength(THandle handle)
 
 uint32_t Device::GetAttributes(const std::string& filename)
 {
-	uint32_t attributes = INVALID_FILE_ATTRIBUTES;
+	uint32_t attributes = -1;
 
 	uint64_t handle = Open(filename, true);
 
