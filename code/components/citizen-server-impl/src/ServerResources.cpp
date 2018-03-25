@@ -196,7 +196,7 @@ static InitFunction initFunction([]()
 				});
 
 				trace("Started resource %s\n", resource->GetName());
-			}, 1000);
+			}, 99999999);
 
 			resource->OnStop.Connect([=]()
 			{
