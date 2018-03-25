@@ -158,6 +158,11 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	}
 
 	pplx::when_all(tasks.begin(), tasks.end()).wait();
+
+	instance
+		->GetComponent<fx::ResourceManager>()
+		->GetComponent<fx::ResourceEventManagerComponent>()
+		->TriggerEvent2("onResourceListRefresh", {});
 }
 
 static InitFunction initFunction([]()
