@@ -109,7 +109,7 @@
                 overflow: auto;
                 flex: 1;
 
-                figure, span {
+                ::ng-deep figure, ::ng-deep span {
                     display: inline-block;
                     vertical-align: middle;
 
@@ -118,11 +118,14 @@
                     img {
                         height: $fontSize * 1.2;
                         width: $fontSize * 1.2;
+
+                        text-indent: 10000px;
                     }
                 }
 
-                figure {
+                ::ng-deep figure {
                     height: $fontSize * 1.2;
+                    width: $fontSize * 1.2;
                 }
 
                 ul {

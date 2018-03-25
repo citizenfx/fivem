@@ -64,7 +64,7 @@
 		<h1 translate>#ServerDetail_Players</h1>
 		<span *ngIf="server.data.players.length == 0" translate>#ServerDetail_PlayersEmpty</span>
 		<ul>
-			<li *ngFor="let player of server.data.players"><figure><img [src]="getPlayerUrl(player)"></figure>
+			<li *ngFor="let player of server.data.players"><app-player-avatar [player]="player"></app-player-avatar>
 				<span>
 					{{player.name}}
 				</span></li>

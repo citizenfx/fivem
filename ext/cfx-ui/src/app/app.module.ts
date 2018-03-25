@@ -27,6 +27,7 @@ import {ServersListItemComponent} from './servers/components/servers-list-item.c
 import {ServersListHeaderComponent} from './servers/components/servers-list-header.component';
 import {ServerFilterComponent} from './servers/components/server-filter.component';
 import {ServersDetailComponent} from './servers/components/servers-detail.component';
+import {PlayerAvatarComponent} from './servers/components/player-avatar.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
 import {ServersService} from './servers/servers.service';
@@ -67,6 +68,7 @@ const l10nConfig: L10nConfig = {
 		ServerFilterComponent,
 		ServersDetailComponent,
 		DirectConnectComponent,
+		PlayerAvatarComponent,
 		ColorizePipe,
 		EscapePipe
 	],

@@ -98,12 +98,6 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
         }
     }
 
-    getPlayerUrl(player: any) {
-        const svg = Avatar.getFor(player.identifiers[0]);
-
-        return this.sanitizer.bypassSecurityTrustUrl(`data:image/svg+xml,${encodeURIComponent(svg)}`);
-    }
-
     goBack() {
         this.router.navigate(['/', 'servers']);
     }
