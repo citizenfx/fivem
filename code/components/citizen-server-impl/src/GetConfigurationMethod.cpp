@@ -49,7 +49,7 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				if (resource->GetState() != fx::ResourceState::Started)
+				if (resource->GetState() != fx::ResourceState::Started && resource->GetState() != fx::ResourceState::Starting)
 				{
 					return;
 				}
