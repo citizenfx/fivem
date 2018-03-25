@@ -428,7 +428,7 @@ namespace fx
 		std::vector<int> idxList(1);
 		idxList[0] = idx;
 
-		sockets[i].send(idxList, NN_DONTWAIT);
+		sockets[i].send(idxList);
 	}
 
 	void GameServer::CallbackList::Run(uint32_t id)
