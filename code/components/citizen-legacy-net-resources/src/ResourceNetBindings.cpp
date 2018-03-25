@@ -37,6 +37,8 @@
 
 static NetAddress g_netAddress;
 
+static std::set<std::string> g_resourceStartRequestSet;
+
 static std::string CrackResourceName(const std::string& uri)
 {
 	std::error_code ec;
@@ -335,6 +337,12 @@ static InitFunction initFunction([] ()
 					}
 				}
 
+				// failure should reset the requested resource, instead
+				if (requiredResources.empty() && !updateList.empty())
+				{
+					g_resourceStartRequestSet.erase(updateList);
+				}
+
 				using ResultTuple = std::tuple<fwRefContainer<fx::Resource>, std::string>;
 
 				DownloadResources(requiredResources, netLibrary).then([=] (std::vector<ResultTuple> resources)
@@ -399,6 +407,8 @@ static InitFunction initFunction([] ()
 
 				updateResources(resource, [=]()
 				{
+					g_resourceStartRequestSet.erase(resource);
+
 					executeNextGameFrame.push_back(**updateResource);
 				});
 			}
@@ -511,11 +521,15 @@ static InitFunction initFunction([] ()
 #endif
 			}
 
-			g_resourceUpdateQueue.push(resourceName);
-
+			if (g_resourceStartRequestSet.find(resourceName) == g_resourceStartRequestSet.end())
 			{
-				std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
-				executeNextGameFrame.push_back(**updateResource);
+				g_resourceStartRequestSet.insert(resourceName);
+				g_resourceUpdateQueue.push(resourceName);
+
+				{
+					std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+					executeNextGameFrame.push_back(**updateResource);
+				}
 			}
 		});
 
