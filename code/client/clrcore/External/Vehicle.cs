@@ -439,14 +439,8 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsEngineRunning
 		{
-			get
-			{
-				return Function.Call<bool>(Hash.GET_IS_VEHICLE_ENGINE_RUNNING, Handle);
-			}
-			set
-			{
-				Function.Call(Hash.SET_VEHICLE_ENGINE_ON, Handle, value, true);
-			}
+			get => API.GetIsVehicleEngineRunning(Handle);
+			set => API.SetVehicleEngineOn(Handle, value, true, true);
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Vehicle"/>s engine is currently starting.
