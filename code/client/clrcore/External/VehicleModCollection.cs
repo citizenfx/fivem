@@ -415,6 +415,7 @@ namespace CitizenFX.Core
 		}
 		public VehicleColor DashboardColor
 		{
+            [SecuritySafeCritical]
 			get
 			{
 				int color;
