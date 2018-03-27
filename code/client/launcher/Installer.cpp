@@ -97,6 +97,26 @@ bool Install_PerformInstallation()
 			}
 		}
 
+		// make the SP shortcut
+		hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
+
+		if (SUCCEEDED(hr))
+		{
+			shellLink->SetPath(targetExePath.c_str());
+			shellLink->SetArguments(L"-sp");
+			shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
+			shellLink->SetIconLocation(targetExePath.c_str(), -202);
+
+			WRL::ComPtr<IPersistFile> persist;
+			hr = shellLink.As(&persist);
+
+			if (SUCCEEDED(hr))
+			{
+				persist->Save((GetFolderPath(FOLDERID_Programs) + L"\\FiveM Singleplayer.lnk").c_str(), TRUE);
+				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\FiveM Singleplayer.lnk").c_str(), TRUE);
+			}
+		}
+
 		CoUninitialize();
 	}
 
@@ -142,6 +162,43 @@ bool Install_RunInstallMode()
 		GetFileAttributes(MakeRelativeCitPath(L"CitizenFX.ini").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(L"FiveM.installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
+		using namespace std::string_literals;
+
+		wchar_t exePath[260];
+		GetModuleFileName(GetModuleHandle(nullptr), exePath, _countof(exePath));
+
+		std::wstring exeName = exePath;
+
+		wcsrchr(exePath, L'\\')[0] = L'\0';
+
+		std::wstring linkPath = exePath + L"\\FiveM Singleplayer.lnk"s;
+
+		if (GetFileAttributes(linkPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			CoInitialize(NULL);
+
+			WRL::ComPtr<IShellLink> shellLink;
+			HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
+
+			if (SUCCEEDED(hr))
+			{
+				shellLink->SetPath(exeName.c_str());
+				shellLink->SetArguments(L"-sp");
+				shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
+				shellLink->SetIconLocation(exeName.c_str(), -202);
+
+				WRL::ComPtr<IPersistFile> persist;
+				hr = shellLink.As(&persist);
+
+				if (SUCCEEDED(hr))
+				{
+					persist->Save(linkPath.c_str(), TRUE);
+				}
+			}
+
+			CoUninitialize();
+		}
+
 		return false;
 	}
 
