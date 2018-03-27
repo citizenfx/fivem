@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -10,6 +10,7 @@
 #include <DrawCommands.h>
 #include <grcTexture.h>
 #include <ICoreGameInit.h>
+#include <LaunchMode.h>
 
 #include "memdbgon.h"
 
@@ -290,14 +291,21 @@ static InitFunction initFunction([] ()
 
 	static bool shouldDraw = false;
 
-	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+	if (!CfxIsSinglePlayer())
+	{
+		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+		{
+			shouldDraw = true;
+		});
+		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+		{
+			shouldDraw = false;
+		});
+	}
+	else
 	{
 		shouldDraw = true;
-	});
-	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
-	{
-		shouldDraw = false;
-	});
+	}
 
 #ifdef _HAVE_GRCORE_NEWSTATES
 	OnGrcCreateDevice.Connect([] ()
