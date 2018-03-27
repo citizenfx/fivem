@@ -11,10 +11,13 @@
 
 #include <Brofiler.h>
 
+#include <unordered_map>
+#include <unordered_set>
+
 static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
 
-static std::map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>, std::less<>> g_handleMap;
-static std::map<std::string, int> g_failures;
+static std::unordered_map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>> g_handleMap;
+static std::unordered_map<std::string, int> g_failures;
 
 static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
@@ -22,17 +25,26 @@ static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 });
 
 static std::unordered_map<std::string, uint32_t> g_thisSeenRequests;
-static std::set<std::string> g_erasureQueue;
+static std::unordered_set<std::string> g_erasureQueue;
 
 #include <mmsystem.h>
 
 static void ProcessErasure()
 {
+	static uint32_t lastRanErasure;
+
+	if ((timeGetTime() - lastRanErasure) < 500)
+	{
+		return;
+	}
+
+	lastRanErasure = timeGetTime();
+
 	// this test isn't too accurate but it should at least erase abandoned handles from RCD
 	{
 		for (auto& request : g_thisSeenRequests)
 		{
-			if ((timeGetTime() - request.second) > 500)
+			if ((lastRanErasure - request.second) > 500)
 			{
 				auto it = g_handleMap.find(request.first);
 
