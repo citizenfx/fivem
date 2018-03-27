@@ -37,8 +37,15 @@ void InputHook::SetGameMouseFocus(bool focus)
 
 static char* g_gameKeyArray;
 
+#include <LaunchMode.h>
+
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (uMsg == WM_CREATE)
+	{
+		SetWindowText(FindWindow(L"grcWindow", nullptr), (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM");
+	}
+
 	if (uMsg == WM_ACTIVATEAPP)
 	{
 		g_isFocused = (wParam) ? true : false;
