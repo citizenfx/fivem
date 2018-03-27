@@ -20,6 +20,8 @@
 
 #include <Error.h>
 
+#include <LaunchMode.h>
+
 #include "Hooking.h"
 
 bool CanSafelySkipLauncher()
@@ -103,7 +105,14 @@ static HICON hIcon;
 
 static InitFunction iconFunction([] ()
 {
-    hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
+	if (!CfxIsSinglePlayer())
+	{
+		hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
+	}
+	else
+	{
+		hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(202));
+	}
 });
 
 static HICON WINAPI LoadIconStub(HINSTANCE, LPCSTR)
