@@ -163,12 +163,25 @@ struct AssetStore
 #include <MinHook.h>
 
 static char* g_drawableStore;
+static char* g_dwdStore;
+
+inline bool IsInt32Store(IndexStore* store)
+{
+	return (store == (IndexStore*)(g_drawableStore + 112) ||
+		store == (IndexStore*)(g_dwdStore + 112));
+}
+
+inline bool IsInt32Store(AssetStore* store)
+{
+	return (store == (AssetStore*)g_drawableStore ||
+		store == (AssetStore*)g_dwdStore);
+}
 
 static int*(*g_origGetIndexByKey)(AssetStore* store, int* index, uint32_t* key);
 
 static int* GetIndexByKeyStub(AssetStore* store, int* index, uint32_t* key)
 {
-	if (store == (AssetStore*)g_drawableStore)
+	if (IsInt32Store(store))
 	{
 		return store->GetIndexByKey(index, *key);
 	}
@@ -180,7 +193,7 @@ static void(*g_origStoreRemove)(IndexStore* store, uint32_t hash);
 
 static void StoreRemove(IndexStore* store, uint32_t hash)
 {
-	if (store == (IndexStore*)(g_drawableStore + 112))
+	if (IsInt32Store(store))
 	{
 		return store->Remove(hash);
 	}
@@ -192,7 +205,7 @@ static void(*g_origStoreInsert)(IndexStore* store, uint32_t hash, int index);
 
 static void StoreInsert(IndexStore* store, uint32_t hash, int index)
 {
-	if (store == (IndexStore*)(g_drawableStore + 112))
+	if (IsInt32Store(store))
 	{
 		return store->Insert(hash, index);
 	}
@@ -204,7 +217,7 @@ static void(*g_origStoreInit)(IndexStore* store, int count);
 
 static void StoreInit(IndexStore* store, int count)
 {
-	if (store == (IndexStore*)(g_drawableStore + 112))
+	if (IsInt32Store(store))
 	{
 		return store->Initialize(count);
 	}
@@ -257,7 +270,49 @@ static bool ArchetypeSetDrawable(char* archetype, uint32_t* hash, int txd, char 
 	return g_origSetDrawable(archetype, hash, txd, true);
 }
 
+static bool ArchetypeSetDrawableDict(char* archetype, uint32_t* hash, int txd)
+{
+	*(uint8_t*)(archetype + 96) = 0;
+	*(uint16_t*)(archetype + 98) = -1;
+
+	uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
+	g_drawableIndices[archetypeIdx] = -1;
+
+	if (*hash != HashRageString("null"))
+	{
+		auto dwdStore = (AssetStore*)g_dwdStore;
+		int idx = dwdStore->store.GetIndex(*hash);
+
+		if (idx != -1)
+		{
+			auto ptr = dwdStore->pool.GetAt<char>(idx);
+
+			if (ptr)
+			{
+				*(uint8_t*)(archetype + 96) = 3;
+				*(uint16_t*)(archetype + 98) = idx;
+				g_drawableIndices[archetypeIdx] = idx;
+
+				if (txd != -1)
+				{
+					*(uint16_t*)(ptr + 16) = txd;
+				}
+
+				return true;
+			}
+		}
+	}
+
+	return true;
+}
+
 static void*(*g_origGetDrawable)(void* archetype);
+
+#define RAGE_FORMATS_GAME five
+#define RAGE_FORMATS_GAME_FIVE
+#define RAGE_FORMATS_IN_GAME
+
+#include <gtaDrawable.h>
 
 static void* ArchetypeGetDrawable(char* archetype)
 {
@@ -266,54 +321,90 @@ static void* ArchetypeGetDrawable(char* archetype)
 		return nullptr;
 	}
 
-	if (*(uint8_t*)(archetype + 96) != 2)
+	if (*(uint8_t*)(archetype + 96) == 2)
 	{
-		return g_origGetDrawable(archetype);
+		auto drbStore = (AssetStore*)g_drawableStore;
+
+		uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
+		auto entry = drbStore->pool.GetAt<char>(g_drawableIndices[archetypeIdx]);
+
+		if (entry)
+		{
+			return *(void**)entry;
+		}
+
+		return nullptr;
+	}
+	else if (*(uint8_t*)(archetype + 96) == 3)
+	{
+		auto dwdStore = (AssetStore*)g_dwdStore;
+
+		uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
+		auto entry = dwdStore->pool.GetAt<char>(g_drawableIndices[archetypeIdx]);
+
+		if (entry)
+		{
+			auto dict = *(rage::five::pgDictionary<rage::five::gtaDrawable>**)entry;
+			return dict->GetAt(*(uint8_t*)(archetype + 97));
+		}
+
+		return nullptr;
 	}
 
-	auto drbStore = (AssetStore*)g_drawableStore;
-
-	uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
-	auto entry = drbStore->pool.GetAt<char>(g_drawableIndices[archetypeIdx]);
-
-	if (entry)
-	{
-		return *(void**)entry;
-	}
-
-	return nullptr;
+	return g_origGetDrawable(archetype);
 }
 
 static int(*g_origGetDrawableF18)(void* archetype);
 
+// get txd index?
 static int ArchetypeGetDrawableF18(char* archetype)
 {
-	if (*(uint8_t*)(archetype + 96) != 2)
+	if (*(uint8_t*)(archetype + 96) == 2)
 	{
-		return g_origGetDrawableF18(archetype);
-	}
+		auto drbStore = (AssetStore*)g_drawableStore;
 
-	auto drbStore = (AssetStore*)g_drawableStore;
+		uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
+		auto entry = drbStore->pool.GetAt<char>(g_drawableIndices[archetypeIdx]);
 
-	uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
-	auto entry = drbStore->pool.GetAt<char>(g_drawableIndices[archetypeIdx]);
-
-	if (entry)
-	{
-		uint16_t idx = *(uint16_t*)(entry + 24);
-
-		if (idx != 0xFFFF)
+		if (entry)
 		{
-			return idx;
+			uint16_t idx = *(uint16_t*)(entry + 24);
+
+			if (idx != 0xFFFF)
+			{
+				return idx;
+			}
 		}
+
+		return -1;
+	}
+	else if (*(uint8_t*)(archetype + 96) == 2) // dwd
+	{
+		auto dwdStore = (AssetStore*)g_dwdStore;
+
+		uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
+		auto entry = dwdStore->pool.GetAt<char>(g_drawableIndices[archetypeIdx]);
+
+		if (entry)
+		{
+			uint16_t idx = *(uint16_t*)(entry + 16);
+
+			if (idx != 0xFFFF)
+			{
+				return idx;
+			}
+		}
+
+		return -1;
 	}
 
-	return -1;
+	return g_origGetDrawableF18(archetype);
 }
 
 static void AdjustLimits()
 {
 	g_drawableStore = hook::get_address<char*>(hook::get_pattern("74 16 8B 17 48 8D 0D ? ? ? ? 41 B8 02 00 00 00", 7));
+	g_dwdStore = hook::get_address<char*>(hook::get_pattern("EB 7B 48 8D 54 24 40 48 8D 0D", 10));
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("41 8B 18 44 0F B7 81 80 00 00 00", -5), GetIndexByKeyStub, (void**)&g_origGetIndexByKey);
@@ -321,6 +412,7 @@ static void AdjustLimits()
 	MH_CreateHook((void*)hook::get_pattern("44 0F B7 41 10 44 8B DA 33 D2")/*0x1414F4A34*/, StoreRemove, (void**)&g_origStoreRemove);
 	MH_CreateHook((void*)hook::get_pattern("48 63 DA 48 8B F9 8B C3", -20)/*0x1414F9790*/, StoreInit, (void**)&g_origStoreInit);
 	MH_CreateHook((void*)hook::get_pattern("BE FF FF 00 00 C6 41 60 00", -16)/*0x141588FE4*/, ArchetypeSetDrawable, (void**)&g_origSetDrawable);
+	MH_CreateHook((void*)hook::get_pattern("41 8B F8 48 8B D9 75 12", -16)/*0x141588FE4*/, ArchetypeSetDrawableDict, nullptr);
 	MH_CreateHook((void*)hook::get_pattern("F6 41 50 01 4C 8B D1 75 03")/*0x141586390*/, ArchetypeGetDrawable, (void**)&g_origGetDrawable);
 	MH_CreateHook((void*)hook::get_pattern("0F B6 51 60 41 83 C9 FF")/*0x14158615C*/, ArchetypeGetDrawableF18, (void**)&g_origGetDrawableF18);
 	MH_EnableHook(MH_ALL_HOOKS);
@@ -329,7 +421,7 @@ static void AdjustLimits()
 	{
 		static int GetArchetype(char* archetype)
 		{
-			if (*(uint8_t*)(archetype + 96) != 2)
+			if (*(uint8_t*)(archetype + 96) != 2 && *(uint8_t*)(archetype + 96) != 3)
 			{
 				return *(uint16_t*)(archetype + 98);
 			}
@@ -364,6 +456,43 @@ static void AdjustLimits()
 		auto location = hook::get_pattern("0F B7 42 62 03 C8");
 		hook::nop(location/*0x141586371*/, 6);
 		hook::call(location, getArchetypeStub.GetCode());
+	}
+
+	// in setting of drawable dict index
+	static struct : jitasm::Frontend
+	{
+		static int GetArchetype(char* archetype)
+		{
+			uint16_t archetypeIdx = *(uint16_t*)(archetype + 102);
+			return g_drawableIndices[archetypeIdx];
+		}
+
+		virtual void InternalMain() override
+		{
+			push(rcx);
+			push(r8);
+			push(r9);
+			sub(rsp, 0x20);
+
+			mov(rcx, r10);
+			mov(rax, (uintptr_t)GetArchetype);
+			call(rax);
+
+			add(rsp, 0x20);
+			pop(r9);
+			pop(r8);
+			pop(rcx);
+
+			mov(r8d, eax);
+
+			ret();
+		}
+	} getArchetypeStub2;
+
+	{
+		auto location = hook::get_pattern("E9 84 00 00 00 45 0F B7 42 62", 5);
+		hook::nop(location, 5);
+		hook::call(location, getArchetypeStub2.GetCode());
 	}
 }
 

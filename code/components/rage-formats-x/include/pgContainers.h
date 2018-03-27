@@ -338,6 +338,11 @@ public:
 		return Get(HashString(key));
 	}
 
+	inline TValue* GetAt(uint16_t index)
+	{
+		return m_values.Get(index);
+	}
+
 	inline uint16_t GetCount() const
 	{
 		return m_hashes.GetCount();
