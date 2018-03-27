@@ -28,5 +28,6 @@
 	"net:tcp-server",
 	"scripting:gta",
 	"handling-loader:five",
-	"scripthookv"
+	"scripthookv",
+	"citizen:resources:core"
 ]

@@ -30,7 +30,7 @@
 						</Item>
 						<Item>
 							<PoolName>Building</PoolName>
-							<PoolSize value="55000"/>
+							<PoolSize value="65000"/>
 						</Item>
 						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
@@ -83,7 +83,7 @@
 						</Item>
 						<Item>
 							<PoolName>AnimStore</PoolName>
-							<PoolSize value="13500"/>
+							<PoolSize value="13900"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
@@ -91,11 +91,11 @@
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
-							<PoolSize value="150"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandler</PoolName>
-							<PoolSize value="150"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>ClothStore</PoolName>
@@ -104,6 +104,10 @@
 						<Item>
 							<PoolName>CombatMeleeManager_Groups</PoolName>
 							<PoolSize value="3"/>
+						</Item>
+						<Item>
+							<PoolName>CombatMeleeManager_GroupsMP</PoolName>
+							<PoolSize value="10"/>
 						</Item>
 						<Item>
 							<PoolName>CombatMountedManager_Attacks</PoolName>
@@ -131,11 +135,11 @@
 						</Item>
 						<Item>
 							<PoolName>CScenarioInfo</PoolName>
-							<PoolSize value="220"/>
+							<PoolSize value="420"/>
 						</Item>
 						<Item>
 							<PoolName>CScenarioPointExtraData</PoolName>
-							<PoolSize value="220"/>
+							<PoolSize value="420"/>
 						</Item>
 						<Item>
 							<PoolName>CutsceneStore</PoolName>
@@ -143,7 +147,7 @@
 						</Item>
 						<Item>
 							<PoolName>CScriptEntityExtension</PoolName>
-							<PoolSize value="2500"/>
+							<PoolSize value="10000"/>
 						</Item>
 						<Item>
 							<PoolName>CVehicleChaseDirector</PoolName>
@@ -179,15 +183,15 @@
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="64550"/>
+							<PoolSize value="234900"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="60000"/>
 						</Item>
 						<Item>
 							<PoolName>DwdStore</PoolName>
-							<PoolSize value="40000"/>
+							<PoolSize value="240000"/>
 						</Item>
 						<Item>
 							<PoolName>EntityBatch</PoolName>
@@ -199,7 +203,7 @@
 						</Item>
 						<Item>
 							<PoolName>ExprDictStore</PoolName>
-							<PoolSize value="190"/>
+							<PoolSize value="290"/>
 						</Item>
 						<Item>
 							<PoolName>FrameFilterStore</PoolName>
@@ -207,7 +211,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="16000"/>
+							<PoolSize value="24000"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -223,7 +227,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
-							<PoolSize value="1040"/>
+							<PoolSize value="1060"/>
 						</Item>
 						<Item>
 							<PoolName>IplStore</PoolName>
@@ -251,7 +255,7 @@
 						</Item>
 						<Item>
 							<PoolName>LightEntity</PoolName>
-							<PoolSize value="4000"/>
+							<PoolSize value="4200"/>
 						</Item>
 						<Item>
 							<PoolName>MapDataLoadedNode</PoolName>
@@ -283,7 +287,7 @@
 						</Item>
 						<Item>
 							<PoolName>Object</PoolName>
-							<PoolSize value="2300"/>
+							<PoolSize value="3300"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionInteriorInfo</PoolName>
@@ -351,7 +355,7 @@
 						</Item>
 						<Item>
 							<PoolName>PtFxAssetStore</PoolName>
-							<PoolSize value="250"/>
+							<PoolSize value="350"/>
 						</Item>
 						<Item>
 							<PoolName>QuadTreeNodes</PoolName>
@@ -359,7 +363,7 @@
 						</Item>
 						<Item>
 							<PoolName>ScaleformStore</PoolName>
-							<PoolSize value="642"/>
+							<PoolSize value="742"/>
 						</Item>
 						<Item>
 							<PoolName>ScaleformMgrArray</PoolName>
@@ -420,8 +424,17 @@
 						</Item>
 						<Item>
 							<PoolName>CEvent</PoolName>
-							<PoolSize value="900"/>
+							<PoolSize value="1000"/>
 						</Item>
+						<Item>
+							<PoolName>netGameEvent</PoolName>
+							<PoolSize value="511"/>
+						</Item>
+						<Item>
+							<PoolName>atDNetEventNode</PoolName>
+							<PoolSize value="511"/>
+						</Item>
+
 						<Item>
 							<PoolName>CMoveObject</PoolName>
 							<PoolSize value="180"/>
@@ -432,15 +445,15 @@
 						</Item>
 						<Item>
 							<PoolName>atDScriptObjectNode</PoolName>
-							<PoolSize value="700"/>
+							<PoolSize value="10000"/>
 						</Item>
 						<Item>
 							<PoolName>fwDynamicArchetypeComponent</PoolName>
-							<PoolSize value="9500"/>
+							<PoolSize value="10500"/>
 						</Item>
 						<Item>
 							<PoolName>fwDynamicEntityComponent</PoolName>
-							<PoolSize value="8192"/>
+							<PoolSize value="10500"/>
 						</Item>
 						<Item>
 							<PoolName>fwEntityContainer</PoolName>
