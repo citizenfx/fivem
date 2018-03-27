@@ -245,37 +245,46 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			{
 				auto steam = GetSteam();
 
-				if (steam)
+				char hostname[256] = { 0 };
+				strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 255);
+
+				char cleaned[256];
+
+				StripColors(hostname, cleaned, 256);
+
+#ifdef GTA_FIVE
+				SetWindowText(FindWindow(L"grcWindow", nullptr), va(L"FiveM - %s", ToWide(cleaned)));
+#endif
+
+				auto richPresenceSetTemplate = [&](const auto& tpl)
 				{
-					char hostname[256] = { 0 };
-					strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 255);
+					OnRichPresenceSetTemplate(tpl);
 
-					char cleaned[256];
-
-					StripColors(hostname, cleaned, 256);
-
-					auto richPresenceSetTemplate = [&](const auto& tpl)
+					if (steam)
 					{
-						OnRichPresenceSetTemplate(tpl);
 						steam->SetRichPresenceTemplate(tpl);
-					};
+					}
+				};
 
-					auto richPresenceSetValue = [&](int idx, const std::string& val)
+				auto richPresenceSetValue = [&](int idx, const std::string& val)
+				{
+					OnRichPresenceSetValue(idx, val);
+
+					if (steam)
 					{
-						OnRichPresenceSetValue(idx, val);
 						steam->SetRichPresenceValue(idx, val);
-					};
+					}
+				};
 
-					richPresenceSetTemplate("{0}\n{1}");
+				richPresenceSetTemplate("{0}\n{1}");
 
-					richPresenceSetValue(0, fmt::sprintf(
-						"%s%s",
-						std::string(cleaned).substr(0, 110),
-						(strlen(cleaned) > 110) ? "..." : ""
-					));
+				richPresenceSetValue(0, fmt::sprintf(
+					"%s%s",
+					std::string(cleaned).substr(0, 110),
+					(strlen(cleaned) > 110) ? "..." : ""
+				));
 
-					richPresenceSetValue(1, "Connecting...");
-				}
+				richPresenceSetValue(1, "Connecting...");
 			}
 
 			// until map reloading is in existence
@@ -861,6 +870,10 @@ void NetLibrary::FinalizeDisconnect()
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
 	}
+
+#ifdef GTA_FIVE
+	SetWindowText(FindWindow(L"grcWindow", nullptr), L"FiveM");
+#endif
 }
 
 void NetLibrary::CreateResources()
