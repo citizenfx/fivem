@@ -870,10 +870,6 @@ void NetLibrary::FinalizeDisconnect()
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
 	}
-
-#ifdef GTA_FIVE
-	SetWindowText(FindWindow(L"grcWindow", nullptr), L"FiveM");
-#endif
 }
 
 void NetLibrary::CreateResources()
