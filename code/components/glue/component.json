@@ -6,7 +6,10 @@
 		"net",
 		"nui:core",
 		"gta:core",
-		"conhost"
+		"conhost",
+		"vendor:cpp-uri",
+		"vendor:nanomsg",
+		"vendor:nanomsgxx"
 	],
 	"provides": []
 }

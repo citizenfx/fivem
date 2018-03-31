@@ -20,6 +20,11 @@
 #include "KnownFolders.h"
 #include <ShlObj.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
+#include <network/uri.hpp>
+
 #include <se/Security.h>
 
 #include <rapidjson/document.h>
@@ -279,4 +284,150 @@ static InitFunction initFunction([] ()
 
 		nui::CreateFrame("mpMenu", "nui://game/ui/app/index.html");
 	});
+});
+
+#include <gameSkeleton.h>
+#include <shellapi.h>
+
+#include <nnxx/message.h>
+#include <nnxx/message_control.h>
+#include <nnxx/pipeline.h>
+#include <nnxx/socket.h>
+
+static void ProtocolRegister()
+{
+	LSTATUS result;
+
+#define CHECK_STATUS(x) \
+	result = (x); \
+	if (result != ERROR_SUCCESS) { \
+		trace("[Protocol Registration] " #x " failed: %x", result); \
+		return; \
+	}
+
+	HKEY key;
+	wchar_t path[MAX_PATH];
+	wchar_t command[1024];
+
+	GetModuleFileNameW(NULL, path, sizeof(path));
+	swprintf_s(command, L"\"%s\" \"%%1\"", path);
+
+	CHECK_STATUS(RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem", &key));
+	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(RegSetValueExW(key, L"URL Protocol", 0, REG_SZ, (BYTE*)L"", 1 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler", &key));
+	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM", &key));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM\\Capabilities", &key));
+	CHECK_STATUS(RegSetValueExW(key, L"ApplicationName", 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(RegSetValueExW(key, L"ApplicationDescription", 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM\\Capabilities\\URLAssociations", &key));
+	CHECK_STATUS(RegSetValueExW(key, L"fivem", 0, REG_SZ, (BYTE*)L"FiveM.ProtocolHandler", 22 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RegisteredApplications", &key));
+	CHECK_STATUS(RegSetValueExW(key, L"FiveM", 0, REG_SZ, (BYTE*)L"Software\\FiveM\\Capabilities", 28 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler\\shell\\open\\command", &key));
+	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+	CHECK_STATUS(RegCloseKey(key));
+}
+
+void Component_RunPreInit()
+{
+	int argc;
+	LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &argc);
+
+	static std::string connectHost;
+
+	for (int i = 1; i < argc; i++)
+	{
+		std::string arg = ToNarrow(argv[i]);
+
+		if (arg.find("fivem:") == 0)
+		{
+			std::error_code ec;
+			network::uri parsed = network::make_uri(arg, ec);
+
+			if (!static_cast<bool>(ec))
+			{
+				if (parsed.host())
+				{
+					if (*parsed.host() == "connect")
+					{
+						if (parsed.path())
+						{
+							connectHost = parsed.path()->substr(1).to_string();
+						}
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
+	LocalFree(argv);
+
+	if (connectHost.empty())
+	{
+		return;
+	}
+
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
+	if (hostData->IsMasterProcess())
+	{
+		rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+		{
+			if (type == rage::InitFunctionType::INIT_CORE)
+			{
+				ConnectTo(connectHost);
+				connectHost = "";
+			}
+		}, 999999);
+	}
+	else
+	{
+		nnxx::socket netSocket{ nnxx::SP, nnxx::PUSH };
+		netSocket.connect("ipc://fivem_connect");
+		netSocket.send(connectHost);
+
+		TerminateProcess(GetCurrentProcess(), 0);
+	}
+}
+
+static InitFunction connectInitFunction([]()
+{
+	static nnxx::socket netSocket{ nnxx::SP, nnxx::PULL };
+	netSocket.bind("ipc://fivem_connect");
+
+	OnGameFrame.Connect([]()
+	{
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			return;
+		}
+
+		auto connectMsg = netSocket.recv<std::string>(NN_DONTWAIT);
+
+		if (!connectMsg.empty())
+		{
+			ConnectTo(connectMsg);
+		}
+	});
+});
+
+static HookFunction hookFunction([]()
+{
+	ProtocolRegister();
 });
