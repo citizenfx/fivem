@@ -426,8 +426,13 @@ export class DummyGameService extends GameService {
 
 	connectTo(server: Server) {
 		if (environment.web) {
-			this.invokeConnectFailed(server, 'Connecting from the web is currently '
-				+ 'not supported. If you wish to connect, please join the following IP: ' + server.address);
+			const ifr = document.createElement('iframe');
+			ifr.src = `fivem://connect/${server.address}`;
+			ifr.style.display = 'none';
+			document.body.appendChild(ifr);
+
+			this.invokeConnectFailed(server, 'If it is installed, FiveM should have launched. ' +
+				'If it didn\'t, just join the following IP: ' + server.address);
 			return;
 		}
 
