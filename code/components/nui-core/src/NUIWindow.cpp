@@ -181,7 +181,19 @@ void NUIWindow::UpdateFrame()
 {
 	if (m_client)
 	{
-		((NUIClient*)m_client.get())->GetBrowser()->GetHost()->SendExternalBeginFrame(0, 0, 0);
+		auto client = ((NUIClient*)m_client.get());
+
+		auto browser = client->GetBrowser();
+		
+		if (browser)
+		{
+			auto host = browser->GetHost();
+
+			if (host)
+			{
+				host->SendExternalBeginFrame(0, 0, 0);
+			}
+		}
 	}
 
 	if (!m_nuiTexture)
