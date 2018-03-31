@@ -145,6 +145,24 @@ static bool VehicleEntryPointValidate(VehicleLayoutInfo* info)
 	return true;
 }
 
+#include <atPool.h>
+
+static void(*g_origUnloadMapTypes)(void*, uint32_t);
+
+void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
+{
+	auto pool = (atPoolBase*)(assetStore + 56);
+
+	if (pool->GetAt<void>(index) != nullptr)
+	{
+		g_origUnloadMapTypes(assetStore, index);
+	}
+	else
+	{
+		AddCrashometry("maptypesstore_workaround", "true");
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -525,4 +543,15 @@ static HookFunction hookFunction([] ()
 
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
+
+	// fwMapTypesStore double unloading workaround
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	// disable TXD script resource unloading to work around a crash
+	{
+		auto vtbl = hook::get_address<void**>(hook::get_pattern("BA 07 00 00 00 48 8B D9 E8 ? ? ? ? 48 8D 05", 16));
+		hook::return_function(vtbl[5]);
+	}
 });
