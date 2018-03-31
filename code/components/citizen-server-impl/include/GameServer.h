@@ -17,7 +17,7 @@
 
 #include <enet/enet.h>
 
-#include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_queue.h>
 
 inline std::chrono::milliseconds msec()
 {
@@ -93,12 +93,10 @@ namespace fx
 
 			void Add(const std::function<void()>& fn);
 
-			void Run(uint32_t id);
+			void Run();
 
 		private:
-			tbb::concurrent_unordered_map<uint32_t, std::function<void()>> callbacks;
-
-			std::atomic<uint32_t> cbIdx{ 0 };
+			tbb::concurrent_queue<std::function<void()>> callbacks;
 
 			std::string m_socketName;
 

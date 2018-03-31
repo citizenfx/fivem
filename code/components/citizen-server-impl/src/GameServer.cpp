@@ -172,9 +172,7 @@ namespace fx
 
 						if (!message.empty())
 						{
-							auto cbIdx = *(uint32_t*)message.data();
-
-							m_netThreadCallbacks.Run(cbIdx);
+							m_netThreadCallbacks.Run();
 						}
 					} while (!message.empty());
 				}
@@ -192,9 +190,7 @@ namespace fx
 
 			if (!message.empty())
 			{
-				auto cbIdx = *(uint32_t*)message.data();
-
-				m_mainThreadCallbacks.Run(cbIdx);
+				m_mainThreadCallbacks.Run();
 			}
 		} while (!message.empty());
 	}
@@ -395,26 +391,10 @@ namespace fx
 
 	void GameServer::CallbackList::Add(const std::function<void()>& fn)
 	{
-		// find an empty slot first
-		uint32_t idx = UINT32_MAX;
+		// add to the queue
+		callbacks.push(fn);
 
-		for (auto& pair : callbacks)
-		{
-			if (!pair.second)
-			{
-				idx = pair.first;
-
-				pair.second = fn;
-				break;
-			}
-		}
-
-		if (idx == UINT32_MAX)
-		{
-			idx = cbIdx.fetch_add(1);
-			callbacks.insert({ idx, fn });
-		}
-
+		// submit to the owning thread
 		static thread_local nnxx::socket sockets[2];
 
 		int i = m_socketIdx;
@@ -426,23 +406,18 @@ namespace fx
 		}
 
 		std::vector<int> idxList(1);
-		idxList[0] = idx;
+		idxList[0] = 0xFEED;
 
 		sockets[i].send(idxList);
 	}
 
-	void GameServer::CallbackList::Run(uint32_t id)
+	void GameServer::CallbackList::Run()
 	{
-		auto it = callbacks.find(id);
+		std::function<void()> fn;
 
-		if (it != callbacks.end())
+		while (callbacks.try_pop(fn))
 		{
-			if (it->second)
-			{
-				it->second();
-			}
-
-			it->second = {};
+			fn();
 		}
 	}
 
