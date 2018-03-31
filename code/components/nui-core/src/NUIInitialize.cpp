@@ -41,11 +41,6 @@ void Component_RunPreInit()
 	// CEF keeps loading/unloading this - load it ourselves to make the refcount always 1
 	LoadLibrary(L"bluetoothapis.dll");
 
-	// load Chrome dependencies ourselves so that the system won't try loading from other paths
-	LoadLibrary(MakeRelativeCitPath(L"bin/chrome_elf.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
-
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
 
@@ -112,8 +107,7 @@ void FinalizeInitNUI()
 	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = false; // true;
 	cSettings.log_severity = LOGSEVERITY_DISABLE;
-	cSettings.shared_texture_enabled = true;
-	cSettings.external_begin_frame_enabled = true;
+	cSettings.shared_textures_enabled = true;
 	
 	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser"));
 
