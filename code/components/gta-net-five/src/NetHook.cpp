@@ -326,6 +326,8 @@ static hook::cdecl_stub<bool()> isSessionStarted([] ()
 	return hook::pattern("74 0E 83 B9 ? ? 00 00 ? 75 05 B8 01").count(1).get(0).get<void>(-12);
 });
 
+static bool(*_isScWaitingForInit)();
+
 #include <HostSystem.h>
 
 #include <ResourceManager.h>
@@ -375,6 +377,11 @@ struct
 
 		if (state == HS_LOADED)
 		{
+			if (_isScWaitingForInit())
+			{
+				return;
+			}
+
 			// if there's no host, start hosting - if there is, start joining
 			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
 			{
@@ -910,6 +917,11 @@ static void CustomNetFrame(void* a, void* b)
 	//OnGameFrame();
 
 	origNetFrame(a, b);
+}
+
+static int ReturnFalse()
+{
+	return false;
 }
 
 static int ReturnTrue()
@@ -1710,5 +1722,12 @@ static HookFunction hookFunction([] ()
 				break;
 			}
 		}
+	}
+
+	// async SC init
+	{
+		auto location = hook::get_pattern("E8 ? ? ? ? 84 C0 75 B6 88 05");
+		hook::set_call(&_isScWaitingForInit, location);
+		hook::call(location, ReturnFalse);
 	}
 });
