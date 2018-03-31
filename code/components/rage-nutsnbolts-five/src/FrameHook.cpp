@@ -12,6 +12,7 @@
 
 #include <ICoreGameInit.h>
 
+fwEvent<> OnLookAliveFrame;
 fwEvent<> OnGameFrame;
 fwEvent<> OnMainGameFrame;
 fwEvent<> OnFirstLoadCompleted;
@@ -77,6 +78,8 @@ static bool OnLookAlive()
 	{
 		DoGameFrame();
 	}
+
+	OnLookAliveFrame();
 
 	return g_origLookAlive();
 }
