@@ -29,9 +29,18 @@ bool ComponentInstance::Initialize()
 
 static void*(*oldInitCall)(void*, uint32_t, uint32_t);
 
+static bool g_scriptInited;
+
+bool IsScriptInited()
+{
+	return g_scriptInited;
+}
+
 static void* PostScriptInit(void* arg, uint32_t a2, uint32_t a3)
 {
 	void* retval = oldInitCall(arg, a2, a3);
+
+	g_scriptInited = true;
 
 	rage::scrEngine::OnScriptInit();
 

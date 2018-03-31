@@ -118,6 +118,8 @@ NativeRegistration** registrationTable;
 
 static std::unordered_set<GtaThread*> g_ownedThreads;
 
+bool IsScriptInited();
+
 namespace rage
 {
 static std::unordered_map<uint64_t, scrEngine::NativeHandler> g_fastPathMap;
@@ -152,8 +154,19 @@ void scrEngine::SetActiveThread(scrThread* thread)
 //static uint32_t& scrThreadId = *(uint32_t*)0x1849ADC;
 //static uint32_t& scrThreadCount = *(uint32_t*)0x1849AF8;
 
+static std::vector<std::function<void()>> g_onScriptInitQueue;
+
 void scrEngine::CreateThread(GtaThread* thread)
 {
+	if (!IsScriptInited())
+	{
+		g_onScriptInitQueue.push_back([=]()
+		{
+			CreateThread(thread);
+		});
+		return;
+	}
+
 	// get a free thread slot
 	auto collection = GetThreadCollection();
 	int slot = 0;
@@ -302,6 +315,13 @@ static InitFunction initFunction([] ()
 
 		// to prevent double registration resulting in a game error
 		g_nativeHandlers.clear();
+
+		for (auto& entry : g_onScriptInitQueue)
+		{
+			entry();
+		}
+
+		g_onScriptInitQueue.clear();
 	}, 50000);
 });
 
