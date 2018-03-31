@@ -148,7 +148,14 @@ public:
 
 	inline bool OwnsSocket(SOCKET s)
 	{
-		return (m_socketStreams.find(s) != m_socketStreams.end());
+		auto it = m_socketStreams.find(s);
+
+		if (it != m_socketStreams.end())
+		{
+			return (it->second.GetRef() != nullptr);
+		}
+
+		return false;
 	}
 };
 
