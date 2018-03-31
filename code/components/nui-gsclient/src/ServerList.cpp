@@ -164,6 +164,8 @@ static struct
 	SOCKET socket;
 	SOCKET socket6;
 
+	// the list relies on sorting, so using a concurrent_unordered_map won't work
+	std::recursive_mutex serversMutex;
 	std::map<std::tuple<int, net::PeerAddress>, std::shared_ptr<gameserveritemext_t>> queryServers;
 	std::map<net::PeerAddress, std::shared_ptr<gameserveritemext_t>> servers;
 	DWORD lastQueryStep;
@@ -272,6 +274,8 @@ void GSClient_QueryStep()
 
 	int count = 0;
 
+	std::unique_lock<std::recursive_mutex> lock(g_cls.serversMutex);
+
 	for (auto& serverPair : g_cls.queryServers)
 	{
 		if (!serverPair.second->queried)
@@ -364,7 +368,12 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 
 void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAddress& from)
 {
-	auto server = g_cls.servers[from];
+	std::shared_ptr<gameserveritemext_t> server;
+
+	{
+		std::unique_lock<std::recursive_mutex> lock(g_cls.serversMutex);
+		server = g_cls.servers[from];
+	}
 
 	if (!server)
 	{
@@ -639,6 +648,7 @@ void GSClient_QueryAddresses(const TContainer& addrs)
 		server->queried = false;
 		server->m_Address = std::get<net::PeerAddress>(na);
 
+		std::unique_lock<std::recursive_mutex> lock(g_cls.serversMutex);
 		g_cls.queryServers[na] = server;
 		g_cls.servers[server->m_Address] = server;
 	}
