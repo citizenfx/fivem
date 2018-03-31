@@ -20,6 +20,8 @@
 
 #include <se/Security.h>
 
+#include <gameSkeleton.h>
+
 #include <Error.h>
 
 #include <LaunchMode.h>
@@ -61,14 +63,6 @@ static std::vector<ProgramArguments> g_argumentList;
 
 static void WaitForInitLoop()
 {
-	// run command-line initialization
-	se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-
-	for (const auto& bit : g_argumentList)
-	{
-		console::GetDefaultContext()->ExecuteSingleCommandDirect(bit);
-	}
-
 	// run our loop
 	g_isInInitLoop = true;
 
@@ -1584,5 +1578,20 @@ static HookFunction hookFunction([] ()
 
 	// commandline overriding stuff (replace a nullsub near sysParam_init)
 	hook::call(hook::get_pattern("48 8B 54 24 48 8B 4C 24 40 E8", 25), OverrideArguments);
+
+	// early init command stuff
+	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::InitFunctionType::INIT_CORE)
+		{
+			// run command-line initialization
+			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
+			for (const auto& bit : g_argumentList)
+			{
+				console::GetDefaultContext()->ExecuteSingleCommandDirect(bit);
+			}
+		}
+	});
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9
