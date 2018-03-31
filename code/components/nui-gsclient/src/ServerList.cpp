@@ -463,91 +463,11 @@ typedef struct
 	unsigned short port;
 } serverAddress_t;
 
-#if 0
-void GSClient_HandleServersResponse(const char* buffer, int len)
-{
-	int numservers = 0;
-	const char* buffptr = buffer;
-	const char* buffend = buffer + len;
-	serverAddress_t addresses[256];
-	while (buffptr + 1 < buffend)
-	{
-		// advance to initial token
-		do
-		{
-			if (*buffptr++ == '\\')
-				break;
-		} while (buffptr < buffend);
-
-		if (buffptr >= buffend - 8)
-		{
-			break;
-		}
-
-		// parse out ip
-		addresses[numservers].ip[0] = *buffptr++;
-		addresses[numservers].ip[1] = *buffptr++;
-		addresses[numservers].ip[2] = *buffptr++;
-		addresses[numservers].ip[3] = *buffptr++;
-
-		// parse out port
-		addresses[numservers].port = (*(buffptr++)) << 8;
-		addresses[numservers].port += (*(buffptr++)) & 0xFF;
-		addresses[numservers].port = addresses[numservers].port;
-
-		// syntax check
-		if (*buffptr != '\\')
-		{
-			break;
-		}
-
-		numservers++;
-		if (numservers >= 256)
-		{
-			break;
-		}
-
-		// parse out EOT
-		if (buffptr[1] == 'E' && buffptr[2] == 'O' && buffptr[3] == 'T')
-		{
-			break;
-		}
-	}
-
-	int count = g_cls.numServers;
-	int max = 8192;
-
-	for (int i = 0; i < numservers && count < max; i++)
-	{
-		// build net address
-		unsigned int ip = (addresses[i].ip[0] << 24) | (addresses[i].ip[1] << 16) | (addresses[i].ip[2] << 8) | (addresses[i].ip[3]);
-		//g_cls.servers[count].m_NetAdr.Init(ip, addresses[i].qport, addresses[i].port);
-		g_cls.servers[count].m_IP = ip;
-		g_cls.servers[count].m_Port = addresses[i].port;
-		g_cls.servers[count].queried = false;
-
-		count++;
-	}
-
-	g_cls.queryTime = timeGetTime();
-	GSClient_QueryStep();
-
-	g_cls.numServers = count;
-}
-#endif
-
 #define CMD_GSR "getserversResponse"
 #define CMD_INFO "infoResponse"
 
 void GSClient_HandleOOB(const char* buffer, size_t len, const net::PeerAddress& from)
 {
-#if 0
-	if (!_strnicmp(buffer, CMD_GSR, strlen(CMD_GSR)))
-	{
-		GSClient_HandleServersResponse(&buffer[strlen(CMD_GSR)], len - strlen(CMD_GSR));
-	}
-#endif
-
 	if (!_strnicmp(buffer, CMD_INFO, strlen(CMD_INFO)))
 	{
 		GSClient_HandleInfoResponse(&buffer[strlen(CMD_INFO)], len - strlen(CMD_INFO), from);
