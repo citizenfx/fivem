@@ -59,11 +59,15 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
+	command_line->AppendSwitch("force-gpu-rasterization");
 
-	if (IsWindows10OrGreater())
-	{
-		command_line->AppendSwitch("force-gpu-rasterization");
-	}
+	// M65 enables these by default, but CEF doesn't pass the required phase data at this time (2018-03-31)
+	// this breaks scrolling 'randomly' - after a middle click, and some other scenarios
+	command_line->AppendSwitchWithValue("disable-features", "TouchpadAndWheelScrollLatching,AsyncWheelEvents");
+
+	// M66 enables this by default, this breaks scrolling in iframes, however only in the Cfx embedder scenario (2018-03-31)
+	// cefclient is not affected, code was compared with cefclient but not that different.
+	command_line->AppendSwitchWithValue("disable-blink-features", "RootLayerScrolling");
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)

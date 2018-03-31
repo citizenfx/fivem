@@ -41,6 +41,11 @@ void Component_RunPreInit()
 	// CEF keeps loading/unloading this - load it ourselves to make the refcount always 1
 	LoadLibrary(L"bluetoothapis.dll");
 
+	// load Chrome dependencies ourselves so that the system won't try loading from other paths
+	LoadLibrary(MakeRelativeCitPath(L"bin/chrome_elf.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
+
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
 
