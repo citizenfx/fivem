@@ -1726,8 +1726,16 @@ static HookFunction hookFunction([] ()
 
 	// async SC init
 	{
-		auto location = hook::get_pattern("E8 ? ? ? ? 84 C0 75 B6 88 05");
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 84 C0 75 B6 88 05");
 		hook::set_call(&_isScWaitingForInit, location);
 		hook::call(location, ReturnFalse);
+
+		void(*_processEntitlements)();
+		hook::set_call(&_processEntitlements, location - 50);
+
+		OnLookAliveFrame.Connect([_processEntitlements]()
+		{
+			_processEntitlements();
+		});
 	}
 });
