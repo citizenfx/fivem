@@ -145,7 +145,9 @@ public:
 	virtual ~CNetGamePlayer() = 0;
 
 public:
-	uint8_t pad[36];
+	uint8_t pad[8];
+	void* nonPhysicalPlayerData;
+	uint8_t pad2[20];
 	uint8_t activePlayerIndex;
 	uint8_t physicalPlayerIndex;
 };

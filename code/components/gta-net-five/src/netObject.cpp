@@ -37,4 +37,5 @@ static HookFunction hookFunction([]()
 
 	static_assert(offsetof(rage::CNetworkSyncDataULBase, isRemote) == 59, "offset 75");
 	static_assert(offsetof(rage::CNetworkSyncDataULBase, creationAckedPlayers) == 96, "offset 112");
+	static_assert(offsetof(CNetGamePlayer, physicalPlayerIndex) == 45, "offset 45");
 });

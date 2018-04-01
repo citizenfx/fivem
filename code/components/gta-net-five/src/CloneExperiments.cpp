@@ -645,7 +645,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 
 	for (auto& player : g_players)
 	{
-		if (player)
+		if (player && player->nonPhysicalPlayerData)
 		{
 			// make it 31 for a while (objectmgr dependencies mandate this)
 			auto originalIndex = player->physicalPlayerIndex;
