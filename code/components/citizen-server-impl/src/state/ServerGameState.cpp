@@ -291,6 +291,11 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	{
 		auto entity = entityPair.second;
 
+		if (!entity)
+		{
+			continue;
+		}
+
 		bool hasClient = true;
 
 		if (entity->client.expired())
@@ -444,6 +449,11 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 		trace("migrating entity %d from %s to %s\n", objectId, it->second->client.lock()->GetName(), tgtCl->GetName());
 
 		auto entity = it->second;
+
+		if (!entity)
+		{
+			return;
+		}
 
 		entity->client = tgtCl;
 
