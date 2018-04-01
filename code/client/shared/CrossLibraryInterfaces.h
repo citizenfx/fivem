@@ -13,6 +13,8 @@ class INetLibrary
 public:
 	virtual uint16_t GetServerNetID() = 0;
 
+	virtual uint16_t GetServerSlotID() = 0;
+
 	virtual uint16_t GetHostNetID() = 0;
 
 	virtual uint32_t GetHostBase() = 0;

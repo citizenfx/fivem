@@ -24,9 +24,11 @@ type 'FireId'
 
 type 'Ped'
 	nativeType 'int'
+	extends 'Entity'
 
 type 'Vehicle'
 	nativeType 'int'
+	extends 'Entity'
 
 type 'Cam'
 	nativeType 'int'
@@ -39,12 +41,14 @@ type 'Group'
 
 type 'Train'
 	nativeType 'int'
+	extends 'Vehicle'
 
 type 'Pickup'
 	nativeType 'int'
 
 type 'Object'
 	nativeType 'int'
+	extends 'Entity'
 
 type 'Weapon'
 	nativeType 'int'

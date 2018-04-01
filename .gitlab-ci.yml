@@ -62,6 +62,7 @@ build_proot_linux:
     - tags
     - master
     - feature/update-to-1290
+    - feature/cloning-stuff-releng
   tags:
     - linux
 

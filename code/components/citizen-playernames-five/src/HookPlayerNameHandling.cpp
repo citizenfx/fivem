@@ -17,6 +17,7 @@
 
 static NetLibrary* g_netLibrary;
 static std::unordered_map<int, std::string> g_netIdToNames;
+static std::unordered_map<int, int> g_netIdToSlots;
 
 // needs to be kept in sync with gta:net:five
 struct ScInAddr
@@ -37,6 +38,11 @@ struct ScInAddr
 
 static const char* GetPlayerNameFromScAddr(ScInAddr* addr)
 {
+	if (addr == (void*)0x20)
+	{
+		return "** Invalid **";
+	}
+
 	if (addr->ipLan != addr->ipOnline || addr->ipLan != addr->ipUnk)
 	{
 		return (char*)addr + sizeof(ScInAddr) + (92 - 64);
@@ -47,7 +53,7 @@ static const char* GetPlayerNameFromScAddr(ScInAddr* addr)
 
 	if (it == g_netIdToNames.end())
 	{
-		return "** Invalid **";
+		return va("player %d", netId);
 	}
 
 	return it->second.c_str();
@@ -92,7 +98,7 @@ static InitFunction initFunction([] ()
 			eventComponent->OnTriggerEvent.Connect([] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 			{
 				// if this is the event 'we' handle...
-				if (eventName == "onPlayerJoining")
+				if (eventName == "onPlayerJoining" || eventName == "onPlayerDropped")
 				{
 					try
 					{
@@ -115,8 +121,33 @@ static InitFunction initFunction([] ()
 							int netId = arguments[0].as<int>();
 							std::string name = arguments[1].as<std::string>();
 
-							// and add to the list
-							g_netIdToNames[netId] = name;
+							if (eventName == "onPlayerJoining")
+							{
+								// and add to the list
+								g_netIdToNames[netId] = name;
+							}
+
+							if (arguments.size() >= 3)
+							{
+								uint32_t slotId = arguments[2].as<uint32_t>();
+
+								g_netIdToSlots[netId] = slotId;
+
+								// trickle the event down the stack
+								NetLibraryClientInfo clientInfo;
+								clientInfo.netId = netId;
+								clientInfo.name = name;
+								clientInfo.slotId = slotId;
+
+								if (eventName == "onPlayerJoining")
+								{
+									g_netLibrary->OnClientInfoReceived(clientInfo);
+								}
+								else if (eventName == "onPlayerDropped")
+								{
+									g_netLibrary->OnClientInfoDropped(clientInfo);
+								}
+							}
 						}
 					}
 					catch (std::runtime_error& e)

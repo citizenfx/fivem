@@ -1489,3 +1489,29 @@ native 'SET_RICH_PRESENCE'
 	</summary>
 	<param name="presenceState">The rich presence string to set.</param>
 ]]
+
+native 'GET_PLAYER_PED'
+	arguments {
+		charPtr 'playerSrc'
+	}
+	apiset 'server'
+	returns 'Entity'
+
+native 'GET_ENTITY_COORDS'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'
+
+native "GET_HASH_KEY"
+	arguments {
+		charPtr "model",
+	}
+	apiset 'server'
+	returns	"Hash"
+	doc [[!
+<summary>
+		This native converts the passed string to a hash.
+</summary>
+	]]

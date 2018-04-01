@@ -483,15 +483,21 @@ namespace leveldb
 
 	Status VFSEnvironment::LockFile(const std::string& fname, FileLock** lock)
 	{
+#ifdef _DEBUG
+		return Status();
+#else
 		auto vfsLock = new VFSFileLock(fname);
 		*lock = vfsLock;
 
 		return vfsLock->IsValid() ? Status() : Status::IOError("Could not lock file.");
+#endif
 	}
 
 	Status VFSEnvironment::UnlockFile(FileLock* lock)
 	{
+#ifndef _DEBUG
 		delete lock;
+#endif
 
 		return Status();
 	}

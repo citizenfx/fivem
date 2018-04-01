@@ -15,11 +15,18 @@
 
 #include <enet/enet.h>
 
+#define MAX_CLIENTS 64 // don't change this past 256 ever, also needs to be synced with client code
+
 namespace {
 	using namespace std::literals::chrono_literals;
 
+#ifdef _DEBUG
+	constexpr const auto CLIENT_DEAD_TIMEOUT = 86400s;
+	constexpr const auto CLIENT_VERY_DEAD_TIMEOUT = 86400s;
+#else
 	constexpr const auto CLIENT_DEAD_TIMEOUT = 10s;
 	constexpr const auto CLIENT_VERY_DEAD_TIMEOUT = 120s;
+#endif
 }
 
 #ifdef COMPILING_CITIZEN_SERVER_IMPL
@@ -61,6 +68,16 @@ namespace fx
 		inline uint32_t GetNetId()
 		{
 			return m_netId;
+		}
+
+		inline uint32_t GetSlotId()
+		{
+			return m_slotId;
+		}
+
+		inline void SetSlotId(uint32_t slotId)
+		{
+			m_slotId = slotId;
 		}
 
 		inline uint32_t GetNetBase()
@@ -160,6 +177,8 @@ namespace fx
 		fwEvent<> OnAssignTcpEndPoint;
 		fwEvent<> OnAssignConnectionToken;
 
+		fwEvent<> OnDrop;
+
 	private:
 		// a temporary token for tying HTTP connections to UDP connections
 		std::string m_connectionToken;
@@ -178,6 +197,9 @@ namespace fx
 
 		// the client's netid
 		uint32_t m_netId;
+
+		// the client's slot ID
+		uint32_t m_slotId;
 
 		// the client's netbase
 		uint32_t m_netBase;

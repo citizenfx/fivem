@@ -203,6 +203,8 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 	return outData;
 }
 
+extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -274,9 +276,10 @@ static InitFunction initFunction([]()
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 
 			json data = json::object();
-			data["protocol"] = 4;
+			data["protocol"] = 5;
 			data["sH"] = shVar->GetValue();
-			data["enhancedHostSupport"] = ehVar->GetValue();
+			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
+			data["onesync"] = g_oneSyncVar->GetValue();
 			data["token"] = token;
 			data["netlibVersion"] = 2;
 

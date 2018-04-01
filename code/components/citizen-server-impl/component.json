@@ -15,7 +15,8 @@
 		"vendor:boost_random",
 		"vendor:linenoise",
 		"vendor:nanomsg",
-		"vendor:nanomsgxx"
+		"vendor:nanomsgxx",
+		"vendor:lz4"
 	],
 	"provides": []
 }

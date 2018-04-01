@@ -39,6 +39,12 @@ namespace fx
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
 			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
+
+			if (client->GetSlotId() >= 0 && client->GetSlotId() < m_clientsBySlotId.size())
+			{
+				m_clientsBySlotId[client->GetSlotId()].reset();
+			}
+
 			m_clients[client->GetGuid()] = nullptr;
 		}
 
@@ -165,6 +171,8 @@ namespace fx
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByConnectionToken;
 		tbb::concurrent_unordered_map<int, std::weak_ptr<Client>> m_clientsByPeer;
+
+		std::vector<std::weak_ptr<Client>> m_clientsBySlotId;
 
 		std::atomic<uint16_t> m_curNetId;
 

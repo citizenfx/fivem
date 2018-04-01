@@ -85,3 +85,6 @@
 [submodule "vendor/nanomsg"]
 	path = vendor/nanomsg
 	url = https://github.com/nanomsg/nanomsg.git
+[submodule "vendor/lz4"]
+	path = vendor/lz4
+	url = https://github.com/lz4/lz4.git

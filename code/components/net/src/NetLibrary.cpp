@@ -47,18 +47,24 @@ uint16_t NetLibrary::GetServerNetID()
 	return m_serverNetID;
 }
 
+uint16_t NetLibrary::GetServerSlotID()
+{
+	return m_serverSlotID;
+}
+
 uint16_t NetLibrary::GetHostNetID()
 {
 	return m_hostNetID;
 }
 
-void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase)
+void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID)
 {
 	m_serverNetID = serverNetID;
 	m_hostNetID = hostNetID;
 	m_hostBase = hostBase;
+	m_serverSlotID = slotID;
 
-	trace("connectOK, our id %d, host id %d\n", m_serverNetID, m_hostNetID);
+	trace("connectOK, our id %d (slot %d), host id %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
 
 	OnConnectOKReceived(m_currentServer);
 
@@ -694,6 +700,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			});
 
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
+			Instance<ICoreGameInit>::Get()->OneSyncEnabled = (node["onesync"].IsDefined() && node["onesync"].as<bool>(false));
 
 			m_serverProtocol = node["protocol"].as<uint32_t>();
 
@@ -704,7 +711,27 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 				steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
 			}
 
-			m_connectionState = CS_INITRECEIVED;
+			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			{
+				m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/onesync?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+				{
+					if (success)
+					{
+						if (std::string(data, length).find("yes") != std::string::npos)
+						{
+							m_connectionState = CS_INITRECEIVED;
+							return;
+						}
+					}
+
+					OnConnectionError("OneSync is not whitelisted for this server, or requesting whitelist status failed. You'll have to wait a little while longer!");
+					m_connectionState = CS_IDLE;
+				});
+			}
+			else
+			{
+				m_connectionState = CS_INITRECEIVED;
+			}
 
 			if (node["netlibVersion"].as<int>(1) == 2)
 			{

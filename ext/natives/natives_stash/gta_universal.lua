@@ -25,8 +25,7 @@ type "Vehicle"
 ]]
 
 type "Player"
-	extends "Entity"
-
+	nativeType 'int'
 	property "position" { "GET_ENTITY_COORDS" }
 	method "getPosition" { "GET_ENTITY_COORDS" }
 

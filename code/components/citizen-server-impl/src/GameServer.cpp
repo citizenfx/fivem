@@ -7,7 +7,11 @@
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 
+#include "ServerEventComponent.h"
+
 #include <NetBuffer.h>
+
+#include <state/ServerGameState.h>
 
 #include <PrintListener.h>
 
@@ -16,6 +20,8 @@
 #include <nnxx/poll.h>
 
 static fx::GameServer* g_gameServer;
+
+extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 
 namespace fx
 {
@@ -296,6 +302,18 @@ namespace fx
 
 					client->SetPeer(peerId, GetPeerAddress(peer->address));
 
+					if (g_oneSyncVar->GetValue())
+					{
+						if (client->GetSlotId() == -1)
+						{
+							SendOutOfBand(AddressPair{ peer->host, client->GetAddress() }, "error Not enough client slot IDs.");
+
+							m_clientRegistry->RemoveClient(client);
+
+							return;
+						}
+					}
+
 					if (client->GetNetId() >= 0xFFFF)
 					{
 						m_clientRegistry->HandleConnectingClient(client);
@@ -304,13 +322,23 @@ namespace fx
 					// disable peer throttling
 					enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
 
+#ifdef _DEBUG
+					enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
+#endif
+
 					// send a connectOK
 					net::Buffer outMsg;
 					outMsg.Write(1);
 
 					auto host = m_clientRegistry->GetHost();
 
-					auto outStr = fmt::sprintf(" %d %d %d", client->GetNetId(), (host) ? host->GetNetId() : -1, (host) ? host->GetNetBase() : -1);
+					auto outStr = fmt::sprintf(
+						" %d %d %d %d",
+						client->GetNetId(),
+						(host) ? host->GetNetId() : -1,
+						(host) ? host->GetNetBase() : -1,
+						(g_oneSyncVar->GetValue()) ? client->GetSlotId() : -1);
+
 					outMsg.Write(outStr.c_str(), outStr.size());
 
 					client->SendPacket(0, outMsg, ENET_PACKET_FLAG_RELIABLE);
@@ -319,6 +347,8 @@ namespace fx
 					{
 						m_clientRegistry->HandleConnectedClient(client);
 					});
+
+					m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 64);
 
 					ForceHeartbeat();
 				}
@@ -553,6 +583,17 @@ namespace fx
 			hostBroadcast.Write(0xFFFF);
 
 			Broadcast(hostBroadcast);
+		}
+
+		// signal a drop
+		client->OnDrop();
+
+		{
+			// for name handling, send player state
+			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
+
+			// send every player information about the joining client
+			events->TriggerClientEvent("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
 		}
 
 		// drop the client
@@ -792,6 +833,17 @@ namespace fx
 				std::vector<uint8_t> packetData(packetLength);
 				if (packet.Read(packetData.data(), packetData.size()))
 				{
+					if (targetNetId == 0xFFFF)
+					{
+						// TODO: make this run on the net thread
+						gscomms_execute_callback_on_main_thread([=]()
+						{
+							instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
+						});
+
+						return;
+					}
+
 					auto targetClient = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(targetNetId);
 
 					if (targetClient)
@@ -819,6 +871,11 @@ namespace fx
 		{
 			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
 			{
+				if (g_oneSyncVar->GetValue())
+				{
+					return;
+				}
+
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto gameServer = instance->GetComponent<fx::GameServer>();
 

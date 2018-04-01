@@ -302,6 +302,48 @@ static struct MhInit
 	}
 } mhInit;
 
+bool(*g_origShouldWriteToPlayer)(void* a1, void* a2, int playerIdx, int a4);
+
+static bool ShouldWriteToPlayerWrap(void* a1, void* a2, int playerIdx, int a4)
+{
+	if (playerIdx == 31)
+	{
+		//return true;
+	}
+
+	return g_origShouldWriteToPlayer(a1, a2, playerIdx, a4);
+}
+
+uint32_t(*g_origGetRelevantSectorPosPlayers)(void* a1, void* a2, uint8_t a3);
+
+uint32_t GetRelevantSectorPosPlayersWrap(void* a1, void* a2, uint8_t a3)
+{
+	auto val = g_origGetRelevantSectorPosPlayers(a1, a2, a3);
+
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		if (val & (1 << 31))
+		{
+			val &= ~(1 << 31);
+		}
+		else
+		{
+			//val |= (1 << 31);
+		}
+	}
+
+	return val;
+}
+
+void*(*g_origGetNetObjPosition)(void*, void*);
+
+static void* GetNetObjPositionWrap(void* a1, void* a2)
+{
+	trace("getting netobj %llx position\n", (uintptr_t)a1);
+
+	return g_origGetNetObjPosition(a1, a2);
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto registerPools = [] (hook::pattern& patternMatch, int callOffset, int hashOffset)
@@ -360,6 +402,20 @@ static HookFunction hookFunction([] ()
 
 	// in a bit of a wrong place, but OK
 	MH_CreateHook(hook::get_call(hook::get_pattern("0D ? ? ? ? B2 01 E8 ? ? ? ? B0 01 48", 7)), LoadObjectsNowWrap, (void**)&g_origLoadObjectsNow);
+
+	// cloning stuff
+	MH_CreateHook(hook::get_pattern("41 8B D9 41 8A E8 4C 8B F2 48 8B F9", -0x19), ShouldWriteToPlayerWrap, (void**)&g_origShouldWriteToPlayer);
+
+	MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+
+	//MH_CreateHook((void*)0x14159A8F0, AssignObjectIdWrap, (void**)&g_origAssignObjectId);
+
+	//MH_CreateHook((void*)0x141068F3C, GetNetObjPositionWrap, (void**)&g_origGetNetObjPosition);
+	
+	// player -> ped
+	//hook::jump(0x14106B3D0, 0x14106B3B0); // st
+	//hook::jump(0x1410A1CDC, 0x1410A1CC0); // m108, st dependency
+	//hook::nop(0x141056E6F, 5);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });

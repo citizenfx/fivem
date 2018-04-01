@@ -104,6 +104,13 @@ public:
 
 #define MAX_RELIABLE_COMMANDS 64
 
+struct NetLibraryClientInfo
+{
+	int netId;
+	int slotId;
+	std::string name;
+};
+
 class
 #ifdef COMPILING_NET
 	__declspec(dllexport)
@@ -128,6 +135,8 @@ private:
 	std::unique_ptr<NetLibraryImplBase> m_impl;
 
 	uint16_t m_serverNetID;
+
+	uint16_t m_serverSlotID;
 
 	uint16_t m_hostNetID;
 
@@ -174,11 +183,7 @@ private:
 	concurrency::concurrent_queue<RoutingPacket> m_outgoingPackets;
 
 private:
-	void ProcessServerMessage(NetBuffer& msg);
-
-	void ProcessSend();
-
-	void HandleReliableCommand(uint32_t msgType, const char* buf, size_t length);
+	void HandleReliableCommand(uint32_t msgType, const char* buf, size_t length) override;
 
 	NetLibrary();
 
@@ -188,35 +193,37 @@ public:
 		return m_connectionState >= CS_DOWNLOADCOMPLETE;
 	}
 
-	virtual void ProcessOOB(const NetAddress& from, const char* oob, size_t length);
+	virtual void ProcessOOB(const NetAddress& from, const char* oob, size_t length) override;
 
-	virtual uint16_t GetServerNetID();
+	virtual uint16_t GetServerNetID() override;
 
-	virtual uint16_t GetHostNetID();
+	virtual uint16_t GetHostNetID() override;
 
-	virtual uint32_t GetHostBase();
+	virtual uint16_t GetServerSlotID() override;
 
-	virtual const char* GetPlayerName();
+	virtual uint32_t GetHostBase() override;
 
-	virtual void SetPlayerName(const char* name);
+	virtual const char* GetPlayerName() override;
 
-	virtual void SetBase(uint32_t base);
+	virtual void SetPlayerName(const char* name) override;
 
-	virtual void RunFrame();
+	virtual void SetBase(uint32_t base) override;
+
+	virtual void RunFrame() override;
 
 	virtual void ConnectToServer(const net::PeerAddress& address);
 
-	virtual void Disconnect(const char* reason);
+	virtual void Disconnect(const char* reason) override;
 
-	virtual void FinalizeDisconnect();
+	virtual void FinalizeDisconnect() override;
 
-	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID);
+	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID) override;
 
-	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID);
+	virtual void RoutePacket(const char* buffer, size_t length, uint16_t netID) override;
 
-	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length);
+	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
-	void HandleConnected(int serverNetID, int hostNetID, int hostBase) override;
+	void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID) override;
 
 	bool GetOutgoingPacket(RoutingPacket& packet) override;
 
@@ -224,7 +231,7 @@ public:
 
 	void EnqueueRoutedPacket(uint16_t netID, const std::string& packet) override;
 
-	void SendOutOfBand(const NetAddress& address, const char* format, ...);
+	void SendOutOfBand(const NetAddress& address, const char* format, ...) override;
 
 	void SendData(const NetAddress& address, const char* data, size_t length);
 
@@ -251,7 +258,7 @@ public:
 
 	inline bool IsDisconnected() { return m_connectionState == CS_IDLE; }
 
-	inline INetMetricSink* GetMetricSink()
+	inline INetMetricSink* GetMetricSink() override
 	{
 		return m_metricSink.GetRef();
 	}
@@ -322,8 +329,12 @@ public:
 	// a1: new connection state
 	// a2: previous connection state
 	fwEvent<ConnectionState, ConnectionState> OnStateChanged;
+
+	// for use from high-level code calling down to lower-level code
+	fwEvent<const NetLibraryClientInfo&> OnClientInfoReceived;
+
+	fwEvent<const NetLibraryClientInfo&> OnClientInfoDropped;
 };
-//extern NetLibrary* g_netLibrary;
 
 extern DLL_IMPORT fwEvent<const std::string&> OnRichPresenceSetTemplate;
 extern DLL_IMPORT fwEvent<int, const std::string&> OnRichPresenceSetValue;

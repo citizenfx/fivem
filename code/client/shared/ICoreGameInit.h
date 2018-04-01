@@ -31,6 +31,8 @@ public:
 
 	bool EnhancedHostSupport = false;
 
+	bool OneSyncEnabled = false;
+
 private:
 	std::set<std::string, std::less<>> VariableList;
 
