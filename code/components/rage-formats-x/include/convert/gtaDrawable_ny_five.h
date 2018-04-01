@@ -564,8 +564,8 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 			outAttr.boneID = inAttr.boneID;
 			outAttr.lightType = inAttr.lightType;
 			outAttr.groupID = 0;
-			outAttr.timeFlags = 0;
-			outAttr.falloff = inAttr.lightFalloff;
+			outAttr.timeFlags = (inAttr.flags & 64) ? 0b111100'000000'000011'111111 : 0b111111'111111'111111'111111;
+			outAttr.falloff = (inAttr.lightFalloff == 0.0f) ? 17.0f : inAttr.lightFalloff;
 			outAttr.falloffExponent = 64.f;
 			outAttr.cullingPlane = { 0.0f, 0.0f, 1.0f, 200.0f };
 			outAttr.shadowBlur = 0;
