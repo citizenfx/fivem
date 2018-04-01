@@ -224,27 +224,33 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 
 					// TODO: figure out a way to optimize this timestamp
-					cloneBuffer.Write<uint32_t>(32, entity->timestamp - std::any_cast<int64_t>(entity->client.lock()->GetData("timestamp")) + std::any_cast<int64_t>(client->GetData("timestamp")));
+					auto ownerTS = entity->client.lock()->GetData("timestamp");
+					auto tgtTS = client->GetData("timestamp");
 
-					auto len = (state.buffer.GetCurrentBit() / 8) + 1;
-					cloneBuffer.Write(12, len);
-					cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
-
-					maybeFlushBuffer();
-
-					int slotId = client->GetSlotId();
-
-					if (syncType == 2)
+					if (ownerTS.has_value() && tgtTS.has_value())
 					{
-						entity->syncTree->Visit([slotId](sync::NodeBase& node)
+						cloneBuffer.Write<uint32_t>(32, entity->timestamp - std::any_cast<int64_t>(ownerTS) + std::any_cast<int64_t>(tgtTS));
+
+						auto len = (state.buffer.GetCurrentBit() / 8) + 1;
+						cloneBuffer.Write(12, len);
+						cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
+
+						maybeFlushBuffer();
+
+						int slotId = client->GetSlotId();
+
+						if (syncType == 2)
 						{
-							node.ackedPlayers.set(slotId);
+							entity->syncTree->Visit([slotId](sync::NodeBase& node)
+							{
+								node.ackedPlayers.set(slotId);
 
-							return true;
-						});
+								return true;
+							});
+						}
+
+						((syncType == 1) ? numCreates : numSyncs)++;
 					}
-
-					((syncType == 1) ? numCreates : numSyncs)++;
 				}
 				else
 				{
