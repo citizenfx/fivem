@@ -236,7 +236,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// 1103
 		// 1290
 		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x141706F20)(nullptr, &objectId, player);
+		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x140FEC254)(nullptr, &objectId, player);
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
