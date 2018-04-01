@@ -311,6 +311,11 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 					return;
 				}
 
+				if (tgtClient->GetSlotId() == 0xFFFFFFFF)
+				{
+					return;
+				}
+
 				float distance = std::numeric_limits<float>::max();
 
 				try
