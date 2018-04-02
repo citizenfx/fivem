@@ -271,8 +271,13 @@ static void* netObject__GetOwnerNetPlayer(rage::netObject* object)
 
 	if (object->syncData.ownerId == 31)
 	{
-		return g_playersByNetId[TheClones->GetClientId(object)];
-		//return g_tempRemotePlayer;
+		auto player = g_playersByNetId[TheClones->GetClientId(object)];
+
+		// FIXME: figure out why bad playerinfos occur
+		if (player->playerInfo != nullptr)
+		{
+			return player;
+		}
 	}
 
 	return g_playerMgr->localPlayer;
@@ -645,16 +650,24 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	{
 		if (player && player->nonPhysicalPlayerData)
 		{
-			// make it 31 for a while (objectmgr dependencies mandate this)
-			auto originalIndex = player->physicalPlayerIndex;
-			player->physicalPlayerIndex = 31;
-
-			if (ev->IsApplicableToPlayer(player))
+			// temporary pointer check
+			if ((uintptr_t)player->nonPhysicalPlayerData > 256)
 			{
-				targetPlayers.insert(g_netIdsByPlayer[player]);
-			}
+				// make it 31 for a while (objectmgr dependencies mandate this)
+				auto originalIndex = player->physicalPlayerIndex;
+				player->physicalPlayerIndex = 31;
 
-			player->physicalPlayerIndex = originalIndex;
+				if (ev->IsApplicableToPlayer(player))
+				{
+					targetPlayers.insert(g_netIdsByPlayer[player]);
+				}
+
+				player->physicalPlayerIndex = originalIndex;
+			}
+			else
+			{
+				AddCrashometry("player_corruption", "true");
+			}
 		}
 	}
 
