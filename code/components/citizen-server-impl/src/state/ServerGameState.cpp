@@ -189,7 +189,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		{
 			auto entity = entityPair.second;
 
-			if (!entity)
+			if (!entity || !entity->syncTree)
 			{
 				continue;
 			}
@@ -291,7 +291,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	{
 		auto entity = entityPair.second;
 
-		if (!entity)
+		if (!entity || !entity->syncTree)
 		{
 			continue;
 		}
@@ -450,7 +450,7 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 
 		auto entity = it->second;
 
-		if (!entity)
+		if (!entity || !entity->syncTree)
 		{
 			return;
 		}
@@ -897,7 +897,7 @@ static InitFunction initFunction([]()
 		{
 			auto entity = instance->GetComponent<fx::ServerGameState>()->m_entities[fx::MakeEntityHandle(0, buffer.Read<uint16_t>())];
 
-			if (entity)
+			if (entity && entity->syncTree)
 			{
 				entity->syncTree->Visit([client](fx::sync::NodeBase& node)
 				{
