@@ -456,6 +456,16 @@ int getPlayerId()
 	return g_playerMgr->localPlayer->physicalPlayerIndex;
 }
 
+static bool mD0Stub(rage::netSyncTree* tree, int a2)
+{
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return false;
+	}
+
+	return tree->m_D0(a2);
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -534,7 +544,11 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("0F A3 C7 73 18 44", 3), 2); // not working, maybe?
 
 	// always write up-to-date data to nodes, not the cached data from syncdata
-	hook::put<uint16_t>(hook::get_pattern("FF 90 D0 00 00 00 84 C0 0F 84 80 00 00 00", 8), 0xE990);
+	{
+		auto location = hook::get_pattern("FF 90 D0 00 00 00 84 C0 0F 84 80 00 00 00", 0);
+		hook::nop(location, 6);
+		hook::call(location, mD0Stub);
+	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });
