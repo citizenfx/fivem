@@ -10,7 +10,7 @@ namespace CitizenFX.Core
 #if !IS_FXSERVER
 	public class PlayerList : IEnumerable<Player>
     {
-        public const int MaxPlayers = 32;
+        public const int MaxPlayers = 256;
 
         public IEnumerator<Player> GetEnumerator()
         {
