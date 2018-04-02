@@ -926,6 +926,11 @@ std::string GetType(void* d)
 
 static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
 {
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
+	}
+
 	if (playerId != 31 || flags == 4)
 	{
 		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
