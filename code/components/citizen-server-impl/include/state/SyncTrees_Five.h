@@ -714,7 +714,7 @@ using CHeliSyncTree = SyncTree<
 			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode>
 		>, 
 		ParentNode<
-			NodeIds<127, 86, 0>, 
+			NodeIds<127, 87, 0>, 
 			ParentNode<
 				NodeIds<127, 127, 0>, 
 				ParentNode<
@@ -738,7 +738,7 @@ using CHeliSyncTree = SyncTree<
 			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>, 
 			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>, 
 			NodeWrapper<NodeIds<127, 127, 0>, CVehicleTaskDataNode>, 
-			NodeWrapper<NodeIds<86, 86, 0>, CHeliHealthDataNode>
+			NodeWrapper<NodeIds<87, 87, 0>, CHeliHealthDataNode>
 		>, 
 		ParentNode<
 			NodeIds<127, 86, 0>, 
