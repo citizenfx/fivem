@@ -150,4 +150,7 @@ public:
 	uint8_t pad2[20];
 	uint8_t activePlayerIndex;
 	uint8_t physicalPlayerIndex;
+	uint8_t pad3[2];
+	uint8_t pad4[120];
+	void* playerInfo;
 };
