@@ -11,7 +11,14 @@
 				<PoolSizes>
 					<Entries>
 						<!-- Keep these sorted -->
-
+						<Item>
+							<PoolName>CPlayerInfo</PoolName>
+							<PoolSize value="256"/>
+						</Item>
+						<Item>
+							<PoolName>CNetObjPed::CNetTennisMotionData</PoolName>
+							<PoolSize value="256"/>
+						</Item>
 						<Item>
 							<PoolName>AnimatedBuilding</PoolName>
 							<PoolSize value="600"/>
