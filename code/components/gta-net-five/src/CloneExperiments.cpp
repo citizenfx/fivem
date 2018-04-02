@@ -190,14 +190,12 @@ namespace sync
 		void* nonphys = calloc(256, 1);
 		((void(*)(void*))0x14106DBA8)(nonphys); // ctor
 
-		void* phys = calloc(256, 1);
+		void* phys = calloc(1024, 1);
 		((void(*)(void*))0x14106C040)(phys);
 
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, phys, nonphys);
-		//*(void**)(player + 168) = calloc(384, 1);
 		g_tempRemotePlayer = player;
 
-		//((void(*)(void*, void*, uint8_t))0x1415AC2E8)((void*)0x14273D920, player, 63);
 		if (idx == -1)
 		{
 			idx = g_physIdx;
