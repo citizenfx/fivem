@@ -16,6 +16,10 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
+							<PoolName>CNetViewPortWrapper</PoolName>
+							<PoolSize value="256"/>
+						</Item>
+						<Item>
 							<PoolName>CNetObjPed::CNetTennisMotionData</PoolName>
 							<PoolSize value="256"/>
 						</Item>
