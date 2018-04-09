@@ -50,12 +50,18 @@ namespace CitizenFX.Core
 
 		internal static void AddScript(BaseScript script)
 		{
-			ms_definedScripts.Add(script);
+			if (!ms_definedScripts.Contains(script))
+			{
+				ms_definedScripts.Add(script);
+			}
 		}
 
 		internal static void RemoveScript(BaseScript script)
 		{
-			ms_definedScripts.Remove(script);
+			if (ms_definedScripts.Contains(script))
+			{
+				ms_definedScripts.Remove(script);
+			}
 		}
 
 		public void CreateAssembly(byte[] assemblyData, byte[] symbolData)
