@@ -175,6 +175,8 @@ struct ScInAddr
 	uint64_t rockstarAccountId; // 463/505
 };
 
+static void(*g_origReassignPed)(void*, uint16_t, CNetGamePlayer*);
+
 namespace sync
 {
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
@@ -220,7 +222,7 @@ void HandleClientInfo(const NetLibraryClientInfo& info)
 	}
 }
 
-void HandleCliehtDrop(const NetLibraryClientInfo& info)
+void HandleClientDrop(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID())
 	{
@@ -244,7 +246,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 			trace("deleted object id\n");
 
-			((void(*)(void*, uint16_t, CNetGamePlayer*))0x140FD248C)(ped, objectId, player);
+			g_origReassignPed(ped, objectId, player);
 
 			trace("success! reassigned the ped!\n");
 		}
@@ -859,7 +861,7 @@ static InitFunction initFunctionEv([]()
 				return;
 			}
 
-			HandleCliehtDrop(info);
+			HandleClientDrop(info);
 		});
 
 		netLibrary->AddReliableHandler("msgNetGameEvent", [](const char* data, size_t len)
@@ -989,6 +991,11 @@ static HookFunction hookFunction2([]()
 		hook::set_call(&g_origWriteDataNode, location + 0x41);
 		hook::jump(location, WriteDataNodeStub);
 	}
+
+	//Fix that reassignment function
+	auto location = hook::get_pattern<char>("E8 ? ? ? ? 48 8B 0D ? ? ? ? 4C 8B 01 48", 0x24);
+	hook::set_call(&g_origReassignPed, location);
+
 });
 
 int ObjectToEntity(int objectId)
