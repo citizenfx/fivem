@@ -52683,23 +52683,29 @@ native "_SCREEN_DRAW_POSITION_BEGIN"
 	hash "0xB8A850F20A067EB6"
 	jhash (0x228A2598)
 	arguments {
-		int "x",
+		int "horizontalAnchor",
 
-		int "y",
+		int "verticalAnchor",
 	}
 	alias "_SET_SCREEN_DRAW_POSITION"
 	ns "GRAPHICS"
 	returns	"void"
 	doc [[!
 <summary>
-		Seems to move all the drawn text on the screen to given coordinates.
-		It also removed all the drawn sprites of my screen so not to sure what the exact function is.
-
+		This function anchors all drawn objects to a side of the safe zone. This needs to be called to make the interface invulnerable to changes in safezone size among different users.
+		The horizontalAnchor can be called with values:
+		67 - You start drawing from the middle
+		76 - Anchors to the Left Side
+		82 - Anchors to the Right Side, but starts to Draw on the left side (so start at 1.0 on the x-Component and trace the width backwards from it)
+		The verticalAnchor can be called with values:
+		66 - You start drawing at the middle
+		67 - Bottom, it starts at a certain distance from the bottom, but the distance is fixed
+		84 - Top
+		
+		Calling it with any other values, is as good as not calling it at all.
 
 		edit:
 		this is to make drawn text, scaleforms and sprites be isolated from the "main screen" used when you change the RenderTarget id so you to draw on phone do this before you "draw" things and then do "SCREEN_DRAW_POSITION_END()"
-
-
 </summary>
 	]]
 
