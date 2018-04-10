@@ -1145,9 +1145,7 @@ native "0xB13DCB4C6FAAD238"
 	returns	"void"
 	doc [[!
 <summary>
-		Called in decompiled scripts when _SET_PED_ENEMY_AI_BLIP requires an additional parameter p3;
-		
-		p3 != -1, in which case _SET_PED_ENEMY_AI_BLIP is called
+		Called in decompiled scripts as alternative to _SET_PED_ENEMY_AI_BLIP in an else, when the additional parameter p3 is not -1
 </summary>
 	]]
 
@@ -3251,14 +3249,19 @@ native "0xFAC75988A7D078D3"
 native "0x55FCC0C390620314"
 	hash "0x55FCC0C390620314"
 	arguments {
-		Player "playerId1",
+		Player "player1",
 
-		Player "playerId2",
+		Player "player2",
 
 		BOOL "toggle",
 	}
 	ns "PLAYER"
 	returns	"void"
+	doc [[!
+<summary>
+		Order of player1 and player2 are not interchangable, it was called for both orders.
+</summary>
+	]]
 
 native "0xD821056B9ACF8052"
 	hash "0xD821056B9ACF8052"

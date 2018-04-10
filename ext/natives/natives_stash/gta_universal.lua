@@ -52693,14 +52693,16 @@ native "_SCREEN_DRAW_POSITION_BEGIN"
 	doc [[!
 <summary>
 		This function anchors all drawn objects to a side of the safe zone. This needs to be called to make the interface invulnerable to changes in safezone size among different users.
+		
 		The horizontalAnchor can be called with values:
-		67 - You start drawing from the middle
-		76 - Anchors to the Left Side
-		82 - Anchors to the Right Side, but starts to Draw on the left side (so start at 1.0 on the x-Component and trace the width backwards from it)
+		67 - Middle: You start drawing from the middle
+		76 - Left: Anchors to the left side
+		82 - Right: Anchors to the right side, but starts to draw on the left side (so start at 1.0 on the x-Component and trace the width backwards from it)
+		
 		The verticalAnchor can be called with values:
-		66 - You start drawing at the middle
-		67 - Bottom, it starts at a certain distance from the bottom, but the distance is fixed
-		84 - Top
+		66 - Middle: You start drawing from the middle
+		67 - Bottom: It starts at a certain distance from the bottom, but the distance is fixed
+		84 - Top: Anchors to the top
 		
 		Calling it with any other values, is as good as not calling it at all.
 
