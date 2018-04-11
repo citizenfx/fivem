@@ -17,8 +17,6 @@
 
 #include <msgpack.hpp>
 
-#include <nnxx/poll.h>
-
 static fx::GameServer* g_gameServer;
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
@@ -147,8 +145,11 @@ namespace fx
 		{
 			SetThreadName(-1, "[Cfx] Network Thread");
 
-			nnxx::socket netSocket{ nnxx::SP, nnxx::PULL };
-			netSocket.bind("inproc://netlib_client");
+			nng_socket netSocket;
+			nng_pull0_open(&netSocket);
+
+			nng_listener listener;
+			nng_listen(netSocket, "inproc://netlib_client", &listener, NNG_FLAG_NONBLOCK);
 
 			while (true)
 			{
@@ -161,7 +162,10 @@ namespace fx
 					ENET_SOCKETSET_ADD(readfds, host->socket);
 				}
 
-				ENET_SOCKETSET_ADD(readfds, netSocket.getopt<ENetSocket>(NN_SOL_SOCKET, NN_RCVFD));
+				int rcvFd;
+				nng_getopt_int(netSocket, NNG_OPT_RECVFD, &rcvFd);
+
+				ENET_SOCKETSET_ADD(readfds, (ENetSocket)rcvFd);
 				enet_socketset_select(this->hosts.size(), &readfds, nullptr, 20);
 
 				for (auto& host : this->hosts)
@@ -170,35 +174,31 @@ namespace fx
 				}
 
 				{
-					nnxx::message message;
-
-					do 
+					void* msgBuffer;
+					size_t msgLen;
+					
+					while (nng_recv(netSocket, &msgBuffer, &msgLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0)
 					{
-						message = netSocket.recv(NN_DONTWAIT);
+						nng_free(msgBuffer, msgLen);
 
-						if (!message.empty())
-						{
-							m_netThreadCallbacks.Run();
-						}
-					} while (!message.empty());
+						m_netThreadCallbacks.Run();
+					}
 				}
 			}
 		}).detach();
 	}
 
-	void GameServer::InternalRunMainThreadCbs(nnxx::socket& socket)
+	void GameServer::InternalRunMainThreadCbs(nng_socket socket)
 	{
-		nnxx::message message;
+		void* msgBuffer;
+		size_t msgLen;
 
-		do
+		while (nng_recv(socket, &msgBuffer, &msgLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0)
 		{
-			message = socket.recv(NN_DONTWAIT);
+			nng_free(msgBuffer, msgLen);
 
-			if (!message.empty())
-			{
-				m_mainThreadCallbacks.Run();
-			}
-		} while (!message.empty());
+			m_mainThreadCallbacks.Run();
+		}
 	}
 
 	const ENetPeer* GameServer::InternalGetPeer(int peerId)
@@ -425,20 +425,21 @@ namespace fx
 		callbacks.push(fn);
 
 		// submit to the owning thread
-		static thread_local nnxx::socket sockets[2];
+		static thread_local nng_socket sockets[2];
+		static thread_local nng_dialer dialers[2];
 
 		int i = m_socketIdx;
 
 		if (!sockets[i])
 		{
-			sockets[i] = nnxx::socket{ nnxx::SP, nnxx::PUSH };
-			sockets[i].connect(m_socketName);
+			nng_push0_open(&sockets[i]);
+			nng_dial(sockets[i], m_socketName.c_str(), &dialers[i], 0);
 		}
 
 		std::vector<int> idxList(1);
 		idxList[0] = 0xFEED;
 
-		sockets[i].send(idxList);
+		nng_send(sockets[i], &idxList[0], idxList.size() * sizeof(int), 0);
 	}
 
 	void GameServer::CallbackList::Run()
@@ -637,26 +638,33 @@ namespace fx
 		struct ThreadWait
 		{
 			ThreadWait()
-				: m_socket( nnxx::SP, nnxx::PULL )
 			{
-				m_socket.bind("inproc://main_client");
+				nng_pull0_open(&m_socket);
+				nng_listen(m_socket, "inproc://main_client", &m_listener, 0);
 			}
 
 			inline void operator()(const fwRefContainer<fx::GameServer>& server, int maxTime)
 			{
-				nn_pollfd pfd = { 0 };
-				pfd.fd = m_socket.fd();
-				pfd.events = NN_POLLIN;
+				int rcvFd;
+				nng_getopt_int(m_socket, NNG_OPT_RECVFD, &rcvFd);
 
-				int res = nn_poll(&pfd, 1, maxTime);
+				fd_set fds;
+				FD_ZERO(&fds);
+				FD_SET(rcvFd, &fds);
 
-				if (res >= 0 && pfd.revents & NN_POLLIN)
+				timeval timeout;
+				timeout.tv_sec = 0;
+				timeout.tv_usec = maxTime * 1000;
+				int rv = select(1, &fds, nullptr, nullptr, &timeout);
+
+				if (rv >= 0 && FD_ISSET(rcvFd, &fds))
 				{
 					server->InternalRunMainThreadCbs(m_socket);
 				}
 			}
 
-			nnxx::socket m_socket;
+			nng_socket m_socket;
+			nng_listener m_listener;
 		};
 
 		struct ENetWait

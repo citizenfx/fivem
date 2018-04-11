@@ -8,8 +8,7 @@
 		"gta:core",
 		"conhost",
 		"vendor:cpp-uri",
-		"vendor:nanomsg",
-		"vendor:nanomsgxx"
+		"vendor:nng"
 	],
 	"provides": []
 }

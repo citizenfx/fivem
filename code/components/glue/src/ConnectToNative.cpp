@@ -289,10 +289,9 @@ static InitFunction initFunction([] ()
 #include <gameSkeleton.h>
 #include <shellapi.h>
 
-#include <nnxx/message.h>
-#include <nnxx/message_control.h>
-#include <nnxx/pipeline.h>
-#include <nnxx/socket.h>
+#include <nng.h>
+#include <protocol/pipeline0/pull.h>
+#include <protocol/pipeline0/push.h>
 
 static void ProtocolRegister()
 {
@@ -398,9 +397,12 @@ void Component_RunPreInit()
 	}
 	else
 	{
-		nnxx::socket netSocket{ nnxx::SP, nnxx::PUSH };
-		netSocket.connect("ipc://fivem_connect");
-		netSocket.send(connectHost);
+		nng_socket socket;
+		nng_dialer dialer;
+
+		nng_push0_open(&socket);
+		nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
+		nng_send(socket, const_cast<char*>(connectHost.c_str()), connectHost.size(), 0);
 
 		TerminateProcess(GetCurrentProcess(), 0);
 	}
@@ -408,8 +410,11 @@ void Component_RunPreInit()
 
 static InitFunction connectInitFunction([]()
 {
-	static nnxx::socket netSocket{ nnxx::SP, nnxx::PULL };
-	netSocket.bind("ipc://fivem_connect");
+	static nng_socket netSocket;
+	static nng_listener listener;
+
+	nng_pull0_open(&netSocket);
+	nng_listen(netSocket, "ipc:///tmp/fivem_connect", &listener, 0);
 
 	OnGameFrame.Connect([]()
 	{
@@ -418,10 +423,16 @@ static InitFunction connectInitFunction([]()
 			return;
 		}
 
-		auto connectMsg = netSocket.recv<std::string>(NN_DONTWAIT);
+		char* buffer;
+		size_t bufLen;
 
-		if (!connectMsg.empty())
+		int err = nng_recv(netSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
+
+		if (err == 0)
 		{
+			std::string connectMsg(buffer, buffer + bufLen);
+			nng_free(buffer, bufLen);
+
 			ConnectTo(connectMsg);
 		}
 	});

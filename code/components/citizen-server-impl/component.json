@@ -14,8 +14,7 @@
 		"vendor:tbb",
 		"vendor:boost_random",
 		"vendor:linenoise",
-		"vendor:nanomsg",
-		"vendor:nanomsgxx",
+		"vendor:nng",
 		"vendor:lz4"
 	],
 	"provides": []

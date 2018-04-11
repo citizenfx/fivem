@@ -9,9 +9,9 @@
 #include <MapComponent.h>
 #include <NetAddress.h>
 
-#include <nnxx/message.h>
-#include <nnxx/pipeline.h>
-#include <nnxx/socket.h>
+#include <nng.h>
+#include <protocol/pipeline0/pull.h>
+#include <protocol/pipeline0/push.h>
 
 #include <boost/bimap.hpp>
 
@@ -119,7 +119,7 @@ namespace fx
 
 		void InternalSendPacket(int peer, int channel, const net::Buffer& buffer, ENetPacketFlag flags);
 
-		void InternalRunMainThreadCbs(nnxx::socket& socket);
+		void InternalRunMainThreadCbs(nng_socket socket);
 
 	private:
 		void Run();
