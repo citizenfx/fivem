@@ -348,7 +348,10 @@ namespace fx
 						m_clientRegistry->HandleConnectedClient(client);
 					});
 
-					m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 64);
+					if (g_oneSyncVar->GetValue())
+					{
+						m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 64);
+					}
 
 					ForceHeartbeat();
 				}
