@@ -10,8 +10,6 @@
 #include <NetAddress.h>
 
 #include <nng.h>
-#include <protocol/pipeline0/pull.h>
-#include <protocol/pipeline0/push.h>
 
 #include <boost/bimap.hpp>
 

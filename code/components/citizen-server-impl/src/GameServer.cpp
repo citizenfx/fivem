@@ -17,6 +17,9 @@
 
 #include <msgpack.hpp>
 
+#include <protocol/reqrep0/req.h>
+#include <protocol/reqrep0/rep.h>
+
 static fx::GameServer* g_gameServer;
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
@@ -146,7 +149,7 @@ namespace fx
 			SetThreadName(-1, "[Cfx] Network Thread");
 
 			nng_socket netSocket;
-			nng_pull0_open(&netSocket);
+			nng_rep0_open(&netSocket);
 
 			nng_listener listener;
 			nng_listen(netSocket, "inproc://netlib_client", &listener, NNG_FLAG_NONBLOCK);
@@ -181,6 +184,9 @@ namespace fx
 					{
 						nng_free(msgBuffer, msgLen);
 
+						int ok = 0;
+						nng_send(netSocket, &ok, 4, NNG_FLAG_NONBLOCK);
+
 						m_netThreadCallbacks.Run();
 					}
 				}
@@ -196,6 +202,9 @@ namespace fx
 		while (nng_recv(socket, &msgBuffer, &msgLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0)
 		{
 			nng_free(msgBuffer, msgLen);
+
+			int ok = 0;
+			nng_send(socket, &ok, 4, NNG_FLAG_NONBLOCK);
 
 			m_mainThreadCallbacks.Run();
 		}
@@ -435,14 +444,14 @@ namespace fx
 
 		if (!sockets[i])
 		{
-			nng_push0_open(&sockets[i]);
+			nng_req0_open(&sockets[i]);
 			nng_dial(sockets[i], m_socketName.c_str(), &dialers[i], 0);
 		}
 
 		std::vector<int> idxList(1);
 		idxList[0] = 0xFEED;
 
-		nng_send(sockets[i], &idxList[0], idxList.size() * sizeof(int), 0);
+		nng_send(sockets[i], &idxList[0], idxList.size() * sizeof(int), NNG_FLAG_NONBLOCK);
 	}
 
 	void GameServer::CallbackList::Run()
@@ -642,7 +651,7 @@ namespace fx
 		{
 			ThreadWait()
 			{
-				nng_pull0_open(&m_socket);
+				nng_rep0_open(&m_socket);
 				nng_listen(m_socket, "inproc://main_client", &m_listener, 0);
 			}
 

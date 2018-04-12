@@ -8,7 +8,7 @@ return {
 		language "C"
 		kind "SharedLib"
 		
-		defines { "NNG_HAVE_PULL0", "NNG_HAVE_PUSH0", "NNG_TRANSPORT_INPROC", "NNG_TRANSPORT_IPC", "NNG_SHARED_LIB", "NNG_LITTLE_ENDIAN" }
+		defines { "NNG_HAVE_PULL0", "NNG_HAVE_PUSH0", "NNG_HAVE_REQ0", "NNG_HAVE_REP0", "NNG_TRANSPORT_INPROC", "NNG_TRANSPORT_IPC", "NNG_SHARED_LIB", "NNG_LITTLE_ENDIAN" }
 		
 		files_project '../vendor/nng/src/' {
 			"nng.c",
@@ -125,7 +125,13 @@ return {
 			
 			"protocol/pipeline0/push.h",
 			"protocol/pipeline0/pull.h",
+
+			"protocol/reqrep0/req.c",
+			"protocol/reqrep0/rep.c",
 			
+			"protocol/reqrep0/req.h",
+			"protocol/reqrep0/rep.h",
+						
 			"transport/inproc/inproc.c",
 			"transport/inproc/inproc.h",
 			
