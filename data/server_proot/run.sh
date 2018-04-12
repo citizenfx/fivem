@@ -4,5 +4,7 @@
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-# run proot
-exec $SCRIPTPATH/proot -b $PWD -R $SCRIPTPATH/alpine/ /opt/cfx-server/FXServer +set citizen_dir /opt/cfx-server/citizen/ $*
+# run server
+exec $SCRIPTPATH/alpine/opt/cfx-server/ld-musl-x86_64.so.1 \
+    --library-path "$SCRIPTPATH/alpine/lib/:$SCRIPTPATH/alpine/usr/lib/" -- \
+    $SCRIPTPATH/alpine/opt/cfx-server/FXServer +set citizen_dir $SCRIPTPATH/alpine/opt/cfx-server/citizen/ $*
