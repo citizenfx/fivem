@@ -157,19 +157,33 @@ namespace fx
 			while (true)
 			{
 				// service enet with our remaining waits
-				ENetSocketSet readfds;
-				ENET_SOCKETSET_EMPTY(readfds);
+				std::vector<ENetSocket> fds;
 
 				for (auto& host : this->hosts)
 				{
-					ENET_SOCKETSET_ADD(readfds, host->socket);
+					fds.push_back(host->socket);
 				}
 
 				int rcvFd;
 				nng_getopt_int(netSocket, NNG_OPT_RECVFD, &rcvFd);
 
-				ENET_SOCKETSET_ADD(readfds, (ENetSocket)rcvFd);
-				enet_socketset_select(this->hosts.size(), &readfds, nullptr, 20);
+				fds.push_back(rcvFd);
+
+				ENetSocketSet readfds;
+				ENET_SOCKETSET_EMPTY(readfds);
+
+				for (auto fd : fds)
+				{
+					ENET_SOCKETSET_ADD(readfds, fd);
+				}
+
+				int nfds = 0;
+
+#ifndef _WIN32
+				nfds = *std::max_element(fds.begin(), fds.end());
+#endif
+
+				enet_socketset_select(nfds, &readfds, nullptr, 20);
 
 				for (auto& host : this->hosts)
 				{
@@ -667,7 +681,7 @@ namespace fx
 				timeval timeout;
 				timeout.tv_sec = 0;
 				timeout.tv_usec = maxTime * 1000;
-				int rv = select(1, &fds, nullptr, nullptr, &timeout);
+				int rv = select(rcvFd + 1, &fds, nullptr, nullptr, &timeout);
 
 				if (rv >= 0 && FD_ISSET(rcvFd, &fds))
 				{
