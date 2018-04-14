@@ -175,8 +175,38 @@ static HookFunction shaderIdHookFunc([] ()
 	gtaImShader = (intptr_t*)(*(int32_t*)shaderMatch + shaderMatch + 4);
 });
 
+static hook::cdecl_stub<void(void*)> drawMatrix_ctor([]()
+{
+	return hook::get_pattern("80 3F 33 C9 48 89 8B 10 04 00 00", -12);
+});
+
+struct drawMatrix
+{
+	char pad[1168];
+
+	drawMatrix()
+	{
+		drawMatrix_ctor(this);
+	}
+};
+
+static hook::cdecl_stub<void(drawMatrix*)> activateMatrix([]()
+{
+	return hook::get_pattern("40 8A F2 48 8B D9 75 14", -0x1D);
+});
+
+static drawMatrix* g_imMatrix;
+
 void PushDrawBlitImShader()
 {
+	if (!g_imMatrix)
+	{
+		g_imMatrix = new drawMatrix();
+	}
+
+	// activate matrix
+	activateMatrix(g_imMatrix);
+
 	// set screen space stuff
 	setScreenSpaceMatrix(nullptr, nullptr, true);
 
