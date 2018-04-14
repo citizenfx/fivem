@@ -152,10 +152,18 @@ static void(*g_origUnloadMapTypes)(void*, uint32_t);
 void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 {
 	auto pool = (atPoolBase*)(assetStore + 56);
+	auto entry = pool->GetAt<char>(index);
 
-	if (pool->GetAt<void>(index) != nullptr)
+	if (entry != nullptr)
 	{
-		g_origUnloadMapTypes(assetStore, index);
+		if (*(uintptr_t*)entry != 0)
+		{
+			g_origUnloadMapTypes(assetStore, index);
+		}
+		else
+		{
+			AddCrashometry("maptypesstore_workaround_2", "true");
+		}
 	}
 	else
 	{

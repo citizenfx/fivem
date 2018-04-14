@@ -990,7 +990,15 @@ struct pgRawStreamer
 
 static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, uint16_t index, char* buffer, int len)
 {
-	strncpy(buffer, streamer->m_entries[index >> 10][index & 0x3FF].fileName, len - 1);
+	const char* fileName = streamer->m_entries[index >> 10][index & 0x3FF].fileName;
+
+	if (fileName == nullptr)
+	{
+		buffer[0] = '\0';
+		return buffer;
+	}
+
+	strncpy(buffer, fileName, len - 1);
 	buffer[len - 1] = '\0';
 
 	return buffer;
