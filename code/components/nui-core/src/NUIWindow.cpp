@@ -82,6 +82,7 @@ void NUIWindow::Initialize(CefString url)
 	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
 	info.shared_texture_enabled = true;
 	info.external_begin_frame_enabled = true;
+	info.shared_texture_sync_key = uint64_t(-1);
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
@@ -253,14 +254,6 @@ void NUIWindow::UpdateFrame()
 
 	if (texture)
 	{
-		IDXGIKeyedMutex* keyedMutex = nullptr;
-		texture->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&keyedMutex);
-
-		if (!keyedMutex)
-		{
-			FatalError(__FUNCTION__ ": ID3D11Texture2D::QueryInterface(IDXGIKeyedMutex) failed - your GPU driver likely does not support Direct3D shared resources correctly. Please update to the latest version of Windows and your GPU driver to resolve this problem.");
-		}
-
 		//
 		// dirty flag checking and CopySubresourceRegion are disabled here due to some issue
 		// with scheduling frame copies from the OnAcceleratedPaint handler.
@@ -270,7 +263,7 @@ void NUIWindow::UpdateFrame()
 		//
 		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		{
-			HRESULT hr = keyedMutex->AcquireSync(m_syncKey, 0);
+			HRESULT hr = S_OK;
 
 			if (hr == S_OK)
 			{
@@ -295,16 +288,12 @@ void NUIWindow::UpdateFrame()
 				}
 
 				SetEvent(g_resetEvent);
-
-				keyedMutex->ReleaseSync(m_syncKey);
 			}
 			else
 			{
 				MarkRenderBufferDirty();
 			}
 		}
-		
-		keyedMutex->Release();
 	}
 }
 
