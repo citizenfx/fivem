@@ -112,7 +112,8 @@ void FinalizeInitNUI()
 	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = false; // true;
 	cSettings.log_severity = LOGSEVERITY_DISABLE;
-	cSettings.shared_textures_enabled = true;
+	cSettings.shared_texture_enabled = true;
+	cSettings.external_begin_frame_enabled = true;
 	
 	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser"));
 

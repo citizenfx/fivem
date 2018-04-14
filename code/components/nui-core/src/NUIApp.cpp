@@ -57,7 +57,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("enable-usermedia-screen-capture");
 	command_line->AppendSwitch("disable-direct-composition");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
-	command_line->AppendSwitch("disable-gpu-vsync");
+	//command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 	command_line->AppendSwitch("force-gpu-rasterization");
 

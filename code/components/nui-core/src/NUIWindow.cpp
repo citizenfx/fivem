@@ -79,14 +79,14 @@ void NUIWindow::Initialize(CefString url)
 	m_client = new NUIClient(this);
 
 	CefWindowInfo info;
-	//info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
-	info.shared_textures_enabled = true;
-	info.SetAsWindowless(nullptr);
+	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
+	info.shared_texture_enabled = true;
+	info.external_begin_frame_enabled = true;
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
 	settings.web_security = STATE_DISABLED;
-	settings.windowless_frame_rate = 60;
+	settings.windowless_frame_rate = 240;
 	CefString(&settings.default_encoding).FromString("utf-8");
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
@@ -179,6 +179,23 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 void NUIWindow::UpdateFrame()
 {
+	if (m_client)
+	{
+		auto client = ((NUIClient*)m_client.get());
+
+		auto browser = client->GetBrowser();
+		
+		if (browser)
+		{
+			auto host = browser->GetHost();
+
+			if (host)
+			{
+				host->SendExternalBeginFrame(0, 0, 0);
+			}
+		}
+	}
+
 	if (!m_nuiTexture)
 	{
 		return;
