@@ -35,14 +35,58 @@
 
 		width: 60%;
 
-		padding: 2.5%;
+		&.withBg {
+			box-shadow: #000 0px 0px 75px;
+			background-color: rgba($bgColour, 1);
+		}
+
+		&>section {
+			position: relative;
+
+			height: 15vh;
+
+			.bg {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+
+				overflow: hidden;
+
+				img {
+					position: absolute;
+					left: 0;
+					right: 0;
+					top: -9999px;
+					bottom: -9999px;
+					margin: auto 0;
+					width: 100%;
+					transform: none;
+				}
+			}
+		}
+
+		&.withBg>div {
+			min-height: 200px;
+			display: flex;
+			align-items: center;
+		}
+
+		&>div>div {
+			padding: 2.5%;
+		}
+
+		&.withBg>div>div {
+			padding-top: 1%;
+		}
 
 		h1 {
 			font-size: 40px;
 			font-weight: 100;
 			line-height: 1;
 			margin: 0;
-			margin-bottom: 1%;
+			margin-bottom: $padding;
 		}
 
 		p {
@@ -53,6 +97,13 @@
 
 		button {
 			margin-top: $padding;
+
+			opacity: 0;
+			transition: none;
+
+			&.active {
+				opacity: 1;
+			}
 		}
 	}
 }

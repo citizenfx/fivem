@@ -1,16 +1,23 @@
 <div class="overlay" [class.active]="showOverlay">
-	<div class="inner">
+	<div class="inner" [class.withBg]="overlayBg != ''">
+		<section class="header" *ngIf="overlayBg != ''">
+			<figure class="bg">
+				<img [src]="overlayBg" alt="">
+			</figure>
+		</section>
 		<div>
-			<h1>
-				{{overlayTitle|translate}}
-			</h1>
-			<p>{{overlayMessage|translate:lang:overlayMessageData }}</p>
-			<button
-				*ngIf="overlayClosable"
-				(click)="closeOverlay(); false"
-			>
-				{{closeLabel|translate:lang}}
-			</button>
+			<div>
+				<h1>
+					{{overlayTitle|translate}}
+				</h1>
+				<p>{{overlayMessage|translate:lang:overlayMessageData }}</p>
+				<button
+					[class.active]="overlayClosable"
+					(click)="closeOverlay(); false"
+				>
+					{{closeLabel|translate:lang}}
+				</button>
+			</div>
 		</div>
 	</div>
 </div>

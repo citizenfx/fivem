@@ -83,6 +83,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
                 this.serverVariables = Object.entries(a.data.vars)
                     .map(([key, value]) => ( { key, value }) )
                     .filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
+                    .filter(({ key }) => key.indexOf('banner_') < 0)
                     .map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
             });
     }

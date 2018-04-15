@@ -60,6 +60,13 @@
 		</div>
 	</div>
 
+	<div class="banner" *ngIf="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
+			<div>
+				<img [src]="this.server.data.vars.banner_detail">
+			</div>
+	</div>
+
+
 	<div class="info player-list" *ngIf="this.server">
 		<h1 translate>#ServerDetail_Players</h1>
 		<span *ngIf="server.data.players.length == 0" translate>#ServerDetail_PlayersEmpty</span>
