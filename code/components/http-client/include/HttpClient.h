@@ -36,6 +36,7 @@ struct HttpRequestOptions
 {
 	std::map<std::string, std::string> headers;
 	std::function<void(const ProgressInfo&)> progressCallback;
+	std::function<bool(const std::string&)> streamingCallback;
 	int weight;
 
 	inline HttpRequestOptions()

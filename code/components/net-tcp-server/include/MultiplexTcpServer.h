@@ -46,6 +46,8 @@ public:
 
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
+	virtual void Write(const std::string& data) override;
+
 	virtual void Close() override;
 };
 

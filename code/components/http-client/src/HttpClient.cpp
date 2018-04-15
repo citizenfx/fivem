@@ -274,6 +274,18 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curlData->impl = impl;
 	curlData->defaultWeight = curlData->weight = options.weight;
 
+	auto scb = options.streamingCallback;
+
+	if (scb)
+	{
+		curlData->writeFunction = [scb](const void* data, size_t len)
+		{
+			bool success = scb(std::string(reinterpret_cast<const char*>(data), len));
+
+			return (success) ? len : 0;
+		};
+	}
+
 	auto curlDataPtr = new std::shared_ptr<CurlData>(curlData);
 
 	curl_easy_setopt(curlHandle, CURLOPT_URL, curlData->url.c_str());

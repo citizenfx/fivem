@@ -213,6 +213,11 @@ void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data)
 	m_baseStream->Write(data);
 }
 
+void MultiplexTcpChildServerStream::Write(const std::string& data)
+{
+	m_baseStream->Write(data);
+}
+
 PeerAddress MultiplexTcpChildServerStream::GetPeerAddress()
 {
 	return m_baseStream->GetPeerAddress();

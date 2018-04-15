@@ -22,6 +22,8 @@
 
 #include <ctime>
 
+#include <ClientDeferral.h>
+
 #include <ServerIdentityProvider.h>
 
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
@@ -222,6 +224,12 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
+			auto sendError = [=](const std::string& error)
+			{
+				cb(json::object({ { "error", error } }));
+				cb(json(nullptr));
+			};
+
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 
@@ -252,13 +260,13 @@ static InitFunction initFunction([]()
 
 				if (ticketIt == postMap.end())
 				{
-					cb(json::object({ { "error", "No FiveM ticket was specified. If this is an offline server, maybe set sv_lan?"} }));
+					sendError("No FiveM ticket was specified. If this is an offline server, maybe set sv_lan?");
 					return;
 				}
 
 				if (!VerifyTicket(guid, ticketIt->second))
 				{
-					cb(json::object({ { "error", "FiveM ticket authorization failed." } }));
+					sendError("FiveM ticket authorization failed.");
 					return;
 				}
 
@@ -266,7 +274,7 @@ static InitFunction initFunction([]()
 
 				if (!optionalTicket)
 				{
-					cb(json::object({ { "error", "FiveM ticket authorization failed. (2)" } }));
+					sendError("FiveM ticket authorization failed. (2)");
 					return;
 				}
 
@@ -350,7 +358,7 @@ static InitFunction initFunction([]()
 				{
 					clientRegistry->RemoveClient(client);
 
-					cb({ {"error", "You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again."} });
+					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
 					return;
 				}
 
@@ -361,65 +369,45 @@ static InitFunction initFunction([]()
 				// TODO: replace with event stacks once implemented
 				std::string noReason("Resource prevented connection.");
 
-				std::map<std::string, fx::ResourceCallbackComponent::CallbackRef> cbs;
-				bool isDeferred = false;
+				auto deferrals = std::make_shared<std::shared_ptr<fx::ClientDeferral>>();
+				*deferrals = std::make_shared<fx::ClientDeferral>(instance, client);
 
-				using TDeferFn = std::function<void(const json&)>;
-				using TDeferPtr = std::unique_ptr<TDeferFn>;
+				// *copy* the callback into a *shared* reference
+				auto cbRef = std::make_shared<std::unique_ptr<std::decay_t<decltype(cb)>>>(std::make_unique<std::decay_t<decltype(cb)>>(cb));
 
-				json deferData = { { "defer", true },{ "token", token },{ "status", "Deferred connection." } };
-
-				auto returnedCb = std::make_shared<bool>(false);
-				auto deferDoneCb = std::make_shared<TDeferPtr>(std::make_unique<TDeferFn>([&](const json& data)
+				(*deferrals)->SetMessageCallback([deferrals, cbRef](const std::string& message)
 				{
-					deferData = data;
-				}));
-
-				cbs["defer"] = cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
-				{
-					isDeferred = true;
+					(**cbRef)(json::object({ { "defer", true }, { "message", message }, { "deferVersion", 2 } }));
 				});
 
-				cbs["update"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
+				(*deferrals)->SetResolveCallback([data, deferrals, cbRef, allowClient]()
 				{
-					if (*returnedCb)
-					{
-						return;
-					}
+					allowClient();
 
-					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+					(**cbRef)(data);
+					(**cbRef)(json(nullptr));
 
-					if (obj.size() == 1)
-					{
-						(**deferDoneCb)({ { "status", obj[0].as<std::string>() }, {"token", token}, {"defer", true} });
-					}
+					*cbRef = nullptr;
+					*deferrals = nullptr;
 				});
 
-				cbs["done"] = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, client, clientRegistry](const std::string& message)
 				{
-					if (*returnedCb)
-					{
-						return;
-					}
+					clientRegistry->RemoveClient(client);
 
-					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+					(**cbRef)(json::object({ { "error", message} }));
+					(**cbRef)(json(nullptr));
 
-					if (obj.size() == 1)
-					{
-						if (!clientWeak.expired())
-						{
-							clientRegistry->RemoveClient(clientWeak.lock());
-						}
+					*cbRef = nullptr;
+					*deferrals = nullptr;
+				});
 
-						(**deferDoneCb)({ { "error", obj[0].as<std::string>() } });
-					}
-					else
-					{
-						allowClient();
-						(**deferDoneCb)(data);
-					}
+				request->SetCancelHandler([cbRef, deferrals, client, clientRegistry]()
+				{
+					clientRegistry->RemoveClient(client);
 
-					*returnedCb = true;
+					*cbRef = nullptr;
+					*deferrals = nullptr;
 				});
 
 				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
@@ -430,64 +418,25 @@ static InitFunction initFunction([]()
 					{
 						noReason = obj[0].as<std::string>();
 					}
-				}), cbs);
+				}), (*deferrals)->GetCallbacks());
 
 				if (!shouldAllow)
 				{
-					*returnedCb = true;
-					*deferDoneCb = nullptr;
-
 					clientRegistry->RemoveClient(client);
 
-					cb({ {"error", noReason} });
+					sendError(noReason);
 					return;
 				}
 
-				if (!isDeferred)
+				if (!(*deferrals)->IsDeferred())
 				{
 					allowClient();
+
+					*cbRef = nullptr;
+					*deferrals = nullptr;
+
 					cb(data);
-
-					*deferDoneCb = nullptr;
-				}
-				else
-				{
-					if (protocol < 5)
-					{
-						// set a callback so setting data won't crash
-						*deferDoneCb = std::make_unique<TDeferFn>([=](const json& data)
-						{
-
-						});
-
-						if (!*returnedCb)
-						{
-							*returnedCb = true;
-
-							clientRegistry->RemoveClient(client);
-
-							cb({ {"error", "You need to update your client to join this server."} });
-						}
-
-						return;
-					}
-
-					*deferDoneCb = std::make_unique<TDeferFn>([=](const json& data)
-					{
-						client->SetData("deferralState", std::any{ data });
-
-						auto& updateCb = client->GetData("deferralCallback");
-
-						if (updateCb.has_value())
-						{
-							std::any_cast<std::function<void()>>(updateCb)();
-						}
-					});
-
-					if (!*returnedCb)
-					{
-						cb(deferData);
-					}
+					cb(json(nullptr));
 				}
 			};
 
@@ -515,7 +464,7 @@ static InitFunction initFunction([]()
 						{
 							clientRegistry->RemoveClient(client);
 
-							cb(json::object({ { "error", *err } }));
+							sendError(*err);
 
 							// unset the callback
 							*runOneIdentifier = nullptr;

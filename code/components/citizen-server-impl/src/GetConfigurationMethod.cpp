@@ -94,6 +94,8 @@ static InitFunction initFunction([]()
 				{ "fileServer", "https://%s/files" },
 				{ "resources", resources }
 			}));
+
+			cb(json(nullptr));
 		});
 	}, 5000);
 });

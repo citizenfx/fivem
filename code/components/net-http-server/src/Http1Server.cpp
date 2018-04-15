@@ -25,9 +25,11 @@ private:
 
 	std::shared_ptr<HttpState> m_requestState;
 
+	bool m_chunked;
+
 public:
 	inline Http1Response(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState)
-		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream)
+		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream), m_chunked(false)
 	{
 		
 	}
@@ -85,13 +87,45 @@ public:
 		m_sentHeaders = true;
 	}
 
-	virtual void WriteOut(const std::vector<uint8_t>& data)
+	virtual void BeforeWriteHead(const std::string& data) override
 	{
-		m_clientStream->Write(data);
+		// HACK: disallow chunking for ROS requests
+		if (m_request->GetHttpVersion() == std::make_pair(1, 0) ||
+			m_request->GetHeader("host").find("rockstargames.com") != std::string::npos)
+		{
+			SetHeader(std::string("Content-Length"), std::to_string(data.size()));
+		}
+		else
+		{
+			SetHeader("Transfer-Encoding", "chunked");
+
+			m_chunked = true;
+		}
 	}
 
-	virtual void End()
+	virtual void WriteOut(const std::vector<uint8_t>& data) override
 	{
+		if (m_chunked)
+		{
+			// assume chunked
+			m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
+			m_clientStream->Write(data);
+			m_clientStream->Write("\r\n");
+		}
+		else
+		{
+			m_clientStream->Write(data);
+		}
+	}
+
+	virtual void End() override
+	{
+		if (m_chunked)
+		{
+			// assume chunked
+			m_clientStream->Write("0\r\n\r\n");
+		}
+
 		if (m_requestState->blocked)
 		{
 			m_requestState->blocked = false;
@@ -325,7 +359,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					}
 
 					// clean up the req/res
-					localConnectionData->request = nullptr;
+					//localConnectionData->request = nullptr;
 					localConnectionData->response = nullptr;
 
 					localConnectionData->readState = ReadStateRequest;
@@ -389,7 +423,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					}
 
 					// clean up the req/res
-					localConnectionData->request = nullptr;
+					//localConnectionData->request = nullptr;
 					localConnectionData->response = nullptr;
 
 					localConnectionData->requestData.clear();
@@ -411,6 +445,20 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 	stream->SetCloseCallback([=]()
 	{
+		if (connectionData->request.GetRef())
+		{
+			auto& cancelHandler = connectionData->request->GetCancelHandler();
+
+			if (cancelHandler)
+			{
+				cancelHandler();
+
+				connectionData->request->SetCancelHandler(std::function<void()>());
+			}
+
+			connectionData->request = nullptr;
+		}
+
 		reqState->ping = {};
 	});
 }

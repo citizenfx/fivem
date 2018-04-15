@@ -39,6 +39,8 @@ private:
 
 	std::function<void(const std::vector<uint8_t>&)> m_dataHandler;
 
+	std::function<void()> m_cancelHandler;
+
 public:
 	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList, const std::string& remoteAddress);
 
@@ -52,6 +54,16 @@ public:
 	inline void SetDataHandler(const std::function<void(const std::vector<uint8_t>& data)>& handler)
 	{
 		m_dataHandler = handler;
+	}
+
+	inline const std::function<void()>& GetCancelHandler() const
+	{
+		return m_cancelHandler;
+	}
+
+	inline void SetCancelHandler(const std::function<void()>& handler)
+	{
+		m_cancelHandler = handler;
 	}
 
 	inline std::pair<int, int> GetHttpVersion() const
@@ -138,6 +150,8 @@ public:
 	void Write(const std::string& data);
 
 	virtual void End() = 0;
+
+	virtual void BeforeWriteHead(const std::string& data);
 
 	virtual void WriteOut(const std::vector<uint8_t>& data) = 0;
 

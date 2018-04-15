@@ -80,9 +80,13 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage)
 	return WriteHead(statusCode, statusMessage, HeaderMap());
 }
 
+void HttpResponse::BeforeWriteHead(const std::string& data)
+{
+}
+
 void HttpResponse::Write(const std::string& data)
 {
-	SetHeader(std::string("Content-Length"), std::to_string(data.size()));
+	BeforeWriteHead(data);
 
 	if (!m_sentHeaders)
 	{

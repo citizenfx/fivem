@@ -109,9 +109,15 @@ namespace fx
 					return;
 				}
 
-				(*handler)(postMap, request, [=](const json& data)
+				(*handler)(postMap, request, [response](const json& data)
 				{
-					response->End(data.dump());
+					if (data.is_null())
+					{
+						response->End();
+						return;
+					}
+
+					response->Write(data.dump() + "\r\n");
 				});
 			});
 		};

@@ -21,6 +21,14 @@ void TcpServer::SetConnectionCallback(const TConnectionCallback& callback)
 	m_connectionCallback = callback;
 }
 
+void TcpServerStream::Write(const std::string& data)
+{
+	std::vector<uint8_t> dataBuf(data.size());
+	memcpy(dataBuf.data(), data.data(), dataBuf.size());
+
+	Write(dataBuf);
+}
+
 void TcpServerStream::SetCloseCallback(const TCloseCallback& callback)
 {
 	m_closeCallback = callback;

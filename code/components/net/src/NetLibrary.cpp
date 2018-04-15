@@ -619,6 +619,9 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 	postMap["guid"] = va("%lld", GetGUID());
 
+	static bool isLegacyDeferral;
+	isLegacyDeferral = false;
+
 	static fwAction<bool, const char*, size_t> handleAuthResult;
 	handleAuthResult = [=] (bool result, const char* connDataStr, size_t size) mutable
 	{
@@ -626,8 +629,6 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		{
 			return;
 		}
-
-		OnConnectionProgress("Handshaking...", 0, 100);
 
 		std::string connData(connDataStr, size);
 
@@ -641,6 +642,23 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			return;
 		}
+		else if (!isLegacyDeferral)
+		{
+			OnConnectionError(va("Failed handshake to server %s:%d - it closed the connection while deferring.", m_currentServer.GetAddress(), m_currentServer.GetPort()));
+		}
+	};
+
+	static std::function<bool(const std::string&)> handleAuthResultData;
+	handleAuthResultData = [=](const std::string& chunk)
+	{
+		// FIXME: for now, assume the chunk will always be a full JSON message
+		// this will not always be the case, but for initial prototyping this'll work...
+		if (m_connectionState != CS_INITING)
+		{
+			return false;
+		}
+
+		std::string connData(chunk);
 
 		try
 		{
@@ -654,6 +672,16 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			if (node["defer"].IsDefined())
 			{
+				if (node["deferVersion"].IsDefined())
+				{
+					// new deferral system
+					OnConnectionProgress(node["message"].as<std::string>(), 133, 133);
+
+					return true;
+				}
+
+				isLegacyDeferral = true;
+
 				OnConnectionProgress(node["status"].as<std::string>(), 133, 133);
 
 				static fwMap<fwString, fwString> newMap;
@@ -661,27 +689,27 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 				newMap["guid"] = va("%lld", GetGUID());
 				newMap["token"] = m_token;
 
-				m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), newMap, handleAuthResult);
+				HttpRequestOptions options;
+				options.streamingCallback = handleAuthResultData;
+				m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(newMap), options, handleAuthResult);
 
-				return;
+				return true;
 			}
 
 			if (node["error"].IsDefined())
 			{
-				// FIXME: single quotes
-				//nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: '%s' }, '*');", node["error"].as<std::string>().c_str()));
 				OnConnectionError(node["error"].as<std::string>().c_str());
 
 				m_connectionState = CS_IDLE;
 
-				return;
+				return true;
 			}
 
 			if (!node["sH"].IsDefined())
 			{
 				OnConnectionError("Invalid server response from initConnect (missing JSON data), is this server running a broken resource?");
 				m_connectionState = CS_IDLE;
-				return;
+				return true;
 			}
 			else
 			{
@@ -741,7 +769,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			{
 				OnConnectionError("Legacy servers are incompatible with this version of FiveM. Please tell the server owner to the server to the latest FXServer build. See https://fivem.net/ for more info.");
 				m_connectionState = CS_IDLE;
-				return;
+				return true;
 			}
 		}
 		catch (YAML::Exception& e)
@@ -749,11 +777,16 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			OnConnectionError(e.what());
 			m_connectionState = CS_IDLE;
 		}
+
+		return true;
 	};
 
 	performRequest = [=]()
 	{
-		m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), postMap, handleAuthResult);
+		HttpRequestOptions options;
+		options.streamingCallback = handleAuthResultData;
+
+		m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
 	};
 
 	m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)

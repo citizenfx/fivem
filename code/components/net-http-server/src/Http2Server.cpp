@@ -121,6 +121,18 @@ public:
 
 	void Cancel()
 	{
+		if (m_request.GetRef())
+		{
+			auto& cancelHandler = m_request->GetCancelHandler();
+
+			if (cancelHandler)
+			{
+				cancelHandler();
+
+				m_request->SetCancelHandler(std::function<void()>());
+			}
+		}
+
 		m_session = nullptr;
 	}
 
@@ -178,7 +190,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	nghttp2_session_callbacks_set_send_callback(callbacks, [](nghttp2_session *session, const uint8_t *data,
 		size_t length, int flags, void *user_data) -> ssize_t
 	{
-		reinterpret_cast<HttpConnectionData*>(user_data)->stream->Write({ data, data + length });
+		reinterpret_cast<HttpConnectionData*>(user_data)->stream->Write(std::vector<uint8_t>{ data, data + length });
 
 		return length;
 	});
