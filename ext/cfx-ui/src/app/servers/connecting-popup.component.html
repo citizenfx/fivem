@@ -4,9 +4,7 @@
 			<h1>
 				{{overlayTitle|translate}}
 			</h1>
-			<p>
-				{{overlayMessage|translate:lang:overlayMessageData }}
-			</p>
+			<p>{{overlayMessage|translate:lang:overlayMessageData }}</p>
 			<button
 				*ngIf="overlayClosable"
 				(click)="closeOverlay(); false"
