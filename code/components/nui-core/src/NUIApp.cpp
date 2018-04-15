@@ -68,6 +68,13 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// M66 enables this by default, this breaks scrolling in iframes, however only in the Cfx embedder scenario (2018-03-31)
 	// cefclient is not affected, code was compared with cefclient but not that different.
 	command_line->AppendSwitchWithValue("disable-blink-features", "RootLayerScrolling");
+	
+	// On older graphic units, CEF may disable D3D11 for gpu workarounds which causes NUI to not render.
+	// So this is needed to make CEF work on older graphic units too.
+	//
+	// See the discussion on this issue:
+	// https://github.com/daktronics/cef-mixer/issues/10
+	command_line->AppendSwitchWithValue("use-angle", "d3d11");
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
