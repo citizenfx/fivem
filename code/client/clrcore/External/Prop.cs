@@ -15,7 +15,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if this <see cref="Prop"/> exists; otherwise, <c>false</c></returns>
 		public new bool Exists()
 		{
-			return Function.Call<int>(Hash.GET_ENTITY_TYPE, Handle) == 3;
+			return base.Exists() && Function.Call<int>(Hash.GET_ENTITY_TYPE, Handle) == 3;
 		}
 		/// <summary>
 		/// Determines whether the <see cref="Prop"/> exists.

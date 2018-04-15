@@ -1612,7 +1612,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if this <see cref="Vehicle"/> exists; otherwise, <c>false</c></returns>
 		public new bool Exists()
 		{
-			return Function.Call<int>(Hash.GET_ENTITY_TYPE, Handle) == 2;
+			return base.Exists() && Function.Call<int>(Hash.GET_ENTITY_TYPE, Handle) == 2;
 		}
 		/// <summary>
 		/// Determines whether the <see cref="Vehicle"/> exists.
@@ -1623,6 +1623,5 @@ namespace CitizenFX.Core
 		{
 			return !ReferenceEquals(vehicle, null) && vehicle.Exists();
 		}
-
 	}
 }
