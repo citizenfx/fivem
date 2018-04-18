@@ -39,8 +39,8 @@ return {
 			"core/nng_impl.h",
 			"core/options.c",
 			"core/options.h",
-			"core/pollable.c",
-			"core/pollable.h",
+			--"core/pollable.c",
+			--"core/pollable.h",
 			"core/panic.c",
 			"core/panic.h",
 			"core/pipe.c",
@@ -129,9 +129,9 @@ return {
 			"protocol/pipeline0/pull.h",
 
 			"protocol/reqrep0/req.c",
-			"protocol/reqrep0/xreq.c",
+			--"protocol/reqrep0/xreq.c",
 			"protocol/reqrep0/rep.c",
-			"protocol/reqrep0/xrep.c",
+			--"protocol/reqrep0/xrep.c",
 			
 			"protocol/reqrep0/req.h",
 			"protocol/reqrep0/rep.h",
