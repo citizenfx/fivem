@@ -61,6 +61,10 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 	command_line->AppendSwitch("force-gpu-rasterization");
 
+	// some GPUs are in the GPU blacklist as 'forcing D3D9'
+	// this just forces D3D11 anyway.
+	command_line->AppendSwitchWithValue("use-angle", "d3d11");
+
 	// M65 enables these by default, but CEF doesn't pass the required phase data at this time (2018-03-31)
 	// this breaks scrolling 'randomly' - after a middle click, and some other scenarios
 	command_line->AppendSwitchWithValue("disable-features", "TouchpadAndWheelScrollLatching,AsyncWheelEvents");
