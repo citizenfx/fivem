@@ -27,9 +27,11 @@ private:
 
 	bool m_chunked;
 
+	bool m_sentWriteHead;
+
 public:
 	inline Http1Response(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState)
-		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream), m_chunked(false)
+		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream), m_chunked(false), m_sentWriteHead(false)
 	{
 		
 	}
@@ -40,6 +42,8 @@ public:
 		{
 			return;
 		}
+
+		BeforeWriteHead({});
 
 		std::ostringstream outData;
 		outData.imbue(std::locale());
@@ -89,6 +93,14 @@ public:
 
 	virtual void BeforeWriteHead(const std::string& data) override
 	{
+		// only execute WriteHead filtering once
+		if (m_sentWriteHead)
+		{
+			return;
+		}
+
+		m_sentWriteHead = true;
+
 		// HACK: disallow chunking for ROS requests
 		if (m_request->GetHttpVersion() == std::make_pair(1, 0) ||
 			m_request->GetHeader("host").find("rockstargames.com") != std::string::npos)
@@ -98,6 +110,11 @@ public:
 		else
 		{
 			SetHeader("Transfer-Encoding", "chunked");
+
+			// if client code set Content-Length, unset it.
+			//
+			// setting both Transfer-Encoding: chunked and Content-Length is considered ill-formed.
+			m_headerList.erase("content-length");
 
 			m_chunked = true;
 		}
