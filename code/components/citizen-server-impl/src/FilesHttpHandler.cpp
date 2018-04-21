@@ -113,7 +113,7 @@ namespace fx
 				if (req->result < 0)
 				{
 					response->SetStatusCode(500);
-					response->End("Stat of file failed.");
+					response->End(fmt::sprintf("Stat of file failed. Error code from libuv: %d", int32_t(req->result)));
 					return;
 				}
 
