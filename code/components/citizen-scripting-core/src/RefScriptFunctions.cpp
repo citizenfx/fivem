@@ -73,9 +73,10 @@ static InitFunction initFunction([] ()
 			char* retvalData;
 			uint32_t retvalSize;
 
-			refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), &retvalData, &retvalSize);
-
-			return std::string(retvalData, retvalSize);
+			if (FX_SUCCEEDED(refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), &retvalData, &retvalSize)))
+			{
+				return std::string(retvalData, retvalSize);
+			}
 		}
 
 		return std::string();

@@ -85,3 +85,6 @@
 [submodule "vendor/nng"]
 	path = vendor/nng
 	url = https://github.com/nanomsg/nng
+[submodule "vendor/node"]
+	path = vendor/node
+	url = https://github.com/nodejs/node.git
