@@ -59,6 +59,7 @@ cd /src/ext/natives
 gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
 mkdir -p /opt/cfx-server/citizen/scripting/lua/
+mkdir -p /opt/cfx-server/citizen/scripting/v8/
 
 lua5.3 codegen.lua natives_stash/gta_universal.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
 lua5.3 codegen.lua natives_stash/gta_universal.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js

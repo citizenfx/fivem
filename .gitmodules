@@ -84,10 +84,10 @@
 	url = https://github.com/lz4/lz4.git
 [submodule "vendor/nng"]
 	path = vendor/nng
-	url = https://github.com/nanomsg/nng
+	url = https://github.com/nanomsg/nng.git
 [submodule "vendor/node"]
 	path = vendor/node
-	url = https://github.com/nodejs/node.git
+	url = https://github.com/citizenfx/node.git
 [submodule "vendor/openssl"]
 	path = vendor/openssl
 	url = https://github.com/openssl/openssl.git

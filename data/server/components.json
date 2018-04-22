@@ -15,5 +15,6 @@
   "vfs:impl:server",
   "scripting:server",
   "svadhesive",
-  "citizen:scripting:mono"
+  "citizen:scripting:mono",
+  "citizen:scripting:v8"
 ]
