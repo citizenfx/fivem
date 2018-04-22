@@ -88,3 +88,6 @@
 [submodule "vendor/node"]
 	path = vendor/node
 	url = https://github.com/nodejs/node.git
+[submodule "vendor/openssl"]
+	path = vendor/openssl
+	url = https://github.com/openssl/openssl.git

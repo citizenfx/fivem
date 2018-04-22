@@ -183,6 +183,20 @@ native 'SAVE_RESOURCE_FILE'
 	<returns>A value indicating if the write succeeded.</returns>
 ]]
 
+native 'GET_RESOURCE_PATH'
+	arguments {
+		charPtr 'resourceName'
+	}
+	apiset 'server'
+	returns 'charPtr'
+	doc [[
+	<summary>
+	Returns the physical on-disk path of the specified resource.
+	</summary>
+	<param name="resourceName">The name of the resource.</param>
+	<returns>The resource directory name, possibly without trailing slash.</returns>
+]]
+
 native 'GET_CURRENT_RESOURCE_NAME'
 	arguments {}
 	apiset 'shared'

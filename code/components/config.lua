@@ -17,8 +17,8 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-net'
 	if os.is('windows') then
 		component 'citizen-ssh-server'
-		component 'citizen-scripting-v8'
 	end
+	component 'citizen-scripting-v8'
 	component 'citizen-scripting-mono'
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'

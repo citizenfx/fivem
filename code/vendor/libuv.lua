@@ -70,6 +70,12 @@ return {
 				'src/unix/linux-inotify.c',
 				'src/unix/linux-syscalls.c',
 				'src/unix/linux-syscalls.h',
+				
+				'src/unix/no-proctitle.c',
+				'src/unix/procfs-exepath.c',
+				'src/unix/sysinfo-loadavg.c',
+				'src/unix/sysinfo-memory.c',
+				
 			}
 
 		filter "system:windows"

@@ -35,3 +35,6 @@ namespace CitizenFX.Core.Native
 " | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesServer.cs"
 
 .\lua53 codegen.lua .\natives_stash\gta_universal.lua rpc server | out-file -encoding ascii "out\rpc_natives.json"
+
+.\lua53 codegen.lua natives_stash\gta_universal.lua js server | out-file -encoding ascii "out\natives_server.js"
+.\lua53 codegen.lua natives_stash\gta_universal.lua dts server | out-file -encoding ascii "out\natives_server.d.ts"

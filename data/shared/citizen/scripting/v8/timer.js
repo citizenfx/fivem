@@ -8,8 +8,8 @@
     const tickers = [];
     let animationFrames = [];
 
-    function  setTimer(id, callback, interval) {
-        timers[id] = {
+    function  setTimer(timer, callback, interval) {
+        timers[timer.id] = {
             callback,
             interval,
             lastRun: gameTime
@@ -17,15 +17,17 @@
     }
 
     function nextId() {
-        return timerId++;
+        return { id: timerId++, unref() {}, ref() {} };
     }
 
     function setTick(callback) {
         tickers[tickers.length] = callback;
     }
 
-    function clearTimer(id) {
-        delete timers[id];
+    function clearTimer(timer) {
+        if (!timer) { return; }
+    
+        delete timers[timer.id];
     }
 
     function setTick(callback) {

@@ -106,6 +106,21 @@ static InitFunction initFunction([] ()
 	});
 
 #ifdef IS_FXSERVER
+	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_PATH", [](fx::ScriptContext& context)
+	{
+		// find the resource
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+
+		if (!resource.GetRef())
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+		context.SetResult(resource->GetPath().c_str());
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SAVE_RESOURCE_FILE", [](fx::ScriptContext& context)
 	{
 		// find the resource

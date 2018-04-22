@@ -9,6 +9,9 @@
 #include "ComponentLoader.h"
 #include <om/OMComponent.h>
 
+int g_argc;
+char** g_argv;
+
 class ComponentInstance : public OMComponentBase<Component>
 {
 public:
@@ -17,6 +20,12 @@ public:
 	virtual bool DoGameLoad(void* module);
 
 	virtual bool Shutdown();
+
+	virtual void SetCommandLine(int argc, char* argv[]) override
+	{
+		g_argc = argc;
+		g_argv = argv;
+	}
 };
 
 bool ComponentInstance::Initialize()
@@ -38,7 +47,7 @@ bool ComponentInstance::Shutdown()
 	return true;
 }
 
-extern "C" __declspec(dllexport) Component* CreateComponent()
+extern "C" DLL_EXPORT Component* CreateComponent()
 {
 	return new ComponentInstance();
 }

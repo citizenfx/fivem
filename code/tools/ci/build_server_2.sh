@@ -11,10 +11,19 @@ apk --no-cache update
 apk --no-cache upgrade
 
 # install runtime dependencies
-apk add libc++ curl libssl1.0 libunwind libstdc++ zlib
+apk add libc++ curl libssl1.0 libunwind libstdc++ zlib c-ares
+
+# add fivem repositories
+curl -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
+
+echo https://runtime.fivem.net/client/alpine/builds >> /etc/apk/repositories
+apk --no-cache update
+
+# install fivem v8
+apk add v8
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps libc++-dev curl-dev clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev
+apk add --no-cache --virtual .dev-deps libc++-dev curl-dev clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev c-ares-dev v8-dev
 
 # install ply
 pip install ply
@@ -52,6 +61,9 @@ gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 mkdir -p /opt/cfx-server/citizen/scripting/lua/
 
 lua5.3 codegen.lua natives_stash/gta_universal.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
+lua5.3 codegen.lua natives_stash/gta_universal.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
+lua5.3 codegen.lua natives_stash/gta_universal.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
+
 
 cat > /src/code/client/clrcore/NativesServer.cs << EOF
 #if IS_FXSERVER

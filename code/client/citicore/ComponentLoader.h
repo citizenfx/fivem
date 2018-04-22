@@ -59,6 +59,11 @@ public:
 		return true;
 	}
 
+	virtual inline void SetCommandLine(int argc, char* argv[])
+	{
+
+	}
+
 	virtual inline bool SetUserData(const std::string& userData)
 	{
 		(void)userData;

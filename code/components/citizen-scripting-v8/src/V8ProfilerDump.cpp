@@ -12,6 +12,13 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#include <chrono>
+
+inline static std::chrono::milliseconds msec()
+{
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+}
+
 using v8::CpuProfile;
 using v8::CpuProfileNode;
 using v8::String;
@@ -87,11 +94,11 @@ void SaveProfileToValue(CpuProfile* profile, rapidjson::Value& value, rapidjson:
 	String::Utf8Value title(profile->GetTitle());
 
 	value.AddMember("typeId", rapidjson::Value("CPU"), allocator);
-	value.AddMember("uid", rapidjson::Value(static_cast<uint32_t>(GetTickCount())), allocator);
+	value.AddMember("uid", rapidjson::Value(static_cast<uint32_t>(msec().count())), allocator);
 
 	if (title.length() == 0)
 	{
-		value.AddMember("title", rapidjson::Value(va("Profiling at tick count %d", GetTickCount()), allocator), allocator);
+		value.AddMember("title", rapidjson::Value(va("Profiling at tick count %d", msec().count()), allocator), allocator);
 	}
 	else
 	{

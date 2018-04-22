@@ -35,6 +35,7 @@ namespace fx
 		{
 			for (auto& instance : componentData->GetInstances())
 			{
+				instance->SetCommandLine(argc, argv);
 				instance->Initialize();
 			}
 		});
