@@ -10,6 +10,8 @@ return {
 			language 'C'
 			kind 'StaticLib'
 			
+			files { 'vendor/node_dummy.c' }
+			
 			return
 		end
 	

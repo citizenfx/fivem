@@ -1,0 +1,1 @@
+int _dummy_node_export_symbol() {}
