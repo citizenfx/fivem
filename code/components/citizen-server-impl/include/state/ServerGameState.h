@@ -27,6 +27,8 @@ struct SyncParseState
 	int syncType;
 
 	std::shared_ptr<SyncEntityState> entity;
+
+	uint64_t frameIndex;
 };
 
 struct SyncUnparseState
@@ -45,6 +47,8 @@ struct NodeBase
 {
 public:
 	std::bitset<256> ackedPlayers;
+
+	uint64_t frameIndex;
 
 	virtual bool Parse(SyncParseState& state) = 0;
 
@@ -90,6 +94,7 @@ struct SyncEntityState
 	NetObjEntityType type;
 	std::bitset<256> ackedCreation;
 	uint32_t timestamp;
+	uint64_t frameIndex;
 
 	std::unique_ptr<SyncTreeBase> syncTree;
 
@@ -190,6 +195,8 @@ private:
 
 	std::bitset<8192> m_objectIdsSent;
 	std::bitset<8192> m_objectIdsUsed;
+
+	uint64_t m_frameIndex;
 
 //private:
 public:

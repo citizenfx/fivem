@@ -132,6 +132,14 @@ namespace sync
 
 void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 {
+	for (auto& entityPair : m_entities)
+	{
+		if (entityPair.second)
+		{
+			entityPair.second->frameIndex = m_frameIndex;
+		}
+	}
+
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 	{
 		if (!client->GetData("playerId").has_value())
@@ -162,12 +170,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				cloneBuffer.Write(3, 7);
 
 				// compress and send
-				std::vector<char> outData(LZ4_compressBound(cloneBuffer.GetDataLength()) + 4);
-				int len = LZ4_compress_default(reinterpret_cast<const char*>(cloneBuffer.GetBuffer().data()), outData.data() + 4, cloneBuffer.GetDataLength(), outData.size() - 4);
+				std::vector<char> outData(LZ4_compressBound(cloneBuffer.GetDataLength()) + 4 + 8);
+				int len = LZ4_compress_default(reinterpret_cast<const char*>(cloneBuffer.GetBuffer().data()), outData.data() + 4 + 8, cloneBuffer.GetDataLength(), outData.size() - 4 - 8);
 
 				*(uint32_t*)(outData.data()) = HashRageString("msgPackedClones");
+				*(uint64_t*)(outData.data() + 4) = m_frameIndex;
 
-				net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4);			
+				net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4 + 8);
 
 				client->SendPacket(1, netBuffer);
 
@@ -241,12 +250,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						if (syncType == 2)
 						{
-							entity->syncTree->Visit([slotId](sync::NodeBase& node)
+							/*entity->syncTree->Visit([slotId](sync::NodeBase& node)
 							{
 								node.ackedPlayers.set(slotId);
 
 								return true;
-							});
+							});*/
 						}
 
 						((syncType == 1) ? numCreates : numSyncs)++;
@@ -272,6 +281,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		//trace("%d cr, %d sy, %d sk\n", numCreates, numSyncs, numSkips);
 	});
+
+	++m_frameIndex;
 }
 
 void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client)
@@ -557,6 +568,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			entity->client = client;
 			entity->type = objectType;
 			entity->guid = nullptr;
+			entity->frameIndex = m_frameIndex;
 			entity->handle = MakeEntityHandle(playerId, objectId);
 
 			entity->syncTree = MakeSyncTree(objectType);
@@ -582,7 +594,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	entity->timestamp = timestamp;
 
-	auto state = sync::SyncParseState{ { bitBytes }, parsingType, entity };
+	auto state = sync::SyncParseState{ { bitBytes }, parsingType, entity, m_frameIndex };
 
 	if (entity->syncTree)
 	{
@@ -891,6 +903,44 @@ static InitFunction initFunction([]()
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 32);
+		});
+
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("gameStateAck"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		{
+			uint64_t frameIndex = buffer.Read<uint64_t>();
+
+			std::unordered_set<uint32_t> ignoreHandles;
+			uint8_t ignoreCount = buffer.Read<uint8_t>();
+
+			for (int i = 0; i < ignoreCount; i++)
+			{
+				ignoreHandles.insert(fx::MakeEntityHandle(0, buffer.Read<uint16_t>()));
+			}
+
+			for (auto& entity : instance->GetComponent<fx::ServerGameState>()->m_entities)
+			{
+				if (entity.second)
+				{
+					auto entityRef = entity.second;
+
+					if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
+					{
+						continue;
+					}
+
+					entityRef->syncTree->Visit([client, frameIndex](fx::sync::NodeBase& node)
+					{
+						if (node.frameIndex <= frameIndex)
+						{
+							node.ackedPlayers.set(client->GetSlotId());
+						}
+
+						return true;
+					});
+				}
+			}
+
+			client->SetData("syncFrameIndex", frameIndex);
 		});
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("ccack"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)

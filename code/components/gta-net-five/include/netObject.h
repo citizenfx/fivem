@@ -104,7 +104,7 @@ public:
 	virtual void m_E8() = 0;
 	virtual void m_F0() = 0;
 	virtual void m_F8() = 0;
-	virtual void m_100() = 0;
+	virtual void Update() = 0;
 	virtual void m_108() = 0;
 	virtual void m_110() = 0;
 	virtual void m_118() = 0;

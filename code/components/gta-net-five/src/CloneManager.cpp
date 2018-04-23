@@ -81,7 +81,7 @@ private:
 
 	void HandleCloneCreate(const msgClone& msg);
 
-	void HandleCloneUpdate(const msgClone& msg);
+	bool HandleCloneUpdate(const msgClone& msg);
 
 private:
 	NetLibrary* m_netLibrary;
@@ -301,7 +301,14 @@ public:
 		return m_clones;
 	}
 
+	inline uint64_t GetFrameIndex()
+	{
+		return m_frameIndex;
+	}
+
 private:
+	uint64_t m_frameIndex;
+
 	std::list<msgClone> m_clones;
 };
 
@@ -311,8 +318,10 @@ msgPackedClones::msgPackedClones()
 
 void msgPackedClones::Read(net::Buffer& buffer)
 {
+	m_frameIndex = buffer.Read<uint64_t>();
+
 	uint8_t bufferData[16384] = { 0 };
-	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[0]), reinterpret_cast<char*>(bufferData), buffer.GetRemainingBytes(), sizeof(bufferData));
+	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), buffer.GetRemainingBytes(), sizeof(bufferData));
 
 	if (bufferLength > 0)
 	{
@@ -434,7 +443,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	ackPacket();
 }
 
-void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
+bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 {
 	// create buffer
 	rage::netBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
@@ -442,11 +451,11 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	auto ackPacket = [&]()
 	{
-		// send ack
-		net::Buffer outBuffer;
-		outBuffer.Write<uint16_t>(msg.GetObjectId());
-
-		m_netLibrary->SendReliableCommand("csack", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+// 		// send ack
+// 		net::Buffer outBuffer;
+// 		outBuffer.Write<uint16_t>(msg.GetObjectId());
+// 
+// 		m_netLibrary->SendReliableCommand("csack", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 	};
 
 	// get saved object
@@ -456,7 +465,8 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	{
 		ackPacket();
 
-		return;
+		// pretend it acked, we don't want the server to spam us with even more nodes we can't handle
+		return true;
 	}
 
 	// update client id if changed
@@ -508,7 +518,8 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		ackPacket();
 
-		return;
+		// our object, it's fine
+		return true;
 	}
 
 	// get sync tree and read data
@@ -520,7 +531,8 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	if (!syncTree->CanApplyToObject(obj))
 	{
 		//trace("Couldn't apply object.\n");
-		return;
+		// couldn't apply, ignore ack
+		return false;
 	}
 
 	// apply pre-blend
@@ -543,6 +555,8 @@ void CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	m_savedEntities[msg.GetObjectId()] = obj;
 
 	ackPacket();
+
+	return true;
 }
 
 void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
@@ -558,6 +572,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	msgPackedClones msg;
 	msg.Read(netBuffer);
 
+	std::vector<uint16_t> ignoreList;
+
 	for (auto& clone : msg.GetClones())
 	{
 		switch (clone.GetSyncType())
@@ -566,9 +582,30 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			HandleCloneCreate(clone);
 			break;
 		case 2:
-			HandleCloneUpdate(clone);
+		{
+			bool acked = HandleCloneUpdate(clone);
+
+			if (!acked)
+			{
+				ignoreList.push_back(clone.GetObjectId());
+			}
+
 			break;
 		}
+		}
+	}
+
+	{
+		net::Buffer outBuffer;
+		outBuffer.Write<uint64_t>(msg.GetFrameIndex());
+		outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
+
+		for (uint16_t entry : ignoreList)
+		{
+			outBuffer.Write<uint16_t>(entry);
+		}
+
+		m_netLibrary->SendReliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 	}
 }
 
@@ -614,12 +651,12 @@ void CloneManagerLocal::Update()
 
 	SendUpdates();
 
-	// temp? run m_100 on all remote clones
+	// temp? run Update() on all remote clones
 	for (auto& clone : m_savedEntities)
 	{
 		if (clone.second && clone.second->syncData.isRemote)
 		{
-			clone.second->m_100();
+			clone.second->Update();
 		}
 	}
 }

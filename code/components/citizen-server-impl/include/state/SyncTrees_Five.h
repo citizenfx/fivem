@@ -173,6 +173,7 @@ struct NodeWrapper : public NodeBase
 			//if (memcmp(oldData.data(), data.data(), data.size()) != 0)
 			{
 				//trace("resetting acks on node %s\n", boost::typeindex::type_id<TNode>().pretty_name());
+				frameIndex = state.frameIndex;
 
 				ackedPlayers.reset();
 			}
