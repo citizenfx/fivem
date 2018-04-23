@@ -144,7 +144,7 @@ public:
 					{
 						int playerCount = 0;
 
-						for (int i = 0; i < 32; i++)
+						for (int i = 0; i < 256; i++)
 						{
 							// NETWORK_IS_PLAYER_ACTIVE
 							if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
