@@ -226,7 +226,19 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 	{
 		trace("Processing removal for player %d (%s)\n", info.slotId, info.name);
 
+		if (info.slotId < 0 || info.slotId >= _countof(g_players))
+		{
+			trace("That's not a valid slot! Aborting.\n");
+			return;
+		}
+
 		auto player = g_players[info.slotId];
+
+		if (!player)
+		{
+			trace("That slot has no player. Aborting.\n");
+			return;
+		}
 
 		// reassign the player's ped
 		// TODO: only do this on a single client(!)
