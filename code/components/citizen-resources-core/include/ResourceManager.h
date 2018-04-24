@@ -31,15 +31,24 @@ namespace fx_internal
 template<typename T>
 struct Unserializer
 {
-	static T Unserialize(const std::string& retval)
+	static T Unserialize(const std::string& retval, msgpack::unpacked* unpackedRef = nullptr)
 	{
 		if (retval.empty())
 		{
 			return T();
 		}
 
-		auto unpacked = msgpack::unpack(retval.c_str(), retval.size());
-		auto objects = unpacked.get().as<std::vector<msgpack::object>>();
+		// allow passing in a remote unpacked to keep lifetime of nested objects
+		msgpack::unpacked localUnpacked;
+		auto unpackedPtr = &localUnpacked;
+
+		if (unpackedRef)
+		{
+			unpackedPtr = unpackedRef;
+		}
+
+		*unpackedPtr = msgpack::unpack(retval.c_str(), retval.size());
+		auto objects = unpackedPtr->get().as<std::vector<msgpack::object>>();
 
 		return objects[0].as<T>();
 	}
@@ -48,7 +57,7 @@ struct Unserializer
 template<>
 struct Unserializer<void>
 {
-	static void Unserialize(const std::string& retval)
+	static void Unserialize(const std::string& retval, msgpack::unpacked* unpackedRef = nullptr)
 	{
 
 	}
@@ -121,6 +130,15 @@ public:
 	template<typename TRet, typename... TArg>
 	inline TRet CallReference(const std::string& functionReference, const TArg&... args)
 	{
+		return CallReferenceUnpacked<TRet>(functionReference, nullptr, args...);
+	}
+
+	//
+	// Calls a formatted function reference, passing a `msgpack::unpacked` to the scope.
+	//
+	template<typename TRet, typename... TArg>
+	inline TRet CallReferenceUnpacked(const std::string& functionReference, msgpack::unpacked* unpacked, const TArg&... args)
+	{
 		msgpack::sbuffer buf;
 		msgpack::packer<msgpack::sbuffer> packer(buf);
 
@@ -130,7 +148,7 @@ public:
 
 		std::string retval = CallReferenceInternal(functionReference, std::string(buf.data(), buf.size()));
 
-		return fx_internal::Unserializer<TRet>::Unserialize(retval);
+		return fx_internal::Unserializer<TRet>::Unserialize(retval, unpacked);
 	}
 
 private:
