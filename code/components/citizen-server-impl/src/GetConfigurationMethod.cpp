@@ -3,6 +3,7 @@
 #include <ResourceManager.h>
 #include <ResourceFilesComponent.h>
 #include <ResourceStreamComponent.h>
+#include <ResourceMetaDataComponent.h>
 
 #include <ServerInstanceBase.h>
 
@@ -50,6 +51,14 @@ static InitFunction initFunction([]()
 				}
 
 				if (resource->GetState() != fx::ResourceState::Started && resource->GetState() != fx::ResourceState::Starting)
+				{
+					return;
+				}
+
+				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
+				auto iv = metaData->GetEntries("server_only");
+
+				if (iv.begin() != iv.end())
 				{
 					return;
 				}

@@ -184,6 +184,16 @@ static InitFunction initFunction([]()
 			
 			resource->OnStart.Connect([=]()
 			{
+				trace("Started resource %s\n", resource->GetName());
+
+				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
+				auto iv = metaData->GetEntries("server_only");
+
+				if (iv.begin() != iv.end())
+				{
+					return;
+				}
+
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 				net::Buffer outBuffer;
@@ -194,13 +204,19 @@ static InitFunction initFunction([]()
 				{
 					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
 				});
-
-				trace("Started resource %s\n", resource->GetName());
 			}, 99999999);
 
 			resource->OnStop.Connect([=]()
 			{
 				trace("Stopping resource %s\n", resource->GetName());
+
+				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
+				auto iv = metaData->GetEntries("server_only");
+
+				if (iv.begin() != iv.end())
+				{
+					return;
+				}
 
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
