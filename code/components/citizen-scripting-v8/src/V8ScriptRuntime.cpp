@@ -1686,6 +1686,10 @@ void V8ScriptGlobals::Initialize()
 	V8::SetFlagsFromCommandLine(&argc, (char**)argv, false);
 #endif
 
+#ifdef _WIN32
+	V8::InitializeICUDefaultLocation(ToNarrow(MakeRelativeCitPath(L"dummy")).c_str());
+#endif
+
 	// initialize global V8
 	V8::Initialize();
 
