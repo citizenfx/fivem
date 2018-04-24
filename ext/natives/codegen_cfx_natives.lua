@@ -1504,6 +1504,32 @@ native 'SET_RICH_PRESENCE'
 	<param name="presenceState">The rich presence string to set.</param>
 ]]
 
+native 'REGISTER_RESOURCE_BUILD_TASK_FACTORY'
+	arguments {
+		charPtr 'factoryId',
+		func 'factoryFn'
+	}
+	returns 'void'
+	apiset 'server'
+	doc [[
+	<summary>
+	Registers a build task factory for resources.
+	The function should return an object (msgpack map) with the following fields:
+	```
+	{
+		// returns whether the specific resource should be built
+		shouldBuild = func(resourceName: string): bool,
+		
+		// asynchronously start building the specific resource.
+		// call cb when completed
+		build = func(resourceName: string, cb: func(success: bool, status: string): void): void
+	}
+	```
+	</summary>
+	<param name="factoryId">The identifier for the build task.</param>
+	<param name="factoryFn">The factory function.</param>
+]]
+
 native 'GET_PLAYER_PED'
 	arguments {
 		charPtr 'playerSrc'
