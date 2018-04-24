@@ -85,31 +85,31 @@ static InitFunction initFunction([]()
 				// invoke cpr::*Callback
 				if (method == "GET")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::GetCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::GetCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else if (method == "POST")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::PostCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::PostCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else if (method == "HEAD")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::HeadCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::HeadCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else if (method == "OPTIONS")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::OptionsCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::OptionsCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else if (method == "PUT")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::PutCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::PutCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else if (method == "DELETE")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::DeleteCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::DeleteCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else if (method == "PATCH")
 				{
-					*future = std::make_unique<std::future<void>>(cpr::PatchCallback(cb, url, body, headers));
+					*future = std::make_unique<std::future<void>>(cpr::PatchCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
 				}
 				else
 				{

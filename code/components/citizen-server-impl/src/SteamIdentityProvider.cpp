@@ -80,7 +80,7 @@ static InitFunction initFunction([]()
 				{
 					cb({ fmt::sprintf("SteamIdProvider failure: %s", e.what()) });
 				}
-			}, cpr::Url{fmt::format("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key={0}&appid={1}&ticket={2}", STEAM_API_KEY, STEAM_APPID, it->second)});
+			}, cpr::Url{fmt::format("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key={0}&appid={1}&ticket={2}", STEAM_API_KEY, STEAM_APPID, it->second)}, cpr::VerifySsl{ false });
 		}
 	} idp;
 
