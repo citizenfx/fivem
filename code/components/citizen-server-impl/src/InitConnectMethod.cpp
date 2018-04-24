@@ -222,6 +222,26 @@ static InitFunction initFunction([]()
 
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
+		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
+		{
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+			clientRegistry->ForAllClients([](const std::shared_ptr<fx::Client>& client)
+			{
+				auto deferralAny = client->GetData("deferralPtr");
+
+				if (deferralAny.has_value())
+				{
+					auto weakDeferral = std::any_cast<std::weak_ptr<fx::ClientDeferral>>(deferralAny);
+
+					if (!weakDeferral.expired())
+					{
+						client->Touch();
+					}
+				}
+			});
+		});
+
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
@@ -337,6 +357,7 @@ static InitFunction initFunction([]()
 					{
 						auto client = clientWeak.lock();
 
+						client->SetData("deferralPtr", std::any());
 						client->SetData("passedValidation", true);
 						client->SetData("canBeDead", false);
 					}
@@ -371,6 +392,8 @@ static InitFunction initFunction([]()
 
 				auto deferrals = std::make_shared<std::shared_ptr<fx::ClientDeferral>>();
 				*deferrals = std::make_shared<fx::ClientDeferral>(instance, client);
+
+				client->SetData("deferralPtr", std::weak_ptr<fx::ClientDeferral>(*deferrals));
 
 				// *copy* the callback into a *shared* reference
 				auto cbRef = std::make_shared<std::unique_ptr<std::decay_t<decltype(cb)>>>(std::make_unique<std::decay_t<decltype(cb)>>(cb));
