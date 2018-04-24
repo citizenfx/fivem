@@ -1,6 +1,7 @@
 // CFX JS runtime
 
 const EXT_FUNCREF = 10;
+const EXT_LOCALFUNCREF = 11;
 
 (function (global) {
 	let refIndex = 0;
@@ -37,15 +38,14 @@ const EXT_FUNCREF = 10;
 	}
 
 	function refFunctionUnpacker(refSerialized) {
-		const ref = msgpack.decode(refSerialized);
-
 		return function (...args) {
-			return unpack(Citizen.invokeFunctionReference(ref, pack(args)));
+			return unpack(Citizen.invokeFunctionReference(refSerialized, pack(args)));
 		};
 	}
 
 	codec.addExtPacker(EXT_FUNCREF, Function, refFunctionPacker);
 	codec.addExtUnpacker(EXT_FUNCREF, refFunctionUnpacker);
+	codec.addExtUnpacker(EXT_LOCALFUNCREF, refFunctionUnpacker);
 
 	/**
 	 * Deletes ref function
@@ -66,10 +66,10 @@ const EXT_FUNCREF = 10;
 		if (!refFunctionsMap.has(ref)) {
 			console.error('Invalid ref call attempt:', ref);
 
-			return pack({});
+			return pack([]);
 		}
 
-		return pack(refFunctionsMap.get(ref)(...unpack(argsSerialized)));
+		return pack([refFunctionsMap.get(ref)(...unpack(argsSerialized))]);
 	});
 
 	/**
