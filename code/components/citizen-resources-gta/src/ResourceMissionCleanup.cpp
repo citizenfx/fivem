@@ -112,7 +112,7 @@ static InitFunction initFunction([] ()
 
 			auto result = metaData->IsManifestVersionBetween(mfVer1.guid, guid_t{ 0 });
 
-			if (result && *result)
+			if (result && *result && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 			{
 				data->behaviorVersion = 1;
 			}
