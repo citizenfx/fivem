@@ -52,8 +52,11 @@
         setTimer(
             id,
             function() {
-                callback();
-                clearTimer(id);
+				try {
+					callback();
+				} finally {
+					clearTimer(id);
+				}
             },
             timeout
         );
