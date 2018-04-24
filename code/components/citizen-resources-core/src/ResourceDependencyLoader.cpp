@@ -9,7 +9,7 @@ static InitFunction initFunction([]()
 {
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
-		resource->OnStart.Connect([=] ()
+		resource->OnBeforeStart.Connect([=] ()
 		{
 			fx::ResourceManager* manager = resource->GetManager();
 			manager->MakeCurrent();
@@ -41,6 +41,6 @@ static InitFunction initFunction([]()
 			};
 
 			return loadDeps("dependency") && loadDeps("dependencie"); // dependencies without s
-		}, -99999);
+		}, -9999);
 	});
 });
