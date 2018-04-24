@@ -465,10 +465,25 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 
 	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
 
-	Local<String> string = Local<String>::Cast(args[0]);
-	Local<ArrayBufferView> abv = Local<ArrayBufferView>::Cast(args[1]);
+	std::string refString;
 
-	String::Utf8Value str(string);
+	if (args[0]->IsString())
+	{
+		Local<String> string = Local<String>::Cast(args[0]);
+		String::Utf8Value utf8{ string };
+		refString = *utf8;
+	}
+	else if (args[0]->IsUint8Array())
+	{
+		Local<Uint8Array> arr = Local<Uint8Array>::Cast(args[0]);
+		
+		std::vector<uint8_t> data(arr->ByteLength());
+		arr->CopyContents(data.data(), data.size());
+
+		refString = std::string(reinterpret_cast<char*>(data.data()), data.size());
+	}
+
+	Local<ArrayBufferView> abv = Local<ArrayBufferView>::Cast(args[1]);
 
 	// variables to hold state
 	fxNativeContext context = { 0 };
@@ -477,7 +492,7 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
 
 	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(*str);
+	context.arguments[0] = reinterpret_cast<uintptr_t>(refString.c_str());
 
 	// argument data
 	size_t argLength;
