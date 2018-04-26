@@ -11,7 +11,7 @@ apk --no-cache update
 apk --no-cache upgrade
 
 # install runtime dependencies
-apk add libc++ curl libssl1.0 libunwind libstdc++ zlib c-ares
+apk add libc++ curl libssl1.0 libunwind libstdc++ zlib c-ares icu-libs
 
 # add fivem repositories
 curl -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
