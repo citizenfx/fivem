@@ -171,6 +171,11 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 	}
 }
 
+static int ReturnFalse()
+{
+	return 0;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -562,4 +567,10 @@ static HookFunction hookFunction([] ()
 		auto vtbl = hook::get_address<void**>(hook::get_pattern("BA 07 00 00 00 48 8B D9 E8 ? ? ? ? 48 8D 05", 16));
 		hook::return_function(vtbl[5]);
 	}
+
+	// always create OffscreenBuffer3 so that it can't not exist at CRenderer init time (FIVEM-CLIENT-1290-F)
+	hook::put<uint8_t>(hook::get_pattern("4C 89 25 ? ? ? ? 75 0E 8B", 7), 0xEB);
+	
+	// test: disable 'classification' compute shader users by claiming it is unsupported
+	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
 });
