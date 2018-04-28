@@ -87,11 +87,6 @@ namespace vfs
 
 	const RagePackfile::Entry* RagePackfile::FindEntry(const std::string& path)
 	{
-		if (path.find(".awc") != std::string::npos)
-		{
-			trace(".");
-		}
-
 		// first, remove the path prefix
 		std::string relativePath = path.substr(m_pathPrefix.length());
 
