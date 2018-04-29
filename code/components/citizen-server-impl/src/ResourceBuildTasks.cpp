@@ -216,7 +216,7 @@ static InitFunction initFunction([]()
 
 			if (resource)
 			{
-				std::string fullFactoryId = fmt::sprintf("%s_%s", resource->GetName(), factoryId);
+				std::string fullFactoryId = fmt::sprintf("%s_%s", factoryId, resource->GetName());
 
 				auto resourceManager = resource->GetManager();
 
