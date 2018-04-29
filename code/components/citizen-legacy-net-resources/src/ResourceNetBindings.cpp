@@ -189,7 +189,7 @@ static InitFunction initFunction([] ()
 						}
 						else
 						{
-							trace("Failed to uploaded configuration to server. This is not a problem.\n");
+							trace("Failed to upload configuration to server. This is not a problem.\n%s", std::string(data, size));
 						}
 					});
 				});
