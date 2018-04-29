@@ -60,7 +60,7 @@ struct FiveMConsole
 		ScrollToBottom = true;
 	}
 
-	void AddLog(const char* fmt, ...) IM_PRINTFARGS(2)
+	void AddLog(const char* fmt, ...)
 	{
 		char buf[1024];
 		va_list args;
@@ -80,6 +80,9 @@ struct FiveMConsole
 		}
 
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetItemsLineHeightWithSpacing() * 12.0f), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoScrollbar |
@@ -87,9 +90,10 @@ struct FiveMConsole
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoSavedSettings;
 
-		if (!ImGui::Begin(title, nullptr, ImVec2(), -1, flags))
+		if (!ImGui::Begin(title, nullptr, flags))
 		{
 			ImGui::End();
+			ImGui::PopStyleVar();
 			return;
 		}
 
@@ -164,6 +168,8 @@ struct FiveMConsole
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
 
 		ImGui::End();
+
+		ImGui::PopStyleVar();
 	}
 
 	void ExecCommand(const char* command_line)

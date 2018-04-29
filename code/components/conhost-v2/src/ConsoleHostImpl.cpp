@@ -171,6 +171,9 @@ void DrawConsole();
 
 static InitFunction initFunction([] ()
 {
+	auto cxt = ImGui::CreateContext();
+	ImGui::SetCurrentContext(cxt);
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.KeyMap[ImGuiKey_Tab] = VK_TAB;                       // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array that we will update during the application lifetime.
 	io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
