@@ -6,7 +6,8 @@
 		"vendor:imgui",
 		"conhost",
 		"gta:core",
-		"gta:streaming"
+		"gta:streaming",
+		"citizen:resources:core"
 	],
 	"provides": []
 }
