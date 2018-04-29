@@ -93,9 +93,14 @@ class
 #endif
 	ResourceCacheDevice : public vfs::Device
 {
-protected:
-	struct HandleData
+public:
+	struct FileData
 	{
+		std::mutex lockMutex;
+		std::condition_variable lockVar;
+
+		std::map<std::string, std::string> metaData;
+
 		enum
 		{
 			StatusEmpty,
@@ -105,6 +110,16 @@ protected:
 			StatusError
 		} status;
 
+		inline FileData()
+			: status(StatusEmpty)
+		{
+
+		}
+	};
+
+protected:
+	struct HandleData
+	{
 		fwRefContainer<vfs::Device> parentDevice;
 
 		vfs::Device::THandle parentHandle;
@@ -114,19 +129,16 @@ protected:
 		ResourceCacheEntryList::Entry entry;
 
 		bool bulkHandle;
-
-		std::map<std::string, std::string> metaData;
-
-		std::mutex lockMutex;
-		std::condition_variable lockVar;
+		bool allocated;
 
 		size_t downloadProgress;
 		size_t downloadSize;
 
 		HttpRequestPtr getRequest;
+		std::shared_ptr<FileData> fileData;
 
 		inline HandleData()
-			: status(StatusEmpty), parentHandle(vfs::Device::InvalidHandle), downloadProgress(0), downloadSize(0)
+			: parentHandle(vfs::Device::InvalidHandle), downloadProgress(0), downloadSize(0), allocated(false)
 		{
 
 		}
