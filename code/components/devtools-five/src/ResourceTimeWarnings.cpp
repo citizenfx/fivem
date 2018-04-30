@@ -20,7 +20,7 @@ struct ResourceMetrics
 	std::chrono::milliseconds tickStart;
 
 	int curTickTime = 0;
-	std::chrono::milliseconds tickTimes[16];
+	std::chrono::milliseconds tickTimes[64];
 };
 
 static InitFunction initFunction([]()
@@ -82,7 +82,7 @@ static InitFunction initFunction([]()
 
 				avgTickTime /= _countof(metricPair.second.tickTimes);
 
-				if (avgTickTime > 3ms)
+				if (avgTickTime > 5ms)
 				{
 					float fpsCount = (60 - (1000.f / (16.67f + avgTickTime.count())));
 
