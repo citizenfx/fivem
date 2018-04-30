@@ -130,6 +130,11 @@ static HookFunction hookFunction([]()
 			return;
 		}
 
+		if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+		{
+			return;
+		}
+
 		if (g_objectIds.size() < 16)
 		{
 			if (!g_requestedIds)
