@@ -251,6 +251,9 @@ static HookFunction hookFunction([] ()
 	// parallelize streaming (force 'disable parallel streaming' flag off)
 	hook::put<uint8_t>(hook::get_pattern("C0 C6 05 ? ? ? ? 01 44 88 35", 7), 0);
 
+	// don't adhere to some (broken?) streaming time limit
+	hook::nop(hook::get_pattern("0F 2F C6 73 2D", 3), 2);
+
 	//MH_Initialize();
 
 	// queueing task on streamer
