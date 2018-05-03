@@ -107,10 +107,7 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 		
 		if (gameInit && gameInit->GetGameLoaded())
 		{
-			static wchar_t wbuffer[BUFFER_LENGTH];
-			mbstowcs(wbuffer, buffer, _countof(wbuffer));
-
-			gameInit->KillNetwork(wbuffer);
+			gameInit->KillNetwork(ToWide(buffer).c_str());
 
 			handled = true;
 		}
