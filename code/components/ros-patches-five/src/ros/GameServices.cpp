@@ -279,7 +279,7 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 		{
 			// encrypt the passed user data using the key
 			size_t remaining = outputArray.size() - done;
-			size_t thisSize = min(remaining, blockSize);
+			size_t thisSize = fwMin(remaining, blockSize);
 
 			std::vector<uint8_t> inData(thisSize);
 			memcpy(&inData[0], &outputArray[done], inData.size());

@@ -109,7 +109,7 @@ size_t LzmaStreamWrapper::Read(void* buffer, size_t bytes)
 void LzmaStreamWrapper::SeekAhead(size_t bytes)
 {
 	// first, drain the buffer's outness
-	size_t toDrain = min(m_stream.avail_out, bytes);
+	size_t toDrain = fwMin(m_stream.avail_out, bytes);
 
 	m_cursor += toDrain;
 	bytes -= toDrain;
@@ -119,7 +119,7 @@ void LzmaStreamWrapper::SeekAhead(size_t bytes)
 	// if there's still bytes to drain, continue decompressing
 	while (bytes > 0)
 	{
-		size_t initialOut = min(m_buffer.size(), bytes);
+		size_t initialOut = fwMin(m_buffer.size(), bytes);
 
 		m_stream.next_out = &m_buffer[0];
 		m_stream.avail_out = initialOut;
@@ -440,7 +440,7 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 		{
 			// write to the output file
 			size_t toRead = fileLength - bytesWritten;
-			toRead = min(sizeof(buffer), toRead);
+			toRead = fwMin(sizeof(buffer), toRead);
 
 			toRead = stream.Read(buffer, toRead);
 			bytesWritten += fwrite(buffer, 1, toRead, of);

@@ -160,7 +160,7 @@ namespace fxc
 		uint8_t valueLength;
 		reader(&valueLength, sizeof(valueLength));
 
-		m_defaultValue.resize(max(valueLength * 4, 16));
+		m_defaultValue.resize(fwMax(valueLength * 4, 16));
 
 		if (valueLength > 0)
 		{

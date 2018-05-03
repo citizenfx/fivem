@@ -91,3 +91,6 @@
 [submodule "vendor/openssl"]
 	path = vendor/openssl
 	url = https://github.com/openssl/openssl.git
+[submodule "vendor/libopus"]
+	path = vendor/libopus
+	url = https://github.com/xiph/opus.git

@@ -35,7 +35,7 @@ int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * f
 	{
 		if (g_netLibrary->DequeueRoutedPacket(buffer, &length, &netID))
 		{
-			memcpy(buf, buffer, min((size_t)len, length));
+			memcpy(buf, buffer, fwMin((size_t)len, length));
 
 			sockaddr_in* outFrom = (sockaddr_in*)from;
 			memset(outFrom, 0, sizeof(sockaddr_in));
@@ -56,7 +56,7 @@ int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * f
 				//trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, (void*)s);
 			}
 
-			return min((size_t)len, length);
+			return fwMin((size_t)len, length);
 		}
 		else
 		{

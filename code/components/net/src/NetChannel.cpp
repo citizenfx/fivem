@@ -54,7 +54,7 @@ void NetChannel::SendFragmented(NetBuffer& buffer)
 
 	while (remaining >= 0)
 	{
-		uint16_t thisSize = min(remaining, FRAGMENT_SIZE);
+		uint16_t thisSize = fwMin(remaining, FRAGMENT_SIZE);
 
 		// build this packet
 		static char msgBuffer[FRAGMENT_SIZE + 100];

@@ -266,7 +266,7 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
 	if (msgType == 1)
 	{
 		char dataCopy[8192];
-		memcpy(dataCopy, data, min(size, sizeof(dataCopy)));
+		memcpy(dataCopy, data, fwMin(size, sizeof(dataCopy)));
 		dataCopy[size] = '\0';
 
 		char* clientNetIDStr = &dataCopy[5];

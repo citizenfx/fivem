@@ -407,7 +407,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 		else
 		{
 			const char* retvalString = lua_tolstring(L, -1, retvalLength);
-			memcpy(&retvalArray[0], retvalString, min(retvalArray.size(), *retvalLength));
+			memcpy(&retvalArray[0], retvalString, fwMin(retvalArray.size(), *retvalLength));
 
 			*retval = &retvalArray[0];
 

@@ -41,22 +41,22 @@ public:
 	///
 	/// Returns the left edge of the rectangle.
 	///
-	inline float Left() const { return min(fX1, fX2); }
+	inline float Left() const { return fwMin(fX1, fX2); }
 
 	///
 	/// Returns the right edge of the rectangle.
 	///
-	inline float Right() const { return max(fX1, fX2); }
+	inline float Right() const { return fwMax(fX1, fX2); }
 
 	///
 	/// Returns the top edge of the rectangle.
 	///
-	inline float Top() const { return min(fY1, fY2); }
+	inline float Top() const { return fwMin(fY1, fY2); }
 
 	///
 	/// Returns the bottom edge of the rectangle.
 	///
-	inline float Bottom() const { return max(fY1, fY2); }
+	inline float Bottom() const { return fwMax(fY1, fY2); }
 
 	///
 	/// Returns the width of the rectangle.

@@ -372,7 +372,7 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 				Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
 				*retvalLength = abv->ByteLength();
 
-				abv->CopyContents(retvalArray.data(), min(retvalArray.size(), *retvalLength));
+				abv->CopyContents(retvalArray.data(), fwMin(retvalArray.size(), *retvalLength));
 				*retval = retvalArray.data();
 			}
 		}

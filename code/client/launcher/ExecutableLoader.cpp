@@ -108,7 +108,7 @@ void ExecutableLoader::LoadSection(IMAGE_SECTION_HEADER* section)
 
 	if (section->SizeOfRawData > 0)
 	{
-		uint32_t sizeOfData = min(section->SizeOfRawData, section->Misc.VirtualSize);
+		uint32_t sizeOfData = fwMin(section->SizeOfRawData, section->Misc.VirtualSize);
 
 		memcpy(targetAddress, sourceAddress, sizeOfData);
 

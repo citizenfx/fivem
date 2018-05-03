@@ -44,7 +44,7 @@ void LoopbackTcpServerStream::HandleRead(const char* buffer, int length)
 
 int LoopbackTcpServerStream::HandleWrite(char* buffer, size_t length)
 {
-	int toRead = min(m_outQueue.size(), length);
+	int toRead = fwMin(m_outQueue.size(), length);
 
 	std::unique_lock<std::recursive_mutex> lock(m_mutex);
 

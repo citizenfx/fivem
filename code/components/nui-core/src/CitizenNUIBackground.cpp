@@ -126,7 +126,7 @@ CRGBA CitizenNUIBackground::GetCurrentDWMColor(bool usePulse)
 	float alpha = colorizationColor.alpha / 255.0f;
 	float intensity = 0.5f;//parameters.ColorizationColorBalance / 100.0f;
 
-	float maxVal = 255.0f / max(colorizationColor.red, max(colorizationColor.green, colorizationColor.blue));
+	float maxVal = 255.0f / fwMax(colorizationColor.red, fwMax(colorizationColor.green, colorizationColor.blue));
 	
 	// calculate base color
 	float r = colorizationColor.red * maxVal;

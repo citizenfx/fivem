@@ -288,7 +288,7 @@ std::string ROSIdentityProvider::DecryptROSData(const char* data, size_t size)
 	while (start < size)
 	{
 		// calculate the end of this block
-		int end = min(size, (size_t)start + blockSize);
+		int end = fwMin(size, (size_t)start + blockSize);
 
 		// remove the size of the SHA1 hash from the end
 		end -= 20;

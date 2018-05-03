@@ -60,7 +60,7 @@ std::string GetMachineGuid()
 
     if (RegGetValue(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Cryptography", L"MachineGuid", RRF_RT_REG_SZ, nullptr, &data[0], &size) == 0)
     {
-        return ToNarrow(std::wstring(data.data(), max((int)size - 1, 128) / sizeof(wchar_t)));
+        return ToNarrow(std::wstring(data.data(), fwMax((int)size - 1, 128) / sizeof(wchar_t)));
     }
 
     throw std::exception();

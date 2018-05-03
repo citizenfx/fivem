@@ -663,7 +663,7 @@ std::string LoginHandler2::DecryptROSData(const char* data, size_t size, const s
     while (start < size)
     {
         // calculate the end of this block
-        int end = min(size, start + blockSize);
+        int end = fwMin(size, start + blockSize);
 
         // remove the size of the SHA1 hash from the end
         end -= 20;

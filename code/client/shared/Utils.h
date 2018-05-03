@@ -405,13 +405,13 @@ struct MinMax<double>
 #endif
 
 template<typename T>
-inline T min(T a, T b)
+inline T fwMin(T a, T b)
 {
 	return MinMax<T>::min(a, b);
 }
 
 template<typename T>
-inline T max(T a, T b)
+inline T fwMax(T a, T b)
 {
 	return MinMax<T>::max(a, b);
 }

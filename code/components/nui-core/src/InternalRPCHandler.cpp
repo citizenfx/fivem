@@ -199,7 +199,7 @@ bool InternalRPCHandler::ReadResponse(void* data_out, int bytes_to_read, int& by
 {
 	if (m_found)
 	{
-		int toRead = min(m_result.size() - m_cursor, (size_t)bytes_to_read);
+		int toRead = fwMin(m_result.size() - m_cursor, (size_t)bytes_to_read);
 
 		memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
 

@@ -51,7 +51,7 @@ std::string FontRendererImpl::GetFontKey(ComPtr<IDWriteFontFace> fontFace, float
 	file->GetReferenceKey(&referenceKey, &referenceKeySize);
 
 	// store in a buffer and append the size
-	uint32_t referenceKeySizeTarget = min(referenceKeySize, (uint32_t)128);
+	uint32_t referenceKeySizeTarget = fwMin(referenceKeySize, (uint32_t)128);
 
 	char refKeyBuffer[256];
 	memcpy(refKeyBuffer, referenceKey, referenceKeySizeTarget);
