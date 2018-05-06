@@ -25,11 +25,13 @@ if _OPTIONS['game'] == 'server' then
 	component 'conhost-server'
 	component 'scripting-server'
 	component 'vfs-impl-server'
+	component 'voip-server-mumble'
 else
 	component 'tool-formats'
 	component 'tool-vehrec'
 	component 'rage-formats-x'
 	component 'conhost-v2'
+	component 'voip-mumble'
 
 	component 'citizen-legacy-net-resources'
 	component 'citizen-resources-client'

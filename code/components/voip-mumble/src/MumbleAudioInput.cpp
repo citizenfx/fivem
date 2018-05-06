@@ -17,8 +17,14 @@
 
 extern "C"
 {
-#include <libavresample/avresample.h>
+#include <libswresample/swresample.h>
 };
+
+MumbleAudioInput::MumbleAudioInput()
+	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_avr(nullptr), m_opus(nullptr), m_apm(nullptr)
+{
+
+}
 
 void MumbleAudioInput::Initialize()
 {
@@ -28,8 +34,34 @@ void MumbleAudioInput::Initialize()
 
 	m_resampledBytes = nullptr;
 
+	m_positionX = 0.0f;
+	m_positionY = 0.0f;
+	m_positionZ = 0.0f;
+
 	m_sequence = 0;
 	m_cachedLen = 0;
+}
+
+static webrtc::VoiceDetection::Likelihood ConvertLikelihood(MumbleVoiceLikelihood likelihood);
+
+void MumbleAudioInput::SetActivationMode(MumbleActivationMode mode)
+{
+	m_mode = mode;
+}
+
+void MumbleAudioInput::SetActivationLikelihood(MumbleVoiceLikelihood likelihood)
+{
+	m_likelihood = likelihood;
+}
+
+void MumbleAudioInput::SetPTTButtonState(bool pressed)
+{
+	m_ptt = pressed;
+}
+
+void MumbleAudioInput::SetAudioDevice(const std::string& dsoundDeviceId)
+{
+	m_deviceId = dsoundDeviceId;
 }
 
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
@@ -57,10 +89,41 @@ void MumbleAudioInput::ThreadFunc()
 	WaitForSingleObject(m_startEvent, INFINITE);
 
 	// go!
-	m_audioClient->Start();
+	if (m_audioClient.Get())
+	{
+		m_audioClient->Start();
+	}
+
+	bool recreateDevice = false;
+	MumbleVoiceLikelihood lastLikelihood = m_likelihood;
+	std::string lastDevice = m_deviceId;
 
 	while (true)
 	{
+		if (m_likelihood != lastLikelihood)
+		{
+			m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
+			lastLikelihood = m_likelihood;
+		}
+
+		if (lastDevice != m_deviceId)
+		{
+			recreateDevice = true;
+			lastDevice = m_deviceId;
+		}
+
+		if (recreateDevice)
+		{
+			InitializeAudioDevice();
+
+			if (m_audioCaptureClient.Get())
+			{
+				m_audioClient->Start();
+			}
+
+			recreateDevice = false;
+		}
+
 		WaitForSingleObject(m_startEvent, INFINITE);
 
 		HRESULT hr = HandleIncomingAudio();
@@ -69,9 +132,7 @@ void MumbleAudioInput::ThreadFunc()
 		{
 			if (hr == AUDCLNT_E_DEVICE_INVALIDATED)
 			{
-				InitializeAudioDevice();
-
-				m_audioClient->Start();
+				recreateDevice = true;
 
 				continue;
 			}
@@ -83,12 +144,18 @@ void MumbleAudioInput::ThreadFunc()
 
 void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 {
-	//FILE* f = fopen("Q:\\wav.pcm", "ab");
-	//fwrite(buffer, 1, numBytes, f);
-	//fclose(f);
+	if (m_mode == MumbleActivationMode::Disabled)
+	{
+		return;
+	}
+
+	if (m_mode == MumbleActivationMode::PushToTalk && !m_ptt)
+	{
+		return;
+	}
 
 	// split to a multiple of 40ms chunks
-	int chunkLength = (m_waveFormat.nSamplesPerSec / (1000 / 40)) * (m_waveFormat.wBitsPerSample / 8) * m_waveFormat.nChannels;
+	int chunkLength = (m_waveFormat.nSamplesPerSec / (1000 / 10)) * (m_waveFormat.wBitsPerSample / 8) * m_waveFormat.nChannels;
 
 	size_t bytesLeft = numBytes;
 	const uint8_t* origin = buffer;
@@ -111,29 +178,40 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	while (bytesLeft >= chunkLength)
 	{
 		// resample
-		uint32_t numSamples = chunkLength / (m_waveFormat.nBlockAlign / m_waveFormat.nChannels);
+		uint32_t numSamples = chunkLength / m_waveFormat.nBlockAlign;
 
-		int32_t outLineSize;
-		uint32_t outSize = av_samples_get_buffer_size(&outLineSize, 2, numSamples / m_waveFormat.nChannels, AV_SAMPLE_FMT_S16, 0);
+		int outSamples = av_rescale_rnd(swr_get_delay(m_avr, m_waveFormat.nSamplesPerSec) + numSamples, (int)48000, m_waveFormat.nSamplesPerSec, AV_ROUND_UP);
 
-		uint32_t outSamples = avresample_get_delay(m_avr) + (numSamples / m_waveFormat.nChannels);
-
-		outSamples = av_rescale_rnd(outSamples, 48000, m_waveFormat.nSamplesPerSec, AV_ROUND_UP);
-
-		outSamples += avresample_available(m_avr);
-
-		m_resampledBytes = (uint8_t*)av_realloc_array(m_resampledBytes, 1, outSize);
-
-		outSamples = avresample_convert(m_avr, &m_resampledBytes, outLineSize, outSamples, (uint8_t**)&origin, chunkLength, numSamples / m_waveFormat.nChannels);
-
-		outSize = outSamples * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16) * 2;
+		av_samples_alloc(&m_resampledBytes, NULL, m_waveFormat.nChannels, outSamples, AV_SAMPLE_FMT_S16, 0);
+		outSamples = swr_convert(m_avr, &m_resampledBytes, outSamples, (const uint8_t **)&origin, numSamples);
 
 		// increment origin
 		origin += chunkLength;
 		bytesLeft -= chunkLength;
 
+		// is this voice?
+		webrtc::AudioFrame frame;
+		frame.num_channels_ = 1;
+		frame.sample_rate_hz_ = 48000;
+		frame.samples_per_channel_ = 480;
+		memcpy(frame.data_, m_resampledBytes, 480 * sizeof(int16_t));
+
+		m_apm->ProcessStream(&frame);
+
+		if (m_mode == MumbleActivationMode::VoiceActivity && !m_apm->voice_detection()->stream_has_voice())
+		{
+			continue;
+		}
+
+		memcpy(m_resampledBytes, frame.data_, 480 * sizeof(int16_t));
+
+		/*if (fvad_process(m_fvad, (const int16_t*)m_resampledBytes, 480) != 1)
+		{
+			continue;
+		}*/
+
 		// encode
-		int len = opus_encode(m_opus, (const int16_t*)m_resampledBytes, 960 * 2, m_encodedBytes, sizeof(m_encodedBytes));
+		int len = opus_encode(m_opus, (const int16_t*)m_resampledBytes, 480, m_encodedBytes, sizeof(m_encodedBytes));
 
 		if (len < 0)
 		{
@@ -190,13 +268,18 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		m_opusPackets.pop();
 
 		//buffer.append(packet.size() | ((m_opusPackets.empty()) ? (1 << 7) : 0));
-		buffer << packet.size();
+		buffer << (packet.size());
 		buffer.append(packet.c_str(), packet.size());
 
 		m_sequence++;
 	}
 
-	trace("sent opus packets @ %d %lld\n", GetTickCount(), m_sequence);
+	//buffer << uint64_t(1 << 13);
+
+	// send placeholder position
+	buffer << m_positionX;
+	buffer << m_positionY;
+	buffer << m_positionZ;
 
 	m_client->Send(MumbleMessageType::UDPTunnel, outBuf, buffer.size());
 }
@@ -237,13 +320,6 @@ HRESULT MumbleAudioInput::HandleIncomingAudio()
 				break;
 			}
 
-			/*err = m_audioCaptureClient->GetNextPacketSize(&packetLength);
-
-			if (FAILED(err))
-			{
-				break;
-			}*/
-
 			break;
 		}
 	}
@@ -251,13 +327,66 @@ HRESULT MumbleAudioInput::HandleIncomingAudio()
 	return err;
 }
 
+static webrtc::VoiceDetection::Likelihood ConvertLikelihood(MumbleVoiceLikelihood likelihood)
+{
+	switch (likelihood)
+	{
+	case MumbleVoiceLikelihood::HighLikelihood:
+		return webrtc::VoiceDetection::kHighLikelihood;
+
+	case MumbleVoiceLikelihood::ModerateLikelihood:
+		return webrtc::VoiceDetection::kModerateLikelihood;
+
+	case MumbleVoiceLikelihood::LowLikelihood:
+		return webrtc::VoiceDetection::kLowLikelihood;
+
+	case MumbleVoiceLikelihood::VeryLowLikelihood:
+		return webrtc::VoiceDetection::kVeryLowLikelihood;
+	}
+
+	return webrtc::VoiceDetection::kModerateLikelihood;
+}
+
+WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
+
 void MumbleAudioInput::InitializeAudioDevice()
 {
+	// destroy
+	if (m_avr)
+	{
+		swr_free(&m_avr);
+	}
+
+	if (m_apm)
+	{
+		delete m_apm;
+		m_apm = nullptr;
+	}
+
+	if (m_opus)
+	{
+		opus_encoder_destroy(m_opus);
+		m_opus = nullptr;
+	}
+
+	// create
 	ComPtr<IMMDevice> device;
 
-	if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+	if (m_deviceId.empty())
 	{
-		return;
+		if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+		{
+			return;
+		}
+	}
+	else
+	{
+		device = GetMMDeviceFromGUID(true, m_deviceId);
+
+		if (!device)
+		{
+			return;
+		}
 	}
 
 	if (FAILED(device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
@@ -287,7 +416,7 @@ void MumbleAudioInput::InitializeAudioDevice()
 
 	SetInputFormat(waveFormat);
 
-	m_avr = avresample_alloc_context();
+	m_avr = swr_alloc();
 
 	// channel layout
 	int channelLayout = AV_CH_LAYOUT_MONO;
@@ -302,7 +431,7 @@ void MumbleAudioInput::InitializeAudioDevice()
 	}
 
 	// sample format
-	int sampleFormat = AV_SAMPLE_FMT_S16;
+	AVSampleFormat sampleFormat = AV_SAMPLE_FMT_S16;
 
 	if (formatEx->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)
 	{
@@ -319,22 +448,53 @@ void MumbleAudioInput::InitializeAudioDevice()
 
 	int sampleRate = m_waveFormat.nSamplesPerSec;
 
-	av_opt_set_int(m_avr, "in_channel_layout", channelLayout, 0);
-	av_opt_set_int(m_avr, "in_sample_fmt", sampleFormat, 0);
-	av_opt_set_int(m_avr, "in_sample_rate", sampleRate, 0);
-	av_opt_set_int(m_avr, "out_channel_layout", AV_CH_LAYOUT_STEREO_DOWNMIX, 0);
-	av_opt_set_int(m_avr, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
-	av_opt_set_int(m_avr, "out_sample_rate", 48000, 0);
+	m_avr = swr_alloc_set_opts(m_avr, AV_CH_LAYOUT_MONO, AV_SAMPLE_FMT_S16, 48000, channelLayout, sampleFormat, sampleRate, 0, NULL);
 
-	avresample_open(m_avr);
+	swr_init(m_avr);
 
 	int error;
-	m_opus = opus_encoder_create(48000, 2, OPUS_APPLICATION_VOIP, &error);
+	m_opus = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &error);
 
 	opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(32000));
 
 	// set event handle
 	m_audioClient->SetEventHandle(m_startEvent);
+
+	webrtc::Config config;
+	config.Set < webrtc::ExtendedFilter >
+		(new webrtc::ExtendedFilter(true));
+	config.Set < webrtc::ExperimentalAgc >
+		(new webrtc::ExperimentalAgc(true, 12));
+	config.Set < webrtc::DelayAgnostic >
+		(new webrtc::DelayAgnostic(true));
+
+	m_apm = webrtc::AudioProcessing::Create(config);
+
+	webrtc::ProcessingConfig pconfig;
+
+	pconfig.streams[webrtc::ProcessingConfig::kInputStream] =
+		webrtc::StreamConfig(48000, 1, false);
+	pconfig.streams[webrtc::ProcessingConfig::kOutputStream] =
+		webrtc::StreamConfig(48000, 1, false);
+	pconfig.streams[webrtc::ProcessingConfig::kReverseInputStream] =
+		webrtc::StreamConfig(48000, 1, false);
+	pconfig.streams[webrtc::ProcessingConfig::kReverseOutputStream] =
+		webrtc::StreamConfig(48000, 1, false);
+
+	m_apm->Initialize(pconfig);
+
+	m_apm->high_pass_filter()->Enable(true);
+	m_apm->echo_cancellation()->Enable(false);
+	m_apm->noise_suppression()->Enable(true);
+	m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
+	m_apm->voice_detection()->set_frame_size_ms(10);
+	m_apm->voice_detection()->Enable(true);
+
+	m_apm->gain_control()->set_mode(webrtc::GainControl::kAdaptiveDigital);
+	m_apm->gain_control()->set_target_level_dbfs(3);
+	m_apm->gain_control()->set_compression_gain_db(9);
+	m_apm->gain_control()->enable_limiter(true);
+	m_apm->gain_control()->Enable(true);
 }
 
 void MumbleAudioInput::Enable()

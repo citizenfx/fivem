@@ -8,12 +8,18 @@
 #include "StdInc.h"
 #include "MumbleClientImpl.h"
 #include <thread>
+#include <chrono>
 
 static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
+inline std::chrono::milliseconds msec()
+{
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+}
+
 void MumbleClient::Initialize()
 {
-	if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)))
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
 	{
 		return;
 	}
@@ -28,19 +34,28 @@ void MumbleClient::Initialize()
 	m_audioInput.Initialize();
 	m_audioInput.SetClient(this);
 
+	m_audioOutput.Initialize();
+	m_audioOutput.SetClient(this);
+
 	WSADATA wsaData;
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 }
 
-concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const char* hostname, uint16_t port, const wchar_t* username)
+concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::PeerAddress& address, const std::string& userName)
 {
-	m_connectionInfo.hostname = hostname;
-	m_connectionInfo.port = port;
-	m_connectionInfo.username = username;
+	m_connectionInfo.address = address;
+	m_connectionInfo.username = userName;
+
+	m_tcpPingAverage = 0.0f;
+	m_tcpPingVariance = 0.0f;
+
+	m_tcpPingCount = 0;
+
+	memset(m_tcpPings, 0, sizeof(m_tcpPings));
 
 	m_state.SetClient(this);
-	m_state.SetUsername(std::wstring(username));
+	m_state.SetUsername(ToWide(userName));
 
 	SetEvent(m_beginConnectEvent);
 
@@ -51,7 +66,120 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const char* 
 
 concurrency::task<void> MumbleClient::DisconnectAsync()
 {
-	return concurrency::task<void>();
+	m_tlsClient->close();
+	m_connectionInfo = {};
+
+	return concurrency::task_from_result();
+}
+
+void MumbleClient::SetActivationMode(MumbleActivationMode mode)
+{
+	return m_audioInput.SetActivationMode(mode);
+}
+
+void MumbleClient::SetActivationLikelihood(MumbleVoiceLikelihood likelihood)
+{
+	return m_audioInput.SetActivationLikelihood(likelihood);
+}
+
+void MumbleClient::SetInputDevice(const std::string& dsoundDeviceId)
+{
+	return m_audioInput.SetAudioDevice(dsoundDeviceId);
+}
+
+void MumbleClient::SetOutputDevice(const std::string& dsoundDeviceId)
+{
+	return m_audioOutput.SetAudioDevice(dsoundDeviceId);
+}
+
+void MumbleClient::SetPTTButtonState(bool pressed)
+{
+	return m_audioInput.SetPTTButtonState(pressed);
+}
+
+void MumbleClient::SetOutputVolume(float volume)
+{
+	return m_audioOutput.SetVolume(volume);
+}
+
+void MumbleClient::SetChannel(const std::string& channelName)
+{
+	if (!m_connectionInfo.isConnected)
+	{
+		return;
+	}
+
+	if (channelName == m_curManualChannel)
+	{
+		return;
+	}
+
+	m_curManualChannel = channelName;
+
+	// check if the channel already exists
+	std::wstring wname = ToWide(channelName);
+
+	for (const auto& channel : m_state.GetChannels())
+	{
+		if (channel.second.GetName() == wname)
+		{
+			// join the channel
+			MumbleProto::UserState state;
+			state.set_session(m_state.GetSession());
+			state.set_channel_id(channel.first);
+
+			Send(MumbleMessageType::UserState, state);
+			return;
+		}
+	}
+
+	// it does not, create the channel
+	{
+		MumbleProto::ChannelState chan;
+		chan.set_parent(0);
+		chan.set_name(channelName);
+		chan.set_temporary(true);
+
+		Send(MumbleMessageType::ChannelState, chan);
+	}
+}
+
+void MumbleClient::SetAudioDistance(float distance)
+{
+	m_audioOutput.SetDistance(distance);
+}
+
+void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
+{
+	referenceIds->clear();
+
+	std::vector<uint32_t> sessions;
+	m_audioOutput.GetTalkers(&sessions);
+
+	for (uint32_t session : sessions)
+	{
+		auto user = m_state.GetUser(session);
+
+		referenceIds->push_back(ToNarrow(user->GetName()));
+	}
+}
+
+bool MumbleClient::IsAnyoneTalking()
+{
+	std::vector<uint32_t> talkers;
+	m_audioOutput.GetTalkers(&talkers);
+
+	return (!talkers.empty());
+}
+
+void MumbleClient::SetActorPosition(float position[3])
+{
+	m_audioInput.SetPosition(position);
+}
+
+void MumbleClient::SetListenerMatrix(float position[3], float front[3], float up[3])
+{
+	m_audioOutput.SetMatrix(position, front, up);
 }
 
 void MumbleClient::ThreadFuncImpl()
@@ -68,49 +196,39 @@ void MumbleClient::ThreadFuncImpl()
 			{
 				case ClientTask::BeginConnect:
 				{
-					auto hostName = m_connectionInfo.hostname.c_str();
-					uint32_t addr = inet_addr(hostName);
+					const auto& address = m_connectionInfo.address;
 
-					/*if (entity == nullptr)
-					{
-					trace("[mumble] gethostbyname(%s) failed\n", hostName);
+					m_socket = socket(address.GetAddressFamily(), SOCK_STREAM, IPPROTO_TCP);
 
-					break;
-					}*/
+					int on = 1;
+					setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&on, sizeof(on));
 
-					//if (entity->h_addrtype == AF_INET)
-					if (true)
-					{
-						sockaddr_in inetAddr = { 0 };
-						inetAddr.sin_family = AF_INET;
-						inetAddr.sin_port = htons(m_connectionInfo.port);
-						inetAddr.sin_addr.s_addr = addr;
-						//memcpy(&inetAddr.sin_addr, entity->h_addr, entity->h_length);
+					m_socketConnectEvent = WSACreateEvent();
+					m_socketReadEvent = WSACreateEvent();
 
-						m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+					WSAEventSelect(m_socket, m_socketConnectEvent, FD_CONNECT);
 
-						m_socketConnectEvent = WSACreateEvent();
-						m_socketReadEvent = WSACreateEvent();
+					u_long nonBlocking = 1;
+					ioctlsocket(m_socket, FIONBIO, &nonBlocking);
 
-						WSAEventSelect(m_socket, m_socketConnectEvent, FD_CONNECT);
+					connect(m_socket, address.GetSocketAddress(), address.GetSocketAddressLength());
 
-						//u_long nonBlocking = 1;
-						//ioctlsocket(m_socket, FIONBIO, &nonBlocking);
-
-						connect(m_socket, (sockaddr*)&inetAddr, sizeof(inetAddr));
-
-						trace("[mumble] connecting to %s...\n", hostName);
-					}
+					trace("[mumble] connecting to %s...\n", address.ToString());
 
 					break;
 				}
 
 				case ClientTask::EndConnect:
 				{
-					if (!m_connectionInfo.isConnected)
+					WSANETWORKEVENTS events = { 0 };
+					WSAEnumNetworkEvents(m_socket, m_socketConnectEvent, &events);
+
+					if (events.iErrorCode[FD_CONNECT_BIT])
 					{
 						// TODO: reconnecting?
-						trace("[mumble] connecting failed: %d\n", WSAGetLastError());
+						trace("[mumble] connecting failed: %d\n", events.iErrorCode[FD_CONNECT_BIT]);
+
+						m_completionEvent.set_exception(std::runtime_error("Failed Mumble connection."));
 
 						break;
 					}
@@ -131,35 +249,33 @@ void MumbleClient::ThreadFuncImpl()
 
 					m_credentials = std::make_unique<MumbleCredentialsManager>();
 
-					std::string hostNameStr(m_connectionInfo.hostname.c_str());
-
-					m_tlsClient = std::make_shared<Botan::TLS::Client>(std::bind(&MumbleClient::WriteToSocket, this, std::placeholders::_1, std::placeholders::_2),
-																	   std::bind(&MumbleClient::OnReceive, this, std::placeholders::_1, std::placeholders::_2),
-																	   std::bind(&MumbleClient::OnAlert, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-																	   std::bind(&MumbleClient::OnHandshake, this, std::placeholders::_1),
+					m_tlsClient = std::make_shared<Botan::TLS::Client>(*this,
 																	   *(m_sessionManager.get()),
 																	   *(m_credentials.get()),
 																	   m_policy,
 																	   m_rng,
-																	   Botan::TLS::Server_Information(hostNameStr, m_connectionInfo.port)
+																	   Botan::TLS::Server_Information()
 																	   );
+
+					m_connectionInfo.isConnected = true;
 
 					break;
 				}
 
 				case ClientTask::Idle:
 				{
-					if (m_tlsClient->is_active())
+					if (m_tlsClient->is_active() && m_connectionInfo.isConnected)
 					{
 						MumbleProto::Ping ping;
-						ping.set_timestamp(GetTickCount64());
-						ping.set_tcp_ping_avg(13.37f);
-						ping.set_tcp_ping_var(13.37f);
+						ping.set_timestamp(msec().count());
+						ping.set_tcp_ping_avg(m_tcpPingAverage);
+						ping.set_tcp_ping_var(m_tcpPingVariance);
+						ping.set_tcp_packets(m_tcpPingCount);
 
 						Send(MumbleMessageType::Ping, ping);
 
 						LARGE_INTEGER waitTime;
-						waitTime.QuadPart = -20000000LL;
+						waitTime.QuadPart = -50000000LL;
 
 						SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
 					}
@@ -169,16 +285,16 @@ void MumbleClient::ThreadFuncImpl()
 
 				case ClientTask::RecvData:
 				{
+					WSANETWORKEVENTS ne;
+					WSAEnumNetworkEvents(m_socket, m_socketReadEvent, &ne);
+
 					uint8_t buffer[16384];
 					int len = recv(m_socket, (char*)buffer, sizeof(buffer), 0);
 
-					ResetEvent(m_socketReadEvent);
-
 					if (len > 0)
 					{
-						m_clientMutex.lock();
+						std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
 						m_tlsClient->received_data(buffer, len);
-						m_clientMutex.unlock();
 					}
 					else if (len == 0)
 					{
@@ -206,6 +322,65 @@ void MumbleClient::ThreadFuncImpl()
 	}
 }
 
+void MumbleClient::MarkConnected()
+{
+	m_completionEvent.set(&m_connectionInfo);
+}
+
+MumbleConnectionInfo* MumbleClient::GetConnectionInfo()
+{
+	return &m_connectionInfo;
+}
+
+void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
+{
+	m_tcpPingCount++;
+
+	if (ping.has_timestamp())
+	{
+		// time delta
+		auto timeDelta = msec().count() - ping.timestamp();
+
+		// which ping this is in the history list
+		size_t thisPing = m_tcpPingCount - 1;
+
+		// move pings down
+		if (thisPing >= _countof(m_tcpPings))
+		{
+			for (size_t i = 1; i < _countof(m_tcpPings); i++)
+			{
+				m_tcpPings[i - 1] = m_tcpPings[i];
+			}
+
+			thisPing = _countof(m_tcpPings) - 1;
+		}
+
+		// store this ping
+		m_tcpPings[thisPing] = timeDelta;
+
+		// calculate average
+		uint32_t avgCount = 0;
+
+		for (size_t i = 0; i < thisPing; i++)
+		{
+			avgCount += m_tcpPings[i];
+		}
+
+		m_tcpPingAverage = avgCount / float(thisPing + 1);
+
+		// calculate variance
+		float varianceCount = 0;
+
+		for (size_t i = 0; i < thisPing; i++)
+		{
+			auto var = float(m_tcpPings[i]) - m_tcpPingAverage;
+			varianceCount += var;
+		}
+
+		m_tcpPingVariance = varianceCount / (thisPing + 1);
+	}
+}
+
 void MumbleClient::Send(MumbleMessageType type, const char* buf, size_t size)
 {
 	MumblePacketHeader header;
@@ -218,9 +393,17 @@ void MumbleClient::Send(MumbleMessageType type, const char* buf, size_t size)
 
 void MumbleClient::Send(const char* buf, size_t size)
 {
-	m_clientMutex.lock();
-	m_tlsClient->send((const uint8_t*)buf, size);
-	m_clientMutex.unlock();
+	if (!m_connectionInfo.isConnected)
+	{
+		return;
+	}
+
+	std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+
+	if (m_tlsClient->is_active())
+	{
+		m_tlsClient->send((const uint8_t*)buf, size);
+	}
 }
 
 void MumbleClient::WriteToSocket(const uint8_t buf[], size_t length)
@@ -231,6 +414,13 @@ void MumbleClient::WriteToSocket(const uint8_t buf[], size_t length)
 void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 {
 	trace("[mumble] TLS alert: %s\n", alert.type_string().c_str());
+
+	if (alert.is_fatal())
+	{
+		closesocket(m_socket);
+
+		m_connectionInfo.isConnected = false;
+	}
 }
 
 void MumbleClient::OnReceive(const uint8_t buf[], size_t length)
@@ -247,6 +437,18 @@ bool MumbleClient::OnHandshake(const Botan::TLS::Session& session)
 	trace("got session %s %s\n", session.version().to_string().c_str(), session.ciphersuite().to_string().c_str());
 
 	return true;
+}
+
+void MumbleClient::OnActivated()
+{
+	// send our own version
+	MumbleProto::Version ourVersion;
+	ourVersion.set_version(0x00010204);
+	ourVersion.set_os("Windows");
+	ourVersion.set_os_version("Cfx/Embedded");
+	ourVersion.set_release("CitizenFX Client");
+
+	this->Send(MumbleMessageType::Version, ourVersion);
 }
 
 fwRefContainer<MumbleClient> MumbleClient::GetCurrent()
@@ -277,7 +479,7 @@ ClientTask MumbleClient::WaitForTask()
 	waitHandles[waitCount] = m_idleEvent;
 	waitCount++;
 
-	DWORD waitResult = WaitForMultipleObjects(waitCount, waitHandles, FALSE, INFINITE);
+	DWORD waitResult = WSAWaitForMultipleEvents(waitCount, waitHandles, FALSE, INFINITE, FALSE);
 
 	if (waitResult >= WAIT_OBJECT_0 && waitResult <= (WAIT_OBJECT_0 + waitCount))
 	{

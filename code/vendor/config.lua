@@ -36,6 +36,8 @@ if os.target() == 'windows' then
 	vendor_component 'minhook' -- r
 end
 
+vendor_component 'libfvad'
+vendor_component 'webrtc-audio-processing'
 vendor_component 'pplx'
 vendor_component 'linenoise'
 vendor_component 'nghttp2'

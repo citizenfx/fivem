@@ -7,6 +7,7 @@
 
 #pragma once
 
+#define ASSERT(x) __noop
 #include <jitasm.h>
 #include <stdint.h>
 

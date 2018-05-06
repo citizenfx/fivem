@@ -76,9 +76,15 @@ public:
 		return ReceivedAlert(alert, nullptr, 0);
 	}
 
+	virtual inline void tls_session_activated() override
+	{
+		HandshakeComplete();
+	}
+
 	virtual inline bool tls_session_established(const Botan::TLS::Session& session) override
 	{
-		return HandshakeComplete(session);
+		//return HandshakeComplete(session);
+		return true;
 	}
 
 	virtual std::string tls_server_choose_app_protocol(const std::vector<std::string>& client_protos) override;
@@ -108,7 +114,7 @@ private:
 
 	void ReceivedAlert(Botan::TLS::Alert alert, const uint8_t[], size_t);
 
-	bool HandshakeComplete(const Botan::TLS::Session& session);
+	bool HandshakeComplete();
 
 private:
 	void CloseInternal();

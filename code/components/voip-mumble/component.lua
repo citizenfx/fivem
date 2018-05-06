@@ -1,7 +1,3 @@
-links { 'ws2_32', 'avutil', 'avresample' }
+libdirs { 'lib' }
 
-configuration 'Debug*'
-	links { 'botand' }
-
-configuration 'Release*'
-	links { 'botan' }
+links { 'ws2_32', 'avutil', 'swresample' }

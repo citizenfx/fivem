@@ -13,15 +13,22 @@
 #include <mmdeviceapi.h>
 extern "C"
 {
-#include <libavresample/avresample.h>
+#include <libswresample/swresample.h>
 #include <libavutil/mem.h>
 #include <libavutil/opt.h>
 #include <libavutil/mathematics.h>
 #include <libavutil/samplefmt.h>
 };
+
+#include <webrtc/modules/audio_processing/include/audio_processing.h>
+#include <webrtc/modules/interface/module_common_types.h>
+#include <webrtc/system_wrappers/include/trace.h>
+
 #include <opus.h>
 
 #include <queue>
+
+#include "MumbleClient.h"
 
 using namespace Microsoft::WRL;
 
@@ -42,7 +49,9 @@ private:
 
 	HANDLE m_startEvent;
 
-	AVAudioResampleContext* m_avr;
+	SwrContext* m_avr;
+
+	webrtc::AudioProcessing* m_apm;
 
 	uint8_t* m_resampledBytes;
 
@@ -59,6 +68,18 @@ private:
 	uint64_t m_sequence;
 
 	MumbleClient* m_client;
+
+	MumbleActivationMode m_mode;
+
+	MumbleVoiceLikelihood m_likelihood;
+
+	bool m_ptt;
+
+	std::string m_deviceId;
+
+	float m_positionX;
+	float m_positionY;
+	float m_positionZ;
 
 private:
 	static void ThreadStart(MumbleAudioInput* instance);
@@ -78,9 +99,26 @@ private:
 	inline void SetInputFormat(WAVEFORMATEX* waveFormat) { m_waveFormat = *waveFormat; }
 
 public:
+	MumbleAudioInput();
+
 	void Initialize();
 
 	void Enable();
+
+	void SetActivationMode(MumbleActivationMode mode);
+
+	void SetActivationLikelihood(MumbleVoiceLikelihood likelihood);
+
+	void SetPTTButtonState(bool pressed);
+
+	void SetAudioDevice(const std::string& dsoundDeviceId);
+
+	inline void SetPosition(float position[3])
+	{
+		m_positionX = position[0];
+		m_positionY = position[1];
+		m_positionZ = position[2];
+	}
 
 	inline void SetClient(MumbleClient* client) { m_client = client; }
 };

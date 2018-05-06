@@ -4,8 +4,11 @@
 	"dependencies": [
 		"fx[2]",
 		"platform:windows",
+		"net:base",
 		"vendor:protobuf_lite",
-		"vendor:opus"
+		"vendor:opus",
+		"vendor:botan",
+		"vendor:webrtc-audio-processing"
 	],
 	"provides": []
 }

@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #ifndef IS_FXSERVER
+#define ASSERT(x) __noop
 #include <jitasm.h>
 
 #include <memory>

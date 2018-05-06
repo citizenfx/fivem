@@ -43,4 +43,17 @@ namespace fx
 	};
 }
 
+namespace net
+{
+	class MultiplexTcpServer;
+}
+
+extern
+#ifndef COMPILING_CITIZEN_SERVER_NET
+	DLL_IMPORT
+#else
+	DLL_EXPORT	
+#endif
+	fwEvent<fwRefContainer<net::MultiplexTcpServer>> OnCreateTlsMultiplex;
+
 DECLARE_INSTANCE_TYPE(fx::HttpServerManager);

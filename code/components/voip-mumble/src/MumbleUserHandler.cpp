@@ -22,3 +22,23 @@ DEFINE_HANDLER(UserRemove)
 
 	client->GetState().ProcessRemoveUser(data.session());
 });
+
+DEFINE_HANDLER(ServerSync)
+{
+	auto client = MumbleClient::GetCurrent();
+
+	client->GetState().SetSession(data.session());
+
+	MumbleProto::UserState state;
+	state.set_session(data.session());
+	state.set_plugin_context(std::string("Manual placement") + '\0');
+
+	client->Send(MumbleMessageType::UserState, state);
+
+	client->MarkConnected();
+});
+
+DEFINE_HANDLER(Ping)
+{
+	MumbleClient::GetCurrent()->HandlePing(data);
+});

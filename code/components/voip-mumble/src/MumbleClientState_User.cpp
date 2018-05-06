@@ -80,6 +80,8 @@ void MumbleClientState::ProcessUserState(MumbleProto::UserState& userState)
 
 			m_users.insert(std::make_pair(id, user));
 
+			m_client->GetOutput().HandleClientConnect(user);
+
 			auto name = user.GetName();
 
 			trace("New user: %s\n", std::string(name.begin(), name.end()).c_str());
@@ -93,5 +95,12 @@ void MumbleClientState::ProcessUserState(MumbleProto::UserState& userState)
 
 void MumbleClientState::ProcessRemoveUser(uint32_t id)
 {
+	auto it = m_users.find(id);
+
+	if (it != m_users.end())
+	{
+		m_client->GetOutput().HandleClientDisconnect(it->second);
+	}
+
 	m_users.erase(id);
 }

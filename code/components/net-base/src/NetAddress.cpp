@@ -150,7 +150,7 @@ int PeerAddress::GetPort() const
 
 	// get the port
 	int family = m_addr.addr.ss_family;
-	uint16_t port;
+	uint16_t port = 0;
 
 	switch (family)
 	{

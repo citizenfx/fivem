@@ -6,6 +6,8 @@
 #include <HttpServerImpl.h>
 #include <TLSServer.h>
 
+fwEvent<fwRefContainer<net::MultiplexTcpServer>> OnCreateTlsMultiplex;
+
 namespace fx
 {
 	HttpServerManager::HttpServerManager()
@@ -118,6 +120,8 @@ namespace fx
 			// create a TLS multiplex for the default protocol
 			fwRefContainer<net::MultiplexTcpServer> tlsMultiplex = new net::MultiplexTcpServer();
 			m_httpServer->AttachToServer(tlsMultiplex->CreateServer(httpPatternMatcher));
+
+			OnCreateTlsMultiplex(tlsMultiplex);
 
 			tlsMultiplex->AttachToServer(tlsServer);
 		});

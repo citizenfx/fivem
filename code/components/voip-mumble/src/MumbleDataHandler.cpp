@@ -49,7 +49,7 @@ void MumbleDataHandler::HandleIncomingData(const uint8_t* data, size_t length)
 			read -= sizeof(MumblePacketHeader);
 		}
 
-		int copyLength = min(read, (m_totalBytes - m_readBytes));
+		int copyLength = std::min<size_t>(read, (m_totalBytes - m_readBytes));
 		memcpy(&m_messageBuffer[m_readBytes], origin, copyLength);
 
 		m_readBytes += copyLength;

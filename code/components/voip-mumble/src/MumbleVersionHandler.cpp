@@ -13,14 +13,6 @@ DEFINE_HANDLER(Version)
 {
 	auto client = MumbleClient::GetCurrent();
 
-	// send our own version
-	MumbleProto::Version ourVersion;
-	ourVersion.set_version(0x00010204);
-	ourVersion.set_os("Windows");
-	ourVersion.set_release("CitizenFX");
-
-	client->Send(MumbleMessageType::Version, ourVersion);
-
 	// also send our initial registration packet
 	auto username = client->GetState().GetUsername();
 	auto usernameUtf8 = ConvertToUTF8(username);

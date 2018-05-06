@@ -1,0 +1,402 @@
+#include "StdInc.h"
+#include "Hooking.h"
+
+#include <GameInit.h>
+#include <ICoreGameInit.h>
+#include <nutsnbolts.h>
+
+#include <NetLibrary.h>
+#include <MumbleClient.h>
+
+static NetLibrary* g_netLibrary;
+
+static uint32_t* g_preferenceArray;
+
+// 1290
+enum PrefEnum
+{
+	PREF_VOICE_ENABLE = 0x60,
+	PREF_VOICE_OUTPUT_DEVICE = 0x61,
+	PREF_VOICE_OUTPUT_VOLUME = 0x62,
+	PREF_VOICE_SOUND_VOLUME = 0x63,
+	PREF_VOICE_MUSIC_VOLUME = 0x64,
+	PREF_VOICE_TALK_ENABLED = 0x65,
+	PREF_VOICE_FEEDBACK = 0x66,
+	PREF_VOICE_INPUT_DEVICE = 0x67,
+	PREF_VOICE_CHAT_MODE = 0x68,
+	PREF_VOICE_MIC_VOLUME = 0x69,
+	PREF_VOICE_MIC_SENSITIVITY = 0x6A
+};
+
+static hook::cdecl_stub<void()> _initVoiceChatConfig([]()
+{
+	return hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", -0x12E);
+});
+
+void MumbleVoice_BindNetLibrary(NetLibrary* library)
+{
+	g_netLibrary = library;
+}
+
+static fwRefContainer<IMumbleClient> g_mumbleClient;
+
+static struct  
+{
+	volatile bool connecting;
+	volatile bool connected;
+	volatile bool errored;
+
+	volatile MumbleConnectionInfo* connectionInfo;
+} g_mumble;
+
+static void Mumble_Connect()
+{
+	g_mumble.errored = false;
+	g_mumble.connecting = true;
+
+	_initVoiceChatConfig();
+
+	g_mumbleClient->ConnectAsync(g_netLibrary->GetCurrentPeer(), g_netLibrary->GetPlayerName()).then([](concurrency::task<MumbleConnectionInfo*> task)
+	{
+		try
+		{
+			auto info = task.get();
+
+			g_mumble.connectionInfo = g_mumbleClient->GetConnectionInfo();
+
+			g_mumble.connected = true;
+		}
+		catch (std::exception& e)
+		{
+			trace("Exception: %s\n", e.what());
+
+			g_mumble.errored = true;
+		}
+
+		g_mumble.connecting = false;
+	});
+}
+
+static void Mumble_Disconnect()
+{
+	g_mumble.connected = false;
+	g_mumble.errored = false;
+	g_mumble.connecting = false;
+
+	g_mumbleClient->DisconnectAsync().then([=]()
+	{
+	});
+
+	_initVoiceChatConfig();
+}
+
+static float* g_cameraFront;
+static float* g_cameraTop;
+static float* g_cameraPos;
+static float* g_actorPos;
+
+#include <mmsystem.h>
+#include <dsound.h>
+#include <ScriptEngine.h>
+
+#pragma comment(lib, "dsound.lib")
+
+static void Mumble_RunFrame()
+{
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+	{
+		return;
+	}
+
+	if (g_netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
+	{
+		return;
+	}
+
+	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE];
+
+	if (!g_mumble.connected || (g_mumble.connectionInfo && !g_mumble.connectionInfo->isConnected))
+	{
+		if (shouldConnect && !g_mumble.connecting && !g_mumble.errored)
+		{
+			Mumble_Connect();
+		}
+	}
+	else
+	{
+		if (!shouldConnect)
+		{
+			Mumble_Disconnect();
+		}
+	}
+
+	MumbleActivationMode activationMode;
+
+	if (g_preferenceArray[PREF_VOICE_TALK_ENABLED])
+	{
+		if (g_preferenceArray[PREF_VOICE_CHAT_MODE] == 1)
+		{
+			activationMode = MumbleActivationMode::PushToTalk;
+		}
+		else
+		{
+			activationMode = MumbleActivationMode::VoiceActivity;
+		}
+	}
+	else
+	{
+		activationMode = MumbleActivationMode::Disabled;
+	}
+
+	g_mumbleClient->SetActivationMode(activationMode);
+
+	g_mumbleClient->SetOutputVolume(g_preferenceArray[PREF_VOICE_OUTPUT_VOLUME] * 0.1f);
+
+	float cameraFront[3];
+	float cameraTop[3];
+	float cameraPos[3];
+	float actorPos[3];
+
+	cameraFront[0] = g_cameraFront[0];
+	cameraFront[1] = g_cameraFront[2];
+	cameraFront[2] = g_cameraFront[1];
+
+	cameraTop[0] = g_cameraTop[0];
+	cameraTop[1] = g_cameraTop[2];
+	cameraTop[2] = g_cameraTop[1];
+
+	cameraPos[0] = g_cameraPos[0];
+	cameraPos[1] = g_cameraPos[2];
+	cameraPos[2] = g_cameraPos[1];
+
+	actorPos[0] = g_actorPos[0];
+	actorPos[1] = g_actorPos[2];
+	actorPos[2] = g_actorPos[1];
+
+	g_mumbleClient->SetListenerMatrix(cameraPos, cameraFront, cameraTop);
+	g_mumbleClient->SetActorPosition(actorPos);
+
+	auto likelihoodValue = g_preferenceArray[PREF_VOICE_MIC_SENSITIVITY];
+
+	if (likelihoodValue >= 0 && likelihoodValue < 3)
+	{
+		g_mumbleClient->SetActivationLikelihood(MumbleVoiceLikelihood::VeryLowLikelihood);
+	}
+	else if (likelihoodValue >= 3 && likelihoodValue < 6)
+	{
+		g_mumbleClient->SetActivationLikelihood(MumbleVoiceLikelihood::LowLikelihood);
+	}
+	else if (likelihoodValue >= 6 && likelihoodValue < 9)
+	{
+		g_mumbleClient->SetActivationLikelihood(MumbleVoiceLikelihood::ModerateLikelihood);
+	}
+	else
+	{
+		g_mumbleClient->SetActivationLikelihood(MumbleVoiceLikelihood::HighLikelihood);
+	}
+
+	// handle PTT
+	auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
+	fx::ScriptContext cxt;
+
+	cxt.Push(0);
+	cxt.Push(249); // INPUT_PUSH_TO_TALK
+
+	(*isControlPressed)(cxt);
+
+	g_mumbleClient->SetPTTButtonState(cxt.GetResult<bool>());
+
+	// handle device changes
+	static int curInDevice = -1;
+	static int curOutDevice = -1;
+
+	int inDevice = g_preferenceArray[PREF_VOICE_INPUT_DEVICE];
+	int outDevice = g_preferenceArray[PREF_VOICE_OUTPUT_DEVICE];
+
+	struct EnumCtx
+	{
+		int target;
+		int cur;
+		GUID guid;
+		std::string guidStr;
+	} enumCtx;
+
+	LPDSENUMCALLBACKW enumCb = [](LPGUID guid, LPCWSTR desc, LPCWSTR, void* cxt) -> BOOL
+	{
+		auto ctx = (EnumCtx*)cxt;
+
+		if (ctx->cur == ctx->target)
+		{
+			if (!guid)
+			{
+				ctx->guidStr = "";
+			}
+			else
+			{
+				ctx->guid = *guid;
+				ctx->guidStr = fmt::sprintf("{%08lX-%04hX-%04hX-%02hX%02hX-%02hX%02hX%02hX%02hX%02hX%02hX}", guid->Data1, guid->Data2, guid->Data3,
+					guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+					guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
+			}
+
+			return FALSE;
+		}
+
+		ctx->cur++;
+		return TRUE;
+	};
+
+	if (inDevice != curInDevice)
+	{
+		enumCtx.cur = -1;
+		enumCtx.target = inDevice;
+		DirectSoundCaptureEnumerateW(enumCb, &enumCtx);
+
+		g_mumbleClient->SetInputDevice(enumCtx.guidStr);
+
+		curInDevice = inDevice;
+	}
+
+	if (outDevice != curOutDevice)
+	{
+		enumCtx.cur = -1;
+		enumCtx.target = outDevice;
+		DirectSoundEnumerateW(enumCb, &enumCtx);
+
+		g_mumbleClient->SetOutputDevice(enumCtx.guidStr);
+
+		curOutDevice = outDevice;
+	}
+}
+
+static InitFunction initFunction([]()
+{
+	g_mumbleClient = CreateMumbleClient();
+	g_mumbleClient->Initialize();
+
+	OnMainGameFrame.Connect([=]()
+	{
+		Mumble_RunFrame();
+	});
+
+	OnKillNetworkDone.Connect([]()
+	{
+		g_mumbleClient->SetAudioDistance(FLT_MAX);
+
+		Mumble_Disconnect();
+	});
+});
+
+static bool(*g_origIsAnyoneTalking)(void*);
+
+static bool _isAnyoneTalking(void* mgr)
+{
+	return (g_origIsAnyoneTalking(mgr) || g_mumbleClient->IsAnyoneTalking());
+}
+
+static void(*g_origInitVoiceEngine)(void* engine, char* config);
+
+static void _filterVoiceChatConfig(void* engine, char* config)
+{
+	// disable voice if mumble is used
+	if (g_mumble.connecting || g_mumble.connected)
+	{
+		*config = 0;
+	}
+
+	g_origInitVoiceEngine(engine, config);
+}
+
+#include <scrEngine.h>
+#include <MinHook.h>
+
+static HookFunction hookFunction([]()
+{
+	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
+
+	g_cameraFront = hook::get_address<float*>(hook::get_pattern("40 F6 C6 02 75 25 F3 41 0F 10 44 24 08 4C 8D 0D", 16));
+	g_cameraTop = hook::get_address<float*>(hook::get_pattern("48 69 C0 90 04 00 00 0F C6 C0 00 0F", -11)) - 4;
+	g_cameraPos = hook::get_address<float*>(hook::get_pattern("87 AA 00 00 00 66 0F 6E D0 F3 0F 5C 05", 13));
+
+	g_actorPos = hook::get_address<float*>(hook::get_pattern("BB 00 00 40 00 48 89 7D F8 89 1D", -4)) + 12;
+
+	rage::scrEngine::OnScriptInit.Connect([]()
+	{
+		auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
+		auto getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
+
+		fx::ScriptEngine::RegisterNativeHandler(0x031E11F3D447647E, [=](fx::ScriptContext& context)
+		{
+			if (!g_mumble.connected)
+			{
+				(*origIsTalking)(context);
+				return;
+			}
+
+			std::vector<std::string> talkers;
+			g_mumbleClient->GetTalkers(&talkers);
+
+			int playerIdx = context.GetArgument<int>(0);
+
+			fx::ScriptContext nameCxt;
+			nameCxt.Push(playerIdx);
+			
+			(*getPlayerName)(nameCxt);
+
+			std::string name = nameCxt.GetResult<const char*>();
+
+			for (auto& talker : talkers)
+			{
+				if (talker == name)
+				{
+					context.SetResult(1);
+					return;
+				}
+			}
+
+			context.SetResult(0);
+		});
+
+		auto origSetChannel = fx::ScriptEngine::GetNativeHandler(0xEF6212C2EFEF1A23);
+		auto origClearChannel = fx::ScriptEngine::GetNativeHandler(0xE036A705F989E049);
+
+		fx::ScriptEngine::RegisterNativeHandler(0xEF6212C2EFEF1A23, [=](fx::ScriptContext& context)
+		{
+			(*origSetChannel)(context);
+
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->SetChannel(fmt::sprintf("Game Channel %d", context.GetArgument<int>(0)));
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler(0xE036A705F989E049, [=](fx::ScriptContext& context)
+		{
+			(*origClearChannel)(context);
+
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->SetChannel("Root");
+			}
+		});
+
+		auto origSetProximity = fx::ScriptEngine::GetNativeHandler(0xCBF12D65F95AD686);
+
+		fx::ScriptEngine::RegisterNativeHandler(0xCBF12D65F95AD686, [=](fx::ScriptContext& context)
+		{
+			(*origSetProximity)(context);
+
+			if (g_mumble.connected)
+			{
+				float dist = context.GetArgument<float>(0);
+
+				g_mumbleClient->SetAudioDistance(dist == 0.0f ? FLT_MAX : (dist / 3.0f));
+			}
+		});
+	});
+
+	MH_Initialize();
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 26 66 0F 6E 35")), _isAnyoneTalking, (void**)&g_origIsAnyoneTalking);
+	MH_CreateHook(hook::get_call(hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", 9)), _filterVoiceChatConfig, (void**)&g_origInitVoiceEngine);
+	MH_EnableHook(MH_ALL_HOOKS);
+});

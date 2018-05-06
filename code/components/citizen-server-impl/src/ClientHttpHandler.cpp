@@ -3,9 +3,14 @@
 #include <HttpServerManager.h>
 #include <ClientHttpHandler.h>
 
+#include <CoreConsole.h>
+#include <pplx/threadpool.h>
+
 #include <json.hpp>
 
 using json = nlohmann::json;
+
+static std::shared_ptr<ConVar<bool>> g_threadedHttpVar;
 
 namespace fx
 {
@@ -109,16 +114,28 @@ namespace fx
 					return;
 				}
 
-				(*handler)(postMap, request, [response](const json& data)
+				auto runTask = [=]()
 				{
-					if (data.is_null())
+					(*handler)(postMap, request, [response](const json& data)
 					{
-						response->End();
-						return;
-					}
+						if (data.is_null())
+						{
+							response->End();
+							return;
+						}
 
-					response->Write(data.dump() + "\r\n");
-				});
+						response->Write(data.dump() + "\r\n");
+					});
+				};
+
+				if (g_threadedHttpVar->GetValue())
+				{
+					crossplat::threadpool::shared_instance().service().post(runTask);
+				}
+				else
+				{
+					runTask();
+				}
 			});
 		};
 	}
@@ -128,6 +145,8 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		g_threadedHttpVar = instance->AddVariable<bool>("sv_threadedClientHttp", ConVar_None, true);
+
 		instance->SetComponent(new fx::ClientMethodRegistry());
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/client", fx::GetClientEndpointHandler(instance));

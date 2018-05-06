@@ -1,0 +1,107 @@
+/*
+ * This file is part of the CitizenFX project - http://citizen.re/
+ *
+ * See LICENSE and MENTIONS in the root of the source tree for information
+ * regarding licensing.
+ */
+
+#pragma once
+
+#include <concurrent_unordered_map.h>
+
+#include <map>
+#include <thread>
+
+#include <wrl.h>
+#include <xaudio2.h>
+#include <x3daudio.h>
+
+#include <mmdeviceapi.h>
+#include <opus.h>
+
+namespace WRL = Microsoft::WRL;
+
+class MumbleClient;
+class MumbleUser;
+
+class MumbleAudioOutput
+{
+public:
+	void Initialize();
+
+	void ThreadFunc();
+
+	void InitializeAudioDevice();
+
+	void HandleClientConnect(const MumbleUser& user);
+
+	void HandleClientPosition(const MumbleUser& user, float position[3]);
+
+	void HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size);
+
+	void HandleClientDisconnect(const MumbleUser& user);
+
+	void SetAudioDevice(const std::string& deviceId);
+
+	void SetVolume(float volume);
+
+	void GetTalkers(std::vector<uint32_t>* talkers);
+
+	void SetMatrix(float position[3], float front[3], float up[3]);
+
+	void SetDistance(float distance);
+
+	inline void SetClient(MumbleClient* client)
+	{
+		m_client = client;
+	}
+
+private:
+	struct ClientAudioState : public IXAudio2VoiceCallback
+	{
+		IXAudio2SourceVoice* voice;
+		uint64_t sequence;
+		float volume;
+		float position[3];
+		bool isTalking;
+
+		ClientAudioState();
+
+		virtual ~ClientAudioState();
+
+		void __stdcall OnVoiceProcessingPassStart(UINT32 BytesRequired) override {}
+		void __stdcall OnVoiceProcessingPassEnd() override {}
+		void __stdcall OnStreamEnd() override {}
+		void __stdcall OnBufferStart(void*) override {}
+		void __stdcall OnLoopEnd(void*) override {}
+		void __stdcall OnVoiceError(void*, HRESULT) override {}
+
+		void __stdcall OnBufferEnd(void* cxt) override;
+	};
+
+private:
+	WRL::ComPtr<IXAudio2> m_xa2;
+	IXAudio2MasteringVoice* m_masteringVoice;
+
+	WRL::ComPtr<IMMDeviceEnumerator> m_mmDeviceEnumerator;
+
+	concurrency::concurrent_unordered_map<uint32_t, std::shared_ptr<ClientAudioState>> m_clients;
+
+	std::thread m_thread;
+
+	MumbleClient* m_client;
+
+	OpusDecoder* m_opus;
+
+	float m_volume;
+
+	std::string m_deviceGuid;
+
+	X3DAUDIO_HANDLE m_x3da;
+
+	X3DAUDIO_LISTENER m_listener;
+
+	float m_distance;
+
+	decltype(&X3DAudioCalculate) m_x3daCalculate;
+};

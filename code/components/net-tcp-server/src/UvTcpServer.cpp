@@ -127,6 +127,8 @@ bool UvTcpServerStream::Accept(std::unique_ptr<uv_tcp_t>&& client)
 {
 	m_client = std::move(client);
 
+	uv_tcp_nodelay(m_client.get(), true);
+
 	// initialize a write callback handle
 	m_writeCallback = std::make_unique<uv_async_t>();
 	m_writeCallback->data = this;

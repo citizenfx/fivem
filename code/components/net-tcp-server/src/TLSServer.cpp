@@ -244,7 +244,7 @@ void TLSServerStream::ReceivedAlert(Botan::TLS::Alert alert, const uint8_t[], si
 	}
 }
 
-bool TLSServerStream::HandshakeComplete(const Botan::TLS::Session& session)
+bool TLSServerStream::HandshakeComplete()
 {
 	m_parentServer->InvokeConnectionCallback(this, m_protocol);
 
