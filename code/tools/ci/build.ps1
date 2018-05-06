@@ -181,6 +181,9 @@ if (!$DontBuild)
 
         if (!$Tag) {
             git clone $SubmoduleRemote $SubmodulePath
+            Push-Location $SubmodulePath
+            git checkout $submodule.Hash
+            Pop-Location
         } else {
             git clone -b $Tag --depth 1 --single-branch $SubmoduleRemote $SubmodulePath
         }
