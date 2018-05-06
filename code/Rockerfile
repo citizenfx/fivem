@@ -1,6 +1,7 @@
-FROM alpine:3.6
+FROM alpine:3.7
 MOUNT ..:/src
 RUN /bin/sh /src/code/tools/ci/build_server_2.sh
+ENV LD_LIBRARY_PATH /usr/lib/v8/:/lib:/usr/lib/
 WORKDIR /opt/cfx-server
 CMD ["/bin/sh", "/opt/cfx-server/run.sh"]
 PUSH citizenfx/server:dev
