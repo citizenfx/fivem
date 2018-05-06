@@ -425,8 +425,6 @@ void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 
 void MumbleClient::OnReceive(const uint8_t buf[], size_t length)
 {
-	trace("omg data: %d bytes\n", length);
-
 	g_currentMumbleClient = this;
 
 	m_handler.HandleIncomingData(buf, length);
@@ -434,7 +432,7 @@ void MumbleClient::OnReceive(const uint8_t buf[], size_t length)
 
 bool MumbleClient::OnHandshake(const Botan::TLS::Session& session)
 {
-	trace("got session %s %s\n", session.version().to_string().c_str(), session.ciphersuite().to_string().c_str());
+	trace("[mumble] got session %s %s\n", session.version().to_string().c_str(), session.ciphersuite().to_string().c_str());
 
 	return true;
 }
