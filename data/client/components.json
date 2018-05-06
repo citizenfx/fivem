@@ -52,5 +52,6 @@
 	"devtools:five",
 	"tool:vehrec",
 	"extra-natives:five",
-	"discord"
+	"discord",
+	"voip:mumble"
 ]

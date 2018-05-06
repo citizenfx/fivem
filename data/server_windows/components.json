@@ -16,5 +16,6 @@
   "scripting:server",
   "svadhesive",
   "citizen:scripting:mono",
-  "citizen:scripting:v8"
+  "citizen:scripting:v8",
+  "voip-server:mumble"
 ]
