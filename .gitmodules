@@ -94,3 +94,9 @@
 [submodule "vendor/libopus"]
 	path = vendor/libopus
 	url = https://github.com/xiph/opus.git
+[submodule "vendor/libfvad"]
+	path = vendor/libfvad
+	url = https://github.com/dpirch/libfvad.git
+[submodule "vendor/webrtc-audio-processing"]
+	path = vendor/webrtc-audio-processing
+	url = https://github.com/citizenfx/webrtc-audio-processing.git
