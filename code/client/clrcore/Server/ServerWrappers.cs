@@ -48,6 +48,26 @@ namespace CitizenFX.Core
 				}
 			}
 		}
+		
+		public override bool Equals(object obj)
+		{
+			return obj is Player player && this == player;
+		}
+
+		public override int GetHashCode()
+		{
+			return Handle.GetHashCode();
+		}
+
+		public static bool operator ==(Player a, Player b)
+		{
+			return a.Handle.Equals(b.Handle);
+		}
+
+		public static bool operator !=(Player a, Player b)
+		{
+			return !(a == b);
+		}
 	}
 
 	public class IdentifierCollection : IEnumerable<string>

@@ -1125,7 +1125,7 @@ native "0x9C16459B2324B2CF"
 native "0xFCFACD0DB9D7A57D"
 	hash "0xFCFACD0DB9D7A57D"
 	arguments {
-		Any "p0",
+		Ped "ped",
 
 		Any "p1",
 	}
@@ -1135,14 +1135,19 @@ native "0xFCFACD0DB9D7A57D"
 native "0xB13DCB4C6FAAD238"
 	hash "0xB13DCB4C6FAAD238"
 	arguments {
-		Any "p0",
+		Ped "ped",
 
-		Any "p1",
+		BOOL "toggle",
 
-		Any "p2",
+		Any "p3",
 	}
 	ns "HUD"
 	returns	"void"
+	doc [[!
+<summary>
+		Called in decompiled scripts as alternative to _SET_PED_ENEMY_AI_BLIP in an else, when the additional parameter p3 is not -1
+</summary>
+	]]
 
 native "0x6CDD58146A436083"
 	hash "0x6CDD58146A436083"
@@ -3244,14 +3249,19 @@ native "0xFAC75988A7D078D3"
 native "0x55FCC0C390620314"
 	hash "0x55FCC0C390620314"
 	arguments {
-		Any "p0",
+		Player "player1",
 
-		Any "p1",
+		Player "player2",
 
-		Any "p2",
+		BOOL "toggle",
 	}
 	ns "PLAYER"
 	returns	"void"
+	doc [[!
+<summary>
+		Order of player1 and player2 are not interchangable, it was called for both orders.
+</summary>
+	]]
 
 native "0xD821056B9ACF8052"
 	hash "0xD821056B9ACF8052"
@@ -4595,9 +4605,9 @@ native "0xE2F53F172B45EDE1"
 native "0x80E3357FDEF45C21"
 	hash "0x80E3357FDEF45C21"
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 
-		Any "p1",
+		BOOL "toggle",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -4683,7 +4693,7 @@ native "0xB9562064627FF9DB"
 native "0xFC40CBF7B90CA77C"
 	hash "0xFC40CBF7B90CA77C"
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 	}
 	ns "VEHICLE"
 	returns	"void"
@@ -4691,9 +4701,9 @@ native "0xFC40CBF7B90CA77C"
 native "0xB2E0C0D6922D31F2"
 	hash "0xB2E0C0D6922D31F2"
 	arguments {
-		Any "p0",
+		Vehicle "vehicle",
 
-		Any "p1",
+		BOOL "toggle",
 	}
 	ns "VEHICLE"
 	returns	"void"
