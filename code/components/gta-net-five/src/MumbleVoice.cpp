@@ -310,11 +310,6 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 #include <scrEngine.h>
 #include <MinHook.h>
 
-struct pass
-{
-	template<typename ...T> pass(T...) {}
-};
-
 class FxNativeInvoke
 {
 private:
