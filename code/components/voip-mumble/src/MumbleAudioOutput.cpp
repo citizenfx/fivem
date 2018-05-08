@@ -178,13 +178,10 @@ void MumbleAudioOutput::Initialize()
 	m_volume = 1.0f;
 	m_masteringVoice = nullptr;
 	m_thread = std::thread([this] { ThreadFunc(); });
-
-	int error;
-	m_opus = opus_decoder_create(48000, 1, &error);
 }
 
 MumbleAudioOutput::ClientAudioState::ClientAudioState()
-	: volume(1.0f), sequence(0), voice(nullptr), isTalking(false)
+	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false)
 {
 	position[0] = 0.0f;
 	position[1] = 0.0f;
@@ -197,6 +194,12 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 	{
 		voice->DestroyVoice();
 		voice = nullptr;
+	}
+
+	if (opus)
+	{
+		opus_decoder_destroy(opus);
+		opus = nullptr;
 	}
 }
 
@@ -240,6 +243,9 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 	state->voice = voice;
 
+	int error;
+	state->opus = opus_decoder_create(48000, 1, &error);
+
 	m_clients[user.GetSessionId()] = state;
 }
 
@@ -260,7 +266,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 	client->sequence = sequence;
 
 	auto voiceBuffer = new int16_t[5760 * 1];
-	int len = opus_decode(m_opus, data, size, voiceBuffer, 5760, 0);
+	int len = opus_decode(client->opus, data, size, voiceBuffer, 5760, 0);
 
 	if (len >= 0)
 	{

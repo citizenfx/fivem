@@ -64,6 +64,7 @@ private:
 		float volume;
 		float position[3];
 		bool isTalking;
+		OpusDecoder* opus;
 
 		ClientAudioState();
 
@@ -90,8 +91,6 @@ private:
 	std::thread m_thread;
 
 	MumbleClient* m_client;
-
-	OpusDecoder* m_opus;
 
 	float m_volume;
 
