@@ -19,10 +19,7 @@ inline std::chrono::milliseconds msec()
 
 void MumbleClient::Initialize()
 {
-	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
-	{
-		return;
-	}
+	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
 	m_beginConnectEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	m_socketConnectEvent = nullptr;
