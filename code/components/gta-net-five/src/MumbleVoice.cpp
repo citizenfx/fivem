@@ -353,7 +353,6 @@ static HookFunction hookFunction([]()
 		auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
 		auto getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
 		auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
-		auto getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
 
 		OnMainGameFrame.Connect([=]()
 		{
@@ -361,6 +360,8 @@ static HookFunction hookFunction([]()
 			{
 				return;
 			}
+
+			static auto getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
 
 			std::vector<std::string> talkers;
 			g_mumbleClient->GetTalkers(&talkers);
@@ -440,7 +441,7 @@ static HookFunction hookFunction([]()
 				g_mumbleClient->SetAudioDistance(dist == 0.0f ? FLT_MAX : (dist / 3.0f));
 			}
 		});
-	}, 50000);
+	});
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 26 66 0F 6E 35")), _isAnyoneTalking, (void**)&g_origIsAnyoneTalking);
