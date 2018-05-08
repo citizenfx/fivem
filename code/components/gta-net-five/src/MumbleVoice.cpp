@@ -56,7 +56,7 @@ static void Mumble_Connect()
 
 	_initVoiceChatConfig();
 
-	g_mumbleClient->ConnectAsync(g_netLibrary->GetCurrentPeer(), g_netLibrary->GetPlayerName()).then([](concurrency::task<MumbleConnectionInfo*> task)
+	g_mumbleClient->ConnectAsync(g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
 	{
 		try
 		{
@@ -310,6 +310,37 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 #include <scrEngine.h>
 #include <MinHook.h>
 
+struct pass
+{
+	template<typename ...T> pass(T...) {}
+};
+
+class FxNativeInvoke
+{
+private:
+	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
+	{
+		(*handler)(cxt);
+	}
+
+public:
+
+	template<typename R, typename... Args>
+	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
+	{
+		fx::ScriptContext cxt;
+
+		pass{ ([&]()
+		{
+			cxt.Push(args);
+		}(), 1)... };
+
+		Invoke(cxt, handler);
+
+		return cxt.GetResult<R>();
+	}
+};
+
 static HookFunction hookFunction([]()
 {
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
@@ -320,10 +351,44 @@ static HookFunction hookFunction([]()
 
 	g_actorPos = hook::get_address<float*>(hook::get_pattern("BB 00 00 40 00 48 89 7D F8 89 1D", -4)) + 12;
 
+	static std::bitset<256> g_talkers;
+
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
 		auto getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
+		auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
+		auto getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
+
+		OnMainGameFrame.Connect([=]()
+		{
+			if (!g_mumble.connected)
+			{
+				return;
+			}
+
+			std::vector<std::string> talkers;
+			g_mumbleClient->GetTalkers(&talkers);
+
+			std::set<std::string> talkerSet(talkers.begin(), talkers.end());
+
+			g_talkers.reset();
+
+			for (int i = 0; i < 256; i++)
+			{
+				if (FxNativeInvoke::Invoke<bool>(isPlayerActive, i))
+				{
+					std::string name = fmt::sprintf("[%d] %s",
+						FxNativeInvoke::Invoke<int>(getServerId, i),
+						FxNativeInvoke::Invoke<const char*>(getPlayerName, i));
+
+					if (talkerSet.find(name) != talkerSet.end())
+					{
+						g_talkers.set(i);
+					}
+				}
+			}
+		});
 
 		fx::ScriptEngine::RegisterNativeHandler(0x031E11F3D447647E, [=](fx::ScriptContext& context)
 		{
@@ -333,28 +398,15 @@ static HookFunction hookFunction([]()
 				return;
 			}
 
-			std::vector<std::string> talkers;
-			g_mumbleClient->GetTalkers(&talkers);
+			int playerId = context.GetArgument<int>(0);
 
-			int playerIdx = context.GetArgument<int>(0);
-
-			fx::ScriptContext nameCxt;
-			nameCxt.Push(playerIdx);
-			
-			(*getPlayerName)(nameCxt);
-
-			std::string name = nameCxt.GetResult<const char*>();
-
-			for (auto& talker : talkers)
+			if (playerId > g_talkers.size() || playerId < 0)
 			{
-				if (talker == name)
-				{
-					context.SetResult(1);
-					return;
-				}
+				context.SetResult(0);
+				return;
 			}
 
-			context.SetResult(0);
+			context.SetResult(g_talkers.test(playerId));
 		});
 
 		auto origSetChannel = fx::ScriptEngine::GetNativeHandler(0xEF6212C2EFEF1A23);
@@ -393,7 +445,7 @@ static HookFunction hookFunction([]()
 				g_mumbleClient->SetAudioDistance(dist == 0.0f ? FLT_MAX : (dist / 3.0f));
 			}
 		});
-	});
+	}, 50000);
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 26 66 0F 6E 35")), _isAnyoneTalking, (void**)&g_origIsAnyoneTalking);
