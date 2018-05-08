@@ -252,7 +252,7 @@ template<class StreamType, class BulkType>
 class BulkStreamDevice : public StreamDevice<StreamType, detail::HandleDataWithBulk<StreamType, BulkType>>
 {
 public:
-	virtual THandle OpenBulk(const std::string& fileName, uint64_t* bulkPtr) override
+	virtual Device::THandle OpenBulk(const std::string& fileName, uint64_t* bulkPtr) override
 	{
 		auto lock = AcquireMutex();
 
@@ -275,7 +275,7 @@ public:
 		return InvalidHandle;
 	}
 
-	virtual size_t ReadBulk(THandle handle, uint64_t ptr, void* outBuffer, size_t size) override
+	virtual size_t ReadBulk(Device::THandle handle, uint64_t ptr, void* outBuffer, size_t size) override
 	{
 		auto data = GetHandle(handle);
 
@@ -307,7 +307,7 @@ private:
 	};
 
 public:
-	virtual size_t WriteBulk(THandle handle, uint64_t ptr, const void* buffer, size_t size) override
+	virtual size_t WriteBulk(Device::THandle handle, uint64_t ptr, const void* buffer, size_t size) override
 	{
 		auto data = GetHandle(handle);
 
@@ -319,7 +319,7 @@ public:
 		return -1;
 	}
 	
-	virtual bool CloseBulk(THandle handle) override
+	virtual bool CloseBulk(Device::THandle handle) override
 	{
 		auto data = GetHandle(handle);
 
