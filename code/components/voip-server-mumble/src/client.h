@@ -57,6 +57,11 @@
 
 #define IS_AUTH(_a_) ((_a_)->authenticated)
 
+#ifdef __linux__
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#endif
+
 typedef struct {
 	fwRefContainer<net::TcpServerStream> stream;
 	bool_t SSLready;

@@ -116,7 +116,7 @@ int getIntConf(param_t param)
 			doAssert(false);
 	}
 
-	__debugbreak();
+	assert(false);
 	return 0;
 }
 
@@ -135,7 +135,7 @@ bool_t getBoolConf(param_t param)
 			doAssert(false);
 	}
 
-	__debugbreak();
+	assert(false);
 	return false;
 }
 

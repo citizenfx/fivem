@@ -4,7 +4,7 @@
 #include "StdInc.h"
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
-#include "mumble.pb.h"
+#include "Mumble.pb.h"
 
 #include <algorithm>
 

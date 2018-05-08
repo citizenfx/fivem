@@ -829,6 +829,9 @@ int Client_read_udp(int udpsock)
 			}
 		} /* while */
 	}
+
+	char *clientAddressString = NULL;
+
 	if (itr == NULL) { /* Couldn't find this peer among connected clients */
 		goto out;
 	}
@@ -836,8 +839,6 @@ int Client_read_udp(int udpsock)
 	itr->bUDP = true;
 	len -= 4; /* Adjust for crypt header */
 	msgType = (UDPMessageType_t)((buffer[0] >> 5) & 0x7);
-
-	char *clientAddressString = NULL;
 
 	switch (msgType) {
 		case UDPVoiceSpeex:

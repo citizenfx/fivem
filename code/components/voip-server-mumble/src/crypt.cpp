@@ -40,7 +40,13 @@
 
 #include "StdInc.h"
 #include <string.h>
+
+#ifndef _WIN32
+#include <arpa/inet.h>
+#endif
+
 #include "crypt.h"
+#include "byteorder.h"
 #include "ssl.h"
 
 #if defined(USE_POLARSSL_HAVEGE) || defined(USE_MBEDTLS_HAVEGE)
