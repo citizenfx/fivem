@@ -412,11 +412,12 @@ static InitFunction initFunction([]()
 
 		std::thread([=]()
 		{
+			using namespace std::chrono_literals;
 			SetThreadName(-1, "[Mumble] Worker thread");
 
 			while (true)
 			{
-				Sleep(1000);
+				std::this_thread::sleep_for(1000ms);
 
 				Client_janitor();
 			}
