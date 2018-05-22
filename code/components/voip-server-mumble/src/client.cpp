@@ -748,6 +748,7 @@ int Client_read_udp(int udpsock)
 	UDPMessageType_t msgType;
 	uint8_t fromaddress[4 * sizeof(int32_t)];
 	uint16_t fromport;
+	char *clientAddressString = NULL;
 
 #if defined(__LP64__)
 	uint8_t encbuff[UDP_PACKET_SIZE + 8];
@@ -829,8 +830,6 @@ int Client_read_udp(int udpsock)
 			}
 		} /* while */
 	}
-
-	char *clientAddressString = NULL;
 
 	if (itr == NULL) { /* Couldn't find this peer among connected clients */
 		goto out;
@@ -1011,7 +1010,7 @@ static int Client_send_udp(client_t *client, uint8_t *data, int len)
 	if (Util_clientAddressToPortUDP(client) != 0 && CryptState_isValid(&client->cryptState) &&
 		client->bUDP) {
 #if defined(__LP64__)
-		buf = mbuf = Memory_safeMalloc(1, len + 4 + 16);
+		buf = mbuf = (uint8_t*)Memory_safeMalloc(1, len + 4 + 16);
 		buf += 4;
 #else
 		mbuf = buf = (uint8_t*)Memory_safeMalloc(1, len + 4);
