@@ -155,7 +155,7 @@ namespace CitizenFX.Core
 
 		public static void AddDelay(int delay, AsyncCallback callback)
 		{
-			ms_delays.Add(Tuple.Create(DateTime.Now.AddMilliseconds(delay), callback));
+			ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback));
 		}
 
 		public void Tick()
@@ -165,7 +165,7 @@ namespace CitizenFX.Core
 				ScriptContext.GlobalCleanUp();
 
 				var delays = ms_delays.ToArray();
-				var now = DateTime.Now;
+				var now = DateTime.UtcNow;
 
 				foreach (var delay in delays)
 				{
