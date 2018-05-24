@@ -8,6 +8,10 @@
 #include <NetLibrary.h>
 #include <MumbleClient.h>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 static NetLibrary* g_netLibrary;
 
 static uint32_t* g_preferenceArray;
@@ -33,9 +37,45 @@ static hook::cdecl_stub<void()> _initVoiceChatConfig([]()
 	return hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", -0x12E);
 });
 
+static bool g_mumbleAllowed;
+
 void MumbleVoice_BindNetLibrary(NetLibrary* library)
 {
 	g_netLibrary = library;
+
+	g_netLibrary->OnConnectOKReceived.Connect([](NetAddress addr)
+	{
+		g_mumbleAllowed = false;
+
+		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("http://%s:%d/info.json", addr.GetAddress(), addr.GetPort()), [=](bool success, const char* data, size_t size)
+		{
+			if (success)
+			{
+				json info = json::parse(data, data + size);
+
+				if (info.is_object() && info["vars"].is_object())
+				{
+					auto val = info["vars"].value("sv_licenseKeyToken", "");
+
+					if (!val.empty())
+					{
+						Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/mumble_voice_prerelease", val), [=](bool success, const char* data, size_t size)
+						{
+							if (success)
+							{
+								if (std::string(data, size).find("yes") != std::string::npos)
+								{
+									trace("Server policy - Mumble allowed: yes\n");
+
+									g_mumbleAllowed = true;
+								}
+							}
+						});
+					}
+				}
+			}
+		});
+	});
 }
 
 static fwRefContainer<IMumbleClient> g_mumbleClient;
@@ -120,7 +160,7 @@ static void Mumble_RunFrame()
 		return;
 	}
 
-	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE];
+	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE] && g_mumbleAllowed;
 
 	if (!g_mumble.connected || (g_mumble.connectionInfo && !g_mumble.connectionInfo->isConnected))
 	{
