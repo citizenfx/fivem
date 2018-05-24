@@ -20,6 +20,7 @@ fwPlatformString GetAbsoluteCitPath()
 
 	if (!citizenPath.size())
 	{
+#ifndef IS_FXSERVER
 		static HostSharedData<CfxState> initState("CfxInitState");
 
 		citizenPath = initState->initPath;
@@ -52,6 +53,21 @@ fwPlatformString GetAbsoluteCitPath()
 				}
 			}
 		}
+#else
+		wchar_t modulePath[512];
+		GetModuleFileNameW(GetModuleHandle(nullptr), modulePath, sizeof(modulePath) / sizeof(wchar_t));
+
+		wchar_t realModulePath[512];
+
+		GetFullPathNameW(modulePath, _countof(realModulePath), realModulePath, nullptr);
+
+		wchar_t* dirPtr = wcsrchr(realModulePath, L'\\');
+
+		// we do not check if dirPtr happens to be 0, as any valid absolute Win32 file path contains at least one backslash
+		dirPtr[1] = '\0';
+
+		citizenPath = realModulePath;
+#endif
 	}
 
 	return citizenPath;
