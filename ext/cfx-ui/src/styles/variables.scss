@@ -23,6 +23,8 @@ $fgColour: hsl(60, 93%, 94%);
 $secondaryColour: rgb(250, 255, 225);
 $greenyColour: hsl(76, 100%, 40%);
 $yellowColour: hsl(53, 100%, 50%);
+$redColour: hsl(30, 100%, 40%);
+$blueColour: hsl(180, 100%, 40%);
 $textColour: rgb(200, 205, 187);
 
 @mixin fullWidthPadded($extraPadding: $padding*4) {

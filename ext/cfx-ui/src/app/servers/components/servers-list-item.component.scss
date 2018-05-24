@@ -8,6 +8,36 @@
 	}
 }
 
+@keyframes fadeIn { 
+	from { text-shadow: 0 0 5px $blueColour; }
+	to { text-shadow: 0 0 0 $blueColour; }
+}
+
+:host.platinum {
+	.server-list-item {
+		margin-top: $padding/3;
+		box-shadow: 0 0 0 100px rgba($redColour, .25) inset;
+
+		.name {
+			animation: fadeIn 1s infinite alternate ease-in-out;
+		}
+	}
+}
+
+/*:host.argentum {
+	.server-list-item {
+		margin-top: $padding/3;
+		box-shadow: 0 0 0 100px rgba($blueColour, .25) inset;
+	}
+}*/
+
+:host.aurum {
+	.server-list-item {
+		margin-top: $padding/3;
+		box-shadow: 0 0 0 100px rgba($yellowColour, .25) inset;
+	}
+}
+
 :host:nth-child(odd) {
 	.server-list-item {
 		background-color: rgba(darken($bgColour, 10%), .4);

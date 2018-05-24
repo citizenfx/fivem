@@ -7,6 +7,7 @@
     "#ServerList_Browse": "Browse",
     "#ServerList_Favorites": "Favorites",
     "#ServerList_History": "History",
+    "#ServerList_Premium": "Supporters",
     "#ServerList_DirectConnect": "Direct Connect",
     "#BottomNav_Home": "Home",
     "#BottomNav_Servers": "Servers",
@@ -37,6 +38,8 @@
     "#ServerDetail_DelFavorite": "Unfavorite",
     "#ServerDetail_Refresh": "Refresh",
     "#ServerDetail_ScriptHook": "Client scripts allowed",
+    "#ServerDetail_OneSync": "OneSync prototype",
+    "#ServerDetail_Premium": "FiveM supporter tier",
     "#Yes": "Yes",
     "#No": "No"
 }

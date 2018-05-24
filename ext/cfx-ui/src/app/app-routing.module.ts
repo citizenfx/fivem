@@ -36,6 +36,11 @@ const routes: Routes = [
 				data:      {type: 'history'}
 			},
 			{
+				path:      'premium',
+				component: ServersContainerComponent,
+				data:      {type: 'premium'}
+			},
+			{
 				path:      'direct-connect',
 				component: DirectConnectComponent
 			},

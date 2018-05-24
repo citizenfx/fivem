@@ -65,6 +65,26 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
             };
         };
 
+        this.filterFuncs['onesync_enabled'] = (pair) => {
+            return {
+                key: '#ServerDetail_OneSync',
+                value: (pair.value === 'true') ? '#Yes' : '#No'
+            }
+        };
+
+        const premiumTiers = {
+            ag: 'FiveM Element Club Argentum 💿',
+            au: 'FiveM Element Club Aurum 📀',
+            pt: 'FiveM Element Club Platinum 🌟'
+        };
+
+        this.filterFuncs['premium'] = (pair) => {
+            return {
+                key: '#ServerDetail_Premium',
+                value: (pair.value in premiumTiers) ? premiumTiers[pair.value] : pair.value
+            }
+        };
+
         this.route.params.subscribe(params => {
             this.currentAddr = params['addr'];
 

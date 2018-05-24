@@ -91,6 +91,18 @@ export class ServersListComponent implements OnInit, OnChanges {
         return (this.pinConfig.pinnedServers.indexOf(server.address) >= 0)
     }
 
+    isPremium(server: Server) {
+        return (server.data.vars && server.data.vars.premium !== undefined);
+    }
+
+    getPremium(server: Server) {
+        if (!server.data.vars) {
+            return '';
+        }
+
+        return server.data.vars.premium;
+    }
+
     private static quoteRe(text: string) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }

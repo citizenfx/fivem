@@ -12,6 +12,8 @@
 	>
 		<div class="dummy"></div>
 		<servers-list-item
+			[class.premium]="isPremium(server)" [class.argentum]="getPremium(server) == 'ag'"
+			[class.aurum]="getPremium(server) == 'au'"  [class.platinum]="getPremium(server) == 'pt'"
 			[class.pinned]="isPinned(server)" [server]="server"
 			*ngFor="let server of localServers"
 		></servers-list-item>

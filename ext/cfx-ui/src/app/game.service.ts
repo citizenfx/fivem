@@ -311,6 +311,8 @@ export class CfxGameService extends GameService {
 			return this.favorites.indexOf(server.address) >= 0;
 		} else if (type == 'history') {
 			return this.history.indexOf(server.address) >= 0;
+		} else if (type == 'premium') {
+			return server.data.vars && server.data.vars.premium;
 		}
 
 		return true;
@@ -454,6 +456,10 @@ export class DummyGameService extends GameService {
 	}
 
 	isMatchingServer(type: string, server: Server): boolean {
+		if (type == 'premium') {
+			return server.data.vars && server.data.vars.premium;
+		}
+
 		return ((type !== 'history' && type !== 'favorites') || server.currentPlayers < 12);
 	}
 
