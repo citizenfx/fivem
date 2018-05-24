@@ -47,6 +47,8 @@ static struct
 	volatile bool errored;
 
 	volatile MumbleConnectionInfo* connectionInfo;
+
+	concurrency::concurrent_queue<std::function<void()>> mainFrameExecQueue;
 } g_mumble;
 
 static void Mumble_Connect()
@@ -65,6 +67,11 @@ static void Mumble_Connect()
 			g_mumble.connectionInfo = g_mumbleClient->GetConnectionInfo();
 
 			g_mumble.connected = true;
+
+			g_mumble.mainFrameExecQueue.push([]()
+			{
+				_initVoiceChatConfig();
+			});
 		}
 		catch (std::exception& e)
 		{
@@ -299,7 +306,7 @@ static void(*g_origInitVoiceEngine)(void* engine, char* config);
 static void _filterVoiceChatConfig(void* engine, char* config)
 {
 	// disable voice if mumble is used
-	if (g_mumble.connecting || g_mumble.connected)
+	if (g_mumble.connected)
 	{
 		*config = 0;
 	}
@@ -356,6 +363,13 @@ static HookFunction hookFunction([]()
 
 		OnMainGameFrame.Connect([=]()
 		{
+			std::function<void()> func;
+
+			while (g_mumble.mainFrameExecQueue.try_pop(func))
+			{
+				func();
+			}
+
 			if (!g_mumble.connected)
 			{
 				return;
