@@ -11,7 +11,7 @@ apk --no-cache update
 apk --no-cache upgrade
 
 # install runtime dependencies
-apk add libc++ curl libssl1.0 libunwind libstdc++ zlib c-ares icu-libs
+apk add --no-cache libc++ curl libssl1.0 libunwind libstdc++ zlib c-ares icu-libs
 
 # add fivem repositories
 curl -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
@@ -137,5 +137,8 @@ cd /opt/cfx-server
 rm -rf /tmp/boost
 
 apk del .dev-deps
+
+apk del curl
+apk add --no-cache curl=7.59.0-r1 libcurl=7.59.0-r1
 
 mv /tmp/libMonoPosixHelper.so /usr/lib/libMonoPosixHelper.so
