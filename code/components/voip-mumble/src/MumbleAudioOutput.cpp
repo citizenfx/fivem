@@ -520,7 +520,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		x3aDll = LoadLibraryExW(L"X3DAudio1_7.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 	}
 
-	if (x3aDll)
+	if (x3aDll && IsWindows8Point1OrGreater())
 	{
 		auto _X3DAudioInitialize = (decltype(&X3DAudioInitialize))GetProcAddress(x3aDll, "X3DAudioInitialize");
 		auto _X3DAudioCalculate = (decltype(&X3DAudioCalculate))GetProcAddress(x3aDll, "X3DAudioCalculate");
