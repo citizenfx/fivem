@@ -301,7 +301,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 		client->position[1] = position[1];
 		client->position[2] = position[2];
 
-		if (position[0] != 0.0f || position[1] != 0.0f || position[2] != 0.0f)
+		if ((position[0] != 0.0f || position[1] != 0.0f || position[2] != 0.0f) && m_x3daCalculate)
 		{
 			float coeffs[2] = { 0 };
 
@@ -426,6 +426,20 @@ void MumbleAudioOutput::SetVolume(float volume)
 	}
 }
 
+static bool SafeCallX3DA(decltype(&X3DAudioInitialize) func, UINT32 SpeakerChannelMask, FLOAT32 SpeedOfSound, _Out_writes_bytes_(X3DAUDIO_HANDLE_BYTESIZE) X3DAUDIO_HANDLE Instance)
+{
+	__try
+	{
+		func(SpeakerChannelMask, SpeedOfSound, Instance);
+
+		return true;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return false;
+	}
+}
+
 WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
 void MumbleAudioOutput::InitializeAudioDevice()
@@ -499,7 +513,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 	m_masteringVoice->SetVolume(m_volume);
 
-	auto x3aDll = LoadLibraryExW(L"XAudio2_8.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+	auto x3aDll = (HMODULE)LoadLibraryExW(L"XAudio2_8.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
 	if (!x3aDll)
 	{
@@ -514,14 +528,30 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		DWORD channelMask = 0;
 		m_masteringVoice->GetChannelMask(&channelMask);
 
-		_X3DAudioInitialize(channelMask, X3DAUDIO_SPEED_OF_SOUND, m_x3da);
+		if (_X3DAudioInitialize)
+		{
+			if (SafeCallX3DA(_X3DAudioInitialize, channelMask, X3DAUDIO_SPEED_OF_SOUND, m_x3da))
+			{
+				memset(&m_listener, 0, sizeof(m_listener));
+				m_listener.Position = DirectX::XMFLOAT3(100.0f, 0.0f, 0.0f);
+				m_listener.OrientFront = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+				m_listener.OrientTop = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 
-		memset(&m_listener, 0, sizeof(m_listener));
-		m_listener.Position = DirectX::XMFLOAT3(100.0f, 0.0f, 0.0f);
-		m_listener.OrientFront = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		m_listener.OrientTop = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+				m_x3daCalculate = _X3DAudioCalculate;
+			}
+			else
+			{
+				trace("X3DAudio initialization crashed - wtf?\n");
 
-		m_x3daCalculate = _X3DAudioCalculate;
+				m_x3daCalculate = nullptr;
+			}
+		}
+		else
+		{
+			trace("No X3DAudio found, this is odd.\n");
+
+			m_x3daCalculate = nullptr;
+		}
 	}
 	else
 	{
