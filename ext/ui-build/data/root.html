@@ -46,6 +46,11 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		{
 			frame.style.visibility = 'visible';
 		}, true);
+
+		frame.contentWindow.GetParentResourceName = function()
+		{
+			return frameName;
+		}
 	}
 	else if (msg == "destroyFrame")
 	{
