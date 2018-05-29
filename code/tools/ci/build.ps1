@@ -382,7 +382,7 @@ if (!$DontUpload) {
 
     $Branch = $UploadBranch
 
-    $env:Path += ";C:\msys64\usr\bin"
+    $env:Path = "C:\msys64\usr\bin;$env:Path"
 
     New-Item -ItemType Directory -Force $WorkDir\upload\$Branch\bootstrap | Out-Null
     New-Item -ItemType Directory -Force $WorkDir\upload\$Branch\content | Out-Null

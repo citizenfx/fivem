@@ -37,7 +37,7 @@ foreach ($sym in $syms) {
     copy-item $sym.FullName $baseDir
 }
 
-$env:Path += ";C:\msys64\usr\bin"
+$env:Path = "C:\msys64\usr\bin;$env:Path"
 
 remove-item R:\sym-pack.zip
 C:\f\temp\7z.exe a R:\sym-pack.zip R:\sym-pack\*
