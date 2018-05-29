@@ -63,7 +63,11 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 
 concurrency::task<void> MumbleClient::DisconnectAsync()
 {
-	m_tlsClient->close();
+	if (m_tlsClient)
+	{
+		m_tlsClient->close();
+	}
+
 	m_connectionInfo = {};
 
 	return concurrency::task_from_result();
