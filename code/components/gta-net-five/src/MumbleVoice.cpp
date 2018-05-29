@@ -492,7 +492,7 @@ static HookFunction hookFunction([]()
 			{
 				float dist = context.GetArgument<float>(0);
 
-				g_mumbleClient->SetAudioDistance(dist == 0.0f ? FLT_MAX : (dist / 3.0f));
+				g_mumbleClient->SetAudioDistance(dist == 0.0f ? FLT_MAX : dist);
 			}
 		});
 	});

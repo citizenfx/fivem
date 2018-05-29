@@ -21,7 +21,7 @@ extern "C"
 };
 
 MumbleAudioInput::MumbleAudioInput()
-	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_avr(nullptr), m_opus(nullptr), m_apm(nullptr)
+	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false)
 {
 
 }
@@ -146,11 +146,13 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 {
 	if (m_mode == MumbleActivationMode::Disabled)
 	{
+		m_isTalking = false;
 		return;
 	}
 
 	if (m_mode == MumbleActivationMode::PushToTalk && !m_ptt)
 	{
+		m_isTalking = false;
 		return;
 	}
 
@@ -200,8 +202,11 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 		if (m_mode == MumbleActivationMode::VoiceActivity && !m_apm->voice_detection()->stream_has_voice())
 		{
+			m_isTalking = false;
 			continue;
 		}
+
+		m_isTalking = true;
 
 		memcpy(m_resampledBytes, frame.data_, 480 * sizeof(int16_t));
 

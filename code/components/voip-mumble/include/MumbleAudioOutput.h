@@ -64,6 +64,7 @@ private:
 		float volume;
 		float position[3];
 		bool isTalking;
+		bool isAudible;
 		OpusDecoder* opus;
 
 		ClientAudioState();

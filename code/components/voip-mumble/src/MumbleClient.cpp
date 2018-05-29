@@ -163,6 +163,12 @@ void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
 
 		referenceIds->push_back(ToNarrow(user->GetName()));
 	}
+
+	// local talker talking?
+	if (m_audioInput.IsTalking())
+	{
+		referenceIds->push_back(ToNarrow(m_state.GetUsername()));
+	}
 }
 
 bool MumbleClient::IsAnyoneTalking()

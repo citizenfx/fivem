@@ -181,7 +181,7 @@ void MumbleAudioOutput::Initialize()
 }
 
 MumbleAudioOutput::ClientAudioState::ClientAudioState()
-	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false)
+	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false), isAudible(true)
 {
 	position[0] = 0.0f;
 	position[1] = 0.0f;
@@ -283,7 +283,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 
 		client->voice->SubmitSourceBuffer(&bufferData);
 
-		client->isTalking = true;
+		client->isTalking = client->isAudible;
 	}
 	else
 	{
@@ -315,17 +315,22 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 			emitter.OrientTop = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 			emitter.Position = DirectX::XMFLOAT3(position);
 			emitter.ChannelCount = 1;
+			emitter.pVolumeCurve = const_cast<X3DAUDIO_DISTANCE_CURVE*>(&X3DAudioDefault_LinearCurve);
 			//emitter.CurveDistanceScaler = 50.0f;
 			emitter.CurveDistanceScaler = m_distance;
 
 			m_x3daCalculate(m_x3da, &m_listener, &emitter, X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER | X3DAUDIO_CALCULATE_LPF_DIRECT | X3DAUDIO_CALCULATE_REVERB, &dsp);
 
 			client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, dsp.pMatrixCoefficients);
+
+			client->isAudible = (dsp.pMatrixCoefficients[0] > 0.1f || dsp.pMatrixCoefficients[1] > 0.1f);
 		}
 		else
 		{
 			float matrix[2] = { 1.f, 1.f };
 			client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, matrix);
+
+			client->isAudible = true;
 		}
 	}
 }
