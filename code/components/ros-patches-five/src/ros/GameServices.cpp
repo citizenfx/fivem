@@ -195,6 +195,8 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 	return true;
 }
 
+// work around a current issue with VS15.7 code generation breaking some part of this function by disabling optimization
+#pragma optimize("", off)
 void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response, const std::string& outputData)
 {
 	// output stream and other state
@@ -214,7 +216,7 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 	rng.randomize(rc4Key, sizeof(rc4Key));
 
 	// create a RC4 cipher for the data
-	Botan::StreamCipher* rc4 = Botan::get_stream_cipher("RC4")->clone();
+	auto rc4 = Botan::StreamCipher::create("RC4");
 	rc4->set_key(rc4Key, sizeof(rc4Key));
 
 	// store the original RC4 key (HMAC needs it later)
@@ -222,7 +224,7 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 	memcpy(origRc4Key, rc4Key, sizeof(origRc4Key));
 
 	// xor the RC4 key with the platform key (and optionally the session key)
-	for (int i = 0; i < sizeof(rc4Key); i++)
+	for (size_t i = 0; i < sizeof(rc4Key); i++)
 	{
 		rc4Key[i] ^= cryptoState.GetXorKey()[i];
 
@@ -241,21 +243,19 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 	// append the block size to the stream
 	{
 		// set up endianness
-		uint8_t blockSizeData[4];
-		uint8_t blockSizeDataLE[4];
+		union
+		{
+			uint8_t u8[4];
+			uint32_t u32;
+		} blockSizeData;
 
-		*(uint32_t*)&blockSizeData[0] = blockSize;
+		blockSizeData.u32 = _byteswap_ulong(blockSize);
 
 		// swap endianness
-		blockSizeDataLE[3] = blockSizeData[0];
-		blockSizeDataLE[2] = blockSizeData[1];
-		blockSizeDataLE[1] = blockSizeData[2];
-		blockSizeDataLE[0] = blockSizeData[3];
-
-		rc4->cipher(blockSizeDataLE, blockSizeData, 4);
+		rc4->cipher1(blockSizeData.u8, 4);
 
 		// append to the stream
-		outStream << std::string(blockSizeData, blockSizeData + 4);
+		outStream << std::string(blockSizeData.u8, blockSizeData.u8 + 4);
 	}
 
 	Botan::secure_vector<uint8_t> challenge;
@@ -279,7 +279,7 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 		{
 			// encrypt the passed user data using the key
 			size_t remaining = outputArray.size() - done;
-			size_t thisSize = fwMin(remaining, blockSize);
+			size_t thisSize = std::min(remaining, blockSize);
 
 			std::vector<uint8_t> inData(thisSize);
 			memcpy(&inData[0], &outputArray[done], inData.size());
@@ -294,47 +294,41 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 
 			if (hasSecurity)
 			{
-				auto hash = Botan::get_mac("HMAC(SHA1)")->clone();
+				auto hash = Botan::MessageAuthenticationCode::create("HMAC(SHA1)");
 				hash->set_key(origRc4Key, sizeof(origRc4Key));
 				hash->update(inData);
 				hash->update(challenge);
 				hash->update(cryptoState.GetHashKey(), 16);
 
 				hash->final(outHash);
-
-				delete hash;
 			}
 			else
 			{
-				auto sha1 = Botan::get_hash("SHA1")->clone();
+				auto sha1 = Botan::HashFunction::create("SHA1");
 				sha1->update(inData);
 				sha1->update(cryptoState.GetHashKey(), 16);
 
 				sha1->final(outHash);
-
-				delete sha1;
 			}
 
 			// write the inData to the output stream
-			outStream << std::string(reinterpret_cast<const char*>(&inData[0]), inData.size());
+			outStream << std::string(inData.begin(), inData.end());
 
 			// and append the HMAC as well
 			outStream << std::string(outHash, outHash + sizeof(outHash));
 		}
 	}
 
-	delete rc4;
-
 	// response headers HMAC, as ROS needs this haswell (crap, that's my voice recognition failing)
 	if (hasSecurity)
 	{
-		auto hmac = Botan::get_mac("HMAC(SHA1)")->clone();
+		auto hmac = Botan::MessageAuthenticationCode::create("HMAC(SHA1)");
 
 		// set the key
 		uint8_t hmacKey[16];
 
 		// xor the RC4 key with the platform key (and optionally the session key)
-		for (int i = 0; i < sizeof(hmacKey); i++)
+		for (size_t i = 0; i < sizeof(hmacKey); i++)
 		{
 			hmacKey[i] = rc4Xor[i] ^ cryptoState.GetXorKey()[i];
 		}
@@ -369,13 +363,12 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 		auto hmacValue = hmac->final();
 		
 		response->SetHeader("ros-HeadersHmac", Botan::base64_encode(hmacValue));
-
-		delete hmac;
 	}
 
 	response->SetStatusCode(200);
 	response->End(outStream.str());
 }
+#pragma optimize("", on)
 
 ROSCryptoState::ROSCryptoState(const std::string& platformKey)
 {
