@@ -451,7 +451,15 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				if (!(*deferrals)->IsDeferred())
+				// was the deferral already completed/canceled this frame? if so, just don't respond at all
+				auto deferralsRef = *deferrals;
+
+				if (!deferralsRef)
+				{
+					return;
+				}
+
+				if (!deferralsRef->IsDeferred())
 				{
 					allowClient();
 
