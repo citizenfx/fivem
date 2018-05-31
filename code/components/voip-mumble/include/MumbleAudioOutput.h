@@ -13,6 +13,8 @@
 #include <thread>
 
 #include <wrl.h>
+
+#define XAUDIO2_HELPER_FUNCTIONS
 #include <xaudio2.h>
 #include <x3daudio.h>
 
@@ -66,6 +68,7 @@ private:
 		bool isTalking;
 		bool isAudible;
 		OpusDecoder* opus;
+		uint32_t lastTime;
 
 		ClientAudioState();
 
@@ -84,6 +87,7 @@ private:
 private:
 	WRL::ComPtr<IXAudio2> m_xa2;
 	IXAudio2MasteringVoice* m_masteringVoice;
+	IXAudio2SubmixVoice* m_submixVoice;
 
 	WRL::ComPtr<IMMDeviceEnumerator> m_mmDeviceEnumerator;
 
@@ -100,6 +104,8 @@ private:
 	X3DAUDIO_HANDLE m_x3da;
 
 	X3DAUDIO_LISTENER m_listener;
+
+	uint32_t m_lastMatrixTime;
 
 	float m_distance;
 

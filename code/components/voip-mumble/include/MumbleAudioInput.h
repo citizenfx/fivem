@@ -83,6 +83,8 @@ private:
 	float m_positionY;
 	float m_positionZ;
 
+	float m_audioLevel;
+
 private:
 	static void ThreadStart(MumbleAudioInput* instance);
 
@@ -118,6 +120,11 @@ public:
 	inline bool IsTalking()
 	{
 		return m_isTalking;
+	}
+
+	inline float GetAudioLevel()
+	{
+		return m_audioLevel;
 	}
 
 	inline void SetPosition(float position[3])

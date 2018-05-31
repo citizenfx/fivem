@@ -40,7 +40,7 @@ build_server_windows:
       - out/server.zip
   except:
     - tags
-    #- master
+    - master
     - feature/update-to-1290
   cache:
     key: server
@@ -60,7 +60,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    #- master
+    - master
     - feature/update-to-1290
     - feature/cloning-stuff-releng
   tags:

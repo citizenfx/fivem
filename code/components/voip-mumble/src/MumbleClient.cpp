@@ -150,6 +150,11 @@ void MumbleClient::SetAudioDistance(float distance)
 	m_audioOutput.SetDistance(distance);
 }
 
+float MumbleClient::GetInputAudioLevel()
+{
+	return m_audioInput.GetAudioLevel();
+}
+
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
 {
 	referenceIds->clear();

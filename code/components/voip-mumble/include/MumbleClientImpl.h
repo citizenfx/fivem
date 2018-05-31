@@ -82,6 +82,8 @@ public:
 
 	virtual bool IsAnyoneTalking() override;
 
+	virtual float GetInputAudioLevel() override;
+
 	virtual void SetChannel(const std::string& channelName) override;
 
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;

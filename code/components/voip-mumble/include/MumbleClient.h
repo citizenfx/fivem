@@ -45,6 +45,8 @@ public:
 
 	virtual bool IsAnyoneTalking() = 0;
 
+	virtual float GetInputAudioLevel() = 0;
+
 	virtual void SetChannel(const std::string& channelName) = 0;
 
 	virtual void GetTalkers(std::vector<std::string>* names) = 0;

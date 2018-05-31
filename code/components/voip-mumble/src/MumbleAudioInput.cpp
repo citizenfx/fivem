@@ -21,7 +21,8 @@ extern "C"
 };
 
 MumbleAudioInput::MumbleAudioInput()
-	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false)
+	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_audioLevel(0.0f),
+	  m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false)
 {
 
 }
@@ -147,12 +148,14 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	if (m_mode == MumbleActivationMode::Disabled)
 	{
 		m_isTalking = false;
+		m_audioLevel = 0.0f;
 		return;
 	}
 
 	if (m_mode == MumbleActivationMode::PushToTalk && !m_ptt)
 	{
 		m_isTalking = false;
+		m_audioLevel = 0.0f;
 		return;
 	}
 
@@ -200,9 +203,13 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 		m_apm->ProcessStream(&frame);
 
+		auto db = (float)-(m_apm->level_estimator()->RMS());
+		m_audioLevel = XAudio2DecibelsToAmplitudeRatio(db);
+
 		if (m_mode == MumbleActivationMode::VoiceActivity && !m_apm->voice_detection()->stream_has_voice())
 		{
 			m_isTalking = false;
+			m_audioLevel = 0.0f;
 			continue;
 		}
 
@@ -491,6 +498,7 @@ void MumbleAudioInput::InitializeAudioDevice()
 	m_apm->high_pass_filter()->Enable(true);
 	m_apm->echo_cancellation()->Enable(false);
 	m_apm->noise_suppression()->Enable(true);
+	m_apm->level_estimator()->Enable(true);
 	m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
 	m_apm->voice_detection()->set_frame_size_ms(10);
 	m_apm->voice_detection()->Enable(true);
