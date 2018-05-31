@@ -460,6 +460,14 @@ namespace fx
 				fileEntries.emplace_back(file.second);
 			}
 
+			// add shared scripts
+			files = metaData->GetEntries("shared_script");
+
+			for (auto& file : files)
+			{
+				fileEntries.emplace_back(file.second);
+			}
+
 			// TEMP DBG: add `map`
 			files = metaData->GetEntries("map");
 
