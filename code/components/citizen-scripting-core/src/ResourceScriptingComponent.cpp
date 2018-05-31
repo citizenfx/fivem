@@ -56,6 +56,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 		{
 			fwRefContainer<ResourceMetaDataComponent> metaData = resource->GetComponent<ResourceMetaDataComponent>();
 
+			auto sharedScripts = metaData->GetEntries("shared_script");
 			auto clientScripts = metaData->GetEntries(
 #ifdef IS_FXSERVER
 				"server_script"
@@ -69,12 +70,15 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				OMPtr<IScriptFileHandlingRuntime> ptr = *it;
 				bool environmentUsed = false;
 
-				for (auto& clientScript : clientScripts)
+				for (auto& list : { sharedScripts, clientScripts })
 				{
-					if (ptr->HandlesFile(const_cast<char*>(clientScript.second.c_str())))
+					for (auto& script : list)
 					{
-						environmentUsed = true;
-						break;
+						if (ptr->HandlesFile(const_cast<char*>(script.second.c_str())))
+						{
+							environmentUsed = true;
+							break;
+						}
 					}
 				}
 
@@ -181,6 +185,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 		OMPtr<IScriptFileHandlingRuntime> ptr;
 
 		fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+
+		auto sharedScripts = metaData->GetEntries("shared_script");
 		auto clientScripts = metaData->GetEntries(
 #ifdef IS_FXSERVER
 			"server_script"
@@ -193,15 +199,17 @@ void ResourceScriptingComponent::CreateEnvironments()
 		{
 			bool environmentUsed = false;
 
-			for (auto& clientScript : clientScripts)
-			{
-				if (ptr->HandlesFile(const_cast<char*>(clientScript.second.c_str())))
+			for (auto& list : { sharedScripts, clientScripts }) {
+				for (auto& script : list)
 				{
-					result_t hr = ptr->LoadFile(const_cast<char*>(clientScript.second.c_str()));
-
-					if (FX_FAILED(hr))
+					if (ptr->HandlesFile(const_cast<char*>(script.second.c_str())))
 					{
-						trace("Failed to load script %s.\n", clientScript.second.c_str());
+						result_t hr = ptr->LoadFile(const_cast<char*>(script.second.c_str()));
+
+						if (FX_FAILED(hr))
+						{
+							trace("Failed to load script %s.\n", script.second.c_str());
+						}
 					}
 				}
 			}
