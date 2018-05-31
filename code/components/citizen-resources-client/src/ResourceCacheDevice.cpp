@@ -366,7 +366,12 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 					openFile();
 				}
 
-				handleData->fileData->status = FileData::StatusFetched;
+				{
+					std::unique_lock<std::mutex> lock(handleData->fileData->lockMutex);
+
+					handleData->fileData->status = FileData::StatusFetched;
+				}
+
 				handleData->getRequest = {};
 			}
 
@@ -380,7 +385,11 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		BROFILER_EVENT("block on NotFetched");
 
 		std::unique_lock<std::mutex> lock(handleData->fileData->lockMutex);
-		handleData->fileData->lockVar.wait(lock);
+
+		if (handleData->fileData->status == FileData::StatusFetching)
+		{
+			handleData->fileData->lockVar.wait(lock);
+		}
 	}
 
 	if (handleData->fileData->status == FileData::StatusFetched && (handleData->parentDevice.GetRef() == nullptr || handleData->parentHandle == INVALID_DEVICE_HANDLE))
