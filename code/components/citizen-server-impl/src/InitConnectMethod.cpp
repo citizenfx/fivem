@@ -400,15 +400,25 @@ static InitFunction initFunction([]()
 
 				(*deferrals)->SetMessageCallback([deferrals, cbRef](const std::string& message)
 				{
-					(**cbRef)(json::object({ { "defer", true }, { "message", message }, { "deferVersion", 2 } }));
+					auto ref1 = *cbRef;
+
+					if (ref1)
+					{
+						(*ref1)(json::object({ { "defer", true }, { "message", message }, { "deferVersion", 2 } }));
+					}
 				});
 
 				(*deferrals)->SetResolveCallback([data, deferrals, cbRef, allowClient]()
 				{
 					allowClient();
 
-					(**cbRef)(data);
-					(**cbRef)(json(nullptr));
+					auto ref1 = *cbRef;
+
+					if (ref1)
+					{
+						(**cbRef)(data);
+						(**cbRef)(json(nullptr));
+					}
 
 					*cbRef = nullptr;
 					*deferrals = nullptr;
@@ -418,8 +428,13 @@ static InitFunction initFunction([]()
 				{
 					clientRegistry->RemoveClient(client);
 
-					(**cbRef)(json::object({ { "error", message} }));
-					(**cbRef)(json(nullptr));
+					auto ref1 = *cbRef;
+
+					if (ref1)
+					{
+						(**cbRef)(json::object({ { "error", message} }));
+						(**cbRef)(json(nullptr));
+					}
 
 					*cbRef = nullptr;
 					*deferrals = nullptr;
