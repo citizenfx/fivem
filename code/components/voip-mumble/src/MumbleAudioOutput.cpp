@@ -212,7 +212,7 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 {
 	auto buffer = reinterpret_cast<int16_t*>(cxt);
 
-	delete[] buffer;
+	_aligned_free(buffer);
 
 	XAUDIO2_VOICE_STATE vs;
 	voice->GetState(&vs);
@@ -277,7 +277,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 
 	client->sequence = sequence;
 
-	auto voiceBuffer = new int16_t[5760 * 1];
+	auto voiceBuffer = (int16_t*)_aligned_malloc(5760 * 1 * sizeof(int16_t), 16);
 	int len = opus_decode(client->opus, data, size, voiceBuffer, 5760, 0);
 
 	if (len >= 0)
@@ -336,13 +336,18 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				auto v1 = DirectX::XMLoadFloat3(&curPosition);
 				auto v2 = DirectX::XMVectorSet(lastPosition.x, lastPosition.y, lastPosition.z, 0.f);
 
-				auto eVelocity = (v1 - v2) / ((client->lastTime - timeGetTime()) / 1000.0f);
+				auto dT = (client->lastTime - timeGetTime());
 
-				XMFLOAT3 tmp;
-				XMStoreFloat3(&tmp, eVelocity);
-				emitter.Velocity.x = tmp.x;
-				emitter.Velocity.y = tmp.y;
-				emitter.Velocity.z = tmp.z;
+				if (dT > 0)
+				{
+					auto eVelocity = (v1 - v2) / (dT / 1000.0f);
+
+					XMFLOAT3 tmp;
+					XMStoreFloat3(&tmp, eVelocity);
+					emitter.Velocity.x = tmp.x;
+					emitter.Velocity.y = tmp.y;
+					emitter.Velocity.z = tmp.z;
+				}
 
 				client->lastTime = timeGetTime();
 			}
@@ -415,18 +420,27 @@ void MumbleAudioOutput::SetMatrix(float position[3], float front[3], float up[3]
 
 	auto curPosition = DirectX::XMFLOAT3(position);
 
-	auto v1 = DirectX::XMLoadFloat3(&curPosition);
-	auto v2 = DirectX::XMVectorSet(m_listener.Position.x, m_listener.Position.y, m_listener.Position.z, 0.f);
+	if (m_listener.Position.x != 0.0f || m_listener.Position.y != 0.0f || m_listener.Position.z != 0.0f)
+	{
+		auto dT = (m_lastMatrixTime - timeGetTime());
 
-	auto eVelocity = (v1 - v2) / ((m_lastMatrixTime - timeGetTime()) / 1000.0f);
+		if (dT > 0)
+		{
+			auto v1 = DirectX::XMLoadFloat3(&curPosition);
+			auto v2 = DirectX::XMVectorSet(m_lastPosition.x, m_lastPosition.y, m_lastPosition.z, 0.f);
 
-	XMFLOAT3 tmp;
-	XMStoreFloat3(&tmp, eVelocity);
-	m_listener.Velocity.x = tmp.x;
-	m_listener.Velocity.y = tmp.y;
-	m_listener.Velocity.z = tmp.z;
+			auto eVelocity = (v1 - v2) / (dT / 1000.0f);
 
-	m_lastMatrixTime = timeGetTime();
+			XMFLOAT3 tmp;
+			XMStoreFloat3(&tmp, eVelocity);
+			m_listener.Velocity.x = tmp.x;
+			m_listener.Velocity.y = tmp.y;
+			m_listener.Velocity.z = tmp.z;
+
+			m_lastPosition = DirectX::XMFLOAT3(position);
+			m_lastMatrixTime = timeGetTime();
+		}
+	}
 
 	m_listener.Position = DirectX::XMFLOAT3(position);
 }
@@ -670,7 +684,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 			if (SafeCallX3DA(_X3DAudioInitialize, channelMask, X3DAUDIO_SPEED_OF_SOUND, m_x3da))
 			{
 				memset(&m_listener, 0, sizeof(m_listener));
-				m_listener.Position = DirectX::XMFLOAT3(100.0f, 0.0f, 0.0f);
+				m_listener.Position = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 				m_listener.OrientFront = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 				m_listener.OrientTop = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 

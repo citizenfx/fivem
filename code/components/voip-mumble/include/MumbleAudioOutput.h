@@ -105,6 +105,8 @@ private:
 
 	X3DAUDIO_LISTENER m_listener;
 
+	DirectX::XMFLOAT3 m_lastPosition;
+
 	uint32_t m_lastMatrixTime;
 
 	float m_distance;
