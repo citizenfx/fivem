@@ -148,4 +148,14 @@ static InitFunction initFunction([] ()
 			}
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_NUI_CURSOR_POSITION", [](fx::ScriptContext& context)
+	{
+		POINT cursorPos;
+		GetCursorPos(&cursorPos);
+		ScreenToClient(FindWindow(L"grcWindow", nullptr), &cursorPos);
+
+		*context.GetArgument<int*>(0) = cursorPos.x;
+		*context.GetArgument<int*>(1) = cursorPos.y;
+	});
 });

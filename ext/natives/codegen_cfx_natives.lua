@@ -244,6 +244,14 @@ native 'SET_NUI_FOCUS'
 	apiset 'client'
 	returns 'void'
 
+native 'GET_NUI_CURSOR_POSITION'
+	arguments {
+		intPtr 'x',
+		intPtr 'y'
+	}
+	apiset 'client'
+	returns 'void'
+
 native 'SET_TEXT_CHAT_ENABLED'
 	arguments {
 		BOOL 'enabled'
