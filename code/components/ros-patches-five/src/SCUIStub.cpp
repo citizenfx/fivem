@@ -22,6 +22,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+// XOR auto-vectorization is broken in VS15.7+, so don't optimize this file
+#pragma optimize("", off)
+
 #define ROS_PLATFORM_KEY "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc="
 
 class ROSCryptoState
@@ -606,6 +609,7 @@ std::string LoginHandler2::EncryptROSData(const std::string& input, const std::s
     return tempContent + std::string(reinterpret_cast<const char*>(&hashData[0]), hashData.size());
 }
 
+#pragma optimize("", off)
 std::string LoginHandler2::DecryptROSData(const char* data, size_t size, const std::string& sessionKey)
 {
     // initialize state
@@ -686,6 +690,7 @@ std::string LoginHandler2::DecryptROSData(const char* data, size_t size, const s
 
     return result.str();
 }
+#pragma optimize("", on)
 
 ROSCryptoState::ROSCryptoState()
 {
