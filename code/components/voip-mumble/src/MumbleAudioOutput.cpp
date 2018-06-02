@@ -180,6 +180,7 @@ void MumbleAudioOutput::Initialize()
 	m_distance = FLT_MAX;
 	m_volume = 1.0f;
 	m_masteringVoice = nullptr;
+	m_submixVoice = nullptr;
 	m_thread = std::thread([this] { ThreadFunc(); });
 }
 
@@ -244,12 +245,26 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	XAUDIO2_SEND_DESCRIPTOR sendDescriptors[2];
 	sendDescriptors[0].Flags = XAUDIO2_SEND_USEFILTER;
 	sendDescriptors[0].pOutputVoice = m_masteringVoice;
-	sendDescriptors[1].Flags = XAUDIO2_SEND_USEFILTER;
-	sendDescriptors[1].pOutputVoice = m_submixVoice;
-	const XAUDIO2_VOICE_SENDS sendList = { 2, sendDescriptors };
+
+	if (m_submixVoice)
+	{
+		sendDescriptors[1].Flags = XAUDIO2_SEND_USEFILTER;
+		sendDescriptors[1].pOutputVoice = m_submixVoice;
+	}
+
+	const XAUDIO2_VOICE_SENDS sendList = { (m_submixVoice) ? 2 : 1, sendDescriptors };
+
+	auto xa2 = m_xa2;
+
+	while (!xa2)
+	{
+		Sleep(1);
+
+		xa2 = m_xa2;
+	}
 
 	IXAudio2SourceVoice* voice = nullptr;
-	m_xa2->CreateSourceVoice(&voice, &format, 0, 2.0f, state.get(), &sendList);
+	xa2->CreateSourceVoice(&voice, &format, 0, 2.0f, state.get(), &sendList);
 
 	voice->Start();
 
@@ -379,9 +394,17 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				| X3DAUDIO_CALCULATE_LPF_DIRECT | X3DAUDIO_CALCULATE_LPF_REVERB
 				| X3DAUDIO_CALCULATE_REVERB, &dsp);
 
-			client->voice->SetFrequencyRatio(dsp.DopplerFactor);
+			if (!isnan(dsp.DopplerFactor))
+			{
+				client->voice->SetFrequencyRatio(dsp.DopplerFactor);
+			}
+
 			client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, dsp.pMatrixCoefficients);
-			client->voice->SetOutputMatrix(m_submixVoice, 1, 1, &dsp.ReverbLevel);
+
+			if (m_submixVoice)
+			{
+				client->voice->SetOutputMatrix(m_submixVoice, 1, 1, &dsp.ReverbLevel);
+			}
 
 			XAUDIO2_FILTER_PARAMETERS FilterParametersDirect = { LowPassFilter, 2.0f * sinf(X3DAUDIO_PI / 6.0f * dsp.LPFDirectCoefficient), 1.0f };
 			client->voice->SetOutputFilterParameters(m_masteringVoice, &FilterParametersDirect);
@@ -399,7 +422,10 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 			// disable submix voice
 			matrix[0] = 0.0f;
 
-			client->voice->SetOutputMatrix(m_submixVoice, 1, 1, matrix);
+			if (m_submixVoice)
+			{
+				client->voice->SetOutputMatrix(m_submixVoice, 1, 1, matrix);
+			}
 
 			// reset frequency ratio
 			client->voice->SetFrequencyRatio(1.0f);
@@ -632,36 +658,39 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 	m_masteringVoice->SetVolume(m_volume);
 
-	IUnknown* reverbEffect;
-
-	HRESULT hr;
-
-	UINT32 rflags = 0;
-	if (FAILED(hr = _CreateAudioReverb(&reverbEffect)))
+	if (IsWindows8Point1OrGreater())
 	{
-		return;
+		IUnknown* reverbEffect;
+
+		HRESULT hr;
+
+		UINT32 rflags = 0;
+		if (FAILED(hr = _CreateAudioReverb(&reverbEffect)))
+		{
+			return;
+		}
+
+		//
+		// Create a submix voice
+		//
+
+		XAUDIO2_EFFECT_DESCRIPTOR effects[] = { { reverbEffect, TRUE, 1 } };
+		XAUDIO2_EFFECT_CHAIN effectChain = { 1, effects };
+
+		if (FAILED(hr = m_xa2->CreateSubmixVoice(&m_submixVoice, 1,
+			48000, 0, 0,
+			nullptr, &effectChain)))
+		{
+			return;
+		}
+
+		// Set default FX params
+		XAUDIO2FX_REVERB_PARAMETERS native;
+		XAUDIO2FX_REVERB_I3DL2_PARAMETERS preset = XAUDIO2FX_I3DL2_PRESET_DEFAULT;
+
+		ReverbConvertI3DL2ToNative(&preset, &native);
+		m_submixVoice->SetEffectParameters(0, &native, sizeof(native));
 	}
-
-	//
-	// Create a submix voice
-	//
-
-	XAUDIO2_EFFECT_DESCRIPTOR effects[] = { { reverbEffect, TRUE, 1 } };
-	XAUDIO2_EFFECT_CHAIN effectChain = { 1, effects };
-
-	if (FAILED(hr = m_xa2->CreateSubmixVoice(&m_submixVoice, 1,
-		48000, 0, 0,
-		nullptr, &effectChain)))
-	{
-		return;
-	}
-
-	// Set default FX params
-	XAUDIO2FX_REVERB_PARAMETERS native;
-	XAUDIO2FX_REVERB_I3DL2_PARAMETERS preset = XAUDIO2FX_I3DL2_PRESET_DEFAULT;
-
-	ReverbConvertI3DL2ToNative(&preset, &native);
-	m_submixVoice->SetEffectParameters(0, &native, sizeof(native));
 
 	auto x3aDll = (HMODULE)LoadLibraryExW(L"XAudio2_8.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
