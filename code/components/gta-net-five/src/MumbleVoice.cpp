@@ -222,7 +222,7 @@ static void Mumble_RunFrame()
 	actorPos[1] = g_actorPos[2];
 	actorPos[2] = g_actorPos[1];
 
-	g_mumbleClient->SetListenerMatrix(cameraPos, cameraFront, cameraTop);
+	g_mumbleClient->SetListenerMatrix(actorPos, cameraFront, cameraTop);
 	g_mumbleClient->SetActorPosition(actorPos);
 
 	auto likelihoodValue = g_preferenceArray[PREF_VOICE_MIC_SENSITIVITY];
