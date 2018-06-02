@@ -658,11 +658,10 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 	// Set default FX params
 	XAUDIO2FX_REVERB_PARAMETERS native;
-	XAUDIO2FX_REVERB_I3DL2_PARAMETERS preset = XAUDIO2FX_I3DL2_PRESET_CITY;
+	XAUDIO2FX_REVERB_I3DL2_PARAMETERS preset = XAUDIO2FX_I3DL2_PRESET_DEFAULT;
 
 	ReverbConvertI3DL2ToNative(&preset, &native);
 	m_submixVoice->SetEffectParameters(0, &native, sizeof(native));
-
 
 	auto x3aDll = (HMODULE)LoadLibraryExW(L"XAudio2_8.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
