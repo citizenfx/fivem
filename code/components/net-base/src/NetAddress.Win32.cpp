@@ -20,7 +20,7 @@ boost::optional<std::string> PeerAddress::LookupServiceRecord(const std::string&
 	fwPlatformString platformHostName(serviceHost.c_str());
 
 	// output variable
-	PDNS_RECORD dnsRecords;
+	PDNS_RECORD dnsRecords = nullptr;
 
 	// return value
 	boost::optional<std::string> retval;
@@ -29,7 +29,7 @@ boost::optional<std::string> PeerAddress::LookupServiceRecord(const std::string&
 	if (DnsQuery(platformHostName.c_str(), DNS_TYPE_SRV, DNS_QUERY_STANDARD, nullptr, &dnsRecords, nullptr) == ERROR_SUCCESS)
 	{
 		// use the first DNS record for now
-		if (dnsRecords)
+		if (dnsRecords && dnsRecords->wType == DNS_TYPE_SRV)
 		{
 			// get the SRV data
 			DNS_SRV_DATA& srvData = dnsRecords->Data.SRV;
