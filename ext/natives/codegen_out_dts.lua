@@ -137,8 +137,8 @@ local function formatDocString(native)
 	end
 
 	if d.hasParams then
-		for n, v in pairs(d.params) do
-			l = l .. ' * @param ' .. n .. ' ' .. v .. '\n'
+		for _, v in ipairs(d.params) do
+			l = l .. ' * @param ' .. v[1] .. ' ' .. v[2] .. '\n'
 		end
 	end
 

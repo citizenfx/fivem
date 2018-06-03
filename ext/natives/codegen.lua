@@ -321,7 +321,7 @@ function parseDocString(native)
 	local hasParams = false
 
 	for k, v in params do
-		paramsData[k] = v
+		table.insert(paramsData, { k, v })
 		hasParams = true
 	end
 

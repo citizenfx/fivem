@@ -28,8 +28,8 @@ local function formatDocString(v)
 	if d.hasParams then
 		s = s .. '<strong>Parameters:</strong><br><ul>'
 
-		for k, v in pairs(d.params) do
-			s = s .. '<li><strong>' .. k .. '</strong>: ' .. trim(md(v)) .. '</li>'
+		for _, v in ipairs(d.params) do
+			s = s .. '<li><strong>' .. v[1] .. '</strong>: ' .. trim(md(v[2])) .. '</li>'
 		end
 
 		s = s .. '</ul>'

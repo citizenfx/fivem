@@ -9,6 +9,152 @@ Gets the current game timer in milliseconds.
 <returns>The game time.</returns>
 ]]
 
+native 'CREATE_RUNTIME_TXD'
+	arguments {
+		charPtr 'name'
+	}
+	apiset 'client'
+	returns 'long'
+	doc [[
+<summary>
+Creates a runtime texture dictionary with the specified name.
+
+Example:
+```lua
+local txd = CreateRuntimeTxd('meow')
+```
+</summary>
+<param name="name">The name for the runtime TXD.</param>
+<returns>A handle to the runtime TXD.</returns>
+]]
+
+native 'CREATE_RUNTIME_TEXTURE'
+	arguments {
+		long 'txd',
+		charPtr 'txn',
+		int 'width',
+		int 'height'
+	}
+	apiset 'client'
+	returns 'long'
+	doc [[
+<summary>
+Creates a blank runtime texture.
+</summary>
+<param name="txd">A handle to the runtime TXD to create the runtime texture in.</param>
+<param name="txn">The name for the texture in the runtime texture dictionary.</param>
+<param name="width">The width of the new texture.</param>
+<param name="height">The height of the new texture.</param>
+<returns>A runtime texture handle.</returns>
+]]
+
+native 'CREATE_RUNTIME_TEXTURE_FROM_IMAGE'
+	arguments {
+		long 'txd',
+		charPtr 'txn',
+		charPtr 'fileName'
+	}
+	apiset 'client'
+	returns 'long'
+	doc [[
+<summary>
+Creates a runtime texture from the specified file in the current resource.
+</summary>
+<param name="txd">A handle to the runtime TXD to create the runtime texture in.</param>
+<param name="txn">The name for the texture in the runtime texture dictionary.</param>
+<param name="fileName">The file name of an image to load. This should preferably be a PNG, and has to be specified as a `file` in the resource manifest.</param>
+<returns>A runtime texture handle.</returns>
+]]
+
+native 'GET_RUNTIME_TEXTURE_WIDTH'
+	arguments {
+		long 'tex'
+	}
+	apiset 'client'
+	returns 'int'
+	doc [[
+<summary>
+Gets the width of the specified runtime texture.
+</summary>
+<param name="tex">A handle to the runtime texture.</param>
+<returns>The width in pixels.</returns>
+]]
+
+native 'GET_RUNTIME_TEXTURE_HEIGHT'
+	arguments {
+		long 'tex'
+	}
+	apiset 'client'
+	returns 'int'
+	doc [[
+<summary>
+Gets the height of the specified runtime texture.
+</summary>
+<param name="tex">A handle to the runtime texture.</param>
+<returns>The height in pixels.</returns>
+]]
+
+native 'GET_RUNTIME_TEXTURE_PITCH'
+	arguments {
+		long 'tex'
+	}
+	apiset 'client'
+	returns 'int'
+	doc [[
+<summary>
+Gets the row pitch of the specified runtime texture, for use when creating data for `SET_RUNTIME_TEXTURE_ARGB_DATA`.
+</summary>
+<param name="tex">A handle to the runtime texture.</param>
+<returns>The row pitch in bytes.</returns>
+]]
+
+native 'SET_RUNTIME_TEXTURE_PIXEL'
+	arguments {
+		long 'tex',
+		int 'x',
+		int 'y',
+		int 'r',
+		int 'g',
+		int 'b',
+		int 'a'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Sets a pixel in the specified runtime texture. This will have to be committed using `COMMIT_RUNTIME_TEXTURE` to have any effect.
+</summary>
+<param name="tex">A handle to the runtime texture.</param>
+<param name="x">The X position of the pixel to change.</param>
+<param name="y">The Y position of the pixel to change.</param>
+<param name="r">The new R value (0-255).</param>
+<param name="g">The new G value (0-255).</param>
+<param name="b">The new B value (0-255).</param>
+<param name="a">The new A value (0-255).</param>
+]]
+
+native 'SET_RUNTIME_TEXTURE_ARGB_DATA'
+	arguments {
+		long 'tex',
+		charPtr 'buffer',
+		int 'length'
+	}
+	apiset 'client'
+	returns 'BOOL'
+	
+native 'COMMIT_RUNTIME_TEXTURE'
+	arguments {
+		long 'tex'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Commits the backing pixels to the specified runtime texture.
+</summary>
+<param name="tex">The runtime texture handle.</param>
+]]
+
 native 'IS_DUPLICITY_VERSION'
 	arguments {}
 	apiset 'shared'
