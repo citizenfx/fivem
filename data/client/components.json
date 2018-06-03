@@ -53,5 +53,6 @@
 	"tool:vehrec",
 	"extra-natives:five",
 	"discord",
-	"voip:mumble"
+	"voip:mumble",
+	"scrbind:base"
 ]

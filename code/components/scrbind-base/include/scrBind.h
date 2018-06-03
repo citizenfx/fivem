@@ -13,8 +13,8 @@
 #define SCRBIND_EXPORT
 #endif
 
-// include RAGE header
-#include <scrEngine.h>
+// include game header
+#include <ScriptEngine.h>
 
 // class
 namespace
@@ -31,8 +31,7 @@ namespace
 	typedef TRet(* TFunc)(Args...);
 
 	public:
-		// TODO: make constexpr when migrating to VS14
-		static int GetArgumentCount()
+		static constexpr int GetArgumentCount()
 		{
 			return sizeof...(Args);
 		}
@@ -49,8 +48,7 @@ namespace
 	typedef TRet(TObj::* TFunc)(Args...);
 
 	public:
-		// TODO: make constexpr when migrating to VS14
-		static int GetArgumentCount()
+		static constexpr int GetArgumentCount()
 		{
 			return sizeof...(Args);
 		}
@@ -70,19 +68,19 @@ namespace
 	template<class TClass>
 	struct scrBindConstructor<void(*)(), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass());
+			context.SetResult(new TClass());
 		}
 	};
 
 	template<class TClass, typename A1>
 	struct scrBindConstructor<void(*)(A1), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass(
-				context->GetArgument<A1>(0)
+			context.SetResult(new TClass(
+				context.GetArgument<A1>(0)
 			));
 		}
 	};
@@ -90,11 +88,11 @@ namespace
 	template<class TClass, typename A1, typename A2>
 	struct scrBindConstructor<void(*)(A1, A2), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass(
-				context->GetArgument<A1>(0),
-				context->GetArgument<A2>(1)
+			context.SetResult(new TClass(
+				context.GetArgument<A1>(0),
+				context.GetArgument<A2>(1)
 			));
 		}
 	};
@@ -102,12 +100,12 @@ namespace
 	template<class TClass, typename A1, typename A2, typename A3>
 	struct scrBindConstructor<void(*)(A1, A2, A3), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass(
-				context->GetArgument<A1>(0),
-				context->GetArgument<A2>(1),
-				context->GetArgument<A3>(2)
+			context.SetResult(new TClass(
+				context.GetArgument<A1>(0),
+				context.GetArgument<A2>(1),
+				context.GetArgument<A3>(2)
 			));
 		}
 	};
@@ -115,13 +113,13 @@ namespace
 	template<class TClass, typename A1, typename A2, typename A3, typename A4>
 	struct scrBindConstructor<void(*)(A1, A2, A3, A4), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass(
-				context->GetArgument<A1>(0),
-				context->GetArgument<A2>(1),
-				context->GetArgument<A3>(2),
-				context->GetArgument<A4>(3)
+			context.SetResult(new TClass(
+				context.GetArgument<A1>(0),
+				context.GetArgument<A2>(1),
+				context.GetArgument<A3>(2),
+				context.GetArgument<A4>(3)
 			));
 		}
 	};
@@ -129,14 +127,14 @@ namespace
 	template<class TClass, typename A1, typename A2, typename A3, typename A4, typename A5>
 	struct scrBindConstructor<void(*)(A1, A2, A3, A4, A5), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass(
-				context->GetArgument<A1>(0),
-				context->GetArgument<A2>(1),
-				context->GetArgument<A3>(2),
-				context->GetArgument<A4>(3),
-				context->GetArgument<A5>(4)
+			context.SetResult(new TClass(
+				context.GetArgument<A1>(0),
+				context.GetArgument<A2>(1),
+				context.GetArgument<A3>(2),
+				context.GetArgument<A4>(3),
+				context.GetArgument<A5>(4)
 			));
 		}
 	};
@@ -144,15 +142,15 @@ namespace
 	template<class TClass, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
 	struct scrBindConstructor<void(*)(A1, A2, A3, A4, A5, A6), TClass>
 	{
-		static void Call(rage::scrNativeCallContext* context)
+		static void Call(fx::ScriptContext& context)
 		{
-			context->SetResult(0, new TClass(
-				context->GetArgument<A1>(0),
-				context->GetArgument<A2>(1),
-				context->GetArgument<A3>(2),
-				context->GetArgument<A4>(3),
-				context->GetArgument<A5>(4),
-				context->GetArgument<A6>(5)
+			context.SetResult(new TClass(
+				context.GetArgument<A1>(0),
+				context.GetArgument<A2>(1),
+				context.GetArgument<A3>(2),
+				context.GetArgument<A4>(3),
+				context.GetArgument<A5>(4),
+				context.GetArgument<A6>(5)
 			));
 		}
 	};
@@ -168,7 +166,7 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)();
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)();
 		}
@@ -179,10 +177,10 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)(A1);
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)(
-				context->GetArgument<A1>(1)
+				context.GetArgument<A1>(1)
 			);
 		}
 	};
@@ -192,11 +190,11 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)(A1, A2);
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)(
-				context->GetArgument<A1>(1),
-				context->GetArgument<A2>(2)
+				context.GetArgument<A1>(1),
+				context.GetArgument<A2>(2)
 			);
 		}
 	};
@@ -206,12 +204,12 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)(A1, A2, A3);
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)(
-				context->GetArgument<A1>(1),
-				context->GetArgument<A2>(2),
-				context->GetArgument<A3>(3)
+				context.GetArgument<A1>(1),
+				context.GetArgument<A2>(2),
+				context.GetArgument<A3>(3)
 			);
 		}
 	};
@@ -221,13 +219,13 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)(A1, A2, A3, A4);
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)(
-				context->GetArgument<A1>(1),
-				context->GetArgument<A2>(2),
-				context->GetArgument<A3>(3),
-				context->GetArgument<A4>(4)
+				context.GetArgument<A1>(1),
+				context.GetArgument<A2>(2),
+				context.GetArgument<A3>(3),
+				context.GetArgument<A4>(4)
 			);
 		}
 	};
@@ -237,14 +235,14 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)(A1, A2, A3, A4, A5);
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)(
-				context->GetArgument<A1>(1),
-				context->GetArgument<A2>(2),
-				context->GetArgument<A3>(3),
-				context->GetArgument<A4>(4),
-				context->GetArgument<A5>(5)
+				context.GetArgument<A1>(1),
+				context.GetArgument<A2>(2),
+				context.GetArgument<A3>(3),
+				context.GetArgument<A4>(4),
+				context.GetArgument<A5>(5)
 			);
 		}
 	};
@@ -254,15 +252,15 @@ namespace
 	{
 		typedef TRet(TClass::*TFunc)(A1, A2, A3, A4, A5, A6);
 
-		static TRet Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static TRet Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			return (obj->*func)(
-				context->GetArgument<A1>(1),
-				context->GetArgument<A2>(2),
-				context->GetArgument<A3>(3),
-				context->GetArgument<A4>(4),
-				context->GetArgument<A5>(5),
-				context->GetArgument<A6>(6)
+				context.GetArgument<A1>(1),
+				context.GetArgument<A2>(2),
+				context.GetArgument<A3>(3),
+				context.GetArgument<A4>(4),
+				context.GetArgument<A5>(5),
+				context.GetArgument<A6>(6)
 			);
 		}
 	};
@@ -272,9 +270,9 @@ namespace
 	{
 		typedef TRet(TClass::* TFunc)(Args...);
 
-		static void Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static void Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
-			context->SetResult(0, scrBindMethod<TFunc, TClass>::Call(obj, func, context));
+			context.SetResult(scrBindMethod<TFunc, TClass>::Call(obj, func, context));
 		}
 	};
 
@@ -283,7 +281,7 @@ namespace
 	{
 		typedef void(TClass::* TFunc)(Args...);
 
-		static void Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static void Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			scrBindMethod<TFunc, TClass>::Call(obj, func, context);
 		}
@@ -300,7 +298,7 @@ namespace
 	{
 		typedef TRet(TClass::* TFunc)(Args...);
 
-		static void Call(TClass* obj, TFunc func, rage::scrNativeCallContext* context)
+		static void Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
 			scrBindCallResultSpec<TClass, TRet, Args...>::Call(obj, func, context);
 		}
@@ -311,9 +309,9 @@ void SCRBIND_EXPORT scrBindAddSafePointer(void* classPtr);
 
 bool SCRBIND_EXPORT scrBindIsSafePointer(void* classPtr);
 
-typedef void(*scrBindNativeMethodStub)(rage::scrNativeCallContext*, void*);
+typedef void(*scrBindNativeMethodStub)(fx::ScriptContext&, void*);
 
-rage::scrEngine::NativeHandler SCRBIND_EXPORT scrBindCreateNativeMethodStub(scrBindNativeMethodStub, void*);
+fx::TNativeHandler SCRBIND_EXPORT scrBindCreateNativeMethodStub(scrBindNativeMethodStub, void*);
 
 template<class TClass>
 class scrBindClass
@@ -323,16 +321,16 @@ public:
 	template<class TFunc>
 	scrBindClass& AddConstructor(const char* constructorName)
 	{
-		rage::scrEngine::RegisterNativeHandler(constructorName, [] (rage::scrNativeCallContext* context)
+		fx::ScriptEngine::RegisterNativeHandler(constructorName, [] (fx::ScriptContext& context)
 		{
-			if (context->GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount())
+			if (context.GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount())
 			{
 				return;
 			}
 
 			scrBindConstructor<TFunc, TClass>::Call(context);
 
-			scrBindAddSafePointer(context->GetResult<void*>(0));
+			scrBindAddSafePointer(context.GetResult<void*>());
 		});
 
 		return *this;
@@ -341,16 +339,16 @@ public:
 	template<class TFunc>
 	scrBindClass& AddMethod(const char* methodName, TFunc method)
 	{
-		rage::scrEngine::RegisterNativeHandler(methodName, scrBindCreateNativeMethodStub([] (rage::scrNativeCallContext* context, void* ufunc)
+		fx::ScriptEngine::RegisterNativeHandler(methodName, scrBindCreateNativeMethodStub([] (fx::ScriptContext& context, void* ufunc)
 		{
 			TFunc* udata = (TFunc*)ufunc;
 
-			if (context->GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount() + 1)
+			if (context.GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount() + 1)
 			{
 				return;
 			}
 
-			TClass* obj = context->GetArgument<TClass*>(0);
+			TClass* obj = context.GetArgument<TClass*>(0);
 
 			if (!scrBindIsSafePointer(obj))
 			{

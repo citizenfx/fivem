@@ -48,40 +48,77 @@ namespace streaming
 		uint32_t Index;
 	};
 
+	struct strAssetReference
+	{
+		void* unknown;
+		void* asset;
+	};
+
 	class strStreamingModule
 	{
 	public:
 		virtual ~strStreamingModule() = 0;
 
+		//
+		// Creates a new asset for `name`, or returns the existing index in this module for it.
+		//
 		virtual uint32_t* GetOrCreate(uint32_t* id, const char* name) = 0;
 
+		//
+		// Returns the index in this streaming module for the asset specified by `name`.
+		//
 		virtual uint32_t* GetIndexByName(uint32_t* id, const char* name) = 0;
 
-		virtual void m_18() = 0; // unload entry
+		//
+		// Unloads the specified asset from the streaming module.
+		// This won't update the asset state in CStreaming, use these functions instead.
+		//
+		virtual void UnloadEntry(uint32_t id) = 0;
 
-		virtual void DeleteEntry(int object) = 0; // remove entry
+		//
+		// Removes the specified asset from the streaming module.
+		//
+		virtual void DeleteEntry(uint32_t object) = 0;
 
-		virtual void m_28() = 0;
+		//
+		// Loads an asset from an in-memory RSC file.
+		//
+		virtual bool LoadFromMemory(uint32_t object, const void* buffer, uint32_t length) = 0;
 
-		virtual void m_30() = 0;
+		//
+		// Loads an asset from a block map.
+		//
+		virtual void LoadFromBlockMap(uint32_t object, void* blockMap, const char* name) = 0;
 
-		virtual void m_38() = 0;
+		//
+		// Sets the asset pointer directly.
+		//
+		virtual void SetAssetReference(uint32_t object, strAssetReference& reference) = 0;
 
-		virtual void m_40() = 0;
+		//
+		// Gets the asset pointer for a loaded asset.
+		// Returns NULL if not loaded.
+		//
+		virtual void* GetAssetPointer(uint32_t object) = 0;
 
-		virtual void m_48() = 0;
+		virtual void* GetAssetPointer_2(uint32_t object) = 0;
 
-		virtual void m_50() = 0;
+		virtual void* Defrag(uint32_t object, void* blockMap, const char* name) = 0;
 
+		// nullsub
 		virtual void m_58() = 0;
 
+		// nullsub
 		virtual void m_60() = 0;
 
-		virtual void m_68() = 0;
+		// only overridden in specific modules
+		virtual void* GetAssetPointer_Module(uint32_t object) = 0;
 
+		// nullsub
 		virtual void m_70() = 0;
 
-		virtual void m_78() = 0;
+		// unknown function, involving releasing
+		virtual void m_78(uint32_t object, int) = 0;
 
 		virtual void AddRef(uint32_t id) = 0;
 
@@ -90,6 +127,18 @@ namespace streaming
 		virtual void m_90() = 0; // resetrefcount
 
 		virtual int GetRefCount(uint32_t id) = 0;
+
+		//
+		// Formats the reference count as a string.
+		//
+		virtual const char* FormatRefCount(uint32_t id, char* buffer, size_t length) = 0;
+
+		virtual int GetDependencies(uint32_t object, uint32_t* outDependencies, size_t count) = 0;
+
+		// nullsub?
+		virtual void m_B0() = 0;
+		virtual void m_B8() = 0;
+		virtual void m_C0() = 0;
 
 		// ...
 
