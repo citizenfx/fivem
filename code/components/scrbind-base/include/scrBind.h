@@ -8,7 +8,7 @@
 #pragma once
 
 #if defined(COMPILING_SCRBIND_BASE)
-#define SCRBIND_EXPORT __declspec(dllexport)
+#define SCRBIND_EXPORT DLL_EXPORT
 #else
 #define SCRBIND_EXPORT
 #endif

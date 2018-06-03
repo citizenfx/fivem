@@ -8,7 +8,6 @@
 #include "StdInc.h"
 #include "scrBind.h"
 #include "Hooking.h"
-#include <jitasm.h>
 
 void scrBindAddSafePointer(void* classPtr)
 {
