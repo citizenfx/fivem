@@ -76,7 +76,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	}
 
 	// check the GUID
-	uint64_t realGuid = std::stoull(guid);
+	uint64_t realGuid = strtoull(guid.c_str(), nullptr, 10);
 
 	if (realGuid != ticketGuid)
 	{
