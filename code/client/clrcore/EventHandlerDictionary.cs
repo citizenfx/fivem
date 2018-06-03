@@ -109,6 +109,11 @@ namespace CitizenFX.Core
 
 			object ChangeType(object value, Type type)
 			{
+				// FIX: Null values should be checked against. This allows greater freedom for developers in more "complex" cases.
+				// (Eg; passing "null" as a string value to an event invocation, rather than forcing string.Empty)
+				if (ReferenceEquals(value, null))
+					return null;
+
 				if (type.IsAssignableFrom(value.GetType()))
 				{
 					return value;
@@ -130,7 +135,8 @@ namespace CitizenFX.Core
 				if (info.GetCustomAttribute<FromSourceAttribute>() != null)
 				{
 					// empty source -> default
-					if (string.IsNullOrWhiteSpace(sourceString))
+					// FIX: Allow null source strings. (Shouldn't really be a thing, but a simple check to fix)
+					if (string.IsNullOrEmpty(sourceString) || string.IsNullOrWhiteSpace(sourceString))
 					{
 						passArgs.Add(Default(type));
 
