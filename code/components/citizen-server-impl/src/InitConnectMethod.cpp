@@ -396,7 +396,7 @@ static InitFunction initFunction([]()
 				client->SetData("deferralPtr", std::weak_ptr<fx::ClientDeferral>(*deferrals));
 
 				// *copy* the callback into a *shared* reference
-				auto cbRef = std::make_shared<std::unique_ptr<std::decay_t<decltype(cb)>>>(std::make_unique<std::decay_t<decltype(cb)>>(cb));
+				auto cbRef = std::make_shared<std::shared_ptr<std::decay_t<decltype(cb)>>>(std::make_shared<std::decay_t<decltype(cb)>>(cb));
 
 				(*deferrals)->SetMessageCallback([deferrals, cbRef](const std::string& message)
 				{
