@@ -26,7 +26,7 @@ class RuntimeTex
 public:
 	RuntimeTex(const char* name, int width, int height);
 
-	RuntimeTex(rage::grcTexture* texture);
+	RuntimeTex(rage::grcTexture* texture, const void* data, size_t size);
 
 	virtual ~RuntimeTex();
 
@@ -95,10 +95,11 @@ RuntimeTex::RuntimeTex(const char* name, int width, int height)
 	}
 }
 
-RuntimeTex::RuntimeTex(rage::grcTexture* texture)
+RuntimeTex::RuntimeTex(rage::grcTexture* texture, const void* data, size_t size)
 	: m_texture(texture)
 {
-
+	m_backingPixels.resize(size);
+	memcpy(&m_backingPixels[0], data, m_backingPixels.size());
 }
 
 RuntimeTex::~RuntimeTex()
@@ -123,7 +124,14 @@ int RuntimeTex::GetPitch()
 
 void RuntimeTex::SetPixel(int x, int y, int r, int g, int b, int a)
 {
-	auto start = &m_backingPixels[(y * m_pitch) + (x * 4)];
+	auto offset = (y * m_pitch) + (x * 4);
+
+	if (offset < 0 || offset >= m_backingPixels.size() - 4)
+	{
+		return;
+	}
+
+	auto start = &m_backingPixels[offset];
 
 	start[3] = b;
 	start[2] = g;
@@ -143,8 +151,11 @@ bool RuntimeTex::SetPixelData(const void* data, size_t length)
 	if (m_texture->Map(1, 0, &lockedTexture, rage::grcLockFlags::Write))
 	{
 		memcpy(lockedTexture.pBits, data, length);
+		memcpy(m_backingPixels.data(), data, length);
 		m_texture->Unmap(&lockedTexture);
 	}
+
+	return true;
 }
 
 void RuntimeTex::Commit()
@@ -354,7 +365,7 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
 				reference.pixelData = (uint8_t*)pixelData;
 
-				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr));
+				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData, width * height * 4);
 				m_txd->Add(name, tex->GetTexture());
 
 				m_textures[name] = tex;
