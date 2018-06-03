@@ -297,13 +297,19 @@ static void Mumble_RunFrame()
 
 	if (inDevice != curInDevice)
 	{
+		trace(__FUNCTION__ ": capture device changed in GTA code, changing to index %d (last %d)\n", inDevice, curInDevice);
+
 		enumCtx.cur = -1;
 		enumCtx.target = inDevice;
 		DirectSoundCaptureEnumerateW(enumCb, &enumCtx);
 
+		trace(__FUNCTION__ ": this device index is GUID %s\n", enumCtx.guidStr);
+
 		g_mumbleClient->SetInputDevice(enumCtx.guidStr);
 
 		curInDevice = inDevice;
+
+		trace(__FUNCTION__ ": device should've changed by now!\n");
 	}
 
 	if (outDevice != curOutDevice)

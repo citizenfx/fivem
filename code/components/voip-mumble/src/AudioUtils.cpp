@@ -88,6 +88,7 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid)
 					// if the guid matches, return the device
 					if (testGuid == guid)
 					{
+						trace("Returning device %s for GUID %s\n", friendlyName, testGuid);
 						return device;
 					}
 				}
