@@ -10,6 +10,7 @@
 #include <concurrent_unordered_map.h>
 
 #include <map>
+#include <mutex>
 #include <thread>
 
 #include <wrl.h>
@@ -94,6 +95,12 @@ private:
 	concurrency::concurrent_unordered_map<uint32_t, std::shared_ptr<ClientAudioState>> m_clients;
 
 	std::thread m_thread;
+
+	bool m_initialized;
+
+	std::mutex m_initializeMutex;
+
+	std::condition_variable m_initializeVar;
 
 	MumbleClient* m_client;
 

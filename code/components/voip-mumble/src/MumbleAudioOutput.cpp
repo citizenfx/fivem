@@ -177,6 +177,7 @@ public:
 
 void MumbleAudioOutput::Initialize()
 {
+	m_initialized = false;
 	m_distance = FLT_MAX;
 	m_volume = 1.0f;
 	m_masteringVoice = nullptr;
@@ -226,9 +227,13 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 
 void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 {
-	while (!m_masteringVoice)
 	{
-		Sleep(1);
+		std::unique_lock<std::mutex> initLock(m_initializeMutex);
+
+		if (!m_initialized)
+		{
+			m_initializeVar.wait(initLock);
+		}
 	}
 
 	WAVEFORMATEX format;
@@ -242,6 +247,8 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 	auto state = std::make_shared<ClientAudioState>();
 
+	auto xa2 = m_xa2;
+
 	XAUDIO2_SEND_DESCRIPTOR sendDescriptors[2];
 	sendDescriptors[0].Flags = XAUDIO2_SEND_USEFILTER;
 	sendDescriptors[0].pOutputVoice = m_masteringVoice;
@@ -254,17 +261,14 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 	const XAUDIO2_VOICE_SENDS sendList = { (m_submixVoice) ? 2 : 1, sendDescriptors };
 
-	auto xa2 = m_xa2;
-
-	while (!xa2)
-	{
-		Sleep(1);
-
-		xa2 = m_xa2;
-	}
-
 	IXAudio2SourceVoice* voice = nullptr;
-	xa2->CreateSourceVoice(&voice, &format, 0, 2.0f, state.get(), &sendList);
+	HRESULT hr = xa2->CreateSourceVoice(&voice, &format, 0, 2.0f, state.get(), &sendList);
+
+	if (FAILED(hr))
+	{
+		trace("CreateSourceVoice failed - HR = %08x\n", hr);
+		return;
+	}
 
 	voice->Start();
 
@@ -520,6 +524,12 @@ void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId)
 
 	m_deviceGuid = deviceId;
 
+	// mark as uninitialized
+	{
+		std::unique_lock<std::mutex> lock(m_initializeMutex);
+		m_initialized = false;
+	}
+
 	// save IDs
 	std::vector<uint32_t> m_ids;
 
@@ -580,6 +590,11 @@ DEFINE_GUID(CLSID_AudioReverb, 0x6a93130e, 0x1d53, 0x41d1, 0xa9, 0xcf, 0xe7, 0x5
 
 void MumbleAudioOutput::InitializeAudioDevice()
 {
+	{
+		std::unique_lock<std::mutex> lock(m_initializeMutex);
+		m_initialized = false;
+	}
+
 	ComPtr<IMMDevice> device;
 
 	if (m_deviceGuid.empty())
@@ -735,5 +750,12 @@ void MumbleAudioOutput::InitializeAudioDevice()
 	else
 	{
 		m_x3daCalculate = nullptr;
+	}
+
+	{
+		std::unique_lock<std::mutex> lock(m_initializeMutex);
+		m_initialized = true;
+
+		m_initializeVar.notify_all();
 	}
 }
