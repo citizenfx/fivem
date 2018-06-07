@@ -253,6 +253,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	BROFILER_EVENT("set StatusFetching");
 
+	ResetEvent(handleData->fileData->eventHandle);
 	handleData->fileData->status = FileData::StatusFetching;
 
 	// file extension for cache stuff
