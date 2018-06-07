@@ -25,6 +25,9 @@
 
 using fx::CachedResourceMounter;
 
+std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
+static std::mutex g_referenceHashListMutex;
+
 static std::map<std::string, std::function<void(int, int)>> g_statusCallbacks;
 static std::mutex g_statusCallbacksMutex;
 
@@ -195,11 +198,27 @@ pplx::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(con
 
 void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size, const std::map<std::string, std::string>& extData)
 {
+	{
+		std::unique_lock<std::mutex> g_referenceHashListMutex;
+		g_referenceHashList.insert({ referenceHash, {resourceName, basename} });
+	}
+
 	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl, size, extData} });
 }
 
 void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)
 {
+	{
+		std::unique_lock<std::mutex> g_referenceHashListMutex;
+
+		auto bits = m_resourceEntries.equal_range(resourceName);
+
+		for (const auto& entry : fx::GetIteratorView(bits))
+		{
+			g_referenceHashList.erase(entry.second.referenceHash);
+		}
+	}
+
 	m_resourceEntries.erase(resourceName);
 }
 

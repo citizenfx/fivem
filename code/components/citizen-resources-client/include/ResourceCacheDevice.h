@@ -96,12 +96,13 @@ class
 public:
 	struct FileData
 	{
-		std::mutex lockMutex;
-		std::condition_variable lockVar;
+		HANDLE eventHandle;
+
+		std::mutex fetchLock;
 
 		std::map<std::string, std::string> metaData;
 
-		enum
+		enum Status
 		{
 			StatusEmpty,
 			StatusNotFetched,
@@ -110,10 +111,19 @@ public:
 			StatusError
 		} status;
 
+		char rscHeader[4];
+
 		inline FileData()
 			: status(StatusEmpty)
 		{
+			eventHandle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
+			rscHeader[0] = rscHeader[1] = rscHeader[2] = rscHeader[3] = 0;
+		}
+
+		inline ~FileData()
+		{
+			CloseHandle(eventHandle);
 		}
 	};
 

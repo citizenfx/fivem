@@ -496,6 +496,86 @@ static void AdjustLimits()
 	}
 }
 
+#include <Streaming.h>
+#include <VFSManager.h>
+
+#include <Error.h>
+
+extern hook::cdecl_stub<rage::fiCollection*()> getRawStreamer;
+
+#define VFS_GET_RCD_DEBUG_INFO 0x30001
+
+struct GetRcdDebugInfoExtension
+{
+	const char* fileName; // in
+	std::string outData; // out
+};
+
+static void ErrorInflateFailure(char* ioData, char* requestData)
+{
+	uint32_t handle = *(uint32_t*)(requestData + 4);
+	uint8_t* nextIn = *(uint8_t**)(ioData + 8);
+	uint32_t availIn = *(uint32_t*)(ioData);
+
+	// get the entry name
+	uint16_t fileIndex = (handle & 0xFFFF);
+	uint16_t collectionIndex = (handle >> 16);
+
+	auto spf = streaming::GetStreamingPackfileByIndex(collectionIndex);
+	auto collection = (rage::fiCollection*)(spf ? spf->packfile : nullptr);
+
+	if (!collection && collectionIndex == 0)
+	{
+		collection = getRawStreamer();
+	}
+
+	std::string name = collection->GetEntryName(fileIndex);
+
+	// get the input bytes
+	auto compBytes = fmt::sprintf("%02x %02x %02x %02x %02x %02x %02x %02x", nextIn[0], nextIn[1], nextIn[2], nextIn[3], nextIn[4], nextIn[5], nextIn[6], nextIn[7]);
+
+	// get cache metadata
+	std::string metaData;
+
+	if (collectionIndex == 0)
+	{
+		// get the _raw_ file name
+		char fileNameBuffer[1024];
+		strcpy(fileNameBuffer, "CfxRequest");
+
+		collection->GetEntryNameToBuffer(fileIndex, fileNameBuffer, sizeof(fileNameBuffer));
+
+		auto virtualDevice = vfs::GetDevice(fileNameBuffer);
+
+		// call into RCD
+		GetRcdDebugInfoExtension ext;
+		ext.fileName = fileNameBuffer;
+
+		virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+
+		metaData = ext.outData;
+	}
+
+	FatalError("Failed to call inflate() for streaming file %s.\n\nRead bytes: %s\n%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.", name, compBytes, metaData);
+}
+
+static void CompTrace()
+{
+	static struct : jitasm::Frontend
+	{
+		void InternalMain() override
+		{
+			mov(rcx, rdi);
+			mov(rdx, r14);
+
+			mov(rax, (uintptr_t)ErrorInflateFailure);
+			jmp(rax);
+		}
+	} errorBit;
+
+	hook::call(hook::get_pattern("B9 48 93 55 15 E8", 5), errorBit.GetCode());
+}
+
 static HookFunction hookFunction([]()
 {
 #if 0
@@ -560,4 +640,7 @@ static HookFunction hookFunction([]()
 
 	// limit adjuster!
 	AdjustLimits();
+
+	// trace ERR_GEN_ZLIB_2 errors
+	CompTrace();
 });

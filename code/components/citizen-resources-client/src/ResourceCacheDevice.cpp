@@ -124,10 +124,14 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 			if (handleData->parentHandle != InvalidHandle)
 			{
-				handleData->fileData->status = FileData::StatusFetched;
-				handleData->fileData->metaData = cacheEntry->GetMetaData();
+				{
+					std::unique_lock<std::mutex> lock(handleData->fileData->fetchLock);
 
-				MarkFetched(handleData);
+					handleData->fileData->status = FileData::StatusFetched;
+					handleData->fileData->metaData = cacheEntry->GetMetaData();
+
+					MarkFetched(handleData);
+				}
 
 				// validate RSC-ness of the file
 				if (bulkPtr)
@@ -136,6 +140,8 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 					{
 						char rscHeader[4];
 						this->ReadBulk(handle, 0, &rscHeader, 4);
+
+						memcpy(handleData->fileData->rscHeader, rscHeader, 4);
 
 						if (rscHeader[0] != 'R' || rscHeader[1] != 'S' || rscHeader[2] != 'C')
 						{
@@ -239,8 +245,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		{
 			BROFILER_EVENT("block on Fetching");
 
-			std::unique_lock<std::mutex> lock(handleData->fileData->lockMutex);
-			handleData->fileData->lockVar.wait(lock);
+			WaitForSingleObject(handleData->fileData->eventHandle, INFINITE);
 		}
 
 		return false;
@@ -351,32 +356,30 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 				g_downloadedSet.insert(handleData->entry.referenceHash);
 
+				std::unique_lock<std::mutex> lock(handleData->fileData->fetchLock);
+
 				// add the file to the resource cache
 				std::map<std::string, std::string> metaData;
 				metaData["filename"] = handleData->entry.basename;
 				metaData["resource"] = handleData->entry.resourceName;
 				metaData["from"] = handleData->entry.remoteUrl;
 
-				AddEntryToCache(outFileName, metaData, handleData);
-
 				handleData->fileData->metaData = metaData;
+
+				AddEntryToCache(outFileName, metaData, handleData);
 
 				if (!m_blocking)
 				{
 					openFile();
 				}
 
-				{
-					std::unique_lock<std::mutex> lock(handleData->fileData->lockMutex);
-
-					handleData->fileData->status = FileData::StatusFetched;
-				}
+				handleData->fileData->status = FileData::StatusFetched;
 
 				handleData->getRequest = {};
 			}
 
 			// unblock the mutex
-			handleData->fileData->lockVar.notify_all();
+			SetEvent(handleData->fileData->eventHandle);
 		});
 	}
 
@@ -384,11 +387,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	{
 		BROFILER_EVENT("block on NotFetched");
 
-		std::unique_lock<std::mutex> lock(handleData->fileData->lockMutex);
-
 		if (handleData->fileData->status == FileData::StatusFetching)
 		{
-			handleData->fileData->lockVar.wait(lock);
+			WaitForSingleObject(handleData->fileData->eventHandle, INFINITE);
 		}
 	}
 
@@ -590,6 +591,35 @@ struct GetRagePageFlagsExtension
 	ResourceFlags flags; // out
 };
 
+#define VFS_GET_RCD_DEBUG_INFO 0x30001
+
+struct GetRcdDebugInfoExtension
+{
+	const char* fileName; // in
+	std::string outData; // out
+};
+
+static const char* StatusToString(ResourceCacheDevice::FileData::Status status)
+{
+	switch (status)
+	{
+	case ResourceCacheDevice::FileData::StatusEmpty:
+		return "StatusEmpty";
+	case ResourceCacheDevice::FileData::StatusFetched:
+		return "StatusFetched";
+	case ResourceCacheDevice::FileData::StatusFetching:
+		return "StatusFetching";
+	case ResourceCacheDevice::FileData::StatusNotFetched:
+		return "StatusNotFetched";
+	case ResourceCacheDevice::FileData::StatusError:
+		return "StatusError";
+	}
+}
+
+#include <IteratorView.h>
+
+extern std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
+
 bool ResourceCacheDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
@@ -603,6 +633,41 @@ bool ResourceCacheDevice::ExtensionCtl(int controlIdx, void* controlData, size_t
 			data->version = atoi(entry->extData["rscVersion"].c_str());
 			data->flags.flag1 = strtoul(entry->extData["rscPagesVirtual"].c_str(), nullptr, 10);
 			data->flags.flag2 = strtoul(entry->extData["rscPagesPhysical"].c_str(), nullptr, 10);
+			return true;
+		}
+	}
+	else if (controlIdx == VFS_GET_RCD_DEBUG_INFO)
+	{
+		GetRcdDebugInfoExtension* data = (GetRcdDebugInfoExtension*)controlData;
+
+		auto entry = GetEntryForFileName(data->fileName);
+
+		if (entry)
+		{
+			auto fileData = GetFileDataForEntry(entry->referenceHash);
+
+			data->outData = fmt::sprintf("RSC version: %d\nRSC page flags: virt %08x/phys %08x\nResource name: %s\nReference hash: %s\n", 
+				atoi(entry->extData["rscVersion"].c_str()),
+				strtoul(entry->extData["rscPagesVirtual"].c_str(), nullptr, 10),
+				strtoul(entry->extData["rscPagesPhysical"].c_str(), nullptr, 10),
+				entry->resourceName,
+				entry->referenceHash);
+
+			if (fileData)
+			{
+				data->outData += fmt::sprintf("Status: %s\nDownloaded now: %s\nRSC header: %02x %02x %02x %02x\n\n",
+					StatusToString(fileData->status),
+					(g_downloadedSet.find(entry->referenceHash) != g_downloadedSet.end()) ? "Yes" : "No", 
+					fileData->rscHeader[0], fileData->rscHeader[1], fileData->rscHeader[2], fileData->rscHeader[3]);
+			}
+
+			data->outData += "Resources for hash:\n";
+
+			for (auto& views : fx::GetIteratorView(g_referenceHashList.equal_range(entry->referenceHash)))
+			{
+				data->outData += fmt::sprintf("-> %s/%s\n", views.second.first, views.second.second);
+			}
+
 			return true;
 		}
 	}

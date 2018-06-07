@@ -19,7 +19,7 @@ static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, in
 static std::unordered_map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>> g_handleMap;
 static std::unordered_map<std::string, int> g_failures;
 
-static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
+hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
 	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
 });
