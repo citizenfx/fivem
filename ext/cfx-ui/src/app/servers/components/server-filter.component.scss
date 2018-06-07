@@ -44,6 +44,7 @@ a {
 
 	.filter {
 		margin-bottom: $padding;
+		position: relative;
 
 		&.attract-next {
 			margin-bottom: $padding/4;
@@ -62,6 +63,46 @@ a {
 			&:hover,
 			&:focus {
 				background: rgba($bgColour, .2);
+			}
+		}
+
+		.search-dropdown {
+			position: absolute;
+			top: $filterHeight;
+			left: 0;
+			right: 0;
+
+			z-index: 100;
+			overflow: hidden;
+
+			background-color: rgba($bgColour, .8);
+			@include backdropBlur;
+
+			ul {
+				list-style: none;
+
+				li {
+					position: relative;
+					padding: 0.5vh 0.3vw 0.5vh 0.5vw;
+
+					h4 {
+						font-size: 0.9em;
+
+						span {
+							font-weight: normal;
+						}
+					}
+
+					h4 + span {
+						font-size: 0.7em;
+
+						color: desaturate(darken($fgColour, 10%), 20%);
+					}
+
+					&:hover, &.active {
+						background-color: rgba(lighten($bgColour, 15%), 1);
+					}
+				}
 			}
 		}
 

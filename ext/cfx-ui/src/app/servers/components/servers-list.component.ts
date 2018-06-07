@@ -167,6 +167,12 @@ export class ServersListComponent implements OnInit, OnChanges {
                                 }
                             }
                         }
+                    } else if (server.data.vars[category + 's']) {
+                        const fields = (<string>server.data.vars[category + 's']).split(',');
+
+                        result = fields.filter(a => match.test(String(a))).length > 0;
+                    } else if (server.data.vars[category]) {
+                        result = match.test(String(server.data.vars[category]));
                     }
 
                     if (invertSearch) {

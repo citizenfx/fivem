@@ -1,6 +1,18 @@
 <div class="filters inline">
     <section class="filter attract-next" style="width: 50%">
-        <input class="name" type="search" placeholder="Search" [(ngModel)]="filters.searchText" (ngModelChange)="updateFilters()">
+        <input class="name" id="searchBox" type="search" placeholder="Search" [(ngModel)]="filters.searchText"
+            (ngModelChange)="updateFilters()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
+
+        <div *ngIf="searchFocused">
+            <div class="search-dropdown">
+                <ul>
+                    <li *ngFor="let entry of searchAutocomplete; let i = index" (click)="acceptAutocomplete(entry)" [class.active]="selectedCompletionIndex == i">
+                        <h4><b *ngIf="entry.name != ''">{{entry.name}} - </b><span>{{entry.description}}</span></h4>
+                        <span *ngIf="entry.example != ''">{{entry.example}}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </section>
 
     <section class="filter">
