@@ -30,5 +30,6 @@
 	"handling-loader:five",
 	"scripthookv",
 	"citizen:resources:core",
-	"scrbind:base"
+	"scrbind:base",
+	"citizen:scripting:core"
 ]
