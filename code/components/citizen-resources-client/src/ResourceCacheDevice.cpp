@@ -365,9 +365,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 				metaData["resource"] = handleData->entry.resourceName;
 				metaData["from"] = handleData->entry.remoteUrl;
 
-				handleData->fileData->metaData = metaData;
-
 				AddEntryToCache(outFileName, metaData, handleData);
+
+				handleData->fileData->metaData = metaData;
 
 				if (!m_blocking)
 				{
