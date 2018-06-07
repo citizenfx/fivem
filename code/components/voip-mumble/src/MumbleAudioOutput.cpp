@@ -564,7 +564,7 @@ void MumbleAudioOutput::SetVolume(float volume)
 {
 	m_volume = volume;
 
-	if (m_masteringVoice)
+	if (m_masteringVoice && m_initialized)
 	{
 		m_masteringVoice->SetVolume(volume);
 	}

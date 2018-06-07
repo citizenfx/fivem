@@ -312,6 +312,11 @@ void MumbleClient::ThreadFuncImpl()
 					{
 						// TCP close, graceful?
 						trace("[mumble] tcp close :(\n");
+
+						// try to reconnect
+						closesocket(m_socket);
+
+						SetEvent(m_beginConnectEvent);
 					}
 					else
 					{
@@ -319,6 +324,11 @@ void MumbleClient::ThreadFuncImpl()
 						{
 							// TCP close, error state
 							trace("[mumble] tcp error :(\n");
+
+							// try to reconnect
+							closesocket(m_socket);
+
+							SetEvent(m_beginConnectEvent);
 						}
 					}
 
