@@ -30,13 +30,13 @@ namespace fx
 static concurrency::concurrent_unordered_set<std::string> g_downloadingSet;
 static concurrency::concurrent_unordered_set<std::string> g_downloadedSet;
 
-static concurrency::concurrent_unordered_map<std::string, std::weak_ptr<ResourceCacheDevice::FileData>> g_fileDataSet;
+static concurrency::concurrent_unordered_map<std::string, std::shared_ptr<ResourceCacheDevice::FileData>> g_fileDataSet;
 
 inline std::shared_ptr<ResourceCacheDevice::FileData> GetFileDataForEntry(const std::string& refHash)
 {
 	auto it = g_fileDataSet.find(refHash);
 
-	if (it == g_fileDataSet.end() || it->second.expired())
+	if (it == g_fileDataSet.end())
 	{
 		auto ptr = std::make_shared<ResourceCacheDevice::FileData>();
 
@@ -45,7 +45,7 @@ inline std::shared_ptr<ResourceCacheDevice::FileData> GetFileDataForEntry(const 
 		return std::move(ptr);
 	}
 
-	return it->second.lock();
+	return it->second;
 }
 
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking)
