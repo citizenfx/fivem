@@ -250,12 +250,12 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	auto xa2 = m_xa2;
 
 	XAUDIO2_SEND_DESCRIPTOR sendDescriptors[2];
-	sendDescriptors[0].Flags = XAUDIO2_SEND_USEFILTER;
+	sendDescriptors[0].Flags = 0;// XAUDIO2_SEND_USEFILTER;
 	sendDescriptors[0].pOutputVoice = m_masteringVoice;
 
 	if (m_submixVoice)
 	{
-		sendDescriptors[1].Flags = XAUDIO2_SEND_USEFILTER;
+		sendDescriptors[1].Flags = 0;// XAUDIO2_SEND_USEFILTER;
 		sendDescriptors[1].pOutputVoice = m_submixVoice;
 	}
 
@@ -410,10 +410,10 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				client->voice->SetOutputMatrix(m_submixVoice, 1, 1, &dsp.ReverbLevel);
 			}
 
-			XAUDIO2_FILTER_PARAMETERS FilterParametersDirect = { LowPassFilter, 2.0f * sinf(X3DAUDIO_PI / 6.0f * dsp.LPFDirectCoefficient), 1.0f };
-			client->voice->SetOutputFilterParameters(m_masteringVoice, &FilterParametersDirect);
-			XAUDIO2_FILTER_PARAMETERS FilterParametersReverb = { LowPassFilter, 2.0f * sinf(X3DAUDIO_PI / 6.0f * dsp.LPFReverbCoefficient), 1.0f };
-			client->voice->SetOutputFilterParameters(m_submixVoice, &FilterParametersReverb);
+			//XAUDIO2_FILTER_PARAMETERS FilterParametersDirect = { LowPassFilter, 2.0f * sinf(X3DAUDIO_PI / 6.0f * dsp.LPFDirectCoefficient), 1.0f };
+			//client->voice->SetOutputFilterParameters(m_masteringVoice, &FilterParametersDirect);
+			//XAUDIO2_FILTER_PARAMETERS FilterParametersReverb = { LowPassFilter, 2.0f * sinf(X3DAUDIO_PI / 6.0f * dsp.LPFReverbCoefficient), 1.0f };
+			//client->voice->SetOutputFilterParameters(m_submixVoice, &FilterParametersReverb);
 
 			client->isAudible = (dsp.pMatrixCoefficients[0] > 0.1f || dsp.pMatrixCoefficients[1] > 0.1f);
 		}
