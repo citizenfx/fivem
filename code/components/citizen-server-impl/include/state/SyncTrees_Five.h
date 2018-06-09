@@ -1072,7 +1072,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode>, 
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode>, 
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerGamerDataNode>, 
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode>, 
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode>
 		>, 
 		ParentNode<

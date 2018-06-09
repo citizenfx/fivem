@@ -79,6 +79,12 @@ static uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& p
 	return g_scriptHandlePool->GetIndex(ptr->guid) + 0x20000;
 }
 
+ServerGameState::ServerGameState()
+	: m_frameIndex(0)
+{
+
+}
+
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
 	auto handle = MakeEntityHandle(playerId, objectId);
@@ -922,6 +928,13 @@ static InitFunction initFunction([]()
 				if (entity.second)
 				{
 					auto entityRef = entity.second;
+
+					bool hasCreated = entityRef->ackedCreation.test(client->GetSlotId()) || client->GetNetId() == entityRef->client.lock()->GetNetId();
+
+					if (!hasCreated)
+					{
+						continue;
+					}
 
 					if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
 					{

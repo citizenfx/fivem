@@ -163,6 +163,9 @@ struct ScriptGuid
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
 {
 public:
+	ServerGameState();
+
+
 	void Tick(fx::ServerInstanceBase* instance);
 
 	void ParseGameStatePacket(const std::shared_ptr<fx::Client>& client, const std::vector<uint8_t>& packetData);
