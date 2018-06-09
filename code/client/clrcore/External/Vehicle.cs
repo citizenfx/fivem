@@ -1606,6 +1606,14 @@ namespace CitizenFX.Core
 			return allModels.ToArray();
 		}
 
+		public bool ExplodesOnHighExplosionDamage
+		{
+			set
+			{
+				Function.Call(Hash.SET_VEHICLE_EXPLODES_ON_HIGH_EXPLOSION_DAMAGE, Handle, value);
+			}
+		}
+
 		/// <summary>
 		/// Determines whether this <see cref="Vehicle"/> exists.
 		/// </summary>
