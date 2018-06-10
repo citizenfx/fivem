@@ -176,7 +176,7 @@ fwString NetAddress::GetAddress()
 
 		inet_ntop(m_in6.sin6_family, &m_in6.sin6_addr, buffer, _countof(buffer));
 
-		return buffer;
+		return fmt::sprintf("[%s]", buffer);
 	}
 
 	return "unknown";
@@ -202,7 +202,7 @@ fwWString NetAddress::GetWAddress()
 		inet_ntop(m_in6.sin6_family, &m_in6.sin6_addr, buffer, _countof(buffer));
 		mbstowcs(bufferW, buffer, _countof(bufferW));
 
-		return va(L"[%s]", bufferW);
+		return fmt::sprintf(L"[%s]", bufferW);
 	}
 
 	return L"unknown";
