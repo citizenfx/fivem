@@ -305,6 +305,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			options.headers["X-CitizenFX-Token"] = connectionToken;
 		}
 
+		auto entryRef = handleData->entry;
+		auto fileDataRef = handleData->fileData;
+
 		// http request
 		handleData->getRequest = m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=](bool result, const char* errorData, size_t outSize)
 		{
@@ -316,8 +319,12 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 			if (!result || outSize == 0)
 			{
-				handleData->fileData->status = FileData::StatusError;
-				handleData->getRequest = {};
+				fileDataRef->status = FileData::StatusError;
+
+				if (handleData->fileData == fileDataRef)
+				{
+					handleData->getRequest = {};
+				}
 
 				ICoreGameInit* init = Instance<ICoreGameInit>::Get();
 				std::string reason;
@@ -348,39 +355,42 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			else
 			{
 				// log success
-				trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", handleData->entry.basename.c_str(), (timeGetTime() - initTime), outSize);
+				trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", entryRef.basename.c_str(), (timeGetTime() - initTime), outSize);
 
-				if (g_downloadedSet.find(handleData->entry.referenceHash) != g_downloadedSet.end())
+				if (g_downloadedSet.find(entryRef.referenceHash) != g_downloadedSet.end())
 				{
-					trace("Downloaded the same asset (%s) twice in the same run - that's bad.\n", handleData->entry.basename);
+					trace("Downloaded the same asset (%s) twice in the same run - that's bad.\n", entryRef.basename);
 				}
 
-				g_downloadedSet.insert(handleData->entry.referenceHash);
+				g_downloadedSet.insert(entryRef.referenceHash);
 
-				std::unique_lock<std::mutex> lock(handleData->fileData->fetchLock);
+				std::unique_lock<std::mutex> lock(fileDataRef->fetchLock);
 
 				// add the file to the resource cache
 				std::map<std::string, std::string> metaData;
-				metaData["filename"] = handleData->entry.basename;
-				metaData["resource"] = handleData->entry.resourceName;
-				metaData["from"] = handleData->entry.remoteUrl;
+				metaData["filename"] = entryRef.basename;
+				metaData["resource"] = entryRef.resourceName;
+				metaData["from"] = entryRef.remoteUrl;
 
-				AddEntryToCache(outFileName, metaData, handleData);
+				AddEntryToCache(outFileName, metaData, entryRef);
 
-				handleData->fileData->metaData = metaData;
+				fileDataRef->metaData = metaData;
 
-				if (!m_blocking)
+				if (!m_blocking && handleData->fileData == fileDataRef)
 				{
 					openFile();
 				}
 
-				handleData->fileData->status = FileData::StatusFetched;
+				fileDataRef->status = FileData::StatusFetched;
 
-				handleData->getRequest = {};
+				if (handleData->fileData == fileDataRef)
+				{
+					handleData->getRequest = {};
+				}
 			}
 
 			// unblock the mutex
-			SetEvent(handleData->fileData->eventHandle);
+			SetEvent(fileDataRef->eventHandle);
 		});
 	}
 
@@ -402,7 +412,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	return (handleData->fileData->status == FileData::StatusFetched);
 }
 
-void ResourceCacheDevice::AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, HandleData* handleData)
+void ResourceCacheDevice::AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, const ResourceCacheEntryList::Entry& entryRef)
 {
 	m_cache->AddEntry(outFileName, metaData);
 }

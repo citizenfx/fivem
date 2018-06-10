@@ -183,7 +183,7 @@ protected:
 
 	bool EnsureFetched(HandleData* handleData);
 
-	virtual void AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, HandleData* handleData);
+	virtual void AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, const ResourceCacheEntryList::Entry& entryRef);
 
 	virtual void MarkFetched(HandleData* handleData);
 
