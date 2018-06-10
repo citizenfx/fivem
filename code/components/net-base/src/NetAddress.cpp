@@ -40,6 +40,16 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 		}
 	}
 
+	// strip IPv6 brackets, these aren't cross-platform
+	// (Windows accepts them, but Linux doesn't, without brackets is accepted by both systems)
+	if (resolveName.length() > 0)
+	{
+		if (resolveName[0] == '[' && resolveName[resolveName.length() - 1] == ']')
+		{
+			resolveName = resolveName.substr(1, resolveName.length() - 2);
+		}
+	}
+
 	boost::optional<PeerAddress> retval;
 
 	// if we're supposed to resolve the passed name, try that
