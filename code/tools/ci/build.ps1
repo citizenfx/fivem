@@ -334,6 +334,13 @@ if (!$DontBuild -and !$IsServer) {
 
     Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
 
+    # build compliance stuff
+    if ($env:COMPUTERNAME -eq "AVALON") {
+        Push-Location C:\f\bci\
+        .\BuildComplianceInfo.exe $WorkDir\caches\fivereborn\ C:\f\bci-list.txt
+        Pop-Location
+    }
+
     # build meta/xz variants
     "<Caches>
         <Cache ID=`"fivereborn`" Version=`"$GameVersion`" />
