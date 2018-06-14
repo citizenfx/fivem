@@ -7,7 +7,6 @@
 		"citizen:scripting:core",
 		"citizen:server:instance",
 		"citizen:server:net",
-		"voip-server:mumble",
 		"vfs:impl:server",
 		"vendor:cpr",
 		"vendor:curl",
