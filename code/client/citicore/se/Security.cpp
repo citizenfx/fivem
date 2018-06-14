@@ -319,6 +319,14 @@ extern "C" se::Context* seGetCurrentContext()
 			});
 #endif
 
+			static ConsoleCommand testAceCmd("test_ace", [](const std::string& principal, const std::string& object)
+			{
+				console::Printf("security", "%s -> %s = %s\n", 
+					principal,
+					object,
+					seGetCurrentContext()->CheckPrivilege(se::Principal{ principal }, se::Object{ object }) ? "true" : "false");
+			});
+
 			static ConsoleCommand listPrincipalCmd("list_principals", []()
 			{
 				seGetCurrentContext()->ForAllPrincipalInheritances([](const se::Principal& child, const se::Principal& parent)
