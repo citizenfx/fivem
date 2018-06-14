@@ -39,7 +39,7 @@ public:
 			{
 				set.insert(parenting.second);
 
-				AddPrincipals(principal, set);
+				AddPrincipals(parenting.second, set);
 			}
 		}
 	}
