@@ -25,6 +25,11 @@ namespace CitizenFX.Core
         {
             Write("\n");
         }
+				
+        public static void WriteLine(string data)
+        {
+            Write(data + "\n");
+        }
 
         public static void WriteLine(string format, params object[] args)
         {
