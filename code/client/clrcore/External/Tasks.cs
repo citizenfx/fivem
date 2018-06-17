@@ -119,7 +119,7 @@ namespace CitizenFX.Core
 			Function.Call(Hash.TASK_VEHICLE_DRIVE_WANDER, _ped.Handle, vehicle.Handle, speed, drivingstyle);
 		}
 
-		public void DriveTo(Vehicle vehicle, Vector3 target, float radius, float speed, int drivingstyle = 0)
+		public void DriveTo(Vehicle vehicle, Vector3 target, float radius, float speed, DrivingStyle drivingstyle = DrivingStyle.Normal)
 		{
 			Function.Call(Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE, _ped.Handle, vehicle.Handle, target.X, target.Y, target.Z, speed, drivingstyle, radius);
 		}
