@@ -95,7 +95,7 @@ namespace CitizenFX.Core
 				{
 					var repId = args[0].ToString();
 					var arg = args[1] as List<object>;
-					var err = args[2];
+					var err = args.Length > 2 ? args[2] : null;
 
 					if (m_rpcList.TryGetValue(repId, out var tcs))
 					{
