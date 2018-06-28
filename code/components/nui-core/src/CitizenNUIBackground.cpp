@@ -309,9 +309,9 @@ rage::grcTexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring f
 			}
 
 			// create a pixel data buffer
-			uint32_t* pixelData = new uint32_t[width * height];
+			std::vector<uint32_t> pixelData(width * height);
 
-			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData));
+			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData.data()));
 
 			if (SUCCEEDED(hr))
 			{
@@ -326,7 +326,7 @@ rage::grcTexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring f
 #elif defined(GTA_FIVE)
 				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
 #endif
-				reference.pixelData = (uint8_t*)pixelData;
+				reference.pixelData = (uint8_t*)pixelData.data();
 
 				return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
 			}
