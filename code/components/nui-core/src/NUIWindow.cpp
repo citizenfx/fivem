@@ -65,7 +65,8 @@ void NUIWindow::Initialize(CefString url)
 	m_roundedHeight = roundUp(m_height, 16);
 	m_roundedWidth = roundUp(m_width, 16);
 
-	m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
+	// not used anymore since shared resources
+	//m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
 
 	// create the backing texture
 	rage::grcManualTextureDef textureDef;
