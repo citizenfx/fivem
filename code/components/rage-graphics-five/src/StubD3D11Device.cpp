@@ -4,7 +4,7 @@
 
 namespace WRL = Microsoft::WRL;
 
-static std::vector<char> g_mapScratchBuffer(128 * 1024 * 1024);
+static std::vector<char> g_mapScratchBuffer;
 
 class StubD3D11DeviceContext : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, ID3D11DeviceContext>
 {
@@ -47,6 +47,12 @@ class StubD3D11DeviceContext : public WRL::RuntimeClass<WRL::RuntimeClassFlags<W
 	}
 	virtual HRESULT Map(ID3D11Resource * pResource, UINT Subresource, D3D11_MAP MapType, UINT MapFlags, D3D11_MAPPED_SUBRESOURCE * pMappedResource) override
 	{
+		// lazy-initialize the map scratch buffer
+		if (g_mapScratchBuffer.size() == 0)
+		{
+			g_mapScratchBuffer.resize(128 * 1024 * 1024);
+		}
+
 		pMappedResource->DepthPitch = 512;
 		pMappedResource->pData = g_mapScratchBuffer.data();
 		pMappedResource->RowPitch = 512;
