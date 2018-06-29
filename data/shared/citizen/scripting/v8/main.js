@@ -112,8 +112,8 @@ const EXT_LOCALFUNCREF = 11;
 	global.addEventListener = addEventListener;
 	global.on = addEventListener;
 
-	global.RegisterNetEvent = function (name) { netSafeEventNames.add(name); };
-	global.RegisterServerEvent = global.RegisterNetEvent;
+	// global.RegisterNetEvent = function (name) { netSafeEventNames.add(name); };
+	// global.RegisterServerEvent = global.RegisterNetEvent;
 	global.AddEventHandler = addEventListener;
 
 	// Net events
