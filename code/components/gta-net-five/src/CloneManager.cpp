@@ -838,7 +838,8 @@ void CloneManagerLocal::WriteUpdates()
 				// pretend to ack the remove to process removal
 				// 1103
 				// 1290
-				((void(*)(rage::netObjectMgr*, rage::netObject*))0x1415C8CC8)(objectMgr, object);
+				// 1365
+				((void(*)(rage::netObjectMgr*, rage::netObject*))0x1415D2328)(objectMgr, object);
 			}
 
 			// don't actually continue sync

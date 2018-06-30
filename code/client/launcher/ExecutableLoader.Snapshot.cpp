@@ -1,9 +1,8 @@
 #include <StdInc.h>
 #include "ExecutableLoader.h"
 
-// 1103!!!
-// 1290 now
-#define TRIGGER_EP 0x1417233F8
+// 1365 now...
+#define TRIGGER_EP 0x14172C8D4
 
 // on NT pre-6.3 (or 6.2, even), VEHs can't modify debug registers
 // making a new thread for every single block is a bad idea as well, but perf isn't _that_ bad
