@@ -498,6 +498,9 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		{
 			if (getenv("CitizenFX_ToolMode"))
 			{
+				// pre-load the correct chrome_elf.dll
+				LoadLibraryW(MapRedirectedFilename(L"Social Club/chrome_elf.dll").c_str());
+
 				return LoadLibraryW(MapRedirectedFilename(L"Social Club/libcef.dll").c_str());
 			}
 		}
