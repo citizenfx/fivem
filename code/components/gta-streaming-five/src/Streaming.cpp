@@ -31,7 +31,7 @@ static hook::cdecl_stub<streaming::strStreamingModule**(void*, uint32_t)> g_getS
 
 static hook::cdecl_stub<streaming::strStreamingModule*(void*, const char*)> g_getStreamingModuleFromExt([]()
 {
-	return hook::get_pattern("46 0F B7 0C 42 BA FF FF 00 00 66 44 3B CA 74 1D", -0x30);
+	return hook::get_call(hook::get_pattern("74 15 48 8D 50 01 48 8D", 13));
 });
 
 static hook::cdecl_stub<uint32_t(uint32_t*, const char*, bool, const char*, bool)> g_registerRawStreamingFile([]()

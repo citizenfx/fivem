@@ -104,7 +104,7 @@ public:
 	uint8_t assetType;
 	uint8_t pad4;
 
-	uint16_t assetIndex;
+	uint32_t assetIndex;
 };
 
 class STREAMING_EXPORT fwEntityDef

@@ -291,12 +291,13 @@ static InitFunction initFunction([] ()
 
 	static bool shouldDraw = false;
 
-	if (!CfxIsSinglePlayer())
+	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 	{
 		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 		{
 			shouldDraw = true;
 		});
+
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 		{
 			shouldDraw = false;

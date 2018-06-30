@@ -182,7 +182,7 @@ static hook::cdecl_stub<void(void*)> _initManifestChunk([]()
 
 static hook::cdecl_stub<void(void*)> _loadManifestChunk([]()
 {
-	return hook::get_pattern("33 FF 4C 8B E9 BB FF FF 00 00", -0x2D);
+	return hook::get_call(hook::get_pattern("45 38 AE C0 00 00 00 0F 95 C3 E8", -5));
 });
 
 static hook::cdecl_stub<void(void*)> _clearManifestChunk([]()

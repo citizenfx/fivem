@@ -216,7 +216,7 @@ static HookFunction hookFunction([] ()
 
 	// avoid releasing released clipdictionaries
 	{
-		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 90 00 00 00 48", 3);
+		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 98 00 00 00 48", 3);
 		hook::set_call(&g_origAssetRelease, loc);
 		hook::call(loc, WrapAssetRelease);
 	}
