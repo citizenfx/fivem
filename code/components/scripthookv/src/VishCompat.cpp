@@ -242,7 +242,7 @@ DLL_EXPORT uint64_t* getGlobalPtr(int)
 
 enum eGameVersion : int
 {
-	DummyVersion = 35
+	DummyVersion = 40
 };
 
 DLL_EXPORT eGameVersion getGameVersion()
