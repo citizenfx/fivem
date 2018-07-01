@@ -18,7 +18,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	// store for use by natives.js
 	global.msgpack_unpack = unpack;
-	global.msgpack_pack = pack;
+	// global.msgpack_pack = pack;
 
 	/**
 	 * @param {Function} refFunction
@@ -114,7 +114,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	// global.RegisterNetEvent = function (name) { netSafeEventNames.add(name); };
 	// global.RegisterServerEvent = global.RegisterNetEvent;
-	global.AddEventHandler = addEventListener;
+	// global.AddEventHandler = addEventListener;
 
 	// Net events
 	global.addNetEventListener = (name, callback) => addEventListener(name, callback, true);
@@ -132,7 +132,7 @@ const EXT_LOCALFUNCREF = 11;
 	global.TriggerEvent = emit;
 
 	if (_in("0xcf24c52e", _r))  { // server
-		let TriggerClientEvent = function (eventName, playerId, ...args) {
+		const TriggerClientEvent = function (eventName, playerId, ...args) {
 			const dataSerialized =  pack(args)
 
 			_in("0x2f7a49e6", _ts(eventName), _ts(playerId), dataSerialized, dataSerialized.length)
@@ -141,7 +141,7 @@ const EXT_LOCALFUNCREF = 11;
 		global.TriggerClientEvent = TriggerClientEvent;
 		global.emitNet = TriggerClientEvent;
 	} else { // client
-		let TriggerServerEvent = function (name, ...args) {
+		const TriggerServerEvent = function (name, ...args) {
 			const dataSerialized = pack(args);
 
 			_in('0x7fdd1128', name, dataSerialized, dataSerialized.length);
