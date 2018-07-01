@@ -733,11 +733,11 @@ static HookFunction initFunction([]()
 		{
 			gameLoaded = false;
 			
-			if (*g_dlcMountCount != 117)
+			if (*g_dlcMountCount != 122)
 			{
-				//GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 117);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 122);
 
-				//return;
+				return;
 			}
 
 			hostSystem.state = HS_LOADED;
