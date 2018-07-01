@@ -646,8 +646,4 @@ static HookFunction hookFunction([]()
 
 	// trace ERR_GEN_ZLIB_2 errors
 	CompTrace();
-
-	// 1365 compat? (Arxan layers)
-	//*(uint32_t*)0x1417D4042 = *(uint32_t*)0x144EC5EEE;
-	//hook::nop(0x1417E7519, 3);
 });
