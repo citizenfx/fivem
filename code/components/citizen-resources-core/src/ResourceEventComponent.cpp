@@ -38,6 +38,8 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	// start/stop handling events
 	object->OnBeforeStart.Connect([=] ()
 	{
+		OnTriggerEvent.Reset();
+
 		// pack the resource name
 		msgpack::sbuffer buf;
 		msgpack::packer<msgpack::sbuffer> packer(buf);
