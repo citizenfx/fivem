@@ -279,6 +279,9 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 	}
 }
 
+static std::string exType;
+static std::string exWhat;
+
 static std::wstring GetAdditionalData()
 {
 	{
@@ -319,6 +322,16 @@ static std::wstring GetAdditionalData()
 		json data = json::object();
 		add_crashometry(data);
 
+		if (!exType.empty())
+		{
+			data["exception"] = exType;
+		}
+
+		if (!exWhat.empty())
+		{
+			data["what"] = exWhat;
+		}
+
 		return ToWide(data.dump());;
 	}
 }
@@ -341,6 +354,56 @@ static std::wstring HashCrash(const std::wstring& key)
 }
 
 void NVSP_ShutdownSafely();
+
+// a safe exception buffer to be allocated in low (32-bit) memory to contain what() data
+struct ExceptionBuffer
+{
+	char data[4096];
+};
+
+static ExceptionBuffer* g_exceptionBuffer;
+
+static void AllocateExceptionBuffer()
+{
+	auto _NtAllocateVirtualMemory = (HRESULT(WINAPI*)(
+		HANDLE    ProcessHandle,
+		PVOID     *BaseAddress,
+		ULONG_PTR ZeroBits,
+		PSIZE_T   RegionSize,
+		ULONG     AllocationType,
+		ULONG     Protect
+		))GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtAllocateVirtualMemory");
+
+	PVOID baseAddr = NULL;
+	SIZE_T size = sizeof(ExceptionBuffer);
+	
+	if (SUCCEEDED(_NtAllocateVirtualMemory(GetCurrentProcess(), &baseAddr, 0xFFFFFFFF80000000, &size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)))
+	{
+		g_exceptionBuffer = (ExceptionBuffer*)baseAddr;
+	}
+}
+
+static DWORD RemoteExceptionFunc(LPVOID objectPtr)
+{
+	__try
+	{
+		std::exception* object = (std::exception*)objectPtr;
+
+		if (g_exceptionBuffer)
+		{
+			strncpy(g_exceptionBuffer->data, object->what(), sizeof(g_exceptionBuffer->data));
+			g_exceptionBuffer->data[sizeof(g_exceptionBuffer->data) - 1] = '\0';
+
+			return (DWORD)(DWORD_PTR)g_exceptionBuffer;
+		}
+
+		return 0;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return 0;
+	}
+}
 
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
@@ -431,6 +494,87 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 								}
 							}
 						}
+
+						// try parsing any C++ exception
+						if (ex.ExceptionCode == 0xE06D7363 && ex.ExceptionInformation[0] == 0x19930520)
+						{
+							struct CatchableType
+							{
+								__int32 properties;
+								__int32 pType;
+								__int32 thisDisplacement;
+								__int32 sizeOrOffset;
+								__int32 copyFunction;
+							};
+
+							struct ThrowInfo
+							{
+								__int32 attributes;
+								__int32 pmfnUnwind;
+								__int32 pForwardCompat;
+								__int32 pCatchableTypeArray;
+							};
+
+							struct CatchableTypeArray
+							{
+								__int32 count;
+								__int32 pFirstType;
+							};
+
+							ThrowInfo ti;
+							if (readClient((void*)ex.ExceptionInformation[2], &ti))
+							{
+								CatchableTypeArray cta;
+
+								if (readClient((void*)(ex.ExceptionInformation[3] + ti.pCatchableTypeArray), &cta))
+								{
+									CatchableType type;
+
+									if (cta.count > 0 && readClient((void*)(ex.ExceptionInformation[3] + cta.pFirstType), &type))
+									{
+										struct tid
+										{
+											const char* undName;
+											uint8_t name[4096];
+										} ti;
+
+										if (type.pType && readClient((void*)(ex.ExceptionInformation[3] + type.pType), &ti))
+										{
+											ti.undName = nullptr;
+
+											std::type_info& typeInfo = *(std::type_info*)&ti;
+											exType = typeInfo.name();
+
+											// strip `class ` prefix
+											if (exType.substr(0, 6) == "class ")
+											{
+												exType = exType.substr(6);
+											}
+
+											// try getting exception data as well
+											HANDLE hThread = CreateRemoteThread(process_handle, NULL, 0, RemoteExceptionFunc, (void*)(ex.ExceptionInformation[1] + type.thisDisplacement), 0, NULL);
+											WaitForSingleObject(hThread, 5000);
+
+											DWORD ret = 0;
+											
+											if (GetExitCodeThread(hThread, &ret))
+											{
+												void* exPtr = (void*)ret;
+
+												ExceptionBuffer buf;
+
+												if (exPtr && readClient(exPtr, &buf))
+												{
+													exWhat = buf.data;
+												}
+											}											
+
+											CloseHandle(hThread);
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -498,7 +642,19 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			}
 		}
 
+		if (!exType.empty())
+		{
+			mainInstruction = L"Exception, unhandled!";
+
+			cuz = ToWide(fmt::sprintf("An unhandled exception (of type %s)", exType));
+		}
+
 		static std::wstring content = fmt::sprintf(L"%s caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.", cuz);
+
+		if (!exWhat.empty())
+		{
+			content += fmt::sprintf(L"\n\nException details: %s", ToWide(exWhat));
+		}
 
 		static std::optional<std::wstring> crashId;
 
@@ -629,6 +785,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 bool InitializeExceptionHandler()
 {
+	AllocateExceptionBuffer();
+
 	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
 	if (IsDebuggerPresent())
 	{
