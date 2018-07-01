@@ -51,29 +51,36 @@ void MumbleVoice_BindNetLibrary(NetLibrary* library)
 		{
 			if (success)
 			{
-				json info = json::parse(data, data + size);
-
-				if (info.is_object() && info["vars"].is_object())
+				try
 				{
-					auto val = info["vars"].value("sv_licenseKeyToken", "");
+					json info = json::parse(data, data + size);
 
-					if (!val.empty())
+					if (info.is_object() && info["vars"].is_object())
 					{
-						Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/mumble_voice_prerelease", val), [=](bool success, const char* data, size_t size)
-						{
-							if (success)
-							{
-#ifndef _DEBUG
-								if (std::string(data, size).find("yes") != std::string::npos)
-#endif
-								{
-									trace("Server policy - Mumble allowed: yes\n");
+						auto val = info["vars"].value("sv_licenseKeyToken", "");
 
-									g_mumbleAllowed = true;
+						if (!val.empty())
+						{
+							Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/mumble_voice_prerelease", val), [=](bool success, const char* data, size_t size)
+							{
+								if (success)
+								{
+#ifndef _DEBUG
+									if (std::string(data, size).find("yes") != std::string::npos)
+#endif
+									{
+										trace("Server policy - Mumble allowed: yes\n");
+
+										g_mumbleAllowed = true;
+									}
 								}
-							}
-						});
+							});
+						}
 					}
+				}
+				catch (std::exception& e)
+				{
+					trace("Server policy - Mumble check failed for %s\n", e.what());
 				}
 			}
 		});
