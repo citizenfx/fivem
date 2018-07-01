@@ -162,6 +162,10 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "update/x64/dlcpacks/mpchristmas2017/dlc.rpf", "16f8c031aa79f1e83b7f5ab883df3dbfcda8dddf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 2406123520 },
 	{ "update/x64/dlcpacks/patchday17ng/dlc.rpf", { "7dc8639f1ffa25b3237d01aea1e9975238628952", "c7163e1d8105c87b867b09928ea8346e26b27565" }, "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 59975680 },
 
+	//DLCPacks17
+	{ "update/x64/dlcpacks/mpassault/dlc.rpf", "7c65b096261dd88bd1f952fc6046626f1ca56215", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 314443776 },
+	{ "update/x64/dlcpacks/patchday18ng/dlc.rpf", "9e16b7af4a1e58878f0dd16dd86cbd772a8ce9ef", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 4405248 },
+
 	{ "ros_1238/cef.pak", "C308AC7D34F80FE9486716FBF4C713B55924B661", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.8-Setup.exe", "$/cef.pak", 3866710, 85694480 },
 	{ "ros_1238/cef_100_percent.pak", "66EF9A8559E1A8F7976F95FDD2355A0D0E101532", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.8-Setup.exe", "$/cef_100_percent.pak", 647967, 85694480 },
 	{ "ros_1238/cef_200_percent.pak", "0E65DCF353901A8F5D4309585337F6465C3DFC78", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.3.8-Setup.exe", "$/cef_200_percent.pak", 753127, 85694480 },
