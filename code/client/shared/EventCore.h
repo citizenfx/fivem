@@ -309,16 +309,7 @@ public:
 
 	~fwEvent()
 	{
-		callback* cb = m_callbacks;
-
-		while (cb)
-		{
-			callback* curCB = cb;
-
-			cb = cb->next;
-
-			delete curCB;
-		}
+		Reset();
 	}
 
 	template<typename T>
@@ -331,6 +322,22 @@ public:
 	void Connect(T func, int order)
 	{
 		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>::type, bool>::value>::template Internal<Args...>::Proxy(*this, func, order);
+	}
+
+	void Reset()
+	{
+		callback* cb = m_callbacks;
+
+		while (cb)
+		{
+			callback* curCB = cb;
+
+			cb = cb->next;
+
+			delete curCB;
+		}
+
+		m_callbacks = nullptr;
 	}
 
 private:
