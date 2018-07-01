@@ -15,9 +15,10 @@ const EXT_LOCALFUNCREF = 11;
 
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
-	
+
 	// store for use by natives.js
 	global.msgpack_unpack = unpack;
+	global.msgpack_pack = pack;
 
 	/**
 	 * @param {Function} refFunction
@@ -49,7 +50,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	/**
 	 * Deletes ref function
-	 * 
+	 *
 	 * @param {int} ref
 	 */
 	Citizen.setDeleteRefFunction(function(ref) {
@@ -58,9 +59,9 @@ const EXT_LOCALFUNCREF = 11;
 
 	/**
 	 * Invokes ref function
-	 * 
-	 * @param {int} ref 
-	 * @param {UInt8Array} args 
+	 *
+	 * @param {int} ref
+	 * @param {UInt8Array} args
 	 */
 	Citizen.setCallRefFunction(function(ref, argsSerialized) {
 		if (!refFunctionsMap.has(ref)) {
@@ -74,7 +75,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	/**
 	 * Duplicates ref function
-	 * 
+	 *
 	 * @param {int} ref
 	 */
 	Citizen.setDuplicateRefFunction(function(ref) {
@@ -100,31 +101,55 @@ const EXT_LOCALFUNCREF = 11;
 	global.addRawEventHandler = global.addRawEventListener;
 
 	// Client events
-	global.addEventListener = (name, callback, netSafe = false) => {
+	const addEventListener = (name, callback, netSafe = false) => {
 		if (netSafe) {
 			netSafeEventNames.add(name);
 		}
 
 		emitter.on(name, callback);
 	};
-	global.on = global.addEventListener;
+
+	global.addEventListener = addEventListener;
+	global.on = addEventListener;
+
+	// global.RegisterNetEvent = function (name) { netSafeEventNames.add(name); };
+	// global.RegisterServerEvent = global.RegisterNetEvent;
+	// global.AddEventHandler = addEventListener;
 
 	// Net events
-	global.addNetEventListener = (name, callback) => global.addEventListener(name, callback, true);
+	global.addNetEventListener = (name, callback) => addEventListener(name, callback, true);
 	global.onNet = global.addNetEventListener;
 
 	global.removeEventListener = emitter.off.bind(emitter);
 
+	// Emit
 	global.emit = (name, ...args) => {
 		const dataSerialized = pack(args);
 
 		Citizen.invokeNative('0x91310870', name, dataSerialized, dataSerialized.length);
 	};
-	global.emitNet = (name, ...args) => {
-		const dataSerialized = pack(args);
 
-		Citizen.invokeNative('0x7fdd1128', name, dataSerialized, dataSerialized.length);
-	};
+	global.TriggerEvent = emit;
+
+	if (global.IsDuplicityVersion())  { // server
+		const TriggerClientEvent = function (eventName, playerId, ...args) {
+			const dataSerialized =  pack(args)
+
+			_in("0x2f7a49e6", _ts(eventName), _ts(playerId), dataSerialized, dataSerialized.length)
+		};
+
+		global.TriggerClientEvent = TriggerClientEvent;
+		global.emitNet = TriggerClientEvent;
+	} else { // client
+		const TriggerServerEvent = function (name, ...args) {
+			const dataSerialized = pack(args);
+
+			_in('0x7fdd1128', name, dataSerialized, dataSerialized.length);
+		};
+
+		global.TriggerServerEvent = TriggerServerEvent;
+		global.emitNet = TriggerServerEvent;
+	}
 
 	/**
 	 * @param {string} name
