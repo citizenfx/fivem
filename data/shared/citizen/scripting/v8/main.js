@@ -131,7 +131,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	global.TriggerEvent = emit;
 
-	if (_in("0xcf24c52e", _r))  { // server
+	if (global.IsDuplicityVersion())  { // server
 		const TriggerClientEvent = function (eventName, playerId, ...args) {
 			const dataSerialized =  pack(args)
 
