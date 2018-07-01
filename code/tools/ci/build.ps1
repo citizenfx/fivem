@@ -329,14 +329,17 @@ if (!$DontBuild -and !$IsServer) {
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\caches\fivereborn\
     Copy-Item -Force -Recurse $WorkDir\data\client\* $WorkDir\caches\fivereborn\
 
-    Copy-Item -Exclude [string[]]@("adhesive.dll") -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
     Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
 
     Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
+    
+    if (Test-Path $WorkDir\caches\fivereborn\adhesive.dll) {
+        Remove-Item -Force $WorkDir\caches\fivereborn\adhesive.dll
+    }
 
     # build compliance stuff
     if ($env:COMPUTERNAME -eq "AVALON") {
-        Remove-Item -Force $WorkDir\caches\fivereborn\adhesive.dll
         Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $WorkDir\caches\fivereborn\adhesive.dll
 
         Push-Location C:\f\bci\
