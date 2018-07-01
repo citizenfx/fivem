@@ -18,7 +18,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	// store for use by natives.js
 	global.msgpack_unpack = unpack;
-	// global.msgpack_pack = pack;
+	global.msgpack_pack = pack;
 
 	/**
 	 * @param {Function} refFunction
