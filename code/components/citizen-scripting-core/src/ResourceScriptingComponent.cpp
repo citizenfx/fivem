@@ -179,6 +179,42 @@ void ResourceScriptingComponent::CreateEnvironments()
 		}
 	}
 
+	// initialize event handler calls
+	fwRefContainer<ResourceEventComponent> eventComponent = m_resource->GetComponent<ResourceEventComponent>();
+
+	assert(eventComponent.GetRef());
+
+	if (eventComponent.GetRef())
+	{
+		// pre-cache event-handling runtimes
+		std::vector<OMPtr<IScriptEventRuntime>> eventRuntimes;
+
+		for (auto& environmentPair : m_scriptRuntimes)
+		{
+			OMPtr<IScriptEventRuntime> ptr;
+
+			if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
+			{
+				eventRuntimes.push_back(ptr);
+			}
+		}
+
+		// add the event
+		eventComponent->OnTriggerEvent.Connect([=](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			// invoke the event runtime
+			for (auto&& runtime : eventRuntimes)
+			{
+				result_t hr;
+
+				if (FX_FAILED(hr = runtime->TriggerEvent(const_cast<char*>(eventName.c_str()), const_cast<char*>(eventPayload.c_str()), eventPayload.size(), const_cast<char*>(eventSource.c_str()))))
+				{
+					trace("Failed to execute event %s - %08x.\n", eventName.c_str(), hr);
+				}
+			}
+		});
+	}
+
 	// iterate over the runtimes and load scripts as requested
 	for (auto& environmentPair : m_scriptRuntimes)
 	{
@@ -214,42 +250,6 @@ void ResourceScriptingComponent::CreateEnvironments()
 				}
 			}
 		}
-	}
-
-	// initialize event handler calls
-	fwRefContainer<ResourceEventComponent> eventComponent = m_resource->GetComponent<ResourceEventComponent>();
-
-	assert(eventComponent.GetRef());
-
-	if (eventComponent.GetRef())
-	{
-		// pre-cache event-handling runtimes
-		std::vector<OMPtr<IScriptEventRuntime>> eventRuntimes;
-
-		for (auto& environmentPair : m_scriptRuntimes)
-		{
-			OMPtr<IScriptEventRuntime> ptr;
-
-			if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
-			{
-				eventRuntimes.push_back(ptr);
-			}
-		}
-
-		// add the event
-		eventComponent->OnTriggerEvent.Connect([=] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
-		{
-			// invoke the event runtime
-			for (auto&& runtime : eventRuntimes)
-			{
-				result_t hr;
-
-				if (FX_FAILED(hr = runtime->TriggerEvent(const_cast<char*>(eventName.c_str()), const_cast<char*>(eventPayload.c_str()), eventPayload.size(), const_cast<char*>(eventSource.c_str()))))
-				{
-					trace("Failed to execute event %s - %08x.\n", eventName.c_str(), hr);
-				}
-			}
-		});
 	}
 }
 }
