@@ -18,7 +18,7 @@
     "#Servers_Connecting": "Connecting",
     "#Servers_ConnectingTo": "Connecting to {{ serverName }}...",
     "#Servers_ConnectFailed": "Connection failed",
-    "#Servers_Error": "Ошибка",
+    "#Servers_Error": "Ошибка (Error)",
     "#Servers_CloseOverlay": "Close",
     "#Servers_CancelOverlay": "Cancel",
     "#Servers_Message": "{{ message }}",
