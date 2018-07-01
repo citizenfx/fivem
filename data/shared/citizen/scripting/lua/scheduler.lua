@@ -622,7 +622,9 @@ AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' o
 
 			AddEventHandler(getExportEventName(resource, exportName), function(setCB)
 				-- get the entry from *our* global table and invoke the set callback
-				setCB(_G[exportName])
+				if _G[exportName] then
+					setCB(_G[exportName])
+				end
 			end)
 		end
 	end
@@ -675,6 +677,12 @@ setmetatable(exports, {
 
 	__newindex = function(t, k, v)
 		error('cannot set values on exports')
+	end,
+
+	__call = function(t, exportName, func)
+		AddEventHandler(getExportEventName(GetCurrentResourceName(), exportName), function(setCB)
+			setCB(func)
+		end)
 	end
 })
 
