@@ -64,6 +64,13 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 	InputHook::OnWndProc(hwnd, uMsg, wParam, lParam, pass, lresult);
 
+	// prevent infinite looping of WM_IME_COMPOSITION caused by ImmSetCompositionStringW in game code
+	if (uMsg == WM_IME_COMPOSITION)
+	{
+		pass = false;
+		lresult = FALSE;
+	}
+
 	if (!pass)
 	{
 		return lresult;
