@@ -173,6 +173,24 @@ static HookFunction hookFunction([] ()
 	// OBJ_TO_NET
 	rage::scrEngine::RegisterNativeHandler(0x99BFDC94A603E541, getNetID);
 
+	// NETWORK_DOES_NETWORK_ID_EXIST
+	rage::scrEngine::RegisterNativeHandler(0x38CE16C96BD11344, [](rage::scrNativeCallContext* context)
+	{
+		auto objectId = context->GetArgument<int>(0);
+		auto object = getNetObjById(objectId);
+
+		context->SetResult<uint32_t>(0, object != nullptr);
+	});
+
+	// NETWORK_DOES_ENTITY_EXIST_WITH_NETWORK_ID
+	rage::scrEngine::RegisterNativeHandler(0x18A47D074708FD68, [](rage::scrNativeCallContext* context)
+	{
+		auto objectId = context->GetArgument<int>(0);
+		auto object = getNetObjById(objectId);
+
+		context->SetResult<uint32_t>(0, object && object->gameObject);
+	});
+
 	// CGameScriptHandlerObject::GetOwner vs. GetCurrentScriptHandler checks
 
 	// common pattern:
