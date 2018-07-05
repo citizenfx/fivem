@@ -42,7 +42,7 @@ public:
 
 	virtual void m_18() = 0;
 
-	virtual CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* playerData, void* nonPhysicalPlayerData) = 0;
+	virtual CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData) = 0;
 
 	virtual void RemovePlayer(CNetGamePlayer* player) = 0;
 };
@@ -193,7 +193,7 @@ namespace sync
 		void* phys = calloc(1024, 1);
 		((void(*)(void*))0x14106C040)(phys);
 
-		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, phys, nonphys);
+		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonphys);
 		g_tempRemotePlayer = player;
 
 		if (idx == -1)
