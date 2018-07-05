@@ -59,6 +59,16 @@ private:
 
 	uint64_t m_syncKey;
 
+	ID3D11Texture2D* m_parentTexture;
+
+	ID3D11Texture2D* m_swapTexture;
+
+	ID3D11RenderTargetView* m_swapRtv;
+
+	ID3D11ShaderResourceView* m_swapSrv;
+
+	HANDLE m_lastParentHandle;
+
 public:
 	inline int		GetWidth() { return m_width; }
 	inline int		GetHeight() { return m_height; }
@@ -105,4 +115,14 @@ public:
 	inline rage::grcTexture* GetTexture() { return m_nuiTexture; }
 
 	inline NUIPaintType GetPaintType() { return m_paintType; }
+
+	inline ID3D11Texture2D* GetParentTexture()
+	{
+		return m_parentTexture;
+	}
+
+	inline void SetParentTexture(ID3D11Texture2D* texture)
+	{
+		m_parentTexture = texture;
+	}
 };

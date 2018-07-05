@@ -21,24 +21,12 @@ private:
 
 	fwRefContainer<NUIWindow> m_rootWindow;
 
-	ID3D11Texture2D* m_parentTexture;
-
 public:
 	void AddWindow(NUIWindow* window);
 
 	void ForAllWindows(std::function<void(fwRefContainer<NUIWindow>)> callback);
 
 	void RemoveWindow(NUIWindow* window);
-
-	inline ID3D11Texture2D* GetParentTexture()
-	{
-		return m_parentTexture;
-	}
-
-	inline void SetParentTexture(ID3D11Texture2D* texture)
-	{
-		m_parentTexture = texture;
-	}
 
 public:
 	inline fwRefContainer<NUIWindow> GetRootWindow() { return m_rootWindow; }

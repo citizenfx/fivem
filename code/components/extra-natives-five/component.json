@@ -8,7 +8,8 @@
 		"gta:streaming:five",
 		"rage:graphics:five",
 		"scrbind:base",
-		"citizen:scripting:core"
+		"citizen:scripting:core",
+		"nui:core"
 	],
 	"provides": []
 }

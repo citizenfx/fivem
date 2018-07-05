@@ -19,6 +19,8 @@
 #include <wrl.h>
 #include <wincodec.h>
 
+#include <CefOverlay.h>
+
 using Microsoft::WRL::ComPtr;
 
 class RuntimeTex
@@ -27,6 +29,8 @@ public:
 	RuntimeTex(const char* name, int width, int height);
 
 	RuntimeTex(rage::grcTexture* texture, const void* data, size_t size);
+
+	RuntimeTex(rage::grcTexture* texture);
 
 	virtual ~RuntimeTex();
 
@@ -64,6 +68,8 @@ public:
 
 	RuntimeTex* CreateTextureFromImage(const char* name, const char* fileName);
 
+	RuntimeTex* CreateTextureFromDui(const char* name, const char* duiHandle);
+
 private:
 	uint32_t m_txdIndex;
 	std::string m_name;
@@ -100,6 +106,12 @@ RuntimeTex::RuntimeTex(rage::grcTexture* texture, const void* data, size_t size)
 {
 	m_backingPixels.resize(size);
 	memcpy(&m_backingPixels[0], data, m_backingPixels.size());
+}
+
+RuntimeTex::RuntimeTex(rage::grcTexture* texture)
+	: m_texture(texture)
+{
+	m_backingPixels.resize(0);
 }
 
 RuntimeTex::~RuntimeTex()
@@ -207,6 +219,27 @@ RuntimeTex* RuntimeTxd::CreateTexture(const char* name, int width, int height)
 	}
 
 	auto tex = std::make_shared<RuntimeTex>(name, width, height);
+	m_txd->Add(name, tex->GetTexture());
+
+	m_textures[name] = tex;
+
+	scrBindAddSafePointer(tex.get());
+	return tex.get();
+}
+
+RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHandle)
+{
+	if (!m_txd)
+	{
+		return nullptr;
+	}
+
+	if (m_textures.find(name) != m_textures.end())
+	{
+		return nullptr;
+	}
+
+	auto tex = std::make_shared<RuntimeTex>(nui::GetWindowTexture(duiHandle));
 	m_txd->Add(name, tex->GetTexture());
 
 	m_textures[name] = tex;
@@ -384,7 +417,8 @@ static InitFunction initFunction([]()
 	scrBindClass<RuntimeTxd>()
 		.AddConstructor<void(*)(const char*)>("CREATE_RUNTIME_TXD")
 		.AddMethod("CREATE_RUNTIME_TEXTURE", &RuntimeTxd::CreateTexture)
-		.AddMethod("CREATE_RUNTIME_TEXTURE_FROM_IMAGE", &RuntimeTxd::CreateTextureFromImage);
+		.AddMethod("CREATE_RUNTIME_TEXTURE_FROM_IMAGE", &RuntimeTxd::CreateTextureFromImage)
+		.AddMethod("CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE", &RuntimeTxd::CreateTextureFromDui);
 
 	scrBindClass<RuntimeTex>()
 		.AddMethod("GET_RUNTIME_TEXTURE_WIDTH", &RuntimeTex::GetWidth)

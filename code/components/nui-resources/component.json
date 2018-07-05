@@ -5,7 +5,9 @@
 		"fx[2]",
 		"citizen:resources:client",
 		"nui:core",
-		"citizen:scripting:core"
+		"scrbind:base",
+		"citizen:scripting:core",
+		"gta:streaming:five"
 	],
 	"provides": []
 }

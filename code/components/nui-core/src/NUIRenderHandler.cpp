@@ -30,8 +30,11 @@ NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 
 bool NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 {
-	NUIWindow* window = m_owner->GetWindow();
-	rect.Set(0, 0, window->GetWidth(), window->GetHeight());
+	if (m_owner->GetWindowValid())
+	{
+		NUIWindow* window = m_owner->GetWindow();
+		rect.Set(0, 0, window->GetWidth(), window->GetHeight());
+	}
 
 	return true;
 }
@@ -54,7 +57,10 @@ void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintEl
 {
 	if (type == PET_VIEW)
 	{
-		m_owner->GetWindow()->UpdateSharedResource(shared_handle, sync_key, dirtyRects);
+		if (m_owner->GetWindowValid())
+		{
+			m_owner->GetWindow()->UpdateSharedResource(shared_handle, sync_key, dirtyRects);
+		}
 	}
 }
 

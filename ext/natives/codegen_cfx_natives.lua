@@ -48,6 +48,24 @@ Creates a blank runtime texture.
 <returns>A runtime texture handle.</returns>
 ]]
 
+native 'CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE'
+	arguments {
+		long 'txd',
+		long 'txn',
+		charPtr 'duiHandle'
+	}
+	apiset 'client'
+	returns 'long'
+	doc [[
+<summary>
+Creates a runtime texture from a DUI handle.
+</summary>
+<param name="txd">A handle to the runtime TXD to create the runtime texture in.</param>
+<param name="txn">The name for the texture in the runtime texture dictionary.</param>
+<param name="duiHandle">The DUI handle returned from GET\_DUI\_HANDLE.</param>
+<returns>The runtime texture handle.</returns>
+]]
+
 native 'CREATE_RUNTIME_TEXTURE_FROM_IMAGE'
 	arguments {
 		long 'txd',
@@ -153,6 +171,159 @@ native 'COMMIT_RUNTIME_TEXTURE'
 Commits the backing pixels to the specified runtime texture.
 </summary>
 <param name="tex">The runtime texture handle.</param>
+]]
+
+native 'CREATE_DUI'
+	arguments {
+		charPtr 'url',
+		int 'width',
+		int 'height'
+	}
+	apiset 'client'
+	returns 'long'
+	doc [[
+<summary>
+Creates a DUI browser. This can be used to draw on a runtime texture using CREATE\_RUNTIME\_TEXTURE\_FROM\_DUI\_HANDLE.
+</summary>
+<param name="url">The initial URL to load in the browser.</param>
+<param name="width">The width of the backing surface.</param>
+<param name="height">The height of the backing surface.</param>
+<returns>A DUI object.</returns>
+]]
+
+native 'SET_DUI_URL'
+	arguments {
+		long 'duiObject',
+		charPtr 'url'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Navigates the specified DUI browser to a different URL.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<param name="url">The new URL.</param>
+]]
+
+native 'SEND_DUI_MESSAGE'
+	arguments {
+		long 'duiObject',
+		charPtr 'jsonString'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Sends a message to the specific DUI root page. This is similar to SEND\_NUI\_MESSAGE.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<param name="jsonString">The message, encoded as JSON.</param>
+]]
+
+native 'GET_DUI_HANDLE'
+	arguments {
+		long 'duiObject'
+	}
+	apiset 'client'
+	returns 'charPtr'
+	doc [[
+<summary>
+Returns the NUI window handle for a specified DUI browser object.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<returns>The NUI window handle, for use in e.g. CREATE\_RUNTIME\_TEXTURE\_FROM\_DUI\_HANDLE.</returns>
+]]
+
+native 'IS_DUI_AVAILABLE'
+	arguments {
+		long 'duiObject'
+	}
+	apiset 'client'
+	returns 'BOOL'
+	doc [[
+<summary>
+Returns whether or not a browser is created for a specified DUI browser object.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<returns>A boolean indicating TRUE if the browser is created.</returns>
+]]
+
+native 'SEND_DUI_MOUSE_MOVE'
+	arguments {
+		long 'duiObject',
+		int 'x',
+		int 'y'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Injects a 'mouse move' event for a DUI object. Coordinates are in browser space.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<param name="x">The mouse X position.</param>
+<param name="y">The mouse Y position.</param>
+]]
+
+native 'SEND_DUI_MOUSE_DOWN'
+	arguments {
+		long 'duiObject',
+		charPtr 'button'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Injects a 'mouse down' event for a DUI object. Coordinates are expected to be set using SEND\_DUI\_MOUSE\_MOVE.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<param name="button">Either `'left'`, `'middle'` or `'right'`.</param>
+]]
+
+native 'SEND_DUI_MOUSE_UP'
+	arguments {
+		long 'duiObject',
+		charPtr 'button'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Injects a 'mouse up' event for a DUI object. Coordinates are expected to be set using SEND\_DUI\_MOUSE\_MOVE.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<param name="button">Either `'left'`, `'middle'` or `'right'`.</param>
+]]
+
+native 'SEND_DUI_MOUSE_WHEEL'
+	arguments {
+		long 'duiObject',
+		int 'deltaY',
+		int 'deltaX'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Injects a 'mouse wheel' event for a DUI object.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
+<param name="deltaY">The wheel Y delta.</param>
+<param name="deltaX">The wheel X delta.</param>
+]]
+
+native 'DESTROY_DUI'
+	arguments {
+		long 'duiObject'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Destroys a DUI browser.
+</summary>
+<param name="duiObject">The DUI browser handle.</param>
 ]]
 
 native 'IS_DUPLICITY_VERSION'

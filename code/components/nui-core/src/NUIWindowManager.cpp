@@ -21,12 +21,14 @@ void NUIWindowManager::ForAllWindows(std::function<void(fwRefContainer<NUIWindow
 {
 	m_nuiWindowMutex.lock();
 
-	for (auto& window : m_nuiWindows)
+	auto windowsCopy = m_nuiWindows;
+
+	m_nuiWindowMutex.unlock();
+
+	for (auto& window : windowsCopy)
 	{
 		callback(window);
 	}
-
-	m_nuiWindowMutex.unlock();
 }
 
 void NUIWindowManager::RemoveWindow(NUIWindow* window)
