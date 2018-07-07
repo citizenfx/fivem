@@ -201,10 +201,12 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 				auto objId = buf.Read<uint16_t>();
 				auto timestamp = buf.Read<uint32_t>();
 
-				auto netObj = m_savedEntities[objId];
+				auto netObjIt = m_savedEntities.find(objId);
 
-				if (netObj)
+				if (netObjIt != m_savedEntities.end())
 				{
+					auto netObj = netObjIt->second;
+
 					auto syncTree = netObj->GetSyncTree();
 
 					if (netObj->m_20())
@@ -224,7 +226,7 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 				{
 					rage::netObject* netObj = object.second;
 
-					if (!netObj->syncData.isRemote)
+					if (netObj && !netObj->syncData.isRemote)
 					{
 						auto syncTree = netObj->GetSyncTree();
 
