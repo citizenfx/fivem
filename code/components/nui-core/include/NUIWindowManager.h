@@ -15,7 +15,7 @@
 class NUIWindowManager
 {
 private:
-	std::vector<NUIWindow*> m_nuiWindows;
+	std::vector<fwRefContainer<NUIWindow>> m_nuiWindows;
 
 	std::mutex m_nuiWindowMutex;
 
