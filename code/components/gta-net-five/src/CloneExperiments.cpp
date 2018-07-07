@@ -431,6 +431,19 @@ static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, 
 	return rv;
 }
 
+static bool m168Stub(rage::netObject* object, int* outReason)
+{
+	int reason;
+	bool rv = object->m_168(&reason);
+
+	if (!rv)
+	{
+		//trace("couldn't blend object for reason %d\n", reason);
+	}
+
+	return rv;
+}
+
 static void(*g_origEjectPedFromVehicle)(char* vehicle, char* ped, uint8_t a3, uint8_t a4);
 
 static void EjectPedFromVehicleStub(char* vehicle, char* ped, uint8_t a3, uint8_t a4)
@@ -497,6 +510,12 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern("44 89 BE B4 00 00 00 FF 90", 7);
 		hook::nop(location, 6);
 		hook::call(location, m158Stub);
+	}
+
+	{
+		auto location = hook::get_pattern("48 8B CF FF 90 68 01 00 00 84 C0 74 12 48 8B CF", 3);
+		hook::nop(location, 6);
+		hook::call(location, m168Stub);
 	}
 
 	// 1290
@@ -1057,6 +1076,93 @@ static HookFunction hookFunction2([]()
 	}
 });
 
+static uint32_t(*g_origGetNetworkTime)(void*);
+
+static struct timeState_s
+{
+	int64_t serverTimeDelta;
+	uint64_t oldServerTime;
+	uint64_t serverTime;
+
+	uint32_t lastTime;
+} timeState;
+
+#include <mmsystem.h>
+
+void UpdateTime(uint64_t serverTime, bool isInit = false)
+{
+	timeState.serverTime = serverTime;
+
+	if (isInit)
+	{
+		timeState.serverTimeDelta = serverTime - timeGetTime();
+		timeState.oldServerTime = serverTime;
+
+		timeState.lastTime = 0;
+
+		return;
+	}
+
+	int resetTime = 500;
+
+	int64_t newDelta = serverTime - timeGetTime();
+	int64_t deltaDelta = abs(newDelta - timeState.serverTimeDelta);
+
+	if (deltaDelta > resetTime)
+	{
+		timeState.serverTimeDelta = newDelta;
+		timeState.oldServerTime = serverTime;
+		timeState.serverTime = serverTime;
+	}
+	else if (deltaDelta > 100)
+	{
+		timeState.serverTimeDelta = (timeState.serverTimeDelta + newDelta) >> 1;
+	}
+	else
+	{
+		timeState.serverTimeDelta++;
+	}
+}
+
+uint32_t GetRemoteTime()
+{
+	uint32_t remoteTime = uint32_t(uint64_t(timeGetTime()) + timeState.serverTimeDelta);
+
+	if (remoteTime < timeState.lastTime)
+	{
+		remoteTime = timeState.lastTime;
+	}
+
+	timeState.lastTime = remoteTime;
+
+	return remoteTime;
+}
+
+static uint32_t GetNetworkTime(void* netTime)
+{
+	uint32_t origTime = g_origGetNetworkTime(netTime);
+
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return origTime;
+	}
+
+	if (!g_netLibrary || g_netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
+	{
+		return origTime;
+	}
+
+	return GetRemoteTime();
+}
+
+static HookFunction hookFunctionTime([]()
+{
+	//hook::jump(, GetNetworkTime);
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("F6 C2 01 74 28 03 43 24", -0x14), GetNetworkTime, (void**)&g_origGetNetworkTime);
+	MH_EnableHook(MH_ALL_HOOKS);
+});
+
 int ObjectToEntity(int objectId)
 {
 	int playerIdx = (objectId >> 16) - 1;
@@ -1125,6 +1231,14 @@ static InitFunction initFunction([]()
 
 		EventManager_Update();
 		TheClones->Update();
+	});
+
+	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
+	{
+		lib->OnConnectOKReceived.Connect([](NetAddress)
+		{
+			UpdateTime(g_netLibrary->GetServerInitTime(), true);
+		});
 	});
 
 	OnKillNetworkDone.Connect([]()

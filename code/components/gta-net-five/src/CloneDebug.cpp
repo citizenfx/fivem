@@ -9,6 +9,7 @@
 
 #include <CoreConsole.h>
 
+#include <netBlender.h>
 #include <netObjectMgr.h>
 #include <CloneManager.h>
 
@@ -308,6 +309,16 @@ void RenderNetObjectDetail(rage::netObject* netObject)
 	ImGui::Text("Object owner: %d", netObject->syncData.ownerId);
 	ImGui::Text("Is remote: %s", netObject->syncData.isRemote ? "true" : "false");
 	ImGui::Text("Game object: %s", netObject->GetGameObject() ? DescribeGameObject(netObject->GetGameObject()) : "NULL");
+	
+	if (ImGui::Button("Force blend"))
+	{
+		auto blender = netObject->GetBlender();
+
+		if (blender)
+		{
+			blender->ApplyBlend();
+		}
+	}
 }
 
 void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* node)
@@ -357,6 +368,8 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 	ImGui::Columns(1);
 }
 
+uint32_t GetRemoteTime();
+
 static InitFunction initFunction([]()
 {
 	static bool netViewerEnabled;
@@ -365,11 +378,20 @@ static InitFunction initFunction([]()
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled;
+		*should = *should || netViewerEnabled;// || true;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
+		/*static bool timeOpen = true;
+		
+		if (ImGui::Begin("Time", &timeOpen))
+		{
+			ImGui::Text("%d", GetRemoteTime());
+		}
+
+		ImGui::End();*/
+
 		if (!netViewerEnabled)
 		{
 			return;

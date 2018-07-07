@@ -144,6 +144,8 @@ private:
 
 	uint32_t m_hostBase;
 
+	uint64_t m_serverTime;
+
 	volatile ConnectionState m_connectionState;
 
 	ConnectionState m_lastConnectionState;
@@ -223,7 +225,7 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
-	void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID) override;
+	void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID, uint64_t serverTime) override;
 
 	bool GetOutgoingPacket(RoutingPacket& packet) override;
 
@@ -286,6 +288,11 @@ public:
 	inline void SetConnectionState(int state) override
 	{
 		m_connectionState = (ConnectionState)state;
+	}
+
+	inline uint64_t GetServerInitTime()
+	{
+		return m_serverTime;
 	}
 
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);

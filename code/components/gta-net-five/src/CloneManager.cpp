@@ -43,6 +43,8 @@ CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
 
+void UpdateTime(uint64_t serverTime, bool isInit = false);
+
 static bool g_doShit;
 
 #include <CoreConsole.h>
@@ -207,12 +209,15 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 				{
 					auto netObj = netObjIt->second;
 
-					auto syncTree = netObj->GetSyncTree();
-
-					if (netObj->m_20())
+					if (netObj)
 					{
-						// 1290
-						((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, netObj, 31, 0 /* seq? */, timestamp, 0xFFFFFFFF);
+						auto syncTree = netObj->GetSyncTree();
+
+						if (netObj->m_20())
+						{
+							// 1290
+							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, netObj, 31, 0 /* seq? */, timestamp, 0xFFFFFFFF);
+						}
 					}
 				}
 				break;
@@ -398,6 +403,16 @@ void msgPackedClones::Read(net::Buffer& buffer)
 				m_clones.push_back(std::move(clone));
 				break;
 			}
+			case 5:
+			{
+				uint32_t msecLow = msgBuf.Read<uint32_t>(32);
+				uint32_t msecHigh = msgBuf.Read<uint32_t>(32);
+
+				uint64_t serverTime = ((uint64_t(msecHigh) << 32) | msecLow);
+				UpdateTime(serverTime);
+
+				break;
+			}
 			case 7:
 				end = true;
 				break;
@@ -549,7 +564,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		}
 		else
 		{
-			auto player = GetPlayerByNetId(extData.clientId);
+			auto player = GetPlayerByNetId(clientId);
 
 			if (player)
 			{

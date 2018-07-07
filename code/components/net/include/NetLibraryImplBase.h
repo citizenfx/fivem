@@ -56,7 +56,7 @@ public:
 
 	virtual void HandleReliableCommand(uint32_t msgType, const char* buf, size_t length) = 0;
 
-	virtual void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID) = 0;
+	virtual void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID, uint64_t serverTime) = 0;
 
 	virtual void EnqueueRoutedPacket(uint16_t netID, const std::string& packet) = 0;
 

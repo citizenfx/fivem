@@ -356,11 +356,12 @@ namespace fx
 					auto host = m_clientRegistry->GetHost();
 
 					auto outStr = fmt::sprintf(
-						" %d %d %d %d",
+						" %d %d %d %d %lld",
 						client->GetNetId(),
 						(host) ? host->GetNetId() : -1,
 						(host) ? host->GetNetBase() : -1,
-						(g_oneSyncVar->GetValue()) ? client->GetSlotId() : -1);
+						(g_oneSyncVar->GetValue()) ? client->GetSlotId() : -1,
+						(g_oneSyncVar->GetValue()) ? msec().count() : -1);
 
 					outMsg.Write(outStr.c_str(), outStr.size());
 

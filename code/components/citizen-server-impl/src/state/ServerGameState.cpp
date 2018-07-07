@@ -198,6 +198,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 		};
 
+		uint64_t time = msec().count();
+
+		cloneBuffer.Write(3, 5);
+		cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
+		cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
+		maybeFlushBuffer();
+
 		int numCreates = 0, numSyncs = 0, numSkips = 0;
 
 		for (auto& entityPair : m_entities)
@@ -591,7 +598,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	if (!client->GetData("timestamp").has_value())
 	{
-		client->SetData("timestamp", int64_t(timestamp - msec().count()));
+		//client->SetData("timestamp", int64_t(timestamp - msec().count()));
+		client->SetData("timestamp", int64_t(timestamp));
 	}
 
 	// move this back down under

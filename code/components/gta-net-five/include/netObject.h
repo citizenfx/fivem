@@ -117,7 +117,7 @@ public:
 	virtual void m_150() = 0;
 	virtual bool m_158(void* player, int type, int* outReason) = 0;
 	virtual void m_160() = 0;
-	virtual void m_168() = 0;
+	virtual bool m_168(int* outReason) = 0;
 	virtual void m_170() = 0;
 	virtual void m_178() = 0;
 	virtual void m_180() = 0;

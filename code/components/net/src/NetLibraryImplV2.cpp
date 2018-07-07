@@ -292,7 +292,19 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
 			slotIDStr = "-1";
 		}
 
-		m_base->HandleConnected(atoi(clientNetIDStr), atoi(hostIDStr), atoi(hostBaseStr), atoi(slotIDStr));
+		char* timeStr = strchr(slotIDStr, ' ');
+
+		if (timeStr)
+		{
+			timeStr[0] = '\0';
+			timeStr++;
+		}
+		else
+		{
+			timeStr = "-1";
+		}
+
+		m_base->HandleConnected(atoi(clientNetIDStr), atoi(hostIDStr), atoi(hostBaseStr), atoi(slotIDStr), _strtoi64(timeStr, nullptr, 10));
 
 		return;
 	}

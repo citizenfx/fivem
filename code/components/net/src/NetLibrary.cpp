@@ -57,12 +57,13 @@ uint16_t NetLibrary::GetHostNetID()
 	return m_hostNetID;
 }
 
-void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID)
+void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID, uint64_t serverTime)
 {
 	m_serverNetID = serverNetID;
 	m_hostNetID = hostNetID;
 	m_hostBase = hostBase;
 	m_serverSlotID = slotID;
+	m_serverTime = serverTime;
 
 	trace("connectOK, our id %d (slot %d), host id %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
 
