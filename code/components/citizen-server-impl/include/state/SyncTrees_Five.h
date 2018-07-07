@@ -188,6 +188,8 @@ struct NodeWrapper : public NodeBase
 	{
 		bool hasData = (length > 0);
 
+		//state.buffer.Write(8, 0x5A);
+
 		if (shouldWrite(state, TIds::GetIds(), (hasData && !ackedPlayers.test(state.client->GetSlotId()))))
 		{
 			//trace("writing out node %s\n", boost::typeindex::type_id<TNode>().pretty_name());

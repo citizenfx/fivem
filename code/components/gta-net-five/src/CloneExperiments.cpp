@@ -950,6 +950,25 @@ std::string GetType(void* d)
 	return typeName;
 }
 
+static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object);
+
+static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origReadDataNode(node, flags, mA0, buffer, object);
+	}
+
+	/*if (flags == 1 || flags == 2)
+	{
+		uint32_t in;
+		buffer->ReadInteger(&in, 8);
+		assert(in == 0x5A);
+	}*/
+
+	return g_origReadDataNode(node, flags, mA0, buffer, object);
+}
+
 static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
@@ -993,6 +1012,26 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 	}
 }
 
+static void(*g_origUpdateSyncDataOn108)(void* node, void* object);
+
+static void UpdateSyncDataOn108Stub(void* node, void* object)
+{
+	//if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		g_origUpdateSyncDataOn108(node, object);
+	}
+}
+
+static void(*g_origCallSkip)(void* a1, void* a2, void* a3, void* a4, void* a5);
+
+static void SkipCopyIf1s(void* a1, void* a2, void* a3, void* a4, void* a5)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		g_origCallSkip(a1, a2, a3, a4, a5);
+	}
+}
+
 static HookFunction hookFunction2([]()
 {
 	// 2 matches, 1st is data, 2nd is parent
@@ -1000,6 +1039,21 @@ static HookFunction hookFunction2([]()
 		auto location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
 		hook::set_call(&g_origWriteDataNode, location + 0x41);
 		hook::jump(location, WriteDataNodeStub);
+	}
+
+	{
+		auto location = hook::get_pattern("48 8B 03 48 8B D6 48 8B CB EB 06", -0x48);
+		MH_Initialize();
+		MH_CreateHook(location, ReadDataNodeStub, (void**)&g_origReadDataNode);
+
+		{
+			auto floc = hook::get_pattern<char>("84 C0 0F 84 39 01 00 00 48 83 7F", -0x29);
+			hook::set_call(&g_origCallSkip, floc + 0xD9);
+			hook::call(floc + 0xD9, SkipCopyIf1s);
+			MH_CreateHook(floc, UpdateSyncDataOn108Stub, (void**)&g_origUpdateSyncDataOn108);
+		}
+
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 });
 

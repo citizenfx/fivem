@@ -21,7 +21,11 @@
 
 #include <chrono>
 
+#include <Hooking.h>
+
 void ObjectIds_AddObjectId(int objectId);
+
+void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
 
 using namespace std::chrono_literals;
 
@@ -29,6 +33,11 @@ inline std::chrono::milliseconds msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
+
+static hook::cdecl_stub<uint32_t()> _getNetAckTimestamp([]()
+{
+	return hook::get_pattern("3B CA 76 02 FF", -0x31);
+});
 
 CNetGamePlayer* GetLocalPlayer();
 
@@ -183,6 +192,49 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 			{
 				auto objId = buf.Read<uint16_t>();
 				m_trackedObjects[objId].lastSyncAck = msec();
+
+				break;
+			}
+			// sync ack?
+			case 2:
+			{
+				auto objId = buf.Read<uint16_t>();
+				auto timestamp = buf.Read<uint32_t>();
+
+				auto netObj = m_savedEntities[objId];
+
+				if (netObj)
+				{
+					auto syncTree = netObj->GetSyncTree();
+
+					if (netObj->m_20())
+					{
+						// 1290
+						((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, netObj, 31, 0 /* seq? */, timestamp, 0xFFFFFFFF);
+					}
+				}
+				break;
+			}
+			// timestamp ack?
+			case 5:
+			{
+				auto timestamp = buf.Read<uint32_t>();
+
+				for (auto& object : m_savedEntities)
+				{
+					rage::netObject* netObj = object.second;
+
+					if (!netObj->syncData.isRemote)
+					{
+						auto syncTree = netObj->GetSyncTree();
+
+						if (netObj->m_20())
+						{
+							// 1290
+							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, netObj, 31, 0 /* seq? */, timestamp, 0xFFFFFFFF);
+						}
+					}
+				}
 
 				break;
 			}
@@ -419,6 +471,8 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		return;
 	}
 
+	AssociateSyncTree(obj->objectId, syncTree);
+
 	// apply object creation
 	syncTree->ApplyToObject(obj, nullptr);
 
@@ -545,6 +599,8 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 			obj->GetBlender()->m_28();
 		}
 	}
+
+	AssociateSyncTree(obj->objectId, syncTree);
 
 	// apply to object
 	syncTree->ApplyToObject(obj, nullptr);
@@ -713,9 +769,11 @@ void CloneManagerLocal::WriteUpdates()
 
 	{
 		uint32_t timestamp = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+		uint32_t ackTimestamp = _getNetAckTimestamp();
 
 		m_sendBuffer.Write(3, 5);
 		m_sendBuffer.Write(32, timestamp);
+		m_sendBuffer.Write(32, ackTimestamp);
 	}
 
 	// collect object IDs that we have seen this time
@@ -835,12 +893,15 @@ void CloneManagerLocal::WriteUpdates()
 			}
 
 			// write tree
-			syncTree->WriteTree(syncType, 0, object, &rlBuffer, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp(), nullptr, 31, nullptr);
+			syncTree->WriteTreeCfx(syncType, 0, object, &rlBuffer, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp(), nullptr, 31, nullptr);
+
+			AssociateSyncTree(object->objectId, syncTree);
 
 			// instantly mark player 31 as acked
 			if (object->m_20())
 			{
-				((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
+				// 1290
+				//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
 			}
 
 			// write header to send buffer

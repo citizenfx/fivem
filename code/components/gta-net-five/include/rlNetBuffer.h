@@ -43,6 +43,8 @@ public:
 		return (m_curBit / 8) + leftoverBit;
 	}
 
+	bool ReadInteger(uint32_t* integer, int bits);
+
 	bool WriteInteger(uint32_t integer, int bits);
 
 	bool WriteBit(bool bit);

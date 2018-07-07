@@ -13,7 +13,9 @@
 		"citizen:scripting:core",
 		"scripting",
 		"vendor:msgpack-c",
-		"vendor:lz4"
+		"vendor:lz4",
+		"vendor:imgui",
+		"conhost"
 	],
 	"provides": []
 }

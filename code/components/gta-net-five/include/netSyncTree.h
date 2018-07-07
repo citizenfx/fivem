@@ -35,7 +35,7 @@ public:
 
 	virtual void m_18() = 0;
 
-	virtual void m_20() = 0;
+	virtual void m_20(uint32_t, uint32_t, rage::netBuffer*, void*) = 0;
 
 	virtual void m_28() = 0;
 
@@ -51,7 +51,7 @@ public:
 
 	virtual void m_58() = 0;
 
-	virtual void m_60() = 0;
+	virtual void m_60(rage::netObject* object, void*, uint8_t) = 0;
 
 	virtual void m_68() = 0;
 
@@ -87,6 +87,11 @@ public:
 	bool CanApplyToObject(netObject* object);
 
 	bool ReadFromBuffer(int flags, int flags2, rage::netBuffer* buffer, void* netLogStub);
+
+	inline void WriteTreeCfx(int flags, int objFlags, netObject* object, netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
+	{
+		WriteTree(flags, objFlags, object, buffer, time, logger, targetPlayer, outNull);
+	}
 
 public:
 	static netSyncTree* GetForType(NetObjEntityType type);

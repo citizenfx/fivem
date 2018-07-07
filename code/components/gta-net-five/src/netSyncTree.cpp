@@ -18,6 +18,11 @@ static hook::cdecl_stub<bool(rage::netSyncTree* self, rage::netObject* obj)> net
 	return hook::get_pattern("49 8B CE FF 50 70 84 C0 74 31 33 FF", -0x2C);
 });
 
+static hook::cdecl_stub<bool(rage::netSyncTree* self, rage::netObject* obj)> netSyncTree_PrepareObject([]()
+{
+	return hook::get_pattern("48 85 D2 74 4E 48 8B 02 48 8B CA", -0x21);
+});
+
 namespace rage
 {
 	bool netSyncTree::CanApplyToObject(netObject * object)

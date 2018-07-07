@@ -433,6 +433,22 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	{
 		m_objectIdsSent.reset(objectId);
 	}
+
+	// remove ACKs for this client
+	for (auto& entityPair : m_entities)
+	{
+		auto entity = entityPair.second;
+
+		if (entity && entity->syncTree)
+		{
+			entity->syncTree->Visit([&client](sync::NodeBase& node)
+			{
+				node.ackedPlayers.reset(client->GetSlotId());
+
+				return true;
+			});
+		}
+	}
 }
 
 void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket)
@@ -448,7 +464,20 @@ void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& clie
 
 void ServerGameState::ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket)
 {
-	ProcessClonePacket(client, inPacket, 2, nullptr);
+	uint16_t objectId = 0;
+	ProcessClonePacket(client, inPacket, 2, &objectId);
+
+	uint32_t ackTimestamp = 0;
+
+	if (auto tsData = client->GetData("ackTs"); tsData.has_value())
+	{
+		ackTimestamp = std::any_cast<uint32_t>(tsData);
+	}
+
+	// #TODO1S: pack timestamps better
+	ackPacket.Write<uint8_t>(2);
+	ackPacket.Write<uint16_t>(objectId);
+	ackPacket.Write<uint32_t>(ackTimestamp);
 }
 
 void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket)
@@ -628,6 +657,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	{
 		*outObjectId = objectId;
 	}
+
+	
 }
 
 static std::optional<net::Buffer> UncompressClonePacket(const std::vector<uint8_t>& packetData)
@@ -704,8 +735,19 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 			ProcessCloneTakeover(client, msgBuf);
 			break;
 		case 5: // set timestamp
-			client->SetData("syncTs", msgBuf.Read<uint32_t>(32));
+		{
+			auto newTs = msgBuf.Read<uint32_t>(32);
+			auto ackTs = msgBuf.Read<uint32_t>(32); // the game uses different time bases for these
+
+			// #TODO1S: investigate unifying these timestamps
+
+			/*ackPacket.Write<uint8_t>(5);
+			ackPacket.Write<uint32_t>(ackTs);*/
+
+			client->SetData("ackTs", ackTs);
+			client->SetData("syncTs", newTs);
 			break;
+		}
 		case 7: // end
 			end = true;
 			break;
