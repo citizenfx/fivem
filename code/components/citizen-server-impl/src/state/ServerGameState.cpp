@@ -441,6 +441,8 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 		if (entity && entity->syncTree)
 		{
+			entity->ackedCreation.reset(client->GetSlotId());
+
 			entity->syncTree->Visit([&client](sync::NodeBase& node)
 			{
 				node.ackedPlayers.reset(client->GetSlotId());
