@@ -595,7 +595,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	// move this back down under
 	client->SetData("playerId", playerId);
 
-	if (objectType == sync::NetObjEntityType::Train)
+	if (parsingType == 1 && objectType == sync::NetObjEntityType::Train)
 	{
 		if (outObjectId)
 		{
