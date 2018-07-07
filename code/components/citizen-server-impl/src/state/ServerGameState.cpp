@@ -590,6 +590,16 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	// move this back down under
 	client->SetData("playerId", playerId);
 
+	if (objectType == sync::NetObjEntityType::Train)
+	{
+		if (outObjectId)
+		{
+			*outObjectId = objectId;
+		}
+
+		return;
+	}
+
 	std::vector<uint8_t> bitBytes(length);
 	inPacket.ReadBits(&bitBytes[0], bitBytes.size() * 8);
 
@@ -970,6 +980,11 @@ static InitFunction initFunction([]()
 				if (entity.second)
 				{
 					auto entityRef = entity.second;
+
+					if (!entityRef->syncTree)
+					{
+						continue;
+					}
 
 					bool hasCreated = entityRef->ackedCreation.test(client->GetSlotId()) || client->GetNetId() == entityRef->client.lock()->GetNetId();
 
