@@ -335,6 +335,34 @@ native 'IS_DUPLICITY_VERSION'
 <returns>A boolean value.</returns>
 ]]
 
+native 'ADD_REPLACE_TEXTURE'
+	arguments {
+		charPtr 'origTxd',
+		charPtr 'origTxn',
+		charPtr 'newTxd',
+		charPtr 'newTxn',
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Experimental natives, please do not use in a live environment.
+</summary>
+]]
+
+native 'REMOVE_REPLACE_TEXTURE'
+	arguments {
+		charPtr 'origTxd',
+		charPtr 'origTxn'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+<summary>
+Experimental natives, please do not use in a live environment.
+</summary>
+]]
+
 native 'TRIGGER_EVENT_INTERNAL'
 	arguments {
 		charPtr 'eventName',

@@ -304,6 +304,56 @@ void RagePresentWrap()
 	return g_origPresent();
 }
 
+static SRWLOCK g_textureOverridesLock = SRWLOCK_INIT;
+static std::unordered_map<rage::grcTexture*, rage::grcTexture*> g_textureOverrides;
+
+static void(*g_origSetTexture)(void* a1, void* a2, int index, rage::grcTexture* texture);
+
+static void SetTextureHook(void* a1, void* a2, int index, rage::grcTexture* texture)
+{
+	if (texture)
+	{
+		if (!g_textureOverrides.empty())
+		{
+			AcquireSRWLockShared(&g_textureOverridesLock);
+
+			auto it = g_textureOverrides.find(texture);
+
+			if (it != g_textureOverrides.end())
+			{
+				texture = it->second;
+			}
+
+			ReleaseSRWLockShared(&g_textureOverridesLock);
+		}
+	}
+
+	g_origSetTexture(a1, a2, index, texture);
+}
+
+static void(*g_origGrcTextureDtor)(void*);
+
+static void grcTextureDtorHook(rage::grcTexture* self)
+{
+	RemoveTextureOverride(self);
+
+	g_origGrcTextureDtor(self);
+}
+
+void AddTextureOverride(rage::grcTexture* orig, rage::grcTexture* repl)
+{
+	AcquireSRWLockExclusive(&g_textureOverridesLock);
+	g_textureOverrides[orig] = repl;
+	ReleaseSRWLockExclusive(&g_textureOverridesLock);
+}
+
+void RemoveTextureOverride(rage::grcTexture* orig)
+{
+	AcquireSRWLockExclusive(&g_textureOverridesLock);
+	g_textureOverrides.erase(orig);
+	ReleaseSRWLockExclusive(&g_textureOverridesLock);
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
@@ -385,6 +435,12 @@ static HookFunction hookFunction([] ()
 	auto loc = hook::get_pattern<char>("75 0A B9 06 BD F7 9C E8");
 	hook::nop(loc + 2, 5);
 	hook::call(loc + 7, DisplayD3DCrashMessage);
+
+	// texture overrides
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("C8 08 74 05 4C 89 4C C8 08 65 48 8B 0C 25", -0x15), SetTextureHook, (void**)&g_origSetTexture);
+	MH_CreateHook(hook::get_pattern("48 8B D9 48 89 01 48 8B 49 28 E8 ? ? ? ? 48 8D", -0xD), grcTextureDtorHook, (void**)&g_origGrcTextureDtor);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// query GetData, always return 1 (why even wait for presentation with a really weird Sleep loop?)
 	{
