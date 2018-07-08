@@ -111,7 +111,7 @@ void FinalizeInitNUI()
 	cSettings.remote_debugging_port = 13172;
 	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = false; // true;
-	cSettings.log_severity = LOGSEVERITY_DEFAULT;
+	cSettings.log_severity = LOGSEVERITY_DISABLE;
 	
 	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser"));
 
