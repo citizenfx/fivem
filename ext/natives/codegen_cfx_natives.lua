@@ -528,6 +528,20 @@ native 'SAVE_RESOURCE_FILE'
 	<returns>A value indicating if the write succeeded.</returns>
 ]]
 
+native 'GET_RESOURCE_STATE'
+	arguments {
+		charPtr 'resourceName'
+	}
+	apiset 'shared'
+	returns 'charPtr'
+	doc [[
+	<summary>
+	Returns the current state of the specified resource.
+	</summary>
+	<param name="resourceName">The name of the resource.</param>
+	<returns>The resource state. One of `"missing", "started", "starting", "stopped", "stopping", "uninitialized" or "unknown"`.</returns>
+]]
+
 native 'GET_RESOURCE_PATH'
 	arguments {
 		charPtr 'resourceName'

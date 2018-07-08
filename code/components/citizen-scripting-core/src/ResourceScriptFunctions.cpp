@@ -192,6 +192,43 @@ static InitFunction initFunction([] ()
 		context.SetResult(resources[i]->GetName().c_str());
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_STATE", [](fx::ScriptContext& context)
+	{
+		// find the resource
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+
+		if (!resource.GetRef())
+		{
+			context.SetResult<const char*>("missing");
+			return;
+		}
+
+		auto state = resource->GetState();
+
+		switch (state)
+		{
+		case fx::ResourceState::Started:
+			context.SetResult<const char*>("started");
+			break;
+		case fx::ResourceState::Starting:
+			context.SetResult<const char*>("starting");
+			break;
+		case fx::ResourceState::Stopped:
+			context.SetResult<const char*>("stopped");
+			break;
+		case fx::ResourceState::Stopping:
+			context.SetResult<const char*>("stopping");
+			break;
+		case fx::ResourceState::Uninitialized:
+			context.SetResult<const char*>("uninitialized");
+			break;
+		default:
+			context.SetResult<const char*>("unknown");
+			break;
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("IS_ACE_ALLOWED", [](fx::ScriptContext& context)
 	{
 		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(0)));
