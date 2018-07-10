@@ -86,6 +86,7 @@ print("const _v = Citizen.pointerValueVector();")
 print("const _r = Citizen.returnResultAnyway();")
 print("const _ri = Citizen.resultAsInteger();")
 print("const _rf = Citizen.resultAsFloat();")
+print("const _rl = Citizen.resultAsLong();")
 print("const _s = Citizen.resultAsString();")
 print("const _rv = Citizen.resultAsVector();")
 print("const _ro = Citizen.resultAsObject();")
@@ -205,7 +206,11 @@ local function printReturnType(type)
 	elseif type.nativeType == 'vector3' then
 		return '_rv'
 	elseif type.nativeType == 'int' then
-		return '_ri'
+		if type.subType == 'long' then
+			return '_rl'
+		else
+			return '_ri'
+		end
 	elseif type.nativeType == 'Any*' then
 		return '_ri'
 	elseif type.nativeType == 'object' then

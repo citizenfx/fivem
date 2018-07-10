@@ -258,6 +258,7 @@ enum class V8MetaFields
 	PointerValueVector,
 	ReturnResultAnyway,
 	ResultAsInteger,
+	ResultAsLong,
 	ResultAsFloat,
 	ResultAsString,
 	ResultAsVector,
@@ -753,6 +754,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 						returnResultAnyway = true;
 						break;
 					case V8MetaFields::ResultAsInteger:
+					case V8MetaFields::ResultAsLong:
 					case V8MetaFields::ResultAsString:
 					case V8MetaFields::ResultAsFloat:
 					case V8MetaFields::ResultAsVector:
@@ -914,6 +916,9 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 			}
 			case V8MetaFields::ResultAsInteger:
 				returnValueArray->Set(0, Int32::New(args.GetIsolate(), *reinterpret_cast<int32_t*>(&context.arguments[0])));
+				break;
+			case V8MetaFields::ResultAsLong:
+				returnValueArray->Set(0, Number::New(args.GetIsolate(), double(*reinterpret_cast<int64_t*>(&context.arguments[0]))));
 				break;
 			default:
 			{
@@ -1117,6 +1122,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "pointerValueVector", V8_GetMetaField<V8MetaFields::PointerValueVector> },
 	{ "returnResultAnyway", V8_GetMetaField<V8MetaFields::ReturnResultAnyway> },
 	{ "resultAsInteger", V8_GetMetaField<V8MetaFields::ResultAsInteger> },
+	{ "resultAsLong", V8_GetMetaField<V8MetaFields::ResultAsLong> },
 	{ "resultAsFloat", V8_GetMetaField<V8MetaFields::ResultAsFloat> },
 	{ "resultAsString", V8_GetMetaField<V8MetaFields::ResultAsString> },
 	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
