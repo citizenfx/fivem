@@ -76,31 +76,37 @@ static T* getTypedEntity(int guid)
 	return static_cast<T*>(entity);
 }
 
+// getScriptEntity_fivem "83 f9 ff 74 31 4c"
 static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
 {
 	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
 });
 
+// deletePed_fivem, "48 83 ec 28 48 85 c9 74 12 48"
 static hook::cdecl_stub<void(fwEntity*)> deletePed([]()
 {
 	return hook::get_pattern("48 83 EC 28 48 85 C9 74 12 48 8B D1");
 });
 
+// deleteVehicle_fivem, "48 85 c9 74 38 53"
 static hook::cdecl_stub<void(fwEntity*)> deleteVehicle([]()
 {
 	return hook::get_pattern("48 8B D9 48 8B 89 D0 00 00 00 48 85 C9 74 05 E8", -17);
 });
 
+// deleteObject_fivem, "48 85 c9 74 31 53"
 static hook::cdecl_stub<void(fwEntity*)> deleteObject([]()
 {
 	return hook::get_pattern("F6 40 70 80 75 0A", -33);
 });
 
+// sendMarkAsNoLongerNeededEvent_fivem, "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 41 56 41 57 48 83 ec 20 48 8b 01 44 8a"
 static hook::cdecl_stub<void(netObject*, bool)> sendMarkAsNoLongerNeededEvent([]()
 {
 	return hook::get_pattern("48 8B F9 40 8A EB FF 90 ? ? 00 00 44 8D 7B 01", -34);
 });
 
+// markAsNoLongerNeeded_fivem, "48 89 5c 24 08 48 89 74 24 10 57 48 83 ec 20 40 8a fa 8b 15 ?? ?? ?? ?? 48 8b f1"
 static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()
 {
 	return hook::get_pattern("48 8D 48 08 4C 8B 01 41 FF 50 38", -0x2C);
