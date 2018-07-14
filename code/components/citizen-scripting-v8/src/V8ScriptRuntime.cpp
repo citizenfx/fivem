@@ -615,7 +615,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 			if (floor(value) == value)
 			{
-				push(static_cast<int>(value));
+				push(static_cast<int64_t>(value));
 			}
 			else
 			{
