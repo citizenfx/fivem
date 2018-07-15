@@ -1731,6 +1731,14 @@ native 'SET_VEHICLE_WHEEL_X_OFFSET'
 	</summary>
 ]]
 
+native 'OVERRIDE_PLAYER_TALKING'
+	arguments {
+		Player 'player',
+		BOOL 'state'
+	}
+	apiset 'client'
+	returns 'void'
+
 native 'SEND_LOADING_SCREEN_MESSAGE'
 	arguments {
 		charPtr 'jsonString'
