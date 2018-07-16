@@ -512,14 +512,14 @@ static HookFunction hookFunction([]()
 			}
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_PLAYER_TALKING", [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_TALKING_OVERRIDE", [](fx::ScriptContext& context)
 		{
 			auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
 
 			int playerId = context.GetArgument<int>(0);
 			int state = context.GetArgument<bool>(1);
 
-			if (playerId <= o_talkers.size() && playerId >= 0)
+			if (playerId < o_talkers.size() && playerId >= 0)
 			{
 				if (FxNativeInvoke::Invoke<bool>(isPlayerActive, playerId))
 				{
