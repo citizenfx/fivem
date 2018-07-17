@@ -662,7 +662,10 @@ static HookFunction initFunction([]()
 	OnGameFrame.Connect([]()
 	{
 		GetOurOnlineAddressRaw();
+	});
 
+	OnCriticalGameFrame.Connect([]()
+	{
 		g_netLibrary->RunFrame();
 	});
 

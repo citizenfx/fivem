@@ -15,6 +15,7 @@
 fwEvent<> OnLookAliveFrame;
 fwEvent<> OnGameFrame;
 fwEvent<> OnMainGameFrame;
+fwEvent<> OnCriticalGameFrame;
 fwEvent<> OnFirstLoadCompleted;
 
 static int(*g_appState)(void* fsm, int state, void* unk, int type);
@@ -46,7 +47,9 @@ static bool(*g_origLookAlive)();
 #include <mmsystem.h>
 
 static uint32_t g_lastGameFrame;
+static uint32_t g_lastCriticalFrame;
 static std::mutex g_gameFrameMutex;
+static std::mutex g_criticalFrameMutex;
 static DWORD g_mainThreadId;
 static bool g_executedOnMainThread;
 
@@ -59,6 +62,13 @@ static void DoGameFrame()
 		g_gameFrameMutex.unlock();
 	}
 
+	if (g_criticalFrameMutex.try_lock())
+	{
+		OnCriticalGameFrame();
+
+		g_criticalFrameMutex.unlock();
+	}
+
 	if (GetCurrentThreadId() == g_mainThreadId)
 	{
 		OnMainGameFrame();
@@ -67,6 +77,7 @@ static void DoGameFrame()
 	}
 
 	g_lastGameFrame = timeGetTime();
+	g_lastCriticalFrame = timeGetTime();
 }
 
 static bool* g_isD3DInvalid;
@@ -97,6 +108,30 @@ void DoLoadsFrame()
 		g_executedOnMainThread = false;
 
 		DoGameFrame();
+	}
+}
+
+static void RunCriticalGameLoop()
+{
+	while (true)
+	{
+		Sleep(50);
+
+		int timeout = (g_executedOnMainThread) ? 500 : 50;
+
+		if ((timeGetTime() - g_lastCriticalFrame) > timeout)
+		{
+			g_executedOnMainThread = false;
+
+			if (g_criticalFrameMutex.try_lock())
+			{
+				OnCriticalGameFrame();
+
+				g_criticalFrameMutex.unlock();
+			}
+
+			g_lastCriticalFrame = timeGetTime();
+		}
 	}
 }
 
@@ -139,6 +174,8 @@ static HookFunction hookFunction([] ()
 
 	// allow resizing window in all cases
 	hook::nop(hook::get_pattern("45 8D 67 01 74 05 41 8B C4", 4), 2);
+
+	std::thread(RunCriticalGameLoop).detach();
 
 	//__debugbreak();
 });
