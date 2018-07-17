@@ -331,6 +331,9 @@ static void Mumble_RunFrame()
 	}
 }
 
+static std::bitset<256> g_talkers;
+static std::bitset<256> o_talkers;
+
 static InitFunction initFunction([]()
 {
 	g_mumbleClient = CreateMumbleClient();
@@ -346,6 +349,7 @@ static InitFunction initFunction([]()
 		g_mumbleClient->SetAudioDistance(FLT_MAX);
 
 		Mumble_Disconnect();
+		o_talkers.reset();
 	});
 });
 
@@ -357,8 +361,6 @@ static bool _isAnyoneTalking(void* mgr)
 }
 
 static bool(*g_origIsPlayerTalking)(void*, void*);
-
-static std::bitset<256> g_talkers;
 
 static bool _isPlayerTalking(void* mgr, char* playerData)
 {
@@ -382,7 +384,7 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 			// actually: netobj owner
 			auto index = netObj[73];
 
-			if (g_talkers.test(index))
+			if (g_talkers.test(index) || o_talkers.test(index))
 			{
 				return true;
 			}
@@ -505,6 +507,29 @@ static HookFunction hookFunction([]()
 					if (talkerSet.find(name) != talkerSet.end())
 					{
 						g_talkers.set(i);
+					}
+				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_TALKING_OVERRIDE", [](fx::ScriptContext& context)
+		{
+			auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
+
+			int playerId = context.GetArgument<int>(0);
+			int state = context.GetArgument<bool>(1);
+
+			if (playerId < o_talkers.size() && playerId >= 0)
+			{
+				if (FxNativeInvoke::Invoke<bool>(isPlayerActive, playerId))
+				{
+					if (state)
+					{
+						o_talkers.set(playerId);
+					}
+					else
+					{
+						o_talkers.reset(playerId);
 					}
 				}
 			}
