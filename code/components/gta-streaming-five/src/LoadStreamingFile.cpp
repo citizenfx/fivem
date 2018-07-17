@@ -889,9 +889,17 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 		auto baseName = std::string(strrchr(file.c_str(), '/') + 1);
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
+		// get dot position and skip if no dot
+		auto dotPos = strrchr(baseName.c_str(), '.');
+
+		if (!dotPos)
+		{
+			continue;
+		}
+
 		// get CStreaming instance and associated streaming module
 		auto cstreaming = streaming::Manager::GetInstance();
-		auto strModule = cstreaming->moduleMgr.GetStreamingModule(strrchr(baseName.c_str(), '.') + 1);
+		auto strModule = cstreaming->moduleMgr.GetStreamingModule(dotPos + 1);
 
 		if (strModule)
 		{
