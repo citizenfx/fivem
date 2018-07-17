@@ -1739,12 +1739,12 @@ native 'SET_PLAYER_TALKING_OVERRIDE'
 	apiset 'client'
 	returns 'void'
 	doc [[
-	<param name="player">The target player.</param>
-	<param name="state">Overriding state.</param>
 	<summary>
-	Overriding the status of default voip system. It affects on `NETWORK_IS_PLAYER_TALKING` and `mp_facial` animation.
+	the status of default voip system. It affects on `NETWORK_IS_PLAYER_TALKING` and `mp_facial` animation.
 	This function doesn't need to be called every frame, it works like a switcher.
 	</summary>
+	<param name="player">The target player.</param>
+	<param name="state">Overriding state.</param>
 ]]
 
 native 'SEND_LOADING_SCREEN_MESSAGE'
