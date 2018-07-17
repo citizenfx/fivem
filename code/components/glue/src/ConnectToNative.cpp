@@ -14,6 +14,7 @@
 #include <ConsoleHost.h>
 #include <CoreConsole.h>
 #include <ICoreGameInit.h>
+#include <GameInit.h>
 //New libs needed for saveSettings
 #include <fstream>
 #include <sstream>
@@ -121,9 +122,18 @@ inline bool HasDefaultName()
 }
 
 static NetLibrary* netLibrary;
+static bool g_connected;
 
 static void ConnectTo(const std::string& hostnameStr)
 {
+	if (g_connected)
+	{
+		trace("Ignoring ConnectTo because we're already connecting/connected.\n");
+		return;
+	}
+
+	g_connected = true;
+
 	auto npa = net::PeerAddress::FromString(hostnameStr);
 
 	if (npa)
@@ -146,6 +156,8 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([] (const char* error)
 		{
+			g_connected = false;
+
 			rapidjson::Document document;
 			document.SetString(error, document.GetAllocator());
 
@@ -177,6 +189,11 @@ static InitFunction initFunction([] ()
 		});
 	});
 
+	OnKillNetwork.Connect([](const char*)
+	{
+		g_connected = false;
+	});
+
 	static ConsoleCommand connectCommand("connect", [](const std::string& server)
 	{
 		ConnectTo(server);
@@ -202,6 +219,8 @@ static InitFunction initFunction([] ()
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{
 			netLibrary->CancelDeferredConnection();
+
+			g_connected = false;
 		}
 		else if (!_wcsicmp(type, L"changeName"))
 		{
