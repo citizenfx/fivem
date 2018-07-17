@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This file is part of the CitizenFX project - http://citizen.re/
 *
 * See LICENSE and MENTIONS in the root of the source tree for information
@@ -66,8 +66,9 @@ class CHandlingData
 {
 private:
 	uint32_t m_name;
-	char m_pad[332]; // 1290
+	char m_pad[332]; // 1290, 1365
 	atArray<CBaseSubHandlingData*> m_subHandlingData;
+	// ^ find offset using a variant of 48 85 C9 74 13 BA 04 00 00 00 E8
 	char m_pad2[1000];
 
 public:
@@ -115,8 +116,9 @@ public:
 class CVehicle
 {
 private:
-	char m_pad[0x8C0]; // 1290
+	char m_pad[0x8C0]; // 1290, 1365
 	CHandlingData* m_handlingData;
+	// find ^ with `85 C0 74 49 48 8B 86 ? ? 00 00 48 8B CE` ??s
 
 public:
 	virtual ~CVehicle() = 0;

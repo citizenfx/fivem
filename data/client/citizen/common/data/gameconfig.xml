@@ -70,7 +70,7 @@
 						</Item>
 						<Item>
 							<PoolName>CCombatInfo</PoolName>
-							<PoolSize value="16"/>
+							<PoolSize value="64"/>
 						</Item>
 						<Item>
 							<PoolName>CCombatSituation</PoolName>
@@ -98,7 +98,7 @@
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
-							<PoolSize value="2989"/>
+							<PoolSize value="3015"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
@@ -238,7 +238,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
-							<PoolSize value="1060"/>
+							<PoolSize value="1070"/>
 						</Item>
 						<Item>
 							<PoolName>IplStore</PoolName>
@@ -829,7 +829,7 @@
 				</ConfigExtensions>
 
 				<ConfigStreamingEngine>
-					<ArchiveCount value="2648"/>
+					<ArchiveCount value="2904"/>
 					<PhysicalStreamingBuffer value="252"/>
 					<VirtualStreamingBuffer value="1000"/>
 				</ConfigStreamingEngine>

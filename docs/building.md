@@ -18,4 +18,36 @@ cd code
 premake5 vs2017 --game=five
 ```
 
+## Notes by sfinktah
+```bash
+cd vendor/xz
+cp windows/vs2017/config.h src/common/
+
+cd ../../vendor/fmtlib
+git checkout 4.1.0
+
+cd ../../vendor/protobuf
+git checkout v3.0.2
+
+cd ../../vendor/tbb
+git checkout tbb_2018
+
+# in a developer command window
+cd tbb\build\vs2013
+msbuild /p:Configuration=Release /p:Platform=x64 /clp:Summary /nologo /m makefile.sln
+```
+
+
+change uri_normalize.hpp
+```cpp
+// #include <network/uri/uri.hpp>
+#include <../cpp-uri/include/network/uri/uri.hpp>
+// #include <network/string_view.hpp>
+#include <../cpp-uri/include/network/string_view.hpp>
+```
+
+and likewise insert `../cpp-uri/include/` before #include paths in the cpp-uri project - or, ofc, change the include paths.
+
 ... and now you can open `build/five/CitizenMP.sln` in Visual Studio, or compile it from the command line with MSBuild.
+
+and it will fail totally.  but you'll have less errors than if you hadn't followed the above.

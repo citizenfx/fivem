@@ -106,7 +106,7 @@ static HookFunction hookFunction([]()
 	// allow collision bounds to be reconfigured even if fwBoxStreamer has already been set up
 	// given how collision files won't change at runtime (or at least, not without calling fwBoxStreamer::m_10 first)
 	// this should be safe. unless, of course, fwBoxStreamer reorders this array.
-	hook::nop(hook::get_pattern("80 B9 FF 00 00 00 00 75 40 4C 8B", 7), 2);
+	hook::nop(hook::get_pattern("80 B9 0F 01 00 00 00 75 40 4C 8B", 7), 2);
 
 	{
 		hook::set_call(&g_origGetCacheIndex, hook::get_pattern("48 8D 4D 20 8B D0 E8 ? ? ? ? 44 8B 00 0F", 6));

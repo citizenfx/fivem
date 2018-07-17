@@ -161,6 +161,12 @@ namespace rage
 			Profiler::Event event(*it->second);
 #endif
 
+			// skip a potential crashing subsystem
+			if (entry->m_hash == 0x73AA6F9E)
+			{
+				return;
+			}
+
 			entry->Run();
 		}
 	}
