@@ -70,7 +70,7 @@
 						</Item>
 						<Item>
 							<PoolName>CCombatInfo</PoolName>
-							<PoolSize value="16"/>
+							<PoolSize value="32"/>
 						</Item>
 						<Item>
 							<PoolName>CCombatSituation</PoolName>
