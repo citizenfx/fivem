@@ -297,6 +297,10 @@ public:
 
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 
+	virtual void AddReceiveTick() override;
+
+	virtual void AddSendTick() override;
+
 public:
 	static NetLibrary* Create();
 

@@ -63,4 +63,8 @@ public:
 	virtual bool GetOutgoingPacket(RoutingPacket& packet) = 0;
 
 	virtual void SendOutOfBand(const NetAddress& address, const char* format, ...) = 0;
+
+	virtual void AddReceiveTick() = 0;
+	
+	virtual void AddSendTick() = 0;
 };

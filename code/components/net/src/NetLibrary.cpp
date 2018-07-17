@@ -22,6 +22,42 @@ fwEvent<int, const std::string&> OnRichPresenceSetValue;
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
 
+#define TIMEOUT_DATA_SIZE 16
+
+static uint32_t g_runFrameTicks[TIMEOUT_DATA_SIZE];
+static uint32_t g_receiveDataTicks[TIMEOUT_DATA_SIZE];
+static uint32_t g_sendDataTicks[TIMEOUT_DATA_SIZE];
+
+static void AddTimeoutTick(uint32_t* timeoutList)
+{
+	memmove(&timeoutList[0], &timeoutList[1], (TIMEOUT_DATA_SIZE - 1) * sizeof(uint32_t));
+	timeoutList[TIMEOUT_DATA_SIZE - 1] = timeGetTime();
+}
+
+static std::string CollectTimeoutInfo()
+{
+	uint32_t begin = timeGetTime();
+
+	auto gatherInfo = [begin](uint32_t* list) -> std::string
+	{
+		std::stringstream ss;
+
+		for (int i = 0; i < TIMEOUT_DATA_SIZE; i++)
+		{
+			ss << fmt::sprintf("-%d ", begin - list[i]);
+		}
+
+		return ss.str();
+	};
+
+	return fmt::sprintf(
+		"DEBUG INFO FOR TIMEOUTS:\nrun frame: %s\nreceive data: %s\nsend data: %s",
+		gatherInfo(g_runFrameTicks),
+		gatherInfo(g_receiveDataTicks),
+		gatherInfo(g_sendDataTicks)
+	);
+}
+
 inline ISteamComponent* GetSteam()
 {
 	auto steamComponent = Instance<ISteamComponent>::Get();
@@ -38,6 +74,16 @@ inline ISteamComponent* GetSteam()
 	}
 
 	return steamComponent;
+}
+
+void NetLibrary::AddReceiveTick()
+{
+	AddTimeoutTick(g_receiveDataTicks);
+}
+
+void NetLibrary::AddSendTick()
+{
+	AddTimeoutTick(g_sendDataTicks);
 }
 
 static uint32_t m_tempGuid = GetTickCount();
@@ -328,8 +374,14 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			if (length >= 6)
 			{
 				const char* errorStr = &oob[6];
+				auto errText = std::string(errorStr, length - 6);
 
-				GlobalError("%s", std::string(errorStr, length - 6));
+				if (strstr(errorStr, "Timed out") != nullptr)
+				{
+					errText += fmt::sprintf("\n%s", CollectTimeoutInfo());
+				}
+
+				GlobalError("%s", errText);
 			}
 		}
 	}
@@ -409,6 +461,8 @@ void NetLibrary::RunFrame()
 	{
 		return;
 	}
+
+	AddTimeoutTick(g_runFrameTicks);
 
 	if (m_connectionState != m_lastConnectionState)
 	{
@@ -503,7 +557,7 @@ void NetLibrary::RunFrame()
 
 				OnConnectionTimedOut();
 
-				GlobalError("Server connection timed out after 15 seconds.");
+				GlobalError("Server connection timed out after 15 seconds.\n%s", CollectTimeoutInfo());
 
 				m_connectionState = CS_IDLE;
 				m_currentServer = NetAddress();

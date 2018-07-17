@@ -129,6 +129,8 @@ bool NetLibraryImplV2::HasTimedOut()
 
 void NetLibraryImplV2::Reset()
 {
+	m_timedOut = false;
+
 	if (m_serverPeer)
 	{
 		enet_peer_disconnect(m_serverPeer, 0);
@@ -223,6 +225,7 @@ void NetLibraryImplV2::RunFrame()
 				inDataSize = 0;
 			}
 
+			m_base->AddReceiveTick();
 			m_host->totalReceivedPackets = 0;
 		}
 
@@ -240,6 +243,8 @@ void NetLibraryImplV2::RunFrame()
 			}
 
 			m_host->totalSentPackets = 0;
+
+			m_base->AddSendTick();
 		}
 
 		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -248,6 +253,7 @@ void NetLibraryImplV2::RunFrame()
 
 void NetLibraryImplV2::SendConnect(const std::string& connectData)
 {
+	m_timedOut = false;
 	m_connectData = connectData;
 
 	auto addr = m_base->GetCurrentServer().GetENetAddress();
