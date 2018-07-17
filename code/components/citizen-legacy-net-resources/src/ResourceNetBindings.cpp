@@ -409,6 +409,7 @@ static InitFunction initFunction([] ()
 				{
 					g_resourceStartRequestSet.erase(resource);
 
+					std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
 					executeNextGameFrame.push_back(**updateResource);
 				});
 			}
@@ -429,8 +430,13 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([](const char* error)
 		{
-			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
-			resourceManager->ResetResources();
+			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+
+			executeNextGameFrame.push_back([]()
+			{
+				fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+				resourceManager->ResetResources();
+			});
 		});
 
 		OnGameFrame.Connect([] ()
