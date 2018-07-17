@@ -883,6 +883,10 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 
 void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 {
+	// ensure that we can call into game code here
+	// #FIXME: should we not always be on the main thread?!
+	rage::sysMemAllocator::UpdateAllocatorValue();
+
 	for (auto& file : g_customStreamingFilesByTag[tag])
 	{
 		// get basename ('thing.ytd') and asset name ('thing')

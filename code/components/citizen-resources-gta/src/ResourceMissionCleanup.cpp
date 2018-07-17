@@ -22,6 +22,8 @@
 
 #include <ResourceGameLifetimeEvents.h>
 
+#include <sysAllocator.h>
+
 #include <stack>
 
 struct DummyThread : public GtaThread
@@ -124,6 +126,10 @@ static InitFunction initFunction([] ()
 			{
 				return;
 			}
+
+			// ensure that we can call into game code here
+			// #FIXME: should we not always be on the main thread?!
+			rage::sysMemAllocator::UpdateAllocatorValue();
 
 			bool setScriptNow = false;
 
