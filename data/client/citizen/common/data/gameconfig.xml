@@ -238,7 +238,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
-							<PoolSize value="1060"/>
+							<PoolSize value="9060"/>
 						</Item>
 						<Item>
 							<PoolName>IplStore</PoolName>
@@ -386,7 +386,7 @@
 						</Item>
 						<Item>
 							<PoolName>StaticBounds</PoolName>
-							<PoolSize value="13000"/>
+							<PoolSize value="20000"/>
 						</Item>
 						<Item>
 							<PoolName>tcBox</PoolName>
