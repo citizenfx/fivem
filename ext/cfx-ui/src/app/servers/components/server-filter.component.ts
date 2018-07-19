@@ -145,7 +145,7 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
         this.setDefaultAutocompleteFilters();
 
         document.onkeydown = (ev: KeyboardEvent) => {
-            if (ev.keyCode >= 65 && ev.keyCode <= 90) {
+            if (ev.keyCode >= 65 && ev.keyCode <= 90 && !ev.ctrlKey) {
                 (<HTMLInputElement>document.querySelector('#searchBox')).focus();
             }
         };
