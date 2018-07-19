@@ -564,9 +564,14 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
 		{
-			Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
+			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+
+			executeNextGameFrame.push_back([]()
 			{
-				resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect();
+				Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
+				{
+					resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect();
+				});
 			});
 		});
 
