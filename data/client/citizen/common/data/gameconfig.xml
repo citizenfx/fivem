@@ -234,7 +234,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorInst</PoolName>
-							<PoolSize value="150"/>
+							<PoolSize value="900"/>
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
