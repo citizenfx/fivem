@@ -29,6 +29,7 @@
 
 #include <math.h>
 #include <queue>
+#include <sstream>
 
 #define restrict
 #define LZMA_API_STATIC
@@ -47,6 +48,9 @@ typedef struct download_s
 	FILE* fp[10];
 	bool compressed;
 	bool conditionalDL;
+
+	bool writeToMemory;
+	std::stringstream memoryStream;
 
 	int segments;
 
@@ -212,7 +216,16 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 
 	if (!download->compressed)
 	{
-		written = fwrite(ptr, size, nmemb, download->fp[0]);
+		if (download->writeToMemory)
+		{
+			download->memoryStream << std::string(reinterpret_cast<char*>(ptr), size * nmemb);
+
+			written = size * nmemb;
+		}
+		else
+		{
+			written = fwrite(ptr, size, nmemb, download->fp[0]);
+		}
 	}
 	else
 	{
@@ -232,7 +245,14 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 				ExitProcess(1);
 			}
 
-			fwrite(download->strmOut, 1, (sizeof(download->strmOut) - download->strm.avail_out), download->fp[0]);
+			if (download->writeToMemory)
+			{
+				download->memoryStream << std::string(reinterpret_cast<char*>(download->strmOut), sizeof(download->strmOut) - download->strm.avail_out);
+			}
+			else
+			{
+				fwrite(download->strmOut, 1, (sizeof(download->strmOut) - download->strm.avail_out), download->fp[0]);
+			}
 		}
 
 		written = size * nmemb;
@@ -329,20 +349,31 @@ void DL_ProcessDownload()
 
 			memset(&download->strm, 0, sizeof(download->strm));
 
-			FILE* fp = nullptr;
+			download->writeToMemory = false;
 
-			fp = _wfopen(converter.from_bytes(tmpPath).c_str(), L"wb");
-
-			if (!fp)
+			// download adhesive.dll to memory to prevent partial write issues
+			if (strstr(opath, "adhesive.dll") != nullptr)
 			{
-				dls.isDownloading = false;
-				MessageBox(NULL, va(L"Unable to open %s for writing.", converter.from_bytes(opath).c_str()), L"Error", MB_OK | MB_ICONSTOP);
-
-				ExitProcess(1);
-				return;
+				download->writeToMemory = true;
 			}
 
-			download->fp[0] = fp;
+			if (!download->writeToMemory)
+			{
+				FILE* fp = nullptr;
+
+				fp = _wfopen(converter.from_bytes(tmpPath).c_str(), L"wb");
+
+				if (!fp)
+				{
+					dls.isDownloading = false;
+					MessageBox(NULL, va(L"Unable to open %s for writing.", converter.from_bytes(opath).c_str()), L"Error", MB_OK | MB_ICONSTOP);
+
+					ExitProcess(1);
+					return;
+				}
+
+				download->fp[0] = fp;
+			}
 
 			curl_slist* headers = nullptr;
 			headers = curl_slist_append(headers, va("X-Cfx-Client: 1"));
@@ -409,13 +440,55 @@ void DL_ProcessDownload()
 
 				bool allOK = true;
 
-				if (download->fp[0])
+				std::wstring tmpPathWide = converter.from_bytes(download->tmpPath);
+
+				if (!download->writeToMemory)
 				{
-					fclose(download->fp[0]);
+					if (download->fp[0])
+					{
+						fclose(download->fp[0]);
+					}
+				}
+				else
+				{
+					HANDLE hFile = CreateFileW(tmpPathWide.c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+					if (hFile == INVALID_HANDLE_VALUE)
+					{
+						DWORD errNo = GetLastError();
+
+						dls.isDownloading = false;
+						MessageBox(NULL, va(L"Unable to open %s for writing. Windows error code %d was returned.", tmpPathWide, errNo), L"Error", MB_OK | MB_ICONSTOP);
+
+						ExitProcess(1);
+					}
+
+					std::string str = download->memoryStream.str();
+
+					DWORD bytesWritten = 0;
+					BOOL success = WriteFile(hFile, str.c_str(), str.size(), &bytesWritten, nullptr);
+
+					if (!success || bytesWritten != str.size())
+					{
+						DWORD errNo = GetLastError();
+
+						MessageBox(NULL,
+							va(
+								L"Unable to write to %s. Windows error code %d was returned.%s",
+								tmpPathWide,
+								errNo,
+								(errNo == ERROR_VIRUS_INFECTED) ? "\nThis is usually caused by anti-malware software. Please report this issue to your anti-malware software vendor." : ""
+							),
+							L"Error",
+							MB_OK | MB_ICONSTOP);
+
+						ExitProcess(1);
+					}
+
+					CloseHandle(hFile);
 				}
 
 				std::wstring opathWide = converter.from_bytes(download->opath);
-				std::wstring tmpPathWide = converter.from_bytes(download->tmpPath);
 
 				curl_multi_remove_handle(dls.curl, handle);
 				curl_easy_cleanup(handle);
