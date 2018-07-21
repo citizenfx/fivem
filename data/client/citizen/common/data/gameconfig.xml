@@ -44,6 +44,10 @@
 							<PoolSize value="65000"/>
 						</Item>
 						<Item>
+							<PoolName>StreamPed req data</PoolName>
+							<PoolSize value="90"/>
+						</Item>
+						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
 							<PoolName>carrec</PoolName>
 							<PoolSize value="4000"/>
