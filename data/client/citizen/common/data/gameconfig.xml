@@ -41,7 +41,7 @@
 						</Item>
 						<Item>
 							<PoolName>Building</PoolName>
-							<PoolSize value="145000"/>
+							<PoolSize value="65000"/>
 						</Item>
 						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
@@ -536,7 +536,7 @@
 						</Item>
 						<Item>
 							<PoolName>fwArchetypePooledMap</PoolName>
-							<PoolSize value="128000"/>
+							<PoolSize value="64000"/>
 						</Item>
 						<Item>
 							<PoolName>CTaskConversationHelper</PoolName>
