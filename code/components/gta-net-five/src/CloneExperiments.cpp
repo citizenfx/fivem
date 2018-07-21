@@ -610,6 +610,14 @@ namespace rage
 
 		virtual bool Equals(const netGameEvent* event) = 0;
 
+		virtual void m_88() = 0;
+
+		virtual bool m_90() = 0;
+
+		virtual bool IsAwaitingReply() = 0;
+
+		virtual void m_a0() = 0;
+
 	public:
 		uint16_t eventId;
 
