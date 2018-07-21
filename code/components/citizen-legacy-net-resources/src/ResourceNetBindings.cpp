@@ -109,7 +109,7 @@ static InitFunction initFunction([] ()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
 	{
-		static std::mutex executeNextGameFrameMutex;
+		static std::recursive_mutex executeNextGameFrameMutex;
 		static std::vector<std::function<void()>> executeNextGameFrame;
 
 		auto updateResources = [=] (const std::string& updateList, const std::function<void()>& doneCb)
@@ -376,7 +376,7 @@ static InitFunction initFunction([] ()
 						{
 							std::string resourceName = resource->GetName();
 
-							std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+							std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 							executeNextGameFrame.push_back([=]()
 							{
 								if (!resource->Start())
@@ -389,7 +389,7 @@ static InitFunction initFunction([] ()
 
 					// mark DownloadsComplete on the next frame so all resources will have started
 					{
-						std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+						std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 						executeNextGameFrame.push_back([=]()
 						{
 							netLibrary->DownloadsComplete();
@@ -415,7 +415,7 @@ static InitFunction initFunction([] ()
 				{
 					g_resourceStartRequestSet.erase(resource);
 
-					std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+					std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 					executeNextGameFrame.push_back(**updateResource);
 				});
 			}
@@ -436,7 +436,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([](const char* error)
 		{
-			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+			std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 
 			executeNextGameFrame.push_back([]()
 			{
@@ -447,7 +447,7 @@ static InitFunction initFunction([] ()
 
 		OnGameFrame.Connect([] ()
 		{
-			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+			std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 
 			for (auto& func : executeNextGameFrame)
 			{
@@ -539,7 +539,7 @@ static InitFunction initFunction([] ()
 				g_resourceUpdateQueue.push(resourceName);
 
 				{
-					std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+					std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 					executeNextGameFrame.push_back(**updateResource);
 				}
 			}
@@ -564,7 +564,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
 		{
-			std::unique_lock<std::mutex> lock(executeNextGameFrameMutex);
+			std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
 
 			executeNextGameFrame.push_back([]()
 			{
