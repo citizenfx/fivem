@@ -381,6 +381,12 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 		return &g_staticRpfMounter;
 	}
 
+	// don't allow TEXTFILE_METAFILE entries (these don't work and will fail to unload)
+	if (fileType == 160) // TEXTFILE_METAFILE 
+	{
+		return nullptr;
+	}
+
 	return g_dataFileMounters[fileType];
 }
 
