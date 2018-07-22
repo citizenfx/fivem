@@ -493,19 +493,22 @@ namespace streaming
 		auto dataFilePair = std::make_pair(type, path);
 		std::remove(g_loadedDataFiles.begin(), g_loadedDataFiles.end(), dataFilePair);
 
-		auto singlePair = { dataFilePair };
-
-		HandleDataFileList(singlePair, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
-			__try
+			auto singlePair = { dataFilePair };
+
+			HandleDataFileList(singlePair, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
 			{
-				return mounter->UnmountFile(&entry);
-			}
-			__except (FilterUnmountOperation(entry))
-			{
-				
-			}
-		}, "removing");
+				__try
+				{
+					return mounter->UnmountFile(&entry);
+				}
+				__except (FilterUnmountOperation(entry))
+				{
+
+				}
+			}, "removing");
+		}
 	}
 }
 
@@ -1024,6 +1027,31 @@ static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, 
 	return buffer;
 }
 
+static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint16_t index)
+{
+	auto streamingMgr = streaming::Manager::GetInstance();
+
+	uint32_t attemptIndex = (((rage::fiCollection*)streamer)->GetCollectionId() << 16) | index;
+	std::string extraData;
+
+	for (size_t i = 0; i < streamingMgr->numEntries; i++)
+	{
+		const auto& entry = streamingMgr->Entries[i];
+
+		if (entry.handle == attemptIndex)
+		{
+			std::string tag = g_handlesToTag[entry.handle];
+
+			extraData += fmt::sprintf("Streaming tag: %s\n", tag);
+			extraData += fmt::sprintf("File name: %s\n", streaming::GetStreamingNameForIndex(i));
+			extraData += fmt::sprintf("Handle stack size: %d\n", g_handleStack[i].size());
+			extraData += fmt::sprintf("Tag exists: %s\n", g_customStreamingFilesByTag.find(tag) != g_customStreamingFilesByTag.end() ? "yes" : "no");
+		}
+	}
+
+	FatalError("Invalid pgRawStreamer call - fileName == NULL.\nStreaming index: %d\n%s", index, extraData);
+}
+
 static int64_t(*g_origOpenCollectionEntry)(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr);
 
 static int64_t pgRawStreamer__OpenCollectionEntry(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr)
@@ -1032,30 +1060,24 @@ static int64_t pgRawStreamer__OpenCollectionEntry(pgRawStreamer* streamer, uint1
 
 	if (fileName == nullptr)
 	{
-		auto streamingMgr = streaming::Manager::GetInstance();
-
-		uint32_t attemptIndex = (((rage::fiCollection*)streamer)->GetCollectionId() << 16) | index;
-		std::string extraData;
-
-		for (size_t i = 0; i < streamingMgr->numEntries; i++)
-		{
-			const auto& entry = streamingMgr->Entries[i];
-
-			if (entry.handle == attemptIndex)
-			{
-				std::string tag = g_handlesToTag[entry.handle];
-
-				extraData += fmt::sprintf("Streaming tag: %s\n", tag);
-				extraData += fmt::sprintf("File name: %s\n", streaming::GetStreamingNameForIndex(i));
-				extraData += fmt::sprintf("Handle stack size: %d\n", g_handleStack[i].size());
-				extraData += fmt::sprintf("Tag exists: %s\n", g_customStreamingFilesByTag.find(tag) != g_customStreamingFilesByTag.end() ? "yes" : "no");
-			}
-		}
-
-		FatalError("Invalid pgRawStreamer::OpenCollectionEntry call - fileName == NULL.\nStreaming index: %d\n%s", index, extraData);
+		DisplayRawStreamerError(streamer, index);
 	}
 
 	return g_origOpenCollectionEntry(streamer, index, ptr);
+}
+
+static int64_t(*g_origGetEntry)(pgRawStreamer* streamer, uint16_t index);
+
+static int64_t pgRawStreamer__GetEntry(pgRawStreamer* streamer, uint16_t index)
+{
+	const char* fileName = streamer->m_entries[index >> 10][index & 0x3FF].fileName;
+
+	if (fileName == nullptr)
+	{
+		DisplayRawStreamerError(streamer, index);
+	}
+
+	return g_origGetEntry(streamer, index);
 }
 
 #include <GameInit.h>
@@ -1189,5 +1211,6 @@ static HookFunction hookFunction([] ()
 	// debug hook for pgRawStreamer::OpenCollectionEntry
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("8B D5 81 E2", -0x24), pgRawStreamer__OpenCollectionEntry, (void**)&g_origOpenCollectionEntry);
+	MH_CreateHook(hook::get_pattern("0F B7 C3 48 8B 5C 24 30 8B D0 25 FF", -0x14), pgRawStreamer__GetEntry, (void**)&g_origGetEntry);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
