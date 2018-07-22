@@ -126,6 +126,7 @@ void FinalizeInitNUI()
 	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
 	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
 	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
+	CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
 
