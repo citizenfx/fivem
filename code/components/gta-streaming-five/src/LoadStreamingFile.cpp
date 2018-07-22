@@ -21,6 +21,8 @@
 
 #include <ICoreGameInit.h>
 
+#include <MinHook.h>
+
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
@@ -1022,6 +1024,40 @@ static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, 
 	return buffer;
 }
 
+static int64_t(*g_origOpenCollectionEntry)(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr);
+
+static int64_t pgRawStreamer__OpenCollectionEntry(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr)
+{
+	const char* fileName = streamer->m_entries[index >> 10][index & 0x3FF].fileName;
+
+	if (fileName == nullptr)
+	{
+		auto streamingMgr = streaming::Manager::GetInstance();
+
+		uint32_t attemptIndex = (((rage::fiCollection*)streamer)->GetCollectionId() << 16) | index;
+		std::string extraData;
+
+		for (size_t i = 0; i < streamingMgr->numEntries; i++)
+		{
+			const auto& entry = streamingMgr->Entries[i];
+
+			if (entry.handle == attemptIndex)
+			{
+				std::string tag = g_handlesToTag[entry.handle];
+
+				extraData += fmt::sprintf("Streaming tag: %s\n", tag);
+				extraData += fmt::sprintf("File name: %s\n", streaming::GetStreamingNameForIndex(i));
+				extraData += fmt::sprintf("Handle stack size: %d\n", g_handleStack[i].size());
+				extraData += fmt::sprintf("Tag exists: %s\n", g_customStreamingFilesByTag.find(tag) != g_customStreamingFilesByTag.end() ? "yes" : "no");
+			}
+		}
+
+		FatalError("Invalid pgRawStreamer::OpenCollectionEntry call - fileName == NULL.\nStreaming index: %d\n%s", index, extraData);
+	}
+
+	return g_origOpenCollectionEntry(streamer, index, ptr);
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1149,4 +1185,9 @@ static HookFunction hookFunction([] ()
 
 	// support CfxRequest for pgRawStreamer
 	hook::jump(hook::get_pattern("4D 63 C1 41 8B C2 41 81 E2 FF 03 00 00", -0xD), pgRawStreamer__GetEntryNameToBuffer);
+
+	// debug hook for pgRawStreamer::OpenCollectionEntry
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("8B D5 81 E2", -0x24), pgRawStreamer__OpenCollectionEntry, (void**)&g_origOpenCollectionEntry);
+	MH_EnableHook(MH_ALL_HOOKS);
 });
