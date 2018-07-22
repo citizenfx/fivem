@@ -28,11 +28,11 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 		this.gameService.connecting.subscribe(a => {
 			this.overlayTitle = '#Servers_Connecting';
 			this.overlayMessage = '#Servers_ConnectingTo';
-			this.overlayMessageData = {serverName: a.address};
+			this.overlayMessageData = {serverName: (a) ? a.address : 'unknown'};
 			this.showOverlay = true;
 			this.overlayClosable = false;
 
-			this.overlayBg = (a.data.vars && a.data.vars.banner_connecting) ? a.data.vars.banner_connecting : '';
+			this.overlayBg = (a && a.data && a.data.vars && a.data.vars.banner_connecting) ? a.data.vars.banner_connecting : '';
 		});
 
 		this.gameService.connectFailed.subscribe(([server, message]) => {
