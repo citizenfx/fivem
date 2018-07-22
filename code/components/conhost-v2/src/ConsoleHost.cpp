@@ -14,6 +14,8 @@
 
 #include <CoreConsole.h>
 
+#include <LaunchMode.h>
+
 static std::thread g_consoleThread;
 static std::once_flag g_consoleInitialized;
 bool g_consoleFlag;
@@ -29,7 +31,15 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand quitCommand("quit", []()
 	{
-		TerminateProcess(GetCurrentProcess(), -1);
+		// NetHook will replace ExitProcess with a version that terminates NetLibrary as well as calling TerminateProcess
+		if (!CfxIsSinglePlayer())
+		{
+			ExitProcess(-1);
+		}
+		else
+		{
+			TerminateProcess(GetCurrentProcess(), -1);
+		}
 	});
 
 	InputHook::OnWndProc.Connect([] (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
