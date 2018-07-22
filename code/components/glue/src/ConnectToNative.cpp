@@ -138,9 +138,9 @@ static void ConnectTo(const std::string& hostnameStr)
 
 	if (npa)
 	{
-		netLibrary->ConnectToServer(npa.get());
-
 		nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+
+		netLibrary->ConnectToServer(npa.get());
 	}
 	else
 	{
@@ -187,6 +187,40 @@ static InitFunction initFunction([] ()
 				nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectStatus', data: %s }, '*');", sbuffer.GetString()));
 			}
 		});
+
+		static std::function<void()> finishConnectCb;
+		static bool disconnected;
+
+		netLibrary->OnInterceptConnection.Connect([](const net::PeerAddress& peer, const std::function<void()>& cb)
+		{
+			if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !disconnected)
+			{
+				netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100);
+
+				finishConnectCb = cb;
+
+				return false;
+			}
+
+			disconnected = false;
+
+			return true;
+		});
+
+		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+		{
+			if (finishConnectCb)
+			{
+				auto cb = std::move(finishConnectCb);
+				cb();
+
+				disconnected = false;
+			}
+			else
+			{
+				disconnected = true;
+			}
+		}, 5000);
 	});
 
 	OnKillNetwork.Connect([](const char*)

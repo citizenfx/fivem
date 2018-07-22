@@ -329,6 +329,13 @@ public:
 	// a1: detailed progress message
 	fwEvent<const std::string&> OnConnectionSubProgress;
 
+	// event to intercept connection requests
+	// return false to intercept connection (and call the callback to continue)
+	// this won't like more than one interception attempt, however
+	// a1: connection address
+	// a2: continuation callback
+	fwEvent<const net::PeerAddress&, const std::function<void()>&> OnInterceptConnection;
+
 	static
 #ifndef COMPILING_NET
 		__declspec(dllimport)

@@ -838,6 +838,8 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 	performRequest = [=]()
 	{
+		OnConnectionProgress("Handshaking with server...", 0, 100);
+
 		HttpRequestOptions options;
 		options.streamingCallback = handleAuthResultData;
 
@@ -928,28 +930,38 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		}
 	};
 
-	m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", address.ToString() }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
+	auto initiateRequest = [this, address, continueRequest]()
 	{
-		if (success)
+		OnConnectionProgress("Requesting authentication ticket...", 0, 100);
+
+		m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", address.ToString() }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
 		{
-			auto node = YAML::Load(std::string(data, dataLen));
-
-			if (node["error"].IsDefined())
+			if (success)
 			{
-				OnConnectionError(va("%s", node["error"].as<std::string>()));
+				auto node = YAML::Load(std::string(data, dataLen));
 
-				m_connectionState = CS_IDLE;
+				if (node["error"].IsDefined())
+				{
+					OnConnectionError(va("%s", node["error"].as<std::string>()));
 
-				return;
+					m_connectionState = CS_IDLE;
+
+					return;
+				}
+				else if (node["ticket"].IsDefined())
+				{
+					postMap["cfxTicket"] = node["ticket"].as<std::string>();
+				}
 			}
-			else if (node["ticket"].IsDefined())
-			{
-				postMap["cfxTicket"] = node["ticket"].as<std::string>();
-			}
-		}
 
-		continueRequest();
-	});
+			continueRequest();
+		});
+	};
+
+	if (OnInterceptConnection(address, initiateRequest))
+	{
+		initiateRequest();
+	}
 }
 
 void NetLibrary::CancelDeferredConnection()
