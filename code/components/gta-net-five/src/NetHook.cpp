@@ -12,6 +12,8 @@
 #include <nutsnbolts.h>
 #include <ICoreGameInit.h>
 
+#include <MinHook.h>
+
 #include <Error.h>
 
 NetLibrary* g_netLibrary;
@@ -1654,7 +1656,9 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(hook::get_pattern("F6 44 07 04 02 74 7A", 4), 4); // check persistent sp flag -> persistent mp
 
 	// exitprocess -> terminateprocess
-	hook::iat("kernel32.dll", ExitProcessReplacement, "ExitProcess");
+	MH_Initialize();
+	MH_CreateHookApi(L"kernel32.dll", "ExitProcess", ExitProcessReplacement, nullptr);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// nullify RageNetSend thread
 	hook::put<uint16_t>(hook::get_pattern("41 BC 88 13 00 00 E8 ? ? ? ? 83 C8 01", -6), 0xE990);
