@@ -22,6 +22,9 @@
 
 #include <CoreConsole.h>
 
+#include <GlobalEvents.h>
+#include <ResourceGameLifetimeEvents.h>
+
 #include <Error.h>
 
 #include <deque>
@@ -82,6 +85,14 @@ static InitFunction initFunction([] ()
 	{
 		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
 	});
+
+	OnMsgConfirm.Connect([]()
+	{
+		Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
+		{
+			resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown();
+		});
+	}, -500);
 
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
