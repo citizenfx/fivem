@@ -12,6 +12,7 @@
 #include <NUISchemeHandlerFactory.h>
 
 #include <ResourceMetaDataComponent.h>
+#include <ResourceGameLifetimeEvents.h>
 
 #include <mutex>
 
@@ -126,8 +127,23 @@ static InitFunction initFunction([] ()
 		{
 			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
 
-			resourceUI->Destroy();
-			g_resourceUIs.erase(resource->GetName());
+			if (g_resourceUIs.find(resource->GetName()) != g_resourceUIs.end())
+			{
+				resourceUI->Destroy();
+				g_resourceUIs.erase(resource->GetName());
+			}
+		});
+
+		// pre-disconnect handling
+		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([=]()
+		{
+			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
+
+			if (g_resourceUIs.find(resource->GetName()) != g_resourceUIs.end())
+			{
+				resourceUI->Destroy();
+				g_resourceUIs.erase(resource->GetName());
+			}
 		});
 
 		// add component
