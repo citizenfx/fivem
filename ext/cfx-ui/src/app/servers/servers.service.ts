@@ -92,11 +92,11 @@ export class ServersService {
     }
 
     public refreshServers() {
-        this.requestEvent.next('https://runtime.fivem.net/api/servers/');
+        this.requestEvent.next('https://servers-live.fivem.net/api/servers/');
     }
 
     public getServer(address: string): Promise<Server> {
-        return fetch('https://runtime.fivem.net/api/servers/single/' + address)
+        return fetch('https://servers-live.fivem.net/api/servers/single/' + address)
             .then(resp => resp.json())
             .then(data => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
     }
