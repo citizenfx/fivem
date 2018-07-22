@@ -164,13 +164,12 @@ static InitFunction initFunction([] ()
 		resource->OnStop.Connect([=] ()
 		{
 			auto entryListComponent = resource->GetComponent<ResourceEntryListComponent>();
+			auto thisList = std::move(entryListComponent->list);
 
-			for (const auto& entry : entryListComponent->list)
+			for (const auto& entry : thisList)
 			{
 				streaming::RemoveDataFileFromLoadList(entry.first, entry.second);
 			}
-
-			entryListComponent->list.clear();
 
 			CfxCollection_RemoveStreamingTag(resource->GetName());
 		}, -500);
