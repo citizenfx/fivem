@@ -376,7 +376,7 @@ if (!$DontBuild -and !$IsServer) {
     			commit = $env:CI_COMMIT_SHA
     		}
     	)
-    	projects = @("fivem-game")
+    	projects = @("fivem-client-1290")
     } | ConvertTo-Json
 
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
