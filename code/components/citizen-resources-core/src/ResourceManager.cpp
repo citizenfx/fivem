@@ -118,6 +118,9 @@ void ResourceManagerImpl::ForAllResources(const std::function<void(fwRefContaine
 
 void ResourceManagerImpl::ResetResources()
 {
+	// lock for the entire ResetResources call
+	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+
 	auto lastManager = g_currentManager;
 	g_currentManager = this;
 
