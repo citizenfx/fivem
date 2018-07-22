@@ -46,7 +46,7 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
                 const int = new Int64BE(stringId.substr(6), 16);
                 const decId = int.toString(10);
 
-                return this.http.get(`https://runtime.fivem.net/steam/${decId}`)
+                return this.http.get(`https://steamcommunity.com/profiles/${decId}?xml=1`)
                                 .map(a => {
                                     const obj = xml2js(a.text(), { compact: true });
 
