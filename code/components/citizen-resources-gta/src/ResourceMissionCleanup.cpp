@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include <Resource.h>
+#include <Error.h>
 
 #ifdef GTA_FIVE
 #include <ScriptHandlerMgr.h>
@@ -256,8 +257,15 @@ static InitFunction initFunction([] ()
 			DeleteDummyThread(&data->dummyThread);
 		};
 
+		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([=]()
+		{
+			AddCrashometry("game_shutdown", "true");
+			cleanupResource();
+		});
+
 		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect.Connect([=]()
 		{
+			AddCrashometry("game_disconnect", "true");
 			cleanupResource();
 		});
 
@@ -265,6 +273,6 @@ static InitFunction initFunction([] ()
 		{
 			cleanupResource();
 		}, 10000);
-	});
+	}, -50);
 });
 #endif
