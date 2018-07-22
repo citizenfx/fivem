@@ -185,6 +185,8 @@ export class CfxGameService extends GameService {
 						this.zone.run(() => this.invokeConnecting(this.lastServer));
 						break;
 					case 'connectStatus':
+						console.log(`connect status: ${event.data.data.message}`);
+
 						this.zone.run(() =>
 							this.invokeConnectStatus(
 								this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total));
