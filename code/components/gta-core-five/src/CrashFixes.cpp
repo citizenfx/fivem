@@ -554,6 +554,29 @@ static HookFunction hookFunction([] ()
 		hook::call_reg<2>(location, clothFixStub1.GetCode());
 	}
 
+	// fix some deeply nested call used by CVehicle destructor (related to CApplyDamage?) crashing uncommonly on a null pointer
+	static struct : jitasm::Frontend
+	{
+		virtual void InternalMain() override
+		{
+			test(rdx, rdx);
+			jz("returnElse");
+
+			mov(rdx, qword_ptr[rdx + 0xE8]);
+			ret();
+
+			L("returnElse");
+			add(qword_ptr[rsp], 0xC + 2); // call is 5 bytes, original insn is 7 bytes - we skip the NOPs, CALL and other MOV instruction which are 12 bytes
+			ret();
+		}
+	} vehicleDamageFixStub1;
+
+	{
+		auto location = hook::get_pattern("48 8B 92 E8 00 00 00 48 8B 8B", 0);
+		hook::nop(location, 7);
+		hook::call_rcx(location, vehicleDamageFixStub1.GetCode());
+	}
+
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 
