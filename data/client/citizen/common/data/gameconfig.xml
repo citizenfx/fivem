@@ -48,6 +48,18 @@
 							<PoolSize value="90"/>
 						</Item>
 						<Item>
+							<PoolName>StreamPed render data</PoolName>
+							<PoolSize value="200"/>
+						</Item>
+						<Item>
+							<PoolName>PedProp req data</PoolName>
+							<PoolSize value="100"/>
+						</Item>
+						<Item>
+							<PoolName>PedProp render data</PoolName>
+							<PoolSize value="240"/>
+						</Item>
+						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
 							<PoolName>carrec</PoolName>
 							<PoolSize value="4000"/>
