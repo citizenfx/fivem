@@ -48,6 +48,7 @@ namespace streaming
 		uint32_t Index;
 	};
 
+	// in reality a blockmap, but at least fwAssetRscStore only uses the first block reference pointer
 	struct strAssetReference
 	{
 		void* unknown;
@@ -201,6 +202,9 @@ namespace streaming
 	STREAMING_EXPORT uint32_t RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed);
 
 	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry);
+
+	// are we trying to shut down?
+	STREAMING_EXPORT bool IsStreamerShuttingDown();
 
 	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
 }

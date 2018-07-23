@@ -513,6 +513,12 @@ struct GetRcdDebugInfoExtension
 
 static void ErrorInflateFailure(char* ioData, char* requestData)
 {
+	if (streaming::IsStreamerShuttingDown())
+	{
+		trace("Streamer shutdown: ignoring inflate() failure!\n");
+		return;
+	}
+
 	uint32_t handle = *(uint32_t*)(requestData + 4);
 	uint8_t* nextIn = *(uint8_t**)(ioData + 8);
 	uint32_t availIn = *(uint32_t*)(ioData);

@@ -946,6 +946,12 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 				}
 				else
 				{
+					// release the object if it was likely to have been faked
+					if (streaming::IsStreamerShuttingDown())
+					{
+						streaming::Manager::GetInstance()->ReleaseObject(strId + strModule->baseIdx);
+					}
+
 					// TODO: fully delete the streaming object from the module/streamer
 					g_customStreamingFileRefs.erase(baseName);
 					entry.handle = 0;
@@ -1080,10 +1086,96 @@ static int64_t pgRawStreamer__GetEntry(pgRawStreamer* streamer, uint16_t index)
 	return g_origGetEntry(streamer, index);
 }
 
+static bool g_unloadingCfx;
+
+namespace streaming
+{
+	bool IsStreamerShuttingDown()
+	{
+		return g_unloadingCfx;
+	}
+}
+
+static void* g_streamingInternals;
+
+static hook::cdecl_stub<void()> _waitUntilStreamerClear([]()
+{
+	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 12));
+});
+
+static hook::cdecl_stub<void(void*)> _resyncStreamers([]()
+{
+	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 24));
+});
+
+static void SafelyDrainStreamer()
+{
+	g_unloadingCfx = true;
+
+	trace("Shutdown: waiting for streaming to finish\n");
+
+	_waitUntilStreamerClear();
+
+	trace("Shutdown: updating GTA streamer state\n");
+
+	_resyncStreamers(g_streamingInternals);
+
+	trace("Shutdown: streamer tasks done\n");
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
 {
+	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
+	*hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6) -= 5;
+
+	// same function: stub to change free-instantly flag if needed by bypass streaming
+	static struct : jitasm::Frontend
+	{
+		static bool ShouldRequestBeAllowed()
+		{
+			if (streaming::IsStreamerShuttingDown())
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		void InternalMain() override
+		{
+			sub(rsp, 0x28);
+
+			// call the original function that's meant to be called
+			mov(rax, qword_ptr[rax + 0xA8]);
+			call(rax);
+
+			// save the result in a register (r12 is used as output by this function)
+			mov(r12, rax);
+
+			// store the streaming request in a1
+			mov(rcx, rsi);
+			mov(rax, (uintptr_t)&ShouldRequestBeAllowed);
+			call(rax);
+
+			// perform a switcharoo of rax and r12
+			// (r12 is the result the game wants, rax is what we want in r12)
+			xchg(r12, rax);
+
+			add(rsp, 0x28);
+			ret();
+		}
+	} streamingBypassStub;
+
+	{
+		auto location = hook::get_pattern("45 8A E7 FF 90 A8 00 00 00");
+		hook::nop(location, 9);
+		hook::call(location, streamingBypassStub.GetCode());
+	}
+
+	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 20));
+
 	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("83 F9 08 75 43 48 8D 0D", 8));
 
 	// level load
@@ -1136,6 +1228,9 @@ static HookFunction hookFunction([] ()
 
 	OnKillNetworkDone.Connect([]()
 	{
+		// safely drain the RAGE streamer before we unload everything
+		SafelyDrainStreamer();
+
 		UnloadDataFiles();
 
 		std::set<std::string> tags;
@@ -1149,6 +1244,8 @@ static HookFunction hookFunction([] ()
 		{
 			CfxCollection_RemoveStreamingTag(tag);
 		}
+
+		g_unloadingCfx = false;
 
 		/*if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
