@@ -33,6 +33,8 @@
 
 #include <SteamComponentAPI.h>
 
+#include "GameInit.h"
+
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 {
 	if (pointers->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
@@ -233,6 +235,15 @@ static InitFunction initFunction([] ()
 		ConnectTo(server);
 	});
 
+	static ConsoleCommand disconnectCommand("disconnect", []()
+	{
+		if (netLibrary->GetConnectionState() != 0)
+		{
+			OnKillNetwork("Disconnected.");
+			OnMsgConfirm();
+		}
+	});
+	
 	ConHost::OnInvokeNative.Connect([](const char* type, const char* arg)
 	{
 		if (!_stricmp(type, "connectTo"))
