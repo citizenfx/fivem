@@ -132,6 +132,11 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			if (data->cleanedUp)
+			{
+				return;
+			}
+
 			// ensure that we can call into game code here
 			// #FIXME: should we not always be on the main thread?!
 			rage::sysMemAllocator::UpdateAllocatorValue();
@@ -143,20 +148,8 @@ static InitFunction initFunction([] ()
 			{
 				data->dummyThread = new DummyThread(resource);
 
-				// old behavior, removed as it will make a broken handler be left over (lastScriptHandler from AttachScript)
-				if (data->behaviorVersion >= 0 && data->behaviorVersion < 1)
-				{
-					data->scriptHandler = new CGameScriptHandlerNetwork(data->dummyThread);
-
-					data->dummyThread->SetScriptHandler(data->scriptHandler);
-				}
-
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
-
-				if (data->behaviorVersion >= 1)
-				{
-					data->scriptHandler = data->dummyThread->GetScriptHandler();
-				}
+				data->scriptHandler = data->dummyThread->GetScriptHandler();
 
 				setScriptNow = true;
 			}
@@ -172,11 +165,11 @@ static InitFunction initFunction([] ()
 
 			if (setScriptNow)
 			{
+				// make this a network script
+				NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
+
 				if (data->behaviorVersion >= 1)
 				{
-					// make this a network script
-					NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
-
 					// get script status; this sets a flag in the CGameScriptHandlerNetComponent
 					NativeInvoke::Invoke<0x57D158647A6BFABF, int>();
 				}
@@ -196,19 +189,21 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			if (data->cleanedUp)
+			{
+				return;
+			}
+
 			// put back the last script handler
 			GtaThread* gtaThread = data->dummyThread;
 
 			// will cause breakage if combined with old behavior with unneeded script handler
-			if (data->behaviorVersion >= 1)
+			if (gtaThread->GetScriptHandler() != data->scriptHandler)
 			{
-				if (gtaThread->GetScriptHandler() != data->scriptHandler)
-				{
-					assert(gtaThread->GetScriptHandler());
+				assert(gtaThread->GetScriptHandler());
 
-					auto handler = gtaThread->GetScriptHandler();
-					data->scriptHandler = handler;
-				}
+				auto handler = gtaThread->GetScriptHandler();
+				data->scriptHandler = handler;
 			}
 
 			{
@@ -255,11 +250,6 @@ static InitFunction initFunction([] ()
 
 				data->dummyThread->SetScriptHandler(data->scriptHandler);
 				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
-
-				if (data->behaviorVersion >= 0 && data->behaviorVersion < 1)
-				{
-					delete data->scriptHandler;
-				}
 
 				data->scriptHandler = nullptr;
 			}
