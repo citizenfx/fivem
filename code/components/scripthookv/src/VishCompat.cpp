@@ -110,9 +110,17 @@ class FishThread : public GtaThread
 private:
 	std::vector<std::shared_ptr<FishScript>> m_scripts;
 
+	bool m_initedNet;
+
 public:
 	virtual void DoRun() override
 	{
+		if (!m_initedNet)
+		{
+			// make this a network script
+			NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
+		}
+
 		std::vector<std::shared_ptr<FishScript>> thisIterScripts(m_scripts);
 
 		for (auto& script : thisIterScripts)
@@ -130,6 +138,9 @@ public:
 
 rage::eThreadState FishThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
+	// uninit net
+	m_initedNet = false;
+
 	// collect all script functions
 	std::vector<void(*)()> scriptFunctions;
 
