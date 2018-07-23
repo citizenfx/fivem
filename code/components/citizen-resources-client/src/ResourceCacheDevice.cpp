@@ -145,6 +145,10 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 						if (rscHeader[0] != 'R' || rscHeader[1] != 'S' || rscHeader[2] != 'C')
 						{
+							trace(__FUNCTION__ ": %s didn't parse as an RSC. Refetching?\n", fileName);
+
+							AddCrashometry("rcd_invalid_resource", "true");
+
 							handleData->fileData->status = FileData::StatusNotFetched;
 						}
 					}
@@ -239,23 +243,6 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		return true;
 	}
 
-	if (handleData->fileData->status == FileData::StatusFetching)
-	{
-		if (m_blocking)
-		{
-			BROFILER_EVENT("block on Fetching");
-
-			WaitForSingleObject(handleData->fileData->eventHandle, INFINITE);
-		}
-
-		return false;
-	}
-
-	BROFILER_EVENT("set StatusFetching");
-
-	ResetEvent(handleData->fileData->eventHandle);
-	handleData->fileData->status = FileData::StatusFetching;
-
 	// file extension for cache stuff
 	std::string extension = handleData->entry.basename.substr(handleData->entry.basename.find_last_of('.') + 1);
 	std::string outFileName = m_cachePath + extension + "_" + handleData->entry.referenceHash;
@@ -274,6 +261,30 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 		MarkFetched(handleData);
 	};
+
+	if (handleData->fileData->status == FileData::StatusFetching)
+	{
+		if (m_blocking)
+		{
+			BROFILER_EVENT("block on Fetching");
+
+			WaitForSingleObject(handleData->fileData->eventHandle, INFINITE);
+
+			if (handleData->fileData->status == FileData::StatusFetched && (handleData->parentDevice.GetRef() == nullptr || handleData->parentHandle == INVALID_DEVICE_HANDLE))
+			{
+				openFile();
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	BROFILER_EVENT("set StatusFetching");
+
+	ResetEvent(handleData->fileData->eventHandle);
+	handleData->fileData->status = FileData::StatusFetching;
 
 	if (g_downloadingSet.find(handleData->entry.referenceHash) == g_downloadingSet.end())
 	{
@@ -371,6 +382,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 				metaData["filename"] = entryRef.basename;
 				metaData["resource"] = entryRef.resourceName;
 				metaData["from"] = entryRef.remoteUrl;
+				metaData["reference"] = entryRef.referenceHash;
 
 				AddEntryToCache(outFileName, metaData, entryRef);
 

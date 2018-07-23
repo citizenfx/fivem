@@ -128,6 +128,18 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 		hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
 		hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
 
+	{
+		auto refIt = metaData.find("reference");
+
+		if (refIt != metaData.end())
+		{
+			if (refIt->second != hashString)
+			{
+				trace(__FUNCTION__ ": corruption uncovered - %s should hash to %s, but saved as %s.\n", localFileName, refIt->second, hashString);
+			}
+		}
+	}
+
 	// serialize the data for placement in the database
 	msgpack::sbuffer buffer;
 	msgpack::packer<msgpack::sbuffer> packer(buffer);
