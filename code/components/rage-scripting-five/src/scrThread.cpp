@@ -77,6 +77,9 @@ static hook::cdecl_stub<void(GtaThread*)> gtaThreadInit([] ()
 	return hook::pattern("83 89 38 01 00 00 FF 83 A1 50 01 00 00 F0").count(1).get(0).get<void>();
 });
 
+extern rage::scriptHandlerMgr* g_scriptHandlerMgr;
+extern uint32_t* scrThreadId;
+
 rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
 	memset(&m_Context, 0, sizeof(m_Context));
@@ -95,6 +98,15 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 	m_canRemoveBlipsFromOtherScripts = false;
 
 	m_pszExitMessage = "Normal exit";
+
+	if (GetContext()->ThreadId == 0)
+	{
+		GetContext()->ThreadId = *scrThreadId;
+		(*scrThreadId)++;
+	}
+
+	// attach script to the GTA script handler manager
+	g_scriptHandlerMgr->AttachScript(this);
 
 	return m_Context.State;
 }

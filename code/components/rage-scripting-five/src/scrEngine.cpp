@@ -31,10 +31,10 @@ fwEvent<bool&> rage::scrEngine::CheckNativeScriptAllowed;
 static rage::pgPtrCollection<GtaThread>* scrThreadCollection;
 static uint32_t activeThreadTlsOffset;
 
-static uint32_t* scrThreadId;
+uint32_t* scrThreadId;
 static uint32_t* scrThreadCount;
 
-static rage::scriptHandlerMgr* g_scriptHandlerMgr;
+rage::scriptHandlerMgr* g_scriptHandlerMgr;
 
 static bool g_hasObfuscated;
 
@@ -191,7 +191,6 @@ void scrEngine::CreateThread(GtaThread* thread)
 
 	{
 		auto context = thread->GetContext();
-		thread->Reset((*scrThreadCount) + 1, nullptr, 0);
 
 		if (*scrThreadId == 0)
 		{
@@ -201,24 +200,15 @@ void scrEngine::CreateThread(GtaThread* thread)
 		context->ThreadId = *scrThreadId;
 
 		(*scrThreadId)++;
+
+		thread->SetScriptName(va("scr_%d", (*scrThreadCount) + 1));
+		context->ScriptHash = (*scrThreadCount) + 1;
+
 		(*scrThreadCount)++;
 
 		collection->set(slot, thread);
 
 		g_ownedThreads.insert(thread);
-
-		// attach script to the GTA script handler manager
-		static void* scriptHandler;
-
-		if (!scriptHandler)
-		{
-			g_scriptHandlerMgr->AttachScript(thread);
-			scriptHandler = thread->GetScriptHandler();
-		}
-		else
-		{
-			thread->SetScriptHandler(scriptHandler);
-		}
 	}
 }
 
@@ -396,7 +386,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 
 	if (handler)
 	{
-		if (origHash == 0xD1110739EEADB592)
+		/*if (origHash == 0xD1110739EEADB592)
 		{
 			static scrEngine::NativeHandler hashHandler = handler;
 
@@ -420,7 +410,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 			};
 		}
 		// prop density lowering
-		else if (origHash == 0x9BAE5AD2508DF078)
+		else */if (origHash == 0x9BAE5AD2508DF078)
 		{
 			return [] (rage::scrNativeCallContext*)
 			{
@@ -443,31 +433,27 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 }
 }
 
+static int ReturnTrue()
+{
+	return true;
+}
+
+static void ResetOwnedThreads()
+{
+	for (auto& thread : g_ownedThreads)
+	{
+		thread->Reset(thread->GetContext()->ScriptHash, nullptr, 0);
+	}
+}
+
 static int JustNoScript(GtaThread* thread)
 {
 	if (g_ownedThreads.find(thread) != g_ownedThreads.end())
 	{
 		thread->Run(0);
-
-		// attempt to fix up threads with an unknown thread ID
-		for (auto& script : g_ownedThreads)
-		{
-			if (script != thread && script->GetContext()->ThreadId == 0)
-			{
-				script->GetContext()->ThreadId = *scrThreadId;
-				(*scrThreadId)++;
-
-				script->SetScriptHandler(thread->GetScriptHandler());
-			}
-		}
 	}
 
 	return thread->GetContext()->State;
-}
-
-static int ReturnTrue()
-{
-	return true;
 }
 
 static HookFunction hookFunction([] ()
@@ -497,9 +483,13 @@ static HookFunction hookFunction([] ()
 	if (!CfxIsSinglePlayer())
 	{
 		// temp: kill stock scripts
+		// NOTE: before removing make sure scrObfuscation in fivem-private can handle opcode 0x2C (NATIVE)
 		hook::jump(hook::pattern("48 83 EC 20 80 B9 46 01  00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript);
 
 		// make all CGameScriptId instances return 'true' in matching function (mainly used for 'is script allowed to use this object' checks)
 		hook::jump(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrue);
+
+		// replace `startup` initialization with resetting all owned threads
+		hook::jump(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads);
 	}
 });

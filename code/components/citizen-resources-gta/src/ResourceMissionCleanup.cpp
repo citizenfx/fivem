@@ -69,8 +69,10 @@ struct MissionCleanupData
 
 	int behaviorVersion;
 
+	bool cleanedUp;
+
 	MissionCleanupData()
-		: scriptHandler(nullptr), dummyThread(nullptr)
+		: scriptHandler(nullptr), dummyThread(nullptr), cleanedUp(false)
 	{
 
 	}
@@ -108,6 +110,8 @@ static InitFunction initFunction([] ()
 		{
 			data->scriptHandler = nullptr;
 			data->dummyThread = nullptr;
+
+			data->cleanedUp = false;
 
 			auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 
@@ -240,9 +244,16 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			if (data->cleanedUp)
+			{
+				return;
+			}
+
 			if (data->scriptHandler)
 			{
 				data->scriptHandler->CleanupObjectList();
+
+				data->dummyThread->SetScriptHandler(data->scriptHandler);
 				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
 
 				if (data->behaviorVersion >= 0 && data->behaviorVersion < 1)
@@ -255,6 +266,8 @@ static InitFunction initFunction([] ()
 
 			// having the function content inlined causes a compiler ICE - so we do it separately
 			DeleteDummyThread(&data->dummyThread);
+
+			data->cleanedUp = true;
 		};
 
 		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([=]()

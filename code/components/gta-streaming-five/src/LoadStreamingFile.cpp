@@ -1128,7 +1128,7 @@ static void SafelyDrainStreamer()
 static HookFunction hookFunction([] ()
 {
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
-	*hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6) -= 5;
+	*hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6) = 0x25;
 
 	// same function: stub to change free-instantly flag if needed by bypass streaming
 	static struct : jitasm::Frontend
@@ -1146,6 +1146,9 @@ static HookFunction hookFunction([] ()
 		void InternalMain() override
 		{
 			sub(rsp, 0x28);
+
+			// restore rcx as the call stub used this
+			mov(rcx, r14);
 
 			// call the original function that's meant to be called
 			mov(rax, qword_ptr[rax + 0xA8]);
@@ -1171,7 +1174,7 @@ static HookFunction hookFunction([] ()
 	{
 		auto location = hook::get_pattern("45 8A E7 FF 90 A8 00 00 00");
 		hook::nop(location, 9);
-		hook::call(location, streamingBypassStub.GetCode());
+		hook::call_rcx(location, streamingBypassStub.GetCode());
 	}
 
 	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 20));

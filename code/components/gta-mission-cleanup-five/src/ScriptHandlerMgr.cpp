@@ -70,14 +70,14 @@ void WrapDetachScript(void* a1, void* script)
 {
 	// sometimes scripts here are on the C++ side, which use a copied scripthandler from another script
 	// these will except as they're _already_ freed, so we catch that exception here
-	__try
+	//__try
 	{
 		g_origDetachScript(a1, script);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		trace("CGameScriptHandlerMgr::DetachScript() excepted, caught and returned.\n");
-	}
+	//__except (EXCEPTION_EXECUTE_HANDLER)
+	//{
+//		trace("CGameScriptHandlerMgr::DetachScript() excepted, caught and returned.\n");
+	//}
 }
 
 #include <mutex>
