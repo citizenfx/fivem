@@ -1756,4 +1756,9 @@ static HookFunction hookFunction([] ()
 			_processEntitlements();
 		});
 	}
+
+	// pretend to have CGameScriptHandlerNetComponent always be host
+	// (we now use 'real' network scripts with net component, and compatibility
+	// mandates check of netComponent && netComponent->IsHost() always fails)
+	hook::jump(hook::get_pattern("33 DB 48 85 C0 74 17 48 8B 48 10 48 85 C9 74 0E", -10), ReturnTrue);
 });
