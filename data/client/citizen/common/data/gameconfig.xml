@@ -121,6 +121,10 @@
 							<PoolSize value="250"/>
 						</Item>
 						<Item>
+							<PoolName>CGameScriptHandlerNetComponent</PoolName>
+							<PoolSize value="350"/>
+						</Item>
+						<Item>
 							<PoolName>CGameScriptHandler</PoolName>
 							<PoolSize value="250"/>
 						</Item>
@@ -171,6 +175,10 @@
 						<Item>
 							<PoolName>CutsceneStore</PoolName>
 							<PoolSize value="1400"/>
+						</Item>
+						<Item>
+							<PoolName>CNetworkPtFXWorldStateData</PoolName>
+							<PoolSize value="240"/>
 						</Item>
 						<Item>
 							<PoolName>CScriptEntityExtension</PoolName>
