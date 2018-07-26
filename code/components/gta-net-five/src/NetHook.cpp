@@ -14,6 +14,9 @@
 
 #include <MinHook.h>
 
+#include <scrEngine.h>
+#include <ScriptEngine.h>
+
 #include <Error.h>
 
 NetLibrary* g_netLibrary;
@@ -1761,4 +1764,21 @@ static HookFunction hookFunction([] ()
 	// (we now use 'real' network scripts with net component, and compatibility
 	// mandates check of netComponent && netComponent->IsHost() always fails)
 	hook::jump(hook::get_pattern("33 DB 48 85 C0 74 17 48 8B 48 10 48 85 C9 74 0E", -10), ReturnTrue);
+
+	// don't send SCRIPT_WORLD_STATE_EVENT (these get spammed when host, causing the event q to run out)
+	hook::return_function(hook::get_pattern("74 4E 48 8B 77 08 48 85 F6 74 2A", -0x41));
+
+	// network host tweaks
+	rage::scrEngine::OnScriptInit.Connect([]()
+	{
+		auto origCreatePickup = fx::ScriptEngine::GetNativeHandler(0x891804727E0A98B7);
+
+		// CPickupPlacement needs flag `1` to actually work without net component
+		fx::ScriptEngine::RegisterNativeHandler(0x891804727E0A98B7, [=](fx::ScriptContext& context)
+		{
+			context.SetArgument(7, context.GetArgument<int>(7) | 1);
+
+			(*origCreatePickup)(context);
+		});
+	});
 });
