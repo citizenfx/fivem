@@ -405,6 +405,112 @@ static DWORD RemoteExceptionFunc(LPVOID objectPtr)
 	}
 }
 
+// c/p from ros-patches:five
+// #TODO: factor out sanely
+
+// {E091E21C-C61F-49F6-8560-CEF64DC42002}
+#include <KnownFolders.h>
+#include <ShlObj.h>
+
+#include <dpapi.h>
+
+#define INITGUID
+#include <guiddef.h>
+
+// {38D8F400-AA8A-4784-A9F0-26A08628577E}
+DEFINE_GUID(CfxStorageGuid,
+	0x38d8f400, 0xaa8a, 0x4784, 0xa9, 0xf0, 0x26, 0xa0, 0x86, 0x28, 0x57, 0x7e);
+
+#pragma comment(lib, "rpcrt4.lib")
+
+std::string GetOwnershipPath()
+{
+	PWSTR appDataPath;
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPath))) {
+		std::string cfxPath = ToNarrow(appDataPath) + "\\DigitalEntitlements";
+		CreateDirectory(ToWide(cfxPath).c_str(), nullptr);
+
+		CoTaskMemFree(appDataPath);
+
+		RPC_CSTR str;
+		UuidToStringA(&CfxStorageGuid, &str);
+
+		cfxPath += "\\";
+		cfxPath += (char*)str;
+
+		RpcStringFreeA(&str);
+
+		return cfxPath;
+	}
+
+	return "";
+}
+
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
+std::string g_entitlementSource;
+
+bool LoadOwnershipTicket()
+{
+	std::string filePath = GetOwnershipPath();
+
+	FILE* f = _wfopen(ToWide(filePath).c_str(), L"rb");
+
+	if (!f)
+	{
+		return false;
+	}
+
+	std::vector<uint8_t> fileData;
+	int pos;
+
+	// get the file length
+	fseek(f, 0, SEEK_END);
+	pos = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	// resize the buffer
+	fileData.resize(pos);
+
+	// read the file and close it
+	fread(&fileData[0], 1, pos, f);
+
+	fclose(f);
+
+	// decrypt the stored data - setup blob
+	DATA_BLOB cryptBlob;
+	cryptBlob.pbData = &fileData[0];
+	cryptBlob.cbData = fileData.size();
+
+	DATA_BLOB outBlob;
+
+	// call DPAPI
+	if (CryptUnprotectData(&cryptBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+	{
+		// parse the file
+		std::string data(reinterpret_cast<char*>(outBlob.pbData), outBlob.cbData);
+
+		// free the out data
+		LocalFree(outBlob.pbData);
+
+		rapidjson::Document doc;
+		doc.Parse(data.c_str(), data.size());
+
+		if (!doc.HasParseError())
+		{
+			if (doc.IsObject())
+			{
+				g_entitlementSource = doc["guid"].GetString();
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
@@ -587,9 +693,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"Version"] = L"1.0";
 		parameters[L"BuildID"] = L"20141213000000"; // todo i bet
 #elif defined(GTA_FIVE)
+		LoadOwnershipTicket();
+
+		if (g_entitlementSource.empty())
+		{
+			g_entitlementSource = "default";
+		}
+
 		parameters[L"ProductName"] = L"FiveM";
 		parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
-		parameters[L"BuildID"] = L"20170101"; // todo i bet
+		parameters[L"BuildID"] = L"20170101";
+		parameters[L"UserID"] = ToWide(g_entitlementSource);
 
         parameters[L"prod"] = L"FiveM";
         parameters[L"ver"] = L"1.0";
@@ -667,7 +781,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		if (crashometry.find("kill_network_msg") != crashometry.end() && crashometry.find("reload_game") == crashometry.end())
 		{
 			windowTitle = L"Disconnected";
-			mainInstruction = L"O\x448\x438\x431\x43A\x430";
+			mainInstruction = L"O\x448\x438\x431\x43A\x430 (Error)";
 
 			content = ToWide(crashometry["kill_network_msg"]);
 		}
