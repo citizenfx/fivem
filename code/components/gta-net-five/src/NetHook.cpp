@@ -1765,8 +1765,8 @@ static HookFunction hookFunction([] ()
 	// mandates check of netComponent && netComponent->IsHost() always fails)
 	hook::jump(hook::get_pattern("33 DB 48 85 C0 74 17 48 8B 48 10 48 85 C9 74 0E", -10), ReturnTrue);
 
-	// don't send SCRIPT_WORLD_STATE_EVENT (these get spammed when host, causing the event q to run out)
-	hook::return_function(hook::get_pattern("74 4E 48 8B 77 08 48 85 F6 74 2A", -0x41));
+	// don't consider ourselves as host for world state reassignment
+	hook::put<uint16_t>(hook::get_pattern("EB 02 32 C0 84 C0 0F 84 B4 00", 6), 0xE990);
 
 	// network host tweaks
 	rage::scrEngine::OnScriptInit.Connect([]()
