@@ -231,6 +231,8 @@ static void* PoolAllocateWrap(atPoolBase* pool)
 			poolName = poolEntries.LookupHash(poolHash);
 		}
 
+		AddCrashometry("pool_error", "%s (%d)", poolName, pool->GetSize());
+
 		std::string extraWarning = (poolName.find("0x") == std::string::npos)
 			? fmt::sprintf(" (you need to raise %s PoolSize in common/data/gameconfig.xml)", poolName)
 			: "";
