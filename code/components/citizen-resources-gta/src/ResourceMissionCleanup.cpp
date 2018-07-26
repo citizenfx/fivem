@@ -62,9 +62,6 @@ static std::stack<rage::scrThread*> g_lastThreads;
 
 struct MissionCleanupData
 {
-	rage::scriptHandler* scriptHandler;
-	std::stack<rage::scriptHandler*> lastScriptHandlers;
-
 	DummyThread* dummyThread;
 
 	int behaviorVersion;
@@ -72,7 +69,7 @@ struct MissionCleanupData
 	bool cleanedUp;
 
 	MissionCleanupData()
-		: scriptHandler(nullptr), dummyThread(nullptr), cleanedUp(false)
+		: dummyThread(nullptr), cleanedUp(false)
 	{
 
 	}
@@ -108,7 +105,6 @@ static InitFunction initFunction([] ()
 
 		resource->OnStart.Connect([=] ()
 		{
-			data->scriptHandler = nullptr;
 			data->dummyThread = nullptr;
 
 			data->cleanedUp = false;
@@ -144,12 +140,11 @@ static InitFunction initFunction([] ()
 			bool setScriptNow = false;
 
 			// create the script handler if needed
-			if (!data->scriptHandler)
+			if (!data->dummyThread)
 			{
 				data->dummyThread = new DummyThread(resource);
 
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
-				data->scriptHandler = data->dummyThread->GetScriptHandler();
 
 				setScriptNow = true;
 			}
@@ -159,9 +154,6 @@ static InitFunction initFunction([] ()
 
 			g_lastThreads.push(rage::scrEngine::GetActiveThread());
 			rage::scrEngine::SetActiveThread(gtaThread);
-
-			data->lastScriptHandlers.push(gtaThread->GetScriptHandler());
-			gtaThread->SetScriptHandler(data->scriptHandler);
 
 			if (setScriptNow)
 			{
@@ -194,30 +186,6 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
-			// put back the last script handler
-			GtaThread* gtaThread = data->dummyThread;
-
-			// will cause breakage if combined with old behavior with unneeded script handler
-			if (gtaThread->GetScriptHandler() != data->scriptHandler)
-			{
-				assert(gtaThread->GetScriptHandler());
-
-				auto handler = gtaThread->GetScriptHandler();
-				data->scriptHandler = handler;
-			}
-
-			{
-				rage::scriptHandler* lastScriptHandler = nullptr;
-
-				if (!data->lastScriptHandlers.empty())
-				{
-					lastScriptHandler = data->lastScriptHandlers.top();
-					data->lastScriptHandlers.pop();
-				}
-
-				gtaThread->SetScriptHandler(lastScriptHandler);
-			}
-
 			{
 				rage::scrThread* lastThread = nullptr;
 
@@ -244,14 +212,10 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
-			if (data->scriptHandler)
+			if (data->dummyThread && data->dummyThread->GetScriptHandler())
 			{
-				data->scriptHandler->CleanupObjectList();
-
-				data->dummyThread->SetScriptHandler(data->scriptHandler);
+				data->dummyThread->GetScriptHandler()->CleanupObjectList();
 				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
-
-				data->scriptHandler = nullptr;
 			}
 
 			// having the function content inlined causes a compiler ICE - so we do it separately
