@@ -85,7 +85,7 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 
 		if (inRecursiveError)
 		{
-			return SysError("RECURSIVE RECURSIVE ERROR");
+			return SysError(va("Recursive-recursive error: %s", buffer));
 		}
 
 		inRecursiveError = true;
