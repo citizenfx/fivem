@@ -46,6 +46,19 @@ namespace fx
 		}
 
 		template<typename T>
+		inline void SetArgument(int index, const T& value)
+		{
+			static_assert(sizeof(T) <= ArgumentSize, "Argument size of T");
+
+			if (sizeof(T) < ArgumentSize)
+			{
+				*reinterpret_cast<uintptr_t*>(&m_functionData[index][0]) = 0;
+			}
+
+			*reinterpret_cast<T*>(&m_functionData[index][0]) = value;
+		}
+
+		template<typename T>
 		inline const T& CheckArgument(int index)
 		{
 			const auto& argument = GetArgument<T>(index);
@@ -66,7 +79,7 @@ namespace fx
 		template<typename T>
 		inline void Push(const T& value)
 		{
-			assert(sizeof(T) <= ArgumentSize);
+			static_assert(sizeof(T) <= ArgumentSize, "Argument size of T");
 
 			if (sizeof(T) < ArgumentSize)
 			{
