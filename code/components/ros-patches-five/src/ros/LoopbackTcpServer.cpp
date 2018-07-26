@@ -607,26 +607,29 @@ private:
 	{
 		TSet set;
 
-		fs::path plugins_path(MakeRelativeCitPath(L""));
-		fs::directory_iterator it(plugins_path), end;
-
-		while (it != end)
+		for (const auto& rootTree : { L"", L"bin" })
 		{
-			// gta-net-five hooks select() after us, so our hook will think any caller is Cfx
-			if (it->path().extension() == ".dll" && it->path().filename() != "gta-net-five.dll")
+			fs::path plugins_path(MakeRelativeCitPath(rootTree));
+			fs::directory_iterator it(plugins_path), end;
+
+			while (it != end)
 			{
-				HMODULE hMod = GetModuleHandle(it->path().filename().c_str());
-
-				if (hMod)
+				// gta-net-five hooks select() after us, so our hook will think any caller is Cfx
+				if (it->path().extension() == ".dll" && it->path().filename() != "gta-net-five.dll")
 				{
-					MODULEINFO mi;
-					GetModuleInformation(GetCurrentProcess(), hMod, &mi, sizeof(mi));
+					HMODULE hMod = GetModuleHandle(it->path().c_str());
 
-					set.insert({ (uintptr_t)hMod, (uintptr_t)hMod + mi.SizeOfImage });
+					if (hMod)
+					{
+						MODULEINFO mi;
+						GetModuleInformation(GetCurrentProcess(), hMod, &mi, sizeof(mi));
+
+						set.insert({ (uintptr_t)hMod, (uintptr_t)hMod + mi.SizeOfImage });
+					}
 				}
-			}
 
-			it++;
+				it++;
+			}
 		}
 
 		return std::move(set);
@@ -986,10 +989,7 @@ static int __stdcall EP_WSAEnumNetworkEvents(SOCKET socket, WSAEVENT event, LPWS
 
 static int __stdcall EP_CloseSocket(SOCKET sock)
 {
-	if (ShouldBeHooked(_ReturnAddress()))
-	{
-		g_manager->UntrackSocket(sock);
-	}
+	g_manager->UntrackSocket(sock);
 
 	return g_oldCloseSocket(sock);
 }
