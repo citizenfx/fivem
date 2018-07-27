@@ -179,7 +179,7 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 
 	if (success)
 	{
-		g_resetVideoMode(info);
+		//g_resetVideoMode(info);
 	}
 
 #if 0
@@ -396,8 +396,8 @@ static HookFunction hookFunction([] ()
 		g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
 
 		// remove render thread semaphore checks from buffer resizing
-		hook::nop((char*)g_resetVideoMode + 0x48, 5);
-		hook::nop((char*)g_resetVideoMode + 0x163, 5);
+		/*hook::nop((char*)g_resetVideoMode + 0x48, 5);
+		hook::nop((char*)g_resetVideoMode + 0x163, 5);*/
 	}
 
 	if (g_disableRendering)
