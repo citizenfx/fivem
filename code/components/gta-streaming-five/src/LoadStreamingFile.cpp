@@ -1108,6 +1108,12 @@ static hook::cdecl_stub<void(void*)> _resyncStreamers([]()
 	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 24));
 });
 
+static hook::cdecl_stub<void()> _unloadTextureLODs([]()
+{
+	// there's two of these, both seem to do approximately the same thing, but the first one we want
+	return hook::get_pattern("48 85 DB 75 1B 8D 47 01 49 8D", -0x84);
+});
+
 static void SafelyDrainStreamer()
 {
 	g_unloadingCfx = true;
@@ -1119,6 +1125,10 @@ static void SafelyDrainStreamer()
 	trace("Shutdown: updating GTA streamer state\n");
 
 	_resyncStreamers(g_streamingInternals);
+
+	trace("Shutdown: unloading texture LODs\n");
+
+	_unloadTextureLODs();
 
 	trace("Shutdown: streamer tasks done\n");
 }
