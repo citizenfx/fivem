@@ -105,7 +105,11 @@ void MumbleAudioInput::ThreadFunc()
 	{
 		if (m_likelihood != lastLikelihood)
 		{
-			m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
+			if (m_apm)
+			{
+				m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
+			}
+
 			lastLikelihood = m_likelihood;
 		}
 
@@ -195,6 +199,12 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		// increment origin
 		origin += chunkLength;
 		bytesLeft -= chunkLength;
+
+		// skip if APM is NULL
+		if (!m_apm)
+		{
+			continue;
+		}
 
 		// is this voice?
 		webrtc::AudioFrame frame;
