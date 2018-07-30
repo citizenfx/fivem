@@ -491,6 +491,12 @@ namespace streaming
 	void DLL_EXPORT RemoveDataFileFromLoadList(const std::string& type, const std::string& path)
 	{
 		auto dataFilePair = std::make_pair(type, path);
+
+		if (std::find(g_loadedDataFiles.begin(), g_loadedDataFiles.end(), dataFilePair) == g_loadedDataFiles.end())
+		{
+			return;
+		}
+		
 		std::remove(g_loadedDataFiles.begin(), g_loadedDataFiles.end(), dataFilePair);
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
@@ -974,7 +980,7 @@ static void UnloadDataFiles()
 	{
 		trace("Unloading data files (%d entries)\n", g_loadedDataFiles.size());
 
-		HandleDataFileList(g_dataFiles, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
+		HandleDataFileList(g_loadedDataFiles, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
 		{
 			return mounter->UnmountFile(&entry);
 		}, "unloading");
@@ -1244,6 +1250,14 @@ static HookFunction hookFunction([] ()
 		// safely drain the RAGE streamer before we unload everything
 		SafelyDrainStreamer();
 
+		g_unloadingCfx = false;
+	}, 99900);
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		// safely drain the RAGE streamer before we unload everything
+		SafelyDrainStreamer();
+
 		UnloadDataFiles();
 
 		std::set<std::string> tags;
@@ -1259,16 +1273,7 @@ static HookFunction hookFunction([] ()
 		}
 
 		g_unloadingCfx = false;
-
-		/*if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
-		{
-			// toggle map group again?
-			g_enableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
-			g_disableContentGroup(*g_extraContentManager, 0xBCC89179);
-
-			g_clearContentCache(0);
-		}*/
-	}, 99900);
+	}, -9999);
 
 	OnMainGameFrame.Connect([=]()
 	{
