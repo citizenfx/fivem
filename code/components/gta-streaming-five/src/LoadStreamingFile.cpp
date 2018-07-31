@@ -529,6 +529,23 @@ static std::map<std::string, std::vector<std::string>, std::less<>> g_customStre
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
 std::unordered_map<int, std::string> g_handlesToTag;
 
+static std::string GetBaseName(const std::string& name)
+{
+	std::string retval = name;
+
+	std::string policyVal;
+
+	if (Instance<ICoreGameInit>::Get()->GetData("policy", &policyVal))
+	{
+		if (policyVal.find("[subdir_file_mapping]") != std::string::npos)
+		{
+			std::replace(retval.begin(), retval.end(), '^', '/');
+		}
+	}
+
+	return retval;
+}
+
 static void LoadStreamingFiles(bool earlyLoad)
 {
 	// register any custom streaming assets
@@ -545,7 +562,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 			continue;
 		}
 
-		auto baseName = std::string(slashPos + 1);
+		auto baseName = GetBaseName(std::string(slashPos + 1));
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 		const char* extPos = strrchr(baseName.c_str(), '.');
@@ -907,7 +924,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 	for (auto& file : g_customStreamingFilesByTag[tag])
 	{
 		// get basename ('thing.ytd') and asset name ('thing')
-		auto baseName = std::string(strrchr(file.c_str(), '/') + 1);
+		auto baseName = GetBaseName(std::string(strrchr(file.c_str(), '/') + 1));
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 		// get dot position and skip if no dot
