@@ -598,6 +598,7 @@ static void SendMetric(const std::string& metric);
 
 static std::string g_globalServerAddress;
 
+void Policy_BindNetLibrary(NetLibrary*);
 void MumbleVoice_BindNetLibrary(NetLibrary*);
 void ObjectIds_BindNetLibrary(NetLibrary*);
 
@@ -610,6 +611,8 @@ static HookFunction initFunction([]()
 	TheClones->BindNetLibrary(g_netLibrary);
 
 	MumbleVoice_BindNetLibrary(g_netLibrary);
+
+	Policy_BindNetLibrary(g_netLibrary);
 
 	ObjectIds_BindNetLibrary(g_netLibrary);
 
