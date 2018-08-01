@@ -19,6 +19,8 @@
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
 #define RAGE_FORMATS_ny_rmcDrawable 1
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+#define RAGE_FORMATS_payne_rmcDrawable 1
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE)
@@ -52,6 +54,10 @@ protected:
 	uint8_t m_pad[24];
 	pgPtr<char> m_name;
 	uint8_t m_pad2[16];
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+	uint8_t m_pad[16];
+	pgPtr<char> m_name;
+	uint8_t m_pad2[4];
 #endif
 
 public:
@@ -106,8 +112,10 @@ private:
 	uint32_t m_prev;
 	pgPtr<void> m_pixelData;
 	uint8_t pad[4];
-#elif defined(RAGE_FORMATS_GAME_FIVE)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
+#ifdef RAGE_FORMATS_GAME_FIVE
 	uint8_t m_pad3[16];
+#endif
 	uint16_t m_width;
 	uint16_t m_height;
 	uint16_t m_depth; // likely?
@@ -118,7 +126,11 @@ private:
 	uint8_t m_textureType;
 	uint8_t m_levels;
 
+#ifdef RAGE_FORMATS_GAME_FIVE
 	uint8_t m_pad4[18];
+#else
+	uint8_t m_pad4[34];
+#endif
 
 	pgPtr<void, true> m_pixelData;
 
@@ -343,14 +355,19 @@ public:
 	}
 };
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 class grmShaderParameter
 {
 private:
+#ifdef RAGE_FORMATS_GAME_PAYNE
+	uint32_t m_pad3; // actually hash
+#endif
 	uint8_t m_pad;
 	uint8_t m_type;
 	uint16_t m_pad2;
+#ifdef RAGE_FORMATS_GAME_FIVE
 	uint32_t m_pad3;
+#endif
 	pgPtr<void> m_value;
 
 public:
@@ -370,6 +387,13 @@ public:
 		m_pad2 = 0;
 		m_pad3 = 0;
 	}
+
+#ifdef RAGE_FORMATS_GAME_PAYNE
+	inline uint32_t GetHash()
+	{
+		return m_pad3;
+	}
+#endif
 
 	inline void SetRegister(uint8_t reg)
 	{
@@ -396,7 +420,11 @@ struct grmShaderParameterMeta
 class grcTextureRef : public datBase
 {
 private:
+#ifdef RAGE_FORMATS_GAME_FIVE
 	uint8_t m_pad[32];
+#else
+	uint8_t m_pad[20];
+#endif
 
 	pgPtr<char> m_name;
 
@@ -423,7 +451,7 @@ public:
 #endif
 
 class grmShader
-#ifndef RAGE_FORMATS_GAME_FIVE
+#if !defined(RAGE_FORMATS_GAME_FIVE) && !defined(RAGE_FORMATS_GAME_PAYNE)
 	: public pgBase
 #else
 	: public pgStreamableBase
@@ -441,16 +469,24 @@ protected:
 	grmShaderEffect m_effect;
 #endif
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	pgPtr<grmShaderParameter> m_parameters;
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	uintptr_t m_shaderHash;
+#else
+	uint32_t m_shaderHash;
+#endif
 	uint8_t m_parameterCount;
 	uint8_t m_drawBucket;
 	uint8_t m_pad;
 	uint8_t m_hasComment;
 	uint16_t m_parameterSize;
 	uint16_t m_parameterDataSize;
-	uintptr_t m_spsHash; // replaced with sps at runtime?
+#if defined(RAGE_FORMATS_GAME_FIVE)
+	uintptr_t m_spsHash;  // replaced with sps at runtime?
+#else
+	uint32_t m_spsHash;
+#endif
 	uint32_t m_drawBucketMask; // 1 << (bucket) | 0xFF00
 	uint8_t m_instanced;
 	uint8_t m_pad2[2];
@@ -513,7 +549,7 @@ public:
 #endif
 	}
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_parameters.Resolve(blockMap);
@@ -527,6 +563,16 @@ public:
 	inline uint8_t GetResourceCount()
 	{
 		return m_resourceCount;
+	}
+
+	inline uint32_t GetParameterCount()
+	{
+		return m_parameterCount;
+	}
+
+	inline grmShaderParameter* GetParameters()
+	{
+		return *m_parameters;
 	}
 
 	inline void SetParameters(const std::vector<grmShaderParameterMeta>& parameters, const std::vector<uint32_t>& parameterNames, const std::vector<std::vector<uint8_t>>& parameterValues)
@@ -670,7 +716,7 @@ static_assert(sizeof(grmShader) == 48, "grmShader size is incorrect");
 class grmShaderFx : public grmShader
 {
 private:
-#ifndef RAGE_FORMATS_GAME_FIVE
+#if !defined(RAGE_FORMATS_GAME_FIVE) && !defined(RAGE_FORMATS_GAME_PAYNE)
 	pgPtr<char> m_shaderName;
 	pgPtr<char> m_spsName;
 	uint32_t _f4C;
@@ -680,7 +726,7 @@ private:
 #endif
 
 public:
-#ifndef RAGE_FORMATS_GAME_FIVE
+#if !defined(RAGE_FORMATS_GAME_FIVE) && !defined(RAGE_FORMATS_GAME_PAYNE)
 	inline grmShaderFx()
 		: grmShader()
 	{
@@ -704,6 +750,16 @@ public:
 #else
 	void FORMATS_EXPORT DoPreset(const char* shader, const char* sps);
 
+	inline uint32_t GetShaderHash()
+	{
+		return m_shaderHash;
+	}
+
+	inline uint32_t GetSpsHash()
+	{
+		return m_spsHash;
+	}
+
 	inline void SetShaderName(const char* value)
 	{
 		m_shaderHash = HashString(value);
@@ -719,7 +775,7 @@ public:
 	{
 		grmShader::Resolve(blockMap);
 
-#ifndef RAGE_FORMATS_GAME_FIVE
+#if !defined(RAGE_FORMATS_GAME_FIVE) && !defined(RAGE_FORMATS_GAME_PAYNE)
 		m_shaderName.Resolve(blockMap);
 		m_spsName.Resolve(blockMap);
 #endif
@@ -740,10 +796,10 @@ private:
 	pgObjectArray<int> _f38;
 	pgArray<uint32_t> m_vertexFormats;
 	pgArray<uint32_t> m_shaderIndices;
-#elif defined(RAGE_FORMATS_GAME_FIVE)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	pgObjectArray<int> _f20;
 	uint32_t _f30;
-	uintptr_t _f38;
+	TPtr _f38;
 #endif
 
 public:
@@ -918,7 +974,7 @@ private:
 	uint64_t m_vertexFields;
 #endif
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint16_t m_mask;
 	uint16_t _pad;
 	uint8_t m_vertexSize;
@@ -983,14 +1039,14 @@ private:
 	pgPtr<void, true> m_vertexData;
 #endif
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint16_t m_vertexSize;
 	uint8_t m_locked;
 	uint8_t m_flags;
 	pgPtr<void> m_lockedData;
 	uint32_t m_vertexCount;
 	pgPtr<void> m_vertexData;
-	uintptr_t m_pad;
+	TPtr m_pad;
 	pgPtr<grcVertexFormat> m_vertexFormat;
 	pgPtr<void> m_unkData;
 #endif
@@ -1205,7 +1261,7 @@ public:
 	}
 };
 
-#if defined(RAGE_FORMATS_GAME_FIVE)
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 struct GeometryBound
 {
 	Vector4 aabbMin;
@@ -1220,7 +1276,7 @@ private:
 
 #if defined(RAGE_FORMATS_GAME_NY)
 	pgPtr<Vector4> m_geometryBounds;
-#elif defined(RAGE_FORMATS_GAME_FIVE)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	pgPtr<GeometryBound> m_geometryBounds;
 #endif
 	pgPtr<uint16_t> m_shaderMappings;
@@ -1358,7 +1414,7 @@ private:
 #ifdef RAGE_FORMATS_GAME_NY
 	float m_9999[4];
 #endif
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	Vector4 m_maxPoint;
 #endif
 
@@ -1386,7 +1442,7 @@ public:
 		m_drawBucketMask[3] = 0;
 #endif
 
-#ifndef RAGE_FORMATS_GAME_FIVE
+#if !defined(RAGE_FORMATS_GAME_FIVE) && !defined(RAGE_FORMATS_GAME_PAYNE)
 		m_drawBucketMask[0] = -1;
 		m_drawBucketMask[1] = -1;
 		m_drawBucketMask[2] = -1;

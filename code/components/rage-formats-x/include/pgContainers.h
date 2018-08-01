@@ -13,6 +13,8 @@
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
 #define RAGE_FORMATS_ny_pgContainers 1
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+#define RAGE_FORMATS_payne_pgContainers 1
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE)

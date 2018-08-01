@@ -17,6 +17,8 @@
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
 #define RAGE_FORMATS_ny_phBound 1
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+#define RAGE_FORMATS_payne_phBound 1
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE)
@@ -31,7 +33,7 @@ inline void ValidateSizePh()
 
 enum class phBoundType : uint8_t
 {
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	Sphere = 0,
 	Capsule = 1,
 	Box = 3,
@@ -54,7 +56,7 @@ struct phVector3
 	float y;
 	float z;
 
-#ifdef RAGE_FORMATS_GAME_NY
+#if defined(RAGE_FORMATS_GAME_NY) || defined(RAGE_FORMATS_GAME_PAYNE)
 private:
 	float _pad;
 
@@ -87,7 +89,7 @@ struct phBoundMaterial1
 	uint8_t pad;
 	uint16_t roomId : 5;
 	uint16_t unk : 11;
-#elif defined(RAGE_FORMATS_GAME_FIVE)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint8_t proceduralId;
 
 	// TODO: double-check order
@@ -98,7 +100,7 @@ struct phBoundMaterial1
 #endif
 };
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 struct phBoundMaterial2
 {
 	uint8_t polyFlags;
@@ -111,13 +113,13 @@ struct phBoundMaterial
 {
 	phBoundMaterial1 mat1;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	phBoundMaterial2 mat2;
 #endif
 };
 
 class phBound
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	: public pgBase
 #else
 	: public datBase
@@ -130,26 +132,27 @@ private:
 
 	float m_radius;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	uintptr_t m_pad;
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
 #else
 	float m_worldRadius;
 #endif
 
 	phVector3 m_aabbMax;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	float m_margin;
 #endif
 	phVector3 m_aabbMin;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	uint32_t m_unkCount;
 #endif
 
 	phVector3 m_centroid;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	phBoundMaterial1 m_material;
 #elif defined(RAGE_FORMATS_GAME_NY)
 	phVector3 m_unkVector;
@@ -157,13 +160,13 @@ private:
 
 	phVector3 m_cg; // center of gravity
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	phBoundMaterial2 m_material2;
 #endif
 
 	phVector3 m_unkVector2;
 
-#ifdef RAGE_FORMATS_GAME_NY
+#if defined(RAGE_FORMATS_GAME_NY) || defined(RAGE_FORMATS_GAME_PAYNE)
 	float m_margin[3];
 	uint32_t m_unkCount;
 #elif defined(RAGE_FORMATS_GAME_FIVE)
@@ -180,7 +183,7 @@ public:
 
 		m_unkCount = 1;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 		m_material.materialIdx = 0;
 		m_material.pedDensity = 0;
 		m_material.proceduralId = 0;
@@ -196,7 +199,7 @@ public:
 		m_unkFloat = 1.0f;
 
 		m_unkVector2 = phVector3(1.0f, 1.0f, 1.0f);
-#else
+#elif defined(RAGE_FORMATS_GAME_NY)
 		m_unk1 = 1;
 		m_unk2 = 1;
 
@@ -206,9 +209,9 @@ public:
 
 	inline void SetUnkVector(const phVector3& vector)
 	{
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE)
 		m_unkVector2 = vector;
-#else
+#elif defined(RAGE_FORMATS_GAME_NY)
 		m_unkVector = vector;
 #endif
 	}
@@ -232,7 +235,7 @@ public:
 
 	inline float GetMargin() const
 	{
-#ifdef RAGE_FORMATS_GAME_NY
+#if defined(RAGE_FORMATS_GAME_NY) || defined(RAGE_FORMATS_GAME_PAYNE)
 		return m_margin[0];
 #else
 		return m_margin;
@@ -241,7 +244,7 @@ public:
 
 	inline void SetMargin(float value)
 	{
-#ifdef RAGE_FORMATS_GAME_NY
+#if defined(RAGE_FORMATS_GAME_NY) || defined(RAGE_FORMATS_GAME_PAYNE)
 		m_margin[0] = value;
 		m_margin[1] = value;
 		m_margin[2] = value;
@@ -619,7 +622,7 @@ private:
 	pgPtr<Matrix3x4> m_childMatrices;
 	pgPtr<Matrix3x4> m_childMatricesInternal; // copied from child matrices, only if 'allowinternalmotion:' is set
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	pgPtr<phBoundAABB> m_childAABBs;
 
 	pgPtr<phBoundFlagEntry> m_boundFlags; // not set by V import function; might be finalbuild cut, Payne does set it but doesn't do much else with it; still set in V data files
@@ -703,7 +706,7 @@ public:
 
 	inline phBoundAABB* GetChildAABBs()
 	{
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 		return *m_childAABBs;
 #else
 		return &m_childArray.Get(0);
@@ -712,7 +715,7 @@ public:
 
 	inline void SetChildAABBs(uint16_t count, phBoundAABB* data)
 	{
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 		phBoundAABB* outData = new(false) phBoundAABB[count];
 
 		memcpy(outData, data, sizeof(phBoundAABB) * count);
@@ -749,7 +752,11 @@ public:
 	{
 		struct  
 		{
+#ifdef RAGE_FORMATS_GAME_FIVE
 			uint32_t type : 3; // 0: triangle, 1: sphere, 2: capsule, 3: box, 4: cylinder
+#else
+			uint32_t type : 2; // 0: triangle, 1: sphere, 2: capsule, 3: box
+#endif
 		};
 
 		struct  
@@ -819,9 +826,13 @@ private:
 
 	pgPtr<void> m_unkPtr1;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint16_t m_unkShort1;
+
+#ifdef RAGE_FORMATS_GAME_FIVE
 	uint8_t m_numUnksPerVertex; // can be 0 without any ill effect, it seems
+#endif
+
 	uint16_t m_numVerticesShort;
 #elif defined(RAGE_FORMATS_GAME_NY)
 	pgPtr<void> m_unkPtr2;
@@ -834,7 +845,9 @@ private:
 
 	pgPtr<phBoundVertex> m_vertices;
 
+#ifndef RAGE_FORMATS_GAME_PAYNE
 	pgPtr<void> m_vertexUnks;
+#endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	pgPtr<void> m_unkPtr3;
@@ -854,6 +867,8 @@ private:
 	uint64_t m_unkVal1;
 	uint64_t m_unkVal2;
 	uint64_t m_unkVal3;
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+	uint32_t m_unkVal1;
 #endif
 
 public:
@@ -944,7 +959,9 @@ public:
 		m_unkPtr1.Resolve(blockMap);
 		m_polyEntries.Resolve(blockMap);
 		m_vertices.Resolve(blockMap);
+#if !defined(RAGE_FORMATS_GAME_PAYNE)
 		m_vertexUnks.Resolve(blockMap);
+#endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 		m_unkPtr3.Resolve(blockMap);
@@ -976,6 +993,10 @@ private:
 	pgPtr<void> m_secondSurfaceData;
 
 	uint32_t m_numSecondSurfaceVertices;
+
+	pgPtr<uint8_t> m_polysToMaterials;
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+	uint32_t m_pad1;
 
 	pgPtr<uint8_t> m_polysToMaterials;
 #elif defined(RAGE_FORMATS_GAME_NY)
@@ -1035,6 +1056,13 @@ public:
 	}
 #endif
 
+#ifndef RAGE_FORMATS_GAME_NY
+	inline uint8_t* GetPolysToMaterials()
+	{
+		return *m_polysToMaterials;
+	}
+#endif
+
 	inline uint8_t GetNumMaterials()
 	{
 		return m_numMaterials;
@@ -1078,7 +1106,7 @@ class phBoundBVH : public phBoundGeometry
 private:
 	pgPtr<phBVH> m_bvh;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint64_t m_unkBvhPtr1;
 
 	uint16_t m_unkBvhShort1;

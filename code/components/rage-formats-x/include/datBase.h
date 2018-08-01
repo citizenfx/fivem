@@ -19,6 +19,8 @@ using Vector4 = rage::Vector4;
 #define RAGE_FORMATS_ny_datBase 1
 #elif defined(RAGE_FORMATS_GAME_FIVE)
 #define RAGE_FORMATS_five_datBase 1
+#elif defined(RAGE_FORMATS_GAME_PAYNE)
+#define RAGE_FORMATS_payne_datBase 1
 #endif
 
 #define SwapShortRead(x) (x)
@@ -45,6 +47,12 @@ class BlockMap;
 #define RAGE_NATIVE_ARCHITECTURE 0
 #endif
 
+#ifdef RAGE_FORMATS_GAME_FIVE
+using TPtr = uint64_t;
+#else
+using TPtr = uint32_t;
+#endif
+
 class FORMATS_EXPORT datBase
 {
 public:
@@ -52,7 +60,7 @@ public:
 	virtual ~datBase() {}
 #elif defined(RAGE_FORMATS_GAME_FIVE)
 	uint64_t m_vt;
-#elif defined(RAGE_FORMATS_GAME_NY)
+#elif defined(RAGE_FORMATS_GAME_NY) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint32_t m_vt;
 #endif
 
