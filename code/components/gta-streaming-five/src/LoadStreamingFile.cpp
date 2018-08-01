@@ -523,11 +523,15 @@ static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
 });
 
+#include <unordered_set>
+
 static std::set<std::tuple<std::string, std::string>> g_customStreamingFiles;
 static std::set<std::string> g_customStreamingFileRefs;
 static std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
 std::unordered_map<int, std::string> g_handlesToTag;
+
+static std::unordered_set<int> g_ourIndexes;
 
 static std::string GetBaseName(const std::string& name)
 {
@@ -604,6 +608,8 @@ static void LoadStreamingFiles(bool earlyLoad)
 			// RegisterStreamingFile will still work if one exists as long as the handle remains 0
 			uint32_t strId;
 			strModule->GetOrCreate(&strId, nameWithoutExt.c_str());
+
+			g_ourIndexes.insert(strId + strModule->baseIdx);
 
 			// if the asset is already registered...
 			if (cstreaming->Entries[strId + strModule->baseIdx].handle != 0)
@@ -949,6 +955,9 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 
 			if (strId != -1)
 			{
+				// remove from our index set
+				g_ourIndexes.erase(strId + strModule->baseIdx);
+
 				// erase existing stack entry
 				auto& handleData = g_handleStack[strId + strModule->baseIdx];
 
@@ -1156,6 +1165,17 @@ static void SafelyDrainStreamer()
 	trace("Shutdown: streamer tasks done\n");
 }
 
+static void(*g_origAddMapBoolEntry)(void* map, int* index, bool* value);
+
+void WrapAddMapBoolEntry(void* map, int* index, bool* value)
+{
+	// don't allow this for any files of our own
+	if (g_ourIndexes.find(*index) == g_ourIndexes.end())
+	{
+		g_origAddMapBoolEntry(map, index, value);
+	}
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1339,6 +1359,13 @@ static HookFunction hookFunction([] ()
 
 	// support CfxRequest for pgRawStreamer
 	hook::jump(hook::get_pattern("4D 63 C1 41 8B C2 41 81 E2 FF 03 00 00", -0xD), pgRawStreamer__GetEntryNameToBuffer);
+
+	// do not ever register our streaming files as part of DLC packfile dependencies
+	{
+		auto location = hook::get_pattern("48 8B CE C6 85 B8 00 00 00 01 89 44 24 20 E8", 14);
+		hook::set_call(&g_origAddMapBoolEntry, location);
+		hook::call(location, WrapAddMapBoolEntry);
+	}
 
 	// debug hook for pgRawStreamer::OpenCollectionEntry
 	MH_Initialize();
