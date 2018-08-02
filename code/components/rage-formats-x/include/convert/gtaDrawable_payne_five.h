@@ -664,6 +664,11 @@ inline std::string LookupSpsName(uint32_t spsHash)
 	{
 		if (HashString(sps) == spsHash)
 		{
+			if (sps == "normal_spec_noreflect.sps")
+			{
+				return "normal_spec.sps";
+			}
+
 			return sps;
 		}
 	}

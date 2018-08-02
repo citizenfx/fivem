@@ -144,6 +144,7 @@ struct GameConfig_NY
 	using TBound = rage::ny::datOwner<rage::ny::phBound>;
 	using TDrawable = rage::ny::gtaDrawable;
 	using TTxd = rage::ny::pgDictionary<rage::ny::grcTexturePC>;
+	using TDwd = rage::ny::pgDictionary<rage::ny::gtaDrawable>;
 };
 
 struct GameConfig_Payne
@@ -157,6 +158,7 @@ struct GameConfig_Payne
 	using TBound = rage::payne::phBound;
 	using TDrawable = rage::payne::gtaDrawable;
 	using TTxd = rage::payne::pgDictionary<rage::payne::grcTexturePC>;
+	using TDwd = rage::payne::pgDictionary<rage::payne::gtaDrawable>;
 };
 
 template<typename TConfig>
@@ -240,7 +242,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 	{
 		wprintf(L"converting drawable dictionary %s...\n", path.filename().c_str());
 
-		AutoConvert<rage::five::pgDictionary<rage::five::gtaDrawable>, rage::ny::pgDictionary<rage::ny::gtaDrawable>>(bm, fileName, 165);
+		AutoConvert<rage::five::pgDictionary<rage::five::gtaDrawable>, typename TConfig::TDwd>(bm, fileName, 165);
 	}
 	else if (fileExt == L".wtd")
 	{
