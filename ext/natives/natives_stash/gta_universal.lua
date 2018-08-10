@@ -15964,12 +15964,12 @@ native "IS_VEHICLE_TYRE_BURST"
 	arguments {
 		Vehicle "vehicle",
 
-		Vehicle "wheel_rf",
+		int "wheelID",
 
 		BOOL "completely",
 	}
 	ns "VEHICLE"
-	returns	"Vehicle"
+	returns	"BOOL"
 	doc [[!
 <summary>
 		wheelID used for 4 wheelers seem to be (0, 1, 4, 5)
