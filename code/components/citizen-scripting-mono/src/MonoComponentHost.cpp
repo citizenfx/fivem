@@ -19,6 +19,7 @@
 #include <mono/metadata/threads.h>
 #include <mono/metadata/exception.h>
 #include <mono/metadata/mono-debug.h>
+#include <mono/metadata/mono-gc.h>
 
 #ifndef IS_FXSERVER
 extern "C"
@@ -117,6 +118,46 @@ static void GI_PrintLogCall(MonoString* str)
 	trace("%s", mono_string_to_utf8(str));
 }
 
+extern "C"
+{
+	void sgen_gc_lock();
+	void sgen_gc_unlock();
+}
+
+static uint64_t GI_GetMemoryUsage()
+{
+	auto monoDomain = mono_domain_get();
+
+	struct gcData_s
+	{
+		MonoDomain* domain;
+		size_t size;
+	} gcData;
+
+	gcData.domain = monoDomain;
+	gcData.size = 0;
+
+#ifndef IS_FXSERVER
+	sgen_gc_lock();
+
+	mono_gc_walk_heap(0, [](MonoObject *obj, MonoClass *klass, uintptr_t size, uintptr_t num, MonoObject **refs, uintptr_t *offsets, void *data) -> int
+	{
+		gcData_s* d = (gcData_s*)data;
+
+		if (mono_object_get_domain(obj) == d->domain)
+		{
+			d->size += size;
+		}
+
+		return 0;
+	}, &gcData);
+
+	sgen_gc_unlock();
+#endif
+
+	return gcData.size;
+}
+
 MonoMethod* g_getImplementsMethod;
 MonoMethod* g_createObjectMethod;
 
@@ -183,6 +224,7 @@ static void InitMono()
 
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", reinterpret_cast<void*>(GI_PrintLogCall));
 	mono_add_internal_call("CitizenFX.Core.GameInterface::fwFree", reinterpret_cast<void*>(fwFree));
+	mono_add_internal_call("CitizenFX.Core.GameInterface::GetMemoryUsage", reinterpret_cast<void*>(GI_GetMemoryUsage));
 
 	std::string platformPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/CitizenFX.Core.dll");
 

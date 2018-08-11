@@ -17,5 +17,7 @@ namespace CitizenFX.Core
 		int DuplicateRef(int refIndex);
 
 		void RemoveRef(int refIndex);
+
+		ulong GetMemoryUsage();
 	}
 }

@@ -52,6 +52,15 @@ public:
 		return it->second;
 	}
 
+	template<typename TFn>
+	inline void ForAllRuntimes(const TFn&& fn)
+	{
+		for (auto& runtime : m_scriptRuntimes)
+		{
+			fn(runtime.second);
+		}
+	}
+
 	inline Resource* GetResource()
 	{
 		return m_resource;

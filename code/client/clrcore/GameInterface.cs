@@ -16,6 +16,10 @@ namespace CitizenFX.Core
         public static extern void PrintLog(string text);
 
 		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern ulong GetMemoryUsage();
+
+		[SecurityCritical]
 		[DllImport("CoreRT", EntryPoint = "CoreFxCreateObjectInstance")]
 		public static extern int CreateObjectInstance([MarshalAs(UnmanagedType.LPStruct)] Guid clsid, [MarshalAs(UnmanagedType.LPStruct)] Guid iid, out IntPtr objectPtr);
     }

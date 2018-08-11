@@ -81,7 +81,7 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -190,6 +190,8 @@ public:
 	NS_DECL_ISCRIPTEVENTRUNTIME;
 
 	NS_DECL_ISCRIPTREFRUNTIME;
+
+	NS_DECL_ISCRIPTMEMINFORUNTIME;
 };
 
 static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
@@ -1340,6 +1342,20 @@ result_t LuaScriptRuntime::RemoveRef(int32_t refIdx)
 
 		m_deleteRefRoutine(refIdx);
 	}
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::RequestMemoryUsage()
+{
+	// Lua instantly allows returning per-runtime GC memory load
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
+{
+	LuaPushEnvironment pushed(this);
+	*memoryUsage = (lua_gc(m_state, LUA_GCCOUNT, 0) * 1024) + lua_gc(m_state, LUA_GCCOUNTB, 0);
 
 	return FX_S_OK;
 }

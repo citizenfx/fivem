@@ -282,6 +282,12 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
+		public ulong GetMemoryUsage()
+		{
+			return GameInterface.GetMemoryUsage();
+		}
+
+		[SecuritySafeCritical]
 		public static T CreateInstance<T>(Guid clsid)
 		{
 			var hr = GameInterface.CreateObjectInstance(clsid, typeof(T).GUID, out IntPtr ptr);

@@ -6,7 +6,7 @@ using System.Security;
 namespace CitizenFX.Core
 {
 	[Guid("C068E0AB-DD9C-48F2-A7F3-69E866D27F17")]
-	class MonoScriptRuntime : IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime
+	class MonoScriptRuntime : IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime
 	{
 		private IScriptHost m_scriptHost;
 		private readonly int m_instanceId;
@@ -190,6 +190,18 @@ namespace CitizenFX.Core
 				Debug.WriteLine(e.ToString());
 
 				throw;
+			}
+		}
+
+		public void RequestMemoryUsage()
+		{
+		}
+
+		public void GetMemoryUsage([Out] out ulong memoryUsage)
+		{
+			using (GetPushRuntime())
+			{
+				memoryUsage = m_intManager?.GetMemoryUsage() ?? 0;
 			}
 		}
 
