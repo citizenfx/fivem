@@ -75,7 +75,7 @@ static void readVehicleMemoryBit(fx::ScriptContext& context)
 {
 	if (fwEntity* vehicle = getAndCheckVehicle(context))
 	{
-		std::bitset<sizeof(int)> value(readValue<int>(vehicle, offset));
+		std::bitset<sizeof(int) * 8> value(readValue<int>(vehicle, offset));
 
 		context.SetResult<bool>(value[bit]);
 	}
@@ -92,7 +92,7 @@ static void writeVehicleMemoryBit(fx::ScriptContext& context)
 
 	if (fwEntity* vehicle = getAndCheckVehicle(context))
 	{
-		std::bitset<sizeof(int)> value(readValue<int>(vehicle, offset));
+		std::bitset<sizeof(int) * 8> value(readValue<int>(vehicle, offset));
 		value[bit] = context.GetArgument<bool>(1);
 		writeValue<unsigned char>(vehicle, offset, static_cast<unsigned char>(value.to_ulong()));
 	}
