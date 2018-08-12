@@ -17,6 +17,8 @@
 #include <bitset>
 #include <unordered_set>
 
+#include <MinHook.h>
+
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
@@ -163,6 +165,36 @@ const int WheelRotationSpeedOffset = 0x168;
 const int WheelHealthOffset = 0x1E0;
 const int WheelXRotOffset = 0x008;
 const int WheelInvXRotOffset = 0x010;
+
+static std::unordered_set<fwEntity*> g_deletionTraces;
+
+static void(*g_origDeleteVehicle)(void* vehicle);
+
+static void DeleteVehicleWrap(fwEntity* vehicle)
+{
+	if (g_deletionTraces.find(vehicle) != g_deletionTraces.end())
+	{
+		uintptr_t* traceStart = (uintptr_t*)_AddressOfReturnAddress();
+
+		trace("Processed vehicle deletion for 0x%016llx - stack trace:", (uintptr_t)vehicle);
+
+		for (int i = 0; i < 96; i++)
+		{
+			if ((i % 6) == 0)
+			{
+				trace("\n");
+			}
+
+			trace("%016llx ", traceStart[i]);
+		}
+
+		trace("\n");
+
+		g_deletionTraces.erase(vehicle);
+	}
+
+	return g_origDeleteVehicle(vehicle);
+}
 
 static HookFunction initFunction([]()
 {
@@ -466,4 +498,19 @@ static HookFunction initFunction([]()
 			g_skipRepairVehicles.erase(entity);
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ADD_VEHICLE_DELETION_TRACE", [](fx::ScriptContext& context)
+	{
+		auto vehHandle = context.GetArgument<int>(0);
+		fwEntity* entity = getScriptEntity(vehHandle);
+
+		if (entity->IsOfType<CVehicle>())
+		{
+			g_deletionTraces.insert(entity);
+		}
+	});
+
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x31), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
+	MH_EnableHook(MH_ALL_HOOKS);
 });
