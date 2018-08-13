@@ -168,6 +168,7 @@ const int WheelXRotOffset = 0x008;
 const int WheelInvXRotOffset = 0x010;
 
 static std::unordered_set<fwEntity*> g_deletionTraces;
+static std::unordered_set<void*> g_deletionTraces2;
 
 static void(*g_origDeleteVehicle)(void* vehicle);
 
@@ -192,9 +193,40 @@ static void DeleteVehicleWrap(fwEntity* vehicle)
 		trace("\n");
 
 		g_deletionTraces.erase(vehicle);
+		g_deletionTraces2.erase(vehicle);
 	}
 
 	return g_origDeleteVehicle(vehicle);
+}
+
+static void(*g_origDeleteNetworkClone)(void* objectMgr, void* netObject, int reason, bool forceRemote1, bool forceRemote2);
+
+static void DeleteNetworkCloneWrap(void* objectMgr, void* netObject, int reason, bool forceRemote1, bool forceRemote2)
+{
+	void* entity = *(void**)((char*)netObject + 80);
+
+	if (g_deletionTraces2.find(entity) != g_deletionTraces2.end())
+	{
+		uintptr_t* traceStart = (uintptr_t*)_AddressOfReturnAddress();
+
+		trace("Processed clone deletion for 0x%016llx (object 0x%016llx - reason %d) - stack trace:", (uintptr_t)entity, (uintptr_t)netObject, reason);
+
+		for (int i = 0; i < 96; i++)
+		{
+			if ((i % 6) == 0)
+			{
+				trace("\n");
+			}
+
+			trace("%016llx ", traceStart[i]);
+		}
+
+		trace("\n");
+
+		g_deletionTraces2.erase(entity);
+	}
+
+	return g_origDeleteNetworkClone(objectMgr, netObject, reason, forceRemote1, forceRemote2);
 }
 
 static HookFunction initFunction([]()
@@ -508,10 +540,12 @@ static HookFunction initFunction([]()
 		if (entity->IsOfType<CVehicle>())
 		{
 			g_deletionTraces.insert(entity);
+			g_deletionTraces2.insert(entity);
 		}
 	});
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x31), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
+	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
