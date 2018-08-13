@@ -102,7 +102,7 @@ public:
 
 		std::map<std::string, std::string> metaData;
 
-		enum Status
+		volatile enum Status
 		{
 			StatusEmpty,
 			StatusNotFetched,

@@ -410,9 +410,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	{
 		BROFILER_EVENT("block on NotFetched");
 
-		if (handleData->fileData->status == FileData::StatusFetching)
+		while (handleData->fileData->status == FileData::StatusFetching)
 		{
-			WaitForSingleObject(handleData->fileData->eventHandle, INFINITE);
+			WaitForSingleObject(handleData->fileData->eventHandle, 2500);
 		}
 	}
 
