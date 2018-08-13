@@ -560,7 +560,7 @@ struct
 			}
 			else
 			{
-				GlobalError("Could not connect to session provider.");
+				GlobalError("Could not connect to session provider. This may happen when you recently updated, but other players in the server have not. Alternately, the server accepted you, despite being full. Please try again later, or try a different server.");
 				state = HS_IDLE;
 			}
 		}
