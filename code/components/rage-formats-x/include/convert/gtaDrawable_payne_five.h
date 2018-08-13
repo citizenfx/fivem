@@ -668,6 +668,30 @@ inline std::string LookupSpsName(uint32_t spsHash)
 			{
 				return "normal_spec.sps";
 			}
+			else if (sps == "micromovement.sps")
+			{
+				return "trees.sps";
+			}
+			else if (sps == "micromovement_default.sps")
+			{
+				return "trees.sps";
+			}
+			else if (sps == "micromovement_normal.sps")
+			{
+				return "trees_normal.sps";
+			}
+			else if (sps == "micromovement_normal_spec.sps")
+			{
+				return "trees_normal_spec.sps";
+			}
+			else if (sps == "micromovement_spec.sps")
+			{
+				return "trees.sps";
+			}
+			else if (strstr(sps, "grass_object"))
+			{
+				return "grass.sps";
+			}
 
 			return sps;
 		}
@@ -830,7 +854,7 @@ five::grmShaderGroup* convert(payne::grmShaderGroup* shaderGroup)
 			}
 		}
 
-		if (auto falloffMult = newShader->GetParameter("SpecularFalloffMult"); falloffMult != nullptr)
+		/*if (auto falloffMult = newShader->GetParameter("SpecularFalloffMult"); falloffMult != nullptr)
 		{
 			float falloffMultValue[] = { *(float*)falloffMult->GetValue() * 4.0f, 0.0f, 0.0f, 0.0f };
 
@@ -846,7 +870,7 @@ five::grmShaderGroup* convert(payne::grmShaderGroup* shaderGroup)
 		{
 			float emissiveMultValue[] = { *(float*)emissiveMult->GetValue() / 4.0f, 0.0f, 0.0f, 0.0f };
 			memcpy(emissiveMult->GetValue(), emissiveMultValue, sizeof(emissiveMultValue));
-		}
+		}*/
 
 		if (oldShaderName == "trees")
 		{
@@ -871,9 +895,22 @@ five::grmShaderGroup* convert(payne::grmShaderGroup* shaderGroup)
 					newShader->SetParameter("TextureSampler_layer2", "none");
 				}
 			}
-			else if (oldShaderName == "trees")
+			else if (oldShaderName.find("trees") != std::string::npos)
 			{
 				newShader->SetParameter("SfxWindSampler3D", "none");
+			}
+			else if (oldShaderName == "glass_normal_spec_reflect" || oldShaderName == "glass_reflect")
+			{
+				newShader->SetParameter("EnvironmentSampler", "none");
+			}
+			else if (oldShaderName == "grass")
+			{
+				newShader->SetParameter("TextureGrassSampler", "none");
+			}
+			else if (oldShaderName == "glass_emissive")
+			{
+				newShader->SetParameter("BumpSampler", "none");
+				newShader->SetParameter("EnvironmentSampler", "none");
 			}
 			else
 			{
@@ -1080,7 +1117,7 @@ five::gtaDrawable* convert(payne::gtaDrawable* drawable)
 
 				if (oldBounds)
 				{
-					int extraSize = 0;
+					int extraSize = 1;
 
 					if (newModel->GetGeometries().GetCount() > 1)
 					{
