@@ -67,7 +67,7 @@ workspace "CitizenMP"
 		buildoptions '/std:c++latest'
 		buildoptions '/await'
 
-		systemversion '10.0.15063.0'
+		systemversion '10.0.17134.0'
 	end
 
 	-- special build dirs for FXServer
