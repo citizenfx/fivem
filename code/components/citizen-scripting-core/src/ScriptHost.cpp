@@ -16,6 +16,7 @@
 #include <VFSManager.h>
 
 #include <ResourceMetaDataComponent.h>
+#include <ResourceScriptingComponent.h>
 
 #include <stack>
 #include <mutex>
@@ -167,6 +168,8 @@ result_t TestScriptHost::ScriptTrace(char* string)
 
 result_t TestScriptHost::OpenSystemFile(char *fileName, fxIStream * *stream)
 {
+	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileName);
+
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileName);
 
 	return WrapVFSStreamResult(nativeStream, stream);
@@ -192,6 +195,8 @@ result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 
 		fileNameStr = resource->GetPath() + "/" + std::string(fn);
 	}
+
+	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileNameStr);
 
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileNameStr);
 	

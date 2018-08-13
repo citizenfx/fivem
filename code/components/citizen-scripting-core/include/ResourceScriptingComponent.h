@@ -30,6 +30,10 @@ private:
 public:
 	ResourceScriptingComponent(Resource* resource);
 
+	fwEvent<> OnCreatedRuntimes;
+
+	fwEvent<const std::string&> OnOpenScript;
+
 	inline fx::OMPtr<IScriptHost> GetScriptHost()
 	{
 		return m_scriptHost;
