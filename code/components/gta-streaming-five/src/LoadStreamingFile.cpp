@@ -541,7 +541,9 @@ static std::string GetBaseName(const std::string& name)
 
 	if (Instance<ICoreGameInit>::Get()->GetData("policy", &policyVal))
 	{
+#ifndef _DEBUG
 		if (policyVal.find("[subdir_file_mapping]") != std::string::npos)
+#endif
 		{
 			std::replace(retval.begin(), retval.end(), '^', '/');
 		}
