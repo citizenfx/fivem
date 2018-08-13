@@ -108,6 +108,17 @@ static InitFunction initFunction([] ()
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 			std::string resourceRoot = resource->GetPath();
 
+			// block anything resembling an assault_vehicles resource, this is outdated
+			// and causes crashes (FIVEM-CLIENT-1365-18)
+			for (auto& entry : metaData->GetEntries("data_file_extra"))
+			{
+				if (entry.second == "\"data/ai/vehicleweapons_caracara.meta\"")
+				{
+					trace("Ignoring resource data files for %s - this has been obsoleted by the 1.0.1365 update (mpassault_vehicles).\n", resource->GetName());
+					return;
+				}
+			}
+
 			for (auto& meta : metaData->GetEntries("init_meta"))
 			{
 				streaming::AddDefMetaToLoadList(resourceRoot + meta.second);
