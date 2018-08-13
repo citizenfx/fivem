@@ -97,6 +97,7 @@ public:
 	// NOTE: 505 SPECIFIC
 	// 1103 now
 	// 1290 now
+	// 1365 as well
 	char pad[1200]; // +8
 	int handlingDataIndex; // +1208
 

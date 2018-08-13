@@ -55,13 +55,13 @@ static InitFunction initFunction([] ()
 		{
 			library->FinalizeDisconnect();
 		});
+	});
 
-		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([] ()
-		{
-			nui::SetMainUI(false);
+	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+	{
+		nui::SetMainUI(false);
 
-			nui::DestroyFrame("mpMenu");
-		});
+		nui::DestroyFrame("mpMenu");
 	});
 
 	OnFirstLoadCompleted.Connect([] ()

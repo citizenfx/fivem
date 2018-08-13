@@ -317,6 +317,11 @@ static OnlineAddress* g_onlineAddress;
 
 OnlineAddress* GetOurOnlineAddressRaw()
 {
+	if (!g_onlineAddress)
+	{
+		return nullptr;
+	}
+
 	g_onlineAddress->ip1 = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
 	g_onlineAddress->port1 = 6672;
 
@@ -728,9 +733,9 @@ static HookFunction initFunction([]()
 		{
 			gameLoaded = false;
 			
-			if (*g_dlcMountCount != 117)
+			if (*g_dlcMountCount != 122)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 117);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 122);
 
 				return;
 			}
@@ -1260,6 +1265,24 @@ static void WINAPI ExitProcessReplacement(UINT exitCode)
 	TerminateProcess(GetCurrentProcess(), exitCode);
 }
 
+static void(*_origLoadMeta)(const char*, bool, uint32_t);
+
+static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
+{
+	while (_isScWaitingForInit())
+	{
+		// 1365
+		((void(*)())0x1400067AC)();
+		((void(*)())0x1407D60E4)();
+		((void(*)())0x140025CFC)();
+		((void(*)())0x14156494C)();
+
+		Sleep(0);
+	}
+
+	return _origLoadMeta(fn, a2, a3);
+}
+
 static HookFunction hookFunction([] ()
 {
 	/*OnPostFrontendRender.Connect([] ()
@@ -1784,4 +1807,12 @@ static HookFunction hookFunction([] ()
 			(*origCreatePickup)(context);
 		});
 	});
+
+	// 1365 requirement: wait for SC to have inited before loading vehicle metadata
+	{
+		auto location = hook::get_pattern("BA 49 00 00 00 E8 ? ? ? ? EB 28", 0x20);
+
+		hook::set_call(&_origLoadMeta, location);
+		hook::call(location, WaitForScAndLoadMeta);
+	}
 });

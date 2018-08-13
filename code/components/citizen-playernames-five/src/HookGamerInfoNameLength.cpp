@@ -40,7 +40,7 @@ static HookFunction hookFunction([]()
 
 	// gamer tag display call
 	{
-		auto location = hook::get_pattern("E8 ? ? ? ? 44 88 A4 3B F2 00 00 00 8B 84 3B A0 02 00 00 48", 0);
+		auto location = hook::get_pattern("E8 ? ? ? ? 44 88 A4 3B F2 00 00 00 8B 84 3B ? 02 00 00 48", 0);
 		hook::set_call(&g_origCallGfx, location);
 		hook::call(location, WrapGfxCall);
 	}

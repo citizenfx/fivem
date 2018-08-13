@@ -245,8 +245,9 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 		// 1103
 		// 1290
+		// 1365
 		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x140FEC254)(nullptr, &objectId, player);
+		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x140FF4D34)(nullptr, &objectId, player);
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
@@ -256,7 +257,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 			trace("deleted object id\n");
 
-			((void(*)(void*, uint16_t, CNetGamePlayer*))0x140FD248C)(ped, objectId, player);
+			((void(*)(void*, uint16_t, CNetGamePlayer*))0x140FDB078)(ped, objectId, player);
 
 			trace("success! reassigned the ped!\n");
 		}
@@ -388,7 +389,8 @@ static CNetGamePlayer* AllocateNetPlayer()
 
 	// 1103
 	// 1290
-	return ((CNetGamePlayer*(*)(void*))0x14106BEC0)(plr);
+	// 1365
+	return ((CNetGamePlayer*(*)(void*))0x141074F78)(plr);
 }
 
 #include <minhook.h>
@@ -519,7 +521,8 @@ static HookFunction hookFunction([]()
 	}
 
 	// 1290
-	MH_CreateHook((void*)0x141074230, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	// 1365
+	MH_CreateHook((void*)0x14107D370, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetOwnerNetPlayer, (void**)&g_origGetOwnerNetPlayer);
 
