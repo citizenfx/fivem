@@ -521,7 +521,7 @@ void DL_ProcessDownload()
 				else
 				{
 					_wunlink(tmpPathWide.c_str());
-					MessageBoxA(NULL, va("Downloading of %s failed with CURLcode %d - %s", download->url, (int)code, download->curlError), "Error", MB_OK | MB_ICONSTOP);
+					MessageBoxA(NULL, va("Downloading of %s failed with CURLcode %d - %s%s", download->url, (int)code, download->curlError, (code == CURLE_WRITE_ERROR) ? "\nAre you sure you have enough disk space on all drives?" : ""), "Error", MB_OK | MB_ICONSTOP);
 
 					ExitProcess(1);
 				}
