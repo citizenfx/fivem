@@ -112,6 +112,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
 		// lots of crashes occur in the DiscordApp overlay
 		moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
+		// new DiscordApp overlay name :/
+		moduleNameStr.find(L"DiscordHook64.dll") != std::string::npos ||
 		// HideMyIP, causes LoopbackTcpServer and libuv to crash
 		moduleNameStr.find(L"hmipcore64.dll") != std::string::npos ||
 		// NVIDIA SHARE/ShadowPlay capture DLL, high correlation with ERR_GFX_D3D_INIT failures
