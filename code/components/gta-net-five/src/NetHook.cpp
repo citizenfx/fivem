@@ -1808,6 +1808,10 @@ static HookFunction hookFunction([] ()
 		});
 	});
 
+	// always return 'true' from netObjectMgr duplicate script object ID checks
+	// (this function deletes network objects considered as duplicate)
+	hook::jump(hook::get_pattern("49 8B 0C 24 0F B6 51", -0x69), ReturnTrue);
+
 	// 1365 requirement: wait for SC to have inited before loading vehicle metadata
 	{
 		auto location = hook::get_pattern("BA 49 00 00 00 E8 ? ? ? ? EB 28", 0x20);
