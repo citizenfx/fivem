@@ -8,14 +8,40 @@ private:
 public:
 	ProgramArguments(int argc, char** argv);
 
-	inline explicit ProgramArguments(const std::vector<std::string>&& arguments)
+	inline explicit ProgramArguments(const std::vector<std::string>& arguments)
 		: m_arguments(arguments)
 	{
 		
 	}
 
+	inline explicit ProgramArguments(const std::vector<std::u32string>& arguments)
+	{
+		// see comments about this workaround in Console.cpp
+#ifndef _MSC_VER
+		static std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+#else
+		static std::wstring_convert<std::codecvt_utf8<uint32_t>, uint32_t> converter;
+#endif
+
+		m_arguments.resize(arguments.size());
+
+		for (size_t i = 0; i < arguments.size(); i++)
+		{
+			try
+			{
+				typename decltype(converter)::wide_string tempString(arguments[i].begin(), arguments[i].end());
+
+				m_arguments[i] = converter.to_bytes(tempString);
+			}
+			catch (std::range_error& e)
+			{
+
+			}
+		}
+	}
+
 	template<typename... Args>
-	explicit ProgramArguments(Args... args)
+	inline explicit ProgramArguments(Args... args)
 	{
 		m_arguments = std::vector<std::string>{args...};
 	}

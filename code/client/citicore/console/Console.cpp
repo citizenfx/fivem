@@ -251,16 +251,38 @@ void SetVariableModifiedFlags(int flags)
 	return GetDefaultContext()->SetVariableModifiedFlags(flags);
 }
 
-static inline bool IsEscapeChar(char c)
+static inline bool IsEscapeChar(char32_t c)
 {
-	return (c == '"');
+	return (c == U'"');
 }
 
-ProgramArguments Tokenize(const std::string& line)
+ProgramArguments Tokenize(const std::string& lineUtf8)
 {
 	int i = 0;
 	int j = 0;
-	std::vector<std::string> args;
+	std::vector<std::u32string> args;
+
+	std::u32string line;
+
+	// VC++ 14.0 libraries don't export this symbol, MSFT won't fix until next incompatible version
+	// so we use uint32_t for VC++
+#ifndef _MSC_VER
+	static std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+#else
+	static std::wstring_convert<std::codecvt_utf8<uint32_t>, uint32_t> converter;
+#endif
+	
+	try
+	{
+		// once MSVC conforms this won't be needed anymore
+		auto tempLine = converter.from_bytes(lineUtf8);
+
+		line = std::u32string(tempLine.begin(), tempLine.end());
+	}
+	catch (std::range_error&)
+	{
+		return ProgramArguments{};
+	}
 
 	size_t lineLength = line.length();
 
@@ -271,7 +293,7 @@ ProgramArguments Tokenize(const std::string& line)
 		while (true)
 		{
 			// skip whitespace and control characters
-			while (i < lineLength && line[i] <= ' ') // ASCII only?
+			while (i < lineLength && line[i] <= U' ') // ASCII only?
 			{
 				i++;
 			}
@@ -289,15 +311,15 @@ ProgramArguments Tokenize(const std::string& line)
 			}
 
 			// skip comments
-			if ((line[i] == '/' && line[i + 1] == '/') || line[i] == '#') // full line is a comment
+			if ((line[i] == U'/' && line[i + 1] == U'/') || line[i] == U'#') // full line is a comment
 			{
 				return ProgramArguments{args};
 			}
 
 			// /* comments
-			if (line[i] == '/' && line[i + 1] == '*')
+			if (line[i] == U'/' && line[i + 1] == U'*')
 			{
-				while (i < (lineLength + 1) && (line[i] != '*' && line[i + 1] != '/'))
+				while (i < (lineLength + 1) && (line[i] != U'*' && line[i + 1] != U'/'))
 				{
 					i++;
 				}
@@ -316,10 +338,10 @@ ProgramArguments Tokenize(const std::string& line)
 		}
 
 		// there's a new argument on the block
-		std::stringstream arg;
+		std::basic_stringstream<char32_t> arg;
 
 		// quoted strings
-		if (line[i] == '"')
+		if (line[i] == U'"')
 		{
 			bool inEscape = false;
 
@@ -332,12 +354,12 @@ ProgramArguments Tokenize(const std::string& line)
 					break;
 				}
 
-				if (line[i] == '"' && !inEscape)
+				if (line[i] == U'"' && !inEscape)
 				{
 					break;
 				}
 
-				if (line[i] == '\\' && IsEscapeChar(line[i + 1]))
+				if (line[i] == U'\\' && IsEscapeChar(line[i + 1]))
 				{
 					inEscape = true;
 				}
@@ -362,9 +384,9 @@ ProgramArguments Tokenize(const std::string& line)
 		}
 
 		// non-quoted strings
-		while (i < lineLength && line[i] > ' ')
+		while (i < lineLength && line[i] > U' ')
 		{
-			if (line[i] == '"')
+			if (line[i] == U'"')
 			{
 				break;
 			}
@@ -372,7 +394,7 @@ ProgramArguments Tokenize(const std::string& line)
 			// # comments are one character long
 			if (i < lineLength)
 			{
-				if (line[i] == '#')
+				if (line[i] == U'#')
 				{
 					return ProgramArguments{args};
 				}
@@ -380,12 +402,12 @@ ProgramArguments Tokenize(const std::string& line)
 
 			if (i < (lineLength - 1))
 			{
-				if ((line[i] == '/' && line[i + 1] == '/'))
+				if ((line[i] == U'/' && line[i + 1] == U'/'))
 				{
 					return ProgramArguments{args};
 				}
 
-				if (line[i] == '/' && line[i + 1] == '*')
+				if (line[i] == U'/' && line[i + 1] == U'*')
 				{
 					return ProgramArguments{args};
 				}
@@ -396,7 +418,7 @@ ProgramArguments Tokenize(const std::string& line)
 			i++;
 		}
 
-		std::string argStr = arg.str();
+		std::u32string argStr = arg.str();
 
 		if (!argStr.empty())
 		{
