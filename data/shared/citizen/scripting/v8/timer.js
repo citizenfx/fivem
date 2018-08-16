@@ -116,6 +116,11 @@
         }
 
         gameTime = localGameTime;
+				
+        //Manually fire the callbacks that were enqueued by process.nextTick.
+        //Since we override setImmediate/etc, this doesn't happen automatically.
+        if (global.process && typeof global.process._tickCallback === "function")
+          global.process._tickCallback();
     }
 
     global.setTimeout = setTimeout;
