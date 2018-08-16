@@ -1,7 +1,7 @@
 // Timers
 
 (function (global) {
-    let gameTime = 0;
+    let gameTime = Citizen.getTickCount();
 
     const timers = {};
     let timerId = 0;
