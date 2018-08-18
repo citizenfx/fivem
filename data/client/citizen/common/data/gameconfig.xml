@@ -302,7 +302,7 @@
 						</Item>
 						<Item>
 							<PoolName>MapTypesStore</PoolName>
-							<PoolSize value="1400"/>
+							<PoolSize value="1800"/>
 						</Item>
 						<Item>
 							<PoolName>MetaDataStore</PoolName>
