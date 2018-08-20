@@ -115,8 +115,21 @@ namespace CitizenFX.Core
 		ShoutedClear = 35,
 		ShoutedCritical = 36
 	}
+	public enum CombatAttributes
+	{
+		CanUseCover = 0,
+		CanUseVehicles = 1,
+		CanDoDrivebys = 2,
+		CanLeaveVehicle = 3,
+		CanFightArmedPedsWhenNotArmed = 5,
+		CanTauntInVehicle = 20,
+		AlwaysFight = 46,
+		IgnoreTrafficWhenDriving = 52,
+		FreezeMovement = 292,
+		PlayerCanUseFiringWeapons = 1424
+	}
 
-	public sealed class Ped : Entity
+public sealed class Ped : Entity
 	{
 		#region Fields
 		Tasks _tasks;
@@ -1565,6 +1578,17 @@ namespace CitizenFX.Core
 		{
 			return new Ped(Function.Call<int>(Hash.CLONE_PED, Handle, heading, false, false));
 		}
+		
+		/// <summary>
+		/// /// Sets a combat attribute of a <see cref="Ped"/>.
+		/// /// </summary>
+		/// /// <param name="combatAttribute">The combat attribute</param>
+		/// /// <param name="state">The state of the combat attribute</param>
+		public void SetCombatAttribute(CombatAttributes combatAttribute, bool state)
+		{
+			Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, Handle, (int) combatAttribute, state);
+		}
+
 		/// <summary>
 		/// Determines whether this <see cref="Ped"/> exists.
 		/// </summary>
