@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "Utils.h"
 
+#include <pthread.h>
+
 fwPlatformString GetAbsoluteCitPath()
 {
 	static fwPlatformString citizenPath;
@@ -46,7 +48,10 @@ bool IsRunningTests()
 	return !_strnicmp(filenamePart, "tests_", 6);
 }
 
-void SetThreadName(int dwThreadID, char* threadName)
+void SetThreadName(int dwThreadID, const char* threadName)
 {
-	// TODO: implement
+	// this is limited to 15 characters on Linux
+	std::string shortenedName = std::string(threadName).substr(0, 15);
+	
+	pthread_setname_np(pthread_self(), shortenedName.c_str());
 }

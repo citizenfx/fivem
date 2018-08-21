@@ -154,7 +154,7 @@ typedef struct tagTHREADNAME_INFO
 
 void DoNtRaiseException(EXCEPTION_RECORD* record);
 
-void SetThreadName(int dwThreadID, char* threadName)
+void SetThreadName(int dwThreadID, const char* threadName)
 {
 	auto SetThreadDescription = (HRESULT(WINAPI*)(HANDLE, PCWSTR))GetProcAddress(GetModuleHandle(L"kernelbase.dll"), "SetThreadDescription");
 

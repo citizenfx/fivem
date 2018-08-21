@@ -271,7 +271,7 @@ fwString url_encode(const fwString &value);
 bool UrlDecode(const std::string& in, std::string& out);
 void CreateDirectoryAnyDepth(const char *path);
 
-void SetThreadName(int threadId, char* threadName);
+void SetThreadName(int threadId, const char* threadName);
 
 std::wstring ToWide(const std::string& narrow);
 std::string ToNarrow(const std::wstring& wide);
