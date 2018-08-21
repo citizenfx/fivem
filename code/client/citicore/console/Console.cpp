@@ -251,7 +251,7 @@ void SetVariableModifiedFlags(int flags)
 	return GetDefaultContext()->SetVariableModifiedFlags(flags);
 }
 
-static inline bool IsEscapeChar(char32_t c)
+static inline bool IsEscapeChar(typename ProgramArguments::TCharType c)
 {
 	return (c == U'"');
 }
@@ -260,16 +260,16 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 {
 	int i = 0;
 	int j = 0;
-	std::vector<std::u32string> args;
+	std::vector<std::basic_string<typename ProgramArguments::TCharType>> args;
 
-	std::u32string line;
+	std::basic_string<typename ProgramArguments::TCharType> line;
 
 	// VC++ 14.0 libraries don't export this symbol, MSFT won't fix until next incompatible version
 	// so we use uint32_t for VC++
 #ifndef _MSC_VER
-	static std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+	static std::wstring_convert<std::codecvt_utf8<typename ProgramArguments::TCharType>, typename ProgramArguments::TCharType> converter;
 #else
-	static std::wstring_convert<std::codecvt_utf8<uint32_t>, uint32_t> converter;
+	static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
 #endif
 	
 	try
@@ -277,7 +277,7 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 		// once MSVC conforms this won't be needed anymore
 		auto tempLine = converter.from_bytes(lineUtf8);
 
-		line = std::u32string(tempLine.begin(), tempLine.end());
+		line = std::basic_string<typename ProgramArguments::TCharType>(tempLine.begin(), tempLine.end());
 	}
 	catch (std::range_error&)
 	{
@@ -338,7 +338,7 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 		}
 
 		// there's a new argument on the block
-		std::basic_stringstream<char32_t> arg;
+		std::basic_stringstream<typename ProgramArguments::TCharType> arg;
 
 		// quoted strings
 		if (line[i] == U'"')
@@ -365,7 +365,7 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 				}
 				else
 				{
-					arg << std::u32string(&line.c_str()[i], 1);
+					arg << line[i];
 					inEscape = false;
 				}
 			}
@@ -413,12 +413,12 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 				}
 			}
 
-			arg << std::u32string(&line.c_str()[i], 1);
+			arg << line[i];
 
 			i++;
 		}
 
-		std::u32string argStr = arg.str();
+		auto argStr = arg.str();
 
 		if (!argStr.empty())
 		{

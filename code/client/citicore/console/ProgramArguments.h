@@ -2,6 +2,14 @@
 
 class ProgramArguments
 {
+public:
+#ifdef _MSC_VER
+	using TCharType = char32_t;
+#else
+	// on Linux, wchar_t is 32 bit, and char32_t isn't supported
+	using TCharType = wchar_t;
+#endif
+
 private:
 	std::vector<std::string> m_arguments;
 
@@ -14,11 +22,11 @@ public:
 		
 	}
 
-	inline explicit ProgramArguments(const std::vector<std::u32string>& arguments)
+	inline explicit ProgramArguments(const std::vector<std::basic_string<TCharType>>& arguments)
 	{
 		// see comments about this workaround in Console.cpp
 #ifndef _MSC_VER
-		static std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+		static std::wstring_convert<std::codecvt_utf8<TCharType>, TCharType> converter;
 #else
 		static std::wstring_convert<std::codecvt_utf8<uint32_t>, uint32_t> converter;
 #endif
