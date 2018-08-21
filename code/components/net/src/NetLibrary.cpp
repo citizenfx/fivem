@@ -746,10 +746,12 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 				HttpRequestOptions options;
 				options.streamingCallback = handleAuthResultData;
-				m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(newMap), options, handleAuthResult);
+				m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(newMap), options, handleAuthResult);
 
 				return true;
 			}
+
+			m_handshakeRequest = {};
 
 			if (node["error"].IsDefined())
 			{
@@ -843,7 +845,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		HttpRequestOptions options;
 		options.streamingCallback = handleAuthResultData;
 
-		m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
+		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
 	};
 
 	m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
@@ -966,6 +968,12 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 void NetLibrary::CancelDeferredConnection()
 {
+	if (m_handshakeRequest)
+	{
+		m_handshakeRequest->Abort();
+		m_handshakeRequest = {};
+	}
+
 	if (m_connectionState == CS_INITING)
 	{
 		m_connectionState = CS_IDLE;

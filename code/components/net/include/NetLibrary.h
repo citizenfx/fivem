@@ -162,6 +162,8 @@ private:
 
 	HttpClient* m_httpClient;
 
+	HttpRequestPtr m_handshakeRequest;
+
 	uint32_t m_outSequence;
 
 	uint32_t m_serverProtocol;

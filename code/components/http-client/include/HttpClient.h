@@ -53,6 +53,8 @@ public:
 	virtual bool HasCompleted() = 0;
 
 	virtual void SetRequestWeight(int weight) = 0;
+
+	virtual void Abort() = 0;
 };
 
 using HttpRequestPtr = std::shared_ptr<HttpRequestHandle>;

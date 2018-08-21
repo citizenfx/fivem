@@ -357,6 +357,30 @@ public:
 			}
 		});
 	}
+
+	virtual void Abort() override
+	{
+		auto request = m_request;
+
+		request->impl->cbsToRun.push([request]()
+		{
+			auto curl = request->curlHandle;
+			auto impl = request->impl;
+
+			// delete the data pointer
+			char* dataPtr;
+			curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
+
+			auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
+			(*data)->curlHandle = nullptr;
+
+			delete data;
+
+			// remove and delete the handle
+			curl_multi_remove_handle(impl->multi, curl);
+			curl_easy_cleanup(curl);
+		});
+	}
 };
 
 static HttpRequestPtr SetupRequestHandle(const std::shared_ptr<CurlData>& data)
