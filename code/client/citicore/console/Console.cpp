@@ -365,7 +365,7 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 				}
 				else
 				{
-					arg << line[i];
+					arg << std::u32string(&line.c_str()[i], 1);
 					inEscape = false;
 				}
 			}
@@ -413,7 +413,7 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 				}
 			}
 
-			arg << line[i];
+			arg << std::u32string(&line.c_str()[i], 1);
 
 			i++;
 		}
