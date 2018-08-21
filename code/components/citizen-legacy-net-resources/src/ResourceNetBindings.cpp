@@ -85,10 +85,22 @@ static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::stri
 			}
 		}
 
+		static uint64_t lastDownloadTime = GetTickCount64();
+
+		auto throttledConnectionProgress = [netLibrary](const std::string& string, int count, int total)
+		{
+			if ((GetTickCount64() - lastDownloadTime) > 500)
+			{
+				netLibrary->OnConnectionProgress(string, count, total);
+
+				lastDownloadTime = GetTickCount64();
+			}
+		};
+
 		auto mounterRef = manager->GetMounterForUri(resourceUri);
 		static_cast<fx::CachedResourceMounter*>(mounterRef.GetRef())->AddStatusCallback(resourceName, [=](int downloadCurrent, int downloadTotal)
 		{
-			netLibrary->OnConnectionProgress(fmt::sprintf("Downloading %s (%d of %d - %.2f/%.2f MiB)", resourceName, progressCounter->current, progressCounter->total,
+			throttledConnectionProgress(fmt::sprintf("Downloading %s (%d of %d - %.2f/%.2f MiB)", resourceName, progressCounter->current, progressCounter->total,
 				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total);
 		});
 
@@ -96,7 +108,7 @@ static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::stri
 
 		// report progress
 		int currentCount = progressCounter->current.fetch_add(1) + 1;
-		netLibrary->OnConnectionProgress(fmt::sprintf("Downloaded %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total);
+		throttledConnectionProgress(fmt::sprintf("Downloaded %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total);
 
 		// return tuple
 		list.emplace_back(resource, resourceName);
