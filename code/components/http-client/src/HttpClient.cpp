@@ -125,6 +125,8 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 	{
 		using namespace std::literals;
 
+		SetThreadName(-1, "[Cfx] HttpClient Thread");
+
 		int lastRunning = 0;
 
 		do 
