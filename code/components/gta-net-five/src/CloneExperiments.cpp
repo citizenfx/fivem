@@ -376,13 +376,13 @@ static void NetLogStub_DoLog(void*, const char* type, const char* fmt, ...)
 	trace("[NET] %s %s\n", type, buffer);
 }
 
-static CNetGamePlayer*(*g_origAllocateNetPlayer)();
+static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 
-static CNetGamePlayer* AllocateNetPlayer()
+static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
-		return g_origAllocateNetPlayer();
+		return g_origAllocateNetPlayer(mgr);
 	}
 
 	void* plr = malloc(672);
@@ -676,7 +676,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	// TODO: use a real player for some things
 	if (!g_player31)
 	{
-		g_player31 = AllocateNetPlayer();
+		g_player31 = AllocateNetPlayer(nullptr);
 		g_player31->physicalPlayerIndex = 31;
 	}
 
@@ -772,7 +772,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	// TODO: use a real player for some things that _are_ 32-safe
 	if (!g_player31)
 	{
-		g_player31 = AllocateNetPlayer();
+		g_player31 = AllocateNetPlayer(nullptr);
 		g_player31->physicalPlayerIndex = 31;
 	}
 
