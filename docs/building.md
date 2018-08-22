@@ -11,6 +11,7 @@ Then, execute the following commands in a `cmd.exe` shell to set up the build en
 set BOOST_ROOT=C:\libraries\boost_1_63_0
 set PATH=%path%;C:\tools\python27amd64
 git clone https://github.com/citizenfx/fivem.git
+cd fivem
 git submodule init
 git submodule update --recursive
 prebuild
