@@ -87,7 +87,7 @@
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
-							<PoolSize value="2989"/>
+							<PoolSize value="3015"/>
 						</Item>
 						<Item>
 							<PoolName>ClothStore</PoolName>
@@ -175,7 +175,7 @@
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="65000"/>
+							<PoolSize value="65200"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
@@ -203,7 +203,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="13700"/>
+							<PoolSize value="14500"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -219,7 +219,7 @@
 						</Item>
 						<Item>
 							<PoolName>InteriorProxy</PoolName>
-							<PoolSize value="1060"/>
+							<PoolSize value="1070"/>
 						</Item>
 						<Item>
 							<PoolName>IplStore</PoolName>
@@ -786,7 +786,7 @@
 					<MaxVehicleModelInfos value="320"/>
 					<MaxWeaponModelInfos value="115"/>
 					<MaxExtraPedModelInfos value="100"/>
-					<MaxExtraVehicleModelInfos value="280"/>
+					<MaxExtraVehicleModelInfos value="290"/>
 					<MaxExtraWeaponModelInfos value="460"/>
 				</ConfigModelInfo>
 
@@ -798,7 +798,7 @@
 				</ConfigExtensions>
 
 				<ConfigStreamingEngine>
-					<ArchiveCount value="2648"/>
+					<ArchiveCount value="2904"/>
 					<PhysicalStreamingBuffer value="252"/>
 					<VirtualStreamingBuffer value="1000"/>
 				</ConfigStreamingEngine>
@@ -1081,17 +1081,17 @@
 						</Item>
 						<Item>
 							<StackName>MULTIPLAYER_FREEMODE</StackName>
-							<SizeOfStack value="50000"/>
+							<SizeOfStack value="51000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MISSION</StackName>
-							<SizeOfStack value="22000"/>
+							<SizeOfStack value="23000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MP_LAUNCH_SCRIPT</StackName>
-							<SizeOfStack value="21768"/>
+							<SizeOfStack value="22990"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						
@@ -1789,7 +1789,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>TEXTURE_DICTIONARY</ResourceTypeName>
-							<ExpectedMaximum value="40"/>
+							<ExpectedMaximum value="45"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>DRAWABLE_DICTIONARY</ResourceTypeName>
@@ -1861,7 +1861,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SPEED_ZONE</ResourceTypeName>
-							<ExpectedMaximum value="170"/>
+							<ExpectedMaximum value="220"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>WEAPON_ASSET</ResourceTypeName>
