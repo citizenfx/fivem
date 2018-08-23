@@ -143,7 +143,7 @@ static std::shared_mutex g_memoryUsagesMutex;
 
 static bool g_requestedMemoryUsage;
 
-static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
+static void gc_event(MonoProfiler *profiler, MonoProfilerGCEvent event, int generation)
 {
 	switch (event) {
 	case MONO_GC_EVENT_PRE_START_WORLD:
