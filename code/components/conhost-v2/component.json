@@ -5,6 +5,7 @@
 		"fx[2]",
 		"rage:input",
 		"rage:graphics",
+		"rage:nutsnbolts",
 		"vendor:imgui"
 	],
 	"provides": []

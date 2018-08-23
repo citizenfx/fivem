@@ -14,7 +14,11 @@
 
 #include <ICoreGameInit.h>
 
+#include <nutsnbolts.h>
+
 #include <se/Security.h>
+
+#include <concurrent_queue.h>
 
 struct FiveMConsole
 {
@@ -24,6 +28,10 @@ struct FiveMConsole
 	ImVector<char*> History;
 	int HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
 	ImVector<const char*> Commands;
+
+	std::recursive_mutex ItemsMutex;
+
+	concurrency::concurrent_queue<std::string> CommandQueue;
 
 	FiveMConsole()
 	{
@@ -54,9 +62,13 @@ struct FiveMConsole
 
 	void ClearLog()
 	{
-		for (int i = 0; i < Items.Size; i++)
-			free(Items[i]);
-		Items.clear();
+		{
+			std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
+
+			for (int i = 0; i < Items.Size; i++)
+				free(Items[i]);
+			Items.clear();
+		}
 		ScrollToBottom = true;
 	}
 
@@ -68,7 +80,12 @@ struct FiveMConsole
 		vsnprintf(buf, _countof(buf), fmt, args);
 		buf[_countof(buf) - 1] = 0;
 		va_end(args);
-		Items.push_back(Strdup(buf));
+
+		{
+			std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
+
+			Items.push_back(Strdup(buf));
+		}
 		ScrollToBottom = true;
 	}
 
@@ -96,6 +113,8 @@ struct FiveMConsole
 			ImGui::PopStyleVar();
 			return;
 		}
+
+		std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
 
 		/*ImGui::TextWrapped("This example implements a console with basic coloring, completion and history. A more elaborate implementation may want to store entries along with extra data such as timestamp, emitter, etc.");
 		ImGui::TextWrapped("Enter 'HELP' for help, press TAB to use text completion.");
@@ -200,11 +219,7 @@ struct FiveMConsole
 		}
 		else
 		{
-			se::ScopedPrincipal scope(se::Principal{ "system.console" });
-
-			console::GetDefaultContext()->AddToBuffer(command_line);
-			console::GetDefaultContext()->AddToBuffer("\n");
-			console::GetDefaultContext()->ExecuteBuffer();
+			CommandQueue.push(command_line);
 		}
 	}
 
@@ -322,6 +337,20 @@ struct FiveMConsole
 		}
 		return 0;
 	}
+
+	void RunCommandQueue()
+	{
+		std::string command_line;
+
+		while (CommandQueue.try_pop(command_line))
+		{
+			se::ScopedPrincipal scope(se::Principal{ "system.console" });
+
+			console::GetDefaultContext()->AddToBuffer(command_line);
+			console::GetDefaultContext()->AddToBuffer("\n");
+			console::GetDefaultContext()->ExecuteBuffer();
+		}
+	}
 };
 
 static std::unique_ptr<FiveMConsole> g_console;
@@ -354,3 +383,14 @@ void SendPrintMessage(const std::string& message)
 		g_console->AddLog(to.c_str());
 	}
 }
+
+static InitFunction initFunction([]()
+{
+	OnGameFrame.Connect([]()
+	{
+		if (g_console)
+		{
+			g_console->RunCommandQueue();
+		}
+	});
+});
