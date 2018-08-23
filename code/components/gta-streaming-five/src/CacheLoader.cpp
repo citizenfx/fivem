@@ -114,6 +114,10 @@ static HookFunction hookFunction([]()
 		hook::call(hook::get_pattern("48 8D 4D 20 8B D0 E8 ? ? ? ? 44 8B 00 0F", 6), GetCacheIndex);
 		hook::call(hook::get_pattern("48 8D 4D 10 8B D0 E8 ? ? ? ? 45", 6), GetCacheIndex);
 		hook::call(hook::get_pattern("48 8D 8C 24 90 00 00 00 8B D0 E8", 10), GetCacheIndex);
+
+		// CInteriorProxy module
+		hook::call(hook::get_pattern("48 8D 8C 24 C0 00 00 00 8B D0 E8", 10), GetCacheIndex); // save
+		hook::call(hook::get_pattern("48 8D 8D 88 00 00 00 8B D0 E8", 9), GetCacheIndex); // load
 	}
 	
 	{
@@ -121,6 +125,7 @@ static HookFunction hookFunction([]()
 		hook::call(hook::get_pattern("E8 ? ? ? ? 45 33 FF 40 8A 78 48 40 F6", 0), GetPackIndex);
 		hook::call(hook::get_pattern("E8 ? ? ? ? 8B C8 E8 ? ? ? ? 83 3D ? ? ? ? 01 75", 7), GetPackIndex);
 		hook::call(hook::get_pattern("E8 ? ? ? ? 48 85 C0 74 07 8A 40 48", 0), GetPackIndex);
+		hook::call(hook::get_pattern("8B C8 E8 ? ? ? ? 45 33 E4 40 8A 78 48", 2), GetPackIndex); // CInteriorProxy load
 	}
 });
 
