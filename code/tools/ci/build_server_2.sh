@@ -90,6 +90,11 @@ cd build/server/linux
 
 export CXXFLAGS="-std=c++1z -stdlib=libc++"
 
+if [ "$CI" = true ] && [ "$TRAVIS" = true ]; then
+	echo '#pragma once' > /src/code/shared/cfx_version.h
+	echo '#define GIT_DESCRIPTION "'$TRAVIS_BRANCH' '$TRAVIS_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
+fi
+
 make clean
 make clean config=release
 make -j4 config=release
