@@ -367,6 +367,10 @@ public:
 			auto curl = request->curlHandle;
 			auto impl = request->impl;
 
+			//Request has completed and curl has been cleaned up.
+			if (curl == nullptr)
+				return;
+
 			// delete the data pointer
 			char* dataPtr;
 			curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
