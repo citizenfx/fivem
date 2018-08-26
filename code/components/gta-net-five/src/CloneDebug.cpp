@@ -17,6 +17,8 @@
 
 #include <rlNetBuffer.h>
 
+#include <ICoreGameInit.h>
+
 #include <Hooking.h>
 
 static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
@@ -617,19 +619,22 @@ static InitFunction initFunction([]()
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || true;
+		*should = *should || netViewerEnabled || Instance<ICoreGameInit>::Get()->OneSyncEnabled;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
-		static bool timeOpen = true;
-		
-		if (ImGui::Begin("Time", &timeOpen))
+		if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 		{
-			ImGui::Text("%d", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp());
-		}
+			static bool timeOpen = true;
 
-		ImGui::End();
+			if (ImGui::Begin("Time", &timeOpen))
+			{
+				ImGui::Text("%d", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp());
+			}
+
+			ImGui::End();
+		}
 
 		if (!netViewerEnabled)
 		{
