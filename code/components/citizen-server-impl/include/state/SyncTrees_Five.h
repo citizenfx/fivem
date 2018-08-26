@@ -144,21 +144,22 @@ struct NodeWrapper : public NodeBase
 	
 	virtual bool Parse(SyncParseState& state) override
 	{
-		auto isWrite = state.buffer.ReadBit();
+		/*auto isWrite = state.buffer.ReadBit();
 
 		if (!isWrite)
 		{
 			return true;
-		}
+		}*/
 
-		auto length = state.buffer.Read<uint32_t>(11);
 		auto curBit = state.buffer.GetCurrentBit();
 
 		if (shouldRead(state, TIds::GetIds()))
 		{
 			// read into data array
+			auto length = state.buffer.Read<uint32_t>(11);
 			auto endBit = state.buffer.GetCurrentBit();
-			auto leftoverLength = length - (endBit - curBit);
+			//auto leftoverLength = length - (endBit - curBit);
+			auto leftoverLength = length;
 
 			auto oldData = data;
 
@@ -177,9 +178,9 @@ struct NodeWrapper : public NodeBase
 
 				ackedPlayers.reset();
 			}
-		}
 
-		state.buffer.SetCurrentBit(curBit + length);
+			state.buffer.SetCurrentBit(endBit + length);
+		}
 
 		return true;
 	}

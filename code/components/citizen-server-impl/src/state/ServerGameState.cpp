@@ -245,34 +245,27 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						cloneBuffer.Write(4, (uint8_t)entity->type);
 					}
 
-					// TODO: figure out a way to optimize this timestamp
-					auto ownerTS = entity->client.lock()->GetData("timestamp");
-					auto tgtTS = client->GetData("timestamp");
+					cloneBuffer.Write<uint32_t>(32, entity->timestamp);
 
-					if (ownerTS.has_value() && tgtTS.has_value())
+					auto len = (state.buffer.GetCurrentBit() / 8) + 1;
+					cloneBuffer.Write(12, len);
+					cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
+
+					maybeFlushBuffer();
+
+					int slotId = client->GetSlotId();
+
+					if (syncType == 2)
 					{
-						cloneBuffer.Write<uint32_t>(32, entity->timestamp - std::any_cast<int64_t>(ownerTS) + std::any_cast<int64_t>(tgtTS));
-
-						auto len = (state.buffer.GetCurrentBit() / 8) + 1;
-						cloneBuffer.Write(12, len);
-						cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
-
-						maybeFlushBuffer();
-
-						int slotId = client->GetSlotId();
-
-						if (syncType == 2)
+						/*entity->syncTree->Visit([slotId](sync::NodeBase& node)
 						{
-							/*entity->syncTree->Visit([slotId](sync::NodeBase& node)
-							{
-								node.ackedPlayers.set(slotId);
+							node.ackedPlayers.set(slotId);
 
-								return true;
-							});*/
-						}
-
-						((syncType == 1) ? numCreates : numSyncs)++;
+							return true;
+						});*/
 					}
+
+					((syncType == 1) ? numCreates : numSyncs)++;
 				}
 				else
 				{
@@ -506,7 +499,7 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 			return;
 		}
 
-		trace("migrating entity %d from %s to %s\n", objectId, it->second->client.lock()->GetName(), tgtCl->GetName());
+		//trace("migrating entity %d from %s to %s\n", objectId, it->second->client.lock()->GetName(), tgtCl->GetName());
 
 		auto entity = it->second;
 
@@ -645,7 +638,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	if (entity->client.lock()->GetNetId() != client->GetNetId())
 	{
-		trace("did object %d migrate? %s isn't %s...\n", objectId, client->GetName(), entity->client.lock()->GetName());
+		//trace("did object %d migrate? %s isn't %s...\n", objectId, client->GetName(), entity->client.lock()->GetName());
 
 		//entity->client = client;
 
@@ -1043,6 +1036,20 @@ static InitFunction initFunction([]()
 
 				entity->ackedCreation.set(client->GetSlotId());
 			}
+		});
+
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgTimeSyncReq"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		{
+			auto reqTime = buffer.Read<uint32_t>();
+			auto reqSeq = buffer.Read<uint32_t>();
+
+			net::Buffer netBuffer;
+			netBuffer.Write<uint32_t>(HashRageString("msgTimeSync"));
+			netBuffer.Write<uint32_t>(reqTime);
+			netBuffer.Write<uint32_t>(reqSeq);
+			netBuffer.Write<uint32_t>((msec().count()) & 0xFFFFFFFF);
+
+			client->SendPacket(1, netBuffer, ENET_PACKET_FLAG_RELIABLE);
 		});
 
 		// TODO: handle this based on specific nodes sent with a specific ack

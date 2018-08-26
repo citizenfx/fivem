@@ -49,7 +49,9 @@ public:
 }
 
 // 1103
-static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x1427C5A10;
+// 1290
+// 1365
+static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x1427D2320;
 
 void* g_tempRemotePlayer;
 
@@ -187,11 +189,13 @@ namespace sync
 		inAddr->ipUnk = clientId ^ 0xFEED;
 		inAddr->ipOnline = clientId ^ 0xFEED;
 
+		// 1290
+		// 1365
 		void* nonphys = calloc(256, 1);
-		((void(*)(void*))0x14106DBA8)(nonphys); // ctor
+		((void(*)(void*))0x141076C58)(nonphys); // ctor
 
 		void* phys = calloc(1024, 1);
-		((void(*)(void*))0x14106C040)(phys);
+		((void(*)(void*))0x1410750F8)(phys);
 
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonphys);
 		g_tempRemotePlayer = player;
@@ -972,7 +976,11 @@ std::string GetType(void* d)
 	return typeName;
 }
 
+extern rage::netObject* g_curNetObject;
+
 static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object);
+
+std::map<int, std::map<void*, std::tuple<int, uint32_t>>> g_netObjectNodeMapping;
 
 static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object)
 {
@@ -988,7 +996,12 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuf
 		assert(in == 0x5A);
 	}*/
 
-	return g_origReadDataNode(node, flags, mA0, buffer, object);
+	bool didRead = g_origReadDataNode(node, flags, mA0, buffer, object);
+
+	if (didRead && g_curNetObject)
+	{
+		g_netObjectNodeMapping[g_curNetObject->objectId][node] = { 0, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
+	}
 }
 
 static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
@@ -1022,6 +1035,11 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 			buffer->WriteBit(true);
 			buffer->WriteInteger(length, 11);
 			buffer->Seek(endPosition);
+
+			if (g_curNetObject)
+			{
+				g_netObjectNodeMapping[g_curNetObject->objectId][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
+			}
 
 			//trace("actually wrote %s\n", GetType(node));
 		}
@@ -1079,91 +1097,177 @@ static HookFunction hookFunction2([]()
 	}
 });
 
-static uint32_t(*g_origGetNetworkTime)(void*);
-
-static struct timeState_s
+class netTimeSync
 {
-	int64_t serverTimeDelta;
-	uint64_t oldServerTime;
-	uint64_t serverTime;
+public:
+	void Update();
 
-	uint32_t lastTime;
-} timeState;
+	void HandleTimeSync(net::Buffer& buffer);
+
+private:
+	void* m_vtbl; // 0
+	void* m_connectionMgr; // 8
+	struct {
+		uint32_t m_int1;
+		uint16_t m_short1;
+		uint32_t m_int2;
+		uint16_t m_short2;
+	} m_trustAddr; // 16
+	uint32_t m_sessionKey; // 32
+	int32_t m_timeDelta; // 36
+	struct {
+		void* self;
+		void* cb;
+	} messageDelegate; // 40
+	char m_pad_38[32]; // 56
+	uint32_t m_nextSync; // 88
+	uint32_t m_configTimeBetweenSyncs; // 92
+	uint32_t m_configMaxBackoff; // 96, usually 60000
+	uint32_t m_effectiveTimeBetweenSyncs; // 100
+	uint32_t m_lastRtt; // 104
+	uint32_t m_retryCount; // 108
+	uint32_t m_requestSequence; // 112
+	uint32_t m_replySequence; // 116
+	uint32_t m_flags; // 120
+	uint32_t m_packetFlags; // 124
+	uint32_t m_appliedDelta; // 128
+	uint8_t m_applyFlags; // 132
+	uint8_t m_disabled; // 133
+};
 
 #include <mmsystem.h>
 
-void UpdateTime(uint64_t serverTime, bool isInit = false)
+void netTimeSync::Update()
 {
-	timeState.serverTime = serverTime;
-
-	if (isInit)
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
-		timeState.serverTimeDelta = serverTime - timeGetTime();
-		timeState.oldServerTime = serverTime;
-
-		timeState.lastTime = 0;
-
 		return;
 	}
 
-	int resetTime = 500;
-
-	int64_t newDelta = serverTime - timeGetTime();
-	int64_t deltaDelta = abs(newDelta - timeState.serverTimeDelta);
-
-	if (deltaDelta > resetTime)
+	if (m_connectionMgr && /*m_flags & 2 && */!m_disabled)
 	{
-		timeState.serverTimeDelta = newDelta;
-		timeState.oldServerTime = serverTime;
-		timeState.serverTime = serverTime;
+		uint32_t curTime = timeGetTime();
+
+		if (!m_nextSync || int32_t(timeGetTime() - m_nextSync) >= 0)
+		{
+			m_requestSequence++;
+
+			net::Buffer outBuffer;
+			outBuffer.Write<uint32_t>(curTime); // request time
+			outBuffer.Write<uint32_t>(m_requestSequence); // request sequence
+
+			g_netLibrary->SendReliableCommand("msgTimeSyncReq", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+
+			m_nextSync = (curTime + m_effectiveTimeBetweenSyncs) | 1;
+		}
 	}
-	else if (deltaDelta > 100)
+}
+
+void netTimeSync::HandleTimeSync(net::Buffer& buffer)
+{
+	auto reqTime = buffer.Read<uint32_t>();
+	auto reqSequence = buffer.Read<uint32_t>();
+	auto resDelta = buffer.Read<uint32_t>();
+
+	if (m_disabled)
 	{
-		timeState.serverTimeDelta = (timeState.serverTimeDelta + newDelta) >> 1;
+		return;
+	}
+
+	/*if (!(m_flags & 2))
+	{
+		return;
+	}*/
+
+	// out of order?
+	if (int32_t(reqSequence - m_replySequence) <= 0)
+	{
+		return;
+	}
+
+	auto rtt = timeGetTime() - reqTime;
+
+	// bad timestamp, negative time passed
+	if (int32_t(rtt) <= 0)
+	{
+		return;
+	}
+
+	int32_t timeDelta = resDelta + (rtt / 2) - timeGetTime();
+
+	// is this a low RTT, or did we retry often enough?
+	if (rtt <= 300 || m_retryCount >= 10)
+	{
+		if (!m_lastRtt)
+		{
+			m_lastRtt = rtt;
+		}
+
+		// is RTT within variance, low, or retried?
+		if (rtt <= 100 ||
+			(rtt / m_lastRtt) < 2 ||
+			m_retryCount >= 10)
+		{
+			m_timeDelta = timeDelta;
+			m_replySequence = reqSequence;
+
+			// progressive backoff once we've established a valid time base
+			if (m_effectiveTimeBetweenSyncs < m_configMaxBackoff)
+			{
+				m_effectiveTimeBetweenSyncs = std::min(m_configMaxBackoff, m_effectiveTimeBetweenSyncs * 2);
+			}
+
+			m_retryCount = 0;
+
+			if (!(m_applyFlags & 1))
+			{
+				m_appliedDelta = m_timeDelta + timeGetTime();
+			}
+
+			m_applyFlags |= 3;
+		}
+		else
+		{
+			m_nextSync = 0;
+			m_retryCount++;
+		}
+
+		// update average RTT
+		m_lastRtt = (rtt + m_lastRtt) / 2;
 	}
 	else
 	{
-		timeState.serverTimeDelta++;
+		m_nextSync = 0;
+		m_retryCount++;
 	}
 }
 
-uint32_t GetRemoteTime()
+static netTimeSync** g_netTimeSync;
+
+static InitFunction initFunctionTime([]()
 {
-	uint32_t remoteTime = uint32_t(uint64_t(timeGetTime()) + timeState.serverTimeDelta);
-
-	if (remoteTime < timeState.lastTime)
+	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
 	{
-		remoteTime = timeState.lastTime;
-	}
-
-	timeState.lastTime = remoteTime;
-
-	return remoteTime;
-}
-
-static uint32_t GetNetworkTime(void* netTime)
-{
-	uint32_t origTime = g_origGetNetworkTime(netTime);
-
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
-	{
-		return origTime;
-	}
-
-	if (!g_netLibrary || g_netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
-	{
-		return origTime;
-	}
-
-	return GetRemoteTime();
-}
+		lib->AddReliableHandler("msgTimeSync", [](const char* data, size_t len)
+		{
+			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
+			(*g_netTimeSync)->HandleTimeSync(buf);
+		});
+	});
+});
 
 static HookFunction hookFunctionTime([]()
 {
-	//hook::jump(, GetNetworkTime);
-	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("F6 C2 01 74 28 03 43 24", -0x14), GetNetworkTime, (void**)&g_origGetNetworkTime);
-	MH_EnableHook(MH_ALL_HOOKS);
+	/*MH_Initialize();
+	
+	MH_EnableHook(MH_ALL_HOOKS);*/
+
+	g_netTimeSync = hook::get_address<netTimeSync**>(hook::get_pattern("EB 16 48 8B 0D ? ? ? ? 45 33 C9 45 33 C0", 5));
+
+	OnMainGameFrame.Connect([]()
+	{
+		(*g_netTimeSync)->Update();
+	});
 });
 
 int ObjectToEntity(int objectId)
@@ -1234,14 +1338,6 @@ static InitFunction initFunction([]()
 
 		EventManager_Update();
 		TheClones->Update();
-	});
-
-	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
-	{
-		lib->OnConnectOKReceived.Connect([](NetAddress)
-		{
-			UpdateTime(g_netLibrary->GetServerInitTime(), true);
-		});
 	});
 
 	OnKillNetworkDone.Connect([]()
