@@ -470,7 +470,7 @@ struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return 
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerAppearanceDataNode { bool Parse(SyncParseState& state) { trace("PlayerAppearanceDataNode!\n"); return true; } };
+struct CPlayerAppearanceDataNode { bool Parse(SyncParseState& state) { /*trace("PlayerAppearanceDataNode!\n");*/ return true; } };
 struct CPlayerPedGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerAmbientModelStreamingNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGamerDataNode { bool Parse(SyncParseState& state) { return true; } };

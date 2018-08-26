@@ -403,8 +403,7 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			else
 			{
 				// compare last data for the node
-				auto& objData = g_syncData[state.object->objectId];
-				auto& nodeData = objData.nodes[node];
+				auto nodeData = &g_syncData[state.object->objectId].nodes[node];
 
 				// calculate node change state
 				std::array<uint8_t, 256> tempData;
@@ -414,10 +413,10 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				node->WriteObject(state.object, &tempBuf, nullptr, true);
 
-				if (memcmp(tempData.data(), nodeData.lastData.data(), tempData.size()) != 0)
+				if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
 				{
-					nodeData.lastChange = state.time;
-					nodeData.lastData = tempData;
+					nodeData->lastChange = state.time;
+					nodeData->lastData = tempData;
 				}
 
 				bool shouldWriteNode = false;
@@ -427,7 +426,7 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					shouldWriteNode = true;
 				}
 
-				if (nodeData.lastAck < nodeData.lastChange)
+				if (nodeData->lastAck < nodeData->lastChange)
 				{
 					shouldWriteNode = true;
 				}
@@ -507,10 +506,10 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 		}
 		else
 		{
-			auto& objData = g_syncData[state.object->objectId];
-			auto& nodeData = objData.nodes[node];
-
-			nodeData.lastAck = state.time;
+			if (state.time > g_syncData[state.object->objectId].nodes[node].lastAck)
+			{
+				g_syncData[state.object->objectId].nodes[node].lastAck = state.time;
+			}
 		}
 
 		return true;
@@ -574,6 +573,9 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 	auto t = g_netObjectNodeMapping[netObject->objectId][node];
 	
 	ImGui::Text("Last %s: %d ms ago", std::get<int>(t) ? "written" : "read", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - std::get<uint32_t>(t));
+	ImGui::Text("Last ack: %d ms ago", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - rage::g_syncData[netObject->objectId].nodes[node].lastAck);
+	ImGui::Text("Last change: %d ms ago", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - rage::g_syncData[netObject->objectId].nodes[node].lastChange);
+	ImGui::Text("Change - Ack: %d ms", rage::g_syncData[netObject->objectId].nodes[node].lastChange - rage::g_syncData[netObject->objectId].nodes[node].lastAck);
 
 	ImGui::Columns(2);
 	ImGui::Text("Current");

@@ -214,11 +214,10 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 					if (netObj)
 					{
 						auto syncTree = netObj->GetSyncTree();
+						syncTree->AckCfx(netObj, timestamp);
 
 						if (netObj->m_20())
 						{
-							syncTree->AckCfx(netObj, timestamp);
-
 							// 1290
 							// 1365
 							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415E29B8)(syncTree, netObj, 31, 0 /* seq? */, timestamp, 0xFFFFFFFF);
@@ -228,7 +227,7 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 				break;
 			}
 			// timestamp ack?
-			case 5:
+			/*case 5:
 			{
 				auto timestamp = buf.Read<uint32_t>();
 
@@ -246,13 +245,13 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 
 							// 1290
 							// 1365
-							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415E29B8)(syncTree, netObj, 31, 0 /* seq? */, timestamp, 0xFFFFFFFF);
+							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415E29B8)(syncTree, netObj, 31, 0 /* seq? * /, timestamp, 0xFFFFFFFF);
 						}
 					}
 				}
 
 				break;
-			}
+			}*/
 			// remove ack?
 			case 3:
 			{
@@ -1036,8 +1035,7 @@ void CloneManagerLocal::AttemptFlushNetBuffer()
 void CloneManagerLocal::SendUpdates()
 {
 	// if ((timeGetTime() - lastSend) > 100 || netBuffer.GetCurOffset() >= 1200)
-
-	if (m_sendBuffer.GetDataLength() > 0)
+	if (m_sendBuffer.GetDataLength() > 600 || (msec() - m_lastSend) > 20ms)
 	{
 		m_sendBuffer.Write(3, 7);
 
@@ -1061,10 +1059,10 @@ void CloneManagerLocal::SendUpdates()
 			fclose(f);
 		}
 #endif
-	}
 
-	m_sendBuffer.SetCurrentBit(0);
-	m_lastSend = msec();
+		m_sendBuffer.SetCurrentBit(0);
+		m_lastSend = msec();
+	}
 }
 
 CloneManagerLocal g_cloneMgr;

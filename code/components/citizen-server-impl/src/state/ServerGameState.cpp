@@ -762,8 +762,14 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 			/*ackPacket.Write<uint8_t>(5);
 			ackPacket.Write<uint32_t>(ackTs);*/
 
-			client->SetData("ackTs", ackTs);
-			client->SetData("syncTs", newTs);
+			auto oldTs = client->GetData("ackTs");
+
+			if (!oldTs.has_value() || std::any_cast<uint32_t>(oldTs) < ackTs)
+			{
+				client->SetData("ackTs", ackTs);
+				client->SetData("syncTs", newTs);
+			}
+
 			break;
 		}
 		case 7: // end
