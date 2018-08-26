@@ -517,9 +517,14 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 }
 }
 
+static bool g_captureSyncLog;
+
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree)
 {
-	syncLog[objectId] = TraverseSyncTree(&syncLog[objectId], objectId, syncTree);
+	if (g_captureSyncLog)
+	{
+		syncLog[objectId] = TraverseSyncTree(&syncLog[objectId], objectId, syncTree);
+	}
 }
 
 static const char* DescribeGameObject(void* object)
@@ -618,6 +623,7 @@ static InitFunction initFunction([]()
 	static bool netViewerEnabled;
 
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
+	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
