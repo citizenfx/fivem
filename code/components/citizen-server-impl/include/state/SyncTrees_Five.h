@@ -357,6 +357,10 @@ struct CPedGameStateDataNode
 	{
 		auto bool1 = state.buffer.ReadBit();
 		auto bool2 = state.buffer.ReadBit();
+		auto bool3 = state.buffer.ReadBit();
+		auto bool4 = state.buffer.ReadBit();
+		auto bool5 = state.buffer.ReadBit();
+		auto bool6 = state.buffer.ReadBit();
 		auto arrestState = state.buffer.Read<int>(1);
 		auto deathState = state.buffer.Read<int>(2);
 
