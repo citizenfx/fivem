@@ -34,6 +34,12 @@ public:
 		int startIdx = m_curBit / 8;
 		int shift = m_curBit % 8;
 		
+		if ((startIdx + (length / 8) > m_data.size()))
+		{
+			m_curBit += length;
+			return false;
+		}
+
 		uint32_t retval = (uint8_t)(m_data[startIdx] << shift);
 		startIdx++;
 
