@@ -168,6 +168,8 @@ public:
 
 	void Tick(fx::ServerInstanceBase* instance);
 
+	void UpdateWorldGrid(fx::ServerInstanceBase* instance);
+
 	void ParseGameStatePacket(const std::shared_ptr<fx::Client>& client, const std::vector<uint8_t>& packetData);
 
 	virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
@@ -200,6 +202,29 @@ private:
 	std::bitset<8192> m_objectIdsUsed;
 
 	uint64_t m_frameIndex;
+
+	struct WorldGridEntry
+	{
+		uint8_t sectorX;
+		uint8_t sectorY;
+		uint8_t slotID;
+
+		WorldGridEntry()
+		{
+			sectorX = 0;
+			sectorY = 0;
+			slotID = -1;
+		}
+	};
+
+	struct WorldGridState
+	{
+		WorldGridEntry entries[12];
+	};
+
+	WorldGridState m_worldGrid[256];
+
+	void SendWorldGrid(void* entry = nullptr, const std::shared_ptr<fx::Client>& client = {});
 
 //private:
 public:

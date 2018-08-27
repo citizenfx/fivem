@@ -59,6 +59,9 @@ static CNetGamePlayer* g_players[256];
 static std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
 static std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
 
+static CNetGamePlayer* g_playerList[256];
+static int g_playerListCount;
+
 static CNetGamePlayer*(*g_origGetPlayerByIndex)(int);
 
 static CNetGamePlayer* GetPlayerByIndex(int index)
@@ -109,6 +112,10 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 
 	g_playersByNetId[clientId] = player;
 	g_netIdsByPlayer[player] = clientId;
+
+	// add to sequential list
+	g_playerList[g_playerListCount] = player;
+	g_playerListCount++;
 }
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t netId)
@@ -211,6 +218,9 @@ namespace sync
 
 		g_playersByNetId[clientId] = player;
 		g_netIdsByPlayer[player] = clientId;
+
+		g_playerList[g_playerListCount] = player;
+		g_playerListCount++;
 	}
 }
 
@@ -273,13 +283,24 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// TODO: actually leave the player including playerinfo
 		//g_playerMgr->RemovePlayer(player);
 
+		for (int i = 0; i < g_playerListCount; i++)
+		{
+			if (g_playerList[i] == player)
+			{
+				memmove(&g_playerList[i], &g_playerList[i + 1], sizeof(*g_playerList) * (g_playerListCount - i - 1));
+				g_playerListCount--;
+
+				break;
+			}
+		}
+
 		g_players[info.slotId] = nullptr;
 	}
 }
 
-static void*(*g_origGetOwnerNetPlayer)(rage::netObject*);
+static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 
-static void* netObject__GetOwnerNetPlayer(rage::netObject* object)
+static CNetGamePlayer* netObject__GetOwnerNetPlayer(rage::netObject* object)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
@@ -410,18 +431,23 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 		return g_origPassObjectControl(player, netObject, a3);
 	}
 
-	trace("passing object %016llx control from %d to %d\n", (uintptr_t)netObject, netObject->syncData.ownerId, player->physicalPlayerIndex);
+	if (player->physicalPlayerIndex == netObject__GetOwnerNetPlayer(netObject)->physicalPlayerIndex)
+	{
+		return;
+	}
+
+	trace("passing object %016llx (%d) control from %d to %d\n", (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
 	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[player]);
 
-	auto lastIndex = player->physicalPlayerIndex;
-	player->physicalPlayerIndex = 31;
+	//auto lastIndex = player->physicalPlayerIndex;
+	//player->physicalPlayerIndex = 31;
 
 	g_origPassObjectControl(player, netObject, a3);
 
-	player->physicalPlayerIndex = lastIndex;
+	//player->physicalPlayerIndex = lastIndex;
 }
 
 static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
@@ -497,6 +523,29 @@ static bool mD0Stub(rage::netSyncTree* tree, int a2)
 	return tree->m_D0(a2);
 }
 
+static int(*g_origGetNetworkPlayerListCount)();
+static CNetGamePlayer**(*g_origGetNetworkPlayerList)();
+
+static int GetNetworkPlayerListCount()
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetNetworkPlayerListCount();
+	}
+
+	return g_playerListCount;
+}
+
+static CNetGamePlayer** GetNetworkPlayerList()
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetNetworkPlayerList();
+	}
+
+	return g_playerList;
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -549,6 +598,12 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("75 07 85 C9 0F 94 C3 EB", -0x19), IsNetworkPlayerActive, (void**)&g_origIsNetworkPlayerActive);
 	MH_CreateHook(hook::get_pattern("75 07 85 C9 0F 94 C0 EB", -0x13), IsNetworkPlayerConnected, (void**)&g_origIsNetworkPlayerConnected); // connected
 
+	{
+		auto location = hook::get_pattern<char>("44 0F 28 CF F3 41 0F 59 C0 F3 44 0F 59 CF F3 44 0F 58 C8 E8", 19);
+		MH_CreateHook(hook::get_call(location + 0), GetNetworkPlayerListCount, (void**)&g_origGetNetworkPlayerListCount);
+		MH_CreateHook(hook::get_call(location + 8), GetNetworkPlayerList, (void**)&g_origGetNetworkPlayerList);
+	}
+
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
 
@@ -586,6 +641,37 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern("FF 90 D0 00 00 00 84 C0 0F 84 80 00 00 00", 0);
 		hook::nop(location, 6);
 		hook::call(location, mD0Stub);
+	}
+
+	// hardcoded 32/128 array sizes in CNetObjEntity__TestProximityMigration
+	{
+		auto location = hook::get_pattern<char>("48 81 EC A0 01 00 00 33 DB 48 8B F9 38 1D", -0x15);
+
+		// 0x20: scratch space
+		// 256 * 8: 256 players, ptr size
+		// 256 * 4: 256 players, int size
+		auto stackSize = (0x20 + (256 * 8) + (256 * 4));
+		auto ptrsBase = 0x20;
+		auto intsBase = ptrsBase + (256 * 8);
+
+		hook::put<uint32_t>(location + 0x18, stackSize);
+		hook::put<uint32_t>(location + 0xF8, stackSize);
+
+		hook::put<uint32_t>(location + 0xC9, intsBase);
+	}
+
+	// same for CNetObjPed
+	{
+		auto location = hook::get_pattern<char>("48 81 EC A0 01 00 00 33 FF 48 8B D9", -0x15);
+
+		auto stackSize = (0x20 + (256 * 8) + (256 * 4));
+		auto ptrsBase = 0x20;
+		auto intsBase = ptrsBase + (256 * 8);
+
+		hook::put<uint32_t>(location + 0x18, stackSize);
+		hook::put<uint32_t>(location + 0x13C, stackSize);
+
+		hook::put<uint32_t>(location + 0xD5, intsBase);
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
@@ -1268,6 +1354,78 @@ static HookFunction hookFunctionTime([]()
 	{
 		(*g_netTimeSync)->Update();
 	});
+});
+
+struct WorldGridEntry
+{
+	uint8_t sectorX;
+	uint8_t sectorY;
+	uint8_t slotID;
+};
+
+struct WorldGridState
+{
+	WorldGridEntry entries[12];
+};
+
+static WorldGridState g_worldGrid[256];
+
+static InitFunction initFunctionWorldGrid([]()
+{
+	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
+	{
+		lib->AddReliableHandler("msgWorldGrid", [](const char* data, size_t len)
+		{
+			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
+			auto base = buf.Read<uint16_t>();
+			auto length = buf.Read<uint16_t>();
+
+			if ((base + length) > sizeof(g_worldGrid))
+			{
+				return;
+			}
+
+			buf.Read(reinterpret_cast<char*>(g_worldGrid) + base, length);
+		});
+	});
+});
+
+bool(*g_origDoesLocalPlayerOwnWorldGrid)(float* pos);
+
+bool DoesLocalPlayerOwnWorldGrid(float* pos)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origDoesLocalPlayerOwnWorldGrid(pos);
+	}
+
+	auto playerIdx = g_playerMgr->localPlayer->physicalPlayerIndex;
+
+	int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 75;
+	int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 75;
+
+	bool does = false;
+
+	for (const auto& entry : g_worldGrid[playerIdx].entries)
+	{
+		if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
+		{
+			does = true;
+			break;
+		}
+	}
+
+	return does;
+}
+
+static HookFunction hookFunctionWorldGrid([]()
+{
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("44 8A 40 2D 41", -0x1B), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	// if population breaks in non-1s, this is possibly why
+	hook::nop(hook::get_pattern("38 05 ? ? ? ? 75 0A 48 8B CF E8", 6), 2);
 });
 
 int ObjectToEntity(int objectId)

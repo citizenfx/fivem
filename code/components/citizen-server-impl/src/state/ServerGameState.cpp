@@ -146,6 +146,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 	}
 
+	UpdateWorldGrid(instance);
+
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 	{
 		if (!client->GetData("playerId").has_value())
@@ -291,6 +293,130 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	++m_frameIndex;
 }
 
+void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shared_ptr<fx::Client>& client /* = */ )
+{
+	net::Buffer msg;
+	msg.Write<uint32_t>(HashRageString("msgWorldGrid"));
+	
+	uint16_t base = 0;
+	uint16_t length = sizeof(m_worldGrid);
+
+	if (entry)
+	{ 
+		base = ((WorldGridEntry*)entry - &m_worldGrid[0].entries[0]) * sizeof(WorldGridEntry);
+		length = sizeof(WorldGridEntry);
+	}
+
+	msg.Write<uint16_t>(base);
+	msg.Write<uint16_t>(length);
+
+	msg.Write(reinterpret_cast<char*>(m_worldGrid) + base, length);
+
+	if (client)
+	{
+		client->SendPacket(1, msg, ENET_PACKET_FLAG_RELIABLE);
+	}
+	else
+	{
+		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&msg](const std::shared_ptr<fx::Client>& client)
+		{
+			client->SendPacket(1, msg, ENET_PACKET_FLAG_RELIABLE);
+		});
+	}
+}
+
+void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
+{
+	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+	{
+		if (client->GetSlotId() == -1)
+		{
+			return;
+		}
+
+		auto entityIdRef = client->GetData("playerEntity");
+
+		if (!entityIdRef.has_value())
+		{
+			return;
+		}
+
+		auto entityId = std::any_cast<uint32_t>(entityIdRef);
+		auto playerEntity = GetEntity(entityId);
+
+		float posX = playerEntity->GetData("posX", 0.0f);
+		float posY = playerEntity->GetData("posY", 0.0f);
+
+		int minSectorX = std::max((posX - 149.0f) + 8192.0f, 0.0f) / 75;
+		int maxSectorX = std::max((posX + 149.0f) + 8192.0f, 0.0f) / 75;
+		int minSectorY = std::max((posY - 149.0f) + 8192.0f, 0.0f) / 75;
+		int maxSectorY = std::max((posY + 149.0f) + 8192.0f, 0.0f) / 75;
+
+		auto slotID = client->GetSlotId();
+
+		WorldGridState* gridState = &m_worldGrid[slotID];
+		
+		// disown any grid entries that aren't near us anymore
+		for (auto& entry : gridState->entries)
+		{
+			if (entry.slotID != 0xFF)
+			{
+				if (entry.sectorX < (minSectorX - 1) || entry.sectorX >= (maxSectorX + 1) ||
+					entry.sectorY < (minSectorY - 1) || entry.sectorY >= (maxSectorY + 1))
+				{
+					entry.sectorX = 0;
+					entry.sectorY = 0;
+					entry.slotID = -1;
+
+					SendWorldGrid(&entry);
+				}
+			}
+		}
+
+		for (int x = minSectorX; x <= maxSectorX; x++)
+		{
+			for (int y = minSectorY; y <= maxSectorY; y++)
+			{
+				// find if this x/y is owned by someone already
+				bool found = false;
+
+				for (auto& state : m_worldGrid)
+				{
+					for (auto& entry : state.entries)
+					{
+						if (entry.slotID != -1 && entry.sectorX == x && entry.sectorY == y)
+						{
+							found = true;
+						}
+					}
+				}
+
+				// is it free?
+				if (!found)
+				{
+					// time to have some fun!
+
+					// find a free entry slot
+					for (auto& entry : gridState->entries)
+					{
+						if (entry.slotID == 0xFF)
+						{
+							// and take it
+							entry.sectorX = x;
+							entry.sectorY = y;
+							entry.slotID = slotID;
+
+							SendWorldGrid(&entry);
+
+							break;
+						}
+					}
+				}
+			}
+		}
+	});
+}
+
 void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client)
 {
 	if (!g_oneSyncVar->GetValue())
@@ -301,6 +427,21 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
 	trace("client drop - reassigning\n");
+
+	// clear the player's world grid ownership
+	if (auto slotId = client->GetSlotId(); slotId != -1)
+	{
+		WorldGridState* gridState = &m_worldGrid[slotId];
+
+		for (auto& entry : gridState->entries)
+		{
+			entry.slotID = -1;
+			entry.sectorX = 0;
+			entry.sectorY = 0;
+
+			SendWorldGrid(&entry);
+		}
+	}
 
 	std::set<uint32_t> toErase;
 
@@ -393,7 +534,13 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				trace("reassigning entity %d from %s to %s\n", entityPair.first, client->GetName(), std::get<1>(candidates[0])->GetName());
 
 				entity->client = std::get<1>(candidates[0]);
-				entity->ackedCreation.set(std::get<1>(candidates[0])->GetSlotId());
+				//entity->ackedCreation.set(std::get<1>(candidates[0])->GetSlotId());
+
+				auto sourceData = GetClientData(this, client);
+				auto targetData = GetClientData(this, entity->client.lock());
+
+				sourceData->objectIds.erase(entityPair.first & 0xFFFF);
+				targetData->objectIds.insert(entityPair.first & 0xFFFF);
 
 				entity->syncTree->Visit([](sync::NodeBase& node)
 				{
@@ -667,6 +814,11 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	switch (entity->type)
 	{
 		case sync::NetObjEntityType::Player:
+			if (!client->GetData("playerEntity").has_value())
+			{
+				SendWorldGrid(nullptr, client);
+			}
+
 			client->SetData("playerEntity", MakeScriptHandle(entity));
 			break;
 	}
