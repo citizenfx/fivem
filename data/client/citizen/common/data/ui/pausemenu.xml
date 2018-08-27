@@ -667,6 +667,7 @@
 				<Item> <cTextId>LANG_CH</cTextId> </Item>
 				<Item> <cTextId>LANG_J</cTextId> </Item>
 				<Item> <cTextId>LANG_MEX</cTextId> </Item>
+				<Item> <cTextId>LANG_CHS</cTextId> </Item>
 			</MenuDisplayOptions>
 		</Item>
 		
