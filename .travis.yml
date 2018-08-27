@@ -20,4 +20,4 @@ script:
   - tar xvf rocker_linux_amd64.tar.gz
   - cd code/
   - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then ../rocker build; fi'
-  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ../rocker build --auth $DOCKER_USER:$DOCKER_PASS --push; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then ../rocker build --build-arg CI=${CI} --build-arg TRAVIS=${TRAVIS} --auth $DOCKER_USER:$DOCKER_PASS --push; fi'
