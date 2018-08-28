@@ -1216,7 +1216,7 @@ private:
 	uint32_t m_replySequence; // 116
 	uint32_t m_flags; // 120
 	uint32_t m_packetFlags; // 124
-	uint32_t m_appliedDelta; // 128
+	uint32_t m_lastTime; // 128, used to prevent time from going backwards
 	uint8_t m_applyFlags; // 132
 	uint8_t m_disabled; // 133
 };
@@ -1305,12 +1305,13 @@ void netTimeSync::HandleTimeSync(net::Buffer& buffer)
 
 			m_retryCount = 0;
 
-			if (!(m_applyFlags & 1))
+			// use flag 4 to reset time at least once, even if game session code has done so to a higher value
+			if (!(m_applyFlags & 4))
 			{
-				m_appliedDelta = m_timeDelta + timeGetTime();
+				m_lastTime = m_timeDelta + timeGetTime();
 			}
 
-			m_applyFlags |= 3;
+			m_applyFlags |= 7;
 		}
 		else
 		{
