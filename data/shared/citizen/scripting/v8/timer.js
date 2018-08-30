@@ -64,8 +64,8 @@
         return id;
     }
 
-    function setImmediate(callback) {
-        return setTimeout(callback, 0);
+    function setImmediate(callback, ...argsForCallback) {
+        return setTimeout(callback, 0,...argsForCallback);
     }
 
     function onTick() {
