@@ -46,14 +46,14 @@
         return id;
     }
 
-    function setTimeout(callback, timeout) {
+    function setTimeout(callback, timeout, ...argsForCallback) {
         const id = nextId();
 
         setTimer(
             id,
             function() {
 				try {
-					callback();
+					callback(...argsForCallback);
 				} finally {
 					clearTimer(id);
 				}
@@ -64,8 +64,8 @@
         return id;
     }
 
-    function setImmediate(callback) {
-        return setTimeout(callback, 0);
+    function setImmediate(callback, ...argsForCallback) {
+        return setTimeout(callback, 0, ...argsForCallback);
     }
 
     function onTick() {
