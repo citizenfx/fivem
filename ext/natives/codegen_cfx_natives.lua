@@ -1938,3 +1938,27 @@ native "GET_HASH_KEY"
 		This native converts the passed string to a hash.
 </summary>
 	]]
+
+native "SET_DISCORD_APP_ID"
+	arguments {
+		charPtr "appId",
+	}
+	apiset 'client'
+	returns	"void"
+	doc [[!
+<summary>
+		This native sets the discord app id for the rich presence implementation.
+</summary>
+	]]
+
+native "SET_DISCORD_RICH_PRESENCE_ASSET"
+	arguments {
+		charPtr "assetName",
+	}
+	apiset 'client'
+	returns	"void"
+	doc [[!
+<summary>
+		This native sets the discord image asset for the rich presence implementation.
+</summary>
+	]]
