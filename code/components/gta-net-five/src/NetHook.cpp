@@ -369,6 +369,8 @@ struct HostStateHolder
 	}
 };
 
+bool IsWaitingForTimeSync();
+
 struct  
 {
 	HostStateHolder state;
@@ -390,6 +392,14 @@ struct
 			if (_isScWaitingForInit())
 			{
 				return;
+			}
+
+			if (cgi->OneSyncEnabled)
+			{
+				if (IsWaitingForTimeSync())
+				{
+					return;
+				}
 			}
 
 			// if there's no host, start hosting - if there is, start joining

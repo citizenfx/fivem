@@ -1190,6 +1190,13 @@ public:
 
 	void HandleTimeSync(net::Buffer& buffer);
 
+	bool IsInitialized();
+
+	inline void SetConnectionManager(void* mgr)
+	{
+		m_connectionMgr = mgr;
+	}
+
 private:
 	void* m_vtbl; // 0
 	void* m_connectionMgr; // 8
@@ -1223,6 +1230,30 @@ private:
 
 #include <mmsystem.h>
 
+static hook::cdecl_stub<void*()> _getConnectionManager([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? C7 44 24 40 60 EA 00 00"));
+});
+
+static bool(*g_origInitializeTime)(netTimeSync* timeSync, void* connectionMgr, int flags, void* trustHost,
+	uint32_t sessionSeed, int* deltaStart, int packetFlags, int initialBackoff, int maxBackoff);
+
+static bool g_initedTimeSync;
+
+bool netTimeSync::IsInitialized()
+{
+	if (!g_initedTimeSync)
+	{
+		g_origInitializeTime(this, _getConnectionManager(), 1, nullptr, 0, nullptr, 7, 2000, 60000);
+
+		g_initedTimeSync = true;
+
+		return false;
+	}
+
+	return (m_applyFlags & 4) != 0;
+}
+
 void netTimeSync::Update()
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
@@ -1230,7 +1261,7 @@ void netTimeSync::Update()
 		return;
 	}
 
-	if (m_connectionMgr && /*m_flags & 2 && */!m_disabled)
+	if (/*m_connectionMgr /*&& m_flags & 2 && */!m_disabled)
 	{
 		uint32_t curTime = timeGetTime();
 
@@ -1331,6 +1362,11 @@ void netTimeSync::HandleTimeSync(net::Buffer& buffer)
 
 static netTimeSync** g_netTimeSync;
 
+bool IsWaitingForTimeSync()
+{
+	return !(*g_netTimeSync)->IsInitialized();
+}
+
 static InitFunction initFunctionTime([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
@@ -1343,11 +1379,24 @@ static InitFunction initFunctionTime([]()
 	});
 });
 
+bool netTimeSync__InitializeTimeStub(netTimeSync* timeSync, void* connectionMgr, int flags, void* trustHost,
+	uint32_t sessionSeed, int* deltaStart, int packetFlags, int initialBackoff, int maxBackoff)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origInitializeTime(timeSync, connectionMgr, flags, trustHost, sessionSeed, deltaStart, packetFlags, initialBackoff, maxBackoff);
+	}
+
+	timeSync->SetConnectionManager(connectionMgr);
+
+	return true;
+}
+
 static HookFunction hookFunctionTime([]()
 {
-	/*MH_Initialize();
-	
-	MH_EnableHook(MH_ALL_HOOKS);*/
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("48 8B D9 48 39 79 08 0F 85 B5 00 00 00", -32), netTimeSync__InitializeTimeStub, (void**)&g_origInitializeTime);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	g_netTimeSync = hook::get_address<netTimeSync**>(hook::get_pattern("EB 16 48 8B 0D ? ? ? ? 45 33 C9 45 33 C0", 5));
 
