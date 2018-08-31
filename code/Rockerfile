@@ -1,6 +1,6 @@
 FROM alpine:3.7
-ARG CI
-ARG TRAVIS
+ARG CI_BRANCH
+ARG CI_BUILD_NUMBER
 MOUNT ..:/src
 RUN /bin/sh /src/code/tools/ci/build_server_2.sh
 ENV LD_LIBRARY_PATH /usr/lib/v8/:/lib:/usr/lib/

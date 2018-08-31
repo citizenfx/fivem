@@ -90,9 +90,9 @@ cd build/server/linux
 
 export CXXFLAGS="-std=c++1z -stdlib=libc++"
 
-if [ "$CI" = true ] && [ "$TRAVIS" = true ]; then
+if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
-	echo '#define GIT_DESCRIPTION "'$TRAVIS_BRANCH' '$TRAVIS_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
+	echo '#define GIT_DESCRIPTION "'$CI_BRANCH' '$CI_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
 fi
 
 make clean
