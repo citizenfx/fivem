@@ -241,7 +241,7 @@ namespace fx
 
 	void GameServer::InternalSendPacket(int peer, int channel, const net::Buffer& buffer, ENetPacketFlag flags)
 	{
-		auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetLength(), flags);
+		auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetCurOffset(), flags);
 		enet_peer_send(m_peerHandles.left.find(peer)->get_right(), channel, packet);
 	}
 
