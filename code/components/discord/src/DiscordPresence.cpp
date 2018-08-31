@@ -94,7 +94,7 @@ static InitFunction initFunction([]()
 			g_discordAppId = ToNarrow(path);
 		}
 		
-		pathKey = L"g_discordAppAsset";
+		pathKey = L"DiscordImage";
 		GetPrivateProfileString(L"Game", pathKey, NULL, path, _countof(path), fpath.c_str());
 
 		if (wcscmp(path, L"") == 0)
