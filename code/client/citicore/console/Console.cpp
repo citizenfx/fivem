@@ -269,7 +269,7 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 #ifndef _MSC_VER
 	static std::wstring_convert<std::codecvt_utf8<typename ProgramArguments::TCharType>, typename ProgramArguments::TCharType> converter;
 #else
-	static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+	static std::wstring_convert<std::codecvt_utf8<uint32_t>, uint32_t> converter;
 #endif
 	
 	try
