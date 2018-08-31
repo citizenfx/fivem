@@ -1,7 +1,4 @@
 #include <StdInc.h>
-#include <windows.h> 
-#include <tchar.h>
-#include <stdio.h> 
 #include <discord-rpc.h>
 
 #include <nutsnbolts.h>
@@ -10,6 +7,9 @@
 #include <NetLibrary.h>
 
 #include <ScriptEngine.h>
+
+#define DEFAULT_APP_ID "382624125287399424"
+#define DEFAULT_APP_ASSET "fivem_large"
 
 static bool g_richPresenceChanged;
 
@@ -23,9 +23,9 @@ static std::string g_richPresenceOverrideAsset;
 
 static time_t g_startTime = time(nullptr);
 
-static std::string DiscordId;
+static std::string g_discordAppId;
 
-static std::string DiscordImage;
+static std::string g_discordAppAsset;
 
 static void UpdatePresence()
 {
@@ -49,7 +49,9 @@ static void UpdatePresence()
 		{
 			line1 = g_richPresenceOverride;
 		}
+
 		
+
 		DiscordRichPresence discordPresence;
 		memset(&discordPresence, 0, sizeof(discordPresence));
 		discordPresence.state = line1.c_str();
@@ -57,10 +59,10 @@ static void UpdatePresence()
 		discordPresence.startTimestamp = g_startTime;
 		if (!g_richPresenceOverrideAsset.empty())
 		{
-		discordPresence.largeImageKey = g_richPresenceOverrideAsset.c_str();
+			discordPresence.largeImageKey = g_richPresenceOverrideAsset.c_str();
 		}
 		else {
-			discordPresence.largeImageKey = DiscordImage.c_str();
+			discordPresence.largeImageKey = g_discordAppAsset.c_str();
 		}
 		
 		Discord_UpdatePresence(&discordPresence);
@@ -77,8 +79,8 @@ static InitFunction initFunction([]()
 	
 	if (GetFileAttributes(fpath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
-		DiscordId = "382624125287399424";
-		DiscordImage = "fivem_large";
+		g_discordAppId = DEFAULT_APP_ID;
+		g_discordAppAsset = DEFAULT_APP_ASSET;
 	}
 	else {
 		wchar_t path[512];
@@ -86,28 +88,26 @@ static InitFunction initFunction([]()
 		GetPrivateProfileString(L"Game", pathKey, NULL, path, _countof(path), fpath.c_str());
 		if (wcscmp(path, L"") == 0)
 		{
-			DiscordId = "382624125287399424";
+			g_discordAppId = DEFAULT_APP_ID;
 		}
 		else {
-			char DiscordIdS[512];
-			wcstombs(DiscordIdS, path, sizeof(DiscordIdS));
-			DiscordId = DiscordIdS;
+			g_discordAppId = ToNarrow(path);
 		}
 		
-		pathKey = L"DiscordImage";
+		pathKey = L"g_discordAppAsset";
 		GetPrivateProfileString(L"Game", pathKey, NULL, path, _countof(path), fpath.c_str());
+
 		if (wcscmp(path, L"") == 0)
 		{
-			DiscordImage = "fivem_large";
+			g_discordAppAsset = DEFAULT_APP_ASSET;
 		}
 		else {
-			char DiscordImageS[512];
-			wcstombs(DiscordImageS, path, sizeof(DiscordImageS));
-			DiscordImage = DiscordImageS;
+			g_discordAppAsset = ToNarrow(path);
 		}
 		
 	}
-	Discord_Initialize(DiscordId.c_str(), &handlers, 1, nullptr);
+	
+	Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
 
 	OnRichPresenceSetTemplate.Connect([](const std::string& text)
 	{
@@ -159,7 +159,7 @@ static InitFunction initFunction([]()
 		g_richPresenceChanged = true;
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SET_RICH_PRESENCE_ASSET", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_ASSET", [](fx::ScriptContext& context)
 	{
 		const char* str = context.GetArgument<const char*>(0);
 
@@ -169,28 +169,28 @@ static InitFunction initFunction([]()
 		}
 		else
 		{
-			g_richPresenceOverrideAsset = "";
+			g_richPresenceOverrideAsset = DEFAULT_APP_ASSET;
 		}
 
 		g_richPresenceChanged = true;
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SET_RICH_PRESENCE_ID", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_APP_ID", [](fx::ScriptContext& context)
 	{
 		const char* str = context.GetArgument<const char*>(0);
 
 		if (str)
 		{
-			DiscordId = str;
+			g_discordAppId = str;
 		}
 		else
 		{
-			DiscordId = "382624125287399424";
+			g_discordAppId = DEFAULT_APP_ID;
 		}
 		Discord_Shutdown();
 		DiscordEventHandlers handlers;
 		memset(&handlers, 0, sizeof(handlers));
-		Discord_Initialize(DiscordId.c_str(), &handlers, 1, nullptr);
+		Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
 
 		g_richPresenceChanged = true;
 	});
