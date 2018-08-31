@@ -27,6 +27,10 @@ public:
 	virtual void OnPingResult(int msec) = 0;
 
 	virtual void OnRouteDelayResult(int msec) = 0;
+
+	virtual void OnIncomingCommand(uint32_t type, size_t size) = 0;
+
+	virtual void OnOutgoingCommand(uint32_t type, size_t size) = 0;
 };
 
 enum NetPacketSubComponent

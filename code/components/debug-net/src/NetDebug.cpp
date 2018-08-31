@@ -15,6 +15,9 @@
 #include <CoreConsole.h>
 #include <mmsystem.h>
 
+#include <ConsoleHost.h>
+#include <imgui.h>
+
 const int g_netOverlayOffsetX = -30;
 const int g_netOverlayOffsetY = -60;
 const int g_netOverlayWidth = 400;
@@ -39,6 +42,10 @@ public:
 	virtual void OnPingResult(int msec) override;
 
 	virtual void OnRouteDelayResult(int msec) override;
+
+	virtual void OnIncomingCommand(uint32_t type, size_t size) override;
+
+	virtual void OnOutgoingCommand(uint32_t type, size_t size) override;
 
 private:
 	int m_ping;
@@ -72,11 +79,23 @@ private:
 
 	bool m_enabled;
 
+	bool m_enabledCommands;
+
 	NetPacketMetrics m_metrics[g_netOverlaySampleCount + 1];
 
 	uint32_t m_lastUpdatePerSec;
 
 	uint32_t m_lastUpdatePerSample;
+
+	std::mutex m_metricMutex;
+
+	std::map<uint32_t, size_t> m_incomingMetrics;
+
+	std::map<uint32_t, size_t> m_outgoingMetrics;
+
+	std::map<uint32_t, size_t> m_lastIncomingMetrics;
+
+	std::map<uint32_t, size_t> m_lastOutgoingMetrics;
 
 private:
 	inline int GetOverlayLeft()
@@ -118,7 +137,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 	  m_inBytes(0), m_inPackets(0), m_outBytes(0), m_outPackets(0),
 	  m_inRoutePackets(0), m_lastInRoutePackets(0), m_outRoutePackets(0), m_lastOutRoutePackets(0),
 	  m_inRouteDelay(0), m_inRouteDelaySample(0), m_inRouteDelayMax(0), m_inRouteDelaySampleArchive(0),
-	  m_enabled(false)
+	  m_enabled(false), m_enabledCommands(false)
 {
 	memset(m_inRouteDelaySamples, 0, sizeof(m_inRouteDelaySamples));
 	memset(m_inRouteDelaySamplesArchive, 0, sizeof(m_inRouteDelaySamplesArchive));
@@ -140,6 +159,55 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 			DrawGraph();
 		}
 	}, 50);
+
+	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive, false, &m_enabledCommands);
+
+	ConHost::OnShouldDrawGui.Connect([this](bool* should)
+	{
+		*should = *should || m_enabledCommands;
+	});
+
+	ConHost::OnDrawGui.Connect([this]()
+	{
+		if (m_enabledCommands)
+		{
+			if (ImGui::Begin("Network Metrics"))
+			{
+				std::unique_lock<std::mutex> lock(m_metricMutex);
+
+				static bool showIncoming = true;
+				static bool showOutgoing = true;
+
+				auto showList = [](const decltype(m_lastIncomingMetrics)& list)
+				{
+					ImGui::Columns(2);
+
+					for (auto& entry : list)
+					{
+						ImGui::Text("0x%08x", entry.first);
+						ImGui::NextColumn();
+
+						ImGui::Text("%d B", entry.second);
+						ImGui::NextColumn();
+					}
+
+					ImGui::Columns(1);
+				};
+
+				if (ImGui::CollapsingHeader("Incoming", &showIncoming))
+				{
+					showList(m_lastIncomingMetrics);
+				}
+
+				if (ImGui::CollapsingHeader("Outgoing", &showOutgoing))
+				{
+					showList(m_lastOutgoingMetrics);
+				}
+			}
+
+			ImGui::End();
+		}
+	});
 }
 
 void NetOverlayMetricSink::OnIncomingPacket(const NetPacketMetrics& packetMetrics)
@@ -199,6 +267,17 @@ void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 	m_inRouteDelayMax = *std::max_element(m_inRouteDelaySamplesArchive, m_inRouteDelaySamplesArchive + _countof(m_inRouteDelaySamplesArchive));
 }
 
+void NetOverlayMetricSink::OnIncomingCommand(uint32_t type, size_t size)
+{
+	std::unique_lock<std::mutex> lock(m_metricMutex);
+	m_incomingMetrics[type] += size;
+}
+
+void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size)
+{
+	std::unique_lock<std::mutex> lock(m_metricMutex);
+	m_outgoingMetrics[type] += size;
+}
 
 // log data if enabled
 static ConVar<std::string> netLogFile("net_statsFile", ConVar_Archive, "");
@@ -243,6 +322,14 @@ void NetOverlayMetricSink::UpdateMetrics()
 
 		// update the timer
 		m_lastUpdatePerSec = time;
+
+		// clear per-second metrics
+		{
+			std::unique_lock<std::mutex> lock(m_metricMutex);
+
+			m_lastIncomingMetrics = std::move(m_incomingMetrics);
+			m_lastOutgoingMetrics = std::move(m_outgoingMetrics);
+		}
 
 		// log output?
 		auto netLog = netLogFile.GetValue();

@@ -109,6 +109,8 @@ void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, si
 
 		enet_peer_send(m_serverPeer, 0, packet);
 	}
+
+	m_base->GetMetricSink()->OnOutgoingCommand(type, length);
 }
 
 void NetLibraryImplV2::SendData(const NetAddress& netAddress, const char* data, size_t length)
@@ -192,6 +194,7 @@ void NetLibraryImplV2::RunFrame()
 
 			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
 
+			m_base->GetMetricSink()->OnOutgoingCommand(0xE938445B, packet.payload.size() + 4);
 			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
 		}
 
@@ -324,6 +327,8 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
 	{
 		return;
 	}
+
+	m_base->GetMetricSink()->OnIncomingCommand(msgType, size);
 
 	if (msgType == 0xE938445B) // 'msgRoute'
 	{
