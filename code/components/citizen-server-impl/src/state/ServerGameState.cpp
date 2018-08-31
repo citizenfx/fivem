@@ -185,6 +185,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				*(uint64_t*)(outData.data() + 4) = m_frameIndex;
 
 				net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4 + 8);
+				netBuffer.Seek(len + 4 + 8); // since the buffer constructor doesn't actually set the offset
 
 				client->SendPacket(1, netBuffer);
 
