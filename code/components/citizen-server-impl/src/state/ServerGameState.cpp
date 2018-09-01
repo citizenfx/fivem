@@ -543,8 +543,9 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				sourceData->objectIds.erase(entityPair.first & 0xFFFF);
 				targetData->objectIds.insert(entityPair.first & 0xFFFF);
 
-				entity->syncTree->Visit([](sync::NodeBase& node)
+				entity->syncTree->Visit([this](sync::NodeBase& node)
 				{
+					node.frameIndex = m_frameIndex;
 					node.ackedPlayers.reset();
 
 					return true;
@@ -664,8 +665,9 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 		sourceData->objectIds.erase(objectId);
 		targetData->objectIds.insert(objectId);
 
-		entity->syncTree->Visit([](sync::NodeBase& node)
+		entity->syncTree->Visit([this](sync::NodeBase& node)
 		{
+			node.frameIndex = m_frameIndex;
 			node.ackedPlayers.reset();
 
 			return true;
