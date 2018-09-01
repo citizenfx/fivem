@@ -546,6 +546,29 @@ static CNetGamePlayer** GetNetworkPlayerList()
 	return g_playerList;
 }
 
+static int(*g_origGetNetworkPlayerListCount2)();
+static CNetGamePlayer**(*g_origGetNetworkPlayerList2)();
+
+static int GetNetworkPlayerListCount2()
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetNetworkPlayerListCount2();
+	}
+
+	return g_playerListCount;
+}
+
+static CNetGamePlayer** GetNetworkPlayerList2()
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetNetworkPlayerList2();
+	}
+
+	return g_playerList;
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -602,6 +625,12 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("44 0F 28 CF F3 41 0F 59 C0 F3 44 0F 59 CF F3 44 0F 58 C8 E8", 19);
 		MH_CreateHook(hook::get_call(location + 0), GetNetworkPlayerListCount, (void**)&g_origGetNetworkPlayerListCount);
 		MH_CreateHook(hook::get_call(location + 8), GetNetworkPlayerList, (void**)&g_origGetNetworkPlayerList);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 8B F0 85 DB 74 56 8B", -0x34);
+		MH_CreateHook(hook::get_call(location + 0x28), GetNetworkPlayerListCount2, (void**)&g_origGetNetworkPlayerListCount2);
+		MH_CreateHook(hook::get_call(location + 0x2F), GetNetworkPlayerList2, (void**)&g_origGetNetworkPlayerList2);
 	}
 
 	// getnetplayerped 32 cap
