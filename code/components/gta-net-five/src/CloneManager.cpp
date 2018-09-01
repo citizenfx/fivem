@@ -739,6 +739,11 @@ void CloneManagerLocal::Update()
 		if (clone.second && clone.second->syncData.isRemote)
 		{
 			clone.second->Update();
+
+			if (clone.second->GetGameObject())
+			{
+				clone.second->UpdatePendingVisibilityChanges();
+			}
 		}
 	}
 }
