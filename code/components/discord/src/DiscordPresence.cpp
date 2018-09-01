@@ -7,6 +7,7 @@
 #include <NetLibrary.h>
 
 #include <ScriptEngine.h>
+#include <scrEngine.h>
 
 #define DEFAULT_APP_ID "382624125287399424"
 #define DEFAULT_APP_ASSET "fivem_large"
@@ -75,37 +76,8 @@ static InitFunction initFunction([]()
 {
 	DiscordEventHandlers handlers;
 	memset(&handlers, 0, sizeof(handlers));
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-	
-	if (GetFileAttributes(fpath.c_str()) == INVALID_FILE_ATTRIBUTES)
-	{
-		g_discordAppId = DEFAULT_APP_ID;
-		g_discordAppAsset = DEFAULT_APP_ASSET;
-	}
-	else {
-		wchar_t path[512];
-		const wchar_t* pathKey = L"DiscordId";
-		GetPrivateProfileString(L"Game", pathKey, NULL, path, _countof(path), fpath.c_str());
-		if (wcscmp(path, L"") == 0)
-		{
-			g_discordAppId = DEFAULT_APP_ID;
-		}
-		else {
-			g_discordAppId = ToNarrow(path);
-		}
-		
-		pathKey = L"DiscordImage";
-		GetPrivateProfileString(L"Game", pathKey, NULL, path, _countof(path), fpath.c_str());
-
-		if (wcscmp(path, L"") == 0)
-		{
-			g_discordAppAsset = DEFAULT_APP_ASSET;
-		}
-		else {
-			g_discordAppAsset = ToNarrow(path);
-		}
-		
-	}
+	g_discordAppId = DEFAULT_APP_ID;
+	g_discordAppAsset = DEFAULT_APP_ASSET;
 	
 	Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
 
@@ -139,6 +111,8 @@ static InitFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		g_richPresenceOverride = "";
+		NativeInvoke::Invoke<HashString("SET_DISCORD_APP_ID"),char*,char*>(DEFAULT_APP_ID);
+		NativeInvoke::Invoke<HashString("SET_DISCORD_RICH_PRESENCE_ASSET"), char*, char*>(DEFAULT_APP_ASSET);
 
 		OnRichPresenceSetTemplate("In the menus\n");
 	});
@@ -187,6 +161,7 @@ static InitFunction initFunction([]()
 		{
 			g_discordAppId = DEFAULT_APP_ID;
 		}
+		
 		Discord_Shutdown();
 		DiscordEventHandlers handlers;
 		memset(&handlers, 0, sizeof(handlers));
