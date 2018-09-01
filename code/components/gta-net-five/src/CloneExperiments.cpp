@@ -1246,6 +1246,9 @@ bool netTimeSync::IsInitialized()
 	{
 		g_origInitializeTime(this, _getConnectionManager(), 1, nullptr, 0, nullptr, 7, 2000, 60000);
 
+		// to make the game not try to get time from us
+		m_connectionMgr = nullptr;
+
 		g_initedTimeSync = true;
 
 		return false;
