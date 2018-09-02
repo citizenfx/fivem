@@ -645,3 +645,15 @@ static HookFunction hookFunction([] ()
 
 	//__debugbreak();
 });
+
+static size_t g_seatManagerOffset;
+
+VehicleSeatManager* CVehicle::GetSeatManager()
+{
+	return reinterpret_cast<VehicleSeatManager*>(reinterpret_cast<char*>(this) + g_seatManagerOffset);
+}
+
+static HookFunction hookFunctionSeatManager([]()
+{
+	g_seatManagerOffset = *hook::get_pattern<uint32_t>("4C 8D B7 ? ? ? ? 41 8B DD 45 38 2E 7E 32", 3);
+});

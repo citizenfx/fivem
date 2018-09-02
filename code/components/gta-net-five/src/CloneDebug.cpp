@@ -59,6 +59,15 @@ namespace rage
 		// ?
 	};
 
+	enum class UpdateLevel : uint32_t
+	{
+		VERY_LOW = 0,
+		LOW = 1,
+		MEDIUM = 2,
+		HIGH = 3,
+		VERY_HIGH = 4,
+	};
+
 	class netSyncNodeBase
 	{
 	public:
@@ -78,7 +87,7 @@ namespace rage
 		virtual void m_48() = 0;
 		virtual void m_50() = 0;
 		virtual void m_58() = 0;
-		virtual void m_60() = 0;
+		virtual uint8_t GetUpdateFrequency(UpdateLevel level) = 0;
 		virtual void m_68() = 0;
 		virtual void m_70() = 0;
 		virtual void m_78() = 0;
@@ -307,6 +316,7 @@ struct WriteTreeState
 	rage::netBuffer* buffer;
 	rage::netLogStub* logger;
 	uint32_t time;
+	bool wroteAny;
 };
 
 struct NetObjectNodeData
@@ -358,7 +368,27 @@ static void TraverseTree(rage::netSyncTree* tree, T& state, const std::function<
 	TraverseTreeInternal(*(rage::netSyncNodeBase**)((char*)tree + 16), state, cb);
 }
 
-void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
+inline uint32_t GetDelayForUpdateFrequency(uint8_t updateFrequency)
+{
+	switch (updateFrequency)
+	{
+	case 5:
+		return 0;
+	case 4:
+		return 25;
+	case 3:
+		return 100;
+	case 2:
+		return 300;
+	case 1:
+		return 400;
+	case 0:
+	default:
+		return 1000;
+	}
+}
+
+bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
 {
 	WriteTreeState state;
 	state.object = object;
@@ -367,6 +397,7 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	state.buffer = buffer;
 	state.logger = (rage::netLogStub*)logger;
 	state.time = time;
+	state.wroteAny = false;
 
 	if (flags == 2 || flags == 4)
 	{
@@ -405,6 +436,8 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				// compare last data for the node
 				auto nodeData = &g_syncData[state.object->objectId].nodes[node];
 
+				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
+
 				// calculate node change state
 				std::array<uint8_t, 256> tempData;
 				memset(tempData.data(), 0, tempData.size());
@@ -415,8 +448,14 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
 				{
-					nodeData->lastChange = state.time;
-					nodeData->lastData = tempData;
+					// throttle sends by waiting for the requested node delay
+					uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
+
+					if (lastChangeDelta > nodeSyncDelay)
+					{
+						nodeData->lastChange = state.time;
+						nodeData->lastData = tempData;
+					}
 				}
 
 				bool shouldWriteNode = false;
@@ -453,6 +492,8 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			}
 			else
 			{
+				state.wroteAny = true;
+
 				if (state.object)
 				{
 					g_netObjectNodeMapping[state.object->objectId][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
@@ -484,6 +525,8 @@ void netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 		return didWrite;
 	});
+
+	return state.wroteAny;
 }
 
 struct AckState

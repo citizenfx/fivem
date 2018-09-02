@@ -618,17 +618,8 @@ void ServerGameState::ProcessCloneSync(const std::shared_ptr<fx::Client>& client
 	uint16_t objectId = 0;
 	ProcessClonePacket(client, inPacket, 2, &objectId);
 
-	uint32_t ackTimestamp = 0;
-
-	if (auto tsData = client->GetData("ackTs"); tsData.has_value())
-	{
-		ackTimestamp = std::any_cast<uint32_t>(tsData);
-	}
-
-	// #TODO1S: pack timestamps better
 	ackPacket.Write<uint8_t>(2);
 	ackPacket.Write<uint16_t>(objectId);
-	ackPacket.Write<uint32_t>(ackTimestamp);
 }
 
 void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket)
@@ -910,18 +901,16 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 		case 5: // set timestamp
 		{
 			auto newTs = msgBuf.Read<uint32_t>(32);
-			auto ackTs = msgBuf.Read<uint32_t>(32); // the game uses different time bases for these
 
-			// #TODO1S: investigate unifying these timestamps
-
-			/*ackPacket.Write<uint8_t>(5);
-			ackPacket.Write<uint32_t>(ackTs);*/
+			// this is the timestamp that the client will use for following acks
+			ackPacket.Write<uint8_t>(5);
+			ackPacket.Write<uint32_t>(newTs);
 
 			auto oldTs = client->GetData("ackTs");
 
-			if (!oldTs.has_value() || std::any_cast<uint32_t>(oldTs) < ackTs)
+			if (!oldTs.has_value() || std::any_cast<uint32_t>(oldTs) < newTs)
 			{
-				client->SetData("ackTs", ackTs);
+				client->SetData("ackTs", newTs);
 				client->SetData("syncTs", newTs);
 			}
 

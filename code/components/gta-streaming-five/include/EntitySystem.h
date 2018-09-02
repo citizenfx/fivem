@@ -170,7 +170,13 @@ class STREAMING_EXPORT fwEntity
 public:
 	virtual ~fwEntity() = default;
 
-	virtual void m_8() = 0;
+	virtual bool IsOfType(uint32_t hash) = 0;
+
+	template<typename T>
+	bool IsOfType()
+	{
+		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
+	}
 
 	virtual void m_10() = 0;
 
@@ -214,6 +220,21 @@ public:
 	virtual void AddToSceneWrap() = 0;
 	virtual void AddToScene() = 0;
 	virtual void RemoveFromScene() = 0; // ?
+	virtual void m_128() = 0;
+	virtual void m_130() = 0;
+	virtual void m_138() = 0;
+	virtual void m_140() = 0;
+	virtual void m_148() = 0;
+	virtual void m_150() = 0;
+	virtual void m_158() = 0;
+	virtual void m_160() = 0;
+	virtual void m_168() = 0;
+	virtual void m_170() = 0;
+	virtual void m_178() = 0;
+	virtual void m_180() = 0;
+	virtual void m_188() = 0;
+	virtual void m_190() = 0;
+	virtual float GetRadius() = 0;
 
 public:
 	inline const Matrix4x4& GetTransform() const
@@ -226,9 +247,46 @@ public:
 		return Vector3(m_transform._41, m_transform._42, m_transform._43);
 	}
 
+	inline void* GetNetObject() const
+	{
+		return m_netObject;
+	}
+
 private:
 	char m_pad[96 - 8];
 	Matrix4x4 m_transform;
+	char m_pad2[80];
+	void* m_netObject;
+};
+
+STREAMING_EXPORT class VehicleSeatManager
+{
+public:
+	inline int GetNumSeats()
+	{
+		return m_numSeats;
+	}
+
+	inline fwEntity* GetOccupant(uint32_t index)
+	{
+		if (index > _countof(m_occupants))
+		{
+			return nullptr;
+		}
+
+		return m_occupants[index];
+	}
+
+private:
+	uint8_t m_numSeats;
+
+	fwEntity* m_occupants[16];
+};
+
+class STREAMING_EXPORT CVehicle : public fwEntity
+{
+public:
+	VehicleSeatManager* GetSeatManager();
 };
 
 struct PopulationCreationState

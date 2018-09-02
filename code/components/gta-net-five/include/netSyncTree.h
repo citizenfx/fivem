@@ -88,7 +88,7 @@ public:
 
 	bool ReadFromBuffer(int flags, int flags2, rage::netBuffer* buffer, void* netLogStub);
 
-	void WriteTreeCfx(int flags, int objFlags, netObject* object, netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull);
+	bool WriteTreeCfx(int flags, int objFlags, netObject* object, netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull);
 
 	void AckCfx(netObject* object, uint32_t timestamp);
 
