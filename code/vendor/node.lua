@@ -30,7 +30,7 @@ return {
 		add_dependencies 'vendor:openssl_crypto'
 		add_dependencies 'vendor:openssl_ssl'
 
-		defines { 'NODE_WANT_INTERNALS=1', 'NODE_ARCH="x64"', 'NODE_USE_V8_PLATFORM', 'HAVE_OPENSSL', 'OPENSSL_NO_ENGINE', 'NODE_OPENSSL_SYSTEM_CERT_PATH=""' }
+		defines { 'NODE_WANT_INTERNALS=1', 'NODE_ARCH="x64"', 'NODE_NO_BROWSER_GLOBALS', 'NODE_USE_V8_PLATFORM', 'HAVE_OPENSSL', 'OPENSSL_NO_ENGINE', 'NODE_OPENSSL_SYSTEM_CERT_PATH=""' }
 		
 		if os.istarget('windows') then
 			defines { 'NODE_PLATFORM="win32"' }
