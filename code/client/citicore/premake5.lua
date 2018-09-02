@@ -18,7 +18,7 @@ project "CitiCore"
 		"**.idl"
 	}
 
-	add_dependencies { 'vendor:boost_program_options' }
+	add_dependencies { 'vendor:boost_program_options', 'vendor:tbb' }
 
 	if os.istarget('windows') then
 		add_dependencies { 'vendor:minhook', 'vendor:udis86' }
