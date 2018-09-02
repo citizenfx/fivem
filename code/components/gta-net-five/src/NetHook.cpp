@@ -709,6 +709,8 @@ static HookFunction initFunction([]()
 			isNet = true;
 		}*/
 
+		g_netLibrary->RunMainFrame();
+
 		static bool sentLog = false;
 
 		if (isSessionStarted())

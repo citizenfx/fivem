@@ -1023,7 +1023,7 @@ static InitFunction initFunctionEv([]()
 			}
 
 			HandleNetGameEvent(data, len);
-		});
+		}, true);
 	});
 });
 

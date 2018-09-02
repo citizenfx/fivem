@@ -14,6 +14,7 @@
 #include <yaml-cpp/yaml.h>
 #include <SteamComponentAPI.h>
 #include <LegitimacyAPI.h>
+#include <IteratorView.h>
 
 #include <Error.h>
 
@@ -412,10 +413,31 @@ void NetLibrary::HandleReliableCommand(uint32_t msgType, const char* buf, size_t
 {
 	auto range = m_reliableHandlers.equal_range(msgType);
 
-	std::for_each(range.first, range.second, [&] (std::pair<uint32_t, ReliableHandlerType> handler)
+	for (auto& handlerPair : fx::GetIteratorView(range))
 	{
-		handler.second(buf, length);
-	});
+		auto [handler, runOnMainFrame] = handlerPair.second;
+
+		if (runOnMainFrame)
+		{
+			auto server = m_currentServerPeer;
+			net::Buffer netBuf(reinterpret_cast<const uint8_t*>(buf), length);
+
+			m_mainFrameQueue.push([this, netBuf, handler, server]()
+			{
+				if (server != m_currentServerPeer)
+				{
+					trace("Ignored a network packet enqueued before reconnection.\n");
+					return;
+				}
+
+				handler(reinterpret_cast<const char*>(netBuf.GetBuffer()), netBuf.GetLength());
+			});
+		}
+		else
+		{
+			handler(buf, length);
+		}
+	}
 }
 
 RoutingPacket::RoutingPacket()
@@ -453,6 +475,16 @@ inline uint64_t GetGUID()
 	}
 
 	return (uint64_t)(0x210000100000000 | m_tempGuid);
+}
+
+void NetLibrary::RunMainFrame()
+{
+	std::function<void()> cb;
+
+	while (m_mainFrameQueue.try_pop(cb))
+	{
+		cb();
+	}
 }
 
 void NetLibrary::RunFrame()
@@ -1097,11 +1129,11 @@ void NetLibrary::SendData(const NetAddress& address, const char* data, size_t le
 	m_impl->SendData(address, data, length);
 }
 
-void NetLibrary::AddReliableHandler(const char* type, const ReliableHandlerType& function)
+void NetLibrary::AddReliableHandler(const char* type, const ReliableHandlerType& function, bool runOnMainThreadOnly /* = false */)
 {
 	uint32_t hash = HashRageString(type);
 
-	m_reliableHandlers.insert({ hash, function });
+	m_reliableHandlers.insert({ hash, { function, runOnMainThreadOnly } });
 }
 
 void NetLibrary::DownloadsComplete()

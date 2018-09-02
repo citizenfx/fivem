@@ -168,17 +168,17 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_netLibrary->AddReliableHandler("msgCloneAcks", [this](const char* data, size_t len)
 	{
 		HandleCloneAcks(data, len);
-	});
+	}, true);
 
 	m_netLibrary->AddReliableHandler("msgPackedClones", [this](const char* data, size_t len)
 	{
 		HandleCloneSync(data, len);
-	});
+	}, true);
 
 	m_netLibrary->AddReliableHandler("msgCloneRemove", [this](const char* data, size_t len)
 	{
 		HandleCloneRemove(data, len);
-	});
+	}, true);
 }
 
 void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)

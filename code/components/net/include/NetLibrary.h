@@ -20,6 +20,9 @@
 
 #include <NetAddress.h>
 
+// hacky include path to not conflict with our own NetBuffer.h
+#include <../../components/net-base/include/NetBuffer.h>
+
 #include <enet/enet.h>
 
 #include <concurrent_queue.h>
@@ -176,10 +179,12 @@ private:
 
 	HANDLE m_receiveEvent;
 
+	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
+
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
 
-	std::unordered_multimap<uint32_t, ReliableHandlerType> m_reliableHandlers;
+	std::unordered_multimap<uint32_t, std::tuple<ReliableHandlerType, bool>> m_reliableHandlers;
 
 private:
 	std::mutex m_incomingPacketMutex;
@@ -227,6 +232,8 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
+	void RunMainFrame();
+
 	void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID, uint64_t serverTime) override;
 
 	bool GetOutgoingPacket(RoutingPacket& packet) override;
@@ -248,7 +255,7 @@ public:
 	// waits for connection during the pre-game loading sequence
 	bool ProcessPreGameTick();
 
-	void AddReliableHandler(const char* type, const ReliableHandlerType& function);
+	void AddReliableHandler(const char* type, const ReliableHandlerType& function, bool runOnMainThreadOnly = false);
 
 	void Death();
 
