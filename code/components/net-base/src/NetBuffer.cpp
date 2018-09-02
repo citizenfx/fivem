@@ -45,7 +45,16 @@ Buffer::Buffer(const Buffer& other)
 	m_curOff = other.m_curOff;
 	m_end = other.m_end;
 
-	m_bytes = std::make_shared<std::vector<uint8_t>>(*other.GetBytes());
+	m_bytes = other.m_bytes;
+}
+
+Buffer Buffer::Clone() const
+{
+	Buffer otherBuf(*GetBytes());
+	otherBuf.m_end = m_end;
+	otherBuf.m_curOff = m_curOff;
+
+	return otherBuf;
 }
 
 void Buffer::Initialize()

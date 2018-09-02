@@ -163,7 +163,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// any ACKs to send?
 			if (ackPacket.GetCurOffset() > 4)
 			{
-				client->SendPacket(0, ackPacket, ENET_PACKET_FLAG_RELIABLE);
+				client->SendPacket(0, ackPacket.Clone(), ENET_PACKET_FLAG_RELIABLE);
 				ackPacket.Reset();
 			}
 		}

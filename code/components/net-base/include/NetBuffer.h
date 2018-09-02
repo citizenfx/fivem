@@ -49,6 +49,8 @@ public:
 
 	Buffer(const Buffer& other);
 
+	Buffer Clone() const;
+
 	bool IsAtEnd() const;
 
 	bool Read(void* buffer, size_t length);
