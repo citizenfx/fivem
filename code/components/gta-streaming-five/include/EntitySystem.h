@@ -254,7 +254,7 @@ public:
 private:
 	char m_pad[96 - 8];
 	Matrix4x4 m_transform;
-	char m_pad2[80];
+	char m_pad2[48];
 	void* m_netObject;
 };
 

@@ -12,6 +12,9 @@
 
 #include <NetworkPlayerMgr.h>
 
+#include <netObject.h>
+#include <EntitySystem.h>
+
 #include <Hooking.h>
 
 static inline int GetServerId(const ScPlayerData* platformData)
@@ -152,10 +155,9 @@ static InitFunction initFunction([]()
 					net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
 
 					uint16_t creationToken = buffer.Read<uint16_t>();
-					uint8_t playerId = buffer.Read<uint8_t>();
 					uint16_t objectId = buffer.Read<uint16_t>();
 
-					g_creationTokenToObjectId[creationToken] = ((playerId + 1) << 16) | objectId;
+					g_creationTokenToObjectId[creationToken] = (1 << 16) | objectId;
 				});
 
 				g_netLibrary->AddReliableHandler("msgRpcNative", [](const char* data, size_t len)
@@ -218,7 +220,7 @@ static InitFunction initFunction([]()
 							{
 							case RpcConfiguration::ArgumentType::Player:
 							{
-								buf->Read<int>();
+								buf->Read<uint8_t>();
 								break;
 							}
 							case RpcConfiguration::ArgumentType::Entity:
@@ -338,23 +340,8 @@ static InitFunction initFunction([]()
 								{
 								case RpcConfiguration::ArgumentType::Player:
 								{
-									int id = buf->Read<int>();
-
-									for (int i = 0; i < 32; i++)
-									{
-										CNetGamePlayer* player = CNetworkPlayerMgr::GetPlayer(i);
-
-										if (player)
-										{
-											auto platformData = player->GetPlatformPlayerData();
-
-											if (GetServerId(platformData) == id)
-											{
-												executionCtx->Push(i);
-												break;
-											}
-										}
-									}
+									int id = buf->Read<uint8_t>();
+									executionCtx->Push(uint32_t(id));
 
 									break;
 								}
@@ -405,23 +392,22 @@ static InitFunction initFunction([]()
 								{
 									int entityIdx = executionCtx->GetResult<int>();
 
-									auto entity = (char*)getScriptEntity(entityIdx);
+									auto entity = (fwEntity*)getScriptEntity(entityIdx);
 
 									if (entity)
 									{
-										auto object = *(char**)(entity + 208);
+										auto object = (rage::netObject*)entity->GetNetObject();
 
 										if (object)
 										{
 											net::Buffer netBuffer;
 
-											auto obj = *(uint16_t*)(object + 10);
+											auto obj = object->objectId;
 
 											netBuffer.Write<uint16_t>(creationToken);
-											netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
 											netBuffer.Write<uint16_t>(obj); // object ID (short)
 
-											g_creationTokenToObjectId[creationToken] = ((getPlayerId() + 1) << 16) | obj;
+											g_creationTokenToObjectId[creationToken] = (1 << 16) | obj;
 
 											g_netLibrary->SendReliableCommand("msgEntityCreate", (const char*)netBuffer.GetData().data(), netBuffer.GetCurOffset());
 										}

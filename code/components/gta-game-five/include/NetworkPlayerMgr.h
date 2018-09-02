@@ -61,6 +61,16 @@ class CNetGamePlayer : public rage::netPlayer
 {
 public:
 	virtual void m_38() = 0;
+
+public:
+	uint8_t pad[8];
+	void* nonPhysicalPlayerData;
+	uint8_t pad2[20];
+	uint8_t activePlayerIndex;
+	uint8_t physicalPlayerIndex;
+	uint8_t pad3[2];
+	uint8_t pad4[120];
+	void* playerInfo;
 };
 
 class CNetworkPlayerMgr

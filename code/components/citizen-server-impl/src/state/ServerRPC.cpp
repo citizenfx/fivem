@@ -44,7 +44,6 @@ static InitFunction initFunction([]()
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgEntityCreate"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			auto creationToken = buffer.Read<uint16_t>();
-			auto playerId = buffer.Read<uint8_t>();
 			auto objectId = buffer.Read<uint16_t>();
 
 			auto it = g_entityCreationList.find(creationToken);
@@ -53,13 +52,12 @@ static InitFunction initFunction([]()
 			{
 				auto guid = it->second.scriptGuid;
 				guid->type = fx::ScriptGuid::Type::Entity;
-				guid->entity.handle = MakeEntityHandle(playerId, objectId);
+				guid->entity.handle = MakeEntityHandle(0, objectId);
 
 				// broadcast entity creation
 				net::Buffer outBuffer;
 				outBuffer.Write<uint32_t>(HashRageString("msgRpcEntityCreation"));
 				outBuffer.Write<uint16_t>(creationToken);
-				outBuffer.Write<uint8_t>(playerId);
 				outBuffer.Write<uint16_t>(objectId);
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& cl)
@@ -134,28 +132,19 @@ static InitFunction initFunction([]()
 				}
 				else if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 				{
-					// TODO: intercept coordinates and get a client near there
-					auto host = clientRegistry->GetHost();
-
-					if (host)
+					// #TODO1S: intercept native coordinates and get a client near there
+					clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 					{
-						clientIdx = host->GetNetId();
-					}
-					else
-					{
-						clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+						if (clientIdx != -1)
 						{
-							if (clientIdx != -1)
-							{
-								return;
-							}
+							return;
+						}
 
-							if (client->GetData("playerEntity").has_value())
-							{
-								clientIdx = client->GetNetId();
-							}
-						});
-					}
+						if (client->GetData("playerEntity").has_value())
+						{
+							clientIdx = client->GetNetId();
+						}
+					});
 				}
 
 				uint32_t resourceHash = -1;
@@ -250,6 +239,19 @@ static InitFunction initFunction([]()
 						break;
 					}
 					case RpcConfiguration::ArgumentType::Player:
+					{
+						int player = ctx.GetArgument<int>(i);
+						auto client = clientRegistry->GetClientByNetID(player);
+
+						if (!client)
+						{
+							return;
+						}
+
+						buffer.Write<uint8_t>(client->GetSlotId());
+
+						break;
+					}
 					case RpcConfiguration::ArgumentType::Int:
 					case RpcConfiguration::ArgumentType::Hash:
 						buffer.Write<int>(ctx.GetArgument<int>(i));

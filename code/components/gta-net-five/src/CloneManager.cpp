@@ -78,6 +78,8 @@ public:
 
 	virtual void OnObjectDeletion(rage::netObject* object) override;
 
+	virtual rage::netObject* GetNetObject(uint16_t objectId) override;
+
 	virtual void DeleteObjectId(uint16_t objectId) override;
 
 private:
@@ -413,6 +415,13 @@ void msgPackedClones::Read(net::Buffer& buffer)
 }
 
 void TempHackMakePhysicalPlayer(uint16_t clientId, int slotId = -1);
+
+rage::netObject* CloneManagerLocal::GetNetObject(uint16_t objectId)
+{
+	auto it = m_savedEntities.find(objectId);
+
+	return (it != m_savedEntities.end()) ? it->second : nullptr;
+}
 
 void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 {

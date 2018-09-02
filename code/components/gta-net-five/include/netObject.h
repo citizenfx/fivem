@@ -1,5 +1,7 @@
 #pragma once
 
+#include <NetworkPlayerMgr.h>
+
 enum class NetObjEntityType;
 
 namespace rage
@@ -179,19 +181,3 @@ public:
 netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a2, int a3, int a4);
 }
 
-
-class CNetGamePlayer
-{
-public:
-	virtual ~CNetGamePlayer() = 0;
-
-public:
-	uint8_t pad[8];
-	void* nonPhysicalPlayerData;
-	uint8_t pad2[20];
-	uint8_t activePlayerIndex;
-	uint8_t physicalPlayerIndex;
-	uint8_t pad3[2];
-	uint8_t pad4[120];
-	void* playerInfo;
-};

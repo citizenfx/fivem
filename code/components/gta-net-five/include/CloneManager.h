@@ -24,6 +24,8 @@ public:
 
 	virtual void OnObjectDeletion(rage::netObject* object) = 0;
 
+	virtual rage::netObject* GetNetObject(uint16_t objectId) = 0;
+
 	// TEMP: for temporary use during player deletion
 	virtual void DeleteObjectId(uint16_t objectId) = 0;
 };

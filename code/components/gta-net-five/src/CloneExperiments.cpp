@@ -168,22 +168,6 @@ static bool IsNetworkPlayerConnected(int index)
 //int g_physIdx = 1;
 int g_physIdx = 42;
 
-struct ScInAddr
-{
-	uint64_t unkKey1;
-	uint64_t unkKey2;
-	uint32_t secKeyTime; // added in 393
-	uint32_t ipLan;
-	uint16_t portLan;
-	uint32_t ipUnk;
-	uint16_t portUnk;
-	uint32_t ipOnline;
-	uint16_t portOnline;
-	uint16_t pad3;
-	uint32_t newVal; // added in 372
-	uint64_t rockstarAccountId; // 463/505
-};
-
 namespace sync
 {
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
@@ -1512,21 +1496,13 @@ static HookFunction hookFunctionWorldGrid([]()
 
 int ObjectToEntity(int objectId)
 {
-	int playerIdx = (objectId >> 16) - 1;
-	int objectIdx = (objectId & 0xFFFF);
-
 	int entityIdx = -1;
+	auto object = TheClones->GetNetObject(objectId & 0xFFFF);
 
-	rage::netObjectMgr::GetInstance()->ForAllNetObjects(playerIdx, [&](rage::netObject* obj)
+	if (object)
 	{
-		char* objectChar = (char*)obj;
-		uint16_t thisObjectId = *(uint16_t*)(objectChar + 10);
-
-		if (objectIdx == thisObjectId)
-		{
-			entityIdx = getScriptGuidForEntity(obj->GetGameObject());
-		}
-	});
+		entityIdx = getScriptGuidForEntity(object->GetGameObject());
+	}
 
 	return entityIdx;
 }
