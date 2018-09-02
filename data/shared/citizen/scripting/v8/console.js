@@ -264,11 +264,11 @@
         }
 
         warn(message = undefined, ...optionalParams) {
-            this._trace('Warning: ' + format(message, ...optionalParams));
+            this._trace('^3Warning: ' + format(message, ...optionalParams) + '^7');
         }
 
         error(message = undefined, ...optionalParams) {
-            this._trace('Error: ' + format(message, ...optionalParams));
+            this._trace('^1Error: ' + format(message, ...optionalParams) + '^7');
         }
 
         trace(message = undefined, ...optionalParams) {
