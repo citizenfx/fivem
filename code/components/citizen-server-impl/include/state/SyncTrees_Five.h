@@ -532,7 +532,69 @@ struct CPlayerSectorPosNode
 	}
 };
 
-struct CPlayerCameraDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPlayerCameraDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		bool freeCamOverride = state.buffer.ReadBit();
+
+		if (freeCamOverride)
+		{
+			bool unk = state.buffer.ReadBit();
+
+			float freeCamPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float freeCamPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float freeCamPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+			// 2pi
+			float cameraX = state.buffer.ReadSignedFloat(10, 6.2831855f);
+			float cameraZ = state.buffer.ReadSignedFloat(10, 6.2831855f);
+
+			state.entity->data["camMode"] = 1;
+			state.entity->data["freeCamPosX"] = freeCamPosX;
+			state.entity->data["freeCamPosY"] = freeCamPosY;
+			state.entity->data["freeCamPosZ"] = freeCamPosZ;
+
+			state.entity->data["cameraX"] = cameraX;
+			state.entity->data["cameraZ"] = cameraZ;
+		}
+		else
+		{
+			bool hasPositionOffset = state.buffer.ReadBit();
+			state.buffer.ReadBit();
+
+			if (hasPositionOffset)
+			{
+				float camPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float camPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float camPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+				state.entity->data["camMode"] = 2;
+
+				state.entity->data["camOffX"] = camPosX;
+				state.entity->data["camOffY"] = camPosY;
+				state.entity->data["camOffZ"] = camPosZ;
+			}
+			else
+			{
+				state.entity->data["camMode"] = 0;
+			}
+
+			float cameraX = state.buffer.ReadSignedFloat(10, 6.2831855f);
+			float cameraZ = state.buffer.ReadSignedFloat(10, 6.2831855f);
+
+			state.entity->data["cameraX"] = cameraX;
+			state.entity->data["cameraZ"] = cameraZ;
+
+			// TODO
+		}
+
+		// TODO
+
+		return true;
+	}
+};
+
 struct CPlayerWantedAndLOSDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 using CAutomobileSyncTree = SyncTree<

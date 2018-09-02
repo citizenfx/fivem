@@ -213,6 +213,15 @@ public:
 	}
 
 	template<typename T>
+	inline T ReadSigned(int length)
+	{
+		int sign = Read<int>(1);
+		int data = Read<int>(length - 1);
+
+		return T{ sign + (data ^ -sign) };
+	}
+
+	template<typename T>
 	inline void Write(int length, T data)
 	{
 		static_assert(sizeof(T) <= 4, "maximum of 32 bit write");
@@ -225,6 +234,14 @@ public:
 		auto integer = Read<int>(length);
 
 		float max = (1 << length) - 1;
+		return ((float)integer / max) * divisor;
+	}
+
+	inline float ReadSignedFloat(int length, float divisor)
+	{
+		auto integer = ReadSigned<int>(length);
+
+		float max = (1 << (length - 1)) - 1;
 		return ((float)integer / max) * divisor;
 	}
 

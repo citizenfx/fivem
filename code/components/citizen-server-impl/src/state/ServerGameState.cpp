@@ -80,6 +80,24 @@ static uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& p
 	return g_scriptHandlePool->GetIndex(ptr->guid) + 0x20000;
 }
 
+inline std::tuple<float, float, float> GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
+{
+	float playerPosX = entity->GetData("posX", 0.0f);
+	float playerPosY = entity->GetData("posY", 0.0f);
+	float playerPosZ = entity->GetData("posZ", 0.0f);
+
+	switch (entity->GetData("camMode", 0))
+	{
+	case 0:
+	default:
+		return { playerPosX, playerPosY, playerPosZ };
+	case 1:
+		return { entity->GetData("freeCamPosX", 0.0f), entity->GetData("freeCamPosY", 0.0f), entity->GetData("freeCamPosZ", 0.0f) };
+	case 2:
+		return { playerPosX + entity->GetData("camOffX", 0.0f), playerPosY + entity->GetData("camOffY", 0.0f), playerPosZ + entity->GetData("camOffZ", 0.0f) };
+	}
+}
+
 ServerGameState::ServerGameState()
 	: m_frameIndex(0)
 {
@@ -247,8 +265,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float entityPosX = entity->GetData("posX", 0.0f);
 					float entityPosY = entity->GetData("posY", 0.0f);
 
-					float playerPosX = playerEntity->GetData("posX", 0.0f);
-					float playerPosY = playerEntity->GetData("posY", 0.0f);
+					auto [playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
 
 					float diffX = entityPosX - playerPosX;
 					float diffY = entityPosY - playerPosY;
@@ -362,11 +379,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				// unacknowledge creation
 				entity->ackedCreation.reset(client->GetSlotId());
+				entity->didDeletion.set(client->GetSlotId());
 			};
 
 			if (shouldBeCreated)
 			{
-				if (!hasCreated)
+				if (!hasCreated || entity->didDeletion.test(client->GetSlotId()))
 				{
 					// ignore acks for creation
 					entity->syncTree->Visit([&client](sync::NodeBase& node)
@@ -451,8 +469,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		auto entityId = std::any_cast<uint32_t>(entityIdRef);
 		auto playerEntity = GetEntity(entityId);
 
-		float posX = playerEntity->GetData("posX", 0.0f);
-		float posY = playerEntity->GetData("posY", 0.0f);
+		auto[posX, posY, posZ] = GetPlayerFocusPos(playerEntity);
 
 		int minSectorX = std::max((posX - 149.0f) + 8192.0f, 0.0f) / 75;
 		int maxSectorX = std::max((posX + 149.0f) + 8192.0f, 0.0f) / 75;
@@ -524,6 +541,37 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 	});
 }
 
+void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient)
+{
+	auto entity = GetEntity(0, entityHandle & 0xFFFF);
+
+	if (!entity)
+	{
+		return;
+	}
+
+	auto oldClient = entity->client;
+	entity->client = targetClient;
+
+	if (!oldClient.expired())
+	{
+		auto sourceData = GetClientData(this, oldClient.lock());
+		sourceData->objectIds.erase(entityHandle & 0xFFFF);
+	}
+
+	// #TODO1S: reassignment should also send a create if the player was out of focus area
+	auto targetData = GetClientData(this, targetClient);
+	targetData->objectIds.insert(entityHandle & 0xFFFF);
+
+	entity->syncTree->Visit([this](sync::NodeBase& node)
+	{
+		node.frameIndex = m_frameIndex;
+		node.ackedPlayers.reset();
+
+		return true;
+	});
+}
+
 void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client)
 {
 	if (!g_oneSyncVar->GetValue())
@@ -580,7 +628,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 			std::vector<std::tuple<float, std::shared_ptr<fx::Client>>> candidates;
 
-			clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& tgtClient)
+			clientRegistry->ForAllClients([this, &candidates, &client, posX, posY, posZ](const std::shared_ptr<fx::Client>& tgtClient)
 			{
 				if (tgtClient == client)
 				{
@@ -601,9 +649,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 					if (playerEntity)
 					{
-						float tgtX = entity->GetData("posX", 0.0f);
-						float tgtY = entity->GetData("posY", 0.0f);
-						float tgtZ = entity->GetData("posZ", 0.0f);
+						auto [tgtX, tgtY, tgtZ] = GetPlayerFocusPos(playerEntity);
 
 						if (posX != 0.0f)
 						{
@@ -640,24 +686,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			{
 				trace("reassigning entity %d from %s to %s\n", entityPair.first, client->GetName(), std::get<1>(candidates[0])->GetName());
 
-				entity->client = std::get<1>(candidates[0]);
-				//entity->ackedCreation.set(std::get<1>(candidates[0])->GetSlotId());
-
-				// #TODO1S: factor out reassignment into its own function
-				// #TODO1S: reassignment should also send a create if the player was out of focus area
-				auto sourceData = GetClientData(this, client);
-				auto targetData = GetClientData(this, entity->client.lock());
-
-				sourceData->objectIds.erase(entityPair.first & 0xFFFF);
-				targetData->objectIds.insert(entityPair.first & 0xFFFF);
-
-				entity->syncTree->Visit([this](sync::NodeBase& node)
-				{
-					node.frameIndex = m_frameIndex;
-					node.ackedPlayers.reset();
-
-					return true;
-				});
+				ReassignEntity(entityPair.first, std::get<1>(candidates[0]));
 			}
 		}
 	}
@@ -756,23 +785,7 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 			return;
 		}
 
-		entity->client = tgtCl;
-
-		// #TODO1S: factor out reassignment into its own function
-		// #TODO1S: reassignment should also send a create if the player was out of focus area
-		auto sourceData = GetClientData(this, client);
-		auto targetData = GetClientData(this, tgtCl);
-
-		sourceData->objectIds.erase(objectId);
-		targetData->objectIds.insert(objectId);
-
-		entity->syncTree->Visit([this](sync::NodeBase& node)
-		{
-			node.frameIndex = m_frameIndex;
-			node.ackedPlayers.reset();
-
-			return true;
-		});
+		ReassignEntity(entity->handle, tgtCl);
 	}
 }
 
@@ -885,6 +898,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		}
 	}
 
+	entity->didDeletion.reset(client->GetSlotId());
 	entity->ackedCreation.set(client->GetSlotId());
 
 	if (entity->client.lock()->GetNetId() != client->GetNetId())
@@ -1295,6 +1309,7 @@ static InitFunction initFunction([]()
 					return true;
 				});
 
+				entity->didDeletion.reset(client->GetSlotId());
 				entity->ackedCreation.set(client->GetSlotId());
 			}
 		});

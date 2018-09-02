@@ -93,6 +93,7 @@ struct SyncEntityState
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
 	std::bitset<256> ackedCreation;
+	std::bitset<256> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
 
@@ -177,6 +178,10 @@ public:
 	void HandleClientDrop(const std::shared_ptr<fx::Client>& client);
 
 	void SendObjectIds(const std::shared_ptr<fx::Client>& client, int numIds);
+
+	void RemoveEntity(uint32_t entityHandle);
+
+	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
 
 private:
 	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
