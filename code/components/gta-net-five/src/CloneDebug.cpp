@@ -402,7 +402,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	if (flags == 2 || flags == 4)
 	{
 		// mA0 bit
-		buffer->WriteBit(0);
+		buffer->WriteBit(objFlags & 1);
 	}
 
 	TraverseTree<WriteTreeState>(this, state, [](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)

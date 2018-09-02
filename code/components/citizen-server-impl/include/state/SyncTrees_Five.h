@@ -27,7 +27,7 @@ inline bool shouldRead(SyncParseState& state, const std::tuple<int, int, int>& i
 	}
 
 	// because we hardcode this sync type to 0 (mA0), we can assume it's not used
-	if (std::get<2>(ids) != 0)
+	if (std::get<2>(ids) && !(state.objType & std::get<2>(ids)))
 	{
 		return false;
 	}
@@ -51,7 +51,7 @@ inline bool shouldWrite(SyncUnparseState& state, const std::tuple<int, int, int>
 	}
 
 	// because we hardcode this sync type to 0 (mA0), we can assume it's not used
-	if (std::get<2>(ids) != 0)
+	if (std::get<2>(ids) && !(state.objType & std::get<2>(ids)))
 	{
 		return false;
 	}
@@ -219,11 +219,12 @@ struct SyncTree : public SyncTreeBase
 	virtual void Parse(SyncParseState& state) override
 	{
 		//trace("parsing root\n");
+		state.objType = 0;
 
 		if (state.syncType == 2 || state.syncType == 4)
 		{
 			// mA0 flag
-			state.buffer.ReadBit();
+			state.objType = state.buffer.ReadBit();
 		}
 
 		root.Parse(state);
@@ -231,9 +232,13 @@ struct SyncTree : public SyncTreeBase
 
 	virtual bool Unparse(SyncUnparseState& state) override
 	{
+		state.objType = 0;
+
 		if (state.syncType == 2 || state.syncType == 4)
 		{
-			state.buffer.WriteBit(0);
+			state.objType = 1;
+
+			state.buffer.WriteBit(1);
 		}
 
 		return root.Unparse(state);

@@ -912,7 +912,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	entity->timestamp = timestamp;
 
-	auto state = sync::SyncParseState{ { bitBytes }, parsingType, entity, m_frameIndex };
+	auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, entity, m_frameIndex };
 
 	if (entity->syncTree)
 	{

@@ -25,6 +25,7 @@ struct SyncParseState
 {
 	rl::MessageBuffer buffer;
 	int syncType;
+	int objType;
 
 	std::shared_ptr<SyncEntityState> entity;
 
@@ -35,6 +36,7 @@ struct SyncUnparseState
 {
 	rl::MessageBuffer buffer;
 	int syncType;
+	int objType;
 
 	std::shared_ptr<Client> client;
 };
