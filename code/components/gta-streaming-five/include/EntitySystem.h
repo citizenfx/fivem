@@ -233,7 +233,6 @@ public:
 	virtual void m_178() = 0;
 	virtual void m_180() = 0;
 	virtual void m_188() = 0;
-	virtual void m_190() = 0;
 	virtual float GetRadius() = 0;
 
 public:
