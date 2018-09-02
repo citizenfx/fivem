@@ -14,6 +14,7 @@
 CPool<fx::ScriptGuid>* g_scriptHandlePool;
 
 std::shared_ptr<ConVar<bool>> g_oneSyncVar;
+std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
 
 namespace fx
 {
@@ -226,6 +227,81 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			bool hasCreated = entity->ackedCreation.test(client->GetSlotId()) || client->GetNetId() == entity->client.lock()->GetNetId();
 
+			bool shouldBeCreated = (g_oneSyncCulling->GetValue()) ? false : true;
+
+			// players should always have their own entities
+			if (client->GetNetId() == entity->client.lock()->GetNetId())
+			{
+				shouldBeCreated = true;
+			}
+
+			if (!shouldBeCreated)
+			{
+				auto entityIdRef = client->GetData("playerEntity");
+
+				if (entityIdRef.has_value())
+				{
+					auto entityId = std::any_cast<uint32_t>(entityIdRef);
+					auto playerEntity = GetEntity(entityId);
+
+					float entityPosX = entity->GetData("posX", 0.0f);
+					float entityPosY = entity->GetData("posY", 0.0f);
+
+					float playerPosX = playerEntity->GetData("posX", 0.0f);
+					float playerPosY = playerEntity->GetData("posY", 0.0f);
+
+					float diffX = entityPosX - playerPosX;
+					float diffY = entityPosY - playerPosY;
+
+					float distSquared = (diffX * diffX) + (diffY * diffY);
+
+					// #TODO1S: figure out a good value for this
+					if (distSquared < (650.0f * 650.0f))
+					{
+						shouldBeCreated = true;
+					}
+				}
+			}
+
+			// #TODO1S: improve logic for what should and shouldn't exist based on game code
+			if (!shouldBeCreated)
+			{
+				if (entity->type == sync::NetObjEntityType::Player)
+				{
+					shouldBeCreated = true;
+				}
+				else if (entity->type == sync::NetObjEntityType::Automobile ||
+					entity->type == sync::NetObjEntityType::Bike ||
+					entity->type == sync::NetObjEntityType::Boat ||
+					entity->type == sync::NetObjEntityType::Heli ||
+					entity->type == sync::NetObjEntityType::Plane ||
+					entity->type == sync::NetObjEntityType::Submarine ||
+					entity->type == sync::NetObjEntityType::Trailer ||
+					entity->type == sync::NetObjEntityType::Train)
+				{
+					instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, entity, &shouldBeCreated](const std::shared_ptr<fx::Client>& otherClient)
+					{
+						auto entityIdRef = otherClient->GetData("playerEntity");
+
+						if (!entityIdRef.has_value())
+						{
+							return;
+						}
+
+						auto entityId = std::any_cast<uint32_t>(entityIdRef);
+						auto playerEntity = GetEntity(entityId);
+
+						if (auto vehicle = playerEntity->GetData("curVehicle", -1); vehicle != -1)
+						{
+							if (vehicle == (entity->handle & 0xFFFF))
+							{
+								shouldBeCreated = true;
+							}
+						}
+					});
+				}
+			}
+
 			auto sendUnparsedPacket = [&](int syncType)
 			{
 				rl::MessageBuffer mb(1200);
@@ -276,13 +352,43 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			};
 
-			if (!hasCreated)
+			auto sendRemove = [&client, &entity]()
 			{
-				sendUnparsedPacket(1);
+				net::Buffer netBuffer;
+				netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
+				netBuffer.Write<uint16_t>(entity->handle & 0xFFFF);
+
+				client->SendPacket(1, netBuffer, ENET_PACKET_FLAG_RELIABLE);
+
+				// unacknowledge creation
+				entity->ackedCreation.reset(client->GetSlotId());
+			};
+
+			if (shouldBeCreated)
+			{
+				if (!hasCreated)
+				{
+					// ignore acks for creation
+					entity->syncTree->Visit([&client](sync::NodeBase& node)
+					{
+						node.ackedPlayers.reset(client->GetSlotId());
+
+						return true;
+					});
+
+					sendUnparsedPacket(1);
+				}
+				else
+				{
+					sendUnparsedPacket(2);
+				}
 			}
 			else
 			{
-				sendUnparsedPacket(2);
+				if (hasCreated)
+				{
+					sendRemove();
+				}
 			}
 		}
 
@@ -537,6 +643,8 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				entity->client = std::get<1>(candidates[0]);
 				//entity->ackedCreation.set(std::get<1>(candidates[0])->GetSlotId());
 
+				// #TODO1S: factor out reassignment into its own function
+				// #TODO1S: reassignment should also send a create if the player was out of focus area
 				auto sourceData = GetClientData(this, client);
 				auto targetData = GetClientData(this, entity->client.lock());
 
@@ -650,6 +758,8 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 
 		entity->client = tgtCl;
 
+		// #TODO1S: factor out reassignment into its own function
+		// #TODO1S: reassignment should also send a create if the player was out of focus area
 		auto sourceData = GetClientData(this, client);
 		auto targetData = GetClientData(this, tgtCl);
 
@@ -1073,6 +1183,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		g_oneSyncVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
+		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
 
 		instance->SetComponent(new fx::ServerGameState);
 

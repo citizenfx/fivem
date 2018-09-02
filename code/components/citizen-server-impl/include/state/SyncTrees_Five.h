@@ -407,12 +407,26 @@ struct CPedGameStateDataNode
 		{
 			vehicleId = state.buffer.Read<int>(13);
 
+			state.entity->data["curVehicle"] = int32_t(vehicleId);
+			state.entity->data["curVehicleSeat"] = int32_t(-2);
+
 			auto inSeat = state.buffer.ReadBit();
 
 			if (inSeat)
 			{
 				vehicleSeat = state.buffer.Read<int>(5);
+				state.entity->data["curVehicleSeat"] = int32_t(vehicleSeat);
 			}
+			else
+			{
+				state.entity->data["curVehicle"] = -1;
+				state.entity->data["curVehicleSeat"] = -1;
+			}
+		}
+		else
+		{
+			state.entity->data["curVehicle"] = -1;
+			state.entity->data["curVehicleSeat"] = -1;
 		}
 
 		// TODO
