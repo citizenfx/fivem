@@ -276,7 +276,9 @@ void TraceReal(const char* channel, const char* func, const char* file, int line
 		OutputDebugStringA(buffer.c_str());
 	}
 
+#ifndef IS_FXSERVER
 	PerformFileLog(buffer.c_str());
+#endif
 #endif
 }
 
