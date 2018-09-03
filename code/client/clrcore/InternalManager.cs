@@ -31,7 +31,9 @@ namespace CitizenFX.Core
 			InitializeAssemblyResolver();
 			CitizenTaskScheduler.Create();
 
+#if !IS_FXSERVER
 			SynchronizationContext.SetSynchronizationContext(new CitizenSynchronizationContext());
+#endif
 		}
 
 		[SecuritySafeCritical]
