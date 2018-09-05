@@ -1,0 +1,1 @@
+return loadfile('codegen_out_lua.lua')(true)

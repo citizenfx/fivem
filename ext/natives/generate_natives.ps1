@@ -1,9 +1,17 @@
 ﻿mkdir -Force out
 
 foreach ($file in (Get-Item natives_stash\*.lua)) {
+    remove-item -force out\natives\*.lua
+    mkdir -force out\natives
+
     .\lua53 codegen.lua $file.FullName | out-file -encoding ascii "out\natives_$(($file.BaseName -replace "gta_", '').ToLower()).lua"
+    .\lua53 codegen.lua $file.FullName slua | out-null
     .\lua53 codegen.lua $file.FullName js | out-file -encoding ascii "out\natives_$(($file.BaseName -replace "gta_", '').ToLower()).js"
     .\lua53 codegen.lua $file.FullName dts | out-file -encoding ascii "out\natives_$(($file.BaseName -replace "gta_", '').ToLower()).d.ts"
+
+    Push-Location out\natives\
+    ..\..\..\..\code\tools\ci\7z.exe a "..\natives_$(($file.BaseName -replace "gta_", '').ToLower()).zip"  *.lua
+    Pop-Location
 }
 
 .\lua53 codegen.lua natives_stash\gta_universal.lua lua server | out-file -encoding ascii "out\natives_server.lua"

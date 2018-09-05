@@ -117,6 +117,8 @@ private:
 
 	int m_instanceId;
 
+	std::string m_nativesDir;
+
 public:
 	inline LuaScriptRuntime()
 	{
@@ -169,6 +171,11 @@ public:
 		return resourceName;
 	}
 
+	inline std::string GetNativesDir()
+	{
+		return m_nativesDir;
+	}
+
 private:
 	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);
 
@@ -179,6 +186,8 @@ private:
 	result_t RunFileInternal(char* scriptFile, std::function<result_t(char*)> loadFunction);
 
 	result_t LoadSystemFile(char* scriptFile);
+
+	result_t LoadNativesBuild(const std::string& nativeBuild);
 
 public:
 	NS_DECL_ISCRIPTRUNTIME;
@@ -940,6 +949,45 @@ int Lua_InvokeNative(lua_State* L)
 	return numResults;
 }
 
+int Lua_LoadNative(lua_State* L)
+{
+	const char* fn = luaL_checkstring(L, 1);
+
+	auto runtime = LuaScriptRuntime::GetCurrent();
+	
+	OMPtr<fxIStream> stream;
+
+	result_t hr = runtime->GetScriptHost()->OpenSystemFile(const_cast<char*>(va("%s0x%08x.lua", runtime->GetNativesDir(), HashRageString(fn))), stream.GetAddressOf());
+
+	if (!FX_SUCCEEDED(hr))
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+
+	// read file data
+	uint64_t length;
+
+	if (FX_FAILED(hr = stream->GetLength(&length)))
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+
+	std::vector<char> fileData(length + 1);
+	if (FX_FAILED(hr = stream->Read(&fileData[0], length, nullptr)))
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+
+	fileData[length] = '\0';
+
+	lua_pushlstring(L, fileData.data(), length);
+
+	return 1;
+}
+
 template<LuaMetaFields metaField>
 int Lua_GetMetaField(lua_State* L)
 {
@@ -998,6 +1046,7 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ "SetEventRoutine", Lua_SetEventRoutine },
 	{ "Trace", Lua_Trace },
 	{ "InvokeNative", Lua_InvokeNative },
+	{ "LoadNative", Lua_LoadNative },
 	// ref things
 	{ "SetCallRefRoutine", Lua_SetCallRefRoutine },
 	{ "SetDeleteRefRoutine", Lua_SetDeleteRefRoutine },
@@ -1093,7 +1142,7 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		return hr;
 	}
 
-	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/%s", nativesBuild)))))
+	if (FX_FAILED(hr = LoadNativesBuild(nativesBuild)))
 	{
 		return hr;
 	}
@@ -1116,6 +1165,46 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 
 	lua_pushcfunction(m_state, Lua_Print);
 	lua_setglobal(m_state, "print");
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::LoadNativesBuild(const std::string& nativesBuild)
+{
+	result_t hr = FX_S_OK;
+
+	bool useLazyNatives = false;
+
+#ifndef IS_FXSERVER
+	useLazyNatives = true;
+
+	int32_t numFields = 0;
+
+	if (FX_SUCCEEDED(hr = m_resourceHost->GetNumResourceMetaData("disable_lazy_natives", &numFields)))
+	{
+		if (numFields > 0)
+		{
+			useLazyNatives = false;
+		}
+	}
+#endif
+
+	if (!useLazyNatives)
+	{
+		if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/%s", nativesBuild)))))
+		{
+			return hr;
+		}
+	}
+	else
+	{
+		m_nativesDir = "nativesLua:/" + nativesBuild.substr(0, nativesBuild.length() - 4) + "/";
+
+		if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/lua/%s", "natives_loader.lua")))))
+		{
+			return hr;
+		}
+	}
 
 	return FX_S_OK;
 }

@@ -1,3 +1,13 @@
+local USE_SPLIT_LUA = ...
+
+if USE_SPLIT_LUA then
+	if not os.getenv('NATIVES_DIR') or #os.getenv('NATIVES_DIR') < 2 then
+		error('no dir')
+	end
+end
+
+local cfx = require('cfx')
+
 local function printFunctionName(native)
 	return native.name:lower():gsub('0x', 'n_0x'):gsub('_(%a)', string.upper):gsub('(%a)(.+)', function(a, b)
 		return a:upper() .. b
@@ -195,22 +205,44 @@ local function formatDocString(native)
 end
 
 local function printNative(native)
-	local str = string.format("%sfunction Global.%s(%s)\n", formatDocString(native), printFunctionName(native), printArgumentList(native))
+	local str = ""
 
-	local preCall = ''
-	local postCall = ''
+	local function printThis(name)
+		local str = string.format("%sfunction Global.%s(%s)\n", formatDocString(native), name, printArgumentList(native))
 
-	if native.returns and native.returns.nativeType == 'object' then
-		preCall = 'msgpack.unpack('
-		postCall = ')'
+		local preCall = ''
+		local postCall = ''
+	
+		if native.returns and native.returns.nativeType == 'object' then
+			preCall = 'msgpack.unpack('
+			postCall = ')'
+		end
+	
+		str = str .. string.format("\treturn %s_in(%s)%s\n", preCall, printInvocationArguments(native), postCall)
+	
+		str = str .. "end\n"
+
+		return str
 	end
 
-	str = str .. string.format("\treturn %s_in(%s)%s\n", preCall, printInvocationArguments(native), postCall)
+	if USE_SPLIT_LUA then
+		local function saveThis(name, str)
+			local f = io.open(('%s/0x%08x.lua'):format(os.getenv('NATIVES_DIR'), cfx.hash(name)), 'w')
+			f:write(str)
+			f:close()
+		end
 
-	str = str .. "end\n"
+		saveThis(printFunctionName(native), printThis(printFunctionName(native)))
 
-	for _, alias in ipairs(native.aliases) do
-		str = str .. ("Global.%s = Global.%s\n"):format(printFunctionName({ name = alias }), printFunctionName(native))
+		for _, alias in ipairs(native.aliases) do
+			saveThis(printFunctionName({ name = alias }), printThis(printFunctionName({ name = alias })))
+		end
+	else
+		str = str .. printThis(printFunctionName(native))
+
+		for _, alias in ipairs(native.aliases) do
+			str = str .. ("Global.%s = Global.%s\n"):format(printFunctionName({ name = alias }), printFunctionName(native))
+		end
 	end
 
 	return str
@@ -218,6 +250,10 @@ end
 
 for _, v in pairs(_natives) do
 	if matchApiSet(v) then
-		print(printNative(v))
+		if USE_SPLIT_LUA then
+			printNative(v)
+		else
+			print(printNative(v))
+		end
 	end
 end
