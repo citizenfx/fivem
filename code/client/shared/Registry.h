@@ -65,7 +65,11 @@ extern "C" CORE_EXPORT InstanceRegistry* CoreGetGlobalInstanceRegistry();
 #include <dlfcn.h>
 #endif
 
-inline auto CoreGetGlobalInstanceRegistry()
+static
+#ifdef _MSC_VER
+	__declspec(noinline)
+#endif
+	auto CoreGetGlobalInstanceRegistry()
 {
     static struct RefSource
     {
