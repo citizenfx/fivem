@@ -61,7 +61,6 @@ static void UpdatePresence()
 			memset(&handlers, 0, sizeof(handlers));
 			Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
 		}
-		
 
 		DiscordRichPresence discordPresence;
 		memset(&discordPresence, 0, sizeof(discordPresence));
