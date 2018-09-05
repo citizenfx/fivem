@@ -100,3 +100,6 @@
 [submodule "vendor/webrtc-audio-processing"]
 	path = vendor/webrtc-audio-processing
 	url = https://github.com/citizenfx/webrtc-audio-processing.git
+[submodule "vendor/minizip"]
+	path = vendor/minizip
+	url = https://github.com/nmoinvaz/minizip.git
