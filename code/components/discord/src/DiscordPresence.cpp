@@ -26,6 +26,8 @@ static time_t g_startTime = time(nullptr);
 
 static std::string g_discordAppId;
 
+static std::string g_lastDiscordAppId = DEFAULT_APP_ID;
+
 static std::string g_discordAppAsset;
 
 static void UpdatePresence()
@@ -51,6 +53,14 @@ static void UpdatePresence()
 			line1 = g_richPresenceOverride;
 		}
 
+		if (g_discordAppId != g_lastDiscordAppId) 
+		{
+			g_lastDiscordAppId = g_discordAppId;
+			Discord_Shutdown();
+			DiscordEventHandlers handlers;
+			memset(&handlers, 0, sizeof(handlers));
+			Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
+		}
 		
 
 		DiscordRichPresence discordPresence;
@@ -62,7 +72,8 @@ static void UpdatePresence()
 		{
 			discordPresence.largeImageKey = g_richPresenceOverrideAsset.c_str();
 		}
-		else {
+		else 
+		{
 			discordPresence.largeImageKey = g_discordAppAsset.c_str();
 		}
 		
@@ -111,8 +122,9 @@ static InitFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		g_richPresenceOverride = "";
-		NativeInvoke::Invoke<HashString("SET_DISCORD_APP_ID"),char*,char*>(DEFAULT_APP_ID);
-		NativeInvoke::Invoke<HashString("SET_DISCORD_RICH_PRESENCE_ASSET"), char*, char*>(DEFAULT_APP_ASSET);
+		g_discordAppId = DEFAULT_APP_ID;
+		g_richPresenceOverrideAsset = DEFAULT_APP_ASSET;
+		g_richPresenceChanged = true;
 
 		OnRichPresenceSetTemplate("In the menus\n");
 	});
@@ -161,11 +173,6 @@ static InitFunction initFunction([]()
 		{
 			g_discordAppId = DEFAULT_APP_ID;
 		}
-		
-		Discord_Shutdown();
-		DiscordEventHandlers handlers;
-		memset(&handlers, 0, sizeof(handlers));
-		Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
 
 		g_richPresenceChanged = true;
 	});
