@@ -1947,8 +1947,9 @@ native "SET_DISCORD_APP_ID"
 	returns	"void"
 	doc [[!
 <summary>
-		This native sets the discord app id for the rich presence implementation.
+		This native sets the app id for the discord rich presence implementation.
 </summary>
+<param name="appId">A valid Discord API App Id, can be generated at https://discordapp.com/developers/applications/</param>
 	]]
 
 native "SET_DISCORD_RICH_PRESENCE_ASSET"
@@ -1959,6 +1960,7 @@ native "SET_DISCORD_RICH_PRESENCE_ASSET"
 	returns	"void"
 	doc [[!
 <summary>
-		This native sets the discord image asset for the rich presence implementation.
+		This native sets the image asset for the discord rich presence implementation.
 </summary>
+<param name="assetName">The name of a valid asset registered on Discordapp's developer dashboard. note that the asset has to be registered under the same discord API application set using the SET_DISCORD_APP_ID native.</param>
 	]]
