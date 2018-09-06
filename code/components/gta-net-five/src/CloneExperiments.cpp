@@ -298,7 +298,7 @@ static CNetGamePlayer* netObject__GetOwnerNetPlayer(rage::netObject* object)
 		auto player = g_playersByNetId[TheClones->GetClientId(object)];
 
 		// FIXME: figure out why bad playerinfos occur
-		if (player->playerInfo != nullptr)
+		if (player != nullptr && player->playerInfo != nullptr)
 		{
 			return player;
 		}
