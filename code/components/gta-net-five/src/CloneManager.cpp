@@ -43,6 +43,12 @@ static hook::cdecl_stub<uint32_t()> _getNetAckTimestamp([]()
 	return hook::get_pattern("3B CA 76 02 FF", -0x31);
 });
 
+extern CNetGamePlayer* g_players[256];
+extern std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
+extern std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
+
+std::string GetType(void* d);
+
 CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
@@ -545,7 +551,10 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	if (extData.clientId != msg.GetClientId())
 	{
-		trace("reassigning!\n");
+		//trace("reassigning!\n");
+		trace("Remote-migrating object %d (of type %s) from %s to %s.\n", obj->objectId, GetType(obj),
+			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
+			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
 
 		auto clientId = msg.GetClientId();
 
@@ -718,6 +727,10 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 	m_sendBuffer.Write(13, object->objectId);
 
 	AttemptFlushNetBuffer();
+
+	trace("Migrating object %d (of type %s) from %s to %s (remote player).\n", object->objectId, GetType(object),
+		!object->syncData.isRemote ? "us" : "a remote player",
+		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
 }
 
 void CloneManagerLocal::Update()
@@ -1007,18 +1020,23 @@ void CloneManagerLocal::WriteUpdates()
 		{
 			if (object->syncData.nextOwnerId == 0)
 			{
-				m_sendBuffer.Write(3, 4);
+				/*m_sendBuffer.Write(3, 4);
 				m_sendBuffer.Write(16, 0); // client ID
 				//m_sendBuffer.Write<uint8_t>(0); // player ID (byte)
-				m_sendBuffer.Write(13, objectId);
+				m_sendBuffer.Write(13, objectId);*/
 
 				++syncCount4;
 
-				AttemptFlushNetBuffer();
+				//AttemptFlushNetBuffer();
+
+				GiveObjectToClient(object, 0);
 			}
 			else
 			{
-				trace("Tried to migrate an object to %d - but we can't map them yet.\n", object->syncData.nextOwnerId);
+				//trace("Tried to migrate an object to %d - but we can't map them yet.\n", object->syncData.nextOwnerId);
+
+				GiveObjectToClient(object, g_netIdsByPlayer[g_players[object->syncData.nextOwnerId]]);
+
 				object->syncData.nextOwnerId = -1;
 			}
 		}

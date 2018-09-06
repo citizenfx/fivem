@@ -55,9 +55,9 @@ static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x1427D232
 
 void* g_tempRemotePlayer;
 
-static CNetGamePlayer* g_players[256];
-static std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
-static std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
+CNetGamePlayer* g_players[256];
+std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
+std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
 
 static CNetGamePlayer* g_playerList[256];
 static int g_playerListCount;
