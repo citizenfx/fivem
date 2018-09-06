@@ -19,6 +19,8 @@
 #include <NetLibrary.h>
 #include <NetBuffer.h>
 
+#include <EntitySystem.h>
+
 extern NetLibrary* g_netLibrary;
 
 class CNetGamePlayer;
@@ -425,6 +427,33 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
 	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[player]);
+
+	fwEntity* entity = (fwEntity*)netObject->GetGameObject();
+	if (entity->IsOfType(HashString("CVehicle")))
+	{
+		CVehicle* vehicle = static_cast<CVehicle*>(entity);
+		VehicleSeatManager* seatManager = vehicle->GetSeatManager();
+
+		for (int i = 0; i < seatManager->GetNumSeats(); i++)
+		{
+			auto occupant = seatManager->GetOccupant(i);
+
+			if (occupant)
+			{
+				auto netOccupant = reinterpret_cast<rage::netObject*>(occupant->GetNetObject());
+
+				if (netOccupant)
+				{
+					if (!netOccupant->syncData.isRemote && netOccupant->objectType != 11)
+					{
+						trace("passing occupant %d control as well\n", netOccupant->objectId);
+
+						PassObjectControlStub(player, netOccupant, a3);
+					}
+				}
+			}
+		}
+	}
 
 	//auto lastIndex = player->physicalPlayerIndex;
 	//player->physicalPlayerIndex = 31;
@@ -1525,7 +1554,6 @@ struct ObjectData
 static std::map<int, ObjectData> trackedObjects;
 
 #include <lz4.h>
-#include <EntitySystem.h>
 
 static InitFunction initFunction([]()
 {
