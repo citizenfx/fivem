@@ -83,6 +83,7 @@ out/natives_%.js: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_js.lua
 
 out/natives_%.zip: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua codegen_out_slua.lua
 	$(eval DIR := $(shell mktemp -d -p out/))
+	rm $@ || true
 	NATIVES_DIR="$(DIR)" ./lua53 codegen.lua $< slua > /dev/null
 	sh -c 'pushd $(DIR) && ../../../../code/tools/ci/7z.exe a ../../$@ \*.lua && popd'
 	rm -r $(DIR) || true
