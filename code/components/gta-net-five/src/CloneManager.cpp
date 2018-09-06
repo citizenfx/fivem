@@ -191,6 +191,26 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	{
 		HandleCloneRemove(data, len);
 	}, true);
+
+	static ConsoleCommand printObj("net_printOwner", [this](int objectId)
+	{
+		auto it = m_savedEntities.find(objectId);
+
+		if (it == m_savedEntities.end())
+		{
+			console::PrintError("CloneManager", "Couldn't find object by ID %d\n", objectId);;
+			return;
+		}
+
+		rage::netObject* obj = it->second;
+		auto& extData = m_extendedData[obj->objectId];
+
+		console::Printf("CloneManager", "-- NETWORK OBJECT %d (%s) --\n", obj->objectId, GetType(obj));
+		console::Printf("CloneManager", "Owner: %s (%d)\n", g_playersByNetId[extData.clientId] ? g_playersByNetId[extData.clientId]->GetName() : "null?", extData.clientId);
+		console::Printf("CloneManager", "Is remote: %s\n", obj->syncData.isRemote ? "yes" : "no");
+		console::Printf("CloneManager", "Game client ID: %d\n", obj->syncData.ownerId);
+		console::Printf("CloneManager", "\n");
+	});
 }
 
 void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)

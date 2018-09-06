@@ -1525,6 +1525,7 @@ struct ObjectData
 static std::map<int, ObjectData> trackedObjects;
 
 #include <lz4.h>
+#include <EntitySystem.h>
 
 static InitFunction initFunction([]()
 {
@@ -1559,6 +1560,28 @@ static InitFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		trackedObjects.clear();
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", [](fx::ScriptContext& context)
+	{
+		fwEntity* entity = (fwEntity*)getScriptEntity(context.GetArgument<int>(0));
+		
+		if (!entity)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		rage::netObject* netObj = (rage::netObject*)entity->GetNetObject();
+
+		if (!netObj)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		auto owner = netObject__GetOwnerNetPlayer(netObj);
+		context.SetResult<int>(owner->physicalPlayerIndex);
 	});
 #if 0
 	fx::ScriptEngine::RegisterNativeHandler("EXPERIMENTAL_SAVE_CLONE_CREATE", [](fx::ScriptContext& context)
