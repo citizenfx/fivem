@@ -429,7 +429,7 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[player]);
 
 	fwEntity* entity = (fwEntity*)netObject->GetGameObject();
-	if (entity->IsOfType(HashString("CVehicle")))
+	if (entity && entity->IsOfType(HashString("CVehicle")))
 	{
 		CVehicle* vehicle = static_cast<CVehicle*>(entity);
 		VehicleSeatManager* seatManager = vehicle->GetSeatManager();
