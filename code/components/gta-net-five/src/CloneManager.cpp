@@ -845,6 +845,15 @@ void CloneManagerLocal::WriteUpdates()
 		// skip remote objects
 		if (object->syncData.isRemote)
 		{
+			if (m_extendedData[object->objectId].clientId == m_netLibrary->GetServerNetID())
+			{
+				trace("Network object %d is ours, but it's remote as well. Reassigning it.\n", object->objectId);
+
+				GiveObjectToClient(object, 0);
+
+				m_extendedData[object->objectId].clientId = -1;
+			}
+
 			return;
 		}
 
