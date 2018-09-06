@@ -19778,7 +19778,6 @@ native "_GET_VEHICLE_MODEL_MAX_SPEED"
 	arguments {
 		Hash "modelHash",
 	}
-	alias "_GET_VEHICLE_MAX_SPEED"
 	ns "VEHICLE"
 	returns	"float"
 	doc [[!
