@@ -221,7 +221,7 @@ static void RaiseDebugException(const char* buffer, size_t length)
 {
 	__try
 	{
-		/*EXCEPTION_RECORD record;
+		EXCEPTION_RECORD record;
 		record.ExceptionAddress = reinterpret_cast<PVOID>(_ReturnAddress());
 		record.ExceptionCode = DBG_PRINTEXCEPTION_C;
 		record.ExceptionFlags = 0;
@@ -230,7 +230,7 @@ static void RaiseDebugException(const char* buffer, size_t length)
 		record.ExceptionInformation[1] = reinterpret_cast<ULONG_PTR>(buffer);
 		record.ExceptionRecord = &record;
 
-		DoNtRaiseException(&record);*/
+		DoNtRaiseException(&record);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
