@@ -1052,6 +1052,18 @@ static bool SendGameEvent(void* eventMgr, void* ev)
 	return 1;
 }
 
+static uint32_t(*g_origGetFireApplicability)(void* event, void* pos);
+
+static uint32_t GetFireApplicability(void* event, void* pos)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetFireApplicability(event, pos);
+	}
+
+	return (0xFFFFFFFF);
+}
+
 static HookFunction hookFunctionEv([]()
 {
 	MH_Initialize();
@@ -1066,6 +1078,9 @@ static HookFunction hookFunctionEv([]()
 
 	// can cause crashes due to high player indices, default event sending
 	MH_CreateHook(hook::get_pattern("48 83 EC 30 80 7A 2D FF 4C 8B D2", -0xC), SendGameEvent, (void**)&g_origSendGameEvent);
+
+	// fire applicability
+	MH_CreateHook(hook::get_pattern("85 DB 74 78 44 8B F3 48", -0x30), GetFireApplicability, (void**)&g_origGetFireApplicability);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });
