@@ -676,7 +676,8 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				candidates.clear();
 			}
 
-			if (candidates.empty())
+			if (candidates.empty() || // no candidate?
+				std::get<float>(candidates[0]) >= 600.0f) // closest candidate beyond distance culling range?
 			{
 				trace("no candidates for entity %d, deleting\n", entityPair.first);
 
