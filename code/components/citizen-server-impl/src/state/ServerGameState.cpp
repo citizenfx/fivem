@@ -644,7 +644,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 				try
 				{
-					auto entityId = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+					auto entityId = std::any_cast<uint32_t>(tgtClient->GetData("playerEntity"));
 					auto playerEntity = GetEntity(entityId);
 
 					if (playerEntity)
