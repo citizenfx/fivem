@@ -1190,6 +1190,11 @@ static InitFunction initFunction([]()
 		return resultVec;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_NETWORK_ID_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->handle & 0xFFFF;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_HASH_KEY", [](fx::ScriptContext& context)
 	{
 		context.SetResult(HashString(context.GetArgument<const char*>(0)));

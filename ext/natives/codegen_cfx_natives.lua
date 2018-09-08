@@ -1927,6 +1927,13 @@ native 'GET_ENTITY_COORDS'
 	apiset 'server'
 	returns 'Vector3'
 
+native 'NETWORK_GET_NETWORK_ID_FROM_ENTITY'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'int'
+
 native "GET_HASH_KEY"
 	arguments {
 		charPtr "model",
