@@ -111,7 +111,7 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
                             }
                         }
 
-                        const uniqueBits = bits.filter((v, i, a) => a.indexOf(v) === i);
+                        const uniqueBits = bits.filter((v, i, a) => a.indexOf(v) === i && typeof(v) === 'string');
                         this.addAutoCompleteEntries(subKey, uniqueBits);
                     }
 
