@@ -90,6 +90,9 @@
 
     function formatValue(arg) {
         switch (true) {
+            case arg === null:
+                return 'null';
+
             case arg instanceof WeakMap:
                 return 'WeakMap {}';
 
