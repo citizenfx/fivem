@@ -30,7 +30,7 @@ static InitFunction initFunction([]()
 		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
 			const auto& ep = clientPtr->GetTcpEndPoint();
-			clientPtr->AddIdentifier("ip:" + ep.substr(0, ep.find_last_of(':')));
+			clientPtr->AddIdentifier("ip:" + ep);
 
 			cb({});
 		}
