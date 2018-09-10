@@ -460,31 +460,21 @@ static void V8_CanonicalizeRef(const v8::FunctionCallbackInfo<v8::Value>& args)
 	fwFree(refString);
 }
 
+struct RefAndPersistent {
+	std::string ref;
+	Persistent<Function> handle;
+	fx::OMPtr<V8ScriptRuntime> runtime;
+	fx::OMPtr<IScriptHost> host;
+};
+
 static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+	auto external = Local<External>::Cast(args.Data());
+	auto refData = reinterpret_cast<RefAndPersistent*>(external->Value());
 
-	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
+	OMPtr<IScriptHost> scriptHost = refData->runtime->GetScriptHost();
 
-	std::string refString;
-
-	if (args[0]->IsString())
-	{
-		Local<String> string = Local<String>::Cast(args[0]);
-		String::Utf8Value utf8{ string };
-		refString = *utf8;
-	}
-	else if (args[0]->IsUint8Array())
-	{
-		Local<Uint8Array> arr = Local<Uint8Array>::Cast(args[0]);
-		
-		std::vector<uint8_t> data(arr->ByteLength());
-		arr->CopyContents(data.data(), data.size());
-
-		refString = std::string(reinterpret_cast<char*>(data.data()), data.size());
-	}
-
-	Local<ArrayBufferView> abv = Local<ArrayBufferView>::Cast(args[1]);
+	Local<ArrayBufferView> abv = Local<ArrayBufferView>::Cast(args[0]);
 
 	// variables to hold state
 	fxNativeContext context = { 0 };
@@ -493,7 +483,7 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
 
 	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(refString.c_str());
+	context.arguments[0] = reinterpret_cast<uintptr_t>(refData->ref.c_str());
 
 	// argument data
 	size_t argLength;
@@ -517,6 +507,74 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 
 	Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, retLength);
 	args.GetReturnValue().Set(outArray);
+}
+
+static void FnRefWeakCallback(
+	const v8::WeakCallbackInfo<RefAndPersistent>& data)
+{
+	v8::Local<Function> v = data.GetParameter()->handle.Get(data.GetIsolate());
+
+	auto ref = data.GetParameter()->ref;
+
+	// variables to hold state
+	fxNativeContext context = { 0 };
+
+	context.numArguments = 1;
+	context.nativeIdentifier = HashString("DELETE_FUNCTION_REFERENCE");
+
+	// identifier string
+	context.arguments[0] = reinterpret_cast<uintptr_t>(ref.c_str());
+
+	// invoke
+	data.GetParameter()->host->InvokeNative(context);
+
+	data.GetParameter()->handle.Reset();
+	delete data.GetParameter();
+}
+
+static void V8_MakeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	std::string refString;
+
+	if (args[0]->IsString())
+	{
+		Local<String> string = Local<String>::Cast(args[0]);
+		String::Utf8Value utf8{ string };
+		refString = *utf8;
+	}
+	else if (args[0]->IsUint8Array())
+	{
+		Local<Uint8Array> arr = Local<Uint8Array>::Cast(args[0]);
+
+		std::vector<uint8_t> data(arr->ByteLength());
+		arr->CopyContents(data.data(), data.size());
+
+		refString = std::string(reinterpret_cast<char*>(data.data()), data.size());
+	}
+
+	RefAndPersistent* data = new RefAndPersistent;
+	data->ref = std::move(refString);
+	data->runtime = runtime;
+	data->host = runtime->GetScriptHost();
+
+	MaybeLocal<Function> outFunction = Function::New(runtime->GetContext(), V8_InvokeFunctionReference, External::New(GetV8Isolate(), data));
+
+	Local<Function> outFn;
+	
+	if (outFunction.ToLocal(&outFn))
+	{
+		data->handle.Reset(GetV8Isolate(), outFn);
+		data->handle.SetWeak(data, FnRefWeakCallback, v8::WeakCallbackType::kParameter);
+		data->handle.MarkIndependent();
+
+		args.GetReturnValue().Set(outFn);
+	}
+	else
+	{
+		delete data;
+	}
 }
 
 inline static std::chrono::milliseconds msec()
@@ -1108,7 +1166,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "setDeleteRefFunction", V8_SetDeleteRefFunction },
 	{ "setDuplicateRefFunction", V8_SetDuplicateRefFunction },
 	{ "canonicalizeRef", V8_CanonicalizeRef },
-	{ "invokeFunctionReference", V8_InvokeFunctionReference },
+	{ "makeFunctionReference", V8_MakeFunctionReference },
 	// internals
 	{ "getTickCount", V8_GetTickCount },
 	{ "invokeNative", V8_InvokeNative },
@@ -1691,6 +1749,9 @@ void V8ScriptGlobals::Initialize()
 
 	V8::SetFlagsFromCommandLine(&argc, (char**)argv, false);
 #endif
+
+	const char* flags = "--expose_gc";
+	V8::SetFlagsFromString(flags, strlen(flags));
 
 #ifdef _WIN32
 	V8::InitializeICUDefaultLocation(ToNarrow(MakeRelativeCitPath(L"dummy")).c_str());

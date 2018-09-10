@@ -41,8 +41,10 @@ const EXT_LOCALFUNCREF = 11;
 	}
 
 	function refFunctionUnpacker(refSerialized) {
+		const fnRef = Citizen.makeFunctionReference(refSerialized);
+	
 		return function (...args) {
-			return unpack(Citizen.invokeFunctionReference(refSerialized, pack(args)));
+			return unpack(fnRef(pack(args)));
 		};
 	}
 
