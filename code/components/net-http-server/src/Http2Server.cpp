@@ -42,7 +42,7 @@ public:
 		}
 
 		m_headers = headers;
-		m_headers[":status"] = std::to_string(statusCode);
+		m_headers.insert({ ":status", std::to_string(statusCode) });
 		
 		for (auto& header : m_headerList)
 		{

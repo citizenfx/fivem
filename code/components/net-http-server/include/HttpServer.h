@@ -21,7 +21,7 @@ struct HeaderComparator : std::binary_function<std::string, std::string, bool>
 	}
 };
 
-typedef std::map<std::string, std::string, HeaderComparator> HeaderMap;
+typedef std::multimap<std::string, std::string, HeaderComparator> HeaderMap;
 
 class HttpRequest : public fwRefCountable
 {
@@ -138,6 +138,8 @@ public:
 	void RemoveHeader(const std::string& name);
 
 	void SetHeader(const std::string& name, const std::string& value);
+
+	void SetHeader(const std::string& name, const std::vector<std::string>& values);
 
 	void WriteHead(int statusCode);
 

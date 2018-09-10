@@ -110,9 +110,16 @@ public:
 				{
 					net::HeaderMap headers;
 
-					for (auto& pair : state[1].as<std::map<std::string, std::string>>())
+					for (auto& pair : state[1].as<std::map<std::string, msgpack::object>>())
 					{
-						response->SetHeader(pair.first, pair.second);
+						if (pair.second.type == msgpack::type::ARRAY)
+						{
+							response->SetHeader(pair.first, pair.second.as<std::vector<std::string>>());
+						}
+						else
+						{
+							response->SetHeader(pair.first, pair.second.as<std::string>());
+						}
 					}
 
 					response->SetStatusCode(state[0].as<int>());

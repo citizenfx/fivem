@@ -57,7 +57,18 @@ std::string HttpResponse::GetHeader(const std::string& name)
 
 void HttpResponse::SetHeader(const std::string& name, const std::string& value)
 {
-	m_headerList[name] = value;
+	m_headerList.erase(name);
+	m_headerList.insert({ name, value });
+}
+
+void HttpResponse::SetHeader(const std::string& name, const std::vector<std::string>& values)
+{
+	m_headerList.erase(name);
+
+	for (const auto& value : values)
+	{
+		m_headerList.insert({ name, value });
+	}
 }
 
 void HttpResponse::RemoveHeader(const std::string& name)
