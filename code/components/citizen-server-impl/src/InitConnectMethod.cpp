@@ -127,6 +127,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 struct TicketData
 {
 	std::optional<std::array<uint8_t, 20>> entitlementHash;
+	std::optional<std::string> extraJson;
 };
 
 static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
@@ -200,6 +201,16 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 		memcpy(entitlementHash.data(), &extraData[0], entitlementHash.size());
 
 		outData.entitlementHash = entitlementHash;
+	}
+
+	if (length >= 24)
+	{
+		uint32_t extraJsonLength = *(uint32_t*)&extraData[20];
+
+		if (length >= (24 + extraJsonLength))
+		{
+			outData.extraJson = std::string{ (char*)&extraData[24], extraJsonLength };
+		}
 	}
 
 	return outData;
@@ -343,6 +354,11 @@ static InitFunction initFunction([]()
 					hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]));
 			}
 
+			if (ticketData.extraJson)
+			{
+				client->SetData("entitlementJson", *ticketData.extraJson);
+			}
+
 			client->Touch();
 
 			auto it = g_serverProviders.begin();
@@ -371,8 +387,12 @@ static InitFunction initFunction([]()
 					std::string idType = identifier.substr(0, identifier.find_first_of(':'));
 
 					auto provider = g_providersByType[idType];
-					maxTrust = std::max(provider->GetTrustLevel(), maxTrust);
-					minVariance = std::min(provider->GetVarianceLevel(), minVariance);
+
+					if (provider)
+					{
+						maxTrust = std::max(provider->GetTrustLevel(), maxTrust);
+						minVariance = std::min(provider->GetVarianceLevel(), minVariance);
+					}
 				}
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())

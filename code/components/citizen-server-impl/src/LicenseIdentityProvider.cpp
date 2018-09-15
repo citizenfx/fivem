@@ -8,6 +8,10 @@
 #include "StdInc.h"
 #include <ServerIdentityProvider.h>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 static InitFunction initFunction([]()
 {
 	static struct LicenseIdProvider : public fx::ServerIdentityProviderBase
@@ -34,6 +38,28 @@ static InitFunction initFunction([]()
 			if (any.has_value())
 			{
 				clientPtr->AddIdentifier(fmt::sprintf("license:%s", std::any_cast<std::string>(any)));
+			}
+
+			auto& jsonAny = clientPtr->GetData("entitlementJson");
+
+			if (jsonAny.has_value())
+			{
+				try
+				{
+					json json = json::parse(std::any_cast<std::string>(jsonAny));
+
+					if (json["tk"].is_array())
+					{
+						for (auto& entry : json["tk"])
+						{
+							clientPtr->AddIdentifier(entry.get<std::string>());
+						}
+					}
+				}
+				catch (std::exception& e)
+				{
+
+				}
 			}
 
 			cb({});
