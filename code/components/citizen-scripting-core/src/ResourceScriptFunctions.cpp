@@ -233,4 +233,12 @@ static InitFunction initFunction([] ()
 	{
 		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(0)));
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PRINCIPAL_ACE_ALLOWED", [](fx::ScriptContext& context)
+	{
+		se::ScopedPrincipalReset reset;
+		se::ScopedPrincipal principalScope(se::Principal{ context.CheckArgument<const char*>(0) });
+
+		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(1)));
+	});
 });

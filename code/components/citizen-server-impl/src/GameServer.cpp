@@ -73,7 +73,9 @@ namespace fx
 	{
 		g_gameServer = this;
 
-		seCreateContext(&m_seContext);
+		// TODO: re-enable this when we actually figure out threading
+		//seCreateContext(&m_seContext);
+		m_seContext = seGetCurrentContext();
 
 		m_seContext->MakeCurrent();
 		m_seContext->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "command" }, se::AccessType::Allow);

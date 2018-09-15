@@ -984,6 +984,14 @@ native 'IS_PLAYER_ACE_ALLOWED'
 	}
 	apiset 'server'
 	returns 'BOOL'
+	
+native 'IS_PRINCIPAL_ACE_ALLOWED'
+	arguments {
+		charPtr 'principal',
+		charPtr 'object'
+	}
+	apiset 'shared'
+	returns 'BOOL'
 
 native 'FIND_FIRST_PED'
 	arguments {
