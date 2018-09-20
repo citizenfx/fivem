@@ -120,9 +120,48 @@ static std::unordered_set<GtaThread*> g_ownedThreads;
 
 bool IsScriptInited();
 
+struct NativeHash
+{
+public:
+	explicit inline NativeHash(uint64_t hash)
+	{
+		m_hash = hash;
+	}
+
+	inline uint64_t GetHash() const
+	{
+		return m_hash;
+	}
+
+	inline bool operator==(const NativeHash& right) const
+	{
+		return m_hash == right.m_hash;
+	}
+
+	inline bool operator!=(const NativeHash& right) const
+	{
+		return !(*this == right);
+	}
+
+private:
+	uint64_t m_hash;
+};
+
+namespace std
+{
+template<>
+struct hash<NativeHash>
+{
+	inline size_t operator()(const NativeHash& hash) const
+	{
+		return hash.GetHash();
+	}
+};
+}
+
 namespace rage
 {
-static std::unordered_map<uint64_t, scrEngine::NativeHandler> g_fastPathMap;
+static std::unordered_map<NativeHash, scrEngine::NativeHandler> g_fastPathMap;
 
 pgPtrCollection<GtaThread>* scrEngine::GetThreadCollection()
 {
@@ -221,7 +260,7 @@ bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 	uint64_t origHash = hash;
 
 	// remove cached fastpath native
-	g_fastPathMap.erase(origHash);
+	g_fastPathMap.erase(NativeHash{ origHash });
 
 	hash = MapNative(hash);
 
@@ -352,7 +391,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 
 	scrEngine::NativeHandler handler = nullptr;
 
-	auto it = g_fastPathMap.find(hash);
+	auto it = g_fastPathMap.find(NativeHash{ hash });
 
 	if (it != g_fastPathMap.end())
 	{
@@ -376,7 +415,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 					handler = (scrEngine::NativeHandler)/*DecodePointer(*/table->handlers[i]/*)*/;
 					HandlerFilter(&handler);
 
-					g_fastPathMap.insert({ origHash, handler });
+					g_fastPathMap.insert({ NativeHash{ origHash }, handler });
 
 					break;
 				}

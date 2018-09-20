@@ -183,7 +183,7 @@ static InitFunction initFunction([] ()
 
 		bool SendMessage(const char* jsonString)
 		{
-			fx::ScriptContext fakeCxt;
+			fx::ScriptContextBuffer fakeCxt;
 			fakeCxt.Push(jsonString);
 
 			sendMessageToFrame(fakeCxt, "SEND_DUI_MESSAGE", [this](std::string_view data)

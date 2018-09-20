@@ -54,14 +54,14 @@ enum eThreadState
 class scrNativeCallContext
 {
 protected:
-	void* m_pReturn;
-	uint32_t m_nArgCount;
-	void* m_pArgs;
+	void* m_pReturn; // +0
+	uint32_t m_nArgCount; // +8
+	void* m_pArgs; // +16
 
-	uint32_t m_nDataCount;
+	uint32_t m_nDataCount; // +24
 
 	// scratch space for vector things
-	alignas(uintptr_t) uint8_t m_vectorSpace[192];
+	alignas(uintptr_t) uint8_t m_vectorSpace[192]; // +32
 
 public:
 	template<typename T>
@@ -93,8 +93,31 @@ public:
 		return *(T*)&returnValues[idx];
 	}
 
+	inline void* GetArgumentBuffer()
+	{
+		return m_pArgs;
+	}
+
 	// copy vector3 pointer results to the initial argument
-	void RAGE_SCRIPTING_EXPORT SetVectorResults();
+	inline void SetVectorResults()
+	{
+		// badly copied from IDA for optimization
+		auto a1 = (uintptr_t)this;
+
+		uint64_t result;
+
+		for (; *(DWORD *)(a1 + 24); *(DWORD *)(*(uint64_t *)(a1 + 8i64 * *(signed int *)(a1 + 24) + 32) + 16i64) = result)
+		{
+			--*(DWORD *)(a1 + 24);
+			**(DWORD **)(a1 + 8i64 * *(signed int *)(a1 + 24) + 32) = *(DWORD *)(a1 + 16 * (*(signed int *)(a1 + 24) + 4i64));
+			*(DWORD *)(*(uint64_t *)(a1 + 8i64 * *(signed int *)(a1 + 24) + 32) + 8i64) = *(DWORD *)(a1
+				+ 16i64
+				* *(signed int *)(a1 + 24)
+				+ 68);
+			result = *(unsigned int *)(a1 + 16i64 * *(signed int *)(a1 + 24) + 72);
+		}
+		--*(DWORD *)(a1 + 24);
+	}
 };
 
 // size should be 168

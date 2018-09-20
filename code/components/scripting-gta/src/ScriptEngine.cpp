@@ -15,7 +15,7 @@
 #include <scrEngine.h>
 
 template<typename THandler>
-static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, NativeContext& rageContext)
+static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
 {
 	// call the original function
 	static void* exceptionAddress;
@@ -61,21 +61,33 @@ namespace fx
 #endif*/
 
 			// push arguments from the original context
-			NativeContext rageContext;
-			
-			for (int i = 0; i < context.GetArgumentCount(); i++)
-			{
-				rageContext.Push(context.GetArgument<uintptr_t>(i));
-			}
+			NativeContextRaw rageContext(context.GetArgumentBuffer(), context.GetArgumentCount());
+
+			CallHandler(rageHandler, nativeIdentifier, rageContext);
+
+			// append vector3 result components
+			rageContext.SetVectorResults();
+		});
+	}
+
+	bool __declspec(safebuffers) ScriptEngine::CallNativeHandler(uint64_t nativeIdentifier, ScriptContext& context)
+	{
+		auto rageHandler = rage::scrEngine::GetNativeHandler(nativeIdentifier);
+
+		if (rageHandler)
+		{
+			// push arguments from the original context
+			NativeContextRaw rageContext(context.GetArgumentBuffer(), context.GetArgumentCount());
 
 			CallHandler(rageHandler, nativeIdentifier, rageContext);
 
 			// append vector3 result components
 			rageContext.SetVectorResults();
 
-			// set return data
-			context.SetResult(rageContext.GetResult<scrVector>());
-		});
+			return true;
+		}
+
+		return false;
 	}
 
 	void ScriptEngine::RegisterNativeHandler(const std::string& nativeName, TNativeHandler function)
@@ -119,18 +131,10 @@ namespace fx
 			TNativeHandler* handler = reinterpret_cast<TNativeHandler*>(handlerData);
 
 			// turn into a native context
-			ScriptContext cfxContext;
-			
-			for (int i = 0; i < context->GetArgumentCount(); i++)
-			{
-				cfxContext.Push(context->GetArgument<uintptr_t>(i));
-			}
+			ScriptContextRaw cfxContext(context->GetArgumentBuffer(), context->GetArgumentCount());
 
 			// call the native
 			(*handler)(cfxContext);
-
-			// push the (single) result
-			context->SetResult(0, cfxContext.GetResult<scrVector>());
 		});
 
 		rage::scrEngine::RegisterNativeHandler(nativeIdentifier, reinterpret_cast<rage::scrEngine::NativeHandler>(callStub->GetCode()));

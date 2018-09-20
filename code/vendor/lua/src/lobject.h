@@ -601,6 +601,21 @@ LUAI_FUNC const char *luaO_pushvfstring (lua_State *L, const char *fmt,
 LUAI_FUNC const char *luaO_pushfstring (lua_State *L, const char *fmt, ...);
 LUAI_FUNC void luaO_chunkid (char *out, const char *source, size_t len);
 
+/*
+** fast access functions
+*/
+LUA_API TValue lua_getvalue(lua_State *L, int idx);
+LUA_API int lua_valuetype(lua_State* L, TValue o);
+LUA_API int lua_valueisinteger(lua_State* L, TValue o);
+LUA_API int lua_valueisfloat(lua_State* L, TValue o);
+LUA_API lua_Integer lua_valuetointeger(lua_State* L, TValue o);
+LUA_API lua_Number lua_valuetonumber(lua_State* L, TValue o);
+LUA_API int lua_valuetoboolean(lua_State* L, TValue o);
+LUA_API const char *lua_valuetostring(lua_State *L, TValue o);
+LUA_API lua_Float4 lua_valuetofloat4(lua_State* L, TValue o);
+LUA_API void *lua_valuetouserdata(lua_State *L, TValue o);
+
+
 
 #endif
 

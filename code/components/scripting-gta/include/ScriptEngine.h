@@ -15,6 +15,8 @@
 
 #include <boost/optional.hpp>
 
+#define SCRT_HAS_CALLNATIVEHANDLER 1
+
 namespace fx
 {
 	class ScriptContext
@@ -26,36 +28,37 @@ namespace fx
 			ArgumentSize = sizeof(void*)
 		};
 
-	private:
-		uint8_t m_functionData[MaxArguments][ArgumentSize];
+	protected:
+		void* m_argumentBuffer;
 
 		int m_numArguments;
 		int m_numResults;
-		
-	public:
-		inline ScriptContext()
-		{
-			m_numArguments = 0;
-			m_numResults = 0;
-		}
 
+	protected:
+		inline ScriptContext() = default;
+
+	public:
 		template<typename T>
 		inline const T& GetArgument(int index)
 		{
-			return *reinterpret_cast<T*>(&m_functionData[index][0]);
+			auto functionData = (uintptr_t*)m_argumentBuffer;
+
+			return *reinterpret_cast<T*>(&functionData[index]);
 		}
 
 		template<typename T>
 		inline void SetArgument(int index, const T& value)
 		{
+			auto functionData = (uintptr_t*)m_argumentBuffer;
+
 			static_assert(sizeof(T) <= ArgumentSize, "Argument size of T");
 
 			if (sizeof(T) < ArgumentSize)
 			{
-				*reinterpret_cast<uintptr_t*>(&m_functionData[index][0]) = 0;
+				*reinterpret_cast<uintptr_t*>(&functionData[index]) = 0;
 			}
 
-			*reinterpret_cast<T*>(&m_functionData[index][0]) = value;
+			*reinterpret_cast<T*>(&functionData[index]) = value;
 		}
 
 		template<typename T>
@@ -79,26 +82,30 @@ namespace fx
 		template<typename T>
 		inline void Push(const T& value)
 		{
+			auto functionData = (uintptr_t*)m_argumentBuffer;
+
 			static_assert(sizeof(T) <= ArgumentSize, "Argument size of T");
 
 			if (sizeof(T) < ArgumentSize)
 			{
-				*reinterpret_cast<uintptr_t*>(&m_functionData[m_numArguments][0]) = 0;
+				*reinterpret_cast<uintptr_t*>(&functionData[m_numArguments]) = 0;
 			}
 
-			*reinterpret_cast<T*>(&m_functionData[m_numArguments][0]) = value;
+			*reinterpret_cast<T*>(&functionData[m_numArguments]) = value;
 			m_numArguments++;
 		}
 
 		template<typename T>
 		inline void SetResult(const T& value)
 		{
+			auto functionData = (uintptr_t*)m_argumentBuffer;
+
 			if (sizeof(T) < ArgumentSize)
 			{
-				*reinterpret_cast<uintptr_t*>(&m_functionData[0][0]) = 0;
+				*reinterpret_cast<uintptr_t*>(&functionData[0]) = 0;
 			}
 
-			*reinterpret_cast<T*>(&m_functionData[0][0]) = value;
+			*reinterpret_cast<T*>(&functionData[0]) = value;
 
 			m_numResults = 1;
 			m_numArguments = 0;
@@ -107,7 +114,41 @@ namespace fx
 		template<typename T>
 		inline T GetResult()
 		{
-			return *reinterpret_cast<T*>(m_functionData);
+			auto functionData = (uintptr_t*)m_argumentBuffer;
+
+			return *reinterpret_cast<T*>(functionData);
+		}
+
+		inline void* GetArgumentBuffer()
+		{
+			return m_argumentBuffer;
+		}
+	};
+
+	class ScriptContextRaw : public ScriptContext
+	{
+	public:
+		inline ScriptContextRaw(void* functionBuffer, int numArguments)
+		{
+			m_argumentBuffer = functionBuffer;
+
+			m_numArguments = numArguments;
+			m_numResults = 0;
+		}
+	};
+
+	class ScriptContextBuffer : public ScriptContext
+	{
+	private:
+		uint8_t m_functionData[MaxArguments][ArgumentSize];
+
+	public:
+		inline ScriptContextBuffer()
+		{
+			m_argumentBuffer = &m_functionData;
+
+			m_numArguments = 0;
+			m_numResults = 0;
 		}
 	};
 
@@ -117,6 +158,8 @@ namespace fx
 	{
 	public:
 		static boost::optional<TNativeHandler> GetNativeHandler(uint64_t nativeIdentifier);
+
+		static bool CallNativeHandler(uint64_t nativeIdentifier, ScriptContext& context);
 
 		static void RegisterNativeHandler(uint64_t nativeIdentifier, TNativeHandler function);
 

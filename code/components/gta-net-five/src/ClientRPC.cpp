@@ -260,7 +260,7 @@ static InitFunction initFunction([]()
 									{
 										const uint64_t REQUEST_MODEL_GTA5 = 0x963D27A58DF860AC;
 
-										fx::ScriptContext reqCtx;
+										fx::ScriptContextBuffer reqCtx;
 										reqCtx.Push(hash);
 
 										(*fx::ScriptEngine::GetNativeHandler(REQUEST_MODEL_GTA5))(reqCtx);
@@ -270,7 +270,7 @@ static InitFunction initFunction([]()
 									{
 										const uint64_t HAS_MODEL_LOADED_GTA5 = 0x98A4EB5D89A0C952;
 
-										fx::ScriptContext loadedCtx;
+										fx::ScriptContextBuffer loadedCtx;
 										loadedCtx.Push(hash);
 
 										(*fx::ScriptEngine::GetNativeHandler(HAS_MODEL_LOADED_GTA5))(loadedCtx);
@@ -282,7 +282,7 @@ static InitFunction initFunction([]()
 									{
 										const uint64_t SET_MODEL_AS_NO_LONGER_NEEDED_GTA5 = 0xE532F5D78798DAAB;
 
-										fx::ScriptContext releaseCtx;
+										fx::ScriptContextBuffer releaseCtx;
 										releaseCtx.Push(hash);
 
 										(*fx::ScriptEngine::GetNativeHandler(SET_MODEL_AS_NO_LONGER_NEEDED_GTA5))(releaseCtx);
@@ -330,7 +330,7 @@ static InitFunction initFunction([]()
 						{
 							buf->Seek(startPosition);
 
-							auto executionCtx = std::make_shared<fx::ScriptContext>();
+							auto executionCtx = std::make_shared<fx::ScriptContextBuffer>();
 
 							int i = 0;
 

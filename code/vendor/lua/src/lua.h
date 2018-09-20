@@ -169,7 +169,6 @@ LUA_API int   (lua_checkstack) (lua_State *L, int n);
 
 LUA_API void  (lua_xmove) (lua_State *from, lua_State *to, int n);
 
-
 /*
 ** access functions (stack -> C)
 */

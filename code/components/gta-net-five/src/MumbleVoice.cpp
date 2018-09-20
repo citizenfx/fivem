@@ -316,7 +316,7 @@ static void Mumble_RunFrame()
 
 	// handle PTT
 	auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
-	fx::ScriptContext cxt;
+	fx::ScriptContextBuffer cxt;
 
 	cxt.Push(0);
 	cxt.Push(249); // INPUT_PUSH_TO_TALK
@@ -508,7 +508,7 @@ public:
 	template<typename R, typename... Args>
 	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
 	{
-		fx::ScriptContext cxt;
+		fx::ScriptContextBuffer cxt;
 
 		pass{ ([&]()
 		{

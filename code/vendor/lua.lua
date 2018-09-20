@@ -7,6 +7,8 @@ return {
 		targetname "lua"
 		language "C"
 		kind "StaticLib"
+		
+		flags { "LinkTimeOptimization" }
 
 		files
 		{
