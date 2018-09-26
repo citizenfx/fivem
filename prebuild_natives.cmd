@@ -11,4 +11,6 @@ xcopy /y out\*.js ..\..\data\shared\citizen\scripting\v8
 xcopy /y out\*.d.ts ..\..\data\shared\citizen\scripting\v8
 xcopy /y out\rpc_natives.json ..\..\data\shared\citizen\scripting
 xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
+
+xcopy /y out\*.cs ..\..\code\client\clrcore
 popd
