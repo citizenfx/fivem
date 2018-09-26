@@ -1170,24 +1170,61 @@ static InitFunction initFunction([]()
 		};
 	};
 
+	struct scrVector
+	{
+		float x;
+		int pad;
+		float y;
+		int pad2;
+		float z;
+		int pad3;
+	};
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		struct scrVector
-		{
-			float x;
-			int pad;
-			float y;
-			int pad2;
-			float z;
-			int pad3;
-		};
-
 		scrVector resultVec = { 0 };
 		resultVec.x = entity->GetData("posX", 0.0f);
 		resultVec.y = entity->GetData("posY", 0.0f);
 		resultVec.z = entity->GetData("posZ", 0.0f);
 
 		return resultVec;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_VELOCITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		scrVector resultVec = { 0 };
+		resultVec.x = entity->GetData("velX", 0.0f);
+		resultVec.y = entity->GetData("velY", 0.0f);
+		resultVec.z = entity->GetData("velZ", 0.0f);
+
+		return resultVec;
+	}));
+
+	static const float pi = 3.14159265358979323846f;
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION_VELOCITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		scrVector resultVec = { 0 };
+		resultVec.x = entity->GetData("angVelX", 0.0f);
+		resultVec.y = entity->GetData("angVelY", 0.0f);
+		resultVec.z = entity->GetData("angVelZ", 0.0f);
+
+		return resultVec;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		scrVector resultVec = { 0 };
+		resultVec.x = entity->GetData("rotX", 0.0f) * 180.0 / pi;
+		resultVec.y = entity->GetData("rotY", 0.0f) * 180.0 / pi;
+		resultVec.z = entity->GetData("rotZ", 0.0f) * 180.0 / pi;
+
+		return resultVec;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEADING", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->GetData("angVelZ", 0.0f) * 180.0 / pi;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_NETWORK_ID_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)

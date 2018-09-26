@@ -231,6 +231,32 @@ static void DeleteNetworkCloneWrap(void* objectMgr, void* netObject, int reason,
 
 static HookFunction initFunction([]()
 {
+	// not a vehicle native
+	static uint32_t setAngVelocityOffset = *hook::get_pattern<uint32_t>("75 11 48 8B 06 48 8D 54 24 20 48 8B CE FF 90", 15) / 8;
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ROTATION_VELOCITY", [](fx::ScriptContext& context)
+	{
+		fwEntity* entity = getScriptEntity(context.GetArgument<int>(0));
+
+		if (!entity)
+		{
+			trace("Invalid entity ID passed to SET_ENTITY_ROTATION_VELOCITY.\n");
+			return;
+		}
+
+		auto vtbl = *(uintptr_t**)entity;
+		auto setAngularVelocity = (void(*)(fwEntity*, float*))vtbl[setAngVelocityOffset];
+
+		alignas(16) float newVelocity[4];
+		newVelocity[0] = context.GetArgument<float>(1);
+		newVelocity[1] = context.GetArgument<float>(2);
+		newVelocity[2] = context.GetArgument<float>(3);
+		newVelocity[3] = 0.0f;
+
+		setAngularVelocity(entity, newVelocity);
+	});
+
+	// vehicle natives
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_FUEL_LEVEL", readVehicleMemory<float, FuelLevelOffset>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_FUEL_LEVEL", writeVehicleMemory<float, FuelLevelOffset>);
 

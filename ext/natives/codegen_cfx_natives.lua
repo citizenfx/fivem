@@ -1095,6 +1095,25 @@ native 'SET_VEHICLE_AUTO_REPAIR_DISABLED'
 	<param name="vehicle">The vehicle to set disable auto vehicle repair.</param>
 	<param name="value">Setting the value to  true prevents the vehicle from being repaired when a extra is enabled. Setting the value to false allows the vehicle from being repaired when a extra is enabled.</param>
 	]]
+	
+native 'SET_ENTITY_ROTATION_VELOCITY'
+	arguments {
+		Entity 'entity',
+		float 'x',
+		float 'y',
+		float 'z'
+	}
+	apiset 'client'
+	returns 'void'
+	doc [[
+	<summary>
+	The reverse of GET_VEHICLE_ROTATION_VELOCITY.
+	</summary>
+	<param name="entity">The target entity.</param>
+	<param name="x">X component of the vector.</param>
+	<param name="y">Y component of the vector.</param>
+	<param name="z">Z component of the vector.</param>
+]]
 
 native 'GET_VEHICLE_FUEL_LEVEL'
 	arguments {
@@ -1934,6 +1953,34 @@ native 'GET_ENTITY_COORDS'
 	}
 	apiset 'server'
 	returns 'Vector3'
+	
+native 'GET_ENTITY_VELOCITY'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'
+	
+native 'GET_ENTITY_ROTATION_VELOCITY'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'
+	
+native 'GET_ENTITY_ROTATION'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'Vector3'
+	
+native 'GET_ENTITY_HEADING'
+	arguments {
+		Entity 'entity'
+	}
+	apiset 'server'
+	returns 'float'
 
 native 'NETWORK_GET_NETWORK_ID_FROM_ENTITY'
 	arguments {

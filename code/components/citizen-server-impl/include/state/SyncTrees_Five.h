@@ -440,9 +440,67 @@ struct CPedGameStateDataNode
 	}
 };
 
-struct CEntityOrientationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalVelocityDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleAngVelocityDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CEntityOrientationDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
+		auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
+		auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
+
+		state.entity->data["rotX"] = rotX;
+		state.entity->data["rotY"] = rotY;
+		state.entity->data["rotZ"] = rotZ;
+
+		return true;
+	}
+};
+
+struct CPhysicalVelocityDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		auto velX = state.buffer.ReadSigned<int>(12) * 0.0625f;
+		auto velY = state.buffer.ReadSigned<int>(12) * 0.0625f;
+		auto velZ = state.buffer.ReadSigned<int>(12) * 0.0625f;
+
+		state.entity->data["velX"] = velX;
+		state.entity->data["velY"] = velY;
+		state.entity->data["velZ"] = velZ;
+
+		return true;
+	}
+};
+
+struct CVehicleAngVelocityDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		auto hasNoVelocity = state.buffer.ReadBit();
+
+		if (!hasNoVelocity)
+		{
+			auto velX = state.buffer.ReadSigned<int>(10) * 0.03125f;
+			auto velY = state.buffer.ReadSigned<int>(10) * 0.03125f;
+			auto velZ = state.buffer.ReadSigned<int>(10) * 0.03125f;
+
+			state.entity->data["angVelX"] = velX;
+			state.entity->data["angVelY"] = velY;
+			state.entity->data["angVelZ"] = velZ;
+		}
+		else
+		{
+			state.entity->data["angVelX"] = 0.0f;
+			state.entity->data["angVelY"] = 0.0f;
+			state.entity->data["angVelZ"] = 0.0f;
+
+			state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
 struct CVehicleSteeringDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleGadgetDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -463,7 +521,21 @@ struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return tru
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalAngVelocityDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPhysicalAngVelocityDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		auto velX = state.buffer.ReadSigned<int>(10) * 0.03125f;
+		auto velY = state.buffer.ReadSigned<int>(10) * 0.03125f;
+		auto velZ = state.buffer.ReadSigned<int>(10) * 0.03125f;
+
+		state.entity->data["angVelX"] = velX;
+		state.entity->data["angVelY"] = velY;
+		state.entity->data["angVelZ"] = velZ;
+
+		return true;
+	}
+};
 //struct CPedCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedScriptCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 //struct CPedGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };

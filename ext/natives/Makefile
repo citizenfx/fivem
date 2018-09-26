@@ -54,7 +54,7 @@ out/NativesFive.cs: natives_stash/gta_universal.lua $(CODEGEN_SCRIPTS) codegen_o
 	./lua53 codegen.lua natives_stash/gta_universal.lua cs >> $@
 	echo "$$NATIVES_FIVE_FOOTER" >> $@
 
-out/NativesServer.cs: $(CODEGEN_SCRIPTS) codegen_out_cs.lua
+out/NativesServer.cs: $(CODEGEN_SCRIPTS) codegen_out_cs.lua rpc_spec_natives.lua
 	echo "$$NATIVES_SERVER_HEADER" > $@
 	./lua53 codegen.lua natives_stash/gta_universal.lua enum server >> $@
 	./lua53 codegen.lua natives_stash/gta_universal.lua cs server >> $@
@@ -63,13 +63,13 @@ out/NativesServer.cs: $(CODEGEN_SCRIPTS) codegen_out_cs.lua
 out/rpc_natives.json: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_rpc.lua rpc_spec_natives.lua
 	./lua53 codegen.lua natives_stash/gta_universal.lua rpc server > $@
 
-out/natives_server.lua: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_lua.lua
+out/natives_server.lua: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_lua.lua rpc_spec_natives.lua
 	./lua53 codegen.lua natives_stash/gta_universal.lua lua server > $@
 
-out/natives_server.d.ts: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_dts.lua
+out/natives_server.d.ts: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_dts.lua rpc_spec_natives.lua
 	./lua53 codegen.lua natives_stash/gta_universal.lua dts server > $@
 
-out/natives_server.js: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_js.lua
+out/natives_server.js: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_js.lua rpc_spec_natives.lua
 	./lua53 codegen.lua natives_stash/gta_universal.lua js server > $@
 
 out/natives_%.lua: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua
