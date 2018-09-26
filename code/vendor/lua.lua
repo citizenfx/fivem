@@ -8,7 +8,9 @@ return {
 		language "C"
 		kind "StaticLib"
 		
-		flags { "LinkTimeOptimization" }
+		if os.istarget('windows') then
+			flags { "LinkTimeOptimization" }
+		end
 
 		files
 		{
