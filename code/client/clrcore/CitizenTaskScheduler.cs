@@ -172,7 +172,13 @@ namespace CitizenFX.Core
 			var field = typeof(TaskScheduler).GetField("s_defaultTaskScheduler", BindingFlags.Static | BindingFlags.NonPublic);
 			field.SetValue(null, Instance);
 
-			field = typeof(Task).GetField("s_factory", BindingFlags.Static | BindingFlags.NonPublic);
+			field = typeof(Task).GetField("<Factory>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
+
+			if (field == null)
+			{
+				field = typeof(Task).GetField("s_factory", BindingFlags.Static | BindingFlags.NonPublic);
+			}
+
 			field.SetValue(null, Factory);
 		}
 
