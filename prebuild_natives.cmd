@@ -1,6 +1,8 @@
 @echo off
 
-set path=%path%;C:\msys64\usr\bin
+set path=C:\msys64\usr\bin;%path%
+
+pacman --noconfirm --needed -S make
 
 pushd ext\natives\
 make -j4
