@@ -69,6 +69,8 @@ private:
 
 	HANDLE m_lastParentHandle;
 
+	bool m_dereferencedNuiTexture;
+
 public:
 	inline int		GetWidth() { return m_width; }
 	inline int		GetHeight() { return m_height; }

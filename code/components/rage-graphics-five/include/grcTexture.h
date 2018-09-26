@@ -105,6 +105,12 @@ private:
 
 public:
 	ID3D11Resource* texture;
+
+private:
+	char m_pad2[56];
+
+public:
+	ID3D11ShaderResourceView* srv;
 };
 
 #define FORMAT_A8R8G8B8 40

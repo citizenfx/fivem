@@ -22,7 +22,7 @@
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
 	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_parentTexture(nullptr), m_swapTexture(nullptr),
-	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_lastParentHandle(nullptr)
+	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_lastParentHandle(nullptr), m_dereferencedNuiTexture(false)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 
@@ -392,8 +392,6 @@ CefBrowser* NUIWindow::GetBrowser()
 	return ((NUIClient*)m_client.get())->GetBrowser();
 }
 
-static HANDLE g_resetEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-
 void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects)
 {
 	static bool createdClient;
@@ -435,21 +433,35 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 					oldTexture->Release();
 				}
 
+				struct
+				{
+					void* vtbl;
+					ID3D11Device* rawDevice;
+				}*deviceStuff = (decltype(deviceStuff))device;
+
 				if (!m_primary)
 				{
 					auto oldSrv = m_swapSrv;
-
-					struct
-					{
-						void* vtbl;
-						ID3D11Device* rawDevice;
-					}* deviceStuff = (decltype(deviceStuff))device;
 
 					deviceStuff->rawDevice->CreateShaderResourceView(GetParentTexture(), nullptr, &m_swapSrv);
 
 					if (oldSrv)
 					{
 						oldSrv->Release();
+					}
+				}
+				else
+				{
+					if (m_nuiTexture)
+					{
+						m_nuiTexture->texture->Release();
+
+						m_nuiTexture->texture = texture;
+						texture->AddRef();
+
+						m_nuiTexture->srv->Release();
+
+						deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &m_nuiTexture->srv);
 					}
 				}
 
@@ -479,8 +491,6 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 	}
 
 	MarkRenderBufferDirty();
-
-	WaitForSingleObject(g_resetEvent, INFINITE);
 }
 
 #include <d3d11_1.h>
@@ -550,15 +560,6 @@ void NUIWindow::UpdateFrame()
 
 	m_pollQueue.clear();
 
-	static std::once_flag of;
-
-	std::call_once(of, [&] ()
-	{
-		static NUIWindow* window = this;
-
-		SetEvent(g_resetEvent);
-	});
-
 	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
 	ID3D11Texture2D* texture = GetParentTexture();
 
@@ -571,7 +572,8 @@ void NUIWindow::UpdateFrame()
 		// this'll use a bunch of additional GPU memory bandwidth, but this should not be an
 		// issue on any modern GPU.
 		//
-		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
+		//if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
+		if (!m_primary)
 		{
 			HRESULT hr = S_OK;
 
@@ -731,8 +733,6 @@ void NUIWindow::UpdateFrame()
 
 					memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 				}
-
-				SetEvent(g_resetEvent);
 			}
 			else
 			{
