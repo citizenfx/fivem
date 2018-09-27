@@ -754,17 +754,12 @@ int Lua_InvokeNative(lua_State* L)
 				}
 
 				// push the offset and set the type
-				retvals[numReturnValues] = 0;
-
 				push(&retvals[numReturnValues]);
 				rettypes[numReturnValues] = metaField;
 
 				// increment the counter
 				if (metaField == LuaMetaFields::PointerValueVector)
 				{
-					retvals[numReturnValues + 1] = 0;
-					retvals[numReturnValues + 2] = 0;
-
 					numReturnValues += 3;
 				}
 				else
@@ -787,6 +782,14 @@ int Lua_InvokeNative(lua_State* L)
 				case LuaMetaFields::PointerValueFloat:
 				case LuaMetaFields::PointerValueVector:
 				{
+					retvals[numReturnValues] = 0;
+
+					if (metaField == LuaMetaFields::PointerValueVector)
+					{
+						retvals[numReturnValues + 1] = 0;
+						retvals[numReturnValues + 2] = 0;
+					}
+
 					pushPtr(metaField);
 
 					break;
