@@ -8,7 +8,7 @@ apiset: shared
 BOOL WAS_EVENT_CANCELED();
 ```
 
-Returns whether or not the currently executing event was canceled. See https://wiki.fivem.net/wiki/WasEventCanceled
+Returns whether or not the currently executing event was canceled.
 
 ## Return value
 A boolean.
