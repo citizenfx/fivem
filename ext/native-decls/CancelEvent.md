@@ -8,5 +8,5 @@ apiset: shared
 void CANCEL_EVENT();
 ```
 
-Cancels the currently executing event. See https://wiki.fivem.net/wiki/CancelEvent
+Cancels the currently executing event.
 
