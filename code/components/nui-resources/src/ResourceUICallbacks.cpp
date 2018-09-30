@@ -191,11 +191,23 @@ public:
 class ResourceUIScriptRuntime : public fx::OMClass<ResourceUIScriptRuntime, IScriptRuntime, IScriptRefRuntime>
 {
 private:
+	struct RefData
+	{
+		std::atomic<int32_t> refCount;
+		ResUIResultCallback callback;
+
+		RefData(ResUIResultCallback cb)
+			: callback(cb), refCount(0)
+		{
+
+		}
+	};
+
 	fx::Resource* m_resource;
 
 	IScriptHost* m_scriptHost;
 
-	std::map<int32_t, ResUIResultCallback> m_refs;
+	std::map<int32_t, std::unique_ptr<RefData>> m_refs;
 
 	std::recursive_mutex m_refMutex;
 
@@ -269,7 +281,7 @@ result_t ResourceUIScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, 
 			return FX_E_INVALIDARG;
 		}
 
-		cb = it->second;
+		cb = it->second->callback;
 	}
 
 	// convert the argument array from msgpack to JSON
@@ -316,12 +328,10 @@ result_t ResourceUIScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* outRef)
 		return FX_E_INVALIDARG;
 	}
 
-	int32_t idx = m_refIdx;
-	m_refs[idx] = it->second;
+	auto& refData = it->second;
+	++refData->refCount;
 
-	m_refIdx++;
-
-	*outRef = idx;
+	*outRef = refIdx;
 
 	return FX_S_OK;
 }
@@ -329,7 +339,19 @@ result_t ResourceUIScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* outRef)
 result_t ResourceUIScriptRuntime::RemoveRef(int32_t refIdx)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_refMutex);
-	m_refs.erase(refIdx);
+
+	auto it = m_refs.find(refIdx);
+
+	if (it == m_refs.end())
+	{
+		return FX_E_INVALIDARG;
+	}
+
+	auto& refData = it->second;
+	if (--refData->refCount <= 0)
+	{
+		m_refs.erase(refIdx);
+	}
 
 	return FX_S_OK;
 }
@@ -340,7 +362,7 @@ std::string ResourceUIScriptRuntime::AddCallbackRef(ResUIResultCallback resultCa
 
 	// add the ref to the list
 	int32_t idx = m_refIdx;
-	m_refs[idx] = resultCallback;
+	m_refs.emplace(idx, std::make_unique<RefData>(resultCallback));
 
 	m_refIdx++;
 

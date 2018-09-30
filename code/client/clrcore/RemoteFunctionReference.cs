@@ -18,6 +18,11 @@ namespace CitizenFX.Core
             m_reference = Encoding.UTF8.GetString(reference);
         }
 
+		~RemoteFunctionReference()
+		{
+			Dispose(false);
+		}
+
         private bool m_disposed = false;
 
         public void Dispose()

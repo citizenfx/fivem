@@ -142,6 +142,9 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 
 	-- try finding an event handler for the event
 	local eventHandlerEntry = eventHandlers[eventName]
+	
+	-- deserialize the event structure (so that we end up adding references to delete later on)
+	local data = msgpack.unpack(eventPayload)
 
 	if eventHandlerEntry and eventHandlerEntry.handlers then
 		-- if this is a net event and we don't allow this event to be triggered from the network, return
@@ -155,9 +158,6 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			deserializingNetEvent = { source = eventSource }
 			_G.source = tonumber(eventSource:sub(5))
 		end
-
-		-- if we found one, deserialize the data structure
-		local data = msgpack.unpack(eventPayload)
 
 		-- return an empty table if the data is nil
 		if not data then
@@ -302,31 +302,39 @@ local funcRefIdx = 0
 local function MakeFunctionReference(func)
 	local thisIdx = funcRefIdx
 
-	funcRefs[thisIdx] = func
+	funcRefs[thisIdx] = {
+		func = func,
+		refs = 0
+	}
 
 	funcRefIdx = funcRefIdx + 1
 
-	return Citizen.CanonicalizeRef(thisIdx)
+	local refStr = Citizen.CanonicalizeRef(thisIdx)
+	return refStr
 end
 
 function Citizen.GetFunctionReference(func)
 	if type(func) == 'function' then
 		return MakeFunctionReference(func)
-	elseif type(func) == 'table' and rawget(table, '__cfx_functionReference') then
-		return DuplicateFunctionReference(rawget(table, '__cfx_functionReference'))
+	elseif type(func) == 'table' and rawget(func, '__cfx_functionReference') then
+		return MakeFunctionReference(function(...)
+			return func(...)
+		end)
 	end
 
 	return nil
 end
 
 Citizen.SetCallRefRoutine(function(refId, argsSerialized)
-	local ref = funcRefs[refId]
+	local refPtr = funcRefs[refId]
 
-	if not ref then
+	if not refPtr then
 		Citizen.Trace('Invalid ref call attempt: ' .. refId .. "\n")
 
 		return msgpack.pack({})
 	end
+	
+	local ref = refPtr.func
 
 	local err
 	local retvals
@@ -365,19 +373,24 @@ Citizen.SetDuplicateRefRoutine(function(refId)
 	local ref = funcRefs[refId]
 
 	if ref then
-		local thisIdx = funcRefIdx
-		funcRefs[thisIdx] = ref
+		ref.refs = ref.refs + 1
 
-		funcRefIdx = funcRefIdx + 1
-
-		return thisIdx
+		return refId
 	end
 
 	return -1
 end)
 
 Citizen.SetDeleteRefRoutine(function(refId)
-	funcRefs[refId] = nil
+	local ref = funcRefs[refId]
+	
+	if ref then
+		ref.refs = ref.refs - 1
+		
+		if ref.refs <= 0 then
+			funcRefs[refId] = nil
+		end
+	end
 end)
 
 local EXT_FUNCREF = 10
@@ -390,7 +403,9 @@ end
 msgpack.packers['table'] = function(buffer, table)
 	if rawget(table, '__cfx_functionReference') then
 		-- pack as function reference
-		msgpack.packers['funcref'](buffer, DuplicateFunctionReference(rawget(table, '__cfx_functionReference')))
+		msgpack.packers['function'](buffer, function(...)
+			return table(...)
+		end)
 	else
 		msgpack.packers['_table'](buffer, table)
 	end
@@ -587,6 +602,9 @@ local funcref_mt = {
 msgpack.build_ext = function(tag, data)
 	if tag == EXT_FUNCREF or tag == EXT_LOCALFUNCREF then
 		local ref = data
+		
+		-- add a reference
+		DuplicateFunctionReference(ref)
 
 		local tbl = {
 			__cfx_functionReference = ref,

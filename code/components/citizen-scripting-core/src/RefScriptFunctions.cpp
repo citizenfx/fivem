@@ -11,6 +11,8 @@
 #include <ResourceManager.h>
 #include <ResourceScriptingComponent.h>
 
+#include <tbb/concurrent_queue.h>
+
 static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx)
 {
 	// parse the ref string into its components
@@ -114,14 +116,43 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("DELETE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)
+	static tbb::concurrent_queue<std::string> deleteRefs;
+
+	static auto deleteRef = [](const std::string& ref)
 	{
 		int32_t refId;
-		fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(context.GetArgument<const char*>(0), &refId);
+		fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(ref, &refId);
 
 		if (refRuntime.GetRef())
 		{
 			refRuntime->RemoveRef(refId);
 		}
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("DELETE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)
+	{
+		std::string ref = context.GetArgument<const char*>(0);
+
+		try
+		{
+			deleteRef(ref);
+		}
+		catch (std::runtime_error& error)
+		{
+			deleteRefs.push(std::move(ref));
+		}
+	});
+
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
+	{
+		manager->OnTick.Connect([]()
+		{
+			std::string str;
+
+			while (deleteRefs.try_pop(str))
+			{
+				deleteRef(str);
+			}
+		});
 	});
 });

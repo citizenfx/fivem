@@ -9,6 +9,8 @@
 #include "fxScripting.h"
 #include <ManifestVersion.h>
 
+#include <ResourceCallbackComponent.h>
+
 #include <chrono>
 
 #ifndef IS_FXSERVER
@@ -461,7 +463,7 @@ static void V8_CanonicalizeRef(const v8::FunctionCallbackInfo<v8::Value>& args)
 }
 
 struct RefAndPersistent {
-	std::string ref;
+	fx::FunctionRef ref;
 	Persistent<Function> handle;
 	fx::OMPtr<V8ScriptRuntime> runtime;
 	fx::OMPtr<IScriptHost> host;
@@ -483,7 +485,7 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
 
 	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(refData->ref.c_str());
+	context.arguments[0] = reinterpret_cast<uintptr_t>(refData->ref.GetRef().c_str());
 
 	// argument data
 	size_t argLength;
@@ -514,20 +516,6 @@ static void FnRefWeakCallback(
 {
 	v8::Local<Function> v = data.GetParameter()->handle.Get(data.GetIsolate());
 
-	auto ref = data.GetParameter()->ref;
-
-	// variables to hold state
-	fxNativeContext context = { 0 };
-
-	context.numArguments = 1;
-	context.nativeIdentifier = HashString("DELETE_FUNCTION_REFERENCE");
-
-	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(ref.c_str());
-
-	// invoke
-	data.GetParameter()->host->InvokeNative(context);
-
 	data.GetParameter()->handle.Reset();
 	delete data.GetParameter();
 }
@@ -555,7 +543,7 @@ static void V8_MakeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& 
 	}
 
 	RefAndPersistent* data = new RefAndPersistent;
-	data->ref = std::move(refString);
+	data->ref = fx::FunctionRef{ refString };
 	data->runtime = runtime;
 	data->host = runtime->GetScriptHost();
 

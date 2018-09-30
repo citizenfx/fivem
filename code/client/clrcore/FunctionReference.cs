@@ -19,6 +19,8 @@ namespace CitizenFX.Core
 
         public int Identifier { get; private set; }
 
+		private int m_refCount;
+
 
         public static FunctionReference Create(Delegate method)
         {
@@ -29,6 +31,7 @@ namespace CitizenFX.Core
 
             return reference;            
         }
+
         private static Dictionary<int, FunctionReference> ms_references = new Dictionary<int, FunctionReference>();
         private static int ms_referenceId = 0;
 
@@ -87,7 +90,8 @@ namespace CitizenFX.Core
 
             if (ms_references.TryGetValue(reference, out funcRef))
             {
-                return Register(funcRef);
+				funcRef.m_refCount++; // TODO: interlocked?
+				return reference;
             }
 
             return -1;
@@ -95,9 +99,12 @@ namespace CitizenFX.Core
 
         public static void Remove(int reference)
         {
-            if (ms_references.ContainsKey(reference))
+            if (ms_references.TryGetValue(reference, out var funcRef))
             {
-                ms_references.Remove(reference);
+				if (--funcRef.m_refCount <= 0)
+				{
+					ms_references.Remove(reference);
+				}
             }
         }
     }

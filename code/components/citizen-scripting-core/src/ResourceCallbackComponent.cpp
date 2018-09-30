@@ -62,7 +62,7 @@ result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerial
 			return FX_E_INVALIDARG;
 		}
 
-		cb = it->second;
+		cb = it->second->callback;
 	}
 
 	// unpack
@@ -86,12 +86,10 @@ result_t ResourceCallbackScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* ou
 		return FX_E_INVALIDARG;
 	}
 
-	int32_t idx = m_refIdx;
-	m_refs[idx] = it->second;
+	auto& refData = it->second;
+	++refData->refCount;
 
-	m_refIdx++;
-
-	*outRef = idx;
+	*outRef = refIdx;
 
 	return FX_S_OK;
 }
@@ -99,7 +97,19 @@ result_t ResourceCallbackScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* ou
 result_t ResourceCallbackScriptRuntime::RemoveRef(int32_t refIdx)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_refMutex);
-	m_refs.erase(refIdx);
+
+	auto it = m_refs.find(refIdx);
+
+	if (it == m_refs.end())
+	{
+		return FX_E_INVALIDARG;
+	}
+
+	auto& refData = it->second;
+	if (--refData->refCount <= 0)
+	{
+		m_refs.erase(refIdx);
+	}
 
 	return FX_S_OK;
 }
@@ -110,7 +120,7 @@ std::string ResourceCallbackScriptRuntime::AddCallbackRef(const std::function<vo
 
 	// add the ref to the list
 	int32_t idx = m_refIdx;
-	m_refs[idx] = resultCallback;
+	m_refs.emplace(idx, std::make_unique<RefData>(resultCallback));
 
 	m_refIdx++;
 

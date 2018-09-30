@@ -22,6 +22,32 @@ static auto GetHttpHandler(fx::Resource* resource)
 	};
 }
 
+// blindly copypasted from StackOverflow (to allow std::function to store the funcref types with their move semantics)
+// TODO: we use this twice now, time for a shared header?
+template<class F>
+struct shared_function
+{
+	std::shared_ptr<F> f;
+	shared_function() = default;
+	shared_function(F&& f_) : f(std::make_shared<F>(std::move(f_))) {}
+	shared_function(shared_function const&) = default;
+	shared_function(shared_function&&) = default;
+	shared_function& operator=(shared_function const&) = default;
+	shared_function& operator=(shared_function&&) = default;
+
+	template<class...As>
+	auto operator()(As&&...as) const
+	{
+		return (*f)(std::forward<As>(as)...);
+	}
+};
+
+template<class F>
+shared_function<std::decay_t<F>> make_shared_function(F&& f)
+{
+	return { std::forward<F>(f) };
+}
+
 class ResourceHttpComponent : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
 private:
@@ -83,12 +109,12 @@ public:
 				{
 					if (callback.via.ext.type() == 10 || callback.via.ext.type() == 11)
 					{
-						std::string functionRef(callback.via.ext.data(), callback.via.ext.size);
+						fx::FunctionRef functionRef{ std::string{callback.via.ext.data(), callback.via.ext.size} };
 
-						request->SetDataHandler([=](const std::vector<uint8_t>& bodyArray)
+						request->SetDataHandler(make_shared_function([this, functionRef = std::move(functionRef)](const std::vector<uint8_t>& bodyArray)
 						{
-							m_resource->GetManager()->CallReference<void>(functionRef, std::string(bodyArray.begin(), bodyArray.end()));
-						});
+							m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), std::string(bodyArray.begin(), bodyArray.end()));
+						}));
 					}
 				}
 			});

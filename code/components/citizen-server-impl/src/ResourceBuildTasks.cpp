@@ -33,15 +33,15 @@ public:
 private:
 	fx::ResourceManager* m_resourceManager;
 
-	std::string m_shouldBuildRef;
+	FunctionRef m_shouldBuildRef;
 
-	std::string m_buildRef;
+	FunctionRef m_buildRef;
 };
 
 ResourceBuildTaskProvider::ResourceBuildTaskProvider(fx::ResourceManager* resman, const std::map<std::string, msgpack::object>& map)
 	: m_resourceManager(resman)
 {
-	auto setCallback = [&](const std::string& cbId) -> std::string
+	auto setCallback = [&](const std::string& cbId) -> FunctionRef
 	{
 		auto it = map.find(cbId);
 
@@ -53,7 +53,7 @@ ResourceBuildTaskProvider::ResourceBuildTaskProvider(fx::ResourceManager* resman
 			{
 				if (callback.via.ext.type() == 10 || callback.via.ext.type() == 11)
 				{
-					return { callback.via.ext.data(), callback.via.ext.size };
+					return FunctionRef{ std::string{callback.via.ext.data(), callback.via.ext.size } };
 				}
 			}
 		}
@@ -61,23 +61,23 @@ ResourceBuildTaskProvider::ResourceBuildTaskProvider(fx::ResourceManager* resman
 		return {};
 	};
 
-	m_shouldBuildRef = setCallback("shouldBuild");
-	m_buildRef = setCallback("build");
+	m_shouldBuildRef = std::move(setCallback("shouldBuild"));
+	m_buildRef = std::move(setCallback("build"));
 }
 
 bool ResourceBuildTaskProvider::ShouldBuild(const std::string& resourceName)
 {
-	if (m_shouldBuildRef.empty())
+	if (!m_shouldBuildRef)
 	{
 		return false;
 	}
 
-	return m_resourceManager->CallReference<bool>(m_shouldBuildRef, resourceName);
+	return m_resourceManager->CallReference<bool>(m_shouldBuildRef.GetRef(), resourceName);
 }
 
 void ResourceBuildTaskProvider::Build(const std::string& resourceName, const std::function<void(bool, const std::string&)>& completionCb)
 {
-	if (m_buildRef.empty())
+	if (!m_buildRef)
 	{
 		completionCb(false, "No build function was configured.");
 		return;
@@ -102,7 +102,7 @@ void ResourceBuildTaskProvider::Build(const std::string& resourceName, const std
 		}
 	});
 
-	m_resourceManager->CallReference<void>(m_buildRef, resourceName, cb);
+	m_resourceManager->CallReference<void>(m_buildRef.GetRef(), resourceName, cb);
 }
 
 using TFactoryFn = std::function<std::shared_ptr<BuildTaskProvider>()>;
