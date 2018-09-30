@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <ScriptEngine.h>
+#include <ServerTime.h>
 
 namespace fx
 {
@@ -21,11 +22,6 @@ namespace fx
 
 		return (it == g_nativeHandlers.end()) ? boost::optional<TNativeHandler>() : it->second;
 	}
-}
-
-inline static std::chrono::milliseconds msec()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
 static InitFunction initFunction([]()

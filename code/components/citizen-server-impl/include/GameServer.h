@@ -17,10 +17,7 @@
 
 #include <tbb/concurrent_queue.h>
 
-inline std::chrono::milliseconds msec()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-}
+#include <ServerTime.h>
 
 namespace fx
 {
