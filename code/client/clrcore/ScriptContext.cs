@@ -121,14 +121,19 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		internal void PushString(string str)
 		{
-			var b = Encoding.UTF8.GetBytes(str);
+			var ptr = IntPtr.Zero;
 
-			var ptr = Marshal.AllocHGlobal(b.Length + 1);
+			if (str != null)
+			{
+				var b = Encoding.UTF8.GetBytes(str);
 
-			Marshal.Copy(b, 0, ptr, b.Length);
-			Marshal.WriteByte(ptr, b.Length, 0);
+				ptr = Marshal.AllocHGlobal(b.Length + 1);
 
-			ms_finalizers.Add(() => Free(ptr));
+				Marshal.Copy(b, 0, ptr, b.Length);
+				Marshal.WriteByte(ptr, b.Length, 0);
+
+				ms_finalizers.Add(() => Free(ptr));
+			}
 
 			unsafe
 			{
