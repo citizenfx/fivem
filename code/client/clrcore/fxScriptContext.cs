@@ -5,10 +5,9 @@ namespace CitizenFX.Core
 {
 	[StructLayout(LayoutKind.Sequential)]
 	[Serializable]
-	public struct fxScriptContext
+	public unsafe struct fxScriptContext
 	{
-		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32 * 8)]
-		public byte[] functionData;
+		public fixed byte functionData[8 * 32];
 
 		public int numArguments;
 		public int numResults;

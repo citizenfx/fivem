@@ -219,9 +219,7 @@ local function parseArgument(argument, native)
 	return name, argType
 end
 
-local function formatBody(native)
-	local t = '\t\t\t'
-	local body = ''
+local function formatArgs(native)
 	local args = {}
 	local argsDefs = {}
 	local nativeArgs = {}
@@ -240,6 +238,54 @@ local function formatBody(native)
 			end
 		end
 	end
+	
+	return args, argsDefs, nativeArgs
+end
+
+local function formatWrapper(native, fnName)
+	local t = '\t\t\t'
+	local body = ''
+	
+	local args, argsDefs, nativeArgs = formatArgs(native)
+		
+	local argNames = {}
+	
+	for argn, arg in pairs(args) do
+		local name, type, ptr = table.unpack(arg)
+		
+		if ptr then
+			name = 'ref ' .. name
+		end
+		
+		table.insert(argNames, name)
+	end
+
+	body = body .. '(' .. table.concat(argsDefs, ', ') .. ')\n'
+	body = body .. '\t\t{\n'
+	
+	local retType = 'void'
+	if native.returns then
+		retType = printReturnType(native.returns)
+	end
+	
+	body = body .. t
+	
+	if retType ~= 'void' then
+		body = body .. 'return '
+	end
+	
+	body = body .. fnName .. '(' .. table.concat(argNames, ', ') .. ');\n'
+	
+	body = body .. '\t\t}\n\n'
+	
+	return body
+end
+
+local function formatImpl(native)
+	local t = '\t\t\t'
+	local body = ''
+	
+	local args, argsDefs, nativeArgs = formatArgs(native)
 
 	body = body .. '(' .. table.concat(argsDefs, ', ') .. ')\n'
 	body = body .. '\t\t{\n'
@@ -256,13 +302,17 @@ local function formatBody(native)
 		local name, type, ptr = table.unpack(arg)
 
 		if ptr == true then
+			if type == 'Vector3' then
+				type = 'NativeVector3'
+			end
+		
 			refValNum = refValNum + 1
 			local refName = 'ref_' .. name
 
 			refToArg[refName] = { name, type }
 			nativeArgs[argn] = refName
 
-			body = body .. t .. 'var ' .. refName .. ' = new OutputArgument(' .. name .. ');\n'
+			body = body .. t .. type .. ' ' .. refName .. ' = ' .. name .. ';\n'
 		end
 	end
 	if refValNum > 1 then
@@ -270,35 +320,91 @@ local function formatBody(native)
 	end
 	
 	local appendix = ''
-	local invokationGenericType = '<' .. retType .. '>'
-	if retType == 'void' then
-		body = body .. t
-		invokationGenericType = ''
-	elseif refValNum > 0 then
-		body = body .. t ..'var retVal = '
-		appendix = t ..'return retVal;\n'
-	else
-		body = body .. t ..'return '
-	end
-
-	body = body .. 'Function.Call' .. invokationGenericType .. '('
-	body = body .. '(Hash)' .. native.hash .. ', '
-	if #args > 0 then
-		body = body .. table.concat(nativeArgs, ', ')
-	else
-		body = body .. 'new InputArgument [0]'
-	end
-	body = body .. ');\n'
-
-	if refValNum > 0 then
-		body = body .. '\n'
-		for refName, refDef in pairs(refToArg) do
-			local argName, argType = table.unpack(refDef)
-
-			body = body .. t .. argName .. ' = ' .. refName .. '.GetResult<' .. argType .. '>();\n'
+	
+	--body = body .. t .. 'using (var scriptContext = new ScriptContext())\n'
+	body = body .. t .. '{\n'
+	body = body .. t .. '\tvar scriptContext = new ScriptContext();\n'
+	
+	local fastEligible = true
+	
+	for argn, arg in pairs(args) do
+		local _, type = table.unpack(arg)
+		
+		if type == 'string' or type == 'InputArgument' or type == 'object' then
+			fastEligible = false
 		end
-		body = body .. '\n'
 	end
+	
+	if not fastEligible then
+		for argn, arg in pairs(args) do
+			local name, type, ptr = table.unpack(arg)
+
+			if ptr then
+				body = body .. t .. '\tscriptContext.PushFast(new System.IntPtr(&ref_' .. name .. '));\n'
+				appendix = appendix .. t .. '\t' .. name .. ' = ref_' .. name .. ';\n'
+			elseif type == 'string' then
+				body = body .. t .. '\tscriptContext.PushString(' .. name .. ');\n'
+			elseif type == 'InputArgument' or type == 'object' then
+				body = body .. t .. '\tscriptContext.Push(' .. name .. ');\n'
+			else
+				body = body .. t .. '\tscriptContext.PushFast(' .. name .. ');\n'
+			end
+		end
+	else
+		body = body .. t .. '\tfixed (byte* functionData = ScriptContext.m_context.functionData)\n'
+		body = body .. t .. '\t{\n'
+		
+		local numArgs = 0
+		
+		for argn, arg in pairs(args) do
+			local name, type, ptr = table.unpack(arg)
+			
+			local val = name
+			
+			if ptr then
+				type = 'System.IntPtr'
+				val = 'new System.IntPtr(&ref_' .. name .. ')'
+				
+				appendix = appendix .. t .. '\t' .. name .. ' = ref_' .. name .. ';\n'
+			end
+			
+			body = body .. t .. '\t\t*(long*)(&functionData[' .. (8 * numArgs) .. ']) = 0;\n'
+			
+			body = body .. t .. '\t\t*(' .. type .. '*)(&functionData[' .. (8 * numArgs) .. ']) = ' .. val .. ';\n'
+			
+			if type == 'Vector3' then
+				numArgs = numArgs + 3
+			else
+				numArgs = numArgs + 1
+			end
+		end
+		
+		body = body .. t .. '\t}\n\n'
+		
+		body = body .. t .. '\tScriptContext.m_context.numArguments = ' .. numArgs .. ';\n'
+	end
+	
+	body = body .. t .. '\tscriptContext.Invoke((ulong)' .. native.hash .. ');\n'
+	
+	if retType ~= 'void' then
+		local tempRetType = retType
+	
+		if retType == 'string' or retType == 'object' or retType == 'dynamic' then
+			if retType == 'dynamic' then
+				tempRetType = 'object'
+			end
+		
+			appendix = appendix .. t .. '\treturn (' .. retType .. ')scriptContext.GetResult(typeof(' .. tempRetType .. '));\n'
+		else
+			if retType == 'Vector3' then
+				tempRetType = 'NativeVector3'
+			end
+		
+			appendix = appendix .. t .. '\treturn scriptContext.GetResultFast<' .. tempRetType .. '>();\n'
+		end
+	end
+	
+	appendix = appendix .. t .. '}\n'
 
 	return retType, body .. appendix .. '\t\t}\n'
 end
@@ -313,11 +419,14 @@ local function printNative(native)
 	else
 		usedNatives[nativeName] = 1
 	end
+	
+	local baseAppendix = appendix
 
 	local doc = formatDocString(native)
-	local retType, def = formatBody(native)
+	local retType, def = formatImpl(native)
+	local wrapper = formatWrapper(native, 'Internal' .. nativeName .. baseAppendix)
 
-	local str = string.format("%s\t\tpublic static %s %s%s", doc, retType, nativeName .. appendix, def)
+	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. appendix, wrapper)
 
 	for _, alias in ipairs(native.aliases) do
 		local aliasName = printFunctionName({ name = alias })
@@ -330,9 +439,11 @@ local function printNative(native)
 		end
 
 		if nativeName ~= aliasName then
-			str = str .. string.format("%s\t\tpublic static %s %s%s", doc, retType, aliasName .. appendix, def)
+			str = str .. string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, aliasName .. appendix, wrapper)
 		end
 	end
+	
+	str = str .. string.format("\t\t[System.Security.SecurityCritical]\n\t\tprivate static unsafe %s Internal%s%s", retType, nativeName .. baseAppendix, def)
 
 	return str
 end

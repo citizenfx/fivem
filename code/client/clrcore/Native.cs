@@ -16,25 +16,23 @@ namespace CitizenFX.Core.Native
             InvokeInternal(hash, typeof(void), arguments);
         }
 
-        private static object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
-        {
-            using (var scriptContext = new ScriptContext())
-            {
-                foreach (var arg in args)
-                {
-                    scriptContext.Push(arg.Value);
-                }
+		private static object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
+		{
+			var scriptContext = new ScriptContext();
+			foreach (var arg in args)
+			{
+				scriptContext.Push(arg.Value);
+			}
 
-                scriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
+			scriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
 
-                if (returnType != typeof(void))
-                {
-                    return scriptContext.GetResult(returnType);
-                }
+			if (returnType != typeof(void))
+			{
+				return scriptContext.GetResult(returnType);
+			}
 
-                return null;
-            }
-        }
+			return null;
+		}
     }
 
 	[StructLayout(LayoutKind.Explicit)]
@@ -48,6 +46,11 @@ namespace CitizenFX.Core.Native
 
 		[FieldOffset(16)]
 		public float Z;
+
+		public static implicit operator NativeVector3(Vector3 v)
+		{
+			return new NativeVector3() { X = v.X, Y = v.Y, Z = v.Z };
+		}
 
         public static implicit operator Vector3(NativeVector3 self)
         {

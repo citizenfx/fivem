@@ -181,6 +181,8 @@ end)
 
 		-- Missing XML comment for publicly visible type or member
 		disablewarnings 'CS1591'
+		
+		dotnetframework '4.6'
 
 		clr 'Unsafe'
 
@@ -194,7 +196,7 @@ end)
 
 		links { "System.dll", "Microsoft.CSharp.dll", "System.Core.dll", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
 
-		buildoptions '/debug:portable'
+		buildoptions '/debug:portable /langversion:7.1'
 
 		configuration "Debug*"
 			targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')

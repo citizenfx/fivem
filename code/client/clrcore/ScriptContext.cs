@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
@@ -8,22 +10,30 @@ using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-	public class ScriptContext : IDisposable
+	public class ScriptContext
 	{
-		private fxScriptContext m_context;
 		private static readonly List<Action> ms_finalizers = new List<Action>();
+
+		[ThreadStatic]
+		internal static fxScriptContext m_context = new fxScriptContext();
 
 		public ScriptContext()
 		{
 			Reset();
 		}
 
+		[SecuritySafeCritical]
 		public void Reset()
 		{
-			//CleanUp();
+			InternalReset();
+		}
 
-			m_context = new fxScriptContext();
-			m_context.functionData = new byte[32 * 8];
+		[SecurityCritical]
+		private void InternalReset()
+		{
+			m_context.numArguments = 0;
+			m_context.numResults = 0;
+			//CleanUp();
 		}
 
 		[SecuritySafeCritical]
@@ -42,41 +52,89 @@ namespace CitizenFX.Core
 			if (arg is string)
 			{
 				var str = (string)Convert.ChangeType(arg, typeof(string));
-				var b = Encoding.UTF8.GetBytes(str);
+				PushString(str);
 
-				var ptr = Marshal.AllocHGlobal(b.Length + 1);
-
-				Marshal.Copy(b, 0, ptr, b.Length);
-				Marshal.WriteByte(ptr, b.Length, 0);
-                
-				ms_finalizers.Add(() => Free(ptr));
-
-				b = BitConverter.GetBytes(ptr.ToInt64());
-				Array.Copy(b, 0, m_context.functionData, 8 * m_context.numArguments, 8);
+				return;
 			}
 			else if (arg is Vector3 v)
 			{
-				var start = 8 * m_context.numArguments;
-				Array.Clear(m_context.functionData, start, 8 * 3);
-				Array.Copy(BitConverter.GetBytes(v.X), 0, m_context.functionData, start, 4);
-				Array.Copy(BitConverter.GetBytes(v.Y), 0, m_context.functionData, start + 8, 4);
-				Array.Copy(BitConverter.GetBytes(v.Z), 0, m_context.functionData, start + 16, 4);
+				PushFast(v);
 
-				m_context.numArguments += 2;
+				return;
+			}
+			else if (arg is InputArgument ia)
+			{
+				Push(ia.Value);
+
+				return;
 			}
 			else if (Marshal.SizeOf(arg.GetType()) <= 8)
 			{
-				var ptr = Marshal.AllocHGlobal(8);
-				try
-				{
-					Marshal.WriteInt64(ptr, 0, 0);
-					Marshal.StructureToPtr(arg, ptr, false);
+				PushUnsafe(arg);
+			}
 
-					Marshal.Copy(ptr, m_context.functionData, 8 * m_context.numArguments, 8);
-				}
-				finally
+			m_context.numArguments++;
+		}
+
+		[SecurityCritical]
+		internal unsafe void PushUnsafe(object arg)
+		{
+			fixed (byte* functionData = m_context.functionData)
+			{
+				*(long*)(&functionData[8 * m_context.numArguments]) = 0;
+				Marshal.StructureToPtr(arg, new IntPtr(functionData + (8 * m_context.numArguments)), false);
+			}
+		}
+
+		[SecuritySafeCritical]
+		internal unsafe void PushFast<T>(T arg)
+			where T : struct
+		{
+			var size = FastStructure<T>.Size;
+
+			var numArgs = (size / 8);
+
+			fixed (byte* functionData = m_context.functionData)
+			{
+				if ((size % 8) != 0)
 				{
-					Marshal.FreeHGlobal(ptr);
+					*(long*)(&functionData[8 * m_context.numArguments]) = 0;
+					numArgs++;
+				}
+
+				FastStructure<T>.StructureToPtr(ref arg, new IntPtr(&functionData[8 * m_context.numArguments]));
+			}
+
+			m_context.numArguments += numArgs;
+		}
+
+		[SecurityCritical]
+		internal unsafe T GetResultFast<T>()
+			where T : struct
+		{
+			fixed (byte* functionData = m_context.functionData)
+			{
+				return FastStructure<T>.PtrToStructure(new IntPtr(functionData));
+			}
+		}
+
+		[SecurityCritical]
+		internal void PushString(string str)
+		{
+			var b = Encoding.UTF8.GetBytes(str);
+
+			var ptr = Marshal.AllocHGlobal(b.Length + 1);
+
+			Marshal.Copy(b, 0, ptr, b.Length);
+			Marshal.WriteByte(ptr, b.Length, 0);
+
+			ms_finalizers.Add(() => Free(ptr));
+
+			unsafe
+			{
+				fixed (byte* functionData = m_context.functionData)
+				{
+					*(IntPtr*)(&functionData[8 * m_context.numArguments]) = ptr;
 				}
 			}
 
@@ -98,7 +156,27 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public object GetResult(Type type)
 		{
-			return GetResult(type, m_context.functionData);
+			return GetResultHelper(type);
+		}
+
+		[SecurityCritical]
+		private unsafe object GetResultHelper(Type type)
+		{
+			var bytes = new byte[3 * 8];
+
+			fixed (byte* inPtr = m_context.functionData)
+			{
+				fixed (byte* outPtr = bytes)
+				{
+#if IS_FXSERVER
+					Buffer.MemoryCopy(inPtr, outPtr, bytes.Length, 24);
+#else
+					UnsafeNativeMethods.CopyMemoryPtr(outPtr, inPtr, 24);
+#endif
+				}
+			}
+
+			return GetResult(type, bytes);
 		}
 
 		[SecurityCritical]
@@ -173,6 +251,8 @@ namespace CitizenFX.Core
 			}
 		}
 
+		internal void Invoke(ulong nativeIdentifier) => Invoke(nativeIdentifier, InternalManager.ScriptHost);
+
 		[SecuritySafeCritical]
 		public void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
 
@@ -182,23 +262,6 @@ namespace CitizenFX.Core
 			m_context.nativeIdentifier = nativeIdentifier;
 
 			scriptHost.InvokeNative(ref m_context);
-		}
-
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		protected virtual void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-                
-			}
-
-			//CleanUp();
 		}
 
 		internal static void GlobalCleanUp()
