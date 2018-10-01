@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -12,7 +12,7 @@ namespace CitizenFX.Core
 {
 	public class ScriptContext
 	{
-		private static readonly List<Action> ms_finalizers = new List<Action>();
+		private static readonly ConcurrentQueue<Action> ms_finalizers = new ConcurrentQueue<Action>();
 
 		[ThreadStatic]
 		internal static fxScriptContext m_context = new fxScriptContext();
@@ -132,7 +132,7 @@ namespace CitizenFX.Core
 				Marshal.Copy(b, 0, ptr, b.Length);
 				Marshal.WriteByte(ptr, b.Length, 0);
 
-				ms_finalizers.Add(() => Free(ptr));
+				ms_finalizers.Enqueue(() => Free(ptr));
 			}
 
 			unsafe
@@ -271,8 +271,10 @@ namespace CitizenFX.Core
 
 		internal static void GlobalCleanUp()
 		{
-			ms_finalizers?.ForEach(a => a());
-			ms_finalizers?.Clear();
+			while (ms_finalizers.TryDequeue(out var cb))
+			{
+				cb();
+			}
 		}
 	}
 }
