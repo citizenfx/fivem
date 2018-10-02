@@ -48,7 +48,7 @@ void MumbleVoice_BindNetLibrary(NetLibrary* library)
 	{
 		g_mumbleAllowed = false;
 
-		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("http://%s:%d/info.json", addr.GetAddress(), addr.GetPort()), [=](bool success, const char* data, size_t size)
+		/*Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("http://%s:%d/info.json", addr.GetAddress(), addr.GetPort()), [=](bool success, const char* data, size_t size)
 		{
 			if (success)
 			{
@@ -84,7 +84,7 @@ void MumbleVoice_BindNetLibrary(NetLibrary* library)
 					trace("Server policy - Mumble check failed for %s\n", e.what());
 				}
 			}
-		});
+		});*/
 	});
 }
 
