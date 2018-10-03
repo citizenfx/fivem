@@ -79,7 +79,7 @@
                 try {
                     timer.callback();
                 } catch(e) {
-                    console.error('Unhandled error', e);
+                    console.error('Unhandled error: ' + e.toString() + '\n' + e.stack);
                 }
 
                 timer.lastRun = localGameTime;
@@ -94,7 +94,7 @@
                 try {
                     tickers[i]();
                 } catch(e) {
-                    console.error('Unhandled error', e);
+                    console.error('Unhandled error: ' + e.toString() + '\n' + e.stack);
                 }
             }
         }
@@ -110,7 +110,7 @@
                 try {
                     currentAnimationFrames[i]();
                 } catch(e) {
-                    console.error('Unhandled error', e);
+                    console.error('Unhandled error: ' + e.toString() + '\n' + e.stack);
                 }
             }
         }

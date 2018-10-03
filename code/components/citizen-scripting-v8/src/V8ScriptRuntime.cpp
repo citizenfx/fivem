@@ -603,7 +603,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	// exception thrower
 	auto throwException = [&] (const std::string& exceptionString)
 	{
-		args.GetIsolate()->ThrowException(String::NewFromUtf8(args.GetIsolate(), exceptionString.c_str()));
+		args.GetIsolate()->ThrowException(Exception::Error(String::NewFromUtf8(args.GetIsolate(), exceptionString.c_str())));
 	};
 
 	// variables to hold state
