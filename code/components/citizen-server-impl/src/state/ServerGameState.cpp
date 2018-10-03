@@ -1160,7 +1160,7 @@ static InitFunction initFunction([]()
 
 			if (!entity)
 			{
-				trace("Tried to access invalid entity.\n");
+				throw std::runtime_error(va("Tried to access invalid entity: %d", id));
 
 				context.SetResult(defaultValue);
 				return;
