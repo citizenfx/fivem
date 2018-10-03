@@ -64,4 +64,28 @@ namespace fx
 
 		return hr;
 	}
+
+	template<typename TRuntime>
+	inline result_t GetInvokingScriptRuntime(OMPtr<TRuntime>* runtime)
+	{
+		static OMPtr<IScriptRuntimeHandler> handler;
+
+		if (handler.GetRef() == nullptr)
+		{
+			fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+		}
+
+		OMPtr<IScriptRuntime> runtimePtr;
+
+		result_t hr = handler->GetInvokingRuntime(runtimePtr.GetAddressOf());
+
+		*runtime = nullptr;
+
+		if (FX_SUCCEEDED(hr) && runtimePtr.GetRef())
+		{
+			assert(FX_SUCCEEDED(runtimePtr.As(runtime)));
+		}
+
+		return hr;
+	}
 }

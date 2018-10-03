@@ -73,6 +73,8 @@ interface IScriptRuntimeHandler : fxIBase
 	void GetCurrentRuntime(out IScriptRuntime runtime);
 
 	void PopRuntime(in IScriptRuntime runtime);
+
+	void GetInvokingRuntime(out IScriptRuntime runtime);
 };
 
 [uuid(91B203C7-F95A-4902-B463-722D55098366)]

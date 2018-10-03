@@ -360,6 +360,34 @@ result_t ScriptRuntimeHandler::GetCurrentRuntime(IScriptRuntime** runtime)
 	return FX_S_OK;
 }
 
+result_t ScriptRuntimeHandler::GetInvokingRuntime(IScriptRuntime** runtime)
+{
+	if (ms_runtimeStack.empty())
+	{
+		*runtime = nullptr;
+		return FX_E_INVALIDARG;
+	}
+
+	// std::stack is bad, even more so as we're copying the entire stack
+	auto copyStack = ms_runtimeStack;
+	copyStack.pop();
+
+	if (copyStack.empty())
+	{
+		*runtime = nullptr;
+	}
+	else
+	{
+		auto lastRuntime = copyStack.top();
+		*runtime = lastRuntime;
+
+		// conventions state we should AddRef anything we return, so we will
+		(*runtime)->AddRef();
+	}
+
+	return FX_S_OK;
+}
+
 // {C41E7194-7556-4C02-BA45-A9C84D18AD43}
 
 FX_IMPLEMENTS(CLSID_ScriptRuntimeHandler, IScriptRuntimeHandler);

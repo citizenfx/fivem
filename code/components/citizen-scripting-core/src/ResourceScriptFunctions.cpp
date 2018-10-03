@@ -50,6 +50,27 @@ static InitFunction initFunction([] ()
 		context.SetResult(nullptr);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_INVOKING_RESOURCE", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetInvokingScriptRuntime(&runtime)))
+		{
+			if (runtime.GetRef())
+			{
+				fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+				if (resource)
+				{
+					context.SetResult(resource->GetName().c_str());
+					return;
+				}
+			}
+		}
+
+		context.SetResult(nullptr);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("IS_DUPLICITY_VERSION", [](fx::ScriptContext& context)
 	{
 		context.SetResult(
