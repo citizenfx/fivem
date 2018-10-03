@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Security;
 using System.Runtime.InteropServices;
 
+using static CitizenFX.Core.Native.API;
+
 namespace CitizenFX.Core
 {
     class RemoteFunctionReference : IDisposable
@@ -16,6 +18,9 @@ namespace CitizenFX.Core
         public RemoteFunctionReference(byte[] reference)
         {
             m_reference = Encoding.UTF8.GetString(reference);
+
+			// increment the refcount
+			DuplicateFunctionReference(m_reference);
         }
 
 		~RemoteFunctionReference()
@@ -50,12 +55,12 @@ namespace CitizenFX.Core
 
         private void FreeNativeReference()
         {
-            Native.Function.Call(Native.Hash.DELETE_FUNCTION_REFERENCE, m_reference);
+            DeleteFunctionReference(m_reference);
         }
 
         public byte[] Duplicate()
         {
-            return Encoding.UTF8.GetBytes(Native.Function.Call<string>(Native.Hash.DUPLICATE_FUNCTION_REFERENCE, m_reference));
+            return Encoding.UTF8.GetBytes(DuplicateFunctionReference(m_reference));
         }
 
         [SecuritySafeCritical]
