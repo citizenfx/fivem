@@ -91,6 +91,9 @@ namespace fx
 		{
 			events->TriggerClientEvent("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName(), otherClient->GetSlotId());
 		});
+
+		// trigger connection handlers
+		OnConnectedClient(client.get());
 	}
 
 	std::shared_ptr<fx::Client> ClientRegistry::GetHost()

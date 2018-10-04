@@ -3,6 +3,8 @@
 #include "Console.CommandHelpers.h"
 #include "Console.Commands.h"
 
+#include <se/Security.h>
+
 namespace internal
 {
 class ConsoleVariableEntryBase
@@ -50,6 +52,7 @@ enum ConsoleVariableFlags
 	ConVar_Archive    = 0x1,
 	ConVar_Modified   = 0x2,
 	ConVar_ServerInfo = 0x4,
+	ConVar_Replicated = 0x8,
 };
 
 class ConsoleVariableManager
@@ -78,7 +81,11 @@ public:
 
 	virtual void RemoveEntryFlags(const std::string& name, int flags);
 
+	virtual int GetEntryFlags(const std::string& name);
+
 	virtual void ForAllVariables(const TVariableCB& callback, int flagMask = 0xFFFFFFFF);
+
+	virtual void RemoveVariablesWithFlag(int flags);
 
 	virtual void SaveConfiguration(const TWriteLineCB& writeLineFunction);
 
@@ -116,6 +123,7 @@ private:
 	std::unique_ptr<ConsoleCommand> m_setCommand;
 	std::unique_ptr<ConsoleCommand> m_setaCommand;
 	std::unique_ptr<ConsoleCommand> m_setsCommand;
+	std::unique_ptr<ConsoleCommand> m_setrCommand;
 
 	std::unique_ptr<ConsoleCommand> m_toggleCommand;
 	std::unique_ptr<ConsoleCommand> m_vstrCommand;
@@ -207,6 +215,17 @@ public:
 		{
 			return false;
 		}
+
+#ifndef IS_FXSERVER
+		if (m_manager->GetEntryFlags(m_name) & ConVar_Replicated)
+		{
+			if (!seCheckPrivilege("builtin.setReplicated"))
+			{
+				console::Printf("cmd", "Cannot set server-replicated ConVar %s from client console.\n", m_name);
+				return false;
+			}
+		}
+#endif
 
 		// update modified flags if changed
 		if (!typename ConsoleArgumentTraits<T>::Equal()(m_curValue, newValue))

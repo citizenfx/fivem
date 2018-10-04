@@ -12,9 +12,16 @@
 #include <GameInit.h>
 #include <nutsnbolts.h>
 
+#include <msgpack.hpp>
+
+#include <CoreConsole.h>
+#include <se/Security.h>
+
 #ifdef GTA_FIVE
 static InitFunction initFunction([] ()
 {
+	seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.internal" }, se::Object{ "builtin" }, se::AccessType::Allow);
+
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* library)
 	{
 		static NetLibrary* netLibrary = library;
@@ -54,7 +61,24 @@ static InitFunction initFunction([] ()
 		OnKillNetworkDone.Connect([=]()
 		{
 			library->FinalizeDisconnect();
+
+			console::GetDefaultContext()->GetVariableManager()->RemoveVariablesWithFlag(ConVar_Replicated);
 		});
+
+		library->AddReliableHandler("msgConVars", [](const char* buf, size_t len)
+		{
+			auto unpacked = msgpack::unpack(buf, len);
+			auto conVars = unpacked.get().as<std::map<std::string, std::string>>();
+
+			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+			se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
+
+			// set variable
+			for (const auto& conVar : conVars)
+			{
+				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "setr", conVar.first, conVar.second });
+			}
+		}, true);
 	});
 
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()

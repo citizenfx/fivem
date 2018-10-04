@@ -160,6 +160,8 @@ namespace fx
 
 		fwEvent<Client*> OnClientCreated;
 
+		fwEvent<Client*> OnConnectedClient;
+
 	private:
 		uint16_t m_hostNetId;
 

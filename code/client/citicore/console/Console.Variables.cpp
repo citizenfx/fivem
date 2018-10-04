@@ -55,6 +55,11 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 		setCommand(ConVar_ServerInfo, variable, value);
 	});
 #endif
+
+	// set replicated
+	m_setrCommand = std::make_unique<ConsoleCommand>(m_parentContext, "setr", [=](const std::string& variable, const std::string& value) {
+		setCommand(ConVar_Replicated, variable, value);
+	});
 }
 
 ConsoleVariableManager::~ConsoleVariableManager()
@@ -127,6 +132,20 @@ void ConsoleVariableManager::RemoveEntryFlags(const std::string& name, int flags
 	}
 }
 
+int ConsoleVariableManager::GetEntryFlags(const std::string& name)
+{
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+	auto it = m_entries.find(name);
+
+	if (it != m_entries.end())
+	{
+		return it->second.flags;
+	}
+
+	return 0;
+}
+
 void ConsoleVariableManager::ForAllVariables(const TVariableCB& callback, int flagMask)
 {
 	// store first so we don't have to deal with recursive locks
@@ -149,6 +168,29 @@ void ConsoleVariableManager::ForAllVariables(const TVariableCB& callback, int fl
 	for (const auto& entry : iterationList)
 	{
 		apply(callback, entry);
+	}
+}
+
+void ConsoleVariableManager::RemoveVariablesWithFlag(int flagMask)
+{
+	std::vector<int> iterationList;
+
+	{
+		std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+		for (auto& entry : m_entries)
+		{
+			// if flags match the mask
+			if ((entry.second.flags & flagMask) != 0)
+			{
+				iterationList.push_back(entry.second.token);
+			}
+		}
+	}
+
+	for (auto token : iterationList)
+	{
+		Unregister(token);
 	}
 }
 

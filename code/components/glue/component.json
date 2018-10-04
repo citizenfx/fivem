@@ -8,7 +8,8 @@
 		"gta:core",
 		"conhost",
 		"vendor:cpp-uri",
-		"vendor:nng"
+		"vendor:nng",
+		"vendor:msgpack-c"
 	],
 	"provides": []
 }
