@@ -1,9 +1,21 @@
 local aliases = {}
 local t = '\t\t'
 
-local function processDoc(doc)
+local function trimAndNormalize(str)
+	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] '):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
+end
+
+local function processDoc(native)
+	local d = parseDocString(native)
+
+	if not d then
+		return ''
+	end
+
+	local doc = d.summary
+
 	doc = doc:gsub(".*<summary>%s+(.*)%s+</summary>.*", "%1")
-	doc = "\n<summary>\n" .. doc .. "\n</summary>"
+	doc = "\n<summary>\n" .. trimAndNormalize(doc) .. "\n</summary>"
 
 	doc = doc:gsub("\n", "\n" .. t .. "/// ")
 
@@ -20,7 +32,7 @@ for _, v in pairs(_natives) do
 
 		if name:sub(1, 2) ~= '0x' then
 			if v.doc ~= nil then
-				print(processDoc(v.doc))
+				print(processDoc(v))
 			end
 
 			if not hadSet[name] then

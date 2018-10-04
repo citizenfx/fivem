@@ -145,7 +145,7 @@ local function printReturnType(type)
 end
 
 local function trimAndNormalize(str)
-	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] ')
+	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] '):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
 end
 
 local function formatDocString(native)
@@ -171,12 +171,12 @@ local function formatDocString(native)
 
 	if d.hasParams then
 		for _, v in ipairs(d.params) do
-			l = l ..t .. '/// <param name="' .. v[1] .. '">' .. v[2] .. '</param>\n'
+			l = l ..t .. '/// <param name="' .. v[1] .. '">' .. trimAndNormalize(v[2]) .. '</param>\n'
 		end
 	end
 
 	if d.returns then
-		l = l ..t .. '/// <returns>' .. d.returns .. '</returns>\n'
+		l = l ..t .. '/// <returns>' .. trimAndNormalize(d.returns) .. '</returns>\n'
 	end
 
 	return l
