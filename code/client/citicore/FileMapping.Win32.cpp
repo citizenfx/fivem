@@ -335,6 +335,27 @@ NTSTATUS WINAPI NtQueryAttributesFileStub(POBJECT_ATTRIBUTES objectAttributes, v
 	return g_origNtQueryAttributesFile(objectAttributes, basicInformation);
 }
 
+static HRESULT(WINAPI* g_origQueryDListForApplication1)(BOOL* pDefaultToDiscrete, HANDLE hAdapter, void* pfnEscapeCB);
+
+static HRESULT WINAPI QueryDListForApplication1Stub(BOOL* pDefaultToDiscrete, HANDLE hAdapter, void* pfnEscapeCB)
+{
+	auto hr = g_origQueryDListForApplication1(pDefaultToDiscrete, hAdapter, pfnEscapeCB);
+
+	if (SUCCEEDED(hr))
+	{
+		// log if done
+		if (!*pDefaultToDiscrete)
+		{
+			trace("Overriding QueryDListForApplication1 to run on discrete GPU.\n");
+		}
+
+		// we always want to run on the discrete GPU, even if the UMD says not to
+		*pDefaultToDiscrete = TRUE;
+	}
+
+	return hr;
+}
+
 static FARPROC(WINAPI* g_origGetProcAddress)(HMODULE hModule, LPCSTR procName, void* caller);
 
 FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* caller)
@@ -355,6 +376,12 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 extern "C" BOOLEAN NTAPI RtlEqualString(
 	_In_ const STRING  *String1,
 	_In_ const STRING  *String2,
+	_In_       BOOLEAN CaseInSensitive
+);
+
+extern "C" BOOLEAN NTAPI RtlEqualUnicodeString(
+	_In_ const UNICODE_STRING  *String1,
+	_In_ const UNICODE_STRING  *String2,
 	_In_       BOOLEAN CaseInSensitive
 );
 
@@ -380,6 +407,73 @@ NTSTATUS NTAPI LdrGetProcedureAddressStub(HMODULE hModule, PANSI_STRING function
 	return g_origGetProcedureAddress(hModule, functionName, ordinal, fnAddress);
 }
 
+#define LDR_DLL_NOTIFICATION_REASON_LOADED 1
+#define LDR_DLL_NOTIFICATION_REASON_UNLOADED 2
+
+typedef struct _LDR_DLL_LOADED_NOTIFICATION_DATA
+{
+	ULONG Flags;
+	PUNICODE_STRING FullDllName;
+	PUNICODE_STRING BaseDllName;
+	PVOID DllBase;
+	ULONG SizeOfImage;
+} LDR_DLL_LOADED_NOTIFICATION_DATA, *PLDR_DLL_LOADED_NOTIFICATION_DATA;
+
+typedef struct _LDR_DLL_UNLOADED_NOTIFICATION_DATA
+{
+	ULONG Flags;
+	PCUNICODE_STRING FullDllName;
+	PCUNICODE_STRING BaseDllName;
+	PVOID DllBase;
+	ULONG SizeOfImage;
+} LDR_DLL_UNLOADED_NOTIFICATION_DATA, *PLDR_DLL_UNLOADED_NOTIFICATION_DATA;
+
+typedef union _LDR_DLL_NOTIFICATION_DATA
+{
+	LDR_DLL_LOADED_NOTIFICATION_DATA Loaded;
+	LDR_DLL_UNLOADED_NOTIFICATION_DATA Unloaded;
+} LDR_DLL_NOTIFICATION_DATA, *PLDR_DLL_NOTIFICATION_DATA;
+
+typedef VOID(NTAPI *PLDR_DLL_NOTIFICATION_FUNCTION)(
+	_In_ ULONG NotificationReason,
+	_In_ PLDR_DLL_NOTIFICATION_DATA NotificationData,
+	_In_opt_ PVOID Context
+	);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrRegisterDllNotification(
+	_In_ ULONG Flags,
+	_In_ PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction,
+	_In_ PVOID Context,
+	_Out_ PVOID *Cookie
+);
+
+static PVOID g_lastDllNotif;
+
+VOID CALLBACK LdrDllNotification(
+	_In_     ULONG                       NotificationReason,
+	_In_     PLDR_DLL_NOTIFICATION_DATA NotificationData,
+	_In_opt_ PVOID                       Context
+)
+{
+	if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED)
+	{
+		UNICODE_STRING amdHdl;
+		RtlInitUnicodeString(&amdHdl, L"amdhdl64.dll");
+
+		if (RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &amdHdl, TRUE))
+		{
+			void* proc = GetProcAddress(reinterpret_cast<HMODULE>(NotificationData->Loaded.DllBase), "QueryDListForApplication1");
+			MH_CreateHook(proc, QueryDListForApplication1Stub, (void**)&g_origQueryDListForApplication1);
+			MH_EnableHook(proc);
+
+			trace("Hooked amdhdl64.dll.\n");
+		}
+	}
+}
+
 extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 {
 	g_mappingFunction = function;
@@ -394,6 +488,9 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExW", RegOpenKeyExWStub, (void**)&g_origRegOpenKeyExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetProcAddressForCaller", GetProcAddressStub, (void**)&g_origGetProcAddress);
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	static auto _LdrRegisterDllNotification = (decltype(&LdrRegisterDllNotification))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "LdrRegisterDllNotification");
+	_LdrRegisterDllNotification(0, LdrDllNotification, nullptr, &g_lastDllNotif);
 
     LSP_InitializeHooks();
 
