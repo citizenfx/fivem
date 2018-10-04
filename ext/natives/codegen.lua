@@ -299,6 +299,10 @@ function loadRpcDefinition(filename)
 end
 
 function trim(s)
+	if not s then
+		return nil
+	end
+
 	return s:gsub("^%s*(.-)%s*$", "%1")
 end
 
@@ -316,6 +320,8 @@ function parseDocString(native)
 	if not summary then
 		return nil
 	end
+	
+	summary = trim(summary:gsub('^```(.+)```$', '%1'))
 
 	local paramsData = {}
 	local hasParams = false
@@ -354,9 +360,18 @@ end
 loadDefinition 'codegen_types.lua'
 
 local outputType = 'lua'
+local globalNatives = false
 
 if #arg > 0 then
+	if arg[1]:match('gta_universal') then
+		arg[1] = 'out/natives_global.lua'
+	end
+	
 	loadDefinition(arg[1])
+	
+	if arg[1]:match('natives_global') then
+		globalNatives = true
+	end
 
 	gApiSet = 'client'
 end
@@ -369,8 +384,11 @@ if #arg > 2 then
 	gApiSet = arg[3]
 end
 
-loadDefinition 'codegen_cfx_natives.lua'
-loadDefinition 'codegen_dlc_natives.lua'
+if not globalNatives then
+	loadDefinition 'out/natives_cfx.lua'
+	loadDefinition 'codegen_dlc_natives.lua'
+end
+
 loadRpcDefinition 'rpc_spec_natives.lua'
 
 _natives = {}

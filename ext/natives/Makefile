@@ -48,29 +48,29 @@ clean:
 out:
 	mkdir -p out
 
-out/NativesFive.cs: natives_stash/gta_universal.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
+out/NativesFive.cs: out/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
 	echo "$$NATIVES_FIVE_HEADER" > $@
-	./lua53 codegen.lua natives_stash/gta_universal.lua enum >> $@
-	./lua53 codegen.lua natives_stash/gta_universal.lua cs >> $@
+	./lua53 codegen.lua out/natives_global.lua enum >> $@
+	./lua53 codegen.lua out/natives_global.lua cs >> $@
 	echo "$$NATIVES_FIVE_FOOTER" >> $@
 
-out/NativesServer.cs: $(CODEGEN_SCRIPTS) codegen_out_cs.lua rpc_spec_natives.lua
+out/NativesServer.cs: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_cs.lua rpc_spec_natives.lua
 	echo "$$NATIVES_SERVER_HEADER" > $@
-	./lua53 codegen.lua natives_stash/gta_universal.lua enum server >> $@
-	./lua53 codegen.lua natives_stash/gta_universal.lua cs server >> $@
+	./lua53 codegen.lua out/natives_global.lua enum server >> $@
+	./lua53 codegen.lua out/natives_global.lua cs server >> $@
 	echo "$$NATIVES_SERVER_FOOTER" >> $@
 
-out/rpc_natives.json: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_rpc.lua rpc_spec_natives.lua
-	./lua53 codegen.lua natives_stash/gta_universal.lua rpc server > $@
+out/rpc_natives.json: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_rpc.lua rpc_spec_natives.lua
+	./lua53 codegen.lua out/natives_global.lua rpc server > $@
 
-out/natives_server.lua: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_lua.lua rpc_spec_natives.lua
-	./lua53 codegen.lua natives_stash/gta_universal.lua lua server > $@
+out/natives_server.lua: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_lua.lua rpc_spec_natives.lua
+	./lua53 codegen.lua out/natives_global.lua lua server > $@
 
-out/natives_server.d.ts: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_dts.lua rpc_spec_natives.lua
-	./lua53 codegen.lua natives_stash/gta_universal.lua dts server > $@
+out/natives_server.d.ts: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_dts.lua rpc_spec_natives.lua
+	./lua53 codegen.lua out/natives_global.lua dts server > $@
 
-out/natives_server.js: $(CODEGEN_SCRIPTS) natives_stash/gta_universal.lua codegen_out_js.lua rpc_spec_natives.lua
-	./lua53 codegen.lua natives_stash/gta_universal.lua js server > $@
+out/natives_server.js: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_js.lua rpc_spec_natives.lua
+	./lua53 codegen.lua out/natives_global.lua js server > $@
 
 out/natives_%.lua: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua
 	./lua53 codegen.lua $< lua > $@
@@ -81,7 +81,7 @@ out/natives_%.d.ts: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_dts.l
 out/natives_%.js: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_js.lua
 	./lua53 codegen.lua $< js > $@
 
-out/natives_%.zip: natives_stash/gta_%.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua codegen_out_slua.lua
+out/natives_%.zip: natives_stash/gta_%.lua out/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua codegen_out_slua.lua
 	$(eval DIR := $(shell mktemp -d -p out/))
 	rm $@ || true
 	NATIVES_DIR="$(DIR)" ./lua53 codegen.lua $< slua > /dev/null
