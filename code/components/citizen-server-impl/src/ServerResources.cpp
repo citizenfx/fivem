@@ -632,4 +632,38 @@ static InitFunction initFunction2([]()
 		// set variable
 		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "set", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_CONVAR_SERVER_INFO", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
+		// set variable
+		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "sets", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_CONVAR_REPLICATED", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
+		// set variable
+		consoleContext->ExecuteSingleCommandDirect(ProgramArguments{ "setr", context.CheckArgument<const char*>(0), context.CheckArgument<const char*>(1) });
+	});
 });
