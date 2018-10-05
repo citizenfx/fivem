@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+aliases: ["SET_VEHICLE_WHEEL_XROT"]
 ---
 ## SET_VEHICLE_WHEEL_Y_ROTATION
 
