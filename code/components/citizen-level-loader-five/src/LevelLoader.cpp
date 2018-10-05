@@ -133,7 +133,7 @@ static void DoLoadLevel(int index)
 	}
 
 	// mark the level as being custom
-	g_wasLastLevelCustom = true;
+	g_wasLastLevelCustom = (g_overrideNextLoadedLevel != "gta5" && g_overrideNextLoadedLevel.find("gta5.meta") == std::string::npos);
 
 	// clear the 'next' level
 	g_overrideNextLoadedLevel.clear();
