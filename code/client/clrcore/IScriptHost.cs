@@ -10,7 +10,7 @@ namespace CitizenFX.Core
 	public interface IScriptHost
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		void InvokeNative([MarshalAs(UnmanagedType.Struct)] ref fxScriptContext context);
+		void InvokeNative([MarshalAs(UnmanagedType.Struct)] IntPtr context);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		[return: MarshalAs(UnmanagedType.Interface)]

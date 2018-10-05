@@ -13,9 +13,22 @@ namespace CitizenFX.Core
 			m_host = host;
 		}
 
+		[SecuritySafeCritical]
 		public void InvokeNative(ref fxScriptContext context)
 		{
-			m_host.InvokeNative(context);
+			InvokeNativeInternal(ref context);
+		}
+
+		[SecurityCritical]
+		private void InvokeNativeInternal(ref fxScriptContext context)
+		{
+			unsafe
+			{
+				fixed (fxScriptContext* cxt = &context)
+				{
+					m_host.InvokeNative(new IntPtr(cxt));
+				}
+			}
 		}
 
 		[SecurityCritical]

@@ -266,7 +266,13 @@ namespace CitizenFX.Core
 		{
 			m_context.nativeIdentifier = nativeIdentifier;
 
-			scriptHost.InvokeNative(ref m_context);
+			unsafe
+			{
+				fixed (fxScriptContext* cxt = &m_context)
+				{
+					scriptHost.InvokeNative(new IntPtr(cxt));
+				}
+			}
 		}
 
 		internal static void GlobalCleanUp()
