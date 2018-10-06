@@ -1705,7 +1705,7 @@ native 'SET_VEHICLE_HANDLING_VECTOR'
 	<param name="value">The Vector3 value to set.</param>
 ]]
 
-native 'GET_VEHICLE_WHEEL_XROT'
+native 'GET_VEHICLE_WHEEL_Y_ROTATION'
 	arguments {
 		Vehicle 'vehicle',
 		int 'wheelIndex'
@@ -1713,7 +1713,7 @@ native 'GET_VEHICLE_WHEEL_XROT'
 	apiset 'client'
 	returns 'float'
 
-native 'SET_VEHICLE_WHEEL_XROT'
+native 'SET_VEHICLE_WHEEL_Y_ROTATION'
 	arguments {
 		Vehicle 'vehicle',
 		int 'wheelIndex',
