@@ -172,6 +172,8 @@ end
 premake.override(premake.vstudio.cs2005, "compilerProps", function(base, prj)
     base(prj)
     WriteDocumentationFileXml(premake, prj, XmlDocFileName)
+
+    premake.w('<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>')
 end)
 
 	project "CitiMono"
