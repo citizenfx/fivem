@@ -16,6 +16,8 @@
 #include <LegitimacyAPI.h>
 #include <IteratorView.h>
 
+#include <json.hpp>
+
 #include <Error.h>
 
 fwEvent<const std::string&> OnRichPresenceSetTemplate;
@@ -830,19 +832,59 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 			{
-				m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/onesync?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+				auto oneSyncFailure = [this]()
 				{
-					if (success)
-					{
-						if (std::string(data, length).find("yes") != std::string::npos)
-						{
-							m_connectionState = CS_INITRECEIVED;
-							return;
-						}
-					}
-
 					OnConnectionError("OneSync is not whitelisted for this server, or requesting whitelist status failed. You'll have to wait a little while longer!");
 					m_connectionState = CS_IDLE;
+				};
+
+				auto oneSyncSuccess = [this]()
+				{
+					m_connectionState = CS_INITRECEIVED;
+				};
+
+				m_httpClient->DoGetRequest(fmt::sprintf("http://%s:%d/info.json", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t size)
+				{
+					using json = nlohmann::json;
+
+					if (success)
+					{
+						try
+						{
+							json info = json::parse(data, data + size);
+
+							if (info.is_object() && info["vars"].is_object())
+							{
+								auto val = info["vars"].value("sv_licenseKeyToken", "");
+
+								if (!val.empty())
+								{
+									m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/onesync", val), [=](bool success, const char* data, size_t size)
+									{
+										if (success)
+										{
+											if (std::string(data, size).find("yes") != std::string::npos)
+											{
+												oneSyncSuccess();
+
+												return;
+											}
+										}
+
+										oneSyncFailure();
+									});
+
+									return;
+								}
+							}
+						}
+						catch (std::exception& e)
+						{
+							trace("1s policy - get failed for %s\n", e.what());
+						}
+
+						oneSyncFailure();
+					}
 				});
 			}
 			else
