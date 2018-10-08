@@ -93,7 +93,7 @@
             case arg === null:
                 return 'null';
                 
-            case arg === undefined || arg === void 0;
+            case arg === undefined:
                 return 'undefined'
 
             case arg instanceof WeakMap:
