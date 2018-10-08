@@ -149,7 +149,7 @@ namespace CitizenFX.Core
 					return true;
 				}
 
-				return Function.Call<bool>(Native.Hash.HAS_PED_GOT_WEAPON, _owner.Handle, Hash);
+				return Function.Call<bool>(Native.Hash.HAS_PED_GOT_WEAPON, _owner.Handle, Hash, 0);
 			}
 		}
 		public string DisplayName
