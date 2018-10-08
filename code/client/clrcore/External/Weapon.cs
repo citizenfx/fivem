@@ -192,6 +192,8 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public AmmoType AmmoType => Function.Call<AmmoType>(Native.Hash.GET_PED_AMMO_TYPE_FROM_WEAPON, _owner.Handle, Hash);
+
 		public int Ammo
 		{
 			get
@@ -203,7 +205,7 @@ namespace CitizenFX.Core
 
 				if (!IsPresent)
 				{
-					return 0;
+					return Function.Call<int>(Native.Hash.GET_PED_AMMO_BY_TYPE, _owner.Handle, AmmoType);
 				}
 
 				return Function.Call<int>(Native.Hash.GET_AMMO_IN_PED_WEAPON, _owner.Handle, Hash);
