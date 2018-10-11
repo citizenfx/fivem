@@ -48,6 +48,8 @@ function Citizen.CreateThreadNow(threadFunction)
 	return coroutine.status(coro) ~= 'dead'
 end
 
+local inNext
+
 function Citizen.Await(promise)
 	if not curThread then
 		error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
@@ -60,8 +62,20 @@ function Citizen.Await(promise)
 
 	curThreadIndex = nil
 	local resumableThread = curThread
-
+	
+	inNext = true
+	local nextResult
+	local resolved
+	
 	promise:next(function (result)
+		-- was already resolved? then resolve instantly
+		if inNext then
+			nextResult = result
+			resolved = true
+			
+			return
+		end
+	
 		-- Reattach thread
 		table.insert(threads, resumableThread)
 
@@ -80,7 +94,13 @@ function Citizen.Await(promise)
 			Citizen.Trace('Await failure: ' .. debug.traceback(resumableThread.coroutine, err, 2))
 		end
 	end)
-
+	
+	inNext = false
+	
+	if resolved then
+		return nextResult
+	end
+	
 	curThread = nil
 	return coroutine.yield()
 end
@@ -373,6 +393,8 @@ Citizen.SetDuplicateRefRoutine(function(refId)
 	local ref = funcRefs[refId]
 
 	if ref then
+		--print(('%s %s ref %d - new refcount %d (from %s)'):format(GetCurrentResourceName(), 'duplicating', refId, ref.refs + 1, GetInvokingResource() or 'nil'))
+	
 		ref.refs = ref.refs + 1
 
 		return refId
@@ -385,6 +407,8 @@ Citizen.SetDeleteRefRoutine(function(refId)
 	local ref = funcRefs[refId]
 	
 	if ref then
+		--print(('%s %s ref %d - new refcount %d (from %s)'):format(GetCurrentResourceName(), 'deleting', refId, ref.refs - 1, GetInvokingResource() or 'nil'))
+	
 		ref.refs = ref.refs - 1
 		
 		if ref.refs <= 0 then
