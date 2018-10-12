@@ -29,4 +29,12 @@ export class HomeComponent implements OnInit {
     openTweet(id) {
         this.gameService.openUrl('https://twitter.com/_FiveM/status/' + id);
     }
+
+    clickContent(event: MouseEvent) {
+        if (event.srcElement.localName === 'a') {
+            this.gameService.openUrl(event.srcElement.getAttribute('href'));
+
+            event.preventDefault();
+        }
+    }
 }

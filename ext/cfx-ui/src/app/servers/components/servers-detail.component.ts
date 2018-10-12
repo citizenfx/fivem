@@ -100,7 +100,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
                     .filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager')
                     .join(', ');
 
-                this.serverVariables = Object.entries(a.data.vars)
+                this.serverVariables = Object.entries(a.data.vars as {[key: string]: string })
                     .map(([key, value]) => ( { key, value }) )
                     .filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
                     .filter(({ key }) => key.indexOf('banner_') < 0)

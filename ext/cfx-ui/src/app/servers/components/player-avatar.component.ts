@@ -9,7 +9,7 @@ import { of } from 'rxjs/observable/of';
 import { delay, share, map } from 'rxjs/operators';
 
 import { Int64BE } from 'int64-buffer';
-import { xml2js } from 'xml-js';
+import { xml2js, ElementCompact } from 'xml-js';
 
 @Component({
     moduleId: module.id,
@@ -48,7 +48,7 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
 
                 return this.http.get(`https://steamcommunity.com/profiles/${decId}?xml=1`)
                                 .map(a => {
-                                    const obj = xml2js(a.text(), { compact: true });
+                                    const obj = xml2js(a.text(), { compact: true }) as ElementCompact;
 
                                     if (obj && obj.profile && obj.profile.avatarMedium) {
                                         return obj.profile.avatarMedium._cdata

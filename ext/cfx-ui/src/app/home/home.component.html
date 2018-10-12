@@ -5,7 +5,9 @@
 				<div class="message-header">
 					<img class="avatar" src="{{tweet.avatar}}">
 					<strong>{{tweet.user_displayname}}</strong>
-					<small>@{{tweet.user_screenname}}</small>
+					<small>
+						@{{tweet.user_screenname}}
+					</small>
 					<small>
 						{{tweet.date | amTimeAgo}}
 						<span class="additional" data-balloon="Open tweet in browser." data-balloon-pos="right" (click)="openTweet(tweet.id)">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
@@ -18,8 +20,8 @@
 							<img src="{{tweet.image}}">
 						</figure>
 						<div class="media-content">
-							<div class="content">
-								<p>{{tweet.content}}</p>
+							<div class="content" (click)="clickContent($event)">
+								<p [innerHTML]="tweet.content | linky: { hashtag: 'twitter', mention: 'twitter' }"></p>
 							</div>
 							<nav class="level is-mobile"></nav>
 						</div>

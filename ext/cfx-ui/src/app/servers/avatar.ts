@@ -75,7 +75,7 @@ export class Avatar {
 
     private static getMatchingColor(firstColor: Color) {
         let color = firstColor;
-        if (color.dark()) {
+        if (color.isDark()) {
             color = color.saturate(0.3).rotate(90);
         } else {
             color = color.desaturate(0.3).rotate(90);

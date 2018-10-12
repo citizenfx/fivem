@@ -6,11 +6,12 @@ import {HttpClientModule} from '@angular/common/http';
 
 import { environment } from '../environments/environment'
 
-import {VirtualScrollModule} from 'angular2-virtual-scroll';
+import {VirtualScrollerModule} from 'ngx-virtual-scroller';
 import {TranslationModule, L10nConfig, L10nLoader, ProviderType} from 'angular-l10n';
 import {MomentModule} from 'angular2-moment';
 import {Angulartics2Module} from 'angulartics2';
 import {Angulartics2Piwik} from 'angulartics2/piwik';
+import {LinkyModule} from 'ngx-linky';
 
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
@@ -77,11 +78,12 @@ const l10nConfig: L10nConfig = {
 		FormsModule,
 		HttpModule,
 		AppRoutingModule,
-		VirtualScrollModule,
+		VirtualScrollerModule,
 		MomentModule,
 		HttpClientModule,
 		TranslationModule.forRoot(l10nConfig),
-		Angulartics2Module.forRoot([ Angulartics2Piwik ])
+		Angulartics2Module.forRoot(),
+		LinkyModule,
 	],
 	providers:    [
 		ServersService,

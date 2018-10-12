@@ -5,7 +5,7 @@
 ></servers-list-header>
 
 <div class="list">
-	<virtual-scroll
+	<virtual-scroller
 		[items]="sortedServers"
 		(update)="localServers = $event"
 		childWidth="1000"
@@ -17,5 +17,5 @@
 			[class.pinned]="isPinned(server)" [server]="server"
 			*ngFor="let server of localServers"
 		></servers-list-item>
-	</virtual-scroll>
+	</virtual-scroller>
 </div>

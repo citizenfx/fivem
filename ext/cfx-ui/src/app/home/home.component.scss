@@ -32,6 +32,10 @@
 			.rt {
 				float: right;
 			}
+
+			::ng-deep a {
+				color: inherit;
+			}
 			
 			.additional {
 				opacity: 0;
