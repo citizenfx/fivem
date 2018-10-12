@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Http } from '@angular/http';
 import { DomSanitizer } from '@angular/platform-browser';
 
+import * as unicodeSubstring from 'unicode-substring';
+
 import 'rxjs/add/operator/toPromise';
 
 export class Tweet {
@@ -42,42 +44,41 @@ export class Tweet {
             return content;
         }
 
-        var index_map = {};
-        
+        const index_map = {};
+
         entities.urls.forEach(entry => index_map[entry.indices[0]] = [entry.indices[1], text => entry.expanded_url]);
-        
-        (entities.media || []).forEach(entry =>
-        {
-            if (entry.type == 'photo') {
+
+        (entities.media || []).forEach(entry => {
+            if (entry.type === 'photo') {
                 this.image = entry.media_url_https || entry.media_url;
             }
 
-            index_map[entry.indices[0]] = [entry.indices[1], text => ""];
+            index_map[entry.indices[0]] = [entry.indices[1], text => ''];
         });
-        
-        let result = "";
+
+        let result = '';
         let last_i = 0;
         let i = 0;
-        
+
         // iterate through the string looking for matches in the index_map
-        for (i=0; i < content.length; ++i) {
+        for (i = 0; i < content.length; ++i) {
             const ind = index_map[i];
             if (ind) {
                 const end = ind[0];
                 const func = ind[1];
                 if (i > last_i) {
-                    result += content.substring(last_i, i);
+                    result += unicodeSubstring(content, last_i, i);
                 }
-                result += func(content.substring(i, end));
+                result += func(unicodeSubstring(content, i, end));
                 i = end - 1;
                 last_i = end;
             }
         }
-        
+
         if (i > last_i) {
-            result += content.substring(last_i, i);
+            result += unicodeSubstring(content, last_i, i);
         }
-        
+
         return result;
     }
 }

@@ -36,6 +36,7 @@
     "protobufjs": "^6.8.3",
     "rxjs": "^5.5.6",
     "ts-loader": "^3.2.0",
+    "unicode-substring": "^1.0.0",
     "webpack": "^3.10.0",
     "xml-js": "^1.6.2",
     "zone.js": "^0.8.19"
