@@ -2,6 +2,7 @@ import {Injectable, EventEmitter, NgZone} from '@angular/core';
 import {DomSanitizer} from '@angular/platform-browser';
 
 import {Server} from './servers/server';
+import {ServersService} from './servers/servers.service';
 
 import { environment } from '../environments/environment';
 
@@ -68,7 +69,7 @@ export abstract class GameService {
 	
 	abstract init(): void;
 
-	abstract connectTo(server: Server): void;
+	abstract connectTo(server: Server, enteredAddress?: string): void;
 
 	abstract pingServers(servers: Server[]): Server[];
 
@@ -79,6 +80,8 @@ export abstract class GameService {
 	getProfile(): Profile {
 		return this.profile;
 	}
+
+	abstract getServerHistory(): ServerHistoryEntry[];
 
 	handleSignin(profile: Profile): void {
 		this.profile = profile;
@@ -135,6 +138,15 @@ export abstract class GameService {
 	protected invokeLocalhostPortChanged(port: string) {
 		this.localhostPortChange.emit(port);
 	}	
+}
+
+export class ServerHistoryEntry {
+	address: string;
+	title: string;
+	hostname: string;
+	time: Date;
+	icon: string;
+	token: string;
 }
 
 @Injectable()
@@ -239,6 +251,32 @@ export class CfxGameService extends GameService {
 		});
 
 		(<any>window).invokeNative('loadWarning', '');
+
+		// migrate lastServer -> lastServers
+		if (!localStorage.getItem('lastServers') && localStorage.getItem('lastServer')) {
+			this.addServerHistory(
+				{
+					address: localStorage.getItem('lastServer'),
+					time: new Date(),
+					title: '',
+					hostname: localStorage.getItem('lastServer'),
+					icon: '',
+					token: ''
+				}
+			);
+		}
+	}
+
+	addServerHistory(entry: ServerHistoryEntry) {
+		localStorage.setItem('lastServers', JSON.stringify(
+			this.getServerHistory()
+				.filter(a => a.address !== entry.address)
+				.concat([ entry ])
+		));
+	}
+
+	getServerHistory() {
+		return (JSON.parse((localStorage.getItem('lastServers') || '[]')) as ServerHistoryEntry[]);
 	}
 
 	get nickname(): string {
@@ -277,7 +315,7 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('history', JSON.stringify(this.history));
 	}
 
-	connectTo(server: Server) {
+	connectTo(server: Server, enteredAddress?: string) {
 		if (this.inConnecting) {
 			return;
 		}
@@ -286,6 +324,15 @@ export class CfxGameService extends GameService {
 
 		localStorage.setItem('lastServer', server.address);
 		this.lastServer = server;
+
+		this.addServerHistory({
+			address: server.address,
+			hostname: server.hostname,
+			title: enteredAddress || '',
+			time: new Date(),
+			icon: server.iconUri || '',
+			token: (server && server.data && server.data.vars) ? server.data.vars.sv_licenseKeyToken : ''
+		});
 
 		(<any>window).invokeNative('connectTo', server.address);
 
@@ -404,13 +451,16 @@ export class CfxGameService extends GameService {
 export class DummyGameService extends GameService {
 	private _devMode = false;
 	private _localhostPort = '';
+	private pinExample = '';
 
-	constructor() {
+	constructor(private serversService: ServersService) {
 		super();
 
 		if (localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
+
+		this.serversService.loadPinConfig().then(config => this.pinExample = config.pinnedServers[0]);
 	}
 
 	init() {
@@ -426,7 +476,7 @@ export class DummyGameService extends GameService {
 		this.handleSignin(profile);
 	}
 
-	connectTo(server: Server) {
+	connectTo(server: Server, enteredAddress?: string) {
 		if (environment.web) {
 			const ifr = document.createElement('iframe');
 			ifr.src = `fivem://connect/${server.address}`;
@@ -449,6 +499,35 @@ export class DummyGameService extends GameService {
 				this.invokeConnectFailed(server, 'Sorry, we\'re closed. :(');
 			}, 500);
 		}, 500);
+	}
+
+	getServerHistory() {
+		return [
+			{
+				title: 'cfx-dev.fivem.internal',
+				address: '127.0.0.1:30120',
+				time: new Date(2018, 8, 1),
+				hostname: 'Internal Test #1',
+				icon: '',
+				token: ''
+			},
+			{
+				title: 'cfx-dev.fivem-2.internal',
+				address: '127.0.0.1:30121',
+				time: new Date(2018, 9, 1),
+				hostname: 'Internal Test #2',
+				icon: '',
+				token: ''
+			},
+			{
+				title: null,
+				address: '51.15.201.219:30122',
+				hostname: 'Hello, world!',
+				time: new Date(),
+				icon: '',
+				token: 'ype00iiw33f7guwp_1:4a6aaf229eb26aa70d77f9d9e0039a6f28b3c9e3ad07cf307c1ce1ca6e071b42'
+			}
+		];
 	}
 
 	pingServers(servers: Server[]): Server[] {

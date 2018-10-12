@@ -31,6 +31,7 @@
     "#DirectConnect_ServerInvalid_SubTitle": "Make sure you've entered the correct address.",
     "#DirectConnect_IPPort": "IP:Port",
     "#DirectConnect_Connect": "Connect",
+    "#DirectConnect_LastPlayed": "Last played",
     "#ServerDetail_Players": "Players",
     "#ServerDetail_PlayersEmpty": "No online players on this server.",
     "#ServerDetail_Back": "Back",

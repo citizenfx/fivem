@@ -10,10 +10,10 @@
 	</div>
 
 	<div class="info one-info" *ngIf="this.server">
-		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://lorempixel.com/128/128') + ')'"></div>
+		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://picsum.photos/128/128') + ')'"></div>
 
 		<figure class="icon">
-			<img [src]="(server && server.sanitizedUri)||'http://lorempixel.com/128/128'">
+			<img [src]="(server && server.sanitizedUri)||'http://picsum.photos/128/128'">
 		</figure>
 
 		<h1 class="title" [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></h1>

@@ -6,7 +6,17 @@ import 'rxjs/add/operator/distinctUntilChanged';
 
 import { Server } from '../server';
 
-import { GameService } from '../../game.service';
+import { ServersService } from '../servers.service';
+
+import { GameService, ServerHistoryEntry } from '../../game.service';
+
+import { DomSanitizer } from '@angular/platform-browser';
+
+class ServerHistoryData {
+    entry: ServerHistoryEntry;
+    server: Server;
+    sanitizedIcon: any;
+}
 
 @Component({
     moduleId: module.id,
@@ -29,7 +39,9 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     @ViewChildren('input')
     private inputBox;
 
-    constructor(private gameService: GameService) {
+    history: ServerHistoryData[];
+
+    constructor(private gameService: GameService, private serversService: ServersService, private sanitizer: DomSanitizer) {
         this.addrEvent
             .asObservable()
             .debounceTime(750)
@@ -50,11 +62,31 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
                     .then(() => this.onFetchCB = null);
             });
 
-        const lastServer = localStorage.getItem('lastServer');
+        this.history = this.gameService.getServerHistory().slice(-6).map(entry => ({
+            entry,
+            server: null,
+            sanitizedIcon: (entry.icon ? this.sanitizer.bypassSecurityTrustUrl(entry.icon) : null)
+        })).reverse();
 
-        if (lastServer) {
-            this.addrChanged(lastServer);
+        this.serversService
+            .getServers()
+            .filter(server => server != null)
+            .map(server => ({ server, history: this.history.find(history => history.entry.address === server.address
+                || (server.data && server.data.vars && history.entry.token === server.data.vars.sv_licenseKeyToken)) }))
+            .filter(bundle => bundle.history !== undefined)
+            .subscribe(bundle => {
+                bundle.history.entry.hostname = bundle.server.hostname;
+                bundle.history.server = bundle.server;
+                bundle.history.sanitizedIcon = bundle.server.sanitizedUri;
+            });
+
+        if (this.history.length > 0) {
+            const entry = this.history.slice(0, 1)[0].entry;
+
+            this.addrChanged(entry.title || entry.address);
         }
+
+        this.serversService.refreshServers();
     }
 
     tryConnect() {
@@ -71,17 +103,23 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
         }
     }
 
-    addrChanged(newValue: string) {
-        this.inputInvalid = false;
-        this.addr = newValue;
+    attemptConnectTo(entry: ServerHistoryData) {
+        if (!entry.server) {
+            this.gameService.queryAddress(this.parseAddress(entry.entry.title || entry.entry.address))
+                .then(server => {
+                    this.gameService.connectTo(server, entry.entry.title || entry.entry.address);
+                }, (reason: Error) => this.error = reason.message);
+        } else {
+            this.gameService.connectTo(entry.server, entry.entry.title);
+        }
+    }
 
+    parseAddress(addr: string): [string, number] {
         const addrBits: [string, number] = [ '', 30120 ];
-        const match = newValue.match(/^((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)/i);
+        const match = addr.match(/^((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)/i);
 
-        if (!match)
-        {
-            this.inputInvalid = true;
-            return;
+        if (!match) {
+            return null;
         }
 
         addrBits[0] = match[1];
@@ -90,11 +128,25 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
             addrBits[1] = parseInt(match[2], 10);
         }
 
+        return addrBits;
+    }
+
+    addrChanged(newValue: string) {
+        this.inputInvalid = false;
+        this.addr = newValue;
+
+        const addrBits = this.parseAddress(newValue);
+
+        if (!addrBits) {
+            this.inputInvalid = true;
+            return;
+        }
+
         this.addrEvent.next(addrBits);
     }
 
     attemptConnect() {
-        this.gameService.connectTo(this.server);
+        this.gameService.connectTo(this.server, this.addr);
     }
 
     ngOnInit() { }

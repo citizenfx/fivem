@@ -24,10 +24,10 @@
 	</div>
 
 	<div class="info" *ngIf="isValid()">
-		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://lorempixel.com/128/128') + ')'"></div>
+		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://picsum.photos/128/128') + ')'"></div>
 
 		<figure class="icon">
-			<img [src]="(server && server.sanitizedUri)||'http://lorempixel.com/128/128'">
+			<img [src]="(server && server.sanitizedUri)||'http://picsum.photos/128/128'">
 		</figure>
 
 		<h1 class="title" [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></h1>
@@ -51,4 +51,19 @@
 			#DirectConnect_Connect
 		</button>
 	</div>
+</section>
+
+<section class="history">
+	<ul>
+		<li *ngFor="let server of history" [class.live]="server.server" (click)="attemptConnectTo(server)">
+			<figure class="icon">
+				<img [src]="server.sanitizedIcon || 'http://picsum.photos/96/96'">
+			</figure>
+			<div>
+				<h1 class="title" [innerHTML]="(server && server.entry.hostname)||'test' | escape | colorize"></h1>
+				<span class="players" *ngIf="server.server">{{server.server.currentPlayers}}/{{server.server.maxPlayers}}</span>
+				<span class="time">{{ '#DirectConnect_LastPlayed' | translate }}: {{ server.entry.time | amTimeAgo }}</span>
+			</div>
+		</li>
+	</ul>
 </section>

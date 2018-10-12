@@ -43,6 +43,59 @@
         }
     }
 
+    .history {
+        &>ul {
+            list-style-type: none;
+
+            &>li {
+                margin-top: $padding;
+                padding: $padding $padding*$multiplier;
+                background-color: rgba($bgColour, .2);
+
+                position: relative;
+
+                min-height: 96px;
+                box-sizing: content-box;
+
+                display: flex;
+                align-items: center;
+
+                .icon {
+                    position: absolute;
+                    left: $padding*$multiplier;
+
+                    img {
+                        border-radius: 1px;
+                    }
+                }
+
+                &>div {
+                    padding-left: calc(96px + #{$padding});
+                }
+
+                span {
+                    font-size: 90%;
+                    margin-right: 1vh;
+                }
+
+                span.time {
+                    color: darken($textColour, 10%);
+                }
+
+                span.players {
+                    &:after {
+                        content: '📶';
+                        padding-left: 0.5vh;
+                    }
+                }
+
+                &:hover {
+                    background-color: rgba(lighten($bgColour, 10%), .3);
+                }
+            }
+        }
+    }
+
     .server-info {
         &>div {
             margin-top: $padding;
