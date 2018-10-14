@@ -85,7 +85,7 @@ public:
 	//
 	// Iterates over all registered resources.
 	//
-	virtual void ForAllResources(const std::function<void(fwRefContainer<Resource>)>& function) = 0;
+	virtual void ForAllResources(const std::function<void(const fwRefContainer<Resource>&)>& function) = 0;
 
 	//
 	// Stops and unloads all registered resources.

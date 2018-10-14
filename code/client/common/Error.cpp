@@ -7,7 +7,11 @@
 
 #include "StdInc.h"
 //#include "GameInit.h"
+
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 #include <ICoreGameInit.h>
+#endif
+
 #include <fnv.h>
 
 #include <json.hpp>

@@ -38,7 +38,7 @@ public:
 
 	virtual fwRefContainer<Resource> GetResource(const std::string& identifier) override;
 
-	virtual void ForAllResources(const std::function<void(fwRefContainer<Resource>)>& function) override;
+	virtual void ForAllResources(const std::function<void(const fwRefContainer<Resource>&)>& function) override;
 
 	virtual void ResetResources() override;
 

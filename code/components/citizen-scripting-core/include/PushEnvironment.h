@@ -59,7 +59,14 @@ namespace fx
 
 		if (FX_SUCCEEDED(hr))
 		{
-			assert(FX_SUCCEEDED(runtimePtr.As(runtime)));
+			if constexpr (std::is_same_v<TRuntime, IScriptRuntime>)
+			{
+				*runtime = runtimePtr;
+			}
+			else
+			{
+				assert(FX_SUCCEEDED(runtimePtr.As(runtime)));
+			}
 		}
 
 		return hr;

@@ -23,35 +23,78 @@
 #endif
 #endif
 
+class ComponentRegistry
+{
+public:
+	virtual size_t GetSize() = 0;
+
+	virtual size_t RegisterComponent(const char* key) = 0;
+};
+
+#ifdef COMPILING_CORE
+extern "C" CORE_EXPORT ComponentRegistry* CoreGetComponentRegistry();
+#else
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
+static
+#ifdef _MSC_VER
+__declspec(noinline)
+#endif
+auto CoreGetComponentRegistry()
+{
+	static struct RefSource
+	{
+		RefSource()
+		{
+#ifdef _WIN32
+			auto func = (ComponentRegistry*(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreGetComponentRegistry");
+#else
+			auto func = (ComponentRegistry*(*)())dlsym(dlopen("./libCoreRT.so", RTLD_LAZY), "CoreGetComponentRegistry");
+#endif
+
+			this->registry = func();
+		}
+
+		ComponentRegistry* registry;
+	} registryRef;
+
+	return registryRef.registry;
+}
+#endif
+
 template<typename TContained>
 class InstanceRegistryBase : public fwRefCountable
 {
 private:
-	std::unordered_map<std::string, TContained> m_instanceMap;
+	std::vector<TContained> m_instances;
 
 public:
-	TContained GetInstance(const char* key)
+	InstanceRegistryBase()
 	{
-		auto it = m_instanceMap.find(key);
-		TContained instance = TContained();
-
-		if (it != m_instanceMap.end())
-		{
-			instance = it->second;
-		}
-		else
-		{
-#ifdef _DEBUG
-			assert(!"Could not obtain instance from InstanceRegistry.");
-#endif
-		}
-
-		return instance;
+		EnsureSize();
 	}
 
-	void SetInstance(const char* key, const TContained& instance)
+private:
+	inline void EnsureSize()
 	{
-		m_instanceMap[key] = instance;
+		m_instances.resize(CoreGetComponentRegistry()->GetSize());
+	}
+
+public:
+	const TContained& GetInstance(size_t key)
+	{
+		EnsureSize();
+
+		return m_instances[key];
+	}
+
+	void SetInstance(size_t key, const TContained& instance)
+	{
+		EnsureSize();
+
+		m_instances[key] = instance;
 	}
 };
 
@@ -99,18 +142,26 @@ private:
 	static T* ms_cachedInstance;
 
 public:
+	static size_t ms_id;
+
+public:
 	static T* Get(InstanceRegistry* registry)
 	{
-		T* instance = static_cast<T*>(registry->GetInstance(ms_name));
+		T* instance = static_cast<T*>(registry->GetInstance(ms_id));
 
 		assert(instance != nullptr);
 
 		return instance;
 	}
 
-	static fwRefContainer<T> Get(fwRefContainer<RefInstanceRegistry> registry)
+	static const fwRefContainer<T>& Get(const fwRefContainer<RefInstanceRegistry>& registry)
 	{
-		fwRefContainer<T> instance = registry->GetInstance(ms_name);
+		// we're casting here to prevent invoking the fwRefContainer copy constructor
+		// and ending up with a const reference to a temporary stack variable (as fwRefContainer<T> isn't fwRefContainer<fwRefCountable>).
+		//
+		// fwRefContainer of every type should have the exact same layout, and the instance registry will contain
+		// instances of fwRefCountable, so any cast to a derived type *should* be safe.
+		const fwRefContainer<T>& instance = *reinterpret_cast<const fwRefContainer<T>*>(&registry->GetInstance(ms_id));
 
 		assert(instance.GetRef());
 
@@ -134,12 +185,12 @@ public:
 
 	static void Set(T* instance, InstanceRegistry* registry)
 	{
-		registry->SetInstance(ms_name, instance);
+		registry->SetInstance(ms_id, instance);
 	}
 
 	static void Set(const fwRefContainer<T>& instance, fwRefContainer<RefInstanceRegistry> registry)
 	{
-		registry->SetInstance(ms_name, instance);
+		registry->SetInstance(ms_id, instance);
 	}
 
 	static const char* GetName()
@@ -154,6 +205,21 @@ public:
 #define SELECT_ANY inline
 #endif
 
+#define TP_(x, y) x ## y
+#define TP(x, y) TP_(x, y)
+
+class ComponentRegistration
+{
+public:
+	template<typename TFn>
+	inline ComponentRegistration(TFn fn)
+	{
+		fn();
+	}
+};
+
 #define DECLARE_INSTANCE_TYPE(name) \
 	template<> SELECT_ANY const char* ::Instance<name>::ms_name = #name; \
-	template<> SELECT_ANY name* ::Instance<name>::ms_cachedInstance = nullptr;
+	template<> SELECT_ANY name* ::Instance<name>::ms_cachedInstance = nullptr; \
+	template<> SELECT_ANY size_t Instance<name>::ms_id; \
+	static ComponentRegistration TP(_init_instance_, __COUNTER__)  ([] () { Instance<name>::ms_id = CoreGetComponentRegistry()->RegisterComponent(#name); });

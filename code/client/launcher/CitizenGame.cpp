@@ -376,6 +376,9 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		return;
 	}
 
+	// force loading _this_ variant
+	LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
+
 	CoreSetDebuggerPresent();
 
     SetCoreMapping();

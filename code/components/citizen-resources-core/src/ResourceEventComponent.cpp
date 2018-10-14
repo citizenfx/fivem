@@ -146,10 +146,10 @@ bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, c
 	OnTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
 
 	// trigger local handlers
-	m_manager->ForAllResources([&] (fwRefContainer<Resource> resource)
+	m_manager->ForAllResources([&] (const fwRefContainer<Resource>& resource)
 	{
 		// get the event component
-		fwRefContainer<ResourceEventComponent> eventComponent = resource->GetComponent<ResourceEventComponent>();
+		const fwRefContainer<ResourceEventComponent>& eventComponent = resource->GetComponent<ResourceEventComponent>();
 
 		// if there's none, return
 		if (!eventComponent.GetRef())

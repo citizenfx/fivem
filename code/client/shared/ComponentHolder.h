@@ -44,13 +44,13 @@ public:
 	//
 	// Gets the object-specific instance registry.
 	//
-	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() = 0;
+	virtual const fwRefContainer<RefInstanceRegistry>& GetInstanceRegistry() = 0;
 
 	//
 	// Utility function to get an instance of a particular interface from the instance registry.
 	//
 	template<typename TInstance>
-	fwRefContainer<TInstance> GetComponent()
+	const fwRefContainer<TInstance>& GetComponent()
 	{
 		return Instance<TInstance>::Get(this->GetInstanceRegistry());
 	}
@@ -94,7 +94,7 @@ private:
 	RefInstanceRegistryHolder m_instanceRegistry;
 
 public:
-	virtual fwRefContainer<RefInstanceRegistry> GetInstanceRegistry() override
+	virtual const fwRefContainer<RefInstanceRegistry>& GetInstanceRegistry() override
 	{
 		return m_instanceRegistry.registry;
 	}
