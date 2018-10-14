@@ -285,6 +285,35 @@ static int ReturnTrue()
 	return 1;
 }
 
+static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
+
+int dlcIdx = -1;
+
+static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
+{
+	rage::InitFunctionData ifd;
+	ifd.funcHash = HashRageString(name);
+	ifd.initOrder = 3;
+	ifd.shutdownOrder = 42;
+	ifd.initFunction = [](int)
+	{
+	};
+
+	if (dlcIdx >= 0)
+	{
+		rage::OnInitFunctionInvoking(rage::INIT_SESSION, 14 + dlcIdx, ifd);
+
+		dlcIdx++;
+	}
+
+	dataFileMgr__loadDefDat(dataFileMgr, name, enabled);
+
+	if (dlcIdx >= 0)
+	{
+		rage::OnInitFunctionInvoked(rage::INIT_SESSION, ifd);
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	hook::jump(hook::get_pattern("44 8B D8 4D 63 C8 4C 3B C8 7D 33 8B", -0x16), &CDataFileMgr::FindNextEntry);
@@ -357,6 +386,10 @@ static HookFunction hookFunction([] ()
 
 	// 'should packfile meta cache be used'
 	//hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
+
+	auto hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 1D ? ? ? ? 41 8B F7").count(1).get(0).get<void>(0);
+	hook::set_call(&dataFileMgr__loadDefDat, hookPoint);
+	hook::call(hookPoint, LoadDefDats); //Call the new function to load the handling files
 });
 
 static InitFunction initFunction([] ()

@@ -21,6 +21,9 @@
 
 #include <Error.h>
 
+// 1365
+#define NUM_DLC_CALLS 32
+
 using fx::Resource;
 
 static bool frameOn = false;
@@ -152,6 +155,8 @@ static HookFunction hookFunction([]()
 	});
 });
 
+extern int dlcIdx;
+
 static InitFunction initFunction([] ()
 {
 	OnKillNetworkDone.Connect([] ()
@@ -212,6 +217,13 @@ static InitFunction initFunction([] ()
 
 	rage::OnInitFunctionStartOrder.Connect([] (rage::InitFunctionType type, int order, int count)
 	{
+		if (type == rage::INIT_SESSION && order == 3)
+		{
+			count += NUM_DLC_CALLS;
+
+			dlcIdx = 0;
+		}
+
 		rapidjson::Document doc;
 		doc.SetObject();
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
@@ -223,6 +235,11 @@ static InitFunction initFunction([] ()
 
 	rage::OnInitFunctionInvoking.Connect([] (rage::InitFunctionType type, int idx, rage::InitFunctionData& data)
 	{
+		if (type == rage::INIT_SESSION && data.initOrder == 3 && idx >= 15 && data.shutdownOrder != 42)
+		{
+			idx += NUM_DLC_CALLS;
+		}
+
 		rapidjson::Document doc;
 		doc.SetObject();
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
