@@ -100,7 +100,19 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 	}
 	else
 	{
-		assert(!"implement non-resolved names!");
+		in_addr addr;
+
+		if (inet_pton(AF_INET, resolveName.c_str(), &addr) == 1)
+		{
+			sockaddr_in inAddr;
+			memset(&inAddr, 0, sizeof(inAddr));
+
+			inAddr.sin_family = AF_INET;
+			inAddr.sin_addr = addr;
+			inAddr.sin_port = htons(port);
+
+			retval = PeerAddress((sockaddr*)&inAddr, sizeof(inAddr));
+		}
 	}
 
 	return retval;

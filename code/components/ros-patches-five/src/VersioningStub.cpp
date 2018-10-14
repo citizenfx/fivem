@@ -24,9 +24,20 @@ public:
 		{
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
-			std::ifstream file(MakeRelativeCitPath(L"citizen/ros/" + converter.from_bytes(filename)), std::ios::in | std::ios::binary);
+			std::vector<char> outBlob;
 
-			m_data[filename] = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+			FILE* f = _pfopen(MakeRelativeCitPath(L"citizen/ros/" + converter.from_bytes(filename)).c_str(), _P("rb"));
+			assert(f);
+
+			fseek(f, 0, SEEK_END);
+			outBlob.resize(ftell(f));
+
+			fseek(f, 0, SEEK_SET);
+			fread(outBlob.data(), 1, outBlob.size(), f);
+
+			fclose(f);
+
+			m_data[filename] = std::string(outBlob.data(), outBlob.size());
 		};
 
 		loadData("versioning.xml");

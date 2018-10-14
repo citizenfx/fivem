@@ -272,9 +272,13 @@ private:
 
 static RgscStub* g_rgsc;
 
+HANDLE g_rosClearedEvent;
+
 IRgsc* GetScSdkStub()
 {
 	LOG_CALL();
+
+	WaitForSingleObject(g_rosClearedEvent, INFINITE);
 
 	auto getFunc = (IRgsc*(*)())GetProcAddress(GetModuleHandle(L"socialclub.dll"), MAKEINTRESOURCEA(1));
 	

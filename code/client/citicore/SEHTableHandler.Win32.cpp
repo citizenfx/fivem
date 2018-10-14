@@ -11,6 +11,8 @@
 #include <minhook.h>
 
 #ifdef _M_AMD64
+#include "Hooking.Aux.h"
+
 #include <Error.h>
 
 #include <udis86.h>
@@ -193,6 +195,7 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 	}
 
 	// patch it
+	DisableToolHelpScope scope;
 	MH_CreateHook(internalAddress, patchFunction, patchOriginal);
 	MH_EnableHook(MH_ALL_HOOKS);
 }

@@ -235,7 +235,7 @@ static InitFunction initFunction([]()
 	}).detach();
 
 	static fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
-	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString("0.0.0.0:29100").get());
+	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString("0.0.0.0:29100", 29100, net::PeerAddress::LookupType::NoResolution).get());
 
 	if (!tcpServer.GetRef())
 	{

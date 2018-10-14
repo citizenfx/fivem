@@ -1690,9 +1690,16 @@ void V8ScriptGlobals::Initialize()
 	// initialize startup data
 	auto readBlob = [=] (const std::wstring& name, std::vector<char>& outBlob)
 	{
-		std::ifstream scuiFile(MakeRelativeCitPath(_P("citizen/scripting/v8/" + name)), std::ios::binary);
+		FILE* f = _pfopen(MakeRelativeCitPath(_P("citizen/scripting/v8/" + name)).c_str(), _P("rb"));
+		assert(f);
 
-		outBlob.swap(std::vector<char>(std::istreambuf_iterator<char>(scuiFile), std::istreambuf_iterator<char>()));
+		fseek(f, 0, SEEK_END);
+		outBlob.resize(ftell(f));
+
+		fseek(f, 0, SEEK_SET);
+		fread(outBlob.data(), 1, outBlob.size(), f);
+
+		fclose(f);
 	};
 
 	readBlob(L"natives_blob.bin", m_nativesBlob);

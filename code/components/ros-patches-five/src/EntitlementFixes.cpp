@@ -18,17 +18,26 @@
 
 #include "RSAKey.h"
 
+extern HANDLE g_rosClearedEvent;
+
 static HookFunction hookFunction([] ()
 {
-	HMODULE rosDll = LoadLibrary(L"ros.dll");
+	g_rosClearedEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
-	if (rosDll != nullptr)
+	std::thread([]()
 	{
-		((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
-	}
+		HMODULE rosDll = LoadLibrary(L"ros.dll");
 
-	if (GetModuleHandle(L"clr.dll") != nullptr)
-	{
-		FatalError(__FUNCTION__ " can not execute while the Common Language Runtime is loaded. Please remove any .NET-based plugins/CitizenFX components from your game installation, and try again.");
-	}
+		if (rosDll != nullptr)
+		{
+			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
+		}
+
+		SetEvent(g_rosClearedEvent);
+
+		if (GetModuleHandle(L"clr.dll") != nullptr)
+		{
+			FatalError(__FUNCTION__ " can not execute while the Common Language Runtime is loaded. Please remove any .NET-based plugins/CitizenFX components from your game installation, and try again.");
+		}
+	}).detach();
 });
