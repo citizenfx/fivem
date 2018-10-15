@@ -16,7 +16,7 @@
 #ifdef COMPILING_HTTP_CLIENT
 #define HTTP_EXPORT DLL_EXPORT
 #else
-#define HTTP_EXPORT
+#define HTTP_EXPORT DLL_IMPORT
 #endif
 
 namespace rage
