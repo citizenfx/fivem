@@ -849,6 +849,24 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 					if (success)
 					{
+#ifdef _DEBUG
+						std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+						bool oneSyncDebugAllowed = false;
+
+						if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+						{
+							oneSyncDebugAllowed = (GetPrivateProfileInt(L"Game", L"oneSyncDebugAllowed", 0, fpath.c_str()) != 0);
+						}
+
+						if (oneSyncDebugAllowed)
+						{
+							oneSyncSuccess();
+
+							return;
+						}
+#endif
+
 						try
 						{
 							json info = json::parse(data, data + size);
