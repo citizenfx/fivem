@@ -47,6 +47,8 @@ namespace vfs
 
 		THandle m_parentHandle;
 
+		THandle m_parentNonBulkHandle;
+
 		uint64_t m_parentPtr;
 
 		std::string m_pathPrefix;

@@ -55,6 +55,7 @@ typedef struct mz_stream_vfs_s
 	bool owned;
 	fwRefContainer<vfs::Device> parentDevice;
 	vfs::Device::THandle parentHandle;
+	vfs::Device::THandle parentNonBulkHandle;
 } mz_stream_vfs;
 
 int32_t mz_stream_vfs_open(void *stream, const char *path, int32_t mode)
@@ -78,11 +79,12 @@ int32_t mz_stream_vfs_open(void *stream, const char *path, int32_t mode)
 		return MZ_STREAM_ERROR;
 	}
 
+	vfs->parentNonBulkHandle = vfs->parentDevice->Open(path, true);
 	vfs->parentHandle = vfs->parentDevice->OpenBulk(path, &vfs->baseOffset);
 	vfs->offset = 0;
 	vfs->owned = true;
 
-	if (vfs->parentHandle == INVALID_DEVICE_HANDLE)
+	if (vfs->parentHandle == INVALID_DEVICE_HANDLE || vfs->parentNonBulkHandle == INVALID_DEVICE_HANDLE)
 	{
 		return MZ_STREAM_ERROR;
 	}
@@ -90,13 +92,14 @@ int32_t mz_stream_vfs_open(void *stream, const char *path, int32_t mode)
 	return MZ_OK;
 }
 
-int32_t mz_stream_vfs_reuse(void *stream, fwRefContainer<vfs::Device> device, vfs::Device::THandle handle, uint64_t ptr)
+int32_t mz_stream_vfs_reuse(void *stream, fwRefContainer<vfs::Device> device, vfs::Device::THandle handle, vfs::Device::THandle nonBulkHandle, uint64_t ptr)
 {
 	mz_stream_vfs *vfs = (mz_stream_vfs *)stream;
 
 	vfs->owned = false;
 	vfs->parentDevice = device;
 	vfs->parentHandle = handle;
+	vfs->parentNonBulkHandle = nonBulkHandle;
 	vfs->baseOffset = ptr;
 	vfs->offset = 0;
 
@@ -164,7 +167,7 @@ int32_t mz_stream_vfs_seek(void *stream, int64_t offset, int32_t origin)
 		vfs->offset += offset;
 		break;
 	case MZ_SEEK_END:
-		vfs->offset = vfs->parentDevice->GetLength(vfs->parentHandle) - offset;
+		vfs->offset = vfs->parentDevice->GetLength(vfs->parentNonBulkHandle) - offset;
 		break;
 	case MZ_SEEK_SET:
 		vfs->offset = offset;
@@ -183,6 +186,7 @@ int mz_stream_vfs_close(void *stream)
 	if (vfs->owned)
 	{
 		vfs->parentDevice->CloseBulk(vfs->parentHandle);
+		vfs->parentDevice->Close(vfs->parentNonBulkHandle);
 		vfs->parentDevice = nullptr;
 	}
 
@@ -231,7 +235,7 @@ void *mz_stream_vfs_get_interface(void)
 namespace vfs
 {
 	ZipFile::ZipFile()
-		: m_parentHandle(InvalidHandle)
+		: m_parentHandle(InvalidHandle), m_parentNonBulkHandle(InvalidHandle)
 	{
 
 	}
@@ -241,6 +245,7 @@ namespace vfs
 		if (m_parentHandle != InvalidHandle)
 		{
 			m_parentDevice->CloseBulk(m_parentHandle);
+			m_parentDevice->Close(m_parentNonBulkHandle);
 
 			m_parentHandle = InvalidHandle;
 		}
@@ -265,13 +270,21 @@ namespace vfs
 			return false;
 		}
 
+		// open a non-bulk handle since seeking may not work on a bulk handle
+		m_parentNonBulkHandle = parentDevice->Open(archivePath, true);
+
+		if (m_parentNonBulkHandle == InvalidHandle)
+		{
+			return false;
+		}
+
 		m_parentDevice = parentDevice;
 
 		// open a MZ stream
 		void* inStream;
 		mz_stream_vfs_create(&inStream);
 
-		if (mz_stream_vfs_reuse(inStream, m_parentDevice, m_parentHandle, m_parentPtr) != MZ_OK)
+		if (mz_stream_vfs_reuse(inStream, m_parentDevice, m_parentHandle, m_parentNonBulkHandle, m_parentPtr) != MZ_OK)
 		{
 			mz_stream_vfs_delete(&inStream);
 			return false;
@@ -376,7 +389,7 @@ namespace vfs
 					void* inStream;
 					mz_stream_vfs_create(&inStream);
 
-					if (mz_stream_vfs_reuse(inStream, m_parentDevice, m_parentHandle, m_parentPtr) != MZ_OK)
+					if (mz_stream_vfs_reuse(inStream, m_parentDevice, m_parentHandle, m_parentNonBulkHandle, m_parentPtr) != MZ_OK)
 					{
 						mz_stream_vfs_delete(&inStream);
 						return InvalidHandle;
