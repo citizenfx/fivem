@@ -12,6 +12,8 @@
 
 #include <bitset>
 
+#include <tbb/concurrent_unordered_map.h>
+
 namespace fx
 {
 struct ScriptGuid;
@@ -91,7 +93,7 @@ struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
 
-	std::unordered_map<std::string, TData> data;
+	tbb::concurrent_unordered_map<std::string, TData> data;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
 	std::bitset<256> ackedCreation;
@@ -205,6 +207,9 @@ public:
 private:
 	fx::ServerInstanceBase* m_instance;
 
+	// as bitset is not thread-safe
+	std::mutex m_objectIdsMutex;
+
 	std::bitset<8192> m_objectIdsSent;
 	std::bitset<8192> m_objectIdsUsed;
 
@@ -235,7 +240,7 @@ private:
 
 //private:
 public:
-	std::unordered_map<uint32_t, std::shared_ptr<sync::SyncEntityState>> m_entities;
+	tbb::concurrent_unordered_map<uint32_t, std::shared_ptr<sync::SyncEntityState>> m_entities;
 };
 
 std::unique_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);

@@ -215,9 +215,12 @@ template<typename TNode>
 struct SyncTree : public SyncTreeBase
 {
 	TNode root;
+	std::mutex mutex;
 
 	virtual void Parse(SyncParseState& state) override
 	{
+		std::unique_lock<std::mutex> lock(mutex);
+
 		//trace("parsing root\n");
 		state.objType = 0;
 
@@ -232,6 +235,8 @@ struct SyncTree : public SyncTreeBase
 
 	virtual bool Unparse(SyncUnparseState& state) override
 	{
+		std::unique_lock<std::mutex> lock(mutex);
+
 		state.objType = 0;
 
 		if (state.syncType == 2 || state.syncType == 4)
@@ -246,6 +251,8 @@ struct SyncTree : public SyncTreeBase
 
 	virtual void Visit(const SyncTreeVisitor& visitor) override
 	{
+		std::unique_lock<std::mutex> lock(mutex);
+
 		root.Visit(visitor);
 	}
 };

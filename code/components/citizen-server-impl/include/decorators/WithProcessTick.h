@@ -22,14 +22,20 @@ namespace fx
 				{
 					auto now = msec().count() - lastTime;
 
-					residualTime += now;
-
-					lastTime = msec().count();
-
 					if (now >= 150)
 					{
 						trace("hitch warning: frame time of %d milliseconds\n", now);
 					}
+
+					// clamp time to 200ms to reduce effects of excessive hitches
+					if (now > 200)
+					{
+						now = 200;
+					}
+
+					residualTime += now;
+
+					lastTime = msec().count();
 
 					waiter(server, std::max<int>(0, frameTime - residualTime));
 

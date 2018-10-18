@@ -156,6 +156,11 @@ namespace fx
 			nng_listener listener;
 			nng_listen(netSocket, "inproc://netlib_client", &listener, NNG_FLAG_NONBLOCK);
 
+			auto lastTime = msec().count();
+
+			uint64_t residualTime = 0;
+			auto frameTime = 1000 / 50;
+
 			while (true)
 			{
 				// service enet with our remaining waits
@@ -190,6 +195,33 @@ namespace fx
 				for (auto& host : this->hosts)
 				{
 					this->ProcessHost(host.get());
+				}
+
+				{
+					auto now = msec().count() - lastTime;
+
+					if (now >= 150)
+					{
+						trace("hitch warning: net frame time of %d milliseconds\n", now);
+					}
+
+					// clamp time to 200ms to reduce effects of excessive hitches
+					if (now > 200)
+					{
+						now = 200;
+					}
+
+					residualTime += now;
+
+					lastTime = msec().count();
+
+					// intervals
+					while (residualTime > frameTime)
+					{
+						residualTime -= frameTime;
+
+						OnNetworkTick();
+					}
 				}
 
 				{
@@ -872,11 +904,7 @@ namespace fx
 				{
 					if (targetNetId == 0xFFFF)
 					{
-						// TODO: make this run on the net thread
-						gscomms_execute_callback_on_main_thread([=]()
-						{
-							instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
-						});
+						instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
 
 						return;
 					}

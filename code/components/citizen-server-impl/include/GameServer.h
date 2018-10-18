@@ -138,6 +138,8 @@ namespace fx
 
 		fwEvent<> OnTick;
 
+		fwEvent<> OnNetworkTick;
+
 		fwEvent<fx::ServerInstanceBase*> OnAttached;
 
 	private:

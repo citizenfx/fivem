@@ -22,15 +22,20 @@ struct GameStateClientData
 {
 	net::Buffer ackBuffer;
 	std::set<int> objectIds;
+
+	std::mutex selfMutex;
 };
 
-inline std::shared_ptr<GameStateClientData> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
+inline std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
 {
 	auto data = client->GetData("gameStateClientData");
 
 	if (data.has_value())
 	{
-		return std::any_cast<std::shared_ptr<GameStateClientData>>(data);
+		auto val = std::any_cast<std::shared_ptr<GameStateClientData>>(data);
+		std::unique_lock<std::mutex> lock(val->selfMutex);
+
+		return { val, std::move(lock) };
 	}
 
 	auto val = std::make_shared<GameStateClientData>();
@@ -43,8 +48,9 @@ inline std::shared_ptr<GameStateClientData> GetClientData(ServerGameState* state
 		state->HandleClientDrop(weakClient.lock());
 	});
 
+	std::unique_lock<std::mutex> lock(val->selfMutex);
 
-	return val;
+	return { val, std::move(lock) };
 }
 
 inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
@@ -174,9 +180,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		auto clientData = GetClientData(this, client);
-
 		{
+			auto [ clientData, clientDataLock ] = GetClientData(this, client);
 			auto& ackPacket = clientData->ackBuffer;
 
 			// any ACKs to send?
@@ -555,13 +560,15 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 
 	if (!oldClient.expired())
 	{
-		auto sourceData = GetClientData(this, oldClient.lock());
+		auto [ sourceData, lock ] = GetClientData(this, oldClient.lock());
 		sourceData->objectIds.erase(entityHandle & 0xFFFF);
 	}
 
 	// #TODO1S: reassignment should also send a create if the player was out of focus area
-	auto targetData = GetClientData(this, targetClient);
-	targetData->objectIds.insert(entityHandle & 0xFFFF);
+	{
+		auto [ targetData, lock ] = GetClientData(this, targetClient);
+		targetData->objectIds.insert(entityHandle & 0xFFFF);
+	}
 
 	entity->syncTree->Visit([this](sync::NodeBase& node)
 	{
@@ -695,8 +702,13 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	// here temporarily, needs to be unified with ProcessCloneRemove
 	for (auto& set : toErase)
 	{
-		m_objectIdsUsed.reset(set & 0xFFFF);
-		m_entities.erase(set);
+		{
+			std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+
+			m_objectIdsUsed.reset(set & 0xFFFF);
+		}
+
+		m_entities[set] = {};
 
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
 		{
@@ -713,12 +725,16 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 		});		
 	}
 
-	// remove object IDs from sent map
-	auto data = GetClientData(this, client);
-
-	for (auto& objectId : data->objectIds)
 	{
-		m_objectIdsSent.reset(objectId);
+		// remove object IDs from sent map
+		auto [ data, lock ] = GetClientData(this, client);
+
+		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+
+		for (auto& objectId : data->objectIds)
+		{
+			m_objectIdsSent.reset(objectId);
+		}
 	}
 
 	// remove ACKs for this client
@@ -745,7 +761,10 @@ void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& clie
 	uint16_t objectId = 0;
 	ProcessClonePacket(client, inPacket, 1, &objectId);
 
-	m_objectIdsUsed.set(objectId);
+	{
+		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+		m_objectIdsUsed.set(objectId);
+	}
 
 	ackPacket.Write<uint8_t>(1);
 	ackPacket.Write<uint16_t>(objectId);
@@ -809,8 +828,12 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 		}
 	}
 
-	m_objectIdsUsed.reset(objectId);
-	m_entities.erase(MakeEntityHandle(playerId, objectId));
+	{
+		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+		m_objectIdsUsed.reset(objectId);
+	}
+
+	m_entities[MakeEntityHandle(playerId, objectId)] = {};
 
 	// these seem to cause late deletes of state on client, leading to excessive sending of creates
 	/*ackPacket.Write<uint8_t>(3);
@@ -989,9 +1012,13 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 	auto& buffer = *packet;
 	rl::MessageBuffer msgBuf(buffer.GetData().data() + buffer.GetCurOffset(), buffer.GetRemainingBytes());
 
-	auto clientData = GetClientData(this, client);
-	
-	auto& ackPacket = clientData->ackBuffer;
+	net::Buffer ackPacket;
+
+	{
+		auto[clientData, lock] = GetClientData(this, client);
+
+		ackPacket = std::move(clientData->ackBuffer);
+	}
 
 	if (ackPacket.GetCurOffset() == 0)
 	{
@@ -1045,8 +1072,15 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 			end = true;
 			break;
 		default:
-			return;
+			end = true;
+			break;
 		}
+	}
+
+	{
+		auto [clientData, lock] = GetClientData(this, client);
+
+		clientData->ackBuffer = std::move(ackPacket);
 	}
 }
 
@@ -1055,33 +1089,36 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 	// first, gather IDs
 	std::vector<int> ids;
 
-	auto data = GetClientData(this, client);
-
-	int id = 1;
-
-	for (int i = 0; i < numIds; i++)
 	{
-		bool hadId = false;
+		auto [data, lock] = GetClientData(this, client);
+		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
 
-		for (; id < m_objectIdsSent.size(); id++)
+		int id = 1;
+
+		for (int i = 0; i < numIds; i++)
 		{
-			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
+			bool hadId = false;
+
+			for (; id < m_objectIdsSent.size(); id++)
 			{
-				hadId = true;
+				if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
+				{
+					hadId = true;
 
-				data->objectIds.insert(id);
+					data->objectIds.insert(id);
 
-				ids.push_back(id);
-				m_objectIdsSent.set(id);
+					ids.push_back(id);
+					m_objectIdsSent.set(id);
 
+					break;
+				}
+			}
+
+			if (!hadId)
+			{
+				trace("couldn't assign an object id for player!\n");
 				break;
 			}
-		}
-
-		if (!hadId)
-		{
-			trace("couldn't assign an object id for player!\n");
-			break;
 		}
 	}
 
@@ -1244,7 +1281,7 @@ static InitFunction initFunction([]()
 
 		instance->SetComponent(new fx::ServerGameState);
 
-		instance->GetComponent<fx::GameServer>()->OnTick.Connect([=]()
+		instance->GetComponent<fx::GameServer>()->OnNetworkTick.Connect([=]()
 		{
 			if (!g_oneSyncVar->GetValue())
 			{
