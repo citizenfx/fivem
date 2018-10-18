@@ -52,9 +52,12 @@ static InitFunction initFunction([]()
 
 			console->GetVariableManager()->ForAllVariables([console, &variableList](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
 			{
-				variableList.emplace(name, var->GetValue());
+				if ((flags & (ConVar_Replicated | ConVar_Modified)) == (ConVar_Replicated | ConVar_Modified))
+				{
+					variableList.emplace(name, var->GetValue());
 
-				console->GetVariableManager()->RemoveEntryFlags(name, ConVar_Modified);
+					console->GetVariableManager()->RemoveEntryFlags(name, ConVar_Modified);
+				}
 			}, ConVar_Replicated | ConVar_Modified);
 
 			if (!variableList.empty())
