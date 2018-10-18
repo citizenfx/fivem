@@ -7,11 +7,31 @@
 
 static void MountNatives(const std::string& name)
 {
-	fwRefContainer<vfs::ZipFile> device = new vfs::ZipFile();
+	static std::map<std::string, std::vector<uint8_t>> storedFiles;
 
-	if (device->OpenArchive(fmt::sprintf("citizen:/scripting/lua/%s.zip", name)))
+	const void* thisData = nullptr;
+	size_t thisDataSize = 0;
+
 	{
-		vfs::Mount(device, fmt::sprintf("nativesLua:/%s/", name));
+		auto stream = vfs::OpenRead(fmt::sprintf("citizen:/scripting/lua/%s.zip", name));
+
+		if (stream.GetRef())
+		{
+			storedFiles[name] = stream->ReadToEnd();
+
+			thisData = storedFiles[name].data();
+			thisDataSize = storedFiles[name].size();
+		}
+	}
+
+	if (thisData)
+	{
+		fwRefContainer<vfs::ZipFile> device = new vfs::ZipFile();
+
+		if (device->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, name)))
+		{
+			vfs::Mount(device, fmt::sprintf("nativesLua:/%s/", name));
+		}
 	}
 }
 
