@@ -426,10 +426,7 @@ end
 
 msgpack.packers['table'] = function(buffer, table)
 	if rawget(table, '__cfx_functionReference') then
-		-- pack as function reference
-		msgpack.packers['function'](buffer, function(...)
-			return table(...)
-		end)
+		msgpack.packers['funcref'](buffer, DuplicateFunctionReference(rawget(table, '__cfx_functionReference')))
 	else
 		msgpack.packers['_table'](buffer, table)
 	end
@@ -626,9 +623,6 @@ local funcref_mt = {
 msgpack.build_ext = function(tag, data)
 	if tag == EXT_FUNCREF or tag == EXT_LOCALFUNCREF then
 		local ref = data
-		
-		-- add a reference
-		DuplicateFunctionReference(ref)
 
 		local tbl = {
 			__cfx_functionReference = ref,
