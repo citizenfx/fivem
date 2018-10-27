@@ -266,7 +266,7 @@ extern std::map<std::string, std::string> g_redirectionData;
 
 static std::wstring MapRedirectedFilename(const wchar_t* lpFileName)
 {
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 	// original filename with backslashes converted to slashes
 	std::wstring origFileName = lpFileName;
