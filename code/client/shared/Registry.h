@@ -221,5 +221,5 @@ public:
 #define DECLARE_INSTANCE_TYPE(name) \
 	template<> SELECT_ANY const char* ::Instance<name>::ms_name = #name; \
 	template<> SELECT_ANY name* ::Instance<name>::ms_cachedInstance = nullptr; \
-	template<> SELECT_ANY size_t Instance<name>::ms_id; \
+	template<> SELECT_ANY size_t Instance<name>::ms_id = 0; \
 	static ComponentRegistration TP(_init_instance_, __COUNTER__)  ([] () { Instance<name>::ms_id = CoreGetComponentRegistry()->RegisterComponent(#name); });
