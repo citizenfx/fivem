@@ -32,9 +32,21 @@ struct ProgressInfo
 	size_t downloadNow;
 };
 
+struct HttpIgnoreCaseLess
+{
+	inline bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
+
+using HttpHeaderList = std::map<std::string, std::string, HttpIgnoreCaseLess>;
+using HttpHeaderListPtr = std::shared_ptr<HttpHeaderList>;
+
 struct HttpRequestOptions
 {
 	std::map<std::string, std::string> headers;
+	HttpHeaderListPtr responseHeaders;
 	std::function<void(const ProgressInfo&)> progressCallback;
 	std::function<bool(const std::string&)> streamingCallback;
 	int weight;
@@ -68,6 +80,8 @@ public:
 	std::string BuildPostString(const std::map<std::string, std::string>& fields);
 
 	HttpRequestPtr DoGetRequest(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback);
+
+	HttpRequestPtr DoGetRequest(const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback);
 
 	HttpRequestPtr DoGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::function<void(bool, const char*, size_t)>& callback);
 

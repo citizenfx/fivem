@@ -48,6 +48,10 @@ public:
 	Buffer(size_t length);
 
 	Buffer(const Buffer& other);
+	Buffer(Buffer&& other);
+
+	Buffer& operator=(const Buffer& other);
+	Buffer& operator=(Buffer&& other);
 
 	Buffer Clone() const;
 

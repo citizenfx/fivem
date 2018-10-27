@@ -623,6 +623,8 @@ static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
 
+	Instance<NetLibrary>::Set(g_netLibrary);
+
 	TheClones->BindNetLibrary(g_netLibrary);
 
 	MumbleVoice_BindNetLibrary(g_netLibrary);

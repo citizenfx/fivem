@@ -305,3 +305,20 @@ struct GameEventMetaData
 };
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
+
+struct CMapDataContents
+{
+	void* vtable;
+	void* sceneNodes;
+	void** entities;
+	uint32_t numEntities;
+};
+
+struct CMapData
+{
+	uint8_t pad[20];
+	uint32_t unkBool;
+	uint8_t pad2[40];
+	float aabbMin[4];
+	float aabbMax[4];
+};

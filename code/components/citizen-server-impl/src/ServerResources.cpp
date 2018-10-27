@@ -18,6 +18,8 @@
 
 #include <PrintListener.h>
 
+#include <ResourceStreamComponent.h>
+
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -506,6 +508,32 @@ static InitFunction initFunction2([]()
 		}
 
 		context.SetResult(success);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REGISTER_RESOURCE_ASSET", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
+
+		if (!resource.GetRef())
+		{
+			throw std::runtime_error("Invalid resource name passed to REGISTER_RESOURCE_ASSET.");
+		}
+
+		auto diskName = context.CheckArgument<const char*>(1);
+
+		auto streamComponent = resource->GetComponent<fx::ResourceStreamComponent>();
+		auto sf = streamComponent->AddStreamingFile(resource->GetPath() + "/" + diskName);
+
+		if (!sf)
+		{
+			throw std::runtime_error("Failed to register streaming file in REGISTER_RESOURCE_ASSET.");
+		}
+
+		static std::string tempStr;
+		tempStr = sf->GetCacheString();
+		
+		context.SetResult<const char*>(tempStr.c_str());
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_GAME_TYPE", [](fx::ScriptContext& context)

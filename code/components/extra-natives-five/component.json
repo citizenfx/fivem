@@ -9,7 +9,9 @@
 		"rage:graphics:five",
 		"scrbind:base",
 		"citizen:scripting:core",
-		"nui:core"
+		"nui:core",
+		"citizen:resources:client",
+		"net"
 	],
 	"provides": []
 }

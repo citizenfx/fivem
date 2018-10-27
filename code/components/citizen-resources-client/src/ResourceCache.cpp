@@ -19,6 +19,8 @@ ResourceCache::ResourceCache(const std::string& cachePath)
 	: m_cachePath(cachePath)
 {
 	OpenDatabase();
+
+	vfs::GetDevice(cachePath)->CreateDirectory(cachePath + "/unconfirmed/");
 }
 
 leveldb::Env* GetVFSEnvironment();
@@ -118,6 +120,8 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::map<st
 		std::array<uint8_t, 20> h;
 		memcpy(h.data(), hash, 20);
 
+		stream = {};
+
 		return AddEntry(localFileName, h, metaData);
 	}
 }
@@ -133,12 +137,18 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 
 		if (refIt != metaData.end())
 		{
-			if (refIt->second != hashString)
+			if (refIt->second != hashString && !refIt->second.empty())
 			{
 				trace(__FUNCTION__ ": corruption uncovered - %s should hash to %s, but saved as %s.\n", localFileName, refIt->second, hashString);
 			}
 		}
 	}
+
+	std::string targetFileName = m_cachePath + "cache_" + hashString;
+
+	fwRefContainer<vfs::Device> device = vfs::GetDevice(localFileName);
+	device->RemoveFile(targetFileName);
+	device->RenameFile(localFileName, targetFileName);
 
 	// serialize the data for placement in the database
 	msgpack::sbuffer buffer;
@@ -148,7 +158,7 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	packer.pack_map(3);
 
 	packer.pack("fn");
-	packer.pack(localFileName);
+	packer.pack(targetFileName);
 
 	packer.pack("h");
 	packer.pack(hashString);
@@ -156,13 +166,25 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	packer.pack("m");
 	packer.pack(metaData);
 
-	// add an entry to the database
-	std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), 20);
 
 	leveldb::WriteOptions options;
 	options.sync = true;
 
-	m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+	{
+		// add an entry to the database
+		std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), 20);
+
+		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+	}
+
+	{
+		// add a URL entry as well
+		auto fromIt = metaData.find("from");
+
+		std::string key = "cache:v1:url:" + fromIt->second;
+
+		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+	}
 
 	trace("ResourceCache::AddEntry: Saved cache:v1:%s to the index cache.\n", hashString);
 }
@@ -195,4 +217,34 @@ boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::arra
 boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::string& hashString)
 {
 	return GetEntryFor(ParseHexString<20>(hashString.c_str()));
+}
+
+boost::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const ResourceCacheEntryList::Entry& entry)
+{
+	if (entry.referenceHash.empty())
+	{
+		// attempt a database get
+		std::string key = "cache:v1:url:" + entry.remoteUrl;
+		std::string value;
+
+		leveldb::Status status = m_indexDatabase->Get(leveldb::ReadOptions{}, key, &value);
+
+		if (status.ok())
+		{
+			return boost::optional<Entry>(Entry(value));
+		}
+
+		if (!status.IsNotFound())
+		{
+#if _DEBUG
+			FatalError("Failed to fetch ResourceCache entry: %s", status.ToString());
+#else
+			trace("Failed to fetch ResourceCache entry: %s\n", status.ToString());
+#endif
+		}
+
+		return boost::optional<Entry>();
+	}
+
+	return GetEntryFor(entry.referenceHash);
 }

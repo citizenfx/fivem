@@ -76,6 +76,11 @@ static InitFunction initFunction([]()
 
 				for (const auto& entry : streamFiles->GetStreamingList())
 				{
+					if (!entry.second.isAutoScan)
+					{
+						continue;
+					}
+
 					json obj = json::object({
 						{ "hash", entry.second.hashString },
 						{ "rscFlags", entry.second.rscFlags },

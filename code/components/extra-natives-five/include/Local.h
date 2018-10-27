@@ -1,21 +1,9 @@
-﻿#pragma once
+#pragma once
 
 #include <atArray.h>
 #include <boost/type_index.hpp>
 
-class fwEntity
-{
-public:
-	virtual ~fwEntity() = 0;
-
-	virtual bool IsOfType(uint32_t hash) = 0;
-
-	template<typename T>
-	bool IsOfType()
-	{
-		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
-	}
-};
+#include <EntitySystem.h>
 
 class CPickup : public fwEntity
 {
@@ -23,11 +11,6 @@ class CPickup : public fwEntity
 };
 
 class CObject : public fwEntity
-{
-
-};
-
-class CVehicle : public fwEntity
 {
 
 };

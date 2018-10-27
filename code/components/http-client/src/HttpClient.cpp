@@ -59,6 +59,7 @@ public:
 	HttpClientImpl* impl;
 	int defaultWeight;
 	int weight;
+	HttpHeaderListPtr responseHeaders;
 
 	CurlData();
 
@@ -264,6 +265,22 @@ static int CurlXferInfo(void *userdata, curl_off_t dltotal, curl_off_t dlnow, cu
 	return 0;
 }
 
+static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+	auto cdPtr = reinterpret_cast<std::shared_ptr<CurlData>*>(userdata);
+	CurlData* cd = cdPtr->get();
+
+	if (cd->responseHeaders)
+	{
+		std::string str(buffer, size * nitems);
+		auto colonPos = str.find_first_of(": ");
+		
+		(*cd->responseHeaders)[str.substr(0, colonPos)] = str.substr(colonPos + 2, str.length() - 2 - colonPos - 2);
+	}
+
+	return size * nitems;
+}
+
 static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientImpl* impl, const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	auto curlHandle = curl_easy_init();
@@ -275,6 +292,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curlData->curlHandle = curlHandle;
 	curlData->impl = impl;
 	curlData->defaultWeight = curlData->weight = options.weight;
+	curlData->responseHeaders = options.responseHeaders;
 
 	auto scb = options.streamingCallback;
 
@@ -303,6 +321,12 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYHOST, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_STREAM_WEIGHT, long(options.weight));
+	
+	if (options.responseHeaders)
+	{
+		curl_easy_setopt(curlHandle, CURLOPT_HEADERFUNCTION, CurlHeaderInfo);
+		curl_easy_setopt(curlHandle, CURLOPT_HEADERDATA, curlDataPtr);
+	}
 
 	curl_slist* headers = nullptr;
 	for (const auto& header : options.headers)
@@ -401,7 +425,12 @@ HttpRequestPtr HttpClient::DoGetRequest(const std::wstring& host, uint16_t port,
 
 HttpRequestPtr HttpClient::DoGetRequest(const std::string& url, const std::function<void(bool, const char*, size_t)>& callback)
 {
-	auto [curlHandle, curlData] = SetupCURLHandle(m_impl, url, {}, callback);
+	return DoGetRequest(url, {}, callback);
+}
+
+HttpRequestPtr HttpClient::DoGetRequest(const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char *, size_t)>& callback)
+{
+	auto[curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
 
 	m_impl->AddCurlHandle(curlHandle);
 

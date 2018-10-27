@@ -48,6 +48,34 @@ Buffer::Buffer(const Buffer& other)
 	m_bytes = other.m_bytes;
 }
 
+Buffer::Buffer(Buffer&& other)
+{
+	m_curOff = std::move(other.m_curOff);
+	m_end = std::move(other.m_end);
+
+	m_bytes = std::move(other.m_bytes);
+}
+
+Buffer& Buffer::operator=(const Buffer& other)
+{
+	m_curOff = other.m_curOff;
+	m_end = other.m_end;
+
+	m_bytes = other.m_bytes;
+
+	return *this;
+}
+
+Buffer& Buffer::operator=(Buffer&& other)
+{
+	m_curOff = std::move(other.m_curOff);
+	m_end = std::move(other.m_end);
+
+	m_bytes = std::move(other.m_bytes);
+
+	return *this;
+}
+
 Buffer Buffer::Clone() const
 {
 	Buffer otherBuf(*GetBytes());

@@ -363,5 +363,7 @@ public:
 	fwEvent<const NetLibraryClientInfo&> OnClientInfoDropped;
 };
 
+DECLARE_INSTANCE_TYPE(NetLibrary);
+
 extern DLL_IMPORT fwEvent<const std::string&> OnRichPresenceSetTemplate;
 extern DLL_IMPORT fwEvent<int, const std::string&> OnRichPresenceSetValue;

@@ -920,6 +920,8 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 	g_customStreamingFiles.insert({ fileName, tag });
 	g_customStreamingFileRefs.insert(baseName);
 
+	g_reloadStreamingFiles = true;
+
 	origCfxCollection_AddStreamingFileByTag(tag, fileName, flags);
 }
 

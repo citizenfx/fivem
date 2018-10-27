@@ -80,23 +80,6 @@ void* CustomVTWrapper(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6
 	return origFunc(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12);
 }
 
-struct CMapDataContents
-{
-	void* vtable;
-	void* sceneNodes;
-	void** entities;
-	uint32_t numEntities;
-};
-
-struct CMapData
-{
-	uint8_t pad[20];
-	uint32_t unkBool;
-	uint8_t pad2[40];
-	float aabbMin[4];
-	float aabbMax[4];
-};
-
 static hook::cdecl_stub<CMapDataContents*()> makeMapDataContents([] ()
 {
 	return hook::pattern("48 00 00 00 E8 ? ? ? ? 48 8B D8 48 85 C0 74 14").count(1).get(0).get<void>(-7);
