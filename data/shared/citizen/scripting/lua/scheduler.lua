@@ -65,6 +65,7 @@ function Citizen.Await(promise)
 	
 	inNext = true
 	local nextResult
+	local nextErr
 	local resolved
 	
 	promise:next(function (result)
@@ -91,18 +92,41 @@ function Citizen.Await(promise)
 		return result
 	end, function (err)
 		if err then
-			Citizen.Trace('Await failure: ' .. debug.traceback(resumableThread.coroutine, err, 2))
+			-- if already rejected, handle rejection instantly
+			if inNext then
+				nextErr = err
+				resolved = true
+				
+				return
+			end
+			
+			-- resume with error
+			local result, coroErr = coroutine.resume(resumableThread.coroutine, nil, err)
+			
+			if coroErr then
+				Citizen.Trace('Await failure: ' .. debug.traceback(resumableThread.coroutine, coroErr, 2))
+			end
 		end
 	end)
 	
 	inNext = false
 	
 	if resolved then
+		if nextErr then
+			error(nextErr)
+		end
+	
 		return nextResult
 	end
 	
 	curThread = nil
-	return coroutine.yield()
+	local result, err = coroutine.yield()
+	
+	if err then
+		error(err)
+	end
+	
+	return result
 end
 
 -- SetTimeout
