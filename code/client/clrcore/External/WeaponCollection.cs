@@ -108,7 +108,7 @@ namespace CitizenFX.Core
 
 		public bool HasWeapon(WeaponHash weaponHash)
 		{
-			return Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, weaponHash);
+			return Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, weaponHash, 0);
 		}
 		public bool IsWeaponValid(WeaponHash hash)
 		{
@@ -153,7 +153,7 @@ namespace CitizenFX.Core
 		}
 		public bool Select(WeaponHash weaponHash, bool equipNow)
 		{
-			if (!Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, weaponHash))
+			if (!Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, weaponHash, 0))
 			{
 				return false;
 			}
