@@ -92,6 +92,9 @@
         switch (true) {
             case arg === null:
                 return 'null';
+                
+            case arg === undefined:
+                return 'undefined'
 
             case arg instanceof WeakMap:
                 return 'WeakMap {}';
