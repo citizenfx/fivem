@@ -342,6 +342,10 @@ struct KvpBulkStream
 
 	size_t ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
 	{
+		size_t toRead = std::min(m_value.size() - ptr, size);
+		memcpy(outBuffer, m_value.data() + ptr, toRead);
+
+		return toRead;
 	}
 
 private:
