@@ -623,6 +623,27 @@ local funcref_mt = {
 	end
 }
 
+local EXT_VECTOR2 = 20
+local EXT_VECTOR3 = 21
+local EXT_VECTOR4 = 22
+local EXT_QUAT = 23
+
+msgpack.packers['vector2'] = function(buffer, vec)
+	msgpack.packers['ext'](buffer, EXT_VECTOR2, string.pack('<ff', vec.x, vec.y))
+end
+
+msgpack.packers['vector3'] = function(buffer, vec)
+	msgpack.packers['ext'](buffer, EXT_VECTOR3, string.pack('<fff', vec.x, vec.y, vec.z))
+end
+
+msgpack.packers['vector4'] = function(buffer, vec)
+	msgpack.packers['ext'](buffer, EXT_VECTOR4, string.pack('<ffff', vec.x, vec.y, vec.z, vec.w))
+end
+
+msgpack.packers['quat'] = function(buffer, vec)
+	msgpack.packers['ext'](buffer, EXT_QUAT, string.pack('<ffff', vec.x, vec.y, vec.z, vec.w))
+end
+
 msgpack.build_ext = function(tag, data)
 	if tag == EXT_FUNCREF or tag == EXT_LOCALFUNCREF then
 		local ref = data
@@ -642,6 +663,22 @@ msgpack.build_ext = function(tag, data)
 		tbl = setmetatable(tbl, funcref_mt)
 
 		return tbl
+	elseif tag == EXT_VECTOR2 then
+		local x, y = string.unpack('<ff', data)
+	
+		return vector2(x, y)
+	elseif tag == EXT_VECTOR3 then
+		local x, y, z = string.unpack('<fff', data)
+	
+		return vector3(x, y, z)
+	elseif tag == EXT_VECTOR4 then
+		local x, y, z, w = string.unpack('<ffff', data)
+	
+		return vector4(x, y, z, w)
+	elseif tag == EXT_QUAT then
+		local x, y, z, w = string.unpack('<ffff', data)
+	
+		return quat(w, x, y, z)
 	end
 end
 
