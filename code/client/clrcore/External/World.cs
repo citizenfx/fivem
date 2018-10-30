@@ -535,7 +535,7 @@ namespace CitizenFX.Core
 		/// <returns>The distance</returns>
 		public static float GetDistance(Vector3 origin, Vector3 destination)
 		{
-			return Function.Call<float>(Hash.GET_DISTANCE_BETWEEN_COORDS, origin.X, origin.Y, origin.Z, destination.X, destination.Y, destination.Z, 1);
+			return (float) Math.Sqrt(destination.DistanceToSquared(origin));
 		}
 		/// <summary>
 		/// Calculates the travel distance using roads and paths between 2 positions.
