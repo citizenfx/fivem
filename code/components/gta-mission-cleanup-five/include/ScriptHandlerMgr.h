@@ -35,6 +35,35 @@ namespace rage
 		virtual uint32_t* GetIdentifier(uint32_t* outValue) = 0;
 	};
 
+	class scriptResource
+	{
+	public:
+		virtual ~scriptResource() = default;
+
+		virtual const char* GetResourceName() = 0;
+
+		virtual void* GetInvalidReference() = 0;
+
+		virtual scriptResource* Clone() = 0;
+
+		virtual void Create() = 0;
+
+		virtual void Destroy() = 0;
+
+		virtual void Detach() = 0;
+
+		virtual bool DetachOnCleanup() = 0;
+
+		virtual bool LeaveForOtherScripts() = 0;
+
+		virtual uint32_t* GetStreamingIndex(uint32_t* outIndex) = 0;
+
+	public:
+		char m_pad[24];
+
+		scriptResource* next;
+	};
+
 	class scriptHandler
 	{
 	public:
@@ -71,6 +100,22 @@ namespace rage
 
 		...
 		*/
+
+	private:
+		char pad[40];
+
+		rage::scriptResource* m_resourceFirst;
+		rage::scriptResource* m_resourceHead;
+		uint32_t m_numResources;
+
+	public:
+		inline void ForAllResources(const std::function<void(rage::scriptResource*)>& cb)
+		{
+			for (auto ptr = m_resourceHead; ptr; ptr = ptr->next)
+			{
+				cb(ptr);
+			}
+		}
 	};
 
 	// to allow construction

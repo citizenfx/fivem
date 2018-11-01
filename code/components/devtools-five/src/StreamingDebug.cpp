@@ -148,7 +148,7 @@ size_t StreamingListView::getNumRows() const
 	return m_indexMap.size();
 }
 
-static size_t CountDependencyMemory(streaming::Manager* streaming, uint32_t strIdx)
+size_t CountDependencyMemory(streaming::Manager* streaming, uint32_t strIdx)
 {
 	auto thisModule = streaming->moduleMgr.GetStreamingModule(strIdx);
 

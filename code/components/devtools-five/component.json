@@ -7,6 +7,7 @@
 		"conhost",
 		"gta:core",
 		"gta:streaming",
+		"gta:mission-cleanup",
 		"citizen:resources:core",
 		"citizen:scripting:core"
 	],

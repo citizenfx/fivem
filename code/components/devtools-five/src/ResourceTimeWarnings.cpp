@@ -12,6 +12,12 @@
 
 #include <chrono>
 
+#include <ScriptHandlerMgr.h>
+#include <scrThread.h>
+#include <scrEngine.h>
+
+#include <Streaming.h>
+
 using namespace std::chrono_literals;
 
 inline std::chrono::microseconds usec()
@@ -29,6 +35,8 @@ struct ResourceMetrics
 	std::chrono::microseconds memoryLastFetched;
 
 	int64_t memorySize;
+
+	GtaThread* gtaThread;
 };
 
 static ImVec4 GetColorForRange(float min, float max, float num)
@@ -80,6 +88,32 @@ static int64_t GetTotalBytes(const fwRefContainer<fx::Resource>& resource)
 	return totalBytes;
 }
 
+size_t CountDependencyMemory(streaming::Manager* streaming, uint32_t strIdx);
+
+static size_t GetStreamingUsageForThread(GtaThread* thread)
+{
+	size_t memory = 0;
+
+	if (thread)
+	{
+		if (thread->GetScriptHandler())
+		{	
+			thread->GetScriptHandler()->ForAllResources([&](rage::scriptResource* resource)
+			{
+				uint32_t strIdx = -1;
+				resource->GetStreamingIndex(&strIdx);
+
+				if (strIdx != -1)
+				{
+					memory += CountDependencyMemory(streaming::Manager::GetInstance(), strIdx);
+				}
+			});
+		}
+	}
+
+	return memory;
+}
+
 static InitFunction initFunction([]()
 {
 	static bool resourceTimeWarningShown;
@@ -102,6 +136,11 @@ static InitFunction initFunction([]()
 				tt = { 0 };
 			}
 		});
+
+		resource->OnActivate.Connect([resource]()
+		{
+			metrics[resource->GetName()].gtaThread = (GtaThread*)rage::scrEngine::GetActiveThread();
+		}, 9999);
 
 		resource->OnTick.Connect([resource]()
 		{
@@ -211,7 +250,7 @@ static InitFunction initFunction([]()
 		{
 			if (ImGui::Begin("Resource Monitor"))
 			{
-				ImGui::Columns(3);
+				ImGui::Columns(4);
 
 				ImGui::Text("Resource");
 				ImGui::NextColumn();
@@ -220,6 +259,9 @@ static InitFunction initFunction([]()
 				ImGui::NextColumn();
 
 				ImGui::Text("Memory");
+				ImGui::NextColumn();
+
+				ImGui::Text("Streaming");
 				ImGui::NextColumn();
 
 				std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
@@ -282,6 +324,34 @@ static InitFunction initFunction([]()
 						}
 
 						ImGui::NextColumn();
+
+						auto streamingUsage = GetStreamingUsageForThread(metricPair.second.gtaThread);
+
+						if (streamingUsage > 0)
+						{
+							std::string humanSize = fmt::sprintf("%d B", streamingUsage);
+
+							if (streamingUsage > (1024 * 1024 * 1024))
+							{
+								humanSize = fmt::sprintf("%.2f GiB", streamingUsage / 1024.0 / 1024.0 / 1024.0);
+							}
+							else if (streamingUsage > (1024 * 1024))
+							{
+								humanSize = fmt::sprintf("%.2f MiB", streamingUsage / 1024.0 / 1024.0);
+							}
+							else if (streamingUsage > 1024)
+							{
+								humanSize = fmt::sprintf("%.2f KiB", streamingUsage / 1024.0);
+							}
+
+							ImGui::Text("%s", humanSize.c_str());
+						}
+						else
+						{
+							ImGui::Text("-");
+						}
+
+						ImGui::NextColumn();
 					}
 					else
 					{
@@ -290,7 +360,10 @@ static InitFunction initFunction([]()
 
 						ImGui::Text("?");
 						ImGui::NextColumn();
-					}					
+
+						ImGui::Text("?");
+						ImGui::NextColumn();
+					}
 				}
 			}
 
