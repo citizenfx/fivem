@@ -276,7 +276,7 @@ namespace fx
 
 	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> StorageEntry*
 	{
-		StorageEntry se;
+		StorageEntry se(entry);
 		se.isAutoScan = false;
 
 		auto it = m_resourcePairs.insert({ entry.entryName, se }).first;

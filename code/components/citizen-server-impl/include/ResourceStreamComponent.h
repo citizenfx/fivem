@@ -24,6 +24,12 @@ namespace fx
 
 		struct StorageEntry : public Entry
 		{
+			inline StorageEntry(const Entry& entry)
+				: Entry(entry), isAutoScan(false)
+			{
+
+			}
+
 			bool isAutoScan;
 		};
 
