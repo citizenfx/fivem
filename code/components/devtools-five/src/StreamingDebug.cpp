@@ -120,10 +120,10 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 				*out = "LOADED";
 				return true;
 			case 2:
-				*out = "LOADING_2";
+				*out = "REQUESTED";
 				return true;
 			case 3:
-				*out = "LOADING_3";
+				*out = "LOADING";
 				return true;
 			}
 
@@ -148,17 +148,178 @@ size_t StreamingListView::getNumRows() const
 	return m_indexMap.size();
 }
 
+static size_t CountDependencyMemory(streaming::Manager* streaming, uint32_t strIdx)
+{
+	auto thisModule = streaming->moduleMgr.GetStreamingModule(strIdx);
+
+	size_t memory = streaming->Entries[strIdx].ComputeVirtualSize(strIdx, nullptr, 0);
+
+	uint32_t depList[32];
+	int numDeps = thisModule->GetDependencies(strIdx - thisModule->baseIdx, depList, sizeof(depList) / sizeof(*depList));
+
+	for (int dep = 0; dep < numDeps; dep++)
+	{
+		memory += CountDependencyMemory(streaming, depList[dep]);
+	}
+
+	return memory;
+}
+
 static InitFunction initFunction([]()
 {
 	static bool streamingDebugEnabled;
 	static bool streamingListEnabled;
+	static bool streamingMemoryEnabled;
 
 	static ConVar<bool> streamingDebugVar("strdbg", ConVar_Archive, false, &streamingDebugEnabled);
 	static ConVar<bool> streamingListVar("strlist", ConVar_Archive, false, &streamingListEnabled);
+	static ConVar<bool> streamingMemoryVar("strmem", ConVar_Archive, false, &streamingMemoryEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || streamingDebugEnabled || streamingListEnabled;
+		*should = *should || streamingDebugEnabled || streamingListEnabled || streamingMemoryEnabled;
+	});
+
+	ConHost::OnDrawGui.Connect([]()
+	{
+		if (!streamingMemoryEnabled)
+		{
+			return;
+		}
+
+		static bool streamingMemoryOpen;
+
+		auto streaming = streaming::Manager::GetInstance();
+		auto streamingAllocator = rage::strStreamingAllocator::GetInstance();
+
+		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
+
+		struct StreamingMemoryInfo : ImGui::ListView::ItemBase
+		{
+			uint32_t idx;
+			size_t physicalMemory;
+			size_t virtualMemory;
+
+			virtual const char* getCustomText(size_t column) const
+			{
+				switch (column)
+				{
+				case 0:
+					return streaming::GetStreamingNameForIndex(idx).c_str();
+				case 1:
+					return va("%.2f MiB", virtualMemory / 1024.0 / 1024.0);
+				case 2:
+					return va("%.2f MiB", physicalMemory / 1024.0 / 1024.0);
+				}
+			}
+			
+			virtual const void* getDataPtr(size_t column) const
+			{
+				switch (column)
+				{
+				case 0:
+					return &idx;
+				case 1:
+					return &virtualMemory;
+				case 2:
+					return &physicalMemory;
+				}
+			}
+		};
+
+		auto avMem = 0x40000000;//streamingAllocator->GetMemoryAvailable()
+
+		if (ImGui::Begin("Streaming Memory", &streamingMemoryOpen))
+		{
+			static std::vector<StreamingMemoryInfo> entryList(streaming->numEntries);
+
+			int entryIdx = 0;
+			size_t lockedMem = 0;
+			size_t flag10Mem = 0;
+			size_t usedMem = 0;
+			size_t usedPhys = 0;
+
+			for (int i = 0; i < streaming->numEntries; i++)
+			{
+				auto& entry = streaming->Entries[i];
+
+				if ((entry.flags & 3) == 1) // loaded
+				{
+					StreamingMemoryInfo info;
+					info.idx = i;
+					info.virtualMemory = entry.ComputeVirtualSize(i, nullptr, false);
+					info.physicalMemory = entry.ComputePhysicalSize(i);
+
+					entryList[entryIdx] = info;
+
+					if (!streaming->IsObjectReadyToDelete(i, 0xF1 | 8))
+					{
+						lockedMem += info.virtualMemory;
+					}
+
+					if ((entry.flags >> 16) & 0x10)
+					{
+						flag10Mem += info.virtualMemory;
+
+						flag10Mem += CountDependencyMemory(streaming, i);
+						// wrong way around
+						/*atArray<uint32_t> depArray;
+						streaming->FindAllDependents(depArray, i);
+
+						for (uint32_t dependent : depArray)
+						{
+							flag10Mem += streaming->Entries[dependent].ComputeVirtualSize(dependent, nullptr, false);
+						}*/
+					}
+
+					usedMem += info.virtualMemory;
+					usedPhys += info.physicalMemory;
+
+					entryIdx++;
+				}
+			}
+
+			ImGui::Text("Virtual memory: %.2f MiB",
+				usedMem / 1024.0 / 1024.0);
+
+			ImGui::Text("Locked virtual memory: %.2f MiB (%d%%)", 
+				lockedMem / 1024.0 / 1024.0,
+				int((lockedMem / (double)usedMem) * 100.0));
+
+			ImGui::Text("Script virtual memory: %.2f MiB (%d%%)",
+				flag10Mem / 1024.0 / 1024.0,
+				int((flag10Mem / (double)usedMem) * 100.0));
+
+			ImGui::Text("Physical memory: %.2f MiB", usedPhys / 1024.0 / 1024.0);
+
+			static ImGui::ListView lv;
+
+			if (lv.headers.empty())
+			{
+				lv.headers.push_back(ImGui::ListView::Header{ "Name", "", ImGui::ListViewBase::HT_CUSTOM, 0, 16.0f });
+				lv.headers.push_back(ImGui::ListView::Header{ "Virt", "", ImGui::ListViewBase::HT_CUSTOM, 0, 16.0f });
+				lv.headers.push_back(ImGui::ListView::Header{ "Phys", "", ImGui::ListViewBase::HT_CUSTOM, 0, 16.0f });
+			}
+
+			lv.items.clear();
+
+			for (int i = 0; i < entryIdx; i++)
+			{
+				lv.items.push_back(&entryList[i]);
+			}
+
+			std::sort(lv.items.begin(), lv.items.end(), [](const ImGui::ListView::ItemBase* leftPtr, const ImGui::ListView::ItemBase* rightPtr)
+			{
+				auto& left = *(const StreamingMemoryInfo*)leftPtr;
+				auto& right = *(const StreamingMemoryInfo*)rightPtr;
+
+				return (left.physicalMemory + left.virtualMemory) > (right.physicalMemory + right.virtualMemory);
+			});
+
+			lv.render();
+		}
+
+		ImGui::End();
 	});
 
 	ConHost::OnDrawGui.Connect([]()
@@ -189,6 +350,8 @@ static InitFunction initFunction([]()
 
 			lv.render();
 		}
+
+		ImGui::End();
 	});
 
 	ConHost::OnDrawGui.Connect([]()
@@ -273,8 +436,8 @@ static InitFunction initFunction([]()
 					}
 				}
 			}
-
-			ImGui::End();
 		}
+
+		ImGui::End();
 	});
 });

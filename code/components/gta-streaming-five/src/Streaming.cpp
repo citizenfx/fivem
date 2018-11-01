@@ -39,8 +39,58 @@ static hook::cdecl_stub<uint32_t(uint32_t*, const char*, bool, const char*, bool
 	return hook::get_pattern("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25);
 });
 
+static hook::cdecl_stub<size_t(StreamingDataEntry*, uint32_t, void*, bool)> _computeVirtualSize([]()
+{
+	return hook::get_call(hook::get_pattern("FF 46 0C 8B 57 04", 15));
+});
+
+static hook::cdecl_stub<size_t(StreamingDataEntry*, uint32_t)> _computePhysicalSize([]()
+{
+	return hook::get_call(hook::get_pattern("FF 46 0C 8B 57 04", 31));
+});
+
+static hook::cdecl_stub<bool(streaming::Manager*, uint32_t, int)> _isReadyToDelete([]()
+{
+	return hook::get_pattern("89 54 24 10 48 83 EC 28 48 8B 01 41 81 E0 0E FF");
+});
+
+static hook::cdecl_stub<void(streaming::Manager*, atArray<uint32_t>&, uint32_t)> _getDependents([]()
+{
+	return hook::get_pattern("8B F8 48 8B EA 4C 8B F1 85 F6 74 2B 8B D3", -32);
+});
+
+size_t StreamingDataEntry::ComputePhysicalSize(uint32_t strIndex)
+{
+	return _computePhysicalSize(this, strIndex);
+}
+
+size_t StreamingDataEntry::ComputeVirtualSize(uint32_t strIndex, void* a3, bool a4)
+{
+	return _computeVirtualSize(this, strIndex, a3, a4);
+}
+
+static rage::strStreamingAllocator* g_streamingAllocator;
+
+namespace rage
+{
+	strStreamingAllocator* strStreamingAllocator::GetInstance()
+	{
+		return g_streamingAllocator;
+	}
+}
+
 namespace streaming
 {
+	bool Manager::IsObjectReadyToDelete(uint32_t streamingIndex, int flags)
+	{
+		return _isReadyToDelete(this, streamingIndex, flags);
+	}
+
+	void Manager::FindAllDependents(atArray<uint32_t>& outIndices, uint32_t objectId)
+	{
+		return _getDependents(this, outIndices, objectId);
+	}
+
 	void LoadObjectsNow(bool a1)
 	{
 		g_loadObjectsNow(a1);
@@ -88,5 +138,9 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern<char>("74 1A 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? 41", 11);
 
 		g_storeMgr = (void*)(location + *(int32_t*)location + 4);
+	}
+
+	{
+		g_streamingAllocator = hook::get_address<decltype(g_streamingAllocator)>(hook::get_pattern("44 8B 46 04 48 8D 0D ? ? ? ? 49 8B D2 44", 7));
 	}
 });

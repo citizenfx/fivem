@@ -37,6 +37,10 @@ struct StreamingDataEntry
 {
 	uint32_t handle;
 	uint32_t flags;
+
+	size_t STREAMING_EXPORT ComputePhysicalSize(uint32_t strIndex);
+
+	size_t STREAMING_EXPORT ComputeVirtualSize(uint32_t strIndex, void* a3, bool a4);
 };
 
 namespace streaming
@@ -169,6 +173,10 @@ namespace streaming
 
 		bool ReleaseObject(uint32_t objectId, int flags);
 
+		bool IsObjectReadyToDelete(uint32_t streamingIndex, int flags);
+
+		void FindAllDependents(atArray<uint32_t>& outIndices, uint32_t objectId);
+
 		static Manager* GetInstance();
 
 	public:
@@ -207,6 +215,15 @@ namespace streaming
 	STREAMING_EXPORT bool IsStreamerShuttingDown();
 
 	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
+}
+
+namespace rage
+{
+	class strStreamingAllocator : public sysMemAllocator
+	{
+	public:
+		static STREAMING_EXPORT strStreamingAllocator* GetInstance();
+	};
 }
 
 #if 0
