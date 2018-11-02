@@ -179,7 +179,8 @@ namespace CitizenFX.Core
 			}
 		}
 		/// <summary>
-		/// Gets a value indicating whether this <see cref="Model"/> is a ped.
+		/// Gets a value indicating whether this <see cref="Model"/> is a ped. Do note that this
+		/// only returns true if the ped model is a vanilla GTA model.
 		/// </summary>
 		/// <value>
 		/// <c>true</c> if this <see cref="Model"/> is a ped; otherwise, <c>false</c>.
@@ -189,8 +190,16 @@ namespace CitizenFX.Core
 			get
 			{
                 // CFX-TODO
-                return false;
-				//return MemoryAccess.IsModelAPed(Hash);
+				// Not the most dynamic solution, but much better than returning false on all model hashes.
+				foreach (uint hash in Enum.GetValues(typeof(PedHash)))
+				{
+					if (Hash == hash)
+					{
+						return true;
+					}
+				}
+
+				return false;
 			}
 		}
 		/// <summary>
