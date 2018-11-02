@@ -1,18 +1,15 @@
-local threads = {}
-local curThread
-local curThreadIndex
+local wakes = {} -- coroutines to wake up, map of coroutine => wake time
 
 function Citizen.CreateThread(threadFunction)
-	table.insert(threads, {
-		coroutine = coroutine.create(threadFunction),
-		wakeTime = 0
-	})
+  wakes[coroutine.create(threadFunction)] = 0
 end
 
 function Citizen.Wait(msec)
-	curThread.wakeTime = GetGameTimer() + msec
-
-	coroutine.yield()
+  local co = coroutine.running()
+  if co then
+    wakes[co] = GetGameTimer() + msec
+    coroutine.yield()
+  end
 end
 
 -- legacy alias (and to prevent people from calling the game's function)
@@ -20,155 +17,66 @@ Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
 function Citizen.CreateThreadNow(threadFunction)
-	local coro = coroutine.create(threadFunction)
+  local co = coroutine.create(threadFunction)
 
-	local t = {
-		coroutine = coro,
-		wakeTime = 0
-	}
-
-	-- add new thread and save old thread
-	local oldThread = curThread
-	curThread = t
-
-	local result, err = coroutine.resume(coro)
-
-	local resumedThread = curThread
-	-- restore last thread
-	curThread = oldThread
-
-	if err then
-		error('Failed to execute thread: ' .. debug.traceback(coro, err))
-	end
-
-	if resumedThread and coroutine.status(coro) ~= 'dead' then
-		table.insert(threads, t)
-	end
-
-	return coroutine.status(coro) ~= 'dead'
+  local ok, err = coroutine.resume(co)
+  if not ok then
+    error('Failed to execute thread: ' .. debug.traceback(co, err))
+  end
 end
 
-local inNext
-
+--[[
 function Citizen.Await(promise)
-	if not curThread then
-		error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
-	end
+  local co = coroutine.running()
+  if not co then
+    error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
+  end
 
-	-- Remove current thread from the pool (avoid resume from the loop)
-	if curThreadIndex then
-		table.remove(threads, curThreadIndex)
-	end
+  promise:next(function(result)
+    local ok, err = coroutine.resume(co, result)
+    if not ok then
+      error('Failed to resume thread: ' .. debug.traceback(co, err))
+    end
 
-	curThreadIndex = nil
-	local resumableThread = curThread
-	
-	inNext = true
-	local nextResult
-	local nextErr
-	local resolved
-	
-	promise:next(function (result)
-		-- was already resolved? then resolve instantly
-		if inNext then
-			nextResult = result
-			resolved = true
-			
-			return
-		end
-	
-		-- Reattach thread
-		table.insert(threads, resumableThread)
+    return result
+  end, function(err)
+    if err then
+      -- resume with error
+      local ok, co_err = coroutine.resume(co, nil, err)
+      if not ok then
+        Citizen.Trace('Await failure: ' .. debug.traceback(co, co_err, 2))
+      end
+    end
+  end)
 
-		curThread = resumableThread
-		curThreadIndex = #threads
+  local result, err = coroutine.yield()
+  if err then
+    error(err)
+  end
 
-		local result, err = coroutine.resume(resumableThread.coroutine, result)
-
-		if err then
-			error('Failed to resume thread: ' .. debug.traceback(resumableThread.coroutine, err))
-		end
-
-		return result
-	end, function (err)
-		if err then
-			-- if already rejected, handle rejection instantly
-			if inNext then
-				nextErr = err
-				resolved = true
-				
-				return
-			end
-			
-			-- resume with error
-			local result, coroErr = coroutine.resume(resumableThread.coroutine, nil, err)
-			
-			if coroErr then
-				Citizen.Trace('Await failure: ' .. debug.traceback(resumableThread.coroutine, coroErr, 2))
-			end
-		end
-	end)
-	
-	inNext = false
-	
-	if resolved then
-		if nextErr then
-			error(nextErr)
-		end
-	
-		return nextResult
-	end
-	
-	curThread = nil
-	local result, err = coroutine.yield()
-	
-	if err then
-		error(err)
-	end
-	
-	return result
+  return result
 end
-
--- SetTimeout
-local timeouts = {}
+--]]
 
 function Citizen.SetTimeout(msec, callback)
-	table.insert(threads, {
-		coroutine = coroutine.create(callback),
-		wakeTime = GetGameTimer() + msec
-	})
+  wakes[coroutine.create(callback)] = GetGameTimer() + msec 
 end
 
 SetTimeout = Citizen.SetTimeout
 
 Citizen.SetTickRoutine(function()
-	local curTime = GetGameTimer()
+  local time = GetGameTimer()
 
-	for i = #threads, 1, -1 do
-		local thread = threads[i]
+  for co, wake_time in pairs(wakes) do
+    if time >= wake_time then
+      wakes[co] = nil
 
-		if curTime >= thread.wakeTime then
-			curThread = thread
-			curThreadIndex = i
-
-			local status = coroutine.status(thread.coroutine)
-
-			if status == 'dead' then
-				table.remove(threads, i)
-			else
-				local result, err = coroutine.resume(thread.coroutine)
-
-				if not result then
-					Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
-
-					table.remove(threads, i)
-				end
-			end
-		end
-	end
-
-	curThread = nil
-	curThreadIndex = nil
+      local ok, err = coroutine.resume(co)
+      if not ok then
+        Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
+      end
+    end
+  end
 end)
 
 local alwaysSafeEvents = {
@@ -566,7 +474,7 @@ end
 
 -- RPC INVOCATION
 InvokeRpcEvent = function(source, ref, args)
-	if not curThread then
+	if not coroutine.running() then
 		error('RPC delegates can only be invoked from a thread.')
 	end
 
@@ -626,7 +534,7 @@ local funcref_mt = {
 			local rvs = msgpack.unpack(rv)
 
 			-- handle async retvals from refs
-			if rvs and type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and curThread then
+			if rvs and type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine.running() then
 				local p = promise.new()
 
 				rvs[1].__cfx_async_retval(function(r, e)
