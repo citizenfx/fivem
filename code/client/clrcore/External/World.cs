@@ -131,6 +131,32 @@ namespace CitizenFX.Core
 		Snowlight,
 		Christmas
 	}
+
+	public enum CloudHat
+	{
+		Unknown = 1,
+		Altostratus,
+		Cirrus,
+		Cirrocumulus,
+		Clear,
+		Cloudy,
+		Contrails,
+		Horizon,
+		HorizonBand1,
+		HorizonBand2,
+		HorizonBand3,
+		Horsey,
+		Nimbus,
+		Puffs,
+		Rain,
+		Snowy,
+		Stormy,
+		Stratoscumulus,
+		Stripey,
+		Shower,
+		Wispy
+	}
+
 	public enum IntersectOptions
 	{
 		Everything = -1,
@@ -238,6 +264,30 @@ namespace CitizenFX.Core
 			"SNOWLIGHT",
 			"XMAS"
 		};
+
+		internal static readonly Dictionary<CloudHat, string> CloudHatDict = new Dictionary<CloudHat, string> {
+			{CloudHat.Unknown, "Unknown"},
+			{CloudHat.Altostratus, "altostratus"},
+			{CloudHat.Cirrus, "Cirrus"},
+			{CloudHat.Cirrocumulus, "cirrocumulus"},
+			{CloudHat.Clear, "Clear 01"},
+			{CloudHat.Cloudy, "Cloudy 01"},
+			{CloudHat.Contrails, "Contrails"},
+			{CloudHat.Horizon, "Horizon"},
+			{CloudHat.HorizonBand1, "horizonband1"},
+			{CloudHat.HorizonBand2, "horizonband2"},
+			{CloudHat.HorizonBand3, "horizonband3"},
+			{CloudHat.Horsey, "horsey"},
+			{CloudHat.Nimbus, "Nimbus"},
+			{CloudHat.Puffs, "Puffs"},
+			{CloudHat.Rain, "RAIN"},
+			{CloudHat.Snowy, "Snowy 01"},
+			{CloudHat.Stormy, "Stormy 01"},
+			{CloudHat.Stratoscumulus, "stratoscumulus"},
+			{CloudHat.Stripey, "Stripey"},
+			{CloudHat.Shower, "shower"},
+			{CloudHat.Wispy, "Wispy"}
+		};
 		#endregion
 
 		/// <summary>
@@ -300,6 +350,36 @@ namespace CitizenFX.Core
 				Function.Call(Hash._SET_BLACKOUT, value);
 			}
 		}
+
+		private static CloudHat _currentCloudHat = CloudHat.Clear;
+		/// <summary>
+		/// Gets or sets the current Cloud Hat.
+		/// </summary>
+		public static CloudHat CloudHat
+		{
+			get => _currentCloudHat;
+			set
+			{
+				_currentCloudHat = value;
+				if (_currentCloudHat == CloudHat.Unknown)
+				{
+					_currentCloudHat = CloudHat.Clear;
+					Function.Call(Hash._CLEAR_CLOUD_HAT);
+					return;
+				}
+				Function.Call(Hash._SET_CLOUD_HAT_TRANSITION, CloudHatDict.ContainsKey( _currentCloudHat ) ? CloudHatDict[_currentCloudHat] : "", 3f);
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the current Cloud Hat opacity. On a scale of 0.0 to 1.0.
+		/// </summary>
+		public static float CloudHatOpacity
+		{
+			get => Function.Call<float>(Hash._GET_CLOUD_HAT_OPACITY);
+			set => Function.Call(Hash._SET_CLOUD_HAT_OPACITY, MathUtil.Clamp(value, 0f, 1f));
+		}
+
 		/// <summary>
 		/// Gets or sets the weather.
 		/// </summary>
