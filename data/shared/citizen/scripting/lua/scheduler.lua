@@ -133,12 +133,26 @@ end
 local timeouts = {}
 
 function Citizen.SetTimeout(msec, callback)
+	local threadId = os.clock() * 100
 	table.insert(threads, {
 		coroutine = coroutine.create(callback),
-		wakeTime = GetGameTimer() + msec
+		wakeTime = GetGameTimer() + msec,
+		id = threadId
 	})
+	return threadId
 end
 
+function Citizen.ClearTimeout(id)
+	for i = #threads, 1, -1 do
+		if threads[i].id ~= nil and threads[i].id == id then
+			table.remove(threads, i)
+			return true
+		end
+	end
+	return false
+end
+
+ClearTimeout = Citizen.ClearTimeout
 SetTimeout = Citizen.SetTimeout
 
 Citizen.SetTickRoutine(function()
