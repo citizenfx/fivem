@@ -12,6 +12,7 @@
 #include <ResourceCallbackComponent.h>
 
 #include <chrono>
+#include <sstream>
 
 #ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
@@ -556,6 +557,7 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 static void FnRefWeakCallback(
 	const v8::WeakCallbackInfo<RefAndPersistent>& data)
 {
+	v8::HandleScope handleScope(data.GetIsolate());
 	v8::Local<Function> v = data.GetParameter()->handle.Get(data.GetIsolate());
 
 	data.GetParameter()->handle.Reset();
@@ -1272,6 +1274,7 @@ struct DataAndPersistent {
 static void ReadBufferWeakCallback(
 	const v8::WeakCallbackInfo<DataAndPersistent>& data)
 {
+	v8::HandleScope handleScope(data.GetIsolate());
 	v8::Local<ArrayBuffer> v = data.GetParameter()->handle.Get(data.GetIsolate());
 
 	size_t byte_length = v->ByteLength();
@@ -1688,11 +1691,6 @@ public:
 
 	inline Isolate* GetIsolate()
 	{
-		if (Isolate::GetCurrent() != m_isolate)
-		{
-			m_isolate->Enter();
-		}
-
 		return m_isolate;
 	}
 
@@ -1722,6 +1720,27 @@ static node::IsolateData* GetNodeIsolate()
 	return g_v8.GetNodeIsolate();
 }
 #endif
+
+static void OnMessage(Local<Message> message, Local<Value> error)
+{
+	v8::String::Utf8Value messageStr(GetV8Isolate(), message->Get());
+	v8::String::Utf8Value errorStr(GetV8Isolate(), error);
+
+	std::stringstream stack;
+	auto stackTrace = message->GetStackTrace();
+
+	for (int i = 0; i < stackTrace->GetFrameCount(); i++)
+	{
+		auto frame = stackTrace->GetFrame(i);
+
+		v8::String::Utf8Value sourceStr(GetV8Isolate(), frame->GetScriptNameOrSourceURL());
+		v8::String::Utf8Value functionStr(GetV8Isolate(), frame->GetFunctionName());
+		
+		stack << *sourceStr << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << *functionStr << "\n";
+	}
+
+	trace("%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
+}
 
 V8ScriptGlobals::V8ScriptGlobals()
 {
@@ -1810,6 +1829,10 @@ void V8ScriptGlobals::Initialize()
 	{
 		FatalError("V8 error at %s: %s", location, message);
 	});
+
+	m_isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+
+	m_isolate->AddMessageListener(OnMessage);
 
 	// initialize the debugger
 	m_debugger = std::unique_ptr<V8Debugger>(CreateDebugger(m_isolate));
