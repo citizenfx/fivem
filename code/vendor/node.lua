@@ -18,7 +18,7 @@ return {
 		language "C++"
 		kind "SharedLib"
 
-		links { 'v8', 'v8_libplatform' }
+		links { 'v8', 'v8_libplatform', 'v8_libbase' }
 		includedirs { '../vendor/node/src/' }
 
 		includedirs { '../vendor/node/deps/cares/include/' }
@@ -156,6 +156,7 @@ return {
 		files_project '../vendor/node/' {
 			'src/node_javascript.cc',
 			'src/async_wrap.cc',
+			'src/bootstrapper.cc',
 	        'src/cares_wrap.cc',
 	        'src/connection_wrap.cc',
 	        'src/connect_wrap.cc',
@@ -176,12 +177,14 @@ return {
 	        'src/node_crypto_bio.cc',
 	        'src/node_crypto_clienthello.cc',
 	        'src/node_debug_options.cc',
+	        'src/node_encoding.cc',
 	        'src/node_file.cc',
 	        'src/node_http2.cc',
 	        'src/node_http_parser.cc',
 	        'src/node_main.cc',
 	        'src/node_os.cc',
 	        'src/node_platform.cc',
+	        'src/node_process.cc',
 	        'src/node_perf.cc',
 	        'src/node_serdes.cc',
 	        'src/node_trace_events.cc',
