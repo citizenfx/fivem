@@ -25,38 +25,74 @@ function Citizen.CreateThreadNow(threadFunction)
   end
 end
 
---[[
+
+local inNext
+
 function Citizen.Await(promise)
   local co = coroutine.running()
   if not co then
     error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
   end
 
-  promise:next(function(result)
-    local ok, err = coroutine.resume(co, result)
-    if not ok then
+  inNext = true
+  local nextResult
+  local nextErr
+  local resolved
+
+  promise:next(function (result)
+    -- was already resolved? then resolve instantly
+    if inNext then
+      nextResult = result
+      resolved = true
+
+      return
+    end
+
+    local result, err = coroutine.resume(co, result)
+
+    if err then
       error('Failed to resume thread: ' .. debug.traceback(co, err))
     end
 
     return result
-  end, function(err)
+  end, 
+  function (err)
     if err then
+      -- if already rejected, handle rejection instantly
+      if inNext then
+        nextErr = err
+        resolved = true
+
+        return
+      end
+
       -- resume with error
-      local ok, co_err = coroutine.resume(co, nil, err)
-      if not ok then
-        Citizen.Trace('Await failure: ' .. debug.traceback(co, co_err, 2))
+      local result, coroErr = coroutine.resume(co, nil, err)
+
+      if coroErr then
+        Citizen.Trace('Await failure: ' .. debug.traceback(co, coroErr, 2))
       end
     end
   end)
 
+  inNext = false
+
+  if resolved then
+    if nextErr then
+      error(nextErr)
+    end
+
+    return nextResult
+  end
+
   local result, err = coroutine.yield()
+
   if err then
     error(err)
   end
 
   return result
 end
---]]
 
 function Citizen.SetTimeout(msec, callback)
   wakes[coroutine.create(callback)] = GetGameTimer() + msec 
@@ -67,14 +103,22 @@ SetTimeout = Citizen.SetTimeout
 Citizen.SetTickRoutine(function()
   local time = GetGameTimer()
 
+  local to_wakes = {}
+
+  -- wake up check
   for co, wake_time in pairs(wakes) do
     if time >= wake_time then
+      table.insert(to_wakes, co)
       wakes[co] = nil
+    end
+  end
 
-      local ok, err = coroutine.resume(co)
-      if not ok then
-        Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
-      end
+  -- wake up
+  for i=1,#to_wakes do
+    local co = to_wakes[i]
+    local ok, err = coroutine.resume(co)
+    if not ok then
+      Citizen.Trace("Error resuming coroutine: " .. debug.traceback(co, err) .. "\n")
     end
   end
 end)
