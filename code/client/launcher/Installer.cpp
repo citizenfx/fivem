@@ -213,7 +213,7 @@ bool Install_RunInstallMode()
 		isDownloadsFolder = true;
 	}
 
-	size_t maxOtherFiles = (isDownloadsFolder) ? 4 : 16;
+	size_t maxOtherFiles = (isDownloadsFolder) ? 3 : 5;
 
 	// count the amount of files 'together' with us in our folder
 	fs::directory_iterator it(hostData->initPath), end;
