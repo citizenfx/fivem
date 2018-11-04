@@ -27,7 +27,7 @@ namespace fx
 
 #include <Error.h>
 
-static concurrency::concurrent_unordered_set<uint32_t> g_downloadingSet;
+static concurrency::concurrent_unordered_map<uint32_t, bool> g_downloadingSet;
 static concurrency::concurrent_unordered_set<uint32_t> g_downloadedSet;
 
 static concurrency::concurrent_unordered_map<std::string, std::shared_ptr<ResourceCacheDevice::FileData>> g_fileDataSet;
@@ -282,10 +282,10 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	ResetEvent(handleData->fileData->eventHandle);
 	handleData->fileData->status = FileData::StatusFetching;
 
-	if (g_downloadingSet.find(remoteHash) == g_downloadingSet.end())
+	if (auto it = g_downloadingSet.find(remoteHash); (it == g_downloadingSet.end() || !it->second))
 	{
 		// mark this hash as downloading (to prevent multiple concurrent downloads)
-		g_downloadingSet.insert(remoteHash);
+		g_downloadingSet.insert({ remoteHash, true });
 
 		// log the request starting
 		uint32_t initTime = timeGetTime();
@@ -367,11 +367,6 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 				// log success
 				trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", entryRef.basename.c_str(), (timeGetTime() - initTime), outSize);
 
-				if (g_downloadedSet.find(remoteHash) != g_downloadedSet.end())
-				{
-					trace("Downloaded the same asset (%s) twice in the same run - that's bad.\n", entryRef.basename);
-				}
-
 				g_downloadedSet.insert(remoteHash);
 
 				std::unique_lock<std::mutex> lock(fileDataRef->fetchLock);
@@ -411,6 +406,9 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 			// unblock the mutex
 			SetEvent(fileDataRef->eventHandle);
+
+			// allow downloading this file again
+			g_downloadingSet[remoteHash] = false;
 		});
 	}
 
