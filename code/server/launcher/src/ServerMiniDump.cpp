@@ -93,7 +93,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		bool uploadCrashes = true;
 
-		if (uploadCrashes && HTTPUpload::SendRequest(L"https://sentry.fivem.net/api/4/minidump/?sentry_key=8dd2249dcf12460683bace43acd11de2", parameters, files, nullptr, &responseBody, &responseCode))
+		if (uploadCrashes && HTTPUpload::SendRequest(L"https://sentry.fivem.net/api/6/minidump/?sentry_key=0081a421fd30443ca9d5f636be197e16", parameters, files, nullptr, &responseBody, &responseCode))
 		{
 			printf("Crash report ID: %s\n", ToNarrow(responseBody).c_str());
 		}

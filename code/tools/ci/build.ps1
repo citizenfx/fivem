@@ -304,7 +304,7 @@ if (!$DontBuild -and $IsServer) {
     			commit = $env:CI_COMMIT_SHA
     		}
     	)
-    	projects = @("fxserver")
+    	projects = @("fxs")
     } | ConvertTo-Json
 
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
