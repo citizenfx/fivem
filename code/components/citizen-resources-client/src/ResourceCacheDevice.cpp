@@ -238,7 +238,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	}
 
 	// file extension for cache stuff
-	auto remoteHash = HashRageString(handleData->entry.remoteUrl.c_str());
+	auto remoteHash = HashRageString((handleData->entry.referenceHash.empty()) ? handleData->entry.remoteUrl.c_str() : handleData->entry.referenceHash.c_str());
 
 	std::string extension = handleData->entry.basename.substr(handleData->entry.basename.find_last_of('.') + 1);
 	std::string outFileName = fmt::sprintf("%s/unconfirmed/%s_%08x", m_cachePath, extension, remoteHash);
