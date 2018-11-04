@@ -12,7 +12,8 @@ mkdir C:\f\work\sym-upload
 mkdir C:\f\work\sym-pack
 C:\h\debuggers\x64\symstore.exe add /o /f $BinRoot\server\windows\release\ /s C:\f\work\sym-upload /t "Cfx" /r
 
-$pdbs = Get-ChildItem -Recurse -Filter "*.pdb" -File C:\f\work\sym-upload\
+$dlls = Get-ChildItem -Recurse -Filter "*.dll" -File $BinRoot\server\windows\release\
+$exes = Get-ChildItem -Recurse -Filter "*.exe" -File $BinRoot\server\windows\release\
 
 workflow dump_pdb {
     param ([Object[]]$files)
@@ -29,14 +30,13 @@ workflow dump_pdb {
     }
 }
 
-dump_pdb -files $pdbs
+dump_pdb -files $dlls
+dump_pdb -files $exes
 
-$syms = Get-ChildItem -Recurse -Filter "*.sym" -File C:\f\work\sym-upload\
+$syms = Get-ChildItem -Recurse -Filter "*.sym" -File $BinRoot\server\windows\release\
 
 foreach ($sym in $syms) {
-    $baseDir = $sym.FullName -replace "sym-upload","sym-pack"
-    mkdir ([io.path]::GetDirectoryName($baseDir))
-    copy-item $sym.FullName $baseDir
+    copy-item $sym.FullName C:\f\work\sym-pack\
 }
 
 $env:Path = "C:\msys64\usr\bin;$env:Path"
