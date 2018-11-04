@@ -36,7 +36,9 @@ dump_pdb -files $exes
 $syms = Get-ChildItem -Recurse -Filter "*.sym" -File $BinRoot\server\windows\release\
 
 foreach ($sym in $syms) {
-    copy-item $sym.FullName C:\f\work\sym-pack\
+    if ($sym.Length -gt 0) {
+        copy-item $sym.FullName C:\f\work\sym-pack\
+    }
 }
 
 $env:Path = "C:\msys64\usr\bin;$env:Path"
