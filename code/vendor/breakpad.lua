@@ -7,7 +7,9 @@ return {
 		language "C++"
 		kind "StaticLib"
 
-		flags { "StaticRuntime" }
+		if _OPTIONS['game'] ~= 'server' then
+			flags { "StaticRuntime" }
+		end
 
 		configuration "windows"
 			files_project "../vendor/breakpad/src/" {

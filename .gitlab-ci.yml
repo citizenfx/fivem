@@ -27,6 +27,7 @@ build_client:
   except:
     - server-ci
     - tags
+    - master
 
 build_server_windows:
   <<: *build_windows
