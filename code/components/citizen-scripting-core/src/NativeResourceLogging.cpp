@@ -86,11 +86,15 @@ static InitFunction initFunction([]()
 		resource->OnDeactivate.Connect([resource]()
 		{
 			auto nativeLog = NativeHandlerLogging::PopLog();
-			auto& outLog = g_nativeLogs[resource->GetName()];
 
-			for (const auto& entry : *nativeLog)
+			if (nativeLog)
 			{
-				outLog.insert(entry);
+				auto& outLog = g_nativeLogs[resource->GetName()];
+
+				for (const auto& entry : *nativeLog)
+				{
+					outLog.insert(entry);
+				}
 			}
 		}, 99999999);
 	});
