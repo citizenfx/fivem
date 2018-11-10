@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace CitizenFX.Core
 {
@@ -103,5 +103,36 @@ namespace CitizenFX.Core
 		EnemyLaser = 1566990507,
 		SearchLight = -844344963,
 		Radar = -764006018
+	}
+
+	public enum AmmoType : uint
+	{
+		Melee = 0,
+		FireExtinguisher = 0x5106B43C,
+		Flare = 0x6BCCF76F,
+		FlareGun = 0x45F0E965,
+		PetrolCan = 0xCA6318A1,
+		Shotgun = 0x90083D3B,
+		Pistol = 0x743D4F54,
+		Ball = 0xFF956666,
+		Snowball = 0x8218416D,
+		Sniper = 0x4C98087B,
+		AssaultRifle = 0xD05319F,
+		SMG = 0x6C7D23B8,
+		Molotov = 0x5633F9D5,
+		StunGun = 0xB02EADE0,
+		MG = 0x6AA1343F,
+		GrenadeLauncher = 0x3BCCA5EE,
+		RPG = 0x67DD81F2,
+		Minigun = 0x9FC5C882,
+		Firework = 0xAF23EE0F,
+		Railgun = 0x794446FD,
+		HomingLauncher = 0x99150E2D,
+		Grenade = 0x3BD313B1,
+		StickyBomb = 0x5424B617,
+		ProximityMine = 0xAF2208A7,
+		PipeBomb = 0x155663F8,
+		SmokeGrenade = 0xE60E08A6,
+		BZGas = 0x9B747EA4
 	}
 }
