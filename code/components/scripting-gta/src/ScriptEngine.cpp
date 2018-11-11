@@ -22,7 +22,9 @@ static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdent
 	// call the original function
 	static void* exceptionAddress;
 
+#ifdef ENABLE_NATIVE_HANDLER_LOGGING
 	NativeHandlerLogging::CountNative(nativeIdentifier);
+#endif
 
 #ifndef _DEBUG
 	__try
