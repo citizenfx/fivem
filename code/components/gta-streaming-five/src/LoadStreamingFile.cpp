@@ -1180,6 +1180,32 @@ void WrapAddMapBoolEntry(void* map, int* index, bool* value)
 	}
 }
 
+static void(*g_origExecuteGroup)(void* mgr, uint32_t hashValue, bool value);
+
+static void ExecuteGroupForWeaponInfo(void* mgr, uint32_t hashValue, bool value)
+{
+	g_origExecuteGroup(mgr, hashValue, value);
+
+	for (auto it = g_loadedDataFiles.begin(); it != g_loadedDataFiles.end();)
+	{
+		auto[fileType, fileName] = *it;
+
+		if (fileType == "WEAPONINFO_FILE_PATCH" || fileType == "WEAPONINFO_FILE")
+		{
+			HandleDataFile(*it, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
+			{
+				return mounter->UnmountFile(&entry);
+			}, "early-unloading for CWeaponMgr");
+
+			it = g_loadedDataFiles.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1360,6 +1386,14 @@ static HookFunction hookFunction([] ()
 			LoadDataFiles();
 		}
 	});
+
+	// special point for CWeaponMgr streaming unload
+	// (game calls CExtraContentManager::ExecuteTitleUpdateDataPatchGroup with a specific group intended for weapon info here)
+	{
+		auto location = hook::get_pattern("45 33 C0 BA E9 C8 73 AA E8", 8);
+		hook::set_call(&g_origExecuteGroup, location);
+		hook::call(location, ExecuteGroupForWeaponInfo);
+	}
 
 	// support CfxRequest for pgRawStreamer
 	hook::jump(hook::get_pattern("4D 63 C1 41 8B C2 41 81 E2 FF 03 00 00", -0xD), pgRawStreamer__GetEntryNameToBuffer);
