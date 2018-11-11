@@ -1,6 +1,6 @@
 #include <StdInc.h>
 
-#if __has_include("NativeHandlerLogging.h")
+#if __has_include("NativeHandlerLogging.h") && defined(ENABLE_NATIVE_HANDLER_LOGGING)
 #include <HttpClient.h>
 #include <NativeHandlerLogging.h>
 
