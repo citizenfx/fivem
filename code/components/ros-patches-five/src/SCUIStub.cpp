@@ -212,6 +212,8 @@ public:
         {
             if (r.error)
             {
+				trace("ROS error: %s\n", r.error.message);
+
                 cb("Error contacting Rockstar Online Services.", "");
             }
             else
@@ -296,6 +298,9 @@ public:
         {
             if (r.error || r.status_code != 200)
             {
+				trace("ROS error: %s\n", r.error.message);
+				trace("ROS error text: %s\n", r.text);
+
                 cb("Error contacting Rockstar Online Services.", "");
             }
             else

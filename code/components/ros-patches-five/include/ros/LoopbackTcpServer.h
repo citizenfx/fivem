@@ -126,6 +126,8 @@ public:
 
 	bool GetAddrInfoEx(const char* name, const wchar_t* serviceName, const ADDRINFOEXW* hints, ADDRINFOEXW** addrInfo, int* outValue);
 
+	bool GetAddrInfoA(const char* name, const char* serviceName, const addrinfo* hints, addrinfo** addrInfo, int* outValue);
+
 	bool Connect(SOCKET s, const sockaddr* name, int namelen, int* outValue);
 
 	bool Recv(SOCKET s, char* buf, int len, int flags, int* outValue);

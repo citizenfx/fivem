@@ -95,7 +95,9 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 	UNICODE_STRING newString;
 	std::wstring moduleNameStr(moduleName->Buffer, moduleName->Length / sizeof(wchar_t));
 
-	if (moduleNameStr.find(L"socialclub.dll") != std::string::npos)
+	if (moduleNameStr.find(L"socialclub.dll") != std::string::npos ||
+		// check .exe files as well for Wine GetFileVersionInfo* calls
+		moduleNameStr.find(L".exe") != std::string::npos)
 	{
 		moduleNameStr = MapRedirectedFilename(moduleNameStr.c_str());
 

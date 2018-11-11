@@ -38,6 +38,8 @@ bool EndpointMapper::HandleRequest(fwRefContainer<net::HttpRequest> request, fwR
 
 	response->SetStatusCode(404);
 	response->End(va("Route %s not found.", request->GetPath().c_str()));
+
+	return true;
 }
 
 boost::optional<TGameServiceHandler> EndpointMapper::GetGameServiceHandler(const std::string& serviceName)
@@ -88,6 +90,16 @@ static InitFunction initFunction([] ()
 	secureServer2->AddRef();
 	secureServer2->SetPort(443);
 
+	// create auth-gta5-prod TLS servers
+	fwRefContainer<LoopbackTcpServer> insecureServer3 = tcpServerManager->RegisterTcpServer("auth-gta5-prod.ros.rockstargames.com");
+	insecureServer3->AddRef();
+	insecureServer3->SetPort(80);
+
+	// create the TLS backend server
+	fwRefContainer<LoopbackTcpServer> secureServer3 = tcpServerManager->RegisterTcpServer("auth-gta5-prod.ros.rockstargames.com");
+	secureServer3->AddRef();
+	secureServer3->SetPort(443);
+
 	// create the local socket server, if enabled
 	if (wcsstr(GetCommandLine(), L"ros:legit") != nullptr)
 	{
@@ -109,9 +121,14 @@ static InitFunction initFunction([] ()
 	net::TLSServer* tlsWrapper2 = new net::TLSServer(secureServer2, "citizen/ros/ros.crt", "citizen/ros/ros.key");
 	tlsWrapper2->AddRef();
 
+	net::TLSServer* tlsWrapper3 = new net::TLSServer(secureServer3, "citizen/ros/ros.crt", "citizen/ros/ros.key");
+	tlsWrapper3->AddRef();
+
 	// attach the endpoint mappers
 	httpServer->AttachToServer(tlsWrapper);
 	httpServer->AttachToServer(tlsWrapper2);
+	httpServer->AttachToServer(tlsWrapper3);
 	httpServer->AttachToServer(insecureServer);
 	httpServer->AttachToServer(insecureServer2);
+	httpServer->AttachToServer(insecureServer3);
 }, -500);

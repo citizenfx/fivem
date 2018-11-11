@@ -22,6 +22,7 @@ static int(__stdcall* g_oldGetAddrInfoW)(const wchar_t*, const wchar_t*, const A
 static int(__stdcall* g_oldGetAddrInfoExW)(const wchar_t* name, const wchar_t* serviceName, DWORD namespace_, LPGUID nspId, const ADDRINFOEXW* hints,
 										   ADDRINFOEXW** result, timeval* timeout, LPOVERLAPPED overlapped, LPLOOKUPSERVICE_COMPLETION_ROUTINE completionRoutine,
 										   LPHANDLE nameHandle);
+static int(__stdcall* g_oldGetAddrInfo)(const char*, const char*, const addrinfo*, addrinfo**);
 
 LoopbackTcpServerStream::LoopbackTcpServerStream(LoopbackTcpServer* server, SOCKET socket)
 	: m_server(server), m_socket(socket), m_nextReadWillBlock(false)
@@ -133,6 +134,40 @@ bool LoopbackTcpServerManager::GetHostByName(const char* name, hostent** outValu
 
 		// mm
 		*outValue = &hostEntity;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool LoopbackTcpServerManager::GetAddrInfoA(const char* name, const char* serviceName, const addrinfo* hints, addrinfo** addrInfo, int* outValue)
+{
+	scoped_lock lock(m_loopbackLock);
+
+	// hash the hostname for lookup in the server dictionary
+	uint32_t hostHash = HashRageString(name);
+
+	hostHash &= 0xFFFFFF; // for adding the 127.x netname
+
+	// find the matching server
+	auto it = m_tcpServers.find(hostHash);
+
+	if (it != m_tcpServers.end())
+	{
+		// we can't fill structs directly as we can't hook FreeAddrInfoW (hook checks) and that'll mean instant heap corruption
+		// therefore, we parse it into an IP and return that *natively*
+
+		uint32_t addr = hostHash | (127 << 24);
+
+		*outValue = g_oldGetAddrInfo(va("%u.%u.%u.%u", addr >> 24, (addr >> 16) & 0xFF, (addr >> 8) & 0xFF, addr & 0xFF), serviceName, hints, addrInfo);
+
+		return true;
+	}
+
+	if (strcmp(name, "ros.citizenfx.internal") == 0)
+	{
+		*outValue = g_oldGetAddrInfo("prod.ros.rockstargames.com", serviceName, hints, addrInfo);
 
 		return true;
 	}
@@ -554,7 +589,6 @@ static hostent*(__stdcall* g_oldGetHostByName)(const char*);
 static int(__stdcall* g_oldGetSockName)(SOCKET, sockaddr*, int*);
 static int(__stdcall* g_oldGetPeerName)(SOCKET, sockaddr*, int*);
 static int(__stdcall* g_oldSetSockOpt)(SOCKET, int, int, const char*, int);
-static int(__stdcall* g_oldGetAddrInfo)(const char*, const char*, const addrinfo*, addrinfo**);
 static void(__stdcall* g_oldFreeAddrInfo)(addrinfo*);
 static void(__stdcall* g_oldFreeAddrInfoW)(ADDRINFOW*);
 static int(__stdcall* g_oldSelect)(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, const timeval* timeout);
@@ -595,6 +629,11 @@ struct ModuleData
 
 			if (ptr >= it->first && ptr < it->second)
 			{
+				/*wchar_t fn[260];
+				GetModuleFileName((HMODULE)it->first, fn, sizeof(fn) / sizeof(*fn));
+
+				trace("Shouldn't be hooked - %016llx >= %016llx & < %016llx (%s)\n", ptr, it->first, it->second, ToNarrow(fn));*/
+
 				return true;
 			}
 		}
@@ -905,12 +944,12 @@ static int __stdcall EP_GetAddrInfo(const char* name, const char* serviceName, c
 {
 	int outValue;
 
-	//if (!g_manager->GetAddrInfo(name, result, &outValue))
+	if (!ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfoA(name, serviceName, hints, result, &outValue))
 	{
 		return g_oldGetAddrInfo(name, serviceName, hints, result);
 	}
 
-	//return outValue;
+	return outValue;
 }
 
 static int __stdcall EP_GetAddrInfoW(const wchar_t* name, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** result)
@@ -933,12 +972,6 @@ static int __stdcall EP_GetAddrInfoExW(const wchar_t* name, const wchar_t* servi
 
 	if (overlapped || !ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfoEx(ToNarrow(name).c_str(), serviceName, hints, result, &outValue))
 	{
-		// map to original ROS if needed
-		if (name == L"ros.citizenfx.internal")
-		{
-			name = L"prod.ros.rockstargames.com";
-		}
-
 		return g_oldGetAddrInfoExW(name, serviceName, namespace_, nspId, hints, result, timeout, overlapped, completionRoutine, nameHandle);
 	}
 
@@ -1473,6 +1506,8 @@ static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 });
 
+static HANDLE g_rosPipe;
+
 static HANDLE __stdcall CreateFileAStub(
 	_In_     LPCSTR               lpFileName,
 	_In_     DWORD                 dwDesiredAccess,
@@ -1482,18 +1517,84 @@ static HANDLE __stdcall CreateFileAStub(
 	_In_     DWORD                 dwFlagsAndAttributes,
 	_In_opt_ HANDLE                hTemplateFile)
 {
+	bool p = false;
+
 	if (strcmp(lpFileName, "\\\\.\\pipe\\GTAVLauncher_Pipe") == 0)
 	{
-		trace("Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
+		trace("Opening GTAVLauncher_Pipe, redirecting to GTAVLauncher_Pipe2\n");
 
-		WaitNamedPipe(L"\\\\.\\pipe\\GTAVLauncher_Pipe", INFINITE);
+		HANDLE hPipe = CreateNamedPipeW(L"\\\\.\\pipe\\GTAVLauncher_Pipe2", PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 1024 * 16, 1024 * 16, NMPWAIT_USE_DEFAULT_WAIT, nullptr);
 
-		WaitForLauncher();
+		std::thread([=]()
+		{
+			WaitNamedPipe(L"\\\\.\\pipe\\GTAVLauncher_Pipe", INFINITE);
 
-		trace("Launcher is fine, continuing!\n");
+			WaitForLauncher();
+
+			HANDLE hLauncher = CreateFileW(L"\\\\.\\pipe\\GTAVLauncher_Pipe", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+			std::thread([=]()
+			{
+				char buffer[2048];
+				DWORD numRead;
+
+				while (true)
+				{
+					if (ConnectNamedPipe(hPipe, nullptr) != FALSE || GetLastError() == ERROR_PIPE_CONNECTED)
+					{
+						while (ReadFile(hPipe, buffer, sizeof(buffer), &numRead, nullptr) != FALSE)
+						{
+							trace("ROS: game->launcher: %s\n", std::string(&buffer[4], numRead - 4));
+
+							DWORD numWrite;
+							WriteFile(hLauncher, buffer, numRead, &numWrite, nullptr);
+						}
+					}
+
+					DisconnectNamedPipe(hPipe);
+				}
+			}).detach();
+
+			std::thread([=]()
+			{
+				char buffer[2048];
+				DWORD numRead;
+
+				while (true)
+				{
+					Sleep(20);
+
+					if (ReadFile(hLauncher, buffer, sizeof(buffer), &numRead, nullptr) != FALSE)
+					{
+						DWORD numWrite;
+						WriteFile(hPipe, buffer, numRead, &numWrite, nullptr);
+
+						trace("ROS: launcher->game: %s\n", std::string(&buffer[4], numRead - 4));
+					}
+				}
+			}).detach();
+		}).detach();
+
+		lpFileName = "\\\\.\\pipe\\GTAVLauncher_Pipe2";
+
+		p = true;
 	}
 
-	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	HANDLE h = g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+
+	if (p)
+	{
+		g_rosPipe = h;
+	}
+
+	return h;
+}
+
+static BOOL(*g_oldWriteFile)(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped);
+
+static BOOL __stdcall WriteFileStub(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped)
+{
+	return g_oldWriteFile(hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
 }
 
 static InitFunction initFunction([] ()
@@ -1520,6 +1621,9 @@ static InitFunction hookFunction([] ()
 
 #define DO_HOOK(dll, func, ep, oldEP) \
 	{ auto err = MH_CreateHookApi(dll, func, ep, reinterpret_cast<void**>(&oldEP)); assert(err == MH_OK); }
+
+#define DO_HOOK_NO_ASSERT(dll, func, ep, oldEP) \
+	{ MH_CreateHookApi(dll, func, ep, reinterpret_cast<void**>(&oldEP)); }
 	
  	DO_HOOK(L"ws2_32.dll", "closesocket", EP_CloseSocket, g_oldCloseSocket);
   	DO_HOOK(L"ws2_32.dll", "connect", EP_Connect, g_oldConnect);
@@ -1533,7 +1637,7 @@ static InitFunction hookFunction([] ()
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoW", EP_GetAddrInfoW, g_oldGetAddrInfoW);
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoExW", EP_GetAddrInfoExW, g_oldGetAddrInfoExW);
 //	DO_HOOK(L"ws2_32.dll", "FreeAddrInfoW", EP_FreeAddrInfoW, g_oldFreeAddrInfoW); // these three are hook-checked
-//	DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo);
+	DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo); // enabled because wine, probably going to fail
 //	DO_HOOK(L"ws2_32.dll", "freeaddrinfo", EP_FreeAddrInfo, g_oldFreeAddrInfo);
  	DO_HOOK(L"ws2_32.dll", "WSALookupServiceBeginW", EP_WSALookupServiceBeginW, g_oldLookupService);
 	DO_HOOK(L"ws2_32.dll", "WSAEventSelect", EP_WSAEventSelect, g_oldEventSelect);
@@ -1551,8 +1655,8 @@ static InitFunction hookFunction([] ()
 		DO_HOOK(L"kernelbase.dll", "CreateThreadpoolIo", EP_CreateThreadpoolIo, g_oldCreateThreadpoolIo);
 		DO_HOOK(L"kernelbase.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
 
-		DO_HOOK(L"kernel32.dll", "CreateThreadpoolIo", EP_CreateThreadpoolIo, g_oldCreateThreadpoolIo);
-		DO_HOOK(L"kernel32.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
+		DO_HOOK_NO_ASSERT(L"kernel32.dll", "CreateThreadpoolIo", EP_CreateThreadpoolIo, g_oldCreateThreadpoolIo);
+		DO_HOOK_NO_ASSERT(L"kernel32.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
 	}
 
 	DO_HOOK(L"kernel32.dll", "CreateProcessW", EP_CreateProcessW, g_oldCreateProcessW);
@@ -1566,6 +1670,7 @@ static InitFunction hookFunction([] ()
 	DO_HOOK(L"wininet.dll", "InternetOpenW", EP_InternetOpenW, g_oldInternetOpenW);
 
 	DO_HOOK(L"kernel32.dll", "CreateFileA", CreateFileAStub, g_oldCreateFileA);
+	DO_HOOK(L"kernel32.dll", "WriteFile", WriteFileStub, g_oldWriteFile);
 
 	trace("hello from %s\n", GetCommandLineA());
 
