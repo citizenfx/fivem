@@ -244,6 +244,9 @@ namespace fx
 	}
 
 	fwEvent<const StreamingEntryData&> OnAddStreamingResource;
+
+	fwEvent<> OnLockStreaming;
+	fwEvent<> OnUnlockStreaming;
 }
 
 static InitFunction initFunction([]()

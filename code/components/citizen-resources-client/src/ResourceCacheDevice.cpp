@@ -152,6 +152,9 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 							AddCrashometry("rcd_invalid_resource", "true");
 
 							handleData->fileData->status = FileData::StatusNotFetched;
+
+							// close the file so we can refetch it
+							handleData->parentDevice->CloseBulk(handleData->parentHandle);
 						}
 					}
 				}
@@ -684,9 +687,11 @@ bool ResourceCacheDevice::ExtensionCtl(int controlIdx, void* controlData, size_t
 
 			if (fileData)
 			{
+				auto remoteHash = HashRageString((entry->referenceHash.empty()) ? entry->remoteUrl.c_str() : entry->referenceHash.c_str());
+
 				data->outData += fmt::sprintf("Status: %s\nDownloaded now: %s\nRSC header: %02x %02x %02x %02x\n\n",
 					StatusToString(fileData->status),
-					(g_downloadedSet.find(HashRageString(entry->remoteUrl.c_str())) != g_downloadedSet.end()) ? "Yes" : "No", 
+					(g_downloadedSet.find(remoteHash) != g_downloadedSet.end()) ? "Yes" : "No", 
 					fileData->rscHeader[0], fileData->rscHeader[1], fileData->rscHeader[2], fileData->rscHeader[3]);
 			}
 

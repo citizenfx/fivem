@@ -904,8 +904,21 @@ void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
 #include <nutsnbolts.h>
 
 static bool g_reloadStreamingFiles;
+static std::atomic<int> g_lockedStreamingFiles;
 
 void origCfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+
+void DLL_EXPORT CfxCollection_SetStreamingLoadLocked(bool locked)
+{
+	if (locked)
+	{
+		g_lockedStreamingFiles++;
+	}
+	else
+	{
+		g_lockedStreamingFiles--;
+	}
+}
 
 void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
 {
@@ -1344,7 +1357,7 @@ static HookFunction hookFunction([] ()
 
 	OnMainGameFrame.Connect([=]()
 	{
-		if (g_reloadStreamingFiles)
+		if (g_reloadStreamingFiles && g_lockedStreamingFiles == 0)
 		{
 			LoadStreamingFiles();
 

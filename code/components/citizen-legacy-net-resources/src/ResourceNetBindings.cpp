@@ -241,6 +241,8 @@ static InitFunction initFunction([] ()
 
 				std::vector<std::string> requiredResources;
 
+				fx::OnLockStreaming();
+
 				if (hasValidResources)
 				{
 					auto& resources = node["resources"];
@@ -376,6 +378,11 @@ static InitFunction initFunction([] ()
 								GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
 							}
 
+							executeNextGameFrame.push_back([]
+							{
+								fx::OnUnlockStreaming();
+							});
+
 							return;
 						}
 					}
@@ -407,6 +414,11 @@ static InitFunction initFunction([] ()
 							netLibrary->DownloadsComplete();
 						});
 					}
+
+					executeNextGameFrame.push_back([]
+					{
+						fx::OnUnlockStreaming();
+					});
 
 					doneCb();
 				});
