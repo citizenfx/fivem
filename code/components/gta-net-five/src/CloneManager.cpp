@@ -743,8 +743,6 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 	trace("Migrating object %d (of type %s) from %s to %s (remote player). If no 'remote-migrating' shows up, that's bad.\n", object->objectId, GetType(object),
 		!object->syncData.isRemote ? "us" : "a remote player",
 		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
-
-	object->syncData.nextOwnerId = 31;
 }
 
 void CloneManagerLocal::Update()
