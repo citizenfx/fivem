@@ -25,6 +25,8 @@
 
 #include <Hooking.h>
 
+#include <CoreConsole.h>
+
 rage::netObject* g_curNetObject;
 
 void ObjectIds_AddObjectId(int objectId);
@@ -54,18 +56,6 @@ CNetGamePlayer* GetLocalPlayer();
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
 
 void UpdateTime(uint64_t serverTime, bool isInit = false);
-
-static bool g_doShit;
-
-#include <CoreConsole.h>
-
-static InitFunction initFunction([]()
-{
-	static ConsoleCommand cmd("doshit", []()
-	{
-		g_doShit = true;
-	});
-});
 
 namespace sync
 {
@@ -461,7 +451,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	};
 
 	// create buffer
-	rage::netBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
+	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
 	rlBuffer.m_f1C = 1;
 
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
@@ -543,7 +533,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 {
 	// create buffer
-	rage::netBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
+	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
 	rlBuffer.m_f1C = 1;
 
 	auto ackPacket = [&]()
@@ -571,10 +561,12 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	if (extData.clientId != msg.GetClientId())
 	{
-		//trace("reassigning!\n");
 		trace("Remote-migrating object %d (of type %s) from %s to %s.\n", obj->objectId, GetType(obj),
 			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
 			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
+
+		// reset next-owner ID as we've just migrated it
+		obj->syncData.nextOwnerId = -1;
 
 		auto clientId = msg.GetClientId();
 
@@ -748,9 +740,11 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 
 	AttemptFlushNetBuffer();
 
-	trace("Migrating object %d (of type %s) from %s to %s (remote player).\n", object->objectId, GetType(object),
+	trace("Migrating object %d (of type %s) from %s to %s (remote player). If no 'remote-migrating' shows up, that's bad.\n", object->objectId, GetType(object),
 		!object->syncData.isRemote ? "us" : "a remote player",
 		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
+
+	object->syncData.nextOwnerId = 31;
 }
 
 void CloneManagerLocal::Update()
@@ -791,45 +785,6 @@ void CloneManagerLocal::WriteUpdates()
 	int syncCount1 = 0, syncCount2 = 0, syncCount3 = 0, syncCount4 = 0;
 
 	{
-		static bool didShit;
-
-		if (!didShit)
-		{
-			if (Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
-			{
-				if (g_doShit)
-				{
-					for (int i = 0; i < 48; i++)
-					{
-						TempHackMakePhysicalPlayer(1);
-
-						msgClone msg;
-						msg.m_handle = i + 256;
-						msg.m_entityType = NetObjEntityType::Player;
-						msg.m_syncType = 1;
-						msg.m_timestamp = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
-						msg.m_objectId = i + 256;
-
-						FILE* f = fopen("L:/tmp/player_1.bin", "rb");
-						fseek(f, 0, SEEK_END);
-						int len = ftell(f);
-						fseek(f, 0, SEEK_SET);
-
-						msg.m_cloneData.resize(len);
-						fread(msg.m_cloneData.data(), 1, len, f);
-
-						fclose(f);
-
-						HandleCloneCreate(msg);
-					}
-
-					didShit = true;
-				}
-			}
-		}
-	}
-
-	{
 		uint32_t timestamp = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
 
 		m_sendBuffer.Write(3, 5);
@@ -866,7 +821,7 @@ void CloneManagerLocal::WriteUpdates()
 
 		// allocate a RAGE buffer
 		uint8_t packetStub[1200] = { 0 };
-		rage::netBuffer rlBuffer(packetStub, sizeof(packetStub));
+		rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
 		// if we want to delete this object
 		if (object->syncData.wantsToDelete)

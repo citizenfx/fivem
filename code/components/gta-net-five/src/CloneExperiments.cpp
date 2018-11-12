@@ -731,25 +731,25 @@ namespace rage
 
 		virtual const char* GetName() = 0;
 
-		virtual bool IsApplicableToPlayer(CNetGamePlayer* player) = 0;
+		virtual bool IsInScope(CNetGamePlayer* player) = 0;
 
-		virtual void m_18() = 0;
+		virtual bool TimeToResend(uint32_t) = 0;
 
-		virtual void m_20() = 0;
+		virtual bool CanChangeScope() = 0;
 
-		virtual void WriteToBuffer(rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void Prepare(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
-		virtual void ReadFromBuffer(rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void Handle(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
-		virtual bool Execute(CNetGamePlayer* sourcePlayer, void* connUnk) = 0;
+		virtual bool Decide(CNetGamePlayer* sourcePlayer, void* connUnk) = 0;
 
-		virtual void WriteReply(rage::netBuffer* buffer, CNetGamePlayer* replyPlayer) = 0;
+		virtual void PrepareReply(rage::datBitBuffer* buffer, CNetGamePlayer* replyPlayer) = 0;
 
-		virtual void ApplyReply(rage::netBuffer* buffer, CNetGamePlayer* sourcePlayer) = 0;
+		virtual void HandleReply(rage::datBitBuffer* buffer, CNetGamePlayer* sourcePlayer) = 0;
 
-		virtual void WritePostData(rage::netBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void PrepareExtraData(rage::datBitBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
-		virtual void ApplyPostData(rage::netBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void HandleExtraData(rage::datBitBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
 		virtual void m_60() = 0;
 
@@ -816,10 +816,10 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 
 	// allocate a RAGE buffer
 	uint8_t packetStub[1024];
-	rage::netBuffer rlBuffer(packetStub, sizeof(packetStub));
+	rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
-	ev->WriteToBuffer(&rlBuffer, g_player31, nullptr);
-	ev->WritePostData(&rlBuffer, false, g_player31, nullptr);
+	ev->Prepare(&rlBuffer, g_player31, nullptr);
+	ev->PrepareExtraData(&rlBuffer, false, g_player31, nullptr);
 
 	net::Buffer outBuffer;
 
@@ -837,7 +837,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 				auto originalIndex = player->physicalPlayerIndex;
 				player->physicalPlayerIndex = 31;
 
-				if (ev->IsApplicableToPlayer(player))
+				if (ev->IsInScope(player))
 				{
 					targetPlayers.insert(g_netIdsByPlayer[player]);
 				}
@@ -925,7 +925,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	std::vector<uint8_t> data(length);
 	buf.Read(data.data(), data.size());
 
-	rage::netBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
+	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
 	rlBuffer.m_f1C = 1;
 
 	if (eventType > 0x5A)
@@ -939,8 +939,8 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 		if (ev)
 		{
-			ev->ApplyReply(&rlBuffer, player);
-			ev->ApplyPostData(&rlBuffer, true, player, g_playerMgr->localPlayer);
+			ev->HandleReply(&rlBuffer, player);
+			ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
 
 			delete ev;
 			g_events[eventHeader] = {};
@@ -948,7 +948,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	}
 	else
 	{
-		using TEventHandlerFn = void(*)(rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
+		using TEventHandlerFn = void(*)(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
 
 		// for all intents and purposes, the player will be 31
 		auto lastIndex = player->physicalPlayerIndex;
@@ -961,9 +961,9 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	}
 }
 
-static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
+static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
 
-static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
+static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
@@ -972,20 +972,20 @@ static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::ne
 
 	//trace("executing a %s\n", ev->GetName());
 
-	ev->ReadFromBuffer(buffer, player, unkConn);
+	ev->Handle(buffer, player, unkConn);
 
 	// missing: some checks
-	if (ev->Execute(player, unkConn))
+	if (ev->Decide(player, unkConn))
 	{
-		ev->ApplyPostData(buffer, false, player, unkConn);
+		ev->HandleExtraData(buffer, false, player, unkConn);
 
 		if (ev->requiresReply)
 		{
 			uint8_t packetStub[1024];
-			rage::netBuffer rlBuffer(packetStub, sizeof(packetStub));
+			rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
-			ev->WriteReply(&rlBuffer, player);
-			ev->WritePostData(&rlBuffer, true, player, nullptr);
+			ev->PrepareReply(&rlBuffer, player);
+			ev->PrepareExtraData(&rlBuffer, true, player, nullptr);
 
 			net::Buffer outBuffer;
 			outBuffer.Write<uint8_t>(1);
@@ -1088,7 +1088,7 @@ static HookFunction hookFunctionEv([]()
 #include <nutsnbolts.h>
 #include <GameInit.h>
 
-static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk);
+static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk);
 
 
 struct VirtualBase
@@ -1121,11 +1121,11 @@ std::string GetType(void* d)
 
 extern rage::netObject* g_curNetObject;
 
-static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object);
+static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object);
 
 std::map<int, std::map<void*, std::tuple<int, uint32_t>>> g_netObjectNodeMapping;
 
-static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object)
+static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
@@ -1147,7 +1147,7 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuf
 	}
 }
 
-static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
+static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{

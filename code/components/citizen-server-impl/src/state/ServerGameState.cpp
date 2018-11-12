@@ -354,18 +354,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					maybeFlushBuffer();
 
-					int slotId = client->GetSlotId();
-
-					if (syncType == 2)
-					{
-						/*entity->syncTree->Visit([slotId](sync::NodeBase& node)
-						{
-							node.ackedPlayers.set(slotId);
-
-							return true;
-						});*/
-					}
-
 					((syncType == 1) ? numCreates : numSyncs)++;
 				}
 				else
@@ -572,7 +560,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 
 	entity->syncTree->Visit([this](sync::NodeBase& node)
 	{
-		node.frameIndex = m_frameIndex;
+		node.frameIndex = m_frameIndex + 1;
 		node.ackedPlayers.reset();
 
 		return true;
@@ -927,10 +915,6 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	if (entity->client.lock()->GetNetId() != client->GetNetId())
 	{
-		//trace("did object %d migrate? %s isn't %s...\n", objectId, client->GetName(), entity->client.lock()->GetName());
-
-		//entity->client = client;
-
 		return;
 	}
 

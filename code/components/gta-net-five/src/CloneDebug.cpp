@@ -96,7 +96,7 @@ namespace rage
 		virtual void m_90() = 0;
 		virtual void m_98() = 0;
 		virtual void m_A0() = 0;
-		virtual void WriteObject(rage::netObject* object, rage::netBuffer* buffer, rage::netLogStub* logger, bool readFromObject) = 0;
+		virtual void WriteObject(rage::netObject* object, rage::datBitBuffer* buffer, rage::netLogStub* logger, bool readFromObject) = 0;
 		virtual void m_B0() = 0;
 		virtual void m_B8() = 0;
 		virtual void LogNode(rage::netLogStub* stub) = 0;
@@ -313,7 +313,7 @@ struct WriteTreeState
 	rage::netObject* object;
 	int flags;
 	int objFlags;
-	rage::netBuffer* buffer;
+	rage::datBitBuffer* buffer;
 	rage::netLogStub* logger;
 	uint32_t time;
 	bool wroteAny;
@@ -388,7 +388,7 @@ inline uint32_t GetDelayForUpdateFrequency(uint8_t updateFrequency)
 	}
 }
 
-bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
+bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
 {
 	WriteTreeState state;
 	state.object = object;
@@ -442,7 +442,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				std::array<uint8_t, 256> tempData;
 				memset(tempData.data(), 0, tempData.size());
 
-				rage::netBuffer tempBuf(tempData.data(), tempData.size());
+				rage::datBitBuffer tempBuf(tempData.data(), tempData.size());
 
 				node->WriteObject(state.object, &tempBuf, nullptr, true);
 
