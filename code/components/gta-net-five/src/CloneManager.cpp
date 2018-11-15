@@ -175,11 +175,14 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 
 	Log("%s: %d\n", __func__, netObject->objectId);
 
-	netBuffer.Write(3, 3);
-	//netBuffer.Write<uint8_t>(0); // player ID (byte)
-	netBuffer.Write(13, netObject->objectId); // object ID (short)
+	if (!netObject->syncData.isRemote)
+	{
+		netBuffer.Write(3, 3);
+		//netBuffer.Write<uint8_t>(0); // player ID (byte)
+		netBuffer.Write(13, netObject->objectId); // object ID (short)
 
-	AttemptFlushNetBuffer();
+		AttemptFlushNetBuffer();
+	}
 
 	m_trackedObjects.erase(netObject->objectId);
 	m_extendedData.erase(netObject->objectId);
@@ -590,8 +593,18 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// apply object creation
 	syncTree->ApplyToObject(obj, nullptr);
 
+	// again, ensure it's not local
+	if (!obj->syncData.isRemote || obj->syncData.ownerId != 31)
+	{
+		trace("Treason! Owner ID changed to %d.\n", obj->syncData.ownerId);
+		Log("%s: Treason! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
+	}
+	
+	obj->syncData.isRemote = true;
+	obj->syncData.ownerId = 31;
+
 	// register with object mgr
-	rage::netObjectMgr::GetInstance()->RegisterObject(obj);
+	rage::netObjectMgr::GetInstance()->RegisterNetworkObject(obj);
 
 	// initialize blend
 	if (obj->GetBlender())
@@ -914,6 +927,11 @@ void CloneManagerLocal::WriteUpdates()
 			return;
 		}
 
+		if (object->syncData.ownerId == 31)
+		{
+			return;
+		}
+
 		// get basic object data
 		auto objectType = object->objectType;
 		auto objectId = object->objectId;
@@ -1106,32 +1124,24 @@ void CloneManagerLocal::WriteUpdates()
 
 		if (object->syncData.nextOwnerId != 0xFF)
 		{
-			if (object->syncData.nextOwnerId == 0)
-			{
-				/*m_sendBuffer.Write(3, 4);
-				m_sendBuffer.Write(16, 0); // client ID
-				//m_sendBuffer.Write<uint8_t>(0); // player ID (byte)
-				m_sendBuffer.Write(13, objectId);*/
+			GiveObjectToClient(object, g_netIdsByPlayer[g_players[object->syncData.nextOwnerId]]);
 
-				++syncCount4;
-
-				//AttemptFlushNetBuffer();
-
-				GiveObjectToClient(object, 0);
-			}
-			else
-			{
-				//trace("Tried to migrate an object to %d - but we can't map them yet.\n", object->syncData.nextOwnerId);
-
-				GiveObjectToClient(object, g_netIdsByPlayer[g_players[object->syncData.nextOwnerId]]);
-
-				object->syncData.nextOwnerId = -1;
-			}
+			object->syncData.nextOwnerId = -1;
 		}
 
 		seenObjects.insert(objectId);
 		m_savedEntities[objectId] = object;
-		m_extendedData[objectId].clientId = m_netLibrary->GetServerNetID();
+
+		if (m_extendedData[objectId].clientId != m_netLibrary->GetServerNetID())
+		{
+			Log("changing object %d netid from %d to %d%s\n",
+				objectId,
+				m_extendedData[objectId].clientId,
+				m_netLibrary->GetServerNetID(),
+				m_extendedData[objectId].clientId != 0 ? "... already initialized?" : "");
+
+			m_extendedData[objectId].clientId = m_netLibrary->GetServerNetID();
+		}
 	};
 
 	for (int i = 0; i < 64; i++)

@@ -23,7 +23,7 @@ public:
 	virtual void m_48() = 0;
 	virtual void m_50() = 0;
 	virtual void m_58() = 0;
-	virtual void RegisterObject(rage::netObject* entity) = 0;
+	virtual void RegisterNetworkObject(rage::netObject* entity) = 0;
 
 private:
 	struct atDNetObjectNode

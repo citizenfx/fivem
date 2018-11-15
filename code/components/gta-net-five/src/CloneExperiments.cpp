@@ -1761,7 +1761,7 @@ static InitFunction initFunction([]()
 		}
 
 		st->ApplyToObject(obj, nullptr);
-		rage::netObjectMgr::GetInstance()->RegisterObject(obj);
+		rage::netObjectMgr::GetInstance()->RegisterNetworkObject(obj);
 
 		netBlender_SetTimestamp(obj->GetBlender(), g_queryFunctions->GetTimestamp());
 
@@ -1883,7 +1883,7 @@ static InitFunction initFunction([]()
 		}
 
 		st->ApplyToObject(obj, nullptr);
-		rage::netObjectMgr::GetInstance()->RegisterObject(obj);
+		rage::netObjectMgr::GetInstance()->RegisterNetworkObject(obj);
 
 		netBlender_SetTimestamp(obj->GetBlender(), g_queryFunctions->GetTimestamp());
 

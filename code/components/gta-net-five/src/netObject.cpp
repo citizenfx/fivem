@@ -12,7 +12,7 @@ namespace rage
 {
 	netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a2, int a3, int a4)
 	{
-		return createCloneFuncs[(int)type](objectId, 31, 0, 32);
+		return createCloneFuncs[(int)type](objectId, a2, a3, a4);
 	}
 }
 
