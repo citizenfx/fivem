@@ -900,6 +900,28 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	NVSP_ShutdownSafely();
 }
 
+namespace google_breakpad
+{
+	class AutoExceptionHandler
+	{
+	public:
+		static LONG HandleException(EXCEPTION_POINTERS* exinfo)
+		{
+			return ExceptionHandler::HandleException(exinfo);
+		}
+	};
+}
+
+void InitializeMiniDumpOverride()
+{
+	auto CoreSetExceptionOverride = (void(*)(LONG(*)(EXCEPTION_POINTERS*)))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetExceptionOverride");
+
+	if (CoreSetExceptionOverride)
+	{
+		CoreSetExceptionOverride(AutoExceptionHandler::HandleException);
+	}
+}
+
 bool InitializeExceptionHandler()
 {
 	AllocateExceptionBuffer();

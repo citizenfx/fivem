@@ -17,7 +17,7 @@
 
 #include <udis86.h>
 
-static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD_Icall)
+static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD_Icall, bool breakOnFirst = false)
 {
 	// return value holder
 	void* retval = nullptr;
@@ -60,6 +60,11 @@ static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD
 				{
 					// ... calculate the effective address and store it
 					retval = reinterpret_cast<void*>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
+
+					if (breakOnFirst)
+					{
+						break;
+					}
 				}
 				else
 				{
@@ -225,6 +230,48 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 		DisableToolHelpScope scope;
 		MH_CreateHookApi(L"ntdll.dll", "RtlImageDirectoryEntryToData", RtlImageDirectoryEntryToDataStub, (void**)&g_origRtlImageDirectoryEntryToData);
 		MH_EnableHook(MH_ALL_HOOKS);
+	}
+}
+
+static LONG(*g_exceptionHandler)(EXCEPTION_POINTERS*);
+static BOOLEAN(*g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
+
+static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
+{
+	BOOLEAN success = g_origRtlDispatchException(record, context);
+
+	if (!success)
+	{
+		AddCrashometry("exception_override", "true");
+
+		EXCEPTION_POINTERS ptrs;
+		ptrs.ContextRecord = context;
+		ptrs.ExceptionRecord = record;
+
+		if (g_exceptionHandler)
+		{
+			g_exceptionHandler(&ptrs);
+		}
+	}
+
+	return success;
+}
+
+extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POINTERS*))
+{
+	g_exceptionHandler = handler;
+
+	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "KiUserExceptionDispatcher");
+
+	if (baseAddress)
+	{
+		void* internalAddress = FindCallFromAddress(baseAddress, UD_Icall, true);
+
+		{
+			DisableToolHelpScope scope;
+			MH_CreateHook(internalAddress, RtlDispatchExceptionStub, (void**)&g_origRtlDispatchException);
+			MH_EnableHook(MH_ALL_HOOKS);
+		}
 	}
 }
 #else

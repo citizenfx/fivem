@@ -22,6 +22,8 @@
 
 static ILauncherInterface* g_launcher;
 
+void InitializeMiniDumpOverride();
+
 #if defined(PAYNE)
 BYTE g_gmfOrig[5];
 BYTE g_gmfOrigW[5];
@@ -382,6 +384,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	CoreSetDebuggerPresent();
 
     SetCoreMapping();
+
+	InitializeMiniDumpOverride();
 
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
