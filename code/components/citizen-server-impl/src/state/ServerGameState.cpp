@@ -839,7 +839,7 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 
 	auto it = m_entities.find(MakeEntityHandle(playerId, objectId));
 
-	if (it != m_entities.end())
+	if (it != m_entities.end() && it->second)
 	{
 		auto tgtCl = (clientId != 0) ? m_instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(clientId) : client;
 
