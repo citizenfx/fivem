@@ -28,6 +28,11 @@ public:
 
 	// TEMP: for temporary use during player deletion
 	virtual void DeleteObjectId(uint16_t objectId) = 0;
+
+public:
+	virtual void Log(const char* format, const fmt::ArgList& argumentList) = 0;
+
+	FMT_VARIADIC(void, Log, const char*);
 };
 }
 

@@ -80,17 +80,16 @@ public:
 
 	virtual void DeleteObjectId(uint16_t objectId) override;
 
+	virtual void Log(const char* format, const fmt::ArgList& argumentList) override;
+
+	FMT_VARIADIC(void, Log, const char*);
+
 private:
 	void WriteUpdates();
 
 	void SendUpdates();
 
 	void AttemptFlushNetBuffer();
-
-private:
-	void Log(const char* format, const fmt::ArgList& argumentList);
-
-	FMT_VARIADIC(void, Log, const char*);
 
 private:
 	void HandleCloneAcks(const char* data, size_t len);
@@ -554,6 +553,18 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	{
 		Log("%s: tried to create a duplicate (remote) object\n", __func__);
 
+		ackPacket();
+
+		return;
+	}
+
+	// check if the object already exists *locally*
+	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
+	{
+		Log("%s: tried to create a duplicate (local) object - %d (check server logs!)\n", __func__, msg.GetObjectId());
+
+		ackPacket();
+
 		return;
 	}
 
@@ -653,7 +664,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 			auto player = GetLocalPlayer();
 
 			// add the object
-			rage::netObjectMgr::GetInstance()->AddObjectForPlayer(obj, player, 0);
+			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
 
 			// this isn't remote anymore
 			obj->syncData.isRemote = false;
@@ -670,7 +681,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 				auto lastId = player->physicalPlayerIndex;
 				player->physicalPlayerIndex = 31;
 
-				rage::netObjectMgr::GetInstance()->AddObjectForPlayer(obj, player, 0);
+				rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
 
 				player->physicalPlayerIndex = lastId;
 
@@ -812,7 +823,7 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
 		object->syncData.creationAckedPlayers &= ~(1 << 31);
 
 		// call object manager clone removal
-		rage::netObjectMgr::GetInstance()->RemoveClone(object, 8, 0, 1);
+		rage::netObjectMgr::GetInstance()->UnregisterNetworkObject(object, 8, 0, 1);
 
 		Log("%s: object ID %d\n", __func__, objectId);
 	}
