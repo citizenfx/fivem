@@ -1586,6 +1586,9 @@ static HookFunction hookFunction([] ()
 	// commandline overriding stuff (replace a nullsub near sysParam_init)
 	hook::call(hook::get_pattern("48 8B 54 24 48 8B 4C 24 40 E8", 25), OverrideArguments);
 
+	// don't complain about not meeting minimum system requirements
+	hook::return_function(hook::get_pattern("B9 11 90 02 8A 8B FA E8", -10));
+
 	// early init command stuff
 	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 	{
