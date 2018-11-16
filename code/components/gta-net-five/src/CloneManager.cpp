@@ -59,6 +59,8 @@ CNetGamePlayer* GetPlayerByNetId(uint16_t);
 
 void UpdateTime(uint64_t serverTime, bool isInit = false);
 
+bool IsWaitingForTimeSync();
+
 namespace sync
 {
 class msgClone;
@@ -163,6 +165,7 @@ void CloneManagerLocal::Log(const char* format, const fmt::ArgList& argumentList
 {
 	if (!m_logFile.empty())
 	{
+		m_logQueue.push(fmt::sprintf("[% 10d] ", (!IsWaitingForTimeSync()) ? rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() : 0));
 		m_logQueue.push(fmt::sprintf(format, argumentList));
 
 		m_consoleCondVar.notify_all();
@@ -219,19 +222,32 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 				m_consoleCondVar.wait(lock);
 			}
 
+			static std::string lastLogFile;
+			static FILE* file;
+
+			if (lastLogFile != m_logFile)
+			{
+				if (file)
+				{
+					fclose(file);
+					file = nullptr;
+				}
+
+				if (!m_logFile.empty())
+				{
+					file = _pfopen(MakeRelativeCitPath(m_logFile).c_str(), _P("w"));
+				}
+
+				lastLogFile = m_logFile;
+			}
+
 			std::string str;
 
 			while (m_logQueue.try_pop(str))
 			{
-				if (!m_logFile.empty())
+				if (file)
 				{
-					FILE* f = _pfopen(MakeRelativeCitPath(m_logFile).c_str(), _P("a"));
-
-					if (f)
-					{
-						fprintf(f, "%s", str.c_str());
-						fclose(f);
-					}
+					fprintf(file, "%s", str.c_str());
 				}
 			}
 		}

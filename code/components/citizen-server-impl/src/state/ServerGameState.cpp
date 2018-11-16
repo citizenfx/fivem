@@ -41,25 +41,39 @@ static void Log(const char* format, const fmt::ArgList& argumentList)
 						g_consoleCondVar.wait(lock);
 					}
 
+					static std::string lastLogFile;
+					static FILE* file;
+
+					if (lastLogFile != g_oneSyncLogVar->GetValue())
+					{
+						if (file)
+						{
+							fclose(file);
+							file = nullptr;
+						}
+
+						if (!g_oneSyncLogVar->GetValue().empty())
+						{
+							file = _pfopen(MakeRelativeCitPath(g_oneSyncLogVar->GetValue()).c_str(), _P("w"));
+						}
+
+						lastLogFile = g_oneSyncLogVar->GetValue();
+					}
+
 					std::string str;
 
 					while (g_logQueue.try_pop(str))
 					{
-						if (!g_oneSyncLogVar->GetValue().empty())
+						if (file)
 						{
-							FILE* f = _pfopen(MakeRelativeCitPath(g_oneSyncLogVar->GetValue()).c_str(), _P("a"));
-
-							if (f)
-							{
-								fprintf(f, "%s", str.c_str());
-								fclose(f);
-							}
+							fprintf(file, "%s", str.c_str());
 						}
 					}
 				}
 			}).detach();
 		});
 
+		g_logQueue.push(fmt::sprintf("[% 10d] ", msec().count()));
 		g_logQueue.push(fmt::sprintf(format, argumentList));
 
 		g_consoleCondVar.notify_all();
