@@ -1415,7 +1415,7 @@ static InitFunction initFunction([]()
 				{
 					auto entityRef = entity.second;
 
-					if (!entityRef->syncTree)
+					if (!entityRef || !entityRef->syncTree)
 					{
 						continue;
 					}
