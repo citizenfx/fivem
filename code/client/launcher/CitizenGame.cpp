@@ -411,7 +411,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	// prevent accidental duplicate instances
-	if (isMainGame && !initState->IsMasterProcess())
+	if (isMainGame && !initState->IsMasterProcess() && !initState->IsGameProcess())
 	{
 		return;
 	}

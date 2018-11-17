@@ -102,7 +102,7 @@ void SteamComponent::Initialize()
 	// launch the presence dummy dummy if needed
 	static HostSharedData<CfxState> hostData("CfxInitState");
 
-	if (hostData->IsMasterProcess())
+	if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 	{
 		SetEnvironmentVariable(L"SteamAppId", L"218");
 

@@ -448,7 +448,7 @@ void Component_RunPreInit()
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
 
-	if (hostData->IsMasterProcess())
+	if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 	{
 		rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 		{
