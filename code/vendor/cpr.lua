@@ -14,7 +14,7 @@ return {
 		defines { 'CURL_STATICLIB' }
 
 		if a then
-			flags "StaticRuntime"
+			staticruntime 'On'
 		end
 
 		files {

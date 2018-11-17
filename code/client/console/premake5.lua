@@ -17,7 +17,7 @@
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
-		flags { "StaticRuntime" }
+		staticruntime "On"
 
 		targetextension '.com'
 

@@ -8,7 +8,7 @@ return {
 		kind "StaticLib"
 
 		if _OPTIONS['game'] ~= 'server' then
-			flags { "StaticRuntime" }
+			staticruntime 'On'
 		end
 
 		configuration "windows"

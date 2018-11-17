@@ -31,7 +31,7 @@ return {
 		flags "NoRuntimeChecks"
 
 		if not a then
-			flags "StaticRuntime"
+			staticruntime 'On'
 		end
 
 		-- nghttp2

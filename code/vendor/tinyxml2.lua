@@ -8,7 +8,7 @@ return {
 		language "C++"
 		kind "StaticLib"
 
-		flags "StaticRuntime"
+		staticruntime 'On'
 
 		files {
 			"../vendor/tinyxml2/tinyxml2.cpp"

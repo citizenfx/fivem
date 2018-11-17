@@ -7,7 +7,7 @@ return {
 		targetname "xz-crt"
 		language "C"
 		kind "StaticLib"
-		flags "StaticRuntime"
+		staticruntime 'On'
 
 		defines { 'HAVE_STDINT_H=1', 'HAVE_CONFIG_H=1' }
 
