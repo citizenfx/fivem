@@ -1506,8 +1506,6 @@ static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 });
 
-static HANDLE g_rosPipe;
-
 static HANDLE __stdcall CreateFileAStub(
 	_In_     LPCSTR               lpFileName,
 	_In_     DWORD                 dwDesiredAccess,
@@ -1517,77 +1515,17 @@ static HANDLE __stdcall CreateFileAStub(
 	_In_     DWORD                 dwFlagsAndAttributes,
 	_In_opt_ HANDLE                hTemplateFile)
 {
-	bool p = false;
-
 	if (strcmp(lpFileName, "\\\\.\\pipe\\GTAVLauncher_Pipe") == 0)
 	{
-		trace("Opening GTAVLauncher_Pipe, redirecting to GTAVLauncher_Pipe2\n");
+		trace("Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
 
-		HANDLE hPipe = CreateNamedPipeW(L"\\\\.\\pipe\\GTAVLauncher_Pipe2", PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 1024 * 16, 1024 * 16, NMPWAIT_USE_DEFAULT_WAIT, nullptr);
+		WaitNamedPipe(L"\\\\.\\pipe\\GTAVLauncher_Pipe", INFINITE);
+		WaitForLauncher();
 
-		std::thread([=]()
-		{
-			WaitNamedPipe(L"\\\\.\\pipe\\GTAVLauncher_Pipe", INFINITE);
-
-			WaitForLauncher();
-
-			HANDLE hLauncher = CreateFileW(L"\\\\.\\pipe\\GTAVLauncher_Pipe", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-
-			std::thread([=]()
-			{
-				char buffer[2048];
-				DWORD numRead;
-
-				while (true)
-				{
-					if (ConnectNamedPipe(hPipe, nullptr) != FALSE || GetLastError() == ERROR_PIPE_CONNECTED)
-					{
-						while (ReadFile(hPipe, buffer, sizeof(buffer), &numRead, nullptr) != FALSE)
-						{
-							trace("ROS: game->launcher: %s\n", std::string(&buffer[4], numRead - 4));
-
-							DWORD numWrite;
-							WriteFile(hLauncher, buffer, numRead, &numWrite, nullptr);
-						}
-					}
-
-					DisconnectNamedPipe(hPipe);
-				}
-			}).detach();
-
-			std::thread([=]()
-			{
-				char buffer[2048];
-				DWORD numRead;
-
-				while (true)
-				{
-					Sleep(20);
-
-					if (ReadFile(hLauncher, buffer, sizeof(buffer), &numRead, nullptr) != FALSE)
-					{
-						DWORD numWrite;
-						WriteFile(hPipe, buffer, numRead, &numWrite, nullptr);
-
-						trace("ROS: launcher->game: %s\n", std::string(&buffer[4], numRead - 4));
-					}
-				}
-			}).detach();
-		}).detach();
-
-		lpFileName = "\\\\.\\pipe\\GTAVLauncher_Pipe2";
-
-		p = true;
+		trace("Launcher is fine, continuing!\n");
 	}
 
-	HANDLE h = g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-
-	if (p)
-	{
-		g_rosPipe = h;
-	}
-
-	return h;
+	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
 static BOOL(*g_oldWriteFile)(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped);
