@@ -296,7 +296,7 @@ local do_component = function(name, comp)
 	end
 
 	configuration {}
-	dofile(comp.absPath .. '/component.lua')
+	local postCb = dofile(comp.absPath .. '/component.lua')
 
 	-- loop again in case a previous file has set a configuration constraint
 	for k, v in ipairs(deps) do
@@ -339,6 +339,10 @@ local do_component = function(name, comp)
 
 	filter()
 		vpaths { ["z/*"] = relPath .. "/component.rc" }
+		
+	if postCb then
+		postCb()
+	end
 
 	if not _OPTIONS['tests'] then
 		return
