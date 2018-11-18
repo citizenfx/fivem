@@ -22,6 +22,10 @@ public:
 
 	virtual void GiveObjectToClient(rage::netObject* object, uint16_t clientId) = 0;
 
+	virtual uint16_t GetPendingClientId(rage::netObject* netObject) = 0;
+
+	virtual void SetTargetOwner(rage::netObject* object, uint16_t clientId) = 0;
+
 	virtual void OnObjectDeletion(rage::netObject* object) = 0;
 
 	virtual rage::netObject* GetNetObject(uint16_t objectId) = 0;

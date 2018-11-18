@@ -76,6 +76,10 @@ public:
 
 	virtual void GiveObjectToClient(rage::netObject* object, uint16_t clientId) override;
 
+	virtual uint16_t GetPendingClientId(rage::netObject* netObject) override;
+
+	virtual void SetTargetOwner(rage::netObject* object, uint16_t clientId) override;
+
 	virtual void OnObjectDeletion(rage::netObject* object) override;
 
 	virtual rage::netObject* GetNetObject(uint16_t objectId) override;
@@ -129,14 +133,15 @@ private:
 	struct ExtendedCloneData
 	{
 		uint16_t clientId;
+		uint16_t pendingClientId;
 
 		inline ExtendedCloneData()
-			: clientId(0)
+			: clientId(0), pendingClientId(-1)
 		{
 		}
 
 		inline ExtendedCloneData(uint16_t clientId)
-			: clientId(clientId)
+			: clientId(clientId), pendingClientId(-1)
 		{
 
 		}
@@ -160,6 +165,11 @@ private:
 uint16_t CloneManagerLocal::GetClientId(rage::netObject* netObject)
 {
 	return m_extendedData[netObject->objectId].clientId;
+}
+
+uint16_t CloneManagerLocal::GetPendingClientId(rage::netObject* netObject)
+{
+	return m_extendedData[netObject->objectId].pendingClientId;
 }
 
 void CloneManagerLocal::Log(const char* format, const fmt::ArgList& argumentList)
@@ -696,6 +706,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		// reset next-owner ID as we've just migrated it
 		obj->syncData.nextOwnerId = -1;
+		extData.pendingClientId = -1;
 
 		auto clientId = msg.GetClientId();
 
@@ -869,6 +880,11 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
 	}
 }
 
+void CloneManagerLocal::SetTargetOwner(rage::netObject* object, uint16_t clientId)
+{
+	m_extendedData[object->objectId].pendingClientId = clientId;
+}
+
 void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t clientId)
 {
 	// TODO: rate-limit resends (in case pending ownership is taking really long)
@@ -959,6 +975,11 @@ void CloneManagerLocal::WriteUpdates()
 		if (object->syncData.ownerId == 31)
 		{
 			return;
+		}
+
+		if (object->syncData.nextOwnerId != 0xFF)
+		{
+			GiveObjectToClient(object, m_extendedData[object->objectId].pendingClientId);
 		}
 
 		// get basic object data
@@ -1149,11 +1170,6 @@ void CloneManagerLocal::WriteUpdates()
 
 				objectData.lastSyncTime = msec();
 			}
-		}
-
-		if (object->syncData.nextOwnerId != 0xFF)
-		{
-			GiveObjectToClient(object, g_netIdsByPlayer[g_players[object->syncData.nextOwnerId]]);
 		}
 
 		seenObjects.insert(objectId);

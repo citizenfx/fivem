@@ -316,14 +316,17 @@ static CNetGamePlayer* netObject__GetPendingPlayerOwner(rage::netObject* object)
 		return g_origGetPendingPlayerOwner(object);
 	}
 
-	auto player = g_players[object->syncData.nextOwnerId];
-
-	if (player != nullptr && player->playerInfo != nullptr)
+	if (object->syncData.nextOwnerId != 0xFF)
 	{
-		return player;
+		auto player = g_playersByNetId[TheClones->GetPendingClientId(object)];
+
+		if (player != nullptr && player->playerInfo != nullptr)
+		{
+			return player;
+		}
 	}
 
-	return g_playerMgr->localPlayer;
+	return nullptr;
 }
 
 static hook::cdecl_stub<void*(int handle)> getScriptEntity([]()
@@ -446,21 +449,8 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
-	if (player->physicalPlayerIndex != 31)
-	{
-		netObject->syncData.nextOwnerId = player->physicalPlayerIndex;
-	}
-	else
-	{
-		for (int i = 0; i < _countof(g_players); i++)
-		{
-			if (g_players[i] == player)
-			{
-				netObject->syncData.nextOwnerId = i;
-				break;
-			}
-		}
-	}
+	netObject->syncData.nextOwnerId = 31;
+	TheClones->SetTargetOwner(netObject, g_netIdsByPlayer[player]);
 
 	fwEntity* entity = (fwEntity*)netObject->GetGameObject();
 	if (entity && entity->IsOfType(HashString("CVehicle")))
@@ -517,10 +507,8 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
-	if (newOwner->physicalPlayerIndex != 31)
-	{
-		netObject->syncData.nextOwnerId = newOwner->physicalPlayerIndex;
-	}
+	netObject->syncData.nextOwnerId = 31;
+	TheClones->SetTargetOwner(netObject, g_netIdsByPlayer[newOwner]);
 }
 
 static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
@@ -642,6 +630,19 @@ static CNetGamePlayer** GetNetworkPlayerList2()
 	return g_playerList;
 }
 
+static void netObject__ClearPendingPlayerIndex(rage::netObject* object)
+{
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		if (object->syncData.nextOwnerId == 31 && TheClones->GetPendingClientId(object) != 0xFFFF)
+		{
+			return;
+		}
+	}
+
+	object->syncData.nextOwnerId = -1;
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -676,6 +677,8 @@ static HookFunction hookFunction([]()
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
+
+	hook::jump(hook::get_pattern("C6 41 4A FF C3", 0), netObject__ClearPendingPlayerIndex);
 
 	// replace joining local net player to bubble
 	{
