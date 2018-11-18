@@ -423,6 +423,7 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 	}
 
 	trace("passing object %016llx (%d) control from %d to %d\n", (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
+	TheClones->Log("%s: passing object %016llx (%d) control from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
@@ -461,6 +462,29 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 	g_origPassObjectControl(player, netObject, a3);
 
 	//player->physicalPlayerIndex = lastIndex;
+}
+
+static void(*g_origSetOwner)(rage::netObject* object, CNetGamePlayer* newOwner);
+
+static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origSetOwner(netObject, newOwner);
+	}
+
+	g_origSetOwner(netObject, newOwner);
+
+	if (newOwner->physicalPlayerIndex == netObject__GetOwnerNetPlayer(netObject)->physicalPlayerIndex)
+	{
+		return;
+	}
+
+	TheClones->Log("%s: passing object %016llx (%d) ownership from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, newOwner->physicalPlayerIndex);
+
+	ObjectIds_RemoveObjectId(netObject->objectId);
+
+	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[newOwner]);
 }
 
 static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
@@ -593,6 +617,7 @@ static HookFunction hookFunction([]()
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
+	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
 
 	// return to disable breaking hooks
 	//return;
