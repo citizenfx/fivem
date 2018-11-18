@@ -871,6 +871,8 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
 
 void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t clientId)
 {
+	// TODO: rate-limit resends (in case pending ownership is taking really long)
+
 	m_sendBuffer.Write(3, 4);
 	m_sendBuffer.Write(16, clientId); // client ID
 	//m_sendBuffer.Write<uint8_t>(0); // player ID (byte)
@@ -1152,8 +1154,6 @@ void CloneManagerLocal::WriteUpdates()
 		if (object->syncData.nextOwnerId != 0xFF)
 		{
 			GiveObjectToClient(object, g_netIdsByPlayer[g_players[object->syncData.nextOwnerId]]);
-
-			object->syncData.nextOwnerId = -1;
 		}
 
 		seenObjects.insert(objectId);

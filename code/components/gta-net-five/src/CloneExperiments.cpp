@@ -286,7 +286,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 
-static CNetGamePlayer* netObject__GetOwnerNetPlayer(rage::netObject* object)
+static CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
 	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
@@ -302,6 +302,25 @@ static CNetGamePlayer* netObject__GetOwnerNetPlayer(rage::netObject* object)
 		{
 			return player;
 		}
+	}
+
+	return g_playerMgr->localPlayer;
+}
+
+static CNetGamePlayer*(*g_origGetPendingPlayerOwner)(rage::netObject*);
+
+static CNetGamePlayer* netObject__GetPendingPlayerOwner(rage::netObject* object)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetPendingPlayerOwner(object);
+	}
+
+	auto player = g_players[object->syncData.nextOwnerId];
+
+	if (player != nullptr && player->playerInfo != nullptr)
+	{
+		return player;
 	}
 
 	return g_playerMgr->localPlayer;
@@ -417,7 +436,7 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 		return g_origPassObjectControl(player, netObject, a3);
 	}
 
-	if (player->physicalPlayerIndex == netObject__GetOwnerNetPlayer(netObject)->physicalPlayerIndex)
+	if (player->physicalPlayerIndex == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex)
 	{
 		return;
 	}
@@ -427,7 +446,21 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
-	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[player]);
+	if (player->physicalPlayerIndex != 31)
+	{
+		netObject->syncData.nextOwnerId = player->physicalPlayerIndex;
+	}
+	else
+	{
+		for (int i = 0; i < _countof(g_players); i++)
+		{
+			if (g_players[i] == player)
+			{
+				netObject->syncData.nextOwnerId = i;
+				break;
+			}
+		}
+	}
 
 	fwEntity* entity = (fwEntity*)netObject->GetGameObject();
 	if (entity && entity->IsOfType(HashString("CVehicle")))
@@ -475,7 +508,7 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 
 	g_origSetOwner(netObject, newOwner);
 
-	if (newOwner->physicalPlayerIndex == netObject__GetOwnerNetPlayer(netObject)->physicalPlayerIndex)
+	if (newOwner->physicalPlayerIndex == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex)
 	{
 		return;
 	}
@@ -484,7 +517,10 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
-	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[newOwner]);
+	if (newOwner->physicalPlayerIndex != 31)
+	{
+		netObject->syncData.nextOwnerId = newOwner->physicalPlayerIndex;
+	}
 }
 
 static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
@@ -638,7 +674,8 @@ static HookFunction hookFunction([]()
 	// 1365
 	MH_CreateHook((void*)0x14107D370, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
-	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetOwnerNetPlayer, (void**)&g_origGetOwnerNetPlayer);
+	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
+	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
 
 	// replace joining local net player to bubble
 	{
@@ -1648,7 +1685,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto owner = netObject__GetOwnerNetPlayer(netObj);
+		auto owner = netObject__GetPlayerOwner(netObj);
 		context.SetResult<int>(owner->physicalPlayerIndex);
 	});
 #if 0

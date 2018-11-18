@@ -862,6 +862,12 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 			return;
 		}
 
+		// don't do duplicate migrations
+		if (!it->second->client.expired() && it->second->client.lock()->GetNetId() == tgtCl->GetNetId())
+		{
+			return;
+		}
+
 		Log("%s: migrating entity %d from %s to %s\n", __func__, objectId, (it->second->client.expired()) ? "null?" : it->second->client.lock()->GetName(), tgtCl->GetName());
 
 		auto entity = it->second;
