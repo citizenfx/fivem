@@ -647,6 +647,9 @@ static HookFunction hookFunction([]()
 	// allow all procedural objects in network games
 	hook::put<uint8_t>(hook::get_pattern("F6 42 30 20 75 09", 4), 0xEB);
 
+	// make GTA default rage::fwMapData::ms_entityLevelCap to PRI_OPTIONAL_LOW, not PRI_OPTIONAL_MEDIUM (RAGE suite defaults)
+	hook::put<uint32_t>(hook::get_pattern("BB 02 00 00 00 39 1D", 1), 3);
+
 	// limit adjuster!
 	AdjustLimits();
 
