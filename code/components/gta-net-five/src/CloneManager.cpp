@@ -131,6 +131,7 @@ private:
 		uint16_t clientId;
 
 		inline ExtendedCloneData()
+			: clientId(0)
 		{
 		}
 
@@ -259,7 +260,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	{
 		auto it = m_savedEntities.find(objectId);
 
-		if (it == m_savedEntities.end())
+		if (it == m_savedEntities.end() || !it->second)
 		{
 			console::PrintError("CloneManager", "Couldn't find object by ID %d\n", objectId);;
 			return;
@@ -636,6 +637,16 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	obj->m_1C0();
 
 	m_savedEntities[msg.GetObjectId()] = obj;
+
+	// for the last time, ensure it's not local
+	if (!obj->syncData.isRemote || obj->syncData.ownerId != 31)
+	{
+		trace("Treason (2)! Owner ID changed to %d.\n", obj->syncData.ownerId);
+		Log("%s: Treason (2)! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
+	}
+
+	obj->syncData.isRemote = true;
+	obj->syncData.ownerId = 31;
 
 	ackPacket();
 }
