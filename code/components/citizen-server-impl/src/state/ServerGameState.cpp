@@ -335,19 +335,27 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					auto entityId = std::any_cast<uint32_t>(entityIdRef);
 					auto playerEntity = GetEntity(entityId);
 
-					float entityPosX = entity->GetData("posX", 0.0f);
-					float entityPosY = entity->GetData("posY", 0.0f);
-
-					auto [playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
-
-					float diffX = entityPosX - playerPosX;
-					float diffY = entityPosY - playerPosY;
-
-					float distSquared = (diffX * diffX) + (diffY * diffY);
-
-					// #TODO1S: figure out a good value for this
-					if (distSquared < (650.0f * 650.0f))
+					if (playerEntity)
 					{
+						float entityPosX = entity->GetData("posX", 0.0f);
+						float entityPosY = entity->GetData("posY", 0.0f);
+
+						auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
+
+						float diffX = entityPosX - playerPosX;
+						float diffY = entityPosY - playerPosY;
+
+						float distSquared = (diffX * diffX) + (diffY * diffY);
+
+						// #TODO1S: figure out a good value for this
+						if (distSquared < (650.0f * 650.0f))
+						{
+							shouldBeCreated = true;
+						}
+					}
+					else
+					{
+						// can't really say otherwise if the player entity doesn't exist
 						shouldBeCreated = true;
 					}
 				}
@@ -533,6 +541,11 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 
 		auto entityId = std::any_cast<uint32_t>(entityIdRef);
 		auto playerEntity = GetEntity(entityId);
+
+		if (!playerEntity)
+		{
+			return;
+		}
 
 		auto[posX, posY, posZ] = GetPlayerFocusPos(playerEntity);
 
