@@ -653,7 +653,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// (this is done late to make sure the logic is safe)
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
 	{
-		Log("%s: making obj %d our own\n", obj->objectId);
+		Log("%s: making obj %d our own\n", __func__, obj->objectId);
 
 		auto player = GetLocalPlayer();
 

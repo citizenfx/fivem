@@ -81,6 +81,16 @@ void ObjectIds_AddObjectId(int objectId)
 	// this is ours now
 	g_usedObjectIds.insert(objectId);
 
+	// remove this object ID from our free list
+	for (auto it = g_objectIds.begin(); it != g_objectIds.end(); it++)
+	{
+		if (*it == objectId)
+		{
+			g_objectIds.erase(it);
+			break;
+		}
+	}
+
 	TheClones->Log("%s: id %d\n", __func__, objectId);
 }
 
