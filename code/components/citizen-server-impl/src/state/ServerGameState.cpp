@@ -316,7 +316,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				continue; 
 			}
 
-			bool hasCreated = entity->ackedCreation.test(client->GetSlotId()) || client->GetNetId() == entity->client.lock()->GetNetId();
+			bool hasCreated = entity->ackedCreation.test(client->GetSlotId());
 
 			bool shouldBeCreated = (g_oneSyncCulling->GetValue()) ? false : true;
 
@@ -1426,7 +1426,7 @@ static InitFunction initFunction([]()
 						continue;
 					}
 
-					bool hasCreated = entityRef->ackedCreation.test(client->GetSlotId()) || client->GetNetId() == entityRef->client.lock()->GetNetId();
+					bool hasCreated = entityRef->ackedCreation.test(client->GetSlotId());
 
 					if (!hasCreated)
 					{

@@ -548,15 +548,6 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
 	rlBuffer.m_f1C = 1;
 
-	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
-	{
-		Log("%s: got our own clone\n", __func__);
-
-		ackPacket();
-
-		return;
-	}
-
 	// skip if the player hasn't been created yet
 	if (GetPlayerByNetId(msg.GetClientId()) == nullptr)
 	{
@@ -591,7 +582,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// check if the object already exists *locally*
 	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
 	{
-		Log("%s: tried to create a duplicate (local) object - %d (check server logs!)\n", __func__, msg.GetObjectId());
+		Log("%s: tried to create a duplicate (local) object - %d\n", __func__, msg.GetObjectId());
 
 		ackPacket();
 
@@ -657,6 +648,24 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	obj->syncData.isRemote = true;
 	obj->syncData.ownerId = 31;
+
+	// if this is owned by us, actually own the object now
+	// (this is done late to make sure the logic is safe)
+	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
+	{
+		Log("%s: making obj %d our own\n", obj->objectId);
+
+		auto player = GetLocalPlayer();
+
+		// add the object
+		rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
+
+		// this isn't remote anymore
+		obj->syncData.isRemote = false;
+
+		// give us the object ID
+		ObjectIds_AddObjectId(msg.GetObjectId());
+	}
 
 	ackPacket();
 }
