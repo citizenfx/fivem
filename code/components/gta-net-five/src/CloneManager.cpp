@@ -591,8 +591,12 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
 
+	// owner ID
+	auto isRemote = (msg.GetClientId() != m_netLibrary->GetServerNetID());
+	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex;
+
 	// create the object
-	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), 31, 0, 32);
+	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
 	obj->syncData.isRemote = true;
 
 	// check if we can apply
@@ -612,14 +616,14 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	syncTree->ApplyToObject(obj, nullptr);
 
 	// again, ensure it's not local
-	if (!obj->syncData.isRemote || obj->syncData.ownerId != 31)
+	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
 	{
 		trace("Treason! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
 	}
 	
-	obj->syncData.isRemote = true;
-	obj->syncData.ownerId = 31;
+	obj->syncData.isRemote = isRemote;
+	obj->syncData.ownerId = owner;
 
 	// register with object mgr
 	rage::netObjectMgr::GetInstance()->RegisterNetworkObject(obj);
@@ -640,28 +644,20 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	m_savedEntities[msg.GetObjectId()] = obj;
 
 	// for the last time, ensure it's not local
-	if (!obj->syncData.isRemote || obj->syncData.ownerId != 31)
+	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
 	{
 		trace("Treason (2)! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason (2)! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
 	}
 
-	obj->syncData.isRemote = true;
-	obj->syncData.ownerId = 31;
+	obj->syncData.isRemote = isRemote;
+	obj->syncData.ownerId = owner;
 
 	// if this is owned by us, actually own the object now
 	// (this is done late to make sure the logic is safe)
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
 	{
 		Log("%s: making obj %d our own\n", __func__, obj->objectId);
-
-		auto player = GetLocalPlayer();
-
-		// add the object
-		rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
-
-		// this isn't remote anymore
-		obj->syncData.isRemote = false;
 
 		// give us the object ID
 		ObjectIds_AddObjectId(msg.GetObjectId());
