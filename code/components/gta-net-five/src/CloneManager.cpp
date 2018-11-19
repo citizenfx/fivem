@@ -597,7 +597,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	// create the object
 	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
-	obj->syncData.isRemote = true;
+	obj->syncData.isRemote = isRemote;
 
 	// check if we can apply
 	if (!syncTree->CanApplyToObject(obj))
