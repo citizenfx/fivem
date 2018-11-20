@@ -52,7 +52,8 @@ export class HomeComponent implements OnInit {
         'Do not be like this. Be like that.',
         'One sync, two sync, three sync, four sync.',
         'Forced memes, yes.',
-        'Three things are certain in life: death, taxes, and FiveM breaking your game.'
+        'Three things are certain in life: death, taxes, and FiveM breaking your game.',
+        '3 years and still no point at button.'
     ];
 
     welcomeMessage: any;
