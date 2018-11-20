@@ -1,4 +1,15 @@
 <div class="home">
+	<div class="welcome">
+		<div>
+			<h1>Welcome to FiveM!</h1>
+			<h2>{{ randomGreeting }}</h2>
+
+			<article [innerHTML]="welcomeMessage">
+				
+			</article>
+		</div>
+	</div>
+
 	<div class="feed">		
 		<article class="message" *ngFor="let tweet of tweets">
 			<div class="backdroppy">

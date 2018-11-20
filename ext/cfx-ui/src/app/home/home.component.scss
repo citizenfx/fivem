@@ -16,9 +16,39 @@
 		margin-left: $padding*$multiplier;
 	}
 
+	.welcome {
+		flex-grow: 1;
+		margin-right: $padding;
+		height: $appContentHeight;
+
+		&>div {
+			padding: $padding;
+
+			background-color: rgba($bgColour, .2);
+			border-radius: 1px;
+			transition: all .2s ease;
+
+			h1 {
+				font-size: 1.6em;
+				font-weight: normal;
+			}
+
+			h2 {
+				font-style: italic;
+				font-weight: normal;
+
+				font-size: 0.9em;
+			}
+
+			::ng-deep p {
+				margin-top: $padding;
+			}
+		}
+	}
+
 	.feed {
 		position: relative;
-		width: 100%;
+		width: 25%;
 
 		height: $appContentHeight;
 
@@ -30,7 +60,9 @@
 			transition: all .2s ease;
 
 			.rt {
-				float: right;
+				position: absolute;
+				top: 0px;
+				right: 0px;
 			}
 
 			::ng-deep a {
@@ -80,7 +112,7 @@
 
 			.message-body {
 				img {
-					width: 40%;
+					width: 80%;
 					height: auto;
 					border-radius: 2px;
 					margin-bottom: $padding/2;
