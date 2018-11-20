@@ -53,7 +53,8 @@ export class HomeComponent implements OnInit {
         'One sync, two sync, three sync, four sync.',
         'Forced memes, yes.',
         'Three things are certain in life: death, taxes, and FiveM breaking your game.',
-        '3 years and still no point at button.'
+        '3 years and still no point at button.',
+        'eww'
     ];
 
     welcomeMessage: any;
