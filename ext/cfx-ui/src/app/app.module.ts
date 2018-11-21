@@ -19,6 +19,7 @@ import {AppComponent} from './app.component';
 import {AppNavComponent} from './app-nav.component';
 import {ConnectingPopupComponent} from './servers/connecting-popup.component';
 import {HomeComponent} from './home/home.component';
+import {HomeTweetComponent} from './home/home-tweet.component';
 import {SettingsComponent} from './settings/settings.component';
 
 import {ServersComponent} from './servers/components/servers.component';
@@ -60,6 +61,7 @@ const l10nConfig: L10nConfig = {
 		AppNavComponent,
 		ConnectingPopupComponent,
 		HomeComponent,
+		HomeTweetComponent,
 		SettingsComponent,
 		ServersComponent,
 		ServersContainerComponent,

@@ -16,13 +16,23 @@
 		margin-left: $padding*$multiplier;
 	}
 
+	::ng-deep a {
+        color: inherit;
+    }
+
+	&>div {
+		overflow-y: scroll;
+	}
+
 	.welcome {
 		flex-grow: 1;
-		margin-right: $padding;
+		margin-right: $padding/4;
 		height: $appContentHeight;
 
 		&>div {
 			padding: $padding;
+
+			margin-bottom: $padding/4;
 
 			background-color: rgba($bgColour, .2);
 			border-radius: 1px;
@@ -48,77 +58,9 @@
 
 	.feed {
 		position: relative;
-		width: 25%;
+		width: 35%;
 
 		height: $appContentHeight;
-
-		overflow-y: scroll;
-
-		.message {
-			background-color: rgba($bgColour, .2);
-			border-radius: 1px;
-			transition: all .2s ease;
-
-			.rt {
-				position: absolute;
-				top: 0px;
-				right: 0px;
-			}
-
-			::ng-deep a {
-				color: inherit;
-			}
-			
-			.additional {
-				opacity: 0;
-				padding-left: 0;
-				transition: all .2s ease;
-
-				&:hover {
-					color: #fff;
-				}				
-			}
-			
-			&:hover {
-				background-color: rgba($bgColour, .4);
-			
-				.additional {
-					opacity: 1;
-					padding-left: 5px;
-				}
-			}
-			
-			.backdroppy {
-				padding: $padding $padding $padding $padding*2+4vh;
-
-				margin-bottom: $padding/4;
-			}
-
-			.message-header {
-				position: relative;
-				margin-bottom: $padding;
-
-				font-size: $fontSize*.7;
-				color: $textColour;
-
-				.avatar {
-					position: absolute;
-					left: -4vh-$padding;
-					width: 4vh;
-					height: 4vh;
-					border-radius: 2px;
-				}
-			}
-
-			.message-body {
-				img {
-					width: 80%;
-					height: auto;
-					border-radius: 2px;
-					margin-bottom: $padding/2;
-				}
-			}
-		}
 	}
 }
 

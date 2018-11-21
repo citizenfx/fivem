@@ -14,7 +14,8 @@ import { DomSanitizer } from '@angular/platform-browser';
 })
 
 export class HomeComponent implements OnInit {
-    tweets: Tweet[];
+    officialTweets: Tweet[];
+    communityTweets: Tweet[];
 
     randomGreeting = '';
 
@@ -80,11 +81,10 @@ export class HomeComponent implements OnInit {
     fetchTweets() {
         this.tweetService
             .getTweets('https://runtime.fivem.net/tweets.json')
-            .then(tweets => this.tweets = tweets);
-    }
-
-    openTweet(id) {
-        this.gameService.openUrl('https://twitter.com/_FiveM/status/' + id);
+            .then(tweets => {
+                this.officialTweets = tweets.filter(a => !a.rt_displayname);
+                this.communityTweets = tweets.filter(a => a.rt_displayname);
+            });
     }
 
     clickContent(event: MouseEvent) {
