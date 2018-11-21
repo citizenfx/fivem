@@ -1028,7 +1028,7 @@ static HookFunction hookFunction([]()
 	g_parser = hook::get_address<void**>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8D 54 24 48 41 B0 01", 3));
 
 	// test
-	hook::put<uint8_t>(hook::get_pattern("FF FF 45 84 ED 75 04 33 C0 EB", 5), 0xEB);
+	//hook::put<uint8_t>(hook::get_pattern("FF FF 45 84 ED 75 04 33 C0 EB", 5), 0xEB);
 });
 
 static hook::cdecl_stub<CMapDataContents*()> makeMapDataContents([]()

@@ -22,7 +22,7 @@
 		
 		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
 
-		flags { "StaticRuntime" }
+		staticruntime 'On'
 
 		configuration "game=ny"
 			targetname "CitizenFX"

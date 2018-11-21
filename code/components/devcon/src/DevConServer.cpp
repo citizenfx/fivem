@@ -191,7 +191,7 @@ static InitFunction initFunction([]()
 
 	console::CoreAddPrintListener(DevConPrintListener);
 
-	if (!hostData->IsMasterProcess())
+	if (!hostData->IsMasterProcess() && !hostData->IsGameProcess())
 	{
 		return;
 	}

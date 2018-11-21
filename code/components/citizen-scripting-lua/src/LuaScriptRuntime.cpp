@@ -296,7 +296,7 @@ static int Lua_SetTickRoutine(lua_State* L)
 	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the tick callback in the current routine
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 	
 	luaRuntime->SetTickRoutine([=] ()
 	{
@@ -340,7 +340,7 @@ static int Lua_SetEventRoutine(lua_State* L)
 	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetEventRoutine([=] (const char* eventName, const char* eventPayload, size_t payloadSize, const char* eventSource)
 	{
@@ -387,7 +387,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetCallRefRoutine([=] (int32_t refId, const char* argsSerialized, size_t argsSize, char** retval, size_t* retvalLength)
 	{
@@ -443,7 +443,7 @@ static int Lua_SetDeleteRefRoutine(lua_State* L)
 	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetDeleteRefRoutine([=] (int32_t refId)
 	{
@@ -483,7 +483,7 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetDuplicateRefRoutine([=] (int32_t refId)
 	{

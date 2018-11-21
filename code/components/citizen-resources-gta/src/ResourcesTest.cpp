@@ -31,8 +31,9 @@
 
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
-void CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
-void CfxCollection_RemoveStreamingTag(const std::string& tag);
+void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+void DLL_IMPORT CfxCollection_RemoveStreamingTag(const std::string& tag);
+void DLL_IMPORT CfxCollection_SetStreamingLoadLocked(bool locked);
 
 namespace streaming
 {
@@ -84,6 +85,16 @@ static InitFunction initFunction([] ()
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
 		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+	});
+
+	fx::OnLockStreaming.Connect([]()
+	{
+		CfxCollection_SetStreamingLoadLocked(true);
+	});
+
+	fx::OnUnlockStreaming.Connect([]()
+	{
+		CfxCollection_SetStreamingLoadLocked(false);
 	});
 
 	OnMsgConfirm.Connect([]()

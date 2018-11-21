@@ -249,7 +249,8 @@ if (!$DontBuild)
     #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
 
     "#pragma once
-    #define GIT_DESCRIPTION ""$UploadBranch $GlobalTag win32""" | Out-File -Force shared\cfx_version.h
+    #define GIT_DESCRIPTION ""$UploadBranch $GlobalTag win32""
+    #define GIT_TAG ""$GlobalTag""" | Out-File -Force shared\cfx_version.h
 
     remove-item env:\platform
 
@@ -264,6 +265,8 @@ if (!$DontBuild)
 
     if ((($env:COMPUTERNAME -eq "BUILDVM") -or ($env:COMPUTERNAME -eq "AVALON")) -and (!$IsServer)) {
         Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot"
+    } elseif ($IsServer -and (Test-Path C:\h\debuggers)) {
+		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols_server.ps1 -BinRoot $BinRoot"
     }
 }
 
@@ -291,6 +294,23 @@ if (!$DontBuild -and $IsServer) {
     Copy-Item -Force "$WorkRootDir\tools\ci\7z.exe" 7z.exe
 
     .\7z.exe a $WorkDir\out\server.zip $WorkDir\out\server\*
+
+    $uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
+    $json = @{
+    	version = "$GlobalTag"
+    	refs = @(
+    		@{
+    			repository = 'citizenfx/fivem'
+    			commit = $env:CI_COMMIT_SHA
+    		}
+    	)
+    	projects = @("fxs")
+    } | ConvertTo-Json
+
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add('Authorization', "Bearer $env:SENTRY_TOKEN")
+
+    Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $json -ContentType 'application/json'
 
     Invoke-WebHook "Bloop, building a SERVER/WINDOWS build completed!"
 }
@@ -376,7 +396,7 @@ if (!$DontBuild -and !$IsServer) {
     			commit = $env:CI_COMMIT_SHA
     		}
     	)
-    	projects = @("fivem-client-1290")
+    	projects = @("fivem-client-1365")
     } | ConvertTo-Json
 
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"

@@ -845,7 +845,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange kDelayAudioUntilUnsuppressed</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange kDelayAudioUntilUnsuppressed kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -853,7 +853,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_LOBBY</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_LOBBY</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -861,7 +861,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_JOINED_PLAYERS</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_JOINED_PLAYERS</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -869,7 +869,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_INVITE_PLAYERS</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_INVITE_PLAYERS</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -877,7 +877,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_INVITE_FRIENDS</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_INVITE_FRIENDS</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -885,7 +885,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_INVITE_CREWS</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_INVITE_CREWS</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -893,7 +893,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_INVITE_MATCHED_PLAYERS</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_INVITE_MATCHED_PLAYERS</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -901,7 +901,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_INVITE_LAST_JOB_PLAYERS</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_CORONA_INVITE_LAST_JOB_PLAYERS</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kAutoShiftDepth kNoBackground kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		
@@ -909,7 +909,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_RACE</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_RACE</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 
@@ -917,7 +917,7 @@
 			<MenuVersionId>FE_MENU_VERSION_CORONA_BETTING</MenuVersionId>
 			<InitialScreen>MENU_UNIQUE_ID_HEADER_BETTING</InitialScreen>
 			
-			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange</VersionFlags>
+			<VersionFlags>kAllHighlighted kNotDimmable kTabsAreColumns kNoBackground kNoTabChange kNoPlayerInfo</VersionFlags>
 			<InitialContexts>InMP</InitialContexts>
 		</Item>
 		

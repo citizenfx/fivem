@@ -8,7 +8,7 @@
 			kind "StaticLib"
 
 			if libc then
-				flags { "StaticRuntime" }
+				staticruntime "On"
 				add_dependencies { 'vendor:fmtlib-crt' }
 			else
 				add_dependencies { 'vendor:fmtlib' }

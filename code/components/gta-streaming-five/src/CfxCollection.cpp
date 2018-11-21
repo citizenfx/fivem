@@ -24,7 +24,7 @@
 #define DEBUG_WAS_SET
 #endif
 
-#include <concurrent_unordered_map.h>
+#include <tbb/concurrent_unordered_map.h>
 #include <unordered_set>
 
 #ifdef DEBUG_WAS_SET
@@ -208,9 +208,9 @@ private:
 
 	rage::fiCollection* m_parentCollection;
 
-	concurrency::concurrent_unordered_map<uint16_t, CollectionEntry> m_entries;
+	tbb::concurrent_unordered_map<uint16_t, CollectionEntry> m_entries;
 
-	concurrency::concurrent_unordered_map<std::string, uint16_t> m_reverseEntries;
+	tbb::concurrent_unordered_map<std::string, uint16_t> m_reverseEntries;
 
 	HandleEntry m_handles[512];
 
@@ -403,7 +403,12 @@ public:
 
 		m_reverseEntries[name] = idx;
 
-		return m_entries.insert({ idx, newEntry }).first;
+		m_entries[idx] = newEntry;
+
+		auto it = m_entries.find(idx);
+		assert(it != m_entries.end());
+
+		return it;
 	}
 
 	auto AddEntry(uint16_t idx, const FileEntry* entry)
@@ -413,7 +418,12 @@ public:
 		newEntry.valid = true;
 		memcpy(&newEntry.baseEntry, entry, sizeof(FileEntry));
 
-		return m_entries.insert({ idx, newEntry }).first;
+		m_entries[idx] = newEntry;
+
+		auto it = m_entries.find(idx);
+		assert(it != m_entries.end());
+
+		return it;
 	}
 
 	CollectionEntry* GetCfxEntry(uint16_t index)
@@ -449,7 +459,7 @@ public:
 
 		if (it == m_entries.end() || !it->second.valid)
 		{
-			m_entries.unsafe_erase(index);
+			//m_entries.unsafe_erase(index);
 
 			char entryName[256] = { 0x1E };
 			PseudoCallContext(this)->GetEntryNameToBuffer(index, entryName, sizeof(entryName));
@@ -477,7 +487,8 @@ public:
 				{
 					auto n = std::get<std::string>(rit->second);
 					m_resourceFlags[n] = std::get<rage::ResourceFlags>(rit->second);
-					m_reverseEntries.unsafe_erase(entryName);
+					//m_reverseEntries.unsafe_erase(entryName);
+					m_reverseEntries[entryName] = -1;
 
 					// ignore streaming entries insert was here
 
@@ -631,7 +642,7 @@ public:
 	{
 		auto it = m_reverseEntries.find(name);
 
-		if (it == m_reverseEntries.end())
+		if (it == m_reverseEntries.end() || it->second == -1)
 		{
 			uint16_t index = PseudoCallContext(this)->GetEntryByName(name);
 
@@ -1078,7 +1089,7 @@ private:
 			const char* colon = strchr(archive, ':');
 
 			// temporary: make citizen/ path manually
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 			basePath << converter.to_bytes(MakeRelativeCitPath(L"/"));
 
 			basePath << std::string(archive, colon);
@@ -1090,7 +1101,7 @@ private:
 			const char* colon = strchr(archive, ':');
 
 			// temporary: make citizen/ path manually
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 			basePath << converter.to_bytes(MakeRelativeCitPath(L"citizen/"));
 
 			basePath << std::string(archive, colon);

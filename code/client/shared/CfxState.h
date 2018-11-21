@@ -5,6 +5,7 @@
 struct CfxState
 {
 	int initialPid;
+	int gamePid;
 
 	bool inJobObject;
 	bool running;
@@ -15,6 +16,7 @@ struct CfxState
 	{
 		running = true;
 		initialPid = GetCurrentProcessId();
+		gamePid = 0;
 
 		// get the init path
 		wchar_t modulePath[512];
@@ -37,5 +39,10 @@ struct CfxState
 	inline bool IsMasterProcess()
 	{
 		return (initialPid == GetCurrentProcessId());
+	}
+
+	inline bool IsGameProcess()
+	{
+		return (gamePid == GetCurrentProcessId());
 	}
 };

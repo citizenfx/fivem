@@ -2,10 +2,10 @@
 
 namespace rage
 {
-class netBuffer
+class datBitBuffer
 {
 public:
-	inline netBuffer(void* data, size_t size)
+	inline datBitBuffer(void* data, size_t size)
 	{
 		m_data = data;
 		m_f8 = 0;

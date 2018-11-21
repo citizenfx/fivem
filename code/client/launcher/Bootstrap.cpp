@@ -94,7 +94,7 @@ bool Bootstrap_DoBootstrap()
 
 	if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
-		if (GetFileAttributes(MakeRelativeCitPath(L"GTA5.exe").c_str()) != INVALID_FILE_ATTRIBUTES)
+		if (GetFileAttributes(MakeRelativeCitPath(L"GTA5.exe").c_str()) != INVALID_FILE_ATTRIBUTES || GetFileAttributes(MakeRelativeCitPath(L"..\\GTA5.exe").c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			MessageBox(NULL, L"Please do not place FiveM.exe in your game folder. Make a new empty folder (for example, on your desktop) instead.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
 			return false;
@@ -135,7 +135,15 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName)
 
 		if (error == ERROR_ACCESS_DENIED)
 		{
-			MessageBox(NULL, L"An 'access denied' error was encountered when updating " PRODUCT_NAME L". Please try to run the game as an administrator, or contact support.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			if (!Install_RunInstallMode())
+			{
+				MessageBox(NULL, L"An 'access denied' error was encountered when updating " PRODUCT_NAME L". Please try to run the game as an administrator, or contact support.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			}
+			else
+			{
+				MessageBox(NULL, PRODUCT_NAME L" has been installed and can be launched from the shortcut in the Start menu.", PRODUCT_NAME, MB_OK | MB_ICONINFORMATION);
+			}
+
 			return;
 		}
 		else if (error != ERROR_SHARING_VIOLATION)

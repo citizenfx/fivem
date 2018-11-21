@@ -131,21 +131,24 @@ static InitFunction initFunction([] ()
 							{
 								uint32_t slotId = arguments[2].as<uint32_t>();
 
-								g_netIdToSlots[netId] = slotId;
-
-								// trickle the event down the stack
-								NetLibraryClientInfo clientInfo;
-								clientInfo.netId = netId;
-								clientInfo.name = name;
-								clientInfo.slotId = slotId;
-
-								if (eventName == "onPlayerJoining")
+								if (slotId != -1)
 								{
-									g_netLibrary->OnClientInfoReceived(clientInfo);
-								}
-								else if (eventName == "onPlayerDropped")
-								{
-									g_netLibrary->OnClientInfoDropped(clientInfo);
+									g_netIdToSlots[netId] = slotId;
+
+									// trickle the event down the stack
+									NetLibraryClientInfo clientInfo;
+									clientInfo.netId = netId;
+									clientInfo.name = name;
+									clientInfo.slotId = slotId;
+
+									if (eventName == "onPlayerJoining")
+									{
+										g_netLibrary->OnClientInfoReceived(clientInfo);
+									}
+									else if (eventName == "onPlayerDropped")
+									{
+										g_netLibrary->OnClientInfoDropped(clientInfo);
+									}
 								}
 							}
 						}

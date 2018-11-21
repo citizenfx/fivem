@@ -5,7 +5,8 @@
 		"fx[2]",
 		"citizen:resources:core",
 		"scripting",
-		"conhost"
+		"conhost",
+		"http-client"
 	],
 	"provides": []
 }

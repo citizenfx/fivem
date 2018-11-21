@@ -14,11 +14,17 @@
 
 #include <scrEngine.h>
 
+#include <NativeHandlerLogging.h>
+
 template<typename THandler>
 static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
 {
 	// call the original function
 	static void* exceptionAddress;
+
+#ifdef ENABLE_NATIVE_HANDLER_LOGGING
+	NativeHandlerLogging::CountNative(nativeIdentifier);
+#endif
 
 #ifndef _DEBUG
 	__try

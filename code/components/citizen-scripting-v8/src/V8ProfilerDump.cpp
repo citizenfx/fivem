@@ -25,12 +25,14 @@ using v8::String;
 
 namespace fx
 {
+v8::Isolate* GetV8Isolate();
+
 void SaveProfileNodeToValue(const CpuProfileNode* node, rapidjson::Value& value, rapidjson::MemoryPoolAllocator<>& allocator)
 {
 	value.SetObject();
 
-	String::Utf8Value functionName(node->GetFunctionName());
-	String::Utf8Value url(node->GetScriptResourceName());
+	String::Utf8Value functionName(GetV8Isolate(), node->GetFunctionName());
+	String::Utf8Value url(GetV8Isolate(), node->GetScriptResourceName());
 
 	value.AddMember("functionName", rapidjson::Value(*functionName, allocator), allocator);
 	value.AddMember("url", rapidjson::Value(*url, allocator), allocator);
@@ -91,7 +93,7 @@ void SaveProfileToValue(CpuProfile* profile, rapidjson::Value& value, rapidjson:
 {
 	value.SetObject();
 
-	String::Utf8Value title(profile->GetTitle());
+	String::Utf8Value title(GetV8Isolate(), profile->GetTitle());
 
 	value.AddMember("typeId", rapidjson::Value("CPU"), allocator);
 	value.AddMember("uid", rapidjson::Value(static_cast<uint32_t>(msec().count())), allocator);

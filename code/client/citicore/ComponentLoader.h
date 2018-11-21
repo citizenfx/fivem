@@ -11,6 +11,8 @@
 #include "EventCore.h"
 #include <unordered_map>
 
+#include <boost/type_index.hpp>
+
 //
 // An identifier for a Fx component. These are formatted like `category:subcategory:...[version]`.
 // 
@@ -77,6 +79,16 @@ public:
     {
         return true;
     }
+
+	virtual inline bool IsA(uint32_t type)
+	{
+		return false;
+	}
+
+	virtual inline void* As(uint32_t type)
+	{
+		return nullptr;
+	}
 };
 
 class EXPORTED_TYPE RunnableComponent : public Component
@@ -231,12 +243,12 @@ std::queue<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
 template<typename T, typename TOther>
 inline T dynamic_component_cast(TOther value)
 {
-	try
+	auto type = HashString(boost::typeindex::type_id<std::remove_pointer_t<T>>().pretty_name().substr(6).c_str());
+
+	if (value->IsA(type))
 	{
-		return dynamic_cast<T>(value);
+		return reinterpret_cast<T>(value->As(type));
 	}
-	catch (std::bad_typeid)
-	{
-		return T();
-	}
+
+	return T();
 }

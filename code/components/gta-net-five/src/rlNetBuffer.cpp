@@ -20,17 +20,17 @@ static hook::cdecl_stub<bool(void*, uint32_t*, int)> _netBuffer_ReadInteger([]()
 
 namespace rage
 {
-bool netBuffer::ReadInteger(uint32_t* integer, int bits)
+bool datBitBuffer::ReadInteger(uint32_t* integer, int bits)
 {
 	return _netBuffer_ReadInteger(this, integer, bits);
 }
 
-bool netBuffer::WriteInteger(uint32_t integer, int bits)
+bool datBitBuffer::WriteInteger(uint32_t integer, int bits)
 {
 	return _netBuffer_WriteInteger(this, integer, bits);
 }
 
-bool netBuffer::WriteBit(bool bit)
+bool datBitBuffer::WriteBit(bool bit)
 {
 	return _netBuffer_WriteBit(this, bit);
 }

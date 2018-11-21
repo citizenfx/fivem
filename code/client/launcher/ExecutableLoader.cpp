@@ -172,30 +172,33 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 		PLIST_ENTRY(NTAPI *rtlGetFunctionTableListHead)(VOID);
 		rtlGetFunctionTableListHead = (decltype(rtlGetFunctionTableListHead))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlGetFunctionTableListHead");
 
-		auto tableListHead = rtlGetFunctionTableListHead();
-		auto tableListEntry = tableListHead->Flink;
-
-		while (tableListEntry != tableListHead)
+		if (rtlGetFunctionTableListHead)
 		{
-			auto functionTable = CONTAINING_RECORD(tableListEntry, DYNAMIC_FUNCTION_TABLE, Links);
-			
-			if (functionTable->BaseAddress == (ULONG_PTR)m_module)
+			auto tableListHead = rtlGetFunctionTableListHead();
+			auto tableListEntry = tableListHead->Flink;
+
+			while (tableListEntry != tableListHead)
 			{
-				trace("Replacing function table list entry %p with %p\n", (void*)functionTable->FunctionTable, (void*)functionList);
+				auto functionTable = CONTAINING_RECORD(tableListEntry, DYNAMIC_FUNCTION_TABLE, Links);
 
-				if (functionTable->FunctionTable != functionList)
+				if (functionTable->BaseAddress == (ULONG_PTR)m_module)
 				{
-					DWORD oldProtect;
-					VirtualProtect(functionTable, sizeof(DYNAMIC_FUNCTION_TABLE), PAGE_READWRITE, &oldProtect);
+					trace("Replacing function table list entry %p with %p\n", (void*)functionTable->FunctionTable, (void*)functionList);
 
-					functionTable->EntryCount = entryCount;
-					functionTable->FunctionTable = functionList;
+					if (functionTable->FunctionTable != functionList)
+					{
+						DWORD oldProtect;
+						VirtualProtect(functionTable, sizeof(DYNAMIC_FUNCTION_TABLE), PAGE_READWRITE, &oldProtect);
 
-					VirtualProtect(functionTable, sizeof(DYNAMIC_FUNCTION_TABLE), oldProtect, &oldProtect);
+						functionTable->EntryCount = entryCount;
+						functionTable->FunctionTable = functionList;
+
+						VirtualProtect(functionTable, sizeof(DYNAMIC_FUNCTION_TABLE), oldProtect, &oldProtect);
+					}
 				}
-			}
 
-			tableListEntry = functionTable->Links.Flink;
+				tableListEntry = functionTable->Links.Flink;
+			}
 		}
 	}
 

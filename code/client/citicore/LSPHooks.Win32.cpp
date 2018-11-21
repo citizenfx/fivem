@@ -23,7 +23,7 @@ LONG WINAPI ProcessLSPRegOpenKeyExA(HKEY key, const char* subKey, DWORD options,
 
             setValue(L"AppFullPath", modulePath);
             
-            DWORD permittedCategories = 0x80000000;
+            DWORD permittedCategories = 0;
             RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\AppID_Catalog", L"PermittedLspCategories", REG_DWORD, &permittedCategories, sizeof(permittedCategories));
 
             LONG status = g_origRegOpenKeyExA(HKEY_CURRENT_USER, "SOFTWARE\\CitizenFX\\AppID_Catalog", options, samDesired, outKey);

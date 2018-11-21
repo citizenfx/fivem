@@ -7,6 +7,8 @@
 #include <GameInit.h>
 #include <nutsnbolts.h>
 
+#include <CloneManager.h>
+
 #include <MinHook.h>
 
 static std::list<int> g_objectIds;
@@ -34,6 +36,7 @@ static uint32_t AssignObjectId(void* objectIds)
 	g_usedObjectIds.insert(objectId);
 
 	trace("assigned object id %d\n", objectId);
+	TheClones->Log("%s: id %d\n", __func__, objectId);
 
 	return objectId;
 }
@@ -50,6 +53,7 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 	if (g_usedObjectIds.find(objectId) != g_usedObjectIds.end())
 	{
 		trace("returned object id %d\n", objectId);
+		TheClones->Log("%s: id %d\n", __func__, objectId);
 
 		g_usedObjectIds.erase(objectId);
 		g_objectIds.push_back(objectId);
@@ -76,12 +80,26 @@ void ObjectIds_AddObjectId(int objectId)
 {
 	// this is ours now
 	g_usedObjectIds.insert(objectId);
+
+	// remove this object ID from our free list
+	for (auto it = g_objectIds.begin(); it != g_objectIds.end(); it++)
+	{
+		if (*it == objectId)
+		{
+			g_objectIds.erase(it);
+			break;
+		}
+	}
+
+	TheClones->Log("%s: id %d\n", __func__, objectId);
 }
 
 void ObjectIds_RemoveObjectId(int objectId)
 {
 	// this is no longer ours
 	g_usedObjectIds.erase(objectId);
+
+	TheClones->Log("%s: id %d\n", __func__, objectId);
 }
 
 static NetLibrary* g_netLibrary;

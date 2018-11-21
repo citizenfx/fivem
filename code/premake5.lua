@@ -1,3 +1,6 @@
+-- to work around slow init times due to packagesrv.com being down
+http = nil
+
 xpcall(function()
 newoption {
 	trigger     = "builddir",
@@ -157,7 +160,7 @@ end
 
 require 'vstudio'
 
-premake.override(premake.vstudio.cs2005, 'debugProps', function(base, cfg)
+premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 	if cfg.symbols == premake.ON then
 		_p(2,'<DebugSymbols>true</DebugSymbols>')
 	end
@@ -169,7 +172,7 @@ local function WriteDocumentationFileXml(_premake, _prj, value)
     _premake.w('<DocumentationFile>' .. string.gsub(_prj.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 end
 
-premake.override(premake.vstudio.cs2005, "compilerProps", function(base, prj)
+premake.override(premake.vstudio.dotnetbase, "compilerProps", function(base, prj)
     base(prj)
     WriteDocumentationFileXml(premake, prj, XmlDocFileName)
 

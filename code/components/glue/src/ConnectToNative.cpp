@@ -407,6 +407,13 @@ static void ProtocolRegister()
 
 void Component_RunPreInit()
 {
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
+	if (hostData->IsMasterProcess())
+	{
+		ProtocolRegister();
+	}
+
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
@@ -446,9 +453,7 @@ void Component_RunPreInit()
 		return;
 	}
 
-	static HostSharedData<CfxState> hostData("CfxInitState");
-
-	if (hostData->IsMasterProcess())
+	if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 	{
 		rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 		{
@@ -500,9 +505,4 @@ static InitFunction connectInitFunction([]()
 			ConnectTo(connectMsg);
 		}
 	});
-});
-
-static HookFunction hookFunction([]()
-{
-	ProtocolRegister();
 });

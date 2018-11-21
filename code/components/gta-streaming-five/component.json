@@ -7,7 +7,8 @@
 		"vendor:minhook",
 		"gta:core",
 		"vfs:core",
-		"rage:formats"
+		"rage:formats",
+		"vendor:tbb"
 	],
 	"provides": []
 }

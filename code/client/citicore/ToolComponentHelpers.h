@@ -138,5 +138,25 @@ public:
 
 		return nullptr;
 	}
+
+	virtual bool IsA(uint32_t type) override
+	{
+		if (type == HashString("ToolComponent"))
+		{
+			return true;
+		}
+
+		return TBaseComponent::IsA(type);
+	}
+
+	virtual void* As(uint32_t type) override
+	{
+		if (type == HashString("ToolComponent"))
+		{
+			return static_cast<ToolComponent*>(this);
+		}
+
+		return TBaseComponent::As(type);
+	}
 };
 

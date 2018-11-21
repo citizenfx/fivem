@@ -169,6 +169,8 @@ void NetLibraryImplV2::RunFrame()
 			ProcessPacket(event.packet->data, event.packet->dataLength);
 			inDataSize += event.packet->dataLength;
 
+			enet_packet_destroy(event.packet);
+
 			break;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:

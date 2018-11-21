@@ -22,6 +22,8 @@
 
 static ILauncherInterface* g_launcher;
 
+void InitializeMiniDumpOverride();
+
 #if defined(PAYNE)
 BYTE g_gmfOrig[5];
 BYTE g_gmfOrigW[5];
@@ -383,6 +385,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
     SetCoreMapping();
 
+	InitializeMiniDumpOverride();
+
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
 
@@ -407,7 +411,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	// prevent accidental duplicate instances
-	if (isMainGame && !initState->IsMasterProcess())
+	if (isMainGame && !initState->IsMasterProcess() && !initState->IsGameProcess())
 	{
 		return;
 	}
