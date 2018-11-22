@@ -129,6 +129,8 @@ export class DiscourseService {
 
             this.messageEvent.emit(`Thanks for linking your FiveM user account, ${userInfo.username}.`);
             this.signinChange.emit(userInfo);
+
+            this.currentUser = userInfo;
         } catch (e) {
             console.log(e);
 
