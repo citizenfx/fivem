@@ -1,6 +1,6 @@
 <section class="setting">
 	<div class="key">
-		Nickname
+		<div>Nickname</div>
 	</div>
 	<div class="value">
 		<input
@@ -17,7 +17,7 @@
 
 <section class="setting">
 	<div class="key">
-		Dev mode
+		<div>Dev mode</div>
 	</div>
 	<div class="value">
 		<div class="checkbox">
@@ -36,7 +36,7 @@
 
 <section class="setting" *ngIf="devMode">
 	<div class="key">
-		Localhost port
+		<div>Localhost port</div>
 	</div>
 	<div class="value">
 		<input
@@ -48,5 +48,17 @@
 			[(ngModel)]="localhostPort"
 			(ngModelChange)="localhostPortChanged($event)"		
 		>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
+		<div>Connected FiveM account</div>
+	</div>
+	<div class="value">
+		<span *ngIf="currentAccount">Linked: {{ currentAccount.username }}</span>
+		<span *ngIf="!currentAccount">
+			<button (click)="linkAccount()">Link</button>
+		</span>
 	</div>
 </section>

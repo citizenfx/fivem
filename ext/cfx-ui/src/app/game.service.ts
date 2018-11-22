@@ -5,6 +5,7 @@ import {Server} from './servers/server';
 import {ServersService} from './servers/servers.service';
 
 import { environment } from '../environments/environment';
+import { DiscourseService } from './discourse.service';
 
 export class ConnectStatus {
 	public server: Server;
@@ -34,6 +35,7 @@ export abstract class GameService {
 	connecting = new EventEmitter<Server>();
 
 	errorMessage = new EventEmitter<string>();
+	infoMessage = new EventEmitter<string>();
 
 	devModeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
@@ -114,6 +116,10 @@ export abstract class GameService {
 		this.errorMessage.emit(message);
 	}
 
+	protected invokeInformational(message: string) {
+		this.infoMessage.emit(message);
+	}
+
 	protected invokeConnecting(server: Server) {
 		this.connecting.emit(server);
 	}
@@ -169,7 +175,7 @@ export class CfxGameService extends GameService {
 	
 	private inConnecting = false;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private discourseService: DiscourseService) {
 		super();
 	}
 
@@ -184,6 +190,10 @@ export class CfxGameService extends GameService {
 			}
 		});
 
+		this.discourseService.messageEvent.subscribe((msg) => {
+			this.invokeInformational(msg);
+		});
+
 		this.zone.runOutsideAngular(() => {
 			window.addEventListener('message', (event) => {
 				switch (event.data.type) {
@@ -192,6 +202,9 @@ export class CfxGameService extends GameService {
 						break;
 					case 'setWarningMessage':
 						this.zone.run(() => this.invokeError(event.data.message));
+						break;
+					case 'authPayload':
+						this.zone.run(() => this.invokeAuthPayload(event.data.data));
 						break;
 					case 'connecting':
 						this.zone.run(() => this.invokeConnecting(this.lastServer));
@@ -205,6 +218,9 @@ export class CfxGameService extends GameService {
 						if (event.data.addr in this.pingList) {
 							this.pingListEvents.push([event.data.addr, event.data.ping]);
 						}
+						break;
+					case 'setComputerName':
+						this.discourseService.setComputerName(event.data.data);
 						break;
 					case 'getFavorites':
 						this.zone.run(() => this.favorites = event.data.list);
@@ -277,6 +293,12 @@ export class CfxGameService extends GameService {
 
 	getServerHistory() {
 		return (JSON.parse((localStorage.getItem('lastServers') || '[]')) as ServerHistoryEntry[]);
+	}
+
+	invokeAuthPayload(data: string) {
+		console.log(data);
+
+		this.discourseService.handleAuthPayload(data);
 	}
 
 	get nickname(): string {

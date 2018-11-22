@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { Tweet, TweetService } from './tweet.service';
 
 import { GameService } from '../game.service';
+import { DiscourseService } from '../discourse.service';
 
 import { DomSanitizer } from '@angular/platform-browser';
 
@@ -16,6 +17,10 @@ import { DomSanitizer } from '@angular/platform-browser';
 export class HomeComponent implements OnInit {
     officialTweets: Tweet[];
     communityTweets: Tweet[];
+
+    accountBeg: any;
+
+    currentAccount: any;
 
     randomGreeting = '';
 
@@ -55,18 +60,25 @@ export class HomeComponent implements OnInit {
         'Forced memes, yes.',
         'Three things are certain in life: death, taxes, and FiveM breaking your game.',
         '3 years and still no point at button.',
-        'eww'
+        'But.. I thought FiveM had an office?',
+        'Eww!'
     ];
 
     welcomeMessage: any;
 
-    constructor(private tweetService: TweetService, private gameService: GameService, private domSanitizer: DomSanitizer) { }
+    constructor(private tweetService: TweetService, private gameService: GameService,
+        private discourseService: DiscourseService, private domSanitizer: DomSanitizer) {
+        discourseService.signinChange.subscribe(user => this.currentAccount = user);
+    }
 
     ngOnInit() {
         this.randomGreeting = this.randomGreetings[Math.floor(Math.random() * this.randomGreetings.length)];
 
         this.fetchTweets();
         this.fetchWelcome();
+        this.fetchBeg();
+
+        this.currentAccount = this.discourseService.currentUser;
     }
 
     fetchWelcome() {
@@ -74,6 +86,15 @@ export class HomeComponent implements OnInit {
               .then(async res => {
                   if (res.ok) {
                       this.welcomeMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
+                  }
+              });
+    }
+
+    fetchBeg() {
+        window.fetch('https://runtime.fivem.net/account_beg.html')
+              .then(async res => {
+                  if (res.ok) {
+                      this.accountBeg = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
                   }
               });
     }

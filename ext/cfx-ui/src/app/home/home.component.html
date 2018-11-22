@@ -1,11 +1,20 @@
 <div class="home">
 	<div class="welcome">
+		<div class="oi" *ngIf="!currentAccount && accountBeg" [innerHTML]="accountBeg">
+	
+		</div>
+
 		<div>
-			<h1>Welcome to FiveM!</h1>
+			<h1>Welcome to FiveM<span *ngIf="currentAccount">, {{ currentAccount.username }}</span>!</h1>
 			<h2>{{ randomGreeting }}</h2>
 
 			<article [innerHTML]="welcomeMessage" (click)="clickContent($event)">
 				
+			</article>
+
+			<article>
+				<span *ngIf="currentAccount && currentAccount.isStaff">You're wielding the staff! That's... unexpected. </span>
+				<span *ngIf="currentAccount && currentAccount.isPremium">Oh, and thanks for supporting FiveM on Patreon. You're why the project thrives. ⭐</span>
 			</article>
 		</div>
 

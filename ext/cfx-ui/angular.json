@@ -56,6 +56,14 @@
                 }
               ]
             },
+            "game": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.game.ts"
+                }
+              ]
+            },
             "webprod": {
               "optimization": true,
               "outputHashing": "all",
@@ -89,6 +97,9 @@
             },
             "webprod": {
               "browserTarget": "cfx-ui:build:webprod"
+            },
+            "game": {
+              "browserTarget": "cfx-ui:build:game"
             }
           }
         },

@@ -20,10 +20,13 @@
         line-height: 1;
 
         .key {
-            width: 50%/$multiplier;
-            padding: $padding $padding*$multiplier;
-            margin-right: $padding/4;
-            background-color: rgba($bgColour, .2);
+			display: flex;
+			align-items: center;
+
+			width: 50%/$multiplier;
+			padding: $padding $padding*$multiplier;
+			margin-right: $padding/4;
+			background-color: rgba($bgColour, .2);
         }
 
         .value {
@@ -42,7 +45,23 @@
                 &:focus {
                     background: rgba($bgColour, .2);
                 }
-            }
+			}
+			
+			span {
+				position: relative;
+				flex-grow: 1;
+
+				display: block;
+
+				font-size: 1.4rem;
+				font-weight: 100;
+				line-height: 1;
+				padding: $padding $padding*$multiplier;
+
+				transition: all .2s ease;
+
+				color: $secondaryColour;
+			}
 
             .checkbox {
 				position: relative;

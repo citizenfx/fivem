@@ -53,6 +53,10 @@
 			::ng-deep p {
 				margin-top: $padding;
 			}
+
+			&.oi {
+				background-color: rgba($yellowColour, .2);
+			}
 		}
 	}
 

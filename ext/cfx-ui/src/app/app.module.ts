@@ -37,6 +37,7 @@ import {TweetService} from './home/tweet.service';
 import {TrackingService} from './tracking.service';
 
 import {GameService, CfxGameService, DummyGameService} from './game.service';
+import {DiscourseService} from './discourse.service';
 
 import {ColorizePipe} from './colorize.pipe';
 import {EscapePipe} from './escape.pipe';
@@ -92,11 +93,12 @@ const l10nConfig: L10nConfig = {
 		TweetService,
 		{
 			provide:  GameService,
-			useClass: (environment.production && !environment.web)
+			useClass: ((environment.production && !environment.web) || environment.game)
 				? CfxGameService
 				: DummyGameService
 		},
-		TrackingService
+		TrackingService,
+		DiscourseService
 	],
 	bootstrap:    [
 		AppComponent

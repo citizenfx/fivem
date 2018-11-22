@@ -1,5 +1,6 @@
 export const environment = {
     production: true,
     web: true,
-    envName: 'webprod'
+    envName: 'webprod',
+    game: false
 };
