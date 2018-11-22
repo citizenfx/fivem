@@ -12,6 +12,8 @@
 #include "memdbgon.h"
 #include "HttpClient.h"
 
+#include <CoreConsole.h>
+
 #include <rapidjson/document.h>
 
 #include <sstream>
@@ -59,7 +61,9 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 
 	if (url == "nui://game/ui/root.html" && nui::HasMainUI())
 	{
-		nui::CreateFrame("mpMenu", "nui://game/ui/app/index.html");
+		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "nui://game/ui/app/index.html");
+
+		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 	}
 
 	// replace any segoe ui symbol font

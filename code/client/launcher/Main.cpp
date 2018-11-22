@@ -220,7 +220,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 			if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
 			{
-				return 0;
+				// and not a fivem:// protocol handler
+				if (wcsstr(GetCommandLineW(), L"fivem://") == nullptr)
+				{
+					return 0;
+				}
 			}
 		}
 	}
