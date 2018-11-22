@@ -81,6 +81,7 @@ export class DiscourseService {
             this.authToken = '';
 
             this.signinChange.emit(null);
+            this.currentUser = null;
 
             throw new Error('User was logged out.');
             return;
