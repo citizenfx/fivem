@@ -58,123 +58,123 @@ namespace CitizenFX.Core
 
 		public void AchieveHeading(float heading, int timeout = 0)
 		{
-			Function.Call(Hash.TASK_ACHIEVE_HEADING, _ped.Handle, heading, timeout);
+			API.TaskAchieveHeading(_ped.Handle, heading, timeout);
 		}
 
 		public void AimAt(Entity target, int duration)
 		{
-			Function.Call(Hash.TASK_AIM_GUN_AT_ENTITY, _ped.Handle, target.Handle, duration, 0);
+			API.TaskAimGunAtEntity(_ped.Handle, target.Handle, duration, false);
 		}
 		public void AimAt(Vector3 target, int duration)
 		{
-			Function.Call(Hash.TASK_AIM_GUN_AT_COORD, _ped.Handle, target.X, target.Y, target.Z, duration, 0, 0);
+			API.TaskAimGunAtCoord(_ped.Handle, target.X, target.Y, target.Z, duration, false, false);
 		}
 
 		public void Arrest(Ped ped)
 		{
-			Function.Call(Hash.TASK_ARREST_PED, _ped.Handle, ped.Handle);
+			API.TaskArrestPed(_ped.Handle, ped.Handle);
 		}
 
 		public void ChatTo(Ped ped)
 		{
-			Function.Call(Hash.TASK_CHAT_TO_PED, _ped.Handle, ped.Handle, 16, 0f, 0f, 0f, 0f, 0f);
+			API.TaskChatToPed(_ped.Handle, ped.Handle, 16, 0f, 0f, 0f, 0f, 0f);
 		}
 
 		public void Jump()
 		{
-			Function.Call(Hash.TASK_JUMP, _ped.Handle, true);
+			API.TaskJump(_ped.Handle, true);
 		}
 		public void Climb()
 		{
-			Function.Call(Hash.TASK_CLIMB, _ped.Handle, true);
+			API.TaskClimb(_ped.Handle, true);
 		}
 
 		public void ClimbLadder()
 		{
-			Function.Call(Hash.TASK_CLIMB_LADDER, _ped.Handle, 1);
+			API.TaskClimbLadder(_ped.Handle, 1);
 		}
 
 		public void Cower(int duration)
 		{
-			Function.Call(Hash.TASK_COWER, _ped.Handle, duration);
+			API.TaskCower(_ped.Handle, duration);
 		}
 
 		public void ChaseWithGroundVehicle(Entity target)
 		{
-			Function.Call(Hash.TASK_VEHICLE_CHASE, _ped.Handle, target.Handle);
+			API.TaskVehicleChase(_ped.Handle, target.Handle);
 		}
 
 		public void ChaseWithHelicopter(Entity target, Vector3 offset)
 		{
-			Function.Call(Hash.TASK_HELI_CHASE, _ped.Handle, target.Handle, offset.X, offset.Y, offset.Z);
+			API.TaskHeliChase(_ped.Handle, target.Handle, offset.X, offset.Y, offset.Z);
 		}
 
 		public void ChaseWithPlane(Entity target, Vector3 offset)
 		{
-			Function.Call(Hash.TASK_PLANE_CHASE, _ped.Handle, target.Handle, offset.X, offset.Y, offset.Z);
+			API.TaskPlaneChase(_ped.Handle, target.Handle, offset.X, offset.Y, offset.Z);
 		}
 
 		public void CruiseWithVehicle(Vehicle vehicle, float speed, int drivingstyle = 0)
 		{
-			Function.Call(Hash.TASK_VEHICLE_DRIVE_WANDER, _ped.Handle, vehicle.Handle, speed, drivingstyle);
+			API.TaskVehicleDriveWander(_ped.Handle, vehicle.Handle, speed, drivingstyle);
 		}
 
 		public void DriveTo(Vehicle vehicle, Vector3 target, float radius, float speed, int drivingstyle = 0)
 		{
-			Function.Call(Hash.TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE, _ped.Handle, vehicle.Handle, target.X, target.Y, target.Z, speed, drivingstyle, radius);
+			API.TaskVehicleDriveToCoordLongrange(_ped.Handle, vehicle.Handle, target.X, target.Y, target.Z, speed, drivingstyle, radius);
 		}
 
 		public void EnterAnyVehicle(VehicleSeat seat = VehicleSeat.Any, int timeout = -1, float speed = 0f, int flag = 0)
 		{
-			Function.Call(Hash.TASK_ENTER_VEHICLE, _ped.Handle, 0, timeout, seat, speed, flag, 0);
+			API.TaskEnterVehicle(_ped.Handle, 0, timeout, (int)seat, speed, flag, 0);
 		}
 
 		public void EnterVehicle(Vehicle vehicle, VehicleSeat seat = VehicleSeat.Any, int timeout = -1, float speed = 0f, int flag = 0)
 		{
-			Function.Call(Hash.TASK_ENTER_VEHICLE, _ped.Handle, vehicle.Handle, timeout, seat, speed, flag, 0);
+			API.TaskEnterVehicle(_ped.Handle, vehicle.Handle, timeout, (int)seat, speed, flag, 0);
 		}
 
 		public static void EveryoneLeaveVehicle(Vehicle vehicle)
 		{
-			Function.Call(Hash.TASK_EVERYONE_LEAVE_VEHICLE, vehicle.Handle);
+			API.TaskEveryoneLeaveVehicle(vehicle.Handle);
 		}
 
 		public void FightAgainst(Ped target)
 		{
-			Function.Call(Hash.TASK_COMBAT_PED, _ped.Handle, target.Handle, 0, 16);
+			API.TaskCombatPed(_ped.Handle, target.Handle, 0, 16);
 		}
 		public void FightAgainst(Ped target, int duration)
 		{
-			Function.Call(Hash.TASK_COMBAT_PED_TIMED, _ped.Handle, target.Handle, duration, 0);
+			API.TaskCombatPedTimed(_ped.Handle, target.Handle, duration, 0);
 		}
 		public void FightAgainstHatedTargets(float radius)
 		{
-			Function.Call(Hash.TASK_COMBAT_HATED_TARGETS_AROUND_PED, _ped.Handle, radius, 0);
+			API.TaskCombatHatedTargetsAroundPed(_ped.Handle, radius, 0);
 		}
 		public void FightAgainstHatedTargets(float radius, int duration)
 		{
-			Function.Call(Hash.TASK_COMBAT_HATED_TARGETS_AROUND_PED_TIMED, _ped.Handle, radius, duration, 0);
+			API.TaskCombatHatedTargetsAroundPedTimed(_ped.Handle, radius, duration, 0);
 		}
 
 		public void FleeFrom(Ped ped, int duration = -1)
 		{
-			Function.Call(Hash.TASK_SMART_FLEE_PED, _ped.Handle, ped.Handle, 100f, duration, 0, 0);
+			API.TaskSmartFleePed(_ped.Handle, ped.Handle, 100f, duration, false, false);
 		}
 		public void FleeFrom(Vector3 position, int duration = -1)
 		{
-			Function.Call(Hash.TASK_SMART_FLEE_COORD, _ped.Handle, position.X, position.Y, position.Z, 100f, duration, 0, 0);
+			API.TaskSmartFleeCoord(_ped.Handle, position.X, position.Y, position.Z, 100f, duration, false, false);
 		}
 
 		public void FollowPointRoute(params Vector3[] points)
 		{
-			Function.Call(Hash.TASK_FLUSH_ROUTE);
+			API.TaskFlushRoute();
 
 			foreach (var point in points)
 			{
-				Function.Call(Hash.TASK_EXTEND_ROUTE, point.X, point.Y, point.Z);
+				API.TaskExtendRoute(point.X, point.Y, point.Z);
 			}
 
-			Function.Call(Hash.TASK_FOLLOW_POINT_ROUTE, _ped.Handle, 1f, 0);
+			API.TaskFollowPointRoute(_ped.Handle, 1f, 0);
 		}
 
 		public void FollowToOffsetFromEntity(Entity target, Vector3 offset, int timeout, float stoppingRange)
@@ -183,7 +183,7 @@ namespace CitizenFX.Core
 		}
 		public void FollowToOffsetFromEntity(Entity target, Vector3 offset, float movementSpeed, int timeout, float stoppingRange, bool persistFollowing)
 		{
-			Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, _ped.Handle, target.Handle, offset.X, offset.Y, offset.Z, movementSpeed, timeout, stoppingRange, persistFollowing);
+			API.TaskFollowToOffsetOfEntity(_ped.Handle, target.Handle, offset.X, offset.Y, offset.Z, movementSpeed, timeout, stoppingRange, persistFollowing);
 		}
 
 		public void GoTo(Entity target)
@@ -192,28 +192,28 @@ namespace CitizenFX.Core
 		}
 		public void GoTo(Entity target, Vector3 offset, int timeout = -1)
 		{
-			Function.Call(Hash.TASK_GOTO_ENTITY_OFFSET_XY, _ped.Handle, target.Handle, timeout, offset.X, offset.Y, offset.Z, 1f, true);
+			API.TaskGotoEntityOffsetXy(_ped.Handle, target.Handle, timeout, offset.X, offset.Y, offset.Z, 1f, true);
 		}
 		public void GoTo(Vector3 position, bool ignorePaths = false, int timeout = -1)
 		{
 			if (ignorePaths)
 			{
-				Function.Call(Hash.TASK_GO_STRAIGHT_TO_COORD, _ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, 0f);
+				API.TaskGoStraightToCoord(_ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, 0f);
 			}
 			else
 			{
-				Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, _ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, 0, 0f);
+				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, false, 0f);
 			}
 		}
 
 		public void GuardCurrentPosition()
 		{
-			Function.Call(Hash.TASK_GUARD_CURRENT_POSITION, _ped.Handle, 15f, 10f, true);
+			API.TaskGuardCurrentPosition(_ped.Handle, 15f, 10f, true);
 		}
 
 		public void HandsUp(int duration)
 		{
-			Function.Call(Hash.TASK_HANDS_UP, _ped.Handle, duration, 0, -1, false);
+			API.TaskHandsUp(_ped.Handle, duration, 0, -1, false);
 		}
 
 		public void LandPlane(Vector3 startPosition, Vector3 touchdownPosition, Vehicle plane = null)
@@ -222,12 +222,20 @@ namespace CitizenFX.Core
 			{
 				plane = _ped.CurrentVehicle;
 			}
-			Function.Call(Hash.TASK_PLANE_LAND, _ped.Handle, plane, startPosition.X, startPosition.Y, startPosition.Z, touchdownPosition.X, touchdownPosition.Y, touchdownPosition.Z);
+
+			if (plane == null || !plane.Exists() || plane.IsDead)
+			{
+				API.TaskPlaneLand(_ped.Handle, 0, startPosition.X, startPosition.Y, startPosition.Z, touchdownPosition.X, touchdownPosition.Y, touchdownPosition.Z);
+			}
+			else
+			{
+				API.TaskPlaneLand(_ped.Handle, plane.Handle, startPosition.X, startPosition.Y, startPosition.Z, touchdownPosition.X, touchdownPosition.Y, touchdownPosition.Z);
+			}
 		}
 
 		public void LeaveVehicle(LeaveVehicleFlags flags = LeaveVehicleFlags.None)
 		{
-			Function.Call(Hash.TASK_LEAVE_ANY_VEHICLE, _ped.Handle, 0, flags);
+			API.TaskLeaveAnyVehicle(_ped.Handle, 0, (int)flags);
 		}
 		public void LeaveVehicle(Vehicle vehicle, bool closeDoor)
 		{
@@ -235,26 +243,26 @@ namespace CitizenFX.Core
 		}
 		public void LeaveVehicle(Vehicle vehicle, LeaveVehicleFlags flags)
 		{
-			Function.Call(Hash.TASK_LEAVE_VEHICLE, _ped.Handle, vehicle.Handle, flags);
+			API.TaskLeaveVehicle(_ped.Handle, vehicle.Handle, (int)flags);
 		}
 
 		public void LookAt(Entity target, int duration = -1)
 		{
-			Function.Call(Hash.TASK_LOOK_AT_ENTITY, _ped.Handle, target.Handle, duration, 0, 2);
+			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, 0, 2);
 		}
 		public void LookAt(Vector3 position, int duration = -1)
 		{
-			Function.Call(Hash.TASK_LOOK_AT_COORD, _ped.Handle, position.X, position.Y, position.Z, duration, 0, 2);
+			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, 0, 2);
 		}
 
 		public void ParachuteTo(Vector3 position)
 		{
-			Function.Call(Hash.TASK_PARACHUTE_TO_TARGET, _ped.Handle, position.X, position.Y, position.Z);
+			API.TaskParachuteToTarget(_ped.Handle, position.X, position.Y, position.Z);
 		}
 
 		public void ParkVehicle(Vehicle vehicle, Vector3 position, float heading, float radius = 20.0f, bool keepEngineOn = false)
 		{
-			Function.Call(Hash.TASK_VEHICLE_PARK, _ped.Handle, vehicle.Handle, position.X, position.Y, position.Z, heading, 1, radius, keepEngineOn);
+			API.TaskVehiclePark(_ped.Handle, vehicle.Handle, position.X, position.Y, position.Z, heading, 1, radius, keepEngineOn);
 		}
 
 		public void PerformSequence(TaskSequence sequence)
@@ -267,7 +275,7 @@ namespace CitizenFX.Core
 			ClearAll();
 			_ped.BlockPermanentEvents = true;
 
-			Function.Call(Hash.TASK_PERFORM_SEQUENCE, _ped.Handle, sequence.Handle);
+			API.TaskPerformSequence(_ped.Handle, sequence.Handle);
 		}
 
 		public void PlayAnimation(string animDict, string animName)
@@ -284,167 +292,170 @@ namespace CitizenFX.Core
 		}
 		public async Task PlayAnimation(string animDict, string animName, float blendInSpeed, float blendOutSpeed, int duration, AnimationFlags flags, float playbackRate)
 		{
-			Function.Call(Hash.REQUEST_ANIM_DICT, animDict);
+			if (!API.HasAnimDictLoaded(animDict))
+			{
+				API.RequestAnimDict(animDict);
+			}
 
 			DateTime endtime = DateTime.UtcNow + new TimeSpan(0, 0, 0, 0, 1000);
 
-			while (!Function.Call<bool>(Hash.HAS_ANIM_DICT_LOADED, animDict))
+			while (!API.HasAnimDictLoaded(animDict))
 			{
-                await BaseScript.Delay(0);
+				await BaseScript.Delay(0);
 
-                if (DateTime.UtcNow >= endtime)
+				if (DateTime.UtcNow >= endtime)
 				{
 					return;
 				}
 			}
 
-			Function.Call(Hash.TASK_PLAY_ANIM, _ped.Handle, animDict, animName, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, 0, 0, 0);
+			API.TaskPlayAnim(_ped.Handle, animDict, animName, blendInSpeed, blendOutSpeed, duration, (int)flags, playbackRate, false, false, false);
 		}
 
 		public void ReactAndFlee(Ped ped)
 		{
-			Function.Call(Hash.TASK_REACT_AND_FLEE_PED, _ped.Handle, ped.Handle);
+			API.TaskReactAndFleePed(_ped.Handle, ped.Handle);
 		}
 
 		public void ReloadWeapon()
 		{
-			Function.Call(Hash.TASK_RELOAD_WEAPON, _ped.Handle, true);
+			API.TaskReloadWeapon(_ped.Handle, true);
 		}
 
 		public void RunTo(Vector3 position, bool ignorePaths = false, int timeout = -1)
 		{
 			if (ignorePaths)
 			{
-				Function.Call(Hash.TASK_GO_STRAIGHT_TO_COORD, _ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, 0f);
+				API.TaskGoStraightToCoord(_ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, 0f);
 			}
 			else
 			{
-				Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, _ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, 0, 0f);
+				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, false, 0f);
 			}
 		}
 
 
 		public void ShootAt(Ped target, int duration = -1, FiringPattern pattern = FiringPattern.Default)
 		{
-			Function.Call(Hash.TASK_SHOOT_AT_ENTITY, _ped.Handle, target.Handle, duration, pattern);
+			API.TaskShootAtEntity(_ped.Handle, target.Handle, duration, (uint)pattern);
 		}
 		public void ShootAt(Vector3 position, int duration = -1, FiringPattern pattern = FiringPattern.Default)
 		{
-			Function.Call(Hash.TASK_SHOOT_AT_COORD, _ped.Handle, position.X, position.Y, position.Z, duration, pattern);
+			API.TaskShootAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, (uint)pattern);
 		}
 
 		public void ShuffleToNextVehicleSeat(Vehicle vehicle)
 		{
-			Function.Call(Hash.TASK_SHUFFLE_TO_NEXT_VEHICLE_SEAT, _ped.Handle, vehicle.Handle);
+			API.TaskShuffleToNextVehicleSeat(_ped.Handle, vehicle.Handle);
 		}
 
 		public void Skydive()
 		{
-			Function.Call(Hash.TASK_SKY_DIVE, _ped.Handle);
+			API.TaskSkyDive(_ped.Handle);
 		}
 
 		public void SlideTo(Vector3 position, float heading)
 		{
-			Function.Call(Hash.TASK_PED_SLIDE_TO_COORD, _ped.Handle, position.X, position.Y, position.Z, heading, 0.7f);
+			API.TaskPedSlideToCoord(_ped.Handle, position.X, position.Y, position.Z, heading, 0.7f);
 		}
 
 		public void StandStill(int duration)
 		{
-			Function.Call(Hash.TASK_STAND_STILL, _ped.Handle, duration);
+			API.TaskStandStill(_ped.Handle, duration);
 		}
 
 		public void StartScenario(string name, Vector3 position)
 		{
-			Function.Call(Hash.TASK_START_SCENARIO_AT_POSITION, _ped.Handle, name, position.X, position.Y, position.Z, 0f, 0, 0, 1);
+			API.TaskStartScenarioAtPosition(_ped.Handle, name, position.X, position.Y, position.Z, 0f, 0, false, true);
 		}
 
 		public void SwapWeapon()
 		{
-			Function.Call(Hash.TASK_SWAP_WEAPON, _ped.Handle, false);
+			API.TaskSwapWeapon(_ped.Handle, false);
 		}
 
 		public void TurnTo(Entity target, int duration = -1)
 		{
-			Function.Call(Hash.TASK_TURN_PED_TO_FACE_ENTITY, _ped.Handle, target.Handle, duration);
+			API.TaskTurnPedToFaceEntity(_ped.Handle, target.Handle, duration);
 		}
 
 		public void TurnTo(Vector3 position, int duration = -1)
 		{
-			Function.Call(Hash.TASK_TURN_PED_TO_FACE_COORD, _ped.Handle, position.X, position.Y, position.Z, duration);
+			API.TaskTurnPedToFaceCoord(_ped.Handle, position.X, position.Y, position.Z, duration);
 		}
 
 		public void UseParachute()
 		{
-			Function.Call(Hash.TASK_PARACHUTE, _ped.Handle, true);
+			API.TaskParachute(_ped.Handle, true);
 		}
 		public void UseMobilePhone()
 		{
-			Function.Call(Hash.TASK_USE_MOBILE_PHONE, _ped.Handle, true);
+			API.TaskUseMobilePhone(_ped.Handle, 1);
 		}
 		public void UseMobilePhone(int duration)
 		{
-			Function.Call(Hash.TASK_USE_MOBILE_PHONE_TIMED, _ped.Handle, duration);
+			API.TaskUseMobilePhoneTimed(_ped.Handle, duration);
 		}
 		public void PutAwayParachute()
 		{
-			Function.Call(Hash.TASK_PARACHUTE, _ped.Handle, false);
+			API.TaskParachute(_ped.Handle, false);
 		}
 		public void PutAwayMobilePhone()
 		{
-			Function.Call(Hash.TASK_USE_MOBILE_PHONE, _ped.Handle, false);
+			API.TaskUseMobilePhone(_ped.Handle, 0);
 		}
 
 		public void VehicleChase(Ped target)
 		{
-			Function.Call(Hash.TASK_VEHICLE_CHASE, _ped.Handle, target.Handle);
+			API.TaskVehicleChase(_ped.Handle, target.Handle);
 		}
 		public void VehicleShootAtPed(Ped target)
 		{
-			Function.Call(Hash.TASK_VEHICLE_SHOOT_AT_PED, _ped.Handle, target.Handle, 20f);
+			API.TaskVehicleShootAtPed(_ped.Handle, target.Handle, 20f);
 		}
 
 		public void Wait(int duration)
 		{
-			Function.Call(Hash.TASK_PAUSE, _ped.Handle, duration);
+			API.TaskPause(_ped.Handle, duration);
 		}
 
 		public void WanderAround()
 		{
-			Function.Call(Hash.TASK_WANDER_STANDARD, _ped.Handle, 0, 0);
+			API.TaskWanderStandard(_ped.Handle, 0, 0);
 		}
 		public void WanderAround(Vector3 position, float radius)
 		{
-			Function.Call(Hash.TASK_WANDER_IN_AREA, _ped.Handle, position.X, position.Y, position.Z, radius, 0, 0);
+			API.TaskWanderInArea(_ped.Handle, position.X, position.Y, position.Z, radius, 0, 0);
 		}
 
 		public void WarpIntoVehicle(Vehicle vehicle, VehicleSeat seat)
 		{
-			Function.Call(Hash.TASK_WARP_PED_INTO_VEHICLE, _ped.Handle, vehicle.Handle, seat);
+			API.TaskWarpPedIntoVehicle(_ped.Handle, vehicle.Handle, (int)seat);
 		}
 		public void WarpOutOfVehicle(Vehicle vehicle)
 		{
-			Function.Call(Hash.TASK_LEAVE_VEHICLE, _ped.Handle, vehicle.Handle, 16);
+			API.TaskLeaveVehicle(_ped.Handle, vehicle.Handle, 16);
 		}
 
 		public void ClearAll()
 		{
-			Function.Call(Hash.CLEAR_PED_TASKS, _ped.Handle);
+			API.ClearPedTasks(_ped.Handle);
 		}
 		public void ClearAllImmediately()
 		{
-			Function.Call(Hash.CLEAR_PED_TASKS_IMMEDIATELY, _ped.Handle);
+			API.ClearPedTasksImmediately(_ped.Handle);
 		}
 		public void ClearLookAt()
 		{
-			Function.Call(Hash.TASK_CLEAR_LOOK_AT, _ped.Handle);
+			API.TaskClearLookAt(_ped.Handle);
 		}
 		public void ClearSecondary()
 		{
-			Function.Call(Hash.CLEAR_PED_SECONDARY_TASK, _ped.Handle);
+			API.ClearPedSecondaryTask(_ped.Handle);
 		}
 		public void ClearAnimation(string animSet, string animName)
 		{
-			Function.Call(Hash.STOP_ANIM_TASK, _ped.Handle, animSet, animName, -4f);
+			API.StopAnimTask(_ped.Handle, animSet, animName, -4f);
 		}
 	}
 
@@ -454,10 +465,10 @@ namespace CitizenFX.Core
 		static Ped _nullPed = null;
 		#endregion
 
-        [SecuritySafeCritical]
+
 		public TaskSequence()
 		{
-            Create();
+			Create();
 
 			if (ReferenceEquals(_nullPed, null))
 			{
@@ -474,35 +485,23 @@ namespace CitizenFX.Core
 			}
 		}
 
-        [SecuritySafeCritical]
-        private void Create()
-        {
-            int handle;
-            unsafe
-            {
-                Function.Call(Hash.OPEN_SEQUENCE_TASK, &handle);
-            }
-
-            Handle = handle;
-        }
-
-        [SecuritySafeCritical]
-        public void Dispose()
+		private void Create()
 		{
-            ClearHandle();
+			int handle = 0;
+
+			API.OpenSequenceTask(ref handle);
+
+			Handle = handle;
+		}
+
+		public void Dispose()
+		{
+			int handle = Handle;
+			API.ClearSequenceTask(ref handle);
 			Handle = 0;
 			GC.SuppressFinalize(this);
 		}
 
-        [SecuritySafeCritical]
-        private void ClearHandle()
-        {
-            int handle = Handle;
-            unsafe
-            {
-                Function.Call(Hash.CLEAR_SEQUENCE_TASK, &handle);
-            }
-        }
 
 		public int Handle { get; private set; }
 
@@ -534,8 +533,8 @@ namespace CitizenFX.Core
 				return;
 			}
 
-			Function.Call(Hash.SET_SEQUENCE_TO_REPEAT, Handle, repeat);
-			Function.Call(Hash.CLOSE_SEQUENCE_TASK, Handle);
+			API.SetSequenceToRepeat(Handle, repeat);
+			API.CloseSequenceTask(Handle);
 
 			IsClosed = true;
 		}

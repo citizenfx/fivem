@@ -35,7 +35,6 @@ namespace CitizenFX.Core.UI
 		#region Fields
 		private readonly string _textureDict, _textureName;
 		private static readonly Dictionary<string, int> _activeTextures = new Dictionary<string, int>();
-		private readonly IntPtr _pinnedDict, _pinnedName;
 		#endregion
 
 		/// <summary>
@@ -130,19 +129,8 @@ namespace CitizenFX.Core.UI
 		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Sprite"/>.</param>
 		/// <param name="rotation">Set the rotation to draw the sprite, measured in degrees, see also <seealso cref="Rotation"/>.</param>
 		/// <param name="centered">Position the <see cref="Sprite"/> based on its center instead of top left corner, see also <seealso cref="Centered"/>.</param>
-		[SecuritySafeCritical]
 		public Sprite(string textureDict, string textureName, SizeF size, PointF position, Color color, float rotation, bool centered)
 		{
-			byte[] data = Encoding.UTF8.GetBytes(textureDict + "\0");
-			_pinnedDict = Marshal.AllocCoTaskMem(data.Length);
-			Marshal.Copy(data, 0, _pinnedDict, data.Length);
-			data = Encoding.UTF8.GetBytes(textureName + "\0");
-			_pinnedName = Marshal.AllocCoTaskMem(data.Length);
-			Marshal.Copy(data, 0, _pinnedName, data.Length);
-
-			_textureDict = textureDict;
-			_textureName = textureName;
-
 			Enabled = true;
 			Size = size;
 			Position = position;
@@ -150,7 +138,10 @@ namespace CitizenFX.Core.UI
 			Rotation = rotation;
 			Centered = centered;
 
-			Function.Call(Hash.REQUEST_STREAMED_TEXTURE_DICT, _pinnedDict);
+			if (!API.HasStreamedTextureDictLoaded(textureDict))
+			{
+				API.RequestStreamedTextureDict(textureDict, false);
+			}
 
 			if (_activeTextures.ContainsKey(textureDict.ToLower()))
 			{
@@ -164,35 +155,24 @@ namespace CitizenFX.Core.UI
 
 		public void Dispose()
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-		[SecuritySafeCritical]
-		protected virtual void Dispose(bool disposing)
-		{
-			if (disposing)
+			if (_activeTextures.ContainsKey(_textureDict.ToLower()))
 			{
-				if (_activeTextures.ContainsKey(_textureDict.ToLower()))
+				int current = _activeTextures[_textureDict.ToLower()];
+				if (current == 1)
 				{
-					int current = _activeTextures[_textureDict.ToLower()];
-					if (current == 1)
-					{
-						Function.Call(Hash.SET_STREAMED_TEXTURE_DICT_AS_NO_LONGER_NEEDED, _pinnedDict);
-						_activeTextures.Remove(_textureDict.ToLower());
-					}
-					else
-					{
-						_activeTextures[_textureDict.ToLower()] = current - 1;
-					}
+					API.SetStreamedTextureDictAsNoLongerNeeded(_textureDict);
+					_activeTextures.Remove(_textureDict.ToLower());
 				}
 				else
 				{
-					//In practice this should never get executed
-					Function.Call(Hash.SET_STREAMED_TEXTURE_DICT_AS_NO_LONGER_NEEDED, _pinnedDict);
+					_activeTextures[_textureDict.ToLower()] = current - 1;
 				}
-				Marshal.FreeCoTaskMem(_pinnedDict);
-				Marshal.FreeCoTaskMem(_pinnedName);
 			}
+			else
+			{
+				API.SetStreamedTextureDictAsNoLongerNeeded(_textureDict);
+			}
+			GC.SuppressFinalize(this);
 		}
 
 		/// <summary>
@@ -228,7 +208,7 @@ namespace CitizenFX.Core.UI
 
 		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
 		{
-			if (!Enabled || !Function.Call<bool>(Hash.HAS_STREAMED_TEXTURE_DICT_LOADED, _textureDict))
+			if (!Enabled || !API.HasStreamedTextureDictLoaded(_textureDict))
 			{
 				return;
 			}
@@ -244,7 +224,7 @@ namespace CitizenFX.Core.UI
 				positionY += scaleY * 0.5f;
 			}
 
-			Function.Call(Hash.DRAW_SPRITE, _pinnedDict, _pinnedName, positionX, positionY, scaleX, scaleY, Rotation, Color.R, Color.G, Color.B, Color.A);
+			API.DrawSprite(_textureDict, _textureName, positionX, positionY, scaleX, scaleY, Rotation, Color.R, Color.G, Color.B, Color.A);
 		}
 	}
 }
