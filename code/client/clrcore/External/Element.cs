@@ -209,7 +209,7 @@ namespace CitizenFX.Core.UI
 				y += h * 0.5f;
 			}
 
-			Function.Call(Hash.DRAW_RECT, x, y, w, h, Color.R, Color.G, Color.B, Color.A);
+			API.DrawRect(x, y, w, h, Color.R, Color.G, Color.B, Color.A);
 		}
 	}
 	public class Container : Rectangle

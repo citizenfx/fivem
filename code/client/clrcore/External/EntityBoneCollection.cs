@@ -34,8 +34,8 @@ namespace CitizenFX.Core
 
 			public bool MoveNext()
 			{
-                // CFX-TODO
-                return ++currentIndex < 0;// _collection.Count;
+				// CFX-TODO
+				return ++currentIndex < 0;// _collection.Count;
 			}
 
 			public void Reset()
@@ -80,7 +80,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool HasBone(string boneName)
 		{
-			return Function.Call<int>(Hash.GET_ENTITY_BONE_INDEX_BY_NAME, _owner.Handle, boneName) !=  -1;
+			return API.GetEntityBoneIndexByName(_owner.Handle, boneName) != -1;
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace CitizenFX.Core
 			get { return MemoryAccess.GetEntityBoneCount(_owner.Handle); }
 		}*/
 
-            // CFX-TODO
+		// CFX-TODO
 
 		public EntityBone Core
 		{
@@ -105,8 +105,8 @@ namespace CitizenFX.Core
 
 		public override int GetHashCode()
 		{
-            // CFX-TODO
-            return _owner.GetHashCode();// ^ Count.GetHashCode();
+			// CFX-TODO
+			return _owner.GetHashCode();// ^ Count.GetHashCode();
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()

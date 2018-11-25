@@ -45,12 +45,12 @@ namespace CitizenFX.Core
 		/// </summary>
 		public IntPtr MemoryAddress
 		{
-            //get { return MemoryAccess.GetCameraAddress(Handle); }
-            get
-            {
-                // CFX-TODO
-                return IntPtr.Zero;
-            }
+			//get { return MemoryAccess.GetCameraAddress(Handle); }
+			get
+			{
+				// CFX-TODO
+				return IntPtr.Zero;
+			}
 		}
 
 		private IntPtr MatrixAddress
@@ -58,7 +58,7 @@ namespace CitizenFX.Core
 			get
 			{
 				IntPtr address = MemoryAddress;
-				if(address == IntPtr.Zero)
+				if (address == IntPtr.Zero)
 				{
 					return IntPtr.Zero;
 				}
@@ -76,11 +76,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_CAM_ACTIVE, Handle);
+				return API.IsCamActive(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_ACTIVE, Handle, value);
+				API.SetCamActive(Handle, value);
 			}
 		}
 
@@ -91,11 +91,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_CAM_COORD, Handle);
+				return API.GetCamCoord(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_COORD, Handle, value.X, value.Y, value.Z);
+				API.SetCamCoord(Handle, value.X, value.Y, value.Z);
 			}
 		}
 		/// <summary>
@@ -108,11 +108,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_CAM_ROT, Handle, 2);
+				return API.GetCamRot(Handle, 2);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_ROT, Handle, value.X, value.Y, value.Z, 2);
+				API.SetCamRot(Handle, value.X, value.Y, value.Z, 2);
 			}
 		}
 		/// <summary>
@@ -170,23 +170,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				var rightRef = new OutputArgument();
-				var forwardRef = new OutputArgument();
-				var upRef = new OutputArgument();
-				var atRef = new OutputArgument();
+				Vector3 rightVector = new Vector3();
+				Vector3 forwardVector = new Vector3();
+				Vector3 upVector = new Vector3();
+				Vector3 position = new Vector3();
 
-				Function.Call(Hash.GET_CAM_MATRIX, Handle, rightRef, forwardRef, upRef, atRef);
-
-				var right = rightRef.GetResult<Vector3>();
-				var forward = forwardRef.GetResult<Vector3>();
-				var up = upRef.GetResult<Vector3>();
-				var at = atRef.GetResult<Vector3>();
+				API.GetCamMatrix(Handle, ref rightVector, ref forwardVector, ref upVector, ref position);
 
 				return new Matrix(
-					right.X, right.Y, right.Z, 0.0f,
-					forward.X, forward.Y, forward.Z, 0.0f,
-					up.X, up.Y, up.Z, 0.0f,
-					at.X, at.Y, at.Z, 1.0f
+					rightVector.X, rightVector.Y, rightVector.Z, 0.0f,
+					forwardVector.X, forwardVector.Y, forwardVector.Z, 0.0f,
+					upVector.X, upVector.Y, upVector.Z, 0.0f,
+					position.X, position.Y, position.Z, 1.0f
 				);
 			}
 		}
@@ -197,7 +192,7 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from this <see cref="Camera"/>.</param>
 		public Vector3 GetOffsetPosition(Vector3 offset)
 		{
-            return Vector3.TransformCoordinate(offset, Matrix);
+			return Vector3.TransformCoordinate(offset, Matrix);
 		}
 		/// <summary>
 		/// Gets the relative offset of this <see cref="Camera"/> from a world coords position
@@ -205,7 +200,7 @@ namespace CitizenFX.Core
 		/// <param name="worldCoords">The world coords.</param>
 		public Vector3 GetPositionOffset(Vector3 worldCoords)
 		{
-            return Vector3.TransformCoordinate(worldCoords, Matrix.Invert(Matrix));
+			return Vector3.TransformCoordinate(worldCoords, Matrix.Invert(Matrix));
 		}
 
 		/// <summary>
@@ -215,11 +210,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_CAM_FOV, Handle);
+				return API.GetCamFov(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_FOV, Handle, value);
+				API.SetCamFov(Handle, value);
 			}
 		}
 
@@ -230,11 +225,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_CAM_NEAR_CLIP, Handle);
+				return API.GetCamNearClip(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_NEAR_CLIP, Handle, value);
+				API.SetCamNearClip(Handle, value);
 			}
 		}
 		/// <summary>
@@ -244,11 +239,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_CAM_FAR_CLIP, Handle);
+				return API.GetCamFarClip(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_FAR_CLIP, Handle, value);
+				API.SetCamFarClip(Handle, value);
 			}
 		}
 
@@ -259,7 +254,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_CAM_NEAR_DOF, Handle, value);
+				API.SetCamNearDof(Handle, value);
 			}
 		}
 		/// <summary>
@@ -269,11 +264,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_CAM_FAR_DOF, Handle);
+				return API.GetCamFarDof(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CAM_FAR_DOF, Handle, value);
+				API.SetCamFarDof(Handle, value);
 			}
 		}
 		/// <summary>
@@ -283,7 +278,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_CAM_DOF_STRENGTH, Handle, value);
+				API.SetCamDofStrength(Handle, value);
 			}
 		}
 		/// <summary>
@@ -293,7 +288,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_CAM_MOTION_BLUR_STRENGTH, Handle, value);
+				API.SetCamMotionBlurStrength(Handle, value);
 			}
 		}
 
@@ -304,14 +299,14 @@ namespace CitizenFX.Core
 		/// <param name="amplitude">The amplitude of the shaking.</param>
 		public void Shake(CameraShake shakeType, float amplitude)
 		{
-			Function.Call(Hash.SHAKE_CAM, Handle, _shakeNames[(int)shakeType], amplitude);
+			API.ShakeCam(Handle, _shakeNames[(int)shakeType], amplitude);
 		}
 		/// <summary>
 		/// Stops shaking this <see cref="Camera"/>.
 		/// </summary>
 		public void StopShaking()
 		{
-			Function.Call(Hash.STOP_CAM_SHAKING, Handle, true);
+			API.StopCamShaking(Handle, true);
 		}
 		/// <summary>
 		/// Gets a value indicating whether this <see cref="Camera"/> is shaking.
@@ -323,7 +318,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_CAM_SHAKING, Handle);
+				return API.IsCamShaking(Handle);
 			}
 		}
 		/// <summary>
@@ -333,7 +328,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_CAM_SHAKE_AMPLITUDE, Handle, value);
+				API.SetCamShakeAmplitude(Handle, value);
 			}
 		}
 
@@ -344,7 +339,7 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from the <paramref name="target"/> to point at.</param>
 		public void PointAt(Entity target, Vector3 offset = default(Vector3))
 		{
-			Function.Call(Hash.POINT_CAM_AT_ENTITY, Handle, target.Handle, offset.X, offset.Y, offset.Z, true);
+			API.PointCamAtEntity(Handle, target.Handle, offset.X, offset.Y, offset.Z, true);
 		}
 		/// <summary>
 		/// Points this <see cref="Camera"/> at a specified <see cref="PedBone"/>.
@@ -353,7 +348,7 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from the <paramref name="target"/> to point at</param>
 		public void PointAt(PedBone target, Vector3 offset = default(Vector3))
 		{
-			Function.Call(Hash.POINT_CAM_AT_PED_BONE, Handle, target.Owner.Handle, target, offset.X, offset.Y, offset.Z, true);
+			API.PointCamAtPedBone(Handle, target.Owner.Handle, target, offset.X, offset.Y, offset.Z, true);
 		}
 		/// <summary>
 		/// Points this <see cref="Camera"/> at a specified position.
@@ -361,20 +356,39 @@ namespace CitizenFX.Core
 		/// <param name="target">The position to point at.</param>
 		public void PointAt(Vector3 target)
 		{
-			Function.Call(Hash.POINT_CAM_AT_COORD, Handle, target.X, target.Y, target.Z);
+			API.PointCamAtCoord(Handle, target.X, target.Y, target.Z);
 		}
 		/// <summary>
 		/// Stops this <see cref="Camera"/> pointing at a specific target.
 		/// </summary>
 		public void StopPointing()
 		{
-			Function.Call(Hash.STOP_CAM_POINTING, Handle);
+			API.StopCamPointing(Handle);
 		}
 
+		/// <summary>
+		/// Starts a transition between this <see cref="Camera"/> and the new camera. (Old (incorrect) function, please use the overload function!)
+		/// </summary>
+		/// <param name="to"></param>
+		/// <param name="duration"></param>
+		/// <param name="easePosition"></param>
+		/// <param name="easeRotation"></param>
 		public void InterpTo(Camera to, int duration, bool easePosition, bool easeRotation)
 		{
-			Function.Call(Hash.SET_CAM_ACTIVE_WITH_INTERP, to.Handle, Handle, duration, easePosition, easeRotation);
+			API.SetCamActiveWithInterp(to.Handle, Handle, duration, easePosition ? 1 : 0, easeRotation ? 1 : 0);
 		}
+		/// <summary>
+		/// Starts a transition between this <see cref="Camera"/> and the new camera.
+		/// </summary>
+		/// <param name="to"></param>
+		/// <param name="duration"></param>
+		/// <param name="easePosition"></param>
+		/// <param name="easeRotation"></param>
+		public void InterpTo(Camera to, int duration, int easePosition, int easeRotation)
+		{
+			API.SetCamActiveWithInterp(to.Handle, Handle, duration, easePosition, easeRotation);
+		}
+
 		/// <summary>
 		/// Gets a value indicating whether this <see cref="Camera"/> is interpolating.
 		/// </summary>
@@ -385,7 +399,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_CAM_INTERPOLATING, Handle);
+				return API.IsCamInterpolating(Handle);
 			}
 		}
 
@@ -396,7 +410,7 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from the <paramref name="entity"/> to attach to.</param>
 		public void AttachTo(Entity entity, Vector3 offset)
 		{
-			Function.Call(Hash.ATTACH_CAM_TO_ENTITY, Handle, entity.Handle, offset.X, offset.Y, offset.Z, true);
+			API.AttachCamToEntity(Handle, entity.Handle, offset.X, offset.Y, offset.Z, true);
 		}
 		/// <summary>
 		/// Attaches this <see cref="Camera"/> to a specific <see cref="PedBone"/>.
@@ -405,14 +419,14 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from the <paramref name="pedBone"/> to attach to.</param>
 		public void AttachTo(PedBone pedBone, Vector3 offset)
 		{
-			Function.Call(Hash.ATTACH_CAM_TO_PED_BONE, Handle, pedBone.Owner.Handle, pedBone, offset.X, offset.Y, offset.Z, true);
+			API.AttachCamToPedBone(Handle, pedBone.Owner.Handle, pedBone, offset.X, offset.Y, offset.Z, true);
 		}
 		/// <summary>
 		/// Detaches this <see cref="Camera"/> from any <see cref="Entity"/> or <see cref="PedBone"/> it may be attached to.
 		/// </summary>
 		public void Detach()
 		{
-			Function.Call(Hash.DETACH_CAM, Handle);
+			API.DetachCam(Handle);
 		}
 
 		/// <summary>
@@ -420,12 +434,12 @@ namespace CitizenFX.Core
 		/// </summary>
 		public override void Delete()
 		{
-			Function.Call(Hash.DESTROY_CAM, Handle, 0);
+			API.DestroyCam(Handle, false);
 		}
 
 		public override bool Exists()
 		{
-			return Function.Call<bool>(Hash.DOES_CAM_EXIST, Handle);
+			return API.DoesCamExist(Handle);
 		}
 		public static bool Exists(Camera camera)
 		{
@@ -463,7 +477,7 @@ namespace CitizenFX.Core
 		public static IntPtr MemoryAddress
 		{
 			//get { return MemoryAccess.GetGameplayCameraAddress(); }
-            get { return IntPtr.Zero; }
+			get { return IntPtr.Zero; }
 		}
 
 		/// <summary>
@@ -473,7 +487,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_GAMEPLAY_CAM_COORD);
+				return API.GetGameplayCamCoord();
 			}
 		}
 		/// <summary>
@@ -486,7 +500,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_GAMEPLAY_CAM_ROT, 2);
+				return API.GetGameplayCamRot(2);
 			}
 		}
 		/// <summary>
@@ -536,7 +550,7 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from the <see cref="GameplayCamera"/>.</param>
 		public static Vector3 GetOffsetPosition(Vector3 offset)
 		{
-            return Vector3.TransformCoordinate(offset, Matrix);
+			return Vector3.TransformCoordinate(offset, Matrix);
 		}
 		/// <summary>
 		/// Gets the relative offset of the <see cref="GameplayCamera"/> from a world coords position
@@ -544,7 +558,7 @@ namespace CitizenFX.Core
 		/// <param name="worldCoords">The world coords.</param>
 		public static Vector3 GetPositionOffset(Vector3 worldCoords)
 		{
-            return default(Vector3);
+			return default(Vector3);
 			//return Matrix.InverseTransformPoint(worldCoords);
 		}
 
@@ -555,11 +569,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_GAMEPLAY_CAM_RELATIVE_PITCH);
+				return API.GetGameplayCamRelativePitch();
 			}
 			set
 			{
-				Function.Call(Hash.SET_GAMEPLAY_CAM_RELATIVE_PITCH, value);
+				API.SetGameplayCamRelativePitch(value, 1f);
 			}
 		}
 		/// <summary>
@@ -569,11 +583,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_GAMEPLAY_CAM_RELATIVE_HEADING);
+				return API.GetGameplayCamRelativeHeading();
 			}
 			set
 			{
-				Function.Call(Hash.SET_GAMEPLAY_CAM_RELATIVE_HEADING, value);
+				API.SetGameplayCamRelativeHeading(value);
 			}
 		}
 
@@ -584,7 +598,7 @@ namespace CitizenFX.Core
 		/// <param name="max">The maximum yaw value.</param>
 		public static void ClampYaw(float min, float max)
 		{
-			Function.Call(Hash._CLAMP_GAMEPLAY_CAM_YAW, min, max);
+			API.ClampGameplayCamYaw(min, max);
 		}
 		/// <summary>
 		/// Clamps the pitch of the <see cref="GameplayCamera"/>.
@@ -593,7 +607,7 @@ namespace CitizenFX.Core
 		/// <param name="max">The maximum pitch value.</param>
 		public static void ClampPitch(float min, float max)
 		{
-			Function.Call(Hash._CLAMP_GAMEPLAY_CAM_PITCH, min, max);
+			API.ClampGameplayCamPitch(min, max);
 		}
 
 		/// <summary>
@@ -603,7 +617,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash._GET_GAMEPLAY_CAM_ZOOM);
+				return API.GetGameplayCamZoom();
 			}
 		}
 		/// <summary>
@@ -613,7 +627,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_GAMEPLAY_CAM_FOV);
+				return API.GetGameplayCamFov();
 			}
 		}
 
@@ -627,7 +641,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_GAMEPLAY_CAM_RENDERING);
+				return API.IsGameplayCamRendering();
 			}
 		}
 		/// <summary>
@@ -640,7 +654,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_AIM_CAM_ACTIVE);
+				return API.IsAimCamActive();
 			}
 		}
 		/// <summary>
@@ -653,7 +667,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_FIRST_PERSON_AIM_CAM_ACTIVE);
+				return API.IsFirstPersonAimCamActive();
 			}
 		}
 
@@ -665,10 +679,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public static bool IsLookingBehind
 		{
-
 			get
 			{
-				return Function.Call<bool>(Hash.IS_GAMEPLAY_CAM_LOOKING_BEHIND);
+				return API.IsGameplayCamLookingBehind();
 			}
 		}
 		/// <summary>
@@ -678,14 +691,14 @@ namespace CitizenFX.Core
 		/// <param name="amplitude">The amplitude of the shaking.</param>
 		public static void Shake(CameraShake shakeType, float amplitude)
 		{
-			Function.Call(Hash.SHAKE_GAMEPLAY_CAM, Camera._shakeNames[(int)shakeType], amplitude);
+			API.ShakeGameplayCam(Camera._shakeNames[(int)shakeType], amplitude);
 		}
 		/// <summary>
 		/// Stops shaking the <see cref="GameplayCamera"/>.
 		/// </summary>
 		public static void StopShaking()
 		{
-			Function.Call(Hash.STOP_GAMEPLAY_CAM_SHAKING, true);
+			API.StopGameplayCamShaking(true);
 		}
 		/// <summary>
 		/// Gets a value indicating whether the <see cref="GameplayCamera"/> is shaking.
@@ -698,7 +711,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_GAMEPLAY_CAM_SHAKING);
+				return API.IsGameplayCamShaking();
 			}
 		}
 		/// <summary>
@@ -708,7 +721,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_GAMEPLAY_CAM_SHAKE_AMPLITUDE, value);
+				API.SetGameplayCamShakeAmplitude(value);
 			}
 		}
 	}

@@ -339,6 +339,26 @@ namespace CitizenFX.Core
 		VehicleSlowMoUpDown,
 		VehicleSlowMoUpOnly,
 		VehicleSlowMoDownOnly,
-		MapPointOfInterest
+		VehicleHydraulicsControlToggle,
+		VehicleHydraulicsControlLeft,
+		VehicleHydraulicsControlRight,
+		VehicleHydraulicsControlUp,
+		VehicleHydraulicsControlDown,
+		VehicleHydraulicsControlUpDown,
+		VehicleHydraulicsControlLeftRight,
+		SwitchVisor,
+		VehicleMeleeHold,
+		VehicleMeleeLeft,
+		VehicleMeleeRight,
+		MapPointOfInterest,
+		ReplaySnapmaticPhoto,
+		VehicleCarJump,
+		VehicleRocketBoost,
+		VehicleFlyBoost,
+		VehicleParachute,
+		VehicleBikeWings,
+		VehicleFlyBombBay,
+		VehicleFlyCounter,
+		VehicleFlyTransform
 	}
 }
