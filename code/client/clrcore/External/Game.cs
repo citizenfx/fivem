@@ -431,16 +431,17 @@ namespace CitizenFX.Core
 				return API.IsInputDisabled(2) ? InputMode.MouseAndKeyboard : InputMode.GamePad;
 			}
 		}
-
+		/*
 		/// <summary>
 		/// Gets whether a <see cref="Keys"/> is currently held down
 		/// </summary>
 		/// <param name="key">The key.</param>
 		/// <returns></returns>
-		/*public static bool IsKeyPressed(Keys key)
+		public static bool IsKeyPressed(Keys key)
 		{
 			return ScriptDomain.CurrentDomain.IsKeyPressed(key);
-		}*/
+		}
+		*/
 
 		/// <summary>
 		/// Gets whether a <see cref="ButtonCombination"/> was entered.

@@ -35,8 +35,8 @@ namespace CitizenFX.Core
 
 			public bool MoveNext()
 			{
-                // CFX-TODO
-                return ++currentIndex < 0;// _collection.Count;
+				// CFX-TODO
+				return ++currentIndex < 0;// _collection.Count;
 			}
 
 			public void Reset()
@@ -90,16 +90,12 @@ namespace CitizenFX.Core
 		/// </summary>
 		public PedBone LastDamaged
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int outBone;
-				unsafe
+				int outBone = 0;
+				if (API.GetPedLastDamageBone(_owner.Handle, ref outBone))
 				{
-					if(Function.Call<bool>(Hash.GET_PED_LAST_DAMAGE_BONE, _owner.Handle, &outBone))
-					{
-						return this[(Bone)outBone];
-					}
+					return this[(Bone)outBone];
 				}
 				return this[Bone.SKEL_ROOT];
 			}
@@ -110,7 +106,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void ClearLastDamaged()
 		{
-			Function.Call(Hash.CLEAR_PED_LAST_DAMAGE_BONE, _owner.Handle);
+			API.ClearPedLastDamageBone(_owner.Handle);
 		}
 
 		public new IEnumerator<PedBone> GetEnumerator()

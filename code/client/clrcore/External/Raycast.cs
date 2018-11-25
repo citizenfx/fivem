@@ -5,23 +5,14 @@ namespace CitizenFX.Core
 {
 	public struct RaycastResult
 	{
-        [SecuritySafeCritical]
-        public RaycastResult(int handle) : this()
+		public RaycastResult(int handle) : this()
 		{
-			InitializeCritical(handle);
-		}
+			Vector3 hitPositionArg = new Vector3();
+			bool hitSomethingArg = false;
+			int entityHandleArg = 0;
+			Vector3 surfaceNormalArg = new Vector3();
 
-		[SecurityCritical]
-		private void InitializeCritical(int handle)
-		{
-			NativeVector3 hitPositionArg;
-			bool hitSomethingArg;
-			int entityHandleArg;
-			NativeVector3 surfaceNormalArg;
-			unsafe
-			{
-				Result = Function.Call<int>(Hash.GET_SHAPE_TEST_RESULT, handle, &hitSomethingArg, &hitPositionArg, &surfaceNormalArg, &entityHandleArg);
-			}
+			Result = API.GetShapeTestResult(handle, ref hitSomethingArg, ref hitPositionArg, ref surfaceNormalArg, ref entityHandleArg);
 
 			DitHit = hitSomethingArg;
 			HitPosition = hitPositionArg;

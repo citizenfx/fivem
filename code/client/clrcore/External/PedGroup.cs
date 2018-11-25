@@ -68,7 +68,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public PedGroup() : base(Function.Call<int>(Hash.CREATE_GROUP, 0))
+		public PedGroup() : base(API.CreateGroup(0))
 		{
 		}
 		public PedGroup(int handle) : base(handle)
@@ -84,21 +84,18 @@ namespace CitizenFX.Core
 		{
 			if (disposing)
 			{
-				Function.Call(Hash.REMOVE_GROUP, Handle);
+				API.RemoveGroup(Handle);
 			}
 		}
 
 		public int MemberCount
 		{
-            [SecurityCritical]
-            get
+			get
 			{
-			    long unknBool;
-			    int count;
-				unsafe
-				{
-					Function.Call(Hash.GET_GROUP_SIZE, Handle, &unknBool, &count);
-				}
+				int unknBool = 0;
+				int count = 0;
+
+				API.GetGroupSize(Handle, ref unknBool, ref count);
 
 				return count;
 			}
@@ -108,14 +105,14 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_GROUP_SEPARATION_RANGE, Handle, value);
+				API.SetGroupSeparationRange(Handle, value);
 			}
 		}
 		public FormationType FormationType
 		{
 			set
 			{
-				Function.Call(Hash.SET_GROUP_FORMATION, Handle, value);
+				API.SetGroupFormation(Handle, (int)value);
 			}
 		}
 
@@ -123,7 +120,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return new Ped(Function.Call<int>(Hash._GET_PED_AS_GROUP_LEADER, Handle));
+				return new Ped(API.GetPedAsGroupLeader(Handle));
 			}
 		}
 
@@ -131,24 +128,24 @@ namespace CitizenFX.Core
 		{
 			if (leader)
 			{
-				Function.Call(Hash.SET_PED_AS_GROUP_LEADER, ped.Handle, Handle);
+				API.SetPedAsGroupLeader(ped.Handle, Handle);
 			}
 			else
 			{
-				Function.Call(Hash.SET_PED_AS_GROUP_MEMBER, ped.Handle, Handle);
+				API.SetPedAsGroupMember(ped.Handle, Handle);
 			}
 		}
 		public void Remove(Ped ped)
 		{
-			Function.Call(Hash.REMOVE_PED_FROM_GROUP, ped.Handle);
+			API.RemovePedFromGroup(ped.Handle);
 		}
 		public Ped GetMember(int index)
 		{
-			return new Ped(Function.Call<int>(Hash.GET_PED_AS_GROUP_MEMBER, Handle, index));
+			return new Ped(API.GetPedAsGroupMember(Handle, index));
 		}
 		public bool Contains(Ped ped)
 		{
-			return Function.Call<bool>(Hash.IS_PED_GROUP_MEMBER, ped.Handle, Handle);
+			return API.IsPedGroupMember(ped.Handle, Handle);
 		}
 
 		public Ped[] ToArray(bool includingLeader)
@@ -184,12 +181,12 @@ namespace CitizenFX.Core
 
 		public override void Delete()
 		{
-			Function.Call(Hash.REMOVE_GROUP, Handle);
+			API.RemoveGroup(Handle);
 		}
 
 		public override bool Exists()
 		{
-			return Function.Call<bool>(Hash.DOES_GROUP_EXIST, Handle);
+			return API.DoesGroupExist(Handle);
 		}
 		public static bool Exists(PedGroup pedGroup)
 		{
