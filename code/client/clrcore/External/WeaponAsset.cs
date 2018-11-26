@@ -7,10 +7,10 @@ namespace CitizenFX.Core
 {
 	public class WeaponAsset : INativeValue, IEquatable<WeaponAsset>
 	{
-        public WeaponAsset()
-        {
+		public WeaponAsset()
+		{
 
-        }
+		}
 		public WeaponAsset(int hash) : this()
 		{
 			Hash = hash;
@@ -56,8 +56,8 @@ namespace CitizenFX.Core
 
 			while (!IsLoaded)
 			{
-                await BaseScript.Delay(0);
-                Request();
+				await BaseScript.Delay(0);
+				Request();
 
 				if (DateTime.UtcNow >= endtime)
 				{

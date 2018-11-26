@@ -40,12 +40,12 @@ namespace CitizenFX.Core
 
 		public Weapon Current
 		{
-            [SecuritySafeCritical]
+			[SecuritySafeCritical]
 			get
 			{
-			    int currentWeapon = _GetCurrentWeapon();
+				int currentWeapon = _GetCurrentWeapon();
 
-			    WeaponHash hash = (WeaponHash)currentWeapon;
+				WeaponHash hash = (WeaponHash)currentWeapon;
 
 				if (_weapons.ContainsKey(hash))
 				{
@@ -61,18 +61,18 @@ namespace CitizenFX.Core
 			}
 		}
 
-        [SecurityCritical]
-        private int _GetCurrentWeapon()
-        {
-            int currentWeapon;
+		[SecurityCritical]
+		private int _GetCurrentWeapon()
+		{
+			int currentWeapon;
 
-            unsafe
-            {
-                Function.Call(Hash.GET_CURRENT_PED_WEAPON, _owner.Handle, &currentWeapon, true);
-            }
+			unsafe
+			{
+				Function.Call(Hash.GET_CURRENT_PED_WEAPON, _owner.Handle, &currentWeapon, true);
+			}
 
-            return currentWeapon;
-        }
+			return currentWeapon;
+		}
 
 		public Prop CurrentWeaponObject
 		{

@@ -94,13 +94,13 @@ namespace CitizenFX.Core
 		public bool Variation
 		{
 			get
-			{				  
+			{
 				return Function.Call<bool>(Hash.GET_VEHICLE_MOD_VARIATION, _owner.Handle, ModType);
 			}
 			set
 			{
 				Function.Call(Hash.SET_VEHICLE_MOD, _owner.Handle, ModType, Index, value);
-			}	 
+			}
 
 		}
 
@@ -148,7 +148,7 @@ namespace CitizenFX.Core
 						cur = Game.GetGXTEntry("CMOD_WHE0_1");
 						break;
 
-					  //Bennys
+					//Bennys
 					case VehicleModType.PlateHolder:
 						cur = Game.GetGXTEntry("CMM_MOD_S0");
 						break;
@@ -172,7 +172,7 @@ namespace CitizenFX.Core
 						cur = Game.GetGXTEntry("CMM_MOD_S4");
 						break;
 					case VehicleModType.DialDesign:
-						cur = Game.GetGXTEntry("CMM_MOD_S5"); 
+						cur = Game.GetGXTEntry("CMM_MOD_S5");
 						break;
 					case VehicleModType.DoorSpeakers:
 						cur = Game.GetGXTEntry("CMM_MOD_S6");
@@ -408,7 +408,7 @@ namespace CitizenFX.Core
 						}
 						break;
 					case VehicleModType.Struts:
-						switch ((VehicleHash) _owner.Model)
+						switch ((VehicleHash)_owner.Model)
 						{
 							case VehicleHash.Banshee:
 							case VehicleHash.Banshee2:
@@ -419,7 +419,7 @@ namespace CitizenFX.Core
 
 				}
 				return Game.GetGXTEntry("CMOD_DEF_0");
-			}			
+			}
 		}
 		public int ModCount
 		{

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CitizenFX.Core.Native;
@@ -410,7 +410,7 @@ namespace CitizenFX.Core
 			foreach (var component in this)
 			{
 				if (component.AttachmentPoint == ComponentAttachmentPoint.Clip ||
-				    component.AttachmentPoint == ComponentAttachmentPoint.Clip2)
+					component.AttachmentPoint == ComponentAttachmentPoint.Clip2)
 				{
 					if (index-- == 0)
 					{
@@ -539,14 +539,14 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-        public static WeaponComponentHash[] GetComponentsFromHash(WeaponHash hash)
-        {
-            return _GetComponentsFromHash(hash);
-        }
+		public static WeaponComponentHash[] GetComponentsFromHash(WeaponHash hash)
+		{
+			return _GetComponentsFromHash(hash);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 
-        private static WeaponComponentHash[] _GetComponentsFromHash(WeaponHash hash)
+		private static WeaponComponentHash[] _GetComponentsFromHash(WeaponHash hash)
 		{
 			switch (hash)
 			{
@@ -801,8 +801,8 @@ namespace CitizenFX.Core
 						WeaponComponentHash.RevolverVarmodBoss,
 						WeaponComponentHash.RevolverVarmodGoon,
 					};
-					
-					// GUNRUNNING
+
+				// GUNRUNNING
 				case WeaponHash.PistolMk2:
 					return new WeaponComponentHash[]
 					{
@@ -1010,7 +1010,7 @@ namespace CitizenFX.Core
 						WeaponComponentHash.SMGMk2CamoPatriotic,
 					};
 			}
-			
+
 			WeaponComponentHash[] result = null;
 
 			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
@@ -1023,7 +1023,7 @@ namespace CitizenFX.Core
 						if (weaponData.Hash == hash)
 						{
 							result = new WeaponComponentHash[Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPON_COMPONENTS, i)];
-							
+
 							for (int j = 0; j < result.Length; j++)
 							{
 								DlcWeaponComponentData componentData;
@@ -1041,7 +1041,7 @@ namespace CitizenFX.Core
 					}
 				}
 			}
-			
+
 
 			if (result == null)
 			{

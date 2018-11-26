@@ -367,7 +367,7 @@ namespace CitizenFX.Core
 					Function.Call(Hash._CLEAR_CLOUD_HAT);
 					return;
 				}
-				Function.Call(Hash._SET_CLOUD_HAT_TRANSITION, CloudHatDict.ContainsKey( _currentCloudHat ) ? CloudHatDict[_currentCloudHat] : "", 3f);
+				Function.Call(Hash._SET_CLOUD_HAT_TRANSITION, CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
 			}
 		}
 
@@ -418,7 +418,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-                // CFX-TODO
+				// CFX-TODO
 				/*for (int i = 0; i < _weatherNames.Length; i++)
 				{
 					if (Function.Call<bool>(Hash.IS_NEXT_WEATHER_TYPE, _weatherNames[i]))
@@ -455,15 +455,15 @@ namespace CitizenFX.Core
 			{
 				int currentWeatherHash, nextWeatherHash;
 				float weatherTransition;
-                // CFX-TODO
-                /*unsafe
+				// CFX-TODO
+				/*unsafe
 				{
 					Function.Call(Hash._GET_WEATHER_TYPE_TRANSITION, &currentWeatherHash, &nextWeatherHash, &weatherTransition);
 				}
 
 				return weatherTransition;*/
 
-                return 0.0f;
+				return 0.0f;
 			}
 			set
 			{
@@ -564,9 +564,9 @@ namespace CitizenFX.Core
 				}
 
 				Vector3 position = waypointBlip.Position;
-                position.Z = GetGroundHeight(position);
+				position.Z = GetGroundHeight(position);
 
-                return position;
+				return position;
 			}
 			set
 			{
@@ -615,7 +615,7 @@ namespace CitizenFX.Core
 		/// <returns>The distance</returns>
 		public static float GetDistance(Vector3 origin, Vector3 destination)
 		{
-			return (float) Math.Sqrt(destination.DistanceToSquared(origin));
+			return (float)Math.Sqrt(destination.DistanceToSquared(origin));
 		}
 		/// <summary>
 		/// Calculates the travel distance using roads and paths between 2 positions.
@@ -637,19 +637,19 @@ namespace CitizenFX.Core
 			return GetGroundHeight(new Vector2(position.X, position.Y));
 		}
 
-        /// <summary>
-        /// Gets the height of the ground at a given position.
-        /// </summary>
-        /// <param name="position">The position.</param>
-        /// <returns>The height measured in meters</returns>
-        [SecuritySafeCritical]
-        public static float GetGroundHeight(Vector2 position)
-        {
-            return _GetGroundHeight(position);
-        }
+		/// <summary>
+		/// Gets the height of the ground at a given position.
+		/// </summary>
+		/// <param name="position">The position.</param>
+		/// <returns>The height measured in meters</returns>
+		[SecuritySafeCritical]
+		public static float GetGroundHeight(Vector2 position)
+		{
+			return _GetGroundHeight(position);
+		}
 
-        [SecuritySafeCritical]
-        private static float _GetGroundHeight(Vector2 position)
+		[SecuritySafeCritical]
+		private static float _GetGroundHeight(Vector2 position)
 		{
 			float resultArg;
 
@@ -686,128 +686,128 @@ namespace CitizenFX.Core
 			return res.ToArray();
 		}
 
-        /// <summary>
-        /// Gets an <c>array</c> of all the <see cref="Prop"/>s on the map.
-        /// </summary>
-        public static Prop[] GetAllProps()
-        {
-            List<Prop> props = new List<Prop>();
+		/// <summary>
+		/// Gets an <c>array</c> of all the <see cref="Prop"/>s on the map.
+		/// </summary>
+		public static Prop[] GetAllProps()
+		{
+			List<Prop> props = new List<Prop>();
 
-            OutputArgument entHandleOut = new OutputArgument();
-            int handle = Function.Call<int>(Hash.FIND_FIRST_OBJECT, entHandleOut);
-            int entHandle = entHandleOut.GetResult<int>();
+			OutputArgument entHandleOut = new OutputArgument();
+			int handle = Function.Call<int>(Hash.FIND_FIRST_OBJECT, entHandleOut);
+			int entHandle = entHandleOut.GetResult<int>();
 
-            Prop prop = (Prop)Entity.FromHandle(entHandle);
-            if (prop != null)
-                props.Add(prop);
+			Prop prop = (Prop)Entity.FromHandle(entHandle);
+			if (prop != null)
+				props.Add(prop);
 
-            entHandleOut = new OutputArgument();
-            while (Function.Call<bool>(Hash.FIND_NEXT_OBJECT, handle, entHandleOut))
-            {
-                entHandle = entHandleOut.GetResult<int>();
-                prop = (Prop)Entity.FromHandle(entHandle);
-                if (prop != null)
-                    props.Add(prop);
+			entHandleOut = new OutputArgument();
+			while (Function.Call<bool>(Hash.FIND_NEXT_OBJECT, handle, entHandleOut))
+			{
+				entHandle = entHandleOut.GetResult<int>();
+				prop = (Prop)Entity.FromHandle(entHandle);
+				if (prop != null)
+					props.Add(prop);
 
-                entHandleOut = new OutputArgument();
-            }
+				entHandleOut = new OutputArgument();
+			}
 
-            Function.Call(Hash.END_FIND_OBJECT, handle);
-            return props.ToArray();
-        }
+			Function.Call(Hash.END_FIND_OBJECT, handle);
+			return props.ToArray();
+		}
 
-        /// <summary>
-        /// Gets an <c>array</c> of all the <see cref="Ped"/>s on the map.
-        /// </summary>
-        public static Ped[] GetAllPeds()
-        {
-            List<Ped> peds = new List<Ped>();
+		/// <summary>
+		/// Gets an <c>array</c> of all the <see cref="Ped"/>s on the map.
+		/// </summary>
+		public static Ped[] GetAllPeds()
+		{
+			List<Ped> peds = new List<Ped>();
 
-            OutputArgument entHandleOut = new OutputArgument();
-            int handle = Function.Call<int>(Hash.FIND_FIRST_PED, entHandleOut);
-            int entHandle = entHandleOut.GetResult<int>();
+			OutputArgument entHandleOut = new OutputArgument();
+			int handle = Function.Call<int>(Hash.FIND_FIRST_PED, entHandleOut);
+			int entHandle = entHandleOut.GetResult<int>();
 
-            Ped ped = (Ped)Entity.FromHandle(entHandle);
-            if (ped != null)
-                peds.Add(ped);
+			Ped ped = (Ped)Entity.FromHandle(entHandle);
+			if (ped != null)
+				peds.Add(ped);
 
-            entHandleOut = new OutputArgument();
-            while (Function.Call<bool>(Hash.FIND_NEXT_PED, handle, entHandleOut))
-            {
-                entHandle = entHandleOut.GetResult<int>();
-                ped = (Ped)Entity.FromHandle(entHandle);
-                if (ped != null)
-                    peds.Add(ped);
+			entHandleOut = new OutputArgument();
+			while (Function.Call<bool>(Hash.FIND_NEXT_PED, handle, entHandleOut))
+			{
+				entHandle = entHandleOut.GetResult<int>();
+				ped = (Ped)Entity.FromHandle(entHandle);
+				if (ped != null)
+					peds.Add(ped);
 
-                entHandleOut = new OutputArgument();
-            }
+				entHandleOut = new OutputArgument();
+			}
 
-            Function.Call(Hash.END_FIND_PED, handle);
-            return peds.ToArray();
-        }
+			Function.Call(Hash.END_FIND_PED, handle);
+			return peds.ToArray();
+		}
 
-        /// <summary>
-        /// Gets an <c>array</c> of all the <see cref="Vehicle"/>s on the map.
-        /// </summary>
-        public static Vehicle[] GetAllVehicles()
-        {
-            List<Vehicle> vehicles = new List<Vehicle>();
+		/// <summary>
+		/// Gets an <c>array</c> of all the <see cref="Vehicle"/>s on the map.
+		/// </summary>
+		public static Vehicle[] GetAllVehicles()
+		{
+			List<Vehicle> vehicles = new List<Vehicle>();
 
-            OutputArgument entHandleOut = new OutputArgument();
-            int handle = Function.Call<int>(Hash.FIND_FIRST_VEHICLE, entHandleOut);
-            int entHandle = entHandleOut.GetResult<int>();
+			OutputArgument entHandleOut = new OutputArgument();
+			int handle = Function.Call<int>(Hash.FIND_FIRST_VEHICLE, entHandleOut);
+			int entHandle = entHandleOut.GetResult<int>();
 
-            Vehicle vehicle = (Vehicle)Entity.FromHandle(entHandle);
-            if (vehicle != null)
-                vehicles.Add(vehicle);
+			Vehicle vehicle = (Vehicle)Entity.FromHandle(entHandle);
+			if (vehicle != null)
+				vehicles.Add(vehicle);
 
-            entHandleOut = new OutputArgument();
-            while (Function.Call<bool>(Hash.FIND_NEXT_VEHICLE, handle, entHandleOut))
-            {
-                entHandle = entHandleOut.GetResult<int>();
-                vehicle = (Vehicle)Entity.FromHandle(entHandle);
-                if (vehicle != null)
-                    vehicles.Add(vehicle);
+			entHandleOut = new OutputArgument();
+			while (Function.Call<bool>(Hash.FIND_NEXT_VEHICLE, handle, entHandleOut))
+			{
+				entHandle = entHandleOut.GetResult<int>();
+				vehicle = (Vehicle)Entity.FromHandle(entHandle);
+				if (vehicle != null)
+					vehicles.Add(vehicle);
 
-                entHandleOut = new OutputArgument();
-            }
+				entHandleOut = new OutputArgument();
+			}
 
-            Function.Call(Hash.END_FIND_VEHICLE, handle);
-            return vehicles.ToArray();
-        }
+			Function.Call(Hash.END_FIND_VEHICLE, handle);
+			return vehicles.ToArray();
+		}
 
-        /// <summary>
-        /// Gets an <c>array</c> of all the <see cref="Pickup"/>s on the map.
-        /// </summary>
-        public static Pickup[] GetAllPickups()
-        {
-            List<Pickup> pickups = new List<Pickup>();
+		/// <summary>
+		/// Gets an <c>array</c> of all the <see cref="Pickup"/>s on the map.
+		/// </summary>
+		public static Pickup[] GetAllPickups()
+		{
+			List<Pickup> pickups = new List<Pickup>();
 
-            OutputArgument entHandleOut = new OutputArgument();
-            int handle = Function.Call<int>(Hash.FIND_FIRST_PICKUP, entHandleOut);
-            int entHandle = entHandleOut.GetResult<int>();
+			OutputArgument entHandleOut = new OutputArgument();
+			int handle = Function.Call<int>(Hash.FIND_FIRST_PICKUP, entHandleOut);
+			int entHandle = entHandleOut.GetResult<int>();
 
-            Pickup pickup = new Pickup(entHandle);
-            if (pickup.Exists())
-                pickups.Add(pickup);
+			Pickup pickup = new Pickup(entHandle);
+			if (pickup.Exists())
+				pickups.Add(pickup);
 
-            entHandleOut = new OutputArgument();
-            while (Function.Call<bool>(Hash.FIND_NEXT_PICKUP, handle, entHandleOut))
-            {
-                entHandle = entHandleOut.GetResult<int>();
-                pickup = new Pickup(entHandle);
-                if (pickup.Exists())
-                    pickups.Add(pickup);
+			entHandleOut = new OutputArgument();
+			while (Function.Call<bool>(Hash.FIND_NEXT_PICKUP, handle, entHandleOut))
+			{
+				entHandle = entHandleOut.GetResult<int>();
+				pickup = new Pickup(entHandle);
+				if (pickup.Exists())
+					pickups.Add(pickup);
 
-                entHandleOut = new OutputArgument();
-            }
+				entHandleOut = new OutputArgument();
+			}
 
-            Function.Call(Hash.END_FIND_PICKUP, handle);
-            return pickups.ToArray();
-        }
+			Function.Call(Hash.END_FIND_PICKUP, handle);
+			return pickups.ToArray();
+		}
 
-        // CFX-TODO
-        /*
+		// CFX-TODO
+		/*
 		/// <summary>
 		/// Gets an <c>array</c> of all the <see cref="Checkpoint"/>s.
 		/// </summary>
@@ -1029,14 +1029,14 @@ namespace CitizenFX.Core
 		}
         */
 
-        /// <summary>
-        /// Gets the closest <see cref="ISpatial"/> to a given position in the World.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="position">The position to check against.</param>
-        /// <param name="spatials">The spatials to check.</param>
-        /// <returns>The closest <see cref="ISpatial"/> to the <paramref name="position"/></returns>
-        public static T GetClosest<T>(Vector3 position, params T[] spatials) where T : ISpatial
+		/// <summary>
+		/// Gets the closest <see cref="ISpatial"/> to a given position in the World.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="position">The position to check against.</param>
+		/// <param name="spatials">The spatials to check.</param>
+		/// <returns>The closest <see cref="ISpatial"/> to the <paramref name="position"/></returns>
+		public static T GetClosest<T>(Vector3 position, params T[] spatials) where T : ISpatial
 		{
 			ISpatial closest = null;
 			float closestDistance = 3e38f;
@@ -1065,11 +1065,11 @@ namespace CitizenFX.Core
 			ISpatial closest = null;
 			float closestDistance = 3e38f;
 			Vector3 pos = new Vector3(position.X, position.Y, 0.0f);
-			foreach(var spatial in spatials)
+			foreach (var spatial in spatials)
 			{
 				float distance = pos.DistanceToSquared2D(spatial.Position);
 
-				if(distance <= closestDistance)
+				if (distance <= closestDistance)
 				{
 					closest = spatial;
 					closestDistance = distance;
@@ -1078,20 +1078,20 @@ namespace CitizenFX.Core
 			return (T)closest;
 		}
 
-        /// <summary>
-        /// Gets the nearest safe coordinate to position a <see cref="Ped"/>.
-        /// </summary>
-        /// <param name="position">The position to check around.</param>
-        /// <param name="sidewalk">if set to <c>true</c> Only find positions on the sidewalk.</param>
-        /// <param name="flags">The flags.</param>
-        [SecuritySafeCritical]
-        public static Vector3 GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
-        {
-            return _GetSafeCoordForPed(position, sidewalk, flags);
-        }
+		/// <summary>
+		/// Gets the nearest safe coordinate to position a <see cref="Ped"/>.
+		/// </summary>
+		/// <param name="position">The position to check around.</param>
+		/// <param name="sidewalk">if set to <c>true</c> Only find positions on the sidewalk.</param>
+		/// <param name="flags">The flags.</param>
+		[SecuritySafeCritical]
+		public static Vector3 GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
+		{
+			return _GetSafeCoordForPed(position, sidewalk, flags);
+		}
 
-        [SecuritySafeCritical]
-        private static Vector3 _GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
+		[SecuritySafeCritical]
+		private static Vector3 _GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
 		{
 			NativeVector3 outPos;
 			unsafe
@@ -1113,19 +1113,19 @@ namespace CitizenFX.Core
 		{
 			return GetNextPositionOnStreet(new Vector3(position.X, position.Y, 0f), unoccupied);
 		}
-        /// <summary>
-        /// Gets the next position on the street where a <see cref="Vehicle"/> can be placed.
-        /// </summary>
-        /// <param name="position">The position to check around.</param>
-        /// <param name="unoccupied">if set to <c>true</c> only find positions that dont already have a vehicle in them.</param>
-        [SecuritySafeCritical]
-        public static Vector3 GetNextPositionOnStreet(Vector3 position, bool unoccupied = false)
-        {
-            return _GetNextPositionOnStreet(position, unoccupied);
-        }
+		/// <summary>
+		/// Gets the next position on the street where a <see cref="Vehicle"/> can be placed.
+		/// </summary>
+		/// <param name="position">The position to check around.</param>
+		/// <param name="unoccupied">if set to <c>true</c> only find positions that dont already have a vehicle in them.</param>
+		[SecuritySafeCritical]
+		public static Vector3 GetNextPositionOnStreet(Vector3 position, bool unoccupied = false)
+		{
+			return _GetNextPositionOnStreet(position, unoccupied);
+		}
 
-        [SecurityCritical]
-        private static Vector3 _GetNextPositionOnStreet(Vector3 position, bool unoccupied = false)
+		[SecurityCritical]
+		private static Vector3 _GetNextPositionOnStreet(Vector3 position, bool unoccupied = false)
 		{
 			NativeVector3 outPos;
 
@@ -1168,14 +1168,14 @@ namespace CitizenFX.Core
 		/// Gets the next position on the street where a <see cref="Ped"/> can be placed.
 		/// </summary>
 		/// <param name="position">The position to check around.</param>
-        [SecuritySafeCritical]
-        public static Vector3 GetNextPositionOnSidewalk(Vector3 position)
-        {
-            return _GetNextPositionOnSidewalk(position);
-        }
+		[SecuritySafeCritical]
+		public static Vector3 GetNextPositionOnSidewalk(Vector3 position)
+		{
+			return _GetNextPositionOnSidewalk(position);
+		}
 
-        [SecurityCritical]
-        private static Vector3 _GetNextPositionOnSidewalk(Vector3 position)
+		[SecurityCritical]
+		private static Vector3 _GetNextPositionOnSidewalk(Vector3 position)
 		{
 			NativeVector3 outPos;
 
@@ -1233,13 +1233,13 @@ namespace CitizenFX.Core
 			return GetStreetName(new Vector3(position.X, position.Y, 0f));
 		}
 
-        [SecuritySafeCritical]
-        public static string GetStreetName(Vector3 position)
-        {
-            return _GetStreetName(position);
-        }
+		[SecuritySafeCritical]
+		public static string GetStreetName(Vector3 position)
+		{
+			return _GetStreetName(position);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 		private static string _GetStreetName(Vector3 position)
 		{
 			int streetHash, crossingHash;
@@ -1328,13 +1328,13 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
 		/// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
-        [SecuritySafeCritical]
-        public static Vehicle CreateRandomVehicle(Vector3 position, float heading = 0f)
-        {
-            return _CreateRandomVehicle(position, heading);
-        }
+		[SecuritySafeCritical]
+		public static Vehicle CreateRandomVehicle(Vector3 position, float heading = 0f)
+		{
+			return _CreateRandomVehicle(position, heading);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 		private static Vehicle _CreateRandomVehicle(Vector3 position, float heading = 0f)
 		{
 			int outModel, outInt;
@@ -1511,7 +1511,7 @@ namespace CitizenFX.Core
 		{
 			int handle = Function.Call<int>(Hash.CREATE_CHECKPOINT, 42, position.X, position.Y, position.Z, pointTo.X, pointTo.Y, pointTo.Z, radius, color.R, color.G, color.B, color.A, icon);
 
-			if(handle == 0)
+			if (handle == 0)
 			{
 				return null;
 			}
@@ -1572,18 +1572,18 @@ namespace CitizenFX.Core
 			}
 		}
 
-        /// <summary>
-        /// Creates a <see cref="RelationshipGroup"/> with the given name.
-        /// </summary>
-        /// <param name="name">The name of the relationship group.</param>
-        [SecuritySafeCritical]
-        public static RelationshipGroup AddRelationshipGroup(string name)
-        {
-            return _AddRelationshipGroup(name);
-        }
+		/// <summary>
+		/// Creates a <see cref="RelationshipGroup"/> with the given name.
+		/// </summary>
+		/// <param name="name">The name of the relationship group.</param>
+		[SecuritySafeCritical]
+		public static RelationshipGroup AddRelationshipGroup(string name)
+		{
+			return _AddRelationshipGroup(name);
+		}
 
-        [SecuritySafeCritical]
-        private static RelationshipGroup _AddRelationshipGroup(string name)
+		[SecuritySafeCritical]
+		private static RelationshipGroup _AddRelationshipGroup(string name)
 		{
 			int resultArg;
 			unsafe

@@ -156,7 +156,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return  GetDisplayNameFromHash(Hash);
+				return GetDisplayNameFromHash(Hash);
 			}
 		}
 		public string LocalizedName
@@ -275,7 +275,7 @@ namespace CitizenFX.Core
 					return 1;
 				}
 
-			    int maxAmmo;
+				int maxAmmo;
 				unsafe
 				{
 					Function.Call(Native.Hash.GET_MAX_AMMO, _owner.Handle, Hash, &maxAmmo);
@@ -361,7 +361,7 @@ namespace CitizenFX.Core
 			{
 				WeaponComponent comp = Components.GetMk2CamoComponent((int)liveryID);
 				comp.Active = true;
-				Function.Call((Hash)0x9FE5633880ECD8ED, Game.PlayerPed.Handle, Hash, comp.ComponentHash, (int) colorID);
+				Function.Call((Hash)0x9FE5633880ECD8ED, Game.PlayerPed.Handle, Hash, comp.ComponentHash, (int)colorID);
 			}
 			else
 			{

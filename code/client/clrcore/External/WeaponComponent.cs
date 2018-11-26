@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CitizenFX.Core.Native;
 using System.Security;
 
@@ -92,13 +92,13 @@ namespace CitizenFX.Core
 			get { return GetAttachmentPoint(_weapon.Hash, _component); }
 		}
 
-        [SecuritySafeCritical]
-        public static string GetComponentDisplayNameFromHash(WeaponHash hash, WeaponComponentHash component)
-        {
-            return _GetComponentDisplayNameFromHash(hash, component);
-        }
+		[SecuritySafeCritical]
+		public static string GetComponentDisplayNameFromHash(WeaponHash hash, WeaponComponentHash component)
+		{
+			return _GetComponentDisplayNameFromHash(hash, component);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 		private static string _GetComponentDisplayNameFromHash(WeaponHash hash, WeaponComponentHash component)
 		{
 			if (hash == WeaponHash.KnuckleDuster)
@@ -107,7 +107,7 @@ namespace CitizenFX.Core
 				{
 					case WeaponComponentHash.KnuckleVarmodBase:
 						return "WT_KNUCKLE";
-						case WeaponComponentHash.KnuckleVarmodPimp:
+					case WeaponComponentHash.KnuckleVarmodPimp:
 						return "WCT_KNUCK_02";
 					case WeaponComponentHash.KnuckleVarmodBallas:
 						return "WCT_KNUCK_BG";
@@ -456,13 +456,13 @@ namespace CitizenFX.Core
 			return result;
 		}
 
-        [SecuritySafeCritical]
-        public static ComponentAttachmentPoint GetAttachmentPoint(WeaponHash hash, WeaponComponentHash componentHash)
-        {
-            return _GetAttachmentPoint(hash, componentHash);
-        }
+		[SecuritySafeCritical]
+		public static ComponentAttachmentPoint GetAttachmentPoint(WeaponHash hash, WeaponComponentHash componentHash)
+		{
+			return _GetAttachmentPoint(hash, componentHash);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 		private static ComponentAttachmentPoint _GetAttachmentPoint(WeaponHash hash, WeaponComponentHash componentHash)
 		{
 			switch (hash)
@@ -1184,7 +1184,7 @@ namespace CitizenFX.Core
 
 	public class InvalidWeaponComponent : WeaponComponent
 	{
-		internal InvalidWeaponComponent(): base(null, null, WeaponComponentHash.Invalid)
+		internal InvalidWeaponComponent() : base(null, null, WeaponComponentHash.Invalid)
 		{
 		}
 
