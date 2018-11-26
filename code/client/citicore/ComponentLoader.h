@@ -95,6 +95,26 @@ class EXPORTED_TYPE RunnableComponent : public Component
 {
 public:
 	virtual void Run() = 0;
+
+	virtual bool IsA(uint32_t type)
+	{
+		if (type == HashString("RunnableComponent"))
+		{
+			return true;
+		}
+
+		return Component::IsA(type);
+	}
+
+	virtual void* As(uint32_t type)
+	{
+		if (type == HashString("RunnableComponent"))
+		{
+			return static_cast<RunnableComponent*>(this);
+		}
+
+		return Component::As(type);
+	}
 };
 
 class CORE_EXPORT ComponentData : public fwRefCountable
