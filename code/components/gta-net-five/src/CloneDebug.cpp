@@ -472,7 +472,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (shouldWriteNode)
 				{
-					node->WriteObject(state.object, buffer, state.logger, true);
+					node->WriteObject(state.object, buffer, state.logger, false);
 
 					didWrite = true;
 				}
