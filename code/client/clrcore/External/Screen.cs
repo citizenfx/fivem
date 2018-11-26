@@ -619,9 +619,7 @@ namespace CitizenFX.Core.UI
 
 			public static bool IsActive(ScreenEffect screenEffect)
 			{
-				// TODO: Convert it to the following (currently impossible due to some idiot setting the parameter type to BOOL):
-				// return API.GetScreenEffectIsActive(EffectToString(screenEffect));
-				return Function.Call<bool>(Hash._GET_SCREEN_EFFECT_IS_ACTIVE, EffectToString(screenEffect));
+				return API.GetScreenEffectIsActive(EffectToString(screenEffect));
 			}
 		}
 	}

@@ -47,9 +47,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				// TODO: convert this to the native api call when the return value is fixed in the natives repo.
-				// return API.IsVehicleDoorFullyOpen(_owner.Handle, (int)Index);
-				return Function.Call<bool>(Hash.IS_VEHICLE_DOOR_FULLY_OPEN, _owner.Handle, Index);
+				return API.IsVehicleDoorFullyOpen(_owner.Handle, (int)Index);
 			}
 		}
 		public bool IsBroken
