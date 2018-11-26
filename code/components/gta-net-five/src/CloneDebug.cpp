@@ -560,6 +560,11 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 }
 }
 
+void DirtyNode(void* object, void* node)
+{
+	rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node].lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+}
+
 static bool g_captureSyncLog;
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree)

@@ -1270,6 +1270,21 @@ static void UpdateSyncDataOn108Stub(void* node, void* object)
 	}
 }
 
+static void(*g_origManuallyDirtyNode)(void* node, void* object);
+
+extern void DirtyNode(void* object, void* node);
+
+static void ManuallyDirtyNodeStub(void* node, void* object)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		g_origManuallyDirtyNode(node, object);
+		return;
+	}
+
+	DirtyNode(object, node);
+}
+
 static void(*g_origCallSkip)(void* a1, void* a2, void* a3, void* a4, void* a5);
 
 static void SkipCopyIf1s(void* a1, void* a2, void* a3, void* a4, void* a5)
@@ -1300,6 +1315,8 @@ static HookFunction hookFunction2([]()
 			hook::call(floc + 0xD9, SkipCopyIf1s);
 			MH_CreateHook(floc, UpdateSyncDataOn108Stub, (void**)&g_origUpdateSyncDataOn108);
 		}
+
+		MH_CreateHook(hook::get_pattern("48 83 79 48 00 48 8B D9 74 19", -6), ManuallyDirtyNodeStub, (void**)&g_origManuallyDirtyNode);
 
 		MH_EnableHook(MH_ALL_HOOKS);
 	}

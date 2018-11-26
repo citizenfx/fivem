@@ -724,6 +724,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 			// this isn't remote anymore
 			obj->syncData.isRemote = false;
+			obj->syncData.nextOwnerId = -1;
 
 			// give us the object ID
 			ObjectIds_AddObjectId(msg.GetObjectId());
@@ -742,6 +743,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 				player->physicalPlayerIndex = lastId;
 
 				obj->syncData.isRemote = true;
+				obj->syncData.nextOwnerId = -1;
 			}
 		}
 
