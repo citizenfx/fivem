@@ -19,7 +19,7 @@ namespace CitizenFX.Core
 		BlueOnWhite2 = 0,
 		BlueOnWhite3 = 4,
 		YellowOnBlack = 1,
-		YellowOnBlue = 2,		
+		YellowOnBlue = 2,
 		NorthYankton = 5
 	}
 	public enum LicensePlateType
@@ -302,7 +302,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return GetModelDisplayName(base.Model);
+				return GetModelDisplayName(Model);
 			}
 		}
 		/// <summary>
@@ -312,7 +312,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Game.GetGXTEntry(Function.Call<ulong>(Hash.GET_DISPLAY_NAME_FROM_VEHICLE_MODEL, base.Model));
+				return Game.GetGXTEntry(API.GetDisplayNameFromVehicleModel((uint)Model.Hash));
 			}
 		}
 
@@ -346,7 +346,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<VehicleClass>(Hash.GET_VEHICLE_CLASS, Handle);
+				return (VehicleClass)API.GetVehicleClass(Handle);
 			}
 		}
 
@@ -357,11 +357,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_BODY_HEALTH, Handle);
+				return API.GetVehicleBodyHealth(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_BODY_HEALTH, Handle, value);
+				API.SetVehicleBodyHealth(Handle, value);
 			}
 		}
 		/// <summary>
@@ -371,11 +371,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_ENGINE_HEALTH, Handle);
+				return API.GetVehicleEngineHealth(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_ENGINE_HEALTH, Handle, value);
+				API.SetVehicleEngineHealth(Handle, value);
 			}
 		}
 		/// <summary>
@@ -385,11 +385,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_PETROL_TANK_HEALTH, Handle);
+				return API.GetVehiclePetrolTankHealth(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_PETROL_TANK_HEALTH, Handle, value);
+				API.SetVehiclePetrolTankHealth(Handle, value);
 			}
 		}
 		/// <summary>
@@ -456,8 +456,15 @@ namespace CitizenFX.Core
 				{
 					return false;
 				}
-
 				return API.IsVehicleEngineStarting(Handle);
+			}
+			set
+			{
+				if ((IsEngineStarting || IsEngineRunning) && value)
+				{
+					return;
+				}
+				API.SetVehicleEngineOn(Handle, value, value ? false : true, true);
 			}
 		}
 		/// <summary>
@@ -467,8 +474,18 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_RADIO_ENABLED, Handle, value);
+				API.SetVehicleRadioEnabled(Handle, value);
 			}
+			get
+			{
+				// not the greatest way, but at least it's something...
+				if (Game.PlayerPed.IsInVehicle(this))
+				{
+					return API.IsPlayerVehicleRadioEnabled();
+				}
+				return false;
+			}
+
 		}
 		/// <summary>
 		/// Sets this <see cref="Vehicle"/>s radio station.
@@ -477,13 +494,16 @@ namespace CitizenFX.Core
 		{
 			set
 			{
+				// you need to enable it first before chaning the station to prevent your script from crashing.
+				API.SetVehicleRadioEnabled(Handle, true);
+
 				if (value == RadioStation.RadioOff)
 				{
-					Function.Call(Hash.SET_VEH_RADIO_STATION, "OFF");
+					API.SetVehRadioStation(Handle, "OFF");
 				}
 				else if (Enum.IsDefined(typeof(RadioStation), value))
 				{
-					Function.Call(Hash.SET_VEH_RADIO_STATION, Game._radioNames[(int)value]);
+					API.SetVehRadioStation(Handle, Game._radioNames[(int)value]);
 				}
 			}
 		}
@@ -498,18 +518,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_ENTITY_SPEED, Handle);
+				return API.GetEntitySpeed(Handle);
 			}
 			set
 			{
 				if (Model.IsTrain)
 				{
-					Function.Call(Hash.SET_TRAIN_SPEED, Handle, value);
-					Function.Call(Hash.SET_TRAIN_CRUISE_SPEED, Handle, value);
+					API.SetTrainSpeed(Handle, value);
+					API.SetTrainCruiseSpeed(Handle, value);
 				}
 				else
 				{
-					Function.Call(Hash.SET_VEHICLE_FORWARD_SPEED, Handle, value);
+					API.SetVehicleForwardSpeed(Handle, value);
 				}
 			}
 		}
@@ -602,7 +622,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_ALARM, Handle, value);
+				API.SetVehicleAlarm(Handle, value);
 			}
 
 			get => API.IsVehicleAlarmSet(Handle);
@@ -617,7 +637,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_ALARM_ACTIVATED, Handle);
+				return API.IsVehicleAlarmActivated(Handle);
 			}
 		}
 		/// <summary>
@@ -638,7 +658,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void StartAlarm()
 		{
-			Function.Call(Hash.START_VEHICLE_ALARM, Handle);
+			API.StartVehicleAlarm(Handle);
 		}
 
 		/// <summary>
@@ -664,11 +684,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_SIREN_ON, Handle);
+				return API.IsVehicleSirenOn(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_SIREN, Handle, value);
+				API.SetVehicleSiren(Handle, value);
 			}
 		}
 		/// <summary>
@@ -681,8 +701,8 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				// Sets if the siren is silent actually 
-				Function.Call(Hash.DISABLE_VEHICLE_IMPACT_EXPLOSION_ACTIVATION, Handle, value);
+				// Sets if the siren is silent actually
+				API.DisableVehicleImpactExplosionActivation(Handle, value);
 			}
 		}
 		/// <summary>
@@ -691,7 +711,7 @@ namespace CitizenFX.Core
 		/// <param name="duration">The duration to sound the horn for.</param>
 		public void SoundHorn(int duration)
 		{
-			Function.Call(Hash.START_VEHICLE_HORN, Handle, duration, Game.GenerateHash("HELDDOWN"), 0);
+			API.StartVehicleHorn(Handle, duration, (uint)Game.GenerateHash("HELDDOWN"), false);
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Vehicle"/> is wanted by the police.
@@ -704,7 +724,7 @@ namespace CitizenFX.Core
 			get => API.IsVehicleWanted(Handle);
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_IS_WANTED, Handle, value);
+				API.SetVehicleIsWanted(Handle, value);
 			}
 		}
 
@@ -730,7 +750,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_PROVIDES_COVER, Handle, value);
+				API.SetVehicleProvidesCover(Handle, value);
 			}
 		}
 
@@ -741,7 +761,7 @@ namespace CitizenFX.Core
 		/// <c>true</c> if this <see cref="Vehicle"/> drops money when destroyed; otherwise, <c>false</c>.
 		/// </value>
 		public bool DropsMoneyOnExplosion
-		{		   
+		{
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -758,7 +778,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash._SET_VEHICLE_CREATES_MONEY_PICKUPS_WHEN_EXPLODED, Handle, value);
+				API.SetVehicleCreatesMoneyPickupsWhenExploded(Handle, value);
 			}
 		}
 
@@ -773,7 +793,7 @@ namespace CitizenFX.Core
 			get => API.IsVehiclePreviouslyOwnedByPlayer(Handle);
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_HAS_BEEN_OWNED_BY_PLAYER, Handle, value);
+				API.SetVehicleHasBeenOwnedByPlayer(Handle, value);
 			}
 		}
 
@@ -788,7 +808,7 @@ namespace CitizenFX.Core
 			get => API.IsVehicleNeedsToBeHotwired(Handle);
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_NEEDS_TO_BE_HOTWIRED, Handle, value);
+				API.SetVehicleNeedsToBeHotwired(Handle, value);
 			}
 		}
 
@@ -800,20 +820,17 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool AreLightsOn
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				bool lightState1, lightState2;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_LIGHTS_STATE, Handle, &lightState1, &lightState2);
-				}
+				bool lightState1 = false, lightState2 = false;
+
+				API.GetVehicleLightsState(Handle, ref lightState1, ref lightState2);
 
 				return lightState1;
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_LIGHTS, Handle, value ? 3 : 4);
+				API.SetVehicleLights(Handle, value ? 3 : 4);
 			}
 		}
 		/// <summary>
@@ -824,20 +841,17 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool AreHighBeamsOn
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				bool lightState1, lightState2;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_LIGHTS_STATE, Handle, &lightState1, &lightState2);
-				}
+				bool lightState1 = false, lightState2 = false;
+
+				API.GetVehicleLightsState(Handle, ref lightState1, ref lightState2);
 
 				return lightState2;
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_FULLBEAM, Handle, value);
+				API.SetVehicleFullbeam(Handle, value);
 			}
 		}
 		/// <summary>
@@ -851,7 +865,7 @@ namespace CitizenFX.Core
 			get => API.IsVehicleInteriorLightOn(Handle);
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_INTERIORLIGHT, Handle, value);
+				API.SetVehicleInteriorlight(Handle, value);
 			}
 		}
 		/// <summary>
@@ -864,11 +878,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_SEARCHLIGHT_ON, Handle);
+				return API.IsVehicleSearchlightOn(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_SEARCHLIGHT, Handle, value, 0);
+				API.SetVehicleSearchlight(Handle, value, false);
 			}
 		}
 		/// <summary>
@@ -881,11 +895,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_TAXI_LIGHT_ON, Handle);
+				return API.IsTaxiLightOn(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_TAXI_LIGHTS, Handle, value);
+				API.SetTaxiLights(Handle, value);
 			}
 		}
 		/// <summary>
@@ -898,7 +912,16 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_INDICATOR_LIGHTS, Handle, true, value);
+				API.SetVehicleIndicatorLights(Handle, 1, value);
+			}
+			get
+			{
+				int val = API.GetVehicleIndicatorLights(Handle);
+				if (val == 1 || val == 3)
+				{
+					return true;
+				}
+				return false;
 			}
 		}
 		/// <summary>
@@ -911,7 +934,16 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_INDICATOR_LIGHTS, Handle, false, value);
+				API.SetVehicleIndicatorLights(Handle, 0, value);
+			}
+			get
+			{
+				int val = API.GetVehicleIndicatorLights(Handle);
+				if (val >= 2)
+				{
+					return true;
+				}
+				return false;
 			}
 		}
 		/// <summary>
@@ -924,8 +956,13 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_HANDBRAKE, Handle, value);
+				API.SetVehicleHandbrake(Handle, value);
 			}
+			get
+			{
+				return API.GetVehicleHandbrake(Handle);
+			}
+
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Vehicle"/> has its brake light on.
@@ -937,14 +974,14 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_BRAKE_LIGHTS, Handle, value);
+				API.SetVehicleBrakeLights(Handle, value);
 			}
 		}
 		public float LightsMultiplier
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_LIGHT_MULTIPLIER, Handle, value);
+				API.SetVehicleLightMultiplier(Handle, value);
 			}
 		}
 
@@ -952,7 +989,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_CAN_BE_VISIBLY_DAMAGED, Handle, value);
+				API.SetVehicleCanBeVisiblyDamaged(Handle, value);
 			}
 		}
 
@@ -960,32 +997,42 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash._IS_VEHICLE_DAMAGED, Handle);
+				return API.IsVehicleDamaged(Handle);
 			}
 		}
 		public bool IsDriveable
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_DRIVEABLE, Handle, 0);
+				return API.IsVehicleDriveable(Handle, false);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_UNDRIVEABLE, Handle, !value);
+				API.SetVehicleUndriveable(Handle, !value);
+			}
+		}
+		/// <summary>
+		/// Gets whether or not the engine is on fire and losing health rapdily.
+		/// </summary>
+		public bool IsEngineOnFire
+		{
+			get
+			{
+				return API.IsVehicleEngineOnFire(Handle);
 			}
 		}
 		public bool HasRoof
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.DOES_VEHICLE_HAVE_ROOF, Handle);
+				return API.DoesVehicleHaveRoof(Handle);
 			}
 		}
 		public bool IsLeftHeadLightBroken
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_IS_LEFT_VEHICLE_HEADLIGHT_DAMAGED, Handle);
+				return API.GetIsLeftVehicleHeadlightDamaged(Handle);
 			}
 			set
 			{
@@ -1010,7 +1057,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_IS_RIGHT_VEHICLE_HEADLIGHT_DAMAGED, Handle);
+				return API.GetIsRightVehicleHeadlightDamaged(Handle);
 			}
 			set
 			{
@@ -1035,14 +1082,14 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_BUMPER_BROKEN_OFF, Handle, false);
+				return API.IsVehicleBumperBrokenOff(Handle, false);
 			}
 		}
 		public bool IsFrontBumperBrokenOff
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_BUMPER_BROKEN_OFF, Handle, true);
+				return API.IsVehicleBumperBrokenOff(Handle, true);
 			}
 		}
 
@@ -1050,7 +1097,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call<bool>(Hash.SET_VEHICLE_HAS_STRONG_AXLES, Handle, value);
+				API.SetVehicleHasStrongAxles(Handle, value);
 			}
 		}
 
@@ -1058,21 +1105,21 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_ENGINE_CAN_DEGRADE, Handle, value);
+				API.SetVehicleEngineCanDegrade(Handle, value);
 			}
 		}
 		public float EnginePowerMultiplier
 		{
 			set
 			{
-				Function.Call(Hash._SET_VEHICLE_ENGINE_POWER_MULTIPLIER, Handle, value);
+				API.SetVehicleEnginePowerMultiplier(Handle, value);
 			}
 		}
 		public float EngineTorqueMultiplier
 		{
 			set
 			{
-				Function.Call(Hash._SET_VEHICLE_ENGINE_TORQUE_MULTIPLIER, Handle, value);
+				API.SetVehicleEngineTorqueMultiplier(Handle, value);
 			}
 		}
 
@@ -1080,36 +1127,36 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<VehicleLandingGearState>(Hash.GET_LANDING_GEAR_STATE, Handle);
+				return (VehicleLandingGearState)API.GetLandingGearState(Handle);
 			}
 			set
 			{
-				Function.Call(Hash._SET_VEHICLE_LANDING_GEAR, Handle, value);
+				API.SetVehicleLandingGear(Handle, (int)value);
 			}
 		}
 		public VehicleRoofState RoofState
 		{
 			get
 			{
-				return Function.Call<VehicleRoofState>(Hash.GET_CONVERTIBLE_ROOF_STATE, Handle);
+				return (VehicleRoofState)API.GetConvertibleRoofState(Handle);
 			}
 			set
 			{
 				switch (value)
 				{
 					case VehicleRoofState.Closed:
-						Function.Call(Hash.RAISE_CONVERTIBLE_ROOF, Handle, true);
-						Function.Call(Hash.RAISE_CONVERTIBLE_ROOF, Handle, false);
+						API.RaiseConvertibleRoof(Handle, true);
+						API.RaiseConvertibleRoof(Handle, false);
 						break;
 					case VehicleRoofState.Closing:
-						Function.Call(Hash.RAISE_CONVERTIBLE_ROOF, Handle, false);
+						API.RaiseConvertibleRoof(Handle, false);
 						break;
 					case VehicleRoofState.Opened:
-						Function.Call(Hash.LOWER_CONVERTIBLE_ROOF, Handle, true);
-						Function.Call(Hash.LOWER_CONVERTIBLE_ROOF, Handle, false);
+						API.LowerConvertibleRoof(Handle, true);
+						API.LowerConvertibleRoof(Handle, false);
 						break;
 					case VehicleRoofState.Opening:
-						Function.Call(Hash.LOWER_CONVERTIBLE_ROOF, Handle, false);
+						API.LowerConvertibleRoof(Handle, false);
 						break;
 				}
 			}
@@ -1118,11 +1165,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<VehicleLockStatus>(Hash.GET_VEHICLE_DOOR_LOCK_STATUS, Handle);
+				return (VehicleLockStatus)API.GetVehicleDoorLockStatus(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_DOORS_LOCKED, Handle, value);
+				API.SetVehicleDoorsLocked(Handle, (int)value);
 			}
 		}
 
@@ -1130,40 +1177,37 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_MAX_BRAKING, Handle);
+				return API.GetVehicleMaxBraking(Handle);
 			}
 		}
 		public float MaxTraction
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_MAX_TRACTION, Handle);
+				return API.GetVehicleMaxTraction(Handle);
 			}
 		}
 
 		public bool IsOnAllWheels
 		{
-
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_ON_ALL_WHEELS, Handle);
+				return API.IsVehicleOnAllWheels(Handle);
 			}
 		}
 
 		public bool IsStopped
 		{
-
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_STOPPED, Handle);
+				return API.IsVehicleStopped(Handle);
 			}
 		}
 		public bool IsStoppedAtTrafficLights
 		{
-
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_STOPPED_AT_TRAFFIC_LIGHTS, Handle);
+				return API.IsVehicleStoppedAtTrafficLights(Handle);
 			}
 		}
 
@@ -1171,20 +1215,19 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_STOLEN, Handle);
+				return API.IsVehicleStolen(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_IS_STOLEN, Handle, value);
+				API.SetVehicleIsStolen(Handle, value);
 			}
 		}
 
 		public bool IsConvertible
 		{
-
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_A_CONVERTIBLE, Handle, 0);
+				return API.IsVehicleAConvertible(Handle, false);
 			}
 		}
 
@@ -1192,14 +1235,14 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call<bool>(Hash.SET_VEHICLE_BURNOUT, Handle, value);
+				API.SetVehicleBurnout(Handle, value);
 			}
 		}
 		public bool IsInBurnout
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_IN_BURNOUT, Handle);
+				return API.IsVehicleInBurnout(Handle);
 			}
 		}
 
@@ -1225,7 +1268,7 @@ namespace CitizenFX.Core
 				result[0] = driver;
 
 				for (int i = 0, j = 0, seats = PassengerCapacity; i < seats && j < result.Length; i++)
-				{												  
+				{
 					if (!IsSeatFree((VehicleSeat)i))
 					{
 						result[j++ + 1] = GetPedOnSeat((VehicleSeat)i);
@@ -1261,14 +1304,14 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS, Handle);
+				return API.GetVehicleMaxNumberOfPassengers(Handle);
 			}
 		}
 		public int PassengerCount
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_VEHICLE_NUMBER_OF_PASSENGERS, Handle);
+				return API.GetVehicleNumberOfPassengers(Handle);
 			}
 		}
 
@@ -1323,24 +1366,24 @@ namespace CitizenFX.Core
 
 		public bool ExtraExists(int extra)
 		{
-			return Function.Call<bool>(Hash.DOES_EXTRA_EXIST, Handle, extra);
+			return API.DoesExtraExist(Handle, extra);
 		}
 		public bool IsExtraOn(int extra)
 		{
-			return Function.Call<bool>(Hash.IS_VEHICLE_EXTRA_TURNED_ON, Handle, extra);
+			return ExtraExists(extra) ? API.IsVehicleExtraTurnedOn(Handle, extra) : false;
 		}
 		public void ToggleExtra(int extra, bool toggle)
 		{
-			Function.Call(Hash.SET_VEHICLE_EXTRA, Handle, extra, !toggle);
+			if (ExtraExists(extra)) API.SetVehicleExtra(Handle, extra, !toggle);
 		}
 
 		public Ped GetPedOnSeat(VehicleSeat seat)
 		{
-			return new Ped(Function.Call<int>(Hash.GET_PED_IN_VEHICLE_SEAT, Handle, seat));
+			return new Ped(API.GetPedInVehicleSeat(Handle, (int)seat));
 		}
 		public bool IsSeatFree(VehicleSeat seat)
 		{
-			return Function.Call<bool>(Hash.IS_VEHICLE_SEAT_FREE, Handle, seat);
+			return API.IsVehicleSeatFree(Handle, (int)seat);
 		}
 
 		public void Wash()
@@ -1351,35 +1394,29 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_DIRT_LEVEL, Handle);
+				return API.GetVehicleDirtLevel(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_DIRT_LEVEL, Handle, value);
+				API.SetVehicleDirtLevel(Handle, value);
 			}
 		}
 
 		public bool PlaceOnGround()
 		{
-			return Function.Call<bool>(Hash.SET_VEHICLE_ON_GROUND_PROPERLY, Handle);
+			return API.SetVehicleOnGroundProperly(Handle);
 		}
-        [SecuritySafeCritical]
-        public void PlaceOnNextStreet()
+		public void PlaceOnNextStreet()
 		{
 			Vector3 currentPosition = Position;
-			NativeVector3 newPosition;
-			float heading;
-			long unkn;
+			Vector3 newPosition = new Vector3();
+			float heading = 0f;
+			int unkn = 0;
 
 			for (int i = 1; i < 40; i++)
 			{
-				unsafe
-				{
-					Function.Call(Hash.GET_NTH_CLOSEST_VEHICLE_NODE_WITH_HEADING, currentPosition.X, currentPosition.Y, currentPosition.Z, i, &newPosition, &heading, &unkn, 1, 0x40400000, 0);
-				}
-
-
-				if (!Function.Call<bool>(Hash.IS_POINT_OBSCURED_BY_A_MISSION_ENTITY, newPosition.X, newPosition.Y, newPosition.Z, 5.0f, 5.0f, 5.0f, 0))
+				API.GetNthClosestVehicleNodeWithHeading(currentPosition.X, currentPosition.Y, currentPosition.Z, i, ref newPosition, ref heading, ref unkn, 1, 3f, 0f);
+				if (!API.IsPointObscuredByAMissionEntity(newPosition.X, newPosition.Y, newPosition.Z, 5f, 5f, 5f, 0))
 				{
 					Position = newPosition;
 					PlaceOnGround();
@@ -1391,29 +1428,33 @@ namespace CitizenFX.Core
 
 		public void Repair()
 		{
-			Function.Call(Hash.SET_VEHICLE_FIXED, Handle);
+			API.SetVehicleFixed(Handle);
 		}
 		public void Explode()
 		{
-			Function.Call(Hash.EXPLODE_VEHICLE, Handle, true, false);
+			API.ExplodeVehicle(Handle, true, false);
+		}
+		public void ExplodeNetworked()
+		{
+			API.NetworkExplodeVehicle(Handle, true, false, false);
 		}
 
 		public bool CanTiresBurst
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_VEHICLE_TYRES_CAN_BURST, Handle);
+				return API.GetVehicleTyresCanBurst(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_TYRES_CAN_BURST, Handle, value);
+				API.SetVehicleTyresCanBurst(Handle, value);
 			}
 		}
 		public bool CanWheelsBreak
 		{
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_WHEELS_CAN_BREAK, Handle, value);
+				API.SetVehicleWheelsCanBreak(Handle, value);
 			}
 		}
 
@@ -1428,14 +1469,14 @@ namespace CitizenFX.Core
 		{
 			if (HasBombBay)
 			{
-				Function.Call(Hash.OPEN_BOMB_BAY_DOORS, Handle);
+				API.OpenBombBayDoors(Handle);
 			}
 		}
 		public void CloseBombBay()
 		{
 			if (HasBombBay)
 			{
-				Function.Call(Hash.CLOSE_BOMB_BAY_DOORS, Handle);
+				API.CloseBombBayDoors(Handle);
 			}
 		}
 
@@ -1443,7 +1484,7 @@ namespace CitizenFX.Core
 		{
 			if (Model.IsHelicopter && mult >= 0 && mult <= 1)
 			{
-				Function.Call(Hash._SET_HELICOPTER_ROLL_PITCH_YAW_MULT, Handle, mult);
+				API.SetHelicopterRollPitchYawMult(Handle, mult);
 			}
 		}
 
@@ -1451,21 +1492,21 @@ namespace CitizenFX.Core
 		{
 			if (Model.IsCargobob)
 			{
-				Function.Call(Hash._ENABLE_CARGOBOB_HOOK, Handle, hook);
+				API.EnableCargobobHook(Handle, (int)hook);
 			}
 		}
 		public void RetractCargobobHook()
 		{
 			if (Model.IsCargobob)
 			{
-				Function.Call(Hash._RETRACT_CARGOBOB_HOOK, Handle);
+				API.RetractCargobobHook(Handle);
 			}
 		}
 		public bool IsCargobobHookActive()
 		{
 			if (Model.IsCargobob)
 			{
-				return Function.Call<bool>(Hash._IS_CARGOBOB_HOOK_ACTIVE, Handle) || Function.Call<bool>(Hash._IS_CARGOBOB_MAGNET_ACTIVE, Handle);
+				return API.IsCargobobHookActive(Handle) || API.IsCargobobMagnetActive(Handle);
 			}
 
 			return false;
@@ -1477,9 +1518,9 @@ namespace CitizenFX.Core
 				switch (hook)
 				{
 					case CargobobHook.Hook:
-						return Function.Call<bool>(Hash._IS_CARGOBOB_HOOK_ACTIVE, Handle);
+						return API.IsCargobobHookActive(Handle);
 					case CargobobHook.Magnet:
-						return Function.Call<bool>(Hash._IS_CARGOBOB_MAGNET_ACTIVE, Handle);
+						return API.IsCargobobMagnetActive(Handle);
 				}
 			}
 
@@ -1489,14 +1530,14 @@ namespace CitizenFX.Core
 		{
 			if (IsCargobobHookActive(CargobobHook.Magnet))
 			{
-				Function.Call(Hash._CARGOBOB_MAGNET_GRAB_VEHICLE, Handle, true);
+				API.CargobobMagnetGrabVehicle(Handle, true);
 			}
 		}
 		public void CargoBobMagnetReleaseVehicle()
 		{
 			if (IsCargobobHookActive(CargobobHook.Magnet))
 			{
-				Function.Call(Hash._CARGOBOB_MAGNET_GRAB_VEHICLE, Handle, false);
+				API.CargobobMagnetGrabVehicle(Handle, false);
 			}
 		}
 
@@ -1511,23 +1552,23 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash._SET_TOW_TRUCK_CRANE_HEIGHT, Handle, value);
+				API.SetTowTruckCraneHeight(Handle, value);
 			}
 		}
 		public Vehicle TowedVehicle
 		{
 			get
 			{
-				return new Vehicle(Function.Call<int>(Hash.GET_ENTITY_ATTACHED_TO_TOW_TRUCK, Handle));
+				return new Vehicle(API.GetEntityAttachedToTowTruck(Handle));
 			}
 		}
 		public void TowVehicle(Vehicle vehicle, bool rear)
 		{
-			Function.Call(Hash.ATTACH_VEHICLE_TO_TOW_TRUCK, Handle, vehicle.Handle, rear, 0f, 0f, 0f);
+			API.AttachVehicleToTowTruck(Handle, vehicle.Handle, rear, 0f, 0f, 0f);
 		}
 		public void DetachFromTowTruck()
 		{
-			Function.Call(Hash.DETACH_VEHICLE_FROM_ANY_TOW_TRUCK, Handle);
+			API.DetachVehicleFromAnyTowTruck(Handle);
 		}
 		public void DetachTowedVehicle()
 		{
@@ -1535,13 +1576,13 @@ namespace CitizenFX.Core
 
 			if (Exists(vehicle))
 			{
-				Function.Call(Hash.DETACH_VEHICLE_FROM_TOW_TRUCK, Handle, vehicle.Handle);
+				API.DetachVehicleFromTowTruck(Handle, vehicle.Handle);
 			}
 		}
 
 		public void Deform(Vector3 position, float damageAmount, float radius)
 		{
-			Function.Call(Hash.SET_VEHICLE_DAMAGE, position.X, position.Y, position.Z, damageAmount, radius);
+			API.SetVehicleDamage(Handle, position.X, position.Y, position.Z, damageAmount, radius, false);
 		}
 
 		public async Task<Ped> CreatePedOnSeat(VehicleSeat seat, Model model)
@@ -1555,7 +1596,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			return new Ped(Function.Call<int>(Hash.CREATE_PED_INSIDE_VEHICLE, Handle, 26, model.Hash, seat, 1, 1));
+			return new Ped(API.CreatePedInsideVehicle(Handle, 26, (uint)model.Hash, (int)seat, true, true));
 		}
 		public Ped CreateRandomPedOnSeat(VehicleSeat seat)
 		{
@@ -1565,12 +1606,12 @@ namespace CitizenFX.Core
 			}
 			if (seat == VehicleSeat.Driver)
 			{
-				return new Ped(Function.Call<int>(Hash.CREATE_RANDOM_PED_AS_DRIVER, Handle, true));
+				return new Ped(API.CreateRandomPedAsDriver(Handle, true));
 			}
 			else
 			{
-				int pedHandle = Function.Call<int>(Hash.CREATE_RANDOM_PED, 0f, 0f, 0f);
-				Function.Call(Hash.SET_PED_INTO_VEHICLE, pedHandle, Handle, seat);
+				int pedHandle = API.CreateRandomPed(0f, 0f, 0f);
+				API.SetPedIntoVehicle(pedHandle, Handle, (int)seat);
 
 				return new Ped(pedHandle);
 			}
@@ -1578,12 +1619,12 @@ namespace CitizenFX.Core
 
 		public static string GetModelDisplayName(Model vehicleModel)
 		{
-			return Function.Call<string>(Hash.GET_DISPLAY_NAME_FROM_VEHICLE_MODEL, vehicleModel.Hash);
+			return API.GetDisplayNameFromVehicleModel((uint)vehicleModel.Hash);
 		}
 
 		public static VehicleClass GetModelClass(Model vehicleModel)
 		{
-			return Function.Call<VehicleClass>(Hash.GET_VEHICLE_CLASS_FROM_NAME, vehicleModel.Hash);
+			return (VehicleClass)API.GetVehicleClassFromName((uint)vehicleModel.Hash);
 		}
 
 		public static string GetClassDisplayName(VehicleClass vehicleClass)
@@ -1593,7 +1634,7 @@ namespace CitizenFX.Core
 
 		public static VehicleHash[] GetAllModelsOfClass(VehicleClass vehicleClass)
 		{
-			return Array.ConvertAll<int, VehicleHash>(MemoryAccess.VehicleModels[(int) vehicleClass].ToArray(), item => (VehicleHash)item);
+			return Array.ConvertAll<int, VehicleHash>(MemoryAccess.VehicleModels[(int)vehicleClass].ToArray(), item => (VehicleHash)item);
 		}
 
 		public static VehicleHash[] GetAllModels()
@@ -1612,7 +1653,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if this <see cref="Vehicle"/> exists; otherwise, <c>false</c></returns>
 		public new bool Exists()
 		{
-			return base.Exists() && Function.Call<int>(Hash.GET_ENTITY_TYPE, Handle) == 2;
+			return base.Exists() && API.GetEntityType(Handle) == 2;
 		}
 		/// <summary>
 		/// Determines whether the <see cref="Vehicle"/> exists.
