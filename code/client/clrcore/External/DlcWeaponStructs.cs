@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using CitizenFX.Core.Native;
 using System.Security;
@@ -6,8 +6,8 @@ using System.Security;
 namespace CitizenFX.Core
 {
 	[StructLayout(LayoutKind.Explicit, Size = 0x138)]
-    [SecurityCritical]
-    public unsafe struct DlcWeaponData
+	[SecurityCritical]
+	public unsafe struct DlcWeaponData
 	{
 		[FieldOffset(0x00)] private int validCheck;
 
@@ -21,17 +21,17 @@ namespace CitizenFX.Core
 
 		[FieldOffset(0x30)] private int defaultClipSize;
 
-		[FieldOffset(0x38)] private fixed char name [0x40];
+		[FieldOffset(0x38)] private fixed char name[0x40];
 
-		[FieldOffset(0x78)] private fixed char desc [0x40];
+		[FieldOffset(0x78)] private fixed char desc[0x40];
 
-		[FieldOffset(0xB8)] private fixed char simpleDesc [0x40]; //usually refers to "the " + name
+		[FieldOffset(0xB8)] private fixed char simpleDesc[0x40]; //usually refers to "the " + name
 
-		[FieldOffset(0xF8)] private fixed char upperCaseName [0x40];
+		[FieldOffset(0xF8)] private fixed char upperCaseName[0x40];
 
 		public bool IsValid
 		{
-			get { return !Function.Call<bool>(Native.Hash._IS_DLC_DATA_EMPTY, validCheck); }
+			get { return !API.IsDlcDataEmpty(ref validCheck); }
 		}
 
 		public WeaponHash Hash
@@ -126,10 +126,10 @@ namespace CitizenFX.Core
 	}
 
 	[StructLayout(LayoutKind.Explicit, Size = 0x110)]
-    [SecurityCritical]
-    public unsafe struct DlcWeaponComponentData
+	[SecurityCritical]
+	public unsafe struct DlcWeaponComponentData
 	{
-	    [FieldOffset(0x00)] private int attachBone;//the bone on the gun to attach the component to
+		[FieldOffset(0x00)] private int attachBone;//the bone on the gun to attach the component to
 
 		[FieldOffset(0x08)] private int bActiveByDefault;
 
@@ -137,9 +137,9 @@ namespace CitizenFX.Core
 
 		[FieldOffset(0x28)] private int componentCost;
 
-		[FieldOffset(0x30)] private fixed char name [0x40];
+		[FieldOffset(0x30)] private fixed char name[0x40];
 
-		[FieldOffset(0x70)] private fixed char desc [0x40];
+		[FieldOffset(0x70)] private fixed char desc[0x40];
 
 		public WeaponComponentHash Hash
 		{

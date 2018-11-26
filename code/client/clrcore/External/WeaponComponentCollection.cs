@@ -1013,21 +1013,21 @@ namespace CitizenFX.Core
 
 			WeaponComponentHash[] result = null;
 
-			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
+			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)
 			{
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
-							result = new WeaponComponentHash[Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPON_COMPONENTS, i)];
+							result = new WeaponComponentHash[API.GetNumDlcWeaponComponents(i)];
 
 							for (int j = 0; j < result.Length; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									result[j] = componentData.Hash;
 								}

@@ -25,7 +25,7 @@ namespace CitizenFX.Core
 
 				if (!_weapons.TryGetValue(hash, out weapon))
 				{
-					if (!Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, hash, 0))
+					if (!API.HasPedGotWeapon(_owner.Handle, (uint)hash, false))
 					{
 						return null;
 					}
@@ -40,10 +40,10 @@ namespace CitizenFX.Core
 
 		public Weapon Current
 		{
-			[SecuritySafeCritical]
 			get
 			{
-				int currentWeapon = _GetCurrentWeapon();
+				uint currentWeapon = 0u;
+				API.GetCurrentPedWeapon(_owner.Handle, ref currentWeapon, true);
 
 				WeaponHash hash = (WeaponHash)currentWeapon;
 
@@ -61,19 +61,6 @@ namespace CitizenFX.Core
 			}
 		}
 
-		[SecurityCritical]
-		private int _GetCurrentWeapon()
-		{
-			int currentWeapon;
-
-			unsafe
-			{
-				Function.Call(Hash.GET_CURRENT_PED_WEAPON, _owner.Handle, &currentWeapon, true);
-			}
-
-			return currentWeapon;
-		}
-
 		public Prop CurrentWeaponObject
 		{
 			get
@@ -83,14 +70,14 @@ namespace CitizenFX.Core
 					return null;
 				}
 
-				return new Prop(Function.Call<int>(Hash.GET_CURRENT_PED_WEAPON_ENTITY_INDEX, _owner.Handle));
+				return new Prop(API.GetCurrentPedWeaponEntityIndex(_owner.Handle));
 			}
 		}
 		public Weapon BestWeapon
 		{
 			get
 			{
-				WeaponHash hash = Function.Call<WeaponHash>(Hash.GET_BEST_PED_WEAPON, _owner.Handle, 0);
+				WeaponHash hash = (WeaponHash)API.GetBestPedWeapon(_owner.Handle, false);
 
 				if (_weapons.ContainsKey(hash))
 				{
@@ -98,7 +85,7 @@ namespace CitizenFX.Core
 				}
 				else
 				{
-					var weapon = new Weapon(_owner, (WeaponHash)hash);
+					var weapon = new Weapon(_owner, hash);
 					_weapons.Add(hash, weapon);
 
 					return weapon;
@@ -108,11 +95,11 @@ namespace CitizenFX.Core
 
 		public bool HasWeapon(WeaponHash weaponHash)
 		{
-			return Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, weaponHash, 0);
+			return API.HasPedGotWeapon(_owner.Handle, (uint)weaponHash, false);
 		}
 		public bool IsWeaponValid(WeaponHash hash)
 		{
-			return Function.Call<bool>(Hash.IS_WEAPON_VALID, hash);
+			return API.IsWeaponValid((uint)hash);
 		}
 
 		public Weapon Give(WeaponHash hash, int ammoCount, bool equipNow, bool isAmmoLoaded)
@@ -131,7 +118,7 @@ namespace CitizenFX.Core
 			}
 			else
 			{
-				Function.Call(Hash.GIVE_WEAPON_TO_PED, _owner.Handle, weapon.Hash, ammoCount, equipNow, isAmmoLoaded);
+				API.GiveWeaponToPed(_owner.Handle, (uint)weapon.Hash, ammoCount, equipNow, isAmmoLoaded);
 			}
 
 			return weapon;
@@ -143,7 +130,7 @@ namespace CitizenFX.Core
 				return false;
 			}
 
-			Function.Call(Hash.SET_CURRENT_PED_WEAPON, _owner.Handle, weapon.Hash, true);
+			API.SetCurrentPedWeapon(_owner.Handle, (uint)weapon.Hash, true);
 
 			return true;
 		}
@@ -153,19 +140,19 @@ namespace CitizenFX.Core
 		}
 		public bool Select(WeaponHash weaponHash, bool equipNow)
 		{
-			if (!Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, _owner.Handle, weaponHash, 0))
+			if (!API.HasPedGotWeapon(_owner.Handle, (uint)weaponHash, false))
 			{
 				return false;
 			}
 
-			Function.Call(Hash.SET_CURRENT_PED_WEAPON, _owner.Handle, weaponHash, equipNow);
+			API.SetCurrentPedWeapon(_owner.Handle, (uint)weaponHash, equipNow);
 
 			return true;
 		}
 
 		public void Drop()
 		{
-			Function.Call(Hash.SET_PED_DROPS_WEAPON, _owner.Handle);
+			API.SetPedDropsWeapon(_owner.Handle);
 		}
 		public void Remove(Weapon weapon)
 		{
@@ -180,11 +167,11 @@ namespace CitizenFX.Core
 		}
 		public void Remove(WeaponHash weaponHash)
 		{
-			Function.Call(Hash.REMOVE_WEAPON_FROM_PED, _owner.Handle, weaponHash);
+			API.RemoveWeaponFromPed(_owner.Handle, (uint)weaponHash);
 		}
 		public void RemoveAll()
 		{
-			Function.Call(Hash.REMOVE_ALL_PED_WEAPONS, _owner.Handle, true);
+			API.RemoveAllPedWeapons(_owner.Handle, true);
 
 			_weapons.Clear();
 		}

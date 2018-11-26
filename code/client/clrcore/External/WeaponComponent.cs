@@ -56,17 +56,17 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.HAS_PED_GOT_WEAPON_COMPONENT, _owner.Handle, _weapon.Hash, _component);
+				return API.HasPedGotWeaponComponent(_owner.Handle, (uint)_weapon.Hash, (uint)_component);
 			}
 			set
 			{
 				if (value)
 				{
-					Function.Call(Native.Hash.GIVE_WEAPON_COMPONENT_TO_PED, _owner.Handle, _weapon.Hash, _component);
+					API.GiveWeaponComponentToPed(_owner.Handle, (uint)_weapon.Hash, (uint)_component);
 				}
 				else
 				{
-					Function.Call(Native.Hash.REMOVE_WEAPON_COMPONENT_FROM_PED, _owner.Handle, _weapon.Hash, _component);
+					API.RemoveWeaponComponentFromPed(_owner.Handle, (uint)_weapon.Hash, (uint)_component);
 				}
 			}
 		}
@@ -425,21 +425,21 @@ namespace CitizenFX.Core
 			}
 			string result = "WCT_INVALID";
 
-			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
+			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)
 			{
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
-							int maxComp = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPON_COMPONENTS, i);
+							int maxComp = API.GetNumDlcWeaponComponents(i);
 
 							for (int j = 0; j < maxComp; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									if (componentData.Hash == component)
 									{
@@ -1151,21 +1151,21 @@ namespace CitizenFX.Core
 					}
 
 			}
-			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
+			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)
 			{
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
-							int maxComp = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPON_COMPONENTS, i);
+							int maxComp = API.GetNumDlcWeaponComponents(i);
 
 							for (int j = 0; j < maxComp; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									if (componentData.Hash == componentHash)
 									{

@@ -22,18 +22,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_VEHICLE_DOOR_ANGLE_RATIO, _owner.Handle, Index);
+				return API.GetVehicleDoorAngleRatio(_owner.Handle, (int)Index);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_DOOR_CONTROL, _owner.Handle, Index, 1, value);
+				API.SetVehicleDoorControl(_owner.Handle, (int)Index, 1, value);
 			}
 		}
 		public bool CanBeBroken
 		{
 			set
 			{
-				Function.Call(Hash._SET_VEHICLE_DOOR_BREAKABLE, _owner.Handle, Index, value);
+				API.SetVehicleDoorBreakable(_owner.Handle, (int)Index, value);
 			}
 		}
 		public bool IsOpen
@@ -47,6 +47,8 @@ namespace CitizenFX.Core
 		{
 			get
 			{
+				// TODO: convert this to the native api call when the return value is fixed in the natives repo.
+				// return API.IsVehicleDoorFullyOpen(_owner.Handle, (int)Index);
 				return Function.Call<bool>(Hash.IS_VEHICLE_DOOR_FULLY_OPEN, _owner.Handle, Index);
 			}
 		}
@@ -54,7 +56,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_DOOR_DAMAGED, _owner.Handle, Index);
+				return API.IsVehicleDoorDamaged(_owner.Handle, (int)Index);
 			}
 		}
 		public Vehicle Vehicle
@@ -64,15 +66,15 @@ namespace CitizenFX.Core
 
 		public void Open(bool loose = false, bool instantly = false)
 		{
-			Function.Call(Hash.SET_VEHICLE_DOOR_OPEN, _owner.Handle, Index, loose, instantly);
+			API.SetVehicleDoorOpen(_owner.Handle, (int)Index, loose, instantly);
 		}
 		public void Close(bool instantly = false)
 		{
-			Function.Call(Hash.SET_VEHICLE_DOOR_SHUT, _owner.Handle, Index, instantly);
+			API.SetVehicleDoorShut(_owner.Handle, (int)Index, instantly);
 		}
 		public void Break(bool stayInTheWorld = true)
 		{
-			Function.Call(Hash.SET_VEHICLE_DOOR_BROKEN, _owner.Handle, Index, !stayInTheWorld);
+			API.SetVehicleDoorBroken(_owner.Handle, (int)Index, !stayInTheWorld);
 		}
 	}
 }

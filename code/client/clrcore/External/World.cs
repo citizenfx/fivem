@@ -300,19 +300,19 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int year = Function.Call<int>(Hash.GET_CLOCK_YEAR);
-				int month = Function.Call<int>(Hash.GET_CLOCK_MONTH);
-				int day = Function.Call<int>(Hash.GET_CLOCK_DAY_OF_MONTH);
-				int hour = Function.Call<int>(Hash.GET_CLOCK_HOURS);
-				int minute = Function.Call<int>(Hash.GET_CLOCK_MINUTES);
-				int second = Function.Call<int>(Hash.GET_CLOCK_SECONDS);
+				int year = API.GetClockYear();
+				int month = API.GetClockMonth();
+				int day = API.GetClockDayOfMonth();
+				int hour = API.GetClockHours();
+				int minute = API.GetClockMinutes();
+				int second = API.GetClockSeconds();
 
 				return new DateTime(year, month, day, hour, minute, second, new GTACalender());
 			}
 			set
 			{
-				Function.Call(Hash.SET_CLOCK_DATE, value.Year, value.Month, value.Day);
-				Function.Call(Hash.SET_CLOCK_TIME, value.Hour, value.Minute, value.Second);
+				API.SetClockDate(value.Year, value.Month, value.Day);
+				API.SetClockTime(value.Hour, value.Minute, value.Second);
 			}
 		}
 		/// <summary>
@@ -325,15 +325,15 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int hours = Function.Call<int>(Hash.GET_CLOCK_HOURS);
-				int minutes = Function.Call<int>(Hash.GET_CLOCK_MINUTES);
-				int seconds = Function.Call<int>(Hash.GET_CLOCK_SECONDS);
+				int hours = API.GetClockHours();
+				int minutes = API.GetClockMinutes();
+				int seconds = API.GetClockSeconds();
 
 				return new TimeSpan(hours, minutes, seconds);
 			}
 			set
 			{
-				Function.Call(Hash.SET_CLOCK_TIME, value.Hours, value.Minutes, value.Seconds);
+				API.SetClockTime(value.Hours, value.Minutes, value.Seconds);
 			}
 		}
 
@@ -347,7 +347,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash._SET_BLACKOUT, value);
+				API.SetBlackout(value);
 			}
 		}
 
@@ -364,10 +364,10 @@ namespace CitizenFX.Core
 				if (_currentCloudHat == CloudHat.Unknown)
 				{
 					_currentCloudHat = CloudHat.Clear;
-					Function.Call(Hash._CLEAR_CLOUD_HAT);
+					API.ClearCloudHat();
 					return;
 				}
-				Function.Call(Hash._SET_CLOUD_HAT_TRANSITION, CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
+				API.SetCloudHatTransition(CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
 			}
 		}
 
@@ -376,8 +376,8 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static float CloudHatOpacity
 		{
-			get => Function.Call<float>(Hash._GET_CLOUD_HAT_OPACITY);
-			set => Function.Call(Hash._SET_CLOUD_HAT_OPACITY, MathUtil.Clamp(value, 0f, 1f));
+			get => API.GetCloudHatOpacity();
+			set => API.SetCloudHatOpacity(MathUtil.Clamp(value, 0f, 1f));
 		}
 
 		/// <summary>
@@ -390,21 +390,13 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				/*for (int i = 0; i < _weatherNames.Length; i++)
-				{
-					if (Function.Call<int>(Hash._GET_CURRENT_WEATHER_TYPE) == Game.GenerateHash(_weatherNames[i]))
-					{
-						return (Weather)i;
-					}
-				}*/
-
-				return Weather.Unknown;
+				return (Weather)API.GetPrevWeatherType();
 			}
 			set
 			{
 				if (Enum.IsDefined(typeof(Weather), value) && value != Weather.Unknown)
 				{
-					Function.Call(Hash.SET_WEATHER_TYPE_NOW, _weatherNames[(int)value]);
+					API.SetWeatherTypeNow(_weatherNames[(int)value]);
 				}
 			}
 		}
@@ -418,29 +410,14 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				// CFX-TODO
-				/*for (int i = 0; i < _weatherNames.Length; i++)
-				{
-					if (Function.Call<bool>(Hash.IS_NEXT_WEATHER_TYPE, _weatherNames[i]))
-					{
-						return (Weather)i;
-					}
-				}*/
-
-				return Weather.Unknown;
+				return (Weather)API.GetNextWeatherType();
 			}
 			set
 			{
-				/*if (Enum.IsDefined(typeof(Weather), value) && value != Weather.Unknown)
+				if (Enum.IsDefined(typeof(Weather), value) && value != Weather.Unknown)
 				{
-					int currentWeatherHash, nextWeatherHash;
-					float weatherTransition;
-					unsafe
-					{
-						Function.Call(Hash._GET_WEATHER_TYPE_TRANSITION, &currentWeatherHash, &nextWeatherHash, &weatherTransition);
-					}
-					Function.Call(Hash._SET_WEATHER_TYPE_TRANSITION, currentWeatherHash, Game.GenerateHash(_weatherNames[(int)value]), 0.0f);
-				}*/
+					API.SetWeatherTypeOverTime(value.ToString(), 0f); // rockstar uses 45 seconds transition time, use TransitionToWeather for that.
+				}
 			}
 		}
 		/// <summary>
@@ -453,25 +430,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int currentWeatherHash, nextWeatherHash;
-				float weatherTransition;
-				// CFX-TODO
-				/*unsafe
-				{
-					Function.Call(Hash._GET_WEATHER_TYPE_TRANSITION, &currentWeatherHash, &nextWeatherHash, &weatherTransition);
-				}
-
-				return weatherTransition;*/
-
+				// CFX-TODO: Find a way to get this native to work, currently it doesn't seem to work.
+				// API.GetWeatherTypeTransition()
 				return 0.0f;
 			}
 			set
 			{
-				Function.Call(Hash._SET_WEATHER_TYPE_TRANSITION, 0, 0, value);
+				// doesn't seem to work.
+				API.SetWeatherTypeTransition(0, 0, value);
 			}
 		}
 		/// <summary>
-		/// Transitions to weather.
+		/// Transitions to weather. Duration is 45f in most scripts.
 		/// </summary>
 		/// <param name="weather">The weather.</param>
 		/// <param name="duration">The duration.</param>
@@ -479,7 +449,7 @@ namespace CitizenFX.Core
 		{
 			if (Enum.IsDefined(typeof(Weather), weather) && weather != Weather.Unknown)
 			{
-				Function.Call(Hash._SET_WEATHER_TYPE_OVER_TIME, _weatherNames[(int)weather], duration);
+				API.SetWeatherTypeOverTime(_weatherNames[(int)weather], duration);
 			}
 		}
 
@@ -502,7 +472,7 @@ namespace CitizenFX.Core
 				MemoryAccess.WriteWorldGravity(value);
 				//call set_gravity_level normally using 0 as gravity type
 				//the native will then set the gravity level to what we just wrote
-				Function.Call(Hash.SET_GRAVITY_LEVEL, 0);
+				API.SetGravityLevel(0);
 				//reset the array item back to 9.8 so as to restore behaviour of the native
 				MemoryAccess.WriteWorldGravity(9.800000f);
 			}
@@ -521,18 +491,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return new Camera(Function.Call<int>(Hash.GET_RENDERING_CAM));
+				return new Camera(API.GetRenderingCam());
 			}
 			set
 			{
 				if (value == null)
 				{
-					Function.Call(Hash.RENDER_SCRIPT_CAMS, false, 0, 3000, 1, 0);
+					API.RenderScriptCams(false, false, 3000, true, false);
 				}
 				else
 				{
 					value.IsActive = true;
-					Function.Call(Hash.RENDER_SCRIPT_CAMS, true, 0, 3000, 1, 0);
+					API.RenderScriptCams(true, false, 3000, true, false);
 				}
 			}
 		}
