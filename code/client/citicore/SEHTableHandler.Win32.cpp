@@ -240,17 +240,26 @@ static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* conte
 {
 	BOOLEAN success = g_origRtlDispatchException(record, context);
 
+	static bool inExceptionFallback;
+
 	if (!success)
 	{
-		AddCrashometry("exception_override", "true");
-
-		EXCEPTION_POINTERS ptrs;
-		ptrs.ContextRecord = context;
-		ptrs.ExceptionRecord = record;
-
-		if (g_exceptionHandler)
+		if (!inExceptionFallback)
 		{
-			g_exceptionHandler(&ptrs);
+			inExceptionFallback = true;
+
+			AddCrashometry("exception_override", "true");
+
+			EXCEPTION_POINTERS ptrs;
+			ptrs.ContextRecord = context;
+			ptrs.ExceptionRecord = record;
+
+			if (g_exceptionHandler)
+			{
+				g_exceptionHandler(&ptrs);
+			}
+
+			inExceptionFallback = false;
 		}
 	}
 
