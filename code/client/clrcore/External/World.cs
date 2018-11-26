@@ -511,7 +511,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static void DestroyAllCameras()
 		{
-			Function.Call(Hash.DESTROY_ALL_CAMS, 0);
+			API.DestroyAllCams(false);
 		}
 
 		/// <summary>
@@ -540,7 +540,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash.SET_NEW_WAYPOINT, value.X, value.Y);
+				API.SetNewWaypoint(value.X, value.Y);
 			}
 		}
 
@@ -558,9 +558,9 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			for (int it = Function.Call<int>(Hash._GET_BLIP_INFO_ID_ITERATOR), blip = Function.Call<int>(Hash.GET_FIRST_BLIP_INFO_ID, it); Function.Call<bool>(Hash.DOES_BLIP_EXIST, blip); blip = Function.Call<int>(Hash.GET_NEXT_BLIP_INFO_ID, it))
+			for (int it = API.GetBlipInfoIdIterator(), blip = API.GetFirstBlipInfoId(it); API.DoesBlipExist(blip); blip = API.GetNextBlipInfoId(it))
 			{
-				if (Function.Call<int>(Hash.GET_BLIP_INFO_ID_TYPE, blip) == 4)
+				if (API.GetBlipInfoIdType(blip) == 4)
 				{
 					return new Blip(blip);
 				}
@@ -574,7 +574,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static void RemoveWaypoint()
 		{
-			Function.Call(Hash.SET_WAYPOINT_OFF);
+			API.SetWaypointOff();
 		}
 
 		/// <summary>
@@ -595,7 +595,7 @@ namespace CitizenFX.Core
 		/// <returns>The travel distance</returns>
 		public static float CalculateTravelDistance(Vector3 origin, Vector3 destination)
 		{
-			return Function.Call<float>(Hash.CALCULATE_TRAVEL_DISTANCE_BETWEEN_POINTS, origin.X, origin.Y, origin.Z, destination.X, destination.Y, destination.Z);
+			return API.CalculateTravelDistanceBetweenPoints(origin.X, origin.Y, origin.Z, destination.X, destination.Y, destination.Z);
 		}
 		/// <summary>
 		/// Gets the height of the ground at a given position.
@@ -612,22 +612,11 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="position">The position.</param>
 		/// <returns>The height measured in meters</returns>
-		[SecuritySafeCritical]
 		public static float GetGroundHeight(Vector2 position)
 		{
-			return _GetGroundHeight(position);
-		}
-
-		[SecuritySafeCritical]
-		private static float _GetGroundHeight(Vector2 position)
-		{
-			float resultArg;
-
-			unsafe
-			{
-				Function.Call(Hash.GET_GROUND_Z_FOR_3D_COORD, position.X, position.Y, 1000f, &resultArg);
-			}
-
+			float resultArg = 0f;
+			API.RequestCollisionAtCoord(position.X, position.Y, 1000f);
+			API.GetGroundZFor_3dCoord(position.X, position.Y, 1000f, ref resultArg, false);
 			return resultArg;
 		}
 
@@ -644,13 +633,13 @@ namespace CitizenFX.Core
 			}
 			foreach (BlipSprite sprite in blipTypes)
 			{
-				int handle = Function.Call<int>(Hash.GET_FIRST_BLIP_INFO_ID, sprite);
+				int handle = API.GetFirstBlipInfoId((int)sprite);
 
-				while (Function.Call<bool>(Hash.DOES_BLIP_EXIST, handle))
+				while (API.DoesBlipExist(handle))
 				{
 					res.Add(new Blip(handle));
 
-					handle = Function.Call<int>(Hash.GET_NEXT_BLIP_INFO_ID, sprite);
+					handle = API.GetNextBlipInfoId((int)sprite);
 				}
 			}
 			return res.ToArray();
@@ -663,26 +652,24 @@ namespace CitizenFX.Core
 		{
 			List<Prop> props = new List<Prop>();
 
-			OutputArgument entHandleOut = new OutputArgument();
-			int handle = Function.Call<int>(Hash.FIND_FIRST_OBJECT, entHandleOut);
-			int entHandle = entHandleOut.GetResult<int>();
+			int entHandle = -1;
+			int handle = API.FindFirstObject(ref entHandle);
 
 			Prop prop = (Prop)Entity.FromHandle(entHandle);
-			if (prop != null)
+			if (prop != null && prop.Exists())
 				props.Add(prop);
 
-			entHandleOut = new OutputArgument();
-			while (Function.Call<bool>(Hash.FIND_NEXT_OBJECT, handle, entHandleOut))
+			entHandle = -1;
+			while (API.FindNextObject(handle, ref entHandle))
 			{
-				entHandle = entHandleOut.GetResult<int>();
 				prop = (Prop)Entity.FromHandle(entHandle);
-				if (prop != null)
+				if (prop != null && prop.Exists())
 					props.Add(prop);
 
-				entHandleOut = new OutputArgument();
+				entHandle = -1;
 			}
 
-			Function.Call(Hash.END_FIND_OBJECT, handle);
+			API.EndFindObject(handle);
 			return props.ToArray();
 		}
 
@@ -693,26 +680,21 @@ namespace CitizenFX.Core
 		{
 			List<Ped> peds = new List<Ped>();
 
-			OutputArgument entHandleOut = new OutputArgument();
-			int handle = Function.Call<int>(Hash.FIND_FIRST_PED, entHandleOut);
-			int entHandle = entHandleOut.GetResult<int>();
-
+			int entHandle = -1;
+			int handle = API.FindFirstPed(ref entHandle);
 			Ped ped = (Ped)Entity.FromHandle(entHandle);
-			if (ped != null)
+			if (ped != null && ped.Exists())
 				peds.Add(ped);
 
-			entHandleOut = new OutputArgument();
-			while (Function.Call<bool>(Hash.FIND_NEXT_PED, handle, entHandleOut))
+			entHandle = -1;
+			while (API.FindNextPed(handle, ref entHandle))
 			{
-				entHandle = entHandleOut.GetResult<int>();
 				ped = (Ped)Entity.FromHandle(entHandle);
-				if (ped != null)
+				if (ped != null && ped.Exists())
 					peds.Add(ped);
-
-				entHandleOut = new OutputArgument();
+				entHandle = -1;
 			}
-
-			Function.Call(Hash.END_FIND_PED, handle);
+			API.EndFindPed(handle);
 			return peds.ToArray();
 		}
 
@@ -723,26 +705,21 @@ namespace CitizenFX.Core
 		{
 			List<Vehicle> vehicles = new List<Vehicle>();
 
-			OutputArgument entHandleOut = new OutputArgument();
-			int handle = Function.Call<int>(Hash.FIND_FIRST_VEHICLE, entHandleOut);
-			int entHandle = entHandleOut.GetResult<int>();
+			int entHandle = -1;
+			int handle = API.FindFirstVehicle(ref entHandle);
+			Vehicle veh = (Vehicle)Entity.FromHandle(entHandle);
+			if (veh != null && veh.Exists())
+				vehicles.Add(veh);
 
-			Vehicle vehicle = (Vehicle)Entity.FromHandle(entHandle);
-			if (vehicle != null)
-				vehicles.Add(vehicle);
-
-			entHandleOut = new OutputArgument();
-			while (Function.Call<bool>(Hash.FIND_NEXT_VEHICLE, handle, entHandleOut))
+			entHandle = -1;
+			while (API.FindNextVehicle(handle, ref entHandle))
 			{
-				entHandle = entHandleOut.GetResult<int>();
-				vehicle = (Vehicle)Entity.FromHandle(entHandle);
-				if (vehicle != null)
-					vehicles.Add(vehicle);
-
-				entHandleOut = new OutputArgument();
+				veh = (Vehicle)Entity.FromHandle(entHandle);
+				if (veh != null && veh.Exists())
+					vehicles.Add(veh);
+				entHandle = -1;
 			}
-
-			Function.Call(Hash.END_FIND_VEHICLE, handle);
+			API.EndFindVehicle(handle);
 			return vehicles.ToArray();
 		}
 
@@ -753,26 +730,21 @@ namespace CitizenFX.Core
 		{
 			List<Pickup> pickups = new List<Pickup>();
 
-			OutputArgument entHandleOut = new OutputArgument();
-			int handle = Function.Call<int>(Hash.FIND_FIRST_PICKUP, entHandleOut);
-			int entHandle = entHandleOut.GetResult<int>();
-
+			int entHandle = -1;
+			int handle = API.FindFirstPickup(ref entHandle);
 			Pickup pickup = new Pickup(entHandle);
-			if (pickup.Exists())
+			if (pickup != null && pickup.Exists())
 				pickups.Add(pickup);
 
-			entHandleOut = new OutputArgument();
-			while (Function.Call<bool>(Hash.FIND_NEXT_PICKUP, handle, entHandleOut))
+			entHandle = -1;
+			while (API.FindNextPickup(handle, ref entHandle))
 			{
-				entHandle = entHandleOut.GetResult<int>();
 				pickup = new Pickup(entHandle);
-				if (pickup.Exists())
+				if (pickup != null && pickup.Exists())
 					pickups.Add(pickup);
-
-				entHandleOut = new OutputArgument();
+				entHandle = -1;
 			}
-
-			Function.Call(Hash.END_FIND_PICKUP, handle);
+			API.EndFindPickup(handle);
 			return pickups.ToArray();
 		}
 
@@ -1054,22 +1026,12 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to check around.</param>
 		/// <param name="sidewalk">if set to <c>true</c> Only find positions on the sidewalk.</param>
 		/// <param name="flags">The flags.</param>
-		[SecuritySafeCritical]
 		public static Vector3 GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
 		{
-			return _GetSafeCoordForPed(position, sidewalk, flags);
-		}
-
-		[SecuritySafeCritical]
-		private static Vector3 _GetSafeCoordForPed(Vector3 position, bool sidewalk = true, int flags = 0)
-		{
-			NativeVector3 outPos;
-			unsafe
+			Vector3 outPos = new Vector3();
+			if (API.GetSafeCoordForPed(position.X, position.Y, position.Z, sidewalk, ref outPos, flags))
 			{
-				if (Function.Call<bool>(Hash.GET_SAFE_COORD_FOR_PED, position.X, position.Y, position.Z, sidewalk, &outPos, flags))
-				{
-					return outPos;
-				}
+				return outPos;
 			}
 			return Vector3.Zero;
 		}
@@ -1088,41 +1050,24 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="position">The position to check around.</param>
 		/// <param name="unoccupied">if set to <c>true</c> only find positions that dont already have a vehicle in them.</param>
-		[SecuritySafeCritical]
 		public static Vector3 GetNextPositionOnStreet(Vector3 position, bool unoccupied = false)
 		{
-			return _GetNextPositionOnStreet(position, unoccupied);
-		}
-
-		[SecurityCritical]
-		private static Vector3 _GetNextPositionOnStreet(Vector3 position, bool unoccupied = false)
-		{
-			NativeVector3 outPos;
-
-			unsafe
+			Vector3 outPos = new Vector3();
+			if (unoccupied)
 			{
-				if (unoccupied)
+				for (int i = 1; i < 40; i++)
 				{
-					for (int i = 1; i < 40; i++)
+					API.GetNthClosestVehicleNode(position.X, position.Y, position.Z, i, ref outPos, 1, 3, 0);
+					if (!outPos.IsZero && !API.IsPointObscuredByAMissionEntity(outPos.X, outPos.Y, outPos.Z, 5f, 5f, 5f, 0))
 					{
-						Function.Call(Hash.GET_NTH_CLOSEST_VEHICLE_NODE, position.X, position.Y, position.Z, i, &outPos, 1, 0x40400000, 0);
-
-						position = outPos;
-
-						if (!Function.Call<bool>(Hash.IS_POINT_OBSCURED_BY_A_MISSION_ENTITY, position.X, position.Y, position.Z, 5.0f,
-							5.0f, 5.0f, 0))
-						{
-							return position;
-						}
+						return outPos;
 					}
 				}
-				else if (Function.Call<bool>(Hash.GET_NTH_CLOSEST_VEHICLE_NODE, position.X, position.Y, position.Z, 1, &outPos, 1,
-					0x40400000, 0))
-				{
-					return outPos;
-				}
 			}
-
+			else if (API.GetNthClosestVehicleNode(position.X, position.Y, position.Z, 1, ref outPos, 1, 3, 0))
+			{
+				return outPos;
+			}
 			return Vector3.Zero;
 		}
 
@@ -1138,29 +1083,17 @@ namespace CitizenFX.Core
 		/// Gets the next position on the street where a <see cref="Ped"/> can be placed.
 		/// </summary>
 		/// <param name="position">The position to check around.</param>
-		[SecuritySafeCritical]
 		public static Vector3 GetNextPositionOnSidewalk(Vector3 position)
 		{
-			return _GetNextPositionOnSidewalk(position);
-		}
-
-		[SecurityCritical]
-		private static Vector3 _GetNextPositionOnSidewalk(Vector3 position)
-		{
-			NativeVector3 outPos;
-
-			unsafe
+			Vector3 outPos = new Vector3();
+			if (API.GetSafeCoordForPed(position.X, position.Y, position.Z, true, ref outPos, 0))
 			{
-				if (Function.Call<bool>(Hash.GET_SAFE_COORD_FOR_PED, position.X, position.Y, position.Z, true, &outPos, 0))
-				{
-					return outPos;
-				}
-				else if (Function.Call<bool>(Hash.GET_SAFE_COORD_FOR_PED, position.X, position.Y, position.Z, false, &outPos, 0))
-				{
-					return outPos;
-				}
+				return outPos;
 			}
-
+			else if (API.GetSafeCoordForPed(position.X, position.Y, position.Z, false, ref outPos, 0))
+			{
+				return outPos;
+			}
 			return Vector3.Zero;
 		}
 
@@ -1178,7 +1111,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position on the map.</param>
 		public static string GetZoneLocalizedName(Vector3 position)
 		{
-			return Game.GetGXTEntry(Function.Call<ulong>(Hash.GET_NAME_OF_ZONE, position.X, position.Y, position.Z));
+			return Game.GetGXTEntry(API.GetNameOfZone(position.X, position.Y, position.Z));
 		}
 		/// <summary>
 		/// Gets the display name of the a zone in the map.
@@ -1196,30 +1129,21 @@ namespace CitizenFX.Core
 		/// <param name="position">The position on the map.</param>
 		public static string GetZoneDisplayName(Vector3 position)
 		{
-			return Function.Call<string>(Hash.GET_NAME_OF_ZONE, position.X, position.Y, position.Z);
+			return API.GetNameOfZone(position.X, position.Y, position.Z);
 		}
+
 		public static string GetStreetName(Vector2 position)
 		{
 			return GetStreetName(new Vector3(position.X, position.Y, 0f));
 		}
-
-		[SecuritySafeCritical]
 		public static string GetStreetName(Vector3 position)
 		{
-			return _GetStreetName(position);
+			uint streetHash = 0u, crossingHash = 0u;
+			API.GetStreetNameAtCoord(position.X, position.Y, position.Z, ref streetHash, ref crossingHash);
+
+			return API.GetStreetNameFromHashKey(streetHash);
 		}
 
-		[SecurityCritical]
-		private static string _GetStreetName(Vector3 position)
-		{
-			int streetHash, crossingHash;
-			unsafe
-			{
-				Function.Call(Hash.GET_STREET_NAME_AT_COORD, position.X, position.Y, position.Z, &streetHash, &crossingHash);
-			}
-
-			return Function.Call<string>(Hash.GET_STREET_NAME_FROM_HASH_KEY, streetHash);
-		}
 
 		/// <summary>
 		/// Creates a <see cref="Blip"/> at the given position on the map.
@@ -1227,7 +1151,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position of the blip on the map.</param>
 		public static Blip CreateBlip(Vector3 position)
 		{
-			return new Blip(Function.Call<int>(Hash.ADD_BLIP_FOR_COORD, position.X, position.Y, position.Z));
+			return new Blip(API.AddBlipForCoord(position.X, position.Y, position.Z));
 		}
 		/// <summary>
 		/// Creates a <see cref="Blip"/> for a circular area at the given position on the map.
@@ -1236,7 +1160,7 @@ namespace CitizenFX.Core
 		/// <param name="radius">The radius of the area on the map.</param>
 		public static Blip CreateBlip(Vector3 position, float radius)
 		{
-			return new Blip(Function.Call<int>(Hash.ADD_BLIP_FOR_RADIUS, position.X, position.Y, position.Z, radius));
+			return new Blip(API.AddBlipForRadius(position.X, position.Y, position.Z, radius));
 		}
 
 		/// <summary>
@@ -1247,7 +1171,7 @@ namespace CitizenFX.Core
 		/// <param name="fov">The field of view of the camera.</param>
 		public static Camera CreateCamera(Vector3 position, Vector3 rotation, float fov)
 		{
-			return new Camera(Function.Call<int>(Hash.CREATE_CAM_WITH_PARAMS, "DEFAULT_SCRIPTED_CAMERA", position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, fov, 1, 2));
+			return new Camera(API.CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, fov, true, 2));
 		}
 
 		/// <summary>
@@ -1259,13 +1183,12 @@ namespace CitizenFX.Core
 		/// <remarks>returns <c>null</c> if the <see cref="Ped"/> could not be spawned</remarks>
 		public static async Task<Ped> CreatePed(Model model, Vector3 position, float heading = 0f)
 		{
-			// TODO: Implement IsPed
-			if (/*!model.IsPed ||*/ !await model.Request(1000))
+			if (!model.IsPed || !await model.Request(1000))
 			{
 				return null;
 			}
 
-			return new Ped(Function.Call<int>(Hash.CREATE_PED, 26, model.Hash, position.X, position.Y, position.Z, heading, true, false));
+			return new Ped(API.CreatePed(26, (uint)model.Hash, position.X, position.Y, position.Z, heading, true, false));
 		}
 		/// <summary>
 		/// Spawns a <see cref="Ped"/> of a random <see cref="Model"/> at the position specified.
@@ -1273,7 +1196,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to spawn the <see cref="Ped"/> at.</param>
 		public static Ped CreateRandomPed(Vector3 position)
 		{
-			return new Ped(Function.Call<int>(Hash.CREATE_RANDOM_PED, position.X, position.Y, position.Z));
+			return new Ped(API.CreateRandomPed(position.X, position.Y, position.Z));
 		}
 
 		/// <summary>
@@ -1290,36 +1213,46 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			return new Vehicle(Function.Call<int>(Hash.CREATE_VEHICLE, model.Hash, position.X, position.Y, position.Z, heading, true, false));
+			return new Vehicle(API.CreateVehicle((uint)model.Hash, position.X, position.Y, position.Z, heading, true, false));
 		}
+		// CFX-TODO: NEEDS TESTING.
 		/// <summary>
 		/// Spawns a <see cref="Vehicle"/> of a random <see cref="Model"/> at the position specified.
 		/// </summary>
 		/// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
 		/// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
-		[SecuritySafeCritical]
 		public static Vehicle CreateRandomVehicle(Vector3 position, float heading = 0f)
 		{
-			return _CreateRandomVehicle(position, heading);
-		}
+			int vehiclesCount = Enum.GetValues(typeof(VehicleHash)).Length;
+			int randomIndex = new Random().Next(0, vehiclesCount - 1);
 
-		[SecurityCritical]
-		private static Vehicle _CreateRandomVehicle(Vector3 position, float heading = 0f)
-		{
-			int outModel, outInt;
-			unsafe
+			string randomVehicleName = Enum.GetNames(typeof(VehicleHash)).GetValue(randomIndex).ToString();
+			uint modelHash = (uint)API.GetHashKey(randomVehicleName);
+
+			if (API.IsModelValid(modelHash) && API.IsModelInCdimage(modelHash) && API.IsModelAVehicle(modelHash))
 			{
-				Function.Call(Hash.GET_RANDOM_VEHICLE_MODEL_IN_MEMORY, 1, &outModel, &outInt);
-			}
-			Model model = outModel;
-			if (model.IsVehicle && model.IsLoaded)
-			{
-				return
-					new Vehicle(Function.Call<int>(Hash.CREATE_VEHICLE, model.Hash, position.X, position.Y, position.Z, heading, false, false));
+				return new Vehicle(API.CreateVehicle(modelHash, position.X, position.Y, position.Z, heading, true, false));
 			}
 			return null;
 		}
+
+		//[SecurityCritical]
+		//private static Vehicle _CreateRandomVehicle(Vector3 position, float heading = 0f)
+		//{
+		//	int outModel, outInt;
+		//	unsafe
+		//	{
+		//		Function.Call(Hash.GET_RANDOM_VEHICLE_MODEL_IN_MEMORY, 1, &outModel, &outInt);
+		//	}
+		//	Model model = outModel;
+		//	if (model.IsVehicle && model.IsLoaded)
+		//	{
+		//		return
+		//			new Vehicle(Function.Call<int>(Hash.CREATE_VEHICLE, model.Hash, position.X, position.Y, position.Z, heading, false, false));
+		//	}
+		//	return null;
+		//}
 
 		/// <summary>
 		/// Spawns a <see cref="Prop"/> of the given <see cref="Model"/> at the position specified.
@@ -1341,7 +1274,7 @@ namespace CitizenFX.Core
 				position.Z = GetGroundHeight(position);
 			}
 
-			return new Prop(Function.Call<int>(Hash.CREATE_OBJECT, model.Hash, position.X, position.Y, position.Z, 1, 1, dynamic));
+			return new Prop(API.CreateObject(model.Hash, position.X, position.Y, position.Z, true, true, dynamic));
 		}
 		/// <summary>
 		/// Spawns a <see cref="Prop"/> of the given <see cref="Model"/> at the position specified.
@@ -1377,7 +1310,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			return new Prop(Function.Call<int>(Hash.CREATE_OBJECT_NO_OFFSET, model.Hash, position.X, position.Y, position.Z, 1, 1, dynamic));
+			return new Prop(API.CreateObjectNoOffset((uint)model.Hash, position.X, position.Y, position.Z, true, true, dynamic));
 		}
 		/// <summary>
 		/// Spawns a <see cref="Prop"/> of the given <see cref="Model"/> at the position specified without any offset.
@@ -1406,7 +1339,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			int handle = Function.Call<int>(Hash.CREATE_PICKUP, type, position.X, position.Y, position.Z, 0, value, true, model.Hash);
+			int handle = API.CreatePickup((uint)type, position.X, position.Y, position.Z, 0, value, true, (uint)model.Hash);
 
 			if (handle == 0)
 			{
@@ -1422,7 +1355,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			int handle = Function.Call<int>(Hash.CREATE_PICKUP_ROTATE, type, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 0, value, 2, true, model.Hash);
+			int handle = API.CreatePickupRotate((uint)type, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 0, value, 2, true, (uint)model.Hash);
 
 			if (handle == 0)
 			{
@@ -1438,7 +1371,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			int handle = Function.Call<int>(Hash.CREATE_AMBIENT_PICKUP, type, position.X, position.Y, position.Z, 0, value, model.Hash, false, true);
+			int handle = API.CreateAmbientPickup((uint)type, position.X, position.Y, position.Z, 0, value, (uint)model.Hash, false, true);
 
 			if (handle == 0)
 			{
@@ -1457,9 +1390,9 @@ namespace CitizenFX.Core
 		/// <param name="radius">The radius of the <see cref="Checkpoint"/>.</param>
 		/// <param name="color">The color of the <see cref="Checkpoint"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Checkpoint"/> could not be created</remarks>
-		public static Checkpoint CreateCheckpoint(CheckpointIcon icon, Vector3 position, Vector3 pointTo, float radius, System.Drawing.Color color)
+		public static Checkpoint CreateCheckpoint(CheckpointIcon icon, Vector3 position, Vector3 pointTo, float radius, Color color)
 		{
-			int handle = Function.Call<int>(Hash.CREATE_CHECKPOINT, icon, position.X, position.Y, position.Z, pointTo.X, pointTo.Y, pointTo.Z, radius, color.R, color.G, color.B, color.A, 0);
+			int handle = API.CreateCheckpoint((int)icon, position.X, position.Y, position.Z, pointTo.X, pointTo.Y, pointTo.Z, radius, color.R, color.G, color.B, color.A, 0);
 
 			if (handle == 0)
 			{
@@ -1477,9 +1410,9 @@ namespace CitizenFX.Core
 		/// <param name="radius">The radius of the <see cref="Checkpoint"/>.</param>
 		/// <param name="color">The color of the <see cref="Checkpoint"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Checkpoint"/> could not be created</remarks>
-		public static Checkpoint CreateCheckpoint(CheckpointCustomIcon icon, Vector3 position, Vector3 pointTo, float radius, System.Drawing.Color color)
+		public static Checkpoint CreateCheckpoint(CheckpointCustomIcon icon, Vector3 position, Vector3 pointTo, float radius, Color color)
 		{
-			int handle = Function.Call<int>(Hash.CREATE_CHECKPOINT, 42, position.X, position.Y, position.Z, pointTo.X, pointTo.Y, pointTo.Z, radius, color.R, color.G, color.B, color.A, icon);
+			int handle = API.CreateCheckpoint(42, position.X, position.Y, position.Z, pointTo.X, pointTo.Y, pointTo.Z, radius, color.R, color.G, color.B, color.A, icon);
 
 			if (handle == 0)
 			{
@@ -1500,9 +1433,9 @@ namespace CitizenFX.Core
 		/// <param name="breakable">if set to <c>true</c> the <see cref="Rope"/> will break if shot.</param>
 		public static Rope AddRope(RopeType type, Vector3 position, Vector3 rotation, float length, float minLength, bool breakable)
 		{
-			Function.Call(Hash.ROPE_LOAD_TEXTURES);
-
-			return new Rope(Function.Call<int>(Hash.ADD_ROPE, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, length, type, length, minLength, 0.5f, false, false, true, 1.0f, breakable, 0));
+			API.RopeLoadTextures();
+			int unkPntr = 0;
+			return new Rope(API.AddRope(position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, length, (int)type, length, minLength, 0.5f, false, false, true, 1.0f, breakable, ref unkPntr));
 		}
 
 
@@ -1517,7 +1450,7 @@ namespace CitizenFX.Core
 		/// <param name="speed">The speed, only affects projectile weapons, leave -1 for default.</param>
 		public static void ShootBullet(Vector3 sourcePosition, Vector3 targetPosition, Ped owner, WeaponAsset weaponAsset, int damage, float speed = -1f)
 		{
-			Function.Call(Hash.SHOOT_SINGLE_BULLET_BETWEEN_COORDS, sourcePosition.X, sourcePosition.Y, sourcePosition.Z, targetPosition.X, targetPosition.Y, targetPosition.Z, damage, 1, weaponAsset.Hash, (owner == null ? 0 : owner.Handle), 1, 0, speed);
+			API.ShootSingleBulletBetweenCoords(sourcePosition.X, sourcePosition.Y, sourcePosition.Z, targetPosition.X, targetPosition.Y, targetPosition.Z, damage, true, (uint)weaponAsset.Hash, (owner == null ? 0 : owner.Handle), true, false, speed);
 		}
 
 		/// <summary>
@@ -1534,11 +1467,11 @@ namespace CitizenFX.Core
 		{
 			if (Entity.Exists(owner))
 			{
-				Function.Call(Hash.ADD_OWNED_EXPLOSION, owner.Handle, position.X, position.Y, position.Z, type, radius, aubidble, invisible, cameraShake);
+				API.AddOwnedExplosion(owner.Handle, position.X, position.Y, position.Z, (int)type, radius, aubidble, invisible, cameraShake);
 			}
 			else
 			{
-				Function.Call(Hash.ADD_EXPLOSION, position.X, position.Y, position.Z, type, radius, aubidble, invisible, cameraShake);
+				API.AddExplosion(position.X, position.Y, position.Z, (int)type, radius, aubidble, invisible, cameraShake);
 			}
 		}
 
@@ -1546,21 +1479,10 @@ namespace CitizenFX.Core
 		/// Creates a <see cref="RelationshipGroup"/> with the given name.
 		/// </summary>
 		/// <param name="name">The name of the relationship group.</param>
-		[SecuritySafeCritical]
 		public static RelationshipGroup AddRelationshipGroup(string name)
 		{
-			return _AddRelationshipGroup(name);
-		}
-
-		[SecuritySafeCritical]
-		private static RelationshipGroup _AddRelationshipGroup(string name)
-		{
-			int resultArg;
-			unsafe
-			{
-				Function.Call(Hash.ADD_RELATIONSHIP_GROUP, name, &resultArg);
-			}
-
+			uint resultArg = 0u;
+			API.AddRelationshipGroup(name, ref resultArg);
 			return new RelationshipGroup(resultArg);
 		}
 
@@ -1587,7 +1509,7 @@ namespace CitizenFX.Core
 		{
 			Vector3 target = source + direction * maxDistance;
 
-			return new RaycastResult(Function.Call<int>(Hash._CAST_RAY_POINT_TO_POINT, source.X, source.Y, source.Z, target.X, target.Y, target.Z, options, ignoreEntity == null ? 0 : ignoreEntity.Handle, 7));
+			return new RaycastResult(API.StartShapeTestRay(source.X, source.Y, source.Z, target.X, target.Y, target.Z, (int)options, ignoreEntity == null ? 0 : ignoreEntity.Handle, 7));
 		}
 
 		/// <summary>
@@ -1600,7 +1522,7 @@ namespace CitizenFX.Core
 		/// <param name="ignoreEntity">Specify an <see cref="Entity"/> that the raycast should ignore, leave null for no entities ignored.</param>
 		public static RaycastResult RaycastCapsule(Vector3 source, Vector3 target, float radius, IntersectOptions options, Entity ignoreEntity = null)
 		{
-			return new RaycastResult(Function.Call<int>(Hash.START_SHAPE_TEST_CAPSULE, source.X, source.Y, source.Z, target.X, target.Y, target.Z, radius, options, ignoreEntity == null ? 0 : ignoreEntity.Handle, 7));
+			return new RaycastResult(API.StartShapeTestCapsule(source.X, source.Y, source.Z, target.X, target.Y, target.Z, radius, (int)options, ignoreEntity == null ? 0 : ignoreEntity.Handle, 7));
 		}
 		/// <summary>
 		/// Creates a 3D raycast between 2 points.
@@ -1615,7 +1537,7 @@ namespace CitizenFX.Core
 		{
 			Vector3 target = source + direction * maxDistance;
 
-			return new RaycastResult(Function.Call<int>(Hash.START_SHAPE_TEST_CAPSULE, source.X, source.Y, source.Z, target.X, target.Y, target.Z, radius, options, ignoreEntity == null ? 0 : ignoreEntity.Handle, 7));
+			return new RaycastResult(API.StartShapeTestCapsule(source.X, source.Y, source.Z, target.X, target.Y, target.Z, radius, (int)options, ignoreEntity == null ? 0 : ignoreEntity.Handle, 7));
 		}
 		/// <summary>
 		/// Determines where the crosshair intersects with the world.
@@ -1656,14 +1578,14 @@ namespace CitizenFX.Core
 		{
 			if (!string.IsNullOrEmpty(textueDict) && !string.IsNullOrEmpty(textureName))
 			{
-				Function.Call(Hash.DRAW_MARKER, type, pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, rot.X, rot.Y, rot.Z, scale.X,
+				API.DrawMarker((int)type, pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, rot.X, rot.Y, rot.Z, scale.X,
 					scale.Y, scale.Z, color.R, color.G, color.B, color.A, bobUpAndDown, faceCamera, 2, rotateY, textueDict,
 					textureName, drawOnEntity);
 			}
 			else
 			{
-				Function.Call(Hash.DRAW_MARKER, type, pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, rot.X, rot.Y, rot.Z, scale.X,
-					scale.Y, scale.Z, color.R, color.G, color.B, color.A, bobUpAndDown, faceCamera, 2, rotateY, 0, 0, drawOnEntity);
+				API.DrawMarker((int)type, pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, rot.X, rot.Y, rot.Z, scale.X,
+					scale.Y, scale.Z, color.R, color.G, color.B, color.A, bobUpAndDown, faceCamera, 2, rotateY, null, null, drawOnEntity);
 			}
 		}
 
@@ -1676,32 +1598,31 @@ namespace CitizenFX.Core
 		/// <param name="intensity">The intensity: <c>0.0f</c> being no intensity, <c>1.0f</c> being full intensity.</param>
 		public static void DrawLightWithRange(Vector3 position, Color color, float range, float intensity)
 		{
-			Function.Call(Hash.DRAW_LIGHT_WITH_RANGE, position.X, position.Y, position.Z, color.R, color.G, color.B, range,
-				intensity);
+			API.DrawLightWithRange(position.X, position.Y, position.Z, color.R, color.G, color.B, range, intensity);
 		}
 
 		public static void DrawSpotLight(Vector3 pos, Vector3 dir, Color color, float distance, float brightness,
 			float roundness, float radius, float fadeout)
 		{
-			Function.Call(Hash.DRAW_SPOT_LIGHT, pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, color.R, color.G, color.B, distance,
+			API.DrawSpotLight(pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, color.R, color.G, color.B, distance,
 				brightness, roundness, radius, fadeout);
 		}
 
 		public static void DrawSpotLightWithShadow(Vector3 pos, Vector3 dir, Color color, float distance, float brightness,
 			float roundness, float radius, float fadeout)
 		{
-			Function.Call(Hash._DRAW_SPOT_LIGHT_WITH_SHADOW, pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, color.R, color.G, color.B,
-				distance, brightness, roundness, radius, fadeout);
+			API.DrawSpotLightWithShadow(pos.X, pos.Y, pos.Z, dir.X, dir.Y, dir.Z, color.R, color.G, color.B,
+				distance, brightness, roundness, radius, fadeout, 0);
 		}
 
 		public static void DrawLine(Vector3 start, Vector3 end, Color color)
 		{
-			Function.Call(Hash.DRAW_LINE, start.X, start.Y, start.Z, end.X, end.Y, end.Z, color.R, color.G, color.B, color.A);
+			API.DrawLine(start.X, start.Y, start.Z, end.X, end.Y, end.Z, color.R, color.G, color.B, color.A);
 		}
 
 		public static void DrawPoly(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Color color)
 		{
-			Function.Call(Hash.DRAW_POLY, vertexA.X, vertexA.Y, vertexA.Z, vertexB.X, vertexB.Y, vertexB.Z, vertexC.X, vertexC.Y,
+			API.DrawPoly(vertexA.X, vertexA.Y, vertexA.Z, vertexB.X, vertexB.Y, vertexB.Z, vertexC.X, vertexC.Y,
 				vertexC.Z, color.R, color.G, color.B, color.A);
 		}
 
@@ -1712,7 +1633,7 @@ namespace CitizenFX.Core
 		/// <param name="range">The maximum distance from the <paramref name="pos"/> to stop particle effects.</param>
 		public static void RemoveAllParticleEffectsInRange(Vector3 pos, float range)
 		{
-			Function.Call(Hash.REMOVE_PARTICLE_FX_IN_RANGE, pos.X, pos.Y, pos.Z, range);
+			API.RemoveParticleFxInRange(pos.X, pos.Y, pos.Z, range);
 		}
 	}
 }
