@@ -137,8 +137,26 @@ namespace CitizenFX.Core.UI
 		{
 			get
 			{
-				API.BeginTextCommandWidth("STRING");
-				API.AddTextComponentSubstringPlayerName(Caption);
+				string[] strings = Screen.StringToArray(Caption);
+
+				if (strings.Length == 1)
+				{
+					API.BeginTextCommandWidth("STRING");
+				}
+				else if (strings.Length == 2)
+				{
+					API.BeginTextCommandWidth("TWOSTRINGS");
+				}
+				else if (strings.Length == 3)
+				{
+					API.BeginTextCommandWidth("THREESTRINGS");
+				}
+
+				foreach (string s in strings)
+				{
+					API.AddTextComponentSubstringPlayerName(s);
+				}
+
 				API.SetTextFont((int)Font);
 				API.SetTextScale(Scale, Scale);
 
@@ -153,8 +171,26 @@ namespace CitizenFX.Core.UI
 		{
 			get
 			{
-				API.BeginTextCommandWidth("STRING");
-				API.AddTextComponentSubstringPlayerName(Caption);
+				string[] strings = Screen.StringToArray(Caption);
+
+				if (strings.Length == 1)
+				{
+					API.BeginTextCommandWidth("STRING");
+				}
+				else if (strings.Length == 2)
+				{
+					API.BeginTextCommandWidth("TWOSTRINGS");
+				}
+				else if (strings.Length == 3)
+				{
+					API.BeginTextCommandWidth("THREESTRINGS");
+				}
+
+				foreach (string s in strings)
+				{
+					API.AddTextComponentSubstringPlayerName(s);
+				}
+
 				API.SetTextFont((int)Font);
 				API.SetTextScale(Scale, Scale);
 
@@ -260,22 +296,28 @@ namespace CitizenFX.Core.UI
 		/// </returns>
 		public static float GetStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
-			const int maxStringLength = 99;
+			string[] strings = Screen.StringToArray(text);
 
-			API.BeginTextCommandWidth("STRING");
-
-			if (text.Length > maxStringLength)
+			if (strings.Length == 1)
 			{
-				API.AddTextComponentSubstringPlayerName(text.Substring(0, maxStringLength));
+				API.BeginTextCommandWidth("STRING");
 			}
-			else
+			else if (strings.Length == 2)
 			{
-				API.AddTextComponentSubstringPlayerName(text);
+				API.BeginTextCommandWidth("TWOSTRINGS");
+			}
+			else if (strings.Length == 3)
+			{
+				API.BeginTextCommandWidth("THREESTRINGS");
+			}
+
+			foreach (string s in strings)
+			{
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.SetTextFont((int)font);
 			API.SetTextScale(scale, scale);
-
 
 			return Screen.Width * API.EndTextCommandGetWidth(true);
 		}
@@ -290,22 +332,28 @@ namespace CitizenFX.Core.UI
 		/// </returns>
 		public static float GetScaledStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
-			const int maxStringLength = 99;
+			string[] strings = Screen.StringToArray(text);
 
-			API.BeginTextCommandWidth("STRING");
-
-			if (text.Length > maxStringLength)
+			if (strings.Length == 1)
 			{
-				API.AddTextComponentSubstringPlayerName(text.Substring(0, maxStringLength));
+				API.BeginTextCommandWidth("STRING");
 			}
-			else
+			else if (strings.Length == 2)
 			{
-				API.AddTextComponentSubstringPlayerName(text);
+				API.BeginTextCommandWidth("TWOSTRINGS");
+			}
+			else if (strings.Length == 3)
+			{
+				API.BeginTextCommandWidth("THREESTRINGS");
+			}
+
+			foreach (string s in strings)
+			{
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.SetTextFont((int)font);
 			API.SetTextScale(scale, scale);
-
 
 			return Screen.ScaledWidth * API.EndTextCommandGetWidth(true);
 		}
@@ -347,8 +395,6 @@ namespace CitizenFX.Core.UI
 
 		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
 		{
-
-			const int maxStringLength = 99;
 			if (!Enabled)
 			{
 				return;
@@ -392,14 +438,24 @@ namespace CitizenFX.Core.UI
 				API.SetTextWrap(0.0f, x);
 			}
 
-			API.BeginTextCommandDisplayText("STRING");
-			if (Caption.Length > maxStringLength)
+			string[] strings = Screen.StringToArray(Caption);
+
+			if (strings.Length == 1)
 			{
-				API.AddTextComponentSubstringPlayerName(Caption.Substring(0, maxStringLength));
+				API.BeginTextCommandDisplayText("STRING");
 			}
-			else
+			else if (strings.Length == 2)
 			{
-				API.AddTextComponentSubstringPlayerName(Caption);
+				API.BeginTextCommandDisplayText("TWOSTRINGS");
+			}
+			else if (strings.Length == 3)
+			{
+				API.BeginTextCommandDisplayText("THREESTRINGS");
+			}
+
+			foreach (string s in strings)
+			{
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.EndTextCommandDisplayText(x, y);

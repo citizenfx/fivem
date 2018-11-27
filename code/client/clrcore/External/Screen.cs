@@ -193,6 +193,64 @@ namespace CitizenFX.Core.UI
 	public static class Screen
 	{
 		/// <summary>
+		/// Converts the inputString into 1, 2 or 3 strings in a string[] (array).
+		/// Each string in the array is up to 99 characters long at max, and is properly 
+		/// split at the last space in each substring.
+		/// Used for notifications, subtitles, help text and drawing text on screen.
+		/// </summary>
+		/// <param name="inputString">The string to convert.</param>
+		/// <returns>String[] containing 1, 2 or 3 strings.</returns>
+		public static string[] StringToArray(string inputString)
+		{
+			string[] outputString = new string[3];
+
+			var lastSpaceIndex = 0;
+			var newStartIndex = 0;
+			outputString[0] = inputString;
+
+			if (inputString.Length > 99)
+			{
+				for (int i = 0; i < inputString.Length; i++)
+				{
+					if (inputString.Substring(i, 1) == " ")
+					{
+						lastSpaceIndex = i;
+					}
+
+					if (inputString.Length > 99 && i >= 98)
+					{
+						if (i == 98)
+						{
+							outputString[0] = inputString.Substring(0, lastSpaceIndex);
+							newStartIndex = lastSpaceIndex + 1;
+						}
+						if (i > 98 && i < 198)
+						{
+							if (i == 197)
+							{
+								outputString[1] = inputString.Substring(newStartIndex, (lastSpaceIndex - (outputString[0].Length - 1)) - (inputString.Length - 1 > 197 ? 1 : -1));
+								newStartIndex = lastSpaceIndex + 1;
+							}
+							else if (i == inputString.Length - 1 && inputString.Length < 198)
+							{
+								outputString[1] = inputString.Substring(newStartIndex, ((inputString.Length - 1) - outputString[0].Length));
+								newStartIndex = lastSpaceIndex + 1;
+							}
+						}
+						if (i > 197)
+						{
+							if (i == inputString.Length - 1 || i == 296)
+							{
+								outputString[2] = inputString.Substring(newStartIndex, ((inputString.Length - 1) - outputString[0].Length) - outputString[1].Length);
+							}
+						}
+					}
+				}
+			}
+			return outputString;
+		}
+
+		/// <summary>
 		/// The base width of the screen used for all UI Calculations, unless ScaledDraw is used
 		/// </summary>
 		public const float Width = 1280f;
@@ -240,17 +298,24 @@ namespace CitizenFX.Core.UI
 		/// <param name="duration">The duration to display the subtitle in milliseconds.</param>
 		public static void ShowSubtitle(string message, int duration = 2500)
 		{
-			API.BeginTextCommandPrint("STRING");
+			string[] strings = StringToArray(message);
 
-			const int maxStringLength = 99;
-
-			if (message.Length > maxStringLength)
+			if (strings.Length == 1)
 			{
-				API.AddTextComponentSubstringPlayerName(message.Substring(0, 99));
+				API.BeginTextCommandPrint("STRING");
 			}
-			else
+			else if (strings.Length == 2)
 			{
-				API.AddTextComponentSubstringPlayerName(message);
+				API.BeginTextCommandPrint("TWOSTRINGS");
+			}
+			else if (strings.Length == 3)
+			{
+				API.BeginTextCommandPrint("THREESTRINGS");
+			}
+
+			foreach (string s in strings)
+			{
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.EndTextCommandPrint(duration, true);
@@ -262,17 +327,26 @@ namespace CitizenFX.Core.UI
 		/// <param name="helpText">The text to display.</param>
 		public static void DisplayHelpTextThisFrame(string helpText)
 		{
-			API.BeginTextCommandDisplayHelp("STRING");
-			const int maxStringLength = 99;
+			string[] strings = StringToArray(helpText);
 
-			if (helpText.Length > maxStringLength)
+			if (strings.Length == 1)
 			{
-				API.AddTextComponentSubstringPlayerName(helpText.Substring(0, 99));
+				API.BeginTextCommandDisplayHelp("STRING");
 			}
-			else
+			else if (strings.Length == 2)
 			{
-				API.AddTextComponentSubstringPlayerName(helpText);
+				API.BeginTextCommandDisplayHelp("TWOSTRINGS");
 			}
+			else if (strings.Length == 3)
+			{
+				API.BeginTextCommandDisplayHelp("THREESTRINGS");
+			}
+
+			foreach (string s in strings)
+			{
+				API.AddTextComponentSubstringPlayerName(s);
+			}
+
 			API.EndTextCommandDisplayHelp(0, false, false, -1);
 		}
 
@@ -284,15 +358,24 @@ namespace CitizenFX.Core.UI
 		/// <returns>The handle of the <see cref="Notification"/> which can be used to hide it using <see cref="Notification.Hide()"/></returns>
 		public static Notification ShowNotification(string message, bool blinking = false)
 		{
-			const int maxStringLength = 99;
-			API.SetNotificationTextEntry("STRING");
-			if (message.Length > maxStringLength)
+			string[] strings = StringToArray(message);
+
+			if (strings.Length == 1)
 			{
-				API.AddTextComponentSubstringPlayerName(message.Substring(0, 99));
+				API.SetNotificationTextEntry("STRING");
 			}
-			else
+			else if (strings.Length == 2)
 			{
-				API.AddTextComponentSubstringPlayerName(message);
+				API.SetNotificationTextEntry("TWOSTRINGS");
+			}
+			else if (strings.Length == 3)
+			{
+				API.SetNotificationTextEntry("THREESTRINGS");
+			}
+
+			foreach (string s in strings)
+			{
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			return new Notification(API.DrawNotification(blinking, true));
