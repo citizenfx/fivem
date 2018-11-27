@@ -122,11 +122,15 @@ private:
 	{
 		std::chrono::milliseconds lastSyncTime;
 		std::chrono::milliseconds lastSyncAck;
+		uint32_t lastChangeTime;
+		uint32_t lastResendTime;
 
 		ObjectData()
 		{
 			lastSyncTime = 0ms;
 			lastSyncAck = 0ms;
+			lastChangeTime = 0;
+			lastResendTime = 0;
 		}
 	};
 
@@ -1036,7 +1040,7 @@ void CloneManagerLocal::WriteUpdates()
 		auto syncTree = object->GetSyncTree();
 
 		// get latency stuff
-		auto syncLatency = 33ms;
+		auto syncLatency = 50ms;
 
 		if (object->GetGameObject())
 		{
@@ -1045,7 +1049,7 @@ void CloneManagerLocal::WriteUpdates()
 
 			if (!_isSphereVisibleForAnyPlayer(&entityPos, entity->GetRadius(), 250.0f, nullptr))
 			{
-				syncLatency = 100ms;
+				syncLatency = 250ms;
 			}
 		}
 
@@ -1141,41 +1145,58 @@ void CloneManagerLocal::WriteUpdates()
 			// write tree
 			g_curNetObject = object;
 
-			if (syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp(), nullptr, 31, nullptr))
+			uint32_t lastChangeTime;
+
+			if (syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp(), nullptr, 31, nullptr, &lastChangeTime))
 			{
-				AssociateSyncTree(object->objectId, syncTree);
+				// #TODO1S: dynamic resend time based on latency
+				bool shouldWrite = true;
 
-				// instantly mark player 31 as acked
-				if (object->m_20())
+				if (lastChangeTime == objectData.lastChangeTime && rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() < (objectData.lastResendTime + 100))
 				{
-					// 1290
-					//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
+					Log("%s: no early resend of object %d\n", __func__, objectId);
+					shouldWrite = false;
 				}
 
-				// write header to send buffer
-				netBuffer.Write(3, syncType);
-
-				// write data
-				//netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
-				//netBuffer.Write<uint8_t>(0); // player ID (byte)
-				netBuffer.Write(13, objectId); // object ID (short)
-
-				if (syncType == 1)
+				if (shouldWrite)
 				{
-					netBuffer.Write(4, objectType);
+					objectData.lastChangeTime = lastChangeTime;
+
+					AssociateSyncTree(object->objectId, syncTree);
+
+					// instantly mark player 31 as acked
+					if (object->m_20())
+					{
+						// 1290
+						//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
+					}
+
+					// write header to send buffer
+					netBuffer.Write(3, syncType);
+
+					// write data
+					//netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
+					//netBuffer.Write<uint8_t>(0); // player ID (byte)
+					netBuffer.Write(13, objectId); // object ID (short)
+
+					if (syncType == 1)
+					{
+						netBuffer.Write(4, objectType);
+					}
+
+					//netBuffer.Write<uint32_t>(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp()); // timestamp?
+
+					uint32_t len = rlBuffer.GetDataLength();
+					netBuffer.Write(12, len); // length (short)
+					netBuffer.WriteBits(rlBuffer.m_data, len * 8); // data
+
+					Log("uncompressed clone sync for %d: %d bytes\n", objectId, len);
+
+					AttemptFlushNetBuffer();
+
+					objectData.lastResendTime = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+					objectData.lastSyncTime = msec();
 				}
-
-				//netBuffer.Write<uint32_t>(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp()); // timestamp?
-
-				uint32_t len = rlBuffer.GetDataLength();
-				netBuffer.Write(12, len); // length (short)
-				netBuffer.WriteBits(rlBuffer.m_data, len * 8); // data
-
-				Log("uncompressed clone sync for %d: %d bytes\n", objectId, len);
-
-				AttemptFlushNetBuffer();
-
-				objectData.lastSyncTime = msec();
 			}
 		}
 

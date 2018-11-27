@@ -317,6 +317,7 @@ struct WriteTreeState
 	rage::netLogStub* logger;
 	uint32_t time;
 	bool wroteAny;
+	uint32_t* lastChangeTimePtr;
 };
 
 struct NetObjectNodeData
@@ -388,7 +389,7 @@ inline uint32_t GetDelayForUpdateFrequency(uint8_t updateFrequency)
 	}
 }
 
-bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
+bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull, uint32_t* lastChangeTime)
 {
 	WriteTreeState state;
 	state.object = object;
@@ -398,6 +399,12 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	state.logger = (rage::netLogStub*)logger;
 	state.time = time;
 	state.wroteAny = false;
+	state.lastChangeTimePtr = lastChangeTime;
+
+	if (lastChangeTime)
+	{
+		*lastChangeTime = 0;
+	}
 
 	if (flags == 2 || flags == 4)
 	{
@@ -455,6 +462,16 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					{
 						nodeData->lastChange = state.time;
 						nodeData->lastData = tempData;
+					}
+				}
+
+				if (state.lastChangeTimePtr)
+				{
+					auto oldVal = *state.lastChangeTimePtr;
+
+					if (nodeData->lastChange > oldVal)
+					{
+						*state.lastChangeTimePtr = nodeData->lastChange;
 					}
 				}
 

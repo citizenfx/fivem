@@ -305,6 +305,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
 		maybeFlushBuffer();
 
+		auto enPeer = gscomms_get_peer(client->GetPeer());
+
+		auto resendDelay = 0ms;
+
+		if (enPeer)
+		{
+			resendDelay = std::chrono::milliseconds(std::max(int(1), int(enPeer->roundTripTime * 2) - int(enPeer->roundTripTimeVariance)));
+		}
+
 		int numCreates = 0, numSyncs = 0, numSkips = 0;
 
 		for (auto& entityPair : m_entities)
@@ -428,6 +437,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (wroteData)
 				{
+					auto lastResend = entity->lastResends[client->GetSlotId()];
+					auto lastTime = (msec() - lastResend);
+
+					if (lastResend != 0ms && lastTime < resendDelay)
+					{
+						Log("%s: skipping resend for object %d (resend delay %dms, last resend %d)\n", __func__, entity->handle & 0xFFFF, resendDelay.count(), lastTime.count());
+						return;
+					}
+
 					cloneBuffer.Write(3, syncType);
 					cloneBuffer.Write(13, entity->handle & 0xFFFF);
 					cloneBuffer.Write(16, entity->client.lock()->GetNetId()); // TODO: replace with slotId
@@ -446,6 +464,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					maybeFlushBuffer();
 
 					((syncType == 1) ? numCreates : numSyncs)++;
+
+					entity->lastResends[client->GetSlotId()] = msec();
 				}
 				else
 				{
@@ -1045,6 +1065,9 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	if (entity->syncTree)
 	{
 		entity->syncTree->Parse(state);
+
+		// reset resends to 0
+		entity->lastResends = {};
 
 		if (parsingType == 1)
 		{

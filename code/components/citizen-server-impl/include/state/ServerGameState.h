@@ -10,6 +10,7 @@
 
 #include <variant>
 
+#include <array>
 #include <bitset>
 
 #include <tbb/concurrent_unordered_map.h>
@@ -100,6 +101,8 @@ struct SyncEntityState
 	std::bitset<256> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
+
+	std::array<std::chrono::milliseconds, 256> lastResends;
 
 	std::unique_ptr<SyncTreeBase> syncTree;
 
