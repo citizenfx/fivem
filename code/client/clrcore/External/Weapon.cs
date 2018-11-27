@@ -149,14 +149,14 @@ namespace CitizenFX.Core
 					return true;
 				}
 
-				return Function.Call<bool>(Native.Hash.HAS_PED_GOT_WEAPON, _owner.Handle, Hash, 0);
+				return API.HasPedGotWeapon(_owner.Handle, (uint)Hash, false);
 			}
 		}
 		public string DisplayName
 		{
 			get
 			{
-				return  GetDisplayNameFromHash(Hash);
+				return GetDisplayNameFromHash(Hash);
 			}
 		}
 		public string LocalizedName
@@ -170,29 +170,29 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return new Model(Function.Call<int>(Native.Hash.GET_WEAPONTYPE_MODEL, Hash));
+				return new Model(API.GetWeapontypeModel((uint)Hash));
 			}
 		}
 		public WeaponTint Tint
 		{
 			get
 			{
-				return Function.Call<WeaponTint>(Native.Hash.GET_PED_WEAPON_TINT_INDEX, _owner.Handle, Hash);
+				return (WeaponTint)API.GetPedWeaponTintIndex(_owner.Handle, (uint)Hash);
 			}
 			set
 			{
-				Function.Call(Native.Hash.SET_PED_WEAPON_TINT_INDEX, _owner.Handle, Hash, value);
+				API.SetPedWeaponTintIndex(_owner.Handle, (uint)Hash, (int)value);
 			}
 		}
 		public WeaponGroup Group
 		{
 			get
 			{
-				return Function.Call<WeaponGroup>(Native.Hash.GET_WEAPONTYPE_GROUP, Hash);
+				return (WeaponGroup)API.GetWeapontypeGroup((uint)Hash);
 			}
 		}
 
-		public AmmoType AmmoType => Function.Call<AmmoType>(Native.Hash.GET_PED_AMMO_TYPE_FROM_WEAPON, _owner.Handle, Hash);
+		public AmmoType AmmoType => (AmmoType)API.GetPedAmmoTypeFromWeapon(_owner.Handle, (uint)Hash);
 
 		public int Ammo
 		{
@@ -205,10 +205,10 @@ namespace CitizenFX.Core
 
 				if (!IsPresent)
 				{
-					return Function.Call<int>(Native.Hash.GET_PED_AMMO_BY_TYPE, _owner.Handle, AmmoType);
+					return API.GetPedAmmoByType(_owner.Handle, (int)AmmoType);
 				}
 
-				return Function.Call<int>(Native.Hash.GET_AMMO_IN_PED_WEAPON, _owner.Handle, Hash);
+				return API.GetAmmoInPedWeapon(_owner.Handle, (uint)Hash);
 			}
 			set
 			{
@@ -219,11 +219,11 @@ namespace CitizenFX.Core
 
 				if (IsPresent)
 				{
-					Function.Call(Native.Hash.SET_PED_AMMO, _owner.Handle, Hash, value);
+					API.SetPedAmmo(_owner.Handle, (uint)Hash, value);
 				}
 				else
 				{
-					Function.Call(Native.Hash.GIVE_WEAPON_TO_PED, _owner.Handle, Hash, value, false, true);
+					API.GiveWeaponToPed(_owner.Handle, (uint)Hash, value, false, true);
 				}
 			}
 		}
@@ -241,11 +241,8 @@ namespace CitizenFX.Core
 					return 0;
 				}
 
-				int ammoInClip;
-				unsafe
-				{
-					Function.Call(Native.Hash.GET_AMMO_IN_CLIP, _owner.Handle, Hash, &ammoInClip);
-				}
+				int ammoInClip = 0;
+				API.GetAmmoInClip(_owner.Handle, (uint)Hash, ref ammoInClip);
 
 				return ammoInClip;
 			}
@@ -258,11 +255,11 @@ namespace CitizenFX.Core
 
 				if (IsPresent)
 				{
-					Function.Call(Native.Hash.SET_AMMO_IN_CLIP, _owner.Handle, Hash, value);
+					API.SetAmmoInClip(_owner.Handle, (uint)Hash, value);
 				}
 				else
 				{
-					Function.Call(Native.Hash.GIVE_WEAPON_TO_PED, _owner.Handle, Hash, value, true, false);
+					API.GiveWeaponToPed(_owner.Handle, (uint)Hash, value, true, false);
 				}
 			}
 		}
@@ -275,11 +272,8 @@ namespace CitizenFX.Core
 					return 1;
 				}
 
-			    int maxAmmo;
-				unsafe
-				{
-					Function.Call(Native.Hash.GET_MAX_AMMO, _owner.Handle, Hash, &maxAmmo);
-				}
+				int maxAmmo = 0;
+				API.GetMaxAmmo(_owner.Handle, (uint)Hash, ref maxAmmo);
 
 				return maxAmmo;
 			}
@@ -298,14 +292,14 @@ namespace CitizenFX.Core
 					return 0;
 				}
 
-				return Function.Call<int>(Native.Hash.GET_MAX_AMMO_IN_CLIP, _owner.Handle, Hash, true);
+				return API.GetMaxAmmoInClip(_owner.Handle, (uint)Hash, true);
 			}
 		}
 		public int DefaultClipSize
 		{
 			get
 			{
-				return Function.Call<int>(Native.Hash.GET_WEAPON_CLIP_SIZE, Hash);
+				return API.GetWeaponClipSize((uint)Hash);
 			}
 		}
 		public bool InfiniteAmmo
@@ -317,14 +311,14 @@ namespace CitizenFX.Core
 					return;
 				}
 
-				Function.Call(Native.Hash.SET_PED_INFINITE_AMMO, _owner.Handle, value, Hash);
+				API.SetPedInfiniteAmmo(_owner.Handle, value, (uint)Hash);
 			}
 		}
 		public bool InfiniteAmmoClip
 		{
 			set
 			{
-				Function.Call(Native.Hash.SET_PED_INFINITE_AMMO_CLIP, _owner.Handle, value);
+				API.SetPedInfiniteAmmoClip(_owner.Handle, value);
 			}
 		}
 
@@ -332,7 +326,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.CAN_USE_WEAPON_ON_PARACHUTE, Hash);
+				return API.CanUseWeaponOnParachute((uint)Hash);
 			}
 		}
 
@@ -361,7 +355,7 @@ namespace CitizenFX.Core
 			{
 				WeaponComponent comp = Components.GetMk2CamoComponent((int)liveryID);
 				comp.Active = true;
-				Function.Call((Hash)0x9FE5633880ECD8ED, Game.PlayerPed.Handle, Hash, comp.ComponentHash, (int) colorID);
+				API.N_0x9fe5633880ecd8ed(Game.PlayerPed.Handle, (int)Hash, (int)comp.ComponentHash, (int)colorID);
 			}
 			else
 			{
@@ -493,10 +487,11 @@ namespace CitizenFX.Core
 					return "WT_SMG2";
 			}
 			DlcWeaponData data;
-			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
+			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)
 			{
 				unsafe
 				{
+					// struct native, can't be converted.
 					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &data))
 					{
 						if (data.Hash == hash)

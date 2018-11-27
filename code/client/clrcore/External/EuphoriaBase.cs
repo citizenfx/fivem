@@ -6,7 +6,7 @@ using CitizenFX.Core.Native;
 namespace CitizenFX.Core.NaturalMotion
 {
 	/// <summary>
-	/// A Base class for manually building a <see cref="GTA.NaturalMotion.Message"/>
+	/// A Base class for manually building a <see cref="NaturalMotion.Message"/>
 	/// </summary>
 	public class Message
 	{
@@ -49,7 +49,7 @@ namespace CitizenFX.Core.NaturalMotion
 					target.CanRagdoll = true;
 				}
 
-				Function.Call(Hash.SET_PED_TO_RAGDOLL, target.Handle, 10000, -1, 1, 1, 1, 0);
+				API.SetPedToRagdoll(target.Handle, 10000, -1, 1, true, true, false);
 			}
 
 			SetArgument("start", true);
@@ -71,7 +71,7 @@ namespace CitizenFX.Core.NaturalMotion
 				target.CanRagdoll = true;
 			}
 
-			Function.Call(Hash.SET_PED_TO_RAGDOLL, target.Handle, 10000, duration, 1, 1, 1, 0);
+			API.SetPedToRagdoll(target.Handle, 10000, duration, 1, true, true, false);
 
 			SendTo(target);
 		}
@@ -141,7 +141,7 @@ namespace CitizenFX.Core.NaturalMotion
 	}
 
 	/// <summary>
-	/// A Helper class for building a <seealso cref="GTA.NaturalMotion.Message" /> and sending it to a given <see cref="Ped"/>
+	/// A Helper class for building a <seealso cref="NaturalMotion.Message" /> and sending it to a given <see cref="Ped"/>
 	/// </summary>
 	public abstract class CustomHelper
 	{

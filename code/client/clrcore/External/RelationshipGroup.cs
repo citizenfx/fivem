@@ -6,21 +6,18 @@ namespace CitizenFX.Core
 {
 	public class RelationshipGroup : INativeValue, IEquatable<RelationshipGroup>
 	{
-        RelationshipGroup()
-        {
-
-        }
-        [SecurityCritical]
-
-        RelationshipGroup(string name) : this()
+		RelationshipGroup()
 		{
-		    int hashArg;
-			unsafe
-			{
-				Function.Call(Native.Hash.ADD_RELATIONSHIP_GROUP, name, &hashArg);
-			}
 
-			Hash = hashArg;
+		}
+
+		RelationshipGroup(string name) : this()
+		{
+			uint hashArg = 0u;
+
+			API.AddRelationshipGroup(name, ref hashArg);
+
+			Hash = (int)hashArg;
 		}
 		public RelationshipGroup(int hash) : this()
 		{
@@ -46,30 +43,30 @@ namespace CitizenFX.Core
 
 		public Relationship GetRelationshipBetweenGroups(RelationshipGroup targetGroup)
 		{
-			return Function.Call<Relationship>(Native.Hash.GET_RELATIONSHIP_BETWEEN_GROUPS, Hash, targetGroup);
+			return (Relationship)API.GetRelationshipBetweenGroups((uint)Hash, (uint)targetGroup.Hash);
 		}
 		public void SetRelationshipBetweenGroups(RelationshipGroup targetGroup, Relationship relationship, bool bidirectionally = false)
 		{
-			Function.Call(Native.Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, relationship, Hash, targetGroup);
+			API.SetRelationshipBetweenGroups((int)relationship, (uint)Hash, (uint)targetGroup.Hash);
 
 			if (bidirectionally)
 			{
-				Function.Call(Native.Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, relationship, targetGroup, Hash);
+				API.SetRelationshipBetweenGroups((int)relationship, (uint)targetGroup.Hash, (uint)Hash);
 			}
 		}
 		public void ClearRelationshipBetweenGroups(RelationshipGroup targetGroup, Relationship relationship, bool bidirectionally = false)
 		{
-			Function.Call(Native.Hash.CLEAR_RELATIONSHIP_BETWEEN_GROUPS, relationship, Hash, targetGroup);
+			API.ClearRelationshipBetweenGroups((int)relationship, (uint)Hash, (uint)targetGroup.Hash);
 
 			if (bidirectionally)
 			{
-				Function.Call(Native.Hash.CLEAR_RELATIONSHIP_BETWEEN_GROUPS, relationship, targetGroup, Hash);
+				API.ClearRelationshipBetweenGroups((int)relationship, (uint)targetGroup.Hash, (uint)Hash);
 			}
 		}
 
 		public void Remove()
 		{
-			Function.Call(Native.Hash.REMOVE_RELATIONSHIP_GROUP, Hash);
+			API.RemoveRelationshipGroup((uint)Hash);
 		}
 
 		public bool Equals(RelationshipGroup obj)

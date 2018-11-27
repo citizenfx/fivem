@@ -50,12 +50,12 @@ namespace CitizenFX.Core
 
 		public bool AreAllWindowsIntact
 		{
-			get { return Function.Call<bool>(Hash.ARE_ALL_VEHICLE_WINDOWS_INTACT, _owner.Handle); }
+			get { return API.AreAllVehicleWindowsIntact(_owner.Handle); }
 		}
 
 		public void RollDownAllWindows()
 		{
-			Function.Call(Hash.ROLL_DOWN_WINDOWS, _owner.Handle);
+			API.RollDownWindows(_owner.Handle);
 		}
 	}
 }

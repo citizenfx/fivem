@@ -20,28 +20,28 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash._GET_ROPE_LENGTH, Handle);
+				return API.GetRopeLength(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.ROPE_FORCE_LENGTH, Handle, value);
+				API.RopeForceLength(Handle, value);
 			}
 		}
 		public int VertexCount
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_ROPE_VERTEX_COUNT, Handle);
+				return API.GetRopeVertexCount(Handle);
 			}
 		}
 		public void ResetLength(bool reset)
 		{
-			Function.Call(Hash.ROPE_RESET_LENGTH, Handle, reset);
+			API.RopeResetLength(Handle, reset ? 1f : Length);
 		}
 
 		public void ActivatePhysics()
 		{
-			Function.Call(Hash.ACTIVATE_PHYSICS, Handle);
+			API.ActivatePhysics(Handle);
 		}
 
 		public void AttachEntity(Entity entity)
@@ -50,7 +50,7 @@ namespace CitizenFX.Core
 		}
 		public void AttachEntity(Entity entity, Vector3 position)
 		{
-			Function.Call(Hash.ATTACH_ROPE_TO_ENTITY, Handle, entity.Handle, position.X, position.Y, position.Z, 0);
+			API.AttachRopeToEntity(Handle, entity.Handle, position.X, position.Y, position.Z, false);
 		}
 		public void AttachEntities(Entity entityOne, Entity entityTwo, float length)
 		{
@@ -58,45 +58,37 @@ namespace CitizenFX.Core
 		}
 		public void AttachEntities(Entity entityOne, Vector3 positionOne, Entity entityTwo, Vector3 positionTwo, float length)
 		{
-			Function.Call(Hash.ATTACH_ENTITIES_TO_ROPE, Handle, entityOne.Handle, entityTwo.Handle, positionOne.X, positionOne.Y, positionOne.Z, positionTwo.X, positionTwo.Y, positionTwo.Z, length, 0, 0, 0, 0);
+			API.AttachEntitiesToRope(Handle, entityOne.Handle, entityTwo.Handle, positionOne.X, positionOne.Y, positionOne.Z, positionTwo.X, positionTwo.Y, positionTwo.Z, length, false, false, null, null);
 		}
 		public void DetachEntity(Entity entity)
 		{
-			Function.Call(Hash.DETACH_ROPE_FROM_ENTITY, Handle, entity.Handle);
+			API.DetachRopeFromEntity(Handle, entity.Handle);
 		}
 
 		public void PinVertex(int vertex, Vector3 position)
 		{
-			Function.Call(Hash.PIN_ROPE_VERTEX, Handle, vertex, position.X, position.Y, position.Z);
+			API.PinRopeVertex(Handle, vertex, position.X, position.Y, position.Z);
 		}
 		public void UnpinVertex(int vertex)
 		{
-			Function.Call(Hash.UNPIN_ROPE_VERTEX, Handle, vertex);
+			API.UnpinRopeVertex(Handle, vertex);
 		}
 		public Vector3 GetVertexCoord(int vertex)
 		{
-			return Function.Call<Vector3>(Hash.GET_ROPE_VERTEX_COORD, Handle, vertex);
+			return API.GetRopeVertexCoord(Handle, vertex);
 		}
 
-        [SecuritySafeCritical]
-        public override void Delete()
+		public override void Delete()
 		{
 			int handle = Handle;
-			unsafe
-			{
-				Function.Call(Hash.DELETE_ROPE, &handle);
-			}
+			API.DeleteRope(ref handle);
 			Handle = handle;
 		}
 
-        [SecuritySafeCritical]
-        public override bool Exists()
+		public override bool Exists()
 		{
 			int handle = Handle;
-			unsafe
-			{
-				return Function.Call<bool>(Hash.DOES_ROPE_EXIST, &handle);
-			}
+			return API.DoesRopeExist(ref handle);
 		}
 		public static bool Exists(Rope rope)
 		{

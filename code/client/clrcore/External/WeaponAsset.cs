@@ -7,10 +7,10 @@ namespace CitizenFX.Core
 {
 	public class WeaponAsset : INativeValue, IEquatable<WeaponAsset>
 	{
-        public WeaponAsset()
-        {
+		public WeaponAsset()
+		{
 
-        }
+		}
 		public WeaponAsset(int hash) : this()
 		{
 			Hash = hash;
@@ -33,20 +33,20 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_WEAPON_VALID, Hash);
+				return API.IsWeaponValid((uint)Hash);
 			}
 		}
 		public bool IsLoaded
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.HAS_WEAPON_ASSET_LOADED, Hash);
+				return API.HasWeaponAssetLoaded((uint)Hash);
 			}
 		}
 
 		public void Request()
 		{
-			Function.Call(Native.Hash.REQUEST_WEAPON_ASSET, Hash, 31, 0);
+			API.RequestWeaponAsset((uint)Hash, 31, 0);
 		}
 		public async Task<bool> Request(int timeout)
 		{
@@ -56,8 +56,7 @@ namespace CitizenFX.Core
 
 			while (!IsLoaded)
 			{
-                await BaseScript.Delay(0);
-                Request();
+				await BaseScript.Delay(0);
 
 				if (DateTime.UtcNow >= endtime)
 				{
@@ -69,7 +68,7 @@ namespace CitizenFX.Core
 		}
 		public void Dismiss()
 		{
-			Function.Call(Native.Hash.REMOVE_WEAPON_ASSET, Hash);
+			API.RemoveWeaponAsset((uint)Hash);
 		}
 
 		public bool Equals(WeaponAsset weaponAsset)

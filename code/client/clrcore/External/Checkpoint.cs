@@ -466,7 +466,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public override void Delete()
 		{
-			Function.Call(Hash.DELETE_CHECKPOINT, Handle);
+			API.DeleteCheckpoint(Handle);
 		}
 
 		/// <summary>

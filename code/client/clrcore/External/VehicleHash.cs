@@ -1,4 +1,4 @@
-﻿namespace CitizenFX.Core
+namespace CitizenFX.Core
 {
 	public enum VehicleHash : uint
 	{

@@ -243,11 +243,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_BLIP_INFO_ID_COORD, Handle);
+				return API.GetBlipInfoIdCoord(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_BLIP_COORDS, Handle, value.X, value.Y, value.Z);
+				API.SetBlipCoords(Handle, value.X, value.Y, value.Z);
 			}
 		}
 		/// <summary>
@@ -257,7 +257,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_BLIP_ROTATION, Handle, value);
+				API.SetBlipRotation(Handle, value);
 			}
 		}
 		/// <summary>
@@ -267,7 +267,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_BLIP_SCALE, Handle, value);
+				API.SetBlipScale(Handle, value);
 			}
 		}
 
@@ -278,7 +278,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_BLIP_INFO_ID_TYPE, Handle);
+				return API.GetBlipInfoIdType(Handle);
 			}
 		}
 		/// <summary>
@@ -288,11 +288,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_BLIP_ALPHA, Handle);
+				return API.GetBlipAlpha(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_BLIP_ALPHA, Handle, value);
+				API.SetBlipAlpha(Handle, value);
 			}
 		}
 		/// <summary>
@@ -302,7 +302,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_BLIP_PRIORITY, Handle, value);
+				API.SetBlipPriority(Handle, value);
 			}
 		}
 		/// <summary>
@@ -312,7 +312,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SHOW_NUMBER_ON_BLIP, Handle, value);
+				API.ShowNumberOnBlip(Handle, value);
 			}
 		}
 		/// <summary>
@@ -322,11 +322,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return (BlipColor)Function.Call<int>(Hash.GET_BLIP_COLOUR, Handle);
+				return (BlipColor)API.GetBlipColour(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_BLIP_COLOUR, Handle, value);
+				API.SetBlipColour(Handle, (int)value);
 			}
 		}
 		/// <summary>
@@ -336,11 +336,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return (BlipSprite)Function.Call<int>(Hash.GET_BLIP_SPRITE, Handle);
+				return (BlipSprite)API.GetBlipSprite(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_BLIP_SPRITE, Handle, value);
+				API.SetBlipSprite(Handle, (int)value);
 			}
 		}
 		/// <summary>
@@ -348,12 +348,11 @@ namespace CitizenFX.Core
 		/// </summary>
 		public string Name
 		{
-			[SecuritySafeCritical]
 			set
 			{
-				Function.Call(Hash.BEGIN_TEXT_COMMAND_SET_BLIP_NAME, MemoryAccess.StringPtr);
-				Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, value);
-				Function.Call(Hash.END_TEXT_COMMAND_SET_BLIP_NAME, Handle);
+				API.BeginTextCommandSetBlipName("STRING");
+				API.AddTextComponentSubstringPlayerName(value);
+				API.EndTextCommandSetBlipName(Handle);
 			}
 		}
 		/// <summary>
@@ -363,7 +362,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Entity>(Hash.GET_BLIP_INFO_ID_ENTITY_INDEX, Handle);
+				return Entity.FromHandle(API.GetBlipInfoIdEntityIndex(Handle));
 			}
 		}
 
@@ -377,7 +376,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_BLIP_ROUTE, Handle, value);
+				API.SetBlipRoute(Handle, value);
 			}
 		}
 		/// <summary>
@@ -390,7 +389,33 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_BLIP_AS_FRIENDLY, Handle, value);
+				API.SetBlipAsFriendly(Handle, value);
+			}
+		}
+		/// <summary>
+		/// Sets a value indicating whether this (Player) <see cref="Blip"/> is a friend. Toggles a half cyan circle on the right side.
+		/// </summary>
+		/// <value>
+		/// <c>true</c> if this (Player) <see cref="Blip"/> is a friend; otherwise, <c>false</c>.
+		/// </value>
+		public bool IsFriend
+		{
+			set
+			{
+				API.SetBlipFriend(Handle, value);
+			}
+		}
+		/// <summary>
+		/// Sets a value indicating whether this (Player) <see cref="Blip"/> is a CREW member. Toggles a half cyan circle on the left side.
+		/// </summary>
+		/// <value>
+		/// <c>true</c> if this (Player) <see cref="Blip"/> is a CREW member; otherwise, <c>false</c>.
+		/// </value>
+		public bool IsCrew
+		{
+			set
+			{
+				API.SetBlipCrew(Handle, value);
 			}
 		}
 		/// <summary>
@@ -403,11 +428,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_BLIP_FLASHING, Handle);
+				return API.IsBlipFlashing(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_BLIP_FLASHES, Handle, value);
+				API.SetBlipFlashes(Handle, value);
 			}
 		}
 		/// <summary>
@@ -420,7 +445,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_BLIP_ON_MINIMAP, Handle);
+				return API.IsBlipOnMinimap(Handle);
 			}
 		}
 		/// <summary>
@@ -433,11 +458,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_BLIP_SHORT_RANGE, Handle);
+				return API.IsBlipShortRange(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_BLIP_AS_SHORT_RANGE, Handle, value);
+				API.SetBlipAsShortRange(Handle, value);
 			}
 		}
 
@@ -446,32 +471,37 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void RemoveNumberLabel()
 		{
-			Function.Call(Hash.HIDE_NUMBER_ON_BLIP, Handle);
+			API.HideNumberOnBlip(Handle);
 		}
 
-        /// <summary>
-        /// Removes this <see cref="Blip"/>.
-        /// </summary>
+		/// <summary>
+		/// Removes this <see cref="Blip"/>.
+		/// </summary>
 		[SecuritySafeCritical]
-        public override void Delete()
-        {
-            _Delete();
-        }
-
-        [SecuritySafeCritical]
-        private void _Delete()
+		public override void Delete()
 		{
-		    int handle = Handle;
-			unsafe
+			_Delete();
+		}
+
+		[SecuritySafeCritical]
+		private void _Delete()
+		{
+			int handle = Handle;
+
+			// prevent the game from crashing when an invalid blip handle was somehow set.
+			if (API.DoesBlipExist(handle))
 			{
-				Function.Call(Hash.REMOVE_BLIP, &handle);
+				unsafe
+				{
+					API.RemoveBlip(ref handle);
+				}
+				Handle = handle;
 			}
-			Handle = handle;
 		}
 
 		public override bool Exists()
 		{
-			return Function.Call<bool>(Hash.DOES_BLIP_EXIST, Handle);
+			return API.DoesBlipExist(Handle);
 		}
 		public static bool Exists(Blip blip)
 		{
