@@ -241,6 +241,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 	{
+		if (!client)
+		{
+			return;
+		}
+
 		if (!client->GetData("playerId").has_value())
 		{
 			return;
@@ -304,6 +309,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		for (auto& entityPair : m_entities)
 		{
+			if (!client)
+			{
+				return;
+			}
+
 			auto entity = entityPair.second;
 
 			if (!entity || !entity->syncTree)
@@ -388,6 +398,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						auto entityId = std::any_cast<uint32_t>(entityIdRef);
 						auto playerEntity = GetEntity(entityId);
+
+						if (!playerEntity)
+						{
+							return;
+						}
 
 						if (auto vehicle = playerEntity->GetData("curVehicle", -1); vehicle != -1)
 						{
