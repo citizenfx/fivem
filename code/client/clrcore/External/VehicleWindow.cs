@@ -23,7 +23,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_VEHICLE_WINDOW_INTACT, _owner.Handle, Index);
+				return API.IsVehicleWindowIntact(_owner.Handle, (int)Index);
 			}
 		}
 		public Vehicle Vehicle
@@ -33,23 +33,23 @@ namespace CitizenFX.Core
 
 		public void Repair()
 		{
-			Function.Call(Hash.FIX_VEHICLE_WINDOW, _owner.Handle, Index);
+			API.FixVehicleWindow(_owner.Handle, (int)Index);
 		}
 		public void Smash()
 		{
-			Function.Call(Hash.SMASH_VEHICLE_WINDOW, _owner.Handle, Index);
+			API.SmashVehicleWindow(_owner.Handle, (int)Index);
 		}
 		public void RollUp()
 		{
-			Function.Call(Hash.ROLL_UP_WINDOW, _owner.Handle, Index);
+			API.RollUpWindow(_owner.Handle, (int)Index);
 		}
 		public void RollDown()
 		{
-			Function.Call(Hash.ROLL_DOWN_WINDOW, _owner.Handle, Index);
+			API.RollDownWindow(_owner.Handle, (int)Index);
 		}
 		public void Remove()
 		{
-			Function.Call(Hash.REMOVE_VEHICLE_WINDOW, _owner.Handle, Index);
+			API.RemoveVehicleWindow(_owner.Handle, (int)Index);
 		}
 	}
 }

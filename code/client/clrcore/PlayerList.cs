@@ -9,28 +9,28 @@ namespace CitizenFX.Core
 {
 #if !IS_FXSERVER
 	public class PlayerList : IEnumerable<Player>
-    {
-        public const int MaxPlayers = 256;
+	{
+		public const int MaxPlayers = 256;
 
-        public IEnumerator<Player> GetEnumerator()
-        {
-            for (var i = 0; i < MaxPlayers; i++)
-            {
-                if (Function.Call<bool>(Hash.NETWORK_IS_PLAYER_ACTIVE, i))
-                {
-                    yield return new Player(i);
-                }
-            }
-        }
+		public IEnumerator<Player> GetEnumerator()
+		{
+			for (var i = 0; i < MaxPlayers; i++)
+			{
+				if (API.NetworkIsPlayerActive(i))
+				{
+					yield return new Player(i);
+				}
+			}
+		}
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-        
-        public Player this[int netId] => this.FirstOrDefault(player => player.ServerId == netId);
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
+		}
 
-	    public Player this[string name] => this.FirstOrDefault(player => player.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
-    }
+		public Player this[int netId] => this.FirstOrDefault(player => player.ServerId == netId);
+
+		public Player this[string name] => this.FirstOrDefault(player => player.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+	}
 #endif
 }

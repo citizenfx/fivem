@@ -1,11 +1,8 @@
-﻿using System;
+using System;
 using System.Drawing;
-using System.Security.Policy;
-using CitizenFX.Core;
 using CitizenFX.Core.Native;
 using Hash = CitizenFX.Core.Native.Hash;
 using System.Threading.Tasks;
-using CitizenFX.Core;
 
 namespace CitizenFX.Core
 {
@@ -45,7 +42,7 @@ namespace CitizenFX.Core
 		/// <remarks>Use <see cref="Request()"/> or <see cref="Request(int)"/> to load the asset</remarks>
 		public bool IsLoaded
 		{
-			get { return Function.Call<bool>(Hash.HAS_NAMED_PTFX_ASSET_LOADED, _assetName); }
+			get { return API.HasNamedPtfxAssetLoaded(_assetName); }
 		}
 
 		/// <summary>
@@ -64,9 +61,9 @@ namespace CitizenFX.Core
 			{
 				return false;
 			}
-			Function.Call(Hash._SET_PTFX_ASSET_NEXT_CALL, _assetName);
-			return Function.Call<bool>(Hash.START_PARTICLE_FX_NON_LOOPED_AT_COORD, effectName, pos.X, pos.Y, pos.Z, rot.X, rot.Y,
-				rot.Z, scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z));
+			API.SetPtfxAssetNextCall(_assetName);
+			return API.StartParticleFxNonLoopedAtCoord(effectName, pos.X, pos.Y, pos.Z, rot.X, rot.Y, rot.Z,
+				scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z)) > 0;
 		}
 
 		/// <summary>
@@ -87,10 +84,9 @@ namespace CitizenFX.Core
 			{
 				return false;
 			}
-			Function.Call(Hash._SET_PTFX_ASSET_NEXT_CALL, _assetName);
-			return Function.Call<bool>(Hash.START_PARTICLE_FX_NON_LOOPED_ON_PED_BONE, effectName, entity.Handle, off.X, off.Y, off.Z, rot.X,
-				rot.Y, rot.Z, -1, scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y),
-				invertAxis.HasFlag(InvertAxis.Z));
+			API.SetPtfxAssetNextCall(_assetName);
+			return API.StartParticleFxNonLoopedOnEntity(effectName, entity.Handle, off.X, off.Y, off.Z, rot.X, rot.Y, rot.Z,
+				scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z));
 		}
 
 		/// <summary>
@@ -107,14 +103,13 @@ namespace CitizenFX.Core
 			Vector3 off = default(Vector3), Vector3 rot = default(Vector3), float scale = 1.0f,
 			InvertAxis invertAxis = InvertAxis.None)
 		{
-			if(!SetNextCall())
+			if (!SetNextCall())
 			{
 				return false;
 			}
-			Function.Call(Hash._SET_PTFX_ASSET_NEXT_CALL, _assetName);
-			return Function.Call<bool>(Hash.START_PARTICLE_FX_NON_LOOPED_ON_PED_BONE, effectName, entityBone.Owner.Handle, off.X, off.Y, off.Z, rot.X,
-				rot.Y, rot.Z, entityBone, scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y),
-				invertAxis.HasFlag(InvertAxis.Z));
+			API.SetPtfxAssetNextCall(_assetName);
+			return API.StartParticleFxNonLoopedOnPedBone(effectName, entityBone.Owner.Handle, off.X, off.Y, off.Z, rot.X, rot.Y, rot.Z,
+				entityBone, scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z));
 		}
 
 		/// <summary>
@@ -167,7 +162,7 @@ namespace CitizenFX.Core
 				Scale = scale,
 				InvertAxis = invertAxis
 			};
-			if(startNow)
+			if (startNow)
 			{
 				result.Start();
 			}
@@ -207,8 +202,8 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_PARTICLE_FX_NON_LOOPED_COLOUR, value.R/255f, value.G/255f, value.B/255f);
-				Function.Call(Hash.SET_PARTICLE_FX_NON_LOOPED_ALPHA, value.A / 255f);
+				API.SetParticleFxNonLoopedColour(value.R / 255f, value.G / 255f, value.B / 255f);
+				API.SetParticleFxNonLoopedAlpha(value.A / 255f);
 			}
 		}
 
@@ -217,7 +212,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void Request()
 		{
-			Function.Call(Hash.REQUEST_NAMED_PTFX_ASSET, _assetName);
+			if (!IsLoaded)
+			{
+				API.RequestNamedPtfxAsset(_assetName);
+			}
 		}
 
 		/// <summary>
@@ -227,30 +225,35 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="ParticleEffectsAsset"/> is Loaded; otherwise, <c>false</c></returns>
 		public async Task<bool> Request(int timeout)
 		{
-			Request();
-
-			DateTime endtime = timeout >= 0 ? DateTime.UtcNow + new TimeSpan(0, 0, 0, 0, timeout) : DateTime.MaxValue;
-
-			while (!IsLoaded)
+			if (!IsLoaded)
 			{
-                await BaseScript.Delay(0);
-
-                if (DateTime.UtcNow >= endtime)
-				{
-					return false;
-				}
 				Request();
-			}
 
+				DateTime endtime = timeout >= 0 ? DateTime.UtcNow + new TimeSpan(0, 0, 0, 0, timeout) : DateTime.MaxValue;
+
+				while (!IsLoaded)
+				{
+					await BaseScript.Delay(1);
+
+					if (DateTime.UtcNow >= endtime)
+					{
+						return false;
+					}
+				}
+			}
 			return true;
+
 		}
 
 		internal bool SetNextCall()
 		{
-			Request();
+			if (!IsLoaded)
+			{
+				Request();
+			}
 			if (IsLoaded)
 			{
-				Function.Call(Hash._SET_PTFX_ASSET_NEXT_CALL, _assetName);
+				API.SetPtfxAssetNextCall(_assetName);
 				return true;
 			}
 			return false;
@@ -261,7 +264,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void MarkAsNoLongerNeeded()
 		{
-			Function.Call(Hash._REMOVE_NAMED_PTFX_ASSET, _assetName);
+			API.RemoveNamedPtfxAsset(_assetName);
 		}
 
 		public override string ToString()
@@ -316,7 +319,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsActive
 		{
-			get { return Handle != -1 && Function.Call<bool>(Hash.DOES_PARTICLE_FX_LOOPED_EXIST, Handle); }
+			get { return Handle != -1 && API.DoesParticleFxLoopedExist(Handle); }
 		}
 
 		public abstract bool Start();
@@ -328,7 +331,7 @@ namespace CitizenFX.Core
 		{
 			if (IsActive)
 			{
-				Function.Call(Hash.REMOVE_PARTICLE_FX, Handle, false);
+				API.RemoveParticleFx(Handle, false);
 			}
 			Handle = -1;
 		}
@@ -338,7 +341,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public IntPtr MemoryAddress
 		{
-            // CFX-TODO
+			// CFX-TODO
 			get { return IntPtr.Zero; } //return IsActive ? MemoryAccess.GetPtfxAddress(Handle) : IntPtr.Zero; }
 		}
 
@@ -393,7 +396,7 @@ namespace CitizenFX.Core
 				{
 					//rotation information is stored in a matrix
 					Vector3 off = Offset;
-					Function.Call(Hash.SET_PARTICLE_FX_LOOPED_OFFSETS, Handle, off.X, off.Y, off.Z, value.X, value.Y, value.Z);
+					API.SetParticleFxLoopedOffsets(Handle, off.X, off.Y, off.Z, value.X, value.Y, value.Z);
 				}
 			}
 		}
@@ -409,10 +412,10 @@ namespace CitizenFX.Core
 				if (address != IntPtr.Zero)
 				{
 					address = MemoryAccess.ReadPtr(address + 32) + 320;
-					byte r = Convert.ToByte(MemoryAccess.ReadFloat(address)*255f);
-					byte g = Convert.ToByte(MemoryAccess.ReadFloat(address+4)*255f);
-					byte b = Convert.ToByte(MemoryAccess.ReadFloat(address+8) * 255f);
-					byte a = Convert.ToByte(MemoryAccess.ReadFloat(address+12) * 255f);
+					byte r = Convert.ToByte(MemoryAccess.ReadFloat(address) * 255f);
+					byte g = Convert.ToByte(MemoryAccess.ReadFloat(address + 4) * 255f);
+					byte b = Convert.ToByte(MemoryAccess.ReadFloat(address + 8) * 255f);
+					byte a = Convert.ToByte(MemoryAccess.ReadFloat(address + 12) * 255f);
 					return _color = Color.FromArgb(a, r, g, b);
 				}
 				return _color;
@@ -476,7 +479,7 @@ namespace CitizenFX.Core
 			set
 			{
 				_range = value;
-				Function.Call(Hash._SET_PARTICLE_FX_LOOPED_RANGE, Handle, value);
+				API.SetParticleFxLoopedRange(Handle, value);
 			}
 		}
 
@@ -508,7 +511,7 @@ namespace CitizenFX.Core
 		public void SetParameter(string parameterName, float value)
 		{
 			if (IsActive)
-				Function.Call(Hash.SET_PARTICLE_FX_LOOPED_EVOLUTION, parameterName, value, 0);
+				API.SetParticleFxLoopedEvolution(Handle, parameterName, value, false);
 		}
 
 		/// <summary>
@@ -556,7 +559,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets or sets the <see cref="GTA.Entity"/> this <see cref="EntityParticleEffect"/> is attached to.
+		/// Gets or sets the <see cref="Entity"/> this <see cref="EntityParticleEffect"/> is attached to.
 		/// </summary>
 		public Entity Entity
 		{
@@ -577,7 +580,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public EntityBone Bone
 		{
-			get { return _entityBone;}
+			get { return _entityBone; }
 			set
 			{
 				_entityBone = value;
@@ -596,14 +599,22 @@ namespace CitizenFX.Core
 		public override bool Start()
 		{
 			Stop();
+
 			if (!_asset.SetNextCall())
 				return false;
 
-			Hash hash = _entityBone.Owner is Ped ? Hash.START_PARTICLE_FX_LOOPED_ON_PED_BONE : Hash._START_PARTICLE_FX_LOOPED_ON_ENTITY_BONE;
-
-			Handle = Function.Call<int>(hash, _effectName, _entityBone.Owner.Handle, Offset.X, Offset.Y, Offset.Z, Rotation.X,
-				Rotation.Y, Rotation.Z, _entityBone.Index, _scale, InvertAxis.HasFlag(InvertAxis.X), InvertAxis.HasFlag(InvertAxis.Y),
-				InvertAxis.HasFlag(InvertAxis.Z));
+			if (_entityBone.Owner is Ped)
+			{
+				Handle = API.StartParticleFxLoopedOnPedBone(_effectName, _entityBone.Owner.Handle, Offset.X, Offset.Y, Offset.Z,
+					Rotation.X, Rotation.Y, Rotation.Z, _entityBone.Index, _scale, InvertAxis.HasFlag(InvertAxis.X),
+					InvertAxis.HasFlag(InvertAxis.Y), InvertAxis.HasFlag(InvertAxis.Z));
+			}
+			else
+			{
+				Handle = API.StartParticleFxLoopedOnEntityBone(_effectName, _entityBone.Owner.Handle, Offset.X, Offset.Y, Offset.Z,
+					Rotation.X, Rotation.Y, Rotation.Z, _entityBone.Index, _scale, InvertAxis.HasFlag(InvertAxis.X),
+					InvertAxis.HasFlag(InvertAxis.Y), InvertAxis.HasFlag(InvertAxis.Z));
+			}
 
 			if (IsActive)
 				return true;
@@ -613,10 +624,10 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Creates a copy of this <see cref="EntityParticleEffect"/> to another <see cref="GTA.Entity"/> to simplify applying the same effect to many Entities.
+		/// Creates a copy of this <see cref="EntityParticleEffect"/> to another <see cref="Entity"/> to simplify applying the same effect to many Entities.
 		/// </summary>
-		/// <param name="entity">The <see cref="GTA.Entity"/> to copy to.</param>
-		/// <returns>An <see cref="EntityParticleEffect"/> that has all the same properties as this instance, but for a different <see cref="GTA.Entity"/>.</returns>
+		/// <param name="entity">The <see cref="Entity"/> to copy to.</param>
+		/// <returns>An <see cref="EntityParticleEffect"/> that has all the same properties as this instance, but for a different <see cref="Entity"/>.</returns>
 		public EntityParticleEffect CopyTo(Entity entity)
 		{
 			var result = new EntityParticleEffect(_asset, _effectName, entity)
@@ -636,10 +647,10 @@ namespace CitizenFX.Core
 			return result;
 		}
 		/// <summary>
-		/// Creates a copy of this <see cref="EntityParticleEffect"/> to another <see cref="GTA.EntityBone"/> to simplify applying the same effect to many Entities.
+		/// Creates a copy of this <see cref="EntityParticleEffect"/> to another <see cref="EntityBone"/> to simplify applying the same effect to many Entities.
 		/// </summary>
-		/// <param name="entityBone">The <see cref="GTA.EntityBone"/> to copy to.</param>
-		/// <returns>An <see cref="EntityParticleEffect"/> that has all the same properties as this instance, but for a different <see cref="GTA.EntityBone"/>.</returns>
+		/// <param name="entityBone">The <see cref="EntityBone"/> to copy to.</param>
+		/// <returns>An <see cref="EntityParticleEffect"/> that has all the same properties as this instance, but for a different <see cref="EntityBone"/>.</returns>
 		public EntityParticleEffect CopyTo(EntityBone entityBone)
 		{
 			var result = new EntityParticleEffect(_asset, _effectName, entityBone)
@@ -651,7 +662,7 @@ namespace CitizenFX.Core
 				Range = _range,
 				InvertAxis = _InvertAxis
 			};
-			if(IsActive)
+			if (IsActive)
 			{
 				result.Start();
 			}
@@ -676,7 +687,7 @@ namespace CitizenFX.Core
 			if (!_asset.SetNextCall())
 				return false;
 
-			Handle = Function.Call<int>(Hash.START_PARTICLE_FX_LOOPED_AT_COORD, _effectName, Offset.X, Offset.Y, Offset.Z, Rotation.X,
+			Handle = API.StartParticleFxLoopedAtCoord(_effectName, Offset.X, Offset.Y, Offset.Z, Rotation.X,
 				Rotation.Y, Rotation.Z, Scale, InvertAxis.HasFlag(InvertAxis.X), InvertAxis.HasFlag(InvertAxis.Y),
 				InvertAxis.HasFlag(InvertAxis.Z), false);
 

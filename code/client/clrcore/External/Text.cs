@@ -19,7 +19,6 @@ namespace CitizenFX.Core.UI
 	public class Text : IElement
 	{
 		private string _caption;
-		private readonly List<IntPtr> _pinnedText;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Text" /> will be drawn.
@@ -67,27 +66,17 @@ namespace CitizenFX.Core.UI
 		/// </value>
 		public string Caption
 		{
-			get { return _caption; }
-			[SecuritySafeCritical]
+			get { return _caption ?? ""; }
 			set
 			{
-				_caption = value;
-				foreach (var ptr in _pinnedText)
-				{
-					Marshal.FreeCoTaskMem(ptr); //free any existing allocated text
-				}
-				_pinnedText.Clear();
-
 				const int maxStringLength = 99;
 
-				for (int i = 0; i < Caption.Length; i += maxStringLength)
+				if (value.Length > maxStringLength)
 				{
-					byte[] data =
-						Encoding.UTF8.GetBytes(Caption.Substring(i, System.Math.Min(maxStringLength, Caption.Length - i)) + "\0");
-					IntPtr next = Marshal.AllocCoTaskMem(data.Length);
-					Marshal.Copy(data, 0, next, data.Length);
-					_pinnedText.Add(next);
+					_caption = value.Substring(0, maxStringLength);
+					return;
 				}
+				_caption = value;
 			}
 		}
 
@@ -146,20 +135,14 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		public float Width
 		{
-			[SecuritySafeCritical]
 			get
 			{
-				Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
+				API.BeginTextCommandWidth("STRING");
+				API.AddTextComponentSubstringPlayerName(Caption);
+				API.SetTextFont((int)Font);
+				API.SetTextScale(Scale, Scale);
 
-				foreach (IntPtr ptr in _pinnedText)
-				{
-					Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, ptr);
-				}
-
-				Function.Call(Hash.SET_TEXT_FONT, Font);
-				Function.Call(Hash.SET_TEXT_SCALE, Scale, Scale);
-
-				return Screen.Width*Function.Call<float>(Hash._GET_TEXT_SCREEN_WIDTH, 1);
+				return Screen.Width * API.EndTextCommandGetWidth(true);
 			}
 		}
 
@@ -168,20 +151,14 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		public float ScaledWidth
 		{
-			[SecuritySafeCritical]
 			get
 			{
-				Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
+				API.BeginTextCommandWidth("STRING");
+				API.AddTextComponentSubstringPlayerName(Caption);
+				API.SetTextFont((int)Font);
+				API.SetTextScale(Scale, Scale);
 
-				foreach(IntPtr ptr in _pinnedText)
-				{
-					Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, ptr);
-				}
-
-				Function.Call(Hash.SET_TEXT_FONT, Font);
-				Function.Call(Hash.SET_TEXT_SCALE, Scale, Scale);
-
-				return Screen.ScaledWidth*Function.Call<float>(Hash._GET_TEXT_SCREEN_WIDTH, 1);
+				return Screen.ScaledWidth * API.EndTextCommandGetWidth(true);
 			}
 		}
 
@@ -223,7 +200,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
 		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
 		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
-		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="GTA.UI.Alignment.Left"/>,<see cref="GTA.UI.Alignment.Center"/> or <see cref="GTA.UI.Alignment.Right"/>.</param>
+		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="UI.Alignment.Left"/>,<see cref="UI.Alignment.Center"/> or <see cref="UI.Alignment.Right"/>.</param>
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment) : this(caption, position, scale, color, font, alignment, false, false, 0.0f)
 		{
 		}
@@ -235,7 +212,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
 		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
 		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
-		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="GTA.UI.Alignment.Left"/>,<see cref="GTA.UI.Alignment.Center"/> or <see cref="GTA.UI.Alignment.Right"/>.</param>
+		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="UI.Alignment.Left"/>,<see cref="UI.Alignment.Center"/> or <see cref="UI.Alignment.Right"/>.</param>
 		/// <param name="shadow">Sets whether or not to draw the <see cref="Text"/> with a <see cref="Shadow"/> effect.</param>
 		/// <param name="outline">Sets whether or not to draw the <see cref="Text"/> with an <see cref="Outline"/> around the letters.</param>	
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment, bool shadow, bool outline) : this(caption, position, scale, color, font, alignment, shadow, outline, 0.0f)
@@ -250,13 +227,12 @@ namespace CitizenFX.Core.UI
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
 		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
 		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
-		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="GTA.UI.Alignment.Left"/>,<see cref="GTA.UI.Alignment.Center"/> or <see cref="GTA.UI.Alignment.Right"/>.</param>
+		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="UI.Alignment.Left"/>,<see cref="UI.Alignment.Center"/> or <see cref="UI.Alignment.Right"/>.</param>
 		/// <param name="shadow">Sets whether or not to draw the <see cref="Text"/> with a <see cref="Shadow"/> effect.</param>
 		/// <param name="outline">Sets whether or not to draw the <see cref="Text"/> with an <see cref="Outline"/> around the letters.</param>
 		/// <param name="wrapWidth">Sets how many horizontal pixel to draw before wrapping the <see cref="Text"/> on the next line down.</param>											 																	  
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment, bool shadow, bool outline, float wrapWidth)
 		{
-			_pinnedText = new List<IntPtr>();
 			Enabled = true;
 			Caption = caption;
 			Position = position;
@@ -271,70 +247,67 @@ namespace CitizenFX.Core.UI
 
 		~Text()
 		{
-			ClearText();
-			_pinnedText.Clear();
-		}
-
-		[SecuritySafeCritical]
-		private void ClearText()
-		{
-			foreach (var ptr in _pinnedText)
-			{
-				Marshal.FreeCoTaskMem(ptr); //free any existing allocated text
-			}
 		}
 
 		/// <summary>
 		/// Measures how many pixels in the horizontal axis the string will use when drawn
 		/// </summary>
 		/// <param name="text">The string of text to measure.</param>
-		/// <param name="font">The <see cref="GTA.UI.Font"/> of the textu to measure.</param>
+		/// <param name="font">The <see cref="UI.Font"/> of the textu to measure.</param>
 		/// <param name="scale">Sets a sclae value for increasing or decreasing the size of the text, default value 1.0f - no scaling.</param>
 		/// <returns>
 		/// The amount of pixels scaled on a 1280 pixel width base
 		/// </returns>
-		[SecuritySafeCritical]
 		public static float GetStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
-			Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
-
 			const int maxStringLength = 99;
 
-			for (int i = 0; i < text.Length; i += maxStringLength)
+			API.BeginTextCommandWidth("STRING");
+
+			if (text.Length > maxStringLength)
 			{
-				Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, text.Substring(i, System.Math.Min(maxStringLength, text.Length - i)));
+				API.AddTextComponentSubstringPlayerName(text.Substring(0, maxStringLength));
+			}
+			else
+			{
+				API.AddTextComponentSubstringPlayerName(text);
 			}
 
-			Function.Call(Hash.SET_TEXT_FONT, font);
-			Function.Call(Hash.SET_TEXT_SCALE, scale, scale);
+			API.SetTextFont((int)font);
+			API.SetTextScale(scale, scale);
 
-			return Screen.Width * Function.Call<float>(Hash._GET_TEXT_SCREEN_WIDTH, 1);
+
+			return Screen.Width * API.EndTextCommandGetWidth(true);
 		}
 		/// <summary>
 		/// Measures how many pixels in the horizontal axis the string will use when drawn
 		/// </summary>
 		/// <param name="text">The string of text to measure.</param>
-		/// <param name="font">The <see cref="GTA.UI.Font"/> of the textu to measure.</param>
+		/// <param name="font">The <see cref="UI.Font"/> of the textu to measure.</param>
 		/// <param name="scale">Sets a sclae value for increasing or decreasing the size of the text, default value 1.0f - no scaling.</param>
 		/// <returns>
 		/// The amount of pixels scaled by the pixel width base return in <see cref="Screen.ScaledWidth"/>
 		/// </returns>
-		[SecuritySafeCritical]
 		public static float GetScaledStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
-			Function.Call(Hash._SET_TEXT_ENTRY_FOR_WIDTH, MemoryAccess.CellEmailBcon);
-
 			const int maxStringLength = 99;
 
-			for (int i = 0; i < text.Length; i += maxStringLength)
+			API.BeginTextCommandWidth("STRING");
+
+			if (text.Length > maxStringLength)
 			{
-				Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, text.Substring(i, System.Math.Min(maxStringLength, text.Length - i)));
+				API.AddTextComponentSubstringPlayerName(text.Substring(0, maxStringLength));
+			}
+			else
+			{
+				API.AddTextComponentSubstringPlayerName(text);
 			}
 
-			Function.Call(Hash.SET_TEXT_FONT, font);
-			Function.Call(Hash.SET_TEXT_SCALE, scale, scale);
+			API.SetTextFont((int)font);
+			API.SetTextScale(scale, scale);
 
-			return Screen.ScaledWidth * Function.Call<float>(Hash._GET_TEXT_SCREEN_WIDTH, 1);
+
+			return Screen.ScaledWidth * API.EndTextCommandGetWidth(true);
 		}
 
 
@@ -372,9 +345,10 @@ namespace CitizenFX.Core.UI
 			InternalDraw(offset, Screen.ScaledWidth, Screen.Height);
 		}
 
-		[SecuritySafeCritical]
 		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
 		{
+
+			const int maxStringLength = 99;
 			if (!Enabled)
 			{
 				return;
@@ -386,46 +360,49 @@ namespace CitizenFX.Core.UI
 
 			if (Shadow)
 			{
-				Function.Call(Hash.SET_TEXT_DROP_SHADOW);
+				API.SetTextDropShadow();
 			}
 			if (Outline)
 			{
-				Function.Call(Hash.SET_TEXT_OUTLINE);
+				API.SetTextOutline();
 			}
 
-			Function.Call(Hash.SET_TEXT_FONT, Font);
-			Function.Call(Hash.SET_TEXT_SCALE, Scale, Scale);
-			Function.Call(Hash.SET_TEXT_COLOUR, Color.R, Color.G, Color.B, Color.A);
-			Function.Call(Hash.SET_TEXT_JUSTIFICATION, Alignment);
+			API.SetTextFont((int)Font);
+			API.SetTextScale(Scale, Scale);
+			API.SetTextColour(Color.R, Color.G, Color.B, Color.A);
+			API.SetTextJustification((int)Alignment);
 
 			if (WrapWidth > 0.0f)
 			{
 				switch (Alignment)
 				{
 					case Alignment.Center:
-						Function.Call(Hash.SET_TEXT_WRAP, x - (w / 2), x + (w / 2));
+						API.SetTextWrap(x - (w / 2), x + (w / 2));
 						break;
 					case Alignment.Left:
-						Function.Call(Hash.SET_TEXT_WRAP, x, x + w);
+						API.SetTextWrap(x, x + w);
 						break;
 					case Alignment.Right:
-						Function.Call(Hash.SET_TEXT_WRAP, x - w, x);
+						API.SetTextWrap(x - w, x);
 						break;
 				}
 			}
 			else if (Alignment == Alignment.Right)
 			{
-				Function.Call(Hash.SET_TEXT_WRAP, 0.0f, x);
+				API.SetTextWrap(0.0f, x);
 			}
 
-			Function.Call(Hash._SET_TEXT_ENTRY, MemoryAccess.CellEmailBcon);
-
-			foreach (IntPtr ptr in _pinnedText)
+			API.BeginTextCommandDisplayText("STRING");
+			if (Caption.Length > maxStringLength)
 			{
-				Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, ptr);
+				API.AddTextComponentSubstringPlayerName(Caption.Substring(0, maxStringLength));
+			}
+			else
+			{
+				API.AddTextComponentSubstringPlayerName(Caption);
 			}
 
-			Function.Call(Hash._DRAW_TEXT, x, y);
+			API.EndTextCommandDisplayText(x, y);
 		}
 	}
 }

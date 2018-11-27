@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
@@ -19,13 +19,13 @@ namespace CitizenFX.Core
 		internal EntityBone(Entity owner, string boneName)
 		{
 			_owner = owner;
-			_index = Function.Call<int>(Hash.GET_ENTITY_BONE_INDEX_BY_NAME, owner, boneName);
+			_index = API.GetEntityBoneIndexByName(owner.Handle, boneName);
 		}
 
 		/// <summary>
 		/// Gets the bone index of this <see cref="EntityBone"/>.
 		/// </summary>
-		public int Index { get { return _index;} }
+		public int Index { get { return _index; } }
 
 		public Entity Owner { get { return _owner; } }
 
@@ -41,11 +41,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_WORLD_POSITION_OF_ENTITY_BONE, _owner.Handle, _index);
+				return API.GetWorldPositionOfEntityBone(_owner.Handle, _index);
 			}
 		}
 
-        // CFX-TODO
+		// CFX-TODO
 
 		/// <summary>
 		/// Gets the <see cref="Matrix"/> of this <see cref="EntityBone"/> realtive to the <see cref="Entity"/> its part of.

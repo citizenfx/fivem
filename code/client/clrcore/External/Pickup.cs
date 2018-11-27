@@ -88,7 +88,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_PICKUP_COORDS, Handle);
+				return API.GetPickupCoords(Handle);
 			}
 		}
 
@@ -96,18 +96,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.HAS_PICKUP_BEEN_COLLECTED, Handle);
+				return API.HasPickupBeenCollected(Handle);
 			}
 		}
 
 		public override void Delete()
 		{
-			Function.Call(Hash.REMOVE_PICKUP, Handle);
+			API.RemovePickup(Handle);
 		}
 
 		public override bool Exists()
 		{
-			return Function.Call<bool>(Hash.DOES_PICKUP_EXIST, Handle);
+			return API.DoesPickupExist(Handle);
 		}
 		public static bool Exists(Pickup pickup)
 		{
@@ -115,7 +115,7 @@ namespace CitizenFX.Core
 		}
 		public bool ObjectExists()
 		{
-			return Function.Call<bool>(Hash.DOES_PICKUP_OBJECT_EXIST, Handle);
+			return API.DoesPickupObjectExist(Handle);
 		}
 
 		public bool Equals(Pickup pickup)
