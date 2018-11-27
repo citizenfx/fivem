@@ -172,6 +172,30 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
+		/// Get the headblend data from this <see cref="Ped"/>.
+		/// </summary>
+		/// <returns>A <see cref="PedHeadBlendData"/> struct containing all headblend data from a mp ped.</returns>
+		public PedHeadBlendData GetHeadBlendData()
+		{
+			return _GetHeadBlendData();
+		}
+
+		/// <summary>
+		/// Gets the unsafe headblend struct and converts it into a safe struct and returns that struct.
+		/// </summary>
+		/// <returns>A <see cref="PedHeadBlendData"/> struct.</returns>
+		[SecuritySafeCritical]
+		private PedHeadBlendData _GetHeadBlendData()
+		{
+			UnsafePedHeadBlendData data;
+			unsafe
+			{
+				Function.Call(Hash._GET_PED_HEAD_BLEND_DATA, API.PlayerPedId(), &data);
+			}
+			return data.GetData();
+		}
+
+		/// <summary>
 		/// Gets or sets how much money this <see cref="Ped"/> is carrying.
 		/// </summary>
 		public int Money
