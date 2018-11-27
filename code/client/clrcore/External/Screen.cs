@@ -193,6 +193,24 @@ namespace CitizenFX.Core.UI
 	public static class Screen
 	{
 		/// <summary>
+		/// Converts the inputString into a string[] (array) containing strings each 99 or less characters long.
+		/// </summary>
+		/// <param name="inputString">The string to convert.</param>
+		/// <returns>string[] containing strings each 99 or less characters long.</returns>
+		public static string[] StringToArray(string inputString)
+		{
+			int stringsNeeded = (inputString.Length % 99 == 0) ? (inputString.Length / 99) : ((inputString.Length / 99) + 1);
+
+			string[] outputString = new string[stringsNeeded];
+			for (int i = 0; i < stringsNeeded; i++)
+			{
+				outputString[i] = inputString.Substring(i * 99, MathUtil.Clamp(inputString.Substring(i * 99).Length, 0, 99));
+			}
+
+			return outputString;
+		}
+
+		/// <summary>
 		/// The base width of the screen used for all UI Calculations, unless ScaledDraw is used
 		/// </summary>
 		public const float Width = 1280f;
@@ -240,17 +258,13 @@ namespace CitizenFX.Core.UI
 		/// <param name="duration">The duration to display the subtitle in milliseconds.</param>
 		public static void ShowSubtitle(string message, int duration = 2500)
 		{
-			API.BeginTextCommandPrint("STRING");
+			string[] strings = StringToArray(message);
 
-			const int maxStringLength = 99;
+			API.BeginTextCommandPrint("CELL_EMAIL_BCON");
 
-			if (message.Length > maxStringLength)
+			foreach (string s in strings)
 			{
-				API.AddTextComponentSubstringPlayerName(message.Substring(0, 99));
-			}
-			else
-			{
-				API.AddTextComponentSubstringPlayerName(message);
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.EndTextCommandPrint(duration, true);
@@ -262,17 +276,15 @@ namespace CitizenFX.Core.UI
 		/// <param name="helpText">The text to display.</param>
 		public static void DisplayHelpTextThisFrame(string helpText)
 		{
-			API.BeginTextCommandDisplayHelp("STRING");
-			const int maxStringLength = 99;
+			string[] strings = StringToArray(helpText);
 
-			if (helpText.Length > maxStringLength)
+			API.BeginTextCommandDisplayHelp("CELL_EMAIL_BCON");
+
+			foreach (string s in strings)
 			{
-				API.AddTextComponentSubstringPlayerName(helpText.Substring(0, 99));
+				API.AddTextComponentSubstringPlayerName(s);
 			}
-			else
-			{
-				API.AddTextComponentSubstringPlayerName(helpText);
-			}
+
 			API.EndTextCommandDisplayHelp(0, false, false, -1);
 		}
 
@@ -284,15 +296,14 @@ namespace CitizenFX.Core.UI
 		/// <returns>The handle of the <see cref="Notification"/> which can be used to hide it using <see cref="Notification.Hide()"/></returns>
 		public static Notification ShowNotification(string message, bool blinking = false)
 		{
-			const int maxStringLength = 99;
-			API.SetNotificationTextEntry("STRING");
-			if (message.Length > maxStringLength)
+			string[] strings = StringToArray(message);
+
+
+			API.SetNotificationTextEntry("CELL_EMAIL_BCON");
+
+			foreach (string s in strings)
 			{
-				API.AddTextComponentSubstringPlayerName(message.Substring(0, 99));
-			}
-			else
-			{
-				API.AddTextComponentSubstringPlayerName(message);
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			return new Notification(API.DrawNotification(blinking, true));

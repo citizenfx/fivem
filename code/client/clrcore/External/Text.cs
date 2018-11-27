@@ -69,13 +69,13 @@ namespace CitizenFX.Core.UI
 			get { return _caption ?? ""; }
 			set
 			{
-				const int maxStringLength = 99;
+				//const int maxStringLength = 99;
 
-				if (value.Length > maxStringLength)
-				{
-					_caption = value.Substring(0, maxStringLength);
-					return;
-				}
+				//if (value.Length > maxStringLength)
+				//{
+				//	_caption = value.Substring(0, maxStringLength);
+				//	return;
+				//}
 				_caption = value;
 			}
 		}
@@ -137,8 +137,15 @@ namespace CitizenFX.Core.UI
 		{
 			get
 			{
-				API.BeginTextCommandWidth("STRING");
-				API.AddTextComponentSubstringPlayerName(Caption);
+				string[] strings = Screen.StringToArray(Caption);
+
+				API.BeginTextCommandWidth("CELL_EMAIL_BCON");
+
+				foreach (string s in strings)
+				{
+					API.AddTextComponentSubstringPlayerName(s);
+				}
+
 				API.SetTextFont((int)Font);
 				API.SetTextScale(Scale, Scale);
 
@@ -153,8 +160,15 @@ namespace CitizenFX.Core.UI
 		{
 			get
 			{
-				API.BeginTextCommandWidth("STRING");
-				API.AddTextComponentSubstringPlayerName(Caption);
+				string[] strings = Screen.StringToArray(Caption);
+
+				API.BeginTextCommandWidth("CELL_EMAIL_BCON");
+
+				foreach (string s in strings)
+				{
+					API.AddTextComponentSubstringPlayerName(s);
+				}
+
 				API.SetTextFont((int)Font);
 				API.SetTextScale(Scale, Scale);
 
@@ -260,22 +274,17 @@ namespace CitizenFX.Core.UI
 		/// </returns>
 		public static float GetStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
-			const int maxStringLength = 99;
+			string[] strings = Screen.StringToArray(text);
 
-			API.BeginTextCommandWidth("STRING");
+			API.BeginTextCommandWidth("CELL_EMAIL_BCON");
 
-			if (text.Length > maxStringLength)
+			foreach (string s in strings)
 			{
-				API.AddTextComponentSubstringPlayerName(text.Substring(0, maxStringLength));
-			}
-			else
-			{
-				API.AddTextComponentSubstringPlayerName(text);
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.SetTextFont((int)font);
 			API.SetTextScale(scale, scale);
-
 
 			return Screen.Width * API.EndTextCommandGetWidth(true);
 		}
@@ -290,22 +299,17 @@ namespace CitizenFX.Core.UI
 		/// </returns>
 		public static float GetScaledStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
 		{
-			const int maxStringLength = 99;
+			string[] strings = Screen.StringToArray(text);
 
-			API.BeginTextCommandWidth("STRING");
+			API.BeginTextCommandWidth("CELL_EMAIL_BCON");
 
-			if (text.Length > maxStringLength)
+			foreach (string s in strings)
 			{
-				API.AddTextComponentSubstringPlayerName(text.Substring(0, maxStringLength));
-			}
-			else
-			{
-				API.AddTextComponentSubstringPlayerName(text);
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.SetTextFont((int)font);
 			API.SetTextScale(scale, scale);
-
 
 			return Screen.ScaledWidth * API.EndTextCommandGetWidth(true);
 		}
@@ -347,8 +351,6 @@ namespace CitizenFX.Core.UI
 
 		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
 		{
-
-			const int maxStringLength = 99;
 			if (!Enabled)
 			{
 				return;
@@ -392,14 +394,13 @@ namespace CitizenFX.Core.UI
 				API.SetTextWrap(0.0f, x);
 			}
 
-			API.BeginTextCommandDisplayText("STRING");
-			if (Caption.Length > maxStringLength)
+			string[] strings = Screen.StringToArray(Caption);
+
+			API.BeginTextCommandDisplayText("CELL_EMAIL_BCON");
+
+			foreach (string s in strings)
 			{
-				API.AddTextComponentSubstringPlayerName(Caption.Substring(0, maxStringLength));
-			}
-			else
-			{
-				API.AddTextComponentSubstringPlayerName(Caption);
+				API.AddTextComponentSubstringPlayerName(s);
 			}
 
 			API.EndTextCommandDisplayText(x, y);
