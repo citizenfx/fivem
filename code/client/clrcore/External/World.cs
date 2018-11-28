@@ -311,7 +311,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				API.SetClockDate(value.Year, value.Month, value.Day);
+				API.SetClockDate(value.Day, value.Month, value.Year);
 				API.SetClockTime(value.Hour, value.Minute, value.Second);
 			}
 		}
