@@ -479,6 +479,11 @@ inline uint64_t GetGUID()
 	return (uint64_t)(0x210000100000000 | m_tempGuid);
 }
 
+uint64_t NetLibrary::GetGUID()
+{
+	return ::GetGUID();
+}
+
 void NetLibrary::RunMainFrame()
 {
 	std::function<void()> cb;
@@ -1008,30 +1013,25 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 	auto initiateRequest = [this, address, continueRequest]()
 	{
-		OnConnectionProgress("Requesting authentication ticket...", 0, 100);
-
-		m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", address.ToString() }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
+		if (OnInterceptConnectionForAuth(address, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
 		{
 			if (success)
 			{
-				auto node = YAML::Load(std::string(data, dataLen));
-
-				if (node["error"].IsDefined())
+				for (const auto& entry : additionalPostData)
 				{
-					OnConnectionError(va("%s", node["error"].as<std::string>()));
-
-					m_connectionState = CS_IDLE;
-
-					return;
+					postMap[entry.first] = entry.second;
 				}
-				else if (node["ticket"].IsDefined())
-				{
-					postMap["cfxTicket"] = node["ticket"].as<std::string>();
-				}
+
+				continueRequest();
 			}
-
+			else
+			{
+				m_connectionState = CS_IDLE;
+			}
+		}))
+		{
 			continueRequest();
-		});
+		}
 	};
 
 	if (OnInterceptConnection(address, initiateRequest))

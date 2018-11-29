@@ -263,6 +263,8 @@ public:
 
 	void CancelDeferredConnection();
 
+	uint64_t GetGUID();
+
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
 
 	inline uint32_t GetServerBase() { return m_serverBase; }
@@ -344,6 +346,9 @@ public:
 	// a1: connection address
 	// a2: continuation callback
 	fwEvent<const net::PeerAddress&, const std::function<void()>&> OnInterceptConnection;
+
+	// same as the other routine, except it's for authentication
+	fwEvent<const net::PeerAddress&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
 
 	static
 #ifndef COMPILING_NET
