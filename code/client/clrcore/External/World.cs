@@ -129,7 +129,8 @@ namespace CitizenFX.Core
 		Snowing,
 		Blizzard,
 		Snowlight,
-		Christmas
+		Christmas,
+		Halloween
 	}
 
 	public enum CloudHat
