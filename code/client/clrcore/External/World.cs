@@ -410,7 +410,41 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return (Weather)API.GetPrevWeatherType();
+				switch (API.GetPrevWeatherTypeHashName())
+				{
+					case -1750463879:
+						return Weather.ExtraSunny;
+					case 916995460:
+						return Weather.Clear;
+					case -1530260698:
+						return Weather.Neutral;
+					case 282916021:
+						return Weather.Smog;
+					case -1368164796:
+						return Weather.Foggy;
+					case 821931868:
+						return Weather.Clouds;
+					case -1148613331:
+						return Weather.Overcast;
+					case 1840358669:
+						return Weather.Clearing;
+					case 1420204096:
+						return Weather.Raining;
+					case -1233681761:
+						return Weather.ThunderStorm;
+					case 669657108:
+						return Weather.Blizzard;
+					case -273223690:
+						return Weather.Snowing;
+					case 603685163:
+						return Weather.Snowlight;
+					case -1429616491:
+						return Weather.Christmas;
+					case -921030142:
+						return Weather.Halloween;
+					default:
+						return Weather.Unknown;
+				}
 			}
 			set
 			{
@@ -430,7 +464,41 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return (Weather)API.GetNextWeatherType();
+				switch (API.GetNextWeatherTypeHashName())
+				{
+					case -1750463879:
+						return Weather.ExtraSunny;
+					case 916995460:
+						return Weather.Clear;
+					case -1530260698:
+						return Weather.Neutral;
+					case 282916021:
+						return Weather.Smog;
+					case -1368164796:
+						return Weather.Foggy;
+					case 821931868:
+						return Weather.Clouds;
+					case -1148613331:
+						return Weather.Overcast;
+					case 1840358669:
+						return Weather.Clearing;
+					case 1420204096:
+						return Weather.Raining;
+					case -1233681761:
+						return Weather.ThunderStorm;
+					case 669657108:
+						return Weather.Blizzard;
+					case -273223690:
+						return Weather.Snowing;
+					case 603685163:
+						return Weather.Snowlight;
+					case -1429616491:
+						return Weather.Christmas;
+					case -921030142:
+						return Weather.Halloween;
+					default:
+						return Weather.Unknown;
+				}
 			}
 			set
 			{
