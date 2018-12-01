@@ -643,6 +643,33 @@ static void netObject__ClearPendingPlayerIndex(rage::netObject* object)
 	object->syncData.nextOwnerId = -1;
 }
 
+static void*(*g_origGetScenarioTaskScenario)(void* scenarioTask);
+
+static void* GetScenarioTaskScenario(char* scenarioTask)
+{
+	void* scenario = g_origGetScenarioTaskScenario(scenarioTask);
+
+	if (!scenario)
+	{
+		static bool hasCrashedBefore = false;
+
+		if (!hasCrashedBefore)
+		{
+			hasCrashedBefore = true;
+
+			trace("WARNING: invalid scenario task triggered (scenario ID: %d)\n", *(uint32_t*)(scenarioTask + 168));
+		}
+
+		*(uint32_t*)(scenarioTask + 168) = 0;
+
+		scenario = g_origGetScenarioTaskScenario(scenarioTask);
+
+		assert(scenario);
+	}
+
+	return scenario;
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -710,6 +737,8 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(location + 0x28), GetNetworkPlayerListCount2, (void**)&g_origGetNetworkPlayerListCount2);
 		MH_CreateHook(hook::get_call(location + 0x2F), GetNetworkPlayerList2, (void**)&g_origGetNetworkPlayerList2);
 	}
+
+	MH_CreateHook(hook::get_pattern("78 18 4C 8B 05", -10), GetScenarioTaskScenario, (void**)&g_origGetScenarioTaskScenario);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
