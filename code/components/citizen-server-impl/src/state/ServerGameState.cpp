@@ -424,8 +424,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			auto sendUnparsedPacket = [&](int syncType)
+			auto sendUnparsedPacket = [client, entity, resendDelay, &numCreates, &numSyncs, &numSkips, &cloneBuffer, &maybeFlushBuffer](int syncType)
 			{
+				if (!entity)
+				{
+					return;
+				}
+
 				rl::MessageBuffer mb(1200);
 
 				sync::SyncUnparseState state;
