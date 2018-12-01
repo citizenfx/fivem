@@ -900,7 +900,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 			{
 				// make it 31 for a while (objectmgr dependencies mandate this)
 				auto originalIndex = player->physicalPlayerIndex;
-				player->physicalPlayerIndex = 31;
+				player->physicalPlayerIndex = (player != g_playerMgr->localPlayer) ? 31 : 0;
 
 				if (ev->IsInScope(player))
 				{
@@ -1126,7 +1126,8 @@ static uint32_t GetFireApplicability(void* event, void* pos)
 		return g_origGetFireApplicability(event, pos);
 	}
 
-	return (0xFFFFFFFF);
+	// send all fires to all remote players
+	return (1 << 31);
 }
 
 static HookFunction hookFunctionEv([]()
