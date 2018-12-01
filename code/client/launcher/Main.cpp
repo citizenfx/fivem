@@ -18,6 +18,8 @@
 
 #include <shellscalingapi.h>
 
+#include <shobjidl.h>
+
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
@@ -110,6 +112,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		return 0;
 	}
+
+	SetCurrentProcessExplicitAppUserModelID(L"CitizenFX.FiveM.Client");
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 

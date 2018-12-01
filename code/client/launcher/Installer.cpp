@@ -6,6 +6,9 @@
 #include <shlwapi.h>
 #include <shlobj.h>
 
+#include <propkey.h>
+#include <propvarutil.h>
+
 #include <wrl.h>
 
 #include <filesystem>
@@ -15,6 +18,22 @@
 namespace WRL = Microsoft::WRL;
 
 namespace fs = std::experimental::filesystem;
+
+static void SetAumid(const WRL::ComPtr<IShellLink>& link)
+{
+	WRL::ComPtr<IPropertyStore> propertyStore;
+
+	if (SUCCEEDED(link.As(&propertyStore)))
+	{
+		PROPVARIANT pv;
+		if (SUCCEEDED(InitPropVariantFromString(L"CitizenFX.FiveM.Client", &pv)))
+		{
+			propertyStore->SetValue(PKEY_AppUserModel_ID, pv);
+
+			PropVariantClear(&pv);
+		}
+	}
+}
 
 static std::wstring GetFolderPath(const KNOWNFOLDERID& folderId)
 {
@@ -87,6 +106,8 @@ bool Install_PerformInstallation()
 			shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
 			shellLink->SetIconLocation(targetExePath.c_str(), 0);
 			
+			SetAumid(shellLink);
+
 			WRL::ComPtr<IPersistFile> persist;
 			hr = shellLink.As(&persist);
 
@@ -106,6 +127,8 @@ bool Install_PerformInstallation()
 			shellLink->SetArguments(L"-sp");
 			shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
 			shellLink->SetIconLocation(targetExePath.c_str(), -202);
+
+			SetAumid(shellLink);
 
 			WRL::ComPtr<IPersistFile> persist;
 			hr = shellLink.As(&persist);
@@ -186,6 +209,8 @@ bool Install_RunInstallMode()
 				shellLink->SetArguments(L"-sp");
 				shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
 				shellLink->SetIconLocation(exeName.c_str(), -202);
+
+				SetAumid(shellLink);
 
 				WRL::ComPtr<IPersistFile> persist;
 				hr = shellLink.As(&persist);
