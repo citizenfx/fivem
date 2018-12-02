@@ -84,28 +84,30 @@ FMT_VARIADIC(void, Log, const char*);
 
 namespace fx
 {
-struct GameStateClientData
+struct GameStateClientData : public sync::ClientSyncDataBase
 {
 	net::Buffer ackBuffer;
 	std::set<int> objectIds;
 
 	std::mutex selfMutex;
+
+	std::weak_ptr<sync::SyncEntityState> playerEntity;
+	std::optional<int> playerId;
 };
 
 inline std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
 {
-	auto data = client->GetData("gameStateClientData");
+	auto data = std::static_pointer_cast<GameStateClientData>(client->GetSyncData());
 
-	if (data.has_value())
+	if (data)
 	{
-		auto val = std::any_cast<std::shared_ptr<GameStateClientData>>(data);
-		std::unique_lock<std::mutex> lock(val->selfMutex);
+		std::unique_lock<std::mutex> lock(data->selfMutex);
 
-		return { val, std::move(lock) };
+		return { data, std::move(lock) };
 	}
 
 	auto val = std::make_shared<GameStateClientData>();
-	client->SetData("gameStateClientData", val);
+	client->SetSyncData(val);
 
 	std::weak_ptr<fx::Client> weakClient(client);
 
@@ -260,9 +262,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		if (!client->GetData("playerId").has_value())
 		{
-			return;
+			auto[data, lock] = GetClientData(this, client);
+
+			if (!data->playerId)
+			{
+				return;
+			}
 		}
 
 		{
@@ -366,36 +372,41 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (!shouldBeCreated)
 			{
-				auto entityIdRef = client->GetData("playerEntity");
+				std::weak_ptr<sync::SyncEntityState> entityRef;
 
-				if (entityIdRef.has_value())
 				{
-					auto entityId = std::any_cast<uint32_t>(entityIdRef);
-					auto playerEntity = GetEntity(entityId);
+					auto[data, lock] = GetClientData(this, client);
+					entityRef = data->playerEntity;
+				}
 
-					if (playerEntity)
+				if (!entityRef.expired())
+				{
+					auto playerEntity = entityRef.lock();
+
+					float entityPos[3] = { 0.0f, 0.0f, 0.0f };
+					
+					if (entity->syncTree)
 					{
-						float entityPosX = entity->GetData("posX", 0.0f);
-						float entityPosY = entity->GetData("posY", 0.0f);
-
-						auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
-
-						float diffX = entityPosX - playerPosX;
-						float diffY = entityPosY - playerPosY;
-
-						float distSquared = (diffX * diffX) + (diffY * diffY);
-
-						// #TODO1S: figure out a good value for this
-						if (distSquared < (650.0f * 650.0f))
-						{
-							shouldBeCreated = true;
-						}
+						entity->syncTree->GetPosition(entityPos);
 					}
-					else
+
+					auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
+
+					float diffX = entityPos[0] - playerPosX;
+					float diffY = entityPos[1] - playerPosY;
+
+					float distSquared = (diffX * diffX) + (diffY * diffY);
+
+					// #TODO1S: figure out a good value for this
+					if (distSquared < (650.0f * 650.0f))
 					{
-						// can't really say otherwise if the player entity doesn't exist
 						shouldBeCreated = true;
 					}
+				}
+				else
+				{
+					// can't really say otherwise if the player entity doesn't exist
+					shouldBeCreated = true;
 				}
 			}
 
@@ -417,22 +428,26 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				{
 					instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, entity, &shouldBeCreated](const std::shared_ptr<fx::Client>& otherClient)
 					{
-						auto entityIdRef = otherClient->GetData("playerEntity");
+						std::weak_ptr<sync::SyncEntityState> entityRef;
 
-						if (!entityIdRef.has_value())
+						{
+							auto[data, lock] = GetClientData(this, otherClient);
+							entityRef = data->playerEntity;
+						}
+
+						if (entityRef.expired())
 						{
 							return;
 						}
 
-						auto entityId = std::any_cast<uint32_t>(entityIdRef);
-						auto playerEntity = GetEntity(entityId);
+						auto playerEntity = entityRef.lock();
 
-						if (!playerEntity)
+						if (!playerEntity->syncTree)
 						{
 							return;
 						}
 
-						if (auto vehicle = playerEntity->GetData("curVehicle", -1); vehicle != -1)
+						if (auto vehicle = playerEntity->syncTree->GetCurVehicle(); vehicle != -1)
 						{
 							if (vehicle == (entity->handle & 0xFFFF))
 							{
@@ -591,20 +606,19 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		auto entityIdRef = client->GetData("playerEntity");
+		std::weak_ptr<sync::SyncEntityState> entityRef;
 
-		if (!entityIdRef.has_value())
+		{
+			auto[data, lock] = GetClientData(this, client);
+			entityRef = data->playerEntity;
+		}
+
+		if (entityRef.expired())
 		{
 			return;
 		}
 
-		auto entityId = std::any_cast<uint32_t>(entityIdRef);
-		auto playerEntity = GetEntity(entityId);
-
-		if (!playerEntity)
-		{
-			return;
-		}
+		auto playerEntity = entityRef.lock();
 
 		auto[posX, posY, posZ] = GetPlayerFocusPos(playerEntity);
 
@@ -786,8 +800,19 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 				try
 				{
-					auto entityId = std::any_cast<uint32_t>(tgtClient->GetData("playerEntity"));
-					auto playerEntity = GetEntity(entityId);
+					std::weak_ptr<sync::SyncEntityState> entityRef;
+
+					{
+						auto[data, lock] = GetClientData(this, tgtClient);
+						entityRef = data->playerEntity;
+					}
+
+					if (entityRef.expired())
+					{
+						return;
+					}
+
+					auto playerEntity = entityRef.lock();
 
 					if (playerEntity)
 					{
@@ -1033,7 +1058,10 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	}
 
 	// move this back down under
-	client->SetData("playerId", playerId);
+	{
+		auto[data, lock] = GetClientData(this, client);
+		data->playerId = playerId;
+	}
 
 	if (parsingType == 1 && objectType == sync::NetObjEntityType::Train)
 	{
@@ -1108,13 +1136,21 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	switch (entity->type)
 	{
 		case sync::NetObjEntityType::Player:
-			if (!client->GetData("playerEntity").has_value())
+		{
+			auto[data, lock] = GetClientData(this, client);
+			auto entityRef = data->playerEntity;
+
+			if (entityRef.expired())
 			{
 				SendWorldGrid(nullptr, client);
 			}
 
+			data->playerEntity = entity;
+
 			client->SetData("playerEntity", MakeScriptHandle(entity));
+
 			break;
+		}
 	}
 
 	if (outObjectId)

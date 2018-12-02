@@ -472,6 +472,9 @@ struct CPedCreationDataNode
 
 struct CPedGameStateDataNode
 {
+	int curVehicle;
+	int curVehicleSeat;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto bool1 = state.buffer.ReadBit();
@@ -526,18 +529,21 @@ struct CPedGameStateDataNode
 		{
 			vehicleId = state.buffer.Read<int>(13);
 
-			state.entity->data["curVehicle"] = int32_t(vehicleId);
-			state.entity->data["curVehicleSeat"] = int32_t(-2);
+			state.entity->data["curVehicle"] = this->curVehicle = int32_t(vehicleId);
+			state.entity->data["curVehicleSeat"] = this->curVehicleSeat = int32_t(-2);
 
 			auto inSeat = state.buffer.ReadBit();
 
 			if (inSeat)
 			{
 				vehicleSeat = state.buffer.Read<int>(5);
-				state.entity->data["curVehicleSeat"] = int32_t(vehicleSeat);
+				state.entity->data["curVehicleSeat"] = this->curVehicleSeat = int32_t(vehicleSeat);
 			}
 			else
 			{
+				this->curVehicle = -1;
+				this->curVehicleSeat = -1;
+
 				state.entity->data["curVehicle"] = -1;
 				state.entity->data["curVehicleSeat"] = -1;
 			}
@@ -546,6 +552,9 @@ struct CPedGameStateDataNode
 		{
 			state.entity->data["curVehicle"] = -1;
 			state.entity->data["curVehicleSeat"] = -1;
+
+			this->curVehicle = -1;
+			this->curVehicleSeat = -1;
 		}
 
 		// TODO
@@ -854,6 +863,13 @@ struct SyncTree : public SyncTreeBase
 		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
 
 		return (hasCdn) ? &cameraNode->data : nullptr;
+	}
+
+	virtual int GetCurVehicle() override
+	{
+		auto[hasPdn, pedNode] = GetData<CPedGameStateDataNode>();
+
+		return (hasPdn) ? pedNode->curVehicle : -1;
 	}
 
 	virtual void Parse(SyncParseState& state) final override

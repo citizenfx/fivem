@@ -37,6 +37,15 @@ namespace {
 
 namespace fx
 {
+	namespace sync
+	{
+		class ClientSyncDataBase
+		{
+		public:
+			virtual ~ClientSyncDataBase() = default;
+		};
+	}
+
 	struct gs_peer_deleter
 	{
 		inline void operator()(int* data)
@@ -166,6 +175,16 @@ namespace fx
 			return std::move(principals);
 		}
 
+		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
+		{
+			return m_syncData;
+		}
+
+		inline void SetSyncData(const std::shared_ptr<sync::ClientSyncDataBase>& ptr)
+		{
+			m_syncData = ptr;
+		}
+
 		const std::any& GetData(const std::string& key);
 
 		void SetData(const std::string& key, const std::any& data);
@@ -212,6 +231,9 @@ namespace fx
 
 		// the client's ENet peer
 		std::unique_ptr<int, gs_peer_deleter> m_peer;
+
+		// sync data
+		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;

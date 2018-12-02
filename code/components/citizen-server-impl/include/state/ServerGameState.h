@@ -91,6 +91,8 @@ public:
 	virtual void GetPosition(float* posOut) = 0;
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
+
+	virtual int GetCurVehicle() = 0;
 };
 
 enum class NetObjEntityType
