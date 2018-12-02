@@ -313,6 +313,11 @@ struct NodeWrapper : public NodeBase
 				//trace("resetting acks on node %s\n", boost::typeindex::type_id<TNode>().pretty_name());
 				frameIndex = state.frameIndex;
 
+				if (frameIndex > state.entity->lastFrameIndex)
+				{
+					state.entity->lastFrameIndex = frameIndex;
+				}
+
 				ackedPlayers.reset();
 			}
 

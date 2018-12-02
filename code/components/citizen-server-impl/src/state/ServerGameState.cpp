@@ -188,23 +188,16 @@ inline std::tuple<float, float, float> GetPlayerFocusPos(const std::shared_ptr<s
 }
 
 ServerGameState::ServerGameState()
-	: m_frameIndex(0)
+	: m_frameIndex(0), m_entitiesById(1 << 13)
 {
 
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
-	auto handle = MakeEntityHandle(playerId, objectId);
+	auto ptr = m_entitiesById[objectId];
 
-	auto it = m_entities.find(handle);
-
-	if (it != m_entities.end())
-	{
-		return it->second;
-	}
-
-	return {};
+	return (!ptr.expired()) ? ptr.lock() : std::shared_ptr<sync::SyncEntityState>{};
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
@@ -219,11 +212,11 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
 	{
 		if (guidData->type == ScriptGuid::Type::Entity)
 		{
-			auto it = m_entities.find(guidData->entity.handle);
+			auto ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
 
-			if (it != m_entities.end())
+			if (!ptr.expired())
 			{
-				return it->second;
+				return ptr.lock();
 			}
 		}
 	}
@@ -246,11 +239,15 @@ namespace sync
 
 void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 {
-	for (auto& entityPair : m_entities)
 	{
-		if (entityPair.second)
+		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
+
+		for (auto& entity : m_entityList)
 		{
-			entityPair.second->frameIndex = m_frameIndex;
+			if (entity)
+			{
+				entity->frameIndex = m_frameIndex;
+			}
 		}
 	}
 
@@ -260,11 +257,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	// cache entities so we don't have to iterate the concurrent_map for each client
 	std::vector<std::shared_ptr<sync::SyncEntityState>> relevantEntities;
-	relevantEntities.reserve(m_entities.size());
 
-	for (auto& entityPair : m_entities)
 	{
-		relevantEntities.push_back(entityPair.second);
+		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
+
+		relevantEntities.reserve(m_entityList.size());
+
+		for (auto& entity : m_entityList)
+		{
+			relevantEntities.push_back(entity);
+		}
 	}
 
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& clientRef)
@@ -585,10 +587,10 @@ void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>
 
 void ServerGameState::UpdateEntities()
 {
-	for (auto& entityPair : m_entities)
-	{
-		auto entity = entityPair.second;
+	std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
 
+	for (auto& entity : m_entityList)
+	{
 		if (!entity || !entity->syncTree)
 		{
 			continue;
@@ -826,105 +828,107 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 	std::set<uint32_t> toErase;
 
-	for (auto& entityPair : m_entities)
 	{
-		auto entity = entityPair.second;
+		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
 
-		if (!entity || !entity->syncTree)
+		for (auto& entity : m_entityList)
 		{
-			continue;
-		}
-
-		bool hasClient = true;
-
-		if (entity->client.expired())
-		{
-			hasClient = false;
-		}
-		else if (entity->client.lock()->GetNetId() == client->GetNetId())
-		{
-			hasClient = false;
-		}
-
-		if (!hasClient)
-		{
-			float posX = entity->GetData("posX", 0.0f);
-			float posY = entity->GetData("posY", 0.0f);
-			float posZ = entity->GetData("posZ", 0.0f);
-
-			std::vector<std::tuple<float, std::shared_ptr<fx::Client>>> candidates;
-
-			clientRegistry->ForAllClients([this, &candidates, &client, posX, posY, posZ](const std::shared_ptr<fx::Client>& tgtClient)
+			if (!entity || !entity->syncTree)
 			{
-				if (tgtClient == client)
+				continue;
+			}
+
+			bool hasClient = true;
+
+			if (entity->client.expired())
+			{
+				hasClient = false;
+			}
+			else if (entity->client.lock()->GetNetId() == client->GetNetId())
+			{
+				hasClient = false;
+			}
+
+			if (!hasClient)
+			{
+				float posX = entity->GetData("posX", 0.0f);
+				float posY = entity->GetData("posY", 0.0f);
+				float posZ = entity->GetData("posZ", 0.0f);
+
+				std::vector<std::tuple<float, std::shared_ptr<fx::Client>>> candidates;
+
+				clientRegistry->ForAllClients([this, &candidates, &client, posX, posY, posZ](const std::shared_ptr<fx::Client>& tgtClient)
 				{
-					return;
-				}
-
-				if (tgtClient->GetSlotId() == 0xFFFFFFFF)
-				{
-					return;
-				}
-
-				float distance = std::numeric_limits<float>::max();
-
-				try
-				{
-					std::weak_ptr<sync::SyncEntityState> entityRef;
-
-					{
-						auto[data, lock] = GetClientData(this, tgtClient);
-						entityRef = data->playerEntity;
-					}
-
-					if (entityRef.expired())
+					if (tgtClient == client)
 					{
 						return;
 					}
 
-					auto playerEntity = entityRef.lock();
-
-					if (playerEntity)
+					if (tgtClient->GetSlotId() == 0xFFFFFFFF)
 					{
-						auto [tgtX, tgtY, tgtZ] = GetPlayerFocusPos(playerEntity);
+						return;
+					}
 
-						if (posX != 0.0f)
+					float distance = std::numeric_limits<float>::max();
+
+					try
+					{
+						std::weak_ptr<sync::SyncEntityState> entityRef;
+
 						{
-							float deltaX = (tgtX - posX);
-							float deltaY = (tgtY - posY);
-							float deltaZ = (tgtZ - posZ);
+							auto[data, lock] = GetClientData(this, tgtClient);
+							entityRef = data->playerEntity;
+						}
 
-							distance = (deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ);
+						if (entityRef.expired())
+						{
+							return;
+						}
+
+						auto playerEntity = entityRef.lock();
+
+						if (playerEntity)
+						{
+							auto[tgtX, tgtY, tgtZ] = GetPlayerFocusPos(playerEntity);
+
+							if (posX != 0.0f)
+							{
+								float deltaX = (tgtX - posX);
+								float deltaY = (tgtY - posY);
+								float deltaZ = (tgtZ - posZ);
+
+								distance = (deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ);
+							}
 						}
 					}
-				}
-				catch (std::bad_any_cast&)
+					catch (std::bad_any_cast&)
+					{
+
+					}
+
+					candidates.emplace_back(distance, tgtClient);
+				});
+
+				std::sort(candidates.begin(), candidates.end());
+
+				if (entity->type == sync::NetObjEntityType::Player)
 				{
-					
+					candidates.clear();
 				}
 
-				candidates.emplace_back(distance, tgtClient);
-			});
+				if (candidates.empty() || // no candidate?
+					std::get<float>(candidates[0]) >= 600.0f) // closest candidate beyond distance culling range?
+				{
+					trace("no candidates for entity %d, deleting\n", entity->handle);
 
-			std::sort(candidates.begin(), candidates.end());
+					toErase.insert(entity->handle);
+				}
+				else
+				{
+					trace("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidates[0])->GetName());
 
-			if (entity->type == sync::NetObjEntityType::Player)
-			{
-				candidates.clear();
-			}
-
-			if (candidates.empty() || // no candidate?
-				std::get<float>(candidates[0]) >= 600.0f) // closest candidate beyond distance culling range?
-			{
-				trace("no candidates for entity %d, deleting\n", entityPair.first);
-
-				toErase.insert(entityPair.first);
-			}
-			else
-			{
-				trace("reassigning entity %d from %s to %s\n", entityPair.first, client->GetName(), std::get<1>(candidates[0])->GetName());
-
-				ReassignEntity(entityPair.first, std::get<1>(candidates[0]));
+					ReassignEntity(entity->handle, std::get<1>(candidates[0]));
+				}
 			}
 		}
 	}
@@ -938,14 +942,27 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			m_objectIdsUsed.reset(set & 0xFFFF);
 		}
 
-		auto entity = m_entities[set];
+		auto entity = m_entitiesById[set];
 
-		if (entity)
+		if (!entity.expired())
 		{
-			OnCloneRemove(entity);
+			OnCloneRemove(entity.lock());
+
+			m_entitiesById[set] = {};
 		}
 
-		m_entities[set] = {};
+		{
+			std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
+
+			for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
+			{
+				if ((*it)->handle == set)
+				{
+					m_entityList.erase(it);
+					break;
+				}
+			}
+		}
 
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
 		{
@@ -977,10 +994,10 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	// remove ACKs for this client
 	if (client->GetSlotId() != 0xFFFFFFFF)
 	{
-		for (auto& entityPair : m_entities)
-		{
-			auto entity = entityPair.second;
+		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
 
+		for (auto& entity : m_entityList)
+		{
 			if (entity && entity->syncTree)
 			{
 				entity->ackedCreation.reset(client->GetSlotId());
@@ -1029,10 +1046,12 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 	auto playerId = 0;
 	auto objectId = inPacket.Read<uint16_t>(13);
 
-	auto it = m_entities.find(MakeEntityHandle(playerId, objectId));
+	auto ptr = m_entitiesById[objectId];
 
-	if (it != m_entities.end() && it->second)
+	if (!ptr.expired())
 	{
+		auto entity = ptr.lock();
+
 		auto tgtCl = (clientId != 0) ? m_instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(clientId) : client;
 
 		if (!tgtCl)
@@ -1041,14 +1060,12 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 		}
 
 		// don't do duplicate migrations
-		if (!it->second->client.expired() && it->second->client.lock()->GetNetId() == tgtCl->GetNetId())
+		if (!entity->client.expired() && entity->client.lock()->GetNetId() == tgtCl->GetNetId())
 		{
 			return;
 		}
 
-		Log("%s: migrating entity %d from %s to %s\n", __func__, objectId, (it->second->client.expired()) ? "null?" : it->second->client.lock()->GetName(), tgtCl->GetName());
-
-		auto entity = it->second;
+		Log("%s: migrating entity %d from %s to %s\n", __func__, objectId, (entity->client.expired()) ? "null?" : entity->client.lock()->GetName(), tgtCl->GetName());
 
 		if (!entity || !entity->syncTree)
 		{
@@ -1065,10 +1082,14 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	auto objectId = inPacket.Read<uint16_t>(13);
 
 	// TODO: verify ownership
-	auto entity = m_entities[MakeEntityHandle(playerId, objectId)];
+	auto ptr = m_entitiesById[objectId];
 
-	if (entity)
+	std::shared_ptr<sync::SyncEntityState> entity;
+
+	if (!ptr.expired())
 	{
+		entity = ptr.lock();
+
 		if (!entity->client.expired())
 		{
 			if (client->GetNetId() != entity->client.lock()->GetNetId())
@@ -1092,7 +1113,16 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 		m_objectIdsUsed.reset(objectId);
 	}
 
-	m_entities[MakeEntityHandle(playerId, objectId)] = {};
+	std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
+
+	for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
+	{
+		if (((*it)->handle & 0xFFFF) == objectId)
+		{
+			m_entityList.erase(it);
+			break;
+		}
+	}
 
 	// these seem to cause late deletes of state on client, leading to excessive sending of creates
 	/*ackPacket.Write<uint8_t>(3);
@@ -1172,11 +1202,18 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			entity->type = objectType;
 			entity->guid = nullptr;
 			entity->frameIndex = m_frameIndex;
+			entity->lastFrameIndex = 0;
 			entity->handle = MakeEntityHandle(playerId, objectId);
 
 			entity->syncTree = MakeSyncTree(objectType);
 
-			m_entities[MakeEntityHandle(playerId, objectId)] = entity;
+			{
+				std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
+
+				m_entityList.push_back(entity);
+			}
+
+			m_entitiesById[objectId] = entity;
 		}
 		else
 		{
@@ -1612,38 +1649,48 @@ static InitFunction initFunction([]()
 				ignoreHandles.insert(fx::MakeEntityHandle(0, buffer.Read<uint16_t>()));
 			}
 
-			for (auto& entity : instance->GetComponent<fx::ServerGameState>()->m_entities)
+			auto sgs = instance->GetComponent<fx::ServerGameState>();
+
 			{
-				if (entity.second)
+				std::shared_lock<std::shared_mutex> entityListLock(sgs->m_entityListMutex);
+
+				for (auto& entityRef : sgs->m_entityList)
 				{
-					auto entityRef = entity.second;
-
-					if (!entityRef || !entityRef->syncTree)
+					if (entityRef)
 					{
-						continue;
-					}
-
-					bool hasCreated = entityRef->ackedCreation.test(client->GetSlotId());
-
-					if (!hasCreated)
-					{
-						continue;
-					}
-
-					if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
-					{
-						continue;
-					}
-
-					entityRef->syncTree->Visit([client, frameIndex](fx::sync::NodeBase& node)
-					{
-						if (node.frameIndex <= frameIndex)
+						if (!entityRef || !entityRef->syncTree)
 						{
-							node.ackedPlayers.set(client->GetSlotId());
+							continue;
 						}
 
-						return true;
-					});
+						bool hasCreated = entityRef->ackedCreation.test(client->GetSlotId());
+						bool hasDeleted = entityRef->didDeletion.test(client->GetSlotId());
+
+						if (!hasCreated || hasDeleted)
+						{
+							continue;
+						}
+
+						if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
+						{
+							continue;
+						}
+
+						if (entityRef->lastFrameIndex > frameIndex)
+						{
+							continue;
+						}
+
+						entityRef->syncTree->Visit([client, frameIndex](fx::sync::NodeBase& node)
+						{
+							if (node.frameIndex <= frameIndex)
+							{
+								node.ackedPlayers.set(client->GetSlotId());
+							}
+
+							return true;
+						});
+					}
 				}
 			}
 
@@ -1652,7 +1699,14 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("ccack"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
-			auto entity = instance->GetComponent<fx::ServerGameState>()->m_entities[fx::MakeEntityHandle(0, buffer.Read<uint16_t>())];
+			auto entityPtr = instance->GetComponent<fx::ServerGameState>()->m_entitiesById[buffer.Read<uint16_t>()];
+
+			if (entityPtr.expired())
+			{
+				return;
+			}
+
+			auto entity = entityPtr.lock();
 
 			if (entity && entity->syncTree)
 			{

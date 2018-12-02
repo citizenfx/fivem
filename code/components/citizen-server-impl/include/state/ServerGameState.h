@@ -152,6 +152,7 @@ struct SyncEntityState
 	std::bitset<256> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
+	uint64_t lastFrameIndex;
 
 	std::array<std::chrono::milliseconds, 256> lastResends;
 
@@ -309,7 +310,10 @@ private:
 
 //private:
 public:
-	tbb::concurrent_unordered_map<uint32_t, std::shared_ptr<sync::SyncEntityState>> m_entities;
+	std::vector<std::weak_ptr<sync::SyncEntityState>> m_entitiesById;
+
+	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
+	std::shared_mutex m_entityListMutex;
 };
 
 std::unique_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
