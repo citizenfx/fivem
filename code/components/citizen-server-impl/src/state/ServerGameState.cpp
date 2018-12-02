@@ -948,7 +948,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 		{
 			OnCloneRemove(entity.lock());
 
-			m_entitiesById[set] = {};
+			m_entitiesById[set & 0xFFFF] = {};
 		}
 
 		{
