@@ -95,15 +95,13 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	std::optional<int> playerId;
 };
 
-inline std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
+inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
 {
 	auto data = std::static_pointer_cast<GameStateClientData>(client->GetSyncData());
 
 	if (data)
 	{
-		std::unique_lock<std::mutex> lock(data->selfMutex);
-
-		return { data, std::move(lock) };
+		return data;
 	}
 
 	auto val = std::make_shared<GameStateClientData>();
@@ -116,8 +114,14 @@ inline std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mu
 		state->HandleClientDrop(weakClient.lock());
 	});
 
-	std::unique_lock<std::mutex> lock(val->selfMutex);
+	return val;
+}
 
+inline std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
+{
+	auto val = GetClientDataUnlocked(state, client);
+
+	std::unique_lock<std::mutex> lock(val->selfMutex);
 	return { val, std::move(lock) };
 }
 
@@ -375,7 +379,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				std::weak_ptr<sync::SyncEntityState> entityRef;
 
 				{
-					auto[data, lock] = GetClientData(this, client);
+					auto data = GetClientDataUnlocked(this, client);
 					entityRef = data->playerEntity;
 				}
 
@@ -431,7 +435,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						std::weak_ptr<sync::SyncEntityState> entityRef;
 
 						{
-							auto[data, lock] = GetClientData(this, otherClient);
+							auto data = GetClientDataUnlocked(this, otherClient);
 							entityRef = data->playerEntity;
 						}
 
@@ -898,20 +902,23 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	}
 
 	// remove ACKs for this client
-	for (auto& entityPair : m_entities)
+	if (client->GetSlotId() != 0xFFFFFFFF)
 	{
-		auto entity = entityPair.second;
-
-		if (entity && entity->syncTree)
+		for (auto& entityPair : m_entities)
 		{
-			entity->ackedCreation.reset(client->GetSlotId());
+			auto entity = entityPair.second;
 
-			entity->syncTree->Visit([&client](sync::NodeBase& node)
+			if (entity && entity->syncTree)
 			{
-				node.ackedPlayers.reset(client->GetSlotId());
+				entity->ackedCreation.reset(client->GetSlotId());
 
-				return true;
-			});
+				entity->syncTree->Visit([&client](sync::NodeBase& node)
+				{
+					node.ackedPlayers.reset(client->GetSlotId());
+
+					return true;
+				});
+			}
 		}
 	}
 }
