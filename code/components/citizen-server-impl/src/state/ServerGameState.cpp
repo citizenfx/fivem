@@ -154,19 +154,30 @@ static uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& p
 
 inline std::tuple<float, float, float> GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
-	float playerPosX = entity->GetData("posX", 0.0f);
-	float playerPosY = entity->GetData("posY", 0.0f);
-	float playerPosZ = entity->GetData("posZ", 0.0f);
+	if (!entity->syncTree)
+	{
+		return { 0, 0, 0 };
+	}
 
-	switch (entity->GetData("camMode", 0))
+	float playerPos[3];
+	entity->syncTree->GetPosition(playerPos);
+
+	auto camData = entity->syncTree->GetPlayerCamera();
+
+	if (!camData)
+	{
+		return { playerPos[0], playerPos[1], playerPos[2] };
+	}
+
+	switch (camData->camMode)
 	{
 	case 0:
 	default:
-		return { playerPosX, playerPosY, playerPosZ };
+		return { playerPos[0], playerPos[1], playerPos[2] };
 	case 1:
-		return { entity->GetData("freeCamPosX", 0.0f), entity->GetData("freeCamPosY", 0.0f), entity->GetData("freeCamPosZ", 0.0f) };
+		return { camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ };
 	case 2:
-		return { playerPosX + entity->GetData("camOffX", 0.0f), playerPosY + entity->GetData("camOffY", 0.0f), playerPosZ + entity->GetData("camOffZ", 0.0f) };
+		return { playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ };
 	}
 }
 
@@ -239,8 +250,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	UpdateWorldGrid(instance);
 
-	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& clientRef)
 	{
+		// get our own pointer ownership
+		auto client = clientRef;
+
 		if (!client)
 		{
 			return;
@@ -304,6 +318,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
 		cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
 		maybeFlushBuffer();
+
+		if (!client)
+		{
+			return;
+		}
 
 		auto enPeer = gscomms_get_peer(client->GetPeer());
 
@@ -597,7 +616,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		auto slotID = client->GetSlotId();
 
 		WorldGridState* gridState = &m_worldGrid[slotID];
-		
+
 		// disown any grid entries that aren't near us anymore
 		for (auto& entry : gridState->entries)
 		{
@@ -606,6 +625,11 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 				if (entry.sectorX < (minSectorX - 1) || entry.sectorX >= (maxSectorX + 1) ||
 					entry.sectorY < (minSectorY - 1) || entry.sectorY >= (maxSectorY + 1))
 				{
+					if (m_worldGridAccel.slots[entry.sectorX][entry.sectorY] == slotID)
+					{
+						m_worldGridAccel.slots[entry.sectorX][entry.sectorY] = 0xFF;
+					}
+
 					entry.sectorX = 0;
 					entry.sectorY = 0;
 					entry.slotID = -1;
@@ -620,18 +644,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			for (int y = minSectorY; y <= maxSectorY; y++)
 			{
 				// find if this x/y is owned by someone already
-				bool found = false;
-
-				for (auto& state : m_worldGrid)
-				{
-					for (auto& entry : state.entries)
-					{
-						if (entry.slotID != -1 && entry.sectorX == x && entry.sectorY == y)
-						{
-							found = true;
-						}
-					}
-				}
+				bool found = (m_worldGridAccel.slots[x][y] != 0xFF);
 
 				// is it free?
 				if (!found)
@@ -647,6 +660,8 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 							entry.sectorX = x;
 							entry.sectorY = y;
 							entry.slotID = slotID;
+
+							m_worldGridAccel.slots[x][y] = slotID;
 
 							SendWorldGrid(&entry);
 
@@ -712,6 +727,11 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 		for (auto& entry : gridState->entries)
 		{
+			if (m_worldGridAccel.slots[entry.sectorX][entry.sectorY] == slotId)
+			{
+				m_worldGridAccel.slots[entry.sectorX][entry.sectorY] = 0xFF;
+			}
+
 			entry.slotID = -1;
 			entry.sectorX = 0;
 			entry.sectorY = 0;

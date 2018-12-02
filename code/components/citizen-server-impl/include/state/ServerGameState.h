@@ -62,6 +62,21 @@ public:
 	virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
 };
 
+struct CPlayerCameraNodeData
+{
+	int camMode;
+	float freeCamPosX;
+	float freeCamPosY;
+	float freeCamPosZ;
+
+	float cameraX;
+	float cameraZ;
+
+	float camOffX;
+	float camOffY;
+	float camOffZ;
+};
+
 struct SyncTreeBase
 {
 public:
@@ -70,6 +85,12 @@ public:
 	virtual bool Unparse(SyncUnparseState& state) = 0;
 
 	virtual void Visit(const SyncTreeVisitor& visitor) = 0;
+
+	// accessors
+public:
+	virtual void GetPosition(float* posOut) = 0;
+
+	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 };
 
 enum class NetObjEntityType
@@ -238,6 +259,18 @@ private:
 	};
 
 	WorldGridState m_worldGrid[256];
+
+	struct WorldGridOwnerIndexes
+	{
+		uint8_t slots[256][256];
+
+		inline WorldGridOwnerIndexes()
+		{
+			memset(slots, 0, sizeof(slots));
+		}
+	};
+
+	WorldGridOwnerIndexes m_worldGridAccel;
 
 	void SendWorldGrid(void* entry = nullptr, const std::shared_ptr<fx::Client>& client = {});
 

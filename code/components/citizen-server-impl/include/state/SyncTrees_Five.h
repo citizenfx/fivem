@@ -80,16 +80,142 @@ void for_each_in_tuple(std::tuple<Ts...> & tuple, F func) {
 	for_each_in_tuple(tuple, func, std::make_index_sequence<sizeof...(Ts)>());
 }
 
+template<class... TChildren>
+struct ChildList
+{
+
+};
+
+template<typename T, typename... TRest>
+struct ChildList<T, TRest...>
+{
+	T first;
+	ChildList<TRest...> rest;
+};
+
+template<typename T>
+struct ChildList<T>
+{
+	T first;
+};
+
+template<typename T>
+struct ChildListInfo
+{
+
+};
+
+template<typename... TChildren>
+struct ChildListInfo<ChildList<TChildren...>>
+{
+	static constexpr size_t Size = sizeof...(TChildren);
+};
+
+template<size_t I, typename T>
+struct ChildListElement;
+
+template<size_t I, typename T, typename... TChildren>
+struct ChildListElement<I, ChildList<T, TChildren...>>
+	: ChildListElement<I - 1, ChildList<TChildren...>>
+{
+};
+
+template<typename T, typename... TChildren>
+struct ChildListElement<0, ChildList<T, TChildren...>>
+{
+	using Type = T;
+};
+
+template<size_t I>
+struct ChildListGetter
+{
+	template<typename... TChildren>
+	static inline auto& Get(ChildList<TChildren...>& list)
+	{
+		return ChildListGetter<I - 1>::Get(list.rest);
+	}
+
+	template<typename TList>
+	static inline constexpr size_t GetOffset(size_t offset = 0)
+	{
+		return ChildListGetter<I - 1>::GetOffset<decltype(TList::rest)>(
+			offset + offsetof(TList, rest)
+		);
+	}
+};
+
+template<>
+struct ChildListGetter<0>
+{
+	template<typename... TChildren>
+	static inline auto& Get(ChildList<TChildren...>& list)
+	{
+		return list.first;
+	}
+
+	template<typename TList>
+	static inline constexpr size_t GetOffset(size_t offset = 0)
+	{
+		return offset +
+			offsetof(TList, first);
+	}
+};
+
+template<typename TTuple>
+struct Foreacher
+{
+	template<typename TFn, size_t I = 0>
+	static inline std::enable_if_t<(I == ChildListInfo<TTuple>::Size)> for_each_in_tuple(TTuple& tuple, const TFn& fn)
+	{
+
+	}
+
+	template<typename TFn, size_t I = 0>
+	static inline std::enable_if_t<(I != ChildListInfo<TTuple>::Size)> for_each_in_tuple(TTuple& tuple, const TFn& fn)
+	{
+		fn(ChildListGetter<I>::Get(tuple));
+
+		for_each_in_tuple<TFn, I + 1>(tuple, fn);
+	}
+};
+
 template<typename TIds, typename... TChildren>
 struct ParentNode : public NodeBase
 {
-	std::tuple<TChildren...> children;
+	ChildList<TChildren...> children;
 
-	virtual bool Parse(SyncParseState& state) override
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		return LoopChildren<TData>();
+	}
+
+	template<typename TData, size_t I = 0>
+	inline static constexpr std::enable_if_t<I == sizeof...(TChildren), size_t> LoopChildren()
+	{
+		return 0;
+	}
+
+	template<typename TData, size_t I = 0>
+	inline static constexpr std::enable_if_t<I != sizeof...(TChildren), size_t> LoopChildren()
+	{
+		size_t offset = typename ChildListElement<I, decltype(children)>::Type::GetOffsetOf<TData>();
+
+		if (offset != 0)
+		{
+			constexpr size_t elemOff = ChildListGetter<I>::GetOffset<decltype(children)>();
+
+			return offset + elemOff + offsetof(ParentNode, children);
+		}
+
+		return LoopChildren<TData, I + 1>();
+	}
+
+	virtual bool Parse(SyncParseState& state) final override
 	{
 		if (shouldRead(state, TIds::GetIds()))
 		{
-			for_each_in_tuple(children, [&](auto& child)
+			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 			{
 				child.Parse(state);
 			});
@@ -98,13 +224,13 @@ struct ParentNode : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) override
+	virtual bool Unparse(SyncUnparseState& state) final override
 	{
 		bool should = false;
 
 		if (shouldWrite(state, TIds::GetIds()))
 		{
-			for_each_in_tuple(children, [&](auto& child)
+			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 			{
 				bool thisShould = child.Unparse(state);
 
@@ -115,11 +241,11 @@ struct ParentNode : public NodeBase
 		return should;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) override
+	virtual bool Visit(const SyncTreeVisitor& visitor) final override
 	{
 		visitor(*this);
 
-		for_each_in_tuple(children, [&](auto& child)
+		Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 		{
 			child.Visit(visitor);
 		});
@@ -142,7 +268,18 @@ struct NodeWrapper : public NodeBase
 		ackedPlayers.set();
 	}
 	
-	virtual bool Parse(SyncParseState& state) override
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		if constexpr (std::is_same_v<TNode, TData>)
+		{
+			return offsetof(NodeWrapper, node);
+		}
+
+		return 0;
+	}
+
+	virtual bool Parse(SyncParseState& state) final override
 	{
 		/*auto isWrite = state.buffer.ReadBit();
 
@@ -185,7 +322,7 @@ struct NodeWrapper : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) override
+	virtual bool Unparse(SyncUnparseState& state) final override
 	{
 		bool hasData = (length > 0);
 
@@ -203,57 +340,11 @@ struct NodeWrapper : public NodeBase
 		return false;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) override
+	virtual bool Visit(const SyncTreeVisitor& visitor) final override
 	{
 		visitor(*this);
 
 		return true;
-	}
-};
-
-template<typename TNode>
-struct SyncTree : public SyncTreeBase
-{
-	TNode root;
-	std::mutex mutex;
-
-	virtual void Parse(SyncParseState& state) override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		//trace("parsing root\n");
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			// mA0 flag
-			state.objType = state.buffer.ReadBit();
-		}
-
-		root.Parse(state);
-	}
-
-	virtual bool Unparse(SyncUnparseState& state) override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			state.objType = 1;
-
-			state.buffer.WriteBit(1);
-		}
-
-		return root.Unparse(state);
-	}
-
-	virtual void Visit(const SyncTreeVisitor& visitor) override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		root.Visit(visitor);
 	}
 };
 
@@ -284,6 +375,10 @@ struct CVehicleTaskDataNode { bool Parse(SyncParseState& state) { return true; }
 
 struct CSectorDataNode
 {
+	int m_sectorX;
+	int m_sectorY;
+	int m_sectorZ;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto sectorX = state.buffer.Read<int>(10);
@@ -294,6 +389,10 @@ struct CSectorDataNode
 		state.entity->data["sectorY"] = sectorY;
 		state.entity->data["sectorZ"] = sectorZ;
 
+		m_sectorX = sectorX;
+		m_sectorY = sectorY;
+		m_sectorZ = sectorZ;
+
 		state.entity->CalculatePosition();
 
 		return true;
@@ -302,6 +401,10 @@ struct CSectorDataNode
 
 struct CSectorPositionDataNode
 {
+	float m_posX;
+	float m_posY;
+	float m_posZ;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto posX = state.buffer.ReadFloat(12, 54.0f);
@@ -311,6 +414,10 @@ struct CSectorPositionDataNode
 		state.entity->data["sectorPosX"] = posX;
 		state.entity->data["sectorPosY"] = posY;
 		state.entity->data["sectorPosZ"] = posZ;
+
+		m_posX = posX;
+		m_posY = posY;
+		m_posZ = posZ;
 
 		state.entity->CalculatePosition();
 
@@ -580,6 +687,10 @@ struct CPlayerExtendedGameStateNode { bool Parse(SyncParseState& state) { return
 
 struct CPlayerSectorPosNode
 {
+	float m_sectorPosX;
+	float m_sectorPosY;
+	float m_sectorPosZ;
+
 	bool Parse(SyncParseState& state)
 	{
 		// extra data
@@ -610,6 +721,10 @@ struct CPlayerSectorPosNode
 		state.entity->data["sectorPosY"] = posY;
 		state.entity->data["sectorPosZ"] = posZ;
 
+		m_sectorPosX = posX;
+		m_sectorPosY = posY;
+		m_sectorPosZ = posZ;
+
 		state.entity->CalculatePosition();
 
 		return true;
@@ -618,6 +733,8 @@ struct CPlayerSectorPosNode
 
 struct CPlayerCameraDataNode
 {
+	CPlayerCameraNodeData data;
+
 	bool Parse(SyncParseState& state)
 	{
 		bool freeCamOverride = state.buffer.ReadBit();
@@ -634,13 +751,13 @@ struct CPlayerCameraDataNode
 			float cameraX = state.buffer.ReadSignedFloat(10, 6.2831855f);
 			float cameraZ = state.buffer.ReadSignedFloat(10, 6.2831855f);
 
-			state.entity->data["camMode"] = 1;
-			state.entity->data["freeCamPosX"] = freeCamPosX;
-			state.entity->data["freeCamPosY"] = freeCamPosY;
-			state.entity->data["freeCamPosZ"] = freeCamPosZ;
+			state.entity->data["camMode"] = data.camMode = 1;
+			state.entity->data["freeCamPosX"] = data.freeCamPosX = freeCamPosX;
+			state.entity->data["freeCamPosY"] = data.freeCamPosY = freeCamPosY;
+			state.entity->data["freeCamPosZ"] = data.freeCamPosZ = freeCamPosZ;
 
-			state.entity->data["cameraX"] = cameraX;
-			state.entity->data["cameraZ"] = cameraZ;
+			state.entity->data["cameraX"] = data.cameraX = cameraX;
+			state.entity->data["cameraZ"] = data.cameraZ = cameraZ;
 		}
 		else
 		{
@@ -653,22 +770,22 @@ struct CPlayerCameraDataNode
 				float camPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float camPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
 
-				state.entity->data["camMode"] = 2;
+				state.entity->data["camMode"] = data.camMode = 2;
 
-				state.entity->data["camOffX"] = camPosX;
-				state.entity->data["camOffY"] = camPosY;
-				state.entity->data["camOffZ"] = camPosZ;
+				state.entity->data["camOffX"] = data.camOffX = camPosX;
+				state.entity->data["camOffY"] = data.camOffY = camPosY;
+				state.entity->data["camOffZ"] = data.camOffZ = camPosZ;
 			}
 			else
 			{
-				state.entity->data["camMode"] = 0;
+				state.entity->data["camMode"] = data.camMode = 0;
 			}
 
 			float cameraX = state.buffer.ReadSignedFloat(10, 6.2831855f);
 			float cameraZ = state.buffer.ReadSignedFloat(10, 6.2831855f);
 
-			state.entity->data["cameraX"] = cameraX;
-			state.entity->data["cameraZ"] = cameraZ;
+			state.entity->data["cameraX"] = data.cameraX = cameraX;
+			state.entity->data["cameraZ"] = data.cameraZ = cameraZ;
 
 			// TODO
 		}
@@ -680,6 +797,104 @@ struct CPlayerCameraDataNode
 };
 
 struct CPlayerWantedAndLOSDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+template<typename TNode>
+struct SyncTree : public SyncTreeBase
+{
+	TNode root;
+	std::mutex mutex;
+
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		auto doff = TNode::GetOffsetOf<TData>();
+
+		return (doff) ? offsetof(SyncTree, root) + doff : 0;
+	}
+
+	template<typename TNode>
+	inline std::tuple<bool, TNode*> GetData()
+	{
+		constexpr auto offset = GetOffsetOf<TNode>();
+
+		if constexpr (offset != 0)
+		{
+			return { true, (TNode*)((uintptr_t)this + offset) };
+		}
+
+		return { false, nullptr };
+	}
+
+	virtual void GetPosition(float* posOut) override
+	{
+		auto [hasSdn, secDataNode] = GetData<CSectorDataNode>();
+		auto [hasSpdn, secPosDataNode] = GetData<CSectorPositionDataNode>();
+		auto [hasPspdn, playerSecPosDataNode] = GetData<CPlayerSectorPosNode>();
+
+		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
+		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
+		auto sectorZ = (hasSdn) ? secDataNode->m_sectorZ : 0;
+
+		auto sectorPosX = (hasSpdn) ? secPosDataNode->m_posX :
+			(hasPspdn) ? playerSecPosDataNode->m_sectorPosX : 0.0f;
+
+		auto sectorPosY = (hasSpdn) ? secPosDataNode->m_posY :
+			(hasPspdn) ? playerSecPosDataNode->m_sectorPosY : 0.0f;
+
+		auto sectorPosZ = (hasSpdn) ? secPosDataNode->m_posZ :
+			(hasPspdn) ? playerSecPosDataNode->m_sectorPosZ : 0.0f;
+
+		posOut[0] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
+		posOut[1] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
+		posOut[2] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
+	}
+
+	virtual CPlayerCameraNodeData* GetPlayerCamera() override
+	{
+		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
+
+		return (hasCdn) ? &cameraNode->data : nullptr;
+	}
+
+	virtual void Parse(SyncParseState& state) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		//trace("parsing root\n");
+		state.objType = 0;
+
+		if (state.syncType == 2 || state.syncType == 4)
+		{
+			// mA0 flag
+			state.objType = state.buffer.ReadBit();
+		}
+
+		root.Parse(state);
+	}
+
+	virtual bool Unparse(SyncUnparseState& state) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		state.objType = 0;
+
+		if (state.syncType == 2 || state.syncType == 4)
+		{
+			state.objType = 1;
+
+			state.buffer.WriteBit(1);
+		}
+
+		return root.Unparse(state);
+	}
+
+	virtual void Visit(const SyncTreeVisitor& visitor) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		root.Visit(visitor);
+	}
+};
 
 using CAutomobileSyncTree = SyncTree<
 	ParentNode<
