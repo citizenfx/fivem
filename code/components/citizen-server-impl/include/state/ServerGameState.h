@@ -14,6 +14,7 @@
 #include <bitset>
 
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/task_group.h>
 
 namespace fx
 {
@@ -264,6 +265,8 @@ public:
 
 private:
 	fx::ServerInstanceBase* m_instance;
+
+	std::unique_ptr<tbb::task_group> m_tg;
 
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
