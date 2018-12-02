@@ -77,6 +77,32 @@ struct CPlayerCameraNodeData
 	float camOffZ;
 };
 
+struct CPedGameStateNodeData
+{
+	int curVehicle;
+	int curVehicleSeat;
+
+	int lastVehicle;
+	int lastVehicleSeat;
+
+	inline CPedGameStateNodeData()
+		: lastVehicle(-1), lastVehicleSeat(-1)
+	{
+
+	}
+};
+
+struct CVehicleGameStateNodeData
+{
+	uint16_t occupants[32];
+	std::bitset<32> playerOccupants;
+
+	inline CVehicleGameStateNodeData()
+	{
+		memset(occupants, 0, sizeof(occupants));
+	}
+};
+
 struct SyncTreeBase
 {
 public:
@@ -92,7 +118,9 @@ public:
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 
-	virtual int GetCurVehicle() = 0;
+	virtual CPedGameStateNodeData* GetPedGameState() = 0;
+
+	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 };
 
 enum class NetObjEntityType
@@ -196,10 +224,11 @@ class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerIn
 public:
 	ServerGameState();
 
-
 	void Tick(fx::ServerInstanceBase* instance);
 
 	void UpdateWorldGrid(fx::ServerInstanceBase* instance);
+
+	void UpdateEntities();
 
 	void ParseGameStatePacket(const std::shared_ptr<fx::Client>& client, const std::vector<uint8_t>& packetData);
 
@@ -223,6 +252,8 @@ private:
 	void ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket);
 
 	void ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId);
+
+	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity);
 
 private:
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);

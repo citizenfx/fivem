@@ -361,7 +361,17 @@ struct CAutomobileCreationDataNode { bool Parse(SyncParseState& state) { return 
 struct CGlobalFlagsDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDynamicEntityGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CVehicleGameStateDataNode
+{
+	CVehicleGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		return true;
+	}
+};
+
 struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -472,8 +482,7 @@ struct CPedCreationDataNode
 
 struct CPedGameStateDataNode
 {
-	int curVehicle;
-	int curVehicleSeat;
+	CPedGameStateNodeData data;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -529,32 +538,26 @@ struct CPedGameStateDataNode
 		{
 			vehicleId = state.buffer.Read<int>(13);
 
-			state.entity->data["curVehicle"] = this->curVehicle = int32_t(vehicleId);
-			state.entity->data["curVehicleSeat"] = this->curVehicleSeat = int32_t(-2);
+			state.entity->data["curVehicle"] = data.curVehicle = int32_t(vehicleId);
+			state.entity->data["curVehicleSeat"] = data.curVehicleSeat = int32_t(-2);
 
 			auto inSeat = state.buffer.ReadBit();
 
 			if (inSeat)
 			{
 				vehicleSeat = state.buffer.Read<int>(5);
-				state.entity->data["curVehicleSeat"] = this->curVehicleSeat = int32_t(vehicleSeat);
+				state.entity->data["curVehicleSeat"] = data.curVehicleSeat = int32_t(vehicleSeat);
 			}
 			else
 			{
-				this->curVehicle = -1;
-				this->curVehicleSeat = -1;
-
-				state.entity->data["curVehicle"] = -1;
-				state.entity->data["curVehicleSeat"] = -1;
+				state.entity->data["curVehicle"] = data.curVehicle = -1;
+				state.entity->data["curVehicleSeat"] = data.curVehicleSeat = -1;
 			}
 		}
 		else
 		{
-			state.entity->data["curVehicle"] = -1;
-			state.entity->data["curVehicleSeat"] = -1;
-
-			this->curVehicle = -1;
-			this->curVehicleSeat = -1;
+			state.entity->data["curVehicle"] = data.curVehicle = -1;
+			state.entity->data["curVehicleSeat"] = data.curVehicleSeat = -1;
 		}
 
 		// TODO
@@ -865,11 +868,18 @@ struct SyncTree : public SyncTreeBase
 		return (hasCdn) ? &cameraNode->data : nullptr;
 	}
 
-	virtual int GetCurVehicle() override
+	virtual CPedGameStateNodeData* GetPedGameState() override
 	{
 		auto[hasPdn, pedNode] = GetData<CPedGameStateDataNode>();
 
-		return (hasPdn) ? pedNode->curVehicle : -1;
+		return (hasPdn) ? &pedNode->data : nullptr;
+	}
+
+	virtual CVehicleGameStateNodeData* GetVehicleGameState() override
+	{
+		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
+
+		return (hasVdn) ? &vehNode->data : nullptr;
 	}
 
 	virtual void Parse(SyncParseState& state) final override

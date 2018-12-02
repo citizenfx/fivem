@@ -256,6 +256,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	UpdateWorldGrid(instance);
 
+	UpdateEntities();
+
+	// cache entities so we don't have to iterate the concurrent_map for each client
+	std::vector<std::shared_ptr<sync::SyncEntityState>> relevantEntities;
+	relevantEntities.reserve(m_entities.size());
+
+	for (auto& entityPair : m_entities)
+	{
+		relevantEntities.push_back(entityPair.second);
+	}
+
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& clientRef)
 	{
 		// get our own pointer ownership
@@ -345,14 +356,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		int numCreates = 0, numSyncs = 0, numSkips = 0;
 
-		for (auto& entityPair : m_entities)
+		for (auto& entity : relevantEntities)
 		{
 			if (!client)
 			{
 				return;
 			}
-
-			auto entity = entityPair.second;
 
 			if (!entity || !entity->syncTree)
 			{
@@ -430,35 +439,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->type == sync::NetObjEntityType::Trailer ||
 					entity->type == sync::NetObjEntityType::Train)
 				{
-					instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, entity, &shouldBeCreated](const std::shared_ptr<fx::Client>& otherClient)
+					auto vehicleData = (entity && entity->syncTree) ? entity->syncTree->GetVehicleGameState() : nullptr;
+
+					if (vehicleData)
 					{
-						std::weak_ptr<sync::SyncEntityState> entityRef;
-
+						if (vehicleData->playerOccupants.any())
 						{
-							auto data = GetClientDataUnlocked(this, otherClient);
-							entityRef = data->playerEntity;
+							shouldBeCreated = true;
 						}
-
-						if (entityRef.expired())
-						{
-							return;
-						}
-
-						auto playerEntity = entityRef.lock();
-
-						if (!playerEntity->syncTree)
-						{
-							return;
-						}
-
-						if (auto vehicle = playerEntity->syncTree->GetCurVehicle(); vehicle != -1)
-						{
-							if (vehicle == (entity->handle & 0xFFFF))
-							{
-								shouldBeCreated = true;
-							}
-						}
-					});
+					}
 				}
 			}
 
@@ -469,7 +458,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					return;
 				}
 
-				rl::MessageBuffer mb(1200);
+				// create a buffer once (per thread) to save allocations
+				static thread_local rl::MessageBuffer mb(1200);
+				mb.SetCurrentBit(0);
 
 				sync::SyncUnparseState state;
 				state.syncType = syncType;
@@ -567,6 +558,81 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	});
 
 	++m_frameIndex;
+}
+
+void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity)
+{
+	// remove vehicle occupants
+	if (entity->type == sync::NetObjEntityType::Ped ||
+		entity->type == sync::NetObjEntityType::Player)
+	{
+		auto pedHandle = entity->handle & 0xFFFF;
+		auto vehicleData = entity->syncTree->GetPedGameState();
+
+		if (vehicleData)
+		{
+			auto curVehicle = (vehicleData->curVehicle != -1) ? GetEntity(0, vehicleData->curVehicle) : nullptr;
+			auto curVehicleData = (curVehicle && curVehicle->syncTree) ? curVehicle->syncTree->GetVehicleGameState() : nullptr;
+
+			if (curVehicleData && curVehicleData->occupants[vehicleData->curVehicleSeat] == pedHandle)
+			{
+				curVehicleData->occupants[vehicleData->curVehicleSeat] = 0;
+				curVehicleData->playerOccupants.reset(vehicleData->curVehicleSeat);
+			}
+		}
+	}
+}
+
+void ServerGameState::UpdateEntities()
+{
+	for (auto& entityPair : m_entities)
+	{
+		auto entity = entityPair.second;
+
+		if (!entity || !entity->syncTree)
+		{
+			continue;
+		}
+
+		// update vehicle seats, if it's a ped
+		if (entity->type == sync::NetObjEntityType::Ped ||
+			entity->type == sync::NetObjEntityType::Player)
+		{
+			auto pedHandle = entity->handle & 0xFFFF;
+			auto vehicleData = entity->syncTree->GetPedGameState();
+
+			if (vehicleData)
+			{
+				if (vehicleData->lastVehicle != vehicleData->curVehicle || vehicleData->lastVehicleSeat != vehicleData->curVehicleSeat)
+				{
+					auto lastVehicle = (vehicleData->lastVehicle != -1) ? GetEntity(0, vehicleData->lastVehicle) : nullptr;
+					auto curVehicle = (vehicleData->curVehicle != -1) ? GetEntity(0, vehicleData->curVehicle) : nullptr;
+
+					auto lastVehicleData = (lastVehicle && lastVehicle->syncTree) ? lastVehicle->syncTree->GetVehicleGameState() : nullptr;
+					auto curVehicleData = (curVehicle && curVehicle->syncTree) ? curVehicle->syncTree->GetVehicleGameState() : nullptr;
+
+					if (lastVehicleData && lastVehicleData->occupants[vehicleData->lastVehicleSeat] == pedHandle)
+					{
+						lastVehicleData->occupants[vehicleData->lastVehicleSeat] = 0;
+						lastVehicleData->playerOccupants.reset(vehicleData->lastVehicleSeat);
+					}
+
+					if (curVehicleData && curVehicleData->occupants[vehicleData->curVehicleSeat] == 0)
+					{
+						curVehicleData->occupants[vehicleData->curVehicleSeat] = pedHandle;
+
+						if (entity->type == sync::NetObjEntityType::Player)
+						{
+							curVehicleData->playerOccupants.set(vehicleData->curVehicleSeat);
+						}
+					}
+
+					vehicleData->lastVehicle = vehicleData->curVehicle;
+					vehicleData->lastVehicleSeat = vehicleData->curVehicleSeat;
+				}
+			}
+		}
+	}
 }
 
 void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shared_ptr<fx::Client>& client /* = */ )
@@ -872,6 +938,13 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			m_objectIdsUsed.reset(set & 0xFFFF);
 		}
 
+		auto entity = m_entities[set];
+
+		if (entity)
+		{
+			OnCloneRemove(entity);
+		}
+
 		m_entities[set] = {};
 
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
@@ -1008,6 +1081,11 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	}
 
 	Log("%s: deleting object %d %d\n", __func__, client->GetNetId(), objectId);
+
+	if (entity)
+	{
+		OnCloneRemove(entity);
+	}
 
 	{
 		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
