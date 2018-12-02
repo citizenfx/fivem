@@ -670,6 +670,18 @@ static void* GetScenarioTaskScenario(char* scenarioTask)
 	return scenario;
 }
 
+static int(*g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels)(void* mgr, int* a2, int* a3, int* a4);
+
+static int networkBandwidthMgr_CalculatePlayerUpdateLevelsStub(void* mgr, int* a2, int* a3, int* a4)
+{
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return 0;
+	}
+
+	return g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels(mgr, a2, a3, a4);
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -739,6 +751,8 @@ static HookFunction hookFunction([]()
 	}
 
 	MH_CreateHook(hook::get_pattern("78 18 4C 8B 05", -10), GetScenarioTaskScenario, (void**)&g_origGetScenarioTaskScenario);
+
+	MH_CreateHook(hook::get_pattern("0F 29 70 C8 4D 8B E1 4D 8B E8", -0x1C), networkBandwidthMgr_CalculatePlayerUpdateLevelsStub, (void**)&g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
