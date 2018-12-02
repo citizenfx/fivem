@@ -942,7 +942,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			m_objectIdsUsed.reset(set & 0xFFFF);
 		}
 
-		auto entity = m_entitiesById[set];
+		auto entity = m_entitiesById[set & 0xFFFF];
 
 		if (!entity.expired())
 		{
