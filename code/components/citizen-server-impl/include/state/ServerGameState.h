@@ -155,7 +155,8 @@ struct SyncEntityState
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 
-	std::array<std::chrono::milliseconds, 256> lastResends;
+	std::array<std::chrono::milliseconds, 256> lastResends{};
+	std::array<std::chrono::milliseconds, 256> lastSyncs{};
 
 	std::unique_ptr<SyncTreeBase> syncTree;
 

@@ -13,10 +13,21 @@
 
 #include <state/Pool.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 CPool<fx::ScriptGuid>* g_scriptHandlePool;
 
 std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
+std::shared_ptr<ConVar<bool>> g_oneSyncRadiusFrequency;
 std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 
 static tbb::concurrent_queue<std::string> g_logQueue;
@@ -84,6 +95,49 @@ FMT_VARIADIC(void, Log, const char*);
 
 namespace fx
 {
+static const glm::mat4x4 g_projectionMatrix = glm::perspective(90.0f, 4.f / 3.f, 0.1f, 1000.f);
+
+struct ViewClips
+{
+	glm::vec4 nearClip;
+	glm::vec4 farClip;
+	glm::vec4 topClip;
+	glm::vec4 bottomClip;
+	glm::vec4 leftClip;
+	glm::vec4 rightClip;
+
+	ViewClips(const glm::mat4x4& matrix)
+	{
+		auto tpmatrix = glm::transpose(matrix);
+
+		leftClip	= tpmatrix * glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f };
+		rightClip	= tpmatrix * glm::vec4{ -1.0f, 0.0f, 0.0f, 1.0f };
+		bottomClip	= tpmatrix * glm::vec4{ 0.0f, 1.0f, 0.0f, 1.0f };
+		topClip		= tpmatrix * glm::vec4{ 0.0f, -1.0f, 0.0f, 1.0f };
+		nearClip	= tpmatrix * glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f };
+		farClip		= tpmatrix * glm::vec4{ 0.0f, 0.0f, -1.0f, 1.0f };
+	}
+};
+
+static const ViewClips g_projectionClips{ g_projectionMatrix };
+
+static bool IsInFrustum(const glm::vec3& pos, float radius, const glm::mat4x4& viewMatrix)
+{
+	auto viewCoords = viewMatrix * glm::vec4{ pos, 1.0f };
+
+	auto testPlane = [&viewCoords, &radius](const glm::vec4& plane)
+	{
+		return (viewCoords.x * plane.x + viewCoords.y * plane.y + viewCoords.z * plane.z + plane.w + radius) >= 0.0f;
+	};
+
+	return (testPlane(g_projectionClips.nearClip)
+		&& testPlane(g_projectionClips.bottomClip)
+		&& testPlane(g_projectionClips.topClip)
+		&& testPlane(g_projectionClips.leftClip)
+		&& testPlane(g_projectionClips.rightClip)
+		&& testPlane(g_projectionClips.farClip));
+}
+
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
 	net::Buffer ackBuffer;
@@ -95,6 +149,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	std::optional<int> playerId;
 
 	bool syncing;
+
+	glm::mat4x4 viewMatrix;
 
 	GameStateClientData()
 		: syncing(false)
@@ -425,6 +481,20 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		int numCreates = 0, numSyncs = 0, numSkips = 0;
 
+		std::shared_ptr<sync::SyncEntityState> playerEntity;
+
+		{
+			std::weak_ptr<sync::SyncEntityState> entityRef;
+
+			auto data = GetClientDataUnlocked(this, client);
+			entityRef = data->playerEntity;
+
+			if (!entityRef.expired())
+			{
+				playerEntity = entityRef.lock();
+			}
+		}
+
 		for (auto& entity : relevantEntities)
 		{
 			if (!client)
@@ -454,17 +524,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (!shouldBeCreated)
 			{
-				std::weak_ptr<sync::SyncEntityState> entityRef;
-
+				if (playerEntity)
 				{
-					auto data = GetClientDataUnlocked(this, client);
-					entityRef = data->playerEntity;
-				}
-
-				if (!entityRef.expired())
-				{
-					auto playerEntity = entityRef.lock();
-
 					float entityPos[3] = { 0.0f, 0.0f, 0.0f };
 					
 					if (entity->syncTree)
@@ -520,9 +581,59 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			auto sendUnparsedPacket = [client, entity, resendDelay](int syncType)
+			auto syncDelay = 50ms;
+
+			if (g_oneSyncRadiusFrequency->GetValue())
 			{
-				return [client, entity, resendDelay, syncType](SyncCommandState& cmdState)
+				float position[3];
+
+				if (entity->syncTree)
+				{
+					entity->syncTree->GetPosition(position);
+
+					// get an average radius from a list of type radii (until we store modelinfo somewhere)
+					float objRadius = 5.0f;
+
+					switch (entity->type)
+					{
+					case sync::NetObjEntityType::Ped:
+					case sync::NetObjEntityType::Player:
+						objRadius = 2.5f;
+						break;
+					case sync::NetObjEntityType::Heli:
+					case sync::NetObjEntityType::Boat:
+					case sync::NetObjEntityType::Plane:
+						objRadius = 15.0f;
+						break;
+					}
+
+					auto clientData = GetClientDataUnlocked(this, client);
+
+					if (!IsInFrustum({ position[0], position[1], position[2] }, objRadius, clientData->viewMatrix))
+					{
+						syncDelay = 150ms;
+					}
+
+					if (playerEntity)
+					{
+						auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
+						auto dist = glm::distance2(glm::vec3{ position[0], position[1], position[2] }, glm::vec3{ playerPosX, playerPosY, playerPosZ });
+
+						if (dist > 500.0f * 500.0f)
+						{
+							syncDelay = 500ms;
+						}
+						else if (dist > 250.0f * 250.0f)
+						{
+							syncDelay = 250ms;
+						}
+					}
+				}
+			}
+
+			auto sendUnparsedPacket = [client, entity, resendDelay, syncDelay](int syncType)
+			{
+				return [client, entity, resendDelay, syncDelay, syncType](SyncCommandState& cmdState)
 				{
 					if (!entity)
 					{
@@ -551,6 +662,18 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							return;
 						}
 
+						if (syncType == 2)
+						{
+							auto lastSync = entity->lastSyncs[client->GetSlotId()];
+							auto lastTime = (msec() - lastSync);
+
+							if (lastTime < syncDelay)
+							{
+								Log("%s: skipping sync for object %d (sync delay %dms, last sync %d)\n", __func__, entity->handle & 0xFFFF, syncDelay.count(), lastTime.count());
+								return;
+							}
+						}
+
 						cmdState.cloneBuffer.Write(3, syncType);
 						cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
 						cmdState.cloneBuffer.Write(16, entity->client.lock()->GetNetId()); // TODO: replace with slotId
@@ -568,7 +691,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						cmdState.maybeFlushBuffer();
 
-						entity->lastResends[client->GetSlotId()] = msec();
+						entity->lastSyncs[client->GetSlotId()] = entity->lastResends[client->GetSlotId()] = msec();
 					}
 				};
 			};
@@ -667,6 +790,46 @@ void ServerGameState::UpdateEntities()
 		if (!entity || !entity->syncTree)
 		{
 			continue;
+		}
+
+		// update client camera
+		if (entity->type == sync::NetObjEntityType::Player)
+		{
+			if (!entity->client.expired())
+			{
+				auto client = entity->client.lock();
+
+				float playerPos[3];
+				entity->syncTree->GetPosition(playerPos);
+
+				auto camData = entity->syncTree->GetPlayerCamera();
+
+				if (camData)
+				{
+					glm::vec3 camTranslate;
+
+					switch (camData->camMode)
+					{
+					case 0:
+					default:
+						camTranslate = { playerPos[0], playerPos[1], playerPos[2] };
+						break;
+					case 1:
+						camTranslate = { camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ };
+						break;
+					case 2:
+						camTranslate = { playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ };
+						break;
+					}
+
+					glm::vec3 camRotation{ camData->cameraX, 0.0f, camData->cameraZ };
+					auto camQuat = glm::quat{ camRotation };
+					auto rot = glm::toMat4(camQuat);
+
+					auto[data, dataLock] = GetClientData(this, client);
+					data->viewMatrix = glm::inverse(glm::translate(glm::identity<glm::mat4>(), camTranslate) * rot);
+				}
+			}
 		}
 
 		// update vehicle seats, if it's a ped
@@ -1661,6 +1824,7 @@ static InitFunction initFunction([]()
 	{
 		g_oneSyncVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
+		g_oneSyncRadiusFrequency = instance->AddVariable<bool>("onesync_radiusFrequency", ConVar_None, true);
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
 
 		instance->SetComponent(new fx::ServerGameState);
@@ -1745,11 +1909,6 @@ static InitFunction initFunction([]()
 						}
 
 						if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
-						{
-							continue;
-						}
-
-						if (entityRef->lastFrameIndex > frameIndex)
 						{
 							continue;
 						}
