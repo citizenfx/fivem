@@ -103,3 +103,6 @@
 [submodule "vendor/minizip"]
 	path = vendor/minizip
 	url = https://github.com/nmoinvaz/minizip.git
+[submodule "vendor/glm"]
+	path = vendor/glm
+	url = https://github.com/g-truc/glm.git

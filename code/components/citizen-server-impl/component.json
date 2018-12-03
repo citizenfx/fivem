@@ -15,7 +15,8 @@
 		"vendor:boost_random",
 		"vendor:linenoise",
 		"vendor:nng",
-		"vendor:lz4"
+		"vendor:lz4",
+		"vendor:glm"
 	],
 	"provides": []
 }
