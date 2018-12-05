@@ -228,7 +228,7 @@ private:
 
 public:
 	inline V8PushEnvironment(V8ScriptRuntime* runtime)
-		: m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext()), m_pushEnvironment(runtime)
+		: m_pushEnvironment(runtime), m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext())
 	{
 		m_lastV8Runtime = g_currentV8Runtime;
 		g_currentV8Runtime = runtime;
