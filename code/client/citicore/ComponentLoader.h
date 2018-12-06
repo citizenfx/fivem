@@ -263,7 +263,13 @@ std::queue<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
 template<typename T, typename TOther>
 inline T dynamic_component_cast(TOther value)
 {
-	auto type = HashString(boost::typeindex::type_id<std::remove_pointer_t<T>>().pretty_name().substr(6).c_str());
+	auto type = HashString(
+		boost::typeindex::type_id<std::remove_pointer_t<T>>()
+		.pretty_name()
+#ifdef _MSC_VER
+		.substr(6) // remove 'class ' prefix for MSVC
+#endif
+		.c_str());
 
 	if (value->IsA(type))
 	{
