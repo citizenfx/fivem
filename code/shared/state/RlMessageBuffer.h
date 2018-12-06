@@ -143,11 +143,11 @@ public:
 
 		m_curBit += length;
 
-		__int64 v5; // x21
+		uint64_t v5; // x21
 		int v6; // w20
-		__int64 v7; // x19
+		uint64_t v7; // x19
 		int v8; // w11
-		unsigned __int8 *v9; // x22
+		uint8_t *v9; // x22
 		int v10; // w8
 		int v11; // w10
 		unsigned int v12; // w9
@@ -155,8 +155,8 @@ public:
 		unsigned int v14; // w9
 		unsigned int v15; // w10
 		int v16; // w11
-		__int64 v17; // x11
-		unsigned __int8 *v18; // x12
+		uint64_t v17; // x11
+		uint8_t *v18; // x12
 		int v19; // w13
 		unsigned int v20; // w8
 		char v21; // w9
@@ -165,28 +165,28 @@ public:
 		char v24; // t1
 		char v25; // w10
 		unsigned int v26; // w11
-		signed __int64 v27; // x23
-		unsigned __int8 *v28; // x13
+		int64_t v27; // x23
+		uint8_t *v28; // x13
 		int v29; // w16
 		int v30; // t1
 		unsigned int v31; // w10
-		__int64 v32; // x11
+		uint64_t v32; // x11
 		int v33; // w8
 		unsigned int v34; // w9
 		unsigned int v35; // w10
 		unsigned int v36; // w9
 		unsigned int v37; // w10
-		unsigned __int8 *v38; // x11
+		uint8_t *v38; // x11
 		int v39; // w12
-		signed __int64 v40; // x11
+		int64_t v40; // x11
 		int v41; // w12
 		unsigned int v42; // w8
 		unsigned int v43; // w9
 		char v44; // w13
 		unsigned int v45; // w8
 		unsigned int v46; // w9
-		__int64 v47; // x10
-		unsigned __int8 *v48; // x11
+		uint64_t v47; // x10
+		uint8_t *v48; // x11
 		int v49; // w12
 
 		v5 = a4;
@@ -235,7 +235,7 @@ public:
 				if (v5 & 7)
 				{
 					v24 = *v22;
-					result = (__int64)(v22 + 1);
+					result = (uint64_t)(v22 + 1);
 					v23 = v24;
 					v25 = 8 - v21;
 					v26 = 0xFFu >> v21;

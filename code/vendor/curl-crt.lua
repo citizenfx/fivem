@@ -8,6 +8,8 @@ return {
 			links { 'ws2_32', 'crypt32' }
 		else
 			links { 'curl' }
+			
+			linkoptions { '/usr/lib/libcurl.so' }
 		end
 	end,
 
@@ -16,6 +18,7 @@ return {
 			targetname 'curl_dummy'
 			language 'C'
 			kind 'StaticLib'
+			
 			return
 		end
 

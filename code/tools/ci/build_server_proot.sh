@@ -17,7 +17,7 @@ curl -s -d "$json" "$TG_WEBHOOK" || true
 curl -s -d "$json" "$DISCORD_WEBHOOK" || true
 
 # get an alpine rootfs
-curl -sLo alpine-minirootfs-3.7.0-x86_64.tar.gz http://dl-cdn.alpinelinux.org/alpine/v3.7/releases/x86_64/alpine-minirootfs-3.7.0-x86_64.tar.gz
+curl -sLo alpine-minirootfs-3.8.0-x86_64.tar.gz http://dl-cdn.alpinelinux.org/alpine/edge/releases/x86_64/alpine-minirootfs-3.8.0-x86_64.tar.gz
 
 # get our patched proot build
 # source code: https://runtime.fivem.net/build/proot-v5.1.1.tar.gz
@@ -47,7 +47,7 @@ adduser -D -u 1000 build
 # extract the alpine root FS
 mkdir alpine
 cd alpine
-tar xf ../alpine-minirootfs-3.7.0-x86_64.tar.gz
+tar xf ../alpine-minirootfs-3.8.0-x86_64.tar.gz
 cd ..
 
 echo '#pragma once' > code/shared/cfx_version.h

@@ -116,12 +116,12 @@ workspace "CitizenMP"
 
 	filter { 'system:not windows', 'language:C or language:C++' }
 		architecture 'x64'
+		
+		links { 'c++' }
 
 		buildoptions {
 			"-fPIC", -- required to link on AMD64
 		}
-
-		links { "c++" }
 
 	-- TARGET: launcher
 	if _OPTIONS['game'] ~= 'server' then

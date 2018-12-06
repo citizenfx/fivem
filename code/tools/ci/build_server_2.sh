@@ -10,26 +10,29 @@ echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 apk --no-cache update
 apk --no-cache upgrade
 
-# install runtime dependencies
-apk add --no-cache libc++ curl libssl1.0 libunwind libstdc++ zlib c-ares icu-libs
+# add curl so we can curl the key
+apk add --no-cache curl
 
 # add fivem repositories
 curl -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
 
 echo https://runtime.fivem.net/client/alpine/builds >> /etc/apk/repositories
+echo https://runtime.fivem.net/client/alpine/main >> /etc/apk/repositories
+echo https://runtime.fivem.net/client/alpine/testing >> /etc/apk/repositories
+echo https://runtime.fivem.net/client/alpine/community >> /etc/apk/repositories
 apk --no-cache update
 
-# install fivem v8
-apk add v8
+# install runtime dependencies
+apk add --no-cache libc++ curl=7.62.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps libc++-dev curl-dev clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev c-ares-dev v8-dev
+apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.62.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev libmono mono-corlib mono mono-reference-assemblies-4.x mono-reference-assemblies-facades mono-csc c-ares-dev v8-dev
 
 # install ply
 pip install ply
 
 # download and build premake
-curl -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-src.zip
+curl -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-src.zip
 
 cd /tmp
 unzip -q premake.zip
@@ -89,10 +92,10 @@ lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/s
 # build CitizenFX
 cd /src/code
 
-premake5 gmake --game=server --cc=clang --dotnet=msnet
+premake5 gmake2 --game=server --cc=clang --dotnet=msnet
 cd build/server/linux
 
-export CXXFLAGS="-std=c++1z -stdlib=libc++"
+export CXXFLAGS="-std=c++1z -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-invalid-offsetof"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
@@ -146,8 +149,5 @@ cd /opt/cfx-server
 rm -rf /tmp/boost
 
 apk del .dev-deps
-
-apk del curl
-apk add --no-cache curl=7.59.0-r1 libcurl=7.59.0-r1
 
 mv /tmp/libMonoPosixHelper.so /usr/lib/libMonoPosixHelper.so

@@ -20,7 +20,7 @@ Component* DllGameComponent::CreateComponent()
 		return nullptr;
 	}
 
-	auto createComponent = (Component*(__cdecl*)())dlsym(hModule, "CreateComponent");
+	auto createComponent = (Component*(*)())dlsym(hModule, "CreateComponent");
 
 	return createComponent ? createComponent() : nullptr;
 }

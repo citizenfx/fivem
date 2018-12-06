@@ -138,7 +138,7 @@ struct ChildListGetter
 	template<typename TList>
 	static inline constexpr size_t GetOffset(size_t offset = 0)
 	{
-		return ChildListGetter<I - 1>::GetOffset<decltype(TList::rest)>(
+		return ChildListGetter<I - 1>::template GetOffset<decltype(TList::rest)>(
 			offset + offsetof(TList, rest)
 		);
 	}
@@ -199,11 +199,11 @@ struct ParentNode : public NodeBase
 	template<typename TData, size_t I = 0>
 	inline static constexpr std::enable_if_t<I != sizeof...(TChildren), size_t> LoopChildren()
 	{
-		size_t offset = typename ChildListElement<I, decltype(children)>::Type::GetOffsetOf<TData>();
+		size_t offset = ChildListElement<I, decltype(children)>::Type::template GetOffsetOf<TData>();
 
 		if (offset != 0)
 		{
-			constexpr size_t elemOff = ChildListGetter<I>::GetOffset<decltype(children)>();
+			constexpr size_t elemOff = ChildListGetter<I>::template GetOffset<decltype(children)>();
 
 			return offset + elemOff + offsetof(ParentNode, children);
 		}
@@ -824,19 +824,19 @@ struct SyncTree : public SyncTreeBase
 	template<typename TData>
 	inline static constexpr size_t GetOffsetOf()
 	{
-		auto doff = TNode::GetOffsetOf<TData>();
+		auto doff = TNode::template GetOffsetOf<TData>();
 
 		return (doff) ? offsetof(SyncTree, root) + doff : 0;
 	}
 
-	template<typename TNode>
-	inline std::tuple<bool, TNode*> GetData()
+	template<typename TData>
+	inline std::tuple<bool, TData*> GetData()
 	{
-		constexpr auto offset = GetOffsetOf<TNode>();
+		constexpr auto offset = GetOffsetOf<TData>();
 
 		if constexpr (offset != 0)
 		{
-			return { true, (TNode*)((uintptr_t)this + offset) };
+			return { true, (TData*)((uintptr_t)this + offset) };
 		}
 
 		return { false, nullptr };
