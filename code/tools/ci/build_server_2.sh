@@ -3,7 +3,9 @@
 # fail on error
 set -e
 
-# add testing repository
+# upgrade to edge
+echo http://dl-cdn.alpinelinux.org/alpine/edge/main > /etc/apk/repositories
+echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 
 # update apk cache
