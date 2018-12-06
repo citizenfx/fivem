@@ -214,6 +214,8 @@ static OMPtr<V8ScriptRuntime> g_currentV8Runtime;
 class V8PushEnvironment
 {
 private:
+	fx::PushEnvironment m_pushEnvironment;
+
 	Locker m_locker;
 
 	Isolate::Scope m_isolateScope;
@@ -221,8 +223,6 @@ private:
 	HandleScope m_handleScope;
 
 	Context::Scope m_contextScope;
-
-	fx::PushEnvironment m_pushEnvironment;
 
 	OMPtr<V8ScriptRuntime> m_lastV8Runtime;
 
