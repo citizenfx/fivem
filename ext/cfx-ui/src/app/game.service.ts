@@ -182,7 +182,7 @@ export class CfxGameService extends GameService {
 	init() {
 		(<any>window).invokeNative('getFavorites', '');
 
-		fetch('http://nui-internal/profiles/list').then(async response => {
+		fetch('https://nui-internal/profiles/list').then(async response => {
 			const json = <Profiles>await response.json();
 
 			if (json.profiles && json.profiles.length > 0) {
