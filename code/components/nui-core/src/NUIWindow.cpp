@@ -366,7 +366,6 @@ void NUIWindow::Initialize(CefString url)
 	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
 	info.shared_texture_enabled = true;
 	info.external_begin_frame_enabled = true;
-	info.shared_texture_sync_key = uint64_t(-1);
 	info.width = m_width;
 	info.height = m_height;
 
@@ -509,7 +508,7 @@ void NUIWindow::UpdateFrame()
 
 			if (host)
 			{
-				host->SendExternalBeginFrame(0, 0, 0);
+				host->SendExternalBeginFrame();
 			}
 		}
 	}

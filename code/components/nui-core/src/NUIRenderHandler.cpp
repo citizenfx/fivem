@@ -53,13 +53,13 @@ void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browse
 	}
 }
 
-void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, uint64 sync_key)
+void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle)
 {
 	if (type == PET_VIEW)
 	{
 		if (m_owner->GetWindowValid())
 		{
-			m_owner->GetWindow()->UpdateSharedResource(shared_handle, sync_key, dirtyRects);
+			m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects);
 		}
 	}
 }
