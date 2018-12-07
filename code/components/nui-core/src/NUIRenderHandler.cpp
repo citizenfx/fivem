@@ -28,15 +28,13 @@ NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	}
 }
 
-bool NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
+void NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 {
 	if (m_owner->GetWindowValid())
 	{
 		NUIWindow* window = m_owner->GetWindow();
 		rect.Set(0, 0, window->GetWidth(), window->GetHeight());
 	}
-
-	return true;
 }
 
 void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds)
