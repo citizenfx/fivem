@@ -130,6 +130,11 @@ void FinalizeInitNUI()
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
 
+	CefRegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
+	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
+	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
+	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
+
     HookFunctionBase::RunAll();
 
 #if defined(GTA_NY)

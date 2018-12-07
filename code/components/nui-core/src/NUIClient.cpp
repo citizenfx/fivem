@@ -61,7 +61,7 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 
 	if (url == "nui://game/ui/root.html" && nui::HasMainUI())
 	{
-		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "nui://game/ui/app/index.html");
+		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
 
 		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 	}
