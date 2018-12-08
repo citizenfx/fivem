@@ -10,6 +10,7 @@
 #include <lz4.h>
 
 #include <tbb/concurrent_queue.h>
+#include <tbb/task_scheduler_init.h>
 
 #include <state/Pool.h>
 
@@ -255,9 +256,22 @@ inline std::tuple<float, float, float> GetPlayerFocusPos(const std::shared_ptr<s
 	}
 }
 
+struct SchedulerInit
+{
+	tbb::task_scheduler_init init;
+
+	SchedulerInit()
+		: init(std::max(4, tbb::task_scheduler_init::default_num_threads()))
+	{
+
+	}
+};
+
 ServerGameState::ServerGameState()
 	: m_frameIndex(0), m_entitiesById(1 << 13)
 {
+	static SchedulerInit si;
+
 	m_tg = std::make_unique<tbb::task_group>();
 }
 
@@ -754,6 +768,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 		}
+
+		static SchedulerInit si;
 
 		m_tg->run([this, scl]()
 		{
