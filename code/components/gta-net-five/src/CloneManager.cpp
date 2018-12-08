@@ -1215,7 +1215,7 @@ void CloneManagerLocal::WriteUpdates()
 		}
 	};
 
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < 65; i++)
 	{
 		objectMgr->ForAllNetObjects(i, objectCb);
 	}

@@ -682,6 +682,22 @@ static int networkBandwidthMgr_CalculatePlayerUpdateLevelsStub(void* mgr, int* a
 	return g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels(mgr, a2, a3, a4);
 }
 
+static int(*g_origGetNetObjPlayerGroup)(void* entity);
+
+static int GetNetObjPlayerGroup(void* entity)
+{
+	// #TODO1S: groups
+	// indexes a fixed-size array of 64, of which 32 are players, and 16+16 are script/code groups
+	// we don't want to write past 32 ever, and _especially_ not past 64
+	// this needs additional patching that currently isn't done.
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return 0;
+	}
+
+	return g_origGetNetObjPlayerGroup(entity);
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -753,6 +769,9 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("78 18 4C 8B 05", -10), GetScenarioTaskScenario, (void**)&g_origGetScenarioTaskScenario);
 
 	MH_CreateHook(hook::get_pattern("0F 29 70 C8 4D 8B E1 4D 8B E8", -0x1C), networkBandwidthMgr_CalculatePlayerUpdateLevelsStub, (void**)&g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels);
+
+	// #TODO1S: fix player/ped groups so we don't need this workaround anymore
+	MH_CreateHook(hook::get_call(hook::get_pattern("48 83 C1 10 48 C1 E0 06 48 03 C8 E8", -21)), GetNetObjPlayerGroup, (void**)&g_origGetNetObjPlayerGroup);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);

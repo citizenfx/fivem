@@ -164,7 +164,7 @@ static void RenderSyncTree(rage::netObject* object, rage::netSyncTree* syncTree)
 
 static void RenderNetObjectTree()
 {
-	for (int player = 0; player < 64; player++)
+	for (int player = 0; player < 64 + 1; player++)
 	{
 		std::vector<rage::netObject*> objects;
 

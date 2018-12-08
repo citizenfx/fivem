@@ -11,7 +11,7 @@ extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 namespace fx
 {
 	ClientRegistry::ClientRegistry()
-		: m_hostNetId(-1), m_curNetId(1), m_clientsBySlotId(MAX_CLIENTS)
+		: m_hostNetId(-1), m_curNetId(1), m_clientsBySlotId(MAX_CLIENTS + 1)
 	{
 
 	}
