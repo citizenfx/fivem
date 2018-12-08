@@ -1056,6 +1056,10 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 		targetData->objectIds.insert(entityHandle & 0xFFFF);
 	}
 
+	// allow this client to be synced instantly again so clients are aware of ownership changes as soon as possible
+	entity->lastResends = {};
+	entity->lastSyncs = {};
+
 	entity->syncTree->Visit([this](sync::NodeBase& node)
 	{
 		node.frameIndex = m_frameIndex + 1;
