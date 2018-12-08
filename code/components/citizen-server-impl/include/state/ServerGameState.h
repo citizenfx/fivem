@@ -258,10 +258,8 @@ private:
 
 	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity);
 
-private:
-	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
-
 public:
+	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint32_t handle);
 
 private:

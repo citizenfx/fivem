@@ -13,6 +13,8 @@
 
 #include <state/Pool.h>
 
+#include <IteratorView.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/vec3.hpp>
@@ -151,6 +153,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	bool syncing;
 
 	glm::mat4x4 viewMatrix;
+
+	std::unordered_multimap<uint64_t, uint16_t> idsForGameState;
 
 	GameStateClientData()
 		: syncing(false)
@@ -305,6 +309,7 @@ struct SyncCommandState
 {
 	rl::MessageBuffer cloneBuffer;
 	std::function<void()> maybeFlushBuffer;
+	uint64_t frameIndex;
 
 	SyncCommandState(size_t size)
 		: cloneBuffer(size)
@@ -328,6 +333,7 @@ struct SyncCommandList
 void SyncCommandList::Execute()
 {
 	SyncCommandState scs(16384);
+	scs.frameIndex = frameIndex;
 
 	auto flushBuffer = [&scs, this]()
 	{
@@ -631,9 +637,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			auto sendUnparsedPacket = [client, entity, resendDelay, syncDelay](int syncType)
+			auto sendUnparsedPacket = [this, client, entity, resendDelay, syncDelay](int syncType)
 			{
-				return [client, entity, resendDelay, syncDelay, syncType](SyncCommandState& cmdState)
+				return [this, client, entity, resendDelay, syncDelay, syncType](SyncCommandState& cmdState)
 				{
 					if (!entity)
 					{
@@ -672,6 +678,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								Log("%s: skipping sync for object %d (sync delay %dms, last sync %d)\n", __func__, entity->handle & 0xFFFF, syncDelay.count(), lastTime.count());
 								return;
 							}
+						}
+
+						{
+							auto[clientData, lock] = GetClientData(this, client);
+							clientData->idsForGameState.emplace(cmdState.frameIndex, entity->handle & 0xFFFF);
 						}
 
 						cmdState.cloneBuffer.Write(3, syncType);
@@ -753,6 +764,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		});
 
 		Log("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
+
+		{
+			auto[clientData, clientDataLock] = GetClientData(this, scl->client);
+
+			// since this runs every frame, we can safely assume this will clean things up entirely
+			clientData->idsForGameState.erase(m_frameIndex - 100);
+		}
 	});
 
 	++m_frameIndex;
@@ -1888,14 +1906,17 @@ static InitFunction initFunction([]()
 
 			auto sgs = instance->GetComponent<fx::ServerGameState>();
 
-			{
-				std::shared_lock<std::shared_mutex> entityListLock(sgs->m_entityListMutex);
+			auto [clientData, lock] = GetClientData(sgs.GetRef(), client);
 
-				for (auto& entityRef : sgs->m_entityList)
+			{
+				for (auto& entityIdPair : fx::GetIteratorView(clientData->idsForGameState.equal_range(frameIndex)))
 				{
+					auto[_, entityId] = entityIdPair;
+					auto entityRef = sgs->GetEntity(0, entityId);
+
 					if (entityRef)
 					{
-						if (!entityRef || !entityRef->syncTree)
+						if (!entityRef->syncTree)
 						{
 							continue;
 						}
@@ -1924,6 +1945,8 @@ static InitFunction initFunction([]()
 						});
 					}
 				}
+
+				clientData->idsForGameState.erase(frameIndex);
 			}
 
 			client->SetData("syncFrameIndex", frameIndex);
