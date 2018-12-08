@@ -1,8 +1,6 @@
-import { Observable, Subject, from } from 'rxjs';
+import { Subject, from } from 'rxjs';
 
 import { bufferTime, mergeMap, finalize } from 'rxjs/operators';
-
-import { Server, ServerIcon, PinConfig } from '../app/servers/server';
 
 import { master } from '../app/servers/master';
 
