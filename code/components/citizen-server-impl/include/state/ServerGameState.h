@@ -11,7 +11,7 @@
 #include <variant>
 
 #include <array>
-#include <bitset>
+#include <EASTL/bitset.h>
 
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/task_group.h>
@@ -52,7 +52,7 @@ using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 struct NodeBase
 {
 public:
-	std::bitset<256> ackedPlayers;
+	eastl::bitset<256> ackedPlayers;
 
 	uint64_t frameIndex;
 
@@ -96,7 +96,7 @@ struct CPedGameStateNodeData
 struct CVehicleGameStateNodeData
 {
 	uint16_t occupants[32];
-	std::bitset<32> playerOccupants;
+	eastl::bitset<32> playerOccupants;
 
 	inline CVehicleGameStateNodeData()
 	{
@@ -149,8 +149,8 @@ struct SyncEntityState
 	tbb::concurrent_unordered_map<std::string, TData> data;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
-	std::bitset<256> ackedCreation;
-	std::bitset<256> didDeletion;
+	eastl::bitset<256> ackedCreation;
+	eastl::bitset<256> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
@@ -270,8 +270,8 @@ private:
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
 
-	std::bitset<8192> m_objectIdsSent;
-	std::bitset<8192> m_objectIdsUsed;
+	eastl::bitset<8192> m_objectIdsSent;
+	eastl::bitset<8192> m_objectIdsUsed;
 
 	uint64_t m_frameIndex;
 

@@ -321,6 +321,7 @@ struct SyncCommandState
 	rl::MessageBuffer cloneBuffer;
 	std::function<void()> maybeFlushBuffer;
 	uint64_t frameIndex;
+	std::shared_ptr<fx::Client> client;
 
 	SyncCommandState(size_t size)
 		: cloneBuffer(size)
@@ -345,6 +346,7 @@ void SyncCommandList::Execute()
 {
 	SyncCommandState scs(16384);
 	scs.frameIndex = frameIndex;
+	scs.client = client;
 
 	auto flushBuffer = [&scs, this]()
 	{
@@ -408,7 +410,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	UpdateEntities();
 
 	// cache entities so we don't have to iterate the concurrent_map for each client
-	std::vector<std::shared_ptr<sync::SyncEntityState>> relevantEntities;
+	std::vector<
+		std::tuple<
+			std::shared_ptr<sync::SyncEntityState>,
+			glm::vec3
+		>
+	> relevantEntities;
 
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
@@ -417,7 +424,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		for (auto& entity : m_entityList)
 		{
-			relevantEntities.push_back(entity);
+			if (!entity || !entity->syncTree)
+			{
+				continue;
+			}
+
+			float position[3];
+			entity->syncTree->GetPosition(position);
+
+			glm::vec3 entityPosition(position[0], position[1], position[2]);
+
+			relevantEntities.emplace_back(entity, entityPosition);
 		}
 	}
 
@@ -507,16 +524,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerEntity = entityRef.lock();
 		}
 
-		for (auto& entity : relevantEntities)
+		for (auto& entityTuple : relevantEntities)
 		{
+			auto [entity, entityPos] = entityTuple;
+
 			if (!client)
 			{
 				return;
-			}
-
-			if (!entity || !entity->syncTree)
-			{
-				continue;
 			}
 
 			auto entityClient = entity->client.lock();
@@ -540,17 +554,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (playerEntity)
 				{
-					float entityPos[3] = { 0.0f, 0.0f, 0.0f };
-					
-					if (entity->syncTree)
-					{
-						entity->syncTree->GetPosition(entityPos);
-					}
-
 					auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
 
-					float diffX = entityPos[0] - playerPosX;
-					float diffY = entityPos[1] - playerPosY;
+					float diffX = entityPos.x - playerPosX;
+					float diffY = entityPos.y - playerPosY;
 
 					float distSquared = (diffX * diffX) + (diffY * diffY);
 
@@ -645,111 +652,97 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			auto sendUnparsedPacket = [this, client, entity, entityClient, resendDelay, syncDelay](int syncType)
-			{
-				return [this, client, entity, entityClient, resendDelay, syncDelay, syncType](SyncCommandState& cmdState)
-				{
-					if (!entity)
-					{
-						return;
-					}
-
-					// create a buffer once (per thread) to save allocations
-					static thread_local rl::MessageBuffer mb(1200);
-					mb.SetCurrentBit(0);
-
-					sync::SyncUnparseState state;
-					state.syncType = syncType;
-					state.client = client;
-					state.buffer = mb;
-
-					bool wroteData = entity->syncTree->Unparse(state);
-
-					if (wroteData)
-					{
-						auto lastResend = entity->lastResends[client->GetSlotId()];
-						auto lastTime = (msec() - lastResend);
-
-						if (lastResend != 0ms && lastTime < resendDelay)
-						{
-							Log("%s: skipping resend for object %d (resend delay %dms, last resend %d)\n", __func__, entity->handle & 0xFFFF, resendDelay.count(), lastTime.count());
-							return;
-						}
-
-						if (syncType == 2)
-						{
-							auto lastSync = entity->lastSyncs[client->GetSlotId()];
-							auto lastTime = (msec() - lastSync);
-
-							if (lastTime < syncDelay)
-							{
-								Log("%s: skipping sync for object %d (sync delay %dms, last sync %d)\n", __func__, entity->handle & 0xFFFF, syncDelay.count(), lastTime.count());
-								return;
-							}
-						}
-
-						{
-							auto[clientData, lock] = GetClientData(this, client);
-							clientData->idsForGameState.emplace(cmdState.frameIndex, entity->handle & 0xFFFF);
-						}
-
-						cmdState.cloneBuffer.Write(3, syncType);
-						cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
-						cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
-
-						if (syncType == 1)
-						{
-							cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
-						}
-
-						cmdState.cloneBuffer.Write<uint32_t>(32, entity->timestamp);
-
-						auto len = (state.buffer.GetCurrentBit() / 8) + 1;
-						cmdState.cloneBuffer.Write(12, len);
-						cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
-
-						cmdState.maybeFlushBuffer();
-
-						entity->lastSyncs[client->GetSlotId()] = entity->lastResends[client->GetSlotId()] = msec();
-					}
-				};
-			};
-
-			auto sendRemove = [client, entity]()
-			{
-				net::Buffer netBuffer;
-				netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
-				netBuffer.Write<uint16_t>(entity->handle & 0xFFFF);
-
-				client->SendPacket(1, netBuffer, ENET_PACKET_FLAG_RELIABLE);
-
-				// unacknowledge creation
-				entity->ackedCreation.reset(client->GetSlotId());
-				entity->didDeletion.set(client->GetSlotId());
-			};
-
 			if (shouldBeCreated)
 			{
+				// default to it being a sync
+				int syncType = 2;
+
 				if (!hasCreated || entity->didDeletion.test(client->GetSlotId()))
 				{
 					Log("Tick: %screating object %d for %d\n", (hasCreated) ? "re" : "", entity->handle & 0xFFFF, client->GetNetId());
 
-					scl->commands.push_back([entity, client](SyncCommandState&)
-					{
-						// ignore acks for creation
-						entity->syncTree->Visit([client](sync::NodeBase& node)
-						{
-							node.ackedPlayers.reset(client->GetSlotId());
-
-							return true;
-						});
-					});
-
-					scl->commands.push_back(sendUnparsedPacket(1));
+					// make it a create
+					syncType = 1;
 				}
-				else
+
+				bool shouldSend = true;
+
+				auto lastResend = entity->lastResends[client->GetSlotId()];
+				auto lastTime = (msec() - lastResend);
+
+				if (lastResend != 0ms && lastTime < resendDelay)
 				{
-					scl->commands.push_back(sendUnparsedPacket(2));
+					Log("%s: skipping resend for object %d (resend delay %dms, last resend %d)\n", __func__, entity->handle & 0xFFFF, resendDelay.count(), lastTime.count());
+					shouldSend = false;
+				}
+
+				if (syncType == 2 && shouldSend)
+				{
+					auto lastSync = entity->lastSyncs[client->GetSlotId()];
+					auto lastTime = (msec() - lastSync);
+
+					if (lastTime < syncDelay)
+					{
+						Log("%s: skipping sync for object %d (sync delay %dms, last sync %d)\n", __func__, entity->handle & 0xFFFF, syncDelay.count(), lastTime.count());
+
+						shouldSend = false;
+					}
+				}
+
+				if (shouldSend)
+				{
+					scl->commands.push_back([
+						this,
+						entity = std::move(entity),
+						entityClient = std::move(entityClient),
+						resendDelay,
+						syncDelay,
+						syncType
+					] (SyncCommandState& cmdState)
+					{
+						if (!entity)
+						{
+							return;
+						}
+
+						// create a buffer once (per thread) to save allocations
+						static thread_local rl::MessageBuffer mb(1200);
+						mb.SetCurrentBit(0);
+
+						sync::SyncUnparseState state;
+						state.syncType = syncType;
+						state.client = cmdState.client;
+						state.buffer = mb;
+
+						bool wroteData = entity->syncTree->Unparse(state);
+
+						if (wroteData)
+						{
+							{
+								auto[clientData, lock] = GetClientData(this, cmdState.client);
+								clientData->idsForGameState.emplace(cmdState.frameIndex, entity->handle & 0xFFFF);
+							}
+
+							cmdState.cloneBuffer.Write(3, syncType);
+							cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
+							cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
+
+							if (syncType == 1)
+							{
+								cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
+							}
+
+							cmdState.cloneBuffer.Write<uint32_t>(32, entity->timestamp);
+
+							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
+							cmdState.cloneBuffer.Write(12, len);
+							cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
+
+							cmdState.maybeFlushBuffer();
+
+							entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = msec();
+						}
+					});
 				}
 			}
 			else
@@ -758,7 +751,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				{
 					Log("Tick: distance-culling object %d for %d\n", entity->handle & 0xFFFF, client->GetNetId());
 
-					sendRemove();
+					net::Buffer netBuffer;
+					netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
+					netBuffer.Write<uint16_t>(entity->handle & 0xFFFF);
+
+					client->SendPacket(1, netBuffer, ENET_PACKET_FLAG_RELIABLE);
+
+					// unacknowledge creation
+					entity->ackedCreation.reset(client->GetSlotId());
+					entity->didDeletion.set(client->GetSlotId());
 				}
 			}
 		}
@@ -776,7 +777,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		Log("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
 
 		{
-			auto[clientData, clientDataLock] = GetClientData(this, scl->client);
+			auto[clientData, clientDataLock] = GetClientData(this, client);
 
 			// since this runs every frame, we can safely assume this will clean things up entirely
 			clientData->idsForGameState.erase(m_frameIndex - 100);

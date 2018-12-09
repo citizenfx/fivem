@@ -331,12 +331,26 @@ struct NodeWrapper : public NodeBase
 	{
 		bool hasData = (length > 0);
 
-		//state.buffer.Write(8, 0x5A);
+		// do we even want to write?
+		bool couldWrite = false;
 
-		if (shouldWrite(state, TIds::GetIds(), (hasData && !ackedPlayers.test(state.client->GetSlotId()))))
+		// we can only write if we have data
+		if (hasData)
 		{
-			//trace("writing out node %s\n", boost::typeindex::type_id<TNode>().pretty_name());
+			// if creating, ignore acks
+			if (state.syncType == 1)
+			{
+				couldWrite = true;
+			}
+			// otherwise, we only want to write if the player hasn't acked
+			else if (!ackedPlayers.test(state.client->GetSlotId()))
+			{
+				couldWrite = true;
+			}
+		}
 
+		if (shouldWrite(state, TIds::GetIds(), couldWrite))
+		{
 			state.buffer.WriteBits(data.data(), length);
 
 			return true;
