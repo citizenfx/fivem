@@ -175,7 +175,9 @@ void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int
 	CefResponse::HeaderMap map;
 	response->GetHeaderMap(map);
 
-	map.insert(std::make_pair("cache-control", "no-cache, must-revalidate"));
+	map.insert({ "cache-control", "no-cache, must-revalidate" });
+	map.insert({ "access-control-allow-origin", "*" });
+	map.insert({ "access-control-allow-methods", "POST, GET, OPTIONS" });
 	response->SetHeaderMap(map);
 
 	if (m_found)
