@@ -686,18 +686,20 @@ uint32_t GetRemoteTime();
 static InitFunction initFunction([]()
 {
 	static bool netViewerEnabled;
+	static bool timeWindowEnabled;
 
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
+	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || Instance<ICoreGameInit>::Get()->OneSyncEnabled;
+		*should = *should || netViewerEnabled || timeWindowEnabled;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
-		if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+		if (timeWindowEnabled)
 		{
 			static bool timeOpen = true;
 
