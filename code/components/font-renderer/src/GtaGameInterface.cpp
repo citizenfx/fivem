@@ -325,11 +325,13 @@ static InitFunction initFunction([] ()
 		int x, y;
 		GetGameResolution(x, y);
 
-		const wchar_t* brandingString = L"";
+		std::wstring brandingString = L"";
 
 		if (shouldDraw) {
 			SYSTEMTIME systemTime;
 			GetLocalTime(&systemTime);
+
+			std::wstring brandingEmoji;
 
 			switch (systemTime.wHour)
 			{
@@ -339,7 +341,7 @@ static InitFunction initFunction([] ()
 				case 4:
 				case 5:
 				case 6:
-					brandingString = L"FiveM \xD83C\xDF19";
+					brandingEmoji = L"\xD83C\xDF19";
 					break;
 				case 7:
 				case 8:
@@ -347,7 +349,7 @@ static InitFunction initFunction([] ()
 				case 10:
 				case 11:
 				case 12:
-					brandingString = L"FiveM \xD83C\xDF42";
+					brandingEmoji = L"\xD83C\xDF42";
 					break;
 				case 13:
 				case 14:
@@ -355,7 +357,7 @@ static InitFunction initFunction([] ()
 				case 16:
 				case 17:
 				case 18:
-					brandingString = L"FiveM \xD83C\xDF50";
+					brandingEmoji = L"\xD83C\xDF50";
 					break;
 				case 19:
 				case 20:
@@ -363,22 +365,34 @@ static InitFunction initFunction([] ()
 				case 22:
 				case 23:
 				case 0:
-					brandingString = L"FiveM \xD83C\xDF59";
+					brandingEmoji = L"\xD83E\xDD59";
 					break;
 			}
+
+			std::wstring brandName = L"FiveM";
+
+			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+			{
+				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+				{
+					brandName = L"FiveM/OneSync-ALPHA";
+				}
+			}
+
+			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
 		}
 
 		static CRect metrics;
 		
 		if (metrics.Width() <= 0.1f)
 		{
-			g_fontRenderer.GetStringMetrics(brandingString, 18.0f, 1.0f, "Segoe UI", metrics);
+			g_fontRenderer.GetStringMetrics(brandingString, 22.0f, 1.0f, "Segoe UI", metrics);
 		}
 
 		CRect drawRect(x - metrics.Width() - 10.0f, 10.0f, x, y);
 		CRGBA color(180, 180, 180);
 
-		g_fontRenderer.DrawText(brandingString, drawRect, color, 18.0f, 1.0f, "Segoe UI");
+		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f, 1.0f, "Segoe UI");
 #endif
 
 		g_fontRenderer.DrawPerFrame();
