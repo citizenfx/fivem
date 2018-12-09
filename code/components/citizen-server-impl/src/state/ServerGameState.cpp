@@ -279,7 +279,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 {
 	auto ptr = m_entitiesById[objectId];
 
-	return (!ptr.expired()) ? ptr.lock() : std::shared_ptr<sync::SyncEntityState>{};
+	return ptr.lock();
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
@@ -296,10 +296,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
 		{
 			auto ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
 
-			if (!ptr.expired())
-			{
-				return ptr.lock();
-			}
+			return ptr.lock();
 		}
 	}
 
@@ -504,15 +501,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		std::shared_ptr<sync::SyncEntityState> playerEntity;
 
 		{
-			std::weak_ptr<sync::SyncEntityState> entityRef;
-
 			auto data = GetClientDataUnlocked(this, client);
-			entityRef = data->playerEntity;
+			auto entityRef = data->playerEntity;
 
-			if (!entityRef.expired())
-			{
-				playerEntity = entityRef.lock();
-			}
+			playerEntity = entityRef.lock();
 		}
 
 		for (auto& entity : relevantEntities)
@@ -527,7 +519,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				continue;
 			}
 
-			if (entity->client.expired())// || client->GetNetId() == entity->client.lock()->GetNetId())
+			auto entityClient = entity->client.lock();
+
+			if (!entityClient)
 			{
 				continue; 
 			}
@@ -537,7 +531,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			bool shouldBeCreated = (g_oneSyncCulling->GetValue()) ? false : true;
 
 			// players should always have their own entities
-			if (client->GetNetId() == entity->client.lock()->GetNetId())
+			if (client->GetNetId() == entityClient->GetNetId())
 			{
 				shouldBeCreated = true;
 			}
@@ -651,9 +645,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			auto sendUnparsedPacket = [this, client, entity, resendDelay, syncDelay](int syncType)
+			auto sendUnparsedPacket = [this, client, entity, entityClient, resendDelay, syncDelay](int syncType)
 			{
-				return [this, client, entity, resendDelay, syncDelay, syncType](SyncCommandState& cmdState)
+				return [this, client, entity, entityClient, resendDelay, syncDelay, syncType](SyncCommandState& cmdState)
 				{
 					if (!entity)
 					{
@@ -701,7 +695,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						cmdState.cloneBuffer.Write(3, syncType);
 						cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
-						cmdState.cloneBuffer.Write(16, entity->client.lock()->GetNetId()); // TODO: replace with slotId
+						cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
 
 						if (syncType == 1)
 						{
@@ -829,10 +823,8 @@ void ServerGameState::UpdateEntities()
 		// update client camera
 		if (entity->type == sync::NetObjEntityType::Player)
 		{
-			if (!entity->client.expired())
+			if (auto client = entity->client.lock(); client)
 			{
-				auto client = entity->client.lock();
-
 				float playerPos[3];
 				entity->syncTree->GetPosition(playerPos);
 
@@ -955,12 +947,12 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			entityRef = data->playerEntity;
 		}
 
-		if (entityRef.expired())
+		auto playerEntity = entityRef.lock();
+
+		if (!playerEntity)
 		{
 			return;
 		}
-
-		auto playerEntity = entityRef.lock();
 
 		auto[posX, posY, posZ] = GetPlayerFocusPos(playerEntity);
 
@@ -1042,12 +1034,16 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 	auto oldClient = entity->client;
 	entity->client = targetClient;
 
-	Log("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle & 0xFFFF, (oldClient.expired()) ? -1 : oldClient.lock()->GetNetId(), targetClient->GetNetId());
-
-	if (!oldClient.expired())
 	{
-		auto [ sourceData, lock ] = GetClientData(this, oldClient.lock());
-		sourceData->objectIds.erase(entityHandle & 0xFFFF);
+		auto oldClientRef = oldClient.lock();
+
+		Log("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle & 0xFFFF, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), targetClient->GetNetId());
+
+		if (oldClientRef)
+		{
+			auto[sourceData, lock] = GetClientData(this, oldClientRef);
+			sourceData->objectIds.erase(entityHandle & 0xFFFF);
+		}
 	}
 
 	// #TODO1S: reassignment should also send a create if the player was out of focus area
@@ -1114,13 +1110,17 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 			bool hasClient = true;
 
-			if (entity->client.expired())
 			{
-				hasClient = false;
-			}
-			else if (entity->client.lock()->GetNetId() == client->GetNetId())
-			{
-				hasClient = false;
+				auto entityClient = entity->client.lock();
+
+				if (!entityClient)
+				{
+					hasClient = false;
+				}
+				else if (entityClient->GetNetId() == client->GetNetId())
+				{
+					hasClient = false;
+				}
 			}
 
 			if (!hasClient)
@@ -1152,11 +1152,6 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 						{
 							auto[data, lock] = GetClientData(this, tgtClient);
 							entityRef = data->playerEntity;
-						}
-
-						if (entityRef.expired())
-						{
-							return;
 						}
 
 						auto playerEntity = entityRef.lock();
@@ -1218,11 +1213,15 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 		auto entity = m_entitiesById[set & 0xFFFF];
 
-		if (!entity.expired())
 		{
-			OnCloneRemove(entity.lock());
+			auto entityRef = entity.lock();
 
-			m_entitiesById[set & 0xFFFF] = {};
+			if (entityRef)
+			{
+				OnCloneRemove(entityRef);
+
+				m_entitiesById[set & 0xFFFF] = {};
+			}
 		}
 
 		{
@@ -1321,11 +1320,10 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 	auto objectId = inPacket.Read<uint16_t>(13);
 
 	auto ptr = m_entitiesById[objectId];
+	auto entity = ptr.lock();
 
-	if (!ptr.expired())
+	if (entity)
 	{
-		auto entity = ptr.lock();
-
 		auto tgtCl = (clientId != 0) ? m_instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(clientId) : client;
 
 		if (!tgtCl)
@@ -1334,12 +1332,16 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 		}
 
 		// don't do duplicate migrations
-		if (!entity->client.expired() && entity->client.lock()->GetNetId() == tgtCl->GetNetId())
 		{
-			return;
-		}
+			auto entityClient = entity->client.lock();
 
-		Log("%s: migrating entity %d from %s to %s\n", __func__, objectId, (entity->client.expired()) ? "null?" : entity->client.lock()->GetName(), tgtCl->GetName());
+			if (entityClient && entityClient->GetNetId() == tgtCl->GetNetId())
+			{
+				return;
+			}
+
+			Log("%s: migrating entity %d from %s to %s\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName());
+		}
 
 		if (!entity || !entity->syncTree)
 		{
@@ -1358,15 +1360,15 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	// TODO: verify ownership
 	auto ptr = m_entitiesById[objectId];
 
-	std::shared_ptr<sync::SyncEntityState> entity;
+	auto entity = ptr.lock();
 
-	if (!ptr.expired())
+	if (entity)
 	{
-		entity = ptr.lock();
+		auto entityClient = entity->client.lock();
 
-		if (!entity->client.expired())
+		if (entityClient)
 		{
-			if (client->GetNetId() != entity->client.lock()->GetNetId())
+			if (client->GetNetId() != entityClient->GetNetId())
 			{
 				Log("%s: wrong owner (%d)\n", __func__, objectId);
 
@@ -1500,7 +1502,14 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	entity->didDeletion.reset(client->GetSlotId());
 	entity->ackedCreation.set(client->GetSlotId());
 
-	if (entity->client.lock()->GetNetId() != client->GetNetId())
+	auto entityClient = entity->client.lock();
+
+	if (!entityClient)
+	{
+		return;
+	}
+
+	if (entityClient->GetNetId() != client->GetNetId())
 	{
 		Log("%s: wrong owner (%d)!\n", __func__, objectId);
 
@@ -1975,12 +1984,6 @@ static InitFunction initFunction([]()
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("ccack"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			auto entityPtr = instance->GetComponent<fx::ServerGameState>()->m_entitiesById[buffer.Read<uint16_t>()];
-
-			if (entityPtr.expired())
-			{
-				return;
-			}
-
 			auto entity = entityPtr.lock();
 
 			if (entity && entity->syncTree)
