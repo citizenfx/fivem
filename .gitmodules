@@ -106,3 +106,6 @@
 [submodule "vendor/glm"]
 	path = vendor/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "vendor/eastl"]
+	path = vendor/eastl
+	url = https://github.com/electronicarts/EASTL.git

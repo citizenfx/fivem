@@ -16,7 +16,8 @@
 		"vendor:linenoise",
 		"vendor:nng",
 		"vendor:lz4",
-		"vendor:glm"
+		"vendor:glm",
+		"vendor:eastl"
 	],
 	"provides": []
 }
