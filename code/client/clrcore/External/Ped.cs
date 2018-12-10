@@ -533,21 +533,18 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				if (MemoryAddress == IntPtr.Zero)
+				if (!IsInVehicle())
 				{
 					return VehicleSeat.None;
 				}
-
-				int offset = (Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x158A : 0x1542);
-
-				int seatIndex = MemoryAccess.ReadInt(MemoryAddress + offset);
-
-				if (seatIndex == -1 || !IsInVehicle())
+				for (int seatIndex = -1; seatIndex < API.GetVehicleModelNumberOfSeats((uint)CurrentVehicle.Model.Hash); seatIndex++)
 				{
-					return VehicleSeat.None;
+					if (CurrentVehicle.GetPedOnSeat((VehicleSeat)seatIndex).Handle == Handle)
+					{
+						return (VehicleSeat)seatIndex;
+					}
 				}
-
-				return (VehicleSeat)(seatIndex - 1);
+				return VehicleSeat.None;
 			}
 		}
 		/// <summary>
