@@ -800,5 +800,37 @@ namespace CitizenFX.Core
 		{
 			API.DisplayOnscreenKeyboard(1, windowTitle.ToString(), null, defaultText, null, null, null, maxLength + 1);
 		}
+
+
+
+
+		[SecuritySafeCritical]
+		private static TattooCollectionData _GetTattooCollectionData(int characterType, int decorationIndex)
+		{
+			UnsafeTattooCollectionData data;
+			unsafe
+			{
+				Function.Call((Hash)0xFF56381874F82086, characterType, decorationIndex, &data);
+			}
+			return data.GetData();
+		}
+
+		/// <summary>
+		/// Returns a <see cref="TattooCollectionData"/> struct containing information about a specific tattoo.
+		/// Currently only the <see cref="TattooCollectionData.TattooCollectionHash"/>, <see cref="TattooCollectionData.TattooNameHash"/>
+		/// and <see cref="TattooCollectionData.TattooZone"/> are known. It's still unkown what the other values are used for or if 
+		/// they're even correctly offset in the byte array.
+		/// </summary>
+		/// <param name="characterType">Character types 0 = Michael, 1 = Franklin, 2 = Trevor, 3 = MPMale, 4 = MPFemale</param>
+		/// <param name="decorationIndex">Tattoo index, value between 0 and <see cref="API.GetNumDecorations(int)"/></param>
+		/// <returns></returns>
+		public static TattooCollectionData GetTattooCollectionData(int characterType, int decorationIndex)
+		{
+			if (characterType > -1 && characterType < 5)
+			{
+				return _GetTattooCollectionData(characterType, decorationIndex);
+			}
+			return new TattooCollectionData();
+		}
 	}
 }
