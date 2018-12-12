@@ -919,6 +919,12 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return g_origAddEvent(eventMgr, ev);
 	}
 
+	// don't give control using events!
+	if (strcmp(ev->GetName(), "GIVE_CONTROL_EVENT") == 0)
+	{
+		return;
+	}
+
 	// is this a duplicate event?
 	for (auto& eventPair : g_events)
 	{
