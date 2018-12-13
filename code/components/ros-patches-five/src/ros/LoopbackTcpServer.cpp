@@ -1207,6 +1207,8 @@ int g_rosParentPid;
 
 std::vector<int> g_subProcessHandles;
 
+#include <shlwapi.h>
+
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
@@ -1214,7 +1216,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 	// compare the first part of the command line with the Social Club subprocess name
 	HMODULE socialClubLib = GetModuleHandle(L"socialclub.dll");
 
-	bool isSubprocess = wcsstr(commandLine, L"subprocess.exe");
+	bool isSubprocess = wcsstr(commandLine, L"subprocess.exe") || StrStrIW(commandLine, L"SocialClubHelper.exe");
 
 	if (/*socialClubLib && */applicationName || isSubprocess)
 	{
@@ -1225,7 +1227,10 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 		wcscat(rosFolder, L"subprocess.exe");*/
 
 		//if (boost::filesystem::equivalent(rosFolder, applicationName))
-		if (isSubprocess || boost::filesystem::path(applicationName).filename() == "subprocess.exe")
+		if (isSubprocess ||
+			boost::filesystem::path(applicationName).filename() == "subprocess.exe" ||
+			boost::filesystem::path(applicationName).filename() == "SocialClubHelper.exe" ||
+			boost::filesystem::path(applicationName).filename() == "socialclubhelper.exe")
 		{
             // don't create any more subprocesses if this is the case :/
             if (g_subProcessHandles.size() == 42)
