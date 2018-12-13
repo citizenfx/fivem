@@ -246,11 +246,21 @@ namespace CitizenFX.Core
 			API.TaskLeaveVehicle(_ped.Handle, vehicle.Handle, (int)flags);
 		}
 
-		public void LookAt(Entity target, int duration = -1)
+		/// <summary>
+		/// Looks at the specified <see cref="Entity"/>.
+		/// </summary>
+		/// <param name="target"></param>
+		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
+		public void LookAt(Entity target, int duration = 1)
 		{
 			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, 0, 2);
 		}
-		public void LookAt(Vector3 position, int duration = -1)
+		/// <summary>
+		/// Looks at the specified <see cref="Vector3"/> position.
+		/// </summary>
+		/// <param name="position"></param>
+		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
+		public void LookAt(Vector3 position, int duration = 1)
 		{
 			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, 0, 2);
 		}
