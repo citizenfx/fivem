@@ -72,6 +72,12 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::share
 {
 	uint16_t eventNameLength = buffer.Read<uint16_t>();
 
+	// validate input
+	if (eventNameLength <= 0 || eventNameLength > std::numeric_limits<uint16_t>::max())
+	{
+		return;
+	}
+
 	std::vector<char> eventNameBuffer(eventNameLength - 1);
 	buffer.Read(eventNameBuffer.data(), eventNameBuffer.size());
 	buffer.Read<uint8_t>();
