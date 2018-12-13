@@ -127,7 +127,12 @@ namespace fx
 	{
 		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [&](const std::string& fullPath)
 		{
-			AddStreamingFile(fullPath)->isAutoScan = true;
+			auto file = AddStreamingFile(fullPath);
+
+			if (file)
+			{
+				file->isAutoScan = true;
+			}
 		});
 
 		std::string outFileName = fmt::sprintf("cache:/files/%s.sfl", m_resource->GetName());
@@ -306,7 +311,12 @@ namespace fx
 
 					for (auto& entry : entries)
 					{
-						AddStreamingFile(entry)->isAutoScan = true;
+						auto file = AddStreamingFile(entry);
+
+						if (file)
+						{
+							file->isAutoScan = true;
+						}
 					}
 				}
 			}
