@@ -53,7 +53,8 @@ public:
 // 1103
 // 1290
 // 1365
-static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x1427D2320;
+// 1493
+static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x142804BA0;
 
 void* g_tempRemotePlayer;
 
@@ -184,11 +185,13 @@ namespace sync
 
 		// 1290
 		// 1365
+		// 1493
 		void* nonphys = calloc(256, 1);
-		((void(*)(void*))0x141076C58)(nonphys); // ctor
+		((void(*)(void*))0x1410A145C)(nonphys); // ctor
 
+		// 1493
 		void* phys = calloc(1024, 1);
-		((void(*)(void*))0x1410750F8)(phys);
+		((void(*)(void*))0x14109F8D8)(phys);
 
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonphys);
 		g_tempRemotePlayer = player;
@@ -246,8 +249,9 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// 1103
 		// 1290
 		// 1365
+		// 1493
 		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x140FF4D34)(nullptr, &objectId, player);
+		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x14101F3BC)(nullptr, &objectId, player);
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
@@ -423,7 +427,8 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	// 1103
 	// 1290
 	// 1365
-	return ((CNetGamePlayer*(*)(void*))0x141074F78)(plr);
+	// 1493
+	return ((CNetGamePlayer*(*)(void*))0x14109F758)(plr);
 }
 
 #include <minhook.h>
@@ -728,7 +733,8 @@ static HookFunction hookFunction([]()
 
 	// 1290
 	// 1365
-	MH_CreateHook((void*)0x14107D370, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	// 1493
+	MH_CreateHook((void*)0x1410A7B30, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
@@ -1686,7 +1692,10 @@ static HookFunction hookFunctionWorldGrid([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// if population breaks in non-1s, this is possibly why
-	hook::nop(hook::get_pattern("38 05 ? ? ? ? 75 0A 48 8B CF E8", 6), 2);
+	//hook::nop(hook::get_pattern("38 05 ? ? ? ? 75 0A 48 8B CF E8", 6), 2);
+
+	// 1493+
+	hook::nop(hook::get_pattern("80 3D ? ? ? ? 00 75 0A 48 8B CF E8", 7), 2);
 });
 
 int ObjectToEntity(int objectId)

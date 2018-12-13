@@ -100,8 +100,8 @@ struct GameCacheStorageEntry
 // global cache mapping of ROS files to disk files
 static GameCacheEntry g_requiredEntries[] =
 {
-	{ "GTA5.exe", "a50ebaa7bf8dcf4a29ff6630e313f1e73770c855", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1365_1.exe", "$/GTA5.exe", 68521904, 942456720 },
-	{ "update/update.rpf", "8b5f4c3f76820fe63f6ba909c1898c9fc505a4aa", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1365_1.exe", "$/update/update.rpf", 882171904, 942456720 },
+	{ "GTA5.exe", "915523c238d30c12ff73f55a345944f8fc0b8a84", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1493_1.exe", "$/GTA5.exe", 73181104, 993049272 },
+	{ "update/update.rpf", "b7944ae1ee94ac46c4eeb2b21eae0cf182838087", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1493_1.exe", "$/update/update.rpf", 928075776, 993049272 },
 	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
 	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
@@ -165,6 +165,11 @@ static GameCacheEntry g_requiredEntries[] =
 	//DLCPacks17
 	{ "update/x64/dlcpacks/mpassault/dlc.rpf", "7c65b096261dd88bd1f952fc6046626f1ca56215", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 314443776 },
 	{ "update/x64/dlcpacks/patchday18ng/dlc.rpf", "9e16b7af4a1e58878f0dd16dd86cbd772a8ce9ef", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 4405248 },
+
+	//DLCPacks18
+	{ "update/x64/dlcpacks/mpbattle/dlc.rpf", "80018257a637417b911bd4540938866ae95d0cf5", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3981039616 },
+	{ "update/x64/dlcpacks/mpbattle/dlc1.rpf", "b16fb76065132f5f9af4b2a92431b9f91b670542", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 992296960 },
+	{ "update/x64/dlcpacks/patchday19ng/dlc.rpf", "3373311add1eb5ff850e1f3fbb7d15512cbc5b8b", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 765630464 },
 
 	{ "ros_1241/cef.pak", "C308AC7D34F80FE9486716FBF4C713B55924B661", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.4.1-Setup.exe", "$/cef.pak", 3866710, 85063288 },
 	{ "ros_1241/cef_100_percent.pak", "66EF9A8559E1A8F7976F95FDD2355A0D0E101532", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.4.1-Setup.exe", "$/cef_100_percent.pak", 647967, 85063288 },
@@ -239,7 +244,7 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "ros_1241/swiftshader/libEGL.dll", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.4.1-Setup.exe", "$/swiftshader/libEGL.dll", 139240, 85063288 },
 	{ "ros_1241/swiftshader/libGLESv2.dll", "484A9699A06A7D87EE5D2BACDF21B284F53328C5", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.4.1-Setup.exe", "$/swiftshader/libGLESv2.dll", 3019240, 85063288 },
 
-	{ "GTAVLauncher.exe", "91a10672836802c9e3ffbb8e9348b11292a31a04", "http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_1365_1.exe", "$/GTAVLauncher.exe", 21271984, 19787536 }
+	{ "GTAVLauncher.exe", "0962fb5a39d9ec40d4fce2ac636ef11dcd0457cf", "http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_1604_0.exe", "$/GTAVLauncher.exe", 21606840, 20081224 }
 };
 
 static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, std::string& hashOut)

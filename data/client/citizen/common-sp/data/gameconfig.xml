@@ -83,11 +83,11 @@
 						</Item>
 						<Item>
 							<PoolName>AnimStore</PoolName>
-							<PoolSize value="13900"/>
+							<PoolSize value="14700"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
-							<PoolSize value="3015"/>
+							<PoolSize value="3051"/>
 						</Item>
 						<Item>
 							<PoolName>ClothStore</PoolName>
@@ -127,7 +127,7 @@
 						</Item>
 						<Item>
 							<PoolName>CScenarioInfo</PoolName>
-							<PoolSize value="232"/>
+							<PoolSize value="240"/>
 						</Item>
 						<Item>
 							<PoolName>CScenarioPointExtraData</PoolName>
@@ -175,15 +175,15 @@
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="65200"/>
+							<PoolSize value="65935"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="10010"/>
 						</Item>
 						<Item>
 							<PoolName>DwdStore</PoolName>
-							<PoolSize value="15000"/>
+							<PoolSize value="15200"/>
 						</Item>
 						<Item>
 							<PoolName>EntityBatch</PoolName>
@@ -203,7 +203,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="14500"/>
+							<PoolSize value="15000"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -251,11 +251,11 @@
 						</Item>
 						<Item>
 							<PoolName>MapDataLoadedNode</PoolName>
-							<PoolSize value="1000"/>
+							<PoolSize value="1050"/>
 						</Item>
 						<Item>
 							<PoolName>MapDataStore</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="10020"/>
 						</Item>
 						<Item>
 							<PoolName>MapTypesStore</PoolName>
@@ -307,7 +307,7 @@
 						</Item>
 						<Item>
 							<PoolName>phInstGta</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="10030"/>
 						</Item>
 						<Item>
 							<PoolName>PhysicsBounds</PoolName>
@@ -355,7 +355,7 @@
 						</Item>
 						<Item>
 							<PoolName>ScaleformStore</PoolName>
-							<PoolSize value="664"/>
+							<PoolSize value="670"/>
 						</Item>
 						<Item>
 							<PoolName>ScaleformMgrArray</PoolName>
@@ -400,7 +400,7 @@
 						</Item>
         					<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="16384"/>
+							<PoolSize value="1100"/>
 						</Item>    
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->
@@ -433,7 +433,7 @@
 						</Item>
 						<Item>
 							<PoolName>fwDynamicArchetypeComponent</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="11000"/>
 						</Item>
 						<Item>
 							<PoolName>fwDynamicEntityComponent</PoolName>
@@ -513,7 +513,7 @@
 						</Item>
 						<Item>
 							<PoolName>SyncedScenes</PoolName>
-							<PoolSize value="48"/>
+							<PoolSize value="50"/>
 						</Item>
 						<Item>
 						  <PoolName>AnimScenes</PoolName>
@@ -785,9 +785,9 @@
 					<MaxTimeModelInfos value="1800"/>
 					<MaxVehicleModelInfos value="320"/>
 					<MaxWeaponModelInfos value="115"/>
-					<MaxExtraPedModelInfos value="100"/>
-					<MaxExtraVehicleModelInfos value="290"/>
-					<MaxExtraWeaponModelInfos value="460"/>
+					<MaxExtraPedModelInfos value="128"/>
+					<MaxExtraVehicleModelInfos value="310"/>
+					<MaxExtraWeaponModelInfos value="470"/>
 				</ConfigModelInfo>
 
 				<ConfigExtensions>
@@ -837,6 +837,7 @@
 					<SteamAppId value="271590"/>
 					<TitleDirectoryName>GTA V</TitleDirectoryName>
 					<MultiplayerSessionTemplateName>SsnTemplateOpen</MultiplayerSessionTemplateName>
+					<ScAuthTitleId>gtav</ScAuthTitleId>
 				</ConfigOnlineServices>
 
 				<ConfigUGCDescriptions>
@@ -912,7 +913,7 @@
 						<Item>
 							<SizeOfData value="1400"/>
 							<MaxParticipants value="32"/>
-							<NumInstances value="3"/>
+							<NumInstances value="4"/>
 						</Item>
 						<Item>
 							<SizeOfData value="600"/>
@@ -1081,17 +1082,17 @@
 						</Item>
 						<Item>
 							<StackName>MULTIPLAYER_FREEMODE</StackName>
-							<SizeOfStack value="51000"/>
+							<SizeOfStack value="52000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MISSION</StackName>
-							<SizeOfStack value="23000"/>
+							<SizeOfStack value="23500"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MP_LAUNCH_SCRIPT</StackName>
-							<SizeOfStack value="22990"/>
+							<SizeOfStack value="21000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						
@@ -1789,7 +1790,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>TEXTURE_DICTIONARY</ResourceTypeName>
-							<ExpectedMaximum value="45"/>
+							<ExpectedMaximum value="50"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>DRAWABLE_DICTIONARY</ResourceTypeName>
@@ -1813,7 +1814,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>ANIMATION</ResourceTypeName>
-							<ExpectedMaximum value="44"/>
+							<ExpectedMaximum value="50"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>MODEL</ResourceTypeName>
@@ -1909,7 +1910,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SYNCED_SCENE</ResourceTypeName>
-							<ExpectedMaximum value="49"/>
+							<ExpectedMaximum value="51"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>CLIP_SET</ResourceTypeName>
