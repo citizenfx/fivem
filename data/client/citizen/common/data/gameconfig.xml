@@ -110,11 +110,11 @@
 						</Item>
 						<Item>
 							<PoolName>AnimStore</PoolName>
-							<PoolSize value="13900"/>
+							<PoolSize value="14700"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
-							<PoolSize value="3015"/>
+							<PoolSize value="3051"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
@@ -298,11 +298,11 @@
 						</Item>
 						<Item>
 							<PoolName>MapDataLoadedNode</PoolName>
-							<PoolSize value="1000"/>
+							<PoolSize value="1100"/>
 						</Item>
 						<Item>
 							<PoolName>MapDataStore</PoolName>
-							<PoolSize value="10000"/>
+							<PoolSize value="11000"/>
 						</Item>
 						<Item>
 							<PoolName>MapTypesStore</PoolName>
@@ -572,7 +572,7 @@
 						</Item>
 						<Item>
 							<PoolName>SyncedScenes</PoolName>
-							<PoolSize value="48"/>
+							<PoolSize value="50"/>
 						</Item>
 						<Item>
 						  <PoolName>AnimScenes</PoolName>
@@ -896,6 +896,7 @@
 					<SteamAppId value="271590"/>
 					<TitleDirectoryName>GTA V</TitleDirectoryName>
 					<MultiplayerSessionTemplateName>SsnTemplateOpen</MultiplayerSessionTemplateName>
+					<ScAuthTitleId>gtav</ScAuthTitleId>
 				</ConfigOnlineServices>
 
 				<ConfigUGCDescriptions>

@@ -117,6 +117,7 @@ static void writeVehicleMemory(fx::ScriptContext& context)
 
 // 1290 now
 // #TODO1365
+// #TODO1493
 const int HeliMainRotorHealthOffset = 0x19F0;
 const int HeliTailRotorHealthOffset = 0x19F4;
 const int HeliEngineHealthOffset = 0x19F8;

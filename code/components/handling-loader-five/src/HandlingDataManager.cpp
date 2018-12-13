@@ -98,6 +98,7 @@ public:
 	// 1103 now
 	// 1290 now
 	// 1365 as well
+	// 1493 too? #TODO1493
 	char pad[1200]; // +8
 	int handlingDataIndex; // +1208
 
