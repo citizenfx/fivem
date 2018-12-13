@@ -67,7 +67,8 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 
 	// M65 enables these by default, but CEF doesn't pass the required phase data at this time (2018-03-31)
 	// this breaks scrolling 'randomly' - after a middle click, and some other scenarios
-	command_line->AppendSwitchWithValue("disable-features", "TouchpadAndWheelScrollLatching,AsyncWheelEvents");
+	// also disable CrossSiteDocumentBlockingAlways and CrossSiteDocumentBlockingIfIsolating (CORB) to avoid blocked cross-origin responses
+	command_line->AppendSwitchWithValue("disable-features", "TouchpadAndWheelScrollLatching,AsyncWheelEvents,CrossSiteDocumentBlockingAlways,CrossSiteDocumentBlockingIfIsolating");
 
 	// M66 enables this by default, this breaks scrolling in iframes, however only in the Cfx embedder scenario (2018-03-31)
 	// cefclient is not affected, code was compared with cefclient but not that different.
