@@ -319,7 +319,7 @@ namespace CitizenFX.Core.UI
 		{
 			float pointX = 0f, pointY = 0f;
 
-			if (!API.World3dToScreen2d2(position.X, position.Y, position.Z, ref pointX, ref pointY))
+			if (!API.GetScreenCoordFromWorldCoord(position.X, position.Y, position.Z, ref pointX, ref pointY))
 			{
 				return PointF.Empty;
 			}
