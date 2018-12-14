@@ -709,6 +709,13 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
+	std::string gameBuild;
+
+	if (Instance<ICoreGameInit>::Get()->GetData("gameBuild", &gameBuild))
+	{
+		postMap["gameBuild"] = gameBuild;
+	}
+
 	static std::function<void()> performRequest;
 
 	postMap["guid"] = va("%lld", GetGUID());

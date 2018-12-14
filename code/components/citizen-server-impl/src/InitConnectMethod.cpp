@@ -233,6 +233,8 @@ static InitFunction initFunction([]()
 
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
+		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_None, "");
+
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
 		{
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
@@ -263,6 +265,7 @@ static InitFunction initFunction([]()
 
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
+			auto gameBuildIt = postMap.find("gameBuild");
 
 			auto protocolIt = postMap.find("protocol");
 
@@ -275,6 +278,7 @@ static InitFunction initFunction([]()
 			auto name = nameIt->second;
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
+			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 
 			// limit name length
 			if (name.length() >= 200)
@@ -400,6 +404,21 @@ static InitFunction initFunction([]()
 					clientRegistry->RemoveClient(client);
 
 					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
+					return;
+				}
+
+				if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
+				{
+					clientRegistry->RemoveClient(client);
+
+					sendError(
+						fmt::sprintf(
+							"This server requires a different game build (%s) from the one you're using (%s). Tell the server owner to remove this check.",
+							enforceGameBuildVar->GetValue(),
+							gameBuild
+						)
+					);
+
 					return;
 				}
 
