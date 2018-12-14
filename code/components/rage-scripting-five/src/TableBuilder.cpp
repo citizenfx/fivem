@@ -10,6 +10,8 @@
 
 #include <udis86.h>
 
+#include <ICoreGameInit.h>
+
 #include <Error.h>
 
 class FunctionTable
@@ -246,6 +248,8 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		versionIdx = 393;
 	}
+
+	Instance<ICoreGameInit>::Get()->SetData("gameBuild", fmt::sprintf("%d", versionIdx));
 
 	// early out if no version index matched
 	if (versionIdx < 0)
