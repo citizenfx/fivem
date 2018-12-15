@@ -107,6 +107,8 @@ struct CVehicleGameStateNodeData
 struct SyncTreeBase
 {
 public:
+	virtual ~SyncTreeBase() = default;
+
 	virtual void Parse(SyncParseState& state) = 0;
 
 	virtual bool Unparse(SyncUnparseState& state) = 0;

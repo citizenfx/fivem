@@ -384,10 +384,10 @@ public:
 	{
 		static_assert(sizeof(T) <= 4, "maximum of 32 bit read");
 
-		T val = T{};
+		uint32_t val = 0;
 		ReadBitsSingle(&val, length);
 
-		return val;
+		return T(val);
 	}
 
 	template<typename T>
