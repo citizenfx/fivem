@@ -220,7 +220,20 @@ namespace CitizenFX.Core
 		HorizontalCircleSkinny,
 		HorizontalCircleSkinnyArrow,
 		HorizontalSplitArrowCircle,
-		DebugSphere
+		DebugSphere,
+		DollarSign,
+		HorizontalBars,
+		WolfHead,
+		QuestionMark,
+		PlaneSymbol,
+		HelicopterSymbol,
+		BoatSymbol,
+		CarSymbol,
+		MotorcycleSymbol,
+		BikeSymbol,
+		TruckSymbol,
+		ParachuteSymbol,
+		SawbladeSymbol
 	}
 	public enum ExplosionType
 	{
