@@ -1266,9 +1266,10 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBit
 		return g_origReadDataNode(node, flags, mA0, buffer, object);
 	}
 
+	// enable this for boundary checks
 	/*if (flags == 1 || flags == 2)
 	{
-		uint32_t in;
+		uint32_t in = 0;
 		buffer->ReadInteger(&in, 8);
 		assert(in == 0x5A);
 	}*/
@@ -1297,7 +1298,7 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 		// save position and write a placeholder length frame
 		uint32_t position = buffer->GetPosition();
 		buffer->WriteBit(false);
-		buffer->WriteInteger(0, 11);
+		buffer->WriteUns(0, 11);
 
 		bool rv = g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
 
@@ -1310,7 +1311,7 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 			buffer->Seek(position);
 
 			buffer->WriteBit(true);
-			buffer->WriteInteger(length, 11);
+			buffer->WriteUns(length, 11);
 			buffer->Seek(endPosition);
 
 			if (g_curNetObject)

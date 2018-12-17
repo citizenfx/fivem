@@ -431,7 +431,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			// write Cfx length placeholder
 			if (node->IsDataNode())
 			{
-				buffer->WriteInteger(0, 11);
+				buffer->WriteUns(0, 11);
 			}
 
 			if (node->IsParentNode())
@@ -533,7 +533,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 						length -= 1;
 					}
 
-					buffer->WriteInteger(length, 11);
+					buffer->WriteUns(length, 11);
 				}
 
 				buffer->Seek(endPos);

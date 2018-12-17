@@ -45,7 +45,10 @@ public:
 
 	bool ReadInteger(uint32_t* integer, int bits);
 
+	// NOTE: SIGNED
 	bool WriteInteger(uint32_t integer, int bits);
+
+	bool WriteUns(uint32_t integer, int bits);
 
 	bool WriteBit(bool bit);
 
