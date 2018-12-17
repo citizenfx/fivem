@@ -1036,6 +1036,15 @@ void CloneManagerLocal::WriteUpdates()
 			return;
 		}
 
+		// if this object doesn't have a game object, but it should, ignore it
+		if (object->objectType != (uint16_t)NetObjEntityType::PickupPlacement)
+		{
+			if (object->GetGameObject() == nullptr)
+			{
+				return;
+			}
+		}
+
 		// get the sync tree
 		auto syncTree = object->GetSyncTree();
 
