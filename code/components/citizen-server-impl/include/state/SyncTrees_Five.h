@@ -349,6 +349,9 @@ struct NodeWrapper : public NodeBase
 			}
 		}
 
+		// enable this for boundary checks
+		//state.buffer.Write(8, 0x5A);
+
 		if (shouldWrite(state, TIds::GetIds(), couldWrite))
 		{
 			state.buffer.WriteBits(data.data(), length);
@@ -708,6 +711,7 @@ struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true
 struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerAppearanceDataNode { bool Parse(SyncParseState& state) { /*trace("PlayerAppearanceDataNode!\n");*/ return true; } };
@@ -1119,13 +1123,13 @@ using CDoorSyncTree = SyncTree<
 			NodeIds<1, 0, 0>, 
 			NodeWrapper<NodeIds<1, 0, 0>, CDoorCreationDataNode>
 		>, 
-		NodeWrapper<NodeIds<86, 86, 0>, CDoorMovementDataNode>, 
 		ParentNode<
 			NodeIds<127, 127, 0>, 
 			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>, 
 			NodeWrapper<NodeIds<127, 127, 1>, CDoorScriptInfoDataNode>, 
 			NodeWrapper<NodeIds<127, 127, 1>, CDoorScriptGameStateDataNode>
 		>, 
+		NodeWrapper<NodeIds<86, 86, 0>, CDoorMovementDataNode>, 
 		ParentNode<
 			NodeIds<4, 0, 0>, 
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>, 
@@ -1549,6 +1553,63 @@ using CAutomobileSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>, 
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>, 
 					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+				>, 
+				ParentNode<
+					NodeIds<127, 127, 1>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+				>
+			>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleTaskDataNode>
+		>, 
+		ParentNode<
+			NodeIds<127, 86, 0>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>, 
+			ParentNode<
+				NodeIds<127, 86, 0>, 
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>, 
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>, 
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+			>
+		>, 
+		ParentNode<
+			NodeIds<4, 0, 0>, 
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>, 
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>, 
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>, 
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+		>
+	>
+>;
+using CTrainSyncTree = SyncTree<
+	ParentNode<
+		NodeIds<127, 0, 0>, 
+		ParentNode<
+			NodeIds<1, 0, 0>, 
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+		>, 
+		ParentNode<
+			NodeIds<127, 127, 0>, 
+			ParentNode<
+				NodeIds<127, 127, 0>, 
+				ParentNode<
+					NodeIds<127, 127, 0>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode>
 				>, 
 				ParentNode<
 					NodeIds<127, 127, 1>, 

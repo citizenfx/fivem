@@ -34,8 +34,7 @@ std::unique_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectTy
 	case sync::NetObjEntityType::Trailer:
 		return std::make_unique<sync::CAutomobileSyncTree>();
 	case sync::NetObjEntityType::Train:
-		//return std::make_unique<sync::CTrainSyncTree>();
-		break;
+		return std::make_unique<sync::CTrainSyncTree>();
 	}
 
 	return {};
