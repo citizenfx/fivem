@@ -761,8 +761,58 @@ static InitFunction initFunction([]()
 	});
 });
 
+#if _DEBUG
+static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t", bool last = true)
+{
+	std::string objectName = typeid(*node).name();
+	objectName = objectName.substr(6);
+
+	if (node->IsParentNode())
+	{
+		trace("%sParentNode<\n", indent);
+		trace("%s\tNodeIds<%d, %d, %d>,\n", indent, node->flags1, node->flags2, node->flags3);
+
+		for (auto child = node->firstChild; child; child = child->nextSibling)
+		{
+			DumpSyncNode(child, indent + "\t", (child->nextSibling == nullptr));
+		}
+
+		trace("%s>%s\n", indent, !last ? "," : "");
+	}
+	else
+	{
+		trace("%sNodeWrapper<NodeIds<%d, %d, %d>, %s>%s\n", indent, node->flags1, node->flags2, node->flags3, objectName, !last ? "," : "");
+	}
+}
+
+static void DumpSyncTree(rage::netSyncTree* syncTree)
+{
+	std::string objectName = typeid(*syncTree).name();
+	objectName = objectName.substr(6);
+
+	trace("using %s = SyncTree<\n", objectName);
+
+	DumpSyncNode(*(rage::netSyncNodeBase**)((char*)syncTree + 16));
+
+	trace(">;\n");
+}
+#endif
+
 static HookFunction hookFunction([]()
 {
+#if _DEBUG
+	static ConsoleCommand dumpSyncTreesCmd("dumpSyncTrees", []()
+	{
+		for (int i = 0; i <= 13; i++)
+		{
+			auto obj = rage::CreateCloneObject((NetObjEntityType)i, i + 204, 0, 0, 32);
+			auto tree = obj->GetSyncTree();
+
+			DumpSyncTree(tree);
+		}
+	});
+#endif
+
 	// allow CSyncDataLogger even without label string
 	hook::nop(hook::get_pattern("4D 85 C9 74 44 48 8D 4C", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C0 74 25 80 3A 00", 3), 2);
