@@ -385,6 +385,8 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 				fileDataRef->metaData = metaData;
 
+				bool success = true;
+
 				if (!m_blocking && handleData->fileData == fileDataRef)
 				{
 					auto entry = m_cache->GetEntryFor(entryRef);
@@ -395,11 +397,16 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 					}
 					else
 					{
-						FatalError("Failed to write valid entry for ResourceCacheDevice file %s", entryRef.remoteUrl);
+						trace("Failed to write valid entry for ResourceCacheDevice file %s - retrying?\n", entryRef.remoteUrl);
+
+						success = false;
 					}
 				}
 
-				fileDataRef->status = FileData::StatusFetched;
+				if (success)
+				{
+					fileDataRef->status = FileData::StatusFetched;
+				}
 
 				if (handleData->fileData == fileDataRef)
 				{
@@ -451,6 +458,16 @@ size_t ResourceCacheDevice::Read(THandle handle, void* outBuffer, size_t size)
 	// if the file isn't fetched, fetch it first
 	bool fetched = EnsureFetched(handleData);
 
+	if (m_blocking && !fetched)
+	{
+		while (!fetched)
+		{
+			Sleep(1000);
+
+			fetched = EnsureFetched(handleData);
+		}
+	}
+
 	// not fetched and non-blocking - return 0
 	if (handleData->fileData->status == FileData::StatusNotFetched || handleData->fileData->status == FileData::StatusFetching)
 	{
@@ -487,6 +504,16 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 		}
 
 		return (handleData->fileData->status == FileData::StatusFetched) ? 2048 : 0;
+	}
+
+	if (m_blocking && !fetched)
+	{
+		while (!fetched)
+		{
+			Sleep(1000);
+
+			fetched = EnsureFetched(handleData);
+		}
 	}
 
 	// not fetched and non-blocking - return 0
