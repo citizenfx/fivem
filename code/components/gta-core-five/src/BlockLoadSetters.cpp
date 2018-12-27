@@ -1329,7 +1329,7 @@ static HookFunction hookFunction([] ()
 	//hook::call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), DebugBreakDo);
 	//hook::jump(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)), DebugBreakDo);
 
-	char* errorFunc = reinterpret_cast<char*>(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)));
+	char* errorFunc = reinterpret_cast<char*>(hook::get_call(hook::pattern("B9 84 EC F4 C6 E8").count(1).get(0).get<void>(5)));
 	hook::jump(hook::get_call(errorFunc + 6), ErrorDo);
 
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(0x14), 5);

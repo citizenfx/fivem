@@ -596,4 +596,11 @@ static HookFunction hookFunction([] ()
 	
 	// test: disable 'classification' compute shader users by claiming it is unsupported
 	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
+
+	// test: disable ERR_GEN_MAPSTORE_X error asserts (RDR3 seems to not have any assertion around these at all, so this ought to be safe)
+	{
+		auto location = hook::get_pattern<char>("CD 36 41 A8 E8", 4);
+		hook::nop(location, 5);
+		hook::nop(location + 15, 5);
+	}
 });
