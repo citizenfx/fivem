@@ -16,7 +16,7 @@ build_client:
       - caches/caches.xml
       - caches/CitizenFX.exe.xz
       - caches/version.txt
-    expire_in: 1 week
+    expire_in: 1 month
   cache:
     key: client
     untracked: true
@@ -60,7 +60,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    - master
+    #- master
     - feature/update-to-1365
     - feature/cloning-stuff-releng
   tags:

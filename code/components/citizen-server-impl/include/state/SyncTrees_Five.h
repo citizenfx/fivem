@@ -257,7 +257,7 @@ struct ParentNode : public NodeBase
 template<typename TIds, typename TNode, typename = void>
 struct NodeWrapper : public NodeBase
 {
-	std::array<uint8_t, 256> data;
+	std::array<uint8_t, 768> data;
 	uint32_t length;
 
 	TNode node;
@@ -293,7 +293,7 @@ struct NodeWrapper : public NodeBase
 		if (shouldRead(state, TIds::GetIds()))
 		{
 			// read into data array
-			auto length = state.buffer.Read<uint32_t>(11);
+			auto length = state.buffer.Read<uint32_t>(13);
 			auto endBit = state.buffer.GetCurrentBit();
 			//auto leftoverLength = length - (endBit - curBit);
 			auto leftoverLength = length;
@@ -301,7 +301,7 @@ struct NodeWrapper : public NodeBase
 			auto oldData = data;
 
 			this->length = leftoverLength;
-			state.buffer.ReadBits(data.data(), leftoverLength);
+			state.buffer.ReadBits(data.data(), std::min(uint32_t(data.size() * 8), leftoverLength));
 
 			state.buffer.SetCurrentBit(endBit);
 

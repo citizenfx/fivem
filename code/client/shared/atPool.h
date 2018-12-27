@@ -7,6 +7,9 @@ protected:
 	int8_t* m_flags;
 	uint32_t m_count;
 	uint32_t m_entrySize;
+	uint32_t m_pad;
+	uint32_t m_pad2;
+	uint32_t m_bitCount;
 
 private:
 	struct VirtualDtorBase
@@ -38,6 +41,12 @@ public:
 		}
 
 		return reinterpret_cast<T*>(m_data + (index * m_entrySize));
+	}
+
+	size_t GetCountDirect()
+	{
+		// R* code does << 2 >> 2, but that makes no sense
+		return m_bitCount & 0x3FFFFFFFF;
 	}
 
 	size_t GetCount()

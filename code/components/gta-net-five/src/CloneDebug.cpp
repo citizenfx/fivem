@@ -322,7 +322,7 @@ struct WriteTreeState
 
 struct NetObjectNodeData
 {
-	std::array<uint8_t, 256> lastData;
+	std::array<uint8_t, 768> lastData;
 	uint32_t lastChange;
 	uint32_t lastAck;
 
@@ -412,7 +412,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 		buffer->WriteBit(objFlags & 1);
 	}
 
-	TraverseTree<WriteTreeState>(this, state, [](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	// #NETVER: 2018-12-27 17:41 -> increased maximum packet size to 768 from 256 to account for large CPlayerAppearanceDataNode
+	int sizeLength = (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201812271741) ? 13 : 11;
+
+	TraverseTree<WriteTreeState>(this, state, [sizeLength](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		auto buffer = state.buffer;
 		bool didWrite = false;
@@ -431,7 +434,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			// write Cfx length placeholder
 			if (node->IsDataNode())
 			{
-				buffer->WriteUns(0, 11);
+				buffer->WriteUns(0, sizeLength);
 			}
 
 			if (node->IsParentNode())
@@ -446,10 +449,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
 				// calculate node change state
-				std::array<uint8_t, 256> tempData;
+				std::array<uint8_t, 768> tempData;
 				memset(tempData.data(), 0, tempData.size());
 
-				rage::datBitBuffer tempBuf(tempData.data(), tempData.size());
+				rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
 
 				node->WriteObject(state.object, &tempBuf, nullptr, true);
 
@@ -526,14 +529,14 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (node->IsDataNode())
 				{
-					auto length = endPos - startPos - 11;
+					auto length = endPos - startPos - sizeLength;
 
 					if (node->flags2 & state.flags)
 					{
 						length -= 1;
 					}
 
-					buffer->WriteUns(length, 11);
+					buffer->WriteUns(length, sizeLength);
 				}
 
 				buffer->Seek(endPos);

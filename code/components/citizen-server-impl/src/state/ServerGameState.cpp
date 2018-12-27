@@ -510,7 +510,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		if (enPeer)
 		{
-			resendDelay = std::chrono::milliseconds(std::max(int(1), int(enPeer->roundTripTime * 2) - int(enPeer->roundTripTimeVariance)));
+			resendDelay = std::chrono::milliseconds(std::max(int(1), int(enPeer->roundTripTime * 3) - int(enPeer->roundTripTimeVariance)));
 		}
 
 		int numCreates = 0, numSyncs = 0, numSkips = 0;
@@ -562,7 +562,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float distSquared = (diffX * diffX) + (diffY * diffY);
 
 					// #TODO1S: figure out a good value for this
-					if (distSquared < (650.0f * 650.0f))
+					if (distSquared < (350.0f * 350.0f))
 					{
 						shouldBeCreated = true;
 					}

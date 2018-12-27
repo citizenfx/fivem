@@ -825,6 +825,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
 			Instance<ICoreGameInit>::Get()->OneSyncEnabled = (node["onesync"].IsDefined() && node["onesync"].as<bool>(false));
+			Instance<ICoreGameInit>::Get()->NetProtoVersion = (node["bitVersion"].IsDefined() ? node["bitVersion"].as<uint64_t>(0) : 0);
 
 			m_serverProtocol = node["protocol"].as<uint32_t>();
 
