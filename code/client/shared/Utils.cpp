@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <mutex>
+#include <utf8.h>
 #include "Error.h"
 
 static STATIC InitFunctionBase* g_initFunctions;
@@ -349,12 +350,34 @@ bool UrlDecode(const std::string& in, std::string& out)
 
 std::string ToNarrow(const std::wstring& wide)
 {
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
-	return g_converter.to_bytes(wide);
+	// TODO: replace with something faster if needed
+	std::vector<char> outVec;
+	outVec.reserve(wide.size());
+
+#ifdef _WIN32
+	utf8::utf16to8(wide.begin(), wide.end(), std::back_inserter(outVec));
+#else
+	utf8::utf32to8(wide.begin(), wide.end(), std::back_inserter(outVec));
+#endif
+	
+	return std::string(outVec.begin(), outVec.end());
 }
 
 std::wstring ToWide(const std::string& narrow)
 {
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> g_converter;
-	return g_converter.from_bytes(narrow);
+	std::vector<uint8_t> cleanVec;
+	cleanVec.reserve(narrow.size());
+
+	utf8::replace_invalid(narrow.begin(), narrow.end(), std::back_inserter(cleanVec));
+
+	std::vector<wchar_t> outVec;
+	outVec.reserve(cleanVec.size());
+
+#ifdef _WIN32
+	utf8::utf8to16(cleanVec.begin(), cleanVec.end(), std::back_inserter(outVec));
+#else
+	utf8::utf8to32(cleanVec.begin(), cleanVec.end(), std::back_inserter(outVec));
+#endif
+
+	return std::wstring(outVec.begin(), outVec.end());
 }

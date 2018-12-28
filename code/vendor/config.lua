@@ -48,5 +48,5 @@ vendor_component 'openssl_crypto'
 vendor_component 'openssl_ssl'
 vendor_component 'minizip'
 vendor_component 'glm'
-
+vendor_component 'utfcpp'
 vendor_component 'eastl'
