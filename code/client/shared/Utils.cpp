@@ -368,16 +368,23 @@ std::wstring ToWide(const std::string& narrow)
 	std::vector<uint8_t> cleanVec;
 	cleanVec.reserve(narrow.size());
 
-	utf8::replace_invalid(narrow.begin(), narrow.end(), std::back_inserter(cleanVec));
-
 	std::vector<wchar_t> outVec;
 	outVec.reserve(cleanVec.size());
 
+	try
+	{
+		utf8::replace_invalid(narrow.begin(), narrow.end(), std::back_inserter(cleanVec));
+
 #ifdef _WIN32
-	utf8::utf8to16(cleanVec.begin(), cleanVec.end(), std::back_inserter(outVec));
+		utf8::utf8to16(cleanVec.begin(), cleanVec.end(), std::back_inserter(outVec));
 #else
-	utf8::utf8to32(cleanVec.begin(), cleanVec.end(), std::back_inserter(outVec));
+		utf8::utf8to32(cleanVec.begin(), cleanVec.end(), std::back_inserter(outVec));
 #endif
+	}
+	catch (utf8::exception& e)
+	{
+
+	}
 
 	return std::wstring(outVec.begin(), outVec.end());
 }
