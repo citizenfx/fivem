@@ -176,6 +176,22 @@ static int ReturnFalse()
 	return 0;
 }
 
+static bool(*g_origLoadFromStructureChar)(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk);
+
+static bool LoadFromStructureCharHook(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk)
+{
+	bool result = g_origLoadFromStructureChar(parManager, fileName, extension, structure, outStruct, unk);
+
+	if (result && !*outStruct)
+	{
+		result = false;
+
+		console::PrintError("gta:core", "Failed to parse %s in rage::parManager::LoadFromStructure(const char*, ...). Make sure this is a well-formed XML/PSO file.\n", fileName);
+	}
+
+	return result;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -603,4 +619,12 @@ static HookFunction hookFunction([] ()
 		hook::nop(location, 5);
 		hook::nop(location + 15, 5);
 	}
+
+	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
+	// only returns false if LoadFromStructure(parTreeNode*) fails
+	// make it return failure state on failure of rage::parManager::LoadTree as well, and log the failure.
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4C 8B EA 48 8B F1 E8 ? ? ? ? 40 B5 01 48 8B F8", -0x2D), LoadFromStructureCharHook, (void**)&g_origLoadFromStructureChar);
+	// TODO: fiStream version?
+	MH_EnableHook(MH_ALL_HOOKS);
 });
