@@ -186,6 +186,29 @@ static bool(*g_resetVideoMode)(VideoModeInfo*);
 static ID3D11RenderTargetView* g_rtv;
 static ID3D11ShaderResourceView* g_srv;
 
+void(*g_origCreateBackbuffer)(void*);
+
+void WrapCreateBackbuffer(void* tf)
+{
+	trace("Creating backbuffer.\n");
+
+	if (g_rtv)
+	{
+		g_rtv->Release();
+		g_rtv = nullptr;
+	}
+
+	if (g_srv)
+	{
+		g_srv->Release();
+		g_srv = nullptr;
+	}
+
+	g_origCreateBackbuffer(tf);
+
+	trace("Done creating backbuffer.\n");
+}
+
 bool WrapVideoModeChange(VideoModeInfo* info)
 {
 	trace("Changing video mode.\n");
@@ -890,6 +913,7 @@ static HookFunction hookFunction([] ()
 		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);
 
 		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);
+		MH_CreateHook(hook::get_pattern("57 48 83 EC 20 49 83 63 08 00", -0xB), WrapCreateBackbuffer, (void**)&g_origCreateBackbuffer);
 		MH_EnableHook(MH_ALL_HOOKS);
 
 		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
