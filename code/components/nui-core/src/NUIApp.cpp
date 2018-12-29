@@ -73,6 +73,9 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// M66 enables this by default, this breaks scrolling in iframes, however only in the Cfx embedder scenario (2018-03-31)
 	// cefclient is not affected, code was compared with cefclient but not that different.
 	command_line->AppendSwitchWithValue("disable-blink-features", "RootLayerScrolling");
+
+	// register the CitizenFX game view plugin
+	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)

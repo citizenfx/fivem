@@ -22,11 +22,137 @@
 
 #include <CfxSubProcess.h>
 
+#include <HostSharedData.h>
+
 #include <Error.h>
+
+#include <MinHook.h>
 
 #include "memdbgon.h"
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+
 void FinalizeInitNUI();
+
+struct GameRenderData
+{
+	HANDLE handle;
+	int width;
+	int height;
+	bool requested;
+
+	GameRenderData()
+		: requested(false)
+	{
+
+	}
+};
+
+static void(*g_origglTexParameterf)(GLenum target, GLenum pname, GLfloat param);
+
+static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
+{
+	// 'secret' activation sequence
+	static int stage = 0;
+
+	if (target == GL_TEXTURE_2D && pname == GL_TEXTURE_WRAP_T)
+	{
+		switch (stage)
+		{
+		case 0:
+			if (param == GL_CLAMP_TO_EDGE)
+			{
+				stage = 1;
+			}
+
+			break;
+		case 1:
+			if (param == GL_MIRRORED_REPEAT)
+			{
+				stage = 2;
+			}
+			else
+			{
+				stage = 0;
+			}
+
+			break;
+		case 2:
+			if (param == GL_REPEAT)
+			{
+				stage = 3;
+			}
+			else
+			{
+				stage = 0;
+			}
+
+			break;
+		}
+	}
+	else
+	{
+		stage = 0;
+	}
+
+	if (stage == 3)
+	{
+		auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+		auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
+		auto _eglGetConfigs = (decltype(&eglGetConfigs))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigs"));
+		auto _eglCreatePbufferFromClientBuffer = (decltype(&eglCreatePbufferFromClientBuffer))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglCreatePbufferFromClientBuffer"));
+		auto _eglBindTexImage = (decltype(&eglBindTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglBindTexImage"));
+		auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
+
+		auto m_display = _eglGetCurrentDisplay();
+
+		static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+
+		EGLint pbuffer_attributes[] =
+		{
+			EGL_WIDTH,  handleData->width,
+			EGL_HEIGHT,  handleData->height,
+			EGL_TEXTURE_TARGET, EGL_TEXTURE_2D,
+			EGL_TEXTURE_FORMAT, EGL_TEXTURE_RGBA,
+			EGL_NONE
+		};
+
+		EGLConfig configs;
+		EGLint numConfigs;
+
+		_eglGetConfigs(m_display, &configs, 1, &numConfigs);
+
+		EGLSurface pbuffer = _eglCreatePbufferFromClientBuffer(
+			m_display,
+			EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
+			(EGLClientBuffer)handleData->handle,
+			configs,
+			pbuffer_attributes);
+
+		handleData->requested = true;
+
+		auto err = _eglGetError();
+
+		_eglBindTexImage(m_display, pbuffer, EGL_BACK_BUFFER);
+
+		stage = 0;
+	}
+	else if (stage <= 1)
+	{
+		g_origglTexParameterf(target, pname, param);
+	}
+}
+
+void HookLibGL(HMODULE libGL)
+{
+	MH_Initialize();
+	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
+	MH_EnableHook(MH_ALL_HOOKS);
+}
 
 void Component_RunPreInit()
 {
@@ -44,7 +170,10 @@ void Component_RunPreInit()
 	// load Chrome dependencies ourselves so that the system won't try loading from other paths
 	LoadLibrary(MakeRelativeCitPath(L"bin/chrome_elf.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
+	HMODULE libGL = LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
+
+	// hook libGLESv2 for Cfx purposes
+	HookLibGL(libGL);
 
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
