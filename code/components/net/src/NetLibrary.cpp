@@ -301,12 +301,12 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			{
 				auto steam = GetSteam();
 
-				char hostname[256] = { 0 };
-				strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 255);
+				static char hostname[8192] = { 0 };
+				strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 8191);
 
-				char cleaned[256];
+				static char cleaned[8192];
 
-				StripColors(hostname, cleaned, 256);
+				StripColors(hostname, cleaned, 8192);
 
 #ifdef GTA_FIVE
 				SetWindowText(FindWindow(L"grcWindow", nullptr), va(L"FiveM - %s", ToWide(cleaned)));
