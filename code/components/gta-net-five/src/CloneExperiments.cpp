@@ -307,6 +307,18 @@ static CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 	return g_playerMgr->localPlayer;
 }
 
+static uint8_t(*g_origGetOwnerPlayerId)(rage::netObject*);
+
+static uint8_t netObject__GetPlayerOwnerId(rage::netObject* object)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetOwnerPlayerId(object);
+	}
+
+	return netObject__GetPlayerOwner(object)->physicalPlayerIndex;
+}
+
 static CNetGamePlayer*(*g_origGetPendingPlayerOwner)(rage::netObject*);
 
 static CNetGamePlayer* netObject__GetPendingPlayerOwner(rage::netObject* object)
@@ -732,6 +744,7 @@ static HookFunction hookFunction([]()
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
+	MH_CreateHook(hook::get_call(hook::get_pattern("FF 50 68 49 8B CE E8 ? ? ? ? 48 8B 05", 6)), netObject__GetPlayerOwnerId, (void**)&g_origGetOwnerPlayerId);
 
 	hook::jump(hook::get_pattern("C6 41 4A FF C3", 0), netObject__ClearPendingPlayerIndex);
 
