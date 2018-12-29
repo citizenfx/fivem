@@ -174,35 +174,23 @@ namespace rage
 	{
 	public:
 		char m_pad[136 - sizeof(grcTexture)];
-		ID3D11RenderTargetView* m_rtv;
+		ID3D11ShaderResourceView* m_srv2;
 		void* m_pad2;
 		ID3D11Resource* m_resource2;
-		atArray<ID3D11ShaderResourceView*> m_srvs;
+		atArray<ID3D11ShaderResourceView*> m_rtvs;
 	};
 }
 
 static bool(*g_resetVideoMode)(VideoModeInfo*);
 
 static ID3D11RenderTargetView* g_rtv;
-static ID3D11ShaderResourceView* g_srv;
+static ID3D11Texture2D* g_myTexture;
 
 void(*g_origCreateBackbuffer)(void*);
 
 void WrapCreateBackbuffer(void* tf)
 {
 	trace("Creating backbuffer.\n");
-
-	if (g_rtv)
-	{
-		g_rtv->Release();
-		g_rtv = nullptr;
-	}
-
-	if (g_srv)
-	{
-		g_srv->Release();
-		g_srv = nullptr;
-	}
 
 	g_origCreateBackbuffer(tf);
 
@@ -219,10 +207,10 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 		g_rtv = nullptr;
 	}
 
-	if (g_srv)
+	if (g_myTexture)
 	{
-		g_srv->Release();
-		g_srv = nullptr;
+		g_myTexture->Release();
+		g_myTexture = nullptr;
 	}
 
 	bool success = g_origVideoModeChange(info);
@@ -301,8 +289,6 @@ static int RunGameWrap()
 {
 	return g_origRunGame();
 }
-
-static ID3D11Texture2D* g_myTexture;
 
 #pragma region shaders
 const BYTE quadPS[] =
@@ -550,36 +536,17 @@ void CaptureBufferOutput()
 
 	static D3D11_TEXTURE2D_DESC resDesc;
 
-	if (!g_srv)
+	// 1365
+	rage::grcRenderTargetDX11* backBuf = *(rage::grcRenderTargetDX11**)0x142A34090;
+
+	if (backBuf)
 	{
-		// we likely want a raw device, not RAGE stuff
-		struct
+		if (backBuf->texture)
 		{
-			void* vtbl;
-			ID3D11Device* rawDevice;
-		}*deviceStuff = (decltype(deviceStuff))GetD3D11Device();
+			((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
 
-		ID3D11RenderTargetView* rtv = nullptr;
-		GetD3D11DeviceContext()->OMGetRenderTargets(1, &rtv, nullptr);
-
-		if (rtv)
-		{
-			ID3D11Resource* texture = nullptr;
-			rtv->GetResource(&texture);
-
-			rtv->Release();
-
-			if (texture)
-			{
-				((ID3D11Texture2D*)texture)->GetDesc(&resDesc);
-
-				deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &g_srv);
-
-				texture->Release();
-
-				handleData->width = resDesc.Width;
-				handleData->height = resDesc.Height;
-			}
+			handleData->width = resDesc.Width;
+			handleData->height = resDesc.Height;
 		}
 	}
 
@@ -698,7 +665,7 @@ void CaptureBufferOutput()
 
 		deviceContext->PSSetShader(ps, nullptr, 0);
 		deviceContext->PSSetSamplers(0, 1, &ss);
-		deviceContext->PSSetShaderResources(0, 1, &g_srv);
+		deviceContext->PSSetShaderResources(0, 1, &backBuf->m_srv2);
 
 		deviceContext->VSSetShader(vs, nullptr, 0);
 
