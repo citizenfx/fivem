@@ -183,9 +183,24 @@ namespace rage
 
 static bool(*g_resetVideoMode)(VideoModeInfo*);
 
+static ID3D11RenderTargetView* g_rtv;
+static ID3D11ShaderResourceView* g_srv;
+
 bool WrapVideoModeChange(VideoModeInfo* info)
 {
 	trace("Changing video mode.\n");
+
+	if (g_rtv)
+	{
+		g_rtv->Release();
+		g_rtv = nullptr;
+	}
+
+	if (g_srv)
+	{
+		g_srv->Release();
+		g_srv = nullptr;
+	}
 
 	bool success = g_origVideoModeChange(info);
 
@@ -492,9 +507,6 @@ const BYTE quadVS[] =
 };
 #pragma endregion
 
-static ID3D11RenderTargetView* g_rtv;
-static ID3D11ShaderResourceView* g_srv;
-
 struct GameRenderData
 {
 	HANDLE handle;
@@ -541,6 +553,9 @@ void CaptureBufferOutput()
 				deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &g_srv);
 
 				texture->Release();
+
+				handleData->width = resDesc.Width;
+				handleData->height = resDesc.Height;
 			}
 		}
 	}
@@ -584,8 +599,6 @@ void CaptureBufferOutput()
 			// error handling code
 		}
 
-		handleData->width = resDesc.Width;
-		handleData->height = resDesc.Height;
 		handleData->handle = sharedHandle;
 
 		d3dTex.CopyTo(&g_myTexture);
