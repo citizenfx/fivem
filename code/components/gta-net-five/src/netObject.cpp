@@ -7,7 +7,7 @@
 #include <atPool.h>
 
 using TCreateCloneObjFn = rage::netObject*(*)(uint16_t objectId, uint8_t, int, int);
-using TPoolPtr = atPoolBase*;
+using TPoolPtr = atPoolBase**;
 
 static TCreateCloneObjFn createCloneFuncs[(int)NetObjEntityType::Max];
 static TPoolPtr validatePools[(int)NetObjEntityType::Max];
@@ -16,7 +16,7 @@ namespace rage
 {
 	netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a2, int a3, int a4)
 	{
-		auto pool = validatePools[(int)type];
+		auto pool = *validatePools[(int)type];
 
 		if (pool->GetCountDirect() >= pool->GetSize())
 		{
