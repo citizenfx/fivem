@@ -46,7 +46,7 @@ public:
 	size_t GetCountDirect()
 	{
 		// R* code does << 2 >> 2, but that makes no sense
-		return m_bitCount & 0x3FFFFFFFF;
+		return m_bitCount & 0x3FFFFFFF;
 	}
 
 	size_t GetCount()
