@@ -21,6 +21,7 @@
 // MSVC odd defines
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_DEPRECATE
+#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #endif
 
 #if defined(_WIN32)
@@ -77,12 +78,32 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#if defined(_MSC_VER)
+// HACK: since we can't redefine something defined in the UCRT .lib, we just rename the definition
+#define _wassert _wwassert
+
+#undef _ACRTIMP
+#define _ACRTIMP extern
+#endif
+
 #ifdef NDEBUG
 #undef NDEBUG
 #include <assert.h>
 #define NDEBUG
 #else
 #include <assert.h>
+#endif
+
+#if defined(_MSC_VER)
+#ifndef _ACRTIMP
+#if defined _CRTIMP && !defined _VCRT_DEFINED_CRTIMP
+#define _ACRTIMP _CRTIMP
+#elif !defined _CORECRT_BUILD && defined _DLL
+#define _ACRTIMP __declspec(dllimport)
+#else
+#define _ACRTIMP
+#endif
+#endif
 #endif
 
 #include <map>

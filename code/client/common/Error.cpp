@@ -53,10 +53,6 @@ static int SysError(const char* buffer)
 		fprintf(f, "%s", o.dump().c_str());
 		fclose(f);
 
-#ifdef _DEBUG
-		assert(!"breakpoint time");
-#endif
-
 		return -1;
 	}
 #endif
@@ -166,5 +162,20 @@ void GlobalError(const char* string, const fmt::ArgList& formatList)
 void FatalError(const char* string, const fmt::ArgList& formatList)
 {
 	GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
+}
+#endif
+
+#if defined(COMPILING_LAUNCH) || defined(COMPILING_CONSOLE) || defined(COMPILING_SHARED_LIBC)
+#undef _wassert
+
+#include <assert.h>
+
+void __cdecl _wwassert(
+	_In_z_ wchar_t const* _Message,
+	_In_z_ wchar_t const* _File,
+	_In_   unsigned       _Line
+)
+{
+	_wassert(_Message, _File, _Line);
 }
 #endif

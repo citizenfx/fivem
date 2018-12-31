@@ -15,6 +15,8 @@
 
 #include <Hooking.h>
 
+#include <CoreConsole.h>
+
 FiveGameInit g_gameInit;
 
 fwEvent<const char*> OnKillNetwork;
@@ -140,6 +142,16 @@ static InitFunction initFunction([] ()
 
 			g_gameInit.SetGameLoaded();
 		}
+	});
+
+	static ConsoleCommand assertCmd("_assert", []()
+	{
+		assert(!"_assert command used");
+	});
+
+	static ConsoleCommand crashCmd("_crash", []()
+	{
+		*(volatile int*)0 = 0;
 	});
 
 	Instance<ICoreGameInit>::Set(&g_gameInit);
