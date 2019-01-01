@@ -434,7 +434,20 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	if (handleData->fileData->status == FileData::StatusFetched && (handleData->parentDevice.GetRef() == nullptr || handleData->parentHandle == INVALID_DEVICE_HANDLE))
 	{
-		openFile(*m_cache->GetEntryFor(handleData->entry));
+		auto cacheEntry = m_cache->GetEntryFor(handleData->entry);
+
+		if (cacheEntry)
+		{
+			openFile(*cacheEntry);
+		}
+		else
+		{
+			ICoreGameInit* init = Instance<ICoreGameInit>::Get();
+
+			init->SetData("rcd:error", "Failed in ResourceCacheDevice: corruption uncovered.");
+
+			handleData->fileData->status = FileData::StatusError;
+		}
 	}
 
 	return (handleData->fileData->status == FileData::StatusFetched);
