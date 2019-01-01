@@ -25,10 +25,10 @@ echo https://runtime.fivem.net/client/alpine/community >> /etc/apk/repositories
 apk --no-cache update
 
 # install runtime dependencies
-apk add --no-cache libc++ curl=7.62.0-r100 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
+apk add --no-cache libc++ curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.62.0-r100 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev libmono mono-corlib mono mono-reference-assemblies-4.x mono-reference-assemblies-facades mono-csc c-ares-dev v8-dev
+apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev libmono mono-corlib mono mono-reference-assemblies-4.x mono-reference-assemblies-facades mono-csc c-ares-dev v8-dev
 
 # install ply
 pip install ply
