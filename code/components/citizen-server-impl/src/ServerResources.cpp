@@ -249,6 +249,9 @@ static InitFunction initFunction([]()
 			if (device.GetRef())
 			{
 				device->CreateDirectory(cacheDir);
+
+				// precreate cache/files/ so that later components won't have to
+				device->CreateDirectory(cacheDir + "files/");
 			}
 
 			vfs::Mount(new vfs::RelativeDevice(citizenDir->GetValue() + "/"), "citizen:/");
