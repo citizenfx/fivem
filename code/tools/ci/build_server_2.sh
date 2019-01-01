@@ -13,7 +13,8 @@ apk --no-cache update
 apk --no-cache upgrade
 
 # add curl so we can curl the key
-apk add --no-cache curl
+# also add ca-certificates so we don't lose it when removing curl
+apk add --no-cache curl ca-certificates
 
 # add fivem repositories
 curl -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
