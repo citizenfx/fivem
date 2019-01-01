@@ -24,6 +24,9 @@ echo https://runtime.fivem.net/client/alpine/testing >> /etc/apk/repositories
 echo https://runtime.fivem.net/client/alpine/community >> /etc/apk/repositories
 apk --no-cache update
 
+# uninstall old curl
+apk del curl
+
 # install runtime dependencies
 apk add --no-cache libc++ curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
 
