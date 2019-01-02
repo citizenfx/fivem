@@ -1,0 +1,11 @@
+{
+  "name": "@citizenfx/client",
+  "version": "1.0.727-1",
+  "description": "Typings for the CitizenFX client JS API.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -60,7 +60,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    #- master
+    - master
     - feature/update-to-1365
     - feature/cloning-stuff-releng
   tags:
@@ -112,3 +112,30 @@ deploy_prod:
     - client
   only:
     - master
+    
+typings_server:
+  stage: deploy
+  dependencies:
+    - build_server_windows
+  image: node:alpine
+  tags:
+    - linux
+  only:
+    - master
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    # workaround gitlab-ci-multi-runner#2148
+    GIT_SSL_CAPATH: /etc/ssl/certs/
+  script:
+    - sh ext/typings/server/build.sh
+    
+typings_client:
+  stage: deploy
+  dependencies:
+    - build_client
+  tags:
+    - vs2017
+  only:
+    - master
+  script:
+    - "cmd ext\\typings\\client\\build.bat"
