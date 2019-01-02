@@ -6,15 +6,15 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 apk add unzip
 
-PWD=$(pwd)
+ROOT=$(pwd)
 
-unzip $PWD/out/server.zip -d $PWD/out/server/
+unzip $ROOT/out/server.zip -d $ROOT/out/server/
 
 cd $SCRIPTPATH
 echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
 
 npm config set git-tag-version false
 
-cp -a $PWD/out/server/citizen/scripting/v8/index.d.ts $PWD/out/server/citizen/scripting/v8/natives_server.d.ts .
+cp -a $ROOT/out/server/citizen/scripting/v8/index.d.ts $ROOT/out/server/citizen/scripting/v8/natives_server.d.ts .
 npm version "1.0.${CI_PIPELINE_ID}-1"
 npm publish

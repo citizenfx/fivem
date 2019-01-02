@@ -138,4 +138,4 @@ typings_client:
   only:
     - master
   script:
-    - "cmd ext\\typings\\client\\build.bat"
+    - "cmd /c ext\\typings\\client\\build.bat"
