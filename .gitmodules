@@ -35,7 +35,7 @@
 	url = https://github.com/citizenfx/libssh.git
 [submodule "vendor/xz"]
 	path = vendor/xz
-	url = http://git.tukaani.org/xz.git
+	url = https://github.com/xz-mirror/xz.git
 [submodule "vendor/curl"]
 	path = vendor/curl
 	url = https://github.com/citizenfx/curl.git
