@@ -5,6 +5,7 @@ set path=C:\msys64\usr\bin;%path%
 pacman --noconfirm --needed -S make curl
 
 pushd ext\natives\
+mkdir out
 curl -Lo out\natives_global.lua http://runtime.fivem.net/doc/natives.lua
 curl -Lo out\natives_cfx.lua http://runtime.fivem.net/doc/natives_cfx.lua
 make -j4
