@@ -7,7 +7,7 @@ copy /y %ROOT%\caches\diff\fivereborn\citizen\scripting\v8\index.d.ts index.d.ts
 
 echo //registry.npmjs.org/:_authToken=%NPM_TOKEN% > .npmrc
 
-npm config set git-tag-version false
+call npm config set git-tag-version false
 
-npm version "1.0.${CI_PIPELINE_ID}-1"
-npm publish
+call npm version "1.0.${CI_PIPELINE_ID}-1"
+call npm publish
