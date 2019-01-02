@@ -846,43 +846,55 @@ namespace fx
 
 				gscomms_execute_callback_on_main_thread([=]()
 				{
-					int spacePos = data.find_first_of(" \n");
-
-					auto password = data.substr(0, spacePos);
-					auto command = data.substr(spacePos);
-
-					auto serverPassword = server->GetRconPassword();
-
-					std::string printString;
-
-					PrintListenerContext context([&](const std::string_view& print)
+					try
 					{
-						printString += print;
-					});
+						int spacePos = data.find_first_of(" \n");
 
-					ScopeDestructor destructor([&]()
-					{
-						server->SendOutOfBand(from, "print " + printString);
-					});
+						if (spacePos == std::string::npos)
+						{
+							return;
+						}
 
-					if (serverPassword.empty())
-					{
-						trace("The server must set rcon_password to be able to use this command.\n");
-						return;
+						auto password = data.substr(0, spacePos);
+						auto command = data.substr(spacePos);
+
+						auto serverPassword = server->GetRconPassword();
+
+						std::string printString;
+
+						PrintListenerContext context([&](const std::string_view& print)
+						{
+							printString += print;
+						});
+
+						ScopeDestructor destructor([&]()
+						{
+							server->SendOutOfBand(from, "print " + printString);
+						});
+
+						if (serverPassword.empty())
+						{
+							trace("The server must set rcon_password to be able to use this command.\n");
+							return;
+						}
+
+						if (password != serverPassword)
+						{
+							trace("Invalid password.\n");
+							return;
+						}
+
+						auto ctx = server->GetInstance()->GetComponent<console::Context>();
+						ctx->ExecuteBuffer();
+
+						se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+						ctx->AddToBuffer(std::string(command));
+						ctx->ExecuteBuffer();
 					}
-
-					if (password != serverPassword)
+					catch (std::exception& e)
 					{
-						trace("Invalid password.\n");
-						return;
+
 					}
-
-					auto ctx = server->GetInstance()->GetComponent<console::Context>();
-					ctx->ExecuteBuffer();
-
-					se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-					ctx->AddToBuffer(std::string(command));
-					ctx->ExecuteBuffer();
 				});
 			}
 
