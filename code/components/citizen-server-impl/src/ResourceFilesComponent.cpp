@@ -5,7 +5,7 @@
 
 #include <VFSManager.h>
 
-#include <SHA1.h>
+#include <botan/sha160.h>
 
 #include <any>
 
@@ -546,20 +546,18 @@ namespace fx
 			{
 				// calculate a hash of the file
 				std::vector<uint8_t> data(8192);
-				sha1nfo sha1;
-				size_t numRead;
 
-				// initialize context
-				sha1_init(&sha1);
+				auto sha1 = std::make_unique<Botan::SHA_160>();
+				size_t numRead;
 
 				// read from the stream
 				while ((numRead = stream->Read(data)) > 0)
 				{
-					sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+					sha1->update(&data[0], numRead);
 				}
 
 				// get the hash result and convert it to a string
-				uint8_t* hash = sha1_result(&sha1);
+				auto hash = sha1->final();
 
 				m_fileHashPairs["resource.rpf"] = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 					hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
