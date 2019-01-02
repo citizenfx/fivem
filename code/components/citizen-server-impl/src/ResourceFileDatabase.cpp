@@ -25,8 +25,11 @@ bool ResourceFileDatabase::Load(const std::string& fileName)
 	{
 		auto data = vfsStream->ReadToEnd();
 
+		// add a null terminator
+		data.resize(data.size() + 1);
+
 		rapidjson::Document doc;
-		doc.Parse(reinterpret_cast<const char*>(data.data()), data.size());
+		doc.ParseInsitu(reinterpret_cast<char*>(data.data()));
 
 		if (!doc.HasParseError() && doc.IsArray())
 		{
