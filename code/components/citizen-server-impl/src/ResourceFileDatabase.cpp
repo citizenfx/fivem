@@ -183,6 +183,9 @@ auto ResourceFileDatabase::GetEntry(const std::string& file) -> Entry
 			device->ExtensionCtl(VFS_GET_FILE_ID, &idExt, sizeof(idExt));
 
 			entry.fileId = idExt.fileId;
+
+			// very important, close the file
+			device->Close(handle);
 		}
 	}
 
