@@ -292,8 +292,9 @@ namespace fx
 		}
 		catch (std::exception&)
 		{
-			return nullptr;
 		}
+
+		return nullptr;
 	}
 
 	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> StorageEntry*
