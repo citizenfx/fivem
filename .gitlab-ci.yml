@@ -43,7 +43,7 @@ build_server_windows:
     - tags
     #- master
     - feature/update-to-1365
-    - feature/one-off-server-hotfix
+    #- feature/one-off-server-hotfix
   cache:
     key: server
     untracked: true
@@ -65,6 +65,7 @@ build_proot_linux:
     #- master
     - feature/update-to-1365
     - feature/cloning-stuff-releng
+    - feature/one-off-server-hotfix
   tags:
     - linux
 
