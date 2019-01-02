@@ -464,20 +464,20 @@ void Component_RunPreInit()
 
 			if (!static_cast<bool>(ec))
 			{
-				if (parsed.host())
+				if (!parsed.host().empty())
 				{
-					if (*parsed.host() == "connect")
+					if (parsed.host().to_string() == "connect")
 					{
-						if (parsed.path())
+						if (!parsed.path().empty())
 						{
-							connectHost = parsed.path()->substr(1).to_string();
+							connectHost = parsed.path().substr(1).to_string();
 						}
 					}
-					else if (*parsed.host() == "accept-auth")
+					else if (parsed.host().to_string() == "accept-auth")
 					{
-						if (parsed.query())
+						if (!parsed.query().empty())
 						{
-							authPayload = parsed.query()->to_string();
+							authPayload = parsed.query().to_string();
 						}
 					}
 				}

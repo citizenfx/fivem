@@ -81,10 +81,10 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 		// get the host name
 		auto hostRef = uriParsed.host();
 
-		if (hostRef)
+		if (!hostRef.empty())
 		{
 			// convert to a regular string
-			std::string host = hostRef->to_string();
+			std::string host = hostRef.to_string();
 
 			// find a resource entry in the entry list
 			if (m_resourceEntries.find(host) != m_resourceEntries.end())

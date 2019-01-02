@@ -46,17 +46,17 @@ public:
 			auto pathRef = uriParsed.path();
 			auto fragRef = uriParsed.fragment();
 
-			if (pathRef && fragRef)
+			if (!pathRef.empty() && !fragRef.empty())
 			{
 				std::vector<char> path;
 #ifdef _WIN32
-				std::string pr = pathRef->substr(1).to_string();
+				std::string pr = pathRef.substr(1).to_string();
 #else
-				std::string pr = pathRef->to_string();
+				std::string pr = pathRef.to_string();
 #endif
 				network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
 
-				resource = m_manager->CreateResource(fragRef->to_string());
+				resource = m_manager->CreateResource(fragRef.to_string());
 				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
 			}
 		}

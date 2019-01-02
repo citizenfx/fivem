@@ -46,9 +46,9 @@ static std::string CrackResourceName(const std::string& uri)
 
 	if (!static_cast<bool>(ec))
 	{
-		if (parsed.host())
+		if (!parsed.host().empty())
 		{
-			return parsed.host().get().to_string();
+			return parsed.host().to_string();
 		}
 	}
 
