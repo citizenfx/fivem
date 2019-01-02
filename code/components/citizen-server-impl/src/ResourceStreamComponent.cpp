@@ -317,7 +317,7 @@ namespace fx
 			}
 			else
 			{
-				fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s.sfl", m_resource->GetName()));
+				fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName()));
 
 				if (stream.GetRef())
 				{
