@@ -45,8 +45,6 @@ namespace fx
 
 		std::string GetSetFileName(const std::string& setName);
 
-		std::string GetSetDatabaseName(const std::string& setName);
-
 	private:
 		fx::Resource* m_resource;
 

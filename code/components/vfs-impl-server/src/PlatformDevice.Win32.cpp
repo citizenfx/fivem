@@ -1,9 +1,7 @@
-#include <StdInc.h>
+﻿#include <StdInc.h>
 #include <LocalDevice.h>
 
 #include <windows.h>
-
-#include <versionhelpers.h>
 
 namespace vfs
 {
@@ -248,46 +246,5 @@ bool LocalDevice::FindNext(THandle handle, FindData* findData)
 void LocalDevice::FindClose(THandle handle)
 {
 	::FindClose(reinterpret_cast<HANDLE>(handle));
-}
-
-bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
-{
-	if (controlIdx == VFS_GET_FILE_ID && controlSize == sizeof(GetFileIdExtension))
-	{
-		auto data = reinterpret_cast<GetFileIdExtension*>(controlData);
-
-		if (IsWindows8OrGreater())
-		{
-			FILE_ID_INFO info;
-			BOOL result = GetFileInformationByHandleEx(reinterpret_cast<HANDLE>(data->handle), FileIdInfo, &info, sizeof(info));
-
-			if (result)
-			{
-				data->fileId = vfs::FileId{};
-				memcpy(data->fileId.data(), &info.FileId.Identifier, std::min(sizeof(info.FileId.Identifier), data->fileId.size()));
-
-				return true;
-			}
-		}
-		else
-		{
-			BY_HANDLE_FILE_INFORMATION info;
-			BOOL result = GetFileInformationByHandle(reinterpret_cast<HANDLE>(data->handle), &info);
-
-			if (result)
-			{
-				ULARGE_INTEGER fileInt;
-				fileInt.LowPart = info.nFileIndexLow;
-				fileInt.HighPart = info.nFileIndexHigh;
-
-				data->fileId = vfs::FileId{};
-				memcpy(data->fileId.data(), &fileInt, std::min(sizeof(fileInt), data->fileId.size()));
-
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 }

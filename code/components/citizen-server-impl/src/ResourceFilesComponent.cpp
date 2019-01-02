@@ -1,7 +1,6 @@
 #include "StdInc.h"
 #include <ResourceFilesComponent.h>
 #include <ResourceMetaDataComponent.h>
-#include <ResourceFileDatabase.h>
 
 #include <VFSManager.h>
 
@@ -384,33 +383,10 @@ namespace fx
 {
 	bool ResourceFilesComponent::BuildResourceSet(const std::string& setName)
 	{
+		fi::PackfileBuilder packfile;
 		auto files = GetFilesForSet(setName);
 
-		// use a std::set to deduplicate files
-		std::set<std::string> fileSet(files.begin(), files.end());
-
-		// collect the database first, so if things change since then we know to rebuild
-		{
-			std::string setDatabaseFileName = GetSetDatabaseName(setName);
-
-			auto setDatabase = std::make_shared<ResourceFileDatabase>();
-
-			std::vector<std::string> fileNames;
-
-			for (const auto& file : fileSet)
-			{
-				fileNames.emplace_back(m_resource->GetPath() + "/" + file);
-			}
-
-			setDatabase->Snapshot(fileNames);
-
-			setDatabase->Save(setDatabaseFileName);
-		}
-
-		// build the new packfile
-		fi::PackfileBuilder packfile;
-
-		for (const auto& file : fileSet)
+		for (const auto& file : files)
 		{
 			packfile.AddFile(file, m_resource->GetPath() + "/" + file);
 		}
@@ -422,37 +398,35 @@ namespace fx
 
 	bool ResourceFilesComponent::ShouldBuildSet(const std::string& setName)
 	{
-		// if the set doesn't exist anymore, we _always_ want to build the set
 		std::string setFileName = GetSetFileName(setName);
 		
-		{
-			fwRefContainer<vfs::Stream> setStream = vfs::OpenRead(setFileName);
+		fwRefContainer<vfs::Device> device = vfs::GetDevice(setFileName);
 
-			if (!setStream.GetRef())
-			{
-				return true;
-			}
-		}
-
-		// load the set database
-		std::string setDatabaseFileName = GetSetDatabaseName(setName);
-
-		auto setDatabase = std::make_shared<ResourceFileDatabase>();
-
-		if (!setDatabase->Load(setDatabaseFileName))
+		if (!device.GetRef())
 		{
 			return true;
 		}
 
-		std::vector<std::string> fileNames;
+		// get the last-modified time for the set
+		std::time_t setModifiedTime = device->GetModifiedTime(setFileName);
+
+		// get the highest modified time for the set's files
+		std::time_t lastModifiedTime = std::numeric_limits<std::time_t>::min();
+
 		auto files = GetFilesForSet(setName);
 
-		for (const auto& file : files)
+		for (auto& file : files)
 		{
-			fileNames.emplace_back(m_resource->GetPath() + "/" + file);
+			device = vfs::GetDevice(m_resource->GetPath() + "/" + file);
+
+			if (device.GetRef())
+			{
+				lastModifiedTime = std::max(device->GetModifiedTime(m_resource->GetPath() + "/" + file), lastModifiedTime);
+			}
 		}
 
-		return setDatabase->Check(fileNames);
+		// return true if the files were modified after the set
+		return (setModifiedTime == 0 || lastModifiedTime > setModifiedTime);
 	}
 
 	void ResourceFilesComponent::AddFileToDefaultSet(const std::string& fileName)
@@ -571,11 +545,6 @@ namespace fx
 	std::string ResourceFilesComponent::GetSetFileName(const std::string& setName)
 	{
 		return "cache:/files/" + m_resource->GetName() + "/" + setName;
-	}
-
-	std::string ResourceFilesComponent::GetSetDatabaseName(const std::string& setName)
-	{
-		return "cache:/files/" + m_resource->GetName() + "/" + setName + ".db";
 	}
 
 	std::string ResourceFilesComponent::GetDefaultSetName()

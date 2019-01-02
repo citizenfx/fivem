@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <VFSDevice.h>
 
@@ -44,7 +44,5 @@ public:
 	virtual bool FindNext(THandle handle, FindData* findData) override;
 
 	virtual void FindClose(THandle handle) override;
-
-	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 };
 }
