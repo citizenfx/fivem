@@ -27,6 +27,7 @@ build_client:
   except:
     - server-ci
     - tags
+    - feature/one-off-server-hotfix
 
 build_server_windows:
   <<: *build_windows
@@ -42,6 +43,7 @@ build_server_windows:
     - tags
     #- master
     - feature/update-to-1365
+    - feature/one-off-server-hotfix
   cache:
     key: server
     untracked: true
