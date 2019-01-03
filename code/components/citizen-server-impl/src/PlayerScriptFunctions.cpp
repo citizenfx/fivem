@@ -88,12 +88,12 @@ static InitFunction initFunction([]()
 	{
 		auto peer = gscomms_get_peer(client->GetPeer());
 
-		if (!peer)
+		if (!peer.GetRef())
 		{
 			return -1;
 		}
 
-		return int(peer->lastRoundTripTime);
+		return int(peer->GetPing());
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_LAST_MSG", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)

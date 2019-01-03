@@ -213,7 +213,7 @@ static InitFunction initFunction([]()
 					{ "id", client->GetNetId() },
 					{ "identifiers", identifiers },
 					{ "name", client->GetName() },
-					{ "ping", gscomms_get_peer(client->GetPeer())->roundTripTime }
+					{ "ping", gscomms_get_peer(client->GetPeer())->GetPing() }
 				});
 			});
 

@@ -31,7 +31,7 @@ static InitFunction initFunction([]()
 			// payload
 			outBuffer.Write(buf.data(), buf.size());
 
-			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		};
 
 		clientRegistry->OnConnectedClient.Connect([console, sendVariableList](fx::Client* client)

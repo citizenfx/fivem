@@ -210,7 +210,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 				});
 			}, 99999999);
 
@@ -234,7 +234,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 				});
 			}, -1000);
 		});
@@ -449,14 +449,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (client)
 		{
 			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		}
 	}
 	else
 	{
 		clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
-			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		});
 	}
 }

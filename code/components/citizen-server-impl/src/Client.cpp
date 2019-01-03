@@ -76,11 +76,11 @@ namespace fx
 		return it->second;
 	}
 
-	void Client::SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags /* = (ENetPacketFlag)0 */)
+	void Client::SendPacket(int channel, const net::Buffer& buffer, NetPacketType type /* = (ENetPacketFlag)0 */)
 	{
 		if (m_peer)
 		{
-			gscomms_send_packet(*m_peer.get(), channel, buffer, flags);
+			gscomms_send_packet(*m_peer.get(), channel, buffer, type);
 		}
 	}
 }

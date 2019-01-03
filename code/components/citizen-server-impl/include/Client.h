@@ -13,8 +13,6 @@
 
 #include <se/Security.h>
 
-#include <enet/enet.h>
-
 #define MAX_CLIENTS 64 // don't change this past 256 ever, also needs to be synced with client code
 
 namespace {
@@ -189,7 +187,7 @@ namespace fx
 
 		void SetData(const std::string& key, const std::any& data);
 
-		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
+		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
 
 		fwEvent<> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
