@@ -31,6 +31,8 @@ public:
 	virtual void OnIncomingCommand(uint32_t type, size_t size) = 0;
 
 	virtual void OnOutgoingCommand(uint32_t type, size_t size) = 0;
+
+	virtual void OverrideBandwidthStats(uint32_t in, uint32_t out) = 0;
 };
 
 enum NetPacketSubComponent

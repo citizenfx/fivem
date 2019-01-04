@@ -1,5 +1,10 @@
 #pragma once
 
+namespace net
+{
+	class PeerAddress;
+}
+
 class NetAddress;
 
 struct RoutingPacket
@@ -67,4 +72,6 @@ public:
 	virtual void AddReceiveTick() = 0;
 	
 	virtual void AddSendTick() = 0;
+
+	virtual net::PeerAddress GetCurrentPeer() = 0;
 };

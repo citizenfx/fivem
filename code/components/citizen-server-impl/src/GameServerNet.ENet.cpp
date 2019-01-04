@@ -177,7 +177,7 @@ namespace fx
 			nfds = *std::max_element(fds.begin(), fds.end());
 #endif
 
-			enet_socketset_select(nfds, &readfds, nullptr, 20);
+			enet_socketset_select(nfds, &readfds, nullptr, timeout);
 		}
 
 		virtual fwRefContainer<NetPeerBase> GetPeer(int peerId) override

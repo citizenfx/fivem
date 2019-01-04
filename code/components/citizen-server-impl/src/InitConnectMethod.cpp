@@ -321,7 +321,7 @@ static InitFunction initFunction([]()
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
 			data["token"] = token;
-			data["netlibVersion"] = 2;
+			data["netlibVersion"] = 2; // 3 if yojimbo
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto gameServer = instance->GetComponent<fx::GameServer>();

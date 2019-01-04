@@ -24,6 +24,7 @@ fwEvent<const std::string&> OnRichPresenceSetTemplate;
 fwEvent<int, const std::string&> OnRichPresenceSetValue;
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
+std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV3(INetLibraryInherit* base);
 
 #define TIMEOUT_DATA_SIZE 16
 
@@ -901,6 +902,10 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			if (node["netlibVersion"].as<int>(1) == 2)
 			{
 				m_impl = CreateNetLibraryImplV2(this);
+			}
+			else if (node["netlibVersion"].as<int>(1) == 3)
+			{
+				m_impl = CreateNetLibraryImplV3(this);
 			}
 			else
 			{
