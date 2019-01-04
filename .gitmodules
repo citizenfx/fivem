@@ -127,3 +127,6 @@
 [submodule "vendor/reliable.io"]
 	path = vendor/reliable.io
 	url = https://github.com/citizenfx/reliable.io.git
+[submodule "vendor/websocketpp"]
+	path = vendor/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
