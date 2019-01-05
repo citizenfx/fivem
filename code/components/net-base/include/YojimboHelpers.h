@@ -80,6 +80,10 @@ namespace fx
 			channel[2].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 			channel[3].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
 
+			channel[1].messageSendQueueSize = 2048;
+			channel[1].messageReceiveQueueSize = 2048;
+			channel[1].sentPacketBufferSize = 4096;
+
 			timeout = 15;
 
 #ifdef _DEBUG
