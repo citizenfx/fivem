@@ -80,7 +80,8 @@ namespace fx
 			channel[2].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 			channel[3].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
 
-			channel[1].packetBudget = 600;
+			channel[0].packetBudget = 2048;
+			channel[1].packetBudget = 2048;
 
 			timeout = 15;
 
