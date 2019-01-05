@@ -243,7 +243,7 @@ namespace fx
 		{
 			yojimbo::Message* message;
 
-			if (buffer.GetCurOffset() > 512)
+			if (buffer.GetCurOffset() > sizeof(fx::NetCfxMessage::m_inlineData))
 			{
 				auto m = (NetCfxBlockMessage*)m_server->CreateMessage(peer, 1);
 

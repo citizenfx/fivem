@@ -127,7 +127,7 @@ private:
 
 	inline yojimbo::Message* CreateMessage(const uint8_t* data, size_t size)
 	{
-		if (size > 512)
+		if (size > sizeof(fx::NetCfxMessage::m_inlineData))
 		{
 			auto msg = (fx::NetCfxBlockMessage*)m_client->CreateMessage(1);
 			auto block = m_client->AllocateBlock(size);

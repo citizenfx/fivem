@@ -80,9 +80,6 @@ namespace fx
 			channel[2].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 			channel[3].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
 
-			channel[0].packetBudget = 2048;
-			channel[1].packetBudget = 2048;
-
 			timeout = 15;
 
 #ifdef _DEBUG
@@ -103,14 +100,14 @@ namespace fx
 	{
 	public:
 		int m_length;
-		uint8_t m_inlineData[512];
+		uint8_t m_inlineData[1024];
 
 		NetCfxMessage() :
 			m_length(0) {}
 
 		template <typename Stream>
 		bool Serialize(Stream& stream) {
-			serialize_int(stream, m_length, 0, 512);
+			serialize_int(stream, m_length, 0, 1024);
 			serialize_bytes(stream, m_inlineData, m_length);
 
 			return true;
