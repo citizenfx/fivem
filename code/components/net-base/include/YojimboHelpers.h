@@ -1,5 +1,8 @@
 #pragma once
 
+#include <NetAddress.h>
+#include <yojimbo.h>
+
 namespace fx
 {
 	yojimbo::Address GetYojimboAddress(const net::PeerAddress& peerAddress)
@@ -76,6 +79,14 @@ namespace fx
 			channel[1].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
 			channel[2].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 			channel[3].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
+
+			channel[1].packetBudget = 600;
+
+			timeout = 15;
+
+#ifdef _DEBUG
+			timeout = -1;
+#endif
 		}
 	};
 

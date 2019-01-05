@@ -243,21 +243,21 @@ namespace fx
 		{
 			yojimbo::Message* message;
 
-			if (buffer.GetLength() > 512)
+			if (buffer.GetCurOffset() > 512)
 			{
 				auto m = (NetCfxBlockMessage*)m_server->CreateMessage(peer, 1);
 
-				auto block = m_server->AllocateBlock(peer, buffer.GetLength());
-				memcpy(block, buffer.GetBuffer(), buffer.GetLength());
+				auto block = m_server->AllocateBlock(peer, buffer.GetCurOffset());
+				memcpy(block, buffer.GetBuffer(), buffer.GetCurOffset());
 
-				m_server->AttachBlockToMessage(peer, m, block, buffer.GetLength());
+				m_server->AttachBlockToMessage(peer, m, block, buffer.GetCurOffset());
 
 				message = m;
 			}
 			else
 			{
 				auto m = (NetCfxMessage*)m_server->CreateMessage(peer, 0);
-				m->SetData(buffer.GetBuffer(), buffer.GetLength());
+				m->SetData(buffer.GetBuffer(), buffer.GetCurOffset());
 
 				message = m;
 			}
@@ -302,6 +302,11 @@ namespace fx
 			m_interceptor = interceptor;
 		}
 
+		virtual int GetClientVersion() override
+		{
+			return 3;
+		}
+
 	public:
 		friend class NetPeerImplYojimbo;
 
@@ -337,10 +342,10 @@ namespace fx
 		return *(net::PeerAddress::FromString(fmt::sprintf("0.0.0.%i", m_id)));
 	}
 
-	/*fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server)
+	fwRefContainer<GameServerNetBase> CreateGSNet_Yojimbo(fx::GameServer* server)
 	{
 		return new GameServerNetImplYojimbo(server);
-	}*/
+	}
 }
 
 static InitFunction initFunction([]()

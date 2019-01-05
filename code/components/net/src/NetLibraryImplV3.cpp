@@ -163,10 +163,12 @@ private:
 	std::shared_ptr<ConVar<int>> m_maxPackets;
 
 	uint32_t m_lastKeepaliveSent;
+
+	size_t m_outDataSize;
 };
 
 NetLibraryImplV3::NetLibraryImplV3(INetLibraryInherit* base)
-	: m_timedOut(false), m_lastKeepaliveSent(0), m_base(base), m_connecting(false)
+	: m_timedOut(false), m_lastKeepaliveSent(0), m_base(base), m_connecting(false), m_outDataSize(0)
 {
 	m_maxPackets = std::make_shared<ConVar<int>>("net_maxPackets", ConVar_Archive, 50);
 	m_maxPackets->GetHelper()->SetConstraints(1, 200);
@@ -218,6 +220,7 @@ void NetLibraryImplV3::SendReliableCommand(uint32_t type, const char* buffer, si
 	if (!m_timedOut && m_client && m_client->IsConnected())
 	{
 		auto message = CreateMessage(reinterpret_cast<const uint8_t*>(msg.GetBuffer()), msg.GetCurLength());
+		m_outDataSize += msg.GetCurLength();
 
 		m_client->SendMessage(1, message);
 	}
@@ -255,7 +258,10 @@ void NetLibraryImplV3::Reset()
 
 void NetLibraryImplV3::Flush()
 {
-	
+	m_client->AdvanceTime(yojimbo_time());
+
+	m_client->SendPackets();
+	m_client->SendPackets();
 }
 
 void NetLibraryImplV3::RunFrame()
@@ -333,6 +339,7 @@ void NetLibraryImplV3::RunFrame()
 			msg.Write(packet.payload.c_str(), packet.payload.size());
 
 			auto message = CreateMessage(reinterpret_cast<const uint8_t*>(msg.GetBuffer()), msg.GetCurLength());
+			m_outDataSize += msg.GetCurLength();
 
 			m_client->SendMessage(2, message); // 2: unreliable-1
 			//enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
@@ -349,6 +356,7 @@ void NetLibraryImplV3::RunFrame()
 			//enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
 
 			auto message = CreateMessage(reinterpret_cast<const uint8_t*>(msg.GetBuffer()), msg.GetCurLength());
+			m_outDataSize += msg.GetCurLength();
 
 			m_client->SendMessage(2, message);
 
@@ -409,7 +417,8 @@ void NetLibraryImplV3::RunFrame()
 			for (uint32_t i = 0; i < ps; ++i)
 			{
 				NetPacketMetrics m;
-				m.AddElementSize(NET_PACKET_SUB_MISC, 0);
+				m.AddElementSize(NET_PACKET_SUB_MISC, m_outDataSize);
+				m_outDataSize = 0;
 
 				m_base->GetMetricSink()->OnOutgoingPacket(m);
 
@@ -421,7 +430,7 @@ void NetLibraryImplV3::RunFrame()
 			m_base->AddSendTick();
 		}
 
-		m_base->GetMetricSink()->OverrideBandwidthStats(infoReceivedBandwidth * 1000.0f, infoSentBandwidth * 1000.0f);
+		//m_base->GetMetricSink()->OverrideBandwidthStats(infoReceivedBandwidth * 1000.0f, infoSentBandwidth * 1000.0f);
 
 		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV3::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}

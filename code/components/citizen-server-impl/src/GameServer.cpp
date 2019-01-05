@@ -31,8 +31,6 @@ namespace fx
 	{
 		g_gameServer = this;
 
-		m_net = fx::CreateGSNet(this);
-
 		// TODO: re-enable this when we actually figure out threading
 		//seCreateContext(&m_seContext);
 		m_seContext = seGetCurrentContext();
@@ -50,6 +48,15 @@ namespace fx
 
 	void GameServer::AttachToObject(ServerInstanceBase* instance)
 	{
+		m_instance = instance;
+
+		m_net = fx::CreateGSNet(this);
+
+		if (m_interceptor)
+		{
+			m_net->AddRawInterceptor(m_interceptor);
+		}
+
 		OnAttached(instance);
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
@@ -74,7 +81,6 @@ namespace fx
 		}, 100);
 
 		m_clientRegistry = instance->GetComponent<ClientRegistry>().GetRef();
-		m_instance = instance;
 
 		std::thread([=]()
 		{
@@ -197,11 +203,6 @@ namespace fx
 
 	fwRefContainer<NetPeerBase> GameServer::InternalGetPeer(int peerId)
 	{
-		if (peerId == 0)
-		{
-			return nullptr;
-		}
-
 		return m_net->GetPeer(peerId);
 	}
 
@@ -225,7 +226,7 @@ namespace fx
 
 	void GameServer::AddRawInterceptor(const std::function<bool(const uint8_t *, size_t, const net::PeerAddress &)>& interceptor)
 	{
-		m_net->AddRawInterceptor(interceptor);
+		m_interceptor = interceptor;
 	}
 
 	void GameServer::CreateUdpHost(const net::PeerAddress& address)
@@ -578,6 +579,20 @@ namespace fx
 	void GameServer::SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob)
 	{
 		m_net->SendOutOfBand(to, oob);
+	}
+
+	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server)
+	{
+		static auto cmd = server->GetInstance()->AddVariable<std::string>("netlib", ConVar_None, "enet");
+		
+		if (cmd->GetValue() == "yojimbo")
+		{
+			return CreateGSNet_Yojimbo(server);
+		}
+		else
+		{
+			return CreateGSNet_ENet(server);
+		}
 	}
 
 	FxPrintListener printListener;

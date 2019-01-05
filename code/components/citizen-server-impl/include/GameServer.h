@@ -65,6 +65,11 @@ namespace fx
 			return m_rconPassword->GetValue();
 		}
 
+		inline int GetNetLibVersion()
+		{
+			return m_net->GetClientVersion();
+		}
+
 	public:
 		struct CallbackList
 		{
@@ -157,6 +162,8 @@ namespace fx
 		tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
 
 		fwRefContainer<GameServerNetBase> m_net;
+
+		std::function<bool(const uint8_t *, size_t, const net::PeerAddress &)> m_interceptor;
 
 		CallbackList m_mainThreadCallbacks{ "inproc://main_client", 0 };
 

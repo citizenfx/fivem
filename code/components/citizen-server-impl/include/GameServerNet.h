@@ -35,6 +35,8 @@ namespace fx
 		virtual void CreateUdpHost(const net::PeerAddress& address) = 0;
 
 		virtual void AddRawInterceptor(const std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)>& interceptor) = 0;
+
+		virtual int GetClientVersion() = 0;
 	};
 
 	class NetPeerBase : public fwRefCountable
@@ -52,4 +54,6 @@ namespace fx
 	};
 
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server);
+	fwRefContainer<GameServerNetBase> CreateGSNet_ENet(fx::GameServer* server);
+	fwRefContainer<GameServerNetBase> CreateGSNet_Yojimbo(fx::GameServer* server);
 }

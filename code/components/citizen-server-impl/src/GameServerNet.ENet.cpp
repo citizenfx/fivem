@@ -258,6 +258,11 @@ namespace fx
 			m_interceptors.push_back(interceptor);
 		}
 
+		virtual int GetClientVersion() override
+		{
+			return 2;
+		}
+
 	private:
 		GameServer* m_server;
 
@@ -275,7 +280,7 @@ namespace fx
 		std::vector<std::function<bool(const uint8_t *, size_t, const net::PeerAddress&)>> m_interceptors;
 	};
 
-	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server)
+	fwRefContainer<GameServerNetBase> CreateGSNet_ENet(fx::GameServer* server)
 	{
 		return new GameServerNetImplENet(server);
 	}
