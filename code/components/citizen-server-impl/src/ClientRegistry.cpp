@@ -28,7 +28,7 @@ namespace fx
 			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
 		});
 
-		client->OnAssignPeer.Connect([=]()
+		client->OnAssignPeer.Connect([this, weakClient]()
 		{
 			m_clientsByPeer[weakClient.lock()->GetPeer()] = weakClient;
 
@@ -47,7 +47,7 @@ namespace fx
 
 				if (m_clientsBySlotId[slot].expired())
 				{
-					client->SetSlotId(slot);
+					weakClient.lock()->SetSlotId(slot);
 
 					m_clientsBySlotId[slot] = weakClient;
 
