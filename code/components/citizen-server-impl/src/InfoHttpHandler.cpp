@@ -208,12 +208,14 @@ static InitFunction initFunction([]()
 					identifiers.erase(newEnd, identifiers.end());
 				}
 
+				auto peer = gscomms_get_peer(client->GetPeer());
+
 				data.push_back({
 					{ "endpoint", (showEP) ? client->GetAddress().ToString() : "127.0.0.1" },
 					{ "id", client->GetNetId() },
 					{ "identifiers", identifiers },
 					{ "name", client->GetName() },
-					{ "ping", gscomms_get_peer(client->GetPeer())->GetPing() }
+					{ "ping", peer.GetRef() ? peer->GetPing() : -1 }
 				});
 			});
 
