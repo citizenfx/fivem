@@ -10,183 +10,14 @@
 #define NDEBUG
 #include <yojimbo.h>
 
+#include <YojimboHelpers.h>
+
 #include <mmsystem.h>
 
 #include "NetLibrary.h"
 #include "NetLibraryImplBase.h"
 
 static const uint8_t DEFAULT_PRIVATE_KEY[yojimbo::KeyBytes] = { 0 };
-
-yojimbo::Address GetYojimboAddress(const net::PeerAddress& peerAddress)
-{
-	auto sa = peerAddress.GetSocketAddress();
-
-	if (sa->sa_family == AF_INET)
-	{
-		auto in4 = (sockaddr_in*)sa;
-
-		uint8_t addr[4];
-		memcpy(addr, &in4->sin_addr.s_addr, 4);
-
-		return yojimbo::Address{ addr, ntohs(in4->sin_port) };
-	}
-	else if (sa->sa_family == AF_INET6)
-	{
-		auto in6 = (sockaddr_in6*)sa;
-
-		uint16_t addr[8];
-
-		for (int i = 0; i < 8; ++i)
-		{
-			addr[i] = htons(((uint16_t*)&in6->sin6_addr)[i]);
-		}
-
-		return yojimbo::Address{ addr, ntohs(in6->sin6_port) };
-	}
-
-	return yojimbo::Address{};
-}
-
-net::PeerAddress GetPeerAddress(const yojimbo::Address& yjAddress)
-{
-	if (yjAddress.GetType() == yojimbo::ADDRESS_IPV4)
-	{
-		sockaddr_in in = { 0 };
-		in.sin_family = AF_INET;
-		memcpy(&in.sin_addr.s_addr, yjAddress.GetAddress4(), 4);
-		in.sin_port = htons(yjAddress.GetPort());
-
-		return net::PeerAddress{ (sockaddr*)&in, sizeof(in) };
-	}
-	else if (yjAddress.GetType() == yojimbo::ADDRESS_IPV6)
-	{
-		sockaddr_in6 in6 = { 0 };
-		in6.sin6_family = AF_INET6;
-
-		auto addr = yjAddress.GetAddress6();
-
-		for (int i = 0; i < 8; ++i)
-		{
-			((uint16_t*)&in6.sin6_addr)[i] = ntohs(addr[i]);
-		}
-
-		in6.sin6_port = htons(yjAddress.GetPort());
-
-		return net::PeerAddress{ (sockaddr*)&in6, sizeof(in6) };
-	}
-	else
-	{
-		return net::PeerAddress{};
-	}
-}
-
-class NetConnectionConfig : public yojimbo::ClientServerConfig
-{
-public:
-	NetConnectionConfig()
-	{
-		// Cfx exposes 2 channels, we need to distinguish between reliable and unreliable using this
-		numChannels = 4;
-		channel[0].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-		channel[1].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
-		channel[2].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-		channel[3].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
-	}
-};
-
-class NetCfxBaseMessage
-{
-public:
-	virtual const uint8_t* GetData() = 0;
-
-	virtual size_t GetDataLength() = 0;
-};
-
-class NetCfxMessage : public yojimbo::Message, public NetCfxBaseMessage
-{
-public:
-	int m_length;
-	uint8_t m_inlineData[512];
-
-	NetCfxMessage() :
-		m_length(0) {}
-
-	template <typename Stream>
-	bool Serialize(Stream& stream) {
-		serialize_int(stream, m_length, 0, 512);
-		serialize_bytes(stream, m_inlineData, m_length);
-
-		return true;
-	}
-
-	inline void SetData(const uint8_t* data, size_t size)
-	{
-		m_length = size;
-		memcpy(m_inlineData, data, size);
-	}
-
-	inline const uint8_t* GetData()
-	{
-		return m_inlineData;
-	}
-
-	inline size_t GetDataLength()
-	{
-		return m_length;
-	}
-
-	YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-class NetCfxBlockMessage : public yojimbo::BlockMessage, public NetCfxBaseMessage
-{
-public:
-	NetCfxBlockMessage() {}
-
-	template <typename Stream>
-	bool Serialize(Stream& stream) {
-		return true;
-	}
-
-	inline const uint8_t* GetData()
-	{
-		return GetBlockData();
-	}
-
-	inline size_t GetDataLength()
-	{
-		return GetBlockSize();
-	}
-
-	YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-YOJIMBO_MESSAGE_FACTORY_START(NetMessageFactory, 2);
-YOJIMBO_DECLARE_MESSAGE_TYPE(0, NetCfxMessage);
-YOJIMBO_DECLARE_MESSAGE_TYPE(1, NetCfxBlockMessage);
-YOJIMBO_MESSAGE_FACTORY_FINISH();
-
-class NetAdapter : public yojimbo::Adapter
-{
-public:
-	yojimbo::MessageFactory* CreateMessageFactory(yojimbo::Allocator& allocator) override
-	{
-		return YOJIMBO_NEW(allocator, NetMessageFactory, allocator);
-	}
-
-	void OnServerClientConnected(int clientIndex) override
-	{
-		OnClientConnected(clientIndex);
-	}
-
-	void OnServerClientDisconnected(int clientIndex) override
-	{
-		OnClientDisconnected(clientIndex);
-	}
-
-	fwEvent<int> OnClientConnected;
-	fwEvent<int> OnClientDisconnected;
-};
 
 class NetYojimboClient : public yojimbo::Client
 {
@@ -298,7 +129,7 @@ private:
 	{
 		if (size > 512)
 		{
-			auto msg = (NetCfxBlockMessage*)m_client->CreateMessage(1);
+			auto msg = (fx::NetCfxBlockMessage*)m_client->CreateMessage(1);
 			auto block = m_client->AllocateBlock(size);
 			memcpy(block, data, size);
 
@@ -307,7 +138,7 @@ private:
 			return msg;
 		}
 
-		auto msg = (NetCfxMessage*)m_client->CreateMessage(0);
+		auto msg = (fx::NetCfxMessage*)m_client->CreateMessage(0);
 		msg->SetData(data, size);
 
 		return msg;
@@ -318,8 +149,8 @@ private:
 
 	std::string m_connectData;
 
-	NetConnectionConfig m_connectionConfig;
-	NetAdapter m_adapter;
+	fx::NetConnectionConfig m_connectionConfig;
+	fx::NetAdapter m_adapter;
 
 	std::unique_ptr<NetYojimboClient> m_client;
 
@@ -357,7 +188,7 @@ void NetLibraryImplV3::CreateResources()
 	{
 		if (*(int*)receivedData == -1)
 		{
-			m_base->ProcessOOB(NetAddress(GetPeerAddress(address).GetSocketAddress()), (char*)receivedData + 4, receivedDataLength - 4);
+			m_base->ProcessOOB(NetAddress(fx::GetPeerAddress(address).GetSocketAddress()), (char*)receivedData + 4, receivedDataLength - 4);
 			return 1;
 		}
 
@@ -370,7 +201,7 @@ void NetLibraryImplV3::CreateResources()
 	{
 		if (*(int*)receivedData == -1)
 		{
-			m_base->ProcessOOB(NetAddress(GetPeerAddress(address).GetSocketAddress()), (char*)receivedData + 4, receivedDataLength - 4);
+			m_base->ProcessOOB(NetAddress(fx::GetPeerAddress(address).GetSocketAddress()), (char*)receivedData + 4, receivedDataLength - 4);
 			return 1;
 		}
 
@@ -460,14 +291,14 @@ void NetLibraryImplV3::RunFrame()
 			{
 				if (message->GetType() == 0)
 				{
-					auto msg = (NetCfxMessage*)message;
+					auto msg = (fx::NetCfxMessage*)message;
 
 					ProcessPacket(msg->GetData(), msg->GetDataLength());
 					inDataSize += msg->GetDataLength();
 				}
 				else if (message->GetType() == 1)
 				{
-					auto msg = (NetCfxBlockMessage*)message;
+					auto msg = (fx::NetCfxBlockMessage*)message;
 
 					ProcessPacket(msg->GetData(), msg->GetDataLength());
 					inDataSize += msg->GetDataLength();
@@ -604,7 +435,7 @@ void NetLibraryImplV3::SendConnect(const std::string& connectData)
 	uint64_t clientId;
 	yojimbo::random_bytes((uint8_t*)&clientId, 8);
 
-	auto addr = GetYojimboAddress(m_base->GetCurrentPeer());
+	auto addr = fx::GetYojimboAddress(m_base->GetCurrentPeer());
 	m_client->InsecureConnect(DEFAULT_PRIVATE_KEY, clientId, addr);
 
 	m_connecting = true;
