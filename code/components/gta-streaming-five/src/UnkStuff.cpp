@@ -630,6 +630,18 @@ static HookFunction hookFunction([]()
 		// population netgame check
 		hook::put<uint16_t>(hook::get_pattern("0F 84 8F 00 00 00 8B 44 24 40 8B C8"), 0xE990);
 
+		// additional netgame checks for scenarios
+		hook::nop(hook::get_pattern("B2 04 75 65 80 7B 39", 2), 2);
+		hook::put<uint8_t>(hook::get_pattern("74 24 84 D2 74 20 8B 83", 4), 0xEB);
+		hook::nop(hook::get_pattern("84 D2 75 41 8B 83", 2), 2);
+		hook::put<uint8_t>(hook::get_pattern("40 B6 01 74 52 F3 0F 10 01", 3), 0xEB); // this skips a world grid check, might be bad!
+
+		// another scenario cluster network game check
+		hook::put<uint8_t>(hook::get_pattern("80 78 1A 00 74 0F", 4), 0xEB);
+
+		// more netgame (scenariovehicleinfo)
+		hook::put<uint8_t>(hook::get_pattern("74 42 84 C0 75 42 83 C8"), 0xEB);
+
 		// disabling animal types
 		//hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);
 		hook::jump(hook::get_pattern("75 1A 38 99 54 01 00 00 75 0E", -0xE), ReturnTrue);
