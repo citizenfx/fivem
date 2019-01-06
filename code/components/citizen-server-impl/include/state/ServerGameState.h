@@ -304,7 +304,7 @@ private:
 
 		inline WorldGridOwnerIndexes()
 		{
-			memset(slots, 0, sizeof(slots));
+			memset(slots, 0xFF, sizeof(slots));
 		}
 	};
 
