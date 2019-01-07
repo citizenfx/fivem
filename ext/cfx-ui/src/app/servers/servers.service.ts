@@ -18,6 +18,8 @@ import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
 
+import ReconnectingWebSocket from 'reconnecting-websocket';
+
 import { Server, ServerIcon, PinConfig } from './server';
 
 import { master } from './master';
@@ -33,7 +35,7 @@ export class ServersService {
 
     private worker: Worker;
 
-    private webSocket: WebSocket;
+    private webSocket: ReconnectingWebSocket;
 
     private servers: {[ addr: string ]: Server} = {};
 
@@ -102,7 +104,7 @@ export class ServersService {
     }
 
     private subscribeWebSocket() {
-        const ws = new WebSocket('wss://servers-live.fivem.net/api/servers/socket/v1/');
+        const ws = new ReconnectingWebSocket('wss://servers-live.fivem.net/api/servers/socket/v1/');
         ws.addEventListener('message', (ev) => {
             const data = JSON.parse(ev.data);
 
