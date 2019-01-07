@@ -198,8 +198,8 @@ void Chan_init()
 		channel_t *ch_src, *ch_dst, *ch_itr = NULL;
 		channellist_t *chl;
 		if (Conf_getNextChannelLink(&chlink, i) < 0) {
-			if (i == 0)
-				Log_info("No channel links found in configuration file.");
+			/*if (i == 0)
+				Log_info("No channel links found in configuration file.");*/
 			break;
 		}
 		ch_itr = NULL;
