@@ -410,8 +410,9 @@ static InitFunction initFunction([]()
 				auto cbComponent = resman->GetComponent<fx::ResourceCallbackComponent>();
 
 				// TODO: replace with event stacks once implemented
-				std::string noReason("Resource prevented connection.");
-
+				auto noReason = std::make_shared<std::shared_ptr<std::string>>();
+				*noReason = std::make_shared<std::string>("Resource prevented connection.");
+				
 				auto deferrals = std::make_shared<std::shared_ptr<fx::ClientDeferral>>();
 				*deferrals = std::make_shared<fx::ClientDeferral>(instance, client);
 
@@ -470,13 +471,13 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
+				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
 					if (obj.size() == 1)
 					{
-						noReason = obj[0].as<std::string>();
+						**noReason = obj[0].as<std::string>();
 					}
 				}), (*deferrals)->GetCallbacks());
 
@@ -484,7 +485,7 @@ static InitFunction initFunction([]()
 				{
 					clientRegistry->RemoveClient(client);
 
-					sendError(noReason);
+					sendError(**noReason);
 					return;
 				}
 
