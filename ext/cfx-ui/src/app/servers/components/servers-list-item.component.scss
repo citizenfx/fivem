@@ -18,9 +18,9 @@
 		margin-top: $padding/3;
 		box-shadow: 0 0 0 100px rgba($redColour, .25) inset;
 
-		.name {
+		/*.name {
 			animation: fadeIn 1s infinite alternate ease-in-out;
-		}
+		}*/
 	}
 }
 
@@ -57,7 +57,6 @@
 	font-size: $fontSize * 0.9;
 
 	height: $appServersItemHeight;
-	will-change: transform;
 
 	cursor: default;
 	user-select: none;
@@ -67,28 +66,12 @@
 
 	background-color: rgba($bgColour, .4);
 
-	img {
-		filter: blur(0);
-		will-change: opacity;
-	}
-
 	&:hover {
 		background-color: rgba($bgColour, 1);
 
 		.actions button {
 			opacity: 1;
 		}
-
-		/*figure {
-			img {
-				opacity: .25;
-			}
-
-			&:after {
-				opacity: 1;
-				text-shadow: 0 0 2px rgba($bgColour, .5);
-			}
-		}*/
 	}
 
 	.bg {

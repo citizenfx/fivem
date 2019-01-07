@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, NgZone } from '@angular/core';
 import { Server, PinConfig } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
 import { ServerFilters } from './server-filter.component';
@@ -32,7 +32,7 @@ export class ServersListComponent implements OnInit, OnChanges {
     localServers: Server[];
     sortedServers: Server[];
 
-    constructor() {
+    constructor(private zone: NgZone) {
         this.servers = [];
 
         this.columns = [
@@ -75,12 +75,17 @@ export class ServersListComponent implements OnInit, OnChanges {
             changed = true;
         });
 
-        setInterval(() => {
-            if (changed) {
-                changed = false;
-                this.sortAndFilterServers();
-            }
-        }, 250);
+        zone.runOutsideAngular(() => {
+            setInterval(() => {
+                if (changed) {
+                    changed = false;
+
+                    zone.run(() => {
+                        this.sortAndFilterServers();
+                    });
+                }
+            }, 250);
+        });
     }
 
     isPinned(server: Server) {

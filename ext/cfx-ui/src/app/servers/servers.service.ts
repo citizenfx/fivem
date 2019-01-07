@@ -6,6 +6,10 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 
+import { applyPatch } from 'fast-json-patch';
+
+import { concat, from } from 'rxjs';
+
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/bufferTime';
 import 'rxjs/add/operator/debounceTime';
@@ -28,6 +32,8 @@ export class ServersService {
     private internalServerEvent: Subject<master.IServer>;
 
     private worker: Worker;
+
+    private webSocket: WebSocket;
 
     private servers: {[ addr: string ]: Server} = {};
 
@@ -56,6 +62,8 @@ export class ServersService {
                 .subscribe(url => {
                     this.worker.postMessage({ type: 'queryServers', url: url + 'stream/' });
                 });
+
+            this.subscribeWebSocket();
         }
 
         this.serversSource
@@ -70,6 +78,8 @@ export class ServersService {
                 this.servers[server.address] = server;
                 this.serversEvent.next(server);
             });
+
+        this.refreshServers();
     }
 
     private get serversSource(): Observable<master.IServer> {
@@ -91,7 +101,44 @@ export class ServersService {
             .mergeMap(result => master.Servers.decode(new Uint8Array(result)).servers);
     }
 
-    public refreshServers() {
+    private subscribeWebSocket() {
+        const ws = new WebSocket('wss://servers-live.fivem.net/api/servers/socket/v1/');
+        ws.addEventListener('message', (ev) => {
+            const data = JSON.parse(ev.data);
+
+            switch (data.op) {
+                case 'ADD_SERVER':
+                    this.internalServerEvent.next({
+                        Data: data.data.data,
+                        EndPoint: data.id
+                    });
+                break;
+                case 'UPDATE_SERVER':
+                    const old = this.servers[data.id];
+
+                    if (old) {
+                        const patch = data.data;
+                        const result = applyPatch({ data: old.data }, patch).newDocument;
+
+                        const ping = old.ping;
+                        result.data.vars.ping = ping;
+
+                        this.internalServerEvent.next({
+                            Data: result.data,
+                            EndPoint: data.id
+                        });
+                    }
+                break;
+                case 'REMOVE_SERVER':
+                    // not impl'd
+                break;
+            }
+        });
+
+        this.webSocket = ws;
+    }
+
+    private refreshServers() {
         this.requestEvent.next('https://servers-live.fivem.net/api/servers/');
     }
 
@@ -103,6 +150,17 @@ export class ServersService {
 
     public getServers(): Observable<Server> {
         return this.serversEvent;
+    }
+
+    public getCachedServers(): Iterable<Server> {
+        return Object.values(this.servers);
+    }
+
+    public getReplayedServers(): Observable<Server> {
+        return concat(
+            from(this.getCachedServers()),
+            this.getServers()
+        );
     }
 
     public loadPinConfig(): Promise<PinConfig> {

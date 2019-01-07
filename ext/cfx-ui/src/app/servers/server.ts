@@ -85,6 +85,11 @@ export class Server {
         this.strippedname = (this.hostname || '').replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         this.sortname = this.strippedname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
+        if (object.vars && object.vars.ping) {
+            this.ping = parseInt(object.vars.ping, 10);
+            delete object.vars['ping'];
+        }
+
         this.data = object;
         this.int = object;
 
