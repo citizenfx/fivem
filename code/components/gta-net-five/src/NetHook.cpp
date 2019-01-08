@@ -746,10 +746,12 @@ static HookFunction initFunction([]()
 		if (gameLoaded && doTickThisFrame)
 		{
 			gameLoaded = false;
+
+			trace("dlc mounts: %d\n", *g_dlcMountCount);
 			
-			if (*g_dlcMountCount != 127)
+			if (*g_dlcMountCount != 132)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 127);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
 
 				return;
 			}
@@ -1287,10 +1289,11 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 	{
 		// 1365
 		// 1493
-		((void(*)())0x1400067B0)();
-		((void(*)())0x1407DB08C)();
-		((void(*)())0x140025F50)();
-		((void(*)())0x14159284C)(); // rly? renderthreadinterface stuff
+		// 1604
+		((void(*)())0x1400067E8)();
+		((void(*)())0x1407D1960)();
+		((void(*)())0x140025F7C)();
+		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0); // rly? renderthreadinterface stuff
 
 		Sleep(0);
 	}

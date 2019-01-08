@@ -54,7 +54,8 @@ public:
 // 1290
 // 1365
 // 1493
-static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x142804BA0;
+// 1604
+static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x142875710;
 
 void* g_tempRemotePlayer;
 
@@ -186,12 +187,14 @@ namespace sync
 		// 1290
 		// 1365
 		// 1493
+		// 1604
 		void* nonphys = calloc(256, 1);
-		((void(*)(void*))0x1410A145C)(nonphys); // ctor
+		((void(*)(void*))0x1410A4024)(nonphys); // ctor
 
 		// 1493
+		// 1604
 		void* phys = calloc(1024, 1);
-		((void(*)(void*))0x14109F8D8)(phys);
+		((void(*)(void*))0x1410A2480)(phys);
 
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonphys);
 		g_tempRemotePlayer = player;
@@ -250,8 +253,9 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// 1290
 		// 1365
 		// 1493
+		// 1604
 		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x14101F3BC)(nullptr, &objectId, player);
+		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x141022B20)(nullptr, &objectId, player);
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
@@ -261,7 +265,8 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 			trace("deleted object id\n");
 
-			((void(*)(void*, uint16_t, CNetGamePlayer*))0x140FDB078)(ped, objectId, player);
+			// 1604
+			((void(*)(void*, uint16_t, CNetGamePlayer*))0x141008D14)(ped, objectId, player);
 
 			trace("success! reassigned the ped!\n");
 		}
@@ -440,7 +445,8 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	// 1290
 	// 1365
 	// 1493
-	return ((CNetGamePlayer*(*)(void*))0x14109F758)(plr);
+	// 1604
+	return ((CNetGamePlayer*(*)(void*))0x1410A2300)(plr);
 }
 
 #include <minhook.h>
@@ -738,15 +744,18 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern("48 8B CF FF 90 68 01 00 00 84 C0 74 12 48 8B CF", 3);
+		auto location = hook::get_pattern("48 8B CF FF 90 70 01 00 00 84 C0 74 12 48 8B CF", 3);
 		hook::nop(location, 6);
+
+		// m170 in 1604 now
 		hook::call(location, m168Stub);
 	}
 
 	// 1290
 	// 1365
 	// 1493
-	MH_CreateHook((void*)0x1410A7B30, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	// 1604
+	MH_CreateHook((void*)0x1410AA870, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);

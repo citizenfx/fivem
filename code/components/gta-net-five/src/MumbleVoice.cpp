@@ -19,6 +19,7 @@ static uint32_t* g_preferenceArray;
 // 1290
 // #TODO1365
 // #TODO1493
+// #TODO1604
 enum PrefEnum
 {
 	PREF_VOICE_ENABLE = 0x60,
@@ -391,6 +392,7 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 	// 1290
 	// #TODO1365
 	// #TODO1493
+	// #TODO1604
 	auto playerInfo = playerData - 32 - 48 - 16;
 
 	// get the ped

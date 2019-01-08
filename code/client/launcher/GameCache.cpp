@@ -100,8 +100,8 @@ struct GameCacheStorageEntry
 // global cache mapping of ROS files to disk files
 static GameCacheEntry g_requiredEntries[] =
 {
-	{ "GTA5.exe", "915523c238d30c12ff73f55a345944f8fc0b8a84", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1493_1.exe", "$/GTA5.exe", 73181104, 993049272 },
-	{ "update/update.rpf", "b7944ae1ee94ac46c4eeb2b21eae0cf182838087", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1493_1.exe", "$/update/update.rpf", 928075776, 993049272 },
+	{ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/GTA5.exe", 72484280, 1031302600 },
+	{ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1493_1.exe", "$/update/update.rpf", 966805504, 1031302600 },
 	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
 	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
@@ -170,6 +170,10 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "update/x64/dlcpacks/mpbattle/dlc.rpf", "80018257a637417b911bd4540938866ae95d0cf5", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3981039616 },
 	{ "update/x64/dlcpacks/mpbattle/dlc1.rpf", "b16fb76065132f5f9af4b2a92431b9f91b670542", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 992296960 },
 	{ "update/x64/dlcpacks/patchday19ng/dlc.rpf", "3373311add1eb5ff850e1f3fbb7d15512cbc5b8b", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 765630464 },
+
+	//DLCPacks19
+	{ "update/x64/dlcpacks/mpchristmas2018/dlc.rpf", "c4cda116420f14a28e5a999740cc53cf53a950ec", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3247781888 },
+	{ "update/x64/dlcpacks/patchday20ng/dlc.rpf", "fbba396a0ede622e08f76c5ced8ac1d6839c0227", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 457129984 },
 
 	{ "ros_1241/cef.pak", "C308AC7D34F80FE9486716FBF4C713B55924B661", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.4.1-Setup.exe", "$/cef.pak", 3866710, 85063288 },
 	{ "ros_1241/cef_100_percent.pak", "66EF9A8559E1A8F7976F95FDD2355A0D0E101532", "http://patches.rockstargames.com/prod/socialclub/Social-Club-v1.2.4.1-Setup.exe", "$/cef_100_percent.pak", 647967, 85063288 },

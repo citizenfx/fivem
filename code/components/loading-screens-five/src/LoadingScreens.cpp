@@ -23,7 +23,8 @@
 
 // 1365
 // 1493
-#define NUM_DLC_CALLS 34
+// 1604?
+#define NUM_DLC_CALLS 36
 
 using fx::Resource;
 
