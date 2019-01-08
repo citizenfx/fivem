@@ -8,6 +8,8 @@
     const tickers = [];
     let animationFrames = [];
 
+    const generatorConstructor = (function*() {}).constructor;
+
     function  setTimer(timer, callback, interval) {
         timers[timer.id] = {
             callback,
@@ -26,7 +28,7 @@
 
     function clearTimer(timer) {
         if (!timer) { return; }
-    
+
         delete timers[timer.id];
     }
 
@@ -91,10 +93,22 @@
             i = tickers.length;
 
             while (i--) {
+                const ticker = tickers[i];
+
                 try {
-                    tickers[i]();
-                } catch(e) {
-                    console.error('Unhandled error: ' + e.toString() + '\n' + e.stack);
+                    if (ticker instanceof generatorConstructor) {
+                        const { next } = ticker();
+                        const { done } = next();
+
+                        // remove ticker if generator is done
+                        if (done === true) {
+                            tickers.splice(i, 1);
+                        }
+                    } else {
+                        ticker();
+                    }
+                } catch (error) {
+                    console.error('Unhandled error: ' + error.toString() + '\n' + error.stack);
                 }
             }
         }
@@ -116,7 +130,7 @@
         }
 
         gameTime = localGameTime;
-				
+
         //Manually fire the callbacks that were enqueued by process.nextTick.
         //Since we override setImmediate/etc, this doesn't happen automatically.
         if (global.process && typeof global.process._tickCallback === "function")
@@ -134,6 +148,6 @@
 
     global.setTick = setTick;
     global.requestAnimationFrame = requestAnimationFrame;
-    
+
     global.Citizen.setTickFunction(onTick);
 })(this || window);

@@ -27,7 +27,7 @@ type InputArgument =
 
 interface CitizenInterface {
     trace(...args: string[]): void
-    setTickFunction(callback: Function): void
+    setTickFunction(callback: Function | GeneratorFunction): void
     setEventFunction(callback: Function): void
 
     setCallRefFunction(callback: Function): void
@@ -77,6 +77,6 @@ declare function TriggerClientEvent(eventName: string, target: number|string, ..
 
 declare function removeEventListener(eventName: string, callback: Function): void
 
-declare function setTick(callback: Function): void
+declare function setTick(callback: Function | GeneratorFunction): void
 
 declare var exports: any;
