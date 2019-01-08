@@ -108,6 +108,8 @@ private:
 
 	bool HandleCloneUpdate(const msgClone& msg);
 
+	void CheckMigration(const msgClone& msg);
+
 private:
 	NetLibrary* m_netLibrary;
 
@@ -576,6 +578,10 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// already exists! bail out
 	if (exists)
 	{
+		// update client id if changed
+		CheckMigration(msg);
+
+		// hm
 		Log("%s: tried to create a duplicate (remote) object\n", __func__);
 
 		ackPacket();
@@ -586,6 +592,10 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// check if the object already exists *locally*
 	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
 	{
+		// update client id if changed
+		CheckMigration(msg);
+
+		// continue
 		Log("%s: tried to create a duplicate (local) object - %d\n", __func__, msg.GetObjectId());
 
 		ackPacket();
@@ -709,59 +719,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	}
 
 	// update client id if changed
-	auto& extData = m_extendedData[msg.GetObjectId()];
-
-	if (extData.clientId != msg.GetClientId())
-	{
-		Log("%s: Remote-migrating object %d (of type %s) from %s to %s.\n", __func__, obj->objectId, GetType(obj),
-			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
-			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
-
-		trace("Remote-migrating object %d (of type %s) from %s to %s.\n", obj->objectId, GetType(obj),
-			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
-			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
-
-		// reset next-owner ID as we've just migrated it
-		obj->syncData.nextOwnerId = -1;
-		extData.pendingClientId = -1;
-
-		auto clientId = msg.GetClientId();
-
-		if (clientId == m_netLibrary->GetServerNetID())
-		{
-			auto player = GetLocalPlayer();
-
-			// add the object
-			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
-
-			// this isn't remote anymore
-			obj->syncData.isRemote = false;
-			obj->syncData.nextOwnerId = -1;
-
-			// give us the object ID
-			ObjectIds_AddObjectId(msg.GetObjectId());
-		}
-		else
-		{
-			auto player = GetPlayerByNetId(clientId);
-
-			if (player)
-			{
-				auto lastId = player->physicalPlayerIndex;
-				player->physicalPlayerIndex = 31;
-
-				rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
-
-				player->physicalPlayerIndex = lastId;
-
-				obj->syncData.isRemote = true;
-				obj->syncData.nextOwnerId = -1;
-			}
-		}
-
-		// this should happen AFTER AddObjectForPlayer, it verifies the object owner
-		extData.clientId = clientId;
-	}
+	CheckMigration(msg);
 
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
 	{
@@ -817,6 +775,71 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	ackPacket();
 
 	return true;
+}
+
+void CloneManagerLocal::CheckMigration(const msgClone& msg)
+{
+	auto obj = m_savedEntities[msg.GetObjectId()];
+	auto& extData = m_extendedData[msg.GetObjectId()];
+
+	if (extData.clientId != msg.GetClientId())
+	{
+		if (!obj)
+		{
+			Log("%s: No object by id %d for migration :/\n", __func__, msg.GetObjectId());
+			return;
+		}
+
+		Log("%s: Remote-migrating object %d (of type %s) from %s to %s.\n", __func__, obj->objectId, GetType(obj),
+			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
+			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
+
+		trace("Remote-migrating object %d (of type %s) from %s to %s.\n", obj->objectId, GetType(obj),
+			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
+			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
+
+		// reset next-owner ID as we've just migrated it
+		obj->syncData.nextOwnerId = -1;
+		extData.pendingClientId = -1;
+
+		auto clientId = msg.GetClientId();
+
+		if (clientId == m_netLibrary->GetServerNetID())
+		{
+			auto player = GetLocalPlayer();
+
+			// add the object
+			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
+
+			// this isn't remote anymore
+			obj->syncData.isRemote = false;
+			obj->syncData.nextOwnerId = -1;
+
+			// give us the object ID
+			ObjectIds_AddObjectId(msg.GetObjectId());
+		}
+		else
+		{
+			auto player = GetPlayerByNetId(clientId);
+
+			if (player)
+			{
+				auto lastId = player->physicalPlayerIndex;
+				player->physicalPlayerIndex = 31;
+
+				rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
+
+				player->physicalPlayerIndex = lastId;
+
+				obj->syncData.isRemote = true;
+				obj->syncData.nextOwnerId = -1;
+			}
+		}
+
+		// this should happen AFTER AddObjectForPlayer, it verifies the object owner
+		extData.clientId = clientId;
+	}
+
 }
 
 void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
