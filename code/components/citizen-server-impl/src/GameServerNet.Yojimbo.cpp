@@ -1,4 +1,7 @@
 #include <StdInc.h>
+#ifndef _WIN32
+#include <sys/select.h>
+#endif
 #include <GameServerNet.h>
 
 #include <GameServer.h>
@@ -270,7 +273,7 @@ namespace fx
 			// TODO: very temporary
 			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(oob);
 
-			sendto((SOCKET)m_server->GetSocket(), oobMsg.data(), oobMsg.size(), 0, to.GetSocketAddress(), to.GetSocketAddressLength());
+			sendto((PlatformSocketType)m_server->GetSocket(), oobMsg.data(), oobMsg.size(), 0, to.GetSocketAddress(), to.GetSocketAddressLength());
 		}
 
 		virtual void CreateUdpHost(const net::PeerAddress & address) override
@@ -348,23 +351,25 @@ namespace fx
 	}
 }
 
+int yojimbo_printf_function(const char* b, ...)
+{
+	static char buffer[16384];
+
+	va_list ap;
+	va_start(ap, b);
+	vsnprintf(buffer, sizeof(buffer) - 1, b, ap);
+	va_end(ap);
+
+	trace("%s", buffer);
+
+	return 0;
+}
+
 static InitFunction initFunction([]()
 {
 	InitializeYojimbo();
 
-	yojimbo_set_printf_function([](const char* b, ...)
-	{
-		static char buffer[16384];
-
-		va_list ap;
-		va_start(ap, b);
-		vsnprintf(buffer, sizeof(buffer) - 1, b, ap);
-		va_end(ap);
-
-		trace("%s", buffer);
-
-		return 0;
-	});
+	yojimbo_set_printf_function(yojimbo_printf_function);
 
 	yojimbo_log_level(YOJIMBO_LOG_LEVEL_INFO);
 });
