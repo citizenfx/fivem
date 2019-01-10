@@ -9,6 +9,8 @@
 		if os.istarget('windows') then
 			links { "psapi", "breakpad", "wininet", "winhttp" }
 			add_dependencies { 'vendor:breakpad' }
+		else
+			links { 'dl', 'pthread' }
 		end
 
 		includedirs
