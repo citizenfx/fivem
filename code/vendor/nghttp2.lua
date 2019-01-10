@@ -7,7 +7,12 @@ return {
 		if os.istarget('windows') then
 			defines 'ssize_t=__int64'
 		else
-			defines 'ssize_t=long'
+			-- check if this is a glibc distro
+			local succ, status, code = os.execute('ldd --version | grep -c "Free Software Foundation"')
+			
+			if code ~= 0 then
+				defines 'ssize_t=long'
+			end
 		end
 	end,
 
