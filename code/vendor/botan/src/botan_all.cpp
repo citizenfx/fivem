@@ -69448,7 +69448,7 @@ void X509_Object::init(DataSource& in, const std::string& labels)
    m_PEM_label_pref = m_PEM_labels_allowed[0];
    std::sort(m_PEM_labels_allowed.begin(), m_PEM_labels_allowed.end());
 
-   try {
+
       if(ASN1::maybe_BER(in) && !PEM_Code::matches(in))
          {
          BER_Decoder dec(in);
@@ -69466,11 +69466,6 @@ void X509_Object::init(DataSource& in, const std::string& labels)
          BER_Decoder dec(ber);
          decode_from(dec);
          }
-      }
-   catch(Decoding_Error& e)
-      {
-      throw Decoding_Error(m_PEM_label_pref + " decoding failed: " + e.what());
-      }
    }
 
 
