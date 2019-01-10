@@ -2,7 +2,13 @@ return {
 	include = function()
 		includedirs { "../vendor/nghttp2/lib/includes/" }
 
-		defines { 'ssize_t=long', '_SSIZE_T_DEFINED=1', '_U_=', 'NGHTTP2_STATICLIB' }
+		defines { '_SSIZE_T_DEFINED=1', '_U_=', 'NGHTTP2_STATICLIB' }
+		
+		if os.istarget('windows') then
+			defines 'ssize_t=__int64'
+		else
+			defines 'ssize_t=long'
+		end
 	end,
 
 	run = function()
