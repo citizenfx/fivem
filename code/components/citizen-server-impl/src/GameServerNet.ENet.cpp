@@ -65,12 +65,16 @@ namespace fx
 	class NetPeerImplENet : public NetPeerBase
 	{
 	public:
-		NetPeerImplENet(int handle, ENetPeer* peer)
+		NetPeerImplENet(GameServerNetImplENet* host, int handle)
 		{
 			m_handle = handle;
-			m_peer = peer;
+			m_host = host;
 		}
 
+	private:
+		ENetPeer* GetPeer();
+
+	public:
 		virtual int GetId() override
 		{
 			return m_handle;
@@ -78,32 +82,60 @@ namespace fx
 
 		virtual int GetPing() override
 		{
-			return m_peer->roundTripTime;
+			auto peer = GetPeer();
+
+			if (!peer)
+			{
+				return -1;
+			}
+
+			return peer->roundTripTime;
 		}
 
 		virtual int GetPingVariance() override
 		{
-			return m_peer->roundTripTimeVariance;
+			auto peer = GetPeer();
+
+			if (!peer)
+			{
+				return 0;
+			}
+
+			return peer->roundTripTimeVariance;
 		}
 
 		virtual net::PeerAddress GetAddress() override
 		{
-			return GetPeerAddress(m_peer->address);
+			auto peer = GetPeer();
+
+			if (!peer)
+			{
+				return *net::PeerAddress::FromString("127.0.0.1", 30120, net::PeerAddress::LookupType::NoResolution);
+			}
+
+			return GetPeerAddress(peer->address);
 		}
 
 		virtual void OnSendConnectOK() override
 		{
+			auto peer = GetPeer();
+
+			if (!peer)
+			{
+				return;
+			}
+
 			// disable peer throttling
-			enet_peer_throttle_configure(m_peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
+			enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
 
 #ifdef _DEBUG
-			enet_peer_timeout(m_peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
+			enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
 #endif
 		}
 
 	private:
 		int m_handle;
-		ENetPeer* m_peer;
+		GameServerNetImplENet* m_host;
 	};
 
 	class GameServerNetImplENet : public GameServerNetBase
@@ -139,7 +171,7 @@ namespace fx
 				{
 					auto peerId = m_peerHandles.right.find(event.peer)->get_left();
 
-					m_server->ProcessPacket(new NetPeerImplENet(peerId, event.peer), event.packet->data, event.packet->dataLength);
+					m_server->ProcessPacket(new NetPeerImplENet(this, peerId), event.packet->data, event.packet->dataLength);
 					enet_packet_destroy(event.packet);
 					break;
 				}
@@ -182,7 +214,7 @@ namespace fx
 
 		virtual fwRefContainer<NetPeerBase> GetPeer(int peerId) override
 		{
-			return new NetPeerImplENet(peerId, m_peerHandles.left.find(peerId)->get_right());
+			return new NetPeerImplENet(this, peerId);
 		}
 
 		virtual void ResetPeer(int peerId) override
@@ -267,6 +299,8 @@ namespace fx
 		GameServer* m_server;
 
 	public:
+		friend class NetPeerImplENet;
+
 		using THostPtr = std::unique_ptr<ENetHost, enet_host_deleter>;
 
 		int m_basePeerId;
@@ -279,6 +313,18 @@ namespace fx
 
 		std::vector<std::function<bool(const uint8_t *, size_t, const net::PeerAddress&)>> m_interceptors;
 	};
+
+	ENetPeer* NetPeerImplENet::GetPeer()
+	{
+		auto it = m_host->m_peerHandles.left.find(m_handle);
+
+		if (it == m_host->m_peerHandles.left.end())
+		{
+			return nullptr;
+		}
+
+		return it->get_right();
+	}
 
 	fwRefContainer<GameServerNetBase> CreateGSNet_ENet(fx::GameServer* server)
 	{
