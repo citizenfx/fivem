@@ -3,6 +3,10 @@ return {
 		includedirs "../vendor/cpprestsdk/Release/include/"
 
 		defines { '_NO_PPLXIMP', '_NO_ASYNCRTIMP', '_PPLTASK_ASYNC_LOGGING=0' }
+		
+		if _OPTIONS['with-asan'] then
+			defines { 'CPPREST_FORCE_PPLX' }
+		end
 	end,
 
 	run = function()

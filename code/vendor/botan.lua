@@ -18,6 +18,10 @@ return {
 			defines { "BOTAN_DLL=__declspec(dllexport)" }
 
 			buildoptions '/bigobj'
+			
+			if _OPTIONS['with-asan'] then
+				buildoptions '-mrdrnd -mrdseed'
+			end
 		else
 			defines { "BOTAN_DLL=" }
 

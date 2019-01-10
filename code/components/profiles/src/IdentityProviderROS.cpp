@@ -10,6 +10,8 @@
 #include "HttpClient.h"
 #include "base64.h"
 
+#define BOTAN_NO_DEPRECATED_WARNINGS 1
+
 #include <botan/botan.h>
 #include <botan/hash.h>
 #include <botan/stream_cipher.h>

@@ -3,6 +3,12 @@ http = nil
 
 xpcall(function()
 newoption {
+	trigger 	= "with-asan",
+	value       = "libpath",
+	description = "Use asan for Windows."
+}
+
+newoption {
 	trigger     = "builddir",
 	value       = "path",
 	description = "Output directory for build/ files."
@@ -68,7 +74,10 @@ workspace "CitizenMP"
 
 	if os.istarget('windows') then
 		buildoptions '/std:c++latest'
-		buildoptions '/await'
+		
+		if _OPTIONS['game'] ~= 'server' then
+			buildoptions '/await'
+		end
 
 		systemversion '10.0.17134.0'
 	end
@@ -84,6 +93,18 @@ workspace "CitizenMP"
 
 	if _OPTIONS['game'] == 'server' then
 		binroot = (_OPTIONS['bindir'] or "bin/") .. 'server/' .. os.target() .. '/'
+	end
+	
+	if _OPTIONS['with-asan'] then
+		toolset 'msc-llvm'
+		
+		libdirs { _OPTIONS['with-asan'] }
+		
+		links { 'clang_rt.asan_dynamic-x86_64', 'clang_rt.asan_dynamic_runtime_thunk-x86_64' }
+		
+		filter 'language:C or language:C++'
+			buildoptions '-mpclmul -maes -mssse3 -mavx2 -mrtm'
+			buildoptions '-fsanitize=address -fsanitize-recover=address'
 	end
 
 	-- debug output

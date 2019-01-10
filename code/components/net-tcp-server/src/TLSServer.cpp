@@ -33,8 +33,8 @@ public:
 	{
 		try
 		{
-			std::ifstream serverKeyStream(serverKey);
-			std::ifstream serverCertStream(serverCert);
+			std::ifstream serverKeyStream(serverKey, std::ios::binary);
+			std::ifstream serverCertStream(serverCert, std::ios::binary);
 			
 			if (serverCertStream && serverKeyStream)
 			{
