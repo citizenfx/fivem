@@ -60930,12 +60930,12 @@ void Server::process_client_hello_msg(const Handshake_State* active_state,
 
    bool have_session_ticket_key = false;
 
-   try
+   /*try
       {
       have_session_ticket_key =
          m_creds.psk("tls-server", "session-ticket", "").length() > 0;
       }
-   catch(...) {}
+   catch(...) {}*/
 
    m_next_protocol = "";
    if(pending_state.client_hello()->supports_alpn())
