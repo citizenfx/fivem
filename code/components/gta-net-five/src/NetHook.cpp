@@ -1121,6 +1121,11 @@ static void SendMetric(const std::string& metric)
 	auto utils = reinterpret_cast<terminal::IUtils1*>(terminalClient->GetUtilsService(terminal::IUtils1::InterfaceID).GetDetail());
 
 	utils->SendRandomString("cfx_metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");*/
+
+	Instance<HttpClient>::Get()->DoPostRequest("http://195.154.161.214:1880/log_fivem_metric", metric, [](bool, const char*, size_t)
+	{
+
+	});
 }
 
 struct CMsgJoinResponse
