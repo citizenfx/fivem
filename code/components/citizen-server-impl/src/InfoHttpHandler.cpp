@@ -44,6 +44,7 @@ static InitFunction initFunction([]()
 		struct InfoData
 		{
 			json infoJson;
+			std::mutex infoJsonMutex;
 			int infoHash;
 
 			InfoData()
@@ -54,6 +55,8 @@ static InitFunction initFunction([]()
 
 			void Update()
 			{
+				std::unique_lock<std::mutex> lock(infoJsonMutex);
+
 				auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
 
 				infoJson["vars"] = json::object();
@@ -178,7 +181,10 @@ static InitFunction initFunction([]()
 		{
 			infoData->Update();
 
-			response->End(infoData->infoJson.dump());
+			{
+				std::unique_lock<std::mutex> lock(infoData->infoJsonMutex);
+				response->End(infoData->infoJson.dump());
+			}
 		});
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
