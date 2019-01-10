@@ -44,7 +44,7 @@ static InitFunction initFunction([]()
 		struct InfoData
 		{
 			json infoJson;
-			std::mutex infoJsonMutex;
+			std::recursive_mutex infoJsonMutex;
 			int infoHash;
 
 			InfoData()
@@ -55,7 +55,7 @@ static InitFunction initFunction([]()
 
 			void Update()
 			{
-				std::unique_lock<std::mutex> lock(infoJsonMutex);
+				std::unique_lock<std::recursive_mutex> lock(infoJsonMutex);
 
 				auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
 
@@ -182,7 +182,7 @@ static InitFunction initFunction([]()
 			infoData->Update();
 
 			{
-				std::unique_lock<std::mutex> lock(infoData->infoJsonMutex);
+				std::unique_lock<std::recursive_mutex> lock(infoData->infoJsonMutex);
 				response->End(infoData->infoJson.dump());
 			}
 		});
