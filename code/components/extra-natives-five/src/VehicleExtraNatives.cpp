@@ -122,8 +122,8 @@ static void writeVehicleMemory(fx::ScriptContext& context)
 const int HeliMainRotorHealthOffset = 0x1AB0;
 const int HeliTailRotorHealthOffset = 0x1AB4;
 const int HeliEngineHealthOffset = 0x1AB8;
-const int FuelLevelOffset = 0x934;
-const int OilLevelOffset = 0x938;
+const int FuelLevelOffset = 0x834;
+const int OilLevelOffset = 0x838;
 const int GravityOffset = 0xC1C;
 const int IsEngineStartingOffset = 0x92A;
 const int DashSpeedOffset = 0xA80;
