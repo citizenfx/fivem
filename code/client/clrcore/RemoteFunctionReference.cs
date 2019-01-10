@@ -55,7 +55,10 @@ namespace CitizenFX.Core
 
 		private void FreeNativeReference()
 		{
-			DeleteFunctionReference(m_reference);
+			lock (ScriptContext.Lock)
+			{
+				DeleteFunctionReference(m_reference);
+			}
 		}
 
 		public byte[] Duplicate()
