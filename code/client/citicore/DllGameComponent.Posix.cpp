@@ -16,6 +16,7 @@ Component* DllGameComponent::CreateComponent()
 
 	if (!hModule)
 	{
+		printf("dlopen() on component %s failed - error %s\n", m_path.c_str(), dlerror());
 		trace("dlopen() on component %s failed - error %s\n", m_path.c_str(), dlerror());
 		return nullptr;
 	}
