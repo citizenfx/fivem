@@ -1739,7 +1739,8 @@ static HookFunction hookFunction([] ()
 	//hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
 
 	// change session count
-	hook::put<uint32_t>(hook::get_pattern("C7 87 ? ? ? 00 18 00 00 00", 6), 0x40 >> 1);
+	// 1604 changed this address to be a bit more specific
+	hook::put<uint32_t>(hook::get_pattern("89 B7 ? ? 00 00 C7 87 ? ? ? 00 18 00 00 00", 12), 0x40 >> 1);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()
