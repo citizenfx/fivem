@@ -82,6 +82,7 @@ public:
 
 	inline bool IsBufferEmpty()
 	{
+		std::lock_guard<std::mutex> guard(m_commandBufferMutex);
 		return m_commandBuffer.empty();
 	}
 
