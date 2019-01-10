@@ -1,6 +1,8 @@
 return {
 	include = function()
 		includedirs { "../vendor/yojimbo", "../vendor/netcode.io", "../vendor/reliable.io" }
+		
+		links { 'mbedtls', 'sodium' }
 	end,
 	
 	run = function()
