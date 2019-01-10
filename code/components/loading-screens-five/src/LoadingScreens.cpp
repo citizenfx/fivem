@@ -22,7 +22,9 @@
 #include <Error.h>
 
 // 1365
-#define NUM_DLC_CALLS 32
+// 1493
+// 1604?
+#define NUM_DLC_CALLS 36
 
 using fx::Resource;
 

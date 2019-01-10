@@ -526,7 +526,9 @@ static HookFunction hookFunction([] ()
 	// 1103 now
 	// 1290 now
 	// also 1365
-	auto pMatch = hook::pattern("48 89 96 ? 08 00 00").count(1).get(0);
+	// and 1493
+	// 1604 changed 08 to 09
+	auto pMatch = hook::pattern("48 89 96 ? 09 00 00").count(1).get(0);
 
 	char* location = pMatch.get<char>(-11);
 	g_handlingData = (atArray<CHandlingData*>*)(location + *(int32_t*)location + 4);

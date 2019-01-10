@@ -117,45 +117,47 @@ static void writeVehicleMemory(fx::ScriptContext& context)
 
 // 1290 now
 // #TODO1365
-const int HeliMainRotorHealthOffset = 0x19F0;
-const int HeliTailRotorHealthOffset = 0x19F4;
-const int HeliEngineHealthOffset = 0x19F8;
-const int FuelLevelOffset = 0x7F4;
-const int OilLevelOffset = 0x7E8;
-const int GravityOffset = 0xBCC;
-const int IsEngineStartingOffset = 0x8DA;
-const int DashSpeedOffset = 0xA30;
-const int HeliBladesSpeedOffset = 0x19E4;
-const int AccelerationOffset = 0x874;
-const int CurrentRPMOffset = 0x864;
-const int HighGearOffset = 0x836;
-const int CurrentGearOffset = 0x832;
-const int NextGearOffset = 0x830;
-const int RpmOffset = 0x874;
-const int ClutchOffset = 0x870;
-const int TurboBoostOffset = 0x888;
-const int ThrottleInputOffset = 0x94C;
-const int BrakeInputOffset = 0x950;
-const int HandbrakeOffset = 0x954;
-const int EngineTempOffset = 0x9FC;
-const int NumWheelsOffset = 0xB68;
-const int WheelsPtrOffset = 0xB60;
+// #TODO1493
+// #TODO1604 <- really this time they changed since 1290
+const int HeliMainRotorHealthOffset = 0x1AB0;
+const int HeliTailRotorHealthOffset = 0x1AB4;
+const int HeliEngineHealthOffset = 0x1AB8;
+const int FuelLevelOffset = 0x934;
+const int OilLevelOffset = 0x938;
+const int GravityOffset = 0xC1C;
+const int IsEngineStartingOffset = 0x92A;
+const int DashSpeedOffset = 0xA80;
+const int HeliBladesSpeedOffset = 0x1AA8;
+const int AccelerationOffset = 0x8C4;
+const int CurrentRPMOffset = 0x8B4;
+const int HighGearOffset = 0x876;
+const int CurrentGearOffset = 0x872;
+const int NextGearOffset = 0x870;
+const int RpmOffset = 0x8C4;
+const int ClutchOffset = 0x8C0;
+const int TurboBoostOffset = 0x8D8;
+const int ThrottleInputOffset = 0x99C;
+const int BrakeInputOffset = 0x9A0;
+const int HandbrakeOffset = 0x9A4;
+const int EngineTempOffset = 0xA4C;
+const int NumWheelsOffset = 0xBB8;
+const int WheelsPtrOffset = 0xBB0;
 
-const int SteeringAngleOffset = 0x944;
-const int SteeringScaleOffset = 0x93C;
-const int IsAlarmSetOffset = 0xA38;
-const int AlarmTimeLeftOffset = 0xA38;
-const int IsWantedOffset = 0x8E4;
-const int ProvidesCoverOffset = 0x8D4;
-const int PreviouslyOwnedByPlayerOffset = 0x8DC;
-const int NeedsToBeHotwiredOffset = 0x8DC;
-const int IsInteriorLightOnOffset = 0x8D9;
-const int LodMultiplierOffset = 0x12C8;
-const int IsLeftHeadLightBrokenOffset = 0x80C;
-const int IsRightHeadLightBrokenOffset = 0x80C;
-const int EnginePowerMultiplierOffset = 0xA70;
-const int CanWheelsBreakOffset = 0x8D3;
-const int BlinkerState = 0x8D9;
+const int SteeringAngleOffset = 0x994;
+const int SteeringScaleOffset = 0x99C;
+const int IsAlarmSetOffset = 0xA88;
+const int AlarmTimeLeftOffset = 0xA88;
+const int IsWantedOffset = 0x934;
+const int ProvidesCoverOffset = 0x924;
+const int PreviouslyOwnedByPlayerOffset = 0x92C;
+const int NeedsToBeHotwiredOffset = 0x92C;
+const int IsInteriorLightOnOffset = 0x929;
+const int LodMultiplierOffset = 0x1328;
+const int IsLeftHeadLightBrokenOffset = 0x84C;
+const int IsRightHeadLightBrokenOffset = 0x84C;
+const int EnginePowerMultiplierOffset = 0xAC0;
+const int CanWheelsBreakOffset = 0x923; // todo - check?
+const int BlinkerState = 0x929;
 
 // Wheel class
 const int WheelXOffsetOffset = 0x030;

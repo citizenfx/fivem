@@ -107,6 +107,7 @@ public:
 	virtual void m_F0() = 0;
 	virtual void m_F8() = 0;
 	virtual void Update() = 0;
+	virtual bool m_108_1604() = 0; // added in 1604
 	virtual void m_108() = 0;
 	virtual void m_110() = 0;
 	virtual void m_118() = 0;

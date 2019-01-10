@@ -336,7 +336,9 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 						{
 							// 1290
 							// 1365
-							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415E29B8)(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
+							// 1493
+							// 1604
+							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x141613EAC)(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
 						}
 					}
 				}
@@ -1060,7 +1062,9 @@ void CloneManagerLocal::WriteUpdates()
 				// 1103
 				// 1290
 				// 1365
-				((void(*)(rage::netObjectMgr*, rage::netObject*))0x1415D2328)(objectMgr, object);
+				// 1493
+				// 1604
+				((void(*)(rage::netObjectMgr*, rage::netObject*))0x1416038B0)(objectMgr, object);
 			}
 
 			// don't actually continue sync

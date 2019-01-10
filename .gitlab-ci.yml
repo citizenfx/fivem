@@ -42,6 +42,7 @@ build_server_windows:
     - tags
     #- master
     - feature/update-to-1365
+    #- feature/update-to-1493
   cache:
     key: server
     untracked: true
@@ -62,6 +63,7 @@ build_proot_linux:
     - tags
     - master
     - feature/update-to-1365
+    - feature/update-to-1604
     - feature/cloning-stuff-releng
   tags:
     - linux

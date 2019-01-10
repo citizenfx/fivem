@@ -497,7 +497,8 @@ void CaptureBufferOutput()
 	static D3D11_TEXTURE2D_DESC resDesc;
 
 	// 1365
-	rage::grcRenderTargetDX11* backBuf = *(rage::grcRenderTargetDX11**)0x142A34090;
+	// 1604
+	rage::grcRenderTargetDX11* backBuf = *(rage::grcRenderTargetDX11**)0x142AD7A88;
 
 	if (backBuf)
 	{

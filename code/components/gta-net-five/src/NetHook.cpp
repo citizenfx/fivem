@@ -746,10 +746,12 @@ static HookFunction initFunction([]()
 		if (gameLoaded && doTickThisFrame)
 		{
 			gameLoaded = false;
+
+			trace("dlc mounts: %d\n", *g_dlcMountCount);
 			
-			if (*g_dlcMountCount != 122)
+			if (*g_dlcMountCount != 132)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 122);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
 
 				return;
 			}
@@ -1286,10 +1288,12 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 	while (_isScWaitingForInit())
 	{
 		// 1365
-		((void(*)())0x1400067AC)();
-		((void(*)())0x1407D60E4)();
-		((void(*)())0x140025CFC)();
-		((void(*)())0x14156494C)();
+		// 1493
+		// 1604
+		((void(*)())0x1400067E8)();
+		((void(*)())0x1407D1960)();
+		((void(*)())0x140025F7C)();
+		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0); // rly? renderthreadinterface stuff
 
 		Sleep(0);
 	}
@@ -1670,7 +1674,7 @@ static HookFunction hookFunction([] ()
 	g_isNetGame = (bool*)(location + *(int32_t*)location + 4 + 1); // 1 as end of instruction is after '00', cmp
 
 	// CMsgJoinResponse sending
-	location = hook::pattern("48 8D 4C 24 28 41 B8 00 02 00 00 E8").count(1).get(0).get<char>(11);
+	location = hook::pattern("48 8D 4C 24 30 41 B8 00 02 00 00 E8").count(1).get(0).get<char>(11);
 
 	hook::set_call(&g_origJoinResponse, location);
 	hook::call(location, HookSendJoinResponse);
