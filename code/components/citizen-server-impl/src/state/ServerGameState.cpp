@@ -709,10 +709,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						static thread_local rl::MessageBuffer mb(1200);
 						mb.SetCurrentBit(0);
 
-						sync::SyncUnparseState state;
+						sync::SyncUnparseState state(mb);
 						state.syncType = syncType;
 						state.client = cmdState.client;
-						state.buffer = mb;
 
 						bool wroteData = entity->syncTree->Unparse(state);
 

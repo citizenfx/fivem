@@ -38,11 +38,17 @@ struct SyncParseState
 
 struct SyncUnparseState
 {
-	rl::MessageBuffer buffer;
+	rl::MessageBuffer& buffer;
 	int syncType;
 	int objType;
 
 	std::shared_ptr<Client> client;
+
+	SyncUnparseState(rl::MessageBuffer& buffer)
+		: buffer(buffer)
+	{
+
+	}
 };
 
 struct NodeBase;
