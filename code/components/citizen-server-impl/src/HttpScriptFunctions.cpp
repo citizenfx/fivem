@@ -13,10 +13,14 @@
 
 #include <tbb/concurrent_vector.h>
 
+#include <HttpClient.h>
+
 using json = nlohmann::json;
 
 static InitFunction initFunction([]()
 {
+	static HttpClient* httpClient = new HttpClient(L"FXServer/PerformHttpRequest");
+
 	fx::ScriptEngine::RegisterNativeHandler("PERFORM_HTTP_REQUEST_INTERNAL", [](fx::ScriptContext& context)
 	{
 		static std::atomic<int> reqToken;
@@ -37,7 +41,7 @@ static InitFunction initFunction([]()
 				auto method = unpacked.value<std::string>("method", "GET");
 
 				// get headers from the passed data
-				std::map<std::string, std::string, cpr::CaseInsensitiveCompare> headerMap;
+				std::map<std::string, std::string> headerMap;
 
 				if (unpacked["headers"].is_object())
 				{
@@ -49,72 +53,32 @@ static InitFunction initFunction([]()
 					}
 				}
 
-				// get URL/body, make CPR structures
-				auto url = cpr::Url{ unpacked.value<std::string>("url", "") };
-				auto body = cpr::Body{ unpacked.value<std::string>("data", "") };
-				auto headers = cpr::Header{
-					headerMap
-				};
+				auto url = unpacked.value<std::string>("url", "");
+				auto data = unpacked.value<std::string>("data", "");
+
+				auto responseHeaders = std::make_shared<HttpHeaderList>();
+				auto responseCode = std::make_shared<int>();
+
+				HttpRequestOptions options;
+				options.headers = headerMap;
+				options.responseHeaders = responseHeaders;
+				options.responseCode = responseCode;
 
 				// create token
 				int token = reqToken.fetch_add(1);
 
-				// callback to enqueue events
-				auto future = std::make_shared<std::unique_ptr<std::future<void>>>();
-
-				static tbb::concurrent_vector<decltype(future)> futureCleanup;
-
-				auto cb = [=](cpr::Response r)
+				// run a HTTP request
+				httpClient->DoMethodRequest(method, url, data, options, [evComponent, token, responseCode, responseHeaders](bool success, const char* data, size_t length)
 				{
-					if (r.error)
+					if (!success)
 					{
 						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, 0, msgpack::type::nil{}, std::map<std::string, std::string>());
 					}
 					else
 					{
-						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, r.status_code, r.text, r.header);
+						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, responseCode, std::string{ data, length }, *responseHeaders);
 					}
-
-					futureCleanup.push_back(future);
-				};
-
-				// remove completed futures
-				// merely by the virtue of being in this list they're guaranteed-completed, so can be safely removed without blocking
-				futureCleanup.clear();
-
-				// invoke cpr::*Callback
-				if (method == "GET")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::GetCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else if (method == "POST")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::PostCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else if (method == "HEAD")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::HeadCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else if (method == "OPTIONS")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::OptionsCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else if (method == "PUT")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::PutCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else if (method == "DELETE")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::DeleteCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else if (method == "PATCH")
-				{
-					*future = std::make_unique<std::future<void>>(cpr::PatchCallback(cb, url, body, headers, cpr::VerifySsl{ false }));
-				}
-				else
-				{
-					token = -1;
-				}
+				});
 
 				context.SetResult(token);
 				return;

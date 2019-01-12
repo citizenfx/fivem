@@ -60,6 +60,7 @@ public:
 	int defaultWeight;
 	int weight;
 	HttpHeaderListPtr responseHeaders;
+	std::shared_ptr<int> responseCode;
 
 	CurlData();
 
@@ -99,6 +100,11 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 	{
 		long code;
 		curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &code);
+
+		if (this->responseCode)
+		{
+			*this->responseCode = (int)code;
+		}
 
 		if (code >= 400)
 		{
@@ -293,6 +299,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curlData->impl = impl;
 	curlData->defaultWeight = curlData->weight = options.weight;
 	curlData->responseHeaders = options.responseHeaders;
+	curlData->responseCode = options.responseCode;
 
 	auto scb = options.streamingCallback;
 
@@ -481,6 +488,27 @@ HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::stri
 	curlData->postData = postData;
 
 	curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+
+	// write out
+	m_impl->AddCurlHandle(curlHandle);
+
+	return SetupRequestHandle(curlData);
+}
+
+HttpRequestPtr HttpClient::DoMethodRequest(const std::string& method, const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+{
+	// make handle
+	auto[curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
+
+	if (!postData.empty())
+	{
+		// assign post data
+		curlData->postData = postData;
+
+		curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+	}
+
+	curl_easy_setopt(curlHandle, CURLOPT_CUSTOMREQUEST, method.c_str());
 
 	// write out
 	m_impl->AddCurlHandle(curlHandle);
