@@ -16,6 +16,8 @@
 
 #include <IteratorView.h>
 
+#include <DebugAlias.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/vec3.hpp>
@@ -319,6 +321,7 @@ namespace sync
 struct SyncCommandState
 {
 	rl::MessageBuffer cloneBuffer;
+	std::function<void()> flushBuffer;
 	std::function<void()> maybeFlushBuffer;
 	uint64_t frameIndex;
 	std::shared_ptr<fx::Client> client;
@@ -369,6 +372,11 @@ void SyncCommandList::Execute()
 
 			client->SendPacket(1, netBuffer);
 
+			size_t oldCurrentBit = scs.cloneBuffer.GetCurrentBit();
+
+			debug::Alias(&oldCurrentBit);
+			debug::Alias(&len);
+
 			scs.cloneBuffer.SetCurrentBit(0);
 		}
 	};
@@ -381,6 +389,7 @@ void SyncCommandList::Execute()
 		}
 	};
 
+	scs.flushBuffer = flushBuffer;
 	scs.maybeFlushBuffer = maybeFlushBuffer;
 
 	for (auto& cmd : commands)
@@ -491,7 +500,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		uint64_t time = msec().count();
 
-		scl->commands.push_back([time](SyncCommandState& state)
+		scl->commands.emplace_back([time](SyncCommandState& state)
 		{
 			state.cloneBuffer.Write(3, 5);
 			state.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
@@ -691,7 +700,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (shouldSend)
 				{
-					scl->commands.push_back([
+					scl->commands.emplace_back([
 						this,
 						entity = std::move(entity),
 						entityClient = std::move(entityClient),
@@ -717,6 +726,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						if (wroteData)
 						{
+							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
+
+							if (len > 4096)
+							{
+								return;
+							}
+
+							auto startBit = cmdState.cloneBuffer.GetCurrentBit();
+
 							{
 								auto[clientData, lock] = GetClientData(this, cmdState.client);
 								clientData->idsForGameState.emplace(cmdState.frameIndex, entity->handle & 0xFFFF);
@@ -733,13 +751,21 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							cmdState.cloneBuffer.Write<uint32_t>(32, entity->timestamp);
 
-							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
 							cmdState.cloneBuffer.Write(12, len);
-							cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
+							
+							if (!cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8))
+							{
+								cmdState.cloneBuffer.SetCurrentBit(startBit);
+
+								// force a buffer flush, we're oversize
+								cmdState.flushBuffer();
+							}
+							else
+							{
+								entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = msec();
+							}
 
 							cmdState.maybeFlushBuffer();
-
-							entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = msec();
 						}
 					});
 				}

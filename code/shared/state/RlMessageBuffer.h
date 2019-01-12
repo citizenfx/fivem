@@ -133,13 +133,18 @@ public:
 	}
 
 	// copied IDA code, please improve!
-	inline void WriteBits(const void* data, int length)
+	inline bool WriteBits(const void* data, int length)
 	{
 		auto result = (long long)m_data.data();
 		auto a2 = data;
 		auto a3 = length;
 		int a4 = m_curBit;
 		auto a5 = 0;
+
+		if ((m_curBit + length) > m_maxBit)
+		{
+			return false;
+		}
 
 		m_curBit += length;
 
@@ -252,7 +257,7 @@ public:
 					} while (v20);
 					v31 = v6 & 7;
 					if (!(v6 & 7))
-						return;
+						return true;
 				}
 				else
 				{
@@ -260,7 +265,7 @@ public:
 					result = (long long)memcpy(v22, v9, v20);
 					v31 = v6 & 7;
 					if (!(v6 & 7))
-						return;
+						return true;
 				}
 				v40 = (int64_t)((uint64_t)((unsigned int)v5 + (v6 & 0xFFFFFFF8)) << 32) >> 35;
 				v41 = ((uint8_t)v5 + (v6 & 0xF8)) & 7;
@@ -307,15 +312,22 @@ public:
 				}
 			}
 		}
+
+		return true;
 	}
 
 	// copied IDA code, eh
-	inline void WriteBitsSingle(const void* data, int length)
+	inline bool WriteBitsSingle(const void* data, int length)
 	{
 		auto a1 = m_data.data();
 		auto a2 = *(uint32_t*)data;
 		auto a3 = length;
 		int a4 = m_curBit;
+
+		if ((m_curBit + length) > m_maxBit)
+		{
+			return false;
+		}
 
 		m_curBit += length;
 
@@ -355,6 +367,8 @@ public:
 				--v12;
 			} while (v12);
 		}
+
+		return true;
 	}
 
 	inline bool WriteBit(uint8_t bit)
