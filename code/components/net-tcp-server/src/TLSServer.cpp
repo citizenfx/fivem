@@ -166,6 +166,18 @@ void TLSServerStream::Initialize()
 		m_rng
 	));
 
+	// first set the close callback, since SetReadCallback may in fact replay queued reads
+	{
+		fwRefContainer<TLSServerStream> thisRef = this;
+
+		m_baseStream->SetCloseCallback([=]()
+		{
+			fwRefContainer<TLSServerStream> scopedThisRef = thisRef;
+
+			CloseInternal();
+		});
+	}
+
 	m_baseStream->SetReadCallback([=] (const std::vector<uint8_t>& data)
 	{
 		// keep a reference to the TLS server in case we close due to a TLS alert
@@ -179,15 +191,6 @@ void TLSServerStream::Initialize()
 		{
 			trace("%s\n", e.what());
 		}
-	});
-
-	fwRefContainer<TLSServerStream> thisRef = this;
-
-	m_baseStream->SetCloseCallback([=] ()
-	{
-		fwRefContainer<TLSServerStream> scopedThisRef = thisRef;
-
-		CloseInternal();
 	});
 }
 
