@@ -5,7 +5,7 @@ apiset: server
 ## GET_ENTITY_SCRIPT
 
 ```c
-char* GET_ENTITY_COORDS(Entity entity);
+char* GET_ENTITY_SCRIPT(Entity entity);
 ```
 
 
