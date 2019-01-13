@@ -88,15 +88,12 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		const char* retval = nullptr;
-		static std::string retPtr;
-
+		int retval = -1;
 		auto entry = entity->client.lock();
 
 		if (entry)
 		{
-			retPtr = fmt::sprintf("%d", entry->GetNetId());
-			retval = retPtr.c_str();
+			retval = entry->GetNetId();
 		}
 
 		return retval;
