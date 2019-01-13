@@ -1717,6 +1717,11 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 	return does;
 }
 
+static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
+{
+	return player->physicalPlayerIndex;
+}
+
 static HookFunction hookFunctionWorldGrid([]()
 {
 	MH_Initialize();
@@ -1728,6 +1733,9 @@ static HookFunction hookFunctionWorldGrid([]()
 
 	// 1493+
 	hook::nop(hook::get_pattern("80 3D ? ? ? ? 00 75 0A 48 8B CF E8", 7), 2);
+
+	// this should apply to both 1s and non-1s (as participants are - hopefully? - not used by anyone in regular net)
+	hook::jump(hook::get_pattern("84 C0 74 06 0F BF 43 38", -0x18), GetScriptParticipantIndexForPlayer);
 });
 
 int ObjectToEntity(int objectId)
