@@ -372,9 +372,17 @@ struct NodeWrapper : public NodeBase
 
 struct CVehicleCreationDataNode
 {
+	uint32_t m_model;
+	ePopType m_popType;
+
 	bool Parse(SyncParseState& state)
 	{
 		uint32_t model = state.buffer.Read<uint32_t>(32);
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
+
+		m_model = model;
+		m_popType = (ePopType)popType;
+
 		return true;
 	}
 };
@@ -397,7 +405,51 @@ struct CVehicleGameStateDataNode
 struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CEntityScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CEntityScriptInfoDataNode
+{
+	uint32_t m_scriptHash;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto hasScript = state.buffer.ReadBit();
+
+		if (hasScript) // Has script info
+		{
+			// deserialize CGameScriptObjInfo
+
+			// -> CGameScriptId
+			
+			// ---> rage::scriptId
+			m_scriptHash = state.buffer.Read<uint32_t>(32);
+			// ---> end
+
+			auto timestamp = state.buffer.Read<uint32_t>(32);
+
+			if (state.buffer.ReadBit())
+			{
+				auto positionHash = state.buffer.Read<uint32_t>(32);
+			}
+
+			if (state.buffer.ReadBit())
+			{
+				auto instanceId = state.buffer.Read<uint32_t>(7);
+			}
+
+			// -> end
+
+			auto scriptObjectId = state.buffer.Read<uint32_t>(32);
+
+			auto hostTokenLength = state.buffer.ReadBit() ? 16 : 3;
+			auto hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
+
+			// end
+		}
+
+		return true;
+	}
+};
+
 struct CPhysicalAttachDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleDamageStatusDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -714,7 +766,19 @@ struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return tr
 struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerAppearanceDataNode { bool Parse(SyncParseState& state) { /*trace("PlayerAppearanceDataNode!\n");*/ return true; } };
+
+struct CPlayerAppearanceDataNode
+{
+	uint32_t model;
+
+	bool Parse(SyncParseState& state)
+	{
+		model = state.buffer.Read<uint32_t>(32);
+
+		return true;
+	}
+};
+
 struct CPlayerPedGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerAmbientModelStreamingNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGamerDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -903,6 +967,57 @@ struct SyncTree : public SyncTreeBase
 		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
+	}
+
+	virtual bool GetPopulationType(ePopType* popType) override
+	{
+		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+
+		if (hasVcn)
+		{
+			*popType = vehCreationNode->m_popType;
+			return true;
+		}
+
+		// TODO: non-vehicles
+
+		return false;
+	}
+
+	virtual bool GetModelHash(uint32_t* modelHash) override
+	{
+		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+
+		if (hasVcn)
+		{
+			*modelHash = vehCreationNode->m_model;
+			return true;
+		}
+
+		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
+
+		if (hasPan)
+		{
+			*modelHash = playerAppearanceNode->model;
+			return true;
+		}
+
+		// TODO: non-vehicle/player entities
+
+		return false;
+	}
+
+	virtual bool GetScriptHash(uint32_t* scriptHash) override
+	{
+		auto[hasSin, scriptInfoNode] = GetData<CEntityScriptInfoDataNode>();
+
+		if (hasSin)
+		{
+			*scriptHash = scriptInfoNode->m_scriptHash;
+			return true;
+		}
+
+		return false;
 	}
 
 	virtual void Parse(SyncParseState& state) final override

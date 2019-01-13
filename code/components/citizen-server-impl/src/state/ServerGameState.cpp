@@ -16,6 +16,9 @@
 
 #include <IteratorView.h>
 
+#include <ResourceEventComponent.h>
+#include <ResourceManager.h>
+
 #include <DebugAlias.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -814,6 +817,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
+	// trigger a clone removal event
+	// TODO: is this thread-safe? this kind of has to run synchronously
+	auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+	evComponent->TriggerEvent2("entityRemoved", { }, MakeScriptHandle(entity));
+
 	// remove vehicle occupants
 	if (entity->type == sync::NetObjEntityType::Ped ||
 		entity->type == sync::NetObjEntityType::Player)
@@ -1485,6 +1493,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	auto entity = GetEntity(playerId, objectId);
 
+	bool createdHere = false;
+
 	if (!entity || entity->client.expired())
 	{
 		if (parsingType == 1)
@@ -1504,6 +1514,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 				m_entityList.push_back(entity);
 			}
+
+			createdHere = true;
 
 			m_entitiesById[objectId] = entity;
 		}
@@ -1579,7 +1591,12 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		*outObjectId = objectId;
 	}
 
-	
+	// trigger a clone creation event
+	if (createdHere)
+	{
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+		evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
+	}
 }
 
 static std::optional<net::Buffer> UncompressClonePacket(const std::vector<uint8_t>& packetData)
@@ -1779,109 +1796,6 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 static InitFunction initFunction([]()
 {
 	g_scriptHandlePool = new CPool<fx::ScriptGuid>(1500, "fx::ScriptGuid");
-
-	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
-	{
-		return [=](fx::ScriptContext& context)
-		{
-			// get the current resource manager
-			auto resourceManager = fx::ResourceManager::GetCurrent();
-
-			// get the owning server instance
-			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-			// get the server's game state
-			auto gameState = instance->GetComponent<fx::ServerGameState>();
-
-			// parse the client ID
-			auto id = context.GetArgument<uint32_t>(0);
-
-			if (!id)
-			{
-				context.SetResult(defaultValue);
-				return;
-			}
-
-			auto entity = gameState->GetEntity(id);
-
-			if (!entity)
-			{
-				throw std::runtime_error(va("Tried to access invalid entity: %d", id));
-
-				context.SetResult(defaultValue);
-				return;
-			}
-
-			context.SetResult(fn(context, entity));
-		};
-	};
-
-	struct scrVector
-	{
-		float x;
-		int pad;
-		float y;
-		int pad2;
-		float z;
-		int pad3;
-	};
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
-	{
-		scrVector resultVec = { 0 };
-		resultVec.x = entity->GetData("posX", 0.0f);
-		resultVec.y = entity->GetData("posY", 0.0f);
-		resultVec.z = entity->GetData("posZ", 0.0f);
-
-		return resultVec;
-	}));
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_VELOCITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
-	{
-		scrVector resultVec = { 0 };
-		resultVec.x = entity->GetData("velX", 0.0f);
-		resultVec.y = entity->GetData("velY", 0.0f);
-		resultVec.z = entity->GetData("velZ", 0.0f);
-
-		return resultVec;
-	}));
-
-	static const float pi = 3.14159265358979323846f;
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION_VELOCITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
-	{
-		scrVector resultVec = { 0 };
-		resultVec.x = entity->GetData("angVelX", 0.0f);
-		resultVec.y = entity->GetData("angVelY", 0.0f);
-		resultVec.z = entity->GetData("angVelZ", 0.0f);
-
-		return resultVec;
-	}));
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
-	{
-		scrVector resultVec = { 0 };
-		resultVec.x = entity->GetData("rotX", 0.0f) * 180.0 / pi;
-		resultVec.y = entity->GetData("rotY", 0.0f) * 180.0 / pi;
-		resultVec.z = entity->GetData("rotZ", 0.0f) * 180.0 / pi;
-
-		return resultVec;
-	}));
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEADING", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
-	{
-		return entity->GetData("angVelZ", 0.0f) * 180.0 / pi;
-	}));
-
-	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_NETWORK_ID_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
-	{
-		return entity->handle & 0xFFFF;
-	}));
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_HASH_KEY", [](fx::ScriptContext& context)
-	{
-		context.SetResult(HashString(context.GetArgument<const char*>(0)));
-	});
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{

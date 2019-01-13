@@ -110,6 +110,21 @@ struct CVehicleGameStateNodeData
 	}
 };
 
+enum ePopType
+{
+	POPTYPE_UNKNOWN = 0,
+	POPTYPE_RANDOM_PERMANENT,
+	POPTYPE_RANDOM_PARKED,
+	POPTYPE_RANDOM_PATROL,
+	POPTYPE_RANDOM_SCENARIO,
+	POPTYPE_RANDOM_AMBIENT,
+	POPTYPE_PERMANENT,
+	POPTYPE_MISSION,
+	POPTYPE_REPLAY,
+	POPTYPE_CACHE,
+	POPTYPE_TOOL
+};
+
 struct SyncTreeBase
 {
 public:
@@ -130,6 +145,12 @@ public:
 	virtual CPedGameStateNodeData* GetPedGameState() = 0;
 
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
+
+	virtual bool GetPopulationType(ePopType* popType) = 0;
+
+	virtual bool GetModelHash(uint32_t* modelHash) = 0;
+
+	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 };
 
 enum class NetObjEntityType
