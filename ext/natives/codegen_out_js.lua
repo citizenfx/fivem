@@ -102,7 +102,7 @@ print("\treturn hash;")
 print("}\n")
 
 print("function _ts(num) {")
-print("\tif (num == 0 || !num) { // workaround for users calling string parameters with '0', also nil being translated")
+print("\tif (num === 0 || num === null || num === undefined || num === false) { // workaround for users calling string parameters with '0', also nil being translated")
 print("\t\treturn null;")
 print("\t}")
 print("\tif (ArrayBuffer.isView(num) || num instanceof ArrayBuffer) { // these are handled as strings internally")
