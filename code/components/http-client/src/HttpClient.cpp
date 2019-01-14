@@ -279,9 +279,19 @@ static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* use
 	if (cd->responseHeaders)
 	{
 		std::string str(buffer, size * nitems);
-		auto colonPos = str.find_first_of(": ");
+
+		// reset HTTP headers if we followed a Location and got a new HTTP response
+		if (str.find("HTTP/") == 0)
+		{
+			(*cd->responseHeaders).clear();
+		}
+
+		auto colonPos = str.find(": ");
 		
-		(*cd->responseHeaders)[str.substr(0, colonPos)] = str.substr(colonPos + 2, str.length() - 2 - colonPos - 2);
+		if (colonPos != std::string::npos)
+		{
+			(*cd->responseHeaders)[str.substr(0, colonPos)] = str.substr(colonPos + 2, str.length() - 2 - colonPos - 2);
+		}
 	}
 
 	return size * nitems;
