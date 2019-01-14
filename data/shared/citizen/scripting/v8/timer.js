@@ -146,9 +146,9 @@
             }
 
             // We've got a promise!
-            if (result.then) {
+            if (typeof result.then === 'function') {
                 ticker.promise = result
-                    .then(resolveTicker.bind(tickerId))
+                    .then(resolveTicker.bind(null, tickerId))
                     .catch(printTickerError);
             }
         }
