@@ -6,6 +6,7 @@
 		"net",
 		"nui:core",
 		"gta:core",
+		"scripting:gta",
 		"conhost",
 		"vendor:cpp-uri",
 		"vendor:nng",
