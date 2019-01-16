@@ -125,7 +125,7 @@ namespace fx
 			auto lastTime = msec().count();
 
 			uint64_t residualTime = 0;
-			auto frameTime = 1000 / 50;
+			auto frameTime = 1000 / 30;
 
 			while (true)
 			{
@@ -133,7 +133,7 @@ namespace fx
 				int rcvFd;
 				nng_getopt_int(netSocket, NNG_OPT_RECVFD, &rcvFd);
 
-				m_net->Select({ uintptr_t(rcvFd) }, 20);
+				m_net->Select({ uintptr_t(rcvFd) }, frameTime);
 
 				{
 					m_seContext->MakeCurrent();
@@ -159,11 +159,11 @@ namespace fx
 					lastTime = msec().count();
 
 					// intervals
-					while (residualTime > frameTime)
+					if (residualTime > frameTime)
 					{
-						residualTime -= frameTime;
-
 						OnNetworkTick();
+
+						residualTime = 0;
 					}
 				}
 
