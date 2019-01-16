@@ -956,7 +956,7 @@ static int __stdcall EP_GetAddrInfoW(const wchar_t* name, const wchar_t* service
 {
 	int outValue;
 
-	if (!ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfo(ToNarrow(name).c_str(), serviceName, hints, result, &outValue))
+	if (!ShouldBeHooked(_ReturnAddress()) || !name || !g_manager->GetAddrInfo(ToNarrow(name).c_str(), serviceName, hints, result, &outValue))
 	{
 		return g_oldGetAddrInfoW(name, serviceName, hints, result);
 	}

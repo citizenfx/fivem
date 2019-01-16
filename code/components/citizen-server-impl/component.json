@@ -17,7 +17,8 @@
 		"vendor:nng",
 		"vendor:lz4",
 		"vendor:glm",
-		"vendor:eastl"
+		"vendor:eastl",
+		"vendor:slikenet"
 	],
 	"provides": []
 }

@@ -589,6 +589,10 @@ namespace fx
 		{
 			return CreateGSNet_Yojimbo(server);
 		}
+		else if (cmd->GetValue() == "raknet")
+		{
+			return CreateGSNet_RakNet(server);
+		}
 		else
 		{
 			return CreateGSNet_ENet(server);
