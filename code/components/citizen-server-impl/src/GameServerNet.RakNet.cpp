@@ -78,9 +78,9 @@ public:
 
 		return net::PeerAddress{
 						(sockaddr*)&rsa.address,
-						rsa.GetIPVersion() == 4 ?
+						static_cast<socklen_t>(rsa.GetIPVersion() == 4 ?
 							sizeof(sockaddr_in) :
-							sizeof(sockaddr_in6)
+							sizeof(sockaddr_in6))
 		};
 	}
 
@@ -260,9 +260,9 @@ public:
 					rs->bytesRead,
 					net::PeerAddress{
 						(sockaddr*)&rs->systemAddress.address,
-						rs->systemAddress.GetIPVersion() == 4 ?
+						static_cast<socklen_t>(rs->systemAddress.GetIPVersion() == 4 ?
 							sizeof(sockaddr_in) :
-							sizeof(sockaddr_in6)
+							sizeof(sockaddr_in6))
 					}
 				))
 				{
