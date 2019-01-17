@@ -133,7 +133,7 @@
 
             // If last call of ticker returned a promise,
             // then we should wait for it
-            if (ticker.promise !== null) {
+            if (ticker.promise !== null && ticker.promise !== undefined) {
                 continue;
             }
 
@@ -146,7 +146,7 @@
             }
 
             // We've got a promise!
-            if (typeof result.then === 'function') {
+            if (result !== undefined && result !== null && typeof result.then === 'function') {
                 ticker.promise = result
                     .then(resolveTicker.bind(null, tickerId))
                     .catch(printTickerError);
