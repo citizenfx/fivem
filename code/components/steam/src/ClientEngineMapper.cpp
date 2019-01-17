@@ -85,7 +85,7 @@ void ClientEngineMapper::LookupMethods()
 	}
 }
 
-bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser)
+bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool child)
 {
 	// output variable
 	const char* name = nullptr;
@@ -112,18 +112,29 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser)
 	{
 		if (_strnicmp(operandPtr, "Assertion Failed:", 17) == 0)
 		{
-			if (strstr(operandPtr, "m_map"))
+			if (!child)
 			{
-				if (strstr(operandPtr, "mapClient"))
+				if (strstr(operandPtr, "m_map"))
 				{
-					*isUser = false;
+					if (strstr(operandPtr, "mapClient"))
+					{
+						*isUser = false;
+					}
+					else
+					{
+						*isUser = true;
+					}
+
+					return true;
 				}
-				else
+			}
+			else
+			{
+				if (strstr(operandPtr, "m_LessFunc"))
 				{
 					*isUser = true;
+					return true;
 				}
-
-				return true;
 			}
 		}
 
@@ -138,6 +149,13 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser)
 
 		// if this is a retn, break from the loop
 		if (ud_insn_mnemonic(&ud) == UD_Iret)
+		{
+			break;
+		}
+
+		// to catch functions that are simply mov+jmp
+		if (ud_insn_mnemonic(&ud) == UD_Ijmp &&
+			ud_insn_off(&ud) < ((uint64_t)methodPtr + 16))
 		{
 			break;
 		}
@@ -173,7 +191,7 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser)
 #elif defined(_M_AMD64)
 		if (ud_insn_mnemonic(&ud) == UD_Ilea)
 		{
-			// get the first operand
+			// get the second operand
 			auto operand = ud_insn_opr(&ud, 1);
 
 			// if the operand is immediate
@@ -190,6 +208,32 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser)
 					{
 						// it's probably our pointer of interest!
 						if (matchPtr(operandPtr))
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+		else if (!child && ud_insn_mnemonic(&ud) == UD_Icall)
+		{
+			// get the first operand
+			auto operand = ud_insn_opr(&ud, 0);
+
+			// if the operand is immediate
+			if (operand->type == UD_OP_JIMM)
+			{
+				// and relative to the instruction...
+				if (operand->base == UD_R_RSP)
+				{
+					// cast the relative offset as a char
+					char* operandPtr = reinterpret_cast<char*>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
+
+					// if it's a valid data pointer as well
+					if (IsValidCodePointer(operandPtr))
+					{
+						// it's probably our pointer of interest!
+						if (IsMethodAnInterface(operandPtr, isUser, true))
 						{
 							return true;
 						}
