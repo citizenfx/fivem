@@ -836,6 +836,8 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			Instance<ICoreGameInit>::Get()->OneSyncEnabled = (node["onesync"].IsDefined() && node["onesync"].as<bool>(false));
 			Instance<ICoreGameInit>::Get()->NetProtoVersion = (node["bitVersion"].IsDefined() ? node["bitVersion"].as<uint64_t>(0) : 0);
 
+			AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
+
 			m_serverProtocol = node["protocol"].as<uint32_t>();
 
 			auto steam = GetSteam();
