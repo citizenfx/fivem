@@ -620,6 +620,13 @@ static HookFunction hookFunction([] ()
 		hook::nop(location + 15, 5);
 	}
 
+	// increase size of unknown ped-related pointer array (with 100 entries max)
+	{
+		auto location = hook::get_pattern<char>("B8 64 00 00 00 48 83 C3 10 66 89 43 FA");
+		hook::put<uint32_t>(location + 1, 400);
+		hook::put<uint32_t>(location - 12, 400 * sizeof(void*));
+	}
+
 	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
 	// only returns false if LoadFromStructure(parTreeNode*) fails
 	// make it return failure state on failure of rage::parManager::LoadTree as well, and log the failure.
