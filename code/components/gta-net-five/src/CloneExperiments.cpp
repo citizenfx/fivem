@@ -721,6 +721,22 @@ static int GetNetObjPlayerGroup(void* entity)
 	return g_origGetNetObjPlayerGroup(entity);
 }
 
+using TObjectPred = bool(*)(rage::netObject*);
+
+static int(*g_origCountObjects)(rage::netObjectMgr* objectMgr, TObjectPred pred);
+
+static int netObjectMgr__CountObjects(rage::netObjectMgr* objectMgr, TObjectPred pred)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origCountObjects(objectMgr, pred);
+	}
+
+	auto objectList = TheClones->GetObjectList();
+
+	return std::count_if(objectList.begin(), objectList.end(), pred);
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -802,6 +818,8 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(location + 0x28), GetNetworkPlayerListCount2, (void**)&g_origGetNetworkPlayerListCount2);
 		MH_CreateHook(hook::get_call(location + 0x2F), GetNetworkPlayerList2, (void**)&g_origGetNetworkPlayerList2);
 	}
+
+	MH_CreateHook(hook::get_pattern("4C 8B F9 74 7D", -0x2B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 
 	MH_CreateHook(hook::get_pattern("78 18 4C 8B 05", -10), GetScenarioTaskScenario, (void**)&g_origGetScenarioTaskScenario);
 

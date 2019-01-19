@@ -88,6 +88,8 @@ public:
 
 	virtual void Log(const char* format, const fmt::ArgList& argumentList) override;
 
+	virtual std::vector<rage::netObject*> GetObjectList() override;
+
 	FMT_VARIADIC(void, Log, const char*);
 
 private:
@@ -947,6 +949,19 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 	Log("%s: Migrating object %d (of type %s) from %s to %s (remote player).\n", __func__, object->objectId, GetType(object),
 		!object->syncData.isRemote ? "us" : "a remote player",
 		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
+}
+
+std::vector<rage::netObject*> CloneManagerLocal::GetObjectList()
+{
+	std::vector<rage::netObject*> entities;
+	entities.reserve(m_savedEntities.size());
+
+	for (auto& objectPair : m_savedEntities)
+	{
+		entities.push_back(objectPair.second);
+	}
+
+	return entities;
 }
 
 void CloneManagerLocal::Update()
