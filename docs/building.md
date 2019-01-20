@@ -5,6 +5,7 @@ To build FiveM's client components, you need the following dependencies:
 * [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_3.3599.1858.g285dbb1_windows64_minimal.zip), extracted to `vendor/cef` in the build tree.
 * [Python 2.7](https://python.org/) in your PATH as `python`.
 * [Premake 5.0](https://premake.github.io/download.html) somewhere it can be found.
+* [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
 
 Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
 ```dos
