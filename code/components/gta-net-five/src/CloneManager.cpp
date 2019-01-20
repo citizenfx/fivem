@@ -628,7 +628,6 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// check if we can apply
 	if (!syncTree->CanApplyToObject(obj))
 	{
-		//trace("Couldn't apply object.\n");
 		Log("%s: couldn't apply object\n", __func__);
 
 		// delete the unapplied object
@@ -747,7 +746,6 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	if (!syncTree->CanApplyToObject(obj))
 	{
-		//trace("Couldn't apply object.\n");
 		// couldn't apply, ignore ack
 
 		Log("%s: couldn't apply object\n", __func__);
@@ -795,10 +793,6 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 		}
 
 		Log("%s: Remote-migrating object %d (of type %s) from %s to %s.\n", __func__, obj->objectId, GetType(obj),
-			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
-			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
-
-		trace("Remote-migrating object %d (of type %s) from %s to %s.\n", obj->objectId, GetType(obj),
 			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
 			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
 
@@ -942,10 +936,6 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 
 	AttemptFlushNetBuffer();
 
-	trace("Migrating object %d (of type %s) from %s to %s (remote player). If no 'remote-migrating' shows up, that's bad.\n", object->objectId, GetType(object),
-		!object->syncData.isRemote ? "us" : "a remote player",
-		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
-
 	Log("%s: Migrating object %d (of type %s) from %s to %s (remote player).\n", __func__, object->objectId, GetType(object),
 		!object->syncData.isRemote ? "us" : "a remote player",
 		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
@@ -1020,8 +1010,6 @@ void CloneManagerLocal::WriteUpdates()
 			if (m_extendedData[object->objectId].clientId == m_netLibrary->GetServerNetID())
 			{
 				Log("%s: got a remote object (%d) that's meant to be ours. telling the server so again.\n", __func__, object->objectId);
-
-				trace("Network object %d is ours, but it's remote as well. Reassigning it.\n", object->objectId);
 
 				GiveObjectToClient(object, m_netLibrary->GetServerNetID());
 

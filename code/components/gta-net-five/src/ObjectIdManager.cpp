@@ -35,7 +35,6 @@ static uint32_t AssignObjectId(void* objectIds)
 	g_objectIds.erase(it);
 	g_usedObjectIds.insert(objectId);
 
-	trace("assigned object id %d\n", objectId);
 	TheClones->Log("%s: id %d\n", __func__, objectId);
 
 	return objectId;
@@ -52,7 +51,6 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 
 	if (g_usedObjectIds.find(objectId) != g_usedObjectIds.end())
 	{
-		trace("returned object id %d\n", objectId);
 		TheClones->Log("%s: id %d\n", __func__, objectId);
 
 		g_usedObjectIds.erase(objectId);
@@ -129,7 +127,7 @@ void ObjectIds_BindNetLibrary(NetLibrary* netLibrary)
 			{
 				int objectId = last++;
 
-				trace("got object id %d\n", objectId);
+				TheClones->Log("got object id %d\n", objectId);
 
 				g_objectIds.push_back(objectId);
 			}

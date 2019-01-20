@@ -1111,7 +1111,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
-	trace("client drop - reassigning\n");
+	Log("client drop - reassigning\n");
 
 	// clear the player's world grid ownership
 	if (auto slotId = client->GetSlotId(); slotId != -1)
@@ -1225,13 +1225,13 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				if (candidates.empty() || // no candidate?
 					std::get<float>(candidates[0]) >= (300.0f * 300.0f)) // closest candidate beyond distance culling range?
 				{
-					trace("no candidates for entity %d, deleting\n", entity->handle);
+					Log("no candidates for entity %d, deleting\n", entity->handle);
 
 					toErase.insert(entity->handle);
 				}
 				else
 				{
-					trace("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidates[0])->GetName());
+					Log("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidates[0])->GetName());
 
 					ReassignEntity(entity->handle, std::get<1>(candidates[0]));
 				}
