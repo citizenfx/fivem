@@ -171,6 +171,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
+	// laod V8 DLLs in case end users have these in a 'weird' directory
+	LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
+
 	// assign us to a job object
 	if (initState->IsMasterProcess())
 	{
