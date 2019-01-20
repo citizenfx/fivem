@@ -450,6 +450,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 	}
 
+	auto curTime = msec();
+
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& clientRef)
 	{
 		// get our own pointer ownership
@@ -501,7 +503,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		scl->client = client;
 		scl->frameIndex = m_frameIndex;
 
-		uint64_t time = msec().count();
+		uint64_t time = curTime.count();
 
 		scl->commands.emplace_back([time](SyncCommandState& state)
 		{
@@ -680,7 +682,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				bool shouldSend = true;
 
 				auto lastResend = entity->lastResends[client->GetSlotId()];
-				auto lastTime = (msec() - lastResend);
+				auto lastTime = (curTime - lastResend);
 
 				if (lastResend != 0ms && lastTime < resendDelay)
 				{
@@ -691,7 +693,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				if (syncType == 2 && shouldSend)
 				{
 					auto lastSync = entity->lastSyncs[client->GetSlotId()];
-					auto lastTime = (msec() - lastSync);
+					auto lastTime = (curTime - lastSync);
 
 					if (lastTime < syncDelay)
 					{
@@ -709,7 +711,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						entityClient = std::move(entityClient),
 						resendDelay,
 						syncDelay,
-						syncType
+						syncType,
+						curTime
 					] (SyncCommandState& cmdState)
 					{
 						if (!entity)
@@ -765,7 +768,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							}
 							else
 							{
-								entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = msec();
+								entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = curTime;
 							}
 
 							cmdState.maybeFlushBuffer();
@@ -1478,7 +1481,6 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	if (!client->GetData("timestamp").has_value())
 	{
-		//client->SetData("timestamp", int64_t(timestamp - msec().count()));
 		client->SetData("timestamp", int64_t(timestamp));
 	}
 
