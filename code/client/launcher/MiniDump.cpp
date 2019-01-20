@@ -851,12 +851,29 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
 		bool uploadCrashes = true;
+		bool bigMemoryDump = false;
 
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
+			bigMemoryDump = (GetPrivateProfileInt(L"Game", L"EnableFullMemoryDump", 0, fpath.c_str()) != 0);
 			uploadCrashes = (GetPrivateProfileInt(L"Game", L"DisableCrashUpload", 0, fpath.c_str()) != 1);
 		}
 
+		if (bigMemoryDump)
+		{
+			STARTUPINFOW si = { 0 };
+			si.cb = sizeof(si);
+
+			PROCESS_INFORMATION pi;
+
+			std::wstring dumpPath = *filePath;
+			dumpPath.resize(dumpPath.size() - 4);  // strip .dmp
+			dumpPath.append(TEXT("-full.dmp"));
+
+			CreateProcessW(nullptr, const_cast<wchar_t*>(va(L"explorer /select,\"%s\"", dumpPath)), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+		}
+
+		// upload the actual minidump file as well
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
@@ -953,7 +970,23 @@ bool InitializeExceptionHandler()
 		return true;
 	}
 
-	CrashGenerationClient* client = new CrashGenerationClient(L"\\\\.\\pipe\\CitizenFX_Dump", (MINIDUMP_TYPE)(MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo), new CustomClientInfo());
+	bool bigMemoryDump = false;
+
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		bigMemoryDump = (GetPrivateProfileInt(L"Game", L"EnableFullMemoryDump", 0, fpath.c_str()) != 0);
+	}
+
+	auto mdType = (MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo);
+
+	if (bigMemoryDump)
+	{
+		mdType |= MiniDumpWithFullMemory;
+	}
+
+	CrashGenerationClient* client = new CrashGenerationClient(L"\\\\.\\pipe\\CitizenFX_Dump", (MINIDUMP_TYPE)mdType, new CustomClientInfo());
 
 	if (!client->Register())
 	{
