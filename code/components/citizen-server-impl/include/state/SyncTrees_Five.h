@@ -720,7 +720,37 @@ struct CObjectCreationDataNode { bool Parse(SyncParseState& state) { return true
 struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CObjectSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CObjectSectorPosNode
+{
+	float m_sectorPosX;
+	float m_sectorPosY;
+	float m_sectorPosZ;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool highRes = state.buffer.ReadBit();
+
+		int bits = (highRes) ? 20 : 12;
+
+		auto posX = state.buffer.ReadFloat(bits, 54.0f);
+		auto posY = state.buffer.ReadFloat(bits, 54.0f);
+		auto posZ = state.buffer.ReadFloat(bits, 69.0f);
+
+		state.entity->data["sectorPosX"] = posX;
+		state.entity->data["sectorPosY"] = posY;
+		state.entity->data["sectorPosZ"] = posZ;
+
+		m_sectorPosX = posX;
+		m_sectorPosY = posY;
+		m_sectorPosZ = posZ;
+
+		state.entity->CalculatePosition();
+
+		return true;
+	}
+};
+
 struct CPhysicalAngVelocityDataNode
 {
 	bool Parse(SyncParseState& state)
@@ -750,7 +780,35 @@ struct CPedOrientationDataNode { bool Parse(SyncParseState& state) { return true
 struct CPedMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskTreeDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskSpecificDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedSectorPosMapNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPedSectorPosMapNode
+{
+	float m_sectorPosX;
+	float m_sectorPosY;
+	float m_sectorPosZ;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto posX = state.buffer.ReadFloat(12, 54.0f);
+		auto posY = state.buffer.ReadFloat(12, 54.0f);
+		auto posZ = state.buffer.ReadFloat(12, 69.0f);
+
+		state.entity->data["sectorPosX"] = posX;
+		state.entity->data["sectorPosY"] = posY;
+		state.entity->data["sectorPosZ"] = posZ;
+
+		m_sectorPosX = posX;
+		m_sectorPosY = posY;
+		m_sectorPosZ = posZ;
+
+		state.entity->CalculatePosition();
+
+		// more data follows
+
+		return true;
+	}
+};
+
 struct CPedSectorPosNavMeshNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedInventoryDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskSequenceDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -929,19 +987,33 @@ struct SyncTree : public SyncTreeBase
 		auto [hasSdn, secDataNode] = GetData<CSectorDataNode>();
 		auto [hasSpdn, secPosDataNode] = GetData<CSectorPositionDataNode>();
 		auto [hasPspdn, playerSecPosDataNode] = GetData<CPlayerSectorPosNode>();
+		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
+		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
 
 		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
 		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
 		auto sectorZ = (hasSdn) ? secDataNode->m_sectorZ : 0;
 
-		auto sectorPosX = (hasSpdn) ? secPosDataNode->m_posX :
-			(hasPspdn) ? playerSecPosDataNode->m_sectorPosX : 0.0f;
+		auto sectorPosX =
+			(hasSpdn) ? secPosDataNode->m_posX :
+				(hasPspdn) ? playerSecPosDataNode->m_sectorPosX :
+					(hasOspdn) ? objectSecPosDataNode->m_sectorPosX :
+						(hasPspmdn) ? pedSecPosMapDataNode->m_sectorPosX :
+							0.0f;
 
-		auto sectorPosY = (hasSpdn) ? secPosDataNode->m_posY :
-			(hasPspdn) ? playerSecPosDataNode->m_sectorPosY : 0.0f;
+		auto sectorPosY =
+			(hasSpdn) ? secPosDataNode->m_posY :
+				(hasPspdn) ? playerSecPosDataNode->m_sectorPosY :
+					(hasOspdn) ? objectSecPosDataNode->m_sectorPosY :
+						(hasPspmdn) ? pedSecPosMapDataNode->m_sectorPosY :
+							0.0f;
 
-		auto sectorPosZ = (hasSpdn) ? secPosDataNode->m_posZ :
-			(hasPspdn) ? playerSecPosDataNode->m_sectorPosZ : 0.0f;
+		auto sectorPosZ =
+			(hasSpdn) ? secPosDataNode->m_posZ :
+				(hasPspdn) ? playerSecPosDataNode->m_sectorPosZ :
+					(hasOspdn) ? objectSecPosDataNode->m_sectorPosZ :
+						(hasPspmdn) ? pedSecPosMapDataNode->m_sectorPosZ :
+							0.0f;
 
 		posOut[0] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
 		posOut[1] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
