@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /*
-This header exports some of botan's functionality via a C89
-interface. This API is uesd by the Python and OCaml bindings via those
-languages respective ctypes libraries.
+This header exports some of botan's functionality via a C89 interface. This API
+is uesd by the Python, OCaml, Rust and Ruby bindings via those languages
+respective ctypes/FFI libraries.
 
 The API is intended to be as easy as possible to call from other
 languages, which often have easy ways to call C, because C. But some C
@@ -33,7 +33,7 @@ API follows a few simple rules:
 
 - No ownership of memory transfers across the API boundary. The API will
   consume data from const pointers, and will produce output by writing to
-  variables provided by the caller.
+  buffers provided by (and allocated by) the caller.
 
 - If exporting a value (a string or a blob) the function takes a pointer to the
   output array and a read/write pointer to the length. If the length is insufficient, an
@@ -43,23 +43,56 @@ API follows a few simple rules:
   which is not idempotent and are documented specially. But it's a
   general theory of operation.
 
-The API is not currently documented, nor should it be considered
-stable. It is buggy as heck, most likely, and error handling is a
-mess. However the goal is to provide a long term API usable for
-language bindings, or for use by systems written in C. Suggestions on
-how to provide the cleanest API for such users would be most welcome.
-
-* TODO:
-* - Better error reporting
-* - User callback for exception logging?
-* - Doxygen comments for all functions/params
-* - X.509 certs and PKIX path validation goo
-* - TLS
+ TODO:
+ - Doxygen comments for all functions/params
+ - TLS
 */
 
 #include <botan/build.h>
 #include <stdint.h>
 #include <stddef.h>
+
+/**
+* Error codes
+*
+* If you add a new value here be sure to also add it in
+* botan_error_description
+*/
+enum BOTAN_FFI_ERROR {
+   BOTAN_FFI_SUCCESS = 0,
+   BOTAN_FFI_INVALID_VERIFIER = 1,
+
+   BOTAN_FFI_ERROR_INVALID_INPUT = -1,
+   BOTAN_FFI_ERROR_BAD_MAC = -2,
+
+   BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE = -10,
+
+   BOTAN_FFI_ERROR_EXCEPTION_THROWN = -20,
+   BOTAN_FFI_ERROR_OUT_OF_MEMORY = -21,
+   BOTAN_FFI_ERROR_SYSTEM_ERROR = -22,
+   BOTAN_FFI_ERROR_INTERNAL_ERROR = -23,
+
+   BOTAN_FFI_ERROR_BAD_FLAG = -30,
+   BOTAN_FFI_ERROR_NULL_POINTER = -31,
+   BOTAN_FFI_ERROR_BAD_PARAMETER = -32,
+   BOTAN_FFI_ERROR_KEY_NOT_SET = -33,
+   BOTAN_FFI_ERROR_INVALID_KEY_LENGTH = -34,
+   BOTAN_FFI_ERROR_INVALID_OBJECT_STATE = -35,
+
+   BOTAN_FFI_ERROR_NOT_IMPLEMENTED = -40,
+   BOTAN_FFI_ERROR_INVALID_OBJECT = -50,
+
+   BOTAN_FFI_ERROR_TLS_ERROR = -75,
+   BOTAN_FFI_ERROR_HTTP_ERROR = -76,
+
+   BOTAN_FFI_ERROR_UNKNOWN_ERROR = -100,
+};
+
+/**
+* Convert an error code into a string. Returns "Unknown error"
+* if the error code is not a known one.
+*/
+BOTAN_PUBLIC_API(2,8) const char* botan_error_description(int err);
 
 /**
 * Return the version of the currently supported FFI API. This is
@@ -99,58 +132,6 @@ BOTAN_PUBLIC_API(2,0) uint32_t botan_version_patch();
 * an integer, or 0 if an unreleased version
 */
 BOTAN_PUBLIC_API(2,0) uint32_t botan_version_datestamp();
-
-/*
-* Error handling
-*
-* Some way of exporting these values to other languages would be useful
-
-
- THIS FUNCTION ASSUMES BOTH ARGUMENTS ARE LITERAL STRINGS
- so it retains only the pointers and does not make a copy.
-
-int botan_make_error(const char* msg, const char* func, int line);
-* This value is returned to callers ^^
-
- normally called like
-   return botan_make_error(BOTAN_ERROR_STRING_NOT_IMPLEMENTED, BOTAN_FUNCTION, __LINE__);
-
-// This would seem to require both saving the message permanently
-catch(std::exception& e) {
-return botan_make_error_from_transient_string(e.what(), BOTAN_FUNCTION, __LINE__);
-}
-
-#define botan_make_error_inf(s) return botan_make_error(s, BOTAN_FUNCTION, __LINE__);
-
-Easier to return a const char* from each function directly? However,
-
-catch(std::exception& e) { return e.what(); }
-
-doesn't exactly work well either!
-
-*
-* Later call:
-* const char* botan_get_error_str(int);
-* To recover the msg, func, and line
-
-*/
-#define BOTAN_FFI_SUCCESS (0)
-
-#define BOTAN_FFI_INVALID_VERIFIER (1)
-
-#define BOTAN_FFI_ERROR_INVALID_INPUT (-1)
-#define BOTAN_FFI_ERROR_BAD_MAC (-2)
-
-#define BOTAN_FFI_ERROR_INSUFFICIENT_BUFFER_SPACE (-10)
-#define BOTAN_FFI_ERROR_EXCEPTION_THROWN (-20)
-#define BOTAN_FFI_ERROR_BAD_FLAG (-30)
-#define BOTAN_FFI_ERROR_NULL_POINTER (-31)
-#define BOTAN_FFI_ERROR_BAD_PARAMETER (-32)
-#define BOTAN_FFI_ERROR_NOT_IMPLEMENTED (-40)
-
-#define BOTAN_FFI_ERROR_UNKNOWN_ERROR (-100)
-
-//const char* botan_error_description(int err);
 
 /**
 * Returns 0 if x[0..len] == y[0..len], or otherwise -1
@@ -212,8 +193,6 @@ typedef struct botan_rng_struct* botan_rng_t;
 * @param rng_type type of the rng, possible values:
 *    "system": System_RNG, "user": AutoSeeded_RNG
 * Set rng_type to null or empty string to let the library choose
-*
-* TODO: replace rng_type with simple flags?
 */
 BOTAN_PUBLIC_API(2,0) int botan_rng_init(botan_rng_t* rng, const char* rng_type);
 
@@ -223,8 +202,6 @@ BOTAN_PUBLIC_API(2,0) int botan_rng_init(botan_rng_t* rng, const char* rng_type)
 * @param out output buffer of size out_len
 * @param out_len number of requested bytes
 * @return 0 on success, negative on failure
-*
-* TODO: better name
 */
 BOTAN_PUBLIC_API(2,0) int botan_rng_get(botan_rng_t rng, uint8_t* out, size_t out_len);
 
@@ -237,6 +214,30 @@ BOTAN_PUBLIC_API(2,0) int botan_rng_get(botan_rng_t rng, uint8_t* out, size_t ou
 * @return 0 on success, a negative value on failure
 */
 BOTAN_PUBLIC_API(2,0) int botan_rng_reseed(botan_rng_t rng, size_t bits);
+
+/**
+* Reseed a random number generator
+*
+* @param rng rng object
+* @param source_rng the rng that will be read from
+* @param bits number of bits to to reseed with
+* @return 0 on success, a negative value on failure
+*/
+BOTAN_PUBLIC_API(2,8) int botan_rng_reseed_from_rng(botan_rng_t rng,
+                                                    botan_rng_t source_rng,
+                                                    size_t bits);
+
+/**
+* Add some seed material to a random number generator
+*
+* @param rng rng object
+* @param entropy the data to add
+* @param entropy_len length of entropy buffer
+* @return 0 on success, a negative value on failure
+*/
+BOTAN_PUBLIC_API(2,8) int botan_rng_add_entropy(botan_rng_t rng,
+                                                const uint8_t* entropy,
+                                                size_t entropy_len);
 
 /**
 * Frees all resources of the random number generator object
@@ -256,9 +257,6 @@ typedef struct botan_hash_struct* botan_hash_t;
 * @param hash_name name of the hash function, e.g., "SHA-384"
 * @param flags should be 0 in current API revision, all other uses are reserved
 *       and return BOTAN_FFI_ERROR_BAD_FLAG
-*
-* TODO: since output_length is effectively required to use this API,
-* return it from init as an output parameter
 */
 BOTAN_PUBLIC_API(2,0) int botan_hash_init(botan_hash_t* hash, const char* hash_name, uint32_t flags);
 
@@ -321,9 +319,12 @@ BOTAN_PUBLIC_API(2,0) int botan_hash_clear(botan_hash_t hash);
 BOTAN_PUBLIC_API(2,0) int botan_hash_destroy(botan_hash_t hash);
 
 /**
-* TODO has no implementation
+* Get the name of this hash function
+* @param hash the object to read
+* @param name output buffer
+* @param name_len on input, the length of buffer, on success the number of bytes written
 */
-BOTAN_PUBLIC_API(2,0) int botan_hash_name(botan_hash_t hash, char* name, size_t name_len);
+BOTAN_PUBLIC_API(2,8) int botan_hash_name(botan_hash_t hash, char* name, size_t* name_len);
 
 /*
 * Message Authentication type
@@ -385,6 +386,26 @@ BOTAN_PUBLIC_API(2,0) int botan_mac_final(botan_mac_t mac, uint8_t out[]);
 BOTAN_PUBLIC_API(2,0) int botan_mac_clear(botan_mac_t mac);
 
 /**
+* Get the name of this MAC
+* @param mac the object to read
+* @param name output buffer
+* @param name_len on input, the length of buffer, on success the number of bytes written
+*/
+BOTAN_PUBLIC_API(2,8) int botan_mac_name(botan_mac_t mac, char* name, size_t* name_len);
+
+/**
+* Get the key length limits of this auth code
+* @param mac the object to read
+* @param out_minimum_keylength if non-NULL, will be set to minimum keylength of MAC
+* @param out_maximum_keylength if non-NULL, will be set to maximum keylength of MAC
+* @param out_keylength_modulo if non-NULL will be set to byte multiple of valid keys
+*/
+BOTAN_PUBLIC_API(2,8) int botan_mac_get_keyspec(botan_mac_t mac,
+                                                 size_t* out_minimum_keylength,
+                                                 size_t* out_maximum_keylength,
+                                                 size_t* out_keylength_modulo);
+
+/**
 * Frees all resources of the MAC object
 * @param mac mac object
 * @return always returns 0
@@ -400,28 +421,90 @@ typedef struct botan_cipher_struct* botan_cipher_t;
 #define BOTAN_CIPHER_INIT_FLAG_ENCRYPT 0
 #define BOTAN_CIPHER_INIT_FLAG_DECRYPT 1
 
+/**
+* Initialize a cipher object
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_init(botan_cipher_t* cipher, const char* name, uint32_t flags);
 
+/**
+* Return the name of the cipher object
+*/
+BOTAN_PUBLIC_API(2,8) int botan_cipher_name(botan_cipher_t cipher, char* name, size_t* name_len);
+
+/**
+* Return the output length of this cipher, for a particular input length.
+*/
+BOTAN_PUBLIC_API(2,8) int botan_cipher_output_length(botan_cipher_t cipher, size_t in_len, size_t* out_len);
+
+/**
+* Return if the specified nonce length is valid for this cipher
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_valid_nonce_length(botan_cipher_t cipher, size_t nl);
+
+/**
+* Get the tag length of the cipher (0 for non-AEAD modes)
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_get_tag_length(botan_cipher_t cipher, size_t* tag_size);
+
+/**
+* Get the default nonce length of this cipher
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_get_default_nonce_length(botan_cipher_t cipher, size_t* nl);
+
+/**
+* Return the update granularity of the cipher; botan_cipher_update must be
+* called with blocks of this size, except for the final.
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_get_update_granularity(botan_cipher_t cipher, size_t* ug);
 
+/**
+* Get information about the key lengths. Prefer botan_cipher_get_keyspec
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_query_keylen(botan_cipher_t,
                                         size_t* out_minimum_keylength,
                                         size_t* out_maximum_keylength);
 
-BOTAN_PUBLIC_API(2,0) int botan_cipher_set_key(botan_cipher_t cipher,
-                                   const uint8_t* key, size_t key_len);
+/**
+* Get information about the supported key lengths.
+*/
+BOTAN_PUBLIC_API(2,8) int botan_cipher_get_keyspec(botan_cipher_t,
+                                                   size_t* min_keylen,
+                                                   size_t* max_keylen,
+                                                   size_t* mod_keylen);
 
+/**
+* Set the key for this cipher object
+*/
+BOTAN_PUBLIC_API(2,0) int botan_cipher_set_key(botan_cipher_t cipher,
+                                               const uint8_t* key, size_t key_len);
+
+/**
+* Reset the message specific state for this cipher.
+* Without resetting the keys, this resets the nonce, and any state
+* associated with any message bits that have been processed so far.
+*
+* It is conceptually equivalent to calling botan_cipher_clear followed
+* by botan_cipher_set_key with the original key.
+*/
+BOTAN_PUBLIC_API(2,8) int botan_cipher_reset(botan_cipher_t cipher);
+
+/**
+* Set the associated data. Will fail if cipher is not an AEAD
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_set_associated_data(botan_cipher_t cipher,
                                                const uint8_t* ad, size_t ad_len);
 
+/**
+* Begin processing a new message using the provided nonce
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_start(botan_cipher_t cipher,
                                  const uint8_t* nonce, size_t nonce_len);
 
 #define BOTAN_CIPHER_UPDATE_FLAG_FINAL (1U << 0)
 
+/**
+* Encrypt some data
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_update(botan_cipher_t cipher,
                                   uint32_t flags,
                                   uint8_t output[],
@@ -431,12 +514,19 @@ BOTAN_PUBLIC_API(2,0) int botan_cipher_update(botan_cipher_t cipher,
                                   size_t input_size,
                                   size_t* input_consumed);
 
+/**
+* Reset the key, nonce, AD and all other state on this cipher object
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_clear(botan_cipher_t hash);
+
+/**
+* Destroy the cipher object
+*/
 BOTAN_PUBLIC_API(2,0) int botan_cipher_destroy(botan_cipher_t cipher);
 
 /*
 * Derive a key from a passphrase for a number of iterations
-* @param pbkdf_algo PBKDF algorithm, e.g., "PBKDF2"
+* @param pbkdf_algo PBKDF algorithm, e.g., "PBKDF2(SHA-256)"
 * @param out buffer to store the derived key, must be of out_len bytes
 * @param out_len the desired length of the key to produce
 * @param passphrase the password to derive the key from
@@ -453,7 +543,7 @@ BOTAN_PUBLIC_API(2,0) int botan_pbkdf(const char* pbkdf_algo,
 
 /**
 * Derive a key from a passphrase, running until msec time has elapsed.
-* @param pbkdf_algo PBKDF algorithm, e.g., "PBKDF2"
+* @param pbkdf_algo PBKDF algorithm, e.g., "PBKDF2(SHA-256)"
 * @param out buffer to store the derived key, must be of out_len bytes
 * @param out_len the desired length of the key to produce
 * @param passphrase the password to derive the key from
@@ -470,6 +560,71 @@ BOTAN_PUBLIC_API(2,0) int botan_pbkdf_timed(const char* pbkdf_algo,
                                 const uint8_t salt[], size_t salt_len,
                                 size_t milliseconds_to_run,
                                 size_t* out_iterations_used);
+
+
+/*
+* Derive a key from a passphrase
+* @param algo PBKDF algorithm, e.g., "PBKDF2(SHA-256)" or "Scrypt"
+* @param param1 the first PBKDF algorithm parameter
+* @param param2 the second PBKDF algorithm parameter (may be zero if unneeded)
+* @param param3 the third PBKDF algorithm parameter (may be zero if unneeded)
+* @param out buffer to store the derived key, must be of out_len bytes
+* @param out_len the desired length of the key to produce
+* @param passphrase the password to derive the key from
+* @param passphrase_len if > 0, specifies length of password. If len == 0, then
+*        strlen will be called on passphrase to compute the length.
+* @param salt a randomly chosen salt
+* @param salt_len length of salt in bytes
+* @return 0 on success, a negative value on failure
+*/
+int BOTAN_PUBLIC_API(2,8) botan_pwdhash(
+   const char* algo,
+   size_t param1,
+   size_t param2,
+   size_t param3,
+   uint8_t out[],
+   size_t out_len,
+   const char* passphrase,
+   size_t passphrase_len,
+   const uint8_t salt[],
+   size_t salt_len);
+
+/*
+* Derive a key from a passphrase
+* @param pbkdf_algo PBKDF algorithm, e.g., "Scrypt" or "PBKDF2(SHA-256)"
+* @param msec the desired runtime in milliseconds
+* @param param1 will be set to the first password hash parameter
+* @param param2 will be set to the second password hash parameter
+* @param param3 will be set to the third password hash parameter
+* @param out buffer to store the derived key, must be of out_len bytes
+* @param out_len the desired length of the key to produce
+* @param passphrase the password to derive the key from
+* @param passphrase_len if > 0, specifies length of password. If len == 0, then
+*        strlen will be called on passphrase to compute the length.
+* @param salt a randomly chosen salt
+* @param salt_len length of salt in bytes
+* @return 0 on success, a negative value on failure
+*/
+int BOTAN_PUBLIC_API(2,8) botan_pwdhash_timed(
+   const char* algo,
+   uint32_t msec,
+   size_t* param1,
+   size_t* param2,
+   size_t* param3,
+   uint8_t out[],
+   size_t out_len,
+   const char* passphrase,
+   size_t passphrase_len,
+   const uint8_t salt[],
+   size_t salt_len);
+
+/**
+* Derive a key using scrypt
+*/
+BOTAN_PUBLIC_API(2,8) int botan_scrypt(uint8_t out[], size_t out_len,
+                                       const char* passphrase,
+                                       const uint8_t salt[], size_t salt_len,
+                                       size_t N, size_t r, size_t p);
 
 /**
 * Derive a key
@@ -490,25 +645,6 @@ BOTAN_PUBLIC_API(2,0) int botan_kdf(const char* kdf_algo,
                         const uint8_t salt[], size_t salt_len,
                         const uint8_t label[], size_t label_len);
 
-/**
-* Create a password hash using Bcrypt
-* @param out buffer holding the password hash, should be of length 64 bytes
-* @param out_len the desired output length in bytes
-* @param password the password
-* @param rng a random number generator
-* @param work_factor how much work to do to slow down guessing attacks
-* @param flags should be 0 in current API revision, all other uses are reserved
-*       and return BOTAN_FFI_ERROR_BAD_FLAG
-* @return 0 on success, a negative value on failure
-
-* Output is formatted bcrypt $2a$...
-*/
-BOTAN_PUBLIC_API(2,0) int botan_bcrypt_generate(uint8_t* out, size_t* out_len,
-                                    const char* password,
-                                    botan_rng_t rng,
-                                    size_t work_factor,
-                                    uint32_t flags);
-
 /*
 * Raw Block Cipher (PRP) interface
 */
@@ -518,7 +654,7 @@ typedef struct botan_block_cipher_struct* botan_block_cipher_t;
 * Initialize a block cipher object
 */
 BOTAN_PUBLIC_API(2,1) int botan_block_cipher_init(botan_block_cipher_t* bc,
-                                      const char* cipher_name);
+                                                  const char* cipher_name);
 
 /**
 * Destroy a block cipher object
@@ -535,7 +671,7 @@ BOTAN_PUBLIC_API(2,1) int botan_block_cipher_clear(botan_block_cipher_t bc);
 * Set the key for a block cipher instance
 */
 BOTAN_PUBLIC_API(2,1) int botan_block_cipher_set_key(botan_block_cipher_t bc,
-                                         const uint8_t key[], size_t len);
+                                                     const uint8_t key[], size_t len);
 
 /**
 * Return the positive block size of this block cipher, or negative to
@@ -543,43 +679,118 @@ BOTAN_PUBLIC_API(2,1) int botan_block_cipher_set_key(botan_block_cipher_t bc,
 */
 BOTAN_PUBLIC_API(2,1) int botan_block_cipher_block_size(botan_block_cipher_t bc);
 
+/**
+* Encrypt one or more blocks with the cipher
+*/
 BOTAN_PUBLIC_API(2,1) int botan_block_cipher_encrypt_blocks(botan_block_cipher_t bc,
-                                                const uint8_t in[],
-                                                uint8_t out[],
-                                                size_t blocks);
+                                                            const uint8_t in[],
+                                                            uint8_t out[],
+                                                            size_t blocks);
 
+/**
+* Decrypt one or more blocks with the cipher
+*/
 BOTAN_PUBLIC_API(2,1) int botan_block_cipher_decrypt_blocks(botan_block_cipher_t bc,
-                                                const uint8_t in[],
-                                                uint8_t out[],
-                                                size_t blocks);
+                                                            const uint8_t in[],
+                                                            uint8_t out[],
+                                                            size_t blocks);
 
+/**
+* Get the name of this block cipher
+* @param cipher the object to read
+* @param name output buffer
+* @param name_len on input, the length of buffer, on success the number of bytes written
+*/
+BOTAN_PUBLIC_API(2,8) int botan_block_cipher_name(botan_block_cipher_t cipher,
+                                                  char* name, size_t* name_len);
+
+
+/**
+* Get the key length limits of this block cipher
+* @param cipher the object to read
+* @param out_minimum_keylength if non-NULL, will be set to minimum keylength of cipher
+* @param out_maximum_keylength if non-NULL, will be set to maximum keylength of cipher
+* @param out_keylength_modulo if non-NULL will be set to byte multiple of valid keys
+*/
+BOTAN_PUBLIC_API(2,8) int botan_block_cipher_get_keyspec(botan_block_cipher_t cipher,
+                                                         size_t* out_minimum_keylength,
+                                                         size_t* out_maximum_keylength,
+                                                         size_t* out_keylength_modulo);
 
 /*
-* Multiple precision integers
+* Multiple precision integers (MPI)
 */
 typedef struct botan_mp_struct* botan_mp_t;
 
+/**
+* Initialize an MPI
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_init(botan_mp_t* mp);
+
+/**
+* Destroy (deallocate) an MPI
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_destroy(botan_mp_t mp);
 
-// writes botan_mp_num_bytes(mp)*2 + 1 bytes to out[]
+/**
+* Convert the MPI to a hex string. Writes botan_mp_num_bytes(mp)*2 + 1 bytes
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_to_hex(const botan_mp_t mp, char* out);
+
+/**
+* Convert the MPI to a string. Currently base == 10 and base == 16 are supported.
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_to_str(const botan_mp_t mp, uint8_t base, char* out, size_t* out_len);
 
+/**
+* Set the MPI to zero
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_clear(botan_mp_t mp);
 
+/**
+* Set the MPI value from an int
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_set_from_int(botan_mp_t mp, int initial_value);
+
+/**
+* Set the MPI value from another MP object
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_set_from_mp(botan_mp_t dest, const botan_mp_t source);
+
+/**
+* Set the MPI value from a string
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_set_from_str(botan_mp_t dest, const char* str);
+
+/**
+* Set the MPI value from a string with arbitrary radix.
+* For arbitrary being 10 or 16.
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_set_from_radix_str(botan_mp_t dest, const char* str, size_t radix);
 
+/**
+* Return the number of significant bits in the MPI
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_num_bits(const botan_mp_t n, size_t* bits);
+
+/**
+* Return the number of significant bytes in the MPI
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_num_bytes(const botan_mp_t n, size_t* bytes);
 
-// Writes botan_mp_num_bytes(mp) to vec
+/*
+* Convert the MPI to a big-endian binary string. Writes botan_mp_num_bytes to vec
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_to_bin(const botan_mp_t mp, uint8_t vec[]);
+
+/*
+* Set an MP to the big-endian binary value
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_from_bin(const botan_mp_t mp, const uint8_t vec[], size_t vec_len);
 
+/*
+* Convert the MPI to a uint32_t, if possible. Fails if MPI is negative or too large.
+*/
 BOTAN_PUBLIC_API(2,1) int botan_mp_to_uint32(const botan_mp_t mp, uint32_t* val);
 
 /**
@@ -601,16 +812,19 @@ BOTAN_PUBLIC_API(2,1) int botan_mp_is_zero(const botan_mp_t mp);
 BOTAN_PUBLIC_API(2,1) int botan_mp_is_odd(const botan_mp_t mp);
 BOTAN_PUBLIC_API(2,1) int botan_mp_is_even(const botan_mp_t mp);
 
+BOTAN_PUBLIC_API(2,8) int botan_mp_add_u32(botan_mp_t result, const botan_mp_t x, uint32_t y);
+BOTAN_PUBLIC_API(2,8) int botan_mp_sub_u32(botan_mp_t result, const botan_mp_t x, uint32_t y);
+
 BOTAN_PUBLIC_API(2,1) int botan_mp_add(botan_mp_t result, const botan_mp_t x, const botan_mp_t y);
 BOTAN_PUBLIC_API(2,1) int botan_mp_sub(botan_mp_t result, const botan_mp_t x, const botan_mp_t y);
 BOTAN_PUBLIC_API(2,1) int botan_mp_mul(botan_mp_t result, const botan_mp_t x, const botan_mp_t y);
 
 BOTAN_PUBLIC_API(2,1) int botan_mp_div(botan_mp_t quotient,
-                           botan_mp_t remainder,
-                           const botan_mp_t x, const botan_mp_t y);
+                                       botan_mp_t remainder,
+                                       const botan_mp_t x, const botan_mp_t y);
 
 BOTAN_PUBLIC_API(2,1) int botan_mp_mod_mul(botan_mp_t result, const botan_mp_t x,
-                               const botan_mp_t y, const botan_mp_t mod);
+                                           const botan_mp_t y, const botan_mp_t mod);
 
 /*
 * Returns 0 if x != y
@@ -673,6 +887,25 @@ BOTAN_PUBLIC_API(2,1) int botan_mp_clear_bit(botan_mp_t n, size_t bit);
 /* Bcrypt password hashing */
 
 /**
+* Create a password hash using Bcrypt
+* @param out buffer holding the password hash, should be of length 64 bytes
+* @param out_len the desired output length in bytes
+* @param password the password
+* @param rng a random number generator
+* @param work_factor how much work to do to slow down guessing attacks
+* @param flags should be 0 in current API revision, all other uses are reserved
+*       and return BOTAN_FFI_ERROR_BAD_FLAG
+* @return 0 on success, a negative value on failure
+
+* Output is formatted bcrypt $2a$...
+*/
+BOTAN_PUBLIC_API(2,0) int botan_bcrypt_generate(uint8_t* out, size_t* out_len,
+                                    const char* password,
+                                    botan_rng_t rng,
+                                    size_t work_factor,
+                                    uint32_t flags);
+
+/**
 * Check a previously created password hash
 * @param pass the password to check against
 * @param hash the stored hash to check against
@@ -687,10 +920,18 @@ BOTAN_PUBLIC_API(2,0) int botan_bcrypt_is_valid(const char* pass, const char* ha
 */
 typedef struct botan_privkey_struct* botan_privkey_t;
 
+/**
+* Create a new private key
+* @param key the new object will be placed here
+* @param algo_name something like "RSA" or "ECDSA"
+* @param algo_params is specific to the algorithm. For RSA, specifies
+*        the modulus bit length. For ECC is the name of the curve.
+* @param rng a random number generator
+*/
 BOTAN_PUBLIC_API(2,0) int botan_privkey_create(botan_privkey_t* key,
-                                   const char* algo_name,
-                                   const char* algo_params,
-                                   botan_rng_t rng);
+                                               const char* algo_name,
+                                               const char* algo_params,
+                                               botan_rng_t rng);
 
 #define BOTAN_CHECK_KEY_EXPENSIVE_TESTS 1
 
@@ -702,20 +943,72 @@ BOTAN_PUBLIC_API(2,0) int botan_privkey_create_ecdh(botan_privkey_t* key, botan_
 BOTAN_PUBLIC_API(2,0) int botan_privkey_create_mceliece(botan_privkey_t* key, botan_rng_t rng, size_t n, size_t t);
 BOTAN_PUBLIC_API(2,0) int botan_privkey_create_dh(botan_privkey_t* key, botan_rng_t rng, const char* param);
 
-/*
+
+/**
+ * Generates DSA key pair. Gives to a caller control over key length
+ * and order of a subgroup 'q'.
+ *
+ * @param   key   handler to the resulting key
+ * @param   rng   initialized PRNG
+ * @param   pbits length of the key in bits. Must be between in range (1024, 3072)
+ *          and multiple of 64. Bit size of the prime 'p'
+ * @param   qbits order of the subgroup. Must be in range (160, 256) and multiple
+ *          of 8
+ *
+ * @returns BOTAN_FFI_SUCCESS Success, `key' initialized with DSA key
+ * @returns BOTAN_FFI_ERROR_NULL_POINTER  either `key' or `rng' is NULL
+ * @returns BOTAN_FFI_ERROR_BAD_PARAMETER unexpected value for either `pbits' or
+ *          `qbits'
+ * @returns BOTAN_FFI_ERROR_NOT_IMPLEMENTED functionality not implemented
+ *
+*/
+BOTAN_PUBLIC_API(2,5) int botan_privkey_create_dsa(
+                                botan_privkey_t* key,
+                                botan_rng_t rng,
+                                size_t pbits,
+                                size_t qbits);
+
+/**
+ * Generates ElGamal key pair. Caller has a control over key length
+ * and order of a subgroup 'q'. Function is able to use two types of
+ * primes:
+ *    * if pbits-1 == qbits then safe primes are used for key generation
+ *    * otherwise generation uses group of prime order
+ *
+ * @param   key   handler to the resulting key
+ * @param   rng   initialized PRNG
+ * @param   pbits length of the key in bits. Must be at least 1024
+ * @param   qbits order of the subgroup. Must be at least 160
+ *
+ * @returns BOTAN_FFI_SUCCESS Success, `key' initialized with DSA key
+ * @returns BOTAN_FFI_ERROR_NULL_POINTER  either `key' or `rng' is NULL
+ * @returns BOTAN_FFI_ERROR_BAD_PARAMETER unexpected value for either `pbits' or
+ *          `qbits'
+ * @returns BOTAN_FFI_ERROR_NOT_IMPLEMENTED functionality not implemented
+ *
+*/
+BOTAN_PUBLIC_API(2,5) int botan_privkey_create_elgamal(
+                            botan_privkey_t* key,
+                            botan_rng_t rng,
+                            size_t pbits,
+                            size_t qbits);
+
+/**
 * Input currently assumed to be PKCS #8 structure;
 * Set password to NULL to indicate no encryption expected
+* Starting in 2.8.0, the rng parameter is unused and may be set to null
 */
-BOTAN_PUBLIC_API(2,0) int botan_privkey_load(botan_privkey_t* key, botan_rng_t rng,
-                                 const uint8_t bits[], size_t len,
-                                 const char* password);
+BOTAN_PUBLIC_API(2,0) int botan_privkey_load(botan_privkey_t* key,
+                                             botan_rng_t rng,
+                                             const uint8_t bits[], size_t len,
+                                             const char* password);
 
 BOTAN_PUBLIC_API(2,0) int botan_privkey_destroy(botan_privkey_t key);
 
 #define BOTAN_PRIVKEY_EXPORT_FLAG_DER 0
 #define BOTAN_PRIVKEY_EXPORT_FLAG_PEM 1
 
-/*
+/**
 * On input *out_len is number of bytes in out[]
 * On output *out_len is number of bytes written (or required)
 * If out is not big enough no output is written, *out_len is set and 1 is returned
@@ -726,7 +1019,9 @@ BOTAN_PUBLIC_API(2,0) int botan_privkey_export(botan_privkey_t key,
                                    uint8_t out[], size_t* out_len,
                                    uint32_t flags);
 
-/*
+BOTAN_PUBLIC_API(2,8) int botan_privkey_algo_name(botan_privkey_t key, char out[], size_t* out_len);
+
+/**
 * Set encryption_algo to NULL or "" to have the library choose a default (recommended)
 */
 BOTAN_DEPRECATED("Use botan_privkey_export_encrypted_pbkdf_{msec,iter}")
@@ -751,7 +1046,7 @@ BOTAN_PUBLIC_API(2,0) int botan_privkey_export_encrypted_pbkdf_msec(botan_privke
                                                         const char* pbkdf_algo,
                                                         uint32_t flags);
 
-/*
+/**
 * Export a private key using the specified number of iterations.
 */
 BOTAN_PUBLIC_API(2,0) int botan_privkey_export_encrypted_pbkdf_iter(botan_privkey_t key,
@@ -804,15 +1099,23 @@ BOTAN_PUBLIC_API(2,0) int botan_privkey_load_rsa(botan_privkey_t* key,
                                      botan_mp_t q,
                                      botan_mp_t e);
 
+BOTAN_PUBLIC_API(2,8) int botan_privkey_load_rsa_pkcs1(botan_privkey_t* key,
+                                                       const uint8_t bits[],
+                                                       size_t len);
+
 BOTAN_PUBLIC_API(2,0) int botan_privkey_rsa_get_p(botan_mp_t p, botan_privkey_t rsa_key);
 BOTAN_PUBLIC_API(2,0) int botan_privkey_rsa_get_q(botan_mp_t q, botan_privkey_t rsa_key);
 BOTAN_PUBLIC_API(2,0) int botan_privkey_rsa_get_d(botan_mp_t d, botan_privkey_t rsa_key);
 BOTAN_PUBLIC_API(2,0) int botan_privkey_rsa_get_n(botan_mp_t n, botan_privkey_t rsa_key);
 BOTAN_PUBLIC_API(2,0) int botan_privkey_rsa_get_e(botan_mp_t e, botan_privkey_t rsa_key);
 
+BOTAN_PUBLIC_API(2,8) int botan_privkey_rsa_get_privkey(botan_privkey_t rsa_key,
+                                                        uint8_t out[], size_t* out_len,
+                                                        uint32_t flags);
+
 BOTAN_PUBLIC_API(2,0) int botan_pubkey_load_rsa(botan_pubkey_t* key,
-                                    botan_mp_t n,
-                                    botan_mp_t e);
+                                                botan_mp_t n,
+                                                botan_mp_t e);
 
 BOTAN_PUBLIC_API(2,0) int botan_pubkey_rsa_get_e(botan_mp_t e, botan_pubkey_t rsa_key);
 BOTAN_PUBLIC_API(2,0) int botan_pubkey_rsa_get_n(botan_mp_t n, botan_pubkey_t rsa_key);
@@ -856,7 +1159,7 @@ BOTAN_PUBLIC_API(2,0) int botan_privkey_load_dh(botan_privkey_t* key,
                                          botan_mp_t p,
                                          botan_mp_t g,
                                          botan_mp_t x);
-/*
+/**
 * Loads Diffie Hellman public key
 *
 * @param key variable populated with key material
@@ -878,7 +1181,7 @@ BOTAN_PUBLIC_API(2,0) int botan_pubkey_load_dh(botan_pubkey_t* key,
 * Algorithm specific key operations: ElGamal
 */
 
-/*
+/**
 * Loads ElGamal public key
 * @param key variable populated with key material
 * @param p prime order of a Z_p group
@@ -895,7 +1198,7 @@ BOTAN_PUBLIC_API(2,0) int botan_pubkey_load_elgamal(botan_pubkey_t* key,
                                         botan_mp_t g,
                                         botan_mp_t y);
 
-/*
+/**
 * Loads ElGamal private key
 *
 * @param key variable populated with key material
@@ -928,6 +1231,22 @@ BOTAN_PUBLIC_API(2,2) int botan_privkey_ed25519_get_privkey(botan_privkey_t key,
 
 BOTAN_PUBLIC_API(2,2) int botan_pubkey_ed25519_get_pubkey(botan_pubkey_t key,
                                               uint8_t pubkey[32]);
+
+/*
+* Algorithm specific key operations: X25519
+*/
+
+BOTAN_PUBLIC_API(2,8) int botan_privkey_load_x25519(botan_privkey_t* key,
+                                                    const uint8_t privkey[32]);
+
+BOTAN_PUBLIC_API(2,8) int botan_pubkey_load_x25519(botan_pubkey_t* key,
+                                                   const uint8_t pubkey[32]);
+
+BOTAN_PUBLIC_API(2,8) int botan_privkey_x25519_get_privkey(botan_privkey_t key,
+                                                           uint8_t output[32]);
+
+BOTAN_PUBLIC_API(2,8) int botan_pubkey_x25519_get_pubkey(botan_pubkey_t key,
+                                                         uint8_t pubkey[32]);
 
 /*
 * Algorithm specific key operations: ECDSA and ECDH
@@ -995,10 +1314,16 @@ BOTAN_PUBLIC_API(2,0) int botan_pk_op_encrypt_create(botan_pk_op_encrypt_t* op,
 
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_encrypt_destroy(botan_pk_op_encrypt_t op);
 
+BOTAN_PUBLIC_API(2,8) int botan_pk_op_encrypt_output_length(botan_pk_op_encrypt_t op,
+                                                            size_t ptext_len,
+                                                            size_t* ctext_len);
+
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_encrypt(botan_pk_op_encrypt_t op,
-                                  botan_rng_t rng,
-                                  uint8_t out[], size_t* out_len,
-                                  const uint8_t plaintext[], size_t plaintext_len);
+                                              botan_rng_t rng,
+                                              uint8_t out[],
+                                              size_t* out_len,
+                                              const uint8_t plaintext[],
+                                              size_t plaintext_len);
 
 /*
 * Public Key Decryption
@@ -1010,6 +1335,10 @@ BOTAN_PUBLIC_API(2,0) int botan_pk_op_decrypt_create(botan_pk_op_decrypt_t* op,
                                          const char* padding,
                                          uint32_t flags);
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_decrypt_destroy(botan_pk_op_decrypt_t op);
+
+BOTAN_PUBLIC_API(2,8) int botan_pk_op_decrypt_output_length(botan_pk_op_decrypt_t op,
+                                                            size_t ctext_len,
+                                                            size_t* ptext_len);
 
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_decrypt(botan_pk_op_decrypt_t op,
                                   uint8_t out[], size_t* out_len,
@@ -1027,6 +1356,8 @@ int botan_pk_op_sign_create(botan_pk_op_sign_t* op,
                             uint32_t flags);
 
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_sign_destroy(botan_pk_op_sign_t op);
+
+BOTAN_PUBLIC_API(2,8) int botan_pk_op_sign_output_length(botan_pk_op_sign_t op, size_t* olen);
 
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_sign_update(botan_pk_op_sign_t op, const uint8_t in[], size_t in_len);
 
@@ -1066,6 +1397,8 @@ BOTAN_PUBLIC_API(2,0) int botan_pk_op_key_agreement_destroy(botan_pk_op_ka_t op)
 BOTAN_PUBLIC_API(2,0) int botan_pk_op_key_agreement_export_public(botan_privkey_t key,
                                                       uint8_t out[], size_t* out_len);
 
+BOTAN_PUBLIC_API(2,8) int botan_pk_op_key_agreement_size(botan_pk_op_ka_t op, size_t* out_len);
+
 BOTAN_PUBLIC_API(2,0)
 int botan_pk_op_key_agreement(botan_pk_op_ka_t op,
                               uint8_t out[], size_t* out_len,
@@ -1095,10 +1428,17 @@ int botan_mceies_decrypt(botan_privkey_t mce_key,
                          const uint8_t ad[], size_t ad_len,
                          uint8_t pt[], size_t* pt_len);
 
+/*
+* X.509 certificates
+**************************/
+
 typedef struct botan_x509_cert_struct* botan_x509_cert_t;
+
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_load(botan_x509_cert_t* cert_obj, const uint8_t cert[], size_t cert_len);
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_load_file(botan_x509_cert_t* cert_obj, const char* filename);
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_destroy(botan_x509_cert_t cert);
+
+BOTAN_PUBLIC_API(2,8) int botan_x509_cert_dup(botan_x509_cert_t* new_cert, botan_x509_cert_t cert);
 
 BOTAN_PUBLIC_API(2,0)
 int botan_x509_cert_gen_selfsigned(botan_x509_cert_t* cert,
@@ -1107,9 +1447,12 @@ int botan_x509_cert_gen_selfsigned(botan_x509_cert_t* cert,
                                    const char* common_name,
                                    const char* org_name);
 
-// TODO: return botan_time_struct instead
+// Prefer botan_x509_cert_not_before and botan_x509_cert_not_after
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_get_time_starts(botan_x509_cert_t cert, char out[], size_t* out_len);
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_get_time_expires(botan_x509_cert_t cert, char out[], size_t* out_len);
+
+BOTAN_PUBLIC_API(2,8) int botan_x509_cert_not_before(botan_x509_cert_t cert, uint64_t* time_since_epoch);
+BOTAN_PUBLIC_API(2,8) int botan_x509_cert_not_after(botan_x509_cert_t cert, uint64_t* time_since_epoch);
 
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_get_fingerprint(botan_x509_cert_t cert, const char* hash, uint8_t out[], size_t* out_len);
 
@@ -1151,6 +1494,38 @@ enum botan_x509_cert_key_constraints {
 BOTAN_PUBLIC_API(2,0) int botan_x509_cert_allowed_usage(botan_x509_cert_t cert, unsigned int key_usage);
 
 /**
+* Check if the certificate matches the specified hostname via alternative name or CN match.
+* RFC 5280 wildcards also supported.
+*/
+BOTAN_PUBLIC_API(2,5) int botan_x509_cert_hostname_match(botan_x509_cert_t cert, const char* hostname);
+
+/**
+* Returns 0 if the validation was successful, 1 if validation failed,
+* and negative on error. A status code with details is written to
+* *validation_result
+*
+* Intermediates or trusted lists can be null
+* Trusted path can be null
+*/
+BOTAN_PUBLIC_API(2,8) int botan_x509_cert_verify(
+   int* validation_result,
+   botan_x509_cert_t cert,
+   const botan_x509_cert_t* intermediates,
+   size_t intermediates_len,
+   const botan_x509_cert_t* trusted,
+   size_t trusted_len,
+   const char* trusted_path,
+   size_t required_strength,
+   const char* hostname,
+   uint64_t reference_time);
+
+/**
+* Returns a pointer to a static character string explaining the status code,
+* or else NULL if unknown.
+*/
+BOTAN_PUBLIC_API(2,8) const char* botan_x509_cert_validation_status(int code);
+
+/**
  * Key wrapping as per RFC 3394
  */
 BOTAN_PUBLIC_API(2,2)
@@ -1162,6 +1537,116 @@ BOTAN_PUBLIC_API(2,2)
 int botan_key_unwrap3394(const uint8_t wrapped_key[], size_t wrapped_key_len,
                          const uint8_t kek[], size_t kek_len,
                          uint8_t key[], size_t *key_len);
+
+/**
+* HOTP
+*/
+
+typedef struct botan_hotp_struct* botan_hotp_t;
+
+/**
+* Initialize a HOTP instance
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_hotp_init(botan_hotp_t* hotp,
+                    const uint8_t key[], size_t key_len,
+                    const char* hash_algo,
+                    size_t digits);
+
+/**
+* Destroy a HOTP instance
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_hotp_destroy(botan_hotp_t hotp);
+
+/**
+* Generate a HOTP code for the provided counter
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_hotp_generate(botan_hotp_t hotp,
+                        uint32_t* hotp_code,
+                        uint64_t hotp_counter);
+
+/**
+* Verify a HOTP code
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_hotp_check(botan_hotp_t hotp,
+                     uint64_t* next_hotp_counter,
+                     uint32_t hotp_code,
+                     uint64_t hotp_counter,
+                     size_t resync_range);
+
+
+/**
+* TOTP
+*/
+
+typedef struct botan_totp_struct* botan_totp_t;
+
+/**
+* Initialize a TOTP instance
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_totp_init(botan_totp_t* totp,
+                    const uint8_t key[], size_t key_len,
+                    const char* hash_algo,
+                    size_t digits,
+                    size_t time_step);
+
+/**
+* Destroy a TOTP instance
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_totp_destroy(botan_totp_t totp);
+
+/**
+* Generate a TOTP code for the provided timestamp
+* @param totp the TOTP object
+* @param totp_code the OTP code will be written here
+* @param timestamp the current local timestamp
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_totp_generate(botan_totp_t totp,
+                        uint32_t* totp_code,
+                        uint64_t timestamp);
+
+/**
+* Verify a TOTP code
+* @param totp the TOTP object
+* @param totp_code the presented OTP
+* @param timestamp the current local timestamp
+* @param acceptable_clock_drift specifies the acceptable amount
+* of clock drift (in terms of time steps) between the two hosts.
+*/
+BOTAN_PUBLIC_API(2,8)
+int botan_totp_check(botan_totp_t totp,
+                     uint32_t totp_code,
+                     uint64_t timestamp,
+                     size_t acceptable_clock_drift);
+
+
+/**
+* Format Preserving Encryption
+*/
+
+typedef struct botan_fpe_struct* botan_fpe_t;
+
+#define BOTAN_FPE_FLAG_FE1_COMPAT_MODE 1
+
+BOTAN_PUBLIC_API(2,8)
+int botan_fpe_fe1_init(botan_fpe_t* fpe, botan_mp_t n,
+                       const uint8_t key[], size_t key_len,
+                       size_t rounds, uint32_t flags);
+
+BOTAN_PUBLIC_API(2,8)
+int botan_fpe_destroy(botan_fpe_t fpe);
+
+BOTAN_PUBLIC_API(2,8)
+int botan_fpe_encrypt(botan_fpe_t fpe, botan_mp_t x, const uint8_t tweak[], size_t tweak_len);
+
+BOTAN_PUBLIC_API(2,8)
+int botan_fpe_decrypt(botan_fpe_t fpe, botan_mp_t x, const uint8_t tweak[], size_t tweak_len);
 
 /*
 * TLS (WIP)

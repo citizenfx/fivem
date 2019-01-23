@@ -9,9 +9,12 @@
 #define BOTAN_PUBKEY_EMSA_H_
 
 #include <botan/secmem.h>
+#include <botan/alg_id.h>
+#include <string>
 
 namespace Botan {
 
+class Private_Key;
 class RandomNumberGenerator;
 
 /**
@@ -22,6 +25,8 @@ class RandomNumberGenerator;
 class BOTAN_PUBLIC_API(2,0) EMSA
    {
    public:
+      virtual ~EMSA() = default;
+
       /**
       * Add more data to the signature computation
       * @param input some data
@@ -56,12 +61,26 @@ class BOTAN_PUBLIC_API(2,0) EMSA
                           const secure_vector<uint8_t>& raw,
                           size_t key_bits) = 0;
 
-      virtual ~EMSA() = default;
+      /**
+      * Prepare sig_algo for use in choose_sig_format for x509 certs
+      *
+      * @param key used for checking compatibility with the encoding scheme
+      * @param cert_hash_name is checked to equal the hash for the encoding
+      * @return algorithm identifier to signatures created using this key,
+      *         padding method and hash.
+      */
+      virtual AlgorithmIdentifier config_for_x509(const Private_Key& key,
+                                                  const std::string& cert_hash_name) const;
 
       /**
       * @return a new object representing the same encoding method as *this
       */
       virtual EMSA* clone() = 0;
+
+      /**
+      * @return the SCAN name of the encoding/padding scheme
+      */
+      virtual std::string name() const = 0;
    };
 
 /**

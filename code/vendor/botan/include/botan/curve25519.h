@@ -99,6 +99,9 @@ class BOTAN_PUBLIC_API(2,0) Curve25519_PrivateKey final : public Curve25519_Publ
       secure_vector<uint8_t> m_private;
    };
 
+typedef Curve25519_PublicKey X25519_PublicKey;
+typedef Curve25519_PrivateKey X25519_PrivateKey;
+
 /*
 * The types above are just wrappers for curve25519_donna, plus defining
 * encodings for public and private keys.

@@ -1,6 +1,6 @@
 /*
-* Botan 2.3.0 Amalgamation
-* (C) 1999-2013,2014,2015,2016 Jack Lloyd and others
+* Botan 2.10.0 Amalgamation
+* (C) 1999-2018 The Botan Authors
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -8,7 +8,7 @@
 #include "botan_all.h"
 #include "botan_all_internal.h"
 
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__clang__)
 #pragma GCC target ("rdseed")
 #endif
 /*
@@ -26,7 +26,8 @@
 namespace Botan {
 
 BOTAN_FUNC_ISA("rdseed")
-size_t Intel_Rdseed::poll(RandomNumberGenerator& rng) {
+size_t Intel_Rdseed::poll(RandomNumberGenerator& rng)
+   {
    if(CPUID::has_rdseed())
       {
       for(size_t p = 0; p != BOTAN_ENTROPY_INTEL_RNG_POLLS; ++p)

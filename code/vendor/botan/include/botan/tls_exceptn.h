@@ -16,7 +16,7 @@ namespace Botan {
 namespace TLS {
 
 /**
-* Exception Base Class
+* TLS Exception Base Class
 */
 class BOTAN_PUBLIC_API(2,0) TLS_Exception : public Exception
    {
@@ -26,6 +26,10 @@ class BOTAN_PUBLIC_API(2,0) TLS_Exception : public Exception
       TLS_Exception(Alert::Type type,
                     const std::string& err_msg = "Unknown error") :
          Exception(err_msg), m_alert_type(type) {}
+
+      int error_code() const noexcept override { return static_cast<int>(m_alert_type); }
+
+      ErrorType error_type() const noexcept override { return ErrorType::TLSError; }
 
    private:
       Alert::Type m_alert_type;

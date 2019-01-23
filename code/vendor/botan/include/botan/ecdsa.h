@@ -40,6 +40,21 @@ class BOTAN_PUBLIC_API(2,0) ECDSA_PublicKey : public virtual EC_PublicKey
          EC_PublicKey(alg_id, key_bits) {}
 
       /**
+      * Recover a public key from a signature/msg pair
+      * See SEC section 4.6.1
+      * @param group the elliptic curve group
+      * @param msg the message
+      * @param r the r paramter of the signature
+      * @param s the s paramter of the signature
+      * @param v the recovery ID
+      */
+      ECDSA_PublicKey(const EC_Group& group,
+                      const std::vector<uint8_t>& msg,
+                      const BigInt& r,
+                      const BigInt& s,
+                      uint8_t v);
+
+      /**
       * Get this keys algorithm name.
       * @result this keys algorithm name ("ECDSA")
       */
@@ -49,6 +64,10 @@ class BOTAN_PUBLIC_API(2,0) ECDSA_PublicKey : public virtual EC_PublicKey
 
       size_t message_part_size() const override
          { return domain().get_order().bytes(); }
+
+      uint8_t recovery_param(const std::vector<uint8_t>& msg,
+                             const BigInt& r,
+                             const BigInt& s) const;
 
       std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string& params,

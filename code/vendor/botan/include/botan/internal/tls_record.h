@@ -9,6 +9,7 @@
 #ifndef BOTAN_TLS_RECORDS_H_
 #define BOTAN_TLS_RECORDS_H_
 
+#include <botan/tls_algos.h>
 #include <botan/tls_magic.h>
 #include <botan/tls_version.h>
 #include <botan/aead.h>
@@ -53,7 +54,8 @@ class Connection_Cipher_State final
 
       size_t nonce_bytes_from_handshake() const { return m_nonce_bytes_from_handshake; }
       size_t nonce_bytes_from_record() const { return m_nonce_bytes_from_record; }
-      bool cbc_nonce() const { return m_cbc_nonce; }
+
+      Nonce_Format nonce_format() const { return m_nonce_format; }
 
       std::chrono::seconds age() const
          {
@@ -66,9 +68,9 @@ class Connection_Cipher_State final
       std::unique_ptr<AEAD_Mode> m_aead;
 
       std::vector<uint8_t> m_nonce;
-      size_t m_nonce_bytes_from_handshake;
-      size_t m_nonce_bytes_from_record;
-      bool m_cbc_nonce;
+      Nonce_Format m_nonce_format = Nonce_Format::CBC_MODE;
+      size_t m_nonce_bytes_from_handshake = 0;
+      size_t m_nonce_bytes_from_record = 0;
    };
 
 class Record final

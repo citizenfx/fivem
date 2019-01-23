@@ -1,6 +1,6 @@
 /*
 * OS specific utility functions
-* (C) 2015,2016,2017 Jack Lloyd
+* (C) 2015,2016,2017,2018 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -10,6 +10,8 @@
 
 #include <botan/types.h>
 #include <functional>
+#include <string>
+#include <vector>
 
 namespace Botan {
 
@@ -23,39 +25,6 @@ namespace OS {
 * this hasn't been tested.
 */
 
-
-/**
-* A wrapper around a simple blocking TCP socket
-*/
-class BOTAN_TEST_API Socket
-   {
-   public:
-      /**
-      * The socket will be closed upon destruction
-      */
-      virtual ~Socket() {};
-
-      /**
-      * Write to the socket. Blocks until all bytes sent.
-      * Throws on error.
-      */
-      virtual void write(const uint8_t buf[], size_t len) = 0;
-
-      /**
-      * Reads up to len bytes, returns bytes written to buf.
-      * Returns 0 on EOF. Throws on error.
-      */
-      virtual size_t read(uint8_t buf[], size_t len) = 0;
-   };
-
-/**
-* Open up a socket. Will throw on error. Returns null if sockets are
-* not available on this platform.
-*/
-std::unique_ptr<Socket>
-BOTAN_TEST_API open_socket(const std::string& hostname,
-                      const std::string& service);
-
 /**
 * @return process ID assigned by the operating system.
 * On Unix and Windows systems, this always returns a result
@@ -63,6 +32,12 @@ BOTAN_TEST_API open_socket(const std::string& hostname,
 * in a unikernel.
 */
 uint32_t BOTAN_TEST_API get_process_id();
+
+/**
+* Test if we are currently running with elevated permissions
+* eg setuid, setgid, or with POSIX caps set.
+*/
+bool running_in_privileged_state();
 
 /**
 * @return CPU processor clock, if available
@@ -73,7 +48,7 @@ uint32_t BOTAN_TEST_API get_process_id();
 * Currently supported processors are x86, PPC, Alpha, SPARC, IA-64, S/390x, and HP-PA.
 * If no CPU cycle counter is available on this system, returns zero.
 */
-uint64_t BOTAN_TEST_API get_processor_timestamp();
+uint64_t BOTAN_TEST_API get_cpu_cycle_counter();
 
 /*
 * @return best resolution timestamp available
@@ -101,19 +76,52 @@ uint64_t BOTAN_TEST_API get_system_timestamp_ns();
 size_t get_memory_locking_limit();
 
 /**
-* Request so many bytes of page-aligned RAM locked into memory using
-* mlock, VirtualLock, or similar. Returns null on failure. The memory
-* returned is zeroed. Free it with free_locked_pages.
-* @param length requested allocation in bytes
+* Return the size of a memory page, if that can be derived on the
+* current system. Otherwise returns some default value (eg 4096)
 */
-void* allocate_locked_pages(size_t length);
+size_t system_page_size();
+
+/**
+* Read the value of an environment variable. Return nullptr if
+* no such variable is set. If the process seems to be running in
+* a privileged state (such as setuid) then always returns nullptr,
+* similiar to glibc's secure_getenv.
+*/
+const char* read_env_variable(const std::string& var_name);
+
+/**
+* Request @count pages of RAM which are locked into memory using mlock,
+* VirtualLock, or some similar OS specific API. Free it with free_locked_pages.
+*
+* Returns an empty list on failure. This function is allowed to return fewer
+* than @count pages.
+*
+* The contents of the allocated pages are undefined.
+*
+* Each page is preceded by and followed by a page which is marked
+* as noaccess, such that accessing it will cause a crash. This turns
+* out of bound reads/writes into crash events.
+*
+* @param count requested number of locked pages
+*/
+std::vector<void*> allocate_locked_pages(size_t count);
 
 /**
 * Free memory allocated by allocate_locked_pages
-* @param ptr a pointer returned by allocate_locked_pages
-* @param length length passed to allocate_locked_pages
+* @param pages a list of pages returned by allocate_locked_pages
 */
-void free_locked_pages(void* ptr, size_t length);
+void free_locked_pages(const std::vector<void*>& pages);
+
+/**
+* Set the MMU to prohibit access to this page
+*/
+void page_prohibit_access(void* page);
+
+/**
+* Set the MMU to allow R/W access to this page
+*/
+void page_allow_access(void* page);
+
 
 /**
 * Run a probe instruction to test for support for a CPU instruction.
@@ -137,6 +145,31 @@ void free_locked_pages(void* ptr, size_t length);
 * -1 illegal instruction detected
 */
 int BOTAN_TEST_API run_cpu_instruction_probe(std::function<int ()> probe_fn);
+
+/**
+* Represents a terminal state
+*/
+class BOTAN_UNSTABLE_API Echo_Suppression
+   {
+   public:
+      /**
+      * Reenable echo on this terminal. Can be safely called
+      * multiple times. May throw if an error occurs.
+      */
+      virtual void reenable_echo() = 0;
+
+      /**
+      * Implicitly calls reenable_echo, but swallows/ignored all
+      * errors which would leave the terminal in an invalid state.
+      */
+      virtual ~Echo_Suppression() = default;
+   };
+
+/**
+* Suppress echo on the terminal
+* Returns null if this operation is not supported on the current system.
+*/
+std::unique_ptr<Echo_Suppression> BOTAN_UNSTABLE_API suppress_echo_on_terminal();
 
 }
 

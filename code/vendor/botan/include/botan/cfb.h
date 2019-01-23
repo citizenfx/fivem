@@ -20,28 +20,31 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) CFB_Mode : public Cipher_Mode
    {
    public:
-      std::string name() const override;
+      std::string name() const override final;
 
-      size_t update_granularity() const override;
+      size_t update_granularity() const override final;
 
-      size_t minimum_final_size() const override;
+      size_t minimum_final_size() const override final;
 
-      Key_Length_Specification key_spec() const override;
+      Key_Length_Specification key_spec() const override final;
 
-      size_t output_length(size_t input_length) const override;
+      size_t output_length(size_t input_length) const override final;
 
-      size_t default_nonce_length() const override;
+      size_t default_nonce_length() const override final;
 
-      bool valid_nonce_length(size_t n) const override;
+      bool valid_nonce_length(size_t n) const override final;
 
-      void clear() override;
+      void clear() override final;
 
-      void reset() override;
+      void reset() override final;
    protected:
       CFB_Mode(BlockCipher* cipher, size_t feedback_bits);
 
+      void shift_register();
+
       size_t feedback() const { return m_feedback_bytes; }
       const BlockCipher& cipher() const { return *m_cipher; }
+      size_t block_size() const { return m_block_size; }
 
       secure_vector<uint8_t> m_state;
       secure_vector<uint8_t> m_keystream;
@@ -52,6 +55,7 @@ class BOTAN_PUBLIC_API(2,0) CFB_Mode : public Cipher_Mode
       void key_schedule(const uint8_t key[], size_t length) override;
 
       std::unique_ptr<BlockCipher> m_cipher;
+      const size_t m_block_size;
       const size_t m_feedback_bytes;
    };
 

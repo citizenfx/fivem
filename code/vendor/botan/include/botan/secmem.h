@@ -35,20 +35,13 @@ class secure_allocator
       typedef T          value_type;
       typedef std::size_t size_type;
 
-#ifdef BOTAN_BUILD_COMPILER_IS_MSVC_2013
-      secure_allocator() = default;
-      secure_allocator(const secure_allocator&) = default;
-      secure_allocator& operator=(const secure_allocator&) = default;
-      ~secure_allocator() = default;
-#else
-      secure_allocator() BOTAN_NOEXCEPT = default;
-      secure_allocator(const secure_allocator&) BOTAN_NOEXCEPT = default;
-      secure_allocator& operator=(const secure_allocator&) BOTAN_NOEXCEPT = default;
-      ~secure_allocator() BOTAN_NOEXCEPT = default;
-#endif
+      secure_allocator() noexcept = default;
+      secure_allocator(const secure_allocator&) noexcept = default;
+      secure_allocator& operator=(const secure_allocator&) noexcept = default;
+      ~secure_allocator() noexcept = default;
 
       template<typename U>
-      secure_allocator(const secure_allocator<U>&) BOTAN_NOEXCEPT {}
+      secure_allocator(const secure_allocator<U>&) noexcept {}
 
       T* allocate(std::size_t n)
          {
@@ -72,7 +65,7 @@ operator!=(const secure_allocator<T>&, const secure_allocator<U>&)
 template<typename T> using secure_vector = std::vector<T, secure_allocator<T>>;
 template<typename T> using secure_deque = std::deque<T, secure_allocator<T>>;
 
-// For better compatability with 1.10 API
+// For better compatibility with 1.10 API
 template<typename T> using SecureVector = secure_vector<T>;
 
 template<typename T>
@@ -89,8 +82,9 @@ size_t buffer_insert(std::vector<T, Alloc>& buf,
                      const T input[],
                      size_t input_length)
    {
+   BOTAN_ASSERT_NOMSG(buf_offset <= buf.size());
    const size_t to_copy = std::min(input_length, buf.size() - buf_offset);
-   if (to_copy > 0)
+   if(to_copy > 0)
       {
       copy_mem(&buf[buf_offset], input, to_copy);
       }
@@ -102,8 +96,9 @@ size_t buffer_insert(std::vector<T, Alloc>& buf,
                      size_t buf_offset,
                      const std::vector<T, Alloc2>& input)
    {
+   BOTAN_ASSERT_NOMSG(buf_offset <= buf.size());
    const size_t to_copy = std::min(input.size(), buf.size() - buf_offset);
-   if (to_copy > 0)
+   if(to_copy > 0)
       {
       copy_mem(&buf[buf_offset], input.data(), to_copy);
       }
@@ -117,7 +112,7 @@ operator+=(std::vector<T, Alloc>& out,
    {
    const size_t copy_offset = out.size();
    out.resize(out.size() + in.size());
-   if (in.size() > 0)
+   if(in.size() > 0)
       {
       copy_mem(&out[copy_offset], in.data(), in.size());
       }
@@ -137,7 +132,7 @@ std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
    {
    const size_t copy_offset = out.size();
    out.resize(out.size() + in.second);
-   if (in.second > 0)
+   if(in.second > 0)
       {
       copy_mem(&out[copy_offset], in.first, in.second);
       }
@@ -150,7 +145,7 @@ std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
    {
    const size_t copy_offset = out.size();
    out.resize(out.size() + in.second);
-   if (in.second > 0)
+   if(in.second > 0)
       {
       copy_mem(&out[copy_offset], in.first, in.second);
       }

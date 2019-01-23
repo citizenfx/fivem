@@ -79,6 +79,8 @@ class BOTAN_PUBLIC_API(2,0) DLIES_Encryptor final : public PK_Encryptor
 
       size_t maximum_input_size() const override;
 
+      size_t ciphertext_length(size_t ptext_len) const override;
+
       std::vector<uint8_t> m_other_pub_key;
       std::vector<uint8_t> m_own_pub_key;
       PK_Key_Agreement m_ka;
@@ -143,6 +145,8 @@ class BOTAN_PUBLIC_API(2,0) DLIES_Decryptor final : public PK_Decryptor
    private:
       secure_vector<uint8_t> do_decrypt(uint8_t& valid_mask,
                                      const uint8_t in[], size_t in_len) const override;
+
+      size_t plaintext_length(size_t ctext_len) const override;
 
       const size_t m_pub_key_size;
       PK_Key_Agreement m_ka;

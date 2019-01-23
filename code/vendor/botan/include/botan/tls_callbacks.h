@@ -2,6 +2,7 @@
 * TLS Callbacks
 * (C) 2016 Matthias Gierlings
 *     2016 Jack Lloyd
+*     2017 Harry Reimann, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -11,6 +12,8 @@
 
 #include <botan/tls_session.h>
 #include <botan/tls_alert.h>
+#include <botan/pubkey.h>
+#include <functional>
 
 namespace Botan {
 
@@ -27,6 +30,7 @@ namespace TLS {
 
 class Handshake_Message;
 class Policy;
+class Extensions;
 
 /**
 * Encapsulates the callbacks that a TLS channel will make which are due to
@@ -139,6 +143,90 @@ class BOTAN_PUBLIC_API(2,0) Callbacks
           }
 
        /**
+       * Optional callback with default impl: sign a message
+       *
+       * Default implementation uses PK_Signer::sign_message().
+       * Override to provide a different approach, e.g. using an external device.
+       *
+       * @param key the private key of the signer
+       * @param rng a random number generator
+       * @param emsa the encoding method to be applied to the message
+       * @param format the signature format
+       * @param msg the input data for the signature
+       *
+       * @return the signature
+       */
+       virtual std::vector<uint8_t> tls_sign_message(
+          const Private_Key& key,
+          RandomNumberGenerator& rng,
+          const std::string& emsa,
+          Signature_Format format,
+          const std::vector<uint8_t>& msg);
+
+       /**
+       * Optional callback with default impl: verify a message signature
+       *
+       * Default implementation uses PK_Verifier::verify_message().
+       * Override to provide a different approach, e.g. using an external device.
+       *
+       * @param key the public key of the signer
+       * @param emsa the encoding method to be applied to the message
+       * @param format the signature format
+       * @param msg the input data for the signature
+       * @param sig the signature to be checked
+       *
+       * @return true if the signature is valid, false otherwise
+       */
+       virtual bool tls_verify_message(
+          const Public_Key& key,
+          const std::string& emsa,
+          Signature_Format format,
+          const std::vector<uint8_t>& msg,
+          const std::vector<uint8_t>& sig);
+
+       /**
+       * Optional callback with default impl: client side DH agreement
+       *
+       * Default implementation uses PK_Key_Agreement::derive_key().
+       * Override to provide a different approach, e.g. using an external device.
+       *
+       * @param modulus the modulus p of the discrete logarithm group
+       * @param generator the generator of the DH subgroup
+       * @param peer_public_value the public value of the peer
+       * @param policy the TLS policy associated with the session being established
+       * @param rng a random number generator
+       *
+       * @return a pair consisting of the agreed raw secret and our public value
+       */
+       virtual std::pair<secure_vector<uint8_t>, std::vector<uint8_t>> tls_dh_agree(
+          const std::vector<uint8_t>& modulus,
+          const std::vector<uint8_t>& generator,
+          const std::vector<uint8_t>& peer_public_value,
+          const Policy& policy,
+          RandomNumberGenerator& rng);
+
+       /**
+       * Optional callback with default impl: client side ECDH agreement
+       *
+       * Default implementation uses PK_Key_Agreement::derive_key().
+       * Override to provide a different approach, e.g. using an external device.
+       *
+       * @param curve_name the name of the elliptic curve
+       * @param peer_public_value the public value of the peer
+       * @param policy the TLS policy associated with the session being established
+       * @param rng a random number generator
+       * @param compressed the compression preference for our public value
+       *
+       * @return a pair consisting of the agreed raw secret and our public value
+       */
+       virtual std::pair<secure_vector<uint8_t>, std::vector<uint8_t>> tls_ecdh_agree(
+          const std::string& curve_name,
+          const std::vector<uint8_t>& peer_public_value,
+          const Policy& policy,
+          RandomNumberGenerator& rng,
+          bool compressed);
+
+       /**
        * Optional callback: inspect handshake message
        * Throw an exception to abort the handshake.
        * Default simply ignores the message.
@@ -161,6 +249,50 @@ class BOTAN_PUBLIC_API(2,0) Callbacks
        * client ALPN extension. Default return value is empty string.
        */
        virtual std::string tls_server_choose_app_protocol(const std::vector<std::string>& client_protos);
+
+       /**
+       * Optional callback: examine/modify Extensions before sending.
+       *
+       * Both client and server will call this callback on the Extensions object
+       * before serializing it in the client/server hellos. This allows an
+       * application to modify which extensions are sent during the
+       * handshake.
+       *
+       * Default implementation does nothing.
+       *
+       * @param extn the extensions
+       * @param which_side will be CLIENT or SERVER which is the current
+       * applications role in the exchange.
+       */
+       virtual void tls_modify_extensions(Extensions& extn, Connection_Side which_side);
+
+       /**
+       * Optional callback: examine peer extensions.
+       *
+       * Both client and server will call this callback with the Extensions
+       * object after receiving it from the peer. This allows examining the
+       * Extensions, for example to implement a custom extension. It also allows
+       * an application to require that a particular extension be implemented;
+       * throw an exception from this function to abort the handshake.
+       *
+       * Default implementation does nothing.
+       *
+       * @param extn the extensions
+       * @param which_side will be CLIENT if these are are the clients extensions (ie we are
+       *        the server) or SERVER if these are the server extensions (we are the client).
+       */
+       virtual void tls_examine_extensions(const Extensions& extn, Connection_Side which_side);
+
+       /**
+       * Optional callback: decode TLS group ID
+       *
+       * TLS uses a 16-bit field to identify ECC and DH groups. This callback
+       * handles the decoding. You only need to implement this if you are using
+       * a custom ECC or DH group (this is extremely uncommon).
+       *
+       * Default implementation uses the standard (IETF-defined) mappings.
+       */
+       virtual std::string tls_decode_group_param(Group_Params group_param);
 
        /**
        * Optional callback: error logging. (not currently called)
@@ -208,11 +340,11 @@ class BOTAN_PUBLIC_API(2,0) Compat_Callbacks final : public Callbacks
       typedef std::function<std::string (std::vector<std::string>)> next_protocol_fn;
 
       /**
-       * @param output_fn is called with data for the outbound socket
+       * @param data_output_fn is called with data for the outbound socket
        *
        * @param app_data_cb is called when new application data is received
        *
-       * @param alert_cb is called when a TLS alert is received
+       * @param recv_alert_cb is called when a TLS alert is received
        *
        * @param hs_cb is called when a handshake is completed
        *
@@ -221,22 +353,45 @@ class BOTAN_PUBLIC_API(2,0) Compat_Callbacks final : public Callbacks
        * @param next_proto is called with ALPN protocol data sent by the client
        */
        BOTAN_DEPRECATED("Use TLS::Callbacks (virtual interface).")
-       Compat_Callbacks(output_fn output_fn, data_cb app_data_cb, alert_cb alert_cb,
+       Compat_Callbacks(output_fn data_output_fn, data_cb app_data_cb, alert_cb recv_alert_cb,
                         handshake_cb hs_cb, handshake_msg_cb hs_msg_cb = nullptr,
                         next_protocol_fn next_proto = nullptr)
-          : m_output_function(output_fn), m_app_data_cb(app_data_cb),
-            m_alert_cb(std::bind(alert_cb, std::placeholders::_1, nullptr, 0)),
+          : m_output_function(data_output_fn), m_app_data_cb(app_data_cb),
+            m_alert_cb(std::bind(recv_alert_cb, std::placeholders::_1, nullptr, 0)),
             m_hs_cb(hs_cb), m_hs_msg_cb(hs_msg_cb), m_next_proto(next_proto) {}
 
        BOTAN_DEPRECATED("Use TLS::Callbacks (virtual interface).")
-       Compat_Callbacks(output_fn output_fn, data_cb app_data_cb,
-                        std::function<void (Alert)> alert_cb,
+       Compat_Callbacks(output_fn data_output_fn, data_cb app_data_cb,
+                        std::function<void (Alert)> recv_alert_cb,
                         handshake_cb hs_cb,
                         handshake_msg_cb hs_msg_cb = nullptr,
                         next_protocol_fn next_proto = nullptr)
-          : m_output_function(output_fn), m_app_data_cb(app_data_cb),
-            m_alert_cb(alert_cb),
+          : m_output_function(data_output_fn), m_app_data_cb(app_data_cb),
+            m_alert_cb(recv_alert_cb),
             m_hs_cb(hs_cb), m_hs_msg_cb(hs_msg_cb), m_next_proto(next_proto) {}
+
+       enum class SILENCE_DEPRECATION_WARNING { PLEASE = 0 };
+       Compat_Callbacks(SILENCE_DEPRECATION_WARNING,
+                        output_fn data_output_fn, data_cb app_data_cb,
+                        std::function<void (Alert)> recv_alert_cb,
+                        handshake_cb hs_cb,
+                        handshake_msg_cb hs_msg_cb = nullptr,
+                        next_protocol_fn next_proto = nullptr)
+          : m_output_function(data_output_fn),
+            m_app_data_cb(app_data_cb),
+            m_alert_cb(recv_alert_cb),
+            m_hs_cb(hs_cb),
+            m_hs_msg_cb(hs_msg_cb),
+            m_next_proto(next_proto) {}
+
+       Compat_Callbacks(SILENCE_DEPRECATION_WARNING,
+                        output_fn data_output_fn, data_cb app_data_cb, alert_cb recv_alert_cb,
+                        handshake_cb hs_cb, handshake_msg_cb hs_msg_cb = nullptr,
+                        next_protocol_fn next_proto = nullptr)
+          : m_output_function(data_output_fn), m_app_data_cb(app_data_cb),
+            m_alert_cb(std::bind(recv_alert_cb, std::placeholders::_1, nullptr, 0)),
+            m_hs_cb(hs_cb), m_hs_msg_cb(hs_msg_cb), m_next_proto(next_proto) {}
+
 
        void tls_emit_data(const uint8_t data[], size_t size) override
           {

@@ -9,7 +9,7 @@
 #define BOTAN_SKEIN_512_H_
 
 #include <botan/hash.h>
-#include <botan/threefish.h>
+#include <botan/threefish_512.h>
 #include <string>
 #include <memory>
 

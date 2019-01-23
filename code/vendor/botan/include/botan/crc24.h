@@ -1,6 +1,7 @@
 /*
 * CRC24
 * (C) 1999-2007 Jack Lloyd
+* (C) 2017 [Ribose Inc](https://www.ribose.com). Performed by Krzysztof Kwiatkowski.
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -23,7 +24,7 @@ class BOTAN_PUBLIC_API(2,0) CRC24 final : public HashFunction
       HashFunction* clone() const override { return new CRC24; }
       std::unique_ptr<HashFunction> copy_state() const override;
 
-      void clear() override { m_crc = 0xB704CE; }
+      void clear() override { m_crc = 0XCE04B7L; }
 
       CRC24() { clear(); }
       ~CRC24() { clear(); }

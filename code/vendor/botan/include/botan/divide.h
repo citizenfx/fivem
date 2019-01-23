@@ -20,9 +20,71 @@ namespace Botan {
 * @param r will be set to x % y
 */
 void BOTAN_PUBLIC_API(2,0) divide(const BigInt& x,
-                      const BigInt& y,
-                      BigInt& q,
-                      BigInt& r);
+                                  const BigInt& y,
+                                  BigInt& q,
+                                  BigInt& r);
+
+/**
+* BigInt division, const time variant
+*
+* This runs with control flow independent of the values of x/y.
+* Warning: the loop bounds still leak the sizes of x and y.
+*
+* @param x an integer
+* @param y a non-zero integer
+* @param q will be set to x / y
+* @param r will be set to x % y
+*/
+void BOTAN_PUBLIC_API(2,9) ct_divide(const BigInt& x,
+                                     const BigInt& y,
+                                     BigInt& q,
+                                     BigInt& r);
+
+/**
+* BigInt division, const time variant
+*
+* This runs with control flow independent of the values of x/y.
+* Warning: the loop bounds still leak the sizes of x and y.
+*
+* @param x an integer
+* @param y a non-zero integer
+* @return x/y with remainder discarded
+*/
+inline BigInt ct_divide(const BigInt& x, const BigInt& y)
+   {
+   BigInt q, r;
+   ct_divide(x, y, q, r);
+   return q;
+   }
+
+/**
+* BigInt division, const time variant
+*
+* This runs with control flow independent of the values of x/y.
+* Warning: the loop bounds still leak the sizes of x and y.
+*
+* @param x an integer
+* @param y a non-zero integer
+* @param q will be set to x / y
+* @param r will be set to x % y
+*/
+void BOTAN_PUBLIC_API(2,9) ct_divide_u8(const BigInt& x,
+                                        uint8_t y,
+                                        BigInt& q,
+                                        uint8_t& r);
+
+/**
+* BigInt modulo, const time variant
+*
+* Using this function is (slightly) cheaper than calling ct_divide and
+* using only the remainder.
+*
+* @param x a non-negative integer
+* @param modulo a positive integer
+* @return result x % modulo
+*/
+BigInt BOTAN_PUBLIC_API(2,9) ct_modulo(const BigInt& x,
+                                       const BigInt& modulo);
 
 }
 

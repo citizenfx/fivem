@@ -1,6 +1,7 @@
 /*
 * Hooks for application level policies on TLS connections
 * (C) 2004-2006,2013 Jack Lloyd
+*     2017 Harry Reimann, Rohde & Schwarz Cybersecurity
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -9,6 +10,7 @@
 #define BOTAN_TLS_POLICY_H_
 
 #include <botan/tls_version.h>
+#include <botan/tls_algos.h>
 #include <botan/tls_ciphersuite.h>
 #include <vector>
 #include <map>
@@ -57,6 +59,8 @@ class BOTAN_PUBLIC_API(2,0) Policy
       */
       virtual std::vector<std::string> allowed_signature_methods() const;
 
+      virtual std::vector<Signature_Scheme> allowed_signature_schemes() const;
+
       /**
       * The minimum signature strength we will accept
       * Returning 80 allows RSA 1024 and SHA-1. Values larger than 80 disable SHA-1 support.
@@ -77,11 +81,10 @@ class BOTAN_PUBLIC_API(2,0) Policy
       bool allowed_signature_hash(const std::string& hash) const;
 
       /**
-      * Return list of ECC curves we are willing to use in order of preference
+      * Return list of ECC curves and FFDHE groups we are willing to
+      * use in order of preference.
       */
-      virtual std::vector<std::string> allowed_ecc_curves() const;
-
-      bool allowed_ecc_curve(const std::string& curve) const;
+      virtual std::vector<Group_Params> key_exchange_groups() const;
 
       /**
       * Request that ECC curve points are sent compressed
@@ -89,18 +92,10 @@ class BOTAN_PUBLIC_API(2,0) Policy
       virtual bool use_ecc_point_compression() const;
 
       /**
-      * Returns a list of compression algorithms we are willing to use,
-      * in order of preference. Allowed values any value of
-      * Compression_Method.
-      *
-      * @note Compression is not currently supported
+      * Select a key exchange group to use, from the list of groups sent by the
+      * peer. If none are acceptable, return Group_Params::NONE
       */
-      virtual std::vector<uint8_t> compression() const;
-
-      /**
-      * Choose an elliptic curve to use
-      */
-      virtual std::string choose_curve(const std::vector<std::string>& curve_names) const;
+      virtual Group_Params choose_key_exchange_group(const std::vector<Group_Params>& peer_groups) const;
 
       /**
       * Allow renegotiation even if the counterparty doesn't
@@ -154,7 +149,7 @@ class BOTAN_PUBLIC_API(2,0) Policy
       */
       virtual bool allow_dtls12() const;
 
-      virtual std::string dh_group() const;
+      virtual Group_Params default_dh_group() const;
 
       /**
       * Return the minimum DH group size we're willing to use
@@ -271,10 +266,15 @@ class BOTAN_PUBLIC_API(2,0) Policy
       virtual bool negotiate_encrypt_then_mac() const;
 
       /**
+      * Indicates whether certificate status messages should be supported
+      */
+      virtual bool support_cert_status_message() const;
+
+      /**
       * Return allowed ciphersuites, in order of preference
       */
       virtual std::vector<uint16_t> ciphersuite_list(Protocol_Version version,
-                                                   bool have_srp) const;
+                                                     bool have_srp) const;
 
       /**
       * @return the default MTU for DTLS
@@ -306,10 +306,15 @@ class BOTAN_PUBLIC_API(2,0) Policy
       virtual ~Policy() = default;
    };
 
+typedef Policy Default_Policy;
+
 /**
 * NSA Suite B 128-bit security level (RFC 6460)
+*
+* @warning As of August 2015 NSA indicated only the 192-bit Suite B
+* should be used for all classification levels.
 */
-class BOTAN_PUBLIC_API(2,0) NSA_Suite_B_128 final : public Policy
+class BOTAN_PUBLIC_API(2,0) NSA_Suite_B_128 : public Policy
    {
    public:
       std::vector<std::string> allowed_ciphers() const override
@@ -327,8 +332,8 @@ class BOTAN_PUBLIC_API(2,0) NSA_Suite_B_128 final : public Policy
       std::vector<std::string> allowed_signature_methods() const override
          { return std::vector<std::string>({"ECDSA"}); }
 
-      std::vector<std::string> allowed_ecc_curves() const override
-         { return std::vector<std::string>({"secp256r1"}); }
+      std::vector<Group_Params> key_exchange_groups() const override
+         { return {Group_Params::SECP256R1}; }
 
       size_t minimum_signature_strength() const override { return 128; }
 
@@ -340,9 +345,42 @@ class BOTAN_PUBLIC_API(2,0) NSA_Suite_B_128 final : public Policy
    };
 
 /**
+* NSA Suite B 192-bit security level (RFC 6460)
+*/
+class BOTAN_PUBLIC_API(2,7) NSA_Suite_B_192 : public Policy
+   {
+   public:
+      std::vector<std::string> allowed_ciphers() const override
+         { return std::vector<std::string>({"AES-256/GCM"}); }
+
+      std::vector<std::string> allowed_signature_hashes() const override
+         { return std::vector<std::string>({"SHA-384"}); }
+
+      std::vector<std::string> allowed_macs() const override
+         { return std::vector<std::string>({"AEAD"}); }
+
+      std::vector<std::string> allowed_key_exchange_methods() const override
+         { return std::vector<std::string>({"ECDH"}); }
+
+      std::vector<std::string> allowed_signature_methods() const override
+         { return std::vector<std::string>({"ECDSA"}); }
+
+      std::vector<Group_Params> key_exchange_groups() const override
+         { return {Group_Params::SECP384R1}; }
+
+      size_t minimum_signature_strength() const override { return 192; }
+
+      bool allow_tls10()  const override { return false; }
+      bool allow_tls11()  const override { return false; }
+      bool allow_tls12()  const override { return true;  }
+      bool allow_dtls10() const override { return false; }
+      bool allow_dtls12() const override { return false; }
+   };
+
+/**
 * BSI TR-02102-2 Policy
 */
-class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 final : public Policy
+class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
    {
    public:
       std::vector<std::string> allowed_ciphers() const override
@@ -370,9 +408,20 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 final : public Policy
          return std::vector<std::string>({"ECDSA", "RSA", "DSA"});
          }
 
-      std::vector<std::string> allowed_ecc_curves() const override
+      std::vector<Group_Params> key_exchange_groups() const override
          {
-         return std::vector<std::string>({"brainpool512r1", "brainpool384r1", "brainpool256r1", "secp384r1", "secp256r1"});
+         return std::vector<Group_Params>({
+            Group_Params::BRAINPOOL512R1,
+            Group_Params::BRAINPOOL384R1,
+            Group_Params::BRAINPOOL256R1,
+            Group_Params::SECP384R1,
+            Group_Params::SECP256R1,
+            Group_Params::FFDHE_8192,
+            Group_Params::FFDHE_6144,
+            Group_Params::FFDHE_4096,
+            Group_Params::FFDHE_3072,
+            Group_Params::FFDHE_2048
+            });
          }
 
       bool allow_insecure_renegotiation() const override { return false; }
@@ -397,7 +446,7 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 final : public Policy
 /**
 * Policy for DTLS. We require DTLS v1.2 and an AEAD mode.
 */
-class BOTAN_PUBLIC_API(2,0) Datagram_Policy final : public Policy
+class BOTAN_PUBLIC_API(2,0) Datagram_Policy : public Policy
    {
    public:
       std::vector<std::string> allowed_macs() const override
@@ -417,7 +466,7 @@ class BOTAN_PUBLIC_API(2,0) Datagram_Policy final : public Policy
 * to use if you control both sides of the protocol and don't have to worry
 * about ancient and/or bizarre TLS implementations.
 */
-class BOTAN_PUBLIC_API(2,0) Strict_Policy final : public Policy
+class BOTAN_PUBLIC_API(2,0) Strict_Policy : public Policy
    {
    public:
       std::vector<std::string> allowed_ciphers() const override;
@@ -449,7 +498,7 @@ class BOTAN_PUBLIC_API(2,0) Text_Policy : public Policy
 
       std::vector<std::string> allowed_signature_methods() const override;
 
-      std::vector<std::string> allowed_ecc_curves() const override;
+      std::vector<Group_Params> key_exchange_groups() const override;
 
       bool use_ecc_point_compression() const override;
 
@@ -474,7 +523,7 @@ class BOTAN_PUBLIC_API(2,0) Text_Policy : public Policy
 
       bool negotiate_encrypt_then_mac() const override;
 
-      std::string dh_group() const override;
+      bool support_cert_status_message() const override;
 
       size_t minimum_ecdh_group_size() const override;
 
@@ -519,6 +568,9 @@ class BOTAN_PUBLIC_API(2,0) Text_Policy : public Policy
 
       std::string get_str(const std::string& key, const std::string& def = "") const;
 
+      bool set_value(const std::string& key, const std::string& val, bool overwrite);
+
+   private:
       std::map<std::string, std::string> m_kv;
    };
 

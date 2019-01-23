@@ -16,6 +16,7 @@
 
 namespace Botan {
 
+class X509_DN;
 class BigInt;
 
 /**
@@ -47,6 +48,30 @@ class BOTAN_PUBLIC_API(2,0) Credentials_Manager
       /**
       * Return a cert chain we can use, ordered from leaf to root,
       * or else an empty vector.
+      *
+      * It is assumed that the caller can get the private key of the
+      * leaf with private_key_for
+      *
+      * @param cert_key_types specifies the key types desired ("RSA",
+      *                       "DSA", "ECDSA", etc), or empty if there
+      *                       is no preference by the caller.
+      *
+      * @param acceptable_CAs the CAs the requestor will accept (possibly empty)
+      * @param type specifies the type of operation occurring
+      * @param context specifies a context relative to type.
+      */
+      virtual std::vector<X509_Certificate> find_cert_chain(
+         const std::vector<std::string>& cert_key_types,
+         const std::vector<X509_DN>& acceptable_CAs,
+         const std::string& type,
+         const std::string& context);
+
+      /**
+      * Return a cert chain we can use, ordered from leaf to root,
+      * or else an empty vector.
+      *
+      * This virtual function is deprecated, and will be removed in a
+      * future release. Use (and override) find_cert_chain instead.
       *
       * It is assumed that the caller can get the private key of the
       * leaf with private_key_for

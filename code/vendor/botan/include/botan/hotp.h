@@ -23,7 +23,18 @@ class BOTAN_PUBLIC_API(2,2) HOTP final
       * @param hash_algo the hash algorithm to use, should be SHA-1 or SHA-256
       * @param digits the number of digits in the OTP (must be 6, 7, or 8)
       */
-      HOTP(const SymmetricKey& key, const std::string& hash_algo = "SHA-1", size_t digits = 6);
+      HOTP(const SymmetricKey& key, const std::string& hash_algo = "SHA-1", size_t digits = 6) :
+         HOTP(key.begin(), key.size(), hash_algo, digits) {}
+
+      /**
+      * @param key the secret key shared between client and server
+      * @param key_len length of key param
+      * @param hash_algo the hash algorithm to use, should be SHA-1 or SHA-256
+      * @param digits the number of digits in the OTP (must be 6, 7, or 8)
+      */
+      HOTP(const uint8_t key[], size_t key_len,
+           const std::string& hash_algo = "SHA-1",
+           size_t digits = 6);
 
       /**
       * Generate the HOTP for a particular counter value

@@ -24,15 +24,12 @@ namespace Botan {
  * Provides signature verification capabilities for Extended Hash-Based
  * Signatures (XMSS).
  **/
- class XMSS_Verification_Operation
-   final : public virtual PK_Ops::Verification,
-     public XMSS_Common_Ops
+ class XMSS_Verification_Operation final : public virtual PK_Ops::Verification,
+                                           public XMSS_Common_Ops
    {
    public:
       XMSS_Verification_Operation(
          const XMSS_PublicKey& public_key);
-
-      virtual ~XMSS_Verification_Operation() = default;
 
       bool is_valid_signature(const uint8_t sig[], size_t sig_len) override;
 

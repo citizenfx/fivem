@@ -24,7 +24,7 @@ namespace Botan {
  *     https://datatracker.ietf.org/doc/
  *     draft-irtf-cfrg-xmss-hash-based-signatures/?include_text=1
  **/
-class XMSS_WOTS_Parameters
+class XMSS_WOTS_Parameters final
    {
    public:
       enum ots_algorithm_t

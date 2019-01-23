@@ -8,7 +8,8 @@
 #ifndef BOTAN_DATA_STORE_H_
 #define BOTAN_DATA_STORE_H_
 
-#include <botan/secmem.h>
+#include <botan/x509_dn.h>
+#include <botan/asn1_alt_name.h>
 #include <functional>
 #include <string>
 #include <vector>
@@ -23,7 +24,7 @@ namespace Botan {
 * reasons. There is no reason for applications to use this type directly.
 * It will be removed in a future major release.
 */
-class BOTAN_PUBLIC_API(2,0) Data_Store
+class BOTAN_UNSTABLE_API Data_Store final
    {
    public:
       /**
@@ -54,6 +55,29 @@ class BOTAN_PUBLIC_API(2,0) Data_Store
    private:
       std::multimap<std::string, std::string> m_contents;
    };
+
+/*
+* Data Store Extraction Operations
+*/
+
+/*
+* Create and populate a X509_DN
+* @param info data store containing DN information
+* @return DN containing attributes from data store
+*/
+BOTAN_PUBLIC_API(2,0) X509_DN
+BOTAN_DEPRECATED("Avoid roundtripping names through Data_Store")
+create_dn(const Data_Store& info);
+
+/*
+* Create and populate an AlternativeName
+* @param info data store containing AlternativeName information
+* @return AlternativeName containing attributes from data store
+*/
+BOTAN_PUBLIC_API(2,0) AlternativeName
+BOTAN_DEPRECATED("Avoid roundtripping names through Data_Store")
+create_alt_name(const Data_Store& info);
+
 
 }
 

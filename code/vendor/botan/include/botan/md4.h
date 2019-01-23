@@ -25,17 +25,12 @@ class BOTAN_PUBLIC_API(2,0) MD4 final : public MDx_HashFunction
 
       void clear() override;
 
-      MD4() : MDx_HashFunction(64, false, true), m_M(16), m_digest(4)
+      MD4() : MDx_HashFunction(64, false, true), m_digest(4)
          { clear(); }
-   protected:
+
+   private:
       void compress_n(const uint8_t input[], size_t blocks) override;
       void copy_out(uint8_t[]) override;
-   private:
-
-      /**
-      * The message buffer
-      */
-      secure_vector<uint32_t> m_M;
 
       /**
       * The digest value

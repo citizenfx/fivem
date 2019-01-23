@@ -13,12 +13,14 @@
 
 namespace Botan {
 
-class Integer_Overflow_Detected final : public Exception
+class BOTAN_PUBLIC_API(2,0) Integer_Overflow_Detected final : public Exception
    {
    public:
       Integer_Overflow_Detected(const std::string& file, int line) :
          Exception("Integer overflow detected at " + file + ":" + std::to_string(line))
          {}
+
+      ErrorType error_type() const noexcept override { return ErrorType::InternalError; }
    };
 
 inline size_t checked_add(size_t x, size_t y, const char* file, int line)

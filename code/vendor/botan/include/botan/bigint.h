@@ -1,6 +1,6 @@
 /*
 * BigInt
-* (C) 1999-2008,2012 Jack Lloyd
+* (C) 1999-2008,2012,2018 Jack Lloyd
 *     2007 FlexSecure
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -9,8 +9,8 @@
 #ifndef BOTAN_BIGINT_H_
 #define BOTAN_BIGINT_H_
 
+#include <botan/types.h>
 #include <botan/secmem.h>
-#include <botan/mp_types.h>
 #include <botan/exceptn.h>
 #include <botan/loadstor.h>
 #include <iosfwd>
@@ -37,9 +37,15 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
 
      /**
      * DivideByZero Exception
+     *
+     * In a future release this exception will be removed and its usage
+     * replaced by Invalid_Argument
      */
-     struct BOTAN_PUBLIC_API(2,0) DivideByZero final : public Exception
-        { DivideByZero() : Exception("BigInt divide by zero") {} };
+     class BOTAN_PUBLIC_API(2,0) DivideByZero final : public Invalid_Argument
+        {
+        public:
+           DivideByZero() : Invalid_Argument("BigInt divide by zero") {}
+        };
 
      /**
      * Create empty BigInt
@@ -56,7 +62,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Copy Constructor
      * @param other the BigInt to copy
      */
-     BigInt(const BigInt& other);
+     BigInt(const BigInt& other) = default;
 
      /**
      * Create BigInt from a string. If the string starts with 0x the
@@ -71,9 +77,39 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Create a BigInt from an integer in a byte array
      * @param buf the byte array holding the value
      * @param length size of buf
+     */
+     BigInt(const uint8_t buf[], size_t length);
+
+     /**
+     * Create a BigInt from an integer in a byte array
+     * @param vec the byte vector holding the value
+     */
+     template<typename Alloc>
+     explicit BigInt(const std::vector<uint8_t, Alloc>& vec) : BigInt(vec.data(), vec.size()) {}
+
+     /**
+     * Create a BigInt from an integer in a byte array
+     * @param buf the byte array holding the value
+     * @param length size of buf
      * @param base is the number base of the integer in buf
      */
-     BigInt(const uint8_t buf[], size_t length, Base base = Binary);
+     BigInt(const uint8_t buf[], size_t length, Base base);
+
+     /**
+     * Create a BigInt from an integer in a byte array
+     * @param buf the byte array holding the value
+     * @param length size of buf
+     * @param max_bits if the resulting integer is more than max_bits,
+     *        it will be shifted so it is at most max_bits in length.
+     */
+     BigInt(const uint8_t buf[], size_t length, size_t max_bits);
+
+     /**
+     * Create a BigInt from an array of words
+     * @param words the words
+     * @param length number of words
+     */
+     BigInt(const word words[], size_t length);
 
      /**
      * \brief Create a random BigInt of the specified size
@@ -123,32 +159,63 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      */
      void swap(BigInt& other)
         {
-        m_reg.swap(other.m_reg);
+        m_data.swap(other.m_data);
         std::swap(m_signedness, other.m_signedness);
         }
 
      void swap_reg(secure_vector<word>& reg)
         {
-        m_reg.swap(reg);
+        m_data.swap(reg);
+        // sign left unchanged
         }
 
      /**
      * += operator
      * @param y the BigInt to add to this
      */
-     BigInt& operator+=(const BigInt& y);
+     BigInt& operator+=(const BigInt& y)
+        {
+        return add(y.data(), y.sig_words(), y.sign());
+        }
+
+     /**
+     * += operator
+     * @param y the word to add to this
+     */
+     BigInt& operator+=(word y)
+        {
+        return add(&y, 1, Positive);
+        }
 
      /**
      * -= operator
      * @param y the BigInt to subtract from this
      */
-     BigInt& operator-=(const BigInt& y);
+     BigInt& operator-=(const BigInt& y)
+        {
+        return sub(y.data(), y.sig_words(), y.sign());
+        }
+
+     /**
+     * -= operator
+     * @param y the word to subtract from this
+     */
+     BigInt& operator-=(word y)
+        {
+        return sub(&y, 1, Positive);
+        }
 
      /**
      * *= operator
      * @param y the BigInt to multiply with this
      */
      BigInt& operator*=(const BigInt& y);
+
+     /**
+     * *= operator
+     * @param y the word to multiply with this
+     */
+     BigInt& operator*=(word y);
 
      /**
      * /= operator
@@ -212,11 +279,90 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      */
      bool operator !() const { return (!is_nonzero()); }
 
+     static BigInt add2(const BigInt& x, const word y[], size_t y_words, Sign y_sign);
+
+     BigInt& add(const word y[], size_t y_words, Sign sign);
+
+     BigInt& sub(const word y[], size_t y_words, Sign sign)
+        {
+        return add(y, y_words, sign == Positive ? Negative : Positive);
+        }
+
+     /**
+     * Multiply this with y
+     * @param y the BigInt to multiply with this
+     * @param ws a temp workspace
+     */
+     BigInt& mul(const BigInt& y, secure_vector<word>& ws);
+
+     /**
+     * Square value of *this
+     * @param ws a temp workspace
+     */
+     BigInt& square(secure_vector<word>& ws);
+
+     /**
+     * Set *this to y - *this
+     * @param y the BigInt to subtract from as a sequence of words
+     * @param y_words length of y in words
+     * @param ws a temp workspace
+     */
+     BigInt& rev_sub(const word y[], size_t y_words, secure_vector<word>& ws);
+
+     /**
+     * Set *this to (*this + y) % mod
+     * This function assumes *this is >= 0 && < mod
+     * @param y the BigInt to add - assumed y >= 0 and y < mod
+     * @param mod the positive modulus
+     * @param ws a temp workspace
+     */
+     BigInt& mod_add(const BigInt& y, const BigInt& mod, secure_vector<word>& ws);
+
+     /**
+     * Set *this to (*this - y) % mod
+     * This function assumes *this is >= 0 && < mod
+     * @param y the BigInt to subtract - assumed y >= 0 and y < mod
+     * @param mod the positive modulus
+     * @param ws a temp workspace
+     */
+     BigInt& mod_sub(const BigInt& y, const BigInt& mod, secure_vector<word>& ws);
+
+     /**
+     * Set *this to (*this * y) % mod
+     * This function assumes *this is >= 0 && < mod
+     * y should be small, less than 16
+     * @param y the small integer to multiply by
+     * @param mod the positive modulus
+     * @param ws a temp workspace
+     */
+     BigInt& mod_mul(uint8_t y, const BigInt& mod, secure_vector<word>& ws);
+
+     /**
+     * Return *this % mod
+     *
+     * Assumes that *this is (if anything) only slightly larger than
+     * mod and performs repeated subtractions. It should not be used if
+     * *this is much larger than mod, instead use modulo operator.
+     */
+     size_t reduce_below(const BigInt& mod, secure_vector<word> &ws);
+
+     /**
+     * Return *this % mod
+     *
+     * Assumes that *this is (if anything) only slightly larger than mod and
+     * performs repeated subtractions. It should not be used if *this is much
+     * larger than mod, instead use modulo operator.
+     *
+     * Performs exactly bound subtractions, so if *this is >= bound*mod then the
+     * result will not be fully reduced. If bound is zero, nothing happens.
+     */
+     void ct_reduce_below(const BigInt& mod, secure_vector<word> &ws, size_t bound);
+
      /**
      * Zeroize the BigInt. The size of the underlying register is not
      * modified.
      */
-     void clear() { zeroise(m_reg); }
+     void clear() { m_data.set_to_zero(); m_signedness = Positive; }
 
      /**
      * Compare this to another BigInt
@@ -226,6 +372,28 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * values are identical return 0 [like Perl's <=> operator]
      */
      int32_t cmp(const BigInt& n, bool check_signs = true) const;
+
+     /**
+     * Compare this to another BigInt
+     * @param n the BigInt value to compare with
+     * @result true if this == n or false otherwise
+     */
+     bool is_equal(const BigInt& n) const;
+
+     /**
+     * Compare this to another BigInt
+     * @param n the BigInt value to compare with
+     * @result true if this < n or false otherwise
+     */
+     bool is_less_than(const BigInt& n) const;
+
+     /**
+     * Compare this to an integer
+     * @param n the value to compare with
+     * @result if (this<n) return -1, if (this>n) return 1, if both
+     * values are identical return 0 [like Perl's <=> operator]
+     */
+     int32_t cmp_word(word n) const;
 
      /**
      * Test if the integer has an even value
@@ -251,19 +419,27 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      */
      bool is_zero() const
         {
-        const size_t sw = sig_words();
-
-        for(size_t i = 0; i != sw; ++i)
-           if(m_reg[i])
-              return false;
-        return true;
+        return (sig_words() == 0);
         }
 
      /**
      * Set bit at specified position
      * @param n bit position to set
      */
-     void set_bit(size_t n);
+     void set_bit(size_t n)
+        {
+        conditionally_set_bit(n, true);
+        }
+
+     /**
+     * Conditionally set bit at specified position. Note if set_it is
+     * false, nothing happens, and if the bit is already set, it
+     * remains set.
+     *
+     * @param n bit position to set
+     * @param set_it if the bit should be set
+     */
+     void conditionally_set_bit(size_t n, bool set_it);
 
      /**
      * Clear bit at specified position
@@ -277,20 +453,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      */
      void mask_bits(size_t n)
         {
-        if(n == 0) { clear(); return; }
-
-        const size_t top_word = n / BOTAN_MP_WORD_BITS;
-        const word mask = (static_cast<word>(1) << (n % BOTAN_MP_WORD_BITS)) - 1;
-
-        if(top_word < size())
-           {
-           const size_t len = size() - (top_word + 1);
-           if (len > 0)
-              {
-              clear_mem(&m_reg[top_word+1], len);
-              }
-           m_reg[top_word] &= mask;
-           }
+        m_data.mask_bits(n);
         }
 
      /**
@@ -320,6 +483,17 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      uint32_t to_u32bit() const;
 
      /**
+     * Convert this value to a decimal string.
+     * Warning: decimal conversions are relatively slow
+     */
+     std::string to_dec_string() const;
+
+     /**
+     * Convert this value to a hexadecimal string.
+     */
+     std::string to_hex_string() const;
+
+     /**
      * @param n the offset to get a byte from
      * @result byte at offset n
      */
@@ -335,12 +509,18 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @return value at position n
      */
      word word_at(size_t n) const
-        { return ((n < size()) ? m_reg[n] : 0); }
+        {
+        return m_data.get_word_at(n);
+        }
 
      void set_word_at(size_t i, word w)
         {
-        grow_to(i + 1);
-        m_reg[i] = w;
+        m_data.set_word_at(i, w);
+        }
+
+     void set_words(const word w[], size_t len)
+        {
+        m_data.set_words(w, len);
         }
 
      /**
@@ -364,18 +544,32 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      /**
      * @result the opposite sign of the represented integer value
      */
-     Sign reverse_sign() const;
+     Sign reverse_sign() const
+        {
+        if(sign() == Positive)
+           return Negative;
+        return Positive;
+        }
 
      /**
      * Flip the sign of this BigInt
      */
-     void flip_sign();
+     void flip_sign()
+        {
+        set_sign(reverse_sign());
+        }
 
      /**
      * Set sign of the integer
      * @param sign new Sign to set
      */
-     void set_sign(Sign sign);
+     void set_sign(Sign sign)
+        {
+        if(sign == Negative && is_zero())
+           sign = Positive;
+
+        m_signedness = sign;
+        }
 
      /**
      * @result absolute (positive) value of this
@@ -386,7 +580,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Give size of internal register
      * @result size of internal register in words
      */
-     size_t size() const { return m_reg.size(); }
+     size_t size() const { return m_data.size(); }
 
      /**
      * Return how many words we need to hold this value
@@ -394,12 +588,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      */
      size_t sig_words() const
         {
-        const word* x = m_reg.data();
-        size_t sig = m_reg.size();
-
-        while(sig && (x[sig-1] == 0))
-           sig--;
-        return sig;
+        return m_data.sig_words();
         }
 
      /**
@@ -415,27 +604,50 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      size_t bits() const;
 
      /**
+     * Get the number of high bits unset in the top (allocated) word
+     * of this integer. Returns BOTAN_MP_WORD_BITS only iff *this is
+     * zero. Ignores sign.
+     */
+     size_t top_bits_free() const;
+
+     /**
      * Return a mutable pointer to the register
      * @result a pointer to the start of the internal register
      */
-     word* mutable_data() { return m_reg.data(); }
+     word* mutable_data() { return m_data.mutable_data(); }
 
      /**
      * Return a const pointer to the register
      * @result a pointer to the start of the internal register
      */
-     const word* data() const { return m_reg.data(); }
+     const word* data() const { return m_data.const_data(); }
 
-     secure_vector<word>& get_word_vector() { return m_reg; }
-     const secure_vector<word>& get_word_vector() const { return m_reg; }
+     /**
+     * Don't use this function in application code
+     */
+     secure_vector<word>& get_word_vector() { return m_data.mutable_vector(); }
+
+     /**
+     * Don't use this function in application code
+     */
+     const secure_vector<word>& get_word_vector() const { return m_data.const_vector(); }
 
      /**
      * Increase internal register buffer to at least n words
      * @param n new size of register
      */
-     void grow_to(size_t n);
+     void grow_to(size_t n) const { m_data.grow_to(n); }
 
-     void shrink_to_fit();
+     /**
+     * Resize the vector to the minimum word size to hold the integer, or
+     * min_size words, whichever is larger
+     */
+     void shrink_to_fit(size_t min_size = 0)
+        {
+        m_data.shrink_to_fit(min_size);
+        }
+
+     void resize(size_t s) { m_data.resize(s); }
 
      /**
      * Fill BigInt with a random number with size of bitsize
@@ -479,9 +691,40 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      size_t encoded_size(Base base = Binary) const;
 
      /**
+     * Place the value into out, zero-padding up to size words
+     * Throw if *this cannot be represented in size words
+     */
+     void encode_words(word out[], size_t size) const;
+
+     /**
+     * If predicate is true assign other to *this
+     * Uses a masked operation to avoid side channels
+     */
+     void ct_cond_assign(bool predicate, const BigInt& other);
+
+     /**
+     * If predicate is true swap *this and other
+     * Uses a masked operation to avoid side channels
+     */
+     void ct_cond_swap(bool predicate, BigInt& other);
+
+     /**
+     * If predicate is true flip the sign of *this
+     */
+     void cond_flip_sign(bool predicate);
+
+#if defined(BOTAN_HAS_VALGRIND)
+     void const_time_poison() const;
+     void const_time_unpoison() const;
+#else
+     void const_time_poison() const {}
+     void const_time_unpoison() const {}
+#endif
+
+     /**
      * @param rng a random number generator
-     * @param min the minimum value
-     * @param max the maximum value
+     * @param min the minimum value (must be non-negative)
+     * @param max the maximum value (must be non-negative and > min)
      * @return random integer in [min,max)
      */
      static BigInt random_integer(RandomNumberGenerator& rng,
@@ -503,10 +746,75 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      /**
      * Encode the integer value from a BigInt to a std::vector of bytes
      * @param n the BigInt to use as integer source
+     * @result secure_vector of bytes containing the bytes of the integer
+     */
+     static std::vector<uint8_t> encode(const BigInt& n)
+        {
+        std::vector<uint8_t> output(n.bytes());
+        n.binary_encode(output.data());
+        return output;
+        }
+
+     /**
+     * Encode the integer value from a BigInt to a secure_vector of bytes
+     * @param n the BigInt to use as integer source
+     * @result secure_vector of bytes containing the bytes of the integer
+     */
+     static secure_vector<uint8_t> encode_locked(const BigInt& n)
+        {
+        secure_vector<uint8_t> output(n.bytes());
+        n.binary_encode(output.data());
+        return output;
+        }
+
+     /**
+     * Encode the integer value from a BigInt to a byte array
+     * @param buf destination byte array for the encoded integer
+     * @param n the BigInt to use as integer source
+     */
+     static void encode(uint8_t buf[], const BigInt& n)
+        {
+        n.binary_encode(buf);
+        }
+
+     /**
+     * Create a BigInt from an integer in a byte array
+     * @param buf the binary value to load
+     * @param length size of buf
+     * @result BigInt representing the integer in the byte array
+     */
+     static BigInt decode(const uint8_t buf[], size_t length)
+        {
+        return BigInt(buf, length);
+        }
+
+     /**
+     * Create a BigInt from an integer in a byte array
+     * @param buf the binary value to load
+     * @result BigInt representing the integer in the byte array
+     */
+     static BigInt decode(const secure_vector<uint8_t>& buf)
+        {
+        return BigInt(buf);
+        }
+
+     /**
+     * Create a BigInt from an integer in a byte array
+     * @param buf the binary value to load
+     * @result BigInt representing the integer in the byte array
+     */
+     static BigInt decode(const std::vector<uint8_t>& buf)
+        {
+        return BigInt(buf);
+        }
+
+     /**
+     * Encode the integer value from a BigInt to a std::vector of bytes
+     * @param n the BigInt to use as integer source
      * @param base number-base of resulting byte array representation
      * @result secure_vector of bytes containing the integer with given base
      */
-     static std::vector<uint8_t> encode(const BigInt& n, Base base = Binary);
+     static std::vector<uint8_t> encode(const BigInt& n, Base base);
 
      /**
      * Encode the integer value from a BigInt to a secure_vector of bytes
@@ -515,7 +823,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @result secure_vector of bytes containing the integer with given base
      */
      static secure_vector<uint8_t> encode_locked(const BigInt& n,
-                                              Base base = Binary);
+                                                 Base base);
 
      /**
      * Encode the integer value from a BigInt to a byte array
@@ -524,7 +832,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param n the BigInt to use as integer source
      * @param base number-base of resulting byte array representation
      */
-     static void encode(uint8_t buf[], const BigInt& n, Base base = Binary);
+     static void encode(uint8_t buf[], const BigInt& n, Base base);
 
      /**
      * Create a BigInt from an integer in a byte array
@@ -534,7 +842,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @result BigInt representing the integer in the byte array
      */
      static BigInt decode(const uint8_t buf[], size_t length,
-                          Base base = Binary);
+                          Base base);
 
      /**
      * Create a BigInt from an integer in a byte array
@@ -543,8 +851,10 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @result BigInt representing the integer in the byte array
      */
      static BigInt decode(const secure_vector<uint8_t>& buf,
-                          Base base = Binary)
+                          Base base)
         {
+        if(base == Binary)
+           return BigInt(buf);
         return BigInt::decode(buf.data(), buf.size(), base);
         }
 
@@ -554,9 +864,10 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param base number-base of the integer in buf
      * @result BigInt representing the integer in the byte array
      */
-     static BigInt decode(const std::vector<uint8_t>& buf,
-                          Base base = Binary)
+     static BigInt decode(const std::vector<uint8_t>& buf, Base base)
         {
+        if(base == Binary)
+           return BigInt(buf);
         return BigInt::decode(buf.data(), buf.size(), base);
         }
 
@@ -589,16 +900,185 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
         size_t idx);
 
    private:
-      secure_vector<word> m_reg;
+
+     class Data
+        {
+        public:
+           word* mutable_data()
+              {
+              invalidate_sig_words();
+              return m_reg.data();
+              }
+
+           const word* const_data() const
+              {
+              return m_reg.data();
+              }
+
+           secure_vector<word>& mutable_vector()
+              {
+              invalidate_sig_words();
+              return m_reg;
+              }
+
+           const secure_vector<word>& const_vector() const
+              {
+              return m_reg;
+              }
+
+           word get_word_at(size_t n) const
+              {
+              if(n < m_reg.size())
+                 return m_reg[n];
+              return 0;
+              }
+
+           void set_word_at(size_t i, word w)
+              {
+              invalidate_sig_words();
+              if(i >= m_reg.size())
+                 grow_to(i + 1);
+              m_reg[i] = w;
+              }
+
+           void set_words(const word w[], size_t len)
+              {
+              invalidate_sig_words();
+              m_reg.assign(w, w + len);
+              }
+
+           void set_to_zero()
+              {
+              m_reg.resize(m_reg.capacity());
+              clear_mem(m_reg.data(), m_reg.size());
+              m_sig_words = 0;
+              }
+
+           void set_size(size_t s)
+              {
+              invalidate_sig_words();
+              clear_mem(m_reg.data(), m_reg.size());
+              m_reg.resize(s + (8 - (s % 8)));
+              }
+
+           void mask_bits(size_t n)
+              {
+              if(n == 0) { return set_to_zero(); }
+
+              const size_t top_word = n / BOTAN_MP_WORD_BITS;
+
+              // if(top_word < sig_words()) ?
+              if(top_word < size())
+                 {
+                 const word mask = (static_cast<word>(1) << (n % BOTAN_MP_WORD_BITS)) - 1;
+                 const size_t len = size() - (top_word + 1);
+                 if (len > 0)
+                    {
+                    clear_mem(&m_reg[top_word+1], len);
+                    }
+                 m_reg[top_word] &= mask;
+                 invalidate_sig_words();
+                 }
+              }
+
+           void grow_to(size_t n) const
+              {
+              if(n > size())
+                 {
+                 if(n <= m_reg.capacity())
+                    m_reg.resize(n);
+                 else
+                    m_reg.resize(n + (8 - (n % 8)));
+                 }
+              }
+
+           size_t size() const { return m_reg.size(); }
+
+           void shrink_to_fit(size_t min_size = 0)
+              {
+              const size_t words = std::max(min_size, sig_words());
+              m_reg.resize(words);
+              }
+
+           void resize(size_t s)
+              {
+              m_reg.resize(s);
+              }
+
+           void swap(Data& other)
+              {
+              m_reg.swap(other.m_reg);
+              std::swap(m_sig_words, other.m_sig_words);
+              }
+
+           void swap(secure_vector<word>& reg)
+              {
+              m_reg.swap(reg);
+              invalidate_sig_words();
+              }
+
+           void invalidate_sig_words() const
+              {
+              m_sig_words = sig_words_npos;
+              }
+
+           size_t sig_words() const
+              {
+              if(m_sig_words == sig_words_npos)
+                 {
+                 m_sig_words = calc_sig_words();
+                 }
+              else
+                 {
+                 BOTAN_DEBUG_ASSERT(m_sig_words == calc_sig_words());
+                 }
+              return m_sig_words;
+              }
+        private:
+           static const size_t sig_words_npos = static_cast<size_t>(-1);
+
+           size_t calc_sig_words() const;
+
+           mutable secure_vector<word> m_reg;
+           mutable size_t m_sig_words = sig_words_npos;
+        };
+
+      Data m_data;
       Sign m_signedness = Positive;
    };
 
 /*
 * Arithmetic Operators
 */
-BigInt BOTAN_PUBLIC_API(2,0) operator+(const BigInt& x, const BigInt& y);
-BigInt BOTAN_PUBLIC_API(2,0) operator-(const BigInt& x, const BigInt& y);
+inline BigInt operator+(const BigInt& x, const BigInt& y)
+   {
+   return BigInt::add2(x, y.data(), y.sig_words(), y.sign());
+   }
+
+inline BigInt operator+(const BigInt& x, word y)
+   {
+   return BigInt::add2(x, &y, 1, BigInt::Positive);
+   }
+
+inline BigInt operator+(word x, const BigInt& y)
+   {
+   return y + x;
+   }
+
+inline BigInt operator-(const BigInt& x, const BigInt& y)
+   {
+   return BigInt::add2(x, y.data(), y.sig_words(), y.reverse_sign());
+   }
+
+inline BigInt operator-(const BigInt& x, word y)
+   {
+   return BigInt::add2(x, &y, 1, BigInt::Negative);
+   }
+
 BigInt BOTAN_PUBLIC_API(2,0) operator*(const BigInt& x, const BigInt& y);
+BigInt BOTAN_PUBLIC_API(2,8) operator*(const BigInt& x, word y);
+inline BigInt operator*(word x, const BigInt& y) { return y*x; }
+
 BigInt BOTAN_PUBLIC_API(2,0) operator/(const BigInt& x, const BigInt& d);
 BigInt BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, const BigInt& m);
 word   BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, word m);
@@ -609,17 +1089,30 @@ BigInt BOTAN_PUBLIC_API(2,0) operator>>(const BigInt& x, size_t n);
 * Comparison Operators
 */
 inline bool operator==(const BigInt& a, const BigInt& b)
-   { return (a.cmp(b) == 0); }
+   { return a.is_equal(b); }
 inline bool operator!=(const BigInt& a, const BigInt& b)
-   { return (a.cmp(b) != 0); }
+   { return !a.is_equal(b); }
 inline bool operator<=(const BigInt& a, const BigInt& b)
    { return (a.cmp(b) <= 0); }
 inline bool operator>=(const BigInt& a, const BigInt& b)
    { return (a.cmp(b) >= 0); }
 inline bool operator<(const BigInt& a, const BigInt& b)
-   { return (a.cmp(b) < 0); }
+   { return a.is_less_than(b); }
 inline bool operator>(const BigInt& a, const BigInt& b)
-   { return (a.cmp(b) > 0); }
+   { return b.is_less_than(a); }
+
+inline bool operator==(const BigInt& a, word b)
+   { return (a.cmp_word(b) == 0); }
+inline bool operator!=(const BigInt& a, word b)
+   { return (a.cmp_word(b) != 0); }
+inline bool operator<=(const BigInt& a, word b)
+   { return (a.cmp_word(b) <= 0); }
+inline bool operator>=(const BigInt& a, word b)
+   { return (a.cmp_word(b) >= 0); }
+inline bool operator<(const BigInt& a, word b)
+   { return (a.cmp_word(b) < 0); }
+inline bool operator>(const BigInt& a, word b)
+   { return (a.cmp_word(b) > 0); }
 
 /*
 * I/O Operators

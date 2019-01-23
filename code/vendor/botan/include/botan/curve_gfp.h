@@ -26,6 +26,14 @@ class BOTAN_UNSTABLE_API CurveGFp_Repr
 
       virtual size_t get_p_words() const = 0;
 
+      virtual size_t get_ws_size() const = 0;
+
+      virtual bool is_one(const BigInt& x) const = 0;
+
+      virtual bool a_is_zero() const = 0;
+
+      virtual bool a_is_minus_3() const = 0;
+
       /*
       * Returns to_curve_rep(get_a())
       */
@@ -36,21 +44,53 @@ class BOTAN_UNSTABLE_API CurveGFp_Repr
       */
       virtual const BigInt& get_b_rep() const = 0;
 
+      /*
+      * Returns to_curve_rep(1)
+      */
+      virtual const BigInt& get_1_rep() const = 0;
+
+      virtual BigInt invert_element(const BigInt& x, secure_vector<word>& ws) const = 0;
+
       virtual void to_curve_rep(BigInt& x, secure_vector<word>& ws) const = 0;
 
       virtual void from_curve_rep(BigInt& x, secure_vector<word>& ws) const = 0;
 
-      virtual void curve_mul(BigInt& z, const BigInt& x, const BigInt& y,
-                             secure_vector<word>& ws) const = 0;
+      void curve_mul(BigInt& z, const BigInt& x, const BigInt& y,
+                     secure_vector<word>& ws) const
+         {
+         BOTAN_DEBUG_ASSERT(x.sig_words() <= get_p_words());
+         curve_mul_words(z, x.data(), x.size(), y, ws);
+         }
 
-      virtual void curve_sqr(BigInt& z, const BigInt& x,
-                             secure_vector<word>& ws) const = 0;
+      virtual void curve_mul_words(BigInt& z,
+                                   const word x_words[],
+                                   const size_t x_size,
+                                   const BigInt& y,
+                                   secure_vector<word>& ws) const = 0;
+
+      void curve_sqr(BigInt& z, const BigInt& x,
+                             secure_vector<word>& ws) const
+         {
+         BOTAN_DEBUG_ASSERT(x.sig_words() <= get_p_words());
+         curve_sqr_words(z, x.data(), x.size(), ws);
+         }
+
+      virtual void curve_sqr_words(BigInt& z,
+                                   const word x_words[],
+                                   size_t x_size,
+                                   secure_vector<word>& ws) const = 0;
    };
 
 /**
 * This class represents an elliptic curve over GF(p)
+*
+* There should not be any reason for applications to use this type.
+* If you need EC primitives use the interfaces EC_Group and PointGFp
+*
+* It is likely this class will be removed entirely in a future major
+* release.
 */
-class BOTAN_PUBLIC_API(2,0) CurveGFp final
+class BOTAN_UNSTABLE_API CurveGFp final
    {
    public:
 
@@ -90,9 +130,25 @@ class BOTAN_PUBLIC_API(2,0) CurveGFp final
       */
       const BigInt& get_p() const { return m_repr->get_p(); }
 
+      size_t get_p_words() const { return m_repr->get_p_words(); }
+
+      size_t get_ws_size() const { return m_repr->get_ws_size(); }
+
       const BigInt& get_a_rep() const { return m_repr->get_a_rep(); }
 
       const BigInt& get_b_rep() const { return m_repr->get_b_rep(); }
+
+      const BigInt& get_1_rep() const { return m_repr->get_1_rep(); }
+
+      bool a_is_minus_3() const { return m_repr->a_is_minus_3(); }
+      bool a_is_zero() const { return m_repr->a_is_zero(); }
+
+      bool is_one(const BigInt& x) const { return m_repr->is_one(x); }
+
+      BigInt invert_element(const BigInt& x, secure_vector<word>& ws) const
+         {
+         return m_repr->invert_element(x, ws);
+         }
 
       void to_rep(BigInt& x, secure_vector<word>& ws) const
          {
@@ -118,11 +174,10 @@ class BOTAN_PUBLIC_API(2,0) CurveGFp final
          m_repr->curve_mul(z, x, y, ws);
          }
 
-      BigInt mul(const BigInt& x, const BigInt& y, secure_vector<word>& ws) const
+      void mul(BigInt& z, const word x_w[], size_t x_size,
+               const BigInt& y, secure_vector<word>& ws) const
          {
-         BigInt z;
-         m_repr->curve_mul(z, x, y, ws);
-         return z;
+         m_repr->curve_mul_words(z, x_w, x_size, y, ws);
          }
 
       void sqr(BigInt& z, const BigInt& x, secure_vector<word>& ws) const
@@ -130,7 +185,29 @@ class BOTAN_PUBLIC_API(2,0) CurveGFp final
          m_repr->curve_sqr(z, x, ws);
          }
 
+      void sqr(BigInt& z, const word x_w[], size_t x_size, secure_vector<word>& ws) const
+         {
+         m_repr->curve_sqr_words(z, x_w, x_size, ws);
+         }
+
+      BigInt mul(const BigInt& x, const BigInt& y, secure_vector<word>& ws) const
+         {
+         return mul_to_tmp(x, y, ws);
+         }
+
       BigInt sqr(const BigInt& x, secure_vector<word>& ws) const
+         {
+         return sqr_to_tmp(x, ws);
+         }
+
+      BigInt mul_to_tmp(const BigInt& x, const BigInt& y, secure_vector<word>& ws) const
+         {
+         BigInt z;
+         m_repr->curve_mul(z, x, y, ws);
+         return z;
+         }
+
+      BigInt sqr_to_tmp(const BigInt& x, secure_vector<word>& ws) const
          {
          BigInt z;
          m_repr->curve_sqr(z, x, ws);
@@ -142,25 +219,27 @@ class BOTAN_PUBLIC_API(2,0) CurveGFp final
          std::swap(m_repr, other.m_repr);
          }
 
+      /**
+      * Equality operator
+      * @param other a curve
+      * @return true iff *this is the same as other
+      */
+      inline bool operator==(const CurveGFp& other) const
+         {
+         if(m_repr.get() == other.m_repr.get())
+            return true;
+
+         return (get_p() == other.get_p()) &&
+                (get_a() == other.get_a()) &&
+                (get_b() == other.get_b());
+         }
+
    private:
       static std::shared_ptr<CurveGFp_Repr>
          choose_repr(const BigInt& p, const BigInt& a, const BigInt& b);
 
       std::shared_ptr<CurveGFp_Repr> m_repr;
    };
-
-/**
-* Equality operator
-* @param lhs a curve
-* @param rhs a curve
-* @return true iff lhs is the same as rhs
-*/
-inline bool operator==(const CurveGFp& lhs, const CurveGFp& rhs)
-   {
-   return (lhs.get_p() == rhs.get_p()) &&
-          (lhs.get_a() == rhs.get_a()) &&
-          (lhs.get_b() == rhs.get_b());
-   }
 
 inline bool operator!=(const CurveGFp& lhs, const CurveGFp& rhs)
    {
@@ -173,7 +252,7 @@ namespace std {
 
 template<> inline
 void swap<Botan::CurveGFp>(Botan::CurveGFp& curve1,
-                           Botan::CurveGFp& curve2) BOTAN_NOEXCEPT
+                           Botan::CurveGFp& curve2) noexcept
    {
    curve1.swap(curve2);
    }

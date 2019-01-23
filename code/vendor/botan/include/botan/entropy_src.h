@@ -45,14 +45,12 @@ class BOTAN_PUBLIC_API(2,0) Entropy_Source
       */
       virtual size_t poll(RandomNumberGenerator& rng) = 0;
 
+      Entropy_Source() = default;
       Entropy_Source(const Entropy_Source& other) = delete;
       Entropy_Source(Entropy_Source&& other) = delete;
       Entropy_Source& operator=(const Entropy_Source& other) = delete;
 
-      virtual ~Entropy_Source() {}
-
-   protected:
-      Entropy_Source() {}
+      virtual ~Entropy_Source() = default;
    };
 
 class BOTAN_PUBLIC_API(2,0) Entropy_Sources final
@@ -73,7 +71,7 @@ class BOTAN_PUBLIC_API(2,0) Entropy_Sources final
       */
       size_t poll_just(RandomNumberGenerator& rng, const std::string& src);
 
-      Entropy_Sources() {}
+      Entropy_Sources() = default;
       explicit Entropy_Sources(const std::vector<std::string>& sources);
 
       Entropy_Sources(const Entropy_Sources& other) = delete;

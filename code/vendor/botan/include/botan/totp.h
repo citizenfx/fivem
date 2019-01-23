@@ -24,8 +24,22 @@ class BOTAN_PUBLIC_API(2,2) TOTP final
       * @param digits the number of digits in the OTP (must be 6, 7, or 8)
       * @param time_step granularity of OTP in seconds
       */
-      TOTP(const SymmetricKey& key, const std::string& hash_algo = "SHA-1",
-           size_t digits = 6, size_t time_step = 30);
+      TOTP(const SymmetricKey& key,
+           const std::string& hash_algo = "SHA-1",
+           size_t digits = 6, size_t time_step = 30) :
+         TOTP(key.begin(), key.size(), hash_algo, digits, time_step) {}
+
+      /**
+      * @param key the secret key shared between client and server
+      * @param key_len length of key
+      * @param hash_algo the hash algorithm to use, should be SHA-1, SHA-256 or SHA-512
+      * @param digits the number of digits in the OTP (must be 6, 7, or 8)
+      * @param time_step granularity of OTP in seconds
+      */
+      TOTP(const uint8_t key[], size_t key_len,
+           const std::string& hash_algo = "SHA-1",
+           size_t digits = 6,
+           size_t time_step = 30);
 
       /**
       * Convert the provided time_point to a Unix timestamp and call generate_totp
@@ -33,7 +47,7 @@ class BOTAN_PUBLIC_API(2,2) TOTP final
       uint32_t generate_totp(std::chrono::system_clock::time_point time_point);
 
       /**
-      * Generate the OTP cooresponding the the provided "Unix timestamp" (ie
+      * Generate the OTP corresponding the the provided "Unix timestamp" (ie
       * number of seconds since midnight Jan 1, 1970)
       */
       uint32_t generate_totp(uint64_t unix_time);

@@ -25,6 +25,8 @@ class BOTAN_PUBLIC_API(2,0) CCM_Mode : public AEAD_Mode
 
       void set_associated_data(const uint8_t ad[], size_t ad_len) override;
 
+      bool associated_data_requires_key() const override { return false; }
+
       std::string name() const override;
 
       size_t update_granularity() const override;
@@ -48,7 +50,7 @@ class BOTAN_PUBLIC_API(2,0) CCM_Mode : public AEAD_Mode
 
       const BlockCipher& cipher() const { return *m_cipher; }
 
-      void encode_length(size_t len, uint8_t out[]);
+      void encode_length(uint64_t len, uint8_t out[]);
 
       void inc(secure_vector<uint8_t>& C);
 

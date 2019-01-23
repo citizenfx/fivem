@@ -10,9 +10,11 @@
 
 #include <botan/types.h>
 #include <vector>
-#include <botan/mutex.h>
+#include <memory>
 
 namespace Botan {
+
+class Memory_Pool;
 
 class BOTAN_PUBLIC_API(2,0) mlock_allocator final
    {
@@ -21,7 +23,7 @@ class BOTAN_PUBLIC_API(2,0) mlock_allocator final
 
       void* allocate(size_t num_elems, size_t elem_size);
 
-      bool deallocate(void* p, size_t num_elems, size_t elem_size) BOTAN_NOEXCEPT;
+      bool deallocate(void* p, size_t num_elems, size_t elem_size) noexcept;
 
       mlock_allocator(const mlock_allocator&) = delete;
 
@@ -32,10 +34,8 @@ class BOTAN_PUBLIC_API(2,0) mlock_allocator final
 
       ~mlock_allocator();
 
-      mutex_type m_mutex;
-      std::vector<std::pair<size_t, size_t>> m_freelist;
-      uint8_t* m_pool = nullptr;
-      size_t m_poolsize = 0;
+      std::unique_ptr<Memory_Pool> m_pool;
+      std::vector<void*> m_locked_pages;
    };
 
 }

@@ -9,6 +9,7 @@
 #define BOTAN_TLS_CIPHER_SUITES_H_
 
 #include <botan/types.h>
+#include <botan/tls_algos.h>
 #include <string>
 #include <vector>
 
@@ -67,15 +68,21 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
        */
       bool cbc_ciphersuite() const;
 
+      bool signature_used() const;
+
       /**
       * @return key exchange algorithm used by this ciphersuite
       */
-      std::string kex_algo() const { return m_kex_algo; }
+      std::string kex_algo() const { return kex_method_to_string(kex_method()); }
+
+      Kex_Algo kex_method() const { return m_kex_algo; }
 
       /**
       * @return signature algorithm used by this ciphersuite
       */
-      std::string sig_algo() const { return m_sig_algo; }
+      std::string sig_algo() const { return auth_method_to_string(auth_method()); }
+
+      Auth_Method auth_method() const { return m_auth_method; }
 
       /**
       * @return symmetric cipher algorithm used by this ciphersuite
@@ -89,9 +96,7 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
 
       std::string prf_algo() const
          {
-         if(m_prf_algo && *m_prf_algo)
-            return m_prf_algo;
-         return m_mac_algo;
+         return kdf_algo_to_string(m_prf_algo);
          }
 
       /**
@@ -99,9 +104,9 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
       */
       size_t cipher_keylen() const { return m_cipher_keylen; }
 
-      size_t nonce_bytes_from_record() const { return m_nonce_bytes_from_record; }
+      size_t nonce_bytes_from_handshake() const;
 
-      size_t nonce_bytes_from_handshake() const { return m_nonce_bytes_from_handshake; }
+      Nonce_Format nonce_format() const { return m_nonce_format; }
 
       size_t mac_keylen() const { return m_mac_keylen; }
 
@@ -121,25 +126,23 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
 
       Ciphersuite(uint16_t ciphersuite_code,
                   const char* iana_id,
-                  const char* sig_algo,
-                  const char* kex_algo,
+                  Auth_Method auth_method,
+                  Kex_Algo kex_algo,
                   const char* cipher_algo,
                   size_t cipher_keylen,
-                  size_t nonce_bytes_from_handshake,
-                  size_t nonce_bytes_from_record,
                   const char* mac_algo,
                   size_t mac_keylen,
-                  const char* prf_algo) :
+                  KDF_Algo prf_algo,
+                  Nonce_Format nonce_format) :
          m_ciphersuite_code(ciphersuite_code),
          m_iana_id(iana_id),
-         m_sig_algo(sig_algo),
+         m_auth_method(auth_method),
          m_kex_algo(kex_algo),
          m_prf_algo(prf_algo),
+         m_nonce_format(nonce_format),
          m_cipher_algo(cipher_algo),
          m_mac_algo(mac_algo),
          m_cipher_keylen(cipher_keylen),
-         m_nonce_bytes_from_handshake(nonce_bytes_from_handshake),
-         m_nonce_bytes_from_record(nonce_bytes_from_record),
          m_mac_keylen(mac_keylen)
          {
          m_usable = is_usable();
@@ -153,16 +156,15 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
       */
       const char* m_iana_id = nullptr;
 
-      const char* m_sig_algo = nullptr;
-      const char* m_kex_algo = nullptr;
-      const char* m_prf_algo = nullptr;
+      Auth_Method m_auth_method = Auth_Method::ANONYMOUS;
+      Kex_Algo m_kex_algo = Kex_Algo::STATIC_RSA;
+      KDF_Algo m_prf_algo = KDF_Algo::SHA_1;
+      Nonce_Format m_nonce_format = Nonce_Format::CBC_MODE;
 
       const char* m_cipher_algo = nullptr;
       const char* m_mac_algo = nullptr;
 
       size_t m_cipher_keylen = 0;
-      size_t m_nonce_bytes_from_handshake = 0;
-      size_t m_nonce_bytes_from_record = 0;
       size_t m_mac_keylen = 0;
 
       bool m_usable = false;

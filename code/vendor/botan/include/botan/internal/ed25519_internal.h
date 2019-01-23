@@ -28,6 +28,57 @@ inline uint64_t load_4(const uint8_t* in)
    return load_le<uint32_t>(in, 0);
    }
 
+template<size_t S, int64_t MUL=1>
+inline void carry(int64_t& h0, int64_t& h1)
+   {
+   static_assert(S > 0 && S < 64, "Shift in range");
+
+   const int64_t X1 = (static_cast<int64_t>(1) << S);
+   const int64_t X2 = (static_cast<int64_t>(1) << (S - 1));
+   int64_t c = (h0 + X2)  >> S;
+   h1 += c * MUL;
+   h0 -= c * X1;
+   }
+
+template<size_t S>
+inline void carry0(int64_t& h0, int64_t& h1)
+   {
+   static_assert(S > 0 && S < 64, "Shift in range");
+
+   const int64_t X1 = (static_cast<int64_t>(1) << S);
+   int64_t c = h0 >> S;
+   h1 += c;
+   h0 -= c * X1;
+   }
+
+template<size_t S>
+inline void carry0(int32_t& h0, int32_t& h1)
+   {
+   static_assert(S > 0 && S < 32, "Shift in range");
+
+   const int32_t X1 = (static_cast<int64_t>(1) << S);
+   int32_t c = h0 >> S;
+   h1 += c;
+   h0 -= c * X1;
+   }
+
+inline void redc_mul(int64_t& s1,
+                     int64_t& s2,
+                     int64_t& s3,
+                     int64_t& s4,
+                     int64_t& s5,
+                     int64_t& s6,
+                     int64_t& X)
+   {
+   s1 += X * 666643;
+   s2 += X * 470296;
+   s3 += X * 654183;
+   s4 -= X * 997805;
+   s5 += X * 136657;
+   s6 -= X * 683901;
+   X = 0;
+   }
+
 /*
 ge means group element.
 

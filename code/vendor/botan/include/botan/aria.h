@@ -8,7 +8,7 @@
 * National Security Research Institute, KOREA. Aaram Yun's implementation is based on
 * the 8-bit implementation by Jin Hong. The source files are available in ARIA.zip from
 * the Korea Internet & Security Agency website.
-* <A HREF="http://tools.ietf.org/html/rfc5794">RFC 5794, A Description of the ARIA Encryption Algorithm</A>,
+* <A HREF="https://tools.ietf.org/html/rfc5794">RFC 5794, A Description of the ARIA Encryption Algorithm</A>,
 * <A HREF="http://seed.kisa.or.kr/iwt/ko/bbs/EgovReferenceList.do?bbsId=BBSMSTR_000000000002">Korea
 * Internet & Security Agency homepage</A>
 */

@@ -46,7 +46,7 @@ class BOTAN_PUBLIC_API(2,0) Comb4P final : public HashFunction
 
       void clear() override;
    private:
-      Comb4P() {}
+      Comb4P() = default;
 
       void add_data(const uint8_t input[], size_t length) override;
       void final_result(uint8_t out[]) override;

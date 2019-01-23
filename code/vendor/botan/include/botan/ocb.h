@@ -55,6 +55,10 @@ class BOTAN_PUBLIC_API(2,0) OCB_Mode : public AEAD_Mode
       */
       OCB_Mode(BlockCipher* cipher, size_t tag_size);
 
+      size_t block_size() const { return m_block_size; }
+      size_t par_blocks() const { return m_par_blocks; }
+      size_t par_bytes() const { return m_checksum.size(); }
+
       // fixme make these private
       std::unique_ptr<BlockCipher> m_cipher;
       std::unique_ptr<L_computer> m_L;
@@ -62,7 +66,6 @@ class BOTAN_PUBLIC_API(2,0) OCB_Mode : public AEAD_Mode
       size_t m_block_index = 0;
 
       secure_vector<uint8_t> m_checksum;
-      secure_vector<uint8_t> m_offset;
       secure_vector<uint8_t> m_ad_hash;
    private:
       void start_msg(const uint8_t nonce[], size_t nonce_len) override;
@@ -71,7 +74,9 @@ class BOTAN_PUBLIC_API(2,0) OCB_Mode : public AEAD_Mode
 
       secure_vector<uint8_t> update_nonce(const uint8_t nonce[], size_t nonce_len);
 
-      const size_t m_tag_size = 0;
+      const size_t m_tag_size;
+      const size_t m_block_size;
+      const size_t m_par_blocks;
       secure_vector<uint8_t> m_last_nonce;
       secure_vector<uint8_t> m_stretch;
    };

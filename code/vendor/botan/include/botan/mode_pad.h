@@ -39,11 +39,10 @@ class BOTAN_PUBLIC_API(2,0) BlockCipherModePaddingMethod
       /**
       * Remove padding bytes from block
       * @param block the last block
-      * @param size the size of the block in bytes
-      * @return number of padding bytes
+      * @param len the size of the block in bytes
+      * @return number of data bytes, or if the padding is invalid returns len
       */
-      virtual size_t unpad(const uint8_t block[],
-                           size_t size) const = 0;
+      virtual size_t unpad(const uint8_t block[], size_t len) const = 0;
 
       /**
       * @param block_size of the cipher
@@ -74,7 +73,7 @@ class BOTAN_PUBLIC_API(2,0) PKCS7_Padding final : public BlockCipherModePaddingM
 
       size_t unpad(const uint8_t[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const override { return (bs > 0 && bs < 256); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 2 && bs < 256); }
 
       std::string name() const override { return "PKCS7"; }
    };
@@ -91,7 +90,7 @@ class BOTAN_PUBLIC_API(2,0) ANSI_X923_Padding final : public BlockCipherModePadd
 
       size_t unpad(const uint8_t[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const override { return (bs > 0 && bs < 256); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 2 && bs < 256); }
 
       std::string name() const override { return "X9.23"; }
    };
@@ -108,7 +107,7 @@ class BOTAN_PUBLIC_API(2,0) OneAndZeros_Padding final : public BlockCipherModePa
 
       size_t unpad(const uint8_t[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const override { return (bs > 0); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 2); }
 
       std::string name() const override { return "OneAndZeros"; }
    };
@@ -125,7 +124,7 @@ class BOTAN_PUBLIC_API(2,0) ESP_Padding final : public BlockCipherModePaddingMet
 
       size_t unpad(const uint8_t[], size_t) const override;
 
-      bool valid_blocksize(size_t bs) const override { return (bs > 0); }
+      bool valid_blocksize(size_t bs) const override { return (bs > 2 && bs < 256); }
 
       std::string name() const override { return "ESP"; }
    };
@@ -136,7 +135,10 @@ class BOTAN_PUBLIC_API(2,0) ESP_Padding final : public BlockCipherModePaddingMet
 class BOTAN_PUBLIC_API(2,0) Null_Padding final : public BlockCipherModePaddingMethod
    {
    public:
-      void add_padding(secure_vector<uint8_t>&, size_t, size_t) const override {}
+      void add_padding(secure_vector<uint8_t>&, size_t, size_t) const override
+         {
+         /* no padding */
+         }
 
       size_t unpad(const uint8_t[], size_t size) const override { return size; }
 

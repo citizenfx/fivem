@@ -107,9 +107,9 @@ class BOTAN_PUBLIC_API(2,0) KDF
                                     const std::string& label = "") const
          {
          return derive_key(key_len, secret.data(), secret.size(),
-                           reinterpret_cast<const uint8_t*>(salt.data()),
+                           cast_char_ptr_to_uint8(salt.data()),
                            salt.length(),
-                           reinterpret_cast<const uint8_t*>(label.data()),
+                           cast_char_ptr_to_uint8(label.data()),
                            label.length());
 
          }
@@ -152,7 +152,7 @@ class BOTAN_PUBLIC_API(2,0) KDF
          return derive_key(key_len,
                            secret.data(), secret.size(),
                            salt, salt_len,
-                           reinterpret_cast<const uint8_t*>(label.data()),
+                           cast_char_ptr_to_uint8(label.data()),
                            label.size());
          }
 
@@ -172,9 +172,9 @@ class BOTAN_PUBLIC_API(2,0) KDF
                                     const std::string& label = "") const
          {
          return derive_key(key_len, secret, secret_len,
-                           reinterpret_cast<const uint8_t*>(salt.data()),
+                           cast_char_ptr_to_uint8(salt.data()),
                            salt.length(),
-                           reinterpret_cast<const uint8_t*>(label.data()),
+                           cast_char_ptr_to_uint8(label.data()),
                            label.length());
          }
 

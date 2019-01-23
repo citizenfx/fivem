@@ -93,7 +93,7 @@ class BOTAN_PUBLIC_API(2,0) Power_Mod
                 Usage_Hints hints = NO_HINTS,
                 bool disable_montgomery_arith = false);
       Power_Mod(const Power_Mod&);
-      virtual ~Power_Mod() {}
+      virtual ~Power_Mod() = default;
    private:
       mutable std::unique_ptr<Modular_Exponentiator> m_core;
    };

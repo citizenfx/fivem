@@ -1,6 +1,6 @@
 /*
 * ASN.1 Internals
-* (C) 1999-2007 Jack Lloyd
+* (C) 1999-2007,2018 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -19,7 +19,7 @@ class DER_Encoder;
 /**
 * ASN.1 Type and Class Tags
 */
-enum ASN1_Tag {
+enum ASN1_Tag : uint32_t {
    UNIVERSAL        = 0x00,
    APPLICATION      = 0x40,
    CONTEXT_SPECIFIC = 0x80,
@@ -45,6 +45,7 @@ enum ASN1_Tag {
    T61_STRING       = 0x14,
    IA5_STRING       = 0x16,
    VISIBLE_STRING   = 0x1A,
+   UNIVERSAL_STRING = 0x1C,
    BMP_STRING       = 0x1E,
 
    UTC_TIME                = 0x17,
@@ -54,6 +55,9 @@ enum ASN1_Tag {
    NO_OBJECT        = 0xFF00,
    DIRECTORY_STRING = 0xFF01
 };
+
+std::string BOTAN_UNSTABLE_API asn1_tag_to_string(ASN1_Tag type);
+std::string BOTAN_UNSTABLE_API asn1_class_to_string(ASN1_Tag type);
 
 /**
 * Basic ASN.1 Object Interface
@@ -73,6 +77,13 @@ class BOTAN_PUBLIC_API(2,0) ASN1_Object
       */
       virtual void decode_from(BER_Decoder& from) = 0;
 
+      /**
+      * Return the encoding of this object. This is a convenience
+      * method when just one object needs to be serialized. Use
+      * DER_Encoder for complicated encodings.
+      */
+      std::vector<uint8_t> BER_encode() const;
+
       ASN1_Object() = default;
       ASN1_Object(const ASN1_Object&) = default;
       ASN1_Object & operator=(const ASN1_Object&) = default;
@@ -85,13 +96,54 @@ class BOTAN_PUBLIC_API(2,0) ASN1_Object
 class BOTAN_PUBLIC_API(2,0) BER_Object final
    {
    public:
-      void assert_is_a(ASN1_Tag, ASN1_Tag);
+      BER_Object() : type_tag(NO_OBJECT), class_tag(UNIVERSAL) {}
 
-      // public member variable:
+      BER_Object(const BER_Object& other) = default;
+
+      BER_Object& operator=(const BER_Object& other) = default;
+
+      BER_Object(BER_Object&& other) = default;
+
+      BER_Object& operator=(BER_Object&& other) = default;
+
+      bool is_set() const { return type_tag != NO_OBJECT; }
+
+      ASN1_Tag tagging() const { return ASN1_Tag(type() | get_class()); }
+
+      ASN1_Tag type() const { return type_tag; }
+      ASN1_Tag get_class() const { return class_tag; }
+
+      const uint8_t* bits() const { return value.data(); }
+
+      size_t length() const { return value.size(); }
+
+      void assert_is_a(ASN1_Tag type_tag, ASN1_Tag class_tag,
+                       const std::string& descr = "object") const;
+
+      bool is_a(ASN1_Tag type_tag, ASN1_Tag class_tag) const;
+
+      bool is_a(int type_tag, ASN1_Tag class_tag) const;
+
+   BOTAN_DEPRECATED_PUBLIC_MEMBER_VARIABLES:
+      /*
+      * The following member variables are public for historical reasons, but
+      * will be made private in a future major release. Use the accessor
+      * functions above.
+      */
       ASN1_Tag type_tag, class_tag;
-
-      // public member variable:
       secure_vector<uint8_t> value;
+
+   private:
+
+      friend class BER_Decoder;
+
+      void set_tagging(ASN1_Tag type_tag, ASN1_Tag class_tag);
+
+      uint8_t* mutable_bits(size_t length)
+         {
+         value.resize(length);
+         return value.data();
+         }
    };
 
 /*
@@ -102,6 +154,7 @@ class DataSource;
 namespace ASN1 {
 
 std::vector<uint8_t> put_in_sequence(const std::vector<uint8_t>& val);
+std::vector<uint8_t> put_in_sequence(const uint8_t bits[], size_t len);
 std::string to_string(const BER_Object& obj);
 
 /**

@@ -9,27 +9,52 @@
 #define BOTAN_CIPHER_MODE_H_
 
 #include <botan/secmem.h>
-#include <botan/key_spec.h>
+#include <botan/sym_algo.h>
 #include <botan/exceptn.h>
-#include <botan/symkey.h>
 #include <string>
 #include <vector>
 
 namespace Botan {
 
 /**
+* The two possible directions for cipher filters, determining whether they
+* actually perform encryption or decryption.
+*/
+enum Cipher_Dir : int { ENCRYPTION, DECRYPTION };
+
+/**
 * Interface for cipher modes
 */
-class BOTAN_PUBLIC_API(2,0) Cipher_Mode
+class BOTAN_PUBLIC_API(2,0) Cipher_Mode : public SymmetricAlgorithm
    {
    public:
-      virtual ~Cipher_Mode() = default;
-
       /**
       * @return list of available providers for this algorithm, empty if not available
       * @param algo_spec algorithm name
       */
       static std::vector<std::string> providers(const std::string& algo_spec);
+
+      /**
+      * Create an AEAD mode
+      * @param algo the algorithm to create
+      * @param direction specify if this should be an encryption or decryption AEAD
+      * @param provider optional specification for provider to use
+      * @return an AEAD mode or a null pointer if not available
+      */
+      static std::unique_ptr<Cipher_Mode> create(const std::string& algo,
+                                                 Cipher_Dir direction,
+                                                 const std::string& provider = "");
+
+      /**
+      * Create an AEAD mode, or throw
+      * @param algo the algorithm to create
+      * @param direction specify if this should be an encryption or decryption AEAD
+      * @param provider optional specification for provider to use
+      * @return an AEAD mode, or throw an exception
+      */
+      static std::unique_ptr<Cipher_Mode> create_or_throw(const std::string& algo,
+                                                          Cipher_Dir direction,
+                                                          const std::string& provider = "");
 
       /*
       * Prepare for processing a message under the specified nonce
@@ -105,8 +130,9 @@ class BOTAN_PUBLIC_API(2,0) Cipher_Mode
 
       /**
       * Returns the size of the output if this transform is used to process a
-      * message with input_length bytes. Will throw if unable to give a precise
-      * answer.
+      * message with input_length bytes. In most cases the answer is precise.
+      * If it is not possible to precise (namely for CBC decryption) instead a
+      * lower bound is returned.
       */
       virtual size_t output_length(size_t input_length) const = 0;
 
@@ -131,14 +157,6 @@ class BOTAN_PUBLIC_API(2,0) Cipher_Mode
       */
       virtual bool valid_nonce_length(size_t nonce_len) const = 0;
 
-      virtual std::string name() const = 0;
-
-      /**
-      * Zeroise all state
-      * See also reset_msg()
-      */
-      virtual void clear() = 0;
-
       /**
       * Resets just the message specific state and allows encrypting again under the existing key
       */
@@ -156,66 +174,11 @@ class BOTAN_PUBLIC_API(2,0) Cipher_Mode
       virtual size_t tag_size() const { return 0; }
 
       /**
-      * @return object describing limits on key size
-      */
-      virtual Key_Length_Specification key_spec() const = 0;
-
-      /**
-      * Check whether a given key length is valid for this algorithm.
-      * @param length the key length to be checked.
-      * @return true if the key length is valid.
-      */
-      bool valid_keylength(size_t length) const
-         {
-         return key_spec().valid_keylength(length);
-         }
-
-      /**
-      * Set the symmetric key of this transform
-      * @param key contains the key material
-      */
-      template<typename Alloc>
-      void set_key(const std::vector<uint8_t, Alloc>& key)
-         {
-         set_key(key.data(), key.size());
-         }
-
-      /**
-      * Set the symmetric key of this transform
-      * @param key contains the key material
-      */
-      void set_key(const SymmetricKey& key)
-         {
-         set_key(key.begin(), key.length());
-         }
-
-      /**
-      * Set the symmetric key of this transform
-      * @param key contains the key material
-      * @param length in bytes of key param
-      */
-      void set_key(const uint8_t key[], size_t length)
-         {
-         if(!valid_keylength(length))
-            throw Invalid_Key_Length(name(), length);
-         key_schedule(key, length);
-         }
-
-      /**
       * @return provider information about this implementation. Default is "base",
       * might also return "sse2", "avx2", "openssl", or some other arbitrary string.
       */
       virtual std::string provider() const { return "base"; }
-
-   private:
-      virtual void key_schedule(const uint8_t key[], size_t length) = 0;
    };
-
-/**
-* The two possible directions for cipher filters, determining whether they
-* actually perform encryption or decryption.
-*/
-enum Cipher_Dir : int { ENCRYPTION, DECRYPTION };
 
 /**
 * Get a cipher mode by name (eg "AES-128/CBC" or "Serpent/XTS")
@@ -223,10 +186,12 @@ enum Cipher_Dir : int { ENCRYPTION, DECRYPTION };
 * @param direction ENCRYPTION or DECRYPTION
 * @param provider provider implementation to choose
 */
-BOTAN_PUBLIC_API(2,2)
-Cipher_Mode* get_cipher_mode(const std::string& algo_spec,
-                             Cipher_Dir direction,
-                             const std::string& provider = "");
+inline Cipher_Mode* get_cipher_mode(const std::string& algo_spec,
+                                    Cipher_Dir direction,
+                                    const std::string& provider = "")
+   {
+   return Cipher_Mode::create(algo_spec, direction, provider).release();
+   }
 
 }
 

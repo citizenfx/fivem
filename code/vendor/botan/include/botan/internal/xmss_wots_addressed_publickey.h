@@ -1,6 +1,6 @@
 /**
  * XMSS WOTS Addressed Public Key
- * (C) 2016 Matthias Gierlings
+ * (C) 2016,2017 Matthias Gierlings
  *
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
@@ -60,8 +60,8 @@ class XMSS_WOTS_Addressed_PublicKey : public virtual Public_Key
          }
 
       std::unique_ptr<PK_Ops::Verification>
-         create_verification_op(const std::string& params,
-                                const std::string& provider) const override
+      create_verification_op(const std::string& params,
+                             const std::string& provider) const override
          {
          return m_pub_key.create_verification_op(params, provider);
          }

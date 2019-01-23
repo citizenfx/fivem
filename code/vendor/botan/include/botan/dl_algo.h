@@ -32,6 +32,12 @@ class BOTAN_PUBLIC_API(2,0) DL_Scheme_PublicKey : public virtual Public_Key
       const DL_Group& get_domain() const { return m_group; }
 
       /**
+      * Get the DL domain parameters of this key.
+      * @return DL domain parameters of this key
+      */
+      const DL_Group& get_group() const { return m_group; }
+
+      /**
       * Get the public value y with y = g^x mod p where x is the secret key.
       */
       const BigInt& get_y() const { return m_y; }
@@ -63,6 +69,11 @@ class BOTAN_PUBLIC_API(2,0) DL_Scheme_PublicKey : public virtual Public_Key
       size_t key_length() const override;
       size_t estimated_strength() const override;
 
+      DL_Scheme_PublicKey& operator=(const DL_Scheme_PublicKey& other) = default;
+
+   protected:
+      DL_Scheme_PublicKey() = default;
+
       /**
       * Create a public key.
       * @param alg_id the X.509 algorithm identifier
@@ -73,10 +84,7 @@ class BOTAN_PUBLIC_API(2,0) DL_Scheme_PublicKey : public virtual Public_Key
                           const std::vector<uint8_t>& key_bits,
                           DL_Group::Format group_format);
 
-      DL_Scheme_PublicKey& operator=(const DL_Scheme_PublicKey& other) = default;
-
-   protected:
-      DL_Scheme_PublicKey() = default;
+      DL_Scheme_PublicKey(const DL_Group& group, const BigInt& y);
 
       /**
       * The DL public key
@@ -106,6 +114,9 @@ class BOTAN_PUBLIC_API(2,0) DL_Scheme_PrivateKey : public virtual DL_Scheme_Publ
 
       secure_vector<uint8_t> private_key_bits() const override;
 
+      DL_Scheme_PrivateKey& operator=(const DL_Scheme_PrivateKey& other) = default;
+
+   protected:
       /**
       * Create a private key.
       * @param alg_id the X.509 algorithm identifier
@@ -116,9 +127,6 @@ class BOTAN_PUBLIC_API(2,0) DL_Scheme_PrivateKey : public virtual DL_Scheme_Publ
                            const secure_vector<uint8_t>& key_bits,
                            DL_Group::Format group_format);
 
-      DL_Scheme_PrivateKey& operator=(const DL_Scheme_PrivateKey& other) = default;
-
-   protected:
       DL_Scheme_PrivateKey() = default;
 
       /**

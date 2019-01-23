@@ -21,25 +21,26 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) calendar_point
    {
    public:
+
       /** The year */
-      uint32_t year;
+      uint32_t get_year() const { return year; }
 
       /** The month, 1 through 12 for Jan to Dec */
-      uint32_t month;
+      uint32_t get_month() const { return month; }
 
       /** The day of the month, 1 through 31 (or 28 or 30 based on month */
-      uint32_t day;
+      uint32_t get_day() const { return day; }
 
       /** Hour in 24-hour form, 0 to 23 */
-      uint32_t hour;
+      uint32_t get_hour() const { return hour; }
 
       /** Minutes in the hour, 0 to 60 */
-      uint32_t minutes;
+      uint32_t get_minutes() const { return minutes; }
 
       /** Seconds in the minute, 0 to 60, but might be slightly
-          larger to deal with leap seconds on some systems
+      larger to deal with leap seconds on some systems
       */
-      uint32_t seconds;
+      uint32_t get_seconds() const { return seconds; }
 
       /**
       * Initialize a calendar_point
@@ -63,6 +64,18 @@ class BOTAN_PUBLIC_API(2,0) calendar_point
       * Formatting might change over time. Currently it is RFC339 'iso-date-time'.
       */
       std::string to_string() const;
+
+   BOTAN_DEPRECATED_PUBLIC_MEMBER_VARIABLES:
+      /*
+      The member variables are public for historical reasons. Use the get_xxx() functions
+      defined above. These members will be made private in a future major release.
+      */
+      uint32_t year;
+      uint32_t month;
+      uint32_t day;
+      uint32_t hour;
+      uint32_t minutes;
+      uint32_t seconds;
    };
 
 /**

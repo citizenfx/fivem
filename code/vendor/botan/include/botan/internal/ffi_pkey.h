@@ -12,8 +12,6 @@
 
 extern "C" {
 
-using namespace Botan_FFI;
-
 BOTAN_FFI_DECLARE_STRUCT(botan_pubkey_struct, Botan::Public_Key, 0x2C286519);
 BOTAN_FFI_DECLARE_STRUCT(botan_privkey_struct, Botan::Private_Key, 0x7F96385E);
 

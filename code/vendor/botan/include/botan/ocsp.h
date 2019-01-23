@@ -10,6 +10,8 @@
 
 #include <botan/cert_status.h>
 #include <botan/ocsp_types.h>
+#include <botan/x509_dn.h>
+#include <chrono>
 
 namespace Botan {
 
@@ -73,6 +75,12 @@ class BOTAN_PUBLIC_API(2,0) Response final
       * Creates an empty OCSP response.
       */
       Response() = default;
+
+      /**
+      * Create a fake OCSP response from a given status code.
+      * @param status the status code the check functions will return
+      */
+      Response(Certificate_Status_Code status);
 
       /**
       * Parses an OCSP response.
@@ -159,27 +167,41 @@ class BOTAN_PUBLIC_API(2,0) Response final
       std::vector<X509_Certificate> m_certs;
 
       std::vector<SingleResponse> m_responses;
+
+      Certificate_Status_Code m_dummy_response_status;
    };
 
 #if defined(BOTAN_HAS_HTTP_UTIL)
 
+/**
+* Makes an online OCSP request via HTTP and returns the OCSP response.
+* @param issuer issuer certificate
+* @param subject_serial the subject's serial number
+* @param ocsp_responder the OCSP responder to query
+* @param trusted_roots trusted roots for the OCSP response
+* @param timeout a timeout on the HTTP request
+* @return OCSP response
+*/
 BOTAN_PUBLIC_API(2,1)
 Response online_check(const X509_Certificate& issuer,
                       const BigInt& subject_serial,
                       const std::string& ocsp_responder,
-                      Certificate_Store* trusted_roots);
+                      Certificate_Store* trusted_roots,
+                      std::chrono::milliseconds timeout = std::chrono::milliseconds(3000));
 
 /**
 * Makes an online OCSP request via HTTP and returns the OCSP response.
 * @param issuer issuer certificate
 * @param subject subject certificate
 * @param trusted_roots trusted roots for the OCSP response
+* @param timeout a timeout on the HTTP request
 * @return OCSP response
 */
 BOTAN_PUBLIC_API(2,0)
 Response online_check(const X509_Certificate& issuer,
                       const X509_Certificate& subject,
-                      Certificate_Store* trusted_roots);
+                      Certificate_Store* trusted_roots,
+                      std::chrono::milliseconds timeout = std::chrono::milliseconds(3000));
 
 #endif
 

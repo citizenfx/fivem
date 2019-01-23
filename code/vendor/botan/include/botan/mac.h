@@ -11,6 +11,7 @@
 #include <botan/buf_comp.h>
 #include <botan/sym_algo.h>
 #include <string>
+#include <memory>
 
 namespace Botan {
 
@@ -63,12 +64,7 @@ class BOTAN_PUBLIC_API(2,0) MessageAuthenticationCode : public Buffered_Computat
       * Default implementation simply rejects all non-empty nonces
       * since most hash/MAC algorithms do not support randomization
       */
-      virtual void start_msg(const uint8_t nonce[], size_t nonce_len)
-         {
-         BOTAN_UNUSED(nonce);
-         if(nonce_len > 0)
-            throw Invalid_IV_Length(name(), nonce_len);
-         }
+      virtual void start_msg(const uint8_t nonce[], size_t nonce_len);
 
       /**
       * Begin processing a message with a nonce

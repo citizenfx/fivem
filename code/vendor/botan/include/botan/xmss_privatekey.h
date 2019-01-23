@@ -1,6 +1,6 @@
 /*
  * XMSS_PrivateKey.h
- * (C) 2016 Matthias Gierlings
+ * (C) 2016,2017 Matthias Gierlings
  *
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
@@ -36,8 +36,8 @@ namespace Botan {
  *       draft-irtf-cfrg-xmss-hash-based-signatures/?include_text=1
  **/
 class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKey,
-                                  public XMSS_Common_Ops,
-                                  public virtual Private_Key
+   public XMSS_Common_Ops,
+   public virtual Private_Key
    {
    public:
       /**
@@ -113,7 +113,7 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKe
        **/
       void set_unused_leaf_index(size_t idx)
          {
-         if(idx >= (1ull << (XMSS_PublicKey::m_xmss_params.tree_height() - 1)))
+         if(idx >= (1ull << XMSS_PublicKey::m_xmss_params.tree_height()))
             {
             throw Integrity_Failure("XMSS private key leaf index out of "
                                     "bounds.");
@@ -128,7 +128,7 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKe
                {
                current = index.load();
                if(current > idx)
-                  return;
+                  { return; }
                }
             while(!index.compare_exchange_strong(current, idx));
             }
@@ -137,12 +137,12 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKe
       size_t reserve_unused_leaf_index()
          {
          size_t idx = (static_cast<std::atomic<size_t>&>(
-             *recover_global_leaf_index())).fetch_add(1);
-         if(idx >= (1ull << (XMSS_PublicKey::m_xmss_params.tree_height() - 1)))
-           {
-           throw Integrity_Failure("XMSS private key, one time signatures "
-                                   "exhausted.");
-           }
+                          *recover_global_leaf_index())).fetch_add(1);
+         if(idx >= (1ull << XMSS_PublicKey::m_xmss_params.tree_height()))
+            {
+            throw Integrity_Failure("XMSS private key, one time signatures "
+                                    "exhausted.");
+            }
          return idx;
          }
 
@@ -197,9 +197,9 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKe
          }
 
       std::unique_ptr<PK_Ops::Signature>
-         create_signature_op(RandomNumberGenerator&,
-                             const std::string&,
-                             const std::string& provider) const override;
+      create_signature_op(RandomNumberGenerator&,
+                          const std::string&,
+                          const std::string& provider) const override;
 
       secure_vector<uint8_t> private_key_bits() const override
          {
@@ -221,7 +221,7 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKe
        *         4-byte OID, n-byte root node, n-byte public seed,
        *         8-byte unused leaf index, n-byte prf seed, n-byte private seed.
        **/
-      virtual secure_vector<uint8_t> raw_private_key() const;
+      secure_vector<uint8_t> raw_private_key() const;
       /**
        * Algorithm 9: "treeHash"
        * Computes the internal n-byte nodes of a Merkle tree.
@@ -241,9 +241,27 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PrivateKey final : public virtual XMSS_PublicKe
 
    private:
       /**
-       * Fetches shared unused leaf index fromt the index registry
+       * Fetches shared unused leaf index from the index registry
        **/
       std::shared_ptr<Atomic<size_t>> recover_global_leaf_index() const;
+
+      inline void tree_hash_subtree(secure_vector<uint8_t>& result,
+                                    size_t start_idx,
+                                    size_t target_node_height,
+                                    XMSS_Address& adrs)
+         {
+         return tree_hash_subtree(result, start_idx, target_node_height, adrs, m_hash);
+         }
+
+
+      /**
+       * Helper for multithreaded tree hashing.
+       */
+      void tree_hash_subtree(secure_vector<uint8_t>& result,
+                             size_t start_idx,
+                             size_t target_node_height,
+                             XMSS_Address& adrs,
+                             XMSS_Hash& hash);
 
       XMSS_WOTS_PrivateKey m_wots_priv_key;
       secure_vector<uint8_t> m_prf;

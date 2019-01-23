@@ -32,8 +32,7 @@ class BOTAN_PUBLIC_API(2,0) GCM_Mode : public AEAD_Mode
 
       Key_Length_Specification key_spec() const override;
 
-      // GCM supports arbitrary nonce lengths
-      bool valid_nonce_length(size_t) const override { return true; }
+      bool valid_nonce_length(size_t len) const override;
 
       size_t tag_size() const override { return m_tag_size; }
 
@@ -47,7 +46,7 @@ class BOTAN_PUBLIC_API(2,0) GCM_Mode : public AEAD_Mode
 
       ~GCM_Mode();
 
-      const size_t m_BS = 16;
+      static const size_t GCM_BS = 16;
 
       const size_t m_tag_size;
       const std::string m_cipher_name;
@@ -107,55 +106,6 @@ class BOTAN_PUBLIC_API(2,0) GCM_Decryption final : public GCM_Mode
       size_t process(uint8_t buf[], size_t size) override;
 
       void finish(secure_vector<uint8_t>& final_block, size_t offset = 0) override;
-   };
-
-/**
-* GCM's GHASH
-* Maybe a Transform?
-*/
-class BOTAN_PUBLIC_API(2,0) GHASH : public SymmetricAlgorithm
-   {
-   public:
-      void set_associated_data(const uint8_t ad[], size_t ad_len);
-
-      secure_vector<uint8_t> nonce_hash(const uint8_t nonce[], size_t len);
-
-      void start(const uint8_t nonce[], size_t len);
-
-      /*
-      * Assumes input len is multiple of 16
-      */
-      void update(const uint8_t in[], size_t len);
-
-      secure_vector<uint8_t> final();
-
-      Key_Length_Specification key_spec() const override
-         { return Key_Length_Specification(16); }
-
-      void clear() override;
-
-      void reset();
-
-      std::string name() const override { return "GHASH"; }
-   protected:
-      void ghash_update(secure_vector<uint8_t>& x,
-                        const uint8_t input[], size_t input_len);
-
-      void add_final_block(secure_vector<uint8_t>& x,
-                           size_t ad_len, size_t pt_len);
-
-      secure_vector<uint8_t> m_H;
-      secure_vector<uint8_t> m_H_ad;
-      secure_vector<uint8_t> m_ghash;
-      size_t m_ad_len = 0;
-
-   private:
-      void key_schedule(const uint8_t key[], size_t key_len) override;
-
-      void gcm_multiply(secure_vector<uint8_t>& x) const;
-
-      secure_vector<uint8_t> m_nonce;
-      size_t m_text_len = 0;
    };
 
 }

@@ -27,6 +27,8 @@ class BOTAN_PUBLIC_API(2,0) AutoSeeded_RNG final : public RandomNumberGenerator
 
       bool is_seeded() const override;
 
+      bool accepts_input() const override { return true; }
+
       /**
       * Mark state as requiring a reseed on next use
       */
@@ -52,7 +54,9 @@ class BOTAN_PUBLIC_API(2,0) AutoSeeded_RNG final : public RandomNumberGenerator
       AutoSeeded_RNG(size_t reseed_interval = BOTAN_RNG_DEFAULT_RESEED_INTERVAL);
 
       /**
-      * Uses the BOTAN_AUTO_RNG_DRBG RNG to gather seed material.
+      * Create an AutoSeeded_RNG which will get seed material from some other
+      * RNG instance. For example you could provide a reference to the system
+      * RNG or a hardware RNG.
       *
       * @param underlying_rng is a reference to some RNG which will be used
       * to perform the periodic reseeding
@@ -63,7 +67,8 @@ class BOTAN_PUBLIC_API(2,0) AutoSeeded_RNG final : public RandomNumberGenerator
                      size_t reseed_interval = BOTAN_RNG_DEFAULT_RESEED_INTERVAL);
 
       /**
-      * Uses the BOTAN_AUTO_RNG_DRBG RNG to gather seed material.
+      * Create an AutoSeeded_RNG which will get seed material from a set of
+      * entropy sources.
       *
       * @param entropy_sources will be polled to perform reseeding periodically
       * @param reseed_interval specifies a limit of how many times
@@ -73,7 +78,8 @@ class BOTAN_PUBLIC_API(2,0) AutoSeeded_RNG final : public RandomNumberGenerator
                      size_t reseed_interval = BOTAN_RNG_DEFAULT_RESEED_INTERVAL);
 
       /**
-      * Uses the BOTAN_AUTO_RNG_DRBG RNG to gather seed material.
+      * Create an AutoSeeded_RNG which will get seed material from both an
+      * underlying RNG and a set of entropy sources.
       *
       * @param underlying_rng is a reference to some RNG which will be used
       * to perform the periodic reseeding

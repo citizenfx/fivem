@@ -75,6 +75,8 @@ class BOTAN_PUBLIC_API(2,0) Stateful_RNG : public RandomNumberGenerator
 
       bool is_seeded() const override final;
 
+      bool accepts_input() const override final { return true; }
+
       /**
       * Mark state as requiring a reseed on next use
       */

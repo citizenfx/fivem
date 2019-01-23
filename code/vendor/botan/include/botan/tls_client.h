@@ -63,15 +63,16 @@ class BOTAN_PUBLIC_API(2,0) Client final : public Channel
 
       /**
       * DEPRECATED. This constructor is only provided for backward
-      * compatibility and should not be used in new code.
-      * 
+      * compatibility and should not be used in new code. It will be
+      * removed in a future release.
+      *
       * Set up a new TLS client session
       *
-      * @param output_fn is called with data for the outbound socket
+      * @param data_output_fn is called with data for the outbound socket
       *
       * @param app_data_cb is called when new application data is received
       *
-      * @param alert_cb is called when a TLS alert is received
+      * @param recv_alert_cb is called when a TLS alert is received
       *
       * @param hs_cb is called when a handshake is completed
       *
@@ -95,9 +96,9 @@ class BOTAN_PUBLIC_API(2,0) Client final : public Channel
       *        values just mean reallocations and copies are more likely.
       */
       BOTAN_DEPRECATED("Use TLS::Client(TLS::Callbacks ...)")
-      Client(output_fn output_fn,
+      Client(output_fn data_output_fn,
              data_cb app_data_cb,
-             alert_cb alert_cb,
+             alert_cb recv_alert_cb,
              handshake_cb hs_cb,
              Session_Manager& session_manager,
              Credentials_Manager& creds,

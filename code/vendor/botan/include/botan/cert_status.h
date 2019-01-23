@@ -14,6 +14,7 @@ namespace Botan {
 
 /**
 * Certificate validation status code
+* Warning: reflect any changes to this in botan_cert_status_code in ffi.h
 */
 enum class Certificate_Status_Code {
    OK = 0,
@@ -25,12 +26,20 @@ enum class Certificate_Status_Code {
    VALID_CRL_CHECKED = 3,
    OCSP_NO_HTTP = 4,
 
+   // Warnings
+   FIRST_WARNING_STATUS = 500,
+   CERT_SERIAL_NEGATIVE = 500,
+   DN_TOO_LONG = 501,
+   OSCP_NO_REVOCATION_URL = 502,
+   OSCP_SERVER_NOT_AVAILABLE = 503,
+
    // Errors
    FIRST_ERROR_STATUS = 1000,
 
    SIGNATURE_METHOD_TOO_WEAK = 1000,
    UNTRUSTED_HASH = 1001,
    NO_REVOCATION_DATA = 1002,
+   NO_MATCHING_CRLDP = 1003,
 
    // Time problems
    CERT_NOT_YET_VALID = 2000,
@@ -62,16 +71,21 @@ enum class Certificate_Status_Code {
    // Other problems
    CERT_NAME_NOMATCH = 4008,
    UNKNOWN_CRITICAL_EXTENSION = 4009,
+   DUPLICATE_CERT_EXTENSION = 4010,
    OCSP_SIGNATURE_ERROR = 4501,
    OCSP_ISSUER_NOT_FOUND = 4502,
    OCSP_RESPONSE_MISSING_KEYUSAGE = 4503,
    OCSP_RESPONSE_INVALID = 4504,
+   EXT_IN_V1_V2_CERT = 4505,
+   DUPLICATE_CERT_POLICY = 4506,
 
    // Hard failures
    CERT_IS_REVOKED = 5000,
    CRL_BAD_SIGNATURE = 5001,
    SIGNATURE_ERROR = 5002,
    CERT_PUBKEY_INVALID = 5003,
+   SIGNATURE_ALGO_UNKNOWN = 5004,
+   SIGNATURE_ALGO_BAD_PARAMS = 5005
 };
 
 /**

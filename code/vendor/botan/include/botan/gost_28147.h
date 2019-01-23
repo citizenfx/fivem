@@ -34,6 +34,12 @@ class BOTAN_PUBLIC_API(2,0) GOST_28147_89_Params final
       std::string param_name() const { return m_name; }
 
       /**
+      * Return a representation used for building larger tables
+      * For internal use
+      */
+      uint8_t sbox_pair(size_t row, size_t col) const;
+
+      /**
       * Default GOST parameters are the ones given in GOST R 34.11 for
       * testing purposes; these sboxes are also used by Crypto++, and,
       * at least according to Wikipedia, the Central Bank of Russian

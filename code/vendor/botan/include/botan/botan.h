@@ -19,7 +19,7 @@
 #if defined(__GNUC__)
   #warning "botan/botan.h is deprecated"
 #elif defined(_MSC_VER)
-  #pragma message "botan/botan.h is deprecated"
+  #pragma message ("botan/botan.h is deprecated")
 #endif
 
 #include <botan/lookup.h>

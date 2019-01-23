@@ -59,15 +59,18 @@ class donna128 final
       donna128& operator+=(const donna128& x)
          {
          l += x.l;
-         h += (l < x.l);
          h += x.h;
+
+         const uint64_t carry = (l < x.l);
+         h += carry;
          return *this;
          }
 
       donna128& operator+=(uint64_t x)
          {
          l += x;
-         h += (l < x);
+         const uint64_t carry = (l < x);
+         h += carry;
          return *this;
          }
 
@@ -79,11 +82,16 @@ class donna128 final
 
 inline donna128 operator*(const donna128& x, uint64_t y)
    {
-   BOTAN_ASSERT(x.hi() == 0, "High 64 bits of donna128 set to zero during multiply");
+   BOTAN_ARG_CHECK(x.hi() == 0, "High 64 bits of donna128 set to zero during multiply");
 
    uint64_t lo = 0, hi = 0;
    mul64x64_128(x.lo(), y, &lo, &hi);
    return donna128(lo, hi);
+   }
+
+inline donna128 operator*(uint64_t y, const donna128& x)
+   {
+   return x * y;
    }
 
 inline donna128 operator+(const donna128& x, const donna128& y)
@@ -111,7 +119,7 @@ inline uint64_t carry_shift(const donna128& a, size_t shift)
    }
 
 inline uint64_t combine_lower(const donna128& a, size_t s1,
-                            const donna128& b, size_t s2)
+                              const donna128& b, size_t s2)
    {
    donna128 z = (a >> s1) | (b << s2);
    return z.lo();
@@ -124,7 +132,7 @@ inline uint64_t carry_shift(const uint128_t a, size_t shift)
    }
 
 inline uint64_t combine_lower(const uint128_t a, size_t s1,
-                            const uint128_t b, size_t s2)
+                              const uint128_t b, size_t s2)
    {
    return static_cast<uint64_t>((a >> s1) | (b << s2));
    }

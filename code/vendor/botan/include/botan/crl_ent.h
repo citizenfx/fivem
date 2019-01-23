@@ -12,12 +12,14 @@
 
 namespace Botan {
 
+class Extensions;
 class X509_Certificate;
+struct CRL_Entry_Data;
 
 /**
 * X.509v2 CRL Reason Code.
 */
-enum CRL_Code {
+enum CRL_Code : uint32_t {
    UNSPECIFIED            = 0,
    KEY_COMPROMISE         = 1,
    CA_COMPROMISE          = 2,
@@ -27,6 +29,7 @@ enum CRL_Code {
    CERTIFICATE_HOLD       = 6,
    REMOVE_FROM_CRL        = 8,
    PRIVLEDGE_WITHDRAWN    = 9,
+   PRIVILEGE_WITHDRAWN    = 9,
    AA_COMPROMISE          = 10,
 
    DELETE_CRL_ENTRY       = 0xFF00,
@@ -47,26 +50,29 @@ class BOTAN_PUBLIC_API(2,0) CRL_Entry final : public ASN1_Object
       * Get the serial number of the certificate associated with this entry.
       * @return certificate's serial number
       */
-      std::vector<uint8_t> serial_number() const { return m_serial; }
+      const std::vector<uint8_t>& serial_number() const;
 
       /**
       * Get the revocation date of the certificate associated with this entry
       * @return certificate's revocation date
       */
-      X509_Time expire_time() const { return m_time; }
+      const X509_Time& expire_time() const;
 
       /**
       * Get the entries reason code
       * @return reason code
       */
-      CRL_Code reason_code() const { return m_reason; }
+      CRL_Code reason_code() const;
 
       /**
-      * Construct an empty CRL entry.
-      * @param throw_on_unknown_critical_extension should we throw an exception
-      * if an unknown CRL extension marked as critical is encountered
+      * Get the extensions on this CRL entry
       */
-      explicit CRL_Entry(bool throw_on_unknown_critical_extension = false);
+      const Extensions& extensions() const;
+
+      /**
+      * Create uninitialized CRL_Entry object
+      */
+      CRL_Entry() = default;
 
       /**
       * Construct an CRL entry.
@@ -77,10 +83,11 @@ class BOTAN_PUBLIC_API(2,0) CRL_Entry final : public ASN1_Object
                 CRL_Code reason = UNSPECIFIED);
 
    private:
-      bool m_throw_on_unknown_critical;
-      std::vector<uint8_t> m_serial;
-      X509_Time m_time;
-      CRL_Code m_reason;
+      friend class X509_CRL;
+
+      const CRL_Entry_Data& data() const;
+
+      std::shared_ptr<CRL_Entry_Data> m_data;
    };
 
 /**

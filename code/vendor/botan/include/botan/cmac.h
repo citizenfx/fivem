@@ -32,9 +32,15 @@ class BOTAN_PUBLIC_API(2,0) CMAC final : public MessageAuthenticationCode
 
       /**
       * CMAC's polynomial doubling operation
+      *
+      * This function was only exposed for use elsewhere in the library, but it is not
+      * longer used. This function will be removed in a future release.
+      *
       * @param in the input
       */
-      static secure_vector<uint8_t> poly_double(const secure_vector<uint8_t>& in);
+      static secure_vector<uint8_t>
+         BOTAN_DEPRECATED("This was only for internal use and is no longer used")
+         poly_double(const secure_vector<uint8_t>& in);
 
       /**
       * @param cipher the block cipher to use

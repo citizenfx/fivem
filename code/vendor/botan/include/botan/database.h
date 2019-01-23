@@ -43,6 +43,8 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
             /* Get output */
             virtual std::pair<const uint8_t*, size_t> get_blob(int column) = 0;
 
+            virtual std::string get_str(int column) = 0;
+
             virtual size_t get_size_t(int column) = 0;
 
             /* Run to completion */
@@ -51,7 +53,7 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
             /* Maybe update */
             virtual bool step() = 0;
 
-            virtual ~Statement() {}
+            virtual ~Statement() = default;
          };
 
       /*
@@ -64,7 +66,7 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
 
       virtual void create_table(const std::string& table_schema) = 0;
 
-      virtual ~SQL_Database() {}
+      virtual ~SQL_Database() = default;
 };
 
 }

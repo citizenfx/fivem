@@ -5,8 +5,8 @@
 * Botan is released under the Simplified BSD License (see license.txt)
 */
 
-#ifndef BOTAN_PARSER_H_
-#define BOTAN_PARSER_H_
+#ifndef BOTAN_PARSING_UTILS_H_
+#define BOTAN_PARSING_UTILS_H_
 
 #include <botan/types.h>
 #include <string>
@@ -40,6 +40,8 @@ BOTAN_PUBLIC_API(2,0) std::vector<std::string> split_on(
 * Split a string on a character predicate
 * @param str the input string
 * @param pred the predicate
+*
+* This function will likely be removed in a future release
 */
 BOTAN_PUBLIC_API(2,0) std::vector<std::string>
 split_on_pred(const std::string& str,
@@ -48,7 +50,9 @@ split_on_pred(const std::string& str,
 /**
 * Erase characters from a string
 */
-BOTAN_PUBLIC_API(2,0) std::string erase_chars(const std::string& str, const std::set<char>& chars);
+BOTAN_PUBLIC_API(2,0)
+BOTAN_DEPRECATED("Unused")
+std::string erase_chars(const std::string& str, const std::set<char>& chars);
 
 /**
 * Replace a character in a string
@@ -58,6 +62,7 @@ BOTAN_PUBLIC_API(2,0) std::string erase_chars(const std::string& str, const std:
 * @return str with all instances of from_char replaced by to_char
 */
 BOTAN_PUBLIC_API(2,0)
+BOTAN_DEPRECATED("Unused")
 std::string replace_char(const std::string& str,
                          char from_char,
                          char to_char);
@@ -70,6 +75,7 @@ std::string replace_char(const std::string& str,
 * @return str with all instances of from_chars replaced by to_char
 */
 BOTAN_PUBLIC_API(2,0)
+BOTAN_DEPRECATED("Unused")
 std::string replace_chars(const std::string& str,
                           const std::set<char>& from_chars,
                           char to_char);
@@ -120,7 +126,8 @@ BOTAN_PUBLIC_API(2,3) uint16_t to_uint16(const std::string& str);
 * @param timespec the time specification
 * @return number of seconds represented by timespec
 */
-BOTAN_PUBLIC_API(2,0) uint32_t timespec_to_u32bit(const std::string& timespec);
+BOTAN_PUBLIC_API(2,0) uint32_t BOTAN_DEPRECATED("Not used anymore")
+timespec_to_u32bit(const std::string& timespec);
 
 /**
 * Convert a string representation of an IPv4 address to a number
@@ -138,9 +145,30 @@ BOTAN_PUBLIC_API(2,0) std::string ipv4_to_string(uint32_t ip_addr);
 
 std::map<std::string, std::string> BOTAN_PUBLIC_API(2,0) read_cfg(std::istream& is);
 
+/**
+* Accepts key value pairs deliminated by commas:
+*
+* "" (returns empty map)
+* "K=V" (returns map {'K': 'V'})
+* "K1=V1,K2=V2"
+* "K1=V1,K2=V2,K3=V3"
+* "K1=V1,K2=V2,K3=a_value\,with\,commas_and_\=equals"
+*
+* Values may be empty, keys must be non-empty and unique. Duplicate
+* keys cause an exception.
+*
+* Within both key and value, comma and equals can be escaped with
+* backslash. Backslash can also be escaped.
+*/
+std::map<std::string, std::string> BOTAN_PUBLIC_API(2,8) read_kv(const std::string& kv);
+
 std::string BOTAN_PUBLIC_API(2,0) clean_ws(const std::string& s);
 
-bool BOTAN_PUBLIC_API(2,0) host_wildcard_match(const std::string& wildcard, const std::string& host);
+/**
+* Check if the given hostname is a match for the specified wildcard
+*/
+bool BOTAN_PUBLIC_API(2,0) host_wildcard_match(const std::string& wildcard,
+                                               const std::string& host);
 
 
 }

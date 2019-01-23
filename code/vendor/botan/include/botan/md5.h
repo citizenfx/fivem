@@ -27,11 +27,11 @@ class BOTAN_PUBLIC_API(2,0) MD5 final : public MDx_HashFunction
 
       MD5() : MDx_HashFunction(64, false, true), m_M(16), m_digest(4)
          { clear(); }
-   protected:
+
+   private:
       void compress_n(const uint8_t[], size_t blocks) override;
       void copy_out(uint8_t[]) override;
 
-   private:
       /**
       * The message buffer
       */

@@ -49,6 +49,9 @@ class BOTAN_PUBLIC_API(2,0) X509_Time final : public ASN1_Object
       /// Returns a STL timepoint object
       std::chrono::system_clock::time_point to_std_timepoint() const;
 
+      /// Return time since epoch
+      uint64_t time_since_epoch() const;
+
    private:
       void set_to(const std::string& t_spec, ASN1_Tag);
       bool passes_sanity_check() const;
@@ -71,6 +74,8 @@ bool BOTAN_PUBLIC_API(2,0) operator<=(const X509_Time&, const X509_Time&);
 bool BOTAN_PUBLIC_API(2,0) operator>=(const X509_Time&, const X509_Time&);
 bool BOTAN_PUBLIC_API(2,0) operator<(const X509_Time&, const X509_Time&);
 bool BOTAN_PUBLIC_API(2,0) operator>(const X509_Time&, const X509_Time&);
+
+typedef X509_Time ASN1_Time;
 
 }
 

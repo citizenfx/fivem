@@ -9,14 +9,10 @@
 #define BOTAN_SEMAPHORE_H_
 
 #include <botan/mutex.h>
-
-#if defined(BOTAN_TARGET_OS_HAS_THREADS)
 #include <condition_variable>
-#endif
 
 namespace Botan {
 
-#if defined(BOTAN_TARGET_OS_HAS_THREADS)
 class Semaphore final
    {
    public:
@@ -32,7 +28,6 @@ class Semaphore final
       mutex_type m_mutex;
       std::condition_variable m_cond;
    };
-#endif
 
 }
 

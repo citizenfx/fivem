@@ -31,6 +31,14 @@ class BOTAN_PUBLIC_API(2,0) Certificate_Store
          find_cert(const X509_DN& subject_dn, const std::vector<uint8_t>& key_id) const = 0;
 
       /**
+      * Find all certificates with a given Subject DN.
+      * Subject DN and even the key identifier might not be unique.
+      */
+      virtual std::vector<std::shared_ptr<const X509_Certificate>> find_all_certs(
+         const X509_DN& subject_dn, const std::vector<uint8_t>& key_id) const = 0;
+
+
+      /**
       * Find a certificate by searching for one with a matching SHA-1 hash of
       * public key. Used for OCSP.
       * @param key_hash SHA-1 hash of the subject's public key
@@ -121,10 +129,18 @@ class BOTAN_PUBLIC_API(2,0) Certificate_Store_In_Memory final : public Certifica
 
       /*
       * Find a certificate by Subject DN and (optionally) key identifier
+      * @return the first certificate that matches
       */
       std::shared_ptr<const X509_Certificate> find_cert(
          const X509_DN& subject_dn,
          const std::vector<uint8_t>& key_id) const override;
+
+      /*
+      * Find all certificates with a given Subject DN.
+      * Subject DN and even the key identifier might not be unique.
+      */
+      std::vector<std::shared_ptr<const X509_Certificate>> find_all_certs(
+         const X509_DN& subject_dn, const std::vector<uint8_t>& key_id) const override;
 
       std::shared_ptr<const X509_Certificate>
          find_cert_by_pubkey_sha1(const std::vector<uint8_t>& key_hash) const override;

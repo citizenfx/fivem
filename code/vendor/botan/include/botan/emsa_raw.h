@@ -24,6 +24,7 @@ class BOTAN_PUBLIC_API(2,0) EMSA_Raw final : public EMSA
       explicit EMSA_Raw(size_t expected_hash_size = 0) :
          m_expected_size(expected_hash_size) {}
 
+      std::string name() const override;
    private:
       void update(const uint8_t[], size_t) override;
       secure_vector<uint8_t> raw_data() override;

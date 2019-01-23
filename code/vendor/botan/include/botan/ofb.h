@@ -23,18 +23,15 @@ class BOTAN_PUBLIC_API(2,0) OFB final : public StreamCipher
 
       void set_iv(const uint8_t iv[], size_t iv_len) override;
 
-      bool valid_iv_length(size_t iv_len) const override
-         { return (iv_len <= m_cipher->block_size()); }
+      size_t default_iv_length() const override;
 
-      Key_Length_Specification key_spec() const override
-         {
-         return m_cipher->key_spec();
-         }
+      bool valid_iv_length(size_t iv_len) const override;
+
+      Key_Length_Specification key_spec() const override;
 
       std::string name() const override;
 
-      OFB* clone() const override
-         { return new OFB(m_cipher->clone()); }
+      OFB* clone() const override;
 
       void clear() override;
 
