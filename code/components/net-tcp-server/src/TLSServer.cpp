@@ -115,9 +115,42 @@ public:
 	}
 };
 
+// policy allowing TLS_RSA_WITH_AES_256_CBC_SHA256 since ROS SDK wants this
 class TLSPolicy : public Botan::TLS::Policy
 {
 public:
+	virtual std::vector<std::string> allowed_ciphers() const override
+	{
+		return {
+			"ChaCha20Poly1305",
+			"AES-256/GCM",
+			"AES-128/GCM",
+			"AES-256/CCM",
+			"AES-128/CCM",
+			//"AES-256/CCM(8)",
+			//"AES-128/CCM(8)",
+			//"Camellia-256/GCM",
+			//"Camellia-128/GCM",
+			//"ARIA-256/GCM",
+			//"ARIA-128/GCM",
+			"AES-256", // ROS wants this
+			"AES-128",
+			//"Camellia-256",
+			//"Camellia-128",
+			//"SEED"
+			//"3DES",
+		};
+	}
+
+	virtual std::vector<std::string> allowed_signature_methods() const override
+	{
+		return {
+			"ECDSA",
+			"RSA",
+			"IMPLICIT",
+		};
+	}
+
 	virtual bool acceptable_protocol_version(Botan::TLS::Protocol_Version version) const override
 	{
 		return true;
@@ -138,7 +171,7 @@ public:
 			"CECPQ1",
 			"ECDH",
 			"DH",
-			"RSA",
+			"RSA", // ROS wants this
 		};
 	}
 };
