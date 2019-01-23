@@ -228,11 +228,11 @@ namespace fx
 			enet_peer_send(m_peerHandles.left.find(peer)->get_right(), channel, packet);
 		}
 
-		virtual void SendOutOfBand(const net::PeerAddress & to, const std::string_view & oob) override
+		virtual void SendOutOfBand(const net::PeerAddress & to, const std::string_view & oob, bool prefix) override
 		{
 			auto addr = GetENetAddress(to);
 
-			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(oob);
+			auto oobMsg = (prefix ? "\xFF\xFF\xFF\xFF" : "") + std::string(oob);
 
 			ENetBuffer buffer;
 			buffer.data = (uint8_t*)oobMsg.c_str();

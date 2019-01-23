@@ -30,7 +30,7 @@ namespace fx
 
 		virtual void AttachToObject(ServerInstanceBase* instance) override;
 
-		virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob);
+		void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix = true);
 
 		void ProcessServerFrame(int frameTime);
 

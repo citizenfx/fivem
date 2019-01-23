@@ -268,10 +268,10 @@ namespace fx
 			m_server->SendMessage(peer, (channel * 2) + ((type == NetPacketType_Reliable) ? 1 : 0), message);
 		}
 
-		virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view & oob) override
+		virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view & oob, bool prefix) override
 		{
 			// TODO: very temporary
-			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(oob);
+			auto oobMsg = (prefix ? "\xFF\xFF\xFF\xFF" : "") + std::string(oob);
 
 			sendto((PlatformSocketType)m_server->GetSocket(), oobMsg.data(), oobMsg.size(), 0, to.GetSocketAddress(), to.GetSocketAddressLength());
 		}

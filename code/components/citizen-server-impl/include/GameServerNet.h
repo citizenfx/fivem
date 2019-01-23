@@ -30,7 +30,7 @@ namespace fx
 
 		virtual void SendPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) = 0;
 
-		virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob) = 0;
+		virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix = true) = 0;
 
 		virtual void CreateUdpHost(const net::PeerAddress& address) = 0;
 

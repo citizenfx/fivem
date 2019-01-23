@@ -576,9 +576,9 @@ namespace fx
 		m_nextHeartbeatTime = -1;
 	}
 
-	void GameServer::SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob)
+	void GameServer::SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix)
 	{
-		m_net->SendOutOfBand(to, oob);
+		m_net->SendOutOfBand(to, oob, prefix);
 	}
 
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server)
@@ -1040,6 +1040,8 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		using namespace fx::ServerDecorators;
+
+		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler>(

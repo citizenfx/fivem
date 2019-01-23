@@ -1,5 +1,7 @@
 #pragma once
 
+#include <UdpInterceptor.h>
+
 namespace fx
 {
 	namespace ServerDecorators
@@ -18,6 +20,19 @@ namespace fx
 
 			server->AddRawInterceptor([server](const uint8_t* receivedData, size_t receivedDataLength, const net::PeerAddress& receivedAddress)
 			{
+				static auto interceptor = server->GetInstance()->GetComponent<fx::UdpInterceptor>();
+				static bool setCb;
+				
+				if (!setCb)
+				{
+					interceptor->SetSendCallback([server](const net::PeerAddress& address, const void* data, size_t length)
+					{
+						server->SendOutOfBand(address, std::string_view{ reinterpret_cast<const char*>(data), length }, false);
+					});
+
+					setCb = true;
+				}
+
 				// workaround a VS15.7 compiler bug that drops `const` qualifier in the std::function
 				fwRefContainer<fx::GameServer> tempServer = server;
 
@@ -42,7 +57,11 @@ namespace fx
 					return true;
 				}
 
-				return false;
+				// allow external components to have a say
+				bool intercepted = false;
+				interceptor->OnIntercept(receivedAddress, receivedData, receivedDataLength, &intercepted);
+
+				return intercepted;
 			});
 
 			return server;

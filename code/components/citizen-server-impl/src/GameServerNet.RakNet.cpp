@@ -210,7 +210,7 @@ public:
 		m_peer->Send(&bs, HIGH_PRIORITY, (type == NetPacketType_Reliable) ? RELIABLE_ORDERED : UNRELIABLE, channel, m_peerHandles.left.find(peer)->get_right(), false);
 	}
 
-	virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob_) override
+	virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob_, bool prefix) override
 	{
 		auto rsa = SLNet::SystemAddress{
 			to.GetHost().c_str(),
@@ -220,7 +220,7 @@ public:
 		DataStructures::List<SLNet::RakNetSocket2*> sockets;
 		m_peer->GetSockets(sockets);
 
-		std::string oob = "\xFF\xFF\xFF\xFF" + std::string{ oob_ };
+		std::string oob = (prefix ? "\xFF\xFF\xFF\xFF" : "") + std::string{ oob_ };
 
 		for (int i = 0; i < sockets.Size(); i++)
 		{
