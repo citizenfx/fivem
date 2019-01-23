@@ -6,7 +6,8 @@
 		"net:tcp-server",
 		"citizen:server:instance",
 		"citizen:server:net",
-		"vendor:protobuf_lite"
+		"vendor:protobuf_lite",
+		"vendor:mbedtls"
 	],
 	"provides": []
 }

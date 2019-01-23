@@ -34,6 +34,8 @@
 #include "byteorder.h"
 #include "config.h"
 
+#define USE_MBEDTLS 1
+
 #if defined(USE_POLARSSL)
 
 #include <polarssl/havege.h>
@@ -53,6 +55,12 @@
 
 #include <mbedtls/havege.h>
 #include <mbedtls/aes.h>
+
+extern mbedtls_havege_state hs;
+
+#define RAND_bytes(_dst_, _size_) do { \
+    mbedtls_havege_random(&hs, _dst_, _size_); \
+} while (0)
 
 #define CRYPT_AES_KEY mbedtls_aes_context
 #define AES_BLOCK_SIZE 16
