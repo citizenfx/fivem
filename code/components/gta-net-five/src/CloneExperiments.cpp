@@ -898,6 +898,16 @@ static HookFunction hookFunction([]()
 		hook::put<uint32_t>(location + 0xD5, intsBase);
 	}
 
+	// CNetworkDamageTracker float[32] array
+	// (would overflow into pool data and be.. quite bad)
+	{
+		// pool constructor call
+		hook::put<uint32_t>(hook::get_pattern("C7 44 24 20 88 00 00 00 E8", 4), sizeof(void*) + (sizeof(float) * 256));
+
+		// memset in CNetworkDamageTracker::ctor
+		hook::put<uint32_t>(hook::get_pattern("48 89 11 48 8B D9 41 B8 80 00 00 00", 8), sizeof(float) * 256);
+	}
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
