@@ -15,7 +15,7 @@ return {
 		kind "SharedLib"
 
 		if os.istarget('windows') then
-			defines { "BOTAN_DLL=__declspec(dllexport)" }
+			defines { "BOTAN_DLL=__declspec(dllexport)", "_DISABLE_EXTENDED_ALIGNED_STORAGE" }
 
 			buildoptions '/bigobj'
 			
