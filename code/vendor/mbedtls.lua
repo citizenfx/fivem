@@ -8,8 +8,8 @@ return {
 		kind "StaticLib"
 		
 		defines {
-			"SODIUM_STATIC",
-			"NATIVE_LITTLE_ENDIAN"
+			"NATIVE_LITTLE_ENDIAN",
+			"MBEDTLS_HAVEGE_C"
 		}
 		
 		files_project "../vendor/mbedtls/" {
