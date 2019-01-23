@@ -305,7 +305,7 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 	buffer << m_positionY;
 	buffer << m_positionZ;
 
-	m_client->Send(MumbleMessageType::UDPTunnel, outBuf, buffer.size());
+	m_client->SendVoice(outBuf, buffer.size());
 }
 
 HRESULT MumbleAudioInput::HandleIncomingAudio()
