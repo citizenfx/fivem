@@ -16,7 +16,7 @@
 	url = https://github.com/google/protobuf.git
 [submodule "vendor/breakpad"]
 	path = vendor/breakpad
-	url = https://chromium.googlesource.com/breakpad/breakpad
+	url = https://github.com/citizenfx/breakpad.git
 [submodule "vendor/udis86"]
 	path = vendor/udis86
 	url = https://github.com/vmt/udis86.git
