@@ -36,6 +36,13 @@ return {
 				"vendor/botan/src/*.h"
 			}
 		elseif os.istarget('linux') then
+			prebuildcommands {
+				('cp %s %s'):format(
+					path.getabsolute('vendor/botan/include/build_linux.h'),
+					path.getabsolute('vendor/botan/include/botan/build.h')
+				)
+			}
+
 			files {
 				"vendor/botan/src/linux/*.cpp",
 				"vendor/botan/src/linux/*.h"
