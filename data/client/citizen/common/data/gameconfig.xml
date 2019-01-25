@@ -20,6 +20,10 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
+							<PoolName>CNetObjPed</PoolName>
+							<PoolSize value="174"/> <!-- 110 + player count -->
+						</Item>
+						<Item>
 							<PoolName>CNetObjPed::CNetTennisMotionData</PoolName>
 							<PoolSize value="256"/>
 						</Item>
