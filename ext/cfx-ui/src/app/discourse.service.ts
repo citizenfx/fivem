@@ -111,7 +111,7 @@ export class DiscourseService {
         const payload = parts['payload'] as string;
 
         const rsaKeys = await this.ensureRSAKeys();
-        const privateKey = forge.pki.privateKeyFromPem(rsaKeys.private);
+        const privateKey = forge.pki.privateKeyFromPem(rsaKeys.private) as forge.pki.rsa.PrivateKey;
         const decrypted = JSON.parse(privateKey.decrypt(forge.util.decode64(payload)));
 
         this.nonce = window.localStorage.getItem('lastAuthNonce');
