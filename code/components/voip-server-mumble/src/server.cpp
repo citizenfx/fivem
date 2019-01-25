@@ -549,6 +549,11 @@ static InitFunction initFunction([]()
 					}
 				}
 
+				if (!client)
+				{
+					return;
+				}
+
 				if (!checkDecrypt(client, data, buffer, std::min(len, sizeof(buffer))))
 				{
 					*intercepted = true;
