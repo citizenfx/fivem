@@ -1443,7 +1443,14 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 
 	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
 	{
-		if (thisClient->GetNetId() == client->GetNetId())
+		auto tgtClient = thisClient;
+
+		if (!tgtClient)
+		{
+			return;
+		}
+
+		if (tgtClient->GetNetId() == client->GetNetId())
 		{
 			return;
 		}
@@ -1452,7 +1459,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 		netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
 		netBuffer.Write<uint16_t>(objectId);
 
-		thisClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+		tgtClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
 	});
 }
 
