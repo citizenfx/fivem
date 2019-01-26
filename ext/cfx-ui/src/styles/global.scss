@@ -55,15 +55,9 @@ $blurSize: 20px;
 	bottom: -($blurSize*2);
 	right: -($blurSize*2);
 
-	filter: blur($blurSize);
 	transform: translate3d(0, 0, 0);
 
 	background:
-		linear-gradient(
-				-45deg,
-				rgba($bgColour, .55) 00%,
-				rgba($bgColour, .55) 100%
-		) center center/100%,
 		url(../assets/images/bg.jpg) center center/cover no-repeat;
 }
 

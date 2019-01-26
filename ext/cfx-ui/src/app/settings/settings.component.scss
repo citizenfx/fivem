@@ -4,10 +4,7 @@
 	display: flex;
 	flex-direction: column;
 
-	@include fullWidthPadded;
-    height: $appContentHeight;
-	margin-top: $appContentMargin;
-	margin-left: $appContentPadding;
+	@include appContent;
 
     overflow-y: scroll;
 

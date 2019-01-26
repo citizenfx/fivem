@@ -21,6 +21,8 @@ $itemHeight: $appNavHeight*.5;
 	justify-content: space-between;
 	align-content: space-between;
 
+	align-items: center;
+
 	z-index: 100;
 
 	.logo {
@@ -67,13 +69,12 @@ $itemHeight: $appNavHeight*.5;
 
 	.nav-list {
 		display: flex;
-		flex-grow: 1;
-
-		padding-left: $padding*4;
 
 		transition: transform .2s ease-out;
 
 		.user {
+			display: none;
+
 			height: $itemHeight*2;
 			margin-top: -$padding*2;
 			margin-left: $padding*2;
@@ -97,7 +98,7 @@ $itemHeight: $appNavHeight*.5;
 			
 			.steam {
 				stroke: rgba($greenyColour, .9);
-			}	
+			}
 		}
 
 		.nav-item {
@@ -105,8 +106,6 @@ $itemHeight: $appNavHeight*.5;
 			cursor: default;
 
 			height: $itemHeight+$padding*3;
-
-			margin-top: -$padding*2;
 
 			overflow: hidden;
 			padding: $padding*2 $padding $padding $padding;
@@ -119,7 +118,7 @@ $itemHeight: $appNavHeight*.5;
 			font-weight: 500;
 			line-height: 1;
 			text-align: center;
-			color: $secondaryColour;
+			color: rgba($textColour, .7);
 
 			transition: all .2s ease;
 
@@ -158,10 +157,7 @@ $itemHeight: $appNavHeight*.5;
 			}
 
 			&.active {
-				background-color: darken($greenyColour, 15%);
-
-				color: lighten($greenyColour, 10%);
-				text-shadow: 0 0 15px darken($greenyColour, 10%);
+				color: darken($secondaryColour, 20%);
 			}
 
 			&.active::after,

@@ -1,4 +1,4 @@
-$fonts: 'Roboto';
+$fonts: 'Segoe UI', 'Roboto';
 
 $width: 100vw;
 $height: 100vh;
@@ -13,19 +13,19 @@ $appContentMargin: $appNavHeight;
 $appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
 $appContentWidth: calc(#{$width} - #{$appContentPadding});
 
-$appServersItemHeight: 2.5vh;
+$appServersItemHeight: 3.0vh;
 $appServersHeaderHeight: $appServersItemHeight;
 
 $filterHeight: 5.5vh;
 
-$bgColour: hsl(222, 23%, 11%);
-$fgColour: hsl(60, 93%, 94%);
-$secondaryColour: rgb(250, 255, 225);
-$greenyColour: hsl(76, 100%, 40%);
+$bgColour: /*hsl(222, 23%, 71%);*/ #93a1a1;
+$fgColour: rgb(40, 40, 40);
+$secondaryColour: rgb(60, 60, 60);
+$greenyColour: rgb(244, 180, 62);
 $yellowColour: hsl(53, 100%, 50%);
 $redColour: hsl(30, 100%, 40%);
 $blueColour: hsl(180, 100%, 40%);
-$textColour: rgb(200, 205, 187);
+$textColour: rgb(40, 40, 40);
 
 @mixin fullWidthPadded($extraPadding: $padding*4) {
     width: calc(#{$width} - #{$extraPadding});
@@ -33,4 +33,33 @@ $textColour: rgb(200, 205, 187);
 
 @mixin backdropBlur($amount: 5px) {
     backdrop-filter: blur($amount);
+}
+
+@mixin appContent() {
+    height: $appContentHeight;
+	margin-top: $appContentMargin;
+    padding-left: calc(#{$appContentPadding} + 4vw);
+    padding-right: calc(#{$appContentPadding} + 4vw);
+    margin-left: -4vw;
+    margin-right: -4vw;
+    padding-top: $padding*2;
+
+    position: relative;
+    
+    box-shadow: rgba(30, 30, 30, .2) 0vw -0.4vh 2.5vh;
+
+    overflow: hidden;
+    
+    &:after {
+        content: '';
+        width: 100%;
+        height: 100%;
+
+        position: absolute;
+        z-index: -999;
+
+        transform: scale(1.1);
+
+        backdrop-filter: url(#acrylicBlur);
+    }
 }

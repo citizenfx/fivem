@@ -3,10 +3,7 @@
 :host {
 	display: flex;
 
-	@include fullWidthPadded;
-	height: $appContentHeight;
-	margin-top: $appContentMargin;
-	margin-left: $appContentPadding;
+	@include appContent;
 
 	.servers {
 		width: $width;

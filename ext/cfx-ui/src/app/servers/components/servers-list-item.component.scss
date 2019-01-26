@@ -40,10 +40,10 @@
 
 :host:nth-child(odd) {
 	.server-list-item {
-		background-color: rgba(darken($bgColour, 10%), .4);
+		background-color: rgba(darken($bgColour, 10%), .1);
 
 		&:hover {
-			background-color: rgba(darken($bgColour, 10%), 1);
+			background-color: rgba(darken($bgColour, 10%), .4);
 		}
 	}
 }
@@ -61,13 +61,13 @@
 	cursor: default;
 	user-select: none;
 
-	font-weight: normal;
+	font-weight: lighter;
 	margin-top: $padding/3;
 
-	background-color: rgba($bgColour, .4);
+	background-color: rgba($bgColour, .0);
 
 	&:hover {
-		background-color: rgba($bgColour, 1);
+		background-color: rgba($bgColour, .4);
 
 		.actions button {
 			opacity: 1;
@@ -100,7 +100,7 @@
 	.name {
 		text-align: left;
 		padding: 0 $padding*$multiplier*0.5;
-		color: $textColour;
+		color: $secondaryColour;
 	}
 
 	.actions {
