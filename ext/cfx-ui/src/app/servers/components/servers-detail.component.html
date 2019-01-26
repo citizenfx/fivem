@@ -33,11 +33,11 @@
 			</li>
 			<li>
 				<span class="key">Players:</span>
-				{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}
+				<span>{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}</span>
 			</li>
 			<li *ngFor="let svVar of serverVariables">
 				<span class="key">{{svVar.key|translate:lang}}:</span>
-				{{svVar.value|translate:lang}}
+				<span>{{svVar.value|translate:lang}}</span>
 			</li>
 		</ul>
 

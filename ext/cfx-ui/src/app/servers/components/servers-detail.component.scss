@@ -18,10 +18,7 @@
 :host {
     display: flex;
     
-	@include fullWidthPadded;
-	height: $appContentHeight;
-	margin-top: $appContentMargin;
-    margin-left: $appContentPadding;
+    @include appContent;
     padding-bottom: $appContentPadding;
 
     flex-direction: column;
@@ -33,7 +30,12 @@
     &>div {
         margin-bottom: $padding;
         padding: $padding $padding*$multiplier;
-        background-color: rgba($bgColour, .2);
+
+        border-top: rgba($bgColour, .3) 1px solid;
+
+        &:first-of-type {
+            border-top: none;
+        }
 
         &.banner {
             padding: 0;
@@ -97,6 +99,10 @@
                 background-position: center center;
             }
 
+            .server-buttons button {
+                margin-right: $padding * 0.25;
+            }
+
             .icon {
                 position: absolute;
                 left: $padding*$multiplier;
@@ -155,6 +161,8 @@
                 ::ng-deep figure {
                     height: $fontSize * 1.2;
                     width: $fontSize * 1.2;
+
+                    margin-right: $padding * 0.25;
                 }
 
                 ul {
