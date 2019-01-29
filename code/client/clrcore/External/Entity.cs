@@ -848,6 +848,19 @@ namespace CitizenFX.Core
 				return API.HasEntityCollidedWithAnything(Handle);
 			}
 		}
+
+		/// <summary>
+		/// Gets the material this entity is currently brushing up against. Only works
+		/// for the material the entity is facing towards.
+		/// </summary>
+		public MaterialHash MaterialCollidingWith
+		{
+			get
+			{
+				return (MaterialHash) API.GetLastMaterialHitByEntity(Handle);
+			}
+		}
+
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> has collision.
 		/// </summary>
