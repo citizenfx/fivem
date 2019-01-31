@@ -16,6 +16,9 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 	{ "natives_0193d0af.lua",  "f15e72ec-3972-4fe4-9c7d-afc5394ae207" },
 	{ "natives_universal.lua", "44febabe-d386-4d18-afbe-5e627f4af937" }
 };
+
+// we fast-path non-FXS using direct RAGE calls
+#include <scrEngine.h>
 #else
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_server.lua", guid_t{ 0 } }
@@ -209,6 +212,8 @@ public:
 
 static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
 
+static IScriptHost* g_lastScriptHost;
+
 class LuaPushEnvironment
 {
 private:
@@ -220,6 +225,8 @@ public:
 	inline LuaPushEnvironment(LuaScriptRuntime* runtime)
 		: m_pushEnvironment(runtime)
 	{
+		g_lastScriptHost = runtime->GetScriptHost();
+
 		m_lastLuaRuntime = g_currentLuaRuntime;
 		g_currentLuaRuntime = runtime;
 	}
@@ -236,6 +243,8 @@ LuaScriptRuntime::~LuaScriptRuntime()
 }
 
 static int lua_error_handler(lua_State* L);
+
+lua_CFunction Lua_GetNative(lua_State* L, const char* name);
 
 const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
 {
@@ -608,6 +617,12 @@ enum class LuaMetaFields
 
 static uint8_t g_metaFields[(int)LuaMetaFields::Max];
 
+struct scrObject
+{
+	const char* data;
+	uintptr_t length;
+};
+
 int Lua_InvokeNative(lua_State* L)
 {
 	// get required entries
@@ -869,12 +884,6 @@ int Lua_InvokeNative(lua_State* L)
 		uint32_t pad2;
 	};
 
-	struct scrObject
-	{
-		const char* data;
-		uintptr_t length;
-	};
-
 	// number of Lua results
 	int numResults = 0;
 
@@ -983,6 +992,20 @@ int Lua_LoadNative(lua_State* L)
 
 	auto& runtime = LuaScriptRuntime::GetCurrent();
 	
+	int isCfxv2 = 0;
+	runtime->GetScriptHost2()->GetNumResourceMetaData("is_cfxv2", &isCfxv2);
+
+	if (isCfxv2)
+	{
+		auto nativeImpl = Lua_GetNative(L, fn);
+
+		if (nativeImpl)
+		{
+			lua_pushcfunction(L, nativeImpl);
+			return 1;
+		}
+	}
+
 	OMPtr<fxIStream> stream;
 
 	result_t hr = runtime->GetScriptHost()->OpenSystemFile(const_cast<char*>(va("%s0x%08x.lua", runtime->GetNativesDir(), HashRageString(fn))), stream.GetAddressOf());
@@ -1485,6 +1508,246 @@ void* LuaScriptRuntime::GetParentObject()
 void LuaScriptRuntime::SetParentObject(void* object)
 {
 	m_parentObject = object;
+}
+
+using Lua_NativeMap = std::map<std::string, lua_CFunction, std::less<>>;
+
+#ifdef IS_FXSERVER
+struct LuaNativeWrapper
+{
+	inline LuaNativeWrapper(uint64_t)
+	{
+	}
+};
+
+struct LuaNativeContext : public fxNativeContext
+{
+	inline LuaNativeContext(void*, int numArguments)
+	{
+		numArguments = numArguments;
+		numResults = 0;
+	}
+
+	inline void Invoke(lua_State* L, uint64_t hash)
+	{
+		nativeIdentifier = hash;
+
+		if (FX_FAILED(g_lastScriptHost->InvokeNative(*this)))
+		{
+			lua_pushstring(L, "Native invocation failed.");
+			lua_error(L);
+		}
+	}
+
+	template<typename TVal>
+	inline TVal GetResult()
+	{
+		return *(TVal*)(&arguments[0]);
+	}
+
+	template<typename TVal>
+	inline void SetArgument(size_t offset, const TVal& val)
+	{
+		if constexpr (sizeof(TVal) < 4)
+		{
+			*reinterpret_cast<uintptr_t*>(&arguments[offset]) = 0;
+		}
+
+		*reinterpret_cast<TVal*>(&arguments[offset]) = val;
+	}
+
+	template<typename TVal>
+	inline void Push(const TVal& val)
+	{
+		if constexpr (sizeof(TVal) < 4)
+		{
+			*reinterpret_cast<uintptr_t*>(&arguments[numArguments]) = 0;
+		}
+
+		*reinterpret_cast<TVal*>(&arguments[numArguments]) = val;
+
+		if constexpr (sizeof(TVal) == sizeof(scrVector))
+		{
+			numArguments += 3;
+		}
+		else
+		{
+			numArguments++;
+		}
+	}
+};
+
+#define LUA_EXC_WRAP_START(hash)
+
+#define LUA_EXC_WRAP_END(hash)
+
+#define ASSERT_LUA_ARGS(count) \
+	if (!lua_asserttop(L, count)) return 0;
+#else
+struct LuaNativeWrapper
+{
+	rage::scrEngine::NativeHandler handler;
+
+	inline LuaNativeWrapper(uint64_t hash)
+	{
+		handler = rage::scrEngine::GetNativeHandler(hash);
+	}
+};
+
+struct LuaNativeContext
+{
+	NativeContextRaw rawCxt;
+
+	int numArguments;
+	uintptr_t arguments[32];
+
+	LuaNativeWrapper* nw;
+
+	__forceinline inline LuaNativeContext(LuaNativeWrapper* nw, int numArguments)
+		: rawCxt(arguments, numArguments), numArguments(numArguments), nw(nw)
+	{
+		
+	}
+
+	__forceinline inline void Invoke(lua_State* L, uint64_t hash)
+	{
+		nw->handler(&rawCxt);
+	}
+
+	template<typename TVal>
+	__forceinline inline TVal GetResult()
+	{
+		return *(TVal*)(&arguments[0]);
+	}
+
+	template<typename TVal>
+	__forceinline inline void SetArgument(size_t offset, const TVal& val)
+	{
+		if constexpr (sizeof(TVal) < 4)
+		{
+			*reinterpret_cast<uintptr_t*>(&arguments[offset]) = 0;
+		}
+
+		*reinterpret_cast<TVal*>(&arguments[offset]) = val;
+	}
+
+	template<typename TVal>
+	inline void Push(const TVal& val)
+	{
+		if constexpr (sizeof(TVal) < 4)
+		{
+			*reinterpret_cast<uintptr_t*>(&arguments[numArguments]) = 0;
+		}
+
+		*reinterpret_cast<TVal*>(&arguments[numArguments]) = val;
+
+		if constexpr (sizeof(TVal) == sizeof(scrVector))
+		{
+			numArguments += 3;
+		}
+		else
+		{
+			numArguments++;
+		}
+	}
+};
+
+#define LUA_EXC_WRAP_START(hash) \
+	try \
+	{
+
+#define LUA_EXC_WRAP_END(hash) \
+	} \
+	catch (std::exception& e) \
+	{ \
+		lua_pushstring(L, e.what()); \
+		lua_error(L); \
+	} \
+	catch (...) \
+	{ \
+		lua_pushstring(L, va("Error executing native %016llx.", hash)); \
+		lua_error(L); \
+	}
+
+#define ASSERT_LUA_ARGS(count) \
+	if (!lua_asserttop(L, count)) return 0;
+#endif
+
+inline const char* Lua_ToFuncRef(lua_State* L, int idx)
+{
+	// TODO: maybe?
+	return lua_tostring(L, idx);
+}
+
+inline uint32_t Lua_ToHash(lua_State* L, int idx)
+{
+	const auto value = lua_getvalue(L, idx);
+
+	if (lua_valuetype(L, value) == LUA_TSTRING)
+	{
+		return HashString(lua_valuetostring(L, value));
+	}
+	
+	return lua_valuetointeger(L, value);
+}
+
+struct scrVectorLua
+{
+	float x;
+	uint32_t pad;
+	float y;
+	uint32_t pad2;
+	float z;
+	uint32_t pad3;
+
+	inline scrVectorLua()
+	{
+
+	}
+
+	inline scrVectorLua(float x, float y, float z)
+		: x(x), y(y), z(z)
+	{
+
+	}
+};
+
+inline scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
+{
+	auto f4 = lua_valuetofloat4(L, lua_getvalue(L, idx));
+
+	return scrVectorLua{ f4.x, f4.y, f4.z };
+}
+
+inline void Lua_PushScrVector(lua_State* L, const scrVectorLua& val)
+{
+	lua_pushvector3(L, val.x, val.y, val.z);
+}
+
+inline void Lua_PushScrObject(lua_State* L, const scrObject& val)
+{
+	lua_pushlstring(L, val.data, val.length);
+
+	lua_getglobal(L, "msgpack");
+	lua_pushstring(L, "unpack");
+	lua_gettable(L, -2);
+
+	lua_pop(L, -2);
+
+	lua_call(L, 1, 1);
+}
+
+#ifndef IS_FXSERVER
+#include "Natives.h"
+#else
+#include "NativesServer.h"
+#endif
+
+lua_CFunction Lua_GetNative(lua_State* L, const char* name)
+{
+	auto it = natives.find(name);
+
+	return (it != natives.end()) ? it->second : nullptr;
 }
 
 // {A7242855-0350-4CB5-A0FE-61021E7EAFAA}

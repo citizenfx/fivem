@@ -11,6 +11,7 @@ local _ln = Citizen.LoadNative
 local load = load
 local msgpack = msgpack
 local _tostring = tostring
+local type = type
 local function _ts(num)
 	if num == 0 or not num then -- workaround for users calling string parameters with '0', also nil being translated
 		return nil
@@ -67,13 +68,19 @@ setmetatable(g, {
             local nativeString = _ln(n)
 
             if nativeString then
-                local chunk = load(nativeString, '@' .. n .. '.lua', 't', nativeEnv)
+				if type(nativeString) == 'function' then
+					rs(t, n, nativeString)
 
-                if chunk then
-                    chunk()
+					v = nativeString
+				else
+					local chunk = load(nativeString, '@' .. n .. '.lua', 't', nativeEnv)
 
-                    v = rg(t, n)
-                end
+					if chunk then
+						chunk()
+
+						v = rg(t, n)
+					end
+				end
             else
                 nilCache[n] = true
             end

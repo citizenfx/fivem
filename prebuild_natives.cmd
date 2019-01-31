@@ -16,4 +16,5 @@ xcopy /y out\rpc_natives.json ..\..\data\shared\citizen\scripting
 xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
 
 xcopy /y out\*.cs ..\..\code\client\clrcore
+xcopy /y out\*.h ..\..\code\components\citizen-scripting-lua\src
 popd

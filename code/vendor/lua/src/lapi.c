@@ -57,7 +57,11 @@ const char lua_ident[] =
 	api_check(l, isstackindex(i, o), "index not in the stack")
 
 
-static TValue *index2addr (lua_State *L, int idx) {
+static
+#ifdef _MSC_VER
+__forceinline
+#endif
+	TValue *index2addr (lua_State *L, int idx) {
   CallInfo *ci = L->ci;
   if (idx > 0) {
     TValue *o = ci->func + idx;
@@ -302,6 +306,37 @@ LUA_API void *lua_valuetouserdata (lua_State *L, TValue o) {
     case LUA_TLIGHTUSERDATA: return pvalue(&o);
     default: return NULL;
   }
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
+	lua_Integer lua_utointeger(lua_State* L, int idx) {
+  const TValue *val = L->ci->func + idx;
+  return val->value_.i;
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
+	lua_Number lua_utonumber(lua_State* L, int idx) {
+  //const TValue* val = index2addr(L, idx);
+  const TValue *val = L->ci->func + idx;
+  return val->value_.n;
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
+	int lua_asserttop(const lua_State* L, int idx) {
+
+  const TValue *o = L->ci->func + idx;
+  if (o >= L->top) return 0;
+
+  return 1;
 }
 
 LUA_API int lua_type (lua_State *L, int idx) {

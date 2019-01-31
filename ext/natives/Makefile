@@ -39,6 +39,7 @@ all: out \
 	out/NativesFive.cs out/NativesServer.cs \
 	out/rpc_natives.json \
 	out/natives_server.lua out/natives_server.d.ts out/natives_server.js \
+	out/Natives.h out/NativesServer.h \
 	$(GTA_OUTPUTS_LUA) $(GTA_OUTPUTS_JS) $(GTA_OUTPUTS_DTS) $(GTA_OUTPUTS_ZIP)
 
 .PHONY: clean
@@ -59,6 +60,12 @@ out/NativesServer.cs: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_cs.l
 	./lua53 codegen.lua out/natives_global.lua enum server >> $@
 	./lua53 codegen.lua out/natives_global.lua cs server >> $@
 	echo "$$NATIVES_SERVER_FOOTER" >> $@
+
+out/Natives.h: out/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_native_lua.lua rpc_spec_natives.lua
+	./lua53 codegen.lua out/natives_global.lua native_lua > $@
+	
+out/NativesServer.h: out/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_native_lua.lua rpc_spec_natives.lua
+	./lua53 codegen.lua out/natives_global.lua native_lua server > $@
 
 out/rpc_natives.json: $(CODEGEN_SCRIPTS) out/natives_global.lua codegen_out_rpc.lua rpc_spec_natives.lua
 	./lua53 codegen.lua out/natives_global.lua rpc server > $@

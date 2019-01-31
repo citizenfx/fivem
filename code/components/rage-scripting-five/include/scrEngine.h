@@ -117,6 +117,11 @@ public:
 		m_nArgCount = argumentCount;
 		m_nDataCount = 0;
 	}
+
+	inline void SetArgumentCount(int argumentCount)
+	{
+		m_nArgCount = argumentCount;
+	}
 };
 
 class NativeContext :
