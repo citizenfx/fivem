@@ -477,11 +477,8 @@ five::grmModel* convert(ny::grmModel* model)
 	return out;
 }
 
-template<>
-five::gtaDrawable* convert(ny::gtaDrawable* drawable)
+inline void ConvertBaseDrawable(ny::rmcDrawable* drawable, five::gtaDrawable* out)
 {
-	auto out = new(false) five::gtaDrawable;
-
 	auto& oldLodGroup = drawable->GetLodGroup();
 
 	out->SetBlockMap();
@@ -489,7 +486,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 	out->SetShaderGroup(convert<five::grmShaderGroup*>(drawable->GetShaderGroup()));
 
 	auto& lodGroup = out->GetLodGroup();
-	
+
 	Vector3 minBounds = oldLodGroup.GetBoundsMin();
 	minBounds = Vector3(minBounds.x - oldLodGroup.GetRadius(), minBounds.y - oldLodGroup.GetRadius(), minBounds.z - oldLodGroup.GetRadius());
 
@@ -542,6 +539,14 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 	out->SetPrimaryModel();
 	out->SetName("lovely.#dr");
+}
+
+template<>
+five::gtaDrawable* convert(ny::gtaDrawable* drawable)
+{
+	auto out = new(false) five::gtaDrawable;
+
+	ConvertBaseDrawable(drawable, out);
 
 	if (drawable->GetNumLightAttrs())
 	{
@@ -626,6 +631,15 @@ five::pgDictionary<five::gtaDrawable>* convert(ny::pgDictionary<ny::gtaDrawable>
 	}
 
 	out->SetFrom(&newDrawables);
+
+	return out;
+}
+
+template<>
+five::gtaDrawable* convert(ny::fragType* frag)
+{
+	auto out = new(false) five::gtaDrawable;
+	ConvertBaseDrawable(frag->GetDrawable(), out);
 
 	return out;
 }

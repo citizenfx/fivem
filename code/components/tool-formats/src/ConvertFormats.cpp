@@ -198,7 +198,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 	{
 		wprintf(L"converting fragment type %s...\n", path.filename().c_str());
 
-		AutoConvert<rage::five::fragType, rage::ny::fragType>(bm, fileName, 162);
+		AutoConvert<rage::five::gtaDrawable, rage::ny::fragType>(bm, fileName, 162, L".ydr");
 	}
 	else if (fileExt == L".wdr")
 	{
