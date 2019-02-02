@@ -72,11 +72,11 @@ static InitFunction initFunction([]()
 				{
 					if (!success)
 					{
-						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, 0, msgpack::type::nil{}, std::map<std::string, std::string>());
+						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, *responseCode, msgpack::type::nil{}, std::map<std::string, std::string>());
 					}
 					else
 					{
-						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, responseCode, std::string{ data, length }, *responseHeaders);
+						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, *responseCode, std::string{ data, length }, *responseHeaders);
 					}
 				});
 
