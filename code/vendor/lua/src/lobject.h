@@ -615,7 +615,7 @@ LUA_API const char *lua_valuetostring(lua_State *L, TValue o);
 LUA_API lua_Float4 lua_valuetofloat4(lua_State* L, TValue o);
 LUA_API void *lua_valuetouserdata(lua_State *L, TValue o);
 
-LUA_API int lua_asserttop(lua_State* L, int count);
+LUA_API int lua_asserttop(const lua_State* L, int count);
 LUA_API lua_Integer lua_utointeger(lua_State* L, int idx);
 LUA_API lua_Number lua_utonumber(lua_State* L, int idx);
 
