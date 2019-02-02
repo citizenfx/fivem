@@ -334,6 +334,15 @@ DLL_EXPORT uint64_t* nativeCall()
 		valid = MpGamerTagCheck();
 	}
 
+	if (valid)
+	{
+		if (!CfxIsSinglePlayer())
+		{
+			if (!Instance<ICoreGameInit>::Get()->ShAllowed) valid = false;
+			if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited")) valid = false;
+		}
+	}
+
 	if (fn != 0 && valid)
 	{
 		void* returnAddress = _ReturnAddress();
