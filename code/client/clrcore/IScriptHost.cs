@@ -27,4 +27,13 @@ namespace CitizenFX.Core
 		[PreserveSig]
 		void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message);
 	}
+
+	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+	[System.Runtime.InteropServices.Guid("9568df2d-27c8-4b9e-b29d-48272c317084")]
+	[ComImport]
+	public interface IScriptHostWithResourceData
+	{
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		void GetResourceName(out IntPtr nameString);
+	}
 }

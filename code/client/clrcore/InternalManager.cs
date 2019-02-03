@@ -17,7 +17,7 @@ namespace CitizenFX.Core
 		private static readonly List<Tuple<DateTime, AsyncCallback>> ms_delays = new List<Tuple<DateTime, AsyncCallback>>();
 		private static int ms_instanceId;
 
-		public static IScriptHost ScriptHost { get; private set; }
+		public static IScriptHost ScriptHost { get; internal set; }
 
 		[SecuritySafeCritical]
 		public InternalManager()

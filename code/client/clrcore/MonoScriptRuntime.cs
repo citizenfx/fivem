@@ -28,7 +28,29 @@ namespace CitizenFX.Core
 			{
 				m_scriptHost = host;
 
-				m_appDomain = AppDomain.CreateDomain($"ScriptDomain_{m_instanceId}");
+#if IS_FXSERVER
+				string resourceName = "";
+				string basePath = "";
+
+				{
+					((IScriptHostWithResourceData)host).GetResourceName(out var nameString);
+
+					resourceName = Marshal.PtrToStringAnsi(nameString);
+
+					// we can't invoke natives if not doing this
+					InternalManager.ScriptHost = host;
+
+					basePath = Native.API.GetResourcePath(resourceName);
+				}
+#endif
+
+				m_appDomain = AppDomain.CreateDomain($"ScriptDomain_{m_instanceId}", AppDomain.CurrentDomain.Evidence, new AppDomainSetup()
+				{
+#if IS_FXSERVER
+					ApplicationBase = basePath
+#endif
+				});
+
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
