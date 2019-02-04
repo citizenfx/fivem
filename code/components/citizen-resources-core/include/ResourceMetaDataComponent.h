@@ -13,6 +13,11 @@
 #include <optional>
 #include "IteratorView.h"
 
+#ifdef __linux__
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#endif
+
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define RESOURCES_CORE_EXPORT DLL_EXPORT
 #else

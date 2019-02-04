@@ -623,6 +623,27 @@ struct scrObject
 	uintptr_t length;
 };
 
+// padded vector struct
+struct scrVector
+{
+    float x;
+
+private:
+    uint32_t pad0;
+
+public:
+    float y;
+
+private:
+    uint32_t pad1;
+
+public:
+    float z;
+
+private:
+    uint32_t pad2;
+};
+
 int Lua_InvokeNative(lua_State* L)
 {
 	// get required entries
@@ -862,27 +883,6 @@ int Lua_InvokeNative(lua_State* L)
 		lua_pushstring(L, va("Execution of native %016x in script host failed.", hash));
 		lua_error(L);
 	}
-
-	// padded vector struct
-	struct scrVector
-	{
-		float x;
-
-	private:
-		uint32_t pad0;
-
-	public:
-		float y;
-
-	private:
-		uint32_t pad1;
-
-	public:
-		float z;
-
-	private:
-		uint32_t pad2;
-	};
 
 	// number of Lua results
 	int numResults = 0;
