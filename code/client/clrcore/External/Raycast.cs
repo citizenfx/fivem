@@ -11,13 +11,15 @@ namespace CitizenFX.Core
 			bool hitSomethingArg = false;
 			int entityHandleArg = 0;
 			Vector3 surfaceNormalArg = new Vector3();
+			uint materialArg = 0;
 
-			Result = API.GetShapeTestResult(handle, ref hitSomethingArg, ref hitPositionArg, ref surfaceNormalArg, ref entityHandleArg);
+			Result = API.GetShapeTestResultEx( handle, ref hitSomethingArg, ref hitPositionArg, ref surfaceNormalArg, ref materialArg, ref entityHandleArg );
 
 			DitHit = hitSomethingArg;
 			HitPosition = hitPositionArg;
 			SurfaceNormal = surfaceNormalArg;
-			HitEntity = Entity.FromHandle(entityHandleArg);
+			HitEntity = Entity.FromHandle( entityHandleArg );
+			Material = (MaterialHash) materialArg;
 		}
 
 		/// <summary>
@@ -50,6 +52,11 @@ namespace CitizenFX.Core
 				return !ReferenceEquals(HitEntity, null);
 			}
 		}
+
+		/// <summary>
+		/// Gets a value indicating the material type of the collision.
+		/// </summary>
+		public MaterialHash Material { get; private set; }
 
 		public int Result { get; private set; }
 	}
