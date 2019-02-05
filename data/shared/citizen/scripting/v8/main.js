@@ -163,7 +163,7 @@ const EXT_LOCALFUNCREF = 11;
     			return t;
 		}
 		
-		function GetPlayers(player) {
+		function GetPlayers() {
     			var num = GetNumPlayerIndices();
     			var t = [];
 
