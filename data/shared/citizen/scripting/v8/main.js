@@ -162,6 +162,17 @@ const EXT_LOCALFUNCREF = 11;
 
     			return t;
 		}
+		
+		function GetPlayers(player) {
+    			var num = GetNumPlayerIndices();
+    			var t = [];
+
+    			for (let i = 0; i < num; i++) {
+        			t.push(GetPlayerFromIndex(i))
+    			}
+
+    			return t;
+		}
 	} else {
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
