@@ -151,6 +151,17 @@ const EXT_LOCALFUNCREF = 11;
 		};
 
 		global.TriggerClientEvent = global.emitNet;
+		
+		function GetPlayerIdentifiers(player) {
+    			var numIds = GetNumPlayerIdentifiers(player);
+    			var t = [];
+
+    			for (let i = 0; i < numIds; i++) {
+        			t.push(GetPlayerIdentifier(player, i))
+    			}
+
+    			return t;
+		}
 	} else {
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
