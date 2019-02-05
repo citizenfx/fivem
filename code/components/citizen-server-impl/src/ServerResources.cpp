@@ -331,6 +331,26 @@ static InitFunction initFunction([]()
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
 
+		static auto ensureCommandRef = instance->AddCommand("ensure", [=](const std::string& resourceName)
+		{
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			auto conCtx = instance->GetComponent<console::Context>();
+
+			if (resource->GetState() == fx::ResourceState::Started)
+			{
+				conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
+			}
+
+			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
+		});
+
 		static auto refreshCommandRef = instance->AddCommand("refresh", [=]()
 		{
 			ScanResources(instance);
