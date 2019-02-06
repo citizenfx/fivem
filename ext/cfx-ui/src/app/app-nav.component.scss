@@ -175,7 +175,7 @@ $itemHeight: $appNavHeight*.5;
 				border-radius: 2px;
 
 				@include theme() using ($theme) {
-					background-color: gtv($theme, greenyColour);
+					background-color: gtv($theme, yellowColour);
 				};
 
 				transition: all .2s ease-out;
