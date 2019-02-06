@@ -34,6 +34,7 @@
     "#DirectConnect_Connect": "Connect",
     "#DirectConnect_LastPlayed": "Last played",
     "#ServerDetail_Players": "Players",
+	"#ServerDetail_Resources": "Resources",
     "#ServerDetail_PlayersEmpty": "No online players on this server.",
     "#ServerDetail_Back": "Back",
     "#ServerDetail_AddFavorite": "Favorite",
