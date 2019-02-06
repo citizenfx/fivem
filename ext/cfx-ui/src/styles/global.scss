@@ -95,7 +95,7 @@ button {
 	@include themeNoHost() using ($theme) {
 		color: gtv($theme, fgColour);
 		text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .8);
-		background: darken(gtv($theme, greenyColour), 10%);
+		background: darken(gtv($theme, yellowColour), 5%);
 	};
 
 	font-size: 1.03rem;
@@ -107,8 +107,8 @@ button {
 
 	&:hover {
 		@include themeNoHost() using ($theme) {
-			background: gtv($theme, greenyColour);
-			box-shadow: 0 5px 25px darken(gtv($theme, greenyColour), 10%);
+			background: gtv($theme, yellowColour);
+			box-shadow: 0 5px 25px darken(gtv($theme, yellowColour), 10%);
 		};
 	}
 
