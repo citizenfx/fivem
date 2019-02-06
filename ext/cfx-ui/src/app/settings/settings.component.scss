@@ -138,8 +138,8 @@
 						content: '✓';
 
 						@include theme() using ($theme) {
-							background: gtv($theme, greenyColour);
-							box-shadow: 0 0 25px darken(gtv($theme, greenyColour), 10%);
+							background: gtv($theme, yellowColour);
+							box-shadow: 0 0 25px darken(gtv($theme, yellowColour), 10%);
 							text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .5);
 						};
 					}
