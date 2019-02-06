@@ -16,7 +16,10 @@ $columns: (
 		overflow: hidden;
 		text-overflow: ellipsis;
 
-		color: $textColour;
+		@include theme() using ($theme) {
+			color: gtv($theme, textColour);
+		};
+		
 		text-align: right;
 	}
 }

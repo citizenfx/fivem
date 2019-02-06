@@ -1,28 +1,34 @@
 @import "variables";
 @import "./server-listing-shared.scss";
 
-:host.pinned {
-	.server-list-item {
-		margin-top: $padding/3;
-		box-shadow: 0 0 0 100px rgba($greenyColour, .25) inset;
-	}
-}
+@include themeHostWorkaround() using ($theme) {
+	&.pinned {
+		.server-list-item {
+			margin-top: $padding/3;
 
-@keyframes fadeIn { 
+			box-shadow: 0 0 0 100px rgba(gtv($theme, greenyColour), .25) inset;
+		}
+	}
+};
+
+/*@keyframes fadeIn { 
 	from { text-shadow: 0 0 5px $blueColour; }
 	to { text-shadow: 0 0 0 $blueColour; }
-}
+}*/
 
-:host.platinum {
-	.server-list-item {
-		margin-top: $padding/3;
-		box-shadow: 0 0 0 100px rgba($redColour, .25) inset;
+@include themeHostWorkaround() using ($theme) {
+	&.platinum {
+		.server-list-item {
+			margin-top: $padding/3;
 
-		/*.name {
-			animation: fadeIn 1s infinite alternate ease-in-out;
-		}*/
+			box-shadow: 0 0 0 100px rgba(gtv($theme, redColour), .25) inset;
+
+			/*.name {
+				animation: fadeIn 1s infinite alternate ease-in-out;
+			}*/
+		}
 	}
-}
+};
 
 /*:host.argentum {
 	.server-list-item {
@@ -31,22 +37,27 @@
 	}
 }*/
 
-:host.aurum {
-	.server-list-item {
-		margin-top: $padding/3;
-		box-shadow: 0 0 0 100px rgba($yellowColour, .25) inset;
-	}
-}
+@include themeHostWorkaround() using ($theme) {
+	&.aurum {
+		.server-list-item {
+			margin-top: $padding/3;
 
-:host:nth-child(odd) {
-	.server-list-item {
-		background-color: rgba(darken($bgColour, 10%), .1);
-
-		&:hover {
-			background-color: rgba(darken($bgColour, 10%), .4);
+			box-shadow: 0 0 0 100px rgba(gtv($theme, yellowColour), .25) inset;
 		}
 	}
-}
+};
+
+@include themeHostWorkaround() using ($theme) {
+	&:nth-child(odd) {
+		.server-list-item {
+			background-color: rgba(darken(gtv($theme, bgColour), 10%), .1);
+
+			&:hover {
+				background-color: rgba(darken(gtv($theme, bgColour), 10%), .4);
+			}
+		}
+	}
+};
 
 .server-list-item {
 	position: relative;
@@ -61,13 +72,17 @@
 	cursor: default;
 	user-select: none;
 
-	font-weight: lighter;
+	font-weight: 350;
 	margin-top: $padding/3;
 
-	background-color: rgba($bgColour, .0);
+	@include theme() using ($theme) {
+		background-color: rgba(gtv($theme, bgColour), .0);
+	};
 
 	&:hover {
-		background-color: rgba($bgColour, .4);
+		@include theme() using ($theme) {
+			background-color: rgba(gtv($theme, bgColour), .4);
+		};
 
 		.actions button {
 			opacity: 1;
@@ -100,7 +115,10 @@
 	.name {
 		text-align: left;
 		padding: 0 $padding*$multiplier*0.5;
-		color: $secondaryColour;
+
+		@include theme() using ($theme) {
+			color: gtv($theme, secondaryColour);
+		};
 	}
 
 	.actions {
@@ -110,7 +128,11 @@
 			background: transparent;
 			border: none;
 			outline: none;
-			color: $textColour;
+
+			@include theme() using ($theme) {
+				color: gtv($theme, textColour);
+			};
+
 			padding-top: 0.5vh;
 			height: $appServersItemHeight;
 			opacity: 0;
@@ -130,7 +152,10 @@
 
 			&.active {
 				opacity: 1;
-				color: $greenyColour;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, greenyColour);
+				};
 			}
 		}
 	}

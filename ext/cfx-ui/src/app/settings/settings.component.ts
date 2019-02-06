@@ -14,11 +14,13 @@ export class SettingsComponent implements OnInit {
     localhostPort = '30120';
     devMode = false;
     currentAccount: any = null;
+    darkTheme = false;
 
     constructor(private gameService: GameService, private discourseService: DiscourseService) {
         gameService.nicknameChange.subscribe(value => this.nickname = value);
         gameService.devModeChange.subscribe(value => this.devMode = value);
         gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
+        gameService.darkThemeChange.subscribe(value => this.darkTheme = value);
 
         discourseService.signinChange.subscribe(user => this.currentAccount = user);
     }
@@ -27,6 +29,7 @@ export class SettingsComponent implements OnInit {
         this.nickname = this.gameService.nickname;
         this.devMode = this.gameService.devMode;
         this.localhostPort = this.gameService.localhostPort;
+        this.darkTheme = this.gameService.darkTheme;
         this.currentAccount = this.discourseService.currentUser;
     }
 
@@ -36,6 +39,10 @@ export class SettingsComponent implements OnInit {
 
     toggleDevMode() {
         this.gameService.devMode = !this.devMode;
+    }
+
+    toggleDarkTheme() {
+        this.gameService.darkTheme = !this.darkTheme;
     }
 
     localhostPortChanged(newPort) {

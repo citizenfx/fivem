@@ -35,12 +35,17 @@ $itemHeight: $appNavHeight*.5;
 
 		height: $itemHeight;
 
-		color: $textColour;
+		@include theme() using ($theme) {
+			color: gtv($theme, textColour);
+		};
 
 		svg {
 			width: $itemHeight;
 			height: $itemHeight;
-			fill: $textColour;
+
+			@include theme() using ($theme) {
+				fill: gtv($theme, textColour);
+			};
 		}
 	}
 
@@ -55,11 +60,16 @@ $itemHeight: $appNavHeight*.5;
 		cursor: pointer;
 
 		&:hover svg {
-			fill: rgba($secondaryColour, .8);
+			@include theme() using ($theme) {
+				fill: rgba(gtv($theme, secondaryColour), .8);
+			};
 		}
 
 		svg {
-			fill: rgba($secondaryColour, .5);
+			@include theme() using ($theme) {
+				fill: rgba(gtv($theme, secondaryColour), .5);
+			};
+
 			width: 20px;
 			height: 20px;
 
@@ -81,23 +91,32 @@ $itemHeight: $appNavHeight*.5;
 			padding-top: $padding*2;
 			padding-left: $padding*3;
 
-			color: $textColour;
-			font-weight: 100;
-			font-size: $fontSize*$fontSizeMult;
-			line-height: 1;
+			@include theme() using ($theme) {
+				color: gtv($theme, textColour);
 
-			border-left: solid .1px rgba($textColour, .25);
+				font-weight: 100;
+				font-size: $fontSize*$fontSizeMult;
+				line-height: 1;
+
+				border-left: solid .1px rgba(gtv($theme, textColour), .25);
+			};
 
 			svg {
 				vertical-align: baseline;
 				width: 1.8vh;
 				height: 1.8vh;
-				stroke: rgba($fgColour, .5);
+
+				@include theme() using ($theme) {
+					stroke: rgba(gtv($theme, fgColour), .5);
+				};
+
 				fill: none;
 			}
 			
 			.steam {
-				stroke: rgba($greenyColour, .9);
+				@include theme() using ($theme) {
+					stroke: rgba(gtv($theme, greenyColour), .9);
+				};
 			}
 		}
 
@@ -118,7 +137,10 @@ $itemHeight: $appNavHeight*.5;
 			font-weight: 500;
 			line-height: 1;
 			text-align: center;
-			color: rgba($textColour, .7);
+
+			@include theme() using ($theme) {
+				color: rgba(gtv($theme, textColour), .7);
+			};
 
 			transition: all .2s ease;
 
@@ -151,19 +173,28 @@ $itemHeight: $appNavHeight*.5;
 				height: 4px;
 
 				border-radius: 2px;
-				background-color: $greenyColour;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, greenyColour);
+				};
 
 				transition: all .2s ease-out;
 			}
 
 			&.active {
-				color: darken($secondaryColour, 20%);
+				@include theme() using ($theme) {
+					color: darken(gtv($theme, secondaryColour), 20%);
+				};
 			}
 
 			&.active::after,
 			&.active:hover::after {
 				bottom: -2px;
-				box-shadow: 0 0 10px darken($greenyColour, 5%);
+
+				@include theme() using ($theme) {
+					/*box-shadow: 0 0 10px darken(gtv($theme, greenyColour), 5%);*/
+				};
+
 				opacity: 1;
 			}
 

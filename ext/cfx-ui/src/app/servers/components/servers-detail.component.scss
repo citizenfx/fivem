@@ -31,7 +31,9 @@
         margin-bottom: $padding;
         padding: $padding $padding*$multiplier;
 
-        border-top: rgba($bgColour, .3) 1px solid;
+        @include theme() using ($theme) {
+            border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
+        };
 
         &:first-of-type {
             border-top: none;
@@ -126,7 +128,9 @@
                 .key {
                     display: inline-block;
                     font-weight: 100;
-                    color: $textColour;
+                    @include theme() using ($theme) {
+                        color: gtv($theme, textColour);
+                    };
                     width: 15%;
                 }
             }

@@ -7,6 +7,7 @@
 	@include appContent;
 
     overflow-y: scroll;
+}
 
     .setting {
         display: flex;
@@ -23,13 +24,18 @@
 			width: 50%/$multiplier;
 			padding: $padding $padding*$multiplier;
 			margin-right: $padding/4;
-			background-color: rgba($bgColour, .2);
+
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, bgColour), .2);
+			};
         }
 
         .value {
             flex-grow: 1;
 
-            background: rgba($bgColour, .2);
+			@include theme() using ($theme) {
+				background: rgba(gtv($theme, bgColour), .2);
+			};
 
             &>* {
                 width: 100%;
@@ -40,7 +46,9 @@
 
                 &:hover,
                 &:focus {
-                    background: rgba($bgColour, .2);
+					@include theme() using ($theme) {
+						background: rgba(gtv($theme, bgColour), .2);
+					};
                 }
 			}
 			
@@ -57,14 +65,18 @@
 
 				transition: all .2s ease;
 
-				color: $secondaryColour;
+				@include theme() using ($theme) {
+					color: gtv($theme, secondaryColour);
+				};
 			}
 
             .checkbox {
 				position: relative;
 				flex-grow: 1;
 
-				color: $secondaryColour;
+				@include theme() using ($theme) {
+					color: gtv($theme, secondaryColour);
+				};
 
 				&:last-child {
 					margin-right: 0;
@@ -81,7 +93,7 @@
 					display: block;
                     width: 100%;
 
-                    //color: rgba($fgColour, .5);
+                    //color: rgba(gtv($theme, fgColour), .5);
                     font-size: 1.4rem;
 					font-weight: 100;
 					line-height: 1;
@@ -106,25 +118,32 @@
 						line-height: 1;
 						text-align: center;
 
-						background-color: rgba($bgColour, .5);
+						@include theme() using ($theme) {
+							background-color: rgba(gtv($theme, bgColour), .5);
+						};
+
 						color: white;
 						transition: all .2s ease;						
 					}
 				}
 
 				&:hover label {
-					background-color: rgba($bgColour, .2);
+					@include theme() using ($theme) {
+						background-color: rgba(gtv($theme, bgColour), .2);
+					};
 				}
 
 				input:checked + label {
 					&::before {
 						content: '✓';
-						background: $greenyColour;
-						box-shadow: 0 0 25px darken($greenyColour, 10%);
-						text-shadow: 0 0 2px rgba($bgColour, .5);
+
+						@include theme() using ($theme) {
+							background: gtv($theme, greenyColour);
+							box-shadow: 0 0 25px darken(gtv($theme, greenyColour), 10%);
+							text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .5);
+						};
 					}
 				}
 			}
         }
     }
-}

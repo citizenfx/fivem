@@ -1,5 +1,9 @@
 @import "variables";
 
+@include themeIsHost() using ($theme) {
+	color: gtv($theme, fgColour);
+};
+
 .app-root {
 	display: flex;
 	position: relative;
@@ -41,3 +45,26 @@
 		height: calc(100vh - 4vh - 5.5vh - 200px) !important;
 	}
 }
+
+$blurSize: 20px;
+
+#bg {
+	z-index: 1;
+
+	position: fixed;
+	top: -($blurSize*2);
+	left: -($blurSize*2);
+	bottom: -($blurSize*2);
+	right: -($blurSize*2);
+
+	transform: translate3d(0, 0, 0);
+
+	background:
+		transparent center center/cover no-repeat;
+}
+
+@include themeIsHost() using ($theme) {
+	#bg {
+		background-image: gtv($theme, backgroundImage);
+	}
+};

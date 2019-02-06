@@ -17,6 +17,25 @@
 
 <section class="setting">
 	<div class="key">
+		<div>"Dark" "theme"</div>
+	</div>
+	<div class="value">
+		<div class="checkbox">
+			<input
+				type="checkbox"
+				id="dark-theme"
+				[checked]="darkTheme"
+				(change)="toggleDarkTheme()"
+			>
+			<label for="dark-theme">
+				Makes the interface use a "dark" "theme"
+			</label>
+		</div>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
 		<div>Dev mode</div>
 	</div>
 	<div class="value">

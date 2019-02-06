@@ -1,13 +1,18 @@
 @import "variables";
 
+:host {
+	@include theme() using ($theme) {
+		color: gtv($theme, textColour);
+	};
+
+	@include appContent;
+}
+
 .home {
 	display: flex;
 	justify-content: flex-end;
 
-	color: $textColour;
 	font-weight: 100;
-
-	@include appContent;
 
 	iframe {
 		width: 20%;
@@ -26,17 +31,20 @@
 
 	.welcome {
 		flex-grow: 1;
-		margin-right: $padding/4;
 		height: $appContentHeight;
 
 		font-weight: normal;
 
 		&>div {
 			padding: $padding;
+			padding-right: $padding/4;
 
 			margin-bottom: $padding/4;
 
-			background-color: rgba($bgColour, .2);
+			@include theme() using ($theme) {
+				border-bottom: rgba(gtv($theme, bgColour), .3) 1px solid;
+			};
+
 			border-radius: 1px;
 			transition: all .2s ease;
 
@@ -57,7 +65,11 @@
 			}
 
 			&.oi {
-				background-color: rgba($yellowColour, .2);
+				@include theme() using ($theme) {
+					background-color: rgba(gtv($theme, yellowColour), .2);
+				};
+
+				border-bottom: none;
 			}
 		}
 	}
@@ -65,6 +77,10 @@
 	.feed {
 		position: relative;
 		width: 35%;
+
+		@include theme() using ($theme) {
+			border-left: rgba(gtv($theme, bgColour), .3) 1px solid;
+		};
 
 		height: $appContentHeight;
 	}

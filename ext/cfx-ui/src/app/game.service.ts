@@ -38,6 +38,7 @@ export abstract class GameService {
 	infoMessage = new EventEmitter<string>();
 
 	devModeChange = new EventEmitter<boolean>();
+	darkThemeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
 	localhostPortChange = new EventEmitter<string>();
 
@@ -59,6 +60,14 @@ export abstract class GameService {
 
 	set devMode(value: boolean) {
 
+	}
+
+	get darkTheme(): boolean {
+		return false;
+	}
+
+	set darkTheme(value: boolean) {
+		
 	}
 
 	get localhostPort(): string {
@@ -140,6 +149,10 @@ export abstract class GameService {
 	protected invokeDevModeChanged(value: boolean) {
 		this.devModeChange.emit(value);
 	}
+
+	protected invokeDarkThemeChanged(value: boolean) {
+		this.darkThemeChange.emit(value);
+	}
 	
 	protected invokeLocalhostPortChanged(port: string) {
 		this.localhostPortChange.emit(port);
@@ -158,6 +171,7 @@ export class ServerHistoryEntry {
 @Injectable()
 export class CfxGameService extends GameService {
 	private _devMode = false;
+	private _darkTheme = false;
 
 	private lastServer: Server;
 
@@ -258,6 +272,10 @@ export class CfxGameService extends GameService {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
+		if (localStorage.getItem('darkTheme')) {
+			this._darkTheme = localStorage.getItem('darkTheme') === 'yes';
+		}
+
 		if (localStorage.getItem('localhostPort')) {
 			this._localhostPort = localStorage.getItem('localhostPort');
 		}		
@@ -311,6 +329,16 @@ export class CfxGameService extends GameService {
 		this.invokeNicknameChanged(name);
 
 		(<any>window).invokeNative('checkNickname', name);
+	}
+
+	get darkTheme(): boolean {
+		return this._darkTheme;
+	}
+
+	set darkTheme(value: boolean) {
+		this._darkTheme = value;
+		localStorage.setItem('darkTheme', value ? 'yes' : 'no');
+		this.invokeDarkThemeChanged(value);
 	}
 
 	get devMode(): boolean {
@@ -472,6 +500,7 @@ export class CfxGameService extends GameService {
 @Injectable()
 export class DummyGameService extends GameService {
 	private _devMode = false;
+	private _darkTheme = false;
 	private _localhostPort = '';
 	private pinExample = '';
 

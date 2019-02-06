@@ -11,11 +11,16 @@
 	right: 0;
     height: $appServersItemHeight * 1.2;
 
-	background: rgba($bgColour, .5);
+	@include theme() using ($theme) {
+		background: rgba(gtv($theme, bgColour), .5);
+	};
+
 	backdrop-filter: blur(5px);
 	border-radius: 1px;
 
 	z-index: 20;
+
+	font-weight: 350;
 
 	div {
 		height: $appServersItemHeight * 1.2;
@@ -23,7 +28,10 @@
 		font-weight: normal;
 		line-height: $appServersItemHeight * 1.2;
 
-		color: $textColour;
+		@include theme() using ($theme) {
+			color: gtv($theme, textColour);
+		};
+
 		text-transform: lowercase;
 
 		cursor: default;
@@ -35,7 +43,9 @@
 		}
 
 		&:hover {
-			background-color: rgba($bgColour, .2);
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, bgColour), .2);
+			};
 		}
 
 		&.name {

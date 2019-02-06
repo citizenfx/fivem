@@ -25,19 +25,29 @@
 		opacity: 1;
 		will-change: backdrop-filter;
 		backdrop-filter: blur(5px);
-		background-color: rgba($bgColour, .5);
+
+		@include theme() using ($theme) {
+			background-color: rgba(gtv($theme, bgColour), .5);
+		};
+		
 		pointer-events: inherit;
 	}
 
 	&>div {
-		background-color: rgba($bgColour, .75);
+		@include theme() using ($theme) {
+			background-color: rgba(gtv($theme, bgColour), .75);
+		};
+
 		border-radius: 1px;
 
 		width: 60%;
 
 		&.withBg {
 			box-shadow: #000 0px 0px 75px;
-			background-color: rgba($bgColour, 1);
+
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, bgColour), 1);
+			};
 		}
 
 		&>section {
@@ -90,7 +100,10 @@
 		}
 
 		p {
-			color: $textColour;
+			@include theme() using ($theme) {
+				color: gtv($theme, textColour);
+			};
+
 			user-select: text;
 			white-space: pre-line;
 		}

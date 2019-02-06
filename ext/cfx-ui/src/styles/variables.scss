@@ -18,14 +18,82 @@ $appServersHeaderHeight: $appServersItemHeight;
 
 $filterHeight: 5.5vh;
 
-$bgColour: /*hsl(222, 23%, 71%);*/ #93a1a1;
-$fgColour: rgb(40, 40, 40);
-$secondaryColour: rgb(60, 60, 60);
-$greenyColour: rgb(244, 180, 62);
-$yellowColour: hsl(53, 100%, 50%);
-$redColour: hsl(30, 100%, 40%);
-$blueColour: hsl(180, 100%, 40%);
-$textColour: rgb(40, 40, 40);
+$colorsLight: (
+    bgColour: #93a1a1,
+    fgColour: rgb(40, 40, 40),
+    secondaryColour: rgb(60, 60, 60),
+    greenyColour: rgb(244, 180, 62),
+    yellowColour: hsl(53, 100%, 50%),
+    redColour: hsl(30, 100%, 40%),
+    blueColour: hsl(180, 100%, 40%),
+    textColour: rgb(40, 40, 40),
+    acrylicBlur: url(#acrylicBlur),
+    backgroundImage: url(../assets/images/bg.jpg)
+);
+
+$colorsDark: (
+    bgColour: rgb(40, 40, 40),
+    fgColour: rgb(255, 255, 255),
+    secondaryColour: rgb(240, 240, 240),
+    greenyColour: rgb(244, 180, 62),
+    yellowColour: hsl(53, 100%, 50%),
+    redColour: hsl(30, 100%, 40%),
+    blueColour: hsl(180, 100%, 40%),
+    textColour: rgb(240, 240, 240),
+    acrylicBlur: url(#acrylicBlurDark),
+    backgroundImage: url(../assets/images/bg-night.jpg)
+);
+
+$themeLight: (
+    name: light,
+    data: $colorsLight
+);
+
+$themeDark: (
+    name: dark,
+    data: $colorsDark
+);
+
+$themes: $themeLight $themeDark;
+
+@function gtv($theme, $name) {
+    @return map-get(
+        map-get($theme, data),
+        $name
+    );
+}
+
+@mixin theme() {
+    @each $theme in $themes {
+        :host-context(.theme-#{map-get($theme, name)}) & {
+            @content ($theme);
+        }
+    }
+}
+
+@mixin themeHostWorkaround() {
+    @each $theme in $themes {
+        :host-context(.theme-#{map-get($theme, name)}) {
+            @content ($theme);
+        }
+    }
+}
+
+@mixin themeNoHost() {
+    @each $theme in $themes {
+        .theme-#{map-get($theme, name)} & {
+            @content ($theme);
+        }
+    }
+}
+
+@mixin themeIsHost() {
+    @each $theme in $themes {
+        &.theme-#{map-get($theme, name)} {
+            @content ($theme);
+        }
+    }
+}
 
 @mixin fullWidthPadded($extraPadding: $padding*4) {
     width: calc(#{$width} - #{$extraPadding});
@@ -54,12 +122,18 @@ $textColour: rgb(40, 40, 40);
         content: '';
         width: 100%;
         height: 100%;
+        top: 0px;
+        left: 0px;
 
         position: absolute;
         z-index: -999;
 
         transform: scale(1.1);
-
-        backdrop-filter: url(#acrylicBlur);
     }
+
+    @include themeHostWorkaround() using ($theme) {
+        &:after {
+            backdrop-filter: gtv($theme, acrylicBlur);
+        }
+    };
 }

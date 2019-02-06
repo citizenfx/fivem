@@ -26,13 +26,20 @@ export class AppComponent extends Translation {
 		this.translation.init();
 
 		this.gameService.init();
+
+		this.gameService.darkThemeChange.subscribe(value => {
+			this.classes[1] = (value) ? 'theme-dark' : 'theme-light'
+		});
 	}
 
 	ngOnInit() {
 		this.classes = [
-			environment.web ? 'webapp' : 'gameapp'
+			environment.web ? 'webapp' : 'gameapp',
+			(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light'
 		];
 	}
+
+
 
 	classes: string[];
 }
