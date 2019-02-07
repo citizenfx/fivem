@@ -61,7 +61,8 @@ export class HomeComponent implements OnInit {
         'Three things are certain in life: death, taxes, and FiveM breaking your game.',
         '3 years and still no point at button.',
         'But.. I thought FiveM had an office?',
-        'Eww!'
+        'Eww!',
+        'Five meters. That is a distance.'
     ];
 
     welcomeMessage: any;

@@ -139,7 +139,7 @@ $itemHeight: $appNavHeight*.5;
 			text-align: center;
 
 			@include theme() using ($theme) {
-				color: rgba(gtv($theme, textColour), .7);
+				color: rgba(gtv($theme, textColour), .9);
 			};
 
 			transition: all .2s ease;

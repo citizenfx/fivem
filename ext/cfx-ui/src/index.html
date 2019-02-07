@@ -31,14 +31,14 @@
 			
 			<feComposite in="tintColor" in2="excluded" operator="over" result="composite" />
 			
-			<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
-			<!--<feTile in="noise" result="noiseTile" />-->
+			<!--<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
+			<feTile in="noise" result="noiseTile" />
 			<feComponentTransfer result="noiseOpacity" in="noise">
 				<feFuncA type="linear" slope="0.02" />
 			</feComponentTransfer>
 
 		
-			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />
+			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />-->
 			<!---->
 			<!-- feTile doesn't work yet in Chrome for backdrop-filter -->
 		</filter>
@@ -56,14 +56,14 @@
 			
 			<feComposite in="tintColor" in2="excluded" operator="over" result="composite" />
 			
-			<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
-			<!--<feTile in="noise" result="noiseTile" />-->
+			<!--<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
+			<feTile in="noise" result="noiseTile" />
 			<feComponentTransfer result="noiseOpacity" in="noise">
 				<feFuncA type="linear" slope="0.02" />
 			</feComponentTransfer>
 
 		
-			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />
+			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />-->
 			<!---->
 			<!-- feTile doesn't work yet in Chrome for backdrop-filter -->
 		</filter>

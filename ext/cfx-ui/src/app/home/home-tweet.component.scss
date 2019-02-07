@@ -1,10 +1,6 @@
 @import "variables";
 
 :host {
-    @include theme() using ($theme) {
-        border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
-    };
- 
     border-radius: 1px;
     transition: all .2s ease;
 
@@ -33,25 +29,27 @@
     }
     
     &:hover {
-        @include theme() using ($theme) {
-            border-top: rgba(gtv($theme, bgColour), .5) 1px solid;
-        };
-    
         .additional {
             opacity: 1;
             padding-left: 5px;
         }
     }
 
-    &:first-of-type {
-        border-top: 0px;
-    }
+    @include themeHostWorkaround() using ($theme) {
+        border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
 
-    &:hover + ::ng-deep * {
-        @include theme() using ($theme) {
+        &:first-of-type {
+            border-top: 0px;
+        }
+
+        &:hover + ::ng-deep * {
             border-top: rgba(gtv($theme, bgColour), .5) 1px solid;
-        };
-    }
+        }
+
+        &:hover {
+            border-top: rgba(gtv($theme, bgColour), .5) 1px solid;
+        }
+    };
     
     .backdroppy {
         padding: $padding $padding $padding $padding*2+4vh;

@@ -17,6 +17,7 @@
 
 :host {
     display: flex;
+    overflow: hidden;
     
     @include appContent;
     padding-bottom: $appContentPadding;
@@ -27,13 +28,16 @@
         user-select: text;
     }
 
+
+    @include themeHostWorkaround() using ($theme) {
+        &>div {
+            border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
+        }
+    };
+
     &>div {
         margin-bottom: $padding;
         padding: $padding $padding*$multiplier;
-
-        @include theme() using ($theme) {
-            border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
-        };
 
         &:first-of-type {
             border-top: none;
@@ -84,6 +88,10 @@
         &.info {
             position: relative;
             padding-left: calc(128px + #{$padding*$multiplier + $padding});
+
+            &.withBanner {
+                padding-left: $padding;
+            }
 
             .bg {
                 position: absolute;
@@ -144,15 +152,38 @@
                 transition: opacity .4s;
             }
 
+            position: relative;
+            
+            .count {
+                position: absolute;
+                right: 0;
+                bottom: 0;
+
+                z-index: -1;
+            }
+
             &.player-list {
-                overflow: auto;
-                flex: 1;
+                overflow: hidden;
+                min-height: min-content;
+
+                flex-grow: 1;
+
+                .count {
+                    bottom: -($padding * 2);
+                }
+
+                h1 {
+                    font-size: 1.5em;
+                }
 
                 ::ng-deep figure, ::ng-deep span {
                     display: inline-block;
                     vertical-align: middle;
 
                     line-height: $fontSize * 1.1;
+
+                    text-overflow: ellipsis;
+                    overflow-x: hidden;
 
                     img {
                         height: $fontSize * 1.2;
@@ -170,9 +201,10 @@
                 }
 
                 ul {
-                    list-style-type: none;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(20%, 1fr));
 
-                    column-count: 5;
+                    list-style-type: none;
 
                     li {
                         margin-bottom: $padding * 0.25;
@@ -182,7 +214,26 @@
 
             &.resource-list {
                 overflow: hidden;
+
+                min-height: $fontSize * 5;
+
+                display: flex;
+                flex-direction: column;
+
+                &>p {
+                    overflow: scroll;
+                    flex-grow: 1;
+                }
+
+                flex-shrink: 1;
             }
         }
     }
+
+    @include themeHostWorkaround() using($theme) {
+        &>div.info .count {
+            color: rgba(gtv($theme, fgColour), .2);
+            font-size: $fontSize*5;
+        }
+    };
 }

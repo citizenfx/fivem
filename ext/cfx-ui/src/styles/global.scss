@@ -114,11 +114,11 @@ button {
 
 	&.unimportant {
 		@include themeNoHost() using ($theme) {
-			background: gtv($theme, bgColour);
+			background: lighten(gtv($theme, bgColour), 15%);
 
 			&:hover {
-				background: lighten(gtv($theme, bgColour), 10%);
-				box-shadow: 0 5px 25px lighten(gtv($theme, bgColour), 10%);
+				background: lighten(gtv($theme, bgColour), 25%);
+				box-shadow: 0 5px 25px lighten(gtv($theme, bgColour), 25%);
 			}
 		};
 	}
