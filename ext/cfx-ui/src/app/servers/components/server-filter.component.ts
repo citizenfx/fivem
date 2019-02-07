@@ -22,6 +22,15 @@ export class ServerFilters {
     }
 }
 
+export class ServerTags {
+    public tagList: {[key: string]: boolean};
+}
+
+export class ServerFilterContainer {
+    public filters: ServerFilters;
+    public tags: ServerTags;
+}
+
 class ServerAutocompleteEntry {
     public name = '';
     public description = '';

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnChanges, Input, NgZone } from '@angular/core';
 import { Server, PinConfig } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
-import { ServerFilters } from './server-filter.component';
+import { ServerFilterContainer } from './server-filter.component';
 import { Subject } from 'rxjs/Subject';
 import { environment } from '../../../environments/environment';
 
@@ -18,7 +18,7 @@ export class ServersListComponent implements OnInit, OnChanges {
     private servers: Server[];
 
     @Input()
-    private filters: ServerFilters;
+    private filters: ServerFilterContainer;
 
     @Input()
     private pinConfig: PinConfig;
@@ -112,7 +112,8 @@ export class ServersListComponent implements OnInit, OnChanges {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    private buildSearchMatch(filters: ServerFilters) {
+    private buildSearchMatch(filterList: ServerFilterContainer) {
+        const filters = filterList.filters;
         const searchText = filters.searchText;
         const filterFns: ((server: Server) => boolean)[] = [];
 
@@ -200,15 +201,45 @@ export class ServersListComponent implements OnInit, OnChanges {
         };
     }
 
-    getFilter(filters: ServerFilters): (server: Server) => boolean {
-        const nameMatchCallback = this.buildSearchMatch(filters);
+    getFilter(filterList: ServerFilterContainer): (server: Server) => boolean {
+        const nameMatchCallback = this.buildSearchMatch(filterList);
+        const filters = filterList.filters;
+
+        const hiddenByTags = (server: Server) => {
+            if (filterList.tags) {
+                const tags =
+                    (server && server.data && server.data.vars && server.data.vars.tags) ?
+                        (<string>server.data.vars.tags)
+                            .split(',')
+                            .map(a => a.trim().toLowerCase())
+                            .filter(a => a)
+                        :
+                            [];
+
+                const tagSet = new Set<string>(tags);
+
+                for (const [ tag, active ] of Object.entries(filterList.tags.tagList)) {
+                    if (active) {
+                        if (!tagSet.has(tag)) {
+                            return true;
+                        }
+                    } else {
+                        if (tagSet.has(tag)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        };
 
         return (server) => {
             if (!nameMatchCallback(server)) {
                 return false;
             }
 
-            if (server.currentPlayers == 0 && filters.hideEmpty) {
+            if (server.currentPlayers === 0 && filters.hideEmpty) {
                 if (!this.isPinned(server) || !this.pinConfig.pinIfEmpty) {
                     return false;
                 }
@@ -218,8 +249,14 @@ export class ServersListComponent implements OnInit, OnChanges {
                 return false;
             }
 
-            if (filters.capPing && (server.ping > filters.maxPing || typeof server.ping == 'string')) {
+            if (filters.capPing && (server.ping > filters.maxPing || typeof server.ping === 'string')) {
                 return false;
+            }
+
+            if (filterList.tags.tagList) {
+                if (hiddenByTags(server)) {
+                    return false;
+                }
             }
 
             return true;

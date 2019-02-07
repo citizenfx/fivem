@@ -4,6 +4,7 @@
 	</aside>
 
 	<article>
+		<app-server-tag-filter [type]="type" (tagsChanged)="setTags($event)"></app-server-tag-filter>
 		<servers-list [servers]="serversArray" [filters]="filters" [pinConfig]="pinConfig"></servers-list>
 	</article>
 

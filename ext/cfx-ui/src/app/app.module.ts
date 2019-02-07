@@ -28,6 +28,7 @@ import {ServersListComponent} from './servers/components/servers-list.component'
 import {ServersListItemComponent} from './servers/components/servers-list-item.component';
 import {ServersListHeaderComponent} from './servers/components/servers-list-header.component';
 import {ServerFilterComponent} from './servers/components/server-filter.component';
+import {ServerTagFilterComponent} from './servers/components/server-tag-filter.component';
 import {ServersDetailComponent} from './servers/components/servers-detail.component';
 import {PlayerAvatarComponent} from './servers/components/player-avatar.component';
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
@@ -70,6 +71,7 @@ const l10nConfig: L10nConfig = {
 		ServersListItemComponent,
 		ServersListHeaderComponent,
 		ServerFilterComponent,
+		ServerTagFilterComponent,
 		ServersDetailComponent,
 		DirectConnectComponent,
 		PlayerAvatarComponent,

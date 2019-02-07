@@ -48,6 +48,7 @@
 
             position: relative;
 
+            min-height: 10vh;
 			height: 15vh;
 
 			&>div {
@@ -202,12 +203,18 @@
 
                 ul {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(20%, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(12.5%, 1fr));
 
                     list-style-type: none;
 
                     li {
                         margin-bottom: $padding * 0.25;
+                        max-width: 100%;
+
+                        white-space: nowrap;
+
+                        overflow-x: hidden;
+                        text-overflow: ellipsis;
                     }
                 }
             }

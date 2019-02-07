@@ -85,6 +85,13 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
             }
         };
 
+        this.filterFuncs['tags'] = (pair) => {
+            return {
+                key: '#ServerList_Tags',
+                value: pair.value
+            };
+        };
+
         this.route.params.subscribe(params => {
             this.currentAddr = params['addr'];
 

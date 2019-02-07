@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { Server, ServerIcon, PinConfig } from '../server';
 import { ServersService } from '../servers.service';
-import { ServerFilters } from './server-filter.component';
+import { ServerFilters, ServerFilterContainer, ServerTags } from './server-filter.component';
 
 import { GameService } from '../../game.service';
 
@@ -25,12 +25,12 @@ export class ServersContainerComponent implements OnInit {
 
     pinConfig: PinConfig;
 
-    filters: ServerFilters;
+    filters: ServerFilterContainer;
 
     type: string;
 
     constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute) {
-        this.filters = new ServerFilters();
+        this.filters = new ServerFilterContainer();
         this.pinConfig = new PinConfig();
     }
 
@@ -43,7 +43,11 @@ export class ServersContainerComponent implements OnInit {
     }
 
     setFilters(filters: ServerFilters) {
-        this.filters = {...filters};
+        this.filters = {...this.filters, filters};
+    }
+
+    setTags(tags: ServerTags) {
+        this.filters = {...this.filters, tags: { tagList: { ...tags.tagList } }};
     }
 
     loadServers() {

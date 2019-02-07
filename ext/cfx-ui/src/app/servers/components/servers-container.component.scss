@@ -9,28 +9,29 @@
 		width: $width;
 
 		aside {
-			position: absolute;
-			width: 20%;
-			margin-right: $padding;
+			position: relative;
+			width: 100%;
+			height: $filterHeight + $padding;
 		}
 
 		article {
-			position: relative;
-			width: calc(100% - 20% - #{$padding});
-			margin-left: calc(20% + #{$padding});
-		}
+			width: 100%;
+			height: calc(#{$appContentHeight} - #{$filterHeight});
+			margin-left: 0;
 
-		&.vertical {
-			aside {
-				position: relative;
-				width: 100%;
-				height: $filterHeight + $padding;
+			display: flex;
+
+			app-server-tag-filter {
+				width: 20%;
+				margin-right: $padding;
 			}
 
-			article {
-				width: 100%;
-				height: calc(#{$appContentHeight} - #{$filterHeight});
-				margin-left: 0;
+			servers-list {
+				flex-grow: 1;
+			}
+
+			&>* {
+				position: relative;
 			}
 		}
 	}
