@@ -34,6 +34,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     serverVariables: VariablePair[] = [];
     filterFuncs: {[key: string]: (pair: VariablePair) => VariablePair} = {};
     resourceString = '';
+    resourceCount = 0;
     error = '';
     canRefresh = true;
 
@@ -103,9 +104,14 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
         this.serversService.getServer(this.currentAddr)
             .then(a => {
                 this.server = a;
-                this.resourceString = (<string[]>a.data.resources)
-                    .filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager')
+
+                const resources = (<string[]>a.data.resources)
+                    .filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager');
+
+                this.resourceString = resources
                     .join(', ');
+
+                this.resourceCount = resources.length;
 
                 this.serverVariables = Object.entries(a.data.vars as {[key: string]: string })
                     .map(([key, value]) => ( { key, value }) )

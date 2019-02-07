@@ -82,5 +82,5 @@
 	<div class="info resource-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
 		<p>{{ resourceString }}</p>
 
-		<div class="count">{{server.data.resources.length}}</div>
+		<div class="count">{{ resourceCount }}</div>
 	</div>
