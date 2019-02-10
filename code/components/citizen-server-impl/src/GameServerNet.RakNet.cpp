@@ -207,7 +207,7 @@ public:
 		bs.Write((uint8_t)(ID_USER_PACKET_ENUM + 1));
 		bs.Write(reinterpret_cast<const char*>(buffer.GetData().data()), buffer.GetCurOffset());
 		
-		m_peer->Send(&bs, HIGH_PRIORITY, (type == NetPacketType_Reliable) ? RELIABLE_ORDERED : UNRELIABLE, channel, m_peerHandles.left.find(peer)->get_right(), false);
+		m_peer->Send(&bs, HIGH_PRIORITY, (type == NetPacketType_Reliable || type == NetPacketType_ReliableReplayed) ? RELIABLE_ORDERED : UNRELIABLE, channel, m_peerHandles.left.find(peer)->get_right(), false);
 	}
 
 	virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob_, bool prefix) override

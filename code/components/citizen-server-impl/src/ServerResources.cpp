@@ -210,7 +210,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 				});
 			}, 99999999);
 
@@ -234,7 +234,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 				});
 			}, -1000);
 		});

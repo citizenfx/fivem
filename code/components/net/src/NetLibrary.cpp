@@ -116,11 +116,21 @@ void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, i
 	m_serverSlotID = slotID;
 	m_serverTime = serverTime;
 
+	m_reconnectAttempts = 0;
+	m_lastReconnect = 0;
+
 	trace("connectOK, our id %d (slot %d), host id %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
 
 	OnConnectOKReceived(m_currentServer);
 
-	m_connectionState = CS_CONNECTED;
+	if (m_connectionState != CS_ACTIVE)
+	{
+		m_connectionState = CS_CONNECTED;
+	}
+	else
+	{
+		Instance<ICoreGameInit>::Get()->ClearVariable("networkTimedOut");
+	}
 }
 
 bool NetLibrary::GetOutgoingPacket(RoutingPacket& packet)
@@ -367,6 +377,9 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			m_connectionState = CS_CONNECTING;
 			m_lastConnect = 0;
 			m_connectAttempts = 0;
+
+			m_lastReconnect = 0;
+			m_reconnectAttempts = 0;
 		}
 		else if (!_strnicmp(oob, "error", 5))
 		{
@@ -602,6 +615,42 @@ void NetLibrary::RunFrame()
 
 				m_connectionState = CS_IDLE;
 				m_currentServer = NetAddress();
+			}
+			else if (m_impl->IsDisconnected())
+			{
+				if ((GetTickCount() - m_lastReconnect) > 15000)
+				{
+					m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
+
+					m_lastReconnect = GetTickCount();
+
+					m_reconnectAttempts++;
+
+					// advertise status
+					auto specStatus = (m_reconnectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_reconnectAttempts) : "";
+
+					OnReconnectProgress(fmt::sprintf("Connection interrupted!\nReconnecting to server...%s", specStatus));
+				}
+				else if (m_reconnectAttempts == 0)
+				{
+					Instance<ICoreGameInit>::Get()->SetVariable("networkTimedOut");
+
+					OnReconnectProgress("Connection interrupted!\nReconnecting to server SOON!");
+				}
+
+				if (m_reconnectAttempts > 10)
+				{
+					g_disconnectReason = "Connection timed out.";
+					FinalizeDisconnect();
+
+					OnConnectionTimedOut();
+
+					GlobalError("Failed to reconnect to server after 10 attempts.");
+				}
+			}
+			else
+			{
+				m_lastReconnect = GetTickCount();
 			}
 
 			break;
@@ -1125,6 +1174,11 @@ void NetLibrary::SendOutOfBand(const NetAddress& address, const char* format, ..
 	buffer[32767] = '\0';
 
 	SendData(address, buffer, strlen(buffer));
+}
+
+bool NetLibrary::IsPendingInGameReconnect()
+{
+	return (m_connectionState == CS_ACTIVE && m_impl->IsDisconnected());
 }
 
 const char* NetLibrary::GetPlayerName()

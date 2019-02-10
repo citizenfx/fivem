@@ -336,6 +336,11 @@ static hook::cdecl_stub<bool()> isSessionStarted([] ()
 	return hook::pattern("74 0E 83 B9 ? ? 00 00 ? 75 05 B8 01").count(1).get(0).get<void>(-12);
 });
 
+static hook::cdecl_stub<void(int reason, int, int, int, bool)> networkBail([]()
+{
+	return hook::get_pattern("41 8B F1 41 8B E8 8B FA 8B D9 74 26", -0x1B);
+});
+
 static bool(*_isScWaitingForInit)();
 
 #include <HostSystem.h>
@@ -572,6 +577,39 @@ struct
 			{
 				GlobalError("Could not connect to session provider. This may happen when you recently updated, but other players in the server have not. Alternately, the server accepted you, despite being full. Please try again later, or try a different server.");
 				state = HS_IDLE;
+			}
+		}
+		else if (state == HS_HOSTED || state == HS_JOINED)
+		{
+			int playerCount = 0;
+
+			for (int i = 0; i < 256; i++)
+			{
+				// NETWORK_IS_PLAYER_ACTIVE
+				if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
+				{
+					++playerCount;
+				}
+			}
+
+			if (isNetworkHost() && playerCount == 1 && !cgi->OneSyncEnabled && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
+			{
+				state = HS_MISMATCH;
+			}
+		}
+		else if (state == HS_MISMATCH)
+		{
+			cgi->ClearVariable("networkInited");
+
+			networkBail(7, -1, -1, -1, true);
+
+			state = HS_DISCONNECTING;
+		}
+		else if (state == HS_DISCONNECTING)
+		{
+			if (!isSessionStarted())
+			{
+				state = HS_LOADED;
 			}
 		}
 	}
@@ -1756,7 +1794,8 @@ static HookFunction hookFunction([] ()
 
 	// network timeout
 	{
-		*hook::get_address<int*>(hook::get_pattern("BA 2B 2F A8 09 48 8B CF E8", 0x1B)) *= 2.5f;
+		// ADD THIS BACK
+		//*hook::get_address<int*>(hook::get_pattern("BA 2B 2F A8 09 48 8B CF E8", 0x1B)) *= 2.5f;
 	}
 
 	// find autoid descriptors

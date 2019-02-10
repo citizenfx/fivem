@@ -3,6 +3,8 @@
 
 #include <GameServer.h>
 
+#include <CoreConsole.h>
+
 #include <NetAddress.h>
 #include <NetBuffer.h>
 
@@ -129,7 +131,7 @@ namespace fx
 			enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
 
 #ifdef _DEBUG
-			enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
+			//enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
 #endif
 		}
 
@@ -144,7 +146,15 @@ namespace fx
 		GameServerNetImplENet(GameServer* server)
 			: m_server(server), m_basePeerId(1)
 		{
+			static ConsoleCommand cmd("force_enet_disconnect", [this](int peerIdx)
+			{
+				auto peer = m_peerHandles.left.find(peerIdx);
 
+				if (peer != m_peerHandles.left.end())
+				{
+					enet_peer_disconnect(peer->get_right(), 0);
+				}
+			});
 		}
 
 		virtual void Process() override
@@ -165,8 +175,19 @@ namespace fx
 				switch (event.type)
 				{
 				case ENET_EVENT_TYPE_CONNECT:
+				{
+					console::DPrintf("enet", "Peer %s connected to ENet (id %d).\n", GetPeerAddress(event.peer->address).ToString(), m_basePeerId + 1);
+
 					m_peerHandles.left.insert({ ++m_basePeerId, event.peer });
 					break;
+				}
+				case ENET_EVENT_TYPE_DISCONNECT:
+				{
+					console::DPrintf("enet", "Peer %s disconnected from ENet.\n", GetPeerAddress(event.peer->address).ToString());
+
+					m_peerHandles.right.erase(event.peer);
+					break;
+				}
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
 					auto peerId = m_peerHandles.right.find(event.peer)->get_left();
@@ -219,13 +240,27 @@ namespace fx
 
 		virtual void ResetPeer(int peerId) override
 		{
-			enet_peer_reset(m_peerHandles.left.find(peerId)->get_right());
+			auto peerPair = m_peerHandles.left.find(peerId);
+
+			if (peerPair == m_peerHandles.left.end())
+			{
+				return;
+			}
+
+			enet_peer_reset(peerPair->get_right());
 		}
 
 		virtual void SendPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) override
 		{
-			auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetCurOffset(), (type == NetPacketType_Reliable) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0);
-			enet_peer_send(m_peerHandles.left.find(peer)->get_right(), channel, packet);
+			auto peerPair = m_peerHandles.left.find(peer);
+
+			if (peerPair == m_peerHandles.left.end())
+			{
+				return;
+			}
+
+			auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetCurOffset(), (type == NetPacketType_Reliable || type == NetPacketType_ReliableReplayed) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0);
+			enet_peer_send(peerPair->get_right(), channel, packet);
 		}
 
 		virtual void SendOutOfBand(const net::PeerAddress & to, const std::string_view & oob, bool prefix) override

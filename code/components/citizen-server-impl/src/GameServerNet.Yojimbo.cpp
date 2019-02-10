@@ -265,7 +265,7 @@ namespace fx
 				message = m;
 			}
 
-			m_server->SendMessage(peer, (channel * 2) + ((type == NetPacketType_Reliable) ? 1 : 0), message);
+			m_server->SendMessage(peer, (channel * 2) + ((type == NetPacketType_Reliable || type == NetPacketType_ReliableReplayed) ? 1 : 0), message);
 		}
 
 		virtual void SendOutOfBand(const net::PeerAddress& to, const std::string_view & oob, bool prefix) override

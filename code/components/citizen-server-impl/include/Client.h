@@ -8,6 +8,7 @@
 #include <ComponentHolder.h>
 
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_queue.h>
 
 #include <any>
 
@@ -22,7 +23,7 @@ namespace {
 	constexpr const auto CLIENT_DEAD_TIMEOUT = 86400s;
 	constexpr const auto CLIENT_VERY_DEAD_TIMEOUT = 86400s;
 #else
-	constexpr const auto CLIENT_DEAD_TIMEOUT = 10s;
+	constexpr const auto CLIENT_DEAD_TIMEOUT = 60s;
 	constexpr const auto CLIENT_VERY_DEAD_TIMEOUT = 120s;
 #endif
 }
@@ -183,6 +184,23 @@ namespace fx
 			m_syncData = ptr;
 		}
 
+		inline void PushReplayPacket(int channel, const net::Buffer& buffer)
+		{
+			m_replayQueue.push({ buffer, channel });
+		}
+
+		inline void ReplayPackets()
+		{
+			std::tuple<net::Buffer, int> value;
+
+			while (m_replayQueue.try_pop(value))
+			{
+				const auto&[buffer, channel] = value;
+
+				SendPacket(channel, buffer, NetPacketType_Reliable);
+			}
+		}
+
 		const std::any& GetData(const std::string& key);
 
 		void SetData(const std::string& key, const std::any& data);
@@ -235,6 +253,9 @@ namespace fx
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;
+
+		// packets to resend when a new peer connects using this client
+		tbb::concurrent_queue<std::tuple<net::Buffer, int>> m_replayQueue;
 
 		// an arbitrary set of data
 		tbb::concurrent_unordered_map<std::string, std::any> m_userData;

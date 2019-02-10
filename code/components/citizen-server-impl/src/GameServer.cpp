@@ -211,8 +211,19 @@ namespace fx
 		m_net->ResetPeer(peerId);
 	}
 
-	void GameServer::InternalSendPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type)
+	void GameServer::InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type)
 	{
+		// TODO: think of a more uniform way to determine null peers
+		if (m_net->GetPeer(peer)->GetPing() == -1)
+		{
+			if (type == NetPacketType_ReliableReplayed)
+			{
+				client->PushReplayPacket(channel, buffer);
+			}
+
+			return;
+		}
+
 		m_net->SendPacket(peer, channel, buffer, type);
 	}
 
@@ -310,9 +321,13 @@ namespace fx
 						}
 					}
 
+					bool wasNew = false;
+
 					if (client->GetNetId() >= 0xFFFF)
 					{
 						m_clientRegistry->HandleConnectingClient(client);
+
+						wasNew = true;
 					}
 
 					peer->OnSendConnectOK();
@@ -335,17 +350,22 @@ namespace fx
 
 					client->SendPacket(0, outMsg, NetPacketType_Reliable);
 
-					gscomms_execute_callback_on_main_thread([=]()
-					{
-						m_clientRegistry->HandleConnectedClient(client);
-					});
+					client->ReplayPackets();
 
-					if (g_oneSyncVar->GetValue())
+					if (wasNew)
 					{
-						m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 64);
+						gscomms_execute_callback_on_main_thread([=]()
+						{
+							m_clientRegistry->HandleConnectedClient(client);
+						});
+
+						if (g_oneSyncVar->GetValue())
+						{
+							m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 64);
+						}
+
+						ForceHeartbeat();
 					}
-
-					ForceHeartbeat();
 				}
 			}
 
@@ -1022,11 +1042,11 @@ void gscomms_reset_peer(int peer)
 	});
 }
 
-void gscomms_send_packet(int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
+void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
 	gscomms_execute_callback_on_net_thread([=]()
 	{
-		g_gameServer->InternalSendPacket(peer, channel, buffer, flags);
+		g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 	});
 }
 

@@ -41,6 +41,8 @@ public:
 
 	virtual bool HasTimedOut() = 0;
 
+	virtual bool IsDisconnected() { return false; }
+
 	virtual void Flush() = 0;
 };
 

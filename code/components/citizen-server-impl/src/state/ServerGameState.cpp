@@ -480,7 +480,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// any ACKs to send?
 			if (ackPacket.GetCurOffset() > 4)
 			{
-				client->SendPacket(0, ackPacket.Clone(), NetPacketType_Reliable);
+				client->SendPacket(0, ackPacket.Clone(), NetPacketType_ReliableReplayed);
 				ackPacket.Reset();
 			}
 
@@ -786,7 +786,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
 					netBuffer.Write<uint16_t>(entity->handle & 0xFFFF);
 
-					client->SendPacket(1, netBuffer, NetPacketType_Reliable);
+					client->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
 
 					// unacknowledge creation
 					entity->ackedCreation.reset(client->GetSlotId());
@@ -957,13 +957,13 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shar
 
 	if (client)
 	{
-		client->SendPacket(1, msg, NetPacketType_Reliable);
+		client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 	}
 	else
 	{
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&msg](const std::shared_ptr<fx::Client>& client)
 		{
-			client->SendPacket(1, msg, NetPacketType_Reliable);
+			client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 		});
 	}
 }
@@ -1285,7 +1285,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
 			netBuffer.Write<uint16_t>(set & 0xFFFF);
 
-			thisClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+			thisClient->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
 		});		
 	}
 
@@ -1459,7 +1459,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 		netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
 		netBuffer.Write<uint16_t>(objectId);
 
-		tgtClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+		tgtClient->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
 	});
 }
 
@@ -1788,7 +1788,7 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 		outBuffer.Write<uint16_t>(size);
 	}
 
-	client->SendPacket(1, outBuffer, NetPacketType_Reliable);
+	client->SendPacket(1, outBuffer, NetPacketType_ReliableReplayed);
 }
 
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
@@ -1950,7 +1950,7 @@ static InitFunction initFunction([]()
 			netBuffer.Write<uint32_t>(reqSeq);
 			netBuffer.Write<uint32_t>((msec().count()) & 0xFFFFFFFF);
 
-			client->SendPacket(1, netBuffer, NetPacketType_Reliable);
+			client->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
 		});
 
 		// TODO: handle this based on specific nodes sent with a specific ack

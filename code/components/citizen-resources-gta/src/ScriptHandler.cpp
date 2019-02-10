@@ -31,6 +31,11 @@ class TestScriptThread : public GtaThread
 			return;
 		}
 
+		if (Instance<ICoreGameInit>::Get()->HasVariable("networkTimedOut"))
+		{
+			return;
+		}
+
 		static std::once_flag of;
 
 		std::call_once(of, []()
