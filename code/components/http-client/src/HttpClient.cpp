@@ -188,12 +188,13 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 
 						auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
 						(*data)->HandleResult(curl, result);
-						(*data)->curlHandle = nullptr;
-
-						delete data;
 
 						curl_multi_remove_handle(m_impl->multi, curl);
 						curl_easy_cleanup(curl);
+
+						// delete data
+						(*data)->curlHandle = nullptr;
+						delete data;
 					}
 				} while (msg);
 
@@ -417,13 +418,15 @@ public:
 			curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
 
 			auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
-			(*data)->curlHandle = nullptr;
-
-			delete data;
 
 			// remove and delete the handle
 			curl_multi_remove_handle(impl->multi, curl);
 			curl_easy_cleanup(curl);
+
+			// delete cURL data
+			(*data)->curlHandle = nullptr;
+
+			delete data;
 		});
 	}
 };
