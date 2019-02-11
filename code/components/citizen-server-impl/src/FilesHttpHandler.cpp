@@ -239,7 +239,10 @@ namespace fx
 						resourceEnd = filesPath.find('/');
 					} while (resourceEnd != std::string::npos);
 
-					sendFile(request, response, resourceName, filesPath);
+					std::string filesPathDecoded;
+					UrlDecode(filesPath, filesPathDecoded);
+
+					sendFile(request, response, resourceName, filesPathDecoded);
 					return;
 				}
 			}
