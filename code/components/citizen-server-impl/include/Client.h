@@ -57,7 +57,7 @@ namespace fx
 		}
 	};
 
-	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, std::enable_shared_from_this<Client>
+	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public std::enable_shared_from_this<Client>
 	{
 	public:
 		Client(const std::string& guid);
