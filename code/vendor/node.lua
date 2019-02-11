@@ -136,15 +136,24 @@ return {
 			'http_parser.c'
 		}
 
-		prebuildcommands {
-			('python %s %s'):format(
-				path.getabsolute('vendor/node_js2c.py'),
-				path.getabsolute('../vendor/node/')
-			)
+		files_project 'vendor/' {
+			'node_js2c.py'
 		}
+
+		filter 'files:vendor/node_js2c.py'
+			buildcommands {
+				('python %s %s'):format(
+					path.getabsolute('vendor/node_js2c.py'),
+					path.getabsolute('../vendor/node/')
+				)
+			}
+			buildoutputs { '../vendor/node/src/node_javascript.cc' }
+
+		filter {}
 
 		if os.istarget('windows') then
 			files_project '../vendor/node/' {
+				'src/node_javascript.cc', -- with msc, commands that output C/C++ source files are not fed into the build process yet
 				'src/backtrace_win32.cc'
 			}
 		else
@@ -154,7 +163,6 @@ return {
 		end
 
 		files_project '../vendor/node/' {
-			'src/node_javascript.cc',
 			'src/async_wrap.cc',
 			'src/bootstrapper.cc',
 	        'src/cares_wrap.cc',
