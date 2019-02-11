@@ -211,7 +211,7 @@ namespace fx
 		m_net->ResetPeer(peerId);
 	}
 
-	void GameServer::InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type)
+	void GameServer::InternalSendPacket(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType type)
 	{
 		// TODO: think of a more uniform way to determine null peers
 		if (m_net->GetPeer(peer)->GetPing() == -1)
@@ -1042,7 +1042,7 @@ void gscomms_reset_peer(int peer)
 	});
 }
 
-void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
+void gscomms_send_packet(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
 	gscomms_execute_callback_on_net_thread([=]()
 	{

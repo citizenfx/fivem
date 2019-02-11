@@ -105,7 +105,7 @@ namespace fx
 
 		void InternalResetPeer(int peerId);
 
-		void InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
+		void InternalSendPacket(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
 
 		void InternalRunMainThreadCbs(nng_socket socket);
 
