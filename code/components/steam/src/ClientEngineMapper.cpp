@@ -26,7 +26,7 @@ void ClientEngineMapper::LookupMethods()
 	void** methodPtr = *(void***)m_interface;
 	bool found = false;
 
-	methodPtr += 8;
+	methodPtr += 7;
 
 	while (IsValidCodePointer(*methodPtr))
 	{
@@ -100,6 +100,8 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 #elif defined(_M_AMD64)
 	ud_set_mode(&ud, 64);
 #endif
+
+	bool hadExternCall = false;
 
 	// set the program counter
 	ud_set_pc(&ud, reinterpret_cast<uint64_t>(methodPtr));
@@ -223,20 +225,30 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 			// if the operand is immediate
 			if (operand->type == UD_OP_JIMM)
 			{
-				// and relative to the instruction...
-				if (operand->base == UD_R_RSP)
+				// cast the relative offset as a char
+				char* operandPtr = reinterpret_cast<char*>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
+
+				// if it's a valid data pointer as well
+				if (IsValidCodePointer(operandPtr))
 				{
-					// cast the relative offset as a char
+					// it's probably our pointer of interest!
+					if (IsMethodAnInterface(operandPtr, isUser, true) && hadExternCall)
+					{
+						return true;
+					}
+
+					hadExternCall = false;
+				}
+			}
+			else if (operand->type == UD_OP_MEM)
+			{
+				if (operand->base == UD_R_RIP)
+				{
 					char* operandPtr = reinterpret_cast<char*>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
 
-					// if it's a valid data pointer as well
-					if (IsValidCodePointer(operandPtr))
+					if (*(char**)operandPtr == (char*)GetProcAddress(GetModuleHandleW(L"tier0_s64.dll"), "?Lock@CThreadMutex@@QEAAXXZ"))
 					{
-						// it's probably our pointer of interest!
-						if (IsMethodAnInterface(operandPtr, isUser, true))
-						{
-							return true;
-						}
+						hadExternCall = true;
 					}
 				}
 			}
