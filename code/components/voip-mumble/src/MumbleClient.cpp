@@ -677,6 +677,8 @@ void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 		closesocket(m_socket);
 
 		m_connectionInfo.isConnected = false;
+
+		SetEvent(m_beginConnectEvent);
 	}
 }
 
