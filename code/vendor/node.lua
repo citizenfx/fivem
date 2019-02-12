@@ -147,6 +147,14 @@ return {
 					path.getabsolute('../vendor/node/')
 				)
 			}
+			
+			local nodeInputs = table.join(
+				 os.matchfiles('../vendor/node/lib/**.js'),
+				 os.matchfiles('../vendor/node/deps/v8/tools/*.js'),
+				 os.matchfiles('../vendor/node/src/*_macros.py')
+			)
+			
+			buildinputs(nodeInputs)
 			buildoutputs { '../vendor/node/src/node_javascript.cc' }
 
 		filter {}
