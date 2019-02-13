@@ -145,9 +145,11 @@ namespace fx
 		{
 			for (auto& client : m_clients)
 			{
-				if (client.second)
+				auto cl = client.second;
+
+				if (cl)
 				{
-					cb(client.second);
+					cb(cl);
 				}
 			}
 		}
