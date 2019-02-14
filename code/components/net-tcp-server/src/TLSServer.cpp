@@ -234,7 +234,10 @@ PeerAddress TLSServerStream::GetPeerAddress()
 
 void TLSServerStream::Write(const std::vector<uint8_t>& data)
 {
-	m_tlsServer->send(data);
+	if (m_tlsServer->is_active())
+	{
+		m_tlsServer->send(data);
+	}
 }
 
 void TLSServerStream::Close()
