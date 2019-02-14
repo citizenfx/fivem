@@ -293,6 +293,8 @@ int Client_send_udp(client_t *client, uint8_t *data, int len);
 static std::mutex mumblePairsMutex;
 static std::map<net::PeerAddress, bool> mumblePairs;
 
+extern std::mutex g_mumbleClientMutex;
+
 static InitFunction initFunction([]()
 {
 	Chan_init();
@@ -328,10 +330,17 @@ static InitFunction initFunction([]()
 		server->SetConnectionCallback([=](fwRefContainer<net::TcpServerStream> stream)
 		{
 			client_t* client;
-			Client_add(stream, &client);
+
+			{
+				std::unique_lock<std::mutex> lock(g_mumbleClientMutex);
+
+				Client_add(stream, &client);
+			}
 
 			stream->SetReadCallback([=](const std::vector<uint8_t>& data)
 			{
+				std::unique_lock<std::mutex> lock(g_mumbleClientMutex);
+
 				Timer_restart(&client->lastActivity);
 
 #if 0
@@ -415,6 +424,7 @@ static InitFunction initFunction([]()
 
 			stream->SetCloseCallback([=]()
 			{
+				std::unique_lock<std::mutex> lock(g_mumbleClientMutex);
 				Client_free(client);
 			});
 		});
@@ -565,6 +575,8 @@ static InitFunction initFunction([]()
 			{
 				return;
 			}
+
+			std::unique_lock<std::mutex> lock(g_mumbleClientMutex);
 
 			client->interceptor = interceptor.GetRef();
 

@@ -66,6 +66,8 @@ bool_t bPreferAlpha;
 extern int* udpsocks;
 extern bool_t hasv4;
 
+std::mutex g_mumbleClientMutex;
+
 void Client_init()
 {
 	maxBandwidth = getIntConf(MAX_BANDWIDTH) / 8; /* From bits/s -> bytes/s */
@@ -95,6 +97,8 @@ int Client_getfds(struct pollfd *pollfds)
 
 void Client_janitor()
 {
+	std::unique_lock<std::mutex> lock(g_mumbleClientMutex);
+
 	struct dlist *itr, *save;
 	int bwTop = maxBandwidth + maxBandwidth / 4;
 	list_iterate_safe(itr, save, &clients) {
