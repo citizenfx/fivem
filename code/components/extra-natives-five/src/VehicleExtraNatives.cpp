@@ -6,6 +6,7 @@
 */
 
 #include "StdInc.h"
+#include "NativeWrappers.h"
 #include <ScriptEngine.h>
 #include <atArray.h>
 
@@ -20,11 +21,6 @@
 #include <MinHook.h>
 
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
-
-static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
-{
-	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
-});
 
 template<typename T>
 inline static T readValue(fwEntity* ptr, int offset)
@@ -46,7 +42,7 @@ static fwEntity* getAndCheckVehicle(fx::ScriptContext& context)
 		return nullptr;
 	}
 
-	fwEntity* vehicle = getScriptEntity(context.GetArgument<int>(0));
+	fwEntity* vehicle = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
 
 	if (!vehicle)
 	{
@@ -238,7 +234,7 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ROTATION_VELOCITY", [](fx::ScriptContext& context)
 	{
-		fwEntity* entity = getScriptEntity(context.GetArgument<int>(0));
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
 
 		if (!entity)
 		{
@@ -550,7 +546,7 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context) {
 		auto vehHandle = context.GetArgument<int>(0);
 		auto shouldDisable = context.GetArgument<bool>(1);
-		fwEntity *entity = getScriptEntity(vehHandle);
+		fwEntity *entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
 		if (shouldDisable) {
 			g_skipRepairVehicles.insert(entity);
 		}
@@ -563,7 +559,7 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("ADD_VEHICLE_DELETION_TRACE", [](fx::ScriptContext& context)
 	{
 		auto vehHandle = context.GetArgument<int>(0);
-		fwEntity* entity = getScriptEntity(vehHandle);
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
 
 		if (entity->IsOfType<CVehicle>())
 		{
