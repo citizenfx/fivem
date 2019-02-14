@@ -65,6 +65,9 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// this just forces D3D11 anyway.
 	command_line->AppendSwitchWithValue("use-angle", "d3d11");
 
+	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
+	command_line->AppendSwitch("disable-web-security");
+
 	// M65 enables these by default, but CEF doesn't pass the required phase data at this time (2018-03-31)
 	// this breaks scrolling 'randomly' - after a middle click, and some other scenarios
 	// also disable CrossSiteDocumentBlockingAlways and CrossSiteDocumentBlockingIfIsolating (CORB) to avoid blocked cross-origin responses
