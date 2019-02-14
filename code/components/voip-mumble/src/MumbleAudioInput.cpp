@@ -188,6 +188,11 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 	while (bytesLeft >= chunkLength)
 	{
+		if (!m_avr)
+		{
+			continue;
+		}
+
 		// resample
 		uint32_t numSamples = chunkLength / m_waveFormat.nBlockAlign;
 
