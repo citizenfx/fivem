@@ -282,6 +282,11 @@ ServerGameState::ServerGameState()
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
+	if (objectId >= m_entitiesById.size() || objectId < 0)
+	{
+		return {};
+	}
+
 	auto ptr = m_entitiesById[objectId];
 
 	return ptr.lock();
