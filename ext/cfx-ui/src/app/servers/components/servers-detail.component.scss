@@ -184,7 +184,7 @@
                     line-height: $fontSize * 1.1;
 
                     text-overflow: ellipsis;
-                    overflow-x: hidden;
+                    overflow: hidden;
 
                     img {
                         height: $fontSize * 1.2;
@@ -213,7 +213,7 @@
 
                         white-space: nowrap;
 
-                        overflow-x: hidden;
+                        overflow: hidden;
                         text-overflow: ellipsis;
                     }
                 }
