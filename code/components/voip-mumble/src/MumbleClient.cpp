@@ -421,6 +421,10 @@ void MumbleClient::ThreadFuncImpl()
 
 					bind(m_udpSocket, (sockaddr*)&sn, sizeof(sn));
 
+					m_state = {};
+					m_state.SetClient(this);
+					m_state.SetUsername(ToWide(m_connectionInfo.username));
+
 					trace("[mumble] connecting to %s...\n", address.ToString());
 
 					break;
@@ -433,10 +437,16 @@ void MumbleClient::ThreadFuncImpl()
 
 					if (events.iErrorCode[FD_CONNECT_BIT])
 					{
-						// TODO: reconnecting?
 						trace("[mumble] connecting failed: %d\n", events.iErrorCode[FD_CONNECT_BIT]);
 
-						m_completionEvent.set_exception(std::runtime_error("Failed Mumble connection."));
+						//m_completionEvent.set_exception(std::runtime_error("Failed Mumble connection."));
+
+						LARGE_INTEGER waitTime;
+						waitTime.QuadPart = -20000000LL; // 2s
+
+						SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
+
+						m_connectionInfo.isConnected = false;
 
 						break;
 					}
@@ -451,7 +461,7 @@ void MumbleClient::ThreadFuncImpl()
 
 					m_handler.Reset();
 
-					WSAEventSelect(m_socket, m_socketReadEvent, FD_READ);
+					WSAEventSelect(m_socket, m_socketReadEvent, FD_READ | FD_CLOSE);
 					WSAEventSelect(m_udpSocket, m_udpReadEvent, FD_READ);
 
 					m_sessionManager = std::make_unique<Botan::TLS::Session_Manager_In_Memory>(m_rng);
@@ -473,7 +483,7 @@ void MumbleClient::ThreadFuncImpl()
 
 				case ClientTask::Idle:
 				{
-					if (m_tlsClient->is_active() && m_connectionInfo.isConnected)
+					if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
 					{
 						{
 							MumbleProto::Ping ping;
@@ -504,6 +514,12 @@ void MumbleClient::ThreadFuncImpl()
 
 						SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
 					}
+					else
+					{
+						trace("[mumble] reconnecting!\n");
+
+						SetEvent(m_beginConnectEvent);
+					}
 
 					break;
 				}
@@ -512,6 +528,21 @@ void MumbleClient::ThreadFuncImpl()
 				{
 					WSANETWORKEVENTS ne;
 					WSAEnumNetworkEvents(m_socket, m_socketReadEvent, &ne);
+
+					if (ne.lNetworkEvents & FD_CLOSE)
+					{
+						// TCP close, graceful?
+						trace("[mumble] socket close :(\n");
+
+						// try to reconnect
+						closesocket(m_socket);
+
+						SetEvent(m_beginConnectEvent);
+
+						m_connectionInfo.isConnected = false;
+
+						break;
+					}
 
 					uint8_t buffer[16384];
 					int len = recv(m_socket, (char*)buffer, sizeof(buffer), 0);
@@ -530,6 +561,8 @@ void MumbleClient::ThreadFuncImpl()
 						closesocket(m_socket);
 
 						SetEvent(m_beginConnectEvent);
+
+						m_connectionInfo.isConnected = false;
 					}
 					else
 					{
@@ -542,6 +575,8 @@ void MumbleClient::ThreadFuncImpl()
 							closesocket(m_socket);
 
 							SetEvent(m_beginConnectEvent);
+
+							m_connectionInfo.isConnected = false;
 						}
 					}
 
@@ -672,7 +707,7 @@ void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 {
 	trace("[mumble] TLS alert: %s\n", alert.type_string().c_str());
 
-	if (alert.is_fatal())
+	if (alert.is_fatal() || alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
 	{
 		closesocket(m_socket);
 
