@@ -51,15 +51,20 @@ inline std::shared_ptr<ResourceCacheDevice::FileData> GetFileDataForEntry(const 
 }
 
 ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking)
-	: ResourceCacheDevice(cache, blocking, cache->GetCachePath())
+	: ResourceCacheDevice(cache, blocking, cache->GetCachePath(), cache->GetPhysCachePath())
 {
 
 }
 
-ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath)
-	: m_cache(cache), m_blocking(blocking), m_cachePath(cachePath)
+ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath, const std::string& physCachePath)
+	: m_cache(cache), m_blocking(blocking), m_cachePath(cachePath), m_physCachePath(physCachePath)
 {
 	m_httpClient = Instance<HttpClient>::Get();
+
+	if (GetFileAttributes(MakeRelativeCitPath(L"bin\\aria2c.exe").c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		m_extDownloader = CreateExtDownloader();
+	}
 }
 
 boost::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForFileName(const std::string& fileName)
@@ -245,6 +250,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	std::string extension = handleData->entry.basename.substr(handleData->entry.basename.find_last_of('.') + 1);
 	std::string outFileName = fmt::sprintf("%s/unconfirmed/%s_%08x", m_cachePath, extension, remoteHash);
+	std::string outPhysFileName = fmt::sprintf("%s/unconfirmed/phys_%s_%08x", m_physCachePath, extension, remoteHash);
 
 	auto openFile = [this, handleData](const ResourceCache::Entry& entry)
 	{
@@ -321,15 +327,8 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		auto entryRef = handleData->entry;
 		auto fileDataRef = handleData->fileData;
 
-		// http request
-		handleData->getRequest = m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=](bool result, const char* errorData, size_t outSize)
+		auto onDownloaded = [=](bool result, const char* errorData, size_t outSize)
 		{
-			if (result)
-			{
-				auto device = vfs::GetDevice(outFileName);
-				outSize = device->GetLength(outFileName);
-			}
-
 			if (!result || outSize == 0)
 			{
 				fileDataRef->status = FileData::StatusError;
@@ -419,7 +418,66 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 			// allow downloading this file again
 			g_downloadingSet[remoteHash] = false;
-		});
+		};
+
+		// http request
+		if (m_extDownloader)
+		{
+			handleData->extHandle = m_extDownloader->StartDownload(handleData->entry.remoteUrl, outPhysFileName, options, [=]()
+			{
+				auto device = vfs::GetDevice(outPhysFileName);
+				size_t outSize = device->GetLength(outPhysFileName);
+
+				// copy the file to the target, slowly.
+				std::vector<uint8_t> fileBuf(8192);
+
+				{
+					auto inStream = vfs::OpenRead(outPhysFileName);
+
+					if (!inStream.GetRef())
+					{
+						onDownloaded(false, "huh", 3);
+						return;
+					}
+
+					auto outDevice = vfs::GetDevice(m_cachePath);
+					auto handle = outDevice->Create(outFileName);
+					auto outStream = vfs::Stream{ outDevice, handle };
+
+					size_t read = 0;
+
+					do
+					{
+						read = inStream->Read(fileBuf);
+
+						if (read > 0)
+						{
+							outStream.Write(fileBuf.data(), read);
+						}
+					} while (read != 0);
+
+					outDevice->Close(handle);
+				}
+
+				device->RemoveFile(outPhysFileName);
+
+				// done!
+				onDownloaded(true, "", outSize);
+			});
+		}
+		else
+		{
+			handleData->getRequest = m_httpClient->DoFileGetRequest(handleData->entry.remoteUrl, vfs::GetDevice(m_cachePath), outFileName, options, [=](bool result, const char* errorData, size_t outSize)
+			{
+				if (result)
+				{
+					auto device = vfs::GetDevice(outFileName);
+					outSize = device->GetLength(outFileName);
+				}
+
+				onDownloaded(result, errorData, outSize);
+			});
+		}
 	}
 
 	if (m_blocking)
@@ -507,13 +565,20 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 	{
 		auto getRequest = handleData->getRequest;
 
+		int newWeight = (size == 0xFFFFFFFE) ? -1 : 1;
+
 		if (getRequest)
 		{
 			// if FFFFFFFE, this is an active request; if FFFFFFFD, this isn't
 			// no ExtensionCtl support exists for RageVFSDeviceAdapter yet, so we do it this way
-			int newWeight = (size == 0xFFFFFFFE) ? -1 : 1;
-
 			getRequest->SetRequestWeight(newWeight);
+		}
+		else
+		{
+			if (!handleData->extHandle.empty())
+			{
+				m_extDownloader->SetRequestWeight(handleData->extHandle, newWeight);
+			}
 		}
 
 		return (handleData->fileData->status == FileData::StatusFetched) ? 2048 : 0;

@@ -8,6 +8,8 @@
 #include <NetLibrary.h>
 #include <MumbleClient.h>
 
+#include <sstream>
+
 #include <json.hpp>
 
 using json = nlohmann::json;

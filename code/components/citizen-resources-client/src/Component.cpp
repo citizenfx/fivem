@@ -8,7 +8,9 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
 
-class ComponentInstance : public Component
+#include <ToolComponentHelpers.h>
+
+class ComponentInstance : public ToolComponentBase<Component>
 {
 public:
 	virtual bool Initialize();
@@ -41,3 +43,5 @@ extern "C" __declspec(dllexport) Component* CreateComponent()
 {
 	return new ComponentInstance();
 }
+
+ToolComponentBaseImpl* ToolComponentBaseImpl::ms_instance;

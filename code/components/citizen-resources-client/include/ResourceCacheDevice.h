@@ -15,6 +15,8 @@
 #include <VFSManager.h>
 #include <HttpClient.h>
 
+#include <ExtDownloader.h>
+
 class
 #ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
 	DLL_EXPORT
@@ -77,6 +79,8 @@ protected:
 		HttpRequestPtr getRequest;
 		std::shared_ptr<FileData> fileData;
 
+		std::string extHandle;
+
 		inline HandleData()
 			: parentHandle(vfs::Device::InvalidHandle), downloadProgress(0), downloadSize(0), allocated(false)
 		{
@@ -91,6 +95,8 @@ protected:
 
 	HttpClient* m_httpClient;
 
+	std::shared_ptr<ExtDownloader> m_extDownloader;
+
 	HandleData m_handles[512];
 
 	std::mutex m_handleLock;
@@ -99,10 +105,12 @@ protected:
 
 	std::string m_cachePath;
 
+	std::string m_physCachePath;
+
 public:
 	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking);
 
-	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath);
+	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath, const std::string& physCachePath);
 
 protected:
 	boost::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);

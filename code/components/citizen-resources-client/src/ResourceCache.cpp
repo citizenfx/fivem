@@ -15,8 +15,8 @@
 
 #include <Error.h>
 
-ResourceCache::ResourceCache(const std::string& cachePath)
-	: m_cachePath(cachePath)
+ResourceCache::ResourceCache(const std::string& cachePath, const std::string& physCachePath)
+	: m_cachePath(cachePath), m_physCachePath(physCachePath)
 {
 	OpenDatabase();
 

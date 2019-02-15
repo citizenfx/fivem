@@ -55,7 +55,7 @@ CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager)
 CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager, const std::string& cachePath)
 	: m_manager(manager)
 {
-	m_resourceCache = std::make_shared<ResourceCache>(cachePath);
+	m_resourceCache = std::make_shared<ResourceCache>(cachePath, ToNarrow(MakeRelativeCitPath(L"cache/")));
 
 	MountResourceCacheDevice(m_resourceCache);
 }
