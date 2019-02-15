@@ -304,6 +304,18 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 
 	if (len >= 0)
 	{
+		// work around XA2.7 issue (for Win7) where >64 buffers being enqueued are a fatal error (leading to __debugbreak)
+		// "SimpList: non-growable list ran out of room for new elements"
+
+		XAUDIO2_VOICE_STATE vs;
+		client->voice->GetState(&vs);
+
+		if (vs.BuffersQueued > 32)
+		{
+			// drop all source buffers when we hit >32
+			client->voice->FlushSourceBuffers();
+		}
+
 		XAUDIO2_BUFFER bufferData;
 		bufferData.LoopBegin = 0;
 		bufferData.LoopCount = 0;
