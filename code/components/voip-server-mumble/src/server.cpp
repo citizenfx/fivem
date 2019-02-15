@@ -420,6 +420,12 @@ static InitFunction initFunction([]()
 						client->rxcount = client->msgsize = 0;
 					}
 				}
+
+				// close stream if shutting down
+				if (client->shutdown_wait)
+				{
+					client->stream->Close();
+				}
 			});
 
 			stream->SetCloseCallback([=]()
