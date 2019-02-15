@@ -137,6 +137,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 			{
 				trace("Triggering OnGameFinalizeLoad\n");
 
+				ClearVariable("shutdownGame");
+
 				OnGameFinalizeLoad();
 				isLoading = false;
 			}
@@ -1095,6 +1097,7 @@ void ShutdownSessionWrap()
 {
 	Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
+	Instance<ICoreGameInit>::Get()->SetVariable("shutdownGame");
 
 	g_isNetworkKilled = true;
 	*g_initState = MapInitState(14);
@@ -1114,6 +1117,12 @@ void ShutdownSessionWrap()
 		// warning screens apparently need to run on main thread
 		OnGameFrame();
 		OnMainGameFrame();
+
+		// 1604 (same as nethook)
+		((void(*)())0x1400067E8)();
+		((void(*)())0x1407D1960)();
+		((void(*)())0x140025F7C)();
+		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0);
 
 		g_runWarning();
 	}

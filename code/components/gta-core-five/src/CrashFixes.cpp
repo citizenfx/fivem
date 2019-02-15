@@ -10,6 +10,9 @@
 
 #include <Error.h>
 
+#include <ICoreGameInit.h>
+#include <gameSkeleton.h>
+
 #include <LaunchMode.h>
 
 static void* ProbePointer(char* pointer)
@@ -190,6 +193,22 @@ static bool LoadFromStructureCharHook(void* parManager, const char* fileName, co
 	}
 
 	return result;
+}
+
+void(*g_origReinitRenderPhase)(void*);
+
+static void* g_pendingReinit;
+
+void ReinitRenderPhaseWrap(void* a)
+{
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("shutdownGame"))
+	{
+		g_origReinitRenderPhase(a);
+	}
+	else
+	{
+		g_pendingReinit = a;
+	}
 }
 
 static HookFunction hookFunction([] ()
@@ -625,6 +644,30 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern<char>("B8 64 00 00 00 48 83 C3 10 66 89 43 FA");
 		hook::put<uint32_t>(location + 1, 400);
 		hook::put<uint32_t>(location - 12, 400 * sizeof(void*));
+	}
+
+	// don't initialize/update render phases right after a renderer reinitialization (this *also* gets done by gameSkeleton update normally)
+	// if the game is unloaded, this'll fail because camManager is not initialized
+	// 1604 signature: magnesium-september-wisconsin (FIVEM-CLIENT-1604-34)
+	//                 massachusetts-skylark-black   (FIVEM-CLIENT-1604-3D) <- CPedFactory::ms_playerPed being NULL with same call stack in CPortalTracker
+	{
+		auto location = hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 84 DB 74 0C 48 8D 0D", 23);
+		hook::set_call(&g_origReinitRenderPhase, location);
+		hook::call(location, ReinitRenderPhaseWrap);
+
+		if (!CfxIsSinglePlayer())
+		{
+			Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+			{
+				if (g_pendingReinit)
+				{
+					trace("Attempted a mode change during shutdown - executing it now...\n");
+
+					g_origReinitRenderPhase(g_pendingReinit);
+					g_pendingReinit = nullptr;
+				}
+			});
+		}
 	}
 
 	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
