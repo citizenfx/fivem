@@ -120,6 +120,7 @@ namespace fx
 				// store the size and send content-length
 				auto size = fsReq->statbuf.st_size;
 				response->SetHeader("content-length", std::to_string(size));
+				response->SetHeader("transfer-encoding", "identity");
 
 				// free the request
 				uv_fs_req_cleanup(fsReq);
