@@ -103,9 +103,16 @@ public:
 
 		// HACK: disallow chunking for ROS requests
 		if (m_request->GetHttpVersion() == std::make_pair(1, 0) ||
-			m_request->GetHeader("host").find("rockstargames.com") != std::string::npos)
+			m_request->GetHeader("host").find("rockstargames.com") != std::string::npos ||
+			GetHeader("transfer-encoding").find("identity") != std::string::npos)
 		{
-			SetHeader(std::string("Content-Length"), std::to_string(data.size()));
+			if (m_headerList.find("content-length") == m_headerList.end())
+			{
+				SetHeader(std::string("Content-Length"), std::to_string(data.size()));
+			}
+
+			// unset transfer-encoding, if present
+			m_headerList.erase("transfer-encoding");
 		}
 		else
 		{
