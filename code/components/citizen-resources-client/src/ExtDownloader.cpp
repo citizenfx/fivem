@@ -403,10 +403,10 @@ static void StartExtDownloader()
 
 	// and go create the new fake process
 	PROCESS_INFORMATION pi;
-	STARTUPINFO si = { sizeof(STARTUPINFO) };
-	si.wShowWindow = SW_HIDE;
+	STARTUPINFO si = { 0 };
+	si.cb = sizeof(STARTUPINFO);
 
-	CreateProcessW(nullptr, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT, &newEnvironment[0], MakeRelativeCitPath(L"").c_str(), &si, &pi);
+	CreateProcessW(nullptr, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW, &newEnvironment[0], MakeRelativeCitPath(L"").c_str(), &si, &pi);
 }
 
 static HookFunction hookFunction([]()
