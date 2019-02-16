@@ -10,7 +10,8 @@ mkdir R:\sym-upload
 mkdir R:\sym-pack
 C:\h\debuggers\symstore.exe add /o /f $BinRoot\five\release\ /s R:\sym-upload /t "Cfx" /r
 
-$pdbs = Get-ChildItem -Recurse -Filter "*.pdb" -File R:\sym-upload\
+$pdbs  = @(Get-ChildItem -Recurse -Filter "*.dll" -File R:\sym-upload\)
+$pdbs += @(Get-ChildItem -Recurse -Filter "*.exe" -File R:\sym-upload\)
 
 workflow dump_pdb {
     param ([Object[]]$files)
@@ -22,6 +23,15 @@ workflow dump_pdb {
 
             if (!($basename -eq "botan") -and !($basename -eq "citizen-scripting-lua")) {
                 Start-Process C:\f\dump_syms.exe -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
+
+				try {
+					$line = @([System.IO.File]::ReadLines($outname))[0] -split " "
+
+					if ($line[0] -eq "MODULE") {
+						$rightname = "R:\sym-upload\$($line[4])\$($line[3])\$basename.sym"
+						Move-Item $outname $rightname
+					}
+				} catch {}
             }
         }
     }
