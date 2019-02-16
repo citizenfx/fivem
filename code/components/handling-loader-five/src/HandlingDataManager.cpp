@@ -185,6 +185,12 @@ static bool LoadHandlingFile(const char* handlingPath)
 
 	for (CHandlingData* handling : handlingDataList)
 	{
+		if (!handling)
+		{
+			trace("Loaded a NULL handling in %s - skipping.\n", handlingPath);
+			continue;
+		}
+
 		handling->ProcessEntry();
 
 		int idx = FindFreeHandlingData();
