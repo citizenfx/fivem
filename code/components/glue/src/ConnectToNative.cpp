@@ -213,18 +213,28 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnInterceptConnection.Connect([](const net::PeerAddress& peer, const std::function<void()>& cb)
 		{
-			if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !disconnected)
+			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
-				netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100);
+				if (!disconnected)
+				{
+					netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100);
 
-				finishConnectCb = cb;
+					finishConnectCb = cb;
 
-				return false;
+					return false;
+				}
+			}
+			else
+			{
+				disconnected = false;
 			}
 
-			disconnected = false;
-
 			return true;
+		});
+
+		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+		{
+			disconnected = false;
 		});
 
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
@@ -233,8 +243,6 @@ static InitFunction initFunction([] ()
 			{
 				auto cb = std::move(finishConnectCb);
 				cb();
-
-				disconnected = false;
 			}
 			else
 			{
