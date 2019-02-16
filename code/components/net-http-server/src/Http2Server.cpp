@@ -43,11 +43,14 @@ public:
 
 		m_headers = headers;
 		m_headers.insert({ ":status", std::to_string(statusCode) });
-		
+
 		for (auto& header : m_headerList)
 		{
 			m_headers.insert(header);
 		}
+
+		// don't have transfer_encoding at all!
+		m_headers.erase("transfer-encoding");
 
 		nghttp2_data_provider provider;
 		provider.source.ptr = this;
