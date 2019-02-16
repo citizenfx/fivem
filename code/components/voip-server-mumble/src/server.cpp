@@ -419,6 +419,10 @@ static InitFunction initFunction([]()
 							Mh_handle_message(client, msg);
 						client->rxcount = client->msgsize = 0;
 					}
+					else
+					{
+						break;
+					}
 				}
 
 				// close stream if shutting down
