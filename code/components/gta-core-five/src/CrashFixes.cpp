@@ -211,6 +211,27 @@ void ReinitRenderPhaseWrap(void* a)
 	}
 }
 
+static void(*g_origCVehicleModelInfo__init)(void* mi, void* data);
+
+static hook::cdecl_stub<void*(uint32_t)> _getExplosionInfo([]()
+{
+	return hook::get_call(hook::get_pattern("BA 52 28 0C 03 85 D2 74 09 8B CA E8", 11));
+});
+
+void CVehicleModelInfo__init(char* mi, char* data)
+{
+	uint32_t explosionHash = *(uint32_t*)(data + 96);
+
+	if (!explosionHash || !_getExplosionInfo(explosionHash))
+	{
+		explosionHash = HashString("explosion_info_default");
+	}
+
+	*(uint32_t*)(data + 96) = explosionHash;
+
+	g_origCVehicleModelInfo__init(mi, data);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -614,6 +635,11 @@ static HookFunction hookFunction([] ()
 
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
+
+	// vehicles.meta explosionInfo field invalidity
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 08 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// fwMapTypesStore double unloading workaround
 	MH_Initialize();
