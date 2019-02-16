@@ -1540,6 +1540,15 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			return;
 		}
 	}
+	else
+	{
+		if (parsingType == 1)
+		{
+			Log("%s: already existing entity trying to be created (%d)!\n", __func__, objectId);
+
+			return;
+		}
+	}
 
 	entity->didDeletion.reset(client->GetSlotId());
 	entity->ackedCreation.set(client->GetSlotId());
