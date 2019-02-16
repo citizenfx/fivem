@@ -849,10 +849,46 @@ static void ErrorDo(uint32_t error)
 		fclose(dbgFile);
 	}
 
+	// overwrite the CALL address with a marker containing the error code, then move the return address ahead
+	// this should lead to crash dumps showing the exact location of the CALL as the exception address
+	{
+		DWORD oldProtect;
+
+		static struct : jitasm::Frontend
+		{
+			uint32_t error;
+
+			virtual void InternalMain() override
+			{
+				mov(rax, 0x1000000000 | error);
+				mov(dword_ptr[rax], 0xDEADBADE);
+			}
+		} code;
+
+		code.error = error;
+
+		// assemble *first* as GetCodeSize does not automatically call Assemble
+		code.Assemble();
+
+		// 5: CALL size
+		// 6: size of mov dword_ptr[rax], ...
+		char* retAddr = (char*)_ReturnAddress() - 5 - code.GetCodeSize() + 6;
+
+		VirtualProtect(retAddr, code.GetCodeSize(), PAGE_EXECUTE_READWRITE, &oldProtect);
+		memcpy(retAddr, code.GetCode(), code.GetCodeSize());
+
+		// for good measure
+		FlushInstructionCache(GetCurrentProcess(), retAddr, code.GetCodeSize());
+
+		// jump to the new return address
+		*(void**)_AddressOfReturnAddress() = retAddr;
+	}
+
+	/*
 	// NOTE: crashes on this line are supposed to be read based on the exception-write address!
 	*(uint32_t*)(error | 0x1000000000) = 0xDEADBADE;
 
-	TerminateProcess(GetCurrentProcess(), -1);
+	TerminateProcess(GetCurrentProcess(), -1);*/
 }
 
 static void(*g_runInitFunctions)(void*, int);
@@ -1340,6 +1376,7 @@ static HookFunction hookFunction([] ()
 
 	char* errorFunc = reinterpret_cast<char*>(hook::get_call(hook::pattern("B9 84 EC F4 C6 E8").count(1).get(0).get<void>(5)));
 	hook::jump(hook::get_call(errorFunc + 6), ErrorDo);
+	hook::jump(errorFunc, ErrorDo);
 
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(0x14), 5);
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), 5);
