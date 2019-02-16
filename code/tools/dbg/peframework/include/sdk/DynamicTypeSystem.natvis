@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="DynamicTypeSystem &lt;*&gt;">
+    <Expand HideRawView="true">
+      <Item Name="Allocator">_memAlloc</Item>
+      <CustomListItems>
+        <Variable Name="nodeptr" InitialValue="registeredTypes.root.next"/>
+        <Variable Name="tinfoptr" InitialValue="(typeInfoBase*)0"/>
+        <Loop>
+          <Break Condition="nodeptr == &amp;registeredTypes.root"/>
+          <Exec>tinfoptr = (typeInfoBase*)( (char*)nodeptr - (unsigned int)&amp;((typeInfoBase*)0)-&gt;node )</Exec>
+          <Item>tinfoptr</Item>
+          <Exec>nodeptr = nodeptr->next</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

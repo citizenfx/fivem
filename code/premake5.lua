@@ -238,6 +238,8 @@ end)
 	group "vendor"
 
 if _OPTIONS['game'] ~= 'server' then
+	include "tools/dbg"
+
 	project "libcef_dll"
 		targetname "libcef_dll_wrapper"
 		language "C++"
