@@ -203,20 +203,23 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 			static ErrorData errData = std::get<ErrorData>(*data);
 			static uint64_t retAddr = std::get<uint64_t>(*data);
 
-			if (!errData.errorName.empty())
+			if (errData.errorName.empty())
 			{
-				static std::wstring errTitle = fmt::sprintf(L"RAGE error: %s", ToWide(errData.errorName));
-				static std::wstring errDescription = fmt::sprintf(L"A game error (at %016llx) caused " PRODUCT_NAME L" to stop working. "
-					L"A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n"
-					L"If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.\n\n%s",
-					retAddr,
-					ToWide(ParseLinks(errData.errorDescription)));
-
-				config->pszMainInstruction = errTitle.c_str();
-				config->pszContent = errDescription.c_str();
-
-				return;
+				errData.errorName = "UNKNOWN";
+				errData.errorDescription = "";
 			}
+
+			static std::wstring errTitle = fmt::sprintf(L"RAGE error: %s", ToWide(errData.errorName));
+			static std::wstring errDescription = fmt::sprintf(L"A game error (at %016llx) caused " PRODUCT_NAME L" to stop working. "
+				L"A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n"
+				L"If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.\n\n%s",
+				retAddr,
+				ToWide(ParseLinks(errData.errorDescription)));
+
+			config->pszMainInstruction = errTitle.c_str();
+			config->pszContent = errDescription.c_str();
+
+			return;
 		}
 	}
 
@@ -285,22 +288,6 @@ static std::string exWhat;
 static std::wstring GetAdditionalData()
 {
 	{
-		json error_pickup = load_error_pickup();
-
-		if (!error_pickup.is_null())
-		{
-			if (error_pickup["line"] != 99999)
-			{
-				error_pickup["type"] = "error_pickup";
-			}
-
-			add_crashometry(error_pickup);
-
-			return ToWide(error_pickup.dump());
-		}
-	}
-
-	{
 		auto errorData = LoadErrorData();
 
 		if (errorData)
@@ -315,6 +302,22 @@ static std::wstring GetAdditionalData()
 			add_crashometry(jsonData);
 
 			return ToWide(jsonData.dump());
+		}
+	}
+
+	{
+		json error_pickup = load_error_pickup();
+
+		if (!error_pickup.is_null())
+		{
+			if (error_pickup["line"] != 99999)
+			{
+				error_pickup["type"] = "error_pickup";
+			}
+
+			add_crashometry(error_pickup);
+
+			return ToWide(error_pickup.dump());
 		}
 	}
 
