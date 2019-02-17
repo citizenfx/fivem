@@ -12,6 +12,10 @@
 					<Entries>
 						<!-- Keep these sorted -->
 						<Item>
+							<PoolName>CNonPhysicalPlayerData</PoolName>
+							<PoolSize value="512"/>
+						</Item>
+						<Item>
 							<PoolName>CPlayerInfo</PoolName>
 							<PoolSize value="256"/>
 						</Item>

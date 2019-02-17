@@ -19,6 +19,8 @@
 #include <NetLibrary.h>
 #include <NetBuffer.h>
 
+#include <Pool.h>
+
 #include <EntitySystem.h>
 
 extern NetLibrary* g_netLibrary;
@@ -188,15 +190,18 @@ namespace sync
 		// 1365
 		// 1493
 		// 1604
-		void* nonphys = calloc(256, 1);
-		((void(*)(void*))0x1410A4024)(nonphys); // ctor
+		//void* nonphys = calloc(256, 1);
+
+		// this has to come from the pool directly as the game will expect to free it
+		void* nonPhys = rage::PoolAllocate(rage::GetPoolBase("CNonPhysicalPlayerData"));
+		((void(*)(void*))0x1410A4024)(nonPhys); // ctor
 
 		// 1493
 		// 1604
 		void* phys = calloc(1024, 1);
 		((void(*)(void*))0x1410A2480)(phys);
 
-		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonphys);
+		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonPhys);
 		g_tempRemotePlayer = player;
 
 		if (idx == -1)
@@ -288,6 +293,8 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 				break;
 			}
 		}
+
+		player->Reset();
 
 		g_players[info.slotId] = nullptr;
 	}
@@ -737,6 +744,64 @@ static int netObjectMgr__CountObjects(rage::netObjectMgr* objectMgr, TObjectPred
 	return std::count_if(objectList.begin(), objectList.end(), pred);
 }
 
+static void(*g_origObjectManager_End)(void*);
+
+void ObjectManager_End(void* mgr)
+{
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		auto objectMgr = rage::netObjectMgr::GetInstance();
+
+		for (int i = 0; i < 65; i++)
+		{
+			objectMgr->ForAllNetObjects(i, [objectMgr](rage::netObject* object)
+			{
+				objectMgr->UnregisterNetworkObject(object, 0, true, false);
+			});
+		}
+	}
+
+	g_origObjectManager_End(mgr);
+}
+
+static void(*g_origPlayerManager_End)(void*);
+
+void PlayerManager_End(void* mgr)
+{
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		g_netIdsByPlayer.clear();
+		g_playersByNetId.clear();
+
+		for (auto& p : g_players)
+		{
+			if (p)
+			{
+				if (p != g_playerMgr->localPlayer)
+				{
+					p->Reset();
+				}
+			}
+
+			p = nullptr;
+		}
+
+		// reset the player list so we won't try removing _any_ players
+		// #TODO1S: don't corrupt the physical linked list in the first place
+		*(void**)((char*)g_playerMgr + 288) = nullptr;
+		*(void**)((char*)g_playerMgr + 296) = nullptr;
+		*(uint32_t*)((char*)g_playerMgr + 304) = 0;
+
+		*(void**)((char*)g_playerMgr + 312) = nullptr;
+		*(void**)((char*)g_playerMgr + 320) = nullptr;
+		*(uint32_t*)((char*)g_playerMgr + 328) = 0;
+
+		g_playerListCount = 0;
+	}
+
+	g_origPlayerManager_End(mgr);
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -827,6 +892,9 @@ static HookFunction hookFunction([]()
 
 	// #TODO1S: fix player/ped groups so we don't need this workaround anymore
 	MH_CreateHook(hook::get_call(hook::get_pattern("48 83 C1 10 48 C1 E0 06 48 03 C8 E8", -21)), GetNetObjPlayerGroup, (void**)&g_origGetNetObjPlayerGroup);
+
+	MH_CreateHook(hook::get_pattern("45 8D 65 20 C6 81 ? ? 00 00 01 48 8D 59 08", -0x2F), ObjectManager_End, (void**)&g_origObjectManager_End);
+	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B CB E8", -0x19) + 0x32)), PlayerManager_End, (void**)&g_origPlayerManager_End);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
