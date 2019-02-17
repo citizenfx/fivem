@@ -310,10 +310,14 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 		XAUDIO2_VOICE_STATE vs;
 		client->voice->GetState(&vs);
 
-		if (vs.BuffersQueued > 32)
+		if (vs.BuffersQueued > 48)
 		{
-			// drop all source buffers when we hit >32
-			client->voice->FlushSourceBuffers();
+			// return, waiting for buffers to play back
+			// flushing buffers would be helpful, but would lead to memory leaks
+			// (and wouldn't be instant, either)
+			_aligned_free(voiceBuffer);
+
+			return;
 		}
 
 		XAUDIO2_BUFFER bufferData;
@@ -333,7 +337,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 	}
 	else
 	{
-		delete[] voiceBuffer;
+		_aligned_free(voiceBuffer);
 	}
 }
 
