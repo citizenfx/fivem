@@ -185,6 +185,7 @@ namespace sync
 		inAddr->ipLan = clientId ^ 0xFEED;
 		inAddr->ipUnk = clientId ^ 0xFEED;
 		inAddr->ipOnline = clientId ^ 0xFEED;
+		inAddr->rockstarAccountId = clientId;
 
 		// 1290
 		// 1365
@@ -802,6 +803,37 @@ void PlayerManager_End(void* mgr)
 	g_origPlayerManager_End(mgr);
 }
 
+namespace rage
+{
+	struct rlGamerId
+	{
+		uint64_t accountId;
+	};
+}
+
+static rage::netPlayer*(*g_origGetPlayerFromGamerId)(rage::netPlayerMgrBase* mgr, const rage::rlGamerId& gamerId, bool flag);
+
+static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const rage::rlGamerId& gamerId, bool flag)
+{
+	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		return g_origGetPlayerFromGamerId(mgr, gamerId, flag);
+	}
+
+	for (auto p : g_players)
+	{
+		if (p)
+		{
+			if (p->GetPlatformPlayerData()->addr.rockstarAccountId == gamerId.accountId)
+			{
+				return p;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -883,6 +915,8 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(location + 0x28), GetNetworkPlayerListCount2, (void**)&g_origGetNetworkPlayerListCount2);
 		MH_CreateHook(hook::get_call(location + 0x2F), GetNetworkPlayerList2, (void**)&g_origGetNetworkPlayerList2);
 	}
+
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
 
 	MH_CreateHook(hook::get_pattern("4C 8B F9 74 7D", -0x2B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 
