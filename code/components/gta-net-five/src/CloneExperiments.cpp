@@ -747,22 +747,45 @@ static int netObjectMgr__CountObjects(rage::netObjectMgr* objectMgr, TObjectPred
 
 static void(*g_origObjectManager_End)(void*);
 
-void ObjectManager_End(void* mgr)
+void ObjectManager_End(rage::netObjectMgr* objectMgr)
 {
 	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 	{
-		auto objectMgr = rage::netObjectMgr::GetInstance();
+		// don't run deletion if object manager is already shut down
+		char* mgrPtr = (char*)objectMgr;
 
-		for (int i = 0; i < 65; i++)
+		if (*(bool*)(mgrPtr + 9992))
 		{
-			objectMgr->ForAllNetObjects(i, [objectMgr](rage::netObject* object)
+			auto objectCb = [objectMgr](rage::netObject* object)
 			{
-				objectMgr->UnregisterNetworkObject(object, 0, true, false);
-			});
+				if (!object)
+				{
+					return;
+				}
+
+				// don't force-delete the local player
+				if (object->objectType == (uint16_t)NetObjEntityType::Player && !object->syncData.isRemote)
+				{
+					objectMgr->UnregisterNetworkObject(object, 0, true, false);
+					return;
+				}
+
+				objectMgr->UnregisterNetworkObject(object, 0, true, true);
+			};
+
+			for (int i = 0; i < 65; i++)
+			{
+				objectMgr->ForAllNetObjects(i, objectCb);
+			}
+
+			for (auto netObj : TheClones->GetObjectList())
+			{
+				objectCb(netObj);
+			}
 		}
 	}
 
-	g_origObjectManager_End(mgr);
+	g_origObjectManager_End(objectMgr);
 }
 
 static void(*g_origPlayerManager_End)(void*);
@@ -780,6 +803,7 @@ void PlayerManager_End(void* mgr)
 			{
 				if (p != g_playerMgr->localPlayer)
 				{
+					trace("player manager shutdown: resetting player %s\n", p->GetName());
 					p->Reset();
 				}
 			}
@@ -842,6 +866,12 @@ static HookFunction hookFunction([]()
 	//hook::put(0x141980A68, NetLogStub_DoLog);
 	//hook::put(0x141980A50, NetLogStub_DoTrace);
 	//hook::jump(0x140A19640, NetLogStub_DoLog);
+
+	// netobjmgr count, temp dbg
+	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 64);
+
+	// 1604, netobjmgr alloc size, temp dbg
+	hook::put<uint32_t>(0x14101CF4F, 32712 + 4096);
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
