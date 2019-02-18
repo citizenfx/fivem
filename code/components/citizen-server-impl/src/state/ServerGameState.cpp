@@ -1261,8 +1261,6 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			if (entityRef)
 			{
 				OnCloneRemove(entityRef);
-
-				m_entitiesById[set & 0xFFFF] = {};
 			}
 		}
 
@@ -1536,15 +1534,6 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		else
 		{
 			Log("%s: wrong entity (%d)!\n", __func__, objectId);
-
-			return;
-		}
-	}
-	else
-	{
-		if (parsingType == 1)
-		{
-			Log("%s: already existing entity trying to be created (%d)!\n", __func__, objectId);
 
 			return;
 		}
