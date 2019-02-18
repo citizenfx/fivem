@@ -287,6 +287,9 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 		return {};
 	}
 
+	uint16_t objIdAlias = objectId;
+	debug::Alias(&objIdAlias);
+
 	auto ptr = m_entitiesById[objectId];
 
 	return ptr.lock();
