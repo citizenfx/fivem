@@ -1,4 +1,4 @@
-import {Injectable, EventEmitter, NgZone} from '@angular/core';
+import {Injectable, EventEmitter, NgZone, Inject} from '@angular/core';
 import {DomSanitizer} from '@angular/platform-browser';
 
 import {Server} from './servers/server';
@@ -6,6 +6,8 @@ import {ServersService} from './servers/servers.service';
 
 import { environment } from '../environments/environment';
 import { DiscourseService } from './discourse.service';
+import { LocaleStorage } from 'angular-l10n';
+import { LocalStorage } from './local-storage';
 
 export class ConnectStatus {
 	public server: Server;
@@ -504,10 +506,10 @@ export class DummyGameService extends GameService {
 	private _localhostPort = '';
 	private pinExample = '';
 
-	constructor(private serversService: ServersService) {
+	constructor(private serversService: ServersService, @Inject(LocalStorage) private localStorage: any) {
 		super();
 
-		if (localStorage.getItem('devMode')) {
+		if (this.localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
@@ -604,11 +606,12 @@ export class DummyGameService extends GameService {
 	}
 
 	get nickname(): string {
-		return window.localStorage['nickOverride'] || 'UnknownPlayer';
+		return this.localStorage.getItem('nickOverride') || 'UnknownPlayer';
 	}
 
 	set nickname(name: string) {
-		window.localStorage.setItem('nickOverride', name);
+		this.localStorage.setItem('nickOverride', name);
+
 		this.invokeNicknameChanged(name);
 	}
 
@@ -617,7 +620,8 @@ export class DummyGameService extends GameService {
 	}
 
 	set localhostPort(port: string) {
-		localStorage.setItem('localhostPort', port);
+		this.localStorage.setItem('localhostPort', port);
+
 		this.invokeLocalhostPortChanged(port);
 	}	
 	
@@ -627,7 +631,8 @@ export class DummyGameService extends GameService {
 
 	set devMode(value: boolean) {
 		this._devMode = value;
-		localStorage.setItem('devMode', value ? 'yes' : 'no');
+		this.localStorage.setItem('devMode', value ? 'yes' : 'no');
+
 		this.invokeDevModeChanged(value);
 	}
 }

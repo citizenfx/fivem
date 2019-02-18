@@ -136,4 +136,13 @@ $themes: $themeLight $themeDark;
             backdrop-filter: gtv($theme, acrylicBlur);
         }
     };
+
+    :host-context(.webapp) {
+        box-shadow: none;
+        padding-top: 0;
+
+        &:after {
+            backdrop-filter: none !important;
+        }
+    }
 }

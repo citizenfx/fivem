@@ -1,5 +1,5 @@
 import {BrowserModule} from '@angular/platform-browser';
-import {NgModule} from '@angular/core';
+import {NgModule, Inject} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {HttpModule} from '@angular/http';
 import {HttpClientModule} from '@angular/common/http';
@@ -7,11 +7,12 @@ import {HttpClientModule} from '@angular/common/http';
 import { environment } from '../environments/environment'
 
 import {VirtualScrollerModule} from 'ngx-virtual-scroller';
-import {TranslationModule, L10nConfig, L10nLoader, ProviderType} from 'angular-l10n';
+import {TranslationModule, L10nConfig, L10nLoader, ProviderType, L10N_CONFIG, L10nConfigRef} from 'angular-l10n';
 import {MomentModule} from 'angular2-moment';
 import {Angulartics2Module} from 'angulartics2';
 import {Angulartics2Piwik} from 'angulartics2/piwik';
 import {LinkyModule} from 'ngx-linky';
+import {MetaModule, MetaLoader, MetaStaticLoader, PageTitlePositioning} from '@ngx-meta/core';
 
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
@@ -42,6 +43,7 @@ import {DiscourseService} from './discourse.service';
 
 import {ColorizePipe} from './colorize.pipe';
 import {EscapePipe} from './escape.pipe';
+import { LocalStorage } from './local-storage';
 
 const l10nConfig: L10nConfig = {
 	locale: {
@@ -51,11 +53,21 @@ const l10nConfig: L10nConfig = {
 		language: 'en'
 	},
 	translation: {
-		providers: [
-			{ type: ProviderType.Static, prefix: './assets/locale-' }
-		]
+		providers: [] // see AppModule constructor
 	}
 };
+
+export function localStorageFactory() {
+	return (typeof window !== 'undefined') ? window.localStorage : null;
+}
+
+export function metaFactory(): MetaLoader {
+	return new MetaStaticLoader({
+		pageTitlePositioning: PageTitlePositioning.PrependPageTitle,
+		pageTitleSeparator: ' / ',
+		applicationName: 'FiveM server list'
+	});
+}
 
 @NgModule({
 	declarations: [
@@ -79,7 +91,7 @@ const l10nConfig: L10nConfig = {
 		EscapePipe
 	],
 	imports:      [
-		BrowserModule,
+		BrowserModule.withServerTransition({ appId: 'cfx-ui' }),
 		FormsModule,
 		HttpModule,
 		AppRoutingModule,
@@ -89,6 +101,10 @@ const l10nConfig: L10nConfig = {
 		TranslationModule.forRoot(l10nConfig),
 		Angulartics2Module.forRoot(),
 		LinkyModule,
+		MetaModule.forRoot({
+			provide: MetaLoader,
+			useFactory: (metaFactory)
+		}),
 	],
 	providers:    [
 		ServersService,
@@ -100,14 +116,24 @@ const l10nConfig: L10nConfig = {
 				: DummyGameService
 		},
 		TrackingService,
-		DiscourseService
+		DiscourseService,
+		{
+			provide: LocalStorage,
+			useFactory: (localStorageFactory)
+		}
 	],
 	bootstrap:    [
 		AppComponent
 	]
 })
 export class AppModule {
-	constructor(public l10nLoader: L10nLoader) {
+	constructor(public l10nLoader: L10nLoader, @Inject(L10N_CONFIG) private configuration: L10nConfigRef) {
+		const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
+
+		this.configuration.translation.providers = [
+			{ type: ProviderType.Static, prefix: localePrefix + 'assets/locale-' }
+		];
+
 		this.l10nLoader.load();
 	}
 }

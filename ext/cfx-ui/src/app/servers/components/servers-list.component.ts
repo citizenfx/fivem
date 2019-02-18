@@ -1,9 +1,12 @@
-import { Component, OnInit, OnChanges, Input, NgZone } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { Server, PinConfig } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
 import { ServerFilterContainer } from './server-filter.component';
 import { Subject } from 'rxjs/Subject';
 import { environment } from '../../../environments/environment';
+import { LocalStorage } from '../../local-storage';
+
+import { isPlatformBrowser } from '@angular/common';
 
 import 'rxjs/add/operator/throttleTime';
 
@@ -32,7 +35,7 @@ export class ServersListComponent implements OnInit, OnChanges {
     localServers: Server[];
     sortedServers: Server[];
 
-    constructor(private zone: NgZone) {
+    constructor(private zone: NgZone, @Inject(LocalStorage) private localStorage: any, @Inject(PLATFORM_ID) private platformId: any) {
         this.servers = [];
 
         this.columns = [
@@ -61,7 +64,7 @@ export class ServersListComponent implements OnInit, OnChanges {
             }
         ];
 
-        const storedOrder = localStorage.getItem('sortOrder');
+        const storedOrder = this.localStorage.getItem('sortOrder');
 
         if (storedOrder) {
             this.sortOrder = JSON.parse(storedOrder);
@@ -86,6 +89,10 @@ export class ServersListComponent implements OnInit, OnChanges {
                 }
             }, 250);
         });
+    }
+
+    isBrowser() {
+        return isPlatformBrowser(this.platformId);
     }
 
     isPinned(server: Server) {
@@ -328,7 +335,7 @@ export class ServersListComponent implements OnInit, OnChanges {
 
         this.sortedServers = servers;
 
-        window.localStorage.setItem('sortOrder', JSON.stringify(this.sortOrder));
+        this.localStorage.setItem('sortOrder', JSON.stringify(this.sortOrder));
     }
 
     updateSorting(column: string) {

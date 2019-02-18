@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, PLATFORM_ID, Inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { Server, ServerIcon, PinConfig } from '../server';
@@ -6,6 +6,8 @@ import { ServersService } from '../servers.service';
 import { ServerFilters, ServerFilterContainer, ServerTags } from './server-filter.component';
 
 import { GameService } from '../../game.service';
+
+import { isPlatformBrowser } from '@angular/common';
 
 import { Observable } from 'rxjs/observable';
 
@@ -29,7 +31,8 @@ export class ServersContainerComponent implements OnInit {
 
     type: string;
 
-    constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute) {
+    constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute,
+        @Inject(PLATFORM_ID) private platformId: any) {
         this.filters = new ServerFilterContainer();
         this.pinConfig = new PinConfig();
     }
@@ -39,7 +42,9 @@ export class ServersContainerComponent implements OnInit {
     ngOnInit() {
         this.type = this.route.snapshot.data.type;
 
-        this.loadServers();
+        if (isPlatformBrowser(this.platformId)) {
+            this.loadServers();
+        }
     }
 
     setFilters(filters: ServerFilters) {
@@ -48,6 +53,10 @@ export class ServersContainerComponent implements OnInit {
 
     setTags(tags: ServerTags) {
         this.filters = {...this.filters, tags: { tagList: { ...tags.tagList } }};
+    }
+
+    isBrowser() {
+        return isPlatformBrowser(this.platformId);
     }
 
     loadServers() {

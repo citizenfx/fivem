@@ -11,10 +11,10 @@
 	}
 };
 
-/*@keyframes fadeIn { 
-	from { text-shadow: 0 0 5px $blueColour; }
-	to { text-shadow: 0 0 0 $blueColour; }
-}*/
+@keyframes fadeIn { 
+	from { text-shadow: 0 0 5px hsl(180, 40%, 40%); }
+	to { text-shadow: 0 0 0 hsl(180, 40%, 40%); }
+}
 
 @include themeHostWorkaround() using ($theme) {
 	&.platinum {
@@ -23,9 +23,9 @@
 
 			box-shadow: 0 0 0 100px rgba(gtv($theme, redColour), .25) inset;
 
-			/*.name {
+			.name {
 				animation: fadeIn 1s infinite alternate ease-in-out;
-			}*/
+			}
 		}
 	}
 };

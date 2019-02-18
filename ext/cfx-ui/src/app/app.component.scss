@@ -68,3 +68,11 @@ $blurSize: 20px;
 		background-image: gtv($theme, backgroundImage);
 	}
 };
+
+.webapp {
+	@include themeIsHost() using ($theme) {
+		#bg {
+			filter: gtv($theme, acrylicBlur);
+		}
+	}
+}
