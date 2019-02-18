@@ -1175,6 +1175,17 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
+		/// Gets the network ID of this <see cref="Entity"/>
+		/// </summary>
+		public int NetworkId
+		{
+			get
+			{
+				return API.NetworkGetNetworkIdFromEntity(Handle);
+			}
+		}
+
+		/// <summary>
 		/// Deletes this <see cref="Entity"/>
 		/// </summary>
 		[SecuritySafeCritical]
@@ -1236,6 +1247,18 @@ namespace CitizenFX.Core
 					return new Prop(handle);
 			}
 			return null;
+		}
+		/// <summary>
+		/// Creates a new instance of an <see cref="Entity"/> from the given network ID.
+		/// </summary>
+		/// <param name="networkId">The network ID of the entity.</param>
+		/// <returns>Returns a <see cref="Ped"/> if this network ID corresponds to a Ped.
+		/// Returns a <see cref="Vehicle"/> if this network ID corresponds to a Vehicle.
+		/// Returns a <see cref="Prop"/> if this network ID corresponds to a Prop.
+		/// Returns <c>null</c> if no <see cref="Entity"/> exists for the specified <paramref name="networkId"/></returns>
+		public static Entity FromNetworkId(int networkId)
+		{
+			return Entity.FromHandle(API.NetworkGetEntityFromNetworkId(networkId));
 		}
 
 		/// <summary>
