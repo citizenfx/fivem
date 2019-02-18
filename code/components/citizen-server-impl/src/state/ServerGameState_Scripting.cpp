@@ -7,6 +7,11 @@
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 
+namespace fx
+{
+	uint32_t MakeScriptHandle(const std::shared_ptr<fx::sync::SyncEntityState>& ptr);
+}
+
 static InitFunction initFunction([]()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
@@ -84,6 +89,37 @@ static InitFunction initFunction([]()
 		}
 
 		context.SetResult(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_FROM_NETWORK_ID", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// parse the client ID
+		auto id = context.GetArgument<uint32_t>(0);
+
+		if (!id)
+		{
+			context.SetResult(0);
+			return;
+		}
+
+		auto entity = gameState->GetEntity(0, id);
+
+		if (!entity)
+		{
+			context.SetResult(0);
+			return;
+		}
+
+		context.SetResult(fx::MakeScriptHandle(entity));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)

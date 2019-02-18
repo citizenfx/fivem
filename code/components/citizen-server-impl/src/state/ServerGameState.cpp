@@ -204,7 +204,7 @@ inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
 	return ((playerId + 1) << 16) | objectId;
 }
 
-static uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr)
+uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr)
 {
 	if (!ptr->guid)
 	{
