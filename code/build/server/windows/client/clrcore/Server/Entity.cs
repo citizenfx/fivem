@@ -118,7 +118,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <returns>Returns the <see cref="Ped"/> of the network owner.
 		/// Returns <c>null</c> if this <see cref="Entity"/> is owned by the player.</returns>
-		public Entity Owner
+		public Ped Owner
 		{
 			get
 			{
