@@ -95,7 +95,7 @@ static InitFunction initFunction([]()
 
 				infoJson["version"] = 0;
 
-				infoHash = static_cast<int>(std::hash<std::string>()(infoJson.dump()) & 0x7FFFFFFF);
+				infoHash = static_cast<int>(std::hash<std::string>()(infoJson.dump(-1, ' ', false, json::error_handler_t::replace)) & 0x7FFFFFFF);
 				infoJson["version"] = infoHash;
 
 				ivVar->GetHelper()->SetRawValue(infoHash);
@@ -183,7 +183,7 @@ static InitFunction initFunction([]()
 
 			{
 				std::unique_lock<std::recursive_mutex> lock(infoData->infoJsonMutex);
-				response->End(infoData->infoJson.dump());
+				response->End(infoData->infoJson.dump(-1, ' ', false, json::error_handler_t::replace));
 			}
 		});
 
@@ -225,7 +225,7 @@ static InitFunction initFunction([]()
 				});
 			});
 
-			response->End(data.dump());
+			response->End(data.dump(-1, ' ', false, json::error_handler_t::replace));
 		});
 	}, 1500);
 });

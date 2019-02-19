@@ -93,7 +93,7 @@ namespace fx
 			{
 				auto endError = [=](const std::string& error)
 				{
-					response->End(json::object({ {"error", error} }).dump());
+					response->End(json::object({ {"error", error} }).dump(-1, ' ', false, json::error_handler_t::replace));
 				};
 
 				auto postMap = ParsePOSTString(std::string(postData.begin(), postData.end()));
@@ -124,7 +124,7 @@ namespace fx
 							return;
 						}
 
-						response->Write(data.dump() + "\r\n");
+						response->Write(data.dump(-1, ' ', false, json::error_handler_t::replace) + "\r\n");
 					});
 				};
 

@@ -266,7 +266,7 @@ namespace fx
 			{ "size", this->size}
 		});
 
-		return json.dump();
+		return json.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 	}
 
 	auto ResourceStreamComponent::AddStreamingFile(const std::string& entryName, const std::string& diskPath, const std::string& cacheString) -> StorageEntry*
