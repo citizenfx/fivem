@@ -64,10 +64,10 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets or sets a value indicating whether this <see cref="Entity"/> is frozen.
+		/// Sets a value indicating whether this <see cref="Entity"/> should be frozen.
 		/// </summary>
 		/// <value>
-		/// <c>true</c> if this <see cref="Entity"/> is position frozen; otherwise, <c>false</c>.
+		/// <c>true</c> if this <see cref="Entity"/> position should be frozen; otherwise, <c>false</c>.
 		/// </value>
 		public bool IsPositionFrozen
 		{
