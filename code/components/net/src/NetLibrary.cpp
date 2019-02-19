@@ -1183,9 +1183,6 @@ bool NetLibrary::IsPendingInGameReconnect()
 
 const char* NetLibrary::GetPlayerName()
 {
-	/*
-	ProfileManager* profileManager = Instance<ProfileManager>::Get();
-	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();*/
 	if (!m_playerName.empty()) return m_playerName.c_str();
 
 	auto steamComponent = GetSteam();
@@ -1208,31 +1205,32 @@ const char* NetLibrary::GetPlayerName()
 		}
 	}
 
-	const char* returnName = nullptr;
-	/*
-	if (profile.GetRef())
-	{
-		returnName = profile->GetDisplayName();
-	}
-	else
-	{
-		static char computerName[64];
-		DWORD nameSize = sizeof(computerName);
-		GetComputerNameA(computerName, &nameSize);
+	static std::wstring returnNameWide;
+	static std::string returnName;
 
-		returnName = computerName;
-	}*/
-	returnName = getenv("USERNAME");
-	if (returnName == nullptr || !returnName[0]) {
-		static char computerName[64];
-		DWORD nameSize = sizeof(computerName);
-		GetComputerNameA(computerName, &nameSize);
-		returnName = computerName;
+	auto envName = _wgetenv(L"USERNAME");
+
+	if (envName != nullptr)
+	{
+		returnNameWide = envName;
 	}
-	if (returnName == nullptr || !returnName[0]) {
-		returnName = "Unknown Solderer";
+
+	if (returnNameWide.empty())
+	{
+		static wchar_t computerName[64];
+		DWORD nameSize = _countof(computerName);
+		GetComputerNameW(computerName, &nameSize);
+		returnNameWide = computerName;
 	}
-	return returnName;
+
+	if (returnNameWide.empty())
+	{
+		returnNameWide = L"UnknownPlayer";
+	}
+
+	returnName = ToNarrow(returnNameWide);
+
+	return returnName.c_str();
 }
 
 void NetLibrary::SetPlayerName(const char* name)

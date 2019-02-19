@@ -411,10 +411,10 @@ public:
                 };
 
                 // computer name as placeholder nick (f- yeah!)
-                char nickname[16];
+                wchar_t nickname[16];
                 DWORD size = 16;
 
-                GetComputerNameA(nickname, &size);
+                GetComputerNameW(nickname, &size);
 
                 // create the document
                 appendElement("Status", 1);
@@ -440,7 +440,7 @@ public:
                 appendChildElement(rockstarElement, "CountryCode", "CA");
                 appendChildElement(rockstarElement, "Email", tree.get<std::string>("Response.RockstarAccount.Email").c_str());
                 appendChildElement(rockstarElement, "LanguageCode", "en");
-                appendChildElement(rockstarElement, "Nickname", nickname);
+                appendChildElement(rockstarElement, "Nickname", ToNarrow(nickname).c_str());
 
                 appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
 
@@ -472,7 +472,7 @@ public:
                 appendJson("SaveEmail", true);
                 appendJson("SavePassword", true);
                 appendJson("Password", "DetCon1");
-                appendJson("Nickname", const_cast<const char*>(nickname));
+                appendJson("Nickname", ToNarrow(nickname).c_str());
                 appendJson("RockstarId", tree.get<std::string>("Response.RockstarAccount.RockstarId").c_str());
                 appendJson("CallbackData", 2);
                 appendJson("Local", false);
@@ -760,10 +760,10 @@ public:
 		};
 
 		// computer name as placeholder nick (f- yeah!)
-		char nickname[16];
+		wchar_t nickname[16];
 		DWORD size = 16;
 
-		GetComputerNameA(nickname, &size);
+		GetComputerNameW(nickname, &size);
 
 		// create the document
 		appendElement("Status", 1);
@@ -789,7 +789,7 @@ public:
 		appendChildElement(rockstarElement, "CountryCode", "CA");
 		appendChildElement(rockstarElement, "Email", "onlineservices@citizen.re");
 		appendChildElement(rockstarElement, "LanguageCode", "en");
-		appendChildElement(rockstarElement, "Nickname", nickname);
+		appendChildElement(rockstarElement, "Nickname", ToNarrow(nickname).c_str());
 		
 		appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
 
@@ -820,7 +820,7 @@ public:
 		appendJson("SaveEmail", true);
 		appendJson("SavePassword", true);
 		appendJson("Password", "DetCon1");
-		appendJson("Nickname", const_cast<const char*>(nickname));
+		appendJson("Nickname", ToNarrow(nickname).c_str());
 		appendJson("RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
 		appendJson("CallbackData", 2);
 		appendJson("Local", false);
