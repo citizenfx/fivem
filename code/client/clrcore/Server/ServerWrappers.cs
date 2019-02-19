@@ -34,6 +34,8 @@ namespace CitizenFX.Core
 
 		public string EndPoint => Call<string>(GET_PLAYER_ENDPOINT, m_handle);
 
+		public Ped Character => Ped.FromPlayerHandle(Handle);
+
 		public void Drop(string reason) => Call(DROP_PLAYER, m_handle, reason);
 
 		public void TriggerEvent(string eventName, params object[] args)
