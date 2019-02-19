@@ -1383,7 +1383,13 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 				return;
 			}
 
-			Log("%s: migrating entity %d from %s to %s\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName());
+			if (entityClient && entityClient->GetNetId() != client->GetNetId())
+			{
+				Log("%s: trying to send object %d from %s to %s, but the sender is %s. Rejecting.\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName(), client->GetName());
+				return;
+			}
+
+			Log("%s: migrating object %d from %s to %s\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName());
 		}
 
 		if (!entity || !entity->syncTree)
