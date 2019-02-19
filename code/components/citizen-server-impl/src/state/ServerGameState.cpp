@@ -1280,6 +1280,9 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			}
 		}
 
+		// unset weak pointer, as well
+		m_entitiesById[set & 0xFFFF] = {};
+
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
 		{
 			if (thisClient->GetNetId() == client->GetNetId())
@@ -1448,6 +1451,9 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 			break;
 		}
 	}
+
+	// unset weak pointer, as well
+	m_entitiesById[objectId] = {};
 
 	// these seem to cause late deletes of state on client, leading to excessive sending of creates
 	/*ackPacket.Write<uint8_t>(3);
