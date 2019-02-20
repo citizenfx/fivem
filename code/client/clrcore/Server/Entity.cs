@@ -114,24 +114,16 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets the owner of the this <see cref="Entity"/>.
+		/// Gets the network owner of the this <see cref="Entity"/>.
 		/// </summary>
-		/// <returns>Returns the <see cref="Ped"/> of the network owner.
-		/// Returns <c>null</c> if this <see cref="Entity"/> is owned by the player.</returns>
-		public Ped Owner
+		/// <returns>Returns the <see cref="Player"/> of the network owner.</returns>
+		public Player Owner
 		{
 			get
 			{
-				int playerHandle = API.NetworkGetEntityOwner(this.Handle);
+				string playerHandle = Convert.ToString(API.NetworkGetEntityOwner(this.Handle));
 
-				Ped playerPed = Ped.FromPlayerHandle(Convert.ToString(playerHandle));
-
-				if (playerPed != null && this.Handle != playerPed.Handle)
-				{
-					return playerPed;
-				}	
-
-				return null;
+				return new Player(playerHandle);
 			}
 		}
 
