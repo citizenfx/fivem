@@ -59,7 +59,7 @@ static HookFunction hookFunction([]()
 	validatePools[(int)NetObjEntityType::Player]			= (TPoolPtr)hook::get_address<void*>(location + 565);
 	validatePools[(int)NetObjEntityType::Submarine]			= (TPoolPtr)hook::get_address<void*>(location + 622);
 	validatePools[(int)NetObjEntityType::Plane]				= (TPoolPtr)hook::get_address<void*>(location + 672);
-	validatePools[(int)NetObjEntityType::PickupPlacement]	= (TPoolPtr)hook::get_address<void*>(location + 758);
+	validatePools[(int)NetObjEntityType::PickupPlacement]	= (TPoolPtr)hook::get_address<void*>(location + 722);
 
 
 	static_assert(offsetof(rage::CNetworkSyncDataULBase, isRemote) == 59, "offset 75");
