@@ -14,6 +14,9 @@
 
 #include <sysAllocator.h>
 
+#include <MinHook.h>
+#include <ICoreGameInit.h>
+
 #include <unordered_set>
 
 #if __has_include("scrEngineStubs.h")
@@ -210,16 +213,32 @@ void scrEngine::CreateThread(GtaThread* thread)
 	auto collection = GetThreadCollection();
 	int slot = 0;
 
-	for (auto& thread : *collection)
+	// first try finding the actual thread
+	for (auto& threadCheck : *collection)
 	{
-		auto context = thread->GetContext();
-
-		if (context->ThreadId == 0)
+		if (threadCheck == thread)
 		{
 			break;
 		}
 
 		slot++;
+	}
+
+	if (slot == collection->count())
+	{
+		slot = 0;
+
+		for (auto& threadCheck : *collection)
+		{
+			auto context = threadCheck->GetContext();
+
+			if (context->ThreadId == 0)
+			{
+				break;
+			}
+
+			slot++;
+		}
 	}
 
 	// did we get a slot?
@@ -477,22 +496,63 @@ static int ReturnTrue()
 	return true;
 }
 
+static int(*g_origReturnTrue)(void* a1, void* a2);
+
+static int ReturnTrueFromScript(void* a1, void* a2)
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origReturnTrue(a1, a2);
+	}
+
+	return true;
+}
+
+static void(*g_origResetOwnedThreads)();
+
 static void ResetOwnedThreads()
 {
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origResetOwnedThreads();
+	}
+
 	for (auto& thread : g_ownedThreads)
 	{
 		thread->Reset(thread->GetContext()->ScriptHash, nullptr, 0);
 	}
 }
 
-static int JustNoScript(GtaThread* thread)
+static int(*g_origNoScript)(void*, int);
+
+static int JustNoScript(GtaThread* thread, int a2)
 {
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origNoScript(thread, a2);
+	}
+
 	if (g_ownedThreads.find(thread) != g_ownedThreads.end())
 	{
 		thread->Run(0);
 	}
 
 	return thread->GetContext()->State;
+}
+
+static void(*origStartupScript)();
+
+static void StartupScriptWrap()
+{
+	for (auto& thread : g_ownedThreads)
+	{
+		if (!thread->GetContext()->ThreadId)
+		{
+			rage::scrEngine::CreateThread(thread);
+		}
+	}
+
+	origStartupScript();
 }
 
 static HookFunction hookFunction([] ()
@@ -519,16 +579,32 @@ static HookFunction hookFunction([] ()
 
 	g_scriptHandlerMgr = reinterpret_cast<decltype(g_scriptHandlerMgr)>(location + *(int32_t*)location + 4);
 
+	// script re-init
+	{
+		auto location = hook::get_pattern("83 FB FF 0F 84 D6 00 00 00", -0x37);
+
+		MH_Initialize();
+		MH_CreateHook(location, StartupScriptWrap, (void**)&origStartupScript);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
 	if (!CfxIsSinglePlayer())
 	{
+		MH_Initialize();
+
 		// temp: kill stock scripts
 		// NOTE: before removing make sure scrObfuscation in fivem-private can handle opcode 0x2C (NATIVE)
-		hook::jump(hook::pattern("48 83 EC 20 80 B9 46 01  00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript);
+		//hook::jump(hook::pattern("48 83 EC 20 80 B9 46 01  00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript);
+		MH_CreateHook(hook::pattern("48 83 EC 20 80 B9 46 01 00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript, (void**)&g_origNoScript);
 
 		// make all CGameScriptId instances return 'true' in matching function (mainly used for 'is script allowed to use this object' checks)
-		hook::jump(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrue);
+		//hook::jump(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrue);
+		MH_CreateHook(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrueFromScript, (void**)&g_origReturnTrue);
 
 		// replace `startup` initialization with resetting all owned threads
-		hook::jump(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads);
+		//hook::jump(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads);
+		MH_CreateHook(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads, (void**)&g_origResetOwnedThreads);
+
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 });

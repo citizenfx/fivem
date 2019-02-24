@@ -232,6 +232,18 @@ void CVehicleModelInfo__init(char* mi, char* data)
 	g_origCVehicleModelInfo__init(mi, data);
 }
 
+static uint32_t(*g_origScrProgramReturn)(void* a1, uint32_t a2);
+
+static uint32_t ReturnIfMp(void* a1, uint32_t a2)
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origScrProgramReturn(a1, a2);
+	}
+
+	return -1;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -258,7 +270,10 @@ static HookFunction hookFunction([] ()
 	if (!CfxIsSinglePlayer())
 	{
 		// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
-		hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+		//hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+		MH_Initialize();
+		MH_CreateHook(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnIfMp, (void**)&g_origScrProgramReturn);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	// make sure a drawfrag dc doesn't actually run if there's no frag (bypass ERR_GFX_DRAW_DATA)

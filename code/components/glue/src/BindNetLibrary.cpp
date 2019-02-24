@@ -82,6 +82,8 @@ static InitFunction initFunction([] ()
 		OnKillNetwork.Connect([=] (const char* message)
 		{
 			library->Disconnect(message);
+
+			Instance<ICoreGameInit>::Get()->ClearVariable("storyMode");
 		});
 
 		OnKillNetworkDone.Connect([=]()

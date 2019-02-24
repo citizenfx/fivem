@@ -595,22 +595,25 @@ struct get_func_ptr
 	}
 };
 
+template<int Register, typename T, typename AT>
+inline std::enable_if_t<(Register < 8 && Register >= 0)> jump_reg(AT address, T func)
+{
+	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func), Register);
+
+	put<uint8_t>(address, 0xE9);
+	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
+}
+
 template<typename T, typename AT>
 inline void jump(AT address, T func)
 {
-	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func));
-
-	put<uint8_t>(address, 0xE9);
-	put<int>((uintptr_t)address + 1, (intptr_t)funcStub- (intptr_t)get_adjusted(address) - 5);
+	jump_reg<0>(address, func);
 }
 
 template<typename T, typename AT>
 inline void jump_rcx(AT address, T func)
 {
-	LPVOID funcStub = AllocateFunctionStub(get_func_ptr<T>::get(func), 1);
-
-	put<uint8_t>(address, 0xE9);
-	put<int>((uintptr_t)address + 1, (intptr_t)funcStub - (intptr_t)get_adjusted(address) - 5);
+	jump_reg<1>(address, func);
 }
 
 template<int Register, typename T, typename AT>

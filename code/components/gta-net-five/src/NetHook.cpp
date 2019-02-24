@@ -14,6 +14,8 @@
 
 #include <MinHook.h>
 
+#include <GameInit.h>
+
 #include <scrEngine.h>
 #include <ScriptEngine.h>
 
@@ -776,6 +778,11 @@ static HookFunction initFunction([]()
 			Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([] ()
 			{
 				gameLoaded = true;
+			});
+
+			OnKillNetwork.Connect([](const char*)
+			{
+				gameLoaded = false;
 			});
 
 			eventConnected = true;

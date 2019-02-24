@@ -41,7 +41,7 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 {
 	if (errorString == (wchar_t*)1)
 	{
-		OnKillNetwork(nullptr);
+		OnKillNetwork("Reloading game.");
 	}
 	else
 	{

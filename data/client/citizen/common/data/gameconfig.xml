@@ -1038,7 +1038,7 @@
 						</Item>
 						<Item>
 							<StackName>DEFAULT</StackName>
-							<SizeOfStack value="1624"/>
+							<SizeOfStack value="1424"/>
 							<NumberOfStacksOfThisSize value="68"/>
 						</Item>
 						<Item>
@@ -1063,12 +1063,12 @@
 						</Item>
 						<Item>
 							<StackName>VEHICLE_SPAWN</StackName>
-							<SizeOfStack value="3068"/>
+							<SizeOfStack value="3368"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>CAR_MOD_SHOP</StackName>
-							<SizeOfStack value="3072"/>
+							<SizeOfStack value="3472"/>
 							<NumberOfStacksOfThisSize value="2"/>
 						</Item>
 						<Item>
@@ -1077,9 +1077,9 @@
 							<NumberOfStacksOfThisSize value="2"/>
 						</Item>
 						<Item>
-						  <StackName>APP_INTERNET</StackName>
-						  <SizeOfStack value="4592"/>
-						  <NumberOfStacksOfThisSize value="1"/>
+							<StackName>APP_INTERNET</StackName>
+							<SizeOfStack value="4592"/>
+							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MULTIPLAYER_MISSION</StackName>
@@ -1092,9 +1092,9 @@
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
-						  <StackName>INTERACTION_MENU</StackName>
-						  <SizeOfStack value="9800"/>
-						  <NumberOfStacksOfThisSize value="1"/>
+							<StackName>INTERACTION_MENU</StackName>
+							<SizeOfStack value="9800"/>
+							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>SCRIPT_XML</StackName>
@@ -1118,12 +1118,17 @@
 						</Item>
 						<Item>
 							<StackName>WAREHOUSE</StackName>
-							<SizeOfStack value="10820"/>
+							<SizeOfStack value="14000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>IE_DELIVERY</StackName>
 							<SizeOfStack value="2024"/>
+							<NumberOfStacksOfThisSize value="1"/>
+						</Item>
+						<Item>
+							<StackName>SHOP_CONTROLLER</StackName>
+							<SizeOfStack value="2200"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
@@ -1143,26 +1148,24 @@
 						</Item>
 						<Item>
 							<StackName>FMMC_LAUNCHER</StackName>
-							<SizeOfStack value="15000"/>
+							<SizeOfStack value="16000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MULTIPLAYER_FREEMODE</StackName>
-							<SizeOfStack value="41000"/>
+							<SizeOfStack value="55000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MISSION</StackName>
-							<SizeOfStack value="20500"/>
+							<SizeOfStack value="25000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MP_LAUNCH_SCRIPT</StackName>
-							<SizeOfStack value="21768"/>
+							<SizeOfStack value="22500"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
-
-
 					</StackSizeData>
 				</ConfigScriptStackSizes>
 
