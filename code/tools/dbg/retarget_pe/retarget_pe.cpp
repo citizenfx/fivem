@@ -119,6 +119,8 @@ int main(int argc, const char** argv)
 		UNWIND_INFO info;
 		unwindSection->stream.ReadStruct(info);
 
+		info.Flags &= ~UNW_FLAG_CHAININFO;
+
 		size_t baseOffset = offset;
 
 		globalAlloc.WriteToSection(&info, sizeof(info), offset);
