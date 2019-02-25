@@ -102,7 +102,7 @@ int main(int argc, const char** argv)
 		unwindSection->stream.ReadStruct(info);
 
 		unwindInfoSize += sizeof(UNWIND_INFO) + (sizeof(UNWIND_CODE) * info.CountOfCodes);
-		unwindInfoSize = (unwindInfoSize + 3) & ~4;
+		unwindInfoSize = (unwindInfoSize + 3) & ~3;
 	}
 
 	PEFile::PESectionAllocation globalAlloc;
@@ -133,7 +133,7 @@ int main(int argc, const char** argv)
 			offset += sizeof(code);
 		}
 
-		offset = (offset + 3) & ~4;
+		offset = (offset + 3) & ~3;
 
 		PEFile::PERuntimeFunction newRuntimeData;
 		newRuntimeData.beginAddrRef = peFile.ResolveRVAToRef(runtimeData.beginAddrRef.GetRVA());
