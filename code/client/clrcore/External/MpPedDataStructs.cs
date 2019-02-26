@@ -133,4 +133,52 @@ namespace CitizenFX.Core
 		}
 	}
 
+	[StructLayout(LayoutKind.Explicit, Size = 0x30)]
+	[SecuritySafeCritical]
+	internal unsafe struct UnsafeAltPropVariationData
+	{
+		[FieldOffset(0x00)] private uint unkHash1;
+
+		[FieldOffset(0x08)] private uint unkHash2;
+
+		[FieldOffset(0x10)] private int unkInt1;
+
+		[FieldOffset(0x18)] private int altPropIndex;
+
+		[FieldOffset(0x20)] private int altPropTextureIndex;
+
+		[FieldOffset(0x28)] private int unkInt2;
+
+		public AltPropVariationData GetData(uint unk1, int unk2, int unk3)
+		{
+			return new AltPropVariationData(unkHash1, unkHash2, unkInt1, altPropIndex, altPropTextureIndex, unkInt2, unk1, unk2, unk3);
+		}
+	}
+
+	public struct AltPropVariationData
+	{
+		public uint unknownHash1;
+		public uint unknownHash2;
+		public uint unknownHash3;
+		public int unknownInt1;
+		public int unknownInt2;
+		public int unknownInt3;
+		public int unknownInt4;
+		public int altPropVariationIndex;
+		public int altPropVariationTexture;
+
+		public AltPropVariationData(uint unknownHash1, uint unknownHash2, int unknownInt1, int altPropVariationIndex, int altPropVariationTexture, int unknownInt2, uint unknownHash3, int unknownInt3, int unknownInt4)
+		{
+			this.unknownHash1 = unknownHash1;
+			this.unknownHash2 = unknownHash2;
+			this.unknownInt1 = unknownInt1;
+			this.altPropVariationIndex = altPropVariationIndex;
+			this.altPropVariationTexture = altPropVariationTexture;
+			this.unknownInt2 = unknownInt2;
+			this.unknownHash3 = unknownHash3;
+			this.unknownInt3 = unknownInt3;
+			this.unknownInt4 = unknownInt4;
+		}
+	}
+
 }
