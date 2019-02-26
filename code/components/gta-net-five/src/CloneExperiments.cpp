@@ -27,6 +27,8 @@ extern NetLibrary* g_netLibrary;
 
 class CNetGamePlayer;
 
+static ICoreGameInit* icgi;
+
 namespace rage
 {
 class netObject;
@@ -72,7 +74,7 @@ static CNetGamePlayer*(*g_origGetPlayerByIndex)(int);
 
 static CNetGamePlayer* GetPlayerByIndex(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetPlayerByIndex(index);
 	}
@@ -97,7 +99,7 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 {
 	g_origJoinBubble(bubbleMgr, player);
 
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return;
 	}
@@ -138,7 +140,7 @@ static CNetGamePlayer*(*g_origGetPlayerByIndexNet)(int);
 
 static CNetGamePlayer* GetPlayerByIndexNet(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetPlayerByIndexNet(index);
 	}
@@ -151,7 +153,7 @@ static bool(*g_origIsNetworkPlayerActive)(int);
 
 static bool IsNetworkPlayerActive(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origIsNetworkPlayerActive(index);
 	}
@@ -163,7 +165,7 @@ static bool(*g_origIsNetworkPlayerConnected)(int);
 
 static bool IsNetworkPlayerConnected(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origIsNetworkPlayerConnected(index);
 	}
@@ -305,7 +307,7 @@ static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 
 static CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetOwnerNetPlayer(object);
 	}
@@ -328,7 +330,7 @@ static uint8_t(*g_origGetOwnerPlayerId)(rage::netObject*);
 
 static uint8_t netObject__GetPlayerOwnerId(rage::netObject* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetOwnerPlayerId(object);
 	}
@@ -340,7 +342,7 @@ static CNetGamePlayer*(*g_origGetPendingPlayerOwner)(rage::netObject*);
 
 static CNetGamePlayer* netObject__GetPendingPlayerOwner(rage::netObject* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetPendingPlayerOwner(object);
 	}
@@ -442,7 +444,7 @@ static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 
 static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origAllocateNetPlayer(mgr);
 	}
@@ -465,7 +467,7 @@ void ObjectIds_RemoveObjectId(int objectId);
 
 static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netObject, int a3)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origPassObjectControl(player, netObject, a3);
 	}
@@ -522,7 +524,7 @@ static void(*g_origSetOwner)(rage::netObject* object, CNetGamePlayer* newOwner);
 
 static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origSetOwner(netObject, newOwner);
 	}
@@ -607,7 +609,7 @@ int getPlayerId()
 
 static bool mD0Stub(rage::netSyncTree* tree, int a2)
 {
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		return false;
 	}
@@ -620,7 +622,7 @@ static CNetGamePlayer**(*g_origGetNetworkPlayerList)();
 
 static int GetNetworkPlayerListCount()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerListCount();
 	}
@@ -630,7 +632,7 @@ static int GetNetworkPlayerListCount()
 
 static CNetGamePlayer** GetNetworkPlayerList()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerList();
 	}
@@ -643,7 +645,7 @@ static CNetGamePlayer**(*g_origGetNetworkPlayerList2)();
 
 static int GetNetworkPlayerListCount2()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerListCount2();
 	}
@@ -653,7 +655,7 @@ static int GetNetworkPlayerListCount2()
 
 static CNetGamePlayer** GetNetworkPlayerList2()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerList2();
 	}
@@ -663,7 +665,7 @@ static CNetGamePlayer** GetNetworkPlayerList2()
 
 static void netObject__ClearPendingPlayerIndex(rage::netObject* object)
 {
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		if (object->syncData.nextOwnerId == 31 && TheClones->GetPendingClientId(object) != 0xFFFF)
 		{
@@ -705,7 +707,7 @@ static int(*g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels)(void* mgr, in
 
 static int networkBandwidthMgr_CalculatePlayerUpdateLevelsStub(void* mgr, int* a2, int* a3, int* a4)
 {
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		return 0;
 	}
@@ -721,7 +723,7 @@ static int GetNetObjPlayerGroup(void* entity)
 	// indexes a fixed-size array of 64, of which 32 are players, and 16+16 are script/code groups
 	// we don't want to write past 32 ever, and _especially_ not past 64
 	// this needs additional patching that currently isn't done.
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		return 0;
 	}
@@ -735,7 +737,7 @@ static int(*g_origCountObjects)(rage::netObjectMgr* objectMgr, TObjectPred pred)
 
 static int netObjectMgr__CountObjects(rage::netObjectMgr* objectMgr, TObjectPred pred)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origCountObjects(objectMgr, pred);
 	}
@@ -749,7 +751,7 @@ static void(*g_origObjectManager_End)(void*);
 
 void ObjectManager_End(rage::netObjectMgr* objectMgr)
 {
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		// don't run deletion if object manager is already shut down
 		char* mgrPtr = (char*)objectMgr;
@@ -792,7 +794,7 @@ static void(*g_origPlayerManager_End)(void*);
 
 void PlayerManager_End(void* mgr)
 {
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		g_netIdsByPlayer.clear();
 		g_playersByNetId.clear();
@@ -839,7 +841,7 @@ static rage::netPlayer*(*g_origGetPlayerFromGamerId)(rage::netPlayerMgrBase* mgr
 
 static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const rage::rlGamerId& gamerId, bool flag)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetPlayerFromGamerId(mgr, gamerId, flag);
 	}
@@ -978,7 +980,7 @@ static HookFunction hookFunction([]()
 
 		static void DeletionMethod(rage::netObject* object)
 		{
-			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (icgi->OneSyncEnabled)
 			{
 				TheClones->OnObjectDeletion(object);
 			}
@@ -1111,7 +1113,7 @@ static void(*g_origAddEvent)(void*, rage::netGameEvent*);
 
 static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origAddEvent(eventMgr, ev);
 	}
@@ -1226,7 +1228,7 @@ static void EventManager_Update()
 
 static void HandleNetGameEvent(const char* idata, size_t len)
 {
-	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+	if (!icgi->HasVariable("networkInited"))
 	{
 		return;
 	}
@@ -1295,7 +1297,7 @@ static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, 
 
 static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origExecuteNetGameEvent(eventMgr, ev, buffer, player, unkConn, evH, a, b);
 	}
@@ -1338,9 +1340,11 @@ static InitFunction initFunctionEv([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* netLibrary)
 	{
+		icgi = Instance<ICoreGameInit>::Get();
+
 		netLibrary->OnClientInfoReceived.Connect([](const NetLibraryClientInfo& info)
 		{
-			if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (!icgi->OneSyncEnabled)
 			{
 				return;
 			}
@@ -1350,7 +1354,7 @@ static InitFunction initFunctionEv([]()
 
 		netLibrary->OnClientInfoDropped.Connect([](const NetLibraryClientInfo& info)
 		{
-			if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (!icgi->OneSyncEnabled)
 			{
 				return;
 			}
@@ -1360,7 +1364,7 @@ static InitFunction initFunctionEv([]()
 
 		netLibrary->AddReliableHandler("msgNetGameEvent", [](const char* data, size_t len)
 		{
-			if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (!icgi->OneSyncEnabled)
 			{
 				return;
 			}
@@ -1374,7 +1378,7 @@ static bool(*g_origSendGameEvent)(void*, void*);
 
 static bool SendGameEvent(void* eventMgr, void* ev)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origSendGameEvent(eventMgr, ev);
 	}
@@ -1386,7 +1390,7 @@ static uint32_t(*g_origGetFireApplicability)(void* event, void* pos);
 
 static uint32_t GetFireApplicability(void* event, void* pos)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetFireApplicability(event, pos);
 	}
@@ -1458,7 +1462,7 @@ std::map<int, std::map<void*, std::tuple<int, uint32_t>>> g_netObjectNodeMapping
 
 static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origReadDataNode(node, flags, mA0, buffer, object);
 	}
@@ -1481,7 +1485,7 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBit
 
 static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
 	}
@@ -1531,7 +1535,7 @@ static void(*g_origUpdateSyncDataOn108)(void* node, void* object);
 
 static void UpdateSyncDataOn108Stub(void* node, void* object)
 {
-	//if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	//if (!icgi->OneSyncEnabled)
 	{
 		g_origUpdateSyncDataOn108(node, object);
 	}
@@ -1543,7 +1547,7 @@ extern void DirtyNode(void* object, void* node);
 
 static void ManuallyDirtyNodeStub(void* node, void* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		g_origManuallyDirtyNode(node, object);
 		return;
@@ -1556,7 +1560,7 @@ static void(*g_origCallSkip)(void* a1, void* a2, void* a3, void* a4, void* a5);
 
 static void SkipCopyIf1s(void* a1, void* a2, void* a3, void* a4, void* a5)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		g_origCallSkip(a1, a2, a3, a4, a5);
 	}
@@ -1665,7 +1669,7 @@ bool netTimeSync::IsInitialized()
 
 void netTimeSync::Update()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return;
 	}
@@ -1791,7 +1795,7 @@ static InitFunction initFunctionTime([]()
 bool netTimeSync__InitializeTimeStub(netTimeSync* timeSync, void* connectionMgr, int flags, void* trustHost,
 	uint32_t sessionSeed, int* deltaStart, int packetFlags, int initialBackoff, int maxBackoff)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origInitializeTime(timeSync, connectionMgr, flags, trustHost, sessionSeed, deltaStart, packetFlags, initialBackoff, maxBackoff);
 	}
@@ -1853,7 +1857,7 @@ bool(*g_origDoesLocalPlayerOwnWorldGrid)(float* pos);
 
 bool DoesLocalPlayerOwnWorldGrid(float* pos)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origDoesLocalPlayerOwnWorldGrid(pos);
 	}
@@ -1951,7 +1955,7 @@ static InitFunction initFunction([]()
 		}
 
 		// only work with 1s enabled
-		if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+		if (!icgi->OneSyncEnabled)
 		{
 			return;
 		}

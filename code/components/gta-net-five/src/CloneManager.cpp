@@ -88,7 +88,7 @@ public:
 
 	virtual void Log(const char* format, const fmt::ArgList& argumentList) override;
 
-	virtual std::vector<rage::netObject*> GetObjectList() override;
+	virtual const std::unordered_set<rage::netObject*>& GetObjectList() override;
 
 	FMT_VARIADIC(void, Log, const char*);
 
@@ -160,6 +160,8 @@ private:
 
 	std::unordered_map<uint32_t, rage::netObject*> m_savedEntities;
 
+	std::unordered_set<rage::netObject*> m_savedEntitySet;
+
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
 	tbb::concurrent_queue<std::string> m_logQueue;
@@ -209,6 +211,7 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_trackedObjects.erase(netObject->objectId);
 	m_extendedData.erase(netObject->objectId);
 	m_savedEntities.erase(netObject->objectId);
+	m_savedEntitySet.erase(netObject);
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
@@ -666,6 +669,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	obj->m_1C0();
 
+	m_savedEntitySet.insert(obj);
 	m_savedEntities[msg.GetObjectId()] = obj;
 
 	// for the last time, ensure it's not local
@@ -729,6 +733,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		Log("%s: our object, bailing out\n", __func__);
 
 		m_savedEntities[msg.GetObjectId()] = obj;
+		m_savedEntitySet.insert(obj);
 
 		ackPacket();
 
@@ -773,6 +778,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	obj->m_1D0();
 
 	m_savedEntities[msg.GetObjectId()] = obj;
+	m_savedEntitySet.insert(obj);
 
 	ackPacket();
 
@@ -941,17 +947,9 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
 }
 
-std::vector<rage::netObject*> CloneManagerLocal::GetObjectList()
+const std::unordered_set<rage::netObject*>& CloneManagerLocal::GetObjectList()
 {
-	std::vector<rage::netObject*> entities;
-	entities.reserve(m_savedEntities.size());
-
-	for (auto& objectPair : m_savedEntities)
-	{
-		entities.push_back(objectPair.second);
-	}
-
-	return entities;
+	return m_savedEntitySet;
 }
 
 void CloneManagerLocal::Update()
@@ -1249,6 +1247,7 @@ void CloneManagerLocal::WriteUpdates()
 
 		seenObjects.insert(objectId);
 		m_savedEntities[objectId] = object;
+		m_savedEntitySet.insert(object);
 
 		if (m_extendedData[objectId].clientId != m_netLibrary->GetServerNetID())
 		{
