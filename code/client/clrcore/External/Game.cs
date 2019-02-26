@@ -859,7 +859,7 @@ namespace CitizenFX.Core
 
 			int maxVariations = API.N_0xd40aac51e8e4c663(propHashName);
 
-			AltPropVariationData[] items;
+			AltPropVariationData[] items = new AltPropVariationData[maxVariations];
 			if (maxVariations > 0)
 			{
 				items = new AltPropVariationData[maxVariations];
