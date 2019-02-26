@@ -19,11 +19,16 @@ namespace CitizenFX.Core
 
 		public static IScriptHost ScriptHost { get; internal set; }
 
+		// actually, domain-global
+		private static InternalManager GlobalManager { get; set; }
+
 		[SecuritySafeCritical]
 		public InternalManager()
 		{
 			//CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 			//CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+			GlobalManager = this;
 
 			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 			Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
@@ -158,6 +163,11 @@ namespace CitizenFX.Core
 		public static void AddDelay(int delay, AsyncCallback callback)
 		{
 			ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback));
+		}
+
+		public static void TickGlobal()
+		{
+			GlobalManager.Tick();
 		}
 
 		public void Tick()

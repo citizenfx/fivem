@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Security;
 
@@ -15,6 +18,12 @@ namespace CitizenFX.Core
 		private IntPtr m_parentObject;
 
 		private static readonly Random ms_random = new Random();
+
+		[SecuritySafeCritical]
+		static MonoScriptRuntime()
+		{
+
+		}
 
 		public MonoScriptRuntime()
 		{
@@ -136,12 +145,40 @@ namespace CitizenFX.Core
 			}
 		}
 
+		[SecuritySafeCritical]
 		public void Tick()
 		{
 			using (GetPushRuntime())
 			{
+#if IS_FXSERVER
 				m_intManager?.Tick();
+#else
+				// we *shouldn't* do .Id here as that's yet another free remoting call
+				ms_fastTickInDomain.method(m_appDomain);
+#endif
 			}
+		}
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr LoadLibrary(string dllToLoad);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+
+		private static FastMethod<Action<AppDomain>> ms_fastTickInDomain =
+#if IS_FXSERVER
+			null;
+#else
+			BuildFastTick();
+#endif
+
+		[SecurityCritical]
+		private unsafe static FastMethod<Action<AppDomain>> BuildFastTick()
+		{
+			var lib = LoadLibrary("citizen-scripting-mono.dll");
+			var fn = GetProcAddress(lib, "GI_TickInDomain");
+
+			return new FastMethod<Action<AppDomain>>("TickInDomain", fn);
 		}
 
 		public void TriggerEvent(string eventName, byte[] argsSerialized, int serializedSize, string sourceId)
@@ -304,5 +341,55 @@ namespace CitizenFX.Core
 				return null;
 			}
 		}
+	}
+
+	internal class FastMethod<T> where T : Delegate
+	{
+		[SecuritySafeCritical]
+		public FastMethod(string name, object obj, Type tint, int midx)
+		{
+			if (!Marshal.IsComObject(obj))
+			{
+				throw new ArgumentException("Not a COM interface.");
+			}
+
+			var castObj = Marshal.GetComInterfaceForObject(obj, tint);
+			var vtblStart = Marshal.ReadIntPtr(castObj);
+			vtblStart += (IntPtr.Size * midx) + (IntPtr.Size * 3);
+
+			Initialize(name, Marshal.ReadIntPtr(vtblStart));
+		}
+
+		[SecuritySafeCritical]
+		public FastMethod(string name, IntPtr fn)
+		{
+			Initialize(name, fn);
+		}
+
+		[SecurityCritical]
+		private void Initialize(string name, IntPtr fn)
+		{
+			var invokeMethod = typeof(T).GetMethod("Invoke");
+			var paramTypes = invokeMethod.GetParameters().Select(p => p.ParameterType).ToArray();
+
+			m_method = new DynamicMethod(name,
+				invokeMethod.ReturnType, paramTypes, typeof(MonoScriptRuntime).Module, true);
+			ILGenerator generator = m_method.GetILGenerator();
+
+			for (int i = 0; i < paramTypes.Length; i++)
+			{
+				generator.Emit(OpCodes.Ldarg, i);
+			}
+
+			generator.Emit(OpCodes.Ldc_I8, fn.ToInt64());
+			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, invokeMethod.ReturnType, paramTypes, null);
+			generator.Emit(OpCodes.Ret);
+
+			method = (T)m_method.CreateDelegate(typeof(T));
+		}
+
+		private DynamicMethod m_method;
+
+		public T method;
 	}
 }

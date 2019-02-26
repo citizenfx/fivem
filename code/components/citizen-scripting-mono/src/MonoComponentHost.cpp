@@ -17,6 +17,12 @@
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/threads.h>
+
+extern "C" {
+	void mono_thread_push_appdomain_ref(MonoDomain *domain);
+	void mono_thread_pop_appdomain_ref(void);
+}
+
 #include <mono/metadata/exception.h>
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/mono-gc.h>
@@ -138,7 +144,32 @@ struct _MonoProfiler
 
 MonoProfiler _monoProfiler;
 
+#ifdef _WIN32
+// custom heap so we won't end up depending on any suspended threads
+// (we need to be safe even if the GC suspended the world)
+static HANDLE g_heap = HeapCreate(0, 0, 0);
+
+template<typename T>
+struct StaticHeapAllocator
+{
+	using value_type = T;
+
+	T* allocate(size_t n)
+	{
+		return (T*)HeapAlloc(g_heap, 0, n * sizeof(T));
+	}
+
+	void deallocate(T* p, size_t n)
+	{
+		HeapFree(g_heap, 0, p);
+	}
+};
+
+static std::map<MonoDomain*, uint64_t, std::less<>, StaticHeapAllocator<std::pair<MonoDomain* const, uint64_t>>> g_memoryUsages;
+#else
 static std::map<MonoDomain*, uint64_t> g_memoryUsages;
+#endif
+
 static std::shared_mutex g_memoryUsagesMutex;
 
 static bool g_requestedMemoryUsage;
@@ -180,6 +211,34 @@ static uint64_t GI_GetMemoryUsage()
 
 	std::shared_lock<std::shared_mutex> lock(g_memoryUsagesMutex);
 	return g_memoryUsages[monoDomain];
+}
+
+MonoMethod* g_tickMethod;
+
+extern "C" DLL_EXPORT void GI_TickInDomain(MonoAppDomain* domain)
+{
+	auto targetDomain = mono_domain_from_appdomain(domain);
+	auto currentDomain = mono_domain_get();
+
+	if (currentDomain != targetDomain)
+	{
+		mono_thread_push_appdomain_ref(targetDomain);
+
+		if (!mono_domain_set(targetDomain, false))
+		{
+			mono_thread_pop_appdomain_ref();
+			return;
+		}
+	}
+	
+	MonoObject* exc = nullptr;
+	mono_runtime_invoke(g_tickMethod, nullptr, nullptr, &exc);
+
+	if (currentDomain != targetDomain)
+	{
+		mono_domain_set(currentDomain, true);
+		mono_thread_pop_appdomain_ref();
+	}
 }
 
 MonoMethod* g_getImplementsMethod;
@@ -252,6 +311,7 @@ static void InitMono()
 
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", reinterpret_cast<void*>(GI_PrintLogCall));
 	mono_add_internal_call("CitizenFX.Core.GameInterface::fwFree", reinterpret_cast<void*>(fwFree));
+	mono_add_internal_call("CitizenFX.Core.GameInterface::TickInDomain", reinterpret_cast<void*>(GI_TickInDomain));
 	mono_add_internal_call("CitizenFX.Core.GameInterface::GetMemoryUsage", reinterpret_cast<void*>(GI_GetMemoryUsage));
 
 	std::string platformPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/CitizenFX.Core.dll");
@@ -277,6 +337,7 @@ static void InitMono()
 	method_search("CitizenFX.Core.RuntimeManager:Initialize", rtInitMethod);
 	method_search("CitizenFX.Core.RuntimeManager:GetImplementedClasses", g_getImplementsMethod);
 	method_search("CitizenFX.Core.RuntimeManager:CreateObjectInstance", g_createObjectMethod);
+	method_search("CitizenFX.Core.InternalManager:TickGlobal", g_tickMethod);
 
 	if (!methodSearchSuccess)
 	{
