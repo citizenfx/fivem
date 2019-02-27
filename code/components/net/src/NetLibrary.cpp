@@ -480,14 +480,17 @@ inline uint64_t GetGUID()
 	{
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
-		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-		if (steamUser.IsValid())
+		if (steamClient)
 		{
-			uint64_t steamID;
-			steamUser.Invoke<void>("GetSteamID", &steamID);
+			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
 
-			return steamID;
+			if (steamUser.IsValid())
+			{
+				uint64_t steamID;
+				steamUser.Invoke<void>("GetSteamID", &steamID);
+
+				return steamID;
+			}
 		}
 	}
 
