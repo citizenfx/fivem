@@ -70,6 +70,9 @@ std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
 static CNetGamePlayer* g_playerList[256];
 static int g_playerListCount;
 
+static CNetGamePlayer* g_playerListRemote[256];
+static int g_playerListCountRemote;
+
 static CNetGamePlayer*(*g_origGetPlayerByIndex)(int);
 
 static CNetGamePlayer* GetPlayerByIndex(int index)
@@ -124,6 +127,8 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 	// add to sequential list
 	g_playerList[g_playerListCount] = player;
 	g_playerListCount++;
+
+	// don't add to g_playerListRemote(!)
 }
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t netId)
@@ -221,6 +226,9 @@ namespace sync
 
 		g_playerList[g_playerListCount] = player;
 		g_playerListCount++;
+
+		g_playerListRemote[g_playerListCountRemote] = player;
+		g_playerListCountRemote++;
 	}
 }
 
@@ -292,6 +300,17 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 			{
 				memmove(&g_playerList[i], &g_playerList[i + 1], sizeof(*g_playerList) * (g_playerListCount - i - 1));
 				g_playerListCount--;
+
+				break;
+			}
+		}
+
+		for (int i = 0; i < g_playerListCountRemote; i++)
+		{
+			if (g_playerListRemote[i] == player)
+			{
+				memmove(&g_playerListRemote[i], &g_playerListRemote[i + 1], sizeof(*g_playerListRemote) * (g_playerListCountRemote - i - 1));
+				g_playerListCountRemote--;
 
 				break;
 			}
@@ -620,30 +639,30 @@ static bool mD0Stub(rage::netSyncTree* tree, int a2)
 static int(*g_origGetNetworkPlayerListCount)();
 static CNetGamePlayer**(*g_origGetNetworkPlayerList)();
 
-static int GetNetworkPlayerListCount()
+static int netInterface_GetNumRemotePhysicalPlayers()
 {
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerListCount();
 	}
 
-	return g_playerListCount;
+	return g_playerListCountRemote;
 }
 
-static CNetGamePlayer** GetNetworkPlayerList()
+static CNetGamePlayer** netInterface_GetRemotePhysicalPlayers()
 {
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerList();
 	}
 
-	return g_playerList;
+	return g_playerListRemote;
 }
 
 static int(*g_origGetNetworkPlayerListCount2)();
 static CNetGamePlayer**(*g_origGetNetworkPlayerList2)();
 
-static int GetNetworkPlayerListCount2()
+static int netInterface_GetNumPhysicalPlayers()
 {
 	if (!icgi->OneSyncEnabled)
 	{
@@ -653,7 +672,7 @@ static int GetNetworkPlayerListCount2()
 	return g_playerListCount;
 }
 
-static CNetGamePlayer** GetNetworkPlayerList2()
+static CNetGamePlayer** netInterface_GetAllPhysicalPlayers()
 {
 	if (!icgi->OneSyncEnabled)
 	{
@@ -824,6 +843,7 @@ void PlayerManager_End(void* mgr)
 		*(uint32_t*)((char*)g_playerMgr + 328) = 0;
 
 		g_playerListCount = 0;
+		g_playerListCountRemote = 0;
 	}
 
 	g_origPlayerManager_End(mgr);
@@ -938,14 +958,14 @@ static HookFunction hookFunction([]()
 
 	{
 		auto location = hook::get_pattern<char>("44 0F 28 CF F3 41 0F 59 C0 F3 44 0F 59 CF F3 44 0F 58 C8 E8", 19);
-		MH_CreateHook(hook::get_call(location + 0), GetNetworkPlayerListCount, (void**)&g_origGetNetworkPlayerListCount);
-		MH_CreateHook(hook::get_call(location + 8), GetNetworkPlayerList, (void**)&g_origGetNetworkPlayerList);
+		MH_CreateHook(hook::get_call(location + 0), netInterface_GetNumRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerListCount);
+		MH_CreateHook(hook::get_call(location + 8), netInterface_GetRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerList);
 	}
 
 	{
 		auto location = hook::get_pattern<char>("48 8B F0 85 DB 74 56 8B", -0x34);
-		MH_CreateHook(hook::get_call(location + 0x28), GetNetworkPlayerListCount2, (void**)&g_origGetNetworkPlayerListCount2);
-		MH_CreateHook(hook::get_call(location + 0x2F), GetNetworkPlayerList2, (void**)&g_origGetNetworkPlayerList2);
+		MH_CreateHook(hook::get_call(location + 0x28), netInterface_GetNumPhysicalPlayers, (void**)&g_origGetNetworkPlayerListCount2);
+		MH_CreateHook(hook::get_call(location + 0x2F), netInterface_GetAllPhysicalPlayers, (void**)&g_origGetNetworkPlayerList2);
 	}
 
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
@@ -1895,8 +1915,10 @@ static HookFunction hookFunctionWorldGrid([]()
 	// if population breaks in non-1s, this is possibly why
 	//hook::nop(hook::get_pattern("38 05 ? ? ? ? 75 0A 48 8B CF E8", 6), 2);
 
-	// 1493+
-	hook::nop(hook::get_pattern("80 3D ? ? ? ? 00 75 0A 48 8B CF E8", 7), 2);
+	// 1493+ of the above patch
+	//hook::nop(hook::get_pattern("80 3D ? ? ? ? 00 75 0A 48 8B CF E8", 7), 2);
+
+	// this patch above ^ shouldn't be needed with timeSync properly implemented, gamerIDs being set and RemotePlayer list fixes
 
 	// this should apply to both 1s and non-1s (as participants are - hopefully? - not used by anyone in regular net)
 	hook::jump(hook::get_pattern("84 C0 74 06 0F BF 43 38", -0x18), GetScriptParticipantIndexForPlayer);
