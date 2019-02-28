@@ -124,7 +124,7 @@ public:
 
 	void Cancel()
 	{
-		if (m_request.GetRef())
+		if (m_request.GetRef() && !m_ended)
 		{
 			auto& cancelHandler = m_request->GetCancelHandler();
 
@@ -172,6 +172,9 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		Http2ServerImpl* server;
 
 		std::set<HttpRequestData*> streams;
+
+		// cache responses independently from streams so 'clean' closes don't invalidate session
+		std::list<fwRefContainer<HttpResponse>> responses;
 	};
 
 	struct HttpRequestData
@@ -285,7 +288,9 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					}
 
 					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, req->headers[":method"], req->headers[":path"], headerList, req->connection->stream->GetPeerAddress().ToString());
+					
 					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id);
+					req->connection->responses.push_back(response);
 
 					req->httpResp = response;
 					reqState->blocked = true;
@@ -368,17 +373,19 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	stream->SetCloseCallback([=]()
 	{
 		{
-			for (auto& stream : data->streams)
+			for (auto& response : data->responses)
 			{
-				// cancel HTTP responses that are still running
+				// cancel HTTP responses that we have referenced
 				// (so that we won't reference data->session)
-				auto resp = stream->httpResp.GetRef();
+				auto resp = response.GetRef();
 
 				if (resp)
 				{
 					((net::Http2Response*)resp)->Cancel();
 				}
 			}
+
+			data->responses.clear();
 		}
 
 		nghttp2_session_del(data->session);
