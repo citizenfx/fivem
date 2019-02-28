@@ -200,8 +200,6 @@ namespace CitizenFX.Core
 			catch (Exception e)
 			{
 				Debug.WriteLine("Error during Tick: {0}", e.ToString());
-
-				throw;
 			}
 		}
 
