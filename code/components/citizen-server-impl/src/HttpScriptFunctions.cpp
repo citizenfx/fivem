@@ -59,10 +59,13 @@ static InitFunction initFunction([]()
 				auto responseHeaders = std::make_shared<HttpHeaderList>();
 				auto responseCode = std::make_shared<int>();
 
+				using namespace std::chrono_literals;
+
 				HttpRequestOptions options;
 				options.headers = headerMap;
 				options.responseHeaders = responseHeaders;
 				options.responseCode = responseCode;
+				options.timeoutNoResponse = 5000ms;
 
 				// create token
 				int token = reqToken.fetch_add(1);

@@ -61,6 +61,8 @@ public:
 	int weight;
 	HttpHeaderListPtr responseHeaders;
 	std::shared_ptr<int> responseCode;
+	std::chrono::milliseconds timeoutNoResponse;
+	std::chrono::high_resolution_clock::duration reqStart;
 
 	CurlData();
 
@@ -71,6 +73,9 @@ public:
 
 CurlData::CurlData()
 {
+	timeoutNoResponse = std::chrono::milliseconds(0);
+	reqStart = std::chrono::high_resolution_clock::duration(0);
+
 	writeFunction = [=] (const void* data, size_t size)
 	{
 		ss << std::string((const char*)data, size);
@@ -269,6 +274,28 @@ static int CurlXferInfo(void *userdata, curl_off_t dltotal, curl_off_t dlnow, cu
 		cd->progressCallback(info);
 	}
 
+	using namespace std::chrono_literals;
+
+	if (cd->timeoutNoResponse != 0ms)
+	{
+		// first progress callback is the start of the timeout
+		// if we do this any earlier, we run the risk of having concurrent connections that
+		// are throttled due to max-connection limit time out instantly
+		if (cd->reqStart.count() == 0)
+		{
+			cd->reqStart = std::chrono::high_resolution_clock::now().time_since_epoch();
+		}
+
+		if (dlnow == 0 && dltotal == 0)
+		{
+			if (std::chrono::high_resolution_clock::now().time_since_epoch() - cd->reqStart > cd->timeoutNoResponse)
+			{
+				// abort due to timeout
+				return 1;
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -311,6 +338,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curlData->defaultWeight = curlData->weight = options.weight;
 	curlData->responseHeaders = options.responseHeaders;
 	curlData->responseCode = options.responseCode;
+	curlData->timeoutNoResponse = options.timeoutNoResponse;
 
 	auto scb = options.streamingCallback;
 
