@@ -88,7 +88,17 @@ struct phBoundMaterial1
 #ifdef RAGE_FORMATS_GAME_NY
 	uint8_t pad;
 	uint16_t roomId : 5;
-	uint16_t unk : 11;
+	uint16_t f5 : 1; // "sidewalk spec 1"
+	uint16_t f6 : 1; // "sidewalk spec 2"
+	uint16_t f7 : 1;
+	uint16_t stairs : 1;
+	uint16_t blockGrip : 1;
+	uint16_t blockClimb : 1;
+	uint16_t shootThrough : 1;
+	uint16_t blockJumpOver : 1;
+	uint16_t f13 : 1; // "sidewalk spec 3"
+	uint16_t seeThrough : 1;
+	uint16_t f15 : 1;
 #elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint8_t proceduralId;
 
@@ -103,7 +113,11 @@ struct phBoundMaterial1
 #if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 struct phBoundMaterial2
 {
-	uint8_t polyFlags;
+	uint8_t stairs : 1;
+	uint8_t blockClimb : 1;
+	uint8_t seeThrough : 1;
+	uint8_t shootThrough : 1;
+	uint8_t polyFlagsOther : 4;
 	uint8_t materialColorIdx;
 	uint16_t unknown;
 };
@@ -191,7 +205,11 @@ public:
 		m_material.unk4F = 0;
 
 		m_material2.materialColorIdx = 0;
-		m_material2.polyFlags = 0;
+		m_material2.stairs = 0;
+		m_material2.seeThrough = 0;
+		m_material2.blockClimb = 0;
+		m_material2.shootThrough = 0;
+		m_material2.polyFlagsOther = 0;
 		m_material2.unknown = 0;
 
 		m_pad = 0;

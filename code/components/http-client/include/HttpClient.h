@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <queue>
@@ -50,10 +51,12 @@ struct HttpRequestOptions
 	std::shared_ptr<int> responseCode;
 	std::function<void(const ProgressInfo&)> progressCallback;
 	std::function<bool(const std::string&)> streamingCallback;
+	std::chrono::milliseconds timeoutNoResponse;
 	int weight;
 
 	inline HttpRequestOptions()
 	{
+		timeoutNoResponse = std::chrono::milliseconds(0);
 		weight = 16;
 	}
 };
