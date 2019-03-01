@@ -466,6 +466,11 @@ static inline void fillGeometryBound(five::phBoundGeometry* out, ny::phBoundGeom
 		materials[i].mat1.materialIdx = ConvertMaterialIndex(inMaterials[i].mat1.materialIdx);
 		materials[i].mat1.roomId = inMaterials[i].mat1.roomId;
 		materials[i].mat2.materialColorIdx = 0x1;
+
+		materials[i].mat2.stairs = inMaterials[i].mat1.stairs;
+		materials[i].mat2.blockClimb = inMaterials[i].mat1.blockClimb;
+		materials[i].mat2.seeThrough = inMaterials[i].mat1.seeThrough;
+		materials[i].mat2.shootThrough = inMaterials[i].mat1.shootThrough;
 	}
 
 	out->SetMaterials(materials.size(), &materials[0]);
