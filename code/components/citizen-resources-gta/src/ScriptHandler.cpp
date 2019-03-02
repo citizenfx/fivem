@@ -40,7 +40,7 @@ class TestScriptThread : public GtaThread
 
 		std::call_once(of, []()
 		{
-			OnKillNetworkDone.Connect([]()
+			OnKillNetwork.Connect([](const char*)
 			{
 				initedGame = false;
 			});

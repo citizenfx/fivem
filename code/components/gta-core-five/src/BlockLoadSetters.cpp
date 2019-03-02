@@ -161,6 +161,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 
 		g_shouldKillNetwork = true;
 
+		Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
+
 		SetRenderThreadOverride();
 	}, 500);
 
@@ -1131,7 +1133,6 @@ static void(*g_shutdownSession)();
 
 void ShutdownSessionWrap()
 {
-	Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
 	Instance<ICoreGameInit>::Get()->SetVariable("shutdownGame");
 
