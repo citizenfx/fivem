@@ -3,8 +3,13 @@
 
 static InitFunction initFunction([] ()
 {
+	using namespace std::string_literals;
+
+	wchar_t sysDir[MAX_PATH];
+	GetSystemDirectoryW(sysDir, _countof(sysDir));
+
     HMODULE hXA_pin;
-    HMODULE hXA = LoadLibrary(L"xaudio2_7.dll");
+    HMODULE hXA = LoadLibrary((sysDir + L"\\xaudio2_7.dll"s).c_str());
 
     if (!hXA)
     {
