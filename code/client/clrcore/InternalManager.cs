@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,7 +52,7 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public void SetScriptHost(IntPtr hostPtr, int instanceId)
 		{
-			ScriptHost = (IScriptHost)Marshal.GetObjectForIUnknown(hostPtr);
+			ScriptHost = new DirectScriptHost(hostPtr);
 			ms_instanceId = instanceId;
 		}
 
@@ -317,6 +318,132 @@ namespace CitizenFX.Core
 		public override object InitializeLifetimeService()
 		{
 			return null;
+		}
+
+		private class DirectScriptHost : IScriptHost
+		{
+			private IntPtr hostPtr;
+
+			private FastMethod<Func<IntPtr, IntPtr, int>> invokeNativeMethod;
+			private FastMethod<Func<IntPtr, IntPtr, IntPtr, int>> openSystemFileMethod;
+			private FastMethod<Func<IntPtr, IntPtr, IntPtr, int>> openHostFileMethod;
+			private FastMethod<Func<IntPtr, int, int, IntPtr, int>> canonicalizeRefMethod;
+			private FastMethod<Action<IntPtr, IntPtr>> scriptTraceMethod;
+
+			[SecuritySafeCritical]
+			public DirectScriptHost(IntPtr hostPtr)
+			{
+				this.hostPtr = hostPtr;
+
+				invokeNativeMethod = new FastMethod<Func<IntPtr, IntPtr, int>>(nameof(invokeNativeMethod), hostPtr, 0);
+				openSystemFileMethod = new FastMethod<Func<IntPtr, IntPtr, IntPtr, int>>(nameof(openSystemFileMethod), hostPtr, 1);
+				openHostFileMethod = new FastMethod<Func<IntPtr, IntPtr, IntPtr, int>>(nameof(openHostFileMethod), hostPtr, 2);
+				canonicalizeRefMethod = new FastMethod<Func<IntPtr, int, int, IntPtr, int>>(nameof(canonicalizeRefMethod), hostPtr, 3);
+				scriptTraceMethod = new FastMethod<Action<IntPtr, IntPtr>>(nameof(scriptTraceMethod), hostPtr, 4);
+			}
+
+			[SecuritySafeCritical]
+			public void InvokeNative([MarshalAs(UnmanagedType.Struct)] IntPtr context)
+			{
+				var hr = invokeNativeMethod.method(hostPtr, context);
+				Marshal.ThrowExceptionForHR(hr);
+			}
+
+			[SecuritySafeCritical]
+			public fxIStream OpenSystemFile(string fileName)
+			{
+				return OpenSystemFileInternal(fileName);
+			}
+
+			[SecurityCritical]
+			private unsafe fxIStream OpenSystemFileInternal(string fileName)
+			{
+				IntPtr retVal = IntPtr.Zero;
+
+				IntPtr stringRef = Marshal.StringToHGlobalAnsi(fileName);
+
+				try
+				{
+					IntPtr* retValRef = &retVal;
+
+					Marshal.ThrowExceptionForHR(openSystemFileMethod.method(hostPtr, stringRef, new IntPtr(retValRef)));
+				}
+				finally
+				{
+					Marshal.FreeHGlobal(stringRef);
+				}
+
+				return (fxIStream)Marshal.GetObjectForIUnknown(retVal);
+			}
+
+			[SecuritySafeCritical]
+			public fxIStream OpenHostFile(string fileName)
+			{
+				return OpenHostFileInternal(fileName);
+			}
+
+			[SecurityCritical]
+			private unsafe fxIStream OpenHostFileInternal(string fileName)
+			{
+				IntPtr retVal = IntPtr.Zero;
+
+				IntPtr stringRef = Marshal.StringToHGlobalAnsi(fileName);
+
+				try
+				{
+					IntPtr* retValRef = &retVal;
+
+					Marshal.ThrowExceptionForHR(openHostFileMethod.method(hostPtr, stringRef, new IntPtr(retValRef)));
+				}
+				finally
+				{
+					Marshal.FreeHGlobal(stringRef);
+				}
+
+				return (fxIStream)Marshal.GetObjectForIUnknown(retVal);
+			}
+
+			[SecuritySafeCritical]
+			public IntPtr CanonicalizeRef(int localRef, int instanceId)
+			{
+				return CanonicalizeRefInternal(localRef, instanceId);
+			}
+
+			[SecurityCritical]
+			private unsafe IntPtr CanonicalizeRefInternal(int localRef, int instanceId)
+			{
+				IntPtr retVal = IntPtr.Zero;
+
+				try
+				{
+					IntPtr* retValRef = &retVal;
+
+					Marshal.ThrowExceptionForHR(canonicalizeRefMethod.method(hostPtr, localRef, instanceId, new IntPtr(retValRef)));
+				}
+				finally
+				{
+
+				}
+
+				return retVal;
+			}
+
+			[SecuritySafeCritical]
+			public void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message)
+			{
+				ScriptTraceInternal(message);
+			}
+
+			[SecurityCritical]
+			private unsafe void ScriptTraceInternal(string message)
+			{
+				var bytes = Encoding.UTF8.GetBytes(message);
+
+				fixed (byte* p = bytes)
+				{
+					scriptTraceMethod.method(hostPtr, new IntPtr(p));
+				}
+			}
 		}
 	}
 }

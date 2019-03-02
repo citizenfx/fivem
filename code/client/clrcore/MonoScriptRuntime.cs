@@ -346,6 +346,15 @@ namespace CitizenFX.Core
 	internal class FastMethod<T> where T : Delegate
 	{
 		[SecuritySafeCritical]
+		public FastMethod(string name, IntPtr obj, int midx)
+		{
+			var vtblStart = Marshal.ReadIntPtr(obj);
+			vtblStart += (IntPtr.Size * midx) + (IntPtr.Size * 3);
+
+			Initialize(name, Marshal.ReadIntPtr(vtblStart));
+		}
+
+		[SecuritySafeCritical]
 		public FastMethod(string name, object obj, Type tint, int midx)
 		{
 			if (!Marshal.IsComObject(obj))
