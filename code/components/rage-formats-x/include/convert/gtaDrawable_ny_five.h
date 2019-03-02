@@ -82,6 +82,59 @@ inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 
 	return "default";
 }
+	
+inline int ConvertLightFlags_NY_Five(const int oldFlag)
+{
+	switch (oldFlag)
+	{
+		case 0:
+		case 32:
+		case 64:
+		case 96:
+		case 128:
+		case 65632:
+		case 82016:
+			return 0;
+		case 32864:
+		case 163904:
+		case 49216:
+		case 32832:
+		case 49248:
+		case 180320:
+		case 311392: 
+			return 256;
+		case 524352:
+		case 524384: 
+			return 4096;
+		case 557152:
+		case 704608:
+		case 688224:
+		case 573536: 
+			return 4352;
+		case 1048640:
+		case 1048672:
+		case 1065024:
+		case 1114208:
+		case 1130848:
+		case 1065056:
+		case 1065312:
+		case 1048928:
+		case 1048608:
+		case 1048641: 
+			return 8192;
+		case 1146976:
+		case 1228896:
+		case 1097824:
+			return 8448;
+		case 1572960:
+		case 1572928:
+			return 12288;
+		case 1736768:
+			return 12544;
+		default:
+			return oldFlag;
+	}
+}
 
 extern FORMATS_EXPORT int g_curGeom;
 extern FORMATS_EXPORT std::map<int, void*> g_vbMapping;
@@ -586,7 +639,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 			outAttr.color[2] = inAttr.color[2];
 			outAttr.flashiness = inAttr.flashiness;
 			outAttr.intensity = inAttr.lightIntensity / 10.f;
-			outAttr.flags = inAttr.flags;
+			outAttr.flags = ConvertLightFlags_NY_Five(intAttr.flags);
 			outAttr.boneID = inAttr.boneID;
 			outAttr.lightType = inAttr.lightType;
 			outAttr.groupID = 0;
