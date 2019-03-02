@@ -118,7 +118,7 @@ static void OutputExceptionDetails(MonoObject* exc)
 			msg = (MonoString*)mono_runtime_invoke(getter, exc, NULL, NULL);
 		}
 
-		GlobalError("Unhandled exception in Mono script environment: %s %s", mono_string_to_utf8(msg), mono_string_to_utf8(msg2));
+		GlobalError("Unhandled exception in Mono script environment: %s\n%s", mono_string_to_utf8(msg), mono_string_to_utf8(msg2));
 	}
 }
 
@@ -213,11 +213,18 @@ static uint64_t GI_GetMemoryUsage()
 	return g_memoryUsages[monoDomain];
 }
 
+#ifndef IS_FXSERVER
 MonoMethod* g_tickMethod;
 
 extern "C" DLL_EXPORT void GI_TickInDomain(MonoAppDomain* domain)
 {
 	auto targetDomain = mono_domain_from_appdomain(domain);
+
+	if (!targetDomain)
+	{
+		return;
+	}
+
 	auto currentDomain = mono_domain_get();
 
 	if (currentDomain != targetDomain)
@@ -240,6 +247,7 @@ extern "C" DLL_EXPORT void GI_TickInDomain(MonoAppDomain* domain)
 		mono_thread_pop_appdomain_ref();
 	}
 }
+#endif
 
 MonoMethod* g_getImplementsMethod;
 MonoMethod* g_createObjectMethod;
@@ -311,7 +319,11 @@ static void InitMono()
 
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", reinterpret_cast<void*>(GI_PrintLogCall));
 	mono_add_internal_call("CitizenFX.Core.GameInterface::fwFree", reinterpret_cast<void*>(fwFree));
+
+#ifndef IS_FXSERVER
 	mono_add_internal_call("CitizenFX.Core.GameInterface::TickInDomain", reinterpret_cast<void*>(GI_TickInDomain));
+#endif
+
 	mono_add_internal_call("CitizenFX.Core.GameInterface::GetMemoryUsage", reinterpret_cast<void*>(GI_GetMemoryUsage));
 
 	std::string platformPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/CitizenFX.Core.dll");
@@ -337,7 +349,10 @@ static void InitMono()
 	method_search("CitizenFX.Core.RuntimeManager:Initialize", rtInitMethod);
 	method_search("CitizenFX.Core.RuntimeManager:GetImplementedClasses", g_getImplementsMethod);
 	method_search("CitizenFX.Core.RuntimeManager:CreateObjectInstance", g_createObjectMethod);
+
+#ifndef IS_FXSERVER
 	method_search("CitizenFX.Core.InternalManager:TickGlobal", g_tickMethod);
+#endif
 
 	if (!methodSearchSuccess)
 	{
