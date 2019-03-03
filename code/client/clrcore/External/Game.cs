@@ -803,7 +803,12 @@ namespace CitizenFX.Core
 
 
 
-
+		/// <summary>
+		/// Private unsafe version of <see cref="GetTattooCollectionData(int, int)"/>
+		/// </summary>
+		/// <param name="characterType"></param>
+		/// <param name="decorationIndex"></param>
+		/// <returns></returns>
 		[SecuritySafeCritical]
 		private static TattooCollectionData _GetTattooCollectionData(int characterType, int decorationIndex)
 		{
@@ -831,6 +836,61 @@ namespace CitizenFX.Core
 				return _GetTattooCollectionData(characterType, decorationIndex);
 			}
 			return new TattooCollectionData();
+		}
+
+
+
+		/// <summary>
+		/// Private (unsafe) version of <see cref="GetAltPropVariationData(int, int)"/>
+		/// </summary>
+		/// <param name="ped"></param>
+		/// <param name="propIndex"></param>
+		/// <returns></returns>
+		[SecuritySafeCritical]
+		private static AltPropVariationData[] _GetAltPropVariationData(int ped, int propIndex)
+		{
+			int prop = API.GetPedPropIndex(ped, propIndex);
+			int propTexture = API.GetPedPropTextureIndex(ped, propIndex);
+			uint propHashName = (uint)API.GetHashNameForProp(ped, propIndex, prop, propTexture);
+
+			uint someHash = 0;
+			int unk1 = 0;
+			int unk2 = 0;
+
+			int maxVariations = API.N_0xd40aac51e8e4c663(propHashName);
+
+			AltPropVariationData[] items = new AltPropVariationData[maxVariations];
+			if (maxVariations > 0)
+			{
+				items = new AltPropVariationData[maxVariations];
+				for (var i = 0; i < maxVariations; i++)
+				{
+					UnsafeAltPropVariationData data = new UnsafeAltPropVariationData();
+					unsafe
+					{
+						Function.Call((Hash)0xD81B7F27BC773E66, propHashName, i, &someHash, &unk1, &unk2);
+					}
+					unsafe
+					{
+						Function.Call((Hash)0x5D5CAFF661DDF6FC, someHash, &data);
+					}
+					items[i] = data.GetData(someHash, unk1, unk2);
+				}
+				return items;
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Gets the alternate prop index data for a specific prop on a specific ped.
+		/// This is used to check for the 'alternate' version of a helmet with a visor for example (open/closed visor variants).
+		/// </summary>
+		/// <param name="ped"></param>
+		/// <param name="propIndex"></param>
+		/// <returns></returns>
+		public static AltPropVariationData[] GetAltPropVariationData(int ped, int propIndex)
+		{
+			return _GetAltPropVariationData(ped, propIndex);
 		}
 	}
 }
