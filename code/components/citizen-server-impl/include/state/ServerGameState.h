@@ -301,6 +301,7 @@ private:
 
 	eastl::bitset<8192> m_objectIdsSent;
 	eastl::bitset<8192> m_objectIdsUsed;
+	eastl::bitset<8192> m_objectIdsStolen;
 
 	uint64_t m_frameIndex;
 

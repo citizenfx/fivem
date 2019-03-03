@@ -852,6 +852,31 @@ void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>
 			}
 		}
 	}
+
+	auto objectId = entity->handle & 0xFFFF;
+	bool stolen = false;
+
+	{
+		std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+		if (m_objectIdsStolen.test(objectId))
+		{
+			stolen = true;
+
+			m_objectIdsSent.reset(objectId);
+			m_objectIdsStolen.reset(objectId);
+		}
+	}
+
+	if (stolen)
+	{
+		auto clientRef = entity->client.lock();
+
+		if (clientRef)
+		{
+			auto[clientData, lock] = GetClientData(this, clientRef);
+			clientData->objectIds.erase(objectId);
+		}
+	}
 }
 
 void ServerGameState::UpdateEntities()
@@ -1095,6 +1120,13 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 	{
 		auto [ targetData, lock ] = GetClientData(this, targetClient);
 		targetData->objectIds.insert(entityHandle & 0xFFFF);
+	}
+
+	// when deleted, we want to make this object ID return to the global pool, not to the player who last owned it
+	// therefore, mark it as stolen
+	{
+		std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+		m_objectIdsStolen.set(entityHandle & 0xFFFF);
 	}
 
 	// allow this client to be synced instantly again so clients are aware of ownership changes as soon as possible
@@ -1812,6 +1844,29 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 {
 	m_instance = instance;
+
+	static auto showObjectIdsCommand = instance->AddCommand("onesync_showObjectIds", [this]()
+	{
+		console::Printf("net", "^2GLOBAL: %d/%d object IDs used/sent (%.2f percent)^7\n", m_objectIdsUsed.count(), m_objectIdsSent.count(), (m_objectIdsUsed.count() / (float)m_objectIdsSent.count()) * 100.0f);
+		
+		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this](const std::shared_ptr<fx::Client>& client)
+		{
+			auto [data, lock] = GetClientData(this, client);
+			int used = 0;
+
+			for (auto object : data->objectIds)
+			{
+				if (!m_entitiesById[object].expired())
+				{
+					used++;
+				}
+			}
+
+			console::Printf("net", "%s^7: %d/%d object IDs used/sent (%.2f percent)\n", client->GetName(), used, data->objectIds.size(), (used / (float)data->objectIds.size()) * 100.0f);
+		});
+
+		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
+	});
 }
 }
 

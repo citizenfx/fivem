@@ -5,6 +5,7 @@
 #include <NetLibrary.h>
 
 #include <GameInit.h>
+#include <ICoreGameInit.h>
 #include <nutsnbolts.h>
 
 #include <CloneManager.h>
@@ -13,6 +14,7 @@
 
 static std::list<int> g_objectIds;
 static std::set<int> g_usedObjectIds;
+static std::set<int> g_stolenObjectIds;
 
 static uint32_t(*g_origAssignObjectId)(void*);
 
@@ -54,7 +56,15 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 		TheClones->Log("%s: id %d\n", __func__, objectId);
 
 		g_usedObjectIds.erase(objectId);
-		g_objectIds.push_back(objectId);
+
+		// only return it to ourselves if it was ours to begin with
+		// (and only use this for network protocol version 0x201903031957 or above - otherwise server bookkeeping will go out of sync)
+		if (Instance<ICoreGameInit>::Get()->NetProtoVersion < 0x201903031957 || g_stolenObjectIds.find(objectId) == g_stolenObjectIds.end())
+		{
+			g_objectIds.push_back(objectId);
+		}
+
+		g_stolenObjectIds.erase(objectId);
 
 		return true;
 	}
@@ -76,6 +86,9 @@ static bool HasSpaceForObjectId(void* objectIds, int num, bool unkScript)
 
 void ObjectIds_AddObjectId(int objectId)
 {
+	// track 'stolen' migration object IDs so we can return them to the server once they get deleted
+	bool wasOurs = false;
+
 	// this is ours now
 	g_usedObjectIds.insert(objectId);
 
@@ -84,9 +97,16 @@ void ObjectIds_AddObjectId(int objectId)
 	{
 		if (*it == objectId)
 		{
+			wasOurs = true;
+
 			g_objectIds.erase(it);
 			break;
 		}
+	}
+
+	if (!wasOurs)
+	{
+		g_stolenObjectIds.insert(objectId);
 	}
 
 	TheClones->Log("%s: id %d\n", __func__, objectId);
@@ -96,6 +116,9 @@ void ObjectIds_RemoveObjectId(int objectId)
 {
 	// this is no longer ours
 	g_usedObjectIds.erase(objectId);
+
+	// we don't have to care if it got stolen anymore
+	g_stolenObjectIds.erase(objectId);
 
 	TheClones->Log("%s: id %d\n", __func__, objectId);
 }
@@ -130,6 +153,7 @@ void ObjectIds_BindNetLibrary(NetLibrary* netLibrary)
 				TheClones->Log("got object id %d\n", objectId);
 
 				g_objectIds.push_back(objectId);
+				g_stolenObjectIds.erase(objectId);
 			}
 		}
 
