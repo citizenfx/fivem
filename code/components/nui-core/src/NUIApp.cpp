@@ -44,7 +44,16 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 	window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("registerPushFunction", CefV8Value::CreateFunction("registerPushFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+}
+
+void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
+{
+	for (auto& handler : m_v8ReleaseHandlers)
+	{
+		handler(context);
+	}
 }
 
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
@@ -130,4 +139,9 @@ void NUIApp::AddProcessMessageHandler(std::string key, TProcessMessageHandler ha
 void NUIApp::AddV8Handler(std::string key, TV8Handler handler)
 {
 	m_v8Handlers[key] = handler;
+}
+
+void NUIApp::AddContextReleaseHandler(TContextReleaseHandler handler)
+{
+	m_v8ReleaseHandlers.emplace_back(handler);
 }

@@ -63,6 +63,10 @@ namespace nui
 
 	void OVERLAY_DECL ExecuteRootScript(const std::string& scriptBit);
 
+	void OVERLAY_DECL PostFrameMessage(const std::string& frameName, const std::string& jsonData);
+
+	void OVERLAY_DECL PostRootMessage(const std::string& jsonData);
+
 	OVERLAY_DECL CefBrowser* GetBrowser();
 
 	bool OnPreLoadGame(void* cefSandbox);

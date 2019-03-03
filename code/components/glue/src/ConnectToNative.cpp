@@ -81,7 +81,7 @@ void loadSettings() {
 			settingsFile.close();
 
 			//trace(va("Loaded JSON settings %s\n", json.c_str()));
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: %s }, '*');", settingsStream.str()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "loadedSettings", "json": %s })", settingsStream.str()));
 		}
 		
 		CoTaskMemFree(appDataPath);
@@ -142,7 +142,7 @@ static void ConnectTo(const std::string& hostnameStr)
 
 	if (npa)
 	{
-		nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+		nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
 
 		netLibrary->ConnectToServer(npa.get());
 	}
@@ -160,7 +160,7 @@ static void HandleAuthPayload(const std::string& payloadStr)
 	{
 		auto payloadJson = nlohmann::json(payloadStr).dump();
 
-		nui::ExecuteRootScript(fmt::sprintf("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'authPayload', data: %s }, '*');", payloadJson));
+		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "authPayload", "data": %s })", payloadJson));
 	}
 	else
 	{
@@ -186,7 +186,7 @@ static InitFunction initFunction([] ()
 
 			document.Accept(writer);
 
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: %s }, '*');", sbuffer.GetString()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", sbuffer.GetString()));
 		});
 
 		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
@@ -204,7 +204,7 @@ static InitFunction initFunction([] ()
 
 			if (nui::HasMainUI())
 			{
-				nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectStatus', data: %s }, '*');", sbuffer.GetString()));
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectStatus", "data": %s })", sbuffer.GetString()));
 			}
 		});
 
@@ -300,7 +300,7 @@ static InitFunction initFunction([] ()
 				if (newusername.c_str() != netLibrary->GetPlayerName()) {
 					netLibrary->SetPlayerName(newusername.c_str());
 					trace(va("Changed player name to %s\n", newusername.c_str()));
-					nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setSettingsNick', nickname: '%s' }, '*');", newusername.c_str()));
+					nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setSettingsNick", "nickname": "%s" })", newusername));
 				}
 			}
 		}
@@ -330,7 +330,7 @@ static InitFunction initFunction([] ()
 
 					document.Accept(writer);
 
-					nui::ExecuteRootScript(fmt::sprintf("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setWarningMessage', message: %s }, '*');", sbuffer.GetString()));
+					nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setWarningMessage", "message": %s })", sbuffer.GetString()));
 				}
 
 				Instance<ICoreGameInit>::Get()->SetData("warningMessage", "");
@@ -340,7 +340,7 @@ static InitFunction initFunction([] ()
 			DWORD len = _countof(computerName);
 			GetComputerNameW(computerName, &len);
 
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setComputerName', data: '%s' }, '*');", ToNarrow(computerName)));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setComputerName", "data": "%s" })", ToNarrow(computerName)));
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{

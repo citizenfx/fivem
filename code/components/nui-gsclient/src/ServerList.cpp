@@ -392,7 +392,7 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 
 	server->responded = true;
 
-	replaceAll(server->m_hostName, "'", "\\'");
+	replaceAll(server->m_hostName, "\"", "\\\"");
 
 	const char* mapnameStr = Info_ValueForKey(buffer, "mapname");
 	const char* gametypeStr = Info_ValueForKey(buffer, "gametype");
@@ -410,8 +410,8 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 		gametype = gametypeStr;
 	}
 
-	replaceAll(mapname, "'", "\\'");
-	replaceAll(gametype, "'", "\\'");
+	replaceAll(mapname, "\"", "\\\"");
+	replaceAll(gametype, "\"", "\\\"");
 
 	std::string addressStr = server->m_Address.ToString();
 
@@ -424,18 +424,21 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 
 		bool isThisOneQuery = (g_cls.isOneQuery && from == g_cls.oneQueryAddress);
 
-		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: '%s', name: '%s',"
-			"mapname: '%s', gametype: '%s', clients: %d, maxclients: %d, ping: %d,"
-			"addr: '%s', infoBlob: %s }, '*');",
-			(isThisOneQuery) ? "serverQueried" : "serverAdd",
-			server->m_hostName,
-			mapname,
-			gametype,
-			server->m_clients,
-			server->m_maxClients,
-			server->m_ping,
-			addressStr,
-			infoBlobJson));
+		if (!doc.HasParseError())
+		{
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
+				R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
+				R"("addr": "%s", "infoBlob": %s })",
+				(isThisOneQuery) ? "serverQueried" : "serverAdd",
+				server->m_hostName,
+				mapname,
+				gametype,
+				server->m_clients,
+				server->m_maxClients,
+				server->m_ping,
+				addressStr,
+				infoBlobJson));
+		}
 
 		if (isThisOneQuery)
 		{
@@ -586,7 +589,7 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 	}
 	else
 	{
-		nui::ExecuteRootScript(fmt::sprintf("citFrames['mpMenu'].contentWindow.postMessage({ type: 'queryingFailed', arg: '%s' }, '*');", ToNarrow(arg)));
+		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "queryingFailed", "arg": "%s" })", ToNarrow(arg)));
 	}
 }
 
@@ -660,7 +663,7 @@ void GSClient_GetFavorites()
 	favFile >> json;
 	favFile.close();
 
-	nui::ExecuteRootScript(va("citFrames['mpMenu'].contentWindow.postMessage({ type: 'getFavorites', list: %s }, '*');", json));
+	nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "getFavorites", "list": %s })", json));
 }
 
 void GSClient_SaveFavorites(const wchar_t *json)

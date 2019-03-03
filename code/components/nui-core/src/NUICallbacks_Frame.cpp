@@ -28,8 +28,6 @@ public:
 				auto context = it->second.first;
 				auto callback = it->second.second;
 
-				context->Enter();
-
 				CefV8ValueList arguments;
 				arguments.push_back(CefV8Value::CreateString(message->GetName()));
 				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
@@ -39,9 +37,7 @@ public:
 					arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(1)));
 				}
 
-				callback->ExecuteFunction(nullptr, arguments);
-
-				context->Exit();
+				callback->ExecuteFunctionWithContext(context, nullptr, arguments);
 			}
 
 			return true;
@@ -64,6 +60,21 @@ public:
 			}
 
 			return CefV8Value::CreateNull();
+		});
+
+		nuiApp->AddContextReleaseHandler([=](CefRefPtr<CefV8Context> context)
+		{
+			for (auto it = m_frameCallbacks.begin(); it != m_frameCallbacks.end(); )
+			{
+				if (it->second.first == context.get())
+				{
+					it = m_frameCallbacks.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
 		});
 	}
 };

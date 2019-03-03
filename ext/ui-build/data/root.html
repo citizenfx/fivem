@@ -27,6 +27,34 @@ iframe
 window.citFrames = {};
 window.focusStack = [];
 
+registerPushFunction(function(type, ...args) {
+	switch (type) {
+		case 'rootCall': {
+			const [ dataString ] = args;
+			const data = JSON.parse(dataString);
+
+			if (data.type == 'focusFrame') {
+				focusFrame(data.frameName);
+			} else if (data.type == 'blurFrame') {
+				blurFrame(data.frameName);
+			}
+			break;
+		}
+		case 'frameCall': {
+			const [ frameName, dataString ] = args;
+			const data = JSON.parse(dataString);
+
+			if (!(frameName in citFrames)) {
+				return;
+			}
+
+			citFrames[frameName].contentWindow.postMessage(data, '*');
+
+			break;
+		}
+	}
+});
+
 registerFrameFunction(function(msg, frameName, frameUrl)
 {
 	if (msg == "createFrame")

@@ -45,7 +45,7 @@ static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& j
 	
 	if (json.Accept(writer))
 	{
-		nui::ExecuteRootScript(va("citFrames['loadingScreen'].contentWindow.postMessage(%s, '*');", sb.GetString()));
+		nui::PostFrameMessage("loadingScreen", sb.GetString());
 	}
 }
 
@@ -195,7 +195,7 @@ static InitFunction initFunction([] ()
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 		nui::OverrideFocus(true);
 
-		nui::ExecuteRootScript("focusFrame(\"loadingScreen\");");
+		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");
 	}, 100);
 
 	rage::OnInitFunctionStart.Connect([] (rage::InitFunctionType type)

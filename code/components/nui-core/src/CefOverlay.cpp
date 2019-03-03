@@ -51,6 +51,40 @@ namespace nui
 		}
 	}
 
+	static void PostJSEvent(const std::string& type, const std::vector<std::reference_wrapper<const std::string>>& args)
+	{
+		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
+
+		if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+		{
+			auto processMessage = CefProcessMessage::Create("pushEvent");
+			auto argumentList = processMessage->GetArgumentList();
+
+			argumentList->SetString(0, type);
+
+			int argIdx = 1;
+
+			for (auto arg : args)
+			{
+				argumentList->SetString(argIdx, arg.get());
+
+				argIdx++;
+			}
+
+			rootWindow->GetBrowser()->SendProcessMessage(PID_RENDERER, processMessage);
+		}
+	}
+
+	__declspec(dllexport) void PostRootMessage(const std::string& jsonData)
+	{
+		PostJSEvent("rootCall", { jsonData });
+	}
+
+	__declspec(dllexport) void PostFrameMessage(const std::string& frame, const std::string& jsonData)
+	{
+		PostJSEvent("frameCall", { frame, jsonData });
+	}
+
 	__declspec(dllexport) void ReloadNUI()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
