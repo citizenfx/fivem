@@ -154,6 +154,7 @@ const int IsRightHeadLightBrokenOffset = 0x84C;
 const int EnginePowerMultiplierOffset = 0xAC0;
 const int CanWheelsBreakOffset = 0x923; // todo - check?
 const int BlinkerState = 0x929;
+const int WheelieState = 0x14F9;
 
 // Wheel class
 const int WheelXOffsetOffset = 0x030;
@@ -446,6 +447,9 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_INTERIOR_LIGHT_ON", readVehicleMemoryBit<IsInteriorLightOnOffset, 6>);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", readVehicleMemory<unsigned char, BlinkerState>);
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEELIE_STATE", readVehicleMemory<unsigned char, WheelieState>);
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEELIE_STATE", writeVehicleMemory<unsigned char, WheelieState>);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_X_OFFSET", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
