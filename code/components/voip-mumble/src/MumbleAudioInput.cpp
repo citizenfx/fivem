@@ -99,6 +99,8 @@ void MumbleAudioInput::ThreadFunc()
 		m_audioClient->Start();
 	}
 
+	m_audioBuffer.resize((m_waveFormat.nSamplesPerSec / 100) * m_waveFormat.nBlockAlign);
+
 	bool recreateDevice = false;
 
 	while (true)
@@ -131,7 +133,7 @@ void MumbleAudioInput::ThreadFunc()
 			recreateDevice = false;
 		}
 
-		WaitForSingleObject(m_startEvent, INFINITE);
+		WaitForSingleObject(m_startEvent, 2000);
 
 		HRESULT hr = HandleIncomingAudio();
 
@@ -165,8 +167,10 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		return;
 	}
 
-	// split to a multiple of 40ms chunks
-	int chunkLength = (m_waveFormat.nSamplesPerSec / (1000 / 10)) * (m_waveFormat.wBitsPerSample / 8) * m_waveFormat.nChannels;
+	int frameSize = 40;
+
+	// split to a multiple of 20ms chunks
+	int chunkLength = (m_waveFormat.nSamplesPerSec / (1000 / frameSize)) * (m_waveFormat.wBitsPerSample / 8) * m_waveFormat.nChannels;
 
 	size_t bytesLeft = numBytes;
 	const uint8_t* origin = buffer;
@@ -198,7 +202,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 		int outSamples = av_rescale_rnd(swr_get_delay(m_avr, m_waveFormat.nSamplesPerSec) + numSamples, (int)48000, m_waveFormat.nSamplesPerSec, AV_ROUND_UP);
 
-		av_samples_alloc(&m_resampledBytes, NULL, m_waveFormat.nChannels, outSamples, AV_SAMPLE_FMT_S16, 0);
+		av_samples_alloc(&m_resampledBytes, NULL, 1, outSamples, AV_SAMPLE_FMT_S16, 0);
 		outSamples = swr_convert(m_avr, &m_resampledBytes, outSamples, (const uint8_t **)&origin, numSamples);
 
 		// increment origin
@@ -208,39 +212,53 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		// skip if APM is NULL
 		if (!m_apm)
 		{
+			av_freep(&m_resampledBytes);
+
 			continue;
 		}
 
-		// is this voice?
-		webrtc::AudioFrame frame;
-		frame.num_channels_ = 1;
-		frame.sample_rate_hz_ = 48000;
-		frame.samples_per_channel_ = 480;
-		memcpy(frame.data_, m_resampledBytes, 480 * sizeof(int16_t));
+		int numVoice = 0;
 
-		m_apm->ProcessStream(&frame);
+		for (int off = 0; off < frameSize; off += 10)
+		{
+			int frameStart = (off * 48 * sizeof(int16_t)); // 1ms = 48 samples
 
-		auto db = (float)-(m_apm->level_estimator()->RMS());
-		m_audioLevel = XAudio2DecibelsToAmplitudeRatio(db);
+			// is this voice?
+			webrtc::AudioFrame frame;
+			frame.num_channels_ = 1;
+			frame.sample_rate_hz_ = 48000;
+			frame.samples_per_channel_ = 480;
+			memcpy(frame.data_, &m_resampledBytes[frameStart], 480 * sizeof(int16_t));
 
-		if (m_mode == MumbleActivationMode::VoiceActivity && !m_apm->voice_detection()->stream_has_voice())
+			m_apm->ProcessStream(&frame);
+
+			auto db = (float)-(m_apm->level_estimator()->RMS());
+			m_audioLevel = XAudio2DecibelsToAmplitudeRatio(db);
+
+			if (m_apm->voice_detection()->stream_has_voice())
+			{
+				numVoice++;
+			}
+
+			memcpy(&m_resampledBytes[frameStart], frame.data_, 480 * sizeof(int16_t));
+		}
+
+		if (m_mode == MumbleActivationMode::VoiceActivity && numVoice < 2)
 		{
 			m_isTalking = false;
 			m_audioLevel = 0.0f;
+
+			av_freep(&m_resampledBytes);
+
 			continue;
 		}
 
 		m_isTalking = true;
 
-		memcpy(m_resampledBytes, frame.data_, 480 * sizeof(int16_t));
-
-		/*if (fvad_process(m_fvad, (const int16_t*)m_resampledBytes, 480) != 1)
-		{
-			continue;
-		}*/
-
 		// encode
-		int len = opus_encode(m_opus, (const int16_t*)m_resampledBytes, 480, m_encodedBytes, sizeof(m_encodedBytes));
+		int len = opus_encode(m_opus, (const int16_t*)m_resampledBytes, frameSize * 48, m_encodedBytes, sizeof(m_encodedBytes));
+
+		av_freep(&m_resampledBytes);
 
 		if (len < 0)
 		{
@@ -315,10 +333,8 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 HRESULT MumbleAudioInput::HandleIncomingAudio()
 {
-	uint32_t packetLength = 1;
-	//HRESULT err = m_audioCaptureClient->GetNextPacketSize(&packetLength);
-
-	HRESULT err = S_OK;
+	uint32_t packetLength = 0;
+	HRESULT err = m_audioCaptureClient->GetNextPacketSize(&packetLength);
 
 	if (SUCCEEDED(err))
 	{
@@ -335,12 +351,13 @@ HRESULT MumbleAudioInput::HandleIncomingAudio()
 				break;
 			}
 
-			if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
+			size_t size = numFramesAvailable * m_waveFormat.nBlockAlign;
+			if (size > m_audioBuffer.size())
 			{
-				data = nullptr;
+				m_audioBuffer.resize(size);
 			}
 
-			HandleData(data, numFramesAvailable * m_waveFormat.nBlockAlign);
+			memcpy(&m_audioBuffer[0], data, size);
 
 			err = m_audioCaptureClient->ReleaseBuffer(numFramesAvailable);
 
@@ -349,7 +366,12 @@ HRESULT MumbleAudioInput::HandleIncomingAudio()
 				break;
 			}
 
-			break;
+			HandleData(&m_audioBuffer[0], size);
+
+			if (FAILED(m_audioCaptureClient->GetNextPacketSize(&packetLength)))
+			{
+				break;
+			}
 		}
 	}
 
@@ -431,7 +453,7 @@ void MumbleAudioInput::InitializeAudioDevice()
 
 	m_audioClient->GetMixFormat(&waveFormat);
 
-	if (FAILED(hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 20 * 10000, 0, waveFormat, nullptr)))
+	if (FAILED(hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 0, 0, waveFormat, nullptr)))
 	{
 		trace(__FUNCTION__ ": Initializing IAudioClient for capture device failed. HR = %08x\n", hr);
 		return;
@@ -490,7 +512,7 @@ void MumbleAudioInput::InitializeAudioDevice()
 	int error;
 	m_opus = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &error);
 
-	opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(32000));
+	opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(24000));
 
 	// set event handle
 	m_audioClient->SetEventHandle(m_startEvent);
@@ -545,6 +567,6 @@ void MumbleAudioInput::ThreadStart(MumbleAudioInput* instance)
 	HANDLE mmcssHandle;
 	DWORD mmcssTaskIndex;
 
-	mmcssHandle = AvSetMmThreadCharacteristics(L"Audio", &mmcssTaskIndex);
+	mmcssHandle = AvSetMmThreadCharacteristics(L"Pro Audio", &mmcssTaskIndex);
 	instance->ThreadFunc();
 }

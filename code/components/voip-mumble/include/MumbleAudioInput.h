@@ -85,6 +85,8 @@ private:
 
 	float m_audioLevel;
 
+	std::vector<uint8_t> m_audioBuffer;
+
 private:
 	static void ThreadStart(MumbleAudioInput* instance);
 
