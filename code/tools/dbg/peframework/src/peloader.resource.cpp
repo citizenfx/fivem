@@ -1,6 +1,8 @@
 // Resource helper API.
 #include "peloader.h"
 
+#include <string>
+
 #include <sdk/UniChar.h>
 
 // Generic finder routine.
