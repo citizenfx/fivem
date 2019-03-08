@@ -12,6 +12,6 @@ copy /y %ROOT%\out\server\citizen\clr2\lib\mono\4.5\ref\CitizenFX.Core.Server.dl
 copy /y %ROOT%\out\server\citizen\clr2\lib\mono\4.5\ref\CitizenFX.Core.Server.xml lib\net45\CitizenFX.Core.Server.xml
 
 %NUGET% pack CitizenFX.Core.Server.nuspec -Exclude build.bat -Version "1.0.%CI_PIPELINE_ID%"
-%NUGET% push CitizenFX.Core.Server.1.0.%CI_PIPELINE_ID%.nupkg -ApiKey %NUGET_TOKEN%
+%NUGET% push CitizenFX.Core.Server.1.0.%CI_PIPELINE_ID%.nupkg -ApiKey %NUGET_TOKEN% -Source https://api.nuget.org/v3/index.json
 
 del CitizenFX.Core.Server.1.0.%CI_PIPELINE_ID%.nupkg
