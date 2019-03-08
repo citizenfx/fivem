@@ -76,13 +76,13 @@ inline ISteamComponent* GetSteam()
 		{
 			return nullptr;
 		}
+	}
 
-		// if private client is unavailable, panic out
-		// (usually caused by inaccurate Steam client DLL emulation/wrappers)
-		if (!steamComponent->GetPrivateClient())
-		{
-			return nullptr;
-		}
+	// if private client is unavailable, panic out
+	// (usually caused by inaccurate Steam client DLL emulation/wrappers)
+	if (!steamComponent->GetPrivateClient())
+	{
+		return nullptr;
 	}
 
 	return steamComponent;
