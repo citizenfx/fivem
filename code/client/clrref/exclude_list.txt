@@ -1,0 +1,8 @@
+N:System.Drawing
+
+F:CitizenFX.Core.PlayerList.MaxPlayers
+M:CitizenFX.Core.PlayerList.#ctor
+
+M:CitizenFX.Core.ExportDictionary.#ctor
+
+M:CitizenFX.Core.ExportSet.#ctor(System.String)

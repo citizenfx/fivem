@@ -7,7 +7,7 @@ namespace CitizenFX.Core
 	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	[System.Runtime.InteropServices.Guid("8ffdc384-4767-4ea2-a935-3bfcad1db7bf")]
 	[ComImport]
-	public interface IScriptHost
+	internal interface IScriptHost
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		void InvokeNative([MarshalAs(UnmanagedType.Struct)] IntPtr context);
@@ -31,7 +31,7 @@ namespace CitizenFX.Core
 	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	[System.Runtime.InteropServices.Guid("9568df2d-27c8-4b9e-b29d-48272c317084")]
 	[ComImport]
-	public interface IScriptHostWithResourceData
+	internal interface IScriptHostWithResourceData
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		void GetResourceName(out IntPtr nameString);

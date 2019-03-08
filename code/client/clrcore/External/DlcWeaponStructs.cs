@@ -7,7 +7,7 @@ namespace CitizenFX.Core
 {
 	[StructLayout(LayoutKind.Explicit, Size = 0x138)]
 	[SecurityCritical]
-	public unsafe struct DlcWeaponData
+	internal unsafe struct DlcWeaponData
 	{
 		[FieldOffset(0x00)] private int validCheck;
 
@@ -127,7 +127,7 @@ namespace CitizenFX.Core
 
 	[StructLayout(LayoutKind.Explicit, Size = 0x110)]
 	[SecurityCritical]
-	public unsafe struct DlcWeaponComponentData
+	internal unsafe struct DlcWeaponComponentData
 	{
 		[FieldOffset(0x00)] private int attachBone;//the bone on the gun to attach the component to
 

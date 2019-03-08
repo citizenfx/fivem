@@ -141,3 +141,25 @@ typings_client:
     - master
   script:
     - "cmd /c ext\\typings\\client\\build.bat"
+    
+nuget_client:
+  stage: deploy
+  dependencies:
+    - build_client
+  tags:
+    - vs2017
+  only:
+    - master
+  script:
+    - "cmd /c ext\\nuget\\client\\build.bat"
+    
+nuget_server:
+  stage: deploy
+  dependencies:
+    - build_server_windows
+  tags:
+    - vs2017
+  only:
+    - master
+  script:
+    - "cmd /c ext\\nuget\\server\\build.bat"

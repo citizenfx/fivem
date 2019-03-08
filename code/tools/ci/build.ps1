@@ -254,6 +254,9 @@ if (!$DontBuild)
 
     remove-item env:\platform
 
+	# restore nuget packages
+	$WorkRootDir\tools\ci\nuget.exe restore $BuildPath\CitizenMP.sln
+
     #echo $env:Path
     #/logger:C:\f\customlogger.dll /noconsolelogger
     msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m:4 $BuildPath\CitizenMP.sln

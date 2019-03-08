@@ -250,7 +250,7 @@ namespace CitizenFX.Core
 
 			return null;
 		}
-
+		
 		[SecurityCritical]
 		private static unsafe object GetResultInternal(Type type, byte[] ptr)
 		{
@@ -263,7 +263,7 @@ namespace CitizenFX.Core
 		internal void Invoke(ulong nativeIdentifier) => Invoke(nativeIdentifier, InternalManager.ScriptHost);
 
 		[SecuritySafeCritical]
-		public void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
+		internal void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
 
 		[SecurityCritical]
 		private void InvokeInternal(ulong nativeIdentifier, IScriptHost scriptHost)

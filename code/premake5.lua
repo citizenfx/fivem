@@ -1,5 +1,7 @@
 -- to work around slow init times due to packagesrv.com being down
-http = nil
+premake.downloadModule = function()
+	return false
+end
 
 xpcall(function()
 newoption {
@@ -200,6 +202,37 @@ premake.override(premake.vstudio.dotnetbase, "compilerProps", function(base, prj
     premake.w('<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>')
 end)
 
+premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
+    base(prj)
+    
+    if prj.name == 'CitiMono' then
+		_p(1, '<PropertyGroup>')
+		_p(2, '<GenAPITargetDir>%s/</GenAPITargetDir>', path.getabsolute("client/clrref/"))
+		_p(2, '<GenAPIAdditionalParameters>%s</GenAPIAdditionalParameters>', ('-excludeApiList:"%s" -excludeAttributesList:"%s"'):format(
+			path.getabsolute("client/clrref/exclude_list.txt"),
+			path.getabsolute("client/clrref/exclude_attributes_list.txt")
+		))
+		_p(2, '<GenerateReferenceAssemblySources>true</GenerateReferenceAssemblySources>')
+		_p(1, '</PropertyGroup>')
+		
+		_p(1, '<Import Project="%s" />', path.getabsolute("client/clrcore/GenAPI.targets"))
+    end
+end)
+
+premake.override(premake.vstudio.nuget2010, "supportsPackageReferences", function(base, prj)
+	-- <PackageReference /> doesn't work for GenAPI (even if fixing `nuget.config` issue for source)
+	return false
+end)
+
+premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, prj)
+	-- and this'll fail as GenAPI doesn't have any lib/.../*.dll file
+	if prj.name == 'CitiMono' then
+		return
+	end
+	
+	return base(prj)
+end)
+
 	project "CitiMono"
 		targetname "CitizenFX.Core"
 		language "C#"
@@ -221,6 +254,13 @@ end)
 		else
 			files { "client/clrcore/Server/*.cs" }
 		end
+		
+		if os.istarget('windows') then
+			nuget { "Microsoft.DotNet.BuildTools.GenAPI:3.0.0-preview1-03805-01", "Microsoft.DotNet.BuildTools.GenFacades:3.0.0-preview1-03805-01" }
+			nugetsource "https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json"
+			
+			
+		end
 
 		links { "System.dll", "Microsoft.CSharp.dll", "System.Core.dll", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
 
@@ -231,6 +271,49 @@ end)
 
 		configuration "Release*"
 			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
+			
+	if os.istarget('windows') then
+		project "CitiMonoRef"
+			if _OPTIONS['game'] == 'server' then
+				targetname "CitizenFX.Core.Server"
+			else
+				targetname "CitizenFX.Core.Client"
+			end
+			
+			language "C#"
+			kind "SharedLib"
+			
+			dependson "CitiMono"
+			
+			dotnetframework '4.6'
+			clr 'Unsafe'
+			csversion '7.3'
+			
+			links { "System.dll", "System.Drawing.dll" }
+			
+			files { "client/clrref/CitizenFX.Core.cs" }
+			
+			buildoptions '/debug:portable /langversion:7.3'
+			
+			postbuildcommands {
+				('copy /y "%s" "%s"'):format(
+					"$(TargetDir)..\\CitizenFX.Core.xml",
+					"$(TargetDir)$(TargetName).xml"
+				),				
+				('"%s" -facadePath:"%s" -seeds:"%s" -contracts:"%s"'):format(
+					"$(SolutionDir)\\packages\\Microsoft.DotNet.BuildTools.GenFacades.3.0.0-preview1-03805-01\\tools\\GenFacades.exe",
+					"$(TargetDir)..",
+					"$(TargetDir)..\\CitizenFX.Core.dll",
+					"$(TargetPath)"
+				)
+			}
+			
+			configuration "Debug*"
+				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/ref/')
+
+			configuration "Release*"
+				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/ref/')
+	end
 
 	group ""
 

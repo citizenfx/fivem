@@ -5,7 +5,7 @@ namespace CitizenFX.Core
 {
 	[StructLayout(LayoutKind.Sequential)]
 	[Serializable]
-	public unsafe struct fxScriptContext
+	internal unsafe struct fxScriptContext
 	{
 		public fixed byte functionData[8 * 32];
 
