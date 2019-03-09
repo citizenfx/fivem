@@ -23,7 +23,7 @@ local expanded = IsBigmapActive()
 local fullMap = IsBigmapFull()
 print("The minimap is currently " .. (expanded and "expanded" or "normal size") .. " and the full map is currently " .. (fullMap and "revealed" or "not revealed") .. ".")
 ```
-```c#
+```cs
 bool expanded = IsBigmapActive();
 bool fullMap = IsBigmapFull();
 
