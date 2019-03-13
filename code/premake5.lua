@@ -191,13 +191,17 @@ premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
 end)
 
-local function WriteDocumentationFileXml(_premake, _prj, value)
-    _premake.w('<DocumentationFile>' .. string.gsub(_prj.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
+local function WriteDocumentationFileXml(_premake, _cfg)
+	if _cfg.project.name ~= 'CitiMono' then
+		return
+	end
+	
+    _premake.w('<DocumentationFile>' .. string.gsub(_cfg.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 end
 
-premake.override(premake.vstudio.dotnetbase, "compilerProps", function(base, prj)
-    base(prj)
-    WriteDocumentationFileXml(premake, prj, XmlDocFileName)
+premake.override(premake.vstudio.dotnetbase, "compilerProps", function(base, cfg)
+    base(cfg)
+    WriteDocumentationFileXml(premake, cfg)
 
     premake.w('<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>')
 end)
