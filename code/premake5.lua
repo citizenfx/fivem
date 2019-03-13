@@ -151,6 +151,7 @@ workspace "CitizenMP"
 		-- game launcher
 		include 'client/launcher'
 		include 'client/console'
+		include 'client/diag'
 	else
 		include 'server/launcher'
 	end
