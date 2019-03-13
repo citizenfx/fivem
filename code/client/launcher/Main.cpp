@@ -113,6 +113,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		return 0;
 	}
 
+	// store the last run directory for assistance purposes
+	{
+		auto regPath = MakeRelativeCitPath(L"");
+
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FiveM", L"Last Run Location", REG_SZ, regPath.c_str(), (regPath.size() + 1) * 2);
+	}
+
 	SetCurrentProcessExplicitAppUserModelID(L"CitizenFX.FiveM.Client");
 
 	static HostSharedData<CfxState> initState("CfxInitState");
