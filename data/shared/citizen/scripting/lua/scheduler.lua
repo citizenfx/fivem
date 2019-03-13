@@ -37,7 +37,7 @@ function Citizen.CreateThreadNow(threadFunction, eventName)
 	local result, err = coroutine.resume(coro)
 	local runTime = GetGameTimer() - startAt
 
-	if runTime > 110 then
+	if runTime > 150 then
 		print("Executing thread in resource " .. t.resource .. " was slow: " .. runTime .. "ms, please verify what you are doing")
 		if eventName then
 			print("in event: " .. eventName)
@@ -172,7 +172,7 @@ Citizen.SetTickRoutine(function()
 				local result, err = coroutine.resume(thread.coroutine)
 				local runTime = GetGameTimer() - startTime
 
-				if runTime > 110 then
+				if runTime > 150 then
 					print("Executing thread in resource " .. thread.resource .. " was slow: " .. runTime .. "ms, please verify what you are doing")
 				end
 
