@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -130,6 +130,26 @@ namespace CitizenFX.Core
 				var serializer = new DelegateSerializer();
 				serializer.PackTo(packer, deleg);
 			}
+			else if (obj is Vector2 vec2)
+			{
+				var serializer = new Vector2Serializer();
+				serializer.PackTo(packer, vec2);
+			}
+			else if (obj is Vector3 vec3)
+			{
+				var serializer = new Vector3Serializer();
+				serializer.PackTo(packer, vec3);
+			}
+			else if (obj is Vector4 vec4)
+			{
+				var serializer = new Vector4Serializer();
+				serializer.PackTo(packer, vec4);
+			}
+			else if (obj is Quaternion quat)
+			{
+				var serializer = new QuaternionSerializer();
+				serializer.PackTo(packer, quat);
+			}
 			else
 			{
 				var properties = type.GetProperties();
@@ -145,7 +165,141 @@ namespace CitizenFX.Core
 		}
     }
 
-    class DelegateSerializer : MessagePackSerializer<Delegate>
+	class Vector2Serializer : MessagePackSerializer<Vector2>
+	{
+		public Vector2Serializer()
+			: base(SerializationContext.Default)
+		{
+
+		}
+
+		[SecuritySafeCritical]
+		protected override void PackToCore(Packer packer, Vector2 vec)
+		{
+			MemoryStream ms = new MemoryStream();
+			BinaryWriter writer = new BinaryWriter(ms);
+
+			writer.Write(vec.X);
+			writer.Write(vec.Y);
+
+			packer.PackExtendedTypeValue(20, ms.ToArray());
+		}
+
+		protected override Vector2 UnpackFromCore(Unpacker unpacker)
+		{
+			Vector2 retValue = new Vector2();
+
+			unpacker.ReadSingle(out retValue.X);
+			unpacker.ReadSingle(out retValue.Y);
+
+			return retValue;
+		}
+	}
+
+	class Vector3Serializer : MessagePackSerializer<Vector3>
+	{
+		public Vector3Serializer()
+			: base(SerializationContext.Default)
+		{
+
+		}
+
+		[SecuritySafeCritical]
+		protected override void PackToCore(Packer packer, Vector3 vec)
+		{
+			MemoryStream ms = new MemoryStream();
+			BinaryWriter writer = new BinaryWriter(ms);
+
+			writer.Write(vec.X);
+			writer.Write(vec.Y);
+			writer.Write(vec.Z);
+
+			packer.PackExtendedTypeValue(21, ms.ToArray());
+		}
+
+		protected override Vector3 UnpackFromCore(Unpacker unpacker)
+		{
+			Vector3 retValue = new Vector3();
+
+			unpacker.ReadSingle(out retValue.X);
+			unpacker.ReadSingle(out retValue.Y);
+			unpacker.ReadSingle(out retValue.Z);
+
+			return retValue;
+		}
+	}
+
+	class Vector4Serializer : MessagePackSerializer<Vector4>
+	{
+		public Vector4Serializer()
+			: base(SerializationContext.Default)
+		{
+
+		}
+
+		[SecuritySafeCritical]
+		protected override void PackToCore(Packer packer, Vector4 vec)
+		{
+			MemoryStream ms = new MemoryStream();
+			BinaryWriter writer = new BinaryWriter(ms);
+
+			writer.Write(vec.X);
+			writer.Write(vec.Y);
+			writer.Write(vec.Z);
+			writer.Write(vec.W);
+
+			packer.PackExtendedTypeValue(22, ms.ToArray());
+		}
+
+		protected override Vector4 UnpackFromCore(Unpacker unpacker)
+		{
+			Vector4 retValue = new Vector4();
+
+			unpacker.ReadSingle(out retValue.X);
+			unpacker.ReadSingle(out retValue.Y);
+			unpacker.ReadSingle(out retValue.Z);
+			unpacker.ReadSingle(out retValue.W);
+
+			return retValue;
+		}
+	}
+
+	class QuaternionSerializer : MessagePackSerializer<Quaternion>
+	{
+		public QuaternionSerializer()
+			: base(SerializationContext.Default)
+		{
+
+		}
+
+		[SecuritySafeCritical]
+		protected override void PackToCore(Packer packer, Quaternion vec)
+		{
+			MemoryStream ms = new MemoryStream();
+			BinaryWriter writer = new BinaryWriter(ms);
+
+			writer.Write(vec.X);
+			writer.Write(vec.Y);
+			writer.Write(vec.Z);
+			writer.Write(vec.W);
+
+			packer.PackExtendedTypeValue(23, ms.ToArray());
+		}
+
+		protected override Quaternion UnpackFromCore(Unpacker unpacker)
+		{
+			Quaternion retValue = new Quaternion();
+
+			unpacker.ReadSingle(out retValue.X);
+			unpacker.ReadSingle(out retValue.Y);
+			unpacker.ReadSingle(out retValue.Z);
+			unpacker.ReadSingle(out retValue.W);
+
+			return retValue;
+		}
+	}
+
+	class DelegateSerializer : MessagePackSerializer<Delegate>
     {
         public DelegateSerializer()
             : base(SerializationContext.Default)

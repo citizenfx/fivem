@@ -338,23 +338,49 @@ namespace CitizenFX.Core
 		object UnpackFixExt8(byte a, BinaryReader reader) => UnpackExt(reader, 8);
 		object UnpackFixExt16(byte a, BinaryReader reader) => UnpackExt(reader, 16);
 
+		private static readonly List<int> ExtTypes = new List<int>()
+		{
+			10, // funcref
+			11, // localfuncref
+			20, // vector2
+			21, // vector3
+			22, // vector4
+			23 // quaternion
+		};
+
 		private object UnpackExt(BinaryReader reader, int length)
 		{
 			var extType = reader.ReadByte();
 
-			if (extType != 10 && extType != 11)
+			if (!ExtTypes.Contains(extType))
 			{
-				throw new InvalidOperationException("Only extension types 10/11 (Citizen funcref) are handled by this class.");
+				throw new InvalidOperationException($"Extension type {extType} not handled.");
 			}
 
-			var funcRefData = reader.ReadBytes(length);
-
-			if (extType == 11)
+			switch (extType)
 			{
-				return CreateRemoteFunctionReference(funcRefData);
+				case 10: // funcref
+				case 11: // localfuncref
+					var funcRefData = reader.ReadBytes(length);
+
+					if (extType == 11)
+					{
+						return CreateRemoteFunctionReference(funcRefData);
+					}
+
+					return CreateFunctionReference(funcRefData, NetSource);
+				case 20: // vector2
+					return new Vector2(reader.ReadSingle(), reader.ReadSingle());
+				case 21: // vector3
+					return new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+				case 22: // vector4
+					return new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+				case 23: // quaternion
+					return new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+				default: // shouldn't ever happen due to the check above
+					return new object();
 			}
 
-			return CreateFunctionReference(funcRefData, NetSource);
 		}
 
 		private Func<byte, BinaryReader, object> GetUnpacker(byte type)
