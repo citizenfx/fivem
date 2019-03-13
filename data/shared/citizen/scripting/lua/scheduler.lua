@@ -147,7 +147,8 @@ local timeouts = {}
 function Citizen.SetTimeout(msec, callback)
 	table.insert(threads, {
 		coroutine = coroutine.create(callback),
-		wakeTime = GetGameTimer() + msec
+		wakeTime = GetGameTimer() + msec,
+		resource = GetCurrentResourceName()
 	})
 end
 
