@@ -5,7 +5,8 @@ local curThreadIndex
 function Citizen.CreateThread(threadFunction)
 	table.insert(threads, {
 		coroutine = coroutine.create(threadFunction),
-		wakeTime = 0
+		wakeTime = 0,
+		resource = GetCurrentResourceName()
 	})
 end
 
@@ -19,19 +20,30 @@ end
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
-function Citizen.CreateThreadNow(threadFunction)
+function Citizen.CreateThreadNow(threadFunction, eventName)
 	local coro = coroutine.create(threadFunction)
 
 	local t = {
 		coroutine = coro,
-		wakeTime = 0
+		wakeTime = 0,
+		resource = GetCurrentResourceName()
 	}
 
 	-- add new thread and save old thread
 	local oldThread = curThread
 	curThread = t
 
+	local startAt = GetGameTimer()
 	local result, err = coroutine.resume(coro)
+	local runTime = GetGameTimer() - startAt
+
+	if runTime > 110 then
+		print("Executing thread in resource " .. t.resource .. " was slow : " .. runTime .. "ms, please verify what your are doing")
+		if eventName then
+			print("in event: " .. eventName)
+		end
+	end
+
 
 	local resumedThread = curThread
 	-- restore last thread
@@ -62,21 +74,21 @@ function Citizen.Await(promise)
 
 	curThreadIndex = nil
 	local resumableThread = curThread
-	
+
 	inNext = true
 	local nextResult
 	local nextErr
 	local resolved
-	
+
 	promise:next(function (result)
 		-- was already resolved? then resolve instantly
 		if inNext then
 			nextResult = result
 			resolved = true
-			
+
 			return
 		end
-	
+
 		-- Reattach thread
 		table.insert(threads, resumableThread)
 
@@ -96,36 +108,36 @@ function Citizen.Await(promise)
 			if inNext then
 				nextErr = err
 				resolved = true
-				
+
 				return
 			end
-			
+
 			-- resume with error
 			local result, coroErr = coroutine.resume(resumableThread.coroutine, nil, err)
-			
+
 			if coroErr then
 				Citizen.Trace('Await failure: ' .. debug.traceback(resumableThread.coroutine, coroErr, 2))
 			end
 		end
 	end)
-	
+
 	inNext = false
-	
+
 	if resolved then
 		if nextErr then
 			error(nextErr)
 		end
-	
+
 		return nextResult
 	end
-	
+
 	curThread = nil
 	local result, err = coroutine.yield()
-	
+
 	if err then
 		error(err)
 	end
-	
+
 	return result
 end
 
@@ -156,7 +168,13 @@ Citizen.SetTickRoutine(function()
 			if status == 'dead' then
 				table.remove(threads, i)
 			else
+				local startTime = GetGameTimer()
 				local result, err = coroutine.resume(thread.coroutine)
+				local runTime = GetGameTimer() - startTime
+
+				if runTime > 110 then
+					print("Executing thread in resource " .. thread.resource .. " was slow : " .. runTime .. "ms, please verify what you are doing")
+				end
 
 				if not result then
 					Citizen.Trace("Error resuming coroutine: " .. debug.traceback(thread.coroutine, err) .. "\n")
@@ -186,7 +204,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 
 	-- try finding an event handler for the event
 	local eventHandlerEntry = eventHandlers[eventName]
-	
+
 	-- deserialize the event structure (so that we end up adding references to delete later on)
 	local data = msgpack.unpack(eventPayload)
 
@@ -217,7 +235,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			for k, handler in pairs(eventHandlerEntry.handlers) do
 				Citizen.CreateThreadNow(function()
 					handler(table.unpack(data))
-				end)
+				end, eventName)
 			end
 		end
 	end
@@ -377,7 +395,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 
 		return msgpack.pack({})
 	end
-	
+
 	local ref = refPtr.func
 
 	local err
@@ -418,7 +436,7 @@ Citizen.SetDuplicateRefRoutine(function(refId)
 
 	if ref then
 		--print(('%s %s ref %d - new refcount %d (from %s)'):format(GetCurrentResourceName(), 'duplicating', refId, ref.refs + 1, GetInvokingResource() or 'nil'))
-	
+
 		ref.refs = ref.refs + 1
 
 		return refId
@@ -429,12 +447,12 @@ end)
 
 Citizen.SetDeleteRefRoutine(function(refId)
 	local ref = funcRefs[refId]
-	
+
 	if ref then
 		--print(('%s %s ref %d - new refcount %d (from %s)'):format(GetCurrentResourceName(), 'deleting', refId, ref.refs - 1, GetInvokingResource() or 'nil'))
-	
+
 		ref.refs = ref.refs - 1
-		
+
 		if ref.refs <= 0 then
 			funcRefs[refId] = nil
 		end
@@ -475,7 +493,7 @@ if GetCurrentResourceName() == 'sessionmanager' then
 		local source = source
 
 		local eventTriggerFn = TriggerServerEvent
-		
+
 		if IsDuplicityVersion() then
 			eventTriggerFn = function(name, ...)
 				TriggerClientEvent(name, source, ...)
@@ -671,7 +689,7 @@ end
 msgpack.build_ext = function(tag, data)
 	if tag == EXT_FUNCREF or tag == EXT_LOCALFUNCREF then
 		local ref = data
-		
+
 		-- add a reference
 		DuplicateFunctionReference(ref)
 
@@ -689,19 +707,19 @@ msgpack.build_ext = function(tag, data)
 		return tbl
 	elseif tag == EXT_VECTOR2 then
 		local x, y = string.unpack('<ff', data)
-	
+
 		return vector2(x, y)
 	elseif tag == EXT_VECTOR3 then
 		local x, y, z = string.unpack('<fff', data)
-	
+
 		return vector3(x, y, z)
 	elseif tag == EXT_VECTOR4 then
 		local x, y, z, w = string.unpack('<ffff', data)
-	
+
 		return vector4(x, y, z, w)
 	elseif tag == EXT_QUAT then
 		local x, y, z, w = string.unpack('<ffff', data)
-	
+
 		return quat(w, x, y, z)
 	end
 end
