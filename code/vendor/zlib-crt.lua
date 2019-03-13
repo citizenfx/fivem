@@ -1,0 +1,1 @@
+return loadfile('zlib.lua')(true)
