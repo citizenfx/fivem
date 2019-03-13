@@ -356,6 +356,18 @@ static std::wstring HashCrash(const std::wstring& key)
 	));
 }
 
+static std::wstring UnblameCrash(const std::wstring& hash)
+{
+	auto retval = hash;
+
+	if (_wcsnicmp(hash.c_str(), L"fivem.exe+", 10) == 0)
+	{
+		retval = L"GTA5+" + retval.substr(10);
+	}
+
+	return retval;
+}
+
 void NVSP_ShutdownSafely();
 
 // a safe exception buffer to be allocated in low (32-bit) memory to contain what() data
@@ -733,21 +745,21 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		if (!crashHash.empty())
 		{
-			auto ch = HashCrash(crashHash);
+			auto ch = UnblameCrash(crashHash);
 
 			if (crashHash.find(L".exe") != std::string::npos)
 			{
 				windowTitle = fmt::sprintf(L"Error %s", ch);
 			}
 
-			mainInstruction = fmt::sprintf(L"\"%s\"", ch);
-			cuz = fmt::sprintf(L"A %s", ch);
+			mainInstruction = fmt::sprintf(L"%s", ch);
+			cuz = fmt::sprintf(L"An error at %s", ch);
 
 			json crashData = load_json_file(L"citizen/crash-data.json");
 
 			if (crashData.is_object())
 			{
-				auto cd = crashData.value(ToNarrow(ch), "");
+				auto cd = crashData.value(ToNarrow(HashCrash(ch)), "");
 
 				if (!cd.empty())
 				{
@@ -771,6 +783,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		if (!exWhat.empty())
 		{
 			content += fmt::sprintf(L"\n\nException details: %s", ToWide(exWhat));
+		}
+
+		if (!crashHash.empty())
+		{
+			content += fmt::sprintf(L"\n\nLegacy crash hash: %s", HashCrash(crashHash));
 		}
 
 		static std::optional<std::wstring> crashId;
