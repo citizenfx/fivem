@@ -354,6 +354,7 @@ if (!$DontBuild -and !$IsServer) {
 
     Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
     Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $WorkDir\caches\fivereborn\
 
     Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
     
