@@ -1332,7 +1332,10 @@ result_t LuaScriptRuntime::LoadHostFileInternal(char* scriptFile)
 		return hr;
 	}
 
-	return LoadFileInternal(stream, scriptFile);
+	char* resourceName;
+	m_resourceHost->GetResourceName(&resourceName);
+
+	return LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile);
 }
 
 result_t LuaScriptRuntime::LoadSystemFileInternal(char* scriptFile)
