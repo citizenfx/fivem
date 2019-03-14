@@ -119,22 +119,7 @@ namespace CitizenFX.Core
 			{
 				using (GetPushRuntime())
 				{
-					var assemblyStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile)));
-					var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
-
-					byte[] symbolBytes = null;
-
-					try
-					{
-						var symbolStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile + ".mdb")));
-						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
-					}
-					catch
-					{
-						// nothing
-					}
-
-					m_intManager.CreateAssembly(assemblyBytes, symbolBytes);
+					m_intManager.LoadAssembly(scriptFile);
 				}
 			}
 			catch (Exception e)

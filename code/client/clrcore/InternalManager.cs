@@ -72,16 +72,26 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public void CreateAssembly(byte[] assemblyData, byte[] symbolData)
+		public void CreateAssembly(string scriptFile, byte[] assemblyData, byte[] symbolData)
 		{
-			CreateAssemblyInternal(assemblyData, symbolData);
+			CreateAssemblyInternal(scriptFile, assemblyData, symbolData);
 		}
 
+		static Dictionary<string, Assembly> ms_loadedAssemblies = new Dictionary<string, Assembly>();
+
 		[SecuritySafeCritical]
-		private static Assembly CreateAssemblyInternal(byte[] assemblyData, byte[] symbolData)
+		private static Assembly CreateAssemblyInternal(string assemblyFile, byte[] assemblyData, byte[] symbolData)
 		{
+			if (ms_loadedAssemblies.ContainsKey(assemblyFile))
+			{
+				Debug.WriteLine("Returning previously loaded assembly {0}", ms_loadedAssemblies[assemblyFile].FullName);
+				return ms_loadedAssemblies[assemblyFile];
+			}
+
 			var assembly = Assembly.Load(assemblyData, symbolData);
 			Debug.WriteLine("Loaded {1} into {0}", AppDomain.CurrentDomain.FriendlyName, assembly.FullName);
+
+			ms_loadedAssemblies[assemblyFile] = assembly;
 
 			var definedTypes = assembly.GetTypes().Where(t => !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)));
 
@@ -119,7 +129,12 @@ namespace CitizenFX.Core
 			Debug.WriteLine("Unhandled exception: {0}", e.ExceptionObject.ToString());
 		}
 
-		static Assembly LoadAssembly(string name)
+		public void LoadAssembly(string name)
+		{
+			LoadAssemblyInternal(name.Replace(".dll", ""));
+		}
+
+		static Assembly LoadAssemblyInternal(string name)
 		{
 			try
 			{
@@ -146,7 +161,7 @@ namespace CitizenFX.Core
 					}
 				}
 
-				return CreateAssemblyInternal(assemblyBytes, symbolBytes);
+				return CreateAssemblyInternal(name + ".dll", assemblyBytes, symbolBytes);
 			}
 			catch (Exception e)
 			{
@@ -158,7 +173,7 @@ namespace CitizenFX.Core
 
 		static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
 		{
-			return LoadAssembly(args.Name.Split(',')[0]);
+			return LoadAssemblyInternal(args.Name.Split(',')[0]);
 		}
 
 		public static void AddDelay(int delay, AsyncCallback callback)

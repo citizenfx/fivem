@@ -6,7 +6,9 @@ namespace CitizenFX.Core
 	{
 		void SetScriptHost(IScriptHost host, int instanceId);
 
-		void CreateAssembly(byte[] assemblyData, byte[] symbolData);
+		void CreateAssembly(string name, byte[] assemblyData, byte[] symbolData);
+
+		void LoadAssembly(string name);
 
 		void Tick();
 
