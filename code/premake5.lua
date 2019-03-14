@@ -193,6 +193,16 @@ premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 end)
 
 local function WriteDocumentationFileXml(_premake, _cfg)
+	if _cfg.project.name == 'CitiMonoSystemDrawingStub' then
+		_premake.w(('<AssemblyOriginatorKeyFile>%s</AssemblyOriginatorKeyFile>'):format(
+			path.getabsolute("client/clrref/msft.snk")
+		))
+		_premake.w('<SignAssembly>true</SignAssembly>')
+		_premake.w('<DelaySign>true</DelaySign>')
+	
+		return
+	end
+
 	if _cfg.project.name ~= 'CitiMono' then
 		return
 	end
@@ -276,6 +286,25 @@ end)
 
 		configuration "Release*"
 			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
+			
+	if _OPTIONS['game'] ~= 'server' then
+		project "CitiMonoSystemDrawingStub"
+			targetname "System.Drawing"
+			language "C#"
+			kind "SharedLib"
+			
+			links { "CitiMono" }
+			
+			files {
+				"client/clrref/System.Drawing.cs"
+			}
+			
+			configuration "Debug*"
+				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
+
+			configuration "Release*"
+				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
+	end
 			
 	if os.istarget('windows') then
 		project "CitiMonoRef"
