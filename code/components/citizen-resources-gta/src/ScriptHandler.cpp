@@ -16,6 +16,8 @@
 
 extern fwRefContainer<fx::ResourceManager> g_resourceManager;
 
+bool DLL_IMPORT UpdateScriptInitialization();
+
 class TestScriptThread : public GtaThread
 {
 	virtual void DoRun() override
@@ -32,6 +34,11 @@ class TestScriptThread : public GtaThread
 		}
 
 		if (Instance<ICoreGameInit>::Get()->HasVariable("networkTimedOut"))
+		{
+			return;
+		}
+
+		if (!UpdateScriptInitialization())
 		{
 			return;
 		}
