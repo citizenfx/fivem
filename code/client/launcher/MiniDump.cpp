@@ -888,7 +888,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		static std::optional<std::wstring> crashId;
 
 		static const TASKDIALOG_BUTTON buttons[] = {
-			{ 42, L"Show information\nGathers a file with crash information to send in a support request." }
+			{ 42, L"Save information\nGathers a file with crash information to copy and attach in a support request." }
 		};
 
 		static std::wstring tempSignature = fmt::sprintf(L"Crash signature: %s\nReport ID: ... [uploading?] (use Ctrl+C to copy)", crashHash);
