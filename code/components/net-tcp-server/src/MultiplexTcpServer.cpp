@@ -113,7 +113,11 @@ void MultiplexTcpChildServer::AttachToResult(const std::vector<uint8_t>& existin
 	stream->SetInitialData(existingData);
 
 	// keep a local reference to the connection
-	m_connections.insert(stream);
+	{
+		std::unique_lock<std::mutex> lock(m_connectionsMutex);
+
+		m_connections.insert(stream);
+	}
 
 	// invoke the connection callback
 	auto connectionCallback = GetConnectionCallback();
@@ -126,6 +130,8 @@ void MultiplexTcpChildServer::AttachToResult(const std::vector<uint8_t>& existin
 
 void MultiplexTcpChildServer::CloseStream(MultiplexTcpChildServerStream* stream)
 {
+	std::unique_lock<std::mutex> lock(m_connectionsMutex);
+
 	m_connections.erase(stream);
 }
 
