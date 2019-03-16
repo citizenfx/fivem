@@ -454,11 +454,6 @@ void MumbleClient::ThreadFuncImpl()
 					WSACloseEvent(m_socketConnectEvent);
 					m_socketConnectEvent = INVALID_HANDLE_VALUE;
 
-					LARGE_INTEGER waitTime;
-					waitTime.QuadPart = -5000000LL; // 500ms
-
-					SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
-
 					m_handler.Reset();
 
 					WSAEventSelect(m_socket, m_socketReadEvent, FD_READ | FD_CLOSE);
@@ -733,6 +728,14 @@ bool MumbleClient::OnHandshake(const Botan::TLS::Session& session)
 
 void MumbleClient::OnActivated()
 {
+	// initialize idle timer only *now* that the session is active
+	// (otherwise, if the idle timer ran after 500ms from connecting, but TLS connection wasn't set up within those 500ms,
+	// the idle event would immediately try to reconnect)
+	LARGE_INTEGER waitTime;
+	waitTime.QuadPart = -5000000LL; // 500ms
+
+	SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
+
 	// send our own version
 	MumbleProto::Version ourVersion;
 	ourVersion.set_version(0x00010204);
