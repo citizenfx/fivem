@@ -66,11 +66,11 @@ export class ServersListComponent implements OnInit, OnChanges {
 
         const storedOrder = this.localStorage.getItem('sortOrder');
 
-        if (storedOrder) {
-            this.sortOrder = JSON.parse(storedOrder);
-        } else {
-            this.sortOrder = environment.web ? ['players', '-'] : ['ping', '+'];
-        }
+        //if (storedOrder) {
+        //    this.sortOrder = JSON.parse(storedOrder);
+        //} else {
+        this.sortOrder = ['upvotePower', '-'];
+        //}
 
         let changed = false;
 
@@ -328,6 +328,7 @@ export class ServersListComponent implements OnInit, OnChanges {
                     }
                 },
                 sortSortable(this.sortOrder),
+                sortSortable(['upvotePower', '-']),
                 sortSortable(['ping', '+']),
                 sortSortable(['name', '+'])
             );

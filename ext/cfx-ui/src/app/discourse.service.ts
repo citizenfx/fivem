@@ -1,4 +1,6 @@
 import { Injectable, EventEmitter } from '@angular/core';
+import { Server } from './servers/server';
+import { ServersService } from './servers/servers.service';
 
 import * as forge from 'node-forge';
 import * as query from 'query-string';
@@ -16,6 +18,14 @@ const randomBytes = function(length) {
         });
 };
 
+
+export class BoostData {
+    power: number;
+    source: string;
+    server: Server;
+    address: string;
+}
+
 @Injectable()
 export class DiscourseService {
     private static BASE_URL = 'https://forum.fivem.net';
@@ -32,7 +42,10 @@ export class DiscourseService {
 
     public currentUser: any;
 
-    public constructor() {
+    public currentBoost: BoostData;
+    public noCurrentBoost = false;
+
+    public constructor(private serversService: ServersService) {
         this.authToken = window.localStorage.getItem('discourseAuthToken');
 
         if (this.authToken && this.authToken.length > 0) {
@@ -42,6 +55,30 @@ export class DiscourseService {
                 this.currentUser = user;
             });
         }
+
+        this.signinChange.subscribe(user => {
+            this.externalCall('https://servers-frontend.fivem.net/api/upvote/', 'GET').then(result => {
+                if (result.status < 400) {
+                    this.currentBoost = {
+                        address: result.data.address,
+                        power: result.data.power,
+                        source: result.data.source,
+                        server: null
+                    };
+
+                    this.noCurrentBoost = false;
+
+                    this.serversService
+                        .getReplayedServers()
+                        .filter(server => server != null && server.address === result.data.address)
+                        .subscribe(a => {
+                            this.currentBoost.server = a;
+                        });
+                } else if (result.status === 404) {
+                    this.noCurrentBoost = true;
+                }
+            });
+        });
     }
 
     public setComputerName(computerName: string) {
@@ -88,6 +125,41 @@ export class DiscourseService {
         }
 
         throw new Error('Failed to fetch API, status code: ' + res.status);
+    }
+
+    public async externalCall(url: string, method?: string, data?: any) {
+        const clientId = await this.getClientId();
+
+        const finalMethod = method || 'GET';
+
+        const headers = {
+            'User-Agent': 'CitizenFX/Five',
+            'Content-Type': 'application/json',
+            'User-Api-Client-Id': clientId,
+            'User-Api-Key': this.authToken
+        };
+
+        const finalData = (data) ? JSON.stringify(data) : undefined;
+
+        const req = new Request(url, {
+            headers,
+            method: finalMethod,
+            body: finalData
+        })
+
+        const res = await window.fetch(req);
+
+        if (res.ok) {
+            return {
+                status: res.status,
+                data: await res.json()
+            };
+        }
+
+        return {
+            status: res.status,
+            data: null
+        }
     }
 
     public async getCurrentUser() {

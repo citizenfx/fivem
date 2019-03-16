@@ -123,11 +123,11 @@ export abstract class GameService {
 		this.connectFailed.emit([server, message]);
 	}
 
-	protected invokeError(message: string) {
+	public invokeError(message: string) {
 		this.errorMessage.emit(message);
 	}
 
-	protected invokeInformational(message: string) {
+	public invokeInformational(message: string) {
 		this.infoMessage.emit(message);
 	}
 

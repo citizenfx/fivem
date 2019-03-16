@@ -155,6 +155,9 @@ export namespace master {
 
         /** ServerData enhancedHostSupport */
         enhancedHostSupport?: boolean;
+
+        /** ServerData upvotePower */
+        upvotePower?: number;
     }
 
     /** Represents a ServerData. */
@@ -201,6 +204,9 @@ export namespace master {
 
         /** ServerData enhancedHostSupport. */
         public enhancedHostSupport: boolean;
+
+        /** ServerData upvotePower. */
+        public upvotePower: number;
 
         /**
          * Creates a new ServerData instance using the specified properties.

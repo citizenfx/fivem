@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { GameService } from '../game.service';
-import { DiscourseService } from '../discourse.service';
+import { DiscourseService, BoostData } from '../discourse.service';
+import { ServersService } from '../servers/servers.service';
+import { Http } from '@angular/http';
 
 @Component({
     moduleId: module.id,
@@ -15,8 +17,11 @@ export class SettingsComponent implements OnInit {
     devMode = false;
     currentAccount: any = null;
     darkTheme = false;
+    currentBoost: BoostData = null;
+    noCurrentBoost = false;
 
-    constructor(private gameService: GameService, private discourseService: DiscourseService) {
+    constructor(private gameService: GameService, private discourseService: DiscourseService,
+        private serversService: ServersService, private http: Http) {
         gameService.nicknameChange.subscribe(value => this.nickname = value);
         gameService.devModeChange.subscribe(value => this.devMode = value);
         gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
@@ -31,6 +36,8 @@ export class SettingsComponent implements OnInit {
         this.localhostPort = this.gameService.localhostPort;
         this.darkTheme = this.gameService.darkTheme;
         this.currentAccount = this.discourseService.currentUser;
+        this.currentBoost = this.discourseService.currentBoost;
+        this.noCurrentBoost = this.discourseService.noCurrentBoost;
     }
 
     nameChanged(newName) {

@@ -50,7 +50,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     addrEvent = new Subject<[string, number]>();
 
     disallowedVars = ['sv_enhancedHostSupport', 'sv_licenseKeyToken', 'sv_lan', 'sv_maxClients'];
-    
+
     @Language()
     lang: string;
 

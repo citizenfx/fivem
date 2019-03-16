@@ -81,3 +81,15 @@
 		</span>
 	</div>
 </section>
+
+<section class="setting" *ngIf="currentAccount && currentAccount.isPremium">
+	<div class="key">
+		<div>Current Server BOOST™</div>
+	</div>
+	<div class="value">
+		<span *ngIf="!currentBoost && !noCurrentBoost">Loading...</span>
+		<span *ngIf="!currentBoost && noCurrentBoost">None! BOOST™ a server by clicking the upvote button in the server list.</span>
+		<span *ngIf="currentBoost && !currentBoost.server">{{ currentBoost.address }}</span>
+		<span *ngIf="currentBoost && currentBoost.server" [innerHTML]="(currentBoost.server && currentBoost.server.hostname)||'test' | escape | colorize"></span>
+	</div>
+</section>
