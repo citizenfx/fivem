@@ -260,6 +260,12 @@ void UvTcpServerStream::HandlePendingWrites()
 
 void UvTcpServerStream::Close()
 {
+	// NOTE: potential data race if this gets zeroed/closed right when we try to do something
+	if (!m_client)
+	{
+		return;
+	}
+
 	m_pendingRequests.push([=]()
 	{
 		// keep a reference in scope
@@ -283,6 +289,11 @@ void UvTcpServerStream::Close()
 	});
 
 	// wake the callback
-	uv_async_send(m_writeCallback.get());
+	auto wc = m_writeCallback.get();
+
+	if (wc)
+	{
+		uv_async_send(wc);
+	}
 }
 }
