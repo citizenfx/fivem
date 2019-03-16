@@ -68,7 +68,7 @@ Context::Context(Context* fallbackContext)
 
 			if (cvar)
 			{
-				console::Printf("CmdSystem", "%s = %s^7\n", commandName, cvar->GetValue());
+				console::Printf("CmdSystem", "%s = %s\n%s", commandName, cvar->GetValue(), IS_FXSERVER ? "^7" : "");
 			}
 			else
 			{
