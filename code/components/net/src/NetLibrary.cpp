@@ -803,7 +803,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			return;
 		}
-		else if (!isLegacyDeferral)
+		else if (!isLegacyDeferral && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 		{
 			OnConnectionError(va("Failed handshake to server %s:%d - it closed the connection while deferring.", m_currentServer.GetAddress(), m_currentServer.GetPort()));
 		}
