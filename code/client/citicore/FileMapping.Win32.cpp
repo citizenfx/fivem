@@ -466,13 +466,16 @@ VOID CALLBACK LdrDllNotification(
 		UNICODE_STRING amdHdl;
 		RtlInitUnicodeString(&amdHdl, L"amdhdl64.dll");
 
-		if (RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &amdHdl, TRUE))
+		UNICODE_STRING nvDlistX;
+		RtlInitUnicodeString(&nvDlistX, L"nvdlistx.dll");
+
+		if (RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &amdHdl, TRUE) || RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &nvDlistX, TRUE))
 		{
 			void* proc = GetProcAddress(reinterpret_cast<HMODULE>(NotificationData->Loaded.DllBase), "QueryDListForApplication1");
 			MH_CreateHook(proc, QueryDListForApplication1Stub, (void**)&g_origQueryDListForApplication1);
 			MH_EnableHook(proc);
 
-			trace("Hooked amdhdl64.dll.\n");
+			trace("Hooked external (mobile) GPU drivers to force enablement.\n");
 		}
 	}
 }
