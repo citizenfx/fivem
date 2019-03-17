@@ -82,10 +82,18 @@ bool BaseLdrCheck()
 
 bool VerifyViability()
 {
-    if (!DXGICheck())
-    {
-        return false;
-    }
+	// if we run DXGI checks on non-downlevel versions, DList drivers won't be hooked, and iGPU+dGPU systems
+	// will cache the fact that we (incorrectly) want to run on the iGPU, leading to a mismatch since the *UI process*
+	// still runs on the dGPU.
+	//
+	// this will still cause the issue on downlevel systems, but those have broken iGPU+dGPU support anyway.
+	if (!IsWindows8Point1OrGreater())
+	{
+		if (!DXGICheck())
+		{
+			return false;
+		}
+	}
 
 	if (!BaseLdrCheck())
 	{
