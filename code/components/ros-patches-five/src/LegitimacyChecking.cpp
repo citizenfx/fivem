@@ -710,25 +710,38 @@ bool VerifyRetailOwnership()
                             {
                                 if (p.first == "Entitlement")
                                 {
-                                    std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
+									try
+									{
+										std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
 
-                                    if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
-                                    {
-										auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros" },
-											cpr::Payload{ { "rosData", b.text } });
-
-										if (r.error)
+										if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
 										{
-											FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.error.code, r.error.message);
-											return false;
-										}
+											auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros" },
+												cpr::Payload{ { "rosData", b.text } });
 
-										if (r.status_code == 200)
-										{
-											g_entitlementSource = r.text;
-											return true;
+											if (r.error)
+											{
+												FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.error.code, r.error.message);
+												return false;
+											}
+
+											if (r.status_code >= 500)
+											{
+												FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.status_code, r.text);
+												return false;
+											}
+
+											if (r.status_code == 200)
+											{
+												g_entitlementSource = r.text;
+												return true;
+											}
 										}
-                                    }
+									}
+									catch (const std::exception& e)
+									{
+
+									}
                                 }
                             }
                         }

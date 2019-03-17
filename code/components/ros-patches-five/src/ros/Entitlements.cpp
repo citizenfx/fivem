@@ -147,7 +147,10 @@ static InitFunction initFunction([] ()
 
 			if (r.status_code != 200)
 			{
-				DeleteFileW(ToWide(GetOwnershipPath()).c_str());
+				if (r.status_code < 500)
+				{
+					DeleteFileW(ToWide(GetOwnershipPath()).c_str());
+				}
 
 				FatalError("Could not contact entitlement service. Status code: %d, error message: %d/%s, response body: %s", r.status_code, (int)r.error.code, r.error.message, r.text);
 			}
