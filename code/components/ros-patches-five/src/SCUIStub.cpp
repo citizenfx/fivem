@@ -410,12 +410,6 @@ public:
                     return appendChildElement(rootElement, key, value);
                 };
 
-                // computer name as placeholder nick (f- yeah!)
-                wchar_t nickname[16];
-                DWORD size = 16;
-
-                GetComputerNameW(nickname, &size);
-
                 // create the document
                 appendElement("Status", 1);
                 appendElement("Ticket", tree.get<std::string>("Response.Ticket").c_str()); // 'a' repeated
@@ -440,7 +434,7 @@ public:
                 appendChildElement(rockstarElement, "CountryCode", "CA");
                 appendChildElement(rockstarElement, "Email", tree.get<std::string>("Response.RockstarAccount.Email").c_str());
                 appendChildElement(rockstarElement, "LanguageCode", "en");
-                appendChildElement(rockstarElement, "Nickname", ToNarrow(nickname).c_str());
+                appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
                 appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
 
@@ -472,7 +466,7 @@ public:
                 appendJson("SaveEmail", true);
                 appendJson("SavePassword", true);
                 appendJson("Password", "DetCon1");
-                appendJson("Nickname", ToNarrow(nickname).c_str());
+                appendJson("Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
                 appendJson("RockstarId", tree.get<std::string>("Response.RockstarAccount.RockstarId").c_str());
                 appendJson("CallbackData", 2);
                 appendJson("Local", false);
@@ -759,12 +753,6 @@ public:
 			return appendChildElement(rootElement, key, value);
 		};
 
-		// computer name as placeholder nick (f- yeah!)
-		wchar_t nickname[16];
-		DWORD size = 16;
-
-		GetComputerNameW(nickname, &size);
-
 		// create the document
 		appendElement("Status", 1);
 		appendElement("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh"); // 'a' repeated
@@ -787,9 +775,9 @@ public:
 		appendChildElement(rockstarElement, "Age", 18);
 		appendChildElement(rockstarElement, "AvatarUrl", "Bully/b20.png");
 		appendChildElement(rockstarElement, "CountryCode", "CA");
-		appendChildElement(rockstarElement, "Email", "onlineservices@citizen.re");
+		appendChildElement(rockstarElement, "Email", "onlineservices@fivem.net");
 		appendChildElement(rockstarElement, "LanguageCode", "en");
-		appendChildElement(rockstarElement, "Nickname", ToNarrow(nickname).c_str());
+		appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 		
 		appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
 
@@ -816,11 +804,11 @@ public:
 
 		appendJson("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg==");
 		appendJson("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh");
-		appendJson("Email", "onlineservices@citizen.re");
+		appendJson("Email", "onlineservices@fivem.net");
 		appendJson("SaveEmail", true);
 		appendJson("SavePassword", true);
 		appendJson("Password", "DetCon1");
-		appendJson("Nickname", ToNarrow(nickname).c_str());
+		appendJson("Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 		appendJson("RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
 		appendJson("CallbackData", 2);
 		appendJson("Local", false);
