@@ -87,6 +87,10 @@
 		.actions button {
 			opacity: 1;
 		}
+
+		.actions span {
+			opacity: 1;
+		}
 	}
 
 	.bg {
@@ -124,6 +128,23 @@
 	.actions {
 		padding-right: $padding*$multiplier;
 
+		span {
+			opacity: 0;
+
+			font-size: 90%;
+			line-height: 1;
+
+			padding: $padding/2 0;
+			padding-top: 0.5vh;
+
+			height: $appServersItemHeight;
+			vertical-align: top;
+
+			display: inline-block;
+
+			transition: all .2s ease-out;
+		}
+
 		button {
 			background: transparent;
 			border: none;
@@ -148,6 +169,10 @@
 			&:hover {
 				transform: scale(1.3);
 				box-shadow: none;
+			}
+
+			&.boost {
+				padding-right: $padding*$multiplier*0.2;
 			}
 
 			&.active {
