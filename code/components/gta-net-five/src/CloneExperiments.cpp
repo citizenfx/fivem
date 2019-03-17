@@ -1052,6 +1052,14 @@ static HookFunction hookFunction([]()
 		hook::put<uint32_t>(location + 0xD5, intsBase);
 	}
 
+	// 32 array size somewhere called by CTaskNMShot
+	{
+		auto location = hook::get_pattern<char>("48 8D A8 38 FF FF FF 48 81 ? ? ? ? 00 80 3D", -0x1C);
+
+		hook::put<uint32_t>(location + 0x26, 0xA0 + (256 * 8));
+		hook::put<uint32_t>(location + 0x269, 0xA0 + (256 * 8));
+	}
+
 	// CNetworkDamageTracker float[32] array
 	// (would overflow into pool data and be.. quite bad)
 	{
