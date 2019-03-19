@@ -174,7 +174,7 @@ static std::shared_mutex g_memoryUsagesMutex;
 
 static bool g_requestedMemoryUsage;
 
-#ifdef _MSC_VER
+#ifndef IS_FXSERVER
 static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
 #else
 static void gc_event(MonoProfiler *profiler, MonoProfilerGCEvent event, int generation)
