@@ -57,7 +57,33 @@ echo '#define GIT_DESCRIPTION "'$CI_BUILD_REF_NAME' v1.0.0.'$CI_PIPELINE_ID' lin
 chown -R build:build .
 
 # build
-sudo -u build ./proot-x86_64 -S $PWD/alpine/ -b $PWD/:/src/ -b $PWD/../fivem-private/:/fivem-private/ /bin/sh /src/code/tools/ci/build_server_2.sh
+#sudo -u build ./proot-x86_64 -S $PWD/alpine/ -b $PWD/:/src/ -b $PWD/../fivem-private/:/fivem-private/ /bin/sh /src/code/tools/ci/build_server_2.sh
+mount --bind /dev $PWD/alpine/dev
+mount --bind /sys $PWD/alpine/sys
+mount --bind /proc $PWD/alpine/proc
+mount --bind /tmp $PWD/alpine/tmp
+mount --bind /root $PWD/alpine/root
+mount --bind /etc/resolv.conf $PWD/alpine/etc/resolv.conf
+
+mkdir $PWD/alpine/src
+mkdir $PWD/alpine/fivem-private
+
+mount --bind $PWD $PWD/alpine/src
+mount --bind $PWD/../fivem-private $PWD/alpine/fivem-private
+
+chroot $PWD/alpine/ /bin/sh /src/code/tools/ci/build_server_2.sh
+
+umount $PWD/alpine/dev
+umount $PWD/alpine/sys
+umount $PWD/alpine/proc
+umount $PWD/alpine/tmp
+umount $PWD/alpine/root
+umount $PWD/alpine/etc/resolv.conf
+umount $PWD/alpine/src
+umount $PWD/alpine/fivem-private
+
+rm -r $PWD/alpine/src
+rm -r $PWD/alpine/fivem-private
 
 # patch elf interpreter
 cp -a alpine/lib/ld-musl-x86_64.so.1 alpine/opt/cfx-server/
@@ -65,6 +91,9 @@ cp -a alpine/lib/ld-musl-x86_64.so.1 alpine/opt/cfx-server/
 # package artifacts
 cp data/server_proot/run.sh run.sh
 chmod +x run.sh
+
+# again change ownership
+chown -R build:build .
 
 tar cJf fx.tar.xz alpine/ run.sh
 
