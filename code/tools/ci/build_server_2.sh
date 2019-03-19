@@ -17,7 +17,7 @@ apk --no-cache upgrade
 apk add --no-cache curl ca-certificates
 
 # add fivem repositories
-curl -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
+curl --http1.1 -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
 
 echo https://runtime.fivem.net/client/alpine/builds >> /etc/apk/repositories
 echo https://runtime.fivem.net/client/alpine/main >> /etc/apk/repositories
@@ -38,7 +38,7 @@ apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.63.0-r99 clang clan
 pip install ply
 
 # download and build premake
-curl -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-src.zip
+curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-src.zip
 
 cd /tmp
 unzip -q premake.zip
@@ -55,7 +55,7 @@ cd ..
 rm -rf premake-*
 
 # download and extract boost
-curl -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2
+curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2
 tar xf boost.tar.bz2
 rm boost.tar.bz2
 
@@ -67,7 +67,7 @@ export BOOST_ROOT=/tmp/boost/
 cd /src/ext/natives
 
 mkdir -p out
-curl -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
+curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
 
 gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
