@@ -161,8 +161,8 @@ const int WheelXOffsetOffset = 0x030;
 const int WheelTyreRadiusOffset = 0x110;
 const int WheelRimRadiusOffset = 0x114;
 const int WheelTyreWidthOffset = 0x118;
-const int WheelRotationSpeedOffset = 0x168;
-const int WheelHealthOffset = 0x1E0;
+const int WheelRotationSpeedOffset = 0x170;
+const int WheelHealthOffset = 0x1E8; // 75 24 F3 0F 10 81 ? ? ? ? F3 0F
 const int WheelYRotOffset = 0x008;
 const int WheelInvYRotOffset = 0x010;
 
