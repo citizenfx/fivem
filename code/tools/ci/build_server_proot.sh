@@ -63,13 +63,15 @@ mount --bind /sys $PWD/alpine/sys
 mount --bind /proc $PWD/alpine/proc
 mount --bind /tmp $PWD/alpine/tmp
 mount --bind /root $PWD/alpine/root
-mount --bind /etc/resolv.conf $PWD/alpine/etc/resolv.conf
 
 mkdir $PWD/alpine/src
 mkdir $PWD/alpine/fivem-private
 
 mount --bind $PWD $PWD/alpine/src
 mount --bind $PWD/../fivem-private $PWD/alpine/fivem-private
+
+echo nameserver 1.1.1.1 > $PWD/alpine/etc/resolv.conf
+echo nameserver 8.8.8.8 >> $PWD/alpine/etc/resolv.conf
 
 chroot $PWD/alpine/ /bin/sh /src/code/tools/ci/build_server_2.sh
 
@@ -78,7 +80,6 @@ umount $PWD/alpine/sys
 umount $PWD/alpine/proc
 umount $PWD/alpine/tmp
 umount $PWD/alpine/root
-umount $PWD/alpine/etc/resolv.conf
 umount $PWD/alpine/src
 umount $PWD/alpine/fivem-private
 
