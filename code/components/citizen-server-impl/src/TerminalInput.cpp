@@ -22,6 +22,8 @@ static InitFunction initFunction([]()
 		{
 			static fwRefContainer<console::Context> con = instance->GetComponent<console::Context>();
 
+			static auto disableTTYVariable = instance->AddVariable<bool>("con_disableNonTTYReads", ConVar_None, false);
+
 			linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
 			{
 				static std::set<std::string> cmds;
@@ -44,13 +46,14 @@ static InitFunction initFunction([]()
 
 			std::thread([=]()
 			{
-				if (!isatty(fileno(stdin)))
-				{
-					return;
-				}
-
 				while (true)
 				{
+					if (disableTTYVariable->GetValue() && !isatty(fileno(stdin)))
+					{
+						std::this_thread::sleep_for(1000ms);
+						continue;
+					}
+
 					char* result = linenoise("cfx> ");
 
 					// null result?
