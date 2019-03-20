@@ -66,6 +66,16 @@ namespace CitizenFX.Core
 			}
 		}
 
+		internal void RegisterTick(Func<Task> tick)
+		{
+			Tick += tick;
+		}
+
+		internal void RegisterEventHandler(string eventName, Delegate callback)
+		{
+			EventHandlers[eventName] += callback;
+		}
+
 		internal void ScheduleTick(Delegate call)
 		{
 			if (!CurrentTaskList.ContainsKey(call))

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -103,6 +104,93 @@ namespace CitizenFX.Core
 
 					Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
 
+					var allMethods = derivedScript.GetType().GetMethods();
+
+					IEnumerable<MethodInfo> GetMethods(Type t)
+					{
+						return allMethods.Where(m => m.GetCustomAttributes(t, false).Length > 0);
+					}
+
+
+					// register all Tick decorators
+					try
+					{
+						var methods = GetMethods(typeof(TickAttribute));
+
+						foreach (var method in methods)
+						{
+							if (method != null)
+							{
+								Debug.WriteLine("Registering Tick for attributed method {0}", method.Name);
+								derivedScript.RegisterTick((Func<Task>)Delegate.CreateDelegate(typeof(Func<Task>), derivedScript, method.Name));
+							}
+						}
+					}
+					catch
+					{
+						// nothing
+					}
+
+					// register all EventHandler decorators
+					try
+					{
+						var methods = GetMethods(typeof(EventHandlerAttribute));
+
+						foreach (var method in methods)
+						{
+							if (method != null)
+							{
+								var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();
+								var actionType = Expression.GetDelegateType(parameters.Concat(new[] { typeof(void) }).ToArray());
+								var attribute = method.GetCustomAttribute<EventHandlerAttribute>();
+
+								Debug.WriteLine("Registering EventHandler {2} for attributed method {0}, with parameters {1}", method.Name, string.Join(", ", parameters.Select(p => p.GetType().ToString())), attribute.Name);
+								derivedScript.RegisterEventHandler(attribute.Name, Delegate.CreateDelegate(actionType, derivedScript, method.Name));
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						// nothing
+					}
+
+					// register commands
+					try
+					{
+						var methods = GetMethods(typeof(CommandAttribute));
+
+						foreach (var method in methods)
+						{
+							var attribute = method.GetCustomAttribute<CommandAttribute>();
+
+							Debug.WriteLine("Registering command {0}", attribute.Command);
+
+							// TODO: make this more dynamic! (i.e. support for no args/player only/etc)
+							if (method.GetParameters().Any(p => p.ParameterType == typeof(Player)))
+							{
+#if IS_FXSERVER
+								Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+								{
+									method.Invoke(derivedScript, new object[] { new Player(source.ToString()), args.Select(a => (string)a).ToArray() });
+								}), attribute.Restricted);
+#else
+								Debug.WriteLine("Client commands with parameter type Player not supported");
+#endif
+							}
+							else
+							{
+								Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+								{
+									method.Invoke(derivedScript, new object[] { args.Select(a => (string)a).ToArray() });
+								}), attribute.Restricted);
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						Debug.WriteLine("RegisterCommand failed: {0}", ex.Message);
+					}
+
 					ms_definedScripts.Add(derivedScript);
 				}
 				catch (Exception e)
@@ -110,8 +198,6 @@ namespace CitizenFX.Core
 					Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
 				}
 			}
-
-			//ms_definedScripts.Add(new TestScript());
 
 			return assembly;
 		}
