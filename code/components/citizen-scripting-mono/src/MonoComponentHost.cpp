@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include <om/OMComponent.h>
 
+#include <Resource.h>
+
 #include <fxScripting.h>
 
 #include <Error.h>
@@ -450,5 +452,15 @@ std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 
 static InitFunction initFunction([] ()
 {
+	// should've been ResourceManager but ResourceManager OnTick happens _after_ individual resource ticks
+	// which is too early for on-start Mono resources to have run
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* instance)
+	{
+		instance->OnTick.Connect([]()
+		{
+			MonoEnsureThreadAttached();
+		}, INT32_MIN);
+	});
+
 	InitMono();
 });
