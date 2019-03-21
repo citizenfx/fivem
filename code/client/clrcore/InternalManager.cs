@@ -101,94 +101,169 @@ namespace CitizenFX.Core
 				try
 				{
 					var derivedScript = Activator.CreateInstance(type) as BaseScript;
-
+					
 					Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
 
-					var allMethods = derivedScript.GetType().GetMethods();
+					var allMethods = derivedScript.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
 
 					IEnumerable<MethodInfo> GetMethods(Type t)
 					{
 						return allMethods.Where(m => m.GetCustomAttributes(t, false).Length > 0);
 					}
 
-
 					// register all Tick decorators
 					try
 					{
-						var methods = GetMethods(typeof(TickAttribute));
-
-						foreach (var method in methods)
+						foreach (var method in GetMethods(typeof(TickAttribute)))
 						{
-							if (method != null)
-							{
-								Debug.WriteLine("Registering Tick for attributed method {0}", method.Name);
+							Debug.WriteLine("Registering Tick for attributed method {0}", method.Name);
+
+							if (method.IsStatic)
+								derivedScript.RegisterTick((Func<Task>)Delegate.CreateDelegate(typeof(Func<Task>), method));
+							else
 								derivedScript.RegisterTick((Func<Task>)Delegate.CreateDelegate(typeof(Func<Task>), derivedScript, method.Name));
-							}
 						}
 					}
-					catch
+					catch (Exception e)
 					{
-						// nothing
+						Debug.WriteLine("Registering Tick failed: {0}", e.ToString());
 					}
 
 					// register all EventHandler decorators
 					try
 					{
-						var methods = GetMethods(typeof(EventHandlerAttribute));
-
-						foreach (var method in methods)
+						foreach (var method in GetMethods(typeof(EventHandlerAttribute)))
 						{
-							if (method != null)
-							{
-								var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();
-								var actionType = Expression.GetDelegateType(parameters.Concat(new[] { typeof(void) }).ToArray());
-								var attribute = method.GetCustomAttribute<EventHandlerAttribute>();
+							var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();
+							var actionType = Expression.GetDelegateType(parameters.Concat(new[] { typeof(void) }).ToArray());
+							var attribute = method.GetCustomAttribute<EventHandlerAttribute>();
 
-								Debug.WriteLine("Registering EventHandler {2} for attributed method {0}, with parameters {1}", method.Name, string.Join(", ", parameters.Select(p => p.GetType().ToString())), attribute.Name);
+							Debug.WriteLine("Registering EventHandler {2} for attributed method {0}, with parameters {1}", method.Name, String.Join(", ", parameters.Select(p => p.GetType().ToString())), attribute.Name);
+
+							if (method.IsStatic)
+								derivedScript.RegisterEventHandler(attribute.Name, Delegate.CreateDelegate(actionType, method));
+							else
 								derivedScript.RegisterEventHandler(attribute.Name, Delegate.CreateDelegate(actionType, derivedScript, method.Name));
-							}
 						}
 					}
-					catch (Exception ex)
+					catch (Exception e)
 					{
-						// nothing
+						Debug.WriteLine("Registering EventHandler failed: {0}", e.ToString());
 					}
 
-					// register commands
+					// register all commands
 					try
 					{
-						var methods = GetMethods(typeof(CommandAttribute));
-
-						foreach (var method in methods)
+						foreach (var method in GetMethods(typeof(CommandAttribute)))
 						{
 							var attribute = method.GetCustomAttribute<CommandAttribute>();
+							var parameters = method.GetParameters();
 
 							Debug.WriteLine("Registering command {0}", attribute.Command);
 
-							// TODO: make this more dynamic! (i.e. support for no args/player only/etc)
-							if (method.GetParameters().Any(p => p.ParameterType == typeof(Player)))
+							// no params, trigger only
+							if (parameters.Length == 0)
+							{
+								if (method.IsStatic)
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(null, null);
+									}), attribute.Restricted);
+								}
+								else
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(derivedScript, null);
+									}), attribute.Restricted);
+								}
+							}
+							// Player
+							else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 1)
 							{
 #if IS_FXSERVER
-								Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+								if (method.IsStatic)
 								{
-									method.Invoke(derivedScript, new object[] { new Player(source.ToString()), args.Select(a => (string)a).ToArray() });
-								}), attribute.Restricted);
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(null, new object[] { new Player(source.ToString()) });
+									}), attribute.Restricted);
+								}
+								else
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(derivedScript, new object[] { new Player(source.ToString()) });
+									}), attribute.Restricted);
+								}
 #else
-								Debug.WriteLine("Client commands with parameter type Player not supported");
+							Debug.WriteLine("Client commands with parameter type Player not supported");
 #endif
 							}
+							// string[]
+							else if (parameters.Length == 1)
+							{
+								if (method.IsStatic)
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(null, new object[] { args.Select(a => (string)a).ToArray() });
+									}), attribute.Restricted);
+								}
+								else
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(derivedScript, new object[] { args.Select(a => (string)a).ToArray() });
+									}), attribute.Restricted);
+								}
+							}
+							// Player, string[]
+							else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 2)
+							{
+#if IS_FXSERVER
+								if (method.IsStatic)
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(null, new object[] { new Player(source.ToString()), args.Select(a => (string)a).ToArray() });
+									}), attribute.Restricted);
+								}
+								else
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(derivedScript, new object[] { new Player(source.ToString()), args.Select(a => (string)a).ToArray() });
+									}), attribute.Restricted);
+								}
+#else
+							Debug.WriteLine("Client commands with parameter type Player not supported");
+#endif
+							}
+							// legacy --> int, List<object>, string
 							else
 							{
-								Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+								if (method.IsStatic)
 								{
-									method.Invoke(derivedScript, new object[] { args.Select(a => (string)a).ToArray() });
-								}), attribute.Restricted);
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(null, new object[] { source, args, rawCommand });
+									}), attribute.Restricted);
+								}
+								else
+								{
+									Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+									{
+										method.Invoke(derivedScript, new object[] { source, args, rawCommand });
+									}), attribute.Restricted);
+								}
 							}
 						}
 					}
-					catch (Exception ex)
+					catch (Exception e)
 					{
-						Debug.WriteLine("RegisterCommand failed: {0}", ex.Message);
+						Debug.WriteLine("Registering command failed: {0}", e.ToString());
 					}
 
 					ms_definedScripts.Add(derivedScript);
