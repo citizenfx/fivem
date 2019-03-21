@@ -227,7 +227,7 @@ void FinalizeInitNUI()
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	// delete any old CEF logs
-	DeleteFile(MakeRelativeCitPath(L"debug.log").c_str());
+	DeleteFile(MakeRelativeCitPath(L"cef.log").c_str());
 
 	auto selfApp = Instance<NUIApp>::Get();
 
@@ -239,8 +239,10 @@ void FinalizeInitNUI()
 	cSettings.multi_threaded_message_loop = true;
 	cSettings.remote_debugging_port = 13172;
 	cSettings.pack_loading_disabled = false; // true;
-	cSettings.windowless_rendering_enabled = false; // true;
-	cSettings.log_severity = LOGSEVERITY_DISABLE;
+	cSettings.windowless_rendering_enabled = true;
+	cSettings.log_severity = LOGSEVERITY_DEFAULT;
+	
+	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 	
 	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser"));
 

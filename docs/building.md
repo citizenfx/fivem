@@ -2,8 +2,8 @@
 To build FiveM's client components, you need the following dependencies:
 * A Windows machine with Visual Studio 2017 (Build Tools/Community is fine) installed.
 * [Boost 1.63.0](https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.7z/download), extracted to a path defined by the environment variable `BOOST_ROOT`.
-* [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_3.3599.1858.g285dbb1_windows64_minimal.zip), extracted to `vendor/cef` in the build tree.
-* [Python 2.7](https://python.org/) in your PATH as `python`.
+* [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_3.3626.1895.g7001d56_windows64_minimal.zip), extracted to `vendor/cef` in the build tree.
+* [Python 2.7.x](https://python.org/) in your PATH as `python`.
 * [Premake 5.0](https://premake.github.io/download.html) somewhere it can be found.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
 
