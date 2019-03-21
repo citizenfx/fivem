@@ -333,6 +333,11 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 HRESULT MumbleAudioInput::HandleIncomingAudio()
 {
+	if (!m_audioCaptureClient)
+	{
+		return S_FALSE;
+	}
+
 	uint32_t packetLength = 0;
 	HRESULT err = m_audioCaptureClient->GetNextPacketSize(&packetLength);
 
