@@ -206,8 +206,10 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		int contentLength;
 
+		bool invalid;
+
 		HttpConnectionData()
-			: readState(ReadStateRequest), lastLength(0), contentLength(0)
+			: readState(ReadStateRequest), lastLength(0), contentLength(0), invalid(false)
 		{
 
 		}
@@ -221,6 +223,12 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		// keep a reference to the connection data locally
 		std::shared_ptr<HttpConnectionData> localConnectionData = connectionData;
+
+		// if the connection is supposed to be closed, don't try using it
+		if (localConnectionData->invalid)
+		{
+			return;
+		}
 
 		// place bytes in the read buffer
 		auto& readQueue = connectionData->readBuffer;
@@ -243,6 +251,12 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		while (continueProcessing)
 		{
+			// second check: if the connection is supposed to be closed, don't try using it
+			if (localConnectionData->invalid)
+			{
+				return;
+			}
+
 			// depending on the state, perform an action
 			if (localConnectionData->readState == ReadStateRequest)
 			{
@@ -344,6 +358,8 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				else if (result == -1)
 				{
 					// should probably send 'bad request'?
+					localConnectionData->invalid = true;
+
 					stream->Close();
 					return;
 				}
@@ -426,6 +442,8 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				}
 				else if (result == -1)
 				{
+					localConnectionData->invalid = true;
+
 					stream->Close();
 					return;
 				}
@@ -453,6 +471,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					localConnectionData->requestData.clear();
 
 					localConnectionData->readState = ReadStateRequest;
+					localConnectionData->lastLength = 0;
 
 					continueProcessing = (readQueue.size() > 0);
 				}
