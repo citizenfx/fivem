@@ -37,7 +37,24 @@ void ResourceCache::OpenDatabase()
 
 	if (status.IsCorruption())
 	{
-		FatalError("Opening database (%s) failed with corruption state (%s) - please delete this folder.", m_cachePath + "/db/", status.ToString());
+		leveldb::Options repairOptions;
+		repairOptions.reuse_logs = false;
+		repairOptions.create_if_missing = true;
+		repairOptions.env = GetVFSEnvironment();
+
+		status = leveldb::RepairDB(m_cachePath + "/db/", repairOptions);
+
+		if (status.ok())
+		{
+			status = leveldb::DB::Open(options, m_cachePath + "/db/", &dbPointer);
+		}
+
+		if (!status.ok())
+		{
+			status = leveldb::DestroyDB(m_cachePath + "/db/", options);
+
+			status = leveldb::DB::Open(options, m_cachePath + "/db/", &dbPointer);
+		}
 	}
 
 	if (!status.ok())
