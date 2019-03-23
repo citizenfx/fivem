@@ -229,6 +229,17 @@ namespace sync
 
 		g_playerListRemote[g_playerListCountRemote] = player;
 		g_playerListCountRemote++;
+
+		// resort player lists
+		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer * left, CNetGamePlayer * right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
+
+		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
 	}
 }
 
@@ -315,6 +326,17 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 				break;
 			}
 		}
+
+		// resort player lists
+		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer * left, CNetGamePlayer * right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
+
+		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
 
 		player->Reset();
 
@@ -880,6 +902,76 @@ static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const 
 	return nullptr;
 }
 
+static float VectorDistance(const float* point1, const float* point2)
+{
+	float xd = point1[0] - point2[0];
+	float yd = point1[1] - point2[1];
+	float zd = point1[2] - point2[2];
+
+	return sqrtf((xd * xd) + (yd * yd) + (zd * zd));
+}
+
+static hook::cdecl_stub<void*(CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
+{
+	return hook::get_call(hook::get_pattern("84 C0 74 1C 48 8B CF E8 ? ? ? ? 48 8B D8", 7));
+});
+
+static hook::cdecl_stub<float*(float*, CNetGamePlayer*, void*, bool)> getNetPlayerRelevancePosition([]()
+{
+	return hook::get_pattern("45 33 FF 48 85 C0 0F 84 5B 01 00 00", -0x34);
+});
+
+static int(*g_origGetPlayersNearPoint)(const float* point, float range, CNetGamePlayer* outArray[32], bool sorted, bool unkVal);
+
+static int GetPlayersNearPoint(const float* point, float range, CNetGamePlayer* outArray[32], bool sorted, bool unkVal)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origGetPlayersNearPoint(point, range, outArray, sorted, unkVal);
+	}
+
+	CNetGamePlayer* tempArray[512];
+
+	int idx = 0;
+
+	auto playerList = netInterface_GetRemotePhysicalPlayers();
+	for (int i = 0; i < netInterface_GetNumRemotePhysicalPlayers(); i++)
+	{
+		auto player = playerList[i];
+
+		if (getPlayerPedForNetPlayer(player))
+		{
+			float vectorPos[4];
+
+			if (range >= 100000000.0f || VectorDistance(point, getNetPlayerRelevancePosition(vectorPos, player, nullptr, unkVal)) < range)
+			{
+				tempArray[idx] = player;
+				idx++;
+			}
+		}
+	}
+
+	if (sorted)
+	{
+		std::sort(tempArray, tempArray + idx, [point](CNetGamePlayer* a1, CNetGamePlayer* a2)
+		{
+			float vectorPos1[4];
+			float vectorPos2[4];
+
+			float d1 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos1, a1, nullptr, false));
+			float d2 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos2, a2, nullptr, false));
+
+			return (d1 < d2);
+		});
+	}
+
+	idx = std::min(idx, 32);
+
+	std::copy(tempArray, tempArray + idx, outArray);
+
+	return idx;
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -898,6 +990,8 @@ static HookFunction hookFunction([]()
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
 	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
+
+	MH_CreateHook(hook::get_pattern("0F 29 70 C8 0F 28 F1 33 DB 45", -0x1C), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 
 	// return to disable breaking hooks
 	//return;
