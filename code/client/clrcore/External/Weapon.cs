@@ -504,5 +504,20 @@ namespace CitizenFX.Core
 			return "WT_INVALID";
 		}
 
+		/// <summary>
+		/// Gets the <see cref="Game.WeaponHudStats"/> data from this <see cref="Weapon"/>.
+		/// </summary>
+		public Game.WeaponHudStats HudStats
+		{
+			get
+			{
+				Game.WeaponHudStats stats = new Game.WeaponHudStats();
+				if (Game.GetWeaponHudStats((uint)this.Hash, ref stats))
+				{
+					return stats;
+				}
+				return new Game.WeaponHudStats();
+			}
+		}
 	}
 }

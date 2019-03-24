@@ -3,6 +3,7 @@ using CitizenFX.Core.Native;
 using System.Threading.Tasks;
 using CitizenFX.Core;
 using System.Security;
+using System.Runtime.InteropServices;
 
 namespace CitizenFX.Core
 {
@@ -891,6 +892,207 @@ namespace CitizenFX.Core
 		public static AltPropVariationData[] GetAltPropVariationData(int ped, int propIndex)
 		{
 			return _GetAltPropVariationData(ped, propIndex);
+		}
+
+
+		[StructLayout(LayoutKind.Explicit, Size = 0x28)]
+		[SecuritySafeCritical]
+		private struct UnsafeWeaponHudStats
+		{
+			[FieldOffset(0x00)] private int hudDamage;
+
+			[FieldOffset(0x08)] private int hudSpeed;
+
+			[FieldOffset(0x10)] private int hudCapacity;
+
+			[FieldOffset(0x18)] private int hudAccuracy;
+
+			[FieldOffset(0x20)] private int hudRange;
+
+
+			public WeaponHudStats GetSafeStats()
+			{
+				return new WeaponHudStats(hudDamage, hudSpeed, hudCapacity, hudAccuracy, hudRange);
+			}
+		}
+
+		public struct WeaponHudStats
+		{
+			public int hudDamage;
+			public int hudSpeed;
+			public int hudCapacity;
+			public int hudAccuracy;
+			public int hudRange;
+
+			public WeaponHudStats(int hudDamage, int hudSpeed, int hudCapacity, int hudAccuracy, int hudRange)
+			{
+				this.hudDamage = hudDamage;
+				this.hudSpeed = hudSpeed;
+				this.hudCapacity = hudCapacity;
+				this.hudAccuracy = hudAccuracy;
+				this.hudRange = hudRange;
+			}
+
+			public override bool Equals(object obj)
+			{
+				if (obj is WeaponHudStats stat)
+				{
+					return stat.hudDamage == hudDamage &&
+						stat.hudSpeed == hudSpeed &&
+						stat.hudCapacity == hudCapacity &&
+						stat.hudAccuracy == hudAccuracy &&
+						stat.hudRange == hudRange;
+				}
+				return false;
+			}
+
+			public override int GetHashCode()
+			{
+				unchecked
+				{
+					int hash = 13;
+					hash = (hash * 7) + hudDamage.GetHashCode();
+					hash = (hash * 7) + hudSpeed.GetHashCode();
+					hash = (hash * 7) + hudCapacity.GetHashCode();
+					hash = (hash * 7) + hudAccuracy.GetHashCode();
+					hash = (hash * 7) + hudRange.GetHashCode();
+					return hash;
+				}
+			}
+
+			public static bool operator ==(WeaponHudStats left, WeaponHudStats right)
+			{
+				return left.Equals(right);
+			}
+
+			public static bool operator !=(WeaponHudStats left, WeaponHudStats right)
+			{
+				return !(left == right);
+			}
+		}
+
+		[StructLayout(LayoutKind.Explicit, Size = 0x28)]
+		[SecuritySafeCritical]
+		private struct UnsafeWeaponComponentHudStats
+		{
+			[FieldOffset(0x00)] private int hudDamage;
+
+			[FieldOffset(0x08)] private int hudSpeed;
+
+			[FieldOffset(0x10)] private int hudCapacity;
+
+			[FieldOffset(0x18)] private int hudAccuracy;
+
+			[FieldOffset(0x20)] private int hudRange;
+
+
+			public WeaponComponentHudStats GetSafeStats()
+			{
+				return new WeaponComponentHudStats(hudDamage, hudSpeed, hudCapacity, hudAccuracy, hudRange);
+			}
+		}
+
+		public struct WeaponComponentHudStats
+		{
+			public int hudDamage;
+			public int hudSpeed;
+			public int hudCapacity;
+			public int hudAccuracy;
+			public int hudRange;
+
+			public WeaponComponentHudStats(int hudDamage, int hudSpeed, int hudCapacity, int hudAccuracy, int hudRange)
+			{
+				this.hudDamage = hudDamage;
+				this.hudSpeed = hudSpeed;
+				this.hudCapacity = hudCapacity;
+				this.hudAccuracy = hudAccuracy;
+				this.hudRange = hudRange;
+			}
+
+			public override bool Equals(object obj)
+			{
+				if (obj is WeaponComponentHudStats stat)
+				{
+					return stat.hudDamage == hudDamage &&
+						stat.hudSpeed == hudSpeed &&
+						stat.hudCapacity == hudCapacity &&
+						stat.hudAccuracy == hudAccuracy &&
+						stat.hudRange == hudRange;
+				}
+				return false;
+			}
+
+			public override int GetHashCode()
+			{
+				unchecked
+				{
+					int hash = 13;
+					hash = (hash * 7) + hudDamage.GetHashCode();
+					hash = (hash * 7) + hudSpeed.GetHashCode();
+					hash = (hash * 7) + hudCapacity.GetHashCode();
+					hash = (hash * 7) + hudAccuracy.GetHashCode();
+					hash = (hash * 7) + hudRange.GetHashCode();
+					return hash;
+				}
+			}
+
+			public static bool operator ==(WeaponComponentHudStats left, WeaponComponentHudStats right)
+			{
+				return left.Equals(right);
+			}
+
+			public static bool operator !=(WeaponComponentHudStats left, WeaponComponentHudStats right)
+			{
+				return !(left == right);
+			}
+		}
+
+		[SecuritySafeCritical]
+		private static WeaponHudStats _GetWeaponHudStats(uint weaponHash)
+		{
+			UnsafeWeaponHudStats unsafeStats = new UnsafeWeaponHudStats();
+			unsafe
+			{
+				Function.Call(Hash.GET_WEAPON_HUD_STATS, &unsafeStats);
+			}
+			return unsafeStats.GetSafeStats();
+		}
+
+		[SecuritySafeCritical]
+		private static WeaponComponentHudStats _GetWeaponComponentHudStats(uint weaponHash)
+		{
+			UnsafeWeaponComponentHudStats unsafeStats = new UnsafeWeaponComponentHudStats();
+			unsafe
+			{
+				Function.Call(Hash.GET_WEAPON_COMPONENT_HUD_STATS, &unsafeStats);
+			}
+			return unsafeStats.GetSafeStats();
+		}
+
+		/// <summary>
+		/// Get the hud stats for this weapon.
+		/// </summary>
+		/// <param name="weaponHash"></param>
+		/// <param name="weaponStats"></param>
+		/// <returns></returns>
+		public static bool GetWeaponHudStats(uint weaponHash, ref WeaponHudStats weaponStats)
+		{
+			if (!API.IsWeaponValid(weaponHash))
+				return false;
+			weaponStats = _GetWeaponHudStats(weaponHash);
+			return true;
+		}
+
+		/// <summary>
+		/// Get the hud stats for this weapon component.
+		/// </summary>
+		/// <param name="weaponHash"></param>
+		/// <param name="weaponComponentStats"></param>
+		/// <returns></returns>
+		public static bool GetWeaponComponentHudStats(uint weaponHash, ref WeaponComponentHudStats weaponComponentStats)
+		{
+			weaponComponentStats = _GetWeaponComponentHudStats(weaponHash);
+			return true;
 		}
 	}
 }

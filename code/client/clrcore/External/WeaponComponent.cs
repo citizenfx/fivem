@@ -1180,6 +1180,22 @@ namespace CitizenFX.Core
 			}
 			return ComponentAttachmentPoint.Invalid;
 		}
+
+		/// <summary>
+		/// Gets the <see cref="Game.WeaponComponentHudStats"/> data from this <see cref="WeaponComponent"/>.
+		/// </summary>
+		public Game.WeaponComponentHudStats HudStats
+		{
+			get
+			{
+				Game.WeaponComponentHudStats stats = new Game.WeaponComponentHudStats();
+				if (Game.GetWeaponComponentHudStats((uint)this.ComponentHash, ref stats))
+				{
+					return stats;
+				}
+				return new Game.WeaponComponentHudStats();
+			}
+		}
 	}
 
 	public class InvalidWeaponComponent : WeaponComponent
@@ -1221,6 +1237,7 @@ namespace CitizenFX.Core
 			get { return ComponentAttachmentPoint.Invalid; }
 		}
 	}
+
 
 
 }
