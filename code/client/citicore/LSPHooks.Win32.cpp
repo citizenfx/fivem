@@ -138,7 +138,8 @@ NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
 		return origClose(Handle);
 	}
 	
-	return STATUS_INVALID_HANDLE;
+	//return STATUS_INVALID_HANDLE;
+	return STATUS_SUCCESS;
 }
 
 
