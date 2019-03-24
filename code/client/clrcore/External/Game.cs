@@ -897,7 +897,7 @@ namespace CitizenFX.Core
 
 		[StructLayout(LayoutKind.Explicit, Size = 0x28)]
 		[SecuritySafeCritical]
-		private struct UnsafeWeaponHudStats
+		internal struct UnsafeWeaponHudStats
 		{
 			[FieldOffset(0x00)] private int hudDamage;
 
@@ -973,7 +973,7 @@ namespace CitizenFX.Core
 
 		[StructLayout(LayoutKind.Explicit, Size = 0x28)]
 		[SecuritySafeCritical]
-		private struct UnsafeWeaponComponentHudStats
+		internal struct UnsafeWeaponComponentHudStats
 		{
 			[FieldOffset(0x00)] private int hudDamage;
 
@@ -1053,18 +1053,18 @@ namespace CitizenFX.Core
 			UnsafeWeaponHudStats unsafeStats = new UnsafeWeaponHudStats();
 			unsafe
 			{
-				Function.Call(Hash.GET_WEAPON_HUD_STATS, &unsafeStats);
+				Function.Call(Hash.GET_WEAPON_HUD_STATS, weaponHash, &unsafeStats);
 			}
 			return unsafeStats.GetSafeStats();
 		}
 
 		[SecuritySafeCritical]
-		private static WeaponComponentHudStats _GetWeaponComponentHudStats(uint weaponHash)
+		private static WeaponComponentHudStats _GetWeaponComponentHudStats(uint weaponComponentHash)
 		{
 			UnsafeWeaponComponentHudStats unsafeStats = new UnsafeWeaponComponentHudStats();
 			unsafe
 			{
-				Function.Call(Hash.GET_WEAPON_COMPONENT_HUD_STATS, &unsafeStats);
+				Function.Call(Hash.GET_WEAPON_COMPONENT_HUD_STATS, weaponComponentHash, &unsafeStats);
 			}
 			return unsafeStats.GetSafeStats();
 		}
