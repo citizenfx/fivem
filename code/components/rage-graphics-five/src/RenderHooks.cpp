@@ -539,9 +539,10 @@ void CaptureBufferOutput()
 		WRL::ComPtr<IDXGIResource> dxgiResource;
 		HANDLE sharedHandle;
 		hr = d3dTex.As(&dxgiResource);
-		if FAILED(hr)
+		if (FAILED(hr))
 		{
 			// error handling code
+			return;
 		}
 
 		hr = dxgiResource->GetSharedHandle(&sharedHandle);
