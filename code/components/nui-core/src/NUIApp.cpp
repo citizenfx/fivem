@@ -12,8 +12,8 @@
 void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
 {
 	// add the 'nui://' internal scheme
-	//registrar->AddCustomScheme("nui", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
-	registrar->AddCustomScheme("nui", true, false, false, true, false, true);
+	registrar->AddCustomScheme("nui", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
+	//registrar->AddCustomScheme("nui", true, false, false, true, false, true);
 }
 
 // null data resource functions
@@ -78,16 +78,8 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
 	command_line->AppendSwitch("disable-web-security");
 
-	// M65 enables these by default, but CEF doesn't pass the required phase data at this time (2018-03-31)
-	// this breaks scrolling 'randomly' - after a middle click, and some other scenarios
-	// also disable CrossSiteDocumentBlockingAlways and CrossSiteDocumentBlockingIfIsolating (CORB) to avoid blocked cross-origin responses
-	command_line->AppendSwitchWithValue("disable-features", "TouchpadAndWheelScrollLatching,AsyncWheelEvents,CrossSiteDocumentBlockingAlways,CrossSiteDocumentBlockingIfIsolating");
-
-	// M66 enables this by default, this breaks scrolling in iframes, however only in the Cfx embedder scenario (2018-03-31)
-	// cefclient is not affected, code was compared with cefclient but not that different.
-	command_line->AppendSwitchWithValue("disable-blink-features", "RootLayerScrolling");
-
 	// register the CitizenFX game view plugin
+	// in M73+ it ends up entirely breaking UI rendering
 	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
 }
 

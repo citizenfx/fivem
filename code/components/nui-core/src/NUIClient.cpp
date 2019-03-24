@@ -18,6 +18,16 @@
 
 #include <sstream>
 
+static nui::IAudioSink* g_audioSink;
+
+namespace nui
+{
+	void SetAudioSink(IAudioSink* sinkRef)
+	{
+		g_audioSink = sinkRef;
+	}
+}
+
 NUIClient::NUIClient(NUIWindow* window)
 	: m_window(window)
 {
@@ -52,6 +62,8 @@ NUIClient::NUIClient(NUIWindow* window)
 
 void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType)
 {
+	browser->GetHost()->SetAudioMuted(true);
+
 	GetWindow()->OnClientContextCreated(browser, frame, nullptr);
 }
 
@@ -134,6 +146,37 @@ void NUIClient::AddProcessMessageHandler(std::string key, TProcessMessageHandler
 	m_processMessageHandlers[key] = handler;
 }
 
+void NUIClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, int audio_stream_id, int channels, ChannelLayout channel_layout, int sample_rate, int frames_per_buffer)
+{
+	if (g_audioSink)
+	{
+		nui::AudioStreamParams params;
+		params.channelLayout = (nui::CefChannelLayout)channel_layout;
+		params.channels = channels;
+		params.sampleRate = sample_rate;
+		params.framesPerBuffer = frames_per_buffer;
+
+		auto stream = g_audioSink->CreateAudioStream(params);
+
+		m_audioStreams.insert({ { browser->GetIdentifier(), audio_stream_id }, stream });
+	}
+}
+
+void NUIClient::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, int audio_stream_id, const float** data, int frames, int64 pts)
+{
+	auto it = m_audioStreams.find({ browser->GetIdentifier(), audio_stream_id });
+
+	if (it != m_audioStreams.end())
+	{
+		it->second->ProcessPacket(data, frames, pts);
+	}
+}
+
+void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, int audio_stream_id)
+{
+	m_audioStreams.erase({ browser->GetIdentifier(), audio_stream_id });
+}
+
 CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
 {
 	return this;
@@ -155,6 +198,11 @@ CefRefPtr<CefLoadHandler> NUIClient::GetLoadHandler()
 }
 
 CefRefPtr<CefRequestHandler> NUIClient::GetRequestHandler()
+{
+	return this;
+}
+
+CefRefPtr<CefAudioHandler> NUIClient::GetAudioHandler()
 {
 	return this;
 }
