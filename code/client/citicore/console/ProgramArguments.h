@@ -41,7 +41,7 @@ public:
 
 				m_arguments[i] = converter.to_bytes(tempString);
 			}
-			catch (std::range_error& e)
+			catch (std::range_error&)
 			{
 
 			}
