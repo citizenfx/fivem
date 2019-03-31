@@ -38,15 +38,17 @@ function Citizen.CreateThreadNow(threadFunction)
 	curThread = oldThread
 
 	if err then
-		error('Failed to execute thread: ' .. debug.traceback(coro, err))
-	end
-
-	if resumedThread and coroutine.status(coro) ~= 'dead' then
+		-- only print, rather than cause an error stopping the thread creator.
+		Citizen.Trace('Failed to execute thread: ' .. debug.traceback(coro, err))
+	elseif resumedThread and coroutine.status(coro) ~= 'dead' then
 		table.insert(threads, t)
 	end
 
 	return coroutine.status(coro) ~= 'dead'
 end
+
+-- for consistency with CreateThread
+CreateThreadNow = Citizen.CreateThreadNow
 
 local inNext
 
@@ -178,6 +180,14 @@ local alwaysSafeEvents = {
 
 local eventHandlers = {}
 local deserializingNetEvent = false
+local handlingEvent
+local removedCurrentEvent = false
+
+local function runEventHandler(handler,args)
+	CreateThreadNow(function()
+		handler(table.unpack(args))
+	end)
+end
 
 Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	-- set the event source
@@ -185,15 +195,15 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	_G.source = eventSource
 
 	-- try finding an event handler for the event
-	local eventHandlerEntry = eventHandlers[eventName]
+	local event = eventHandlers[eventName]
 	
 	-- deserialize the event structure (so that we end up adding references to delete later on)
 	local data = msgpack.unpack(eventPayload)
 
-	if eventHandlerEntry and eventHandlerEntry.handlers then
+	if event and event.handlers then
 		-- if this is a net event and we don't allow this event to be triggered from the network, return
 		if eventSource:sub(1, 3) == 'net' then
-			if not eventHandlerEntry.safeForNet and not alwaysSafeEvents[eventName] then
+			if not event.safeForNet and not alwaysSafeEvents[eventName] then
 				Citizen.Trace('event ' .. eventName .. " was not safe for net\n")
 
 				return
@@ -214,60 +224,121 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 		-- if this is a table...
 		if type(data) == 'table' then
 			-- loop through all the event handlers
-			for k, handler in pairs(eventHandlerEntry.handlers) do
-				Citizen.CreateThreadNow(function()
-					handler(table.unpack(data))
-				end)
+			handlingEvent = eventName
+			if event.reversed then
+				-- in reverse order (default).
+				event.index = event.count
+				while event.index ~= 0 do
+					runEventHandler(event.handlers[event.index].routine,data)
+					removedCurrentEvent = false
+					event.index = event.index - 1
+				end
+			else
+				-- in order.
+				event.index = 1
+				while event.index <= event.count do
+					runEventHandler(event.handlers[event.index].routine,data)
+					removedCurrentEvent = false
+					event.index = event.index + 1
+				end
 			end
+			event.index = false
+			handlingEvent = nil
 		end
 	end
 
 	_G.source = lastSource
 end)
 
-local eventKey = 10
-
-function AddEventHandler(eventName, eventRoutine)
-	local tableEntry = eventHandlers[eventName]
-
-	if not tableEntry then
-		tableEntry = { }
-
-		eventHandlers[eventName] = tableEntry
+local function getEventHandler(eventName)
+	-- there used to be multiple places event handler tables were created, now only here.
+	if not eventHandlers[eventName] then
+		eventHandlers[eventName] = {
+			count = 0,
+			index = false, -- if being handled, the current handler index.
+			handlers = {},
+			reversed = true,
+			safeForNet = false,
+		}
 	end
-
-	if not tableEntry.handlers then
-		tableEntry.handlers = { }
-	end
-
-	eventKey = eventKey + 1
-	tableEntry.handlers[eventKey] = eventRoutine
-
-	return {
-		key = eventKey,
-		name = eventName
-	}
+	return eventHandlers[eventName]
 end
 
-function RemoveEventHandler(eventData)
-	if not eventData.key and not eventData.name then
-		error('Invalid event data passed to RemoveEventHandler()')
+function GetCurrentEvent()
+	return handlingEvent
+end
+
+function SetEventReversed(eventName, yes) -- controls the order of event callbacks, on by default.
+	getEventHandler(eventName).reversed = yes and true or false
+end
+
+function AddEventHandler(eventName, eventRoutine)
+	local tableEntry = getEventHandler(eventName)
+	local eventData = {
+		name = eventName,
+		routine = eventRoutine,
+	}
+
+	tableEntry.count = tableEntry.count + 1
+	tableEntry.handlers[tableEntry.count] = eventData
+
+	return eventData
+end
+
+function RemoveEventHandler(eventData,eventIndex) -- eventIndex is used internally, dont specify
+	local event = eventHandlers[eventData.name]
+	if not event then
+		error('Invalid event data passed to RemoveEventHandler()',2)
+	end
+
+	-- find the entry
+	if eventIndex then
+		if eventData ~= event.handlers[eventIndex] then
+			error('Index for RemoveEventHandler is wrong',2)
+		end
+	else
+		for i,v in ipairs(event.handlers) do
+			if v == eventData then
+				eventIndex = i
+				break
+			end
+		end
+	end
+	if not eventIndex then
+		return
 	end
 
 	-- remove the entry
-	eventHandlers[eventData.name].handlers[eventData.key] = nil
+	table.remove(event.handlers,eventIndex)
+	event.count = event.count - 1
+
+	-- adjust the event handling index if active
+	if event.index then
+		if event.reversed then
+			if eventIndex < event.index then
+				event.index = event.index - 1
+			end
+		elseif eventIndex <= event.index then
+			event.index = event.index - 1
+		end
+	end
+end
+
+function RemoveCurrentEventHandler()
+	local event = eventHandlers[handlingEvent]
+	if not event.index then
+		error('Tried to remove current event handler while no event was being handled',2)
+	end
+	if removedCurrentEvent then
+		return
+	end
+	
+	removedCurrentEvent = true
+	RemoveEventHandler(event.handlers[event.index],event.index)
 end
 
 function RegisterNetEvent(eventName)
-	local tableEntry = eventHandlers[eventName]
-
-	if not tableEntry then
-		tableEntry = { }
-
-		eventHandlers[eventName] = tableEntry
-	end
-
-	tableEntry.safeForNet = true
+	getEventHandler(eventName).safeForNet = true
 end
 
 function TriggerEvent(eventName, ...)
