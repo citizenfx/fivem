@@ -363,6 +363,13 @@ std::string ToNarrow(const std::wstring& wide)
 	return std::string(outVec.begin(), outVec.end());
 }
 
+#ifndef _WIN32
+std::string ToNarrow(const fwPlatformString& wide)
+{
+	return (std::string) wide;
+}
+#endif
+
 std::wstring ToWide(const std::string& narrow)
 {
 	std::vector<uint8_t> cleanVec;

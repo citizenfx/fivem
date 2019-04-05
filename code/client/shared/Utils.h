@@ -275,6 +275,9 @@ void SetThreadName(int threadId, const char* threadName);
 
 std::wstring ToWide(const std::string& narrow);
 std::string ToNarrow(const std::wstring& wide);
+#ifndef _WIN32
+std::string ToNarrow(const fwPlatformString& wide);
+#endif
 
 #ifdef COMPILING_CORE
 extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();
