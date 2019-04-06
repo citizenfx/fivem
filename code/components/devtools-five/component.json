@@ -8,6 +8,7 @@
 		"gta:core",
 		"gta:streaming",
 		"gta:mission-cleanup",
+		"citizen:resources:client",
 		"citizen:resources:core",
 		"citizen:scripting:core"
 	],
