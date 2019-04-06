@@ -344,6 +344,9 @@ private:
 public:
 	std::vector<std::weak_ptr<sync::SyncEntityState>> m_entitiesById;
 
+	// this mutex is needed at least until C++20 std::atomic<std::weak_ptr<..>> reaches implementations
+	std::shared_mutex m_entitiesByIdMutex;
+
 	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
 	std::shared_mutex m_entityListMutex;
 };

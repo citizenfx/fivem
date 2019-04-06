@@ -290,6 +290,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 	uint16_t objIdAlias = objectId;
 	debug::Alias(&objIdAlias);
 
+	std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
 	auto ptr = m_entitiesById[objectId];
 
 	return ptr.lock();
@@ -307,6 +308,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
 	{
 		if (guidData->type == ScriptGuid::Type::Entity)
 		{
+			std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
 			auto ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
 
 			return ptr.lock();
@@ -1288,14 +1290,18 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			m_objectIdsUsed.reset(set & 0xFFFF);
 		}
 
-		auto entity = m_entitiesById[set & 0xFFFF];
-
 		{
-			auto entityRef = entity.lock();
+			std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
 
-			if (entityRef)
+			auto entity = m_entitiesById[set & 0xFFFF];
+
 			{
-				OnCloneRemove(entityRef);
+				auto entityRef = entity.lock();
+
+				if (entityRef)
+				{
+					OnCloneRemove(entityRef);
+				}
 			}
 		}
 
@@ -1312,8 +1318,12 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			}
 		}
 
-		// unset weak pointer, as well
-		m_entitiesById[set & 0xFFFF] = {};
+		{
+			std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+
+			// unset weak pointer, as well
+			m_entitiesById[set & 0xFFFF] = {};
+		}
 
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
 		{
@@ -1397,8 +1407,7 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 	auto playerId = 0;
 	auto objectId = inPacket.Read<uint16_t>(13);
 
-	auto ptr = m_entitiesById[objectId];
-	auto entity = ptr.lock();
+	auto entity = GetEntity(0, objectId);
 
 	if (entity)
 	{
@@ -1442,9 +1451,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	auto objectId = inPacket.Read<uint16_t>(13);
 
 	// TODO: verify ownership
-	auto ptr = m_entitiesById[objectId];
-
-	auto entity = ptr.lock();
+	auto entity = GetEntity(0, objectId);
 
 	if (entity)
 	{
@@ -1485,7 +1492,10 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	}
 
 	// unset weak pointer, as well
-	m_entitiesById[objectId] = {};
+	{
+		std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+		m_entitiesById[objectId] = {};
+	}
 
 	// these seem to cause late deletes of state on client, leading to excessive sending of creates
 	/*ackPacket.Write<uint8_t>(3);
@@ -1576,7 +1586,10 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 			createdHere = true;
 
-			m_entitiesById[objectId] = entity;
+			{
+				std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+				m_entitiesById[objectId] = entity;
+			}
 		}
 		else
 		{
@@ -1854,6 +1867,8 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 			auto [data, lock] = GetClientData(this, client);
 			int used = 0;
 
+			std::shared_lock<std::shared_mutex> entityListLock(m_entitiesByIdMutex);
+
 			for (auto object : data->objectIds)
 			{
 				if (!m_entitiesById[object].expired())
@@ -1995,8 +2010,7 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("ccack"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
-			auto entityPtr = instance->GetComponent<fx::ServerGameState>()->m_entitiesById[buffer.Read<uint16_t>()];
-			auto entity = entityPtr.lock();
+			auto entity = instance->GetComponent<fx::ServerGameState>()->GetEntity(0, buffer.Read<uint16_t>());
 
 			if (entity && entity->syncTree)
 			{
